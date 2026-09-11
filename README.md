@@ -1,26 +1,58 @@
-# Verifying concurrent, crash-safe systems with Perennial
+# etcd-grove: verifying etcd with Perennial
 
-[![CI](https://github.com/mit-pdos/perennial/actions/workflows/ci.yml/badge.svg)](https://github.com/mit-pdos/perennial/actions/workflows/ci.yml)
+[![CI](https://github.com/upamanyus/etcd-grove/actions/workflows/ci.yml/badge.svg)](https://github.com/upamanyus/etcd-grove/actions/workflows/ci.yml)
 
-Perennial is a system for verifying correctness for systems with both
+etcd-grove is a fork of [Perennial](https://github.com/mit-pdos/perennial)
+dedicated to verifying [etcd](https://github.com/etcd-io/etcd), starting with
+its Raft implementation.
+
+Perennial is a framework for verifying correctness of systems with both
 concurrency and crash-safety requirements, including recovery procedures. It
-also includes Grove, an extension for verifying distributed systems, including
-reasoning about concurrency, crashes, and recovery of individual nodes. The
-program logic is built on top of Iris.
+also includes Grove, an extension for verifying distributed systems. The
+program logic is built on top of [Iris](https://iris-project.org/), and
+[Goose](https://github.com/goose-lang/goose) is used to translate Go programs
+into a model in Rocq.
 
-Perennial uses [Goose](https://github.com/goose-lang/goose) to enable
-verification of programs written in (a subset of) Go.
+Everything upstream Perennial provides is still here; this fork adds the etcd
+proofs and drops upstream-only release/paper infrastructure. See
+[CONTRIBUTING.md](./CONTRIBUTING.md).
 
-This repository also includes proofs for several systems verified using the
-Perennial and Grove program frameworks; see the publications list at the bottom
-for an overview.
+## Where the etcd proofs live
 
-See also [CONTRIBUTING.md](./CONTRIBUTING.md).
+Goose translates Go import paths into directory paths, so the etcd material is
+in predictable places:
+
+- `new/code/go_etcd_io/` — Goose output for etcd and Raft. **Auto-generated; do
+  not edit.**
+- `new/generatedproof/go_etcd_io/` — auto-generated boilerplate proofs. **Do not
+  edit.**
+- `new/proof/go_etcd_io/raft/` — the Raft proof. `v3.v` holds the per-function
+  proofs; `v3_proof/` holds the protocol-level development (`base.v`,
+  `protocol.v`, `readonly.v`).
+- `new/proof/go_etcd_io/etcd/` — proofs for the rest of etcd (client, server,
+  api, pkg).
+
+The Go sources being verified are not in this repo. They are tracked in
+separate forks, wired up in `new/etc/update-goose-new.py` and
+`etc/ci-goose-check.py`:
+
+- [upamanyus/etcd-raft](https://github.com/upamanyus/etcd-raft) (branch `goose`)
+- [upamanyus/etcd](https://github.com/upamanyus/etcd) (branch `goose`)
+
+Regenerate the Goose output with `new/etc/update-goose-new.py`; CI checks it is
+in sync with `etc/ci-goose-check.py`.
+
+## Notes for humans and agents
+
+Durable project context — current status, design decisions, gotchas, and a
+session journal — lives in [`notes/`](./notes/README.md). Read
+[`notes/STATUS.md`](./notes/STATUS.md) first. Coding agents are pointed at the
+same place by [`AGENTS.md`](./AGENTS.md).
 
 ## Compiling
 
-We develop Perennial using the latest stable Rocq and maintain compatibility
-with Rocq master.
+We develop against the latest stable Rocq and maintain compatibility with Rocq
+master.
 
 Install the dependencies with
 `opam pin add -n .; opam install --deps-only ./perennial.opam`. Re-run this
@@ -36,10 +68,10 @@ integration by setting `.envrc` to `use flake`.
 
 ## New goose
 
-We are in the process of migrating to "new Goose", a backwards-incompatible
-change to Goose. Most of the Perennial side of the development of new goose is
-in `new/`, with the important caveat that new goose is built on top of the core
-`goose_lang/` language and its instantiation.
+Perennial is in the process of migrating to "new Goose", a
+backwards-incompatible change to Goose. All of the etcd work uses new goose,
+which lives in `new/`, with the important caveat that new goose is built on top
+of the core `goose_lang/` language and its instantiation.
 
 ## Source organization
 
@@ -59,10 +91,8 @@ in `new/`, with the important caveat that new goose is built on top of the core
 
 - `program_proof/`
 
-  The proofs about programs we have so far. At this point, there are enough that
-  it is difficult to keep them documented here. In new goose, proofs are placed
-  in predictable locations based on their Go module path, so it is easy to
-  identify the source code being verified.
+  Old-goose proofs about programs. At this point, there are enough that it is
+  difficult to keep them documented here.
 
 - `Helpers/`
   - `Integers.v` Wrapper around `coqutil`'s word library for u64, u32, and u8.
@@ -74,12 +104,28 @@ in `new/`, with the important caveat that new goose is built on top of the core
 
   extensions to Iris.
 
-It's also worth noting that `external/Goose` contains committed copies of the
-Goose output on some real code we have. This includes
-`github.com/tchajed/marshal` and `github.com/mit-pdos/goose-nfsd`. The directory
-structure here mirrors the way Go import paths work.
+`new/` holds the new-goose development, including all of the etcd work. See
+`new/proof/PERENNIAL_PROOF_TUTORIAL.md` for a tutorial on writing program
+proofs and `new/proof/PERENNIAL_PROOF_REFERENCE.md` for a reference.
+
+`goose/` is the Goose translator itself (Go source). Note that its Go module
+path is still `github.com/mit-pdos/perennial`, which keeps this fork mergeable
+with upstream; it has no bearing on the etcd proofs.
+
+## Upstream
+
+To pull in upstream Perennial changes:
+
+```sh
+git remote add upstream https://github.com/mit-pdos/perennial.git  # once
+git fetch upstream
+git merge upstream/master
+```
 
 ## Publications
+
+Perennial and Grove are described in the following papers from the upstream
+project.
 
 Grove (as well as some examples verified using it) is described in
 "[Grove: a Separation-Logic Library for Verifying Distributed
@@ -101,21 +147,6 @@ Gibson's masters thesis,
 "[Waddle: A proven interpreter and test framework for a subset of the Go
 semantics](https://pdos.csail.mit.edu/papers/gibsons-meng.pdf)".
 
-The proofs for GoJournal are now in
-[mit-pdos/gojournal-proof](https://github.com/mit-pdos/gojournal-proof). The
-proof of GoJournal's correctness is described in the OSDI paper,
-"[GoJournal: a verified, concurrent, crash-safe journaling
-system](https://www.chajed.io/papers/gojournal:osdi2021.pdf)". The transaction
-system built on top, used for DaisyNFS, is described in Mark Theng's masters
-thesis,
-"[GoTxn: Verifying a Crash-Safe, Concurrent Transaction
-System](https://pdos.csail.mit.edu/papers/mtheng-meng.pdf)". The framework has
-evolved in several ways since then. See the tag `osdi21` for the version used
-there.
-
-Perennial 1 is described in our SOSP paper,
+Perennial 1 is described in the SOSP paper,
 "[Verifying concurrent, crash-safe
 systems with Perennial](https://www.chajed.io/papers/perennial:sosp2019.pdf)".
-The actual codebase was quite different at the time of this paper; it notably
-used a shallow embedding of Goose and does not have the same program logic. See
-the tag `sosp2019` for this version of Perennial.

@@ -1,5 +1,5 @@
 [project]
-name = "perennial"
+name = "etcd-grove"
 version = "2024.0.0"
 dependencies = ["ruff==0.16.5"]
 

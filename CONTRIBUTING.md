@@ -1,18 +1,28 @@
-# Contributing to Perennial
+# Contributing to etcd-grove
+
+## Project notes
+
+Durable project context — current status, design decisions, gotchas, and a
+session journal — lives in [notes/](./notes/README.md). Read
+[notes/STATUS.md](./notes/STATUS.md) before starting, and update `notes/` when
+you finish. Coding agents are pointed at the same place by
+[AGENTS.md](./AGENTS.md), and there are hooks in
+[.claude/settings.json](./.claude/settings.json) that keep it in the loop.
 
 ## Default build
 
 Not everything in the repo is built by default, even in CI. In order to be
-compiled, a file must be `Require`d from `src/ShouldBuild.vo` (which already includes
-`new/should_build.vo` for new goose proofs).
+compiled, a file must be `Require`d from `new/should_build.v`, which is what
+`make ci` builds.
 
 ## CI notes
 
-Rocq's CI checks the Perennial build on every commit to Rocq. In order to avoid
-breaking Rocq CI, they build a branch called `coq/tested` which we push to
-automatically only when perennial master's CI passes. They also only run `make
-lite`, which compiles `src/LiteBuild.v`, a representative subset of Perennial
-that takes much less time to build.
+CI runs on pushes and PRs to `main`, nightly, and on demand
+(see [.github/workflows/](.github/workflows/)).
+
+Upstream Perennial additionally pushes a `coq/tested` branch that Rocq's own CI
+builds against. That is upstream's arrangement, not ours, so the workflow for it
+is not in this fork.
 
 We skip running Qed commands in CI using
 [etc/disable-qed.sh](./etc/disable-qed.sh) - see that script for details. This
@@ -23,17 +33,16 @@ reduces build times by about 10%.
 The dependencies are pinned to a particular commit hash (using an opam
 `pin-depends` clause) to avoid breaking the
 Perennial build when there are incompatible upstream changes. We use Dependabot
-to do daily checks for dependency updates (see
+to do monthly checks for dependency updates (see
 [.github/dependabot.yml](.github/dependabot.yml) and read the GitHub
-documentation). In addition, a workflow
-[dependabot-automerge.yml](.github/workflows/dependabot-automerge.yml)
-automatically merges these (this depends on a GitHub Ruleset to ensure CI passes
-before the PR is merged).
+documentation). Unlike upstream, these are **not** auto-merged: upstream's
+auto-merge workflow relies on a GitHub Ruleset that gates merging on CI, which
+this fork does not have, so review and merge them yourself.
 
 ## Tips for managing compilation time
 
-Perennial takes about 180 CPU minutes to compile. Compiling in parallel with
-`make -j4` (or more) is significantly faster, and can cut the time down to 40-50
+The repo takes about 180 CPU minutes to compile from scratch. Compiling in
+parallel with `make -j4` (or more) is significantly faster, and can cut the time down to 40-50
 minutes. Incremental builds are generally much faster.
 
 You can compile individual files by simply running `make` with the path to a
@@ -63,23 +72,20 @@ use `--help` to access some other features.
 
 This repo has committed versions of the output of Goose, to avoid making Goose
 and all the projects involved dependencies for compilation. You should update
-these using the `./etc/update-goose.py` and `./new/etc/update-goose.py` scripts,
-which record exactly how to generate the output for the various Goose projects
-we have (in particular, the list of packages that should be translated).
+these using `./new/etc/update-goose-new.py`, which records exactly how to
+generate the output for the various Goose projects we have (in particular, the
+list of packages that should be translated), including
+[upamanyus/etcd-raft](https://github.com/upamanyus/etcd-raft) and
+[upamanyus/etcd](https://github.com/upamanyus/etcd).
 
 You can run `./etc/ci-goose-check.py` to clone all the projects whose proofs are
-included in this repo and run both update-goose scripts. This is what the
-check-goose CI job does.
+included in this repo and re-run the translation. This is what the check-goose
+CI job does.
 
-You can use `./etc/update-goose.py -a` to build all supported projects, assuming
-they are checked out as siblings.
-
-If you submit a PR to goose that changes the output, submit a PR to perennial
-(this repo) in parallel and **link to the goose PR in the description**. This link
-causes the perennial CI to build against your PR, so that the CI check-goose job
-passes while the goose PR is open. This feature is implemented by
-`etc/ci-use-goose-pr`, which reads the PR description and identifies the
-corresponding goose branch using the GitHub API.
+Because the Go sources live in separate repos, a change to them is a two-commit
+affair: push the Go change to the relevant fork's `goose` branch, then
+re-run the update script here and commit the regenerated `new/code/` and
+`new/generatedproof/` output.
 
 ## Integer templating
 

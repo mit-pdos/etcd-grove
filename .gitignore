@@ -32,9 +32,7 @@
 __pycache__
 .mypy_cache
 *.pyc
-
-# Compiled code supplement
-/peony-code.zip
+.ruff_cache
 
 # direnv 
 .direnv

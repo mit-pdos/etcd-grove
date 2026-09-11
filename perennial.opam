@@ -1,18 +1,18 @@
 opam-version: "2.0"
-maintainer: "Tej Chajed <chajed@wisc.edu>"
+maintainer: "Upamanyu Sharma <upamanyu@mit.edu>"
 authors: "The Perennial Team"
 license: "MIT"
-homepage: "https://github.com/mit-pdos/perennial"
-bug-reports: "https://github.com/mit-pdos/perennial/issues"
-dev-repo: "git+https://github.com/mit-pdos/perennial.git"
+homepage: "https://github.com/upamanyus/etcd-grove"
+bug-reports: "https://github.com/upamanyus/etcd-grove/issues"
+dev-repo: "git+https://github.com/upamanyus/etcd-grove.git"
 version: "dev"
 
-synopsis: "A framework for verifying concurrent, crash-safe, distributed systems written in Go"
+synopsis: "Verification of etcd, built on the Perennial framework"
 description: """
-Perennial is a framework for verifying the correctness of systems programs. It
-supports concurrency, crash-consistency proofs, and distributed systems.
-Perennial works together with Goose to be powerful infrastructure for verifying
-Go programs. It is built on top of the Iris separation logic.
+etcd-grove is a fork of Perennial (https://github.com/mit-pdos/perennial) used
+to verify etcd, starting with its Raft implementation. It keeps Perennial's
+Rocq logical paths (Perennial, New) and the Goose toolchain, and adds the etcd
+proofs under new/proof/go_etcd_io/.
 """
 tags: [
   "logpath:Perennial"

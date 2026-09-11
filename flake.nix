@@ -1,5 +1,5 @@
 {
-  description = "A Flake for Perennial development, with Goose and Grackle";
+  description = "A Flake for etcd-grove (Perennial) development, with Goose and Grackle";
 
   inputs = {
     nixpkgs.url = "github:/NixOS/nixpkgs/nixos-unstable";
