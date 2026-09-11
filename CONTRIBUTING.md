@@ -3,11 +3,10 @@
 ## Project notes
 
 Durable project context — current status, design decisions, gotchas, and a
-session journal — lives in [notes/](./notes/README.md). Read
-[notes/STATUS.md](./notes/STATUS.md) before starting, and update `notes/` when
+session journal — lives in [notes/](./notes/README.md), as plain markdown. Read
+[notes/STATUS.md](./notes/STATUS.md) before starting, and update the notes when
 you finish. Coding agents are pointed at the same place by
-[AGENTS.md](./AGENTS.md), and there are hooks in
-[.claude/settings.json](./.claude/settings.json) that keep it in the loop.
+[AGENTS.md](./AGENTS.md).
 
 ## Default build
 

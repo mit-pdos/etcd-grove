@@ -4,7 +4,7 @@ Traps that have already cost time. Add to this whenever something
 non-obvious bites you — one entry, what happened, what to do instead.
 
 Keep entries short. If an entry grows past a paragraph it probably wants to be
-a `topics/` note with a pointer from here.
+its own topic file in `notes/`, with a pointer from here.
 
 ---
 

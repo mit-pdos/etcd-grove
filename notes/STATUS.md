@@ -93,4 +93,4 @@ Unclaimed; pick one and say so in the journal.
   depends on. See `CONTRIBUTING.md`.
 - The Go module path here is still `github.com/mit-pdos/perennial` and the Rocq
   logical paths are still `Perennial`/`New`, on purpose — see
-  [decisions/0001-keep-upstream-module-and-logical-paths.md](decisions/0001-keep-upstream-module-and-logical-paths.md).
+  [decisions.md](decisions.md).

@@ -45,9 +45,10 @@ in sync with `etc/ci-goose-check.py`.
 ## Notes for humans and agents
 
 Durable project context — current status, design decisions, gotchas, and a
-session journal — lives in [`notes/`](./notes/README.md). Read
-[`notes/STATUS.md`](./notes/STATUS.md) first. Coding agents are pointed at the
-same place by [`AGENTS.md`](./AGENTS.md).
+session journal — lives in [`notes/`](./notes/README.md), as plain markdown
+with no tooling around it. Read [`notes/STATUS.md`](./notes/STATUS.md) first,
+and update the notes when you finish. Coding agents are pointed at the same
+place by [`AGENTS.md`](./AGENTS.md).
 
 ## Compiling
 
