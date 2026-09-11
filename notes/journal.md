@@ -77,3 +77,23 @@ Claude Opus 5, on Upamanyu's correction.
   `goose-workflow.md`, `decisions.md`, `journal.md`, `README.md`. Nothing
   enforces that they get updated; that is deliberate. Still no `.v` changes, so
   the Rocq build is untouched.
+
+## 2026-09-11 — Merged the fork setup onto `main`
+
+Claude Opus 5.
+
+- **Did:** fast-forwarded `main` onto the setup branch, then merged
+  `origin/main`, which had picked up PR #2 (`actions/setup-go` 6 → 7) in the
+  meantime. One conflict: `.github/workflows/opam-update.yml`, modified there
+  and deleted here — kept deleted. `ci.yml` and `goose.yml` auto-merged, taking
+  both the `setup-go@v7` bump and the `master` → `main` trigger fix.
+- **Learned — the dependabot auto-merge risk was real, not hypothetical.** PR
+  #2 was auto-merged into this fork's `main` by `dependabot-automerge.yml`
+  **with no CI run at all**. Verified: at commit `8222672f6`, `ci.yml`'s
+  `pull_request` trigger filtered on base branch `master`, so a PR against
+  `main` never triggered it, and upstream's GitHub Ruleset (which is what gates
+  the auto-merge on passing CI) does not exist on this fork. So the workflow
+  was merging dependency bumps blind. Deleting it was right; the earlier entry
+  described this as a risk, and this is it happening.
+- **Left:** `main` carries the fork setup and is pushed. The `python` CI job is
+  expected to go red on this push — see "Known broken" in `STATUS.md`.
