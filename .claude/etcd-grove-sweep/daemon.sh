@@ -21,6 +21,7 @@ IDLE_TIMEOUT=600
 log() { echo "[$(date -Iseconds)] $*"; }
 
 mkdir -p "$STATE_DIR"
+daemon_start=$(date +%s)
 log "daemon started pid=$$ project=$PROJECT_DIR source=$SOURCE_DIR"
 
 if [ ! -d "$MIRROR_DIR/.git" ]; then
@@ -44,8 +45,13 @@ while true; do
   fi
   now=$(date +%s)
   idle=$(( now - latest_mtime ))
+  alive=$(( now - daemon_start ))
 
-  if [ "$latest_mtime" -eq 0 ] || [ "$idle" -gt "$IDLE_TIMEOUT" ]; then
+  # Being launched at all is evidence of current activity, and the write that
+  # triggered this launch may not have hit disk yet - so never self-terminate
+  # before this daemon has been alive for a full IDLE_TIMEOUT itself, even if
+  # pre-existing files already looked stale at startup.
+  if { [ "$latest_mtime" -eq 0 ] || [ "$idle" -gt "$IDLE_TIMEOUT" ]; } && [ "$alive" -gt "$IDLE_TIMEOUT" ]; then
     log "idle ${idle}s (limit ${IDLE_TIMEOUT}s), stopping"
     rm -f "$PIDFILE"
     exit 0
