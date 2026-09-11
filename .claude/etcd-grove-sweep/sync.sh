@@ -8,9 +8,10 @@
 #
 # Two things about where transcripts live drive the design:
 #
-#  - A project's transcripts are ~/.claude/projects/<cwd with '/' -> '-'>, and a
-#    git worktree has its own cwd, hence its own project dir. Every worktree of
-#    this repo therefore has to be swept, not just the checkout whose hook fired.
+#  - A project's transcripts are ~/.claude/projects/<slug of the session cwd>,
+#    and a git worktree has its own cwd, hence its own project dir. Every
+#    worktree of this repo therefore has to be swept, not just the checkout
+#    whose hook fired.
 #  - Subagent chats are *.jsonl nested under <session-id>/subagents/, so the
 #    sweep recurses rather than globbing the top level of each project dir.
 
@@ -23,9 +24,11 @@ REMOTE="git@github.com:upamanyus/etcd-grove-prompts.git"
 
 mkdir -p "$STATE_DIR"
 
-# Re-exec detached. Hooks must not block the session, and SessionEnd hooks share
-# a 1.5s budget, so a push that ran inline would be killed before finishing.
-if [ -z "${SWEEP_DETACHED:-}" ]; then
+# Re-exec detached when run from a hook. Hooks must not block the session, and
+# SessionEnd hooks share a 1.5s budget a push that ran inline would exceed.
+# Run by hand from a terminal it stays in the foreground and reports to stdout,
+# so you can see the push land when you want a transcript saved right now.
+if [ -z "${SWEEP_DETACHED:-}" ] && [ ! -t 1 ]; then
   SWEEP_DETACHED=1 setsid nohup "$0" >>"$LOG" 2>&1 </dev/null &
   exit 0
 fi
@@ -55,9 +58,9 @@ fi
 sources=()
 while IFS= read -r worktree; do
   [ -n "$worktree" ] || continue
-  source="$HOME/.claude/projects/$(printf '%s' "$worktree" | tr -c 'A-Za-z0-9_-' '-')"
-  if [ -d "$source" ]; then
-    sources+=("$source")
+  src="$HOME/.claude/projects/$(printf '%s' "$worktree" | tr -c 'A-Za-z0-9_-' '-')"
+  if [ -d "$src" ]; then
+    sources+=("$src")
   else
     log "no transcripts for $worktree (no session ran there, or the slug rule changed)"
   fi
@@ -89,10 +92,10 @@ for attempt in 1 2 3; do
   fi
 
   mkdir -p "$MIRROR_DIR/sessions"
-  for source in "${sources[@]}"; do
+  for src in "${sources[@]}"; do
     # Live sessions are appended to as this runs, so the final line of a
     # transcript can land truncated; the next pass copies it whole.
-    ( cd "$source" && find . -name '*.jsonl' -print0 |
+    ( cd "$src" && find . -name '*.jsonl' -print0 |
         xargs -0 -r cp -a --parents -t "$MIRROR_DIR/sessions/" )
   done
 
