@@ -97,3 +97,22 @@ Claude Opus 5.
   described this as a risk, and this is it happening.
 - **Left:** `main` carries the fork setup and is pushed. The `python` CI job is
   expected to go red on this push — see "Known broken" in `STATUS.md`.
+
+## 2026-09-11 — Tried `rocq-warm` on `readonly.v`
+
+Claude Opus 5. No `.v` changes; this was a tooling question.
+
+- **Did:** installed [rocq-warm](https://github.com/zeldovich/rocq-warm)
+  (clone to `~/src/rocq-warm`, symlink into `~/.local/bin`) and ran it against
+  `new/proof/go_etcd_io/raft/v3_proof/readonly.v`. Cold: OK, 829/829
+  sentences, 98s, 3.5 GB. Warm re-check: OK, 0/829 sentences replayed, 0.0s.
+- **Learned:** it gates on `.vo` freshness using make's rule, and this tree is
+  `vos`-only (`make vos` writes no `.vo`), so every dependency reads as "has
+  not been built" and a plain check exits 2. `--allow-stale` gets past it, and
+  is sound here because `rocq repl` loads the `.vos` fine — verified with
+  `Print Libraries` that `v3_proof.protocol` really is loaded, not silently
+  skipped. Recorded in `gotchas.md`.
+- **Left:** nothing in the proof moved. rocq-warm is not wired into the
+  `Makefile` and should not be — it checks a single file and writes no `.vo`
+  without `--compile`, so it is an inner-loop convenience next to `make vos`,
+  not a build step.

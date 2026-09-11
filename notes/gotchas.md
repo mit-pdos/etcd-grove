@@ -25,6 +25,25 @@ machine-written and not idiomatic.
 silently rot, because nothing requires them. Add the `Require` when you add the
 file.
 
+## `rocq-warm` refuses a `vos`-only tree unless you pass `--allow-stale`
+
+[rocq-warm](https://github.com/zeldovich/rocq-warm) keeps a `rocq repl` warm
+and replays only from the edited sentence onward, which suits the inner loop
+here: `readonly.v` is 98s cold and 0.0s on an unchanged re-check.
+
+Its staleness check is make's rule over `.vo` files, but the normal loop in
+this repo is `make vos`, which writes no `.vo` at all. So every dependency
+reports "has not been built" and a plain check exits 2. Rocq itself is happy —
+`Require` falls back to `.vos` — so the fix is to tell rocq-warm to proceed:
+
+    rocq-warm check new/proof/go_etcd_io/raft/v3_proof/readonly.v --allow-stale
+
+It reads `_RocqProject` (it looks for both names), so the load path is right
+with no extra flags, and it uses whatever `rocq` your shell resolves — activate
+the opam switch first, as for a raw `coqc`. `--allow-stale` is unnecessary
+after a full `make`. It never writes a `.vo` unless you pass `--compile`, so it
+checks one file; it does not replace `make` for anything that requires it.
+
 ## Go sources live in other repos
 
 `go_etcd_io/...` paths in `new/code/` come from Goose translating the Go import
