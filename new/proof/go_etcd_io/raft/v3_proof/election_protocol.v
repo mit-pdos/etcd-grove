@@ -307,6 +307,19 @@ Proof.
   done.
 Qed.
 
+(** Taking a step that consumes one known message and sends one. *)
+Lemma own_raft_ghost_step_1_1 γ cfg id s m s' m' :
+  step cfg id s [m] s' [m'] →
+  is_message γ m -∗
+  own_raft_ghost γ id s ={⊤}=∗
+  own_raft_ghost γ id s' ∗ is_message γ m'.
+Proof.
+  iIntros (Hstep) "#Hm Hown".
+  iMod (own_raft_ghost_step _ _ _ _ _ _ _ Hstep with "[] Hown") as "[$ Hs]".
+  { by iFrame "#". }
+  by iDestruct "Hs" as "[$ _]".
+Qed.
+
 (** Taking a step that consumes nothing and sends nothing. *)
 Lemma own_raft_ghost_step_0 γ cfg id s s' :
   step cfg id s [] s' [] →

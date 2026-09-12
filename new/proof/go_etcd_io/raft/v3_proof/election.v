@@ -21,11 +21,13 @@
 
 Require Export New.proof.go_etcd_io.raft.v3_proof.base.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election_protocol.
+From New.proof Require Import bytes.
 
 Section proof.
 Context `{hG: heapGS Σ, !ffi_semantics _ _}.
 Context {sem : go.Semantics} {package_sem : raft.Assumptions}.
-Collection W := sem + package_sem.
+Context {bytes_sem : bytes.Assumptions}.
+Collection W := sem + package_sem + bytes_sem.
 Set Default Proof Using "W".
 
 (** The (fixed) set of voters. *)
@@ -60,6 +62,10 @@ Definition campaignTransfer : raft.CampaignType.t := "CampaignTransfer"%go.
 Definition VotePending : w8 := W8 1.
 Definition VoteLost : w8 := W8 2.
 Definition VoteWon : w8 := W8 3.
+
+(** Discharge a goal [¬ (W32 a = W32 b)] for distinct literals. *)
+Local Ltac w32_ne :=
+  intros Heq; apply (f_equal uint.Z) in Heq; vm_compute in Heq; discriminate.
 
 Definition state_w64 (ro : role.t) : w64 :=
   match ro with
@@ -185,27 +191,23 @@ Axiom wp_campaign_peer_ids : ∀ (trk : loc) votes,
     Every [Logger] method used on the election path returns unit and has no
     observable effect.  [Panicf]/[Panic] are only reached on paths shown
     unreachable, so they get the same (vacuously usable) spec. *)
-Axiom is_Logger_ok : interface.t_ok → iProp Σ.
-Axiom is_Logger_ok_pers : ∀ l, Persistent (is_Logger_ok l).
-#[global] Existing Instance is_Logger_ok_pers.
+Axiom is_Logger : interface.t_ok → iProp Σ.
+Axiom is_Logger_pers : ∀ l, Persistent (is_Logger l).
+#[global] Existing Instance is_Logger_pers.
+
+(** The formatting log methods.  Deliberately *not* [Panic]/[Panicf]: those
+    do not return, so a path that reaches one has to be shown unreachable
+    rather than assumed away. *)
+Definition log_methods : list go_string :=
+  ["Info"%go; "Infof"%go; "Debug"%go; "Debugf"%go;
+   "Warning"%go; "Warningf"%go; "Error"%go; "Errorf"%go].
 
 Axiom wp_Logger__logf : ∀ (l : interface.t_ok) (meth : go_string)
                           (format : go_string) (args : slice.t),
-  meth ∈ (["Infof"%go; "Debugf"%go; "Warningf"%go; "Errorf"%go] : list go_string) →
-  {{{ is_Logger_ok l }}}
+  meth ∈ log_methods →
+  {{{ is_Logger l }}}
     #(methods l.(interface.ty) meth l.(interface.v)) #format #args
   {{{ RET #(); True }}}.
-
-(** The logger stored in the struct, which must not be nil. *)
-Definition is_Logger (l : raft.Logger.t) : iProp Σ :=
-  ∃ lok : interface.t_ok, ⌜ l = interface.ok lok ⌝ ∗ is_Logger_ok lok.
-
-#[global] Instance is_Logger_pers l : Persistent (is_Logger l).
-Proof. apply _. Qed.
-
-Axiom is_TraceLogger : raft.TraceLogger.t → iProp Σ.
-Axiom is_TraceLogger_pers : ∀ l, Persistent (is_TraceLogger l).
-#[global] Existing Instance is_TraceLogger_pers.
 
 (** *** The parts of the raft struct election neither reads nor writes:
     the read-state slice, the read-only queue, and the pending
@@ -250,13 +252,24 @@ Axiom wp_raft__appendEmptyEntry : ∀ (r : loc) l (es : slice.t),
 
 End helper_axioms.
 
+(** Step over one logging call: build the variadic argument slice, then
+    apply the logger spec.  Expects [is_Logger] under the name [Hlogger]. *)
+Local Ltac wp_log lok_eq :=
+  wp_apply wp_slice_literal;
+  [ iSplitR;
+    [ done
+    | iIntros "% [? _]"; try wp_auto; rewrite lok_eq; try wp_auto;
+      wp_apply (wp_Logger__logf with "Hlogger") as "_";
+      [ rewrite /log_methods; set_solver | ] ] ].
+
 (** ** Physical ownership of the raft struct
 
     [own_raft_phys γ r id s] is full ownership of the [raft] struct at [r],
     in a state that refines the protocol state [s], and whose two outgoing
     message queues contain only messages [γ] certifies as protocol-legal. *)
 Definition own_raft_phys γ (r : loc) (id : w64) s : iProp Σ :=
-  ∃ (rv : raft.raft.t) (msgs msgsAA : list raftpb.Message.t),
+  ∃ (rv : raft.raft.t) (msgs msgsAA : list raftpb.Message.t)
+    (lok : interface.t_ok),
   "Hr" ∷ r ↦ rv ∗
 
   (** the abstraction relation *)
@@ -291,8 +304,8 @@ Definition own_raft_phys γ (r : loc) (id : w64) s : iProp Σ :=
   "%Hid_nz" ∷ ⌜ id ≠ W64 0 ⌝ ∗
 
   (** logging, tracing, and everything else *)
-  "#Hlogger" ∷ is_Logger rv.(raft.raft.logger') ∗
-  "#Htracer" ∷ is_TraceLogger rv.(raft.raft.traceLogger') ∗
+  "%Hlok" ∷ ⌜ rv.(raft.raft.logger') = interface.ok lok ⌝ ∗
+  "#Hlogger" ∷ is_Logger lok ∗
   "Hmisc" ∷ own_raft_misc rv.(raft.raft.readStates') rv.(raft.raft.readOnly')
              rv.(raft.raft.pendingReadIndexMessages').
 
@@ -315,7 +328,8 @@ Lemma wp_raft__send_vote γ r id s (m : raftpb.Message.t) ty :
   (m.(raftpb.Message.Type') = MsgVote → m.(raftpb.Message.To') ≠ id) →
   {{{ is_pkg_init raft ∗
       "Hphys" ∷ own_raft_phys γ r id s ∗
-      "#Hm" ∷ is_message γ (abs_msg ty (m <| raftpb.Message.From' := id |>))
+      "#Hm" ∷ is_message γ (msg.mk ty id m.(raftpb.Message.To')
+                              m.(raftpb.Message.Term') m.(raftpb.Message.Reject'))
   }}}
     r @! (go.PointerType raft.raft) @! "send" #m
   {{{ RET #(); own_raft_phys γ r id s }}}.
@@ -333,9 +347,9 @@ Proof.
     rewrite Hvt /MsgVote bool_decide_eq_true_2 //. wp_auto.
     rewrite bool_decide_eq_false_2 //. wp_auto.
     (* [MsgVote] is none of the response types *)
-    rewrite Hvt /MsgVote bool_decide_eq_false_2; last (intros H; word). wp_auto.
-    rewrite Hvt /MsgVote bool_decide_eq_false_2; last (intros H; word). wp_auto.
-    rewrite Hvt /MsgVote bool_decide_eq_false_2; last (intros H; word). wp_auto.
+    rewrite Hvt /MsgVote bool_decide_eq_false_2; last w32_ne. wp_auto.
+    rewrite Hvt /MsgVote bool_decide_eq_false_2; last w32_ne. wp_auto.
+    rewrite Hvt /MsgVote bool_decide_eq_false_2; last w32_ne. wp_auto.
     (* not self-addressed *)
     rewrite Hid bool_decide_eq_false_2; last exact (Hself Hvt). wp_auto.
     wp_apply wp_slice_literal. iSplitR; first done.
@@ -348,15 +362,15 @@ Proof.
     wp_apply (wp_traceSendMessage with "[$Hmisc]") as "Hmisc".
     iApply "HΦ". rewrite /own_raft_phys.
     iExists (rv <| raft.raft.msgs' := msgs' |>),
-            (msgs ++ [m <| raftpb.Message.From' := id |>]), msgsAA.
+            (msgs ++ [m <| raftpb.Message.From' := id |>]), msgsAA, lok.
     rewrite big_sepL_app big_sepL_singleton /=.
     iFrame "∗#%".
   - (* [MsgVoteResp] is a response, so it goes onto [r.msgsAfterAppend]. *)
-    rewrite Hvt /MsgVoteResp bool_decide_eq_false_2; last (intros H; word).
+    rewrite Hvt /MsgVoteResp bool_decide_eq_false_2; last w32_ne.
     wp_auto.
     rewrite Hvt /MsgVoteResp bool_decide_eq_true_2 //. wp_auto.
     rewrite bool_decide_eq_false_2 //. wp_auto.
-    rewrite Hvt /MsgVoteResp bool_decide_eq_false_2; last (intros H; word).
+    rewrite Hvt /MsgVoteResp bool_decide_eq_false_2; last w32_ne.
     wp_auto.
     rewrite Hvt /MsgVoteResp bool_decide_eq_true_2 //. wp_auto.
     wp_apply wp_slice_literal. iSplitR; first done.
@@ -369,9 +383,21 @@ Proof.
     wp_apply (wp_traceSendMessage with "[$Hmisc]") as "Hmisc".
     iApply "HΦ". rewrite /own_raft_phys.
     iExists (rv <| raft.raft.msgsAfterAppend' := msgsAA' |>),
-            msgs, (msgsAA ++ [m <| raftpb.Message.From' := id |>]).
+            msgs, (msgsAA ++ [m <| raftpb.Message.From' := id |>]), lok.
     rewrite big_sepL_app big_sepL_singleton /=.
     iFrame "∗#%".
+Qed.
+
+(** [voteRespMsgType] maps a vote request to its response type. *)
+Lemma wp_voteRespMsgType (t : w32) :
+  t = MsgVote →
+  {{{ is_pkg_init raft }}}
+    @! raft.voteRespMsgType #t
+  {{{ RET #MsgVoteResp; True }}}.
+Proof.
+  intros Ht. wp_start as "_". wp_auto.
+  rewrite Ht /MsgVote bool_decide_eq_true_2 //. wp_auto.
+  by iApply "HΦ".
 Qed.
 
 (** ** [reset]
@@ -665,10 +691,16 @@ Theorem wp_raft__Step_MsgVote γ r id s (m : raftpb.Message.t) :
   m.(raftpb.Message.Type') = MsgVote →
   m.(raftpb.Message.To') = id →
   m.(raftpb.Message.Term') ≠ W64 0 →
+  (* [send] stamps the sender's id into [From], and node ids are nonzero *)
+  m.(raftpb.Message.From') ≠ W64 0 →
   {{{ is_pkg_init raft ∗
       "Hphys" ∷ own_raft_phys γ r id s ∗
       "Hghost" ∷ own_raft_ghost γ id s ∗
-      "#Hm" ∷ is_message γ (abs_msg mtype.Vote m)
+      "#Hm" ∷ is_message γ (abs_msg mtype.Vote m) ∗
+      (* the message's [Context] is readable and is not the leader-transfer
+         marker: leader transfer is out of scope *)
+      "#Hctx" ∷ (∃ ctx, m.(raftpb.Message.Context') ↦*□ ctx ∗
+                        ⌜ ctx ≠ campaignTransfer ⌝)
   }}}
     r @! (go.PointerType raft.raft) @! "Step" #m
   {{{ (err : error.t) s', RET #err;
@@ -679,6 +711,97 @@ Theorem wp_raft__Step_MsgVote γ r id s (m : raftpb.Message.t) :
           step cfg id s recv s' sent ⌝ ∗
       "%Herr" ∷ ⌜ err = interface.nil ⌝ }}}.
 Proof.
+  intros Hty Hto Hterm Hfnz.
+  wp_start as "@". iNamed "Hphys". wp_auto.
+  wp_apply (wp_traceReceiveMessage with "[$Hmisc]") as "Hmisc".
+  (* [m.Term ≠ 0], so the first arm of the term preamble is skipped. *)
+  assert (bool_decide (m.(raftpb.Message.Term') = W64 0) = false) as Hz
+    by by apply bool_decide_eq_false_2.
+  rewrite Hz. rewrite bool_decide_eq_false_2; last done. wp_auto.
+  destruct (decide (uint.Z rv.(raft.raft.Term') < uint.Z m.(raftpb.Message.Term')))
+    as [Hgt|Hle].
+  - (* [m.Term > r.Term]: step down to follower first, then answer. *)
+    assert (bool_decide (uint.Z rv.(raft.raft.Term') <
+                         uint.Z m.(raftpb.Message.Term')) = true) as Hb
+      by by apply bool_decide_eq_true_2.
+    rewrite Hb. rewrite bool_decide_eq_true_2 //. wp_auto.
+    rewrite Hty /MsgVote bool_decide_eq_true_2 //. wp_auto.
+    (* [force] is false (not a leader transfer) and [inLease] is false (no
+       check-quorum), so the lease check does not drop the message. *)
+    iDestruct "Hctx" as (ctx) "[Hctx_sl %Hctx_ne]".
+    wp_apply wp_string_to_bytes as "%ct_sl [ct_sl ct_cap]".
+    wp_apply (wp_Equal _ _ DfracDiscarded (DfracOwn 1) ctx ("CampaignTransfer"%go)
+                with "[$Hctx_sl $ct_sl]") as "[_ ct_sl2]".
+    rewrite HnoCheckQuorum. wp_auto.
+    assert (bool_decide (ctx = "CampaignTransfer"%go) = false) as Hnf
+      by by apply bool_decide_eq_false_2.
+    rewrite Hnf. wp_auto.
+    (* neither MsgPreVote nor MsgPreVoteResp, so we fall through to the
+       step-down *)
+    assert (bool_decide (m.(raftpb.Message.Type') = W32 17) = false) as Hpv
+      by (apply bool_decide_eq_false_2; rewrite Hty /MsgVote; w32_ne).
+    rewrite Hpv. rewrite bool_decide_eq_false_2; last done. wp_auto.
+    assert (bool_decide (m.(raftpb.Message.Type') = W32 18) = false) as Hpvr
+      by (apply bool_decide_eq_false_2; rewrite Hty /MsgVote; w32_ne).
+    rewrite Hpvr. wp_auto.
+    wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [Hlog_sl _]".
+    wp_auto. rewrite Hlok.
+    wp_apply (wp_Logger__logf with "Hlogger").
+    { rewrite /log_methods. set_solver. }
+    (* a [MsgVote] is not from a leader, so no leader is adopted *)
+    rewrite Hty /MsgVote bool_decide_eq_false_2; last w32_ne. wp_auto.
+    rewrite Hty /MsgVote bool_decide_eq_false_2; last w32_ne. wp_auto.
+    rewrite Hty /MsgVote bool_decide_eq_false_2; last w32_ne. wp_auto.
+    iAssert (own_raft_phys γ r id s)
+      with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys".
+    { rewrite /own_raft_phys. iExists rv, msgs, msgsAA, lok. iFrame "∗#%". }
+    wp_apply (wp_raft__becomeFollower with "[$Hphys]") as "Hphys".
+    (* the corresponding protocol step *)
+    iMod (own_raft_ghost_step_1 with "Hm Hghost") as "Hghost".
+    { replace (W64 0) with
+        (if from_leader (abs_msg mtype.Vote m).(msg.ty)
+         then (abs_msg mtype.Vote m).(msg.from) else W64 0) by done.
+      apply step_higher_term.
+      - rewrite /abs_msg /= -Hterm0. exact Hgt.
+      - rewrite /abs_msg /=. exact Hto. }
+    iNamedSuffix "Hphys" "1".
+    (* the type switch: not MsgHup / MsgStorageAppendResp / MsgStorageApplyResp,
+       not MsgPreVote, but MsgVote *)
+    rewrite Hty /MsgVote bool_decide_eq_false_2; last w32_ne. wp_auto.
+    (* Stepping down to a strictly greater term cleared both [Vote] and
+       [lead], so [canVote] holds. *)
+    assert (Hne : m.(raftpb.Message.Term') ≠ s.(nstate.term)).
+    { rewrite -Hterm0. intros Heq. rewrite Heq in Hgt. lia. }
+    rewrite /become_follower /= decide_False // in Hvote1 Hlead1.
+    rewrite Hvote1 bool_decide_eq_false_2; last congruence. wp_auto.
+    rewrite Hvote1 bool_decide_eq_true_2 //. wp_auto.
+    rewrite Hlead1 bool_decide_eq_true_2 //. wp_auto.
+    wp_apply (wp_raftLog__lastEntryID with "[$Hlog1]") as "%lastID Hlog1".
+    wp_apply (wp_raftLog__isUpToDate with "[$Hlog1]") as "%uptodate Hlog1".
+    destruct uptodate.
+    + (* the candidate's log is up to date: grant the vote *)
+      wp_auto.
+      wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
+      wp_auto. rewrite Hlok1.
+      wp_apply (wp_Logger__logf with "Hlogger1").
+      { rewrite /log_methods. set_solver. }
+      wp_apply wp_voteRespMsgType; first done.
+      (* the protocol step: grant the vote *)
+      iMod (own_raft_ghost_step_1_1 with "Hm Hghost") as "[Hghost #Hgrant]".
+      { apply step_grant_vote; [done|exact Hto|done|].
+        rewrite /can_vote /become_follower /=. right.
+        split; [by rewrite decide_False|done]. }
+      iEval (rewrite /abs_msg /become_follower /=) in "Hgrant".
+      iAssert (own_raft_phys γ r id (become_follower s m.(raftpb.Message.Term') (W64 0)))
+        with "[Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1]"
+        as "Hphys".
+      { rewrite /own_raft_phys. iExists rv0, msgs0, msgsAA0, lok0.
+        rewrite /become_follower /= decide_False //. iFrame "∗#%". }
+      (* TODO: the remaining steps are [send] of the granted vote and the
+         [r.Vote := m.From] update; see notes/raft-election-refinement.md *)
+      admit.
+    + admit.
+  - admit.
 Admitted.
 
 (** *** [MsgVoteResp]: tally a vote.
@@ -715,14 +838,17 @@ Theorem wp_raft__Step γ r id s (m : raftpb.Message.t) :
   election_msg m →
   (m.(raftpb.Message.Type') = MsgHup → m.(raftpb.Message.Term') = W64 0) →
   (m.(raftpb.Message.Type') = MsgVote →
-     m.(raftpb.Message.To') = id ∧ m.(raftpb.Message.Term') ≠ W64 0) →
+     m.(raftpb.Message.To') = id ∧ m.(raftpb.Message.Term') ≠ W64 0 ∧
+     m.(raftpb.Message.From') ≠ W64 0) →
   (m.(raftpb.Message.Type') = MsgVoteResp →
      m.(raftpb.Message.To') = id ∧ m.(raftpb.Message.Term') ≠ W64 0) →
   {{{ is_pkg_init raft ∗
       "Hphys" ∷ own_raft_phys γ r id s ∗
       "Hghost" ∷ own_raft_ghost γ id s ∗
       "#Hm" ∷ (∀ ty, ⌜ mtype_of m.(raftpb.Message.Type') = Some ty ⌝ -∗
-                     is_message γ (abs_msg ty m))
+                     is_message γ (abs_msg ty m)) ∗
+      "#Hctx" ∷ (∃ ctx, m.(raftpb.Message.Context') ↦*□ ctx ∗
+                        ⌜ ctx ≠ campaignTransfer ⌝)
   }}}
     r @! (go.PointerType raft.raft) @! "Step" #m
   {{{ (err : error.t) s', RET #err;
@@ -732,7 +858,7 @@ Theorem wp_raft__Step γ r id s (m : raftpb.Message.t) :
       "%Herr" ∷ ⌜ err = interface.nil ⌝ }}}.
 Proof.
   intros Helection Hhup Hvote Hvoteresp.
-  iIntros (Φ) "(#Hinit & Hphys & Hghost & #Hm) HΦ".
+  iIntros (Φ) "(#Hinit & Hphys & Hghost & #Hm & #Hctx) HΦ".
   destruct Helection as [Hty | [Hty | Hty]].
   - (* MsgHup: a local message, handled by [hup]. *)
     wp_apply (wp_raft__Step_MsgHup with "[$Hphys $Hghost]"); [done|by auto|].
@@ -740,10 +866,11 @@ Proof.
     iApply ("HΦ" $! err s'). iFrame. iPureIntro. split; [|done].
     destruct Hst as [sent Hst]. by eexists [], sent.
   - (* MsgVote: answer the vote request, stepping down first if needed. *)
-    destruct (Hvote Hty) as [Hto Hterm].
+    destruct (Hvote Hty) as (Hto & Hterm & Hfnz).
     iDestruct ("Hm" $! mtype.Vote with "[]") as "#Hm'".
     { iPureIntro. rewrite Hty. apply mtype_of_MsgVote. }
-    wp_apply (wp_raft__Step_MsgVote with "[$Hphys $Hghost $Hm']"); [done..|].
+    wp_apply (wp_raft__Step_MsgVote with "[$Hphys $Hghost $Hm' $Hctx]");
+      [done..|].
     iIntros (err s') "(Hphys & Hghost & %Hst & %Herr)".
     iApply ("HΦ" $! err s'). iFrame. iPureIntro. split; [|done].
     destruct Hst as (recv & sent & _ & Hstep). by eexists recv, sent.
