@@ -48,5 +48,6 @@ From New.proof Require Import inG_problem.
 
 (* etcd. *)
 From New.proof Require go_etcd_io.raft.v3.
+From New.proof Require go_etcd_io.raft.v3_proof.election.
 From New.proof Require go_etcd_io.etcd.client.v3.leasing leasing_proof.protocol.
 Require New.proof.go_etcd_io.etcd.server.v3.etcdserver.

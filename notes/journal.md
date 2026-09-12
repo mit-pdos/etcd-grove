@@ -97,3 +97,46 @@ Claude Opus 5.
   described this as a risk, and this is it happening.
 - **Left:** `main` carries the fork setup and is pushed. The `python` CI job is
   expected to go red on this push — see "Known broken" in `STATUS.md`.
+
+## 2026-09-12 — leader-election refinement, first pass
+
+- **Did:** added `new/proof/go_etcd_io/raft/v3_proof/election_protocol.v` (the
+  protocol state machine for leader election, the `own_raft_ghost` /
+  `is_message` ghost state and its one refinement obligation) and
+  `.../election.v` (`own_raft_phys`, the helper-axiom trust boundary, and the
+  `raft.Step` triples). Both reached from `new/should_build.v`. Scope: no
+  pre-vote, no proposals, no read-only, no reconfiguration. Full write-up in
+  [raft-election-refinement.md](raft-election-refinement.md).
+- **Proved:** `wp_raft__send_vote` (the one that matters — it is where the
+  "every message on the network is protocol-legal" obligation is discharged),
+  `wp_raft__Step_MsgHup`, `wp_voteRespMsgType`, the five model-level
+  step-composition lemmas, the `wp_raft__Step` dispatch, and
+  `raft_election_safety`. `wp_raft__Step_MsgVote` is proved through the term
+  preamble, the step-down and its ghost transition, and the `canVote`
+  computation.
+- **Ten lemmas remain `Admitted`**, listed in priority order in the topic file.
+- **Design decision worth keeping:** the log is absent from the protocol model.
+  `isUpToDate` can only make a node *decline* to vote, and declining is always
+  protocol-legal, so the model has a `step_reject_vote` rule with no premises
+  and never needs to talk about logs. This is what makes the model small
+  enough to be worth having.
+- **Design decision, second:** `step` is reflexive-transitive by construction.
+  Without that, `campaign` (which becomes a candidate *and* broadcasts) would
+  not refine a single transition.
+- **Dead end, recorded:** `own_raft_misc` was first indexed by the whole
+  `raft.raft.t`, which forced an `own_raft_misc rv -∗ own_raft_misc rv'` axiom
+  to survive any field write — an axiom strong enough to be worthless. Now
+  indexed by the three fields it actually covers. Don't go back.
+- **Stuck point:** `wp_raft__Step_MsgVote`'s `send` of the granted vote. The
+  ghost step produces exactly the right `is_message`, but `iFrame` will not
+  place it into `wp_raft__send_vote`'s precondition, and restating that
+  precondition in explicit `msg.mk` form did not help. Not diagnosed; the
+  topic file says what to try next.
+- **Environment:** this ran on a machine with no Rocq at all. Built an opam
+  switch from `perennial.opam`'s pins (~1h). Set up
+  [rocq-warm](https://github.com/zeldovich/rocq-warm), which turned a ~3 min
+  cold check of `election.v` into 1–20 s replays and is the only reason the
+  code-level proofs got as far as they did. The flags it needs against a `vos`
+  tree are in [gotchas.md](gotchas.md), along with two other traps this
+  session hit (`word` on `w32` disequalities, and `wp_slice_literal` leaving
+  `go.array_literal_size` unreduced).

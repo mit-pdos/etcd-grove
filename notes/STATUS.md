@@ -1,6 +1,6 @@
 # Status
 
-**Last updated:** 2026-09-11
+**Last updated:** 2026-09-12
 
 ## Goal
 
@@ -38,10 +38,18 @@ builds it.
   `node.Propose`. The `Section axioms` here is the current trust boundary.
 - `v3.v` (31 lines) — the public surface: `is_Node` and `wp_Node__Propose`,
   proved from `protocol.v`.
+- `v3_proof/election_protocol.v` (334 lines) and `v3_proof/election.v` (904
+  lines) — **leader-election refinement**, added 2026-09-12. The protocol
+  state machine for election, the ghost state (`own_raft_ghost`,
+  `is_message`) and its one refinement obligation, `own_raft_phys` for the
+  raft struct, and the top-level `wp_raft__Step` triples. See
+  [raft-election-refinement.md](raft-election-refinement.md) for scope, what
+  is proved, what is admitted, and the trust boundary.
 
-So: the read-index/heartbeat protocol reasoning is the most developed part, the
-node interface is still axiomatized, and per-function proofs against the
-translated raft code have barely started.
+So: the read-index/heartbeat protocol reasoning and the election refinement
+are the two developed pieces; the node interface is still axiomatized, and
+per-function proofs against the translated raft code are underway only on the
+election path.
 
 ### Rest of etcd
 
@@ -52,18 +60,33 @@ context for the raft work, not the current focus.
 
 ## In flight
 
-Nothing. The repo was just forked and set up.
+**Leader-election refinement** — `new/proof/go_etcd_io/raft/v3_proof/`,
+branch `worktree-raft-election-refinement`. Compiles and is reached from
+`new/should_build.v`. Proved: `wp_raft__send_vote` (the message-legitimacy
+obligation), `wp_raft__Step_MsgHup`, `wp_voteRespMsgType`, the model-level
+step-composition lemmas, the `wp_raft__Step` dispatch, and
+`raft_election_safety`. Ten lemmas are still `Admitted`; the next one to
+finish is `wp_raft__Step_MsgVote`, which is proved as far as the `isUpToDate`
+branch. Details and the stuck point are in
+[raft-election-refinement.md](raft-election-refinement.md).
 
 ## Next steps
 
 Unclaimed; pick one and say so in the journal.
 
-1. Decide what the top-level Raft correctness statement should be, and write it
-   down as a decision record. Everything below depends on this.
-2. Discharge the `Section axioms` in `v3_proof/protocol.v` against the actual
+1. Finish the election refinement: `wp_raft__Step_MsgVote`, then `reset` /
+   `becomeX`, `poll` / `campaign` / `hup`, then `stepCandidate` and
+   `wp_raft__Step_MsgVoteResp`. See
+   [raft-election-refinement.md](raft-election-refinement.md).
+2. Construct `own_raft_ghost` / `is_message` rather than axiomatizing them,
+   discharging `own_raft_ghost_step` and `is_leader_unique`. Until that is
+   done the election-safety corollary rests on an axiom.
+3. Decide what the top-level Raft correctness statement should be (beyond
+   election safety), and write it down as a decision record.
+4. Discharge the `Section axioms` in `v3_proof/protocol.v` against the actual
    translated code in `new/code/go_etcd_io/raft/v3/`, or record why each axiom
    stays an axiom.
-3. Extend `v3.v` past `Propose` to the rest of the `node` interface.
+5. Extend `v3.v` past `Propose` to the rest of the `node` interface.
 
 ## Known broken
 
