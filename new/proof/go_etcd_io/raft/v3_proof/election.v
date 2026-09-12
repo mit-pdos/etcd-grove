@@ -207,41 +207,38 @@ Axiom is_TraceLogger : raft.TraceLogger.t → iProp Σ.
 Axiom is_TraceLogger_pers : ∀ l, Persistent (is_TraceLogger l).
 #[global] Existing Instance is_TraceLogger_pers.
 
-(** *** The parts of the raft struct election neither reads nor writes. *)
-Axiom own_raft_misc : raft.raft.t → iProp Σ.
+(** *** The parts of the raft struct election neither reads nor writes:
+    the read-state slice, the read-only queue, and the pending
+    [MsgReadIndex] slice.  Indexed by exactly those three fields, so that
+    updating any other field of the struct leaves it alone. *)
+Axiom own_raft_misc :
+  ∀ (readStates : slice.t) (readOnly : loc) (pendingReadIndex : slice.t),
+  iProp Σ.
 
-Axiom wp_traceReceiveMessage : ∀ (r : loc) (m : loc) rv,
-  {{{ is_pkg_init raft ∗ own_raft_misc rv }}}
-    @! raft.traceReceiveMessage #r #m
-  {{{ RET #(); own_raft_misc rv }}}.
+Axiom wp_traceReceiveMessage : ∀ (r : loc) (mp : loc) rs ro pri,
+  {{{ is_pkg_init raft ∗ own_raft_misc rs ro pri }}}
+    @! raft.traceReceiveMessage #r #mp
+  {{{ RET #(); own_raft_misc rs ro pri }}}.
 
-Axiom wp_traceSendMessage : ∀ (r : loc) (m : loc) rv,
-  {{{ is_pkg_init raft ∗ own_raft_misc rv }}}
-    @! raft.traceSendMessage #r #m
-  {{{ RET #(); own_raft_misc rv }}}.
+Axiom wp_traceSendMessage : ∀ (r : loc) (mp : loc) rs ro pri,
+  {{{ is_pkg_init raft ∗ own_raft_misc rs ro pri }}}
+    @! raft.traceSendMessage #r #mp
+  {{{ RET #(); own_raft_misc rs ro pri }}}.
 
-Axiom wp_traceBecomeFollower : ∀ (r : loc) rv,
-  {{{ is_pkg_init raft ∗ own_raft_misc rv }}}
+Axiom wp_traceBecomeFollower : ∀ (r : loc) rs ro pri,
+  {{{ is_pkg_init raft ∗ own_raft_misc rs ro pri }}}
     @! raft.traceBecomeFollower #r
-  {{{ RET #(); own_raft_misc rv }}}.
+  {{{ RET #(); own_raft_misc rs ro pri }}}.
 
-Axiom wp_traceBecomeCandidate : ∀ (r : loc) rv,
-  {{{ is_pkg_init raft ∗ own_raft_misc rv }}}
+Axiom wp_traceBecomeCandidate : ∀ (r : loc) rs ro pri,
+  {{{ is_pkg_init raft ∗ own_raft_misc rs ro pri }}}
     @! raft.traceBecomeCandidate #r
-  {{{ RET #(); own_raft_misc rv }}}.
+  {{{ RET #(); own_raft_misc rs ro pri }}}.
 
-Axiom wp_traceBecomeLeader : ∀ (r : loc) rv,
-  {{{ is_pkg_init raft ∗ own_raft_misc rv }}}
+Axiom wp_traceBecomeLeader : ∀ (r : loc) rs ro pri,
+  {{{ is_pkg_init raft ∗ own_raft_misc rs ro pri }}}
     @! raft.traceBecomeLeader #r
-  {{{ RET #(); own_raft_misc rv }}}.
-
-(** [reset] also re-initializes the election/heartbeat timers, every peer's
-    [Progress], the pending-conf index, the uncommitted size and the
-    read-only queue.  None of that is election state, so it is bundled
-    here: [reset] restores [own_raft_misc] for the updated struct and clears
-    the vote tally. *)
-Axiom own_raft_misc_reset : ∀ rv rv',
-  own_raft_misc rv -∗ own_raft_misc rv'.
+  {{{ RET #(); own_raft_misc rs ro pri }}}.
 
 (** The empty entry a new leader appends, and the append broadcast that
     follows it.  [bcastAppend] sends one [MsgApp] to each peer, which is
@@ -283,7 +280,8 @@ Definition own_raft_phys γ (r : loc) (id : w64) s : iProp Σ :=
   "HmsgsAA" ∷ rv.(raft.raft.msgsAfterAppend') ↦* msgsAA ∗
   "HmsgsAA_cap" ∷ own_slice_cap raftpb.Message.t
                     rv.(raft.raft.msgsAfterAppend') (DfracOwn 1) ∗
-  "#Hsent" ∷ ([∗ list] m ∈ msgs ++ msgsAA, is_phys_msg γ m) ∗
+  "#Hsent" ∷ ([∗ list] m ∈ msgs, is_phys_msg γ m) ∗
+  "#HsentAA" ∷ ([∗ list] m ∈ msgsAA, is_phys_msg γ m) ∗
 
   (** scope assumptions *)
   "%HnoPreVote" ∷ ⌜ rv.(raft.raft.preVote') = false ⌝ ∗
@@ -295,7 +293,8 @@ Definition own_raft_phys γ (r : loc) (id : w64) s : iProp Σ :=
   (** logging, tracing, and everything else *)
   "#Hlogger" ∷ is_Logger rv.(raft.raft.logger') ∗
   "#Htracer" ∷ is_TraceLogger rv.(raft.raft.traceLogger') ∗
-  "Hmisc" ∷ own_raft_misc rv.
+  "Hmisc" ∷ own_raft_misc rv.(raft.raft.readStates') rv.(raft.raft.readOnly')
+             rv.(raft.raft.pendingReadIndexMessages').
 
 (** The step function stored in [r.step] is determined by the role; rather
     than naming the closure, we record which of the three [stepX] functions
@@ -306,9 +305,14 @@ Definition own_raft_phys γ (r : loc) (id : w64) s : iProp Σ :=
     [send] is the only place a message reaches the network, so this is where
     the [is_message] obligation is discharged: the caller must already know
     the abstract message is legal. *)
-Lemma wp_raft__send γ r id s (m : raftpb.Message.t) ty :
-  m.(raftpb.Message.From') = W64 0 ∨ m.(raftpb.Message.From') = id →
+Lemma wp_raft__send_vote γ r id s (m : raftpb.Message.t) ty :
+  m.(raftpb.Message.From') = W64 0 →
+  m.(raftpb.Message.Type') = MsgVote ∨ m.(raftpb.Message.Type') = MsgVoteResp →
   mtype_of m.(raftpb.Message.Type') = Some ty →
+  m.(raftpb.Message.Term') ≠ W64 0 →
+  (* [send] panics on a self-addressed non-response; a candidate never sends
+     itself a [MsgVote]. *)
+  (m.(raftpb.Message.Type') = MsgVote → m.(raftpb.Message.To') ≠ id) →
   {{{ is_pkg_init raft ∗
       "Hphys" ∷ own_raft_phys γ r id s ∗
       "#Hm" ∷ is_message γ (abs_msg ty (m <| raftpb.Message.From' := id |>))
@@ -316,12 +320,59 @@ Lemma wp_raft__send γ r id s (m : raftpb.Message.t) ty :
     r @! (go.PointerType raft.raft) @! "send" #m
   {{{ RET #(); own_raft_phys γ r id s }}}.
 Proof.
-  (* The proof: [send] fills in [From] (already [id]), fills in [Term] from
-     [r.Term] for non-vote messages, and appends to [msgsAfterAppend] (for
-     MsgVoteResp / MsgAppResp) or to [msgs] (otherwise).  In both cases the
-     new element of the queue is [m], for which [Hm] is exactly the required
-     [is_phys_msg]. *)
-Admitted.
+  (* [send] fills in [From] (which is already [id], or [None]), leaves [Term]
+     alone for vote messages, and appends to [msgsAfterAppend] (for
+     [MsgVoteResp]) or to [msgs] (for [MsgVote]).  In both cases the new
+     element of the queue is the message [Hm] certifies. *)
+  intros Hfrom Hvoty Hty Hmterm Hself.
+  wp_start as "@". iNamed "Hphys". wp_auto.
+  (* [From] is unset, so [send] fills it in with [r.id]. *)
+  rewrite Hfrom bool_decide_eq_true_2 //. wp_auto. rewrite Hid.
+  destruct Hvoty as [Hvt|Hvt].
+  - (* [MsgVote] is not a response, so it goes onto [r.msgs]. *)
+    rewrite Hvt /MsgVote bool_decide_eq_true_2 //. wp_auto.
+    rewrite bool_decide_eq_false_2 //. wp_auto.
+    (* [MsgVote] is none of the response types *)
+    rewrite Hvt /MsgVote bool_decide_eq_false_2; last (intros H; word). wp_auto.
+    rewrite Hvt /MsgVote bool_decide_eq_false_2; last (intros H; word). wp_auto.
+    rewrite Hvt /MsgVote bool_decide_eq_false_2; last (intros H; word). wp_auto.
+    (* not self-addressed *)
+    rewrite Hid bool_decide_eq_false_2; last exact (Hself Hvt). wp_auto.
+    wp_apply wp_slice_literal. iSplitR; first done.
+    iIntros "%m_sl [m_sl _]".
+    replace (sint.nat (W64 0)) with 0%nat by done.
+    rewrite /go.array_literal_size /= /Z.max /= /Z.add /=.
+    wp_auto.
+    wp_apply (wp_slice_append with "[$Hmsgs $Hmsgs_cap $m_sl]")
+      as "%msgs' (Hmsgs & Hmsgs_cap & _)".
+    wp_apply (wp_traceSendMessage with "[$Hmisc]") as "Hmisc".
+    iApply "HΦ". rewrite /own_raft_phys.
+    iExists (rv <| raft.raft.msgs' := msgs' |>),
+            (msgs ++ [m <| raftpb.Message.From' := id |>]), msgsAA.
+    rewrite big_sepL_app big_sepL_singleton /=.
+    iFrame "∗#%".
+  - (* [MsgVoteResp] is a response, so it goes onto [r.msgsAfterAppend]. *)
+    rewrite Hvt /MsgVoteResp bool_decide_eq_false_2; last (intros H; word).
+    wp_auto.
+    rewrite Hvt /MsgVoteResp bool_decide_eq_true_2 //. wp_auto.
+    rewrite bool_decide_eq_false_2 //. wp_auto.
+    rewrite Hvt /MsgVoteResp bool_decide_eq_false_2; last (intros H; word).
+    wp_auto.
+    rewrite Hvt /MsgVoteResp bool_decide_eq_true_2 //. wp_auto.
+    wp_apply wp_slice_literal. iSplitR; first done.
+    iIntros "%m_sl [m_sl _]".
+    replace (sint.nat (W64 0)) with 0%nat by done.
+    rewrite /go.array_literal_size /= /Z.max /= /Z.add /=.
+    wp_auto.
+    wp_apply (wp_slice_append with "[$HmsgsAA $HmsgsAA_cap $m_sl]")
+      as "%msgsAA' (HmsgsAA & HmsgsAA_cap & _)".
+    wp_apply (wp_traceSendMessage with "[$Hmisc]") as "Hmisc".
+    iApply "HΦ". rewrite /own_raft_phys.
+    iExists (rv <| raft.raft.msgsAfterAppend' := msgsAA' |>),
+            msgs, (msgsAA ++ [m <| raftpb.Message.From' := id |>]).
+    rewrite big_sepL_app big_sepL_singleton /=.
+    iFrame "∗#%".
+Qed.
 
 (** ** [reset]
 
@@ -423,7 +474,7 @@ Lemma wp_raft__hup γ r id s (t : raft.CampaignType.t) :
     r @! (go.PointerType raft.raft) @! "hup" #t
   {{{ s', RET #();
       own_raft_phys γ r id s' ∗ own_raft_ghost γ id s' ∗
-      ⌜ s' = s ∨ s' = become_candidate id s ⌝ }}}.
+      ⌜ ∃ sent, step cfg id s [] s' sent ⌝ }}}.
 Proof.
 Admitted.
 
@@ -590,8 +641,14 @@ Proof.
   wp_auto.
   (* no pre-vote, so this is a plain [hup(campaignElection)] *)
   rewrite HnoPreVote. wp_auto.
-  Show.
-Admitted.
+  (* re-seal the physical ownership for [hup] *)
+  iAssert (own_raft_phys γ r id s)
+    with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys".
+  { rewrite /own_raft_phys. iFrame "∗#%". }
+  wp_apply (wp_raft__hup with "[$Hphys $Hghost]") as "%s' (Hphys & Hghost & %Hstep)".
+  { done. }
+  iApply ("HΦ" $! interface.nil s'). by iFrame.
+Qed.
 
 (** *** [MsgVote]: answer a vote request.
 
