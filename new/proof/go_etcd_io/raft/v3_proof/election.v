@@ -24,6 +24,7 @@ Require Export New.proof.go_etcd_io.raft.v3_proof.election_protocol.
 From New.proof Require Import bytes.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.inv_raft_phys.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.step_lemmas.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_voteRespMsgType.
 
 Section proof.
 Context `{hG: heapGS Σ, !ffi_semantics _ _}.
@@ -112,18 +113,6 @@ Proof.
             msgs, (msgsAA ++ [m <| raftpb.Message.From' := id |>]), lok.
     rewrite big_sepL_app big_sepL_singleton /=.
     iFrame "∗#%".
-Qed.
-
-(** [voteRespMsgType] maps a vote request to its response type. *)
-Lemma wp_voteRespMsgType (t : w32) :
-  t = MsgVote →
-  {{{ is_pkg_init raft }}}
-    @! raft.voteRespMsgType #t
-  {{{ RET #MsgVoteResp; True }}}.
-Proof.
-  intros Ht. wp_start as "_". wp_auto.
-  rewrite Ht /MsgVote bool_decide_eq_true_2 //. wp_auto.
-  by iApply "HΦ".
 Qed.
 
 (** ** [reset]
@@ -517,7 +506,7 @@ Proof.
       wp_auto. rewrite Hlok1.
       wp_apply (wp_Logger__logf with "Hlogger1").
       { rewrite /log_methods. set_solver. }
-      wp_apply wp_voteRespMsgType; first done.
+      wp_apply VoteRespMsgType.wp_voteRespMsgType; first done.
       (* the protocol step: grant the vote *)
       iMod (own_raft_ghost_step_1_1 with "Hm Hghost") as "[Hghost #Hgrant]".
       { apply step_grant_vote; [done|exact Hto|done|].
