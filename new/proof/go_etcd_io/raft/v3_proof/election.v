@@ -692,6 +692,10 @@ Lemma wp_stepCandidate_MsgVoteResp γ r id s (m : raftpb.Message.t) :
   m.(raftpb.Message.To') = id →
   m.(raftpb.Message.Term') = s.(nstate.term) →
   s.(nstate.role) = role.Candidate →
+  (* A candidate that can win an election is a voter.  [poll] needs [cfg] in
+     scope and [becomeLeader] needs this premise outright; neither is
+     available from [own_raft_phys], so it is threaded in from the caller. *)
+  id ∈ cfg →
   {{{ is_pkg_init raft ∗
       "Hphys" ∷ own_raft_phys γ r id s ∗
       "Hghost" ∷ own_raft_ghost γ id s ∗
