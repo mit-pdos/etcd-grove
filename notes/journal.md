@@ -252,3 +252,55 @@ Claude Opus 5 (background job), at Upamanyu's request: "prove the admitted
   Three tactic traps this cost time on are now in
   [gotchas.md](gotchas.md).
 
+## 2026-09-14 (later) — fix the `own_tracker` duplication
+
+Claude Opus 5 (background job), same session as the entry above, at
+Upamanyu's request: "fix the own_tracker duplication".
+
+- **The bug.** `own_tracker` was indexed by a **location**, and
+  `own_raft_phys` instantiated it at `struct_field_ref raft.raft.t "trk" r`
+  while also holding `r ↦ rv`. `trk` is an embedded `ProgressTracker`
+  *value*, and `r ↦ rv` is *by definition* (the `TypedPointsto` instance in
+  `new/generatedproof/go_etcd_io/raft/v3.v:1175`) the conjunction of the
+  field points-tos, `r.[raft.raft.t, "trk"] ↦ rv.(trk')` among them. So the
+  tracker's bytes were claimed twice. Undetectable while `own_tracker` is an
+  opaque axiom; `own_raft_phys` would have become provably `False` the moment
+  anyone constructed it.
+- **The fix.** `own_tracker : tracker.ProgressTracker.t → gmap w64 bool →
+  iProp Σ` — indexed by the tracker *value*, owning only what the value
+  points at (the map at `Votes`, the map at `Progress` plus the `Progress`
+  objects, the id sets of `Config`). Disjoint from `r ↦ rv` by construction.
+  This is the rule the `own_raft_misc` note in the topic file already stated:
+  index it by what it actually covers.
+- **Knock-on changes.** `ResetVotes` / `RecordVote` / `TallyVotes` now take
+  `trk ↦ tv` as well, because a mutating method needs the location, and
+  `ResetVotes` genuinely assigns a fresh map to `p.Votes`
+  (`tracker.v:947`) — so it returns `trk ↦ (tv <| Votes' := votesRef |>)`.
+  `own_raft_phys` lost a conjunct: the `own_progresses` predicate added
+  earlier today for `becomeLeader` is now just part of `own_tracker`, and
+  `wp_tracker_progress_lookup` reads the map reference out of `tv`. Raft
+  trust base 50 axioms → 49.
+- **Two more latent errors fell out**, both from axioms that had never been
+  applied. `wp_raft__promotable` quantified over an `id`, a `trk` and an `l`
+  with nothing tying them to the `r` it was a method on; it is now stated
+  against `r ↦ rv`, `own_tracker rv.(trk')` and
+  `own_raftLog rv.(raftLog')`, concluding
+  `b = bool_decide (rv.(id') ∈ cfg)`. And `wp_campaign_peer_ids` used one
+  `loc` as both the tracker (`own_tracker trk votes`) and the tracker's
+  `Voters` field (the `*quorum.JointConfig` receiver of `IDs`), which cannot
+  both hold; the receiver is now
+  `trk.[ProgressTracker.t, "Config"].[Config.t, "Voters"]`, matching what
+  `campaign` actually calls (`new/code/go_etcd_io/raft/v3.v:3817`).
+- **Cost: none in the proofs.** All three `becomeX` proofs and
+  `wp_raft__send_vote` went through unchanged apart from dropping the
+  now-redundant `Hprog` from the re-seal selectors. The reason is that
+  `own_tracker rv.(raft.raft.trk')` frames through a record update
+  (`(rv <| step' := _ |>).(trk')` reduces to `rv.(trk')`) exactly the way
+  `own_raft_misc rv.(readStates') …` already did — that clause was the
+  precedent that made this safe.
+- **For whoever finishes `reset` and `poll`:** to hand `trk ↦ tv` to a
+  tracker method while holding the whole struct, split the field out with
+  `iEval (rewrite typed_pointsto_unseal /typed_pointsto_wrap /=) in "Hr"`.
+  `wp_auto` does not need this — it goes through the generated
+  `AccessStrict` instances — only an explicit `wp_apply` does.
+

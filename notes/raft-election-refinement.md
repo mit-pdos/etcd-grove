@@ -63,10 +63,10 @@ state refining `s`. The important clause is that **both** outgoing queues
 `is_phys_msg`. `send` is the only place a message reaches the network, so
 that is where the obligation is discharged.
 
-It also owns `own_progresses r.trk.Progress` — the tracker's `Progress` map
-and its contents. That is a separate heap object from the struct, so
-`r ↦ rv` does not cover it, and `becomeLeader` writes to it. See the trust
-boundary below.
+The `r ↦ rv` clause covers the whole struct, `trk` included — `trk` is an
+embedded `tracker.ProgressTracker` *value*, not a pointer. So `own_tracker`
+must not claim those bytes as well; it is indexed by the tracker **value**
+and owns only the heap that hangs off it. See the trust boundary below.
 
 ### Proved (`Qed`)
 
@@ -122,8 +122,8 @@ its four methods, `own_tracker` and `ResetVotes`/`RecordVote`/`TallyVotes`,
 `promotable`, `hasUnappliedConfChanges`, the voter-id enumeration,
 `is_Logger` + `wp_Logger__logf`, `own_raft_misc`, the five `traceX`
 functions, and — added 2026-09-14 for `becomeLeader` — the per-peer
-replication progress: `own_progresses`, `own_progress_rest`,
-`wp_tracker_progress_lookup`, `wp_Progress__BecomeReplicate`.
+replication progress: `own_progress_rest`, `wp_tracker_progress_lookup`,
+`wp_Progress__BecomeReplicate`.
 
 Three deliberate choices there:
 
@@ -137,34 +137,61 @@ Three deliberate choices there:
   `raft.raft.t`. An earlier version indexed it by the struct and needed an
   `own_raft_misc rv -∗ own_raft_misc rv'` axiom to survive any field update —
   which is strong enough to be worthless. Do not reintroduce that.
-- The progress axioms are keyed on the **map reference** `r.trk.Progress`,
-  not on the tracker location, and `own_progresses` is a conjunct of
-  `own_raft_phys` rather than of `own_tracker`. The reason is the same
-  "index it by what it actually covers" rule: `becomeLeader` reaches the map
-  by reading the struct field (`map.lookup1 ... #(rv.trk.Progress) #id`), so
-  an axiom keyed on the tracker location would have had to hand out
-  `struct_field_ref ... "Progress" trk ↦ pm` — a field that `r ↦ rv`
-  already covers. `own_progress` itself is a *definition*, not an axiom:
-  it exposes the one field the code assigns to (`RecentActive`) as a real
-  points-to and hides the rest behind `own_progress_rest`, because an
-  inline field assignment cannot be stepped through an opaque predicate.
-  `wp_tracker_progress_lookup` has an `i ∈ cfg` side condition (only voters
-  are in the map), which is why `wp_raft__becomeLeader` now takes `id ∈ cfg`.
+- **`own_tracker` is indexed by the tracker `ProgressTracker.t` *value*,
+  not by its location** — same rule again. `trk` is embedded in the raft
+  struct by value, so its bytes are already in the `r ↦ rv` clause of
+  `own_raft_phys`; `own_tracker tv votes` owns only what `tv` points *at*:
+  the map at `tv.Votes`, the map at `tv.Progress` and the `Progress` objects
+  in it, and the id sets of `tv.Config`. That makes it disjoint from
+  `r ↦ rv` by construction rather than by hope. See "the duplication that
+  was there until 2026-09-14" below for what this replaced.
 
-### A looseness in `own_raft_phys` worth knowing about
+  Consequences to know when using the tracker specs:
 
-`own_raft_phys` holds **both** `r ↦ rv` — which covers the whole struct,
-and `trk` is an embedded `tracker.ProgressTracker` *value*, not a pointer —
-**and** `own_tracker (struct_field_ref raft.raft.t "trk" r)`. So the tracker's
-bytes are claimed twice. Nothing detects this today because `own_tracker` is
-an opaque axiom that need not own anything; but a real construction of
-`own_tracker` that owns the `trk` field would make `own_raft_phys` provably
-`False`, and every `Step` triple vacuous. Whoever discharges the tracker
-axioms has to resolve this — either by having `own_tracker` own only the
-parts of the field it needs and splitting `r ↦ rv` accordingly, or by
-dropping `trk` from the `r ↦ rv` clause. (The same question does not arise
-for `own_progresses`: the map and the `Progress` objects are separate heap
-cells.)
+  - A method that *mutates* the tracker also needs its location, so
+    `ResetVotes` / `RecordVote` / `TallyVotes` take `trk ↦ tv` alongside
+    `own_tracker tv votes`. `ResetVotes` assigns a fresh map to `p.Votes`,
+    so it returns `trk ↦ (tv <| Votes' := votesRef |>)` and an
+    `own_tracker` at the new value; the other two return `tv` unchanged.
+  - A caller holding the whole struct splits that one field out with
+    `iEval (rewrite typed_pointsto_unseal /typed_pointsto_wrap /=) in "Hr"`,
+    which turns `r ↦ rv` into the named conjunction of its field points-tos
+    (that *is* the definition — see the `TypedPointsto` instance in
+    `new/generatedproof/go_etcd_io/raft/v3.v`). `wp_auto` does not need this;
+    it reads and writes fields through the whole-struct points-to using the
+    generated `AccessStrict` instances. Only an explicit `wp_apply` of a
+    lemma that wants `trk ↦ tv` does.
+  - `wp_raft__promotable` and `wp_campaign_peer_ids` are now stated against
+    the struct and the tracker value they actually read, instead of against
+    unrelated parameters. `wp_campaign_peer_ids`'s receiver is
+    `trk.[ProgressTracker.t, "Config"].[Config.t, "Voters"]`, which is what
+    `campaign` calls `IDs` on.
+- `own_progress` is a *definition*, not an axiom: it exposes the one field
+  the code assigns to (`RecentActive`) as a real points-to and hides the
+  rest behind `own_progress_rest`, because an inline field assignment cannot
+  be stepped through an opaque predicate.
+  `wp_tracker_progress_lookup` takes `own_tracker tv votes`, reads the map
+  reference out of `tv`, and hands back one `Progress` plus the wand to put
+  it back. Its `i ∈ cfg` side condition (only voters are in the map) is why
+  `wp_raft__becomeLeader` takes `id ∈ cfg`.
+
+### The duplication that was there until 2026-09-14
+
+Worth recording because the shape is easy to reintroduce. `own_tracker` used
+to be indexed by a **location**, and `own_raft_phys` instantiated it at
+`struct_field_ref raft.raft.t "trk" r` while *also* holding `r ↦ rv`. Since
+`trk` is embedded by value, `r ↦ rv` unfolds to a conjunction that includes
+`r.[raft.raft.t, "trk"] ↦ rv.(trk')` — so the tracker's bytes were claimed
+twice. Nothing detected it, because `own_tracker` was an opaque axiom that
+need not own anything; but any real construction of `own_tracker` that owned
+the field would have made `own_raft_phys` provably `False` and every `Step`
+triple vacuous. The same axiom set also used one `loc` as both "the tracker"
+(in `own_tracker trk votes`) and "the tracker's `Voters` field" (as the
+`*quorum.JointConfig` receiver of `IDs`), which cannot both be true.
+
+Re-indexing by the value fixed all of it and removed a conjunct from
+`own_raft_phys`: the separate `own_progresses` predicate that the
+`becomeLeader` proof had needed is now just part of `own_tracker`.
 
 ## Where `wp_raft__Step_MsgVote` is stuck
 

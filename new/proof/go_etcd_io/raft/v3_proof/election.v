@@ -139,28 +139,49 @@ Axiom wp_raftLog__hasNextOrInProgressSnapshot : ∀ (l : loc),
 
 (** *** The progress tracker.
 
-    [own_tracker trk votes] owns the tracker embedded at [trk], whose voter
-    set is [cfg] (no learners, no joint configuration) and whose recorded
-    vote tally is [votes]. *)
-Axiom own_tracker : loc → gmap w64 bool → iProp Σ.
+    [trk] is embedded in the [raft] struct **by value**, so the tracker's own
+    bytes are part of the [r ↦ rv] clause of [own_raft_phys] and must not be
+    claimed a second time.  [own_tracker tv votes] therefore owns what the
+    tracker *value* [tv] points at, and nothing else: the vote map at
+    [tv.Votes], the [Progress] map at [tv.Progress] together with the
+    [Progress] objects in it, and the id sets of [tv.Config].  [votes] is the
+    recorded vote tally; the voter set is [cfg] (no learners, no joint
+    configuration).  Same rule as [own_raft_misc] below — index it by what it
+    actually covers.
 
-Axiom wp_ProgressTracker__ResetVotes : ∀ (trk : loc) votes,
-  {{{ is_pkg_init tracker ∗ own_tracker trk votes }}}
+    The methods need the tracker's *location* too, and [ResetVotes] replaces
+    the [Votes] field outright, so they take [trk ↦ tv] as well.  A caller
+    holding the whole raft struct splits that field out with
+
+      iEval (rewrite typed_pointsto_unseal /typed_pointsto_wrap /=) in "Hr"
+
+    which turns [r ↦ rv] into the named conjunction of its field
+    points-tos, of which [trk] is one. *)
+Axiom own_tracker : tracker.ProgressTracker.t → gmap w64 bool → iProp Σ.
+
+(** [ResetVotes] assigns a fresh empty map to [p.Votes], so it changes the
+    tracker value as well as the heap it points at. *)
+Axiom wp_ProgressTracker__ResetVotes : ∀ (trk : loc) tv votes,
+  {{{ is_pkg_init tracker ∗ trk ↦ tv ∗ own_tracker tv votes }}}
     trk @! (go.PointerType tracker.ProgressTracker) @! "ResetVotes" #()
-  {{{ RET #(); own_tracker trk ∅ }}}.
+  {{{ (votesRef : loc), RET #();
+      trk ↦ (tv <| tracker.ProgressTracker.Votes' := votesRef |>) ∗
+      own_tracker (tv <| tracker.ProgressTracker.Votes' := votesRef |>) ∅ }}}.
 
-Axiom wp_ProgressTracker__RecordVote : ∀ (trk : loc) votes (from : w64) (v : bool),
-  {{{ is_pkg_init tracker ∗ own_tracker trk votes }}}
+(** [RecordVote] only inserts into the map [p.Votes] already refers to, so
+    the tracker value is unchanged. *)
+Axiom wp_ProgressTracker__RecordVote : ∀ (trk : loc) tv votes (from : w64) (v : bool),
+  {{{ is_pkg_init tracker ∗ trk ↦ tv ∗ own_tracker tv votes }}}
     trk @! (go.PointerType tracker.ProgressTracker) @! "RecordVote" #from #v
-  {{{ RET #(); own_tracker trk (record_vote votes from v) }}}.
+  {{{ RET #(); trk ↦ tv ∗ own_tracker tv (record_vote votes from v) }}}.
 
 (** [TallyVotes] reports the outcome of the election, which is exactly the
     quorum condition of the model. *)
-Axiom wp_ProgressTracker__TallyVotes : ∀ (trk : loc) votes,
-  {{{ is_pkg_init tracker ∗ own_tracker trk votes }}}
+Axiom wp_ProgressTracker__TallyVotes : ∀ (trk : loc) tv votes,
+  {{{ is_pkg_init tracker ∗ trk ↦ tv ∗ own_tracker tv votes }}}
     trk @! (go.PointerType tracker.ProgressTracker) @! "TallyVotes" #()
   {{{ (g rj : w64) (res : w8), RET (#g, #rj, #res);
-      own_tracker trk votes ∗
+      trk ↦ tv ∗ own_tracker tv votes ∗
       ⌜ res = VoteWon ∨ res = VoteLost ∨ res = VotePending ⌝ ∗
       ⌜ res = VoteWon → is_quorum cfg (granted votes) ⌝ ∗
       ⌜ res = VoteLost → is_quorum cfg (rejected votes) ⌝ }}}.
@@ -173,11 +194,8 @@ Axiom wp_ProgressTracker__TallyVotes : ∀ (trk : loc) votes,
     one field the code assigns to directly, which has to be real ownership
     for the assignment to step.
 
-    [own_progresses pm] owns the tracker's [Progress] map at [pm] together
-    with everything in it.  It is a conjunct of [own_raft_phys] rather than
-    of [own_tracker] because the map reference is reached through the raft
-    struct ([r.trk.Progress]), while the map and the [Progress] objects are
-    separate heap cells that [r ↦ rv] does not cover. *)
+    The [Progress] map and the objects in it are part of [own_tracker]
+    above; what is added here is a handle on one of them. *)
 Axiom own_progress_rest : loc → iProp Σ.
 
 Definition own_progress (pr : loc) : iProp Σ :=
@@ -185,16 +203,17 @@ Definition own_progress (pr : loc) : iProp Σ :=
     struct_field_ref tracker.Progress.t "RecentActive"%go pr ↦ recentActive ∗
     own_progress_rest pr.
 
-Axiom own_progresses : loc → iProp Σ.
-
 (** [trk.Progress[i]], for a voter [i]: [becomeLeader] looks up [r.id].
-    Only voters are in the map, whence the side condition. *)
-Axiom wp_tracker_progress_lookup : ∀ (pm : loc) (i : w64),
+    Only voters are in the map, whence the side condition.  No [trk ↦ tv]
+    here: the lookup reads the map reference out of the value it is given,
+    and the caller gets that by reading the struct field itself. *)
+Axiom wp_tracker_progress_lookup : ∀ tv votes (i : w64),
   i ∈ cfg →
-  {{{ own_progresses pm }}}
-    map.lookup1 go.uint64 (go.PointerType tracker.Progress) #pm #i
+  {{{ own_tracker tv votes }}}
+    map.lookup1 go.uint64 (go.PointerType tracker.Progress)
+      #(tv.(tracker.ProgressTracker.Progress')) #i
   {{{ (pr : loc), RET #pr;
-      own_progress pr ∗ (own_progress pr -∗ own_progresses pm) }}}.
+      own_progress pr ∗ (own_progress pr -∗ own_tracker tv votes) }}}.
 
 (** [pr.BecomeReplicate()] moves a [Progress] into the replicating state.
     It says nothing about votes, terms or roles, so the model does not see
@@ -204,12 +223,18 @@ Axiom wp_Progress__BecomeReplicate : ∀ (pr : loc),
     pr @! (go.PointerType tracker.Progress) @! "BecomeReplicate" #()
   {{{ RET #(); own_progress pr }}}.
 
-(** [r.promotable()]: true exactly when this node is a voter. *)
-Axiom wp_raft__promotable : ∀ (r : loc) (id : w64) trk votes l,
-  {{{ is_pkg_init raft ∗ own_tracker trk votes ∗ own_raftLog l }}}
+(** [r.promotable()]: true exactly when this node is a voter.  It reads
+    [r.id], [r.trk.Progress] and [r.raftLog], so it is stated against the
+    raft struct rather than against three unrelated parameters. *)
+Axiom wp_raft__promotable : ∀ (r : loc) rv votes,
+  {{{ is_pkg_init raft ∗ r ↦ rv ∗
+      own_tracker rv.(raft.raft.trk') votes ∗
+      own_raftLog rv.(raft.raft.raftLog') }}}
     r @! (go.PointerType raft.raft) @! "promotable" #()
   {{{ (b : bool), RET #b;
-      own_tracker trk votes ∗ own_raftLog l ∗ ⌜ b = bool_decide (id ∈ cfg) ⌝ }}}.
+      r ↦ rv ∗ own_tracker rv.(raft.raft.trk') votes ∗
+      own_raftLog rv.(raft.raft.raftLog') ∗
+      ⌜ b = bool_decide (rv.(raft.raft.id') ∈ cfg) ⌝ }}}.
 
 (** [r.hasUnappliedConfChanges()]: false, since there is no
     reconfiguration. *)
@@ -218,12 +243,16 @@ Axiom wp_raft__hasUnappliedConfChanges : ∀ (r : loc) l,
     r @! (go.PointerType raft.raft) @! "hasUnappliedConfChanges" #()
   {{{ RET #false; own_raftLog l }}}.
 
-(** The ids of the voters, in some order, as [campaign] enumerates them. *)
-Axiom wp_campaign_peer_ids : ∀ (trk : loc) votes,
-  {{{ is_pkg_init quorum ∗ own_tracker trk votes }}}
-    trk @! (go.PointerType quorum.JointConfig) @! "IDs" #()
+(** The ids of the voters, in some order, as [campaign] enumerates them.
+    [campaign] calls this on [&r.trk.Config.Voters], so the receiver is that
+    field ref and not the tracker itself. *)
+Axiom wp_campaign_peer_ids : ∀ (trk : loc) tv votes,
+  {{{ is_pkg_init quorum ∗ trk ↦ tv ∗ own_tracker tv votes }}}
+    (trk.[tracker.ProgressTracker.t, "Config"].[tracker.Config.t, "Voters"])
+      @! (go.PointerType quorum.JointConfig) @! "IDs" #()
   {{{ (mref : loc) (idm : gmap w64 unit), RET #mref;
-      own_tracker trk votes ∗ mref ↦$ idm ∗ ⌜ dom idm = cfg ⌝ }}}.
+      trk ↦ tv ∗ own_tracker tv votes ∗
+      mref ↦$ idm ∗ ⌜ dom idm = cfg ⌝ }}}.
 
 (** *** Logging and tracing.
 
@@ -318,12 +347,10 @@ Definition own_raft_phys γ (r : loc) (id : w64) s : iProp Σ :=
   "%Hlead" ∷ ⌜ rv.(raft.raft.lead') = s.(nstate.lead) ⌝ ∗
   "%Hstate" ∷ ⌜ rv.(raft.raft.state') = state_w64 s.(nstate.role) ⌝ ∗
 
-  (** the vote tally lives in the tracker *)
-  "Htrk" ∷ own_tracker (struct_field_ref raft.raft.t "trk" r) s.(nstate.votes) ∗
-
-  (** the per-peer replication progress hanging off the tracker; opaque, but
-      owned here because [becomeLeader] writes to it *)
-  "Hprog" ∷ own_progresses rv.(raft.raft.trk').(tracker.ProgressTracker.Progress') ∗
+  (** the vote tally, and the rest of the heap the tracker points at.  The
+      tracker's own bytes are covered by [Hr] above, since [trk] is embedded
+      by value; this is only what hangs off it. *)
+  "Htrk" ∷ own_tracker rv.(raft.raft.trk') s.(nstate.votes) ∗
 
   (** the log, opaque *)
   "Hlog" ∷ own_raftLog rv.(raft.raft.raftLog') ∗
@@ -474,7 +501,7 @@ Proof.
   wp_start as "Hphys". iNamed "Hphys". wp_auto.
   (* [r.step := stepFollower] is done; re-seal for [reset]. *)
   iAssert (own_raft_phys γ r id s)
-    with "[Hr Htrk Hprog Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
+    with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
     as "Hphys".
   { rewrite /own_raft_phys.
     iExists (rv <| raft.raft.step' := _ |>), msgs, msgsAA, lok. iFrame "∗#%". }
@@ -510,7 +537,7 @@ Proof.
       intros Heq; apply (f_equal uint.Z) in Heq; vm_compute in Heq; discriminate. }
   rewrite Hstate bool_decide_eq_false_2 //. wp_auto.
   iAssert (own_raft_phys γ r id s)
-    with "[Hr Htrk Hprog Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
+    with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
     as "Hphys".
   { rewrite /own_raft_phys.
     iExists (rv <| raft.raft.step' := _ |>), msgs, msgsAA, lok. iFrame "∗#%". }
@@ -548,7 +575,7 @@ Proof.
       intros Heq; apply (f_equal uint.Z) in Heq; vm_compute in Heq; discriminate. }
   rewrite Hstate bool_decide_eq_false_2 //. wp_auto.
   iAssert (own_raft_phys γ r id s)
-    with "[Hr Htrk Hprog Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
+    with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
     as "Hphys".
   { rewrite /own_raft_phys.
     iExists (rv <| raft.raft.step' := _ |>), msgs, msgsAA, lok. iFrame "∗#%". }
@@ -562,14 +589,14 @@ Proof.
   wp_auto.
   rewrite Hid1.
   (* the leader's own [Progress] is marked replicating and recently active *)
-  wp_apply (wp_tracker_progress_lookup _ _ Hcfg with "[$Hprog1]")
+  wp_apply (wp_tracker_progress_lookup _ _ _ Hcfg with "[$Htrk1]")
     as "%pr [Hpr Hprback]".
   wp_apply (wp_Progress__BecomeReplicate with "[$Hpr]") as "Hpr".
   iDestruct "Hpr" as (recentActive) "[Hra Hrest]".
   wp_auto.
   iAssert (own_progress pr) with "[Hra Hrest]" as "Hpr".
   { rewrite /own_progress. iExists true. iFrame. }
-  iDestruct ("Hprback" with "Hpr") as "Hprog1".
+  iDestruct ("Hprback" with "Hpr") as "Htrk1".
   wp_apply (wp_raftLog__lastIndex with "[$Hlog1]") as "%li Hlog1".
   wp_apply (wp_traceBecomeLeader with "[$Hmisc1]") as "Hmisc1".
   wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
@@ -810,7 +837,7 @@ Proof.
   rewrite HnoPreVote. wp_auto.
   (* re-seal the physical ownership for [hup] *)
   iAssert (own_raft_phys γ r id s)
-    with "[Hr Htrk Hprog Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys".
+    with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys".
   { rewrite /own_raft_phys. iFrame "∗#%". }
   wp_apply (wp_raft__hup with "[$Hphys $Hghost]") as "%s' (Hphys & Hghost & %Hstep)".
   { done. }
@@ -894,7 +921,7 @@ Proof.
     rewrite Hty /MsgVote bool_decide_eq_false_2; last w32_ne. wp_auto.
     rewrite Hty /MsgVote bool_decide_eq_false_2; last w32_ne. wp_auto.
     iAssert (own_raft_phys γ r id s)
-      with "[Hr Htrk Hprog Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys".
+      with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys".
     { rewrite /own_raft_phys. iExists rv, msgs, msgsAA, lok. iFrame "∗#%". }
     wp_apply (wp_raft__becomeFollower with "[$Hphys]") as "Hphys".
     (* the corresponding protocol step *)
@@ -934,7 +961,7 @@ Proof.
         split; [by rewrite decide_False|done]. }
       iEval (rewrite /abs_msg /become_follower /=) in "Hgrant".
       iAssert (own_raft_phys γ r id (become_follower s m.(raftpb.Message.Term') (W64 0)))
-        with "[Hr1 Htrk1 Hprog1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1]"
+        with "[Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1]"
         as "Hphys".
       { rewrite /own_raft_phys. iExists rv0, msgs0, msgsAA0, lok0.
         rewrite /become_follower /= decide_False //. iFrame "∗#%". }
