@@ -1,6 +1,6 @@
 # Status
 
-**Last updated:** 2026-09-13
+**Last updated:** 2026-09-14
 
 ## Goal
 
@@ -38,7 +38,7 @@ builds it.
   `node.Propose`. The `Section axioms` here is the current trust boundary.
 - `v3.v` (31 lines) — the public surface: `is_Node` and `wp_Node__Propose`,
   proved from `protocol.v`.
-- `v3_proof/election_protocol.v` (334 lines) and `v3_proof/election.v` (904
+- `v3_proof/election_protocol.v` (334 lines) and `v3_proof/election.v` (1045
   lines) — **leader-election refinement**, added 2026-09-12. The protocol
   state machine for election, the ghost state (`own_raft_ghost`,
   `is_message`) and its one refinement obligation, `own_raft_phys` for the
@@ -63,18 +63,23 @@ context for the raft work, not the current focus.
 **Leader-election refinement** — `new/proof/go_etcd_io/raft/v3_proof/`,
 branch `worktree-raft-election-refinement`. Compiles and is reached from
 `new/should_build.v`. Proved: `wp_raft__send_vote` (the message-legitimacy
-obligation), `wp_raft__Step_MsgHup`, `wp_voteRespMsgType`, the model-level
-step-composition lemmas, the `wp_raft__Step` dispatch, and
-`raft_election_safety`. Ten lemmas are still `Admitted`; the next one to
-finish is `wp_raft__Step_MsgVote`, which is proved as far as the `isUpToDate`
-branch. Details and the stuck point are in
+obligation), `wp_raft__becomeFollower` / `wp_raft__becomeCandidate` /
+`wp_raft__becomeLeader` (2026-09-14), `wp_raft__Step_MsgHup`,
+`wp_voteRespMsgType`, the model-level step-composition lemmas, the
+`wp_raft__Step` dispatch, and `raft_election_safety`. Seven lemmas are still
+`Admitted`. The three `becomeX` proofs rest on `wp_raft__reset`, which is one
+of them — so `reset` is now the highest-leverage hole, and it is less
+mechanical than it looks (it replaces `r.readOnly`). The other standing
+target is `wp_raft__Step_MsgVote`, proved as far as the `isUpToDate` branch.
+Details, the stuck point, and a **soundness looseness in `own_raft_phys`
+found on 2026-09-14** are in
 [raft-election-refinement.md](raft-election-refinement.md).
 
 ## Trust base
 
-As of 2026-09-13 the raft proof assumes **46 axioms and 17 `Admitted.`** (2 of
-the admits deliberate, marked `(* Trusted *)` at `readonly.v:469,478`; the other
-15 are unfinished and hold 12 interior `admit.` tactics). Print the current list
+As of 2026-09-14 the raft proof assumes **50 axioms and 14 `Admitted.`** (2 of
+the admits deliberate, marked `(* Trusted *)` at `readonly.v:464,471`; the other
+12 are unfinished and hold 12 interior `admit.` tactics). Print the current list
 with
 
     ./etc/tcb-view.py --summary new/proof/go_etcd_io/raft
@@ -88,21 +93,25 @@ Perennial, Iris, or the Goose translator — see
 
 Unclaimed; pick one and say so in the journal.
 
-1. Finish the election refinement: `wp_raft__Step_MsgVote`, then `reset` /
-   `becomeX`, `poll` / `campaign` / `hup`, then `stepCandidate` and
-   `wp_raft__Step_MsgVoteResp`. See
+1. Finish the election refinement: `wp_raft__reset` (three proved lemmas
+   rest on it), `wp_raft__Step_MsgVote`, `poll` / `campaign` / `hup`, then
+   `stepCandidate` and `wp_raft__Step_MsgVoteResp`. See
    [raft-election-refinement.md](raft-election-refinement.md).
-2. Construct `own_raft_ghost` / `is_message` rather than axiomatizing them,
+2. Resolve the `own_raft_phys` double-ownership of `r.trk` described in
+   [raft-election-refinement.md](raft-election-refinement.md) — it is
+   harmless while `own_tracker` is an axiom and fatal once it is not, so it
+   belongs with step 3 below.
+3. Construct `own_raft_ghost` / `is_message` rather than axiomatizing them,
    discharging `own_raft_ghost_step` and `is_leader_unique`. Until that is
-   done the election-safety corollary rests on an axiom. This is 11 of the 46
+   done the election-safety corollary rests on an axiom. This is 11 of the 50
    axioms; `./etc/tcb-view.py --summary` lists them under `Section ghost`.
-3. Decide what the top-level Raft correctness statement should be (beyond
+4. Decide what the top-level Raft correctness statement should be (beyond
    election safety), and write it down as a decision record.
-4. Discharge the `Section axioms` in `v3_proof/protocol.v` against the actual
+5. Discharge the `Section axioms` in `v3_proof/protocol.v` against the actual
    translated code in `new/code/go_etcd_io/raft/v3/`, or record why each axiom
    stays an axiom. `./etc/tcb-view.py new/proof/go_etcd_io/raft/v3_proof/protocol.v`
    shows them with nothing else in the way.
-5. Extend `v3.v` past `Propose` to the rest of the `node` interface.
+6. Extend `v3.v` past `Propose` to the rest of the `node` interface.
 
 ## Known broken
 

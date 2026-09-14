@@ -684,7 +684,7 @@ EXPECTED_AXIOMS = {
     "protocol.v": 6,
     "readonly.v": 7,
     "election_protocol.v": 11,
-    "election.v": 22,
+    "election.v": 26,
 }
 EXPECTED_ADMITS = {
     "v3.v": 0,
@@ -692,7 +692,7 @@ EXPECTED_ADMITS = {
     "protocol.v": 2,
     "readonly.v": 5,
     "election_protocol.v": 0,
-    "election.v": 10,
+    "election.v": 7,
 }
 
 FIXTURES = [

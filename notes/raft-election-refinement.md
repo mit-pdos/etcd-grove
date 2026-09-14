@@ -63,6 +63,11 @@ state refining `s`. The important clause is that **both** outgoing queues
 `is_phys_msg`. `send` is the only place a message reaches the network, so
 that is where the obligation is discharged.
 
+It also owns `own_progresses r.trk.Progress` — the tracker's `Progress` map
+and its contents. That is a separate heap object from the struct, so
+`r ↦ rv` does not cover it, and `becomeLeader` writes to it. See the trust
+boundary below.
+
 ### Proved (`Qed`)
 
 - `wp_raft__send_vote` — the substantive one. A vote message reaches
@@ -73,6 +78,14 @@ that is where the obligation is discharged.
 - The model-level composition lemmas `step_drop`,
   `step_stepdown_then_vote`, `step_stepdown_then_reject`,
   `step_record_then_win`, `step_record_then_lose`.
+- `wp_raft__becomeFollower`, `wp_raft__becomeCandidate`,
+  `wp_raft__becomeLeader` (all modulo `wp_raft__reset`, which is still
+  admitted). Each is `reset` plus assignments to `lead`/`Vote`/`state`, and
+  the postcondition is literally the model's role transition.
+  `becomeCandidate`/`becomeLeader` also discharge the panic branch
+  (`state ≠ StateLeader` / `≠ StateFollower`) from the role hypothesis, and
+  `becomeLeader` additionally walks the tracker to mark its own `Progress`
+  replicating and appends the empty entry.
 - `wp_raft__Step_MsgHup` (modulo `wp_raft__hup`).
 - `wp_raft__Step` — the top-level dispatch, from the three per-message-type
   theorems.
@@ -84,20 +97,35 @@ that is where the obligation is discharged.
    lease check, both pre-vote arms, the step-down (with its
    `step_higher_term` ghost transition) and the `canVote` computation are
    done; it stops at the `isUpToDate` branch. See "Where it is stuck" below.
-2. `wp_raft__reset`, `wp_raft__becomeFollower/Candidate/Leader` — mechanical;
-   `reset` is the only one with real work (it re-inits every `Progress`).
+2. `wp_raft__reset` — the one the three `becomeX` proofs rest on. It is not
+   mechanical: besides re-initialising every `Progress` through
+   `trk.Visit` (which needs a `Visit` spec), it calls
+   `resetRandomizedElectionTimeout` and `abortLeaderTransfer`, and it
+   **replaces `r.readOnly` with a fresh `newReadOnly(...)`**. `own_raft_misc`
+   is indexed by the old `readOnly` pointer, so finishing `reset` needs a
+   `wp_newReadOnly` axiom that produces `own_raft_misc rs ro' pri` for the
+   new one. That is a fine axiom to add — it is not the discredited
+   `own_raft_misc rv -∗ own_raft_misc rv'` shape warned about below — but it
+   is an addition, so decide it deliberately.
 3. `wp_raft__poll`, `wp_raft__campaign`, `wp_raft__hup`.
-4. `wp_stepCandidate_MsgVoteResp`, then `wp_raft__Step_MsgVoteResp`.
+4. `wp_stepCandidate_MsgVoteResp`, then `wp_raft__Step_MsgVoteResp`. This is
+   the first caller of `wp_raft__becomeLeader`, so it is where the new
+   `id ∈ cfg` hypothesis has to be discharged — a candidate that won an
+   election is a voter, but nothing in `own_raft_phys` says so yet, so it
+   will have to be threaded in from `hup`/`campaign` (which already have
+   `id ∈ cfg`) or added to `own_raft_phys`.
 
 ### Trust boundary (`Section helper_axioms`)
 
 Axiomatized because election does not reason about them: `own_raftLog` and
 its four methods, `own_tracker` and `ResetVotes`/`RecordVote`/`TallyVotes`,
 `promotable`, `hasUnappliedConfChanges`, the voter-id enumeration,
-`is_Logger` + `wp_Logger__logf`, `own_raft_misc`, and the five `traceX`
-functions.
+`is_Logger` + `wp_Logger__logf`, `own_raft_misc`, the five `traceX`
+functions, and — added 2026-09-14 for `becomeLeader` — the per-peer
+replication progress: `own_progresses`, `own_progress_rest`,
+`wp_tracker_progress_lookup`, `wp_Progress__BecomeReplicate`.
 
-Two deliberate choices there:
+Three deliberate choices there:
 
 - `wp_Logger__logf` covers only the **non-panicking** methods
   (`log_methods`). `Panic`/`Panicf` do not return, so a path reaching one has
@@ -109,6 +137,34 @@ Two deliberate choices there:
   `raft.raft.t`. An earlier version indexed it by the struct and needed an
   `own_raft_misc rv -∗ own_raft_misc rv'` axiom to survive any field update —
   which is strong enough to be worthless. Do not reintroduce that.
+- The progress axioms are keyed on the **map reference** `r.trk.Progress`,
+  not on the tracker location, and `own_progresses` is a conjunct of
+  `own_raft_phys` rather than of `own_tracker`. The reason is the same
+  "index it by what it actually covers" rule: `becomeLeader` reaches the map
+  by reading the struct field (`map.lookup1 ... #(rv.trk.Progress) #id`), so
+  an axiom keyed on the tracker location would have had to hand out
+  `struct_field_ref ... "Progress" trk ↦ pm` — a field that `r ↦ rv`
+  already covers. `own_progress` itself is a *definition*, not an axiom:
+  it exposes the one field the code assigns to (`RecentActive`) as a real
+  points-to and hides the rest behind `own_progress_rest`, because an
+  inline field assignment cannot be stepped through an opaque predicate.
+  `wp_tracker_progress_lookup` has an `i ∈ cfg` side condition (only voters
+  are in the map), which is why `wp_raft__becomeLeader` now takes `id ∈ cfg`.
+
+### A looseness in `own_raft_phys` worth knowing about
+
+`own_raft_phys` holds **both** `r ↦ rv` — which covers the whole struct,
+and `trk` is an embedded `tracker.ProgressTracker` *value*, not a pointer —
+**and** `own_tracker (struct_field_ref raft.raft.t "trk" r)`. So the tracker's
+bytes are claimed twice. Nothing detects this today because `own_tracker` is
+an opaque axiom that need not own anything; but a real construction of
+`own_tracker` that owns the `trk` field would make `own_raft_phys` provably
+`False`, and every `Step` triple vacuous. Whoever discharges the tracker
+axioms has to resolve this — either by having `own_tracker` own only the
+parts of the field it needs and splitting `r ↦ rv` accordingly, or by
+dropping `trk` from the `r ↦ rv` clause. (The same question does not arise
+for `own_progresses`: the map and the `Progress` objects are separate heap
+cells.)
 
 ## Where `wp_raft__Step_MsgVote` is stuck
 

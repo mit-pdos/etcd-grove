@@ -165,6 +165,45 @@ Axiom wp_ProgressTracker__TallyVotes : ∀ (trk : loc) votes,
       ⌜ res = VoteWon → is_quorum cfg (granted votes) ⌝ ∗
       ⌜ res = VoteLost → is_quorum cfg (rejected votes) ⌝ }}}.
 
+(** *** Per-peer replication progress.
+
+    [becomeLeader] is the only place on the election path that touches a
+    [Progress]: it marks its own replicating and recently active.  Neither
+    fact is visible in the model, so a [Progress] is opaque apart from the
+    one field the code assigns to directly, which has to be real ownership
+    for the assignment to step.
+
+    [own_progresses pm] owns the tracker's [Progress] map at [pm] together
+    with everything in it.  It is a conjunct of [own_raft_phys] rather than
+    of [own_tracker] because the map reference is reached through the raft
+    struct ([r.trk.Progress]), while the map and the [Progress] objects are
+    separate heap cells that [r ↦ rv] does not cover. *)
+Axiom own_progress_rest : loc → iProp Σ.
+
+Definition own_progress (pr : loc) : iProp Σ :=
+  ∃ (recentActive : bool),
+    struct_field_ref tracker.Progress.t "RecentActive"%go pr ↦ recentActive ∗
+    own_progress_rest pr.
+
+Axiom own_progresses : loc → iProp Σ.
+
+(** [trk.Progress[i]], for a voter [i]: [becomeLeader] looks up [r.id].
+    Only voters are in the map, whence the side condition. *)
+Axiom wp_tracker_progress_lookup : ∀ (pm : loc) (i : w64),
+  i ∈ cfg →
+  {{{ own_progresses pm }}}
+    map.lookup1 go.uint64 (go.PointerType tracker.Progress) #pm #i
+  {{{ (pr : loc), RET #pr;
+      own_progress pr ∗ (own_progress pr -∗ own_progresses pm) }}}.
+
+(** [pr.BecomeReplicate()] moves a [Progress] into the replicating state.
+    It says nothing about votes, terms or roles, so the model does not see
+    it. *)
+Axiom wp_Progress__BecomeReplicate : ∀ (pr : loc),
+  {{{ is_pkg_init tracker ∗ own_progress pr }}}
+    pr @! (go.PointerType tracker.Progress) @! "BecomeReplicate" #()
+  {{{ RET #(); own_progress pr }}}.
+
 (** [r.promotable()]: true exactly when this node is a voter. *)
 Axiom wp_raft__promotable : ∀ (r : loc) (id : w64) trk votes l,
   {{{ is_pkg_init raft ∗ own_tracker trk votes ∗ own_raftLog l }}}
@@ -281,6 +320,10 @@ Definition own_raft_phys γ (r : loc) (id : w64) s : iProp Σ :=
 
   (** the vote tally lives in the tracker *)
   "Htrk" ∷ own_tracker (struct_field_ref raft.raft.t "trk" r) s.(nstate.votes) ∗
+
+  (** the per-peer replication progress hanging off the tracker; opaque, but
+      owned here because [becomeLeader] writes to it *)
+  "Hprog" ∷ own_progresses rv.(raft.raft.trk').(tracker.ProgressTracker.Progress') ∗
 
   (** the log, opaque *)
   "Hlog" ∷ own_raftLog rv.(raft.raft.raftLog') ∗
@@ -428,7 +471,30 @@ Lemma wp_raft__becomeFollower γ r id s (term lead : w64) :
     r @! (go.PointerType raft.raft) @! "becomeFollower" #term #lead
   {{{ RET #(); own_raft_phys γ r id (become_follower s term lead) }}}.
 Proof.
-Admitted.
+  wp_start as "Hphys". iNamed "Hphys". wp_auto.
+  (* [r.step := stepFollower] is done; re-seal for [reset]. *)
+  iAssert (own_raft_phys γ r id s)
+    with "[Hr Htrk Hprog Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
+    as "Hphys".
+  { rewrite /own_raft_phys.
+    iExists (rv <| raft.raft.step' := _ |>), msgs, msgsAA, lok. iFrame "∗#%". }
+  wp_apply (wp_raft__reset with "[$Hphys]") as "Hphys".
+  iNamedSuffix "Hphys" "1".
+  (* [r.tick], [r.lead := lead], [r.state := StateFollower] *)
+  wp_auto.
+  wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
+  wp_auto. rewrite Hlok1.
+  wp_apply (wp_Logger__logf with "Hlogger1").
+  { rewrite /log_methods. set_solver. }
+  wp_apply (wp_traceBecomeFollower with "[$Hmisc1]") as "Hmisc1".
+  iApply "HΦ". rewrite /own_raft_phys /become_follower /=.
+  iExists _, msgs0, msgsAA0, lok0.
+  simpl in Hid1, Hterm1, Hvote1, Hlead1, Hstate1.
+  iEval (simpl) in "Htrk1".
+  iFrame "Hr1 ∗#%".
+  (* [lead] and [state] were just assigned, so these are by computation *)
+  iSplit; iPureIntro; reflexivity.
+Qed.
 
 Lemma wp_raft__becomeCandidate γ r id s :
   s.(nstate.role) ≠ role.Leader →
@@ -436,15 +502,90 @@ Lemma wp_raft__becomeCandidate γ r id s :
     r @! (go.PointerType raft.raft) @! "becomeCandidate" #()
   {{{ RET #(); own_raft_phys γ r id (become_candidate id s) }}}.
 Proof.
-Admitted.
+  intros Hrole. wp_start as "Hphys". iNamed "Hphys". wp_auto.
+  (* [becomeCandidate] panics on a leader; by assumption we are not one. *)
+  assert (state_w64 s.(nstate.role) ≠ W64 2) as Hnl.
+  { destruct (s.(nstate.role)) eqn:Hro; try congruence;
+      rewrite /state_w64 /StateFollower /StateCandidate;
+      intros Heq; apply (f_equal uint.Z) in Heq; vm_compute in Heq; discriminate. }
+  rewrite Hstate bool_decide_eq_false_2 //. wp_auto.
+  iAssert (own_raft_phys γ r id s)
+    with "[Hr Htrk Hprog Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
+    as "Hphys".
+  { rewrite /own_raft_phys.
+    iExists (rv <| raft.raft.step' := _ |>), msgs, msgsAA, lok. iFrame "∗#%". }
+  (* [reset] is called at [r.Term + 1] *)
+  rewrite Hterm.
+  wp_apply (wp_raft__reset with "[$Hphys]") as "Hphys".
+  iNamedSuffix "Hphys" "1".
+  (* [r.tick], [r.Vote := r.id], [r.state := StateCandidate] *)
+  wp_auto.
+  wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
+  wp_auto. rewrite Hlok1.
+  wp_apply (wp_Logger__logf with "Hlogger1").
+  { rewrite /log_methods. set_solver. }
+  wp_apply (wp_traceBecomeCandidate with "[$Hmisc1]") as "Hmisc1".
+  iApply "HΦ". rewrite /own_raft_phys /become_candidate /=.
+  iExists _, msgs0, msgsAA0, lok0.
+  simpl in Hid1, Hterm1, Hvote1, Hlead1, Hstate1.
+  iEval (simpl) in "Htrk1".
+  iFrame "Hr1 ∗#%".
+  iPureIntro; reflexivity.
+Qed.
 
 Lemma wp_raft__becomeLeader γ r id s :
   s.(nstate.role) ≠ role.Follower →
+  id ∈ cfg →
   {{{ is_pkg_init raft ∗ own_raft_phys γ r id s }}}
     r @! (go.PointerType raft.raft) @! "becomeLeader" #()
   {{{ RET #(); own_raft_phys γ r id (become_leader id s) }}}.
 Proof.
-Admitted.
+  intros Hrole Hcfg. wp_start as "Hphys". iNamed "Hphys". wp_auto.
+  (* [becomeLeader] panics on a follower; by assumption we are not one. *)
+  assert (state_w64 s.(nstate.role) ≠ W64 0) as Hnf.
+  { destruct (s.(nstate.role)) eqn:Hro; try congruence;
+      rewrite /state_w64 /StateCandidate /StateLeader;
+      intros Heq; apply (f_equal uint.Z) in Heq; vm_compute in Heq; discriminate. }
+  rewrite Hstate bool_decide_eq_false_2 //. wp_auto.
+  iAssert (own_raft_phys γ r id s)
+    with "[Hr Htrk Hprog Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
+    as "Hphys".
+  { rewrite /own_raft_phys.
+    iExists (rv <| raft.raft.step' := _ |>), msgs, msgsAA, lok. iFrame "∗#%". }
+  (* [reset] is called at the unchanged term, so the vote survives *)
+  rewrite Hterm.
+  wp_apply (wp_raft__reset with "[$Hphys]") as "Hphys".
+  iNamedSuffix "Hphys" "1".
+  assert (rv0.(raft.raft.Vote') = s.(nstate.vote)) as Hvote1'.
+  { rewrite Hvote1 /=. rewrite decide_True //. }
+  (* [r.tick], [r.lead := r.id], [r.state := StateLeader] *)
+  wp_auto.
+  rewrite Hid1.
+  (* the leader's own [Progress] is marked replicating and recently active *)
+  wp_apply (wp_tracker_progress_lookup _ _ Hcfg with "[$Hprog1]")
+    as "%pr [Hpr Hprback]".
+  wp_apply (wp_Progress__BecomeReplicate with "[$Hpr]") as "Hpr".
+  iDestruct "Hpr" as (recentActive) "[Hra Hrest]".
+  wp_auto.
+  iAssert (own_progress pr) with "[Hra Hrest]" as "Hpr".
+  { rewrite /own_progress. iExists true. iFrame. }
+  iDestruct ("Hprback" with "Hpr") as "Hprog1".
+  wp_apply (wp_raftLog__lastIndex with "[$Hlog1]") as "%li Hlog1".
+  wp_apply (wp_traceBecomeLeader with "[$Hmisc1]") as "Hmisc1".
+  wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
+  wp_auto.
+  wp_apply (wp_raft__appendEmptyEntry with "[$Hlog1]") as "Hlog1".
+  wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
+  wp_auto. rewrite Hlok1.
+  wp_apply (wp_Logger__logf with "Hlogger1").
+  { rewrite /log_methods. set_solver. }
+  iApply "HΦ". rewrite /own_raft_phys /become_leader /=.
+  iExists _, msgs0, msgsAA0, lok0.
+  simpl in Hid1, Hterm1, Hvote1, Hlead1, Hstate1.
+  iEval (simpl) in "Htrk1".
+  iFrame "Hr1 ∗#%".
+  iPureIntro. split_and!; done.
+Qed.
 
 (** ** [poll]
 
@@ -669,7 +810,7 @@ Proof.
   rewrite HnoPreVote. wp_auto.
   (* re-seal the physical ownership for [hup] *)
   iAssert (own_raft_phys γ r id s)
-    with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys".
+    with "[Hr Htrk Hprog Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys".
   { rewrite /own_raft_phys. iFrame "∗#%". }
   wp_apply (wp_raft__hup with "[$Hphys $Hghost]") as "%s' (Hphys & Hghost & %Hstep)".
   { done. }
@@ -753,7 +894,7 @@ Proof.
     rewrite Hty /MsgVote bool_decide_eq_false_2; last w32_ne. wp_auto.
     rewrite Hty /MsgVote bool_decide_eq_false_2; last w32_ne. wp_auto.
     iAssert (own_raft_phys γ r id s)
-      with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys".
+      with "[Hr Htrk Hprog Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys".
     { rewrite /own_raft_phys. iExists rv, msgs, msgsAA, lok. iFrame "∗#%". }
     wp_apply (wp_raft__becomeFollower with "[$Hphys]") as "Hphys".
     (* the corresponding protocol step *)
@@ -793,7 +934,7 @@ Proof.
         split; [by rewrite decide_False|done]. }
       iEval (rewrite /abs_msg /become_follower /=) in "Hgrant".
       iAssert (own_raft_phys γ r id (become_follower s m.(raftpb.Message.Term') (W64 0)))
-        with "[Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1]"
+        with "[Hr1 Htrk1 Hprog1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1]"
         as "Hphys".
       { rewrite /own_raft_phys. iExists rv0, msgs0, msgsAA0, lok0.
         rewrite /become_follower /= decide_False //. iFrame "∗#%". }

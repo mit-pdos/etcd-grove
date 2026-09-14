@@ -71,3 +71,37 @@ past that, and `wp_slice_append` will not apply. Normalize first, exactly as
 replace (sint.nat (W64 0)) with 0%nat by done.
 rewrite /go.array_literal_size /= /Z.max /= /Z.add /=.
 ```
+
+## `wp_apply (lem with "H") as "pat"` fails if `lem` has a pure premise
+
+Any `Axiom`/`Lemma` written `P → {{{ ... }}} e {{{ ... }}}` leaves the `P`
+goal *first*, and `as "pat"` is applied to that goal, so you get
+
+    Error: Tactic failure: iIntro: nothing to introduce.
+
+which looks nothing like the real cause. Two fixes: pass the premise
+positionally, `wp_apply (lem _ _ Hpremise with "[$H]") as "pat"`, or drop the
+`as` and discharge the premise in a `{ }` block (what the `wp_Logger__logf`
+call sites in `election.v` do). Note `Local Ltac wp_log` in `election.v` uses
+the broken form and has never been called; don't reach for it.
+
+## `wp_apply ... as` already runs `wp_auto`, so a following `wp_auto` errors
+
+After `wp_apply (lem with "[$H]") as "H"` the goal has been advanced past the
+call *and* the straight-line code after it, so an explicit `wp_auto.` next
+fails with `Failed to progress.` Only put `wp_auto` where something actually
+blocked it — after `iDestruct`/`iAssert`, or after the
+`wp_slice_literal; iSplitR; iIntros` dance.
+
+## `iFrame "%"` closes pure goals by assumption, not by computation
+
+Re-sealing `own_raft_phys` after a run of field writes leaves pure goals like
+`(rv <| state' := W64 0 |>).(raft.raft.state') = StateFollower`. `iFrame "%"`
+does not close those — it matches hypotheses, and there is no hypothesis to
+match — so they are left over and `Qed.` reports "remaining open goals" with
+no error pointing at the real line. Finish with
+`iPureIntro. split_and!; done.` after the `iFrame`, which handles both the
+by-computation and the by-assumption conjuncts. (This is also why a leftover
+count of 1 vs 2 changes which tactic works: `iPureIntro; reflexivity` is
+enough for one goal and wrong for two.)
+

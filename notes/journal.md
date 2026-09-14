@@ -187,3 +187,68 @@ Claude Opus 5 (background job), at Upamanyu's request.
   follow-on is a `Print Assumptions` cross-check, which is the only way to see
   assumptions inherited from Perennial/Iris/Goose; it needs a built `.vo`, so
   it did not fit the "works on any checkout" constraint this tool was built to.
+
+## 2026-09-14 — the three `becomeX` lemmas
+
+Claude Opus 5 (background job), at Upamanyu's request: "prove the admitted
+`wp_raft__become<foo>` lemmas". Branch `worktree-raft-election-refinement`.
+
+- **Did:** `wp_raft__becomeFollower`, `wp_raft__becomeCandidate` and
+  `wp_raft__becomeLeader` in
+  `new/proof/go_etcd_io/raft/v3_proof/election.v` are now `Qed`. They still
+  *call* `wp_raft__reset`, which remains `Admitted` — that was the given
+  interface and it was left alone. Raft trust base went 46 axioms / 17
+  `Admitted.` → 50 / 14.
+- **Shape of each proof.** `wp_auto` walks the whole function body except
+  three places: the `bool_decide` guarding the panic arm (rewrite it false
+  from the role hypothesis), the call to `reset` (re-seal `own_raft_phys` and
+  `wp_apply`), and the variadic logger argument (the
+  `wp_slice_literal` dance). The postconditions come out as literally the
+  model's `become_follower` / `become_candidate` / `become_leader`, which is
+  the point — those definitions were written to mirror the Go code and they
+  do.
+- **`becomeCandidate`/`becomeLeader` panic arms.** `becomeCandidate` panics
+  on `state == StateLeader` and `becomeLeader` on `state == StateFollower`.
+  Both discharge from the role hypothesis via
+  `destruct (s.(nstate.role)) eqn:Hro; try congruence` — the `eqn:` matters,
+  since plain `destruct` does not substitute into the hypothesis that rules
+  the bad case out. `word` will not close `W64 0 ≠ W64 2`; the
+  `f_equal uint.Z; vm_compute; discriminate` idiom already in the file does.
+- **`becomeLeader` needed the trust boundary widened**, by four axioms:
+  `own_progresses`, `own_progress_rest`, `wp_tracker_progress_lookup`,
+  `wp_Progress__BecomeReplicate`, plus a (non-axiom) `own_progress`
+  definition and a new `own_progresses r.trk.Progress` conjunct in
+  `own_raft_phys`. `becomeLeader` does
+  `pr := r.trk.Progress[r.id]; pr.BecomeReplicate(); pr.RecentActive = true`,
+  and the existing opaque `own_tracker` could not produce any of it. The
+  reasoning behind the exact shape (keyed on the map reference, `own_progress`
+  a definition so the inline field assignment has real ownership) is in
+  [raft-election-refinement.md](raft-election-refinement.md); the short
+  version is the same rule the `own_raft_misc` note already states — index it
+  by what it actually covers.
+- **`wp_raft__becomeLeader` gained a hypothesis, `id ∈ cfg`**, because only
+  voters are in `trk.Progress`. Its first caller will be
+  `wp_stepCandidate_MsgVoteResp`, which will have to thread it in.
+- **Found: `own_raft_phys` claims `r.trk` twice.** `trk` is an embedded
+  `tracker.ProgressTracker` *value*, so `r ↦ rv` covers its bytes, and
+  `own_raft_phys` *also* holds
+  `own_tracker (struct_field_ref raft.raft.t "trk" r)`. Harmless today
+  because `own_tracker` is an opaque axiom that need not own anything;
+  fatal the moment someone constructs it, since `own_raft_phys` would become
+  provably `False` and every `Step` triple vacuous. Written up in the topic
+  file and added to `STATUS.md`'s next steps. Not fixed here — fixing it
+  means deciding what `own_tracker` is, which is step 3.
+- **`reset` is not as mechanical as the previous note claimed.** Besides
+  re-initialising every `Progress` through `trk.Visit`, it replaces
+  `r.readOnly` with a fresh `newReadOnly(...)`, and `own_raft_misc` is
+  indexed by the old pointer — so it needs a `wp_newReadOnly` axiom. Noted in
+  the topic file so the next person does not rediscover it mid-proof.
+- **Method.** `election.v` is now 1045 lines and a cold check is ~3 min, so
+  the three proofs were developed in a throwaway
+  `v3_proof/scratch_become.v` = `head -<reset's Admitted> election.v` + the
+  lemma under construction, which cold-checks in 45 s and replays in 3–15 s
+  under `rocq-warm`. Splice back and check the real file once at the end.
+  That is worth reusing; the deleted scratch file is not worth keeping.
+  Three tactic traps this cost time on are now in
+  [gotchas.md](gotchas.md).
+
