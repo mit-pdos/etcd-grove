@@ -746,12 +746,14 @@ EXPECTED_ADMITS = {
     "proof_raft__campaign.v": 1,
     "proof_raft__hup.v": 1,
     "proof_stepCandidate_MsgVoteResp.v": 1,
-    "proof_raft__Step_MsgVote.v": 1,
-    "proof_raft__Step_MsgVoteResp.v": 1,
+    # Step's MsgVote and MsgVoteResp branches are internal lemmas of its own
+    # proof, not separately specified functions -- see proof_raft__Step.v.
+    "proof_raft__Step.v": 2,
 }
 # The whole point of the spec/postulates/proof/link layout: one spec file per
-# function, one Parameter in it, and nothing trusted anywhere in it.
-EXPECTED_TOTALS = {"axioms": 49, "obligations": 14, "admitted": 14}
+# function, one Parameter in it, and nothing trusted anywhere in it.  Eleven
+# obligations for eleven Go functions.
+EXPECTED_TOTALS = {"axioms": 49, "obligations": 11, "admitted": 14}
 
 FIXTURES = [
     # (source, check name, predicate over units)

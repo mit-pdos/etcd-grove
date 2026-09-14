@@ -6,6 +6,8 @@
 
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.inv_raft_phys.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.step_lemmas.
+(* [wp_Equal], for the MsgVote branch's Context comparison. *)
+Require Export New.proof.bytes.
 
 (** The top-level dispatch.  NOTE: [Step] is the one function with more than
     one spec -- the three per-message-type theorems above are a layering of the

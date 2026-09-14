@@ -1,20 +1,26 @@
-(** * Link: [raft.raft__Step]
+(** * Link: [raft.Step]
 
-    [raft__Step] is proved, so this file carries no [Axiom]. *)
+    [Step]'s own dispatch is proved; two of its three internal branches are
+    unfinished, and those holes are [Admitted]s inside [proof_raft__Step.v].
+    This file carries no [Axiom]. *)
 
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.proof_raft__Step.
-Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__Step_MsgHup.
-Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__Step_MsgVote.
-Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__Step_MsgVoteResp.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__hup.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__becomeFollower.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_voteRespMsgType.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__send_vote.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_stepCandidate_MsgVoteResp.
 
 Module StepPostulates : STEP_POSTULATES.
-  Include StepMsgHup.
-  Include StepMsgVote.
-  Include StepMsgVoteResp.
+  Include Hup.
+  Include BecomeFollower.
+  Include VoteRespMsgType.
+  Include SendVote.
+  Include StepCandidate.
 End StepPostulates.
 
 Module Step := StepProof StepPostulates.
 
 (** Implicits are not inferred through a folded [_body], and an [Arguments]
     inside the [Module Type] does not survive functor application. *)
-Arguments Step.wp_raft__Step {_ _ _ _ _ _ _ _}.
+Arguments Step.wp_raft__Step {_ _ _ _ _ _ _ _ _}.
