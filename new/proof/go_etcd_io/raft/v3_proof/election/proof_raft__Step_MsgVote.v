@@ -11,7 +11,7 @@ Module StepMsgVoteProof (P : STEP_MSGVOTE_POSTULATES) : STEP_MSGVOTE.
 
   Lemma wp_raft__Step_MsgVote : wp_raft__Step_MsgVote_body.
   Proof.
-    intros ?????? sem package_sem cfg γ r id s m.
+    intros ?????? sem package_sem bytes_sem cfg γ r id s m.
     intros Hty Hto Hterm Hfnz.
     wp_start as "@". iNamed "Hphys". wp_auto.
     wp_apply (wp_traceReceiveMessage with "[$Hmisc]") as "Hmisc".

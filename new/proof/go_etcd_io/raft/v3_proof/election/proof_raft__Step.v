@@ -11,7 +11,7 @@ Module StepProof (P : STEP_POSTULATES) : STEP.
 
   Lemma wp_raft__Step : wp_raft__Step_body.
   Proof.
-    intros ?????? sem package_sem cfg γ r id s m.
+    intros ?????? sem package_sem bytes_sem cfg γ r id s m.
     intros Helection Hhup Hvote Hvoteresp.
     iIntros (Φ) "(#Hinit & Hphys & Hghost & #Hm & #Hctx) HΦ".
     destruct Helection as [Hty | [Hty | Hty]].

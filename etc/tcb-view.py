@@ -236,7 +236,22 @@ class Unit:
         return self.names[0]
 
     @property
+    def is_obligation(self):
+        """A Parameter inside a `Module Type` is not an assumption.
+
+        It is a proof obligation on whatever implements the signature: a
+        functor that discharges it contributes nothing to `Print
+        Assumptions`.  Counting these as axioms would report a spec file as
+        trusted, which is backwards -- the Module Type is the thing being
+        audited, not something being taken on faith.
+        """
+        return self.kind == "assumed" and self.scope.startswith("Module Type ")
+
+    @property
     def is_hole(self):
+        # Obligations still seed the closure (their statements mention the
+        # _body definitions, which the reader does need to see); they are
+        # just not counted as trusted.  See render_summary.
         return self.kind == "assumed" or self.terminator == "Admitted"
 
     @property
@@ -355,8 +370,11 @@ def parse_file(path, src):
 
         # Track Section/Module nesting.
         if keyword in ("Section", "Module") and len(tokens) > 1:
-            nm = tokens[1] if tokens[1] != "Type" else (tokens[2:] or [""])[0]
-            scope.append(f"{keyword} {nm}")
+            # `Module Type FOO` is not `Module FOO`: a Parameter in the former
+            # is a proof obligation, in the latter an assumption.
+            is_modtype = keyword == "Module" and tokens[1] == "Type"
+            nm = (tokens[2:] or [""])[0] if is_modtype else tokens[1]
+            scope.append(("Module Type " if is_modtype else f"{keyword} ") + nm)
             if keyword == "Module":
                 modpath.append(nm)
         elif keyword == "End":
@@ -519,7 +537,8 @@ def fold(u, opts):
 def render_file(path, units, opts, out):
     shown = [u for u in units if u.cls != "internal"]
     hidden = [u for u in units if u.cls == "internal"]
-    axioms = [u for u in units if u.kind == "assumed"]
+    axioms = [u for u in units if u.kind == "assumed" and not u.is_obligation]
+    obligs = [u for u in units if u.is_obligation]
     admits = [u for u in units if u.terminator == "Admitted"]
     roots = [u for u in units if u.is_root]
     total = sum(u.stmt.count("\n") + u.body.count("\n") + 2 for u in units)
@@ -527,8 +546,9 @@ def render_file(path, units, opts, out):
     out.append(f"(* ======== {path} ======== *)")
     rootnames = ", ".join(u.name for u in roots) or "none in this file"
     out.append(f"(* roots: {rootnames} *)")
+    ob = f"{len(obligs)} module-type obligations | " if obligs else ""
     out.append(
-        f"(* {len(axioms)} axioms | {len(admits)} admitted | "
+        f"(* {len(axioms)} axioms | {ob}{len(admits)} admitted | "
         f"{len(hidden)} internal declarations hidden *)"
     )
     out.append("")
@@ -562,7 +582,8 @@ def render_file(path, units, opts, out):
 
 
 def render_summary(allunits, out):
-    axioms = [u for u in allunits if u.kind == "assumed"]
+    axioms = [u for u in allunits if u.kind == "assumed" and not u.is_obligation]
+    obligs = [u for u in allunits if u.is_obligation]
     admits = [u for u in allunits if u.terminator == "Admitted"]
 
     out.append("(* ======== TRUST BASE ======== *)")
@@ -590,6 +611,23 @@ def render_summary(allunits, out):
     for u in unfinished:
         extra = f"  ({u.admits} interior admit.)" if u.admits else ""
         out.append(f"    {u.path}:{u.line}  {u.name}{extra}")
+
+    if obligs:
+        by_sig = {}
+        for u in obligs:
+            by_sig.setdefault(u.scope, []).append(u)
+        out.append("")
+        out.append(f"MODULE TYPE OBLIGATIONS ({len(obligs)}) -- NOT trusted")
+        out.append("")
+        out.append("  Each is discharged by the functor ascribed to its signature,")
+        out.append("  so none of these reaches `Print Assumptions`.  Listed so that")
+        out.append("  the count of specs can be checked against the count of")
+        out.append("  functions: one Parameter per function is the invariant.")
+        for sig in sorted(by_sig):
+            out.append("")
+            out.append(f"  {sig}")
+            for u in by_sig[sig]:
+                out.append(f"    {u.path}:{u.line}  {u.name}")
 
     out.append("")
     out.append("(* Textual only: this is the trust boundary as written in the files")
@@ -684,7 +722,17 @@ EXPECTED_AXIOMS = {
     "protocol.v": 6,
     "readonly.v": 7,
     "election_protocol.v": 11,
-    "election.v": 25,
+    # election.v is an aggregator now; the election trust base lives in the
+    # inv_*.v files, which is the point -- an Axiom there means "out of
+    # scope", an Admitted in a proof_*.v means "in scope but unfinished".
+    "election.v": 0,
+    "defs.v": 0,
+    "inv_raftlog.v": 5,
+    "inv_tracker.v": 7,
+    "inv_logger.v": 3,
+    "inv_misc.v": 10,
+    "inv_raft_phys.v": 0,
+    "step_lemmas.v": 0,
 }
 EXPECTED_ADMITS = {
     "v3.v": 0,
@@ -692,8 +740,18 @@ EXPECTED_ADMITS = {
     "protocol.v": 2,
     "readonly.v": 5,
     "election_protocol.v": 0,
-    "election.v": 7,
+    "election.v": 0,
+    "proof_raft__reset.v": 1,
+    "proof_raft__poll.v": 1,
+    "proof_raft__campaign.v": 1,
+    "proof_raft__hup.v": 1,
+    "proof_stepCandidate_MsgVoteResp.v": 1,
+    "proof_raft__Step_MsgVote.v": 1,
+    "proof_raft__Step_MsgVoteResp.v": 1,
 }
+# The whole point of the spec/postulates/proof/link layout: one spec file per
+# function, one Parameter in it, and nothing trusted anywhere in it.
+EXPECTED_TOTALS = {"axioms": 49, "obligations": 14, "admitted": 14}
 
 FIXTURES = [
     # (source, check name, predicate over units)
@@ -747,6 +805,16 @@ FIXTURES = [
         "interior admit. counting",
         lambda us: us[0].admits == 2,
     ),
+    (
+        "Module Type FOO.\nParameter wp_f : wp_f_body.\nEnd FOO.\n",
+        "Parameter in a Module Type is an obligation, not an axiom",
+        lambda us: us[1].is_obligation and us[1].scope == "Module Type FOO",
+    ),
+    (
+        "Module Foo : FOO.\nAxiom wp_f : wp_f_body.\nEnd Foo.\n",
+        "Axiom in an ascribed Module is still an axiom",
+        lambda us: not us[1].is_obligation and us[1].kind == "assumed",
+    ),
 ]
 
 
@@ -793,9 +861,21 @@ def self_check(repo_root):
             units, _ = parse_file(p, read_source(p))
             base = os.path.basename(p)
             counted[base] = (
-                len([u for u in units if u.kind == "assumed"]),
+                len([u for u in units if u.kind == "assumed" and not u.is_obligation]),
                 len([u for u in units if u.terminator == "Admitted"]),
+                len([u for u in units if u.is_obligation]),
             )
+            # A spec file declares exactly one function's triple and assumes
+            # nothing.  This is the invariant the layout exists to enforce, and
+            # checking it beats hard-coding a list of spec file names.
+            if base.startswith("spec_"):
+                n_ax, n_ad, n_ob = counted[base]
+                if (n_ob, n_ax, n_ad) != (1, 0, 0):
+                    failures.append(
+                        f"{base}: a spec file must declare exactly one "
+                        f"Parameter and assume nothing, got "
+                        f"{n_ob} obligations / {n_ax} axioms / {n_ad} admitted"
+                    )
         for base, want in EXPECTED_AXIOMS.items():
             got = counted.get(base, (None, None))[0]
             if got != want:
@@ -806,7 +886,15 @@ def self_check(repo_root):
                 failures.append(f"{base}: expected {want} admitted, got {got}")
         tot_ax = sum(v[0] for v in counted.values())
         tot_ad = sum(v[1] for v in counted.values())
-        print(f"raft inventory: {tot_ax} axioms, {tot_ad} admitted")
+        tot_ob = sum(v[2] for v in counted.values())
+        got_tot = {"axioms": tot_ax, "obligations": tot_ob, "admitted": tot_ad}
+        for k, want in EXPECTED_TOTALS.items():
+            if got_tot[k] != want:
+                failures.append(f"raft total {k}: expected {want}, got {got_tot[k]}")
+        print(
+            f"raft inventory: {tot_ax} axioms, {tot_ad} admitted, "
+            f"{tot_ob} module-type obligations (not trusted)"
+        )
     else:
         failures.append(f"missing {RAFT_DIR}")
 

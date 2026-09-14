@@ -5,6 +5,7 @@
     it -- there is no second copy of the binder list to drift. *)
 
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.inv_raft_phys.
+Require Export New.proof.bytes.
 
 (** [MsgVote]: step down if the term is higher, then grant or decline. *)
 Definition wp_raft__Step_MsgVote_body :=
