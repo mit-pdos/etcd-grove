@@ -105,3 +105,30 @@ by-computation and the by-assumption conjuncts. (This is also why a leftover
 count of 1 vs 2 changes which tactic works: `iPureIntro; reflexivity` is
 enough for one goal and wrong for two.)
 
+## `make x.vos` does not check proof bodies
+
+`.vos` compiles statements, signatures and module structure and **skips
+opaque proofs**, so it will happily accept a proof script that does not run.
+It is a fine 2-second inner loop; it is not a check. Use `make x.vok` for the
+real one (~60s for one raft function).
+
+Do not reach for `make x.vo` instead: nothing in this tree has `.vo`
+dependencies, so that starts building all of Perennial. See
+`CONTRIBUTING.md:57-63`.
+
+Corollary: `Print Assumptions` over a `.vos` tree **under-reports**. It sees
+axioms reachable from *statements*, but not what an opaque proof used, so
+`Admitted` lemmas and `wp_*` axioms consumed inside proofs simply do not
+appear. It is not a usable cross-check on the trust base; `./etc/tcb-view.py`
+is, textually.
+
+## `Collection W` is section-scoped but the `Set` naming it is not
+
+`Set Default Proof Using "W"` survives `End <section>` while the collection
+`W` itself does not, so the next lemma fails with `Unknown variable: W`. And
+for a lemma whose type is *closed* (the `wp_<fn>_body` shape), forcing W's
+variables in would add binders its signature does not have, so the module
+ascription then fails with `Signature components for field ... do not match`.
+Restore the prelude default with `Set Default Proof Using "Type".` after the
+section — `new/proof/go_etcd_io/raft/v3_proof/election/proof_raft__Step.v`
+does exactly this.

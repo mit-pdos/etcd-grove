@@ -158,3 +158,84 @@ is therefore shown wholesale rather than resolved. Over-approximating shows you
 more than you must trust, never less, which is the safe direction. It also
 refuses to run on a tree where `etc/disable-qed.sh` has rewritten `Qed.` to
 `Admitted.`, which would otherwise report every proof in the file as a hole.
+
+---
+
+## One file per function, via Rocq's module system
+
+**2026-09-14 · accepted**
+
+`election.v` was a single 1072-line `Section proof` holding 15 axiomatized
+Hoare triples, 14 proved-or-admitted ones, 8 ownership predicates and 5 model
+lemmas. Nothing stopped a second spec for the same Go function being written
+elsewhere, and the only thing distinguishing a trusted assumption from a
+finished proof was which `Section` a declaration happened to sit in. That is
+not hypothetical: `raft_names` is declared twice (`protocol.v:30` vs
+`readonly.v:51`), `is_quorum` twice (`election_protocol.v:84` vs
+`readonly.v:114`), and `readonly.v` axiomatizes `own_raft` as a second,
+incompatible ownership story for the struct `own_raft_phys` already covers.
+
+**Decision:** four files per Go function, under `v3_proof/election/`, modeled
+on `mit-pdos/xv6iris`:
+
+| file | holds |
+| --- | --- |
+| `spec_<fn>.v` | `wp_<fn>_body` + `Module Type <FN>` with **one** `Parameter` |
+| `postulates_<fn>.v` | `Module Type <FN>_POSTULATES`, `Include`ing direct callees |
+| `proof_<fn>.v` | `Module <Fn>Proof (P : <FN>_POSTULATES) : <FN>.` |
+| `link_<fn>.v` | the instantiation |
+
+**What actually enforces the property.** Not the functor — opaque ascription
+(`: <FN>`) is what stops anything bypassing the spec, and `Include` is what
+makes a duplicate a *build error*: two signatures declaring the same label
+give `Error: The label wp_raft__poll is already declared.` This was
+demonstrated deliberately and reverted; do it again if you doubt it.
+
+**Rejected — drop the functor, import callee modules directly.** Same
+single-spec guarantee, and a stable link-file name gives the same edit
+locality. What the functor buys in *this* repo is build shape:
+`proof_becomeLeader.v` compiles against `reset`'s ~20-line signature rather
+than its proof. One function re-checks in about a minute where the monolithic
+`election.v` took upwards of twelve.
+
+**Rejected — put the trust-boundary `wp_*` axioms behind Module Types too.**
+They are `Prop`s so it would typecheck, but nothing about them will ever be
+proved, so it buys ~20 extra signatures for nothing. They stay plain `Axiom`s
+in `inv_*.v`.
+
+**Forced, not chosen — predicates stay out of the module system.**
+`own_raft_phys` mentions `own_tracker`/`own_raftLog`/`own_raft_misc`/
+`is_Logger`, and every `wp_*_body` mentions `own_raft_phys`, so a spec's
+statement must elaborate before any module exists. Independently: a
+`Definition` inside an ascribed module is opaque outside it (`iNamed` and
+`rewrite /own_raft_phys` stop working), and an `Instance` declared inside one
+never reaches the global instance table. With `:` everywhere, if a predicate
+ever did become a Module Type field the two copies would fail to unify at the
+first `iFrame` and name both offenders — so the invariant **"Module Types
+contain only `Prop`-valued specs"** is compiler-enforced, not a convention.
+
+**The `_body` carries its own binders**, so the `Parameter` is a bare
+reference and the binder list exists once. Writing them with `` `{...} ``
+generalization compiles but emits five "Ignoring implicit binder declaration"
+warnings per file, and `` `(...) `` still emits one; naming all nine outright
+is warning-free. The cost is that implicits are not inferred through a folded
+`_body`, so each `link_*.v` ends with
+`Arguments <Fn>.wp_<fn> {_ _ _ _ _ _ _ _}.` — the short prefix form, which
+leaves each function's own binders explicit. An `Arguments` inside the
+`Module Type` is accepted but does **not** survive functor application.
+
+**Consequences.** 51 files where there was one. `election.v` is a 78-line
+aggregator that `Require Export`s every `link_*.v`; that is load-bearing,
+because `make ci` builds only what `new/should_build.v` reaches, so a link
+file nothing re-exported would silently go unchecked. The trust base is
+unchanged — 49 axioms, 14 `Admitted` — and is now split structurally: an
+`Axiom` in `inv_*.v` means *out of scope*, an `Admitted` in `proof_*.v` means
+*in scope but unfinished*.
+
+**Superseded within the same day:** the first cut gave `Step` four spec files
+(one per message type plus the dispatch). Upamanyu pointed out that this is
+four Hoare triples for one Go function, i.e. exactly what the refactor exists
+to prevent. The three per-message-type triples are proof structure and are now
+internal lemmas inside `proof_raft__Step.v`, sealed by the ascription. **If a
+function ever seems to want two specs, that is the signal to look harder, not
+to add a second `Module Type`.**

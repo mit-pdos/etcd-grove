@@ -304,3 +304,70 @@ Upamanyu's request: "fix the own_tracker duplication".
   `wp_auto` does not need this — it goes through the generated
   `AccessStrict` instances — only an explicit `wp_apply` does.
 
+
+## 2026-09-14 — election.v split into one file per function
+
+Refactor, no new proof content. `election.v` 1072 → 78 lines; 51 new files
+under `v3_proof/election/`. Rationale, alternatives and the enforcement
+mechanism are in [decisions.md](decisions.md); this is the log.
+
+- **One semantic change, done first and alone.**
+  `wp_stepCandidate_MsgVoteResp` gained `id ∈ cfg`. It mentioned no `cfg`,
+  but its eventual proof must call `wp_raft__poll` (which mentions `cfg`) and
+  `wp_raft__becomeLeader` (which takes `id ∈ cfg` outright). That was free
+  while `cfg` was a section variable; inside a proof functor there is no
+  ambient `cfg` to reach for. Everything after this was mechanical.
+- **Order:** shared non-module files → `voteRespMsgType` (leaf, to pin the
+  shape) → `reset`/`becomeFollower` (first real postulate) → the rest up the
+  call graph → aggregator.
+- **The trust base is unchanged: 49 axioms, 14 `Admitted`,** identical to the
+  pre-refactor numbers, re-partitioned into `inv_*.v` (out of scope) and
+  `Admitted` in `proof_*.v` (unfinished). Plus 11 module-type obligations —
+  one per Go function, which is the one-spec-per-function invariant made
+  countable.
+- **`Step` initially got this wrong.** The first cut gave it four spec files,
+  one per message type plus the dispatch. Upamanyu caught it: four Hoare
+  triples for one Go function is the thing the refactor exists to prevent, and
+  the header comment calling it "layering" did not make it not a duplicate.
+  The three branches are now internal lemmas in `proof_raft__Step.v`. Twelve
+  files removed. `grep -l Step spec_*.v` is now exactly one file.
+
+### Traps this cost time on
+
+- **`.vos` does not check proof bodies.** It is a fine 2-second loop for
+  statements, signatures and module structure, and it will happily accept a
+  proof script that does not run. Use `make <file>.vok` for the real check —
+  about 60s per function. A `.vo` build is not an option: nothing in the tree
+  has `.vo` deps, so `make x.vo` starts building all of Perennial.
+- **`Print Assumptions` over a `.vos` tree under-reports** and is not ground
+  truth. It lists axioms reachable from *statements* (`own_raftLog`,
+  `own_tracker`, `own_raft_ghost`) but not what opaque proofs used, so the
+  `Admitted`s and the `wp_*` trust-boundary axioms do not appear. Confirming
+  the trust base by `Print Assumptions` needs a full `.vo` build. Until then
+  `./etc/tcb-view.py` plus the `vok` sweep is what we have.
+- **`Collection W` is section-scoped; the `Set` naming it is not.** A closed
+  lemma placed after `End <section>` fails with `Unknown variable: W`, and
+  forcing W's variables into it would add binders its signature does not have.
+  `proof_raft__Step.v` restores `Set Default Proof Using "Type"` after the
+  section for exactly this reason.
+- **Implicit arguments are not inferred through a folded `_body`**, so
+  `Vrmt.wp_vrmt MsgVote eq_refl` fails with `The term "MsgVote" has type
+  "w32" while it is expected to have type "ffi_syntax"`. One `Arguments` line
+  per link file fixes it; inside the `Module Type` it is accepted but does not
+  survive functor application.
+- **`Require` is illegal inside a `Module` or `Section`**, so a spec file that
+  needs `New.proof.bytes` (for `wp_Equal`) must `Require Export` it — `Import`
+  does not reach the proof file.
+- **Watch for prefix collisions when renaming**: `wp_raft__Step_MsgVote` is a
+  prefix of `wp_raft__Step_MsgVoteResp`, and a naive ordered replace mangles
+  the longer one.
+
+### `etc/tcb-view.py`
+
+Taught it that a `Parameter` inside a `Module Type` is an obligation, not an
+assumption — without this the refactor read as 49 axioms → 63. The scope
+tracker now tells `Module Type FOO` from `Module FOO` (it recorded both as
+`Module FOO`). `--self-check` gained two fixtures and, more usefully, checks
+the invariant directly: **every `spec_*.v` must declare exactly one
+`Parameter` and assume nothing**. That is self-maintaining, unlike a
+hard-coded list of file names.

@@ -38,11 +38,18 @@ builds it.
   `node.Propose`. The `Section axioms` here is the current trust boundary.
 - `v3.v` (31 lines) — the public surface: `is_Node` and `wp_Node__Propose`,
   proved from `protocol.v`.
-- `v3_proof/election_protocol.v` (334 lines) and `v3_proof/election.v` (1045
-  lines) — **leader-election refinement**, added 2026-09-12. The protocol
-  state machine for election, the ghost state (`own_raft_ghost`,
-  `is_message`) and its one refinement obligation, `own_raft_phys` for the
-  raft struct, and the top-level `wp_raft__Step` triples. See
+- `v3_proof/election_protocol.v` (334 lines) — **leader-election refinement**,
+  protocol side, added 2026-09-12. The state machine, the ghost state
+  (`own_raft_ghost`, `is_message`) and its one refinement obligation.
+- `v3_proof/election/` (51 files) and `v3_proof/election.v` (78 lines) — the
+  implementation side. **Restructured 2026-09-14 into one file per Go
+  function**: each has `spec_<fn>.v` (a `Module Type` with exactly one
+  `Parameter` — the single place its Hoare triple is written),
+  `postulates_<fn>.v`, `proof_<fn>.v` (a functor ascribed to the signature)
+  and `link_<fn>.v`. Shared predicates live in `defs.v`, `inv_*.v` and
+  `step_lemmas.v`, outside the module system. `election.v` is now only an
+  aggregator plus `raft_election_safety`. See
+  [decisions.md](decisions.md) for why, and
   [raft-election-refinement.md](raft-election-refinement.md) for scope, what
   is proved, what is admitted, and the trust boundary.
 
@@ -62,24 +69,42 @@ context for the raft work, not the current focus.
 
 **Leader-election refinement** — `new/proof/go_etcd_io/raft/v3_proof/`,
 branch `worktree-raft-election-refinement`. Compiles and is reached from
-`new/should_build.v`. Proved: `wp_raft__send_vote` (the message-legitimacy
-obligation), `wp_raft__becomeFollower` / `wp_raft__becomeCandidate` /
-`wp_raft__becomeLeader` (2026-09-14), `wp_raft__Step_MsgHup`,
-`wp_voteRespMsgType`, the model-level step-composition lemmas, the
-`wp_raft__Step` dispatch, and `raft_election_safety`. Seven lemmas are still
-`Admitted`. The three `becomeX` proofs rest on `wp_raft__reset`, which is one
-of them — so `reset` is now the highest-leverage hole, and it is less
-mechanical than it looks (it replaces `r.readOnly`). The other standing
-target is `wp_raft__Step_MsgVote`, proved as far as the `isUpToDate` branch.
-Details and the stuck point are in
+`new/should_build.v` (all 51 files — checked by touching them and confirming
+`make -n new/should_build.vos` rebuilds each).
+
+Eleven Go functions are specified, one file each. Proved: `voteRespMsgType`,
+`send` (the message-legitimacy obligation), `becomeFollower`,
+`becomeCandidate`, `becomeLeader`, `Step` (its dispatch and its `MsgHup`
+branch), and `raft_election_safety`. Five are `Admitted`: `reset`, `poll`,
+`campaign`, `hup`, `stepCandidate`; plus two `admit`-bearing branches inside
+`proof_raft__Step.v` (`MsgVote`, proved as far as `isUpToDate`, and
+`MsgVoteResp`).
+
+The three `becomeX` proofs rest on `wp_raft__reset`, so **`reset` is the
+highest-leverage hole**, and it is less mechanical than it looks (it replaces
+`r.readOnly`). Details and the stuck point are in
 [raft-election-refinement.md](raft-election-refinement.md).
+
+**Checking your work:** `make <file>.vos` is a ~2s loop but **does not check
+proof bodies** — it will accept a proof script that does not run. Use
+`make <file>.vok` (~60s per function) for the real check. Do not reach for
+`.vo`: nothing in the tree has `.vo` dependencies, so `make x.vo` starts
+building all of Perennial.
 
 ## Trust base
 
 As of 2026-09-14 the raft proof assumes **49 axioms and 14 `Admitted.`** (2 of
-the admits deliberate, marked `(* Trusted *)` at `readonly.v:464,471`; the other
-12 are unfinished and hold 12 interior `admit.` tactics). Print the current list
-with
+the admits deliberate, marked `(* Trusted *)` at `readonly.v:464,471`). The
+one-file-per-function split did **not** move these numbers; it split them
+structurally:
+
+- an `Axiom` in an `inv_*.v` file means **out of scope** (the log, the
+  tracker's non-vote state, the `Logger` and tracing helpers);
+- an `Admitted` in a `proof_*.v` file means **in scope but unfinished**.
+
+There are also 11 module-type obligations — one `Parameter` per Go function.
+Those are **not** assumptions: each is discharged by the functor ascribed to
+its signature, so none reaches `Print Assumptions`. Print the list with
 
     ./etc/tcb-view.py --summary new/proof/go_etcd_io/raft
 
@@ -88,14 +113,24 @@ textual and needs no build, so it does *not* see assumptions inherited from
 Perennial, Iris, or the Goose translator — see
 [decisions.md](decisions.md) for what it is and is not good for.
 
+`./etc/tcb-view.py --self-check` now also enforces the layout invariant:
+every `spec_*.v` must declare exactly one `Parameter` and assume nothing.
+
+**`Print Assumptions` is still not available as a cross-check.** Over a
+`.vos` tree it under-reports — it sees axioms reachable from *statements* but
+not what opaque proofs used, so the `Admitted`s and the `wp_*` trust-boundary
+axioms do not appear. Ground truth needs a full `.vo` build of Perennial,
+which nothing in this tree has.
+
 ## Next steps
 
 Unclaimed; pick one and say so in the journal.
 
-1. Finish the election refinement: `wp_raft__reset` (three proved lemmas
-   rest on it), `wp_raft__Step_MsgVote`, `poll` / `campaign` / `hup`, then
-   `stepCandidate` and `wp_raft__Step_MsgVoteResp`. See
-   [raft-election-refinement.md](raft-election-refinement.md).
+1. Finish the election refinement: `reset` (three proved lemmas rest on it),
+   the `MsgVote` branch in `proof_raft__Step.v`, `poll` / `campaign` / `hup`,
+   then `stepCandidate` and the `MsgVoteResp` branch. Each is now one
+   `proof_*.v` file that re-checks in about a minute with `make <it>.vok`.
+   See [raft-election-refinement.md](raft-election-refinement.md).
 2. Construct `own_raft_ghost` / `is_message` rather than axiomatizing them,
    discharging `own_raft_ghost_step` and `is_leader_unique`. Until that is
    done the election-safety corollary rests on an axiom. This is 11 of the 49

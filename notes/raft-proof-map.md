@@ -1,6 +1,6 @@
 # Map of the Raft proof
 
-Accurate as of 2026-09-13. Rewrite this when the layout changes.
+Accurate as of 2026-09-14. Rewrite this when the layout changes.
 
 To read any of these files at spec level — theorem statements, the
 definitions they reach, and every axiom and hole, with proof bodies and
@@ -22,6 +22,18 @@ new/proof/go_etcd_io/raft/v3_proof/protocol.v    node interface (axiomatized)
 new/proof/go_etcd_io/raft/v3.v                   public surface
         ↓
 new/should_build.v:50                            what CI builds
+
+new/proof/go_etcd_io/raft/v3_proof/election_protocol.v   election model
+        ↓
+new/proof/go_etcd_io/raft/v3_proof/election/{defs,inv_*,step_lemmas}.v
+        ↓        shared vocabulary, outside the module system
+new/proof/go_etcd_io/raft/v3_proof/election/spec_<fn>.v      one spec each
+        ↓            ↓ postulates_<fn>.v          ↓ proof_<fn>.v
+new/proof/go_etcd_io/raft/v3_proof/election/link_<fn>.v
+        ↓
+new/proof/go_etcd_io/raft/v3_proof/election.v    aggregator + election safety
+        ↓
+new/should_build.v:51                            what CI builds
 ```
 
 ## `v3_proof/base.v`
@@ -95,21 +107,61 @@ i.e. the caller supplies the atomic update that appends `data` to the log.
 Extending this file to the rest of the `node` interface is the obvious next
 increment.
 
-## `v3_proof/election_protocol.v` and `v3_proof/election.v` — leader election
+## `v3_proof/election_protocol.v` — leader election, protocol side
 
-Added 2026-09-12, after the rest of this map was written.
-`election_protocol.v` (334 lines) is the protocol state machine: a node state
-is `(term, vote, lead, role, votes)`, the `Inductive step` relation is
+Added 2026-09-12. The protocol state machine: a node state is
+`(term, vote, lead, role, votes)`, the `Inductive step` relation is
 reflexive-transitive by construction, and `Section ghost` (lines 243–289)
 axiomatizes `own_raft_ghost` / `is_message` along with the one refinement
 obligation `own_raft_ghost_step` and the payoff `is_leader_unique`.
 
-`election.v` (904 lines) connects that to the translated code: `own_raft_phys`
-for the raft struct, `Section helper_axioms` (lines 110–253) for the raft
-components election does not reason about, and the `wp_raft__Step` triples plus
-`Corollary raft_election_safety` at the bottom. The log is deliberately absent
-from the protocol model — `isUpToDate` can only make a node decline to vote,
-and declining is always protocol-legal.
+The log is deliberately absent from the protocol model — `isUpToDate` can only
+make a node decline to vote, and declining is always protocol-legal.
+
+## `v3_proof/election/` — leader election, implementation side
+
+Restructured 2026-09-14 from a single 1072-line `election.v` into **one file
+per Go function**. 51 files; the shape, and why, is in
+[decisions.md](decisions.md). To find a function's specification there is now
+exactly one place to look:
+
+    v3_proof/election/spec_<fn>.v
+
+**Per function** (eleven of them: `voteRespMsgType`, `raft__send_vote`,
+`raft__reset`, `raft__becomeFollower`, `raft__becomeCandidate`,
+`raft__becomeLeader`, `raft__poll`, `raft__campaign`, `raft__hup`,
+`stepCandidate_MsgVoteResp`, `raft__Step`):
+
+| file | holds |
+| --- | --- |
+| `spec_<fn>.v` | `wp_<fn>_body` (all binders inside) + `Module Type <FN>` with one `Parameter` |
+| `postulates_<fn>.v` | `Module Type <FN>_POSTULATES`, `Include`ing the **direct** callees' signatures |
+| `proof_<fn>.v` | `Module <Fn>Proof (P : <FN>_POSTULATES) : <FN>.` — the Iris proof, sealed by the ascription |
+| `link_<fn>.v` | `Module <Fn> := <Fn>Proof <Fn>Postulates.` plus the `Arguments` line |
+
+**Shared, outside the module system** — these must stay transparent and
+instance-visible, so they can never become Module Type fields:
+
+| file | holds |
+| --- | --- |
+| `defs.v` | message-type/state constants, `state_w64`, `mtype_of`, `abs_msg`, `w32_ne` |
+| `inv_raftlog.v` | `own_raftLog` and its four methods |
+| `inv_tracker.v` | `own_tracker`, `own_progress`, the tracker methods |
+| `inv_logger.v` | `is_Logger`, `log_methods`, `wp_Logger__logf` |
+| `inv_misc.v` | `own_raft_misc`, the `traceX` helpers, `promotable`, the voter-id enumeration |
+| `inv_raft_phys.v` | `is_phys_msg`, `own_raft_phys`, the `wp_log` tactic |
+| `step_lemmas.v` | the `step_*` composition lemmas, `vote_resp_result`, `election_msg` |
+
+`election.v` (78 lines) is now only a `Require Export` of every `link_*.v` and
+shared file, plus `Corollary raft_election_safety`. Requiring every link file
+from there is load-bearing: `make ci` builds only what `new/should_build.v`
+reaches, so a link file nothing re-exported would silently go unchecked.
+
+**`Step` is one function with one spec.** Its three per-message-type branches
+are internal lemmas inside `proof_raft__Step.v`, sealed by the ascription —
+they are proof structure, not specification. If some function ever seems to
+want two specs, that is a signal to look harder, not to add a second
+`Module Type`.
 
 Full write-up, including what is still `Admitted` and in what order to attack
 it, is in [raft-election-refinement.md](raft-election-refinement.md).
