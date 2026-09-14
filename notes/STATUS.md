@@ -1,6 +1,6 @@
 # Status
 
-**Last updated:** 2026-09-12
+**Last updated:** 2026-09-13
 
 ## Goal
 
@@ -70,6 +70,20 @@ finish is `wp_raft__Step_MsgVote`, which is proved as far as the `isUpToDate`
 branch. Details and the stuck point are in
 [raft-election-refinement.md](raft-election-refinement.md).
 
+## Trust base
+
+As of 2026-09-13 the raft proof assumes **46 axioms and 17 `Admitted.`** (2 of
+the admits deliberate, marked `(* Trusted *)` at `readonly.v:469,478`; the other
+15 are unfinished and hold 12 interior `admit.` tactics). Print the current list
+with
+
+    ./etc/tcb-view.py --summary new/proof/go_etcd_io/raft
+
+which also renders any file down to just its trust-relevant parts. It is
+textual and needs no build, so it does *not* see assumptions inherited from
+Perennial, Iris, or the Goose translator — see
+[decisions.md](decisions.md) for what it is and is not good for.
+
 ## Next steps
 
 Unclaimed; pick one and say so in the journal.
@@ -80,12 +94,14 @@ Unclaimed; pick one and say so in the journal.
    [raft-election-refinement.md](raft-election-refinement.md).
 2. Construct `own_raft_ghost` / `is_message` rather than axiomatizing them,
    discharging `own_raft_ghost_step` and `is_leader_unique`. Until that is
-   done the election-safety corollary rests on an axiom.
+   done the election-safety corollary rests on an axiom. This is 11 of the 46
+   axioms; `./etc/tcb-view.py --summary` lists them under `Section ghost`.
 3. Decide what the top-level Raft correctness statement should be (beyond
    election safety), and write it down as a decision record.
 4. Discharge the `Section axioms` in `v3_proof/protocol.v` against the actual
    translated code in `new/code/go_etcd_io/raft/v3/`, or record why each axiom
-   stays an axiom.
+   stays an axiom. `./etc/tcb-view.py new/proof/go_etcd_io/raft/v3_proof/protocol.v`
+   shows them with nothing else in the way.
 5. Extend `v3.v` past `Propose` to the rest of the `node` interface.
 
 ## Known broken
@@ -111,6 +127,10 @@ Unclaimed; pick one and say so in the journal.
   `new/etc/update-goose-new.py`.
 - `make ci` builds `new/should_build.vo`, which is what CI checks. A proof not
   reachable from `new/should_build.v` is not being built.
+- `./etc/tcb-view.py` renders a `.v` file down to its trust base — theorem
+  statements, the definitions they reach, and every axiom and hole — hiding
+  proofs and proved helper lemmas. `--summary` for just the audit list,
+  `--self-check` to verify the parser.
 - Faster inner loop: `make vos` for interface files, or
   `make new/proof/go_etcd_io/raft/v3.required_vos` to build just what a file
   depends on. See `CONTRIBUTING.md`.

@@ -91,3 +91,70 @@ with no content, and indexes that have to be hand-maintained go stale.
 if notes are demonstrably being skipped, automate *that one step*. Likewise
 split a file into a directory when the file is actually unwieldy, not in
 anticipation.
+
+---
+
+## A textual trust-base reader, `etc/tcb-view.py`
+
+**2026-09-13 · accepted**
+
+Reviewing what the raft proof *assumes* meant reading 2429 lines of Rocq across
+six files and filtering out the proofs by eye. The trust base is currently 46
+`Axiom`s and 17 `Admitted.`s in four files, and nothing listed them in one
+place. `notes/STATUS.md` already carried two roadmap items about discharging or
+justifying those axioms, and `raft-proof-map.md:77-79` already said "anything
+not proved should be either discharged or explicitly justified here" — so the
+need was recorded before the tool was; this is not speculative structure.
+
+**Decision:** one stdlib-only script, `etc/tcb-view.py`, that renders a `.v`
+file down to the top-level theorem statements, the transitive closure of the
+definitions those statements mention, and every axiom and admitted hole —
+hiding proof bodies and proved helper lemmas. Plain text to stdout, so it
+composes: `diff` of two revisions' output answers "did this commit widen the
+trust base?" It did, immediately — running it across `HEAD~2..HEAD` showed
+`election.v` going from 24 axioms to 22.
+
+**Scope choice.** The alternative reading of "hide the proofs" is to show every
+statement and fold only the `Proof.`…`Qed.` bodies. Rejected: a *proved*
+helper lemma's statement is not something you have to believe, so showing it is
+noise. The closure is seeded from roots **and** from every hole, since an
+admitted lemma is itself trusted and the definitions in its statement are too.
+
+**Rejected alternatives.**
+
+- `coqdoc -g` already hides proof bodies, but has no notion of roots or
+  reachability, so it cannot drop a proved helper — which is the whole point.
+  Nothing in the repo invokes coqdoc, and there is no `rocq` binary in the
+  container this was written in.
+- `.glob`-based reachability was the tempting one: free output of every `make`,
+  byte-offset addressed, with fully-qualified references *and* typeclass kinds,
+  which would fix both approximations listed below. Killed by availability —
+  `.glob` is gitignored, is not produced by `vos`/`vok`, and exists only for
+  files built to `.vo`. At the time of writing only `election.v` and
+  `election_protocol.v` had one; `base.v`, `protocol.v`, `readonly.v` and
+  `v3.v` did not. A trust tool that works on a third of the trust base is not
+  a trust tool. Worth revisiting if the build ever guarantees `.vo`.
+- `Print Assumptions` is the only ground truth and would catch assumptions
+  inherited from Perennial/Iris that a textual scan cannot. Same availability
+  problem, plus it cannot tell a deliberate `Admitted. (* Trusted *)`
+  (`readonly.v:469,478`) from an unfinished one. Left as a follow-on.
+- Editor folding via `etc/mixcode/mixcode.el` is Emacs-only, which the
+  agent-neutral rule above rules out.
+
+**No separate test file.** Correctness lives in `./etc/tcb-view.py
+--self-check`, and the lossless round-trip is asserted on *every* run. The
+evidence against a test file is in this repo: `etc/test_coqc.py` is run by
+nothing and has rotted to the point of being unimportable — it does `from coqc
+import ...` and the module was renamed `rocqc.py`. A test nobody runs reads as
+coverage it does not provide.
+
+**Consequences — what it does not tell you.** It reads text, not Rocq, so it
+reports the trust boundary *as written in the files you give it*: it cannot see
+axioms inherited from Perennial, Iris, or the Goose translator, nor
+`new/trusted_code/` and `new/golang/defn/`, all of which are really in the TCB.
+Reachability is by identifier name, so it over-approximates under shadowing,
+and typeclass resolution is invisible to it — every `Instance` and `Notation`
+is therefore shown wholesale rather than resolved. Over-approximating shows you
+more than you must trust, never less, which is the safe direction. It also
+refuses to run on a tree where `etc/disable-qed.sh` has rewritten `Qed.` to
+`Admitted.`, which would otherwise report every proof in the file as a hole.

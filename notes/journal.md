@@ -140,3 +140,50 @@ Claude Opus 5.
   tree are in [gotchas.md](gotchas.md), along with two other traps this
   session hit (`word` on `w32` disequalities, and `wp_slice_literal` leaving
   `go.array_literal_size` unreduced).
+
+## 2026-09-13 — a trust-base reader for the raft proof
+
+Claude Opus 5 (background job), at Upamanyu's request.
+
+- **Did:** added `etc/tcb-view.py`, which renders Rocq files down to their
+  trust base — top-level theorem statements, the transitive closure of the
+  definitions those statements mention, and every `Axiom` and `Admitted.` —
+  hiding proof bodies and proved helper lemmas. Plain text to stdout, stdlib
+  only, no build required. Rationale and the rejected alternatives are in
+  [decisions.md](decisions.md).
+- **The inventory it reports**, which is now the answer to "what does the raft
+  proof assume": 46 axioms — 22 in `election.v` `Section helper_axioms`, 11 in
+  `election_protocol.v` `Section ghost`, 6 in `protocol.v` (4 in `Section
+  axioms`, plus `node.t` and `message.t`), 7 in `readonly.v` — and 17
+  `Admitted.`, of which 2 are deliberate (`readonly.v:469,478`, marked
+  `(* Trusted *)`) and 15 unfinished, containing 12 interior `admit.` tactics
+  between them. `./etc/tcb-view.py --summary new/proof/go_etcd_io/raft` prints
+  it.
+- **Found by using it:** `election.v` had 24 axioms two commits ago and has 22
+  now — `a9027f994` dropped `is_TraceLogger`/`is_TraceLogger_pers` and renamed
+  `is_Logger_ok` to `is_Logger`. That the diff of two revisions' output is
+  readable at all is the main argument for plain text over HTML.
+- **Learned — what the corpus actually contains.** The six raft files use no
+  `Notation`, no `Program`/`Next Obligation`, no nested comments and no
+  `Definition := ltac:(...)`, which is why a hand-written tokenizer is enough.
+  The hazards that do bite: `{{{ ... }}}` Hoare triples start 62 lines in
+  `election.v` and appear *inside* `Axiom` statements; `Set Default Proof
+  Using "W"` is a line containing `Proof` that does not open one; proofs end in
+  `Defined.` twice; `Admitted. (* Trusted *)` and plain `Admitted.` are
+  textually identical apart from that comment and mean opposite things.
+- **Dead end:** `.glob` would have been the better foundation — it is free
+  output of every build, byte-offset addressed, and knows about typeclasses,
+  which a name-based closure cannot. It is unusable here because it is
+  gitignored and only exists for files built to `.vo`; four of the six raft
+  files had none. Do not restart down that path without first checking
+  `find new/proof/go_etcd_io/raft -name '*.glob'`.
+- **Tried and rejected:** a separate `etc/test_tcb_view.py`. `etc/test_coqc.py`
+  is the cautionary case — nothing runs it and it no longer imports (`from
+  coqc import ...`; the module is now `rocqc.py`). Correctness went into
+  `./etc/tcb-view.py --self-check` instead, which checks byte-exact round trip
+  over all 547 `.v` files in the repo plus the counts above, and the round trip
+  is asserted on every ordinary run too.
+- **Left:** the tool and the notes. No `.v` file was touched. The natural
+  follow-on is a `Print Assumptions` cross-check, which is the only way to see
+  assumptions inherited from Perennial/Iris/Goose; it needs a built `.vo`, so
+  it did not fit the "works on any checkout" constraint this tool was built to.

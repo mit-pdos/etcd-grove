@@ -1,6 +1,13 @@
 # Map of the Raft proof
 
-Accurate as of 2026-09-11. Rewrite this when the layout changes.
+Accurate as of 2026-09-13. Rewrite this when the layout changes.
+
+To read any of these files at spec level — theorem statements, the
+definitions they reach, and every axiom and hole, with proof bodies and
+proved helper lemmas dropped — run `./etc/tcb-view.py <file>`, or
+`./etc/tcb-view.py --summary new/proof/go_etcd_io/raft` for just the list of
+what is assumed. Note `v3.v`'s public surface is a `Lemma`, so it needs
+`--root wp_Node__Propose`; everywhere else the `Theorem`s are the roots.
 
 ## Layers, bottom to top
 
@@ -87,3 +94,22 @@ i.e. the caller supplies the atomic update that appends `data` to the log.
 
 Extending this file to the rest of the `node` interface is the obvious next
 increment.
+
+## `v3_proof/election_protocol.v` and `v3_proof/election.v` — leader election
+
+Added 2026-09-12, after the rest of this map was written.
+`election_protocol.v` (334 lines) is the protocol state machine: a node state
+is `(term, vote, lead, role, votes)`, the `Inductive step` relation is
+reflexive-transitive by construction, and `Section ghost` (lines 243–289)
+axiomatizes `own_raft_ghost` / `is_message` along with the one refinement
+obligation `own_raft_ghost_step` and the payoff `is_leader_unique`.
+
+`election.v` (904 lines) connects that to the translated code: `own_raft_phys`
+for the raft struct, `Section helper_axioms` (lines 110–253) for the raft
+components election does not reason about, and the `wp_raft__Step` triples plus
+`Corollary raft_election_safety` at the bottom. The log is deliberately absent
+from the protocol model — `isUpToDate` can only make a node decline to vote,
+and declining is always protocol-legal.
+
+Full write-up, including what is still `Admitted` and in what order to attack
+it, is in [raft-election-refinement.md](raft-election-refinement.md).
