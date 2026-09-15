@@ -13,4 +13,5 @@ Definition wp_voteRespMsgType_body :=
 
 Module Type VOTERESPMSGTYPE.
   Parameter wp_voteRespMsgType : wp_voteRespMsgType_body.
+  Arguments wp_voteRespMsgType {_ _ _ _ _ _ _ _}.
 End VOTERESPMSGTYPE.

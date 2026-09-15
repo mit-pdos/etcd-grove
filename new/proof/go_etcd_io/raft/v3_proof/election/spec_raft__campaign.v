@@ -22,4 +22,5 @@ Definition wp_raft__campaign_body :=
 
 Module Type CAMPAIGN.
   Parameter wp_raft__campaign : wp_raft__campaign_body.
+  Arguments wp_raft__campaign {_ _ _ _ _ _ _ _}.
 End CAMPAIGN.

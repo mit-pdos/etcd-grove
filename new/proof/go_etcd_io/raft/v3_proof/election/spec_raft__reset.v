@@ -20,4 +20,5 @@ Definition wp_raft__reset_body :=
 
 Module Type RESET.
   Parameter wp_raft__reset : wp_raft__reset_body.
+  Arguments wp_raft__reset {_ _ _ _ _ _ _ _}.
 End RESET.

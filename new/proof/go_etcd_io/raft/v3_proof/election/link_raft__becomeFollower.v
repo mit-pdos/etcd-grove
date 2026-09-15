@@ -6,6 +6,3 @@ Module BecomeFollowerPostulates : BECOMEFOLLOWER_POSTULATES.
 End BecomeFollowerPostulates.
 
 Module BecomeFollower := BecomeFollowerProof BecomeFollowerPostulates.
-
-(* Implicits do not survive a folded [_body]; see notes/gotchas.md. *)
-Arguments BecomeFollower.wp_raft__becomeFollower {_ _ _ _ _ _ _ _}.

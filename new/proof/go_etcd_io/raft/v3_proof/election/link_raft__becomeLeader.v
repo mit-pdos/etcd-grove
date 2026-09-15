@@ -6,6 +6,3 @@ Module BecomeLeaderPostulates : BECOMELEADER_POSTULATES.
 End BecomeLeaderPostulates.
 
 Module BecomeLeader := BecomeLeaderProof BecomeLeaderPostulates.
-
-(* Implicits do not survive a folded [_body]; see notes/gotchas.md. *)
-Arguments BecomeLeader.wp_raft__becomeLeader {_ _ _ _ _ _ _ _}.

@@ -31,4 +31,5 @@ Definition wp_stepCandidate_MsgVoteResp_body :=
 
 Module Type STEPCANDIDATE.
   Parameter wp_stepCandidate_MsgVoteResp : wp_stepCandidate_MsgVoteResp_body.
+  Arguments wp_stepCandidate_MsgVoteResp {_ _ _ _ _ _ _ _}.
 End STEPCANDIDATE.

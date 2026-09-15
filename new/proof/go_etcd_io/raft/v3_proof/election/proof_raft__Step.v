@@ -12,8 +12,7 @@ Module StepProof (P : STEP_POSTULATES) : STEP.
 Section branches.
 Context `{hG: heapGS Σ, !ffi_semantics _ _}.
 Context {sem : go.Semantics} {package_sem : raft.Assumptions}.
-Context {bytes_sem : bytes.Assumptions}.
-Collection W := sem + package_sem + bytes_sem.
+Collection W := sem + package_sem.
 Set Default Proof Using "W".
 
 Context (cfg : gset w64).
@@ -209,7 +208,8 @@ Set Default Proof Using "Type".
   (** The top-level dispatch: the one triple in [STEP]. *)
   Lemma wp_raft__Step : wp_raft__Step_body.
   Proof.
-    intros ?????? sem package_sem bytes_sem cfg γ r id s m.
+    intros_ambient.
+    intros cfg γ r id s m.
     intros Helection Hhup Hvote Hvoteresp.
     iIntros (Φ) "(#Hinit & Hphys & Hghost & #Hm & #Hctx) HΦ".
     destruct Helection as [Hty | [Hty | Hty]].

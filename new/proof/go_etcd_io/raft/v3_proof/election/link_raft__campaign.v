@@ -10,6 +10,3 @@ Module CampaignPostulates : CAMPAIGN_POSTULATES.
 End CampaignPostulates.
 
 Module Campaign := CampaignProof CampaignPostulates.
-
-(* Implicits do not survive a folded [_body]; see notes/gotchas.md. *)
-Arguments Campaign.wp_raft__campaign {_ _ _ _ _ _ _ _}.

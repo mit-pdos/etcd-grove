@@ -6,6 +6,3 @@ Module BecomeCandidatePostulates : BECOMECANDIDATE_POSTULATES.
 End BecomeCandidatePostulates.
 
 Module BecomeCandidate := BecomeCandidateProof BecomeCandidatePostulates.
-
-(* Implicits do not survive a folded [_body]; see notes/gotchas.md. *)
-Arguments BecomeCandidate.wp_raft__becomeCandidate {_ _ _ _ _ _ _ _}.

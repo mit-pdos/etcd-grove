@@ -4,7 +4,8 @@ Module VoteRespMsgTypeProof (P : VOTERESPMSGTYPE_POSTULATES) : VOTERESPMSGTYPE.
 
   Lemma wp_voteRespMsgType : wp_voteRespMsgType_body.
   Proof.
-    intros ?????? sem package_sem t Ht.
+    intros_ambient.
+    intros t Ht.
     wp_start as "_". wp_auto.
     rewrite Ht /MsgVote bool_decide_eq_true_2 //. wp_auto.
     by iApply "HΦ".

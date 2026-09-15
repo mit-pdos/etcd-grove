@@ -4,7 +4,8 @@ Module BecomeFollowerProof (P : BECOMEFOLLOWER_POSTULATES) : BECOMEFOLLOWER.
 
   Lemma wp_raft__becomeFollower : wp_raft__becomeFollower_body.
   Proof.
-    intros ?????? sem package_sem γ r id s term lead.
+    intros_ambient.
+    intros γ r id s term lead.
     wp_start as "Hphys". iNamed "Hphys". wp_auto.
     (* [r.step := stepFollower] is done; re-seal for [reset]. *)
     iAssert (own_raft_phys γ r id s)

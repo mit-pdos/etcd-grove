@@ -6,6 +6,3 @@ Module HupPostulates : HUP_POSTULATES.
 End HupPostulates.
 
 Module Hup := HupProof HupPostulates.
-
-(* Implicits do not survive a folded [_body]; see notes/gotchas.md. *)
-Arguments Hup.wp_raft__hup {_ _ _ _ _ _ _ _}.

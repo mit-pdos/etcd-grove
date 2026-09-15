@@ -14,6 +14,3 @@ Module StepPostulates : STEP_POSTULATES.
 End StepPostulates.
 
 Module Step := StepProof StepPostulates.
-
-(* Implicits do not survive a folded [_body]; see notes/gotchas.md. *)
-Arguments Step.wp_raft__Step {_ _ _ _ _ _ _ _ _}.

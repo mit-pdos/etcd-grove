@@ -4,7 +4,8 @@ Module BecomeLeaderProof (P : BECOMELEADER_POSTULATES) : BECOMELEADER.
 
   Lemma wp_raft__becomeLeader : wp_raft__becomeLeader_body.
   Proof.
-    intros ?????? sem package_sem cfg γ r id s.
+    intros_ambient.
+    intros cfg γ r id s.
     intros Hrole Hcfg. wp_start as "Hphys". iNamed "Hphys". wp_auto.
     (* [becomeLeader] panics on a follower; by assumption we are not one. *)
     assert (state_w64 s.(nstate.role) ≠ W64 0) as Hnf.

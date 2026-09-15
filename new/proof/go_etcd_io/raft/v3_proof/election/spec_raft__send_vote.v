@@ -25,4 +25,5 @@ Definition wp_raft__send_vote_body :=
 
 Module Type SEND_VOTE.
   Parameter wp_raft__send_vote : wp_raft__send_vote_body.
+  Arguments wp_raft__send_vote {_ _ _ _ _ _ _ _}.
 End SEND_VOTE.

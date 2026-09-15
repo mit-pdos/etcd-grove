@@ -13,4 +13,5 @@ Definition wp_raft__becomeFollower_body :=
 
 Module Type BECOMEFOLLOWER.
   Parameter wp_raft__becomeFollower : wp_raft__becomeFollower_body.
+  Arguments wp_raft__becomeFollower {_ _ _ _ _ _ _ _}.
 End BECOMEFOLLOWER.

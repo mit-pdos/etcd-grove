@@ -269,11 +269,11 @@ payoff of the layout — the monolithic `election.v` took upwards of twelve.
   closed lemma after `End <section>` fails with `Unknown variable: W`.
   `proof_raft__Step.v` restores `Set Default Proof Using "Type"` after its
   section for exactly this reason.
-- **Implicits are not inferred through a folded `_body`**, so every
-  `link_*.v` ends with `Arguments <Fn>.wp_<fn> {_ _ _ _ _ _ _ _}.` Without it
-  a call site fails with `The term "..." has type "w32" while it is expected
-  to have type "ffi_syntax"`. Putting the `Arguments` in the `Module Type`
-  is accepted but does **not** survive functor application.
+- **The ambient binders** (`ext … package_sem`) need care in two places: the
+  `Arguments` that keeps them implicit, and the `intros` that introduces them.
+  Both are written up once in [gotchas.md](gotchas.md) — short version: the
+  `Arguments` goes in the `Module Type`, and proofs open with `intros_ambient`
+  (`election/defs.v`), never a positional `intros`.
 - **`Require` is illegal inside a `Module` or `Section`**, and `Import` does
   not reach the proof file — a spec needing `New.proof.bytes` (for
   `wp_Equal`) must `Require Export` it.

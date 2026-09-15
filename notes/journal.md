@@ -371,3 +371,54 @@ tracker now tells `Module Type FOO` from `Module FOO` (it recorded both as
 the invariant directly: **every `spec_*.v` must declare exactly one
 `Parameter` and assume nothing**. That is self-maintaining, unlike a
 hard-coded list of file names.
+
+## 2026-09-15 — ambient binders: implicits kept, `intros` de-fanged
+
+Follow-up to the one-file-per-function split. No proof content changed; the
+trust base is still 49 axioms / 14 admitted / 11 obligations.
+
+- **`Arguments` moved from the 11 `link_*.v` files into the 11 `Module Type`s.**
+  It propagates to every implementing module, functor application included, so
+  the spec file is now the single place both the triple and its implicit
+  convention are declared.
+- **`bytes_sem` deleted.** `raft.Assumptions` carries
+  `#[global] import_bytes_Assumption :: bytes.Assumptions`, so it resolved from
+  `package_sem` all along (as `package_sem.(raft.import_bytes_Assumption)`).
+  It was only ever in `spec_raft__Step.v`; removing it makes `package_sem` the
+  last ambient binder everywhere.
+- **`intros ?????? sem package_sem …` replaced by `intros_ambient`**, one Ltac
+  in `election/defs.v`. The list of ambient binders now exists in one place, so
+  a change to it is one edit rather than eleven.
+
+### Two of my own claims were wrong; both are corrected in place
+
+- **"An `Arguments` inside a `Module Type` does not survive functor
+  application."** False, and it was the reason the lines were in the link files
+  at all. It was a **`grep` artifact**: the printed
+  `Arguments Vrmt.wp_voteRespMsgType {ext ffi …}` wraps across three lines and
+  the pattern used to check it kept only the first, so it read as empty.
+  Re-tested untruncated against the real environment: the implicits were there
+  all along.
+- **"Do not delete these lines; they are load-bearing."** Also false. Every
+  call site in the tree goes through `wp_apply (P.wp_<fn> with "…")`, which
+  unifies the arguments itself; deleting an `Arguments` line and re-running
+  `vok` on a caller passes. Verified by doing exactly that, then reverting.
+  The lines are worth keeping for direct application and readable `About`
+  output, but nothing here depends on them.
+
+### `intros until package_sem` looks right and is not
+
+Worth recording because it is an attractive trap. It is insertion-robust and
+needs no `rewrite`, so it survived a deliberate `extra : nat` injected ahead of
+`package_sem` — but a binder that does not occur in the rest of the statement
+**loses its name**: Rocq degrades `∀ (x : T), body` to `T → body`.
+`package_sem` occurs in `becomeLeader`'s statement but not in
+`voteRespMsgType`'s, where the same tactic fails with `No quantified
+hypothesis named package_sem in current goal even after head-reduction`. Five
+of the six proofs passed and one did not, which is exactly the shape of bug
+that gets mistaken for something else. Bare `intros` and `intros *` are wrong
+for their own reasons; all of it is written up once in
+[gotchas.md](gotchas.md).
+
+Also tested and rejected: making `_body` a `Notation` so the implicits are
+inferred syntactically. The generalized binders still come out explicit.

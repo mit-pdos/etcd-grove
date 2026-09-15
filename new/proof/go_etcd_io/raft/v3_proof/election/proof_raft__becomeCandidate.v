@@ -4,7 +4,8 @@ Module BecomeCandidateProof (P : BECOMECANDIDATE_POSTULATES) : BECOMECANDIDATE.
 
   Lemma wp_raft__becomeCandidate : wp_raft__becomeCandidate_body.
   Proof.
-    intros ?????? sem package_sem γ r id s.
+    intros_ambient.
+    intros γ r id s.
     intros Hrole. wp_start as "Hphys". iNamed "Hphys". wp_auto.
     (* [becomeCandidate] panics on a leader; by assumption we are not one. *)
     assert (state_w64 s.(nstate.role) ≠ W64 2) as Hnl.

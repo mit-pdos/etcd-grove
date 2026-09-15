@@ -20,4 +20,5 @@ Definition wp_raft__hup_body :=
 
 Module Type HUP.
   Parameter wp_raft__hup : wp_raft__hup_body.
+  Arguments wp_raft__hup {_ _ _ _ _ _ _ _}.
 End HUP.

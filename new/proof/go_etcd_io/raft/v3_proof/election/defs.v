@@ -7,6 +7,11 @@ Require Export New.proof.go_etcd_io.raft.v3_proof.election_protocol.
 Ltac w32_ne :=
   intros Heq; apply (f_equal uint.Z) in Heq; vm_compute in Heq; discriminate.
 
+(** Introduce the binders every [wp_<fn>_body] opens with.  The one place this
+    list is written; see notes/gotchas.md. *)
+Ltac intros_ambient :=
+  intros ext ffi ffi_interp0 Σ hG ffi_semantics0 sem package_sem.
+
 Section proof.
 Context `{hG: heapGS Σ, !ffi_semantics _ _}.
 Context {sem : go.Semantics} {package_sem : raft.Assumptions}.

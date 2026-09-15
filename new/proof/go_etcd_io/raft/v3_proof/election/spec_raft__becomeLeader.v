@@ -17,4 +17,5 @@ Definition wp_raft__becomeLeader_body :=
 
 Module Type BECOMELEADER.
   Parameter wp_raft__becomeLeader : wp_raft__becomeLeader_body.
+  Arguments wp_raft__becomeLeader {_ _ _ _ _ _ _ _}.
 End BECOMELEADER.

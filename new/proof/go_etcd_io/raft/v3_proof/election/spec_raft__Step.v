@@ -10,7 +10,6 @@ Definition wp_raft__Step_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
-    (bytes_sem : bytes.Assumptions)
     (cfg : gset w64)
     (γ : raft_election_names) (r : loc) (id : w64) (s : nstate.t) (m : raftpb.Message.t),
   election_msg m →
@@ -37,4 +36,5 @@ Definition wp_raft__Step_body :=
 
 Module Type STEP.
   Parameter wp_raft__Step : wp_raft__Step_body.
+  Arguments wp_raft__Step {_ _ _ _ _ _ _ _}.
 End STEP.

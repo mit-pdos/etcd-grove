@@ -132,26 +132,68 @@ ascription then fails with `Signature components for field ... do not match`.
 Restore the prelude default with `Set Default Proof Using "Type".` after the
 section — `new/proof/go_etcd_io/raft/v3_proof/election/proof_raft__Step.v`
 does exactly this.
-## Implicit arguments are not inferred through a folded `_body`
+## The ambient binders of a `wp_<fn>_body`
 
-Rocq works out implicit arguments from the *syntactic* form of a constant's
-declared type. When the type is a folded definition — the
-`Parameter wp_<fn> : wp_<fn>_body` shape used throughout
-`v3_proof/election/` — there are no visible binders, so **every** argument
-comes out explicit, whatever the `_body` says. A call site then fails with
-something that looks unrelated:
+This is the single write-up of how `v3_proof/election/`'s closed-`_body` shape
+handles the binders every spec opens with (`ext ffi ffi_interp0 Σ hG
+ffi_semantics0 sem package_sem`). The files themselves do not repeat it.
+
+**Implicit arguments.** Rocq works out implicits from the *syntactic* form of a
+constant's declared type. When the type is a folded definition — the
+`Parameter wp_<fn> : wp_<fn>_body` shape — there are no visible binders, so
+every argument comes out explicit whatever the `_body` says, and a direct
+application fails with something that looks unrelated:
 
     The term "MsgVote" has type "w32" while it is expected to have
     type "ffi_syntax"
 
-Fix: one line per `link_*.v`, after the functor application,
+Declare them **in the signature**, right after the `Parameter`:
 
-    Arguments <Fn>.wp_<fn> {_ _ _ _ _ _ _ _}.
+    Arguments wp_<fn> {_ _ _ _ _ _ _ _}.
 
-using the short prefix form — it marks the eight context binders implicit and
-leaves each function's own binders explicit, so it needs no adjusting per
-function. Do not delete these lines; they are load-bearing.
+This propagates to every implementing module, **functor application
+included** (verified against the real environment; an earlier note here
+claimed otherwise and was wrong — it was a `grep` artifact, the
+`Arguments …` line wraps across three lines). The short prefix form marks the
+ambient binders implicit and leaves each function's own binders explicit, so
+it needs no adjustment per function.
 
-Putting the `Arguments` inside the `Module Type` instead is *accepted* and
-works for a directly-ascribed module, but does **not** survive functor
-application, which is why it lives in the link file.
+Scope note: nothing in the tree currently *needs* these lines. Every call site
+goes through `wp_apply (P.wp_<fn> with "…")`, which unifies the arguments
+itself and never passes them positionally; deleting an `Arguments` line does
+not break the build. They are there so the specs behave like every other
+Perennial spec for a caller that does apply them directly, and so `About` and
+error messages stay readable.
+
+**Introducing them in a proof.** Use `intros_ambient` (`election/defs.v`). It
+is the one place the list is written; if the ambient set changes, that is the
+line to fix. The obvious alternatives are all wrong:
+
+- `intros ?????? sem package_sem …` — positional. This shipped as a bug
+  twice: `Step` and `Step_MsgVote` had an extra `bytes_sem`, it was omitted,
+  every later name shifted by one, and the failure surfaced ~20 lines later as
+  `iIntro: could not introduce "Hpre", goal is not a wand or implication`.
+- bare `intros` — does use the declared binder names, so nothing is *missed*,
+  but it runs on past the function's own parameters into the premise
+  (auto-named `H`) and `Φ`. `wp_start_folded`
+  (`new/golang/theory/auto.v:40-58`) does `iIntros (Φ) "Hpre HΦ"`, so it needs
+  the `∀ Φ` intact.
+- `intros *` — stops at the first non-dependent product, which is right for a
+  spec with a premise and swallows `Φ` for one without (`becomeFollower`).
+- `intros until package_sem` — looks robust, **is not**. A binder that does not
+  occur in the rest of the statement loses its name: Rocq degrades
+  `∀ (x : T), body` to `T → body`. `package_sem` happens to occur in
+  `becomeLeader`'s statement but not in `voteRespMsgType`'s, where the same
+  tactic fails with `No quantified hypothesis named package_sem in current
+  goal even after head-reduction`. Whether it works is per-spec accident.
+
+Also rejected: making `_body` a `Notation` so it expands syntactically and the
+implicits are inferred. It does not work — the generalized binders still come
+out explicit.
+
+**`bytes_sem` is not needed.** `raft.Assumptions` has
+`#[global] import_bytes_Assumption :: bytes.Assumptions`
+(`new/code/go_etcd_io/raft/v3.v`), so `bytes.Assumptions` resolves from
+`package_sem` as `package_sem.(raft.import_bytes_Assumption)`. A separate
+`bytes_sem` binder is redundant; `package_sem` is the last ambient binder in
+every spec.

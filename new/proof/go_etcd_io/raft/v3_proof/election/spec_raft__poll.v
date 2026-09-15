@@ -19,4 +19,5 @@ Definition wp_raft__poll_body :=
 
 Module Type POLL.
   Parameter wp_raft__poll : wp_raft__poll_body.
+  Arguments wp_raft__poll {_ _ _ _ _ _ _ _}.
 End POLL.

@@ -10,6 +10,3 @@ Module StepCandidatePostulates : STEPCANDIDATE_POSTULATES.
 End StepCandidatePostulates.
 
 Module StepCandidate := StepCandidateProof StepCandidatePostulates.
-
-(* Implicits do not survive a folded [_body]; see notes/gotchas.md. *)
-Arguments StepCandidate.wp_stepCandidate_MsgVoteResp {_ _ _ _ _ _ _ _}.

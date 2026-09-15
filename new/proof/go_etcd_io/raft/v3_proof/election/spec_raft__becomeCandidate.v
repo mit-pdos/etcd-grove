@@ -14,4 +14,5 @@ Definition wp_raft__becomeCandidate_body :=
 
 Module Type BECOMECANDIDATE.
   Parameter wp_raft__becomeCandidate : wp_raft__becomeCandidate_body.
+  Arguments wp_raft__becomeCandidate {_ _ _ _ _ _ _ _}.
 End BECOMECANDIDATE.

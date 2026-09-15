@@ -219,10 +219,17 @@ reference and the binder list exists once. Writing them with `` `{...} ``
 generalization compiles but emits five "Ignoring implicit binder declaration"
 warnings per file, and `` `(...) `` still emits one; naming all nine outright
 is warning-free. The cost is that implicits are not inferred through a folded
-`_body`, so each `link_*.v` ends with
-`Arguments <Fn>.wp_<fn> {_ _ _ _ _ _ _ _}.` — the short prefix form, which
-leaves each function's own binders explicit. An `Arguments` inside the
-`Module Type` is accepted but does **not** survive functor application.
+`_body`, so each spec declares
+`Arguments wp_<fn> {_ _ _ _ _ _ _ _}.` inside its `Module Type` — the short
+prefix form, which leaves each function's own binders explicit.
+
+**Corrected 2026-09-15.** This entry first said the `Arguments` had to live in
+the `link_*.v` file because one inside the `Module Type` "does not survive
+functor application". That was false — a `grep` artifact, the printed
+`Arguments` line wraps — and the declaration belongs in the signature, where
+every implementing module inherits it. Proofs likewise open with
+`intros_ambient` (`election/defs.v`) rather than a positional `intros`; see
+[gotchas.md](gotchas.md) for both, written up once.
 
 **Consequences.** 51 files where there was one. `election.v` is a 78-line
 aggregator that `Require Export`s every `link_*.v`; that is load-bearing,
