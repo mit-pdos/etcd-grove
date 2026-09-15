@@ -1,6 +1,6 @@
 # Status
 
-**Last updated:** 2026-09-14
+**Last updated:** 2026-09-15
 
 ## Goal
 
@@ -38,9 +38,11 @@ builds it.
   `node.Propose`. The `Section axioms` here is the current trust boundary.
 - `v3.v` (31 lines) — the public surface: `is_Node` and `wp_Node__Propose`,
   proved from `protocol.v`.
-- `v3_proof/election_protocol.v` (334 lines) — **leader-election refinement**,
-  protocol side, added 2026-09-12. The state machine, the ghost state
-  (`own_raft_ghost`, `is_message`) and its one refinement obligation.
+- `v3_proof/election_protocol.v` — **leader-election refinement**, protocol
+  side, added 2026-09-12. The state machine, the ghost state
+  (`own_raft_ghost`, `is_message`) and its refinement obligation. Since
+  2026-09-15 `nstate.t` carries an `outbox` field and `step` has **no `sent`
+  output** — a step's sends are the growth of `s'.(nstate.outbox)`.
 - `v3_proof/election/` (51 files) and `v3_proof/election.v` (78 lines) — the
   implementation side. **Restructured 2026-09-14 into one file per Go
   function**: each has `spec_<fn>.v` (a `Module Type` with exactly one
@@ -69,21 +71,30 @@ context for the raft work, not the current focus.
 
 **Leader-election refinement** — `new/proof/go_etcd_io/raft/v3_proof/`,
 branch `worktree-raft-election-refinement`. Compiles and is reached from
-`new/should_build.v` (all 51 files — checked by touching them and confirming
-`make -n new/should_build.vos` rebuilds each).
+`new/should_build.v`.
 
 Eleven Go functions are specified, one file each. Proved: `voteRespMsgType`,
-`send` (the message-legitimacy obligation), `becomeFollower`,
-`becomeCandidate`, `becomeLeader`, `Step` (its dispatch and its `MsgHup`
-branch), and `raft_election_safety`. Five are `Admitted`: `reset`, `poll`,
-`campaign`, `hup`, `stepCandidate`; plus two `admit`-bearing branches inside
-`proof_raft__Step.v` (`MsgVote`, proved as far as `isUpToDate`, and
-`MsgVoteResp`).
+`send`, `becomeFollower`, `becomeCandidate`, `becomeLeader`, `Step` (its
+dispatch and its `MsgHup` branch), and `raft_election_safety`. Five are
+`Admitted`: `reset`, `poll`, `campaign`, `hup`, `stepCandidate`; plus two
+`admit`-bearing branches inside `proof_raft__Step.v` (`MsgVote`, proved as far
+as `isUpToDate`, and `MsgVoteResp`).
+
+**Restructured 2026-09-15 so that no spec below `Step` touches ghost state.**
+The outbox moved into `nstate.t`; `own_raft_phys` lost its `γ` and no longer
+certifies the outgoing queues; certification is read off the ghost with the
+new `own_raft_ghost_outbox`. `own_raft_ghost` now appears in exactly one spec
+(`Step`) and `own_raft_ghost_step` is applied in exactly one proof file. A
+spec below `Step` says only which state the struct refines and how the outbox
+grew — never that the transition is legal. See
+[decisions.md](decisions.md) for the alternatives that were rejected.
 
 The three `becomeX` proofs rest on `wp_raft__reset`, so **`reset` is the
 highest-leverage hole**, and it is less mechanical than it looks (it replaces
-`r.readOnly`). Details and the stuck point are in
-[raft-election-refinement.md](raft-election-refinement.md).
+`r.readOnly`). Details in
+[raft-election-refinement.md](raft-election-refinement.md). The `MsgVote`
+blocker recorded there on 2026-09-14 is **gone**: it was `iFrame` refusing to
+fill `send`'s `#Hm` slot, and `send` no longer has one.
 
 **Checking your work:** `make <file>.vos` is a ~2s loop but **does not check
 proof bodies** — it will accept a proof script that does not run. Use
@@ -93,10 +104,14 @@ building all of Perennial.
 
 ## Trust base
 
-As of 2026-09-14 the raft proof assumes **49 axioms and 14 `Admitted.`** (2 of
+As of 2026-09-15 the raft proof assumes **50 axioms and 14 `Admitted.`** (2 of
 the admits deliberate, marked `(* Trusted *)` at `readonly.v:464,471`). The
-one-file-per-function split did **not** move these numbers; it split them
-structurally:
+one axiom added that day is `own_raft_ghost_outbox`; more importantly, one of
+the 50 — `wp_raft__appendEmptyEntry` — **stopped being a false statement**. It
+owned only `own_raftLog` while the code it describes queues a `MsgAppResp`
+into `r.msgsAfterAppend`. See [journal.md](journal.md).
+
+The trust base is split structurally:
 
 - an `Axiom` in an `inv_*.v` file means **out of scope** (the log, the
   tracker's non-vote state, the `Logger` and tracing helpers);
@@ -132,9 +147,10 @@ Unclaimed; pick one and say so in the journal.
    `proof_*.v` file that re-checks in about a minute with `make <it>.vok`.
    See [raft-election-refinement.md](raft-election-refinement.md).
 2. Construct `own_raft_ghost` / `is_message` rather than axiomatizing them,
-   discharging `own_raft_ghost_step` and `is_leader_unique`. Until that is
-   done the election-safety corollary rests on an axiom. This is 11 of the 49
-   axioms; `./etc/tcb-view.py --summary` lists them under `Section ghost`.
+   discharging `own_raft_ghost_step`, `own_raft_ghost_outbox` and
+   `is_leader_unique`. Until that is done the election-safety corollary rests
+   on an axiom. This is 12 of the 50 axioms; `./etc/tcb-view.py --summary`
+   lists them under `Section ghost`.
 3. Decide what the top-level Raft correctness statement should be (beyond
    election safety), and write it down as a decision record.
 4. Discharge the `Section axioms` in `v3_proof/protocol.v` against the actual
@@ -144,6 +160,19 @@ Unclaimed; pick one and say so in the journal.
 5. Extend `v3.v` past `Propose` to the rest of the `node` interface.
 
 ## Known broken
+
+- **`./etc/tcb-view.py --self-check` reports 51 axioms against an expected
+  50.** Every per-file count passes; the extra one is in
+  `new/proof/go_etcd_io/raft/v3_proof/election/exp_phys_sealed.v`, an
+  **untracked** experiment from an earlier session (a sealed `own_raft_phys`
+  with an access-lemma API) whose header points at `journal.md` but for which
+  no entry was ever written. It is not reached from `should_build.v`, so CI
+  does not build it, and since 2026-09-15 it no longer compiles either — it
+  references `is_phys_msg`, which the outbox change deleted. Its subject is
+  moot now that `own_raft_phys` has a different shape. **Delete it, or redo
+  the experiment and commit it**; it was left alone because it is someone
+  else's uncommitted work. The discrepancy predates 2026-09-15 (the tables
+  said 49 while the file already made it 50).
 
 - **`ruff check` fails: 64 errors.** Pre-existing on this commit, in
   `etc/*.py`, `new/etc/update-goose-new.py`, `new/experiments/gencongruence.py`

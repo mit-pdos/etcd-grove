@@ -721,7 +721,7 @@ EXPECTED_AXIOMS = {
     "base.v": 0,
     "protocol.v": 6,
     "readonly.v": 7,
-    "election_protocol.v": 11,
+    "election_protocol.v": 12,
     # election.v is an aggregator now; the election trust base lives in the
     # inv_*.v files, which is the point -- an Axiom there means "out of
     # scope", an Admitted in a proof_*.v means "in scope but unfinished".
@@ -730,8 +730,11 @@ EXPECTED_AXIOMS = {
     "inv_raftlog.v": 5,
     "inv_tracker.v": 7,
     "inv_logger.v": 3,
-    "inv_misc.v": 10,
-    "inv_raft_phys.v": 0,
+    "inv_misc.v": 9,
+    # wp_raft__appendEmptyEntry moved here from inv_misc.v on 2026-09-15: it
+    # has to mention own_raft_phys, because appendEntry queues a MsgAppResp
+    # and an axiom owning only the log is false.
+    "inv_raft_phys.v": 1,
     "step_lemmas.v": 0,
 }
 EXPECTED_ADMITS = {
@@ -753,7 +756,7 @@ EXPECTED_ADMITS = {
 # The whole point of the spec/postulates/proof/link layout: one spec file per
 # function, one Parameter in it, and nothing trusted anywhere in it.  Eleven
 # obligations for eleven Go functions.
-EXPECTED_TOTALS = {"axioms": 49, "obligations": 11, "admitted": 14}
+EXPECTED_TOTALS = {"axioms": 50, "obligations": 11, "admitted": 14}
 
 FIXTURES = [
     # (source, check name, predicate over units)

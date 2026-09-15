@@ -76,12 +76,9 @@ Axiom wp_traceBecomeLeader : ∀ (r : loc) rs ro pri,
     @! raft.traceBecomeLeader #r
   {{{ RET #(); own_raft_misc rs ro pri }}}.
 
-(** The empty entry a new leader appends, and the append broadcast that
-    follows it.  [bcastAppend] sends one [MsgApp] to each peer, which is
-    exactly [step_win]'s [sent] list. *)
-Axiom wp_raft__appendEmptyEntry : ∀ (r : loc) l (es : slice.t),
-  {{{ is_pkg_init raft ∗ own_raftLog l }}}
-    r @! (go.PointerType raft.raft) @! "appendEntry" #es
-  {{{ RET #true; own_raftLog l }}}.
+(** [wp_raft__appendEmptyEntry] used to live here.  It moved to
+    [inv_raft_phys.v], because stating it honestly needs [own_raft_phys]:
+    [appendEntry] queues a [MsgAppResp], so an axiom owning only the log is
+    false. *)
 
 End proof.

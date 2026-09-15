@@ -246,3 +246,77 @@ to prevent. The three per-message-type triples are proof structure and are now
 internal lemmas inside `proof_raft__Step.v`, sealed by the ascription. **If a
 function ever seems to want two specs, that is the signal to look harder, not
 to add a second `Module Type`.**
+
+---
+
+## The outbox lives in `nstate.t`; certification follows from the ghost, not from `own_raft_phys`
+
+**2026-09-15 · accepted**
+
+`own_raft_phys` used to require both outgoing queues to contain only messages
+`γ` certified (`is_phys_msg`). That put the `is_message` obligation on `send`,
+and since only `own_raft_ghost_step` produces `is_message`, **every function
+that could reach a `send` had to own `own_raft_ghost`** — `campaign`, `hup`,
+`Step`, `stepCandidate`. The ghost update could never be higher than the
+innermost sender.
+
+Now `nstate.t` has an `outbox : list msg.t`, `step` has no `sent` output (a
+step's sends are the growth of `s'.(nstate.outbox)`), `own_raft_phys` relates
+that field to the two physical queues and has no `γ` at all, and certification
+is read off the ghost state with a new axiom:
+
+    own_raft_ghost γ id s -∗ [∗ list] m ∈ s.(nstate.outbox), is_message γ m
+
+`own_raft_ghost` now appears in exactly one spec (`Step`) and
+`own_raft_ghost_step` is applied in exactly one proof file.
+
+### Rejected: pre-certified sends
+
+Keep the certified-queue invariant, but have callers take the ghost step
+*first* and pass the resulting `is_message` tickets down, the way `send`
+already took them. Cheaper — no change to `own_raft_phys`, no new axiom — and
+it does get `own_raft_ghost` out of `campaign`/`hup`/`stepCandidate`.
+
+Killed by what it leaves behind: `own_raft_phys` still carries a `γ` and still
+asserts a ghost fact, so "this spec is phys-only" stays a manner of speaking
+rather than something you can check. It also cannot express
+`wp_raft__appendEmptyEntry` honestly (below), because a `MsgAppResp` has no
+`mtype_of` and so can never satisfy `is_phys_msg`.
+
+### Rejected: index `own_raft_phys` by the outbox instead
+
+`own_raft_phys r id s ms msAA`, with the outbox as extra arguments rather than
+a field of `s`. Same effect on ghost placement, but it widens every spec in
+the development — including the five that otherwise change only by dropping
+`γ` — and it splits "the abstract state of this node" across two places.
+Putting it in `nstate.t` also makes `step`'s `sent` output redundant, which
+simplifies `step_trans` and collapses `own_raft_ghost_step_1_1`.
+
+### What it cost
+
+One new axiom (`own_raft_ghost_outbox`, 49 → 50), and `own_raft_phys` relates
+the model's single outbox to the two queues up to **permutation**
+(`s.(nstate.outbox) ≡ₚ abs_outbox msgs msgsAA`) rather than equality, because
+`send` routes responses to `msgsAfterAppend` and everything else to `msgs`, so
+an append to one lands in the middle of the concatenation. The fallback — two
+`nstate` fields mirroring the two queues, with plain equality — was not needed;
+`proof_raft__send_vote.v` went through with three small `omap`/`++` helpers in
+`defs.v`.
+
+### The payoff that was not the goal
+
+`wp_raft__appendEmptyEntry` was **false**: it owned only `own_raftLog l`, but
+`appendEntry` queues a `MsgAppResp` into `r.msgsAfterAppend`. The old design
+could not state it honestly at all, because `mtype_of MsgAppResp = None` makes
+`is_phys_msg` unprovable for it. Abstracting messages with a *partial*
+`abs_msg_opt` and folding the queues with `omap` makes out-of-scope message
+types drop out, so the honest statement is both expressible and trivial. Do
+not make `abs_msg_opt` total.
+
+### The rule this establishes
+
+**No function below `Step` touches ghost state.** A spec below `Step` says
+only which state the struct now refines and how the outbox grew — never that
+the transition is *legal*. Legality is `Step`'s single `own_raft_ghost_step`.
+If you find yourself adding `own_raft_ghost` to an internal spec, that is the
+signal that something is being certified in the wrong place.

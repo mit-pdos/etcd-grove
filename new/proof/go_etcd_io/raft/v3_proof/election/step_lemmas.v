@@ -14,11 +14,14 @@ Context (cfg : gset w64).
 Implicit Type γ : raft_election_names.
 Implicit Type s : nstate.t.
 
-(** The outcome of feeding a [MsgVoteResp] to a candidate. *)
+(** The outcome of feeding a [MsgVoteResp] to a candidate.  [peers] is the
+    broadcast list a winner sends its empty append to; it is irrelevant unless
+    [won]. *)
 Definition vote_resp_result id s (from : w64) (reject : bool) (won lost : bool)
-  : nstate.t :=
+  (peers : list w64) : nstate.t :=
   let s1 := s <| nstate.votes := record_vote s.(nstate.votes) from (negb reject) |> in
-  if won then become_leader id s1
+  if won then send_msgs (become_leader id s1)
+                 ((λ to, msg.mk mtype.App id to s1.(nstate.term) false) <$> peers)
   else if lost then become_follower s1 s1.(nstate.term) (W64 0)
   else s1.
 
@@ -34,7 +37,7 @@ Definition election_msg (m : raftpb.Message.t) : Prop :=
     logic; the WP proofs below feed them to [own_raft_ghost_step]. *)
 
 (** Dropping a message is always legal. *)
-Lemma step_drop id s : step cfg id s [] s [].
+Lemma step_drop id s : step cfg id s [] s.
 Proof. constructor. Qed.
 
 (** Stepping down and then answering a vote request, in one protocol step. *)
@@ -43,9 +46,9 @@ Lemma step_stepdown_then_vote id s (m : msg.t) :
   m.(msg.to) = id →
   uint.Z s.(nstate.term) < uint.Z m.(msg.term) →
   step cfg id s ([m] ++ [m])
-       ((become_follower s m.(msg.term) (W64 0))
-          <| nstate.vote := m.(msg.from) |>)
-       ([] ++ [msg.mk mtype.VoteResp id m.(msg.from) m.(msg.term) false]).
+       (send_msgs ((become_follower s m.(msg.term) (W64 0))
+                     <| nstate.vote := m.(msg.from) |>)
+          [msg.mk mtype.VoteResp id m.(msg.from) m.(msg.term) false]).
 Proof.
   intros Hty Hto Hlt.
   eapply step_trans with
@@ -67,8 +70,9 @@ Lemma step_stepdown_then_reject id s (m : msg.t) :
   m.(msg.ty) = mtype.Vote →
   m.(msg.to) = id →
   uint.Z s.(nstate.term) < uint.Z m.(msg.term) →
-  step cfg id s ([m] ++ [m]) (become_follower s m.(msg.term) (W64 0))
-       ([] ++ [msg.mk mtype.VoteResp id m.(msg.from) m.(msg.term) true]).
+  step cfg id s ([m] ++ [m])
+       (send_msgs (become_follower s m.(msg.term) (W64 0))
+          [msg.mk mtype.VoteResp id m.(msg.from) m.(msg.term) true]).
 Proof.
   intros Hty Hto Hlt.
   eapply step_trans with
@@ -89,8 +93,9 @@ Lemma step_record_then_win id s (m : msg.t) peers :
   let s1 := s <| nstate.votes :=
                   record_vote s.(nstate.votes) m.(msg.from) (negb m.(msg.reject)) |> in
   is_quorum cfg (granted s1.(nstate.votes)) →
-  step cfg id s ([m] ++ []) (become_leader id s1)
-       ([] ++ ((λ to, msg.mk mtype.App id to s1.(nstate.term) false) <$> peers)).
+  step cfg id s ([m] ++ [])
+       (send_msgs (become_leader id s1)
+          ((λ to, msg.mk mtype.App id to s1.(nstate.term) false) <$> peers)).
 Proof.
   intros ????? s1 Hq.
   eapply step_trans; [by apply step_record_vote|].
@@ -106,7 +111,7 @@ Lemma step_record_then_lose id s (m : msg.t) :
   let s1 := s <| nstate.votes :=
                   record_vote s.(nstate.votes) m.(msg.from) (negb m.(msg.reject)) |> in
   is_quorum cfg (rejected s1.(nstate.votes)) →
-  step cfg id s ([m] ++ []) (become_follower s1 s1.(nstate.term) (W64 0)) ([] ++ []).
+  step cfg id s ([m] ++ []) (become_follower s1 s1.(nstate.term) (W64 0)).
 Proof.
   intros ???? s1 Hq.
   eapply step_trans; [by apply step_record_vote|].

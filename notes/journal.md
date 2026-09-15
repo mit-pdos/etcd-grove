@@ -422,3 +422,156 @@ for their own reasons; all of it is written up once in
 
 Also tested and rejected: making `_body` a `Notation` so the implicits are
 inferred syntactically. The generalized binders still come out explicit.
+
+## 2026-09-15 (later) — the outbox moves into `nstate.t`; no internal spec touches ghost state
+
+Started as a question: why does `wp_raft__campaign_body` carry
+`own_raft_ghost` when `wp_raft__becomeLeader_body` carries only
+`own_raft_phys`? The rule was real but nowhere written down:
+
+> A spec carried `own_raft_ghost` iff the function could put a message on the
+> network.
+
+Because `own_raft_phys` required both outgoing queues to hold only *certified*
+messages (`is_phys_msg`), `send` demanded `is_message` for the message it was
+handed; the only producer of `is_message` was `own_raft_ghost_step`, which
+hands out tickets only as part of advancing the ghost state. So a function
+that sends had to take its ghost step in its own body. `campaign` broadcasts,
+so it needed the ghost; `becomeLeader` does not send anything the model
+describes, so it did not.
+
+That was already "ghost as high as possible" in the part that matters —
+`becomeLeader`'s triple never claimed `s → become_leader id s` was a *legal*
+step, only that the struct refines it — but the ceiling was the innermost
+function containing a `send`.
+
+### What changed
+
+`nstate.t` gained an `outbox : list msg.t` field, and `step` lost its `sent`
+output: a step's sent messages are now the growth of `s'.(nstate.outbox)`.
+Consequences, all in the same direction:
+
+- `own_raft_phys` lost its `γ`. `is_phys_msg` was its only use of one, so the
+  predicate is now genuinely ghost-free and "phys-only spec" is literally true
+  rather than a manner of speaking.
+- The certification clause became `own_raft_ghost_outbox`, a new axiom in
+  `election_protocol.v`: `own_raft_ghost γ id s -∗ [∗ list] m ∈ s.(nstate.outbox), is_message γ m`.
+  Nothing has to be threaded through specs to get it.
+- `send` lost its `is_message` precondition and is routing-agnostic: one
+  postcondition covers both queues.
+- `campaign`, `hup` and `stepCandidate` are ghost-free. `stepCandidate` also
+  lost its `is_message` premise outright — its ghost use was purely
+  receive-side, and the receive side only ever fed the fupd.
+- `Step` is the only spec that mentions ghost state, and the only proof file
+  that applies `own_raft_ghost_step`. Its postcondition got *simpler* (the
+  `sent` existential is gone).
+- `step_trans` got easier for the same reason — the outbox accumulates through
+  the intermediate state instead of needing `o₁ ++ o₂` bookkeeping.
+
+`reset`, `poll`, `becomeFollower`, `becomeCandidate` and `becomeLeader`
+changed only by dropping `γ`. That is the point: those specs were already
+right.
+
+### The encoding, and why it is what it is
+
+`own_raft_phys` relates the model's single outbox to the two physical queues:
+
+    ⌜ s.(nstate.outbox) ≡ₚ abs_outbox msgs msgsAA ⌝
+
+with `abs_outbox msgs msgsAA := omap abs_msg_opt msgs ++ omap abs_msg_opt msgsAA`.
+
+- **`omap`, not `mapM`.** A message type the model does not describe drops out
+  instead of making the abstract outbox undefined. This is load-bearing; see
+  the axiom fix below.
+- **`≡ₚ`, not `=`.** Appending to `msgs` does not append to the concatenation
+  when `msgsAA` is non-empty, so equality would not survive a `send`.
+  Permutation is also all the model needs — it cares which messages are out,
+  not in what order.
+
+`proof_raft__send_vote.v` was the gate on this encoding and it went through
+with three one-line helpers in `defs.v` (`abs_outbox_snoc_msgs`,
+`abs_outbox_snoc_msgsAA`, `abs_outbox_snoc_msgsAA_None`). Permutation
+reasoning did not turn out to be a tax; the fallback of two `nstate` fields
+plus plain equality was not needed.
+
+### A false axiom, found and fixed
+
+`wp_raft__appendEmptyEntry` had pre- and postcondition `own_raftLog l` — it
+owned the log and nothing else. But `appendEntry` ends in
+
+    r.send(pb.Message{To: r.id, Type: pb.MsgAppResp, Index: li})
+
+(`new/code/go_etcd_io/raft/v3.v`, end of `raft__appendEntryⁱᵐᵖˡ`), which
+appends to `r.msgsAfterAppend` — memory the axiom did not own and its caller,
+`becomeLeader`, did via `own_raft_phys`. **The axiom was false**, and it let
+`becomeLeader` keep a stale `HmsgsAA`.
+
+It could not have been stated honestly under the old design:
+`mtype_of MsgAppResp = None`, so `is_phys_msg γ` was *unprovable* for that
+message and the `#HsentAA` clause could never have been re-established. With a
+partial `abs_msg_opt` and `omap`, the honest statement is expressible and
+trivial — the message drops out of the abstract outbox, so the state is
+unchanged:
+
+    Axiom wp_raft__appendEmptyEntry : ∀ r id s es,
+      {{{ is_pkg_init raft ∗ own_raft_phys r id s }}}
+        r.appendEntry(es)
+      {{{ RET #true; own_raft_phys r id s }}}.
+
+It moved from `inv_misc.v` to `inv_raft_phys.v`, since it now has to mention
+`own_raft_phys`. Still an `Axiom` in an `inv_*.v` file, so the audit
+convention still reads correctly.
+
+### A drain rule, so the model is not quietly contradictory
+
+`step_drain s o' : o' ⊆+ s.(nstate.outbox) → step s [] (s <| outbox := o' |>)`.
+Without it the model's outbox could only grow, and `own_raft_phys` could not
+refine past the first `Ready()`. `Ready` is out of scope, but the rule is one
+line and removing the latent contradiction now is cheaper than discovering it
+later. Dropping messages from one's own outbox is always legal — the
+`is_message` facts handed out for them are persistent and survive.
+
+### Two things that bit
+
+- **stdpp renamed `elem_of_list_lookup_2` to `list_elem_of_lookup_2`** (and
+  `elem_of_list_lookup{,_1}` likewise). The error is
+  `The variable elem_of_list_lookup_2 was not found in the current environment`,
+  which reads like a missing `Require`. Grepping the stdpp sources for the old
+  name finds nothing; `Search (_ ∈ _) (_ !! _ = Some _)` in a scratch file
+  compiled with `-Q src Perennial -Q new New` finds it in seconds. Also in
+  [gotchas.md](gotchas.md).
+- **`wp_apply … as` runs `wp_auto` immediately**, so re-sealing
+  `own_raft_phys` around a call whose *continuation* reads struct fields
+  fails: `wp_auto` cannot step through the sealed predicate. In
+  `proof_raft__becomeLeader.v` the fix is to `iNamedSuffix` and then `wp_auto`
+  explicitly after the call. The symptom is a later `wp_apply
+  wp_slice_literal` failing with `iApply: cannot apply (WP CompositeLiteral
+  …)`, which points at the wrong line.
+
+### State left behind
+
+Everything in `v3_proof/election/` plus `election.v` and
+`election_protocol.v` passes `.vok` — 53 files, checked individually, not just
+`.vos`. `make new/should_build.vos` is clean. The five `Admitted` proofs
+(`reset`, `poll`, `campaign`, `hup`, `stepCandidate`) kept their `Admitted`
+with new statements, which cost nothing because they were 9-line stubs — doing
+this refactor after they were written would have been much more expensive.
+
+Trust base: **50 axioms** (was 49; `own_raft_ghost_outbox` is the one added)
+and 14 `Admitted`, unchanged. `etc/tcb-view.py`'s expectation tables were
+updated to match. The headline numbers barely move, but one of the 50 stopped
+being false, which is the part worth remembering.
+
+### Not done, and not mine to do
+
+`new/proof/go_etcd_io/raft/v3_proof/election/exp_phys_sealed.v` is an
+**untracked** experiment from an earlier session (a sealed `own_raft_phys`
+with an access-lemma API). Its header points at this journal, but no entry was
+ever written for it. It references `is_phys_msg`, which this change deletes,
+so **it no longer compiles**. It is not reached from `should_build.v`, so CI
+does not see it — but it does carry one `Axiom`, which is why
+`./etc/tcb-view.py --self-check` reports 51 axioms against an expected 50.
+That discrepancy predates this session (the tables said 49 while the file
+already made it 50). Left in place rather than deleted or rewritten: it is
+uncommitted work belonging to whoever wrote it. Its subject is also now moot,
+since `own_raft_phys` has a different shape. Delete it or redo the experiment.

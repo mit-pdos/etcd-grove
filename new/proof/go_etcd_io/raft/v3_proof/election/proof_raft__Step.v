@@ -21,19 +21,19 @@ Implicit Type γ : raft_election_names.
 Implicit Type s : nstate.t.
 
   (** [MsgHup] is a local message ([m.Term = 0]), so [Step]'s term preamble
-      is skipped entirely and it goes straight to [hup]. *)
-  Lemma wp_Step_MsgHup γ r id s (m : raftpb.Message.t) :
+      is skipped entirely and it goes straight to [hup].
+
+      Like the other two branch lemmas this is ghost-free: it establishes the
+      [step] witness as a pure fact, and [wp_raft__Step] below turns the three
+      of them into the single [own_raft_ghost_step] of the whole development. *)
+  Lemma wp_Step_MsgHup r id s (m : raftpb.Message.t) :
     m.(raftpb.Message.Type') = MsgHup →
     m.(raftpb.Message.Term') = W64 0 →
-    {{{ is_pkg_init raft ∗
-        "Hphys" ∷ own_raft_phys γ r id s ∗
-        "Hghost" ∷ own_raft_ghost γ id s
-    }}}
+    {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys r id s }}}
       r @! (go.PointerType raft.raft) @! "Step" #m
     {{{ (err : error.t) s', RET #err;
-        "Hphys" ∷ own_raft_phys γ r id s' ∗
-        "Hghost" ∷ own_raft_ghost γ id s' ∗
-        "%Hrefines" ∷ ⌜ ∃ sent, step cfg id s [] s' sent ⌝ ∗
+        "Hphys" ∷ own_raft_phys r id s' ∗
+        "%Hrefines" ∷ ⌜ step cfg id s [] s' ⌝ ∗
         "%Herr" ∷ ⌜ err = interface.nil ⌝ }}}.
   Proof.
     intros Hty Hterm.
@@ -50,25 +50,23 @@ Implicit Type s : nstate.t.
     (* no pre-vote, so this is a plain [hup(campaignElection)] *)
     rewrite HnoPreVote. wp_auto.
     (* re-seal the physical ownership for [hup] *)
-    iAssert (own_raft_phys γ r id s)
+    iAssert (own_raft_phys r id s)
     with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys".
     { rewrite /own_raft_phys. iFrame "∗#%". }
-    wp_apply (P.wp_raft__hup with "[$Hphys $Hghost]") as "%s' (Hphys & Hghost & %Hstep)".
+    wp_apply (P.wp_raft__hup with "[$Hphys]") as "%s' (Hphys & %Hstep)".
     { done. }
     iApply ("HΦ" $! interface.nil s'). by iFrame.
   Qed.
 
   (** [MsgVote]: step down if the term is higher, then grant or decline. *)
-  Lemma wp_Step_MsgVote γ r id s (m : raftpb.Message.t) :
+  Lemma wp_Step_MsgVote r id s (m : raftpb.Message.t) :
     m.(raftpb.Message.Type') = MsgVote →
     m.(raftpb.Message.To') = id →
     m.(raftpb.Message.Term') ≠ W64 0 →
     (* [send] stamps the sender's id into [From], and node ids are nonzero *)
     m.(raftpb.Message.From') ≠ W64 0 →
     {{{ is_pkg_init raft ∗
-        "Hphys" ∷ own_raft_phys γ r id s ∗
-        "Hghost" ∷ own_raft_ghost γ id s ∗
-        "#Hm" ∷ is_message γ (abs_msg mtype.Vote m) ∗
+        "Hphys" ∷ own_raft_phys r id s ∗
         (* the message's [Context] is readable and is not the leader-transfer
            marker: leader transfer is out of scope *)
         "#Hctx" ∷ (∃ ctx, m.(raftpb.Message.Context') ↦*□ ctx ∗
@@ -76,11 +74,14 @@ Implicit Type s : nstate.t.
     }}}
       r @! (go.PointerType raft.raft) @! "Step" #m
     {{{ (err : error.t) s', RET #err;
-        "Hphys" ∷ own_raft_phys γ r id s' ∗
-        "Hghost" ∷ own_raft_ghost γ id s' ∗
-        "%Hrefines" ∷ ⌜ ∃ recv sent,
+        "Hphys" ∷ own_raft_phys r id s' ∗
+        (* [recv] is whatever this branch consumed -- nothing, or the incoming
+           message once or twice.  Naming its elements rather than the list
+           lets [wp_raft__Step] discharge the [is_message] side of
+           [own_raft_ghost_step] from the single fact it holds about [m]. *)
+        "%Hrefines" ∷ ⌜ ∃ recv,
             (∀ m', m' ∈ recv → m' = abs_msg mtype.Vote m) ∧
-            step cfg id s recv s' sent ⌝ ∗
+            step cfg id s recv s' ⌝ ∗
         "%Herr" ∷ ⌜ err = interface.nil ⌝ }}}.
   Proof.
     intros Hty Hto Hterm Hfnz.
@@ -124,15 +125,19 @@ Implicit Type s : nstate.t.
     rewrite Hty /MsgVote bool_decide_eq_false_2; last w32_ne. wp_auto.
     rewrite Hty /MsgVote bool_decide_eq_false_2; last w32_ne. wp_auto.
     rewrite Hty /MsgVote bool_decide_eq_false_2; last w32_ne. wp_auto.
-    iAssert (own_raft_phys γ r id s)
+    iAssert (own_raft_phys r id s)
       with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys".
     { rewrite /own_raft_phys. iExists rv, msgs, msgsAA, lok. iFrame "∗#%". }
     wp_apply (P.wp_raft__becomeFollower with "[$Hphys]") as "Hphys".
-    (* the corresponding protocol step *)
-    iMod (own_raft_ghost_step_1 with "Hm Hghost") as "Hghost".
+    (* the corresponding protocol step, recorded as a pure fact rather than
+       taken on the ghost state: this lemma is ghost-free. *)
+    assert (step cfg id s [abs_msg mtype.Vote m]
+              (become_follower s m.(raftpb.Message.Term') (W64 0))) as Hstepdown.
     { replace (W64 0) with
         (if from_leader (abs_msg mtype.Vote m).(msg.ty)
          then (abs_msg mtype.Vote m).(msg.from) else W64 0) by done.
+      replace m.(raftpb.Message.Term') with (abs_msg mtype.Vote m).(msg.term)
+        by done.
       apply step_higher_term.
       - rewrite /abs_msg /= -Hterm0. exact Hgt.
       - rewrite /abs_msg /=. exact Hto. }
@@ -158,13 +163,19 @@ Implicit Type s : nstate.t.
       wp_apply (wp_Logger__logf with "Hlogger1").
       { rewrite /log_methods. set_solver. }
       wp_apply P.wp_voteRespMsgType; first done.
-      (* the protocol step: grant the vote *)
-      iMod (own_raft_ghost_step_1_1 with "Hm Hghost") as "[Hghost #Hgrant]".
+      (* the protocol step: grant the vote.  The [VoteResp] it sends is no
+         longer a separate output -- it is the growth of the outbox, which the
+         [send] below has to match. *)
+      assert (step cfg id (become_follower s m.(raftpb.Message.Term') (W64 0))
+                [abs_msg mtype.Vote m]
+                (send_msgs ((become_follower s m.(raftpb.Message.Term') (W64 0))
+                              <| nstate.vote := m.(raftpb.Message.From') |>)
+                   [msg.mk mtype.VoteResp id m.(raftpb.Message.From')
+                      m.(raftpb.Message.Term') false])) as Hgrant.
       { apply step_grant_vote; [done|exact Hto|done|].
         rewrite /can_vote /become_follower /=. right.
         split; [by rewrite decide_False|done]. }
-      iEval (rewrite /abs_msg /become_follower /=) in "Hgrant".
-      iAssert (own_raft_phys γ r id (become_follower s m.(raftpb.Message.Term') (W64 0)))
+      iAssert (own_raft_phys r id (become_follower s m.(raftpb.Message.Term') (W64 0)))
         with "[Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1]"
         as "Hphys".
       { rewrite /own_raft_phys. iExists rv0, msgs0, msgsAA0, lok0.
@@ -177,22 +188,17 @@ Implicit Type s : nstate.t.
   Admitted.
 
   (** [MsgVoteResp]: dispatched to [stepCandidate]. *)
-  Lemma wp_Step_MsgVoteResp γ r id s (m : raftpb.Message.t) :
+  Lemma wp_Step_MsgVoteResp r id s (m : raftpb.Message.t) :
     m.(raftpb.Message.Type') = MsgVoteResp →
     m.(raftpb.Message.To') = id →
     m.(raftpb.Message.Term') ≠ W64 0 →
-    {{{ is_pkg_init raft ∗
-        "Hphys" ∷ own_raft_phys γ r id s ∗
-        "Hghost" ∷ own_raft_ghost γ id s ∗
-        "#Hm" ∷ is_message γ (abs_msg mtype.VoteResp m)
-    }}}
+    {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys r id s }}}
       r @! (go.PointerType raft.raft) @! "Step" #m
     {{{ (err : error.t) s', RET #err;
-        "Hphys" ∷ own_raft_phys γ r id s' ∗
-        "Hghost" ∷ own_raft_ghost γ id s' ∗
-        "%Hrefines" ∷ ⌜ ∃ recv sent,
+        "Hphys" ∷ own_raft_phys r id s' ∗
+        "%Hrefines" ∷ ⌜ ∃ recv,
             (∀ m', m' ∈ recv → m' = abs_msg mtype.VoteResp m) ∧
-            step cfg id s recv s' sent ⌝ ∗
+            step cfg id s recv s' ⌝ ∗
         "%Herr" ∷ ⌜ err = interface.nil ⌝ }}}.
   Proof.
 
@@ -205,36 +211,52 @@ End branches.
     add binders the signature does not have.  Restore the prelude default. *)
 Set Default Proof Using "Type".
 
-  (** The top-level dispatch: the one triple in [STEP]. *)
+  (** The top-level dispatch: the one triple in [STEP], and **the one place in
+      this development where ghost state is updated**.  Each branch lemma
+      hands back a pure [step] witness together with the list of messages it
+      consumed; here that becomes a single [own_raft_ghost_step].
+
+      [iApply wp_fupd] up front is what makes that possible: the ghost update
+      has to happen after the branch lemma returns, when the goal would
+      otherwise be the bare postcondition with no fancy update to absorb. *)
   Lemma wp_raft__Step : wp_raft__Step_body.
   Proof.
     intros_ambient.
     intros cfg γ r id s m.
     intros Helection Hhup Hvote Hvoteresp.
     iIntros (Φ) "(#Hinit & Hphys & Hghost & #Hm & #Hctx) HΦ".
+    iApply wp_fupd.
     destruct Helection as [Hty | [Hty | Hty]].
     - (* MsgHup: a local message, handled by [hup]. *)
-      wp_apply (wp_Step_MsgHup cfg with "[$Hphys $Hghost]"); [done|by auto|].
-      iIntros (err s') "(Hphys & Hghost & %Hst & %Herr)".
-      iApply ("HΦ" $! err s'). iFrame. iPureIntro. split; [|done].
-      destruct Hst as [sent Hst]. by eexists [], sent.
+      wp_apply (wp_Step_MsgHup cfg with "[$Hphys]"); [done|by auto|].
+      iIntros (err s') "(Hphys & %Hst & %Herr)".
+      iMod (own_raft_ghost_step_0 _ _ _ _ _ Hst with "Hghost") as "Hghost".
+      iModIntro. iApply ("HΦ" $! err s'). iFrame.
+      iPureIntro. split; [by eexists []|done].
     - (* MsgVote: answer the vote request, stepping down first if needed. *)
       destruct (Hvote Hty) as (Hto & Hterm & Hfnz).
       iDestruct ("Hm" $! mtype.Vote with "[]") as "#Hm'".
       { iPureIntro. rewrite Hty. apply mtype_of_MsgVote. }
-      wp_apply (wp_Step_MsgVote cfg with "[$Hphys $Hghost $Hm' $Hctx]");
-        [done..|].
-      iIntros (err s') "(Hphys & Hghost & %Hst & %Herr)".
-      iApply ("HΦ" $! err s'). iFrame. iPureIntro. split; [|done].
-      destruct Hst as (recv & sent & _ & Hstep). by eexists recv, sent.
+      wp_apply (wp_Step_MsgVote cfg with "[$Hphys $Hctx]"); [done..|].
+      iIntros (err s') "(Hphys & %Hst & %Herr)".
+      destruct Hst as (recv & Hrecv & Hstep).
+      iMod (own_raft_ghost_step _ _ _ _ _ _ Hstep with "[] Hghost") as "Hghost".
+      { iApply big_sepL_intro. iIntros "!> %k %m' %Hk".
+        rewrite (Hrecv m'); [iFrame "#"|by eapply list_elem_of_lookup_2]. }
+      iModIntro. iApply ("HΦ" $! err s'). iFrame.
+      iPureIntro. split; [by eexists recv|done].
     - (* MsgVoteResp: tally the vote, possibly winning or losing. *)
       destruct (Hvoteresp Hty) as [Hto Hterm].
       iDestruct ("Hm" $! mtype.VoteResp with "[]") as "#Hm'".
       { iPureIntro. rewrite Hty. apply mtype_of_MsgVoteResp. }
-      wp_apply (wp_Step_MsgVoteResp cfg with "[$Hphys $Hghost $Hm']"); [done..|].
-      iIntros (err s') "(Hphys & Hghost & %Hst & %Herr)".
-      iApply ("HΦ" $! err s'). iFrame. iPureIntro. split; [|done].
-      destruct Hst as (recv & sent & _ & Hstep). by eexists recv, sent.
+      wp_apply (wp_Step_MsgVoteResp cfg with "[$Hphys]"); [done..|].
+      iIntros (err s') "(Hphys & %Hst & %Herr)".
+      destruct Hst as (recv & Hrecv & Hstep).
+      iMod (own_raft_ghost_step _ _ _ _ _ _ Hstep with "[] Hghost") as "Hghost".
+      { iApply big_sepL_intro. iIntros "!> %k %m' %Hk".
+        rewrite (Hrecv m'); [iFrame "#"|by eapply list_elem_of_lookup_2]. }
+      iModIntro. iApply ("HΦ" $! err s'). iFrame.
+      iPureIntro. split; [by eexists recv|done].
   Qed.
 
 End StepProof.

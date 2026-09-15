@@ -197,3 +197,56 @@ out explicit.
 `package_sem` as `package_sem.(raft.import_bytes_Assumption)`. A separate
 `bytes_sem` binder is redundant; `package_sem` is the last ambient binder in
 every spec.
+
+## stdpp renamed `elem_of_list_lookup_*` to `list_elem_of_lookup_*`
+
+`eapply elem_of_list_lookup_2` fails with
+
+    The variable elem_of_list_lookup_2 was not found in the current environment
+
+which reads like a missing `Require` and is not. The current name is
+`list_elem_of_lookup_2` (likewise `list_elem_of_lookup` and
+`list_elem_of_lookup_1`). Grepping the stdpp sources for the old name finds
+nothing, which is the confusing part.
+
+To settle a name like this in about a minute, compile a scratch file with the
+project's load path instead of guessing:
+
+    $ cat /tmp/probe.v
+    From stdpp Require Import list.
+    Search (_ ∈ _) (_ !! _ = Some _).
+    $ coqc -Q src Perennial -Q new New -w -unknown-warning /tmp/probe.v
+
+(The `rocq` binaries are in the `perennial` opam switch: put
+`$HOME/.opam/perennial/bin` on `PATH`.)
+
+## `wp_apply … as` runs `wp_auto`, so don't re-seal around a call whose continuation reads fields
+
+`wp_apply (lemma with "[$Hphys]") as "Hphys"` steps the program on *after* the
+call returns. If you sealed `own_raft_phys` to make the call, `wp_auto` then
+cannot step through it, because the field points-tos are hidden inside.
+
+The symptom is not at the `wp_apply` — it is a *later* tactic failing, e.g.
+`wp_apply wp_slice_literal` reporting `iApply: cannot apply (WP
+CompositeLiteral …)`, which points at the wrong line entirely.
+
+Unpack and step explicitly:
+
+    wp_apply (wp_raft__appendEmptyEntry with "[$Hphys]") as "Hphys".
+    iNamedSuffix "Hphys" "2".
+    wp_auto.
+
+See `proof_raft__becomeLeader.v`.
+
+## `make x.vok` leaves no stamp file, so it never skips and never goes stale
+
+`find . -name '*.vok'` comes back empty even right after a successful run: the
+rule passes `-o $@` but `-vok` mode writes nothing. Two consequences, one good
+and one to plan around:
+
+- **It is always a real check.** `make x.vok` cannot report "up to date" on a
+  stale result, unlike `.vos`. If it prints `ROCQ COMPILE -vok …` and exits
+  quiet, the proof bodies ran.
+- **It re-runs every time**, ~100s per function here. Don't put a broad `.vok`
+  sweep in a tight loop; check the one file you touched, and do the full sweep
+  once at the end.

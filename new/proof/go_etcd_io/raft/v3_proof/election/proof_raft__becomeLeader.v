@@ -5,7 +5,7 @@ Module BecomeLeaderProof (P : BECOMELEADER_POSTULATES) : BECOMELEADER.
   Lemma wp_raft__becomeLeader : wp_raft__becomeLeader_body.
   Proof.
     intros_ambient.
-    intros cfg γ r id s.
+    intros cfg r id s.
     intros Hrole Hcfg. wp_start as "Hphys". iNamed "Hphys". wp_auto.
     (* [becomeLeader] panics on a follower; by assumption we are not one. *)
     assert (state_w64 s.(nstate.role) ≠ W64 0) as Hnf.
@@ -13,7 +13,7 @@ Module BecomeLeaderProof (P : BECOMELEADER_POSTULATES) : BECOMELEADER.
         rewrite /state_w64 /StateCandidate /StateLeader;
         intros Heq; apply (f_equal uint.Z) in Heq; vm_compute in Heq; discriminate. }
     rewrite Hstate bool_decide_eq_false_2 //. wp_auto.
-    iAssert (own_raft_phys γ r id s)
+    iAssert (own_raft_phys r id s)
       with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
       as "Hphys".
     { rewrite /own_raft_phys.
@@ -40,17 +40,31 @@ Module BecomeLeaderProof (P : BECOMELEADER_POSTULATES) : BECOMELEADER.
     wp_apply (wp_traceBecomeLeader with "[$Hmisc1]") as "Hmisc1".
     wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
     wp_auto.
-    wp_apply (wp_raft__appendEmptyEntry with "[$Hlog1]") as "Hlog1".
+    (* [appendEntry] queues a self-addressed [MsgAppResp], so it writes
+       [r.msgsAfterAppend] and needs the whole struct -- not just the log, as
+       its axiom used to claim.  [MsgAppResp] has no [mtype_of], so it drops
+       out of the abstract outbox and the state is unchanged.  Re-seal for the
+       call, then unpack again for the [Infof] that follows it. *)
+    iAssert (own_raft_phys r id (become_leader id s))
+      with "[Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1]"
+      as "Hphys".
+    { rewrite /own_raft_phys /become_leader /=.
+      iExists _, msgs0, msgsAA0, lok0.
+      simpl in Hid1, Hterm1, Hvote1, Hlead1, Hstate1.
+      iEval (simpl) in "Htrk1".
+      iFrame "Hr1 ∗#%".
+      iPureIntro. split_and!; done. }
+    wp_apply (wp_raft__appendEmptyEntry with "[$Hphys]") as "Hphys".
+    (* unpack again before [wp_auto]: the field reads in the [Infof] that
+       follows cannot be stepped through the sealed predicate *)
+    iNamedSuffix "Hphys" "2".
+    wp_auto.
     wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
-    wp_auto. rewrite Hlok1.
-    wp_apply (wp_Logger__logf with "Hlogger1").
+    wp_auto. rewrite Hlok2.
+    wp_apply (wp_Logger__logf with "Hlogger2").
     { rewrite /log_methods. set_solver. }
-    iApply "HΦ". rewrite /own_raft_phys /become_leader /=.
-    iExists _, msgs0, msgsAA0, lok0.
-    simpl in Hid1, Hterm1, Hvote1, Hlead1, Hstate1.
-    iEval (simpl) in "Htrk1".
-    iFrame "Hr1 ∗#%".
-    iPureIntro. split_and!; done.
+    iApply "HΦ". rewrite /own_raft_phys.
+    iExists _, _, _, _. iFrame "∗#%".
   Qed.
 
 End BecomeLeaderProof.

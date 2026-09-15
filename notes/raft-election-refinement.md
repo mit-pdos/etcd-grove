@@ -51,14 +51,20 @@ A node's protocol state is `(term, vote, lead, role, votes)`.
   mirror the Go code exactly. In particular `reset(term)` clears `Vote` only
   when the term actually changes, always clears `lead` and the vote tally;
   and `RecordVote` is first-write-wins.
-- `step cfg id : nstate.t → list msg.t → nstate.t → list msg.t → Prop` is the
-  transition relation. It is **reflexive and transitive by construction**
-  (`step_refl`, `step_trans`) so that one Go function performing several
-  protocol steps (e.g. `campaign` = become candidate *and* broadcast) still
-  refines a single `step`.
-- Ghost state (axiomatized): `own_raft_ghost γ id s`, `is_message γ m`, and
-  the one refinement obligation
-  `own_raft_ghost_step : step cfg id s recv s' sent → ([∗list] recv, is_message) -∗ own_raft_ghost γ id s ={⊤}=∗ own_raft_ghost γ id s' ∗ ([∗list] sent, is_message)`.
+- `step cfg id : nstate.t → list msg.t → nstate.t → Prop` is the transition
+  relation. It is **reflexive and transitive by construction** (`step_refl`,
+  `step_trans`) so that one Go function performing several protocol steps
+  (e.g. `campaign` = become candidate *and* broadcast) still refines a single
+  `step`.
+- **A step has no `sent` output.** `nstate.t` has an `outbox : list msg.t`
+  field, and the messages a step sends are the growth of
+  `s'.(nstate.outbox)`. `step_drain` lets a node drop messages from its own
+  outbox, which is what `Ready()` will do; without it the outbox could only
+  grow and `own_raft_phys` could not refine past the first drain.
+- Ghost state (axiomatized): `own_raft_ghost γ id s`, `is_message γ m`, the
+  refinement obligation
+  `own_raft_ghost_step : step cfg id s recv s' → ([∗list] recv, is_message) -∗ own_raft_ghost γ id s ={⊤}=∗ own_raft_ghost γ id s'`,
+  and `own_raft_ghost_outbox : own_raft_ghost γ id s -∗ [∗list] m ∈ s.(nstate.outbox), is_message γ m`.
   Plus `is_leader` / `is_leader_unique` (election safety) and
   `own_raft_ghost_is_leader`.
 
@@ -67,11 +73,47 @@ sent messages, tied by an invariant" development; it is **not** done here.
 
 ## `election/` — the implementation side
 
-`own_raft_phys γ r id s` is full ownership of the `raft` struct at `r` in a
-state refining `s`. The important clause is that **both** outgoing queues
-(`r.msgs` and `r.msgsAfterAppend`) contain only messages `γ` certifies:
-`is_phys_msg`. `send` is the only place a message reaches the network, so
-that is where the obligation is discharged.
+`own_raft_phys r id s` is full ownership of the `raft` struct at `r` in a
+state refining `s`. **There is no `γ`: it says nothing about ghost state.**
+
+### The rule: no function below `Step` touches ghost state
+
+A spec below `Step` says only which state the struct now refines and how the
+outbox grew — never that the transition is *legal*. Note what
+`wp_raft__becomeLeader` does **not** claim: `step_win` requires
+`is_quorum (granted s.votes)`, and that hypothesis appears nowhere in its
+triple. Legality is discharged above.
+
+`own_raft_ghost` therefore appears in exactly one spec, `spec_raft__Step.v`,
+and `own_raft_ghost_step` is applied in exactly one proof file,
+`proof_raft__Step.v`. If you find yourself adding `own_raft_ghost` to an
+internal spec, something is being certified in the wrong place —
+see [decisions.md](decisions.md) for the version of this that got it wrong,
+and why.
+
+### How the outbox is related to the two queues
+
+`send` routes vote *responses* to `r.msgsAfterAppend` and everything else to
+`r.msgs`; the model has one outbox, so `own_raft_phys` relates it to both:
+
+    ⌜ s.(nstate.outbox) ≡ₚ abs_outbox msgs msgsAA ⌝
+
+with `abs_outbox msgs msgsAA := omap abs_msg_opt msgs ++ omap abs_msg_opt msgsAA`.
+Two choices to know about:
+
+- **`omap` with a *partial* `abs_msg_opt`.** A message type the model does not
+  describe drops out instead of making the abstract outbox undefined. Do not
+  make `abs_msg_opt` total — `appendEntry` queues a `MsgAppResp`, which has no
+  `mtype_of`, and the whole point is that it is invisible here.
+- **`≡ₚ`, not `=`.** Appending to `msgs` does not append to the concatenation
+  when `msgsAA` is non-empty, so equality would not survive a `send`.
+  Permutation is also all the model needs. Helpers for this live in `defs.v`
+  (`abs_outbox_snoc_msgs`, `abs_outbox_snoc_msgsAA`,
+  `abs_outbox_snoc_msgsAA_None`).
+
+A caller that needs to know a *pending outgoing* message is protocol-legal
+reads that off `own_raft_ghost` with `own_raft_ghost_outbox`, not off
+`own_raft_phys`.
 
 The `r ↦ rv` clause covers the whole struct, `trk` included — `trk` is an
 embedded `tracker.ProgressTracker` *value*, not a pointer. So `own_tracker`
@@ -80,9 +122,10 @@ and owns only the heap that hangs off it. See the trust boundary below.
 
 ### Proved (`Qed`)
 
-- `wp_raft__send_vote` — the substantive one. A vote message reaches
-  `r.msgs` (`MsgVote`) or `r.msgsAfterAppend` (`MsgVoteResp`) only if the
-  caller already holds `is_message` for it.
+- `wp_raft__send_vote` — the substantive one, and the file that validates the
+  `omap`/`≡ₚ` encoding above. A vote message reaches `r.msgs` (`MsgVote`) or
+  `r.msgsAfterAppend` (`MsgVoteResp`); either way the abstract outbox grows by
+  exactly that one message, so the spec is routing-agnostic and ghost-free.
 - `wp_voteRespMsgType`.
 - `mtype_of_MsgVote`, `mtype_of_MsgVoteResp`.
 - The model-level composition lemmas `step_drop`,
@@ -157,6 +200,12 @@ functions, and — added 2026-09-14 for `becomeLeader` — the per-peer
 replication progress: `own_progress_rest`, `wp_tracker_progress_lookup`,
 `wp_Progress__BecomeReplicate`.
 
+Plus `wp_raft__appendEmptyEntry`, which since 2026-09-15 lives in
+`inv_raft_phys.v` rather than `inv_misc.v` — it has to mention
+`own_raft_phys`, because `appendEntry` queues a `MsgAppResp` and the previous
+version, owning only `own_raftLog`, was **false**. See
+[decisions.md](decisions.md).
+
 Three deliberate choices there:
 
 - `wp_Logger__logf` covers only the **non-panicking** methods
@@ -227,25 +276,25 @@ Re-indexing by the value fixed all of it and removed a conjunct from
 
 ## Where `wp_raft__Step_MsgVote` is stuck
 
-At the `send` of the granted vote response. The ghost step
-(`step_grant_vote`) goes through and produces
-`is_message γ (msg.mk mtype.VoteResp id m.From m.Term false)`; the physical
-message `send` is called with is the literal
-`Message{To := m.From; Term := m.Term; Type := MsgVoteResp}`. These *should*
-be the same after `iota`, but `iFrame` refuses to place the hypothesis into
-`wp_raft__send_vote`'s `#Hm` slot, and it still refuses after the
-precondition was restated in explicit `msg.mk` form rather than
-`abs_msg ty (m <| From' := id |>)`.
+**The blocker recorded here on 2026-09-14 is gone** (2026-09-15). It was: the
+ghost step `step_grant_vote` produced
+`is_message γ (msg.mk mtype.VoteResp id m.From m.Term false)`, and `iFrame`
+refused to place it into `wp_raft__send_vote`'s `#Hm` slot even though the two
+should agree after `iota`. It was never diagnosed — **`send` no longer has an
+`#Hm` slot**, so the question no longer arises. If you go looking for a
+lesson here, there isn't one; the obligation moved.
 
-Not diagnosed. Next thing to try: print the residual precondition goal (use
-`wp_apply (... with "[Hphys Hgrant]")` so it becomes a separate goal) and
-compare it against `Hgrant` term-by-term — the mismatch is probably in a
-field that is *not* one of the five the eye is drawn to.
+What remains at that point is ordinary work: `send` the granted vote response
+and perform the `r.Vote := m.From` update, then show the resulting struct
+refines
+`send_msgs ((become_follower s m.Term (W64 0)) <| nstate.vote := m.From |>) [VoteResp …]`.
+The pure `step` fact for it is already asserted in the proof as `Hgrant`, so
+what is left is matching the physical state against it — no ghost reasoning.
 
-Note the goal order `wp_apply` produces here is
-`[pure premises] [continuation] [resource]`, which is why putting `{ }`
-blocks for the premises leaves you focused on the continuation with evars in
-`Hphys`, not on the resource goal. That cost an hour; do not be fooled by it.
+Still true and still worth knowing: the goal order `wp_apply` produces here is
+`[pure premises] [continuation] [resource]`, so putting `{ }` blocks for the
+premises leaves you focused on the continuation with evars in `Hphys`, not on
+the resource goal. That cost an hour; do not be fooled by it.
 
 ## Working on these files
 

@@ -24,20 +24,16 @@ Set Default Proof Using "W".
 Implicit Type γ : raft_election_names.
 Implicit Type s : nstate.t.
 
-(** [m] is a message this node is allowed to have put on the network. *)
-Definition is_phys_msg γ (m : raftpb.Message.t) : iProp Σ :=
-  ∃ ty, ⌜ mtype_of m.(raftpb.Message.Type') = Some ty ⌝ ∗
-        is_message γ (abs_msg ty m).
-
-#[global] Instance is_phys_msg_pers γ m : Persistent (is_phys_msg γ m).
-Proof. apply _. Qed.
-
 (** ** Physical ownership of the raft struct
 
-    [own_raft_phys γ r id s] is full ownership of the [raft] struct at [r],
-    in a state that refines the protocol state [s], and whose two outgoing
-    message queues contain only messages [γ] certifies as protocol-legal. *)
-Definition own_raft_phys γ (r : loc) (id : w64) s : iProp Σ :=
+    [own_raft_phys r id s] is full ownership of the [raft] struct at [r], in a
+    state that refines the protocol state [s] — [s.(nstate.outbox)] included.
+
+    Note there is no [γ]: this predicate says nothing about ghost state, and
+    in particular does not certify the outgoing queues.  That certification
+    now follows from [own_raft_ghost] instead, via [own_raft_ghost_outbox],
+    which is what lets every spec below [Step] be ghost-free. *)
+Definition own_raft_phys (r : loc) (id : w64) s : iProp Σ :=
   ∃ (rv : raft.raft.t) (msgs msgsAA : list raftpb.Message.t)
     (lok : interface.t_ok),
   "Hr" ∷ r ↦ rv ∗
@@ -58,15 +54,22 @@ Definition own_raft_phys γ (r : loc) (id : w64) s : iProp Σ :=
   "Hlog" ∷ own_raftLog rv.(raft.raft.raftLog') ∗
 
   (** outgoing messages.  [send] routes vote/append *responses* to
-      [msgsAfterAppend] and everything else to [msgs]; both must only ever
-      hold protocol-legal messages. *)
+      [msgsAfterAppend] and everything else to [msgs]; the model has a single
+      outbox, so the abstraction is of the two together.
+
+      Two deliberate choices here.  [omap]: a message type the model does not
+      describe (notably the [MsgAppResp] that [appendEntry] queues) simply
+      drops out, rather than making the abstract outbox undefined.  [≡ₚ]:
+      appending to [msgs] does not append to the concatenation when [msgsAA]
+      is non-empty, so equality would not survive a [send]; permutation is
+      also all the model needs, since it cares which messages are out and not
+      in what order. *)
   "Hmsgs" ∷ rv.(raft.raft.msgs') ↦* msgs ∗
   "Hmsgs_cap" ∷ own_slice_cap raftpb.Message.t rv.(raft.raft.msgs') (DfracOwn 1) ∗
   "HmsgsAA" ∷ rv.(raft.raft.msgsAfterAppend') ↦* msgsAA ∗
   "HmsgsAA_cap" ∷ own_slice_cap raftpb.Message.t
                     rv.(raft.raft.msgsAfterAppend') (DfracOwn 1) ∗
-  "#Hsent" ∷ ([∗ list] m ∈ msgs, is_phys_msg γ m) ∗
-  "#HsentAA" ∷ ([∗ list] m ∈ msgsAA, is_phys_msg γ m) ∗
+  "%Houtbox" ∷ ⌜ s.(nstate.outbox) ≡ₚ abs_outbox msgs msgsAA ⌝ ∗
 
   (** scope assumptions *)
   "%HnoPreVote" ∷ ⌜ rv.(raft.raft.preVote') = false ⌝ ∗
@@ -84,5 +87,21 @@ Definition own_raft_phys γ (r : loc) (id : w64) s : iProp Σ :=
 (** The step function stored in [r.step] is determined by the role; rather
     than naming the closure, we record which of the three [stepX] functions
     it is by the role, and dispatch on the role at the one call site. *)
+
+(** Out of scope: the empty entry a new leader appends.  [appendEntry]
+    updates the log and then queues a self-addressed [MsgAppResp]
+    ([new/code/go_etcd_io/raft/v3.v], the [send] at the end of
+    [raft__appendEntryⁱᵐᵖˡ]).  [mtype_of MsgAppResp = None], so [abs_msg_opt]
+    drops it and the abstract state — outbox included — is unchanged.
+
+    This axiom lives here rather than in [inv_misc.v] because it has to
+    mention [own_raft_phys].  Its previous form owned only [own_raftLog] while
+    the code it describes writes [r.msgsAfterAppend], which made it false; it
+    could not be stated honestly before the outbox was abstracted, because
+    the old [is_phys_msg] clause was unprovable for a [MsgAppResp]. *)
+Axiom wp_raft__appendEmptyEntry : ∀ (r : loc) id s (es : slice.t),
+  {{{ is_pkg_init raft ∗ own_raft_phys r id s }}}
+    r @! (go.PointerType raft.raft) @! "appendEntry" #es
+  {{{ RET #true; own_raft_phys r id s }}}.
 
 End proof.

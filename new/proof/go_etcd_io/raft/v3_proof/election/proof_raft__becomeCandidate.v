@@ -5,7 +5,7 @@ Module BecomeCandidateProof (P : BECOMECANDIDATE_POSTULATES) : BECOMECANDIDATE.
   Lemma wp_raft__becomeCandidate : wp_raft__becomeCandidate_body.
   Proof.
     intros_ambient.
-    intros γ r id s.
+    intros r id s.
     intros Hrole. wp_start as "Hphys". iNamed "Hphys". wp_auto.
     (* [becomeCandidate] panics on a leader; by assumption we are not one. *)
     assert (state_w64 s.(nstate.role) ≠ W64 2) as Hnl.
@@ -13,7 +13,7 @@ Module BecomeCandidateProof (P : BECOMECANDIDATE_POSTULATES) : BECOMECANDIDATE.
         rewrite /state_w64 /StateFollower /StateCandidate;
         intros Heq; apply (f_equal uint.Z) in Heq; vm_compute in Heq; discriminate. }
     rewrite Hstate bool_decide_eq_false_2 //. wp_auto.
-    iAssert (own_raft_phys γ r id s)
+    iAssert (own_raft_phys r id s)
       with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
       as "Hphys".
     { rewrite /own_raft_phys.

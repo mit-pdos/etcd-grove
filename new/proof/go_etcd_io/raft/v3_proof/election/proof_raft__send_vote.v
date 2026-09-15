@@ -5,11 +5,12 @@ Module SendVoteProof (P : SEND_VOTE_POSTULATES) : SEND_VOTE.
   Lemma wp_raft__send_vote : wp_raft__send_vote_body.
   Proof.
     intros_ambient.
-    intros γ r id s m ty.
+    intros r id s m ty.
     (* [send] fills in [From] (which is already [id], or [None]), leaves [Term]
        alone for vote messages, and appends to [msgsAfterAppend] (for
-       [MsgVoteResp]) or to [msgs] (for [MsgVote]).  In both cases the new
-       element of the queue is the message [Hm] certifies. *)
+       [MsgVoteResp]) or to [msgs] (for [MsgVote]).  Either way the abstract
+       outbox grows by exactly that one message -- up to permutation, since a
+       [MsgVote] lands in front of whatever [msgsAfterAppend] already holds. *)
     intros Hfrom Hvoty Hty Hmterm Hself.
     wp_start as "@". iNamed "Hphys". wp_auto.
     (* [From] is unset, so [send] fills it in with [r.id]. *)
@@ -35,7 +36,13 @@ Module SendVoteProof (P : SEND_VOTE_POSTULATES) : SEND_VOTE.
       iApply "HΦ". rewrite /own_raft_phys.
       iExists (rv <| raft.raft.msgs' := msgs' |>),
               (msgs ++ [m <| raftpb.Message.From' := id |>]), msgsAA, lok.
-      rewrite big_sepL_app big_sepL_singleton /=.
+      assert (Hout' : (send_msgs s [msg.mk ty id m.(raftpb.Message.To')
+                         m.(raftpb.Message.Term') m.(raftpb.Message.Reject')])
+                        .(nstate.outbox)
+                      ≡ₚ abs_outbox (msgs ++ [m <| raftpb.Message.From' := id |>])
+                           msgsAA).
+      { rewrite (abs_outbox_snoc_msgs _ _ _ ty) //= /send_msgs /=.
+        by rewrite Houtbox. }
       iFrame "∗#%".
     - (* [MsgVoteResp] is a response, so it goes onto [r.msgsAfterAppend]. *)
       rewrite Hvt /MsgVoteResp bool_decide_eq_false_2; last w32_ne.
@@ -56,7 +63,13 @@ Module SendVoteProof (P : SEND_VOTE_POSTULATES) : SEND_VOTE.
       iApply "HΦ". rewrite /own_raft_phys.
       iExists (rv <| raft.raft.msgsAfterAppend' := msgsAA' |>),
               msgs, (msgsAA ++ [m <| raftpb.Message.From' := id |>]), lok.
-      rewrite big_sepL_app big_sepL_singleton /=.
+      assert (Hout' : (send_msgs s [msg.mk ty id m.(raftpb.Message.To')
+                         m.(raftpb.Message.Term') m.(raftpb.Message.Reject')])
+                        .(nstate.outbox)
+                      ≡ₚ abs_outbox msgs
+                           (msgsAA ++ [m <| raftpb.Message.From' := id |>])).
+      { rewrite (abs_outbox_snoc_msgsAA _ _ _ ty) //= /send_msgs /=.
+        by rewrite Houtbox. }
       iFrame "∗#%".
   Qed.
 

@@ -76,4 +76,48 @@ Definition abs_msg (ty : mtype.t) (m : raftpb.Message.t) : msg.t :=
   msg.mk ty m.(raftpb.Message.From') m.(raftpb.Message.To')
             m.(raftpb.Message.Term') m.(raftpb.Message.Reject').
 
+(** The partial abstraction of a physical message: [None] for the message
+    types the election model does not describe.  [MsgAppResp] is the one that
+    matters — [appendEntry] queues one, so a total abstraction would make the
+    abstract outbox undefined exactly where [becomeLeader] needs it. *)
+Definition abs_msg_opt (m : raftpb.Message.t) : option msg.t :=
+  ty ← mtype_of m.(raftpb.Message.Type'); Some (abs_msg ty m).
+
+Lemma abs_msg_opt_Some ty m :
+  mtype_of m.(raftpb.Message.Type') = Some ty → abs_msg_opt m = Some (abs_msg ty m).
+Proof. rewrite /abs_msg_opt => ->. done. Qed.
+
+(** The abstract outbox of the two physical queues, together. *)
+Definition abs_outbox (msgs msgsAA : list raftpb.Message.t) : list msg.t :=
+  omap abs_msg_opt msgs ++ omap abs_msg_opt msgsAA.
+
+(** [send] appends to one queue or the other depending on the message type.
+    The abstract outbox grows at the end either way — but only up to
+    permutation, which is why [own_raft_phys] relates the two with [≡ₚ]. *)
+Lemma abs_outbox_snoc_msgs (msgs msgsAA : list raftpb.Message.t) m ty :
+  mtype_of m.(raftpb.Message.Type') = Some ty →
+  abs_outbox (msgs ++ [m]) msgsAA ≡ₚ abs_outbox msgs msgsAA ++ [abs_msg ty m].
+Proof.
+  intros Hty. rewrite /abs_outbox omap_app /=.
+  rewrite (abs_msg_opt_Some ty) //= -!assoc.
+  apply Permutation_app_head, Permutation_app_comm.
+Qed.
+
+Lemma abs_outbox_snoc_msgsAA (msgs msgsAA : list raftpb.Message.t) m ty :
+  mtype_of m.(raftpb.Message.Type') = Some ty →
+  abs_outbox msgs (msgsAA ++ [m]) ≡ₚ abs_outbox msgs msgsAA ++ [abs_msg ty m].
+Proof.
+  intros Hty. rewrite /abs_outbox omap_app /=.
+  rewrite (abs_msg_opt_Some ty) //= assoc //.
+Qed.
+
+(** A message the model does not describe leaves the abstract outbox alone. *)
+Lemma abs_outbox_snoc_msgsAA_None (msgs msgsAA : list raftpb.Message.t) m :
+  mtype_of m.(raftpb.Message.Type') = None →
+  abs_outbox msgs (msgsAA ++ [m]) = abs_outbox msgs msgsAA.
+Proof.
+  intros Hty. rewrite /abs_outbox omap_app /= /abs_msg_opt Hty /=.
+  by rewrite app_nil_r.
+Qed.
+
 End proof.

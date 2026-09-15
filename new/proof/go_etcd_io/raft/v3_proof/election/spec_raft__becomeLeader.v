@@ -8,12 +8,12 @@ Definition wp_raft__becomeLeader_body :=
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (cfg : gset w64)
-    (γ : raft_election_names) (r : loc) (id : w64) (s : nstate.t),
+    (r : loc) (id : w64) (s : nstate.t),
   s.(nstate.role) ≠ role.Follower →
   id ∈ cfg →
-  {{{ is_pkg_init raft ∗ own_raft_phys γ r id s }}}
+  {{{ is_pkg_init raft ∗ own_raft_phys r id s }}}
     r @! (go.PointerType raft.raft) @! "becomeLeader" #()
-  {{{ RET #(); own_raft_phys γ r id (become_leader id s) }}}.
+  {{{ RET #(); own_raft_phys r id (become_leader id s) }}}.
 
 Module Type BECOMELEADER.
   Parameter wp_raft__becomeLeader : wp_raft__becomeLeader_body.

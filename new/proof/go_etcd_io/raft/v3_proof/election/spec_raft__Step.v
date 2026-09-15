@@ -5,7 +5,15 @@ Require Export New.proof.bytes.
 
 (** The top-level dispatch.  NOTE: [Step] is the one function with more than
     one spec -- the three per-message-type theorems above are a layering of the
-    same Go function, not a duplicate specification of it. *)
+    same Go function, not a duplicate specification of it.
+
+    It is also **the only spec in this development that mentions ghost state**.
+    Every function below it is specified against [own_raft_phys] alone, saying
+    which state the struct ends up refining and how the outbox grew; [Step]
+    assembles those pure facts into one [step] witness and takes one
+    [own_raft_ghost_step].  A caller that needs to know a pending outgoing
+    message is protocol-legal gets that from [own_raft_ghost_outbox], not from
+    [own_raft_phys]. *)
 Definition wp_raft__Step_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
@@ -20,7 +28,7 @@ Definition wp_raft__Step_body :=
   (m.(raftpb.Message.Type') = MsgVoteResp →
      m.(raftpb.Message.To') = id ∧ m.(raftpb.Message.Term') ≠ W64 0) →
   {{{ is_pkg_init raft ∗
-      "Hphys" ∷ own_raft_phys γ r id s ∗
+      "Hphys" ∷ own_raft_phys r id s ∗
       "Hghost" ∷ own_raft_ghost γ id s ∗
       "#Hm" ∷ (∀ ty, ⌜ mtype_of m.(raftpb.Message.Type') = Some ty ⌝ -∗
                      is_message γ (abs_msg ty m)) ∗
@@ -29,9 +37,9 @@ Definition wp_raft__Step_body :=
   }}}
     r @! (go.PointerType raft.raft) @! "Step" #m
   {{{ (err : error.t) s', RET #err;
-      "Hphys" ∷ own_raft_phys γ r id s' ∗
+      "Hphys" ∷ own_raft_phys r id s' ∗
       "Hghost" ∷ own_raft_ghost γ id s' ∗
-      "%Hrefines" ∷ ⌜ ∃ recv sent, step cfg id s recv s' sent ⌝ ∗
+      "%Hrefines" ∷ ⌜ ∃ recv, step cfg id s recv s' ⌝ ∗
       "%Herr" ∷ ⌜ err = interface.nil ⌝ }}}.
 
 Module Type STEP.
