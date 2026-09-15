@@ -105,6 +105,27 @@ by-computation and the by-assumption conjuncts. (This is also why a leftover
 count of 1 vs 2 changes which tactic works: `iPureIntro; reflexivity` is
 enough for one goal and wrong for two.)
 
+The same trap in a different shape, from the `AccessStrict` instances in
+`election/exp_phys_sealed.v`: after `subst`, the abstraction-relation conjunct
+becomes `⌜rv.(f) = rv.(f)⌝` — reflexivity, with no hypothesis to match — so
+`iFrame "∗#%"` leaves the residual goal `r ↦ rv ∗ ⌜rv.(f) = rv.(f)⌝`. Split it
+and close the halves separately:
+
+```coq
+iSplitL; [ iApply typed_pointsto_combine; [done | iFrame] | by iPureIntro ]
+```
+
+`done` alone on that second goal does **not** work; it has to be
+`by iPureIntro`. Getting this wrong costs a build cycle for a
+`No applicable tactic` with no indication which branch failed.
+
+## `∃` over a struct field of function type needs a type ascription
+
+`∃ f, r.[raft.raft.t, "step"] ↦ f ∗ …` fails with
+`UNDEFINED EVARS … (parameter TypedPointsto0 of typed_pointsto)` rather than
+anything pointing at the binder. Rocq cannot infer the field's type from the
+points-to alone. Write `∃ (f : raft.stepFunc.t), …` (`tick` is `func.t`).
+
 ## `make x.vos` does not check proof bodies
 
 `.vos` compiles statements, signatures and module structure and **skips

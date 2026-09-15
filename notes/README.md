@@ -17,6 +17,9 @@ If a fact only matters inside one conversation, it does not belong here.
 - **[raft-election-refinement.md](raft-election-refinement.md)** — the
   leader-election refinement proof: scope, what is proved, what is admitted,
   and where the trust boundary is.
+- **[phys-abstraction-experiment.md](phys-abstraction-experiment.md)** —
+  whether `own_raft_phys` can be sealed behind access lemmas instead of
+  unfolded. It can, and `wp_auto` still works; measured, with a prototype.
 - **[goose-workflow.md](goose-workflow.md)** — how Go source in the etcd forks
   becomes Rocq in `new/code/`, and how to change it.
 - **[decisions.md](decisions.md)** — why the development is the way it is.

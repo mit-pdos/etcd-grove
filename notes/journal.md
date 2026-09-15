@@ -422,3 +422,64 @@ for their own reasons; all of it is written up once in
 
 Also tested and rejected: making `_body` a `Notation` so the implicits are
 inferred syntactically. The generalized binders still come out explicit.
+
+## 2026-09-15 (later) — can we stop unfolding `own_raft_phys`?
+
+Investigation, not a change to the proof. Prototype in
+`election/exp_phys_sealed.v`; the full write-up, with the lemma inventory and
+the baseline it would replace, is in
+[phys-abstraction-experiment.md](phys-abstraction-experiment.md).
+
+**The premise I was handed was wrong, and that is the result.** The worry was
+that sealing `own_raft_phys` behind access lemmas would cost us `wp_auto` and
+force manual lemma application at each of the 150 field accesses on the
+election path. It does not. `AccessStrict`/`Access` (`new/golang/theory/mem.v:78`)
+is exactly this mechanism, and `tac_wp_load`/`tac_wp_store` resolve it against
+*any* hypothesis in the Iris context, chaining transitively. The generated
+whole-struct instances in `new/generatedproof/` are just one client. Register
+instances for a sealed predicate and `wp_auto` reads and writes fields through
+it untouched.
+
+`exp_phys_sealed.v` re-proves `becomeFollower` against a genuinely sealed
+predicate (`Program Definition … := sealed`), no `Axiom`, no `Admitted`, and
+its `r.lead` and `r.state` stores are done by a bare `wp_auto`. Checked with
+`.vok`. A negative control pins it down: demote `phys_store_lead` from
+`Instance` to `Lemma` and that `wp_auto` fails `Failed to progress`.
+
+Two constraints fall out, and both are about where the abstraction genuinely
+cannot hide the struct:
+
+- **The predicate must be indexed by physical field values, not by `s`.** Go
+  tears the abstraction relation — `becomeFollower` writes `lead`, then
+  `state`, and in between the struct refines no `nstate.t`. Hence
+  `own_raft_phys_at γ r id term vote lead st votes`, with the `s`-indexed form
+  as a special case, and a model-relevant write is an instance that *moves the
+  index*.
+- **A field whose value is existential inside the predicate cannot be an
+  `AccessStrict` instance at all** — the class has to hand out a concrete old
+  value. That is `step`, `tick` and `logger`, so ~12 sites need explicit
+  open/close accessors.
+
+Net: cheaper than the status quo (11 unfolds, 11 reseals and 19
+abstraction-relation rewrites across 433 lines of `proof_*.v`), for about 20
+lemmas and 150 lines of one-time boilerplate.
+
+**Recommendation: do not build it yet.** `own_raft_phys` is mid-reshape on
+`worktree-raft-election-refinement` — `γ` dropped, both queues abstracted into
+`nstate.outbox`, `step` losing its `sent` argument. That makes the abstraction
+*more* attractive (a purely physical predicate has fewer indices to thread)
+but a 20-lemma surface pinned to the old shape would have to be redone. Land
+the outbox refactor, then port; the `AccessStrict` finding and the two tactics
+in the write-up carry over.
+
+Two boilerplate gotchas worth having written down, both in the write-up: the
+`phys_close` residual needs `by iPureIntro` and not `done`, and `∃ f` over a
+closure field needs an explicit type ascription or you get `UNDEFINED EVARS`.
+
+### Housekeeping
+
+This ran on `worktree-raft-phys-abstraction`, based at `3e4d07f3e`, because
+`worktree-raft-election-refinement` had a live session mid-refactor in it. The
+framework `.vos` artifacts were copied across from that worktree (everything
+outside `new/proof/go_etcd_io/`, whose sources differ) to avoid a full
+Perennial rebuild; the 72 etcd-proof artifacts were rebuilt from source here.

@@ -142,6 +142,13 @@ Unclaimed; pick one and say so in the journal.
    stays an axiom. `./etc/tcb-view.py new/proof/go_etcd_io/raft/v3_proof/protocol.v`
    shows them with nothing else in the way.
 5. Extend `v3.v` past `Propose` to the rest of the `node` interface.
+6. Seal `own_raft_phys` behind access lemmas instead of unfolding it in every
+   `proof_*.v`. Investigated 2026-09-15 and it works — `wp_auto` keeps
+   stepping field accesses, via `AccessStrict` instances — but **do this after
+   the outbox refactor lands**, not before, or the lemma surface gets built
+   against a shape that is about to change. Prototype, measurements and the
+   two boilerplate traps are in
+   [phys-abstraction-experiment.md](phys-abstraction-experiment.md).
 
 ## Known broken
 
