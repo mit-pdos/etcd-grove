@@ -14,6 +14,9 @@ If a fact only matters inside one conversation, it does not belong here.
 - **[gotchas.md](gotchas.md)** — traps that have already cost someone time.
 - **[raft-proof-map.md](raft-proof-map.md)** — what is in each Raft proof file
   and how they fit together.
+- **[raft-election-refinement.md](raft-election-refinement.md)** — the
+  leader-election refinement proof: scope, what is proved, what is admitted,
+  and where the trust boundary is.
 - **[goose-workflow.md](goose-workflow.md)** — how Go source in the etcd forks
   becomes Rocq in `new/code/`, and how to change it.
 - **[decisions.md](decisions.md)** — why the development is the way it is.

@@ -1,0 +1,75 @@
+(** * Refinement of etcd raft's leader election.
+
+    This file is the aggregator.  Every Hoare triple lives in its own
+    spec/postulates/proof/link quadruple under [v3_proof/election/]; requiring
+    every [link_*] here is what keeps CI honest, since [make ci] builds only
+    what [new/should_build.v] reaches, and a link file nothing re-exported
+    would silently go unchecked.
+
+    The top-level result is [Step.wp_raft__Step]: running [Step] on an election
+    message takes the physical raft struct from a state refining the protocol
+    state [s] to one refining [s'], and the ghost protocol state can be moved
+    from [s] to [s'] at the same time -- i.e. the implementation refines the
+    protocol of [election_protocol.v].
+
+    Scope, matching [election_protocol.v]:
+      - no pre-vote, no check-quorum,
+      - no proposals, no read-only requests,
+      - no reconfiguration and no learners.
+
+    Trust boundary.  Two kinds, and the layout keeps them apart:
+      - [inv_*.v] holds the state axioms and the specs of raft components
+        election does not reason about (the log, the tracker's non-vote state,
+        the [Logger] and tracing helpers).  These are [Axiom]s.
+      - A function that is in scope but unfinished is an [Admitted] inside its
+        own [proof_*.v].
+    Nothing in a [Module Type] is an assumption: a [Parameter] discharged by a
+    real functor adds nothing to [Print Assumptions]. *)
+
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.defs.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.inv_raftlog.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.inv_tracker.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.inv_logger.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.inv_misc.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.inv_raft_phys.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.step_lemmas.
+
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_voteRespMsgType.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__reset.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__becomeFollower.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__becomeCandidate.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__becomeLeader.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__send_vote.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__poll.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__campaign.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__hup.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_stepCandidate_MsgVoteResp.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__Step.
+
+Section proof.
+Context `{hG: heapGS Σ, !ffi_semantics _ _}.
+Context {sem : go.Semantics} {package_sem : raft.Assumptions}.
+Collection W := sem + package_sem.
+Set Default Proof Using "W".
+
+Implicit Type γ : raft_election_names.
+Implicit Type s : nstate.t.
+
+(** ** Payoff: election safety.
+
+    Two nodes that [Step] leaves in the leader role in the same term are the
+    same node. *)
+Corollary raft_election_safety γ id1 id2 s1 s2 :
+  s1.(nstate.role) = role.Leader →
+  s2.(nstate.role) = role.Leader →
+  s1.(nstate.term) = s2.(nstate.term) →
+  own_raft_ghost (Σ:=Σ) γ id1 s1 -∗ own_raft_ghost γ id2 s2 -∗ ⌜ id1 = id2 ⌝.
+Proof.
+  iIntros (Hl1 Hl2 Hterm) "H1 H2".
+  iDestruct (own_raft_ghost_is_leader with "H1") as "#Hle1"; first done.
+  iDestruct (own_raft_ghost_is_leader with "H2") as "#Hle2"; first done.
+  rewrite Hterm.
+  iApply (is_leader_unique with "Hle1 Hle2").
+Qed.
+
+End proof.

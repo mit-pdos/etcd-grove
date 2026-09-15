@@ -51,3 +51,6 @@ _RocqProject.install
 /graph.dpd
 # temporary file
 src/dpdgraph.v
+
+# rocq-warm
+.rocq-warm
