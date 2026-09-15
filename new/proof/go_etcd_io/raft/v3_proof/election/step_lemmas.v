@@ -1,7 +1,4 @@
-(** * Pure model-level lemmas and vocabulary
-
-    Split out of [election.v] on 2026-09-14; see
-    [notes/raft-election-refinement.md]. *)
+(** * Pure model-level lemmas and vocabulary *)
 
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.defs.
 

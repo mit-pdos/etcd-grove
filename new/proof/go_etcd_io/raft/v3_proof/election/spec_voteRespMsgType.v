@@ -1,9 +1,3 @@
-(** * Spec: [raft.voteRespMsgType]
-
-    The single place this function's Hoare triple is written down.  The body
-    carries all of its own binders, so the [Parameter] below is a bare
-    reference to it -- there is no second copy of the binder list to drift. *)
-
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.defs.
 
 (** [voteRespMsgType] maps a vote request to its response type. *)

@@ -1,9 +1,3 @@
-(** * Link: [raft.Step]
-
-    [Step]'s own dispatch is proved; two of its three internal branches are
-    unfinished, and those holes are [Admitted]s inside [proof_raft__Step.v].
-    This file carries no [Axiom]. *)
-
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.proof_raft__Step.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__hup.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__becomeFollower.
@@ -21,6 +15,5 @@ End StepPostulates.
 
 Module Step := StepProof StepPostulates.
 
-(** Implicits are not inferred through a folded [_body], and an [Arguments]
-    inside the [Module Type] does not survive functor application. *)
+(* Implicits do not survive a folded [_body]; see notes/gotchas.md. *)
 Arguments Step.wp_raft__Step {_ _ _ _ _ _ _ _ _}.

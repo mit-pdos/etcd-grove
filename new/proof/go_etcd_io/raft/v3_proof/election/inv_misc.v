@@ -1,7 +1,4 @@
-(** * Raft components election neither reads nor writes
-
-    Split out of [election.v] on 2026-09-14; see
-    [notes/raft-election-refinement.md]. *)
+(** * Raft components election neither reads nor writes *)
 
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.inv_raftlog.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.inv_tracker.

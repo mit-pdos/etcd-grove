@@ -1,8 +1,4 @@
-(** * Proof: [raft.Step] against its spec
-
-    Opaquely ascribed, so everything below except [wp_raft__Step] is sealed.
-
-    The three per-message-type lemmas are **proof structure, not
+(** The three per-message-type lemmas are **proof structure, not
     specification**.  [Step] is one Go function and therefore has exactly one
     spec, in [spec_raft__Step.v]; giving each branch its own [Module Type]
     would put four Hoare triples for [r.Step] in four files, which is the

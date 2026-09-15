@@ -1,9 +1,3 @@
-(** * Spec: [raft.raft__poll]
-
-    The single place this function's Hoare triple is written down.  The body
-    carries all of its own binders, so the [Parameter] is a bare reference to
-    it -- there is no second copy of the binder list to drift. *)
-
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.inv_raft_phys.
 
 (** [poll] records a vote and reports the tally, tied to the model's quorum

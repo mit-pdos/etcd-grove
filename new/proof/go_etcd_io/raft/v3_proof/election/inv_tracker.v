@@ -1,7 +1,4 @@
-(** * The progress tracker and per-peer progress
-
-    Split out of [election.v] on 2026-09-14; see
-    [notes/raft-election-refinement.md]. *)
+(** * The progress tracker and per-peer progress *)
 
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.defs.
 

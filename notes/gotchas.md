@@ -132,3 +132,26 @@ ascription then fails with `Signature components for field ... do not match`.
 Restore the prelude default with `Set Default Proof Using "Type".` after the
 section — `new/proof/go_etcd_io/raft/v3_proof/election/proof_raft__Step.v`
 does exactly this.
+## Implicit arguments are not inferred through a folded `_body`
+
+Rocq works out implicit arguments from the *syntactic* form of a constant's
+declared type. When the type is a folded definition — the
+`Parameter wp_<fn> : wp_<fn>_body` shape used throughout
+`v3_proof/election/` — there are no visible binders, so **every** argument
+comes out explicit, whatever the `_body` says. A call site then fails with
+something that looks unrelated:
+
+    The term "MsgVote" has type "w32" while it is expected to have
+    type "ffi_syntax"
+
+Fix: one line per `link_*.v`, after the functor application,
+
+    Arguments <Fn>.wp_<fn> {_ _ _ _ _ _ _ _}.
+
+using the short prefix form — it marks the eight context binders implicit and
+leaves each function's own binders explicit, so it needs no adjusting per
+function. Do not delete these lines; they are load-bearing.
+
+Putting the `Arguments` inside the `Module Type` instead is *accepted* and
+works for a directly-ascribed module, but does **not** survive functor
+application, which is why it lives in the link file.

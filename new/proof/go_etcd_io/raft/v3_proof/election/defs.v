@@ -1,7 +1,4 @@
-(** * Shared vocabulary for the election proof
-
-    Split out of [election.v] on 2026-09-14; see
-    [notes/raft-election-refinement.md]. *)
+(** * Shared vocabulary for the election proof *)
 
 Require Export New.proof.go_etcd_io.raft.v3_proof.base.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election_protocol.

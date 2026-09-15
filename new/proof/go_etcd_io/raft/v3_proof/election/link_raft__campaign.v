@@ -1,8 +1,3 @@
-(** * Link: [raft.raft__campaign]
-
-    [raft__campaign] is in scope but unfinished: the hole is the [Admitted] in
-    [proof_raft__campaign.v], not an [Axiom] here. *)
-
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.proof_raft__campaign.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__becomeCandidate.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__poll.
@@ -16,6 +11,5 @@ End CampaignPostulates.
 
 Module Campaign := CampaignProof CampaignPostulates.
 
-(** Implicits are not inferred through a folded [_body], and an [Arguments]
-    inside the [Module Type] does not survive functor application. *)
+(* Implicits do not survive a folded [_body]; see notes/gotchas.md. *)
 Arguments Campaign.wp_raft__campaign {_ _ _ _ _ _ _ _}.
