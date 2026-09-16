@@ -31,9 +31,5 @@ Axiom wp_raftLog__lastIndex : ∀ (l : loc),
     l @! (go.PointerType raft.raftLog) @! "lastIndex" #()
   {{{ (i : w64), RET #i; own_raftLog l }}}.
 
-Axiom wp_raftLog__hasNextOrInProgressSnapshot : ∀ (l : loc),
-  {{{ is_pkg_init raft ∗ own_raftLog l }}}
-    l @! (go.PointerType raft.raftLog) @! "hasNextOrInProgressSnapshot" #()
-  {{{ RET #false; own_raftLog l }}}.
 
 End proof.

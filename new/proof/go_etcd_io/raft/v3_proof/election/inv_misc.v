@@ -47,34 +47,45 @@ Axiom wp_campaign_peer_ids : ∀ (trk : loc) tv votes,
     the read-state slice, the read-only queue, and the pending
     [MsgReadIndex] slice.  Indexed by exactly those three fields, so that
     updating any other field of the struct leaves it alone. *)
+(** The five [traceX] functions below are **not** assumptions: Goose
+    translates each of them to a literal no-op,
+    [λ: <> <>, exception_do (do: #())], so each spec is a two-line proof.
+    They were axioms until 2026-09-16 purely because nobody had looked at the
+    generated body. *)
+
 Axiom own_raft_misc :
   ∀ (readStates : slice.t) (readOnly : loc) (pendingReadIndex : slice.t),
   iProp Σ.
 
-Axiom wp_traceReceiveMessage : ∀ (r : loc) (mp : loc) rs ro pri,
+Lemma wp_traceReceiveMessage (r : loc) (mp : loc) rs ro pri :
   {{{ is_pkg_init raft ∗ own_raft_misc rs ro pri }}}
     @! raft.traceReceiveMessage #r #mp
   {{{ RET #(); own_raft_misc rs ro pri }}}.
+Proof. wp_start as "Hm". by iApply "HΦ". Qed.
 
-Axiom wp_traceSendMessage : ∀ (r : loc) (mp : loc) rs ro pri,
+Lemma wp_traceSendMessage (r : loc) (mp : loc) rs ro pri :
   {{{ is_pkg_init raft ∗ own_raft_misc rs ro pri }}}
     @! raft.traceSendMessage #r #mp
   {{{ RET #(); own_raft_misc rs ro pri }}}.
+Proof. wp_start as "Hm". by iApply "HΦ". Qed.
 
-Axiom wp_traceBecomeFollower : ∀ (r : loc) rs ro pri,
+Lemma wp_traceBecomeFollower (r : loc) rs ro pri :
   {{{ is_pkg_init raft ∗ own_raft_misc rs ro pri }}}
     @! raft.traceBecomeFollower #r
   {{{ RET #(); own_raft_misc rs ro pri }}}.
+Proof. wp_start as "Hm". by iApply "HΦ". Qed.
 
-Axiom wp_traceBecomeCandidate : ∀ (r : loc) rs ro pri,
+Lemma wp_traceBecomeCandidate (r : loc) rs ro pri :
   {{{ is_pkg_init raft ∗ own_raft_misc rs ro pri }}}
     @! raft.traceBecomeCandidate #r
   {{{ RET #(); own_raft_misc rs ro pri }}}.
+Proof. wp_start as "Hm". by iApply "HΦ". Qed.
 
-Axiom wp_traceBecomeLeader : ∀ (r : loc) rs ro pri,
+Lemma wp_traceBecomeLeader (r : loc) rs ro pri :
   {{{ is_pkg_init raft ∗ own_raft_misc rs ro pri }}}
     @! raft.traceBecomeLeader #r
   {{{ RET #(); own_raft_misc rs ro pri }}}.
+Proof. wp_start as "Hm". by iApply "HΦ". Qed.
 
 (** [reset] replaces [r.readOnly] with [newReadOnly(r.readOnly.option)].
     Two pieces are needed: reading the old object's [option] field, and

@@ -553,3 +553,23 @@ output just the same — for a 400-line proof it is the better inner loop
 whenever the warm session cannot be kept. Raise
 `ROCQ_WARM_MAX_SESSION_GB` if you can, and prefer to fan out over *small*
 files.
+
+## `proof_raft__Step.v` exceeds rocq-warm's default session ceiling
+
+A cold check of it reaches 4.2 GB and rocq-warm discards the session:
+
+    rocq-warm: rocq reached 4.2 GB, over the 4.2 GB ceiling; session
+    discarded (raise the ceiling with ROCQ_WARM_MAX_SESSION_GB)
+
+The default is half the daemon budget, which is itself `min(half of RAM, 32
+GB)` — so on a 15 GB box it lands just under what this file needs. Export
+`ROCQ_WARM_MAX_SESSION_GB=9` (and `ROCQ_WARM_MAX_RSS_GB=11`) before checking
+it. The file is the largest in the election development and a session for it
+costs roughly twice what `coqc` peaks at.
+
+**And `Show.` does not survive `-vok`.** `make <file>.vok` prints nothing for
+it, so the "insert a `Show.` and re-check" workflow needs rocq-warm (or a
+plain `rocq compile`), not the `.vok` target. That matters because for a big
+file `.vok` is otherwise the better inner loop — see
+[proof-effort.md](proof-effort.md). Use `.vok` for verdicts, rocq-warm for
+goals.

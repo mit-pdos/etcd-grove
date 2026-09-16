@@ -4,6 +4,8 @@ Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__becomeFoll
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_voteRespMsgType.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__send_vote.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_stepCandidate_MsgVoteResp.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_stepFollower_MsgVoteResp.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_stepLeader_MsgVoteResp.
 
 Module StepPostulates : STEP_POSTULATES.
   Include Hup.
@@ -11,6 +13,8 @@ Module StepPostulates : STEP_POSTULATES.
   Include VoteRespMsgType.
   Include SendVote.
   Include StepCandidate.
+  Include StepFollower.
+  Include StepLeader.
 End StepPostulates.
 
 Module Step := StepProof StepPostulates.
