@@ -64,6 +64,10 @@ project to one tool.
 
 ## What does *not* go here
 
+- **Tooling defects that block a proof.** Those go in
+  [../bugs/](../bugs/README.md) — one file per defect in Goose, the
+  `new/golang` model or Perennial, with the evidence and what is blocked.
+  A note here can point at one, but the diagnosis lives there.
 - Anything derivable from the code, `git log`, or CI.
 - Perennial tactic documentation — that lives in
   `new/proof/PERENNIAL_PROOF_TUTORIAL.md`,
