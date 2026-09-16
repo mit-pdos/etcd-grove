@@ -15,6 +15,9 @@ Definition wp_raft__hup_body :=
     (cfg : gset w64)
     (r : loc) (id : w64) (s : nstate.t) (t : raft.CampaignType.t),
   t ≠ campaignPreElection →
+  (* [hup] may reach [campaign], which increments the term -- see the note on
+     [wp_raft__campaign_body]. *)
+  uint.Z s.(nstate.term) + 1 < 2 ^ 64 →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "hup" #t
   {{{ s', RET #();

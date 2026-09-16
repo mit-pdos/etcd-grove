@@ -29,6 +29,8 @@ Implicit Type s : nstate.t.
   Lemma wp_Step_MsgHup r id s (m : raftpb.Message.t) :
     m.(raftpb.Message.Type') = MsgHup →
     m.(raftpb.Message.Term') = W64 0 →
+    (* an election increments the term; [send] panics if that wraps to zero *)
+    uint.Z s.(nstate.term) + 1 < 2 ^ 64 →
     {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s }}}
       r @! (go.PointerType raft.raft) @! "Step" #m
     {{{ (err : error.t) s', RET #err;
@@ -36,7 +38,7 @@ Implicit Type s : nstate.t.
         "%Hrefines" ∷ ⌜ step cfg id s [] s' ⌝ ∗
         "%Herr" ∷ ⌜ err = interface.nil ⌝ }}}.
   Proof.
-    intros Hty Hterm.
+    intros Hty Hterm Hnowrap.
     wp_start as "@".
     iNamed "Hphys".
     wp_auto.
@@ -55,6 +57,7 @@ Implicit Type s : nstate.t.
     { rewrite /own_raft_phys. iFrame "∗#%". }
     wp_apply (P.wp_raft__hup with "[$Hphys]") as "%s' (Hphys & %Hstep)".
     { done. }
+    { exact Hnowrap. }
     iApply ("HΦ" $! interface.nil s'). by iFrame.
   Qed.
 
@@ -503,7 +506,8 @@ Set Default Proof Using "Type".
     iApply wp_fupd.
     destruct Helection as [Hty | [Hty | Hty]].
     - (* MsgHup: a local message, handled by [hup]. *)
-      wp_apply (wp_Step_MsgHup cfg with "[$Hphys]"); [done|by auto|].
+      destruct (Hhup Hty) as [Hmterm Hnowrap].
+      wp_apply (wp_Step_MsgHup cfg with "[$Hphys]"); [done..|].
       iIntros (err s') "(Hphys & %Hst & %Herr)".
       iMod (own_raft_ghost_step_0 _ _ _ _ _ Hst with "Hghost") as "Hghost".
       iModIntro. iApply ("HΦ" $! err s'). iFrame.

@@ -220,7 +220,6 @@ audit story:
 - an **`Admitted` in a `proof_*.v` file** means *in scope but unfinished*;
 - a **`Parameter` in a `spec_*.v` file is neither**. It is a proof obligation
   discharged by the functor ascribed to that signature, and contributes
-  nothing to `Print Assumptions`. `./etc/tcb-view.py` counts these separately;
   its `--self-check` enforces that every `spec_*.v` has exactly one and
   assumes nothing.
 
@@ -375,7 +374,6 @@ interface, the tracing hooks, the RNG.
 `inv_tracker.v` was converted on 2026-09-16 and is the model to copy:
 ownership predicates became real `Definition`s, their method WPs became
 `Admitted` `Lemma`s. That moves them from "assumed" to "in scope,
-unfinished" — `./etc/tcb-view.py --summary` went 57 axioms/13 admits →
 44/24, which is the accounting working as intended.
 
 ### `inv_raftlog.v` — the next one, and the one with a design decision in it

@@ -18,6 +18,14 @@ Definition wp_raft__campaign_body :=
   t ≠ campaignPreElection →
   s.(nstate.role) ≠ role.Leader →
   id ∈ cfg →
+  (* [becomeCandidate] sets [r.Term := r.Term + 1] and [campaign] then sends
+     at that term.  [send] *panics* on a vote message whose [Term] is zero
+     ([Panicf "term should be set when sending %s"] in [raft__sendⁱᵐᵖˡ]),
+     which is why [wp_raft__send_vote] requires [Term ≠ 0].  Without this
+     premise the triple is **false** at [s.(nstate.term) = 2^64 - 1]: the
+     term wraps to zero and the real code panics.  Added 2026-09-16; see
+     notes/STATUS.md. *)
+  uint.Z s.(nstate.term) + 1 < 2 ^ 64 →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "campaign" #t
   {{{ (peers : list w64), RET #();

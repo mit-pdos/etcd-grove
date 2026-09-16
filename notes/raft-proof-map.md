@@ -4,8 +4,6 @@ Accurate as of 2026-09-14. Rewrite this when the layout changes.
 
 To read any of these files at spec level — theorem statements, the
 definitions they reach, and every axiom and hole, with proof bodies and
-proved helper lemmas dropped — run `./etc/tcb-view.py <file>`, or
-`./etc/tcb-view.py --summary new/proof/go_etcd_io/raft` for just the list of
 what is assumed. Note `v3.v`'s public surface is a `Lemma`, so it needs
 `--root wp_Node__Propose`; everywhere else the `Theorem`s are the roots.
 

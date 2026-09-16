@@ -21,7 +21,11 @@ Definition wp_raft__Step_body :=
     (cfg : gset w64)
     (γ : raft_election_names) (r : loc) (id : w64) (s : nstate.t) (m : raftpb.Message.t),
   election_msg m →
-  (m.(raftpb.Message.Type') = MsgHup → m.(raftpb.Message.Term') = W64 0) →
+  (* A [MsgHup] is local ([Term = 0]) and may start an election, which
+     increments the term; [send] panics if that wraps to zero. *)
+  (m.(raftpb.Message.Type') = MsgHup →
+     m.(raftpb.Message.Term') = W64 0 ∧
+     uint.Z s.(nstate.term) + 1 < 2 ^ 64) →
   (m.(raftpb.Message.Type') = MsgVote →
      m.(raftpb.Message.To') = id ∧ m.(raftpb.Message.Term') ≠ W64 0 ∧
      m.(raftpb.Message.From') ≠ W64 0) →

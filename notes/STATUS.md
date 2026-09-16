@@ -190,24 +190,16 @@ same treatment — see
 [raft-election-refinement.md](raft-election-refinement.md) for what each one
 costs.
 
-As of 2026-09-16 the count is **44 axioms and 21 `Admitted`**, and
-`./etc/tcb-view.py --self-check` passes against it. The axiom count is the
-number to watch: admits rising while axioms fall is the conversion working,
-not a regression.
+As of 2026-09-16 the count is **44 axioms and 22 `Admitted`**. Count them
+with a grep; the axiom count is the number to watch, and admits rising while
+axioms fall is the conversion working, not a regression:
+
+    grep -rc '^Axiom\|^  Axiom' new/proof/go_etcd_io/raft --include='*.v'
+    grep -rn 'Admitted\.' new/proof/go_etcd_io/raft --include='*.v'
 
 There are also 11 module-type obligations — one `Parameter` per Go function.
 Those are **not** assumptions: each is discharged by the functor ascribed to
-its signature, so none reaches `Print Assumptions`. Print the list with
-
-    ./etc/tcb-view.py --summary new/proof/go_etcd_io/raft
-
-which also renders any file down to just its trust-relevant parts. It is
-textual and needs no build, so it does *not* see assumptions inherited from
-Perennial, Iris, or the Goose translator — see
-[decisions.md](decisions.md) for what it is and is not good for.
-
-`./etc/tcb-view.py --self-check` now also enforces the layout invariant:
-every `spec_*.v` must declare exactly one `Parameter` and assume nothing.
+its signature, so none reaches `Print Assumptions`.
 
 **`Print Assumptions` is still not available as a cross-check.** Over a
 `.vos` tree it under-reports — it sees axioms reachable from *statements* but
@@ -227,14 +219,13 @@ Unclaimed; pick one and say so in the journal.
 2. Construct `own_raft_ghost` / `is_message` rather than axiomatizing them,
    discharging `own_raft_ghost_step`, `own_raft_ghost_outbox` and
    `is_leader_unique`. Until that is done the election-safety corollary rests
-   on an axiom. This is 12 of the 50 axioms; `./etc/tcb-view.py --summary`
-   lists them under `Section ghost`.
+   on an axiom. This is 12 of the 44 axioms, the `Section ghost` block in
+   `election_protocol.v`.
 3. Decide what the top-level Raft correctness statement should be (beyond
    election safety), and write it down as a decision record.
 4. Discharge the `Section axioms` in `v3_proof/protocol.v` against the actual
    translated code in `new/code/go_etcd_io/raft/v3/`, or record why each axiom
-   stays an axiom. `./etc/tcb-view.py new/proof/go_etcd_io/raft/v3_proof/protocol.v`
-   shows them with nothing else in the way.
+   stays an axiom.
 5. Extend `v3.v` past `Propose` to the rest of the `node` interface.
 
 ## Known broken
@@ -292,10 +283,7 @@ Unclaimed; pick one and say so in the journal.
   `new/etc/update-goose-new.py`.
 - `make ci` builds `new/should_build.vo`, which is what CI checks. A proof not
   reachable from `new/should_build.v` is not being built.
-- `./etc/tcb-view.py` renders a `.v` file down to its trust base — theorem
-  statements, the definitions they reach, and every axiom and hole — hiding
-  proofs and proved helper lemmas. `--summary` for just the audit list,
-  `--self-check` to verify the parser.
+
 - Faster inner loop: `make vos` for interface files, or
   `make new/proof/go_etcd_io/raft/v3.required_vos` to build just what a file
   depends on. See `CONTRIBUTING.md`.

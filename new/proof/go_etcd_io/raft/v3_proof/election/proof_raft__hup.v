@@ -27,7 +27,7 @@ Module HupProof (P : HUP_POSTULATES) : HUP.
   Proof.
     intros_ambient.
     intros cfg r id s t.
-    intros Ht. wp_start as "Hphys". iNamed "Hphys". wp_auto.
+    intros Ht Hnowrap. wp_start as "Hphys". iNamed "Hphys". wp_auto.
     destruct (decide (s.(nstate.role) = role.Leader)) as [Hrl|Hrl].
     - (* already a leader: log and return, having done nothing *)
       rewrite Hstate Hrl bool_decide_eq_true_2 //. wp_auto.
@@ -64,7 +64,7 @@ Module HupProof (P : HUP_POSTULATES) : HUP.
           with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
           as "Hphys".
         { rewrite /own_raft_phys. iExists rv, msgs, msgsAA, lok. iFrame "∗#%". }
-        wp_apply (P.wp_raft__campaign _ _ _ _ _ Ht Hrl Hin with "[$Hphys]")
+        wp_apply (P.wp_raft__campaign _ _ _ _ _ Ht Hrl Hin Hnowrap with "[$Hphys]")
           as "%peers [%Hpeers Hphys]".
         iApply "HΦ". iFrame "Hphys".
         iPureIntro. apply step_campaign; done.

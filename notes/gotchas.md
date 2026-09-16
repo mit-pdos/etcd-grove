@@ -136,8 +136,7 @@ dependencies, so that starts building all of Perennial. See
 Corollary: `Print Assumptions` over a `.vos` tree **under-reports**. It sees
 axioms reachable from *statements*, but not what an opaque proof used, so
 `Admitted` lemmas and `wp_*` axioms consumed inside proofs simply do not
-appear. It is not a usable cross-check on the trust base; `./etc/tcb-view.py`
-is, textually.
+appear. It is not a usable cross-check on the trust base.
 
 ## `Collection W` is section-scoped but the `Set` naming it is not
 
@@ -456,3 +455,26 @@ Two rules:
 - When several agents share a checkout, a `.vok` run can race a live edit and
   fail on a transient state. Stop the writer first, then re-check, before
   concluding anything about the proof.
+
+## `until ! pgrep -f "make -jN"` never terminates — it matches itself
+
+A wait loop written to poll for a build finishing:
+
+```sh
+until ! pgrep -f "make -j4" >/dev/null; do sleep 20; done
+```
+
+spins forever, because the waiting shell's own command line *contains* the
+string `make -j4`, so `pgrep -f` matches the poller itself. On 2026-09-16 this
+left eighteen orphaned shells behind, each sleeping and re-matching.
+
+Match on something that cannot appear in the poller, or check for the real
+thing instead:
+
+```sh
+until [ -f .build-done ]; do sleep 20; done          # a sentinel file
+until ! pgrep -x rocqc.py >/dev/null; do sleep 20; done   # -x, exact name
+```
+
+Better still, do not poll: run the build itself in the background and read
+its exit status, rather than watching for its process to disappear.

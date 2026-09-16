@@ -94,7 +94,6 @@ anticipation.
 
 ---
 
-## A textual trust-base reader, `etc/tcb-view.py`
 
 **2026-09-13 · accepted**
 
@@ -106,7 +105,6 @@ justifying those axioms, and `raft-proof-map.md:77-79` already said "anything
 not proved should be either discharged or explicitly justified here" — so the
 need was recorded before the tool was; this is not speculative structure.
 
-**Decision:** one stdlib-only script, `etc/tcb-view.py`, that renders a `.v`
 file down to the top-level theorem statements, the transitive closure of the
 definitions those statements mention, and every axiom and admitted hole —
 hiding proof bodies and proved helper lemmas. Plain text to stdout, so it
@@ -141,7 +139,6 @@ admitted lemma is itself trusted and the definitions in its statement are too.
 - Editor folding via `etc/mixcode/mixcode.el` is Emacs-only, which the
   agent-neutral rule above rules out.
 
-**No separate test file.** Correctness lives in `./etc/tcb-view.py
 --self-check`, and the lossless round-trip is asserted on *every* run. The
 evidence against a test file is in this repo: `etc/test_coqc.py` is run by
 nothing and has rotted to the point of being unimportable — it does `from coqc
@@ -346,7 +343,6 @@ to check those claims.
 
 **Consequence.** `inv_tracker.v` was converted: `own_inflights`,
 `own_progress` and `own_tracker` are real `Definition`s, their eight method
-WPs `Admitted` `Lemma`s. `./etc/tcb-view.py --summary` moved from 57
 axioms/13 admits to 44/24 — the same facts, relabelled from "assumed" to "in
 scope, unfinished", which is the point. `inv_raftlog.v`, `inv_misc.v` and
 `inv_raft_phys.v` still need it; see
