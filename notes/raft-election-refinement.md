@@ -140,6 +140,14 @@ and owns only the heap that hangs off it. See the trust boundary below.
   `becomeLeader` additionally walks the tracker to mark its own `Progress`
   replicating and appends the empty entry.
 - `wp_raft__reset` (2026-09-16) — see "How `reset` was proved" below.
+- `wp_raft__campaign` (2026-09-16) — `becomeCandidate`, then the voter-id
+  enumeration (`IDs`, `make`, a `map.for_range`, `slices.Sort`), then one
+  `wp_for` that sends a self-addressed `MsgVoteResp` and one `MsgVote` per
+  peer.  Its triple gained a no-wrap premise
+  (`uint.Z s.(nstate.term) + 1 < 2^64`) the same day, without which it was
+  false; see "Known broken" in [STATUS.md](STATUS.md).  The loop invariant has
+  to quantify the range variable as well as the index — see
+  [gotchas.md](gotchas.md).
 - `Step`: the top-level dispatch, and its `MsgHup` branch (modulo
   `wp_raft__hup`).  The three per-message-type branches are internal lemmas
   of `proof_raft__Step.v`, not separate specs — `Step` is one Go function
@@ -159,7 +167,8 @@ bodies** — it will accept a script that does not run.)
    done; it stops at the `isUpToDate` branch. See "Where it is stuck" below.
 2. — `wp_raft__reset` was here; **proved 2026-09-16**, see "How `reset` was
    proved" below.
-3. `wp_raft__poll`, `wp_raft__campaign`, `wp_raft__hup`.
+3. — `wp_raft__poll`, `wp_raft__campaign` and `wp_raft__hup` were here; all
+   three **proved 2026-09-16**.
 4. `wp_stepCandidate_MsgVoteResp`, then the `MsgVoteResp` branch in
    `proof_raft__Step.v`. `stepCandidate` is the first caller of
    `wp_raft__becomeLeader`, so it is where the `id ∈ cfg` hypothesis has to be

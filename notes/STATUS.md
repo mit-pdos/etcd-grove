@@ -78,18 +78,13 @@ confirmed with `make <file>.vok` exiting 0 on that revision):
 `voteRespMsgType`, `send`, `becomeFollower`, `becomeCandidate`,
 `becomeLeader`, `raft_election_safety`, `Step`'s top-level dispatch and its
 `MsgHup` branch, and — all on 2026-09-16 — **`poll`**, **`hup`**,
-**`reset`** and **`stepCandidate`**.
+**`reset`**, **`stepCandidate`** and **`campaign`**.
 
 `reset` closing matters beyond itself: the three `becomeX` proofs rested on
 it, so they no longer stand on an admit.
 
-Three holes remain on the election path:
+Two holes remain on the election path:
 
-- **`campaign`** — compiles with 11 lemmas `Qed`, but the worker lemma
-  `wp_campaign` is `Admitted` with 4 interior `admit`s (the two `send`s and
-  the loop exit; script preserved verbatim in the file's closing comment).
-  **Its spec is also false** — see "Known broken", and fix that first,
-  because closing these admits against a false spec would prove nothing.
 - **`Step`'s `MsgVote` branch** — `Admitted`. A complete script is preserved
   in the file, covering the term preamble, the lease check, both pre-vote
   arms, the step-down, the `canVote` computation and all four `isUpToDate`
@@ -230,8 +225,9 @@ Unclaimed; pick one and say so in the journal.
 
 ## Known broken
 
-- **`spec_raft__campaign.v` is FALSE as written.** Found 2026-09-16 while
-  proving `campaign`; **fix this before closing `campaign`'s admits.**
+- **`spec_raft__campaign.v` was FALSE as written** — found 2026-09-16 while
+  proving `campaign`, **fixed the same day**; the premise is in the spec and
+  `campaign` is now `Qed`. Kept here for the lesson, which is not stale.
 
   `send` panics on a vote message whose `Term` is zero —
   `Panicf("term should be set when sending %s")` in `raft__sendⁱᵐᵖˡ` — which
@@ -242,8 +238,8 @@ Unclaimed; pick one and say so in the journal.
   sent. `wp_Logger__logf` deliberately does not cover `Panicf`, so the proof
   genuinely cannot get past it — the falsity is detectable, and was detected.
 
-  The fix is a no-wrap premise, `uint.Z s.(nstate.term) + 1 < 2^64`, on
-  `wp_raft__campaign_body`, threaded through `wp_raft__hup_body` and into
+  The fix (applied) is a no-wrap premise, `uint.Z s.(nstate.term) + 1 < 2^64`,
+  on `wp_raft__campaign_body`, threaded through `wp_raft__hup_body` and into
   `spec_raft__Step.v`'s `MsgHup` hypothesis (which already has the shape
   `Type' = MsgHup → …`). It **cannot** live in `own_raft_phys`: that predicate
   has to be re-established after `becomeCandidate` increments the term, and

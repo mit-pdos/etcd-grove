@@ -103,3 +103,60 @@ near-impossible to predict reliably from the source. **The single highest
   agents overwrote each other's scratch files; rocq-warm's per-file lock and
   interleaved stdout also confused them. Proof files themselves never
   collided, so the fan-out was still worth it.
+
+## Round 2 datapoint: `campaign`, 2026-09-16
+
+One agent, one file (430 lines), finished from a state where ~80% of the
+script was already machine-checked. Three Rocq iterations, ~45 min wall clock.
+Rough shares:
+
+| activity | share |
+|---|---|
+| Guess-and-check on tactic behaviour | ~25% |
+| Reading the generated Go-in-Rocq | ~20% |
+| Plumbing ownership in and out of predicates | ~25% |
+| Waiting for the checker | ~30% |
+| The actual protocol argument | ~0% |
+
+The protocol content really was zero: `campaign` refines `step_campaign`, and
+the whole obligation is `cmsg <$> xs ≡ₚ [VoteResp] ++ (Vote <$> elements (cfg
+∖ {[id]}))`, five lines of `Permutation`.
+
+**The error that cost the most** was inherited, not earned: the previous run
+had written down `iApply: cannot apply … "send" (# ?m)` together with a wrong
+diagnosis ("`wp_auto` does not step through the composite literal; the call
+site probably needs `rewrite /MsgVote bool_decide_eq_true_2`"). The real cause
+was a *missing callee spec*: `campaign` calls `voteRespMsgType` to compute the
+message's `Type` field, `wp_auto` stops in front of the call, and the spec was
+not in `CAMPAIGN_POSTULATES`. One `wp_apply P.wp_voteRespMsgType; first done.`
+fixed it. **Lesson: a recorded error message is worth keeping; a recorded
+guess at its cause is worth distrusting.** When `wp_auto` stops, the first
+question is "which callee is this?", answered by one `Show.`, not by
+theorising about literals.
+
+**What I should have been able to predict and could not:** that a Go
+`for … range` loop variable has to be existentially quantified in the `wp_for`
+invariant. `slice.for_range` allocates it outside the loop, the body assigns
+it, and `iNamedAccu` freezes whatever is left in the ambient context at its
+*current value*. The failure surfaces as `iFrame` not closing the invariant at
+the end of every branch — three branches, three identical confusing failures.
+What would have let me predict it: a one-line note next to `wp_for` in
+`PERENNIAL_PROOF_REFERENCE.md` saying "everything not in your invariant is
+framed at its present value; a variable the body writes must be in the
+invariant". (Now in `gotchas.md`.)
+
+**Waiting was the single largest cost, and it was self-inflicted by the
+fan-out.** Three agents shared one rocq-warm daemon; sessions are 2–6 GB and
+the budget is shared, so each of my checks came back `[cold, …, 250–460s]`
+rather than the seconds the warm fork exists to provide. `make <file>.vok` is
+~100s, is the *authoritative* check, and prints `Show.` output identically.
+For a 400-line proof with other agents in the checkout, `.vok` is the better
+inner loop. Corollary for planning a fan-out: either give each agent its own
+checkout, or expect the warm-replay advantage to evaporate and size the work
+accordingly.
+
+**What worked:** writing the whole remaining script in one go with `Show.` at
+each uncertain point, rather than one tactic per iteration. Iteration 2 was a
+~90-line edit; it got through all three `send` branches and failed only at the
+loop exit. At 5 min per check, batching guesses beat serialising them — the
+opposite of the advice that suits a 0.3 s replay.

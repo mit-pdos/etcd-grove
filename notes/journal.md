@@ -883,3 +883,82 @@ transient state. Stop the writer, then re-check, before concluding anything.
 - The rocq-warm daemon is shared per checkout: killing a client leaves that
   *file* marked busy (exit 2 for everyone), and its stdout interleaves other
   files' sessions, so grep for your own filename's verdict line.
+
+## 2026-09-16 — `campaign` proved
+
+Claude Opus 5, one of three parallel agents on the election path (this one
+owned `proof_raft__campaign.v` only).
+
+- **Did:** `new/proof/go_etcd_io/raft/v3_proof/election/proof_raft__campaign.v`
+  is finished. `wp_campaign` ends in `Qed`, the file has no `admit`, no
+  `Admitted` and no new `Axiom`, and
+  `make -j4 TIMED=false …/proof_raft__campaign.vok` exits 0 (`ROCQ COMPILE
+  -vok`, no errors) on that revision. The preserved-script comment at the end
+  of the file is gone, and the dead `own_raft_phys_eq` helper with it.
+- The two facts the previous run had to admit were both already available and
+  neither needed a shared-file change:
+  - `size cfg < 2^63` is a conjunct of `own_tracker` (added to
+    `inv_tracker.v` earlier the same day). It is read out with a local
+    one-liner `own_tracker_cfg_size`, stated as
+    `own_tracker cfg tv votes -∗ ⌜…⌝ ∗ own_tracker cfg tv votes` — a bare
+    `-∗ ⌜…⌝` is consumed by `iDestruct`, and the tracker is needed afterwards.
+  - `s.term + 1 ≠ 0` follows from the new `uint.Z s.(nstate.term) + 1 < 2^64`
+    premise by `word`. So `spec_raft__campaign.v` is no longer false; the
+    "Known broken" entry in [STATUS.md](STATUS.md) is now history, kept for
+    the lesson.
+- **The recorded blocker was misdiagnosed.** The note in the file said the
+  first `wp_apply P.wp_raft__send_vote` failed with `iApply: cannot apply …
+  "send" (# ?m)` and guessed at a `rewrite /MsgVote bool_decide_eq_true_2`
+  at the call site. The real cause was one missing line:
+  `wp_apply P.wp_voteRespMsgType; first done.` `campaign` computes the
+  self-response's `Type` field by *calling* `voteRespMsgType`, `wp_auto` stops
+  in front of that call, and until 2026-09-16 the spec was not in
+  `CAMPAIGN_POSTULATES`, so there was nothing to apply. Nothing else about the
+  send was wrong.
+- **What actually cost the time: the range variable.** A Go `for … range`'s
+  loop variable has to be inside the `wp_for` invariant.
+  `slice.for_range` desugars to a `for:` whose *index and range variable are
+  allocated outside the loop*; the body assigns the range variable every
+  iteration; and anything left in the ambient Iris context at `wp_for` is
+  frozen into the loop frame by `iNamedAccu` **at its current value** — here
+  `"cur" ∷ cur_ptr ↦ W64 0`. The body then cannot restore the frame and
+  `iFrame` fails at the end of every branch. Fix: `∃ (n c : w64), … "cur" ∷
+  cur_ptr ↦ c` in the invariant. New entry in [gotchas.md](gotchas.md).
+- **Folding a `send` into a loop invariant.** `wp_raft__send_vote`'s
+  postcondition is stated about the message *variable*, so after the
+  `wp_apply` the hypothesis reads `msg.mk ty id {|…|}.(Message.To')
+  {|…|}.(Message.Term') {|…|}.(Message.Reject')` — projections of the literal,
+  unreduced, so no `rewrite` matches them. The idiom that works is to state
+  the folded form and close it by *conversion*:
+
+  ```coq
+  iAssert (own_raft_phys cfg r id (send_msgs s' (cmsg <$> take (i+1) xs)))
+    with "[Hphys]" as "Hphys".
+  { rewrite -Hstep. iExact "Hphys". }
+  ```
+
+  `iExact` unifies up to iota and sees through the projections; `rewrite`
+  does not. Also worth knowing: ssreflect `rewrite Hpure` inside an Iris goal
+  rewrites the whole `envs_entails` term, **hypotheses included**, so a plain
+  `rewrite` does reach `"Hphys"` whenever the equation matches syntactically.
+- **In the loop-exit branch `wp_if_destruct` has already run the program to
+  `return`**, so a following `wp_auto` dies with `Failed to progress.` Go
+  straight to `iApply "HΦ"`. This was the only failure in the final iteration
+  and the only place the preserved script had been right and I second-guessed
+  it.
+- Structure of the proof, for orientation: `promotable` (true, so no warning)
+  → `becomeCandidate` → `IDs` through `access_strict` on the `trk` field →
+  `make([]uint64, 0, len(idMap))` (needs the new local `wp_map_len_uint64`;
+  `golang/theory/map.v` has no `len` spec for maps) → the `map.for_range` that
+  fills `ids` → `slices.Sort` → one `wp_for` over the sorted ids with three
+  branches: the self-addressed `MsgVoteResp`, a peer `MsgVote` (twice, once
+  per arm of the `ctx = campaignTransfer` test, which the model ignores), and
+  the exit, which permutes `cmsg <$> xs` into
+  `[VoteResp] ++ (Vote <$> elements (cfg ∖ {[id]}))` using `Hxs_split`.
+- **Process:** rocq-warm replays were *not* cheap here — with two other agents
+  in the same checkout the daemon evicted my session between checks, so every
+  iteration was a cold 250–460s replay of a 430-line file. `make <file>.vok`
+  is ~100s and prints `Show.` output just the same, so for a file this size
+  it is the better loop when the warm session cannot be kept. Three iterations
+  total: one to see the goal at the first `send`, one full attempt (which got
+  through all three send branches), one to fix the exit branch.

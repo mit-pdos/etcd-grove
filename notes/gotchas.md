@@ -478,3 +478,78 @@ until ! pgrep -x rocqc.py >/dev/null; do sleep 20; done   # -x, exact name
 
 Better still, do not poll: run the build itself in the background and read
 its exit status, rather than watching for its process to disappear.
+
+## A `for … range` loop variable must be inside the `wp_for` invariant
+
+`slice.for_range` desugars to a `for:` whose index *and* range variable are
+allocated **outside** the loop, and the body assigns the range variable on
+every iteration. `wp_for` freezes everything left in the ambient Iris context
+into the loop frame with `iNamedAccu`, **at its value right then** — so
+`campaign`'s range variable was pinned as `"cur" ∷ cur_ptr ↦ W64 0`, and no
+branch of the body could restore it.
+
+The symptom is not at `wp_for`: it is `iFrame` failing to close the invariant
+at the *end* of every branch, with a leftover `cur_ptr ↦ W64 0`. Quantify it:
+
+```coq
+iAssert (∃ (n c : w64),
+   "i" ∷ i_ptr ↦ n ∗ "cur" ∷ cur_ptr ↦ c ∗ … )%I
+  with "[i cur Hphys]" as "IH".
+```
+
+(`proof_raft__campaign.v`, 2026-09-16.)
+
+## A spec's postcondition about a *message variable* leaves projections `rewrite` cannot see
+
+`wp_raft__send_vote` concludes
+`own_raft_phys … (send_msgs s [msg.mk ty id m.(Message.To') m.(Message.Term')
+m.(Message.Reject')])`. At a call site where `m` is a Goose composite literal,
+the hypothesis you get back therefore contains `{| … |}.(Message.To')` and
+friends, *unreduced*. Every `rewrite` and `iEval (rewrite …)` then fails to
+find its subterm, and `simpl` is not safe here (it also unfolds
+`own_raft_phys` and `send_msgs`).
+
+State the folded form and close it by conversion instead — `iExact` unifies up
+to iota, `rewrite` does not:
+
+```coq
+iAssert (own_raft_phys cfg r id (send_msgs s' (cmsg <$> take (i+1) xs)))
+  with "[Hphys]" as "Hphys".
+{ rewrite -Hstep. iExact "Hphys". }
+```
+
+Related and useful: ssreflect `rewrite Hpure` inside an Iris goal rewrites the
+whole `envs_entails` term, **hypotheses included**, so a plain `rewrite` does
+reach a named hypothesis whenever the equation matches it syntactically.
+
+## `wp_if_destruct` at a loop's exit has already run the rest of the function
+
+In the false branch of `wp_for`'s condition there is nothing left for
+`wp_auto` to do, and it fails with `Failed to progress.` — which reads like
+the program is stuck when in fact it has finished. Go straight to
+`iApply "HΦ"`. (`proof_raft__campaign.v`'s send loop.)
+
+## Reading a pure fact out of a definition without consuming it
+
+`own_tracker` carries `⌜size cfg < 2^63⌝`, which `campaign` needs for
+`make([]uint64, 0, len(idMap))`. A helper stated `own_tracker cfg tv votes -∗
+⌜…⌝` is useless: `iDestruct (lem with "Htrk")` consumes `Htrk`. State it as a
+pair and destruct both halves:
+
+```coq
+Lemma own_tracker_cfg_size tv votes :
+  own_tracker cfg tv votes -∗ ⌜ Z.of_nat (size cfg) < 2 ^ 63 ⌝ ∗ own_tracker cfg tv votes.
+…
+iDestruct (own_tracker_cfg_size with "Htrk") as "[%Hcfg_fits Htrk]".
+```
+
+## With several agents in one checkout, rocq-warm's session gets evicted
+
+Sessions are multi-GB and the daemon's total budget is shared, so two agents
+checking two large files evict each other between checks: every replay comes
+back `[cold, …, 250–460s]` instead of the seconds the fork exists to give.
+`make <file>.vok` is ~100s, is the authoritative check, and prints `Show.`
+output just the same — for a 400-line proof it is the better inner loop
+whenever the warm session cannot be kept. Raise
+`ROCQ_WARM_MAX_SESSION_GB` if you can, and prefer to fan out over *small*
+files.
