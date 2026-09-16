@@ -567,9 +567,20 @@ GB)` — so on a 15 GB box it lands just under what this file needs. Export
 it. The file is the largest in the election development and a session for it
 costs roughly twice what `coqc` peaks at.
 
-**And `Show.` does not survive `-vok`.** `make <file>.vok` prints nothing for
-it, so the "insert a `Show.` and re-check" workflow needs rocq-warm (or a
-plain `rocq compile`), not the `.vok` target. That matters because for a big
-file `.vok` is otherwise the better inner loop — see
-[proof-effort.md](proof-effort.md). Use `.vok` for verdicts, rocq-warm for
-goals.
+**`make <file>.vok` swallows `Show.` output; `rocq compile -vok` does not.**
+An earlier version of this entry blamed `-vok` itself. That was wrong — the
+mode is fine, it is the `make` path (via `etc/rocqc.py`) that eats the
+output. Invoking the compiler directly prints goals:
+
+```sh
+rocq compile -vok -Q src Perennial -Q new New /tmp/scratch/mvr.v
+```
+
+which gives **the best inner loop found so far for a lemma in a huge file**:
+put the one lemma in a scratch module under `/tmp` that only `Require`s its
+`postulates_*` file, and `-vok` loads the `.vos` closure rather than
+rebuilding it — 3.7 s to load, ~56 s per iteration for a lemma whose
+`wp_start`/`wp_auto` runs over `Step`'s body, 710 MB peak. That is a
+batch-of-twenty-lines loop instead of the tens of minutes a cold rocq-warm
+session on `proof_raft__Step.v` costs, and it keeps the source tree clean.
+(Found 2026-09-16 while proving `Step`'s `MsgVoteResp`.)

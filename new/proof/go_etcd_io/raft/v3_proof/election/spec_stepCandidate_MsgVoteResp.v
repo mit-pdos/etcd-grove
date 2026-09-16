@@ -29,8 +29,23 @@ Definition wp_stepCandidate_MsgVoteResp_body :=
       (* [ms] is what [bcastAppend] broadcast on a win: some list of [App]s
          from [id] at the current term, possibly empty.  [record_vote] does
          not touch the term, so this is [s]'s term. *)
+      (* The quorum facts are **part of the spec**, not incidental.  Without
+         them this triple is true but useless to its caller: [Step]'s
+         [MsgVoteResp] branch has to justify the resulting [role.Leader] by
+         [step_win], whose premise is [is_quorum cfg (granted …)], and no
+         other [step] rule produces a leader.  [poll] establishes both facts
+         and [proof_stepCandidate_MsgVoteResp.v] receives them as
+         [%Hwon]/[%Hlost]; before 2026-09-16 it dropped them on the floor and
+         [won]/[lost] escaped here as unconstrained booleans.
+
+         [record_vote] does not touch the term, so [s1]'s term is [s]'s. *)
       ⌜ ∃ won lost ms,
+          let votes' := record_vote s.(nstate.votes)
+                          m.(raftpb.Message.From')
+                          (negb m.(raftpb.Message.Reject')) in
           app_sends id s.(nstate.term) ms ∧
+          (won = true → is_quorum cfg (granted votes')) ∧
+          (lost = true → ¬ is_quorum cfg (cfg ∖ rejected votes')) ∧
           s' = vote_resp_result id s m.(raftpb.Message.From')
                  m.(raftpb.Message.Reject') won lost ms ⌝ }}}.
 
