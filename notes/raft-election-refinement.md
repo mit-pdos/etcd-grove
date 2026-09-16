@@ -490,3 +490,38 @@ Do not be tempted to keep `own_raftLog` opaque and add "`term(lastIndex)`
 succeeds" as an axiom. That is the `wp_raft__appendEmptyEntry` mistake again:
 an assumption about what raft's own code does, in a place where it can be
 proved.
+
+## Two invariants that hold under scope and were written nowhere
+
+Both found on 2026-09-16 by proofs that needed the fact and could not get it.
+The pattern is worth naming because nothing else detects it — not the type
+checker, not the axiom count, not review.
+
+1. **`own_raft_phys` did not pin `r.step`.** A comment claimed it recorded
+   which `stepX` the field held; no conjunct did. `Step`'s `MsgVoteResp`
+   branch dispatches through `r.step(m)` and so could not be stepped at all.
+   Fixed with `step_func_of` and `own_raft_phys_at`.
+
+2. **`own_progress` did not record `IsLearner = false`.** `promotable` is
+   `pr != nil && !pr.IsLearner && !r.raftLog.hasNextOrInProgressSnapshot()`,
+   so its stated postcondition `b = bool_decide (id ∈ cfg)` is **not
+   derivable** — a voter with `Progress.IsLearner` true would falsify it. The
+   fact is true under scope (`own_raft_phys` has `HnoLearner`, `own_tracker`
+   has `learners = ∅ ∧ learnersNext = ∅`) and simply was not written down.
+
+**The tell in both cases was an evar in a re-seal**: `becomeFollower`'s
+`iExists (rv <| step' := _ |>)`. An evar there means a field nothing
+constrains. Grep for that shape.
+
+And note `promotable` shows the log is **necessary but not sufficient** —
+fixing `own_raftLog` alone would not have made it provable.
+
+### Correction: `hasNextOrInProgressSnapshot` was deleted too eagerly
+
+On 2026-09-16 `wp_raftLog__hasNextOrInProgressSnapshot` was removed from
+`inv_raftlog.v` as "reachable from no proof". That was true only *because*
+`promotable` was an `Axiom` — `promotable`'s body calls it, so proving
+`promotable` needs it back. It should **not** return as an `Axiom` (it is
+core raft); it needs to be a proved lemma once `own_raftLog` is a real
+definition. Recorded so the next person does not conclude the deletion was
+wrong in principle, only premature.
