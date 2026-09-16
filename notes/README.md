@@ -11,6 +11,9 @@ If a fact only matters inside one conversation, it does not belong here.
 
 - **[STATUS.md](STATUS.md)** — where the proof is right now, what is in flight,
   what is next, what is known broken. **Start here.**
+- **[raft-implementation-facts.md](raft-implementation-facts.md)** — what
+  etcd raft *actually does*, where the proof had assumed otherwise. Read
+  before assuming anything about a raft function.
 - **[gotchas.md](gotchas.md)** — traps that have already cost someone time.
 - **[raft-proof-map.md](raft-proof-map.md)** — what is in each Raft proof file
   and how they fit together.
