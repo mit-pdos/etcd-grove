@@ -37,7 +37,12 @@ Module BecomeCandidateProof (P : BECOMECANDIDATE_POSTULATES) : BECOMECANDIDATE.
     simpl in Hid1, Hterm1, Hvote1, Hlead1, Hstate1.
     iEval (simpl) in "Htrk1".
     iFrame "Hr1 ∗#%".
-    iPureIntro. split_and!; reflexivity.
+    (* [split_and?], not [split_and!]: how many pure conjuncts survive
+       [iFrame] depends on which of them it can discharge itself, and that
+       moved when [own_raftLog] and [own_tracker] stopped being opaque.
+       [split_and!] insists on splitting at least once and fails with "No
+       matching clauses for match" the moment a single goal is left. *)
+    iPureIntro. split_and?; reflexivity.
   Qed.
 
 End BecomeCandidateProof.

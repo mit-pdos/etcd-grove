@@ -747,3 +747,45 @@ tracker, so it does not need the location". Mutation is not the question —
 
 The cheap check is two probes: `wp_start; iNamed "Hown"; wp_auto` with and
 without the field points-to, and see whether `wp_auto` moves.
+
+## `split_and!` breaks when `iFrame` gets better at discharging pure goals
+
+`iPureIntro. split_and!; reflexivity.` is a common ending for a re-seal, and
+it is **brittle**: how many pure conjuncts survive the preceding `iFrame`
+depends on which of them `iFrame` can discharge by itself, and that changes
+whenever a predicate in the goal stops being opaque.
+
+Concretely, 2026-09-16: `proof_raft__becomeCandidate.v` had been `Qed` for
+days, and broke the moment `own_raftLog` went from `Axiom` to `Definition`
+— `iFrame "Hr1 ∗#%"` then closed all but one pure goal, leaving a single
+equation, and `split_and!` (which insists on splitting *at least once*)
+failed with the unhelpful
+
+    Error: No matching clauses for match.
+
+**Use `split_and?`**, the non-failing repeat, or just `done`. Nothing about
+the proof was wrong; only the arity of what was left.
+
+The wider point: **a predicate that stops being opaque is not a
+backwards-compatible change**, even when its type is identical. Re-verify
+every `proof_*.v` downstream of an `inv_*.v` you touched, not only the file
+you edited. The same sweep caught this one, and it would otherwise have
+shipped green-looking.
+
+## Strengthening a predicate is free only where it is passed through
+
+Adding a conjunct to an `own_*` definition costs nothing at the call sites
+that hold it opaquely and re-frame it with `iFrame "∗#%"`. It costs
+something at every site that **destructs and rebuilds** it — and the failure
+is silent on the way in.
+
+`own_progress` gained `⌜pv.(IsLearner') = false⌝`. `proof_raft__reset.v`'s
+`Visit` closure opens it with
+
+    iDestruct "Hpr" as (pv) "[Hpv Hinfl]".
+
+A two-element pattern against a three-element definition **does not fail** —
+it drops the third — and the proof then dies much later, at the `}` that
+should have closed the re-seal, on a goal (`⌜… = false⌝`) with no visible
+connection to the `iDestruct`. Name the new conjunct on the way in
+(`"(Hpv & Hinfl & %Hnolearner)"`, or `iNamed`) and hand it back.
