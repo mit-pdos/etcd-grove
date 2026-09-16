@@ -962,3 +962,91 @@ owned `proof_raft__campaign.v` only).
   it is the better loop when the warm session cannot be kept. Three iterations
   total: one to see the goal at the first `send`, one full attempt (which got
   through all three send branches), one to fix the exit branch.
+
+## 2026-09-16 (third part) — the tracker, and a proof that was unsound
+
+Same day, after the entry above. Sequential work with at most one subagent —
+**three earlier sessions were OOM-killed** by several agents each running
+`make -j6` on a 15 GB box. `-j1` keeps it flat; see
+[gotchas.md](gotchas.md).
+
+### Proved
+
+- `stepFollower` and `stepLeader` on `MsgVoteResp`, four files each. Both are
+  no-ops for that type (neither mentions `MsgVoteResp` anywhere), so the
+  specs say the state is completely unchanged.
+- `reset` and the three `becomeX` repaired against the new `r.step`
+  invariant, so they now *establish* it instead of hiding it behind an evar.
+- **The tracker is axiom-free**: `inv_tracker.v` went 7 axioms → 0, with 7
+  lemmas `Qed` and only `TallyVotes` and `Visit` `Admitted`.
+- `own_raft_misc` is a real definition; `own_raft_misc_option`,
+  `wp_newReadOnly`, `wp_raft__abortLeaderTransfer` proved. `inv_misc.v` went
+  4 axioms → 1.
+- The five `traceX` axioms became two-line proofs — Goose emits
+  `λ: <> <>, exception_do (do: #())` for every one of them — and
+  `wp_raftLog__hasNextOrInProgressSnapshot` was deleted as reachable from no
+  proof. **Six axioms for the cost of reading the generated body.**
+
+Election-path axioms: **19 → 6**, four of the six legitimately outside the
+raft protocol.
+
+### `stepCandidate` was `Qed` and unsound
+
+The most important finding. `wp_ProgressTracker__TallyVotes` claimed
+`res = VoteLost → is_quorum cfg (rejected votes)`. Go's `VoteLost` means the
+candidate **cannot still win** (`votedCnt + missing < q`), not that a
+majority rejected. With 4 voters, 2 rejecting and 2 silent: `0 + 2 < 3` so
+Go says `VoteLost`, while 2 rejections are not a quorum.
+
+`stepCandidate` was already `Qed` **on top of that admitted false claim**, so
+the proof was not sound. Corrected via the identity
+`votedCnt + missing = size (cfg ∖ rejected)`, giving
+`VoteLost ⟺ ¬ is_quorum cfg (cfg ∖ rejected)`; `step_lose`, `TallyVotes`,
+`poll`'s spec and `step_record_then_lose` all updated, and both `poll` and
+`stepCandidate` re-verified.
+
+**The rule this establishes:** an `Admitted` lemma is not a placeholder for
+work, it is an unchecked claim, and a `Qed` above one inherits its falsity.
+Discharge leaves before trusting roots.
+
+### And `stepCandidate`'s spec was true but useless
+
+Found by the `MsgVoteResp` agent: `won`/`lost` escaped the postcondition as
+*unconstrained booleans*, so `step_win`'s `is_quorum cfg (granted …)` premise
+was unrecoverable by the caller, and no other rule produces a leader. `poll`
+supplies both facts and the proof was dropping them. Threading them into the
+spec cost **nothing** — the callee still checks unchanged, because
+`%Hwon`/`%Hlost` were already in the Coq context.
+
+That makes **seven** false-or-unprovable statements in two days. The tally
+and the two greppable tells are in [STATUS.md](STATUS.md); the
+implementation facts behind them are in
+[raft-implementation-facts.md](raft-implementation-facts.md), a new file
+Upamanyu asked for after finding the `VoteLost` fact interesting.
+
+### Tooling
+
+- **`Show.` does survive `-vok`.** An earlier entry of mine said otherwise;
+  it is the `make` path via `etc/rocqc.py` that swallows it. Calling
+  `rocq compile -vok -Q src Perennial -Q new New <scratch.v>` directly gives
+  the best inner loop found for a lemma in a huge file: a scratch module
+  under `/tmp` requiring only its `postulates_*` loads the `.vos` closure in
+  3.7 s and iterates in ~56 s at 710 MB, against tens of minutes for a cold
+  rocq-warm session on `proof_raft__Step.v`.
+- `proof_raft__Step.v` exceeds rocq-warm's default 4.2 GB session ceiling.
+- `etc/tcb-view.py` was deleted at Upamanyu's request; count with grep.
+- Two self-inflicted traps recorded: `until ! pgrep -f "make -j4"` never
+  terminates (it matches the waiting shell), and backticks in a
+  `git commit -m "…"` can start a full Perennial build.
+
+### Where to pick up
+
+`own_raftLog` is the bottleneck and now blocks three items — `promotable`,
+`hasUnappliedConfChanges` and `appendEmptyEntry`. Its design is written up in
+[raft-election-refinement.md](raft-election-refinement.md): `is_Storage` as
+an interface predicate, and expose the entry list rather than only what
+election needs.
+
+Self-contained and ready: `Step`'s `MsgVoteResp` (placeholder carries the
+full traced control flow and all three original blockers are resolved),
+`TallyVotes`, `Visit`, `wp_campaign_peer_ids`.
