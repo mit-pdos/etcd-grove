@@ -12,7 +12,16 @@
       - no check-quorum        ([r.checkQuorum = false]),
       - no proposals           (no [MsgProp] is ever stepped),
       - no read-only requests  (no [MsgReadIndex] is ever stepped),
-      - no reconfiguration     (the voter set [cfg] is fixed, no learners).
+      - no reconfiguration     (the voter set [cfg] is fixed, no learners),
+      - **no configuration change is ever requested** -- so the log contains
+        no [EntryConfChange] or [EntryConfChangeV2] entry, and
+        [r.hasUnappliedConfChanges()] is always [false].  This is stronger
+        than "the voter set is fixed": it is about what is in the log, not
+        just about the resulting configuration, and it is what makes
+        [hasUnappliedConfChanges] provable.  Its home once [own_raftLog] is a
+        real definition is a conjunct there; see
+        notes/raft-implementation-facts.md for why the function's early
+        [return false] does not suffice.
 
     Under these assumptions the only thing a node's log contributes to
     election is the [isUpToDate] check, which can only make a node *decline*

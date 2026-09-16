@@ -129,10 +129,17 @@ alone.
 
 The early return is guarded by `applied >= committed`, which is a fact about
 the log that nothing in the election scope implies. So the scan is **not**
-vacuous under "no reconfiguration", and proving the function returns `false`
-needs the log abstraction to say there are no conf-change entries in
-`(applied, committed]`. `hup` can genuinely refuse to campaign because of
-*un-applied* configuration changes.
+vacuous under "no reconfiguration": `hup` can genuinely refuse to campaign
+because of *un-applied* configuration changes, and "the voter set is fixed"
+does not rule that out.
+
+Resolved 2026-09-16 by strengthening the scope assumption to **no
+configuration change is ever requested** — so the log contains no
+`EntryConfChange`/`EntryConfChangeV2` entry and the scan finds nothing. That
+is a statement about the log's *contents*, so it belongs as a conjunct of
+`own_raftLog`; the lemma stays `Admitted` until that predicate is real. The
+distinction is worth keeping: a fixed voter set is about the resulting
+configuration, whereas this is about what was ever appended.
 
 ## The five `traceX` functions are no-ops
 
