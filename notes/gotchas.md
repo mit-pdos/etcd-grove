@@ -584,3 +584,24 @@ rebuilding it — 3.7 s to load, ~56 s per iteration for a lemma whose
 batch-of-twenty-lines loop instead of the tens of minutes a cold rocq-warm
 session on `proof_raft__Step.v` costs, and it keeps the source tree clean.
 (Found 2026-09-16 while proving `Step`'s `MsgVoteResp`.)
+
+## Backticks in a `git commit -m "..."` can start a full Perennial build
+
+Writing a commit message with `git commit -m "... `rocq compile ...` ..."`
+lets the shell run whatever is inside the backticks. On 2026-09-16 that
+substituted away two words of a message and, worse, **invoked `make`**, which
+went straight for `src/base.vo` — i.e. it started building all of Perennial.
+It happened to die immediately (no `rocq` on that subshell's `PATH`), but on
+a machine with the switch activated it would have run for an hour.
+
+Use a heredoc with a **quoted** delimiter, which does no substitution at all:
+
+```sh
+git commit -F - <<'EOF'
+... message with `backticks` and $dollars, safely ...
+EOF
+```
+
+This matters more here than in most repos because a stray `make` with no
+target is the one command the project most wants you not to run — see
+`CONTRIBUTING.md` and the `.vo` warning above.
