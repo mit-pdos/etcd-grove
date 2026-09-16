@@ -234,19 +234,30 @@ audit story:
 
 The out-of-scope list (was `Section helper_axioms`, now the `inv_*.v` files):
 
-Axiomatized because election does not reason about them: `own_raftLog` and
-its four methods, `own_tracker` and `ResetVotes`/`RecordVote`/`TallyVotes`,
-`promotable`, `hasUnappliedConfChanges`, the voter-id enumeration,
-`is_Logger` + `wp_Logger__logf`, `own_raft_misc`, the five `traceX`
-functions, and — added 2026-09-14 for `becomeLeader` — the per-peer
-replication progress: `own_progress_rest`, `wp_tracker_progress_lookup`,
-`wp_Progress__BecomeReplicate`.
+**This list was rewritten on 2026-09-16.** The scope rule changed that day
+(see [STATUS.md](STATUS.md)): core raft is in scope and must be constructed
+and proved, and only things genuinely outside the raft protocol may be
+assumed. Most of what used to be listed here is now a real definition with
+`Qed`ed methods — `own_raftLog`, `own_tracker`, `own_progress`,
+`own_inflights`, `own_raft_misc`, the five `traceX`, the `Progress` and
+`Inflights` methods.
 
-Plus `wp_raft__appendEmptyEntry`, which since 2026-09-15 lives in
-`inv_raft_phys.v` rather than `inv_misc.v` — it has to mention
-`own_raft_phys`, because `appendEntry` queues a `MsgAppResp` and the previous
-version, owning only `own_raftLog`, was **false**. See
-[decisions.md](decisions.md).
+What is left as an `Axiom`, and why each is outside raft:
+
+- `is_Logger`, `is_Logger_pers`, `wp_Logger__logf` (`inv_logger.v`) — the
+  `Logger` is a client-supplied interface. Covers only the **non-panicking**
+  methods; a path reaching `Panic`/`Panicf` must be shown unreachable.
+- `wp_slices_Sort` (`inv_slices.v`) — Goose does not translate it.
+  Permutation-only postcondition, which is all any caller needs.
+- `own_Storage` (`inv_storage.v`, new 2026-09-16) — `raftLog.storage` is a
+  client-supplied `Storage`; raft ships only `MemoryStorage`, for tests.
+  `is_Storage` is a `Definition` over it, so the method triples are not
+  axioms: they are what a client has to supply.
+- `wp_raft__appendEmptyEntry` (`inv_raft_phys.v`) — **the one core-raft
+  axiom still owed.** It lives there rather than in `inv_misc.v` because it
+  has to mention `own_raft_phys`: `appendEntry` queues a `MsgAppResp`, and
+  the previous version, owning only `own_raftLog`, was **false**. See
+  [decisions.md](decisions.md).
 
 Three deliberate choices there:
 

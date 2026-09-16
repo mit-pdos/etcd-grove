@@ -631,3 +631,119 @@ the top-level dispatch, each stepping through `Step`'s whole body). If it
 grows much further it is worth splitting the branch lemmas into their own
 files, notwithstanding the one-spec-per-function rule — that rule is about
 *specs*, and these are internal lemmas.
+
+## A translated body can be *stuck*: check that it steps before proving about it
+
+Found 2026-09-16 on `wp_campaign_peer_ids`, and then twice more. Goose emits
+array operations against a **loaded array value** where the model's rules
+need the address, and `len` of an array has no rule at all — so the
+translated body cannot step, and no Hoare triple about it is provable. Full
+diagnosis, probes and fix in
+[../bugs/goose-array-indexref-loads-its-operand.md](../bugs/goose-array-indexref-loads-its-operand.md).
+
+The transferable part is the habit, not the defect:
+
+**Reading a callee's translated body is not enough — check that it can
+actually step.** `wp_start; iNamed; wp_auto` to the first stuck point costs
+one scratch run and is the cheapest possible test of whether a `wp_*` lemma
+is dischargeable *at all*. Doing it first converts "this proof is hard" into
+"this proof is impossible", which is a completely different report and a
+completely different next action.
+
+A one-line probe isolates a suspect operator in about six seconds
+(`iStartProof` first, or `wp_auto` fails for the wrong reason and you
+misread it):
+
+    ⊢ WP (IndexRef quorum.JointConfig (#(l : loc), #(W64 0)))%E {{ Φ }}   (* steps *)
+    ⊢ WP (IndexRef quorum.JointConfig (#(a : array.t loc 2), #(W64 0)))%E (* stuck *)
+
+## A method on `*T` where `T` is a named non-struct needs **two** `wp_call`s
+
+`JointConfig'ptr_IDs_unfold` is `λ: "$r", MethodResolve JointConfig "IDs"
+(![JointConfig] "$r")` — a wrapper that loads the receiver and calls the
+*value* method. So `wp_method_call. wp_call.` lands on
+`WP quorum.JointConfig__IDsⁱᵐᵖˡ #recv #()`, and the next `wp_auto` reports
+`Failed to progress` — which looks exactly like a stuck program and is not.
+A second `wp_call` enters the body. (`wp_start` does `wp_method_call; try
+wp_call; try wp_call` for its own goal, which is why this only bites when you
+step a call from inside another lemma.)
+
+## Converting an `Axiom` to an `Admitted` `Lemma` changes the constant's type
+
+Under this tree's `Set Default Proof Using "W"` (`W := sem + package_sem`) a
+`Lemma … Admitted.` discharges **W's variables as well as the ones the
+statement mentions**. An `Axiom` discharges only the latter. For
+`wp_campaign_peer_ids` that added a `raft.Assumptions` binder the axiom did
+not have, silently changing the arity every call site sees. Write
+`Proof using Type.` on the converted lemma and the type comes out
+syntactically identical to the axiom's.
+
+To check this rather than guess, put the `Axiom` and the `Lemma` side by side
+in one scratch section, then after `End proof.` do
+`Set Printing All. Check @as_axiom. Check @as_lemma.` and diff the two.
+
+## `len` of a *named* map type cannot be stepped; `go.len_underlying` is the way out
+
+`new/golang/defn/map.v` declares its `FuncUnfold` instances at the literal
+`go.MapType key_type elem_type`. `new/golang/defn/slice.v` declares the
+corresponding slice ones at any `st ↓u go.SliceType elem_type`. So
+`len(p.Progress)`, whose static type is the *named* `tracker.ProgressMap`,
+leaves `wp_auto` parked on a bare
+
+    #(sem.(go.sem_fn).(functions) go.len [tracker.ProgressMap])
+
+with no error and no hint. The escape hatch is the predeclared-semantics
+axiom `go.len_underlying` (`new/golang/defn/predeclared.v:553`,
+`functions len [t] = functions len [underlying t]`), plus `go.is_underlying`
+to compute the underlying type:
+
+```coq
+rewrite (go.len_underlying tracker.ProgressMap).
+rewrite (go.is_underlying (t := tracker.ProgressMap)
+           (tunder := go.MapType go.uint64 (go.PointerType tracker.Progress))).
+wp_func_call. wp_call.   (* wp_start's wp_func_call already ran, before the rewrite *)
+```
+
+There are siblings for `cap`, `clear`, `copy`, `delete`, `make1/2/3`. Worked
+example: `wp_ProgressMap_len` in
+`new/proof/go_etcd_io/raft/v3_proof/election/inv_tracker.v`.
+
+**`len` of an *array* type has no instance at all** — neither literal nor
+underlying-based; `new/golang/defn/array.v` declares none, and
+`go.len_underlying` cannot help because an array type is already its own
+underlying type. So `var sl [7]uint64; if len(sl) >= n` is simply unsteppable.
+That is one of the two things blocking `ProgressTracker.Visit`.
+
+## `wp_auto` parks on an *anonymous* `GoAlloc`; `wp_alloc x as "H"` gets past it
+
+Go's named-return declaration (`func … (…, r VoteResult)`) and a `var _ T`
+translate to `let: <> := GoAlloc T (GoZeroVal T #()) in …`. `wp_auto` reports
+`Failed to progress.` in front of it — which reads as if the *first real
+statement* were stuck, and sends you looking at the wrong thing.
+`TallyVotes` opens with one. Fix:
+
+```coq
+wp_start as "…". wp_alloc res0 as "Hres0". wp_auto.
+```
+
+(`wp_tracker_NewInflights` in `inv_tracker.v` hits the same thing for a
+`GoAlloc` in `return:` position and uses `wp_apply wp_alloc` instead.)
+
+## A pointer-receiver method's spec has to own the receiver's *fields*
+
+`own_tracker tv votes` is indexed by the tracker *value* and owns what that
+value points at — the vote map, the progress map, the id sets. It owns
+nothing of the struct `trk` itself. So a spec for a `func (p *T) M()` whose
+body reads `p.Field` needs `trk ↦ tv` (or that field's points-to) *as well*,
+or the triple is not derivable — it asserts safety of a load from a location
+it does not own.
+
+`wp_ProgressTracker__Visit` was written without it and is false for exactly
+this reason (found 2026-09-16; `ResetVotes`/`RecordVote`/`TallyVotes` all have
+it). The tell: the spec's own comment argued the method "does not mutate the
+tracker, so it does not need the location". Mutation is not the question —
+**any** read through the receiver is. Grep a pointer-receiver spec for
+`↦ tv` before believing it.
+
+The cheap check is two probes: `wp_start; iNamed "Hown"; wp_auto` with and
+without the field points-to, and see whether `wp_auto` moves.

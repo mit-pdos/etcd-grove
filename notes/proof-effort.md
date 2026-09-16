@@ -226,3 +226,99 @@ from no proof at all and was simply deleted.
 
 **Before assuming anything about a callee, read its translated body.** Six of
 the nineteen election-path axioms cost nothing but a `grep`.
+
+## Round 3 datapoint: `wp_campaign_peer_ids`, 2026-09-16 — a blocker found in 12 minutes
+
+One agent, one axiom, ~10 scratch runs at 6 s each. Outcome: **not provable**,
+because the translated body of `quorum.JointConfig.IDs` is stuck in the model
+(Goose emits `IndexRef` on a *loaded* array value; see
+[gotchas.md](gotchas.md)). Shares:
+
+| activity | share |
+|---|---|
+| Stepping the program to the first stuck point | ~30% |
+| Reading the framework's semantics instances to explain the stuck point | ~40% |
+| Three probe lemmas that turned the explanation into evidence | ~15% |
+| Writing it down | ~15% |
+| The actual protocol argument | 0% |
+
+Three things generalise:
+
+- **The scratch-file `-vok` loop was 6 s here, not the ~56 s the `Step` agent
+  measured.** Cost scales with the `.vos` closure you `Require`, so requiring
+  `inv_misc.v` rather than a `postulates_*.v` under `Step` is a ten-fold
+  difference. Measure it once at the start; it decides whether you batch.
+- **"Read the callee's translated body" needs a second half: check it can
+  step.** The 2026-09-16 win (five `traceX` no-ops) came from reading bodies.
+  The complement is this: a body can be perfectly readable and still have no
+  transition in the model. `wp_auto` to the first stuck point is the same
+  six-second run and answers "is this axiom dischargeable at all?" — which is
+  worth knowing *before* anyone schedules the work.
+- **A negative result needs probes, not prose.** Asserting "the model has no
+  rule for this" from reading `defn/array.v` would have been a guess of
+  exactly the kind this file warns about. Three two-line `WP` goals —
+  `IndexRef` on a loc (steps), `IndexRef` on an array value (stuck), `Index`
+  on an array value (steps) — turn it into something a reader can re-run, and
+  they also name the fix.
+
+## Round 3 datapoint: `inv_tracker.v`'s `TallyVotes` and `Visit`, 2026-09-16
+
+One agent, two `Admitted` lemmas, ~12 Rocq iterations at 10–80 s each
+(`rocq compile -vok` on a scratch module — the loop `gotchas.md` recommends;
+it held up). Outcome: **neither lemma was provable, and finding out why was
+the work.** Both are blocked below the proof, and one of the two statements
+was false.
+
+| activity | share |
+|---|---|
+| Probing where the generated code stops stepping | ~45% |
+| Reading `new/code/` and `new/golang/defn/` for missing instances | ~25% |
+| The one piece of real proof (the tally loop) | ~20% |
+| Pure Rocq (the quorum bridge lemmas) | ~10% |
+
+### The lesson: probe the *callee chain* before writing a line of proof
+
+Every blocker was findable in one `wp_auto` + `Show.` per callee, before any
+invariant was designed. Three of the four were missing or mis-shaped steps in
+the framework, not raft facts:
+
+- `len` of a named map type (`ProgressMap`) — instance exists only at the
+  literal `go.MapType`; workaround via `go.len_underlying`.
+- `len` of an array type (`[7]uint64`) — **no instance anywhere**.
+- `IndexRef` / `Slice` applied to a loaded array *value* where the model only
+  steps on an array *location* — the defect `inv_misc.v` already wrote up for
+  `JointConfig.IDs`, which also blocks `JointConfig.VoteResult` (so
+  `TallyVotes`) and `Visit`'s `ids = sl[:n]`.
+
+A five-minute "step each callee on its own and see where it parks" pass at
+the start would have replaced a couple of hours. **Make it the first step for
+any function whose body calls into `quorum`, or touches an array, or takes
+`len` of anything whose type is a `go.Named`.**
+
+Corollary for the trust base: the honest count of what is blocked on
+*translation* rather than on proof effort is now at least three lemmas
+(`wp_campaign_peer_ids`, `wp_ProgressTracker__TallyVotes`,
+`wp_ProgressTracker__Visit`) plus the pre-existing
+`wp_JointConfig__CommittedIndex` axiom. They share two root causes. Fixing
+the array operand form in the Go fork's Goose and adding
+`FuncUnfold go.len [go.ArrayType n t]` to `new/golang/defn/array.v` unblocks
+all four. That is a much better use of a session than attacking them one at a
+time.
+
+### And: the falsity was in the same place as last time
+
+`wp_ProgressTracker__Visit`'s precondition owned no part of the tracker
+*struct*, so it could not read `p.Progress` through the pointer receiver. The
+comment above it asserted the opposite in prose. That is the same shape as
+the `r.step` entry in [STATUS.md](STATUS.md)'s table — **an invariant
+promised in a comment and absent from the conjuncts** — and it is now the
+second one found that way. The table's two tells (an evar in a re-seal; an
+`Admitted` under a `Qed`) want a third: *a comment that argues for the
+absence of a conjunct*.
+
+Also latent, and not fixed by unblocking anything: `TallyVotes`'s
+`res = VoteWon → is_quorum cfg (granted votes)` is false at `cfg = ∅`,
+because `MajorityConfig.VoteResult` returns `VoteWon` outright for an empty
+config while `is_quorum ∅ q` is `0 < 0`. `own_tracker` wants a
+`⌜ cfg ≠ ∅ ⌝` conjunct; no proof constructs `own_tracker` from scratch, so
+adding it is free.

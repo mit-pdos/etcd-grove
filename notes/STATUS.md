@@ -70,21 +70,37 @@ context for the raft work, not the current focus.
 ## In flight
 
 **Leader-election refinement** — `new/proof/go_etcd_io/raft/v3_proof/`,
-branch `worktree-raft-election-refinement`. Compiles and is reached from
+branch `raft-election-poll-hup`. Compiles and is reached from
 `new/should_build.v`.
 
-Thirteen Go functions are specified, one file each. **Proved** (`Qed`, each
-confirmed with `make <file>.vok` exiting 0 on that revision):
+Thirteen Go functions are specified, one file each. **Every one is proved**
+(`Qed`, each confirmed with a `-vok` run exiting 0 on that revision):
 `voteRespMsgType`, `send`, `becomeFollower`, `becomeCandidate`,
 `becomeLeader`, `raft_election_safety`, and — all on 2026-09-16 — **`poll`**,
 **`hup`**, **`reset`**, **`stepCandidate`**, **`campaign`**,
 **`stepFollower`** and **`stepLeader`** (the last two on `MsgVoteResp`, where
-both are no-ops), plus `Step`'s top-level dispatch, its `MsgHup` branch and
-its **`MsgVote`** branch.
+both are no-ops), plus **all of `Step`**: the top-level dispatch and its
+`MsgHup`, `MsgVote` and `MsgVoteResp` branches.
 
-So **every Go function on the leader-election path is proved except `Step`'s
-`MsgVoteResp` branch**, which is the one remaining `Admitted` in a
-`proof_*.v` file.
+**There is no `Admitted` left in any `proof_*.v` file.** What remains is in
+the `inv_*.v` files — the predicates and helper lemmas the `proof_*.v` files
+stand on — and it is listed under "Trust base" below.
+
+`Step`'s `MsgVoteResp` branch, closed last, is the one that made
+`own_raft_phys`'s `Hstepfn` conjunct necessary: all three `stepX` are
+reachable from its `r.step(m)`, so without the field pinned to the role there
+is nothing to apply. Its four cases:
+
+| case | what runs | model step |
+|---|---|---|
+| `m.Term > r.Term` | a `VoteResp` is not `from_leader`, so `becomeFollower(m.Term, None)` rather than adopting a leader; then `stepFollower` | `step_higher_term` |
+| `m.Term < r.Term` | with `checkQuorum` and `preVote` off and the type neither `MsgPreVote` nor `MsgStorageAppendResp`, only the trailing log runs | `step_refl`, `recv = []` |
+| `m.Term = r.Term`, Follower/Leader | `stepFollower` / `stepLeader` only read | `step_refl` |
+| `m.Term = r.Term`, Candidate | `stepCandidate` records the vote, maybe wins or loses | `step_record_then_win` / `_lose` / `step_record_vote` |
+
+**Cost note:** `proof_raft__Step.v` takes **35 minutes and 10.6 GB** to
+`-vok`. Do not start a second build beside it; overlapping builds are what
+killed several sessions.
 
 Two things that mattered structurally:
 
@@ -176,20 +192,56 @@ same treatment — see
 [raft-election-refinement.md](raft-election-refinement.md) for what each one
 costs.
 
-As of 2026-09-16 the **election path** carries **13 axioms**, of which only
-**8 are legitimate** under the scope rule — `is_Logger`, `is_Logger_pers`,
-`wp_Logger__logf` (the client-supplied logging interface) and
-`wp_slices_Sort` (Goose does not translate it). The other five are core raft
-and still owed: `own_raft_misc`, `wp_raft__promotable`,
-`wp_raft__hasUnappliedConfChanges`, `wp_campaign_peer_ids`, and `own_raftLog`
-with its three remaining methods plus `wp_raft__appendEmptyEntry`.
+As of the end of 2026-09-16 the **election path** carries **6 axioms**, of
+which **5 are legitimate** under the scope rule:
 
-Six axioms went away on 2026-09-16 for almost no work, which says something
-about how this was being audited: the five `traceX` functions are literal
-no-ops in the translated code (`λ: <> <>, exception_do (do: #())`), so each
-is a two-line proof, and `wp_raftLog__hasNextOrInProgressSnapshot` was
-reachable from no proof at all and was deleted. **Read a callee's translated
-body before assuming anything about it.**
+| axiom | file | why it is outside the raft protocol |
+|---|---|---|
+| `is_Logger`, `is_Logger_pers`, `wp_Logger__logf` | `inv_logger.v` | the `Logger` is a client-supplied interface. Covers only the **non-panicking** methods — a path reaching `Panic`/`Panicf` has to be shown unreachable |
+| `wp_slices_Sort` | `inv_slices.v` | Goose does not translate it. Permutation-only postcondition |
+| `own_Storage` | `inv_storage.v` | `raftLog.storage` is a client-supplied `Storage`; raft itself ships only `MemoryStorage`, for tests |
+
+The sixth, **`wp_raft__appendEmptyEntry`** (`inv_raft_phys.v`), is core raft
+and still owed.
+
+That is down from 13 (5 of them owed) at the start of the day. What moved:
+
+- **`own_raftLog` is a real definition** (`inv_raftlog.v`), and its four
+  methods — `lastIndex`, `lastEntryID`, `isUpToDate`,
+  `hasNextOrInProgressSnapshot` — are `Qed`, along with the `unstable`
+  helpers beneath them. Four axioms became zero. The `Panicf` paths in
+  `lastIndex` and `term` are discharged rather than assumed: that is what
+  `is_Storage` is for. `own_raftLog` exposes the entry list, so it can also
+  carry "no `EntryConfChange` in the log", which is what
+  `hasUnappliedConfChanges` needs.
+- **`own_raft_misc` is a real definition** and `inv_misc.v` has **no axioms
+  at all**.
+- The five `traceX` functions are literal no-ops in the translated code
+  (`λ: <> <>, exception_do (do: #())`), so each is a two-line proof.
+
+**Read a callee's translated body before assuming anything about it.** Six
+axioms went away on 2026-09-16 for almost no work, which says more about how
+this was being audited than about the work.
+
+### What is `Admitted`, and why
+
+Seven lemmas, all in `inv_*.v`. **Four of them are blocked on tooling, not on
+proof effort**, and are written up in
+[../bugs/goose-array-indexref-loads-its-operand.md](../bugs/goose-array-indexref-loads-its-operand.md):
+
+| lemma | file | blocker |
+|---|---|---|
+| `wp_campaign_peer_ids` | `inv_misc.v` | `quorum.JointConfig.IDs` indexes an array; Goose emits `IndexRef` on the loaded *value* |
+| `wp_ProgressTracker__TallyVotes` | `inv_tracker.v` | same, via `JointConfig.VoteResult`. The whole tally loop is proved and banked |
+| `wp_ProgressTracker__Visit` | `inv_tracker.v` | `len` of an array has no rule at all, and `sl[:n]` is `Slice` on the loaded value |
+| `wp_raft__resetRandomizedElectionTimeout` | `inv_misc.v` | reaches the global RNG through `crypto/rand` and `math/big`. The RNG is outside core raft and may be assumed, but the assumption has not been written |
+| `wp_raft__promotable` | `inv_misc.v` | *unblocked* — `own_raftLog` is now real. Next thing to pick up |
+| `wp_raft__hasUnappliedConfChanges` | `inv_misc.v` | *unblocked* — likewise |
+| `wp_raft__bcastAppend` | `inv_raft_phys.v` | log replication, not election; needs `Progress.State` and the log opened up |
+
+Each `Admitted` carries a machine-checked prefix and a comment naming the
+blocker, in the style `proof_raft__Step.v` used. Splice and continue; do not
+start over.
 
 Count them with a grep; the axiom count is the number to watch, and admits
 rising while axioms fall is the conversion working, not a regression:
@@ -211,55 +263,39 @@ which nothing in this tree has.
 
 Unclaimed; pick one and say so in the journal.
 
-1. Finish the election refinement: `reset` (three proved lemmas rest on it),
-   the `MsgVote` branch in `proof_raft__Step.v`, `poll` / `campaign` / `hup`,
-   then `stepCandidate` and the `MsgVoteResp` branch. Each is now one
-   `proof_*.v` file that re-checks in about a minute with `make <it>.vok`.
-   See [raft-election-refinement.md](raft-election-refinement.md).
-2. Construct `own_raft_ghost` / `is_message` rather than axiomatizing them,
+1. **`wp_raft__promotable` and `wp_raft__hasUnappliedConfChanges`**
+   (`inv_misc.v`). Both were blocked on `own_raftLog` and both are now
+   unblocked: the predicate is real, it exposes the entry list, and
+   `wp_raftLog__hasNextOrInProgressSnapshot` is back and `Qed`. This is the
+   cheapest remaining win on the election path.
+2. **Fix array indexing in Goose** (and add a `go.len` rule for arrays to
+   `new/golang/defn/array.v`). One fix unblocks four lemmas —
+   `wp_campaign_peer_ids`, `TallyVotes`, `Visit`, and the pre-existing
+   `wp_JointConfig__CommittedIndex` axiom in `readonly.v`. See
+   [../bugs/goose-array-indexref-loads-its-operand.md](../bugs/goose-array-indexref-loads-its-operand.md).
+   Worth more than another attempt at any one of them.
+3. **`wp_raft__appendEmptyEntry`** — the last core-raft axiom on the election
+   path — and then `wp_raft__bcastAppend`, which is really log replication.
+4. Construct `own_raft_ghost` / `is_message` rather than axiomatizing them,
    discharging `own_raft_ghost_step`, `own_raft_ghost_outbox` and
    `is_leader_unique`. Until that is done the election-safety corollary rests
    on an axiom. This is 12 of the 44 axioms, the `Section ghost` block in
    `election_protocol.v`.
-3. Decide what the top-level Raft correctness statement should be (beyond
+5. Decide what the top-level Raft correctness statement should be (beyond
    election safety), and write it down as a decision record.
-4. Discharge the `Section axioms` in `v3_proof/protocol.v` against the actual
+6. Discharge the `Section axioms` in `v3_proof/protocol.v` against the actual
    translated code in `new/code/go_etcd_io/raft/v3/`, or record why each axiom
    stays an axiom.
-5. Extend `v3.v` past `Propose` to the rest of the `node` interface.
+7. Extend `v3.v` past `Propose` to the rest of the `node` interface.
 
-## Six false statements in two days — read this before adding a claim
+## Before you add a claim
 
-The single most useful signal this project has produced. Each of these was
-asserted, compiled, and lived in the tree until a proof needed the fact and
-could not get it:
-
-| what | why it was false |
-|---|---|
-| `wp_raft__appendEmptyEntry` | owned only the log; `appendEntry` also queues a `MsgAppResp` |
-| `step_win` | claimed one `App` per peer; `maybeSendAppend` sends one only when the log and `Progress` allow |
-| `spec_raft__campaign.v` | no term-no-wrap premise; `send` `Panicf`s on `Term = 0` after `becomeCandidate` increments |
-| `inv_raft_phys.v`'s `r.step` comment | promised an invariant that appeared in no conjunct |
-| `own_progress` | no `IsLearner = false`, so `promotable`'s postcondition was not derivable |
-| `TallyVotes`'s `VoteLost` conjunct | Go's `VoteLost` is "cannot still win", not "a majority rejected" |
-
-**Five of the six were claims about what raft's code does that nobody had
-checked against the generated body** — the cheapest check available. The
-sixth (`r.step`) was prose promising an invariant.
-
-Two tells worth grepping for:
-
-- **An evar in a re-seal.** `iExists (rv <| step' := _ |>)` means a field
-  nothing constrains. Both `r.step` and `IsLearner` hid there.
-- **An `Admitted` lemma under a `Qed`.** `stepCandidate` was `Qed` while
-  consuming a false `TallyVotes`; the `Qed` inherited the falsity. An
-  `Admitted` is not a placeholder for work, it is an unchecked claim.
-  Discharge leaves before trusting roots.
-
-And one habit: **for every `send` on a path, ask where `Term ≠ 0` and
-`m.To ≠ id` come from.** `send` `Panicf`s on both, and `wp_Logger__logf`
-deliberately excludes the panicking methods, so such a path must be shown
-unreachable rather than assumed away. Two of the six were caught that way.
+Eight statements in this development have been asserted, compiled, and lived
+in the tree until a proof needed the fact and could not get it — including
+two that had a `Qed` resting on them. The table, the three tells to grep
+for, and the two-probe check for a pointer-receiver spec are in
+[false-statements.md](false-statements.md). **Read it before writing a spec
+or an `Admitted`.**
 
 ## Known broken
 
@@ -288,13 +324,19 @@ unreachable rather than assumed away. Two of the six were caught that way.
   value" — but this one has to be *stated*, not admitted, because it changes
   a triple that other proofs consume.
 
-  This is the **third** false statement found in two days, after
+  It was the third of the eight false statements tabled above, after
   `wp_raft__appendEmptyEntry` (2026-09-15) and `step_win` (2026-09-16). All
   three were claims about what raft's code does to its outgoing messages. The
   pattern is worth naming: a plausible-looking bookkeeping claim about
   `send`/`msgs`/`msgsAfterAppend` is the thing this development keeps getting
   wrong, so check those against `raft__sendⁱᵐᵖˡ` specifically.
 
+- **Four `Admitted`s are blocked on a Goose defect, not on proof effort.**
+  Array indexing in the translated code is stuck, and `len` of an array has
+  no rule. Diagnosis, evidence and fix in
+  [../bugs/goose-array-indexref-loads-its-operand.md](../bugs/goose-array-indexref-loads-its-operand.md).
+  `bugs/` is new as of 2026-09-16 and is where tooling defects go; an
+  unfinished proof is not one.
 
 - **`ruff check` fails: 64 errors.** Pre-existing on this commit, in
   `etc/*.py`, `new/etc/update-goose-new.py`, `new/experiments/gencongruence.py`

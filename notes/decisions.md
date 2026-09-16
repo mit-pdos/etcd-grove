@@ -431,3 +431,50 @@ after `wp_raft__appendEmptyEntry`, `step_win`, `spec_raft__campaign.v`, the
 `r.step` comment in `inv_raft_phys.v`, and `own_progress`'s missing
 `IsLearner`. Five of the six were claims about what raft's code does that
 nobody had checked against the generated body.
+
+## 2026-09-16 — a false `Admitted` gets repaired, even when it stays `Admitted`
+
+`wp_ProgressTracker__Visit` turned out to be false: its precondition owned no
+part of the tracker struct, while `Visit` has a pointer receiver and reads
+`p.Progress` through it. It is also *unprovable* even once repaired, because
+of a Goose defect (see `bugs/`). So there were three options:
+
+1. leave it, note the falsity, and move on — it cannot be proved anyway;
+2. repair the statement and fix the caller, knowing it stays `Admitted`;
+3. delete it and inline the assumption at the call site.
+
+**(2).** `reset` is `Qed` on top of it, and `becomeFollower`,
+`becomeCandidate` and `becomeLeader` rest on `reset`. A `Qed` above a false
+`Admitted` is unsound; a `Qed` above a *true* `Admitted` is sound modulo a
+stated debt. Those are completely different situations, and the distinction
+is worth the cost of the repair even when the repair does not make anything
+provable today.
+
+The repair has a shape worth knowing. `own_tracker` is indexed by the tracker
+*value*, so that it is disjoint from `own_raft_phys`'s `r ↦ rv` by
+construction — that decision stands and is right. The consequence is that
+every **pointer-receiver** method on the tracker needs `trk ↦ tv` as well.
+`Visit` additionally has to *lend* it to the closure rather than keep it:
+`Visit` reads `p.Progress` on every iteration while the closure reads
+`r.trk.MaxInflight`, different sub-fields of the same value at different
+times. So `visit_closure` gained `trk` and `tv` parameters, and
+`proof_raft__reset.v`'s caller invariant `I` now carries the
+`raft_split_trk` continuation wand in place of `r ↦ rv`.
+
+(3) was rejected because it hides the obligation where no audit will find it.
+
+## 2026-09-16 — `bugs/` for tooling defects
+
+A new top-level directory. The bar for a file in it: **a proof cannot be
+completed, and no amount of proof-writing skill would change that.** One file
+per defect, with the evidence, a probe that was actually run, the fix, and
+what is blocked.
+
+The alternative was another `notes/` file. Rejected: `notes/` is oriented
+around *this* proof's state, and a reader scanning it for "what is left to
+prove" should not have to sort our debts from Goose's. The split also makes
+the right thing easy — when four `Admitted`s share one root cause, the
+cause gets one file and the four get one-line pointers, instead of the
+diagnosis being copied four times and going stale in three of them.
+
+Deleted when fixed; git remembers.

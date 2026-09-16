@@ -1,4 +1,4 @@
-# Goose: array indexing emits `IndexRef` applied to a *loaded array value*
+# Goose: array operations are emitted against a *loaded array value*
 
 **Component:** Goose (the Go → Rocq translator), array indexing
 **Status:** open, 2026-09-16
@@ -59,6 +59,40 @@ Probes (each `rocq compile -vok`, clean):
 | `WP IndexRef quorum.JointConfig (#(a : array.t loc 2), #(W64 0))` | **stuck** — `wp_auto`: `Failed to progress` |
 | `WP Index quorum.JointConfig (#(a : array.t loc 2), #(W64 0))` | steps → `match array.arr a !! 0 with …` |
 
+## The same defect for `Slice`, and a missing rule for `len`
+
+`ProgressTracker.Visit` has `var sl [7]uint64; … ids = sl[:n]`, and
+`new/code/go_etcd_io/raft/v3/tracker.v:816-817` emits
+
+```coq
+let: "$s" := ![go.ArrayType 7 go.uint64] "sl" in
+Slice (go.ArrayType 7 go.uint64) ("$s", #(W64 0), ![go.int] "n")
+```
+
+— again the loaded value, while `slice_array_step`
+(`new/golang/defn/array.v:80`) steps only on `(#p, #low, #high)` with
+`p : loc`. It is also *semantically* wrong independently of the model: in Go
+`sl[:n]` aliases `sl`, and a slice of a copy does not.
+
+Two lines above it, `len(sl)` on an array (`tracker.v:815`):
+
+```coq
+(FuncResolve go.len [go.ArrayType 7 go.uint64] #()) ≥⟨go.int⟩ ![go.int] "n"
+```
+
+This one is a **gap in `new/golang`, not a Goose bug**: there is no
+`FuncUnfold go.len [go.ArrayType n t]` instance anywhere under
+`new/golang/` (`grep -rn "go.len" new/golang/defn/array.v
+new/golang/theory/array.v` finds nothing), and `go.len_underlying` cannot
+help because an array type is its own underlying type. `wp_auto` parks on a
+bare `#(functions go.len [go.ArrayType 7 go.uint64])`.
+
+Related and cheaper to fix: `new/golang/defn/map.v` declares its `FuncUnfold`s
+at the literal `go.MapType`, so `len` of a *named* map type needs
+`go.len_underlying` + `go.is_underlying` by hand — unlike `slice.v:133`,
+which takes any `st ↓u go.SliceType elem_type`. `wp_ProgressMap_len` in
+`election/inv_tracker.v` is that workaround.
+
 ## Scope
 
 Every array index in the translated etcd-raft code, which is 19 sites:
@@ -76,17 +110,25 @@ No slice index is affected (80 sites, all fine).
 
 ## Fix
 
-In Goose, do not deref the operand of an array index: emit
-`IndexRef T ("c", i)` when the array is addressable. For the two occurrences
-in `IDs` the value form `Index T (![T] "c", i)` would also work, since they
-are plain reads — but `String`, `CommittedIndex` and `VoteResult` use the
-result as a **pointer receiver**
-(`MethodResolve (go.PointerType MajorityConfig) …`), so those genuinely need
-the address and only the `IndexRef T ("c", i)` fix covers them.
+Two parts.
+
+**In Goose:** do not deref the operand of an array operation. Emit
+`IndexRef T ("c", i)` and `Slice T ("sl", lo, hi)` when the array is
+addressable. For the two index occurrences in `IDs` the value form
+`Index T (![T] "c", i)` would also work, since they are plain reads — but
+`String`, `CommittedIndex` and `VoteResult` use the result as a **pointer
+receiver** (`MethodResolve (go.PointerType MajorityConfig) …`), so those
+genuinely need the address and only the `IndexRef T ("c", i)` fix covers
+them. `Slice` has no value form at all, and needs the address anyway to get
+Go's aliasing right.
 
 Goose is not checked out in this repo; see
 [../notes/goose-workflow.md](../notes/goose-workflow.md) for the
 regeneration path.
+
+**In `new/golang/defn/array.v`:** add a `FuncUnfold go.len [go.ArrayType n t]`
+instance returning `#(W64 n)`. Independent of the Goose fix, and needed as
+well as it.
 
 ## Blocked until it lands
 
@@ -100,8 +142,23 @@ regeneration path.
 - **`wp_JointConfig__CommittedIndex`**
   (`new/proof/go_etcd_io/raft/v3_proof/readonly.v:718`) — an `Axiom` for this
   same reason.
-- `JointConfig`'s `VoteResult`, `String` and `Describe`, if they are ever
-  needed.
+- **`wp_ProgressTracker__TallyVotes`**
+  (`new/proof/go_etcd_io/raft/v3_proof/election/inv_tracker.v`) — the whole
+  tally loop is proved and banked; it parks on the function's last statement,
+  `p.Config.Voters.VoteResult(p.Votes)`, at `quorum.v:154`. Two further
+  obstacles sit behind the array fix, both recorded in that file: the joint
+  config's second component is `map.nil` and `MajorityConfig.VoteResult`
+  opens with `len(c) == 0`, which unfolds to a read of the null location with
+  no nil-map instance for `go.len` (the ranging case has
+  `wp_map_nil_for_range`; `len` has no counterpart) — *not yet probed*; and
+  the lemma's `VoteWon` conjunct is false at `cfg = ∅`, which is a statement
+  bug rather than a tooling one (see notes/STATUS.md).
+- **`wp_ProgressTracker__Visit`** (same file) — blocked on *both* the `Slice`
+  defect and the missing array `len`, on the `len(sl) >= n` fast path. The
+  `else` branch (`make([]uint64, n)`, taken when `size cfg > 7`) is fine;
+  only the fast path is stuck. Its statement was separately found false and
+  has been repaired — again see notes/STATUS.md.
+- `JointConfig`'s `String` and `Describe`, if they are ever needed.
 
 ## Related
 

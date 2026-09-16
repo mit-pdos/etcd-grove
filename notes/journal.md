@@ -1050,3 +1050,86 @@ election needs.
 Self-contained and ready: `Step`'s `MsgVoteResp` (placeholder carries the
 full traced control flow and all three original blockers are resolved),
 `TallyVotes`, `Visit`, `wp_campaign_peer_ids`.
+
+## 2026-09-16 (later) — the election path closes; three blockers are not ours
+
+### The proof
+
+**Every `proof_*.v` file on the election path is `Qed`.** The last hole,
+`Step`'s `MsgVoteResp` branch, closed after a long haul through a scratch
+module. `proof_raft__Step.v` verifies at `-vok` RC=0 in **35 min / 10.6 GB** —
+budget for that, and do not run anything beside it.
+
+The branch's shape is in [STATUS.md](STATUS.md). Two things worth repeating:
+
+- It is the branch that justifies `own_raft_phys`'s `Hstepfn` conjunct. All
+  three `stepX` are reachable from its `r.step(m)`, so without the field
+  pinned to the role there is nothing to apply. Adding that conjunct on
+  2026-09-16 was not tidiness.
+- `spec_stepCandidate_MsgVoteResp` never claimed `err = interface.nil`, and
+  `Step` needs it — the code propagates a non-nil error out of `r.step(m)`
+  unchanged, while `Step`'s own postcondition promises `nil`. Added; the
+  proof needed **no** change, because `iFrame "Hphys"` discharges the trivial
+  pure conjunct on its own. My first attempt added `split; last done.` for
+  it, which then attacked the *existential* (`ex` has one constructor, so
+  `split` "works") and left a goal open three lines later. Revert-and-retry
+  was the right move; the diagnosis was not obvious from the error.
+
+`own_raftLog` is **real** now, with `is_Storage` (`inv_storage.v`) as the
+interface contract for the client-supplied `Storage`. Four axioms became
+zero, and the `Panicf` paths in `lastIndex`/`term` are *discharged* rather
+than assumed — which is the whole point of having the contract. `inv_misc.v`
+has no axioms at all. Election-path axioms: 13 → 6, of which 5 are
+legitimately outside raft and one (`wp_raft__appendEmptyEntry`) is owed.
+
+### Three blockers that no amount of proof-writing would clear
+
+New directory: **`bugs/`**, for defects in the tooling we depend on. The bar
+is "a proof cannot be completed, and skill would not change that". Unfinished
+proofs stay in STATUS.md; etcd's own behaviour stays in
+[raft-implementation-facts.md](raft-implementation-facts.md).
+
+The first entry covers all three, because they are one family: Goose emits
+array operations against a **loaded array value** where the model's rules
+need the address. `IndexRef` (19 sites), `Slice` (`Visit`'s `sl[:n]`), and
+separately `len` of an array has no rule anywhere in `new/golang/`. One fix
+unblocks `wp_campaign_peer_ids`, `TallyVotes`, `Visit` and the pre-existing
+`wp_JointConfig__CommittedIndex` axiom in `readonly.v`. That is worth more
+than another attempt at any one of them, and it is now the second item in
+"Next steps".
+
+Worth noting how this was found: three one-lemma probes, each a clean `-vok`,
+establishing that `IndexRef` steps on a `loc` and not on an `array.t`. Under
+an hour, and it converted "this proof is hard" into "this proof is
+impossible", which is a completely different report.
+
+### Two more false statements
+
+`wp_ProgressTracker__Visit` owned no part of the tracker *struct*, while
+`Visit` has a pointer receiver and reads `p.Progress` through it. `reset` was
+`Qed` on top of it, and the three `becomeX` rest on `reset`. Repaired —
+`trk ↦ tv` in the pre- and postcondition and lent to the closure — even
+though the lemma stays `Admitted` for the tooling reason above. **That is the
+policy: a true assumption is a debt, a false one invalidates everything above
+it.** The same goes for `TallyVotes`'s `VoteWon` conjunct, false at
+`cfg = ∅`; fixed by a `cfg ≠ ∅` conjunct in `own_tracker`, which was free
+because nothing in the development constructs an `own_tracker` from scratch.
+
+Both are in STATUS.md's table, which is now eight entries. The new tell:
+**a spec for a pointer-receiver method must own the receiver's fields**, and
+two probes settle it in one run.
+
+### Process
+
+Four subagents in parallel, one per independent lemma, was the right call —
+two came back with "not provable, here is why, here is the probe", which is a
+better outcome than a proof. Two died to a session rate limit mid-flight;
+both had written their files but not verified them, so the parent had to
+re-verify everything from scratch. **Have an agent verify before it writes,
+not after.** Memory discipline held: `-j1`, one build at a time, checking
+`ps --sort=-rss` before starting.
+
+### Where to pick up
+
+`wp_raft__promotable` and `wp_raft__hasUnappliedConfChanges` — both were
+blocked on `own_raftLog` and both are now unblocked. Cheapest wins left.

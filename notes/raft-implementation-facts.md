@@ -122,6 +122,49 @@ nil second half always reports `VoteWon`, so `JointConfig.VoteResult`'s
 `r1 == r2` test or its `VoteLost` disjunct decides the outcome from `r1`
 alone.
 
+That convention has teeth. A spec saying `VoteResult = VoteWon → is_quorum
+cfg (granted votes)` is **false** at `cfg = ∅`, because `is_quorum ∅ q`
+unfolds to `0 < 2 * 0`. Discovered 2026-09-16, in exactly that form, in
+`wp_ProgressTracker__TallyVotes`. `own_tracker` now carries `cfg ≠ ∅`.
+
+## `ProgressTracker.Visit` sorts too, and it has a fast path
+
+Same story as `campaign` below: `Visit` collects the progress-map keys and
+`slices.Sort`s them, so the closure sees peers in ascending id order rather
+than in Go's randomised map order. That is deliberate — it is what makes
+`reset` deterministic.
+
+The collection has a `var sl [7]uint64` stack buffer with
+`if len(sl) >= n { ids = sl[:n] } else { ids = make([]uint64, n) }`. Seven is
+not a magic property of raft; it is "big enough for most clusters, small
+enough to stack-allocate". Both branches matter to a proof: the fast path is
+taken whenever `size cfg <= 7`, which is every realistic cluster.
+
+## `raftLog.lastIndex` and `raftLog.term` panic on a storage error
+
+Neither returns the error. `lastIndex` calls `l.storage.LastIndex()` and
+`panic(err)`s; `term` calls `l.storage.Term(i)`, passes `ErrCompacted` and
+`ErrUnavailable` back to its caller, and `panic`s on anything else.
+`lastEntryID` adds a third: it `Logger.Panicf`s if `term` fails at the index
+`lastIndex` just returned.
+
+So raft's *own* reading of the `Storage` contract is that these do not fail,
+which is what makes it honest to state `is_Storage` with `#interface.nil`
+error returns rather than an error-handling disjunction. A proof cannot dodge
+it either way: `go.panic` does not return, and `wp_Logger__logf` deliberately
+excludes `Panicf`, so each path has to be shown unreachable rather than
+assumed away.
+
+## A stale message is dropped silently, under our scope
+
+`Step`'s `case m.Term < r.Term` looks busy — it can send a `MsgAppResp`, or
+a rejecting `MsgPreVoteResp`, or handle a `MsgStorageAppendResp`. With
+`checkQuorum` and `preVote` both off, **every one of those arms is guarded
+off** for an election message: the first needs `checkQuorum || preVote`, the
+second needs `MsgPreVote`, the third needs `MsgStorageAppendResp`. What runs
+is the trailing `Infof` and `return nil`. So under our scope a stale
+`MsgVote` or `MsgVoteResp` is simply logged and dropped.
+
 ## `hasUnappliedConfChanges` really does scan
 
     if r.raftLog.applied >= r.raftLog.committed { return false }

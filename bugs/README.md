@@ -18,5 +18,8 @@ If a defect is fixed, delete the file — git remembers.
 ## Open
 
 - [goose-array-indexref-loads-its-operand.md](goose-array-indexref-loads-its-operand.md)
-  — every array index in the translated raft code is stuck. Blocks
-  `quorum.JointConfig.IDs`, and with it `campaign`'s peer enumeration.
+  — every array index and array slice in the translated raft code is stuck,
+  and `len` of an array has no rule at all. Blocks
+  `quorum.JointConfig.IDs` and `.VoteResult`, and
+  `tracker.ProgressTracker.Visit` — so `campaign`'s peer enumeration, the
+  vote tally, and the `Progress` walk.

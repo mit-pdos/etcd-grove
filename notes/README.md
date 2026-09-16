@@ -11,6 +11,9 @@ If a fact only matters inside one conversation, it does not belong here.
 
 - **[STATUS.md](STATUS.md)** — where the proof is right now, what is in flight,
   what is next, what is known broken. **Start here.**
+- **[false-statements.md](false-statements.md)** — the claims this
+  development has made that turned out to be false, why each one was, and
+  the tells to grep for. **Read before writing a spec or an `Admitted`.**
 - **[raft-implementation-facts.md](raft-implementation-facts.md)** — what
   etcd raft *actually does*, where the proof had assumed otherwise. Read
   before assuming anything about a raft function.
