@@ -353,3 +353,28 @@ This is the idiom for turning `wp_raft__promotable`'s
 `campaign` and `becomeLeader` require, so anything on the
 `hup`/`campaign`/`stepCandidate` path needs it. (Found proving `hup`,
 2026-09-16.)
+
+## A `_POSTULATES` list can be wrong in both directions, and only one direction shows up
+
+`postulates_stepCandidate_MsgVoteResp.v` included `SEND_VOTE`, which
+`stepCandidate` never calls (its sends are inside `becomeLeader` /
+`bcastAppend`, which carry their own specs), and omitted `BECOMEFOLLOWER`,
+which the `quorum.VoteLost` arm needs for `r.becomeFollower(r.Term, None)`.
+The missing one blocks a proof; the spurious one is silent. Corrected
+2026-09-16.
+
+To see what a functor actually has, ask rather than read the file:
+
+```coq
+Print Module Type STEPCANDIDATE_POSTULATES.
+```
+
+Adding `BECOMEFOLLOWER` there does **not** trip the "label already declared"
+trap, because `postulates_raft__Step.v` includes `STEPCANDIDATE` (the spec
+`Module Type`, one `Parameter`) rather than `STEPCANDIDATE_POSTULATES`.
+
+## With several agents in one checkout, rocq-warm's stdout interleaves
+
+Different files check in parallel (that is the point of the fork's
+slot-per-file concurrency), and their output lands on one stream. Grep for
+your own filename's `OK`/`FAILED` line; do not trust the tail of the output.

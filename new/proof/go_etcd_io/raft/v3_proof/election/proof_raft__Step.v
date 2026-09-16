@@ -182,10 +182,11 @@ Implicit Type s : nstate.t.
         rewrite /become_follower /= decide_False //. iFrame "∗#%". }
       (* TODO: the remaining steps are [send] of the granted vote and the
          [r.Vote := m.From] update; see notes/raft-election-refinement.md *)
+      idtac "=====SHOW1".
       Show.
       admit.
-    + Show. admit.
-    - Show. admit.
+    + idtac "=====SHOW2". Show. admit.
+    - idtac "=====SHOW3". Show. admit.
   Admitted.
 
   (** [MsgVoteResp]: dispatched to [stepCandidate]. *)
