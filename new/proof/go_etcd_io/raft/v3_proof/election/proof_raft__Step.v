@@ -134,7 +134,34 @@ Implicit Type s : nstate.t.
     apply (step_reject_vote cfg id_ (abs_msg mtype.Vote m_) s_);
       [done|exact to_eq].
 
-  (** [MsgVote]: step down if the term is higher, then grant or decline. *)
+  (** [MsgVote]: step down if the term is higher, then grant or decline.
+
+      The thing to know before editing this proof is that **[canVote]'s
+      Go-level shape decides how many [bool_decide]s each arm owes**.  The Go
+      expression is
+
+          (Vote == m.From) || (Vote == None && lead == None)
+                           || (m.Type == MsgPreVote && m.Term > r.Term)
+
+      and Goose compiles [||]/[&&] to short-circuiting [If]s
+      ([new/golang/defn/postlang.v]), so the number of comparisons [wp_auto]
+      actually evaluates differs per arm:
+
+      - [Vote = m.From]: one ([true], done).
+      - [Vote = None], [lead = None]: three (the second disjunct is [true]).
+      - [Vote = None], [lead ≠ None]: **four** -- the second disjunct is
+        [false], so the third is evaluated and its [MsgPreVote] test is live.
+      - [Vote ≠ None], [Vote ≠ m.From]: **three** -- [A] and [B] are [false],
+        then the [MsgPreVote] test again.
+
+      The two four/three-comparison arms are the two that decline, and an
+      earlier version of this script left their [MsgPreVote] [bool_decide]
+      undischarged.  [wp_auto] then stopped in front of it, and the failure
+      surfaced fifteen lines later as [iApply: cannot apply] at the
+      [lastEntryID] call.  So each arm does its own [bool_decide] bookkeeping
+      and only then calls the shared tail; the tails themselves
+      ([vote_grant_tail] / [vote_reject_tail]) assume the program is sitting
+      right after [lastEntryID] with [canVote] already decided. *)
   Lemma wp_Step_MsgVote r id s (m : raftpb.Message.t) :
     m.(raftpb.Message.Type') = MsgVote →
     m.(raftpb.Message.To') = id →
@@ -160,246 +187,272 @@ Implicit Type s : nstate.t.
             step cfg id s recv s' ⌝ ∗
         "%Herr" ∷ ⌜ err = interface.nil ⌝ }}}.
   Proof.
-       intros Hty Hto Hterm Hfnz.
-       wp_start as "@". iNamed "Hphys". wp_auto.
-       wp_apply (wp_traceReceiveMessage with "[$Hmisc]") as "Hmisc".
-       (* [m.Term ≠ 0], so the first arm of the term preamble is skipped. *)
-       assert (bool_decide (m.(raftpb.Message.Term') = W64 0) = false) as Hz
-       by by apply bool_decide_eq_false_2.
-       rewrite Hz. rewrite bool_decide_eq_false_2; last done. wp_auto.
-       destruct (decide (uint.Z rv.(raft.raft.Term') < uint.Z m.(raftpb.Message.Term')))
-       as [Hgt|Hle].
-       - (* [m.Term > r.Term]: step down to follower first, then answer. *)
-       assert (bool_decide (uint.Z rv.(raft.raft.Term') <
-                            uint.Z m.(raftpb.Message.Term')) = true) as Hb
-         by by apply bool_decide_eq_true_2.
-       rewrite Hb. rewrite bool_decide_eq_true_2 //. wp_auto.
-       rewrite Hty /MsgVote bool_decide_eq_true_2 //. wp_auto.
-       (* [force] is false (not a leader transfer) and [inLease] is false (no
-          check-quorum), so the lease check does not drop the message. *)
-       iDestruct "Hctx" as (ctx) "[Hctx_sl %Hctx_ne]".
-       wp_apply wp_string_to_bytes as "%ct_sl [ct_sl ct_cap]".
-       wp_apply (wp_Equal _ _ DfracDiscarded (DfracOwn 1) ctx ("CampaignTransfer"%go)
-                   with "[$Hctx_sl $ct_sl]") as "[_ ct_sl2]".
-       rewrite HnoCheckQuorum. wp_auto.
-       assert (bool_decide (ctx = "CampaignTransfer"%go) = false) as Hnf
-         by by apply bool_decide_eq_false_2.
-       rewrite Hnf. wp_auto.
-       (* neither MsgPreVote nor MsgPreVoteResp, so we fall through to the
-          step-down *)
-       assert (bool_decide (m.(raftpb.Message.Type') = W32 17) = false) as Hpv
-         by (apply bool_decide_eq_false_2; rewrite Hty /MsgVote; w32_ne).
-       rewrite Hpv. rewrite bool_decide_eq_false_2; last done. wp_auto.
-       assert (bool_decide (m.(raftpb.Message.Type') = W32 18) = false) as Hpvr
-         by (apply bool_decide_eq_false_2; rewrite Hty /MsgVote; w32_ne).
-       rewrite Hpvr. wp_auto.
-       wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [Hlog_sl _]".
-       wp_auto. rewrite Hlok.
-       wp_apply (wp_Logger__logf with "Hlogger").
-       { rewrite /log_methods. set_solver. }
-       (* a [MsgVote] is not from a leader, so no leader is adopted *)
-       rewrite Hty /MsgVote bool_decide_eq_false_2; last w32_ne. wp_auto.
-       rewrite Hty /MsgVote bool_decide_eq_false_2; last w32_ne. wp_auto.
-       rewrite Hty /MsgVote bool_decide_eq_false_2; last w32_ne. wp_auto.
-       iAssert (own_raft_phys cfg r id s)
-         with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys".
-       { rewrite /own_raft_phys. iExists rv, msgs, msgsAA, lok. iFrame "∗#%". }
-       wp_apply (P.wp_raft__becomeFollower with "[$Hphys]") as "Hphys".
-       (* the corresponding protocol step, recorded as a pure fact rather than
-          taken on the ghost state: this lemma is ghost-free. *)
-       assert (step cfg id s [abs_msg mtype.Vote m]
-                 (become_follower s m.(raftpb.Message.Term') (W64 0))) as Hstepdown.
-       { replace (W64 0) with
-           (if from_leader (abs_msg mtype.Vote m).(msg.ty)
-            then (abs_msg mtype.Vote m).(msg.from) else W64 0) by done.
-         replace m.(raftpb.Message.Term') with (abs_msg mtype.Vote m).(msg.term)
-           by done.
-         apply step_higher_term.
-         - rewrite /abs_msg /= -Hterm0. exact Hgt.
-         - rewrite /abs_msg /=. exact Hto. }
-       iNamedSuffix "Hphys" "1".
-       (* the type switch: not MsgHup / MsgStorageAppendResp / MsgStorageApplyResp,
-          not MsgPreVote, but MsgVote *)
-       rewrite Hty /MsgVote bool_decide_eq_false_2; last w32_ne. wp_auto.
-       (* Stepping down to a strictly greater term cleared both [Vote] and
-          [lead], so [canVote] holds. *)
-       assert (Hne : m.(raftpb.Message.Term') ≠ s.(nstate.term)).
-       { rewrite -Hterm0. intros Heq. rewrite Heq in Hgt. lia. }
-       rewrite /become_follower /= decide_False // in Hvote1 Hlead1.
-       rewrite Hvote1 bool_decide_eq_false_2; last congruence. wp_auto.
-       rewrite Hvote1 bool_decide_eq_true_2 //. wp_auto.
-       rewrite Hlead1 bool_decide_eq_true_2 //. wp_auto.
-       wp_apply (wp_raftLog__lastEntryID with "[$Hlog1]") as "%lastID Hlog1".
-       wp_apply (wp_raftLog__isUpToDate with "[$Hlog1]") as "%uptodate Hlog1".
-       destruct uptodate.
-       + (* the candidate's log is up to date: grant the vote *)
-         wp_auto.
-         wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
-         wp_auto. rewrite Hlok1.
-         wp_apply (wp_Logger__logf with "Hlogger1").
-         { rewrite /log_methods. set_solver. }
-         wp_apply P.wp_voteRespMsgType; first done.
-         (* the protocol step: grant the vote.  The [VoteResp] it sends is no
-            longer a separate output -- it is the growth of the outbox, which the
-            [send] below has to match. *)
-         assert (step cfg id (become_follower s m.(raftpb.Message.Term') (W64 0))
-                   [abs_msg mtype.Vote m]
-                   (send_msgs ((become_follower s m.(raftpb.Message.Term') (W64 0))
-                                 <| nstate.vote := m.(raftpb.Message.From') |>)
-                      [msg.mk mtype.VoteResp id m.(raftpb.Message.From')
-                         m.(raftpb.Message.Term') false])) as Hgrant.
-         { apply step_grant_vote; [done|exact Hto|done|].
-           rewrite /can_vote /become_follower /=. right.
-           split; [by rewrite decide_False|done]. }
-         iAssert (own_raft_phys cfg r id (become_follower s m.(raftpb.Message.Term') (W64 0)))
-           with "[Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1]"
-           as "Hphys".
-         { rewrite /own_raft_phys. iExists rv0, msgs0, msgsAA0, lok0.
-           rewrite /become_follower /= decide_False //. iFrame "∗#%". }
-         (* [send] the granted vote response, then record the vote. *)
-         wp_apply (P.wp_raft__send_vote with "[$Hphys]") as "Hphys".
-         { done. }
-         { by right. }
-         { apply mtype_of_MsgVoteResp. }
-         { done. }
-         { w32_ne. }
-         iNamedSuffix "Hphys" "2".
-         (* [m.Type = MsgVote], so the vote is recorded: [r.Vote := m.From]. *)
-         rewrite Hty /MsgVote bool_decide_eq_true_2 //. wp_auto.
-         iApply ("HΦ" $! interface.nil
-           (send_msgs ((become_follower s m.(raftpb.Message.Term') (W64 0))
-                         <| nstate.vote := m.(raftpb.Message.From') |>)
-              [msg.mk mtype.VoteResp id m.(raftpb.Message.From')
-                 m.(raftpb.Message.Term') false])).
-         iSplitL "Hr2 Htrk2 Hlog2 Hmsgs2 Hmsgs_cap2 HmsgsAA2 HmsgsAA_cap2 Hmisc2".
-         { rewrite /own_raft_phys /send_msgs /become_follower /=.
-           iExists _, msgs1, msgsAA1, lok1.
-           simpl in Hid2, Hterm2, Hvote2, Hlead2, Hstate2, Houtbox2.
-           iEval (simpl) in "Htrk2".
-           iFrame "Hr2 ∗#%".
-           iPureIntro. first [done | (split_and!; done)]. }
-         iPureIntro. split; last done.
-         eexists ([abs_msg mtype.Vote m] ++ [abs_msg mtype.Vote m]).
-         split.
-         { intros m' Hm'. set_solver. }
-         eapply step_trans; [exact Hstepdown|exact Hgrant].
-       + (* the candidate's log is behind: decline, without recording a vote *)
-         wp_auto.
-         wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
-         wp_auto. rewrite Hlok1.
-         wp_apply (wp_Logger__logf with "Hlogger1").
-         { rewrite /log_methods. set_solver. }
-         wp_apply P.wp_voteRespMsgType; first done.
-         (* [r.Term] is [m.Term] after the step-down, so the rejection carries
-            the state's term -- which is what [step_reject_vote] sends. *)
-         assert (Hrt : rv0.(raft.raft.Term') = m.(raftpb.Message.Term'))
-           by by rewrite Hterm1.
-         rewrite Hrt.
-         iAssert (own_raft_phys cfg r id
-                    (become_follower s m.(raftpb.Message.Term') (W64 0)))
-           with "[Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1]"
-           as "Hphys".
-         { rewrite /own_raft_phys. iExists rv0, msgs0, msgsAA0, lok0.
-           rewrite /become_follower /= decide_False //. iFrame "∗#%". }
-         wp_apply (P.wp_raft__send_vote with "[$Hphys]") as "Hphys".
-         { done. }
-         { by right. }
-         { apply mtype_of_MsgVoteResp. }
-         { done. }
-         { w32_ne. }
-         iApply ("HΦ" $! interface.nil _). iFrame "Hphys".
-         iPureIntro. split; last done.
-         eexists ([abs_msg mtype.Vote m] ++ [abs_msg mtype.Vote m]).
-         split.
-         { intros m' Hm'. set_solver. }
-         apply (step_stepdown_then_reject cfg id s (abs_msg mtype.Vote m));
-           [done|exact Hto|rewrite /abs_msg /= -Hterm0; exact Hgt].
-       - (* [m.Term ≤ r.Term]: no step-down. *)
-         assert (bool_decide (uint.Z rv.(raft.raft.Term') <
-                              uint.Z m.(raftpb.Message.Term')) = false) as Hb
-           by by apply bool_decide_eq_false_2.
-         rewrite Hb. rewrite bool_decide_eq_false_2; last done. wp_auto.
-         destruct (decide (uint.Z m.(raftpb.Message.Term') <
-                           uint.Z rv.(raft.raft.Term'))) as [Hlt|Hnlt].
-         + (* [m.Term < r.Term]: a stale vote request, dropped silently. *)
-           assert (bool_decide (uint.Z m.(raftpb.Message.Term') <
-                                uint.Z rv.(raft.raft.Term')) = true) as Hb2
-             by by apply bool_decide_eq_true_2.
-           rewrite Hb2. rewrite bool_decide_eq_true_2 //. wp_auto.
-           rewrite HnoCheckQuorum. wp_auto.
-           rewrite HnoPreVote. wp_auto.
-           (* not a MsgPreVote *)
-           rewrite (bool_decide_eq_false_2 (m.(raftpb.Message.Type') = W32 17));
-             last (rewrite Hty /MsgVote; w32_ne).
-           wp_auto.
-           (* not a MsgStorageAppendResp either, so the message is just logged *)
-           rewrite (bool_decide_eq_false_2 (m.(raftpb.Message.Type') = W32 20));
-             last (rewrite Hty /MsgVote; w32_ne).
-           wp_auto.
-           wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
-           wp_auto. rewrite Hlok.
-           wp_apply (wp_Logger__logf with "Hlogger").
-           { rewrite /log_methods. set_solver. }
-           (* nothing was sent and nothing changed: dropping is [step_refl]. *)
-           iAssert (own_raft_phys cfg r id s)
-             with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
-             as "Hphys".
-           { rewrite /own_raft_phys. iExists rv, msgs, msgsAA, lok. iFrame "∗#%". }
-           iApply ("HΦ" $! interface.nil s). iFrame "Hphys".
-           iPureIntro. split; last done. exists [].
-           split; [set_solver|apply step_drop].
-         + (* [m.Term = r.Term]: answer in the current term, without stepping
-              down.  [r.Term < m.Term] and [m.Term < r.Term] are both false. *)
-           assert (bool_decide (uint.Z m.(raftpb.Message.Term') <
-                                uint.Z rv.(raft.raft.Term')) = false) as Hb2
-             by by apply bool_decide_eq_false_2.
-           rewrite Hb2. rewrite bool_decide_eq_false_2; last done. wp_auto.
-           assert (Hrt : rv.(raft.raft.Term') = m.(raftpb.Message.Term')) by word.
-           (* the type switch: not MsgHup / MsgStorageAppendResp /
-              MsgStorageApplyResp, not MsgPreVote, but MsgVote *)
-           rewrite Hty /MsgVote bool_decide_eq_false_2; last w32_ne. wp_auto.
-           (* [canVote] is the model's [can_vote]: the Go expression's third
-              disjunct needs [MsgPreVote] and is dead here. *)
-           destruct (decide (rv.(raft.raft.Vote') = W64 0)) as [Hv0|Hv0].
-           * (* has not voted in this term.  [m.From ≠ 0], so the first
-                disjunct of [canVote] is false and the second decides it. *)
-             rewrite Hv0 bool_decide_eq_false_2; last congruence. wp_auto.
-             rewrite Hv0 bool_decide_eq_true_2 //. wp_auto.
-             destruct (decide (rv.(raft.raft.lead') = W64 0)) as [Hl0|Hl0].
-             -- (* and recognises no leader: [canVote] *)
-                rewrite Hl0 bool_decide_eq_true_2 //. wp_auto.
-                assert (Hcan : can_vote s m.(raftpb.Message.From'))
-                  by (right; split; congruence).
-                wp_apply (wp_raftLog__lastEntryID with "[$Hlog]")
-                  as "%lastID2 Hlog".
-                wp_apply (wp_raftLog__isUpToDate with "[$Hlog]") as "%ok2 Hlog".
-                destruct ok2.
-                ++ vote_grant_tail r id s m Hlok Hty Hto Hcan.
-                ++ vote_reject_tail r id s m Hlok Hto Hterm0.
-             -- (* but a leader is known, so the vote is declined *)
-                rewrite bool_decide_eq_false_2; last congruence. wp_auto.
-                wp_apply (wp_raftLog__lastEntryID with "[$Hlog]")
-                  as "%lastID2 Hlog".
-                vote_reject_tail r id s m Hlok Hto Hterm0.
-           * (* has already voted in this term *)
-             destruct (decide (rv.(raft.raft.Vote') = m.(raftpb.Message.From')))
-               as [Hv1|Hv1].
-             -- (* for this very candidate, so the vote may be granted again *)
-                rewrite bool_decide_eq_true_2; last congruence. wp_auto.
-                assert (Hcan : can_vote s m.(raftpb.Message.From'))
-                  by (left; congruence).
-                wp_apply (wp_raftLog__lastEntryID with "[$Hlog]")
-                  as "%lastID2 Hlog".
-                wp_apply (wp_raftLog__isUpToDate with "[$Hlog]") as "%ok2 Hlog".
-                destruct ok2.
-                ++ vote_grant_tail r id s m Hlok Hty Hto Hcan.
-                ++ vote_reject_tail r id s m Hlok Hto Hterm0.
-             -- (* for somebody else: declined *)
-                rewrite bool_decide_eq_false_2; last congruence. wp_auto.
-                rewrite bool_decide_eq_false_2; last congruence. wp_auto.
-                wp_apply (wp_raftLog__lastEntryID with "[$Hlog]")
-                  as "%lastID2 Hlog".
-                vote_reject_tail r id s m Hlok Hto Hterm0.
+    intros Hty Hto Hterm Hfnz.
+    wp_start as "@". iNamed "Hphys". wp_auto.
+    wp_apply (wp_traceReceiveMessage with "[$Hmisc]") as "Hmisc".
+    (* [m.Term ≠ 0], so the first arm of the term preamble is skipped. *)
+    assert (bool_decide (m.(raftpb.Message.Term') = W64 0) = false) as Hz
+    by by apply bool_decide_eq_false_2.
+    rewrite Hz. rewrite bool_decide_eq_false_2; last done. wp_auto.
+    destruct (decide (uint.Z rv.(raft.raft.Term') < uint.Z m.(raftpb.Message.Term')))
+    as [Hgt|Hle].
+    - (* [m.Term > r.Term]: step down to follower first, then answer. *)
+    assert (bool_decide (uint.Z rv.(raft.raft.Term') <
+                         uint.Z m.(raftpb.Message.Term')) = true) as Hb
+      by by apply bool_decide_eq_true_2.
+    rewrite Hb. rewrite bool_decide_eq_true_2 //. wp_auto.
+    rewrite Hty /MsgVote bool_decide_eq_true_2 //. wp_auto.
+    (* [force] is false (not a leader transfer) and [inLease] is false (no
+       check-quorum), so the lease check does not drop the message. *)
+    iDestruct "Hctx" as (ctx) "[Hctx_sl %Hctx_ne]".
+    wp_apply wp_string_to_bytes as "%ct_sl [ct_sl ct_cap]".
+    wp_apply (wp_Equal _ _ DfracDiscarded (DfracOwn 1) ctx ("CampaignTransfer"%go)
+                with "[$Hctx_sl $ct_sl]") as "[_ ct_sl2]".
+    rewrite HnoCheckQuorum. wp_auto.
+    assert (bool_decide (ctx = "CampaignTransfer"%go) = false) as Hnf
+      by by apply bool_decide_eq_false_2.
+    rewrite Hnf. wp_auto.
+    (* neither MsgPreVote nor MsgPreVoteResp, so we fall through to the
+       step-down *)
+    assert (bool_decide (m.(raftpb.Message.Type') = W32 17) = false) as Hpv
+      by (apply bool_decide_eq_false_2; rewrite Hty /MsgVote; w32_ne).
+    rewrite Hpv. rewrite bool_decide_eq_false_2; last done. wp_auto.
+    assert (bool_decide (m.(raftpb.Message.Type') = W32 18) = false) as Hpvr
+      by (apply bool_decide_eq_false_2; rewrite Hty /MsgVote; w32_ne).
+    rewrite Hpvr. wp_auto.
+    wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [Hlog_sl _]".
+    wp_auto. rewrite Hlok.
+    wp_apply (wp_Logger__logf with "Hlogger").
+    { rewrite /log_methods. set_solver. }
+    (* a [MsgVote] is not from a leader, so no leader is adopted *)
+    rewrite Hty /MsgVote bool_decide_eq_false_2; last w32_ne. wp_auto.
+    rewrite Hty /MsgVote bool_decide_eq_false_2; last w32_ne. wp_auto.
+    rewrite Hty /MsgVote bool_decide_eq_false_2; last w32_ne. wp_auto.
+    iAssert (own_raft_phys cfg r id s)
+      with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys".
+    { rewrite /own_raft_phys. iExists rv, msgs, msgsAA, lok. iFrame "∗#%". }
+    wp_apply (P.wp_raft__becomeFollower with "[$Hphys]") as "Hphys".
+    (* the corresponding protocol step, recorded as a pure fact rather than
+       taken on the ghost state: this lemma is ghost-free. *)
+    assert (step cfg id s [abs_msg mtype.Vote m]
+              (become_follower s m.(raftpb.Message.Term') (W64 0))) as Hstepdown.
+    { replace (W64 0) with
+        (if from_leader (abs_msg mtype.Vote m).(msg.ty)
+         then (abs_msg mtype.Vote m).(msg.from) else W64 0) by done.
+      replace m.(raftpb.Message.Term') with (abs_msg mtype.Vote m).(msg.term)
+        by done.
+      apply step_higher_term.
+      - rewrite /abs_msg /= -Hterm0. exact Hgt.
+      - rewrite /abs_msg /=. exact Hto. }
+    iNamedSuffix "Hphys" "1".
+    (* the type switch: not MsgHup / MsgStorageAppendResp / MsgStorageApplyResp,
+       not MsgPreVote, but MsgVote *)
+    rewrite Hty /MsgVote bool_decide_eq_false_2; last w32_ne. wp_auto.
+    (* Stepping down to a strictly greater term cleared both [Vote] and
+       [lead], so [canVote] holds. *)
+    assert (Hne : m.(raftpb.Message.Term') ≠ s.(nstate.term)).
+    { rewrite -Hterm0. intros Heq. rewrite Heq in Hgt. lia. }
+    rewrite /become_follower /= decide_False // in Hvote1 Hlead1.
+    rewrite Hvote1 bool_decide_eq_false_2; last congruence. wp_auto.
+    rewrite Hvote1 bool_decide_eq_true_2 //. wp_auto.
+    rewrite Hlead1 bool_decide_eq_true_2 //. wp_auto.
+    wp_apply (wp_raftLog__lastEntryID with "[$Hlog1]") as "%lastID Hlog1".
+    wp_apply (wp_raftLog__isUpToDate with "[$Hlog1]") as "%uptodate Hlog1".
+    destruct uptodate.
+    + (* the candidate's log is up to date: grant the vote *)
+      wp_auto.
+      wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
+      wp_auto. rewrite Hlok1.
+      wp_apply (wp_Logger__logf with "Hlogger1").
+      { rewrite /log_methods. set_solver. }
+      wp_apply P.wp_voteRespMsgType; first done.
+      (* the protocol step: grant the vote.  The [VoteResp] it sends is no
+         longer a separate output -- it is the growth of the outbox, which the
+         [send] below has to match. *)
+      assert (step cfg id (become_follower s m.(raftpb.Message.Term') (W64 0))
+                [abs_msg mtype.Vote m]
+                (send_msgs ((become_follower s m.(raftpb.Message.Term') (W64 0))
+                              <| nstate.vote := m.(raftpb.Message.From') |>)
+                   [msg.mk mtype.VoteResp id m.(raftpb.Message.From')
+                      m.(raftpb.Message.Term') false])) as Hgrant.
+      { apply step_grant_vote; [done|exact Hto|done|].
+        rewrite /can_vote /become_follower /=. right.
+        split; [by rewrite decide_False|done]. }
+      iAssert (own_raft_phys cfg r id (become_follower s m.(raftpb.Message.Term') (W64 0)))
+        with "[Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1]"
+        as "Hphys".
+      { rewrite /own_raft_phys. iExists rv0, msgs0, msgsAA0, lok0.
+        rewrite /become_follower /= decide_False //. iFrame "∗#%". }
+      (* [send] the granted vote response, then record the vote. *)
+      wp_apply (P.wp_raft__send_vote with "[$Hphys]") as "Hphys".
+      { done. }
+      { by right. }
+      { apply mtype_of_MsgVoteResp. }
+      { done. }
+      { w32_ne. }
+      iNamedSuffix "Hphys" "2".
+      (* [m.Type = MsgVote], so the vote is recorded: [r.Vote := m.From]. *)
+      rewrite Hty /MsgVote bool_decide_eq_true_2 //. wp_auto.
+      iApply ("HΦ" $! interface.nil
+        (send_msgs ((become_follower s m.(raftpb.Message.Term') (W64 0))
+                      <| nstate.vote := m.(raftpb.Message.From') |>)
+           [msg.mk mtype.VoteResp id m.(raftpb.Message.From')
+              m.(raftpb.Message.Term') false])).
+      iSplitL "Hr2 Htrk2 Hlog2 Hmsgs2 Hmsgs_cap2 HmsgsAA2 HmsgsAA_cap2 Hmisc2".
+      { rewrite /own_raft_phys /send_msgs /become_follower /=.
+        iExists _, msgs1, msgsAA1, lok1.
+        simpl in Hid2, Hterm2, Hvote2, Hlead2, Hstate2, Houtbox2.
+        iEval (simpl) in "Htrk2".
+        iFrame "Hr2 ∗#%".
+        iPureIntro. first [done | (split_and!; done)]. }
+      iPureIntro. split; last done.
+      eexists ([abs_msg mtype.Vote m] ++ [abs_msg mtype.Vote m]).
+      split.
+      { intros m' Hm'. set_solver. }
+      eapply step_trans; [exact Hstepdown|exact Hgrant].
+    + (* the candidate's log is behind: decline, without recording a vote *)
+      wp_auto.
+      wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
+      wp_auto. rewrite Hlok1.
+      wp_apply (wp_Logger__logf with "Hlogger1").
+      { rewrite /log_methods. set_solver. }
+      wp_apply P.wp_voteRespMsgType; first done.
+      (* [r.Term] is [m.Term] after the step-down, so the rejection carries
+         the state's term -- which is what [step_reject_vote] sends. *)
+      assert (Hrt : rv0.(raft.raft.Term') = m.(raftpb.Message.Term'))
+        by by rewrite Hterm1.
+      rewrite Hrt.
+      iAssert (own_raft_phys cfg r id
+                 (become_follower s m.(raftpb.Message.Term') (W64 0)))
+        with "[Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1]"
+        as "Hphys".
+      { rewrite /own_raft_phys. iExists rv0, msgs0, msgsAA0, lok0.
+        rewrite /become_follower /= decide_False //. iFrame "∗#%". }
+      wp_apply (P.wp_raft__send_vote with "[$Hphys]") as "Hphys".
+      { done. }
+      { by right. }
+      { apply mtype_of_MsgVoteResp. }
+      { done. }
+      { w32_ne. }
+      iApply ("HΦ" $! interface.nil _). iFrame "Hphys".
+      iPureIntro. split; last done.
+      eexists ([abs_msg mtype.Vote m] ++ [abs_msg mtype.Vote m]).
+      split.
+      { intros m' Hm'. set_solver. }
+      apply (step_stepdown_then_reject cfg id s (abs_msg mtype.Vote m));
+        [done|exact Hto|rewrite /abs_msg /= -Hterm0; exact Hgt].
+    - (* [m.Term ≤ r.Term]: no step-down. *)
+      assert (bool_decide (uint.Z rv.(raft.raft.Term') <
+                           uint.Z m.(raftpb.Message.Term')) = false) as Hb
+        by by apply bool_decide_eq_false_2.
+      rewrite Hb. rewrite bool_decide_eq_false_2; last done. wp_auto.
+      destruct (decide (uint.Z m.(raftpb.Message.Term') <
+                        uint.Z rv.(raft.raft.Term'))) as [Hlt|Hnlt].
+      + (* [m.Term < r.Term]: a stale vote request, dropped silently. *)
+        assert (bool_decide (uint.Z m.(raftpb.Message.Term') <
+                             uint.Z rv.(raft.raft.Term')) = true) as Hb2
+          by by apply bool_decide_eq_true_2.
+        rewrite Hb2. rewrite bool_decide_eq_true_2 //. wp_auto.
+        rewrite HnoCheckQuorum. wp_auto.
+        rewrite HnoPreVote. wp_auto.
+        (* not a MsgPreVote *)
+        rewrite (bool_decide_eq_false_2 (m.(raftpb.Message.Type') = W32 17));
+          last (rewrite Hty /MsgVote; w32_ne).
+        wp_auto.
+        (* not a MsgStorageAppendResp either, so the message is just logged *)
+        rewrite (bool_decide_eq_false_2 (m.(raftpb.Message.Type') = W32 20));
+          last (rewrite Hty /MsgVote; w32_ne).
+        wp_auto.
+        wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
+        wp_auto. rewrite Hlok.
+        wp_apply (wp_Logger__logf with "Hlogger").
+        { rewrite /log_methods. set_solver. }
+        (* nothing was sent and nothing changed: dropping is [step_refl]. *)
+        iAssert (own_raft_phys cfg r id s)
+          with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
+          as "Hphys".
+        { rewrite /own_raft_phys. iExists rv, msgs, msgsAA, lok. iFrame "∗#%". }
+        iApply ("HΦ" $! interface.nil s). iFrame "Hphys".
+        iPureIntro. split; last done. exists [].
+        split; [set_solver|apply step_drop].
+      + (* [m.Term = r.Term]: answer in the current term, without stepping
+           down.  [r.Term < m.Term] and [m.Term < r.Term] are both false. *)
+        assert (bool_decide (uint.Z m.(raftpb.Message.Term') <
+                             uint.Z rv.(raft.raft.Term')) = false) as Hb2
+          by by apply bool_decide_eq_false_2.
+        rewrite Hb2. rewrite bool_decide_eq_false_2; last done. wp_auto.
+        assert (Hrt : rv.(raft.raft.Term') = m.(raftpb.Message.Term')) by word.
+        (* the type switch: not MsgHup / MsgStorageAppendResp /
+           MsgStorageApplyResp, not MsgPreVote, but MsgVote *)
+        rewrite Hty /MsgVote bool_decide_eq_false_2; last w32_ne. wp_auto.
+        (* [canVote] is the model's [can_vote]: the Go expression's third
+           disjunct needs [MsgPreVote] and is dead here. *)
+        destruct (decide (rv.(raft.raft.Vote') = W64 0)) as [Hv0|Hv0].
+        * (* has not voted in this term.  [m.From ≠ 0], so the first
+             disjunct of [canVote] is false and the second decides it. *)
+          rewrite Hv0 bool_decide_eq_false_2; last congruence. wp_auto.
+          rewrite Hv0 bool_decide_eq_true_2 //. wp_auto.
+          destruct (decide (rv.(raft.raft.lead') = W64 0)) as [Hl0|Hl0].
+          -- (* and recognises no leader: [canVote] *)
+             rewrite Hl0 bool_decide_eq_true_2 //. wp_auto.
+             assert (Hcan : can_vote s m.(raftpb.Message.From'))
+               by (right; split; congruence).
+             wp_apply (wp_raftLog__lastEntryID with "[$Hlog]")
+               as "%lastID2 Hlog".
+             wp_apply (wp_raftLog__isUpToDate with "[$Hlog]") as "%ok2 Hlog".
+             destruct ok2.
+             ++ vote_grant_tail r id s m Hlok Hty Hto Hcan.
+             ++ vote_reject_tail r id s m Hlok Hto Hterm0.
+          -- (* but a leader is known, so the vote is declined.  [canVote]'s
+                  second disjunct is now false, so the program goes on to
+                  evaluate the third -- which needs [MsgPreVote].  This arm
+                  therefore discharges one more [bool_decide] than the
+                  [lead = None] one above, which short-circuited to [true]. *)
+             rewrite bool_decide_eq_false_2; last congruence. wp_auto.
+             rewrite (bool_decide_eq_false_2
+                        (m.(raftpb.Message.Type') = W32 17));
+               last (rewrite Hty /MsgVote; w32_ne).
+             wp_auto.
+             (* No [as]: it would run [wp_auto], which here steps straight
+                through the [canVote && isUpToDate] test (both operands are
+                literals once [canVote] is [false]) and on into the rejection
+                branch -- leaving [vote_reject_tail]'s own leading [wp_auto]
+                with nothing to do.  The arms that call [isUpToDate] block on
+                its [bool] result instead, so they can use [as]. *)
+             wp_apply (wp_raftLog__lastEntryID with "[$Hlog]").
+             iIntros "%lastID2 Hlog".
+             vote_reject_tail r id s m Hlok Hto Hterm0.
+        * (* has already voted in this term *)
+          destruct (decide (rv.(raft.raft.Vote') = m.(raftpb.Message.From')))
+            as [Hv1|Hv1].
+          -- (* for this very candidate, so the vote may be granted again *)
+             rewrite bool_decide_eq_true_2; last congruence. wp_auto.
+             assert (Hcan : can_vote s m.(raftpb.Message.From'))
+               by (left; congruence).
+             wp_apply (wp_raftLog__lastEntryID with "[$Hlog]")
+               as "%lastID2 Hlog".
+             wp_apply (wp_raftLog__isUpToDate with "[$Hlog]") as "%ok2 Hlog".
+             destruct ok2.
+             ++ vote_grant_tail r id s m Hlok Hty Hto Hcan.
+             ++ vote_reject_tail r id s m Hlok Hto Hterm0.
+          -- (* for somebody else: declined.  Both halves of [canVote]'s
+                  first two disjuncts are false, so again the third is
+                  evaluated and its [MsgPreVote] test has to be decided. *)
+             rewrite bool_decide_eq_false_2; last congruence. wp_auto.
+             rewrite bool_decide_eq_false_2; last congruence. wp_auto.
+             rewrite (bool_decide_eq_false_2
+                        (m.(raftpb.Message.Type') = W32 17));
+               last (rewrite Hty /MsgVote; w32_ne).
+             wp_auto.
+             (* No [as]: it would run [wp_auto], which here steps straight
+                through the [canVote && isUpToDate] test (both operands are
+                literals once [canVote] is [false]) and on into the rejection
+                branch -- leaving [vote_reject_tail]'s own leading [wp_auto]
+                with nothing to do.  The arms that call [isUpToDate] block on
+                its [bool] result instead, so they can use [as]. *)
+             wp_apply (wp_raftLog__lastEntryID with "[$Hlog]").
+             iIntros "%lastID2 Hlog".
+             vote_reject_tail r id s m Hlok Hto Hterm0.
   Qed.
 
 
