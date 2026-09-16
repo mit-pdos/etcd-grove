@@ -1,6 +1,6 @@
 # Status
 
-**Last updated:** 2026-09-15
+**Last updated:** 2026-09-16
 
 ## Goal
 
@@ -73,12 +73,20 @@ context for the raft work, not the current focus.
 branch `worktree-raft-election-refinement`. Compiles and is reached from
 `new/should_build.v`.
 
-Eleven Go functions are specified, one file each. Proved: `voteRespMsgType`,
-`send`, `becomeFollower`, `becomeCandidate`, `becomeLeader`, `Step` (its
-dispatch and its `MsgHup` branch), and `raft_election_safety`. Five are
-`Admitted`: `reset`, `poll`, `campaign`, `hup`, `stepCandidate`; plus two
-`admit`-bearing branches inside `proof_raft__Step.v` (`MsgVote`, proved as far
-as `isUpToDate`, and `MsgVoteResp`).
+Eleven Go functions are specified, one file each. Proved (`Qed`, each
+confirmed with `make <file>.vok`): `voteRespMsgType`, `send`,
+`becomeFollower`, `becomeCandidate`, `becomeLeader`, **`poll`** and
+**`hup`** (both 2026-09-16), `Step`'s dispatch and its `MsgHup` branch, and
+`raft_election_safety`.
+
+Still `Admitted` as of 2026-09-16: `reset`, `campaign`, `stepCandidate`, and
+the `MsgVote` / `MsgVoteResp` branches inside `proof_raft__Step.v`
+(`MsgVote` is proved as far as `isUpToDate`).
+
+`poll` is the worked example to imitate for the rest — it is short, it was
+proved from scratch against the real code, and it demonstrates the
+`access_strict` idiom for pulling one field out of `r ↦ rv`, which is the
+thing that cost the most time. See [gotchas.md](gotchas.md).
 
 **Restructured 2026-09-15 so that no spec below `Step` touches ghost state.**
 The outbox moved into `nstate.t`; `own_raft_phys` lost its `γ` and no longer
@@ -98,9 +106,23 @@ fill `send`'s `#Hm` slot, and `send` no longer has one.
 
 **Checking your work:** `make <file>.vos` is a ~2s loop but **does not check
 proof bodies** — it will accept a proof script that does not run. Use
-`make <file>.vok` (~60s per function) for the real check. Do not reach for
+`make <file>.vok` (~100s per function) for the real check. Do not reach for
 `.vo`: nothing in the tree has `.vo` dependencies, so `make x.vo` starts
 building all of Perennial.
+
+For the inner loop use **rocq-warm**, and specifically the
+[upamanyus fork](https://github.com/upamanyus/rocq-warm) — not zeldovich's.
+Replays here are 0.3–30s, and a `Show.` to inspect a goal is an ordinary
+replay rather than a cold check (that was the fork's main fix). Pass
+`--allow-stale`: this tree has `.vos` only, and without it every check is
+refused with exit 2. **Exit 2 is not a verdict** — it means the file could not
+be checked. See [gotchas.md](gotchas.md).
+
+**On a machine with no Rocq**, budget ~1.5h before you can check anything:
+`opam switch create perennial 5.2.1`, `opam pin add -n .`,
+`opam install --deps-only ./perennial.opam` (→ Rocq 9.4+alpha), then
+`make -j8 TIMED=false new/proof/go_etcd_io/raft/v3_proof/election.required_vos`
+for the `vos` closure.
 
 ## Trust base
 
@@ -111,11 +133,29 @@ the 50 — `wp_raft__appendEmptyEntry` — **stopped being a false statement**. 
 owned only `own_raftLog` while the code it describes queues a `MsgAppResp`
 into `r.msgsAfterAppend`. See [journal.md](journal.md).
 
-The trust base is split structurally:
+**The scope rule changed on 2026-09-16** and this is now the governing
+statement of it. The *only* thing the election development may assume
+outright is the top-level one: that `Step` need handle only election
+messages. Everything in **core raft** — the log, the tracker, `Progress`,
+`bcastAppend`, `newReadOnly` — is in scope and must be constructed and
+proved. Things genuinely outside the raft protocol may still be assumed:
+`slices.Sort` (`inv_slices.v`), the `Logger` interface, the tracing hooks,
+the RNG behind `resetRandomizedElectionTimeout`.
 
-- an `Axiom` in an `inv_*.v` file means **out of scope** (the log, the
-  tracker's non-vote state, the `Logger` and tracing helpers);
-- an `Admitted` in a `proof_*.v` file means **in scope but unfinished**.
+So the older reading of `inv_*.v` — "an `Axiom` here means out of scope" — no
+longer holds for core raft. The trust base is now split as:
+
+- an `Axiom` in an `inv_*.v` file means **outside the raft protocol**, and
+  there should be very few;
+- an `Admitted` `Lemma` anywhere means **in scope but unfinished**, whether it
+  is in an `inv_*.v` file or a `proof_*.v` one;
+- a `Parameter` in a `spec_*.v` file is neither — it is discharged by the
+  functor ascribed to that signature.
+
+`inv_tracker.v` was converted to this shape on 2026-09-16: `own_inflights`,
+`own_progress` and `own_tracker` are real **definitions**, with their eight
+method lemmas `Admitted`. `inv_raftlog.v` and `inv_misc.v` still need the
+same treatment — see [journal.md](journal.md).
 
 There are also 11 module-type obligations — one `Parameter` per Go function.
 Those are **not** assumptions: each is discharged by the functor ascribed to

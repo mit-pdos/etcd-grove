@@ -5,10 +5,10 @@ Module BecomeFollowerProof (P : BECOMEFOLLOWER_POSTULATES) : BECOMEFOLLOWER.
   Lemma wp_raft__becomeFollower : wp_raft__becomeFollower_body.
   Proof.
     intros_ambient.
-    intros r id s term lead.
+    intros cfg r id s term lead.
     wp_start as "Hphys". iNamed "Hphys". wp_auto.
     (* [r.step := stepFollower] is done; re-seal for [reset]. *)
-    iAssert (own_raft_phys r id s)
+    iAssert (own_raft_phys cfg r id s)
       with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
       as "Hphys".
     { rewrite /own_raft_phys.

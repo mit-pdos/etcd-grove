@@ -308,9 +308,10 @@ payoff of the layout — the monolithic `election.v` took upwards of twelve.
 - `make <file>.vok` — the real check, against `.vos` dependencies.
 - Do **not** reach for `.vo`: nothing in the tree has `.vo` dependencies, so
   `make x.vo` starts building all of Perennial.
-- `rocq-warm` (<https://github.com/zeldovich/rocq-warm>) still helps for a
-  long single proof; see [gotchas.md](gotchas.md) for the flags this repo
-  needs.
+- `rocq-warm` (<https://github.com/upamanyus/rocq-warm> — **the upamanyus
+  fork**, not zeldovich's) still helps for a long single proof; see
+  [gotchas.md](gotchas.md) for the flags this repo needs and what the fork
+  fixes.
 
 ### Things that bite in this layout
 
@@ -329,3 +330,64 @@ payoff of the layout — the monolithic `election.v` took upwards of twelve.
 - **A `_POSTULATES` includes only *direct* callees.** Include another
   `_POSTULATES` and you get `Error: The label ... is already declared`,
   because `reset` is reached from `Step` by two different routes.
+
+## Converting the remaining `inv_*.v` axioms (the 2026-09-16 scope rule)
+
+The standing rule is now: the only thing this development assumes outright is
+that `Step` need handle only election messages. Core raft is in scope. Things
+outside the raft protocol may be assumed — `slices.Sort`, the `Logger`
+interface, the tracing hooks, the RNG.
+
+`inv_tracker.v` was converted on 2026-09-16 and is the model to copy:
+ownership predicates became real `Definition`s, their method WPs became
+`Admitted` `Lemma`s. That moves them from "assumed" to "in scope,
+unfinished" — `./etc/tcb-view.py --summary` went 57 axioms/13 admits →
+44/24, which is the accounting working as intended.
+
+### `inv_raftlog.v` — the next one, and the one with a design decision in it
+
+`own_raftLog` is still an `Axiom`. Converting it is **not** mechanical,
+because `raftLog.storage` is a `Storage` **interface** — client-supplied, so
+it is a legitimate abstraction boundary, but it has to be modelled as an
+interface predicate rather than assumed away. `Storage` has six methods
+(`new/code/go_etcd_io/raft/v3.v:7735`):
+
+    Entries(lo, hi, maxSize) ([]Entry, error)
+    FirstIndex() (uint64, error)
+    InitialState() (HardState, ConfState, error)
+    LastIndex() (uint64, error)
+    Snapshot() (Snapshot, error)
+    Term(i uint64) (uint64, error)
+
+Follow the `own_AckedIndexer` pattern at `readonly.v:710`: a `Definition`
+bundling a Hoare triple per method against an abstract log, persistent so it
+can be shared. Then
+
+    own_raftLog l ≜ ∃ (lv : raft.raftLog.t) (ents : list raftpb.Entry.t) …,
+      l ↦ lv ∗ own_unstable lv.(unstable') ∗ is_Storage lv.(storage') … 
+
+with `own_unstable` owning the `entries` slice and its capacity. The open
+question is **what the log abstraction should be** — the election path only
+needs `lastEntryID`, `isUpToDate`, `lastIndex`, `append`, and (via
+`maybeSendAppend` / `hasUnappliedConfChanges`) `term`, `entries`, `scan` — but
+picking an abstraction only strong enough for those will not survive contact
+with log replication. Worth a decision record before writing it.
+
+### The rest
+
+- `inv_misc.v`: `own_raft_misc`, `wp_raft__promotable`,
+  `wp_raft__hasUnappliedConfChanges` (needs `raftLog.scan`),
+  `wp_campaign_peer_ids` (= `quorum`'s `JointConfig.IDs`). The four lemmas
+  added on 2026-09-16 (`own_raft_misc_option`, `wp_newReadOnly`,
+  `wp_raft__resetRandomizedElectionTimeout`, `wp_raft__abortLeaderTransfer`)
+  are already `Admitted` `Lemma`s; the last two are nearly trivial once
+  `own_raft_misc` is a definition.
+- `inv_raft_phys.v`: `wp_raft__appendEmptyEntry` (→ `raftLog.append` →
+  `unstable.truncateAndAppend`), and `wp_raft__bcastAppend`, which is an
+  `Admitted` `Lemma` as of 2026-09-16. Its statement is deliberately weak —
+  "the outbox grew by some `App`s from `id` at the current term" — matching
+  the weakened `step_win`. Do not strengthen it to one-per-peer: the code
+  does not do that.
+- `inv_slices.v`: `wp_slices_Sort` stays an `Axiom`. There is no code to
+  prove — Goose emits no body for the `cmp.Ordered` family. See
+  [journal.md](journal.md) for the three ways out.

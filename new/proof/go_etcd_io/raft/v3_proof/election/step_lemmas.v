@@ -14,16 +14,19 @@ Context (cfg : gset w64).
 Implicit Type γ : raft_election_names.
 Implicit Type s : nstate.t.
 
-(** The outcome of feeding a [MsgVoteResp] to a candidate.  [peers] is the
-    broadcast list a winner sends its empty append to; it is irrelevant unless
-    [won]. *)
+(** The outcome of feeding a [MsgVoteResp] to a candidate.  [ms] is what a
+    winner's [bcastAppend] put on the network; it is irrelevant unless [won].
+
+    [ms] is an arbitrary list of [App]s rather than one per peer, matching
+    [step_win] — see the comment there for why the exact broadcast is not
+    pinned down. *)
 Definition vote_resp_result id s (from : w64) (reject : bool) (won lost : bool)
-  (peers : list w64) : nstate.t :=
+  (ms : list msg.t) : nstate.t :=
   let s1 := s <| nstate.votes := record_vote s.(nstate.votes) from (negb reject) |> in
-  if won then send_msgs (become_leader id s1)
-                 ((λ to, msg.mk mtype.App id to s1.(nstate.term) false) <$> peers)
+  if won then send_msgs (become_leader id s1) ms
   else if lost then become_follower s1 s1.(nstate.term) (W64 0)
   else s1.
+
 
 (** An election message: the only ones in scope. *)
 Definition election_msg (m : raftpb.Message.t) : Prop :=
@@ -84,20 +87,18 @@ Proof.
 Qed.
 
 (** Recording a vote response and then winning. *)
-Lemma step_record_then_win id s (m : msg.t) peers :
+Lemma step_record_then_win id s (m : msg.t) ms :
   m.(msg.ty) = mtype.VoteResp →
   m.(msg.to) = id →
   m.(msg.term) = s.(nstate.term) →
   s.(nstate.role) = role.Candidate →
-  peers ≡ₚ elements (cfg ∖ {[id]}) →
   let s1 := s <| nstate.votes :=
                   record_vote s.(nstate.votes) m.(msg.from) (negb m.(msg.reject)) |> in
+  app_sends id s1.(nstate.term) ms →
   is_quorum cfg (granted s1.(nstate.votes)) →
-  step cfg id s ([m] ++ [])
-       (send_msgs (become_leader id s1)
-          ((λ to, msg.mk mtype.App id to s1.(nstate.term) false) <$> peers)).
+  step cfg id s ([m] ++ []) (send_msgs (become_leader id s1) ms).
 Proof.
-  intros ????? s1 Hq.
+  intros ???? s1 Hms Hq.
   eapply step_trans; [by apply step_record_vote|].
   by apply step_win.
 Qed.

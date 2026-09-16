@@ -225,14 +225,30 @@ Inductive step : nstate.t → list msg.t → nstate.t → Prop :=
               record_vote s.(nstate.votes) m.(msg.from) (negb m.(msg.reject)) |>)
 
 (** Winning: a quorum of grants makes the candidate leader, and it
-    immediately broadcasts an (empty) append. *)
-| step_win s peers :
+    immediately broadcasts appends.
+
+    The sends are deliberately loose: **any** list of [App] messages from
+    [id] at the current term, including none at all.  An earlier version
+    required exactly one per peer, i.e.
+    [(λ to, msg.mk mtype.App id to s.(nstate.term) false) <$> peers] for
+    [peers ≡ₚ elements (cfg ∖ {[id]})], and that is **not what the code
+    does**: [bcastAppend] reaches [maybeSendAppend], which sends a [MsgApp]
+    only when the log and the peer's [Progress] allow it, and otherwise
+    sends a [MsgSnap] or nothing (the peer is paused, or there is nothing to
+    send and [sendIfEmpty] is false).  Pinning the exact broadcast down
+    would need the log and [Progress.State] to be non-opaque, which is log
+    replication rather than election.
+
+    Nothing is lost: election safety follows from quorum intersection on
+    [votes], and no rule reads an [App]'s payload.  A receiver only ever
+    uses an [App] through [step_higher_term], which cares about its term and
+    that a leader sent it — both of which are still pinned here. *)
+| step_win s ms :
   s.(nstate.role) = role.Candidate →
   is_quorum (granted s.(nstate.votes)) →
-  peers ≡ₚ elements (cfg ∖ {[id]}) →
-  step s []
-       (send_msgs (become_leader s)
-          ((λ to, msg.mk mtype.App id to s.(nstate.term) false) <$> peers))
+  Forall (λ m, m.(msg.ty) = mtype.App ∧ m.(msg.from) = id ∧
+               m.(msg.term) = s.(nstate.term)) ms →
+  step s [] (send_msgs (become_leader s) ms)
 
 (** Losing: a quorum of rejections sends the candidate back to follower in
     the same term. *)

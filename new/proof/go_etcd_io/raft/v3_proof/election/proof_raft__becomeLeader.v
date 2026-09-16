@@ -13,7 +13,7 @@ Module BecomeLeaderProof (P : BECOMELEADER_POSTULATES) : BECOMELEADER.
         rewrite /state_w64 /StateCandidate /StateLeader;
         intros Heq; apply (f_equal uint.Z) in Heq; vm_compute in Heq; discriminate. }
     rewrite Hstate bool_decide_eq_false_2 //. wp_auto.
-    iAssert (own_raft_phys r id s)
+    iAssert (own_raft_phys cfg r id s)
       with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
       as "Hphys".
     { rewrite /own_raft_phys.
@@ -31,10 +31,15 @@ Module BecomeLeaderProof (P : BECOMELEADER_POSTULATES) : BECOMELEADER.
     wp_apply (wp_tracker_progress_lookup _ _ _ _ Hcfg with "[$Htrk1]")
       as "%pr [Hpr Hprback]".
     wp_apply (wp_Progress__BecomeReplicate with "[$Hpr]") as "Hpr".
-    iDestruct "Hpr" as (recentActive) "[Hra Hrest]".
+    (* [own_progress] owns the whole [Progress] value (reshaped 2026-09-16 so
+       that [reset]'s [Visit] closure can overwrite one wholesale), so the
+       [RecentActive] assignment steps through [Hpv] with the generated
+       [AccessStrict] instances and leaves [Inflights'] alone. *)
+    iDestruct "Hpr" as (pv) "[Hpv Hinfl]".
     wp_auto.
-    iAssert (own_progress pr) with "[Hra Hrest]" as "Hpr".
-    { rewrite /own_progress. iExists true. iFrame. }
+    iAssert (own_progress pr) with "[Hpv Hinfl]" as "Hpr".
+    { rewrite /own_progress.
+      iExists (pv <| tracker.Progress.RecentActive' := true |>). iFrame. }
     iDestruct ("Hprback" with "Hpr") as "Htrk1".
     wp_apply (wp_raftLog__lastIndex with "[$Hlog1]") as "%li Hlog1".
     wp_apply (wp_traceBecomeLeader with "[$Hmisc1]") as "Hmisc1".
@@ -45,7 +50,7 @@ Module BecomeLeaderProof (P : BECOMELEADER_POSTULATES) : BECOMELEADER.
        its axiom used to claim.  [MsgAppResp] has no [mtype_of], so it drops
        out of the abstract outbox and the state is unchanged.  Re-seal for the
        call, then unpack again for the [Infof] that follows it. *)
-    iAssert (own_raft_phys r id (become_leader id s))
+    iAssert (own_raft_phys cfg r id (become_leader id s))
       with "[Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1]"
       as "Hphys".
     { rewrite /own_raft_phys /become_leader /=.

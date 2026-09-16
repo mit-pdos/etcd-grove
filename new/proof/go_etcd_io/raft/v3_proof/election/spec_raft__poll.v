@@ -8,11 +8,11 @@ Definition wp_raft__poll_body :=
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (cfg : gset w64)
     (r : loc) (id : w64) (s : nstate.t) (from : w64) (t : w32) (v : bool),
-  {{{ is_pkg_init raft ∗ own_raft_phys r id s }}}
+  {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "poll" #from #t #v
   {{{ (g rj : w64) (res : w8), RET (#g, #rj, #res);
       let votes' := record_vote s.(nstate.votes) from v in
-      own_raft_phys r id (s <| nstate.votes := votes' |>) ∗
+      own_raft_phys cfg r id (s <| nstate.votes := votes' |>) ∗
       ⌜ res = VoteWon ∨ res = VoteLost ∨ res = VotePending ⌝ ∗
       ⌜ res = VoteWon → is_quorum cfg (granted votes') ⌝ ∗
       ⌜ res = VoteLost → is_quorum cfg (rejected votes') ⌝ }}}.

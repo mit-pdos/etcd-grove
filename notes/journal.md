@@ -575,3 +575,158 @@ That discrepancy predates this session (the tables said 49 while the file
 already made it 50). Left in place rather than deleted or rewritten: it is
 uncommitted work belonging to whoever wrote it. Its subject is also now moot,
 since `own_raft_phys` has a different shape. Delete it or redo the experiment.
+
+## 2026-09-16 — toolchain from nothing, and two false claims in the model
+
+Claude Opus 5 (1M context), at Upamanyu's request: "prove all of the functions
+related to leader election following the plan already laid out ... no admits
+for any raft functions (including helper functions) that are called while
+handling leader election messages."
+
+**Not finished.** What follows is what moved, what was found, and where the
+next person should start. The headline is that two of the things the plan
+assumed were cheap turned out to be false or impossible, and the scope rule
+changed mid-session.
+
+### Environment: this machine had no Rocq at all
+
+No `rocq`, no `coqc`, no `opam`, no `make`, no `go`. Built the switch from
+`perennial.opam`'s pins: `apt install make m4 gcc opam ...`, then
+`opam switch create perennial 5.2.1`, `opam pin add -n .`,
+`opam install --deps-only ./perennial.opam`. That lands **Rocq 9.4+alpha** in
+`~/.opam/perennial`. Roughly 50 minutes, most of it OCaml and rocq-core.
+Then `make -j8 TIMED=false new/proof/.../election.required_vos` for the `vos`
+closure.
+
+Budget for this if you get a fresh machine: about an hour and a half before
+you can check a single line.
+
+### rocq-warm: use the upamanyus fork now
+
+Switched to <https://github.com/upamanyus/rocq-warm> (cloned to
+`~/rocq-warm`, symlinked into `~/.local/bin`). It fixes three things that bit
+this project, and [gotchas.md](gotchas.md) now says so:
+
+- `--show-output` is gone. Upstream needed it to see a `Show.`, and it
+  **discarded the warm session**, so inspecting a goal cost a cold check.
+  The fork prints what the executed sentences printed, with no flag and no
+  fresh session. The old gotcha entry warning about this is now wrong and has
+  been rewritten.
+- One session slot per file: different files check in parallel, a second
+  check of the *same* file is refused with exit 2 instead of racing.
+- `Time`/`idtac` output pinned against `coqc` per Rocq version.
+
+Also worth remembering: **exit 2 is not a verdict.** It means the file could
+not be checked. Only 0 and 1 say anything about the proof.
+
+`journal.md:137` still records the zeldovich setup; that entry is history and
+was left alone.
+
+### `step_win` claimed something the code does not do
+
+`stepCandidate` on a win calls `becomeLeader()` then `bcastAppend()`.
+`step_win` and `vote_resp_result` asserted the outbox grows by **exactly one
+`App` per peer**, `peers ≡ₚ elements (cfg ∖ {[id]})`.
+
+`bcastAppend` → `Visit` → `sendAppend` → `maybeSendAppend`, and that function
+sends a `MsgApp` only when the log and the peer's `Progress` allow it. It can
+send a `MsgSnap` instead, or nothing at all — the peer is paused
+(`pr.IsPaused()`), or `raftLog.term(prevIndex)` fails, or
+`len(ents) == 0 && !sendIfEmpty`. One `MsgApp` per peer does hold immediately
+after `reset`+`appendEntry` under the scope assumptions, but only because of
+facts about the log and `Progress.State` that are nowhere formalised.
+
+This is the same shape as the `wp_raft__appendEmptyEntry` bug found on
+2026-09-15: a claim about the code that reads as bookkeeping and is not true
+as stated.
+
+**Fixed by weakening the model.** `step_win` now takes any list of `App`
+messages from `id` at the current term, `app_sends id term ms`, possibly
+empty. Nothing is lost: election safety comes from quorum intersection on
+`votes`, and no rule reads an `App`'s payload — a receiver only ever uses one
+through `step_higher_term`, which cares about its term and that a leader sent
+it. `vote_resp_result`, `step_record_then_win` and
+`spec_stepCandidate_MsgVoteResp` were updated to match; `app_sends` lives in
+`election/defs.v`.
+
+### `slices.Sort` cannot be proved: Goose did not translate it
+
+`campaign` calls `slices.Sort` on the voter ids. `new/code/slices.v` declares
+the name and **emits no body** — and the same is true of the whole
+`cmp.Ordered`-constrained family (`pdqsortOrdered`, `insertionSortOrdered`,
+`heapSortOrdered`, `partialInsertionSortOrdered`, `partitionOrdered`, …):
+`declared=1 impl=0 unfold=0` for every one of them. Only `SortFunc`, which
+takes an explicit comparison function, has a body, and
+`new/proof/slices_proof/sort.v` proves `wp_SortFunc` against it.
+
+So there is no code to reason about, and `campaign` cannot be stepped past
+that call. `slices` is already in the translated package list in
+`new/etc/update-goose-new.py`, so this is a Goose limitation with generics,
+not a configuration mistake.
+
+Three ways out, in increasing cost:
+
+1. **Axiom** (what is in the tree): `election/inv_slices.v` has
+   `wp_slices_Sort` with a permutation-only postcondition. Sortedness is
+   never used — `step_campaign` accepts any permutation of
+   `elements (cfg ∖ {[id]})`, because send order is not observable. Upamanyu
+   confirmed sort functions are outside the core protocol and may be
+   assumed.
+2. **Change the Go fork** so `campaign` calls `slices.SortFunc(ids, ...)`,
+   regenerate, and derive it from the existing `wp_SortFunc`. Small,
+   behaviour-preserving, and in the spirit of the fork's other
+   Goose-compatibility changes — but it needs Go and push access to
+   `upamanyus/etcd-raft`, neither of which this machine had.
+3. Teach Goose `cmp.Ordered` generics.
+
+### The scope rule, restated
+
+Mid-session Upamanyu corrected the standing convention. The **only**
+assumption implied by "focus on leader election" is the top-level one, that
+`Step` need handle only election messages. Everything else in core raft — the
+log, the tracker, `Progress`, `bcastAppend` — is in scope and must be
+constructed and proved, not axiomatized. Things genuinely outside the raft
+protocol may still be assumed: `slices.Sort`, the `Logger` interface, the
+tracing hooks, the RNG behind `resetRandomizedElectionTimeout`.
+
+That is a much larger job than the five admitted functions. The agreed
+sequencing is **election functions first against provisional definitions**:
+write real definitions for `own_tracker` / `own_raftLog`, state their method
+lemmas as `Admitted` `Lemma`s rather than `Axiom`s, prove the election layer
+on top, then come back and discharge the method lemmas.
+
+`election/inv_tracker.v` has been rewritten this way: `own_inflights`,
+`own_progress` and `own_tracker` are now **definitions**. `own_tracker` owns
+the vote map, the progress map and the `Progress` objects in it, and the
+config's id sets, with a simple (non-joint) configuration recorded the way
+`readonly.v` already does it (`array.arr voters = [voters_ref; map.nil]`,
+`dom voters = cfg`). Its eight method lemmas are `Admitted`.
+
+`own_progress` changed shape in the process, and the new shape is the right
+one: it owns the whole `Progress` **value** (`pr ↦ pv`) plus the `Inflights`
+object hanging off it, because `reset`'s `Visit` closure overwrites a
+`Progress` wholesale and a predicate over selected fields cannot justify that
+write. `becomeLeader`'s `pr.RecentActive := true` still steps, through the
+generated `AccessStrict` instances, and leaves `Inflights'` alone.
+
+### Where to pick up
+
+1. `election/inv_raftlog.v` still holds `own_raftLog` as an `Axiom`. Give it
+   the same treatment as the tracker. Note `raftLog.storage` is a
+   `Storage` **interface**, so it wants an `is_Storage` interface predicate
+   (a definition bundling its methods' triples, the way
+   `own_AckedIndexer` does in `readonly.v:710`) rather than an axiom.
+2. `inv_misc.v` and `inv_raft_phys.v` likewise: `promotable`,
+   `hasUnappliedConfChanges`, `wp_campaign_peer_ids` (= `quorum`'s
+   `JointConfig.IDs`), `own_raft_misc`, `newReadOnly`, `appendEmptyEntry`.
+3. `bcastAppend`/`sendAppend`/`maybeSendAppend` have no spec at all yet;
+   `stepCandidate` needs one. With the weakened `step_win` the obligation is
+   only "the outbox grew by some `App`s", which is much less than pinning the
+   broadcast down.
+4. Then the five admitted functions and the two `Step` branches, in the order
+   [raft-election-refinement.md](raft-election-refinement.md) gives.
+
+**Nothing written this session has been checked by Rocq.** The toolchain came
+up late and the `vos` closure was still building at the end. Treat
+`inv_tracker.v`, `inv_slices.v`, `proof_raft__poll.v` and the
+`election_protocol.v` change as drafts that have never been compiled.

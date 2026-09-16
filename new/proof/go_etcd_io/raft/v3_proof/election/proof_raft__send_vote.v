@@ -5,7 +5,7 @@ Module SendVoteProof (P : SEND_VOTE_POSTULATES) : SEND_VOTE.
   Lemma wp_raft__send_vote : wp_raft__send_vote_body.
   Proof.
     intros_ambient.
-    intros r id s m ty.
+    intros cfg r id s m ty.
     (* [send] fills in [From] (which is already [id], or [None]), leaves [Term]
        alone for vote messages, and appends to [msgsAfterAppend] (for
        [MsgVoteResp]) or to [msgs] (for [MsgVote]).  Either way the abstract

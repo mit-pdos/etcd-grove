@@ -15,10 +15,10 @@ Definition wp_raft__hup_body :=
     (cfg : gset w64)
     (r : loc) (id : w64) (s : nstate.t) (t : raft.CampaignType.t),
   t ≠ campaignPreElection →
-  {{{ is_pkg_init raft ∗ own_raft_phys r id s }}}
+  {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "hup" #t
   {{{ s', RET #();
-      own_raft_phys r id s' ∗ ⌜ step cfg id s [] s' ⌝ }}}.
+      own_raft_phys cfg r id s' ∗ ⌜ step cfg id s [] s' ⌝ }}}.
 
 Module Type HUP.
   Parameter wp_raft__hup : wp_raft__hup_body.

@@ -320,3 +320,68 @@ only which state the struct now refines and how the outbox grew — never that
 the transition is *legal*. Legality is `Step`'s single `own_raft_ghost_step`.
 If you find yourself adding `own_raft_ghost` to an internal spec, that is the
 signal that something is being certified in the wrong place.
+
+## 2026-09-16 — what may be assumed: only the top-level election restriction
+
+Superseding the reading established on 2026-09-14 ("an `Axiom` in an
+`inv_*.v` file means out of scope").
+
+**Decision.** The only thing the election development may assume outright is
+the *top-level* restriction: that `raft.Step` need handle only
+leader-election messages. Everything in **core raft** — the log, the progress
+tracker, `Progress`, `bcastAppend`, `newReadOnly` — is in scope and has to be
+constructed and proved. Things genuinely outside the raft protocol may still
+be assumed, and these are the ones that qualify: `slices.Sort`, the `Logger`
+interface, the tracing hooks, and the RNG behind
+`resetRandomizedElectionTimeout`.
+
+**Why.** "Election does not reason about the log" was doing two jobs: marking
+what the *model* ignores (fine — the log really is invisible to the protocol
+state, because `isUpToDate` can only make a node decline, and declining is
+always legal) and excusing an axiom about what the *code* does (not fine —
+that is where `wp_raft__appendEmptyEntry` was able to be false for a day, and
+where `step_win` was able to be false for four). An axiom about raft's own
+code is a claim about the artifact under verification, and this project exists
+to check those claims.
+
+**Consequence.** `inv_tracker.v` was converted: `own_inflights`,
+`own_progress` and `own_tracker` are real `Definition`s, their eight method
+WPs `Admitted` `Lemma`s. `./etc/tcb-view.py --summary` moved from 57
+axioms/13 admits to 44/24 — the same facts, relabelled from "assumed" to "in
+scope, unfinished", which is the point. `inv_raftlog.v`, `inv_misc.v` and
+`inv_raft_phys.v` still need it; see
+[raft-election-refinement.md](raft-election-refinement.md) for what each one
+costs and for the one real design question in the pile (what the log
+abstraction should be, given that `raftLog.storage` is a client-supplied
+interface and wants an `is_Storage` predicate rather than an axiom).
+
+## 2026-09-16 — `step_win` sends *some* appends, not one per peer
+
+**Decision.** `step_win` (and `vote_resp_result`, `step_record_then_win`,
+`spec_stepCandidate_MsgVoteResp`) now say a new leader broadcasts an
+arbitrary list of `App` messages from `id` at the current term —
+`app_sends id term ms`, possibly empty — rather than exactly
+`(λ to, msg.mk mtype.App id to term false) <$> peers` for
+`peers ≡ₚ elements (cfg ∖ {[id]})`.
+
+**Why.** The old version was **false of the code**. `bcastAppend` visits each
+peer and calls `sendAppend` → `maybeSendAppend`, which emits a `MsgApp` only
+when the log and that peer's `Progress` allow: it returns early if
+`pr.IsPaused()`, falls back to `maybeSendSnapshot` (a `MsgSnap`, or nothing)
+if `raftLog.term(prevIndex)` or `raftLog.entries(...)` fails, and returns
+without sending if `len(ents) == 0 && !sendIfEmpty`. One-per-peer *does* hold
+immediately after `reset`+`appendEntry` under our scope assumptions, but only
+via facts about the log and `Progress.State` that are nowhere formalised — so
+asserting it was assuming log replication, not election.
+
+**What it costs: nothing.** Election safety comes from quorum intersection on
+`votes`, and no rule reads an `App`'s payload. A receiver only ever consumes
+an `App` through `step_higher_term`, which cares about its term and that a
+leader sent it — both still pinned. So the weaker rule refines the code and
+supports the same payoff theorem.
+
+**Do not strengthen it back** without first making `own_raftLog` and
+`Progress.State` transparent enough to prove the broadcast exactly. The
+symmetric mistake is recorded one entry up: this is the third time a
+plausible-looking bookkeeping claim about raft's outgoing messages has turned
+out to be untrue.

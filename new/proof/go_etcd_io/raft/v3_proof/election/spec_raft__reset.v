@@ -6,11 +6,12 @@ Definition wp_raft__reset_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
+    (cfg : gset w64)
     (r : loc) (id : w64) (s : nstate.t) (term : w64),
-  {{{ is_pkg_init raft ∗ own_raft_phys r id s }}}
+  {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "reset" #term
   {{{ RET #();
-      own_raft_phys r id
+      own_raft_phys cfg r id
         {| nstate.term := term;
            nstate.vote := if decide (term = s.(nstate.term))
                           then s.(nstate.vote) else W64 0;

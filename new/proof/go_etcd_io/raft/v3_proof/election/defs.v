@@ -87,6 +87,14 @@ Lemma abs_msg_opt_Some ty m :
   mtype_of m.(raftpb.Message.Type') = Some ty → abs_msg_opt m = Some (abs_msg ty m).
 Proof. rewrite /abs_msg_opt => ->. done. Qed.
 
+(** What [step_win] demands of a winner's broadcast: any list of [App]
+    messages from [id] at the given term, possibly empty.  Lives here rather
+    than in [step_lemmas.v] because [inv_raft_phys.v]'s [bcastAppend] axiom
+    needs it, and it does not mention [cfg]. *)
+Definition app_sends (id : w64) (term : w64) (ms : list msg.t) : Prop :=
+  Forall (λ m, m.(msg.ty) = mtype.App ∧ m.(msg.from) = id ∧
+               m.(msg.term) = term) ms.
+
 (** The abstract outbox of the two physical queues, together. *)
 Definition abs_outbox (msgs msgsAA : list raftpb.Message.t) : list msg.t :=
   omap abs_msg_opt msgs ++ omap abs_msg_opt msgsAA.

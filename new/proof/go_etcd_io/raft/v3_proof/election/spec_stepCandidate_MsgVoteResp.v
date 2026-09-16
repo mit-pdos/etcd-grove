@@ -22,14 +22,17 @@ Definition wp_stepCandidate_MsgVoteResp_body :=
      scope and [becomeLeader] needs this premise outright; neither is
      available from [own_raft_phys], so it is threaded in from the caller. *)
   id ∈ cfg →
-  {{{ is_pkg_init raft ∗ own_raft_phys r id s }}}
+  {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     @! raft.stepCandidate #r #m
   {{{ (err : error.t) s', RET #err;
-      own_raft_phys r id s' ∗
-      ⌜ ∃ won lost peers,
-          peers ≡ₚ elements (cfg ∖ {[id]}) ∧
+      own_raft_phys cfg r id s' ∗
+      (* [ms] is what [bcastAppend] broadcast on a win: some list of [App]s
+         from [id] at the current term, possibly empty.  [record_vote] does
+         not touch the term, so this is [s]'s term. *)
+      ⌜ ∃ won lost ms,
+          app_sends id s.(nstate.term) ms ∧
           s' = vote_resp_result id s m.(raftpb.Message.From')
-                 m.(raftpb.Message.Reject') won lost peers ⌝ }}}.
+                 m.(raftpb.Message.Reject') won lost ms ⌝ }}}.
 
 Module Type STEPCANDIDATE.
   Parameter wp_stepCandidate_MsgVoteResp : wp_stepCandidate_MsgVoteResp_body.

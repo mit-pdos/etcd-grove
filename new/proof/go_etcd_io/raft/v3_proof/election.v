@@ -28,6 +28,7 @@
 
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.defs.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.inv_raftlog.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.inv_slices.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.inv_tracker.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.inv_logger.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.inv_misc.

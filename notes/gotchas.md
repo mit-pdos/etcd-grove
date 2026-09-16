@@ -41,15 +41,32 @@ opam command after any `git pull` that touches `perennial.opam`.
 
 ## `rocq-warm` needs `--allow-stale` if you build with `vos`
 
-[rocq-warm](https://github.com/zeldovich/rocq-warm) keeps a `rocq repl` warm
-so a tactic edit near the end of a big file re-checks only from the edit
+Use the **[upamanyus fork](https://github.com/upamanyus/rocq-warm)**, not
+`zeldovich/rocq-warm` — see below for what it fixes. It keeps a `rocq repl`
+warm so a tactic edit near the end of a big file re-checks only from the edit
 onwards — seconds instead of minutes. But it decides staleness the way `make`
 does, on `.vo` files, so against a `make vos` tree it refuses every check
 ("N dependencies are stale"). Pass `--allow-stale`; it then loads the `.vos`
 files and works fine. Also raise `ROCQ_WARM_MAX_SESSION_GB` (the default
-ceiling is small enough that a Perennial session gets evicted mid-edit), and
-note that `--show-output` — which you need to see a `Show.` — discards the
-warm session, so a goal inspection costs a cold check.
+ceiling is small enough that a Perennial session gets evicted mid-edit).
+
+Three things the fork fixes, all of which bit here:
+
+- **A `Show.` no longer costs a cold check.** Upstream needed
+  `--show-output` to print what a proof printed, and that flag discarded the
+  warm session — so inspecting a goal cost a full cold replay. The fork
+  prints whatever the sentences it executed printed, with no flag and no
+  fresh session, so adding a `Show.` and re-checking is an ordinary replay.
+  It also stopped reading a bare `Show.` as a syntax error.
+- **Concurrent checks are safe.** One session slot per file: different files
+  check in parallel (the case that matters when several agents or terminals
+  share this checkout), and a second check of the *same* file is refused with
+  exit 2 rather than racing two multi-GB sessions against one question.
+- **`Time` and `idtac` output** is pinned against `coqc` per Rocq version.
+
+Remember that **exit 2 is not a verdict** — it means the file could not be
+checked (stale dependency, already being checked, no daemon, no `rocq`). Only
+0 and 1 say anything about the proof.
 
 ## `word` does not reliably close `W32 a ≠ W32 b`
 
@@ -250,3 +267,89 @@ and one to plan around:
 - **It re-runs every time**, ~100s per function here. Don't put a broad `.vok`
   sweep in a tight loop; check the one file you touched, and do the full sweep
   once at the end.
+
+## Getting one struct field out of `r ↦ rv`: use `access_strict`, and pin the load instance
+
+`RecordVote`/`TallyVotes` want the tracker's *location*, which a caller
+holding the whole raft struct has to split out. The generated `AccessStrict`
+instances (`new/generatedproof/go_etcd_io/raft/v3.v`, e.g.
+`raft_access_load_trk` / `raft_access_store_trk`) are the way:
+
+```coq
+iDestruct (access_strict
+             (A := r.[raft.raft.t, "trk"] ↦ rv.(raft.raft.trk'))
+             (A' := r.[raft.raft.t, "trk"] ↦ rv.(raft.raft.trk'))
+             (P := r ↦ rv) (P' := r ↦ rv)
+             with "Hr") as "[Htrkf Hrback]".
+...
+iDestruct ("Hrback" with "Htrkf") as "Hr".
+```
+
+**The `(P := …) (P' := …)` are load-bearing.** With `A = A'` the *store*
+instance also unifies, and it hands back `r ↦ rv <| trk' := rv.(trk') |>` —
+a no-op record update that is not syntactically `rv`, so re-sealing
+`own_raft_phys` then fails with a leftover `"Hr" ∷ r ↦ rv` goal. Pinning `P'`
+selects the load instance. For a call that genuinely *changes* the field
+(`ResetVotes` replaces `Votes`), drop `P'` and give `A'` at the new value so
+the store instance is chosen. (`proof_raft__poll.v`.)
+
+## `iNamed` does not fire on an unsealed `typed_pointsto`
+
+`iEval (rewrite typed_pointsto_unseal /typed_pointsto_wrap /=) in "Hr"` does
+turn `r ↦ rv` into the named conjunction of its 35 field points-tos — the
+goal displays them with `∷` — but `iNamed "Hr"` afterwards **silently does
+nothing**, leaving `Hr` intact. The failure surfaces much later as
+`iSpecialize: hypotheses ["trk"] not found`. `iNamedSuffix` likewise. So that
+route needs a positional `iDestruct` naming every field; prefer
+`access_strict` above. (Cost ~40 minutes on 2026-09-16.)
+
+## The postcondition is a `∗`, so `iExists` on it fails
+
+A spec like `poll`'s returns `own_raft_phys … ∗ ⌜_⌝ ∗ ⌜_⌝ ∗ ⌜_⌝`. After
+`iApply ("HΦ" $! …)` the goal is that whole conjunction, so
+`rewrite /own_raft_phys. iExists rv, msgs, msgsAA, lok` fails with
+`Tactic failure: iExists: … not an existential` — and the error prints the
+entire goal, which buries the one-line cause. Split first:
+
+```coq
+iSplitL "Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc".
+{ rewrite /own_raft_phys. iExists rv, msgs, msgsAA, lok. simpl. iFrame "∗#%". }
+iPureIntro. split_and!; done.
+```
+
+## A section-variable-carrying definition takes it explicitly *only from outside its own file*
+
+Since `own_tracker` became a real definition mentioning `cfg`, it takes `cfg`
+as a leading argument — so `inv_misc.v` writes `own_tracker cfg tv votes`.
+But `own_raft_phys`, defined in `inv_raft_phys.v` with `cfg` a section
+variable *of that file*, is written **without** `cfg` inside
+`inv_raft_phys.v` and **with** it everywhere else (`own_raft_phys cfg r id s`).
+Getting this backwards gives `The term "cfg" has type "gset w64" while it is
+expected to have type "loc"` — which reads like a typo and is not.
+
+## `step_lemmas.v` is not in scope from every `proof_*.v`
+
+`apply step_drop` fails with "The variable step_drop was not found in the
+current environment" from `proof_raft__hup.v`, because the require chain
+`spec_raft__hup.v` → `inv_raft_phys.v` never reaches `step_lemmas.v`. The
+`step` **constructors** (`step_refl`, `step_campaign`, …) are always
+available, since they come in with `election_protocol.v` via `defs.v`; the
+derived composition lemmas in `step_lemmas.v` are not. Either use the
+constructor directly or check the chain first. (Found proving `hup`,
+2026-09-16.)
+
+## `apply bool_decide_eq_true_1` on the goal cannot infer its `Decision`
+
+It fails with `Unable to find an instance for the variable Decision0`,
+because the instance is unconstrained when `bool_decide` appears only in the
+conclusion. Apply it to the hypothesis instead:
+
+```coq
+symmetry in Hb. apply bool_decide_eq_true_1 in Hb.
+```
+
+This is the idiom for turning `wp_raft__promotable`'s
+`b = bool_decide (rv.(raft.raft.id') ∈ cfg)` into the `id ∈ cfg` that
+`campaign` and `becomeLeader` require, so anything on the
+`hup`/`campaign`/`stepCandidate` path needs it. (Found proving `hup`,
+2026-09-16.)

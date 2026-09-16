@@ -13,6 +13,7 @@ Definition wp_raft__send_vote_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
+    (cfg : gset w64)
     (r : loc) (id : w64) (s : nstate.t) (m : raftpb.Message.t) (ty : mtype.t),
   m.(raftpb.Message.From') = W64 0 →
   m.(raftpb.Message.Type') = MsgVote ∨ m.(raftpb.Message.Type') = MsgVoteResp →
@@ -21,10 +22,10 @@ Definition wp_raft__send_vote_body :=
   (* [send] panics on a self-addressed non-response; a candidate never sends
      itself a [MsgVote]. *)
   (m.(raftpb.Message.Type') = MsgVote → m.(raftpb.Message.To') ≠ id) →
-  {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys r id s }}}
+  {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "send" #m
   {{{ RET #();
-      own_raft_phys r id
+      own_raft_phys cfg r id
         (send_msgs s [msg.mk ty id m.(raftpb.Message.To')
                         m.(raftpb.Message.Term') m.(raftpb.Message.Reject')]) }}}.
 

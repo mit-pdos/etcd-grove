@@ -21,6 +21,12 @@ Context {sem : go.Semantics} {package_sem : raft.Assumptions}.
 Collection W := sem + package_sem.
 Set Default Proof Using "W".
 
+(** The (fixed) set of voters.  [own_raft_phys] mentions it because
+    [own_tracker] does: now that the tracker is a real definition rather than
+    an opaque axiom, it pins the progress map's domain and the configuration's
+    voter set to [cfg]. *)
+Context (cfg : gset w64).
+
 Implicit Type γ : raft_election_names.
 Implicit Type s : nstate.t.
 
@@ -48,7 +54,7 @@ Definition own_raft_phys (r : loc) (id : w64) s : iProp Σ :=
   (** the vote tally, and the rest of the heap the tracker points at.  The
       tracker's own bytes are covered by [Hr] above, since [trk] is embedded
       by value; this is only what hangs off it. *)
-  "Htrk" ∷ own_tracker rv.(raft.raft.trk') s.(nstate.votes) ∗
+  "Htrk" ∷ own_tracker cfg rv.(raft.raft.trk') s.(nstate.votes) ∗
 
   (** the log, opaque *)
   "Hlog" ∷ own_raftLog rv.(raft.raft.raftLog') ∗
@@ -103,5 +109,26 @@ Axiom wp_raft__appendEmptyEntry : ∀ (r : loc) id s (es : slice.t),
   {{{ is_pkg_init raft ∗ own_raft_phys r id s }}}
     r @! (go.PointerType raft.raft) @! "appendEntry" #es
   {{{ RET #true; own_raft_phys r id s }}}.
+
+(** The broadcast a new leader sends.  [bcastAppend] visits every peer's
+    [Progress] and calls [sendAppend], which reaches [maybeSendAppend] -- and
+    that sends a [MsgApp] only when the log and the peer's [Progress] permit
+    it, otherwise a [MsgSnap] or nothing at all (the peer is paused, or there
+    is nothing to send and [sendIfEmpty] is false).
+
+    So this says **not** one [MsgApp] per peer, only that the outbox grew by
+    some list of [App]s from [id] at the current term.  That is exactly what
+    the weakened [step_win] asks for, and all the election model ever uses: a
+    receiver reads an [App] through [step_higher_term], which cares about its
+    term and that a leader sent it.  An earlier version of the model demanded
+    one per peer, which would have made this claim false -- the same trap
+    [wp_raft__appendEmptyEntry] fell into before 2026-09-15. *)
+Lemma wp_raft__bcastAppend (r : loc) id s :
+  {{{ is_pkg_init raft ∗ own_raft_phys r id s }}}
+    r @! (go.PointerType raft.raft) @! "bcastAppend" #()
+  {{{ (ms : list msg.t), RET #();
+      own_raft_phys r id (send_msgs s ms) ∗
+      ⌜ app_sends id s.(nstate.term) ms ⌝ }}}.
+Proof. Admitted.
 
 End proof.

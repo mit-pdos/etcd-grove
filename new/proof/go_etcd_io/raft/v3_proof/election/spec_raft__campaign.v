@@ -18,12 +18,12 @@ Definition wp_raft__campaign_body :=
   t ≠ campaignPreElection →
   s.(nstate.role) ≠ role.Leader →
   id ∈ cfg →
-  {{{ is_pkg_init raft ∗ own_raft_phys r id s }}}
+  {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "campaign" #t
   {{{ (peers : list w64), RET #();
       ⌜ peers ≡ₚ elements (cfg ∖ {[id]}) ⌝ ∗
       let s' := become_candidate id s in
-      own_raft_phys r id
+      own_raft_phys cfg r id
         (send_msgs s'
            ([msg.mk mtype.VoteResp id id s'.(nstate.term) false] ++
             ((λ to, msg.mk mtype.Vote id to s'.(nstate.term) false) <$> peers))) }}}.

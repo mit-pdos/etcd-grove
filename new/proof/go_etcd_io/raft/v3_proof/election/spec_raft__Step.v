@@ -28,7 +28,7 @@ Definition wp_raft__Step_body :=
   (m.(raftpb.Message.Type') = MsgVoteResp →
      m.(raftpb.Message.To') = id ∧ m.(raftpb.Message.Term') ≠ W64 0) →
   {{{ is_pkg_init raft ∗
-      "Hphys" ∷ own_raft_phys r id s ∗
+      "Hphys" ∷ own_raft_phys cfg r id s ∗
       "Hghost" ∷ own_raft_ghost γ id s ∗
       "#Hm" ∷ (∀ ty, ⌜ mtype_of m.(raftpb.Message.Type') = Some ty ⌝ -∗
                      is_message γ (abs_msg ty m)) ∗
@@ -37,7 +37,7 @@ Definition wp_raft__Step_body :=
   }}}
     r @! (go.PointerType raft.raft) @! "Step" #m
   {{{ (err : error.t) s', RET #err;
-      "Hphys" ∷ own_raft_phys r id s' ∗
+      "Hphys" ∷ own_raft_phys cfg r id s' ∗
       "Hghost" ∷ own_raft_ghost γ id s' ∗
       "%Hrefines" ∷ ⌜ ∃ recv, step cfg id s recv s' ⌝ ∗
       "%Herr" ∷ ⌜ err = interface.nil ⌝ }}}.

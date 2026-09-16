@@ -29,10 +29,10 @@ Implicit Type s : nstate.t.
   Lemma wp_Step_MsgHup r id s (m : raftpb.Message.t) :
     m.(raftpb.Message.Type') = MsgHup →
     m.(raftpb.Message.Term') = W64 0 →
-    {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys r id s }}}
+    {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s }}}
       r @! (go.PointerType raft.raft) @! "Step" #m
     {{{ (err : error.t) s', RET #err;
-        "Hphys" ∷ own_raft_phys r id s' ∗
+        "Hphys" ∷ own_raft_phys cfg r id s' ∗
         "%Hrefines" ∷ ⌜ step cfg id s [] s' ⌝ ∗
         "%Herr" ∷ ⌜ err = interface.nil ⌝ }}}.
   Proof.
@@ -50,7 +50,7 @@ Implicit Type s : nstate.t.
     (* no pre-vote, so this is a plain [hup(campaignElection)] *)
     rewrite HnoPreVote. wp_auto.
     (* re-seal the physical ownership for [hup] *)
-    iAssert (own_raft_phys r id s)
+    iAssert (own_raft_phys cfg r id s)
     with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys".
     { rewrite /own_raft_phys. iFrame "∗#%". }
     wp_apply (P.wp_raft__hup with "[$Hphys]") as "%s' (Hphys & %Hstep)".
@@ -66,7 +66,7 @@ Implicit Type s : nstate.t.
     (* [send] stamps the sender's id into [From], and node ids are nonzero *)
     m.(raftpb.Message.From') ≠ W64 0 →
     {{{ is_pkg_init raft ∗
-        "Hphys" ∷ own_raft_phys r id s ∗
+        "Hphys" ∷ own_raft_phys cfg r id s ∗
         (* the message's [Context] is readable and is not the leader-transfer
            marker: leader transfer is out of scope *)
         "#Hctx" ∷ (∃ ctx, m.(raftpb.Message.Context') ↦*□ ctx ∗
@@ -74,7 +74,7 @@ Implicit Type s : nstate.t.
     }}}
       r @! (go.PointerType raft.raft) @! "Step" #m
     {{{ (err : error.t) s', RET #err;
-        "Hphys" ∷ own_raft_phys r id s' ∗
+        "Hphys" ∷ own_raft_phys cfg r id s' ∗
         (* [recv] is whatever this branch consumed -- nothing, or the incoming
            message once or twice.  Naming its elements rather than the list
            lets [wp_raft__Step] discharge the [is_message] side of
@@ -125,7 +125,7 @@ Implicit Type s : nstate.t.
     rewrite Hty /MsgVote bool_decide_eq_false_2; last w32_ne. wp_auto.
     rewrite Hty /MsgVote bool_decide_eq_false_2; last w32_ne. wp_auto.
     rewrite Hty /MsgVote bool_decide_eq_false_2; last w32_ne. wp_auto.
-    iAssert (own_raft_phys r id s)
+    iAssert (own_raft_phys cfg r id s)
       with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys".
     { rewrite /own_raft_phys. iExists rv, msgs, msgsAA, lok. iFrame "∗#%". }
     wp_apply (P.wp_raft__becomeFollower with "[$Hphys]") as "Hphys".
@@ -175,16 +175,17 @@ Implicit Type s : nstate.t.
       { apply step_grant_vote; [done|exact Hto|done|].
         rewrite /can_vote /become_follower /=. right.
         split; [by rewrite decide_False|done]. }
-      iAssert (own_raft_phys r id (become_follower s m.(raftpb.Message.Term') (W64 0)))
+      iAssert (own_raft_phys cfg r id (become_follower s m.(raftpb.Message.Term') (W64 0)))
         with "[Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1]"
         as "Hphys".
       { rewrite /own_raft_phys. iExists rv0, msgs0, msgsAA0, lok0.
         rewrite /become_follower /= decide_False //. iFrame "∗#%". }
       (* TODO: the remaining steps are [send] of the granted vote and the
          [r.Vote := m.From] update; see notes/raft-election-refinement.md *)
+      Show.
       admit.
-    + admit.
-    - admit.
+    + Show. admit.
+    - Show. admit.
   Admitted.
 
   (** [MsgVoteResp]: dispatched to [stepCandidate]. *)
@@ -192,10 +193,10 @@ Implicit Type s : nstate.t.
     m.(raftpb.Message.Type') = MsgVoteResp →
     m.(raftpb.Message.To') = id →
     m.(raftpb.Message.Term') ≠ W64 0 →
-    {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys r id s }}}
+    {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s }}}
       r @! (go.PointerType raft.raft) @! "Step" #m
     {{{ (err : error.t) s', RET #err;
-        "Hphys" ∷ own_raft_phys r id s' ∗
+        "Hphys" ∷ own_raft_phys cfg r id s' ∗
         "%Hrefines" ∷ ⌜ ∃ recv,
             (∀ m', m' ∈ recv → m' = abs_msg mtype.VoteResp m) ∧
             step cfg id s recv s' ⌝ ∗
