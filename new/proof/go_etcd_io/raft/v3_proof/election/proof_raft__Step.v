@@ -531,6 +531,14 @@ Implicit Type s : nstate.t.
        (* Goose's short-circuit [||]/[&&] leave [bool_decide (true = <inner>)]
           wrappers; once [<inner>] is [false] this collapses them. *)
        assert (Htf : bool_decide (true = false) = false) by done.
+       (* the type switch's four tests: MsgHup(0), MsgStorageAppendResp(20),
+          MsgStorageApplyResp(22), MsgPreVote(17)||MsgVote(5) *)
+       assert (Hn0 : bool_decide (m.(raftpb.Message.Type') = W32 0) = false)
+         by (apply bool_decide_eq_false_2; rewrite Hty6; w32_ne).
+       assert (Hn20 : bool_decide (m.(raftpb.Message.Type') = W32 20) = false)
+         by (apply bool_decide_eq_false_2; rewrite Hty6; w32_ne).
+       assert (Hn22 : bool_decide (m.(raftpb.Message.Type') = W32 22) = false)
+         by (apply bool_decide_eq_false_2; rewrite Hty6; w32_ne).
        wp_start as "@". iNamed "Hphys". wp_auto.
        wp_apply (wp_traceReceiveMessage with "[$Hmisc]") as "Hmisc".
        assert (bool_decide (m.(raftpb.Message.Term') = W64 0) = false) as Hz
@@ -581,10 +589,20 @@ Implicit Type s : nstate.t.
            - rewrite /abs_msg /= -Hterm0. exact Hgt.
            - rewrite /abs_msg /=. exact Hto. }
          iNamedSuffix "Hphys" "1".
-      (* PARKED HERE: goal is the type switch's [MsgHup] (W32 0) test, with
-         [Hn0 : bool_decide (Type = W32 0) = false] still to be hoisted. *)
+         (* the type switch: none of its four cases matches a MsgVoteResp, so
+            control reaches the default arm r.step(m) *)
+         rewrite Hn0. wp_auto.
+         rewrite Hn20. wp_auto.
+         rewrite Hn22. wp_auto.
+      (* PARKED HERE (verified to this point, RC=0): the goal is the type
+         switch's last test, [MsgPreVote(17) || MsgVote(5)], one step from the
+         default arm [r.step(m)].  Discharge it with [Hn17]/[Hn5] (both
+         already hoisted), then [Hstepfn1] identifies [r.step] as
+         [stepFollower] -- the role is [Follower] after the step-down -- so
+         [P.wp_stepFollower_MsgVoteResp] applies and leaves the state
+         untouched.  Close with [recv := [abs_msg mtype.VoteResp m]] and [Hsd]
+         as the [step] witness. *)
 *)
-
 
 End branches.
 
