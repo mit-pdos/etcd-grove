@@ -728,7 +728,11 @@ EXPECTED_AXIOMS = {
     "election.v": 0,
     "defs.v": 0,
     "inv_raftlog.v": 5,
-    "inv_tracker.v": 7,
+    # inv_tracker.v became definitions + Admitted lemmas on 2026-09-16: the
+    # tracker is core raft, so it is in scope and must be proved, not assumed.
+    # Its seven method WPs are now counted under EXPECTED_ADMITS instead.
+    "inv_tracker.v": 0,
+    "inv_slices.v": 1,
     "inv_logger.v": 3,
     "inv_misc.v": 9,
     # wp_raft__appendEmptyEntry moved here from inv_misc.v on 2026-09-15: it
@@ -744,19 +748,34 @@ EXPECTED_ADMITS = {
     "readonly.v": 5,
     "election_protocol.v": 0,
     "election.v": 0,
-    "proof_raft__reset.v": 1,
-    "proof_raft__poll.v": 1,
+    # Proved 2026-09-16.
+    "proof_raft__reset.v": 0,
+    "proof_raft__poll.v": 0,
+    "proof_raft__hup.v": 0,
+    "proof_stepCandidate_MsgVoteResp.v": 0,
+    # campaign: the worker lemma wp_campaign is Admitted with 4 interior
+    # admits; wp_raft__campaign itself is Qed from it.  Its spec is also
+    # FALSE as written -- see notes/STATUS.md.
     "proof_raft__campaign.v": 1,
-    "proof_raft__hup.v": 1,
-    "proof_stepCandidate_MsgVoteResp.v": 1,
+    # The in-scope-but-unfinished method WPs of the core-raft components.
+    "inv_tracker.v": 7,
+    "inv_misc.v": 4,
+    "inv_raft_phys.v": 1,
     # Step's MsgVote and MsgVoteResp branches are internal lemmas of its own
     # proof, not separately specified functions -- see proof_raft__Step.v.
+    # Both branches are still Admitted.  MsgVote's script is complete and
+    # preserved in the file, but does NOT check -- see the note there, and
+    # notes/gotchas.md on why a `Qed.` is not evidence.
     "proof_raft__Step.v": 2,
 }
 # The whole point of the spec/postulates/proof/link layout: one spec file per
 # function, one Parameter in it, and nothing trusted anywhere in it.  Eleven
 # obligations for eleven Go functions.
-EXPECTED_TOTALS = {"axioms": 50, "obligations": 11, "admitted": 14}
+# 2026-09-16: axioms fell 50 -> 44 and admits rose 14 -> 24 in one step, when
+# inv_tracker.v was converted from axioms to definitions.  That is the same
+# facts relabelled from "assumed" to "in scope, unfinished", which is the
+# point of the exercise -- the number to watch is the axiom count.
+EXPECTED_TOTALS = {"axioms": 44, "obligations": 11, "admitted": 22}
 
 FIXTURES = [
     # (source, check name, predicate over units)

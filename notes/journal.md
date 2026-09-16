@@ -805,3 +805,81 @@ nothing else.
 - **State left behind:** `reset` off the admitted list in `STATUS.md` and
   `raft-election-refinement.md`; four entries added to / corrected in
   `gotchas.md`. Nothing else touched.
+
+## 2026-09-16 (later) — four functions proved, in parallel; two false statements found
+
+Same session as the entry above. Five subagents, one `proof_*.v` file each,
+working in one checkout with shared lemma statements pre-placed so they could
+not collide.
+
+**Proved, each confirmed with `make <file>.vok` exiting 0:** `poll`, `hup`,
+`reset`, `stepCandidate`. Plus `becomeFollower`, `becomeCandidate`,
+`becomeLeader`, `send_vote` and `voteRespMsgType` re-verified after the
+refactors below, rather than assumed still-good.
+
+`reset` was the load-bearing one — the three `becomeX` proofs rested on it.
+
+### Two more false statements
+
+- **`step_win`** claimed a winner's outbox grows by exactly one `App` per
+  peer. `bcastAppend` → `maybeSendAppend` sends a `MsgApp` only when the log
+  and the peer's `Progress` permit, otherwise a `MsgSnap` or nothing.
+  Weakened to `app_sends`. See [decisions.md](decisions.md).
+- **`spec_raft__campaign.v` is false** and still is. `send` panics on a vote
+  message with `Term = 0`; `campaign` sends at `r.Term` after
+  `becomeCandidate` increments it; so `s.(nstate.term) = 2^64-1` wraps to 0
+  and the code panics. Needs a no-wrap premise threaded from `campaign`
+  through `hup` into `Step`'s `MsgHup` hypothesis. Not applied, because
+  `spec_raft__Step.v` was being proved against concurrently. Details in
+  [STATUS.md](STATUS.md).
+
+That is three in two days, counting `wp_raft__appendEmptyEntry` from
+2026-09-15, and **all three were claims about what raft does to its outgoing
+messages**. Check anything of that shape against `raft__sendⁱᵐᵖˡ` directly.
+
+### The mistake worth remembering
+
+`wp_Step_MsgVote` was reported here as proved. **It was not.** It ended in
+`Qed.` in the file, and `.vos` skips opaque proofs so nothing objected, but
+`make proof_raft__Step.vok` fails inside it. The complete script is preserved
+in the file with the exact error; the lemma is back to `Admitted`. Grepping
+for `Admitted` does not measure what is proved — only `vok` does. New entry
+in [gotchas.md](gotchas.md).
+
+Related: a `.vok` run that races a live edit in the same checkout fails on a
+transient state. Stop the writer, then re-check, before concluding anything.
+
+### Structural changes
+
+- `inv_tracker.v` converted from axioms to **definitions** + `Admitted`
+  method lemmas (the tracker is core raft, so it is in scope). Axioms fell
+  57 → 44 while admits rose 13 → 22; `./etc/tcb-view.py --self-check` was
+  refreshed to match and passes. The axiom count is the number to watch.
+- `own_progress` now owns the whole `Progress` value plus its `Inflights`,
+  because `reset`'s `Visit` closure overwrites one wholesale.
+- `own_tracker` mentioning `cfg` forced `own_raft_phys` to take `cfg` too —
+  57 call sites, four specs needing a new binder. Note the section rule:
+  `own_raft_phys` is written **without** `cfg` inside `inv_raft_phys.v` and
+  **with** it everywhere else.
+- `own_tracker` gained `size cfg < 2^63`; nothing bounded the voter set, so
+  `make([]uint64, 0, len(idMap))` was unprovable.
+- Two `_POSTULATES` lists were wrong: `STEPCANDIDATE_POSTULATES` lacked
+  `BECOMEFOLLOWER` and carried an unreachable `SEND_VOTE`;
+  `CAMPAIGN_POSTULATES` lacked `VOTERESPMSGTYPE`. A missing include blocks a
+  proof; a spurious one is silent. `Print Module Type` shows the truth.
+
+### Process notes for the next fan-out
+
+- Pre-place shared lemma *statements* before spawning agents, and give each
+  agent exactly one `proof_*.v`. That worked: no collisions in the proofs.
+- Agents did edit `notes/` despite being told not to, and one **corrected a
+  gotcha entry of mine that was wrong** (`iNamed` does fire on an unsealed
+  `typed_pointsto` once the trailing `⌜r ≠ null⌝` is peeled off). Net good.
+- **Give each agent a private scratch directory.** They shared one and
+  overwrote each other's files, costing confusing cycles. Two agents also
+  left scratch `.v` files that a `git add -A` swept into commits; both are
+  deleted now. `tcb-view` counts admits in such files, so they distort the
+  inventory too.
+- The rocq-warm daemon is shared per checkout: killing a client leaves that
+  *file* marked busy (exit 2 for everyone), and its stdout interleaves other
+  files' sessions, so grep for your own filename's verdict line.

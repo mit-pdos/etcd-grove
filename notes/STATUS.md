@@ -74,14 +74,41 @@ branch `worktree-raft-election-refinement`. Compiles and is reached from
 `new/should_build.v`.
 
 Eleven Go functions are specified, one file each. Proved (`Qed`, each
-confirmed with `make <file>.vok`): `voteRespMsgType`, `send`,
-`becomeFollower`, `becomeCandidate`, `becomeLeader`, **`poll`** and
-**`hup`** and **`reset`** (all 2026-09-16), `Step`'s dispatch and its
-`MsgHup` branch, and `raft_election_safety`.
+confirmed with `make <file>.vok` exiting 0 on that revision):
+`voteRespMsgType`, `send`, `becomeFollower`, `becomeCandidate`,
+`becomeLeader`, `raft_election_safety`, `Step`'s top-level dispatch and its
+`MsgHup` branch, and — all on 2026-09-16 — **`poll`**, **`hup`**,
+**`reset`** and **`stepCandidate`**.
 
-Still `Admitted` as of 2026-09-16: `campaign`, `stepCandidate`, and
-the `MsgVote` / `MsgVoteResp` branches inside `proof_raft__Step.v`
-(`MsgVote` is proved as far as `isUpToDate`).
+`reset` closing matters beyond itself: the three `becomeX` proofs rested on
+it, so they no longer stand on an admit.
+
+Three holes remain on the election path:
+
+- **`campaign`** — compiles with 11 lemmas `Qed`, but the worker lemma
+  `wp_campaign` is `Admitted` with 4 interior `admit`s (the two `send`s and
+  the loop exit; script preserved verbatim in the file's closing comment).
+  **Its spec is also false** — see "Known broken", and fix that first,
+  because closing these admits against a false spec would prove nothing.
+- **`Step`'s `MsgVote` branch** — `Admitted`. A complete script is preserved
+  in the file, covering the term preamble, the lease check, both pre-vote
+  arms, the step-down, the `canVote` computation and all four `isUpToDate`
+  arms. It **does not check**: `vok` fails in the "a leader is known, so the
+  vote is declined" arm with `iApply: cannot apply` at the
+  `wp_raftLog__lastEntryID` call. The likely cause is that the two declined
+  arms have discharged different numbers of `bool_decide`s, so the shared
+  `vote_reject_tail` tactic assumes the wrong program shape.
+
+  **This one is a cautionary tale**, recorded in
+  [gotchas.md](gotchas.md): it sat in the tree ending in `Qed.` and was
+  reported as proved on the strength of reading the file. `.vos` skips opaque
+  proofs, so nothing objected. Grepping for `Admitted` does not measure what
+  is proved.
+- **`Step`'s `MsgVoteResp` branch** — `Admitted`, no script. It should be a
+  dispatch to `stepCandidate`, which is now genuinely proved; the open
+  question is whether `id ∈ cfg` can be discharged from what
+  `wp_Step_MsgVoteResp` has in scope, or has to be threaded into the branch
+  lemma.
 
 `poll` is the worked example to imitate for the rest — it is short, it was
 proved from scratch against the real code, and it demonstrates the
@@ -157,9 +184,16 @@ longer holds for core raft. The trust base is now split as:
   functor ascribed to that signature.
 
 `inv_tracker.v` was converted to this shape on 2026-09-16: `own_inflights`,
-`own_progress` and `own_tracker` are real **definitions**, with their eight
+`own_progress` and `own_tracker` are real **definitions**, with their seven
 method lemmas `Admitted`. `inv_raftlog.v` and `inv_misc.v` still need the
-same treatment — see [journal.md](journal.md).
+same treatment — see
+[raft-election-refinement.md](raft-election-refinement.md) for what each one
+costs.
+
+As of 2026-09-16 the count is **44 axioms and 21 `Admitted`**, and
+`./etc/tcb-view.py --self-check` passes against it. The axiom count is the
+number to watch: admits rising while axioms fall is the conversion working,
+not a regression.
 
 There are also 11 module-type obligations — one `Parameter` per Go function.
 Those are **not** assumptions: each is discharged by the functor ascribed to
@@ -236,19 +270,6 @@ Unclaimed; pick one and say so in the journal.
   `send`/`msgs`/`msgsAfterAppend` is the thing this development keeps getting
   wrong, so check those against `raft__sendⁱᵐᵖˡ` specifically.
 
-
-- **`./etc/tcb-view.py --self-check` fails against a stale inventory.** Its
-  `EXPECTED_AXIOMS` / `EXPECTED_ADMITS` / `EXPECTED_TOTALS` tables
-  (`etc/tcb-view.py:719-759`) still say 50 axioms and 14 admits; the tree is
-  at 44 and 24 after the 2026-09-16 conversion of `inv_tracker.v` from axioms
-  to definitions, and after `poll`/`hup`/`stepCandidate` were proved. **The
-  tool is right and the table is stale** — refresh the table, do not "fix"
-  the counts. Refresh it in the same commit as any future axiom→definition
-  conversion; that is what the table is for.
-
-  The older form of this entry blamed an untracked
-  `election/exp_phys_sealed.v`. That file is **gone**, so that part is
-  resolved.
 
 - **`ruff check` fails: 64 errors.** Pre-existing on this commit, in
   `etc/*.py`, `new/etc/update-goose-new.py`, `new/experiments/gencongruence.py`

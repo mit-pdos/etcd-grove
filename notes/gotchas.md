@@ -436,3 +436,23 @@ trap, because `postulates_raft__Step.v` includes `STEPCANDIDATE` (the spec
 Different files check in parallel (that is the point of the fork's
 slot-per-file concurrency), and their output lands on one stream. Grep for
 your own filename's `OK`/`FAILED` line; do not trust the tail of the output.
+
+## A `Qed.` in the file is not a proof — only `make <file>.vok` is
+
+On 2026-09-16 `proof_raft__Step.v`'s `wp_Step_MsgVote` sat in the tree ending
+in `Qed.`, looking finished, while `make <file>.vok` failed inside it with
+`Tactic failure: iApply: cannot apply`. It was reported as proved on the
+strength of *reading* the file. It was not proved.
+
+This is the `.vos` trap wearing a different hat: `.vos` skips opaque proofs,
+so the file compiles at `.vos`, the `Qed.` is never executed, and nothing
+objects. Grepping for `Admitted` therefore does **not** measure what is
+proved — a broken script with `Qed.` at the end counts as clean.
+
+Two rules:
+
+- Never claim a lemma is proved without having seen `make <file>.vok` exit 0
+  on that exact revision.
+- When several agents share a checkout, a `.vok` run can race a live edit and
+  fail on a transient state. Stop the writer first, then re-check, before
+  concluding anything about the proof.
