@@ -474,46 +474,56 @@ Implicit Type s : nstate.t.
             step cfg id s recv s' ⌝ ∗
         "%Herr" ∷ ⌜ err = interface.nil ⌝ }}}.
   Proof.
-    (** UNPROVED, and **blocked on shared files** -- not on effort.  There is
-        no proof script here because the very first step cannot be taken.
+    (** UNPROVED -- the last hole on the leader-election path.  All three
+        things that used to block it are now in place, so this is ordinary
+        work rather than a design question:
 
-        A [MsgVoteResp] is not handled inline by [Step]: it falls all the way
-        through the type switch to the default arm, which calls
-        [r.step(m)] -- see the [![raft.stepFunc] (StructFieldRef raft.raft
-        "step" ...)] at the end of [raft__Stepⁱᵐᵖˡ] in
-        [new/code/go_etcd_io/raft/v3.v].  Three things are missing:
+          - [own_raft_phys] pins [r.step] to the role via [step_func_of]
+            ([inv_raft_phys.v]), so the [r.step(m)] call can be stepped;
+          - [P.wp_stepFollower_MsgVoteResp] and [P.wp_stepLeader_MsgVoteResp]
+            exist and are proved (both are no-ops for this message type), as
+            is [P.wp_stepCandidate_MsgVoteResp];
+          - [id ∈ cfg] is a premise, which is what [stepCandidate] needs.
 
-        1. **[own_raft_phys] says nothing about [r.step].**  [inv_raft_phys.v]
-           carries a comment promising that "the step function stored in
-           [r.step] is determined by the role; ... we record which of the
-           three [stepX] functions it is by the role", but there is no such
-           conjunct: [rv.(raft.raft.step')] is completely unconstrained.  That
-           is why [proof_raft__becomeFollower.v] can re-seal with
-           [iExists (rv <| raft.raft.step' := _ |>)].  So [wp_auto] reaches
-           [#rv.(raft.raft.step') #r #m] and there is nothing to apply --
-           the call cannot be stepped at all.
+        The control flow, traced against [raft__Stepⁱᵐᵖˡ]:
 
-        2. **The role at the call is not necessarily [role.Candidate].**  On
-           [m.Term > r.Term] the term preamble runs [becomeFollower] (a
-           [MsgVoteResp] is not from a leader), so the role is
-           [role.Follower]; on [m.Term = r.Term] the role is whatever
-           [s.(nstate.role)] was, i.e. possibly [Follower] or [Leader].  Only
-           the candidate case dispatches to [stepCandidate], so this branch
-           also needs [stepFollower]/[stepLeader] specs for [MsgVoteResp]
-           (both are no-ops returning [nil], falling off the end of their
-           type switches).  Neither exists.
+        [m.Term ≠ 0], so the term preamble runs.  Three cases.
 
-        3. **[P.wp_stepCandidate_MsgVoteResp] requires [id ∈ cfg], and it
-           cannot be discharged here.**  It is in none of the three places it
-           could come from: not [own_raft_phys], not [wp_raft__Step_body]'s
-           premises, and not this lemma's.  [spec_stepCandidate_MsgVoteResp.v]
-           says the obligation is "threaded in from the caller", naming
-           [hup]/[campaign] -- but [Step] is the outermost caller, so there is
-           nobody left to thread it from.  It has to be added either to
-           [own_raft_phys] or to [wp_raft__Step_body].
+        1. [m.Term > r.Term].  The preamble's tests are all false for a
+           [MsgVoteResp] ([MsgVote || MsgPreVote]; [MsgPreVote];
+           [MsgPreVoteResp && !Reject]; [MsgApp || MsgHeartbeat || MsgSnap]),
+           so it takes the final [else] and calls
+           [becomeFollower(m.Term, None)].  Control then reaches the type
+           switch, where [MsgHup] / [MsgStorageAppendResp] /
+           [MsgStorageApplyResp] / [MsgPreVote || MsgVote] are all false, so
+           it falls to the default arm [r.step(m)].  The role is now
+           [Follower], so [Hstepfn] makes that [stepFollower], a no-op.
+           Model: [step_higher_term] giving
+           [become_follower s m.Term (W64 0)] -- [VoteResp] is not
+           [from_leader] -- with [recv = [abs_msg mtype.VoteResp m]].
 
-        Nothing here is weakened or assumed away: no [Axiom] was added and
-        the statement above is the one [wp_raft__Step] consumes. *)
+        2. [m.Term < r.Term].  [checkQuorum || preVote] is false in scope,
+           [MsgPreVote] false, [MsgStorageAppendResp] false, so it reaches
+           the bare [return nil] and drops the message.  State unchanged.
+           Model: [step_refl], [recv = []].
+
+        3. [m.Term = r.Term].  Falls through to the default arm with the role
+           unchanged.  Split on it:
+           - [Follower] -> [stepFollower], no-op -> [step_refl];
+           - [Leader] -> [stepLeader], no-op -> [step_refl];
+           - [Candidate] -> [stepCandidate], whose postcondition is
+             [vote_resp_result id s m.From m.Reject won lost ms] with
+             [app_sends id s.(nstate.term) ms].  Case on [won]/[lost] and use
+             [step_record_then_win] / [step_record_then_lose] /
+             [step_record_vote] from [step_lemmas.v].
+
+        Practical notes for whoever picks this up: this file exceeds
+        rocq-warm's default 4.2 GB session ceiling (export
+        [ROCQ_WARM_MAX_SESSION_GB=9]), a cold check is tens of minutes because
+        dependency loading dominates, and [Show.] does **not** survive
+        [-vok] -- so develop the lemma in a small scratch module that requires
+        [postulates_raft__Step] and splice it back.  Build with [-j1]: three
+        sessions were OOM-killed running [-j6] alongside other agents. *)
   Admitted.
 
 End branches.

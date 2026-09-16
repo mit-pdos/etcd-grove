@@ -14,8 +14,34 @@ Context (cfg : gset w64).
 
 (** [r.promotable()]: true exactly when this node is a voter.  It reads
     [r.id], [r.trk.Progress] and [r.raftLog], so it is stated against the
-    raft struct rather than against three unrelated parameters. *)
-Axiom wp_raft__promotable : ∀ (r : loc) rv votes,
+    raft struct rather than against three unrelated parameters.
+
+    **In scope and unfinished** (2026-09-16).  The generated body
+    ([new/code/go_etcd_io/raft/v3.v:5146]) is
+
+        pr := r.trk.Progress[r.id]
+        return pr != nil && !pr.IsLearner &&
+               !r.raftLog.hasNextOrInProgressSnapshot()
+
+    so there are *two* obstacles, and only one of them is the log:
+
+    - [hasNextOrInProgressSnapshot] needs [own_raftLog] opened up, and
+      [own_raftLog] is still an [Axiom] in [inv_raftlog.v].  (Note for
+      whoever builds it: a [wp_raftLog__hasNextOrInProgressSnapshot] lemma
+      has to exist again; it was deleted on 2026-09-16 as unreachable, which
+      was true only *because* this spec was an axiom.)
+    - [own_progress] ([inv_tracker.v]) does not record
+      [pv.(tracker.Progress.IsLearner') = false].  Without it the
+      postcondition as stated is **not derivable**: a voter whose [Progress]
+      had [IsLearner = true] would make [promotable] return [false] while
+      [id ∈ cfg].  The fact is true under our scope ([own_raft_phys] carries
+      [HnoLearner], [own_tracker] carries [learners = ∅ ∧ learnersNext = ∅]);
+      it was simply never written down.  It is being added to
+      [own_progress].
+
+    So the log is *necessary but not sufficient* here.  The statement is
+    correct as written once both gaps are closed; do not weaken it. *)
+Lemma wp_raft__promotable (r : loc) rv votes :
   {{{ is_pkg_init raft ∗ r ↦ rv ∗
       own_tracker cfg rv.(raft.raft.trk') votes ∗
       own_raftLog rv.(raft.raft.raftLog') }}}
@@ -24,13 +50,29 @@ Axiom wp_raft__promotable : ∀ (r : loc) rv votes,
       r ↦ rv ∗ own_tracker cfg rv.(raft.raft.trk') votes ∗
       own_raftLog rv.(raft.raft.raftLog') ∗
       ⌜ b = bool_decide (rv.(raft.raft.id') ∈ cfg) ⌝ }}}.
+Proof. Admitted.
 
 (** [r.hasUnappliedConfChanges()]: false, since there is no
-    reconfiguration. *)
-Axiom wp_raft__hasUnappliedConfChanges : ∀ (r : loc) l,
+    reconfiguration.
+
+    **In scope and unfinished** (2026-09-16).  Blocked on [own_raftLog], and
+    the tempting shortcut does not work: the generated body
+    ([new/code/go_etcd_io/raft/v3.v:3732]) opens with
+
+        if r.raftLog.applied >= r.raftLog.committed { return false }
+
+    but [applied >= committed] is a fact about the log that nothing available
+    implies, so the [scan] over [(applied, committed]] is **genuinely
+    reachable** -- it is not dead under our scope.  Returning [false]
+    therefore needs [own_raftLog] to say that no entry in that range has
+    [Type] [EntryConfChange] or [EntryConfChangeV2], i.e. it needs the entry
+    list exposed, which is exactly the design question recorded for
+    [own_raftLog] in notes/raft-election-refinement.md. *)
+Lemma wp_raft__hasUnappliedConfChanges (r : loc) l :
   {{{ is_pkg_init raft ∗ own_raftLog l }}}
     r @! (go.PointerType raft.raft) @! "hasUnappliedConfChanges" #()
   {{{ RET #false; own_raftLog l }}}.
+Proof. Admitted.
 
 (** The ids of the voters, in some order, as [campaign] enumerates them.
     [campaign] calls this on [&r.trk.Config.Voters], so the receiver is that
@@ -53,9 +95,26 @@ Axiom wp_campaign_peer_ids : ∀ (trk : loc) tv votes,
     They were axioms until 2026-09-16 purely because nobody had looked at the
     generated body. *)
 
-Axiom own_raft_misc :
-  ∀ (readStates : slice.t) (readOnly : loc) (pendingReadIndex : slice.t),
-  iProp Σ.
+(** Full ownership of those three fields and everything hanging off them:
+    the [readStates] slice, the [readOnly] object together with its [acks]
+    map and its [unconfirmedReads] slice, and the
+    [pendingReadIndexMessages] slice.  The *contents* are existential --
+    election never reads any of it -- but the ownership is real, so nothing
+    else in the development can claim the same heap. *)
+Definition own_raft_misc (readStates : slice.t) (ro : loc)
+                         (pendingReadIndex : slice.t) : iProp Σ :=
+  ∃ (rss : list raft.ReadState.t) (rov : raft.readOnly.t)
+    (acks : gmap w64 w64) (ucr : list loc)
+    (prims : list raftpb.Message.t),
+  "HreadStates" ∷ readStates ↦* rss ∗
+  "HreadStates_cap" ∷ own_slice_cap raft.ReadState.t readStates (DfracOwn 1) ∗
+  "Hro" ∷ ro ↦ rov ∗
+  "Hacks" ∷ rov.(raft.readOnly.acks') ↦$ acks ∗
+  "Hucr" ∷ rov.(raft.readOnly.unconfirmedReads') ↦* ucr ∗
+  "Hucr_cap" ∷ own_slice_cap loc
+                 rov.(raft.readOnly.unconfirmedReads') (DfracOwn 1) ∗
+  "Hpri" ∷ pendingReadIndex ↦* prims ∗
+  "Hpri_cap" ∷ own_slice_cap raftpb.Message.t pendingReadIndex (DfracOwn 1).
 
 Lemma wp_traceReceiveMessage (r : loc) (mp : loc) rs ro pri :
   {{{ is_pkg_init raft ∗ own_raft_misc rs ro pri }}}
@@ -95,7 +154,17 @@ Lemma own_raft_misc_option rs ro pri :
   ∃ (o : raft.ReadOnlyOption.t),
     ro.[raft.readOnly.t, "option"] ↦ o ∗
     (ro.[raft.readOnly.t, "option"] ↦ o -∗ own_raft_misc rs ro pri).
-Proof. Admitted.
+Proof.
+  iIntros "Hm". iNamed "Hm".
+  iExists rov.(raft.readOnly.option').
+  iDestruct (access_strict
+               (A := ro.[raft.readOnly.t, "option"] ↦ rov.(raft.readOnly.option'))
+               (A' := ro.[raft.readOnly.t, "option"] ↦ rov.(raft.readOnly.option'))
+               (P := ro ↦ rov) (P' := ro ↦ rov) with "Hro") as "[Hopt Hback]".
+  iFrame "Hopt". iIntros "Hopt".
+  iDestruct ("Hback" with "Hopt") as "Hro".
+  rewrite /own_raft_misc. iFrame.
+Qed.
 
 (** The old queue is dropped and a fresh one installed.  The lemma *consumes*
     [own_raft_misc] at [ro] and returns it at [ro'], which is what [reset]
@@ -106,7 +175,18 @@ Lemma wp_newReadOnly (o : raft.ReadOnlyOption.t) rs ro pri :
   {{{ is_pkg_init raft ∗ own_raft_misc rs ro pri }}}
     @! raft.newReadOnly #o
   {{{ (ro' : loc), RET #ro'; own_raft_misc rs ro' pri }}}.
-Proof. Admitted.
+Proof.
+  wp_start as "Hm". iNamed "Hm". wp_auto.
+  wp_apply wp_map_make1 as "%mref Hmref".
+  wp_alloc ro' as "Hro'". wp_auto.
+  iApply "HΦ". rewrite /own_raft_misc.
+  iExists rss, _, ∅, ([] : list loc), prims.
+  iFrame "Hro'". simpl.
+  iFrame "HreadStates HreadStates_cap Hmref Hpri Hpri_cap".
+  iSplitL.
+  { iApply own_slice_nil. }
+  iApply own_slice_cap_nil.
+Qed.
 
 (** [resetRandomizedElectionTimeout] draws from the global RNG and writes
     [r.randomizedElectionTimeout].  The *RNG* is outside core raft and may be
@@ -118,7 +198,10 @@ Lemma wp_raft__resetRandomizedElectionTimeout (r : loc) rv :
     r @! (go.PointerType raft.raft) @! "resetRandomizedElectionTimeout" #()
   {{{ (n : w64), RET #();
       r ↦ (rv <| raft.raft.randomizedElectionTimeout' := n |>) }}}.
-Proof. Admitted.
+Proof.
+  wp_start as "Hr". wp_auto.
+  Show.
+Admitted.
 
 (** [abortLeaderTransfer] clears [leadTransferee], which [own_raft_phys]
     requires to be zero anyway. *)
@@ -126,7 +209,7 @@ Lemma wp_raft__abortLeaderTransfer (r : loc) rv :
   {{{ is_pkg_init raft ∗ r ↦ rv }}}
     r @! (go.PointerType raft.raft) @! "abortLeaderTransfer" #()
   {{{ RET #(); r ↦ (rv <| raft.raft.leadTransferee' := W64 0 |>) }}}.
-Proof. Admitted.
+Proof. wp_start as "Hr". wp_auto. by iApply "HΦ". Qed.
 
 (** [wp_raft__appendEmptyEntry] used to live here.  It moved to
     [inv_raft_phys.v], because stating it honestly needs [own_raft_phys]:
