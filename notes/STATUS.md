@@ -98,9 +98,15 @@ is nothing to apply. Its four cases:
 | `m.Term = r.Term`, Follower/Leader | `stepFollower` / `stepLeader` only read | `step_refl` |
 | `m.Term = r.Term`, Candidate | `stepCandidate` records the vote, maybe wins or loses | `step_record_then_win` / `_lose` / `step_record_vote` |
 
-**Cost note:** `proof_raft__Step.v` takes **35 minutes and 10.6 GB** to
+**Cost note:** `proof_raft__Step.v` takes **~45 minutes and 11.3 GB** to
 `-vok`. Do not start a second build beside it; overlapping builds are what
 killed several sessions.
+
+**Verified on 2026-09-16 at `15fcbecd7`**, every file individually at
+`-vok` RC=0 with zero errors: the four `inv_*.v` that changed, all 13
+`proof_*.v`, and `election.v`. Note that this is *not* a `make ci` run —
+that needs a full `.vo` build of Perennial, which nothing in this tree
+has.
 
 Two things that mattered structurally:
 
