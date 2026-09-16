@@ -62,7 +62,7 @@ End helper.
   Lemma wp_raft__reset : wp_raft__reset_body.
   Proof.
     intros_ambient.
-    intros cfg r id s term.
+    intros cfg r id s term f.
     wp_start as "Hphys". iNamed "Hphys". wp_auto.
     destruct (decide (term = s.(nstate.term))) as [Heq|Hne].
     - (* the term is unchanged, so the vote survives and the [if] is skipped *)
@@ -112,7 +112,7 @@ End helper.
       wp_auto.
       iDestruct ("Hmiscback" with "Hopt") as "Hmisc".
       wp_apply (wp_newReadOnly with "[$Hmisc]") as "%ro' Hmisc".
-      iApply "HΦ". rewrite /own_raft_phys.
+      iApply "HΦ". rewrite /own_raft_phys_at.
       iExists _, msgs, msgsAA, lok. iFrame "Hr". simpl. iFrame "∗#%".
       iPureIntro. split_and!; congruence.
     - (* the term changes, so [Term] is written and the vote cleared *)
@@ -162,7 +162,7 @@ End helper.
       wp_auto.
       iDestruct ("Hmiscback" with "Hopt") as "Hmisc".
       wp_apply (wp_newReadOnly with "[$Hmisc]") as "%ro' Hmisc".
-      iApply "HΦ". rewrite /own_raft_phys.
+      iApply "HΦ". rewrite /own_raft_phys_at.
       iExists _, msgs, msgsAA, lok. iFrame "Hr". simpl. iFrame "∗#%".
       iPureIntro. split_and!; congruence.
   Qed.

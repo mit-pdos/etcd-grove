@@ -13,11 +13,13 @@ Module BecomeLeaderProof (P : BECOMELEADER_POSTULATES) : BECOMELEADER.
         rewrite /state_w64 /StateCandidate /StateLeader;
         intros Heq; apply (f_equal uint.Z) in Heq; vm_compute in Heq; discriminate. }
     rewrite Hstate bool_decide_eq_false_2 //. wp_auto.
-    iAssert (own_raft_phys cfg r id s)
+    iAssert (own_raft_phys_at cfg r id s (functions raft.stepLeader []))
       with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
       as "Hphys".
-    { rewrite /own_raft_phys.
-      iExists (rv <| raft.raft.step' := _ |>), msgs, msgsAA, lok. iFrame "∗#%". }
+    { rewrite /own_raft_phys_at.
+      iExists (rv <| raft.raft.step' := functions raft.stepLeader [] |>),
+        msgs, msgsAA, lok. iFrame "Hr". simpl. iFrame "∗#%".
+      iPureIntro. reflexivity. }
     (* [reset] is called at the unchanged term, so the vote survives *)
     rewrite Hterm.
     wp_apply (P.wp_raft__reset with "[$Hphys]") as "Hphys".
@@ -53,7 +55,7 @@ Module BecomeLeaderProof (P : BECOMELEADER_POSTULATES) : BECOMELEADER.
     iAssert (own_raft_phys cfg r id (become_leader id s))
       with "[Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1]"
       as "Hphys".
-    { rewrite /own_raft_phys /become_leader /=.
+    { rewrite /own_raft_phys /own_raft_phys_at /become_leader /step_func_of /=.
       iExists _, msgs0, msgsAA0, lok0.
       simpl in Hid1, Hterm1, Hvote1, Hlead1, Hstate1.
       iEval (simpl) in "Htrk1".
@@ -68,7 +70,7 @@ Module BecomeLeaderProof (P : BECOMELEADER_POSTULATES) : BECOMELEADER.
     wp_auto. rewrite Hlok2.
     wp_apply (wp_Logger__logf with "Hlogger2").
     { rewrite /log_methods. set_solver. }
-    iApply "HΦ". rewrite /own_raft_phys.
+    iApply "HΦ". rewrite /own_raft_phys /own_raft_phys_at.
     iExists _, _, _, _. iFrame "∗#%".
   Qed.
 

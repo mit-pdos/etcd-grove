@@ -45,6 +45,8 @@ Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__poll.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__campaign.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__hup.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_stepCandidate_MsgVoteResp.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_stepFollower_MsgVoteResp.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_stepLeader_MsgVoteResp.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__Step.
 
 Section proof.
