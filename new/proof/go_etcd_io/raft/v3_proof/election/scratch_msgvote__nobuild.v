@@ -142,13 +142,81 @@ Implicit Type s : nstate.t.
         as "Hphys".
       { rewrite /own_raft_phys. iExists rv0, msgs0, msgsAA0, lok0.
         rewrite /become_follower /= decide_False //. iFrame "∗#%". }
-      (* TODO: the remaining steps are [send] of the granted vote and the
-         [r.Vote := m.From] update; see notes/raft-election-refinement.md *)
-      idtac "=====SHOW1".
-      Show.
-      admit.
-    + idtac "=====SHOW2". Show. admit.
-    - idtac "=====SHOW3". Show. admit.
+      (* [send] the granted vote response, then record the vote. *)
+      wp_apply (P.wp_raft__send_vote with "[$Hphys]") as "Hphys".
+      { done. }
+      { by right. }
+      { apply mtype_of_MsgVoteResp. }
+      { done. }
+      { w32_ne. }
+      iNamedSuffix "Hphys" "2".
+      (* [m.Type = MsgVote], so the vote is recorded: [r.Vote := m.From]. *)
+      rewrite Hty /MsgVote bool_decide_eq_true_2 //. wp_auto.
+      iApply ("HΦ" $! interface.nil
+        (send_msgs ((become_follower s m.(raftpb.Message.Term') (W64 0))
+                      <| nstate.vote := m.(raftpb.Message.From') |>)
+           [msg.mk mtype.VoteResp id m.(raftpb.Message.From')
+              m.(raftpb.Message.Term') false])).
+      iSplitL "Hr2 Htrk2 Hlog2 Hmsgs2 Hmsgs_cap2 HmsgsAA2 HmsgsAA_cap2 Hmisc2".
+      { rewrite /own_raft_phys /send_msgs /become_follower /=.
+        iExists _, msgs1, msgsAA1, lok1.
+        simpl in Hid2, Hterm2, Hvote2, Hlead2, Hstate2, Houtbox2.
+        iEval (simpl) in "Htrk2".
+        iFrame "Hr2 ∗#%".
+        iPureIntro. first [done | (split_and!; done)]. }
+      iPureIntro. split; last done.
+      eexists ([abs_msg mtype.Vote m] ++ [abs_msg mtype.Vote m]).
+      split.
+      { intros m' Hm'. set_solver. }
+      eapply step_trans; [exact Hstepdown|exact Hgrant].
+    + (* the candidate's log is behind: decline, without recording a vote *)
+      wp_auto.
+      wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
+      wp_auto. rewrite Hlok1.
+      wp_apply (wp_Logger__logf with "Hlogger1").
+      { rewrite /log_methods. set_solver. }
+      wp_apply P.wp_voteRespMsgType; first done.
+      (* [r.Term] is [m.Term] after the step-down, so the rejection carries
+         the state's term -- which is what [step_reject_vote] sends. *)
+      assert (Hrt : rv0.(raft.raft.Term') = m.(raftpb.Message.Term'))
+        by by rewrite Hterm1.
+      rewrite Hrt.
+      iAssert (own_raft_phys cfg r id
+                 (become_follower s m.(raftpb.Message.Term') (W64 0)))
+        with "[Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1]"
+        as "Hphys".
+      { rewrite /own_raft_phys. iExists rv0, msgs0, msgsAA0, lok0.
+        rewrite /become_follower /= decide_False //. iFrame "∗#%". }
+      wp_apply (P.wp_raft__send_vote with "[$Hphys]") as "Hphys".
+      { done. }
+      { by right. }
+      { apply mtype_of_MsgVoteResp. }
+      { done. }
+      { w32_ne. }
+      iApply ("HΦ" $! interface.nil _). iFrame "Hphys".
+      iPureIntro. split; last done.
+      eexists ([abs_msg mtype.Vote m] ++ [abs_msg mtype.Vote m]).
+      split.
+      { intros m' Hm'. set_solver. }
+      apply (step_stepdown_then_reject cfg id s (abs_msg mtype.Vote m));
+        [done|exact Hto|rewrite /abs_msg /= -Hterm0; exact Hgt].
+    - (* [m.Term ≤ r.Term]: no step-down. *)
+      assert (bool_decide (uint.Z rv.(raft.raft.Term') <
+                           uint.Z m.(raftpb.Message.Term')) = false) as Hb
+        by by apply bool_decide_eq_false_2.
+      rewrite Hb. rewrite bool_decide_eq_false_2; last done. wp_auto.
+      destruct (decide (uint.Z m.(raftpb.Message.Term') <
+                        uint.Z rv.(raft.raft.Term'))) as [Hlt|Heq].
+      + (* [m.Term < r.Term]: a stale vote request, dropped silently. *)
+        assert (bool_decide (uint.Z m.(raftpb.Message.Term') <
+                             uint.Z rv.(raft.raft.Term')) = true) as Hb2
+          by by apply bool_decide_eq_true_2.
+        rewrite Hb2. rewrite bool_decide_eq_true_2 //. wp_auto.
+        rewrite HnoCheckQuorum. wp_auto.
+        rewrite HnoPreVote. wp_auto.
+        idtac "=====SHOW3". Show.
+        admit.
+      + idtac "=====SHOW4". Show. admit.
   Admitted.
 
 

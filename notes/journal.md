@@ -730,3 +730,78 @@ generated `AccessStrict` instances, and leaves `Inflights'` alone.
 up late and the `vos` closure was still building at the end. Treat
 `inv_tracker.v`, `inv_slices.v`, `proof_raft__poll.v` and the
 `election_protocol.v` change as drafts that have never been compiled.
+
+---
+
+## 2026-09-16 (later) — `wp_raft__reset` proved
+
+Claude Opus 5, one of several agents working the election proof in parallel;
+owned `new/proof/go_etcd_io/raft/v3_proof/election/proof_raft__reset.v` and
+nothing else.
+
+- **Did:** `wp_raft__reset` is `Qed`. Confirmed with
+  `make -j4 TIMED=false …/proof_raft__reset.vok`. No `Admitted`, no `admit`,
+  no new axiom, and no change to any shared file. `wp_newReadOnly` and
+  `own_raft_misc_option` were already in `inv_misc.v`, so the axiom that
+  [raft-election-refinement.md](raft-election-refinement.md) said "needs
+  deciding deliberately" did not have to be added after all.
+
+  The three `becomeX` proofs no longer rest on anything admitted.
+
+- **Shape of the proof** (details in
+  [raft-election-refinement.md](raft-election-refinement.md), "How `reset`
+  was proved"):
+
+  - case split on `decide (term = s.(nstate.term))`, then derive the value of
+    `bool_decide (rv.(Term') = term)` from it;
+  - `trk.Visit` is driven with `I := r_ptr ↦ r ∗ r ↦ rv' ∗ own_raftLog …` —
+    the whole struct *plus the frame slot holding the receiver pointer*,
+    because the closure reads `r.raftLog`, `r.trk.MaxInflight`,
+    `r.trk.MaxInflightBytes` and `r.id` through it;
+  - one new local lemma, `raft_split_trk`, to pull the `trk` field out.
+
+- **Surprising, and the answer to an open question.** A Goose closure literal
+  **does** unify with a spec's `#f` for `f : func.t`, with no help at all:
+  `λ: "id" "pr", …` steps by the `wp_recc` pure rule to
+  `#(func.mk <> "id" (λ: "pr", …))`. `wp_apply
+  (wp_ProgressTracker__Visit _ _ _ _ _ I with "…")` matched it against
+  `visit_closure f I` on the first try. This was flagged in the brief as a
+  real risk; it is not one.
+
+- **What did not work:**
+
+  - The generated `raft_access_store_trk` instance, which
+    [gotchas.md](gotchas.md) recommends for a field-changing call. Its `A'`
+    fixes the *new* field value, and `ResetVotes` only names that value
+    (`votesRef`) in its postcondition — i.e. after the evar for `A'` was
+    created, so `votesRef` is outside its context and Iris refuses with
+    `iSpecialize: cannot instantiate`. There is no ∀-quantified
+    `AccessStrict`. Fix: prove the quantified wand by unsealing
+    (`raft_split_trk`).
+  - The previous claim that `iNamed` does not fire on an unsealed
+    `typed_pointsto` — **that entry in `gotchas.md` was wrong** and has been
+    corrected. `iNamed` fails only because the unsealed form ends in an
+    unnamed `⌜l ≠ null⌝`; `iDestruct "Hr" as "[Hf %Hnn]". iNamed "Hf".`
+    works, and re-sealing is `iEval`-unseal the goal then `iFrame "∗%"`. So
+    the 33-way positional `iDestruct` the entry prescribed is unnecessary.
+  - `case_bool_decide` inside the `Visit` closure: it destructs the
+    *enclosing* case split's `bool_decide (rv.(Term') = term)`, which is
+    still in the Rocq context, and leaves the program `if` unresolved.
+    `wp_apply` then reports `iApply: cannot apply` at a line that looks fine.
+  - `iExists _, msgs, msgsAA, lok. simpl. iFrame "∗#%"` to re-seal
+    `own_raft_phys`: `iFrame` solves `⌜?rv0.(preVote') = false⌝` from
+    `HnoPreVote` by setting `?rv0 := rv`, i.e. the struct value *before* the
+    writes, leaving an unprovable `"Hr" ∷ r ↦ rv`. Frame `Hr` first.
+  - Factoring the ~45-line tail shared by the two term-branches into a
+    `Local Ltac`. Ltac1 resolves identifiers inside `constr:` at *definition*
+    time, so a tactic body cannot mention `r`, `r_ptr`, `rv`, `n` or
+    `votesRef`; passing them all as arguments got fragile fast. The two arms
+    are spelled out, as `proof_raft__poll.v` already does for its two arms.
+
+- **Cost note:** this file is slow. A cold `rocq-warm check` is ~220s, most of
+  it in the three `iFrame` calls that walk the 33-field struct points-to.
+  Budget for that in the inner loop; `Show.` replays are still fast.
+
+- **State left behind:** `reset` off the admitted list in `STATUS.md` and
+  `raft-election-refinement.md`; four entries added to / corrected in
+  `gotchas.md`. Nothing else touched.

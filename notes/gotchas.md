@@ -293,15 +293,73 @@ selects the load instance. For a call that genuinely *changes* the field
 (`ResetVotes` replaces `Votes`), drop `P'` and give `A'` at the new value so
 the store instance is chosen. (`proof_raft__poll.v`.)
 
-## `iNamed` does not fire on an unsealed `typed_pointsto`
+## `iNamed` on an unsealed `typed_pointsto` needs the `⌜l ≠ null⌝` peeled off first
 
-`iEval (rewrite typed_pointsto_unseal /typed_pointsto_wrap /=) in "Hr"` does
-turn `r ↦ rv` into the named conjunction of its 35 field points-tos — the
-goal displays them with `∷` — but `iNamed "Hr"` afterwards **silently does
-nothing**, leaving `Hr` intact. The failure surfaces much later as
-`iSpecialize: hypotheses ["trk"] not found`. `iNamedSuffix` likewise. So that
-route needs a positional `iDestruct` naming every field; prefer
-`access_strict` above. (Cost ~40 minutes on 2026-09-16.)
+`iEval (rewrite typed_pointsto_unseal /typed_pointsto_wrap /=) in "Hr"` turns
+`r ↦ rv` into `(the 33 field points-tos, named with ∷) ∗ ⌜r ≠ null⌝`. `iNamed
+"Hr"` on *that* **silently does nothing** — the trailing conjunct has no name,
+so the whole thing is not a named conjunction — and the failure surfaces much
+later as `iSpecialize: hypotheses ["trk"] not found`. Split the pure conjunct
+off first and it works:
+
+```coq
+iDestruct "Hr" as "[Hf %Hnn]". iNamed "Hf".
+```
+
+Re-sealing is the mirror image: `iEval (rewrite typed_pointsto_unseal
+/typed_pointsto_wrap /=)` on the *goal*, then `iFrame "∗%"`. (An earlier
+version of this entry concluded the route was unusable and needed a positional
+`iDestruct` naming every field; that was wrong. `proof_raft__reset.v`'s
+`raft_split_trk` is the worked example.)
+
+## The `AccessStrict` store instance cannot take a value the call has not produced yet
+
+`raft_access_store_trk` fixes `A'` — the field's *new* value — at the moment
+`access_strict` is invoked, but `trk.ResetVotes()` only names that value
+(`votesRef`) in its own postcondition. Leaving `A'` as an evar therefore fails
+with
+
+    iSpecialize: cannot instantiate (…[trk] ↦ ?t -∗ r ↦ rv <|trk' := ?t|>)
+    with (…[trk] ↦ tv <|Votes' := votesRef|>)
+
+because `votesRef` is introduced *after* the evar and so is outside its
+context. There is no ∀-quantified `AccessStrict`, so prove the quantified wand
+yourself by unsealing — `raft_split_trk` in `proof_raft__reset.v`:
+
+```coq
+l ↦ rv -∗ l.[t,"trk"] ↦ rv.(trk') ∗
+           (∀ tv, l.[t,"trk"] ↦ tv -∗ l ↦ (rv <|trk' := tv|>))
+```
+
+## `case_bool_decide` picks the first `bool_decide` it finds — including one in the Rocq context
+
+Inside `reset`'s `Visit` closure the goal holds `#(bool_decide (i =
+rv.(id')))`, but the Rocq context still holds `Hb : bool_decide (rv.(Term') =
+term) = true` from the enclosing case split, and `case_bool_decide as H`
+destructs *that* one — leaving the program `if` unresolved. `wp_apply` then
+reports `iApply: cannot apply` at a line that looks fine. Be explicit:
+
+```coq
+assert (bool_decide (i = rv.(raft.raft.id')) = true) as Hbi
+  by (apply bool_decide_eq_true_2; done).
+rewrite Hbi /=. wp_auto.
+```
+
+The trailing `wp_auto` matters: the `rewrite` only turns the scrutinee into
+`#true`, and `wp_apply` cannot bind a redex that is still inside an unreduced
+`if`.
+
+## Re-sealing `own_raft_phys`: frame `Hr` *before* `iFrame "∗#%"`
+
+`iExists _, msgs, msgsAA, lok. simpl. iFrame "∗#%"` leaves the struct value an
+evar, and `iFrame` cheerfully discharges `⌜?rv0.(preVote') = false⌝` from
+`HnoPreVote : rv.(preVote') = false` by setting `?rv0 := rv` — the value
+*before* the writes. What is left is an unprovable `"Hr" ∷ r ↦ rv`. Pin the
+value first:
+
+```coq
+iExists _, msgs, msgsAA, lok. iFrame "Hr". simpl. iFrame "∗#%".
+```
 
 ## The postcondition is a `∗`, so `iExists` on it fails
 

@@ -132,13 +132,14 @@ and owns only the heap that hangs off it. See the trust boundary below.
   `step_stepdown_then_vote`, `step_stepdown_then_reject`,
   `step_record_then_win`, `step_record_then_lose`.
 - `wp_raft__becomeFollower`, `wp_raft__becomeCandidate`,
-  `wp_raft__becomeLeader` (all modulo `wp_raft__reset`, which is still
-  admitted). Each is `reset` plus assignments to `lead`/`Vote`/`state`, and
+  `wp_raft__becomeLeader`. Each is `reset` plus assignments to
+  `lead`/`Vote`/`state`, and
   the postcondition is literally the model's role transition.
   `becomeCandidate`/`becomeLeader` also discharge the panic branch
   (`state ≠ StateLeader` / `≠ StateFollower`) from the role hypothesis, and
   `becomeLeader` additionally walks the tracker to mark its own `Progress`
   replicating and appends the empty entry.
+- `wp_raft__reset` (2026-09-16) — see "How `reset` was proved" below.
 - `Step`: the top-level dispatch, and its `MsgHup` branch (modulo
   `wp_raft__hup`).  The three per-message-type branches are internal lemmas
   of `proof_raft__Step.v`, not separate specs — `Step` is one Go function
@@ -156,16 +157,8 @@ bodies** — it will accept a script that does not run.)
    lease check, both pre-vote arms, the step-down (with its
    `step_higher_term` ghost transition) and the `canVote` computation are
    done; it stops at the `isUpToDate` branch. See "Where it is stuck" below.
-2. `wp_raft__reset` — the one the three `becomeX` proofs rest on. It is not
-   mechanical: besides re-initialising every `Progress` through
-   `trk.Visit` (which needs a `Visit` spec), it calls
-   `resetRandomizedElectionTimeout` and `abortLeaderTransfer`, and it
-   **replaces `r.readOnly` with a fresh `newReadOnly(...)`**. `own_raft_misc`
-   is indexed by the old `readOnly` pointer, so finishing `reset` needs a
-   `wp_newReadOnly` axiom that produces `own_raft_misc rs ro' pri` for the
-   new one. That is a fine axiom to add — it is not the discredited
-   `own_raft_misc rv -∗ own_raft_misc rv'` shape warned about below — but it
-   is an addition, so decide it deliberately.
+2. — `wp_raft__reset` was here; **proved 2026-09-16**, see "How `reset` was
+   proved" below.
 3. `wp_raft__poll`, `wp_raft__campaign`, `wp_raft__hup`.
 4. `wp_stepCandidate_MsgVoteResp`, then the `MsgVoteResp` branch in
    `proof_raft__Step.v`. `stepCandidate` is the first caller of
@@ -175,6 +168,47 @@ bodies** — it will accept a script that does not run.)
    2026-09-14, because inside a proof functor there is no ambient `cfg` to
    reach for), so the obligation is now on its callers: thread it in from
    `hup`/`campaign`, which already have it, or add it to `own_raft_phys`.
+
+### How `reset` was proved (2026-09-16)
+
+Worth recording because it is the first proof that drives `trk.Visit`, and
+because two of its three obstacles are reusable.
+
+1. **The term branch.** The Go code tests `r.Term != term`, the model's
+   `reset` keeps the vote exactly when the term is unchanged. The proof
+   case-splits on `decide (term = s.(nstate.term))` and derives the value of
+   `bool_decide (rv.(Term') = term)` from it. The two arms are spelled out in
+   full rather than shared: they differ in the struct value (the second sets
+   `Term'` and `Vote'`) and in the final pure goals, and everything that
+   would let them be shared — a `Local Ltac`, a local lemma over the tail
+   code — needs the frame's own names (`r`, `r_ptr`, `rv`), which Ltac1
+   resolves at *definition* time and therefore cannot see.
+2. **`Visit`'s caller invariant is the whole struct.** The closure reads
+   `r.raftLog`, `r.trk.MaxInflight`, `r.trk.MaxInflightBytes` and `r.id`, all
+   through the pointer *frame slot* the enclosing function allocated, so
+
+       I := r_ptr ↦ r ∗ r ↦ rv' ∗ own_raftLog rv'.(raftLog')
+
+   — note `r_ptr ↦ r`, which is easy to forget. This is exactly why
+   `wp_ProgressTracker__Visit` must not ask for `trk ↦ tv`: `r ↦ rv'`
+   already covers those bytes. `own_progress`'s whole-value shape is what
+   lets the closure's `*pr = Progress{...}` go through, and the old
+   `Inflights` object is simply dropped (the Go code leaks it too).
+3. **The `trk` field could not be pulled out with the generated instance.**
+   `raft_access_store_trk` fixes the field's *new* value up front, but
+   `ResetVotes` only names it (`votesRef`) in its postcondition — after the
+   evar for it was created, hence out of scope. `proof_raft__reset.v` adds a
+   local `raft_split_trk` that hands back a ∀-quantified wand instead. Both
+   this and the `iNamed`-after-unsealing correction are in
+   [gotchas.md](gotchas.md).
+
+One question the work settled: **a Goose closure literal unifies with a spec's
+`#f`** with no help. `λ: "id" "pr", …` steps by the `wp_recc` pure rule to
+`#(func.mk <> "id" (λ: "pr", …))`, which is literally an `IntoVal` of a
+`func.t`, so `wp_apply` matches it against `visit_closure f I` directly.
+
+`wp_newReadOnly` did **not** have to be added: it was already in
+`inv_misc.v`, as an `Admitted` `Lemma` alongside `own_raft_misc_option`.
 
 ### Trust boundary (the `inv_*.v` files)
 

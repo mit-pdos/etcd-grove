@@ -76,10 +76,10 @@ branch `worktree-raft-election-refinement`. Compiles and is reached from
 Eleven Go functions are specified, one file each. Proved (`Qed`, each
 confirmed with `make <file>.vok`): `voteRespMsgType`, `send`,
 `becomeFollower`, `becomeCandidate`, `becomeLeader`, **`poll`** and
-**`hup`** (both 2026-09-16), `Step`'s dispatch and its `MsgHup` branch, and
-`raft_election_safety`.
+**`hup`** and **`reset`** (all 2026-09-16), `Step`'s dispatch and its
+`MsgHup` branch, and `raft_election_safety`.
 
-Still `Admitted` as of 2026-09-16: `reset`, `campaign`, `stepCandidate`, and
+Still `Admitted` as of 2026-09-16: `campaign`, `stepCandidate`, and
 the `MsgVote` / `MsgVoteResp` branches inside `proof_raft__Step.v`
 (`MsgVote` is proved as far as `isUpToDate`).
 
@@ -97,12 +97,16 @@ spec below `Step` says only which state the struct refines and how the outbox
 grew — never that the transition is legal. See
 [decisions.md](decisions.md) for the alternatives that were rejected.
 
-The three `becomeX` proofs rest on `wp_raft__reset`, so **`reset` is the
-highest-leverage hole**, and it is less mechanical than it looks (it replaces
-`r.readOnly`). Details in
-[raft-election-refinement.md](raft-election-refinement.md). The `MsgVote`
-blocker recorded there on 2026-09-14 is **gone**: it was `iFrame` refusing to
-fill `send`'s `#Hm` slot, and `send` no longer has one.
+`reset` — what the three `becomeX` proofs rested on — was closed on
+2026-09-16. It is the first proof to drive `trk.Visit` with the whole raft
+struct as the closure's caller invariant, and it needed one new local lemma
+(`raft_split_trk`, in `proof_raft__reset.v`) because the generated
+`AccessStrict` store instance cannot name a field value the call has not
+produced yet. See [gotchas.md](gotchas.md) for both. The `MsgVote` blocker
+recorded in
+[raft-election-refinement.md](raft-election-refinement.md) on 2026-09-14 is
+**gone**: it was `iFrame` refusing to fill `send`'s `#Hm` slot, and `send` no
+longer has one.
 
 **Checking your work:** `make <file>.vos` is a ~2s loop but **does not check
 proof bodies** — it will accept a proof script that does not run. Use
@@ -201,18 +205,18 @@ Unclaimed; pick one and say so in the journal.
 
 ## Known broken
 
-- **`./etc/tcb-view.py --self-check` reports 51 axioms against an expected
-  50.** Every per-file count passes; the extra one is in
-  `new/proof/go_etcd_io/raft/v3_proof/election/exp_phys_sealed.v`, an
-  **untracked** experiment from an earlier session (a sealed `own_raft_phys`
-  with an access-lemma API) whose header points at `journal.md` but for which
-  no entry was ever written. It is not reached from `should_build.v`, so CI
-  does not build it, and since 2026-09-15 it no longer compiles either — it
-  references `is_phys_msg`, which the outbox change deleted. Its subject is
-  moot now that `own_raft_phys` has a different shape. **Delete it, or redo
-  the experiment and commit it**; it was left alone because it is someone
-  else's uncommitted work. The discrepancy predates 2026-09-15 (the tables
-  said 49 while the file already made it 50).
+- **`./etc/tcb-view.py --self-check` fails against a stale inventory.** Its
+  `EXPECTED_AXIOMS` / `EXPECTED_ADMITS` / `EXPECTED_TOTALS` tables
+  (`etc/tcb-view.py:719-759`) still say 50 axioms and 14 admits; the tree is
+  at 44 and 24 after the 2026-09-16 conversion of `inv_tracker.v` from axioms
+  to definitions, and after `poll`/`hup`/`stepCandidate` were proved. **The
+  tool is right and the table is stale** — refresh the table, do not "fix"
+  the counts. Refresh it in the same commit as any future axiom→definition
+  conversion; that is what the table is for.
+
+  The older form of this entry blamed an untracked
+  `election/exp_phys_sealed.v`. That file is **gone**, so that part is
+  resolved.
 
 - **`ruff check` fails: 64 errors.** Pre-existing on this commit, in
   `etc/*.py`, `new/etc/update-goose-new.py`, `new/experiments/gencongruence.py`
