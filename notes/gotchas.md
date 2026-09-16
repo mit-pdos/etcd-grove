@@ -605,3 +605,29 @@ EOF
 This matters more here than in most repos because a stray `make` with no
 target is the one command the project most wants you not to run — see
 `CONTRIBUTING.md` and the `.vo` warning above.
+
+## `proof_raft__Step.v` costs ~8 GB and ~30 min to check — this is what OOM-kills sessions
+
+Measured 2026-09-16: a single `rocqworker` checking that one file reached
+**8.1 GB RSS** and ran over 26 minutes. On a 15 GB box that leaves room for
+essentially nothing else.
+
+Consequences, all learned the hard way:
+
+- **`make -j1`, always.** Three sessions died to `-j6`, and several more to
+  two or three agents each running their own build. One `rocqc` at a time is
+  not a preference here, it is the budget.
+- **Never leave overlapping checks running.** It is easy to launch a check,
+  poll it, get impatient and launch another; two of these together is 16 GB
+  and the machine dies. Check for a live `rocqworker` before starting one:
+
+      ps -eo pid,etime,rss,comm --sort=-rss | head -3
+
+- **Do not run a second agent while this file is being checked.**
+- It also exceeds rocq-warm's default session ceiling; see the entry above.
+
+The file is the largest in the election development (three branch lemmas plus
+the top-level dispatch, each stepping through `Step`'s whole body). If it
+grows much further it is worth splitting the branch lemmas into their own
+files, notwithstanding the one-spec-per-function rule — that rule is about
+*specs*, and these are internal lemmas.

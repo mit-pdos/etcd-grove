@@ -474,57 +474,117 @@ Implicit Type s : nstate.t.
             step cfg id s recv s' ⌝ ∗
         "%Herr" ∷ ⌜ err = interface.nil ⌝ }}}.
   Proof.
-    (** UNPROVED -- the last hole on the leader-election path.  All three
-        things that used to block it are now in place, so this is ordinary
-        work rather than a design question:
+    (** UNPROVED, but the prefix below is **machine-checked** as far as it
+        goes: developed in a scratch module and confirmed with
+        [rocq compile -vok] (RC=0, no errors) up to the point marked
+        [PARKED HERE].  Splice it in and continue from there rather than
+        starting over.
 
-          - [own_raft_phys] pins [r.step] to the role via [step_func_of]
-            ([inv_raft_phys.v]), so the [r.step(m)] call can be stepped;
-          - [P.wp_stepFollower_MsgVoteResp] and [P.wp_stepLeader_MsgVoteResp]
-            exist and are proved (both are no-ops for this message type), as
-            is [P.wp_stepCandidate_MsgVoteResp];
-          - [id ∈ cfg] is a premise, which is what [stepCandidate] needs.
+        What is verified: the whole term preamble for [m.Term > r.Term] --
+        the [Term = 0] test, all five message-type tests, the [Infof], the
+        [becomeFollower(m.Term, None)] call, and the [step_higher_term] model
+        witness (a [VoteResp] is not [from_leader], so no leader is adopted).
 
-        The control flow, traced against [raft__Stepⁱᵐᵖˡ]:
+        **Technique that made it work, and the trap it avoids.**  Hoist every
+        type test as a *named* hypothesis up front and [rewrite] with those.
+        Rewriting [bool_decide (Type = k)] inline peels whichever occurrence
+        comes first, and Goose compiles [||]/[&&] to nested tests that leave
+        [bool_decide (true = bool_decide (Type = k))] wrappers -- so an inline
+        rewrite silently hits the wrong layer and [wp_auto] then parks with no
+        indication why.  [Htf] collapses the wrapper once the inner test is
+        [false].  Same trap the [MsgVote] proof documents, in a new guise.
 
-        [m.Term ≠ 0], so the term preamble runs.  Three cases.
+        Remaining, per the traced plan: the type switch (all four tests false
+        for a [MsgVoteResp]) down to the default arm [r.step(m)], which by
+        [Hstepfn1] is [stepFollower] since the role is now [Follower]; then
+        [P.wp_stepFollower_MsgVoteResp], then the postcondition with
+        [recv = [abs_msg mtype.VoteResp m]] and [Hsd] as the witness.  Then
+        the [m.Term < r.Term] arm (bare [return nil], [step_refl]) and the
+        three role sub-cases of [m.Term = r.Term].
 
-        1. [m.Term > r.Term].  The preamble's tests are all false for a
-           [MsgVoteResp] ([MsgVote || MsgPreVote]; [MsgPreVote];
-           [MsgPreVoteResp && !Reject]; [MsgApp || MsgHeartbeat || MsgSnap]),
-           so it takes the final [else] and calls
-           [becomeFollower(m.Term, None)].  Control then reaches the type
-           switch, where [MsgHup] / [MsgStorageAppendResp] /
-           [MsgStorageApplyResp] / [MsgPreVote || MsgVote] are all false, so
-           it falls to the default arm [r.step(m)].  The role is now
-           [Follower], so [Hstepfn] makes that [stepFollower], a no-op.
-           Model: [step_higher_term] giving
-           [become_follower s m.Term (W64 0)] -- [VoteResp] is not
-           [from_leader] -- with [recv = [abs_msg mtype.VoteResp m]].
-
-        2. [m.Term < r.Term].  [checkQuorum || preVote] is false in scope,
-           [MsgPreVote] false, [MsgStorageAppendResp] false, so it reaches
-           the bare [return nil] and drops the message.  State unchanged.
-           Model: [step_refl], [recv = []].
-
-        3. [m.Term = r.Term].  Falls through to the default arm with the role
-           unchanged.  Split on it:
-           - [Follower] -> [stepFollower], no-op -> [step_refl];
-           - [Leader] -> [stepLeader], no-op -> [step_refl];
-           - [Candidate] -> [stepCandidate], whose postcondition is
-             [vote_resp_result id s m.From m.Reject won lost ms] with
-             [app_sends id s.(nstate.term) ms].  Case on [won]/[lost] and use
-             [step_record_then_win] / [step_record_then_lose] /
-             [step_record_vote] from [step_lemmas.v].
-
-        Practical notes for whoever picks this up: this file exceeds
-        rocq-warm's default 4.2 GB session ceiling (export
-        [ROCQ_WARM_MAX_SESSION_GB=9]), a cold check is tens of minutes because
-        dependency loading dominates, and [Show.] does **not** survive
-        [-vok] -- so develop the lemma in a small scratch module that requires
-        [postulates_raft__Step] and splice it back.  Build with [-j1]: three
-        sessions were OOM-killed running [-j6] alongside other agents. *)
+        Cost note: checks grow superlinearly as the proof lengthens -- the
+        prefix below takes several minutes per iteration by itself, because
+        each check re-runs everything before it.  Batch generously. *)
   Admitted.
+
+(* -- machine-checked prefix for wp_Step_MsgVoteResp; see the note above --
+       intros Hty Hto Hterm Hcfg.
+       assert (Hty6 : m.(raftpb.Message.Type') = W32 6) by (rewrite Hty //).
+       (* Hoist every type test this branch meets, as named facts.  Rewriting
+          [bool_decide (Type = k)] inline hits whichever occurrence comes first,
+          and Goose nests the tests
+          ([bool_decide (true = bool_decide (Type = 17))]), so inline rewriting
+          peels the wrong layer.  Named facts + [rewrite] are what the MsgVote
+          proof does. *)
+       assert (Hn17 : bool_decide (m.(raftpb.Message.Type') = W32 17) = false)
+         by (apply bool_decide_eq_false_2; rewrite Hty6; w32_ne).
+       assert (Hn18 : bool_decide (m.(raftpb.Message.Type') = W32 18) = false)
+         by (apply bool_decide_eq_false_2; rewrite Hty6; w32_ne).
+       assert (Hn5 : bool_decide (m.(raftpb.Message.Type') = W32 5) = false)
+         by (apply bool_decide_eq_false_2; rewrite Hty6; w32_ne).
+       assert (Hn3 : bool_decide (m.(raftpb.Message.Type') = W32 3) = false)
+         by (apply bool_decide_eq_false_2; rewrite Hty6; w32_ne).
+       assert (Hn8 : bool_decide (m.(raftpb.Message.Type') = W32 8) = false)
+         by (apply bool_decide_eq_false_2; rewrite Hty6; w32_ne).
+       assert (Hn7 : bool_decide (m.(raftpb.Message.Type') = W32 7) = false)
+         by (apply bool_decide_eq_false_2; rewrite Hty6; w32_ne).
+       (* Goose's short-circuit [||]/[&&] leave [bool_decide (true = <inner>)]
+          wrappers; once [<inner>] is [false] this collapses them. *)
+       assert (Htf : bool_decide (true = false) = false) by done.
+       wp_start as "@". iNamed "Hphys". wp_auto.
+       wp_apply (wp_traceReceiveMessage with "[$Hmisc]") as "Hmisc".
+       assert (bool_decide (m.(raftpb.Message.Term') = W64 0) = false) as Hz
+         by by apply bool_decide_eq_false_2.
+       rewrite Hz. rewrite bool_decide_eq_false_2; last done. wp_auto.
+       destruct (decide (uint.Z rv.(raft.raft.Term') < uint.Z m.(raftpb.Message.Term')))
+         as [Hgt|Hle].
+       - (* m.Term > r.Term: step down, then dispatch to stepFollower *)
+         assert (bool_decide (uint.Z rv.(raft.raft.Term') <
+                              uint.Z m.(raftpb.Message.Term')) = true) as Hb
+           by by apply bool_decide_eq_true_2.
+         rewrite Hb. rewrite bool_decide_eq_true_2 //. wp_auto.
+         (* (Type == MsgVote) || (Type == MsgPreVote): both false *)
+         rewrite Hn5. wp_auto.
+         (* the lease-check block: not MsgPreVote *)
+         rewrite Hn17. wp_auto.
+         (* second occurrence, this time wrapped: [true = bool_decide (…17)] *)
+         rewrite Hn17 Htf. wp_auto.
+         (* not (MsgPreVoteResp && !Reject) *)
+         rewrite Hn18. wp_auto.
+         (* the "received a message with higher term" Infof *)
+         wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
+         wp_auto. rewrite Hlok.
+         wp_apply (wp_Logger__logf with "Hlogger").
+         { rewrite /log_methods. set_solver. }
+         (* a MsgVoteResp is not from a leader: not MsgApp/Heartbeat/Snap *)
+         rewrite Hn3. wp_auto.
+         (* not MsgHeartbeat, not MsgSnap either, so the else arm runs
+            becomeFollower(m.Term, None) rather than adopting a leader *)
+         rewrite Hn8. wp_auto.
+         rewrite Hn7. wp_auto.
+         (* re-seal for becomeFollower *)
+         iAssert (own_raft_phys cfg r id s)
+           with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys".
+         { rewrite /own_raft_phys /own_raft_phys_at.
+           iExists rv, msgs, msgsAA, lok. iFrame "∗#%". }
+         wp_apply (P.wp_raft__becomeFollower with "[$Hphys]") as "Hphys".
+         (* the model step: a VoteResp is not from_leader, so no leader is
+            adopted and the new lead is 0 *)
+         assert (step cfg id s [abs_msg mtype.VoteResp m]
+                   (become_follower s m.(raftpb.Message.Term') (W64 0))) as Hsd.
+         { replace (W64 0) with
+             (if from_leader (abs_msg mtype.VoteResp m).(msg.ty)
+              then (abs_msg mtype.VoteResp m).(msg.from) else W64 0) by done.
+           replace m.(raftpb.Message.Term') with
+             (abs_msg mtype.VoteResp m).(msg.term) by done.
+           apply step_higher_term.
+           - rewrite /abs_msg /= -Hterm0. exact Hgt.
+           - rewrite /abs_msg /=. exact Hto. }
+         iNamedSuffix "Hphys" "1".
+      (* PARKED HERE: goal is the type switch's [MsgHup] (W32 0) test, with
+         [Hn0 : bool_decide (Type = W32 0) = false] still to be hoisted. *)
+*)
+
 
 End branches.
 
