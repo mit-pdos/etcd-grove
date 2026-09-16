@@ -72,8 +72,14 @@ Module StepCandidateProof (P : STEPCANDIDATE_POSTULATES) : STEPCANDIDATE.
          [inv_raft_phys.v]. *)
       wp_apply (wp_raft__bcastAppend with "[$Hphys]") as "%ms [Hphys %Hms]".
       iApply ("HΦ" $! interface.nil _). iFrame "Hphys".
-      iPureIntro. exists true, false, ms.
-      simpl in Hms. split; first done. rewrite /vote_resp_result //.
+      (* The postcondition is [⌜∃ …⌝ ∗ ⌜err = nil⌝]; [iFrame "Hphys"] does
+         *not* discharge the second, so [iPureIntro] leaves a conjunction. *)
+      iPureIntro. split; last done. exists true, false, ms. simpl in Hms.
+      split_and!;
+        [ exact Hms
+        | intros _; by apply Hwon
+        | intros [=]
+        | rewrite /vote_resp_result // ].
     - (* [quorum.VoteLost]: step down at the unchanged term. *)
       rewrite /VoteLost bool_decide_eq_false_2; last w32_ne. wp_auto.
       iAssert (own_raft_phys cfg r id
@@ -88,9 +94,12 @@ Module StepCandidateProof (P : STEPCANDIDATE_POSTULATES) : STEPCANDIDATE.
       rewrite Hterm1.
       wp_apply (P.wp_raft__becomeFollower with "[$Hphys]") as "Hphys".
       iApply ("HΦ" $! interface.nil _). iFrame "Hphys".
-      iPureIntro. exists false, true, []. split.
-      { rewrite /app_sends. constructor. }
-      rewrite /vote_resp_result //.
+      iPureIntro. split; last done. exists false, true, [].
+      split_and!;
+        [ rewrite /app_sends; constructor
+        | intros [=]
+        | intros _; by apply Hlost
+        | rewrite /vote_resp_result // ].
     - (* [quorum.VotePending]: neither switch arm fires; keep waiting. *)
       rewrite /VotePending bool_decide_eq_false_2; last w32_ne. wp_auto.
       iApply ("HΦ" $! interface.nil
@@ -100,9 +109,12 @@ Module StepCandidateProof (P : STEPCANDIDATE_POSTULATES) : STEPCANDIDATE.
       iSplitL "Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1".
       { rewrite /own_raft_phys. iExists rv0, msgs0, msgsAA0, lok0.
         iFrame "∗#%". }
-      iPureIntro. exists false, false, []. split.
-      { rewrite /app_sends. constructor. }
-      rewrite /vote_resp_result //.
+      iPureIntro. split; last done. exists false, false, [].
+      split_and!;
+        [ rewrite /app_sends; constructor
+        | intros [=]
+        | intros [=]
+        | rewrite /vote_resp_result // ].
   Qed.
 
 End StepCandidateProof.

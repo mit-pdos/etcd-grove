@@ -47,7 +47,12 @@ Definition wp_stepCandidate_MsgVoteResp_body :=
           (won = true → is_quorum cfg (granted votes')) ∧
           (lost = true → ¬ is_quorum cfg (cfg ∖ rejected votes')) ∧
           s' = vote_resp_result id s m.(raftpb.Message.From')
-                 m.(raftpb.Message.Reject') won lost ms ⌝ }}}.
+                 m.(raftpb.Message.Reject') won lost ms ⌝ ∗
+      (* The [MsgVoteResp] arm of [stepCandidate]'s type switch ends in
+         [return nil].  [Step] needs this written down: its own postcondition
+         claims a [nil] error, and the code propagates a non-nil one out of
+         [r.step(m)] unchanged. *)
+      ⌜ err = interface.nil ⌝ }}}.
 
 Module Type STEPCANDIDATE.
   Parameter wp_stepCandidate_MsgVoteResp : wp_stepCandidate_MsgVoteResp_body.
