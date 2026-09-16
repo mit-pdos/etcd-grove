@@ -205,6 +205,38 @@ Unclaimed; pick one and say so in the journal.
 
 ## Known broken
 
+- **`spec_raft__campaign.v` is FALSE as written.** Found 2026-09-16 while
+  proving `campaign`; **fix this before closing `campaign`'s admits.**
+
+  `send` panics on a vote message whose `Term` is zero —
+  `Panicf("term should be set when sending %s")` in `raft__sendⁱᵐᵖˡ` — which
+  is why `wp_raft__send_vote` requires `m.(raftpb.Message.Term') ≠ W64 0`.
+  `campaign` sends at `term = r.Term` *after* `becomeCandidate` has set
+  `r.Term = old + 1`. So at `s.(nstate.term) = 2^64 - 1` the new term wraps
+  to `0` and the real code panics, while the spec claims it returns having
+  sent. `wp_Logger__logf` deliberately does not cover `Panicf`, so the proof
+  genuinely cannot get past it — the falsity is detectable, and was detected.
+
+  The fix is a no-wrap premise, `uint.Z s.(nstate.term) + 1 < 2^64`, on
+  `wp_raft__campaign_body`, threaded through `wp_raft__hup_body` and into
+  `spec_raft__Step.v`'s `MsgHup` hypothesis (which already has the shape
+  `Type' = MsgHup → …`). It **cannot** live in `own_raft_phys`: that predicate
+  has to be re-established after `becomeCandidate` increments the term, and
+  `term + 1 < 2^64` does not survive its own increment.
+
+  There is precedent for treating counter overflow as an assumption here —
+  `readonly.v:589,668` carry `admit`s marked "overflow of incrementing
+  value" — but this one has to be *stated*, not admitted, because it changes
+  a triple that other proofs consume.
+
+  This is the **third** false statement found in two days, after
+  `wp_raft__appendEmptyEntry` (2026-09-15) and `step_win` (2026-09-16). All
+  three were claims about what raft's code does to its outgoing messages. The
+  pattern is worth naming: a plausible-looking bookkeeping claim about
+  `send`/`msgs`/`msgsAfterAppend` is the thing this development keeps getting
+  wrong, so check those against `raft__sendⁱᵐᵖˡ` specifically.
+
+
 - **`./etc/tcb-view.py --self-check` fails against a stale inventory.** Its
   `EXPECTED_AXIOMS` / `EXPECTED_ADMITS` / `EXPECTED_TOTALS` tables
   (`etc/tcb-view.py:719-759`) still say 50 axioms and 14 admits; the tree is

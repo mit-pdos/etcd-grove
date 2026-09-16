@@ -81,7 +81,13 @@ Definition own_tracker (tv : tracker.ProgressTracker.t) (votes : gmap w64 bool)
   "HlearnersNext" ∷
       tv.(tracker.ProgressTracker.Config').(tracker.Config.LearnersNext')
         ↦$ learnersNext ∗
-  "%Hno_learners" ∷ ⌜ learners = ∅ ∧ learnersNext = ∅ ⌝.
+  "%Hno_learners" ∷ ⌜ learners = ∅ ∧ learnersNext = ∅ ⌝ ∗
+  (* [campaign] does [make([]uint64, 0, len(idMap))], and [wp_slice_make3]
+     needs [0 ≤ sint.Z cap].  Nothing else bounds the voter set: no Iris
+     ownership constrains the cardinality of a [gset w64], so [size cfg =
+     2^64] is consistent with every other conjunct here.  This is a property
+     of the configuration, so it belongs with the configuration. *)
+  "%Hcfg_size" ∷ ⌜ Z.of_nat (size cfg) < 2 ^ 63 ⌝.
 
 (** [ResetVotes] assigns a fresh empty map to [p.Votes], so it changes the
     tracker value as well as the heap it points at. *)
