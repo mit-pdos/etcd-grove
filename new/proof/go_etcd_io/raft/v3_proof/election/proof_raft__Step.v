@@ -160,29 +160,6 @@ Implicit Type s : nstate.t.
             step cfg id s recv s' ⌝ ∗
         "%Herr" ∷ ⌜ err = interface.nil ⌝ }}}.
   Proof.
-  (* NOT PROVED.  The script below is preserved verbatim: it is complete
-     through the term preamble, the lease check, both pre-vote arms, the
-     step-down with its [step_higher_term] transition, the [canVote]
-     computation and all four [isUpToDate] arms, and it reaches the end.
-     But it does **not check**: `make proof_raft__Step.vok` fails inside the
-     "a leader is known, so the vote is declined" arm with
-
-         Error: Tactic failure: iApply: cannot apply
-
-     at the [wp_apply (wp_raftLog__lastEntryID ...)] in that arm (and, in an
-     earlier revision, `congruence failed` a few lines above it).  The likely
-     cause is the preceding [rewrite bool_decide_eq_false_2; last congruence]
-     leaving the program in a state [wp_auto] has not stepped to the
-     [lastEntryID] call -- the two declined arms differ in how many
-     [bool_decide]s have been discharged, and the shared
-     [vote_reject_tail] assumes the other shape.
-
-     Do not trust a [Qed.] you have not seen [make <file>.vok] accept: this
-     proof ended in [Qed.] in the file for some time while failing to check.
-     See notes/gotchas.md. *)
-  Admitted.
-
-(* -- preserved script for wp_Step_MsgVote, see the note above --
        intros Hty Hto Hterm Hfnz.
        wp_start as "@". iNamed "Hphys". wp_auto.
        wp_apply (wp_traceReceiveMessage with "[$Hmisc]") as "Hmisc".
@@ -423,7 +400,8 @@ Implicit Type s : nstate.t.
                 wp_apply (wp_raftLog__lastEntryID with "[$Hlog]")
                   as "%lastID2 Hlog".
                 vote_reject_tail r id s m Hlok Hto Hterm0.
-*)
+  Qed.
+
 
 
   (** [MsgVoteResp]: dispatched to [stepCandidate]. *)

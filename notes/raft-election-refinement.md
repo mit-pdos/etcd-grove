@@ -423,3 +423,61 @@ with log replication. Worth a decision record before writing it.
 - `inv_slices.v`: `wp_slices_Sort` stays an `Axiom`. There is no code to
   prove — Goose emits no body for the `cmp.Ordered` family. See
   [journal.md](journal.md) for the three ways out.
+
+## Designing `own_raftLog` (the next real decision)
+
+Under the 2026-09-16 scope rule the log is in scope: `isUpToDate`,
+`lastEntryID` and `lastIndex` are called while handling a `MsgVote`, so they
+have to be proved, not assumed. This is the one piece with a genuine design
+question in it, so it is written down before being built.
+
+### What the election path actually calls
+
+- `isUpToDate(their)` — **pure** given `lastEntryID`: it compares
+  `their.term/index` against `our.term/index` and returns a bool. No panic.
+- `lastEntryID()` = `lastIndex()` then `term(index)`, and **it panics** if
+  that `term` call errors: `Panicf("unexpected error when getting the last
+  term (%v)")`. Since `wp_Logger__logf` deliberately excludes `Panicf`, this
+  path must be shown *unreachable*.
+- `lastIndex()` → `unstable.maybeLastIndex()`, else `storage.LastIndex()`.
+- `term(i)` → `unstable.maybeTerm(i)`, else bounds checks returning
+  `ErrCompacted` / `ErrUnavailable`, else `storage.Term(i)`.
+
+So the shape of the obligation is: **`own_raftLog` must imply that
+`term(lastIndex())` succeeds.** That is a real log invariant, not
+bookkeeping — it is what makes `lastEntryID` total.
+
+### The decision
+
+`raftLog.storage` is a `Storage` **interface**, client-supplied (etcd
+provides one; raft ships `MemoryStorage`). So it is a legitimate abstraction
+boundary, but it must be an *interface predicate* — a `Definition` bundling a
+Hoare triple per method against an abstract log — and **not** an axiom. Follow
+`own_AckedIndexer` (`readonly.v:710`) for the shape. `Storage` has six
+methods (`new/code/go_etcd_io/raft/v3.v:7735`): `Entries`, `FirstIndex`,
+`InitialState`, `LastIndex`, `Snapshot`, `Term`.
+
+Sketch:
+
+    Definition is_Storage (s : raft.Storage.t) (ents : list raftpb.Entry.t)
+                          (first : w64) : iProp Σ := ...one triple per method...
+
+    Definition own_raftLog (l : loc) : iProp Σ :=
+      ∃ lv (uents : list raftpb.Entry.t) (sents : list raftpb.Entry.t),
+        l ↦ lv ∗
+        own_unstable lv.(raft.raftLog.unstable') uents ∗
+        is_Storage lv.(raft.raftLog.storage') sents ... ∗
+        ⌜ the concatenation is contiguous, and non-empty at lastIndex ⌝
+
+The open part is how much of the log's content to expose. Election needs only
+"`term(lastIndex)` succeeds" and the two projections `isUpToDate` compares.
+A predicate strong enough for just that will not survive contact with log
+replication, which needs the entry list itself. **Prefer exposing the entry
+list now** — an index-to-term map plus a contiguity invariant — even though
+election does not read it, because the alternative is rewriting
+`own_raftLog` and every proof that mentions it later.
+
+Do not be tempted to keep `own_raftLog` opaque and add "`term(lastIndex)`
+succeeds" as an axiom. That is the `wp_raft__appendEmptyEntry` mistake again:
+an assumption about what raft's own code does, in a place where it can be
+proved.
