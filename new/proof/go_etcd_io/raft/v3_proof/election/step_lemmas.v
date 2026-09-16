@@ -111,7 +111,7 @@ Lemma step_record_then_lose id s (m : msg.t) :
   s.(nstate.role) = role.Candidate →
   let s1 := s <| nstate.votes :=
                   record_vote s.(nstate.votes) m.(msg.from) (negb m.(msg.reject)) |> in
-  is_quorum cfg (rejected s1.(nstate.votes)) →
+  ¬ is_quorum cfg (cfg ∖ rejected s1.(nstate.votes)) →
   step cfg id s ([m] ++ []) (become_follower s1 s1.(nstate.term) (W64 0)).
 Proof.
   intros ???? s1 Hq.

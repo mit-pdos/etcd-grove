@@ -381,3 +381,53 @@ supports the same payoff theorem.
 symmetric mistake is recorded one entry up: this is the third time a
 plausible-looking bookkeeping claim about raft's outgoing messages has turned
 out to be untrue.
+
+## 2026-09-16 — `step_lose` means "cannot win", not "a majority rejected"
+
+**Decision.** `step_lose`'s premise changes from
+`is_quorum cfg (rejected s.(nstate.votes))` to
+`¬ is_quorum cfg (cfg ∖ rejected s.(nstate.votes))`, and
+`wp_ProgressTracker__TallyVotes` / `wp_raft__poll` / `step_record_then_lose`
+change to match.
+
+**Why.** The old premise was **false of the code**. Go's
+`MajorityConfig.VoteResult` (`new/code/go_etcd_io/raft/v3/quorum.v`) computes
+
+    q = len(c)/2 + 1
+    votedCnt >= q            -> VoteWon
+    votedCnt + missing >= q  -> VotePending
+    otherwise                -> VoteLost
+
+so `VoteLost` means *the candidate cannot still win*, however the remaining
+voters vote. It does **not** mean a majority rejected. Concretely: 4 voters,
+2 reject, 2 have not voted. Then `votedCnt = 0`, `missing = 2`, `q = 3`, so
+`0 + 2 < 3` and Go returns `VoteLost` — while the 2 rejections are not a
+quorum, since `is_quorum` needs `4 < 2*2`.
+
+The identity that makes the correct form obvious:
+
+    votedCnt + missing = size cfg − size (rejected ∩ cfg) = size (cfg ∖ rejected)
+
+so `VoteLost ⟺ ¬ is_quorum cfg (cfg ∖ rejected)` — *the voters who have not
+rejected are not a quorum*. (The `VoteWon` side was already fine:
+`floor(n/2) + 1 ≤ v` gives `n < 2v`.)
+
+**Why weakening is safe.** `step_lose` moves a candidate to follower **at the
+same term** and creates no leader, so election safety — which is what the
+model exists to provide — is untouched. The new premise still records *why* a
+candidate gives up, which is real information about the algorithm; dropping
+the premise entirely was considered and rejected for that reason.
+
+**What this cost.** `stepCandidate` was already `Qed`, and its `VoteLost` arm
+consumed the false `TallyVotes` postcondition, so that proof was **not sound
+as it stood** — it was discharged from an `Admitted` lemma that could not be
+proved. This is the strongest argument yet for the rule recorded in
+[proof-effort.md](proof-effort.md): an `Admitted` lemma is not a placeholder
+for work, it is an unchecked claim, and a `Qed` above one inherits its
+falsity. Discharge the leaves before trusting the root.
+
+It is also the **sixth** false or unprovable statement found in two days,
+after `wp_raft__appendEmptyEntry`, `step_win`, `spec_raft__campaign.v`, the
+`r.step` comment in `inv_raft_phys.v`, and `own_progress`'s missing
+`IsLearner`. Five of the six were claims about what raft's code does that
+nobody had checked against the generated body.

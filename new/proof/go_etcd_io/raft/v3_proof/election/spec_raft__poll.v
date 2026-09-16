@@ -15,7 +15,9 @@ Definition wp_raft__poll_body :=
       own_raft_phys cfg r id (s <| nstate.votes := votes' |>) ∗
       ⌜ res = VoteWon ∨ res = VoteLost ∨ res = VotePending ⌝ ∗
       ⌜ res = VoteWon → is_quorum cfg (granted votes') ⌝ ∗
-      ⌜ res = VoteLost → is_quorum cfg (rejected votes') ⌝ }}}.
+      (* see inv_tracker.v: [VoteLost] is "cannot still win", not "a
+         majority rejected" *)
+      ⌜ res = VoteLost → ¬ is_quorum cfg (cfg ∖ rejected votes') ⌝ }}}.
 
 Module Type POLL.
   Parameter wp_raft__poll : wp_raft__poll_body.

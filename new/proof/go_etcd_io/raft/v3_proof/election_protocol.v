@@ -254,7 +254,23 @@ Inductive step : nstate.t → list msg.t → nstate.t → Prop :=
     the same term. *)
 | step_lose s :
   s.(nstate.role) = role.Candidate →
-  is_quorum (rejected s.(nstate.votes)) →
+  (** Go's [MajorityConfig.VoteResult] returns [VoteLost] when
+      [votedCnt + missing < q], i.e. when the candidate **cannot still win** --
+      not when a majority has rejected it.  The two differ, and the earlier
+      premise [is_quorum (rejected s.(nstate.votes))] was therefore **false of
+      the code**: with 4 voters, 2 rejecting and 2 yet to vote, the count is
+      [0 + 2 < 3] so Go says [VoteLost], while the 2 rejections are not a
+      quorum ([4 < 2*2] is false).
+
+      Working the identity through:
+      [votedCnt + missing = size cfg - size (rejected ∩ cfg)
+                          = size (cfg ∖ rejected)], so
+      [VoteLost ⇔ ¬ is_quorum (cfg ∖ rejected)] -- the voters who have *not*
+      rejected are not a quorum.  That is what this premise now says.
+
+      Weakening it is safe: [step_lose] moves a candidate to follower at the
+      same term and creates no leader, so election safety is untouched. *)
+  ¬ is_quorum (cfg ∖ rejected s.(nstate.votes)) →
   step s [] (become_follower s s.(nstate.term) (W64 0))
 
 (** [Ready] hands the pending messages to the transport, emptying the queues.

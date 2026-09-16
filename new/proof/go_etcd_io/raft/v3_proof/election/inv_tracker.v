@@ -151,7 +151,13 @@ Lemma wp_ProgressTracker__TallyVotes (trk : loc) tv votes :
       trk ↦ tv ∗ own_tracker tv votes ∗
       ⌜ res = VoteWon ∨ res = VoteLost ∨ res = VotePending ⌝ ∗
       ⌜ res = VoteWon → is_quorum cfg (granted votes) ⌝ ∗
-      ⌜ res = VoteLost → is_quorum cfg (rejected votes) ⌝ }}}.
+      (* [VoteLost] means the candidate **cannot still win**, not that a
+         majority rejected -- Go computes [votedCnt + missing < q], and
+         [votedCnt + missing = size (cfg ∖ rejected)].  The old form,
+         [is_quorum cfg (rejected votes)], was false: 4 voters with 2
+         rejecting and 2 silent gives [VoteLost] with no rejection quorum.
+         Corrected 2026-09-16; see election_protocol.v's [step_lose]. *)
+      ⌜ res = VoteLost → ¬ is_quorum cfg (cfg ∖ rejected votes) ⌝ }}}.
 Proof. Admitted.
 
 (** [trk.Visit f] calls [f id pr] on every voter's [Progress].
