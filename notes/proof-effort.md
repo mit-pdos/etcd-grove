@@ -160,3 +160,69 @@ each uncertain point, rather than one tactic per iteration. Iteration 2 was a
 ~90-line edit; it got through all three `send` branches and failed only at the
 loop exit. At 5 min per check, batching guesses beat serialising them — the
 opposite of the advice that suits a 0.3 s replay.
+
+
+## Round 2 (2026-09-16, later): what parallel agents reported
+
+Five more functions landed (`reset`, `stepCandidate`, `campaign`, `Step`'s
+`MsgVote`, plus `stepFollower`/`stepLeader` on `MsgVoteResp`). Three findings
+sharpen or contradict the picture above.
+
+### The right inner loop depends on replay cost, and replay cost depends on neighbours
+
+The `campaign` agent reported that **rocq-warm's warm replay did not help it
+at all**: with several agents in one checkout the daemon evicted its 2–3 GB
+session between every check, so each "replay" was a cold 250–460 s run, while
+`make <file>.vok` is ~100 s and authoritative. It therefore *batched* — wrote
+~90 lines with a `Show.` at each uncertain point, three iterations total — and
+got through all three `send` branches in one shot.
+
+That is the opposite of the one-tactic-at-a-time habit that suited `poll`'s
+0.3 s replays, and both are right. **State the rule as: measure your replay
+cost first, then pick the batch size.** Sub-second replay → one tactic at a
+time. Minutes → batch, with a `Show.` at every point you are unsure.
+
+Corollary discovered the hard way: **`Show.` does not survive `-vok`**, so
+`.vok` can never be the goal-inspection loop, only the verdict. And
+`proof_raft__Step.v` exceeds rocq-warm's default 4.2 GB session ceiling, so
+goal inspection on the largest file needs
+`ROCQ_WARM_MAX_SESSION_GB=9`. Both in [gotchas.md](gotchas.md).
+
+### Recorded error messages are gold; recorded diagnoses are not
+
+Two agents inherited a predecessor's unfinished script with a note giving both
+the failing error *and* a guess at its cause. In both cases the error was
+right and **the guess was wrong**, and the guess cost real time:
+
+- `campaign`'s note blamed a `CompositeLiteral`; the actual cause was
+  `wp_auto` parked in front of a `voteRespMsgType` call whose spec was missing
+  from the postulates list. One `Show.` would have shown it.
+- `Step`'s `MsgVote` note blamed the shared reject tactic; the actual cause was
+  that Goose compiles `||`/`&&` to short-circuiting `If`s, so each arm of
+  `canVote` owes a *different number* of `bool_decide`s — three arms owe
+  three, one owes four.
+
+So: when preserving an unfinished proof, **record the error verbatim and the
+goal, and mark any diagnosis as a guess.** The next reader should re-derive
+the cause from a `Show.`, not inherit a theory.
+
+### Adding a real invariant is mechanical; discovering it is missing is not
+
+`own_raft_phys` had a comment claiming it pinned `r.step` to the role and no
+such conjunct. Nothing detected that for two days — not the type checker, not
+the axiom count, not a review — until a proof needed the fact and could not
+get it. The tell was in plain sight: `becomeFollower`'s re-seal said
+`iExists (rv <| step' := _ |>)`, and **an evar in a re-seal is where an
+invariant goes to hide.** Worth grepping for.
+
+Threading the fix through the four proofs that re-seal was then routine.
+
+### The cheapest trust-base win was reading the generated code
+
+Five `traceX` functions were `Axiom`s for days. Goose translates every one to
+`λ: <> <>, exception_do (do: #())` — a literal no-op — so each was a two-line
+proof. A sixth axiom, `wp_raftLog__hasNextOrInProgressSnapshot`, was reachable
+from no proof at all and was simply deleted.
+
+**Before assuming anything about a callee, read its translated body.** Six of
+the nineteen election-path axioms cost nothing but a `grep`.
