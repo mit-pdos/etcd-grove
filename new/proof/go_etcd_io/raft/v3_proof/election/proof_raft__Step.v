@@ -462,6 +462,9 @@ Implicit Type s : nstate.t.
     m.(raftpb.Message.Type') = MsgVoteResp →
     m.(raftpb.Message.To') = id →
     m.(raftpb.Message.Term') ≠ W64 0 →
+    (* [stepCandidate] needs it; [Step] is the outermost caller, so it enters
+       the development at [wp_raft__Step_body] -- see spec_raft__Step.v *)
+    id ∈ cfg →
     {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s }}}
       r @! (go.PointerType raft.raft) @! "Step" #m
     {{{ (err : error.t) s', RET #err;
@@ -532,7 +535,7 @@ Set Default Proof Using "Type".
   Proof.
     intros_ambient.
     intros cfg γ r id s m.
-    intros Helection Hhup Hvote Hvoteresp.
+    intros Helection Hin Hhup Hvote Hvoteresp.
     iIntros (Φ) "(#Hinit & Hphys & Hghost & #Hm & #Hctx) HΦ".
     iApply wp_fupd.
     destruct Helection as [Hty | [Hty | Hty]].

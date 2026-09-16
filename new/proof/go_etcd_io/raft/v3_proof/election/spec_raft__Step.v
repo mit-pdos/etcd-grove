@@ -21,6 +21,13 @@ Definition wp_raft__Step_body :=
     (cfg : gset w64)
     (γ : raft_election_names) (r : loc) (id : w64) (s : nstate.t) (m : raftpb.Message.t),
   election_msg m →
+  (* The node is a voter.  [stepCandidate] needs this outright (its [poll]
+     and [becomeLeader] both do) and [spec_stepCandidate_MsgVoteResp.v] says
+     to thread it in "from the caller" -- but [Step] *is* the outermost
+     caller, so it has to enter the development here.  Under the no-learner,
+     no-reconfiguration scope this is a property of the node, not of a
+     particular call.  Added 2026-09-16 for the [MsgVoteResp] branch. *)
+  id ∈ cfg →
   (* A [MsgHup] is local ([Term = 0]) and may start an election, which
      increments the term; [send] panics if that wraps to zero. *)
   (m.(raftpb.Message.Type') = MsgHup →

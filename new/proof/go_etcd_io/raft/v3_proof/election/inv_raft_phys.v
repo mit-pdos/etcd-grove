@@ -39,7 +39,36 @@ Implicit Type s : nstate.t.
     in particular does not certify the outgoing queues.  That certification
     now follows from [own_raft_ghost] instead, via [own_raft_ghost_outbox],
     which is what lets every spec below [Step] be ghost-free. *)
-Definition own_raft_phys (r : loc) (id : w64) s : iProp Σ :=
+(** Which of the three [stepX] functions [r.step] holds, as a function of the
+    role.  The [becomeX] functions assign these ([r.step := stepFollower] and
+    so on), and [Step] dispatches a message it does not handle inline through
+    [r.step(m)] -- so without tying the field to the role, that call cannot be
+    stepped at all: [wp_auto] reaches [#rv.(step') #r #m] with nothing to
+    apply.
+
+    Until 2026-09-16 a comment here *claimed* [own_raft_phys] recorded this,
+    and it did not: [step'] appeared in no conjunct, which is why
+    [proof_raft__becomeFollower.v] could re-seal with
+    [iExists (rv <| step' := _ |>)]. Discovered while trying to prove
+    [Step]'s [MsgVoteResp] branch, which is the first thing that needs it. *)
+Definition step_func_of (ro : role.t) : func.t :=
+  match ro with
+  | role.Follower => functions raft.stepFollower []
+  | role.Candidate => functions raft.stepCandidate []
+  | role.Leader => functions raft.stepLeader []
+  end.
+
+(** Ownership of the struct, with [r.step] pinned to an explicit [f] rather
+    than to the role.
+
+    The parameterized form is needed because [becomeFollower] assigns
+    [r.step := stepFollower] **before** [r.state := StateFollower], and
+    [reset] runs in between -- so at that point the field and the role
+    genuinely disagree and [own_raft_phys] below does not hold. [reset]'s
+    spec is therefore stated on this variant, carrying [f] through unchanged,
+    and the [becomeX] proofs fold back to [own_raft_phys] once the role
+    assignment catches up. *)
+Definition own_raft_phys_at (r : loc) (id : w64) s (f : func.t) : iProp Σ :=
   ∃ (rv : raft.raft.t) (msgs msgsAA : list raftpb.Message.t)
     (lok : interface.t_ok),
   "Hr" ∷ r ↦ rv ∗
@@ -50,6 +79,8 @@ Definition own_raft_phys (r : loc) (id : w64) s : iProp Σ :=
   "%Hvote" ∷ ⌜ rv.(raft.raft.Vote') = s.(nstate.vote) ⌝ ∗
   "%Hlead" ∷ ⌜ rv.(raft.raft.lead') = s.(nstate.lead) ⌝ ∗
   "%Hstate" ∷ ⌜ rv.(raft.raft.state') = state_w64 s.(nstate.role) ⌝ ∗
+  (** [r.step] is the given function.  See [step_func_of] above. *)
+  "%Hstepfn" ∷ ⌜ rv.(raft.raft.step') = f ⌝ ∗
 
   (** the vote tally, and the rest of the heap the tracker points at.  The
       tracker's own bytes are covered by [Hr] above, since [trk] is embedded
@@ -90,9 +121,9 @@ Definition own_raft_phys (r : loc) (id : w64) s : iProp Σ :=
   "Hmisc" ∷ own_raft_misc rv.(raft.raft.readStates') rv.(raft.raft.readOnly')
              rv.(raft.raft.pendingReadIndexMessages').
 
-(** The step function stored in [r.step] is determined by the role; rather
-    than naming the closure, we record which of the three [stepX] functions
-    it is by the role, and dispatch on the role at the one call site. *)
+(** The usual form: [r.step] is whichever [stepX] the role calls for. *)
+Definition own_raft_phys (r : loc) (id : w64) s : iProp Σ :=
+  own_raft_phys_at r id s (step_func_of s.(nstate.role)).
 
 (** Out of scope: the empty entry a new leader appends.  [appendEntry]
     updates the log and then queues a self-addressed [MsgAppResp]
