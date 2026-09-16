@@ -73,37 +73,28 @@ context for the raft work, not the current focus.
 branch `worktree-raft-election-refinement`. Compiles and is reached from
 `new/should_build.v`.
 
-Eleven Go functions are specified, one file each. Proved (`Qed`, each
+Thirteen Go functions are specified, one file each. **Proved** (`Qed`, each
 confirmed with `make <file>.vok` exiting 0 on that revision):
 `voteRespMsgType`, `send`, `becomeFollower`, `becomeCandidate`,
-`becomeLeader`, `raft_election_safety`, `Step`'s top-level dispatch and its
-`MsgHup` branch, and — all on 2026-09-16 — **`poll`**, **`hup`**,
-**`reset`**, **`stepCandidate`** and **`campaign`**.
+`becomeLeader`, `raft_election_safety`, and — all on 2026-09-16 — **`poll`**,
+**`hup`**, **`reset`**, **`stepCandidate`**, **`campaign`**,
+**`stepFollower`** and **`stepLeader`** (the last two on `MsgVoteResp`, where
+both are no-ops), plus `Step`'s top-level dispatch, its `MsgHup` branch and
+its **`MsgVote`** branch.
 
-`reset` closing matters beyond itself: the three `becomeX` proofs rested on
-it, so they no longer stand on an admit.
+So **every Go function on the leader-election path is proved except `Step`'s
+`MsgVoteResp` branch**, which is the one remaining `Admitted` in a
+`proof_*.v` file.
 
-Two holes remain on the election path:
+Two things that mattered structurally:
 
-- **`Step`'s `MsgVote` branch** — `Admitted`. A complete script is preserved
-  in the file, covering the term preamble, the lease check, both pre-vote
-  arms, the step-down, the `canVote` computation and all four `isUpToDate`
-  arms. It **does not check**: `vok` fails in the "a leader is known, so the
-  vote is declined" arm with `iApply: cannot apply` at the
-  `wp_raftLog__lastEntryID` call. The likely cause is that the two declined
-  arms have discharged different numbers of `bool_decide`s, so the shared
-  `vote_reject_tail` tactic assumes the wrong program shape.
-
-  **This one is a cautionary tale**, recorded in
-  [gotchas.md](gotchas.md): it sat in the tree ending in `Qed.` and was
-  reported as proved on the strength of reading the file. `.vos` skips opaque
-  proofs, so nothing objected. Grepping for `Admitted` does not measure what
-  is proved.
-- **`Step`'s `MsgVoteResp` branch** — `Admitted`, no script. It should be a
-  dispatch to `stepCandidate`, which is now genuinely proved; the open
-  question is whether `id ∈ cfg` can be discharged from what
-  `wp_Step_MsgVoteResp` has in scope, or has to be threaded into the branch
-  lemma.
+- `reset` closing freed the three `becomeX` proofs, which had rested on it.
+- `own_raft_phys` now pins `r.step` to the role (`step_func_of`), because
+  `MsgVoteResp` dispatches through `r.step(m)` and the field had been
+  completely unconstrained — see "Known broken" and
+  [decisions.md](decisions.md). The predicate is parameterized as
+  `own_raft_phys_at … f` since `becomeFollower` assigns `r.step` *before*
+  `r.state` and calls `reset` in between.
 
 `poll` is the worked example to imitate for the rest — it is short, it was
 proved from scratch against the real code, and it demonstrates the
@@ -185,9 +176,23 @@ same treatment — see
 [raft-election-refinement.md](raft-election-refinement.md) for what each one
 costs.
 
-As of 2026-09-16 the count is **44 axioms and 22 `Admitted`**. Count them
-with a grep; the axiom count is the number to watch, and admits rising while
-axioms fall is the conversion working, not a regression:
+As of 2026-09-16 the **election path** carries **13 axioms**, of which only
+**8 are legitimate** under the scope rule — `is_Logger`, `is_Logger_pers`,
+`wp_Logger__logf` (the client-supplied logging interface) and
+`wp_slices_Sort` (Goose does not translate it). The other five are core raft
+and still owed: `own_raft_misc`, `wp_raft__promotable`,
+`wp_raft__hasUnappliedConfChanges`, `wp_campaign_peer_ids`, and `own_raftLog`
+with its three remaining methods plus `wp_raft__appendEmptyEntry`.
+
+Six axioms went away on 2026-09-16 for almost no work, which says something
+about how this was being audited: the five `traceX` functions are literal
+no-ops in the translated code (`λ: <> <>, exception_do (do: #())`), so each
+is a two-line proof, and `wp_raftLog__hasNextOrInProgressSnapshot` was
+reachable from no proof at all and was deleted. **Read a callee's translated
+body before assuming anything about it.**
+
+Count them with a grep; the axiom count is the number to watch, and admits
+rising while axioms fall is the conversion working, not a regression:
 
     grep -rc '^Axiom\|^  Axiom' new/proof/go_etcd_io/raft --include='*.v'
     grep -rn 'Admitted\.' new/proof/go_etcd_io/raft --include='*.v'
