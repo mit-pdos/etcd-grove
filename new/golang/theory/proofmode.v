@@ -342,30 +342,58 @@ Ltac done ::=
 Ltac2 Type exn ::= [ Walk_expr_more ].
 Ltac2 Type exn ::= [ Walk_expr_not_found ].
 
+(** [walk_expr e f] walks down the evaluation-context spine of [e], calling
+    [f e' K] at each node with the context [K] from the root to [e'], until
+    [f] returns rather than raising [Walk_expr_more].
+
+    The context is built with [Constr.Unsafe.make] rather than a [constr:(…)]
+    quotation on purpose: the quotation re-elaborates its antiquoted
+    arguments, and with a 100k-node function body every level of the walk
+    was re-typing a large subterm. Measured on the raft [Step] body: 16–35ms
+    per walk with the quotation, under 1ms with [Constr.Unsafe.make]. The
+    context is type-checked once, when the tactic that uses it [refine]s. *)
+Ltac2 mk_app (h : constr) (args : constr list) : constr :=
+  Constr.Unsafe.make (Constr.Unsafe.App h (Array.of_list args)).
+
+(* [ext] and the element type [@ectx_item ext], read off [@nil ectx_item]. *)
+Ltac2 ectx_params (k0 : constr) : constr * constr :=
+  match Constr.Unsafe.kind k0 with
+  | Constr.Unsafe.App _ tys =>
+      let ty := Array.get tys 0 in
+      (match Constr.Unsafe.kind ty with
+       | Constr.Unsafe.App _ a => (Array.get a 0, ty)
+       | _ => Control.throw (Tactic_failure (Some (fprintf "walk_expr: unexpected ectx_item type")))
+       end)
+  | _ => Control.throw (Tactic_failure (Some (fprintf "walk_expr: unexpected ectx_item type")))
+  end.
+
 Ltac2 walk_expr (e : constr) (f : constr -> constr -> 'a) : 'a :=
+  let k0 := constr:(@nil ectx_item) in
+  let (ext, ty) := ectx_params k0 in
+  let cons_ (item : constr) (k : constr) := mk_app constr:(@cons) [ty; item; k] in
   let rec walk_ctx (e : constr) (k : constr) :=
     lazy_match! e with | Val _ => Control.zero Walk_expr_not_found | _ => () end;
     match Control.case (fun () => f e k) with
     | Val (a, _) => a
     | Err Walk_expr_more =>
         lazy_match! e with
-        | fill ?k' ?e                     => walk_ctx e constr:($k ++ $k')
-        | App ?e1 (Val ?v)                => walk_ctx e1 constr:(@AppLCtx _ $v :: $k)
-        | App ?e1 ?e2                     => walk_ctx e2 constr:(@AppRCtx _ $e1 :: $k)
-        | If ?e0 ?e1 ?e2                  => walk_ctx e0 constr:(IfCtx $e1 $e2 :: $k)
-        | Pair (Val ?v) ?e                => walk_ctx e constr:(PairRCtx $v :: $k)
-        | Pair ?e1 ?e2                    => walk_ctx e1 constr:(PairLCtx $e2 :: $k)
-        | Fst ?e                          => walk_ctx e constr:(@FstCtx _ :: $k)
-        | Snd ?e                          => walk_ctx e constr:(@SndCtx _ :: $k)
-        | Primitive2 ?op (Val ?v) ?e      => walk_ctx e constr:(@Primitive2RCtx _ $op $v :: $k)
-        | Primitive2 ?op ?e1 ?e2          => walk_ctx e1 constr:(@Primitive2LCtx _ $op $e2 :: $k)
-        | Primitive1 ?op ?e               => walk_ctx e constr:(@Primitive1Ctx _ $op :: $k)
-        | @ExternalOp ?ext ?op ?e         => walk_ctx e constr:(@ExternalOpCtx $ext $op :: $k)
-        | CmpXchg (Val ?v0) (Val ?v1) ?e2 => walk_ctx e2 constr:(CmpXchgRCtx $v0 $v1 :: $k)
-        | CmpXchg (Val ?v0) ?e1 ?e2       => walk_ctx e1 constr:(CmpXchgMCtx $v0 $e2 :: $k)
-        | CmpXchg ?e0 ?e1 ?e2             => walk_ctx e0 constr:(CmpXchgLCtx $e1 $e2 :: $k)
-        | ResolveProph (Val ?v) ?e        => walk_ctx e constr:(@ResolveProphRCtx _ $v :: $k)
-        | ResolveProph ?e1 ?e2            => walk_ctx e1 constr:(@ResolveProphLCtx _ $e2 :: $k)
+        | fill ?k' ?e                     => walk_ctx e (mk_app constr:(@app) [ty; k; k'])
+        | App ?e1 (Val ?v)                => walk_ctx e1 (cons_ (mk_app constr:(@AppLCtx) [ext; v]) k)
+        | App ?e1 ?e2                     => walk_ctx e2 (cons_ (mk_app constr:(@AppRCtx) [ext; e1]) k)
+        | If ?e0 ?e1 ?e2                  => walk_ctx e0 (cons_ (mk_app constr:(@IfCtx) [ext; e1; e2]) k)
+        | Pair (Val ?v) ?e                => walk_ctx e (cons_ (mk_app constr:(@PairRCtx) [ext; v]) k)
+        | Pair ?e1 ?e2                    => walk_ctx e1 (cons_ (mk_app constr:(@PairLCtx) [ext; e2]) k)
+        | Fst ?e                          => walk_ctx e (cons_ (mk_app constr:(@FstCtx) [ext]) k)
+        | Snd ?e                          => walk_ctx e (cons_ (mk_app constr:(@SndCtx) [ext]) k)
+        | Primitive2 ?op (Val ?v) ?e      => walk_ctx e (cons_ (mk_app constr:(@Primitive2RCtx) [ext; op; v]) k)
+        | Primitive2 ?op ?e1 ?e2          => walk_ctx e1 (cons_ (mk_app constr:(@Primitive2LCtx) [ext; op; e2]) k)
+        | Primitive1 ?op ?e               => walk_ctx e (cons_ (mk_app constr:(@Primitive1Ctx) [ext; op]) k)
+        | ExternalOp ?op ?e               => walk_ctx e (cons_ (mk_app constr:(@ExternalOpCtx) [ext; op]) k)
+        | CmpXchg (Val ?v0) (Val ?v1) ?e2 => walk_ctx e2 (cons_ (mk_app constr:(@CmpXchgRCtx) [ext; v0; v1]) k)
+        | CmpXchg (Val ?v0) ?e1 ?e2       => walk_ctx e1 (cons_ (mk_app constr:(@CmpXchgMCtx) [ext; v0; e2]) k)
+        | CmpXchg ?e0 ?e1 ?e2             => walk_ctx e0 (cons_ (mk_app constr:(@CmpXchgLCtx) [ext; e1; e2]) k)
+        | ResolveProph (Val ?v) ?e        => walk_ctx e (cons_ (mk_app constr:(@ResolveProphRCtx) [ext; v]) k)
+        | ResolveProph ?e1 ?e2            => walk_ctx e1 (cons_ (mk_app constr:(@ResolveProphLCtx) [ext; e2]) k)
         | Rec _ _ _ => Control.zero Walk_expr_not_found
         | Fork _ => Control.zero Walk_expr_not_found
         | Primitive0 _ => Control.zero Walk_expr_not_found
@@ -376,7 +404,44 @@ Ltac2 walk_expr (e : constr) (f : constr -> constr -> 'a) : 'a :=
         end
     | Err e => Control.zero e
     end
-  in (walk_ctx e) constr:(@nil ectx_item).
+  in walk_ctx e k0.
+
+(** Could [e] be the left-hand side of a [PureWp] instance? A pure step is a
+    head reduction, so every operand of the redex is a value; a node with an
+    unevaluated operand cannot match any instance and the (≈5ms) typeclass
+    search for one is skipped. [walk_expr] visits every node on the spine,
+    so this is the difference between one search per step and half a dozen.
+    Any node whose shape is not listed is treated as a candidate. *)
+Ltac2 rec is_val_app_spine (e : constr) : bool :=
+  lazy_match! e with
+  | Val _ => true
+  | App ?e1 (Val _) => is_val_app_spine e1
+  | _ => false
+  end.
+Ltac2 wp_pure_candidate (e : constr) : bool :=
+  lazy_match! e with
+  | App ?e1 (Val _) => is_val_app_spine e1
+  | App _ _ => false
+  | If (Val _) _ _ => true
+  | If _ _ _ => false
+  | Pair (Val _) (Val _) => true
+  | Pair _ _ => false
+  | Fst (Val _) => true
+  | Fst _ => false
+  | Snd (Val _) => true
+  | Snd _ => false
+  | Primitive1 _ (Val _) => true
+  | Primitive1 _ _ => false
+  | Primitive2 _ (Val _) (Val _) => true
+  | Primitive2 _ _ _ => false
+  | ExternalOp _ (Val _) => true
+  | ExternalOp _ _ => false
+  | CmpXchg (Val _) (Val _) (Val _) => true
+  | CmpXchg _ _ _ => false
+  | ResolveProph (Val _) (Val _) => true
+  | ResolveProph _ _ => false
+  | _ => true
+  end.
 
 Ltac2 wp_walk_unwrap t s :=
   match Control.case t with
@@ -388,6 +453,7 @@ Ltac2 wp_walk_unwrap t s :=
 
 (* Maybe avoid MaybeIntoLaterNEnvs if there are no  laters syntactically. *)
 Ltac2 wp_pure_visit e k :=
+     if wp_pure_candidate e then () else Control.zero Walk_expr_more;
      (* This looks for an instance before eapply to make to fail fast. *)
      let pure_wp := orelse (fun () => '(ltac:(tc_solve) : PureWp _ $e _))
                       (fun _ => Control.zero Walk_expr_more) in
@@ -416,6 +482,7 @@ Ltac2 wp_pure () :=
   end.
 
 Ltac2 wp_pure_lc_visit e k :=
+  if wp_pure_candidate e then () else Control.zero Walk_expr_more;
   (* This looks for an instance before eapply to make to fail fast. *)
   let pure_wp := orelse (fun () => '(ltac:(tc_solve) : PureWp _ $e _))
                    (fun _ => Control.zero Walk_expr_more) in
@@ -581,9 +648,17 @@ Ltac2 solve_bi_true () :=
    shelf is imperfect. shelve_unifiable will leave goals for EqDecision and
    Countable on the shelf when they arise from a `gmap` if the gmap is mentioned
    in the main WP goal. But, it may never actually get unified. *)
+(* [iNext] only where the goal starts with a later: on any other goal it is
+   a failing [FromModal] search, and [unshelve] hands it every side goal. *)
+Ltac wp_apply_maybe_next :=
+  lazymatch goal with
+  | |- environments.envs_entails _ (bi_later _) => iNext
+  | |- environments.envs_entails _ (bi_laterN _ _) => iNext
+  | _ => idtac
+  end.
 Tactic Notation "wp_apply_core" open_constr(lem) :=
   ltac2:(Control.enter wp_bind_next);
-  unshelve (iApply lem; try iNext; try ltac2:(Control.enter solve_bi_true));
+  unshelve (iApply lem; wp_apply_maybe_next; try ltac2:(Control.enter solve_bi_true));
   try tc_solve; shelve_unifiable.
 
 Tactic Notation "wp_apply" open_constr(lem) :=

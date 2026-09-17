@@ -860,6 +860,18 @@ size but hit the same proofs:
   under binders. If in doubt, write `rewrite … in H1 H2; [|exact Hne]`,
   which is 0.03s and says which side goal you meant.
 
+One more, inside the framework rather than a proof, found in the second
+round of profiling the same day:
+
+- **An Ltac2 `constr:(… $e …)` quotation re-elaborates its antiquoted
+  arguments.** `walk_expr` built the evaluation context with
+  `constr:(@AppRCtx _ $e1 :: $k)` at every level of the walk, and with a
+  100k-node body each level re-typed a large subterm: 16–35 ms per walk,
+  several walks per step. `Constr.Unsafe.make` builds the same term in under
+  a millisecond and the term is type-checked once, by the `refine` that uses
+  it. In Ltac2 that runs per step over a big goal, never `constr:` a term
+  containing a big antiquotation in a loop.
+
 How to see where the time goes, in about two minutes: put one lemma in a
 scratch file that `Require`s its `postulates_*` file, add
 `Set Ltac Profiling.` before it and `Show Ltac Profile.` after `Qed`, and
