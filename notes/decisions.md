@@ -244,6 +244,12 @@ internal lemmas inside `proof_raft__Step.v`, sealed by the ascription. **If a
 function ever seems to want two specs, that is the signal to look harder, not
 to add a second `Module Type`.**
 
+**Amended 2026-09-17:** the three branch lemmas moved to their own files
+(`proof_raft__Step_MsgHup.v`, `_MsgVote.v`, `_MsgVoteResp.v`) so that they
+check in parallel — see the entry of that date below. They are still not
+specs: no `Module Type`, no `Parameter`, and only `proof_raft__Step.v` may
+`Require` them.
+
 ---
 
 ## The outbox lives in `nstate.t`; certification follows from the ghost, not from `own_raft_phys`
@@ -529,4 +535,36 @@ was exponential in the number of negated hypotheses and cost 345s on one
 is what caught it; the same-day per-command timings are in the 2026-09-17
 journal entry. Also, a later hidden behind a definition is no longer
 stripped by a pure step.
+
+## 2026-09-17 — `Step`'s branch lemmas check in parallel, one file each
+
+**accepted**
+
+After the tactic-engine work `proof_raft__Step.v` still took 8.7 min at
+`-vok`, and 5.4 of those were `wp_Step_MsgVote` (its `Qed` alone is 88 s).
+The three branch lemmas are independent proofs of independent Go paths that
+happen to share a body, and `make -j` already checks separate files in
+parallel. So `proof_raft__Step_MsgHup.v`, `proof_raft__Step_MsgVote.v` and
+`proof_raft__Step_MsgVoteResp.v` each hold one lemma inside a functor over
+`STEP_POSTULATES`, and `proof_raft__Step.v` instantiates the three and proves
+the one triple in `STEP` from them. `MsgVote` was then still the whole
+critical path (6:00 of a 5:55 wall), and it is two independent term cases,
+so it is split once more: `proof_raft__Step_MsgVote_gt.v` (`m.Term >
+r.Term`) and `_le.v`, combined by a two-line case split in
+`proof_raft__Step_MsgVote.v`. The sum of the parts is unchanged; the wall
+clock is the longest part. Numbers in STATUS.md and the journal.
+
+What this does *not* change: `Step` has one spec, `spec_raft__Step.v`, and
+the branch lemmas have no `Module Type` and no `Parameter`. The earlier
+decision's concern was four Hoare triples for one Go function *stated as
+specs*; these are proof structure. What is weaker than before: the ascription
+no longer hides the branch lemmas from other files — a file that `Require`s
+a branch file and instantiates its functor can use its lemma. The rule is
+therefore conventional: **only `proof_raft__Step.v` may `Require` a
+`proof_raft__Step_*.v` file**, and the file header says so.
+
+Rejected: keeping one file and relying on Rocq's `-async-proofs` to overlap
+the `Qed`s with tactic execution. Measured: 9:11 against 9:29, at 11.3 GB
+instead of 6.0 — the workers copy the state and the tactic time, not the
+`Qed`s, is the critical path.
 

@@ -119,7 +119,7 @@ make a node decline to vote, and declining is always protocol-legal.
 ## `v3_proof/election/` — leader election, implementation side
 
 Restructured 2026-09-14 from a single 1072-line `election.v` into **one file
-per Go function**. 51 files; the shape, and why, is in
+per Go function**. 56 files; the shape, and why, is in
 [decisions.md](decisions.md). To find a function's specification there is now
 exactly one place to look:
 
@@ -156,10 +156,15 @@ from there is load-bearing: `make ci` builds only what `new/should_build.v`
 reaches, so a link file nothing re-exported would silently go unchecked.
 
 **`Step` is one function with one spec.** Its three per-message-type branches
-are internal lemmas inside `proof_raft__Step.v`, sealed by the ascription —
-they are proof structure, not specification. If some function ever seems to
-want two specs, that is a signal to look harder, not to add a second
-`Module Type`.
+are internal lemmas — proof structure, not specification. Since 2026-09-17
+they live in `proof_raft__Step_MsgHup.v`, `proof_raft__Step_MsgVote.v`
+(which is a two-line case split over `proof_raft__Step_MsgVote_gt.v` and
+`_le.v`) and `proof_raft__Step_MsgVoteResp.v`, each a functor over
+`STEP_POSTULATES` with no `Module Type` of its own, so that `make -j` checks
+them in parallel; `proof_raft__Step.v` instantiates them and proves the one
+triple in `STEP`. Only `proof_raft__Step.v` may `Require` a branch file. If
+some function ever seems to want two specs, that is a signal to look harder,
+not to add a second `Module Type`.
 
 Full write-up, including what is still `Admitted` and in what order to attack
 it, is in [raft-election-refinement.md](raft-election-refinement.md).

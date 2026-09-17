@@ -1267,3 +1267,73 @@ is the kernel re-substituting the program once per step; making it cheaper
 means fewer administrative `let:` steps in the translation, which is
 Goose's problem, not this repo's.
 
+## 2026-09-17 (later) — `Step` from 9.5 min to 3.5 min wall: the walker, then the file split
+
+Same day, second round, after the entry above landed on
+`perf/wp-tactics-hide-program-text`.
+
+### What the `MsgVote` profile said this time
+
+A full Ltac profile of `wp_Step_MsgVote` (323 s of tactics) no longer had
+typeclass search on top. It had 106 s of *local* time in `wp_auto`'s own
+Ltac2 body, 74 s in 16,500 `PureWp` probes, 25 s of failing `iClear`
+attempts in `wp_clear_unused_pointsto`, 15 s of `try iNext` on goals with
+no later, and 88 s of `Qed`. A micro-benchmark on the real goal (119,346
+nodes) pinned the first item: `walk_expr` built the evaluation context with
+`constr:(@AppRCtx _ $e1 :: $k)` at every level, and that quotation
+re-elaborates its antiquoted subterm — 16–35 ms per walk, several walks
+per step. The same walk with `Constr.Unsafe.make` is under 1 ms.
+
+### What changed
+
+- `walk_expr` builds the context untyped; the `refine` that uses it
+  type-checks it once.
+- `PureWp` is probed only at nodes shaped like a redex (all operands
+  values, `wp_pure_candidate`); a spine node with an unevaluated operand
+  cannot match any instance. Every instance in the tree has that shape;
+  the requirement is now written on the check.
+- `wp_auto` does one walk per step and dispatches on the node
+  (load/store/alloc syntactically, then pure) instead of four walks.
+- `wp_clear_unused_pointsto` checks syntactically that the location occurs
+  nowhere else before it tries `iClear; clear`.
+- `wp_apply_core` runs `iNext` only when the goal starts with a later.
+- `Step`'s three branch lemmas moved to their own files, and `MsgVote`'s
+  two term cases and then its three `≤` sub-cases likewise, so that
+  `make -j` checks them in parallel. `proof_raft__Step.v` is a 75-line
+  dispatch over functors. No `Module Type` was added; see
+  [decisions.md](decisions.md).
+
+### Numbers
+
+| | before this round | after |
+|---|---|---|
+| `proof_raft__Step.v` alone, `-vok` | 9:29, 6.0 GB | 8:42, 5.4 GB (walker changes only) |
+| all `Step` files, `make -j4`, wall | — | **3:21** |
+| … critical path `_MsgVote_gt` alone | — | 2:39, 2.3 GB |
+| … `_MsgVote_eq_novote` / `_eq_voted` / `_lt` / `_MsgVoteResp` / `_MsgHup` | — | 2:08 / 2:06 / 1:05 / 2:07 / 0:32 |
+| `campaign` `-vok` | 5:31 | 5:22 |
+
+Regression check under the final framework: the 16 theory files, every
+other election `proof_*.v`/`inv_*.v`, `link_raft__Step.v` and `election.v`
+at `-vok` RC=0.
+
+### Dead ends
+
+- `-async-proofs on -async-proofs-j 3` on the single file: 9:11 against
+  9:29, at 11.3 GB. The `Qed`s are not the critical path and the workers
+  copy the state.
+- Hiding the evaluation context *during* stepping (so per-step typing is
+  O(1)) would help the kernel too, but every named `let:` step still
+  substitutes into the whole rest of the body — 136 of the 205 statements
+  in `Step` are named lets — so the floor is a substitution per step in
+  both the tactic and the kernel. Not attempted.
+
+### Where to pick up
+
+The remaining per-step cost is the substitution itself (`simpl fill`,
+~17 ms average, and the kernel redoing it at `Qed`). The only way past it
+is a smaller program term or fewer administrative `let:`s in the
+translation, both Goose's. On the proof side, the six `vote_*_tail` calls
+are 13–19 s each and `_MsgVote_gt` could be split at its `destruct
+uptodate` if 2:39 ever matters.
+

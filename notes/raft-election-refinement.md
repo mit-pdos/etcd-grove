@@ -370,8 +370,9 @@ payoff of the layout — the monolithic `election.v` took upwards of twelve.
 
 - **`Collection W` is section-scoped, the `Set` that names it is not.** A
   closed lemma after `End <section>` fails with `Unknown variable: W`.
-  `proof_raft__Step.v` restores `Set Default Proof Using "Type"` after its
-  section for exactly this reason.
+  `proof_raft__Step.v` sets `Set Default Proof Using "Type"` before its
+  closed lemma for exactly this reason (the branch files set `"W"` inside
+  their sections; that does not cross a `Require`).
 - **The ambient binders** (`ext … package_sem`) need care in two places: the
   `Arguments` that keeps them implicit, and the `intros` that introduces them.
   Both are written up once in [gotchas.md](gotchas.md) — short version: the

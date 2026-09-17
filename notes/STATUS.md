@@ -43,7 +43,7 @@ builds it.
   (`own_raft_ghost`, `is_message`) and its refinement obligation. Since
   2026-09-15 `nstate.t` carries an `outbox` field and `step` has **no `sent`
   output** — a step's sends are the growth of `s'.(nstate.outbox)`.
-- `v3_proof/election/` (51 files) and `v3_proof/election.v` (78 lines) — the
+- `v3_proof/election/` (56 files) and `v3_proof/election.v` (78 lines) — the
   implementation side. **Restructured 2026-09-14 into one file per Go
   function**: each has `spec_<fn>.v` (a `Module Type` with exactly one
   `Parameter` — the single place its Hoare triple is written),
@@ -98,10 +98,15 @@ is nothing to apply. Its four cases:
 | `m.Term = r.Term`, Follower/Leader | `stepFollower` / `stepLeader` only read | `step_refl` |
 | `m.Term = r.Term`, Candidate | `stepCandidate` records the vote, maybe wins or loses | `step_record_then_win` / `_lose` / `step_record_vote` |
 
-**Cost note:** `proof_raft__Step.v` takes **9.5 minutes and 6.0 GB** to
-`-vok` (2026-09-17; it was ~45 min and 11.3 GB the day before). Still do not
-start a second build of that size beside it; overlapping builds are what
-killed several sessions.
+**Cost note:** `Step`'s proof is now nine files (`proof_raft__Step.v` plus
+`proof_raft__Step_MsgHup.v`, `_MsgVote.v`, `_MsgVote_gt.v`, `_MsgVote_le.v`,
+`_MsgVote_lt.v`, `_MsgVote_eq_novote.v`, `_MsgVote_eq_voted.v`,
+`_MsgVoteResp.v`) that check in **3 min 21 s wall with `make -j4`**, the
+longest (`_MsgVote_gt`) 2:39 and 2.3 GB alone (2026-09-17). As one file it
+was ~45 min and 11.3 GB the day before, 9.5 min after the framework fixes,
+8.7 min after the walker fixes. The parts sum to ~11 min of CPU; four of
+them at once peak around 8 GB, so `-j4` is the most this 15 GB box should
+run beside nothing else.
 
 **The tactic engine was the cost, not the proof (2026-09-17).** A pure step
 stripped laters from every hypothesis by unfolding them; every failing
@@ -116,13 +121,13 @@ and the proof-side idioms in [gotchas.md](gotchas.md). `campaign` and
 numbers in the 2026-09-17 [journal](journal.md) entry; the design and its
 rejected alternatives in [decisions.md](decisions.md).
 
-**Verified on 2026-09-17** (uncommitted working tree on top of `0fb5a6dd9`,
-after the framework changes), every file individually at `-vok` RC=0 with
-zero errors: `proof_raft__Step.v` (9 min 29 s, 6.0 GB), all 12 other
-`proof_*.v`, every `inv_*.v`, `defs.v`, `step_lemmas.v`, `election.v`, and
-the 16 `new/golang/theory/*.v` files that have proofs. Note that this is
-*not* a `make ci` run — that needs a full `.vo` build of Perennial, which
-nothing in this tree has.
+**Verified on 2026-09-17** (branch `perf/wp-tactics-hide-program-text`,
+after the framework changes and the file split), every file individually at
+`-vok` RC=0 with zero errors: all nine `proof_raft__Step*.v`, all 12 other
+`proof_*.v`, every `inv_*.v`, `defs.v`, `step_lemmas.v`,
+`link_raft__Step.v`, `election.v`, and the 16 `new/golang/theory/*.v` files
+that have proofs. Note that this is *not* a `make ci` run — that needs a
+full `.vo` build of Perennial, which nothing in this tree has.
 
 Two things that mattered structurally:
 
