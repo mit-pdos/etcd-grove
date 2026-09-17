@@ -20,6 +20,15 @@ Context (cfg : gset w64).
 Implicit Type γ : raft_election_names.
 Implicit Type s : nstate.t.
 
+  (** [∀ m', m' ∈ recv → m' = a] for the concrete [recv] lists this file
+      produces ([[]], [[a]], [[a] ++ [a]]).  Not [set_solver]: on these goals
+      it ran for 150s and more (its [setoid_subst] / [naive_solver eauto] over
+      this context), where rewriting the membership away is ~1s. *)
+  Local Ltac recv_elem :=
+    intros ? Hin;
+    rewrite ?elem_of_app ?list_elem_of_singleton ?elem_of_nil in Hin;
+    naive_solver.
+
   (** [MsgHup] is a local message ([m.Term = 0]), so [Step]'s term preamble
       is skipped entirely and it goes straight to [hup].
 
@@ -39,8 +48,12 @@ Implicit Type s : nstate.t.
         "%Herr" ∷ ⌜ err = interface.nil ⌝ }}}.
   Proof.
     intros Hty Hterm Hnowrap.
-    wp_start as "@".
+    (* Take the precondition apart *before* the body is unfolded into the
+       goal: every [iDestruct] is linear in the goal size, and the translated
+       [Step] body is ~500KB.  See [wp_start_unfold]. *)
+    wp_start_folded as "@".
     iNamed "Hphys".
+    wp_start_unfold.
     wp_auto.
     wp_apply (wp_traceReceiveMessage with "[$Hmisc]") as "Hmisc".
     (* [m.Term = 0] (a local message), so the term preamble is skipped. *)
@@ -52,9 +65,12 @@ Implicit Type s : nstate.t.
     (* no pre-vote, so this is a plain [hup(campaignElection)] *)
     rewrite HnoPreVote. wp_auto.
     (* re-seal the physical ownership for [hup] *)
+    (* re-seal with [own_raft_phys_intro] rather than [iFrame "∗#%"], which
+       costs ~17s against the unfolded predicate *)
     iAssert (own_raft_phys cfg r id s)
     with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys".
-    { rewrite /own_raft_phys. iFrame "∗#%". }
+    { iApply (own_raft_phys_intro with
+          "Hlogger Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
     wp_apply (P.wp_raft__hup with "[$Hphys]") as "%s' (Hphys & %Hstep)".
     { done. }
     { exact Hnowrap. }
@@ -78,29 +94,36 @@ Implicit Type s : nstate.t.
     wp_apply wp_slice_literal; iSplitR; [done|]; iIntros "% [? _]";
     wp_auto; rewrite lok_eq;
     wp_apply (wp_Logger__logf with "Hlogger");
-      [rewrite /log_methods; set_solver|];
+      [solve_log_method|];
     wp_apply P.wp_voteRespMsgType; [done|];
     iAssert (own_raft_phys cfg r_ id_ s_)
       with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
       as "Hphys";
-      [rewrite /own_raft_phys; iFrame "∗#%"|];
+      [iApply (own_raft_phys_intro with
+          "Hlogger Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done|];
     wp_apply (P.wp_raft__send_vote with "[$Hphys]") as "Hphys";
       [done|by right|apply mtype_of_MsgVoteResp|done|w32_ne|];
-    iNamedSuffix "Hphys" "2";
+    (* [wp_hidden]: an [iNamed] on a goal holding the whole body is ~12s *)
+    wp_hidden (iNamedSuffix "Hphys" "2");
     rewrite ty_eq /MsgVote bool_decide_eq_true_2 //;
     wp_auto;
     iApply ("HΦ" $! interface.nil
       (send_msgs (s_ <| nstate.vote := m_.(raftpb.Message.From') |>)
          [msg.mk mtype.VoteResp id_ m_.(raftpb.Message.From')
             m_.(raftpb.Message.Term') false]));
+    (* [own_raft_phys_intro] does not apply here: its [s] is fixed by [Htrk2],
+       whose state is [send_vote]'s [abs_msg] form of the message, and
+       [iApply] does not unify that with the [msg.mk] form in the goal.  Naming
+       the hypotheses to frame (instead of [iFrame "∗#%"]) is 2s against 17s. *)
     iSplitL "Hr2 Htrk2 Hlog2 Hmsgs2 Hmsgs_cap2 HmsgsAA2 HmsgsAA_cap2 Hmisc2";
       [rewrite /own_raft_phys /send_msgs /=;
+       iExists _, _, _, _;
        iEval (simpl) in "Htrk2";
-       iFrame "Hr2 ∗#%";
-       iPureIntro; first [(split_and!; done)|done]|];
+       iFrame "Hr2 Htrk2 Hlog2 Hmsgs2 Hmsgs_cap2 HmsgsAA2 HmsgsAA_cap2 Hmisc2 Hlogger2";
+       simpl in *; iPureIntro; first [done | (split_and!; done)]|];
     iPureIntro; split; [|done];
     exists [abs_msg mtype.Vote m_];
-    split; [set_solver|];
+    split; [recv_elem|];
     replace m_.(raftpb.Message.Term') with s_.(nstate.term) by congruence;
     apply (step_grant_vote cfg id_ (abs_msg mtype.Vote m_) s_);
       [done|exact to_eq|(rewrite /abs_msg /=; congruence)|exact can].
@@ -113,13 +136,14 @@ Implicit Type s : nstate.t.
     wp_apply wp_slice_literal; iSplitR; [done|]; iIntros "% [? _]";
     wp_auto; rewrite lok_eq;
     wp_apply (wp_Logger__logf with "Hlogger");
-      [rewrite /log_methods; set_solver|];
+      [solve_log_method|];
     wp_apply P.wp_voteRespMsgType; [done|];
     rewrite term_eq;
     iAssert (own_raft_phys cfg r_ id_ s_)
       with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
       as "Hphys";
-      [rewrite /own_raft_phys; iFrame "∗#%"|];
+      [iApply (own_raft_phys_intro with
+          "Hlogger Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done|];
     (* The response carries [s.term], so [send]'s [m.Term ≠ 0] premise is the
        incoming message's, transported along [term_eq].  The [simpl] is not
        optional: the premise is stated about the *message literal*, so the
@@ -130,7 +154,7 @@ Implicit Type s : nstate.t.
     iApply ("HΦ" $! interface.nil _); iFrame "Hphys";
     iPureIntro; split; [|done];
     exists [abs_msg mtype.Vote m_];
-    split; [set_solver|];
+    split; [recv_elem|];
     apply (step_reject_vote cfg id_ (abs_msg mtype.Vote m_) s_);
       [done|exact to_eq].
 
@@ -188,7 +212,7 @@ Implicit Type s : nstate.t.
         "%Herr" ∷ ⌜ err = interface.nil ⌝ }}}.
   Proof.
     intros Hty Hto Hterm Hfnz.
-    wp_start as "@". iNamed "Hphys". wp_auto.
+    wp_start_folded as "@". iNamed "Hphys". wp_start_unfold. wp_auto.
     wp_apply (wp_traceReceiveMessage with "[$Hmisc]") as "Hmisc".
     (* [m.Term ≠ 0], so the first arm of the term preamble is skipped. *)
     assert (bool_decide (m.(raftpb.Message.Term') = W64 0) = false) as Hz
@@ -223,14 +247,15 @@ Implicit Type s : nstate.t.
     wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [Hlog_sl _]".
     wp_auto. rewrite Hlok.
     wp_apply (wp_Logger__logf with "Hlogger").
-    { rewrite /log_methods. set_solver. }
+    { solve_log_method. }
     (* a [MsgVote] is not from a leader, so no leader is adopted *)
     rewrite Hty /MsgVote bool_decide_eq_false_2; last w32_ne. wp_auto.
     rewrite Hty /MsgVote bool_decide_eq_false_2; last w32_ne. wp_auto.
     rewrite Hty /MsgVote bool_decide_eq_false_2; last w32_ne. wp_auto.
     iAssert (own_raft_phys cfg r id s)
       with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys".
-    { rewrite /own_raft_phys. iExists rv, msgs, msgsAA, lok. iFrame "∗#%". }
+    { iApply (own_raft_phys_intro with
+          "Hlogger Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
     wp_apply (P.wp_raft__becomeFollower with "[$Hphys]") as "Hphys".
     (* the corresponding protocol step, recorded as a pure fact rather than
        taken on the ghost state: this lemma is ghost-free. *)
@@ -244,7 +269,7 @@ Implicit Type s : nstate.t.
       apply step_higher_term.
       - rewrite /abs_msg /= -Hterm0. exact Hgt.
       - rewrite /abs_msg /=. exact Hto. }
-    iNamedSuffix "Hphys" "1".
+    wp_hidden (iNamedSuffix "Hphys" "1").
     (* the type switch: not MsgHup / MsgStorageAppendResp / MsgStorageApplyResp,
        not MsgPreVote, but MsgVote *)
     rewrite Hty /MsgVote bool_decide_eq_false_2; last w32_ne. wp_auto.
@@ -264,7 +289,7 @@ Implicit Type s : nstate.t.
       wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
       wp_auto. rewrite Hlok1.
       wp_apply (wp_Logger__logf with "Hlogger1").
-      { rewrite /log_methods. set_solver. }
+      { solve_log_method. }
       wp_apply P.wp_voteRespMsgType; first done.
       (* the protocol step: grant the vote.  The [VoteResp] it sends is no
          longer a separate output -- it is the growth of the outbox, which the
@@ -281,8 +306,9 @@ Implicit Type s : nstate.t.
       iAssert (own_raft_phys cfg r id (become_follower s m.(raftpb.Message.Term') (W64 0)))
         with "[Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1]"
         as "Hphys".
-      { rewrite /own_raft_phys. iExists rv0, msgs0, msgsAA0, lok0.
-        rewrite /become_follower /= decide_False //. iFrame "∗#%". }
+      { iApply (own_raft_phys_intro with
+          "Hlogger1 Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1");
+        unfold become_follower; simpl; try (rewrite decide_False; [|exact Hne]); done. }
       (* [send] the granted vote response, then record the vote. *)
       wp_apply (P.wp_raft__send_vote with "[$Hphys]") as "Hphys".
       { done. }
@@ -290,7 +316,7 @@ Implicit Type s : nstate.t.
       { apply mtype_of_MsgVoteResp. }
       { done. }
       { w32_ne. }
-      iNamedSuffix "Hphys" "2".
+      wp_hidden (iNamedSuffix "Hphys" "2").
       (* [m.Type = MsgVote], so the vote is recorded: [r.Vote := m.From]. *)
       rewrite Hty /MsgVote bool_decide_eq_true_2 //. wp_auto.
       iApply ("HΦ" $! interface.nil
@@ -299,23 +325,23 @@ Implicit Type s : nstate.t.
            [msg.mk mtype.VoteResp id m.(raftpb.Message.From')
               m.(raftpb.Message.Term') false])).
       iSplitL "Hr2 Htrk2 Hlog2 Hmsgs2 Hmsgs_cap2 HmsgsAA2 HmsgsAA_cap2 Hmisc2".
-      { rewrite /own_raft_phys /send_msgs /become_follower /=.
+      { (* see [vote_grant_tail] for why this is not [own_raft_phys_intro] *)
+        rewrite /own_raft_phys /send_msgs /become_follower /=.
         iExists _, msgs1, msgsAA1, lok1.
-        simpl in Hid2, Hterm2, Hvote2, Hlead2, Hstate2, Houtbox2.
         iEval (simpl) in "Htrk2".
-        iFrame "Hr2 ∗#%".
-        iPureIntro. first [done | (split_and!; done)]. }
+        iFrame "Hr2 Htrk2 Hlog2 Hmsgs2 Hmsgs_cap2 HmsgsAA2 HmsgsAA_cap2 Hmisc2 Hlogger2".
+        simpl in *. iPureIntro. first [done | (split_and!; done)]. }
       iPureIntro. split; last done.
       eexists ([abs_msg mtype.Vote m] ++ [abs_msg mtype.Vote m]).
       split.
-      { intros m' Hm'. set_solver. }
+      { recv_elem. }
       eapply step_trans; [exact Hstepdown|exact Hgrant].
     + (* the candidate's log is behind: decline, without recording a vote *)
       wp_auto.
       wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
       wp_auto. rewrite Hlok1.
       wp_apply (wp_Logger__logf with "Hlogger1").
-      { rewrite /log_methods. set_solver. }
+      { solve_log_method. }
       wp_apply P.wp_voteRespMsgType; first done.
       (* [r.Term] is [m.Term] after the step-down, so the rejection carries
          the state's term -- which is what [step_reject_vote] sends. *)
@@ -326,8 +352,9 @@ Implicit Type s : nstate.t.
                  (become_follower s m.(raftpb.Message.Term') (W64 0)))
         with "[Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1]"
         as "Hphys".
-      { rewrite /own_raft_phys. iExists rv0, msgs0, msgsAA0, lok0.
-        rewrite /become_follower /= decide_False //. iFrame "∗#%". }
+      { iApply (own_raft_phys_intro with
+          "Hlogger1 Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1");
+        unfold become_follower; simpl; try (rewrite decide_False; [|exact Hne]); done. }
       wp_apply (P.wp_raft__send_vote with "[$Hphys]") as "Hphys".
       { done. }
       { by right. }
@@ -338,7 +365,7 @@ Implicit Type s : nstate.t.
       iPureIntro. split; last done.
       eexists ([abs_msg mtype.Vote m] ++ [abs_msg mtype.Vote m]).
       split.
-      { intros m' Hm'. set_solver. }
+      { recv_elem. }
       apply (step_stepdown_then_reject cfg id s (abs_msg mtype.Vote m));
         [done|exact Hto|rewrite /abs_msg /= -Hterm0; exact Hgt].
     - (* [m.Term ≤ r.Term]: no step-down. *)
@@ -366,15 +393,16 @@ Implicit Type s : nstate.t.
         wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
         wp_auto. rewrite Hlok.
         wp_apply (wp_Logger__logf with "Hlogger").
-        { rewrite /log_methods. set_solver. }
+        { solve_log_method. }
         (* nothing was sent and nothing changed: dropping is [step_refl]. *)
         iAssert (own_raft_phys cfg r id s)
           with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
           as "Hphys".
-        { rewrite /own_raft_phys. iExists rv, msgs, msgsAA, lok. iFrame "∗#%". }
+        { iApply (own_raft_phys_intro with
+          "Hlogger Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
         iApply ("HΦ" $! interface.nil s). iFrame "Hphys".
         iPureIntro. split; last done. exists [].
-        split; [set_solver|apply step_drop].
+        split; [recv_elem|apply step_drop].
       + (* [m.Term = r.Term]: answer in the current term, without stepping
            down.  [r.Term < m.Term] and [m.Term < r.Term] are both false. *)
         assert (bool_decide (uint.Z m.(raftpb.Message.Term') <
@@ -526,7 +554,7 @@ Implicit Type s : nstate.t.
       by (apply bool_decide_eq_false_2; rewrite Hty6; w32_ne).
     assert (Hn22 : bool_decide (m.(raftpb.Message.Type') = W32 22) = false)
       by (apply bool_decide_eq_false_2; rewrite Hty6; w32_ne).
-    wp_start as "@". iNamed "Hphys". wp_auto.
+    wp_start_folded as "@". iNamed "Hphys". wp_start_unfold. wp_auto.
     wp_apply (wp_traceReceiveMessage with "[$Hmisc]") as "Hmisc".
     assert (bool_decide (m.(raftpb.Message.Term') = W64 0) = false) as Hz
       by by apply bool_decide_eq_false_2.
@@ -550,7 +578,7 @@ Implicit Type s : nstate.t.
       wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
       wp_auto. rewrite Hlok.
       wp_apply (wp_Logger__logf with "Hlogger").
-      { rewrite /log_methods. set_solver. }
+      { solve_log_method. }
       (* a MsgVoteResp is not from a leader: not MsgApp/Heartbeat/Snap *)
       rewrite Hn3. wp_auto.
       (* not MsgHeartbeat, not MsgSnap either, so the else arm runs
@@ -560,8 +588,8 @@ Implicit Type s : nstate.t.
       (* re-seal for becomeFollower *)
       iAssert (own_raft_phys cfg r id s)
         with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys".
-      { rewrite /own_raft_phys /own_raft_phys_at.
-        iExists rv, msgs, msgsAA, lok. iFrame "∗#%". }
+      { iApply (own_raft_phys_intro with
+          "Hlogger Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
       wp_apply (P.wp_raft__becomeFollower with "[$Hphys]") as "Hphys".
       (* the model step: a VoteResp is not from_leader, so no leader is
          adopted and the new lead is 0 *)
@@ -575,7 +603,7 @@ Implicit Type s : nstate.t.
         apply step_higher_term.
         - rewrite /abs_msg /= -Hterm0. exact Hgt.
         - rewrite /abs_msg /=. exact Hto. }
-      iNamedSuffix "Hphys" "1".
+      wp_hidden (iNamedSuffix "Hphys" "1").
       (* the type switch: none of its four cases matches a MsgVoteResp, so
          control reaches the default arm r.step(m) *)
       rewrite Hn0. wp_auto.
@@ -593,8 +621,8 @@ Implicit Type s : nstate.t.
                  (become_follower s m.(raftpb.Message.Term') (W64 0)))
         with "[Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1]"
         as "Hphys".
-      { rewrite /own_raft_phys /own_raft_phys_at.
-        iExists rv0, msgs0, msgsAA0, lok0. iFrame "∗#%". }
+      { iApply (own_raft_phys_intro with
+          "Hlogger1 Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1"); done. }
       wp_apply (P.wp_stepFollower_MsgVoteResp with "[$Hphys]") as (err) "[Hphys %Herrn]".
       { done. }
       (* [stepFollower] returned [nil], so the error check falls through to
@@ -604,7 +632,7 @@ Implicit Type s : nstate.t.
                 (become_follower s m.(raftpb.Message.Term') (W64 0))).
       iFrame "Hphys". iPureIntro. split; last done.
       exists [abs_msg mtype.VoteResp m]. split; last exact Hsd.
-      intros m' Hm'. set_solver.
+      recv_elem.
     - (* m.Term ≤ r.Term *)
       assert (bool_decide (uint.Z rv.(raft.raft.Term') <
                            uint.Z m.(raftpb.Message.Term')) = false) as Hb
@@ -627,14 +655,14 @@ Implicit Type s : nstate.t.
         wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
         wp_auto. rewrite Hlok.
         wp_apply (wp_Logger__logf with "Hlogger").
-        { rewrite /log_methods. set_solver. }
+        { solve_log_method. }
         iApply ("HΦ" $! interface.nil s).
         iSplitL "Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc".
-        { rewrite /own_raft_phys /own_raft_phys_at.
-          iExists rv, msgs, msgsAA, lok. iFrame "∗#%". }
+        { iApply (own_raft_phys_intro with
+          "Hlogger Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
         iPureIntro. split; last done.
         exists []. split; last apply step_refl.
-        intros m' Hm'. set_solver.
+        recv_elem.
       + (* m.Term = r.Term: the preamble does nothing and control reaches the
            type switch, whose default arm is [r.step(m)]. *)
         assert (bool_decide (uint.Z m.(raftpb.Message.Term') <
@@ -653,8 +681,8 @@ Implicit Type s : nstate.t.
         iAssert (own_raft_phys cfg r id s)
           with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
           as "Hphys".
-        { rewrite /own_raft_phys /own_raft_phys_at.
-          iExists rv, msgs, msgsAA, lok. iFrame "∗#%". }
+        { iApply (own_raft_phys_intro with
+          "Hlogger Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
         destruct s.(nstate.role) eqn:Hrole.
         * (* Follower: [stepFollower] has no [MsgVoteResp] arm. *)
           assert (rv.(raft.raft.step') = functions raft.stepFollower []) as Hsf
@@ -667,7 +695,7 @@ Implicit Type s : nstate.t.
           iApply ("HΦ" $! interface.nil s). iFrame "Hphys".
           iPureIntro. split; last done.
           exists []. split; last apply step_refl.
-          intros m' Hm'. set_solver.
+          recv_elem.
         * (* Candidate: [stepCandidate] records the vote and may win or lose
              in the same call. *)
           assert (rv.(raft.raft.step') = functions raft.stepCandidate []) as Hsf
@@ -684,7 +712,7 @@ Implicit Type s : nstate.t.
           iApply ("HΦ" $! interface.nil s'). iFrame "Hphys".
           iPureIntro. split; last done.
           exists [abs_msg mtype.VoteResp m]. split.
-          { intros m' Hm'. set_solver. }
+          { recv_elem. }
           destruct Hres as (won & lost & ms & Hms & Hwon & Hlost & ->).
           rewrite /vote_resp_result.
           destruct won.
@@ -718,7 +746,7 @@ Implicit Type s : nstate.t.
           iApply ("HΦ" $! interface.nil s). iFrame "Hphys".
           iPureIntro. split; last done.
           exists []. split; last apply step_refl.
-          intros m' Hm'. set_solver.
+          recv_elem.
   Qed.
 
 End branches.

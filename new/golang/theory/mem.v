@@ -165,6 +165,7 @@ Ltac2 wp_load_visit e k :=
 .
 
 Ltac2 wp_load () :=
+  wp_unhide_body ();
   lazy_match! goal with
   | [ |- envs_entails _ (wp _ _ ?e _) ] => wp_walk_unwrap (fun () => walk_expr e wp_load_visit)
                                                         "wp_load: could not find load_ty"
@@ -180,6 +181,7 @@ Ltac2 wp_store_visit e k :=
 .
 
 Ltac2 wp_store () :=
+  wp_unhide_body ();
   lazy_match! goal with
   | [ |- envs_entails _ (wp _ _ ?e _) ] => wp_walk_unwrap (fun () => walk_expr e wp_store_visit)
                                                         "wp_store: could not find store_ty"
@@ -194,6 +196,7 @@ Ltac2 wp_alloc_visit e k :=
 .
 
 Ltac2 wp_alloc () :=
+  wp_unhide_body ();
   lazy_match! goal with
   | [ |- envs_entails _ (wp _ _ ?e _) ] => wp_walk_unwrap (fun () => walk_expr e wp_alloc_visit)
                                                         "wp_alloc: could not find [alloc]"
@@ -219,6 +222,7 @@ Ltac2 wp_alloc_auto_visit e k :=
   end.
 
 Ltac2 wp_alloc_auto () :=
+  wp_unhide_body ();
   lazy_match! goal with
   | [ |- envs_entails _ (wp _ _ ?e _) ] => wp_walk_unwrap (fun () => walk_expr e wp_alloc_auto_visit)
                                                         "wp_alloc_auto: could not find [alloc]"

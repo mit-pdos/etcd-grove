@@ -125,6 +125,80 @@ Definition own_raft_phys_at (r : loc) (id : w64) s (f : func.t) : iProp Σ :=
 Definition own_raft_phys (r : loc) (id : w64) s : iProp Σ :=
   own_raft_phys_at r id s (step_func_of s.(nstate.role)).
 
+(** Re-sealing [own_raft_phys] after a proof has taken it apart.
+
+    [iFrame "∗#%"] against the unfolded predicate costs ~17s per use (2026-09-17
+    measurement): [iFrame "%"] alone tries every pure fact in the Coq context
+    against every one of the 25 conjuncts. These lemmas make a re-seal a
+    single [iApply] with named hypotheses and pure side goals:
+
+      iApply (own_raft_phys_intro with
+        "Hlogger Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done.
+
+    The pure premises are in the order the conjuncts appear in the predicate.
+    [is_Logger] comes first among the spatial arguments because it is the one
+    persistent one. *)
+Lemma own_raft_phys_at_intro r id s f (rv : raft.raft.t)
+    (msgs msgsAA : list raftpb.Message.t) (lok : interface.t_ok) :
+  rv.(raft.raft.id') = id →
+  rv.(raft.raft.Term') = s.(nstate.term) →
+  rv.(raft.raft.Vote') = s.(nstate.vote) →
+  rv.(raft.raft.lead') = s.(nstate.lead) →
+  rv.(raft.raft.state') = state_w64 s.(nstate.role) →
+  rv.(raft.raft.step') = f →
+  s.(nstate.outbox) ≡ₚ abs_outbox msgs msgsAA →
+  rv.(raft.raft.preVote') = false →
+  rv.(raft.raft.checkQuorum') = false →
+  rv.(raft.raft.isLearner') = false →
+  rv.(raft.raft.leadTransferee') = W64 0 →
+  id ≠ W64 0 →
+  rv.(raft.raft.logger') = interface.ok lok →
+  is_Logger lok -∗
+  r ↦ rv -∗
+  own_tracker cfg rv.(raft.raft.trk') s.(nstate.votes) -∗
+  own_raftLog rv.(raft.raft.raftLog') -∗
+  rv.(raft.raft.msgs') ↦* msgs -∗
+  own_slice_cap raftpb.Message.t rv.(raft.raft.msgs') (DfracOwn 1) -∗
+  rv.(raft.raft.msgsAfterAppend') ↦* msgsAA -∗
+  own_slice_cap raftpb.Message.t rv.(raft.raft.msgsAfterAppend') (DfracOwn 1) -∗
+  own_raft_misc rv.(raft.raft.readStates') rv.(raft.raft.readOnly')
+    rv.(raft.raft.pendingReadIndexMessages') -∗
+  own_raft_phys_at r id s f.
+Proof.
+  intros Hid Hterm Hvote Hlead Hstate Hstepfn Houtbox HnoPreVote HnoCheckQuorum
+    HnoLearner HnoTransfer Hid_nz Hlok.
+  iIntros "#Hlogger Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc".
+  rewrite /own_raft_phys_at. iExists rv, msgs, msgsAA, lok. iFrame "∗#%".
+Qed.
+
+Lemma own_raft_phys_intro r id s (rv : raft.raft.t)
+    (msgs msgsAA : list raftpb.Message.t) (lok : interface.t_ok) :
+  rv.(raft.raft.id') = id →
+  rv.(raft.raft.Term') = s.(nstate.term) →
+  rv.(raft.raft.Vote') = s.(nstate.vote) →
+  rv.(raft.raft.lead') = s.(nstate.lead) →
+  rv.(raft.raft.state') = state_w64 s.(nstate.role) →
+  rv.(raft.raft.step') = step_func_of s.(nstate.role) →
+  s.(nstate.outbox) ≡ₚ abs_outbox msgs msgsAA →
+  rv.(raft.raft.preVote') = false →
+  rv.(raft.raft.checkQuorum') = false →
+  rv.(raft.raft.isLearner') = false →
+  rv.(raft.raft.leadTransferee') = W64 0 →
+  id ≠ W64 0 →
+  rv.(raft.raft.logger') = interface.ok lok →
+  is_Logger lok -∗
+  r ↦ rv -∗
+  own_tracker cfg rv.(raft.raft.trk') s.(nstate.votes) -∗
+  own_raftLog rv.(raft.raft.raftLog') -∗
+  rv.(raft.raft.msgs') ↦* msgs -∗
+  own_slice_cap raftpb.Message.t rv.(raft.raft.msgs') (DfracOwn 1) -∗
+  rv.(raft.raft.msgsAfterAppend') ↦* msgsAA -∗
+  own_slice_cap raftpb.Message.t rv.(raft.raft.msgsAfterAppend') (DfracOwn 1) -∗
+  own_raft_misc rv.(raft.raft.readStates') rv.(raft.raft.readOnly')
+    rv.(raft.raft.pendingReadIndexMessages') -∗
+  own_raft_phys r id s.
+Proof. apply own_raft_phys_at_intro. Qed.
+
 (** Out of scope: the empty entry a new leader appends.  [appendEntry]
     updates the log and then queues a self-addressed [MsgAppResp]
     ([new/code/go_etcd_io/raft/v3.v], the [send] at the end of

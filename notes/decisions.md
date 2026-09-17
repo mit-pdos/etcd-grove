@@ -478,3 +478,55 @@ cause gets one file and the four get one-line pointers, instead of the
 diagnosis being copied four times and going stale in three of them.
 
 Deleted when fixed; git remembers.
+
+## 2026-09-17 — the stepping tactics hide the program text from the proof mode
+
+**accepted**
+
+`proof_raft__Step.v` took ~45 min and 11.3 GB to check. Profiling one lemma
+showed the time was not in the proof but in the tactic engine: `wp_pure`
+spent ~40% stripping laters from the context (a typeclass search that unfolds
+every hypothesis), and every failing proof-mode typeclass search against the
+`WP` goal (`done`/`//`, `iPureIntro`, `iSplitR`, `iApply`'s bookkeeping) cost
+seconds because unification is linear in the ~500KB program term.
+
+Decision, in `new/golang/theory/proofmode.v`:
+
+1. A pure step skips `MaybeIntoLaterNEnvs` when the context has no `▷`
+   syntactically (`tac_wp_pure_wp_no_later`, `tac_wp_rec_no_later`).
+2. `wp_bind_next` let-binds the evaluation context (`__wp_ctx := λ e, fill K
+   e`) so that `wp_apply`'s `iApply`/`iPkgInit`/`as` run on a small goal;
+   `wp_apply` unhides before returning.
+3. `done` is redefined (`Ltac done ::=`) to let-bind the body of a `WP` goal
+   before running stdpp's `done`; `solve` rolls it back.
+4. `wp_hidden tac` and `wp_start_unfold` are offered for the user-level
+   equivalents (`iNamed` mid-body; destructure before the body unfolds).
+
+The invariant kept: **when a tactic returns, the program is visible in the
+goal.** Hiding is internal to individual tactics.
+
+Rejected:
+
+- *Keep the body hidden at rest and unhide in the stepping tactics only.*
+  Fastest for every IPM tactic, but `rewrite Hb` on the program text — the
+  idiom these proofs use to resolve a `bool_decide` before `wp_auto` — would
+  fail to find its occurrence, and reading a goal would mean reading a let-in.
+- *`Typeclasses Opaque` on the abstract predicates* to stop the later search
+  unfolding them. Breaks `iNamed "Hphys"`, which relies on typeclass
+  unfolding of `own_raft_phys`.
+- *Making the program term smaller* (primitive strings for variable names and
+  literals). Right in principle, but it is a change to `goose_lang`'s `expr`
+  and to Goose, far outside this repo's scope.
+- *A faster `iFrame "∗#%"`.* That is Iris's `Frame` search; the fix is not to
+  use it for a 25-conjunct re-seal (`own_raft_phys_intro`).
+
+Cost of the decision: `done` is now a copy of stdpp's definition plus a
+guard, so a future stdpp change to `done` has to be mirrored by hand — and
+the copy has to be *verbatim*: the first version had an extra arm (`case H;
+clear H; done` on `¬_` hypotheses, misremembered from a truncated grep) that
+was exponential in the number of negated hypotheses and cost 345s on one
+`//` in `proof_raft__campaign.v`. An A/B against the stashed old framework
+is what caught it; the same-day per-command timings are in the 2026-09-17
+journal entry. Also, a later hidden behind a definition is no longer
+stripped by a pure step.
+

@@ -1133,3 +1133,137 @@ not after.** Memory discipline held: `-j1`, one build at a time, checking
 
 `wp_raft__promotable` and `wp_raft__hasUnappliedConfChanges` — both were
 blocked on `own_raftLog` and both are now unblocked. Cheapest wins left.
+
+## 2026-09-17 — `proof_raft__Step.v`: 45 min → 9.5 min, by fixing the tactic engine
+
+### The question
+
+`proof_raft__Step.v` took ~45 min and 11.3 GB at `-vok` (35 min / 10.6 GB
+in the 2026-09-16 journal entry). The task was to make it much faster by
+improving the framework in `new/golang/theory`, not by rewriting the proof.
+It now takes **9 min 29 s and 6.0 GB**, `-vok` RC=0, and the other election
+proofs got faster with it (`campaign` 562 s → 331 s, `reset` 346 s → 203 s,
+same-day A/B against the stashed old framework). This entry is about how
+the time was found, because the method transfers.
+
+### Method
+
+One lemma at a time in a scratch module that `Require`s the `postulates_*`
+file (the [gotchas.md](gotchas.md) recipe), compiled with
+`rocq compile -time -vok` and `Set Ltac Profiling` / `Show Ltac Profile`.
+`wp_Step_MsgHup`, the smallest branch lemma, was the workbench: **110 s**
+wall, 91 s tactics, 14.5 s `Qed`. The profile's top line was
+`typeclasses eauto`, 59% of tactic time in 702 calls. Wrapping the
+framework's Ltac2 in named Ltac1 shims (so the profiler says *which*
+`tc_solve`) and one `Set Typeclasses Debug Verbosity 1` run split that up.
+Five findings, each confirmed with `time` on the isolated tactic:
+
+1. **`MaybeIntoLaterNEnvs` on every pure step** — ~40% of `wp_auto`. The
+   `▷` in `PureWp` lets a step strip a later off every hypothesis, and the
+   search does so by unfolding each hypothesis through its definition
+   (`own_raft_misc` → `∃ …, ∃ …, …`, likewise `own_tracker`, `own_raftLog`),
+   recursing into `∗`/`∃`/big ops. There was never a `▷` to find.
+2. **A failing proof-mode typeclass search against the `WP` goal costs
+   ~2.5 s** (`iPureIntro`, `iExists _`, `iSplitR`, …) and ~0.01 s when the
+   program text is let-bound with `set`. The unfolded `Step` body is a
+   ~500KB term: string literals are `list w8` (1555 `Naive.mk` nodes), names
+   are `String (Ascii …)` chains, `go_gctx` is repeated in every
+   instruction. `done` — so `//` and `by` — runs several such searches and
+   then `split`s into the `uPred` model: 7 s per `//` on `MsgHup`'s goal,
+   38 s on one in `MsgVote`.
+3. **`iNamed "Hphys"` after `wp_start` is 12 s; before it, 1 s.** Every
+   `iDestruct` step is linear in the goal.
+4. **`iFrame "∗#%"` to re-seal `own_raft_phys` is 17 s per use** — `iFrame
+   "%"` alone tries every pure fact in the Coq context against every one of
+   the 25 conjuncts. Not about program size. ~12 uses in the file.
+5. **`set_solver` on `m' ∈ [a] ++ [a] → m' = a` ran 4 s / 153 s / >400 s**
+   (timeout) at three sites with the same goal and different contexts;
+   `set_unfold; naive_solver` alone is 1 s. Also not about program size.
+
+Measured and left alone: `simpl fill` after a pure step (~70 ms, the
+substitution itself), the per-step `eapply` (~110 ms, halved by
+`notypeclasses refine`), `wp_clear_unused_pointsto` (~25 ms per attempt),
+`Qed` (8 s / 84 s / 30 s for the three branch lemmas — 21% of the file).
+
+### What changed
+
+Framework (`new/golang/theory/proofmode.v`, `mem.v`, `auto.v`, `pkg.v`):
+
+- `tac_wp_pure_wp_no_later`, `tac_wp_pure_wp_later_credit_no_later`,
+  `tac_wp_rec_no_later`: pure steps and `wp_call` skip the later search
+  when `wp_envs_has_later` finds no `▷`/`▷^n` syntactically in the context.
+  The fast path also drops `pm_prettify` and the separate `simpl subst'`,
+  and uses `notypeclasses refine`.
+- The program text is let-bound while proof-mode-heavy work runs:
+  `wp_bind_next` leaves the evaluation context as `__wp_ctx := λ e, fill K
+  e`, so `wp_apply`'s `iApply`, `iPkgInit` and `as` see a small goal;
+  `wp_unhide_body` (run by every stepping tactic and at the end of
+  `wp_apply`) substitutes it back. `done ::=` on a goal containing a `WP`
+  binds the body and tries only `fast_done`/`trivial`. `wp_hidden tac` and
+  `wp_start_unfold` are the user-level handles.
+- `iPkgInit` fails fast when `is_pkg_init` is not in the goal.
+
+Proof side (`inv_raft_phys.v`, `inv_logger.v`, `proof_raft__Step.v`):
+`own_raft_phys_intro` replaces most `iFrame "∗#%"` re-seals (the two in
+`send_vote`'s postcondition keep `iFrame`, with the hypotheses named — the
+lemma's `s` is fixed by `Htrk2` in `abs_msg` form and `iApply` will not unify
+it with the goal's `msg.mk` form); `wp_start_folded as "@". iNamed "Hphys".
+wp_start_unfold.` in the three branch lemmas; `wp_hidden (iNamedSuffix …)`
+mid-body; `solve_log_method` and `recv_elem` for the two `set_solver`
+shapes. No spec changed; no `Admitted` added.
+
+### Numbers
+
+| | before | after |
+|---|---|---|
+| `wp_Step_MsgHup` alone (scratch, wall / tactics / `Qed`) | 110 s / 91 s / 14.5 s | 30 s / 19 s / 7.6 s |
+| `proof_raft__Step.v` `-vok`, wall | ~45 min (STATUS, 09-16), 35 min (journal, 09-16) | **9 min 29 s** |
+| … peak RSS | 11.3 GB / 10.6 GB | **6.0 GB** |
+| `proof_raft__campaign.v` `-vok`, wall / RSS (same-day A/B) | 562 s / 3.0 GB | 331 s / 2.3 GB |
+| `proof_raft__reset.v` `-vok`, wall (same-day A/B) | 346 s | 203 s |
+
+The `Step` "before" is the previous day's measurement on this machine, not a
+same-day A/B (45 min was not worth re-spending); the `campaign`/`reset` rows
+are a same-day A/B done by stashing `new/golang/theory/`, rebuilding the
+`.vos` closure, checking, and restoring. Per-command `-time` logs of old and
+new `campaign` agree on every command within noise except the ones the
+changes target (`wp_auto`/`wp_apply` 3–10× faster).
+
+Regression check under the final framework: all 16 `new/golang/theory/*.v`
+files with proofs pass `-vok`, as does every `proof_*.v`, `inv_*.v`, `defs`,
+`step_lemmas` and `election.v` in the election development (RC=0 each; the
+run is in the "verification" paragraph of STATUS.md).
+
+### Dead ends and one self-inflicted regression
+
+- Hiding the program *at rest* (unhiding only inside stepping tactics)
+  would make every IPM tactic fast, but `rewrite Hb` on the program text —
+  the idiom for resolving a `bool_decide` — would stop finding its
+  occurrence. Rejected; see [decisions.md](decisions.md).
+- `Typeclasses Opaque own_raft_misc …` stops the later search unfolding
+  them, and also breaks `iNamed "Hphys"`.
+- The first `done ::=` kept stdpp's full body under the hiding and was
+  *still* 38 s on the `MsgVote` goal: `split` succeeds on `envs_entails`
+  (a one-constructor record) and the cascade continues inside the model.
+  Restricting `done` on `WP` goals to `fast_done`/`trivial` fixed it.
+- `rewrite … // in Hvote1 Hlead1` hands `done` the *reverted* goal
+  `H → WP …`, which the first guard did not recognise (36 s). The guard now
+  matches any goal with a `WP` under binders.
+- **The copy of stdpp's `done` had an arm stdpp does not have** (`case H;
+  clear H; done` on `¬_` hypotheses — misread from a truncated grep). It is
+  exponential in the number of negated hypotheses: one `//` in `campaign`
+  went from 0.1 s to 358 s, and it is what the A/B was for. Fixed by
+  copying verbatim. Lesson recorded in decisions.md.
+- `pkill -f 'rocq compile…'` from the agent's own shell matches the shell's
+  own command line and kills it (exit 144), leaving the `rocqworker`
+  orphaned and still running. Kill by PID.
+
+### Where to pick up
+
+The remaining `Step` time is: the six `vote_*_tail` calls (13–19 s each,
+each a `wp_apply` of `send_vote` plus a postcondition `iFrame`), the
+`MsgVote` `Qed` (84 s), and `simpl fill` at ~70 ms per pure step. `Qed`
+is the kernel re-substituting the program once per step; making it cheaper
+means fewer administrative `let:` steps in the translation, which is
+Goose's problem, not this repo's.
+

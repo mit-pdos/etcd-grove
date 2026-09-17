@@ -203,6 +203,18 @@ for example to have multiple [is_pkg_init] conjuncts, in which case this
 automation will need improvement.
 *)
 Ltac iPkgInit :=
+  (* Fail fast unless [is_pkg_init] occurs in the goal at all. [wp_apply] and
+     [wp_start] try this on every goal, including the [WP] continuation, where
+     the [unfold named] and the [iSplitR] attempt below are each a traversal of
+     (or a failing typeclass search against) the whole program text. *)
+  lazymatch goal with
+  | |- environments.envs_entails _ ?g =>
+      lazymatch g with
+      | context [is_pkg_init _] => idtac
+      | _ => fail "iPkgInit: no is_pkg_init in the goal"
+      end
+  | _ => fail "iPkgInit: not a proof mode goal"
+  end;
   progress (
       try solve_pkg_init;
       repeat (iSplitR; [ solve_pkg_init | ])

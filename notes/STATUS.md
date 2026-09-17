@@ -1,6 +1,6 @@
 # Status
 
-**Last updated:** 2026-09-16
+**Last updated:** 2026-09-17
 
 ## Goal
 
@@ -98,15 +98,31 @@ is nothing to apply. Its four cases:
 | `m.Term = r.Term`, Follower/Leader | `stepFollower` / `stepLeader` only read | `step_refl` |
 | `m.Term = r.Term`, Candidate | `stepCandidate` records the vote, maybe wins or loses | `step_record_then_win` / `_lose` / `step_record_vote` |
 
-**Cost note:** `proof_raft__Step.v` takes **~45 minutes and 11.3 GB** to
-`-vok`. Do not start a second build beside it; overlapping builds are what
+**Cost note:** `proof_raft__Step.v` takes **9.5 minutes and 6.0 GB** to
+`-vok` (2026-09-17; it was ~45 min and 11.3 GB the day before). Still do not
+start a second build of that size beside it; overlapping builds are what
 killed several sessions.
 
-**Verified on 2026-09-16 at `15fcbecd7`**, every file individually at
-`-vok` RC=0 with zero errors: the four `inv_*.v` that changed, all 13
-`proof_*.v`, and `election.v`. Note that this is *not* a `make ci` run —
-that needs a full `.vo` build of Perennial, which nothing in this tree
-has.
+**The tactic engine was the cost, not the proof (2026-09-17).** A pure step
+stripped laters from every hypothesis by unfolding them; every failing
+proof-mode typeclass search against the `WP` goal (so `done`, `//`,
+`iPureIntro`, `iSplitR`, …) was linear in the ~500KB program term; `iFrame
+"∗#%"` re-sealing a 25-conjunct predicate cost 17 s; `set_solver` on a
+list-membership goal ran for minutes. The framework fixes are in
+`new/golang/theory/proofmode.v` (later-free pure steps; the program text
+let-bound inside `wp_apply` and `done`; `wp_hidden tac`; `wp_start_unfold`)
+and the proof-side idioms in [gotchas.md](gotchas.md). `campaign` and
+`reset` got 1.7× faster without being touched (same-day A/B). Details and
+numbers in the 2026-09-17 [journal](journal.md) entry; the design and its
+rejected alternatives in [decisions.md](decisions.md).
+
+**Verified on 2026-09-17** (uncommitted working tree on top of `0fb5a6dd9`,
+after the framework changes), every file individually at `-vok` RC=0 with
+zero errors: `proof_raft__Step.v` (9 min 29 s, 6.0 GB), all 12 other
+`proof_*.v`, every `inv_*.v`, `defs.v`, `step_lemmas.v`, `election.v`, and
+the 16 `new/golang/theory/*.v` files that have proofs. Note that this is
+*not* a `make ci` run — that needs a full `.vo` build of Perennial, which
+nothing in this tree has.
 
 Two things that mattered structurally:
 
@@ -147,7 +163,17 @@ longer has one.
 proof bodies** — it will accept a proof script that does not run. Use
 `make <file>.vok` (~100s per function) for the real check. Do not reach for
 `.vo`: nothing in the tree has `.vo` dependencies, so `make x.vo` starts
-building all of Perennial.
+building all of Perennial. To see *where* a slow proof spends its time, put
+the one lemma in a scratch file and compile it with
+`rocq compile -time -vok` under `Set Ltac Profiling` — two minutes, and it
+is how the 2026-09-17 speedup was found.
+
+**Writing against a big function:** destructure the precondition before the
+body is unfolded (`wp_start_folded as "@". iNamed "Hown". wp_start_unfold.`),
+wrap a mid-body `iNamed`/`iNamedSuffix` in `wp_hidden (…)`, re-seal a big
+predicate with an intro lemma rather than `iFrame "∗#%"`, and do not
+`set_solver` a list membership. Each is a 10–100× difference on `Step`;
+see [gotchas.md](gotchas.md).
 
 For the inner loop use **rocq-warm**, and specifically the
 [upamanyus fork](https://github.com/upamanyus/rocq-warm) — not zeldovich's.

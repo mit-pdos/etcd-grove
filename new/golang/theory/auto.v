@@ -57,11 +57,23 @@ Tactic Notation "wp_start_folded" "as" constr(pat) :=
   | _ => iDestruct "Hpre" as pat
   end.
 
-Tactic Notation "wp_start" "as" constr(pat) :=
-  wp_start_folded as pat;
+(** The second half of [wp_start]: unfold the function or method being called
+    and step into its body. Exposed so that a proof can destructure its
+    precondition *before* the body is in the goal:
+
+      wp_start_folded as "@". iNamed "Hown". wp_start_unfold.
+
+    is many times cheaper than [wp_start as "@". iNamed "Hown".] on a large
+    function, because every [iDestruct] step is linear in the size of the goal
+    and the translated body is by far the largest thing in it. *)
+Tactic Notation "wp_start_unfold" :=
   (* only do this if it produces a single goal *)
   try (first [ wp_func_call| wp_method_call; try wp_call ]; [idtac]);
   try wp_call.
+
+Tactic Notation "wp_start" "as" constr(pat) :=
+  wp_start_folded as pat;
+  wp_start_unfold.
 
 Tactic Notation "wp_start" :=
   wp_start as "Hpre".
@@ -265,11 +277,16 @@ Ltac2 iIntros (ipat: Ltac1.t) : unit :=
 
 Ltac2 wp_apply (lem: Ltac1.t) (do_auto: bool) (lc: int)
     (as_clause: (unit -> unit) option) :=
+    (* [wp_apply_core] leaves the evaluation context let-bound (see
+       [wp_bind_next]); the [iApply], [iPkgInit] and the [as] introduction all
+       run on the small goal, and [wp_unhide_body] restores the program text
+       in every goal before the user or [wp_auto] sees it. *)
     wp_apply_core lem; try ltac1:(iPkgInit);
     match as_clause with
     | Some cl => focus_last (cl ())
     | None => ()
     end;
+    Control.enter wp_unhide_body;
     if do_auto then
       focus_last (try (wp_auto_lc lc))
       else ().

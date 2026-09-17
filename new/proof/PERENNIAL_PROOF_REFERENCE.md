@@ -74,6 +74,42 @@ function body. Useful when proving a spec that wraps another spec.
 
 ---
 
+### `wp_start_folded` / `wp_start_unfold`
+
+**Syntax**: `wp_start_folded as "ipat"` then `wp_start_unfold`
+
+`wp_start` in two halves: `wp_start_folded` does steps 1–4 above and leaves
+the call folded; `wp_start_unfold` does step 5. Split them when the
+precondition is a big predicate you are about to take apart:
+
+```coq
+  wp_start_folded as "@". iNamed "Hown". wp_start_unfold.
+```
+
+Every `iDestruct` is linear in the size of the goal, and once the body is
+unfolded the translated program is by far the largest thing in it. On a
+500KB body the `iNamed` above is ~1 s before the unfold and ~12 s after.
+
+### `wp_hidden`
+
+**Syntax**: `wp_hidden (tac)`
+
+Runs `tac` with the program text of a `WP` goal let-bound
+(`__wp_body := …`), then substitutes it back. Use it around a mid-proof
+`iNamed`, `iNamedSuffix`, `iDestruct` or `iFrame` on a goal whose `WP` holds
+a large body: proof-mode tactics and failing typeclass searches are linear
+in the goal size, and against a let-bound body they are constant. The
+stepping tactics (`wp_auto`, `wp_pure`, `wp_load`, …) and `wp_apply` already
+do this internally; `done` on a `WP` goal does too.
+
+```coq
+  wp_apply (P.wp_raft__becomeFollower with "[$Hphys]") as "Hphys".
+  wp_hidden (iNamedSuffix "Hphys" "1").
+```
+
+Do not leave a goal hidden across a `rewrite` that targets the program text
+— `wp_hidden` restores it, which is the point of the tactical form.
+
 ### `wp_auto`
 
 **Syntax**: `wp_auto` or `wp_auto --lc n`

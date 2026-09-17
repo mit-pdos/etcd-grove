@@ -608,6 +608,10 @@ target is the one command the project most wants you not to run — see
 
 ## `proof_raft__Step.v` costs ~8 GB and ~30 min to check — this is what OOM-kills sessions
 
+**Superseded 2026-09-17** — see the next entry and `STATUS.md` for the
+current cost; it is several times lower after the framework changes made
+that day. The discipline below is still right, only the budget moved.
+
 Measured 2026-09-16: a single `rocqworker` checking that one file reached
 **8.1 GB RSS** and ran over 26 minutes. On a 15 GB box that leaves room for
 essentially nothing else.
@@ -789,3 +793,77 @@ it drops the third — and the proof then dies much later, at the `}` that
 should have closed the re-seal, on a goal (`⌜… = false⌝`) with no visible
 connection to the `iDestruct`. Name the new conjunct on the way in
 (`"(Hpv & Hinfl & %Hnolearner)"`, or `iNamed`) and hand it back.
+
+## Every proof-mode tactic on a `WP` goal is linear in the *program text*; hide it
+
+Found 2026-09-17 while profiling `proof_raft__Step.v` (then ~45 min). The
+translated `Step` body is a ~500KB term once notations are off (string
+literals are `list w8`, variable names are `String (Ascii …)` chains), and it
+sits in the goal for the whole proof. Anything that traverses or unifies
+against the goal pays for it:
+
+| on the `Step` goal | program visible | program let-bound |
+|---|---|---|
+| a *failing* `iPureIntro` / `iExists _` / `iSplitR` | ~2.5 s each | ~0.01 s |
+| `rewrite Hx //` (the `//` fails on the `WP`, trying each Iris `Hint Extern`) | ~7 s | ~1 s |
+| `iNamed "Hphys"` (25 conjuncts) | ~12 s | ~1 s |
+| `wp_apply (wp_traceReceiveMessage …)` | ~4.7 s | ~0.8 s |
+
+"Let-bound" means the program is a `set` variable in the context: the goal is
+convertible to the original, but unification sees a variable. That is what
+`new/golang/theory/proofmode.v` now does inside the tactics (`wp_apply`
+binds the evaluation context around its `iApply`; `done` binds the body
+before running stdpp's `done`). The program is always visible again when a
+tactic returns, so `rewrite Hb` on the program text keeps working.
+
+What this means for writing a proof against a big function:
+
+- **Destructure the precondition before the body is unfolded.**
+  `wp_start_folded as "@". iNamed "Hphys". wp_start_unfold.` instead of
+  `wp_start as "@". iNamed "Hphys".` — 12 s → 1 s per lemma.
+- **Wrap an `iNamed`/`iNamedSuffix`/`iDestruct` that runs mid-body in
+  `wp_hidden (…)`.** `wp_hidden (iNamedSuffix "Hphys" "1")`. It hides,
+  runs the tactic, unhides.
+- **Do not re-seal a 25-conjunct predicate with `iFrame "∗#%"`.** That costs
+  ~17 s per use — `iFrame "%"` alone tries every pure fact in the Coq context
+  against every conjunct — and it is what every re-seal of `own_raft_phys`
+  did. Write an intro lemma once (`own_raft_phys_intro` in
+  `inv_raft_phys.v`) and re-seal with
+  `iApply (own_raft_phys_intro with "Hlogger Hr Htrk …"); done.` (~0.1 s).
+  This has nothing to do with program size; it is `iFrame` on a big goal.
+
+The other half of the 2026-09-17 speedup is in the stepping tactics
+themselves: a pure step used to run `MaybeIntoLaterNEnvs` over the whole
+context, which unfolds every hypothesis (`own_tracker`, `own_raft_misc`, …)
+through its definition looking for a `▷`. With no `▷` in the context that
+search is skipped (`tac_wp_pure_wp_no_later`). If a proof *relies* on a later
+being stripped from inside a definition on a pure step, it will now have to
+unfold that definition first — none in this tree did.
+
+Two more, found the same day in the same file, that are not about program
+size but hit the same proofs:
+
+- **`set_solver` on a list-membership goal can run for minutes.** It is
+  `try fast_done; intros; setoid_subst; set_unfold; …; naive_solver eauto`,
+  and with the `Step` proof's Coq context in scope the same goal took 4s in
+  one lemma, 150s in another and timed out at 400s in a third
+  (`m' ∈ [a] ++ [a] → m' = a`; `set_unfold; naive_solver` alone is 1s).
+  Rewrite the membership away instead: `solve_log_method` in
+  `inv_logger.v` for `meth ∈ log_methods`, and `recv_elem` in
+  `proof_raft__Step.v` for the `recv` lists. Reach for `set_solver` on a
+  goal with a big context only after timing it once.
+- **`rewrite … // in H1 H2` runs `done` on the *reverted* goal
+  `H1 → H2 → WP …`.** ssreflect's `in` clause reverts the hypotheses first,
+  so the `//` is not looking at a `WP` goal and the guard in `done` did not
+  fire; stdpp's `done` then `intros` and cascades against the visible
+  program — 36s for one rewrite. `done` now also catches goals with a `WP`
+  under binders. If in doubt, write `rewrite … in H1 H2; [|exact Hne]`,
+  which is 0.03s and says which side goal you meant.
+
+How to see where the time goes, in about two minutes: put one lemma in a
+scratch file that `Require`s its `postulates_*` file, add
+`Set Ltac Profiling.` before it and `Show Ltac Profile.` after `Qed`, and
+compile with `rocq compile -time -vok`. `-time` gives per-command seconds,
+the profile gives the tactic tree. `tc_solve` at the top with hundreds of
+calls means a typeclass search is unfolding something it should not.
+

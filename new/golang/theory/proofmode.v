@@ -46,6 +46,39 @@ Proof.
   rewrite HΔ'. iIntros "H". by iApply Hwp.
 Qed.
 
+(** Fast path for pure steps.
+
+    The [▷] in [PureWp] lets a pure step strip one later off every hypothesis,
+    which [tac_wp_pure_wp] does through [MaybeIntoLaterNEnvs]. That typeclass
+    search unfolds every hypothesis through its definition looking for a [▷]
+    (it recurses into [∗], [∃], big ops, ...), and on a context of a dozen
+    abstract predicates it is the single most expensive part of a [wp_pure]
+    step -- measured at ~40% of [wp_auto] on the etcd raft proofs. When no [▷]
+    occurs syntactically in the context there is nothing to strip, and
+    [later_intro] does the job with no search at all. [wp_pure] picks the fast
+    path with [wp_envs_has_later] below. *)
+Lemma tac_wp_pure_wp_no_later `{ffi_sem: ffi_semantics} `{!ffi_interp ffi} `{!gooseGlobalGS Σ, !gooseLocalGS Σ}
+                     {go_gctx : GoGlobalContext}
+      K e1 {e2 φ} (Hwp:PureWp φ e1 e2) Δ s E Φ :
+  φ →
+  envs_entails Δ (WP (fill K e2) @ s; E {{ Φ }}) →
+  envs_entails Δ (WP (fill K e1) @ s; E {{ Φ }}).
+Proof.
+  rewrite envs_entails_unseal=> ? HΔ. rewrite HΔ. iIntros "H".
+  iApply Hwp; [done|]. iNext. iIntros "_". iApply "H".
+Qed.
+
+Lemma tac_wp_pure_wp_later_credit_no_later `{ffi_sem: ffi_semantics} `{!ffi_interp ffi} `{!gooseGlobalGS Σ, !gooseLocalGS Σ}
+                                  {go_gctx : GoGlobalContext}
+      K e1 {e2 φ} (Hwp:PureWp φ e1 e2) Δ s E Φ :
+  φ →
+  envs_entails Δ (£ 1 -∗ WP (fill K e2) @ s; E {{ Φ }}) →
+  envs_entails Δ (WP (fill K e1) @ s; E {{ Φ }}).
+Proof.
+  rewrite envs_entails_unseal=> ? HΔ. rewrite HΔ. iIntros "H".
+  iApply Hwp; [done|]. iNext. iApply "H".
+Qed.
+
 (* Now a few lemmas to help establish PureWp in other ways. *)
 Lemma pure_exec_pure_wp n
   `{ffi_sem: ffi_semantics} `{!ffi_interp ffi} `{!gooseGlobalGS Σ, !gooseLocalGS Σ}
@@ -151,6 +184,18 @@ Proof.
   by iApply wp_call.
 Qed.
 
+(** See [tac_wp_pure_wp_no_later]. *)
+Lemma tac_wp_rec_no_later `{ffi_sem: ffi_semantics} `{!ffi_interp ffi} `{!gooseGlobalGS Σ, !gooseLocalGS Σ}
+                 {go_gctx : GoGlobalContext} K v1 v2 {f x e} {Hwp:TCEq v1 (rec: f x := e)%V}
+                 Δ s E Φ :
+  envs_entails Δ (£ 1 -∗ WP (fill K (subst' x v2 (subst' f v1 e))) @ s; E {{ Φ }}) →
+  envs_entails Δ (WP (fill K (App v1 v2)) @ s; E {{ Φ }}).
+Proof.
+  rewrite envs_entails_unseal=> HΔ. rewrite HΔ. iIntros "H".
+  rewrite TCEq_eq in Hwp. rewrite Hwp.
+  iApply wp_call; [done|]. iNext. iApply "H".
+Qed.
+
 Lemma tac_wp_call_go_func `{ffi_sem: ffi_semantics} `{!ffi_interp ffi} `{!gooseGlobalGS Σ, !gooseLocalGS Σ}
                           {go_gctx : GoGlobalContext} {sem_fn : GoSemanticsFunctions} {pre_sem : go.PreSemantics}
       K f x e v2 Δ Δ' s E Φ :
@@ -165,6 +210,134 @@ Qed.
 End lemmas.
 
 (** Tactics *)
+
+(** * Keeping the program text out of the way
+
+    A translated Go function body is a large term (the raft [Step] body is
+    ~500KB printed), and it sits inside the goal for the whole proof. Every
+    proof-mode operation that traverses or unifies against the goal -- a
+    failing [FromPure]/[FromSep]/[FromExist] search, [pm_reduce], typing of a
+    [refine]d term -- is then linear in the program size, and a failing
+    typeclass search against the [WP] costs seconds instead of microseconds.
+    [done] (and so [//] and [by]) tries several of those on a [WP] goal before
+    giving up.
+
+    The remedy is to let-bind the program text while running such tactics:
+    unification sees a variable, while the goal is still convertible to its
+    original form. [wp_hide_body] binds the whole expression of a [WP] goal,
+    [wp_bind_next] (and so [wp_apply]) binds the evaluation context, and
+    [wp_unhide_body] undoes both. Every stepping tactic ([wp_pure], [wp_load],
+    ...) unhides first, so the program is visible whenever the user looks at a
+    goal; the hiding is an implementation detail of individual tactics. Use
+    [wp_hidden tac] to run an arbitrary proof-mode tactic ([iNamed], [iFrame],
+    ...) on a [WP] goal with the program hidden. *)
+
+(** Let-bind the expression of a [WP] goal under a name starting with [__wp_].
+    No-op if the goal is not a [WP] or the expression is already a variable. *)
+Ltac wp_hide_body :=
+  lazymatch goal with
+  | |- environments.envs_entails _ (wp _ _ ?e _) =>
+      tryif is_var e then idtac
+      else let x := fresh "__wp_body" in first [ set (x := e) | idtac ]
+  | _ => idtac
+  end.
+
+Ltac wp_subst_hidden x := first [ subst x | unfold x in * ].
+Ltac wp_ectx_simpl := cbv [fill flip foldl ectxi_language.fill_item goose_ectxi_lang fill_item].
+
+Ltac2 wp_ident_is_hidden (id : ident) : bool :=
+  let s := Ident.to_string id in
+  if Int.lt (String.length s) 5 then false
+  else
+    String.equal (String.sub s 0 5) "__wp_".
+
+(** Substitute every [__wp_*] let-binding back into the goal and recompute
+    the evaluation contexts it stood for. No-op (and cheap) if there is none. *)
+Ltac2 wp_unhide_body () : unit :=
+  Control.enter (fun () =>
+    let hidden := List.map (fun (id, _, _) => id)
+      (List.filter (fun (id, body, _) =>
+        match body with
+        | Some _ => wp_ident_is_hidden id
+        | None => false
+        end) (Control.hyps ())) in
+    match hidden with
+    | [] => ()
+    | _ =>
+        List.iter (fun id =>
+          ltac1:(x |- wp_subst_hidden x) (Ltac1.of_ident id)) hidden;
+        ltac1:(wp_ectx_simpl)
+    end).
+Tactic Notation "wp_unhide_body" := ltac2:(wp_unhide_body ()).
+
+(** Run [tac] with the program text of a [WP] goal hidden; see above. *)
+Tactic Notation "wp_hidden" tactic3(tac) :=
+  wp_hide_body; tac; wp_unhide_body.
+
+(** Does the proof-mode context syntactically contain a [▷] (or [▷^n])? This
+    is the guard for the [_no_later] fast paths: if it fails, a pure step
+    can skip [MaybeIntoLaterNEnvs]. It deliberately does not look through
+    definitions; a later hidden behind a definition is not stripped by the
+    fast path. *)
+Ltac wp_envs_has_later :=
+  lazymatch goal with
+  | |- environments.envs_entails ?Δ _ =>
+      lazymatch Δ with
+      | context [bi_later _] => idtac
+      | context [bi_laterN _ _] => idtac
+      | _ => fail "wp_envs_has_later: no later in context"
+      end
+  end.
+Ltac2 wp_envs_has_later () : bool :=
+  match Control.case (fun () => ltac1:(wp_envs_has_later)) with
+  | Val _ => true
+  | Err _ => false
+  end.
+
+(** [done] on a [WP] goal is restricted and hides the program text first.
+
+    stdpp's [done] runs [trivial], whose Iris hints try [iAssumption],
+    [iPureIntro], [iSplit], ... against the goal, each of which is a failing
+    typeclass search linear in the program size (~2s each on the raft [Step]
+    body). It then [split]s the goal -- [envs_entails] unfolds to the
+    [uPred_entails] record -- and keeps going *inside the model* with
+    [intros], [trivial], [contradiction] on hypotheses that are the whole
+    proof-mode context unfolded to [uPred]; on a big goal that alone was
+    measured at ~38s per [//]. Nothing in a program proof is ever closed that
+    way, so on a [WP] goal [done] tries only what can work: [fast_done] and
+    [trivial], with the program let-bound. [solve] rolls the [set] back on
+    failure, so nothing is visible outside. On every other goal [done] is
+    stdpp's, copied verbatim into [wp_done_core] -- keep it verbatim: an
+    extra arm that called [done] recursively on [¬_] hypotheses was
+    exponential in the number of such hypotheses (345s on one [//] in
+    [proof_raft__campaign.v]). *)
+Ltac wp_done_core :=
+  solve
+  [ repeat first
+    [ fast_done
+    | solve [trivial]
+    | progress intros
+    | solve [symmetry; trivial]
+    | solve [apply not_symmetry; trivial]
+    | discriminate
+    | contradiction
+    | split
+    | match goal with H : is_Some None |- _ => destruct H as [? [=]] end
+    | match goal with H : ¬_ |- _ => case H; clear H; fast_done end ]
+  ].
+Ltac wp_done_wp_goal :=
+  solve [ wp_hide_body; first [ fast_done | solve [trivial] ] ].
+Ltac done ::=
+  lazymatch goal with
+  | |- environments.envs_entails _ (wp _ _ _ _) => wp_done_wp_goal
+  | |- context [wp _ _ _ _] =>
+      (* e.g. [H → envs_entails Δ (WP …)], which is what ssreflect's
+         [rewrite … // in H] hands to [done]: the [in] clause reverts [H]
+         first.  stdpp's [done] would [intros] and then run the whole
+         cascade against the visible program (~36s measured). *)
+      solve [ intros; wp_done_wp_goal ]
+  | _ => wp_done_core
+  end.
 
 Ltac2 Type exn ::= [ Walk_expr_more ].
 Ltac2 Type exn ::= [ Walk_expr_not_found ].
@@ -218,12 +391,21 @@ Ltac2 wp_pure_visit e k :=
      (* This looks for an instance before eapply to make to fail fast. *)
      let pure_wp := orelse (fun () => '(ltac:(tc_solve) : PureWp _ $e _))
                       (fun _ => Control.zero Walk_expr_more) in
-     eapply (tac_wp_pure_wp $k $e $pure_wp) >
-       [ltac1:(try done)|
-         ltac1:(tc_solve)|
-         ltac1:(reduction.pm_prettify; simpl subst'; simpl fill)].
+     if wp_envs_has_later () then
+       eapply (tac_wp_pure_wp $k $e $pure_wp) >
+         [ltac1:(try done)|
+           ltac1:(tc_solve)|
+           ltac1:(reduction.pm_prettify; simpl subst'; simpl fill)]
+     else
+       (* [notypeclasses refine] rather than [eapply]: no typeclass
+          post-processing, no evar normalization of the (large) goal; about
+          half the cost. The context is unchanged, so no [pm_prettify]. *)
+       ltac1:(k e pw |- notypeclasses refine (tac_wp_pure_wp_no_later k e pw _ _ _ _ _ _))
+         (Ltac1.of_constr k) (Ltac1.of_constr e) (Ltac1.of_constr pure_wp) >
+         [ltac1:(try done)| ltac1:(simpl fill)].
 
 Ltac2 wp_pure () :=
+  wp_unhide_body ();
   lazy_match! goal with
   | [ |- envs_entails _ (wp _ _ (Val _) _) ] => ltac1:(iApply wp_value)
   | [ |- envs_entails _ (wp _ _ ?e _) ] =>
@@ -237,13 +419,19 @@ Ltac2 wp_pure_lc_visit e k :=
   (* This looks for an instance before eapply to make to fail fast. *)
   let pure_wp := orelse (fun () => '(ltac:(tc_solve) : PureWp _ $e _))
                    (fun _ => Control.zero Walk_expr_more) in
-  eapply (tac_wp_pure_wp_later_credit $k $e $pure_wp) >
-    [ltac1:(try done)|
-      ltac1:(tc_solve)|
-      ltac1:(reduction.pm_prettify; simpl subst';
-             simpl fill)].
+  if wp_envs_has_later () then
+    eapply (tac_wp_pure_wp_later_credit $k $e $pure_wp) >
+      [ltac1:(try done)|
+        ltac1:(tc_solve)|
+        ltac1:(reduction.pm_prettify; simpl subst';
+               simpl fill)]
+  else
+    ltac1:(k e pw |- notypeclasses refine (tac_wp_pure_wp_later_credit_no_later k e pw _ _ _ _ _ _))
+      (Ltac1.of_constr k) (Ltac1.of_constr e) (Ltac1.of_constr pure_wp) >
+      [ltac1:(try done)| ltac1:(simpl fill)].
 
 Ltac2 wp_pure_lc () :=
+  wp_unhide_body ();
   lazy_match! goal with
   | [ |- envs_entails _ (wp _ _ (Val _) _) ] => ltac1:(iApply wp_value)
   | [ |- envs_entails _ (wp _ _ ?e _) ] =>
@@ -258,13 +446,18 @@ Tactic Notation "wp_pures" := repeat (wp_pure; []).
 Ltac2 wp_call_visit e k :=
   orelse (fun () => Std.unify e '(App (rec: _ _ := _)%V _))
     (fun _ => Control.zero Walk_expr_more);
-  eapply (tac_wp_rec $k) >
-    [ltac1:(tc_solve) | ltac1:(tc_solve)|
-      ltac1:(reduction.pm_prettify; simpl subst'; simpl fill)].
+  if wp_envs_has_later () then
+    eapply (tac_wp_rec $k) >
+      [ltac1:(tc_solve) | ltac1:(tc_solve)|
+        ltac1:(reduction.pm_prettify; simpl subst'; simpl fill)]
+  else
+    eapply (tac_wp_rec_no_later $k) >
+      [ltac1:(tc_solve) | ltac1:(simpl subst'; simpl fill)].
 
 Ltac2 wp_call () :=
   (* XXX: this is when `zero_val`s tend to show up (unfolding the body of a
      function), so try rewriting to use IntoValTyped's default. *)
+  wp_unhide_body ();
   lazy_match! goal with
   | [ |- envs_entails _ (wp _  _ ?e _) ] =>
       wp_walk_unwrap (fun () => walk_expr e wp_call_visit)
@@ -285,6 +478,7 @@ Ltac pure_wp_start :=
   wp_pures.
 
 Ltac2 wp_bind_filter (filter_tac : constr -> unit) : constr :=
+  wp_unhide_body ();
   lazy_match! goal with
   | [ |- envs_entails _ (wp _  _ ?e _) ] =>
       orelse (fun () => filter_tac e; e) (* if the top-level matches, don't walk down the expr at all. *)
@@ -324,7 +518,13 @@ Ltac2 expr_is_unknown e : bool :=
   | _ => true
   end.
 
+(** [wp_bind_next] binds the next redex, leaving the evaluation context [K]
+    as a let-bound function [__wp_ctx := λ e, fill K e] rather than inlining
+    it into the postcondition, so that the [iApply] and everything else
+    [wp_apply] runs afterwards works on a small goal; see the section on
+    hiding above. [wp_apply] unhides at the end. *)
 Ltac2 wp_bind_next () : unit :=
+  wp_unhide_body ();
   lazy_match! goal with
   | [ |- envs_entails _ (wp _  _ ?e _) ] =>
       let bind_ctx := Ref.ref None in
@@ -349,7 +549,11 @@ Ltac2 wp_bind_next () : unit :=
       | Some (e, k) =>
           lazy_match! k with
           | nil => ()
-          | _ => eapply (tac_wp_bind $k $e) > [simpl; reflexivity|ltac1:(reduction.pm_prettify)]
+          | _ =>
+              let kf := Fresh.in_goal @__wp_ctx in
+              Std.pose (Some kf) constr:(λ e, fill $k e);
+              let kfc := Control.hyp kf in
+              eapply (tac_wp_bind $k $e _ _ _ _ $kfc) > [reflexivity | ()]
           end
       end
   | [ |- _] => Control.zero (Tactic_failure (Some (fprintf "wp_bind_next: not a WP goal")))
@@ -383,7 +587,7 @@ Tactic Notation "wp_apply_core" open_constr(lem) :=
   try tc_solve; shelve_unifiable.
 
 Tactic Notation "wp_apply" open_constr(lem) :=
-  wp_apply_core lem.
+  wp_apply_core lem; wp_unhide_body.
 
 Create HintDb cleanup_bool_decide_db.
 Global Hint Rewrite bool_decide_True bool_decide_False : cleanup_bool_decide_db.
