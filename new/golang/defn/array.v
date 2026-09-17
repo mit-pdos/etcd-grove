@@ -58,6 +58,22 @@ Class ArraySemantics `{!GoSemanticsFunctions} :=
        | None => Panic "index out of range"
        end);
 
+  (* [len] and [cap] of an array are both its length, which is part of its
+     type rather than something stored alongside the elements. Go makes such a
+     call a constant expression whenever the operand has no channel receives or
+     non-constant calls, so Goose emits the length directly in that case and
+     these rules cover only the remainder (e.g. [len(f())]); the operand is
+     still evaluated, for its effects, and discarded. The guard matches
+     [array_length_step]: an array whose length is not representable as a Go
+     [int] cannot arise from a Go program. *)
+  #[global] len_array n elem_type `{!st ↓u go.ArrayType n elem_type} ::
+    FuncUnfold go.len [st]
+    (λ: <>, if decide (0 ≤ n < 2^63) then #(W64 n) else AngelicExit #())%V;
+
+  #[global] cap_array n elem_type `{!st ↓u go.ArrayType n elem_type} ::
+    FuncUnfold go.cap [st]
+    (λ: <>, if decide (0 ≤ n < 2^63) then #(W64 n) else AngelicExit #())%V;
+
   #[global] composite_literal_array n elem_type kvs ::
     ⟦CompositeLiteral (go.ArrayType n elem_type), (LiteralValueV kvs)⟧ ⤳[under]
     (foldl (λ '(cur_index, expr_so_far) ke,

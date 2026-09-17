@@ -715,6 +715,15 @@ Definition own_AckedIndexer (i : interface.t_ok) (acks : gmap w64 w64) I : iProp
     {{{ RET (#(default (W64 0) (acks !! voterID)), #(bool_decide (is_Some (acks !! voterID))));
         I }}}).
 
+(** This is an [Axiom] because [JointConfig.CommittedIndex] indexes the
+    [[2]MajorityConfig] array and Goose used to emit that index against the
+    *loaded* array value, which the model gives no step to -- so no proof
+    could get past it.  **That defect was fixed on 2026-09-17** (Goose now
+    passes the array's address; see
+    [new/proof/go_etcd_io/raft/v3_proof/election/inv_misc.v]'s
+    [wp_campaign_peer_ids] for the write-up).  This axiom is therefore now
+    dischargeable and should be discharged: it is core raft, so under the
+    scope rule in notes/STATUS.md it may not be assumed. *)
 Axiom wp_JointConfig__CommittedIndex :
   ∀ l acks (c : quorum.JointConfig.t) voters_ref (voters : gmap w64 ()) I,
   {{{

@@ -478,3 +478,62 @@ cause gets one file and the four get one-line pointers, instead of the
 diagnosis being copied four times and going stale in three of them.
 
 Deleted when fixed; git remembers.
+
+## 2026-09-17 — array `len`/`cap`: fold the constant in Goose, and *also* add a guarded model rule
+
+Fixing the array blocker needed a choice about where `len` of an array comes
+from. Three options:
+
+1. **A model rule only** — add `FuncUnfold go.len [go.ArrayType n t]` and
+   leave Goose alone. This is what `bugs/goose-array-indexref-loads-its-operand.md`
+   proposed, and **it does not work.** Goose emitted
+   `FuncResolve go.len [T] #()` with *no operand applied*, so unfolding it
+   yields a lambda that nothing applies and the surrounding
+   `… ≥⟨go.int⟩ ![go.int] "n"` still compares against a closure. Rejected as
+   insufficient, not merely inelegant.
+
+2. **Goose emits the applied form, model rule discards the operand.** Works,
+   but forces every array `len` to *load the whole array*, so a proof needs
+   ownership of it — for `len(isLocalMsg)` on a package-level `[23]bool`,
+   ownership of a global. Go's `len` needs neither, and `into_val_typed_array`
+   (the array load lemma) is itself still `Admitted`, so this would have
+   traded one blocker for another. Rejected.
+
+3. **Goose folds the constant, and the model rule covers the rest.** Chosen.
+   Go's own rule is that `len`/`cap` of an array is a constant expression
+   unless the operand has channel receives or non-constant calls, and
+   `go/types` already decides that for us: it records a `*types.Signature`
+   for the builtin exactly when the call is *not* constant. So Goose branches
+   on the thing the typechecker already computed, and emits
+   `ctx.constantLiteral(s)` in the constant case. Every array `len` in the
+   etcd code is constant, so the model rule has no consumer there — it exists
+   for `len(f())` and so that the gap is actually closed rather than dodged.
+
+The rule is **guarded**, `if decide (0 ≤ n < 2^63) then #(W64 n) else
+AngelicExit #()`, matching `array_length_step` and `load_array` in the same
+file. Unguarded it would be a false statement about Go for array lengths no
+Go program can have. This is a trusted definition, so faithful-and-awkward
+beats total-and-wrong.
+
+The guard has a cost: `wp_auto` stops at the Gallina `if decide …`.
+Rather than make every call site `case_decide`, the discharge lives once in
+`new/golang/theory/array.v` as a `PureWp` whose side condition is
+`0 ≤ n < 2^63` — the `pure_wp_slice_len` pattern, and the first non-trivial
+`φ` in a `PureWp` here. `wp_pure` already runs `try done` on that side goal,
+and for the literal lengths Goose emits, `done` closes it.
+
+Two smaller calls inside this:
+
+- The rules are stated at `st ↓u go.ArrayType n elem_type`, not at the
+  literal `go.ArrayType`, so a **named** array type like
+  `quorum.JointConfig` is covered. `new/golang/defn/map.v` declares its
+  `FuncUnfold`s at the literal `go.MapType` and that is exactly why
+  `wp_ProgressMap_len` exists as a workaround; not repeating it.
+- `cap` is added next to `len` although nothing needs it, because the Go spec
+  gives arrays the same answer for both and the missing half would resurface
+  later as "stuck" with no hint as to why.
+
+For the `len`/`cap` builtin emission, the case that should be impossible —
+no signature *and* no constant value — is now `ctx.nope`, a loud translation
+failure, rather than falling back to the old broken output. A full
+re-translation of all five pinned repos never hits it.

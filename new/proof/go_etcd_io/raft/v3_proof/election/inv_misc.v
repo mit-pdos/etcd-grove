@@ -91,21 +91,15 @@ Proof. Admitted.
     [campaign] calls this on [&r.trk.Config.Voters], so the receiver is that
     field ref and not the tracker itself.
 
-    **In scope, and blocked on the *translation*, not on the proof**
-    (2026-09-16).  This was an [Axiom] until today.  It is core raft, so under
-    the scope rule it may not be assumed; it is now an [Admitted] [Lemma] with
-    the machine-checked prefix below banked.  What blocks it is not anything
-    about raft: it is a disagreement between what Goose emits for array
-    indexing and what the model gives a step to.
+    **In scope.  The translation defect that blocked this is fixed**
+    (2026-09-17); what is left is ordinary proof work.
 
-    [quorum.JointConfig] is [[2]MajorityConfig], i.e. an **array**
-    ([new/code/go_etcd_io/raft/v3/quorum.v:552]).  Goose translates the
-    element read [c[0]] inside [JointConfig.IDs] (quorum.v:82, and again at
-    :94 for [c[1]]) as
+    Until 2026-09-17 Goose emitted the element read [c[0]] inside
+    [JointConfig.IDs] as
 
         ![MajorityConfig] (IndexRef JointConfig (![JointConfig] "c", #(W64 0)))
 
-    -- it *loads* the operand and then asks [IndexRef] for a reference into
+    -- it *loaded* the operand and then asked [IndexRef] for a reference into
     the loaded **value**.  That is right for slices and wrong for arrays:
 
     - [index_ref_slice] ([new/golang/defn/slice.v:122]) takes [(#s, #i)] with
@@ -116,43 +110,35 @@ Proof. Admitted.
       ([src/goose_lang/lang.v:528]) and carries no address at all, so there is
       nothing to take a reference into.
 
-    So the translated body is **stuck** at that [IndexRef] and no Hoare triple
-    about it is provable.  Measured, not inferred -- three one-line probes,
-    each checked with [rocq compile -vok]:
+    So the body was **stuck** there and no Hoare triple about it was provable.
+    The fix was in Goose ([goose/goose.go], [exprAddr]'s [*ast.IndexExpr]
+    case): for an array operand take the array's address rather than loading
+    it.  The emitted code is now
 
-        (* steps: goal becomes  Φ #(array_index_ref map.t (sint.Z 0) l)  *)
-        Lemma probe_loc (l : loc) Φ :
-          ⊢ WP (IndexRef quorum.JointConfig (#l, #(W64 0)))%E {{ Φ }}.
-        Proof. iStartProof. wp_auto. Admitted.
+        ![MajorityConfig] (IndexRef JointConfig ("c", #(W64 0)))
 
-        (* does NOT step: [wp_auto] reports "Failed to progress" *)
-        Lemma probe_val (a : array.t loc 2) Φ :
-          ⊢ WP (IndexRef quorum.JointConfig (#a, #(W64 0)))%E {{ Φ }}.
-        Proof. iStartProof. wp_auto. Admitted.
+    ([new/code/go_etcd_io/raft/v3/quorum.v:82], and :94 for [c[1]]), and
+    [c_ptr] is exactly what the receiver's [GoAlloc JointConfig] produces, so
+    [index_ref_array] applies.  Measured: the [wp_auto] below now steps the
+    [IndexRef] to [#(array_index_ref map.t 0 c_ptr)] and stops at the *load*
+    of that location -- an ownership obligation, not a missing rule.
 
-        (* steps: goal becomes  WP match array.arr a !! 0 with ... end  *)
-        Lemma probe_index_val (a : array.t loc 2) Φ :
-          ⊢ WP (Index quorum.JointConfig (#a, #(W64 0)))%E {{ Φ }}.
-        Proof. iStartProof. wp_auto. Admitted.
+    **What is left.**  Split element 0 out of ["c" : c_ptr ↦ …Voters'] with
+    [array_acc] ([new/golang/theory/array.v]); [Hvoters_arr] says the element
+    is [voters_ref], so the load yields it.  Then a [wp_map_for_range] over
+    [voters_ref] (the [Hvoters_dom] conjunct of [own_tracker] gives
+    [dom voters = cfg]), then the same at index 1, where the element is
+    [map.nil] and the pure step [wp_map_nil_for_range]
+    ([new/golang/theory/map.v:305]) applies, then [return: m].  The statement
+    below is the right one; do not weaken it.
 
-    i.e. Goose emits the one combination of operator and operand that has no
-    rule.  Either of the other two would work, so the fix belongs in the Go
-    fork's Goose and not here: for an addressable array operand emit
-    [IndexRef T ("c", i)] (the address), or, since this occurrence is a plain
-    read, emit the value form [Index T (![T] "c", i)], for which
-    [index_array] ([new/golang/defn/array.v:54]) does have a rule.  With
-    [Hvoters_arr] in hand the value form reduces straight to [voters_ref].
+    [slices.Sort] is *not* involved -- that sort is in [campaign], not in
+    [IDs].
 
-    Nothing else here is missing.  Once the operand steps, the remainder is
-    a [wp_map_for_range] over [voters_ref] (the [Hvoters_dom] conjunct of
-    [own_tracker] gives [dom voters = cfg]) followed by the pure step
-    [wp_map_nil_for_range] ([new/golang/theory/map.v:305]) for the nil second
-    component of the joint config, then [return: m].  The statement below is
-    the right one; do not weaken it.
-
-    The same defect is why [wp_JointConfig__CommittedIndex]
-    ([v3_proof/readonly.v:718]) is an [Axiom]: [JointConfig.CommittedIndex]
-    indexes the same array the same way (quorum.v:132,136). *)
+    [wp_JointConfig__CommittedIndex] ([v3_proof/readonly.v:718]) is still an
+    [Axiom] for what *was* this same defect: [JointConfig.CommittedIndex]
+    indexes the same array the same way (quorum.v:132,136).  It is now
+    unblocked too and should be discharged. *)
 Lemma wp_campaign_peer_ids : ∀ (trk : loc) tv votes,
   {{{ is_pkg_init quorum ∗ trk ↦ tv ∗ own_tracker cfg tv votes }}}
     (trk.[tracker.ProgressTracker.t, "Config"].[tracker.Config.t, "Voters"])
@@ -185,19 +171,19 @@ Proof using Type.
   (* [m := map[uint64]struct{}{}] *)
   wp_apply wp_map_make1. iIntros "%mref Hmref".
   wp_auto.
-  (* STUCK, and this is the real stuck point.  The remaining program is
+  (* The array index steps now.  The [wp_auto] above reduced
+     [IndexRef quorum.JointConfig (# c_ptr, # (W64 0))] to
+     [# (array_index_ref map.t 0 c_ptr)] and stopped at the *load* of it:
 
        let: "$range" := ![quorum.MajorityConfig]
-                          (IndexRef quorum.JointConfig
-                             (# tv.(tracker.ProgressTracker.Config')
-                                  .(tracker.Config.Voters'), # (W64 0))%V) in
+                          (# (array_index_ref map.t 0 c_ptr)) in
        (let: "id" := GoAlloc go.uint64 … in map.for_range … ) ;;;
-       (the same at index 1) ;;;
+       (the same at index 1, IndexRef not yet stepped) ;;;
        return: ![go.MapType go.uint64 (go.StructType [])] (# m_ptr)
 
-     and a further [wp_auto] fails with "Failed to progress".  See the comment
-     above the statement: the operand of [IndexRef] is an array *value* and
-     the model only gives [IndexRef] a step on an array *location*. *)
+     That load is an ownership obligation, not a missing rule: use [array_acc]
+     on ["c"] to peel element 0 off, with [Hvoters_arr] for the lookup side
+     condition.  See the comment above the statement for the rest. *)
 Admitted.
 
 (** *** The parts of the raft struct election neither reads nor writes:

@@ -1133,3 +1133,198 @@ not after.** Memory discipline held: `-j1`, one build at a time, checking
 
 `wp_raft__promotable` and `wp_raft__hasUnappliedConfChanges` — both were
 blocked on `own_raftLog` and both are now unblocked. Cheapest wins left.
+
+## 2026-09-17 — the array-indexing blocker is fixed, in Goose and in the model
+
+Branch `worktree-goose-array-index-fix`, off `main` at `0fb5a6dd9`.
+
+`bugs/goose-array-indexref-loads-its-operand.md` is deleted: the defect it
+described is fixed. It blocked four lemmas — `wp_campaign_peer_ids`,
+`wp_ProgressTracker__TallyVotes`, `wp_ProgressTracker__Visit` and the
+`wp_JointConfig__CommittedIndex` axiom in `readonly.v` — and it turned out to
+be **three** separate Goose bugs plus one genuinely missing model rule, not
+the two the bug file had diagnosed.
+
+### What was actually wrong
+
+All three Goose bugs are in `goose/goose.go`, and all three come from array
+operations being treated like slice operations.
+
+1. **`exprAddr`, the `*ast.IndexExpr` case.** It used `ctx.expr(e.X)` — a
+   *load* — as the operand of `IndexRef`, for every index target. That is
+   right for a slice, because a `slice.t` value carries `slice.ptr`, so an
+   address can be recovered from it. It is wrong for an array: `array.t` is
+   `array.mk n (list V)` and carries no address at all, so `IndexRef` on a
+   loaded array value has nothing to take a reference into and no rule can be
+   given for it. Fixed by dispatching on `targetTy.Underlying()` and using
+   `ctx.exprAddr(e.X)` for arrays.
+
+2. **`sliceExpr`.** Same shape: `$s` was bound to the loaded array. Also
+   *semantically* wrong independently of the model — in Go `a[:n]` aliases
+   `a`, and a slice of a copy does not. Fixed the same way. The model's own
+   `composite_literal_slice` (`new/golang/defn/slice.v:167`) already slices an
+   array by address with a literal high index, which is exactly the shape
+   Goose now emits, so this was the intended shape all along.
+
+3. **`maybeHandleSpecialBuiltin`, the `len`/`cap` case — the one the bug file
+   missed.** It emitted `FuncResolve go.len [T] #()` *with no operand
+   applied* whenever `go/types` did not record a `*types.Signature` for the
+   builtin. `go/types` omits the signature exactly when the call is
+   constant-folded, which for an array operand is always. So the emitted
+   expression was a **function value used as an integer**:
+
+       (FuncResolve go.len [go.ArrayType 7 go.uint64] #()) ≥⟨go.int⟩ ![go.int] "n"
+
+   This matters for the record: the bug file's proposed fix — add a
+   `FuncUnfold go.len [go.ArrayType n t]` instance — **would not have fixed
+   it on its own.** Unfolding `go.len` there yields a lambda that nothing
+   applies, so the comparison would still have been against a closure. Goose
+   now emits the constant (`#(W64 7)`), which is also what Go's own semantics
+   say: `len` of an array is a constant expression.
+
+   Emitting the constant is worth more than a model rule for a second reason:
+   the applied form would have forced every array `len` to *load the whole
+   array*, so a proof would need ownership of it — and for `len(isLocalMsg)`
+   on a package-level `[23]bool`, ownership of a global. Go's `len` needs
+   neither.
+
+4. **The missing model rule, which is still needed.** There was no
+   `FuncUnfold go.len [go.ArrayType n t]` anywhere under `new/golang/`
+   (`go.len_underlying` cannot help: an array type is its own underlying
+   type). Goose's constant folding covers every site in the etcd code, but
+   not the non-constant case (`len(f())`), so the rule is added.
+
+### The TCB change, and how it is guarded
+
+`new/golang/defn/array.v` gains `len_array` and `cap_array`:
+
+    #[global] len_array n elem_type `{!st ↓u go.ArrayType n elem_type} ::
+      FuncUnfold go.len [st]
+      (λ: <>, if decide (0 ≤ n < 2^63) then #(W64 n) else AngelicExit #())%V;
+
+Three deliberate choices:
+
+- **Stated at `st ↓u go.ArrayType n elem_type`, not at the literal
+  `go.ArrayType`.** `quorum.JointConfig` is a *named* array type, and the
+  literal form would not have covered it. This is the mistake `new/golang/defn/map.v`
+  makes — its `FuncUnfold`s are at the literal `go.MapType`, which is why
+  `wp_ProgressMap_len` in `election/inv_tracker.v` exists as a workaround.
+- **Guarded with `AngelicExit`**, matching `array_length_step` and
+  `load_array` in the same file. Unguarded, the rule would claim
+  `W64 n = n` for array lengths no Go program can have; guarded, it is a
+  faithful statement about Go. The guard is the reason a `PureWp` instance
+  was needed as well — see below.
+- **`λ: <>` discards the operand.** The operand is still evaluated, which is
+  what Go does in the non-constant case; in the constant case Go does not
+  evaluate it, but Goose folds those, so this rule never sees them.
+- `cap` is added alongside `len` because the Go spec gives arrays the same
+  answer for both, and leaving it out would leave a hole that shows up later
+  as "stuck".
+
+The guard means `wp_auto` alone stops at the Gallina `if decide …`, so
+`new/golang/theory/array.v` gets matching `PureWp` instances
+(`pure_wp_array_len`, `pure_wp_array_cap`) whose side condition
+`0 ≤ n < 2^63` is discharged by the `try done` that `wp_pure` already runs on
+a `PureWp` side condition. That is the `pure_wp_slice_len` pattern
+(`new/golang/theory/slice.v:335`), with a non-trivial `φ` for the first time
+in this development. `array.v` now imports `auto` for `wp_auto_lc`; `auto`
+does not reach `array`, so this is not a cycle.
+
+### A circular probe, and what saved it
+
+The first version of the `PureWp` proof was `pure_wp_start. by iFrame.`, which
+**passed in a scratch file and failed inside `array.v`**. The scratch file
+imported the already-compiled `array.vos`, so `pure_wp_start`'s `wp_pures`
+used *the very instance being restated* to discharge it. Inside `array.v` the
+instance does not exist yet and the goal is untouched. The real proof has to
+go through `func_unfold` and `decide_True`.
+
+**A probe that restates the lemma it is checking is worthless if the lemma is
+already compiled.** The probes that meant something were the end-to-end ones
+— `WP (FuncResolve go.len [go.ArrayType 7 go.uint64] #() #())` against a
+concrete `Φ` — because they can only be closed by the instance doing real
+work. Four of those are `Qed`: array `len`, array `cap`, `IndexRef` on an
+address, `Slice` on an address, each with no stray side goal.
+
+### Evidence that the fix is load-bearing
+
+- **The old emitted form is genuinely stuck.** `wp_auto` on
+  `IndexRef (go.ArrayType 7 go.uint64) (#a, #(W64 0))` with `a : array.t w64 7`
+  leaves the goal **byte-for-byte unchanged**. Worth noting against the old
+  bug file, which said `wp_auto` "fails with Failed to progress": it does not
+  fail, it silently makes no progress. `assert_fails (wp_auto)` therefore
+  does *not* detect this — it reports success. Check the goal, not the exit
+  status.
+- **The real proof gets past it.** In `wp_campaign_peer_ids` the banked
+  prefix's last `wp_auto` now steps
+  `IndexRef quorum.JointConfig (#c_ptr, #(W64 0))` to
+  `#(array_index_ref map.t 0 c_ptr)` and stops at the *load* of that
+  location. That is an ownership obligation (`array_acc` on `c`, with
+  `Hvoters_arr` for the lookup), not a missing rule.
+
+### Regeneration
+
+Full re-translation, the same invocation `etc/ci-goose-check.py` uses, against
+all five pinned Go repos. Six generated files changed and **every changed
+line is an array site**: `quorum.v`, `tracker.v`, `v3.v`, `math/bits.v`, and
+the two goose testdata files. Zero `IndexRef`/`Slice` operands of the form
+`![go.ArrayType …]` remain anywhere in `new/code/`. `new/generatedproof/` is
+untouched.
+
+`goose/testdata/examples/unittest/array.go` already exercises all four cases
+(element read, `&x[1]` as a pointer receiver, `len`/`cap` in a loop bound,
+`x[:]`), so it is the regression harness — no new test data was needed.
+
+Building Goose needs a Go toolchain, which this box did not have; `go1.25.1`
+unpacked into the job's scratch directory was enough, and `go build` then
+fetched `go1.26.0` itself per `go.mod`.
+
+### A second, separate defect, now measured
+
+The old bug file flagged `len` of a **nil map** as a second obstacle on
+`TallyVotes` and recorded it as *not probed*. It is now probed and it is
+stuck: `wp_auto` leaves
+`#(functions go.len [go.MapType go.uint64 go.bool]) (#map.nil)` untouched.
+`go.len_map` unfolds to `InternalMapLength (Read "m")`, and at `map.nil` that
+is a read of the null location, while Go says `len(nil map) = 0`. There is no
+nil case for `go.len` the way there is one for ranging
+(`wp_map_nil_for_range`), and no `PureWp` for map `len` at all. Filed as
+`bugs/golang-len-of-nil-map-is-stuck.md`. Not fixed here — it is a different
+defect and a separate TCB decision.
+
+### Re-verification
+
+A **TCB change adds global instances, so the existing proofs have to be
+re-checked.** Done from a clean slate: every `.vos`/`.vok` deleted, the
+closure rebuilt (248 files, rc=0), then `-vok` over every file with proofs in
+it — `new/golang/defn/*.v`, `new/golang/theory/*.v`, the whole
+`v3_proof/election/`, `v3_proof/*.v` and `v3_proof/../raft/*.v`.
+
+**101 files, 0 FAIL, 0 ERRORS.** Including the three that carry the most
+regression risk from the new instances — `new/golang/theory/slice.v`,
+`theory/map.v` and `theory/array.v`, where `pure_wp_array_len` is now a
+candidate alongside `pure_wp_slice_len` for every `go.len` redex — and the
+single big `proof_raft__Step.v` (this branch is off `main`, so it predates the
+perf branch's nine-way split).
+
+Resolution order is not a problem: a slice `len` tries `pure_wp_array_len`
+first, fails `go.SliceType t ↓u go.ArrayType ?n ?e` after one instance
+resolution, and backtracks. Constant cost per redex, not linear in the
+program text.
+
+The **cleanup pass on `goose.go`** (hoisting `ctx.expr(e.X)` inside the
+branches instead of computing and discarding it — `Ctx` carries mutable state
+like `usesDefer` and `out`, so a discarded `ctx.expr` is a latent hazard) was
+checked by re-translating into a scratch directory and diffing: all six
+affected files **byte-identical** to what is committed. So `check-goose` will
+pass.
+
+### Where to pick up
+
+`wp_campaign_peer_ids` is the cheapest remaining win on the election path and
+is now ordinary proof work: `array_acc` on `c` for element 0, then
+`wp_map_for_range` over `voters_ref`, then `wp_map_nil_for_range` at index 1,
+then `return: m`. `wp_ProgressTracker__Visit` and the
+`wp_JointConfig__CommittedIndex` axiom are unblocked the same way.
+`TallyVotes` needs the nil-map `len` gap closed first, and separately its
+`VoteWon` conjunct repaired.

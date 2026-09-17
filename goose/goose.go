@@ -358,13 +358,21 @@ func (ctx *Ctx) maybeHandleSpecialBuiltin(s *ast.CallExpr) (glang.Expr, bool) {
 		}
 		return glang.NewCallExpr(glang.VerbatimExpr("GoAlloc"), ty, e), true
 	case "len", "cap":
+		// go/types gives the builtin a signature type exactly when the call is
+		// not constant-folded. When it does, fall through to the ordinary call
+		// path, which evaluates the operand and applies it.
 		if _, ok := ctx.typeOf(s.Fun).(*types.Signature); ok {
 			return nil, false
 		}
-		name := s.Fun.(*ast.Ident).Name
-		return glang.NewCallExpr(glang.VerbatimExpr("FuncResolve"),
-			glang.VerbatimExpr("go."+name), glang.ListExpr{ctx.glangType(s, ctx.typeOf(s.Args[0]))},
-			glang.Tt), true
+		// Otherwise the call is a constant expression — len/cap of an array or
+		// pointer to array, or len of a constant string — and go/types has
+		// already computed its value. Emit that value. Resolving go.len here
+		// would produce a function with no operand to apply it to, and an
+		// array's length is not stored anywhere to be read back.
+		if ctx.info.Types[s].Value == nil {
+			ctx.nope(s, "%s builtin is neither constant nor of signature type", f.Name)
+		}
+		return ctx.constantLiteral(s), true
 	}
 
 	return nil, false
@@ -693,12 +701,26 @@ func (ctx *Ctx) binExpr(e *ast.BinaryExpr) (expr glang.Expr) {
 }
 
 func (ctx *Ctx) sliceExpr(e *ast.SliceExpr) glang.Expr {
-	ty := ctx.glangType(e, ctx.typeOf(e.X))
+	xT := ctx.typeOf(e.X)
+	ty := ctx.glangType(e, xT)
+	arrayTy, isArray := xT.Underlying().(*types.Array)
+
 	var lowExpr glang.Expr = glang.Int64Val{Value: glang.IntToZ(0)}
-	var highExpr glang.Expr = glang.NewCallExpr(
-		glang.VerbatimExpr("FuncResolve"),
-		glang.VerbatimExpr("go.len"), glang.ListExpr{ty}, glang.Tt, ctx.expr(e.X))
-	x := ctx.expr(e.X)
+	var highExpr glang.Expr
+	var x glang.Expr
+	// Slicing an array requires the array to be addressable, and the result
+	// aliases it, so the operand must be the array's address rather than a
+	// loaded copy. len of an array is its constant length, so the default
+	// high index needs no load either.
+	if isArray {
+		x = ctx.exprAddr(e.X)
+		highExpr = glang.Int64Val{Value: glang.IntToZ(arrayTy.Len())}
+	} else {
+		x = ctx.expr(e.X)
+		highExpr = glang.NewCallExpr(
+			glang.VerbatimExpr("FuncResolve"),
+			glang.VerbatimExpr("go.len"), glang.ListExpr{ty}, glang.Tt, ctx.expr(e.X))
+	}
 
 	if e.Low != nil {
 		lowExpr = ctx.expr(e.Low)
@@ -1460,9 +1482,20 @@ func (ctx *Ctx) exprAddr(e ast.Expr) glang.Expr {
 		}
 	case *ast.IndexExpr:
 		targetTy := ctx.typeOf(e.X)
+		// A slice value carries the pointer to its backing array, so loading
+		// the operand is what IndexRef wants. An array value does not carry an
+		// address at all: its elements live in the array itself, so the
+		// reference has to be taken from the array's own address. Loading it
+		// first would hand IndexRef a copy.
+		var base glang.Expr
+		if _, ok := targetTy.Underlying().(*types.Array); ok {
+			base = ctx.exprAddr(e.X)
+		} else {
+			base = ctx.expr(e.X)
+		}
 		return glang.NewCallExpr(glang.VerbatimExpr("IndexRef"),
 			ctx.glangType(e, targetTy),
-			glang.TupleExpr{ctx.expr(e.X),
+			glang.TupleExpr{base,
 				ctx.exprIntoType(e.Index, ctx.getIndexType(e.Index, targetTy))})
 	case *ast.StarExpr:
 		return ctx.expr(e.X)

@@ -1,5 +1,8 @@
 From New.golang.defn Require Export array.
 From New.golang.theory Require Export predeclared.
+(* for [wp_auto_lc] in the [len]/[cap] instances below; [auto] does not depend
+   on this file, so this is not a cycle. *)
+From New.golang.theory Require Import auto.
 
 
 Section lemmas.
@@ -153,3 +156,35 @@ Proof.
 Qed.
 
 End lemmas.
+
+Section wps.
+Context `{hG: heapGS Σ, !ffi_semantics _ _}
+  {sem_fn : GoSemanticsFunctions} {pre_sem : go.PreSemantics}.
+Local Set Default Proof Using "All".
+
+(* [len] and [cap] of an array are its length, which lives in the type rather
+   than next to the elements, so neither one needs to own the array. The side
+   condition excludes array types that no Go program can have (see
+   [go.len_array]); for the literal lengths Goose emits it is discharged by the
+   [try done] that [wp_pure] runs on a [PureWp] side condition.
+
+   Goose folds a constant [len]/[cap] itself, so these fire only when the
+   operand is not constant, e.g. [len(f())]. The operand is evaluated and
+   discarded, which is what Go does in that case. *)
+Global Instance pure_wp_array_len n elem `{!st ↓u go.ArrayType n elem} (v : val) :
+  PureWp (0 ≤ n < 2^63) (#(functions go.len [st]) v) #(W64 n).
+Proof.
+  pure_wp_start. rewrite func_unfold. wp_auto_lc 1.
+  rewrite -> decide_True by assumption.
+  wp_pures. by iApply "HΦ".
+Qed.
+
+Global Instance pure_wp_array_cap n elem `{!st ↓u go.ArrayType n elem} (v : val) :
+  PureWp (0 ≤ n < 2^63) (#(functions go.cap [st]) v) #(W64 n).
+Proof.
+  pure_wp_start. rewrite func_unfold. wp_auto_lc 1.
+  rewrite -> decide_True by assumption.
+  wp_pures. by iApply "HΦ".
+Qed.
+
+End wps.

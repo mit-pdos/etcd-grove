@@ -2785,7 +2785,7 @@ Definition lockedRand__Intnⁱᵐᵖˡ {ext : ffi_syntax} {go_gctx : GoGlobalCon
 Definition StateType__Stringⁱᵐᵖˡ {ext : ffi_syntax} {go_gctx : GoGlobalContext} : val :=
   λ: "st" <>,
     exception_do (let: "st" := (GoAlloc StateType "st") in
-    return: (![go.string] (IndexRef (go.ArrayType 4 go.string) (![go.ArrayType 4 go.string] (GlobalVarAddr stmap #()), Convert StateType go.int (![StateType] "st"))))).
+    return: (![go.string] (IndexRef (go.ArrayType 4 go.string) (GlobalVarAddr stmap #(), Convert StateType go.int (![StateType] "st"))))).
 
 (* go: raft.go:291:18 *)
 Definition Config__validateⁱᵐᵖˡ {ext : ffi_syntax} {go_gctx : GoGlobalContext} : val :=
@@ -4266,7 +4266,7 @@ Definition stepLeaderⁱᵐᵖˡ {ext : ffi_syntax} {go_gctx : GoGlobalContext} 
               let: "$r0" := ((![go.uint64] (StructFieldRef raft "pendingConfIndex"%go (![go.PointerType raft] "r"))) >⟨go.uint64⟩ (![go.uint64] (StructFieldRef raftLog "applied"%go (![go.PointerType raftLog] (StructFieldRef raft "raftLog"%go (![go.PointerType raft] "r")))))) in
               do:  ("alreadyPending" <-[go.bool] "$r0");;;
               let: "alreadyJoint" := (GoAlloc go.bool (GoZeroVal go.bool #())) in
-              let: "$r0" := ((let: "$a0" := (![quorum.MajorityConfig] (IndexRef quorum.JointConfig (![quorum.JointConfig] (StructFieldRef tracker.Config "Voters"%go (StructFieldRef tracker.ProgressTracker "Config"%go (StructFieldRef raft "trk"%go (![go.PointerType raft] "r")))), #(W64 1)))) in
+              let: "$r0" := ((let: "$a0" := (![quorum.MajorityConfig] (IndexRef quorum.JointConfig (StructFieldRef tracker.Config "Voters"%go (StructFieldRef tracker.ProgressTracker "Config"%go (StructFieldRef raft "trk"%go (![go.PointerType raft] "r"))), #(W64 1)))) in
               (FuncResolve go.len [quorum.MajorityConfig] #()) "$a0") >⟨go.int⟩ #(W64 0)) in
               do:  ("alreadyJoint" <-[go.bool] "$r0");;;
               let: "wantsLeaveJoint" := (GoAlloc go.bool (GoZeroVal go.bool #())) in
@@ -6993,8 +6993,8 @@ Definition IsLocalMsgⁱᵐᵖˡ {ext : ffi_syntax} {go_gctx : GoGlobalContext} 
   λ: "msgt",
     exception_do (let: "msgt" := (GoAlloc raftpb.MessageType "msgt") in
     return: (let: "$a0" := (![raftpb.MessageType] "msgt") in
-     let: "$a1" := (let: "$s" := (![go.ArrayType 23 go.bool] (GlobalVarAddr isLocalMsg #())) in
-     Slice (go.ArrayType 23 go.bool) ("$s", #(W64 0), FuncResolve go.len [go.ArrayType 23 go.bool] #() (![go.ArrayType 23 go.bool] (GlobalVarAddr isLocalMsg #())))) in
+     let: "$a1" := (let: "$s" := (GlobalVarAddr isLocalMsg #()) in
+     Slice (go.ArrayType 23 go.bool) ("$s", #(W64 0), #(W64 23))) in
      (FuncResolve isMsgInArray [] #()) "$a0" "$a1")).
 
 (* go: util.go:61:6 *)
@@ -7002,8 +7002,8 @@ Definition IsResponseMsgⁱᵐᵖˡ {ext : ffi_syntax} {go_gctx : GoGlobalContex
   λ: "msgt",
     exception_do (let: "msgt" := (GoAlloc raftpb.MessageType "msgt") in
     return: (let: "$a0" := (![raftpb.MessageType] "msgt") in
-     let: "$a1" := (let: "$s" := (![go.ArrayType 23 go.bool] (GlobalVarAddr isResponseMsg #())) in
-     Slice (go.ArrayType 23 go.bool) ("$s", #(W64 0), FuncResolve go.len [go.ArrayType 23 go.bool] #() (![go.ArrayType 23 go.bool] (GlobalVarAddr isResponseMsg #())))) in
+     let: "$a1" := (let: "$s" := (GlobalVarAddr isResponseMsg #()) in
+     Slice (go.ArrayType 23 go.bool) ("$s", #(W64 0), #(W64 23))) in
      (FuncResolve isMsgInArray [] #()) "$a0" "$a1")).
 
 (* go: util.go:65:6 *)

@@ -354,38 +354,30 @@ Qed.
     the program is parked on the function's last statement,
     [p.Config.Voters.VoteResult(p.Votes)].
 
-    What blocks it is the **same defect** that blocks [wp_campaign_peer_ids]
-    ([inv_misc.v], which has the full write-up and the three probes).
+    What *used* to block it is the same array-indexing defect that blocked
+    [wp_campaign_peer_ids] ([inv_misc.v], which has the full write-up).
     [quorum.JointConfig] is [[2]MajorityConfig], an *array*, and Goose
-    translates the element reads [c[0]] / [c[1]] inside
-    [JointConfig.VoteResult] ([new/code/.../quorum.v:154,158]) as
+    translated the element reads [c[0]] / [c[1]] inside
+    [JointConfig.VoteResult] as [IndexRef] applied to the array *value*,
+    where [index_ref_array] only steps on an array *location*.  **Fixed
+    2026-09-17**: the emitted code is now
 
         MethodResolve (go.PointerType MajorityConfig) "VoteResult"
-          (IndexRef JointConfig (![JointConfig] "c", #(W64 0)))
+          (IndexRef JointConfig ("c", #(W64 0)))
 
-    -- [IndexRef] applied to the array *value*, where [index_ref_array]
-    ([new/golang/defn/array.v:50]) only steps on an array *location*.
-    Confirmed here too, by stepping [JointConfig.VoteResult] on its own:
+    ([new/code/.../quorum.v:154,158]).
 
-        Lemma probe (l : loc) (jc : quorum.JointConfig.t) (vref : loc) votes :
-          {{{ is_pkg_init quorum ∗ l ↦ jc ∗ vref ↦$ votes }}}
-            l @! (go.PointerType quorum.JointConfig) @! "VoteResult" #vref
-          {{{ (r : w8), RET #r; True }}}.
-        Proof.
-          wp_start as "(Hl & Hv)". wp_auto.
-          wp_method_call. wp_call.
-          rewrite /quorum.JointConfig__VoteResultⁱᵐᵖˡ. wp_auto.
-          (* parks with [IndexRef quorum.JointConfig (# jc, # (W64 0))] *)
-        Admitted.
-
-    There is a **second** obstacle on the same statement, which the array fix
-    alone would not clear: the second component of the joint config is
-    [map.nil] ([Hvoters_arr]), and [MajorityConfig.VoteResult] begins with
-    [len(c) == 0].  [len] of a nil map unfolds to [InternalMapLength (Read
-    #map.nil)] -- a read of the null location -- and there is no nil-map
-    instance for [go.len] the way there is one for ranging
-    ([wp_map_nil_for_range], [new/golang/theory/map.v:305]).  Not probed; flagged
-    so the next attempt measures it before assuming it works.
+    A **second** obstacle remains, and the array fix does not clear it: the
+    second component of the joint config is [map.nil] ([Hvoters_arr]), and
+    [MajorityConfig.VoteResult] begins with [len(c) == 0].  [go.len_map]
+    unfolds to [InternalMapLength (Read "m")] -- at [map.nil] a read of the
+    null location -- and there is no nil-map case for [go.len] the way there
+    is one for ranging ([wp_map_nil_for_range],
+    [new/golang/theory/map.v:305]).  **Now measured** (2026-09-17), where the
+    old note said "not probed": [wp_auto] leaves
+    [#(functions go.len [go.MapType go.uint64 go.bool]) (#map.nil)]
+    completely untouched, so it is stuck rather than awkward.  Filed in
+    bugs/golang-len-of-nil-map-is-stuck.md.
 
     **The [VoteWon] conjunct is false when [cfg = ∅], and that is not fixed
     by unblocking the translation.**  [MajorityConfig.VoteResult] returns
@@ -612,23 +604,28 @@ Definition visit_closure (trk : loc) (tv : tracker.ProgressTracker.t)
     closure applies the continuation wand to read [r.trk.MaxInflight] and
     re-splits before returning.
 
-    **The statement is now true but still unprovable**, for two reasons that
-    have nothing to do with raft.  Both are filed in
-    bugs/goose-array-indexref-loads-its-operand.md:
+    **The statement is now true, and the two tooling obstacles that blocked
+    it are fixed** (2026-09-17).  Both were unrelated to raft:
 
-    1. [var sl [7]uint64; if len(sl) >= n] asks for [len] of an *array*, and
-       there is **no** [FuncUnfold go.len [go.ArrayType n t]] instance
-       anywhere under [new/golang/].  [go.len_underlying] does not help: an
-       array type is already its own underlying type.  [wp_auto] parks on a
-       bare [#(functions go.len [go.ArrayType 7 go.uint64])].  (Contrast
-       maps, where the instance exists but only at the literal [go.MapType];
-       [wp_ProgressMap_len] above is that workaround.)
-    2. [ids = sl[:n]] is translated as [Slice] applied to the array *value*
-       ([tracker.v:816]), where [slice_array_step]
-       ([new/golang/defn/array.v:80]) steps only on an array *location*.
+    1. [var sl [7]uint64; if len(sl) >= n] asks for [len] of an *array*.
+       There was **no** [FuncUnfold go.len [go.ArrayType n t]] instance
+       anywhere under [new/golang/] ([go.len_underlying] does not help: an
+       array type is already its own underlying type), *and* Goose emitted
+       [FuncResolve go.len [go.ArrayType 7 go.uint64] #()] with no operand
+       applied -- a function value used as an integer.  Goose now folds the
+       constant, so the code reads [#(W64 7) ≥⟨go.int⟩ ![go.int] "n"]
+       ([tracker.v:814]), and [go.len_array] / [pure_wp_array_len] cover the
+       non-constant case.
+    2. [ids = sl[:n]] was translated as [Slice] applied to the array *value*,
+       where [slice_array_step] ([new/golang/defn/array.v]) steps only on an
+       array *location*.  Goose now passes the address: [let: "$s" := "sl" in
+       Slice (go.ArrayType 7 go.uint64) ("$s", #(W64 0), ![go.int] "n")]
+       ([tracker.v:816-817]).  This was also a *semantic* fix independent of
+       the model -- in Go [sl[:n]] aliases [sl], and a slice of a copy does
+       not.
 
-    The [else] branch ([make([]uint64, n)], taken when [size cfg > 7]) is
-    fine; only the fast path is stuck.
+    The [else] branch ([make([]uint64, n)], taken when [size cfg > 7]) was
+    always fine.
 
     Nothing about the *proof* is hard once the code steps: a
     [wp_map_for_range] filling [ids] backwards from [n-1], [wp_slices_Sort]
@@ -642,15 +639,12 @@ Lemma wp_ProgressTracker__Visit (trk : loc) tv votes (f : func.t) (I : iProp Σ)
     trk @! (go.PointerType tracker.ProgressTracker) @! "Visit" #f
   {{{ RET #(); trk ↦ tv ∗ own_tracker tv votes ∗ I }}}.
 Proof.
-  (* Machine-checked as far as it goes.  With [trk ↦ tv] in hand the receiver
-     alloc, the [p.Progress] load and the [len] call's argument all step --
-     that is the part the old precondition could not reach at all.  It parks
-     on [len] of the [[7]uint64] array, for which no instance exists; see (1)
-     in the note above. *)
+  (* Machine-checked as far as it goes.  Both obstacles named in the note
+     above are gone, so a [wp_auto] after the [len] call now gets through
+     [len(sl) >= n] and, on the fast path, through [ids = sl[:n]]; what is
+     left is the proof itself, sketched at the end of the note. *)
   wp_start as "(Htrk & Hown & HI & #Hf)". iNamed "Hown". wp_auto.
-  (* [n := len(p.Progress)].  No [wp_auto] after this: the next statement is
-     [len] of the [[7]uint64] array and it has no instance, so [wp_auto]
-     fails with "Failed to progress" rather than parking. *)
+  (* [n := len(p.Progress)] *)
   wp_apply (wp_ProgressMap_len with "[$Hprs]") as "Hprs".
 Admitted.
 

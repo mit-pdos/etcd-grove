@@ -55,11 +55,11 @@ Definition _VoteResult_index {ext : ffi_syntax} {go_gctx : GoGlobalContext} : go
 Definition JointConfig__Stringⁱᵐᵖˡ {ext : ffi_syntax} {go_gctx : GoGlobalContext} : val :=
   λ: "c" <>,
     exception_do (let: "c" := (GoAlloc JointConfig "c") in
-    (if: Convert go.untyped_bool go.bool ((let: "$a0" := (![MajorityConfig] (IndexRef JointConfig (![JointConfig] "c", #(W64 1)))) in
+    (if: Convert go.untyped_bool go.bool ((let: "$a0" := (![MajorityConfig] (IndexRef JointConfig ("c", #(W64 1)))) in
     (FuncResolve go.len [MajorityConfig] #()) "$a0") >⟨go.int⟩ #(W64 0))
-    then return: ((((MethodResolve (go.PointerType MajorityConfig) "String"%go (IndexRef JointConfig (![JointConfig] "c", #(W64 0)))) #()) +⟨go.string⟩ #"&&"%go) +⟨go.string⟩ ((MethodResolve (go.PointerType MajorityConfig) "String"%go (IndexRef JointConfig (![JointConfig] "c", #(W64 1)))) #()))
+    then return: ((((MethodResolve (go.PointerType MajorityConfig) "String"%go (IndexRef JointConfig ("c", #(W64 0)))) #()) +⟨go.string⟩ #"&&"%go) +⟨go.string⟩ ((MethodResolve (go.PointerType MajorityConfig) "String"%go (IndexRef JointConfig ("c", #(W64 1)))) #()))
     else do:  #());;;
-    return: ((MethodResolve (go.PointerType MajorityConfig) "String"%go (IndexRef JointConfig (![JointConfig] "c", #(W64 0)))) #())).
+    return: ((MethodResolve (go.PointerType MajorityConfig) "String"%go (IndexRef JointConfig ("c", #(W64 0)))) #())).
 
 (* IDs returns a newly initialized map representing the set of voters present
    in the joint configuration.
@@ -79,7 +79,7 @@ Definition JointConfig__IDsⁱᵐᵖˡ {ext : ffi_syntax} {go_gctx : GoGlobalCon
     do:  ("m" <-[go.MapType go.uint64 (go.StructType [
 
     ])] "$r0");;;
-    let: "$range" := (![MajorityConfig] (IndexRef JointConfig (![JointConfig] "c", #(W64 0)))) in
+    let: "$range" := (![MajorityConfig] (IndexRef JointConfig ("c", #(W64 0)))) in
     (let: "id" := (GoAlloc go.uint64 (GoZeroVal go.uint64 #())) in
     map.for_range go.uint64 (go.StructType [
 
@@ -91,7 +91,7 @@ Definition JointConfig__IDsⁱᵐᵖˡ {ext : ffi_syntax} {go_gctx : GoGlobalCon
       do:  (map.insert go.uint64 (![go.MapType go.uint64 (go.StructType [
 
       ])] "m") (![go.uint64] "id") "$r0")));;;
-    let: "$range" := (![MajorityConfig] (IndexRef JointConfig (![JointConfig] "c", #(W64 1)))) in
+    let: "$range" := (![MajorityConfig] (IndexRef JointConfig ("c", #(W64 1)))) in
     (let: "id" := (GoAlloc go.uint64 (GoZeroVal go.uint64 #())) in
     map.for_range go.uint64 (go.StructType [
 
@@ -129,11 +129,11 @@ Definition JointConfig__CommittedIndexⁱᵐᵖˡ {ext : ffi_syntax} {go_gctx : 
     let: "l" := (GoAlloc AckedIndexer "l") in
     let: "idx0" := (GoAlloc Index' (GoZeroVal Index' #())) in
     let: "$r0" := (let: "$a0" := (![AckedIndexer] "l") in
-    (MethodResolve (go.PointerType MajorityConfig) "CommittedIndex"%go (IndexRef JointConfig (![JointConfig] "c", #(W64 0)))) "$a0") in
+    (MethodResolve (go.PointerType MajorityConfig) "CommittedIndex"%go (IndexRef JointConfig ("c", #(W64 0)))) "$a0") in
     do:  ("idx0" <-[Index'] "$r0");;;
     let: "idx1" := (GoAlloc Index' (GoZeroVal Index' #())) in
     let: "$r0" := (let: "$a0" := (![AckedIndexer] "l") in
-    (MethodResolve (go.PointerType MajorityConfig) "CommittedIndex"%go (IndexRef JointConfig (![JointConfig] "c", #(W64 1)))) "$a0") in
+    (MethodResolve (go.PointerType MajorityConfig) "CommittedIndex"%go (IndexRef JointConfig ("c", #(W64 1)))) "$a0") in
     do:  ("idx1" <-[Index'] "$r0");;;
     (if: Convert go.untyped_bool go.bool ((![Index'] "idx0") <⟨Index'⟩ (![Index'] "idx1"))
     then return: (![Index'] "idx0")
@@ -151,11 +151,11 @@ Definition JointConfig__VoteResultⁱᵐᵖˡ {ext : ffi_syntax} {go_gctx : GoGl
     let: "votes" := (GoAlloc (go.MapType go.uint64 go.bool) "votes") in
     let: "r1" := (GoAlloc VoteResult (GoZeroVal VoteResult #())) in
     let: "$r0" := (let: "$a0" := (![go.MapType go.uint64 go.bool] "votes") in
-    (MethodResolve (go.PointerType MajorityConfig) "VoteResult"%go (IndexRef JointConfig (![JointConfig] "c", #(W64 0)))) "$a0") in
+    (MethodResolve (go.PointerType MajorityConfig) "VoteResult"%go (IndexRef JointConfig ("c", #(W64 0)))) "$a0") in
     do:  ("r1" <-[VoteResult] "$r0");;;
     let: "r2" := (GoAlloc VoteResult (GoZeroVal VoteResult #())) in
     let: "$r0" := (let: "$a0" := (![go.MapType go.uint64 go.bool] "votes") in
-    (MethodResolve (go.PointerType MajorityConfig) "VoteResult"%go (IndexRef JointConfig (![JointConfig] "c", #(W64 1)))) "$a0") in
+    (MethodResolve (go.PointerType MajorityConfig) "VoteResult"%go (IndexRef JointConfig ("c", #(W64 1)))) "$a0") in
     do:  ("r2" <-[VoteResult] "$r0");;;
     (if: Convert go.untyped_bool go.bool ((![VoteResult] "r1") =⟨VoteResult⟩ (![VoteResult] "r2"))
     then return: (![VoteResult] "r1")
@@ -365,9 +365,9 @@ Definition MajorityConfig__CommittedIndexⁱᵐᵖˡ {ext : ffi_syntax} {go_gctx
     else do:  #());;;
     let: "stk" := (GoAlloc (go.ArrayType 7 go.uint64) (GoZeroVal (go.ArrayType 7 go.uint64) #())) in
     let: "srt" := (GoAlloc (go.SliceType go.uint64) (GoZeroVal (go.SliceType go.uint64) #())) in
-    (if: Convert go.untyped_bool go.bool ((FuncResolve go.len [go.ArrayType 7 go.uint64] #()) ≥⟨go.int⟩ (![go.int] "n"))
+    (if: Convert go.untyped_bool go.bool (#(W64 7) ≥⟨go.int⟩ (![go.int] "n"))
     then
-      let: "$r0" := (let: "$s" := (![go.ArrayType 7 go.uint64] "stk") in
+      let: "$r0" := (let: "$s" := "stk" in
       Slice (go.ArrayType 7 go.uint64) ("$s", #(W64 0), ![go.int] "n")) in
       do:  ("srt" <-[go.SliceType go.uint64] "$r0")
     else
@@ -482,14 +482,14 @@ Definition VoteResult__Stringⁱᵐᵖˡ {ext : ffi_syntax} {go_gctx : GoGlobalC
   λ: "i" <>,
     exception_do (let: "i" := (GoAlloc VoteResult "i") in
     do:  ("i" <-[VoteResult] ((![VoteResult] "i") -⟨VoteResult⟩ #(W8 1)));;;
-    (if: Convert go.untyped_bool go.bool ((![VoteResult] "i") ≥⟨VoteResult⟩ (Convert go.int VoteResult ((FuncResolve go.len [go.ArrayType 4 go.uint8] #()) -⟨go.int⟩ #(W64 1))))
+    (if: Convert go.untyped_bool go.bool ((![VoteResult] "i") ≥⟨VoteResult⟩ (Convert go.int VoteResult (#(W64 4) -⟨go.int⟩ #(W64 1))))
     then
       return: ((#"VoteResult("%go +⟨go.string⟩ (let: "$a0" := (Convert VoteResult go.int64 ((![VoteResult] "i") +⟨VoteResult⟩ #(W8 1))) in
        let: "$a1" := #(W64 10) in
        (FuncResolve strconv.FormatInt [] #()) "$a0" "$a1")) +⟨go.string⟩ #")"%go)
     else do:  #());;;
     return: (let: "$s" := _VoteResult_name in
-     Slice go.untyped_string ("$s", ![go.uint8] (IndexRef (go.ArrayType 4 go.uint8) (![go.ArrayType 4 go.uint8] (GlobalVarAddr _VoteResult_index #()), Convert VoteResult go.int (![VoteResult] "i"))), ![go.uint8] (IndexRef (go.ArrayType 4 go.uint8) (![go.ArrayType 4 go.uint8] (GlobalVarAddr _VoteResult_index #()), Convert VoteResult go.int ((![VoteResult] "i") +⟨VoteResult⟩ #(W8 1))))))).
+     Slice go.untyped_string ("$s", ![go.uint8] (IndexRef (go.ArrayType 4 go.uint8) (GlobalVarAddr _VoteResult_index #(), Convert VoteResult go.int (![VoteResult] "i"))), ![go.uint8] (IndexRef (go.ArrayType 4 go.uint8) (GlobalVarAddr _VoteResult_index #(), Convert VoteResult go.int ((![VoteResult] "i") +⟨VoteResult⟩ #(W8 1))))))).
 
 #[global] Instance info' : PkgInfo pkg_id.quorum :=
 {|
