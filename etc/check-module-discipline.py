@@ -54,6 +54,17 @@ import os
 import re
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import rocqscan  # noqa: E402  (after sys.path is set up)
+from rocqscan import (  # noqa: E402
+    ASSUMPTION_KINDS,
+    GOOSE_METHOD_SEP,
+    IMPL_SUFFIX,
+    PROVABLE_KINDS,
+    scan_file,
+    strip_comments,
+)
+
 # --------------------------------------------------------------------------
 # Defaults and conventions.  These are the only place anything about a
 # particular repository layout is written down; all are overridable or are
@@ -82,164 +93,15 @@ BODY_SUFFIX = "_body"
 METHOD_SEP = "__"
 PKG_SEP = "_"
 
-# Toolchain conventions, as opposed to the layout conventions above.  Goose
-# names a method's body <Recv><GOOSE_METHOD_SEP><method> with IMPL_SUFFIX
-# appended, and gives a package-level name its qualified string as a
-# `go_string`.  Same spelling as METHOD_SEP today, and a different thing.
-GOOSE_METHOD_SEP = "__"
-IMPL_SUFFIX = "\u2071\u1d50\u1d56\u02e1"  # the superscript "impl" Goose appends
+# GOOSE_METHOD_SEP is the same spelling as METHOD_SEP today, and a different
+# thing: that one is how this development names a collection, this one is how
+# Goose names a method's body.  Both live in rocqscan.
 
 # --------------------------------------------------------------------------
-# Rocq source scanning
-#
-# Nothing here parses Rocq.  It strips comments and string literals carefully
-# enough that the two things we do look at -- where a sentence ends, and which
-# Go function a sentence names -- come out right.
-
-DECL_RE = re.compile(
-    r"""^[ \t]*
-        (?:Local[ \t]+|Global[ \t]+|\#\[[^\]]*\][ \t]*)*
-        (?P<kind>Axiom|Parameter|Conjecture|Hypothesis
-                |Lemma|Theorem|Corollary|Proposition|Fact|Remark
-                |Definition|Instance|Example)
-        [ \t]+(?P<name>[A-Za-z_][A-Za-z_0-9'’]*)
-    """,
-    re.VERBOSE | re.MULTILINE,
-)
-
-ASSUMPTION_KINDS = {"Axiom", "Parameter", "Conjecture", "Hypothesis"}
-PROVABLE_KINDS = {
-    "Lemma",
-    "Theorem",
-    "Corollary",
-    "Proposition",
-    "Fact",
-    "Remark",
-    "Example",
-}
-
-
-def strip_comments(text):
-    """Replace (* ... *) comments with spaces, preserving every offset."""
-    out = list(text)
-    i, depth, n = 0, 0, len(text)
-    while i < n:
-        if text.startswith("(*", i):
-            depth += 1
-            out[i] = out[i + 1] = " "
-            i += 2
-        elif depth and text.startswith("*)", i):
-            depth -= 1
-            out[i] = out[i + 1] = " "
-            i += 2
-        elif depth:
-            if text[i] != "\n":
-                out[i] = " "
-            i += 1
-        else:
-            i += 1
-    return "".join(out)
-
-
-def sentence_end(text, start):
-    """Offset just past the '.' ending the Rocq sentence starting at `start`.
-
-    A sentence ends at a '.' followed by whitespace or end of input.  Dots
-    inside qualified names (``pkg.Type.t``) and inside string literals are
-    not followed by whitespace, or are skipped over with the string.
-    """
-    i, n = start, len(text)
-    while i < n:
-        c = text[i]
-        if c == '"':
-            i += 1
-            while i < n and text[i] != '"':
-                i += 1
-            i += 1
-            continue
-        if c == "." and (i + 1 >= n or text[i + 1] in " \t\r\n"):
-            return i + 1
-        i += 1
-    return n
-
-
-# A method call, `<recv> @! (go.PointerType <pkg>.<Type>) @! "<method>" #args`,
-# or the value-receiver form without the PointerType wrapper.  The receiver
-# expression may be anything, including a chain of field references.
-METHOD_RE = re.compile(
-    r"""@!\s*
-        \(?\s*(?:go\.PointerType\s+)?
-        (?P<pkg>[A-Za-z_][\w]*)\.(?P<typ>[A-Za-z_][\w]*)
-        \s*\)?\s*@!\s*"(?P<meth>[^"]+)"
-    """,
-    re.VERBOSE,
-)
-
-# A package-level call, `@! <pkg>.<Fn> #args`.
-FUNC_RE = re.compile(r"@!\s*(?P<pkg>[A-Za-z_][\w]*)\.(?P<fn>[A-Za-z_][\w]*)\s*#")
-
-# A function reached through the semantics rather than by name, which is how
-# an untranslated one has to be called: `#(functions <pkg>.<Fn> [...])`.
-# A `go.<name>` there is a predeclared operation (`go.len`, ...), not a Go
-# function of the program under verification.
-FUNCTIONS_RE = re.compile(r"functions\s+(?P<pkg>[A-Za-z_][\w]*)\.(?P<fn>[A-Za-z_][\w]*)")
-
-# Dynamic dispatch through an interface value: `#(methods i.(interface.ty) "Term" ...)`.
-# The callee is whatever the client supplied, so this is an interface contract
-# rather than a spec of a Go function.
-IFACE_RE = re.compile(r"methods\s")
-
-
-def go_refs(statement):
-    """The Go functions a triple's program expression names.
-
-    Returns (functions, iface) where `functions` is a list of canonical keys
-    like ``pkg.Type.method`` or ``pkg.function``, and `iface` says whether
-    the triple is about an interface method instead.
-    """
-    found = []
-    text = statement
-    for m in METHOD_RE.finditer(statement):
-        found.append("{}.{}.{}".format(m.group("pkg"), m.group("typ"), m.group("meth")))
-        # Blank the match so FUNC_RE cannot read the receiver type as a call.
-        text = text[: m.start()] + " " * (m.end() - m.start()) + text[m.end() :]
-    for m in FUNC_RE.finditer(text):
-        found.append("{}.{}".format(m.group("pkg"), m.group("fn")))
-    for m in FUNCTIONS_RE.finditer(text):
-        if m.group("pkg") == "go":
-            continue  # a predeclared builtin (go.len, ...), not a Go function
-        found.append("{}.{}".format(m.group("pkg"), m.group("fn")))
-    return sorted(set(found)), bool(IFACE_RE.search(statement)) and not found
-
-
-Decl = collections.namedtuple(
-    "Decl", "path line kind name statement is_triple go_fns iface"
-)
-
-
-def scan_file(path):
-    with open(path, encoding="utf-8") as f:
-        raw = f.read()
-    text = strip_comments(raw)
-    decls = []
-    for m in DECL_RE.finditer(text):
-        end = sentence_end(text, m.end())
-        statement = text[m.end() : end]
-        is_triple = "{{{" in statement
-        go_fns, iface = go_refs(statement) if is_triple else ([], False)
-        decls.append(
-            Decl(
-                path=path,
-                line=raw.count("\n", 0, m.start()) + 1,
-                kind=m.group("kind"),
-                name=m.group("name"),
-                statement=statement,
-                is_triple=is_triple,
-                go_fns=go_fns,
-                iface=iface,
-            )
-        )
-    return decls
+# Scanning is rocqscan's job: how a sentence ends, what it declares, and
+# which Go function a triple's program expression names.  That is the
+# parsing contract shared with etc/tcb-report.py, and it has its own
+# self-test.  What is left here is the layout of a collection.
 
 
 # --------------------------------------------------------------------------
@@ -745,71 +607,15 @@ def check(scope_dir, root, code_index, code_roots, all_proof_files):
 # --------------------------------------------------------------------------
 
 # --------------------------------------------------------------------------
-# Self-test for the parsing contract, which is the part of this script most
-# likely to rot: it is the only thing that depends on how Goose renders a call
-# and on how this development writes a Hoare triple.  Run with --selftest.
-
-SELFTEST_CASES = [
-    # a pointer-receiver method
-    ('{{{ is_pkg_init raft }}} r @! (go.PointerType raft.raft) @! "poll" #from'
-     ' {{{ RET #(); True }}}',
-     ["raft.raft.poll"], False),
-    # a receiver expression that is itself a chain of field refs
-    ('{{{ True }}} (trk.[tracker.ProgressTracker.t, "Config"]'
-     '.[tracker.Config.t, "Voters"]) @! (go.PointerType quorum.JointConfig)'
-     ' @! "IDs" #() {{{ RET #(); True }}}',
-     ["quorum.JointConfig.IDs"], False),
-    # a package-level function
-    ('{{{ True }}} @! raft.traceSendMessage #r #mp {{{ RET #(); True }}}',
-     ["raft.traceSendMessage"], False),
-    # an untranslated function reached through the semantics
-    ('{{{ True }}} #(functions slices.Sort [go.SliceType go.uint64]) #data'
-     ' {{{ RET #(); True }}}',
-     ["slices.Sort"], False),
-    # a predeclared builtin is not a Go function of the program
-    ('{{{ True }}} #(functions go.len [tracker.ProgressMap]) #mref'
-     ' {{{ RET #(W64 0); True }}}',
-     [], False),
-    # dispatch through a client-supplied interface value: a contract, not a
-    # specification of a Go function under verification
-    ('{{{ is_Logger l }}} #(methods l.(interface.ty) meth l.(interface.v))'
-     ' #format {{{ RET #(); True }}}',
-     [], True),
-    # a model-level map operation is neither
-    ('{{{ own_tracker cfg tv votes }}} map.lookup1 go.uint64'
-     ' (go.PointerType tracker.Progress) #m #i {{{ RET #pr; True }}}',
-     [], False),
-]
+# Self-test.  The parsing contract -- how a sentence ends, how Goose renders
+# a call, how this development writes a Hoare triple -- is rocqscan's, and
+# is tested there; run with --selftest and both run.  What is tested here is
+# the collection layout this script adds on top.
 
 
 def selftest():
     bad = []
-
-    for stmt, want_fns, want_iface in SELFTEST_CASES:
-        got = go_refs(stmt)
-        if got != (want_fns, want_iface):
-            bad.append(
-                "go_refs\n  in   {}\n  want {}\n  got  {}".format(
-                    stmt, (want_fns, want_iface), got
-                )
-            )
-
-    # A sentence ends at '.' followed by whitespace -- not at a dot inside a
-    # qualified name, a record projection, or a string literal.
-    text = 'Lemma f : rv.(pkg.Type.field\') = x /\\ s = "a.b c" . rest'
-    got = text[: sentence_end(text, len("Lemma f :"))]
-    if not got.endswith(" .") or "rest" in got:
-        bad.append("sentence_end: {!r}".format(got))
-
-    # Comments blank out to spaces: same length, newlines kept (so line
-    # numbers survive), and nesting counted -- several doc comments in this
-    # development hold a worked example inside (* ... *).
-    src = "a(** x (* y *) z *)b\nc"
-    out = strip_comments(src)
-    if (len(out), out.count("\n"), out[0], out[-1]) != (len(src), 1, "a", "c"):
-        bad.append("strip_comments shape: {!r}".format(out))
-    if "x" in out or "y" in out or "z" in out:
-        bad.append("strip_comments left comment text: {!r}".format(out))
+    rc = rocqscan.selftest()
 
     # The naming convention accepts a bare name or a package-prefixed one;
     # nothing here decides which package is "the" one being verified.
@@ -840,7 +646,7 @@ def selftest():
     for b in bad:
         print("FAIL " + b)
     print("selftest: {}".format("{} failures".format(len(bad)) if bad else "ok"))
-    return 1 if bad else 0
+    return 1 if (bad or rc) else 0
 
 
 def resolve_scope(scope, proof_root):
