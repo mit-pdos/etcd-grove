@@ -1328,3 +1328,106 @@ then `return: m`. `wp_ProgressTracker__Visit` and the
 `wp_JointConfig__CommittedIndex` axiom are unblocked the same way.
 `TallyVotes` needs the nil-map `len` gap closed first, and separately its
 `VoteWon` conjunct repaired.
+
+## 2026-09-18 — review of the array fix: is the translation-time dispatch justified?
+
+Review question on the 2026-09-17 fix: branching on array-vs-slice *in Goose*
+cuts against Goose's preference for leaving type dispatch to the Rocq
+semantics. Is it necessary, and is it correct — e.g. can you write `f()[:]`
+where `f` returns `[10]int`, which the fix would reject because `f()` is not
+addressable?
+
+Answered with the Go compiler rather than from the spec alone.
+
+### `f()[:]` is not legal Go
+
+    ./a.go:6:35: cannot slice unaddressable value f() (value of type [10]int)
+
+The spec requires the operand of a slice expression to be addressable when it
+is an array. Goose runs after go/types, so it never sees such a program. The
+measured boundary:
+
+| expression | legal? |
+|---|---|
+| `f()[0]` (array-returning `f`), read only | **yes** |
+| `&f()[0]` | no — "cannot take address of" |
+| `f()[:]` | no — "cannot slice unaddressable value" |
+| `m[0][:]` (`m` a map to array) | no — map values are not addressable |
+| `p[:]`, `p[0]`, `&p[0]` for `p *[10]int` | **yes** |
+| `a[:]`, `&a[3]`, `aa[0][:]`, `s.a[:]` | **yes** |
+
+### The dispatch cannot be pushed into Rocq
+
+Both uniform alternatives are closed:
+
+- **Always pass the value** is the original bug: an `array.t` carries no
+  address, so no `IndexRef` rule can be written for it.
+- **Always pass the address** is impossible, and this is the decisive half:
+  `&fs()[0]` is *legal Go* when `fs` returns a **slice**. Slice elements are
+  addressable even though `fs()` is not, so `exprAddr(fs())` does not exist.
+  Checked: it compiles, and Goose emits the slice-value form for it.
+
+So the operand kind genuinely differs between arrays and slices and the choice
+is forced by the static type. Go itself draws the line statically and for the
+same underlying reason: a slice value contains a pointer, an array value does
+not. `ctx.expr` already branches on `Types[e].Addressable()` for *every*
+expression, and `indexExpr`, `assignFromTo` and `getIndexType` already switch
+on `*types.Map`/`*types.Array` in the same functions, so this is consistent
+with local practice rather than a new principle.
+
+The invariant that makes the change safe: `exprAddr` is only ever called on an
+addressable expression, and Go makes `a[i]` addressable iff `a` is (for an
+array), so the `exprAddr(e.X)` in the `IndexExpr` case is always defined. Note
+also that the *old* code called `ctx.expr(e.X)`, which for an addressable
+operand is `DerefExpr{X: exprAddr(e.X)}` — it already went through `exprAddr`.
+So the fix cannot introduce a new `exprAddr` failure on any operand the old
+code handled. Both reasons are now comments in `goose/goose.go`.
+
+### A/B against `main`'s Goose
+
+Same input, both translators, over `f()[0]`, `p[:]`, `p[0]`, `&p[0]`,
+`a[:]`, `s.a[:]`, `len(f())`, `len(s.a)`, `aa[0][:]`, `&aa[0][3]`,
+`&fs()[0]`, `fs()[:]`:
+
+- identical failures — **2 errors in each**, at the same positions, both
+  `getIndexType: unexpected type for indexing` on `p[0]` and `&p[0]`. The fix
+  introduces **no new rejections**.
+- on everything that translates, the only lines that differ are array sites.
+  Slice paths (`&fs()[0]` → `IndexRef (go.SliceType …) (fs() #(), …)`,
+  `fs()[:]`) are untouched.
+- nesting composes correctly: `aa[0][:]` becomes
+  `Slice (go.ArrayType 10 go.int) (IndexRef (go.ArrayType 3 (go.ArrayType 10 go.int)) ("aa", #(W64 0)), …)`
+  — the inner `IndexRef` produces exactly the address the outer `Slice` wants.
+
+### Where the criticism does land: `len`/`cap`
+
+This part was a *choice*; the model rule alone could have carried it, by
+emitting the applied form uniformly and letting `go.len_array` dispatch. The
+defence is faithfulness, not convenience: Go says `len`/`cap` of an array **is
+a constant expression** and does not evaluate the operand, so emitting the
+applied form would make the model perform a load the real program never
+does, and demand ownership Go does not need — `len(isLocalMsg)` on a
+package-level `[23]bool` would require owning a global. The test added is also
+`Types[s].Value != nil` ("did go/types fold this?"), not an array/slice test,
+which is arguably *less* type dispatch than the code it replaced.
+
+If the maintainer prefers maximal Rocq dispatch anyway, **this is the
+separable piece** — reverting just the `len`/`cap` case leaves the
+`IndexRef`/`Slice` fix intact, at the cost of array loads in proofs (today
+blocked anyway, since `into_val_typed_array` is `Admitted`). The
+`IndexRef`/`Slice` half is not separable.
+
+The model rule is not dead weight either way: `len(f())` is non-constant, so
+go/types gives the builtin a signature, Goose emits
+`let: "$a0" := f() in (FuncResolve go.len [go.ArrayType 10 go.int] #()) "$a0"`,
+and that needs `go.len_array`. Confirmed by translating it.
+
+### Pre-existing gap found while reviewing, not fixed
+
+**Pointer to array is unsupported**: `p[:]`, `p[0]` and `&p[0]` for
+`p *[10]int` are all legal Go. `p[0]`/`&p[0]` fail in `getIndexType`, which
+switches on Slice/Map/Array and has no `Pointer` case; `p[:]` translates but
+emits `Slice` on a `go.PointerType`, for which the model has no rule. Both
+predate this fix and are unchanged by it. No raft code hits it, so it does not
+meet the `bugs/` bar ("a proof cannot be completed"); recorded here so the
+next person who trips on it knows it is known.
