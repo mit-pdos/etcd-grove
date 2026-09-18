@@ -856,7 +856,7 @@ def resolve_scope(scope, proof_root):
             return os.path.abspath(cand)
     matches = sorted(
         dp
-        for dp, dirs, _f in os.walk(proof_root)
+        for dp, _dirs, _f in os.walk(proof_root)
         for d in [os.path.basename(dp)]
         if d == scope
     )
