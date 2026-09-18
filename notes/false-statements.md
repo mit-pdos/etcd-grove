@@ -18,10 +18,19 @@ needed the fact and could not get it:
 | `TallyVotes`'s `VoteLost` conjunct | Go's `VoteLost` is "cannot still win", not "a majority rejected" |
 | `wp_ProgressTracker__Visit` | owned no part of the tracker *struct*, but `Visit` has a pointer receiver and loads `p.Progress` through it (`tracker.v:809`, `:837`) |
 | `TallyVotes`'s `VoteWon` conjunct | `MajorityConfig.VoteResult` returns `VoteWon` outright for an empty config (`quorum.v:412-418`), while `is_quorum ∅ q` is `0 < 0` |
+| `wp_raft__appendEntry`, again | owned no part of `es`, but the method writes `Term`/`Index` into every element (`v3.v:3453-3461`) — "own what you write" |
+| `wp_raft__appendEntry`, again | claimed `RET #true` unconditionally; there is a `return: #false` when `increaseUncommittedSize` rejects (`v3.v:3463`) |
 
-**Seven of the eight were claims about what raft's code does that nobody had
+**Nine of the ten were claims about what raft's code does that nobody had
 checked against the generated body** — the cheapest check available. The
-eighth (`r.step`) was prose promising an invariant.
+tenth (`r.step`) was prose promising an invariant.
+
+**`wp_raft__appendEntry` is on this list three times**, which is the
+strongest argument in the file for the 2026-09-18 rule that an `Axiom` about
+a Go function belongs inside a spec/postulates/proof/link collection like
+any other triple (see [decisions.md](decisions.md)). It is the one triple
+here that will never be proved from the code, so it is the one nothing ever
+forced to be right.
 
 The two found on 2026-09-16 add a third tell, and it is the sharpest one:
 **a spec for a method with a pointer receiver must own the receiver's
@@ -52,7 +61,8 @@ Two tells worth grepping for:
 And one habit: **for every `send` on a path, ask where `Term ≠ 0` and
 `m.To ≠ id` come from.** `send` `Panicf`s on both, and `wp_Logger__logf`
 deliberately excludes the panicking methods, so such a path must be shown
-unreachable rather than assumed away. Two of the eight were caught that way.
+unreachable rather than assumed away. Three of the ten were caught that
+way — the third being `appendEntry`'s `RET #true`, below.
 
 
 ## Duplicate specs: where the next false statement will come from

@@ -388,10 +388,10 @@ Unclaimed; pick one and say so in the journal.
 
 ## Before you add a claim
 
-Eight statements in this development have been asserted, compiled, and lived
+Ten statements in this development have been asserted, compiled, and lived
 in the tree until a proof needed the fact and could not get it — including
-two that had a `Qed` resting on them. The table, the three tells to grep
-for, and the two-probe check for a pointer-receiver spec are in
+two that had a `Qed` resting on them. The table, the tells to grep for, and
+the two-probe check for a pointer-receiver spec are in
 [false-statements.md](false-statements.md). **Read it before writing a spec
 or an `Admitted`.**
 
@@ -422,7 +422,7 @@ or an `Admitted`.**
   value" — but this one has to be *stated*, not admitted, because it changes
   a triple that other proofs consume.
 
-  It was the third of the eight false statements tabled above, after
+  It was the third of the ten false statements tabled above, after
   `wp_raft__appendEntry` (2026-09-15, then called
   `wp_raft__appendEmptyEntry`) and `step_win` (2026-09-16). All
   three were claims about what raft's code does to its outgoing messages. The
