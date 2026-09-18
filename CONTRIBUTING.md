@@ -42,6 +42,47 @@ development (it finds 24 out-of-place triples in
 at another translation, and `--scope` takes a path or the bare name of any
 directory under the proof root.
 
+## Seeing what is unproven, and how big the TCB is
+
+`etc/tcb-report.py` answers two questions that were otherwise answered by
+grepping: where the proof is incomplete, and what has to be believed for its
+results to mean anything.
+
+```
+etc/tcb-report.py                        # summary + the incomplete files
+etc/tcb-report.py --scope election
+etc/tcb-report.py --view assumed         # every axiom and Admitted, classified
+etc/tcb-report.py --view surface         # the exported statements, and what they rest on
+etc/tcb-report.py --view files           # one line per file
+etc/tcb-report.py --format json
+etc/tcb-report.py --selftest
+```
+
+It counts three things as trusted: everything **assumed** (an `Axiom` outside
+a `Module Type`, or a proof ending in `Admitted`), the **results** the
+development exports, and the **definitions** those results' statements are
+written in terms of — the last usually being the biggest part, and the one a
+count of axioms misses. It deliberately does *not* count a `Parameter` inside
+a `Module Type`, which the functor ascribed to that signature discharges, nor
+the spec of a function something else in the development calls: an internal
+spec is an untrusted proof artifact, since a wrong one makes its callers'
+proofs fail.
+
+"Externally facing" means nothing in the development depends on it — a
+collection no other collection requires or names, or a theorem in a file
+nothing requires. Go's export rule is reported next to each result, not used
+to decide.
+
+The definition count is a **lower bound**: references through a `Notation` or
+found by typeclass resolution are invisible, and definitions from Perennial,
+stdpp and Rocq are outside the tree and not counted, though they are trusted
+too. `--view surface` prints how many names it could not resolve.
+
+It always exits 0 — it is a viewer, not a gate. It shares its parser with
+`etc/check-module-discipline.py` (`etc/rocqscan.py`, which has its own
+`--selftest`), and like that script it knows the conventions and no
+particular package or file name, so `--proof-root` aims it elsewhere.
+
 ## Default build
 
 Not everything in the repo is built by default, even in CI. In order to be

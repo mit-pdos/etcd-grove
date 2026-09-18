@@ -757,3 +757,91 @@ files, so a package translated to a file of any name resolves correctly;
 root; and `--proof-root` aims the whole thing elsewhere. Demonstrated rather
 than asserted: pointed at `new/proof/go_etcd_io/etcd`, a development that
 predates the convention entirely, it reports 24 out-of-place triples.
+
+---
+
+## 2026-09-18 — what the TCB *is*, and a tool that measures it
+
+**accepted**
+
+Counting the trust base by hand did not scale and was not honest. `STATUS.md`
+carried two greps with the caveat that "both over-count", a table of axioms
+maintained by editing, and a count of `Admitted`s that had to be re-derived
+every time a file moved. The 2026-09-18 restructure moved every triple into a
+collection and the counts had to be redone from scratch to show that it had
+*not* changed the trust base.
+
+**Decision:** `etc/tcb-report.py`, and a definition of the TCB with three
+parts rather than one.
+
+1. **assumed** — an `Axiom`/`Parameter`/`Conjecture`/`Hypothesis` outside a
+   `Module Type`, and every proof ending in `Admitted`.
+2. **results** — the statements the development exports.
+3. **definitions** — everything those statements are written in terms of,
+   transitively.
+
+The third is the part a count of axioms misses, and here it is the biggest:
+85 definitions and 651 lines against 45 assumptions and 127 lines. A theorem
+is only as good as its definitions — `raft_election_safety` says nothing if
+`own_raft_ghost` or `nstate.t` is wrong, and neither is an axiom.
+
+**And what is deliberately not in it.** A `Parameter` inside a `Module Type`
+is discharged by the functor ascribed to that signature; 44 of them, none
+assumed. The spec of a function something else in the development calls is an
+untrusted proof artifact: if it is wrong, its callers' proofs fail. That is
+the distinction the module discipline was built for, and this is what makes
+it visible — 43 of the 44 collections are internal, and exactly one,
+`raft__Step`, is exported.
+
+**Externally facing = nothing in the development depends on it.** A
+collection no *other collection* requires or names, or a declaration in a
+file nothing requires that nothing else names. Two things this got wrong on
+the way:
+
+- **Rejected — Go's export rule (a capitalised name) as the decision.**
+  `quorum.JointConfig.IDs` is exported from its package and is an internal
+  callee here; `raft.raft.poll` is unexported and would be exported if the
+  proof stopped at it. Whether Go exports it is reported next to each result,
+  because a result that is *unexported* in Go is worth a second look, but it
+  does not decide.
+- **Re-exporting is not calling.** The first cut counted `election.v`'s
+  `Require Export link_*` — which exists so that `make ci` builds them — as a
+  use, which made every collection look internal and left the development
+  with no exported result at all. Only a require or a mention from another
+  *collection* counts.
+
+**Rejected — `Print Assumptions` as the source of truth.** It is the right
+answer and it is not available: over a `.vos` tree it sees axioms reachable
+from statements but not what opaque proofs used, so the `Admitted`s and the
+`wp_*` trust-boundary axioms do not appear at all. Ground truth needs a full
+`.vo` build of Perennial, which nothing in this tree has. A syntactic tool
+that runs in 0.4s and can be pointed at any subtree is what the inner loop
+needs; when a `.vo` build exists, `Print Assumptions` should be used to check
+*this* tool, not the other way round.
+
+**Rejected — making it a CI gate.** `etc/check-module-discipline.py` is the
+gate and has a crisp pass/fail. "The TCB grew" is not a defect: it grows when
+an axiom is converted into a real definition with `Admitted` methods, which
+is the conversion working. The tool always exits 0.
+
+**What it cannot see, stated in the tool's own docstring.** References
+through a `Notation`, and instances found by typeclass resolution rather than
+named, are invisible; definitions from Perennial, stdpp and Rocq are outside
+the tree and are not counted, though they are trusted too and are far larger
+than anything measured here. So the definition count is a lower bound, and
+`--view surface` prints how many names it could not resolve so that the
+reader can judge how much is missing.
+
+**The parser is now shared.** `etc/rocqscan.py` holds what both tools need —
+where a sentence ends, what it declares and inside which modules, how a proof
+ended, and which Go function a triple's program expression names — with its
+own `--selftest`. It was lifted out of `check-module-discipline.py`, whose
+output on all of `--scope election`, the whole raft tree and `--format json`
+is byte-identical before and after. One parsing contract was the point: it is
+the part most likely to rot, and two copies would rot apart.
+
+**Consequences:** the numbers in `STATUS.md` are now printed rather than
+maintained, and the hand-written table of axioms is a *why* column for a list
+the tool produces. The two hand counts it replaced were right — the tool
+reproduces 6 axioms and 7 `Admitted`s on the election path, and 14
+`Admitted`s over the whole raft proof, which is what the notes said.

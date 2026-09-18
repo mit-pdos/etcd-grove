@@ -72,6 +72,11 @@ builds it.
       etc/check-module-discipline.py --summary
       etc/check-module-discipline.py --selftest        # the parsing contract
 
+  Its companion is **`etc/tcb-report.py`**, which views the same tree for
+  trust rather than structure: what is assumed, what is exported, and what
+  those statements rest on. See "Trust base" below. The two share their
+  parser, `etc/rocqscan.py`.
+
   With no `--scope` it checks the whole raft proof and still reports 11:
   eight in `readonly.v`, three in `protocol.v`. See "Next steps". It knows
   the toolchain and no particular package or file name, so `--proof-root`
@@ -320,22 +325,37 @@ Each `Admitted` carries a machine-checked prefix and a comment naming the
 blocker, in the style `proof_raft__Step.v` used. Splice and continue; do not
 start over.
 
-Count them with a grep; the axiom count is the number to watch, and admits
-rising while axioms fall is the conversion working, not a regression:
+**Do not count these by hand, and do not grep for them** — a grep
+over-counts, because several doc comments quote a probe lemma ending in
+`Admitted.` and the `spec_*.v` files are full of `Parameter`s. Since
+2026-09-18 the counts are printed:
 
-    grep -rc '^Axiom\|^  Axiom' new/proof/go_etcd_io/raft --include='*.v'
-    grep -rn 'Admitted\.' new/proof/go_etcd_io/raft --include='*.v'
+    etc/tcb-report.py                    # summary, and which files are incomplete
+    etc/tcb-report.py --scope election
+    etc/tcb-report.py --view assumed     # every axiom and admit, classified
+    etc/tcb-report.py --view surface     # what the exported statements rest on
 
-**Both greps over-count**, because several doc comments quote a probe lemma
-ending in `Admitted.` and the `spec_*.v` files are full of `Parameter`s. For
-the honest number, strip comments first — `strip_comments` in
-`etc/check-module-discipline.py` is the helper, and
-`etc/check-module-discipline.py --summary` lists every Go function with a
-triple and where it is.
+As of 2026-09-18 it reports, over the whole raft proof: **45 assumed** — 31
+`Axiom` and 14 `Admitted`, of which 18 are Hoare triples about Go code, 13
+are properties of the model, and 14 are opaque declarations — against **85
+definitions, 651 lines**, reached from the exported statements. That last
+number is the one a count of axioms misses and is the larger half of the
+trust base: `raft_election_safety` says nothing if `nstate.t` or
+`own_raft_ghost` is wrong, and neither is an axiom. Total 866 lines, 9.8% of
+the development. On the election path alone: 6 axioms, 7 admits, 43
+definitions.
 
-There are also 44 module-type obligations — one `Parameter` per Go function.
-Those are **not** assumptions: each is discharged by the functor ascribed to
-its signature, so none reaches `Print Assumptions`.
+**Admits rising while axioms fall is the conversion working, not a
+regression** — and `--view assumed` says which is which, per file, with the
+Go function each triple is about.
+
+The 44 module-type obligations — one `Parameter` per Go function — are
+**not** assumptions: each is discharged by the functor ascribed to its
+signature, so none reaches `Print Assumptions`, and the tool counts them
+under "not trusted" alongside the 43 internal function specs. Only one
+collection, `raft__Step`, is exported. See
+[decisions.md](decisions.md) for what counts as the TCB and why, including
+what the tool cannot see.
 
 **`Print Assumptions` is still not available as a cross-check.** Over a
 `.vos` tree it under-reports — it sees axioms reachable from *statements* but

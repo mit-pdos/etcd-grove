@@ -1653,3 +1653,94 @@ silently skips the `PureWp` search for any listed node with an unevaluated
 operand, so a future instance that steps such a node would need adding
 there; and `wp_done_core`'s comment says "copied verbatim" from stdpp while
 the `¬_` arm is deliberately `fast_done` rather than a recursive `done`.
+
+---
+
+## 2026-09-18 (later) — a TCB viewer: `etc/tcb-report.py`, and a shared parser
+
+Claude Opus 5 (background job), at Upamanyu's request: "it is challenging to
+quickly identify incomplete parts of the proof", so a generic tool showing a
+file-by-file status and an overall measure of the size of the TCB —
+"theorem statements for externally facing functions; specs for internal
+functions are just untrusted proof artifacts".
+
+Branch `tcb-view`, off `main` at 43660bd0f.
+
+- **Did:**
+  - **`etc/rocqscan.py`** (new) — the shallow Rocq scanning both tools need:
+    comments, sentence ends, what a sentence declares and inside which
+    modules, how a proof ended, a record's fields and an inductive's
+    constructors, `Require` lines, and which Go function a triple's program
+    expression names. Lifted out of `check-module-discipline.py`, which now
+    imports it. Own self-test: `python3 etc/rocqscan.py`.
+  - **`etc/tcb-report.py`** (new) — the viewer. `--view summary` (default),
+    `files`, `assumed`, `surface`, `all`; `--scope`, `--proof-root`,
+    `--format json`, `--selftest`. Always exits 0.
+  - **`etc/check-module-discipline.py`** — parser removed, imports added,
+    `--selftest` now runs rocqscan's too. **Output is byte-identical** before
+    and after on `--scope election --summary`, the whole raft tree, and
+    `--format json`, with the same exit codes; that diff was the acceptance
+    test for the refactor.
+  - Documented in `CONTRIBUTING.md`, `notes/STATUS.md` ("Trust base" no
+    longer tells you to grep) and `notes/decisions.md`.
+
+- **What it says today** (whole raft proof, 198 files, 8,841 lines): 45
+  assumed (31 `Axiom`, 14 `Admitted`; 18 triples, 13 model properties, 14
+  opaque declarations, 2 marked `Trusted`), 7 exported results, 85
+  definitions reached from those statements — 866 lines, 9.8%. Not trusted:
+  44 discharged obligations, 43 internal function specs, 114 `Qed`s. The
+  election path: 6 axioms, 7 admits, 43 definitions, 395 lines.
+
+- **Checked against the hand counts, which were right.** An independent
+  recount written not to share the tool's logic — strip comments, count
+  `Admitted.`, count assumption keywords outside a `Module Type` found by a
+  separate bracket scan — agrees file by file: 14 `Admitted`, 31 `Axiom`.
+  The election path's 6 and 7 are the same 6 and 7 `STATUS.md` listed by
+  name.
+
+- **What did not work, in order:**
+  - **Go's export rule as the definition of "externally facing".** The
+    obvious reading of the request, and wrong: `quorum.JointConfig.IDs` is
+    exported and is an internal callee, while `raft.raft.poll` is
+    unexported. What works is "nothing in the development depends on it".
+    Go's rule is still reported next to each result, because an *unexported*
+    exported result is worth a second look.
+  - **Counting `election.v`'s `Require Export link_*` as uses.** That file
+    re-exports every collection so `make ci` builds them, so every
+    collection looked internal and the development came out with no exported
+    result at all. Only a require or a mention from another *collection*
+    counts, and `raft__Step` is then the single root — which is what the
+    call graph actually is.
+  - **Reading only statements for the "is it used" test.** A lemma is used
+    by being applied in a proof script, so `readonly.v`'s helpers
+    (`quorums_intersect`, `big_sepL2_drop`, …) all looked like exported
+    results: 29 of them. Scanning proof bodies too — kept separate from the
+    statement references, which are what the definition closure follows —
+    cut it to 11.
+  - **`Example rwmutexMaxReaders_ok : … := eq_refl.`** read as a proof with
+    no terminator. A provable keyword with no proof and a `:=` is a
+    definition by term; both halves of that test are needed, since a
+    statement can hold a `let … :=` and still be proved by a script.
+  - **`--scope election` swallowed `election_protocol.v`**, because
+    containment was a string prefix. Compare path components.
+  - A list-aliasing bug in the module-stack tracker: `End` popped in place a
+    list earlier snapshots shared, so every declaration came out at the top
+    level. Caught by the self-test, which is why that test pins the module
+    path of a `Record` inside `Module msg.`.
+
+- **Surprises worth keeping:**
+  - The definitions are the larger half of the trust base — 651 lines
+    against 127 — and no count of axioms shows them. That is the substantive
+    reason this is not just a fancier `grep -c`.
+  - The tool disagrees with nothing in the notes, but it *reclassifies*: an
+    `Axiom` that introduces an opaque predicate (`own_raft_ghost : … → iProp
+    Σ`) is a different thing to trust from one that asserts a property
+    (`is_leader_unique`). 14 of the 31 axioms are declarations.
+  - Pointed at `new/proof` it finds 6 files with `Abort`ed proofs, four of
+    them in Goose's own semantics test data.
+
+- **Left:** `ruff` could not be run — no `pip`, no network in the sandbox —
+  so the three Python files are formatted by hand to match their neighbours
+  and CI's `ruff format --diff` job has not been reproduced locally. Worth a
+  single `ruff format` pass before merge. Nothing else is outstanding; the
+  three self-tests and the byte-identical-output check all pass.
