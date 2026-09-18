@@ -152,3 +152,64 @@ Two specs did not, and one of them is the first row of the table above:
 mechanically checkable and the checker does it, both directions — the Go
 function a triple names must exist in `new/code/`, and the collection must be
 named after it.
+
+## 2026-09-18: `wp_raft__appendEntry` asserted an unconditional `true`
+
+Found in review of the module-discipline branch, in the same axiom the rename
+above touched. Two independent over-claims, both visible from the triple
+alone once you read `raft__appendEntryⁱᵐᵖˡ` in `new/code/go_etcd_io/raft/v3.v`:
+
+- **No ownership of `es`.** The method writes `Term` and `Index` into every
+  element of the slice (`raft__appendEntryⁱᵐᵖˡ`'s `slice.for_range`,
+  `v3.v:3453-3461`), so the triple asserted the safety of a write to memory
+  it had no claim on. This is the `wp_ProgressTracker__Visit` mistake one
+  level out: not "own the receiver's fields" but **own what you write**.
+  `es ↦* ents` is now a precondition, and comes back existentially
+  quantified — it *does* come back, because `raftLog.append` copies the entry
+  values into `unstable.entries` rather than taking the caller's slice.
+- **`RET #true` for an arbitrary `es`.** `appendEntry` does have a
+  `return: #false`: the path where `increaseUncommittedSize(es)` rejects the
+  batch (`v3.v:3463`). The triple quantified over every `es : slice.t`, so it
+  claimed the batch is always accepted.
+
+**The obvious fix is also wrong, and this is the more useful half of the
+story.** Weakening the result to `∃ accepted : bool, RET #accepted` is sound
+as an assumption and makes `becomeLeader` **unprovable**, because
+`becomeLeader` does not ignore the result:
+
+    if !r.appendEntry(pb.Entry{Data: nil}) { r.logger.Panic("empty entry was dropped") }
+
+and `wp_Logger__logf` deliberately excludes `Panic`. Measured, not inferred:
+with the existential form `make …/proof_raft__becomeLeader.vok` fails with
+`Error: Failed to progress.` — `wp_auto` cannot step `if: ~accepted` for an
+opaque boolean — while `make …election.required_vos` passes, which is exactly
+how the weakening looked fine.
+
+What is actually true is that the reject path is unreachable *for an empty
+payload*. `increaseUncommittedSize` returns `false` only when
+
+    uncommittedSize > 0 ∧ payloadsSize(ents) > 0 ∧ … > maxUncommittedSize
+
+(`v3.v:5401`), and `payloadsSize` sums `len(e.Data)` (`v3.v:7515,7524`). So
+the triple keeps `RET #true` and carries the premise
+`Forall (λ e, sint.Z e.(Entry.Data').(slice.len) = 0) ents`, which is
+precisely what `becomeLeader` passes — `pb.Entry{Data: nil}` — and which
+makes the `Panic` *demonstrably* dead rather than assumed away. That is the
+rule this file already states for `send`: a panicking path has to be shown
+unreachable, and showing it needs the fact that makes it unreachable to be in
+the premise.
+
+**Tell, and it is the same one as the first row of this file's table:** a
+triple that quantifies over an argument it says nothing about. `∀ es :
+slice.t` with no `es ↦* _` in the precondition and no occurrence of `es` in
+the postcondition means the claim does not depend on the argument at all —
+for an `Axiom` at a trust boundary, that is exactly where an unprovable
+strengthening hides. Worth grepping for: a `∀`-bound `slice.t` or `loc` that
+appears only in the program expression.
+
+**And a second tell, from the wrong fix:** when weakening a postcondition
+makes a *caller* stop compiling, the weakening is the wrong repair — the
+caller was relying on the strong form for a reason, and here the reason was
+a `Panic` it has to rule out. Reach for the premise that makes the strong
+form true before reaching for a weaker conclusion. A `vos` build will not
+tell you the difference; only `vok` will.

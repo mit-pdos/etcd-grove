@@ -1594,3 +1594,62 @@ real names, so they assert the convention rather than this proof's contents.
 What deliberately stays: the module docstring and the parsing self-test use
 real Goose output shapes as examples, because a regex for
 `@! (go.PointerType <pkg>.<Type>) @! "<method>"` is unreadable without one.
+
+## 2026-09-18 — review of the module-discipline branch
+
+A low-effort correctness pass over `main...worktree-module-discipline` (the
+`wp_auto`/`proofmode` speedups, the one-collection-per-function split, and
+`etc/check-module-discipline.py`) found a real bug in
+`spec_raft__appendEntry.v`, the trust-boundary axiom the rename earlier in
+the day had touched: it claimed `RET #true` for an arbitrary `es` and took no
+ownership of `es`, while `raft__appendEntryⁱᵐᵖˡ` has a `return: #false` path
+and writes `Term`/`Index` into every element of the slice. Both real; the
+ownership one is `wp_ProgressTracker__Visit` one level out.
+
+**Its proposed fix was wrong, and the way it was wrong is the lesson.** The
+review weakened the result to an existential `accepted : bool` on the grounds
+that "`becomeLeader`, the only caller in scope, ignores it". `becomeLeader`
+does not ignore it:
+
+    if !r.appendEntry(pb.Entry{Data: nil}) { r.logger.Panic("empty entry was dropped") }
+
+`wp_Logger__logf` deliberately excludes `Panic`, so the existential form
+makes `becomeLeader` unprovable rather than merely weaker. Measured by
+installing the review's version and building it: `election.required_vos`
+rc=0, `proof_raft__becomeLeader.vok` rc=2, `Error: Failed to progress.` —
+`wp_auto` cannot step `if: ~accepted` for an opaque boolean. Third time in
+this session that a `vos`-green change was wrong; the review said the edit
+was "mechanical" and flagged that it had not built it, which is the only
+reason this was caught rather than pushed.
+
+The repair keeps `RET #true` and adds the premise that makes it true:
+`increaseUncommittedSize` rejects only when `payloadsSize(ents) > 0`
+(`v3.v:5401`, and `payloadsSize` sums `len(e.Data)` at `v3.v:7515,7524`), so
+`Forall (λ e, sint.Z e.(Entry.Data').(slice.len) = 0) ents` — exactly what
+`becomeLeader` passes — makes the `Panic` demonstrably dead code. The slice
+is owned as a precondition and handed back existentially, since
+`raftLog.append` copies values rather than taking the slice.
+`becomeLeader` discharges the premise with `apply Forall_singleton. done.`
+
+Verified: `proof_raft__becomeLeader.vok` rc=0 with the repair, and the full
+193-target sweep re-run afterwards. Both write-ups in
+notes/false-statements.md, including the two tells — an argument the triple
+says nothing about, and a weakening that breaks a caller.
+
+One detour worth recording, because it cost a whole sweep. The probe above
+saved and restored the two files with `shutil.copy2`, which preserves
+mtimes — so the `.vos` built from the review's version came out *newer* than
+the restored corrected source, `make` skipped rebuilding it, and the next
+sweep compiled `becomeLeader` against a spec that was no longer in the tree.
+It failed with `iAndDestruct: cannot destruct (own_raft_phys …)`, which reads
+like a proof bug and is not one. `touch` the restored files and rebuild the
+whole `vos` closure. Written up in [gotchas.md](gotchas.md).
+
+The rest of the diff came back clean at this effort level. The framework
+changes worth a second reader some day, none of them a finding: `Ltac done
+::=` in `proofmode.v` globally weakens `done` on `WP` goals for the whole
+downstream build (deliberate, documented); `wp_pure_candidate`'s shape filter
+silently skips the `PureWp` search for any listed node with an unevaluated
+operand, so a future instance that steps such a node would need adding
+there; and `wp_done_core`'s comment says "copied verbatim" from stdpp while
+the `¬_` arm is deliberately `fast_done` rather than a recursive `done`.

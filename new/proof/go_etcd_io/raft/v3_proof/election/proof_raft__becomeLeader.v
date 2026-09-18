@@ -52,7 +52,7 @@ Import P.
       as "%li [Hlog1 %Hli0]".
     iDestruct ("Hlogback0" with "Hlog1") as "Hlog1".
     wp_apply (wp_traceBecomeLeader with "[$Hmisc1]") as "Hmisc1".
-    wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
+    wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [Hes _]".
     wp_auto.
     (* [appendEntry] queues a self-addressed [MsgAppResp], so it writes
        [r.msgsAfterAppend] and needs the whole struct -- not just the log, as
@@ -68,7 +68,13 @@ Import P.
       iEval (simpl) in "Htrk1".
       iFrame "Hr1 ∗#%".
       iPureIntro. split_and!; done. }
-    wp_apply (wp_raft__appendEntry with "[$Hphys]") as "Hphys".
+    (* [appendEntry] writes [Term]/[Index] into every element of the slice,
+       so it needs [Hes].  It returns [true] because the entry's [Data] is
+       nil, which is what the premise says: with a zero payload
+       [increaseUncommittedSize] cannot reject, so the [Panic] on the
+       [false] branch below is dead code.  See [spec_raft__appendEntry.v]. *)
+    wp_apply (wp_raft__appendEntry with "[$Hphys $Hes]") as "%ents' [Hphys Hes]".
+    { apply Forall_singleton. done. }
     (* unpack again before [wp_auto]: the field reads in the [Infof] that
        follows cannot be stepped through the sealed predicate *)
     iNamedSuffix "Hphys" "2".

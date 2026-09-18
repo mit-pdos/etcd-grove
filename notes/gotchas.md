@@ -933,3 +933,34 @@ half vanishes: `etc/check-module-discipline.py` reported
 "spec file declares 0 Module Types" for exactly this reason. Count nesting
 depth instead — `strip_comments` in that script does, and it is the shared
 helper to reuse.
+
+## Restoring a `.v` file with its old mtime makes `make` use a stale `.vos`
+
+Hit twice on 2026-09-18, the second time costing a full 25-minute `vok`
+sweep. Both times the symptom pointed somewhere other than the cause.
+
+`make`'s `%.vos: %.v` rule compares mtimes, so **anything that puts an older
+mtime on a source file leaves the artifact looking current**. Two ways to do
+it by accident:
+
+- `shutil.copy2` (and `cp -p`, `rsync -a`, `git stash`-style round trips)
+  preserve the *source's* mtime. Save a file, overwrite it, build, restore
+  with `copy2` — and the `.vos` built from the overwritten version is now
+  newer than the restored original. `make` skips it. Everything downstream
+  then compiles against a spec that is not in the tree.
+- Editing a file while a build is running: the artifact gets written after
+  the edit, from the pre-edit source.
+
+The tell is an error that does not match the source you are reading.
+`iAndDestruct: cannot destruct (own_raft_phys …)` on a `[Hphys Hes]` pattern,
+when the spec in front of you plainly has two conjuncts, means the `.vos`
+holds a different spec. Confirm with `stat -c %y` on the `.v` and its
+`.vos`, not by re-reading the proof.
+
+The other shape of it is at the aggregator:
+`Error: Compiled library … makes inconsistent assumptions over library …`,
+which is two `.vos` files built against different versions of a third.
+
+So: after any file shuffling, `touch` what you restored (or delete the
+artifacts) and rebuild the whole `vos` closure before sweeping. A partial
+`vos` rebuild is worse than none, because it is silent.
