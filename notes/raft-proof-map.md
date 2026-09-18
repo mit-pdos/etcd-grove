@@ -27,6 +27,7 @@ new/proof/go_etcd_io/raft/v3_proof/election/{defs,inv_*,step_lemmas}.v
         ↓        shared vocabulary, outside the module system
 new/proof/go_etcd_io/raft/v3_proof/election/spec_<fn>.v   one per Go function
         ↓            ↓ postulates_<fn>.v          ↓ proof_<fn>.v
+        ↓                              ↓ proof_<fn>_helpers/*.v (if several)
 new/proof/go_etcd_io/raft/v3_proof/election/link_<fn>.v
         ↓
 new/proof/go_etcd_io/raft/v3_proof/election.v    aggregator + election safety
@@ -180,16 +181,33 @@ shared file, plus `Corollary raft_election_safety`. Requiring every link file
 from there is load-bearing: `make ci` builds only what `new/should_build.v`
 reaches, so a link file nothing re-exported would silently go unchecked.
 
-**`Step` is one function with one spec.** Its three per-message-type branches
-are internal lemmas — proof structure, not specification. Since 2026-09-17
-they live in `proof_raft__Step_MsgHup.v`, `proof_raft__Step_MsgVote.v`
-(which is a two-line case split over `proof_raft__Step_MsgVote_gt.v` and
-`_le.v`) and `proof_raft__Step_MsgVoteResp.v`, each a functor over
-`STEP_POSTULATES` with no `Module Type` of its own, so that `make -j` checks
-them in parallel; `proof_raft__Step.v` instantiates them and proves the one
-triple in `STEP`. Only `proof_raft__Step.v` may `Require` a branch file. If
-some function ever seems to want two specs, that is a signal to look harder,
-not to add a second `Module Type`.
+**A function whose proof needs several files puts the extra ones in
+`proof_<fn>_helpers/`.** That is what keeps the top level to four files per
+Go function, which is the property you audit the directory by: anything at
+the top level that is not `spec_`/`postulates_`/`proof_`/`link_` of some
+collection, or one of the eight shared files, is a mistake, and
+`etc/check-module-discipline.py` says so.
+
+**`Step` is one function with one spec**, and the only one with helpers. Its
+per-message-type branches are internal lemmas — proof structure, not
+specification — and since 2026-09-18 they are the eight files of
+`proof_raft__Step_helpers/`:
+
+    proof_raft__Step_MsgHup.v
+    proof_raft__Step_MsgVote.v        a two-line case split over:
+      proof_raft__Step_MsgVote_gt.v
+      proof_raft__Step_MsgVote_le.v   itself a split over:
+        proof_raft__Step_MsgVote_lt.v
+        proof_raft__Step_MsgVote_eq_novote.v
+        proof_raft__Step_MsgVote_eq_voted.v
+    proof_raft__Step_MsgVoteResp.v
+
+Each is a functor over `STEP_POSTULATES` with no `Module Type` of its own, so
+that `make -j` checks them in parallel; `proof_raft__Step.v` instantiates
+them and proves the one triple in `STEP`. Only `proof_raft__Step.v`, or
+another file in the same directory, may `Require` one. If some function ever
+seems to want two specs, that is a signal to look harder, not to add a second
+`Module Type`.
 
 Full write-up, including what is still `Admitted` and in what order to attack
 it, is in [raft-election-refinement.md](raft-election-refinement.md).

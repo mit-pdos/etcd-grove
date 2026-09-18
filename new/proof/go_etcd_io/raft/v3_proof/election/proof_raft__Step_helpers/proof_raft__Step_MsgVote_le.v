@@ -1,12 +1,13 @@
 (** One term case of [Step]'s [MsgVote] branch, in its own file so that it
     checks in parallel with the other -- see [proof_raft__Step_MsgVote.v],
-    which combines the two, and [notes/decisions.md] (2026-09-17).  Proof
+    which combines the two, and [notes/decisions.md] (2026-09-17; 2026-09-18
+    for why this directory exists).  Proof
     structure, not specification: no [Module Type], no [Parameter]; only
     [proof_raft__Step_MsgVote.v] may [Require] this file. *)
 
-Require Export New.proof.go_etcd_io.raft.v3_proof.election.proof_raft__Step_MsgVote_lt.
-Require Export New.proof.go_etcd_io.raft.v3_proof.election.proof_raft__Step_MsgVote_eq_novote.
-Require Export New.proof.go_etcd_io.raft.v3_proof.election.proof_raft__Step_MsgVote_eq_voted.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.proof_raft__Step_helpers.proof_raft__Step_MsgVote_lt.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.proof_raft__Step_helpers.proof_raft__Step_MsgVote_eq_novote.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.proof_raft__Step_helpers.proof_raft__Step_MsgVote_eq_voted.
 
 Module StepMsgVoteLe (P : STEP_POSTULATES).
 Import P.

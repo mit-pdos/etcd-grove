@@ -54,7 +54,10 @@ builds it.
   stated as loose `Lemma`s and `Axiom`s in the `inv_*.v` files, where nothing
   stopped a second spec — and two functions had already acquired one.
   `inv_slices.v` is gone (it held one axiom and nothing else). `election.v`
-  is only an aggregator plus `raft_election_safety`. See
+  is only an aggregator plus `raft_election_safety`.
+  **Listing the top level shows exactly four files per Go function**, plus
+  the eight shared files and one `proof_<fn>_helpers/` directory per function
+  whose proof needs several files (only `raft__Step` today, with eight). See
   [decisions.md](decisions.md) for why, and
   [raft-election-refinement.md](raft-election-refinement.md) for scope, what
   is proved, what is admitted, and the trust boundary.
@@ -65,12 +68,14 @@ builds it.
   malformed spec file, an incomplete collection, or a name absent from
   `new/code/`. Exits non-zero, so it can gate CI.
 
-      etc/check-module-discipline.py --scope election    # clean
-      etc/check-module-discipline.py --scope raft --summary
-      etc/check-module-discipline.py --selftest         # the parsing contract
+      etc/check-module-discipline.py --scope election   # clean
+      etc/check-module-discipline.py --summary
+      etc/check-module-discipline.py --selftest        # the parsing contract
 
-  `--scope raft` still reports 11: eight in `readonly.v`, three in
-  `protocol.v`. See "Next steps".
+  With no `--scope` it checks the whole raft proof and still reports 11:
+  eight in `readonly.v`, three in `protocol.v`. See "Next steps". It knows
+  the toolchain and no particular package or file name, so `--proof-root`
+  aims it at another development.
 
 So: the read-index/heartbeat protocol reasoning and the election refinement
 are the two developed pieces; the node interface is still axiomatized, and
@@ -115,10 +120,11 @@ is nothing to apply. Its four cases:
 | `m.Term = r.Term`, Follower/Leader | `stepFollower` / `stepLeader` only read | `step_refl` |
 | `m.Term = r.Term`, Candidate | `stepCandidate` records the vote, maybe wins or loses | `step_record_then_win` / `_lose` / `step_record_vote` |
 
-**Cost note:** `Step`'s proof is now nine files (`proof_raft__Step.v` plus
-`proof_raft__Step_MsgHup.v`, `_MsgVote.v`, `_MsgVote_gt.v`, `_MsgVote_le.v`,
-`_MsgVote_lt.v`, `_MsgVote_eq_novote.v`, `_MsgVote_eq_voted.v`,
-`_MsgVoteResp.v`) that check in **3 min 21 s wall with `make -j4`**, the
+**Cost note:** `Step`'s proof is now nine files — `proof_raft__Step.v` plus
+eight in **`proof_raft__Step_helpers/`** (`proof_raft__Step_MsgHup.v`,
+`_MsgVote.v`, `_MsgVote_gt.v`, `_MsgVote_le.v`, `_MsgVote_lt.v`,
+`_MsgVote_eq_novote.v`, `_MsgVote_eq_voted.v`, `_MsgVoteResp.v`) — that
+check in **3 min 21 s wall with `make -j4`**, the
 longest (`_MsgVote_gt`) 2:39 and 2.3 GB alone (2026-09-17). As one file it
 was ~45 min and 11.3 GB the day before, 9.5 min after the framework fixes,
 8.7 min after the walker fixes. The parts sum to ~11 min of CPU; four of
@@ -324,8 +330,8 @@ rising while axioms fall is the conversion working, not a regression:
 ending in `Admitted.` and the `spec_*.v` files are full of `Parameter`s. For
 the honest number, strip comments first — `strip_comments` in
 `etc/check-module-discipline.py` is the helper, and
-`etc/check-module-discipline.py --scope raft --summary` lists every Go
-function with a triple and where it is.
+`etc/check-module-discipline.py --summary` lists every Go function with a
+triple and where it is.
 
 There are also 44 module-type obligations — one `Parameter` per Go function.
 Those are **not** assumptions: each is discharged by the functor ascribed to
@@ -366,7 +372,7 @@ Unclaimed; pick one and say so in the journal.
    stays an axiom.
 7. Extend `v3.v` past `Propose` to the rest of the `node` interface.
 8. **Bring `readonly.v` and `protocol.v` into the module discipline.**
-   `etc/check-module-discipline.py --scope raft` lists eleven triples still
+   `etc/check-module-discipline.py` lists eleven triples still
    stated loose: `ProgressTracker__IsSingleton`,
    `raft__committedEntryInCurrentTerm`, `readOnly__addRequest`,
    `readOnly__recvAck`, `JointConfig__CommittedIndex`,

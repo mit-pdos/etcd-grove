@@ -21,9 +21,11 @@ anyway.
 **This is checked.** `etc/check-module-discipline.py` reads the program
 expression out of every triple in the raft proof, reports which Go function
 it specifies, and errors on a triple outside the spec/proof shape, two
-triples for one function, a malformed spec file, an incomplete collection, or
-a name the Goose output does not have. `--scope election` is clean as of
-2026-09-18; `--scope raft` still reports `readonly.v` (8) and `protocol.v`
+triples for one function, a malformed spec file, an incomplete collection, a
+name the Goose output does not have, or a proof helper left at the top level
+instead of in `proof_<fn>_helpers/`. `--scope election` is clean as of
+2026-09-18; with no `--scope`, i.e. over the whole raft proof, it still
+reports `readonly.v` (8) and `protocol.v`
 (3).
 
 ## The claim

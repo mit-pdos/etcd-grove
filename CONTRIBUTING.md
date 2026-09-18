@@ -18,16 +18,29 @@ bypass it — see
 module system". `etc/check-module-discipline.py` checks it:
 
 ```
-etc/check-module-discipline.py --scope election    # clean
-etc/check-module-discipline.py --scope raft --summary
-etc/check-module-discipline.py --selftest         # the parsing contract
+etc/check-module-discipline.py --scope election   # clean
+etc/check-module-discipline.py --summary
+etc/check-module-discipline.py --selftest        # the parsing contract
 ```
 
 It reads the program expression out of each triple rather than trusting lemma
 names, so it reports which Go function a spec really specifies, and it
 cross-references the Goose output in `new/code/` to catch a spec named after a
-function that does not exist. It exits non-zero on errors. `--scope raft`
-is *not* clean: `readonly.v` and `protocol.v` predate the discipline.
+function that does not exist. It exits non-zero on errors. The whole raft
+proof is *not* clean: `readonly.v` and `protocol.v` predate the discipline.
+
+When one function's proof needs several files, the extra ones go in
+`proof_<fn>_helpers/` — so listing the top level shows exactly the four files
+of each collection, and the checker errors on a helper left outside. Today
+only `raft__Step` has one.
+
+The script knows the *toolchain* — how Goose renders a call, Perennial's
+`{{{ … }}}` notation, and the file-naming convention — and no particular
+package, function or file name. `--proof-root` points it at another
+development (it finds 24 out-of-place triples in
+`new/proof/go_etcd_io/etcd`, which predates the convention), `--code-root`
+at another translation, and `--scope` takes a path or the bare name of any
+directory under the proof root.
 
 ## Default build
 

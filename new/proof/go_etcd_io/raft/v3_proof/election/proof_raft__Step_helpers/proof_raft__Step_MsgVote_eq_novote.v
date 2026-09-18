@@ -1,12 +1,13 @@
 (** One case of [Step]'s [MsgVote] branch with [m.Term ≤ r.Term], in its own
     file so that it checks in parallel with the others -- see
     [proof_raft__Step_MsgVote_le.v], which combines them, and
-    [notes/decisions.md] (2026-09-17).  Proof structure, not specification:
+    [notes/decisions.md] (2026-09-17; 2026-09-18 for why this directory
+    exists).  Proof structure, not specification:
     no [Module Type], no [Parameter]; only [proof_raft__Step_MsgVote_le.v]
     may [Require] this file. *)
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.postulates_raft__Step.
 
-Module StepMsgVoteEqVoted (P : STEP_POSTULATES).
+Module StepMsgVoteEqNovote (P : STEP_POSTULATES).
 Import P.
 
 Section branches.
@@ -138,17 +139,17 @@ Implicit Type s : nstate.t.
       and only then calls the shared tail; the tails themselves
       ([vote_grant_tail] / [vote_reject_tail]) assume the program is sitting
       right after [lastEntryID] with [canVote] already decided. *)
-  (** [MsgVote] with [m.Term = r.Term] and [r.Vote ≠ None]: grant again if the
-      vote was for this candidate (and its log is up to date), else decline. *)
-  Lemma wp_Step_MsgVote_eq_voted r id s (m : raftpb.Message.t) :
+  (** [MsgVote] with [m.Term = r.Term] and [r.Vote = None]: grant if no leader
+      is known and the candidate's log is up to date, else decline. *)
+  Lemma wp_Step_MsgVote_eq_novote r id s (m : raftpb.Message.t) :
     m.(raftpb.Message.Type') = MsgVote →
     m.(raftpb.Message.To') = id →
     m.(raftpb.Message.Term') ≠ W64 0 →
     (* [send] stamps the sender's id into [From], and node ids are nonzero *)
     m.(raftpb.Message.From') ≠ W64 0 →
-    (* this file: same term, and this node has already voted in it *)
+    (* this file: same term, and this node has not voted in it *)
     m.(raftpb.Message.Term') = s.(nstate.term) →
-    s.(nstate.vote) ≠ W64 0 →
+    s.(nstate.vote) = W64 0 →
     {{{ is_pkg_init raft ∗
         "Hphys" ∷ own_raft_phys cfg r id s ∗
         (* the message's [Context] is readable and is not the leader-transfer
@@ -174,7 +175,7 @@ Implicit Type s : nstate.t.
       by (rewrite Hterm0 Heq0; lia).
     assert (Hnlt : ¬ (uint.Z m.(raftpb.Message.Term') < uint.Z rv.(raft.raft.Term')))
       by (rewrite Hterm0 Heq0; lia).
-    assert (Hv0 : rv.(raft.raft.Vote') ≠ W64 0) by (rewrite Hvote; exact Hv00).
+    assert (Hv0 : rv.(raft.raft.Vote') = W64 0) by (rewrite Hvote; exact Hv00).
     wp_apply (wp_traceReceiveMessage with "[$Hmisc]") as "Hmisc".
     (* [m.Term ≠ 0], so the first arm of the term preamble is skipped. *)
     assert (bool_decide (m.(raftpb.Message.Term') = W64 0) = false) as Hz
@@ -194,22 +195,24 @@ Implicit Type s : nstate.t.
         rewrite Hty /MsgVote bool_decide_eq_false_2; last w32_ne. wp_auto.
         (* [canVote] is the model's [can_vote]: the Go expression's third
            disjunct needs [MsgPreVote] and is dead here. *)
-          destruct (decide (rv.(raft.raft.Vote') = m.(raftpb.Message.From')))
-            as [Hv1|Hv1].
-          -- (* for this very candidate, so the vote may be granted again *)
-             rewrite bool_decide_eq_true_2; last congruence. wp_auto.
+          rewrite Hv0 bool_decide_eq_false_2; last congruence. wp_auto.
+          rewrite Hv0 bool_decide_eq_true_2 //. wp_auto.
+          destruct (decide (rv.(raft.raft.lead') = W64 0)) as [Hl0|Hl0].
+          -- (* and recognises no leader: [canVote] *)
+             rewrite Hl0 bool_decide_eq_true_2 //. wp_auto.
              assert (Hcan : can_vote s m.(raftpb.Message.From'))
-               by (left; congruence).
+               by (right; split; congruence).
              wp_apply (wp_raftLog__lastEntryID with "[$Hlog]")
                as "%lastID2 Hlog".
              wp_apply (wp_raftLog__isUpToDate with "[$Hlog]") as "%ok2 Hlog".
              destruct ok2.
              ++ vote_grant_tail r id s m Hlok Hty Hto Hcan.
              ++ vote_reject_tail r id s m Hlok Hto Hterm0.
-          -- (* for somebody else: declined.  Both halves of [canVote]'s
-                  first two disjuncts are false, so again the third is
-                  evaluated and its [MsgPreVote] test has to be decided. *)
-             rewrite bool_decide_eq_false_2; last congruence. wp_auto.
+          -- (* but a leader is known, so the vote is declined.  [canVote]'s
+                  second disjunct is now false, so the program goes on to
+                  evaluate the third -- which needs [MsgPreVote].  This arm
+                  therefore discharges one more [bool_decide] than the
+                  [lead = None] one above, which short-circuited to [true]. *)
              rewrite bool_decide_eq_false_2; last congruence. wp_auto.
              rewrite (bool_decide_eq_false_2
                         (m.(raftpb.Message.Type') = W32 17));
@@ -228,4 +231,4 @@ Implicit Type s : nstate.t.
 
 End branches.
 
-End StepMsgVoteEqVoted.
+End StepMsgVoteEqNovote.

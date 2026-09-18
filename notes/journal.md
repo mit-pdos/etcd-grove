@@ -1455,8 +1455,8 @@ next steps, together with the other ten loose triples in `readonly.v` and
   the `Show.` that `wp_raft__resetRandomizedElectionTimeout`'s `Admitted`
   proof has always carried.
 - `etc/check-module-discipline.py --scope election` — RC=0, 0 findings.
-  `--selftest` — ok. `--scope raft` — 12 errors, all in `readonly.v` and
-  `protocol.v`.
+  `--selftest` — ok. Over the whole raft proof — 12 errors, all in
+  `readonly.v` and `protocol.v`.
 
   Two traps met while doing this, worth knowing for the next big move: the
   `%.vok` rule re-runs every time (the stamp does not stick), so a vok sweep
@@ -1491,3 +1491,106 @@ next steps, together with the other ten loose triples in `readonly.v` and
 and "Known broken" sections are the bulk and both have topic files they
 could move into. Worth doing before it stops being read, which is the
 failure mode the budget exists to prevent.
+
+---
+
+## 2026-09-18 (later) — `Step`'s eight proof helpers move to `proof_raft__Step_helpers/`
+
+Same branch, follow-on to the entry above.
+
+### Why
+
+The collection layout makes the top-level election directory the thing you
+audit: four files per Go function, and you can check "one spec per function"
+by reading it. After the morning's work it held 176 collection files, eight
+shared files — and eight that were neither, `Step`'s branch lemmas, sorting
+in among the collections and indistinguishable from collection members by
+name. `proof_raft__Step_MsgVote_gt.v` looks exactly like the proof file of a
+collection whose spec someone forgot. That defeats the point of the layout.
+
+### What moved
+
+`proof_raft__Step_MsgHup.v`, `_MsgVote.v`, `_MsgVoteResp.v`,
+`_MsgVote_gt.v`, `_MsgVote_le.v`, `_MsgVote_lt.v`, `_MsgVote_eq_novote.v`
+and `_MsgVote_eq_voted.v` → `election/proof_raft__Step_helpers/`. `Step` is
+the only function whose proof spans more than one file, so it is the only
+directory. File names kept; see the decision record for why not shortened.
+
+The only code change beyond the `git mv` is three `Require Export` lines —
+the ones *pointing at* the moved files, in `proof_raft__Step.v`,
+`_MsgVote.v` and `_MsgVote_le.v`. The helpers' own
+`Require Export …election.postulates_raft__Step` is an absolute logical
+path and did not move, which is the thing to know before attempting a
+rearrangement like this: only inbound references break.
+
+`proof_<fn>_helpers/` rather than `proof_<fn>/`, because a directory
+`election/proof_raft__Step/` would collide with the file
+`election/proof_raft__Step.v` for the logical name
+`…election.proof_raft__Step`. Worth knowing generally: under `-Q new New` a
+directory and a `.v` file of the same name in the same parent cannot
+coexist.
+
+### Made a rule
+
+`etc/check-module-discipline.py` gained `H1` (a helper at the top level),
+`H2` (a `Module Type` or an assumption inside a helpers directory — a spec
+hiding in proof structure) and `H3` (a helpers directory with no
+`proof_<fn>.v`). `H1` is structural, not a filename list: a
+`proof_<X>_<suffix>.v` whose own collection has no spec while `<X>` does is a
+helper by construction. `--summary` now names the functions that have helper
+directories.
+
+All three were verified by planting a violation rather than by reading the
+code: a copied helper at the top level (H1 fired), a two-line
+`Module Type`/`Parameter` file inside the directory (H2 fired twice, once for
+each), and a `proof_zznothing_helpers/` with nothing to help (H3 fired).
+Then deleted.
+
+### Verification
+
+- `rm .rocqdeps.d && make -j8 new/should_build.required_vos` — RC=0. The
+  dependency file has to be deleted: it is generated, and it still named the
+  old paths.
+- `make -j4` over all 193 `.vok` targets in the election closure, now found
+  with `find` rather than a top-level glob so the helpers directory is
+  included — see below for the result.
+- `etc/check-module-discipline.py --scope election` RC=0, `--selftest` ok.
+  193 targets, `MAKE_EXIT=0`, 0 errors; the sweep script now finds its
+  targets with `find` rather than a top-level glob, so the helpers directory
+  is included (checked: 178 of the log's lines name it).
+
+### And then: the checker was specialized to this proof, so that was removed
+
+A separate pass over `etc/check-module-discipline.py`, after Upamanyu asked
+for it to be as generic as sensible. Four specializations, all in the
+*logic* rather than in the examples:
+
+- `suggest_name` had `if parts[0] == "raft": return parts[1]` — a package
+  name deciding naming policy. Replaced by `acceptable_names`, which returns
+  both the bare and the package-prefixed form and lets the author use
+  either; the `N1` note now fires only when the collection name is neither.
+  This is the right shape anyway: which reads better depends on the package,
+  and a checker should not be the thing that decides.
+- The proof root, the code roots and a two-entry table of scope names were
+  module constants with no way to override them. Now `--proof-root`,
+  `--code-root` (repeatable) and a `--scope` that takes a path *or* the bare
+  name of any directory under the proof root — which is the convenience the
+  hardcoded table was providing, generalised.
+- The code index dropped Rocq's module alias and matched on `Type.method`
+  alone, justified in a comment by "distinctive enough across these five
+  packages". It now resolves the alias against the `Module` declarations each
+  generated file makes, with the bare name as a fallback, so a package
+  translated into a file of any name resolves properly. (This is why
+  `raft.raft.poll` works at all: the raft package is `new/code/.../v3.v`.)
+- Goose's `Recv__method` separator and the collection-naming separator were
+  one constant. Same spelling, different conventions; split.
+
+Verified by pointing it at another development: `--proof-root
+new/proof/go_etcd_io/etcd` reports 24 out-of-place triples, and the raft and
+election numbers are unchanged (12 errors and 0). The self-test cases for the
+naming and lookup helpers now use `pkg`/`Type`/`fn` placeholders instead of
+real names, so they assert the convention rather than this proof's contents.
+
+What deliberately stays: the module docstring and the parsing self-test use
+real Goose output shapes as examples, because a regex for
+`@! (go.PointerType <pkg>.<Type>) @! "<method>"` is unreadable without one.

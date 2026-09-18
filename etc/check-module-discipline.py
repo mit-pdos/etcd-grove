@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Check the one-Go-function-per-module-collection discipline.
 
-The etcd raft proof is meant to state every Hoare triple about a Go function
-in its own collection of four files::
+A development following it states every Hoare triple about a Go function in
+its own collection of four files::
 
     spec_<X>.v        Definition wp_<X>_body + Module Type <X> with one Parameter
     postulates_<X>.v  Module Type <X>_POSTULATES, Including its callees
@@ -14,21 +14,37 @@ it.  See notes/decisions.md, "One file per function, via Rocq's module
 system".  The discipline covers unproven and axiomatized triples too: an
 ``Axiom`` about a Go function is still a specification of that function.
 
+When one function's proof needs several files, the extra ones go in a
+per-function directory, so that listing the top level shows exactly the four
+files of each collection:
+
+    proof_<X>_helpers/*.v   internal lemmas -- no Module Type, no Parameter,
+                            and only proof_<X>.v (or another helper) may
+                            Require one
+
 This script finds the triples that are *not* in that shape.  It works by
 reading the program expression out of each triple rather than by trusting
-lemma names, so a spec called ``wp_campaign_peer_ids`` is still recognised as
-a spec of ``quorum.JointConfig.IDs``.
+lemma names, so a lemma whose name says nothing about its subject -- or says
+the wrong thing -- is still attributed to the Go function it really
+specifies.
+
+Nothing here knows any particular package, function or file name.  What it
+does assume is the *toolchain*: Goose's rendering of a call, Perennial's
+``{{{ … }}}`` triple notation, and the file-naming convention above, all of
+which are named in the constants below.  Point it at another development
+with --proof-root.
 
 Usage::
 
-    etc/check-module-discipline.py                     # whole raft proof
-    etc/check-module-discipline.py --scope election    # just the election proof
-    etc/check-module-discipline.py --scope raft --summary
+    etc/check-module-discipline.py                    # the default proof root
+    etc/check-module-discipline.py --scope election   # one directory of it
+    etc/check-module-discipline.py --summary
     etc/check-module-discipline.py --format json
-    etc/check-module-discipline.py --selftest          # the parsing contract
+    etc/check-module-discipline.py --selftest         # the parsing contract
 
-Exits non-zero when an *error* is flagged, so it can be used as a gate;
-warnings, notes and info do not fail it.
+--scope takes a path, or the bare name of a directory anywhere under the
+proof root.  Exits non-zero when an *error* is flagged, so it can be used as
+a gate; warnings, notes and info do not fail it.
 """
 
 import argparse
@@ -39,15 +55,39 @@ import re
 import sys
 
 # --------------------------------------------------------------------------
-# Where things live
+# Defaults and conventions.  These are the only place anything about a
+# particular repository layout is written down; all are overridable or are
+# conventions of the layout itself rather than of one development.
 
-PROOF_ROOT = "new/proof/go_etcd_io/raft"
-CODE_ROOTS = ["new/code"]
+# The development to check.  Any directory tree using the collection layout
+# will do; this is just where this repository keeps the one that does.
+DEFAULT_PROOF_ROOT = "new/proof/go_etcd_io/raft"
 
-SCOPES = {
-    "raft": PROOF_ROOT,
-    "election": os.path.join(PROOF_ROOT, "v3_proof/election"),
-}
+# Where the Goose output lives, used to confirm a spec names a real Go
+# function and to say whether that function has a translated body.
+DEFAULT_CODE_ROOTS = ["new/code"]
+
+# The four file kinds of a collection, and the directory a function's extra
+# proof files go in when its proof needs more than one.
+ROLES = ("spec", "postulates", "proof", "link")
+HELPERS_SUFFIX = "_helpers"
+
+# A spec states its triple as `Definition wp_<fn><BODY_SUFFIX> := ∀ …` so that
+# the binder list exists once; the Module Type's Parameter refers to it.
+BODY_SUFFIX = "_body"
+
+# How a collection is named after the Go function it specifies: a method as
+# <Type><METHOD_SEP><method>, a package-level function as <fn>, either
+# optionally prefixed with <pkg><PKG_SEP>.
+METHOD_SEP = "__"
+PKG_SEP = "_"
+
+# Toolchain conventions, as opposed to the layout conventions above.  Goose
+# names a method's body <Recv><GOOSE_METHOD_SEP><method> with IMPL_SUFFIX
+# appended, and gives a package-level name its qualified string as a
+# `go_string`.  Same spelling as METHOD_SEP today, and a different thing.
+GOOSE_METHOD_SEP = "__"
+IMPL_SUFFIX = "\u2071\u1d50\u1d56\u02e1"  # the superscript "impl" Goose appends
 
 # --------------------------------------------------------------------------
 # Rocq source scanning
@@ -105,7 +145,7 @@ def sentence_end(text, start):
     """Offset just past the '.' ending the Rocq sentence starting at `start`.
 
     A sentence ends at a '.' followed by whitespace or end of input.  Dots
-    inside qualified names (``raft.raft.t``) and inside string literals are
+    inside qualified names (``pkg.Type.t``) and inside string literals are
     not followed by whitespace, or are skipped over with the string.
     """
     i, n = start, len(text)
@@ -123,8 +163,9 @@ def sentence_end(text, start):
     return n
 
 
-# A method call: `expr @! (go.PointerType raft.raft) @! "poll" #args`, or the
-# value-receiver form without the PointerType wrapper.
+# A method call, `<recv> @! (go.PointerType <pkg>.<Type>) @! "<method>" #args`,
+# or the value-receiver form without the PointerType wrapper.  The receiver
+# expression may be anything, including a chain of field references.
 METHOD_RE = re.compile(
     r"""@!\s*
         \(?\s*(?:go\.PointerType\s+)?
@@ -134,12 +175,13 @@ METHOD_RE = re.compile(
     re.VERBOSE,
 )
 
-# A package-level call: `@! raft.traceSendMessage #r #mp`.
+# A package-level call, `@! <pkg>.<Fn> #args`.
 FUNC_RE = re.compile(r"@!\s*(?P<pkg>[A-Za-z_][\w]*)\.(?P<fn>[A-Za-z_][\w]*)\s*#")
 
-# An untranslated or builtin function reached through the semantics:
-# `#(functions slices.Sort [...])`.  `go.<builtin>` is a predeclared
-# operation, not a Go function of the program under verification.
+# A function reached through the semantics rather than by name, which is how
+# an untranslated one has to be called: `#(functions <pkg>.<Fn> [...])`.
+# A `go.<name>` there is a predeclared operation (`go.len`, ...), not a Go
+# function of the program under verification.
 FUNCTIONS_RE = re.compile(r"functions\s+(?P<pkg>[A-Za-z_][\w]*)\.(?P<fn>[A-Za-z_][\w]*)")
 
 # Dynamic dispatch through an interface value: `#(methods i.(interface.ty) "Term" ...)`.
@@ -152,9 +194,8 @@ def go_refs(statement):
     """The Go functions a triple's program expression names.
 
     Returns (functions, iface) where `functions` is a list of canonical keys
-    like ``raft.raft.poll`` (package.type.method) or ``raft.newReadOnly``
-    (package.function), and `iface` says whether the triple is about an
-    interface method instead.
+    like ``pkg.Type.method`` or ``pkg.function``, and `iface` says whether
+    the triple is about an interface method instead.
     """
     found = []
     text = statement
@@ -207,18 +248,25 @@ def scan_file(path):
 
 
 def scan_code(roots):
-    """Map Go function -> {'impl': bool, 'file': path}.
+    """Index the Goose output.
 
-    Keyed by the last two components -- ``raft.poll`` for the method ``poll``
-    on ``raft``, ``voteRespMsgType`` for a package-level function -- because
-    the package *alias* a proof writes (``raft.raft.poll``) is a Rocq module
-    name that does not appear in the generated file's path (the raft package
-    is ``new/code/go_etcd_io/raft/v3.v``).  Method and function names are
-    distinctive enough across these five packages that dropping the alias
-    costs nothing and avoids resolving Rocq's module aliases.
+    Returns (by_alias, by_local).  A proof writes a call as
+    ``<alias>.<Type>.<method>`` or ``<alias>.<fn>``, where ``<alias>`` is a
+    Rocq module name that need not match the generated file's path -- a
+    package may be translated to ``<anything>.v`` and open ``Module foo.``
+    inside it.  So the index is keyed twice: by (alias, local name), resolved
+    through the ``Module`` declarations each generated file makes, and by
+    local name alone as a fallback for an alias introduced some other way
+    (a `Module Import`, a notation).  Local names are ``Type.method`` and
+    bare ``fn``.
     """
-    known = {}
-    impl_re = re.compile(r"^Definition\s+(?P<name>[A-Za-z_][\w]*)ⁱᵐᵖˡ\b", re.MULTILINE)
+    by_alias = collections.defaultdict(dict)
+    by_local = {}
+    alias_re = re.compile(r"^Module\s+(?P<name>[A-Za-z_][\w]*)\s*\.", re.MULTILINE)
+    impl_re = re.compile(
+        r"^Definition\s+(?P<name>[A-Za-z_][\w]*)" + re.escape(IMPL_SUFFIX) + r"\b",
+        re.MULTILINE,
+    )
     method_re = re.compile(
         r"MethodUnfold\s+\(?(?:go\.PointerType\s+)?\(?(?P<typ>[A-Za-z_][\w]*)\)?\s*\)?"
         r'\s*"(?P<meth>[^"]+)"'
@@ -237,50 +285,86 @@ def scan_code(roots):
                 with open(path, encoding="utf-8", errors="replace") as f:
                     body = f.read()
                 impls = {m.group("name") for m in impl_re.finditer(body)}
+                local = {}
                 for name in impls:
-                    key = name.replace("__", ".", 1)
-                    known.setdefault(key, {"impl": True, "file": path})
+                    local.setdefault(
+                        name.replace(GOOSE_METHOD_SEP, ".", 1),
+                        {"impl": True, "file": path},
+                    )
                 for m in method_re.finditer(body):
                     key = "{}.{}".format(m.group("typ"), m.group("meth"))
-                    has = "{}__{}".format(m.group("typ"), m.group("meth")) in impls
-                    entry = known.setdefault(key, {"impl": has, "file": path})
+                    has = (
+                        "{}{}{}".format(
+                            m.group("typ"), GOOSE_METHOD_SEP, m.group("meth")
+                        )
+                        in impls
+                    )
+                    entry = local.setdefault(key, {"impl": has, "file": path})
                     entry["impl"] = entry["impl"] or has
                 for m in name_re.finditer(body):
-                    known.setdefault(
+                    local.setdefault(
                         m.group("name"), {"impl": m.group("name") in impls, "file": path}
                     )
-    return known
+                aliases = {m.group("name") for m in alias_re.finditer(body)}
+                for alias in aliases:
+                    by_alias[alias].update(local)
+                for key, entry in local.items():
+                    by_local.setdefault(key, entry)
+    return dict(by_alias), by_local
 
 
-def code_key(go_fn):
-    """Drop the package alias from a canonical key, for lookup in `known`."""
+def lookup_code(go_fn, index):
+    """The generated-code entry for a Go function key, or None.
+
+    Tries the alias the proof wrote first, then the local name alone.
+    """
+    by_alias, by_local = index
     parts = go_fn.split(".")
-    return ".".join(parts[1:]) if len(parts) == 3 else parts[-1]
+    alias, local = parts[0], ".".join(parts[1:])
+    entry = by_alias.get(alias, {}).get(local)
+    return entry if entry is not None else by_local.get(local)
 
 
 # --------------------------------------------------------------------------
 # File classification
 
-ROLE_RE = re.compile(r"^(spec|postulates|proof|link)_(?P<x>.+)$")
+ROLE_RE = re.compile(
+    r"^(?P<role>{})_(?P<x>.+)$".format("|".join(ROLES))
+)
+HELPERS_RE = re.compile(
+    r"^proof_(?P<x>.+){}$".format(re.escape(HELPERS_SUFFIX))
+)
 
 
 def classify(path):
-    """(role, collection) for a proof file; role is None for support files."""
+    """(role, collection) for a proof file.
+
+    Roles are the four file kinds of a collection, plus "helper" for a file
+    inside ``proof_<fn><HELPERS_SUFFIX>/``.  A helper is proof structure --
+    an internal lemma split out so that `make -j` can check it in parallel --
+    not a specification, so it is allowed to state triples about its function
+    and must not declare a Module Type.  Anything else -- shared predicates,
+    pure lemmas, tactics -- gets role None and is only checked for triples it
+    should not be holding.
+    """
     base = os.path.basename(path)[:-2]
+    hm = HELPERS_RE.match(os.path.basename(os.path.dirname(path)))
+    if hm:
+        return "helper", hm.group("x")
     m = ROLE_RE.match(base)
     if not m:
         return None, base
-    return base.split("_", 1)[0], m.group("x")
+    return m.group("role"), m.group("x")
 
 
 def owning_collection(coll, specs):
-    """The collection a `proof_X_branch.v` helper file belongs to.
+    """The collection a `proof_<X>_<suffix>.v` file belongs to.
 
-    `Step`'s branch lemmas live in proof_raft__Step_MsgVote_gt.v and friends.
-    Each is proof structure inside the `raft__Step` collection -- no Module
-    Type, no Parameter -- so they must not be counted as separate specs of
-    `Step`.  Walk back along `_`-separated suffixes to the longest prefix that
-    has a spec file.
+    Such a file is proof structure inside collection `<X>` -- no Module Type,
+    no Parameter -- so it must not be counted as a separate spec of `<X>`'s
+    function.  Walk back along `_`-separated suffixes to the longest prefix
+    that has a spec file.  Used for a helper that has not been moved into
+    the helpers directory yet, which is what H1 reports.
     """
     parts = coll.split("_")
     while parts:
@@ -291,20 +375,31 @@ def owning_collection(coll, specs):
     return coll
 
 
-def suggest_name(key):
-    """The collection name the naming convention would give a Go function.
+def acceptable_names(key):
+    """The collection names the naming convention allows for a Go function.
 
-    A method is named after its receiver type (``raftLog__lastIndex``); a
-    package-level function of the raft package after itself
-    (``voteRespMsgType``); one from another package keeps its package, since
-    a bare ``Sort`` says nothing (``slices_Sort``).
+    Preferred first.  A method is named after its receiver type and method
+    (``Type__method``); a package-level function after itself (``fn``).
+    Either may be prefixed with the package, which is what you want when a
+    bare method or function name would say nothing on its own -- so both
+    ``Sort`` and ``slices_Sort`` are accepted for ``slices.Sort``.
+
+    Deliberately a set and not one answer: which of the two reads better
+    depends on the package, and picking for the author would mean this script
+    knowing which package is "the" one under verification.
     """
     parts = key.split(".")
+    pkg = parts[0]
     if len(parts) == 3:
-        return "{}__{}".format(parts[1], parts[2])
-    if parts[0] == "raft":
-        return parts[1]
-    return "{}_{}".format(parts[0], parts[1])
+        bare = "{}{}{}".format(parts[1], METHOD_SEP, parts[2])
+    else:
+        bare = parts[1]
+    return (bare, "{}{}{}".format(pkg, PKG_SEP, bare))
+
+
+def suggest_name(key):
+    """The preferred collection name, for a message."""
+    return acceptable_names(key)[0]
 
 
 # --------------------------------------------------------------------------
@@ -313,7 +408,7 @@ def suggest_name(key):
 Finding = collections.namedtuple("Finding", "code path line severity message")
 
 
-def check(scope_dir, root, known, all_proof_files):
+def check(scope_dir, root, code_index, code_roots, all_proof_files):
     findings = []
     files = sorted(
         os.path.join(dp, fn)
@@ -322,11 +417,14 @@ def check(scope_dir, root, known, all_proof_files):
         if fn.endswith(".v")
     )
 
-    # collection -> role -> path
+    # collection -> role -> path (helpers are a list; there can be many)
     collections_seen = collections.defaultdict(dict)
+    helpers_of = collections.defaultdict(list)
     for path in all_proof_files:
         role, coll = classify(path)
-        if role:
+        if role == "helper":
+            helpers_of[coll].append(path)
+        elif role:
             collections_seen[coll][role] = path
 
     specs = {c for c, roles in collections_seen.items() if "spec" in roles}
@@ -341,7 +439,7 @@ def check(scope_dir, root, known, all_proof_files):
         for d in scan_file(path):
             if not d.is_triple:
                 continue
-            if d.kind == "Definition" and not d.name.endswith("_body"):
+            if d.kind == "Definition" and not d.name.endswith(BODY_SUFFIX):
                 # A predicate that bundles triples (is_Storage, a closure's
                 # caller invariant).  Not a specification of a Go function.
                 continue
@@ -367,7 +465,7 @@ def check(scope_dir, root, known, all_proof_files):
 
     # --- F1: a triple about a Go function outside the spec/proof shape
     for path, rel, role, coll, d in triples:
-        if role in ("spec", "proof"):
+        if role in ("spec", "proof", "helper"):
             continue
         base = os.path.basename(path)
         kind = "axiom" if d.kind in ASSUMPTION_KINDS else "lemma"
@@ -396,7 +494,11 @@ def check(scope_dir, root, known, all_proof_files):
         # one specification, so collapse a collection's spec+proof pair.
         places = {}
         for rel, d, role, coll in entries:
-            slot = coll if role in ("spec", "proof") else "{}:{}".format(rel, d.name)
+            slot = (
+                coll
+                if role in ("spec", "proof", "helper")
+                else "{}:{}".format(rel, d.name)
+            )
             places.setdefault(slot, []).append((rel, d))
         if len(places) > 1:
             where = "; ".join(
@@ -492,7 +594,6 @@ def check(scope_dir, root, known, all_proof_files):
             continue
         own = collections_seen.get(coll, {}).get("spec")
         if own is None:
-            # A branch helper such as proof_raft__Step_MsgVote_gt.v.
             continue
         spec_fns = set()
         for sd in scan_file(own):
@@ -514,9 +615,9 @@ def check(scope_dir, root, known, all_proof_files):
 
     # --- F6: a spec whose Go function has no translated body
     for key, entries in sorted(specs_by_fn.items()):
-        ck = code_key(key)
-        if ck in known:
-            if not known[ck]["impl"]:
+        entry = lookup_code(key, code_index)
+        if entry is not None:
+            if not entry["impl"]:
                 rel, d = entries[0][0], entries[0][1]
                 findings.append(
                     Finding(
@@ -540,8 +641,77 @@ def check(scope_dir, root, known, all_proof_files):
                     "warning",
                     "{} names {}, which is in no generated package under {} -- "
                     "check the receiver type and method name".format(
-                        d.name, key, ", ".join(CODE_ROOTS)
+                        d.name, key, ", ".join(code_roots)
                     ),
+                )
+            )
+
+    # --- H1: a proof helper sitting at the top level.  When one function's
+    # proof needs several files, the extra ones go in proof_<fn>_helpers/ so
+    # that the top-level directory shows exactly the four files of each
+    # collection and is auditable by listing it.
+    specs_set = {c for c, roles in collections_seen.items() if "spec" in roles}
+    for path in files:
+        role, coll = classify(path)
+        if role != "proof" or coll in specs_set:
+            continue
+        owner = owning_collection(coll, specs_set)
+        if owner == coll:
+            continue  # not a helper of anything; F4 will complain instead
+        findings.append(
+            Finding(
+                "H1-helper-at-top-level",
+                os.path.relpath(path, root),
+                1,
+                "error",
+                "this is a proof helper of {0}, not a collection of its own; "
+                "move it to proof_{0}_helpers/ so the top level keeps four "
+                "files per Go function".format(owner),
+            )
+        )
+
+    # --- H2: a helpers directory holds proof structure, never a spec
+    for coll, paths in sorted(helpers_of.items()):
+        for path in paths:
+            rel = os.path.relpath(path, root)
+            with open(path, encoding="utf-8") as f:
+                src = strip_comments(f.read())
+            if re.search(r"^Module Type\b", src, re.MULTILINE):
+                findings.append(
+                    Finding(
+                        "H2-helper-declares-spec",
+                        rel,
+                        1,
+                        "error",
+                        "a file under proof_{}_helpers/ declares a Module Type; "
+                        "a helper is proof structure, so if this is really a "
+                        "specification it needs a collection of its own".format(coll),
+                    )
+                )
+            for d in scan_file(path):
+                if d.kind in ASSUMPTION_KINDS:
+                    findings.append(
+                        Finding(
+                            "H2-helper-declares-spec",
+                            rel,
+                            d.line,
+                            "error",
+                            "{} {} is an assumption inside proof_{}_helpers/; "
+                            "an axiom about a Go function belongs in that "
+                            "function's own collection".format(d.kind, d.name, coll),
+                        )
+                    )
+
+    # --- H3: a helpers directory with no collection to help
+    for coll in sorted(helpers_of):
+        if "proof" not in collections_seen.get(coll, {}):
+            findings.append(
+                Finding(
+                    "H3-orphan-helpers",
+                    os.path.relpath(helpers_of[coll][0], root),
+                    1,
+                    "error",
+                    "proof_{0}_helpers/ has no proof_{0}.v to help".format(coll),
                 )
             )
 
@@ -552,10 +722,10 @@ def check(scope_dir, root, known, all_proof_files):
             continue
         rel = os.path.relpath(path, root)
         for d in scan_file(path):
-            if not d.go_fns or not d.name.endswith("_body"):
+            if not d.go_fns or not d.name.endswith(BODY_SUFFIX):
                 continue
-            want = suggest_name(d.go_fns[0])
-            if want != coll:
+            allowed = acceptable_names(d.go_fns[0])
+            if coll not in allowed:
                 findings.append(
                     Finding(
                         "N1-name",
@@ -563,11 +733,13 @@ def check(scope_dir, root, known, all_proof_files):
                         d.line,
                         "note",
                         "collection is called {} but specifies {} (convention "
-                        "would name it {})".format(coll, d.go_fns[0], want),
+                        "would name it {})".format(
+                            coll, d.go_fns[0], " or ".join(allowed)
+                        ),
                     )
                 )
 
-    return findings, specs_by_fn, collections_seen
+    return findings, specs_by_fn, collections_seen, helpers_of
 
 
 # --------------------------------------------------------------------------
@@ -624,7 +796,7 @@ def selftest():
 
     # A sentence ends at '.' followed by whitespace -- not at a dot inside a
     # qualified name, a record projection, or a string literal.
-    text = 'Lemma f : rv.(raft.raft.trk\') = x /\\ s = "a.b c" . rest'
+    text = 'Lemma f : rv.(pkg.Type.field\') = x /\\ s = "a.b c" . rest'
     got = text[: sentence_end(text, len("Lemma f :"))]
     if not got.endswith(" .") or "rest" in got:
         bad.append("sentence_end: {!r}".format(got))
@@ -639,28 +811,68 @@ def selftest():
     if "x" in out or "y" in out or "z" in out:
         bad.append("strip_comments left comment text: {!r}".format(out))
 
+    # The naming convention accepts a bare name or a package-prefixed one;
+    # nothing here decides which package is "the" one being verified.
     for key, want in (
-        ("raft.raftLog.lastIndex", "raftLog__lastIndex"),
-        ("raft.voteRespMsgType", "voteRespMsgType"),
-        ("slices.Sort", "slices_Sort"),
-        ("tracker.NewInflights", "tracker_NewInflights"),
+        ("pkg.Type.method", ("Type__method", "pkg_Type__method")),
+        ("pkg.fn", ("fn", "pkg_fn")),
     ):
-        if suggest_name(key) != want:
-            bad.append(
-                "suggest_name {} -> {} (want {})".format(key, suggest_name(key), want)
-            )
+        got = acceptable_names(key)
+        if got != want:
+            bad.append("acceptable_names {} -> {} (want {})".format(key, got, want))
 
+    # The code index resolves the alias a proof writes against the `Module`
+    # declarations of the generated file, and falls back to the bare name.
+    index = (
+        {"alias": {"Type.method": {"impl": True, "file": "x.v"}}},
+        {"other.thing": {"impl": False, "file": "y.v"}},
+    )
     for key, want in (
-        ("raft.raftLog.lastIndex", "raftLog.lastIndex"),
-        ("raft.voteRespMsgType", "voteRespMsgType"),
+        ("alias.Type.method", True),
+        ("nosuch.other.thing", False),
+        ("alias.no.such", None),
     ):
-        if code_key(key) != want:
-            bad.append("code_key {} -> {}".format(key, code_key(key)))
+        entry = lookup_code(key, index)
+        got = None if entry is None else entry["impl"]
+        if got != want:
+            bad.append("lookup_code {} -> {} (want {})".format(key, got, want))
 
     for b in bad:
         print("FAIL " + b)
     print("selftest: {}".format("{} failures".format(len(bad)) if bad else "ok"))
     return 1 if bad else 0
+
+
+def resolve_scope(scope, proof_root):
+    """The directory to report on: all of the proof root, a path, or a name.
+
+    Taking a bare directory name and finding it under the proof root is the
+    convenience that a hardcoded table of scope names used to provide.
+    """
+    if not scope:
+        return proof_root
+    for cand in (scope, os.path.join(proof_root, scope)):
+        if os.path.isdir(cand):
+            return os.path.abspath(cand)
+    matches = sorted(
+        dp
+        for dp, dirs, _f in os.walk(proof_root)
+        for d in [os.path.basename(dp)]
+        if d == scope
+    )
+    if len(matches) == 1:
+        return matches[0]
+    if not matches:
+        sys.exit(
+            "no directory named {!r} under {} (and no such path)".format(
+                scope, proof_root
+            )
+        )
+    sys.exit(
+        "{!r} is ambiguous under {}:\n  {}".format(
+            scope, proof_root, "\n  ".join(matches)
+        )
+    )
 
 
 SEVERITY_ORDER = {"error": 0, "warning": 1, "note": 2, "info": 3}
@@ -674,9 +886,24 @@ def main():
         help="repository root (default: the current directory)",
     )
     ap.add_argument(
+        "--proof-root",
+        default=DEFAULT_PROOF_ROOT,
+        help="the development to check, relative to --root "
+        "(default: {})".format(DEFAULT_PROOF_ROOT),
+    )
+    ap.add_argument(
+        "--code-root",
+        action="append",
+        dest="code_roots",
+        metavar="DIR",
+        help="where the generated Go translation lives, relative to --root; "
+        "repeatable (default: {})".format(" ".join(DEFAULT_CODE_ROOTS)),
+    )
+    ap.add_argument(
         "--scope",
-        default="raft",
-        help="raft, election, or a path under the repository root",
+        default=None,
+        help="restrict the report to a path, or to the bare name of a "
+        "directory anywhere under the proof root (default: all of it)",
     )
     ap.add_argument("--format", choices=["text", "json"], default="text")
     ap.add_argument(
@@ -699,19 +926,24 @@ def main():
         return selftest()
 
     root = os.path.abspath(args.root)
-    scope_dir = os.path.join(root, SCOPES.get(args.scope, args.scope))
-    if not os.path.isdir(scope_dir):
-        sys.exit("no such directory: {}".format(scope_dir))
+    proof_root = os.path.join(root, args.proof_root)
+    if not os.path.isdir(proof_root):
+        sys.exit("no such proof root: {}".format(proof_root))
+    code_roots = args.code_roots or DEFAULT_CODE_ROOTS
 
-    known = scan_code([os.path.join(root, c) for c in CODE_ROOTS])
+    scope_dir = resolve_scope(args.scope, proof_root)
+
+    code_index = scan_code([os.path.join(root, c) for c in code_roots])
     all_proof_files = sorted(
         os.path.join(dp, fn)
-        for dp, _d, fns in os.walk(os.path.join(root, PROOF_ROOT))
+        for dp, _d, fns in os.walk(proof_root)
         for fn in fns
         if fn.endswith(".v")
     )
 
-    findings, specs_by_fn, _colls = check(scope_dir, root, known, all_proof_files)
+    findings, specs_by_fn, _colls, _helpers = check(
+        scope_dir, root, code_index, code_roots, all_proof_files
+    )
     cutoff = SEVERITY_ORDER[args.severity]
     findings = [f for f in findings if SEVERITY_ORDER[f.severity] <= cutoff]
     findings.sort(key=lambda f: (SEVERITY_ORDER[f.severity], f.path, f.line))
@@ -741,7 +973,21 @@ def main():
             )
         )
         if args.summary:
-            print("\nGo functions with a Hoare triple in {}:".format(args.scope))
+            multi = {
+                c: v
+                for c, v in sorted(_helpers.items())
+                if v
+            }
+            if multi:
+                print("Functions whose proof spans several files:")
+                for coll, paths in multi.items():
+                    print(
+                        "  {:34s} proof_{}_helpers/ ({} files)".format(
+                            coll, coll, len(paths)
+                        )
+                    )
+                print()
+            print("Go functions with a Hoare triple in {}:".format(args.scope))
             for key in sorted(specs_by_fn):
                 places = ", ".join(
                     "{}:{}".format(rel, d.line) for rel, d, _r, _c in specs_by_fn[key]

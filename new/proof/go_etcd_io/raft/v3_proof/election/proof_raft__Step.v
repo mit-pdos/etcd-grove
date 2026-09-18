@@ -3,15 +3,24 @@
     spec, in [spec_raft__Step.v]; giving each branch its own [Module Type]
     would put four Hoare triples for [r.Step] in four files, which is the
     thing this layout exists to prevent.  Since 2026-09-17 the branches live
-    in [proof_raft__Step_MsgHup.v], [proof_raft__Step_MsgVote.v] (itself two
-    files, one per term case) and [proof_raft__Step_MsgVoteResp.v] --
-    functors over [STEP_POSTULATES] with no signature of their own -- so that
-    [make -j] checks them in parallel; only this file may [Require] them, and
-    the ascription below is still the only thing any other file can see. *)
+    in files of their own -- functors over [STEP_POSTULATES] with no
+    signature -- so that [make -j] checks them in parallel; only this file
+    may [Require] them, and the ascription below is still the only thing any
+    other file can see.
 
-Require Export New.proof.go_etcd_io.raft.v3_proof.election.proof_raft__Step_MsgHup.
-Require Export New.proof.go_etcd_io.raft.v3_proof.election.proof_raft__Step_MsgVote.
-Require Export New.proof.go_etcd_io.raft.v3_proof.election.proof_raft__Step_MsgVoteResp.
+    Since 2026-09-18 those eight files sit in **[proof_raft__Step_helpers/]**,
+    because [Step] is the only function here whose proof needs more than one
+    file and having them at the top level broke the four-files-per-function
+    pattern the election directory is meant to be audited by.  The directory
+    is [proof_<fn>_helpers/] and not [proof_<fn>/] because the latter would
+    collide with this file in Rocq's logical namespace.
+    [etc/check-module-discipline.py] enforces both halves: a helper at the
+    top level is an error, and a [Module Type] inside a helpers directory is
+    an error. *)
+
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.proof_raft__Step_helpers.proof_raft__Step_MsgHup.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.proof_raft__Step_helpers.proof_raft__Step_MsgVote.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.proof_raft__Step_helpers.proof_raft__Step_MsgVoteResp.
 
 Module StepProof (P : STEP_POSTULATES) : STEP.
 

@@ -4,11 +4,12 @@
 
     This is **proof structure, not specification**: [Step] has exactly one
     spec, in [spec_raft__Step.v], and this module has no [Module Type] and no
-    [Parameter].  Nothing but [proof_raft__Step.v] may [Require] it; see
-    [notes/decisions.md] (2026-09-17). *)
+    [Parameter].  Nothing but [proof_raft__Step.v], or another file in this
+    directory, may [Require] it; see [notes/decisions.md] (2026-09-17, and
+    2026-09-18 for why the helpers moved out of the top-level directory). *)
 
-Require Export New.proof.go_etcd_io.raft.v3_proof.election.proof_raft__Step_MsgVote_gt.
-Require Export New.proof.go_etcd_io.raft.v3_proof.election.proof_raft__Step_MsgVote_le.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.proof_raft__Step_helpers.proof_raft__Step_MsgVote_gt.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.proof_raft__Step_helpers.proof_raft__Step_MsgVote_le.
 
 Module StepMsgVote (P : STEP_POSTULATES).
 Import P.

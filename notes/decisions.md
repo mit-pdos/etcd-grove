@@ -253,7 +253,9 @@ to add a second `Module Type`.**
 (`proof_raft__Step_MsgHup.v`, `_MsgVote.v`, `_MsgVoteResp.v`) so that they
 check in parallel — see the entry of that date below. They are still not
 specs: no `Module Type`, no `Parameter`, and only `proof_raft__Step.v` may
-`Require` them.
+`Require` them. **Amended again 2026-09-18:** those files live in
+`proof_raft__Step_helpers/`, so the top-level directory is four files per Go
+function and nothing else — see the 2026-09-18 entry on the layout.
 
 ---
 
@@ -566,7 +568,9 @@ specs*; these are proof structure. What is weaker than before: the ascription
 no longer hides the branch lemmas from other files — a file that `Require`s
 a branch file and instantiates its functor can use its lemma. The rule is
 therefore conventional: **only `proof_raft__Step.v` may `Require` a
-`proof_raft__Step_*.v` file**, and the file header says so.
+`proof_raft__Step_*.v` file**, and the file header says so. (Since
+2026-09-18 those files are in `proof_raft__Step_helpers/`, which makes the
+convention visible in the directory listing as well as in the headers.)
 
 Rejected: keeping one file and relying on Rocq's `-async-proofs` to overlap
 the `Qed`s with tactic execution. Measured: 9:11 against 9:29, at 11.3 GB
@@ -667,8 +671,89 @@ same violation comes back a second time.
 
 **What is not fixed.** `readonly.v` has eight out-of-place triples and
 `protocol.v` three, listed by
-`etc/check-module-discipline.py --scope raft`. They were out of scope for
+`etc/check-module-discipline.py` with no `--scope`. They were out of scope
+for
 this pass (the ask was the election proof) and `readonly.v` is a separate
 development resting on `own_raft`, a second ownership story for the raft
 struct. One of its triples duplicates an election spec for real — see
 `raft.stepLeader` in [false-statements.md](false-statements.md).
+
+---
+
+## 2026-09-18 — a function's extra proof files go in `proof_<fn>_helpers/`
+
+**accepted.**
+
+With 44 collections the election directory holds 176 files that are four per
+Go function, eight shared predicate/lemma files — and, before this, eight
+more that were *neither*: `Step`'s branch lemmas
+(`proof_raft__Step_MsgHup.v`, `_MsgVote.v`, `_MsgVoteResp.v`,
+`_MsgVote_gt.v`, `_MsgVote_le.v`, `_MsgVote_lt.v`, `_MsgVote_eq_novote.v`,
+`_MsgVote_eq_voted.v`). They sort in among the collections and look exactly
+like collection members, so *listing the directory no longer told you what
+was in it*: you could not see at a glance whether `proof_raft__Step_MsgVote`
+was a Go function with a missing spec or proof structure with no spec by
+design. That is a real auditing problem, because "does every triple about a
+Go function have exactly one spec" is the property this layout exists to make
+visible.
+
+**Decision:** when one function's proof needs more than one file, the extra
+files go in `proof_<fn>_helpers/`. The top level then holds exactly the four
+files of each collection plus the shared files, and one directory per
+function that has helpers. `Step` is the only such function today;
+`proof_raft__Step_helpers/` holds its eight.
+
+Nothing else changes: absolute logical paths mean the helpers' own
+`Require Export …election.postulates_raft__Step` is untouched, and only the
+three `Require`s *of* the moved files had to be retargeted.
+
+**`proof_<fn>_helpers/` and not `proof_<fn>/`.** The latter is the obvious
+name and it does not work: a directory `election/proof_raft__Step/` and the
+file `election/proof_raft__Step.v` would both want the logical name
+`…election.proof_raft__Step`. The `_helpers` suffix keeps the directory
+sorting immediately after the file it belongs to, which is what makes the
+listing readable.
+
+**Rejected — shortening the file names inside the directory**
+(`proof_raft__Step_helpers/MsgVote_gt.v`). It reads better in an `ls` and the
+directory already supplies the context, but the journal's timing tables,
+`gotchas.md` and `bugs/` all name these files, and the names are what someone
+greps for after reading those. Not worth breaking for cosmetics; the
+directory alone buys the auditability.
+
+**Rejected — a single `helpers/` directory with per-function subdirectories.**
+One entry at the top level instead of one per function, but it separates a
+function's helpers from its collection, and with one such function today it
+is speculative structure.
+
+**Enforced, not remembered.** `etc/check-module-discipline.py` gained three
+checks: `H1`, a proof helper at the top level (detected structurally — a
+`proof_<X>_<suffix>.v` whose collection has no spec while `<X>` does — not
+from a list of known filenames); `H2`, a `Module Type` or an assumption
+inside a helpers directory, which would mean a spec is hiding in proof
+structure; and `H3`, a helpers directory with no `proof_<fn>.v` to help. All
+three were checked by planting a violation and watching them fire.
+`--summary` now also lists which functions have helper directories, so the
+answer to "whose proof spans several files" is one command rather than an
+`ls` and a guess.
+
+**The checker knows the toolchain, not this development.** Worth stating
+because the first cut did not: it had the package name `raft` in its naming
+policy, fixed paths for the proof and code roots, a hardcoded table of scope
+names, and a code index that dropped Rocq's module alias on the grounds that
+"these five packages are distinctive enough". All four are gone. What it
+knows now is Goose's rendering of a call, Perennial's `{{{ … }}}` notation
+and the file-naming convention, each named in a constant at the top of the
+file — plus two overridable defaults for where this repository keeps its
+proof and its generated code.
+
+Concretely: the naming check accepts *either* a bare name or a
+package-prefixed one (`Sort` or `slices_Sort`) rather than privileging one
+package, since deciding which package is "the" one under verification is
+exactly the judgement a checker should not be making; the code index resolves
+the alias a proof writes against the `Module` declarations of the generated
+files, so a package translated to a file of any name resolves correctly;
+`--scope` takes a path or the bare name of any directory under the proof
+root; and `--proof-root` aims the whole thing elsewhere. Demonstrated rather
+than asserted: pointed at `new/proof/go_etcd_io/etcd`, a development that
+predates the convention entirely, it reports 24 out-of-place triples.

@@ -66,7 +66,7 @@ The checker reads the program expression out of each triple rather than
 trusting the lemma name, and reports which Go function a spec really talks
 about. Run it:
 
-    etc/check-module-discipline.py --scope raft --summary
+    etc/check-module-discipline.py --summary
 
 ### `raft.stepLeader` — two triples, two ownership stories
 
