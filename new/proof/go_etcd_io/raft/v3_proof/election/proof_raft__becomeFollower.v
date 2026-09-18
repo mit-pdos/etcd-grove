@@ -1,6 +1,7 @@
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.postulates_raft__becomeFollower.
 
 Module BecomeFollowerProof (P : BECOMEFOLLOWER_POSTULATES) : BECOMEFOLLOWER.
+Import P.
 
   Lemma wp_raft__becomeFollower : wp_raft__becomeFollower_body.
   Proof.

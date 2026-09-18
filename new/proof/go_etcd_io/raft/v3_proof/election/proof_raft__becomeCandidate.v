@@ -1,6 +1,7 @@
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.postulates_raft__becomeCandidate.
 
 Module BecomeCandidateProof (P : BECOMECANDIDATE_POSTULATES) : BECOMECANDIDATE.
+Import P.
 
   Lemma wp_raft__becomeCandidate : wp_raft__becomeCandidate_body.
   Proof.

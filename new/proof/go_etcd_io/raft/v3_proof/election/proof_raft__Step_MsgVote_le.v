@@ -9,6 +9,7 @@ Require Export New.proof.go_etcd_io.raft.v3_proof.election.proof_raft__Step_MsgV
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.proof_raft__Step_MsgVote_eq_voted.
 
 Module StepMsgVoteLe (P : STEP_POSTULATES).
+Import P.
 
 Module Lt := StepMsgVoteLt P.
 Module EqNovote := StepMsgVoteEqNovote P.

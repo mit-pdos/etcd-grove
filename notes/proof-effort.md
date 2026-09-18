@@ -246,8 +246,11 @@ Three things generalise:
 
 - **The scratch-file `-vok` loop was 6 s here, not the ~56 s the `Step` agent
   measured.** Cost scales with the `.vos` closure you `Require`, so requiring
-  `inv_misc.v` rather than a `postulates_*.v` under `Step` is a ten-fold
-  difference. Measure it once at the start; it decides whether you batch.
+  a leaf `spec_*.v`/`postulates_*.v` rather than something under `Step` is a
+  ten-fold difference. Measure it once at the start; it decides whether you
+  batch. (This was written when a callee's spec lived in `inv_misc.v`; since
+  2026-09-18 every callee has its own collection, so the cheap closure is
+  usually the one you want anyway.)
 - **"Read the callee's translated body" needs a second half: check it can
   step.** The 2026-09-16 win (five `traceX` no-ops) came from reading bodies.
   The complement is this: a body can be perfectly readable and still have no

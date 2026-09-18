@@ -1337,3 +1337,157 @@ translation, both Goose's. On the proof side, the six `vote_*_tail` calls
 are 13–19 s each and `_MsgVote_gt` could be split at its `destruct
 uptodate` if 2:39 ever matters.
 
+
+---
+
+## 2026-09-18 — the module discipline covered 13 of 44 Go functions; a checker, then the other 31
+
+Branch `worktree-module-discipline`, from `a21dce0ef`.
+
+### What was wrong
+
+The 2026-09-14 refactor ([decisions.md](decisions.md)) gave a
+`spec_/postulates_/proof_/link_` collection to each of thirteen Go
+functions — `Step` and the things it drives. The other **thirty-one** Go
+functions on the election path stayed as loose `Lemma`s and `Axiom`s in
+`inv_misc.v` (11), `inv_raftlog.v` (11), `inv_tracker.v` (8),
+`inv_raft_phys.v` (2) and `inv_slices.v` (1), globally `Require Export`ed.
+So the property the module system was adopted to enforce — one Hoare triple
+per Go function, no way around it — held for 13 functions and not for 31.
+
+It had already failed where it was not enforced. `raftLog.lastIndex` and
+`raftLog.lastEntryID` each had **two** triples.
+
+### The checker
+
+`etc/check-module-discipline.py`. The design decision that matters: it does
+**not** trust lemma names. It strips comments (counting nesting), finds each
+declaration's sentence, and if the statement contains `{{{` it reads the
+program expression for
+
+    @! (go.PointerType raft.raft) @! "poll"      → raft.raft.poll
+    @! raft.newReadOnly                          → raft.newReadOnly
+    functions slices.Sort                        → slices.Sort
+    #(methods i.(interface.ty) "Term" …)         → an interface contract
+
+and reports the Go function the triple *actually* specifies. It then
+cross-references `new/code/` — via `Definition …ⁱᵐᵖˡ`, `MethodUnfold` and
+the `go_string` name definitions — to say whether that function exists and
+whether it has a translated body.
+
+Checks: `F1` a triple outside `spec_*`/`proof_*`; `F2` two triples for one
+Go function (collapsing a collection's spec+proof pair, and folding
+`proof_X_branch.v` helpers into `X`, so `Step`'s nine files are not nine
+specs); `F3` spec-file shape; `F4` incomplete collection; `F5` a proof file
+verifying a second function; `F6` a name the generated code does not have.
+Notes `N1` when a collection is not named after the function it specifies.
+Non-zero exit on errors.
+
+Reading the expression rather than the name paid for itself immediately, on
+two specs named after the wrong thing — see below.
+
+### What it found, and the fix
+
+**35 errors in the election proof**: 33 out-of-place triples over 31 Go
+functions, plus the 2 duplicate pairs. 31 collections added (124 files),
+`inv_slices.v` deleted, 42 files edited. `--scope election` is now clean.
+
+Three calls worth knowing about:
+
+- **Axioms keep the `Axiom` keyword, declared inside the functor.** Verified
+  on a scratch file before committing to it: an `Axiom` inside a `Module M :
+  SIG` discharges `SIG`'s `Parameter`, and `Print Assumptions` on the
+  instantiated module still names it. So STATUS.md's `Axiom`/`Admitted`
+  accounting survives the move. This reverses the 2026-09-14 "Rejected —
+  put the trust-boundary axioms behind Module Types too", whose reasoning
+  weighed only the proving and not the enforcing.
+- **`lastIndex` and `lastEntryID` went opposite ways.** `lastIndex` exports
+  only the indexed `_at` form, because its value equation is what `term`'s
+  and `lastEntryID`'s proofs need and the weak form cannot be strengthened
+  back; its five weak call sites in `reset` and `becomeLeader` open the
+  predicate with a new two-line accessor, `own_raftLog_acc`.
+  `lastEntryID` exports only the weak form, which is what all four of its
+  callers want, and keeps `_at` as a lemma inside its functor — hidden by
+  the ascription, same move `Step`'s branch lemmas made on 2026-09-17.
+  Rejected in between: a fifth file kind, `derived_<fn>.v`, with a functor
+  from the signature to the corollary. It would have worked; it adds a file
+  kind everything has to learn, against `CLAUDE.md`'s rule on structure.
+- **`Import P.` at the top of each functor**, so that a callee moving into
+  `P` does not require rewriting its call sites. This was deliberate on
+  `proof_raft__Step_MsgVote_gt.v`, which takes 2:39 and 2.3 GB to check: an
+  edit to that file that is not the point of the change is an edit worth not
+  making.
+
+### Two specs named after the wrong Go function
+
+- **`wp_raft__appendEmptyEntry` specifies the method `appendEntry`.**
+  `appendEmptyEntry` occurs nowhere in the generated code —
+  `grep -c appendEmptyEntry new/code/go_etcd_io/raft/v3.v` is `0`. This is
+  the axiom that was the *first* false statement recorded in
+  [false-statements.md](false-statements.md), and a spec named after a
+  function that does not exist cannot be read against a body, which is the
+  check that would have caught it. Renamed `wp_raft__appendEntry`.
+- `wp_campaign_peer_ids` specifies `quorum.JointConfig.IDs`, naming neither
+  receiver nor method — so a second spec of `IDs` would not have collided
+  with it, and `Include`-collision is the mechanism that makes a duplicate a
+  build error. Renamed `wp_JointConfig__IDs`.
+
+### The duplicate that is still open
+
+`raft.stepLeader` has two triples: the election one
+(`own_raft_phys`, `MsgVoteResp`, `Qed`) and `readonly.v:936`'s
+`wp_raft__stepLeader_MsgReadIndex` (`r ↦ rf ∗ own_raft γ rf`, `MsgReadIndex`,
+postcondition `True`, `Admitted`, no users). The preconditions are disjoint
+on `m.Type` so the statements do not contradict; the **ownership** stories
+do, and only one of `own_raft` / `own_raft_phys` can survive. Written up in
+[false-statements.md](false-statements.md) and now step 8 of STATUS.md's
+next steps, together with the other ten loose triples in `readonly.v` and
+`protocol.v` that this pass did not touch.
+
+### Verification
+
+- `make -j8 new/should_build.required_vos` — RC=0, i.e. every statement in
+  the CI-reachable tree elaborates. Not a `make ci` run: that needs a full
+  `.vo` build of Perennial, which nothing in this tree has.
+- `make -j4` over every `.vok` target in the election closure — **193 files,
+  0 errors, make exit 0**, about 25 min wall. `vos` accepts a proof script
+  that does not run; `vok` is the real check. The only non-warning output is
+  the `Show.` that `wp_raft__resetRandomizedElectionTimeout`'s `Admitted`
+  proof has always carried.
+- `etc/check-module-discipline.py --scope election` — RC=0, 0 findings.
+  `--selftest` — ok. `--scope raft` — 12 errors, all in `readonly.v` and
+  `protocol.v`.
+
+  Two traps met while doing this, worth knowing for the next big move: the
+  `%.vok` rule re-runs every time (the stamp does not stick), so a vok sweep
+  is always a full sweep and there is no point editing files mid-run; and a
+  `.v` edit that triggers a *partial* `vos` rebuild leaves the tree with
+  `.vos` files built against different versions of a dependency, which shows
+  up as `Error: Compiled library … makes inconsistent assumptions over
+  library …` at the aggregator rather than where the edit was. Rebuild the
+  whole `vos` closure after editing, then sweep.
+- Trust base, counted with comments stripped, base `a21dce0ef` vs now:
+  **the same 6 axioms and the same 7 `Admitted`s.** The restructure moved
+  them and changed none of them. (Both raw greps over-count, because doc
+  comments quote probe lemmas ending in `Admitted.`;
+  `etc/check-module-discipline.py`'s `strip_comments` is the helper.)
+
+### Dead ends and traps
+
+- `Local Ltac` inside `Section proof` is invisible to importers even without
+  `Local` — a section closes over `Ltac` too. `split_unstable` had to move
+  *above* the section, where `intros_ambient` and `wp_log` already were.
+- Slicing a Rocq doc comment with a non-greedy `.*?\\*\\)` silently takes a
+  prefix when the block contains a nested `(* … *)`, which several of these
+  comments do (worked examples, probe lemmas). Two spec files ended up with
+  an unterminated `(**` swallowing their `Module Type`; the checker caught
+  it as "declares 0 Module Types". Count depth.
+- Both are in [gotchas.md](gotchas.md).
+
+### Note for whoever is next
+
+`notes/STATUS.md` is 460 lines against its own stated budget of ~150
+([README.md](README.md)). It was 405 before this session. The "Trust base"
+and "Known broken" sections are the bulk and both have topic files they
+could move into. Worth doing before it stops being read, which is the
+failure mode the budget exists to prevent.

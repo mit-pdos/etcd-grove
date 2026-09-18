@@ -199,41 +199,5 @@ Lemma own_raft_phys_intro r id s (rv : raft.raft.t)
   own_raft_phys r id s.
 Proof. apply own_raft_phys_at_intro. Qed.
 
-(** Out of scope: the empty entry a new leader appends.  [appendEntry]
-    updates the log and then queues a self-addressed [MsgAppResp]
-    ([new/code/go_etcd_io/raft/v3.v], the [send] at the end of
-    [raft__appendEntryⁱᵐᵖˡ]).  [mtype_of MsgAppResp = None], so [abs_msg_opt]
-    drops it and the abstract state — outbox included — is unchanged.
-
-    This axiom lives here rather than in [inv_misc.v] because it has to
-    mention [own_raft_phys].  Its previous form owned only [own_raftLog] while
-    the code it describes writes [r.msgsAfterAppend], which made it false; it
-    could not be stated honestly before the outbox was abstracted, because
-    the old [is_phys_msg] clause was unprovable for a [MsgAppResp]. *)
-Axiom wp_raft__appendEmptyEntry : ∀ (r : loc) id s (es : slice.t),
-  {{{ is_pkg_init raft ∗ own_raft_phys r id s }}}
-    r @! (go.PointerType raft.raft) @! "appendEntry" #es
-  {{{ RET #true; own_raft_phys r id s }}}.
-
-(** The broadcast a new leader sends.  [bcastAppend] visits every peer's
-    [Progress] and calls [sendAppend], which reaches [maybeSendAppend] -- and
-    that sends a [MsgApp] only when the log and the peer's [Progress] permit
-    it, otherwise a [MsgSnap] or nothing at all (the peer is paused, or there
-    is nothing to send and [sendIfEmpty] is false).
-
-    So this says **not** one [MsgApp] per peer, only that the outbox grew by
-    some list of [App]s from [id] at the current term.  That is exactly what
-    the weakened [step_win] asks for, and all the election model ever uses: a
-    receiver reads an [App] through [step_higher_term], which cares about its
-    term and that a leader sent it.  An earlier version of the model demanded
-    one per peer, which would have made this claim false -- the same trap
-    [wp_raft__appendEmptyEntry] fell into before 2026-09-15. *)
-Lemma wp_raft__bcastAppend (r : loc) id s :
-  {{{ is_pkg_init raft ∗ own_raft_phys r id s }}}
-    r @! (go.PointerType raft.raft) @! "bcastAppend" #()
-  {{{ (ms : list msg.t), RET #();
-      own_raft_phys r id (send_msgs s ms) ∗
-      ⌜ app_sends id s.(nstate.term) ms ⌝ }}}.
-Proof. Admitted.
 
 End proof.

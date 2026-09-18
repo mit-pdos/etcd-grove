@@ -198,7 +198,9 @@ than its proof. One function re-checks in about a minute where the monolithic
 **Rejected — put the trust-boundary `wp_*` axioms behind Module Types too.**
 They are `Prop`s so it would typecheck, but nothing about them will ever be
 proved, so it buys ~20 extra signatures for nothing. They stay plain `Axiom`s
-in `inv_*.v`.
+in `inv_*.v`. **Superseded by the 2026-09-18 entry below**, which reversed
+this: the signatures buy enforcement, not proving, and an axiom is the last
+claim that should sit outside the mechanism.
 
 **Forced, not chosen — predicates stay out of the module system.**
 `own_raft_phys` mentions `own_tracker`/`own_raftLog`/`own_raft_misc`/
@@ -228,13 +230,16 @@ every implementing module inherits it. Proofs likewise open with
 `intros_ambient` (`election/defs.v`) rather than a positional `intros`; see
 [gotchas.md](gotchas.md) for both, written up once.
 
-**Consequences.** 51 files where there was one. `election.v` is a 78-line
+**Consequences.** 51 files where there was one. `election.v` is an
 aggregator that `Require Export`s every `link_*.v`; that is load-bearing,
 because `make ci` builds only what `new/should_build.v` reaches, so a link
 file nothing re-exported would silently go unchecked. The trust base is
 unchanged — 49 axioms, 14 `Admitted` — and is now split structurally: an
 `Axiom` in `inv_*.v` means *out of scope*, an `Admitted` in `proof_*.v` means
-*in scope but unfinished*.
+*in scope but unfinished*. (**The `inv_*.v` half of that reading was
+superseded on 2026-09-18**: every triple about a Go function now sits in a
+collection, so the `Axiom`/`Admitted` distinction is read off the
+`proof_*.v` file and the keyword, not off the file kind.)
 
 **Superseded within the same day:** the first cut gave `Step` four spec files
 (one per message type plus the dispatch). Upamanyu pointed out that this is
@@ -568,3 +573,102 @@ the `Qed`s with tactic execution. Measured: 9:11 against 9:29, at 11.3 GB
 instead of 6.0 — the workers copy the state and the tactic time, not the
 `Qed`s, is the critical path.
 
+
+---
+
+## 2026-09-18 — every Go function gets a collection, axioms included, and a checker enforces it
+
+**accepted.** Supersedes two paragraphs of the 2026-09-14 entry above: the
+one that rejected putting the trust-boundary `wp_*` axioms behind Module
+Types, and by extension the claim that an `Axiom` in an `inv_*.v` file is a
+structural signal.
+
+The 2026-09-14 refactor gave one collection to each of thirteen Go functions
+and left **thirty-one others** stated as plain `Lemma`s and `Axiom`s in
+`inv_misc.v`, `inv_raftlog.v`, `inv_tracker.v`, `inv_raft_phys.v` and
+`inv_slices.v`. So the property the module system was adopted to enforce —
+one Hoare triple per Go function, and no way to bypass it — held for `Step`
+and its immediate callees and for nothing else. It had already failed twice
+where it was not enforced: `raftLog.lastIndex` and `raftLog.lastEntryID` each
+had two triples (see [false-statements.md](false-statements.md)).
+
+**Decision:** a Hoare triple about a Go function lives in a
+`spec_/postulates_/proof_/link_` collection, **whether or not it will ever be
+proved**. Thirty-one collections added, `inv_slices.v` deleted (it held one
+axiom and nothing else). The `inv_*.v` files keep what they were for:
+ownership predicates, pure lemmas, `Ltac`, and interface contracts.
+
+**Trust-boundary triples keep the `Axiom` keyword, inside the functor.**
+
+    Module RaftAppendEntryProof (P : RAFT__APPENDENTRY_POSTULATES)
+                                : RAFT__APPENDENTRY.
+      Axiom wp_raft__appendEntry : wp_raft__appendEntry_body.
+    End RaftAppendEntryProof.
+
+Measured, not assumed: an `Axiom` inside an opaquely ascribed `Module`
+discharges the signature's `Parameter`, and `Print Assumptions` on the
+instantiated module still names it. So the accounting rule from
+[STATUS.md](STATUS.md) survives the move unchanged — an `Axiom` means
+*outside the raft protocol*, an `Admitted` means *in scope but unfinished* —
+except that it is now read off the `proof_*.v` file rather than off which
+`inv_*.v` file a declaration sat in. That is strictly better: the file name
+now says which function, and the keyword says which kind of debt.
+
+This is what the 2026-09-14 entry rejected, on the grounds that it "buys ~20
+extra signatures for nothing" since nothing about those axioms will ever be
+proved. That reasoning weighed only the *proving*. What the signatures
+actually buy is the thing the refactor was for: `Include` makes a second
+triple for the same function a build error, and opaque ascription means a
+caller cannot reach around the spec. An axiom is a claim about a Go
+function's behaviour, which is exactly the kind of claim this development
+keeps getting wrong, so it is the last thing that should sit outside the
+mechanism. Three of the eight false statements in
+[false-statements.md](false-statements.md) were axioms.
+
+**Rejected — a fifth file kind, `derived_<fn>.v`, for a weak corollary of a
+spec.** Two functions wanted both an indexed `_at` triple and a weak one over
+the existential `own_raftLog`. A functor from the signature to the corollary
+would have served both without a second `Parameter`, but it adds a file kind
+that the checker, `election.v` and every reader has to learn, against
+`CLAUDE.md`'s "prefer a sentence in a markdown file over a mechanism".
+Instead each function exports the one form its callers consume and the other
+becomes a lemma inside the functor, hidden by the ascription — the same move
+`Step`'s branch lemmas made on 2026-09-17. The one caller that then needed to
+open `own_raftLog` got a two-line accessor, `own_raftLog_acc`, in the same
+shape as the existing `own_raft_misc_option`. Details and the reason the two
+functions went opposite ways are in
+[false-statements.md](false-statements.md).
+
+**The discipline is now checked, not remembered:**
+`etc/check-module-discipline.py`. It matters *how* it checks. It does not
+trust lemma names — it reads the program expression out of each triple
+(`@! (go.PointerType raft.raft) @! "poll"`, `@! raft.newReadOnly`,
+`functions slices.Sort`) and reports the Go function the triple really talks
+about. That is what caught the two specs named after the wrong thing:
+`wp_raft__appendEmptyEntry`, which specifies `appendEntry` and is named after
+a method that does not exist in the generated code at all, and
+`wp_campaign_peer_ids`, which specifies `quorum.JointConfig.IDs`. Both are
+renamed. It also cross-references `new/code/` so that a spec naming a
+function no generated package has is an error, and a spec naming a function
+with no translated body is reported as information (that is
+`slices.Sort` — it can only ever be assumed).
+
+Interface methods are deliberately **not** treated as Go functions:
+`wp_Logger__logf` and the three method specs bundled inside `is_Storage`
+dispatch through `#(methods …)` on a client-supplied interface value, so
+there is no Go function under verification to specify. They stay with their
+predicate, and the checker reports them as `I-iface` information.
+
+**Rejected — making the checker a hook or a CI job in this commit.** It exits
+non-zero on errors so it can become either, but per `CLAUDE.md` only where
+there is a demonstrated benefit; the benefit here is one run, already taken.
+`notes/README.md` and this entry are the pointer. Wire it into CI when the
+same violation comes back a second time.
+
+**What is not fixed.** `readonly.v` has eight out-of-place triples and
+`protocol.v` three, listed by
+`etc/check-module-discipline.py --scope raft`. They were out of scope for
+this pass (the ask was the election proof) and `readonly.v` is a separate
+development resting on `own_raft`, a second ownership story for the raft
+struct. One of its triples duplicates an election spec for real — see
+`raft.stepLeader` in [false-statements.md](false-statements.md).

@@ -8,6 +8,27 @@ session journal — lives in [notes/](./notes/README.md), as plain markdown. Rea
 you finish. Coding agents are pointed at the same place by
 [AGENTS.md](./AGENTS.md).
 
+## Checking the raft proof's module structure
+
+Every Hoare triple about a Go function in the etcd raft proof belongs in a
+`spec_<fn>.v` / `postulates_<fn>.v` / `proof_<fn>.v` / `link_<fn>.v`
+collection, so that a function has exactly one specification and nothing can
+bypass it — see
+[notes/decisions.md](./notes/decisions.md), "One file per function, via Rocq's
+module system". `etc/check-module-discipline.py` checks it:
+
+```
+etc/check-module-discipline.py --scope election    # clean
+etc/check-module-discipline.py --scope raft --summary
+etc/check-module-discipline.py --selftest         # the parsing contract
+```
+
+It reads the program expression out of each triple rather than trusting lemma
+names, so it reports which Go function a spec really specifies, and it
+cross-references the Goose output in `new/code/` to catch a spec named after a
+function that does not exist. It exits non-zero on errors. `--scope raft`
+is *not* clean: `readonly.v` and `protocol.v` predate the discipline.
+
 ## Default build
 
 Not everything in the repo is built by default, even in CI. In order to be

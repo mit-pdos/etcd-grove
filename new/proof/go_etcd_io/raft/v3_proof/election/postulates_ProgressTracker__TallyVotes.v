@@ -1,0 +1,4 @@
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.spec_ProgressTracker__TallyVotes.
+
+Module Type PROGRESSTRACKER__TALLYVOTES_POSTULATES.
+End PROGRESSTRACKER__TALLYVOTES_POSTULATES.

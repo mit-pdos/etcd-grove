@@ -9,6 +9,7 @@
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.postulates_raft__Step.
 
 Module StepMsgHup (P : STEP_POSTULATES).
+Import P.
 
 Section branches.
 Context `{hG: heapGS Σ, !ffi_semantics _ _}.

@@ -1,6 +1,6 @@
 # Status
 
-**Last updated:** 2026-09-17
+**Last updated:** 2026-09-18
 
 ## Goal
 
@@ -43,17 +43,34 @@ builds it.
   (`own_raft_ghost`, `is_message`) and its refinement obligation. Since
   2026-09-15 `nstate.t` carries an `outbox` field and `step` has **no `sent`
   output** — a step's sends are the growth of `s'.(nstate.outbox)`.
-- `v3_proof/election/` (56 files) and `v3_proof/election.v` (78 lines) — the
-  implementation side. **Restructured 2026-09-14 into one file per Go
-  function**: each has `spec_<fn>.v` (a `Module Type` with exactly one
-  `Parameter` — the single place its Hoare triple is written),
-  `postulates_<fn>.v`, `proof_<fn>.v` (a functor ascribed to the signature)
-  and `link_<fn>.v`. Shared predicates live in `defs.v`, `inv_*.v` and
-  `step_lemmas.v`, outside the module system. `election.v` is now only an
-  aggregator plus `raft_election_safety`. See
+- `v3_proof/election/` (192 files) and `v3_proof/election.v` — the
+  implementation side. **One file per Go function**: each has `spec_<fn>.v`
+  (a `Module Type` with exactly one `Parameter` — the single place its Hoare
+  triple is written), `postulates_<fn>.v`, `proof_<fn>.v` (a functor ascribed
+  to the signature) and `link_<fn>.v`. Shared *predicates* live in `defs.v`,
+  `inv_*.v` and `step_lemmas.v`, outside the module system.
+  **44 collections as of 2026-09-18**, up from 13: the 2026-09-14 refactor
+  covered `Step` and its immediate callees and left 31 other Go functions
+  stated as loose `Lemma`s and `Axiom`s in the `inv_*.v` files, where nothing
+  stopped a second spec — and two functions had already acquired one.
+  `inv_slices.v` is gone (it held one axiom and nothing else). `election.v`
+  is only an aggregator plus `raft_election_safety`. See
   [decisions.md](decisions.md) for why, and
   [raft-election-refinement.md](raft-election-refinement.md) for scope, what
   is proved, what is admitted, and the trust boundary.
+- **The discipline is checked**: `etc/check-module-discipline.py`. It reads
+  the program expression out of each triple rather than trusting lemma names,
+  so it reports which Go function a spec really specifies, and errors on a
+  triple outside the spec/proof shape, two triples for one function, a
+  malformed spec file, an incomplete collection, or a name absent from
+  `new/code/`. Exits non-zero, so it can gate CI.
+
+      etc/check-module-discipline.py --scope election    # clean
+      etc/check-module-discipline.py --scope raft --summary
+      etc/check-module-discipline.py --selftest         # the parsing contract
+
+  `--scope raft` still reports 11: eight in `readonly.v`, three in
+  `protocol.v`. See "Next steps".
 
 So: the read-index/heartbeat protocol reasoning and the election refinement
 are the two developed pieces; the node interface is still axiomatized, and
@@ -199,7 +216,8 @@ for the `vos` closure.
 As of 2026-09-15 the raft proof assumes **50 axioms and 14 `Admitted.`** (2 of
 the admits deliberate, marked `(* Trusted *)` at `readonly.v:464,471`). The
 one axiom added that day is `own_raft_ghost_outbox`; more importantly, one of
-the 50 — `wp_raft__appendEmptyEntry` — **stopped being a false statement**. It
+the 50 — `wp_raft__appendEntry`, then called `wp_raft__appendEmptyEntry` —
+**stopped being a false statement**. It
 owned only `own_raftLog` while the code it describes queues a `MsgAppResp`
 into `r.msgsAfterAppend`. See [journal.md](journal.md).
 
@@ -209,17 +227,23 @@ outright is the top-level one: that `Step` need handle only election
 messages. Everything in **core raft** — the log, the tracker, `Progress`,
 `bcastAppend`, `newReadOnly` — is in scope and must be constructed and
 proved. Things genuinely outside the raft protocol may still be assumed:
-`slices.Sort` (`inv_slices.v`), the `Logger` interface, the tracing hooks,
-the RNG behind `resetRandomizedElectionTimeout`.
+`slices.Sort`, the `Logger` interface, the tracing hooks, the RNG behind
+`resetRandomizedElectionTimeout`.
 
 So the older reading of `inv_*.v` — "an `Axiom` here means out of scope" — no
-longer holds for core raft. The trust base is now split as:
+longer holds for core raft. **Nor does the file kind carry the distinction
+any more** (changed 2026-09-18): every triple about a Go function is in a
+collection, so it is the *keyword* that says which kind of debt, and the
+*file name* that says which function.
 
-- an `Axiom` in an `inv_*.v` file means **outside the raft protocol**, and
-  there should be very few;
-- an `Admitted` `Lemma` anywhere means **in scope but unfinished**, whether it
-  is in an `inv_*.v` file or a `proof_*.v` one;
-- a `Parameter` in a `spec_*.v` file is neither — it is discharged by the
+- an **`Axiom`** means **outside the raft protocol**, and there should be
+  very few. A trust-boundary triple is declared with `Axiom` *inside* its
+  functor — `Axiom wp_raft__appendEntry : wp_raft__appendEntry_body.` in
+  `proof_raft__appendEntry.v`. Checked: that discharges the signature's
+  `Parameter` and `Print Assumptions` on the instantiated module still names
+  it, so nothing is hidden by the move;
+- an **`Admitted` `Lemma`** means **in scope but unfinished**, wherever it is;
+- a **`Parameter` in a `spec_*.v`** file is neither — it is discharged by the
   functor ascribed to that signature.
 
 `inv_tracker.v` was converted to this shape on 2026-09-16: `own_inflights`,
@@ -229,17 +253,27 @@ same treatment — see
 [raft-election-refinement.md](raft-election-refinement.md) for what each one
 costs.
 
-As of the end of 2026-09-16 the **election path** carries **6 axioms**, of
-which **5 are legitimate** under the scope rule:
+The **election path** carries **6 axioms**, of which **5 are legitimate**
+under the scope rule:
 
 | axiom | file | why it is outside the raft protocol |
 |---|---|---|
-| `is_Logger`, `is_Logger_pers`, `wp_Logger__logf` | `inv_logger.v` | the `Logger` is a client-supplied interface. Covers only the **non-panicking** methods — a path reaching `Panic`/`Panicf` has to be shown unreachable |
-| `wp_slices_Sort` | `inv_slices.v` | Goose does not translate it. Permutation-only postcondition |
-| `own_Storage` | `inv_storage.v` | `raftLog.storage` is a client-supplied `Storage`; raft itself ships only `MemoryStorage`, for tests |
+| `is_Logger`, `is_Logger_pers`, `wp_Logger__logf` | `inv_logger.v` | the `Logger` is a client-supplied interface. Covers only the **non-panicking** methods — a path reaching `Panic`/`Panicf` has to be shown unreachable. Not a Go-function spec at all: it dispatches through `#(methods …)` on an interface value, which is why it stays with its predicate |
+| `wp_slices_Sort` | `proof_slices_Sort.v` | Goose does not translate it. Permutation-only postcondition |
+| `own_Storage` | `inv_storage.v` | `raftLog.storage` is a client-supplied `Storage`; raft itself ships only `MemoryStorage`, for tests. A predicate, not a triple |
 
-The sixth, **`wp_raft__appendEmptyEntry`** (`inv_raft_phys.v`), is core raft
-and still owed.
+The sixth, **`wp_raft__appendEntry`** (`proof_raft__appendEntry.v`), is core
+raft and still owed. It was called `wp_raft__appendEmptyEntry` until
+2026-09-18 — after a Go method that **does not exist**; the method it
+specifies is `appendEntry`. See
+[false-statements.md](false-statements.md).
+
+**The 2026-09-18 restructure moved the trust base and did not change it.**
+Counted with comments stripped, before and after: the same 6 axioms and the
+same 7 `Admitted`s, now one per `proof_*.v` file named after its function —
+`JointConfig__IDs`, `ProgressTracker__TallyVotes`, `ProgressTracker__Visit`,
+`raft__bcastAppend`, `raft__hasUnappliedConfChanges`, `raft__promotable`,
+`raft__resetRandomizedElectionTimeout`.
 
 That is down from 13 (5 of them owed) at the start of the day. What moved:
 
@@ -286,7 +320,14 @@ rising while axioms fall is the conversion working, not a regression:
     grep -rc '^Axiom\|^  Axiom' new/proof/go_etcd_io/raft --include='*.v'
     grep -rn 'Admitted\.' new/proof/go_etcd_io/raft --include='*.v'
 
-There are also 11 module-type obligations — one `Parameter` per Go function.
+**Both greps over-count**, because several doc comments quote a probe lemma
+ending in `Admitted.` and the `spec_*.v` files are full of `Parameter`s. For
+the honest number, strip comments first — `strip_comments` in
+`etc/check-module-discipline.py` is the helper, and
+`etc/check-module-discipline.py --scope raft --summary` lists every Go
+function with a triple and where it is.
+
+There are also 44 module-type obligations — one `Parameter` per Go function.
 Those are **not** assumptions: each is discharged by the functor ascribed to
 its signature, so none reaches `Print Assumptions`.
 
@@ -311,7 +352,7 @@ Unclaimed; pick one and say so in the journal.
    `wp_JointConfig__CommittedIndex` axiom in `readonly.v`. See
    [../bugs/goose-array-indexref-loads-its-operand.md](../bugs/goose-array-indexref-loads-its-operand.md).
    Worth more than another attempt at any one of them.
-3. **`wp_raft__appendEmptyEntry`** — the last core-raft axiom on the election
+3. **`wp_raft__appendEntry`** — the last core-raft axiom on the election
    path — and then `wp_raft__bcastAppend`, which is really log replication.
 4. Construct `own_raft_ghost` / `is_message` rather than axiomatizing them,
    discharging `own_raft_ghost_step`, `own_raft_ghost_outbox` and
@@ -324,6 +365,20 @@ Unclaimed; pick one and say so in the journal.
    translated code in `new/code/go_etcd_io/raft/v3/`, or record why each axiom
    stays an axiom.
 7. Extend `v3.v` past `Propose` to the rest of the `node` interface.
+8. **Bring `readonly.v` and `protocol.v` into the module discipline.**
+   `etc/check-module-discipline.py --scope raft` lists eleven triples still
+   stated loose: `ProgressTracker__IsSingleton`,
+   `raft__committedEntryInCurrentTerm`, `readOnly__addRequest`,
+   `readOnly__recvAck`, `JointConfig__CommittedIndex`,
+   `readOnly__maybeAdvance`, `sendMsgReadIndexResponse` and `stepLeader` in
+   `readonly.v`; `node__Ready`, `node__Advance`, `node__Propose` in
+   `protocol.v`. The last of the `readonly.v` ones is a **real duplicate**:
+   `raft.stepLeader` has a second triple there, against a second ownership
+   story for the raft struct (`own_raft`), and it is `Admitted` with
+   postcondition `True` and no users. Resolving that means deciding whether
+   `own_raft` or `own_raft_phys` survives — see
+   [false-statements.md](false-statements.md), which is the wider reason this
+   is worth doing rather than a tidiness errand.
 
 ## Before you add a claim
 
@@ -362,7 +417,8 @@ or an `Admitted`.**
   a triple that other proofs consume.
 
   It was the third of the eight false statements tabled above, after
-  `wp_raft__appendEmptyEntry` (2026-09-15) and `step_win` (2026-09-16). All
+  `wp_raft__appendEntry` (2026-09-15, then called
+  `wp_raft__appendEmptyEntry`) and `step_win` (2026-09-16). All
   three were claims about what raft's code does to its outgoing messages. The
   pattern is worth naming: a plausible-looking bookkeeping claim about
   `send`/`msgs`/`msgsAfterAppend` is the thing this development keeps getting

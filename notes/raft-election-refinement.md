@@ -3,7 +3,9 @@
 What `new/proof/go_etcd_io/raft/v3_proof/election_protocol.v` and
 `.../election/` are, what they prove, what they assume, and what is left.
 
-Added 2026-09-12. Restructured 2026-09-14 into one file per Go function — see
+Added 2026-09-12. Restructured 2026-09-14 into one file per Go function, and
+on 2026-09-18 extended to *every* Go function the path touches — 44
+collections, no triple outside one. See
 [raft-proof-map.md](raft-proof-map.md) for the file layout and
 [decisions.md](decisions.md) for why. All of it is reached from
 `new/should_build.v`.
@@ -11,7 +13,18 @@ Added 2026-09-12. Restructured 2026-09-14 into one file per Go function — see
 **Where a spec lives.** Exactly one place per function:
 `v3_proof/election/spec_<fn>.v`, holding one `Parameter`. If you find
 yourself about to write a second Hoare triple for a function that already has
-one, don't — see the `Step` note in [decisions.md](decisions.md).
+one, don't — see the `Step` note in [decisions.md](decisions.md), and the
+duplicate-spec section of
+[false-statements.md](false-statements.md) for the four that got written
+anyway.
+
+**This is checked.** `etc/check-module-discipline.py` reads the program
+expression out of every triple in the raft proof, reports which Go function
+it specifies, and errors on a triple outside the spec/proof shape, two
+triples for one function, a malformed spec file, an incomplete collection, or
+a name the Goose output does not have. `--scope election` is clean as of
+2026-09-18; `--scope raft` still reports `readonly.v` (8) and `protocol.v`
+(3).
 
 ## The claim
 
@@ -247,7 +260,8 @@ What is left as an `Axiom`, and why each is outside raft:
 - `is_Logger`, `is_Logger_pers`, `wp_Logger__logf` (`inv_logger.v`) — the
   `Logger` is a client-supplied interface. Covers only the **non-panicking**
   methods; a path reaching `Panic`/`Panicf` must be shown unreachable.
-- `wp_slices_Sort` (`inv_slices.v`) — Goose does not translate it.
+- `wp_slices_Sort` (`spec_slices_Sort.v`; `inv_slices.v` is gone) — Goose
+  does not translate it.
   Permutation-only postcondition, which is all any caller needs.
 - `own_Storage` (`inv_storage.v`, new 2026-09-16) — `raftLog.storage` is a
   client-supplied `Storage`; raft ships only `MemoryStorage`, for tests.
@@ -295,9 +309,10 @@ Three deliberate choices there:
     it reads and writes fields through the whole-struct points-to using the
     generated `AccessStrict` instances. Only an explicit `wp_apply` of a
     lemma that wants `trk ↦ tv` does.
-  - `wp_raft__promotable` and `wp_campaign_peer_ids` are now stated against
-    the struct and the tracker value they actually read, instead of against
-    unrelated parameters. `wp_campaign_peer_ids`'s receiver is
+  - `wp_raft__promotable` and `wp_JointConfig__IDs` (called
+    `wp_campaign_peer_ids` until 2026-09-18) are now stated against the
+    struct and the tracker value they actually read, instead of against
+    unrelated parameters. `wp_JointConfig__IDs`'s receiver is
     `trk.[ProgressTracker.t, "Config"].[Config.t, "Voters"]`, which is what
     `campaign` calls `IDs` on.
 - `own_progress` is a *definition*, not an axiom: it exposes the one field
@@ -428,20 +443,22 @@ with log replication. Worth a decision record before writing it.
 
 ### The rest
 
-- `inv_misc.v`: `own_raft_misc`, `wp_raft__promotable`,
-  `wp_raft__hasUnappliedConfChanges` (needs `raftLog.scan`),
-  `wp_campaign_peer_ids` (= `quorum`'s `JointConfig.IDs`). The four lemmas
-  added on 2026-09-16 (`own_raft_misc_option`, `wp_newReadOnly`,
-  `wp_raft__resetRandomizedElectionTimeout`, `wp_raft__abortLeaderTransfer`)
-  are already `Admitted` `Lemma`s; the last two are nearly trivial once
-  `own_raft_misc` is a definition.
-- `inv_raft_phys.v`: `wp_raft__appendEmptyEntry` (→ `raftLog.append` →
+- `inv_misc.v` now holds only `own_raft_misc` and `own_raft_misc_option`.
+  The triples that were here each moved to their own collection on
+  2026-09-18: `raft__promotable`, `raft__hasUnappliedConfChanges` (needs
+  `raftLog.scan`), `JointConfig__IDs` (= `quorum`'s `JointConfig.IDs`,
+  called `wp_campaign_peer_ids` before), `newReadOnly`,
+  `raft__resetRandomizedElectionTimeout`, `raft__abortLeaderTransfer` and
+  the five `traceX` hooks. `newReadOnly` and `abortLeaderTransfer` are now
+  `Qed`; `resetRandomizedElectionTimeout` is still `Admitted` on the RNG.
+- `inv_raft_phys.v`: `wp_raft__appendEntry` (→ `raftLog.append` →
   `unstable.truncateAndAppend`), and `wp_raft__bcastAppend`, which is an
   `Admitted` `Lemma` as of 2026-09-16. Its statement is deliberately weak —
   "the outbox grew by some `App`s from `id` at the current term" — matching
   the weakened `step_win`. Do not strengthen it to one-per-peer: the code
   does not do that.
-- `inv_slices.v`: `wp_slices_Sort` stays an `Axiom`. There is no code to
+- `slices_Sort`: `wp_slices_Sort` stays an `Axiom`, now declared inside
+  `proof_slices_Sort.v`'s functor. There is no code to
   prove — Goose emits no body for the `cmp.Ordered` family. See
   [journal.md](journal.md) for the three ways out.
 

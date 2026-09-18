@@ -24,7 +24,9 @@ the self-ack must not reach the state machine before the append is durable.
 `send` routes vote and append *responses* there and everything else to
 `msgs`.
 
-Cost: `wp_raft__appendEmptyEntry` was a false axiom (it owned only
+Cost: `wp_raft__appendEntry` — called `wp_raft__appendEmptyEntry` until
+2026-09-18, after a Go method that does not exist — was a false axiom (it
+owned only
 `own_raftLog`) until 2026-09-15.
 
 ## A new leader's initial broadcast is not uniform

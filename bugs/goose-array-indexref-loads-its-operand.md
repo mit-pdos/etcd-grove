@@ -2,7 +2,8 @@
 
 **Component:** Goose (the Go → Rocq translator), array indexing
 **Status:** open, 2026-09-16
-**Found while:** proving `wp_campaign_peer_ids`, the peer enumeration
+**Found while:** proving `wp_JointConfig__IDs` (called
+`wp_campaign_peer_ids` until 2026-09-18), the peer enumeration
 `campaign` uses to address its `MsgVote`s.
 
 ## What breaks
@@ -91,7 +92,9 @@ Related and cheaper to fix: `new/golang/defn/map.v` declares its `FuncUnfold`s
 at the literal `go.MapType`, so `len` of a *named* map type needs
 `go.len_underlying` + `go.is_underlying` by hand — unlike `slice.v:133`,
 which takes any `st ↓u go.SliceType elem_type`. `wp_ProgressMap_len` in
-`election/inv_tracker.v` is that workaround.
+`election/inv_tracker.v` is that workaround (it is about a *builtin*, not
+about a Go function, which is why it stays in `inv_tracker.v` rather than
+getting a collection of its own).
 
 ## Scope
 
@@ -132,9 +135,13 @@ well as it.
 
 ## Blocked until it lands
 
-- **`wp_campaign_peer_ids`** (`new/proof/go_etcd_io/raft/v3_proof/election/inv_misc.v`)
-  — was an `Axiom`, now an `Admitted` `Lemma` with the machine-checked prefix
-  banked up to the stuck `IndexRef`. Past that point nothing is missing: the
+- **`wp_JointConfig__IDs`**
+  (`new/proof/go_etcd_io/raft/v3_proof/election/proof_JointConfig__IDs.v`;
+  the statement is in `spec_JointConfig__IDs.v`, which carries the full
+  write-up and the three probes) — was an `Axiom`, then an `Admitted`
+  `Lemma` named `wp_campaign_peer_ids` in `inv_misc.v`, renamed and moved
+  2026-09-18. The machine-checked prefix is banked up to the stuck
+  `IndexRef`. Past that point nothing is missing: the
   rest is a `wp_map_for_range` over `voters_ref` (`own_tracker`'s
   `Hvoters_dom` gives `dom voters = cfg`) plus `wp_map_nil_for_range`
   (`new/golang/theory/map.v:305`) for the nil second component. `slices.Sort`
@@ -143,10 +150,11 @@ well as it.
   (`new/proof/go_etcd_io/raft/v3_proof/readonly.v:718`) — an `Axiom` for this
   same reason.
 - **`wp_ProgressTracker__TallyVotes`**
-  (`new/proof/go_etcd_io/raft/v3_proof/election/inv_tracker.v`) — the whole
+  (`new/proof/go_etcd_io/raft/v3_proof/election/proof_ProgressTracker__TallyVotes.v`,
+  statement in `spec_ProgressTracker__TallyVotes.v`) — the whole
   tally loop is proved and banked; it parks on the function's last statement,
   `p.Config.Voters.VoteResult(p.Votes)`, at `quorum.v:154`. Two further
-  obstacles sit behind the array fix, both recorded in that file: the joint
+  obstacles sit behind the array fix, both recorded in the spec file: the joint
   config's second component is `map.nil` and `MajorityConfig.VoteResult`
   opens with `len(c) == 0`, which unfolds to a read of the null location with
   no nil-map instance for `go.len` (the ranging case has

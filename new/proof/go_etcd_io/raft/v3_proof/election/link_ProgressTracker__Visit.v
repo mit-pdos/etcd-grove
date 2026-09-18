@@ -1,0 +1,6 @@
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.proof_ProgressTracker__Visit.
+
+Module ProgressTrackerVisitPostulates : PROGRESSTRACKER__VISIT_POSTULATES.
+End ProgressTrackerVisitPostulates.
+
+Module ProgressTrackerVisit := ProgressTrackerVisitProof ProgressTrackerVisitPostulates.

@@ -3,11 +3,19 @@ Require Export New.proof.go_etcd_io.raft.v3_proof.election.step_lemmas.
 (* [wp_Equal], for the MsgVote branch's Context comparison. *)
 Require Export New.proof.bytes.
 
-(** The top-level dispatch.  NOTE: [Step] is the one function with more than
-    one spec -- the three per-message-type theorems above are a layering of the
-    same Go function, not a duplicate specification of it.
+(** The top-level dispatch, and **one spec like every other function**.  The
+    per-message-type branches are proof structure, not specification: since
+    2026-09-17 they live in [proof_raft__Step_MsgHup.v], [_MsgVote.v] and
+    [_MsgVoteResp.v] (and below those, [_MsgVote_gt.v], [_MsgVote_le.v],
+    [_MsgVote_lt.v], [_MsgVote_eq_novote.v], [_MsgVote_eq_voted.v]), each a
+    functor over [STEP_POSTULATES] with no [Module Type] and no [Parameter],
+    so that [make -j] checks them in parallel.  Only [proof_raft__Step.v] and
+    the combining files may [Require] one.  (An earlier version of this note
+    said [Step] "is the one function with more than one spec"; that was
+    written before the first cut's three per-message-type [Module Type]s were
+    removed on 2026-09-14, and it is no longer true of anything here.)
 
-    It is also **the only spec in this development that mentions ghost state**.
+    This is **the only spec in this development that mentions ghost state**.
     Every function below it is specified against [own_raft_phys] alone, saying
     which state the struct ends up refining and how the outbox grew; [Step]
     assembles those pure facts into one [step] witness and takes one

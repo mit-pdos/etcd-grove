@@ -1,0 +1,4 @@
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.spec_raft__hasUnappliedConfChanges.
+
+Module Type RAFT__HASUNAPPLIEDCONFCHANGES_POSTULATES.
+End RAFT__HASUNAPPLIEDCONFCHANGES_POSTULATES.

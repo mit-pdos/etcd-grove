@@ -28,12 +28,46 @@
 
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.defs.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.inv_raftlog.
-Require Export New.proof.go_etcd_io.raft.v3_proof.election.inv_slices.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.inv_tracker.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.inv_logger.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.inv_misc.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.inv_raft_phys.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.step_lemmas.
+
+(** The callee collections: one Go function each, in dependency order.
+    A [link_*] file nothing re-exports is not built, so this list is
+    load-bearing. *)
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_unstable__maybeFirstIndex.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_unstable__maybeLastIndex.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_unstable__maybeTerm.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raftLog__firstIndex.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raftLog__lastIndex.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raftLog__term.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raftLog__lastEntryID.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raftLog__isUpToDate.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raftLog__hasNextOrInProgressSnapshot.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_Inflights__reset.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_Progress__ResetState.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_Progress__BecomeReplicate.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_ProgressTracker__ResetVotes.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_ProgressTracker__RecordVote.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_ProgressTracker__TallyVotes.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_ProgressTracker__Visit.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_tracker_NewInflights.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_JointConfig__IDs.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_slices_Sort.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_traceReceiveMessage.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_traceSendMessage.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_traceBecomeFollower.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_traceBecomeCandidate.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_traceBecomeLeader.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_newReadOnly.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__resetRandomizedElectionTimeout.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__abortLeaderTransfer.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__promotable.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__hasUnappliedConfChanges.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__appendEntry.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__bcastAppend.
 
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_voteRespMsgType.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__reset.

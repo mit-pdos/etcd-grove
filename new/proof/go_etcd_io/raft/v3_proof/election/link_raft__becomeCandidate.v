@@ -1,8 +1,9 @@
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.proof_raft__becomeCandidate.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__reset.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_traceBecomeCandidate.
 
 Module BecomeCandidatePostulates : BECOMECANDIDATE_POSTULATES.
-  Include Reset.
+  Include Reset.  Include TraceBecomeCandidate.
 End BecomeCandidatePostulates.
 
 Module BecomeCandidate := BecomeCandidateProof BecomeCandidatePostulates.

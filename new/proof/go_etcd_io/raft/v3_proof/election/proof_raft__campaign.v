@@ -1,7 +1,7 @@
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.postulates_raft__campaign.
-Require Export New.proof.go_etcd_io.raft.v3_proof.election.inv_slices.
 
 Module CampaignProof (P : CAMPAIGN_POSTULATES) : CAMPAIGN.
+Import P.
 
 Section helpers.
 Context `{hG: heapGS Σ, !ffi_semantics _ _}.
@@ -172,7 +172,7 @@ Proof.
                (A' := r.[raft.raft.t, "trk"] ↦ rv0.(raft.raft.trk'))
                (P := r ↦ rv0) (P' := r ↦ rv0)
                with "Hr1") as "[Htrkf Hrback]".
-  wp_apply (wp_campaign_peer_ids with "[$Htrkf $Htrk1]")
+  wp_apply (wp_JointConfig__IDs with "[$Htrkf $Htrk1]")
     as "%mref %idm (Htrkf & Htrk1 & Hidm & %Hdomidm)".
   iDestruct ("Hrback" with "Htrkf") as "Hr1".
   wp_apply (wp_map_len_uint64 with "Hidm") as "Hidm".

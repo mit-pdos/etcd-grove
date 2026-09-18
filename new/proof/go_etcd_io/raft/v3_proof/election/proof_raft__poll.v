@@ -1,6 +1,7 @@
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.postulates_raft__poll.
 
 Module PollProof (P : POLL_POSTULATES) : POLL.
+Import P.
 
   (** [poll] logs the vote, records it in the tracker, and returns the tally.
       The only model-visible effect is [record_vote]; the leading [if v]

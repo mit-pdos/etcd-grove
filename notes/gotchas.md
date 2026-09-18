@@ -686,6 +686,14 @@ To check this rather than guess, put the `Axiom` and the `Lemma` side by side
 in one scratch section, then after `End proof.` do
 `Set Printing All. Check @as_axiom. Check @as_lemma.` and diff the two.
 
+**Since 2026-09-18 this does not arise for a Go function's spec**, and that
+is a reason the `_body` form is worth the verbosity: a
+`Definition wp_<fn>_body := ∀ <ambient> …` names every binder itself, in no
+section, so there is nothing for `Proof using` to discharge and an `Axiom`
+and a `Lemma` against the same `_body` have the *same* type by construction.
+It still arises for anything stated inside a `Section`, which is every
+predicate and pure lemma in the `inv_*.v` files.
+
 ## `len` of a *named* map type cannot be stepped; `go.len_underlying` is the way out
 
 `new/golang/defn/map.v` declares its `FuncUnfold` instances at the literal
@@ -879,3 +887,49 @@ compile with `rocq compile -time -vok`. `-time` gives per-command seconds,
 the profile gives the tactic tree. `tc_solve` at the top with hundreds of
 calls means a typeclass search is unfolding something it should not.
 
+
+## An `Ltac` inside `Section proof` is not visible to files that import it
+
+`inv_raftlog.v`'s `split_unstable` was `Local Ltac` inside `Section proof`.
+When the three `raftLog` proofs that used it moved into their own
+`proof_*.v` files (2026-09-18), dropping the `Local` was not enough: the
+importing file still failed with
+
+    Error: The reference split_unstable was not found in the current environment.
+
+An `Ltac` declared inside a `Section` goes out of scope when the section
+closes, `Local` or not. Put it **above** `Section proof`, which is where the
+two that already worked live — `intros_ambient` (`election/defs.v:12`) and
+`wp_log` (`inv_raft_phys.v:10`) are both above their sections. A tactic body
+that mentions no section variable, which is the usual case, needs nothing
+else.
+
+## `Import P.` inside a functor, so a moved callee does not need re-qualifying
+
+When a callee's spec moves out of a globally-`Require Export`ed `inv_*.v` and
+into a `Module Type` that the caller postulates, every use in the caller
+becomes `P.wp_<callee>`. Rather than rewriting the call sites, open the
+parameter once:
+
+    Module ResetProof (P : RESET_POSTULATES) : RESET.
+    Import P.
+      (* wp_apply (wp_newReadOnly with "…")  still resolves *)
+
+`Import` of a functor parameter is legal and the existing `P.wp_…` uses keep
+working, so the two styles coexist. This is worth the two characters on the
+expensive proofs specifically: `proof_raft__Step_MsgVote_gt.v` takes 2:39 and
+2.3 GB to check, so an edit to it that is not the point of the change is an
+edit worth not making.
+
+## Do not slice a Rocq doc comment with a non-greedy `.*?\*\)`
+
+Not a proof trap, a tooling one, recorded because the repair cost more than
+the move. Several doc comments in this development *contain* `(* … *)` —
+worked examples, probe lemmas, an inline aside. A non-greedy match from
+`(**` to the first `*)` stops at the inner comment's terminator and silently
+takes a prefix, leaving the rest of the block orphaned in the source file and
+an unterminated `(**` in the destination. The symptom is a file whose second
+half vanishes: `etc/check-module-discipline.py` reported
+"spec file declares 0 Module Types" for exactly this reason. Count nesting
+depth instead — `strip_comments` in that script does, and it is the shared
+helper to reuse.

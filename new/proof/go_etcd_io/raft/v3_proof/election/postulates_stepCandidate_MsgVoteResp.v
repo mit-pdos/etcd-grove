@@ -11,8 +11,10 @@ Require Export New.proof.go_etcd_io.raft.v3_proof.election.postulates_raft__beco
     [becomeLeader]/[bcastAppend], which carry their own specs. [BECOMEFOLLOWER]
     was missing, which made the [VoteLost] arm unprovable. Corrected
     2026-09-16. *)
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.postulates_raft__bcastAppend.
+
 Module Type STEPCANDIDATE_POSTULATES.
   Include POLL.
   Include BECOMELEADER.
-  Include BECOMEFOLLOWER.
+  Include BECOMEFOLLOWER.  Include RAFT__BCASTAPPEND.
 End STEPCANDIDATE_POSTULATES.
