@@ -1134,6 +1134,212 @@ not after.** Memory discipline held: `-j1`, one build at a time, checking
 `wp_raft__promotable` and `wp_raft__hasUnappliedConfChanges` — both were
 blocked on `own_raftLog` and both are now unblocked. Cheapest wins left.
 
+## 2026-09-17 — `proof_raft__Step.v`: 45 min → 9.5 min, by fixing the tactic engine
+
+### The question
+
+`proof_raft__Step.v` took ~45 min and 11.3 GB at `-vok` (35 min / 10.6 GB
+in the 2026-09-16 journal entry). The task was to make it much faster by
+improving the framework in `new/golang/theory`, not by rewriting the proof.
+It now takes **9 min 29 s and 6.0 GB**, `-vok` RC=0, and the other election
+proofs got faster with it (`campaign` 562 s → 331 s, `reset` 346 s → 203 s,
+same-day A/B against the stashed old framework). This entry is about how
+the time was found, because the method transfers.
+
+### Method
+
+One lemma at a time in a scratch module that `Require`s the `postulates_*`
+file (the [gotchas.md](gotchas.md) recipe), compiled with
+`rocq compile -time -vok` and `Set Ltac Profiling` / `Show Ltac Profile`.
+`wp_Step_MsgHup`, the smallest branch lemma, was the workbench: **110 s**
+wall, 91 s tactics, 14.5 s `Qed`. The profile's top line was
+`typeclasses eauto`, 59% of tactic time in 702 calls. Wrapping the
+framework's Ltac2 in named Ltac1 shims (so the profiler says *which*
+`tc_solve`) and one `Set Typeclasses Debug Verbosity 1` run split that up.
+Five findings, each confirmed with `time` on the isolated tactic:
+
+1. **`MaybeIntoLaterNEnvs` on every pure step** — ~40% of `wp_auto`. The
+   `▷` in `PureWp` lets a step strip a later off every hypothesis, and the
+   search does so by unfolding each hypothesis through its definition
+   (`own_raft_misc` → `∃ …, ∃ …, …`, likewise `own_tracker`, `own_raftLog`),
+   recursing into `∗`/`∃`/big ops. There was never a `▷` to find.
+2. **A failing proof-mode typeclass search against the `WP` goal costs
+   ~2.5 s** (`iPureIntro`, `iExists _`, `iSplitR`, …) and ~0.01 s when the
+   program text is let-bound with `set`. The unfolded `Step` body is a
+   ~500KB term: string literals are `list w8` (1555 `Naive.mk` nodes), names
+   are `String (Ascii …)` chains, `go_gctx` is repeated in every
+   instruction. `done` — so `//` and `by` — runs several such searches and
+   then `split`s into the `uPred` model: 7 s per `//` on `MsgHup`'s goal,
+   38 s on one in `MsgVote`.
+3. **`iNamed "Hphys"` after `wp_start` is 12 s; before it, 1 s.** Every
+   `iDestruct` step is linear in the goal.
+4. **`iFrame "∗#%"` to re-seal `own_raft_phys` is 17 s per use** — `iFrame
+   "%"` alone tries every pure fact in the Coq context against every one of
+   the 25 conjuncts. Not about program size. ~12 uses in the file.
+5. **`set_solver` on `m' ∈ [a] ++ [a] → m' = a` ran 4 s / 153 s / >400 s**
+   (timeout) at three sites with the same goal and different contexts;
+   `set_unfold; naive_solver` alone is 1 s. Also not about program size.
+
+Measured and left alone: `simpl fill` after a pure step (~70 ms, the
+substitution itself), the per-step `eapply` (~110 ms, halved by
+`notypeclasses refine`), `wp_clear_unused_pointsto` (~25 ms per attempt),
+`Qed` (8 s / 84 s / 30 s for the three branch lemmas — 21% of the file).
+
+### What changed
+
+Framework (`new/golang/theory/proofmode.v`, `mem.v`, `auto.v`, `pkg.v`):
+
+- `tac_wp_pure_wp_no_later`, `tac_wp_pure_wp_later_credit_no_later`,
+  `tac_wp_rec_no_later`: pure steps and `wp_call` skip the later search
+  when `wp_envs_has_later` finds no `▷`/`▷^n` syntactically in the context.
+  The fast path also drops `pm_prettify` and the separate `simpl subst'`,
+  and uses `notypeclasses refine`.
+- The program text is let-bound while proof-mode-heavy work runs:
+  `wp_bind_next` leaves the evaluation context as `__wp_ctx := λ e, fill K
+  e`, so `wp_apply`'s `iApply`, `iPkgInit` and `as` see a small goal;
+  `wp_unhide_body` (run by every stepping tactic and at the end of
+  `wp_apply`) substitutes it back. `done ::=` on a goal containing a `WP`
+  binds the body and tries only `fast_done`/`trivial`. `wp_hidden tac` and
+  `wp_start_unfold` are the user-level handles.
+- `iPkgInit` fails fast when `is_pkg_init` is not in the goal.
+
+Proof side (`inv_raft_phys.v`, `inv_logger.v`, `proof_raft__Step.v`):
+`own_raft_phys_intro` replaces most `iFrame "∗#%"` re-seals (the two in
+`send_vote`'s postcondition keep `iFrame`, with the hypotheses named — the
+lemma's `s` is fixed by `Htrk2` in `abs_msg` form and `iApply` will not unify
+it with the goal's `msg.mk` form); `wp_start_folded as "@". iNamed "Hphys".
+wp_start_unfold.` in the three branch lemmas; `wp_hidden (iNamedSuffix …)`
+mid-body; `solve_log_method` and `recv_elem` for the two `set_solver`
+shapes. No spec changed; no `Admitted` added.
+
+### Numbers
+
+| | before | after |
+|---|---|---|
+| `wp_Step_MsgHup` alone (scratch, wall / tactics / `Qed`) | 110 s / 91 s / 14.5 s | 30 s / 19 s / 7.6 s |
+| `proof_raft__Step.v` `-vok`, wall | ~45 min (STATUS, 09-16), 35 min (journal, 09-16) | **9 min 29 s** |
+| … peak RSS | 11.3 GB / 10.6 GB | **6.0 GB** |
+| `proof_raft__campaign.v` `-vok`, wall / RSS (same-day A/B) | 562 s / 3.0 GB | 331 s / 2.3 GB |
+| `proof_raft__reset.v` `-vok`, wall (same-day A/B) | 346 s | 203 s |
+
+The `Step` "before" is the previous day's measurement on this machine, not a
+same-day A/B (45 min was not worth re-spending); the `campaign`/`reset` rows
+are a same-day A/B done by stashing `new/golang/theory/`, rebuilding the
+`.vos` closure, checking, and restoring. Per-command `-time` logs of old and
+new `campaign` agree on every command within noise except the ones the
+changes target (`wp_auto`/`wp_apply` 3–10× faster).
+
+Regression check under the final framework: all 16 `new/golang/theory/*.v`
+files with proofs pass `-vok`, as does every `proof_*.v`, `inv_*.v`, `defs`,
+`step_lemmas` and `election.v` in the election development (RC=0 each; the
+run is in the "verification" paragraph of STATUS.md).
+
+### Dead ends and one self-inflicted regression
+
+- Hiding the program *at rest* (unhiding only inside stepping tactics)
+  would make every IPM tactic fast, but `rewrite Hb` on the program text —
+  the idiom for resolving a `bool_decide` — would stop finding its
+  occurrence. Rejected; see [decisions.md](decisions.md).
+- `Typeclasses Opaque own_raft_misc …` stops the later search unfolding
+  them, and also breaks `iNamed "Hphys"`.
+- The first `done ::=` kept stdpp's full body under the hiding and was
+  *still* 38 s on the `MsgVote` goal: `split` succeeds on `envs_entails`
+  (a one-constructor record) and the cascade continues inside the model.
+  Restricting `done` on `WP` goals to `fast_done`/`trivial` fixed it.
+- `rewrite … // in Hvote1 Hlead1` hands `done` the *reverted* goal
+  `H → WP …`, which the first guard did not recognise (36 s). The guard now
+  matches any goal with a `WP` under binders.
+- **The copy of stdpp's `done` had an arm stdpp does not have** (`case H;
+  clear H; done` on `¬_` hypotheses — misread from a truncated grep). It is
+  exponential in the number of negated hypotheses: one `//` in `campaign`
+  went from 0.1 s to 358 s, and it is what the A/B was for. Fixed by
+  copying verbatim. Lesson recorded in decisions.md.
+- `pkill -f 'rocq compile…'` from the agent's own shell matches the shell's
+  own command line and kills it (exit 144), leaving the `rocqworker`
+  orphaned and still running. Kill by PID.
+
+### Where to pick up
+
+The remaining `Step` time is: the six `vote_*_tail` calls (13–19 s each,
+each a `wp_apply` of `send_vote` plus a postcondition `iFrame`), the
+`MsgVote` `Qed` (84 s), and `simpl fill` at ~70 ms per pure step. `Qed`
+is the kernel re-substituting the program once per step; making it cheaper
+means fewer administrative `let:` steps in the translation, which is
+Goose's problem, not this repo's.
+
+## 2026-09-17 (later) — `Step` from 9.5 min to 3.5 min wall: the walker, then the file split
+
+Same day, second round, after the entry above landed on
+`perf/wp-tactics-hide-program-text`.
+
+### What the `MsgVote` profile said this time
+
+A full Ltac profile of `wp_Step_MsgVote` (323 s of tactics) no longer had
+typeclass search on top. It had 106 s of *local* time in `wp_auto`'s own
+Ltac2 body, 74 s in 16,500 `PureWp` probes, 25 s of failing `iClear`
+attempts in `wp_clear_unused_pointsto`, 15 s of `try iNext` on goals with
+no later, and 88 s of `Qed`. A micro-benchmark on the real goal (119,346
+nodes) pinned the first item: `walk_expr` built the evaluation context with
+`constr:(@AppRCtx _ $e1 :: $k)` at every level, and that quotation
+re-elaborates its antiquoted subterm — 16–35 ms per walk, several walks
+per step. The same walk with `Constr.Unsafe.make` is under 1 ms.
+
+### What changed
+
+- `walk_expr` builds the context untyped; the `refine` that uses it
+  type-checks it once.
+- `PureWp` is probed only at nodes shaped like a redex (all operands
+  values, `wp_pure_candidate`); a spine node with an unevaluated operand
+  cannot match any instance. Every instance in the tree has that shape;
+  the requirement is now written on the check.
+- `wp_auto` does one walk per step and dispatches on the node
+  (load/store/alloc syntactically, then pure) instead of four walks.
+- `wp_clear_unused_pointsto` checks syntactically that the location occurs
+  nowhere else before it tries `iClear; clear`.
+- `wp_apply_core` runs `iNext` only when the goal starts with a later.
+- `Step`'s three branch lemmas moved to their own files, and `MsgVote`'s
+  two term cases and then its three `≤` sub-cases likewise, so that
+  `make -j` checks them in parallel. `proof_raft__Step.v` is a 75-line
+  dispatch over functors. No `Module Type` was added; see
+  [decisions.md](decisions.md).
+
+### Numbers
+
+| | before this round | after |
+|---|---|---|
+| `proof_raft__Step.v` alone, `-vok` | 9:29, 6.0 GB | 8:42, 5.4 GB (walker changes only) |
+| all `Step` files, `make -j4`, wall | — | **3:21** |
+| … critical path `_MsgVote_gt` alone | — | 2:39, 2.3 GB |
+| … `_MsgVote_eq_novote` / `_eq_voted` / `_lt` / `_MsgVoteResp` / `_MsgHup` | — | 2:08 / 2:06 / 1:05 / 2:07 / 0:32 |
+| `campaign` `-vok` | 5:31 | 5:22 |
+
+Regression check under the final framework: the 16 theory files, every
+other election `proof_*.v`/`inv_*.v`, `link_raft__Step.v` and `election.v`
+at `-vok` RC=0.
+
+### Dead ends
+
+- `-async-proofs on -async-proofs-j 3` on the single file: 9:11 against
+  9:29, at 11.3 GB. The `Qed`s are not the critical path and the workers
+  copy the state.
+- Hiding the evaluation context *during* stepping (so per-step typing is
+  O(1)) would help the kernel too, but every named `let:` step still
+  substitutes into the whole rest of the body — 136 of the 205 statements
+  in `Step` are named lets — so the floor is a substitution per step in
+  both the tactic and the kernel. Not attempted.
+
+### Where to pick up
+
+The remaining per-step cost is the substitution itself (`simpl fill`,
+~17 ms average, and the kernel redoing it at `Qed`). The only way past it
+is a smaller program term or fewer administrative `let:`s in the
+translation, both Goose's. On the proof side, the six `vote_*_tail` calls
+are 13–19 s each and `_MsgVote_gt` could be split at its `destruct
+uptodate` if 2:39 ever matters.
+
+
+---
+
 ## 2026-09-17 — the array-indexing blocker is fixed, in Goose and in the model
 
 Branch `worktree-goose-array-index-fix`, off `main` at `0fb5a6dd9`.
@@ -1329,6 +1535,413 @@ then `return: m`. `wp_ProgressTracker__Visit` and the
 `TallyVotes` needs the nil-map `len` gap closed first, and separately its
 `VoteWon` conjunct repaired.
 
+## 2026-09-18 — the module discipline covered 13 of 44 Go functions; a checker, then the other 31
+
+Branch `worktree-module-discipline`, from `a21dce0ef`.
+
+### What was wrong
+
+The 2026-09-14 refactor ([decisions.md](decisions.md)) gave a
+`spec_/postulates_/proof_/link_` collection to each of thirteen Go
+functions — `Step` and the things it drives. The other **thirty-one** Go
+functions on the election path stayed as loose `Lemma`s and `Axiom`s in
+`inv_misc.v` (11), `inv_raftlog.v` (11), `inv_tracker.v` (8),
+`inv_raft_phys.v` (2) and `inv_slices.v` (1), globally `Require Export`ed.
+So the property the module system was adopted to enforce — one Hoare triple
+per Go function, no way around it — held for 13 functions and not for 31.
+
+It had already failed where it was not enforced. `raftLog.lastIndex` and
+`raftLog.lastEntryID` each had **two** triples.
+
+### The checker
+
+`etc/check-module-discipline.py`. The design decision that matters: it does
+**not** trust lemma names. It strips comments (counting nesting), finds each
+declaration's sentence, and if the statement contains `{{{` it reads the
+program expression for
+
+    @! (go.PointerType raft.raft) @! "poll"      → raft.raft.poll
+    @! raft.newReadOnly                          → raft.newReadOnly
+    functions slices.Sort                        → slices.Sort
+    #(methods i.(interface.ty) "Term" …)         → an interface contract
+
+and reports the Go function the triple *actually* specifies. It then
+cross-references `new/code/` — via `Definition …ⁱᵐᵖˡ`, `MethodUnfold` and
+the `go_string` name definitions — to say whether that function exists and
+whether it has a translated body.
+
+Checks: `F1` a triple outside `spec_*`/`proof_*`; `F2` two triples for one
+Go function (collapsing a collection's spec+proof pair, and folding
+`proof_X_branch.v` helpers into `X`, so `Step`'s nine files are not nine
+specs); `F3` spec-file shape; `F4` incomplete collection; `F5` a proof file
+verifying a second function; `F6` a name the generated code does not have.
+Notes `N1` when a collection is not named after the function it specifies.
+Non-zero exit on errors.
+
+Reading the expression rather than the name paid for itself immediately, on
+two specs named after the wrong thing — see below.
+
+### What it found, and the fix
+
+**35 errors in the election proof**: 33 out-of-place triples over 31 Go
+functions, plus the 2 duplicate pairs. 31 collections added (124 files),
+`inv_slices.v` deleted, 42 files edited. `--scope election` is now clean.
+
+Three calls worth knowing about:
+
+- **Axioms keep the `Axiom` keyword, declared inside the functor.** Verified
+  on a scratch file before committing to it: an `Axiom` inside a `Module M :
+  SIG` discharges `SIG`'s `Parameter`, and `Print Assumptions` on the
+  instantiated module still names it. So STATUS.md's `Axiom`/`Admitted`
+  accounting survives the move. This reverses the 2026-09-14 "Rejected —
+  put the trust-boundary axioms behind Module Types too", whose reasoning
+  weighed only the proving and not the enforcing.
+- **`lastIndex` and `lastEntryID` went opposite ways.** `lastIndex` exports
+  only the indexed `_at` form, because its value equation is what `term`'s
+  and `lastEntryID`'s proofs need and the weak form cannot be strengthened
+  back; its five weak call sites in `reset` and `becomeLeader` open the
+  predicate with a new two-line accessor, `own_raftLog_acc`.
+  `lastEntryID` exports only the weak form, which is what all four of its
+  callers want, and keeps `_at` as a lemma inside its functor — hidden by
+  the ascription, same move `Step`'s branch lemmas made on 2026-09-17.
+  Rejected in between: a fifth file kind, `derived_<fn>.v`, with a functor
+  from the signature to the corollary. It would have worked; it adds a file
+  kind everything has to learn, against `CLAUDE.md`'s rule on structure.
+- **`Import P.` at the top of each functor**, so that a callee moving into
+  `P` does not require rewriting its call sites. This was deliberate on
+  `proof_raft__Step_MsgVote_gt.v`, which takes 2:39 and 2.3 GB to check: an
+  edit to that file that is not the point of the change is an edit worth not
+  making.
+
+### Two specs named after the wrong Go function
+
+- **`wp_raft__appendEmptyEntry` specifies the method `appendEntry`.**
+  `appendEmptyEntry` occurs nowhere in the generated code —
+  `grep -c appendEmptyEntry new/code/go_etcd_io/raft/v3.v` is `0`. This is
+  the axiom that was the *first* false statement recorded in
+  [false-statements.md](false-statements.md), and a spec named after a
+  function that does not exist cannot be read against a body, which is the
+  check that would have caught it. Renamed `wp_raft__appendEntry`.
+- `wp_campaign_peer_ids` specifies `quorum.JointConfig.IDs`, naming neither
+  receiver nor method — so a second spec of `IDs` would not have collided
+  with it, and `Include`-collision is the mechanism that makes a duplicate a
+  build error. Renamed `wp_JointConfig__IDs`.
+
+### The duplicate that is still open
+
+`raft.stepLeader` has two triples: the election one
+(`own_raft_phys`, `MsgVoteResp`, `Qed`) and `readonly.v:936`'s
+`wp_raft__stepLeader_MsgReadIndex` (`r ↦ rf ∗ own_raft γ rf`, `MsgReadIndex`,
+postcondition `True`, `Admitted`, no users). The preconditions are disjoint
+on `m.Type` so the statements do not contradict; the **ownership** stories
+do, and only one of `own_raft` / `own_raft_phys` can survive. Written up in
+[false-statements.md](false-statements.md) and now step 8 of STATUS.md's
+next steps, together with the other ten loose triples in `readonly.v` and
+`protocol.v` that this pass did not touch.
+
+### Verification
+
+- `make -j8 new/should_build.required_vos` — RC=0, i.e. every statement in
+  the CI-reachable tree elaborates. Not a `make ci` run: that needs a full
+  `.vo` build of Perennial, which nothing in this tree has.
+- `make -j4` over every `.vok` target in the election closure — **193 files,
+  0 errors, make exit 0**, about 25 min wall. `vos` accepts a proof script
+  that does not run; `vok` is the real check. The only non-warning output is
+  the `Show.` that `wp_raft__resetRandomizedElectionTimeout`'s `Admitted`
+  proof has always carried.
+- `etc/check-module-discipline.py --scope election` — RC=0, 0 findings.
+  `--selftest` — ok. Over the whole raft proof — 12 errors, all in
+  `readonly.v` and `protocol.v`.
+
+  Two traps met while doing this, worth knowing for the next big move: the
+  `%.vok` rule re-runs every time (the stamp does not stick), so a vok sweep
+  is always a full sweep and there is no point editing files mid-run; and a
+  `.v` edit that triggers a *partial* `vos` rebuild leaves the tree with
+  `.vos` files built against different versions of a dependency, which shows
+  up as `Error: Compiled library … makes inconsistent assumptions over
+  library …` at the aggregator rather than where the edit was. Rebuild the
+  whole `vos` closure after editing, then sweep.
+- Trust base, counted with comments stripped, base `a21dce0ef` vs now:
+  **the same 6 axioms and the same 7 `Admitted`s.** The restructure moved
+  them and changed none of them. (Both raw greps over-count, because doc
+  comments quote probe lemmas ending in `Admitted.`;
+  `etc/check-module-discipline.py`'s `strip_comments` is the helper.)
+
+### Dead ends and traps
+
+- `Local Ltac` inside `Section proof` is invisible to importers even without
+  `Local` — a section closes over `Ltac` too. `split_unstable` had to move
+  *above* the section, where `intros_ambient` and `wp_log` already were.
+- Slicing a Rocq doc comment with a non-greedy `.*?\\*\\)` silently takes a
+  prefix when the block contains a nested `(* … *)`, which several of these
+  comments do (worked examples, probe lemmas). Two spec files ended up with
+  an unterminated `(**` swallowing their `Module Type`; the checker caught
+  it as "declares 0 Module Types". Count depth.
+- Both are in [gotchas.md](gotchas.md).
+
+### Note for whoever is next
+
+`notes/STATUS.md` is 460 lines against its own stated budget of ~150
+([README.md](README.md)). It was 405 before this session. The "Trust base"
+and "Known broken" sections are the bulk and both have topic files they
+could move into. Worth doing before it stops being read, which is the
+failure mode the budget exists to prevent.
+
+---
+
+## 2026-09-18 (later) — `Step`'s eight proof helpers move to `proof_raft__Step_helpers/`
+
+Same branch, follow-on to the entry above.
+
+### Why
+
+The collection layout makes the top-level election directory the thing you
+audit: four files per Go function, and you can check "one spec per function"
+by reading it. After the morning's work it held 176 collection files, eight
+shared files — and eight that were neither, `Step`'s branch lemmas, sorting
+in among the collections and indistinguishable from collection members by
+name. `proof_raft__Step_MsgVote_gt.v` looks exactly like the proof file of a
+collection whose spec someone forgot. That defeats the point of the layout.
+
+### What moved
+
+`proof_raft__Step_MsgHup.v`, `_MsgVote.v`, `_MsgVoteResp.v`,
+`_MsgVote_gt.v`, `_MsgVote_le.v`, `_MsgVote_lt.v`, `_MsgVote_eq_novote.v`
+and `_MsgVote_eq_voted.v` → `election/proof_raft__Step_helpers/`. `Step` is
+the only function whose proof spans more than one file, so it is the only
+directory. File names kept; see the decision record for why not shortened.
+
+The only code change beyond the `git mv` is three `Require Export` lines —
+the ones *pointing at* the moved files, in `proof_raft__Step.v`,
+`_MsgVote.v` and `_MsgVote_le.v`. The helpers' own
+`Require Export …election.postulates_raft__Step` is an absolute logical
+path and did not move, which is the thing to know before attempting a
+rearrangement like this: only inbound references break.
+
+`proof_<fn>_helpers/` rather than `proof_<fn>/`, because a directory
+`election/proof_raft__Step/` would collide with the file
+`election/proof_raft__Step.v` for the logical name
+`…election.proof_raft__Step`. Worth knowing generally: under `-Q new New` a
+directory and a `.v` file of the same name in the same parent cannot
+coexist.
+
+### Made a rule
+
+`etc/check-module-discipline.py` gained `H1` (a helper at the top level),
+`H2` (a `Module Type` or an assumption inside a helpers directory — a spec
+hiding in proof structure) and `H3` (a helpers directory with no
+`proof_<fn>.v`). `H1` is structural, not a filename list: a
+`proof_<X>_<suffix>.v` whose own collection has no spec while `<X>` does is a
+helper by construction. `--summary` now names the functions that have helper
+directories.
+
+All three were verified by planting a violation rather than by reading the
+code: a copied helper at the top level (H1 fired), a two-line
+`Module Type`/`Parameter` file inside the directory (H2 fired twice, once for
+each), and a `proof_zznothing_helpers/` with nothing to help (H3 fired).
+Then deleted.
+
+### Verification
+
+- `rm .rocqdeps.d && make -j8 new/should_build.required_vos` — RC=0. The
+  dependency file has to be deleted: it is generated, and it still named the
+  old paths.
+- `make -j4` over all 193 `.vok` targets in the election closure, now found
+  with `find` rather than a top-level glob so the helpers directory is
+  included — see below for the result.
+- `etc/check-module-discipline.py --scope election` RC=0, `--selftest` ok.
+  193 targets, `MAKE_EXIT=0`, 0 errors; the sweep script now finds its
+  targets with `find` rather than a top-level glob, so the helpers directory
+  is included (checked: 178 of the log's lines name it).
+
+### And then: the checker was specialized to this proof, so that was removed
+
+A separate pass over `etc/check-module-discipline.py`, after Upamanyu asked
+for it to be as generic as sensible. Four specializations, all in the
+*logic* rather than in the examples:
+
+- `suggest_name` had `if parts[0] == "raft": return parts[1]` — a package
+  name deciding naming policy. Replaced by `acceptable_names`, which returns
+  both the bare and the package-prefixed form and lets the author use
+  either; the `N1` note now fires only when the collection name is neither.
+  This is the right shape anyway: which reads better depends on the package,
+  and a checker should not be the thing that decides.
+- The proof root, the code roots and a two-entry table of scope names were
+  module constants with no way to override them. Now `--proof-root`,
+  `--code-root` (repeatable) and a `--scope` that takes a path *or* the bare
+  name of any directory under the proof root — which is the convenience the
+  hardcoded table was providing, generalised.
+- The code index dropped Rocq's module alias and matched on `Type.method`
+  alone, justified in a comment by "distinctive enough across these five
+  packages". It now resolves the alias against the `Module` declarations each
+  generated file makes, with the bare name as a fallback, so a package
+  translated into a file of any name resolves properly. (This is why
+  `raft.raft.poll` works at all: the raft package is `new/code/.../v3.v`.)
+- Goose's `Recv__method` separator and the collection-naming separator were
+  one constant. Same spelling, different conventions; split.
+
+Verified by pointing it at another development: `--proof-root
+new/proof/go_etcd_io/etcd` reports 24 out-of-place triples, and the raft and
+election numbers are unchanged (12 errors and 0). The self-test cases for the
+naming and lookup helpers now use `pkg`/`Type`/`fn` placeholders instead of
+real names, so they assert the convention rather than this proof's contents.
+
+What deliberately stays: the module docstring and the parsing self-test use
+real Goose output shapes as examples, because a regex for
+`@! (go.PointerType <pkg>.<Type>) @! "<method>"` is unreadable without one.
+
+## 2026-09-18 — review of the module-discipline branch
+
+A low-effort correctness pass over `main...worktree-module-discipline` (the
+`wp_auto`/`proofmode` speedups, the one-collection-per-function split, and
+`etc/check-module-discipline.py`) found a real bug in
+`spec_raft__appendEntry.v`, the trust-boundary axiom the rename earlier in
+the day had touched: it claimed `RET #true` for an arbitrary `es` and took no
+ownership of `es`, while `raft__appendEntryⁱᵐᵖˡ` has a `return: #false` path
+and writes `Term`/`Index` into every element of the slice. Both real; the
+ownership one is `wp_ProgressTracker__Visit` one level out.
+
+**Its proposed fix was wrong, and the way it was wrong is the lesson.** The
+review weakened the result to an existential `accepted : bool` on the grounds
+that "`becomeLeader`, the only caller in scope, ignores it". `becomeLeader`
+does not ignore it:
+
+    if !r.appendEntry(pb.Entry{Data: nil}) { r.logger.Panic("empty entry was dropped") }
+
+`wp_Logger__logf` deliberately excludes `Panic`, so the existential form
+makes `becomeLeader` unprovable rather than merely weaker. Measured by
+installing the review's version and building it: `election.required_vos`
+rc=0, `proof_raft__becomeLeader.vok` rc=2, `Error: Failed to progress.` —
+`wp_auto` cannot step `if: ~accepted` for an opaque boolean. Third time in
+this session that a `vos`-green change was wrong; the review said the edit
+was "mechanical" and flagged that it had not built it, which is the only
+reason this was caught rather than pushed.
+
+The repair keeps `RET #true` and adds the premise that makes it true:
+`increaseUncommittedSize` rejects only when `payloadsSize(ents) > 0`
+(`v3.v:5401`, and `payloadsSize` sums `len(e.Data)` at `v3.v:7515,7524`), so
+`Forall (λ e, sint.Z e.(Entry.Data').(slice.len) = 0) ents` — exactly what
+`becomeLeader` passes — makes the `Panic` demonstrably dead code. The slice
+is owned as a precondition and handed back existentially, since
+`raftLog.append` copies values rather than taking the slice.
+`becomeLeader` discharges the premise with `apply Forall_singleton. done.`
+
+Verified: `proof_raft__becomeLeader.vok` rc=0 with the repair, and the full
+193-target sweep re-run afterwards. Both write-ups in
+notes/false-statements.md, including the two tells — an argument the triple
+says nothing about, and a weakening that breaks a caller.
+
+One detour worth recording, because it cost a whole sweep. The probe above
+saved and restored the two files with `shutil.copy2`, which preserves
+mtimes — so the `.vos` built from the review's version came out *newer* than
+the restored corrected source, `make` skipped rebuilding it, and the next
+sweep compiled `becomeLeader` against a spec that was no longer in the tree.
+It failed with `iAndDestruct: cannot destruct (own_raft_phys …)`, which reads
+like a proof bug and is not one. `touch` the restored files and rebuild the
+whole `vos` closure. Written up in [gotchas.md](gotchas.md).
+
+The rest of the diff came back clean at this effort level. The framework
+changes worth a second reader some day, none of them a finding: `Ltac done
+::=` in `proofmode.v` globally weakens `done` on `WP` goals for the whole
+downstream build (deliberate, documented); `wp_pure_candidate`'s shape filter
+silently skips the `PureWp` search for any listed node with an unevaluated
+operand, so a future instance that steps such a node would need adding
+there; and `wp_done_core`'s comment says "copied verbatim" from stdpp while
+the `¬_` arm is deliberately `fast_done` rather than a recursive `done`.
+
+---
+
+## 2026-09-18 (later) — a TCB viewer: `etc/tcb-report.py`, and a shared parser
+
+Claude Opus 5 (background job), at Upamanyu's request: "it is challenging to
+quickly identify incomplete parts of the proof", so a generic tool showing a
+file-by-file status and an overall measure of the size of the TCB —
+"theorem statements for externally facing functions; specs for internal
+functions are just untrusted proof artifacts".
+
+Branch `tcb-view`, off `main` at 43660bd0f.
+
+- **Did:**
+  - **`etc/rocqscan.py`** (new) — the shallow Rocq scanning both tools need:
+    comments, sentence ends, what a sentence declares and inside which
+    modules, how a proof ended, a record's fields and an inductive's
+    constructors, `Require` lines, and which Go function a triple's program
+    expression names. Lifted out of `check-module-discipline.py`, which now
+    imports it. Own self-test: `python3 etc/rocqscan.py`.
+  - **`etc/tcb-report.py`** (new) — the viewer. `--view summary` (default),
+    `files`, `assumed`, `surface`, `all`; `--scope`, `--proof-root`,
+    `--format json`, `--selftest`. Always exits 0.
+  - **`etc/check-module-discipline.py`** — parser removed, imports added,
+    `--selftest` now runs rocqscan's too. **Output is byte-identical** before
+    and after on `--scope election --summary`, the whole raft tree, and
+    `--format json`, with the same exit codes; that diff was the acceptance
+    test for the refactor.
+  - Documented in `CONTRIBUTING.md`, `notes/STATUS.md` ("Trust base" no
+    longer tells you to grep) and `notes/decisions.md`.
+
+- **What it says today** (whole raft proof, 198 files, 8,841 lines): 45
+  assumed (31 `Axiom`, 14 `Admitted`; 18 triples, 13 model properties, 14
+  opaque declarations, 2 marked `Trusted`), 7 exported results, 85
+  definitions reached from those statements — 866 lines, 9.8%. Not trusted:
+  44 discharged obligations, 43 internal function specs, 114 `Qed`s. The
+  election path: 6 axioms, 7 admits, 43 definitions, 395 lines.
+
+- **Checked against the hand counts, which were right.** An independent
+  recount written not to share the tool's logic — strip comments, count
+  `Admitted.`, count assumption keywords outside a `Module Type` found by a
+  separate bracket scan — agrees file by file: 14 `Admitted`, 31 `Axiom`.
+  The election path's 6 and 7 are the same 6 and 7 `STATUS.md` listed by
+  name.
+
+- **What did not work, in order:**
+  - **Go's export rule as the definition of "externally facing".** The
+    obvious reading of the request, and wrong: `quorum.JointConfig.IDs` is
+    exported and is an internal callee, while `raft.raft.poll` is
+    unexported. What works is "nothing in the development depends on it".
+    Go's rule is still reported next to each result, because an *unexported*
+    exported result is worth a second look.
+  - **Counting `election.v`'s `Require Export link_*` as uses.** That file
+    re-exports every collection so `make ci` builds them, so every
+    collection looked internal and the development came out with no exported
+    result at all. Only a require or a mention from another *collection*
+    counts, and `raft__Step` is then the single root — which is what the
+    call graph actually is.
+  - **Reading only statements for the "is it used" test.** A lemma is used
+    by being applied in a proof script, so `readonly.v`'s helpers
+    (`quorums_intersect`, `big_sepL2_drop`, …) all looked like exported
+    results: 29 of them. Scanning proof bodies too — kept separate from the
+    statement references, which are what the definition closure follows —
+    cut it to 11.
+  - **`Example rwmutexMaxReaders_ok : … := eq_refl.`** read as a proof with
+    no terminator. A provable keyword with no proof and a `:=` is a
+    definition by term; both halves of that test are needed, since a
+    statement can hold a `let … :=` and still be proved by a script.
+  - **`--scope election` swallowed `election_protocol.v`**, because
+    containment was a string prefix. Compare path components.
+  - A list-aliasing bug in the module-stack tracker: `End` popped in place a
+    list earlier snapshots shared, so every declaration came out at the top
+    level. Caught by the self-test, which is why that test pins the module
+    path of a `Record` inside `Module msg.`.
+
+- **Surprises worth keeping:**
+  - The definitions are the larger half of the trust base — 651 lines
+    against 127 — and no count of axioms shows them. That is the substantive
+    reason this is not just a fancier `grep -c`.
+  - The tool disagrees with nothing in the notes, but it *reclassifies*: an
+    `Axiom` that introduces an opaque predicate (`own_raft_ghost : … → iProp
+    Σ`) is a different thing to trust from one that asserts a property
+    (`is_leader_unique`). 14 of the 31 axioms are declarations.
+  - Pointed at `new/proof` it finds 6 files with `Abort`ed proofs, four of
+    them in Goose's own semantics test data.
+
+- **Left:** `ruff` could not be run — no `pip`, no network in the sandbox —
+  so the three Python files are formatted by hand to match their neighbours
+  and CI's `ruff format --diff` job has not been reproduced locally. Worth a
+  single `ruff format` pass before merge. Nothing else is outstanding; the
+  three self-tests and the byte-identical-output check all pass.
+
+---
+
 ## 2026-09-18 — review of the array fix: is the translation-time dispatch justified?
 
 Review question on the 2026-09-17 fix: branching on array-vs-slice *in Goose*
@@ -1431,3 +2044,131 @@ emits `Slice` on a `go.PointerType`, for which the model has no rule. Both
 predate this fix and are unchanged by it. No raft code hits it, so it does not
 meet the `bugs/` bar ("a proof cannot be completed"); recorded here so the
 next person who trips on it knows it is known.
+
+## 2026-09-19 — ruff, and what it says about the repo
+
+Claude Opus 5 (background job). Closes the item the previous entry left
+open: `ruff` *is* installable here, by downloading the 0.16.5 release binary
+rather than through `pip`, which is absent. Branch `tcb-view`.
+
+- **Did:** `ruff format` and `ruff check --fix` over `etc/rocqscan.py`,
+  `etc/tcb-report.py` and `etc/check-module-discipline.py`, then the seven
+  findings ruff would not fix itself by hand — six `ISC004` (an implicitly
+  concatenated string inside a tuple needs its own parentheses, so a missing
+  comma cannot masquerade as concatenation; they are in the self-test table
+  the scanner inherited) and one `SIM102`. **All three files are now clean
+  under both jobs.**
+
+- **Verified, because a reformat that changes behaviour is the whole risk:**
+  `check-module-discipline.py` still produces byte-identical output on all
+  four invocations (`--scope election --summary`, the raft tree,
+  `--format json`, `--proof-root new/proof`), `tcb-report.py --view all` is
+  byte-identical across the reformat, the three self-tests pass, and the
+  independent recount still says 14 `Admitted` / 31 `Axiom`. The fixes are
+  not all cosmetic — `.format()` became f-strings throughout and
+  `body[:-1]` became `body.removesuffix(".")` — which is why this was
+  checked rather than assumed.
+
+- **What ruff says about the rest of the repo, which is the finding worth
+  recording.** CI's `python` job runs `ruff format --diff` and `ruff check`.
+  On `main`, *both* were already failing:
+
+  | | on `main` | on this branch |
+  |---|---|---|
+  | `ruff format --check` | 1 file unformatted | **clean** (43 files) |
+  | `ruff check` | 99 errors in 11 files | 64 errors in 11 files |
+
+  The one unformatted file on `main` was `etc/check-module-discipline.py`,
+  so this branch turns the format job green. The 64 remaining lint errors
+  are **all pre-existing and none of them are in this branch's files**: 25
+  in `etc/semantics-coverage.py`, 9 in `etc/rocqc.py`, 6 each in
+  `etc/test_coqc.py` and `etc/ci-goose-check.py`, 5 in
+  `new/etc/update-goose-new.py`, and the rest scattered — 47 of the 64 are
+  auto-fixable.
+
+  Mostly `UP032` (use an f-string) and `UP006` (`List[x]` → `list[x]`), so
+  the enabled rule set and the house style of `etc/` have simply disagreed
+  for a while and nobody noticed, because the job was already red.
+
+- **Deliberately not fixed here.** Cleaning 11 unrelated scripts would
+  triple this branch's diff and mix a tooling feature with a lint sweep, and
+  two of the files (`new/proof/github_com/mit_pdos/perennial/goose/model/…/
+  paradox.py`, `new/experiments/gencongruence.py`) are Perennial-inherited,
+  where [decisions.md](decisions.md) says to keep upstream merges
+  mechanical. It wants its own branch, and `new/etc/update-goose-new.py`
+  should be exercised against a real Goose run before anyone touches it.
+
+- **Left:** the lint job stays red until that sweep happens. `ruff` is at
+  `~/.local/bin/ruff` on this box, version-matched to the pin in
+  `pyproject.toml`.
+
+---
+
+## 2026-09-19 (later) — the rest of the ruff errors, and what they were hiding
+
+Claude Opus 5 (background job), at Upamanyu's request: fix all of them, not
+just this branch's. **Both CI python jobs are now green for the first time
+since the rule set and the house style diverged** — `ruff format --check`
+over 43 files and `ruff check` over the repo.
+
+- **52 by `ruff check --fix`** (import sorting, `.format()` → f-strings,
+  `List[x]` → `list[x]`, `removeprefix`/`removesuffix`, `print("")` →
+  `print()`, an unused `# ruff: noqa`), across `etc/semantics-coverage.py`,
+  `etc/rocqc.py`, `etc/test_coqc.py`, `etc/ci-goose-check.py`,
+  `etc/timing-report.py`, `etc/int_template.py`, `etc/trace-deps.py`,
+  `etc/get-deps.py`, `new/etc/update-goose-new.py`,
+  `new/experiments/gencongruence.py` and Goose's `paradox.py`.
+
+- **14 by hand**, of which two needed a decision rather than a keystroke:
+
+  - **`PLW1510` x4 in `etc/ci-goose-check.py` was a false positive with a
+    trap in it.** The four flagged `sp.run` calls *do* pass `check=True` —
+    through `**shared_args`, which ruff cannot see into. Adding `check=`
+    beside the unpacking, which is what the rule's message suggests, would
+    have raised `TypeError: got multiple values for keyword argument
+    'check'` the next time CI ran a Goose check. The fix was to drop the
+    dict and pass `check=True, cwd=path` at each site.
+  - **`DTZ005` x4 has to move as a unit.** `rocqc.py` subtracts two
+    `datetime.now()`s to get a compile time and `test_coqc.py` constructs
+    the `start` it passes in; making one side aware and not the other
+    raises on the subtraction. Both moved to `datetime.now(timezone.utc)`.
+    Nothing is stored but the delta, so no recorded value changes — and the
+    delta can no longer jump an hour across a DST change. `timezone.utc`
+    and not `datetime.UTC`: ruff accepts either, and the alias would have
+    quietly raised the floor to Python 3.11.
+
+  The rest: `BLE001` got a `noqa` with a reason (a CLI's top-level handler
+  is meant to catch everything), `C402` a dict comprehension, `PLR1722`
+  `sys.exit`, `RUF059` an underscore, and the two `EXE001`s differently —
+  `chmod +x` for the inherited `paradox.py`, because a mode change never
+  conflicts on an upstream merge, and deleting the vestigial shebang from
+  `etc/test_coqc.py`, which nothing executes.
+
+- **Verified, since a lint sweep that breaks a script is worse than the
+  lint.** Every runnable script produces byte-identical output and the same
+  exit code before and after (`--help` for six of them;
+  `semantics-coverage.py` run for real against `new/proof/github_com/`, from
+  the same directory so that its `__file__`-derived paths match). The three
+  self-tests pass, `check-module-discipline.py` is still byte-identical to
+  pre-refactor `main`, and the TCB numbers are unchanged. `ci-goose-check.py`
+  was **not** run: `--help` is not a thing it has, and invoking it clones
+  two repositories into `/tmp` — found out the hard way. It was verified by
+  reading. `timing-report.py` needs `pandas`, which is absent, so it was
+  only compiled.
+
+- **What the sweep turned up, which is the part worth keeping.**
+  `etc/test_coqc.py` — the only Python test in the repo — **has been dead
+  for some time and in two independent ways.** It imported `coqc`, a module
+  renamed to `rocqc.py`, so it could not even load; and with that repaired,
+  five of its six tests fail with `TypeError: cannot use a bytes pattern on
+  a string-like object`, because `Classify`'s regexes became `rb"..."` when
+  the filter moved to reading `rocq compile`'s output as bytes, and the
+  fixtures were never ported. Nothing runs it — no Makefile target, no CI
+  job, and `pytest` is not a dependency — which is why neither rotted
+  loudly. The import is fixed and the file now carries a comment saying all
+  of this, so that a green import is not mistaken for a green test.
+
+- **Left:** porting `test_coqc.py`'s fixtures to bytes, and deciding whether
+  anything should run it. Both are somebody's afternoon, and neither is on
+  the raft proof's critical path.
+

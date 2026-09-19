@@ -6,6 +6,9 @@ Require Export New.proof.go_etcd_io.raft.v3_proof.election.postulates_raft__send
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.postulates_stepCandidate_MsgVoteResp.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.postulates_stepFollower_MsgVoteResp.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.postulates_stepLeader_MsgVoteResp.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.postulates_traceReceiveMessage.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.postulates_raftLog__lastEntryID.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.postulates_raftLog__isUpToDate.
 
 Module Type STEP_POSTULATES.
   Include HUP.
@@ -17,5 +20,7 @@ Module Type STEP_POSTULATES.
      is any of the three depending on the role -- on [m.Term > r.Term] the
      term preamble has already run [becomeFollower]. *)
   Include STEPFOLLOWER.
-  Include STEPLEADER.
+  Include STEPLEADER.  Include TRACERECEIVEMESSAGE.
+  Include RAFTLOG__LASTENTRYID.
+  Include RAFTLOG__ISUPTODATE.
 End STEP_POSTULATES.

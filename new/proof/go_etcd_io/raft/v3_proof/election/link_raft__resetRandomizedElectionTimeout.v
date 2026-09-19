@@ -1,0 +1,6 @@
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.proof_raft__resetRandomizedElectionTimeout.
+
+Module RaftResetRandomizedElectionTimeoutPostulates : RAFT__RESETRANDOMIZEDELECTIONTIMEOUT_POSTULATES.
+End RaftResetRandomizedElectionTimeoutPostulates.
+
+Module RaftResetRandomizedElectionTimeout := RaftResetRandomizedElectionTimeoutProof RaftResetRandomizedElectionTimeoutPostulates.

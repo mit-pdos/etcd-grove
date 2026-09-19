@@ -198,7 +198,9 @@ than its proof. One function re-checks in about a minute where the monolithic
 **Rejected — put the trust-boundary `wp_*` axioms behind Module Types too.**
 They are `Prop`s so it would typecheck, but nothing about them will ever be
 proved, so it buys ~20 extra signatures for nothing. They stay plain `Axiom`s
-in `inv_*.v`.
+in `inv_*.v`. **Superseded by the 2026-09-18 entry below**, which reversed
+this: the signatures buy enforcement, not proving, and an axiom is the last
+claim that should sit outside the mechanism.
 
 **Forced, not chosen — predicates stay out of the module system.**
 `own_raft_phys` mentions `own_tracker`/`own_raftLog`/`own_raft_misc`/
@@ -228,13 +230,16 @@ every implementing module inherits it. Proofs likewise open with
 `intros_ambient` (`election/defs.v`) rather than a positional `intros`; see
 [gotchas.md](gotchas.md) for both, written up once.
 
-**Consequences.** 51 files where there was one. `election.v` is a 78-line
+**Consequences.** 51 files where there was one. `election.v` is an
 aggregator that `Require Export`s every `link_*.v`; that is load-bearing,
 because `make ci` builds only what `new/should_build.v` reaches, so a link
 file nothing re-exported would silently go unchecked. The trust base is
 unchanged — 49 axioms, 14 `Admitted` — and is now split structurally: an
 `Axiom` in `inv_*.v` means *out of scope*, an `Admitted` in `proof_*.v` means
-*in scope but unfinished*.
+*in scope but unfinished*. (**The `inv_*.v` half of that reading was
+superseded on 2026-09-18**: every triple about a Go function now sits in a
+collection, so the `Axiom`/`Admitted` distinction is read off the
+`proof_*.v` file and the keyword, not off the file kind.)
 
 **Superseded within the same day:** the first cut gave `Step` four spec files
 (one per message type plus the dispatch). Upamanyu pointed out that this is
@@ -243,6 +248,14 @@ to prevent. The three per-message-type triples are proof structure and are now
 internal lemmas inside `proof_raft__Step.v`, sealed by the ascription. **If a
 function ever seems to want two specs, that is the signal to look harder, not
 to add a second `Module Type`.**
+
+**Amended 2026-09-17:** the three branch lemmas moved to their own files
+(`proof_raft__Step_MsgHup.v`, `_MsgVote.v`, `_MsgVoteResp.v`) so that they
+check in parallel — see the entry of that date below. They are still not
+specs: no `Module Type`, no `Parameter`, and only `proof_raft__Step.v` may
+`Require` them. **Amended again 2026-09-18:** those files live in
+`proof_raft__Step_helpers/`, so the top-level directory is four files per Go
+function and nothing else — see the 2026-09-18 entry on the layout.
 
 ---
 
@@ -479,6 +492,94 @@ diagnosis being copied four times and going stale in three of them.
 
 Deleted when fixed; git remembers.
 
+## 2026-09-17 — the stepping tactics hide the program text from the proof mode
+
+**accepted**
+
+`proof_raft__Step.v` took ~45 min and 11.3 GB to check. Profiling one lemma
+showed the time was not in the proof but in the tactic engine: `wp_pure`
+spent ~40% stripping laters from the context (a typeclass search that unfolds
+every hypothesis), and every failing proof-mode typeclass search against the
+`WP` goal (`done`/`//`, `iPureIntro`, `iSplitR`, `iApply`'s bookkeeping) cost
+seconds because unification is linear in the ~500KB program term.
+
+Decision, in `new/golang/theory/proofmode.v`:
+
+1. A pure step skips `MaybeIntoLaterNEnvs` when the context has no `▷`
+   syntactically (`tac_wp_pure_wp_no_later`, `tac_wp_rec_no_later`).
+2. `wp_bind_next` let-binds the evaluation context (`__wp_ctx := λ e, fill K
+   e`) so that `wp_apply`'s `iApply`/`iPkgInit`/`as` run on a small goal;
+   `wp_apply` unhides before returning.
+3. `done` is redefined (`Ltac done ::=`) to let-bind the body of a `WP` goal
+   before running stdpp's `done`; `solve` rolls it back.
+4. `wp_hidden tac` and `wp_start_unfold` are offered for the user-level
+   equivalents (`iNamed` mid-body; destructure before the body unfolds).
+
+The invariant kept: **when a tactic returns, the program is visible in the
+goal.** Hiding is internal to individual tactics.
+
+Rejected:
+
+- *Keep the body hidden at rest and unhide in the stepping tactics only.*
+  Fastest for every IPM tactic, but `rewrite Hb` on the program text — the
+  idiom these proofs use to resolve a `bool_decide` before `wp_auto` — would
+  fail to find its occurrence, and reading a goal would mean reading a let-in.
+- *`Typeclasses Opaque` on the abstract predicates* to stop the later search
+  unfolding them. Breaks `iNamed "Hphys"`, which relies on typeclass
+  unfolding of `own_raft_phys`.
+- *Making the program term smaller* (primitive strings for variable names and
+  literals). Right in principle, but it is a change to `goose_lang`'s `expr`
+  and to Goose, far outside this repo's scope.
+- *A faster `iFrame "∗#%"`.* That is Iris's `Frame` search; the fix is not to
+  use it for a 25-conjunct re-seal (`own_raft_phys_intro`).
+
+Cost of the decision: `done` is now a copy of stdpp's definition plus a
+guard, so a future stdpp change to `done` has to be mirrored by hand — and
+the copy has to be *verbatim*: the first version had an extra arm (`case H;
+clear H; done` on `¬_` hypotheses, misremembered from a truncated grep) that
+was exponential in the number of negated hypotheses and cost 345s on one
+`//` in `proof_raft__campaign.v`. An A/B against the stashed old framework
+is what caught it; the same-day per-command timings are in the 2026-09-17
+journal entry. Also, a later hidden behind a definition is no longer
+stripped by a pure step.
+
+## 2026-09-17 — `Step`'s branch lemmas check in parallel, one file each
+
+**accepted**
+
+After the tactic-engine work `proof_raft__Step.v` still took 8.7 min at
+`-vok`, and 5.4 of those were `wp_Step_MsgVote` (its `Qed` alone is 88 s).
+The three branch lemmas are independent proofs of independent Go paths that
+happen to share a body, and `make -j` already checks separate files in
+parallel. So `proof_raft__Step_MsgHup.v`, `proof_raft__Step_MsgVote.v` and
+`proof_raft__Step_MsgVoteResp.v` each hold one lemma inside a functor over
+`STEP_POSTULATES`, and `proof_raft__Step.v` instantiates the three and proves
+the one triple in `STEP` from them. `MsgVote` was then still the whole
+critical path (6:00 of a 5:55 wall), and it is two independent term cases,
+so it is split once more: `proof_raft__Step_MsgVote_gt.v` (`m.Term >
+r.Term`) and `_le.v`, combined by a two-line case split in
+`proof_raft__Step_MsgVote.v`. The sum of the parts is unchanged; the wall
+clock is the longest part. Numbers in STATUS.md and the journal.
+
+What this does *not* change: `Step` has one spec, `spec_raft__Step.v`, and
+the branch lemmas have no `Module Type` and no `Parameter`. The earlier
+decision's concern was four Hoare triples for one Go function *stated as
+specs*; these are proof structure. What is weaker than before: the ascription
+no longer hides the branch lemmas from other files — a file that `Require`s
+a branch file and instantiates its functor can use its lemma. The rule is
+therefore conventional: **only `proof_raft__Step.v` may `Require` a
+`proof_raft__Step_*.v` file**, and the file header says so. (Since
+2026-09-18 those files are in `proof_raft__Step_helpers/`, which makes the
+convention visible in the directory listing as well as in the headers.)
+
+Rejected: keeping one file and relying on Rocq's `-async-proofs` to overlap
+the `Qed`s with tactic execution. Measured: 9:11 against 9:29, at 11.3 GB
+instead of 6.0 — the workers copy the state and the tactic time, not the
+`Qed`s, is the critical path.
+
+
+---
+
 ## 2026-09-17 — array `len`/`cap`: fold the constant in Goose, and *also* add a guarded model rule
 
 Fixing the array blocker needed a choice about where `len` of an array comes
@@ -537,3 +638,269 @@ For the `len`/`cap` builtin emission, the case that should be impossible —
 no signature *and* no constant value — is now `ctx.nope`, a loud translation
 failure, rather than falling back to the old broken output. A full
 re-translation of all five pinned repos never hits it.
+
+## 2026-09-18 — every Go function gets a collection, axioms included, and a checker enforces it
+
+**accepted.** Supersedes two paragraphs of the 2026-09-14 entry above: the
+one that rejected putting the trust-boundary `wp_*` axioms behind Module
+Types, and by extension the claim that an `Axiom` in an `inv_*.v` file is a
+structural signal.
+
+The 2026-09-14 refactor gave one collection to each of thirteen Go functions
+and left **thirty-one others** stated as plain `Lemma`s and `Axiom`s in
+`inv_misc.v`, `inv_raftlog.v`, `inv_tracker.v`, `inv_raft_phys.v` and
+`inv_slices.v`. So the property the module system was adopted to enforce —
+one Hoare triple per Go function, and no way to bypass it — held for `Step`
+and its immediate callees and for nothing else. It had already failed twice
+where it was not enforced: `raftLog.lastIndex` and `raftLog.lastEntryID` each
+had two triples (see [false-statements.md](false-statements.md)).
+
+**Decision:** a Hoare triple about a Go function lives in a
+`spec_/postulates_/proof_/link_` collection, **whether or not it will ever be
+proved**. Thirty-one collections added, `inv_slices.v` deleted (it held one
+axiom and nothing else). The `inv_*.v` files keep what they were for:
+ownership predicates, pure lemmas, `Ltac`, and interface contracts.
+
+**Trust-boundary triples keep the `Axiom` keyword, inside the functor.**
+
+    Module RaftAppendEntryProof (P : RAFT__APPENDENTRY_POSTULATES)
+                                : RAFT__APPENDENTRY.
+      Axiom wp_raft__appendEntry : wp_raft__appendEntry_body.
+    End RaftAppendEntryProof.
+
+Measured, not assumed: an `Axiom` inside an opaquely ascribed `Module`
+discharges the signature's `Parameter`, and `Print Assumptions` on the
+instantiated module still names it. So the accounting rule from
+[STATUS.md](STATUS.md) survives the move unchanged — an `Axiom` means
+*outside the raft protocol*, an `Admitted` means *in scope but unfinished* —
+except that it is now read off the `proof_*.v` file rather than off which
+`inv_*.v` file a declaration sat in. That is strictly better: the file name
+now says which function, and the keyword says which kind of debt.
+
+This is what the 2026-09-14 entry rejected, on the grounds that it "buys ~20
+extra signatures for nothing" since nothing about those axioms will ever be
+proved. That reasoning weighed only the *proving*. What the signatures
+actually buy is the thing the refactor was for: `Include` makes a second
+triple for the same function a build error, and opaque ascription means a
+caller cannot reach around the spec. An axiom is a claim about a Go
+function's behaviour, which is exactly the kind of claim this development
+keeps getting wrong, so it is the last thing that should sit outside the
+mechanism. Three of the eight false statements in
+[false-statements.md](false-statements.md) were axioms.
+
+**Rejected — a fifth file kind, `derived_<fn>.v`, for a weak corollary of a
+spec.** Two functions wanted both an indexed `_at` triple and a weak one over
+the existential `own_raftLog`. A functor from the signature to the corollary
+would have served both without a second `Parameter`, but it adds a file kind
+that the checker, `election.v` and every reader has to learn, against
+`CLAUDE.md`'s "prefer a sentence in a markdown file over a mechanism".
+Instead each function exports the one form its callers consume and the other
+becomes a lemma inside the functor, hidden by the ascription — the same move
+`Step`'s branch lemmas made on 2026-09-17. The one caller that then needed to
+open `own_raftLog` got a two-line accessor, `own_raftLog_acc`, in the same
+shape as the existing `own_raft_misc_option`. Details and the reason the two
+functions went opposite ways are in
+[false-statements.md](false-statements.md).
+
+**The discipline is now checked, not remembered:**
+`etc/check-module-discipline.py`. It matters *how* it checks. It does not
+trust lemma names — it reads the program expression out of each triple
+(`@! (go.PointerType raft.raft) @! "poll"`, `@! raft.newReadOnly`,
+`functions slices.Sort`) and reports the Go function the triple really talks
+about. That is what caught the two specs named after the wrong thing:
+`wp_raft__appendEmptyEntry`, which specifies `appendEntry` and is named after
+a method that does not exist in the generated code at all, and
+`wp_campaign_peer_ids`, which specifies `quorum.JointConfig.IDs`. Both are
+renamed. It also cross-references `new/code/` so that a spec naming a
+function no generated package has is an error, and a spec naming a function
+with no translated body is reported as information (that is
+`slices.Sort` — it can only ever be assumed).
+
+Interface methods are deliberately **not** treated as Go functions:
+`wp_Logger__logf` and the three method specs bundled inside `is_Storage`
+dispatch through `#(methods …)` on a client-supplied interface value, so
+there is no Go function under verification to specify. They stay with their
+predicate, and the checker reports them as `I-iface` information.
+
+**Rejected — making the checker a hook or a CI job in this commit.** It exits
+non-zero on errors so it can become either, but per `CLAUDE.md` only where
+there is a demonstrated benefit; the benefit here is one run, already taken.
+`notes/README.md` and this entry are the pointer. Wire it into CI when the
+same violation comes back a second time.
+
+**What is not fixed.** `readonly.v` has eight out-of-place triples and
+`protocol.v` three, listed by
+`etc/check-module-discipline.py` with no `--scope`. They were out of scope
+for
+this pass (the ask was the election proof) and `readonly.v` is a separate
+development resting on `own_raft`, a second ownership story for the raft
+struct. One of its triples duplicates an election spec for real — see
+`raft.stepLeader` in [false-statements.md](false-statements.md).
+
+---
+
+## 2026-09-18 — a function's extra proof files go in `proof_<fn>_helpers/`
+
+**accepted.**
+
+With 44 collections the election directory holds 176 files that are four per
+Go function, eight shared predicate/lemma files — and, before this, eight
+more that were *neither*: `Step`'s branch lemmas
+(`proof_raft__Step_MsgHup.v`, `_MsgVote.v`, `_MsgVoteResp.v`,
+`_MsgVote_gt.v`, `_MsgVote_le.v`, `_MsgVote_lt.v`, `_MsgVote_eq_novote.v`,
+`_MsgVote_eq_voted.v`). They sort in among the collections and look exactly
+like collection members, so *listing the directory no longer told you what
+was in it*: you could not see at a glance whether `proof_raft__Step_MsgVote`
+was a Go function with a missing spec or proof structure with no spec by
+design. That is a real auditing problem, because "does every triple about a
+Go function have exactly one spec" is the property this layout exists to make
+visible.
+
+**Decision:** when one function's proof needs more than one file, the extra
+files go in `proof_<fn>_helpers/`. The top level then holds exactly the four
+files of each collection plus the shared files, and one directory per
+function that has helpers. `Step` is the only such function today;
+`proof_raft__Step_helpers/` holds its eight.
+
+Nothing else changes: absolute logical paths mean the helpers' own
+`Require Export …election.postulates_raft__Step` is untouched, and only the
+three `Require`s *of* the moved files had to be retargeted.
+
+**`proof_<fn>_helpers/` and not `proof_<fn>/`.** The latter is the obvious
+name and it does not work: a directory `election/proof_raft__Step/` and the
+file `election/proof_raft__Step.v` would both want the logical name
+`…election.proof_raft__Step`. The `_helpers` suffix keeps the directory
+sorting immediately after the file it belongs to, which is what makes the
+listing readable.
+
+**Rejected — shortening the file names inside the directory**
+(`proof_raft__Step_helpers/MsgVote_gt.v`). It reads better in an `ls` and the
+directory already supplies the context, but the journal's timing tables,
+`gotchas.md` and `bugs/` all name these files, and the names are what someone
+greps for after reading those. Not worth breaking for cosmetics; the
+directory alone buys the auditability.
+
+**Rejected — a single `helpers/` directory with per-function subdirectories.**
+One entry at the top level instead of one per function, but it separates a
+function's helpers from its collection, and with one such function today it
+is speculative structure.
+
+**Enforced, not remembered.** `etc/check-module-discipline.py` gained three
+checks: `H1`, a proof helper at the top level (detected structurally — a
+`proof_<X>_<suffix>.v` whose collection has no spec while `<X>` does — not
+from a list of known filenames); `H2`, a `Module Type` or an assumption
+inside a helpers directory, which would mean a spec is hiding in proof
+structure; and `H3`, a helpers directory with no `proof_<fn>.v` to help. All
+three were checked by planting a violation and watching them fire.
+`--summary` now also lists which functions have helper directories, so the
+answer to "whose proof spans several files" is one command rather than an
+`ls` and a guess.
+
+**The checker knows the toolchain, not this development.** Worth stating
+because the first cut did not: it had the package name `raft` in its naming
+policy, fixed paths for the proof and code roots, a hardcoded table of scope
+names, and a code index that dropped Rocq's module alias on the grounds that
+"these five packages are distinctive enough". All four are gone. What it
+knows now is Goose's rendering of a call, Perennial's `{{{ … }}}` notation
+and the file-naming convention, each named in a constant at the top of the
+file — plus two overridable defaults for where this repository keeps its
+proof and its generated code.
+
+Concretely: the naming check accepts *either* a bare name or a
+package-prefixed one (`Sort` or `slices_Sort`) rather than privileging one
+package, since deciding which package is "the" one under verification is
+exactly the judgement a checker should not be making; the code index resolves
+the alias a proof writes against the `Module` declarations of the generated
+files, so a package translated to a file of any name resolves correctly;
+`--scope` takes a path or the bare name of any directory under the proof
+root; and `--proof-root` aims the whole thing elsewhere. Demonstrated rather
+than asserted: pointed at `new/proof/go_etcd_io/etcd`, a development that
+predates the convention entirely, it reports 24 out-of-place triples.
+
+---
+
+## 2026-09-18 — what the TCB *is*, and a tool that measures it
+
+**accepted**
+
+Counting the trust base by hand did not scale and was not honest. `STATUS.md`
+carried two greps with the caveat that "both over-count", a table of axioms
+maintained by editing, and a count of `Admitted`s that had to be re-derived
+every time a file moved. The 2026-09-18 restructure moved every triple into a
+collection and the counts had to be redone from scratch to show that it had
+*not* changed the trust base.
+
+**Decision:** `etc/tcb-report.py`, and a definition of the TCB with three
+parts rather than one.
+
+1. **assumed** — an `Axiom`/`Parameter`/`Conjecture`/`Hypothesis` outside a
+   `Module Type`, and every proof ending in `Admitted`.
+2. **results** — the statements the development exports.
+3. **definitions** — everything those statements are written in terms of,
+   transitively.
+
+The third is the part a count of axioms misses, and here it is the biggest:
+85 definitions and 651 lines against 45 assumptions and 127 lines. A theorem
+is only as good as its definitions — `raft_election_safety` says nothing if
+`own_raft_ghost` or `nstate.t` is wrong, and neither is an axiom.
+
+**And what is deliberately not in it.** A `Parameter` inside a `Module Type`
+is discharged by the functor ascribed to that signature; 44 of them, none
+assumed. The spec of a function something else in the development calls is an
+untrusted proof artifact: if it is wrong, its callers' proofs fail. That is
+the distinction the module discipline was built for, and this is what makes
+it visible — 43 of the 44 collections are internal, and exactly one,
+`raft__Step`, is exported.
+
+**Externally facing = nothing in the development depends on it.** A
+collection no *other collection* requires or names, or a declaration in a
+file nothing requires that nothing else names. Two things this got wrong on
+the way:
+
+- **Rejected — Go's export rule (a capitalised name) as the decision.**
+  `quorum.JointConfig.IDs` is exported from its package and is an internal
+  callee here; `raft.raft.poll` is unexported and would be exported if the
+  proof stopped at it. Whether Go exports it is reported next to each result,
+  because a result that is *unexported* in Go is worth a second look, but it
+  does not decide.
+- **Re-exporting is not calling.** The first cut counted `election.v`'s
+  `Require Export link_*` — which exists so that `make ci` builds them — as a
+  use, which made every collection look internal and left the development
+  with no exported result at all. Only a require or a mention from another
+  *collection* counts.
+
+**Rejected — `Print Assumptions` as the source of truth.** It is the right
+answer and it is not available: over a `.vos` tree it sees axioms reachable
+from statements but not what opaque proofs used, so the `Admitted`s and the
+`wp_*` trust-boundary axioms do not appear at all. Ground truth needs a full
+`.vo` build of Perennial, which nothing in this tree has. A syntactic tool
+that runs in 0.4s and can be pointed at any subtree is what the inner loop
+needs; when a `.vo` build exists, `Print Assumptions` should be used to check
+*this* tool, not the other way round.
+
+**Rejected — making it a CI gate.** `etc/check-module-discipline.py` is the
+gate and has a crisp pass/fail. "The TCB grew" is not a defect: it grows when
+an axiom is converted into a real definition with `Admitted` methods, which
+is the conversion working. The tool always exits 0.
+
+**What it cannot see, stated in the tool's own docstring.** References
+through a `Notation`, and instances found by typeclass resolution rather than
+named, are invisible; definitions from Perennial, stdpp and Rocq are outside
+the tree and are not counted, though they are trusted too and are far larger
+than anything measured here. So the definition count is a lower bound, and
+`--view surface` prints how many names it could not resolve so that the
+reader can judge how much is missing.
+
+**The parser is now shared.** `etc/rocqscan.py` holds what both tools need —
+where a sentence ends, what it declares and inside which modules, how a proof
+ended, and which Go function a triple's program expression names — with its
+own `--selftest`. It was lifted out of `check-module-discipline.py`, whose
+output on all of `--scope election`, the whole raft tree and `--format json`
+is byte-identical before and after. One parsing contract was the point: it is
+the part most likely to rot, and two copies would rot apart.
+
+**Consequences:** the numbers in `STATUS.md` are now printed rather than
+maintained, and the hand-written table of axioms is a *why* column for a list
+the tool produces. The two hand counts it replaced were right — the tool
+reproduces 6 axioms and 7 `Admitted`s on the election path, and 14
+`Admitted`s over the whole raft proof, which is what the notes said.

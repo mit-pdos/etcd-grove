@@ -4,8 +4,8 @@ Script to recursively find all .vo dependencies from .rocqdeps.d Makefile depend
 Outputs all dependencies with .vo extension changed to .v
 """
 
-import sys
 import os
+import sys
 
 
 def parse_rocqdeps(deps_file):

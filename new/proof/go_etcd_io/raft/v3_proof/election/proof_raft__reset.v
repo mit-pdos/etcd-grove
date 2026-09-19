@@ -1,6 +1,7 @@
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.postulates_raft__reset.
 
 Module ResetProof (P : RESET_POSTULATES) : RESET.
+Import P.
 
 Section helper.
 Context `{hG: heapGS Σ, !ffi_semantics _ _}.
@@ -144,13 +145,25 @@ End helper.
            [r.trk.MaxInflight], so it needs the whole struct back *)
         iDestruct ("Hrback" with "Htrkf") as "Hr".
         wp_auto.
-        wp_apply (wp_raftLog__lastIndex with "[$Hlog]") as "%li Hlog".
+        (* [lastIndex]'s spec is stated at a fixed split, so open
+           [own_raftLog] and close it again. *)
+        iDestruct (own_raftLog_acc with "Hlog")
+          as (lprev0 lsents0 luents0) "[Hlog Hlogback0]".
+        wp_apply (wp_raftLog__lastIndex_at with "[$Hlog]")
+          as "%li [Hlog %Hli0]".
+        iDestruct ("Hlogback0" with "Hlog") as "Hlog".
         wp_apply wp_tracker_NewInflights as "%ifl Hifl".
         destruct (decide (i = rv.(raft.raft.id'))) as [Hii|Hii].
         + assert (bool_decide (i = rv.(raft.raft.id')) = true) as Hbi
             by (apply bool_decide_eq_true_2; done).
           rewrite Hbi /=. wp_auto.
-          wp_apply (wp_raftLog__lastIndex with "[$Hlog]") as "%li2 Hlog".
+          (* [lastIndex]'s spec is stated at a fixed split, so open
+             [own_raftLog] and close it again. *)
+          iDestruct (own_raftLog_acc with "Hlog")
+            as (lprev1 lsents1 luents1) "[Hlog Hlogback1]".
+          wp_apply (wp_raftLog__lastIndex_at with "[$Hlog]")
+            as "%li2 [Hlog %Hli1]".
+          iDestruct ("Hlogback1" with "Hlog") as "Hlog".
           (* re-split: [Visit] gets the field back, [I] gets its wand back *)
           iDestruct (raft_split_trk_id with "Hr") as "[Htrkf Hrback]".
           iApply "HΦ". iSplitL "Htrkf"; first iExact "Htrkf".
@@ -221,13 +234,25 @@ End helper.
            [r.trk.MaxInflight], so it needs the whole struct back *)
         iDestruct ("Hrback" with "Htrkf") as "Hr".
         wp_auto.
-        wp_apply (wp_raftLog__lastIndex with "[$Hlog]") as "%li Hlog".
+        (* [lastIndex]'s spec is stated at a fixed split, so open
+           [own_raftLog] and close it again. *)
+        iDestruct (own_raftLog_acc with "Hlog")
+          as (lprev2 lsents2 luents2) "[Hlog Hlogback2]".
+        wp_apply (wp_raftLog__lastIndex_at with "[$Hlog]")
+          as "%li [Hlog %Hli2]".
+        iDestruct ("Hlogback2" with "Hlog") as "Hlog".
         wp_apply wp_tracker_NewInflights as "%ifl Hifl".
         destruct (decide (i = rv.(raft.raft.id'))) as [Hii|Hii].
         + assert (bool_decide (i = rv.(raft.raft.id')) = true) as Hbi
             by (apply bool_decide_eq_true_2; done).
           rewrite Hbi /=. wp_auto.
-          wp_apply (wp_raftLog__lastIndex with "[$Hlog]") as "%li2 Hlog".
+          (* [lastIndex]'s spec is stated at a fixed split, so open
+             [own_raftLog] and close it again. *)
+          iDestruct (own_raftLog_acc with "Hlog")
+            as (lprev3 lsents3 luents3) "[Hlog Hlogback3]".
+          wp_apply (wp_raftLog__lastIndex_at with "[$Hlog]")
+            as "%li2 [Hlog %Hli3]".
+          iDestruct ("Hlogback3" with "Hlog") as "Hlog".
           (* re-split: [Visit] gets the field back, [I] gets its wand back *)
           iDestruct (raft_split_trk_id with "Hr") as "[Htrkf Hrback]".
           iApply "HΦ". iSplitL "Htrkf"; first iExact "Htrkf".

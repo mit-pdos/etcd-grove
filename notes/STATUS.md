@@ -1,6 +1,6 @@
 # Status
 
-**Last updated:** 2026-09-17
+**Last updated:** 2026-09-19
 
 ## Goal
 
@@ -43,17 +43,44 @@ builds it.
   (`own_raft_ghost`, `is_message`) and its refinement obligation. Since
   2026-09-15 `nstate.t` carries an `outbox` field and `step` has **no `sent`
   output** — a step's sends are the growth of `s'.(nstate.outbox)`.
-- `v3_proof/election/` (51 files) and `v3_proof/election.v` (78 lines) — the
-  implementation side. **Restructured 2026-09-14 into one file per Go
-  function**: each has `spec_<fn>.v` (a `Module Type` with exactly one
-  `Parameter` — the single place its Hoare triple is written),
-  `postulates_<fn>.v`, `proof_<fn>.v` (a functor ascribed to the signature)
-  and `link_<fn>.v`. Shared predicates live in `defs.v`, `inv_*.v` and
-  `step_lemmas.v`, outside the module system. `election.v` is now only an
-  aggregator plus `raft_election_safety`. See
+- `v3_proof/election/` (192 files) and `v3_proof/election.v` — the
+  implementation side. **One file per Go function**: each has `spec_<fn>.v`
+  (a `Module Type` with exactly one `Parameter` — the single place its Hoare
+  triple is written), `postulates_<fn>.v`, `proof_<fn>.v` (a functor ascribed
+  to the signature) and `link_<fn>.v`. Shared *predicates* live in `defs.v`,
+  `inv_*.v` and `step_lemmas.v`, outside the module system.
+  **44 collections as of 2026-09-18**, up from 13: the 2026-09-14 refactor
+  covered `Step` and its immediate callees and left 31 other Go functions
+  stated as loose `Lemma`s and `Axiom`s in the `inv_*.v` files, where nothing
+  stopped a second spec — and two functions had already acquired one.
+  `inv_slices.v` is gone (it held one axiom and nothing else). `election.v`
+  is only an aggregator plus `raft_election_safety`.
+  **Listing the top level shows exactly four files per Go function**, plus
+  the eight shared files and one `proof_<fn>_helpers/` directory per function
+  whose proof needs several files (only `raft__Step` today, with eight). See
   [decisions.md](decisions.md) for why, and
   [raft-election-refinement.md](raft-election-refinement.md) for scope, what
   is proved, what is admitted, and the trust boundary.
+- **The discipline is checked**: `etc/check-module-discipline.py`. It reads
+  the program expression out of each triple rather than trusting lemma names,
+  so it reports which Go function a spec really specifies, and errors on a
+  triple outside the spec/proof shape, two triples for one function, a
+  malformed spec file, an incomplete collection, or a name absent from
+  `new/code/`. Exits non-zero, so it can gate CI.
+
+      etc/check-module-discipline.py --scope election   # clean
+      etc/check-module-discipline.py --summary
+      etc/check-module-discipline.py --selftest        # the parsing contract
+
+  Its companion is **`etc/tcb-report.py`**, which views the same tree for
+  trust rather than structure: what is assumed, what is exported, and what
+  those statements rest on. See "Trust base" below. The two share their
+  parser, `etc/rocqscan.py`.
+
+  With no `--scope` it checks the whole raft proof and still reports 11:
+  eight in `readonly.v`, three in `protocol.v`. See "Next steps". It knows
+  the toolchain and no particular package or file name, so `--proof-root`
+  aims it at another development.
 
 So: the read-index/heartbeat protocol reasoning and the election refinement
 are the two developed pieces; the node interface is still axiomatized, and
@@ -111,15 +138,37 @@ is nothing to apply. Its four cases:
 | `m.Term = r.Term`, Follower/Leader | `stepFollower` / `stepLeader` only read | `step_refl` |
 | `m.Term = r.Term`, Candidate | `stepCandidate` records the vote, maybe wins or loses | `step_record_then_win` / `_lose` / `step_record_vote` |
 
-**Cost note:** `proof_raft__Step.v` takes **~45 minutes and 11.3 GB** to
-`-vok`. Do not start a second build beside it; overlapping builds are what
-killed several sessions.
+**Cost note:** `Step`'s proof is now nine files — `proof_raft__Step.v` plus
+eight in **`proof_raft__Step_helpers/`** (`proof_raft__Step_MsgHup.v`,
+`_MsgVote.v`, `_MsgVote_gt.v`, `_MsgVote_le.v`, `_MsgVote_lt.v`,
+`_MsgVote_eq_novote.v`, `_MsgVote_eq_voted.v`, `_MsgVoteResp.v`) — that
+check in **3 min 21 s wall with `make -j4`**, the
+longest (`_MsgVote_gt`) 2:39 and 2.3 GB alone (2026-09-17). As one file it
+was ~45 min and 11.3 GB the day before, 9.5 min after the framework fixes,
+8.7 min after the walker fixes. The parts sum to ~11 min of CPU; four of
+them at once peak around 8 GB, so `-j4` is the most this 15 GB box should
+run beside nothing else.
 
-**Verified on 2026-09-16 at `15fcbecd7`**, every file individually at
-`-vok` RC=0 with zero errors: the four `inv_*.v` that changed, all 13
-`proof_*.v`, and `election.v`. Note that this is *not* a `make ci` run —
-that needs a full `.vo` build of Perennial, which nothing in this tree
-has.
+**The tactic engine was the cost, not the proof (2026-09-17).** A pure step
+stripped laters from every hypothesis by unfolding them; every failing
+proof-mode typeclass search against the `WP` goal (so `done`, `//`,
+`iPureIntro`, `iSplitR`, …) was linear in the ~500KB program term; `iFrame
+"∗#%"` re-sealing a 25-conjunct predicate cost 17 s; `set_solver` on a
+list-membership goal ran for minutes. The framework fixes are in
+`new/golang/theory/proofmode.v` (later-free pure steps; the program text
+let-bound inside `wp_apply` and `done`; `wp_hidden tac`; `wp_start_unfold`)
+and the proof-side idioms in [gotchas.md](gotchas.md). `campaign` and
+`reset` got 1.7× faster without being touched (same-day A/B). Details and
+numbers in the 2026-09-17 [journal](journal.md) entry; the design and its
+rejected alternatives in [decisions.md](decisions.md).
+
+**Verified on 2026-09-17** (branch `perf/wp-tactics-hide-program-text`,
+after the framework changes and the file split), every file individually at
+`-vok` RC=0 with zero errors: all nine `proof_raft__Step*.v`, all 12 other
+`proof_*.v`, every `inv_*.v`, `defs.v`, `step_lemmas.v`,
+`link_raft__Step.v`, `election.v`, and the 16 `new/golang/theory/*.v` files
+that have proofs. Note that this is *not* a `make ci` run — that needs a
+full `.vo` build of Perennial, which nothing in this tree has.
 
 Two things that mattered structurally:
 
@@ -160,7 +209,17 @@ longer has one.
 proof bodies** — it will accept a proof script that does not run. Use
 `make <file>.vok` (~100s per function) for the real check. Do not reach for
 `.vo`: nothing in the tree has `.vo` dependencies, so `make x.vo` starts
-building all of Perennial.
+building all of Perennial. To see *where* a slow proof spends its time, put
+the one lemma in a scratch file and compile it with
+`rocq compile -time -vok` under `Set Ltac Profiling` — two minutes, and it
+is how the 2026-09-17 speedup was found.
+
+**Writing against a big function:** destructure the precondition before the
+body is unfolded (`wp_start_folded as "@". iNamed "Hown". wp_start_unfold.`),
+wrap a mid-body `iNamed`/`iNamedSuffix` in `wp_hidden (…)`, re-seal a big
+predicate with an intro lemma rather than `iFrame "∗#%"`, and do not
+`set_solver` a list membership. Each is a 10–100× difference on `Step`;
+see [gotchas.md](gotchas.md).
 
 For the inner loop use **rocq-warm**, and specifically the
 [upamanyus fork](https://github.com/upamanyus/rocq-warm) — not zeldovich's.
@@ -181,7 +240,8 @@ for the `vos` closure.
 As of 2026-09-15 the raft proof assumes **50 axioms and 14 `Admitted.`** (2 of
 the admits deliberate, marked `(* Trusted *)` at `readonly.v:464,471`). The
 one axiom added that day is `own_raft_ghost_outbox`; more importantly, one of
-the 50 — `wp_raft__appendEmptyEntry` — **stopped being a false statement**. It
+the 50 — `wp_raft__appendEntry`, then called `wp_raft__appendEmptyEntry` —
+**stopped being a false statement**. It
 owned only `own_raftLog` while the code it describes queues a `MsgAppResp`
 into `r.msgsAfterAppend`. See [journal.md](journal.md).
 
@@ -191,17 +251,23 @@ outright is the top-level one: that `Step` need handle only election
 messages. Everything in **core raft** — the log, the tracker, `Progress`,
 `bcastAppend`, `newReadOnly` — is in scope and must be constructed and
 proved. Things genuinely outside the raft protocol may still be assumed:
-`slices.Sort` (`inv_slices.v`), the `Logger` interface, the tracing hooks,
-the RNG behind `resetRandomizedElectionTimeout`.
+`slices.Sort`, the `Logger` interface, the tracing hooks, the RNG behind
+`resetRandomizedElectionTimeout`.
 
 So the older reading of `inv_*.v` — "an `Axiom` here means out of scope" — no
-longer holds for core raft. The trust base is now split as:
+longer holds for core raft. **Nor does the file kind carry the distinction
+any more** (changed 2026-09-18): every triple about a Go function is in a
+collection, so it is the *keyword* that says which kind of debt, and the
+*file name* that says which function.
 
-- an `Axiom` in an `inv_*.v` file means **outside the raft protocol**, and
-  there should be very few;
-- an `Admitted` `Lemma` anywhere means **in scope but unfinished**, whether it
-  is in an `inv_*.v` file or a `proof_*.v` one;
-- a `Parameter` in a `spec_*.v` file is neither — it is discharged by the
+- an **`Axiom`** means **outside the raft protocol**, and there should be
+  very few. A trust-boundary triple is declared with `Axiom` *inside* its
+  functor — `Axiom wp_raft__appendEntry : wp_raft__appendEntry_body.` in
+  `proof_raft__appendEntry.v`. Checked: that discharges the signature's
+  `Parameter` and `Print Assumptions` on the instantiated module still names
+  it, so nothing is hidden by the move;
+- an **`Admitted` `Lemma`** means **in scope but unfinished**, wherever it is;
+- a **`Parameter` in a `spec_*.v`** file is neither — it is discharged by the
   functor ascribed to that signature.
 
 `inv_tracker.v` was converted to this shape on 2026-09-16: `own_inflights`,
@@ -211,17 +277,27 @@ same treatment — see
 [raft-election-refinement.md](raft-election-refinement.md) for what each one
 costs.
 
-As of the end of 2026-09-16 the **election path** carries **6 axioms**, of
-which **5 are legitimate** under the scope rule:
+The **election path** carries **6 axioms**, of which **5 are legitimate**
+under the scope rule:
 
 | axiom | file | why it is outside the raft protocol |
 |---|---|---|
-| `is_Logger`, `is_Logger_pers`, `wp_Logger__logf` | `inv_logger.v` | the `Logger` is a client-supplied interface. Covers only the **non-panicking** methods — a path reaching `Panic`/`Panicf` has to be shown unreachable |
-| `wp_slices_Sort` | `inv_slices.v` | Goose does not translate it. Permutation-only postcondition |
-| `own_Storage` | `inv_storage.v` | `raftLog.storage` is a client-supplied `Storage`; raft itself ships only `MemoryStorage`, for tests |
+| `is_Logger`, `is_Logger_pers`, `wp_Logger__logf` | `inv_logger.v` | the `Logger` is a client-supplied interface. Covers only the **non-panicking** methods — a path reaching `Panic`/`Panicf` has to be shown unreachable. Not a Go-function spec at all: it dispatches through `#(methods …)` on an interface value, which is why it stays with its predicate |
+| `wp_slices_Sort` | `proof_slices_Sort.v` | Goose does not translate it. Permutation-only postcondition |
+| `own_Storage` | `inv_storage.v` | `raftLog.storage` is a client-supplied `Storage`; raft itself ships only `MemoryStorage`, for tests. A predicate, not a triple |
 
-The sixth, **`wp_raft__appendEmptyEntry`** (`inv_raft_phys.v`), is core raft
-and still owed.
+The sixth, **`wp_raft__appendEntry`** (`proof_raft__appendEntry.v`), is core
+raft and still owed. It was called `wp_raft__appendEmptyEntry` until
+2026-09-18 — after a Go method that **does not exist**; the method it
+specifies is `appendEntry`. See
+[false-statements.md](false-statements.md).
+
+**The 2026-09-18 restructure moved the trust base and did not change it.**
+Counted with comments stripped, before and after: the same 6 axioms and the
+same 7 `Admitted`s, now one per `proof_*.v` file named after its function —
+`JointConfig__IDs`, `ProgressTracker__TallyVotes`, `ProgressTracker__Visit`,
+`raft__bcastAppend`, `raft__hasUnappliedConfChanges`, `raft__promotable`,
+`raft__resetRandomizedElectionTimeout`.
 
 That is down from 13 (5 of them owed) at the start of the day. What moved:
 
@@ -244,15 +320,16 @@ this was being audited than about the work.
 
 ### What is `Admitted`, and why
 
-Seven lemmas, all in `inv_*.v`. **The array-indexing defect that blocked
-three of them was fixed on 2026-09-17**, so only one of the seven is still
-blocked on tooling:
+Seven lemmas. **The array-indexing defect that blocked three of them was
+fixed on 2026-09-17**, so only one of the seven is still blocked on tooling.
+The three that it blocked moved into their own collections on 2026-09-18, so
+their files below are the `proof_*.v` ones, not `inv_*.v`:
 
 | lemma | file | blocker |
 |---|---|---|
-| `wp_campaign_peer_ids` | `inv_misc.v` | *unblocked 2026-09-17* — the `IndexRef` steps now. What is left: `array_acc` to peel element 0 off `c`, then `wp_map_for_range` |
-| `wp_ProgressTracker__TallyVotes` | `inv_tracker.v` | array part unblocked; **still blocked** on `len` of a nil map ([../bugs/golang-len-of-nil-map-is-stuck.md](../bugs/golang-len-of-nil-map-is-stuck.md)). Also has a statement bug: its `VoteWon` conjunct is false at `cfg = ∅` |
-| `wp_ProgressTracker__Visit` | `inv_tracker.v` | *unblocked 2026-09-17* — both the array `len` and the `sl[:n]` slice step now |
+| `wp_JointConfig__IDs` (was `wp_campaign_peer_ids`) | `proof_JointConfig__IDs.v` | *unblocked 2026-09-17* — the `IndexRef` steps now. What is left: `array_acc` to peel element 0 off `c`, then `wp_map_for_range` |
+| `wp_ProgressTracker__TallyVotes` | `proof_ProgressTracker__TallyVotes.v` | array part unblocked; **still blocked** on `len` of a nil map ([../bugs/golang-len-of-nil-map-is-stuck.md](../bugs/golang-len-of-nil-map-is-stuck.md)). Also has a statement bug: its `VoteWon` conjunct is false at `cfg = ∅` |
+| `wp_ProgressTracker__Visit` | `proof_ProgressTracker__Visit.v` | *unblocked 2026-09-17* — both the array `len` and the `sl[:n]` slice step now |
 | `wp_raft__resetRandomizedElectionTimeout` | `inv_misc.v` | reaches the global RNG through `crypto/rand` and `math/big`. The RNG is outside core raft and may be assumed, but the assumption has not been written |
 | `wp_raft__promotable` | `inv_misc.v` | *unblocked* — `own_raftLog` is now real. Next thing to pick up |
 | `wp_raft__hasUnappliedConfChanges` | `inv_misc.v` | *unblocked* — likewise |
@@ -262,15 +339,37 @@ Each `Admitted` carries a machine-checked prefix and a comment naming the
 blocker, in the style `proof_raft__Step.v` used. Splice and continue; do not
 start over.
 
-Count them with a grep; the axiom count is the number to watch, and admits
-rising while axioms fall is the conversion working, not a regression:
+**Do not count these by hand, and do not grep for them** — a grep
+over-counts, because several doc comments quote a probe lemma ending in
+`Admitted.` and the `spec_*.v` files are full of `Parameter`s. Since
+2026-09-18 the counts are printed:
 
-    grep -rc '^Axiom\|^  Axiom' new/proof/go_etcd_io/raft --include='*.v'
-    grep -rn 'Admitted\.' new/proof/go_etcd_io/raft --include='*.v'
+    etc/tcb-report.py                    # summary, and which files are incomplete
+    etc/tcb-report.py --scope election
+    etc/tcb-report.py --view assumed     # every axiom and admit, classified
+    etc/tcb-report.py --view surface     # what the exported statements rest on
 
-There are also 11 module-type obligations — one `Parameter` per Go function.
-Those are **not** assumptions: each is discharged by the functor ascribed to
-its signature, so none reaches `Print Assumptions`.
+As of 2026-09-18 it reports, over the whole raft proof: **45 assumed** — 31
+`Axiom` and 14 `Admitted`, of which 18 are Hoare triples about Go code, 13
+are properties of the model, and 14 are opaque declarations — against **85
+definitions, 651 lines**, reached from the exported statements. That last
+number is the one a count of axioms misses and is the larger half of the
+trust base: `raft_election_safety` says nothing if `nstate.t` or
+`own_raft_ghost` is wrong, and neither is an axiom. Total 866 lines, 9.8% of
+the development. On the election path alone: 6 axioms, 7 admits, 43
+definitions.
+
+**Admits rising while axioms fall is the conversion working, not a
+regression** — and `--view assumed` says which is which, per file, with the
+Go function each triple is about.
+
+The 44 module-type obligations — one `Parameter` per Go function — are
+**not** assumptions: each is discharged by the functor ascribed to its
+signature, so none reaches `Print Assumptions`, and the tool counts them
+under "not trusted" alongside the 43 internal function specs. Only one
+collection, `raft__Step`, is exported. See
+[decisions.md](decisions.md) for what counts as the TCB and why, including
+what the tool cannot see.
 
 **`Print Assumptions` is still not available as a cross-check.** Over a
 `.vos` tree it under-reports — it sees axioms reachable from *statements* but
@@ -288,14 +387,15 @@ Unclaimed; pick one and say so in the journal.
    `wp_raftLog__hasNextOrInProgressSnapshot` is back and `Qed`. This is the
    cheapest remaining win on the election path.
 2. **Cash in the array fix** (landed 2026-09-17, see the journal). The
-   translation now steps, so `wp_campaign_peer_ids`, `wp_ProgressTracker__Visit`
-   and the `wp_JointConfig__CommittedIndex` axiom in `readonly.v` are ordinary
-   proof work; `TallyVotes` needs
+   translation steps now, so `wp_JointConfig__IDs`,
+   `wp_ProgressTracker__Visit` and the `wp_JointConfig__CommittedIndex` axiom
+   in `readonly.v` are ordinary proof work. `wp_JointConfig__IDs` is the
+   cheapest: `array_acc` on `c` for element 0, then `wp_map_for_range` over
+   `voters_ref`, then `wp_map_nil_for_range` at index 1.
+   `wp_ProgressTracker__TallyVotes` needs
    [../bugs/golang-len-of-nil-map-is-stuck.md](../bugs/golang-len-of-nil-map-is-stuck.md)
    fixed first, and separately its `VoteWon` conjunct repaired.
-   `wp_campaign_peer_ids` is the cheapest: `array_acc` on `c` for element 0,
-   then `wp_map_for_range`, then `wp_map_nil_for_range` at index 1.
-3. **`wp_raft__appendEmptyEntry`** — the last core-raft axiom on the election
+3. **`wp_raft__appendEntry`** — the last core-raft axiom on the election
    path — and then `wp_raft__bcastAppend`, which is really log replication.
 4. Construct `own_raft_ghost` / `is_message` rather than axiomatizing them,
    discharging `own_raft_ghost_step`, `own_raft_ghost_outbox` and
@@ -308,13 +408,27 @@ Unclaimed; pick one and say so in the journal.
    translated code in `new/code/go_etcd_io/raft/v3/`, or record why each axiom
    stays an axiom.
 7. Extend `v3.v` past `Propose` to the rest of the `node` interface.
+8. **Bring `readonly.v` and `protocol.v` into the module discipline.**
+   `etc/check-module-discipline.py` lists eleven triples still
+   stated loose: `ProgressTracker__IsSingleton`,
+   `raft__committedEntryInCurrentTerm`, `readOnly__addRequest`,
+   `readOnly__recvAck`, `JointConfig__CommittedIndex`,
+   `readOnly__maybeAdvance`, `sendMsgReadIndexResponse` and `stepLeader` in
+   `readonly.v`; `node__Ready`, `node__Advance`, `node__Propose` in
+   `protocol.v`. The last of the `readonly.v` ones is a **real duplicate**:
+   `raft.stepLeader` has a second triple there, against a second ownership
+   story for the raft struct (`own_raft`), and it is `Admitted` with
+   postcondition `True` and no users. Resolving that means deciding whether
+   `own_raft` or `own_raft_phys` survives — see
+   [false-statements.md](false-statements.md), which is the wider reason this
+   is worth doing rather than a tidiness errand.
 
 ## Before you add a claim
 
-Eight statements in this development have been asserted, compiled, and lived
+Ten statements in this development have been asserted, compiled, and lived
 in the tree until a proof needed the fact and could not get it — including
-two that had a `Qed` resting on them. The table, the three tells to grep
-for, and the two-probe check for a pointer-receiver spec are in
+two that had a `Qed` resting on them. The table, the tells to grep for, and
+the two-probe check for a pointer-receiver spec are in
 [false-statements.md](false-statements.md). **Read it before writing a spec
 or an `Admitted`.**
 
@@ -345,8 +459,9 @@ or an `Admitted`.**
   value" — but this one has to be *stated*, not admitted, because it changes
   a triple that other proofs consume.
 
-  It was the third of the eight false statements tabled above, after
-  `wp_raft__appendEmptyEntry` (2026-09-15) and `step_win` (2026-09-16). All
+  It was the third of the ten false statements tabled above, after
+  `wp_raft__appendEntry` (2026-09-15, then called
+  `wp_raft__appendEmptyEntry`) and `step_win` (2026-09-16). All
   three were claims about what raft's code does to its outgoing messages. The
   pattern is worth naming: a plausible-looking bookkeeping claim about
   `send`/`msgs`/`msgsAfterAppend` is the thing this development keeps getting

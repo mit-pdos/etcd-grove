@@ -1,6 +1,7 @@
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.postulates_raft__becomeLeader.
 
 Module BecomeLeaderProof (P : BECOMELEADER_POSTULATES) : BECOMELEADER.
+Import P.
 
   Lemma wp_raft__becomeLeader : wp_raft__becomeLeader_body.
   Proof.
@@ -43,9 +44,15 @@ Module BecomeLeaderProof (P : BECOMELEADER_POSTULATES) : BECOMELEADER.
     { rewrite /own_progress.
       iExists (pv <| tracker.Progress.RecentActive' := true |>). iFrame. }
     iDestruct ("Hprback" with "Hpr") as "Htrk1".
-    wp_apply (wp_raftLog__lastIndex with "[$Hlog1]") as "%li Hlog1".
+    (* [lastIndex]'s spec is stated at a fixed split, so open
+       [own_raftLog] and close it again. *)
+    iDestruct (own_raftLog_acc with "Hlog1")
+      as (lprev0 lsents0 luents0) "[Hlog1 Hlogback0]".
+    wp_apply (wp_raftLog__lastIndex_at with "[$Hlog1]")
+      as "%li [Hlog1 %Hli0]".
+    iDestruct ("Hlogback0" with "Hlog1") as "Hlog1".
     wp_apply (wp_traceBecomeLeader with "[$Hmisc1]") as "Hmisc1".
-    wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
+    wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [Hes _]".
     wp_auto.
     (* [appendEntry] queues a self-addressed [MsgAppResp], so it writes
        [r.msgsAfterAppend] and needs the whole struct -- not just the log, as
@@ -61,7 +68,13 @@ Module BecomeLeaderProof (P : BECOMELEADER_POSTULATES) : BECOMELEADER.
       iEval (simpl) in "Htrk1".
       iFrame "Hr1 ∗#%".
       iPureIntro. split_and!; done. }
-    wp_apply (wp_raft__appendEmptyEntry with "[$Hphys]") as "Hphys".
+    (* [appendEntry] writes [Term]/[Index] into every element of the slice,
+       so it needs [Hes].  It returns [true] because the entry's [Data] is
+       nil, which is what the premise says: with a zero payload
+       [increaseUncommittedSize] cannot reject, so the [Panic] on the
+       [false] branch below is dead code.  See [spec_raft__appendEntry.v]. *)
+    wp_apply (wp_raft__appendEntry with "[$Hphys $Hes]") as "%ents' [Hphys Hes]".
+    { apply Forall_singleton. done. }
     (* unpack again before [wp_auto]: the field reads in the [Infof] that
        follows cannot be stepped through the sealed predicate *)
     iNamedSuffix "Hphys" "2".

@@ -1,6 +1,7 @@
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.postulates_raft__hup.
 
 Module HupProof (P : HUP_POSTULATES) : HUP.
+Import P.
 
   (** [hup] has three early returns and one real path, and the postcondition
       is disjunctive to match.  The three early returns leave the struct

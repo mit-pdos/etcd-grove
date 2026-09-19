@@ -246,8 +246,11 @@ Three things generalise:
 
 - **The scratch-file `-vok` loop was 6 s here, not the ~56 s the `Step` agent
   measured.** Cost scales with the `.vos` closure you `Require`, so requiring
-  `inv_misc.v` rather than a `postulates_*.v` under `Step` is a ten-fold
-  difference. Measure it once at the start; it decides whether you batch.
+  a leaf `spec_*.v`/`postulates_*.v` rather than something under `Step` is a
+  ten-fold difference. Measure it once at the start; it decides whether you
+  batch. (This was written when a callee's spec lived in `inv_misc.v`; since
+  2026-09-18 every callee has its own collection, so the cheap closure is
+  usually the one you want anyway.)
 - **"Read the callee's translated body" needs a second half: check it can
   step.** The 2026-09-16 win (five `traceX` no-ops) came from reading bodies.
   The complement is this: a body can be perfectly readable and still have no
@@ -322,3 +325,32 @@ because `MajorityConfig.VoteResult` returns `VoteWon` outright for an empty
 config while `is_quorum ∅ q` is `0 < 0`. `own_tracker` wants a
 `⌜ cfg ≠ ∅ ⌝` conjunct; no proof constructs `own_tracker` from scratch, so
 adding it is free.
+
+## Round 4 datapoint: check time of `proof_raft__Step.v`, 2026-09-17
+
+Not a proving session — a profiling one. `Step` took 45 min to `-vok`; it
+now takes 9.5. Where the session's effort went:
+
+| activity | share |
+|---|---|
+| Profiling: scratch lemma, `-time`, `Ltac Profiling`, `time` on isolated tactics | ~35% |
+| Implementing the framework changes and getting them to parse (Ltac2/Ltac1 quotation) | ~20% |
+| Waiting on `.vos` closure rebuilds (~4 min each, six of them) and `-vok` runs | ~30% |
+| The A/B against the stashed old framework, and the regression it caught | ~15% |
+
+### What the numbers say about process
+
+- **Profile before theorising.** The first hypothesis (proof-term size and
+  `Qed`) was wrong; `Qed` was 15% of the file. Two minutes of
+  `Set Ltac Profiling` on one lemma pointed at typeclass search, and one
+  `Set Typeclasses Debug` run said which class. Every subsequent finding
+  came from a `time "name" (tac)` on an isolated tactic.
+- **`assert_succeeds`/`assert_fails` + `time` is the right probe.** It
+  answers "would this alternative work, and how fast" without committing.
+- **A same-day A/B is worth 25 minutes of machine time.** The copied `done`
+  had an extra arm that made one `//` 3000× slower; nothing else would have
+  caught it, because the file still checked.
+- **Do not kill processes with `pkill -f` from the agent shell.** It
+  matches its own command line (exit 144) and leaves the `rocqworker` alive.
+- **Never edit a `.v` while `rocq compile` is reading it.**
+

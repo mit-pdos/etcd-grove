@@ -1,10 +1,20 @@
-#!/usr/bin/env python3
+# Tests for etc/rocqc.py.
+#
+# STALE, and known to be: nothing runs them -- no Makefile target, no CI job,
+# and pytest is not a dependency -- and they have rotted against the code
+# they test. `Classify`'s regexes are bytes patterns (`rb"..."`), because
+# rocqc.py filters `rocq compile`'s output as bytes, while these tests pass
+# `str`, so five of the six fail with TypeError. The module they import was
+# also still called `coqc` until 2026-09-19.
+#
+# Fixing them means porting the fixtures to bytes; until someone does, do not
+# read a green import as a green test.
 
 import os.path
+from datetime import datetime, timedelta, timezone
 from os.path import join
-from datetime import datetime, timedelta
 
-from coqc import CoqcFilter, Classify
+from rocqc import Classify, CoqcFilter
 
 
 class MemDb:
@@ -24,7 +34,6 @@ class MemDb:
 
     def close(self):
         assert not self.closed
-        pass
 
 
 def test_classify_qed():
@@ -82,7 +91,7 @@ FIXTURE_DIR = join(os.path.dirname(os.path.realpath(__file__)), "test_coqc")
 def run_filter(fname):
     db = MemDb()
     vfile = join(FIXTURE_DIR, fname)
-    filter = CoqcFilter(vfile, False, db, None, datetime.now())
+    filter = CoqcFilter(vfile, False, db, None, datetime.now(timezone.utc))
     with open(join(FIXTURE_DIR, fname + ".out"), "rb") as f:
         for line in f:
             filter.line(line)
@@ -92,7 +101,7 @@ def run_filter(fname):
 
 def test_filter_unit_tests():
     db = MemDb()
-    start = datetime.now()
+    start = datetime.now(timezone.utc)
     vfile = join(FIXTURE_DIR, "test.v")
     filter = CoqcFilter(vfile, False, db, None, start)
     with open(join(FIXTURE_DIR, "test.v.out"), "rb") as f:
@@ -117,7 +126,7 @@ def test_filter_integration_tests():
     for fname, qeds in {"Abstract.v": {"abstract_away_helper": 0.0}}.items():
         db = run_filter(fname)
         vfile = join(FIXTURE_DIR, fname)
-        expected_qeds = dict(((vfile, ident), t) for ident, t in qeds.items())
+        expected_qeds = {(vfile, ident): t for ident, t in qeds.items()}
         assert db.qeds == expected_qeds
 
 

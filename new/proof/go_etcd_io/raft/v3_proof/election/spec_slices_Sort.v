@@ -1,12 +1,4 @@
-(** * [slices.Sort], which Goose has not translated *)
-
-Require Export New.proof.go_etcd_io.raft.v3_proof.election.defs.
-
-Section proof.
-Context `{hG: heapGS Σ, !ffi_semantics _ _}.
-Context {sem : go.Semantics} {package_sem : raft.Assumptions}.
-Collection W := sem + package_sem.
-Set Default Proof Using "W".
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.inv_raft_phys.
 
 (** [campaign] calls [slices.Sort] to put the voter ids in a deterministic
     order.  That function is **not translated**: [new/code/slices.v] declares
@@ -25,10 +17,17 @@ Set Default Proof Using "W".
     To discharge it rather than assume it: add [slices.Sort] to the
     translated set in [new/etc/update-goose-new.py], regenerate, and derive
     it from [wp_SortFunc]. *)
-Axiom wp_slices_Sort : ∀ (data : slice.t) (xs : list w64),
+Definition wp_slices_Sort_body :=
+  ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
+    (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
+    (sem : go.Semantics) (package_sem : raft.Assumptions),
+  ∀ (data : slice.t) (xs : list w64),
   {{{ is_pkg_init slices ∗ data ↦* xs }}}
     #(functions slices.Sort [go.SliceType go.uint64; go.uint64]) #data
   {{{ (xs' : list w64), RET #();
       data ↦* xs' ∗ ⌜ xs ≡ₚ xs' ⌝ }}}.
 
-End proof.
+Module Type SLICES_SORT.
+  Parameter wp_slices_Sort : wp_slices_Sort_body.
+  Arguments wp_slices_Sort {_ _ _ _ _ _ _ _}.
+End SLICES_SORT.

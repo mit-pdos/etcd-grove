@@ -1,6 +1,7 @@
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.postulates_raft__send_vote.
 
 Module SendVoteProof (P : SEND_VOTE_POSTULATES) : SEND_VOTE.
+Import P.
 
   Lemma wp_raft__send_vote : wp_raft__send_vote_body.
   Proof.

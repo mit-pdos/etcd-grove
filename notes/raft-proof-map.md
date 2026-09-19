@@ -25,8 +25,9 @@ new/proof/go_etcd_io/raft/v3_proof/election_protocol.v   election model
         ↓
 new/proof/go_etcd_io/raft/v3_proof/election/{defs,inv_*,step_lemmas}.v
         ↓        shared vocabulary, outside the module system
-new/proof/go_etcd_io/raft/v3_proof/election/spec_<fn>.v      one spec each
+new/proof/go_etcd_io/raft/v3_proof/election/spec_<fn>.v   one per Go function
         ↓            ↓ postulates_<fn>.v          ↓ proof_<fn>.v
+        ↓                              ↓ proof_<fn>_helpers/*.v (if several)
 new/proof/go_etcd_io/raft/v3_proof/election/link_<fn>.v
         ↓
 new/proof/go_etcd_io/raft/v3_proof/election.v    aggregator + election safety
@@ -119,16 +120,32 @@ make a node decline to vote, and declining is always protocol-legal.
 ## `v3_proof/election/` — leader election, implementation side
 
 Restructured 2026-09-14 from a single 1072-line `election.v` into **one file
-per Go function**. 51 files; the shape, and why, is in
-[decisions.md](decisions.md). To find a function's specification there is now
-exactly one place to look:
+per Go function**, and extended on 2026-09-18 to cover *every* Go function
+the path touches rather than only the thirteen top ones. 192 files, 44
+collections; the shape, and why, is in [decisions.md](decisions.md). To find
+a function's specification there is exactly one place to look:
 
     v3_proof/election/spec_<fn>.v
 
-**Per function** (eleven of them: `voteRespMsgType`, `raft__send_vote`,
-`raft__reset`, `raft__becomeFollower`, `raft__becomeCandidate`,
-`raft__becomeLeader`, `raft__poll`, `raft__campaign`, `raft__hup`,
-`stepCandidate_MsgVoteResp`, `raft__Step`):
+and `etc/check-module-discipline.py` fails if a triple is anywhere else.
+
+**Per function**, 44 of them. The thirteen driving the election path
+(`voteRespMsgType`, `raft__send_vote`, `raft__reset`, `raft__becomeFollower`,
+`raft__becomeCandidate`, `raft__becomeLeader`, `raft__poll`,
+`raft__campaign`, `raft__hup`, `stepCandidate_MsgVoteResp`,
+`stepFollower_MsgVoteResp`, `stepLeader_MsgVoteResp`, `raft__Step`), and the
+thirty-one they call:
+
+- the log — `unstable__maybe{FirstIndex,LastIndex,Term}`,
+  `raftLog__{firstIndex,lastIndex,term,lastEntryID,isUpToDate,hasNextOrInProgressSnapshot}`;
+- the tracker — `ProgressTracker__{ResetVotes,RecordVote,TallyVotes,Visit}`,
+  `tracker_NewInflights`, `Inflights__reset`,
+  `Progress__{ResetState,BecomeReplicate}`;
+- the rest of raft — `raft__{promotable,hasUnappliedConfChanges,appendEntry,bcastAppend,resetRandomizedElectionTimeout,abortLeaderTransfer}`,
+  `newReadOnly`, the five `traceX` hooks;
+- outside raft — `JointConfig__IDs`, `slices_Sort`.
+
+Each of the 44 has the same four files:
 
 | file | holds |
 | --- | --- |
@@ -143,22 +160,53 @@ instance-visible, so they can never become Module Type fields:
 | file | holds |
 | --- | --- |
 | `defs.v` | message-type/state constants, `state_w64`, `mtype_of`, `abs_msg`, `w32_ne` |
-| `inv_raftlog.v` | `own_raftLog` and its four methods |
-| `inv_tracker.v` | `own_tracker`, `own_progress`, the tracker methods |
-| `inv_logger.v` | `is_Logger`, `log_methods`, `wp_Logger__logf` |
-| `inv_misc.v` | `own_raft_misc`, the `traceX` helpers, `promotable`, the voter-id enumeration |
-| `inv_raft_phys.v` | `is_phys_msg`, `own_raft_phys`, the `wp_log` tactic |
+| `inv_storage.v` | `own_Storage`, `term_at`, and `is_Storage` — the client-supplied `Storage` interface contract |
+| `inv_raftlog.v` | `own_raftLog`, `own_raftLog_at`, `own_raftLog_acc`, `log_indices_ok`, the `split_unstable` tactic |
+| `inv_tracker.v` | `own_tracker`, `own_progress`, `own_inflights`, `visit_closure`, the pure quorum lemmas, `wp_ProgressMap_len`, `wp_tracker_progress_lookup` |
+| `inv_logger.v` | `is_Logger`, `log_methods`, `wp_Logger__logf`, `solve_log_method` |
+| `inv_misc.v` | `own_raft_misc` and `own_raft_misc_option` |
+| `inv_raft_phys.v` | `own_raft_phys`, `own_raft_phys_at`, `step_func_of`, their intro lemmas, the `wp_log` tactic |
 | `step_lemmas.v` | the `step_*` composition lemmas, `vote_resp_result`, `election_msg` |
 
-`election.v` (78 lines) is now only a `Require Export` of every `link_*.v` and
+Two kinds of `{{{ … }}}` legitimately remain outside a collection, and the
+checker knows the difference: `wp_Logger__logf` and the three method specs
+bundled inside `is_Storage` dispatch through `#(methods …)` on a
+*client-supplied interface value*, so there is no Go function under
+verification to specify; and `wp_ProgressMap_len` / `wp_tracker_progress_lookup`
+are about a predeclared builtin (`go.len` on a named map type) and a
+model-level map operation, not about Go functions either.
+
+`election.v` is now only a `Require Export` of every `link_*.v` and
 shared file, plus `Corollary raft_election_safety`. Requiring every link file
 from there is load-bearing: `make ci` builds only what `new/should_build.v`
 reaches, so a link file nothing re-exported would silently go unchecked.
 
-**`Step` is one function with one spec.** Its three per-message-type branches
-are internal lemmas inside `proof_raft__Step.v`, sealed by the ascription —
-they are proof structure, not specification. If some function ever seems to
-want two specs, that is a signal to look harder, not to add a second
+**A function whose proof needs several files puts the extra ones in
+`proof_<fn>_helpers/`.** That is what keeps the top level to four files per
+Go function, which is the property you audit the directory by: anything at
+the top level that is not `spec_`/`postulates_`/`proof_`/`link_` of some
+collection, or one of the eight shared files, is a mistake, and
+`etc/check-module-discipline.py` says so.
+
+**`Step` is one function with one spec**, and the only one with helpers. Its
+per-message-type branches are internal lemmas — proof structure, not
+specification — and since 2026-09-18 they are the eight files of
+`proof_raft__Step_helpers/`:
+
+    proof_raft__Step_MsgHup.v
+    proof_raft__Step_MsgVote.v        a two-line case split over:
+      proof_raft__Step_MsgVote_gt.v
+      proof_raft__Step_MsgVote_le.v   itself a split over:
+        proof_raft__Step_MsgVote_lt.v
+        proof_raft__Step_MsgVote_eq_novote.v
+        proof_raft__Step_MsgVote_eq_voted.v
+    proof_raft__Step_MsgVoteResp.v
+
+Each is a functor over `STEP_POSTULATES` with no `Module Type` of its own, so
+that `make -j` checks them in parallel; `proof_raft__Step.v` instantiates
+them and proves the one triple in `STEP`. Only `proof_raft__Step.v`, or
+another file in the same directory, may `Require` one. If some function ever
+seems to want two specs, that is a signal to look harder, not to add a second
 `Module Type`.
 
 Full write-up, including what is still `Admitted` and in what order to attack

@@ -11,7 +11,6 @@ import os
 import re
 import subprocess
 from dataclasses import dataclass
-from typing import Dict, List, Optional
 
 
 @dataclass
@@ -22,7 +21,7 @@ class DpdNode:
     body: bool
     kind: str
     prop: bool
-    path: Optional[str]
+    path: str | None
 
 
 @dataclass
@@ -33,14 +32,14 @@ class DpdEdge:
 
 
 class DpdGraph:
-    def __init__(self, nodes: Dict[int, DpdNode], edges: List[DpdEdge]):
+    def __init__(self, nodes: dict[int, DpdNode], edges: list[DpdEdge]):
         self.nodes = nodes
         self.edges = edges
 
     @classmethod
     def parse(cls, text: str) -> "DpdGraph":
-        nodes: Dict[int, DpdNode] = {}
-        edges: List[DpdEdge] = []
+        nodes: dict[int, DpdNode] = {}
+        edges: list[DpdEdge] = []
         for line in text.splitlines():
             line = line.strip()
             if line.startswith("N:"):
@@ -51,8 +50,8 @@ class DpdGraph:
         return cls(nodes, edges)
 
     @staticmethod
-    def _parse_attrs(attrs_str: str) -> Dict[str, str]:
-        attrs: Dict[str, str] = {}
+    def _parse_attrs(attrs_str: str) -> dict[str, str]:
+        attrs: dict[str, str] = {}
         for attr in attrs_str.split(","):
             attr = attr.strip().rstrip(";").strip()
             if "=" in attr:
@@ -94,7 +93,7 @@ class DpdGraph:
 
 class CoverageAnalyzer:
     @staticmethod
-    def get_semantics_instances(repo_root: str) -> List[str]:
+    def get_semantics_instances(repo_root: str) -> list[str]:
         """Get all global typeclass instance names defined in new/golang/."""
         golang_dir = os.path.join(repo_root, "new", "golang")
         pattern = re.compile(r"#\[global\]\s+([a-zA-Z_]\w*)")
@@ -111,7 +110,7 @@ class CoverageAnalyzer:
         return instances
 
     @staticmethod
-    def get_coverage_proofs(repo_root: str, directory: str) -> List[str]:
+    def get_coverage_proofs(repo_root: str, directory: str) -> list[str]:
         """Get all the .v files for proofs that should be used for coverage."""
         result = []
         for dirpath, _, filenames in os.walk(directory):
@@ -126,18 +125,16 @@ class CoverageAnalyzer:
         # strip leading new/ prefix and .v extension, convert / to .
         # proof_file is relative to repo root, e.g. new/proof/foo/bar.v
         path = proof_file.replace(os.sep, "/")
-        if path.startswith("new/"):
-            path = path[len("new/") :]
-        if path.endswith(".v"):
-            path = path[:-2]
+        path = path.removeprefix("new/")
+        path = path.removesuffix(".v")
         return path.replace("/", ".")
 
     @staticmethod
-    def require_paths(proof_files: List[str]) -> List[str]:
+    def require_paths(proof_files: list[str]) -> list[str]:
         return [CoverageAnalyzer.require_path(f) for f in proof_files]
 
     @staticmethod
-    def get_rocqproject_args(repo_root: str) -> List[str]:
+    def get_rocqproject_args(repo_root: str) -> list[str]:
         rocqproject = os.path.join(repo_root, "_RocqProject")
         with open(rocqproject) as f:
             lines = f.readlines()
@@ -153,7 +150,7 @@ class CoverageAnalyzer:
         return result
 
     @staticmethod
-    def run_rocq_top(repo_root: str, args: List[str]):
+    def run_rocq_top(repo_root: str, args: list[str]):
         rocqproject_args = CoverageAnalyzer.get_rocqproject_args(repo_root)
         cmd = ["rocq", "top"] + rocqproject_args + args
         subprocess.run(
@@ -164,7 +161,7 @@ class CoverageAnalyzer:
         )
 
     @staticmethod
-    def get_wp_lemmas(repo_root: str, requires: List[str]) -> List[str]:
+    def get_wp_lemmas(repo_root: str, requires: list[str]) -> list[str]:
         contents = ""
         for p in requires:
             contents += f"From New Require {p}.\n"
@@ -188,7 +185,7 @@ Redirect "wp_lemmas" Search concl:weakestpre.wp.
         return lemmas
 
     @staticmethod
-    def _create_dpdgraph_file(requires: List[str], lemmas: List[str]) -> str:
+    def _create_dpdgraph_file(requires: list[str], lemmas: list[str]) -> str:
         contents = "From dpdgraph Require dpdgraph.\n"
         for p in requires:
             contents += f"From New Require {p}.\n"
@@ -199,7 +196,7 @@ Redirect "wp_lemmas" Search concl:weakestpre.wp.
         return contents
 
     @staticmethod
-    def get_dpdgraph(repo_root: str, requires: List[str]) -> DpdGraph:
+    def get_dpdgraph(repo_root: str, requires: list[str]) -> DpdGraph:
         lemmas = CoverageAnalyzer.get_wp_lemmas(repo_root, requires)
         dpdgraph_v = os.path.join(repo_root, "src", "dpdgraph.v")
         contents = CoverageAnalyzer._create_dpdgraph_file(requires, lemmas)
@@ -215,8 +212,8 @@ Redirect "wp_lemmas" Search concl:weakestpre.wp.
 
     @staticmethod
     def compute_coverage(
-        instances: List[str], graph: DpdGraph
-    ) -> tuple[List[str], List[str]]:
+        instances: list[str], graph: DpdGraph
+    ) -> tuple[list[str], list[str]]:
         """Return (covered, uncovered) lists of instance names."""
         node_names = {node.name for node in graph.nodes.values()}
         covered = [i for i in instances if i in node_names]

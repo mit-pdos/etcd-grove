@@ -32,3 +32,12 @@ Axiom wp_Logger__logf : ∀ (l : interface.t_ok) (meth : go_string)
   {{{ RET #(); True }}}.
 
 End proof.
+
+(** Discharge [meth ∈ log_methods] for a literal [meth].  Do not use
+    [set_solver] for this: it runs [setoid_subst] and [naive_solver eauto]
+    over the whole Coq context, and in [proof_raft__Step.v] that was measured
+    at 4s to 150s per call depending on what else was in scope (2026-09-17).
+    Walking the list is ~20ms. *)
+Ltac solve_log_method :=
+  rewrite /log_methods;
+  repeat first [ apply elem_of_cons; left; reflexivity | apply elem_of_cons; right ].

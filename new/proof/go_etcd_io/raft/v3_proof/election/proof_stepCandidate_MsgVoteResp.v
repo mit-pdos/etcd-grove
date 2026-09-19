@@ -1,6 +1,7 @@
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.postulates_stepCandidate_MsgVoteResp.
 
 Module StepCandidateProof (P : STEPCANDIDATE_POSTULATES) : STEPCANDIDATE.
+Import P.
 
   (** [stepCandidate] on a [MsgVoteResp].  The type switch is walked to the
       [myVoteRespType] arm ([m.Type = MsgVoteResp], and [state = StateCandidate]

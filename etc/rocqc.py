@@ -2,14 +2,13 @@
 
 # rocq compile wrapper
 
-from __future__ import print_function
 
-from datetime import datetime
-from os import path
 import re
 import sqlite3
 import subprocess
 import sys
+from datetime import datetime, timezone
+from os import path
 
 
 class NullDb:
@@ -27,11 +26,11 @@ class StdoutDb:
     def add_qed(self, fname, ident, time):
         base = path.basename(fname)
         if time > 0.1:
-            print("{:15s} {:20s} {:0.2f}".format(base, ident, time))
+            print(f"{base:15s} {ident:20s} {time:0.2f}")
 
     def add_file(self, fname, _is_vos, time):
         if time > 0.1:
-            print("{} {:0.2f}".format(fname, time))
+            print(f"{fname} {time:0.2f}")
 
     def close(self):
         pass
@@ -100,11 +99,11 @@ class Classify:
         m = cls.OBLIGATION_RE.match(s)
         if m is not None:
             cls.obligation_count += 1
-            return "<obligation {}>".format(cls.obligation_count)
+            return f"<obligation {cls.obligation_count}>"
         m = cls.GOAL_RE.match(s)
         if m is not None:
             cls.goal_count += 1
-            return "<goal {}>".format(cls.goal_count)
+            return f"<goal {cls.goal_count}>"
         return None
 
     @classmethod
@@ -138,7 +137,7 @@ class CoqcFilter:
                 vfile = arg
                 break
         if start is None:
-            start = datetime.now()
+            start = datetime.now(timezone.utc)
         return cls(vfile, is_vos, db, contents, start)
 
     @classmethod
@@ -169,7 +168,7 @@ class CoqcFilter:
             if self.curr_def is None:
                 print(
                     self.vfile,
-                    "no proof ident {} - {}".format(start, end),
+                    f"no proof ident {start} - {end}",
                     file=sys.stderr,
                 )
                 return
@@ -186,7 +185,7 @@ class CoqcFilter:
 
     def done(self, end_t=None):
         if end_t is None:
-            end_t = datetime.now()
+            end_t = datetime.now(timezone.utc)
         delta = (end_t - self.start).total_seconds()
         self.db.add_file(self.vfile, self.is_vos, delta)
         self.db.close()

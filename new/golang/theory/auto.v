@@ -57,11 +57,23 @@ Tactic Notation "wp_start_folded" "as" constr(pat) :=
   | _ => iDestruct "Hpre" as pat
   end.
 
-Tactic Notation "wp_start" "as" constr(pat) :=
-  wp_start_folded as pat;
+(** The second half of [wp_start]: unfold the function or method being called
+    and step into its body. Exposed so that a proof can destructure its
+    precondition *before* the body is in the goal:
+
+      wp_start_folded as "@". iNamed "Hown". wp_start_unfold.
+
+    is many times cheaper than [wp_start as "@". iNamed "Hown".] on a large
+    function, because every [iDestruct] step is linear in the size of the goal
+    and the translated body is by far the largest thing in it. *)
+Tactic Notation "wp_start_unfold" :=
   (* only do this if it produces a single goal *)
   try (first [ wp_func_call| wp_method_call; try wp_call ]; [idtac]);
   try wp_call.
+
+Tactic Notation "wp_start" "as" constr(pat) :=
+  wp_start_folded as pat;
+  wp_start_unfold.
 
 Tactic Notation "wp_start" :=
   wp_start as "Hpre".
@@ -76,25 +88,61 @@ Ltac wp_clear_unused_pointsto :=
   | _ =>
     repeat
       match goal with
-      | |- context[environments.Esnoc _ ?name (typed_pointsto ?l _ _)] =>
-          (* only succeeds if l is not used anywhere (after clearing this
-              points-to) *)
-          iClear name;
-          clear l
+      | |- environments.envs_entails ?Δ ?g =>
+          match Δ with
+          | context C [environments.Esnoc ?Δ' ?name (typed_pointsto ?l _ _)] =>
+              (* Only clear if [l] is used nowhere else: not in the rest of
+                 the environment, not in the goal, not in a Coq hypothesis.
+                 These are syntactic checks and cost nothing; without them
+                 the failing [iClear; clear l] attempts on every points-to
+                 were ~50ms each, a few hundred per proof, because [iClear]
+                 re-typechecks the whole goal. *)
+              let rest := context C [Δ'] in
+              lazymatch rest with context [l] => fail | _ => idtac end;
+              lazymatch g with context [l] => fail | _ => idtac end;
+              lazymatch goal with H : context [l] |- _ => fail | _ => idtac end;
+              iClear name;
+              clear l
+          end
       end
+  end.
+
+(** One step of [wp_auto]: a single walk down the spine, dispatching on the
+    node's shape. Loads, stores and allocations are matched syntactically
+    first; anything else that looks like a redex is offered to [PureWp].
+    Before this was four separate walks per step ([wp_pure], [wp_load],
+    [wp_store], [wp_alloc_auto]), each with its own typeclass probes. *)
+Ltac2 wp_auto_step_visit (lc : int Ref.ref) (e : constr) (k : constr) : unit :=
+  let try_visit (v : unit -> unit) (next : unit -> unit) :=
+    match Control.case v with
+    | Val _ => ()
+    | Err Walk_expr_more => next ()
+    | Err err => Control.zero err
+    end in
+  try_visit (fun () => wp_load_visit e k) (fun () =>
+  try_visit (fun () => wp_store_visit e k) (fun () =>
+  try_visit (fun () => wp_alloc_auto_visit e k) (fun () =>
+    if Int.gt (Ref.get lc) 0 then
+      (wp_pure_lc_visit e k;
+       let n := Control.numgoals () in
+       Control.focus n n (fun () => ltac1:(iIntros "?"));
+       Ref.decr lc)
+    else wp_pure_visit e k))).
+
+Ltac2 wp_auto_step (lc : int Ref.ref) : unit :=
+  wp_unhide_body ();
+  lazy_match! goal with
+  | [ |- environments.envs_entails _ (wp _ _ (Val _) _) ] => ltac1:(iApply wp_value)
+  | [ |- environments.envs_entails _ (wp _ _ ?e _) ] =>
+      wp_walk_unwrap (fun () => walk_expr e (wp_auto_step_visit lc))
+        "wp_auto: could not find a head subexpression with a known next step"
+  | [ |- _ ] => Control.backtrack_tactic_failure "wp_auto: current proof is not a WP"
   end.
 
 Ltac2 wp_auto_lc (num_lc_wanted : int) :=
   let num_lc_wanted := Ref.ref num_lc_wanted in
-  let wp_pure_maybe_lc () :=
-    if (Int.gt (Ref.get num_lc_wanted) 0) then ltac1:(wp_pure_lc "?") > []; (Ref.decr num_lc_wanted)
-    else wp_pure () > []
-  in
   progress (
-      repeat (first [ wp_pure_maybe_lc ()
-                    | wp_load ()
-                    | wp_store ()
-                    | wp_alloc_auto ()
+      repeat (first [ wp_auto_step num_lc_wanted > []
                     | ltac1:(progress wp_clear_unused_pointsto)]);
       if (Int.gt (Ref.get num_lc_wanted) 0) then
         Control.backtrack_tactic_failure "wp_auto_lc: unable to generate enough later credits"
@@ -265,11 +313,16 @@ Ltac2 iIntros (ipat: Ltac1.t) : unit :=
 
 Ltac2 wp_apply (lem: Ltac1.t) (do_auto: bool) (lc: int)
     (as_clause: (unit -> unit) option) :=
+    (* [wp_apply_core] leaves the evaluation context let-bound (see
+       [wp_bind_next]); the [iApply], [iPkgInit] and the [as] introduction all
+       run on the small goal, and [wp_unhide_body] restores the program text
+       in every goal before the user or [wp_auto] sees it. *)
     wp_apply_core lem; try ltac1:(iPkgInit);
     match as_clause with
     | Some cl => focus_last (cl ())
     | None => ()
     end;
+    Control.enter wp_unhide_body;
     if do_auto then
       focus_last (try (wp_auto_lc lc))
       else ().
