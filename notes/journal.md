@@ -1873,3 +1873,55 @@ over 43 files and `ruff check` over the repo.
 - **Left:** porting `test_coqc.py`'s fixtures to bytes, and deciding whether
   anything should run it. Both are somebody's afternoon, and neither is on
   the raft proof's critical path.
+
+## 2026-09-19 (later) — closing the election admits: setup, and two model fixes
+
+Goal for this line of work (branch `worktree-election-close-admits`): every
+Hoare triple on the election path `Qed`, so that what remains assumed in the
+raft proof is the protocol layer of `election_protocol.v` (12 ghost-state
+axioms) plus the declared trust boundary. The tracker is the table at the top
+of STATUS.md's "In flight". The ghost layer itself is out of scope here.
+
+- **What `tcb-report` does and does not answer.** Asked whether its output
+  is the list of admits to prove for leader election: only partly.
+  `--scope election` lists the 8 owed items in `election/` but never sees the
+  12 axioms in `election_protocol.v` one directory up, which
+  `raft_election_safety` uses *directly* (`own_raft_ghost_is_leader`,
+  `is_leader_unique`); the unscoped run sees them but also 20 assumptions
+  from `readonly.v`/`protocol.v` that election never touches. The tool has
+  no reachability-from-a-theorem view for assumptions (only for
+  definitions), and `Print Assumptions` is unavailable without a `.vo`
+  build. Worth a `--from <result>` view some day.
+
+- **The Goose array fix is ported.** `worktree-goose-array-index-fix` had
+  two commits (`520cff5f7`, `f8c74aa46`) based on a `main` from before the
+  2026-09-18 restructure. Their proof-side parts (`inv_misc.v`,
+  `inv_tracker.v`) no longer apply — those triples now live in collections —
+  so only `goose/`, `new/code/`, `new/golang/{defn,theory}/array.v` and
+  `bugs/` were taken; `main` had not touched any of those paths since the
+  fork, so it is a clean path checkout. The proof-side write-ups
+  ("what is left" for `IDs`, `Visit`, `TallyVotes`) are in that branch's
+  history and in the tasks below. `bugs/goose-array-indexref-loads-its-operand.md`
+  is deleted with the fix, as the `bugs/` convention says.
+
+- **`len` of a nil map has a rule now.** `go.len_map`'s body was
+  `InternalMapLength (Read "m")`, a read of the null location at `map.nil`;
+  the fix branch had measured it stuck and filed
+  `bugs/golang-len-of-nil-map-is-stuck.md`. The body now tests for nil first,
+  exactly as `lookup2` and `for_range` in the same file do, and returns
+  `#(W64 0)` — Go's `len(nil map)`. A TCB change, and a faithful one.
+  `theory/map.v` gains `pure_wp_map_nil_len` (so `wp_auto` steps it) and a
+  general **`wp_map_len`** for an owned map, which is the proof that had
+  been written twice by hand — `wp_map_len_uint64` in `proof_raft__campaign.v`
+  (deleted) and `wp_ProgressMap_len` in `inv_tracker.v` (now a two-line
+  wrapper doing the named-type rewrite). Both callers had to step past the
+  new nil test; `own_map_not_nil` + `wp_if_destruct; first by exfalso`, as
+  `wp_map_for_range` already does.
+
+- **Build facts for the next person.** Nothing in the tree was built; the
+  `.vos` closure of `election.v` builds from nothing in about six minutes
+  with `make -j4` on this 8-core/15 GB box. A checkout that adds a
+  `Require` mid-build fails with "Unable to locate library" because
+  `.rocqdeps.d` was computed before the edit — re-run `make`, it is not a
+  real error. The Rocq toolchain is the `perennial` opam switch
+  (`/home/ubuntu/.opam/perennial/bin`), not on the default `PATH`.

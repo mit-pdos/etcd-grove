@@ -266,38 +266,12 @@ Lemma wp_ProgressMap_len (mref : loc) dq (m : gmap w64 loc) :
     #(functions go.len [tracker.ProgressMap]) #mref
   {{{ RET #(W64 (size m)); mref ↦${dq} m }}}.
 Proof.
-  wp_start as "Hm".
+  wp_start_folded as "Hm".
   rewrite (go.len_underlying tracker.ProgressMap).
   rewrite (go.is_underlying (t := tracker.ProgressMap)
              (tunder := go.MapType go.uint64 (go.PointerType tracker.Progress))).
-  (* [wp_start]'s [wp_func_call] ran before the rewrite, so redo it. *)
-  wp_func_call. wp_call.
-  rewrite own_map_unseal. iNamed "Hm".
-  wp_apply (_internal_wp_untyped_read with "Hown") as "Hown".
-  destruct (go.is_map_domain_exists _ _ His_map) as [ks Hks].
-  pose proof (go.internal_map_length_step_pure mv ks Hks) as Hlenstep.
-  wp_auto.
-  (* [length ks = size m]: the argument [wp_map_for_range] makes internally,
-     and the same one [proof_raft__campaign.v]'s [wp_map_len_uint64] makes. *)
-  assert (length ks = size m) as ->.
-  { eapply go.is_map_domain_pure in Hks; last exact His_map.
-    destruct Hks as [Hnodup Hiff].
-    assert (Forall (λ kv, ∃ (k : w64), kv = #k) ks) as Heq.
-    { rewrite Forall_forall. intros kv. rewrite -list_elem_of_In.
-      intros Hk. apply Hdom. by apply Hiff. }
-    apply Forall_exists_Forall2_l in Heq as [keys Heq].
-    apply Forall2_fmap_2 in Heq. rewrite -list_eq_Forall2 in Heq.
-    rewrite list_fmap_id in Heq. subst.
-    assert (list_to_set keys = dom m) as Hl.
-    { rewrite sets.set_eq. intros k. rewrite elem_of_list_to_set.
-      specialize (Hiff #k). specialize (Hagree k).
-      rewrite list_elem_of_fmap_inj in Hiff.
-      rewrite -Hiff Hagree elem_of_dom. by destruct lookup. }
-    apply NoDup_fmap in Hnodup; last tc_solve.
-    rewrite length_fmap.
-    rewrite <- (size_list_to_set (C:=gset w64)); last done.
-    rewrite Hl size_dom //. }
-  iApply "HΦ". iFrame "∗%".
+  wp_apply (wp_map_len with "Hm") as "Hm".
+  iApply "HΦ". iFrame.
 Qed.
 
 

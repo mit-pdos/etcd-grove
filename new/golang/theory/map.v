@@ -203,6 +203,44 @@ Proof.
   rewrite own_map_unseal. iNamed 1. iDestruct (heap_pointsto_non_null with "Hown") as "$".
 Qed.
 
+(* [len] of a map the caller owns. For a map of a *named* type, rewrite with
+   [go.len_underlying] and [go.is_underlying] first, since [go.len_map] is
+   stated at the literal [go.MapType]. The nil map is [pure_wp_map_nil_len]. *)
+Lemma wp_map_len key_type elem_type mref dq (m : gmap K V) :
+  {{{ mref ↦${dq} m }}}
+    #(functions go.len [go.MapType key_type elem_type]) #mref
+  {{{ RET #(W64 (size m)); mref ↦${dq} m }}}.
+Proof.
+  wp_start as "Hm".
+  iDestruct (own_map_not_nil with "Hm") as %Hnn.
+  wp_if_destruct; first by exfalso.
+  rewrite own_map_unseal. iNamed "Hm".
+  wp_apply (_internal_wp_untyped_read with "Hown") as "Hown".
+  destruct (go.is_map_domain_exists _ _ His_map) as [ks Hks].
+  pose proof (go.internal_map_length_step_pure mv ks Hks) as Hlenstep.
+  wp_auto.
+  (* [length ks = size m]: the argument [wp_map_for_range] makes internally. *)
+  assert (length ks = size m) as ->.
+  { eapply go.is_map_domain_pure in Hks; last exact His_map.
+    destruct Hks as [Hnodup Hiff].
+    assert (Forall (λ kv, ∃ (k : K), kv = #k) ks) as Heq.
+    { rewrite Forall_forall. intros kv. rewrite -list_elem_of_In.
+      intros Hk. apply Hdom. by apply Hiff. }
+    apply Forall_exists_Forall2_l in Heq as [keys Heq].
+    apply Forall2_fmap_2 in Heq. rewrite -list_eq_Forall2 in Heq.
+    rewrite list_fmap_id in Heq. subst.
+    assert (list_to_set keys = dom m) as Hl.
+    { rewrite sets.set_eq. intros k. rewrite elem_of_list_to_set.
+      specialize (Hiff #k). specialize (Hagree k).
+      rewrite list_elem_of_fmap_inj in Hiff.
+      rewrite -Hiff Hagree elem_of_dom. by destruct lookup. }
+    apply NoDup_fmap in Hnodup; last tc_solve.
+    rewrite length_fmap.
+    rewrite <- (size_list_to_set (C:=gset K)); last done.
+    rewrite Hl size_dom //. }
+  iApply "HΦ". iFrame "∗%".
+Qed.
+
 (* FIXME: seal. *)
 Definition for_map_postcondition P Φ bv : iProp Σ :=
             (⌜ bv = continue_val ⌝ ∗ P) ∨
@@ -306,6 +344,15 @@ Global Instance wp_map_nil_for_range (body : func.t) key_type elem_type :
   PureWp True (map.for_range key_type elem_type #map.nil #body) execute_val.
 Proof.
   by pure_wp_start.
+Qed.
+
+(* [len] of a nil map is [0]; see [go.len_map]. The non-nil case needs the
+   map's ownership (for the [Read]) and is not a [PureWp]; a proof of it steps
+   past the nil test with [own_map_not_nil]. *)
+Global Instance pure_wp_map_nil_len key_type elem_type :
+  PureWp True (#(functions go.len [go.MapType key_type elem_type]) #map.nil) #(W64 0).
+Proof.
+  pure_wp_start. rewrite func_unfold. wp_auto_lc 1. by iApply "HΦ".
 Qed.
 
 #[global]

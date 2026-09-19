@@ -557,7 +557,7 @@ Definition ProgressMap__Stringⁱᵐᵖˡ {ext : ffi_syntax} {go_gctx : GoGlobal
 Definition StateType__Stringⁱᵐᵖˡ {ext : ffi_syntax} {go_gctx : GoGlobalContext} : val :=
   λ: "st" <>,
     exception_do (let: "st" := (GoAlloc StateType "st") in
-    return: (![go.string] (IndexRef (go.ArrayType 3 go.string) (![go.ArrayType 3 go.string] (GlobalVarAddr prstmap #()), Convert StateType go.int (![StateType] "st"))))).
+    return: (![go.string] (IndexRef (go.ArrayType 3 go.string) (GlobalVarAddr prstmap #(), Convert StateType go.int (![StateType] "st"))))).
 
 (* go: tracker.go:80:17 *)
 Definition Config__Stringⁱᵐᵖˡ {ext : ffi_syntax} {go_gctx : GoGlobalContext} : val :=
@@ -680,13 +680,13 @@ Definition Config__Cloneⁱᵐᵖˡ {ext : ffi_syntax} {go_gctx : GoGlobalContex
      ])] false [go.MapType go.uint64 (go.StructType [
 
      ])])] "$r0");;;
-    return: (let: "$v0" := (let: "$v0" := (let: "$a0" := (![quorum.MajorityConfig] (IndexRef quorum.JointConfig (![quorum.JointConfig] (StructFieldRef Config "Voters"%go (![go.PointerType Config] "c")), #(W64 0)))) in
+    return: (let: "$v0" := (let: "$v0" := (let: "$a0" := (![quorum.MajorityConfig] (IndexRef quorum.JointConfig (StructFieldRef Config "Voters"%go (![go.PointerType Config] "c"), #(W64 0)))) in
      (![go.FunctionType (go.Signature [go.MapType go.uint64 (go.StructType [
 
       ])] false [go.MapType go.uint64 (go.StructType [
 
       ])])] "clone") "$a0") in
-     let: "$v1" := (let: "$a0" := (![quorum.MajorityConfig] (IndexRef quorum.JointConfig (![quorum.JointConfig] (StructFieldRef Config "Voters"%go (![go.PointerType Config] "c")), #(W64 1)))) in
+     let: "$v1" := (let: "$a0" := (![quorum.MajorityConfig] (IndexRef quorum.JointConfig (StructFieldRef Config "Voters"%go (![go.PointerType Config] "c"), #(W64 1)))) in
      (![go.FunctionType (go.Signature [go.MapType go.uint64 (go.StructType [
 
       ])] false [go.MapType go.uint64 (go.StructType [
@@ -747,8 +747,8 @@ Definition MakeProgressTrackerⁱᵐᵖˡ {ext : ffi_syntax} {go_gctx : GoGlobal
 Definition ProgressTracker__ConfStateⁱᵐᵖˡ {ext : ffi_syntax} {go_gctx : GoGlobalContext} : val :=
   λ: "p" <>,
     exception_do (let: "p" := (GoAlloc (go.PointerType ProgressTracker) "p") in
-    return: (let: "$v0" := ((MethodResolve (go.PointerType quorum.MajorityConfig) "Slice"%go (IndexRef quorum.JointConfig (![quorum.JointConfig] (StructFieldRef Config "Voters"%go (StructFieldRef ProgressTracker "Config"%go (![go.PointerType ProgressTracker] "p"))), #(W64 0)))) #()) in
-     let: "$v1" := ((MethodResolve (go.PointerType quorum.MajorityConfig) "Slice"%go (IndexRef quorum.JointConfig (![quorum.JointConfig] (StructFieldRef Config "Voters"%go (StructFieldRef ProgressTracker "Config"%go (![go.PointerType ProgressTracker] "p"))), #(W64 1)))) #()) in
+    return: (let: "$v0" := ((MethodResolve (go.PointerType quorum.MajorityConfig) "Slice"%go (IndexRef quorum.JointConfig (StructFieldRef Config "Voters"%go (StructFieldRef ProgressTracker "Config"%go (![go.PointerType ProgressTracker] "p")), #(W64 0)))) #()) in
+     let: "$v1" := ((MethodResolve (go.PointerType quorum.MajorityConfig) "Slice"%go (IndexRef quorum.JointConfig (StructFieldRef Config "Voters"%go (StructFieldRef ProgressTracker "Config"%go (![go.PointerType ProgressTracker] "p")), #(W64 1)))) #()) in
      let: "$v2" := ((MethodResolve quorum.MajorityConfig "Slice"%go (![go.MapType go.uint64 (go.StructType [
 
      ])] (StructFieldRef Config "Learners"%go (StructFieldRef ProgressTracker "Config"%go (![go.PointerType ProgressTracker] "p"))))) #()) in
@@ -765,8 +765,8 @@ Definition ProgressTracker__ConfStateⁱᵐᵖˡ {ext : ffi_syntax} {go_gctx : G
 Definition ProgressTracker__IsSingletonⁱᵐᵖˡ {ext : ffi_syntax} {go_gctx : GoGlobalContext} : val :=
   λ: "p" <>,
     exception_do (let: "p" := (GoAlloc (go.PointerType ProgressTracker) "p") in
-    return: (((let: "$a0" := (![quorum.MajorityConfig] (IndexRef quorum.JointConfig (![quorum.JointConfig] (StructFieldRef Config "Voters"%go (StructFieldRef ProgressTracker "Config"%go (![go.PointerType ProgressTracker] "p"))), #(W64 0)))) in
-     (FuncResolve go.len [quorum.MajorityConfig] #()) "$a0") =⟨go.int⟩ #(W64 1)) && ((let: "$a0" := (![quorum.MajorityConfig] (IndexRef quorum.JointConfig (![quorum.JointConfig] (StructFieldRef Config "Voters"%go (StructFieldRef ProgressTracker "Config"%go (![go.PointerType ProgressTracker] "p"))), #(W64 1)))) in
+    return: (((let: "$a0" := (![quorum.MajorityConfig] (IndexRef quorum.JointConfig (StructFieldRef Config "Voters"%go (StructFieldRef ProgressTracker "Config"%go (![go.PointerType ProgressTracker] "p")), #(W64 0)))) in
+     (FuncResolve go.len [quorum.MajorityConfig] #()) "$a0") =⟨go.int⟩ #(W64 1)) && ((let: "$a0" := (![quorum.MajorityConfig] (IndexRef quorum.JointConfig (StructFieldRef Config "Voters"%go (StructFieldRef ProgressTracker "Config"%go (![go.PointerType ProgressTracker] "p")), #(W64 1)))) in
      (FuncResolve go.len [quorum.MajorityConfig] #()) "$a0") =⟨go.int⟩ #(W64 0)))).
 
 (* AckedIndex implements IndexLookuper.
@@ -811,9 +811,9 @@ Definition ProgressTracker__Visitⁱᵐᵖˡ {ext : ffi_syntax} {go_gctx : GoGlo
     do:  ("n" <-[go.int] "$r0");;;
     let: "sl" := (GoAlloc (go.ArrayType 7 go.uint64) (GoZeroVal (go.ArrayType 7 go.uint64) #())) in
     let: "ids" := (GoAlloc (go.SliceType go.uint64) (GoZeroVal (go.SliceType go.uint64) #())) in
-    (if: Convert go.untyped_bool go.bool ((FuncResolve go.len [go.ArrayType 7 go.uint64] #()) ≥⟨go.int⟩ (![go.int] "n"))
+    (if: Convert go.untyped_bool go.bool (#(W64 7) ≥⟨go.int⟩ (![go.int] "n"))
     then
-      let: "$r0" := (let: "$s" := (![go.ArrayType 7 go.uint64] "sl") in
+      let: "$r0" := (let: "$s" := "sl" in
       Slice (go.ArrayType 7 go.uint64) ("$s", #(W64 0), ![go.int] "n")) in
       do:  ("ids" <-[go.SliceType go.uint64] "$r0")
     else

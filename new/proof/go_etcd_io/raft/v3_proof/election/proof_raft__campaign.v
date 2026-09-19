@@ -11,38 +11,6 @@ Set Default Proof Using "W".
 
 Context (cfg : gset w64).
 
-Lemma wp_map_len_uint64 (mref : loc) dq (m : gmap w64 unit) :
-  {{{ mref ↦${dq} m }}}
-    #(functions go.len [go.MapType go.uint64 (go.StructType [])]) #mref
-  {{{ RET #(W64 (size m)); mref ↦${dq} m }}}.
-Proof.
-  wp_start as "Hm". rewrite own_map_unseal. iNamed "Hm".
-  wp_apply (_internal_wp_untyped_read with "Hown") as "Hown".
-  destruct (go.is_map_domain_exists _ _ His_map) as [ks Hks].
-  pose proof (go.internal_map_length_step_pure mv ks Hks) as Hlenstep.
-  wp_auto.
-  (* [length ks = size m]: the same argument [wp_map_for_range] makes. *)
-  assert (length ks = size m) as ->.
-  { eapply go.is_map_domain_pure in Hks; last exact His_map.
-    destruct Hks as [Hnodup Hiff].
-    assert (Forall (λ kv, ∃ (k : w64), kv = #k) ks) as Heq.
-    { rewrite Forall_forall. intros kv. rewrite -list_elem_of_In.
-      intros Hk. apply Hdom. by apply Hiff. }
-    apply Forall_exists_Forall2_l in Heq as [keys Heq].
-    apply Forall2_fmap_2 in Heq. rewrite -list_eq_Forall2 in Heq.
-    rewrite list_fmap_id in Heq. subst.
-    assert (list_to_set keys = dom m) as Hl.
-    { rewrite sets.set_eq. intros k. rewrite elem_of_list_to_set.
-      specialize (Hiff #k). specialize (Hagree k).
-      rewrite list_elem_of_fmap_inj in Hiff.
-      rewrite -Hiff Hagree elem_of_dom. by destruct lookup. }
-    apply NoDup_fmap in Hnodup; last tc_solve.
-    rewrite length_fmap.
-    rewrite <- (size_list_to_set (C:=gset w64)); last done.
-    rewrite Hl size_dom //. }
-  iApply "HΦ". iFrame "∗%".
-Qed.
-
 (** [own_raft_phys] constrains the outbox only up to permutation (that is the
     whole point of the [≡ₚ] in [Houtbox]), so a state may be replaced by any
     other that agrees on the five scalar fields and permutes the outbox.
@@ -175,7 +143,7 @@ Proof.
   wp_apply (wp_JointConfig__IDs with "[$Htrkf $Htrk1]")
     as "%mref %idm (Htrkf & Htrk1 & Hidm & %Hdomidm)".
   iDestruct ("Hrback" with "Htrkf") as "Hr1".
-  wp_apply (wp_map_len_uint64 with "Hidm") as "Hidm".
+  wp_apply (wp_map_len with "Hidm") as "Hidm".
   assert (size idm = size cfg) as Hszidm.
   { rewrite -Hdomidm size_dom //. }
   rewrite Hszidm.

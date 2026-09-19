@@ -1,6 +1,6 @@
 # Status
 
-**Last updated:** 2026-09-18
+**Last updated:** 2026-09-19
 
 ## Goal
 
@@ -95,6 +95,44 @@ election path.
 context for the raft work, not the current focus.
 
 ## In flight
+
+### Closing every non-protocol admit on the election path (started 2026-09-19)
+
+Branch `worktree-election-close-admits`. Goal: **every Hoare triple on the
+election path `Qed`**, so that the only assumptions left in the raft proof
+are the protocol layer — the 12 ghost-state axioms in `election_protocol.v`
+(`own_raft_ghost`, `own_raft_ghost_step`, `is_leader_unique`, …) — plus the
+declared trust boundary (`Logger`, `own_Storage`, `slices.Sort`, the RNG).
+The ghost layer is deliberately **not** in this pass.
+
+This table is the tracker. It is updated as items land; the journal has the
+detail. "wave" is the order the work is being run in, chosen so that no two
+concurrent items edit the same shared file.
+
+| # | item | wave | status |
+|---|---|---|---|
+| 1 | Port the Goose array-indexing fix (`worktree-goose-array-index-fix`, 2 commits) onto `main`: `goose/`, `new/code/`, `new/golang/{defn,theory}/array.v`, `bugs/` | 0 | done |
+| 2 | Model: `go.len` on a nil map (`new/golang/defn/map.v` nil case, `pure_wp_map_nil_len` and a general `wp_map_len` in `theory/map.v`) | 0 | done, pending `-vok` |
+| 3 | `wp_raft__promotable` | 1 | pending |
+| 4 | `wp_raft__hasUnappliedConfChanges` — needs `raftLog.scan`/`slice`, `unstable.slice`, `limitSize`, a `Storage.Entries` triple | 1 | pending |
+| 5 | `wp_raft__resetRandomizedElectionTimeout` — `globalRand` in `is_initialized`, `lockedRand.Intn`, `crypto/rand` + `math/big` assumed | 2 | pending |
+| 6 | `wp_JointConfig__IDs` | 1 | pending |
+| 7 | `wp_ProgressTracker__Visit` | 1 | pending |
+| 8 | `wp_ProgressTracker__TallyVotes` — needs item 2; adds `cfg ≠ ∅` to `own_tracker` | 2 | pending |
+| 9 | Generalize `spec_raft__send_vote` into the one `spec_raft__send` (App/Snap/AppResp too); re-prove `campaign` and the `Step_MsgVote_*` helpers | 1 | pending |
+| 10 | `wp_raft__appendEntry`: `Axiom` → `Qed`, with the no-wrap premise and its `becomeLeader` obligation | 2 | pending, needs 9 |
+| 11 | `wp_raft__bcastAppend` — `Visit` + `sendAppend` → `maybeSendAppend` → `maybeSendSnapshot`, `raftLog.term/entries/snapshot` | 3 | pending, needs 4, 9 |
+| — | Ghost layer of `election_protocol.v` (12 axioms) | — | out of scope for this pass |
+| 13 | Final: `-vok` of the whole election tree, `tcb-report`, `check-module-discipline`, notes | 4 | pending |
+
+Rules for the agents doing items 3–11, so that a shared checkout stays sane:
+one `rocq` process each; edit your own collection and any *new* collections
+freely; a change to a shared file (`inv_*.v`, `defs.v`, `base.v`, another
+function's `spec_*.v`) is allowed only when the proof needs it, and then every
+dependent is re-checked at `-vok`; nothing under `notes/`, `new/code/`,
+`new/generatedproof/` is touched; no version-control commands. The
+coordinator commits and writes the notes.
+
 
 **Leader-election refinement** — `new/proof/go_etcd_io/raft/v3_proof/`,
 branch `raft-election-poll-hup`. Compiles and is reached from
@@ -450,12 +488,14 @@ or an `Admitted`.**
   `send`/`msgs`/`msgsAfterAppend` is the thing this development keeps getting
   wrong, so check those against `raft__sendⁱᵐᵖˡ` specifically.
 
-- **Four `Admitted`s are blocked on a Goose defect, not on proof effort.**
-  Array indexing in the translated code is stuck, and `len` of an array has
-  no rule. Diagnosis, evidence and fix in
-  [../bugs/goose-array-indexref-loads-its-operand.md](../bugs/goose-array-indexref-loads-its-operand.md).
-  `bugs/` is new as of 2026-09-16 and is where tooling defects go; an
-  unfinished proof is not one.
+- **The Goose array-indexing defect is fixed** (2026-09-17 on
+  `worktree-goose-array-index-fix`, ported to this line 2026-09-19): Goose
+  passes an array's address to `IndexRef`/`Slice`, folds `len`/`cap` of an
+  array to the constant, and `new/golang/defn/array.v` has guarded
+  `go.len`/`go.cap` rules. The bug file is deleted; history remembers it.
+  What was left of that blocker — **`len` of a nil map has no rule** — was
+  fixed on 2026-09-19 (nil case in `go.len_map`, `pure_wp_map_nil_len`).
+  `bugs/` is where tooling defects go; an unfinished proof is not one.
 
 - **`ruff check` fails: 64 errors.** Pre-existing on this commit, in
   `etc/*.py`, `new/etc/update-goose-new.py`, `new/experiments/gencongruence.py`

@@ -17,9 +17,17 @@ If a defect is fixed, delete the file — git remembers.
 
 ## Open
 
-- [goose-array-indexref-loads-its-operand.md](goose-array-indexref-loads-its-operand.md)
-  — every array index and array slice in the translated raft code is stuck,
-  and `len` of an array has no rule at all. Blocks
-  `quorum.JointConfig.IDs` and `.VoteResult`, and
-  `tracker.ProgressTracker.Visit` — so `campaign`'s peer enumeration, the
-  vote tally, and the `Progress` walk.
+- [golang-len-of-nil-map-is-stuck.md](golang-len-of-nil-map-is-stuck.md)
+  — `len` of a nil map has no rule, so it cannot step. Blocks
+  `wp_ProgressTracker__TallyVotes`, whose joint config has `map.nil` as its
+  second component.
+
+## Fixed
+
+- `goose-array-indexref-loads-its-operand.md` — every array index and array
+  slice in the translated raft code was emitted against a *loaded array
+  value*, which the model gives no step to, and `len`/`cap` of an array was
+  emitted as a function value with no operand applied. Fixed 2026-09-17 in
+  `goose/goose.go` plus new `go.len`/`go.cap` array rules in
+  `new/golang/defn/array.v`; file deleted, see git history and the
+  2026-09-17 entry in `../notes/journal.md`.

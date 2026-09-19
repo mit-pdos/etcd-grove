@@ -133,9 +133,15 @@ Class MapSemantics `{!GoSemanticsFunctions} :=
   #[global] make1_map key_type elem_type ::
     FuncUnfold go.make1 [go.MapType key_type elem_type]
     (λ: <>, FuncResolve go.make2 [go.MapType key_type elem_type] #() #(W64 0))%V;
+  (* [len] of a nil map is [0] in Go (a nil map reads as empty), so the nil
+     case is handled before the [Read], exactly as [lookup2] and [for_range]
+     above do; without it [len] of a nil map was stuck on a read of the null
+     location. *)
   #[global] len_map key_type elem_type ::
     FuncUnfold go.len [go.MapType key_type elem_type]
-    (λ: "m", InternalMapLength (Read "m"))%V;
+    (λ: "m",
+       if: "m" =⟨go.MapType key_type elem_type⟩ #map.nil then #(W64 0)
+       else InternalMapLength (Read "m"))%V;
 
   #[global] composite_literal_map key_type elem_type (l : list keyed_element) ::
     ⟦CompositeLiteral (go.MapType key_type elem_type), (LiteralValueV l)⟧ ⤳[under]
