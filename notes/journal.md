@@ -1744,3 +1744,62 @@ Branch `tcb-view`, off `main` at 43660bd0f.
   and CI's `ruff format --diff` job has not been reproduced locally. Worth a
   single `ruff format` pass before merge. Nothing else is outstanding; the
   three self-tests and the byte-identical-output check all pass.
+
+---
+
+## 2026-09-19 — ruff, and what it says about the repo
+
+Claude Opus 5 (background job). Closes the item the previous entry left
+open: `ruff` *is* installable here, by downloading the 0.16.5 release binary
+rather than through `pip`, which is absent. Branch `tcb-view`.
+
+- **Did:** `ruff format` and `ruff check --fix` over `etc/rocqscan.py`,
+  `etc/tcb-report.py` and `etc/check-module-discipline.py`, then the seven
+  findings ruff would not fix itself by hand — six `ISC004` (an implicitly
+  concatenated string inside a tuple needs its own parentheses, so a missing
+  comma cannot masquerade as concatenation; they are in the self-test table
+  the scanner inherited) and one `SIM102`. **All three files are now clean
+  under both jobs.**
+
+- **Verified, because a reformat that changes behaviour is the whole risk:**
+  `check-module-discipline.py` still produces byte-identical output on all
+  four invocations (`--scope election --summary`, the raft tree,
+  `--format json`, `--proof-root new/proof`), `tcb-report.py --view all` is
+  byte-identical across the reformat, the three self-tests pass, and the
+  independent recount still says 14 `Admitted` / 31 `Axiom`. The fixes are
+  not all cosmetic — `.format()` became f-strings throughout and
+  `body[:-1]` became `body.removesuffix(".")` — which is why this was
+  checked rather than assumed.
+
+- **What ruff says about the rest of the repo, which is the finding worth
+  recording.** CI's `python` job runs `ruff format --diff` and `ruff check`.
+  On `main`, *both* were already failing:
+
+  | | on `main` | on this branch |
+  |---|---|---|
+  | `ruff format --check` | 1 file unformatted | **clean** (43 files) |
+  | `ruff check` | 99 errors in 11 files | 64 errors in 11 files |
+
+  The one unformatted file on `main` was `etc/check-module-discipline.py`,
+  so this branch turns the format job green. The 64 remaining lint errors
+  are **all pre-existing and none of them are in this branch's files**: 25
+  in `etc/semantics-coverage.py`, 9 in `etc/rocqc.py`, 6 each in
+  `etc/test_coqc.py` and `etc/ci-goose-check.py`, 5 in
+  `new/etc/update-goose-new.py`, and the rest scattered — 47 of the 64 are
+  auto-fixable.
+
+  Mostly `UP032` (use an f-string) and `UP006` (`List[x]` → `list[x]`), so
+  the enabled rule set and the house style of `etc/` have simply disagreed
+  for a while and nobody noticed, because the job was already red.
+
+- **Deliberately not fixed here.** Cleaning 11 unrelated scripts would
+  triple this branch's diff and mix a tooling feature with a lint sweep, and
+  two of the files (`new/proof/github_com/mit_pdos/perennial/goose/model/…/
+  paradox.py`, `new/experiments/gencongruence.py`) are Perennial-inherited,
+  where [decisions.md](decisions.md) says to keep upstream merges
+  mechanical. It wants its own branch, and `new/etc/update-goose-new.py`
+  should be exercised against a real Goose run before anyone touches it.
+
+- **Left:** the lint job stays red until that sweep happens. `ruff` is at
+  `~/.local/bin/ruff` on this box, version-matched to the pin in
+  `pyproject.toml`.

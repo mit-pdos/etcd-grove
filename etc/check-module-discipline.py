@@ -55,8 +55,8 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import rocqscan  # noqa: E402  (after sys.path is set up)
-from rocqscan import (  # noqa: E402
+import rocqscan
+from rocqscan import (
     ASSUMPTION_KINDS,
     GOOSE_METHOD_SEP,
     IMPL_SUFFIX,
@@ -165,7 +165,8 @@ def scan_code(roots):
                     entry["impl"] = entry["impl"] or has
                 for m in name_re.finditer(body):
                     local.setdefault(
-                        m.group("name"), {"impl": m.group("name") in impls, "file": path}
+                        m.group("name"),
+                        {"impl": m.group("name") in impls, "file": path},
                     )
                 aliases = {m.group("name") for m in alias_re.finditer(body)}
                 for alias in aliases:
@@ -190,12 +191,8 @@ def lookup_code(go_fn, index):
 # --------------------------------------------------------------------------
 # File classification
 
-ROLE_RE = re.compile(
-    r"^(?P<role>{})_(?P<x>.+)$".format("|".join(ROLES))
-)
-HELPERS_RE = re.compile(
-    r"^proof_(?P<x>.+){}$".format(re.escape(HELPERS_SUFFIX))
-)
+ROLE_RE = re.compile(r"^(?P<role>{})_(?P<x>.+)$".format("|".join(ROLES)))
+HELPERS_RE = re.compile(rf"^proof_(?P<x>.+){re.escape(HELPERS_SUFFIX)}$")
 
 
 def classify(path):
@@ -253,10 +250,10 @@ def acceptable_names(key):
     parts = key.split(".")
     pkg = parts[0]
     if len(parts) == 3:
-        bare = "{}{}{}".format(parts[1], METHOD_SEP, parts[2])
+        bare = f"{parts[1]}{METHOD_SEP}{parts[2]}"
     else:
         bare = parts[1]
-    return (bare, "{}{}{}".format(pkg, PKG_SEP, bare))
+    return (bare, f"{pkg}{PKG_SEP}{bare}")
 
 
 def suggest_name(key):
@@ -313,10 +310,8 @@ def check(scope_dir, root, code_index, code_roots, all_proof_files):
                             rel,
                             d.line,
                             "info",
-                            "{} {} is an interface-method contract, not a Go "
-                            "function spec; it belongs with its predicate".format(
-                                d.kind, d.name
-                            ),
+                            f"{d.kind} {d.name} is an interface-method contract, not a Go "
+                            "function spec; it belongs with its predicate",
                         )
                     )
                 continue
@@ -356,15 +351,11 @@ def check(scope_dir, root, code_index, code_roots, all_proof_files):
         # one specification, so collapse a collection's spec+proof pair.
         places = {}
         for rel, d, role, coll in entries:
-            slot = (
-                coll
-                if role in ("spec", "proof", "helper")
-                else "{}:{}".format(rel, d.name)
-            )
+            slot = coll if role in ("spec", "proof", "helper") else f"{rel}:{d.name}"
             places.setdefault(slot, []).append((rel, d))
         if len(places) > 1:
             where = "; ".join(
-                "{}:{} ({})".format(rel, d.line, d.name)
+                f"{rel}:{d.line} ({d.name})"
                 for entries2 in places.values()
                 for rel, d in entries2
             )
@@ -375,10 +366,8 @@ def check(scope_dir, root, code_index, code_roots, all_proof_files):
                     first[0],
                     first[1].line,
                     "error",
-                    "{} has {} separate Hoare triples: {}. One Go function gets "
-                    "one spec; if it seems to want two, look harder".format(
-                        key, len(places), where
-                    ),
+                    f"{key} has {len(places)} separate Hoare triples: {where}. One Go function gets "
+                    "one spec; if it seems to want two, look harder",
                 )
             )
 
@@ -400,9 +389,7 @@ def check(scope_dir, root, code_index, code_roots, all_proof_files):
                     rel,
                     1,
                     "error",
-                    "spec file declares {} Module Types, expected exactly 1".format(
-                        n_types
-                    ),
+                    f"spec file declares {n_types} Module Types, expected exactly 1",
                 )
             )
         if len(params) != 1:
@@ -487,10 +474,8 @@ def check(scope_dir, root, code_index, code_roots, all_proof_files):
                         rel,
                         d.line,
                         "info",
-                        "{} is declared in the generated code but has no "
-                        "translated body, so this triple can only be assumed".format(
-                            key
-                        ),
+                        f"{key} is declared in the generated code but has no "
+                        "translated body, so this triple can only be assumed",
                     )
                 )
         else:
@@ -526,9 +511,9 @@ def check(scope_dir, root, code_index, code_roots, all_proof_files):
                 os.path.relpath(path, root),
                 1,
                 "error",
-                "this is a proof helper of {0}, not a collection of its own; "
-                "move it to proof_{0}_helpers/ so the top level keeps four "
-                "files per Go function".format(owner),
+                f"this is a proof helper of {owner}, not a collection of its own; "
+                f"move it to proof_{owner}_helpers/ so the top level keeps four "
+                "files per Go function",
             )
         )
 
@@ -545,9 +530,9 @@ def check(scope_dir, root, code_index, code_roots, all_proof_files):
                         rel,
                         1,
                         "error",
-                        "a file under proof_{}_helpers/ declares a Module Type; "
+                        f"a file under proof_{coll}_helpers/ declares a Module Type; "
                         "a helper is proof structure, so if this is really a "
-                        "specification it needs a collection of its own".format(coll),
+                        "specification it needs a collection of its own",
                     )
                 )
             for d in scan_file(path):
@@ -558,9 +543,9 @@ def check(scope_dir, root, code_index, code_roots, all_proof_files):
                             rel,
                             d.line,
                             "error",
-                            "{} {} is an assumption inside proof_{}_helpers/; "
+                            f"{d.kind} {d.name} is an assumption inside proof_{coll}_helpers/; "
                             "an axiom about a Go function belongs in that "
-                            "function's own collection".format(d.kind, d.name, coll),
+                            "function's own collection",
                         )
                     )
 
@@ -573,7 +558,7 @@ def check(scope_dir, root, code_index, code_roots, all_proof_files):
                     os.path.relpath(helpers_of[coll][0], root),
                     1,
                     "error",
-                    "proof_{0}_helpers/ has no proof_{0}.v to help".format(coll),
+                    f"proof_{coll}_helpers/ has no proof_{coll}.v to help",
                 )
             )
 
@@ -625,7 +610,7 @@ def selftest():
     ):
         got = acceptable_names(key)
         if got != want:
-            bad.append("acceptable_names {} -> {} (want {})".format(key, got, want))
+            bad.append(f"acceptable_names {key} -> {got} (want {want})")
 
     # The code index resolves the alias a proof writes against the `Module`
     # declarations of the generated file, and falls back to the bare name.
@@ -641,11 +626,11 @@ def selftest():
         entry = lookup_code(key, index)
         got = None if entry is None else entry["impl"]
         if got != want:
-            bad.append("lookup_code {} -> {} (want {})".format(key, got, want))
+            bad.append(f"lookup_code {key} -> {got} (want {want})")
 
     for b in bad:
         print("FAIL " + b)
-    print("selftest: {}".format("{} failures".format(len(bad)) if bad else "ok"))
+    print("selftest: {}".format(f"{len(bad)} failures" if bad else "ok"))
     return 1 if (bad or rc) else 0
 
 
@@ -669,11 +654,7 @@ def resolve_scope(scope, proof_root):
     if len(matches) == 1:
         return matches[0]
     if not matches:
-        sys.exit(
-            "no directory named {!r} under {} (and no such path)".format(
-                scope, proof_root
-            )
-        )
+        sys.exit(f"no directory named {scope!r} under {proof_root} (and no such path)")
     sys.exit(
         "{!r} is ambiguous under {}:\n  {}".format(
             scope, proof_root, "\n  ".join(matches)
@@ -694,8 +675,7 @@ def main():
     ap.add_argument(
         "--proof-root",
         default=DEFAULT_PROOF_ROOT,
-        help="the development to check, relative to --root "
-        "(default: {})".format(DEFAULT_PROOF_ROOT),
+        help=f"the development to check, relative to --root (default: {DEFAULT_PROOF_ROOT})",
     )
     ap.add_argument(
         "--code-root",
@@ -734,7 +714,7 @@ def main():
     root = os.path.abspath(args.root)
     proof_root = os.path.join(root, args.proof_root)
     if not os.path.isdir(proof_root):
-        sys.exit("no such proof root: {}".format(proof_root))
+        sys.exit(f"no such proof root: {proof_root}")
     code_roots = args.code_roots or DEFAULT_CODE_ROOTS
 
     scope_dir = resolve_scope(args.scope, proof_root)
@@ -763,42 +743,29 @@ def main():
         for path in sorted(by_file):
             print(path)
             for f in by_file[path]:
-                print(
-                    "  {}:{} {}: {}".format(f.line, f.severity, f.code, f.message)
-                )
+                print(f"  {f.line}:{f.severity} {f.code}: {f.message}")
             print()
         counts = collections.Counter(f.severity for f in findings)
         print(
             "{} findings in {} files ({})".format(
                 len(findings),
                 len(by_file),
-                ", ".join(
-                    "{} {}".format(n, s) for s, n in sorted(counts.items())
-                )
-                or "none",
+                ", ".join(f"{n} {s}" for s, n in sorted(counts.items())) or "none",
             )
         )
         if args.summary:
-            multi = {
-                c: v
-                for c, v in sorted(_helpers.items())
-                if v
-            }
+            multi = {c: v for c, v in sorted(_helpers.items()) if v}
             if multi:
                 print("Functions whose proof spans several files:")
                 for coll, paths in multi.items():
-                    print(
-                        "  {:34s} proof_{}_helpers/ ({} files)".format(
-                            coll, coll, len(paths)
-                        )
-                    )
+                    print(f"  {coll:34s} proof_{coll}_helpers/ ({len(paths)} files)")
                 print()
-            print("Go functions with a Hoare triple in {}:".format(args.scope))
+            print(f"Go functions with a Hoare triple in {args.scope}:")
             for key in sorted(specs_by_fn):
                 places = ", ".join(
-                    "{}:{}".format(rel, d.line) for rel, d, _r, _c in specs_by_fn[key]
+                    f"{rel}:{d.line}" for rel, d, _r, _c in specs_by_fn[key]
                 )
-                print("  {:50s} {}".format(key, places))
+                print(f"  {key:50s} {places}")
 
     return 1 if any(f.severity == "error" for f in findings) else 0
 

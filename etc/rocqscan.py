@@ -43,6 +43,7 @@ IMPL_SUFFIX = "ⁱᵐᵖˡ"  # the superscript "impl" Goose appends
 # --------------------------------------------------------------------------
 # Sentences and comments
 
+
 def strip_comments(text):
     """Replace (* ... *) comments with spaces, preserving every offset."""
     out = list(text)
@@ -211,7 +212,9 @@ FUNC_RE = re.compile(r"@!\s*(?P<pkg>[A-Za-z_][\w]*)\.(?P<fn>[A-Za-z_][\w]*)\s*#"
 # an untranslated one has to be called: `#(functions <pkg>.<Fn> [...])`.
 # A `go.<name>` there is a predeclared operation (`go.len`, ...), not a Go
 # function of the program under verification.
-FUNCTIONS_RE = re.compile(r"functions\s+(?P<pkg>[A-Za-z_][\w]*)\.(?P<fn>[A-Za-z_][\w]*)")
+FUNCTIONS_RE = re.compile(
+    r"functions\s+(?P<pkg>[A-Za-z_][\w]*)\.(?P<fn>[A-Za-z_][\w]*)"
+)
 
 # Dynamic dispatch through an interface value: `#(methods i.(interface.ty) "Term" ...)`.
 # The callee is whatever the client supplied, so this is an interface contract
@@ -273,13 +276,12 @@ def requires(text):
     for m in REQUIRE_RE.finditer(text):
         end = sentence_end(text, m.end())
         body = text[m.end() : end].rstrip()
-        if body.endswith("."):
-            body = body[:-1]
+        body = body.removesuffix(".")
         prefix = m.group("from")
         for tok in body.split():
             if not tok or not tok[0].isalpha():
                 continue
-            out.append("{}.{}".format(prefix, tok) if prefix else tok)
+            out.append(f"{prefix}.{tok}" if prefix else tok)
     return out
 
 
@@ -382,37 +384,70 @@ def iter_files(root, suffix=".v"):
 
 SELFTEST_TRIPLES = [
     # a pointer-receiver method
-    ('{{{ is_pkg_init raft }}} r @! (go.PointerType raft.raft) @! "poll" #from'
-     ' {{{ RET #(); True }}}',
-     ["raft.raft.poll"], False),
+    (
+        (
+            '{{{ is_pkg_init raft }}} r @! (go.PointerType raft.raft) @! "poll" #from'
+            " {{{ RET #(); True }}}"
+        ),
+        ["raft.raft.poll"],
+        False,
+    ),
     # a receiver expression that is itself a chain of field refs
-    ('{{{ True }}} (trk.[tracker.ProgressTracker.t, "Config"]'
-     '.[tracker.Config.t, "Voters"]) @! (go.PointerType quorum.JointConfig)'
-     ' @! "IDs" #() {{{ RET #(); True }}}',
-     ["quorum.JointConfig.IDs"], False),
+    (
+        (
+            '{{{ True }}} (trk.[tracker.ProgressTracker.t, "Config"]'
+            '.[tracker.Config.t, "Voters"]) @! (go.PointerType quorum.JointConfig)'
+            ' @! "IDs" #() {{{ RET #(); True }}}'
+        ),
+        ["quorum.JointConfig.IDs"],
+        False,
+    ),
     # a package-level function
-    ('{{{ True }}} @! raft.traceSendMessage #r #mp {{{ RET #(); True }}}',
-     ["raft.traceSendMessage"], False),
+    (
+        "{{{ True }}} @! raft.traceSendMessage #r #mp {{{ RET #(); True }}}",
+        ["raft.traceSendMessage"],
+        False,
+    ),
     # an untranslated function reached through the semantics
-    ('{{{ True }}} #(functions slices.Sort [go.SliceType go.uint64]) #data'
-     ' {{{ RET #(); True }}}',
-     ["slices.Sort"], False),
+    (
+        (
+            "{{{ True }}} #(functions slices.Sort [go.SliceType go.uint64]) #data"
+            " {{{ RET #(); True }}}"
+        ),
+        ["slices.Sort"],
+        False,
+    ),
     # a predeclared builtin is not a Go function of the program
-    ('{{{ True }}} #(functions go.len [tracker.ProgressMap]) #mref'
-     ' {{{ RET #(W64 0); True }}}',
-     [], False),
+    (
+        (
+            "{{{ True }}} #(functions go.len [tracker.ProgressMap]) #mref"
+            " {{{ RET #(W64 0); True }}}"
+        ),
+        [],
+        False,
+    ),
     # dispatch through a client-supplied interface value: a contract, not a
     # specification of a Go function under verification
-    ('{{{ is_Logger l }}} #(methods l.(interface.ty) meth l.(interface.v))'
-     ' #format {{{ RET #(); True }}}',
-     [], True),
+    (
+        (
+            "{{{ is_Logger l }}} #(methods l.(interface.ty) meth l.(interface.v))"
+            " #format {{{ RET #(); True }}}"
+        ),
+        [],
+        True,
+    ),
     # a model-level map operation is neither
-    ('{{{ own_tracker cfg tv votes }}} map.lookup1 go.uint64'
-     ' (go.PointerType tracker.Progress) #m #i {{{ RET #pr; True }}}',
-     [], False),
+    (
+        (
+            "{{{ own_tracker cfg tv votes }}} map.lookup1 go.uint64"
+            " (go.PointerType tracker.Progress) #m #i {{{ RET #pr; True }}}"
+        ),
+        [],
+        False,
+    ),
 ]
 
-SELFTEST_SOURCE = '''\
+SELFTEST_SOURCE = """\
 Require Export New.proof.a.b.
 From New.proof Require Import c d.
 
@@ -441,7 +476,7 @@ Lemma open : Q.
 Proof. (* Admitted. is quoted here *) idtac. Admitted. (* Trusted *)
 Definition d := role.Leader.
 End proof.
-'''
+"""
 
 
 def selftest():
@@ -451,9 +486,7 @@ def selftest():
         got = go_refs(stmt)
         if got != (want_fns, want_iface):
             bad.append(
-                "go_refs\n  in   {}\n  want {}\n  got  {}".format(
-                    stmt, (want_fns, want_iface), got
-                )
+                f"go_refs\n  in   {stmt}\n  want {(want_fns, want_iface)}\n  got  {got}"
             )
 
     # A sentence ends at '.' followed by whitespace -- not at a dot inside a
@@ -461,7 +494,7 @@ def selftest():
     text = 'Lemma f : rv.(pkg.Type.field\') = x /\\ s = "a.b c" . rest'
     got = text[: sentence_end(text, len("Lemma f :"))]
     if not got.endswith(" .") or "rest" in got:
-        bad.append("sentence_end: {!r}".format(got))
+        bad.append(f"sentence_end: {got!r}")
 
     # Comments blank out to spaces: same length, newlines kept (so line
     # numbers survive), and nesting counted -- several doc comments in this
@@ -469,15 +502,15 @@ def selftest():
     src = "a(** x (* y *) z *)b\nc"
     out = strip_comments(src)
     if (len(out), out.count("\n"), out[0], out[-1]) != (len(src), 1, "a", "c"):
-        bad.append("strip_comments shape: {!r}".format(out))
+        bad.append(f"strip_comments shape: {out!r}")
     if "x" in out or "y" in out or "z" in out:
-        bad.append("strip_comments left comment text: {!r}".format(out))
+        bad.append(f"strip_comments left comment text: {out!r}")
 
     if is_exported("raft.raft.Step") is not True or is_exported("raft.raft.poll"):
         bad.append("is_exported")
 
     if requires(SELFTEST_SOURCE) != ["New.proof.a.b", "New.proof.c", "New.proof.d"]:
-        bad.append("requires: {}".format(requires(SELFTEST_SOURCE)))
+        bad.append(f"requires: {requires(SELFTEST_SOURCE)}")
 
     scanned = scan_file("<selftest>", SELFTEST_SOURCE)
     decls = {d.name: d for d in scanned}
@@ -487,8 +520,10 @@ def selftest():
         (by_kind[("Inductive", "t")].modpath == ("role",), "module path"),
         (by_kind[("Record", "t")].modpath == ("msg",), "module path (second)"),
         # a Parameter in a signature is an obligation, not an assumption
-        (by_kind[("Parameter", "wp_poll")].in_module_type is True,
-         "Parameter in Module Type"),
+        (
+            by_kind[("Parameter", "wp_poll")].in_module_type is True,
+            "Parameter in Module Type",
+        ),
         # ... but the Axiom discharging it inside the functor is one
         (by_kind[("Axiom", "wp_poll")].in_module_type is False, "Axiom in functor"),
         # an instantiation opens no block, so `d` is not inside `Poll`
@@ -501,8 +536,10 @@ def selftest():
         # the quoted `Admitted.` in the comment does not close the proof early
         (decls["open"].ended == "Admitted", "Admitted detected"),
         # and the line it ends on is where a marker comment would sit
-        ("Trusted" in SELFTEST_SOURCE.split("\n")[decls["open"].ended_line - 1],
-         "Admitted line"),
+        (
+            "Trusted" in SELFTEST_SOURCE.split("\n")[decls["open"].ended_line - 1],
+            "Admitted line",
+        ),
     ]
     for ok, what in checks:
         if not ok:
@@ -511,15 +548,14 @@ def selftest():
     # A Record's fields and an Inductive's constructors come with the type.
     ctors = sub_names("Inductive", " := Follower | Candidate | Leader.")
     if ctors != ["Candidate", "Follower", "Leader"]:
-        bad.append("sub_names ctors: {}".format(ctors))
+        bad.append(f"sub_names ctors: {ctors}")
     fields = sub_names("Record", " := mk { ty : mtype.t ; from : w64 }.")
     if fields != ["from", "ty"]:
-        bad.append("sub_names fields: {}".format(fields))
+        bad.append(f"sub_names fields: {fields}")
 
     for b in bad:
         print("FAIL " + b)
-    print("rocqscan selftest: {}".format(
-        "{} failures".format(len(bad)) if bad else "ok"))
+    print("rocqscan selftest: {}".format(f"{len(bad)} failures" if bad else "ok"))
     return 1 if bad else 0
 
 

@@ -84,8 +84,8 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import rocqscan  # noqa: E402  (after sys.path is set up)
-from rocqscan import (  # noqa: E402
+import rocqscan
+from rocqscan import (
     ASSUMPTION_KINDS,
     PROVABLE_KINDS,
     TYPE_KINDS,
@@ -111,7 +111,7 @@ DEFAULT_PROOF_ROOT = "new/proof/go_etcd_io/raft"
 ROLES = ("spec", "postulates", "proof", "link")
 HELPERS_SUFFIX = "_helpers"
 ROLE_RE = re.compile(r"^(?P<role>{})_(?P<x>.+)$".format("|".join(ROLES)))
-HELPERS_RE = re.compile(r"^proof_(?P<x>.+){}$".format(re.escape(HELPERS_SUFFIX)))
+HELPERS_RE = re.compile(rf"^proof_(?P<x>.+){re.escape(HELPERS_SUFFIX)}$")
 
 # A spec states its triple as `Definition wp_<fn>_body := ∀ …`; the Module
 # Type's Parameter refers to it.  So the `_body` is where the statement's
@@ -126,9 +126,7 @@ TRUSTED_MARKER = r"\bTrusted\b"
 # opaque constant rather than asserting anything: `Axiom own_raft_ghost : ∀ γ
 # id s, iProp Σ.` introduces a predicate you cannot see, which is a different
 # (and milder) thing to trust than a claim that could be false.
-DECLARATION_TAIL_RE = re.compile(
-    r"(?:Type|Set|Prop|iProp\s+\S+|iProp)\s*\.?\s*$"
-)
+DECLARATION_TAIL_RE = re.compile(r"(?:Type|Set|Prop|iProp\s+\S+|iProp)\s*\.?\s*$")
 
 
 # --------------------------------------------------------------------------
@@ -160,9 +158,7 @@ def load(proof_root, root):
             Unit(
                 path=path,
                 rel=os.path.relpath(path, root),
-                logpath=tuple(
-                    os.path.relpath(path, root)[:-2].split(os.sep)
-                ),
+                logpath=tuple(os.path.relpath(path, root)[:-2].split(os.sep)),
                 role=role,
                 collection=coll,
                 decls=scan_file(path, raw),
@@ -206,15 +202,13 @@ def require_graph(units):
 
 def is_definition(decl):
     """Whether the declaration defines something rather than claiming it."""
-    if decl.kind in TYPE_KINDS or decl.kind in ("Definition", "Fixpoint",
-                                                "CoFixpoint"):
+    if decl.kind in TYPE_KINDS or decl.kind in ("Definition", "Fixpoint", "CoFixpoint"):
         return True
     # `Instance foo : C := bar.` and `Example ok : t = u := eq_refl.` define
     # by giving the term; `Instance foo : C. Proof. … Qed.` proves.  Having
     # no proof at all and a `:=` is the tell, and both halves are needed: a
     # statement can hold a `let … :=` and still be proved by a script.
-    return (decl.kind in PROVABLE_KINDS and decl.ended is None
-            and ":=" in decl.statement)
+    return decl.kind in PROVABLE_KINDS and decl.ended is None and ":=" in decl.statement
 
 
 ALIAS_RE = re.compile(r"^\s*:\s*([A-Za-z_][\w'\u2019.]*)\s*\.\s*$")
@@ -242,7 +236,7 @@ def follow_alias(decl, index):
 
 
 def assumption_shape(decl):
-    """"triple", "property" or "declaration" -- what kind of thing is assumed."""
+    """ "triple", "property" or "declaration" -- what kind of thing is assumed."""
     if decl.is_triple:
         return "triple"
     if DECLARATION_TAIL_RE.search(decl.statement.strip()):
@@ -280,9 +274,12 @@ def trusted_marker(raw_lines, decl, marker):
     to the neighbouring declaration.
     """
     for line in (decl.line, decl.ended_line):
-        if line and 0 < line <= len(raw_lines):
-            if re.search(marker, raw_lines[line - 1]):
-                return True
+        if (
+            line
+            and 0 < line <= len(raw_lines)
+            and re.search(marker, raw_lines[line - 1])
+        ):
+            return True
     return False
 
 
@@ -524,9 +521,7 @@ def build_report(units, edges, scope_dir, root, marker):
     scoped_units = [f for f in files if in_scope(f[0].rel)]
     scoped_assumed = [r for _d, _u, r in assumed if in_scope(r["file"])]
     scoped_results = [r for r in results if in_scope(r["file"])]
-    scoped_defs = [
-        d for d in defs if in_scope(os.path.relpath(d.path, root))
-    ]
+    scoped_defs = [d for d in defs if in_scope(os.path.relpath(d.path, root))]
 
     total_lines = sum(u.lines for u, _c, _k in scoped_units)
     obligations = sum(c["obligation"] for _u, c, _k in scoped_units)
@@ -536,8 +531,9 @@ def build_report(units, edges, scope_dir, root, marker):
     # exported result that is itself an axiom -- which happens, and is worth
     # seeing -- is counted once, as assumed, and still listed as a result.
     assumed_keys = {(r["file"], r["line"]) for r in scoped_assumed}
-    counted_results = [r for r in scoped_results
-                       if (r["file"], r["line"]) not in assumed_keys]
+    counted_results = [
+        r for r in scoped_results if (r["file"], r["line"]) not in assumed_keys
+    ]
     tcb_lines = (
         sum(r["lines"] for r in scoped_assumed)
         + sum(r["lines"] for r in counted_results)
@@ -560,8 +556,7 @@ def build_report(units, edges, scope_dir, root, marker):
             for d in sorted(scoped_defs, key=lambda d: (d.path, d.line))
         ],
         "results_assumed": len(scoped_results) - len(counted_results),
-        "tcb_decls": (len(scoped_assumed) + len(counted_results)
-                      + len(scoped_defs)),
+        "tcb_decls": (len(scoped_assumed) + len(counted_results) + len(scoped_defs)),
         "obligations": obligations,
         "proved": proved,
         "internal_collections": len(internal_colls),
@@ -608,8 +603,16 @@ def file_status(counts):
 # --------------------------------------------------------------------------
 # Printing
 
-STATUS_ORDER = ["admitted", "assumed", "aborted", "unclosed", "proved",
-                "stated", "defs", "plumbing"]
+STATUS_ORDER = [
+    "admitted",
+    "assumed",
+    "aborted",
+    "unclosed",
+    "proved",
+    "stated",
+    "defs",
+    "plumbing",
+]
 INCOMPLETE = ("admitted", "assumed", "aborted", "unclosed")
 
 # Room for the longest path in this repository's proof tree plus a little;
@@ -619,11 +622,11 @@ WIDTH = 100
 
 
 def pct(a, b):
-    return "{:.1f}%".format(100.0 * a / b) if b else "-"
+    return f"{100.0 * a / b:.1f}%" if b else "-"
 
 
 def num(n):
-    return "{:,}".format(n)
+    return f"{n:,}"
 
 
 def shorten(text, width):
@@ -632,14 +635,20 @@ def shorten(text, width):
 
 def shorten_path(path, width):
     """Trim a path from the left: the file name is what identifies it."""
-    return path if len(path) <= width else "…" + path[-(width - 1):]
+    return path if len(path) <= width else "…" + path[-(width - 1) :]
 
 
 def row(label, count, lines, note, out, indent=2):
-    print("{}{:<29}{:>5}  {:>11}   {}".format(
-        " " * indent, label, count,
-        "{} lines".format(num(lines)) if lines is not None else "",
-        note).rstrip(), file=out)
+    print(
+        "{}{:<29}{:>5}  {:>11}   {}".format(
+            " " * indent,
+            label,
+            count,
+            f"{num(lines)} lines" if lines is not None else "",
+            note,
+        ).rstrip(),
+        file=out,
+    )
 
 
 def print_summary(rep, out):
@@ -649,138 +658,225 @@ def print_summary(rep, out):
     n_def = len(rep["definitions"])
     def_lines = sum(d["lines"] for d in rep["definitions"])
     assumed_at = {(r["file"], r["line"]) for r in rep["assumed"]}
-    res_lines = sum(r["lines"] for r in rep["results"]
-                    if (r["file"], r["line"]) not in assumed_at)
+    res_lines = sum(
+        r["lines"] for r in rep["results"] if (r["file"], r["line"]) not in assumed_at
+    )
     ass_lines = sum(r["lines"] for r in rep["assumed"])
 
-    print("TCB of {}   {} files, {} lines".format(
-        rep["scope"], rep["files"], num(rep["lines"])), file=out)
+    print(
+        "TCB of {}   {} files, {} lines".format(
+            rep["scope"], rep["files"], num(rep["lines"])
+        ),
+        file=out,
+    )
     print(file=out)
-    row("assumed", len(rep["assumed"]), ass_lines,
-        ", ".join("{} {}".format(n, k) for k, n in sorted(how.items()))
-        or "nothing", out)
+    row(
+        "assumed",
+        len(rep["assumed"]),
+        ass_lines,
+        ", ".join(f"{n} {k}" for k, n in sorted(how.items())) or "nothing",
+        out,
+    )
     for shape, label in (
         ("triple", "Hoare triples about Go code"),
         ("property", "properties of the model"),
         ("declaration", "opaque declarations"),
     ):
         if shapes[shape]:
-            print("    {:<29}{:>3}".format(label, shapes[shape]), file=out)
+            print(f"    {label:<29}{shapes[shape]:>3}", file=out)
     if trusted:
-        print("    {:<29}{:>3}   deliberate, marked in a comment".format(
-            "of those, trusted", trusted), file=out)
-    row("results", len(rep["results"]) - rep["results_assumed"], res_lines,
-        "statements nothing else depends on", out)
+        print(
+            "    {:<29}{:>3}   deliberate, marked in a comment".format(
+                "of those, trusted", trusted
+            ),
+            file=out,
+        )
+    row(
+        "results",
+        len(rep["results"]) - rep["results_assumed"],
+        res_lines,
+        "statements nothing else depends on",
+        out,
+    )
     if rep["results_assumed"]:
-        print("    {:<29}{:>3}   counted under assumed, not twice".format(
-            "more, but assumed", rep["results_assumed"]), file=out)
+        print(
+            "    {:<29}{:>3}   counted under assumed, not twice".format(
+                "more, but assumed", rep["results_assumed"]
+            ),
+            file=out,
+        )
     row("definitions", n_def, def_lines, "reached from those statements", out)
     print("  " + "-" * 62, file=out)
-    row("TCB", rep["tcb_decls"], rep["tcb_lines"],
+    row(
+        "TCB",
+        rep["tcb_decls"],
+        rep["tcb_lines"],
         "{} of the development".format(pct(rep["tcb_lines"], rep["lines"])),
-        out)
+        out,
+    )
     print(file=out)
-    print("  not trusted  {:>4}  obligations, each discharged by a functor"
-          .format(rep["obligations"]), file=out)
-    print("               {:>4}  specs of functions something else calls"
-          .format(rep["internal_collections"]), file=out)
-    print("               {:>4}  lemmas with a Qed".format(rep["proved"]),
-          file=out)
+    print(
+        "  not trusted  {:>4}  obligations, each discharged by a functor".format(
+            rep["obligations"]
+        ),
+        file=out,
+    )
+    print(
+        "               {:>4}  specs of functions something else calls".format(
+            rep["internal_collections"]
+        ),
+        file=out,
+    )
+    print("               {:>4}  lemmas with a Qed".format(rep["proved"]), file=out)
     print(file=out)
 
     by_status = collections.Counter(f["status"] for f in rep["file_status"])
-    print("Files  " + " · ".join(
-        "{} {}".format(by_status[s], s) for s in STATUS_ORDER if by_status[s]),
-        file=out)
-    incomplete = [f for f in rep["file_status"]
-                  if f["status"] in INCOMPLETE]
+    print(
+        "Files  "
+        + " · ".join(f"{by_status[s]} {s}" for s in STATUS_ORDER if by_status[s]),
+        file=out,
+    )
+    incomplete = [f for f in rep["file_status"] if f["status"] in INCOMPLETE]
     if incomplete:
         print(file=out)
-        print("Incomplete ({} files), under {}:".format(
-            len(incomplete), rep["scope"]), file=out)
+        print(
+            "Incomplete ({} files), under {}:".format(len(incomplete), rep["scope"]),
+            file=out,
+        )
         for f in sorted(incomplete, key=lambda f: (f["status"], f["file"])):
             c = f["counts"]
             tally = " ".join(
-                "{} {}".format(c[k], lbl) for k, lbl in
-                (("admitted", "adm"), ("assumed", "ax"),
-                 ("aborted", "abort"), ("unclosed", "open")) if c.get(k))
+                f"{c[k]} {lbl}"
+                for k, lbl in (
+                    ("admitted", "adm"),
+                    ("assumed", "ax"),
+                    ("aborted", "abort"),
+                    ("unclosed", "open"),
+                )
+                if c.get(k)
+            )
             rel = os.path.relpath(f["file"], rep["scope"])
-            names = ", ".join(sorted({c2["name"].split(".")[-1]
-                                      for c2 in f["carries"]}))
-            print("  {:<{w}} {:<10} {}".format(
-                shorten_path(rel, PATH_W), tally,
-                shorten(names, WIDTH - PATH_W - 14), w=PATH_W), file=out)
+            names = ", ".join(
+                sorted({c2["name"].split(".")[-1] for c2 in f["carries"]})
+            )
+            print(
+                "  {:<{w}} {:<10} {}".format(
+                    shorten_path(rel, PATH_W),
+                    tally,
+                    shorten(names, WIDTH - PATH_W - 14),
+                    w=PATH_W,
+                ),
+                file=out,
+            )
 
 
 def print_files(rep, out):
-    print("{:<{w}} {:<9} {:>6} {:>4} {:>4} {:>6}".format(
-        "file", "status", "lines", "ax", "adm", "proved", w=PATH_W), file=out)
+    print(
+        "{:<{w}} {:<9} {:>6} {:>4} {:>4} {:>6}".format(
+            "file", "status", "lines", "ax", "adm", "proved", w=PATH_W
+        ),
+        file=out,
+    )
     for f in rep["file_status"]:
         c = f["counts"]
-        print("{:<{w}} {:<9} {:>6} {:>4} {:>4} {:>6}".format(
-            shorten_path(os.path.relpath(f["file"], rep["scope"]), PATH_W),
-            f["status"], f["lines"],
-            c.get("assumed", 0), c.get("admitted", 0), c.get("proved", 0),
-            w=PATH_W), file=out)
+        print(
+            "{:<{w}} {:<9} {:>6} {:>4} {:>4} {:>6}".format(
+                shorten_path(os.path.relpath(f["file"], rep["scope"]), PATH_W),
+                f["status"],
+                f["lines"],
+                c.get("assumed", 0),
+                c.get("admitted", 0),
+                c.get("proved", 0),
+                w=PATH_W,
+            ),
+            file=out,
+        )
 
 
 def print_assumed(rep, out):
     if not rep["assumed"]:
         print("nothing assumed", file=out)
         return
-    print("{:<{w}} {:<9} {:<12} {}".format(
-        "where", "how", "shape", "what", w=PATH_W), file=out)
+    print(
+        "{:<{w}} {:<9} {:<12} {}".format("where", "how", "shape", "what", w=PATH_W),
+        file=out,
+    )
     for r in sorted(rep["assumed"], key=lambda r: (r["file"], r["line"])):
         what = r["name"]
         if r["go_fns"]:
             what += "  [{}]".format(", ".join(r["go_fns"]))
         if r["trusted"]:
             what += "  (trusted)"
-        where = "{}:{}".format(os.path.relpath(r["file"], rep["scope"]),
-                               r["line"])
-        print("{:<{w}} {:<9} {:<12} {}".format(
-            shorten_path(where, PATH_W), r["how"], r["shape"], what, w=PATH_W),
-            file=out)
+        where = "{}:{}".format(os.path.relpath(r["file"], rep["scope"]), r["line"])
+        print(
+            "{:<{w}} {:<9} {:<12} {}".format(
+                shorten_path(where, PATH_W), r["how"], r["shape"], what, w=PATH_W
+            ),
+            file=out,
+        )
 
 
 def print_surface(rep, out):
-    print("Externally-facing results ({}):".format(len(rep["results"])),
-          file=out)
+    print("Externally-facing results ({}):".format(len(rep["results"])), file=out)
     for r in sorted(rep["results"], key=lambda r: (r["file"], r["line"])):
         note = r["status"]
         if r["exported_in_go"]:
             note += ", exported in Go"
         elif r["go_fns"]:
             note += ", unexported in Go"
-        where = "{}:{}".format(os.path.relpath(r["file"], rep["scope"]),
-                               r["line"])
-        print("  {:<{w}} {:<34} {:>3} lines  [{}]".format(
-            shorten_path(where, PATH_W), shorten(r["name"], 34), r["lines"], note,
-            w=PATH_W), file=out)
+        where = "{}:{}".format(os.path.relpath(r["file"], rep["scope"]), r["line"])
+        print(
+            "  {:<{w}} {:<34} {:>3} lines  [{}]".format(
+                shorten_path(where, PATH_W),
+                shorten(r["name"], 34),
+                r["lines"],
+                note,
+                w=PATH_W,
+            ),
+            file=out,
+        )
     print(file=out)
-    print("Definitions they rest on ({}, {} lines):".format(
-        len(rep["definitions"]),
-        num(sum(d["lines"] for d in rep["definitions"]))), file=out)
+    print(
+        "Definitions they rest on ({}, {} lines):".format(
+            len(rep["definitions"]), num(sum(d["lines"] for d in rep["definitions"]))
+        ),
+        file=out,
+    )
     by_file = collections.defaultdict(list)
     for d in rep["definitions"]:
         by_file[d["file"]].append(d)
     for path in sorted(by_file):
         ds = by_file[path]
-        print("  {:<{w}} {:>3} defs, {:>4} lines".format(
-            shorten_path(os.path.relpath(path, rep["scope"]), PATH_W), len(ds),
-            sum(d["lines"] for d in ds), w=PATH_W), file=out)
-        print("      " + shorten(", ".join(d["name"] for d in ds), WIDTH - 6),
-              file=out)
+        print(
+            "  {:<{w}} {:>3} defs, {:>4} lines".format(
+                shorten_path(os.path.relpath(path, rep["scope"]), PATH_W),
+                len(ds),
+                sum(d["lines"] for d in ds),
+                w=PATH_W,
+            ),
+            file=out,
+        )
+        print("      " + shorten(", ".join(d["name"] for d in ds), WIDTH - 6), file=out)
     unres = rep["unresolved"]
     print(file=out)
-    print("{} distinct names in those statements resolve to nothing in this "
-          "tree:".format(len(unres)), file=out)
-    print("  binders, and Perennial/stdpp/Rocq constants, which are trusted "
-          "too and not counted here.", file=out)
+    print(
+        f"{len(unres)} distinct names in those statements resolve to nothing in this tree:",
+        file=out,
+    )
+    print(
+        "  binders, and Perennial/stdpp/Rocq constants, which are trusted "
+        "too and not counted here.",
+        file=out,
+    )
     if unres:
-        print("  most frequent: " + shorten(", ".join(
-            "{} ({}x)".format(name, n) for name, n in unres[:10]), WIDTH - 17),
-            file=out)
+        print(
+            "  most frequent: "
+            + shorten(
+                ", ".join(f"{name} ({n}x)" for name, n in unres[:10]),
+                WIDTH - 17,
+            ),
+            file=out,
+        )
 
 
 # --------------------------------------------------------------------------
@@ -794,17 +890,17 @@ def resolve_scope(scope, proof_root):
         if os.path.isdir(cand):
             return os.path.abspath(cand)
     matches = sorted(
-        dp
-        for dp, _dirs, _f in os.walk(proof_root)
-        if os.path.basename(dp) == scope
+        dp for dp, _dirs, _f in os.walk(proof_root) if os.path.basename(dp) == scope
     )
     if len(matches) == 1:
         return matches[0]
     if not matches:
-        sys.exit("no directory named {!r} under {} (and no such path)".format(
-            scope, proof_root))
-    sys.exit("{!r} is ambiguous under {}:\n  {}".format(
-        scope, proof_root, "\n  ".join(matches)))
+        sys.exit(f"no directory named {scope!r} under {proof_root} (and no such path)")
+    sys.exit(
+        "{!r} is ambiguous under {}:\n  {}".format(
+            scope, proof_root, "\n  ".join(matches)
+        )
+    )
 
 
 # --------------------------------------------------------------------------
@@ -812,7 +908,7 @@ def resolve_scope(scope, proof_root):
 # buckets are pinned down by an example rather than by prose.
 
 SELFTEST_FILES = {
-    "model.v": '''\
+    "model.v": """\
 Module st.
 Record t := mk { term : nat ; leader : bool }.
 End st.
@@ -821,29 +917,29 @@ Definition legal (s s' : st.t) : Prop := st.term s <= st.term s'.
 
 Axiom own_state : st.t -> iProp.
 Axiom own_state_agree : forall s s', own_state s -* own_state s' -* legal s s'.
-''',
-    "spec_f.v": '''\
+""",
+    "spec_f.v": """\
 Require Export model.
 Definition wp_f_body := {{{ own_state s }}} @! pkg.f #x {{{ RET #(); True }}}.
 Module Type F.
   Parameter wp_f : wp_f_body.
 End F.
-''',
-    "proof_f.v": '''\
+""",
+    "proof_f.v": """\
 Require Export spec_f.
 Module FProof : F.
   Lemma wp_f : wp_f_body.
   Proof. reflexivity. Qed.
 End FProof.
-''',
-    "spec_G.v": '''\
+""",
+    "spec_G.v": """\
 Require Export model.
 Definition wp_G_body := {{{ own_state s }}} r @! (go.PointerType pkg.T) @! "G" #x {{{ RET #(); legal s s }}}.
 Module Type G.
   Parameter wp_G : wp_G_body.
 End G.
-''',
-    "proof_G.v": '''\
+""",
+    "proof_G.v": """\
 Require Export spec_G.
 Require Export spec_f.
 Module GProof (P : F) : G.
@@ -851,7 +947,7 @@ Module GProof (P : F) : G.
   Proof. apply wp_f. Admitted.
   Example refl_ok : legal s s := eq_refl.
 End GProof.
-''',
+""",
 }
 
 
@@ -877,8 +973,10 @@ def selftest():
         names = {r["name"] for r in rep["assumed"]}
         # Both axioms are assumed; the Parameters in the two Module Types are
         # not, and neither is the Qed'd lemma.
-        want(names == {"own_state", "own_state_agree", "GProof.wp_G"},
-             "assumed = {}".format(sorted(names)))
+        want(
+            names == {"own_state", "own_state_agree", "GProof.wp_G"},
+            f"assumed = {sorted(names)}",
+        )
         shapes = {r["name"]: r["shape"] for r in rep["assumed"]}
         want(shapes.get("own_state") == "declaration", "opaque declaration")
         want(shapes.get("own_state_agree") == "property", "property")
@@ -886,56 +984,78 @@ def selftest():
         want(rep["obligations"] == 2, "obligations = {}".format(rep["obligations"]))
         # G calls f, so f's collection is internal and only G is exported.
         results = {r["name"] for r in rep["results"]}
-        want(results == {"wp_G_body"}, "results = {}".format(sorted(results)))
-        want([r["exported_in_go"] for r in rep["results"]] == [["pkg.T.G"]],
-             "Go export rule reported")
+        want(results == {"wp_G_body"}, f"results = {sorted(results)}")
+        want(
+            [r["exported_in_go"] for r in rep["results"]] == [["pkg.T.G"]],
+            "Go export rule reported",
+        )
         # The statements rest on `legal`, `st.t` (through `st.term`) and the
         # `_body` of the admitted triple -- but not on `wp_f_body`, which
         # nothing trusted mentions.
         defs = {d["name"] for d in rep["definitions"]}
-        want("legal" in defs and "st.t" in defs,
-             "definition closure = {}".format(sorted(defs)))
+        want(
+            "legal" in defs and "st.t" in defs,
+            f"definition closure = {sorted(defs)}",
+        )
         want("wp_f_body" not in defs, "internal spec not in the closure")
         # a definition by term is not an unfinished proof
-        want(not any(f["counts"].get("unclosed")
-                     for f in rep["file_status"]),
-             "Example ... := term read as unclosed")
+        want(
+            not any(f["counts"].get("unclosed") for f in rep["file_status"]),
+            "Example ... := term read as unclosed",
+        )
         statuses = {f["file"]: f["status"] for f in rep["file_status"]}
-        want(statuses == {
-            "dev/model.v": "assumed",
-            "dev/spec_f.v": "stated",
-            "dev/proof_f.v": "proved",
-            "dev/spec_G.v": "stated",
-            "dev/proof_G.v": "admitted",
-        }, "file status = {}".format(statuses))
+        want(
+            statuses
+            == {
+                "dev/model.v": "assumed",
+                "dev/spec_f.v": "stated",
+                "dev/proof_f.v": "proved",
+                "dev/spec_G.v": "stated",
+                "dev/proof_G.v": "admitted",
+            },
+            f"file status = {statuses}",
+        )
 
     for b in bad:
         print("FAIL " + b)
-    print("tcb-report selftest: {}".format(
-        "{} failures".format(len(bad)) if bad else "ok"))
+    print("tcb-report selftest: {}".format(f"{len(bad)} failures" if bad else "ok"))
     return 1 if (bad or rc) else 0
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--root", default=".",
-                    help="repository root (default: the current directory)")
-    ap.add_argument("--proof-root", default=DEFAULT_PROOF_ROOT,
-                    help="the development to look at, relative to --root "
-                         "(default: {})".format(DEFAULT_PROOF_ROOT))
-    ap.add_argument("--scope", default=None,
-                    help="restrict the report to a path, or to the bare name "
-                         "of a directory anywhere under the proof root.  The "
-                         "graph is still built from the whole proof root, so "
-                         "scoping cannot invent exported results")
-    ap.add_argument("--view", choices=["summary", "files", "assumed",
-                                       "surface", "all"], default="summary")
+    ap.add_argument(
+        "--root", default=".", help="repository root (default: the current directory)"
+    )
+    ap.add_argument(
+        "--proof-root",
+        default=DEFAULT_PROOF_ROOT,
+        help=f"the development to look at, relative to --root (default: {DEFAULT_PROOF_ROOT})",
+    )
+    ap.add_argument(
+        "--scope",
+        default=None,
+        help="restrict the report to a path, or to the bare name "
+        "of a directory anywhere under the proof root.  The "
+        "graph is still built from the whole proof root, so "
+        "scoping cannot invent exported results",
+    )
+    ap.add_argument(
+        "--view",
+        choices=["summary", "files", "assumed", "surface", "all"],
+        default="summary",
+    )
     ap.add_argument("--format", choices=["text", "json"], default="text")
-    ap.add_argument("--trusted-marker", default=TRUSTED_MARKER,
-                    help="regex marking a deliberate assumption in a comment "
-                         "(default: {})".format(TRUSTED_MARKER))
-    ap.add_argument("--selftest", action="store_true",
-                    help="check the classification on a miniature development")
+    ap.add_argument(
+        "--trusted-marker",
+        default=TRUSTED_MARKER,
+        help=f"regex marking a deliberate assumption in a comment (default: {TRUSTED_MARKER})",
+    )
+    ap.add_argument(
+        "--selftest",
+        action="store_true",
+        help="check the classification on a miniature development",
+    )
     args = ap.parse_args()
 
     if args.selftest:
@@ -944,7 +1064,7 @@ def main():
     root = os.path.abspath(args.root)
     proof_root = os.path.join(root, args.proof_root)
     if not os.path.isdir(proof_root):
-        sys.exit("no such proof root: {}".format(proof_root))
+        sys.exit(f"no such proof root: {proof_root}")
     scope_dir = resolve_scope(args.scope, proof_root)
 
     units = load(proof_root, root)
