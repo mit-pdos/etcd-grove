@@ -112,7 +112,7 @@ concurrent items edit the same shared file.
 | # | item | wave | status |
 |---|---|---|---|
 | 1 | The Goose array-indexing fix (`worktree-goose-array-index-fix`) — merged into `main` as `d0a281822` and merged here | 0 | done |
-| 2 | Model: `go.len` on a nil map (`new/golang/defn/map.v` nil case, `pure_wp_map_nil_len` and a general `wp_map_len` in `theory/map.v`) | 0 | done, pending `-vok` |
+| 2 | Model: `go.len` on a nil map (`new/golang/defn/map.v` nil case, `pure_wp_map_nil_len` and a general `wp_map_len` in `theory/map.v`) | 0 | done (`theory/map.v`, `inv_tracker.v`, `proof_raft__campaign.v` at `-vok` RC=0) |
 | 3 | `wp_raft__promotable` | 1 | pending |
 | 4 | `wp_raft__hasUnappliedConfChanges` — needs `raftLog.scan`/`slice`, `unstable.slice`, `limitSize`, a `Storage.Entries` triple | 1 | pending |
 | 5 | `wp_raft__resetRandomizedElectionTimeout` — `globalRand` in `is_initialized`, `lockedRand.Intn`, `crypto/rand` + `math/big` assumed | 2 | pending |

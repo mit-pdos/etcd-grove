@@ -17,12 +17,15 @@ If a defect is fixed, delete the file — git remembers.
 
 ## Open
 
-- [golang-len-of-nil-map-is-stuck.md](golang-len-of-nil-map-is-stuck.md)
-  — `len` of a nil map has no rule, so it cannot step. Blocks
-  `wp_ProgressTracker__TallyVotes`, whose joint config has `map.nil` as its
-  second component.
+(none)
 
 ## Fixed
+
+- `golang-len-of-nil-map-is-stuck.md` — `len` of a nil map had no rule:
+  `go.len_map`'s body read the null location. Fixed 2026-09-19: the body
+  tests for `map.nil` first (as `lookup2` and `for_range` do) and returns
+  `0`; `theory/map.v` has `pure_wp_map_nil_len` and a general `wp_map_len`.
+  Unblocked `wp_ProgressTracker__TallyVotes`.
 
 - `goose-array-indexref-loads-its-operand.md` — every array index and array
   slice in the translated raft code was emitted against a *loaded array
