@@ -4,15 +4,15 @@ Require Export New.proof.go_etcd_io.raft.v3_proof.election.inv_raft_phys.
     [r.id], [r.trk.Progress] and [r.raftLog], so it is stated against the
     raft struct rather than against three unrelated parameters.
 
-    **In scope and unfinished** (2026-09-16).  The generated body
-    ([new/code/go_etcd_io/raft/v3.v:5146]) is
+    **Proved** ([proof_raft__promotable.v], [Qed] 2026-09-19).  The generated
+    body ([new/code/go_etcd_io/raft/v3.v:5146]) is
 
         pr := r.trk.Progress[r.id]
         return pr != nil && !pr.IsLearner &&
                !r.raftLog.hasNextOrInProgressSnapshot()
 
-    There were *two* obstacles, and **both are now cleared** -- so this is the
-    cheapest remaining win on the election path (STATUS.md, next step 1):
+    There were *two* obstacles to stating it this way, both cleared on
+    2026-09-16 and recorded here because the statement depends on them:
 
     - [hasNextOrInProgressSnapshot] needs [own_raftLog] opened up.  Since
       2026-09-16 [own_raftLog] is a real **definition** ([inv_raftlog.v])
@@ -27,10 +27,11 @@ Require Export New.proof.go_etcd_io.raft.v3_proof.election.inv_raft_phys.
       [id ∈ cfg].  That conjunct was added on 2026-09-16 and is now
       [Hnolearner] in [own_progress].
 
-    The statement is correct as written; do not weaken it.  What is left is
-    the walk itself: the [r.trk.Progress[r.id]] lookup (see
-    [wp_tracker_progress_lookup], [inv_tracker.v]), the two field reads, and
-    the call. *)
+    The statement is correct as written; do not weaken it.  The proof is a
+    case split on [id ∈ cfg]: present, the [r.trk.Progress[r.id]] lookup
+    (see [wp_tracker_progress_lookup], [inv_tracker.v]) yields a non-nil,
+    non-learner [Progress] and the call returns [false]; absent, the lookup
+    yields [nil] and the [&&] short-circuits. *)
 Definition wp_raft__promotable_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)

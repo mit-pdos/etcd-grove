@@ -1031,3 +1031,38 @@ artefact. `array.v` sits under `slice.v`, which sits under nearly everything.
 then sweep, then edit. If a sweep reports mass failures, read one log before
 believing it: "inconsistent assumptions over library X" is a staleness
 message, not a proof failure.
+
+## `make x.vok` leaves no `.vok` file behind
+
+The `etc/rocqc.py` wrapper that `make` runs does not write the empty `.vok`
+marker `rocq compile -vok` would, so `ls *.vok` proves nothing and a fresh
+`make <file>.vok` is never skipped as up to date. The only evidence that a
+proof checks is the exit code of the run you watched. (Found 2026-09-19
+while verifying an agent's report: the proof was fine, the artifact was
+simply not there.)
+
+## `wp_auto` reduces `pr != nil` before you can rewrite it
+
+After a `wp_apply` whose postcondition hands back a pointer `pr`, the test
+`pr ≠⟨ptr⟩ nil` is already `# (negb (bool_decide (pr = null)))` — and when
+the value is literally `null` it is already `#false`. So in the "present"
+branch, `rewrite (bool_decide_eq_false_2 (pr = null) Hnn)` has to come
+*before* the next `wp_auto` (which otherwise says "Failed to progress"),
+and in the "absent" branch there is nothing left to rewrite —
+`rewrite (bool_decide_eq_true_2 (null = null) eq_refl)` fails with "LHS
+does not match". Give `bool_decide_eq_false_2` its proposition and proof
+explicitly: `rewrite bool_decide_eq_false_2 //` leaves the `¬ pr = null`
+side goal unsolved and the next tactic sees two goals. Same family as the
+`bool_decide_eq_true_1` / inferred-`Decision` entry above. Goose emits `a &&
+b` as `If a b #false` (`new/golang/defn/postlang.v`), so once the first
+operand is `#false` the rest of the conjunction is never evaluated — no
+ownership is needed for what it would have read. (`promotable`, 2026-09-19.)
+
+## Plain loads through a sealed `r ↦ rv` need no `access_strict`
+
+`wp_start as "(Hr & …)". wp_auto.` steps `r.trk.Progress` and `r.id` reads
+on its own when the function never stores to `r`. The `access_strict`
+idiom is for handing a callee the *location* of one field (poll's
+`RecordVote`, reset's `ResetVotes`), not for reads. (`promotable`,
+2026-09-19.)
+

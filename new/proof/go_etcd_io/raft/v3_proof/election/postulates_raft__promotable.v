@@ -6,8 +6,6 @@ Module Type RAFT__PROMOTABLE_POSTULATES.
        pr := r.trk.Progress[r.id]
        return pr != nil && !pr.IsLearner &&
               !r.raftLog.hasNextOrInProgressSnapshot()
-     so this is the callee.  Declared although the proof is still
-     [Admitted]: the dependency is real and the signature is where it
-     belongs. *)
+     so this is the only callee. *)
   Include RAFTLOG__HASNEXTORINPROGRESSSNAPSHOT.
 End RAFT__PROMOTABLE_POSTULATES.
