@@ -8,11 +8,11 @@ def main():
         print(
             "usage: trace-deps.py <A.vos/vo/vok> <B.vos/vo/vok> will show why A transitively depends on B"
         )
-        exit(-1)
+        sys.exit(-1)
 
     deps = collections.defaultdict(set)
     with open(".rocqdeps.d") as f:
-        for line in f.readlines():
+        for line in f:
             parents, children = tuple(m.split(" ") for m in line.strip().split(": "))
             for p in parents:
                 for c in children:

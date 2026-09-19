@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
 
-from dataclasses import dataclass
-import subprocess as sp
 import shutil
-from typing import Optional
+import subprocess as sp
+from dataclasses import dataclass
 
 
 @dataclass
 class Proj:
     name: str
     repo: str
-    commit: Optional[str]
+    commit: str | None
 
     def path(self) -> str:
         return f"/tmp/{self.name}"
@@ -45,24 +44,24 @@ projs = {
 def checkout(proj: Proj):
     print(f"Checking out {proj.name}")
     path = proj.path()
-    shared_args = {"check": True, "cwd": path}
 
     try:
         p = sp.run(
             ["git", "remote", "get-url", "origin"],
             text=True,
             capture_output=True,
-            **shared_args,
+            check=True,
+            cwd=path,
         )
         assert p.stdout.strip() == proj.repo
-        sp.run(["git", "reset", "--hard"], **shared_args)
-        sp.run(["git", "pull"], **shared_args)
+        sp.run(["git", "reset", "--hard"], check=True, cwd=path)
+        sp.run(["git", "pull"], check=True, cwd=path)
     except (FileNotFoundError, sp.CalledProcessError, AssertionError):
         shutil.rmtree(path, ignore_errors=True)
         sp.run(["git", "clone", proj.repo, path], check=True)
 
     if proj.commit is not None:
-        sp.run(["git", "checkout", proj.commit], **shared_args)
+        sp.run(["git", "checkout", proj.commit], check=True, cwd=path)
 
 
 def main():

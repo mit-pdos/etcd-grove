@@ -98,12 +98,12 @@ class ProcessManager:
         if not self._dry_run:
             self._processes.append(subprocess.Popen(args, stderr=subprocess.PIPE))
         else:
-            return None
+            return
 
     def _wait1(self):
         if self._processes:
             p = self._processes.pop()
-            stdout_bytes, stderr_bytes = p.communicate()
+            _stdout_bytes, stderr_bytes = p.communicate()
             sys.stderr.buffer.write(stderr_bytes)
             if p.returncode != 0 and (self._failed_status is not None):
                 self._failed_status = p.returncode
@@ -174,9 +174,9 @@ def main():
     args = parser.parse_args()
 
     if args.all:
-        setattr(args, "std_lib", True)
-        setattr(args, "models", True)
-        setattr(args, "goose_examples", True)
+        args.std_lib = True
+        args.models = True
+        args.goose_examples = True
         for proj in projs:
             proj_path = path.join(args.all, proj.name)
             proj_arg = proj.name.replace("-", "_")

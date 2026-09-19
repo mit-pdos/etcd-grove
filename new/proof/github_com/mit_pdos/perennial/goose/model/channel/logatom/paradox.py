@@ -6,7 +6,6 @@
 # ]
 # ///
 
-# ruff: noqa: F403, F405
 from z3 import *
 
 State = Datatype("State")
@@ -79,7 +78,7 @@ else:
 
 s.pop()
 
-print("")
+print()
 print(
     "Looking for transition systems that always requires two linearization\n"
     + "points per operation (e.g. `send1; recv1; send2; recv2` is complete)"

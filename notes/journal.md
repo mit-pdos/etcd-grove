@@ -1803,3 +1803,73 @@ rather than through `pip`, which is absent. Branch `tcb-view`.
 - **Left:** the lint job stays red until that sweep happens. `ruff` is at
   `~/.local/bin/ruff` on this box, version-matched to the pin in
   `pyproject.toml`.
+
+---
+
+## 2026-09-19 (later) — the rest of the ruff errors, and what they were hiding
+
+Claude Opus 5 (background job), at Upamanyu's request: fix all of them, not
+just this branch's. **Both CI python jobs are now green for the first time
+since the rule set and the house style diverged** — `ruff format --check`
+over 43 files and `ruff check` over the repo.
+
+- **52 by `ruff check --fix`** (import sorting, `.format()` → f-strings,
+  `List[x]` → `list[x]`, `removeprefix`/`removesuffix`, `print("")` →
+  `print()`, an unused `# ruff: noqa`), across `etc/semantics-coverage.py`,
+  `etc/rocqc.py`, `etc/test_coqc.py`, `etc/ci-goose-check.py`,
+  `etc/timing-report.py`, `etc/int_template.py`, `etc/trace-deps.py`,
+  `etc/get-deps.py`, `new/etc/update-goose-new.py`,
+  `new/experiments/gencongruence.py` and Goose's `paradox.py`.
+
+- **14 by hand**, of which two needed a decision rather than a keystroke:
+
+  - **`PLW1510` x4 in `etc/ci-goose-check.py` was a false positive with a
+    trap in it.** The four flagged `sp.run` calls *do* pass `check=True` —
+    through `**shared_args`, which ruff cannot see into. Adding `check=`
+    beside the unpacking, which is what the rule's message suggests, would
+    have raised `TypeError: got multiple values for keyword argument
+    'check'` the next time CI ran a Goose check. The fix was to drop the
+    dict and pass `check=True, cwd=path` at each site.
+  - **`DTZ005` x4 has to move as a unit.** `rocqc.py` subtracts two
+    `datetime.now()`s to get a compile time and `test_coqc.py` constructs
+    the `start` it passes in; making one side aware and not the other
+    raises on the subtraction. Both moved to `datetime.now(timezone.utc)`.
+    Nothing is stored but the delta, so no recorded value changes — and the
+    delta can no longer jump an hour across a DST change. `timezone.utc`
+    and not `datetime.UTC`: ruff accepts either, and the alias would have
+    quietly raised the floor to Python 3.11.
+
+  The rest: `BLE001` got a `noqa` with a reason (a CLI's top-level handler
+  is meant to catch everything), `C402` a dict comprehension, `PLR1722`
+  `sys.exit`, `RUF059` an underscore, and the two `EXE001`s differently —
+  `chmod +x` for the inherited `paradox.py`, because a mode change never
+  conflicts on an upstream merge, and deleting the vestigial shebang from
+  `etc/test_coqc.py`, which nothing executes.
+
+- **Verified, since a lint sweep that breaks a script is worse than the
+  lint.** Every runnable script produces byte-identical output and the same
+  exit code before and after (`--help` for six of them;
+  `semantics-coverage.py` run for real against `new/proof/github_com/`, from
+  the same directory so that its `__file__`-derived paths match). The three
+  self-tests pass, `check-module-discipline.py` is still byte-identical to
+  pre-refactor `main`, and the TCB numbers are unchanged. `ci-goose-check.py`
+  was **not** run: `--help` is not a thing it has, and invoking it clones
+  two repositories into `/tmp` — found out the hard way. It was verified by
+  reading. `timing-report.py` needs `pandas`, which is absent, so it was
+  only compiled.
+
+- **What the sweep turned up, which is the part worth keeping.**
+  `etc/test_coqc.py` — the only Python test in the repo — **has been dead
+  for some time and in two independent ways.** It imported `coqc`, a module
+  renamed to `rocqc.py`, so it could not even load; and with that repaired,
+  five of its six tests fail with `TypeError: cannot use a bytes pattern on
+  a string-like object`, because `Classify`'s regexes became `rb"..."` when
+  the filter moved to reading `rocq compile`'s output as bytes, and the
+  fixtures were never ported. Nothing runs it — no Makefile target, no CI
+  job, and `pytest` is not a dependency — which is why neither rotted
+  loudly. The import is fixed and the file now carries a comment saying all
+  of this, so that a green import is not mistaken for a green test.
+
+- **Left:** porting `test_coqc.py`'s fixtures to bytes, and deciding whether
+  anything should run it. Both are somebody's afternoon, and neither is on
+  the raft proof's critical path.

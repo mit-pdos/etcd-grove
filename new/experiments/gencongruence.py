@@ -7,7 +7,7 @@ def print_lem(n):
     print("  f = g ->")
     print(f"  @eq unit (f {all_args}) (g {all_args}).")
     print("Proof. time congruence. Qed.")
-    print("")
+    print()
 
 
 for i in range(1, 100):

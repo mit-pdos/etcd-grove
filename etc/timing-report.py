@@ -6,9 +6,9 @@
 # ]
 # ///
 
-from __future__ import print_function
 
 import sqlite3
+
 import pandas as pd
 
 
@@ -75,7 +75,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if not os.path.exists(args.db):
-        print("database file {} not found".format(args.db), file=sys.stderr)
+        print(f"database file {args.db} not found", file=sys.stderr)
         sys.exit(1)
     qed_df, file_df = read_db(args.db)
     pd.set_option("display.max_rows", 100)
