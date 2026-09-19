@@ -1340,6 +1340,201 @@ uptodate` if 2:39 ever matters.
 
 ---
 
+## 2026-09-17 — the array-indexing blocker is fixed, in Goose and in the model
+
+Branch `worktree-goose-array-index-fix`, off `main` at `0fb5a6dd9`.
+
+`bugs/goose-array-indexref-loads-its-operand.md` is deleted: the defect it
+described is fixed. It blocked four lemmas — `wp_campaign_peer_ids`,
+`wp_ProgressTracker__TallyVotes`, `wp_ProgressTracker__Visit` and the
+`wp_JointConfig__CommittedIndex` axiom in `readonly.v` — and it turned out to
+be **three** separate Goose bugs plus one genuinely missing model rule, not
+the two the bug file had diagnosed.
+
+### What was actually wrong
+
+All three Goose bugs are in `goose/goose.go`, and all three come from array
+operations being treated like slice operations.
+
+1. **`exprAddr`, the `*ast.IndexExpr` case.** It used `ctx.expr(e.X)` — a
+   *load* — as the operand of `IndexRef`, for every index target. That is
+   right for a slice, because a `slice.t` value carries `slice.ptr`, so an
+   address can be recovered from it. It is wrong for an array: `array.t` is
+   `array.mk n (list V)` and carries no address at all, so `IndexRef` on a
+   loaded array value has nothing to take a reference into and no rule can be
+   given for it. Fixed by dispatching on `targetTy.Underlying()` and using
+   `ctx.exprAddr(e.X)` for arrays.
+
+2. **`sliceExpr`.** Same shape: `$s` was bound to the loaded array. Also
+   *semantically* wrong independently of the model — in Go `a[:n]` aliases
+   `a`, and a slice of a copy does not. Fixed the same way. The model's own
+   `composite_literal_slice` (`new/golang/defn/slice.v:167`) already slices an
+   array by address with a literal high index, which is exactly the shape
+   Goose now emits, so this was the intended shape all along.
+
+3. **`maybeHandleSpecialBuiltin`, the `len`/`cap` case — the one the bug file
+   missed.** It emitted `FuncResolve go.len [T] #()` *with no operand
+   applied* whenever `go/types` did not record a `*types.Signature` for the
+   builtin. `go/types` omits the signature exactly when the call is
+   constant-folded, which for an array operand is always. So the emitted
+   expression was a **function value used as an integer**:
+
+       (FuncResolve go.len [go.ArrayType 7 go.uint64] #()) ≥⟨go.int⟩ ![go.int] "n"
+
+   This matters for the record: the bug file's proposed fix — add a
+   `FuncUnfold go.len [go.ArrayType n t]` instance — **would not have fixed
+   it on its own.** Unfolding `go.len` there yields a lambda that nothing
+   applies, so the comparison would still have been against a closure. Goose
+   now emits the constant (`#(W64 7)`), which is also what Go's own semantics
+   say: `len` of an array is a constant expression.
+
+   Emitting the constant is worth more than a model rule for a second reason:
+   the applied form would have forced every array `len` to *load the whole
+   array*, so a proof would need ownership of it — and for `len(isLocalMsg)`
+   on a package-level `[23]bool`, ownership of a global. Go's `len` needs
+   neither.
+
+4. **The missing model rule, which is still needed.** There was no
+   `FuncUnfold go.len [go.ArrayType n t]` anywhere under `new/golang/`
+   (`go.len_underlying` cannot help: an array type is its own underlying
+   type). Goose's constant folding covers every site in the etcd code, but
+   not the non-constant case (`len(f())`), so the rule is added.
+
+### The TCB change, and how it is guarded
+
+`new/golang/defn/array.v` gains `len_array` and `cap_array`:
+
+    #[global] len_array n elem_type `{!st ↓u go.ArrayType n elem_type} ::
+      FuncUnfold go.len [st]
+      (λ: <>, if decide (0 ≤ n < 2^63) then #(W64 n) else AngelicExit #())%V;
+
+Three deliberate choices:
+
+- **Stated at `st ↓u go.ArrayType n elem_type`, not at the literal
+  `go.ArrayType`.** `quorum.JointConfig` is a *named* array type, and the
+  literal form would not have covered it. This is the mistake `new/golang/defn/map.v`
+  makes — its `FuncUnfold`s are at the literal `go.MapType`, which is why
+  `wp_ProgressMap_len` in `election/inv_tracker.v` exists as a workaround.
+- **Guarded with `AngelicExit`**, matching `array_length_step` and
+  `load_array` in the same file. Unguarded, the rule would claim
+  `W64 n = n` for array lengths no Go program can have; guarded, it is a
+  faithful statement about Go. The guard is the reason a `PureWp` instance
+  was needed as well — see below.
+- **`λ: <>` discards the operand.** The operand is still evaluated, which is
+  what Go does in the non-constant case; in the constant case Go does not
+  evaluate it, but Goose folds those, so this rule never sees them.
+- `cap` is added alongside `len` because the Go spec gives arrays the same
+  answer for both, and leaving it out would leave a hole that shows up later
+  as "stuck".
+
+The guard means `wp_auto` alone stops at the Gallina `if decide …`, so
+`new/golang/theory/array.v` gets matching `PureWp` instances
+(`pure_wp_array_len`, `pure_wp_array_cap`) whose side condition
+`0 ≤ n < 2^63` is discharged by the `try done` that `wp_pure` already runs on
+a `PureWp` side condition. That is the `pure_wp_slice_len` pattern
+(`new/golang/theory/slice.v:335`), with a non-trivial `φ` for the first time
+in this development. `array.v` now imports `auto` for `wp_auto_lc`; `auto`
+does not reach `array`, so this is not a cycle.
+
+### A circular probe, and what saved it
+
+The first version of the `PureWp` proof was `pure_wp_start. by iFrame.`, which
+**passed in a scratch file and failed inside `array.v`**. The scratch file
+imported the already-compiled `array.vos`, so `pure_wp_start`'s `wp_pures`
+used *the very instance being restated* to discharge it. Inside `array.v` the
+instance does not exist yet and the goal is untouched. The real proof has to
+go through `func_unfold` and `decide_True`.
+
+**A probe that restates the lemma it is checking is worthless if the lemma is
+already compiled.** The probes that meant something were the end-to-end ones
+— `WP (FuncResolve go.len [go.ArrayType 7 go.uint64] #() #())` against a
+concrete `Φ` — because they can only be closed by the instance doing real
+work. Four of those are `Qed`: array `len`, array `cap`, `IndexRef` on an
+address, `Slice` on an address, each with no stray side goal.
+
+### Evidence that the fix is load-bearing
+
+- **The old emitted form is genuinely stuck.** `wp_auto` on
+  `IndexRef (go.ArrayType 7 go.uint64) (#a, #(W64 0))` with `a : array.t w64 7`
+  leaves the goal **byte-for-byte unchanged**. Worth noting against the old
+  bug file, which said `wp_auto` "fails with Failed to progress": it does not
+  fail, it silently makes no progress. `assert_fails (wp_auto)` therefore
+  does *not* detect this — it reports success. Check the goal, not the exit
+  status.
+- **The real proof gets past it.** In `wp_campaign_peer_ids` the banked
+  prefix's last `wp_auto` now steps
+  `IndexRef quorum.JointConfig (#c_ptr, #(W64 0))` to
+  `#(array_index_ref map.t 0 c_ptr)` and stops at the *load* of that
+  location. That is an ownership obligation (`array_acc` on `c`, with
+  `Hvoters_arr` for the lookup), not a missing rule.
+
+### Regeneration
+
+Full re-translation, the same invocation `etc/ci-goose-check.py` uses, against
+all five pinned Go repos. Six generated files changed and **every changed
+line is an array site**: `quorum.v`, `tracker.v`, `v3.v`, `math/bits.v`, and
+the two goose testdata files. Zero `IndexRef`/`Slice` operands of the form
+`![go.ArrayType …]` remain anywhere in `new/code/`. `new/generatedproof/` is
+untouched.
+
+`goose/testdata/examples/unittest/array.go` already exercises all four cases
+(element read, `&x[1]` as a pointer receiver, `len`/`cap` in a loop bound,
+`x[:]`), so it is the regression harness — no new test data was needed.
+
+Building Goose needs a Go toolchain, which this box did not have; `go1.25.1`
+unpacked into the job's scratch directory was enough, and `go build` then
+fetched `go1.26.0` itself per `go.mod`.
+
+### A second, separate defect, now measured
+
+The old bug file flagged `len` of a **nil map** as a second obstacle on
+`TallyVotes` and recorded it as *not probed*. It is now probed and it is
+stuck: `wp_auto` leaves
+`#(functions go.len [go.MapType go.uint64 go.bool]) (#map.nil)` untouched.
+`go.len_map` unfolds to `InternalMapLength (Read "m")`, and at `map.nil` that
+is a read of the null location, while Go says `len(nil map) = 0`. There is no
+nil case for `go.len` the way there is one for ranging
+(`wp_map_nil_for_range`), and no `PureWp` for map `len` at all. Filed as
+`bugs/golang-len-of-nil-map-is-stuck.md`. Not fixed here — it is a different
+defect and a separate TCB decision.
+
+### Re-verification
+
+A **TCB change adds global instances, so the existing proofs have to be
+re-checked.** Done from a clean slate: every `.vos`/`.vok` deleted, the
+closure rebuilt (248 files, rc=0), then `-vok` over every file with proofs in
+it — `new/golang/defn/*.v`, `new/golang/theory/*.v`, the whole
+`v3_proof/election/`, `v3_proof/*.v` and `v3_proof/../raft/*.v`.
+
+**101 files, 0 FAIL, 0 ERRORS.** Including the three that carry the most
+regression risk from the new instances — `new/golang/theory/slice.v`,
+`theory/map.v` and `theory/array.v`, where `pure_wp_array_len` is now a
+candidate alongside `pure_wp_slice_len` for every `go.len` redex — and the
+single big `proof_raft__Step.v` (this branch is off `main`, so it predates the
+perf branch's nine-way split).
+
+Resolution order is not a problem: a slice `len` tries `pure_wp_array_len`
+first, fails `go.SliceType t ↓u go.ArrayType ?n ?e` after one instance
+resolution, and backtracks. Constant cost per redex, not linear in the
+program text.
+
+The **cleanup pass on `goose.go`** (hoisting `ctx.expr(e.X)` inside the
+branches instead of computing and discarding it — `Ctx` carries mutable state
+like `usesDefer` and `out`, so a discarded `ctx.expr` is a latent hazard) was
+checked by re-translating into a scratch directory and diffing: all six
+affected files **byte-identical** to what is committed. So `check-goose` will
+pass.
+
+### Where to pick up
+
+`wp_campaign_peer_ids` is the cheapest remaining win on the election path and
+is now ordinary proof work: `array_acc` on `c` for element 0, then
+`wp_map_for_range` over `voters_ref`, then `wp_map_nil_for_range` at index 1,
+then `return: m`. `wp_ProgressTracker__Visit` and the
+`wp_JointConfig__CommittedIndex` axiom are unblocked the same way.
+`TallyVotes` needs the nil-map `len` gap closed first, and separately its
+`VoteWon` conjunct repaired.
+
 ## 2026-09-18 — the module discipline covered 13 of 44 Go functions; a checker, then the other 31
 
 Branch `worktree-module-discipline`, from `a21dce0ef`.
@@ -1747,6 +1942,109 @@ Branch `tcb-view`, off `main` at 43660bd0f.
 
 ---
 
+## 2026-09-18 — review of the array fix: is the translation-time dispatch justified?
+
+Review question on the 2026-09-17 fix: branching on array-vs-slice *in Goose*
+cuts against Goose's preference for leaving type dispatch to the Rocq
+semantics. Is it necessary, and is it correct — e.g. can you write `f()[:]`
+where `f` returns `[10]int`, which the fix would reject because `f()` is not
+addressable?
+
+Answered with the Go compiler rather than from the spec alone.
+
+### `f()[:]` is not legal Go
+
+    ./a.go:6:35: cannot slice unaddressable value f() (value of type [10]int)
+
+The spec requires the operand of a slice expression to be addressable when it
+is an array. Goose runs after go/types, so it never sees such a program. The
+measured boundary:
+
+| expression | legal? |
+|---|---|
+| `f()[0]` (array-returning `f`), read only | **yes** |
+| `&f()[0]` | no — "cannot take address of" |
+| `f()[:]` | no — "cannot slice unaddressable value" |
+| `m[0][:]` (`m` a map to array) | no — map values are not addressable |
+| `p[:]`, `p[0]`, `&p[0]` for `p *[10]int` | **yes** |
+| `a[:]`, `&a[3]`, `aa[0][:]`, `s.a[:]` | **yes** |
+
+### The dispatch cannot be pushed into Rocq
+
+Both uniform alternatives are closed:
+
+- **Always pass the value** is the original bug: an `array.t` carries no
+  address, so no `IndexRef` rule can be written for it.
+- **Always pass the address** is impossible, and this is the decisive half:
+  `&fs()[0]` is *legal Go* when `fs` returns a **slice**. Slice elements are
+  addressable even though `fs()` is not, so `exprAddr(fs())` does not exist.
+  Checked: it compiles, and Goose emits the slice-value form for it.
+
+So the operand kind genuinely differs between arrays and slices and the choice
+is forced by the static type. Go itself draws the line statically and for the
+same underlying reason: a slice value contains a pointer, an array value does
+not. `ctx.expr` already branches on `Types[e].Addressable()` for *every*
+expression, and `indexExpr`, `assignFromTo` and `getIndexType` already switch
+on `*types.Map`/`*types.Array` in the same functions, so this is consistent
+with local practice rather than a new principle.
+
+The invariant that makes the change safe: `exprAddr` is only ever called on an
+addressable expression, and Go makes `a[i]` addressable iff `a` is (for an
+array), so the `exprAddr(e.X)` in the `IndexExpr` case is always defined. Note
+also that the *old* code called `ctx.expr(e.X)`, which for an addressable
+operand is `DerefExpr{X: exprAddr(e.X)}` — it already went through `exprAddr`.
+So the fix cannot introduce a new `exprAddr` failure on any operand the old
+code handled. Both reasons are now comments in `goose/goose.go`.
+
+### A/B against `main`'s Goose
+
+Same input, both translators, over `f()[0]`, `p[:]`, `p[0]`, `&p[0]`,
+`a[:]`, `s.a[:]`, `len(f())`, `len(s.a)`, `aa[0][:]`, `&aa[0][3]`,
+`&fs()[0]`, `fs()[:]`:
+
+- identical failures — **2 errors in each**, at the same positions, both
+  `getIndexType: unexpected type for indexing` on `p[0]` and `&p[0]`. The fix
+  introduces **no new rejections**.
+- on everything that translates, the only lines that differ are array sites.
+  Slice paths (`&fs()[0]` → `IndexRef (go.SliceType …) (fs() #(), …)`,
+  `fs()[:]`) are untouched.
+- nesting composes correctly: `aa[0][:]` becomes
+  `Slice (go.ArrayType 10 go.int) (IndexRef (go.ArrayType 3 (go.ArrayType 10 go.int)) ("aa", #(W64 0)), …)`
+  — the inner `IndexRef` produces exactly the address the outer `Slice` wants.
+
+### Where the criticism does land: `len`/`cap`
+
+This part was a *choice*; the model rule alone could have carried it, by
+emitting the applied form uniformly and letting `go.len_array` dispatch. The
+defence is faithfulness, not convenience: Go says `len`/`cap` of an array **is
+a constant expression** and does not evaluate the operand, so emitting the
+applied form would make the model perform a load the real program never
+does, and demand ownership Go does not need — `len(isLocalMsg)` on a
+package-level `[23]bool` would require owning a global. The test added is also
+`Types[s].Value != nil` ("did go/types fold this?"), not an array/slice test,
+which is arguably *less* type dispatch than the code it replaced.
+
+If the maintainer prefers maximal Rocq dispatch anyway, **this is the
+separable piece** — reverting just the `len`/`cap` case leaves the
+`IndexRef`/`Slice` fix intact, at the cost of array loads in proofs (today
+blocked anyway, since `into_val_typed_array` is `Admitted`). The
+`IndexRef`/`Slice` half is not separable.
+
+The model rule is not dead weight either way: `len(f())` is non-constant, so
+go/types gives the builtin a signature, Goose emits
+`let: "$a0" := f() in (FuncResolve go.len [go.ArrayType 10 go.int] #()) "$a0"`,
+and that needs `go.len_array`. Confirmed by translating it.
+
+### Pre-existing gap found while reviewing, not fixed
+
+**Pointer to array is unsupported**: `p[:]`, `p[0]` and `&p[0]` for
+`p *[10]int` are all legal Go. `p[0]`/`&p[0]` fail in `getIndexType`, which
+switches on Slice/Map/Array and has no `Pointer` case; `p[:]` translates but
+emits `Slice` on a `go.PointerType`, for which the model has no rule. Both
+predate this fix and are unchanged by it. No raft code hits it, so it does not
+meet the `bugs/` bar ("a proof cannot be completed"); recorded here so the
+next person who trips on it knows it is known.
+
 ## 2026-09-19 — ruff, and what it says about the repo
 
 Claude Opus 5 (background job). Closes the item the previous entry left
@@ -1893,16 +2191,17 @@ of STATUS.md's "In flight". The ghost layer itself is out of scope here.
   definitions), and `Print Assumptions` is unavailable without a `.vo`
   build. Worth a `--from <result>` view some day.
 
-- **The Goose array fix is ported.** `worktree-goose-array-index-fix` had
-  two commits (`520cff5f7`, `f8c74aa46`) based on a `main` from before the
-  2026-09-18 restructure. Their proof-side parts (`inv_misc.v`,
-  `inv_tracker.v`) no longer apply — those triples now live in collections —
-  so only `goose/`, `new/code/`, `new/golang/{defn,theory}/array.v` and
-  `bugs/` were taken; `main` had not touched any of those paths since the
-  fork, so it is a clean path checkout. The proof-side write-ups
-  ("what is left" for `IDs`, `Visit`, `TallyVotes`) are in that branch's
-  history and in the tasks below. `bugs/goose-array-indexref-loads-its-operand.md`
-  is deleted with the fix, as the `bugs/` convention says.
+- **The Goose array fix arrived via `main`, not by hand.** A first attempt
+  here took `goose/`, `new/code/`, `new/golang/{defn,theory}/array.v` and
+  `bugs/` straight from `worktree-goose-array-index-fix` (its proof-side
+  edits to `inv_misc.v`/`inv_tracker.v` predate the 2026-09-18 collections
+  and no longer apply). The maintainer then merged that branch into `main`
+  (`d0a281822`), so this branch merged `main` instead; the hand-ported paths
+  were byte-identical and merged silently, and only the two notes files
+  needed resolving. One thing to know about `git checkout <rev> -- dir`: it
+  does not delete files absent in `<rev>`, so the fix's deletion of
+  `bugs/goose-array-indexref-loads-its-operand.md` had not been picked up
+  by the hand port; the merge did it.
 
 - **`len` of a nil map has a rule now.** `go.len_map`'s body was
   `InternalMapLength (Read "m")`, a read of the null location at `map.nil`;

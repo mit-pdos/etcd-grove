@@ -3,46 +3,38 @@ Require Export New.proof.go_etcd_io.raft.v3_proof.election.inv_raft_phys.
 (** [TallyVotes] reports the outcome of the election, which is exactly the
     quorum condition of the model.
 
-    **In scope, and blocked on the *translation*, not on the proof**
-    (2026-09-16).  Everything down to the [Admitted] is machine-checked
+    **In scope.  The array half of what blocked this is fixed (2026-09-17);
+    a nil-map [len] still blocks it.**
+    Everything down to the [Admitted] is machine-checked
     ([rocq compile -vok] over a scratch module holding this identical
     script, RC=0): the whole tally loop over [trk.Progress] is proved, and
     the program is parked on the function's last statement,
     [p.Config.Voters.VoteResult(p.Votes)].
 
-    What blocks it is the **same defect** that blocks [wp_JointConfig__IDs]
-    ([spec_JointConfig__IDs.v], which has the full write-up and the three
-    probes).
-    [quorum.JointConfig] is [[2]MajorityConfig], an *array*, and Goose
-    translates the element reads [c[0]] / [c[1]] inside
-    [JointConfig.VoteResult] ([new/code/.../quorum.v:154,158]) as
+    What *used* to block it is the same array-indexing defect that blocked
+    [wp_JointConfig__IDs] ([spec_JointConfig__IDs.v], which has the full
+    write-up).  [quorum.JointConfig] is [[2]MajorityConfig], an *array*, and
+    Goose translated the element reads [c[0]] / [c[1]] inside
+    [JointConfig.VoteResult] as [IndexRef] applied to the array *value*,
+    where [index_ref_array] only steps on an array *location*.  **Fixed
+    2026-09-17**: the emitted code is now
 
         MethodResolve (go.PointerType MajorityConfig) "VoteResult"
-          (IndexRef JointConfig (![JointConfig] "c", #(W64 0)))
+          (IndexRef JointConfig ("c", #(W64 0)))
 
-    -- [IndexRef] applied to the array *value*, where [index_ref_array]
-    ([new/golang/defn/array.v:50]) only steps on an array *location*.
-    Confirmed here too, by stepping [JointConfig.VoteResult] on its own:
+    ([new/code/.../quorum.v:154,158]).
 
-        Lemma probe (l : loc) (jc : quorum.JointConfig.t) (vref : loc) votes :
-          {{{ is_pkg_init quorum ∗ l ↦ jc ∗ vref ↦$ votes }}}
-            l @! (go.PointerType quorum.JointConfig) @! "VoteResult" #vref
-          {{{ (r : w8), RET #r; True }}}.
-        Proof.
-          wp_start as "(Hl & Hv)". wp_auto.
-          wp_method_call. wp_call.
-          rewrite /quorum.JointConfig__VoteResultⁱᵐᵖˡ. wp_auto.
-          (* parks with [IndexRef quorum.JointConfig (# jc, # (W64 0))] *)
-        Admitted.
-
-    There is a **second** obstacle on the same statement, which the array fix
-    alone would not clear: the second component of the joint config is
-    [map.nil] ([Hvoters_arr]), and [MajorityConfig.VoteResult] begins with
-    [len(c) == 0].  [len] of a nil map unfolds to [InternalMapLength (Read
-    #map.nil)] -- a read of the null location -- and there is no nil-map
-    instance for [go.len] the way there is one for ranging
-    ([wp_map_nil_for_range], [new/golang/theory/map.v:305]).  Not probed; flagged
-    so the next attempt measures it before assuming it works.
+    A **second** obstacle remains, and the array fix does not clear it: the
+    second component of the joint config is [map.nil] ([Hvoters_arr]), and
+    [MajorityConfig.VoteResult] begins with [len(c) == 0].  [go.len_map]
+    unfolds to [InternalMapLength (Read "m")] -- at [map.nil] a read of the
+    null location -- and there is no nil-map case for [go.len] the way there
+    is one for ranging ([wp_map_nil_for_range],
+    [new/golang/theory/map.v:305]).  **Now measured** (2026-09-17), where the
+    old note said "not probed": [wp_auto] leaves
+    [#(functions go.len [go.MapType go.uint64 go.bool]) (#map.nil)]
+    completely untouched, so it is stuck rather than awkward.  Filed in
+    bugs/golang-len-of-nil-map-is-stuck.md.
 
     **The [VoteWon] conjunct is false when [cfg = ∅], and that is not fixed
     by unblocking the translation.**  [MajorityConfig.VoteResult] returns

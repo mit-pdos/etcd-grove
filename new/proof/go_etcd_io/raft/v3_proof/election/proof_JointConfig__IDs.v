@@ -31,19 +31,19 @@ Module JointConfigIDsProof (P : JOINTCONFIG__IDS_POSTULATES) : JOINTCONFIG__IDS.
     (* [m := map[uint64]struct{}{}] *)
     wp_apply wp_map_make1. iIntros "%mref Hmref".
     wp_auto.
-    (* STUCK, and this is the real stuck point.  The remaining program is
+    (* The array index steps now.  The [wp_auto] above reduced
+       [IndexRef quorum.JointConfig (# c_ptr, # (W64 0))] to
+       [# (array_index_ref map.t 0 c_ptr)] and stopped at the *load* of it:
 
          let: "$range" := ![quorum.MajorityConfig]
-                            (IndexRef quorum.JointConfig
-                               (# tv.(tracker.ProgressTracker.Config')
-                                    .(tracker.Config.Voters'), # (W64 0))%V) in
+                            (# (array_index_ref map.t 0 c_ptr)) in
          (let: "id" := GoAlloc go.uint64 … in map.for_range … ) ;;;
-         (the same at index 1) ;;;
+         (the same at index 1, IndexRef not yet stepped) ;;;
          return: ![go.MapType go.uint64 (go.StructType [])] (# m_ptr)
 
-       and a further [wp_auto] fails with "Failed to progress".  See the comment
-       above the statement: the operand of [IndexRef] is an array *value* and
-       the model only gives [IndexRef] a step on an array *location*. *)
+       That load is an ownership obligation, not a missing rule: use
+       [array_acc] on ["c"] to peel element 0 off, with [Hvoters_arr] for the
+       lookup side condition.  See [spec_JointConfig__IDs.v] for the rest. *)
   Admitted.
 
 End JointConfigIDsProof.

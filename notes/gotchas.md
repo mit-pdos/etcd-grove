@@ -638,12 +638,15 @@ files, notwithstanding the one-spec-per-function rule — that rule is about
 
 ## A translated body can be *stuck*: check that it steps before proving about it
 
-Found 2026-09-16 on `wp_campaign_peer_ids`, and then twice more. Goose emits
+Found 2026-09-16 on `wp_campaign_peer_ids`, and then twice more. Goose emitted
 array operations against a **loaded array value** where the model's rules
-need the address, and `len` of an array has no rule at all — so the
-translated body cannot step, and no Hoare triple about it is provable. Full
-diagnosis, probes and fix in
-[../bugs/goose-array-indexref-loads-its-operand.md](../bugs/goose-array-indexref-loads-its-operand.md).
+need the address, and `len` of an array had no rule at all — so the
+translated body could not step, and no Hoare triple about it was provable.
+**Fixed 2026-09-17** (`goose/goose.go` and `new/golang/defn/array.v`); the
+bug file is gone, see the 2026-09-17 entry in [journal.md](journal.md).
+
+The same shape of finding is still open for `len` of a **nil map**:
+[../bugs/golang-len-of-nil-map-is-stuck.md](../bugs/golang-len-of-nil-map-is-stuck.md).
 
 The transferable part is the habit, not the defect:
 
@@ -964,3 +967,67 @@ which is two `.vos` files built against different versions of a third.
 So: after any file shuffling, `touch` what you restored (or delete the
 artifacts) and rebuild the whole `vos` closure before sweeping. A partial
 `vos` rebuild is worse than none, because it is silent.
+
+## `wp_auto` on a stuck expression *succeeds* without making progress
+
+Found 2026-09-17 while fixing the array-indexing defect. The old bug file
+said `wp_auto` "fails with `Failed to progress`" on the stuck `IndexRef`. It
+does not. On
+
+    WP IndexRef (go.ArrayType 7 go.uint64) (#a, #(W64 0)) {{ Φ }}
+
+with `a : array.t w64 7` — no rule matches, because `array.t` carries no
+address — `wp_auto` returns **successfully** and leaves the goal
+byte-for-byte unchanged. So
+
+    assert_fails (wp_auto).          (* reports "wp_auto succeeds" *)
+
+is *not* a test for stuckness, and neither is the exit status of the file.
+
+**To tell whether a body is stuck, look at the goal.** `wp_auto. Show.` in a
+scratch file, and read whether the head expression moved. This is the one
+measurement the "check that it steps before proving about it" habit above
+depends on, so it is worth getting right.
+
+## A probe that restates an already-compiled lemma can prove itself
+
+Found 2026-09-17, on the new `pure_wp_array_len` instance. The scratch probe
+was
+
+    Lemma show_state n elem `{!st ↓u go.ArrayType n elem} (v : val) :
+      PureWp (0 ≤ n < 2^63) (#(functions go.len [st]) v) #(W64 n).
+    Proof. pure_wp_start. (* closes the goal outright *)
+
+and it passed — because the scratch file imports the compiled `array.vos`,
+so `pure_wp_start`'s `wp_pures` discharged the restated goal using **the very
+instance being restated**. Inside `array.v` itself the instance does not
+exist yet, the goal is untouched, and the real proof needs `func_unfold` and
+`decide_True`.
+
+Two rules follow:
+
+- **Do not probe a lemma by restating it.** Probe it by *using* it: a goal
+  that can only be closed if the instance does real work. Here that was
+  `WP (FuncResolve go.len [go.ArrayType 7 go.uint64] #() #())` against a
+  concrete `Φ`.
+- **A `.vos` build accepts a proof script that does not run** (this is in
+  CONTRIBUTING and STATUS already), so a passing probe over a `.vos` tree
+  says nothing about the proof body of anything it imports. Only `-vok` does.
+
+## Editing a `.v` file invalidates the `.vos` of everything downstream, mid-sweep
+
+Found 2026-09-17. A `-vok` sweep over ~100 files was running when `array.v`
+was edited and its `.vos` rebuilt. Every file checked after that point failed
+with
+
+    Compiled library New.golang.theory.pre (in file …/pre.vos) makes
+    inconsistent assumptions over library New.golang.theory.slice
+
+— 68 failures that looked like a catastrophic regression and were entirely an
+artefact. `array.v` sits under `slice.v`, which sits under nearly everything.
+
+**Freeze the tree for the duration of a verification sweep.** Rebuild the
+`.vos` closure from a clean slate first (`find new -name '*.vos' -delete`),
+then sweep, then edit. If a sweep reports mass failures, read one log before
+believing it: "inconsistent assumptions over library X" is a staleness
+message, not a proof failure.

@@ -7,15 +7,13 @@ Module ProgressTrackerVisitProof (P : PROGRESSTRACKER__VISIT_POSTULATES) : PROGR
     intros_ambient.
     intros cfg trk tv votes f I.
 
-    (* Machine-checked as far as it goes.  With [trk ↦ tv] in hand the receiver
-       alloc, the [p.Progress] load and the [len] call's argument all step --
-       that is the part the old precondition could not reach at all.  It parks
-       on [len] of the [[7]uint64] array, for which no instance exists; see (1)
-       in the note above. *)
+    (* Machine-checked as far as it goes.  Both obstacles named in the spec
+       are gone as of 2026-09-17, so a [wp_auto] after the [len] call now
+       gets through [len(sl) >= n] and, on the fast path, through
+       [ids = sl[:n]]; what is left is the proof itself, sketched at the end
+       of the note in [spec_ProgressTracker__Visit.v]. *)
     wp_start as "(Htrk & Hown & HI & #Hf)". iNamed "Hown". wp_auto.
-    (* [n := len(p.Progress)].  No [wp_auto] after this: the next statement is
-       [len] of the [[7]uint64] array and it has no instance, so [wp_auto]
-       fails with "Failed to progress" rather than parking. *)
+    (* [n := len(p.Progress)] *)
     wp_apply (wp_ProgressMap_len with "[$Hprs]") as "Hprs".
   Admitted.
 

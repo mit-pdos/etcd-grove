@@ -111,7 +111,7 @@ concurrent items edit the same shared file.
 
 | # | item | wave | status |
 |---|---|---|---|
-| 1 | Port the Goose array-indexing fix (`worktree-goose-array-index-fix`, 2 commits) onto `main`: `goose/`, `new/code/`, `new/golang/{defn,theory}/array.v`, `bugs/` | 0 | done |
+| 1 | The Goose array-indexing fix (`worktree-goose-array-index-fix`) — merged into `main` as `d0a281822` and merged here | 0 | done |
 | 2 | Model: `go.len` on a nil map (`new/golang/defn/map.v` nil case, `pure_wp_map_nil_len` and a general `wp_map_len` in `theory/map.v`) | 0 | done, pending `-vok` |
 | 3 | `wp_raft__promotable` | 1 | pending |
 | 4 | `wp_raft__hasUnappliedConfChanges` — needs `raftLog.scan`/`slice`, `unstable.slice`, `limitSize`, a `Storage.Entries` triple | 1 | pending |
@@ -133,6 +133,18 @@ dependent is re-checked at `-vok`; nothing under `notes/`, `new/code/`,
 `new/generatedproof/` is touched; no version-control commands. The
 coordinator commits and writes the notes.
 
+**The array-indexing blocker is fixed (2026-09-17)**, branch
+`worktree-goose-array-index-fix` off `main`. It was three Goose bugs plus one
+missing model rule, not the two the bug file had diagnosed — in particular
+`len`/`cap` of an array was emitted as a *function value with no operand
+applied*, so the model rule the bug file proposed would not have fixed it on
+its own. `new/golang/defn/array.v` gains guarded `go.len`/`go.cap` rules for
+arrays (a **TCB** change) with matching `PureWp` instances in
+`new/golang/theory/array.v`. `new/code/` is regenerated: six files, every
+changed line an array site. **Re-verified from a clean `.vos` slate: 101
+files at `-vok`, 0 failures**, including `theory/slice.v`, `theory/map.v` and
+`proof_raft__Step.v`. Details, evidence and the rejected alternatives in the
+2026-09-17 [journal](journal.md) entry and [decisions.md](decisions.md).
 
 **Leader-election refinement** — `new/proof/go_etcd_io/raft/v3_proof/`,
 branch `raft-election-poll-hup`. Compiles and is reached from
@@ -345,15 +357,16 @@ this was being audited than about the work.
 
 ### What is `Admitted`, and why
 
-Seven lemmas, all in `inv_*.v`. **Four of them are blocked on tooling, not on
-proof effort**, and are written up in
-[../bugs/goose-array-indexref-loads-its-operand.md](../bugs/goose-array-indexref-loads-its-operand.md):
+Seven lemmas. **The array-indexing defect that blocked three of them was
+fixed on 2026-09-17**, so only one of the seven is still blocked on tooling.
+The three that it blocked moved into their own collections on 2026-09-18, so
+their files below are the `proof_*.v` ones, not `inv_*.v`:
 
 | lemma | file | blocker |
 |---|---|---|
-| `wp_campaign_peer_ids` | `inv_misc.v` | `quorum.JointConfig.IDs` indexes an array; Goose emits `IndexRef` on the loaded *value* |
-| `wp_ProgressTracker__TallyVotes` | `inv_tracker.v` | same, via `JointConfig.VoteResult`. The whole tally loop is proved and banked |
-| `wp_ProgressTracker__Visit` | `inv_tracker.v` | `len` of an array has no rule at all, and `sl[:n]` is `Slice` on the loaded value |
+| `wp_JointConfig__IDs` (was `wp_campaign_peer_ids`) | `proof_JointConfig__IDs.v` | *unblocked 2026-09-17* — the `IndexRef` steps now. What is left: `array_acc` to peel element 0 off `c`, then `wp_map_for_range` |
+| `wp_ProgressTracker__TallyVotes` | `proof_ProgressTracker__TallyVotes.v` | array part unblocked; **still blocked** on `len` of a nil map ([../bugs/golang-len-of-nil-map-is-stuck.md](../bugs/golang-len-of-nil-map-is-stuck.md)). Also has a statement bug: its `VoteWon` conjunct is false at `cfg = ∅` |
+| `wp_ProgressTracker__Visit` | `proof_ProgressTracker__Visit.v` | *unblocked 2026-09-17* — both the array `len` and the `sl[:n]` slice step now |
 | `wp_raft__resetRandomizedElectionTimeout` | `inv_misc.v` | reaches the global RNG through `crypto/rand` and `math/big`. The RNG is outside core raft and may be assumed, but the assumption has not been written |
 | `wp_raft__promotable` | `inv_misc.v` | *unblocked* — `own_raftLog` is now real. Next thing to pick up |
 | `wp_raft__hasUnappliedConfChanges` | `inv_misc.v` | *unblocked* — likewise |
@@ -410,12 +423,15 @@ Unclaimed; pick one and say so in the journal.
    unblocked: the predicate is real, it exposes the entry list, and
    `wp_raftLog__hasNextOrInProgressSnapshot` is back and `Qed`. This is the
    cheapest remaining win on the election path.
-2. **Fix array indexing in Goose** (and add a `go.len` rule for arrays to
-   `new/golang/defn/array.v`). One fix unblocks four lemmas —
-   `wp_campaign_peer_ids`, `TallyVotes`, `Visit`, and the pre-existing
-   `wp_JointConfig__CommittedIndex` axiom in `readonly.v`. See
-   [../bugs/goose-array-indexref-loads-its-operand.md](../bugs/goose-array-indexref-loads-its-operand.md).
-   Worth more than another attempt at any one of them.
+2. **Cash in the array fix** (landed 2026-09-17, see the journal). The
+   translation steps now, so `wp_JointConfig__IDs`,
+   `wp_ProgressTracker__Visit` and the `wp_JointConfig__CommittedIndex` axiom
+   in `readonly.v` are ordinary proof work. `wp_JointConfig__IDs` is the
+   cheapest: `array_acc` on `c` for element 0, then `wp_map_for_range` over
+   `voters_ref`, then `wp_map_nil_for_range` at index 1.
+   `wp_ProgressTracker__TallyVotes` needs
+   [../bugs/golang-len-of-nil-map-is-stuck.md](../bugs/golang-len-of-nil-map-is-stuck.md)
+   fixed first, and separately its `VoteWon` conjunct repaired.
 3. **`wp_raft__appendEntry`** — the last core-raft axiom on the election
    path — and then `wp_raft__bcastAppend`, which is really log replication.
 4. Construct `own_raft_ghost` / `is_message` rather than axiomatizing them,
@@ -489,7 +505,7 @@ or an `Admitted`.**
   wrong, so check those against `raft__sendⁱᵐᵖˡ` specifically.
 
 - **The Goose array-indexing defect is fixed** (2026-09-17 on
-  `worktree-goose-array-index-fix`, ported to this line 2026-09-19): Goose
+  `worktree-goose-array-index-fix`, merged into `main` 2026-09-19): Goose
   passes an array's address to `IndexRef`/`Slice`, folds `len`/`cap` of an
   array to the constant, and `new/golang/defn/array.v` has guarded
   `go.len`/`go.cap` rules. The bug file is deleted; history remembers it.

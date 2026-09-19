@@ -47,23 +47,30 @@ Require Export New.proof.go_etcd_io.raft.v3_proof.election.inv_raft_phys.
     closure applies the continuation wand to read [r.trk.MaxInflight] and
     re-splits before returning.
 
-    **The statement is now true but still unprovable**, for two reasons that
-    have nothing to do with raft.  Both are filed in
-    bugs/goose-array-indexref-loads-its-operand.md:
+    **The statement is now true, and the two tooling obstacles that blocked
+    it are fixed** (2026-09-17).  Both were unrelated to raft:
 
-    1. [var sl [7]uint64; if len(sl) >= n] asks for [len] of an *array*, and
-       there is **no** [FuncUnfold go.len [go.ArrayType n t]] instance
-       anywhere under [new/golang/].  [go.len_underlying] does not help: an
-       array type is already its own underlying type.  [wp_auto] parks on a
-       bare [#(functions go.len [go.ArrayType 7 go.uint64])].  (Contrast
-       maps, where the instance exists but only at the literal [go.MapType];
-       [wp_ProgressMap_len] in [inv_tracker.v] is that workaround.)
-    2. [ids = sl[:n]] is translated as [Slice] applied to the array *value*
-       ([tracker.v:816]), where [slice_array_step]
-       ([new/golang/defn/array.v:80]) steps only on an array *location*.
+    1. [var sl [7]uint64; if len(sl) >= n] asks for [len] of an *array*.
+       There was **no** [FuncUnfold go.len [go.ArrayType n t]] instance
+       anywhere under [new/golang/] ([go.len_underlying] does not help: an
+       array type is already its own underlying type), *and* Goose emitted
+       [FuncResolve go.len [go.ArrayType 7 go.uint64] #()] with no operand
+       applied -- a function value used as an integer.  Goose now folds the
+       constant, so the code reads [#(W64 7) >=⟨go.int⟩ ![go.int] "n"]
+       ([tracker.v:814]), and [go.len_array] / [pure_wp_array_len] cover the
+       non-constant case.  (Contrast maps, where the instance exists but only
+       at the literal [go.MapType]; [wp_ProgressMap_len] in [inv_tracker.v]
+       is that workaround.)
+    2. [ids = sl[:n]] was translated as [Slice] applied to the array *value*,
+       where [slice_array_step] ([new/golang/defn/array.v]) steps only on an
+       array *location*.  Goose now passes the address:
+       [let: "$s" := "sl" in Slice (go.ArrayType 7 go.uint64) ("$s", #(W64 0),
+       ![go.int] "n")] ([tracker.v:816-817]).  This was also a *semantic* fix
+       independent of the model -- in Go [sl[:n]] aliases [sl], and a slice of
+       a copy does not.
 
-    The [else] branch ([make([]uint64, n)], taken when [size cfg > 7]) is
-    fine; only the fast path is stuck.
+    The [else] branch ([make([]uint64, n)], taken when [size cfg > 7]) was
+    always fine.
 
     Nothing about the *proof* is hard once the code steps: a
     [wp_map_for_range] filling [ids] backwards from [n-1], [wp_slices_Sort]
