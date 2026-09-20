@@ -106,8 +106,24 @@ End helper.
       assert (bool_decide (rv.(raft.raft.Term') = term) = true) as Hb
         by (apply bool_decide_eq_true_2; congruence).
       rewrite Hb /=. wp_auto.
-      wp_apply (wp_raft__resetRandomizedElectionTimeout _ _ HelectionTimeout with "[$Hr]")
-        as "%n Hr".
+      (* The lemma's [rv] must be the struct *as the heap now holds it* -- the
+         three writes above have happened.  Handing it [HelectionTimeout]
+         directly does not work either way round: the hypothesis is stated at
+         the bare [rv], so unifying against it either picks the pre-update
+         struct (and [iFrame] then cannot find [r ↦ …]) or, when the struct is
+         given explicitly, solves the still-unresolved [Setter] instance evar
+         by the degenerate [λ _ _, rv] -- a term convertible to but not
+         syntactically the setter chain in [Hr], which [iFrame] again rejects.
+         So establish the premise at the updated struct first, with its own
+         elaboration: [electionTimeout'] is untouched by the setters, so
+         [HelectionTimeout] proves it by conversion. *)
+      assert (0 < sint.Z (rv <| raft.raft.lead' := W64 0 |>
+                             <| raft.raft.electionElapsed' := W64 0 |>
+                             <| raft.raft.heartbeatElapsed' := W64 0 |>)
+                           .(raft.raft.electionTimeout')) as Het
+        by exact HelectionTimeout.
+      wp_apply (wp_raft__resetRandomizedElectionTimeout _ _ Het with "[$Hr]")
+        as "%n Hr". clear Het.
       wp_apply (wp_raft__abortLeaderTransfer with "[$Hr]") as "Hr".
       iDestruct (raft_split_trk with "Hr") as "[Htrkf Hrback]".
       wp_apply (wp_ProgressTracker__ResetVotes with "[$Htrkf $Htrk]")
@@ -195,8 +211,17 @@ End helper.
       assert (bool_decide (rv.(raft.raft.Term') = term) = false) as Hb
         by (apply bool_decide_eq_false_2; congruence).
       rewrite Hb /=. wp_auto.
-      wp_apply (wp_raft__resetRandomizedElectionTimeout _ _ HelectionTimeout with "[$Hr]")
-        as "%n Hr".
+      (* As in the first arm, but the heap value also carries the [Term] and
+         [Vote] writes this branch performed. *)
+      assert (0 < sint.Z (rv <| raft.raft.Term' := term |>
+                             <| raft.raft.Vote' := W64 0 |>
+                             <| raft.raft.lead' := W64 0 |>
+                             <| raft.raft.electionElapsed' := W64 0 |>
+                             <| raft.raft.heartbeatElapsed' := W64 0 |>)
+                           .(raft.raft.electionTimeout')) as Het
+        by exact HelectionTimeout.
+      wp_apply (wp_raft__resetRandomizedElectionTimeout _ _ Het with "[$Hr]")
+        as "%n Hr". clear Het.
       wp_apply (wp_raft__abortLeaderTransfer with "[$Hr]") as "Hr".
       iDestruct (raft_split_trk with "Hr") as "[Htrkf Hrback]".
       wp_apply (wp_ProgressTracker__ResetVotes with "[$Htrkf $Htrk]")

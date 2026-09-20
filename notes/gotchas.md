@@ -1101,3 +1101,40 @@ nudge (`proof_ProgressTracker__Visit.v`):
   `rewrite /slice.slice /slice_index_ref /=` makes them the same term;
   without it `iFrame` silently fails to find the hypothesis.
 
+## A pure premise about a record update must be elaborated *before* `wp_apply`
+
+`wp_raft__resetRandomizedElectionTimeout` takes `0 < sint.Z rv.(electionTimeout') →`
+before its triple. At the call in `reset`, the heap holds
+`r ↦ rv <| lead' := W64 0 |> <| electionElapsed' := W64 0 |> <| … |>`. Two
+obvious ways to pass the premise both fail with an `iFrame: cannot frame`
+whose two sides print identically:
+
+- `wp_apply (lem _ _ HelectionTimeout with "[$Hr]")` — the hypothesis is
+  stated at the bare `rv`, so unification fixes the lemma's `rv` to the
+  pre-update struct.
+- `wp_apply (lem _ (rv <| lead' := … |> …) HelectionTimeout with "[$Hr]")` —
+  the `Setter` typeclass evars in the explicitly written struct are still
+  unresolved when the premise is unified, and first-order unification fills
+  the *instance* evar with a degenerate term instead of the real setter. The
+  goal then differs from `Hr` only in a hidden, merely convertible argument.
+
+What works: establish the premise at the updated struct in its own step,
+then pass the hypothesis:
+
+    assert (0 < sint.Z (rv <| raft.raft.lead' := W64 0 |> <| … |>)
+                          .(raft.raft.electionTimeout')) as Het
+      by exact HelectionTimeout.
+    wp_apply (lem _ _ Het with "[$Hr]") as "%n Hr". clear Het.
+
+`exact` closes it by conversion since the setters leave the field alone.
+Also: `wp_apply`'s `as` clause runs on the *last* goal, so leaving a pure
+premise as a side goal and proving it after `as` does not work either.
+(`reset`, 2026-09-20.)
+
+## Two agents' `make` runs can leave "inconsistent assumptions" between `.vos`
+
+`Compiled library X makes inconsistent assumptions over Y` mid-run means
+another writer rebuilt a `.vos` under you. Re-run the same `make …vok`; it
+rebuilds the stale intermediate and the message goes away. Not a proof
+error. (2026-09-20.)
+
