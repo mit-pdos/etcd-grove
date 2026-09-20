@@ -312,7 +312,7 @@ Qed.
 
 (** *** Counting along a map enumeration
 
-    [wp_map_for_range] ([new/golang/theory/map.v:213]) hands the proof an
+    [wp_map_for_range] ([new/golang/theory/map.v]) hands the proof an
     arbitrary duplicate-free enumeration [keys] of the map's domain and an
     index [i] into it, so a loop that counts has to count over a *list*.
     [nsat] is that count; [nsat_size] converts it back to a set cardinality

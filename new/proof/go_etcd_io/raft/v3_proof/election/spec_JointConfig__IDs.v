@@ -43,7 +43,7 @@ Require Export New.proof.go_etcd_io.raft.v3_proof.election.inv_raft_phys.
     [voters_ref] (the [Hvoters_dom] conjunct of [own_tracker] gives
     [dom voters = cfg]), then the same at index 1, where the element is
     [map.nil] and the pure step [wp_map_nil_for_range]
-    ([new/golang/theory/map.v:305]) applies, then [return: m].  The statement
+    ([new/golang/theory/map.v]) applies, then [return: m].  The statement
     here is the right one; do not weaken it.
 
     [slices.Sort] is *not* involved -- that sort is in [campaign], not in

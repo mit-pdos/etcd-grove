@@ -79,10 +79,8 @@ Require Export New.proof.go_etcd_io.raft.v3_proof.election.inv_raft_phys.
     [sl ↦ (a : array.t w64 7)] into a slice with [slice_array] and keeps the
     [n]-element prefix with [own_slice_split_all]; the slow path is
     [wp_slice_make2].  Then a map range fills [ids] backwards from [n-1] --
-    with [wp_map_for_range_keep] rather than the framework's
-    [wp_map_for_range], because the map is needed again afterwards (see
-    [proof_ProgressTracker__Visit_helpers/map_for_range_keep.v]) -- so that
-    [ids] ends as [reverse keys].  [wp_slices_Sort] ([spec_slices_Sort.v])
+    with [wp_map_for_range], which hands the map's ownership back (the map
+    is needed again afterwards) -- so that [ids] ends as [reverse keys].  [wp_slices_Sort] ([spec_slices_Sort.v])
     permutes it, and a [slice.for_range] applies [visit_closure] to each id,
     taking that id's [own_progress] out of [Hprogs] with
     [big_sepM_lookup_acc].  Every element of the sorted slice is a key of

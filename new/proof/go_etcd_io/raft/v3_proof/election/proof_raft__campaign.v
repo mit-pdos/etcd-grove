@@ -187,8 +187,10 @@ Proof.
     { rewrite Hsucc. by apply take_S_r. }
     iExists sl3, key. rewrite Htake. iFrame. iPureIntro.
     change (0 <= i + 1)%Z. lia. }
-  (* the range is over, so [ids] holds every voter id exactly once *)
-  iIntros "HP". rewrite /Pmap. iNamed "HP".
+  (* the range is over, so [ids] holds every voter id exactly once.
+     [wp_map_for_range] also hands the map back; [campaign] has no further
+     use for it, so it is dropped here. *)
+  iIntros "HP _". rewrite /Pmap. iNamed "HP".
   rewrite Nat2Z.id -Hklen firstn_all.
   assert (keys ≡ₚ elements cfg) as Hkeys_perm.
   { rewrite -Hdomidm -Hkset. by rewrite elements_list_to_set. }

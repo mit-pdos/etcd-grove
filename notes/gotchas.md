@@ -1265,3 +1265,28 @@ two files carry a local `w64_absurd` today).
   `own_raftLog_at` with `iExists lv. rewrite Hstok. iFrame "∗#%". all:
   (iPureIntro; done).`
 
+## A `Global Instance` under `Proof Using "All"` is generalised over every earlier section variable
+
+Including type parameters its statement never mentions. `tc_solve` then
+cannot use it, because those parameters appear only as unconstrained evars,
+and `wp_pure`/`wp_auto` report "Failed to progress" on a goal the instance
+visibly matches. That is what kept `wp_map_nil_for_range` and
+`pure_wp_map_nil_len` in `theory/map.v` from ever firing (fixed 2026-09-20).
+Diagnostic: `About <name>` — look at the `Arguments` line for binders the
+statement does not mention. Fix: an explicit `Proof using <needed vars>`,
+or, more robustly, move the lemma above the `Context` that introduces the
+offending variables.
+
+## Giving a points-to back after `StartRead`/`FinishRead`
+
+`_internal_wp_untyped_start_read` hands back a raw `heap_pointsto`, so the
+sealed predicate (`own_map_def`) has to be re-established by hand at every
+exit. State it once as a persistent `iAssert` right after `iNamed "Hm"`:
+
+    □ ∀ mv', ⌜is_map_pure mv' mp⌝ -∗ ⌜map_default mv' = #(zero_val V)⌝ -∗
+        heap_pointsto mref dq mv' -∗ own_map_def mref dq m
+
+and every exit of the loop closes with one line. `wp_map_for_range` does
+this now; any other `theory/` lemma that drops ownership across a read pair
+wants the same shape.
+

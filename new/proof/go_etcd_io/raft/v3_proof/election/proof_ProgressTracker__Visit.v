@@ -1,8 +1,4 @@
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.postulates_ProgressTracker__Visit.
-(* [wp_map_for_range_keep]: the framework's [wp_map_for_range] with the map
-   handed back -- [Visit] needs [p.Progress] again after the first range.
-   Proof structure only; see the file's header. *)
-Require Import New.proof.go_etcd_io.raft.v3_proof.election.proof_ProgressTracker__Visit_helpers.map_for_range_keep.
 
 Module ProgressTrackerVisitProof (P : PROGRESSTRACKER__VISIT_POSTULATES) : PROGRESSTRACKER__VISIT.
 Import P.
@@ -96,7 +92,7 @@ Proof.
         "%Hxs'_suffix" ∷ ⌜ drop (Z.to_nat (Z.of_nat (size prs) - i)) xs'
                            = reverse (take (Z.to_nat i) keys) ⌝ ∗
         "id" ∷ id_ptr ↦ x)%I).
-    wp_apply (wp_map_for_range_keep Pmap with "Hprs").
+    wp_apply (wp_map_for_range Pmap with "Hprs").
     iIntros (keys) "(%Hkset & %Hklen & %Hknodup)".
     iSplitL "n ids Hsl id".
     { rewrite /Pmap. iExists xs, (W64 0).

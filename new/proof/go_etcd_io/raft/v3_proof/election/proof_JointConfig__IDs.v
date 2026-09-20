@@ -1,9 +1,4 @@
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.postulates_JointConfig__IDs.
-(* [wp_map_for_range_keep] (the framework's [wp_map_for_range] with the map's
-   ownership handed back) and the [wp_map_nil_for_range] instance that
-   [wp_auto] can actually find; see the header of that file for why both are
-   here and not in [new/golang/theory/map.v]. *)
-Require Import New.proof.go_etcd_io.raft.v3_proof.election.proof_JointConfig__IDs_helpers.map_for_range_keep.
 
 Module JointConfigIDsProof (P : JOINTCONFIG__IDS_POSTULATES) : JOINTCONFIG__IDS.
 
@@ -51,7 +46,7 @@ Module JointConfigIDsProof (P : JOINTCONFIG__IDS_POSTULATES) : JOINTCONFIG__IDS.
         "id" ∷ id_ptr ↦ x ∗
         "m" ∷ m_ptr ↦ mref ∗
         "Hmref" ∷ mref ↦$ idm)%I).
-    wp_apply (wp_map_for_range_keep Pmap with "Hvoters").
+    wp_apply (wp_map_for_range Pmap with "Hvoters").
     iIntros (keys) "(%Hkset & %Hklen & %Hknodup)".
     iSplitL "id m Hmref".
     { rewrite /Pmap. iExists (W64 0), ∅. rewrite take_0. iFrame.
@@ -71,7 +66,7 @@ Module JointConfigIDsProof (P : JOINTCONFIG__IDS_POSTULATES) : JOINTCONFIG__IDS.
     iIntros "HP Hvoters". rewrite /Pmap. iNamed "HP".
     rewrite Nat2Z.id -Hklen firstn_all in Hidm.
     (* [c[1]]: put element 0 back, peel element 1 off; it is [map.nil], and
-       ranging over the nil map is the pure step [wp_map_nil_for_range_w64],
+       ranging over the nil map is the pure step [wp_map_nil_for_range],
        which [wp_auto] takes once the loop variable is allocated. *)
     iDestruct ("Hcback" with "Hc0") as "c".
     rewrite Hvoters_arr /=.

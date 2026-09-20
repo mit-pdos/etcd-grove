@@ -1,9 +1,4 @@
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.postulates_ProgressTracker__TallyVotes.
-(* [wp_map_for_range_keep]: the framework's [wp_map_for_range] consumes
-   [mref ↦$ m] and never gives it back, and the tally loop has to hand
-   [p.Progress] back to re-seal [own_tracker] for the [VoteResult] call.
-   Proof structure only; see the header of that file. *)
-Require Import New.proof.go_etcd_io.raft.v3_proof.election.proof_ProgressTracker__TallyVotes_helpers.map_for_range_keep.
 
 Module ProgressTrackerTallyVotesProof (P : PROGRESSTRACKER__TALLYVOTES_POSTULATES) : PROGRESSTRACKER__TALLYVOTES.
 Import P.
@@ -34,7 +29,7 @@ Import P.
         "id" ∷ id_ptr ↦ idv ∗
         "granted" ∷ granted_ptr ↦ W64 (nsat Pgr (take (Z.to_nat i) keys)) ∗
         "rejected" ∷ rejected_ptr ↦ W64 (nsat Prj (take (Z.to_nat i) keys)))%I).
-    wp_apply (wp_map_for_range_keep Pmap with "Hprs").
+    wp_apply (wp_map_for_range Pmap with "Hprs").
     iIntros (keys) "(%Hkset & %Hklen & %Hknodup)".
     iSplitL "Htrk Hvotes Hprogs p pr id granted rejected".
     { rewrite /Pmap. iExists null, (W64 0).

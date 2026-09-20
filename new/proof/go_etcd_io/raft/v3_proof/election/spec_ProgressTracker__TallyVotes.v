@@ -24,17 +24,9 @@ Require Export New.proof.go_etcd_io.raft.v3_proof.election.inv_raft_phys.
 
     - **[len] of a nil map.**  The second component of a simple
       configuration is [map.nil], and [MajorityConfig.VoteResult] begins with
-      [len(c) == 0].  [pure_wp_map_nil_len] ([new/golang/theory/map.v]) is
-      stated inside a section over [K] and [V] that its conclusion does not
-      mention, so [tc_solve] cannot instantiate them and [wp_auto] never
-      fires it.  A specialised instance at [K := w64], [V := unit] lives in
-      [proof_MajorityConfig__VoteResult_helpers/majority_len.v], together
-      with the [go.len_underlying] detour a map of a *named* type needs.
-
-    - **[wp_map_for_range] drops the map.**  The tally loop must hand
-      [p.Progress] back to re-seal [own_tracker] for the [VoteResult] call,
-      so it uses [wp_map_for_range_keep]
-      ([proof_ProgressTracker__TallyVotes_helpers/]).
+      [len(c) == 0].  [pure_wp_map_nil_len] ([new/golang/theory/map.v])
+      handles it; the [go.len_underlying] detour a map of a *named* type
+      needs is in [proof_MajorityConfig__VoteResult_helpers/majority_len.v].
 
     The [VoteWon] conjunct is false at [cfg = ∅] -- [MajorityConfig.VoteResult]
     returns [VoteWon] outright for an empty config ("by convention, the

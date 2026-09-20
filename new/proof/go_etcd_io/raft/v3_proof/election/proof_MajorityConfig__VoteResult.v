@@ -1,10 +1,7 @@
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.postulates_MajorityConfig__VoteResult.
-(* [wp_map_for_range_keep]: the framework's [wp_map_for_range] hands the map
-   back, which this proof needs to return [mref ↦$ ids] to its caller.
-   [wp_MajorityConfig_len] / [wp_MajorityConfig_nil_len]: [len] of a map of a
-   *named* type, and of the nil map.  Proof structure only; see the headers
-   of those files. *)
-Require Import New.proof.go_etcd_io.raft.v3_proof.election.proof_MajorityConfig__VoteResult_helpers.map_for_range_keep.
+(* [wp_MajorityConfig_len] / [wp_MajorityConfig_nil_len]: [len] of a map of a
+   *named* type, and of the nil map.  Proof structure only; see the header of
+   that file. *)
 Require Import New.proof.go_etcd_io.raft.v3_proof.election.proof_MajorityConfig__VoteResult_helpers.majority_len.
 
 Module MajorityConfigVoteResultProof (P : MAJORITYCONFIG__VOTERESULT_POSTULATES)
@@ -63,7 +60,7 @@ Module MajorityConfigVoteResultProof (P : MAJORITYCONFIG__VOTERESULT_POSTULATES)
       "id" ∷ id_ptr ↦ idv ∗
       "votedCnt" ∷ votedCnt_ptr ↦ W64 (nsat Pgr (take (Z.to_nat i) keys)) ∗
       "missing" ∷ missing_ptr ↦ W64 (nsat Pms (take (Z.to_nat i) keys)))%I).
-  wp_apply (wp_map_for_range_keep Pmap with "Hids").
+  wp_apply (wp_map_for_range Pmap with "Hids").
   iIntros (keys) "(%Hkset & %Hklen & %Hknodup)".
   iSplitL "Hvotes votes id votedCnt missing".
   { rewrite /Pmap. iExists (W64 0).

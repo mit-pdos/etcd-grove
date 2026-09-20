@@ -49,6 +49,26 @@ Proof.
   iIntros "? $ !>". iApply "HΦ". done.
 Qed.
 
+(* [map.nil] lemmas. These must stay ABOVE the [K]/[V] [Context] below: under
+   the section's [Local Set Default Proof Using "All"] the closed constants
+   would otherwise be generalised over [K], [V] and their five instances,
+   which their statements do not mention, and [tc_solve] could never fire
+   them (the evars for [K] and [V] would be unconstrained). *)
+Global Instance wp_map_nil_for_range (body : func.t) key_type elem_type :
+  PureWp True (map.for_range key_type elem_type #map.nil #body) execute_val.
+Proof.
+  by pure_wp_start.
+Qed.
+
+(* [len] of a nil map is [0]; see [go.len_map]. The non-nil case needs the
+   map's ownership (for the [Read]) and is not a [PureWp]; a proof of it steps
+   past the nil test with [own_map_not_nil]. *)
+Global Instance pure_wp_map_nil_len key_type elem_type :
+  PureWp True (#(functions go.len [go.MapType key_type elem_type]) #map.nil) #(W64 0).
+Proof.
+  pure_wp_start. rewrite func_unfold. wp_auto_lc 1. by iApply "HΦ".
+Qed.
+
 (* NOTE: we assume EqDecision explicitly here even though it is also available
 through [IntoValTyped K kt] so that the instance used to type-check [gmap K V]
 is independent of the [IntoValTyped] instance. Otherwise, these proofs end up
@@ -257,8 +277,9 @@ Lemma wp_map_for_range P stk E (body : func.t) key_type elem_type mref m dq
      (P keys 0 ∗
       □ (∀ i key v, ⌜ keys !! (Z.to_nat i) = Some key ∧ m !! key = Some v ⌝ -∗ P keys i -∗
                     WP #body #key #v @ stk; E
-                      {{ v, for_map_postcondition (P keys (i+1)) Φ v }}) ∗
-      (P keys (Z.of_nat (size m)) -∗ Φ execute_val))
+                      {{ v, for_map_postcondition (P keys (i+1))
+                              (λ v, mref ↦${dq} m -∗ Φ v) v }}) ∗
+      (P keys (Z.of_nat (size m)) -∗ mref ↦${dq} m -∗ Φ execute_val))
   ) -∗
   WP map.for_range key_type elem_type #mref #body @ stk; E {{ Φ }}.
 Proof.
@@ -267,6 +288,10 @@ Proof.
   iDestruct (own_map_not_nil with "[$]") as %?.
   wp_if_destruct; first by exfalso.
   rewrite own_map_unseal. iNamed "Hm".
+  (* the map, re-sealed, once [FinishRead] has given the points-to back *)
+  iAssert (□ ∀ mv', ⌜ is_map_pure mv' mp ⌝ -∗ ⌜ map_default mv' = #(zero_val V) ⌝ -∗
+             heap_pointsto mref dq mv' -∗ own_map_def mref dq m)%I with "[]" as "#Hseal".
+  { iIntros "!> % %% Hown". iExists _, _. iFrame "Hown". iPureIntro. eauto. }
   wp_apply (_internal_wp_untyped_start_read with "Hown") as "Hown".
   wp_apply (wp_InternalMapForRange with "[//]"). iIntros "%ks %Hdom'".
   eapply go.is_map_domain_pure in Hdom'; last done.
@@ -308,8 +333,10 @@ Proof.
     assert (i = length keys) by word. subst.
     nat_cleanup. rewrite drop_all /=.
     wp_auto. wp_apply "Hown". iIntros "Hown".
-    wp_auto. iApply "HΦ". iFrame. destruct Hfacts as (? & -> & ?).
-    iFrame.
+    wp_auto.
+    destruct Hfacts as (? & -> & ?).
+    iApply ("HΦ" with "HP").
+    by iApply ("Hseal" with "[//] [//] Hown").
   }
   list_elem keys i as key.
   destruct (m !! key) eqn:Hlookup.
@@ -334,25 +361,12 @@ Proof.
     word. }
   iDestruct "Hpost" as "[[-> H]|Hpost]".
   { rewrite break_val_unseal. wp_auto.
-    wp_apply "Hown". iIntros "Hown". wp_auto. iFrame. }
+    wp_apply "Hown". iIntros "Hown". wp_auto.
+    iApply "H". by iApply ("Hseal" with "[//] [//] Hown"). }
   iDestruct "Hpost" as "(%  & -> & HΦ')".
   rewrite return_val_unseal.
-  wp_auto. wp_apply "Hown" as "Hown". iFrame.
-Qed.
-
-Global Instance wp_map_nil_for_range (body : func.t) key_type elem_type :
-  PureWp True (map.for_range key_type elem_type #map.nil #body) execute_val.
-Proof.
-  by pure_wp_start.
-Qed.
-
-(* [len] of a nil map is [0]; see [go.len_map]. The non-nil case needs the
-   map's ownership (for the [Read]) and is not a [PureWp]; a proof of it steps
-   past the nil test with [own_map_not_nil]. *)
-Global Instance pure_wp_map_nil_len key_type elem_type :
-  PureWp True (#(functions go.len [go.MapType key_type elem_type]) #map.nil) #(W64 0).
-Proof.
-  pure_wp_start. rewrite func_unfold. wp_auto_lc 1. by iApply "HΦ".
+  wp_auto. wp_apply "Hown" as "Hown".
+  iApply "HΦ'". by iApply ("Hseal" with "[//] [//] Hown").
 Qed.
 
 #[global]
