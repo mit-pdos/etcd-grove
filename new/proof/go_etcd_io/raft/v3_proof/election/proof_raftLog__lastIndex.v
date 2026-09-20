@@ -13,7 +13,7 @@ Import P.
                    Z.of_nat (length uents) < 2^64)%Z) by lia.
     iAssert (is_Storage lv.(raft.raftLog.storage')) as "#Hsto".
     { iExact "HisStorage". }
-    iDestruct "Hsto" as (isv) "(%Hstok & #HLI & #HFI & #HT & #HE)".
+    iDestruct "Hsto" as (isv) "(%Hstok & #HLI & #HFI & #HT & #HE & #HB & #HSnap)".
     split_unstable l lv.
     wp_apply (wp_unstable__maybeLastIndex _ _ _ Hnosnap Hnw with "[$Huf $Huents]")
       as "%li %ok (Huf & Huents & %Hok1 & %Hok2)".

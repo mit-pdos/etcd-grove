@@ -5,7 +5,7 @@ Module TrackerNewInflightsProof (P : TRACKER_NEWINFLIGHTS_POSTULATES) : TRACKER_
   Lemma wp_tracker_NewInflights : wp_tracker_NewInflights_body.
   Proof.
     intros_ambient.
-    intros size maxBytes.
+    intros size maxBytes Hsz.
 
     wp_start as "_". wp_auto.
     (* [wp_auto] does not step a [GoAlloc] sitting in [return:] position -- the
@@ -13,9 +13,14 @@ Module TrackerNewInflightsProof (P : TRACKER_NEWINFLIGHTS_POSTULATES) : TRACKER_
        Allocate explicitly.  The literal leaves [buffer' := slice.nil], so the
        buffer is the empty slice. *)
     wp_apply wp_alloc. iIntros (l) "Hl". wp_auto.
-    iApply "HΦ". rewrite /own_inflights /=.
+    iApply "HΦ". rewrite /own_inflights /own_inflights_at /=.
     iExists _, []. iFrame "Hl".
-    iSplitL; [iApply own_slice_nil | iApply own_slice_cap_nil].
+    iSplitL; [iApply own_slice_nil|].
+    iSplitL; [iApply own_slice_cap_nil|].
+    (* the ring-buffer invariant at a fresh [Inflights]: everything is zero
+       and the buffer is empty, so only the [size] bounds have content --
+       exactly the premise. *)
+    iPureIntro. rewrite /inflights_ok /=. split_and!; word.
   Qed.
 
 End TrackerNewInflightsProof.

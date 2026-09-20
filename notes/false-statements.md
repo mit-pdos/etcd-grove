@@ -223,3 +223,23 @@ caller was relying on the strong form for a reason, and here the reason was
 a `Panic` it has to rule out. Reach for the premise that makes the strong
 form true before reaching for a weaker conclusion. A `vos` build will not
 tell you the difference; only `vok` will.
+
+## `wp_raftLog__slice_at` is false at a log with ~2^63 unstable entries (2026-09-20)
+
+`raftLog.slice`'s `extend(ents, unstable)` computes `need := len(dst)+len(vals)`
+as a Go `int`. With about `2^63` unstable entries `need` wraps negative,
+`need <= cap(dst)` becomes true, and the code takes the in-place `append`
+branch that `spec_extend.v` deliberately does not cover (Go itself would
+then panic on the negative re-slice). The triple therefore over-claims at
+that extreme, exactly as `campaign`'s did at `term = 2^64 - 1`.
+
+Unlike `campaign`'s, this one has no premise to hang the fix on: the
+consumer that matters, `hasUnappliedConfChanges`, opens `own_raftLog`, whose
+entry lists are existential, so `hup`/`Step` cannot state `hi - lo < 2^63`;
+and a bound carried in `own_raftLog_at` cannot survive `appendEntry`
+(decisions.md). So it is left as the one deliberate `Admitted. (* Trusted *)`
+on the election path — "the log fits in memory" — with the arithmetic in
+the file's header. **The tell**: an `int` sum of two slice lengths whose
+operands come from different owners (here `Storage` and `unstable`); the
+model bounds each slice at `2^63` but not their sum.
+

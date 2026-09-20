@@ -85,10 +85,14 @@ Qed.
 Lemma own_tracker_cfg_size (tv : tracker.ProgressTracker.t) (votes : gmap w64 bool) :
   own_tracker cfg tv votes -∗
   ⌜ Z.of_nat (size cfg) < 2 ^ 63 ⌝ ∗ own_tracker cfg tv votes.
-Proof.
+(* [All], not the section's [W]: re-framing the read-only progress map
+   ([own_map … DfracDiscarded]) pulls in [ffi_semantics0]. *)
+Proof using All.
   rewrite /own_tracker. iIntros "H". iNamed "H".
   iSplitR; first done.
-  iExists prs, voters_ref, voters, learners, learnersNext. iFrame "∗%".
+  (* [#%] and not [%]: since 2026-09-20 the progress map is held read-only
+     inside [own_tracker], so it sits in the intuitionistic context. *)
+  iExists prs, voters_ref, voters, learners, learnersNext. iFrame "∗#%".
 Qed.
 
 Lemma Infof_is_log_method : "Infof"%go ∈ log_methods.

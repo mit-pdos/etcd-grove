@@ -904,3 +904,39 @@ maintained, and the hand-written table of axioms is a *why* column for a list
 the tool produces. The two hand counts it replaced were right — the tool
 reproduces 6 axioms and 7 `Admitted`s on the election path, and 14
 `Admitted`s over the whole raft proof, which is what the notes said.
+
+## 2026-09-20 — an upper bound on the log length is derived, never carried
+
+**Decision.** `own_raftLog_at` keeps `Hnowrap : prev.index + |sents| + |uents| + 1 < 2^64`
+exactly as it was, and no spec above `appendEntry` gains a no-wrap premise.
+The bound `appendEntry` needs *after* appending is derived from two facts
+that survive the append: `is_Storage`'s new persistent pure clause
+`Hbounded` (the client's stable log ends below `2^61`; `prev.index + |sents|`
+is untouched by an append) and `|uents| < 2^63`, which `own_slice_len`
+re-derives for whatever slice the Go `append` returns. Their sum clears
+`2^64` with room for a batch of up to `2^61`, which is the third premise of
+`wp_raft__appendEntry`.
+
+**Why not the plan the task described** (thread a premise
+`appendEntry → becomeLeader → stepCandidate → Step`). A premise of
+`becomeLeader` or `Step` may mention only `cfg, r, id, s`; the log's length
+is existentially quantified *inside* `own_raft_phys`, so no premise at those
+specs can speak about it. Threading would have meant indexing
+`own_raft_phys` by the last index (95 call sites) or exposing it in every
+spec up to `Step`.
+
+**Why not a tighter carried bound** (the "fixed slack" variant, e.g.
+`Hnowrap` at `2^63`, which a concurrent agent briefly tried for `extend`).
+`append` grows `uents`, so the conjunct must be *re-established* at the new
+length, and from `last + 1 < C` one cannot get `last + |ents| + 1 < C` for
+any `C`. A carried bound can only ever be consumed, never restored. Any
+proof that needs `|sents| + |uents| < 2^63` (Go `int` arithmetic in
+`extend`/`slice`) has to get it from the page — `hi - lo` at the `slice`
+call plus `Hbounded` plus the unstable slice's own length — not from
+`own_raftLog_at`.
+
+**Consequence for the trust base.** `Hbounded` is a new clause of the
+`Storage` interface contract, i.e. an assumption about client code. It is
+the assumption that makes appending possible at all, and it is stated once,
+in `inv_storage.v`, with the justification at the clause.
+

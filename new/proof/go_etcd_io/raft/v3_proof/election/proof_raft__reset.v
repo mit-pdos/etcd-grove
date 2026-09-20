@@ -131,36 +131,34 @@ End helper.
       (* Do *not* re-assemble here.  [Visit] owns the [trk] field -- it reads
          [p.Progress] through its pointer receiver -- and lends it to the
          closure, so the field has to stay split out and [I] carries the
-         continuation wand in place of [r ↦ rv].  Specialising the wand now
-         fixes the field value it expects to the one [ResetVotes] installed. *)
-      iSpecialize ("Hrback" $! (rv.(raft.raft.trk')
-                     <| tracker.ProgressTracker.Votes' := votesRef |>)).
+         continuation wand in place of [r ↦ rv].  The wand stays
+         **quantified** over the field value: since 2026-09-20 [Visit] may
+         hand the field back at a different tracker value (see
+         [visit_closure], inv_tracker.v), so nothing here may fix it. *)
       wp_apply (wp_ProgressTracker__Visit _ _ _ _ _
                   (r_ptr ↦ r ∗
                    own_raftLog rv.(raft.raft.raftLog') ∗
-                   (r.[raft.raft.t, "trk"] ↦ (rv.(raft.raft.trk')
-                        <| tracker.ProgressTracker.Votes' := votesRef |>) -∗
+                   (∀ tvx, r.[raft.raft.t, "trk"] ↦ tvx -∗
                     r ↦ (rv <| raft.raft.lead' := W64 0 |>
                             <| raft.raft.electionElapsed' := W64 0 |>
                             <| raft.raft.heartbeatElapsed' := W64 0 |>
                             <| raft.raft.randomizedElectionTimeout' := n |>
                             <| raft.raft.leadTransferee' := W64 0 |>
-                            <| raft.raft.trk' := rv.(raft.raft.trk')
-                                 <| tracker.ProgressTracker.Votes' := votesRef |> |>)))%I
+                            <| raft.raft.trk' := tvx |>)))%I
                   with "[$Htrkf $Htrk $r $Hlog $Hrback]")
-        as "(Htrkf & Htrk & r & Hlog & Hrback)".
+        as "(%tvfin & Htrkf & Htrk & r & Hlog & Hrback)".
       { (* the [Visit] closure: re-initialise one [Progress] wholesale *)
-        iModIntro. iIntros (i pr).
-        wp_start as "(Htrkf & Hpr & r & Hlog & Hrback)".
+        iModIntro. iIntros (i pr tv0).
+        wp_start as "(%Hicfg & %HmaxI & Htrkf & Hpr & Hback & r & Hlog & Hrback)".
         (* Keep [Hnolearner]: [own_progress] carries
            [⌜pv.(IsLearner') = false⌝] since 2026-09-16, and the closure has
            to hand it back.  The [Progress] literal it writes copies
            [IsLearner] straight across from the old one, so the fact carries
            over unchanged -- but only if it is not dropped here. *)
-        iDestruct "Hpr" as (pv) "(Hpv & Hinfl & %Hnolearner)".
+        iDestruct "Hpr" as (pv ivold) "(Hpv & Hinfl & %Hnolearner & %Hst)".
         (* the closure reads [r.raftLog] and [r.id] as well as
            [r.trk.MaxInflight], so it needs the whole struct back *)
-        iDestruct ("Hrback" with "Htrkf") as "Hr".
+        iDestruct ("Hrback" $! tv0 with "Htrkf") as "Hr".
         wp_auto.
         (* [lastIndex]'s spec is stated at a fixed split, so open
            [own_raftLog] and close it again. *)
@@ -169,7 +167,8 @@ End helper.
         wp_apply (wp_raftLog__lastIndex_at with "[$Hlog]")
           as "%li [Hlog %Hli0]".
         iDestruct ("Hlogback0" with "Hlog") as "Hlog".
-        wp_apply wp_tracker_NewInflights as "%ifl Hifl".
+        wp_apply (wp_tracker_NewInflights _ _ HmaxI) as "%ifl Hifl".
+        iDestruct "Hifl" as (ivnew) "Hifl".
         destruct (decide (i = rv.(raft.raft.id'))) as [Hii|Hii].
         + assert (bool_decide (i = rv.(raft.raft.id')) = true) as Hbi
             by (apply bool_decide_eq_true_2; done).
@@ -182,23 +181,45 @@ End helper.
             as "%li2 [Hlog %Hli1]".
           iDestruct ("Hlogback1" with "Hlog") as "Hlog".
           (* re-split: [Visit] gets the field back, [I] gets its wand back *)
-          iDestruct (raft_split_trk_id with "Hr") as "[Htrkf Hrback]".
-          iApply "HΦ". iSplitL "Htrkf"; first iExact "Htrkf".
-          iSplitL "Hpv Hifl".
-          { rewrite /own_progress. iExists _. iFrame "Hpv". simpl.
-            iFrame "Hifl". iPureIntro. exact Hnolearner. }
-          iFrame "r Hlog". iExact "Hrback".
+          (* re-split: [Visit] gets the field back, [I] gets its quantified
+             wand back.  [raft_split_trk] hands it back one setter deeper
+             ([… <|trk' := tv0|> <|trk' := tvx|>]); the two records are
+             convertible -- every other field is copied -- so an [iExact]
+             through an explicit [iIntros] retypes it. *)
+          iDestruct (raft_split_trk with "Hr") as "[Htrkf Hrback2]".
+          iApply "HΦ". iExists tv0.
+          iSplitL "Htrkf"; first iExact "Htrkf".
+          iSplitL "Hpv Hifl Hback".
+          { iApply "Hback". rewrite /own_progress /own_progress_at.
+            iExists _, ivnew. iFrame "Hpv". simpl. iFrame "Hifl".
+            (* the [Progress] literal has no [State] field, so [State] is the
+               zero value [StateProbe]; [IsLearner] is copied across *)
+            iPureIntro. split; [ exact Hnolearner | rewrite /progress_state_ok; by left ]. }
+          iFrame "r Hlog".
+          iIntros (tvx) "Hf". iDestruct ("Hrback2" $! tvx with "Hf") as "Hr".
+          iExact "Hr".
         + assert (bool_decide (i = rv.(raft.raft.id')) = false) as Hbi
             by (apply bool_decide_eq_false_2; done).
           rewrite Hbi /=. wp_auto.
-          iDestruct (raft_split_trk_id with "Hr") as "[Htrkf Hrback]".
-          iApply "HΦ". iSplitL "Htrkf"; first iExact "Htrkf".
-          iSplitL "Hpv Hifl".
-          { rewrite /own_progress. iExists _. iFrame "Hpv". simpl.
-            iFrame "Hifl". iPureIntro. exact Hnolearner. }
-          iFrame "r Hlog". iExact "Hrback". }
+          (* re-split: [Visit] gets the field back, [I] gets its quantified
+             wand back.  [raft_split_trk] hands it back one setter deeper
+             ([… <|trk' := tv0|> <|trk' := tvx|>]); the two records are
+             convertible -- every other field is copied -- so an [iExact]
+             through an explicit [iIntros] retypes it. *)
+          iDestruct (raft_split_trk with "Hr") as "[Htrkf Hrback2]".
+          iApply "HΦ". iExists tv0.
+          iSplitL "Htrkf"; first iExact "Htrkf".
+          iSplitL "Hpv Hifl Hback".
+          { iApply "Hback". rewrite /own_progress /own_progress_at.
+            iExists _, ivnew. iFrame "Hpv". simpl. iFrame "Hifl".
+            (* the [Progress] literal has no [State] field, so [State] is the
+               zero value [StateProbe]; [IsLearner] is copied across *)
+            iPureIntro. split; [ exact Hnolearner | rewrite /progress_state_ok; by left ]. }
+          iFrame "r Hlog".
+          iIntros (tvx) "Hf". iDestruct ("Hrback2" $! tvx with "Hf") as "Hr".
+          iExact "Hr". }
       (* [Visit] hands the field back; re-assemble the struct for the tail *)
-      iDestruct ("Hrback" with "Htrkf") as "Hr".
+      iDestruct ("Hrback" $! tvfin with "Htrkf") as "Hr".
       (* [r.readOnly = newReadOnly(r.readOnly.option)] *)
       iDestruct (own_raft_misc_option with "Hmisc") as (o) "[Hopt Hmiscback]".
       wp_auto.
@@ -229,15 +250,14 @@ End helper.
       (* Do *not* re-assemble here.  [Visit] owns the [trk] field -- it reads
          [p.Progress] through its pointer receiver -- and lends it to the
          closure, so the field has to stay split out and [I] carries the
-         continuation wand in place of [r ↦ rv].  Specialising the wand now
-         fixes the field value it expects to the one [ResetVotes] installed. *)
-      iSpecialize ("Hrback" $! (rv.(raft.raft.trk')
-                     <| tracker.ProgressTracker.Votes' := votesRef |>)).
+         continuation wand in place of [r ↦ rv].  The wand stays
+         **quantified** over the field value: since 2026-09-20 [Visit] may
+         hand the field back at a different tracker value (see
+         [visit_closure], inv_tracker.v), so nothing here may fix it. *)
       wp_apply (wp_ProgressTracker__Visit _ _ _ _ _
                   (r_ptr ↦ r ∗
                    own_raftLog rv.(raft.raft.raftLog') ∗
-                   (r.[raft.raft.t, "trk"] ↦ (rv.(raft.raft.trk')
-                        <| tracker.ProgressTracker.Votes' := votesRef |>) -∗
+                   (∀ tvx, r.[raft.raft.t, "trk"] ↦ tvx -∗
                     r ↦ (rv <| raft.raft.Term' := term |>
                             <| raft.raft.Vote' := W64 0 |>
                             <| raft.raft.lead' := W64 0 |>
@@ -245,21 +265,20 @@ End helper.
                             <| raft.raft.heartbeatElapsed' := W64 0 |>
                             <| raft.raft.randomizedElectionTimeout' := n |>
                             <| raft.raft.leadTransferee' := W64 0 |>
-                            <| raft.raft.trk' := rv.(raft.raft.trk')
-                                 <| tracker.ProgressTracker.Votes' := votesRef |> |>)))%I
+                            <| raft.raft.trk' := tvx |>)))%I
                   with "[$Htrkf $Htrk $r $Hlog $Hrback]")
-        as "(Htrkf & Htrk & r & Hlog & Hrback)".
-      { iModIntro. iIntros (i pr).
-        wp_start as "(Htrkf & Hpr & r & Hlog & Hrback)".
+        as "(%tvfin & Htrkf & Htrk & r & Hlog & Hrback)".
+      { iModIntro. iIntros (i pr tv0).
+        wp_start as "(%Hicfg & %HmaxI & Htrkf & Hpr & Hback & r & Hlog & Hrback)".
         (* Keep [Hnolearner]: [own_progress] carries
            [⌜pv.(IsLearner') = false⌝] since 2026-09-16, and the closure has
            to hand it back.  The [Progress] literal it writes copies
            [IsLearner] straight across from the old one, so the fact carries
            over unchanged -- but only if it is not dropped here. *)
-        iDestruct "Hpr" as (pv) "(Hpv & Hinfl & %Hnolearner)".
+        iDestruct "Hpr" as (pv ivold) "(Hpv & Hinfl & %Hnolearner & %Hst)".
         (* the closure reads [r.raftLog] and [r.id] as well as
            [r.trk.MaxInflight], so it needs the whole struct back *)
-        iDestruct ("Hrback" with "Htrkf") as "Hr".
+        iDestruct ("Hrback" $! tv0 with "Htrkf") as "Hr".
         wp_auto.
         (* [lastIndex]'s spec is stated at a fixed split, so open
            [own_raftLog] and close it again. *)
@@ -268,7 +287,8 @@ End helper.
         wp_apply (wp_raftLog__lastIndex_at with "[$Hlog]")
           as "%li [Hlog %Hli2]".
         iDestruct ("Hlogback2" with "Hlog") as "Hlog".
-        wp_apply wp_tracker_NewInflights as "%ifl Hifl".
+        wp_apply (wp_tracker_NewInflights _ _ HmaxI) as "%ifl Hifl".
+        iDestruct "Hifl" as (ivnew) "Hifl".
         destruct (decide (i = rv.(raft.raft.id'))) as [Hii|Hii].
         + assert (bool_decide (i = rv.(raft.raft.id')) = true) as Hbi
             by (apply bool_decide_eq_true_2; done).
@@ -281,23 +301,45 @@ End helper.
             as "%li2 [Hlog %Hli3]".
           iDestruct ("Hlogback3" with "Hlog") as "Hlog".
           (* re-split: [Visit] gets the field back, [I] gets its wand back *)
-          iDestruct (raft_split_trk_id with "Hr") as "[Htrkf Hrback]".
-          iApply "HΦ". iSplitL "Htrkf"; first iExact "Htrkf".
-          iSplitL "Hpv Hifl".
-          { rewrite /own_progress. iExists _. iFrame "Hpv". simpl.
-            iFrame "Hifl". iPureIntro. exact Hnolearner. }
-          iFrame "r Hlog". iExact "Hrback".
+          (* re-split: [Visit] gets the field back, [I] gets its quantified
+             wand back.  [raft_split_trk] hands it back one setter deeper
+             ([… <|trk' := tv0|> <|trk' := tvx|>]); the two records are
+             convertible -- every other field is copied -- so an [iExact]
+             through an explicit [iIntros] retypes it. *)
+          iDestruct (raft_split_trk with "Hr") as "[Htrkf Hrback2]".
+          iApply "HΦ". iExists tv0.
+          iSplitL "Htrkf"; first iExact "Htrkf".
+          iSplitL "Hpv Hifl Hback".
+          { iApply "Hback". rewrite /own_progress /own_progress_at.
+            iExists _, ivnew. iFrame "Hpv". simpl. iFrame "Hifl".
+            (* the [Progress] literal has no [State] field, so [State] is the
+               zero value [StateProbe]; [IsLearner] is copied across *)
+            iPureIntro. split; [ exact Hnolearner | rewrite /progress_state_ok; by left ]. }
+          iFrame "r Hlog".
+          iIntros (tvx) "Hf". iDestruct ("Hrback2" $! tvx with "Hf") as "Hr".
+          iExact "Hr".
         + assert (bool_decide (i = rv.(raft.raft.id')) = false) as Hbi
             by (apply bool_decide_eq_false_2; done).
           rewrite Hbi /=. wp_auto.
-          iDestruct (raft_split_trk_id with "Hr") as "[Htrkf Hrback]".
-          iApply "HΦ". iSplitL "Htrkf"; first iExact "Htrkf".
-          iSplitL "Hpv Hifl".
-          { rewrite /own_progress. iExists _. iFrame "Hpv". simpl.
-            iFrame "Hifl". iPureIntro. exact Hnolearner. }
-          iFrame "r Hlog". iExact "Hrback". }
+          (* re-split: [Visit] gets the field back, [I] gets its quantified
+             wand back.  [raft_split_trk] hands it back one setter deeper
+             ([… <|trk' := tv0|> <|trk' := tvx|>]); the two records are
+             convertible -- every other field is copied -- so an [iExact]
+             through an explicit [iIntros] retypes it. *)
+          iDestruct (raft_split_trk with "Hr") as "[Htrkf Hrback2]".
+          iApply "HΦ". iExists tv0.
+          iSplitL "Htrkf"; first iExact "Htrkf".
+          iSplitL "Hpv Hifl Hback".
+          { iApply "Hback". rewrite /own_progress /own_progress_at.
+            iExists _, ivnew. iFrame "Hpv". simpl. iFrame "Hifl".
+            (* the [Progress] literal has no [State] field, so [State] is the
+               zero value [StateProbe]; [IsLearner] is copied across *)
+            iPureIntro. split; [ exact Hnolearner | rewrite /progress_state_ok; by left ]. }
+          iFrame "r Hlog".
+          iIntros (tvx) "Hf". iDestruct ("Hrback2" $! tvx with "Hf") as "Hr".
+          iExact "Hr". }
       (* [Visit] hands the field back; re-assemble the struct for the tail *)
-      iDestruct ("Hrback" with "Htrkf") as "Hr".
+      iDestruct ("Hrback" $! tvfin with "Htrkf") as "Hr".
       iDestruct (own_raft_misc_option with "Hmisc") as (o) "[Hopt Hmiscback]".
       wp_auto.
       iDestruct ("Hmiscback" with "Hopt") as "Hmisc".

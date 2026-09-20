@@ -2276,3 +2276,39 @@ of STATUS.md's "In flight". The ghost layer itself is out of scope here.
   `reset.v` call sites; finish `Visit`; the log leaves; `scan` + the
   `hasUnappliedConfChanges` target; `TallyVotes`.
 
+## 2026-09-20 (later) — wave 2 with Opus agents: five landed, two cut off again
+
+- **Landed and committed** (each independently re-checked at `-vok` before
+  the commit): `Visit` (`9b9e800ff`), the `reset` call-site fix
+  (`f8b044570`), `raftLog.scan` + `hasUnappliedConfChanges` (`507694632`).
+  Branch pushed to GitHub as `worktree-election-close-admits`.
+
+- **Proved but not yet committed** — their proofs are checked against a
+  shared predicate another agent was still reshaping, so they wait for the
+  tree to settle: `TallyVotes` with `JointConfig__VoteResult` and
+  `MajorityConfig__VoteResult` (three proofs + `poll` at RC=0), and
+  `appendEntry` with six callee collections and `becomeLeader`
+  (RC=0 on all, plus seven `is_Storage` dependents). The `appendEntry`
+  design — derive the no-wrap bound from `is_Storage`'s new `Hbounded`
+  rather than carry it — is in decisions.md.
+
+- **The second rate-limit cut** (Opus session limit) killed `log_leaves`
+  and `bcastappend` while both were in their final `-vok` runs. A second
+  full sweep (99 files now, 90 pass) shows what `bcastappend`'s rewrite of
+  `own_progress`/`own_tracker`/`visit_closure` broke: `IDs`,
+  `JointConfig__VoteResult`, `RecordVote`, `ResetVotes`, `TallyVotes`,
+  `Progress__BecomeReplicate` and `campaign` (its local
+  `own_tracker_cfg_size` no longer closes) — plus its own `bcastAppend`;
+  `Visit` and `reset` it had already re-proved. `raftLog__slice` (473 s
+  before failing) is the one `log_leaves` file still open. Both agents were
+  resumed with these lists at 22:45 UTC.
+
+- **Lesson, stated once for the notes.** The rule "a shared-file change is
+  yours to re-check in every dependent" is right, and it is not enough when
+  the change is a *reshape* of a predicate ten proofs destructure
+  positionally: the writer cannot finish before its neighbours' proofs
+  start breaking. The cheaper discipline, used by the `appendEntry` agent
+  for `is_Storage`: add clauses, never reorder or rename; destructure with
+  `iNamed`, never positionally; and land the shared change as its own
+  commit before the proof that needs it.
+

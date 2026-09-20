@@ -1173,3 +1173,39 @@ it. Related: a callback side goal arrives as `"HI" ∷ emp ∗ "#Hf" ∷ □ …
 `rewrite List.Forall_forall in H. apply H, list_elem_of_In.` as
 `Forall_sublist_of` does.
 
+## Destructure `is_Storage` with `iNamed`, not positionally
+
+`is_Storage` is gaining clauses (`HEntries`, `Hbounded`, `HSnapshot` on
+2026-09-20 alone). A positional pattern such as
+`"(%Hstok & #HLI & #HFI & #HT & #HE)"` silently absorbs the extra clauses
+into the last binder and then breaks a later `clear` with
+`Error: lv is used in conclusion` — that was `proof_raftLog__term.v`'s
+failure. Write `iDestruct … as (isv) "#Hs". iNamed "Hs".` as
+`proof_raft__appendEntry.v` does.
+
+## `word` runs `subst`, and can delete the binder your postcondition names
+
+`own_raft_phys`'s `Hid : rv.(raft.raft.id') = id` is exactly the shape
+`word` eliminates, so after the first `word` the binder `id` is gone and
+everything, `HΦ` included, reads `rv.(raft.raft.id')`. Writing
+`own_raft_phys cfg r id s` afterwards yields the baffling
+`The term "id" has type "?A → ?A"`. Either `word` before you need the
+name, or `pose proof` the fact and `clear` it. (`appendEntry`, 2026-09-20.)
+
+## `slice.for_range` allocates its own counter; both pointers go in the invariant
+
+The construct allocates a counter distinct from the Go-level `i` the body
+assigns `$key` to. `wp_auto` parks in front of that `GoAlloc` ("Failed to
+progress"); `wp_alloc j as "Hj"` then `wp_auto`, and **both** pointers must
+be in the `wp_for` invariant. (The anonymous-`GoAlloc` entry above is the
+same trap for a `var` declaration.) Also: `wp_apply lem` where `lem`'s
+postcondition is `True` must not take an `as` pattern ("iIntro: nothing to
+introduce").
+
+## A half-created collection breaks every agent's `make`
+
+`link_<fn>.v` written before `proof_<fn>.v` exists makes `rocq dep` fail on
+the whole tree (`.rocqdeps.d` is global), so every other writer's `make`
+dies until the file appears. Create the four files of a collection
+together, `proof_` before `link_`.
+

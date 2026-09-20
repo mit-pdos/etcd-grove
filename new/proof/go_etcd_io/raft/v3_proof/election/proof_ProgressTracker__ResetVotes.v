@@ -12,7 +12,7 @@ Module ProgressTrackerResetVotesProof (P : PROGRESSTRACKER__RESETVOTES_POSTULATE
     iApply ("HΦ" $! votesRef). iFrame "Htrk".
     rewrite /own_tracker /=.
     iExists prs, voters_ref, voters, learners, learnersNext.
-    iFrame "Hvotes_new". iFrame "∗%".
+    iFrame "Hvotes_new". iFrame "∗#%".
   Qed.
 
 End ProgressTrackerResetVotesProof.

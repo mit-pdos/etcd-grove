@@ -114,13 +114,13 @@ concurrent items edit the same shared file.
 | 1 | The Goose array-indexing fix (`worktree-goose-array-index-fix`) — merged into `main` as `d0a281822` and merged here | 0 | done |
 | 2 | Model: `go.len` on a nil map (`new/golang/defn/map.v` nil case, `pure_wp_map_nil_len` and a general `wp_map_len` in `theory/map.v`) | 0 | done (`theory/map.v`, `inv_tracker.v`, `proof_raft__campaign.v` at `-vok` RC=0) |
 | 3 | `wp_raft__promotable` | 1 | **done** 2026-09-19 (`-vok` RC=0, no shared-file change, no new collection) |
-| 4 | `wp_raft__hasUnappliedConfChanges` — spec now owns `r ↦ rv`; `is_Storage` has an `Entries` triple; nine callee collections exist (`raftLog__scan/slice/mustCheckOutOfBounds`, `unstable__slice/mustCheckOutOfBounds`, `limitSize`, `entsSize`, `extend`, `Entry__Size` axiom). **target and `raftLog.scan` Qed** 2026-09-20 (`-vok` RC=0, independent re-run; `I := emp` for the callback, no `Hnowrap` needed). Still open under it: the `slice` sub-tree — `raftLog__slice`, `unstable__slice`, `limitSize`, `entsSize`, `extend` `Admitted`, `raftLog__mustCheckOutOfBounds` failing `word` | 1 | target done; leaves in progress (agent) |
+| 4 | `wp_raft__hasUnappliedConfChanges` — target, `raftLog.scan`, and the whole `slice` sub-tree (`raftLog__slice`, `unstable__slice`, `limitSize`, `entsSize`, `extend`, both `mustCheckOutOfBounds`) Qed; `raftLog__slice` carries the one deliberate `(* Trusted *)` admit, "the log fits in memory" (see Trust base) | 1 | **done** 2026-09-20 modulo that marked admission |
 | 5 | `wp_raft__resetRandomizedElectionTimeout` — **Qed** (`-vok` RC=0), with `lockedRand__Intn` Qed and `rand_Int`, `big_NewInt`, `big_Int__Int64` as trust-boundary axioms over the abstract `own_big_Int` (`inv_big.v`). Spec gained `0 < electionTimeout` (crypto/rand panics otherwise); `own_raft_phys` carries it as `HelectionTimeout`; `is_initialized` owns `globalRand` and its mutex, `ErrCompacted`, `ErrUnavailable`; `rand` has `is_rand_initialized`. `reset.v` passes the premise at the updated struct (see gotchas.md, "a pure premise about a record update") | 2 | **done** 2026-09-20 (`reset.v` call sites fixed, `-vok` RC=0) |
 | 6 | `wp_JointConfig__IDs` | 1 | **done** 2026-09-20 (`-vok` RC=0; no shared-file change; carries `proof_JointConfig__IDs_helpers/map_for_range_keep.v`, see item 14) |
 | 7 | `wp_ProgressTracker__Visit` — both paths of `sl[:n]` vs `make`, backwards map fill, `slices.Sort` permutation, one lent `own_progress` per id; carries its own copy of `map_for_range_keep.v` (item 14) | 1 | **done** 2026-09-20 (`-vok` RC=0, independent re-run; no shared-file change) |
-| 8 | `wp_ProgressTracker__TallyVotes` — needs item 2; adds `cfg ≠ ∅` to `own_tracker` | 2 | pending |
+| 8 | `wp_ProgressTracker__TallyVotes` — new collections `JointConfig__VoteResult`, `MajorityConfig__VoteResult` (the latter over an arbitrary component set, both `map.nil` and owned-map receivers; equivalences for Won/Lost under `s ≠ ∅`); `own_tracker`'s `Hcfg_ne` pays for the empty-config convention | 2 | **proved** 2026-09-20 (`-vok` RC=0 on all three proofs and `poll`); commit held until the concurrent `inv_tracker.v` rewrite (item 11) lands, since the proof is checked against that shape |
 | 9 | `spec_raft__send` with `send_ok` (three clauses: vote types keep their term; `MsgApp`/`MsgHeartbeat` get `s.term` stamped; model-invisible types add nothing) | 1 | **done** 2026-09-20: `proof_raft__send.v` Qed and every caller re-checked (`campaign`, `Step`, all eight `Step` helpers, `hup`) at `-vok` RC=0 |
-| 10 | `wp_raft__appendEntry`: `Axiom` → `Qed`, with the no-wrap premise and its `becomeLeader` obligation | 2 | pending, needs 9 |
+| 10 | `wp_raft__appendEntry` — `Axiom` → `Qed`, with six new collections (`payloadSize`, `payloadsSize`, `raft__increaseUncommittedSize`, `traceReplicate`, `unstable__truncateAndAppend`, `raftLog__append`). Three premises, all discharged by `becomeLeader` from its literal: empty `Data`, `Type = EntryNormal`, batch `< 2^61`. **No caller obligation**: the no-wrap bound is derived from `is_Storage`'s new `Hbounded` (stable last index `< 2^61`) plus the slice's own length, not carried — see decisions.md | 2 | **proved** 2026-09-20 (`-vok` RC=0 on all seven proofs, `becomeLeader`, and seven `is_Storage` dependents); commit with the final sweep |
 | 11 | `wp_raft__bcastAppend` — `Visit` + `sendAppend` → `maybeSendAppend` → `maybeSendSnapshot`, `raftLog.term/entries/snapshot` | 3 | pending, needs 4, 9 |
 | 14 | Framework `theory/map.v`: `wp_map_for_range` **drops the map** (never returns `mref ↦$ m`), and `wp_map_nil_for_range` / `pure_wp_map_nil_len` are closed over the section's `K V` so `tc_solve` can never fire them. Patch drafted by the `IDs` agent; apply between waves (it invalidates ~90 `.vos`), then delete `proof_JointConfig__IDs_helpers/` and use the fixed lemma | between 1 and 2 | pending |
 | — | Ghost layer of `election_protocol.v` (12 axioms) | — | out of scope for this pass |
@@ -408,6 +408,18 @@ under "not trusted" alongside the 43 internal function specs. Only one
 collection, `raft__Step`, is exported. See
 [decisions.md](decisions.md) for what counts as the TCB and why, including
 what the tool cannot see.
+
+**One deliberate admission on the election path: the log fits in memory.**
+`proof_raftLog__slice.v` ends `Admitted. (* Trusted *)` for a single
+arithmetic side condition, `|ents| + |unstable| < 2^63` at the `extend`
+call: Go computes `len(dst)+len(vals)` as an `int`, and with about `2^63`
+unstable entries it wraps, so the triple is false there. The bound is not
+derivable — `Hbounded` gives the stable part `< 2^61` and the model bounds
+any one slice at `2^63`, which sums to `2^61 + 2^63` — and it can be neither
+carried (an append cannot re-establish a carried bound, decisions.md) nor
+stated as a premise (nothing at `Step` can see the log's length). Same
+class as the two `(* Trusted *)` overflow admits in `readonly.v`;
+`tcb-report` lists it as "trusted, deliberate".
 
 **A framework `Admitted` sits under the array proofs.** `into_val_typed_array`
 (`new/golang/theory/array.v`, the `IntoValTypedUnderlying` instance for

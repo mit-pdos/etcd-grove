@@ -18,6 +18,36 @@
       needed to show [lastEntryID] cannot hit its [Panicf]: the [Panicf] fires
       when [term(lastIndex())] errors, and an index that wrapped would come
       back [ErrCompacted].
+
+      **The constant may not be tightened.**  On 2026-09-20 this was changed
+      to [2^63] -- [raftLog.slice] wants [|sents| + |uents| < 2^63] so that
+      [extend]'s [need := len(dst) + len(vals)] cannot overflow a Go [int]
+      -- and changed back the same day, because [2^63] makes
+      [wp_raft__appendEntry] **unprovable**.  The argument is worth keeping,
+      since it applies to any tightening:
+
+      [append] grows [uents], so this conjunct has to be *re-established* at
+      the longer length.  A bound that the predicate merely *carries* can
+      never do that: from [last + 1 < C] one has to conclude
+      [last + |ents| + 1 < C], which is false for any [C].  So after an
+      append the bound can only be *derived*, from facts that survive the
+      append, and there are exactly two:
+
+        - [prev.index + |sents|], which [append] does not touch, is bounded
+          by [is_Storage]'s [Hbounded] clause ([inv_storage.v]): [< 2^61].
+        - [|uents|] is the length of a Go slice, and Perennial's
+          [own_slice_len] gives [< 2^63] for *whatever slice the [append]
+          returns* -- this is the only bound on the suffix, and it is a free
+          one, re-derived rather than carried.
+
+      Their sum gives [last < 2^61 + 2^63], which clears [2^64] with room
+      for a batch of up to [2^61] entries (the premise [appendEntry] takes)
+      and does **not** clear [2^63].  A "the log fits in memory" assumption
+      below [2^63] would therefore have to be carried, which is exactly what
+      cannot be preserved.  If [extend] needs one, it has to come from the
+      page ([hi - lo] at the [slice] call, plus [Hbounded]) or from a
+      Perennial-level bound on slice lengths -- not from here.  See
+      [spec_raft__appendEntry.v], "The no-wrap gap, and how it is closed".
     - [unstable.offset = prev.index + |sents| + 1] -- the unstable suffix
       starts exactly where storage ends.  This is what makes [lastIndex()]
       agree with itself in both of its branches (the [unstable] one and the

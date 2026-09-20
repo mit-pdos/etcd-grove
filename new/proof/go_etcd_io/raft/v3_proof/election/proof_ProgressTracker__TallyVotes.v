@@ -1,13 +1,18 @@
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.postulates_ProgressTracker__TallyVotes.
+(* [wp_map_for_range_keep]: the framework's [wp_map_for_range] consumes
+   [mref ↦$ m] and never gives it back, and the tally loop has to hand
+   [p.Progress] back to re-seal [own_tracker] for the [VoteResult] call.
+   Proof structure only; see the header of that file. *)
+Require Import New.proof.go_etcd_io.raft.v3_proof.election.proof_ProgressTracker__TallyVotes_helpers.map_for_range_keep.
 
 Module ProgressTrackerTallyVotesProof (P : PROGRESSTRACKER__TALLYVOTES_POSTULATES) : PROGRESSTRACKER__TALLYVOTES.
+Import P.
 
   Lemma wp_ProgressTracker__TallyVotes : wp_ProgressTracker__TallyVotes_body.
   Proof.
     intros_ambient.
     intros cfg trk tv votes.
 
-    (* Everything down to the [Admitted] is machine-checked. *)
     wp_start as "(Htrk & Hown)". iNamed "Hown".
     (* the [var _ quorum.VoteResult] declaration Go emits for the named return
        is an *anonymous* [GoAlloc], which [wp_auto] will not step past. *)
@@ -29,7 +34,7 @@ Module ProgressTrackerTallyVotesProof (P : PROGRESSTRACKER__TALLYVOTES_POSTULATE
         "id" ∷ id_ptr ↦ idv ∗
         "granted" ∷ granted_ptr ↦ W64 (nsat Pgr (take (Z.to_nat i) keys)) ∗
         "rejected" ∷ rejected_ptr ↦ W64 (nsat Prj (take (Z.to_nat i) keys)))%I).
-    wp_apply (wp_map_for_range Pmap with "Hprs").
+    wp_apply (wp_map_for_range_keep Pmap with "Hprs").
     iIntros (keys) "(%Hkset & %Hklen & %Hknodup)".
     iSplitL "Htrk Hvotes Hprogs p pr id granted rejected".
     { rewrite /Pmap. iExists null, (W64 0).
@@ -98,7 +103,7 @@ Module ProgressTrackerTallyVotesProof (P : PROGRESSTRACKER__TALLYVOTES_POSTULATE
         rewrite !Nat.add_0_r.
         iFrame. iPureIntro. lia. }
     (* the range is over, so the counters hold the whole tally *)
-    iIntros "HP". rewrite /Pmap. iNamed "HP".
+    iIntros "HP _". rewrite /Pmap. iNamed "HP".
     rewrite Nat2Z.id -Hklen firstn_all.
     assert ((list_to_set keys : gset w64) = cfg) as Hkcfg
       by (rewrite Hkset Hprs_dom //).
@@ -107,19 +112,20 @@ Module ProgressTrackerTallyVotesProof (P : PROGRESSTRACKER__TALLYVOTES_POSTULATE
     assert (nsat Prj keys = size (rejected votes ∩ cfg)) as Hrfin.
     { rewrite /Prj. by apply nsat_rejected. }
     wp_auto.
-    (* STUCK, and this is the real stuck point.  The remaining program is
-
-         let: "$r0" := ((trk.[ProgressTracker.t,"Config"]).[Config.t,"Voters"])
-                         @! (go.PointerType quorum.JointConfig) @! "VoteResult"
-                           (# tv.(ProgressTracker.Votes')) in
-         (do: # result_ptr <-[quorum.VoteResult] "$r0") ;;;
-         return: (![go.int] (# granted_ptr), ![go.int] (# rejected_ptr),
-                  ![quorum.VoteResult] (# result_ptr))
-
-       with ["granted" ∷ granted_ptr ↦ W64 (nsat Pgr keys)] and
-       ["rejected" ∷ rejected_ptr ↦ W64 (nsat Prj keys)] in hand, and [Hgfin] /
-       [Hrfin] identifying those counts with the model's.  See the note above
-       the statement for why the call cannot be stepped. *)
-  Admitted.
+    (* [p.Config.Voters.VoteResult(p.Votes)]: re-seal the tracker and ask the
+       joint quorum.  The two counters already hold the model's numbers. *)
+    wp_apply (wp_JointConfig__VoteResult with
+               "[$Htrk Hvotes Hprogs Hvoters Hlearners HlearnersNext]").
+    { rewrite /own_tracker.
+      iExists prs, voters_ref, voters, learners, learnersNext. iFrame "∗#%". }
+    iIntros (res) "(Htrk & Hown & %Hres & %Hwon & %Hlost)".
+    wp_auto.
+    iApply ("HΦ" $! (W64 (nsat Pgr keys)) (W64 (nsat Prj keys)) res).
+    iFrame "Htrk Hown".
+    iPureIntro. split_and!.
+    - done.
+    - intros Heq. by apply Hwon.
+    - intros Heq. by apply Hlost.
+  Qed.
 
 End ProgressTrackerTallyVotesProof.

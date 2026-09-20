@@ -3,69 +3,44 @@ Require Export New.proof.go_etcd_io.raft.v3_proof.election.inv_raft_phys.
 (** [TallyVotes] reports the outcome of the election, which is exactly the
     quorum condition of the model.
 
-    **In scope.  The array half of what blocked this is fixed (2026-09-17);
-    a nil-map [len] still blocks it.**
-    Everything down to the [Admitted] is machine-checked
-    ([rocq compile -vok] over a scratch module holding this identical
-    script, RC=0): the whole tally loop over [trk.Progress] is proved, and
-    the program is parked on the function's last statement,
-    [p.Config.Voters.VoteResult(p.Votes)].
+    **Proved 2026-09-20** ([proof_ProgressTracker__TallyVotes.v]).  The
+    function counts the granted and rejected votes over [trk.Progress] and
+    then delegates the verdict to
+    [p.Config.Voters.VoteResult(p.Votes)]
+    ([spec_JointConfig__VoteResult.v] and, under it,
+    [spec_MajorityConfig__VoteResult.v]), which is where the quorum
+    arithmetic lives.  What the loop here contributes is the two counters,
+    and they are *not* what the postcondition talks about: the returned
+    [g]/[rj] are existentially quantified, since no caller reads them
+    ([poll] returns them to [stepCandidate], which only looks at [res]).
 
-    What *used* to block it is the same array-indexing defect that blocked
-    [wp_JointConfig__IDs] ([spec_JointConfig__IDs.v], which has the full
-    write-up).  [quorum.JointConfig] is [[2]MajorityConfig], an *array*, and
-    Goose translated the element reads [c[0]] / [c[1]] inside
-    [JointConfig.VoteResult] as [IndexRef] applied to the array *value*,
-    where [index_ref_array] only steps on an array *location*.  **Fixed
-    2026-09-17**: the emitted code is now
+    Three things had to be fixed before this could be proved, all recorded
+    here because each cost a day:
 
-        MethodResolve (go.PointerType MajorityConfig) "VoteResult"
-          (IndexRef JointConfig ("c", #(W64 0)))
+    - **Array indexing.**  [quorum.JointConfig] is [[2]MajorityConfig], and
+      Goose translated [c[0]] as [IndexRef] applied to the array *value*,
+      where [index_ref_array] only steps on an array *location*.  Fixed in
+      Goose 2026-09-17; see [spec_JointConfig__IDs.v] for the write-up.
 
-    ([new/code/.../quorum.v:154,158]).
+    - **[len] of a nil map.**  The second component of a simple
+      configuration is [map.nil], and [MajorityConfig.VoteResult] begins with
+      [len(c) == 0].  [pure_wp_map_nil_len] ([new/golang/theory/map.v]) is
+      stated inside a section over [K] and [V] that its conclusion does not
+      mention, so [tc_solve] cannot instantiate them and [wp_auto] never
+      fires it.  A specialised instance at [K := w64], [V := unit] lives in
+      [proof_MajorityConfig__VoteResult_helpers/majority_len.v], together
+      with the [go.len_underlying] detour a map of a *named* type needs.
 
-    A **second** obstacle remains, and the array fix does not clear it: the
-    second component of the joint config is [map.nil] ([Hvoters_arr]), and
-    [MajorityConfig.VoteResult] begins with [len(c) == 0].  [go.len_map]
-    unfolds to [InternalMapLength (Read "m")] -- at [map.nil] a read of the
-    null location -- and there is no nil-map case for [go.len] the way there
-    is one for ranging ([wp_map_nil_for_range],
-    [new/golang/theory/map.v:305]).  **Now measured** (2026-09-17), where the
-    old note said "not probed": [wp_auto] leaves
-    [#(functions go.len [go.MapType go.uint64 go.bool]) (#map.nil)]
-    completely untouched, so it is stuck rather than awkward.  Filed in
-    bugs/golang-len-of-nil-map-is-stuck.md.
+    - **[wp_map_for_range] drops the map.**  The tally loop must hand
+      [p.Progress] back to re-seal [own_tracker] for the [VoteResult] call,
+      so it uses [wp_map_for_range_keep]
+      ([proof_ProgressTracker__TallyVotes_helpers/]).
 
-    **The [VoteWon] conjunct is false when [cfg = ∅], and that is not fixed
-    by unblocking the translation.**  [MajorityConfig.VoteResult] returns
-    [VoteWon] outright when [len(c) == 0] ("by convention, the elections on
-    an empty config win", [new/code/.../quorum.v:416-418]), while
-    [is_quorum ∅ q] unfolds to [0 < 2 * 0], which is [False].  Nothing in
-    [own_tracker] rules [cfg = ∅] out: [dom prs = cfg] and [dom voters = cfg]
-    are both satisfiable at [∅].  The fix is a [⌜ cfg ≠ ∅ ⌝] conjunct in
-    [own_tracker] -- a *strengthening* of a predicate that no proof
-    constructs from scratch, so it costs nothing to add and it is preserved
-    by every method here -- not a weakening of this statement.  It was left
-    undone because the lemma is unprovable anyway and adding it would have
-    touched files outside this one's blast radius.
-
-    **What remains once [IndexRef] steps**, in terms of what is already
-    proved in [inv_tracker.v]: the joint result is [r1], the
-    [MajorityConfig.VoteResult]
-    of [voters_ref], because [r2] is the empty config's [VoteWon] and
-    [JointConfig.VoteResult] returns [r1] when [r1 = r2], [VoteLost] when
-    either is [VoteLost], and [VotePending] otherwise.  In
-    [MajorityConfig.VoteResult] over [voters_ref] ([dom voters = cfg]):
-    [votedCnt = size (granted votes ∩ cfg)] and
-    [missing = size (cfg ∖ dom votes)], each a [wp_map_for_range] with an
-    [nsat] invariant exactly like the one in the banked prefix of
-    [proof_ProgressTracker__TallyVotes.v], discharged by [nsat_granted]
-    and [nsat_missing].  Then [q = size cfg / 2 + 1], so
-    [votedCnt ≥ q ↔ is_quorum cfg (granted votes)] by [is_quorum_alt], and
-    [votedCnt + missing < q ↔ ¬ is_quorum cfg (cfg ∖ rejected votes)] by
-    [is_quorum_alt] together with [size_cfg_minus_rejected].  That is the
-    whole of both postcondition conjuncts; the pure half of the argument is
-    already machine-checked, in [inv_tracker.v]. *)
+    The [VoteWon] conjunct is false at [cfg = ∅] -- [MajorityConfig.VoteResult]
+    returns [VoteWon] outright for an empty config ("by convention, the
+    elections on an empty config win"), while [is_quorum ∅ q] unfolds to
+    [0 < 2 * 0].  That is why [own_tracker] carries [Hcfg_ne : cfg ≠ ∅]; see
+    [inv_tracker.v] for why adding it cost nothing. *)
 Definition wp_ProgressTracker__TallyVotes_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)

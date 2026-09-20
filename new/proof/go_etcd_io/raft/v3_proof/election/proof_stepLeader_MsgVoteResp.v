@@ -15,17 +15,9 @@ Context {sem : go.Semantics} {package_sem : raft.Assumptions}.
     [wp_map_lookup1] does, and all it needs is the [↦$] that [own_tracker]
     already carries.  Nothing here changes the map, so a single non-quantified
     wand is enough. *)
-Local Lemma own_tracker_split_progress (cfg : gset w64)
-    (tv : tracker.ProgressTracker.t) (votes : gmap w64 bool) :
-  own_tracker cfg tv votes -∗
-  ∃ prs : gmap w64 loc,
-    tv.(tracker.ProgressTracker.Progress') ↦$ prs ∗
-    (tv.(tracker.ProgressTracker.Progress') ↦$ prs -∗ own_tracker cfg tv votes).
-Proof.
-  iIntros "Htrk". rewrite /own_tracker. iNamed "Htrk".
-  iExists prs. iFrame "Hprs". iIntros "Hprs".
-  iExists prs, voters_ref, voters, learners, learnersNext. iFrame "∗%".
-Qed.
+(* [own_tracker_split_progress] is gone: since 2026-09-20 the progress map
+   is held read-only inside [own_tracker], so [own_tracker_progress_map]
+   ([inv_tracker.v]) hands it out persistently and no wand is needed. *)
 
 End helper.
 
@@ -66,9 +58,8 @@ Set Default Proof Using "Type".
     rewrite bool_decide_eq_false_2; last w32_ne.
     wp_auto.
     (* pr := r.trk.Progress[m.From] *)
-    iDestruct (own_tracker_split_progress with "Htrk") as (prs) "[Hprs Htrkback]".
-    wp_apply (wp_map_lookup1 with "Hprs") as "Hprs".
-    iDestruct ("Htrkback" with "Hprs") as "Htrk".
+    iDestruct (own_tracker_progress_map with "Htrk") as (prs) "(#Hprs & %Hdomprs & Htrk)".
+    wp_apply (wp_map_lookup1 with "Hprs") as "_".
     case_bool_decide as Hnil.
     - (* no progress for the sender: log and return nil *)
       wp_auto.

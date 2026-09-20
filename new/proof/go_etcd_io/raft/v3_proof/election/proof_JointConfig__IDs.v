@@ -85,9 +85,9 @@ Module JointConfigIDsProof (P : JOINTCONFIG__IDS_POSTULATES) : JOINTCONFIG__IDS.
     (* [iFrame "Hmref"] before the split would be matched against
        [own_tracker]'s own [voters_ref ↦$ voters]; re-seal the tracker first. *)
     iApply "HΦ". iFrame "Htrk".
-    iSplitL "Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext".
+    iSplitL "Hvotes Hprogs Hvoters Hlearners HlearnersNext".
     { rewrite /own_tracker. iExists prs, voters_ref, voters, learners, learnersNext.
-      iFrame "∗%". }
+      iFrame "∗#%". }
     iFrame "Hmref".
     iPureIntro. rewrite Hidm Hkset Hvoters_dom //.
   Qed.

@@ -1,0 +1,4 @@
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.spec_unstable__truncateAndAppend.
+
+Module Type UNSTABLE__TRUNCATEANDAPPEND_POSTULATES.
+End UNSTABLE__TRUNCATEANDAPPEND_POSTULATES.

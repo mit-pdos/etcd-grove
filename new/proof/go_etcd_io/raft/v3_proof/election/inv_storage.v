@@ -61,11 +61,25 @@
     election path reads them beyond their [Type], for which membership in
     the stored list is enough.
 
-    [Snapshot] and [InitialState] are deliberately **omitted**.  Nothing on
-    the election path calls them, and an assumption that is not needed is an
-    assumption not worth making: each would be a fresh claim about client
-    code.  Add them when a proof needs them, with the same "state it, then
-    use it" discipline.
+    Besides the four triples the contract has one **pure clause**,
+    [Hbounded]: the stable log's last index is below [2^61].  It is the
+    assumption that makes appending to the log possible -- the log's no-wrap
+    invariant is not inductive, and the part of the log an [append] does not
+    move is exactly the part behind this interface.  The long version is at
+    the clause itself.
+
+    [Snapshot] was added on 2026-09-20, by exactly that rule:
+    [raft.maybeSendSnapshot] calls it, and [maybeSendSnapshot] is reachable
+    from [bcastAppend] because nothing in [own_progress] bounds a peer's
+    [Next] against the log, so [raftLog.term(pr.Next-1)] may legitimately
+    return [ErrCompacted].  Its contract is a disjunction -- the
+    distinguished [ErrSnapshotTemporarilyUnavailable], or a non-empty
+    snapshot -- because every other outcome reaches a [panic].
+
+    [InitialState] is deliberately **omitted**.  Nothing on the election
+    path calls it, and an assumption that is not needed is an assumption not
+    worth making: it would be a fresh claim about client code.  Add it when
+    a proof needs it, with the same "state it, then use it" discipline.
 
     *** Why the triples return [#interface.nil] for the error
 
@@ -139,7 +153,77 @@ Definition is_Storage (st : raft.Storage.t) : iProp Σ :=
            (Z.of_nat (length es) ≤ uint.Z hi - uint.Z lo)%Z ∧
            (∀ e, e ∈ es → e ∈ ents) ∧
            s.(slice.cap) = s.(slice.len) ⌝ ∗
-         (s ↦*{dq} es -∗ own_Storage st prev ents) }}}).
+         (s ↦*{dq} es -∗ own_Storage st prev ents) }}}) ∗
+  (** The stable log's last index is far below [2^64].
+
+      This is the one *pure* clause of the contract, and it is what makes
+      appending to the log possible at all.  [own_raftLog_at]'s [Hnowrap]
+      says the whole log's last index leaves room for one more entry, and
+      that bound is **not inductive**: after an append the log is one longer
+      and the same bound is needed at the new length, so no invariant of the
+      log alone can supply it (any invariant preserved by [append] would have
+      to be closed under [+1] and therefore could not bound anything).  The
+      log's last index is [prev.index + |sents| + |uents|], of which
+      [append] only moves [|uents|] -- and *that* part is bounded for free,
+      because [unstable.entries] is a Go slice and Perennial's
+      [own_slice_len] gives [length = sint.nat len < 2^63] of whatever slice
+      the [append] returns.  So the only piece that has to be assumed is the
+      part [append] never touches: the compaction boundary and the stable
+      prefix behind this interface.
+
+      [2^61] is arbitrary but generous, and it is stated about the client's
+      storage rather than about raft: a [Storage] whose last index is
+      [2^61] has been fed 2·10^18 entries.  With it, the log's last index
+      stays below [2^61 + 2^63], leaving [appendEntry] room for a batch of
+      up to [2^61] entries without wrapping -- see
+      [spec_raft__appendEntry.v], which is the only place this clause is
+      used.  Added 2026-09-20, when [wp_raft__appendEntry] stopped being an
+      [Axiom]; before that the gap was a documented over-claim in that
+      spec's comment.
+
+      It hands [own_Storage] back because the conclusion is pure and
+      [own_Storage] is not persistent: an [iDestruct] against a bare
+      [own_Storage st prev ents -∗ ⌜…⌝] would consume the storage
+      (notes/gotchas.md, "Reading a pure fact out of a definition without
+      consuming it"). *)
+  "#Hbounded" ∷ □ (∀ prev ents,
+     own_Storage st prev ents -∗
+     ⌜ (uint.Z prev.(raft.entryID.index') + Z.of_nat (length ents)
+        < 2^61)%Z ⌝ ∗
+     own_Storage st prev ents) ∗
+  (** [Snapshot()] -- added 2026-09-20 for [raft.maybeSendSnapshot].
+
+      [raftLog.snapshot] ([new/code/go_etcd_io/raft/v3.v:864]) returns
+      [l.unstable.snapshot] when it is non-nil and otherwise forwards to this
+      method; [own_raftLog_at]'s [Hnosnap] says it is always nil here, so
+      every snapshot on this path comes from the client.
+
+      The contract is the *disjunction* [maybeSendSnapshot] is written
+      against: either the distinguished, non-fatal
+      [ErrSnapshotTemporarilyUnavailable] -- for which raft has a
+      [return false] -- or success with a **non-empty** snapshot.  Both
+      halves are needed, and for the same reason as [FirstIndex]/[Term]:
+      any other error reaches [panic(err)], and an empty snapshot on the
+      success path reaches [panic("need non-empty snapshot")]
+      ([v3.v:3190-3196]).  "Non-empty" is [IsEmptySnap]'s test,
+      [Metadata.Index ≠ 0] ([v3.v:2004]).
+
+      The error value is passed in as the package-level variable's
+      points-to, so a proof compares the two interface values through
+      [is_initialized] ([base.v]) rather than through a claim about
+      [errors.New].  What the snapshot *contains* is unspecified: raft only
+      forwards it and takes [Metadata.Index]/[Metadata.Term] for a
+      [Progress.BecomeSnapshot] and a [MsgSnap] the model does not see. *)
+  "#HSnapshot" ∷ (∀ prev ents (esu : interface.t),
+     {{{ own_Storage st prev ents ∗
+         (global_addr raft.ErrSnapshotTemporarilyUnavailable) ↦□ esu }}}
+       #(methods i.(interface.ty) "Snapshot"%go i.(interface.v)) #()
+     {{{ (snap : raftpb.Snapshot.t) (err : interface.t), RET (#snap, #err);
+         own_Storage st prev ents ∗
+         ⌜ err = esu ∨
+           (err = interface.nil ∧
+            snap.(raftpb.Snapshot.Metadata').(raftpb.SnapshotMetadata.Index')
+              ≠ W64 0) ⌝ }}}).
 
 Global Instance is_Storage_pers st : Persistent (is_Storage st).
 Proof. apply _. Qed.

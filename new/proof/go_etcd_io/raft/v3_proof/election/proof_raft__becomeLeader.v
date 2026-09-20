@@ -38,11 +38,15 @@ Import P.
        that [reset]'s [Visit] closure can overwrite one wholesale), so the
        [RecentActive] assignment steps through [Hpv] with the generated
        [AccessStrict] instances and leaves [Inflights'] alone. *)
-    iDestruct "Hpr" as (pv) "[Hpv Hinfl]".
+    (* [own_progress] became [∃ pv iv, own_progress_at pr pv iv] with four
+       named conjuncts (2026-09-20); open it by name rather than
+       positionally, and put it back through [own_progress_intro]. *)
+    iDestruct "Hpr" as (pv iv) "Hpa". iNamed "Hpa".
     wp_auto.
     iAssert (own_progress pr) with "[Hpv Hinfl]" as "Hpr".
-    { rewrite /own_progress.
-      iExists (pv <| tracker.Progress.RecentActive' := true |>). iFrame. }
+    { iApply (own_progress_intro _
+                (pv <| tracker.Progress.RecentActive' := true |>) iv).
+      rewrite /own_progress_at. iFrame "∗%". }
     iDestruct ("Hprback" with "Hpr") as "Htrk1".
     (* [lastIndex]'s spec is stated at a fixed split, so open
        [own_raftLog] and close it again. *)
@@ -74,7 +78,11 @@ Import P.
        [increaseUncommittedSize] cannot reject, so the [Panic] on the
        [false] branch below is dead code.  See [spec_raft__appendEntry.v]. *)
     wp_apply (wp_raft__appendEntry with "[$Hphys $Hes]") as "%ents' [Hphys Hes]".
+    (* empty payload; [Type] is the zero value [EntryNormal], which is what
+       keeps the log's [HnoConfChange] true; and one entry is not [2^61]. *)
     { apply Forall_singleton. done. }
+    { apply Forall_singleton. done. }
+    { rewrite length_insert /=. lia. }
     (* unpack again before [wp_auto]: the field reads in the [Infof] that
        follows cannot be stepped through the sealed predicate *)
     iNamedSuffix "Hphys" "2".

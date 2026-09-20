@@ -88,16 +88,37 @@ Require Export New.proof.go_etcd_io.raft.v3_proof.election.inv_raft_phys.
     [big_sepM_lookup_acc].  Every element of the sorted slice is a key of
     [prs], which is what makes the [p.Progress[id]] lookup hit.  The sorted
     order is not observable -- no caller's [I] mentions it -- so the
-    permutation-only postcondition of [wp_slices_Sort] is enough. *)
+    permutation-only postcondition of [wp_slices_Sort] is enough.
+
+    **2026-09-20**, for [bcastAppend], three changes to [visit_closure]
+    (all explained where it is defined, [inv_tracker.v]):
+
+    - the closure is lent the accessor wand back to the *whole* tracker and
+      hands the whole tracker back, rather than being lent one
+      [own_progress] and handing that back.  [bcastAppend]'s closure
+      re-enters the tracker through [maybeSendAppend]'s own
+      [r.trk.Progress[to]] lookup, so one [Progress] is not enough;
+    - it is told [i ∈ cfg], which is what makes that lookup hit;
+    - the tracker *value* may change across the call, so this
+      postcondition is existential in it.  [own_raft_phys] hides the struct
+      value, so a closure that calls back into the raft struct cannot
+      promise to return the field at the value it was handed.
+
+    The loop invariant here therefore carries [trk ↦ tv'] and
+    [own_tracker cfg tv' votes] at a value that moves, and re-splits one
+    [Progress] out each iteration with [own_tracker_lookup] -- which is
+    possible only because the progress map is now held read-only, so the
+    key/pointer fact survives the rebuild. *)
 Definition wp_ProgressTracker__Visit_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (cfg : gset w64) (trk : loc) tv votes (f : func.t) (I : iProp Σ),
   {{{ is_pkg_init tracker ∗ trk ↦ tv ∗ own_tracker cfg tv votes ∗ I ∗
-      □ visit_closure trk tv f I }}}
+      □ visit_closure cfg trk votes f I }}}
     trk @! (go.PointerType tracker.ProgressTracker) @! "Visit" #f
-  {{{ RET #(); trk ↦ tv ∗ own_tracker cfg tv votes ∗ I }}}.
+  {{{ RET #();
+      ∃ tv', trk ↦ tv' ∗ own_tracker cfg tv' votes ∗ I }}}.
 
 Module Type PROGRESSTRACKER__VISIT.
   Parameter wp_ProgressTracker__Visit : wp_ProgressTracker__Visit_body.

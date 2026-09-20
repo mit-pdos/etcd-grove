@@ -81,9 +81,16 @@ Definition is_lockedRand (lr : loc) : iProp Σ :=
   "#Hmu" ∷ is_Mutex (lr.[raft.lockedRand.t, "mu"]) True.
 
 Definition is_initialized : iProp Σ :=
-  ∃ errStopped errCompacted errUnavailable (globalRand : loc),
+  ∃ errStopped errCompacted errUnavailable errSnapUnavail (globalRand : loc),
     "ErrStopped" ∷ (global_addr raft.ErrStopped) ↦□ errStopped ∗
     "%HErrStopped" ∷ ⌜ errStopped ≠ interface.nil ⌝ ∗
+    (** [maybeSendSnapshot] compares [Storage.Snapshot]'s error against this
+        one; it is the only non-fatal error that method may return, and
+        [is_Storage]'s [HSnapshot] triple ([inv_storage.v]) is stated in
+        terms of it.  Added 2026-09-20 for [bcastAppend]. *)
+    "ErrSnapUnavail" ∷
+        (global_addr raft.ErrSnapshotTemporarilyUnavailable) ↦□ errSnapUnavail ∗
+    "%HErrSnapUnavail" ∷ ⌜ errSnapUnavail ≠ interface.nil ⌝ ∗
     "ErrCompacted" ∷ (global_addr raft.ErrCompacted) ↦□ errCompacted ∗
     "%HErrCompacted" ∷ ⌜ errCompacted ≠ interface.nil ⌝ ∗
     "ErrUnavailable" ∷ (global_addr raft.ErrUnavailable) ↦□ errUnavailable ∗

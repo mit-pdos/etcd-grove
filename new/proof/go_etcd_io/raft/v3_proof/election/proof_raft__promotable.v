@@ -31,7 +31,7 @@ Import P.
     - (* a voter: its [Progress] is in the map and is not a learner's *)
       wp_apply (wp_tracker_progress_lookup _ _ _ _ Hin with "[$Htrk]")
         as "%pr [Hpr Hprback]".
-      iDestruct "Hpr" as (pv) "(Hpv & Hinfl & %Hnolearner)".
+      iDestruct "Hpr" as (pv iv) "(Hpv & Hinfl & %Hnolearner & %Hst)".
       iDestruct (typed_pointsto_not_null with "Hpv") as %Hnn.
       (* [wp_apply] already reduced [pr != nil] to [negb (bool_decide (pr = null))] *)
       rewrite (bool_decide_eq_false_2 (pr = null) Hnn). simpl.
@@ -43,20 +43,23 @@ Import P.
       subst hb. simpl.
       iApply "HΦ". iFrame "Hr Hlog".
       iSplitL.
-      { iApply "Hprback". rewrite /own_progress. iExists pv. iFrame "∗%". }
+      { iApply "Hprback". rewrite /own_progress /own_progress_at.
+        iExists pv, iv. iFrame "∗%". }
       iPureIntro. rewrite bool_decide_eq_true_2 //.
     - (* not a voter: the lookup misses, [pr == nil] short-circuits to false *)
       iNamed "Htrk".
       assert (prs !! rv.(raft.raft.id') = None) as Hnone.
       { apply not_elem_of_dom. rewrite Hprs_dom //. }
-      wp_apply (wp_map_lookup1 with "Hprs") as "Hprs".
+      (* the progress map is read-only now, so it stays in the persistent
+         context: do not try to re-introduce it *)
+      wp_apply (wp_map_lookup1 with "Hprs") as "_".
       rewrite Hnone /=.
       wp_auto.
       iApply "HΦ". iFrame "Hr Hlog".
       iSplitL.
       { rewrite /own_tracker.
         iExists prs, voters_ref, voters, learners, learnersNext.
-        iFrame "∗%". }
+        iFrame "∗#%". }
       iPureIntro. rewrite bool_decide_eq_false_2 //.
   Qed.
 

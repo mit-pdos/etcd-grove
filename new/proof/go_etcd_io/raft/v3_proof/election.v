@@ -60,6 +60,8 @@ Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_Progress__ResetS
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_Progress__BecomeReplicate.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_ProgressTracker__ResetVotes.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_ProgressTracker__RecordVote.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_MajorityConfig__VoteResult.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_JointConfig__VoteResult.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_ProgressTracker__TallyVotes.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_ProgressTracker__Visit.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_tracker_NewInflights.
@@ -79,7 +81,24 @@ Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__resetRando
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__abortLeaderTransfer.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__promotable.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__hasUnappliedConfChanges.
+(* [appendEntry]'s callees: the payload accounting, the tracing no-op, and
+   the two log writes. *)
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_payloadSize.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_payloadsSize.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__increaseUncommittedSize.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_traceReplicate.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_unstable__truncateAndAppend.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raftLog__append.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__appendEntry.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_Progress__IsPaused.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_Inflights__Full.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_Inflights__Add.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_Progress__SentEntries.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_Progress__SentCommit.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raftLog__entries.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__maybeSendSnapshot.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__maybeSendAppend.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__sendAppend.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__bcastAppend.
 
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_voteRespMsgType.

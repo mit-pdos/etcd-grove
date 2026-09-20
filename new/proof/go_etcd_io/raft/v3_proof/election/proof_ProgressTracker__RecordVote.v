@@ -16,7 +16,7 @@ Module ProgressTrackerRecordVoteProof (P : PROGRESSTRACKER__RECORDVOTE_POSTULATE
       destruct Hok as [v0 Hv0].
       rewrite /own_tracker /record_vote Hv0 /=.
       iExists prs, voters_ref, voters, learners, learnersNext.
-      iFrame "∗%".
+      iFrame "∗#%".
     - (* first vote from [from] *)
       wp_auto.
       apply eq_None_not_Some in Hok.
@@ -25,7 +25,7 @@ Module ProgressTrackerRecordVoteProof (P : PROGRESSTRACKER__RECORDVOTE_POSTULATE
       iApply "HΦ". iFrame "Htrk".
       rewrite /own_tracker /record_vote Hok /=.
       iExists prs, voters_ref, voters, learners, learnersNext.
-      iFrame "∗%".
+      iFrame "∗#%".
   Qed.
 
 End ProgressTrackerRecordVoteProof.

@@ -227,3 +227,14 @@ would have had to be threaded through `I` the way `reset` threads
 `r_ptr ↦ r` through `Visit`. `EntryNormal/EntryConfChange/EntryConfChangeV2`
 are `W32 0/1/2` (raftpb.v), so `defs.v`'s `w32_ne` closes the comparisons.
 
+## `appendEntry`, checked against the body (2026-09-20)
+
+The reject path logs with `Warningf` (not a trace hook); `traceReplicate` is
+`λ: <> <>, do: #()`; `raftLog.append` returns `lastIndex()` early for an
+empty batch and its `Panicf` guard is `after < committed` with
+`after = ents[0].Index - 1`; `payloadSize` takes the entry by value and
+needs no ownership. The method writes only `Term` and `Index` into the
+caller's entries, so the caller's `Type` lands in the log —
+`wp_raft__appendEntry` therefore requires `Type = EntryNormal`, which
+`becomeLeader`'s `pb.Entry{Data: nil}` satisfies as the zero value.
+
