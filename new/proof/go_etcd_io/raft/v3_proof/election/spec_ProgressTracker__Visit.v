@@ -47,8 +47,9 @@ Require Export New.proof.go_etcd_io.raft.v3_proof.election.inv_raft_phys.
     closure applies the continuation wand to read [r.trk.MaxInflight] and
     re-splits before returning.
 
-    **The statement is now true, and the two tooling obstacles that blocked
-    it are fixed** (2026-09-17).  Both were unrelated to raft:
+    **The statement is now true, and proved** (2026-09-20,
+    [proof_ProgressTracker__Visit.v]).  Two tooling obstacles had to be fixed
+    first (2026-09-17); both were unrelated to raft:
 
     1. [var sl [7]uint64; if len(sl) >= n] asks for [len] of an *array*.
        There was **no** [FuncUnfold go.len [go.ArrayType n t]] instance
@@ -72,11 +73,21 @@ Require Export New.proof.go_etcd_io.raft.v3_proof.election.inv_raft_phys.
     The [else] branch ([make([]uint64, n)], taken when [size cfg > 7]) was
     always fine.
 
-    Nothing about the *proof* is hard once the code steps: a
-    [wp_map_for_range] filling [ids] backwards from [n-1], [wp_slices_Sort]
-    ([spec_slices_Sort.v]) for the permutation, then a [slice.for_range] applying
-    [visit_closure] to each id with [big_sepM_lookup_acc] on [Hprogs].  The
-    sorted order is not observable -- no caller's [I] mentions it -- so the
+    **The proof** ([proof_ProgressTracker__Visit.v], lemma [wp_visit]) runs
+    the body in three phases.  The [if] is joined with [wp_if_join] at "[ids]
+    points at a slice of [n] slots": the fast path turns the stack array's
+    [sl ↦ (a : array.t w64 7)] into a slice with [slice_array] and keeps the
+    [n]-element prefix with [own_slice_split_all]; the slow path is
+    [wp_slice_make2].  Then a map range fills [ids] backwards from [n-1] --
+    with [wp_map_for_range_keep] rather than the framework's
+    [wp_map_for_range], because the map is needed again afterwards (see
+    [proof_ProgressTracker__Visit_helpers/map_for_range_keep.v]) -- so that
+    [ids] ends as [reverse keys].  [wp_slices_Sort] ([spec_slices_Sort.v])
+    permutes it, and a [slice.for_range] applies [visit_closure] to each id,
+    taking that id's [own_progress] out of [Hprogs] with
+    [big_sepM_lookup_acc].  Every element of the sorted slice is a key of
+    [prs], which is what makes the [p.Progress[id]] lookup hit.  The sorted
+    order is not observable -- no caller's [I] mentions it -- so the
     permutation-only postcondition of [wp_slices_Sort] is enough. *)
 Definition wp_ProgressTracker__Visit_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)

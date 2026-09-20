@@ -1066,3 +1066,38 @@ idiom is for handing a callee the *location* of one field (poll's
 `RecordVote`, reset's `ResetVotes`), not for reads. (`promotable`,
 2026-09-19.)
 
+## `wp_apply … as "H"` already runs the pure steps that follow
+
+After `wp_apply (lemma with "…") as "H"`, the goal already sits on the next
+non-pure redex. A `wp_auto.` written after it fails with `Failed to
+progress`, which reads like "stuck on a step it cannot take" when in fact
+there is no step left. Look at the goal before adding `wp_auto`. Two of the
+three defects in the first `Visit` script were exactly this. (2026-09-20.)
+
+## Bullet depth inside `wp_if_join`
+
+`wp_if_join` leaves three goals under `-`; a `wp_if_destruct` or `destruct`
+inside the third must use `+`. Rocq's message, "Current bullet - is not
+finished", reads as "a case is still open" and sends you hunting for an
+unproved goal that does not exist. (`Visit`, 2026-09-20.)
+
+## Slicing a stack array: `sl[:n]` on `var sl [7]uint64`
+
+With Goose passing the array's address, three steps, each with its own
+nudge (`proof_ProgressTracker__Visit.v`):
+
+- `wp_auto` leaves `sl_ptr ↦ (a : array.t w64 7)`, a typed points-to at the
+  array type (through `into_val_typed_array`, `new/golang/theory/array.v`,
+  which is still `Admitted` in the framework). `slice_array`
+  (`new/golang/theory/slice.v`) consumes it; its side condition
+  `length (array.arr a) < 2^63` is closed by `simpl; lia`, not `word` — the
+  `7` is hidden under `array.arr`.
+- `slice_array` returns the **whole** array as `slice.mk l (W64 n) (W64 n) ↦* array.arr a`;
+  the `[:n]` prefix comes from `own_slice_split_all (W64 k)`, again `simpl`
+  before `word` on the side condition.
+- The two sides are then not syntactically equal: `slice_array_step`
+  produces `slice.mk (array_index_ref V (word.signed low) p) (high-low) (7-low)`
+  while `own_slice_split_all` says `slice.slice s V (W64 0) k`.
+  `rewrite /slice.slice /slice_index_ref /=` makes them the same term;
+  without it `iFrame` silently fails to find the hypothesis.
+

@@ -163,24 +163,22 @@ Proof.
     { destruct Hys_len as [H1 H2]. rewrite H1 Z2Nat.id //. }
     wp_for "IH".
     wp_if_destruct.
-    - (* another id to visit: [f(id, p.Progress[id])] *)
+    + (* another id to visit: [f(id, p.Progress[id])] *)
       assert (∃ y, ys !! Z.to_nat (sint.Z j) = Some y) as [y Hy].
       { apply lookup_lt_is_Some_2. word. }
       rewrite decide_True; last word.
       wp_apply (wp_load_slice_index (V:=w64) (t:=go.uint64)
                   sl (sint.Z j) ys (DfracOwn 1) y with "[$Hsl]") as "Hsl";
         try first [ word | iPureIntro; exact Hy | tc_solve | done ].
-      wp_auto.
       wp_apply (wp_map_lookup1 with "Hprs") as "Hprs".
       destruct (Hys_dom y) as [pr Hpr]; first by eapply list_elem_of_lookup_2.
       rewrite Hpr /=.
-      wp_auto.
       iDestruct (big_sepM_lookup_acc _ _ _ _ Hpr with "Hprogs") as "[Hpr Hprogs]".
       wp_apply ("Hf" with "[$Htrk $Hpr $HI]") as "(Htrk & Hpr & HI)".
       iDestruct ("Hprogs" with "Hpr") as "Hprogs".
       wp_for_post.
       iFrame. iPureIntro. word.
-    - (* every id visited *)
+    + (* every id visited *)
       iApply "HΦ". iFrame "Htrk HI".
       rewrite /own_tracker.
       iExists prs, voters_ref, voters, learners, learnersNext.
