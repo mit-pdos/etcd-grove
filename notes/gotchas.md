@@ -1138,3 +1138,38 @@ another writer rebuilt a `.vos` under you. Re-run the same `make …vok`; it
 rebuilds the stale intermediate and the message goes away. Not a proof
 error. (2026-09-20.)
 
+## `wp_auto` stalls on a `slice.for_range` whose counter name collides
+
+`for_range` expands to `let: "i" := GoAlloc go.int #(W64 0) in for: …`.
+When the enclosing Go frame already has a local `i` (`for i := range ents`
+inside a closure whose caller also had an `i`), `wp_auto` refuses to
+allocate the second one and simply stops. `wp_alloc j_ptr as "j". wp_auto.`
+gets past it. (`hasUnappliedConfChanges`, 2026-09-20.)
+
+## `IndexRef`'s `decide (0 ≤ i < len)` appears one `wp_auto` at a time
+
+Each `wp_auto` that exposes a slice index leaves an
+`if decide (0 ≤ i < len) …`; `rewrite decide_True; last word.` must follow
+*that* `wp_auto` — issuing it early fails with "does not match any
+subterm". A body with three element reads needs three of them.
+
+## A field read of a slice element is not `wp_load_slice_index`
+
+`ents[i].Type` loads at the *field*, so `wp_load_slice_index` fails with
+`iApply: cannot apply`. Use `own_slice_elem_acc (sint.Z k) e s dq es` to lend
+`slice_index_ref … ↦{dq} e`, let `wp_auto` read the field, give it back,
+and `rewrite (list_insert_id _ _ _ He)`.
+
+## `wp_apply … with "[$H1 $H2]"` and an unframed pure conjunct
+
+If the callee's precondition has a pure conjunct that the `[$…]` pattern
+does not frame, `wp_apply … as "…"` dies with "Expected a single focused
+goal but 2 goals are focused" — even when the fact is in the Coq context.
+Produce it as an Iris hypothesis first (`iAssert (⌜…⌝)%I as "HP"`) and frame
+it. Related: a callback side goal arrives as `"HI" ∷ emp ∗ "#Hf" ∷ □ …`, so
+`iSplitR; first done.` comes *before* `iModIntro` (which otherwise reports
+"the goal is not a modality"). And `Forall_lookup_1` does not unify against
+`Forall (λ e, e.(Type') = EntryNormal) es`; use
+`rewrite List.Forall_forall in H. apply H, list_elem_of_In.` as
+`Forall_sublist_of` does.
+

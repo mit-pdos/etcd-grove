@@ -205,3 +205,25 @@ order. Not a correctness property — the model accepts any permutation — but
 it is observable behaviour, and it is why `campaign` cannot be proved without
 a `slices.Sort` spec (which Goose does not translate; see
 [journal.md](journal.md)).
+
+## `raftLog.scan` pages by byte budget inside `slice`, not by index (2026-09-20)
+
+`scan(lo, hi, pageSize, v)` calls `l.slice(lo, hi, pageSize)` with the
+**whole remaining range** and `pageSize` as `maxSize`; the page is cut by
+`limitSize` inside `slice`. So `scan` knows nothing about a page beyond
+`slice`'s postcondition, and its progress bound `lo + len(ents) ≤ hi` is
+exactly `length es ≤ hi - lo` there. That bound also rules out the `w64`
+wrap in `lo += uint64(len(ents))`, so `own_raftLog_at`'s `Hnowrap` is not
+needed by `scan`.
+
+## `hasUnappliedConfChanges`'s callback writes only on the conf-change branch
+
+Its only write is `found = true`, under `e.Type == EntryConfChange ||
+EntryConfChangeV2`. Under the election scope (`HnoConfChange`) that branch
+is dead, so the callback invariant can be `emp`. Structurally this matters:
+`scan_closure` is demanded under `□`, so the closure cannot capture the
+enclosing frame's `found_ptr ↦ false`; had the write been live, the pointer
+would have had to be threaded through `I` the way `reset` threads
+`r_ptr ↦ r` through `Visit`. `EntryNormal/EntryConfChange/EntryConfChangeV2`
+are `W32 0/1/2` (raftpb.v), so `defs.v`'s `w32_ne` closes the comparisons.
+
