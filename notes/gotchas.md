@@ -1209,3 +1209,59 @@ the whole tree (`.rocqdeps.d` is global), so every other writer's `make`
 dies until the file appears. Create the four files of a collection
 together, `proof_` before `link_`.
 
+## `iNamed` stops silently at the first name already in use
+
+It leaves the rest of the predicate bundled in the original hypothesis. In
+`bcastAppend`'s closure the enclosing proof's persistent `Hlogger` did
+exactly that, and the symptom was `iSpecialize: "Hmisc" not found` fifteen
+lines later. `iClear` the clashing name first. (2026-09-20.)
+
+## After `wp_for`, section variables and Coq hypotheses are gone
+
+`wp_for` re-introduces the Coq context: the section variable `cfg` and
+hypotheses like `Hprs_dom` are no longer nameable by a tactic inside the
+loop. Facts the body needs travel inside the loop invariant (`Visit`
+carries `⌜∀ y, y ∈ ys → y ∈ cfg⌝`), and lemma applications use `_` where
+they would have named `cfg`.
+
+## Making a predicate conjunct persistent: the whole blast radius
+
+Every `iFrame "∗%"` re-seal becomes `iFrame "∗#%"`; every
+`wp_apply (… with "Hprs") as "Hprs"` becomes `as "_"` ("not fresh"); and the
+change can pull `ffi_semantics0` into a proof, which under
+`Set Default Proof Using "W"` needs `Proof using All`. That was the entire
+edit on the eight consumers of the read-only progress map.
+
+## `own_raft_phys_intro` takes its abstract state from the first argument that mentions it
+
+At a `send_msgs s ms` goal, give the state explicitly:
+`own_raft_phys_intro cfg r id (send_msgs s ms)`; otherwise it unifies from
+`own_tracker … s.(nstate.votes)` and the outbox conjunct fails.
+
+## `word` cannot refute `W64 0 = W64 2`
+
+"Cannot find witness". Use `apply (f_equal uint.Z) in H; vm_compute in H;
+discriminate` (a `w64_ne` beside `defs.v`'s `w32_ne` is the right home;
+two files carry a local `w64_absurd` today).
+
+## `err == ErrCompacted`, `go.min`, and slice-equivalence rewrites
+
+- `err == ErrX` on an `error` interface does not produce a `bool_decide`; it
+  reduces to a `match` on the global's value. `destruct errX; try (exfalso;
+  by apply HErrX)` after `is_pkg_init_access`, not `rewrite bool_decide_…`.
+- `go.min` has no `PureWp`; `wp_auto` stops dead. `change ([go.uint64; go.uint64])
+  with (replicate 2 go.uint64). rewrite func_unfold /minⁱᵐᵖˡ.` — the
+  `change` is needed because `min_unfold`'s head is `replicate n t`.
+- `own_slice_split_all` / `own_slice_slice` are `⊣⊢`; `iDestruct` runs them
+  left to right only. To go back use `own_slice_combine` +
+  `own_slice_trivial_slice_2`, or `rewrite` the equivalence on the goal
+  **with `s`, `dq`, `vs` given explicitly** — otherwise the setoid rewrite
+  hits the first `_ ↦*{_} _` in the IPM *context* and leaves an unprovable
+  side condition that looks like a `word` failure.
+- `wp_if_destruct` auto-names `n`, `n0`, `e`, …: do not reuse those as
+  binder names in the same proof. A `return:` inside a `for:` body wants
+  `wp_auto` first (to `return_val v`), then `wp_for_post`.
+- ssr `rewrite Hstok` on an IPM goal rewrites the environment too; re-seal
+  `own_raftLog_at` with `iExists lv. rewrite Hstok. iFrame "∗#%". all:
+  (iPureIntro; done).`
+

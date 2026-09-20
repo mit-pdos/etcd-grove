@@ -238,3 +238,27 @@ caller's entries, so the caller's `Type` lands in the log —
 `wp_raft__appendEntry` therefore requires `Type = EntryNormal`, which
 `becomeLeader`'s `pb.Entry{Data: nil}` satisfies as the zero value.
 
+## The append-broadcast path, checked against the bodies (2026-09-20)
+
+- `raftLog.slice` has **five** returning exits: the unstable-only page
+  (`ents[0:len:len]`) and four `return ents` from the storage path
+  (`hi <= offset`, `len(ents) < cut-lo`, `size >= maxSize`, the
+  `len(unstable)==1 && …` guard), plus `extend(ents, unstable)`, the only
+  one that allocates. `min(hi, l.unstable.offset)` genuinely needs a case
+  split: the arms give different `Storage.Entries` ranges.
+- `limitSize` calls `Size()` on `&ents[0]` and `&ents[limit]` — the address,
+  not a copy (`own_slice_elem_acc`). `unstable.slice` returns
+  `u.entries[a:b:b]` (`cap = len`), which is what makes `extend` reallocate
+  instead of writing into the suffix, matching `Storage.Entries`'s `cap = len`.
+- `maybeSendAppend`'s fetch guard is `pr.State != StateReplicate ||
+  !pr.Inflights.Full()` (Goose's `⟨go.bool⟩!` is negation) — in
+  `StateReplicate` entries are fetched only when the window is not full,
+  which is exactly `SentEntries`'s second premise. `reset`'s `Progress`
+  literal omits `State`, so the zero value `StateProbe` is what
+  `progress_state_ok` is established at.
+- `Inflights.Add` panics on a full window and writes into a ring
+  (`buffer[(start+count) mod size]`, growing on demand); `Progress.IsPaused`
+  panics outside Probe/Replicate/Snapshot; `Progress.SentEntries` outside
+  Probe/Replicate. `Storage.Snapshot`'s callers panic on any error other
+  than `ErrSnapshotTemporarilyUnavailable` and on an empty snapshot.
+

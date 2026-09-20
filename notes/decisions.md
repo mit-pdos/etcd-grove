@@ -940,3 +940,50 @@ call plus `Hbounded` plus the unstable slice's own length — not from
 the assumption that makes appending possible at all, and it is stated once,
 in `inv_storage.v`, with the justification at the clause.
 
+## 2026-09-20 — the tracker predicates expose their values, and the progress map is read-only
+
+Forced by `bcastAppend`, whose `Visit` closure calls back into the raft
+struct (`r.sendAppend(id)`), and by three tracker methods that panic.
+
+- **`own_inflights_at l iv`, `own_progress_at pr pv iv`** (with the old
+  `own_inflights`/`own_progress` as their existential closures), plus the
+  pure invariants `inflights_ok` (the ring buffer: `Add` writes
+  `buffer[(start+count) mod size]` after growing on demand, and with
+  `start=100, count=0, size=1000, buffer=[]` it is "not full", grows to one
+  slot and indexes slot 100 — without the invariant `Add`'s triple is
+  false), `inflights_full`, and `progress_state_ok` (`IsPaused` panics
+  outside Probe/Replicate/Snapshot; `SentEntries` outside Probe/Replicate).
+  `own_tracker` gained `HmaxInfl : 0 ≤ MaxInflight < 2^62`, the premise
+  `NewInflights` now takes. These conjuncts exist to make triples *true*,
+  not merely stronger.
+
+- **The progress map is `↦$□` (`DfracDiscarded`).** `maybeSendAppend` holds
+  the raw `pr` pointer across `r.send(...)`, which consumes and rebuilds the
+  whole tracker under an existential, and must then call `pr.SentEntries`
+  on *that* pointer. With an exclusive, existential map there is no way
+  back to it; a discarded-fraction map is duplicable, so `prs !! to = Some pr`
+  survives the rebuild (`own_tracker_lookup`, via a new `progress_map_agree`
+  for `own_map` — provable in the framework, since the pure map is a
+  function of the stored `val`; lift it into `theory/map.v` when a second
+  caller appears). Honest under the election scope: nothing inserts into
+  or deletes from `trk.Progress`, only `Progress` *values* are written.
+  **Cost**: a future reconfiguration proof must take the map back to
+  `DfracOwn 1`.
+
+- **`visit_closure cfg trk votes f I` is existential in the tracker value.**
+  `own_raft_phys` hides the struct value, so a closure that re-enters the
+  struct (every triple below `raft.send` is on `own_raft_phys`) merges the
+  lent `trk ↦ tv` back into `r ↦ rv` and gets a fresh, existential `rv'`
+  back; nothing says `rv'.(trk') = tv`, because `send`'s *spec* cannot say
+  it does not touch the field. So the closure returns
+  `∃ tv', trk ↦ tv' ∗ own_tracker cfg tv' votes ∗ I`, `Visit`'s loop
+  invariant carries a moving `tv'`, and `reset`'s closure keeps
+  `raft_split_trk`'s quantified continuation wand in its `I`.
+
+- **`is_Storage` gained `HSnapshot`** (either `ErrSnapshotTemporarilyUnavailable`
+  or a snapshot with `Metadata.Index ≠ 0`; any other error or an empty
+  snapshot panics), because the snapshot fallback is *reachable*: nothing in
+  `own_progress` bounds a peer's `Next` against the log, so
+  `raftLog.term(pr.Next-1)` may return `ErrCompacted`. That is also why
+  `raftLog.term`'s partial triple has to become total (STATUS item 15).
+
