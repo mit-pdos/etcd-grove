@@ -33,19 +33,39 @@
 
     *** Which methods are here, and why the others are not
 
-    [Storage] has six methods.  Three are specified: [FirstIndex],
-    [LastIndex], [Term].  Those are the three that raft's own log code calls
-    on the leader-election path ([raftLog.firstIndex], [raftLog.lastIndex],
-    [raftLog.term]), and each of them **panics** on an error return, so a
-    proof has to know they succeed.
+    [Storage] has six methods.  Four are specified: [FirstIndex],
+    [LastIndex], [Term] and (since 2026-09-19) [Entries].  The first three
+    are what raft's own log code calls on the leader-election path
+    ([raftLog.firstIndex], [raftLog.lastIndex], [raftLog.term]), and each of
+    them **panics** on an error return, so a proof has to know they succeed.
 
-    [Entries], [Snapshot] and [InitialState] are deliberately **omitted**.
-    Nothing on the election path calls them ([raftLog.slice] and
-    [raftLog.snapshot] are not reached), and an assumption that is not needed
-    is an assumption not worth making: each would be a fresh claim about
-    client code, with a size-limiting / error-returning contract that is
-    easy to get wrong.  Add them when a proof needs them, with the same
-    "state it, then use it" discipline.
+    [Entries] is reached by [raftLog.slice], which [raftLog.scan] and hence
+    [raft.hasUnappliedConfChanges] call on the [hup] path whenever the
+    unapplied range starts in the stable prefix.  Its contract:
+      - the range premise [firstIndex <= lo < hi <= lastIndex + 1] is
+        exactly what makes [MemoryStorage.Entries]'s [ErrCompacted] and
+        [ErrUnavailable] returns unreachable, so the error is [nil];
+      - the result is a **non-empty** sub-list of the stored entries of
+        length at most [hi - lo] -- [MemoryStorage] applies [limitSize],
+        which keeps at least one entry;
+      - **[cap = len]**: [MemoryStorage.Entries] returns
+        [ents[:len(ents):len(ents)]] precisely so that a caller's [append]
+        reallocates instead of writing into [ms.ents].  [raftLog.slice]
+        relies on this through [extend], whose in-place branch would
+        otherwise write into storage memory this contract does not grant;
+      - the slice is **lent**, not given: the returned points-to comes with
+        a wand back to [own_Storage].  [MemoryStorage] hands out a view of
+        its own buffer, so ownership cannot be transferred.
+    The fraction is existential because the client chooses it.  What the
+    returned entries *are* (which indices) is not stated; nothing on the
+    election path reads them beyond their [Type], for which membership in
+    the stored list is enough.
+
+    [Snapshot] and [InitialState] are deliberately **omitted**.  Nothing on
+    the election path calls them, and an assumption that is not needed is an
+    assumption not worth making: each would be a fresh claim about client
+    code.  Add them when a proof needs them, with the same "state it, then
+    use it" discipline.
 
     *** Why the triples return [#interface.nil] for the error
 
@@ -106,7 +126,20 @@ Definition is_Storage (st : raft.Storage.t) : iProp Σ :=
             uint.Z prev.(raft.entryID.index') + Z.of_nat (length ents))%Z ⌝ }}}
        #(methods i.(interface.ty) "Term"%go i.(interface.v)) #i0
      {{{ (t : w64), RET (#t, #interface.nil);
-         ⌜ term_at prev ents i0 = Some t ⌝ ∗ own_Storage st prev ents }}}).
+         ⌜ term_at prev ents i0 = Some t ⌝ ∗ own_Storage st prev ents }}}) ∗
+  "#HEntries" ∷ (∀ prev ents (lo hi maxSize : w64),
+     {{{ own_Storage st prev ents ∗
+         ⌜ (uint.Z prev.(raft.entryID.index') + 1 ≤ uint.Z lo ∧ uint.Z lo < uint.Z hi ∧
+            uint.Z hi ≤ uint.Z prev.(raft.entryID.index') + Z.of_nat (length ents) + 1)%Z ⌝ }}}
+       #(methods i.(interface.ty) "Entries"%go i.(interface.v)) #lo #hi #maxSize
+     {{{ (s : slice.t) (es : list raftpb.Entry.t) (dq : dfrac),
+         RET (#s, #interface.nil);
+         s ↦*{dq} es ∗
+         ⌜ es ≠ [] ∧
+           (Z.of_nat (length es) ≤ uint.Z hi - uint.Z lo)%Z ∧
+           (∀ e, e ∈ es → e ∈ ents) ∧
+           s.(slice.cap) = s.(slice.len) ⌝ ∗
+         (s ↦*{dq} es -∗ own_Storage st prev ents) }}}).
 
 Global Instance is_Storage_pers st : Persistent (is_Storage st).
 Proof. apply _. Qed.

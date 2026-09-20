@@ -11,7 +11,7 @@ Import P.
     wp_start as "H". iNamed "H". iNamed "Hlog". wp_auto.
     iAssert (is_Storage lv.(raft.raftLog.storage')) as "#Hsto".
     { iExact "HisStorage". }
-    iDestruct "Hsto" as (isv) "(%Hstok & #HLI & #HFI & #HT)".
+    iDestruct "Hsto" as (isv) "(%Hstok & #HLI & #HFI & #HT & #HE)".
     split_unstable l lv.
     wp_apply (wp_unstable__maybeFirstIndex _ _ Hnosnap with "[$Huf]") as "%fi Huf".
     iDestruct ("Hlback" with "Huf") as "Hl".

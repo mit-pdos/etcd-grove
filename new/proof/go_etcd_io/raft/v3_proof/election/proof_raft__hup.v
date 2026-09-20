@@ -53,7 +53,7 @@ Import P.
       destruct b.
       + (* a voter, so it may campaign *)
         wp_auto.
-        wp_apply (wp_raft__hasUnappliedConfChanges with "[$Hlog]") as "Hlog".
+        wp_apply (wp_raft__hasUnappliedConfChanges with "[$Hr $Hlog]") as "[Hr Hlog]".
         assert (id ∈ cfg) as Hin.
         { symmetry in Hb. apply bool_decide_eq_true_1 in Hb.
           by rewrite -Hid. }

@@ -46,6 +46,15 @@ Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raftLog__term.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raftLog__lastEntryID.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raftLog__isUpToDate.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raftLog__hasNextOrInProgressSnapshot.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_Entry__Size.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_unstable__mustCheckOutOfBounds.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_unstable__slice.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raftLog__mustCheckOutOfBounds.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_limitSize.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_entsSize.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_extend.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raftLog__slice.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raftLog__scan.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_Inflights__reset.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_Progress__ResetState.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_Progress__BecomeReplicate.
@@ -62,6 +71,10 @@ Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_traceBecomeFollo
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_traceBecomeCandidate.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_traceBecomeLeader.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_newReadOnly.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_big_NewInt.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_rand_Int.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_big_Int__Int64.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_lockedRand__Intn.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__resetRandomizedElectionTimeout.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__abortLeaderTransfer.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__promotable.
@@ -74,7 +87,7 @@ Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__reset.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__becomeFollower.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__becomeCandidate.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__becomeLeader.
-Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__send_vote.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__send.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__poll.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__campaign.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__hup.

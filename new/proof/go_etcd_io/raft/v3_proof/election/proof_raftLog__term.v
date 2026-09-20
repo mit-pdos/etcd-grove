@@ -13,7 +13,7 @@ Import P.
                    Z.of_nat (length uents) < 2^64)%Z) by lia.
     iAssert (is_Storage lv.(raft.raftLog.storage')) as "#Hsto".
     { iExact "HisStorage". }
-    iDestruct "Hsto" as (isv) "(%Hstok & #HLI & #HFI & #HT)".
+    iDestruct "Hsto" as (isv) "(%Hstok & #HLI & #HFI & #HT & #HE)".
     split_unstable l lv.
     wp_apply (wp_unstable__maybeTerm _ _ _ _ Hnosnap Hnw with "[$Huf $Huents]")
       as "%t %ok (Huf & Huents & %Hok)".
@@ -47,12 +47,12 @@ Import P.
         by lia.
       clear Hnotin Hnw Hok Hoffset Hnosnap Hstok Happlied Hcommitted
             Hidx Hnowrap HnoConfChange Hb1 Hb2 Hfi Hli Hile.
-      iClear "HisStorage HLI HFI HT".
+      iClear "HisStorage HLI HFI HT HE".
       clear lv isv fi li.
       iNamed "Hlog". wp_auto.
       iAssert (is_Storage lv.(raft.raftLog.storage')) as "#Hsto".
       { iExact "HisStorage". }
-      iDestruct "Hsto" as (isv) "(%Hstok & #HLI & #HFI & #HT)".
+      iDestruct "Hsto" as (isv) "(%Hstok & #HLI & #HFI & #HT & #HE)".
       rewrite Hstok /=.
       wp_apply ("HT" $! prev sents i with "[$HStorage]").
       { iPureIntro. lia. }

@@ -106,7 +106,8 @@ End helper.
       assert (bool_decide (rv.(raft.raft.Term') = term) = true) as Hb
         by (apply bool_decide_eq_true_2; congruence).
       rewrite Hb /=. wp_auto.
-      wp_apply (wp_raft__resetRandomizedElectionTimeout with "[$Hr]") as "%n Hr".
+      wp_apply (wp_raft__resetRandomizedElectionTimeout _ _ HelectionTimeout with "[$Hr]")
+        as "%n Hr".
       wp_apply (wp_raft__abortLeaderTransfer with "[$Hr]") as "Hr".
       iDestruct (raft_split_trk with "Hr") as "[Htrkf Hrback]".
       wp_apply (wp_ProgressTracker__ResetVotes with "[$Htrkf $Htrk]")
@@ -194,7 +195,8 @@ End helper.
       assert (bool_decide (rv.(raft.raft.Term') = term) = false) as Hb
         by (apply bool_decide_eq_false_2; congruence).
       rewrite Hb /=. wp_auto.
-      wp_apply (wp_raft__resetRandomizedElectionTimeout with "[$Hr]") as "%n Hr".
+      wp_apply (wp_raft__resetRandomizedElectionTimeout _ _ HelectionTimeout with "[$Hr]")
+        as "%n Hr".
       wp_apply (wp_raft__abortLeaderTransfer with "[$Hr]") as "Hr".
       iDestruct (raft_split_trk with "Hr") as "[Htrkf Hrback]".
       wp_apply (wp_ProgressTracker__ResetVotes with "[$Htrkf $Htrk]")
