@@ -21,7 +21,7 @@ Definition wp_raft__campaign_body :=
   (* [becomeCandidate] sets [r.Term := r.Term + 1] and [campaign] then sends
      at that term.  [send] *panics* on a vote message whose [Term] is zero
      ([Panicf "term should be set when sending %s"] in [raft__sendⁱᵐᵖˡ]),
-     which is why [wp_raft__send_vote] requires [Term ≠ 0].  Without this
+     which is why [wp_raft__send] requires [Term ≠ 0].  Without this
      premise the triple is **false** at [s.(nstate.term) = 2^64 - 1]: the
      term wraps to zero and the real code panics.  Added 2026-09-16; see
      notes/STATUS.md. *)

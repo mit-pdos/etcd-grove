@@ -54,8 +54,9 @@ Implicit Type s : nstate.t.
       as "Hphys";
       [iApply (own_raft_phys_intro with
           "Hlogger Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done|];
-    wp_apply (P.wp_raft__send_vote with "[$Hphys]") as "Hphys";
-      [done|by right|apply mtype_of_MsgVoteResp|done|w32_ne|];
+    wp_apply (P.wp_raft__send with "[$Hphys]") as "Hphys";
+      [done|left; exists mtype.VoteResp; split_and!;
+            [by right|apply mtype_of_MsgVoteResp|done|w32_ne|done]|];
     (* [wp_hidden]: an [iNamed] on a goal holding the whole body is ~12s *)
     wp_hidden (iNamedSuffix "Hphys" "2");
     rewrite ty_eq /MsgVote bool_decide_eq_true_2 //;
@@ -65,7 +66,7 @@ Implicit Type s : nstate.t.
          [msg.mk mtype.VoteResp id_ m_.(raftpb.Message.From')
             m_.(raftpb.Message.Term') false]));
     (* [own_raft_phys_intro] does not apply here: its [s] is fixed by [Htrk2],
-       whose state is [send_vote]'s [abs_msg] form of the message, and
+       whose state is [send]'s [abs_msg] form of the message, and
        [iApply] does not unify that with the [msg.mk] form in the goal.  Naming
        the hypotheses to frame (instead of [iFrame "∗#%"]) is 2s against 17s. *)
     iSplitL "Hr2 Htrk2 Hlog2 Hmsgs2 Hmsgs_cap2 HmsgsAA2 HmsgsAA_cap2 Hmisc2";
@@ -102,8 +103,9 @@ Implicit Type s : nstate.t.
        optional: the premise is stated about the *message literal*, so the
        goal is [{| ... |}.(Message.Term') ≠ W64 0] and [congruence] -- unlike
        [done]/[assumption] -- does not see through the projection. *)
-    wp_apply (P.wp_raft__send_vote with "[$Hphys]") as "Hphys";
-      [done|by right|apply mtype_of_MsgVoteResp|(simpl; congruence)|w32_ne|];
+    wp_apply (P.wp_raft__send with "[$Hphys]") as "Hphys";
+      [done|left; exists mtype.VoteResp; split_and!;
+            [by right|apply mtype_of_MsgVoteResp|(simpl; congruence)|w32_ne|done]|];
     iApply ("HΦ" $! interface.nil _); iFrame "Hphys";
     iPureIntro; split; [|done];
     exists [abs_msg mtype.Vote m_];

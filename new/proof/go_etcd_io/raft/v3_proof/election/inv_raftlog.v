@@ -151,5 +151,59 @@ Proof.
   iPureIntro. rewrite H1. word.
 Qed.
 
+(** ** Reading the log through [scan]
+
+    [raftLog.scan lo hi pageSize v] pages through [[lo, hi)] and hands each
+    page to the callback [v] as a slice *lent* out of the log (a sub-slice of
+    [unstable.entries], or one the [Storage] lent, or a fresh concatenation).
+    [scan_closure f I P] is what [wp_raftLog__scan_at] asks of the callback:
+    given any lent page whose entries all satisfy [P], with the caller's
+    invariant [I], it returns a [nil] error and hands the page and [I] back.
+    Same shape as [visit_closure] ([inv_tracker.v]).
+
+    [P] is how the caller gets a fact about the log's entries into the
+    callback: [scan]'s spec takes [Forall P (sents ++ uents)] as a premise
+    and every page is a sub-list of the log.  [hasUnappliedConfChanges] uses
+    [P := λ e, e.(Type') = EntryNormal], from [HnoConfChange].
+
+    The callback's own [return err] paths -- [errBreak] in
+    [hasUnappliedConfChanges] -- are not modelled: the closure has to return
+    [nil], which is exactly what makes [scan] return [nil]. *)
+Definition scan_closure (f : func.t) (I : iProp Σ) (P : raftpb.Entry.t → Prop) : iProp Σ :=
+  ∀ (s : slice.t) (es : list raftpb.Entry.t) (dq : dfrac),
+    {{{ s ↦*{dq} es ∗ ⌜ Forall P es ⌝ ∗ I }}}
+      #f #s
+    {{{ RET #interface.nil; s ↦*{dq} es ∗ I }}}.
+
+Lemma Forall_sublist_of {A} (P : A → Prop) (l es : list A) :
+  Forall P l → (∀ e, e ∈ es → e ∈ l) → Forall P es.
+Proof.
+  intros Hl Hin. rewrite List.Forall_forall in Hl. rewrite List.Forall_forall.
+  intros e He. apply Hl, list_elem_of_In, Hin, list_elem_of_In, He.
+Qed.
+
+(** Two slice values with the same pointer and length own the same
+    elements.  [unstable.slice] and [raftLog.slice] return three-index
+    slices ([s[lo:hi:hi]]) whose capacity differs from the [slice.slice]
+    form the ownership lemmas ([own_slice_slice]) speak about; this moves the
+    points-to across.  Needs a non-empty list, because for an empty one
+    [own_slice] may hold through its [slice.nil] disjunct, which fixes the
+    capacity too. *)
+Lemma own_slice_same_ptr_len {V} `{!ZeroVal V} `{!TypedPointsto V}
+    (s1 s2 : slice.t) (dq : dfrac) (vs : list V) :
+  vs ≠ [] →
+  s1.(slice.ptr) = s2.(slice.ptr) →
+  s1.(slice.len) = s2.(slice.len) →
+  (sint.Z s2.(slice.len) ≤ sint.Z s2.(slice.cap))%Z →
+  s1 ↦*{dq} vs -∗ s2 ↦*{dq} vs.
+Proof.
+  intros Hne Hptr Hlen Hcap.
+  destruct s1 as [p1 l1 c1], s2 as [p2 l2 c2]; simpl in *; subst.
+  rewrite own_slice_unseal /own_slice_def /=.
+  iIntros "[%H | [H %]]".
+  { destruct H as [_ ->]. done. }
+  iRight. iFrame. done.
+Qed.
+
 
 End proof.

@@ -2224,3 +2224,55 @@ of STATUS.md's "In flight". The ghost layer itself is out of scope here.
   `.rocqdeps.d` was computed before the edit — re-run `make`, it is not a
   real error. The Rocq toolchain is the `perennial` opam switch
   (`/home/ubuntu/.opam/perennial/bin`), not on the default `PATH`.
+
+## 2026-09-20 — wave 1: two landed, then the rate limit; a `-vok` sweep of the whole tree
+
+- **Landed and committed:** `wp_raft__promotable` (`afd9f4bc2`) and
+  `wp_JointConfig__IDs` (`ea56a938f`), each re-checked independently of the
+  agent that wrote it. `IDs` found two framework defects in
+  `theory/map.v` — `wp_map_for_range` never hands the map back, and the
+  nil-map `PureWp` instances (including yesterday's `pure_wp_map_nil_len`)
+  are closed over the section's `K V`, so `tc_solve` cannot fire them —
+  worked around in a `_helpers/` file; tracker item 14.
+
+- **Four agents died mid-task** (weekly rate limit on the model they ran
+  on). What they left is a shared tree with partial edits from all four,
+  so rather than trust anyone's last words, every proof-bearing file in
+  the election development was checked at `-vok`, four at a time
+  (`/home/ubuntu/.claude/jobs/…/sweep.sh`; 79 files, ~35 min wall). Result:
+  **74 pass, 5 fail**. The passes include everything that was Qed before
+  under the *new* `send` spec and the widened `own_raft_phys`
+  (`HelectionTimeout`): `campaign` (402 s), `Step` and all eight helpers,
+  `hup`, the `becomeX` family, `stepCandidate`. The fails:
+  `inv_raftlog.v` (a `Forall_forall` that resolved to Coq's `In` version —
+  fixed on the spot, RC=0), `proof_raft__reset.v` (the RNG spec's new
+  premise passed positionally fixes `rv` to the pre-update struct, so
+  `iFrame` cannot find `r ↦ rv <| lead := 0 |> …`), `proof_ProgressTracker__Visit.v`
+  (an unfinished bullet), `proof_extend.v` and
+  `proof_raftLog__mustCheckOutOfBounds.v` (`word` cannot find a witness).
+  A sweep like this is the right move whenever several writers have
+  touched one checkout and none of them is around to say what state it is
+  in; the results file is one line per file and reads in a minute.
+
+- **What the interrupted agents built** (all in the tree, committed as
+  such): the general `spec_raft__send.v` with `send_ok`, proved (377 s) and
+  every caller re-proved; the RNG chain — `is_initialized` now owns
+  `globalRand` with `is_lockedRand` (mutex invariant `True`),
+  `ErrCompacted`, `ErrUnavailable`; `rand` has `is_rand_initialized`
+  (`Reader`); `inv_big.v` with the abstract `own_big_Int`; axioms
+  `rand_Int`, `big_NewInt`, `big_Int__Int64`; `lockedRand__Intn` Qed;
+  `resetRandomizedElectionTimeout` Qed with a `0 < electionTimeout` premise
+  (crypto/rand panics on a non-positive bound) carried by `own_raft_phys`
+  as `HelectionTimeout`. The log chain: `is_Storage` gained an `Entries`
+  triple (non-empty, `cap = len`, lent back by wand — matching
+  `MemoryStorage`), `hasUnappliedConfChanges`'s spec now owns `r ↦ rv`
+  (the old one asserted loads it did not own; `hup` adjusted),
+  `scan_closure` and two list/slice helpers in `inv_raftlog.v`, and nine
+  callee collections with specs written and proofs mostly `Admitted`.
+  `Visit` has a complete-looking `wp_visit` helper proof that does not
+  check.
+
+- Continuing with Opus agents, from this verified baseline, one task each:
+  `reset.v` call sites; finish `Visit`; the log leaves; `scan` + the
+  `hasUnappliedConfChanges` target; `TallyVotes`.
+

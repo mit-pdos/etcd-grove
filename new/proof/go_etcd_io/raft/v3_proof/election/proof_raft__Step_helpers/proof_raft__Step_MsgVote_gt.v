@@ -156,12 +156,10 @@ Implicit Type s : nstate.t.
           "Hlogger1 Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1");
         unfold become_follower; simpl; try (rewrite decide_False; [|exact Hne]); done. }
       (* [send] the granted vote response, then record the vote. *)
-      wp_apply (P.wp_raft__send_vote with "[$Hphys]") as "Hphys".
+      wp_apply (P.wp_raft__send with "[$Hphys]") as "Hphys".
       { done. }
-      { by right. }
-      { apply mtype_of_MsgVoteResp. }
-      { done. }
-      { w32_ne. }
+      { left; exists mtype.VoteResp; split_and!;
+          [by right | apply mtype_of_MsgVoteResp | done | w32_ne | done]. }
       wp_hidden (iNamedSuffix "Hphys" "2").
       (* [m.Type = MsgVote], so the vote is recorded: [r.Vote := m.From]. *)
       rewrite Hty /MsgVote bool_decide_eq_true_2 //. wp_auto.
@@ -201,12 +199,10 @@ Implicit Type s : nstate.t.
       { iApply (own_raft_phys_intro with
           "Hlogger1 Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1");
         unfold become_follower; simpl; try (rewrite decide_False; [|exact Hne]); done. }
-      wp_apply (P.wp_raft__send_vote with "[$Hphys]") as "Hphys".
+      wp_apply (P.wp_raft__send with "[$Hphys]") as "Hphys".
       { done. }
-      { by right. }
-      { apply mtype_of_MsgVoteResp. }
-      { done. }
-      { w32_ne. }
+      { left; exists mtype.VoteResp; split_and!;
+          [by right | apply mtype_of_MsgVoteResp | done | w32_ne | done]. }
       iApply ("HΦ" $! interface.nil _). iFrame "Hphys".
       iPureIntro. split; last done.
       eexists ([abs_msg mtype.Vote m] ++ [abs_msg mtype.Vote m]).

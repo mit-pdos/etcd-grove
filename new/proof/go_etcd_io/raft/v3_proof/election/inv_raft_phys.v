@@ -114,6 +114,13 @@ Definition own_raft_phys_at (r : loc) (id : w64) s (f : func.t) : iProp Σ :=
   "%HnoLearner" ∷ ⌜ rv.(raft.raft.isLearner') = false ⌝ ∗
   "%HnoTransfer" ∷ ⌜ rv.(raft.raft.leadTransferee') = W64 0 ⌝ ∗
   "%Hid_nz" ∷ ⌜ id ≠ W64 0 ⌝ ∗
+  (** [Config.validate] requires [ElectionTick > HeartbeatTick > 0] and
+      [newRaft] copies it, so this is an invariant of every struct raft
+      builds.  It is needed because [resetRandomizedElectionTimeout] passes
+      the field to [crypto/rand.Int], which panics on a non-positive bound
+      -- see [spec_raft__resetRandomizedElectionTimeout.v].  Never written
+      on the election path.  Added 2026-09-20. *)
+  "%HelectionTimeout" ∷ ⌜ 0 < sint.Z rv.(raft.raft.electionTimeout') ⌝ ∗
 
   (** logging, tracing, and everything else *)
   "%Hlok" ∷ ⌜ rv.(raft.raft.logger') = interface.ok lok ⌝ ∗
@@ -152,6 +159,7 @@ Lemma own_raft_phys_at_intro r id s f (rv : raft.raft.t)
   rv.(raft.raft.isLearner') = false →
   rv.(raft.raft.leadTransferee') = W64 0 →
   id ≠ W64 0 →
+  0 < sint.Z rv.(raft.raft.electionTimeout') →
   rv.(raft.raft.logger') = interface.ok lok →
   is_Logger lok -∗
   r ↦ rv -∗
@@ -166,7 +174,7 @@ Lemma own_raft_phys_at_intro r id s f (rv : raft.raft.t)
   own_raft_phys_at r id s f.
 Proof.
   intros Hid Hterm Hvote Hlead Hstate Hstepfn Houtbox HnoPreVote HnoCheckQuorum
-    HnoLearner HnoTransfer Hid_nz Hlok.
+    HnoLearner HnoTransfer Hid_nz HelectionTimeout Hlok.
   iIntros "#Hlogger Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc".
   rewrite /own_raft_phys_at. iExists rv, msgs, msgsAA, lok. iFrame "∗#%".
 Qed.
@@ -185,6 +193,7 @@ Lemma own_raft_phys_intro r id s (rv : raft.raft.t)
   rv.(raft.raft.isLearner') = false →
   rv.(raft.raft.leadTransferee') = W64 0 →
   id ≠ W64 0 →
+  0 < sint.Z rv.(raft.raft.electionTimeout') →
   rv.(raft.raft.logger') = interface.ok lok →
   is_Logger lok -∗
   r ↦ rv -∗

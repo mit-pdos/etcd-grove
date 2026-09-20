@@ -282,13 +282,14 @@ Proof.
         with "[Hr2 Htrk2 Hlog2 Hmsgs2 Hmsgs_cap2 HmsgsAA2 HmsgsAA_cap2 Hmisc2]"
         as "Hphys".
       { rewrite /own_raft_phys. iExists _, _, _, _. iFrame "∗#%". }
-      (* [send]'s five side conditions, in order: [From = 0] (the literal
-         leaves it unset), the type is a vote message, its [mtype_of], the
-         term is nonzero (this is what the no-wrap premise buys), and -- only
-         for a [MsgVote] -- the destination is not this node.  The last is
-         vacuous here: this is the [MsgVoteResp] arm. *)
-      wp_apply (P.wp_raft__send_vote _ _ _ _ _ mtype.VoteResp with "[$Hphys]");
-        [done | by right | apply mtype_of_MsgVoteResp | exact HTnz | w32_ne |].
+      (* [send]'s side conditions: [From = 0] (the literal leaves it unset),
+         and [send_ok]'s vote clause -- the type is a vote message, its
+         [mtype_of], the term is nonzero (this is what the no-wrap premise
+         buys), and -- only for a [MsgVote] -- the destination is not this
+         node.  The last is vacuous here: this is the [MsgVoteResp] arm. *)
+      wp_apply (P.wp_raft__send with "[$Hphys]");
+        [done | left; exists mtype.VoteResp; split_and!;
+                [by right | apply mtype_of_MsgVoteResp | exact HTnz | w32_ne | done] |].
       iIntros "Hphys".
       assert (send_msgs (send_msgs (become_candidate id s)
                            (cmsg <$> take (Z.to_nat (sint.Z n)) xs))
@@ -332,9 +333,10 @@ Proof.
       destruct (decide (t = campaignTransfer)) as [->|Hnt].
       * rewrite bool_decide_eq_true_2 //. wp_auto.
         wp_apply wp_string_to_bytes as "%csl [Hcs Hcs_cap]".
-        wp_apply (P.wp_raft__send_vote _ _ _ _ _ mtype.Vote with "[$Hphys]");
-          [done | by left | apply mtype_of_MsgVote | exact HTnz
-           | intros _; exact Hney |].
+        wp_apply (P.wp_raft__send with "[$Hphys]");
+          [done | left; exists mtype.Vote; split_and!;
+                  [by left | apply mtype_of_MsgVote | exact HTnz
+                   | intros _; exact Hney | done] |].
         iIntros "Hphys".
         iAssert (own_raft_phys cfg r id
                    (send_msgs (become_candidate id s)
@@ -345,9 +347,10 @@ Proof.
         wp_for_post.
         iFrame. iPureIntro. word.
       * rewrite bool_decide_eq_false_2 //. wp_auto.
-        wp_apply (P.wp_raft__send_vote _ _ _ _ _ mtype.Vote with "[$Hphys]");
-          [done | by left | apply mtype_of_MsgVote | exact HTnz
-           | intros _; exact Hney |].
+        wp_apply (P.wp_raft__send with "[$Hphys]");
+          [done | left; exists mtype.Vote; split_and!;
+                  [by left | apply mtype_of_MsgVote | exact HTnz
+                   | intros _; exact Hney | done] |].
         iIntros "Hphys".
         iAssert (own_raft_phys cfg r id
                    (send_msgs (become_candidate id s)
