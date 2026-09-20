@@ -116,12 +116,13 @@ concurrent items edit the same shared file.
 | 3 | `wp_raft__promotable` | 1 | **done** 2026-09-19 (`-vok` RC=0, no shared-file change, no new collection) |
 | 4 | `wp_raft__hasUnappliedConfChanges` — needs `raftLog.scan`/`slice`, `unstable.slice`, `limitSize`, a `Storage.Entries` triple | 1 | in progress (agent, wave 1 started 2026-09-19) |
 | 5 | `wp_raft__resetRandomizedElectionTimeout` — `globalRand` in `is_initialized`, `lockedRand.Intn`, `crypto/rand` + `math/big` assumed | 2 | pending |
-| 6 | `wp_JointConfig__IDs` | 1 | in progress (agent, wave 1 started 2026-09-19) |
+| 6 | `wp_JointConfig__IDs` | 1 | **done** 2026-09-20 (`-vok` RC=0; no shared-file change; carries `proof_JointConfig__IDs_helpers/map_for_range_keep.v`, see item 14) |
 | 7 | `wp_ProgressTracker__Visit` | 1 | in progress (agent, wave 1 started 2026-09-19) |
 | 8 | `wp_ProgressTracker__TallyVotes` — needs item 2; adds `cfg ≠ ∅` to `own_tracker` | 2 | pending |
 | 9 | Generalize `spec_raft__send_vote` into the one `spec_raft__send` (App/Snap/AppResp too); re-prove `campaign` and the `Step_MsgVote_*` helpers | 1 | in progress (agent, wave 1 started 2026-09-19) |
 | 10 | `wp_raft__appendEntry`: `Axiom` → `Qed`, with the no-wrap premise and its `becomeLeader` obligation | 2 | pending, needs 9 |
 | 11 | `wp_raft__bcastAppend` — `Visit` + `sendAppend` → `maybeSendAppend` → `maybeSendSnapshot`, `raftLog.term/entries/snapshot` | 3 | pending, needs 4, 9 |
+| 14 | Framework `theory/map.v`: `wp_map_for_range` **drops the map** (never returns `mref ↦$ m`), and `wp_map_nil_for_range` / `pure_wp_map_nil_len` are closed over the section's `K V` so `tc_solve` can never fire them. Patch drafted by the `IDs` agent; apply between waves (it invalidates ~90 `.vos`), then delete `proof_JointConfig__IDs_helpers/` and use the fixed lemma | between 1 and 2 | pending |
 | — | Ghost layer of `election_protocol.v` (12 axioms) | — | out of scope for this pass |
 | 13 | Final: `-vok` of the whole election tree, `tcb-report`, `check-module-discipline`, notes | 4 | pending |
 
@@ -407,6 +408,14 @@ under "not trusted" alongside the 43 internal function specs. Only one
 collection, `raft__Step`, is exported. See
 [decisions.md](decisions.md) for what counts as the TCB and why, including
 what the tool cannot see.
+
+**A framework `Admitted` sits under the array proofs.** `into_val_typed_array`
+(`new/golang/theory/array.v`, the `IntoValTypedUnderlying` instance for
+`array.t`) is `Admitted` with three `admit`s. `wp_JointConfig__IDs` reads
+the `[2]MajorityConfig` value out of `trk ↦ tv` through it (the element
+loads themselves go through the `Qed` `typed_pointsto_array`). It is outside
+the raft tree, so `tcb-report` does not count it; it is part of what has to
+be believed until someone proves it.
 
 **`Print Assumptions` is still not available as a cross-check.** Over a
 `.vos` tree it under-reports — it sees axioms reachable from *statements* but

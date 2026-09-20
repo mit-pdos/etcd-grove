@@ -1,4 +1,9 @@
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.postulates_JointConfig__IDs.
+(* [wp_map_for_range_keep] (the framework's [wp_map_for_range] with the map's
+   ownership handed back) and the [wp_map_nil_for_range] instance that
+   [wp_auto] can actually find; see the header of that file for why both are
+   here and not in [new/golang/theory/map.v]. *)
+Require Import New.proof.go_etcd_io.raft.v3_proof.election.proof_JointConfig__IDs_helpers.map_for_range_keep.
 
 Module JointConfigIDsProof (P : JOINTCONFIG__IDS_POSTULATES) : JOINTCONFIG__IDS.
 
@@ -11,8 +16,6 @@ Module JointConfigIDsProof (P : JOINTCONFIG__IDS_POSTULATES) : JOINTCONFIG__IDS.
   Proof.
     intros_ambient.
     intros cfg.
-
-    (* Everything down to the [Admitted] is machine-checked. *)
     intros trk tv votes.
     wp_start as "[Htrk Hown]". iNamed "Hown".
     (* [wp_auto] reads [r.trk.Config.Voters] out of [trk ↦ tv] and reduces the
@@ -22,8 +25,7 @@ Module JointConfigIDsProof (P : JOINTCONFIG__IDS_POSTULATES) : JOINTCONFIG__IDS.
        [λ: "$r", MethodResolve JointConfig "IDs" (![JointConfig] "$r")], so the
        first call enters the wrapper and the second enters [JointConfig__IDsⁱᵐᵖˡ].
        A single [wp_call] leaves [WP quorum.JointConfig__IDsⁱᵐᵖˡ …] and the next
-       [wp_auto] then reports "Failed to progress", which looks like the stuck
-       point below but is not. *)
+       [wp_auto] then reports "Failed to progress". *)
     wp_method_call. wp_call. wp_call.
     (* [GoAlloc JointConfig] gives ["c" ∷ c_ptr ↦ tv.(Config').(Voters')]; note
        this does *not* hit the [alloc_array ⤳ AngelicExit] escape hatch. *)
@@ -31,19 +33,63 @@ Module JointConfigIDsProof (P : JOINTCONFIG__IDS_POSTULATES) : JOINTCONFIG__IDS.
     (* [m := map[uint64]struct{}{}] *)
     wp_apply wp_map_make1. iIntros "%mref Hmref".
     wp_auto.
-    (* The array index steps now.  The [wp_auto] above reduced
-       [IndexRef quorum.JointConfig (# c_ptr, # (W64 0))] to
-       [# (array_index_ref map.t 0 c_ptr)] and stopped at the *load* of it:
-
-         let: "$range" := ![quorum.MajorityConfig]
-                            (# (array_index_ref map.t 0 c_ptr)) in
-         (let: "id" := GoAlloc go.uint64 … in map.for_range … ) ;;;
-         (the same at index 1, IndexRef not yet stepped) ;;;
-         return: ![go.MapType go.uint64 (go.StructType [])] (# m_ptr)
-
-       That load is an ownership obligation, not a missing rule: use
-       [array_acc] on ["c"] to peel element 0 off, with [Hvoters_arr] for the
-       lookup side condition.  See [spec_JointConfig__IDs.v] for the rest. *)
-  Admitted.
+    (* [c[0]]: [wp_auto] has reduced [IndexRef JointConfig (#c_ptr, #(W64 0))]
+       to [#(array_index_ref map.t 0 c_ptr)] and stopped at the load of it.
+       Peel element 0 off the array; [Hvoters_arr] says it is [voters_ref]. *)
+    iDestruct (array_acc _ 0 with "c") as "[Hc0 Hcback]".
+    { done. }
+    { rewrite Hvoters_arr. done. }
+    wp_auto.
+    (* [for id := range c[0] { m[id] = struct{}{} }].  The invariant carries
+       [dom] of the partial map: after [i] iterations it is the first [i]
+       keys of the enumeration.  [id] is the loop variable, assigned every
+       iteration, so it is existentially quantified inside the invariant. *)
+    set (Pmap := (λ (keys : list w64) (i : Z),
+      ∃ (x : w64) (idm : gmap w64 unit),
+        "%Hi" ∷ ⌜ 0 ≤ i ⌝ ∗
+        "%Hidm" ∷ ⌜ dom idm = list_to_set (take (Z.to_nat i) keys) ⌝ ∗
+        "id" ∷ id_ptr ↦ x ∗
+        "m" ∷ m_ptr ↦ mref ∗
+        "Hmref" ∷ mref ↦$ idm)%I).
+    wp_apply (wp_map_for_range_keep Pmap with "Hvoters").
+    iIntros (keys) "(%Hkset & %Hklen & %Hknodup)".
+    iSplitL "id m Hmref".
+    { rewrite /Pmap. iExists (W64 0), ∅. rewrite take_0. iFrame.
+      iPureIntro. split; [lia|]. rewrite dom_empty_L //. }
+    iSplitL "".
+    { iIntros "!>" (i key vv) "[%Hkey %Hvv] HP". rewrite /Pmap. iNamed "HP".
+      wp_auto.
+      wp_apply (wp_map_insert with "Hmref"). iIntros "Hmref".
+      wp_auto.
+      iRight. iLeft. iSplitR; first done.
+      iExists key, _. iFrame.
+      iPureIntro. split; first lia.
+      assert (Z.to_nat (i + 1) = S (Z.to_nat i)) as Hsucc by lia.
+      rewrite Hsucc (take_S_r _ _ _ Hkey) list_to_set_app_L dom_insert_L Hidm.
+      set_solver. }
+    (* the range is over: [dom idm] is every key, i.e. [dom voters = cfg] *)
+    iIntros "HP Hvoters". rewrite /Pmap. iNamed "HP".
+    rewrite Nat2Z.id -Hklen firstn_all in Hidm.
+    (* [c[1]]: put element 0 back, peel element 1 off; it is [map.nil], and
+       ranging over the nil map is the pure step [wp_map_nil_for_range_w64],
+       which [wp_auto] takes once the loop variable is allocated. *)
+    iDestruct ("Hcback" with "Hc0") as "c".
+    rewrite Hvoters_arr /=.
+    iDestruct (array_acc _ 1 with "c") as "[Hc1 Hcback]".
+    { done. }
+    { done. }
+    wp_auto.
+    wp_alloc id2_ptr as "id2".
+    wp_auto.
+    (* [return m] *)
+    (* [iFrame "Hmref"] before the split would be matched against
+       [own_tracker]'s own [voters_ref ↦$ voters]; re-seal the tracker first. *)
+    iApply "HΦ". iFrame "Htrk".
+    iSplitL "Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext".
+    { rewrite /own_tracker. iExists prs, voters_ref, voters, learners, learnersNext.
+      iFrame "∗%". }
+    iFrame "Hmref".
+    iPureIntro. rewrite Hidm Hkset Hvoters_dom //.
+  Qed.
 
 End JointConfigIDsProof.
