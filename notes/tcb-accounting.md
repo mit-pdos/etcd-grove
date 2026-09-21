@@ -83,32 +83,34 @@ tool labels *"binders, and Perennial/stdpp/Rocq constants"*. Under
 `--scope election` that bucket also swallows `nstate.t`, `step`,
 `own_raft_ghost` and `is_message`.
 
-### G3. The theorem the work is for is out of scope, and is currently vacuous
+### G3. The one exported spec is vacuous under the trivial ghost model, and nothing says so
 
-`raft_election_safety` lives in `v3_proof/election.v`, one level above the
-scope directory, so `--scope election --view surface` reports exactly one
-externally-facing result: `wp_raft__Step_body`. The payoff theorem is not
-in the report at all.
+The result this development is for is `wp_raft__Step` — a Hoare triple on a
+Go function — and `--scope election --view surface` correctly reports
+`wp_raft__Step_body` as the sole externally-facing statement.
+`raft_election_safety` is an internal sanity check on the model, not the
+payoff ([decisions.md](decisions.md), 2026-09-21), so its absence from that
+surface is right, and an earlier version of this file was wrong to call it a
+gap.
 
-Worse, it cannot yet mean anything. Its proof
-(`election.v:136-147`) is three lines over `own_raft_ghost_is_leader` and
-`is_leader_unique`, both axioms; `own_raft_ghost`, `is_message` and
-`is_leader` are themselves `Axiom`s, and **`election_protocol.v` contains no
-allocation or initialisation axiom producing `own_raft_ghost` from
-anything.** Instantiating
+The real problem is that the exported triple cannot yet mean anything.
+`own_raft_ghost`, `is_message` and `is_leader` are `Axiom`s, and
+**`election_protocol.v` contains no allocation or initialisation axiom
+producing `own_raft_ghost` from anything.** Instantiating
 
     own_raft_ghost γ id s := False        is_leader γ id t := False
 
 satisfies all twelve axioms — exclusivity, the step obligation, the outbox
 obligation, uniqueness, the timeless and persistent instances. Under that
-model `raft_election_safety` is trivial, and so is `wp_raft__Step`, whose
-precondition owns `own_raft_ghost`.
+model `wp_raft__Step`'s precondition is `False`, so the triple holds
+trivially; so does `raft_election_safety`, which is why the corollary cannot
+do its sanity-check job either.
 
 This is not news — it is next step #4 in `STATUS.md`, "construct
 `own_raft_ghost` / `is_message` rather than axiomatizing them". The point
 here is narrower: **no output of `tcb-report.py` would lead a reader to
 discover it**, and the scoped run reads as though the development were
-nearly closed.
+nearly closed. Gap-closing item 2 below is the cheap fix.
 
 ### G4. An `Admitted` is labelled more benignly than it is
 
@@ -213,8 +215,10 @@ scanner and need no build.
    work.
 6. **Cross-check against `Print Assumptions` (G1, G7).** Add
    `v3_proof/assumptions.v` containing nothing but
-   `Print Assumptions Election.raft_election_safety.` and the same for
-   `wp_raft__Step`, reached from `should_build.v`. CI already does a full
+   `Print Assumptions` for each **top-level function spec** — today
+   `wp_raft__Step`, and `wp_Node__Propose` from `v3.v` — reached from
+   `should_build.v`. Those triples are the result (decisions.md,
+   2026-09-21), so they are what ground truth has to be taken at. CI already does a full
    `.vo` build, so archiving that output is nearly free. Then
    `tcb-report.py --compare-print-assumptions <file>` diffs ground truth
    against the syntactic estimate and reports names on one side only. **This
@@ -235,6 +239,6 @@ When quoting the trust base, quote **the full-tree run**
 (`etc/tcb-report.py` with no `--scope`), which on
 `worktree-election-close-admits` says *43 assumed — 8 `Admitted`, 35
 `Axiom` — 80 definitions, 953 lines, 6.2% of the development*, and say in the
-same breath that the numbers are syntactic and that election safety rests on
-an un-constructed ghost state. A `--scope election` figure quoted on its own
+same breath that the numbers are syntactic and that the exported triple
+`wp_raft__Step` rests on an un-constructed ghost state. A `--scope election` figure quoted on its own
 is misleading in three independent ways (G2, G3, G4).

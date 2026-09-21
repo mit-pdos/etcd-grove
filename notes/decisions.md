@@ -387,7 +387,7 @@ asserting it was assuming log replication, not election.
 `votes`, and no rule reads an `App`'s payload. A receiver only ever consumes
 an `App` through `step_higher_term`, which cares about its term and that a
 leader sent it — both still pinned. So the weaker rule refines the code and
-supports the same payoff theorem.
+supports the same election-safety check.
 
 **Do not strengthen it back** without first making `own_raftLog` and
 `Progress.State` transparent enough to prove the broadcast exactly. The
@@ -1019,3 +1019,53 @@ tracker value as an extra postcondition equation (`rv'.(trk') = rv.(trk')`)
 call that demands `own_raftLog`. Indexing `own_raft_phys` by the tracker
 and log values everywhere — 95 call sites for no gain above `send`.
 
+---
+
+## 2026-09-21 — the result is verified specs for top-level raft functions; election safety is not the payoff
+
+This answers what `STATUS.md` carried as open next step #5, "decide what the
+top-level Raft correctness statement should be".
+
+**The object of study is code.** What this development is for is a Hoare
+triple on each function an etcd caller actually calls — the `node` interface
+(`Propose`, `Ready`, `Advance`, `Step`, `Campaign`, `Tick`) and `raft.Step`
+beneath it — each saying what running that Go function does to the state it
+owns. That is the deliverable, and it is the only thing a client of this
+proof consumes.
+
+**`raft_election_safety` is not the payoff.** It is an internal lemma, and
+calling it the payoff — which `election.v`, `election_protocol.v`,
+`raft-election-refinement.md` and `raft-proof-map.md` all did until today —
+gets the shape of the work backwards. Delete the corollary and no
+verification claim about etcd's code is weaker; delete `wp_raft__Step` and
+there is nothing left. The protocol layer of `election_protocol.v`, the
+refinement obligation and the whole election development exist **in service
+of** the function specs: they are how a triple about `Step` gets to say
+something stronger than "the struct fields changed".
+
+What the corollary is genuinely for is a **sanity check on the model** — it
+shows that `nstate.t` and `step` are strong enough to entail the property
+raft exists to provide, which is evidence the abstraction was not defined
+into triviality. That is worth having. It is not the result.
+
+**Consequences, in the order they bite:**
+
+1. **What belongs on the exported surface is the function specs.**
+   `etc/tcb-report.py --view surface` reporting `wp_raft__Step_body` as the
+   sole externally-facing result of the election development is *correct*,
+   not an omission. A theorem like `raft_election_safety` that nothing calls
+   is a leaf, and the tool counting it as one is right.
+2. **A protocol-level property earns its place only when a function spec or
+   its client needs it.** Do not add protocol theorems for their own sake.
+3. **"Is the proof done?" is answered by reading the triples**, not by
+   counting theorems or admits — which is the same point
+   [tcb-accounting.md](tcb-accounting.md) makes from the tooling side.
+4. The corollary cannot even do its sanity-check job while the ghost state is
+   axiomatized: with no allocation axiom for `own_raft_ghost`, the trivial
+   model satisfies every axiom in the `Section ghost` block and the corollary
+   holds vacuously. Constructing that ghost state (next step #4) is what
+   turns the check into a real one.
+5. **The top-level statement is still owed for the rest of the `node`
+   interface.** `v3.v` covers `Propose`; `protocol.v` axiomatizes `Ready` and
+   `Advance`. Those triples, discharged against the translated code, are the
+   remaining shape of the answer — not a new theorem above them.

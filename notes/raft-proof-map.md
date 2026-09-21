@@ -112,7 +112,9 @@ Added 2026-09-12. The protocol state machine: a node state is
 `(term, vote, lead, role, votes)`, the `Inductive step` relation is
 reflexive-transitive by construction, and `Section ghost` (lines 243–289)
 axiomatizes `own_raft_ghost` / `is_message` along with the one refinement
-obligation `own_raft_ghost_step` and the payoff `is_leader_unique`.
+obligation `own_raft_ghost_step` and `is_leader_unique`, which backs the
+election-safety sanity check (not the payoff — see [decisions.md](decisions.md),
+2026-09-21).
 
 The log is deliberately absent from the protocol model — `isUpToDate` can only
 make a node decline to vote, and declining is always protocol-legal.

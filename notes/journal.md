@@ -2499,3 +2499,53 @@ the tool in the notes covers it.
 
 **Nothing was changed in the tool or the proofs.** The audit is the
 deliverable; the plan is unclaimed.
+
+---
+
+## 2026-09-21 (later) — election safety is not the payoff; the result is verified function specs
+
+Claude Opus 5 (background job), same branch `worktree-tcb-report-audit`.
+Correcting a framing the notes, the two protocol `.v` files and the earlier
+entry above all shared, at Upamanyu's direction.
+
+**The point.** This development verifies *code*. The result is a Hoare
+triple on each function an etcd caller calls — `raft.Step`, and the `node`
+interface above it. `raft_election_safety` is an **internal lemma**: a
+sanity check that `nstate.t` and `step` entail the property raft exists to
+provide, and so were not defined into triviality. Delete the corollary and
+no claim about etcd's code is weaker; delete `wp_raft__Step` and there is
+nothing left. Protocol-level theorems are in service of the function specs,
+not the other way round.
+
+This answers what `STATUS.md` had carried as open next step #5 ("decide what
+the top-level Raft correctness statement should be"), so that item is now a
+pointer to the new decision record rather than a question.
+
+**Changed** — comments and prose only, no proof text:
+
+- `notes/decisions.md` — new record at the end, with the five consequences.
+  Also one stale phrase at the old scope decision ("supports the same payoff
+  theorem" → "election-safety check").
+- `notes/STATUS.md` — next step #5 answered; next step #4 now says what is
+  actually at stake (the exported `wp_raft__Step` is vacuous, not merely the
+  corollary); the trust-base sentence reworded to name `wp_raft__Step`.
+- `notes/raft-election-refinement.md`, `notes/raft-proof-map.md` — both
+  called it the payoff; both now say sanity check and point at the decision.
+- `notes/tcb-accounting.md` — **G3 was wrong and is rewritten.** It had
+  faulted `tcb-report.py` for not surfacing `raft_election_safety`. Under
+  the correct framing the tool is right: the exported result of the election
+  development *is* `wp_raft__Step_body`, and a theorem nothing calls is a
+  leaf. The real gap is unchanged and sharper — that exported triple is
+  vacuous under the trivial ghost model and no output says so. The Slice 2
+  `Print Assumptions` item now names the function specs as what ground truth
+  must be taken at.
+- `v3_proof/election.v` and `v3_proof/election_protocol.v` — the three
+  header comments that said "payoff". Verified comment-only: delimiters and
+  string quotes balance, and both diffs sit entirely inside `(** … *)`
+  blocks. The `election.v` block is byte-identical on
+  `worktree-election-close-admits`, which does not touch it, so this merges
+  cleanly into the in-flight branch.
+
+**Not changed:** `election_protocol.v`'s scope note that "the point of the
+model is election safety" was reworded, but no axiom, definition or proof
+moved. Nothing needs re-checking.

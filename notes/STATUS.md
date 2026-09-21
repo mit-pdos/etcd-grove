@@ -419,8 +419,8 @@ As of 2026-09-18 it reports, over the whole raft proof: **45 assumed** — 31
 are properties of the model, and 14 are opaque declarations — against **85
 definitions, 651 lines**, reached from the exported statements. That last
 number is the one a count of axioms misses and is the larger half of the
-trust base: `raft_election_safety` says nothing if `nstate.t` or
-`own_raft_ghost` is wrong, and neither is an axiom. Total 866 lines, 9.8% of
+trust base: `wp_raft__Step` says nothing if `nstate.t`, `own_raft_phys` or
+`own_raft_ghost` is wrong, and none of them is an axiom. Total 866 lines, 9.8% of
 the development. On the election path alone: 6 axioms, 7 admits, 43
 definitions.
 
@@ -484,11 +484,16 @@ Unclaimed; pick one and say so in the journal.
    path — and then `wp_raft__bcastAppend`, which is really log replication.
 4. Construct `own_raft_ghost` / `is_message` rather than axiomatizing them,
    discharging `own_raft_ghost_step`, `own_raft_ghost_outbox` and
-   `is_leader_unique`. Until that is done the election-safety corollary rests
-   on an axiom. This is 12 of the 44 axioms, the `Section ghost` block in
-   `election_protocol.v`.
-5. Decide what the top-level Raft correctness statement should be (beyond
-   election safety), and write it down as a decision record.
+   `is_leader_unique`. Until that is done the block has no allocation lemma,
+   so the trivial model satisfies all of it and **the exported
+   `wp_raft__Step` is vacuous** — as is the election-safety corollary, which
+   therefore cannot serve as the model's sanity check either. This is 12 of
+   the 44 axioms, the `Section ghost` block in `election_protocol.v`.
+5. *(Decided 2026-09-21, see [decisions.md](decisions.md).)* The result is
+   **verified specs for the top-level raft functions** — a Hoare triple on
+   each function an etcd caller calls. `raft_election_safety` is an internal
+   sanity check on the model, not the payoff. What is left of this item is
+   the work in 6 and 7, not a new theorem.
 6. Discharge the `Section axioms` in `v3_proof/protocol.v` against the actual
    translated code in `new/code/go_etcd_io/raft/v3/`, or record why each axiom
    stays an axiom.

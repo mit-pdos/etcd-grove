@@ -129,10 +129,21 @@ Set Default Proof Using "W".
 Implicit Type γ : raft_election_names.
 Implicit Type s : nstate.t.
 
-(** ** Payoff: election safety.
+(** ** Sanity check on the model: election safety.
 
     Two nodes that [Step] leaves in the leader role in the same term are the
-    same node. *)
+    same node.
+
+    This is **not** the result of the development -- [Step.wp_raft__Step],
+    reached through [link_raft__Step] above, is, along with the other
+    top-level function specs.  A verified spec for a Go
+    function is what a client of this proof consumes; a protocol-level
+    theorem is an internal detail in service of one.  What this corollary is
+    for is evidence that [nstate.t] and [step] entail the property raft
+    exists to provide, and so were not defined into triviality.  It cannot
+    yet serve even that purpose: the [Section ghost] axioms of
+    [election_protocol.v] have no allocation lemma, so the trivial model
+    satisfies them all.  See notes/decisions.md, 2026-09-21. *)
 Corollary raft_election_safety γ id1 id2 s1 s2 :
   s1.(nstate.role) = role.Leader →
   s2.(nstate.role) = role.Leader →

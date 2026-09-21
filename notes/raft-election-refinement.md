@@ -36,8 +36,13 @@ of the protocol state machine, justified only by messages that were
 legitimately on the network. That is `Step.wp_raft__Step`, specified in
 `election/spec_raft__Step.v`.
 
-The payoff is `raft_election_safety`: two nodes whose ghost state says
-"leader in term t" are the same node.
+`raft_election_safety` — two nodes whose ghost state says "leader in term
+t" are the same node — is **not** the payoff, despite where it sits in the
+file. It is an internal sanity check on the model: evidence that `nstate.t`
+and `step` are strong enough to entail the property raft exists to provide,
+and so were not defined into triviality. The result this development is for
+is the triple above, and the other top-level function specs beside it. See
+[decisions.md](decisions.md), 2026-09-21.
 
 ## Scope
 

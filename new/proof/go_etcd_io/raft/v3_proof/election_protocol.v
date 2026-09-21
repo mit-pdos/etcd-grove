@@ -29,8 +29,13 @@
     in this model at all: a node's protocol state is
     [(term, vote, lead, role, votes, outbox)].
 
-    The point of the model is election safety — at most one leader per term —
-    which is recorded as [is_leader_unique] below. *)
+    The model exists to make a spec of raft's *code* say something:
+    [election.v]'s [wp_raft__Step] is a triple about a Go function, and what
+    lifts it above "the struct fields changed" is that the states it moves
+    between are states of this machine.  That the machine entails election
+    safety — at most one leader per term, recorded as [is_leader_unique]
+    below — is the check that it was not defined into triviality, not the
+    result.  See notes/decisions.md, 2026-09-21. *)
 
 From RecordUpdate Require Import RecordSet.
 Require Export New.proof.proof_prelude.
@@ -306,7 +311,8 @@ End model.
     by an invariant" development; what a client needs from that construction
     is [own_raft_ghost_step] (the refinement obligation, which [election.v]
     discharges against the Go code), [own_raft_ghost_outbox] (the invariant's
-    outbox conjunct, read out) and [is_leader_unique] (the payoff). *)
+    outbox conjunct, read out) and [is_leader_unique] (the model's sanity
+    check). *)
 
 Section ghost.
 Context `{!invGS Σ}.
