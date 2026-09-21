@@ -1290,3 +1290,28 @@ and every exit of the loop closes with one line. `wp_map_for_range` does
 this now; any other `theory/` lemma that drops ownership across a read pair
 wants the same shape.
 
+## Never write a Go pointer type as `(*T)` inside a Rocq comment
+
+`(*` opens a nested comment; the file then fails with `Syntax Error: Lexer:
+Unterminated comment`, and because `.rocqdeps.d` is global it breaks `make`
+for everyone sharing the checkout. Write `*T` or `(go.PointerType T)`.
+(`base.v`, 2026-09-21, ten minutes of everyone's time.)
+
+## Storing into a slice element: give `wp_store_slice_index` the value, then `wp_auto`
+
+`wp_store_slice_index … _ _ _ (tracker.inflight.mk index bytes) with "[$Hbuf]"`:
+left as an evar, `# ?v'` does not unify with the struct literal and `iApply`
+"cannot apply". And after `rewrite decide_True; last word` the goal is a
+`GoStore` of a `Pair (Val …) (Val …)`, while the lemma is stated at a value
+pair; one `wp_auto` collapses it first. Conversely `wp_slice_make2` and
+`wp_slice_copy` already step the store/field write/`return:` that follow
+them — a `wp_auto` after them "Fails to progress". (`Inflights.grow`, 2026-09-21.)
+
+## `iNamed` the ownership predicate before the `wp_auto` that reads its fields
+
+Otherwise `wp_auto` stalls halfway through a field read, leaving a bare
+`![go.int] (# l.[tracker.Inflights.t, "start"])` that looks like a missing
+instance but is a missing hypothesis. A top-level `Ltac` cannot mention the
+lemma's local variables — pass them as arguments; `Local Ltac` inside a
+functor ascribed to a `Module Type` is fine.
+

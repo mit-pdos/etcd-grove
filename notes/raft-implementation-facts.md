@@ -262,3 +262,14 @@ caller's entries, so the caller's `Type` lands in the log —
   Probe/Replicate. `Storage.Snapshot`'s callers panic on any error other
   than `ErrSnapshotTemporarilyUnavailable` and on an empty snapshot.
 
+## `Inflights.grow` allocates one slot past the ring when `size = 0` (2026-09-21)
+
+`newSize := 2*len(buffer); if newSize == 0 { newSize = 1 } else if newSize > size
+{ newSize = size }` — the cap at `size` is in the `else` arm, so with
+`size = 0` (hence an empty buffer) it allocates one slot, breaking
+`len(buffer) ≤ size`. `Add` never reaches `grow` in that state (`Full()` is
+true at `size = 0`), so the `grow` triple carries `len(buf) < size` as a
+premise and the call site discharges it. In `Add` itself, when the ring
+wraps (`start + count ≥ size`) the buffer is already full-length, so the
+"wrap and grow" case is unreachable.
+

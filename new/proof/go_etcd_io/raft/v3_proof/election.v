@@ -92,10 +92,15 @@ Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raftLog__append.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__appendEntry.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_Progress__IsPaused.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_Inflights__Full.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_Inflights__grow.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_Inflights__Add.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_Progress__SentEntries.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_Progress__SentCommit.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raftLog__entries.
+(* [maybeSendSnapshot]'s callees. *)
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raftLog__snapshot.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_IsEmptySnap.
+Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_Progress__BecomeSnapshot.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__maybeSendSnapshot.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__maybeSendAppend.
 Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_raft__sendAppend.
