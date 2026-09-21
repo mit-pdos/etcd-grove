@@ -287,3 +287,15 @@ afterwards (`prev.index + 1 ≤ pr.Next`); the two named errors are not in the
 postcondition because `is_initialized`'s globals are existential inside
 `is_pkg_init raft` and no caller tests which error it is.
 
+## `maybeSendSnapshot`, checked against the body (2026-09-21)
+
+The `MsgSnap` literal has `To := to`, `Type := 7`, `From := 0`, `Term := 0`,
+so `send_ok`'s third clause applies verbatim and the abstract outbox is
+unchanged. Its `Snapshot` field is the **address of the local `snapshot`
+variable**, not a copy: raft hands a pointer into the caller's frame to
+`send`. Nothing in the current model observes it; a later `MsgSnap`-aware
+model must not get it wrong. `raftLog.snapshot`'s unstable early return is
+dead under `own_raftLog_at`'s `Hnosnap`, so every snapshot on the election
+path comes from the client `Storage`. `Progress.BecomeSnapshot` keeps
+`progress_state_ok` (`StateSnapshot = 2`).
+

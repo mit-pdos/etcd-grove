@@ -80,6 +80,43 @@ Definition is_rand_initialized : iProp Σ :=
 Definition is_lockedRand (lr : loc) : iProp Σ :=
   "#Hmu" ∷ is_Mutex (lr.[raft.lockedRand.t, "mu"]) True.
 
+(** An [error] value shaped the way [errors.New] builds one: an interface
+    holding a **pointer**.
+
+    Why this is needed, and why it is not decoration.  Go's interface
+    equality is not a [bool_decide]: [new/golang/defn/interface.v]'s
+    [go_eq_interface] reduces [i1 == i2] for two non-[nil] values to
+
+      if decide (i1.ty = i2.ty)
+      then CheckComparable i1.ty ;; GoOp GoEquals i1.ty (i1.v, i2.v)
+      else #false
+
+    and [CheckComparable t] has a reduction only for the types Goose knows
+    to be comparable.  For an *unknown* dynamic type there is none, so a
+    proof that reaches [err == ErrX] with [err] non-[nil] is **stuck** -- it
+    cannot even step, let alone decide the branch.  That is exactly what
+    [raft.maybeSendSnapshot] does with
+    [ErrSnapshotTemporarilyUnavailable] (new/code/go_etcd_io/raft/v3.v:3188).
+    [proof_raftLog__slice.v] compares against [ErrCompacted] and
+    [ErrUnavailable] and does *not* need this, only because there [err] is
+    [interface.nil] and the [nil]/[ok] case of [go_eq_interface] answers
+    [false] outright.
+
+    The claim is true of the value the package initializer installs:
+    [errors.New] ([new/code/errors.v:48]) returns
+    [Convert (go.PointerType errorString) go.error (GoAlloc errorString …)],
+    and [convert_to_interface] turns that into
+    [interface.mk_ok (go.PointerType errors.errorString) #p].  The type is
+    left existential here rather than pinned to [errors.errorString],
+    because all the comparison needs is that it is *a* pointer type:
+    [check_comparable_pointer] ([new/golang/defn/postlang.v]) fires for
+    every [go.PointerType], and [go_eq_pointer] then makes the comparison
+    [bool_decide (p1 = p2)].
+
+    Added 2026-09-21 for [wp_raft__maybeSendSnapshot]. *)
+Definition is_new_error (e : interface.t) : Prop :=
+  ∃ (t : go.type) (p : loc), e = interface.mk_ok (go.PointerType t) #p.
+
 Definition is_initialized : iProp Σ :=
   ∃ errStopped errCompacted errUnavailable errSnapUnavail (globalRand : loc),
     "ErrStopped" ∷ (global_addr raft.ErrStopped) ↦□ errStopped ∗
@@ -91,6 +128,10 @@ Definition is_initialized : iProp Σ :=
     "ErrSnapUnavail" ∷
         (global_addr raft.ErrSnapshotTemporarilyUnavailable) ↦□ errSnapUnavail ∗
     "%HErrSnapUnavail" ∷ ⌜ errSnapUnavail ≠ interface.nil ⌝ ∗
+    (** and, unlike the other three, [maybeSendSnapshot] *compares* a
+        non-[nil] error against it, which needs the dynamic type to be
+        comparable -- see [is_new_error] above. *)
+    "%HErrSnapUnavail_new" ∷ ⌜ is_new_error errSnapUnavail ⌝ ∗
     "ErrCompacted" ∷ (global_addr raft.ErrCompacted) ↦□ errCompacted ∗
     "%HErrCompacted" ∷ ⌜ errCompacted ≠ interface.nil ⌝ ∗
     "ErrUnavailable" ∷ (global_addr raft.ErrUnavailable) ↦□ errUnavailable ∗

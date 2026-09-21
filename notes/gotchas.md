@@ -1332,3 +1332,26 @@ contend for 8 cores; a `-vok` run that would take 2 min takes 20. The
 such cascades. When a wave has a shared-file edit in it, run that item
 alone first.
 
+## Comparing two non-nil Go errors: the `CheckComparable` wall
+
+`go_eq_interface` (new/golang/defn/interface.v) is
+`if decide (i1.ty = i2.ty) then CheckComparable i1.ty ;; GoOp GoEquals i1.ty (i1.v, i2.v) else #false`,
+and `CheckComparable t` steps only for types Goose knows are comparable.
+With an *unknown* dynamic type `wp_auto` parks on
+`if decide (i.ty = i.ty) then CheckComparable i.ty ;; …` with no error
+message. Comparisons against `ErrCompacted`/`ErrUnavailable` in `slice`
+needed nothing only because the error there is `interface.nil`. For a
+non-nil error you need its dynamic type to be a pointer type:
+`is_initialized` (base.v) now carries `is_new_error errSnapUnavail`
+(`∃ t p, e = interface.mk_ok (go.PointerType t) #p`, true of what
+`errors.New` installs); then `check_comparable_pointer` fires and
+`go_eq_pointer` gives `bool_decide (p1 = p2)`. Add the same clause for the
+other error globals when a proof compares against them. (2026-09-21.)
+
+## `is_pkg_init_access … as "@"` hands the globals out spatially
+
+Framing one into a callee (`with "[$Hlog $ErrX]"`) consumes it even though
+it is `↦□`, and the *next* load of that global leaves `wp_auto` parked with
+no error. `iDestruct "ErrX" as "#ErrX".` right after the access moves it
+into the persistent context.
+
