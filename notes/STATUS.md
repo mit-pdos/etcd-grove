@@ -555,19 +555,11 @@ or an `Admitted`.**
   fixed on 2026-09-19 (nil case in `go.len_map`, `pure_wp_map_nil_len`).
   `bugs/` is where tooling defects go; an unfinished proof is not one.
 
-- **`ruff check` fails: 64 errors.** Pre-existing on this commit, in
-  `etc/*.py`, `new/etc/update-goose-new.py`, `new/experiments/gencongruence.py`
-  and `new/proof/.../logatom/paradox.py` — none of it related to the etcd work.
-  Ruff was bumped 0.16.0 → 0.16.5 just before the fork (commit `3352ef9a7`) and
-  0.16's wider default rule set now flags these (`I001`, `UP0xx`, `PLW1510`,
-  `BLE001`, …). `ruff format` passes.
-
-  This matters now because CI never actually ran in this fork until
-  2026-09-11 (every workflow triggered on `master`; the default branch is
-  `main`), so the `python` job will go red on the first push. 47 of the 64 are
-  `ruff --fix`-able, but **do not blind-fix**: `PLW1510` wants an explicit
-  `check=` on `subprocess.run`, which changes behaviour. Fix deliberately, in
-  its own commit, or pin the rule set in `pyproject.toml`'s `[tool.ruff]`.
+- ~~**`ruff check` fails: 64 errors.**~~ Fixed 2026-09-19; see that day's
+  second journal entry for the two that needed a decision rather than a
+  keystroke. Both python CI jobs are green — `ruff check .` and
+  `ruff format --check .` over 42 files, re-confirmed 2026-09-21. Keep them
+  that way: run both before pushing a change under `etc/` or `new/etc/`.
 
 ## Standing facts
 
@@ -580,6 +572,11 @@ or an `Admitted`.**
 - Faster inner loop: `make vos` for interface files, or
   `make new/proof/go_etcd_io/raft/v3.required_vos` to build just what a file
   depends on. See `CONTRIBUTING.md`.
+- **Every build prints a per-file time** — a `ROCQ TIME <secs> <mode> <file>`
+  line as each file finishes — and records it in `.timing.sqlite3`, keyed on
+  the file *and* the build mode. `make timing-report` ranks the bottlenecks;
+  `make TIMING_MIN=10` prints only the slow ones. Numbers from before
+  2026-09-21 conflate `vo` and `vok` — see [gotchas.md](gotchas.md).
 - The Go module path here is still `github.com/mit-pdos/perennial` and the Rocq
   logical paths are still `Perennial`/`New`, on purpose — see
   [decisions.md](decisions.md).

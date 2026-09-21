@@ -1385,3 +1385,18 @@ point with different resources, package the differences into one
 differs existentially, and `iNamed` it in the shared tail (`msa_pkg` in
 `proof_raft__maybeSendAppend.v`).
 
+
+## Build timings recorded before 2026-09-21 mix `vo` and `vok`
+
+`.timing.sqlite3`'s `file_timings` table was keyed on the filename alone,
+with an `is_vos` flag, so a `vok` build overwrote the `vo` timing for the
+same file and nothing afterwards could tell which of the two a number came
+from. Since the inner loop is `make <file>.vok` and the numbers people quote
+are `vo` numbers, the older figures understate `vo` cost by an unknown
+amount — do not compare a pre-2026-09-21 figure against one taken since.
+
+The table is now keyed on `(fname, mode)` with `mode` one of `vo`/`vos`/`vok`,
+and `etc/rocqc.py` migrates an old database in place the first time it writes
+to it. Legacy rows keep the only labels they can support: `vos`, or `vo` for
+everything else. `etc/timing-report.py --mode vok` on a freshly migrated
+database is therefore empty until something is rebuilt.

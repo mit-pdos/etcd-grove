@@ -2356,3 +2356,78 @@ of STATUS.md's "In flight". The ghost layer itself is out of scope here.
   `proof_` file, a `(*T)` inside a Rocq comment, and positional
   destructuring of predicates that grew.
 
+
+## 2026-09-21 (later) — builds now report a per-file time, and vok stopped eating vo
+
+Claude Opus 5 (background job), at Upamanyu's request: "future builds should
+report a per-file build time (vok or vo), to keep track of build
+bottlenecks." No Rocq, `uv`, pandas or pytest on the machine, so everything
+below was verified against a stub `rocq` and the real `.timing.sqlite3`.
+
+The timing machinery already existed and had three holes.
+
+- **`vok` builds were recorded as `vo`, overwriting them.** `file_timings`
+  was keyed on the filename alone with an `is_vos` flag, and
+  `CoqcFilter.from_coqargs` only looked for `-vos` — so a `-vok` run landed
+  in the `vo` row. Since the inner loop *is* `make <file>.vok`, the `vo`
+  column in the committed workflow was a mix of the two and nothing could
+  separate them. The table is now keyed on `(fname, mode)` with `mode` one of
+  `vo`/`vos`/`vok`. `migrate_file_timings` rewrites an old database in place,
+  idempotently and under `BEGIN IMMEDIATE` so concurrent `make -j` workers
+  cannot race it; on a copy of the real database it preserved all 592 file
+  rows and 2997 Qed rows and dropped its scratch table.
+
+- **Nothing was reported during a build.** The times only reached a sqlite
+  file that a separate script read. Each file now finishes with
+  `ROCQ TIME   418.79s vo  new/proof/.../proof_raft__send.v` on stdout. The
+  seconds field is fixed-width so `grep 'ROCQ TIME' log | sort -rn -k3` ranks
+  a build with no database at all. `make TIMING_MIN=10` raises the threshold,
+  `make TIMED=false` still bypasses the wrapper, and the Rocq-CI path
+  (`TIMING` set) is untouched.
+
+- **`timing-report.py` needed pandas, which is not installed** — the
+  2026-09-19 sweep could only compile it, not run it. Rewritten on the
+  standard library, same shape of output, plus `--mode {vo,vos,vok}` and a
+  `--selftest`. `make timing-report` is the short way in. It reads the legacy
+  schema too, so an unmigrated database still reports.
+
+**Two things found on the way, both fixed.**
+
+- **A failed compile overwrote a good timing.** `filter.done()` ran before
+  `p.wait()` and recorded unconditionally, so the time taken to reach an
+  error replaced the last successful build's number. Failed compiles are now
+  neither recorded nor printed.
+
+- **Goose's `ⁱᵐᵖˡ` names were being truncated.** `Classify`'s regexes became
+  bytes patterns when the filter moved to reading output as bytes, and `\w`
+  is ASCII-only in a bytes pattern — so `Definition minⁱᵐᵖˡ` was recorded as
+  `min`, colliding with a real `min` in the same file under a primary key
+  that silently replaces. `new/code/` has ~1560 such definitions. The
+  identifier pattern now admits `[\x80-\xff]`. This was pre-existing and is
+  *not* caused by the schema change; it corrupted `qed_timings`, not file
+  times.
+
+**`etc/test_coqc.py` runs again.** It had been dead since the bytes move: the
+fixtures were `str` against bytes patterns, so five of six tests failed with
+`TypeError`. Ported to bytes and extended to 15 tests covering mode
+detection, the report line, the failed-compile path and the migration.
+Rocq's `Chars i - j` offsets turn out to be *byte* offsets, which is what
+makes the existing `contents[start:end]` slicing correct on a file with a `σ`
+in it — checked against the fixture rather than assumed. Since pytest is not
+a dependency, `./etc/rocqc.py --selftest` runs the same functions with a
+30-line capsys shim, matching the `--selftest` convention the other `etc/`
+scripts already follow. 15/15 pass, and `./etc/timing-report.py --selftest`
+is 12/12.
+
+**Also corrected:** `STATUS.md` still listed the 64 `ruff check` errors under
+"Known broken". They were fixed on 2026-09-19. `ruff check .` and `ruff
+format --check .` are clean over 42 files, including everything touched here.
+
+**What the real database says now**, for whoever picks up the election work:
+the `vo` build of the election proofs is 5313s over 101 files, only 10% of it
+in `Qed`. The top four are `proof_raftLog__slice.v` (605s),
+`proof_raft__send.v` (419s), `proof_raft__campaign.v` (390s) and
+`proof_raft__reset.v` (220s). `slice.v` reports 605s with **0s** of Qed time,
+which is worth a look — the cost is all elaboration, not proof checking.
+Treat these four numbers as `vo`-or-`vok`, per the conflation above; the
+first clean build after this commit will say which.

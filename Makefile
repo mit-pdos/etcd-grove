@@ -17,6 +17,11 @@ ROCQ_DEP_ARGS := -w +module-not-found
 Q:=@
 TIMED:=true
 TIMING_DB:=.timing.sqlite3
+# Seconds a file must take before the build prints its time. 0 prints every
+# file; `make TIMING_MIN=10 ...` prints only the slow ones.
+TIMING_MIN:=0
+# Extra flags for `make timing-report`, e.g. TIMING_REPORT_ARGS="--mode vok"
+TIMING_REPORT_ARGS:=
 
 -include Makefile.test
 
@@ -25,7 +30,7 @@ TIMING_DB:=.timing.sqlite3
 ifneq (,$(TIMING))
 ROCQ_C := rocq compile
 else ifeq ($(TIMED), true)
-ROCQ_C := ./etc/rocqc.py --timing-db $(TIMING_DB)
+ROCQ_C := ./etc/rocqc.py --timing-db $(TIMING_DB) --print-time $(TIMING_MIN)
 else
 # setting TIMED to false or the empty string will disable using the wrapper,
 # for environments where it doesn't work
@@ -84,6 +89,12 @@ unskip-qed:
 	$(Q)./etc/disable-qed.sh --undo $(SLOW_QED_FILES)
 
 ci: new/should_build.vo
+
+# Where the last build spent its time. Each build mode is reported
+# separately, since a file's vo, vos and vok builds cost different amounts.
+.PHONY: timing-report
+timing-report:
+	$(Q)./etc/timing-report.py --db $(TIMING_DB) $(TIMING_REPORT_ARGS)
 
 # compiled by Rocq CI
 # not intended for normal development

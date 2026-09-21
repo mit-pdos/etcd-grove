@@ -137,10 +137,42 @@ is complete. Similar to compiling a single `vo` file, you can build a single
 edit-compile-debug cycle. Note that `vok` checking isn't the same as regular
 compilation - it doesn't check universe constraints.
 
-We compile with [rocqc.py](etc/rocqc.py), a Python wrapper around `rocq compile`
-to get timing information. You can compile without timing information with `make
-TIMED=false`. To read the results of the timing, run `uv run ./etc/timing-report.py`;
-use `--help` to access some other features.
+### Per-file build times
+
+We compile with [rocqc.py](etc/rocqc.py), a Python wrapper around `rocq
+compile`. Every build reports how long each file took, as it finishes:
+
+```
+ROCQ COMPILE new/proof/go_etcd_io/raft/v3_proof/election/proof_raft__send.v
+ROCQ TIME   418.79s vo  new/proof/go_etcd_io/raft/v3_proof/election/proof_raft__send.v
+```
+
+The seconds field is fixed-width, so `make ci 2>&1 | tee build.log` and then
+`grep 'ROCQ TIME' build.log | sort -rn -k3` ranks a build's bottlenecks
+without touching the database. `make TIMING_MIN=10 ...` prints only files
+taking at least ten seconds; `make TIMED=false ...` bypasses the wrapper
+entirely.
+
+The same timings go into `.timing.sqlite3`, one row per file **per build
+mode** — a file's `vo`, `vos` and `vok` builds cost very different amounts
+and are kept apart. Read them back with:
+
+```
+make timing-report                                      # the vo build
+make timing-report TIMING_REPORT_ARGS="--mode vok"
+./etc/timing-report.py --filter raft --max-qeds 20      # or call it directly
+./etc/timing-report.py --selftest
+```
+
+`timing-report.py` needs only the standard library. A compile that *fails* is
+not recorded, so a broken build does not overwrite the last good timing.
+
+Timings recorded before 2026-09-21 could not tell `vo` from `vok`, and the
+database's `vo` rows from then are a mix of the two; `rocqc.py` migrates such
+a database in place the next time it writes to one. `./etc/rocqc.py
+--selftest` checks the wrapper against the fixtures in `etc/test_coqc/`
+(those same checks are pytest tests in `etc/test_coqc.py`, but pytest is not
+a dependency and no CI job runs it).
 
 ## Updating Goose output
 
