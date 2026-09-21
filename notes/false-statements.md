@@ -266,3 +266,20 @@ the predicate names afterwards — so the read-only progress map was necessary
 but not sufficient for `maybeSendAppend`. The fix is `own_raft_notrk`
 (STATUS item 18).
 
+## The same family, fourth member: `send` owned the log the caller had a page of (2026-09-21)
+
+Repairing `maybeSendSnapshot`'s precondition and `send`'s hidden tracker
+(above) was not enough for `maybeSendAppend`: `send`'s precondition also
+owned the **log**, and `raftLog.entries` lends its page *out of*
+`own_raftLog`, so the page and the log cannot be held at once — yet
+`payloadsSize(ents)` runs *after* the send (v3.v:3153-3157), and the
+message literal reads `r.raftLog.committed` while the page is out. The
+sharpest form of the rule: **when a function borrows a sub-resource out of
+a predicate `P` and then calls something specified on `P`, the borrow must
+come back out of `P`'s precondition, not be re-derived from `P`'s
+postcondition**; persistence of the borrowed thing fixes re-finding, not
+holding. Second tell, independent of the first: look at what the code does
+*after* a call, not just before it — a spec review that stops at the call
+misses this class. Fix: `own_raft_bare` (decisions.md), and
+`entries`/`slice` now hand the `raftLog` record back beside the page.
+

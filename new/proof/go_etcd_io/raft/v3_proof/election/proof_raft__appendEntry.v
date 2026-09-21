@@ -285,13 +285,15 @@ Set Default Proof Using "Type".
           "Hlogger Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
           done. }
       (* the self-addressed [MsgAppResp]: [send_ok]'s third clause *)
+      iDestruct (own_raft_bare_split with "Hphys") as (tvS lgS) "(Hphys & HtrkS & HlogS)".
       wp_apply (P.wp_raft__send with "[$Hphys]");
         [ done
         | right; right; split_and!;
           [ apply mtype_of_MsgAppResp | w32_ne | w32_ne | done
           | by intros _ | done ]
         | ].
-      iIntros "Hphys". wp_auto.
+      iIntros "Hphys".
+      iDestruct (own_raft_bare_join with "Hphys HtrkS HlogS") as "Hphys". wp_auto.
       iDestruct (own_raft_phys_unsend with "Hphys") as "Hphys".
       iApply ("HΦ" $! (imap (stamp rv.(raft.raft.Term') li) ents)).
       iFrame.

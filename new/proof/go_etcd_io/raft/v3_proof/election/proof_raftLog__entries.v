@@ -36,18 +36,20 @@ Set Default Proof Using "Type".
     iDestruct (raftLog_at_nowrap with "Hlog") as "[%Hnw Hlog]".
     wp_apply (wp_raftLog__lastIndex_at with "[$Hlog]") as "%li [Hlog %Hli]".
     case_bool_decide as Hgt.
-    - (* [i] is past the end: an empty page and no error *)
+    - (* [i] is past the end: an empty page and no error.  The log is not
+         opened at all, so [l ↦ lv] has to be split out of it by hand. *)
       wp_auto.
-      iApply ("HΦ" $! slice.nil [] (DfracOwn 1)).
-      iSplitR; first iApply own_slice_nil.
-      iIntros "_". iFrame "Hlog".
+      iDestruct "Hlog" as (lv) "Hlog". iNamed "Hlog".
+      iApply ("HΦ" $! slice.nil [] (DfracOwn 1) lv).
+      iFrame "Hl". iSplitR; first iApply own_slice_nil.
+      iIntros "Hl _". rewrite /own_raftLog_at. iExists lv. iFrame "∗#%".
     - wp_auto.
       wp_apply (wp_raftLog__lastIndex_at with "[$Hlog]") as "%li2 [Hlog %Hli2]".
       wp_apply (wp_raftLog__slice_at with "[$Hlog]")
-        as "%sl %es %dq (Hsl & %Hes & Hback)".
+        as "%sl %es %dq %lv (Hl & Hsl & %Hes & Hback)".
       { word. }
       try wp_auto.
-      iApply ("HΦ" $! sl es dq). iFrame "Hsl Hback".
+      iApply ("HΦ" $! sl es dq lv). iFrame "Hl Hsl Hback".
   Qed.
 
 End RaftLogEntriesProof.

@@ -24,7 +24,7 @@ Qed.
 
   (** The common tail once the routing decision has been made: build the
       one-element slice literal, append it to the queue, trace, and open the
-      postcondition's [own_raft_phys].  The [iExists] with the new queue and
+      postcondition's [own_raft_bare].  The [iExists] with the new queue and
       the pure outbox obligation are left to the caller -- an [Ltac] body
       cannot mention [rv]/[msgs] inside the record-update notation. *)
   Local Ltac send_tail_msgs :=
@@ -36,7 +36,7 @@ Qed.
     wp_apply (wp_slice_append with "[$Hmsgs $Hmsgs_cap $m_sl]")
       as "%msgs' (Hmsgs & Hmsgs_cap & _)";
     wp_apply (wp_traceSendMessage with "[$Hmisc]") as "Hmisc";
-    iApply "HΦ"; rewrite /own_raft_phys.
+    iApply "HΦ"; rewrite /own_raft_bare.
 
   Local Ltac send_tail_msgsAA :=
     wp_apply wp_slice_literal; iSplitR; first done;
@@ -47,12 +47,12 @@ Qed.
     wp_apply (wp_slice_append with "[$HmsgsAA $HmsgsAA_cap $m_sl]")
       as "%msgsAA' (HmsgsAA & HmsgsAA_cap & _)";
     wp_apply (wp_traceSendMessage with "[$Hmisc]") as "Hmisc";
-    iApply "HΦ"; rewrite /own_raft_phys.
+    iApply "HΦ"; rewrite /own_raft_bare.
 
   Lemma wp_raft__send : wp_raft__send_body.
   Proof.
     intros_ambient.
-    intros cfg r id s m out Hfrom Hok.
+    intros r id s f tv lg m out Hfrom Hok.
     wp_start as "@". iNamed "Hphys". wp_auto.
     (* [From] is unset, so [send] fills it in with [r.id]. *)
     rewrite Hfrom bool_decide_eq_true_2 //. wp_auto. rewrite Hid.

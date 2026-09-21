@@ -987,3 +987,35 @@ struct (`r.sendAppend(id)`), and by three tracker methods that panic.
   `raftLog.term(pr.Next-1)` may return `ErrCompacted`. That is also why
   `raftLog.term`'s partial triple has to become total (STATUS item 15).
 
+## 2026-09-21 — `own_raft_bare`: the struct predicate with the tracker and the log split out
+
+**Decision.** `inv_raft_phys.v` gains `own_raft_bare r id s f tv lg` — every
+conjunct of `own_raft_phys_at r id s f` except `Htrk` and `Hlog`, plus
+`rv.(trk') = tv` and `rv.(raftLog') = lg` — with `own_raft_notrk` the
+tracker-only wrapper (`∃ lg, own_raft_bare … ∗ own_raftLog lg`) and
+`own_raft_phys_at_split : own_raft_phys_at r id s f ⊣⊢ ∃ tv, own_raft_notrk r id s f tv ∗ own_tracker cfg tv s.(nstate.votes)`.
+`raft.send` is specified on `own_raft_bare`; `maybeSendSnapshot` on
+`own_raft_notrk ∗ own_progress pr`. `own_raft_phys` itself is unchanged,
+so its ~21 other spec files are untouched; the conjunct list is spelled
+out twice on purpose, with a "keep in step" warning, because folding one
+through the other would put two existentials in front of every existing
+`iNamed "Hphys"`.
+
+**Why.** `maybeSendAppend` reads a `Progress` pointer and borrows the
+entries page out of the log *before* `r.send(...)`, and needs both
+*after* it (`pr.SentEntries(len(ents), payloadsSize(ents))` follows the
+send in the Go). A `send` specified on `own_raft_phys` demands the whole
+struct — tracker and log included — and returns it under `∃ rv'`, so the
+caller can neither hold what it borrowed nor re-find it. `send` in fact
+touches only the two message queues; the spec now says so by carrying
+`tv` and `lg` through. The general rule is in false-statements.md
+(2026-09-21): a borrow out of `P` must come back out of `P`'s
+*precondition*, not be re-derived from its postcondition; making the
+borrowed thing persistent fixes re-finding, not holding.
+
+**Rejected.** Keeping `own_raft_phys` in `send`'s spec and threading the
+tracker value as an extra postcondition equation (`rv'.(trk') = rv.(trk')`)
+— it does not help with the log page, which cannot even be *held* across a
+call that demands `own_raftLog`. Indexing `own_raft_phys` by the tracker
+and log values everywhere — 95 call sites for no gain above `send`.
+

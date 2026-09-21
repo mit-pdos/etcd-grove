@@ -1,6 +1,6 @@
 # Status
 
-**Last updated:** 2026-09-19
+**Last updated:** 2026-09-21
 
 ## Goal
 
@@ -122,13 +122,30 @@ concurrent items edit the same shared file.
 | 9 | `spec_raft__send` with `send_ok` (three clauses: vote types keep their term; `MsgApp`/`MsgHeartbeat` get `s.term` stamped; model-invisible types add nothing) | 1 | **done** 2026-09-20: `proof_raft__send.v` Qed and every caller re-checked (`campaign`, `Step`, all eight `Step` helpers, `hup`) at `-vok` RC=0 |
 | 10 | `wp_raft__appendEntry` — `Axiom` → `Qed`, with six new collections (`payloadSize`, `payloadsSize`, `raft__increaseUncommittedSize`, `traceReplicate`, `unstable__truncateAndAppend`, `raftLog__append`). Three premises, all discharged by `becomeLeader` from its literal: empty `Data`, `Type = EntryNormal`, batch `< 2^61`. **No caller obligation**: the no-wrap bound is derived from `is_Storage`'s new `Hbounded` (stable last index `< 2^61`) plus the slice's own length, not carried — see decisions.md | 2 | **proved** 2026-09-20 (`-vok` RC=0 on all seven proofs, `becomeLeader`, and seven `is_Storage` dependents); commit with the final sweep |
 | 11 | `wp_raft__bcastAppend` — **Qed**, with `sendAppend` Qed and new leaves `Progress__IsPaused`, `Inflights__Full`, `Progress__SentEntries`, `Progress__SentCommit`, `raftLog__entries` Qed. Reshaped the tracker predicates (see decisions.md 2026-09-20: `own_inflights_at`/`inflights_ok`, `own_progress_at`/`progress_state_ok`, read-only progress map, `visit_closure` existential in the tracker value); `is_Storage` gained `HSnapshot`; `is_initialized` gained `ErrSnapshotTemporarilyUnavailable` | 3 | **done** 2026-09-20 modulo items 15–17 (`-vok` RC=0 on the chain and on 22 dependents; whole-tree `.vos` and discipline check clean) |
-| 15 | `wp_raft__maybeSendAppend` — `raftLog.term`'s triple is now **total** (`err = nil ↔ i in range`; Qed, `lastEntryID` re-checked). Still `Admitted`, now on two spec defects outside its script: `spec_raft__maybeSendSnapshot.v` takes `own_raft_phys ∗ own_progress pr` with `pr` already inside `own_raft_phys` (contradictory at its only call site — false-statements.md), and `spec_raft__send.v` hides the struct under `∃ rv'` so nothing says the tracker survives the call. Fix (item 18) | 4 | blocked on 18 |
-| 18 | Split the tracker out of `own_raft_phys`: `own_raft_notrk r id s f tv` (every conjunct but `Htrk`, plus `rv.trk' = tv`) with `own_raft_phys_at ⊣⊢ ∃ tv, own_raft_notrk … tv ∗ own_tracker cfg tv votes`; state `send` and `maybeSendSnapshot` on `own_raft_notrk`; two lines at each of the 11 `wp_raft__send` call sites (`campaign` ×3, `appendEntry` ×1, `Step_MsgVote_eq_novote/eq_voted/gt` ×2 each); then close `maybeSendAppend`. Must run alone: `inv_raft_phys.v` is shared by everything | 5 | pending |
+| 15 | `wp_raft__maybeSendAppend` — `raftLog.term` total (`err = nil ↔ in range`); the two spec defects that then blocked it (`maybeSendSnapshot`'s contradictory precondition, `send` hiding the tracker) plus a third of the same shape (`send` also owned the log the caller must hold a page of) are repaired by item 18 | 4 | **done** 2026-09-21 |
+| 18 | `own_raft_bare r id s f tv lg` (every conjunct of `own_raft_phys_at` but the tracker **and the log**, both pinned as parameters) with `own_raft_notrk` the tracker-only wrapper and `own_raft_phys_at_split : own_raft_phys_at ⊣⊢ ∃ tv, own_raft_notrk … tv ∗ own_tracker …`. `send` restated on `own_raft_bare`, `maybeSendSnapshot` on `own_raft_notrk ∗ own_progress`, `raftLog.entries`/`slice` hand `l ↦ lv` back beside the page. Ten `send` call sites: two lines each. **`wp_raft__maybeSendAppend` Qed** | 5 | **done** 2026-09-21 (`-vok` RC=0 on `inv_raft_phys.v`, `send`, `entries`, `slice`, `scan`, `maybeSendSnapshot`, `maybeSendAppend`, `sendAppend`, `bcastAppend`, `campaign`, `appendEntry`, `hasUnappliedConfChanges`, the three `Step_MsgVote` helpers, `Step`) |
 | 16 | `wp_Inflights__Add` — Qed, with a new `Inflights__grow` collection (spec over the buffer pieces, premise `len(buf) < size`: with `size = 0` the `else`-arm cap does not apply and `grow` would allocate one slot past the ring). Three reachable leaves, not four: the wrap-and-grow case is dead (`len(buffer) = size` forces `next < len`) | 4 | **done** 2026-09-21 (`-vok` RC=0, independent re-run; no shared-file change) |
 | 17 | `wp_raft__maybeSendSnapshot` — Qed against its current spec, with new leaves `raftLog__snapshot`, `IsEmptySnap`, `Progress__BecomeSnapshot`; `is_initialized` gained `is_new_error errSnapUnavail` (the dynamic type is a pointer type), without which `err == ErrSnapshotTemporarilyUnavailable` cannot step. Its spec is restated on `own_raft_notrk` by item 18 | 4 | **done** 2026-09-21 (`-vok` RC=0, independent re-run; `base.v` dependents re-checked) |
 | 14 | Framework `theory/map.v`: `wp_map_for_range` returns the map; `wp_map_nil_for_range` and `pure_wp_map_nil_len` moved above the `K V` context so `tc_solve` can fire them; the four copied `_helpers/map_for_range_keep.v` deleted | between 2 and 3 | **done** 2026-09-20 (`map.vok` RC=0; ~90-file `.vos` rebuild RC=0; `IDs`, `Visit`, `TallyVotes`, `MajorityConfig__VoteResult`, `campaign`, `inv_tracker.v` re-checked RC=0) |
 | — | Ghost layer of `election_protocol.v` (12 axioms) | — | out of scope for this pass |
-| 13 | Final: `-vok` of the whole election tree, `tcb-report`, `check-module-discipline`, notes | 4 | pending |
+| 13 | Final: `-vok` sweep of every proof-bearing file, `tcb-report`, `check-module-discipline`, notes | 6 | run 2026-09-21; see the summary below the table |
+
+**Outcome (2026-09-21).** Every Hoare triple on the election path is `Qed`
+except one deliberate, marked admission. `etc/tcb-report.py --scope election`
+now counts **1 `Admitted` (trusted) and 10 `Axiom`s** against 169 Qed lemmas
+and 78 discharged signatures, and every axiom is on the declared trust
+boundary: `is_Logger`/`is_Logger_pers`/`wp_Logger__logf` (client `Logger`),
+`own_Storage` (client `Storage`, whose contract `is_Storage` grew `Entries`,
+`Hbounded`, `Snapshot` this pass), `wp_rand_Int`/`wp_big_NewInt`/`wp_big_Int__Int64`
+over the abstract `own_big_Int` (the RNG and `math/big`), `wp_slices_Sort`
+(not translated), and `wp_Entry__Size` (protobuf-generated `raftpb` code —
+the one axiom a reader may want to argue about; it is a library in spirit
+and core raft in location). The single admission is `wp_raftLog__slice_at`'s
+"the log fits in memory" (Trust base). Outside this scope the protocol
+layer's 12 axioms in `election_protocol.v` remain, by design of this pass.
+The raft development as a whole also still carries the `readonly.v` and
+`protocol.v` assumptions listed under "Next steps", which are not on the
+election path.
 
 Rules for the agents doing items 3–11, so that a shared checkout stays sane:
 one `rocq` process each; edit your own collection and any *new* collections
@@ -423,7 +440,7 @@ any one slice at `2^63`, which sums to `2^61 + 2^63` — and it can be neither
 carried (an append cannot re-establish a carried bound, decisions.md) nor
 stated as a premise (nothing at `Step` can see the log's length). Same
 class as the two `(* Trusted *)` overflow admits in `readonly.v`;
-`tcb-report` lists it as "trusted, deliberate".
+`tcb-report` lists it as "trusted, deliberate". Since 2026-09-21 the same triple also hands the `raftLog` record (`l ↦ lv`) back beside the page and takes both in its wand — a strictly stronger assumption, true because a page aliases an entry buffer, never the record.
 
 **A framework `Admitted` sits under the array proofs.** `into_val_typed_array`
 (`new/golang/theory/array.v`, the `IntoValTypedUnderlying` instance for

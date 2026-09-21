@@ -117,14 +117,15 @@ Import P.
       { rewrite /= /slice_index_ref /= go.array_index_ref_0 //. }
       { simpl. word. }
       { simpl. word. }
-      iApply ("HΦ" $! _ (take nlim es0) (DfracOwn 1)).
-      iFrame "Hs2". iSplitR.
+      iDestruct ("Hlback" with "Huf") as "Hl".
+      iApply ("HΦ" $! _ (take nlim es0) (DfracOwn 1) lv).
+      iFrame "Hl Hs2". iSplitR.
       { iPureIntro. split_and!.
         - exact Hnetake.
         - rewrite length_take. lia.
         - intros e He. apply elem_of_app. right. apply Hin0.
           rewrite -(take_drop nlim es0). apply elem_of_app. by left. }
-      iIntros "Hs2".
+      iIntros "Hl Hs2".
       iDestruct (own_slice_same_ptr_len
                    (slice.full_slice s1 raftpb.Entry.t (W64 0)
                       s1.(slice.len) s1.(slice.len)) s1 with "Hs2") as "Hs1".
@@ -134,7 +135,6 @@ Import P.
       { word. }
       iDestruct ("Hback1" with "Hs1") as "Hs0".
       iDestruct ("Hback0" with "Hs0") as "Huents".
-      iDestruct ("Hlback" with "Huf") as "Hl".
       iExists lv. iFrame "∗#%".
     - (* the page starts in the stable prefix: [lo < unstable.offset] *)
       iAssert (is_Storage lv.(raft.raftLog.storage')) as "#Hsto".
@@ -156,12 +156,12 @@ Import P.
         wp_auto.
         rewrite bool_decide_eq_true_2; last word.
         wp_auto.
-        iApply ("HΦ" $! se ese dqe). iFrame "Hse". iSplitR.
+        iApply ("HΦ" $! se ese dqe lv). iFrame "Hl Hse". iSplitR.
         { iPureIntro. split_and!.
           - exact Hnee.
           - lia.
           - intros ee Hee. apply elem_of_app. left. by apply Hine. }
-        iIntros "Hse". iDestruct ("Hbacke" with "Hse") as "HStorage".
+        iIntros "Hl Hse". iDestruct ("Hbacke" with "Hse") as "HStorage".
         iExists lv. rewrite Hstok. iFrame "∗#%". all: (iPureIntro; done).
       + (* cut = unstable.offset *)
         rewrite bool_decide_eq_false_2; last done.
@@ -175,31 +175,31 @@ Import P.
         wp_auto.
         wp_if_destruct.
         { (* hi <= offset, i.e. hi = offset: the page is exactly the stable part *)
-          iApply ("HΦ" $! se ese dqe). iFrame "Hse". iSplitR.
+          iApply ("HΦ" $! se ese dqe lv). iFrame "Hl Hse". iSplitR.
           { iPureIntro. split_and!.
             - exact Hnee.
             - lia.
             - intros ee Hee. apply elem_of_app. left. by apply Hine. }
-          iIntros "Hse". iDestruct ("Hbacke" with "Hse") as "HStorage".
+          iIntros "Hl Hse". iDestruct ("Hbacke" with "Hse") as "HStorage".
           iExists lv. rewrite Hstok. iFrame "∗#%". all: (iPureIntro; done). }
         wp_if_destruct.
         { (* storage returned a short page: stop there *)
-          iApply ("HΦ" $! se ese dqe). iFrame "Hse". iSplitR.
+          iApply ("HΦ" $! se ese dqe lv). iFrame "Hl Hse". iSplitR.
           { iPureIntro. split_and!.
             - exact Hnee.
             - lia.
             - intros ee Hee. apply elem_of_app. left. by apply Hine. }
-          iIntros "Hse". iDestruct ("Hbacke" with "Hse") as "HStorage".
+          iIntros "Hl Hse". iDestruct ("Hbacke" with "Hse") as "HStorage".
           iExists lv. rewrite Hstok. iFrame "∗#%". all: (iPureIntro; done). }
         wp_apply (wp_entsSize with "[$Hse]") as "%sz1 Hse".
         wp_if_destruct.
         { (* the stable part already fills the page *)
-          iApply ("HΦ" $! se ese dqe). iFrame "Hse". iSplitR.
+          iApply ("HΦ" $! se ese dqe lv). iFrame "Hl Hse". iSplitR.
           { iPureIntro. split_and!.
             - exact Hnee.
             - lia.
             - intros ee Hee. apply elem_of_app. left. by apply Hine. }
-          iIntros "Hse". iDestruct ("Hbacke" with "Hse") as "HStorage".
+          iIntros "Hl Hse". iDestruct ("Hbacke" with "Hse") as "HStorage".
           iExists lv. rewrite Hstok. iFrame "∗#%". all: (iPureIntro; done). }
         split_unstable l lv.
         assert (Hus : (uint.Z lv.(raft.raftLog.unstable').(raft.unstable.offset')
@@ -239,43 +239,43 @@ Import P.
              iDestruct ("Hback1" with "Hs1") as "Hs0".
              iDestruct ("Hback0" with "Hs0") as "Huents".
              iDestruct ("Hlback" with "Huf") as "Hl".
-             iApply ("HΦ" $! se ese dqe). iFrame "Hse". iSplitR.
+             iApply ("HΦ" $! se ese dqe lv). iFrame "Hl Hse". iSplitR.
              { iPureIntro. split_and!.
                - exact Hnee.
                - lia.
                - intros ee Hee. apply elem_of_app. left. by apply Hine. }
-             iIntros "Hse". iDestruct ("Hbacke" with "Hse") as "HStorage".
+             iIntros "Hl Hse". iDestruct ("Hbacke" with "Hse") as "HStorage".
              iExists lv. rewrite Hstok. iFrame "∗#%". all: (iPureIntro; done).
           -- wp_apply (wp_extend _ _ _ _ _ _ Hcapx Hfitsx with "[$Hse $Hs1]")
                as "%sx (Hsx & Hsx_cap & Hse & Hs1)".
-             iApply ("HΦ" $! sx (ese ++ take nlim es0) (DfracOwn 1)).
-             iFrame "Hsx". iSplitR.
+             iDestruct ("Hlback" with "Huf") as "Hl".
+             iApply ("HΦ" $! sx (ese ++ take nlim es0) (DfracOwn 1) lv).
+             iFrame "Hl Hsx". iSplitR.
              { iPureIntro. split_and!.
                - intros Hc. destruct ese as [|a ese']; [by apply Hnee | discriminate Hc].
                - rewrite length_app. lia.
                - intros ee Hee. apply elem_of_app in Hee as [Hee|Hee].
                  + apply elem_of_app. left. by apply Hine.
                  + apply elem_of_app. right. by apply Hintake. }
-             iIntros "Hsx".
+             iIntros "Hl Hsx".
              iDestruct ("Hback1" with "Hs1") as "Hs0".
              iDestruct ("Hback0" with "Hs0") as "Huents".
-             iDestruct ("Hlback" with "Huf") as "Hl".
              iDestruct ("Hbacke" with "Hse") as "HStorage".
              iExists lv. rewrite Hstok. iFrame "∗#%". all: (iPureIntro; done).
         * wp_apply (wp_extend _ _ _ _ _ _ Hcapx Hfitsx with "[$Hse $Hs1]")
             as "%sx (Hsx & Hsx_cap & Hse & Hs1)".
-          iApply ("HΦ" $! sx (ese ++ take nlim es0) (DfracOwn 1)).
-          iFrame "Hsx". iSplitR.
+          iDestruct ("Hlback" with "Huf") as "Hl".
+          iApply ("HΦ" $! sx (ese ++ take nlim es0) (DfracOwn 1) lv).
+          iFrame "Hl Hsx". iSplitR.
           { iPureIntro. split_and!.
             - intros Hc. destruct ese as [|a ese']; [by apply Hnee | discriminate Hc].
             - rewrite length_app. lia.
             - intros ee Hee. apply elem_of_app in Hee as [Hee|Hee].
               + apply elem_of_app. left. by apply Hine.
               + apply elem_of_app. right. by apply Hintake. }
-          iIntros "Hsx".
+          iIntros "Hl Hsx".
           iDestruct ("Hback1" with "Hs1") as "Hs0".
           iDestruct ("Hback0" with "Hs0") as "Huents".
-          iDestruct ("Hlback" with "Huf") as "Hl".
           iDestruct ("Hbacke" with "Hse") as "HStorage".
           iExists lv. rewrite Hstok. iFrame "∗#%". all: (iPureIntro; done).
   (* The only [admit] above is [Hfitsx]: "the log fits in memory".  See the

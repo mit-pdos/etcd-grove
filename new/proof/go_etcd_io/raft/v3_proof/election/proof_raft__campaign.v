@@ -293,10 +293,14 @@ Proof.
          [mtype_of], the term is nonzero (this is what the no-wrap premise
          buys), and -- only for a [MsgVote] -- the destination is not this
          node.  The last is vacuous here: this is the [MsgVoteResp] arm. *)
+      (* [send] is stated on [own_raft_bare]: split the tracker and the log
+         off, and put them back afterwards.  See [spec_raft__send.v]. *)
+      iDestruct (own_raft_bare_split with "Hphys") as (tvS lgS) "(Hphys & HtrkS & HlogS)".
       wp_apply (P.wp_raft__send with "[$Hphys]");
         [done | left; exists mtype.VoteResp; split_and!;
                 [by right | apply mtype_of_MsgVoteResp | exact HTnz | w32_ne | done] |].
       iIntros "Hphys".
+      iDestruct (own_raft_bare_join with "Hphys HtrkS HlogS") as "Hphys".
       assert (send_msgs (send_msgs (become_candidate id s)
                            (cmsg <$> take (Z.to_nat (sint.Z n)) xs))
                         [msg.mk mtype.VoteResp id id T false]
@@ -339,11 +343,13 @@ Proof.
       destruct (decide (t = campaignTransfer)) as [->|Hnt].
       * rewrite bool_decide_eq_true_2 //. wp_auto.
         wp_apply wp_string_to_bytes as "%csl [Hcs Hcs_cap]".
+        iDestruct (own_raft_bare_split with "Hphys") as (tvS lgS) "(Hphys & HtrkS & HlogS)".
         wp_apply (P.wp_raft__send with "[$Hphys]");
           [done | left; exists mtype.Vote; split_and!;
                   [by left | apply mtype_of_MsgVote | exact HTnz
                    | intros _; exact Hney | done] |].
         iIntros "Hphys".
+        iDestruct (own_raft_bare_join with "Hphys HtrkS HlogS") as "Hphys".
         iAssert (own_raft_phys cfg r id
                    (send_msgs (become_candidate id s)
                       (cmsg <$> take (Z.to_nat (sint.Z (word.add n (W64 1)))) xs)))
@@ -353,11 +359,13 @@ Proof.
         wp_for_post.
         iFrame. iPureIntro. word.
       * rewrite bool_decide_eq_false_2 //. wp_auto.
+        iDestruct (own_raft_bare_split with "Hphys") as (tvS lgS) "(Hphys & HtrkS & HlogS)".
         wp_apply (P.wp_raft__send with "[$Hphys]");
           [done | left; exists mtype.Vote; split_and!;
                   [by left | apply mtype_of_MsgVote | exact HTnz
                    | intros _; exact Hney | done] |].
         iIntros "Hphys".
+        iDestruct (own_raft_bare_join with "Hphys HtrkS HlogS") as "Hphys".
         iAssert (own_raft_phys cfg r id
                    (send_msgs (become_candidate id s)
                       (cmsg <$> take (Z.to_nat (sint.Z (word.add n (W64 1)))) xs)))

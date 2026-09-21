@@ -18,6 +18,19 @@ Require Export New.proof.go_etcd_io.raft.v3_proof.election.inv_raft_phys.
     (a page spanning the stable/unstable boundary) the page is a fresh
     slice from [extend] and the wand simply drops it.
 
+    **The [raftLog] struct itself comes back with the page** (added
+    2026-09-21).  What the page aliases is an *entry buffer* --
+    [unstable.entries], or one the [Storage] lent -- never the [raftLog]
+    record at [l], which is a separate allocation that [slice] only reads
+    through.  So [l ↦ lv] is handed back alongside the page rather than
+    disappearing into the wand, and the wand takes both.  [maybeSendAppend]
+    is what needs it: it holds the page from [raftLog.entries] across
+    [r.send(...)] (nothing else can give it the page back afterwards, and
+    [payloadsSize] needs it), and in between the message literal reads
+    [r.raftLog.committed].  With the old form the log was entirely
+    unavailable for the whole of that window, so the field read could not
+    be stepped at all.
+
     What the page *is* is stated only as far as [scan] and its callers
     need: non-empty, at most [hi - lo] entries, every one an entry of the
     log.  That is enough for [hasUnappliedConfChanges] ([HnoConfChange] is
@@ -34,13 +47,14 @@ Definition wp_raftLog__slice_at_body :=
    + Z.of_nat (length uents) + 1)%Z →
   {{{ is_pkg_init raft ∗ "Hlog" ∷ own_raftLog_at l prev sents uents }}}
     l @! (go.PointerType raft.raftLog) @! "slice" #lo #hi #maxSize
-  {{{ (s : slice.t) (es : list raftpb.Entry.t) (dq : dfrac),
+  {{{ (s : slice.t) (es : list raftpb.Entry.t) (dq : dfrac)
+      (lv : raft.raftLog.t),
       RET (#s, #interface.nil);
-      s ↦*{dq} es ∗
+      l ↦ lv ∗ s ↦*{dq} es ∗
       ⌜ es ≠ [] ∧
         (Z.of_nat (length es) ≤ uint.Z hi - uint.Z lo)%Z ∧
         (∀ e, e ∈ es → e ∈ sents ++ uents) ⌝ ∗
-      (s ↦*{dq} es -∗ own_raftLog_at l prev sents uents) }}}.
+      (l ↦ lv -∗ s ↦*{dq} es -∗ own_raftLog_at l prev sents uents) }}}.
 
 Module Type RAFTLOG__SLICE.
   Parameter wp_raftLog__slice_at : wp_raftLog__slice_at_body.

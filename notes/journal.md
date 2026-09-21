@@ -2312,3 +2312,47 @@ of STATUS.md's "In flight". The ghost layer itself is out of scope here.
   `iNamed`, never positionally; and land the shared change as its own
   commit before the proof that needs it.
 
+## 2026-09-21 — waves 3 and 4: the election path is Qed modulo one marked admission
+
+- **Landed** (each independently re-checked before its commit):
+  `Inflights.Add` + `Inflights.grow` (`2c41ed8a5`); `raftLog.term` made total
+  (`0ee68ef1f`); `maybeSendSnapshot` with `raftLog.snapshot`, `IsEmptySnap`,
+  `Progress.BecomeSnapshot` (`ae7fd6884`); and finally `maybeSendAppend`,
+  after the `own_raft_bare` split (this commit).
+
+- **What `maybeSendAppend` taught.** Its blocker moved three times, and each
+  time the proof itself was fine and a *spec* was wrong: `raftLog.term` was
+  partial where the code branches on the error; `maybeSendSnapshot` asked
+  for a `Progress` it already owned inside `own_raft_phys`; `send` hid the
+  tracker under an existential; and `send` demanded the whole log while the
+  caller had to hold a page of it across the call. All four are now in
+  false-statements.md as one family with one rule. The repair,
+  `own_raft_bare` (decisions.md), touched one shared file additively and
+  ten `send` call sites by two lines each; `own_raft_phys` and its 21
+  spec files did not move.
+
+- **End state**, from `etc/tcb-report.py --scope election` and the final
+  sweep: every Hoare triple on the election path is `Qed` except
+  `wp_raftLog__slice_at`, which ends `Admitted. (* Trusted *)` for "the log
+  fits in memory" (its arithmetic and why no premise can carry it are in the
+  file, STATUS, false-statements.md and decisions.md). Ten axioms remain,
+  all on the declared trust boundary: `Logger` (3), `own_Storage`, the RNG
+  and `math/big` (4, over `own_big_Int`), `slices.Sort`, and protobuf's
+  `Entry.Size`. The 12 protocol axioms in `election_protocol.v` are
+  untouched by design. The trust *contract* grew this pass, and every
+  growth is written at the clause it lives on: `is_Storage` gained
+  `Entries`, `Hbounded` (stable last index `< 2^61`), `Snapshot`;
+  `is_initialized` gained `globalRand` with its mutex, three error globals
+  and `is_new_error` for one of them; `rand` gained its `Reader`.
+
+- **Process facts worth keeping.** Seventeen agent runs over two days,
+  two rate-limit interruptions, and one shared checkout. What worked: an
+  independent `-vok` re-run of every claimed result before its commit; a
+  full-tree `-vok` sweep whenever more than one writer had touched the tree
+  and none was left to say what state it was in (three sweeps, ~35 min
+  each); one agent per shared-file reshape, run alone. What cost time:
+  concurrent `.vos` rebuilds after `base.v`/`inv_*.v` edits (one agent lost
+  ~4 h of wall clock to cascades), a `link_` file written before its
+  `proof_` file, a `(*T)` inside a Rocq comment, and positional
+  destructuring of predicates that grew.
+

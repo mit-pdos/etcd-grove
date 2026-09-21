@@ -10,31 +10,31 @@ Context {sem : go.Semantics} {package_sem : raft.Assumptions}.
 Collection W := sem + package_sem.
 Set Default Proof Using "W".
 
-Context (cfg : gset w64).
-
 (** The outbox-only bookkeeping, as in [proof_raft__campaign.v] and
-    [proof_raft__bcastAppend.v]; [Local] there and here. *)
-Local Lemma own_raft_phys_outbox (r : loc) (id : w64) (s1 s2 : nstate.t) :
+    [proof_raft__bcastAppend.v]; [Local] there and here.  Stated on
+    [own_raft_bare] (2026-09-21) because that is what [send]'s postcondition
+    hands back; note there is no [votes] premise, the vote tally having left
+    with the tracker. *)
+Local Lemma own_raft_bare_outbox (r : loc) (id : w64) f tv lg
+    (s1 s2 : nstate.t) :
   s1.(nstate.term) = s2.(nstate.term) →
   s1.(nstate.vote) = s2.(nstate.vote) →
   s1.(nstate.lead) = s2.(nstate.lead) →
   s1.(nstate.role) = s2.(nstate.role) →
-  s1.(nstate.votes) = s2.(nstate.votes) →
   s1.(nstate.outbox) ≡ₚ s2.(nstate.outbox) →
-  own_raft_phys cfg r id s1 -∗ own_raft_phys cfg r id s2.
+  own_raft_bare r id s1 f tv lg -∗ own_raft_bare r id s2 f tv lg.
 Proof.
-  intros H1 H2 H3 H4 H5 H6. rewrite /own_raft_phys.
+  intros H1 H2 H3 H4 H6. rewrite /own_raft_bare.
   iIntros "H". iNamed "H". iExists rv, msgs, msgsAA, lok.
-  rewrite -H5.
-  iFrame "Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Hlogger".
+  iFrame "Hr Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Hlogger".
   iPureIntro. split_and!; first [ done | congruence | by rewrite -H6 ].
 Qed.
 
 (** A [send] the model does not see leaves the abstract state alone. *)
-Local Lemma own_raft_phys_unsend (r : loc) (id : w64) (s0 : nstate.t) :
-  own_raft_phys cfg r id (send_msgs s0 []) -∗ own_raft_phys cfg r id s0.
+Local Lemma own_raft_bare_unsend (r : loc) (id : w64) f tv lg (s0 : nstate.t) :
+  own_raft_bare r id (send_msgs s0 []) f tv lg -∗ own_raft_bare r id s0 f tv lg.
 Proof.
-  iIntros "H". iApply (own_raft_phys_outbox with "H"); try done.
+  iIntros "H". iApply (own_raft_bare_outbox with "H"); try done.
   rewrite /send_msgs /= app_nil_r //.
 Qed.
 
@@ -85,11 +85,20 @@ Set Default Proof Using "Type".
       [Term] is unset in the literal, and [To = to ≠ id] (the premise; the
       caller chain [bcastAppend] -> [maybeSendAppend] skips the leader
       itself).  So the abstract outbox is unchanged and the postcondition is
-      at the same [s], read back with [own_raft_phys_unsend]. *)
+      at the same [s], read back with [own_raft_bare_unsend].
+
+      **Resources** (reshaped 2026-09-21, see
+      [spec_raft__maybeSendSnapshot.v]).  The struct arrives as
+      [own_raft_notrk], i.e. [∃ lg, own_raft_bare … lg ∗ own_raftLog lg];
+      [subst] immediately turns [f], [tv] and [lg] into fields of [rv], so
+      what follows is the old script with [Htrk] deleted from every
+      re-seal.  [send] wants the log out of the way too, so the one [send]
+      is bracketed by an [own_raft_bare] assemble and an [iExists] that
+      puts the log back. *)
   Lemma wp_raft__maybeSendSnapshot : wp_raft__maybeSendSnapshot_body.
   Proof.
     intros_ambient.
-    intros cfg r id s to pr Hto.
+    intros r id s f tv to pr Hto.
 
     wp_start as "H". iNamed "H".
     iDestruct (is_pkg_init_access with "[$]") as "@".
@@ -98,7 +107,9 @@ Set Default Proof Using "Type".
         [err == ErrSnapshotTemporarilyUnavailable] test afterwards needs it
         again, so move the (persistent) points-to into the □ context first. *)
     iDestruct "ErrSnapUnavail" as "#ErrSnapUnavail".
-    iNamed "Hphys". iNamed "Hpr".
+    iDestruct "Hphys" as (lg) "[Hbare Hlog]". iNamed "Hbare".
+    subst f tv lg.
+    iNamed "Hpr".
     wp_auto.
     destruct pv.(tracker.Progress.RecentActive') eqn:Hra; wp_auto.
     2:{ (* not recently active: log and return [false] *)
@@ -107,9 +118,9 @@ Set Default Proof Using "Type".
       wp_apply (wp_Logger__logf with "Hlogger").
       { solve_log_method. }
       iApply ("HΦ" $! false).
-      iSplitL "Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc".
-      { iApply (own_raft_phys_intro with
-          "Hlogger Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
+      iSplitL "Hr Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc".
+      { iApply (own_raft_notrk_intro with
+          "Hlogger Hr Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
           done. }
       rewrite /own_progress /own_progress_at. iExists pv, iv. iFrame "∗%". }
     iDestruct (own_raftLog_acc with "Hlog") as (prev sents uents) "[Hlog Hlogback]".
@@ -127,9 +138,9 @@ Set Default Proof Using "Type".
       wp_apply (wp_Logger__logf with "Hlogger").
       { solve_log_method. }
       iApply ("HΦ" $! false).
-      iSplitL "Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc".
-      { iApply (own_raft_phys_intro with
-          "Hlogger Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
+      iSplitL "Hr Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc".
+      { iApply (own_raft_notrk_intro with
+          "Hlogger Hr Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
           done. }
       rewrite /own_progress /own_progress_at. iExists pv, iv. iFrame "∗%".
     - (* a real snapshot: [Metadata.Index ≠ 0] kills [IsEmptySnap]'s panic *)
@@ -158,21 +169,21 @@ Set Default Proof Using "Type".
       wp_auto. rewrite Hlok.
       wp_apply (wp_Logger__logf with "Hlogger").
       { solve_log_method. }
-      iAssert (own_raft_phys cfg r id s)
-        with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
-        as "Hphys".
-      { iApply (own_raft_phys_intro with
-          "Hlogger Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
-          done. }
-      wp_apply (P.wp_raft__send with "[$Hphys]");
+      iAssert (own_raft_bare r id s rv.(raft.raft.step') rv.(raft.raft.trk')
+                 rv.(raft.raft.raftLog'))
+        with "[Hr Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hbare".
+      { iApply (own_raft_bare_intro with
+          "Hlogger Hr Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
+      wp_apply (P.wp_raft__send with "[$Hbare]");
         [ done
         | right; right; split_and!;
           [ apply mtype_of_MsgSnap | w32_ne | w32_ne | done
           | intros Hc; exfalso; by apply Hto | done ]
         | ].
-      iIntros "Hphys". wp_auto.
-      iDestruct (own_raft_phys_unsend with "Hphys") as "Hphys".
-      iApply ("HΦ" $! true). iFrame.
+      iIntros "Hbare". wp_auto.
+      iDestruct (own_raft_bare_unsend with "Hbare") as "Hbare".
+      iApply ("HΦ" $! true). iFrame "Hpr".
+      rewrite /own_raft_notrk. iExists rv.(raft.raft.raftLog'). iFrame.
   Qed.
 
 End RaftMaybeSendSnapshotProof.

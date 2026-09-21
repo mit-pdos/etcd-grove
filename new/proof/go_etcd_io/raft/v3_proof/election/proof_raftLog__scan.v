@@ -63,7 +63,7 @@ Import P.
         as Hsl by lia.
       wp_apply (wp_raftLog__slice_at l prev sents uents cur hi pageSize Hsl
                  with "[$Hlog]")
-        as "%s %es %dq (Hes & (%Hne & %Hlen & %Hin) & Hback)".
+        as "%s %es %dq %lv (Hl & Hes & (%Hne & %Hlen & %Hin) & Hback)".
       (* the "got 0 entries" error is dead: the page is non-empty *)
       iDestruct (slice_len_Z with "Hes") as %Hslen.
       assert (length es ≠ 0)%nat as Hlen0 by (destruct es; [done | simpl; lia]).
@@ -74,7 +74,7 @@ Import P.
       iAssert (⌜ Forall Pred es ⌝)%I as "HPes".
       { iPureIntro. eapply Forall_sublist_of; [exact HP | exact Hin]. }
       wp_apply ("Hf" with "[$Hes $HPes $HI]") as "[Hes HI]".
-      iDestruct ("Hback" with "Hes") as "Hlog".
+      iDestruct ("Hback" with "Hl Hes") as "Hlog".
       wp_for_post.
       iFrame. iPureIntro. word.
     - (* [cur = hi]: the range is exhausted and the function returns nil *)

@@ -16,7 +16,14 @@ Require Export New.proof.go_etcd_io.raft.v3_proof.election.inv_raft_phys.
     The page is **lent**, like [raftLog.slice]'s: in two of the three cases
     it aliases the log.  Its contents are not described, because
     [maybeSendAppend] only takes its length (for [Progress.SentEntries]) and
-    its payload size, and puts it in a message. *)
+    its payload size, and puts it in a message.
+
+    [l ↦ lv] comes back with the page and the wand takes both, for the
+    reason spelled out in [spec_raftLog__slice.v]: the page aliases an
+    *entry buffer*, never the [raftLog] record, and [maybeSendAppend] has
+    to read [r.raftLog.committed] and run [send] while still holding the
+    page.  ([send] is stated on [own_raft_bare], which does not ask for
+    the log at all -- see [spec_raft__send.v].) *)
 Definition wp_raftLog__entries_at_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
@@ -25,9 +32,11 @@ Definition wp_raftLog__entries_at_body :=
   (uint.Z prev.(raft.entryID.index') + 1 ≤ uint.Z i)%Z →
   {{{ is_pkg_init raft ∗ "Hlog" ∷ own_raftLog_at l prev sents uents }}}
     l @! (go.PointerType raft.raftLog) @! "entries" #i #maxSize
-  {{{ (s : slice.t) (es : list raftpb.Entry.t) (dq : dfrac),
+  {{{ (s : slice.t) (es : list raftpb.Entry.t) (dq : dfrac)
+      (lv : raft.raftLog.t),
       RET (#s, #interface.nil);
-      s ↦*{dq} es ∗ (s ↦*{dq} es -∗ own_raftLog_at l prev sents uents) }}}.
+      l ↦ lv ∗ s ↦*{dq} es ∗
+      (l ↦ lv -∗ s ↦*{dq} es -∗ own_raftLog_at l prev sents uents) }}}.
 
 Module Type RAFTLOG__ENTRIES.
   Parameter wp_raftLog__entries_at : wp_raftLog__entries_at_body.

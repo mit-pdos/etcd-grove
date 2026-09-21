@@ -208,5 +208,216 @@ Lemma own_raft_phys_intro r id s (rv : raft.raft.t)
   own_raft_phys r id s.
 Proof. apply own_raft_phys_at_intro. Qed.
 
+(** ** The struct with its two lent-out heaps removed
+
+    [own_raft_phys_at] hides the struct value under [∃ rv], which is the
+    right thing for a caller that only wants "the struct is well-formed",
+    and the wrong thing for a caller that read a pointer *out* of the
+    struct before a call and must come back to it afterwards.  Two of
+    [own_raft_phys_at]'s conjuncts describe heap that hangs off a field
+    rather than the struct's own bytes:
+
+      [Htrk] ∷ own_tracker cfg rv.(trk') s.(votes)
+      [Hlog] ∷ own_raftLog rv.(raftLog')
+
+    and both get *lent out* on the append path: [maybeSendAppend] borrows
+    one voter's [Progress] out of the tracker and one page of entries out
+    of the log, and holds both across [r.send(...)].  With the struct
+    sealed, [send]'s postcondition re-existentialises [rv], so nothing
+    relates the rebuilt [rv'.(trk')] to the tracker the [Progress] came
+    from -- and the page cannot be held at all, because [own_raft_phys]
+    demands the whole log back before the call.  (See
+    [proof_raft__maybeSendAppend.v]'s header and notes/false-statements.md,
+    2026-09-21.)
+
+    [own_raft_bare r id s f tv lg] is [own_raft_phys_at r id s f] with
+    those two conjuncts deleted and the two field values they were indexed
+    by promoted to *parameters*: [⌜ rv.(trk') = tv ⌝] and
+    [⌜ rv.(raftLog') = lg ⌝].  A triple stated on it therefore says, as
+    part of its postcondition, "the tracker field and the log field still
+    point where they did" -- which is what [send] and [maybeSendSnapshot]
+    (through [send]) do in fact guarantee: neither touches either field.
+
+    The conjuncts are spelled out again rather than factored out of
+    [own_raft_phys_at], deliberately.  Twenty-odd other specs are stated on
+    [own_raft_phys]/[own_raft_phys_at] and open them with [iNamed]; defining
+    [own_raft_phys_at] as [∃ tv lg, own_raft_bare … ∗ …] would put two extra
+    existentials in front of every one of those [iNamed]s.  **Keep the two
+    lists in step**: a conjunct added to [own_raft_phys_at] belongs here too,
+    or [own_raft_phys_at_split] below stops compiling -- which is the point
+    of stating that lemma as an [⊣⊢]. *)
+Definition own_raft_bare (r : loc) (id : w64) s (f : func.t)
+    (tv : tracker.ProgressTracker.t) (lg : loc) : iProp Σ :=
+  ∃ (rv : raft.raft.t) (msgs msgsAA : list raftpb.Message.t)
+    (lok : interface.t_ok),
+  "Hr" ∷ r ↦ rv ∗
+
+  "%Hid" ∷ ⌜ rv.(raft.raft.id') = id ⌝ ∗
+  "%Hterm" ∷ ⌜ rv.(raft.raft.Term') = s.(nstate.term) ⌝ ∗
+  "%Hvote" ∷ ⌜ rv.(raft.raft.Vote') = s.(nstate.vote) ⌝ ∗
+  "%Hlead" ∷ ⌜ rv.(raft.raft.lead') = s.(nstate.lead) ⌝ ∗
+  "%Hstate" ∷ ⌜ rv.(raft.raft.state') = state_w64 s.(nstate.role) ⌝ ∗
+  "%Hstepfn" ∷ ⌜ rv.(raft.raft.step') = f ⌝ ∗
+
+  (** the two lent-out heaps, replaced by the field values they hang off *)
+  "%Htv" ∷ ⌜ rv.(raft.raft.trk') = tv ⌝ ∗
+  "%Hlg" ∷ ⌜ rv.(raft.raft.raftLog') = lg ⌝ ∗
+
+  "Hmsgs" ∷ rv.(raft.raft.msgs') ↦* msgs ∗
+  "Hmsgs_cap" ∷ own_slice_cap raftpb.Message.t rv.(raft.raft.msgs') (DfracOwn 1) ∗
+  "HmsgsAA" ∷ rv.(raft.raft.msgsAfterAppend') ↦* msgsAA ∗
+  "HmsgsAA_cap" ∷ own_slice_cap raftpb.Message.t
+                    rv.(raft.raft.msgsAfterAppend') (DfracOwn 1) ∗
+  "%Houtbox" ∷ ⌜ s.(nstate.outbox) ≡ₚ abs_outbox msgs msgsAA ⌝ ∗
+
+  "%HnoPreVote" ∷ ⌜ rv.(raft.raft.preVote') = false ⌝ ∗
+  "%HnoCheckQuorum" ∷ ⌜ rv.(raft.raft.checkQuorum') = false ⌝ ∗
+  "%HnoLearner" ∷ ⌜ rv.(raft.raft.isLearner') = false ⌝ ∗
+  "%HnoTransfer" ∷ ⌜ rv.(raft.raft.leadTransferee') = W64 0 ⌝ ∗
+  "%Hid_nz" ∷ ⌜ id ≠ W64 0 ⌝ ∗
+  "%HelectionTimeout" ∷ ⌜ 0 < sint.Z rv.(raft.raft.electionTimeout') ⌝ ∗
+
+  "%Hlok" ∷ ⌜ rv.(raft.raft.logger') = interface.ok lok ⌝ ∗
+  "#Hlogger" ∷ is_Logger lok ∗
+  "Hmisc" ∷ own_raft_misc rv.(raft.raft.readStates') rv.(raft.raft.readOnly')
+             rv.(raft.raft.pendingReadIndexMessages').
+
+(** The tracker alone, for a caller that keeps the log: this is the
+    predicate STATUS item 18 asks for, and [maybeSendSnapshot] is stated on
+    it (it calls [raftLog.snapshot] and [raftLog.firstIndex], so it needs
+    the log; it borrows no [Progress], so it must not be given the
+    tracker). *)
+Definition own_raft_notrk (r : loc) (id : w64) s (f : func.t)
+    (tv : tracker.ProgressTracker.t) : iProp Σ :=
+  ∃ (lg : loc), own_raft_bare r id s f tv lg ∗ own_raftLog lg.
+
+Lemma own_raft_bare_split r id s f :
+  own_raft_phys_at r id s f -∗
+  ∃ tv lg, own_raft_bare r id s f tv lg ∗
+           own_tracker cfg tv s.(nstate.votes) ∗ own_raftLog lg.
+Proof.
+  iIntros "H". iNamed "H".
+  iExists rv.(raft.raft.trk'), rv.(raft.raft.raftLog').
+  iFrame "Htrk Hlog". rewrite /own_raft_bare.
+  iExists rv, msgs, msgsAA, lok. iFrame "∗#%". all: done.
+Qed.
+
+Lemma own_raft_bare_join r id s f tv lg :
+  own_raft_bare r id s f tv lg -∗
+  own_tracker cfg tv s.(nstate.votes) -∗
+  own_raftLog lg -∗
+  own_raft_phys_at r id s f.
+Proof.
+  iIntros "H Htrk0 Hlog0". iNamed "H".
+  rewrite /own_raft_phys_at. iExists rv, msgs, msgsAA, lok.
+  rewrite Htv Hlg. iFrame "∗#%". all: done.
+Qed.
+
+(** The [⊣⊢] the two directions above are the halves of.  Stated as an
+    equivalence on purpose: it is what keeps [own_raft_bare]'s copy of the
+    conjunct list honest. *)
+Lemma own_raft_phys_at_split r id s f :
+  own_raft_phys_at r id s f ⊣⊢
+  ∃ tv, own_raft_notrk r id s f tv ∗ own_tracker cfg tv s.(nstate.votes).
+Proof.
+  iSplit.
+  - iIntros "H". iDestruct (own_raft_bare_split with "H") as (tv lg) "(H & Htrk0 & Hlog0)".
+    iExists tv. iFrame "Htrk0". iExists lg. iFrame.
+  - iIntros "H". iDestruct "H" as (tv) "[H Htrk0]".
+    iDestruct "H" as (lg) "[H Hlog0]".
+    iApply (own_raft_bare_join with "H Htrk0 Hlog0").
+Qed.
+
+Lemma own_raft_notrk_join r id s f tv :
+  own_raft_notrk r id s f tv -∗
+  own_tracker cfg tv s.(nstate.votes) -∗
+  own_raft_phys_at r id s f.
+Proof.
+  iIntros "H Htrk0". iDestruct "H" as (lg) "[H Hlog0]".
+  iApply (own_raft_bare_join with "H Htrk0 Hlog0").
+Qed.
+
+Lemma own_raft_phys_split r id s :
+  own_raft_phys r id s ⊣⊢
+  ∃ tv, own_raft_notrk r id s (step_func_of s.(nstate.role)) tv ∗
+        own_tracker cfg tv s.(nstate.votes).
+Proof. apply own_raft_phys_at_split. Qed.
+
+(** Re-sealing [own_raft_bare], in the shape of [own_raft_phys_at_intro]:
+    the two [own_tracker]/[own_raftLog] arguments are gone and the two
+    field equations join the pure premises. *)
+Lemma own_raft_bare_intro r id s f tv lg (rv : raft.raft.t)
+    (msgs msgsAA : list raftpb.Message.t) (lok : interface.t_ok) :
+  rv.(raft.raft.id') = id →
+  rv.(raft.raft.Term') = s.(nstate.term) →
+  rv.(raft.raft.Vote') = s.(nstate.vote) →
+  rv.(raft.raft.lead') = s.(nstate.lead) →
+  rv.(raft.raft.state') = state_w64 s.(nstate.role) →
+  rv.(raft.raft.step') = f →
+  rv.(raft.raft.trk') = tv →
+  rv.(raft.raft.raftLog') = lg →
+  s.(nstate.outbox) ≡ₚ abs_outbox msgs msgsAA →
+  rv.(raft.raft.preVote') = false →
+  rv.(raft.raft.checkQuorum') = false →
+  rv.(raft.raft.isLearner') = false →
+  rv.(raft.raft.leadTransferee') = W64 0 →
+  id ≠ W64 0 →
+  0 < sint.Z rv.(raft.raft.electionTimeout') →
+  rv.(raft.raft.logger') = interface.ok lok →
+  is_Logger lok -∗
+  r ↦ rv -∗
+  rv.(raft.raft.msgs') ↦* msgs -∗
+  own_slice_cap raftpb.Message.t rv.(raft.raft.msgs') (DfracOwn 1) -∗
+  rv.(raft.raft.msgsAfterAppend') ↦* msgsAA -∗
+  own_slice_cap raftpb.Message.t rv.(raft.raft.msgsAfterAppend') (DfracOwn 1) -∗
+  own_raft_misc rv.(raft.raft.readStates') rv.(raft.raft.readOnly')
+    rv.(raft.raft.pendingReadIndexMessages') -∗
+  own_raft_bare r id s f tv lg.
+Proof.
+  intros Hid Hterm Hvote Hlead Hstate Hstepfn Htv Hlg Houtbox HnoPreVote
+    HnoCheckQuorum HnoLearner HnoTransfer Hid_nz HelectionTimeout Hlok.
+  iIntros "#Hlogger Hr Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc".
+  rewrite /own_raft_bare. iExists rv, msgs, msgsAA, lok. iFrame "∗#%". all: done.
+Qed.
+
+(** The same for [own_raft_notrk]: the log is an argument again, the tracker
+    is not.  [maybeSendSnapshot] re-seals with this, exactly where it used to
+    use [own_raft_phys_intro]. *)
+Lemma own_raft_notrk_intro r id s f tv (rv : raft.raft.t)
+    (msgs msgsAA : list raftpb.Message.t) (lok : interface.t_ok) :
+  rv.(raft.raft.id') = id →
+  rv.(raft.raft.Term') = s.(nstate.term) →
+  rv.(raft.raft.Vote') = s.(nstate.vote) →
+  rv.(raft.raft.lead') = s.(nstate.lead) →
+  rv.(raft.raft.state') = state_w64 s.(nstate.role) →
+  rv.(raft.raft.step') = f →
+  rv.(raft.raft.trk') = tv →
+  s.(nstate.outbox) ≡ₚ abs_outbox msgs msgsAA →
+  rv.(raft.raft.preVote') = false →
+  rv.(raft.raft.checkQuorum') = false →
+  rv.(raft.raft.isLearner') = false →
+  rv.(raft.raft.leadTransferee') = W64 0 →
+  id ≠ W64 0 →
+  0 < sint.Z rv.(raft.raft.electionTimeout') →
+  rv.(raft.raft.logger') = interface.ok lok →
+  is_Logger lok -∗
+  r ↦ rv -∗
+  own_raftLog rv.(raft.raft.raftLog') -∗
+  rv.(raft.raft.msgs') ↦* msgs -∗
+  own_slice_cap raftpb.Message.t rv.(raft.raft.msgs') (DfracOwn 1) -∗
+  rv.(raft.raft.msgsAfterAppend') ↦* msgsAA -∗
+  own_slice_cap raftpb.Message.t rv.(raft.raft.msgsAfterAppend') (DfracOwn 1) -∗
+  own_raft_misc rv.(raft.raft.readStates') rv.(raft.raft.readOnly')
+    rv.(raft.raft.pendingReadIndexMessages') -∗
+  own_raft_notrk r id s f tv.
+Proof.
+  intros Hid Hterm Hvote Hlead Hstate Hstepfn Htv Houtbox HnoPreVote
+    HnoCheckQuorum HnoLearner HnoTransfer Hid_nz HelectionTimeout Hlok.
+  iIntros "#Hlogger Hr Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc".
+  rewrite /own_raft_notrk. iExists rv.(raft.raft.raftLog'). iFrame "Hlog".
+  iApply (own_raft_bare_intro with
+    "Hlogger Hr Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done.
+Qed.
+
 
 End proof.

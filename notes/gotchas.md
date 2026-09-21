@@ -1355,3 +1355,33 @@ it is `↦□`, and the *next* load of that global leaves `wp_auto` parked with
 no error. `iDestruct "ErrX" as "#ErrX".` right after the access moves it
 into the persistent context.
 
+## `interface.t`'s constructors are `ok | nil`, in that order
+
+`destruct err as [|eok]` silently puts the nil case second and only warns
+(`unused-intro-pattern`); write `destruct err as [eok|]`. Comparing a
+non-nil error against `nil` does reduce (the `_, _ => #false` arm of
+`go_eq_interface`); only two non-nil errors need the dynamic type.
+
+## `wp_pure. wp_auto.` for `Convert go.untyped_bool go.bool`
+
+`wp_auto` will not step it; `wp_pure` will. Appears at every `if err != nil`
+after a total-triple call. (`maybeSendAppend`, 2026-09-21.)
+
+## `case_bool_decide as H`, not `destruct (bool_decide P) eqn:H`, on a goal occurrence
+
+`destruct … eqn:` often elaborates a different `Decision` instance and
+fails to abstract the goal's occurrence, leaving `wp_auto` with nothing to
+do ("Failed to progress"). `case_bool_decide` works on the goal's own.
+
+## Ltac1's `A; [b|c]` counts all open goals
+
+After a chain that leaves N goals, any further bracketed branching must be
+parenthesised: `A; [b1|b2|b3]; (C)` runs `C` once per goal, while
+`A; [b1|b2|b3]; C; [d|e]` fails with `Incorrect number of goals (expected 6
+tactics)`. `maybeSendAppend` writes its common tail once for six leaves this
+way. Related structural idea: when several `if` arms reach one program
+point with different resources, package the differences into one
+`Definition … : iProp Σ` with named conjuncts, binding any *value* that
+differs existentially, and `iNamed` it in the shared tail (`msa_pkg` in
+`proof_raft__maybeSendAppend.v`).
+

@@ -54,9 +54,11 @@ Implicit Type s : nstate.t.
       as "Hphys";
       [iApply (own_raft_phys_intro with
           "Hlogger Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done|];
+    iDestruct (own_raft_bare_split with "Hphys") as (tvS lgS) "(Hphys & HtrkS & HlogS)";
     wp_apply (P.wp_raft__send with "[$Hphys]") as "Hphys";
       [done|left; exists mtype.VoteResp; split_and!;
             [by right|apply mtype_of_MsgVoteResp|done|w32_ne|done]|];
+    iDestruct (own_raft_bare_join with "Hphys HtrkS HlogS") as "Hphys";
     (* [wp_hidden]: an [iNamed] on a goal holding the whole body is ~12s *)
     wp_hidden (iNamedSuffix "Hphys" "2");
     rewrite ty_eq /MsgVote bool_decide_eq_true_2 //;
@@ -103,9 +105,11 @@ Implicit Type s : nstate.t.
        optional: the premise is stated about the *message literal*, so the
        goal is [{| ... |}.(Message.Term') ≠ W64 0] and [congruence] -- unlike
        [done]/[assumption] -- does not see through the projection. *)
+    iDestruct (own_raft_bare_split with "Hphys") as (tvS lgS) "(Hphys & HtrkS & HlogS)";
     wp_apply (P.wp_raft__send with "[$Hphys]") as "Hphys";
       [done|left; exists mtype.VoteResp; split_and!;
             [by right|apply mtype_of_MsgVoteResp|(simpl; congruence)|w32_ne|done]|];
+    iDestruct (own_raft_bare_join with "Hphys HtrkS HlogS") as "Hphys";
     iApply ("HΦ" $! interface.nil _); iFrame "Hphys";
     iPureIntro; split; [|done];
     exists [abs_msg mtype.Vote m_];
