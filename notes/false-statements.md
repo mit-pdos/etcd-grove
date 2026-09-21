@@ -243,3 +243,26 @@ the file's header. **The tell**: an `int` sum of two slice lengths whose
 operands come from different owners (here `Storage` and `unstable`); the
 model bounds each slice at `2^63` but not their sum.
 
+## `spec_raft__maybeSendSnapshot.v`: `own_raft_phys ∗ own_progress pr` is contradictory at its call site (2026-09-21)
+
+`own_raft_phys` contains `own_tracker`, which contains
+`[∗ map] p ∈ prs, own_progress p` with `dom prs = cfg`; `maybeSendAppend`
+calls `maybeSendSnapshot` with `pr = prs !! to` for a voter `to`. Both
+copies of `own_progress pr` are `pr ↦ pv` at `DfracOwn 1`, so the
+precondition is unsatisfiable exactly when it is called. Probed:
+`iCombine "H1 H2" gives %Hbad` yields `✓ (DfracOwn 1 ⋅ DfracOwn 1)`. The
+triple is *true* (for a `pr` outside the tracker) and was Qed against;
+it is simply uncallable. Third of its family, after the 2026-09-14
+`own_tracker` double-claim and the 2026-09-16 `Visit` receiver bug.
+
+**The rule:** when a spec takes `own_raft_phys` and a sub-resource side by
+side, check that the sub-resource is not already inside it. The cheap probe
+is the `iCombine … gives` above. **The companion rule:** a predicate that
+hides the struct under `∃ rv` cannot express "this call does not touch field
+`f`"; a proof that must come back to a pointer it read *before* such a call
+needs the field pinned as a parameter. Making what the field points at
+persistent (`↦$□`) pins the *contents* at a location, not *which* location
+the predicate names afterwards — so the read-only progress map was necessary
+but not sufficient for `maybeSendAppend`. The fix is `own_raft_notrk`
+(STATUS item 18).
+

@@ -273,3 +273,17 @@ premise and the call site discharges it. In `Add` itself, when the ring
 wraps (`start + count ≥ size`) the buffer is already full-length, so the
 "wrap and grow" case is unreachable.
 
+## `raftLog.term` is total; the term it returns is not pinned (2026-09-21)
+
+`term(i)` returns `(0, ErrCompacted)` for `i+1 < firstIndex`,
+`(0, ErrUnavailable)` for `i > lastIndex`, and in range panics only on a
+`Storage.Term` error, which `is_Storage`'s `HTerm` excludes. Its triple now
+says `err = nil ↔ i in range` and nothing about the term value: in the
+unstable part the value comes from `unstable.maybeTerm`, whose spec does
+not pin it, and `term_at` covers only the stable prefix. The `i + 1` wrap at
+`2^64 - 1` fires the `ErrCompacted` branch, consistent with `Hnowrap`. The
+`←` half is what `maybeSendAppend` needs to call `entries(pr.Next, …)`
+afterwards (`prev.index + 1 ≤ pr.Next`); the two named errors are not in the
+postcondition because `is_initialized`'s globals are existential inside
+`is_pkg_init raft` and no caller tests which error it is.
+

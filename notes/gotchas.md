@@ -1315,3 +1315,20 @@ instance but is a missing hypothesis. A top-level `Ltac` cannot mention the
 lemma's local variables — pass them as arguments; `Local Ltac` inside a
 functor ascribed to a `Module Type` is fine.
 
+## Turning a dead branch live: `destruct … eqn:` replaces the `assert Hb; rewrite Hb` idiom
+
+Where a range test used to be dead and was killed with
+`assert (Hb : bool_decide … = false). rewrite Hb /=.`, a total spec needs
+`destruct (bool_decide …) eqn:Hb` — and the `rewrite Hb` that followed must
+be deleted, since `destruct … eqn:` already replaced the occurrence ("The
+LHS of Hb …"). (`raftLog.term`, 2026-09-21.)
+
+## Sequence shared-file edits across agents
+
+One agent editing `base.v` or an `inv_*.v` invalidates the `.vos` closure
+(~450 files, ~8 min) under every other agent, and 3–4 `rocqworker`s then
+contend for 8 cores; a `-vok` run that would take 2 min takes 20. The
+2026-09-21 `maybeSendAppend` run spent ~4 h of wall clock almost entirely in
+such cascades. When a wave has a shared-file edit in it, run that item
+alone first.
+

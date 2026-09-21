@@ -29,7 +29,12 @@ Import P.
     assert (Hb : (uint.Z prev.(raft.entryID.index') ≤ uint.Z li ≤
                   uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents)
                   + Z.of_nat (length uents))%Z) by lia.
-    wp_apply (wp_raftLog__term_at _ _ _ _ _ Hb with "[$Hlog]") as "%t Hlog".
+    (* [raftLog.term]'s triple is total ([spec_raftLog__term.v]); here the
+       index is [lastIndex], so the in-range clause of its postcondition
+       applies and the error is [nil] -- which is what makes the [Panicf]
+       on the next line unreachable. *)
+    wp_apply (wp_raftLog__term_at with "[$Hlog]") as "%t %err [Hlog %Herr]".
+    apply (proj2 Herr) in Hb. subst err. wp_auto.
     iApply ("HΦ" $! (raft.entryID.mk t li)). iFrame.
   Qed.
   Arguments wp_raftLog__lastEntryID_at {_ _ _ _ _ _ _ _}.
