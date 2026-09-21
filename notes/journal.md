@@ -2431,3 +2431,71 @@ in `Qed`. The top four are `proof_raftLog__slice.v` (605s),
 which is worth a look — the cost is all elaboration, not proof checking.
 Treat these four numbers as `vo`-or-`vok`, per the conflation above; the
 first clean build after this commit will say which.
+
+---
+
+## 2026-09-21 — audit: what `tcb-report.py` does not establish about the election claim
+
+Claude Opus 5 (background job), branch `worktree-tcb-report-audit` off
+`main`. Read-only against branch `worktree-election-close-admits` at
+`0b3943d1f`, which claims *"every Hoare triple on the election path is Qed
+except `wp_raftLog__slice_at`"* and cites `etc/tcb-report.py --scope
+election` as the evidence. Nothing on that branch was touched.
+
+**The claim is true of the source text and the tool reports it accurately.**
+A comment-stripped scan written independently of the tool agrees with it
+exactly over the 330 files of `v3_proof/election/`: 1 `Admitted`, 10
+`Axiom`, 169 `Qed`, 78 `Parameter` (all in `Module Type`s), 0 `Abort`. Three
+things the tool does *not* check also hold: all 330 files are in the
+`Require` closure of `election.v`, which `should_build.v:51` requires; there
+are no soundness escape hatches anywhere under
+`new/proof/go_etcd_io/raft/` (no `Unset Guard/Positivity/Universe Checking`,
+no `bypass_check`, no admitted `Program` obligations);
+`check-module-discipline.py --scope election` exits 0, its two warnings
+being the `Entry.Size` and `big.Int.Int64` axioms, which is expected.
+
+**It does not follow that the tool demonstrates the claim.** Seven gaps,
+written up with the plan in the new [tcb-accounting.md](tcb-accounting.md).
+The three that change how the result should be read:
+
+- **It never compiles.** No `subprocess`, no `rocq`, no `.vo`/`.vok`
+  anywhere in `tcb-report.py` or `rocqscan.py`. A `Qed.` in a file that does
+  not typecheck counts as a proof. The tree has 333 `.vos` and no `.vo`;
+  `.vos` skips proof bodies by construction. The real evidence is a manual
+  `-vok` sweep reported in a commit message, uncommitted, not tied to a
+  revision. CI would be ground truth but fires only on `main` and PRs to it.
+- **`--scope` is a path filter** (`tcb-report.py:515-524`), applied after the
+  analysis. Every `election/` file requires `election_protocol.v` through
+  `defs.v`, and its **12 axioms do not appear** in the scoped report, which
+  prints `assumed 11`. The honest figure for the election development is 23.
+- **The payoff theorem is out of scope and currently vacuous.**
+  `raft_election_safety` lives in `election.v`, so `--view surface` under
+  the scope reports only `wp_raft__Step_body`. And `election_protocol.v` has
+  no allocation axiom for `own_raft_ghost`: taking
+  `own_raft_ghost := λ _ _ _, False` and `is_leader := λ _ _ _, False`
+  satisfies all twelve axioms, making both the corollary and `Step`'s triple
+  trivial. This is next step #4 in STATUS and is not new — what is new is
+  that **no output of the tool would lead a reader to it.**
+
+Also: the surviving admission is filed more gently than it deserves. The
+tool prints `wp_raftLog__slice_at` as *"trusted — deliberate"*, next to the
+two `readonly.v` overflow assumptions, while
+`proof_raftLog__slice.v`'s own header says the triple *"as stated is **false**
+at a log with ~2^63 unstable entries"*. And what enters the trust base is the
+whole triple, not the one admitted side condition at line 233 — the
+distinction the `(* Trusted *)` marker cannot carry.
+
+**Plan**, in three slices, in [tcb-accounting.md](tcb-accounting.md). Slice 1
+is an afternoon with no Rocq: make `--scope` a dependency cone, flag
+abstract predicates that nothing ever allocates, check reachability from
+`should_build.v`, and replace `(* Trusted *)` with a parsed marker that
+separates "assumed true" from "known false outside a stated regime". Slice 2
+is what makes the tool definitive: join against a committed `-vok` manifest
+keyed on git blob hashes, and diff the syntactic estimate against a real
+`Print Assumptions` archived by CI — which is nearly free, since CI already
+does the `.vo` build. Slice 3 gives `new/golang/defn/` its own line, because
+this branch edits the operational model (`defn/map.v`) and no invocation of
+the tool in the notes covers it.
+
+**Nothing was changed in the tool or the proofs.** The audit is the
+deliverable; the plan is unclaimed.

@@ -20,6 +20,9 @@ If a fact only matters inside one conversation, it does not belong here.
 - **[gotchas.md](gotchas.md)** — traps that have already cost someone time.
 - **[raft-proof-map.md](raft-proof-map.md)** — what is in each Raft proof file
   and how they fit together.
+- **[tcb-accounting.md](tcb-accounting.md)** — what `etc/tcb-report.py`
+  establishes and what it cannot, and the plan to close the gap. **Read
+  before quoting a TCB number.**
 - **[raft-election-refinement.md](raft-election-refinement.md)** — the
   leader-election refinement proof: scope, what is proved, what is admitted,
   and where the trust boundary is.

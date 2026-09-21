@@ -408,6 +408,12 @@ over-counts, because several doc comments quote a probe lemma ending in
     etc/tcb-report.py --view assumed     # every axiom and admit, classified
     etc/tcb-report.py --view surface     # what the exported statements rest on
 
+**But do not quote a `--scope` figure on its own.** The tool is a syntactic
+scanner — it never compiles anything, `--scope` is a path filter rather than a
+dependency cone, and it cannot see that an axiomatized ghost predicate has no
+model. What it does and does not establish, with a plan to close the gap, is
+in [tcb-accounting.md](tcb-accounting.md) (audited 2026-09-21).
+
 As of 2026-09-18 it reports, over the whole raft proof: **45 assumed** — 31
 `Axiom` and 14 `Admitted`, of which 18 are Hoare triples about Go code, 13
 are properties of the model, and 14 are opaque declarations — against **85
