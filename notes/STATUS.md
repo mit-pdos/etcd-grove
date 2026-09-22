@@ -159,8 +159,19 @@ Branch `election-protocol-ghost`, off `main`. The twelve axioms above are
 gone: `election_protocol.v` contains no `Axiom` and no `Admitted`, and
 `etc/tcb-report.py` over the whole raft proof drops from 43 assumed to
 **31** (8 `Admitted`, 23 `Axiom`), with `election_protocol.v` absent from its
-"Incomplete" list. Election safety — `raft_election_safety` in `election.v`
-— now rests on nothing but the framework and the declared trust boundary.
+"Incomplete" list. `raft_election_safety` in `election.v` is now itself
+axiom-free.
+
+**Do not read that as "leader election is verified."** The corollary is
+code-free — it relates two `own_raft_ghost` assertions — and the one result
+that touches code, `wp_raft__Step`, still rests on the `raftLog__slice`
+admission, on the `is_message` premise a verified transport would have to
+supply, and on the scope premises below. An audit on 2026-09-22 (journal)
+lists what is still missing; the three biggest are **no crash/persistence
+model at all**, **no constructor for `own_raft_phys`** (no `newRaft` spec, no
+`is_Storage` instance), and **`Step` specified only for
+`MsgHup`/`MsgVote`/`MsgVoteResp`**, so the step-down-on-a-higher-term path
+that `step_higher_term` describes is never discharged against the code.
 
 Three defects in the *statements* came out of proving them, each a way to
 elect two leaders in one term, and all three are fixed:

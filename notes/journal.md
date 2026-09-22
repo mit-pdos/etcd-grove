@@ -2579,3 +2579,87 @@ separate worktrees do not share a session table or a memory budget, and the
 checkout. They still share `MemAvailable`, which eviction watches.
 `--compile` and `--rebuild` (build the `.vo`s from the check) are also
 documented now; neither is what this `vos`-only tree wants day to day.
+
+## 2026-09-22 (later) — Audit: what the election proof does *not* cover
+
+A subagent (Fable) was asked one narrow question: considering **safety only**,
+is leader election fully verified — are all safety bugs in `raft.go`, for the
+no-reconfiguration no-proposals case, precluded? Answer: **no**. The gaps
+below are its findings; the two marked *(verified here)* I re-checked against
+the sources myself, the rest are its citations and are worth spot-checking
+before anyone leans on them.
+
+Ranked by safety weight:
+
+1. **No crash or persistence model, at all.** `Step` is a `wp`, not a `wpc`;
+   `HardState`, `hardState()` and `loadState` (`v3.v:5302,5304`) appear in no
+   spec; `own_raft_ghost` is volatile. The Go ordering that makes a vote
+   durable before the `MsgVoteResp` leaves (`msgsAfterAppend` →
+   `MsgStorageAppend.Responses`) is invisible here, because
+   `own_raft_phys` folds `msgs` and `msgsAfterAppend` into one abstract
+   outbox and `step_drain` lets any submultiset go at any time. So the
+   canonical election-safety bug — vote, crash before it is durable,
+   restart, vote for someone else — is outside the proof, and so is the
+   weaker bug of routing a granting `MsgVoteResp` through `r.msgs`.
+2. **`own_raft_phys` has no constructor.** There is no `newRaft` spec and no
+   `is_Storage` instance (no `MemoryStorage`), so its satisfiability is by
+   inspection only — and this predicate was provably `False` once before
+   (the duplicated `trk` ownership, fixed 2026-09-14). Until something
+   builds one, every triple in the development could in principle be vacuous.
+   `own_raft_ghost` *is* now known inhabited (`own_raft_ghost_alloc`), which
+   is the asymmetry worth closing next.
+3. **`Step` is specified only for `MsgHup`/`MsgVote`/`MsgVoteResp`.** The
+   model's `step_higher_term` with `from_leader = true` — receiving an
+   `App`/`Heartbeat` at a higher term, stepping down *and adopting the
+   sender as leader* — has no collection refining it. Nor does
+   `stepCandidate`'s step-down on an equal-term `MsgApp` (`v3.v:4644-4660`),
+   `becomePreCandidate`, `stepFollower`'s `lead := m.From`
+   (`v3.v:4753,4762,4771`), `MsgForgetLeader`, `tickElection`, or
+   `Ready`/`acceptReady`/`Advance`. `step_drain` likewise refines nothing.
+4. **The log is dropped, so `isUpToDate` is unconstrained.** Rejecting is
+   always legal in the model, so a bug that makes a node *grant* to a stale
+   candidate is a bug in `Step`'s `MsgVote` branch that this proof cannot
+   see. Election Safety survives it (it does not depend on log currency);
+   Leader Completeness and State Machine Safety are not expressible at all.
+5. **`HnoConfChange` cannot be discharged by a real cluster** *(verified
+   here)*. `inv_raftlog.v:139-140` requires
+   `Forall (λ e, Type = EntryNormal) (sents ++ uents)` — the **whole** log —
+   while `RawNode.Bootstrap` (`v3.v:391`) writes `EntryConfChange` entries at
+   `v3.v:447`, and `StartNode` calls it. So `own_raft_phys` is false of every
+   freshly bootstrapped etcd node until those entries are compacted away.
+   Only "no conf change in `(applied, committed]`" is actually needed, so
+   this is cheap to weaken, and it should be. This is the same shape as the
+   four statements previously found false of the code, and is the nearest
+   thing to a fifth.
+6. **Scope premises that are not etcd's configuration.** `preVote = false`
+   and `checkQuorum = false` (`inv_raft_phys.v:112-113`) — etcd's server
+   turns both on by default. Also `Hnosnap` (no snapshot ever received,
+   `inv_raftlog.v:139`), which is a scope assumption nothing had written
+   down. The `To = id` / `Term ≠ 0` / `From ≠ 0` premises on incoming
+   messages are assumptions about the transport and peers; Go checks none of
+   them, and a `Term = 0` `MsgVoteResp` really does fall through to
+   `stepCandidate` and get counted (`v3.v:3928`).
+
+The remaining trust base does **not** look like it can hide an election-safety
+bug: none of the ten axioms feeds a vote or leader decision, and the
+`raftLog__slice` admission is an arithmetic bound on the
+`hup → hasUnappliedConfChanges → slice → extend` path that cannot reach a
+`Term`/`Vote` write. `protocol.v` and `readonly.v` are confirmed *not* on the
+election path — nothing under `election/` requires them.
+
+The audit found no fifth statement outright false of the code beyond item 5,
+and its adversarial re-read of this morning's ghost construction came back
+clean: `own_raft_ghost_alloc` is non-vacuous, `is_vote` is unforgeable,
+`is_quorum` matches Go's `votedCnt >= len(c)/2+1`, `quorums_intersect` is
+correct, and `become_*`/`can_vote`/`record_vote` match the Go bodies.
+
+**Two corrections to the entry above, both mine.** The earlier entry and the
+commit message for `7cb3d419d` say `proof_raft__Step.v` "opens with
+`subst cfg`". It does not, and deliberately: `subst` removes the binder and
+the branch lemmas are applied to `cfg` *by name*, which then resolves to
+Perennial's global `cfg : language → Type`. The file asserts a copy of the
+witness at `γ.(re_cfg)` instead and says so in a comment
+(`proof_raft__Step.v:47-50`). And `STATUS.md`'s "election safety now rests on
+nothing but the framework and the declared trust boundary" was true of the
+code-free corollary and misleading about everything else; it has been
+rewritten.
