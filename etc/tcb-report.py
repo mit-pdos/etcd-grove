@@ -168,15 +168,70 @@ def load(proof_root, root):
     return units
 
 
-def require_graph(units):
+ROCQPROJECT = "_RocqProject"
+LOADPATH_RE = re.compile(r"^\s*-[QR]\s+(?P<dir>\S+)\s+(?P<logical>\S+)\s*$", re.M)
+
+
+def logical_roots(root):
+    """[(logical prefix, directory)] from `_RocqProject`, longest first.
+
+    This is how Rocq itself turns `New.code.go_etcd_io.raft.v3` into a file,
+    and the only way to do it right: the tail-matching fallback below cannot
+    tell that logical path from `New.proof.go_etcd_io.raft.v3`, since they
+    agree on their last three components.  Getting that wrong invents an
+    edge from the raft proof's `base.v` to the raft proof's `v3.v`, which is
+    how a dependency cone comes to contain half the development.
+    """
+    path = os.path.join(root, ROCQPROJECT)
+    if not os.path.isfile(path):
+        return []
+    with open(path, encoding="utf-8", errors="replace") as f:
+        text = f.read()
+    roots = []
+    for m in LOADPATH_RE.finditer(text):
+        logical = m.group("logical")
+        prefix = () if logical in ('""', "''") else tuple(logical.split("."))
+        roots.append((prefix, os.path.join(root, m.group("dir"))))
+    roots.sort(key=lambda r: -len(r[0]))
+    return roots
+
+
+def resolve_logical(name, roots):
+    """The `.v` file a logical path names, or None."""
+    parts = name.split(".")
+    for prefix, directory in roots:
+        n = len(prefix)
+        if tuple(parts[:n]) == prefix and len(parts) > n:
+            cand = os.path.join(directory, *parts[n:]) + ".v"
+            if os.path.isfile(cand):
+                return os.path.normpath(cand)
+    return None
+
+
+def require_graph(units, roots=None):
     """path -> set of paths it requires, resolved by longest path suffix.
 
     A logical path (``New.proof.go_etcd_io.raft.v3_proof.election.defs``)
     and a file path (``new/proof/go_etcd_io/raft/v3_proof/election/defs.v``)
     agree on their tail and disagree on their head, since the logical root is
     declared in _RocqProject rather than in the source.  Matching on the
-    longest common tail needs neither.
+    longest common tail needs neither.  It also cannot tell two logical
+    roots apart, so `roots` -- from `_RocqProject` -- is used instead when
+    it is available, and the tail match is the fallback for a tree that has
+    no such file.
     """
+    tracked = {os.path.normpath(u.path) for u in units}
+    if roots:
+        edges = collections.defaultdict(set)
+        for u in units:
+            with open(u.path, encoding="utf-8", errors="replace") as f:
+                text = strip_comments(f.read())
+            for req in requires(text):
+                hit = resolve_logical(req, roots)
+                if hit and hit in tracked and hit != os.path.normpath(u.path):
+                    edges[os.path.normpath(u.path)].add(hit)
+        return edges
+
     by_tail = collections.defaultdict(list)
     for u in units:
         for k in range(1, len(u.logpath) + 1):
@@ -194,6 +249,138 @@ def require_graph(units):
                         edges[u.path].add(hits[0].path)
                     break
     return edges
+
+
+# --------------------------------------------------------------------------
+# What the build compiles.
+#
+# The set of files this tool looks at should be the set `make` compiles, or
+# the two disagree and neither number means anything: a file on disk that
+# nothing requires is never checked by Rocq but is still counted here, and a
+# scoped report that stops at a directory drops the assumptions its own
+# files rest on.  See notes/tcb-accounting.md, G2 and G6.
+#
+# `make` expands its prerequisites from `.rocqdeps.d`, which is `rocq dep`
+# output (Makefile:47-53, and `%.vo: %.v _RocqProject | .rocqdeps.d` at 64).
+# Reading that file is therefore the build's own answer.  Parsing `Require`
+# lines instead is a second implementation of the same thing, and a second
+# implementation is how the two sets drift apart again -- so it is only the
+# fallback, and the report says which one it used.
+
+DEFAULT_BUILD_ROOT = "new/should_build.v"
+ROCQDEPS = ".rocqdeps.d"
+
+# `rocq dep` names the same file through several artefact suffixes; they all
+# collapse to one node.  Longest first, so `.required_vos` is not read as
+# `.vos`.
+ARTIFACT_SUFFIXES = (
+    ".required_vos",
+    ".required_vo",
+    ".v.beautified",
+    ".glob",
+    ".vos",
+    ".vok",
+    ".vio",
+    ".vo",
+    ".v",
+)
+
+
+def _stem(token):
+    """The `.v` file a `rocq dep` token names, or None if it names no file."""
+    for suffix in ARTIFACT_SUFFIXES:
+        if token.endswith(suffix):
+            return token[: -len(suffix)] + ".v"
+    return None
+
+
+def parse_rocqdeps(path, root):
+    """{.v path -> set of .v paths it depends on}, from `rocq dep` output.
+
+    The lines are make rules, `a.vo a.glob …: a.v b.vo c.vo`, possibly
+    continued with a trailing backslash.  A file depending on itself (every
+    rule lists its own `.v` as a prerequisite) is dropped.
+    """
+    with open(path, encoding="utf-8", errors="replace") as f:
+        text = f.read().replace("\\\n", " ")
+    graph = collections.defaultdict(set)
+    for line in text.split("\n"):
+        if ":" not in line:
+            continue
+        lhs, rhs = line.split(":", 1)
+        targets = {s for s in (_stem(t) for t in lhs.split()) if s}
+        prereqs = {s for s in (_stem(t) for t in rhs.split()) if s}
+        for t in targets:
+            tp = os.path.normpath(os.path.join(root, t))
+            for p in prereqs:
+                pp = os.path.normpath(os.path.join(root, p))
+                if pp != tp:
+                    graph[tp].add(pp)
+    return graph
+
+
+def source_dep_graph(units, extra, roots=None):
+    """Fallback dependency graph, from `Require` lines.
+
+    Restricted to the scanned units plus the build root, which is enough to
+    say which of *those* files the build reaches.  A file outside the proof
+    root that requires one inside it would be missed; nothing in this tree
+    does that, and with `.rocqdeps.d` present the question does not arise.
+    """
+    return require_graph(list(units) + list(extra), roots)
+
+
+def reachable(graph, seeds):
+    """Everything reachable from `seeds` through `graph`, seeds included."""
+    seen, stack = set(), [s for s in seeds]
+    while stack:
+        p = stack.pop()
+        if p in seen:
+            continue
+        seen.add(p)
+        stack.extend(graph.get(p, ()))
+    return seen
+
+
+def bare_unit(path, root):
+    """A Unit for a file outside the proof root -- the build root.
+
+    It carries no declarations: it exists so that the dependency graph can
+    be rooted at it, not so that it can be reported on.
+    """
+    with open(path, encoding="utf-8", errors="replace") as f:
+        raw = f.read()
+    rel = os.path.relpath(path, root)
+    return Unit(
+        path=path,
+        rel=rel,
+        logpath=tuple(rel[:-2].split(os.sep)),
+        role=None,
+        collection=None,
+        decls=[],
+        lines=raw.count("\n") + 1,
+    )
+
+
+def scope_seeds(scope_dir, units):
+    """Where a cone-scoped report starts.
+
+    The convention this development uses is an aggregator beside the
+    directory -- `election/` is reached through `election.v` -- and that
+    file is the honest root, since it is what `should_build.v` requires and
+    therefore what defines the collection's extent.  With no such file,
+    every unit under the directory seeds the cone, which is the same answer
+    the old path filter gave plus the dependencies.
+    """
+    aggregator = scope_dir.rstrip(os.sep) + ".v"
+    if os.path.isfile(aggregator):
+        return [os.path.abspath(aggregator)], os.path.basename(aggregator)
+    under = [
+        u.path
+        for u in units
+        if os.path.abspath(u.path).startswith(os.path.abspath(scope_dir) + os.sep)
+    ]
+    return under, "every file under the directory"
 
 
 # --------------------------------------------------------------------------
@@ -455,7 +642,7 @@ def exported_surface(units, edges, index, mentioned):
 # The report
 
 
-def build_report(units, edges, scope_dir, root, marker):
+def build_report(units, edges, scope_dir, root, marker, selection=None):
     index = build_index(units)
     mentioned = mentions(units, index)
     surface, internal_colls = exported_surface(units, edges, index, mentioned)
@@ -511,12 +698,23 @@ def build_report(units, edges, scope_dir, root, marker):
     defs, unresolved = closure(seeds, index, lambda d: (d.path, d.line))
 
     scope_abs = os.path.abspath(scope_dir)
+    selected = selection.get("paths") if selection else None
 
     def in_scope(rel):
         path = os.path.abspath(os.path.join(root, rel))
-        # Compare path components, not characters: `election` is not a
-        # prefix of `election_protocol.v` in any sense that matters.
+        if selected is not None:
+            # Cone mode: membership in the set the build reaches from this
+            # scope's root, which is what makes a scoped assumption count
+            # wherever it lives.
+            return path in selected
+        # Path-filter mode.  Compare path components, not characters:
+        # `election` is not a prefix of `election_protocol.v` in any sense
+        # that matters.
         return path == scope_abs or path.startswith(scope_abs + os.sep)
+
+    def outside_scope_dir(rel):
+        path = os.path.abspath(os.path.join(root, rel))
+        return not (path == scope_abs or path.startswith(scope_abs + os.sep))
 
     scoped_units = [f for f in files if in_scope(f[0].rel)]
     scoped_assumed = [r for _d, _u, r in assumed if in_scope(r["file"])]
@@ -539,8 +737,21 @@ def build_report(units, edges, scope_dir, root, marker):
         + sum(r["lines"] for r in counted_results)
         + sum(d.lines for d in scoped_defs)
     )
+    sel = selection or {}
     return {
         "scope": os.path.relpath(scope_dir, root),
+        "scope_mode": sel.get("mode", "dir"),
+        "graph_source": sel.get("graph_source"),
+        "build_root": sel.get("build_root"),
+        "seeded_at": sel.get("seeded_at"),
+        "orphans": sel.get("orphans", []),
+        # Of the assumptions in this report, how many live outside the scope
+        # directory -- reached because the scope depends on them.  The count
+        # G2 was about: `--scope election` used to print neither them nor
+        # the fact that it had dropped them.
+        "assumed_outside_scope_dir": sum(
+            1 for r in scoped_assumed if outside_scope_dir(r["file"])
+        ),
         "files": len(scoped_units),
         "lines": total_lines,
         "assumed": scoped_assumed,
@@ -651,6 +862,40 @@ def row(label, count, lines, note, out, indent=2):
     )
 
 
+def print_provenance(rep, out):
+    """What was looked at, and on whose authority.
+
+    Four lines at most.  A number with no provenance is a number about an
+    unidentified tree, which is how a `--scope` figure came to be quoted as
+    evidence that a branch was proved.
+    """
+    rev = rep.get("revision") or "revision unknown"
+    print(f"  source text at {rev} -- assumes `make` is green; proofs are not checked here", file=out)
+    build = rep.get("build_state")
+    if build:
+        print(f"  {build}", file=out)
+    if rep.get("scope_mode") == "cone":
+        print(
+            "  files the build reaches from {}, per {}".format(
+                rep.get("seeded_at"), rep.get("graph_source")
+            ),
+            file=out,
+        )
+    else:
+        print(
+            "  --scope-dir: files under the path, NOT what the build reaches"
+            " from it",
+            file=out,
+        )
+    n = len(rep.get("orphans") or [])
+    if n:
+        print(
+            "  {} scanned {} outside the build -- counted here, compiled by"
+            " nothing".format(n, "file is" if n == 1 else "files are"),
+            file=out,
+        )
+
+
 def print_summary(rep, out):
     shapes = collections.Counter(r["shape"] for r in rep["assumed"])
     how = collections.Counter(r["how"] for r in rep["assumed"])
@@ -669,6 +914,7 @@ def print_summary(rep, out):
         ),
         file=out,
     )
+    print_provenance(rep, out)
     print(file=out)
     row(
         "assumed",
@@ -688,6 +934,14 @@ def print_summary(rep, out):
         print(
             "    {:<29}{:>3}   deliberate, marked in a comment".format(
                 "of those, trusted", trusted
+            ),
+            file=out,
+        )
+    if rep.get("assumed_outside_scope_dir"):
+        print(
+            "    {:<29}{:>3}   from outside the scope directory, reached"
+            " through it".format(
+                "from its dependencies", rep["assumed_outside_scope_dir"]
             ),
             file=out,
         )
@@ -768,6 +1022,21 @@ def print_summary(rep, out):
                 ),
                 file=out,
             )
+
+    orphans = rep.get("orphans") or []
+    if orphans:
+        print(file=out)
+        print(
+            "Outside the build ({} files) -- nothing requires these, so `make`"
+            " never".format(len(orphans)),
+            file=out,
+        )
+        print(
+            "compiles them and their Qeds are unchecked by anything:",
+            file=out,
+        )
+        for rel in orphans:
+            print("  " + shorten_path(rel, WIDTH - 2), file=out)
 
 
 def print_files(rep, out):
@@ -880,6 +1149,66 @@ def print_surface(rep, out):
 
 
 # --------------------------------------------------------------------------
+
+
+def select_files(units, root, scope_dir, args):
+    """Which files to report on, and what is outside the build entirely.
+
+    Returns the selection `build_report` filters by, plus the provenance a
+    reader needs to judge it: which dependency graph was used, what it was
+    rooted at, and which scanned files the build never compiles.
+    """
+    unit_paths = {os.path.abspath(u.path) for u in units}
+    build_root = os.path.normpath(os.path.join(root, args.build_root))
+
+    roots = logical_roots(root)
+    deps_path = os.path.join(root, ROCQDEPS)
+    if os.path.isfile(deps_path):
+        graph = parse_rocqdeps(deps_path, root)
+        source = ROCQDEPS
+    elif os.path.isfile(build_root):
+        graph = source_dep_graph(units, [bare_unit(build_root, root)], roots)
+        source = "Require lines (no .rocqdeps.d -- run make)"
+    else:
+        graph = require_graph(units, roots)
+        source = f"Require lines (no .rocqdeps.d, no {args.build_root})"
+
+    built = (
+        {os.path.abspath(p) for p in reachable(graph, [build_root])}
+        if os.path.isfile(build_root)
+        else None
+    )
+    orphans = (
+        sorted(os.path.relpath(p, root) for p in unit_paths - built)
+        if built is not None
+        else []
+    )
+
+    if args.scope_dir:
+        return {
+            "mode": "dir",
+            "graph_source": source,
+            "build_root": args.build_root,
+            "seeded_at": None,
+            "orphans": orphans,
+        }
+
+    if os.path.abspath(scope_dir) == os.path.abspath(
+        os.path.join(root, args.proof_root)
+    ):
+        seeds, seeded_at = [build_root], os.path.relpath(build_root, root)
+    else:
+        seeds, seeded_at = scope_seeds(scope_dir, units)
+
+    cone = {os.path.abspath(p) for p in reachable(graph, seeds)}
+    return {
+        "mode": "cone",
+        "paths": unit_paths & cone,
+        "graph_source": source,
+        "build_root": args.build_root,
+        "seeded_at": seeded_at,
+        "orphans": orphans,
+    }
 
 
 def resolve_scope(scope, proof_root):
@@ -1035,10 +1364,31 @@ def main():
     ap.add_argument(
         "--scope",
         default=None,
-        help="restrict the report to a path, or to the bare name "
-        "of a directory anywhere under the proof root.  The "
-        "graph is still built from the whole proof root, so "
+        help="restrict the report to what the build reaches from a "
+        "directory's aggregator -- a path, or the bare name of a "
+        "directory anywhere under the proof root.  This is a dependency "
+        "cone: an assumption the scope rests on is counted wherever it "
+        "lives.  The graph is still built from the whole proof root, so "
         "scoping cannot invent exported results",
+    )
+    ap.add_argument(
+        "--scope-dir",
+        action="store_true",
+        help="make --scope the old path filter -- report only files "
+        "physically under the directory, dropping whatever they depend "
+        "on.  Not the build's view of the scope; see notes/tcb-accounting.md",
+    )
+    ap.add_argument(
+        "--build-root",
+        default=DEFAULT_BUILD_ROOT,
+        help=f"the file `make` builds, relative to --root "
+        f"(default: {DEFAULT_BUILD_ROOT}).  What is not reachable from it "
+        f"is not compiled by anything",
+    )
+    ap.add_argument(
+        "--strict",
+        action="store_true",
+        help="exit non-zero if any scanned file is outside the build",
     )
     ap.add_argument(
         "--view",
@@ -1068,8 +1418,9 @@ def main():
     scope_dir = resolve_scope(args.scope, proof_root)
 
     units = load(proof_root, root)
-    edges = require_graph(units)
-    rep = build_report(units, edges, scope_dir, root, args.trusted_marker)
+    edges = require_graph(units, logical_roots(root))
+    selection = select_files(units, root, scope_dir, args)
+    rep = build_report(units, edges, scope_dir, root, args.trusted_marker, selection)
 
     if args.format == "json":
         print(json.dumps(rep, indent=2))
