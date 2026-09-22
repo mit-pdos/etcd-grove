@@ -50,16 +50,19 @@ so it is in the build again. That is a stopgap: it is old work, due a proper
 clean-up later, and the point for now is only that it is checked rather
 than silently skipped.
 
-**Build baseline, 2026-09-22, at `21b678d3b`** (Rocq 9.4+alpha, the
-`perennial` opam switch). The `.vos` closure of `election_proof/election.v`
-and `v3.v` — 459 files — built with 0 errors in 8m16s at `-j4`; then `.vok`
-of all **197** files of the raft proof that the build reaches, 0 errors, in
-27m at `-j2` (peak 2.8 GB). So every proof body in the build checks, and the
-move to `election_proof/` is compiled, not just statically verified. Two
-limits: `-vok` does not check universe constraints (CONTRIBUTING.md), so
-this is not a `make ci`; and the assumptions are unchanged by it — the 7
-`Admitted` and 18 `Axiom` that `etc/tcb-report.py --scope election_proof`
-lists are still assumptions, they just no longer have unchecked neighbours.
+**Build baseline, 2026-09-22, at `454e0d780`** (Rocq 9.4+alpha, the
+`perennial` opam switch) — the tree after `worktree-election-close-admits`
+landed on `main` and this branch was rebased onto it. The `.vos` closure of
+`election_proof/election.v` and `v3.v` — 471 files — built with 0 errors in
+9m44s at `-j4`; then `.vok` of all **336** files of the raft proof, which is
+every file `should_build.v` reaches now that it requires `readonly.v`: 0
+errors, 58m at `-j2`, peak 3.0 GB. So every proof body in the raft build
+checks — the election work's included, which until now had only a
+commit-message report of a `-vok` sweep behind it. Two limits: `-vok` does
+not check universe constraints (CONTRIBUTING.md), so this is not a `make
+ci`; and it changes no assumption — `etc/tcb-report.py --scope
+election_proof` still lists 1 `Admitted` and 22 `Axiom`, and the whole raft
+tree 43 (8 and 35).
 
 - `v3_proof/base.v` (62 lines) — `IsPkgInit` instances for the raft package and
   its dependencies (raftpb, quorum, tracker, confchange, strconv, strings,

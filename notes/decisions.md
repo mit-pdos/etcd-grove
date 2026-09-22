@@ -1120,7 +1120,9 @@ mentions the old paths, both self-tests pass, and
 `etc/check-module-discipline.py --scope election_proof` exits 0. Two
 requires in `should_build.v` do not resolve in `rocqscan`'s model
 (`New.proof.Import`, `New.proof.leasing_proof.protocol`); both are
-pre-existing parse gaps on lines this did not touch.
+pre-existing parse gaps on lines this did not touch. **Then built**, at
+`454e0d780`: the `.vos` closure (471 files) and `.vok` of all 336 raft files,
+0 errors — details in `STATUS.md`.
 
 **Regenerated, not rebased.** The move was first made against a `main` that
 had 184 election files. Branch `worktree-election-close-admits` then landed

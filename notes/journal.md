@@ -2878,3 +2878,46 @@ itself; nothing here has.
 
 The inserted line moved `election.v`'s entry from line 51 to 52; the three
 notes that cited it were corrected.
+
+---
+
+## 2026-09-22 (night) — rebased onto main; the merged election work builds green at `.vok`
+
+Claude Opus 5.5 (background job). Upamanyu asked for a rebase on `main`,
+which had meanwhile taken `worktree-election-close-admits` (17 commits, the
+election path closed modulo one admission) and a build-timing change.
+
+**How it was done.** Nine of the ten commits were cherry-picked onto `main`;
+their conflicts were all in append-only notes (`journal.md`, `decisions.md`,
+`gotchas.md` — keep both, `main`'s first), one "Last updated" date, and one
+`decisions.md` paragraph where the corrected text won. The tenth — the move
+to `election_proof/` — was **regenerated** rather than replayed, because
+`main` had 140 election files the original rename had never seen; the
+previous entry has the details. The pre-rebase branch is kept locally as
+`backup/tcb-report-audit-pre-rebase`; the rebased one was pushed as
+`worktree-tcb-report-audit-rebased`, since replacing the original remote
+branch needs a force-push, which is Upamanyu's call.
+
+**Then built, because a regenerated move over 140 unseen files is not
+something to leave unbuilt**, at `454e0d780`:
+
+| phase | what | result |
+|---|---|---|
+| 1 | `.vos` closure of `election_proof/election.v` and `v3.v`, `-j4` | 471 files, **0 errors**, 9m44s |
+| 2 | `.vok` of all 336 raft files — everything `should_build.v` reaches | 336 files, **0 errors**, 58m, peak 3.0 GB |
+
+This is the first reproducible build of the merged election work: the
+2026-09-21 audit's complaint was that its only evidence was a `-vok` sweep
+reported in a commit message. It still is not a `make ci` — `-vok` skips
+universe constraints — but it is a build at a named revision, re-runnable
+from the repository.
+
+`tcb-report.py`, now reading the regenerated `.rocqdeps.d`: **336 files in
+the build, none outside it**; the whole raft tree assumes 43 (8 `Admitted`,
+35 `Axiom`), and `--scope election_proof` 23 (1 and 22). The 43 is the same
+whole-tree figure the audit quoted for the election branch, now that
+`readonly.v`'s 12 are built and counted rather than merely present.
+
+The 3 gotchas from the earlier build still hold on `main`: its Makefile
+change only split the timing database by mode ("vok overwriting vo" meant
+timing rows), and left the `%.vok` rule alone.

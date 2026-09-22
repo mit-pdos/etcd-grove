@@ -94,6 +94,15 @@ sweep passing on 2026-09-21."** That is a fact about how the branch was
 audited, not a defect in `tcb-report.py` — which is the whole of what the
 two-step process clarified.
 
+**Update, 2026-09-22 (evening): step 1 has now been reproduced for that
+work**, after it landed on `main` and this branch was rebased onto it. At
+`454e0d780`, the `.vos` closure (471 files) and then `.vok` of all 336 raft
+files the build reaches — the election work plus `v3.v`, `v3_proof/` and
+`readonly.v` — completed with **0 errors**. It is not a `make ci`: `-vok`
+skips universe constraints. But it is a build at a named revision that
+anyone can re-run from the repository, which is exactly what the
+commit-message report was not. The recipe is in `STATUS.md`.
+
 ## What the build was not checking
 
 Item 1 of the plan landed on 2026-09-22 and reported, on its first run,
