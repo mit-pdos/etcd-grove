@@ -1,6 +1,6 @@
 # Status
 
-**Last updated:** 2026-09-21
+**Last updated:** 2026-09-22
 
 ## Goal
 
@@ -408,11 +408,20 @@ over-counts, because several doc comments quote a probe lemma ending in
     etc/tcb-report.py --view assumed     # every axiom and admit, classified
     etc/tcb-report.py --view surface     # what the exported statements rest on
 
-**But do not quote a `--scope` figure on its own.** The tool is a syntactic
-scanner — it never compiles anything, `--scope` is a path filter rather than a
-dependency cone, and it cannot see that an axiomatized ghost predicate has no
-model. What it does and does not establish, with a plan to close the gap, is
-in [tcb-accounting.md](tcb-accounting.md) (audited 2026-09-21).
+**An audit is two commands, and this is only the second one** (set
+2026-09-22, [tcb-accounting.md](tcb-accounting.md)):
+
+    make ci                  # step 1: the proofs check.  Ground truth.
+    etc/tcb-report.py        # step 2: what step 1 cannot check.
+
+`tcb-report.py` is a source-text scanner and does not invoke Rocq — by
+design, since checking proofs is step 1's job. So a figure from it means
+nothing without a green `make` behind it, and **do not quote a `--scope`
+figure on its own**: `--scope` is a path filter rather than a dependency
+cone, so it drops the axioms the scoped files depend on, and nothing in the
+output reveals that an axiomatized ghost predicate has no model. What each
+step does and does not establish, the seven known gaps and the plan are in
+[tcb-accounting.md](tcb-accounting.md).
 
 As of 2026-09-18 it reports, over the whole raft proof: **45 assumed** — 31
 `Axiom` and 14 `Admitted`, of which 18 are Hoare triples about Go code, 13

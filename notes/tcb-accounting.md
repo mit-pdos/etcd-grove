@@ -5,9 +5,50 @@ Audited 2026-09-21, against branch `worktree-election-close-admits` at
 path is Qed except `wp_raftLog__slice_at`"*.
 
 The short version: **that claim is true as a statement about the source text,
-and `tcb-report.py` reports it accurately — but the tool cannot demonstrate
-it, and the scoped invocation that is quoted as evidence omits the axioms
-that matter most.** Read this before quoting a TCB number at anyone.
+and `tcb-report.py` reports it accurately — but it was quoted as if it were
+evidence that the proofs check, which it is not, and the scoped invocation
+omits the axioms that matter most.** Read this before quoting a TCB number at
+anyone.
+
+## The audit process
+
+Set 2026-09-22. **An audit is two commands, in this order, and neither
+substitutes for the other.**
+
+    make ci                                    # or a narrower .vo target
+    etc/tcb-report.py                          # what the build cannot check
+
+**Step 1 — `make` is the ground truth that the proofs check.** `make ci`
+builds `new/should_build.vo`, which reaches
+`v3_proof/election.v` (`should_build.v:51`) and `v3.v`. The generic
+`%.vo: %.v` rule means a narrower target works too —
+`make new/proof/go_etcd_io/raft/v3_proof/election.vo` — though note that
+nothing in this tree has `.vo` dependencies, so any `.vo` target starts by
+building all of Perennial (`STATUS.md`, "Checking your work"). There is no
+single "top-level etcd proof" file today; `should_build.v` and `election.v`
+are the two aggregators that exist.
+
+**Step 2 — `tcb-report.py` exists to check what step 1 cannot.** That is the
+whole of its remit, and the reason it does not and should not invoke Rocq.
+Keeping the two apart is what makes each one's output mean something:
+
+| `make` establishes | `tcb-report.py` establishes |
+|---|---|
+| every `Qed` is real — proof bodies typecheck | whether the *statements* say what was meant: the definitions the exported triple is written in terms of, which is the larger half of the TCB |
+| a functor really discharges its signature's `Parameter`s, so an obligation is not an assumption | whether an axiom set has a non-trivial **model** — Rocq will never tell you that `own_raft_ghost := False` satisfies all twelve axioms |
+| with an `assumptions.v`, `Print Assumptions` gives the exact transitive set of axioms and admitted lemmas a named theorem rests on, *through* `Notation`s and typeclass instances | **what is not in the build at all** — `make` silently does not check what nothing requires |
+| | whether an `Axiom` is a declared trust-boundary assumption or unfinished work, and whether the scope rule allows it |
+| | which Go function a triple is about, and whether that function exists in `new/code/` (this is `check-module-discipline.py`, sharing the parser) |
+| | whether an admission is a whole unproven lemma or one side condition, and whether it is known false outside a stated regime |
+| | whether `new/golang/defn/` — the operational model — has been modified |
+| | a number a human can watch move between sessions |
+
+**The consequence worth stating twice: `make` is necessary and silently
+incomplete.** It checks exactly what `should_build.v` reaches, and reports
+nothing about what it did not build. A `link_*.v` dropped from `election.v`
+takes its collection out of the build with no error anywhere. That makes
+**G6 the most load-bearing thing `tcb-report.py` does**, not the tidiness
+item it looks like.
 
 ## What was independently reproduced
 
@@ -40,28 +81,29 @@ Three further things check out, none of which the tool itself checks:
 
 ## The gaps, worst first
 
-### G1. The tool never compiles anything
+### G1. The tool does not state its premise, and was read as if it had none
 
 `tcb-report.py` and `rocqscan.py` contain no `subprocess`, no `rocq`, no
 reference to `.vo`/`.vok`. They strip comments and count sentences. **A
 `Qed.` in a file that does not typecheck is counted as a proof.**
 
-The tree carries 333 `.vos` files and no `.vo`/`.vok`. `.vos` skips proof
-bodies by construction, so their presence certifies nothing about the 169
-`Qed`s. The actual evidence is a manual `-vok` sweep described in the commit
-message ("99 pass, 0 fail"), which is:
+Under the process above that is *correct behaviour*, not a defect — step 1
+is where proofs get checked. The defect is that nothing in the output says
+so, and the number was quoted on its own as evidence that the election path
+is proved.
 
-- not committed anywhere — the results lived in a `$CLAUDE_JOB_DIR`;
-- not tied to a revision, so nothing can say whether it predates the last
-  edit;
-- not reproducible from the repository.
+It was not backed by a step 1 on this branch. The tree carries 333 `.vos`
+files and no `.vo`/`.vok`, and `.vos` skips proof bodies by construction.
+The evidence offered was a manual `-vok` sweep described in a commit message
+("99 pass, 0 fail"): not committed, not tied to a revision, not reproducible
+from the repository. CI (`.github/workflows/ci.yml:43`, `make -j4 -k ci`)
+*is* the real step 1, but it triggers only on pushes to `main` and PRs
+targeting `main`, and this branch is neither.
 
-CI (`.github/workflows/ci.yml:43`, `make -j4 -k ci`) *is* a full `.vo` build
-of `should_build.v` and would be ground truth, but it triggers only on
-pushes to `main` and PRs targeting `main`. This branch is neither.
-
-**So the strongest honest statement today is: "the source says 169 `Qed`,
-and someone reported that they all checked at some point on 2026-09-21."**
+**So the strongest honest statement about that branch today is: "the source
+says 169 `Qed`, no `make` has been run against it here, and someone reported
+a `-vok` sweep passing on 2026-09-21."** The fix is item 1 below — make the
+tool say what it assumes — not to teach it to compile.
 
 ### G2. `--scope` is a path filter, not a dependency cone
 
@@ -151,94 +193,129 @@ notes covers it. The framework carries two `Admitted`s of its own in
 `new/golang/theory/` (`array.v`, `postlifting.v`) and three in
 `new/golang/defn/prelang.v`.
 
-### G6. Reachability from the build is not checked
+### G6. Reachability from the build is not checked — and this is the one that matters most
 
 The tool counts every `.v` file under the root. Nothing verifies that a
 counted file is in the `Require` closure of `new/should_build.v`. A
 `link_*.v` dropped from `election.v` would take its collection out of the
-build while `tcb-report.py` went on counting its `Qed`s. I checked this by
-hand today (330/330 reachable); the check should not be by hand.
+build while `tcb-report.py` went on counting its `Qed`s.
+
+Numbered sixth because it was found sixth; under the two-step process it is
+**first in importance**. Step 1 cannot catch it — `make` does not know that
+a file it was never asked to build exists — so this is the single way a
+green build and a clean report can both be true of a development that is not
+being checked. `election.v`'s own header says the `link_*` list is
+load-bearing and maintained by hand. I verified it today (330/330
+reachable); it should not be verified by hand again.
 
 ### G7. The reference graph is spelling-based
 
 Already documented in the tool's own docstring, and the reason the
 definition count is a lower bound: a reference through a `Notation` or an
-unnamed typeclass instance is invisible. Lowest priority, because the fix
-for G1 (below) subsumes it.
+unnamed typeclass instance is invisible. It is not fixable inside a
+syntactic scanner, and it does not need to be: `Print Assumptions` from
+step 1 is notation-blind-proof, so plan item 5 retires it by reconciling
+against the build's own answer rather than by improving the guess.
 
-## Plan: what would make it complete enough
+## Plan: what would make step 2 complete enough
 
-"Complete enough" means: **a reader can run one command and get a number
-that is machine-backed, covers everything the named theorem rests on, and
-distinguishes an assumption with a model from one without.** Ordered by
-value per unit of work; the first three are pure additions to the existing
-scanner and need no build.
+"Complete enough" means: **given a green step 1, `tcb-report.py` tells a
+reader everything about the trust base that the build could not have told
+them** — and says plainly which of the two it is speaking for. It is not
+trying to become a proof checker; there is one, and it is `make`.
+
+Ordered by value per unit of work. Items 1-5 are pure additions to the
+existing scanner and need no build; item 6 consumes an artefact the build
+already almost produces.
 
 ### Slice 1 — one afternoon, no Rocq required
 
-1. **Make `--scope` mean the dependency cone (G2).** Keep the path filter as
+1. **State the premise, in the output (G1).** A header line on every run:
+   *"Source-text analysis. It assumes `make` is green at this revision; it
+   does not check proofs."* Cheap, and it is the whole of the G1 fix. Worth
+   adding beside it: if `.vo` files exist under the scope, report the oldest
+   against the newest `.v`, so a stale build is visible; if none exist, say
+   `no build artifacts present`.
+2. **Check build reachability (G6).** `--require-reachable new/should_build.v`:
+   warn — and under `--strict`, exit non-zero — on any scanned file outside
+   the `Require` closure. Twenty lines on the existing parser, and it closes
+   the one hole a green build cannot. **Do this first if only one thing gets
+   done.**
+3. **Make `--scope` mean the dependency cone (G2).** Keep the path filter as
    `--scope-dir` if anyone wants it, but make `--scope X` report the
    transitive `Require` closure of the files under `X`. At minimum, always
    print a boundary line: *"this scope requires N files outside it, carrying
    M axioms and K admits"*, with the list. For `election` that turns
    `assumed 11` into `assumed 23` and names `election_protocol.v`.
-2. **Flag never-allocated abstract predicates (G3).** For every
+4. **Flag never-allocated abstract predicates (G3).** For every
    `Axiom P : … → iProp Σ`, search the tree for a statement whose conclusion
    mentions `P` and whose premises do not — an allocation or initialisation
    lemma. If there is none, print `P` as **"never allocated: every statement
-   that consumes it may be vacuous"**. This is a syntactic check the
-   existing name graph already supports, and on today's tree it would flag
-   `own_raft_ghost`, `is_leader` and `is_message` — which is precisely the
-   thing the current output hides.
-3. **Check build reachability (G6).** `--require-reachable new/should_build.v`:
-   warn on any scanned file outside the `Require` closure. Twenty lines,
-   using the parser that already exists.
-4. **Give admissions a machine-readable marker (G4).** Replace free-text
-   `(* Trusted *)` with a one-line grammar the tool parses and the gate
-   enforces, distinguishing at least:
+   that consumes it may be vacuous"**. On today's tree that flags
+   `own_raft_ghost`, `is_leader` and `is_message`. **This is the clearest
+   case of the tool doing something the build structurally cannot**: Rocq
+   will happily check every proof in the development under the model that
+   sends all three to `False`.
+5. **Give admissions a machine-readable marker (G4).** Replace free-text
+   `(* Trusted *)` with a one-line grammar the tool parses and
+   `check-module-discipline.py` gates, distinguishing at least:
    - `(* TCB: <reason> *)` — a deliberate assumption believed to be true;
    - `(* TCB-partial: false when <condition> *)` — known false outside a
      stated regime, which `wp_raftLog__slice_at` is;
    - and error on a trusted admission with no marker.
    Report an admitted lemma as assuming its **whole statement**, in those
-   words.
+   words — `Print Assumptions` names the whole triple, so the report should
+   agree with what step 1 would say.
 
-### Slice 2 — needs a build, and is what makes the tool definitive
+### Slice 2 — reconcile with what the build knows
 
-5. **Join against a checking manifest (G1).** Have whatever runs the `-vok`
-   sweep write `etc/vok-status.json`: git rev, rocq version, and one record
-   per file with its `.v` **blob hash** and exit code. `tcb-report.py` joins
-   on it and annotates each file `checked` / `UNCHECKED` / `STALE (source
-   changed since)` — blob hash, not mtime, so a rebase cannot fake it.
-   `--require-checked` exits non-zero, which makes it a gate. The sweep
-   already exists as an ad-hoc script; committing its output is most of the
-   work.
-6. **Cross-check against `Print Assumptions` (G1, G7).** Add
-   `v3_proof/assumptions.v` containing nothing but
-   `Print Assumptions` for each **top-level function spec** — today
-   `wp_raft__Step`, and `wp_Node__Propose` from `v3.v` — reached from
-   `should_build.v`. Those triples are the result (decisions.md,
-   2026-09-21), so they are what ground truth has to be taken at. CI already does a full
-   `.vo` build, so archiving that output is nearly free. Then
-   `tcb-report.py --compare-print-assumptions <file>` diffs ground truth
-   against the syntactic estimate and reports names on one side only. **This
-   is the single change that converts the tool from a viewer that is
-   believed into one that is checked**, and it retires G7 as a worry.
+6. **Diff against `Print Assumptions` (G7).** Add `v3_proof/assumptions.v`
+   containing nothing but `Print Assumptions` for each **top-level function
+   spec** — today `wp_raft__Step`, and `wp_Node__Propose` from `v3.v` —
+   reached from `should_build.v`, so step 1 emits it. Those triples are the
+   result ([decisions.md](decisions.md), 2026-09-21), so they are what
+   ground truth has to be taken at. Then `tcb-report.py --assumptions <file>`
+   reports the two-way difference:
+
+   - a name Rocq lists that the scanner missed → the spelling-based graph
+     has a hole, and the printed TCB was too small;
+   - an `Axiom` in the tree that Rocq does **not** list → it is dead, or the
+     theorem does not depend on what everyone assumes it does.
+
+   Neither direction is visible to either tool alone, which is exactly why
+   this belongs in step 2 rather than step 1. It also retires G7, since the
+   reconciliation is against an answer that sees through `Notation`s and
+   typeclass instances.
+
+   **Deliberately dropped.** An earlier version of this plan proposed
+   committing a `-vok` manifest — revision, per-file source hash, exit code
+   — for `tcb-report.py` to join against, so it could report which `Qed`s
+   had been machine-checked. Under the two-step process that is step 1's job
+   and the tool should not restate it. If the *provenance* of a build result
+   ever needs recording, it belongs next to the build, as a CI artefact, not
+   inside a source scanner.
 
 ### Slice 3 — when someone cares about the framework number
 
 7. **Second root for the model (G5).** `--also-root new/golang`, plus a
    section counting this development's *diff* against the upstream
    merge-base in `new/golang/defn/` (hard TCB — the operational semantics)
-   separately from `new/golang/theory/` (lemmas, which are checked). The
-   `defn/` line is the one that should make a reader stop.
+   separately from `new/golang/theory/` (lemmas, which step 1 checks). A
+   green build says nothing about whether the semantics it checked against
+   are the right ones, so the `defn/` line is the one that should make a
+   reader stop.
 
 ## Rule of thumb until the above lands
 
-When quoting the trust base, quote **the full-tree run**
+Quote step 1 and step 2 together, or neither: **"`make` green at `<rev>`;
+`tcb-report.py` says …"**. A TCB number with no build behind it describes a
+text file.
+
+For step 2, quote **the full-tree run**
 (`etc/tcb-report.py` with no `--scope`), which on
 `worktree-election-close-admits` says *43 assumed — 8 `Admitted`, 35
 `Axiom` — 80 definitions, 953 lines, 6.2% of the development*, and say in the
 same breath that the numbers are syntactic and that the exported triple
-`wp_raft__Step` rests on an un-constructed ghost state. A `--scope election` figure quoted on its own
-is misleading in three independent ways (G2, G3, G4).
+`wp_raft__Step` rests on an un-constructed ghost state. A `--scope election`
+figure quoted on its own is misleading in three independent ways (G2, G3,
+G4).

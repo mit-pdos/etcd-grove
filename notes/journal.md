@@ -2549,3 +2549,69 @@ pointer to the new decision record rather than a question.
 **Not changed:** `election_protocol.v`'s scope note that "the point of the
 model is election safety" was reworded, but no axiom, definition or proof
 moved. Nothing needs re-checking.
+
+---
+
+## 2026-09-22 — the audit is two commands: `make`, then `tcb-report.py`
+
+Claude Opus 5 (background job), branch `worktree-tcb-report-audit`, at
+Upamanyu's direction. Process decision, and a rewrite of the plan that was
+written under the wrong premise.
+
+**The process.** An audit runs `make` first — `make ci`, or a narrower `.vo`
+target — and then `etc/tcb-report.py` separately. `make` is the only thing
+that checks proofs. `tcb-report.py`'s entire job is to check what the build
+cannot, which is why it does not and should not invoke Rocq.
+
+Writing the division out made the two tools' jobs much clearer than the
+audit had them:
+
+- **`make` establishes** that every `Qed` is real, that a functor really
+  discharges its signature's `Parameter`s, and — with an `assumptions.v` —
+  the exact transitive assumption set of a named theorem, seeing through
+  `Notation`s and typeclass instances.
+- **`tcb-report.py` establishes** whether the *statements* say what was
+  meant (the definitions half of the TCB, the larger one), whether an axiom
+  set has a non-trivial model, what is outside the build entirely, whether
+  an `Axiom` is a declared boundary or unfinished work, whether an admission
+  is a whole lemma or one side condition, and whether `new/golang/defn/` has
+  moved.
+
+**The insight this produced, which the audit had underweighted:** `make` is
+necessary *and silently incomplete*. It checks exactly what
+`should_build.v` reaches and says nothing about what it did not build, so a
+`link_*.v` dropped from `election.v` removes a collection from the build
+with no error anywhere. G6 (reachability) was filed sixth because it was
+found sixth; under this process it is **first in importance** — the one way
+a green build and a clean report can both be true of a development that is
+not being checked. It is now plan item 2, marked "do this first if only one
+thing gets done".
+
+**What changed in [tcb-accounting.md](tcb-accounting.md):**
+
+- new "The audit process" section with the two commands and the
+  division-of-labour table;
+- **G1 rewritten.** "The tool never compiles anything" was a criticism of
+  correct behaviour. The real defect is narrower: the output does not say it
+  assumes a green build, and the number was quoted as if it were proof
+  evidence. Fix is a header line, not a compiler;
+- G6 promoted with its reasoning; G7's fix is now the `Print Assumptions`
+  reconciliation rather than "subsumed by G1";
+- the plan is re-ordered and **one item is deleted**: the committed `-vok`
+  manifest for the tool to join against. That was step 1's job restated
+  inside a source scanner. If build provenance ever needs recording it
+  belongs beside the build, as a CI artefact. Recorded in the file as
+  "deliberately dropped", with why, so nobody re-proposes it;
+- the `Print Assumptions` item is reframed as a **two-way reconciliation** —
+  a name Rocq lists that the scanner missed means the printed TCB was too
+  small; an `Axiom` in the tree Rocq does *not* list is dead, or the theorem
+  does not rest on what everyone assumes. Neither direction is visible to
+  either tool alone, which is what makes it step 2's work and not step 1's.
+
+Also: `STATUS.md`'s tcb-report block now leads with the two commands,
+`CLAUDE.md`'s Building section gained a short paragraph so a fresh agent
+meets the process before it meets the numbers, and `STATUS.md` is dated
+2026-09-22.
+
+**No proof or tool code changed** — this is the plan, not its
+implementation. Items 1–5 of Slice 1 need no Rocq and are unclaimed.
