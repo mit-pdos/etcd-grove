@@ -47,13 +47,14 @@ Proof. constructor. Qed.
 Lemma step_stepdown_then_vote id s (m : msg.t) :
   m.(msg.ty) = mtype.Vote →
   m.(msg.to) = id →
+  m.(msg.from) ≠ W64 0 →
   uint.Z s.(nstate.term) < uint.Z m.(msg.term) →
   step cfg id s ([m] ++ [m])
        (send_msgs ((become_follower s m.(msg.term) (W64 0))
                      <| nstate.vote := m.(msg.from) |>)
           [msg.mk mtype.VoteResp id m.(msg.from) m.(msg.term) false]).
 Proof.
-  intros Hty Hto Hlt.
+  intros Hty Hto Hfrom Hlt.
   eapply step_trans with
     (s₁ := become_follower s m.(msg.term)
              (if from_leader m.(msg.ty) then m.(msg.from) else W64 0)).

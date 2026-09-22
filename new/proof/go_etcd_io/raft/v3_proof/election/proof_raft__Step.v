@@ -44,6 +44,10 @@ Set Default Proof Using "Type".
   Proof.
     intros_ambient.
     intros cfg γ r id s m.
+    (* Not [subst cfg]: the branch lemmas below are applied to [cfg] by
+       name, and with the binder gone that resolves to Perennial's global
+       [cfg] (a [language → Type]).  Move the witness instead. *)
+    intros Hcfg.
     intros Helection Hin Hhup Hvote Hvoteresp.
     iIntros (Φ) "(#Hinit & Hphys & Hghost & #Hm & #Hctx) HΦ".
     iApply wp_fupd.
@@ -52,7 +56,8 @@ Set Default Proof Using "Type".
       destruct (Hhup Hty) as [Hmterm Hnowrap].
       wp_apply (H.wp_Step_MsgHup cfg with "[$Hphys]"); [done..|].
       iIntros (err s') "(Hphys & %Hst & %Herr)".
-      iMod (own_raft_ghost_step_0 _ _ _ _ _ Hst with "Hghost") as "Hghost".
+      assert (step γ.(re_cfg) id s [] s') as Hst' by (rewrite Hcfg; exact Hst).
+      iMod (own_raft_ghost_step_0 _ _ _ _ Hst' with "Hghost") as "Hghost".
       iModIntro. iApply ("HΦ" $! err s'). iFrame.
       iPureIntro. split; [by eexists []|done].
     - (* MsgVote: answer the vote request, stepping down first if needed. *)
@@ -62,7 +67,9 @@ Set Default Proof Using "Type".
       wp_apply (V.wp_Step_MsgVote cfg with "[$Hphys $Hctx]"); [done..|].
       iIntros (err s') "(Hphys & %Hst & %Herr)".
       destruct Hst as (recv & Hrecv & Hstep).
-      iMod (own_raft_ghost_step _ _ _ _ _ _ Hstep with "[] Hghost") as "Hghost".
+      assert (step γ.(re_cfg) id s recv s') as Hstep'
+        by (rewrite Hcfg; exact Hstep).
+      iMod (own_raft_ghost_step _ _ _ _ _ Hstep' with "[] Hghost") as "Hghost".
       { iApply big_sepL_intro. iIntros "!> %k %m' %Hk".
         rewrite (Hrecv m'); [iFrame "#"|by eapply list_elem_of_lookup_2]. }
       iModIntro. iApply ("HΦ" $! err s'). iFrame.
@@ -74,7 +81,9 @@ Set Default Proof Using "Type".
       wp_apply (R.wp_Step_MsgVoteResp cfg with "[$Hphys]"); [done..|].
       iIntros (err s') "(Hphys & %Hst & %Herr)".
       destruct Hst as (recv & Hrecv & Hstep).
-      iMod (own_raft_ghost_step _ _ _ _ _ _ Hstep with "[] Hghost") as "Hghost".
+      assert (step γ.(re_cfg) id s recv s') as Hstep'
+        by (rewrite Hcfg; exact Hstep).
+      iMod (own_raft_ghost_step _ _ _ _ _ Hstep' with "[] Hghost") as "Hghost".
       { iApply big_sepL_intro. iIntros "!> %k %m' %Hk".
         rewrite (Hrecv m'); [iFrame "#"|by eapply list_elem_of_lookup_2]. }
       iModIntro. iApply ("HΦ" $! err s'). iFrame.

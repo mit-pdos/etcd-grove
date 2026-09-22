@@ -2431,3 +2431,151 @@ in `Qed`. The top four are `proof_raftLog__slice.v` (605s),
 which is worth a look — the cost is all elaboration, not proof checking.
 Treat these four numbers as `vo`-or-`vok`, per the conflation above; the
 first clean build after this commit will say which.
+
+## 2026-09-22 — The election protocol's ghost state is constructed, not assumed
+
+Claude Opus 5 (background job), at Upamanyu's request: "prove all the axioms
+in `election_protocol.v`; keep going until that proof is admit-free". Branch
+`election-protocol-ghost`, off `main` at `a821f4e1a`.
+
+- **Did:** `new/proof/go_etcd_io/raft/v3_proof/election_protocol.v` has no
+  `Axiom` and no `Admitted`. The twelve ghost-state axioms — `own_raft_ghost`,
+  `is_message`, `is_leader`, `raft_election_names`, the two instances, the
+  two typeclass facts, `own_raft_ghost_excl`, `own_raft_ghost_step`,
+  `own_raft_ghost_outbox`, `own_raft_ghost_is_leader`, `is_leader_unique` —
+  are now definitions and `Qed` lemmas, plus an `own_raft_ghost_alloc` that
+  was not asked for and is the point of the exercise (see below).
+  `etc/tcb-report.py` over the whole raft proof drops from 43 assumed to
+  **31** (8 `Admitted`, 23 `Axiom`), and `election_protocol.v` is no longer
+  in its "Incomplete" list at all.
+
+### The construction
+
+The shape the old comment predicted — "authoritative map of node states + a
+set of sent messages, tied together by an invariant" — is not what this is.
+There is **no Iris invariant**, and that is load-bearing:
+`own_raft_ghost_outbox` is stated as a plain entailment, not a fancy update,
+so it cannot open one. Everything is node-local instead.
+
+`raft_election_names` became a record: `re_cfg : gset w64` and
+`re_votes : gmap w64 gname`, one ghost map per node holding `term ↦ candidate`.
+`is_vote γ v term cand` is a frozen entry in `v`'s map — persistent because
+frozen, unforgeable because allocating one takes `v`'s `ghost_map_auth`, which
+lives exclusively inside `own_raft_ghost γ v _`. `is_message` is then defined
+by cases: a `VoteResp` with `reject = false` carries the vote it reports,
+every other message carries nothing. `is_leader γ id term` is a quorum of
+`is_vote`s, so `is_leader_unique` is `quorums_intersect` (the same lemma and
+the same `is_quorum` as `readonly.v`; copied rather than shared, since
+`election_protocol.v` does not depend on `readonly.v`) plus the agreement of
+two `is_vote`s. No leader registry.
+
+The invariant that makes it work is `vote_hist_ok voted s`: every term in the
+history is `≤ s.(nstate.term)`, and at the current term the history agrees
+with `s.(nstate.vote)` — absent exactly when the vote is `W64 0`. Since every
+rule that clears `nstate.vote` also raises `nstate.term` past everything in
+the history, a node cannot vote twice in one term. `own_raft_ghost_step` is
+one induction over `step`; only `step_campaign` and `step_grant_vote`
+allocate. Details in
+[raft-election-refinement.md](raft-election-refinement.md).
+
+### Three things the interface got wrong, all found by trying to prove it
+
+This is the fourth time on this project that writing the proof has shown a
+statement to be **false of what it describes** (after `appendEmptyEntry`,
+`step_win` and `maybeSendSnapshot`'s precondition). Each of the three is a
+way of electing two leaders in one term.
+
+1. **`own_raft_ghost_step` quantified over `cfg`.** `step cfg id s recv s'`
+   with `cfg` free at each use means a caller can pick `cfg := {[id]}`, in
+   which the node is its own quorum, campaign, record its own self-addressed
+   `VoteResp` and win — twice, for two different nodes, in the same term.
+   `is_leader_unique` is then not provable, and with an allocation lemma the
+   axiom set would be outright inconsistent. `cfg` now lives in `γ`, and
+   `own_raft_ghost_step` reads `step γ.(re_cfg) id s recv s'`.
+   `wp_raft__Step_body` carries a new `γ.(re_cfg) = cfg` premise tying it to
+   `own_raft_phys`'s `cfg`; `proof_raft__Step.v` opens with `subst cfg`.
+2. **`step_campaign` had no no-wrap premise**, so `word.add s.term 1` could
+   wrap round to a term the node had already voted in. Now
+   `uint.Z s.(nstate.term) + 1 < 2 ^ 64`. Free at the one construction site:
+   `wp_raft__hup_body` has carried that premise since `send`'s zero-term
+   panic was pinned down, so `apply step_campaign; done` still works
+   unchanged.
+3. **`step_grant_vote` could grant to `W64 0`**, which is the Go code's
+   `None` — so "voted for nobody" and "voted for node 0" are the same state,
+   and a node could grant to `0` and then grant again to somebody else in the
+   same term. Now `m.(msg.from) ≠ W64 0`. Also free:
+   `wp_raft__Step_body` already requires `From ≠ 0` of a `MsgVote`, and all
+   three sites discharge the new goal by `done`.
+
+`own_raft_ghost` also carries `id ≠ W64 0`. A node whose own id is `None`
+would record "voted for `0`" when it votes for itself in `become_candidate`,
+which `vote_hist_ok` reads as "did not vote". It is a property of the node,
+so it belongs in the predicate rather than in a rule; `own_raft_ghost_alloc`
+takes `W64 0 ∉ ids`.
+
+### Why there is an allocation lemma
+
+None of the twelve axioms says the ghost state is inhabited, so
+`own_raft_ghost := False` discharges all twelve. `own_raft_ghost_alloc` —
+fresh `γ` for any finite set of nonzero node ids, each in the initial state —
+is what makes the other eleven mean something. It is the only lemma here
+nothing else uses, and it should not be deleted for that reason.
+
+### What it cost, and what was slow
+
+About 20 rocq iterations on `election_protocol.v`, at **3–5 s each**: the
+file sits directly on `proof_prelude` and nothing else, so `make <file>.vok`
+is a genuinely fast loop and rocq-warm was never needed for it. The
+expensive part was the sweep afterwards, not the proof.
+
+The tactic failures were all the usual Iris ones, and two are worth
+recording; both are in [gotchas.md](gotchas.md) now:
+
+- **`rewrite decide_False` picks the outer `decide`.** `become_follower`'s
+  vote field is `if decide (term = s.term) then s.vote else W64 0`, and
+  `vote_hist_ok` wraps *that* in `if decide (… = W64 0)`. The rewrite matches
+  outermost-leftmost, so it takes the wrapper and leaves an unprovable side
+  condition. Fixed with two one-line lemmas
+  (`become_follower_vote_ne`/`_same`) that rewrite the projection before
+  anything unfolds it.
+- **`/=` eats `[x] ++ l`.** `rewrite /send_msgs /=` turns the outbox into
+  `outbox ++ (m :: ms)`, so the second `big_sepL_app` of the pair has nothing
+  to match and you need `big_sepL_cons`.
+
+Two more, cheaper: `Forall_forall` resolves to Rocq's `List` version (with
+`In`, not `∈`) — use `Forall_lookup_1`; and `iDestruct (big_sepL_singleton
+with "H")` leaves `P ∗ emp` rather than `P`, which then fails to instantiate
+a wand — destruct `"[$H _]"` instead.
+
+### Evidence
+
+`-vok` (the authoritative check; `.vos` skips `Qed`) exits 0 on
+`election_protocol.v` and on a sweep of every proof-bearing file in the
+election development. `etc/check-module-discipline.py --scope election` is
+clean (5 pre-existing notes/warnings, none new).
+
+### Also: rocq-warm notes refreshed against `11b27cb`
+
+Re-read `upamanyus/rocq-warm` (checked out at `~/rocq-warm`) and brought
+`gotchas.md` and `STATUS.md` up to date. Two things changed since the
+2026-09-16 entry, both from 2026-09-18:
+
+- **A client going away stops the work but keeps the session**, parked at the
+  line Rocq reached; the next check replays from there. Exit 130, which is
+  **not a verdict** — like exit 2, it says the question was withdrawn, not
+  that the proof is good or bad. This obsoletes the advice in the 2026-09-16
+  entry that killing a client wedges that file as busy until the half-hour
+  wall timeout; the slot now comes back in the couple of seconds the
+  interrupt takes.
+- A cold check used to spawn **two** `rocq repl` and kill the first, so every
+  file's first check paid two startups and the recorded pid was a dead one.
+  One now.
+
+And one thing that was always true but matters more now that this project
+works in worktrees: rocq-warm keys its daemon on `git rev-parse
+--show-toplevel`, which **in a worktree is the worktree**. So agents in
+separate worktrees do not share a session table or a memory budget, and the
+"sessions evict each other" entry in gotchas.md only applies within one
+checkout. They still share `MemAvailable`, which eviction watches.
+`--compile` and `--rebuild` (build the `.vo`s from the check) are also
+documented now; neither is what this `vos`-only tree wants day to day.

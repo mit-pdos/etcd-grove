@@ -33,6 +33,7 @@
     which is recorded as [is_leader_unique] below. *)
 
 From RecordUpdate Require Import RecordSet.
+From Perennial Require Import NamedProps.
 Require Export New.proof.proof_prelude.
 Import RecordSetNotations.
 
@@ -101,6 +102,23 @@ Section model.
 Context (cfg : gset w64) (id : w64).
 
 Definition is_quorum (q : gset w64) : Prop := size cfg < 2 * size (q ∩ cfg).
+
+(** Two quorums meet.  This is the whole content of election safety; the same
+    lemma, for the same [is_quorum], is proved in [readonly.v]. *)
+Lemma quorums_intersect (q1 q2 : gset w64) :
+  is_quorum q1 → is_quorum q2 → ∃ x, x ∈ q1 ∧ x ∈ q2.
+Proof.
+  intros Hsize1 Hsize2.
+  destruct (decide (q1 ∩ q2 = ∅)) as [Hempty|Hne].
+  2:{ apply set_choose_L in Hne as [x Hx]. exists x. set_solver. }
+  exfalso.
+  have Hunion : (q1 ∩ cfg) ∪ (q2 ∩ cfg) ⊆ cfg by set_solver.
+  have Hdisj : (q1 ∩ cfg) ## (q2 ∩ cfg) by set_solver.
+  apply subseteq_size in Hunion.
+  rewrite size_union in Hunion; [|done].
+  unfold is_quorum in *.
+  lia.
+Qed.
 
 Definition granted (votes : gmap w64 bool) : gset w64 :=
   dom (filter (λ '(_, v), v = true) votes).
@@ -196,6 +214,12 @@ Inductive step : nstate.t → list msg.t → nstate.t → Prop :=
 | step_campaign s peers :
   s.(nstate.role) ≠ role.Leader →
   id ∈ cfg →
+  (** The term increments, and a term that wrapped round to one the node has
+      already voted in would let it vote twice in that term -- which is
+      exactly what election safety rests on not happening.  [Step]'s spec
+      already carries this for a [MsgHup], because [send] panics on a zero
+      term; here is where it is needed. *)
+  uint.Z s.(nstate.term) + 1 < 2 ^ 64 →
   peers ≡ₚ elements (cfg ∖ {[id]}) →
   let s' := become_candidate s in
   step s []
@@ -207,6 +231,11 @@ Inductive step : nstate.t → list msg.t → nstate.t → Prop :=
 | step_grant_vote m s :
   m.(msg.ty) = mtype.Vote →
   m.(msg.to) = id →
+  (** [W64 0] is the Go code's [None], so a vote *for* it is not a vote at
+      all: [nstate.vote = W64 0] is how "has not voted this term" is written.
+      Without this, granting to [W64 0] and then granting again would be two
+      votes in one term.  [Step]'s spec already requires it of a [MsgVote]. *)
+  m.(msg.from) ≠ W64 0 →
   m.(msg.term) = s.(nstate.term) →
   can_vote s m.(msg.from) →
   step s [m]
@@ -297,101 +326,562 @@ End model.
 
 (** ** Ghost state
 
-    [own_raft_ghost γ id s] is exclusive ownership of node [id]'s protocol
-    state; [is_message γ m] is the persistent knowledge that [m] was put on
-    the network by a node following the protocol.
+    The ghost state is deliberately *node-local*: there is no Iris invariant
+    here and nothing global to open.  Each node owns the authority over its
+    own vote history — which candidate it voted for in each term — and that
+    authority is the exclusive part of [own_raft_ghost].  Everything a step
+    needs to *learn* is persistent knowledge, so it can ride on a message or
+    be held across a step with nowhere to put it.
 
-    These are axiomatized here.  Constructing them is the standard
-    "authoritative map of node states + a set of sent messages, tied together
-    by an invariant" development; what a client needs from that construction
-    is [own_raft_ghost_step] (the refinement obligation, which [election.v]
-    discharges against the Go code), [own_raft_ghost_outbox] (the invariant's
-    outbox conjunct, read out) and [is_leader_unique] (the payoff). *)
+    Three pieces:
+
+    - [is_vote γ v term cand] — node [v] voted for [cand] in [term].  Frozen
+      into [v]'s map when it is allocated, so it is persistent, and
+      unforgeable because allocating it takes [v]'s own authority.
+    - [is_message γ m] — what a legitimately sent message carries.  Only a
+      *granting* [VoteResp] carries anything: the vote it reports.
+    - [is_leader γ id term] — a quorum of [is_vote]s for [id] at [term].
+
+    Election safety is then quorum intersection plus the agreement of two
+    [is_vote]s for one node and term; that is all [is_leader_unique] is.
+
+    What holds a node to one vote per term is [vote_hist_ok], the pure
+    invariant inside [own_raft_ghost] tying the history to the current
+    [(term, vote)]: the history mentions only terms the node has reached, and
+    at the current term it agrees with [nstate.vote] — where [W64 0], the Go
+    code's [None], means the term is absent from the history altogether.
+    Every rule that clears [nstate.vote] raises [nstate.term] past everything
+    in the history, which is exactly why [step_campaign] needs its no-wrap
+    premise and [step_grant_vote] its [from ≠ 0]. *)
+
+Record raft_election_names := {
+    (** The voter set this ghost state is about.  It lives in [γ] rather than
+        being a parameter of [own_raft_ghost_step]: a step free to choose its
+        own [cfg] could choose a singleton one and elect itself, and the
+        quorum [step_win] demands has to be a quorum of the same
+        configuration [is_leader_unique] intersects in. *)
+    re_cfg : gset w64;
+    (** [re_votes !! id] names the ghost map holding node [id]'s vote
+        history, [term ↦ candidate].  A node absent from here has no ghost
+        state at all. *)
+    re_votes : gmap w64 gname;
+  }.
 
 Section ghost.
-Context `{!invGS Σ}.
+Context `{!invGS Σ, !allG Σ}.
 
-Axiom raft_election_names : Type.
 Implicit Type γ : raft_election_names.
 
-Axiom own_raft_ghost : ∀ γ (id : w64) (s : nstate.t), iProp Σ.
-Axiom is_message : ∀ γ (m : msg.t), iProp Σ.
+(** *** Votes *)
 
-Axiom is_message_pers : ∀ γ m, Persistent (is_message γ m).
-#[global] Existing Instance is_message_pers.
+Definition is_vote γ (v term cand : w64) : iProp Σ :=
+  ∃ γv, ⌜ γ.(re_votes) !! v = Some γv ⌝ ∗ term ↪[γv]□ cand.
 
-Axiom own_raft_ghost_timeless : ∀ γ id s, Timeless (own_raft_ghost γ id s).
-#[global] Existing Instance own_raft_ghost_timeless.
+Global Instance is_vote_pers γ v term cand : Persistent (is_vote γ v term cand).
+Proof. apply _. Qed.
+Global Instance is_vote_timeless γ v term cand : Timeless (is_vote γ v term cand).
+Proof. apply _. Qed.
 
-Axiom own_raft_ghost_excl :
-  ∀ γ id s1 s2, own_raft_ghost γ id s1 -∗ own_raft_ghost γ id s2 -∗ False.
+(** One vote per node per term.  This is the other half of election safety. *)
+Lemma is_vote_agree γ v term c1 c2 :
+  is_vote γ v term c1 -∗ is_vote γ v term c2 -∗ ⌜ c1 = c2 ⌝.
+Proof.
+  iIntros "(%γ1 & %Hγ1 & H1) (%γ2 & %Hγ2 & H2)".
+  rewrite Hγ1 in Hγ2. injection Hγ2 as <-.
+  iApply (ghost_map_elem_agree with "H1 H2").
+Qed.
 
-(** The refinement obligation.  Any protocol-level transition of a single
-    node — which may consume knowledge about messages already on the network,
-    and whose own sends show up in [s'.(nstate.outbox)] — can be taken on the
-    ghost state. *)
-Axiom own_raft_ghost_step :
-  ∀ γ (cfg : gset w64) (id : w64) s recv s',
-  step cfg id s recv s' →
-  ([∗ list] m ∈ recv, is_message γ m) -∗
-  own_raft_ghost γ id s ={⊤}=∗
-  own_raft_ghost γ id s'.
+(** *** Messages *)
 
-(** Everything in a node's outbox was legitimately put there.  This is what
-    replaces threading [is_message] through the implementation-side specs:
-    [own_raft_phys] no longer certifies the outgoing queues, so a client that
-    needs to know a pending message is legal reads it off the ghost state
-    instead. *)
-Axiom own_raft_ghost_outbox :
-  ∀ γ id s,
-  own_raft_ghost γ id s -∗ ([∗ list] m ∈ s.(nstate.outbox), is_message γ m).
+Definition is_message γ (m : msg.t) : iProp Σ :=
+  match m.(msg.ty) with
+  | mtype.VoteResp =>
+      if m.(msg.reject) then True%I
+      else is_vote γ m.(msg.from) m.(msg.term) m.(msg.to)
+  | _ => True%I
+  end.
+
+Global Instance is_message_pers γ m : Persistent (is_message γ m).
+Proof.
+  rewrite /is_message. destruct (m.(msg.ty)), (m.(msg.reject)); apply _.
+Qed.
+Global Instance is_message_timeless γ m : Timeless (is_message γ m).
+Proof.
+  rewrite /is_message. destruct (m.(msg.ty)), (m.(msg.reject)); apply _.
+Qed.
+
+(** Every message but a granting [VoteResp] is free. *)
+Lemma is_message_triv γ m : m.(msg.ty) ≠ mtype.VoteResp → ⊢ is_message γ m.
+Proof.
+  rewrite /is_message. intros Hty. destruct (m.(msg.ty));
+    [|congruence|..]; done.
+Qed.
+
+(** A *rejecting* [VoteResp] is free too: it reports no vote. *)
+Lemma is_message_reject γ (from to term : w64) :
+  ⊢ is_message γ (msg.mk mtype.VoteResp from to term true).
+Proof. rewrite /is_message /=. done. Qed.
+
+(** A granting [VoteResp] carries the vote it reports, and nothing else. *)
+Lemma is_message_grant γ (from to term : w64) :
+  is_vote γ from term to ⊢ is_message γ (msg.mk mtype.VoteResp from to term false).
+Proof. by rewrite /is_message /=. Qed.
+
+Lemma is_message_grant_inv γ m :
+  m.(msg.ty) = mtype.VoteResp →
+  m.(msg.reject) = false →
+  is_message γ m -∗ is_vote γ m.(msg.from) m.(msg.term) m.(msg.to).
+Proof. intros Hty Hrej. rewrite /is_message Hty Hrej. by iIntros "$". Qed.
+
+(** *** Leadership *)
+
+Definition is_leader γ (id term : w64) : iProp Σ :=
+  ∃ q, ⌜ is_quorum γ.(re_cfg) q ⌝ ∗ [∗ set] v ∈ q, is_vote γ v term id.
+
+Global Instance is_leader_pers γ id term : Persistent (is_leader γ id term).
+Proof. apply _. Qed.
+Global Instance is_leader_timeless γ id term : Timeless (is_leader γ id term).
+Proof. apply _. Qed.
 
 (** ** Election safety
 
-    [is_leader γ id term] is the persistent fact that [id] was elected in
-    [term].  That it is unique is what the whole model exists to provide. *)
+    Two leaders in one term were each elected by a quorum; the quorums meet
+    in a voter that cast one vote. *)
+Lemma is_leader_unique γ id1 id2 term :
+  is_leader γ id1 term -∗ is_leader γ id2 term -∗ ⌜ id1 = id2 ⌝.
+Proof.
+  iIntros "(%q1 & %Hq1 & #H1) (%q2 & %Hq2 & #H2)".
+  destruct (quorums_intersect _ _ _ Hq1 Hq2) as (v & Hv1 & Hv2).
+  iDestruct (big_sepS_elem_of _ _ _ Hv1 with "H1") as "Hv1".
+  iDestruct (big_sepS_elem_of _ _ _ Hv2 with "H2") as "Hv2".
+  iApply (is_vote_agree with "Hv1 Hv2").
+Qed.
 
-Axiom is_leader : ∀ γ (id : w64) (term : w64), iProp Σ.
-Axiom is_leader_pers : ∀ γ id term, Persistent (is_leader γ id term).
-#[global] Existing Instance is_leader_pers.
+(** *** A node's protocol state *)
 
-Axiom own_raft_ghost_is_leader :
-  ∀ γ id s,
+Definition vote_hist_ok (voted : gmap w64 w64) (s : nstate.t) : Prop :=
+  (∀ t, is_Some (voted !! t) → uint.Z t ≤ uint.Z s.(nstate.term)) ∧
+  voted !! s.(nstate.term) =
+    (if decide (s.(nstate.vote) = W64 0) then None else Some s.(nstate.vote)).
+
+(** [become_follower] keeps the vote only when the term does not move.
+    Rewriting with these before unfolding keeps the nested [decide] out of
+    the goal, where [rewrite decide_False] would pick the wrong one. *)
+Local Lemma become_follower_vote_ne s term lead :
+  term ≠ s.(nstate.term) → (become_follower s term lead).(nstate.vote) = W64 0.
+Proof. intros Hne. rewrite /become_follower /=. rewrite decide_False //. Qed.
+
+Local Lemma become_follower_vote_same s lead :
+  (become_follower s s.(nstate.term) lead).(nstate.vote) = s.(nstate.vote).
+Proof. rewrite /become_follower /=. rewrite decide_True //. Qed.
+
+(** A term the node has not reached yet is free to vote in. *)
+Lemma vote_hist_fresh voted s t :
+  vote_hist_ok voted s →
+  uint.Z s.(nstate.term) < uint.Z t →
+  voted !! t = None.
+Proof.
+  intros [Hdom _] Hlt. destruct (voted !! t) eqn:Ht; last done.
+  exfalso. unshelve epose proof (Hdom t _) as Hle; [by eexists|]. lia.
+Qed.
+
+(** [vote_hist_ok] reads only [term] and [vote], so every rule that touches
+    the outbox, the tally or the role preserves it by [reflexivity]. *)
+Local Lemma vote_hist_ok_eq voted s1 s2 :
+  vote_hist_ok voted s1 →
+  s2.(nstate.term) = s1.(nstate.term) →
+  s2.(nstate.vote) = s1.(nstate.vote) →
+  vote_hist_ok voted s2.
+Proof. rewrite /vote_hist_ok. intros H -> ->. exact H. Qed.
+
+Definition leader_wit γ id s : iProp Σ :=
+  match s.(nstate.role) with
+  | role.Leader => is_leader γ id s.(nstate.term)
+  | _ => True%I
+  end.
+
+Global Instance leader_wit_pers γ id s : Persistent (leader_wit γ id s).
+Proof. rewrite /leader_wit. destruct (s.(nstate.role)); apply _. Qed.
+Global Instance leader_wit_timeless γ id s : Timeless (leader_wit γ id s).
+Proof. rewrite /leader_wit. destruct (s.(nstate.role)); apply _. Qed.
+
+Definition own_raft_ghost γ (id : w64) (s : nstate.t) : iProp Σ :=
+  ∃ γv voted,
+    "%Hname"  ∷ ⌜ γ.(re_votes) !! id = Some γv ⌝ ∗
+    "%Hidnz"  ∷ ⌜ id ≠ W64 0 ⌝ ∗
+    "Hvoted"  ∷ ghost_map_auth γv 1 voted ∗
+    "%Hhist"  ∷ ⌜ vote_hist_ok voted s ⌝ ∗
+    "#Hfrags" ∷ ([∗ map] t ↦ c ∈ voted, is_vote γ id t c) ∗
+    "#Hout"   ∷ ([∗ list] m ∈ s.(nstate.outbox), is_message γ m) ∗
+    "#Htally" ∷ ([∗ set] v ∈ granted s.(nstate.votes), is_vote γ v s.(nstate.term) id) ∗
+    "#Hlead"  ∷ leader_wit γ id s.
+
+Global Instance own_raft_ghost_timeless γ id s : Timeless (own_raft_ghost γ id s).
+Proof. apply _. Qed.
+
+Lemma own_raft_ghost_intro γ id s γv voted :
+  γ.(re_votes) !! id = Some γv →
+  id ≠ W64 0 →
+  ghost_map_auth γv 1 voted -∗
+  ⌜ vote_hist_ok voted s ⌝ -∗
+  ([∗ map] t ↦ c ∈ voted, is_vote γ id t c) -∗
+  ([∗ list] m ∈ s.(nstate.outbox), is_message γ m) -∗
+  ([∗ set] v ∈ granted s.(nstate.votes), is_vote γ v s.(nstate.term) id) -∗
+  leader_wit γ id s -∗
+  own_raft_ghost γ id s.
+Proof.
+  iIntros (??) "H1 %H2 #H3 #H4 #H5 #H6". iExists γv, voted. by iFrame "∗#%".
+Qed.
+
+Lemma own_raft_ghost_excl γ id s1 s2 :
+  own_raft_ghost γ id s1 -∗ own_raft_ghost γ id s2 -∗ False.
+Proof.
+  iIntros "(%γ1 & %v1 & %Hn1 & _ & H1 & _) (%γ2 & %v2 & %Hn2 & _ & H2 & _)".
+  rewrite Hn1 in Hn2. injection Hn2 as <-.
+  iDestruct (ghost_map_auth_valid_2 with "H1 H2") as %[Hq _].
+  exfalso. by apply Qp.not_add_le_l in Hq.
+Qed.
+
+(** Everything in a node's outbox was legitimately put there.  This is a plain
+    entailment, not an update: [own_raft_ghost] carries the [is_message]s
+    directly rather than deriving them from an invariant. *)
+Lemma own_raft_ghost_outbox γ id s :
+  own_raft_ghost γ id s -∗ ([∗ list] m ∈ s.(nstate.outbox), is_message γ m).
+Proof. iIntros "(% & % & _ & _ & _ & _ & _ & #H & _)". iFrame "#". Qed.
+
+Lemma own_raft_ghost_is_leader γ id s :
   s.(nstate.role) = role.Leader →
   own_raft_ghost γ id s -∗ is_leader γ id s.(nstate.term).
+Proof.
+  iIntros (Hrole) "(% & % & _ & _ & _ & _ & _ & _ & _ & #H)".
+  rewrite /leader_wit Hrole. iFrame "#".
+Qed.
 
-Axiom is_leader_unique :
-  ∀ γ id1 id2 term,
-  is_leader γ id1 term -∗ is_leader γ id2 term -∗ ⌜ id1 = id2 ⌝.
+(** *** Pure facts about the vote tally
+
+    [granted] is a [dom] of a [filter], which nothing in stdpp reduces for
+    us; these three are the only shapes the step proof needs. *)
+
+Lemma elem_of_granted (votes : gmap w64 bool) v :
+  v ∈ granted votes ↔ votes !! v = Some true.
+Proof.
+  rewrite /granted elem_of_dom. split.
+  - intros [b Hb]. apply map_lookup_filter_Some in Hb as [Hv Hb].
+    simpl in Hb. by subst.
+  - intros Hv. eexists. apply map_lookup_filter_Some. done.
+Qed.
+
+Lemma granted_empty : granted ∅ = ∅.
+Proof. rewrite /granted map_filter_empty dom_empty_L //. Qed.
+
+Lemma elem_of_granted_record_vote votes from b v :
+  v ∈ granted (record_vote votes from b) →
+  v ∈ granted votes ∨ (v = from ∧ b = true).
+Proof.
+  rewrite /record_vote. destruct (votes !! from) eqn:Hf; first by left.
+  rewrite !elem_of_granted. destruct (decide (v = from)) as [->|Hne].
+  - rewrite lookup_insert_eq. intros [= ->]. by right.
+  - assert (Hne' : from ≠ v) by congruence.
+    rewrite lookup_insert_ne //. by left.
+Qed.
+
+(** *** The refinement obligation *)
+
+Lemma own_raft_ghost_step γ (id : w64) s recv s' :
+  step γ.(re_cfg) id s recv s' →
+  ([∗ list] m ∈ recv, is_message γ m) -∗
+  own_raft_ghost γ id s ={⊤}=∗
+  own_raft_ghost γ id s'.
+Proof.
+  intros Hstep.
+  induction Hstep as
+    [ s
+    | s0 r1 s1 r2 s2 Hst1 IH1 Hst2 IH2
+    | m s Hlt Hto
+    | s peers Hrole Hin Hnowrap Hperm
+    | m s Hty Hto Hfrom Hterm Hcan
+    | m s Hty Hto
+    | m s Hty Hto Hterm Hrole
+    | s ms Hrole Hq Hms
+    | s Hrole Hnq
+    | s o' Hsub ].
+
+  - (* step_refl *)
+    iIntros "_ Hown". by iFrame.
+
+  - (* step_trans *)
+    iIntros "Hrecv Hown".
+    iEval (rewrite big_sepL_app) in "Hrecv".
+    iDestruct "Hrecv" as "[Hr1 Hr2]".
+    iMod (IH1 with "Hr1 Hown") as "Hown".
+    by iMod (IH2 with "Hr2 Hown") as "$".
+
+  - (* step_higher_term: a strictly greater term, so the vote is cleared and
+       the new term is fresh in the history *)
+    iIntros "_ Hown".
+    iDestruct "Hown" as (γv voted)
+      "(%Hname & %Hidnz & Hvoted & %Hhist & #Hfrags & #Hout & #Htally & #Hlead)".
+    assert (Hne : m.(msg.term) ≠ s.(nstate.term)).
+    { intros Heq. rewrite Heq in Hlt. lia. }
+    pose proof Hhist as Hh; destruct Hh as [Hdom Heq].
+    assert (Hhist' : vote_hist_ok voted (become_follower s m.(msg.term)
+                       (if from_leader m.(msg.ty) then m.(msg.from) else W64 0))).
+    { rewrite /vote_hist_ok (become_follower_vote_ne _ _ _ Hne).
+      split.
+      - simpl. intros t Ht. specialize (Hdom t Ht). lia.
+      - simpl. rewrite ?decide_True //.
+        eapply (vote_hist_fresh voted s); [exact Hhist|done]. }
+    iModIntro.
+    iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
+             with "Hvoted [] Hfrags [] [] []").
+    + iPureIntro. exact Hhist'.
+    + by rewrite /become_follower /=.
+    + rewrite /become_follower /= granted_empty big_sepS_empty //.
+    + rewrite /leader_wit /become_follower /=. done.
+
+  - (* step_campaign: the term goes up by one, so it is fresh, and the node
+       votes for itself there *)
+    iIntros "_ Hown".
+    iDestruct "Hown" as (γv voted)
+      "(%Hname & %Hidnz & Hvoted & %Hhist & #Hfrags & #Hout & #Htally & #Hlead)".
+    set (t' := word.add s.(nstate.term) (W64 1)).
+    assert (Ht' : uint.Z t' = uint.Z s.(nstate.term) + 1) by (subst t'; word).
+    assert (Hcterm : (become_candidate id s).(nstate.term) = t') by reflexivity.
+    assert (Hcvote : (become_candidate id s).(nstate.vote) = id) by reflexivity.
+    assert (Hfree : voted !! t' = None).
+    { eapply (vote_hist_fresh voted s); [done|lia]. }
+    iMod (ghost_map_insert_persist t' id Hfree with "Hvoted") as "[Hvoted #Hself]".
+    iAssert (is_vote γ id t' id) as "#Hisvote".
+    { iExists γv. by iFrame "#". }
+    assert (Hhist' : vote_hist_ok (<[t' := id]> voted) (become_candidate id s)).
+    { destruct Hhist as [Hdom _]. rewrite /vote_hist_ok Hcterm Hcvote. split.
+      - intros t [c Hc]. destruct (decide (t = t')) as [->|Hne]; first lia.
+        assert (Hne' : t' ≠ t) by congruence.
+        rewrite lookup_insert_ne // in Hc.
+        unshelve epose proof (Hdom t _) as Hle; [by eexists|]. lia.
+      - rewrite lookup_insert_eq decide_False //. }
+    iModIntro.
+    iApply (own_raft_ghost_intro _ _ _ γv (<[t' := id]> voted) Hname Hidnz
+             with "Hvoted [] [] [] [] []").
+    + iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist'); reflexivity.
+    + rewrite big_sepM_insert //. by iFrame "#".
+    + rewrite /send_msgs /become_candidate /=.
+      rewrite big_sepL_app. iSplitR; [iFrame "#"|].
+      rewrite big_sepL_cons. iSplitR.
+      * by iApply is_message_grant.
+      * rewrite big_sepL_fmap. iApply big_sepL_intro.
+        iIntros "!> %k %x %Hk". by iApply is_message_triv.
+    + rewrite /send_msgs /become_candidate /= granted_empty big_sepS_empty //.
+    + rewrite /leader_wit /send_msgs /become_candidate /=. done.
+
+  - (* step_grant_vote: either the node has already voted this way, or the
+       current term is free in the history *)
+    iIntros "_ Hown".
+    iDestruct "Hown" as (γv voted)
+      "(%Hname & %Hidnz & Hvoted & %Hhist & #Hfrags & #Hout & #Htally & #Hlead)".
+    iAssert (|==> ∃ voted', ghost_map_auth γv 1 voted' ∗
+                  ⌜ vote_hist_ok voted' (s <| nstate.vote := m.(msg.from) |>) ⌝ ∗
+                  ([∗ map] t ↦ c ∈ voted', is_vote γ id t c) ∗
+                  is_vote γ id s.(nstate.term) m.(msg.from))%I
+      with "[Hvoted]" as ">(%voted' & Hvoted & %Hhist' & #Hfrags' & #Hgrant)".
+    { destruct Hcan as [Hsame | [Hnovote _]].
+      - (* already voted for this candidate *)
+        destruct Hhist as [Hdom Heq].
+        assert (Hvnz : s.(nstate.vote) ≠ W64 0) by (rewrite Hsame; exact Hfrom).
+        assert (Hlook : voted !! s.(nstate.term) = Some m.(msg.from)).
+        { rewrite Heq decide_False //. by rewrite Hsame. }
+        iExists voted. iFrame "Hvoted Hfrags".
+        iDestruct (big_sepM_lookup _ _ _ _ Hlook with "Hfrags") as "#Hone".
+        iFrame "Hone". iPureIntro.
+        split; [exact Hdom|]. simpl. rewrite -Hsame. exact Heq.
+      - (* first vote of this term *)
+        assert (Hfree : voted !! s.(nstate.term) = None).
+        { destruct Hhist as [_ Heq]. rewrite Heq decide_True //. }
+        iMod (ghost_map_insert_persist s.(nstate.term) m.(msg.from) Hfree
+               with "Hvoted") as "[Hvoted #Hnew]".
+        iAssert (is_vote γ id s.(nstate.term) m.(msg.from)) as "#Hisvote".
+        { iExists γv. by iFrame "#". }
+        iModIntro. iExists (<[s.(nstate.term) := m.(msg.from)]> voted).
+        iFrame "Hvoted Hisvote".
+        iSplitR.
+        + iPureIntro. destruct Hhist as [Hdom _]. split.
+          * simpl. intros t [c Hc]. destruct (decide (t = s.(nstate.term)))
+              as [->|Hne]; first lia.
+            assert (Hne' : s.(nstate.term) ≠ t) by congruence.
+            rewrite lookup_insert_ne // in Hc.
+            unshelve epose proof (Hdom t _) as Hle; [by eexists|]. lia.
+          * simpl. rewrite lookup_insert_eq decide_False //.
+        + rewrite big_sepM_insert //. by iFrame "#". }
+    iModIntro.
+    iApply (own_raft_ghost_intro _ _ _ γv voted' Hname Hidnz
+             with "Hvoted [] Hfrags' [] [] []").
+    + iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist'); reflexivity.
+    + rewrite /send_msgs /=. rewrite big_sepL_app. iSplitR; [iFrame "#"|].
+      rewrite big_sepL_singleton. by iApply is_message_grant.
+    + rewrite /send_msgs /=. iFrame "#".
+    + rewrite /leader_wit /send_msgs /=. iFrame "#".
+
+  - (* step_reject_vote: a rejection carries nothing *)
+    iIntros "_ Hown".
+    iDestruct "Hown" as (γv voted)
+      "(%Hname & %Hidnz & Hvoted & %Hhist & #Hfrags & #Hout & #Htally & #Hlead)".
+    iModIntro.
+    iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
+             with "Hvoted [] Hfrags [] [] []").
+    + iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
+    + rewrite /send_msgs /=. rewrite big_sepL_app. iSplitR; [iFrame "#"|].
+      rewrite big_sepL_singleton. by iApply is_message_reject.
+    + rewrite /send_msgs /=. iFrame "#".
+    + rewrite /leader_wit /send_msgs /=. iFrame "#".
+
+  - (* step_record_vote: a granting response is backed by the voter's vote *)
+    iIntros "Hrecv Hown".
+    iDestruct "Hrecv" as "[#Hm _]".
+    iDestruct "Hown" as (γv voted)
+      "(%Hname & %Hidnz & Hvoted & %Hhist & #Hfrags & #Hout & #Htally & #Hlead)".
+    iModIntro.
+    iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
+             with "Hvoted [] Hfrags [] [] []").
+    + iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
+    + iFrame "#".
+    + simpl. iApply big_sepS_intro. iIntros "!> %v %Hv".
+      apply elem_of_granted_record_vote in Hv as [Hv | [-> Hb]].
+      * by iApply (big_sepS_elem_of _ _ _ Hv with "Htally").
+      * assert (Hrej : m.(msg.reject) = false)
+          by (destruct (m.(msg.reject)); [discriminate Hb|reflexivity]).
+        rewrite -Hterm -Hto.
+        iApply (is_message_grant_inv γ m Hty Hrej with "Hm").
+    + rewrite /leader_wit /=. iFrame "#".
+
+  - (* step_win: the tally is the quorum that elected the node *)
+    iIntros "_ Hown".
+    iDestruct "Hown" as (γv voted)
+      "(%Hname & %Hidnz & Hvoted & %Hhist & #Hfrags & #Hout & #Htally & #Hlead)".
+    iAssert (is_leader γ id s.(nstate.term)) as "#Hnewlead".
+    { iExists (granted s.(nstate.votes)). by iFrame "#". }
+    iModIntro.
+    iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
+             with "Hvoted [] Hfrags [] [] []").
+    + iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
+    + rewrite /send_msgs /become_leader /=. rewrite big_sepL_app.
+      iSplitR; [iFrame "#"|].
+      iApply big_sepL_intro. iIntros "!> %k %x %Hk".
+      iApply is_message_triv.
+      destruct (Forall_lookup_1 _ _ _ _ Hms Hk) as (Hty & _).
+      rewrite Hty. done.
+    + rewrite /send_msgs /become_leader /= granted_empty big_sepS_empty //.
+    + rewrite /leader_wit /send_msgs /become_leader /=. iFrame "#".
+
+  - (* step_lose: back to follower in the same term, so the vote stands *)
+    iIntros "_ Hown".
+    iDestruct "Hown" as (γv voted)
+      "(%Hname & %Hidnz & Hvoted & %Hhist & #Hfrags & #Hout & #Htally & #Hlead)".
+    assert (Hhist' : vote_hist_ok voted
+                       (become_follower s s.(nstate.term) (W64 0))).
+    { destruct Hhist as [Hdom Heq].
+      rewrite /vote_hist_ok become_follower_vote_same.
+      split; simpl; [done|exact Heq]. }
+    iModIntro.
+    iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
+             with "Hvoted [] Hfrags [] [] []").
+    + iPureIntro. exact Hhist'.
+    + by rewrite /become_follower /=.
+    + rewrite /become_follower /= granted_empty big_sepS_empty //.
+    + rewrite /leader_wit /become_follower /=. done.
+
+  - (* step_drain: the messages kept are messages that were there *)
+    iIntros "_ Hown".
+    iDestruct "Hown" as (γv voted)
+      "(%Hname & %Hidnz & Hvoted & %Hhist & #Hfrags & #Hout & #Htally & #Hlead)".
+    iModIntro.
+    iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
+             with "Hvoted [] Hfrags [] [] []").
+    + iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
+    + simpl. iApply big_sepL_intro. iIntros "!> %k %x %Hk".
+      iApply (big_sepL_elem_of with "Hout").
+      eapply elem_of_submseteq; [by eapply list_elem_of_lookup_2|done].
+    + simpl. iFrame "#".
+    + rewrite /leader_wit /=. iFrame "#".
+Qed.
+
+(** *** Allocation
+
+    Nothing above says the ghost state is inhabited, and an empty
+    [own_raft_ghost] would make every lemma here true and useless.  This is
+    what rules that out: a fresh ghost state for any set of nodes, each in the
+    initial protocol state. *)
+
+Definition init_nstate : nstate.t :=
+  {| nstate.term := W64 0; nstate.vote := W64 0; nstate.lead := W64 0;
+     nstate.role := role.Follower; nstate.votes := ∅; nstate.outbox := [] |}.
+
+Local Lemma alloc_vote_maps (ids : gset w64) :
+  ⊢ |==> ∃ (names : gmap w64 gname), ⌜ dom names = ids ⌝ ∗
+      [∗ map] γv ∈ names, ghost_map_auth γv 1 (∅ : gmap w64 w64).
+Proof.
+  induction ids as [|x ids Hx IH] using set_ind_L.
+  - iModIntro. iExists ∅. rewrite dom_empty_L big_sepM_empty. done.
+  - iMod IH as (names Hdom) "Hm".
+    iMod (ghost_map_alloc_empty (K:=w64) (V:=w64)) as (γv) "Hauth".
+    iModIntro. iExists (<[x := γv]> names).
+    rewrite dom_insert_L Hdom. iSplit; first done.
+    rewrite big_sepM_insert; [by iFrame|].
+    by apply not_elem_of_dom; rewrite Hdom.
+Qed.
+
+Lemma own_raft_ghost_alloc (cfg : gset w64) (ids : gset w64) :
+  W64 0 ∉ ids →
+  ⊢ |==> ∃ γ, ⌜ γ.(re_cfg) = cfg ⌝ ∗
+      [∗ set] id ∈ ids, own_raft_ghost γ id init_nstate.
+Proof.
+  iIntros (Hnz).
+  iMod (alloc_vote_maps ids) as (names Hdom) "Hm".
+  iModIntro. iExists {| re_cfg := cfg; re_votes := names |}.
+  iSplit; first done.
+  rewrite -Hdom -big_sepM_dom.
+  iApply (big_sepM_impl with "Hm").
+  iIntros "!> %id %γv %Hlook Hauth".
+  iExists γv, ∅.
+  iSplit; first done.
+  iSplit.
+  { iPureIntro. intros ->. apply Hnz. rewrite -Hdom. by apply elem_of_dom. }
+  iFrame "Hauth".
+  iSplit.
+  { iPureIntro. split; [by intros t []|]. rewrite lookup_empty //. }
+  rewrite big_sepM_empty big_sepL_nil granted_empty big_sepS_empty.
+  rewrite /leader_wit /=.
+  iSplit; first done. iSplit; first done. iSplit; first done.
+  done.
+Qed.
 
 End ghost.
 
 (** ** Derived conveniences used by [election.v] *)
 
 Section lemmas.
-Context `{!invGS Σ}.
+Context `{!invGS Σ, !allG Σ}.
 Implicit Type γ : raft_election_names.
 
 (** Taking a step that consumes a single known message. *)
-Lemma own_raft_ghost_step_1 γ cfg id s m s' :
-  step cfg id s [m] s' →
+Lemma own_raft_ghost_step_1 γ id s m s' :
+  step γ.(re_cfg) id s [m] s' →
   is_message γ m -∗
   own_raft_ghost γ id s ={⊤}=∗
   own_raft_ghost γ id s'.
 Proof.
   iIntros (Hstep) "#Hm Hown".
-  iMod (own_raft_ghost_step _ _ _ _ _ _ Hstep with "[] Hown") as "$".
+  iMod (own_raft_ghost_step _ _ _ _ _ Hstep with "[] Hown") as "$".
   { by iFrame "#". }
   done.
 Qed.
 
 (** Taking a step that consumes nothing. *)
-Lemma own_raft_ghost_step_0 γ cfg id s s' :
-  step cfg id s [] s' →
+Lemma own_raft_ghost_step_0 γ id s s' :
+  step γ.(re_cfg) id s [] s' →
   own_raft_ghost γ id s ={⊤}=∗ own_raft_ghost γ id s'.
 Proof.
   iIntros (Hstep) "Hown".
-  iMod (own_raft_ghost_step _ _ _ _ _ _ Hstep with "[] Hown") as "$".
+  iMod (own_raft_ghost_step _ _ _ _ _ Hstep with "[] Hown") as "$".
   { done. }
   done.
 Qed.

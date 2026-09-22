@@ -1,6 +1,6 @@
 # Status
 
-**Last updated:** 2026-09-21
+**Last updated:** 2026-09-22
 
 ## Goal
 
@@ -43,6 +43,12 @@ builds it.
   (`own_raft_ghost`, `is_message`) and its refinement obligation. Since
   2026-09-15 `nstate.t` carries an `outbox` field and `step` has **no `sent`
   output** — a step's sends are the growth of `s'.(nstate.outbox)`.
+  **Since 2026-09-22 the ghost state is constructed, not axiomatized**: the
+  file has no `Axiom` and no `Admitted`. Per-node `ghost_map`s of
+  `term ↦ candidate`, no Iris invariant, `is_leader` a quorum of votes, and
+  an `own_raft_ghost_alloc` so that none of it is vacuous. `cfg` moved into
+  `raft_election_names`; `step_campaign` and `step_grant_vote` each gained a
+  premise. See [raft-election-refinement.md](raft-election-refinement.md).
 - `v3_proof/election/` (192 files) and `v3_proof/election.v` — the
   implementation side. **One file per Go function**: each has `spec_<fn>.v`
   (a `Module Type` with exactly one `Parameter` — the single place its Hoare
@@ -127,7 +133,7 @@ concurrent items edit the same shared file.
 | 16 | `wp_Inflights__Add` — Qed, with a new `Inflights__grow` collection (spec over the buffer pieces, premise `len(buf) < size`: with `size = 0` the `else`-arm cap does not apply and `grow` would allocate one slot past the ring). Three reachable leaves, not four: the wrap-and-grow case is dead (`len(buffer) = size` forces `next < len`) | 4 | **done** 2026-09-21 (`-vok` RC=0, independent re-run; no shared-file change) |
 | 17 | `wp_raft__maybeSendSnapshot` — Qed against its current spec, with new leaves `raftLog__snapshot`, `IsEmptySnap`, `Progress__BecomeSnapshot`; `is_initialized` gained `is_new_error errSnapUnavail` (the dynamic type is a pointer type), without which `err == ErrSnapshotTemporarilyUnavailable` cannot step. Its spec is restated on `own_raft_notrk` by item 18 | 4 | **done** 2026-09-21 (`-vok` RC=0, independent re-run; `base.v` dependents re-checked) |
 | 14 | Framework `theory/map.v`: `wp_map_for_range` returns the map; `wp_map_nil_for_range` and `pure_wp_map_nil_len` moved above the `K V` context so `tc_solve` can fire them; the four copied `_helpers/map_for_range_keep.v` deleted | between 2 and 3 | **done** 2026-09-20 (`map.vok` RC=0; ~90-file `.vos` rebuild RC=0; `IDs`, `Visit`, `TallyVotes`, `MajorityConfig__VoteResult`, `campaign`, `inv_tracker.v` re-checked RC=0) |
-| — | Ghost layer of `election_protocol.v` (12 axioms) | — | out of scope for this pass |
+| — | Ghost layer of `election_protocol.v` (12 axioms) | — | was out of scope for this pass; **done 2026-09-22** on branch `election-protocol-ghost` — see below |
 | 13 | Final: `-vok` sweep of every proof-bearing file, `tcb-report`, `check-module-discipline`, notes | 6 | run 2026-09-21; see the summary below the table |
 
 **Outcome (2026-09-21).** Every Hoare triple on the election path is `Qed`
@@ -146,6 +152,32 @@ layer's 12 axioms in `election_protocol.v` remain, by design of this pass.
 The raft development as a whole also still carries the `readonly.v` and
 `protocol.v` assumptions listed under "Next steps", which are not on the
 election path.
+
+### The ghost layer, closed (2026-09-22)
+
+Branch `election-protocol-ghost`, off `main`. The twelve axioms above are
+gone: `election_protocol.v` contains no `Axiom` and no `Admitted`, and
+`etc/tcb-report.py` over the whole raft proof drops from 43 assumed to
+**31** (8 `Admitted`, 23 `Axiom`), with `election_protocol.v` absent from its
+"Incomplete" list. Election safety — `raft_election_safety` in `election.v`
+— now rests on nothing but the framework and the declared trust boundary.
+
+Three defects in the *statements* came out of proving them, each a way to
+elect two leaders in one term, and all three are fixed:
+
+- `own_raft_ghost_step` quantified over `cfg`, so a caller could pick a
+  singleton configuration in which the node is its own quorum. `cfg` is now
+  a field of `raft_election_names`, and `wp_raft__Step_body` carries
+  `γ.(re_cfg) = cfg`.
+- `step_campaign` allowed the term to wrap (`word.add s.term 1`) back to one
+  the node had already voted in; it now requires
+  `uint.Z s.(nstate.term) + 1 < 2 ^ 64`, which `hup`'s spec already had.
+- `step_grant_vote` allowed a grant to `W64 0`, which is the Go code's
+  `None`, so a node could vote twice; it now requires `m.(msg.from) ≠ W64 0`,
+  which `Step`'s spec already had of a `MsgVote`.
+
+The journal entry for 2026-09-22 has the construction and the tactic
+lessons.
 
 Rules for the agents doing items 3–11, so that a shared checkout stays sane:
 one `rocq` process each; edit your own collection and any *new* collections
@@ -286,7 +318,14 @@ Replays here are 0.3–30s, and a `Show.` to inspect a goal is an ordinary
 replay rather than a cold check (that was the fork's main fix). Pass
 `--allow-stale`: this tree has `.vos` only, and without it every check is
 refused with exit 2. **Exit 2 is not a verdict** — it means the file could not
-be checked. See [gotchas.md](gotchas.md).
+be checked. Neither is **exit 130**: since 2026-09-18 a Ctrl+C (or a killed
+client) stops the work but *keeps* the session, parked at the line it
+reached, so interrupting a check you no longer want is cheap and the file is
+checkable again seconds later. A **git worktree is its own workspace** —
+rocq-warm keys the daemon on `git rev-parse --show-toplevel` — so worktrees
+do not share a session table or a memory budget, only the machine.
+`--rebuild` will compile stale dependencies for you if you would rather not
+pass `--allow-stale`. See [gotchas.md](gotchas.md).
 
 **On a machine with no Rocq**, budget ~1.5h before you can check anything:
 `opam switch create perennial 5.2.1`, `opam pin add -n .`,
@@ -296,13 +335,30 @@ for the `vos` closure.
 
 ## Trust base
 
-As of 2026-09-15 the raft proof assumes **50 axioms and 14 `Admitted.`** (2 of
-the admits deliberate, marked `(* Trusted *)` at `readonly.v:464,471`). The
-one axiom added that day is `own_raft_ghost_outbox`; more importantly, one of
-the 50 — `wp_raft__appendEntry`, then called `wp_raft__appendEmptyEntry` —
-**stopped being a false statement**. It
-owned only `own_raftLog` while the code it describes queues a `MsgAppResp`
-into `r.msgsAfterAppend`. See [journal.md](journal.md).
+**Current figure (2026-09-22), from `etc/tcb-report.py` with no `--scope`:
+the raft proof assumes 31 things — 8 `Admitted.` and 23 `Axiom` — 3 of the
+admits deliberate and marked `(* Trusted *)`.** All of them are in
+`readonly.v`, `protocol.v`, the six trust-boundary files under `election/`
+(`inv_big`, `inv_logger`, `inv_storage`, `Entry__Size`, the two `big`
+wrappers, `rand_Int`, `slices_Sort`) and the one marked admission in
+`proof_raftLog__slice.v`. `election_protocol.v` is no longer among them.
+
+The paragraph below is the 2026-09-15 figure, kept because the second half of
+it is still the point:
+
+> As of 2026-09-15 the raft proof assumes **50 axioms and 14 `Admitted.`**
+> (2 of the admits deliberate, marked `(* Trusted *)` at
+> `readonly.v:464,471`). The one axiom added that day is
+> `own_raft_ghost_outbox`; more importantly, one of the 50 —
+> `wp_raft__appendEntry`, then called `wp_raft__appendEmptyEntry` —
+> **stopped being a false statement**. It owned only `own_raftLog` while the
+> code it describes queues a `MsgAppResp` into `r.msgsAfterAppend`. See
+> [journal.md](journal.md).
+
+That has now happened four times (`appendEmptyEntry`, `step_win`,
+`maybeSendSnapshot`'s precondition, and on 2026-09-22 the three ghost-layer
+statements listed above). **An assumption you have not tried to prove is an
+assumption you have not read carefully.**
 
 **The scope rule changed on 2026-09-16** and this is now the governing
 statement of it. The *only* thing the election development may assume
@@ -476,11 +532,8 @@ Unclaimed; pick one and say so in the journal.
    fixed first, and separately its `VoteWon` conjunct repaired.
 3. **`wp_raft__appendEntry`** — the last core-raft axiom on the election
    path — and then `wp_raft__bcastAppend`, which is really log replication.
-4. Construct `own_raft_ghost` / `is_message` rather than axiomatizing them,
-   discharging `own_raft_ghost_step`, `own_raft_ghost_outbox` and
-   `is_leader_unique`. Until that is done the election-safety corollary rests
-   on an axiom. This is 12 of the 44 axioms, the `Section ghost` block in
-   `election_protocol.v`.
+4. ~~Construct `own_raft_ghost` / `is_message` rather than axiomatizing
+   them.~~ **Done 2026-09-22** — see "The ghost layer, closed" above.
 5. Decide what the top-level Raft correctness statement should be (beyond
    election safety), and write it down as a decision record.
 6. Discharge the `Section axioms` in `v3_proof/protocol.v` against the actual

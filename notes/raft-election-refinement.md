@@ -76,15 +76,73 @@ A node's protocol state is `(term, vote, lead, role, votes)`.
   `s'.(nstate.outbox)`. `step_drain` lets a node drop messages from its own
   outbox, which is what `Ready()` will do; without it the outbox could only
   grow and `own_raft_phys` could not refine past the first drain.
-- Ghost state (axiomatized): `own_raft_ghost γ id s`, `is_message γ m`, the
-  refinement obligation
-  `own_raft_ghost_step : step cfg id s recv s' → ([∗list] recv, is_message) -∗ own_raft_ghost γ id s ={⊤}=∗ own_raft_ghost γ id s'`,
+- Ghost state — **constructed, not axiomatized, since 2026-09-22**:
+  `own_raft_ghost γ id s`, `is_message γ m`, the refinement obligation
+  `own_raft_ghost_step : step γ.(re_cfg) id s recv s' → ([∗list] recv, is_message) -∗ own_raft_ghost γ id s ={⊤}=∗ own_raft_ghost γ id s'`,
   and `own_raft_ghost_outbox : own_raft_ghost γ id s -∗ [∗list] m ∈ s.(nstate.outbox), is_message γ m`.
   Plus `is_leader` / `is_leader_unique` (election safety) and
-  `own_raft_ghost_is_leader`.
+  `own_raft_ghost_is_leader`. The file has no `Axiom` and no `Admitted`.
 
-Constructing these is the standard "authoritative map of node states + set of
-sent messages, tied by an invariant" development; it is **not** done here.
+### How the ghost state is built
+
+Not the "authoritative map of node states + set of sent messages, tied by an
+invariant" development the earlier version of this file predicted. There is
+**no Iris invariant at all**; everything is node-local, which is what lets
+`own_raft_ghost_outbox` be a plain entailment rather than a fancy update.
+
+- `raft_election_names` is a record, not an opaque `Type`:
+  `re_cfg : gset w64` (the voter set the ghost state is about) and
+  `re_votes : gmap w64 gname` (one ghost map per node, `term ↦ candidate`).
+- `is_vote γ v term cand := ∃ γv, ⌜γ.(re_votes) !! v = Some γv⌝ ∗ term ↪[γv]□ cand`
+  — persistent because the entry is frozen when allocated, and unforgeable
+  because allocating one needs `v`'s own `ghost_map_auth`, which lives
+  (exclusively) inside `own_raft_ghost γ v _`.
+- `is_message γ m` is *defined by cases on the message*: a `VoteResp` with
+  `reject = false` carries `is_vote γ m.from m.term m.to`; everything else
+  carries nothing. That is the whole content of "legitimately sent".
+- `is_leader γ id term := ∃ q, ⌜is_quorum γ.(re_cfg) q⌝ ∗ [∗ set] v ∈ q, is_vote γ v term id`.
+  `is_leader_unique` is then `quorums_intersect` (copied from `readonly.v`,
+  same `is_quorum`) plus the agreement of two `is_vote`s for one node and
+  term. No leader registry is needed.
+- `own_raft_ghost γ id s` holds `id`'s `ghost_map_auth` (this is what makes
+  it exclusive), the persistent fragments for every vote in the history, the
+  `is_message`s for its own outbox, an `is_vote` for every id in
+  `granted s.(nstate.votes)` at `s.(nstate.term)`, an `is_leader` when
+  `s.(nstate.role) = role.Leader`, and the pure `vote_hist_ok`.
+- `vote_hist_ok voted s` is the one-vote-per-term invariant: every term in
+  the history is `≤ s.(nstate.term)`, and at `s.(nstate.term)` the history
+  agrees with `s.(nstate.vote)` — absent exactly when the vote is `W64 0`
+  (the Go code's `None`).
+- `own_raft_ghost_alloc` exists so that none of this is vacuous: an empty
+  `own_raft_ghost` would satisfy every lemma above.
+
+`own_raft_ghost_step` is one induction over `step`. The only two rules that
+allocate are `step_campaign` (the node votes for itself in the new term) and
+`step_grant_vote`; both need the target term to be absent from the history,
+which is what `vote_hist_ok` delivers.
+
+### Two premises the model was missing
+
+Making the ghost state real found two ways the model let a node vote twice in
+one term — i.e. two statements that were **false as written**, in the same
+family as the `wp_raft__appendEmptyEntry` and `step_win` defects recorded in
+the journal. Both are now premises, and both were already available at the
+one place each is constructed:
+
+- `step_campaign` gained `uint.Z s.(nstate.term) + 1 < 2 ^ 64`. Without it
+  `word.add s.term 1` can wrap to a term the node already voted in.
+  `wp_raft__hup_body` has carried this premise since `send`'s zero-term panic
+  was pinned down, so `proof_raft__hup.v` discharges it by `assumption`.
+- `step_grant_vote` gained `m.(msg.from) ≠ W64 0`. `W64 0` is `None`, so
+  "voted for 0" and "has not voted" are the same state: a node could grant to
+  `0` and then grant again to somebody else in the same term.
+  `wp_raft__Step_body` already requires `From ≠ 0` of a `MsgVote`.
+
+And one the *interface* was missing: `own_raft_ghost_step` used to quantify
+over `cfg`, so a caller could pick a singleton configuration in which the
+node is its own quorum and elect itself. `cfg` now lives in `γ`, and
+`wp_raft__Step_body` has a `γ.(re_cfg) = cfg` premise tying it to the `cfg`
+of `own_raft_phys`.
 
 ## `election/` — the implementation side
 

@@ -50,7 +50,8 @@ does, on `.vo` files, so against a `make vos` tree it refuses every check
 files and works fine. Also raise `ROCQ_WARM_MAX_SESSION_GB` (the default
 ceiling is small enough that a Perennial session gets evicted mid-edit).
 
-Three things the fork fixes, all of which bit here:
+What the fork fixes, all of which bit here (checked against
+`upamanyus/rocq-warm` at `11b27cb`, 2026-09-18, on 2026-09-22):
 
 - **A `Show.` no longer costs a cold check.** Upstream needed
   `--show-output` to print what a proof printed, and that flag discarded the
@@ -63,10 +64,36 @@ Three things the fork fixes, all of which bit here:
   share this checkout), and a second check of the *same* file is refused with
   exit 2 rather than racing two multi-GB sessions against one question.
 - **`Time` and `idtac` output** is pinned against `coqc` per Rocq version.
+- **Ctrl+C is now cheap, and it is the right thing to do** (added
+  2026-09-18). Interrupting a check — Ctrl+C, a closed terminal, an agent
+  that gave up, `kill -9` of the client — stops the *work* and keeps the
+  *session*, parked at the line Rocq reached; the next check of that file
+  replays from there. The daemon notices the closed socket, not a signal, so
+  every way of dying is covered. Two consequences worth having in your head:
+
+  - **Exit 130 is not a verdict either.** It means the question was
+    withdrawn. Only 0 and 1 say anything about the proof.
+  - **The old "killing a client wedges the file" advice is obsolete.** It
+    used to leave the file checked out until the 30-minute wall timeout, so
+    every later check of the one file you were working on came back exit 2
+    ([journal.md](journal.md), 2026-09-16, records that). Now the slot comes
+    back in the couple of seconds the interrupt takes. The one delay is
+    inherent: a signal is only safe to send Rocq after a command has run a
+    couple of seconds without printing, so for those seconds the file is
+    still reported busy.
 
 Remember that **exit 2 is not a verdict** — it means the file could not be
 checked (stale dependency, already being checked, no daemon, no `rocq`). Only
 0 and 1 say anything about the proof.
+
+**It can also do the build step.** `--compile` writes the `.vo` after a
+successful check, and `--rebuild` first compiles any stale dependency (in
+dependency order, `ROCQ_WARM_COMPILE_JOBS` at a time, default 2), both with
+`rocq compile` and the flags from the nearest `_RocqProject`. Neither is what
+this tree wants day to day — we build `vos` and pass `--allow-stale` — but
+`--rebuild` is the one-command way out if you have let a handful of `.vo`s go
+stale. A plain green check warns that the `.vo` was *not* regenerated, which
+is a statement about the build, not about your proof.
 
 ## `word` does not reliably close `W32 a ≠ W32 b`
 
@@ -544,6 +571,20 @@ iDestruct (own_tracker_cfg_size with "Htrk") as "[%Hcfg_fits Htrk]".
 ```
 
 ## With several agents in one checkout, rocq-warm's session gets evicted
+
+**A worktree is its own checkout for this purpose** (checked 2026-09-22):
+rocq-warm keys its daemon on `git rev-parse --show-toplevel`, which in a
+worktree is the worktree, so `.claude/worktrees/<name>/.rocq-warm/sock` is a
+daemon of its own with its own session table and its own budget. Agents in
+separate worktrees therefore do *not* evict each other's sessions, and
+`rocq-warm stop` in one leaves the others alone. What they do still share is
+the machine: each daemon's budget is capped at `min(half of RAM, 32 GB)`
+independently, and eviction also watches `MemAvailable` against
+`ROCQ_WARM_MIN_FREE_GB` (default `max(4 GB, 5% of RAM)`) — so on a small box
+three worktrees can still push each other out, just via free memory rather
+than via one shared budget.
+
+Within one checkout the original problem stands:
 
 Sessions are multi-GB and the daemon's total budget is shared, so two agents
 checking two large files evict each other between checks: every replay comes
@@ -1400,3 +1441,59 @@ and `etc/rocqc.py` migrates an old database in place the first time it writes
 to it. Legacy rows keep the only labels they can support: `vos`, or `vo` for
 everything else. `etc/timing-report.py --mode vok` on a freshly migrated
 database is therefore empty until something is rebuilt.
+
+## `rewrite decide_False` takes the *outer* `decide` when they nest
+
+`become_follower`'s vote field is itself an `if decide (term = s.term) …`,
+and `vote_hist_ok` in `election_protocol.v` wraps that in
+`if decide (… = W64 0) …`. `rewrite` matches outermost-leftmost, so
+`rewrite decide_False` picks the wrapper and leaves a side condition you
+cannot prove — reported as
+
+    The LHS of decide_True … does not match any subterm of the goal
+
+one tactic later, which points at the wrong line.
+
+Rewrite the *projection* before anything unfolds it, with a one-line lemma
+per field:
+
+```coq
+Local Lemma become_follower_vote_ne s term lead :
+  term ≠ s.(nstate.term) → (become_follower s term lead).(nstate.vote) = W64 0.
+Proof. intros Hne. rewrite /become_follower /=. rewrite decide_False //. Qed.
+```
+
+Then `rewrite /vote_hist_ok (become_follower_vote_ne _ _ _ Hne)` leaves one
+`decide` and the rest goes through. The same trick — name the projection,
+rewrite it before `simpl` gets there — is what keeps `word.add s.term 1`
+folded as `t'` in the `step_campaign` case, where otherwise `simpl` unfolds
+the record and `lia` sees two unrelated atoms.
+
+## `/=` collapses `[x] ++ l`, so the second `big_sepL_app` has nothing to match
+
+`rewrite /send_msgs /=` on an outbox of the shape
+`s.(nstate.outbox) ++ ([m] ++ (f <$> peers))` leaves
+`s.(nstate.outbox) ++ (m :: (f <$> peers))`. The first `big_sepL_app` fires
+on the outer `++`; the second has no `++` left. Use `big_sepL_cons` for the
+inner split (and then the head goal is `Φ m`, not a singleton `big_sepL`, so
+drop the `big_sepL_singleton`).
+
+## Two small name traps: `Forall_forall` and `big_sepL_singleton`
+
+- **`Forall_forall` resolves to Rocq's `List` version**, whose membership is
+  `In` and not stdpp's `∈`, so `rewrite Forall_forall in H` then
+  `eapply list_elem_of_lookup_2` fails to unify. When you are coming from a
+  `l !! k = Some x` (which is what `big_sepL_intro` hands you), go straight
+  there with `Forall_lookup_1 _ _ _ _ H Hk`.
+- **`iDestruct (big_sepL_singleton with "H") as "#Hm"` leaves `P ∗ emp`**,
+  not `P`. Applying a wand to it then fails with a baffling
+  `iSpecialize: cannot instantiate (P -∗ Q) with (P ∗ emp) ∗ emp`. Destruct
+  the conjunction instead: `iDestruct "H" as "[#Hm _]"`.
+
+## A `True` goal in the proof mode: `done`, not `apply bi.True_intro`
+
+`apply` does not see through `envs_entails`, so `apply bi.True_intro` fails
+with a type error naming the whole environment. Iris's `done` closes
+`envs_entails Δ True` directly, including when the `True` is under a `match`
+that has just reduced to it (which is how `leader_wit`'s non-leader case
+arrives).

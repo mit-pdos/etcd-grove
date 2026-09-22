@@ -146,7 +146,7 @@ Implicit Type s : nstate.t.
                               <| nstate.vote := m.(raftpb.Message.From') |>)
                    [msg.mk mtype.VoteResp id m.(raftpb.Message.From')
                       m.(raftpb.Message.Term') false])) as Hgrant.
-      { apply step_grant_vote; [done|exact Hto|done|].
+      { apply step_grant_vote; [done|exact Hto|done|done|].
         rewrite /can_vote /become_follower /=. right.
         split; [by rewrite decide_False|done]. }
       iAssert (own_raft_phys cfg r id (become_follower s m.(raftpb.Message.Term') (W64 0)))
