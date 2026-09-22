@@ -1,7 +1,0 @@
-Require Export New.proof.go_etcd_io.raft.v3_proof.election.proof_MajorityConfig__VoteResult.
-
-Module MajorityConfigVoteResultPostulates : MAJORITYCONFIG__VOTERESULT_POSTULATES.
-End MajorityConfigVoteResultPostulates.
-
-Module MajorityConfigVoteResult :=
-  MajorityConfigVoteResultProof MajorityConfigVoteResultPostulates.

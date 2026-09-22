@@ -20,9 +20,9 @@ substitutes for the other.**
 
 **Step 1 — `make` is the ground truth that the proofs check.** `make ci`
 builds `new/should_build.vo`, which reaches
-`v3_proof/election.v` (`should_build.v:51`) and `v3.v`. The generic
+`election_proof/election.v` (`should_build.v:51`) and `v3.v`. The generic
 `%.vo: %.v` rule means a narrower target works too —
-`make new/proof/go_etcd_io/raft/v3_proof/election.vo` — though note that
+`make new/proof/go_etcd_io/raft/election_proof/election.vo` — though note that
 nothing in this tree has `.vo` dependencies, so any `.vo` target starts by
 building all of Perennial (`STATUS.md`, "Checking your work"). There is no
 single "top-level etcd proof" file today; `should_build.v` and `election.v`
@@ -53,7 +53,7 @@ item it looks like.
 ## What was independently reproduced
 
 A comment-stripped scan of
-`new/proof/go_etcd_io/raft/v3_proof/election/` (330 files), written without
+`new/proof/go_etcd_io/raft/election_proof/` (330 files), written without
 reference to the tool, agrees with it exactly:
 
 | | count |
@@ -66,7 +66,7 @@ reference to the tool, agrees with it exactly:
 
 Three further things check out, none of which the tool itself checks:
 
-- **All 330 files are reachable** from `v3_proof/election.v` through the
+- **All 330 files are reachable** from `election_proof/election.v` through the
   `Require` graph, and `new/should_build.v:51` requires `election.v`. So
   nothing counted is orphaned from the build. (`election.v`'s own header
   says this is load-bearing and manual — see gap **G6**.)
@@ -74,7 +74,7 @@ Three further things check out, none of which the tool itself checks:
   `new/proof/go_etcd_io/raft/`: no `Unset Guard/Positivity/Universe
   Checking`, no `bypass_check`, no admitted `Program` obligations, no
   `Local Axiom`.
-- `etc/check-module-discipline.py --scope election` exits 0. Its five
+- `etc/check-module-discipline.py --scope election_proof` exits 0. Its five
   findings are three naming notes and two `F6-unknown-function` warnings on
   `raftpb.Entry.Size` and `big.Int.Int64`, which are exactly two of the ten
   axioms — expected, not a discrepancy.
@@ -93,6 +93,35 @@ So the strongest honest statement about it remains: **"the source says 169
 sweep passing on 2026-09-21."** That is a fact about how the branch was
 audited, not a defect in `tcb-report.py` — which is the whole of what the
 two-step process clarified.
+
+## What the build was not checking
+
+Item 1 of the plan landed on 2026-09-22 and reported, on its first run,
+that **`v3_proof/readonly.v` is reached by nothing**: 955 lines, 5
+`Admitted`, 7 `Axiom`, requiring `v3_proof/protocol.v` and required by no
+file in the repository. `make ci` has therefore never compiled it. Checked
+independently of the tool: no `Require` naming `readonly` exists anywhere
+under the repository root.
+
+Two things worth taking from it. The first is that this is exactly the
+failure G6 described, found the moment anything looked for it, in a
+development whose `STATUS.md` opened by saying the directory was built. The
+second is a calibration: the file had been in `STATUS.md`'s next steps for
+days -- item 8 proposed bringing its eleven loose triples into the module
+discipline -- while it was not being compiled at all.
+
+**A caveat on the fallback graph, which the finding survives.** Without
+`.rocqdeps.d` the closure is computed from `Require` lines by
+`rocqscan.requires`, and that function models `From X Require a b` as string
+concatenation where Rocq treats `X` as a *prefix filter* on a suffix match.
+It also misses a `Require` whose `Import` lands on the next line. Either can
+*miss* an edge and so report a false orphan; `should_build.v` has two
+requires it cannot resolve for exactly these reasons
+(`New.proof.Import`, `New.proof.leasing_proof.protocol`). `readonly.v` is
+not one of those cases, since nothing references it under any spelling.
+Fixing the parser is worth doing; running `make` once so that `.rocqdeps.d`
+exists is worth more, since deferring to the build's own graph is the whole
+point of item 1.
 
 ## The gaps
 
@@ -142,9 +171,9 @@ assumptions, results and definitions whose path is under the scope
 directory. Anything the scoped files *depend on* from outside simply
 vanishes from the output, with no boundary line saying so.
 
-Concretely: every file in `election/` requires
-`v3_proof/election_protocol.v` (through `defs.v`), which carries **12
-`Axiom`s**. `--scope election` prints `assumed 11`. The true figure for the
+Concretely: every file in `election_proof/` requires
+`election_proof/protocol.v` (through `defs.v`), which carries **12
+`Axiom`s**. `--scope election_proof` prints `assumed 11`. The true figure for the
 election development is 23. The commit message does say the protocol axioms
 are "outside this pass by design" — the tool's output does not, and the
 number is what gets quoted.
@@ -152,13 +181,13 @@ number is what gets quoted.
 The same filter also silently mixes out-of-scope project definitions into
 the "494 distinct names resolve to nothing in this tree" bucket, which the
 tool labels *"binders, and Perennial/stdpp/Rocq constants"*. Under
-`--scope election` that bucket also swallows `nstate.t`, `step`,
+`--scope election_proof` that bucket also swallows `nstate.t`, `step`,
 `own_raft_ghost` and `is_message`.
 
 ### G3. The one exported spec is vacuous under the trivial ghost model, and nothing says so
 
 The result this development is for is `wp_raft__Step` — a Hoare triple on a
-Go function — and `--scope election --view surface` correctly reports
+Go function — and `--scope election_proof --view surface` correctly reports
 `wp_raft__Step_body` as the sole externally-facing statement.
 `raft_election_safety` is an internal sanity check on the model, not the
 payoff ([decisions.md](decisions.md), 2026-09-21), so its absence from that
@@ -167,7 +196,7 @@ gap.
 
 The real problem is that the exported triple cannot yet mean anything.
 `own_raft_ghost`, `is_message` and `is_leader` are `Axiom`s, and
-**`election_protocol.v` contains no allocation or initialisation axiom
+**`election_proof/protocol.v` contains no allocation or initialisation axiom
 producing `own_raft_ghost` from anything.** Instantiating
 
     own_raft_ghost γ id s := False        is_leader γ id t := False
@@ -258,10 +287,13 @@ Ordered by importance, matching the list under "The gaps" above. Items 1-4
 are pure additions to the existing scanner and need no build; item 5
 consumes an artefact the build already almost produces.
 
+**Item 1 landed 2026-09-22**, and found a real defect on its first run --
+see "What the build was not checking" above. Items 2-4 are unclaimed.
+
 ### Slice 1 — one afternoon, no Rocq required
 
-1. **Scan what `make` builds, not what a directory holds (G6 + G2).** The
-   one feature both of those gaps want: **the set of files `tcb-report.py`
+1. ~~**Scan what `make` builds, not what a directory holds (G6 + G2).**~~
+   **Landed 2026-09-22.** The one feature both of those gaps want: **the set of files `tcb-report.py`
    scans should be the set `make` compiles.** Make the scanned set a
    dependency closure rather than a glob, rooted at `new/should_build.v` by
    default and at the scope's aggregator (`election.v`) under `--scope`.
@@ -273,7 +305,7 @@ consumes an artefact the build already almost produces.
      enough on its own; silently dropping an orphan looks like the numbers
      improving (G6);
    - a scoped report automatically includes what the scope depends on, so
-     `--scope election` reaches `election_protocol.v` and prints `assumed
+     `--scope election_proof` reaches `election_proof/protocol.v` and prints `assumed
      23` instead of `11`. Keep a presentation line for the boundary — *"of
      the 23, 12 are from outside the scope directory"* — since the reader
      still wants to know which side of it a thing is on (G2);
@@ -321,7 +353,8 @@ consumes an artefact the build already almost produces.
 
 ### Slice 2 — reconcile with what the build knows
 
-5. **Diff against `Print Assumptions` (G7).** Add `v3_proof/assumptions.v`
+5. **Diff against `Print Assumptions` (G7).** Add
+   `election_proof/assumptions.v`
    containing nothing but `Print Assumptions` for each **top-level function
    spec** — today `wp_raft__Step`, and `wp_Node__Propose` from `v3.v` —
    reached from `should_build.v`, so step 1 emits it. Those triples are the
@@ -368,6 +401,6 @@ For step 2, quote **the full-tree run**
 `worktree-election-close-admits` says *43 assumed — 8 `Admitted`, 35
 `Axiom` — 80 definitions, 953 lines, 6.2% of the development*, and say in the
 same breath that the numbers are syntactic and that the exported triple
-`wp_raft__Step` rests on an un-constructed ghost state. A `--scope election`
+`wp_raft__Step` rests on an un-constructed ghost state. A `--scope election_proof`
 figure quoted on its own is misleading in three independent ways (G2, G3,
 G4).

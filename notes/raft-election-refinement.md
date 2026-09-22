@@ -1,6 +1,6 @@
 # Leader-election refinement
 
-What `new/proof/go_etcd_io/raft/v3_proof/election_protocol.v` and
+What `new/proof/go_etcd_io/raft/election_proof/protocol.v` and
 `.../election/` are, what they prove, what they assume, and what is left.
 
 Added 2026-09-12. Restructured 2026-09-14 into one file per Go function, and
@@ -11,7 +11,7 @@ collections, no triple outside one. See
 `new/should_build.v`.
 
 **Where a spec lives.** Exactly one place per function:
-`v3_proof/election/spec_<fn>.v`, holding one `Parameter`. If you find
+`election_proof/spec_<fn>.v`, holding one `Parameter`. If you find
 yourself about to write a second Hoare triple for a function that already has
 one, don't — see the `Step` note in [decisions.md](decisions.md), and the
 duplicate-spec section of
@@ -23,7 +23,7 @@ expression out of every triple in the raft proof, reports which Go function
 it specifies, and errors on a triple outside the spec/proof shape, two
 triples for one function, a malformed spec file, an incomplete collection, a
 name the Goose output does not have, or a proof helper left at the top level
-instead of in `proof_<fn>_helpers/`. `--scope election` is clean as of
+instead of in `proof_<fn>_helpers/`. `--scope election_proof` is clean as of
 2026-09-18; with no `--scope`, i.e. over the whole raft proof, it still
 reports `readonly.v` (8) and `protocol.v`
 (3).
@@ -53,7 +53,7 @@ Assumed throughout:
 - no proposals (no `MsgProp` is stepped),
 - no read-only requests (no `MsgReadIndex`),
 - no reconfiguration, no learners — the voter set `cfg` is a fixed
-  parameter (a section variable in `election_protocol.v`; an explicit binder
+  parameter (a section variable in `election_proof/protocol.v`; an explicit binder
   on every `wp_*_body` since 2026-09-14),
 - node ids are nonzero, and a `MsgVote`'s `Context` is readable and is not
   the `campaignTransfer` marker (leader transfer is out of scope).
@@ -63,7 +63,7 @@ that check can only make a node **decline** to vote. Declining is always
 protocol-legal, so **the log does not appear in the protocol model at all**.
 A node's protocol state is `(term, vote, lead, role, votes)`.
 
-## `election_protocol.v` — the specification side
+## `election_proof/protocol.v` — the specification side
 
 - `nstate.t` — abstract node state; `msg.t` / `mtype.t` — abstract messages
   (`Vote`, `VoteResp`, `App`, `Heartbeat`).
@@ -91,7 +91,7 @@ A node's protocol state is `(term, vote, lead, role, votes)`.
 Constructing these is the standard "authoritative map of node states + set of
 sent messages, tied by an invariant" development; it is **not** done here.
 
-## `election/` — the implementation side
+## `election_proof/` — the implementation side
 
 `own_raft_phys r id s` is full ownership of the `raft` struct at `r` in a
 state refining `s`. **There is no `γ`: it says nothing about ghost state.**

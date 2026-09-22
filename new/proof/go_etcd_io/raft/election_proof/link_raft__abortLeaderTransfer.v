@@ -1,0 +1,6 @@
+Require Export New.proof.go_etcd_io.raft.election_proof.proof_raft__abortLeaderTransfer.
+
+Module RaftAbortLeaderTransferPostulates : RAFT__ABORTLEADERTRANSFER_POSTULATES.
+End RaftAbortLeaderTransferPostulates.
+
+Module RaftAbortLeaderTransfer := RaftAbortLeaderTransferProof RaftAbortLeaderTransferPostulates.

@@ -1,4 +1,0 @@
-Require Export New.proof.go_etcd_io.raft.v3_proof.election.spec_raft__abortLeaderTransfer.
-
-Module Type RAFT__ABORTLEADERTRANSFER_POSTULATES.
-End RAFT__ABORTLEADERTRANSFER_POSTULATES.

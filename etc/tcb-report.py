@@ -43,7 +43,7 @@ And what does *not* count, which is the other half of the point:
 Usage::
 
     etc/tcb-report.py                        # summary + what is incomplete
-    etc/tcb-report.py --scope election       # one directory of it
+    etc/tcb-report.py --scope election_proof       # one directory of it
     etc/tcb-report.py --view files           # every file's status
     etc/tcb-report.py --view assumed         # every axiom and admit
     etc/tcb-report.py --view surface         # the exported statements
@@ -169,7 +169,9 @@ def load(proof_root, root):
 
 
 ROCQPROJECT = "_RocqProject"
-LOADPATH_RE = re.compile(r"^\s*-[QR]\s+(?P<dir>\S+)\s+(?P<logical>\S+)\s*$", re.M)
+LOADPATH_RE = re.compile(
+    r"^\s*-[QR]\s+(?P<dir>\S+)\s+(?P<logical>\S+)\s*$", re.MULTILINE
+)
 
 
 def logical_roots(root):
@@ -211,8 +213,8 @@ def resolve_logical(name, roots):
 def require_graph(units, roots=None):
     """path -> set of paths it requires, resolved by longest path suffix.
 
-    A logical path (``New.proof.go_etcd_io.raft.v3_proof.election.defs``)
-    and a file path (``new/proof/go_etcd_io/raft/v3_proof/election/defs.v``)
+    A logical path (``New.proof.go_etcd_io.raft.election_proof.defs``)
+    and a file path (``new/proof/go_etcd_io/raft/election_proof/defs.v``)
     agree on their tail and disagree on their head, since the logical root is
     declared in _RocqProject rather than in the source.  Matching on the
     longest common tail needs neither.  It also cannot tell two logical
@@ -365,12 +367,17 @@ def bare_unit(path, root):
 def scope_seeds(scope_dir, units):
     """Where a cone-scoped report starts.
 
-    The convention this development uses is an aggregator beside the
-    directory -- `election/` is reached through `election.v` -- and that
-    file is the honest root, since it is what `should_build.v` requires and
-    therefore what defines the collection's extent.  With no such file,
-    every unit under the directory seeds the cone, which is the same answer
-    the old path filter gave plus the dependencies.
+    An aggregator *beside* the directory is the honest root when there is
+    one -- that is the `v3.v` / `v3_proof/` shape, and such a file is what
+    `should_build.v` requires, so it defines the extent of what is built.
+
+    Otherwise every unit under the directory seeds the cone.  That is the
+    case for a self-contained directory that keeps its own aggregator
+    inside it, such as `election_proof/` with `election_proof/election.v`,
+    and it gives the same answer: a cone seeded from all of a directory is
+    the old path filter plus everything those files depend on.  An unused
+    file *inside* the directory still seeds the cone, so it is the
+    build-root orphan check, not the scope, that catches one.
     """
     aggregator = scope_dir.rstrip(os.sep) + ".v"
     if os.path.isfile(aggregator):
@@ -707,9 +714,9 @@ def build_report(units, edges, scope_dir, root, marker, selection=None):
             # scope's root, which is what makes a scoped assumption count
             # wherever it lives.
             return path in selected
-        # Path-filter mode.  Compare path components, not characters:
-        # `election` is not a prefix of `election_protocol.v` in any sense
-        # that matters.
+        # Path-filter mode.  Compare path components, not characters, so
+        # that a scope of `.../election_proof` does not swallow a sibling
+        # whose name merely starts the same way.
         return path == scope_abs or path.startswith(scope_abs + os.sep)
 
     def outside_scope_dir(rel):
@@ -747,7 +754,7 @@ def build_report(units, edges, scope_dir, root, marker, selection=None):
         "orphans": sel.get("orphans", []),
         # Of the assumptions in this report, how many live outside the scope
         # directory -- reached because the scope depends on them.  The count
-        # G2 was about: `--scope election` used to print neither them nor
+        # G2 was about: `--scope election_proof` used to print neither them nor
         # the fact that it had dropped them.
         "assumed_outside_scope_dir": sum(
             1 for r in scoped_assumed if outside_scope_dir(r["file"])
@@ -870,7 +877,10 @@ def print_provenance(rep, out):
     evidence that a branch was proved.
     """
     rev = rep.get("revision") or "revision unknown"
-    print(f"  source text at {rev} -- assumes `make` is green; proofs are not checked here", file=out)
+    print(
+        f"  source text at {rev} -- assumes `make` is green; proofs are not checked here",
+        file=out,
+    )
     build = rep.get("build_state")
     if build:
         print(f"  {build}", file=out)
@@ -883,8 +893,7 @@ def print_provenance(rep, out):
         )
     else:
         print(
-            "  --scope-dir: files under the path, NOT what the build reaches"
-            " from it",
+            "  --scope-dir: files under the path, NOT what the build reaches from it",
             file=out,
         )
     n = len(rep.get("orphans") or [])
@@ -1027,8 +1036,8 @@ def print_summary(rep, out):
     if orphans:
         print(file=out)
         print(
-            "Outside the build ({} files) -- nothing requires these, so `make`"
-            " never".format(len(orphans)),
+            f"Outside the build ({len(orphans)} files) -- nothing requires these, so `make`"
+            " never",
             file=out,
         )
         print(

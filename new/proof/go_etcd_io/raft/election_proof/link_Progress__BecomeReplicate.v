@@ -1,0 +1,8 @@
+Require Export New.proof.go_etcd_io.raft.election_proof.proof_Progress__BecomeReplicate.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_Progress__ResetState.
+
+Module ProgressBecomeReplicatePostulates : PROGRESS__BECOMEREPLICATE_POSTULATES.
+  Include ProgressResetState.
+End ProgressBecomeReplicatePostulates.
+
+Module ProgressBecomeReplicate := ProgressBecomeReplicateProof ProgressBecomeReplicatePostulates.

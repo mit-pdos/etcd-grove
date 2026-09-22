@@ -1,0 +1,8 @@
+Require Export New.proof.go_etcd_io.raft.election_proof.proof_raft__hasUnappliedConfChanges.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_raftLog__scan.
+
+Module RaftHasUnappliedConfChangesPostulates : RAFT__HASUNAPPLIEDCONFCHANGES_POSTULATES.
+  Include RaftLogScan.
+End RaftHasUnappliedConfChangesPostulates.
+
+Module RaftHasUnappliedConfChanges := RaftHasUnappliedConfChangesProof RaftHasUnappliedConfChangesPostulates.

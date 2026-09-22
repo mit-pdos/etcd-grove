@@ -74,7 +74,7 @@ It sometimes fails with "Cannot find witness" on goals as simple as
 `W32 5 = W32 0 → False`, in contexts where the same shape works elsewhere.
 Use instead:
 `intros Heq; apply (f_equal uint.Z) in Heq; vm_compute in Heq; discriminate.`
-(`w32_ne` in `new/proof/go_etcd_io/raft/v3_proof/election.v`.)
+(`w32_ne` in `new/proof/go_etcd_io/raft/election_proof/election.v`.)
 
 ## `wp_slice_literal` leaves the slice length unreduced
 
@@ -146,11 +146,11 @@ for a lemma whose type is *closed* (the `wp_<fn>_body` shape), forcing W's
 variables in would add binders its signature does not have, so the module
 ascription then fails with `Signature components for field ... do not match`.
 Restore the prelude default with `Set Default Proof Using "Type".` after the
-section — `new/proof/go_etcd_io/raft/v3_proof/election/proof_raft__Step.v`
+section — `new/proof/go_etcd_io/raft/election_proof/proof_raft__Step.v`
 does exactly this.
 ## The ambient binders of a `wp_<fn>_body`
 
-This is the single write-up of how `v3_proof/election/`'s closed-`_body` shape
+This is the single write-up of how `election_proof/`'s closed-`_body` shape
 handles the binders every spec opens with (`ext ffi ffi_interp0 Σ hG
 ffi_semantics0 sem package_sem`). The files themselves do not repeat it.
 
@@ -390,7 +390,7 @@ expected to have type "loc"` — which reads like a typo and is not.
 current environment" from `proof_raft__hup.v`, because the require chain
 `spec_raft__hup.v` → `inv_raft_phys.v` never reaches `step_lemmas.v`. The
 `step` **constructors** (`step_refl`, `step_campaign`, …) are always
-available, since they come in with `election_protocol.v` via `defs.v`; the
+available, since they come in with `election_proof/protocol.v` via `defs.v`; the
 derived composition lemmas in `step_lemmas.v` are not. Either use the
 constructor directly or check the chain first. (Found proving `hup`,
 2026-09-16.)
@@ -721,7 +721,7 @@ wp_func_call. wp_call.   (* wp_start's wp_func_call already ran, before the rewr
 
 There are siblings for `cap`, `clear`, `copy`, `delete`, `make1/2/3`. Worked
 example: `wp_ProgressMap_len` in
-`new/proof/go_etcd_io/raft/v3_proof/election/inv_tracker.v`.
+`new/proof/go_etcd_io/raft/election_proof/inv_tracker.v`.
 
 **`len` of an *array* type has no instance at all** — neither literal nor
 underlying-based; `new/golang/defn/array.v` declares none, and

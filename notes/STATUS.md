@@ -21,8 +21,31 @@ both on branch `goose`, wired up in `new/etc/update-goose-new.py` and
 
 ### Raft proof
 
-`new/proof/go_etcd_io/raft/` — reached from `new/should_build.v`, so `make ci`
-builds it.
+`new/proof/go_etcd_io/raft/` holds **two developments, side by side** since
+2026-09-22, when the election work moved out of `v3_proof/` into a sibling
+directory rather than staying nested inside the older proof:
+
+- **`election_proof/`** — the leader-election refinement, all of it: the
+  aggregator `election.v`, the model `protocol.v`, and one collection per Go
+  function, flat. Reached from `new/should_build.v:51`, so `make ci` builds
+  it. This is the current work.
+- **`v3_proof/`** — `base.v`, plus `protocol.v` and `readonly.v`, which are
+  the earlier read-index/heartbeat work. `v3.v` reaches `base.v` and
+  `protocol.v`; `election_proof/` reaches `base.v` and nothing else here.
+
+`base.v` stayed in `v3_proof/` because both developments require it: it is
+package-init boilerplate, not old proof.
+
+**`v3_proof/readonly.v` is built by nothing.** Found 2026-09-22, by
+`etc/tcb-report.py` after it was taught to report files outside the build
+closure. It is 955 lines carrying 5 `Admitted` and 7 `Axiom`, it requires
+`v3_proof/protocol.v`, and **no `Require` anywhere in the repository names
+it** — confirmed by grep, independently of the tool. So `make ci` has never
+compiled it and its `Qed`s have never been checked. It is old work and not
+on the election path, so this is not urgent; what matters is that nothing
+was telling anyone, and that the line this section used to open with ("so
+`make ci` builds it") was false. Either require it from `should_build.v` and
+find out whether it still compiles, or retire it deliberately.
 
 - `v3_proof/base.v` (62 lines) — `IsPkgInit` instances for the raft package and
   its dependencies (raftpb, quorum, tracker, confchange, strconv, strings,
@@ -38,12 +61,12 @@ builds it.
   `node.Propose`. The `Section axioms` here is the current trust boundary.
 - `v3.v` (31 lines) — the public surface: `is_Node` and `wp_Node__Propose`,
   proved from `protocol.v`.
-- `v3_proof/election_protocol.v` — **leader-election refinement**, protocol
+- `election_proof/protocol.v` — **leader-election refinement**, protocol
   side, added 2026-09-12. The state machine, the ghost state
   (`own_raft_ghost`, `is_message`) and its refinement obligation. Since
   2026-09-15 `nstate.t` carries an `outbox` field and `step` has **no `sent`
   output** — a step's sends are the growth of `s'.(nstate.outbox)`.
-- `v3_proof/election/` (192 files) and `v3_proof/election.v` — the
+- `election_proof/` (192 files) and `election_proof/election.v` — the
   implementation side. **One file per Go function**: each has `spec_<fn>.v`
   (a `Module Type` with exactly one `Parameter` — the single place its Hoare
   triple is written), `postulates_<fn>.v`, `proof_<fn>.v` (a functor ascribed
@@ -68,7 +91,7 @@ builds it.
   malformed spec file, an incomplete collection, or a name absent from
   `new/code/`. Exits non-zero, so it can gate CI.
 
-      etc/check-module-discipline.py --scope election   # clean
+      etc/check-module-discipline.py --scope election_proof   # clean
       etc/check-module-discipline.py --summary
       etc/check-module-discipline.py --selftest        # the parsing contract
 
@@ -100,7 +123,7 @@ context for the raft work, not the current focus.
 
 Branch `worktree-election-close-admits`. Goal: **every Hoare triple on the
 election path `Qed`**, so that the only assumptions left in the raft proof
-are the protocol layer — the 12 ghost-state axioms in `election_protocol.v`
+are the protocol layer — the 12 ghost-state axioms in `election_proof/protocol.v`
 (`own_raft_ghost`, `own_raft_ghost_step`, `is_leader_unique`, …) — plus the
 declared trust boundary (`Logger`, `own_Storage`, `slices.Sort`, the RNG).
 The ghost layer is deliberately **not** in this pass.
@@ -127,11 +150,11 @@ concurrent items edit the same shared file.
 | 16 | `wp_Inflights__Add` — Qed, with a new `Inflights__grow` collection (spec over the buffer pieces, premise `len(buf) < size`: with `size = 0` the `else`-arm cap does not apply and `grow` would allocate one slot past the ring). Three reachable leaves, not four: the wrap-and-grow case is dead (`len(buffer) = size` forces `next < len`) | 4 | **done** 2026-09-21 (`-vok` RC=0, independent re-run; no shared-file change) |
 | 17 | `wp_raft__maybeSendSnapshot` — Qed against its current spec, with new leaves `raftLog__snapshot`, `IsEmptySnap`, `Progress__BecomeSnapshot`; `is_initialized` gained `is_new_error errSnapUnavail` (the dynamic type is a pointer type), without which `err == ErrSnapshotTemporarilyUnavailable` cannot step. Its spec is restated on `own_raft_notrk` by item 18 | 4 | **done** 2026-09-21 (`-vok` RC=0, independent re-run; `base.v` dependents re-checked) |
 | 14 | Framework `theory/map.v`: `wp_map_for_range` returns the map; `wp_map_nil_for_range` and `pure_wp_map_nil_len` moved above the `K V` context so `tc_solve` can fire them; the four copied `_helpers/map_for_range_keep.v` deleted | between 2 and 3 | **done** 2026-09-20 (`map.vok` RC=0; ~90-file `.vos` rebuild RC=0; `IDs`, `Visit`, `TallyVotes`, `MajorityConfig__VoteResult`, `campaign`, `inv_tracker.v` re-checked RC=0) |
-| — | Ghost layer of `election_protocol.v` (12 axioms) | — | out of scope for this pass |
+| — | Ghost layer of `election_proof/protocol.v` (12 axioms) | — | out of scope for this pass |
 | 13 | Final: `-vok` sweep of every proof-bearing file, `tcb-report`, `check-module-discipline`, notes | 6 | run 2026-09-21; see the summary below the table |
 
 **Outcome (2026-09-21).** Every Hoare triple on the election path is `Qed`
-except one deliberate, marked admission. `etc/tcb-report.py --scope election`
+except one deliberate, marked admission. `etc/tcb-report.py --scope election_proof`
 now counts **1 `Admitted` (trusted) and 10 `Axiom`s** against 169 Qed lemmas
 and 78 discharged signatures, and every axiom is on the declared trust
 boundary: `is_Logger`/`is_Logger_pers`/`wp_Logger__logf` (client `Logger`),
@@ -142,7 +165,7 @@ over the abstract `own_big_Int` (the RNG and `math/big`), `wp_slices_Sort`
 the one axiom a reader may want to argue about; it is a library in spirit
 and core raft in location). The single admission is `wp_raftLog__slice_at`'s
 "the log fits in memory" (Trust base). Outside this scope the protocol
-layer's 12 axioms in `election_protocol.v` remain, by design of this pass.
+layer's 12 axioms in `election_proof/protocol.v` remain, by design of this pass.
 The raft development as a whole also still carries the `readonly.v` and
 `protocol.v` assumptions listed under "Next steps", which are not on the
 election path.
@@ -291,7 +314,7 @@ be checked. See [gotchas.md](gotchas.md).
 **On a machine with no Rocq**, budget ~1.5h before you can check anything:
 `opam switch create perennial 5.2.1`, `opam pin add -n .`,
 `opam install --deps-only ./perennial.opam` (→ Rocq 9.4+alpha), then
-`make -j8 TIMED=false new/proof/go_etcd_io/raft/v3_proof/election.required_vos`
+`make -j8 TIMED=false new/proof/go_etcd_io/raft/election_proof/election.required_vos`
 for the `vos` closure.
 
 ## Trust base
@@ -404,7 +427,7 @@ over-counts, because several doc comments quote a probe lemma ending in
 2026-09-18 the counts are printed:
 
     etc/tcb-report.py                    # summary, and which files are incomplete
-    etc/tcb-report.py --scope election
+    etc/tcb-report.py --scope election_proof
     etc/tcb-report.py --view assumed     # every axiom and admit, classified
     etc/tcb-report.py --view surface     # what the exported statements rest on
 
@@ -497,7 +520,7 @@ Unclaimed; pick one and say so in the journal.
    so the trivial model satisfies all of it and **the exported
    `wp_raft__Step` is vacuous** — as is the election-safety corollary, which
    therefore cannot serve as the model's sanity check either. This is 12 of
-   the 44 axioms, the `Section ghost` block in `election_protocol.v`.
+   the 44 axioms, the `Section ghost` block in `election_proof/protocol.v`.
 5. *(Decided 2026-09-21, see [decisions.md](decisions.md).)* The result is
    **verified specs for the top-level raft functions** — a Hoare triple on
    each function an etcd caller calls. `raft_election_safety` is an internal

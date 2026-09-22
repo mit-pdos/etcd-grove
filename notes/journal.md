@@ -2694,3 +2694,57 @@ that it is a guess at the build graph rather than the build's own answer.
 
 Slice 1 is four items now (was five): the merged one, then G3, G4, G1.
 Later items renumbered 5 and 6; every cross-reference in the file checked.
+
+---
+
+## 2026-09-22 — tcb-report scans the build graph; readonly.v is unbuilt; the election proof moves out
+
+Claude Opus 5 / 5.5 (background job), branch `worktree-tcb-report-audit`.
+Written after the branch was **rebased onto `main`** once
+`worktree-election-close-admits` had landed there; the numbers below are for
+that tree.
+
+**Slice 1 item 1 of [tcb-accounting.md](tcb-accounting.md) is
+implemented.** `etc/tcb-report.py` no longer decides what to look at by
+globbing a directory: the scanned set is a dependency closure, rooted at
+`new/should_build.v`, or at a scope's aggregator under `--scope`, so it is
+the set `make` compiles. It reads `.rocqdeps.d` when present and says which
+graph it used. Logical paths now resolve through `_RocqProject` — the old
+longest-suffix match could not tell `New.code…raft.v3` from
+`New.proof…raft.v3` and invented an edge from `base.v` to `v3.v`.
+
+**It immediately found that `v3_proof/readonly.v` is built by nothing** —
+955 lines, 5 `Admitted`, 7 `Axiom`, required by no file under any spelling
+(confirmed by grep). `make ci` has never compiled it. `STATUS.md` next step
+#8 had been proposing work on its loose triples for days. This is the
+failure G6 was written about, found the first time anything looked.
+
+**On `main`'s tree, `--scope election_proof` now reports assumed 23** — 1
+`Admitted`, 22 `Axiom` — across 333 files. That is exactly the honest figure
+the 2026-09-21 audit computed by hand, when the path-filtered `--scope
+election` printed 11 by dropping `election_protocol.v`'s twelve. The whole
+tree: 335 of 336 files in the build, `readonly.v` the one outside it.
+
+**The election proof moved to `raft/election_proof/`**, a sibling of
+`v3_proof/`, flattened, aggregator inside, at Upamanyu's direction. Layout,
+reasons and costs are in [decisions.md](decisions.md). 332 files, 709
+reference lines.
+
+**How the rebase handled the move, which is the part worth knowing.** The
+move was first made on the pre-merge `main` (184 election files). By the time
+of the rebase `main` had 330 — 140 new, and a second helper directory,
+`proof_MajorityConfig__VoteResult_helpers/`. Replaying the original rename
+commit would have moved the old 184 and stranded the new 140 with dangling
+`Require` paths. So that one commit was **regenerated** instead: the other
+nine commits were cherry-picked onto `main` (conflicts only in append-only
+files and one "Last updated" date), and the move and rewrite scripts were
+re-run on the real tree. The move script now takes every `.v` file and every
+subdirectory, which is what caught the second helper directory the original
+hard-coded list would have missed. `journal.md` is excluded from the rewrite
+from the start, since its dated entries record the paths as they were.
+
+Static verification: 703 in-tree require targets all resolve except the two
+pre-existing `should_build.v` parse gaps; nothing outside this file names
+the old paths; both self-tests pass; `check-module-discipline --scope
+election_proof` exits 0; both ruff jobs clean. **Build owed on this tree**
+— the build recorded in the next entry was of the pre-rebase tree.

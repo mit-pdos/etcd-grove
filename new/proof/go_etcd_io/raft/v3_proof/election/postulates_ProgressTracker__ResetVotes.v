@@ -1,4 +1,0 @@
-Require Export New.proof.go_etcd_io.raft.v3_proof.election.spec_ProgressTracker__ResetVotes.
-
-Module Type PROGRESSTRACKER__RESETVOTES_POSTULATES.
-End PROGRESSTRACKER__RESETVOTES_POSTULATES.

@@ -1,4 +1,0 @@
-Require Export New.proof.go_etcd_io.raft.v3_proof.election.spec_unstable__maybeLastIndex.
-
-Module Type UNSTABLE__MAYBELASTINDEX_POSTULATES.
-End UNSTABLE__MAYBELASTINDEX_POSTULATES.

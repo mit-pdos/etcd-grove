@@ -1,0 +1,6 @@
+Require Export New.proof.go_etcd_io.raft.election_proof.proof_ProgressTracker__ResetVotes.
+
+Module ProgressTrackerResetVotesPostulates : PROGRESSTRACKER__RESETVOTES_POSTULATES.
+End ProgressTrackerResetVotesPostulates.
+
+Module ProgressTrackerResetVotes := ProgressTrackerResetVotesProof ProgressTrackerResetVotesPostulates.

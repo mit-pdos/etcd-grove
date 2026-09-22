@@ -129,7 +129,7 @@ admitted lemma is itself trusted and the definitions in its statement are too.
   which would fix both approximations listed below. Killed by availability —
   `.glob` is gitignored, is not produced by `vos`/`vok`, and exists only for
   files built to `.vo`. At the time of writing only `election.v` and
-  `election_protocol.v` had one; `base.v`, `protocol.v`, `readonly.v` and
+  `election_proof/protocol.v` had one; `base.v`, `protocol.v`, `readonly.v` and
   `v3.v` did not. A trust tool that works on a third of the trust base is not
   a trust tool. Worth revisiting if the build ever guarantees `.vo`.
 - `Print Assumptions` is the only ground truth and would catch assumptions
@@ -168,11 +168,11 @@ lemmas. Nothing stopped a second spec for the same Go function being written
 elsewhere, and the only thing distinguishing a trusted assumption from a
 finished proof was which `Section` a declaration happened to sit in. That is
 not hypothetical: `raft_names` is declared twice (`protocol.v:30` vs
-`readonly.v:51`), `is_quorum` twice (`election_protocol.v:84` vs
+`readonly.v:51`), `is_quorum` twice (`election_proof/protocol.v:84` vs
 `readonly.v:114`), and `readonly.v` axiomatizes `own_raft` as a second,
 incompatible ownership story for the struct `own_raft_phys` already covers.
 
-**Decision:** four files per Go function, under `v3_proof/election/`, modeled
+**Decision:** four files per Go function, under `election_proof/`, modeled
 on `mit-pdos/xv6iris`:
 
 | file | holds |
@@ -895,7 +895,7 @@ reader can judge how much is missing.
 where a sentence ends, what it declares and inside which modules, how a proof
 ended, and which Go function a triple's program expression names — with its
 own `--selftest`. It was lifted out of `check-module-discipline.py`, whose
-output on all of `--scope election`, the whole raft tree and `--format json`
+output on all of `--scope election_proof`, the whole raft tree and `--format json`
 is byte-identical before and after. One parsing contract was the point: it is
 the part most likely to rot, and two copies would rot apart.
 
@@ -1034,11 +1034,11 @@ owns. That is the deliverable, and it is the only thing a client of this
 proof consumes.
 
 **`raft_election_safety` is not the payoff.** It is an internal lemma, and
-calling it the payoff — which `election.v`, `election_protocol.v`,
+calling it the payoff — which `election.v`, `election_proof/protocol.v`,
 `raft-election-refinement.md` and `raft-proof-map.md` all did until today —
 gets the shape of the work backwards. Delete the corollary and no
 verification claim about etcd's code is weaker; delete `wp_raft__Step` and
-there is nothing left. The protocol layer of `election_protocol.v`, the
+there is nothing left. The protocol layer of `election_proof/protocol.v`, the
 refinement obligation and the whole election development exist **in service
 of** the function specs: they are how a triple about `Step` gets to say
 something stronger than "the struct fields changed".
@@ -1069,3 +1069,66 @@ into triviality. That is worth having. It is not the result.
    interface.** `v3.v` covers `Propose`; `protocol.v` axiomatizes `Ready` and
    `Advance`. Those triples, discharged against the translated code, are the
    remaining shape of the answer — not a new theorem above them.
+
+---
+
+## 2026-09-22 — the election proof gets its own directory, beside the old one
+
+`new/proof/go_etcd_io/raft/v3_proof/` had become two unrelated developments
+in one directory: the leader-election refinement (the current work, 332
+files) and the earlier read-index/heartbeat proofs (`protocol.v`,
+`readonly.v`). The election work is now `raft/election_proof/`, a **sibling**
+of `v3_proof/` rather than a subdirectory of it.
+
+**Layout**, flattened — there is no `election_proof/election/`:
+
+    raft/v3.v                     the old public surface
+    raft/v3_proof/base.v          IsPkgInit boilerplate, required by BOTH
+    raft/v3_proof/protocol.v      old: axiomatized node interface
+    raft/v3_proof/readonly.v      old: read-index work (and unbuilt -- STATUS)
+    raft/election_proof/election.v      aggregator + raft_election_safety
+    raft/election_proof/protocol.v      the model (was election_protocol.v)
+    raft/election_proof/{defs,step_lemmas,inv_*}.v
+    raft/election_proof/{spec,postulates,proof,link}_<fn>.v
+    raft/election_proof/proof_<fn>_helpers/   (two today: raft__Step,
+                                               MajorityConfig__VoteResult)
+
+**Why a sibling and not a subdirectory.** The old name said the election
+proof was part of the `v3_proof` development, and it is not: it shares
+`base.v` with it and nothing else. Nesting it also made every logical path
+carry two directory levels that meant nothing
+(`…raft.v3_proof.election.spec_raft__Step`), and it put the old proofs in
+the way of anyone reading the new tree.
+
+**Why the aggregator lives inside.** `election_proof/election.v` rather than
+a sibling `election_proof.v`, so that the whole development is one directory
+and `ls` of `raft/` shows two developments rather than two developments and
+a loose file. The cost is that `etc/tcb-report.py`'s cone cannot find the
+aggregator by the `v3.v`/`v3_proof/` convention and seeds from every file in
+the directory instead; that gives the same cone, and the docstring says so.
+
+**Why `base.v` stayed.** Both developments require it, and it is
+package-init boilerplate rather than proof. Moving it would have made the
+old tree depend on the new one, which is backwards; copying it would have
+left two lists of `IsPkgInit` instances to keep in step.
+
+**The cost, paid once.** 332 files moved and 709 lines of references
+rewritten across `.v`, `.md` and `etc/*.py`, verified statically: every
+`Require` in the raft tree resolves through `_RocqProject`'s load paths to a
+file that exists (703 require targets), nothing outside `journal.md`
+mentions the old paths, both self-tests pass, and
+`etc/check-module-discipline.py --scope election_proof` exits 0. Two
+requires in `should_build.v` do not resolve in `rocqscan`'s model
+(`New.proof.Import`, `New.proof.leasing_proof.protocol`); both are
+pre-existing parse gaps on lines this did not touch.
+
+**Regenerated, not rebased.** The move was first made against a `main` that
+had 184 election files. Branch `worktree-election-close-admits` then landed
+on `main` with 330, 140 of them new, plus a second helper directory. A
+replayed rename would have moved the old 184 and left the new 140 behind
+with `Require` paths pointing at a directory that no longer existed. So on
+rebasing, this commit was **regenerated** by re-running the move and
+reference-rewrite scripts on `main`'s actual tree — the right treatment for
+any mechanical refactor that meets new files. The scripts move every `.v`
+file and every subdirectory rather than a named list, which is what caught
+`proof_MajorityConfig__VoteResult_helpers/`.
