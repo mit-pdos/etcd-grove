@@ -2857,3 +2857,24 @@ one target, 0 matches). In gotchas.md.
 would pass) or retired. A real `make ci` is still the only thing that checks
 universes and the rest of `should_build.v`. Slice 1 items 2-4 remain
 unclaimed.
+
+---
+
+## 2026-09-22 (late) — readonly.v wired into should_build.v, as a stopgap
+
+Claude Opus 5.5 (background job), same branch. At Upamanyu's direction:
+`new/should_build.v:51` now requires `go_etcd_io.raft.v3_proof.readonly`,
+"for now" — the old proofs are due a larger clean-up later, and until then
+it is better checked than silently skipped.
+
+Verified through the build's own graph: after regenerating `.rocqdeps.d`,
+`rocq dep` records the new edge, and `etc/tcb-report.py` reports 198 files
+in the build (was 197) and **no file outside it**. The whole-tree assumed
+count rises from 33 to 45 — `readonly.v`'s 5 `Admitted` and 7 `Axiom`, which
+were always there and are now counted because they are now built. Not
+recompiled: `readonly.v` is unchanged and passed `-vok` an hour earlier, and
+the edit is one `Require` line. A `make ci` would compile `should_build.v`
+itself; nothing here has.
+
+The inserted line moved `election.v`'s entry from line 51 to 52; the three
+notes that cited it were corrected.

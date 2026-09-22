@@ -27,7 +27,7 @@ directory rather than staying nested inside the older proof:
 
 - **`election_proof/`** — the leader-election refinement, all of it: the
   aggregator `election.v`, the model `protocol.v`, and one collection per Go
-  function, flat. Reached from `new/should_build.v:51`, so `make ci` builds
+  function, flat. Reached from `new/should_build.v:52`, so `make ci` builds
   it. This is the current work.
 - **`v3_proof/`** — `base.v`, plus `protocol.v` and `readonly.v`, which are
   the earlier read-index/heartbeat work. `v3.v` reaches `base.v` and
@@ -44,10 +44,11 @@ it** — confirmed by grep, independently of the tool. So `make ci` has never
 compiled it and its `Qed`s have never been checked. It is old work and not
 on the election path, so this is not urgent; what matters is that nothing
 was telling anyone, and that the line this section used to open with ("so
-`make ci` builds it") was false. **It does still check**: `-vok` clean on
-2026-09-22 (3m37s), so requiring it from `should_build.v` would not break
-the build. What is left is the decision — wire it in, or retire it
-deliberately.
+`make ci` builds it") was false. **It does still check** (`-vok` clean on
+2026-09-22, 3m37s), and **since 2026-09-22 `should_build.v:51` requires it**,
+so it is in the build again. That is a stopgap: it is old work, due a proper
+clean-up later, and the point for now is only that it is checked rather
+than silently skipped.
 
 **Build baseline, 2026-09-22, at `21b678d3b`** (Rocq 9.4+alpha, the
 `perennial` opam switch). The `.vos` closure of `election_proof/election.v`

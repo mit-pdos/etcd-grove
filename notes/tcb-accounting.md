@@ -20,7 +20,7 @@ substitutes for the other.**
 
 **Step 1 — `make` is the ground truth that the proofs check.** `make ci`
 builds `new/should_build.vo`, which reaches
-`election_proof/election.v` (`should_build.v:51`) and `v3.v`. The generic
+`election_proof/election.v` (`should_build.v:52`) and `v3.v`. The generic
 `%.vo: %.v` rule means a narrower target works too —
 `make new/proof/go_etcd_io/raft/election_proof/election.vo` — though note that
 nothing in this tree has `.vo` dependencies, so any `.vo` target starts by
@@ -67,7 +67,7 @@ reference to the tool, agrees with it exactly:
 Three further things check out, none of which the tool itself checks:
 
 - **All 330 files are reachable** from `election_proof/election.v` through the
-  `Require` graph, and `new/should_build.v:51` requires `election.v`. So
+  `Require` graph, and `new/should_build.v:52` requires `election.v`. So
   nothing counted is orphaned from the build. (`election.v`'s own header
   says this is load-bearing and manual — see gap **G6**.)
 - **No soundness escape hatches** anywhere under
@@ -102,6 +102,11 @@ that **`v3_proof/readonly.v` is reached by nothing**: 955 lines, 5
 file in the repository. `make ci` has therefore never compiled it. Checked
 independently of the tool: no `Require` naming `readonly` exists anywhere
 under the repository root.
+
+**Resolved the same day**: `readonly.v` still checks at `-vok`, and
+`should_build.v:51` now requires it, so `etc/tcb-report.py` reports no file
+outside the build (198 files, per `.rocqdeps.d`). It is wired in as a
+stopgap pending a clean-up of the old proofs.
 
 Two things worth taking from it. The first is that this is exactly the
 failure G6 described, found the moment anything looked for it, in a

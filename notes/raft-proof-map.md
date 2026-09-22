@@ -32,7 +32,7 @@ new/proof/go_etcd_io/raft/election_proof/link_<fn>.v
         ↓
 new/proof/go_etcd_io/raft/election_proof/election.v    aggregator + election safety
         ↓
-new/should_build.v:51                            what CI builds
+new/should_build.v:50-52                         what CI builds
 ```
 
 ## `v3_proof/base.v`
