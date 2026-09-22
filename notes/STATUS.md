@@ -44,8 +44,21 @@ it** — confirmed by grep, independently of the tool. So `make ci` has never
 compiled it and its `Qed`s have never been checked. It is old work and not
 on the election path, so this is not urgent; what matters is that nothing
 was telling anyone, and that the line this section used to open with ("so
-`make ci` builds it") was false. Either require it from `should_build.v` and
-find out whether it still compiles, or retire it deliberately.
+`make ci` builds it") was false. **It does still check**: `-vok` clean on
+2026-09-22 (3m37s), so requiring it from `should_build.v` would not break
+the build. What is left is the decision — wire it in, or retire it
+deliberately.
+
+**Build baseline, 2026-09-22, at `21b678d3b`** (Rocq 9.4+alpha, the
+`perennial` opam switch). The `.vos` closure of `election_proof/election.v`
+and `v3.v` — 459 files — built with 0 errors in 8m16s at `-j4`; then `.vok`
+of all **197** files of the raft proof that the build reaches, 0 errors, in
+27m at `-j2` (peak 2.8 GB). So every proof body in the build checks, and the
+move to `election_proof/` is compiled, not just statically verified. Two
+limits: `-vok` does not check universe constraints (CONTRIBUTING.md), so
+this is not a `make ci`; and the assumptions are unchanged by it — the 7
+`Admitted` and 18 `Axiom` that `etc/tcb-report.py --scope election_proof`
+lists are still assumptions, they just no longer have unchecked neighbours.
 
 - `v3_proof/base.v` (62 lines) — `IsPkgInit` instances for the raft package and
   its dependencies (raftpb, quorum, tracker, confchange, strconv, strings,

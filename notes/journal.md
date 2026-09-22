@@ -2748,3 +2748,112 @@ pre-existing `should_build.v` parse gaps; nothing outside this file names
 the old paths; both self-tests pass; `check-module-discipline --scope
 election_proof` exits 0; both ruff jobs clean. **Build owed on this tree**
 — the build recorded in the next entry was of the pre-rebase tree.
+955 lines, 5 `Admitted`, 7 `Axiom`. It requires `v3_proof/protocol.v`; no
+file in the repository requires *it*, under any spelling — confirmed by
+grep, independently of the tool. `make ci` has never compiled it, so its
+`Qed`s have never been checked by anything, and this section of `STATUS.md`
+opened by asserting that the directory was built.
+
+Worth noting for calibration: `STATUS.md` next step #8 had been proposing
+for days that its eleven loose triples be brought into the module
+discipline. Nobody had noticed the file was not in the build. **This is the
+failure G6 was written about, found the first time anything looked.**
+
+Also recorded: without `.rocqdeps.d` the fallback can *miss* an edge, since
+`rocqscan.requires` models `From X Require a b` as concatenation where Rocq
+does a prefix-filtered suffix match, and misses an `Import` that lands on
+the next line. `should_build.v` has two requires it cannot resolve for those
+reasons. So a false orphan is possible in principle — not here, where
+nothing names `readonly` at all. Fix the parser, and better, run `make` once
+so the build's own graph exists.
+
+### The election proof moved to `raft/election_proof/`
+
+At Upamanyu's direction, and because the previous finding made the point
+that `v3_proof/` was two unrelated developments sharing a directory: the
+election work is now a **sibling** of `v3_proof/`, flattened, with its
+aggregator inside it. `v3_proof/` keeps `base.v` (shared), `protocol.v` and
+`readonly.v`. Layout, the alternatives and the costs are in
+[decisions.md](decisions.md).
+
+~190 files moved, 451 lines of references rewritten across `.v`, `.md` and
+`etc/*.py`. Two things about how it was checked:
+
+- **There is no Rocq on this box, so the move is statically verified, not
+  compiled.** Every `Require` in the raft tree resolves through
+  `_RocqProject` to a file that exists (429 require targets, 0 unresolvable
+  except the two pre-existing `should_build.v` cases); nothing mentions the
+  old paths; `check-module-discipline.py --scope election_proof` exits 0;
+  both self-tests pass. **A build is owed** — `make -j8 TIMED=false
+  new/proof/go_etcd_io/raft/election_proof/election.required_vos`.
+- `notes/journal.md` was deliberately **excluded** from the reference
+  rewrite. It is append-only, and its dated entries are records of what the
+  paths were at the time. Everything else — STATUS, decisions, gotchas,
+  raft-proof-map, raft-election-refinement, tcb-accounting, CONTRIBUTING,
+  `bugs/` — was updated, including `--scope election` → `--scope
+  election_proof` in every command example.
+
+**Left for whoever picks this up:** run the build. Then Slice 1 items 2-4
+(never-allocated predicates, admission markers, run attribution), which are
+unclaimed and need no Rocq. And decide `readonly.v`'s fate: require it from
+`should_build.v` and find out whether it still compiles, or retire it
+deliberately.
+
+---
+
+## 2026-09-22 (evening) — the build: raft tree green at `.vok`, readonly.v included
+
+Claude Opus 5.5 (background job), branch `worktree-tcb-report-audit` at
+`21b678d3b`. Upamanyu asked for a build after the `election_proof/` move,
+which had been recorded as statically verified only.
+
+**Rocq was on the box all along** — `~/.opam/perennial/bin/rocq`, 9.4+alpha
+— just not on this shell's `PATH`. The earlier entry and the decision record
+said otherwise; the record is corrected, and gotchas.md now says how to
+find it.
+
+**What was run, and why not `make ci`.** Nothing anywhere had `.vo` files, so
+`make ci` would have meant a full `.vo` build of Perennial from scratch —
+hours on this box, with a `rocqworker` belonging to another session holding
+5.4 GB of the 15. Instead, the documented vos/vok route, in three phases:
+
+| phase | what | result |
+|---|---|---|
+| 1 | `.vos` closure of `election_proof/election.v` and `v3.v`, `-j4` | 459 files, **0 errors**, 8m16s, peak 1.2 GB |
+| 2 | `.vok` of all 197 raft files the build reaches, `-j2` | 197 files, **0 errors**, 27m, peak 2.8 GB |
+| 3 | `.vok` of `v3_proof/readonly.v`, an extra — nothing builds it | **0 errors**, 3m37s |
+
+`-j2` in phase 2 because the `Step` helpers peak ~2.3 GB each and three at
+once would have crowded the other session's worker. Phase 1 needed no
+rebuilds in phase 2, so the `.vos` closure was complete.
+
+**So:** the move is compiled, every proof body in the build checks, and
+`readonly.v` is not broken — only unwired. What this is *not*: a `make ci`.
+`-vok` skips universe-constraint checking (CONTRIBUTING.md), and the two
+`should_build.v` lines `rocqscan` cannot parse are off the raft path and
+were not exercised.
+
+**A scare worth recording, because it would have been easy to misread.**
+Phase 2 ended with `make` exit 0 and **zero `.vok` files on disk**. Rather
+than report either way, two direct tests: the exact `%.vok` invocation on a
+small file writes no `.vok` with or without `-o` (Rocq 9.4+alpha simply does
+not emit the marker), and a negative control — a file whose only `Qed`
+proves `False` — *fails* under the same flags while a true one passes. So
+the checking is real and the missing markers are a toolchain change. In
+gotchas.md, with the consequence that `make` can never treat a `.vok` target
+as up to date.
+
+**`.rocqdeps.d` now exists here**, so `etc/tcb-report.py` used the build's
+own graph for the first time. It agrees exactly with the fallback parser:
+197 files in the build, `readonly.v` the single orphan, a 195-file cone for
+`--scope election_proof`. That is also the first test of the `.rocqdeps.d`
+parser on real `rocq dep` output.
+
+Also found and verified: `etc/mkvok` matches nothing — it greps `make -n`
+for `echo "COQC`, and the Makefile prints `ROCQ COMPILE` (253 such lines for
+one target, 0 matches). In gotchas.md.
+
+**Left:** decide whether `readonly.v` is wired into `should_build.v` (it
+would pass) or retired. A real `make ci` is still the only thing that checks
+universes and the rest of `should_build.v`. Slice 1 items 2-4 remain
+unclaimed.

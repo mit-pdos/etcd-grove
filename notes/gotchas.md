@@ -1400,3 +1400,44 @@ and `etc/rocqc.py` migrates an old database in place the first time it writes
 to it. Legacy rows keep the only labels they can support: `vos`, or `vo` for
 everything else. `etc/timing-report.py --mode vok` on a freshly migrated
 database is therefore empty until something is rebuilt.
+## `rocq` is not on the `PATH` — it is in the `perennial` opam switch
+
+Found 2026-09-22. A fresh shell reports no `rocq`, `rocqc` or `coqc`, and
+`opam switch list` warns that the environment is not in sync. The toolchain
+is there — `~/.opam/perennial/bin/rocq`, Rocq 9.4+alpha — it just has to be
+put on the path first, in every shell, since shell state does not persist:
+
+    eval "$(opam env --switch=perennial --set-switch)"
+
+A session that did not know this recorded "there is no Rocq on the box" in
+`decisions.md` and settled for static verification of a 190-file move. Check
+`opam switch list` before concluding a build is impossible.
+
+## Rocq 9.4+alpha writes no `.vok` file, so a missing `.vok` proves nothing
+
+Found 2026-09-22. `rocq compile -vok X.v -o X.vok` exits 0 and writes
+`X.glob` and `.X.aux`, **but no `X.vok`** — with or without `-o`, even for a
+trivial file. `CONTRIBUTING.md` still says it "emits an empty `vok` file";
+on this toolchain it does not. Two consequences:
+
+- **Do not judge a `-vok` sweep by counting `.vok` files.** It will be zero
+  whether everything passed or nothing ran. Judge it by `make`'s exit status
+  and the `Error` lines in its log.
+- `make` can never consider a `.vok` target up to date, so every
+  `make … X.vok` rechecks from scratch. Budget accordingly: all 197 raft
+  files take ~27 minutes at `-j2`.
+
+**The checking itself is real** — confirmed with a negative control: a file
+requiring `election_proof/defs` whose only `Qed` proves `False` by `exact
+I` fails under the exact flags `make`'s `%.vok` rule uses (rc 1, the right
+type error), and the same file with a true lemma passes. The script is
+worth keeping as the template for "does this invocation actually check
+proofs?"
+
+## `etc/mkvok` is stale
+
+It collects its targets by grepping `make -n` for `echo "COQC `, but the
+`Makefile`'s rules now print `ROCQ COMPILE`, and its default `FILE` is
+`src/ShouldBuild.v`, where the build root is now `new/should_build.v`. It
+finds nothing. Drive `make` with explicit `.vok` targets instead, e.g. every
+file `etc/tcb-report.py` says the build reaches.
