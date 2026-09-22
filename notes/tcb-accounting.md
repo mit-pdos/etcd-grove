@@ -254,10 +254,15 @@ consumes an artefact the build already almost produces.
 ### Slice 1 — one afternoon, no Rocq required
 
 1. **Check build reachability (G6).** `--require-reachable new/should_build.v`:
-   warn — and under `--strict`, exit non-zero — on any scanned file outside
-   the `Require` closure. Twenty lines on the existing parser, and it closes
-   the one hole a green build cannot. **Do this first if only one thing gets
-   done.**
+   take the `Require` closure of that file and warn — under `--strict`, exit
+   non-zero — on any scanned file **outside** it. Twenty lines on the
+   existing parser (`rocqscan.requires`), and it closes the one hole a green
+   build cannot. **Do this first if only one thing gets done.**
+
+   The question is *"am I counting something the build never compiles?"*: a
+   `link_*.v` dropped from `election.v` stays on disk, keeps its `Qed`s,
+   keeps being counted, and `make` never touches it. A set difference
+   against the build root, guarding against over-counting **proofs**.
 2. **Flag never-allocated abstract predicates (G3).** For every
    `Axiom P : … → iProp Σ`, search the tree for a statement whose conclusion
    mentions `P` and whose premises do not — an allocation or initialisation
@@ -273,6 +278,15 @@ consumes an artefact the build already almost produces.
    print a boundary line: *"this scope requires N files outside it, carrying
    M axioms and K admits"*, with the list. For `election` that turns
    `assumed 11` into `assumed 23` and names `election_protocol.v`.
+
+   **Not a duplicate of item 1**, though both walk the same edges with the
+   same helper. This one asks *"am I omitting something my report rests
+   on?"* — a closure taken **from the scope, downward into its
+   dependencies**, guarding against under-counting **assumptions**. Item 1
+   starts at the build root and looks for what falls outside it. Neither
+   subsumes the other: a cone pointed at `should_build.v` would cover the
+   whole build, and still say nothing about files sitting on disk outside
+   it. Doing item 1 first leaves this one mostly wiring.
 4. **Give admissions a machine-readable marker (G4).** Replace free-text
    `(* Trusted *)` with a one-line grammar the tool parses and
    `check-module-discipline.py` gates, distinguishing at least:
