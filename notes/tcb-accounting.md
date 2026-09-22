@@ -101,6 +101,13 @@ importance.** By importance: **G6, G3, G2, G4, G5, G7, G1**. The labels are
 cited in `journal.md` and in commit messages, so they stay put rather than
 being renumbered.
 
+**G2 and G6 are two symptoms of one root cause**, found a day apart and
+written up separately before that was noticed: `tcb-report.py` decides what
+to look at by **globbing a directory**, where `make` decides by **walking a
+dependency graph**. Every discrepancy between the two follows — files on
+disk that the build never compiles (G6), and files the build compiles that a
+scoped report drops (G2). They have **one fix**, plan item 1.
+
 ### G1. A report cannot be tied to the build that backs it
 
 **Most of this gap dissolved when the two-step process was written down on
@@ -125,7 +132,7 @@ record of *what it looked at*. It prints counts with no revision, so two
 halves of an audit cannot be shown to be about the same tree, and a figure
 pasted into a commit message or a notes file is unattributable a week later.
 The process says "quote step 1 and step 2 together"; nothing in the output
-helps anyone do that, or notices when they did not. Plan item 1 is the fix
+helps anyone do that, or notices when they did not. Plan item 4 is the fix
 and it is roughly a header line.
 
 ### G2. `--scope` is a path filter, not a dependency cone
@@ -247,22 +254,41 @@ reader everything about the trust base that the build could not have told
 them** — and says plainly which of the two it is speaking for. It is not
 trying to become a proof checker; there is one, and it is `make`.
 
-Ordered by importance, matching the list under "The gaps" above. Items 1-5
-are pure additions to the existing scanner and need no build; item 6
+Ordered by importance, matching the list under "The gaps" above. Items 1-4
+are pure additions to the existing scanner and need no build; item 5
 consumes an artefact the build already almost produces.
 
 ### Slice 1 — one afternoon, no Rocq required
 
-1. **Check build reachability (G6).** `--require-reachable new/should_build.v`:
-   take the `Require` closure of that file and warn — under `--strict`, exit
-   non-zero — on any scanned file **outside** it. Twenty lines on the
-   existing parser (`rocqscan.requires`), and it closes the one hole a green
-   build cannot. **Do this first if only one thing gets done.**
+1. **Scan what `make` builds, not what a directory holds (G6 + G2).** The
+   one feature both of those gaps want: **the set of files `tcb-report.py`
+   scans should be the set `make` compiles.** Make the scanned set a
+   dependency closure rather than a glob, rooted at `new/should_build.v` by
+   default and at the scope's aggregator (`election.v`) under `--scope`.
+   Everything else falls out:
 
-   The question is *"am I counting something the build never compiles?"*: a
-   `link_*.v` dropped from `election.v` stays on disk, keeps its `Qed`s,
-   keeps being counted, and `make` never touches it. A set difference
-   against the build root, guarding against over-counting **proofs**.
+   - a file under the proof root but outside the closure is **not counted**,
+     and is **reported** — *"3 .v files are not in the build closure"*, with
+     the list, and a non-zero exit under `--strict`. Not counting it is not
+     enough on its own; silently dropping an orphan looks like the numbers
+     improving (G6);
+   - a scoped report automatically includes what the scope depends on, so
+     `--scope election` reaches `election_protocol.v` and prints `assumed
+     23` instead of `11`. Keep a presentation line for the boundary — *"of
+     the 23, 12 are from outside the scope directory"* — since the reader
+     still wants to know which side of it a thing is on (G2);
+   - `--scope-dir` survives as the old path filter for anyone who wants it,
+     clearly labelled as not being the build's view.
+
+   **Take the graph from `.rocqdeps.d`, not from a fresh `Require` parse.**
+   That file is `rocq dep` output and is exactly what `make` expands its
+   prerequisites from — `Makefile:47-53` generates and includes it, and
+   `Makefile:64` makes every `.vo` depend on it. Rolling a second parser is
+   how the two sets drift apart again, which is the whole thing being fixed. It is generated rather than committed, so fall back to
+   `rocqscan.requires` when it is absent and **say in the output which
+   source was used** — a fallback answer is the tool's guess at the build
+   graph, not the build's own.
+
 2. **Flag never-allocated abstract predicates (G3).** For every
    `Axiom P : … → iProp Σ`, search the tree for a statement whose conclusion
    mentions `P` and whose premises do not — an allocation or initialisation
@@ -272,22 +298,7 @@ consumes an artefact the build already almost produces.
    case of the tool doing something the build structurally cannot**: Rocq
    will happily check every proof in the development under the model that
    sends all three to `False`.
-3. **Make `--scope` mean the dependency cone (G2).** Keep the path filter as
-   `--scope-dir` if anyone wants it, but make `--scope X` report the
-   transitive `Require` closure of the files under `X`. At minimum, always
-   print a boundary line: *"this scope requires N files outside it, carrying
-   M axioms and K admits"*, with the list. For `election` that turns
-   `assumed 11` into `assumed 23` and names `election_protocol.v`.
-
-   **Not a duplicate of item 1**, though both walk the same edges with the
-   same helper. This one asks *"am I omitting something my report rests
-   on?"* — a closure taken **from the scope, downward into its
-   dependencies**, guarding against under-counting **assumptions**. Item 1
-   starts at the build root and looks for what falls outside it. Neither
-   subsumes the other: a cone pointed at `should_build.v` would cover the
-   whole build, and still say nothing about files sitting on disk outside
-   it. Doing item 1 first leaves this one mostly wiring.
-4. **Give admissions a machine-readable marker (G4).** Replace free-text
+3. **Give admissions a machine-readable marker (G4).** Replace free-text
    `(* Trusted *)` with a one-line grammar the tool parses and
    `check-module-discipline.py` gates, distinguishing at least:
    - `(* TCB: <reason> *)` — a deliberate assumption believed to be true;
@@ -297,20 +308,20 @@ consumes an artefact the build already almost produces.
    Report an admitted lemma as assuming its **whole statement**, in those
    words — `Print Assumptions` names the whole triple, so the report should
    agree with what step 1 would say.
-5. **Make a run attributable (G1).** A header line carrying the revision
+4. **Make a run attributable (G1).** A header line carrying the revision
    scanned and the premise: *"Source-text analysis at `<rev>` (`-dirty` if
    the tree is modified). Assumes `make` is green at this revision; it does
    not check proofs."* Then a pasted figure says which tree it describes.
    Worth adding beside it: if `.vo` files exist under the scope, report the
    oldest against the newest `.v`, so a stale build is visible; if none
-   exist, say `no build artifacts present`. **Lowest value of the seven** —
+   exist, say `no build artifacts present`. **Lowest value of the four** —
    output hygiene, not a TCB check — but also the cheapest, and it is what
    makes the two-command process auditable after the fact. Do it while
    waiting for a build.
 
 ### Slice 2 — reconcile with what the build knows
 
-6. **Diff against `Print Assumptions` (G7).** Add `v3_proof/assumptions.v`
+5. **Diff against `Print Assumptions` (G7).** Add `v3_proof/assumptions.v`
    containing nothing but `Print Assumptions` for each **top-level function
    spec** — today `wp_raft__Step`, and `wp_Node__Propose` from `v3.v` —
    reached from `should_build.v`, so step 1 emits it. Those triples are the
@@ -338,7 +349,7 @@ consumes an artefact the build already almost produces.
 
 ### Slice 3 — when someone cares about the framework number
 
-7. **Second root for the model (G5).** `--also-root new/golang`, plus a
+6. **Second root for the model (G5).** `--also-root new/golang`, plus a
    section counting this development's *diff* against the upstream
    merge-base in `new/golang/defn/` (hard TCB — the operational semantics)
    separately from `new/golang/theory/` (lemmas, which step 1 checks). A

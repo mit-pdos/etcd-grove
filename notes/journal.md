@@ -2653,3 +2653,44 @@ cited in this journal and in commit messages, so renumbering would cost more
 than the tidiness is worth.
 
 Nothing else changed; no proof or tool code has been touched on this branch.
+
+---
+
+## 2026-09-22 (later still) — G2 and G6 are one bug, and get one fix
+
+Claude Opus 5 (background job), same branch. Upamanyu, on being told how
+plan items 1 and 3 differed: *"So the goal is to make sure the set of files
+that are scanned by tcb-report are the same set of files built by make?
+Make that just one feature."* Yes, and it is a better design than either
+item was.
+
+**The root cause the two write-ups had missed.** `tcb-report.py` decides
+what to look at by **globbing a directory**; `make` decides by **walking a
+dependency graph**. Every discrepancy between them follows from that one
+difference — files on disk the build never compiles (G6), and files the
+build compiles that a scoped report drops (G2). Found a day apart, written
+up as two gaps, and only visible as one thing once someone asked what
+separated the fixes. The gaps stay numbered separately, since the symptoms
+are distinct and the labels are cited; the plan now has **one item** for
+both.
+
+**Plan item 1 is now "scan what `make` builds, not what a directory
+holds"**: the scanned set becomes a dependency closure rooted at
+`new/should_build.v`, or at the scope's aggregator under `--scope`. Both old
+behaviours fall out — an orphan is excluded *and reported* (excluding it
+silently would make an orphan look like the numbers improving), and a scoped
+report automatically reaches `election_protocol.v`, so `--scope election`
+prints `assumed 23` rather than `11`. `--scope-dir` survives as the old path
+filter, labelled as not being the build's view.
+
+**One implementation note that matters more than it looks.** Take the graph
+from **`.rocqdeps.d`** — `rocq dep` output, which is what `make` actually
+expands its prerequisites from (`Makefile:47-53` generates and includes it;
+`Makefile:64` makes every `.vo` depend on it) — and not from a fresh
+`Require` parse. A second parser is precisely how the two sets drift apart
+again, which is the thing being fixed. It is generated rather than
+committed, so the fallback to `rocqscan.requires` has to say in the output
+that it is a guess at the build graph rather than the build's own answer.
+
+Slice 1 is four items now (was five): the merged one, then G3, G4, G1.
+Later items renumbered 5 and 6; every cross-reference in the file checked.
