@@ -18,10 +18,13 @@ Definition wp_raft__hup_body :=
   (* [hup] may reach [campaign], which increments the term -- see the note on
      [wp_raft__campaign_body]. *)
   uint.Z s.(nstate.term) + 1 < 2 ^ 64 →
+  (* [r.step] matches the role and nothing is on loan; kept by the call *)
+  nstate_wf s →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "hup" #t
   {{{ s', RET #();
-      own_raft_phys cfg r id s' ∗ ⌜ step cfg id s [] s' ⌝ }}}.
+      own_raft_phys cfg r id s' ∗ ⌜ nstate_wf s' ⌝ ∗
+      ⌜ step cfg id (to_pstate s) [] (to_pstate s') ⌝ }}}.
 
 Module Type HUP.
   Parameter wp_raft__hup : wp_raft__hup_body.

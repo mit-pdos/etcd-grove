@@ -589,7 +589,9 @@ checker, not the axiom count, not review.
 1. **`own_raft_phys` did not pin `r.step`.** A comment claimed it recorded
    which `stepX` the field held; no conjunct did. `Step`'s `MsgVoteResp`
    branch dispatches through `r.step(m)` and so could not be stepped at all.
-   Fixed with `step_func_of` and `own_raft_phys_at`.
+   Fixed with `step_func_of` and `own_raft_phys_at` (the latter replaced
+   on 2026-09-22 by the field `nstate.stepfn`; decisions.md, "Three
+   layers").
 
 2. **`own_progress` did not record `IsLearner = false`.** `promotable` is
    `pr != nil && !pr.IsLearner && !r.raftLog.hasNextOrInProgressSnapshot()`,

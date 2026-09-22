@@ -9,6 +9,8 @@ Definition wp_raft__becomeCandidate_body :=
     (cfg : gset w64)
     (r : loc) (id : w64) (s : nstate.t),
   s.(nstate.role) ≠ role.Leader →
+  (* [reset]'s [Visit] closure reads the log *)
+  s.(nstate.lent) = None →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "becomeCandidate" #()
   {{{ RET #(); own_raft_phys cfg r id (become_candidate id s) }}}.

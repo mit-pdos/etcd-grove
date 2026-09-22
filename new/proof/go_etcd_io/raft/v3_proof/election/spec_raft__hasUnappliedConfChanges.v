@@ -29,10 +29,12 @@ Definition wp_raft__hasUnappliedConfChanges_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
-    (r : loc) (rv : raft.raft.t),
-  {{{ is_pkg_init raft ∗ r ↦ rv ∗ own_raftLog rv.(raft.raft.raftLog') }}}
+    (cfg : gset w64) (r : loc) (id : w64) (s : nstate.t),
+  (* it scans the log *)
+  s.(nstate.lent) = None →
+  {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "hasUnappliedConfChanges" #()
-  {{{ RET #false; r ↦ rv ∗ own_raftLog rv.(raft.raft.raftLog') }}}.
+  {{{ RET #false; own_raft_phys cfg r id s }}}.
 
 Module Type RAFT__HASUNAPPLIEDCONFCHANGES.
   Parameter wp_raft__hasUnappliedConfChanges : wp_raft__hasUnappliedConfChanges_body.

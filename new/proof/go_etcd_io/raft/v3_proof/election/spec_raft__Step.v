@@ -27,7 +27,8 @@ Definition wp_raft__Step_body :=
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (cfg : gset w64)
-    (γ : raft_election_names) (r : loc) (id : w64) (s : nstate.t) (m : raftpb.Message.t),
+    (γ : raft_election_names) (r : loc) (id : w64) (s : nstate.t) (ps : pstate.t)
+    (m : raftpb.Message.t),
   (* The ghost state is about one configuration, and it is this one.  Without
      this the caller could hand [own_raft_ghost_step] a [cfg] of its own
      choosing -- a singleton one, say, in which the node is its own quorum --
@@ -51,19 +52,25 @@ Definition wp_raft__Step_body :=
      m.(raftpb.Message.From') ≠ W64 0) →
   (m.(raftpb.Message.Type') = MsgVoteResp →
      m.(raftpb.Message.To') = id ∧ m.(raftpb.Message.Term') ≠ W64 0) →
+  (* The one place the two layers meet.  [s] is the physical abstract state
+     [own_raft_phys] is indexed by, [ps] the protocol state the ghost state
+     is about, and [nstate_rel] ([defs.v]) connects them: [ps] is [s]'s
+     protocol fields, [r.step] agrees with the role, nothing is on loan. *)
+  nstate_rel s ps →
   {{{ is_pkg_init raft ∗
       "Hphys" ∷ own_raft_phys cfg r id s ∗
-      "Hghost" ∷ own_raft_ghost γ id s ∗
+      "Hghost" ∷ own_raft_ghost γ id ps ∗
       "#Hm" ∷ (∀ ty, ⌜ mtype_of m.(raftpb.Message.Type') = Some ty ⌝ -∗
                      is_message γ (abs_msg ty m)) ∗
       "#Hctx" ∷ (∃ ctx, m.(raftpb.Message.Context') ↦*□ ctx ∗
                         ⌜ ctx ≠ campaignTransfer ⌝)
   }}}
     r @! (go.PointerType raft.raft) @! "Step" #m
-  {{{ (err : error.t) s', RET #err;
+  {{{ (err : error.t) s' ps', RET #err;
       "Hphys" ∷ own_raft_phys cfg r id s' ∗
-      "Hghost" ∷ own_raft_ghost γ id s' ∗
-      "%Hrefines" ∷ ⌜ ∃ recv, step cfg id s recv s' ⌝ ∗
+      "Hghost" ∷ own_raft_ghost γ id ps' ∗
+      "%Hrel" ∷ ⌜ nstate_rel s' ps' ⌝ ∗
+      "%Hrefines" ∷ ⌜ ∃ recv, step cfg id ps recv ps' ⌝ ∗
       "%Herr" ∷ ⌜ err = interface.nil ⌝ }}}.
 
 Module Type STEP.

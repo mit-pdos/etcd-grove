@@ -10,12 +10,17 @@ Module RaftResetRandomizedElectionTimeoutProof (P : RAFT__RESETRANDOMIZEDELECTIO
   Lemma wp_raft__resetRandomizedElectionTimeout : wp_raft__resetRandomizedElectionTimeout_body.
   Proof.
     intros_ambient.
-    intros r rv Het.
-    wp_start as "Hr".
+    intros cfg r id s.
+    (* the randomized timeout is not abstracted; the bound [lockedRand.Intn]
+       needs is [own_raft_phys]'s [HelectionTimeout] *)
+    wp_start as "Hphys". iNamed "Hphys".
     iDestruct (is_pkg_init_access with "[$]") as "@".
     wp_auto.
-    wp_apply (P.wp_lockedRand__Intn _ _ Het with "[$HglobalRand]") as "%v %Hv".
-    iApply "HΦ". iFrame.
+    wp_apply (P.wp_lockedRand__Intn _ _ HelectionTimeout with "[$HglobalRand]")
+      as "%v %Hv".
+    iApply "HΦ".
+    iApply (own_raft_phys_intro with
+      "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done.
   Qed.
 
 End RaftResetRandomizedElectionTimeoutProof.

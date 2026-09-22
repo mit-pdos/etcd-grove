@@ -22,6 +22,8 @@ Definition wp_stepCandidate_MsgVoteResp_body :=
      scope and [becomeLeader] needs this premise outright; neither is
      available from [own_raft_phys], so it is threaded in from the caller. *)
   id ∈ cfg →
+  (* [poll] writes the tracker; [becomeLeader] appends to the log *)
+  s.(nstate.lent) = None →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     @! raft.stepCandidate #r #m
   {{{ (err : error.t) s', RET #err;

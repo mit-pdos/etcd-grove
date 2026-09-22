@@ -37,6 +37,8 @@ Implicit Type s : nstate.t.
     m.(raftpb.Message.Term') ≠ W64 0 →
     (* [send] stamps the sender's id into [From], and node ids are nonzero *)
     m.(raftpb.Message.From') ≠ W64 0 →
+    (* [r.step] matches the role and nothing is on loan *)
+    nstate_wf s →
     {{{ is_pkg_init raft ∗
         "Hphys" ∷ own_raft_phys cfg r id s ∗
         (* the message's [Context] is readable and is not the leader-transfer
@@ -47,20 +49,21 @@ Implicit Type s : nstate.t.
       r @! (go.PointerType raft.raft) @! "Step" #m
     {{{ (err : error.t) s', RET #err;
         "Hphys" ∷ own_raft_phys cfg r id s' ∗
+        "%Hwf'" ∷ ⌜ nstate_wf s' ⌝ ∗
         (* [recv] is whatever this branch consumed -- nothing, or the incoming
            message once or twice.  Naming its elements rather than the list
            lets [wp_raft__Step] discharge the [is_message] side of
            [own_raft_ghost_step] from the single fact it holds about [m]. *)
         "%Hrefines" ∷ ⌜ ∃ recv,
             (∀ m', m' ∈ recv → m' = abs_msg mtype.Vote m) ∧
-            step cfg id s recv s' ⌝ ∗
+            step cfg id (to_pstate s) recv (to_pstate s') ⌝ ∗
         "%Herr" ∷ ⌜ err = interface.nil ⌝ }}}.
   Proof.
-    intros Hty Hto Hterm Hfnz.
+    intros Hty Hto Hterm Hfnz Hwf.
     destruct (decide (uint.Z s.(nstate.term) < uint.Z m.(raftpb.Message.Term')))
       as [Hgt|Hle].
-    - exact (G.wp_Step_MsgVote_gt cfg r id s m Hty Hto Hterm Hfnz Hgt).
-    - exact (L.wp_Step_MsgVote_le cfg r id s m Hty Hto Hterm Hfnz Hle).
+    - exact (G.wp_Step_MsgVote_gt cfg r id s m Hty Hto Hterm Hfnz Hgt Hwf).
+    - exact (L.wp_Step_MsgVote_le cfg r id s m Hty Hto Hterm Hfnz Hle Hwf).
   Qed.
 
 End branches.

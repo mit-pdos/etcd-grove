@@ -2663,3 +2663,104 @@ witness at `γ.(re_cfg)` instead and says so in a comment
 nothing but the framework and the declared trust boundary" was true of the
 code-free corollary and misleading about everything else; it has been
 rewritten.
+
+## 2026-09-22 (evening) — One `own_raft_phys`: the physical state split from the protocol state
+
+Branch `raft-phys-one-predicate`, off `election-protocol-ghost`.
+
+### How this started
+
+The session began as "prove `newRaft`" (STATUS item 1, `own_raft_phys` has
+no constructor). Surveying `newRaft`'s callees turned up three things
+worth keeping, and then the user stopped the work: the approach being
+taken -- adding `own_raft_phys_atQ`-style variants (a `becomeFollower` spec
+on `own_raft_phys_at` because `newRaft`'s struct has a nil `r.step`; an
+`own_raftLog_atQ Q` so that `committed`/`applied` survive `lastEntryID`) --
+was the wrong path. The instruction, recorded in decisions.md ("Three
+layers"): there should be no `own_raft_phys_at`; the step function belongs
+in `nstate.t`; `nstate.t` is the most abstract description of the physical
+state that lets every WP be stated on `own_raft_phys`; the ghost state may
+take a different type, related by a relation; and the docs must say so.
+Both variants were reverted before anything was built on them.
+
+### Kept from the `newRaft` survey
+
+- **`own_tracker` was unsatisfiable by any struct `newRaft` builds.** It
+  required `Config.Learners ↦$ ∅` and `LearnersNext ↦$ ∅`; a map points-to
+  implies a non-nil location (`own_map_not_nil`), and `MakeProgressTracker`
+  writes `nil` to both, `Config.Clone` keeps `nil`, and only adding a
+  learner allocates one. Fixed with `own_idset_opt` (nil, or owned) in
+  `inv_tracker.v`. The second time `own_raft_phys` has been found `False`
+  of reachable states.
+- **`confchange.Restore` and `raftpb.ConfState.Equivalent` are not
+  translated** (`confchange.v.toml` is `translate = ["Changer"]`;
+  `raftpb` is types-only). `newRaft` calls both. Either translate
+  `confchange` (Simple/apply/checkInvariants, voters-only case) or postulate
+  `Restore`; `Equivalent`'s sort-and-`DeepEqual` is faithfully "pairwise
+  permutations and equal `AutoLeave` ⇒ nil" (the Go `ConfState` has exactly
+  the five modelled fields).
+- `Storage.InitialState` is best a premise of `newRaft`'s spec (a triple
+  about the specific storage), not a new `is_Storage` clause; and
+  `validate`'s error paths are all dead under premises on the `Config`.
+
+### What was done
+
+- `election_protocol.v`: the record is now `pstate.t`, functions prefixed
+  `p` (`psend_msgs`, `pbecome_follower`, `pbecome_candidate`,
+  `pbecome_leader`, `pcan_vote`, `init_pstate`). No proof changed.
+- `election/defs.v`: the **physical** `nstate.t` -- the six protocol fields
+  plus `stepfn : func.t`, `progress : gmap w64 loc`, `log : loc`,
+  `lent : option tracker.ProgressTracker.t` -- with `step_func_of`, the
+  physical transitions (`send_msgs`, `reset_to`, `become_*`), `to_pstate`,
+  `nstate_wf`, `nstate_rel`, and one commuting lemma per transition.
+- `election/inv_raft_phys.v`: one `own_raft_phys`. `own_raft_phys_at`,
+  `own_raft_bare`, `own_raft_notrk` and their split/join/intro lemmas are
+  deleted. `own_raft_phys_intro` takes `r ↦ rv` first (see gotchas).
+- Every spec on the election path restated on `own_raft_phys`, including
+  five that were on raw struct pieces (`abortLeaderTransfer`,
+  `resetRandomizedElectionTimeout`, `increaseUncommittedSize`, `promotable`,
+  `hasUnappliedConfChanges`). `Visit`'s closure contract now carries the
+  progress map. `Step` takes `nstate_rel s ps` and hands back
+  `nstate_rel s' ps'`; its helpers take and return `nstate_wf`.
+
+### Dead ends, in the order they were hit
+
+1. **A loan of just the log page** (`lent : option (slice × dfrac × list
+   Entry)`). Not enough: `appendEntry` needs the *whole* log held at a
+   fixed split across `increaseUncommittedSize`.
+2. **`log_lent : bool` without the tracker.** Not enough: handing the
+   borrowed `Progress` back to the tracker before `send` and re-borrowing
+   it by its key afterwards (which is what `nstate.progress` is for)
+   yields `∃ pv iv`, and `SentEntries` needs the facts about `pv`/`iv`
+   established before the send. So the loan covers the tracker too; that
+   is `lent : option tracker.ProgressTracker.t`.
+3. **Passing a `lent = None` premise positionally** fixes the callee's
+   state from the premise's *type*, i.e. at the caller's `s`, even when
+   the call is at `send_msgs s ms` or `become_leader id s1`; the frame then
+   fails. Discharge it as a side goal instead
+   (`wp_apply (lem with "[$Hphys]"); first exact Hlent.`).
+4. **Giving `reset` its state explicitly** (`reset _ _ _ (s <| stepfn := … |>)`)
+   ran 24 minutes and failed to frame; leaving it to the frame takes 14s.
+5. **`simpl in *` on re-seal side goals** ran 12+ CPU-minutes per file:
+   the struct carries `func.t` values and `simpl` unfolds `functions …`.
+6. **rocq-warm replays against the dependency it loaded first** -- after
+   reordering `own_raft_phys_intro`'s arguments, warm checks kept failing
+   with the old order until `rocq-warm stop`.
+
+### Evidence
+
+- `make -k -j3` of the `.vok` target of every file in the election
+  development (`election_protocol.v`, `election.v`, `election/*.v` and both
+  `*_helpers/` directories): **exit 0, 332 files checked**, no errors. Every
+  proof touched here was also checked cold with rocq-warm along the way.
+- `etc/check-module-discipline.py --scope election`: the same 5
+  notes/warnings as before, nothing new.
+- `etc/tcb-report.py --scope election`: still **10 `Axiom`, 1 `Admitted`**;
+  174 `Qed` lemmas (was 169); 44 definitions / 471 lines reached from the
+  exported statements (was 38 / 428).
+
+### Not done
+
+`newRaft` itself. STATUS items 1 and 2 now say what it needs; item 2 (the
+log's three shapes, and no `committed`/`applied`) is the same kind of fix
+as this session's and should come first.

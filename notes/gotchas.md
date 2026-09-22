@@ -8,6 +8,61 @@ its own topic file in `notes/`, with a pointer from here.
 
 ---
 
+## Don't add a variant of `own_raft_phys` -- refine `nstate.t`
+
+When a spec will not go through on `own_raft_phys` -- a callee needs a
+field the struct predicate hides, a caller must hold something across a
+call, a function runs while the struct is between two consistent states --
+the fix is a new field of `nstate.t` (`election/defs.v`) and a conjunct of
+`own_raft_phys` that pins it, **not** a second predicate. This was done
+wrong three times (`own_raft_phys_at`, `own_raft_bare`, `own_raft_notrk`,
+2026-09-16 to 2026-09-21) and undone on 2026-09-22; notes/decisions.md,
+"Three layers", has the whole story and the fields that replaced them
+(`stepfn`, `progress`, `log`, `lent`). The same holds for every object:
+the log still has three shapes (`own_raftLog`, `own_raftLog_at`, the raw
+page-and-wand of `raftLog.entries`) and is the next thing to fix.
+
+## `own_raft_phys_intro` takes `r ↦ rv` first, and wants `s` when it moved
+
+The first spatial argument fixes `rv`; it is `r ↦ rv` so that `rv` is the
+struct the heap holds *now*. A persistent argument first (it used to be
+`is_Logger`, and briefly `Hprs`) fixes `rv` from wherever that hypothesis
+was stated, and after any field write the heap's `r ↦ (rv <| … |>)` then
+fails with `iSpecialize: cannot instantiate`. Likewise `s` is unified from
+`Hprs`/`Htrk`, i.e. at the state the struct was *opened* at; when re-sealing
+at a different state pass it positionally:
+`own_raft_phys_intro _ _ _ (become_follower s t l) with "Hr Hlogger Hprs …"`
+(`s` is explicit after the section closes -- `(s:=…)` does not parse).
+
+## A premise passed positionally picks the callee's state
+
+`wp_apply (wp_raft__sendAppend _ _ _ _ i Hne Hicfg Hlent with "[$Hphys]")`
+with `Hlent : s.(nstate.lent) = None` fixes the callee's `s` from
+`Hlent`'s *type*, i.e. at the caller's `s` -- even when the call is at
+`send_msgs s ms` -- and the frame then fails with `iFrame: cannot frame`.
+Either name the state (`… _ _ _ (send_msgs s ms) i …`) or let the frame pick
+it and discharge the premise afterwards:
+`wp_apply (lem with "[$Hphys]"); first exact Hlent. iIntros … . wp_auto.`
+(the `as` pattern that the second form drops also ran `wp_auto`).
+
+## `simpl in *` near a raft struct can run for minutes
+
+The raft struct carries `func.t` values (`step'`, `tick'`), and `simpl`
+unfolds `functions raft.stepFollower []` into the semantics tables. A
+`simpl in *` over re-seal side goals ran 12+ CPU-minutes per file
+(`becomeX`, 2026-09-22) before it was killed. Those goals hold by
+conversion against the reopened hypotheses (`Hterm1 : rv0.(Term') = (reset_to s t).(term)`
+and so on): close them with `done`, not `simpl`.
+
+## A warm rocq-warm session keeps its old dependencies
+
+After you change a file another one `Require`s and rebuild its `.vos`,
+checking the dependent file *replays* in its warm session -- with the old
+dependency still loaded. The symptom is an error that mentions the old
+statement (2026-09-22: the old argument order of a lemma just reordered).
+Stop the daemon first (`rocq-warm stop`) whenever an upstream statement
+changed; a cold check is the only one that sees it.
+
 ## `new/code/` and `new/generatedproof/` are generated
 
 Editing them appears to work, then CI's `check-goose` job fails because

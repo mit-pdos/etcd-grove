@@ -34,14 +34,17 @@ Implicit Type s : nstate.t.
     m.(raftpb.Message.Term') = W64 0 →
     (* an election increments the term; [send] panics if that wraps to zero *)
     uint.Z s.(nstate.term) + 1 < 2 ^ 64 →
+    (* [r.step] matches the role and nothing is on loan *)
+    nstate_wf s →
     {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s }}}
       r @! (go.PointerType raft.raft) @! "Step" #m
     {{{ (err : error.t) s', RET #err;
         "Hphys" ∷ own_raft_phys cfg r id s' ∗
-        "%Hrefines" ∷ ⌜ step cfg id s [] s' ⌝ ∗
+        "%Hwf'" ∷ ⌜ nstate_wf s' ⌝ ∗
+        "%Hrefines" ∷ ⌜ step cfg id (to_pstate s) [] (to_pstate s') ⌝ ∗
         "%Herr" ∷ ⌜ err = interface.nil ⌝ }}}.
   Proof.
-    intros Hty Hterm Hnowrap.
+    intros Hty Hterm Hnowrap Hwf.
     (* Take the precondition apart *before* the body is unfolded into the
        goal: every [iDestruct] is linear in the goal size, and the translated
        [Step] body is ~500KB.  See [wp_start_unfold]. *)
@@ -64,11 +67,13 @@ Implicit Type s : nstate.t.
     iAssert (own_raft_phys cfg r id s)
     with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys".
     { iApply (own_raft_phys_intro with
-          "Hlogger Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
-    wp_apply (P.wp_raft__hup with "[$Hphys]") as "%s' (Hphys & %Hstep)".
+          "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
+    wp_apply (P.wp_raft__hup with "[$Hphys]") as "%s' (Hphys & %Hwf' & %Hstep)".
     { done. }
     { exact Hnowrap. }
-    iApply ("HΦ" $! interface.nil s'). by iFrame.
+    { exact Hwf. }
+    iApply ("HΦ" $! interface.nil s'). iFrame "Hphys".
+    iPureIntro. split; [exact Hwf' | split; [exact Hstep | done]].
   Qed.
 
 End branches.

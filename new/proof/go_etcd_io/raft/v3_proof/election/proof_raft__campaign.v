@@ -11,47 +11,23 @@ Set Default Proof Using "W".
 
 Context (cfg : gset w64).
 
-(** [own_raft_phys] constrains the outbox only up to permutation (that is the
-    whole point of the [≡ₚ] in [Houtbox]), so a state may be replaced by any
-    other that agrees on the five scalar fields and permutes the outbox.
-    [campaign] needs this twice: to see [s'] as [send_msgs s' []] when the
-    send loop starts, and to reorder the messages the loop actually sent into
-    the order the spec names. *)
-Lemma own_raft_phys_outbox (r : loc) (id : w64) (s1 s2 : nstate.t) :
-  s1.(nstate.term) = s2.(nstate.term) →
-  s1.(nstate.vote) = s2.(nstate.vote) →
-  s1.(nstate.lead) = s2.(nstate.lead) →
-  s1.(nstate.role) = s2.(nstate.role) →
-  s1.(nstate.votes) = s2.(nstate.votes) →
-  s1.(nstate.outbox) ≡ₚ s2.(nstate.outbox) →
-  own_raft_phys cfg r id s1 -∗ own_raft_phys cfg r id s2.
-Proof.
-  intros H1 H2 H3 H4 H5 H6. rewrite /own_raft_phys.
-  iIntros "H". iNamed "H". iExists rv, msgs, msgsAA, lok.
-  rewrite -H5.
-  iFrame "Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Hlogger".
-  iPureIntro. split_and!; first [ done | congruence | by rewrite -H6 ].
-Qed.
-
 (** Two sends in a row grow the outbox by the concatenation. *)
 Lemma send_msgs_app (s0 : nstate.t) (ms1 ms2 : list msg.t) :
   send_msgs (send_msgs s0 ms1) ms2 = send_msgs s0 (ms1 ++ ms2).
 Proof. rewrite /send_msgs /= app_assoc //. Qed.
 
-Lemma own_raft_phys_send_nil (r : loc) (id : w64) (s0 : nstate.t) :
-  own_raft_phys cfg r id s0 -∗ own_raft_phys cfg r id (send_msgs s0 []).
-Proof.
-  iIntros "H". iApply (own_raft_phys_outbox with "H"); try done.
-  rewrite /send_msgs /= app_nil_r //.
-Qed.
-
+(** [own_raft_phys] constrains the outbox only up to permutation, so the
+    messages the loop actually sent can be reordered into the order the
+    spec names ([own_raft_phys_outbox], [inv_raft_phys.v]). *)
 Lemma own_raft_phys_send_perm (r : loc) (id : w64) (s0 : nstate.t)
     (ms1 ms2 : list msg.t) :
   ms1 ≡ₚ ms2 →
   own_raft_phys cfg r id (send_msgs s0 ms1) -∗
   own_raft_phys cfg r id (send_msgs s0 ms2).
 Proof.
-  iIntros (Hperm) "H". iApply (own_raft_phys_outbox with "H"); try done.
+  iIntros (Hperm) "H".
+  iApply (own_raft_phys_outbox cfg r id (send_msgs s0 ms1)
+            (s0.(nstate.outbox) ++ ms2) with "H").
   rewrite /send_msgs /=. by apply Permutation_app_head.
 Qed.
 
@@ -103,6 +79,7 @@ Lemma wp_campaign (r : loc) (id : w64) (s : nstate.t) (t : raft.CampaignType.t) 
   s.(nstate.role) ≠ role.Leader →
   id ∈ cfg →
   uint.Z s.(nstate.term) + 1 < 2 ^ 64 →
+  s.(nstate.lent) = None →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "campaign" #t
   {{{ (peers : list w64), RET #();
@@ -113,29 +90,33 @@ Lemma wp_campaign (r : loc) (id : w64) (s : nstate.t) (t : raft.CampaignType.t) 
            ([msg.mk mtype.VoteResp id id s'.(nstate.term) false] ++
             ((λ to, msg.mk mtype.Vote id to s'.(nstate.term) false) <$> peers))) }}}.
 Proof.
-  intros Ht Hrole Hid_cfg Hnowrap.
+  intros Ht Hrole Hid_cfg Hnowrap Hlent.
   (* [becomeCandidate] raises the term to [s.term + 1] and every [send] below
      carries it; [send] panics on a zero term, whence the premise. *)
   assert (word.add s.(nstate.term) (W64 1) ≠ W64 0) as Hno_wrap by word.
-  wp_start as "Hphys". iNamed "Hphys".
   (* [make([]uint64, 0, len(idMap))] needs the voter set to fit in a Go
      [int]; that bound is a conjunct of [own_tracker]. *)
+  wp_start as "Hphys". iNamed "Hphys".
+  iDestruct (own_tracker_unless_open _ _ _ _ Hlent with "Htrk") as "Htrk".
   iDestruct (own_tracker_cfg_size with "Htrk") as "[%Hcfg_fits Htrk]".
+  iDestruct (own_tracker_unless_close _ _ _ _ Hlent with "Htrk") as "Htrk".
+  iAssert (own_raft_phys cfg r id s)
+    with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys".
+  { iApply (own_raft_phys_intro with
+      "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
   wp_auto.
   (* [promotable] is true, since [id ∈ cfg]; the warning is not logged. *)
-  wp_apply (wp_raft__promotable with "[$Hr $Htrk $Hlog]")
-    as "%b (Hr & Htrk & Hlog & %Hb)".
+  wp_apply (wp_raft__promotable _ _ _ _ Hlent with "[$Hphys]") as "%b [Hphys %Hb]".
   assert (b = true) as ->.
-  { rewrite Hb Hid. by apply bool_decide_eq_true_2. }
+  { rewrite Hb. by apply bool_decide_eq_true_2. }
   wp_auto.
   (* not a pre-election, so [becomeCandidate] *)
   rewrite bool_decide_eq_false_2; last exact Ht.
   wp_auto.
-  iAssert (own_raft_phys cfg r id s)
-    with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys".
-  { rewrite /own_raft_phys. iExists rv, msgs, msgsAA, lok. iFrame "∗#%". }
-  wp_apply (P.wp_raft__becomeCandidate _ _ _ _ Hrole with "[$Hphys]") as "Hphys".
-  iNamedSuffix "Hphys" "1". wp_auto.
+  wp_apply (P.wp_raft__becomeCandidate _ _ _ _ Hrole Hlent with "[$Hphys]") as "Hphys".
+  iNamedSuffix "Hphys" "1".
+  iDestruct (own_tracker_unless_open _ _ _ _ Hlent with "Htrk1") as "Htrk1".
+  wp_auto.
   (* the voter ids, as a map.  [IDs] wants the tracker's location, which the
      generated [AccessStrict] instance splits out of [r ↦ rv0]; pin the load
      instance, since the call does not change the tracker value. *)
@@ -200,7 +181,9 @@ Proof.
   iAssert (own_raft_phys cfg r id (become_candidate id s))
     with "[Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1]"
     as "Hphys".
-  { rewrite /own_raft_phys. iExists rv0, msgs0, msgsAA0, lok0. iFrame "∗#%". }
+  { iDestruct (own_tracker_unless_close _ _ _ _ Hlent with "Htrk1") as "Htrk1".
+    iApply (own_raft_phys_intro _ _ _ (become_candidate id s) with "Hr1 Hlogger1 Hprs1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1");
+      done. }
   iRename "id" into "idold".
   wp_alloc cur_ptr as "cur".
   wp_auto.
@@ -293,14 +276,10 @@ Proof.
          [mtype_of], the term is nonzero (this is what the no-wrap premise
          buys), and -- only for a [MsgVote] -- the destination is not this
          node.  The last is vacuous here: this is the [MsgVoteResp] arm. *)
-      (* [send] is stated on [own_raft_bare]: split the tracker and the log
-         off, and put them back afterwards.  See [spec_raft__send.v]. *)
-      iDestruct (own_raft_bare_split with "Hphys") as (tvS lgS) "(Hphys & HtrkS & HlogS)".
       wp_apply (P.wp_raft__send with "[$Hphys]");
         [done | left; exists mtype.VoteResp; split_and!;
                 [by right | apply mtype_of_MsgVoteResp | exact HTnz | w32_ne | done] |].
       iIntros "Hphys".
-      iDestruct (own_raft_bare_join with "Hphys HtrkS HlogS") as "Hphys".
       assert (send_msgs (send_msgs (become_candidate id s)
                            (cmsg <$> take (Z.to_nat (sint.Z n)) xs))
                         [msg.mk mtype.VoteResp id id T false]
@@ -318,7 +297,9 @@ Proof.
       iFrame. iPureIntro. word.
     + (* a peer: read the last entry, log, and send it a [MsgVote] *)
       rewrite bool_decide_eq_false_2 //. wp_auto.
+      iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog2") as "Hlog2".
       wp_apply (wp_raftLog__lastEntryID with "[$Hlog2]") as "%lastID Hlog2".
+      iDestruct (own_raftLog_unless_close _ _ Hlent with "Hlog2") as "Hlog2".
       wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
       wp_auto. rewrite Hlok2.
       wp_apply (wp_Logger__logf with "Hlogger2").
@@ -343,13 +324,11 @@ Proof.
       destruct (decide (t = campaignTransfer)) as [->|Hnt].
       * rewrite bool_decide_eq_true_2 //. wp_auto.
         wp_apply wp_string_to_bytes as "%csl [Hcs Hcs_cap]".
-        iDestruct (own_raft_bare_split with "Hphys") as (tvS lgS) "(Hphys & HtrkS & HlogS)".
         wp_apply (P.wp_raft__send with "[$Hphys]");
           [done | left; exists mtype.Vote; split_and!;
                   [by left | apply mtype_of_MsgVote | exact HTnz
                    | intros _; exact Hney | done] |].
         iIntros "Hphys".
-        iDestruct (own_raft_bare_join with "Hphys HtrkS HlogS") as "Hphys".
         iAssert (own_raft_phys cfg r id
                    (send_msgs (become_candidate id s)
                       (cmsg <$> take (Z.to_nat (sint.Z (word.add n (W64 1)))) xs)))
@@ -359,13 +338,11 @@ Proof.
         wp_for_post.
         iFrame. iPureIntro. word.
       * rewrite bool_decide_eq_false_2 //. wp_auto.
-        iDestruct (own_raft_bare_split with "Hphys") as (tvS lgS) "(Hphys & HtrkS & HlogS)".
         wp_apply (P.wp_raft__send with "[$Hphys]");
           [done | left; exists mtype.Vote; split_and!;
                   [by left | apply mtype_of_MsgVote | exact HTnz
                    | intros _; exact Hney | done] |].
         iIntros "Hphys".
-        iDestruct (own_raft_bare_join with "Hphys HtrkS HlogS") as "Hphys".
         iAssert (own_raft_phys cfg r id
                    (send_msgs (become_candidate id s)
                       (cmsg <$> take (Z.to_nat (sint.Z (word.add n (W64 1)))) xs)))

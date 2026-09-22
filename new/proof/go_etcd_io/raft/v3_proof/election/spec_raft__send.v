@@ -46,7 +46,7 @@ Definition MsgReadIndex : w32 := W32 15.
     on any other self-addressed message.  The pre-vote types are excluded
     from (c) because their [Term] discipline is (a)'s; [own_raft_phys] has
     [preVote = false] anyway. *)
-Definition send_ok (id : w64) (s : nstate.t) (m : raftpb.Message.t)
+Definition send_ok {ext : ffi_syntax} (id : w64) (s : nstate.t) (m : raftpb.Message.t)
     (out : list msg.t) : Prop :=
   (∃ ty,
      (m.(raftpb.Message.Type') = MsgVote ∨ m.(raftpb.Message.Type') = MsgVoteResp) ∧
@@ -83,40 +83,32 @@ Definition send_ok (id : w64) (s : nstate.t) (m : raftpb.Message.t)
     lemmas here because a spec file states and does not prove
     (etc/check-module-discipline.py, F3). *)
 
-(** **Stated on [own_raft_bare], not [own_raft_phys]** (changed 2026-09-21).
+(** Stated on [own_raft_phys], for **any** [s] -- in particular one with a
+    log on loan to the caller ([nstate.lent]), which is [maybeSendAppend]'s situation:
+    it holds the page across this call and reads it afterwards.  [send]
+    touches [r.msgs], [r.msgsAfterAppend], [r.logger] and the tracing hook,
+    and *reads* [r.id] and [r.Term]; everything else in [s] -- the tracker's
+    progress map, the log pointer, the loan -- comes back as it went in, because
+    [send_msgs] changes only the outbox.
 
-    [send] touches [r.msgs], [r.msgsAfterAppend], [r.logger] and the tracing
-    hook, and *reads* [r.id] and [r.Term].  It does not touch the tracker
-    and it does not touch the log -- and on [own_raft_phys] there is no way
-    to say so, because that predicate hides the struct under [∃ rv] and so
-    re-existentialises both fields at every exit.  Its only caller that
-    cares is [maybeSendAppend], which holds, across this call, one voter's
-    [Progress] borrowed out of the tracker and one page of entries borrowed
-    out of the log; with [own_raft_phys] in the precondition the first is
-    *contradictory* (the [Progress] is already inside [own_tracker]) and
-    the second is *unavailable* (the page and [own_raftLog] cannot be held
-    at once -- [raftLog.entries] lends the page out of the log).  See
-    [inv_raft_phys.v]'s [own_raft_bare] and notes/false-statements.md,
-    2026-09-21.
-
-    So the tracker value [tv] and the log pointer [lg] are parameters, and
-    the postcondition returns them unchanged: that is the part of the
-    statement the caller needs, and it is exactly what the body does.  The
-    ten other call sites split with [own_raft_bare_split] and re-seal with
-    [own_raft_bare_join].  [cfg] is gone from the statement with the
-    tracker; [send] never looks at the configuration. *)
+    From 2026-09-21 to 2026-09-22 this was stated on a variant predicate,
+    [own_raft_bare], which cut the tracker and the log out of the struct so
+    that [maybeSendAppend] could hold a [Progress] and a page across the
+    call.  That is exactly the pattern notes/decisions.md ("Three layers")
+    now rules out: the fix was to make [nstate.t] say what the variant said
+    ([progress], [log], [log_lent]).  See notes/false-statements.md, 2026-09-21, for
+    why [own_raft_phys] as it then was could not state it. *)
 Definition wp_raft__send_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
-    (r : loc) (id : w64) (s : nstate.t) (f : func.t)
-    (tv : tracker.ProgressTracker.t) (lg : loc)
+    (cfg : gset w64) (r : loc) (id : w64) (s : nstate.t)
     (m : raftpb.Message.t) (out : list msg.t),
   m.(raftpb.Message.From') = W64 0 →
   send_ok id s m out →
-  {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_bare r id s f tv lg }}}
+  {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "send" #m
-  {{{ RET #(); own_raft_bare r id (send_msgs s out) f tv lg }}}.
+  {{{ RET #(); own_raft_phys cfg r id (send_msgs s out) }}}.
 
 Module Type SEND.
   Parameter wp_raft__send : wp_raft__send_body.

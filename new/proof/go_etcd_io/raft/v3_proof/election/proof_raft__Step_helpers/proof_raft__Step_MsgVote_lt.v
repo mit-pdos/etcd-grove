@@ -40,6 +40,8 @@ Implicit Type s : nstate.t.
     m.(raftpb.Message.From') ≠ W64 0 →
     (* this file: the incoming term is stale, so the message is dropped *)
     uint.Z m.(raftpb.Message.Term') < uint.Z s.(nstate.term) →
+    (* [r.step] matches the role and nothing is on loan *)
+    nstate_wf s →
     {{{ is_pkg_init raft ∗
         "Hphys" ∷ own_raft_phys cfg r id s ∗
         (* the message's [Context] is readable and is not the leader-transfer
@@ -50,16 +52,17 @@ Implicit Type s : nstate.t.
       r @! (go.PointerType raft.raft) @! "Step" #m
     {{{ (err : error.t) s', RET #err;
         "Hphys" ∷ own_raft_phys cfg r id s' ∗
+        "%Hwf'" ∷ ⌜ nstate_wf s' ⌝ ∗
         (* [recv] is whatever this branch consumed -- nothing, or the incoming
            message once or twice.  Naming its elements rather than the list
            lets [wp_raft__Step] discharge the [is_message] side of
            [own_raft_ghost_step] from the single fact it holds about [m]. *)
         "%Hrefines" ∷ ⌜ ∃ recv,
             (∀ m', m' ∈ recv → m' = abs_msg mtype.Vote m) ∧
-            step cfg id s recv s' ⌝ ∗
+            step cfg id (to_pstate s) recv (to_pstate s') ⌝ ∗
         "%Herr" ∷ ⌜ err = interface.nil ⌝ }}}.
   Proof.
-    intros Hty Hto Hterm Hfnz Hlt0.
+    intros Hty Hto Hterm Hfnz Hlt0 Hwf.
     wp_start_folded as "@". iNamed "Hphys". wp_start_unfold. wp_auto.
     assert (Hle : ¬ (uint.Z rv.(raft.raft.Term') < uint.Z m.(raftpb.Message.Term')))
       by (rewrite Hterm0; lia).
@@ -97,9 +100,9 @@ Implicit Type s : nstate.t.
           with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
           as "Hphys".
         { iApply (own_raft_phys_intro with
-          "Hlogger Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
+          "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
         iApply ("HΦ" $! interface.nil s). iFrame "Hphys".
-        iPureIntro. split; last done. exists [].
+        iPureIntro. split; first exact Hwf. split; last done. exists [].
         split; [recv_elem|apply step_drop].
   Qed.
 

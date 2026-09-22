@@ -41,6 +41,16 @@ There is a tutorial: @new/proof/PERENNIAL_PROOF_TUTORIAL.md, a reference:
 @new/proof/PERENNIAL_PROOF_REFERENCE.md, and notes on Iris proof mode:
 @new/proof/IRIS_PROOF_MODE.md. Style conventions are in `docs/style_guide.md`.
 
+**One ownership predicate per object, indexed by an abstract state precise
+enough for every spec.** For the raft struct that is `own_raft_phys r id s`
+with `s : nstate.t` (`new/proof/go_etcd_io/raft/v3_proof/election/defs.v`):
+every Go-level WP is stated on it. If a function cannot be specified that
+way, refine `nstate.t` and `own_raft_phys` until it can — do not add a
+variant predicate, a parameterised copy, or a spec on raw pieces of the
+struct. The protocol state the ghost state is about is a separate type
+(`pstate.t`), related to `nstate.t` by `nstate_rel`. See
+`notes/decisions.md`, "Three layers".
+
 ## Building
 
 `make ci` builds `new/should_build.vo`, which is what CI checks — a proof not

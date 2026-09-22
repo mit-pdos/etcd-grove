@@ -127,16 +127,16 @@ Collection W := sem + package_sem.
 Set Default Proof Using "W".
 
 Implicit Type γ : raft_election_names.
-Implicit Type s : nstate.t.
+Implicit Type s : pstate.t.
 
 (** ** Payoff: election safety.
 
     Two nodes that [Step] leaves in the leader role in the same term are the
     same node. *)
 Corollary raft_election_safety γ id1 id2 s1 s2 :
-  s1.(nstate.role) = role.Leader →
-  s2.(nstate.role) = role.Leader →
-  s1.(nstate.term) = s2.(nstate.term) →
+  s1.(pstate.role) = role.Leader →
+  s2.(pstate.role) = role.Leader →
+  s1.(pstate.term) = s2.(pstate.term) →
   own_raft_ghost (Σ:=Σ) γ id1 s1 -∗ own_raft_ghost γ id2 s2 -∗ ⌜ id1 = id2 ⌝.
 Proof.
   iIntros (Hl1 Hl2 Hterm) "H1 H2".

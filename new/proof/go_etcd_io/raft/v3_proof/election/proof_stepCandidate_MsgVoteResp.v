@@ -21,7 +21,7 @@ Import P.
   Proof.
     intros_ambient.
     intros cfg r id s m.
-    intros Hty Hto Hterm Hrole Hcfg.
+    intros Hty Hto Hterm Hrole Hcfg Hlent.
     wp_start as "Hphys". iNamed "Hphys". wp_auto.
     (* [state = StateCandidate ≠ StatePreCandidate], so [myVoteRespType] is
        [MsgVoteResp]. *)
@@ -38,7 +38,7 @@ Import P.
     iAssert (own_raft_phys cfg r id s)
       with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys".
     { rewrite /own_raft_phys. iExists rv, msgs, msgsAA, lok. iFrame "∗#%". }
-    wp_apply (P.wp_raft__poll with "[$Hphys]")
+    wp_apply (P.wp_raft__poll _ _ _ _ _ _ _ Hlent with "[$Hphys]")
       as "%g %rj0 %res (Hphys & %Hres & %Hwon & %Hlost)".
     (* unpack again: the [Infof] that follows reads [r.id] and [r.logger] *)
     iNamedSuffix "Hphys" "1".
@@ -67,11 +67,13 @@ Import P.
       wp_apply (P.wp_raft__becomeLeader with "[$Hphys]").
       { rewrite /= Hrole. congruence. }
       { done. }
+      { exact Hlent. }
       iIntros "Hphys". wp_auto.
       (* [bcastAppend] adds *some* list of [App]s from [id] at the current
          term -- not one per peer; see the lemma's comment in
          [inv_raft_phys.v]. *)
-      wp_apply (wp_raft__bcastAppend with "[$Hphys]") as "%ms [Hphys %Hms]".
+      wp_apply (wp_raft__bcastAppend with "[$Hphys]"); first exact Hlent.
+      iIntros (ms) "[Hphys %Hms]". try wp_auto.
       iApply ("HΦ" $! interface.nil _). iFrame "Hphys".
       (* The postcondition is [⌜∃ …⌝ ∗ ⌜err = nil⌝]; [iFrame "Hphys"] does
          *not* discharge the second, so [iPureIntro] leaves a conjunction. *)
@@ -93,7 +95,8 @@ Import P.
         iFrame "∗#%". }
       (* the [r.Term] the code passes is [s1]'s term *)
       rewrite Hterm1.
-      wp_apply (P.wp_raft__becomeFollower with "[$Hphys]") as "Hphys".
+      wp_apply (P.wp_raft__becomeFollower with "[$Hphys]"); first exact Hlent.
+      iIntros "Hphys". try wp_auto.
       iApply ("HΦ" $! interface.nil _). iFrame "Hphys".
       iPureIntro. split; last done. exists false, true, [].
       split_and!;

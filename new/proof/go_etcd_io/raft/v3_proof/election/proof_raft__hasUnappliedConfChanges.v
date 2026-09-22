@@ -56,14 +56,21 @@ Import P.
   Lemma wp_raft__hasUnappliedConfChanges : wp_raft__hasUnappliedConfChanges_body.
   Proof.
     intros_ambient.
-    intros r rv.
-    wp_start as "[Hr Hlog]".
-    iDestruct (own_raftLog_acc with "Hlog") as (prev sents uents) "[Hlog Hlogback]".
+    intros cfg r id s Hlent.
+    wp_start as "Hphys". iNamed "Hphys".
+    iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog") as "Hlog".
+    iRename "Hlog" into "Hlog0".
+    iDestruct (own_raftLog_acc with "Hlog0") as (prev sents uents) "[Hlog Hlogback]".
     iNamed "Hlog".
     wp_auto.
     wp_if_destruct.
     - (* [applied >= committed]: the range is empty and the answer is [false] *)
-      iApply "HΦ". iFrame "Hr". iApply "Hlogback". iExists lv. iFrame "∗#%".
+      iDestruct ("Hlogback" with "[Hl HStorage Huents Huents_cap]") as "Hlog0".
+      { iExists lv. iFrame "∗#%". }
+      iDestruct (own_raftLog_unless_close _ _ Hlent with "Hlog0") as "Hlog0".
+      iApply "HΦ".
+      iApply (own_raft_phys_intro with
+        "Hr Hlogger Hprs Htrk Hlog0 Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done.
     - (* re-seal the log: [scan]'s spec is stated on [own_raftLog_at] *)
       iAssert (own_raftLog_at rv.(raft.raft.raftLog') prev sents uents)
         with "[Hl HStorage Huents Huents_cap]" as "Hlog".
@@ -78,14 +85,14 @@ Import P.
                   with "[$Hlog]").
       { (* the callback, at [I := emp] *)
         iSplitR; first done.
-        iModIntro. iIntros (s es dq).
+        iModIntro. iIntros (sl es dq).
         wp_start as "(Hes & %HPes & _)".
         (* [wp_auto] stops at the [for_range]'s own counter, which clashes
-           with the body's [i]; allocate it by hand *)
+           with the body'sl [i]; allocate it by hand *)
         wp_auto. wp_alloc j_ptr as "j". wp_auto.
         iDestruct (slice_len_Z with "Hes") as %Hslen.
         iAssert (∃ (k m : w64),
-           "j" ∷ j_ptr ↦ k ∗ "i" ∷ i_ptr ↦ m ∗ "Hes" ∷ s ↦*{dq} es ∗
+           "j" ∷ j_ptr ↦ k ∗ "i" ∷ i_ptr ↦ m ∗ "Hes" ∷ sl ↦*{dq} es ∗
            "%Hk" ∷ ⌜ (0 ≤ sint.Z k ≤ Z.of_nat (length es))%Z ⌝)%I
           with "[j i Hes]" as "IH".
         { iFrame. iPureIntro. word. }
@@ -93,10 +100,10 @@ Import P.
         wp_if_destruct.
         + assert (∃ e, es !! Z.to_nat (sint.Z k) = Some e) as [e He]
             by (apply lookup_lt_is_Some_2; word).
-          (* the range construct's own read of [ents[j]] *)
+          (* the range construct'sl own read of [ents[j]] *)
           rewrite decide_True; last word.
           wp_apply (wp_load_slice_index (V:=raftpb.Entry.t) (t:=raftpb.Entry)
-                      s (sint.Z k) es dq e with "[$Hes]") as "Hes";
+                      sl (sint.Z k) es dq e with "[$Hes]") as "Hes";
             try first [ word | iPureIntro; exact He | tc_solve | done ].
           rewrite decide_True; last word.
           assert (e.(raftpb.Entry.Type') = EntryNormal) as HeT.
@@ -104,7 +111,7 @@ Import P.
             by eapply list_elem_of_lookup_2. }
           (* the two [ents[i].Type] reads load a *field*, so lend the
              element out rather than using [wp_load_slice_index] *)
-          iDestruct (own_slice_elem_acc (V:=raftpb.Entry.t) (sint.Z k) e s dq es
+          iDestruct (own_slice_elem_acc (V:=raftpb.Entry.t) (sint.Z k) e sl dq es
                        with "Hes") as "[Hel Hesback]"; [word | exact He | ].
           wp_auto.
           rewrite HeT /EntryNormal bool_decide_eq_false_2; last w32_ne.
@@ -121,7 +128,11 @@ Import P.
       iIntros "[Hlog _]".
       (* [scan] returned [nil], so the [Panicf] is dead and [found] is [false] *)
       wp_auto.
-      iApply "HΦ". iFrame "Hr". iApply "Hlogback". iFrame.
+      iDestruct ("Hlogback" with "Hlog") as "Hlog0".
+      iDestruct (own_raftLog_unless_close _ _ Hlent with "Hlog0") as "Hlog0".
+      iApply "HΦ".
+      iApply (own_raft_phys_intro with
+        "Hr Hlogger Hprs Htrk Hlog0 Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done.
   Qed.
 
 End RaftHasUnappliedConfChangesProof.

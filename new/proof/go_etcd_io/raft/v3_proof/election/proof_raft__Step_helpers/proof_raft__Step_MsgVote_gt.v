@@ -39,6 +39,8 @@ Implicit Type s : nstate.t.
     m.(raftpb.Message.From') ≠ W64 0 →
     (* this file: the incoming term is strictly higher, so [Step] steps down first *)
     uint.Z s.(nstate.term) < uint.Z m.(raftpb.Message.Term') →
+    (* [r.step] matches the role and nothing is on loan *)
+    nstate_wf s →
     {{{ is_pkg_init raft ∗
         "Hphys" ∷ own_raft_phys cfg r id s ∗
         (* the message's [Context] is readable and is not the leader-transfer
@@ -49,16 +51,18 @@ Implicit Type s : nstate.t.
       r @! (go.PointerType raft.raft) @! "Step" #m
     {{{ (err : error.t) s', RET #err;
         "Hphys" ∷ own_raft_phys cfg r id s' ∗
+        "%Hwf'" ∷ ⌜ nstate_wf s' ⌝ ∗
         (* [recv] is whatever this branch consumed -- nothing, or the incoming
            message once or twice.  Naming its elements rather than the list
            lets [wp_raft__Step] discharge the [is_message] side of
            [own_raft_ghost_step] from the single fact it holds about [m]. *)
         "%Hrefines" ∷ ⌜ ∃ recv,
             (∀ m', m' ∈ recv → m' = abs_msg mtype.Vote m) ∧
-            step cfg id s recv s' ⌝ ∗
+            step cfg id (to_pstate s) recv (to_pstate s') ⌝ ∗
         "%Herr" ∷ ⌜ err = interface.nil ⌝ }}}.
   Proof.
-    intros Hty Hto Hterm Hfnz Hgt0.
+    intros Hty Hto Hterm Hfnz Hgt0 Hwf.
+    pose proof Hwf as [Hsfw Hlent].
     wp_start_folded as "@". iNamed "Hphys". wp_start_unfold. wp_auto.
     assert (Hgt : uint.Z rv.(raft.raft.Term') < uint.Z m.(raftpb.Message.Term'))
       by (rewrite Hterm0; exact Hgt0).
@@ -101,13 +105,15 @@ Implicit Type s : nstate.t.
     iAssert (own_raft_phys cfg r id s)
       with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys".
     { iApply (own_raft_phys_intro with
-          "Hlogger Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
-    wp_apply (P.wp_raft__becomeFollower with "[$Hphys]") as "Hphys".
+          "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
+    wp_apply (P.wp_raft__becomeFollower _ _ _ _ _ _ Hlent with "[$Hphys]")
+      as "Hphys".
     (* the corresponding protocol step, recorded as a pure fact rather than
        taken on the ghost state: this lemma is ghost-free. *)
-    assert (step cfg id s [abs_msg mtype.Vote m]
-              (become_follower s m.(raftpb.Message.Term') (W64 0))) as Hstepdown.
-    { replace (W64 0) with
+    assert (step cfg id (to_pstate s) [abs_msg mtype.Vote m]
+              (to_pstate (become_follower s m.(raftpb.Message.Term') (W64 0)))) as Hstepdown.
+    { rewrite to_pstate_become_follower.
+      replace (W64 0) with
         (if from_leader (abs_msg mtype.Vote m).(msg.ty)
          then (abs_msg mtype.Vote m).(msg.from) else W64 0) by done.
       replace m.(raftpb.Message.Term') with (abs_msg mtype.Vote m).(msg.term)
@@ -123,12 +129,14 @@ Implicit Type s : nstate.t.
        [lead], so [canVote] holds. *)
     assert (Hne : m.(raftpb.Message.Term') ≠ s.(nstate.term)).
     { rewrite -Hterm0. intros Heq. rewrite Heq in Hgt. lia. }
-    rewrite /become_follower /= decide_False // in Hvote1 Hlead1.
+    rewrite /become_follower /reset_to /= decide_False // in Hvote1 Hlead1.
     rewrite Hvote1 bool_decide_eq_false_2; last congruence. wp_auto.
     rewrite Hvote1 bool_decide_eq_true_2 //. wp_auto.
     rewrite Hlead1 bool_decide_eq_true_2 //. wp_auto.
+    iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog1") as "Hlog1".
     wp_apply (wp_raftLog__lastEntryID with "[$Hlog1]") as "%lastID Hlog1".
     wp_apply (wp_raftLog__isUpToDate with "[$Hlog1]") as "%uptodate Hlog1".
+    iDestruct (own_raftLog_unless_close _ _ Hlent with "Hlog1") as "Hlog1".
     destruct uptodate.
     + (* the candidate's log is up to date: grant the vote *)
       wp_auto.
@@ -140,28 +148,28 @@ Implicit Type s : nstate.t.
       (* the protocol step: grant the vote.  The [VoteResp] it sends is no
          longer a separate output -- it is the growth of the outbox, which the
          [send] below has to match. *)
-      assert (step cfg id (become_follower s m.(raftpb.Message.Term') (W64 0))
+      assert (step cfg id (to_pstate (become_follower s m.(raftpb.Message.Term') (W64 0)))
                 [abs_msg mtype.Vote m]
-                (send_msgs ((become_follower s m.(raftpb.Message.Term') (W64 0))
-                              <| nstate.vote := m.(raftpb.Message.From') |>)
-                   [msg.mk mtype.VoteResp id m.(raftpb.Message.From')
-                      m.(raftpb.Message.Term') false])) as Hgrant.
-      { apply step_grant_vote; [done|exact Hto|done|done|].
-        rewrite /can_vote /become_follower /=. right.
+                (to_pstate
+                  (send_msgs ((become_follower s m.(raftpb.Message.Term') (W64 0))
+                                <| nstate.vote := m.(raftpb.Message.From') |>)
+                     [msg.mk mtype.VoteResp id m.(raftpb.Message.From')
+                        m.(raftpb.Message.Term') false]))) as Hgrant.
+      { rewrite to_pstate_send_msgs to_pstate_vote to_pstate_become_follower.
+        apply step_grant_vote; [done|exact Hto|done|done|].
+        rewrite /pcan_vote /pbecome_follower /=. right.
         split; [by rewrite decide_False|done]. }
       iAssert (own_raft_phys cfg r id (become_follower s m.(raftpb.Message.Term') (W64 0)))
         with "[Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1]"
         as "Hphys".
       { iApply (own_raft_phys_intro with
-          "Hlogger1 Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1");
-        unfold become_follower; simpl; try (rewrite decide_False; [|exact Hne]); done. }
+          "Hr1 Hlogger1 Hprs1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1");
+        unfold become_follower, reset_to; simpl; try (rewrite decide_False; [|exact Hne]); done. }
       (* [send] the granted vote response, then record the vote. *)
-      iDestruct (own_raft_bare_split with "Hphys") as (tvS lgS) "(Hphys & HtrkS & HlogS)".
       wp_apply (P.wp_raft__send with "[$Hphys]") as "Hphys".
       { done. }
       { left; exists mtype.VoteResp; split_and!;
           [by right | apply mtype_of_MsgVoteResp | done | w32_ne | done]. }
-      iDestruct (own_raft_bare_join with "Hphys HtrkS HlogS") as "Hphys".
       wp_hidden (iNamedSuffix "Hphys" "2").
       (* [m.Type = MsgVote], so the vote is recorded: [r.Vote := m.From]. *)
       rewrite Hty /MsgVote bool_decide_eq_true_2 //. wp_auto.
@@ -171,13 +179,17 @@ Implicit Type s : nstate.t.
            [msg.mk mtype.VoteResp id m.(raftpb.Message.From')
               m.(raftpb.Message.Term') false])).
       iSplitL "Hr2 Htrk2 Hlog2 Hmsgs2 Hmsgs_cap2 HmsgsAA2 HmsgsAA_cap2 Hmisc2".
-      { (* see [vote_grant_tail] for why this is not [own_raft_phys_intro] *)
-        rewrite /own_raft_phys /send_msgs /become_follower /=.
-        iExists _, msgs1, msgsAA1, lok1.
-        iEval (simpl) in "Htrk2".
-        iFrame "Hr2 Htrk2 Hlog2 Hmsgs2 Hmsgs_cap2 HmsgsAA2 HmsgsAA_cap2 Hmisc2 Hlogger2".
-        simpl in *. iPureIntro. first [done | (split_and!; done)]. }
-      iPureIntro. split; last done.
+      { (* the state is given explicitly: [send]'s postcondition states the
+           outbox with [send]'s form of the message *)
+        iApply (own_raft_phys_intro _ _ _
+          (send_msgs ((become_follower s m.(raftpb.Message.Term') (W64 0))
+                        <| nstate.vote := m.(raftpb.Message.From') |>)
+             [msg.mk mtype.VoteResp id m.(raftpb.Message.From')
+                m.(raftpb.Message.Term') false]) with
+          "Hr2 Hlogger2 Hprs2 Htrk2 Hlog2 Hmsgs2 Hmsgs_cap2 HmsgsAA2 HmsgsAA_cap2 Hmisc2");
+          done. }
+      iPureIntro. split; first exact (nstate_wf_become_follower _ _ _ Hlent).
+      split; last done.
       eexists ([abs_msg mtype.Vote m] ++ [abs_msg mtype.Vote m]).
       split.
       { recv_elem. }
@@ -199,20 +211,20 @@ Implicit Type s : nstate.t.
         with "[Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1]"
         as "Hphys".
       { iApply (own_raft_phys_intro with
-          "Hlogger1 Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1");
-        unfold become_follower; simpl; try (rewrite decide_False; [|exact Hne]); done. }
-      iDestruct (own_raft_bare_split with "Hphys") as (tvS lgS) "(Hphys & HtrkS & HlogS)".
+          "Hr1 Hlogger1 Hprs1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1");
+        unfold become_follower, reset_to; simpl; try (rewrite decide_False; [|exact Hne]); done. }
       wp_apply (P.wp_raft__send with "[$Hphys]") as "Hphys".
       { done. }
       { left; exists mtype.VoteResp; split_and!;
           [by right | apply mtype_of_MsgVoteResp | done | w32_ne | done]. }
-      iDestruct (own_raft_bare_join with "Hphys HtrkS HlogS") as "Hphys".
       iApply ("HΦ" $! interface.nil _). iFrame "Hphys".
-      iPureIntro. split; last done.
+      iPureIntro. split; first exact (nstate_wf_become_follower _ _ _ Hlent).
+      split; last done.
       eexists ([abs_msg mtype.Vote m] ++ [abs_msg mtype.Vote m]).
       split.
       { recv_elem. }
-      apply (step_stepdown_then_reject cfg id s (abs_msg mtype.Vote m));
+      rewrite to_pstate_send_msgs to_pstate_become_follower.
+      apply (step_stepdown_then_reject cfg id (to_pstate s) (abs_msg mtype.Vote m));
         [done|exact Hto|rewrite /abs_msg /= -Hterm0; exact Hgt].
   Qed.
 

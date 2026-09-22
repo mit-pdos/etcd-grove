@@ -73,16 +73,23 @@ End msg.
 Definition from_leader (ty : mtype.t) : bool :=
   match ty with mtype.App | mtype.Heartbeat => true | _ => false end.
 
-(** ** Abstract node state
+(** ** Protocol node state
+
+    [pstate.t] is the **protocol** state of one node: what the state machine
+    below and the ghost state [own_raft_ghost] are about, and nothing more.
+    It is *not* the abstraction [own_raft_phys] is indexed by -- that is the
+    physical abstract state [nstate.t] ([election/defs.v]), which carries
+    whatever the Go-level specs need (the [r.step] function, the progress
+    map, a lent log page) on top of these fields.  The two are connected by
+    [nstate_rel] ([election/defs.v]); [Step]'s spec is the one place that
+    crosses from one to the other.  See notes/decisions.md, "Three layers".
 
     [outbox] is the node's pending outgoing messages — the abstraction of the
     Go code's two queues, [r.msgs] and [r.msgsAfterAppend], together.  Keeping
     it in the state rather than as a separate output of [step] is what lets
-    every implementation-side spec below [Step] be stated in terms of
-    [own_raft_phys] alone, with no ghost state: "this function sent a
-    message" is just "the outbox grew". *)
+    "this function sent a message" be just "the outbox grew". *)
 
-Module nstate.
+Module pstate.
 Record t :=
   mk {
       term : w64;             (** [raft.Term] *)
@@ -94,7 +101,7 @@ Record t :=
     }.
 #[global] Instance settable : Settable _ :=
   settable! mk <term; vote; lead; role; votes; outbox>.
-End nstate.
+End pstate.
 
 Section model.
 
@@ -126,8 +133,8 @@ Definition rejected (votes : gmap w64 bool) : gset w64 :=
   dom (filter (λ '(_, v), v = false) votes).
 
 (** Putting messages on the network. *)
-Definition send_msgs (s : nstate.t) (ms : list msg.t) : nstate.t :=
-  s <| nstate.outbox := s.(nstate.outbox) ++ ms |>.
+Definition psend_msgs (s : pstate.t) (ms : list msg.t) : pstate.t :=
+  s <| pstate.outbox := s.(pstate.outbox) ++ ms |>.
 
 (** ** Role transitions
 
@@ -136,30 +143,30 @@ Definition send_msgs (s : nstate.t) (ms : list msg.t) : nstate.t :=
     [becomeX] wrappers then set [lead] and [state].  None of them sends, so
     all three carry the outbox across unchanged. *)
 
-Definition become_follower (s : nstate.t) (term lead : w64) : nstate.t :=
-  {| nstate.term := term;
-     nstate.vote := if decide (term = s.(nstate.term))
-                    then s.(nstate.vote) else W64 0;
-     nstate.lead := lead;
-     nstate.role := role.Follower;
-     nstate.votes := ∅;
-     nstate.outbox := s.(nstate.outbox) |}.
+Definition pbecome_follower (s : pstate.t) (term lead : w64) : pstate.t :=
+  {| pstate.term := term;
+     pstate.vote := if decide (term = s.(pstate.term))
+                    then s.(pstate.vote) else W64 0;
+     pstate.lead := lead;
+     pstate.role := role.Follower;
+     pstate.votes := ∅;
+     pstate.outbox := s.(pstate.outbox) |}.
 
-Definition become_candidate (s : nstate.t) : nstate.t :=
-  {| nstate.term := word.add s.(nstate.term) (W64 1);
-     nstate.vote := id;
-     nstate.lead := W64 0;
-     nstate.role := role.Candidate;
-     nstate.votes := ∅;
-     nstate.outbox := s.(nstate.outbox) |}.
+Definition pbecome_candidate (s : pstate.t) : pstate.t :=
+  {| pstate.term := word.add s.(pstate.term) (W64 1);
+     pstate.vote := id;
+     pstate.lead := W64 0;
+     pstate.role := role.Candidate;
+     pstate.votes := ∅;
+     pstate.outbox := s.(pstate.outbox) |}.
 
-Definition become_leader (s : nstate.t) : nstate.t :=
-  {| nstate.term := s.(nstate.term);
-     nstate.vote := s.(nstate.vote);
-     nstate.lead := id;
-     nstate.role := role.Leader;
-     nstate.votes := ∅;
-     nstate.outbox := s.(nstate.outbox) |}.
+Definition pbecome_leader (s : pstate.t) : pstate.t :=
+  {| pstate.term := s.(pstate.term);
+     pstate.vote := s.(pstate.vote);
+     pstate.lead := id;
+     pstate.role := role.Leader;
+     pstate.votes := ∅;
+     pstate.outbox := s.(pstate.outbox) |}.
 
 (** [raft.trk.RecordVote]: the first vote recorded for a node wins; later
     ones are dropped. *)
@@ -172,15 +179,15 @@ Definition record_vote (votes : gmap w64 bool) (from : w64) (v : bool)
     leader.  (The Go code additionally requires the candidate's log to be up
     to date, which can only turn a grant into a rejection; rejecting is
     always legal, so that check is invisible here.) *)
-Definition can_vote (s : nstate.t) (from : w64) : Prop :=
-  s.(nstate.vote) = from ∨ (s.(nstate.vote) = W64 0 ∧ s.(nstate.lead) = W64 0).
+Definition pcan_vote (s : pstate.t) (from : w64) : Prop :=
+  s.(pstate.vote) = from ∨ (s.(pstate.vote) = W64 0 ∧ s.(pstate.lead) = W64 0).
 
 (** ** The transition relation
 
     [step s recv s'] says: a node in state [s], making use of the
     already-sent messages [recv], may move to state [s'].  Messages the node
     itself sends are not a separate output: they are the growth of
-    [s'.(nstate.outbox)].
+    [s'.(pstate.outbox)].
 
     Reflexivity and transitivity are part of the relation so that a single
     Go function which performs several protocol steps (e.g. [campaign],
@@ -188,7 +195,7 @@ Definition can_vote (s : nstate.t) (from : w64) : Prop :=
     [MsgVoteResp] that both records a vote and wins the election) refines a
     single [step]. *)
 
-Inductive step : nstate.t → list msg.t → nstate.t → Prop :=
+Inductive step : pstate.t → list msg.t → pstate.t → Prop :=
 (** Structural rules. *)
 | step_refl s :
   step s [] s
@@ -201,10 +208,10 @@ Inductive step : nstate.t → list msg.t → nstate.t → Prop :=
     down.  It adopts the sender as leader exactly when the message is one
     only a leader sends. *)
 | step_higher_term m s :
-  uint.Z s.(nstate.term) < uint.Z m.(msg.term) →
+  uint.Z s.(pstate.term) < uint.Z m.(msg.term) →
   m.(msg.to) = id →
   step s [m]
-       (become_follower s m.(msg.term)
+       (pbecome_follower s m.(msg.term)
           (if from_leader m.(msg.ty) then m.(msg.from) else W64 0))
 
 (** [hup] / [campaign]: a non-leader starts an election.  It increments its
@@ -212,35 +219,35 @@ Inductive step : nstate.t → list msg.t → nstate.t → Prop :=
     self-addressed [MsgVoteResp] (which the Go code routes through
     [msgsAfterAppend]). *)
 | step_campaign s peers :
-  s.(nstate.role) ≠ role.Leader →
+  s.(pstate.role) ≠ role.Leader →
   id ∈ cfg →
   (** The term increments, and a term that wrapped round to one the node has
       already voted in would let it vote twice in that term -- which is
       exactly what election safety rests on not happening.  [Step]'s spec
       already carries this for a [MsgHup], because [send] panics on a zero
       term; here is where it is needed. *)
-  uint.Z s.(nstate.term) + 1 < 2 ^ 64 →
+  uint.Z s.(pstate.term) + 1 < 2 ^ 64 →
   peers ≡ₚ elements (cfg ∖ {[id]}) →
-  let s' := become_candidate s in
+  let s' := pbecome_candidate s in
   step s []
-       (send_msgs s'
-          ([msg.mk mtype.VoteResp id id s'.(nstate.term) false] ++
-           ((λ to, msg.mk mtype.Vote id to s'.(nstate.term) false) <$> peers)))
+       (psend_msgs s'
+          ([msg.mk mtype.VoteResp id id s'.(pstate.term) false] ++
+           ((λ to, msg.mk mtype.Vote id to s'.(pstate.term) false) <$> peers)))
 
 (** Granting a vote. *)
 | step_grant_vote m s :
   m.(msg.ty) = mtype.Vote →
   m.(msg.to) = id →
   (** [W64 0] is the Go code's [None], so a vote *for* it is not a vote at
-      all: [nstate.vote = W64 0] is how "has not voted this term" is written.
+      all: [pstate.vote = W64 0] is how "has not voted this term" is written.
       Without this, granting to [W64 0] and then granting again would be two
       votes in one term.  [Step]'s spec already requires it of a [MsgVote]. *)
   m.(msg.from) ≠ W64 0 →
-  m.(msg.term) = s.(nstate.term) →
-  can_vote s m.(msg.from) →
+  m.(msg.term) = s.(pstate.term) →
+  pcan_vote s m.(msg.from) →
   step s [m]
-       (send_msgs (s <| nstate.vote := m.(msg.from) |>)
-          [msg.mk mtype.VoteResp id m.(msg.from) s.(nstate.term) false])
+       (psend_msgs (s <| pstate.vote := m.(msg.from) |>)
+          [msg.mk mtype.VoteResp id m.(msg.from) s.(pstate.term) false])
 
 (** Refusing a vote.  Always legal, so the Go code's extra conditions
     ([isUpToDate], and the [m.Term < r.Term] case which drops the message
@@ -249,18 +256,18 @@ Inductive step : nstate.t → list msg.t → nstate.t → Prop :=
   m.(msg.ty) = mtype.Vote →
   m.(msg.to) = id →
   step s [m]
-       (send_msgs s
-          [msg.mk mtype.VoteResp id m.(msg.from) s.(nstate.term) true])
+       (psend_msgs s
+          [msg.mk mtype.VoteResp id m.(msg.from) s.(pstate.term) true])
 
 (** [stepCandidate] / [poll]: record a vote response for the current term. *)
 | step_record_vote m s :
   m.(msg.ty) = mtype.VoteResp →
   m.(msg.to) = id →
-  m.(msg.term) = s.(nstate.term) →
-  s.(nstate.role) = role.Candidate →
+  m.(msg.term) = s.(pstate.term) →
+  s.(pstate.role) = role.Candidate →
   step s [m]
-       (s <| nstate.votes :=
-              record_vote s.(nstate.votes) m.(msg.from) (negb m.(msg.reject)) |>)
+       (s <| pstate.votes :=
+              record_vote s.(pstate.votes) m.(msg.from) (negb m.(msg.reject)) |>)
 
 (** Winning: a quorum of grants makes the candidate leader, and it
     immediately broadcasts appends.
@@ -268,7 +275,7 @@ Inductive step : nstate.t → list msg.t → nstate.t → Prop :=
     The sends are deliberately loose: **any** list of [App] messages from
     [id] at the current term, including none at all.  An earlier version
     required exactly one per peer, i.e.
-    [(λ to, msg.mk mtype.App id to s.(nstate.term) false) <$> peers] for
+    [(λ to, msg.mk mtype.App id to s.(pstate.term) false) <$> peers] for
     [peers ≡ₚ elements (cfg ∖ {[id]})], and that is **not what the code
     does**: [bcastAppend] reaches [maybeSendAppend], which sends a [MsgApp]
     only when the log and the peer's [Progress] allow it, and otherwise
@@ -282,20 +289,20 @@ Inductive step : nstate.t → list msg.t → nstate.t → Prop :=
     uses an [App] through [step_higher_term], which cares about its term and
     that a leader sent it — both of which are still pinned here. *)
 | step_win s ms :
-  s.(nstate.role) = role.Candidate →
-  is_quorum (granted s.(nstate.votes)) →
+  s.(pstate.role) = role.Candidate →
+  is_quorum (granted s.(pstate.votes)) →
   Forall (λ m, m.(msg.ty) = mtype.App ∧ m.(msg.from) = id ∧
-               m.(msg.term) = s.(nstate.term)) ms →
-  step s [] (send_msgs (become_leader s) ms)
+               m.(msg.term) = s.(pstate.term)) ms →
+  step s [] (psend_msgs (pbecome_leader s) ms)
 
 (** Losing: a quorum of rejections sends the candidate back to follower in
     the same term. *)
 | step_lose s :
-  s.(nstate.role) = role.Candidate →
+  s.(pstate.role) = role.Candidate →
   (** Go's [MajorityConfig.VoteResult] returns [VoteLost] when
       [votedCnt + missing < q], i.e. when the candidate **cannot still win** --
       not when a majority has rejected it.  The two differ, and the earlier
-      premise [is_quorum (rejected s.(nstate.votes))] was therefore **false of
+      premise [is_quorum (rejected s.(pstate.votes))] was therefore **false of
       the code**: with 4 voters, 2 rejecting and 2 yet to vote, the count is
       [0 + 2 < 3] so Go says [VoteLost], while the 2 rejections are not a
       quorum ([4 < 2*2] is false).
@@ -308,18 +315,18 @@ Inductive step : nstate.t → list msg.t → nstate.t → Prop :=
 
       Weakening it is safe: [step_lose] moves a candidate to follower at the
       same term and creates no leader, so election safety is untouched. *)
-  ¬ is_quorum (cfg ∖ rejected s.(nstate.votes)) →
-  step s [] (become_follower s s.(nstate.term) (W64 0))
+  ¬ is_quorum (cfg ∖ rejected s.(pstate.votes)) →
+  step s [] (pbecome_follower s s.(pstate.term) (W64 0))
 
 (** [Ready] hands the pending messages to the transport, emptying the queues.
     Dropping messages from one's own outbox is always legal: the [is_message]
     facts handed out for them are persistent and survive.  [Ready] is out of
     scope for the election proof, but without this rule the model's outbox
-    could only ever grow, which [own_raft_phys] could not refine past the
-    first drain. *)
+    could only ever grow, which the physical state could not refine past
+    the first drain. *)
 | step_drain s o' :
-  o' ⊆+ s.(nstate.outbox) →
-  step s [] (s <| nstate.outbox := o' |>)
+  o' ⊆+ s.(pstate.outbox) →
+  step s [] (s <| pstate.outbox := o' |>)
 .
 
 End model.
@@ -348,9 +355,9 @@ End model.
     What holds a node to one vote per term is [vote_hist_ok], the pure
     invariant inside [own_raft_ghost] tying the history to the current
     [(term, vote)]: the history mentions only terms the node has reached, and
-    at the current term it agrees with [nstate.vote] — where [W64 0], the Go
+    at the current term it agrees with [pstate.vote] — where [W64 0], the Go
     code's [None], means the term is absent from the history altogether.
-    Every rule that clears [nstate.vote] raises [nstate.term] past everything
+    Every rule that clears [pstate.vote] raises [pstate.term] past everything
     in the history, which is exactly why [step_campaign] needs its no-wrap
     premise and [step_grant_vote] its [from ≠ 0]. *)
 
@@ -459,26 +466,26 @@ Qed.
 
 (** *** A node's protocol state *)
 
-Definition vote_hist_ok (voted : gmap w64 w64) (s : nstate.t) : Prop :=
-  (∀ t, is_Some (voted !! t) → uint.Z t ≤ uint.Z s.(nstate.term)) ∧
-  voted !! s.(nstate.term) =
-    (if decide (s.(nstate.vote) = W64 0) then None else Some s.(nstate.vote)).
+Definition vote_hist_ok (voted : gmap w64 w64) (s : pstate.t) : Prop :=
+  (∀ t, is_Some (voted !! t) → uint.Z t ≤ uint.Z s.(pstate.term)) ∧
+  voted !! s.(pstate.term) =
+    (if decide (s.(pstate.vote) = W64 0) then None else Some s.(pstate.vote)).
 
-(** [become_follower] keeps the vote only when the term does not move.
+(** [pbecome_follower] keeps the vote only when the term does not move.
     Rewriting with these before unfolding keeps the nested [decide] out of
     the goal, where [rewrite decide_False] would pick the wrong one. *)
-Local Lemma become_follower_vote_ne s term lead :
-  term ≠ s.(nstate.term) → (become_follower s term lead).(nstate.vote) = W64 0.
-Proof. intros Hne. rewrite /become_follower /=. rewrite decide_False //. Qed.
+Local Lemma pbecome_follower_vote_ne s term lead :
+  term ≠ s.(pstate.term) → (pbecome_follower s term lead).(pstate.vote) = W64 0.
+Proof. intros Hne. rewrite /pbecome_follower /=. rewrite decide_False //. Qed.
 
-Local Lemma become_follower_vote_same s lead :
-  (become_follower s s.(nstate.term) lead).(nstate.vote) = s.(nstate.vote).
-Proof. rewrite /become_follower /=. rewrite decide_True //. Qed.
+Local Lemma pbecome_follower_vote_same s lead :
+  (pbecome_follower s s.(pstate.term) lead).(pstate.vote) = s.(pstate.vote).
+Proof. rewrite /pbecome_follower /=. rewrite decide_True //. Qed.
 
 (** A term the node has not reached yet is free to vote in. *)
 Lemma vote_hist_fresh voted s t :
   vote_hist_ok voted s →
-  uint.Z s.(nstate.term) < uint.Z t →
+  uint.Z s.(pstate.term) < uint.Z t →
   voted !! t = None.
 Proof.
   intros [Hdom _] Hlt. destruct (voted !! t) eqn:Ht; last done.
@@ -489,31 +496,31 @@ Qed.
     the outbox, the tally or the role preserves it by [reflexivity]. *)
 Local Lemma vote_hist_ok_eq voted s1 s2 :
   vote_hist_ok voted s1 →
-  s2.(nstate.term) = s1.(nstate.term) →
-  s2.(nstate.vote) = s1.(nstate.vote) →
+  s2.(pstate.term) = s1.(pstate.term) →
+  s2.(pstate.vote) = s1.(pstate.vote) →
   vote_hist_ok voted s2.
 Proof. rewrite /vote_hist_ok. intros H -> ->. exact H. Qed.
 
 Definition leader_wit γ id s : iProp Σ :=
-  match s.(nstate.role) with
-  | role.Leader => is_leader γ id s.(nstate.term)
+  match s.(pstate.role) with
+  | role.Leader => is_leader γ id s.(pstate.term)
   | _ => True%I
   end.
 
 Global Instance leader_wit_pers γ id s : Persistent (leader_wit γ id s).
-Proof. rewrite /leader_wit. destruct (s.(nstate.role)); apply _. Qed.
+Proof. rewrite /leader_wit. destruct (s.(pstate.role)); apply _. Qed.
 Global Instance leader_wit_timeless γ id s : Timeless (leader_wit γ id s).
-Proof. rewrite /leader_wit. destruct (s.(nstate.role)); apply _. Qed.
+Proof. rewrite /leader_wit. destruct (s.(pstate.role)); apply _. Qed.
 
-Definition own_raft_ghost γ (id : w64) (s : nstate.t) : iProp Σ :=
+Definition own_raft_ghost γ (id : w64) (s : pstate.t) : iProp Σ :=
   ∃ γv voted,
     "%Hname"  ∷ ⌜ γ.(re_votes) !! id = Some γv ⌝ ∗
     "%Hidnz"  ∷ ⌜ id ≠ W64 0 ⌝ ∗
     "Hvoted"  ∷ ghost_map_auth γv 1 voted ∗
     "%Hhist"  ∷ ⌜ vote_hist_ok voted s ⌝ ∗
     "#Hfrags" ∷ ([∗ map] t ↦ c ∈ voted, is_vote γ id t c) ∗
-    "#Hout"   ∷ ([∗ list] m ∈ s.(nstate.outbox), is_message γ m) ∗
-    "#Htally" ∷ ([∗ set] v ∈ granted s.(nstate.votes), is_vote γ v s.(nstate.term) id) ∗
+    "#Hout"   ∷ ([∗ list] m ∈ s.(pstate.outbox), is_message γ m) ∗
+    "#Htally" ∷ ([∗ set] v ∈ granted s.(pstate.votes), is_vote γ v s.(pstate.term) id) ∗
     "#Hlead"  ∷ leader_wit γ id s.
 
 Global Instance own_raft_ghost_timeless γ id s : Timeless (own_raft_ghost γ id s).
@@ -525,8 +532,8 @@ Lemma own_raft_ghost_intro γ id s γv voted :
   ghost_map_auth γv 1 voted -∗
   ⌜ vote_hist_ok voted s ⌝ -∗
   ([∗ map] t ↦ c ∈ voted, is_vote γ id t c) -∗
-  ([∗ list] m ∈ s.(nstate.outbox), is_message γ m) -∗
-  ([∗ set] v ∈ granted s.(nstate.votes), is_vote γ v s.(nstate.term) id) -∗
+  ([∗ list] m ∈ s.(pstate.outbox), is_message γ m) -∗
+  ([∗ set] v ∈ granted s.(pstate.votes), is_vote γ v s.(pstate.term) id) -∗
   leader_wit γ id s -∗
   own_raft_ghost γ id s.
 Proof.
@@ -546,12 +553,12 @@ Qed.
     entailment, not an update: [own_raft_ghost] carries the [is_message]s
     directly rather than deriving them from an invariant. *)
 Lemma own_raft_ghost_outbox γ id s :
-  own_raft_ghost γ id s -∗ ([∗ list] m ∈ s.(nstate.outbox), is_message γ m).
+  own_raft_ghost γ id s -∗ ([∗ list] m ∈ s.(pstate.outbox), is_message γ m).
 Proof. iIntros "(% & % & _ & _ & _ & _ & _ & #H & _)". iFrame "#". Qed.
 
 Lemma own_raft_ghost_is_leader γ id s :
-  s.(nstate.role) = role.Leader →
-  own_raft_ghost γ id s -∗ is_leader γ id s.(nstate.term).
+  s.(pstate.role) = role.Leader →
+  own_raft_ghost γ id s -∗ is_leader γ id s.(pstate.term).
 Proof.
   iIntros (Hrole) "(% & % & _ & _ & _ & _ & _ & _ & _ & #H)".
   rewrite /leader_wit Hrole. iFrame "#".
@@ -621,12 +628,12 @@ Proof.
     iIntros "_ Hown".
     iDestruct "Hown" as (γv voted)
       "(%Hname & %Hidnz & Hvoted & %Hhist & #Hfrags & #Hout & #Htally & #Hlead)".
-    assert (Hne : m.(msg.term) ≠ s.(nstate.term)).
+    assert (Hne : m.(msg.term) ≠ s.(pstate.term)).
     { intros Heq. rewrite Heq in Hlt. lia. }
     pose proof Hhist as Hh; destruct Hh as [Hdom Heq].
-    assert (Hhist' : vote_hist_ok voted (become_follower s m.(msg.term)
+    assert (Hhist' : vote_hist_ok voted (pbecome_follower s m.(msg.term)
                        (if from_leader m.(msg.ty) then m.(msg.from) else W64 0))).
-    { rewrite /vote_hist_ok (become_follower_vote_ne _ _ _ Hne).
+    { rewrite /vote_hist_ok (pbecome_follower_vote_ne _ _ _ Hne).
       split.
       - simpl. intros t Ht. specialize (Hdom t Ht). lia.
       - simpl. rewrite ?decide_True //.
@@ -635,25 +642,25 @@ Proof.
     iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
              with "Hvoted [] Hfrags [] [] []").
     + iPureIntro. exact Hhist'.
-    + by rewrite /become_follower /=.
-    + rewrite /become_follower /= granted_empty big_sepS_empty //.
-    + rewrite /leader_wit /become_follower /=. done.
+    + by rewrite /pbecome_follower /=.
+    + rewrite /pbecome_follower /= granted_empty big_sepS_empty //.
+    + rewrite /leader_wit /pbecome_follower /=. done.
 
   - (* step_campaign: the term goes up by one, so it is fresh, and the node
        votes for itself there *)
     iIntros "_ Hown".
     iDestruct "Hown" as (γv voted)
       "(%Hname & %Hidnz & Hvoted & %Hhist & #Hfrags & #Hout & #Htally & #Hlead)".
-    set (t' := word.add s.(nstate.term) (W64 1)).
-    assert (Ht' : uint.Z t' = uint.Z s.(nstate.term) + 1) by (subst t'; word).
-    assert (Hcterm : (become_candidate id s).(nstate.term) = t') by reflexivity.
-    assert (Hcvote : (become_candidate id s).(nstate.vote) = id) by reflexivity.
+    set (t' := word.add s.(pstate.term) (W64 1)).
+    assert (Ht' : uint.Z t' = uint.Z s.(pstate.term) + 1) by (subst t'; word).
+    assert (Hcterm : (pbecome_candidate id s).(pstate.term) = t') by reflexivity.
+    assert (Hcvote : (pbecome_candidate id s).(pstate.vote) = id) by reflexivity.
     assert (Hfree : voted !! t' = None).
     { eapply (vote_hist_fresh voted s); [done|lia]. }
     iMod (ghost_map_insert_persist t' id Hfree with "Hvoted") as "[Hvoted #Hself]".
     iAssert (is_vote γ id t' id) as "#Hisvote".
     { iExists γv. by iFrame "#". }
-    assert (Hhist' : vote_hist_ok (<[t' := id]> voted) (become_candidate id s)).
+    assert (Hhist' : vote_hist_ok (<[t' := id]> voted) (pbecome_candidate id s)).
     { destruct Hhist as [Hdom _]. rewrite /vote_hist_ok Hcterm Hcvote. split.
       - intros t [c Hc]. destruct (decide (t = t')) as [->|Hne]; first lia.
         assert (Hne' : t' ≠ t) by congruence.
@@ -665,14 +672,14 @@ Proof.
              with "Hvoted [] [] [] [] []").
     + iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist'); reflexivity.
     + rewrite big_sepM_insert //. by iFrame "#".
-    + rewrite /send_msgs /become_candidate /=.
+    + rewrite /psend_msgs /pbecome_candidate /=.
       rewrite big_sepL_app. iSplitR; [iFrame "#"|].
       rewrite big_sepL_cons. iSplitR.
       * by iApply is_message_grant.
       * rewrite big_sepL_fmap. iApply big_sepL_intro.
         iIntros "!> %k %x %Hk". by iApply is_message_triv.
-    + rewrite /send_msgs /become_candidate /= granted_empty big_sepS_empty //.
-    + rewrite /leader_wit /send_msgs /become_candidate /=. done.
+    + rewrite /psend_msgs /pbecome_candidate /= granted_empty big_sepS_empty //.
+    + rewrite /leader_wit /psend_msgs /pbecome_candidate /=. done.
 
   - (* step_grant_vote: either the node has already voted this way, or the
        current term is free in the history *)
@@ -680,34 +687,34 @@ Proof.
     iDestruct "Hown" as (γv voted)
       "(%Hname & %Hidnz & Hvoted & %Hhist & #Hfrags & #Hout & #Htally & #Hlead)".
     iAssert (|==> ∃ voted', ghost_map_auth γv 1 voted' ∗
-                  ⌜ vote_hist_ok voted' (s <| nstate.vote := m.(msg.from) |>) ⌝ ∗
+                  ⌜ vote_hist_ok voted' (s <| pstate.vote := m.(msg.from) |>) ⌝ ∗
                   ([∗ map] t ↦ c ∈ voted', is_vote γ id t c) ∗
-                  is_vote γ id s.(nstate.term) m.(msg.from))%I
+                  is_vote γ id s.(pstate.term) m.(msg.from))%I
       with "[Hvoted]" as ">(%voted' & Hvoted & %Hhist' & #Hfrags' & #Hgrant)".
     { destruct Hcan as [Hsame | [Hnovote _]].
       - (* already voted for this candidate *)
         destruct Hhist as [Hdom Heq].
-        assert (Hvnz : s.(nstate.vote) ≠ W64 0) by (rewrite Hsame; exact Hfrom).
-        assert (Hlook : voted !! s.(nstate.term) = Some m.(msg.from)).
+        assert (Hvnz : s.(pstate.vote) ≠ W64 0) by (rewrite Hsame; exact Hfrom).
+        assert (Hlook : voted !! s.(pstate.term) = Some m.(msg.from)).
         { rewrite Heq decide_False //. by rewrite Hsame. }
         iExists voted. iFrame "Hvoted Hfrags".
         iDestruct (big_sepM_lookup _ _ _ _ Hlook with "Hfrags") as "#Hone".
         iFrame "Hone". iPureIntro.
         split; [exact Hdom|]. simpl. rewrite -Hsame. exact Heq.
       - (* first vote of this term *)
-        assert (Hfree : voted !! s.(nstate.term) = None).
+        assert (Hfree : voted !! s.(pstate.term) = None).
         { destruct Hhist as [_ Heq]. rewrite Heq decide_True //. }
-        iMod (ghost_map_insert_persist s.(nstate.term) m.(msg.from) Hfree
+        iMod (ghost_map_insert_persist s.(pstate.term) m.(msg.from) Hfree
                with "Hvoted") as "[Hvoted #Hnew]".
-        iAssert (is_vote γ id s.(nstate.term) m.(msg.from)) as "#Hisvote".
+        iAssert (is_vote γ id s.(pstate.term) m.(msg.from)) as "#Hisvote".
         { iExists γv. by iFrame "#". }
-        iModIntro. iExists (<[s.(nstate.term) := m.(msg.from)]> voted).
+        iModIntro. iExists (<[s.(pstate.term) := m.(msg.from)]> voted).
         iFrame "Hvoted Hisvote".
         iSplitR.
         + iPureIntro. destruct Hhist as [Hdom _]. split.
-          * simpl. intros t [c Hc]. destruct (decide (t = s.(nstate.term)))
+          * simpl. intros t [c Hc]. destruct (decide (t = s.(pstate.term)))
               as [->|Hne]; first lia.
-            assert (Hne' : s.(nstate.term) ≠ t) by congruence.
+            assert (Hne' : s.(pstate.term) ≠ t) by congruence.
             rewrite lookup_insert_ne // in Hc.
             unshelve epose proof (Hdom t _) as Hle; [by eexists|]. lia.
           * simpl. rewrite lookup_insert_eq decide_False //.
@@ -716,10 +723,10 @@ Proof.
     iApply (own_raft_ghost_intro _ _ _ γv voted' Hname Hidnz
              with "Hvoted [] Hfrags' [] [] []").
     + iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist'); reflexivity.
-    + rewrite /send_msgs /=. rewrite big_sepL_app. iSplitR; [iFrame "#"|].
+    + rewrite /psend_msgs /=. rewrite big_sepL_app. iSplitR; [iFrame "#"|].
       rewrite big_sepL_singleton. by iApply is_message_grant.
-    + rewrite /send_msgs /=. iFrame "#".
-    + rewrite /leader_wit /send_msgs /=. iFrame "#".
+    + rewrite /psend_msgs /=. iFrame "#".
+    + rewrite /leader_wit /psend_msgs /=. iFrame "#".
 
   - (* step_reject_vote: a rejection carries nothing *)
     iIntros "_ Hown".
@@ -729,10 +736,10 @@ Proof.
     iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
              with "Hvoted [] Hfrags [] [] []").
     + iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
-    + rewrite /send_msgs /=. rewrite big_sepL_app. iSplitR; [iFrame "#"|].
+    + rewrite /psend_msgs /=. rewrite big_sepL_app. iSplitR; [iFrame "#"|].
       rewrite big_sepL_singleton. by iApply is_message_reject.
-    + rewrite /send_msgs /=. iFrame "#".
-    + rewrite /leader_wit /send_msgs /=. iFrame "#".
+    + rewrite /psend_msgs /=. iFrame "#".
+    + rewrite /leader_wit /psend_msgs /=. iFrame "#".
 
   - (* step_record_vote: a granting response is backed by the voter's vote *)
     iIntros "Hrecv Hown".
@@ -757,37 +764,37 @@ Proof.
     iIntros "_ Hown".
     iDestruct "Hown" as (γv voted)
       "(%Hname & %Hidnz & Hvoted & %Hhist & #Hfrags & #Hout & #Htally & #Hlead)".
-    iAssert (is_leader γ id s.(nstate.term)) as "#Hnewlead".
-    { iExists (granted s.(nstate.votes)). by iFrame "#". }
+    iAssert (is_leader γ id s.(pstate.term)) as "#Hnewlead".
+    { iExists (granted s.(pstate.votes)). by iFrame "#". }
     iModIntro.
     iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
              with "Hvoted [] Hfrags [] [] []").
     + iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
-    + rewrite /send_msgs /become_leader /=. rewrite big_sepL_app.
+    + rewrite /psend_msgs /pbecome_leader /=. rewrite big_sepL_app.
       iSplitR; [iFrame "#"|].
       iApply big_sepL_intro. iIntros "!> %k %x %Hk".
       iApply is_message_triv.
       destruct (Forall_lookup_1 _ _ _ _ Hms Hk) as (Hty & _).
       rewrite Hty. done.
-    + rewrite /send_msgs /become_leader /= granted_empty big_sepS_empty //.
-    + rewrite /leader_wit /send_msgs /become_leader /=. iFrame "#".
+    + rewrite /psend_msgs /pbecome_leader /= granted_empty big_sepS_empty //.
+    + rewrite /leader_wit /psend_msgs /pbecome_leader /=. iFrame "#".
 
   - (* step_lose: back to follower in the same term, so the vote stands *)
     iIntros "_ Hown".
     iDestruct "Hown" as (γv voted)
       "(%Hname & %Hidnz & Hvoted & %Hhist & #Hfrags & #Hout & #Htally & #Hlead)".
     assert (Hhist' : vote_hist_ok voted
-                       (become_follower s s.(nstate.term) (W64 0))).
+                       (pbecome_follower s s.(pstate.term) (W64 0))).
     { destruct Hhist as [Hdom Heq].
-      rewrite /vote_hist_ok become_follower_vote_same.
+      rewrite /vote_hist_ok pbecome_follower_vote_same.
       split; simpl; [done|exact Heq]. }
     iModIntro.
     iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
              with "Hvoted [] Hfrags [] [] []").
     + iPureIntro. exact Hhist'.
-    + by rewrite /become_follower /=.
-    + rewrite /become_follower /= granted_empty big_sepS_empty //.
-    + rewrite /leader_wit /become_follower /=. done.
+    + by rewrite /pbecome_follower /=.
+    + rewrite /pbecome_follower /= granted_empty big_sepS_empty //.
+    + rewrite /leader_wit /pbecome_follower /=. done.
 
   - (* step_drain: the messages kept are messages that were there *)
     iIntros "_ Hown".
@@ -811,9 +818,9 @@ Qed.
     what rules that out: a fresh ghost state for any set of nodes, each in the
     initial protocol state. *)
 
-Definition init_nstate : nstate.t :=
-  {| nstate.term := W64 0; nstate.vote := W64 0; nstate.lead := W64 0;
-     nstate.role := role.Follower; nstate.votes := ∅; nstate.outbox := [] |}.
+Definition init_pstate : pstate.t :=
+  {| pstate.term := W64 0; pstate.vote := W64 0; pstate.lead := W64 0;
+     pstate.role := role.Follower; pstate.votes := ∅; pstate.outbox := [] |}.
 
 Local Lemma alloc_vote_maps (ids : gset w64) :
   ⊢ |==> ∃ (names : gmap w64 gname), ⌜ dom names = ids ⌝ ∗
@@ -832,7 +839,7 @@ Qed.
 Lemma own_raft_ghost_alloc (cfg : gset w64) (ids : gset w64) :
   W64 0 ∉ ids →
   ⊢ |==> ∃ γ, ⌜ γ.(re_cfg) = cfg ⌝ ∗
-      [∗ set] id ∈ ids, own_raft_ghost γ id init_nstate.
+      [∗ set] id ∈ ids, own_raft_ghost γ id init_pstate.
 Proof.
   iIntros (Hnz).
   iMod (alloc_vote_maps ids) as (names Hdom) "Hm".

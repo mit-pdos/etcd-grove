@@ -129,3 +129,189 @@ Proof.
 Qed.
 
 End proof.
+
+(** * The physical abstract state
+
+    [nstate.t] is what [own_raft_phys r id s] ([inv_raft_phys.v]) is indexed
+    by: the **most abstract description of the raft struct and the heap
+    hanging off it that still lets every Go-level spec be stated on
+    [own_raft_phys] alone**.  It is the first of three layers
+    (notes/decisions.md, "Three layers"):
+
+      Go code and heap  --own_raft_phys-->  [nstate.t]
+      [nstate.t]        --nstate_rel----->  [pstate.t]  (election_protocol.v)
+      [pstate.t]        --own_raft_ghost->  protocol properties
+
+    **The rule.**  If a function cannot be specified with [own_raft_phys],
+    refine [nstate.t] (and [own_raft_phys] with it) until it can.  Do *not*
+    introduce a variant predicate -- a second ownership predicate for the
+    struct, or one with an extra parameter -- for one caller's benefit.
+    Until 2026-09-22 there were three ([own_raft_phys_at] with a free
+    [r.step], [own_raft_bare] and [own_raft_notrk] with the tracker and/or the
+    log cut out), and every spec stated on one of them was a spec its callers
+    had to convert into and out of.  The three fields below that are not
+    protocol state replace them:
+
+    - [stepfn] is [r.step].  [becomeFollower] writes it *before* calling
+      [reset], and [newRaft] calls [becomeFollower] while it is still nil,
+      so it cannot be a function of [role].
+    - [progress] is the progress map, id to [*Progress].  Nothing on the
+      election path inserts into or deletes from it, so it is stable across
+      every call, and a proof that borrows one peer's [Progress] can hand it
+      back before a call and borrow it again after, at the same key.
+    - [log] is [r.raftLog], the log's location (it never changes).
+    - [lent] says the tracker's heap and the log are **on loan to the
+      caller**: at [Some tv], [own_raft_phys] owns neither, pins
+      [r.trk = tv], and whoever set it holds [own_tracker tv _] and the log
+      (whole, or as the page [raftLog.entries] lends plus the wand back)
+      outside the predicate.  Two callers need this.  [maybeSendAppend]
+      holds one peer's [Progress] *and* a page of entries across [r.send]:
+      [pr.SentEntries] needs the facts it learned about that [Progress]
+      before the send, and [payloadsSize(ents)] reads the page after it.
+      [appendEntry] holds the log open at a fixed split across
+      [increaseUncommittedSize] -- the split is what relates the
+      [lastIndex()] it read to the [append] it does next.  Pinning [log]
+      and the tracker value is what lets either of them know, after the
+      call, that what it holds is still the struct's.  A function that
+      touches the tracker or the log says so with the premise
+      [s.(nstate.lent) = None].  (This is [own_raft_bare], 2026-09-21,
+      moved into the state where it belongs.)
+
+    The first six fields are exactly [pstate.t]'s, with the same names, so
+    that a spec's [s.(nstate.term)] reads the same as it always did. *)
+Module nstate.
+Section defn.
+Context {ext : ffi_syntax}.
+Record t :=
+  mk {
+      term : w64;
+      vote : w64;
+      lead : w64;
+      role : role.t;
+      votes : gmap w64 bool;
+      outbox : list msg.t;
+      stepfn : func.t;                (** [r.step] *)
+      progress : gmap w64 loc;        (** [r.trk.Progress], as a map *)
+      log : loc;                      (** [r.raftLog] *)
+      lent : option tracker.ProgressTracker.t;
+                                      (** tracker heap and log on loan *)
+    }.
+End defn.
+#[global] Instance settable {ext : ffi_syntax} : Settable (@t ext) :=
+  settable! (@mk ext) <term; vote; lead; role; votes; outbox; stepfn; progress; log; lent>.
+End nstate.
+
+Section phys_state.
+Context `{hG: heapGS Σ, !ffi_semantics _ _}.
+Context {sem : go.Semantics} {package_sem : raft.Assumptions}.
+Collection W := sem + package_sem.
+Set Default Proof Using "W".
+
+Implicit Type s : nstate.t.
+
+(** Which of the three [stepX] functions [r.step] holds in each role.  The
+    [becomeX] functions assign these, and [Step] dispatches a message it does
+    not handle inline through [r.step(m)]. *)
+Definition step_func_of (ro : role.t) : func.t :=
+  match ro with
+  | role.Follower => functions raft.stepFollower []
+  | role.Candidate => functions raft.stepCandidate []
+  | role.Leader => functions raft.stepLeader []
+  end.
+
+(** ** Transitions of the physical state
+
+    Each mirrors a Go function exactly, [r.step] included, and leaves the
+    fields the function does not write alone. *)
+
+Definition send_msgs s (ms : list msg.t) : nstate.t :=
+  s <| nstate.outbox := s.(nstate.outbox) ++ ms |>.
+
+(** [reset(term)]: clears [Vote] only when the term actually changes, always
+    clears [lead] and the tally. *)
+Definition reset_to s (term : w64) : nstate.t :=
+  s <| nstate.term := term |>
+    <| nstate.vote := if decide (term = s.(nstate.term))
+                      then s.(nstate.vote) else W64 0 |>
+    <| nstate.lead := W64 0 |>
+    <| nstate.votes := ∅ |>.
+
+Definition become_follower s (term lead : w64) : nstate.t :=
+  reset_to s term
+    <| nstate.lead := lead |>
+    <| nstate.role := role.Follower |>
+    <| nstate.stepfn := step_func_of role.Follower |>.
+
+Definition become_candidate (id : w64) s : nstate.t :=
+  reset_to s (word.add s.(nstate.term) (W64 1))
+    <| nstate.vote := id |>
+    <| nstate.role := role.Candidate |>
+    <| nstate.stepfn := step_func_of role.Candidate |>.
+
+Definition become_leader (id : w64) s : nstate.t :=
+  reset_to s s.(nstate.term)
+    <| nstate.lead := id |>
+    <| nstate.role := role.Leader |>
+    <| nstate.stepfn := step_func_of role.Leader |>.
+
+(** ** The connection to the protocol state *)
+
+Definition to_pstate s : pstate.t :=
+  pstate.mk s.(nstate.term) s.(nstate.vote) s.(nstate.lead) s.(nstate.role)
+            s.(nstate.votes) s.(nstate.outbox).
+
+(** A physical state that can take a protocol step: [r.step] agrees with the
+    role, and nothing is on loan.  Every [becomeX] establishes the
+    first; the second holds between any two top-level calls. *)
+Definition nstate_wf s : Prop :=
+  s.(nstate.stepfn) = step_func_of s.(nstate.role) ∧
+  s.(nstate.lent) = None.
+
+(** [s] refines the protocol state [ps]. *)
+Definition nstate_rel s (ps : pstate.t) : Prop :=
+  to_pstate s = ps ∧ nstate_wf s.
+
+(** Each physical transition is its protocol counterpart on [to_pstate].
+    All by computation; stated so that proofs rewrite rather than unfold. *)
+Lemma to_pstate_send_msgs s ms :
+  to_pstate (send_msgs s ms) = psend_msgs (to_pstate s) ms.
+Proof. done. Qed.
+
+Lemma to_pstate_become_follower s term lead :
+  to_pstate (become_follower s term lead)
+  = pbecome_follower (to_pstate s) term lead.
+Proof. done. Qed.
+
+(** [reset]'s conditional clear of the vote is overwritten by [vote := id]. *)
+Lemma to_pstate_become_candidate id s :
+  to_pstate (become_candidate id s) = pbecome_candidate id (to_pstate s).
+Proof. done. Qed.
+
+Lemma to_pstate_become_leader id s :
+  to_pstate (become_leader id s) = pbecome_leader id (to_pstate s).
+Proof. rewrite /become_leader /reset_to /to_pstate /= decide_True //. Qed.
+
+Lemma to_pstate_votes s v :
+  to_pstate (s <| nstate.votes := v |>) = to_pstate s <| pstate.votes := v |>.
+Proof. done. Qed.
+
+Lemma to_pstate_vote s v :
+  to_pstate (s <| nstate.vote := v |>) = to_pstate s <| pstate.vote := v |>.
+Proof. done. Qed.
+
+Lemma nstate_wf_become_follower s term lead :
+  s.(nstate.lent) = None → nstate_wf (become_follower s term lead).
+Proof. done. Qed.
+
+Lemma nstate_wf_become_candidate id s :
+  s.(nstate.lent) = None → nstate_wf (become_candidate id s).
+Proof. done. Qed.
+
+Lemma nstate_wf_become_leader id s :
+  s.(nstate.lent) = None → nstate_wf (become_leader id s).
+Proof. done. Qed.
+
+Lemma nstate_wf_send_msgs s ms : nstate_wf s → nstate_wf (send_msgs s ms).
+Proof. done. Qed.
+
+End phys_state.

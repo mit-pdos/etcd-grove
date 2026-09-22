@@ -9,8 +9,8 @@ Import P.
     wp_raft__increaseUncommittedSize_body.
   Proof.
     intros_ambient.
-    intros r rv es ents dq.
-    intros Hzero. wp_start as "H". iNamed "H". wp_auto.
+    intros cfg r id s es ents dq.
+    intros Hzero. wp_start as "H". iNamed "H". iNamed "Hphys". wp_auto.
     (* [payloadsSize] pins the result only for an all-empty batch, which is
        the premise here (it was widened on 2026-09-20 for [maybeSendAppend],
        so the zero comes back as an implication). *)
@@ -21,7 +21,10 @@ Import P.
        [wp_auto] parks on the outermost one, which reads a field it knows
        nothing about.  Split on it; both branches fall through to the
        increment. *)
-    case_bool_decide as Hunc; wp_auto; (iApply "HΦ"; iFrame).
+    case_bool_decide as Hunc; wp_auto; (iApply "HΦ"; iFrame "Hes";
+      iApply (own_raft_phys_intro with
+        "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
+      done).
   Qed.
 
 End RaftIncreaseUncommittedSizeProof.

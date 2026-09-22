@@ -24,8 +24,11 @@ Import P.
   Lemma wp_raft__promotable : wp_raft__promotable_body.
   Proof.
     intros_ambient.
-    intros cfg r rv votes.
-    wp_start as "(Hr & Htrk & Hlog)".
+    intros cfg r id s Hlent.
+    wp_start as "Hphys". iNamed "Hphys".
+    iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog") as "Hlog".
+    iDestruct (own_tracker_unless_open _ _ _ _ Hlent with "Htrk") as "Htrk".
+    subst id.
     wp_auto.
     destruct (decide (rv.(raft.raft.id') ∈ cfg)) as [Hin|Hnin].
     - (* a voter: its [Progress] is in the map and is not a learner's *)
@@ -41,12 +44,17 @@ Import P.
       wp_apply (P.wp_raftLog__hasNextOrInProgressSnapshot with "[$Hlog]")
         as "%hb [Hlog %Hhb]".
       subst hb. simpl.
-      iApply "HΦ". iFrame "Hr Hlog".
+      iDestruct (own_raftLog_unless_close _ _ Hlent with "Hlog") as "Hlog".
+      iDestruct ("Hprback" with "[Hpv Hinfl]") as "Htrk".
+      { rewrite /own_progress /own_progress_at. iExists pv, iv. iFrame "∗%". }
+      iDestruct (own_tracker_unless_close _ _ _ _ Hlent with "Htrk") as "Htrk".
+      iApply "HΦ".
       iSplitL.
-      { iApply "Hprback". rewrite /own_progress /own_progress_at.
-        iExists pv, iv. iFrame "∗%". }
+      { iApply (own_raft_phys_intro with
+          "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
       iPureIntro. rewrite bool_decide_eq_true_2 //.
     - (* not a voter: the lookup misses, [pr == nil] short-circuits to false *)
+      iRename "Hprs" into "Hprs0".
       iNamed "Htrk".
       assert (prs !! rv.(raft.raft.id') = None) as Hnone.
       { apply not_elem_of_dom. rewrite Hprs_dom //. }
@@ -55,11 +63,17 @@ Import P.
       wp_apply (wp_map_lookup1 with "Hprs") as "_".
       rewrite Hnone /=.
       wp_auto.
-      iApply "HΦ". iFrame "Hr Hlog".
-      iSplitL.
+      iDestruct (own_raftLog_unless_close _ _ Hlent with "Hlog") as "Hlog".
+      iAssert (own_tracker cfg rv.(raft.raft.trk') s.(nstate.votes))
+        with "[Hvotes Hprogs Hvoters Hlearners HlearnersNext]" as "Htrk".
       { rewrite /own_tracker.
         iExists prs, voters_ref, voters, learners, learnersNext.
         iFrame "∗#%". }
+      iDestruct (own_tracker_unless_close _ _ _ _ Hlent with "Htrk") as "Htrk".
+      iApply "HΦ".
+      iSplitL.
+      { iApply (own_raft_phys_intro with
+          "Hr Hlogger Hprs0 Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
       iPureIntro. rewrite bool_decide_eq_false_2 //.
   Qed.
 

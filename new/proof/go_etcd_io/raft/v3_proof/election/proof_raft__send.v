@@ -24,7 +24,7 @@ Qed.
 
   (** The common tail once the routing decision has been made: build the
       one-element slice literal, append it to the queue, trace, and open the
-      postcondition's [own_raft_bare].  The [iExists] with the new queue and
+      postcondition's [own_raft_phys].  The [iExists] with the new queue and
       the pure outbox obligation are left to the caller -- an [Ltac] body
       cannot mention [rv]/[msgs] inside the record-update notation. *)
   Local Ltac send_tail_msgs :=
@@ -36,7 +36,7 @@ Qed.
     wp_apply (wp_slice_append with "[$Hmsgs $Hmsgs_cap $m_sl]")
       as "%msgs' (Hmsgs & Hmsgs_cap & _)";
     wp_apply (wp_traceSendMessage with "[$Hmisc]") as "Hmisc";
-    iApply "HΦ"; rewrite /own_raft_bare.
+    iApply "HΦ"; rewrite /own_raft_phys.
 
   Local Ltac send_tail_msgsAA :=
     wp_apply wp_slice_literal; iSplitR; first done;
@@ -47,12 +47,12 @@ Qed.
     wp_apply (wp_slice_append with "[$HmsgsAA $HmsgsAA_cap $m_sl]")
       as "%msgsAA' (HmsgsAA & HmsgsAA_cap & _)";
     wp_apply (wp_traceSendMessage with "[$Hmisc]") as "Hmisc";
-    iApply "HΦ"; rewrite /own_raft_bare.
+    iApply "HΦ"; rewrite /own_raft_phys.
 
   Lemma wp_raft__send : wp_raft__send_body.
   Proof.
     intros_ambient.
-    intros r id s f tv lg m out Hfrom Hok.
+    intros cfg r id s m out Hfrom Hok.
     wp_start as "@". iNamed "Hphys". wp_auto.
     (* [From] is unset, so [send] fills it in with [r.id]. *)
     rewrite Hfrom bool_decide_eq_true_2 //. wp_auto. rewrite Hid.
@@ -76,7 +76,7 @@ Qed.
         send_tail_msgs.
         iExists (rv <| raft.raft.msgs' := msgs' |>),
                 (msgs ++ [m <| raftpb.Message.From' := id |>]), msgsAA, lok.
-        iFrame "∗#%". iPureIntro.
+        simpl. iFrame "∗#%". iPureIntro.
         rewrite (abs_outbox_snoc_msgs _ _ _ ty) //= /send_msgs /=.
         by rewrite Houtbox.
       + (* [MsgVoteResp] is a response, so it goes onto [r.msgsAfterAppend]. *)
@@ -90,7 +90,7 @@ Qed.
         send_tail_msgsAA.
         iExists (rv <| raft.raft.msgsAfterAppend' := msgsAA' |>),
                 msgs, (msgsAA ++ [m <| raftpb.Message.From' := id |>]), lok.
-        iFrame "∗#%". iPureIntro.
+        simpl. iFrame "∗#%". iPureIntro.
         rewrite (abs_outbox_snoc_msgsAA _ _ _ ty) //= /send_msgs /=.
         by rewrite Houtbox.
     - (* (b) [MsgApp] / [MsgHeartbeat]: [Term] must be unset and is stamped
@@ -128,7 +128,7 @@ Qed.
       rewrite Hid bool_decide_eq_false_2 //. wp_auto.
       send_tail_msgs.
       iExists (rv <| raft.raft.msgs' := msgs' |>), (msgs ++ [_]), msgsAA, lok.
-      iFrame "∗#%". iPureIntro.
+      simpl. iFrame "∗#%". iPureIntro.
       rewrite (abs_outbox_snoc_msgs _ _ _ ty) //= /send_msgs /=.
       by rewrite Houtbox Hterm.
     - (* (c) a type the model does not see: whatever [send] does to [Term]
@@ -151,7 +151,7 @@ Qed.
         wp_auto.
         send_tail_msgs.
         iExists (rv <| raft.raft.msgs' := msgs' |>), (msgs ++ [_]), msgsAA, lok.
-        iFrame "∗#%". iPureIntro.
+        simpl. iFrame "∗#%". iPureIntro.
         rewrite abs_outbox_snoc_msgs_None //= /send_msgs /= app_nil_r //. }
       rewrite bool_decide_eq_false_2 //. wp_auto.
       destruct (decide (m.(raftpb.Message.Type') = MsgReadIndex)) as [HRI|HnRI].
@@ -166,7 +166,7 @@ Qed.
         wp_auto.
         send_tail_msgs.
         iExists (rv <| raft.raft.msgs' := msgs' |>), (msgs ++ [_]), msgsAA, lok.
-        iFrame "∗#%". iPureIntro.
+        simpl. iFrame "∗#%". iPureIntro.
         rewrite abs_outbox_snoc_msgs_None //= /send_msgs /= app_nil_r //. }
       (* anything else: [Term := r.Term] *)
       rewrite bool_decide_eq_false_2 //. wp_auto.
@@ -177,7 +177,7 @@ Qed.
         send_tail_msgsAA.
         iExists (rv <| raft.raft.msgsAfterAppend' := msgsAA' |>),
                 msgs, (msgsAA ++ [_]), lok.
-        iFrame "∗#%". iPureIntro.
+        simpl. iFrame "∗#%". iPureIntro.
         rewrite abs_outbox_snoc_msgsAA_None //= /send_msgs /= app_nil_r //. }
       (* not a response ([MsgVoteResp]/[MsgPreVoteResp] are excluded above),
          so it must not be self-addressed, and goes onto [r.msgs]. *)
@@ -188,7 +188,7 @@ Qed.
       wp_auto.
       send_tail_msgs.
       iExists (rv <| raft.raft.msgs' := msgs' |>), (msgs ++ [_]), msgsAA, lok.
-      iFrame "∗#%". iPureIntro.
+      simpl. iFrame "∗#%". iPureIntro.
       rewrite abs_outbox_snoc_msgs_None //= /send_msgs /= app_nil_r //.
   Qed.
 

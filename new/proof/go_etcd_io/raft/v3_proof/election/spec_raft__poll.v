@@ -8,6 +8,8 @@ Definition wp_raft__poll_body :=
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (cfg : gset w64)
     (r : loc) (id : w64) (s : nstate.t) (from : w64) (t : w32) (v : bool),
+  (* it writes the tracker's vote map *)
+  s.(nstate.lent) = None →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "poll" #from #t #v
   {{{ (g rj : w64) (res : w8), RET (#g, #rj, #res);

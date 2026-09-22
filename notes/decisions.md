@@ -989,6 +989,11 @@ struct (`r.sendAppend(id)`), and by three tracker methods that panic.
 
 ## 2026-09-21 — `own_raft_bare`: the struct predicate with the tracker and the log split out
 
+**Superseded by** "2026-09-22 — Three layers, and one ownership predicate per
+object" below: `own_raft_bare`, `own_raft_notrk` and `own_raft_phys_at` are
+gone, and what they said is now in `nstate.t` (`progress`, `log`, `lent`,
+`stepfn`).
+
 **Decision.** `inv_raft_phys.v` gains `own_raft_bare r id s f tv lg` — every
 conjunct of `own_raft_phys_at r id s f` except `Htrk` and `Hlog`, plus
 `rv.(trk') = tv` and `rv.(raftLog') = lg` — with `own_raft_notrk` the
@@ -1019,3 +1024,120 @@ tracker value as an extra postcondition equation (`rv'.(trk') = rv.(trk')`)
 call that demands `own_raftLog`. Indexing `own_raft_phys` by the tracker
 and log values everywhere — 95 call sites for no gain above `send`.
 
+
+## 2026-09-22 — Three layers, and one ownership predicate per object
+
+**Decision.** The development is a refinement in three layers, and each has
+its own state type:
+
+1. **Go code and heap → physical abstract state.**  `own_raft_phys r id s`
+   (`election/inv_raft_phys.v`) relates the raft struct and everything
+   hanging off it to `s : nstate.t` (`election/defs.v`).  Every Go-level
+   spec is a pre/postcondition pair on `own_raft_phys`.  This is the layer
+   the current work is on.
+2. **Physical state → protocol state.**  `nstate_rel s ps`
+   (`election/defs.v`) relates `s` to the protocol state `ps : pstate.t`
+   (`election_protocol.v`): `ps` is `s`'s six protocol fields
+   (`to_pstate s`), `r.step` agrees with the role, and nothing is on loan.
+   `Step`'s spec (`election/spec_raft__Step.v`) is the only statement that
+   mentions both layers.
+3. **Protocol state → protocol properties.**  `own_raft_ghost γ id ps`,
+   the transition relation `step`, and `raft_election_safety`, all about
+   `pstate.t` and free of Go.
+
+**The rule this entails, and which is now written into
+`election/defs.v`, `election/inv_raft_phys.v`, STATUS.md and
+gotchas.md:** `nstate.t` is the *most abstract* description of the physical
+state that still lets *every* Go-level WP be stated on `own_raft_phys`.
+**If a function cannot be specified with `own_raft_phys`, refine `nstate.t`
+(and `own_raft_phys` with it) until it can.  Do not add a variant
+predicate** — a second ownership predicate for the same struct, or the
+same one with an extra parameter, or a spec on raw pieces of it
+(`r ↦ rv ∗ own_tracker …`) — for one caller's benefit.  The same goes for
+every other object: one ownership predicate, indexed by an abstract state
+precise enough for all of that object's methods.
+
+**What this replaced.** Until 2026-09-22 one record, `nstate.t` in
+`election_protocol.v`, served as *both* the physical abstraction and the
+protocol state, so anything the Go specs needed that the protocol did not
+have to be carried outside it.  That produced three variant predicates
+for the raft struct, each added to unblock one caller:
+
+- `own_raft_phys_at r id s f` — `r.step` as a free parameter, because
+  `becomeFollower` writes `r.step` *before* `reset`, so mid-function the
+  field and the role disagree (2026-09-16).  Specs of `reset`, and
+  `maybeSendSnapshot`'s, were stated on it.
+- `own_raft_bare r id s f tv lg` and `own_raft_notrk r id s f tv` — the
+  struct with the tracker and/or the log cut out, and their field values
+  pinned as parameters, so that `maybeSendAppend` could hold a `Progress`
+  and a log page across `r.send` (2026-09-21, entry above).  `send` and
+  `maybeSendSnapshot` were stated on them.
+
+and five `raft` methods specified on raw pieces (`abortLeaderTransfer`,
+`resetRandomizedElectionTimeout`, `increaseUncommittedSize` on `r ↦ rv`;
+`promotable`, `hasUnappliedConfChanges` on `r ↦ rv` plus the tracker or the
+log).  Every caller had to convert into and out of each of these.  All are
+gone: the physical `nstate.t` is a new record with the six protocol fields
+(same names) plus
+
+- `stepfn : func.t` — `r.step`, literally;
+- `progress : gmap w64 loc` — the progress map, pinned by a persistent
+  conjunct of `own_raft_phys`, so a proof can return a borrowed `Progress`
+  before a call and re-borrow it at the same key afterwards
+  (`maybeSendSnapshot` is stated this way);
+- `log : loc` — `r.raftLog`, pinned;
+- `lent : option tracker.ProgressTracker.t` — the tracker's heap and the
+  log are **on loan to the caller** (`Some tv`: `own_raft_phys` owns
+  neither and pins `r.trk = tv`).  `maybeSendAppend` sets it across
+  `r.send` (it needs the *same* `Progress` facts after the send, and the
+  page); `appendEntry` across `increaseUncommittedSize` (it holds the log
+  open at a fixed split).  A function that touches either says
+  `s.(nstate.lent) = None`; the top-level ones say `nstate_wf s`.
+
+and the protocol record in `election_protocol.v` became `pstate.t`, with
+its functions prefixed `p` (`psend_msgs`, `pbecome_follower`, …,
+`pcan_vote`, `init_pstate`).  The physical ones keep the old names, so
+spec text such as `own_raft_phys cfg r id (become_follower s t l)` reads as
+before but now also says what `r.step` becomes.  Each physical transition
+commutes with its protocol counterpart under `to_pstate` by computation
+(`to_pstate_become_follower` etc., `defs.v`), and the `Step` proof uses
+exactly those equations to move from one layer to the other.
+
+**Why.** A variant predicate is a second specification of the object's
+state, and every one of them was a place where two callers disagreed about
+what the struct is.  `own_raft_phys_at` could not be stated at the call
+site that needed it next (`newRaft`, whose struct has a nil `r.step`) without
+adding a fourth.  The refinement picture also says where the information
+belongs: "`r.step` is `stepFollower`" and "the log is held by the caller"
+are facts about the physical state, and the protocol has no business
+carrying them, so they cannot be protocol fields — but the Go specs need
+them, so they are physical-state fields.
+
+**Rejected.**
+- *Adding `stepfn` to the protocol record.*  The model would then have to
+  name the raft package's `stepX` functions, and every protocol transition
+  would have to say what `r.step` becomes.  The ghost state has no use for
+  it.
+- *`stepfn : option role.t` instead of `func.t`.*  Considered, and not what
+  was asked for; `func.t` is exact and costs nothing at this layer.
+- *Handing the borrowed `Progress` back before `send` and re-borrowing it
+  afterwards.*  Works for re-finding the pointer (which is why
+  `nstate.progress` exists), but not for `maybeSendAppend`: the
+  re-borrowed `Progress` comes back as `∃ pv iv`, and `SentEntries` needs
+  the facts about `pv`/`iv` the proof established *before* the send.
+  Hence the loan.
+- *A loan of just the log page* (`option (slice × dfrac × list Entry)`).
+  Tried first; it does not cover `appendEntry`, which needs the whole log
+  at a fixed split across a call, nor the tracker half of
+  `maybeSendAppend`.
+
+**Not done, and known to be the same pattern** (STATUS lists them):
+the log's own predicates — `own_raftLog` (existential split),
+`own_raftLog_at` (indexed by the split) and the raw
+`l ↦ lv ∗ (… -∗ own_raftLog_at …)` that `raftLog.entries`/`slice` return —
+are three shapes for one object, and none exposes `committed`/`applied`,
+which `newRaft` needs; the rule says to give the log one predicate indexed
+by an abstract log state that does.  The five `traceX` hooks take `r` but
+are specified on `own_raft_misc` (their translated bodies are `do: #()`
+and read nothing); left alone because converting them buys nothing and
+costs a re-seal inside the most expensive `Step` helpers.

@@ -125,6 +125,8 @@ Definition wp_raft__appendEntry_body :=
   Forall (λ e, e.(raftpb.Entry.Type') = EntryNormal) ents →
   (* a batch small enough that [lastIndex()+1+k] does not wrap *)
   (Z.of_nat (length ents) < 2^61)%Z →
+  (* it reads and appends to the log *)
+  s.(nstate.lent) = None →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s ∗ es ↦* ents }}}
     r @! (go.PointerType raft.raft) @! "appendEntry" #es
   {{{ (ents' : list raftpb.Entry.t), RET #true;

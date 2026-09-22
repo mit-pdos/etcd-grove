@@ -61,16 +61,20 @@ Implicit Type s : nstate.t.
     (* [stepCandidate] needs it; [Step] is the outermost caller, so it enters
        the development at [wp_raft__Step_body] -- see spec_raft__Step.v *)
     id ∈ cfg →
+    (* [r.step] matches the role and nothing is on loan *)
+    nstate_wf s →
     {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s }}}
       r @! (go.PointerType raft.raft) @! "Step" #m
     {{{ (err : error.t) s', RET #err;
         "Hphys" ∷ own_raft_phys cfg r id s' ∗
+        "%Hwf'" ∷ ⌜ nstate_wf s' ⌝ ∗
         "%Hrefines" ∷ ⌜ ∃ recv,
             (∀ m', m' ∈ recv → m' = abs_msg mtype.VoteResp m) ∧
-            step cfg id s recv s' ⌝ ∗
+            step cfg id (to_pstate s) recv (to_pstate s') ⌝ ∗
         "%Herr" ∷ ⌜ err = interface.nil ⌝ }}}.
   Proof.
-    intros Hty Hto Hterm Hcfg.
+    intros Hty Hto Hterm Hcfg Hwf.
+    pose proof Hwf as [Hsfw Hlent].
     assert (Hty6 : m.(raftpb.Message.Type') = W32 6) by (rewrite Hty //).
     (* Hoist every type test this branch meets, as named facts.  Rewriting
        [bool_decide (Type = k)] inline hits whichever occurrence comes first,
@@ -136,13 +140,15 @@ Implicit Type s : nstate.t.
       iAssert (own_raft_phys cfg r id s)
         with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys".
       { iApply (own_raft_phys_intro with
-          "Hlogger Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
-      wp_apply (P.wp_raft__becomeFollower with "[$Hphys]") as "Hphys".
+          "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
+      wp_apply (P.wp_raft__becomeFollower _ _ _ _ _ _ Hlent with "[$Hphys]")
+        as "Hphys".
       (* the model step: a VoteResp is not from_leader, so no leader is
          adopted and the new lead is 0 *)
-      assert (step cfg id s [abs_msg mtype.VoteResp m]
-                (become_follower s m.(raftpb.Message.Term') (W64 0))) as Hsd.
-      { replace (W64 0) with
+      assert (step cfg id (to_pstate s) [abs_msg mtype.VoteResp m]
+                (to_pstate (become_follower s m.(raftpb.Message.Term') (W64 0)))) as Hsd.
+      { rewrite to_pstate_become_follower.
+        replace (W64 0) with
           (if from_leader (abs_msg mtype.VoteResp m).(msg.ty)
            then (abs_msg mtype.VoteResp m).(msg.from) else W64 0) by done.
         replace m.(raftpb.Message.Term') with
@@ -169,7 +175,7 @@ Implicit Type s : nstate.t.
         with "[Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1]"
         as "Hphys".
       { iApply (own_raft_phys_intro with
-          "Hlogger1 Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1"); done. }
+          "Hr1 Hlogger1 Hprs1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1"); done. }
       wp_apply (P.wp_stepFollower_MsgVoteResp with "[$Hphys]") as (err) "[Hphys %Herrn]".
       { done. }
       (* [stepFollower] returned [nil], so the error check falls through to
@@ -177,7 +183,9 @@ Implicit Type s : nstate.t.
       rewrite Herrn. wp_auto.
       iApply ("HΦ" $! interface.nil
                 (become_follower s m.(raftpb.Message.Term') (W64 0))).
-      iFrame "Hphys". iPureIntro. split; last done.
+      iFrame "Hphys". iPureIntro.
+      split; first exact (nstate_wf_become_follower _ _ _ Hlent).
+      split; last done.
       exists [abs_msg mtype.VoteResp m]. split; last exact Hsd.
       recv_elem.
     - (* m.Term ≤ r.Term *)
@@ -206,8 +214,8 @@ Implicit Type s : nstate.t.
         iApply ("HΦ" $! interface.nil s).
         iSplitL "Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc".
         { iApply (own_raft_phys_intro with
-          "Hlogger Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
-        iPureIntro. split; last done.
+          "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
+        iPureIntro. split; first exact Hwf. split; last done.
         exists []. split; last apply step_refl.
         recv_elem.
       + (* m.Term = r.Term: the preamble does nothing and control reaches the
@@ -229,24 +237,24 @@ Implicit Type s : nstate.t.
           with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
           as "Hphys".
         { iApply (own_raft_phys_intro with
-          "Hlogger Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
+          "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
         destruct s.(nstate.role) eqn:Hrole.
         * (* Follower: [stepFollower] has no [MsgVoteResp] arm. *)
           assert (rv.(raft.raft.step') = functions raft.stepFollower []) as Hsf
-            by (rewrite Hstepfn ?Hrole //).
+            by (rewrite Hstepfn Hsfw //).
           rewrite Hsf.
           wp_apply (P.wp_stepFollower_MsgVoteResp with "[$Hphys]")
             as (err) "[Hphys %Herrn]".
           { done. }
           rewrite Herrn. wp_auto.
           iApply ("HΦ" $! interface.nil s). iFrame "Hphys".
-          iPureIntro. split; last done.
+          iPureIntro. split; first exact Hwf. split; last done.
           exists []. split; last apply step_refl.
           recv_elem.
         * (* Candidate: [stepCandidate] records the vote and may win or lose
              in the same call. *)
           assert (rv.(raft.raft.step') = functions raft.stepCandidate []) as Hsf
-            by (rewrite Hstepfn ?Hrole //).
+            by (rewrite Hstepfn Hsfw //).
           rewrite Hsf.
           wp_apply (P.wp_stepCandidate_MsgVoteResp with "[$Hphys]")
             as (err s') "(Hphys & %Hres & %Herrn)".
@@ -255,15 +263,17 @@ Implicit Type s : nstate.t.
           { exact Hteq. }
           { exact Hrole. }
           { exact Hcfg. }
+          { exact Hlent. }
           rewrite Herrn. wp_auto.
-          iApply ("HΦ" $! interface.nil s'). iFrame "Hphys".
-          iPureIntro. split; last done.
+          destruct Hres as (won & lost & ms & Hms & Hwon & Hlost & ->).
+          iApply ("HΦ" $! interface.nil _). iFrame "Hphys".
+          iPureIntro. split; first by apply nstate_wf_vote_resp_result.
+          split; last done.
           exists [abs_msg mtype.VoteResp m]. split.
           { recv_elem. }
-          destruct Hres as (won & lost & ms & Hms & Hwon & Hlost & ->).
-          rewrite /vote_resp_result.
+          rewrite to_pstate_vote_resp_result /pvote_resp_result.
           destruct won.
-          { eapply (step_record_then_win cfg id s (abs_msg mtype.VoteResp m) ms).
+          { eapply (step_record_then_win cfg id (to_pstate s) (abs_msg mtype.VoteResp m) ms).
             - done.
             - rewrite /abs_msg /=. exact Hto.
             - rewrite /abs_msg /=. exact Hteq.
@@ -271,7 +281,7 @@ Implicit Type s : nstate.t.
             - simpl. exact Hms.
             - simpl. by apply Hwon. }
           destruct lost.
-          { eapply (step_record_then_lose cfg id s (abs_msg mtype.VoteResp m)).
+          { eapply (step_record_then_lose cfg id (to_pstate s) (abs_msg mtype.VoteResp m)).
             - done.
             - rewrite /abs_msg /=. exact Hto.
             - rewrite /abs_msg /=. exact Hteq.
@@ -284,14 +294,14 @@ Implicit Type s : nstate.t.
           { exact Hrole. }
         * (* Leader: [stepLeader]'s [MsgVoteResp] arm only reads. *)
           assert (rv.(raft.raft.step') = functions raft.stepLeader []) as Hsf
-            by (rewrite Hstepfn ?Hrole //).
+            by (rewrite Hstepfn Hsfw //).
           rewrite Hsf.
           wp_apply (P.wp_stepLeader_MsgVoteResp with "[$Hphys]")
             as (err) "[Hphys %Herrn]".
           { done. }
           rewrite Herrn. wp_auto.
           iApply ("HΦ" $! interface.nil s). iFrame "Hphys".
-          iPureIntro. split; last done.
+          iPureIntro. split; first exact Hwf. split; last done.
           exists []. split; last apply step_refl.
           recv_elem.
   Qed.

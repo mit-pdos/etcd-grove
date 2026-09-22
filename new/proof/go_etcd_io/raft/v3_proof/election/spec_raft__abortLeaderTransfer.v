@@ -6,10 +6,10 @@ Definition wp_raft__abortLeaderTransfer_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
-    (r : loc) rv,
-  {{{ is_pkg_init raft ∗ r ↦ rv }}}
+    (cfg : gset w64) (r : loc) (id : w64) (s : nstate.t),
+  {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "abortLeaderTransfer" #()
-  {{{ RET #(); r ↦ (rv <| raft.raft.leadTransferee' := W64 0 |>) }}}.
+  {{{ RET #(); own_raft_phys cfg r id s }}}.
 
 Module Type RAFT__ABORTLEADERTRANSFER.
   Parameter wp_raft__abortLeaderTransfer : wp_raft__abortLeaderTransfer_body.

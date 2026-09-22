@@ -5,8 +5,13 @@ Module RaftAbortLeaderTransferProof (P : RAFT__ABORTLEADERTRANSFER_POSTULATES) :
   Lemma wp_raft__abortLeaderTransfer : wp_raft__abortLeaderTransfer_body.
   Proof.
     intros_ambient.
-    intros r rv.
-   wp_start as "Hr". wp_auto. by iApply "HΦ".
+    intros cfg r id s.
+    (* [leadTransferee := None]; [own_raft_phys] already says it is [0]
+       (no leader transfer is in scope), so nothing abstract moves. *)
+    wp_start as "Hphys". iNamed "Hphys". wp_auto.
+    iApply "HΦ".
+    iApply (own_raft_phys_intro with
+      "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done.
   Qed.
 
 End RaftAbortLeaderTransferProof.

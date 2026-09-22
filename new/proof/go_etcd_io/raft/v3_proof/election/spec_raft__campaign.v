@@ -26,6 +26,8 @@ Definition wp_raft__campaign_body :=
      term wraps to zero and the real code panics.  Added 2026-09-16; see
      notes/STATUS.md. *)
   uint.Z s.(nstate.term) + 1 < 2 ^ 64 →
+  (* the tracker and the log are read *)
+  s.(nstate.lent) = None →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "campaign" #t
   {{{ (peers : list w64), RET #();

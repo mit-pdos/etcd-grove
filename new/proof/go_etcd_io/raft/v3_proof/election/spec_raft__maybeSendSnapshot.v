@@ -23,21 +23,18 @@ Require Export New.proof.go_etcd_io.raft.v3_proof.election.inv_raft_phys.
     [pr] moves to [StateSnapshot], which is why the [Progress] comes back
     existentially quantified rather than at its old value.
 
-    **The tracker is not in the precondition** (changed 2026-09-21).  It
-    used to be [own_raft_phys cfg r id s ∗ own_progress pr], and those two
-    are **contradictory at the only call site**: [own_raft_phys] contains
-    [own_tracker], which contains [[∗ map] p ∈ prs, own_progress p] with
-    [dom prs = cfg], and [maybeSendAppend] calls this with
-    [pr = prs !! to] for a voter [to], so the second [own_progress pr] is
-    the same exclusive [pr ↦ pv].  The triple was true and [Qed], and
-    uncallable.  (notes/false-statements.md, 2026-09-21.)  So the raft
-    struct arrives as [own_raft_notrk] -- everything but the tracker, with
-    the tracker *value* [tv] pinned as a parameter -- and the caller keeps
-    the tracker, minus the one [Progress] it lends here.  The log stays in
-    (this function calls [raftLog.snapshot] and [raftLog.firstIndex]).
-
-    [f] is the [r.step] parameter of [own_raft_phys_at]; this function does
-    not touch the field, so it is carried through unchanged.
+    **Resources.**  The struct arrives whole, as [own_raft_phys], and [pr]
+    is *named* rather than owned: it is the peer's [Progress] in the
+    progress map [s.(nstate.progress)], and the proof borrows it out of the
+    tracker itself and puts it back before the [send].  From 2026-09-21 to
+    2026-09-22 this was stated on a variant predicate, [own_raft_notrk] --
+    the struct with the tracker cut out -- plus [own_progress pr], because
+    [own_raft_phys cfg r id s ∗ own_progress pr] is contradictory at the
+    only call site (the [Progress] is already inside [own_tracker];
+    notes/false-statements.md, 2026-09-21).  Recording the progress map in
+    [nstate.t] removes the need for the variant: the caller hands [pr] back
+    to the tracker before the call and borrows it again after, at the same
+    key.
 
     Reaching [Storage.Snapshot] is what forced the [HSnapshot] triple into
     [is_Storage] ([inv_storage.v]).  This branch is genuinely reachable from
@@ -48,13 +45,14 @@ Definition wp_raft__maybeSendSnapshot_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
-    (r : loc) (id : w64) (s : nstate.t) (f : func.t)
-    (tv : tracker.ProgressTracker.t) (to : w64) (pr : loc),
+    (cfg : gset w64) (r : loc) (id : w64) (s : nstate.t) (to : w64) (pr : loc),
   to ≠ id →
-  {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_notrk r id s f tv ∗
-      "Hpr" ∷ own_progress pr }}}
+  s.(nstate.progress) !! to = Some pr →
+  (* it reads the log ([raftLog.snapshot], [firstIndex]) *)
+  s.(nstate.lent) = None →
+  {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "maybeSendSnapshot" #to #pr
-  {{{ (b : bool), RET #b; own_raft_notrk r id s f tv ∗ own_progress pr }}}.
+  {{{ (b : bool), RET #b; own_raft_phys cfg r id s }}}.
 
 Module Type RAFT__MAYBESENDSNAPSHOT.
   Parameter wp_raft__maybeSendSnapshot : wp_raft__maybeSendSnapshot_body.

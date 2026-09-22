@@ -7,24 +7,32 @@ Import P.
   Proof.
     intros_ambient.
     intros cfg r id s.
-    intros Hrole Hcfg. wp_start as "Hphys". iNamed "Hphys". wp_auto.
+    intros Hrole Hcfg Hlent. wp_start as "Hphys". iNamed "Hphys". wp_auto.
     (* [becomeLeader] panics on a follower; by assumption we are not one. *)
     assert (state_w64 s.(nstate.role) ≠ W64 0) as Hnf.
     { destruct (s.(nstate.role)) eqn:Hro; try congruence;
         rewrite /state_w64 /StateCandidate /StateLeader;
         intros Heq; apply (f_equal uint.Z) in Heq; vm_compute in Heq; discriminate. }
     rewrite Hstate bool_decide_eq_false_2 //. wp_auto.
-    iAssert (own_raft_phys_at cfg r id s (functions raft.stepLeader []))
+    iAssert (own_raft_phys cfg r id
+               (s <| nstate.stepfn := step_func_of role.Leader |>))
       with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
       as "Hphys".
-    { rewrite /own_raft_phys_at.
-      iExists (rv <| raft.raft.step' := functions raft.stepLeader [] |>),
-        msgs, msgsAA, lok. iFrame "Hr". simpl. iFrame "∗#%".
-      iPureIntro. reflexivity. }
+    { iApply (own_raft_phys_intro _ _ _
+                (s <| nstate.stepfn := step_func_of role.Leader |>) with
+        "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
+        done. }
     (* [reset] is called at the unchanged term, so the vote survives *)
     rewrite Hterm.
-    wp_apply (P.wp_raft__reset with "[$Hphys]") as "Hphys".
+    (* [reset]'s state is left to the frame: given explicitly, it has to be
+       matched against [Hphys] up to conversion, which ran for 24 minutes
+       before failing (2026-09-22) *)
+    wp_apply (P.wp_raft__reset with "[$Hphys]"); first exact Hlent.
+    iIntros "Hphys".
+    iDestruct "Hphys" as (rv0 msgs0 msgsAA0 lok0) "Hphys".
     iNamedSuffix "Hphys" "1".
+    iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog1") as "Hlog1".
+    iDestruct (own_tracker_unless_open _ _ _ _ Hlent with "Htrk1") as "Htrk1".
     assert (rv0.(raft.raft.Vote') = s.(nstate.vote)) as Hvote1'.
     { rewrite Hvote1 /=. rewrite decide_True //. }
     (* [r.tick], [r.lead := r.id], [r.state := StateLeader] *)
@@ -63,15 +71,14 @@ Import P.
        its axiom used to claim.  [MsgAppResp] has no [mtype_of], so it drops
        out of the abstract outbox and the state is unchanged.  Re-seal for the
        call, then unpack again for the [Infof] that follows it. *)
+    iDestruct (own_raftLog_unless_close _ _ Hlent with "Hlog1") as "Hlog1".
+    iDestruct (own_tracker_unless_close _ _ _ _ Hlent with "Htrk1") as "Htrk1".
     iAssert (own_raft_phys cfg r id (become_leader id s))
       with "[Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1]"
       as "Hphys".
-    { rewrite /own_raft_phys /own_raft_phys_at /become_leader /step_func_of /=.
-      iExists _, msgs0, msgsAA0, lok0.
-      simpl in Hid1, Hterm1, Hvote1, Hlead1, Hstate1.
-      iEval (simpl) in "Htrk1".
-      iFrame "Hr1 ∗#%".
-      iPureIntro. split_and!; done. }
+    { iApply (own_raft_phys_intro _ _ _ (become_leader id s) with
+        "Hr1 Hlogger1 Hprs1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1");
+        done. }
     (* [appendEntry] writes [Term]/[Index] into every element of the slice,
        so it needs [Hes].  It returns [true] because the entry's [Data] is
        nil, which is what the premise says: with a zero payload
@@ -83,6 +90,7 @@ Import P.
     { apply Forall_singleton. done. }
     { apply Forall_singleton. done. }
     { rewrite length_insert /=. lia. }
+    { exact Hlent. }
     (* unpack again before [wp_auto]: the field reads in the [Infof] that
        follows cannot be stepped through the sealed predicate *)
     iNamedSuffix "Hphys" "2".
@@ -91,8 +99,10 @@ Import P.
     wp_auto. rewrite Hlok2.
     wp_apply (wp_Logger__logf with "Hlogger2").
     { rewrite /log_methods. set_solver. }
-    iApply "HΦ". rewrite /own_raft_phys /own_raft_phys_at.
-    iExists _, _, _, _. iFrame "∗#%".
+    iApply "HΦ".
+    iApply (own_raft_phys_intro with
+      "Hr2 Hlogger2 Hprs2 Htrk2 Hlog2 Hmsgs2 Hmsgs_cap2 HmsgsAA2 HmsgsAA_cap2 Hmisc2");
+      done.
   Qed.
 
 End BecomeLeaderProof.

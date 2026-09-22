@@ -28,7 +28,9 @@ Import P.
   Proof.
     intros_ambient.
     intros cfg r id s t.
-    intros Ht Hnowrap. wp_start as "Hphys". iNamed "Hphys". wp_auto.
+    intros Ht Hnowrap Hwf.
+    pose proof Hwf as [Hstepfn_wf Hlent].
+    wp_start as "Hphys". iNamed "Hphys". wp_auto.
     destruct (decide (s.(nstate.role) = role.Leader)) as [Hrl|Hrl].
     - (* already a leader: log and return, having done nothing *)
       rewrite Hstate Hrl bool_decide_eq_true_2 //. wp_auto.
@@ -38,48 +40,63 @@ Import P.
       { rewrite /log_methods. set_solver. }
       iApply ("HΦ" $! s).
       iSplitL "Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc".
-      { rewrite /own_raft_phys. iExists rv, msgs, msgsAA, lok.
-        simpl. iFrame "∗#%". }
-      iPureIntro. apply step_refl.
+      { iApply (own_raft_phys_intro with "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
+      iPureIntro. split; [done | apply step_refl].
     - (* not a leader *)
       assert (state_w64 s.(nstate.role) ≠ W64 2) as Hnl.
       { destruct (s.(nstate.role)) eqn:Hro; try congruence;
           rewrite /state_w64 /StateFollower /StateCandidate;
           intros Heq; apply (f_equal uint.Z) in Heq; vm_compute in Heq;
           discriminate. }
-      rewrite Hstate bool_decide_eq_false_2 //. wp_auto.
-      wp_apply (wp_raft__promotable with "[$Hr $Htrk $Hlog]")
-        as "%b (Hr & Htrk & Hlog & %Hb)".
+      rewrite Hstate bool_decide_eq_false_2 //.
+      iAssert (own_raft_phys cfg r id s)
+        with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
+        as "Hphys".
+      { iApply (own_raft_phys_intro with "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
+      wp_auto.
+      wp_apply (wp_raft__promotable _ _ _ _ Hlent with "[$Hphys]")
+        as "%b [Hphys %Hb]".
       destruct b.
       + (* a voter, so it may campaign *)
         wp_auto.
-        wp_apply (wp_raft__hasUnappliedConfChanges with "[$Hr $Hlog]") as "[Hr Hlog]".
-        assert (id ∈ cfg) as Hin.
-        { symmetry in Hb. apply bool_decide_eq_true_1 in Hb.
-          by rewrite -Hid. }
-        wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
-        wp_auto. rewrite Hlok.
-        wp_apply (wp_Logger__logf with "Hlogger").
-        { rewrite /log_methods. set_solver. }
-        iAssert (own_raft_phys cfg r id s)
-          with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
+        wp_apply (wp_raft__hasUnappliedConfChanges _ _ _ _ Hlent with "[$Hphys]")
           as "Hphys".
-        { rewrite /own_raft_phys. iExists rv, msgs, msgsAA, lok. iFrame "∗#%". }
-        wp_apply (P.wp_raft__campaign _ _ _ _ _ Ht Hrl Hin Hnowrap with "[$Hphys]")
-          as "%peers [%Hpeers Hphys]".
-        iApply "HΦ". iFrame "Hphys".
-        iPureIntro. apply step_campaign; done.
-      + (* unpromotable: log and return, having done nothing *)
+        assert (id ∈ cfg) as Hin.
+        { symmetry in Hb. by apply bool_decide_eq_true_1 in Hb. }
+        iClear "Hlogger Hprs".
+        iNamedSuffix "Hphys" "1".
         wp_auto.
         wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
-        wp_auto. rewrite Hlok.
-        wp_apply (wp_Logger__logf with "Hlogger").
+        wp_auto. rewrite Hlok1.
+        wp_apply (wp_Logger__logf with "Hlogger1").
+        { rewrite /log_methods. set_solver. }
+        iAssert (own_raft_phys cfg r id s)
+          with "[Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1]"
+          as "Hphys".
+        { iApply (own_raft_phys_intro with
+            "Hr1 Hlogger1 Hprs1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1");
+            done. }
+        wp_apply (P.wp_raft__campaign _ _ _ _ _ Ht Hrl Hin Hnowrap Hlent
+                    with "[$Hphys]")
+          as "%peers [%Hpeers Hphys]".
+        iApply "HΦ". iFrame "Hphys".
+        iPureIntro. split; first by apply nstate_wf_send_msgs, nstate_wf_become_candidate.
+        rewrite to_pstate_send_msgs to_pstate_become_candidate.
+        apply step_campaign; done.
+      + (* unpromotable: log and return, having done nothing *)
+        iClear "Hlogger Hprs".
+        iNamedSuffix "Hphys" "1".
+        wp_auto.
+        wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
+        wp_auto. rewrite Hlok1.
+        wp_apply (wp_Logger__logf with "Hlogger1").
         { rewrite /log_methods. set_solver. }
         iApply ("HΦ" $! s).
-        iSplitL "Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc".
-        { rewrite /own_raft_phys. iExists rv, msgs, msgsAA, lok.
-          simpl. iFrame "∗#%". }
-        iPureIntro. apply step_refl.
+        iSplitL "Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1".
+        { iApply (own_raft_phys_intro with
+            "Hr1 Hlogger1 Hprs1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1");
+            done. }
+        iPureIntro. split; [done | apply step_refl].
   Qed.
 
 End HupProof.

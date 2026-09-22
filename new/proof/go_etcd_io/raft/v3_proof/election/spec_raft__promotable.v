@@ -36,15 +36,13 @@ Definition wp_raft__promotable_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
-    (cfg : gset w64) (r : loc) rv votes,
-  {{{ is_pkg_init raft ∗ r ↦ rv ∗
-      own_tracker cfg rv.(raft.raft.trk') votes ∗
-      own_raftLog rv.(raft.raft.raftLog') }}}
+    (cfg : gset w64) (r : loc) (id : w64) (s : nstate.t),
+  (* it reads the log ([hasNextOrInProgressSnapshot]) *)
+  s.(nstate.lent) = None →
+  {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "promotable" #()
   {{{ (b : bool), RET #b;
-      r ↦ rv ∗ own_tracker cfg rv.(raft.raft.trk') votes ∗
-      own_raftLog rv.(raft.raft.raftLog') ∗
-      ⌜ b = bool_decide (rv.(raft.raft.id') ∈ cfg) ⌝ }}}.
+      own_raft_phys cfg r id s ∗ ⌜ b = bool_decide (id ∈ cfg) ⌝ }}}.
 
 Module Type RAFT__PROMOTABLE.
   Parameter wp_raft__promotable : wp_raft__promotable_body.

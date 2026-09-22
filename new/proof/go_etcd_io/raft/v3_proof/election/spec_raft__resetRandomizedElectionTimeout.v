@@ -18,12 +18,10 @@ Definition wp_raft__resetRandomizedElectionTimeout_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
-    (r : loc) rv,
-  0 < sint.Z rv.(raft.raft.electionTimeout') →
-  {{{ is_pkg_init raft ∗ r ↦ rv }}}
+    (cfg : gset w64) (r : loc) (id : w64) (s : nstate.t),
+  {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "resetRandomizedElectionTimeout" #()
-  {{{ (n : w64), RET #();
-      r ↦ (rv <| raft.raft.randomizedElectionTimeout' := n |>) }}}.
+  {{{ RET #(); own_raft_phys cfg r id s }}}.
 
 Module Type RAFT__RESETRANDOMIZEDELECTIONTIMEOUT.
   Parameter wp_raft__resetRandomizedElectionTimeout : wp_raft__resetRandomizedElectionTimeout_body.

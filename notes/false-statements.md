@@ -263,8 +263,11 @@ hides the struct under `∃ rv` cannot express "this call does not touch field
 needs the field pinned as a parameter. Making what the field points at
 persistent (`↦$□`) pins the *contents* at a location, not *which* location
 the predicate names afterwards — so the read-only progress map was necessary
-but not sufficient for `maybeSendAppend`. The fix is `own_raft_notrk`
-(STATUS item 18).
+but not sufficient for `maybeSendAppend`. The fix was `own_raft_notrk`
+(STATUS item 18) -- itself replaced on 2026-09-22 by fields of `nstate.t`
+(`progress`, `lent`); see decisions.md, "Three layers". The rule above
+still stands; what changed is where the pinned field lives: in the
+abstract state, not in a variant predicate.
 
 ## The same family, fourth member: `send` owned the log the caller had a page of (2026-09-21)
 
@@ -282,4 +285,7 @@ holding. Second tell, independent of the first: look at what the code does
 *after* a call, not just before it — a spec review that stops at the call
 misses this class. Fix: `own_raft_bare` (decisions.md), and
 `entries`/`slice` now hand the `raftLog` record back beside the page.
+**Superseded 2026-09-22**: `own_raft_bare` is gone; `maybeSendAppend` now
+puts the tracker and the log **on loan** (`nstate.lent := Some tv`) across
+`send`, and `send` is stated on `own_raft_phys` for any `s`.
 

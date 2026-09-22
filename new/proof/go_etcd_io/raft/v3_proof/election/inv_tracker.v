@@ -158,6 +158,21 @@ Lemma own_progress_intro pr pv iv :
   own_progress_at pr pv iv -∗ own_progress pr.
 Proof. iIntros "H". iExists pv, iv. iFrame. Qed.
 
+(** An id set ([map[uint64]struct{}]) that is either [nil] or owned.
+
+    [own_tracker] used to say [Learners ↦$ learners] outright, and a map
+    points-to implies a non-nil location ([own_map_not_nil],
+    [new/golang/theory/map.v]).  But the tracker [newRaft] builds has
+    [Learners = LearnersNext = nil]: [MakeProgressTracker] writes [nil]
+    ([new/code/go_etcd_io/raft/v3/tracker.v], "only populated when used"),
+    [Config.Clone] maps [nil] to [nil], and only adding a *learner* ever
+    allocates one.  So until 2026-09-22 [own_tracker] -- and with it
+    [own_raft_phys] -- was **unsatisfiable by any raft [newRaft] returns**.
+    Found by writing [newRaft]'s spec; nothing on the election path reads
+    either map, so the weakening costs no proof anything. *)
+Definition own_idset_opt (m : loc) (ids : gmap w64 unit) : iProp Σ :=
+  ⌜ m = map.nil ∧ ids = ∅ ⌝ ∨ m ↦$ ids.
+
 (** *** The progress tracker.
 
     [trk] is embedded in the raft struct **by value**, so the tracker's own
@@ -203,12 +218,14 @@ Definition own_tracker (tv : tracker.ProgressTracker.t) (votes : gmap w64 bool)
       = [voters_ref; map.nil] ⌝ ∗
   "Hvoters" ∷ voters_ref ↦$ voters ∗
   "%Hvoters_dom" ∷ ⌜ dom voters = cfg ⌝ ∗
-  (* no learners *)
-  "Hlearners" ∷ tv.(tracker.ProgressTracker.Config').(tracker.Config.Learners')
-                  ↦$ learners ∗
-  "HlearnersNext" ∷
+  (* no learners.  Either map may be [nil] -- and after [newRaft] both
+     are: see [own_idset_opt]. *)
+  "Hlearners" ∷ own_idset_opt
+                  tv.(tracker.ProgressTracker.Config').(tracker.Config.Learners')
+                  learners ∗
+  "HlearnersNext" ∷ own_idset_opt
       tv.(tracker.ProgressTracker.Config').(tracker.Config.LearnersNext')
-        ↦$ learnersNext ∗
+      learnersNext ∗
   "%Hno_learners" ∷ ⌜ learners = ∅ ∧ learnersNext = ∅ ⌝ ∗
   (* [campaign] does [make([]uint64, 0, len(idMap))], and [wp_slice_make3]
      needs [0 ≤ sint.Z cap].  Nothing else bounds the voter set: no Iris
@@ -459,28 +476,16 @@ Qed.
     context, and it cannot read it out of [own_tracker] either -- it holds
     the tracker only as a wand, and cashing that wand costs it the
     [own_progress] it is there to overwrite.  So [Visit], which does hold
-    the tracker, hands the fact over.    The [MaxInflight] bound comes along for the same reason.  [reset]'s
-    closure calls [NewInflights(r.trk.MaxInflight, …)], whose premise it is
-    ([inflights_ok], above); with the tracker value quantified per call the
-    closure can no longer read that bound out of the enclosing proof's
-    context, and it cannot read it out of [own_tracker] either -- it holds
-    the tracker only as a wand, and cashing that wand costs it the
-    [own_progress] it is there to overwrite.  So [Visit], which does hold
-    the tracker, hands the fact over.    The [MaxInflight] bound comes along for the same reason.  [reset]'s
-    closure calls [NewInflights(r.trk.MaxInflight, …)], whose premise it is
-    ([inflights_ok], above); with the tracker value quantified per call the
-    closure can no longer read that bound out of the enclosing proof's
-    context, and it cannot read it out of [own_tracker] either -- it holds
-    the tracker only as a wand, and cashing that wand costs it the
-    [own_progress] it is there to overwrite.  So [Visit], which does hold
-    the tracker, hands the fact over.    The [MaxInflight] bound comes along for the same reason.  [reset]'s
-    closure calls [NewInflights(r.trk.MaxInflight, …)], whose premise it is
-    ([inflights_ok], above); with the tracker value quantified per call the
-    closure can no longer read that bound out of the enclosing proof's
-    context, and it cannot read it out of [own_tracker] either -- it holds
-    the tracker only as a wand, and cashing that wand costs it the
-    [own_progress] it is there to overwrite.  So [Visit], which does hold
     the tracker, hands the fact over.
+
+    **Why the progress map is named** ([prs], added 2026-09-22).  The
+    tracker value may change, but the progress map may not: nothing on the
+    election path inserts into or deletes from it, and [own_raft_phys] pins
+    its contents to [nstate.progress].  So the closure is handed the map's
+    points-to at the value it gets and must hand it back at the value it
+    returns, and [Visit] promises the same of itself.  Without this, [reset]
+    -- which runs [Visit] -- could not re-establish [own_raft_phys]'s
+    [Hprs]: the tracker it gets back is an arbitrary [tv'].
 
     **Why the field is lent rather than kept.**  [Visit] itself reads
     [p.Progress] on every iteration, so it cannot hand the field over for
@@ -489,15 +494,17 @@ Qed.
     lending resolves it.  See [spec_ProgressTracker__Visit.v] for how this
     was got wrong. *)
 Definition visit_closure (trk : loc) (votes : gmap w64 bool)
-  (f : func.t) (I : iProp Σ) : iProp Σ :=
+  (prs : gmap w64 loc) (f : func.t) (I : iProp Σ) : iProp Σ :=
   ∀ (i : w64) (pr : loc) (tv : tracker.ProgressTracker.t),
-    {{{ ⌜ i ∈ cfg ⌝ ∗
+    {{{ ⌜ i ∈ cfg ⌝ ∗ ⌜ prs !! i = Some pr ⌝ ∗
         ⌜ (0 ≤ sint.Z tv.(tracker.ProgressTracker.MaxInflight') < 2 ^ 62)%Z ⌝ ∗
-        trk ↦ tv ∗ own_progress pr ∗
+        trk ↦ tv ∗ tv.(tracker.ProgressTracker.Progress') ↦$□ prs ∗
+        own_progress pr ∗
         (own_progress pr -∗ own_tracker tv votes) ∗ I }}}
       #f #i #pr
     {{{ RET #();
-        ∃ tv', trk ↦ tv' ∗ own_tracker tv' votes ∗ I }}}.
+        ∃ tv', trk ↦ tv' ∗ own_tracker tv' votes ∗
+               tv'.(tracker.ProgressTracker.Progress') ↦$□ prs ∗ I }}}.
 
 
 (** The inflight-window bound, read out without consuming the tracker.

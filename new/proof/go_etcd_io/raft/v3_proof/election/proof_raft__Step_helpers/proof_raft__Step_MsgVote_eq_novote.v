@@ -41,24 +41,24 @@ Implicit Type s : nstate.t.
       as [wp_log] in [inv_raft_phys.v]. *)
 
   (** Grant the vote in the *current* term: log, [send] the response, and
-      record [r.Vote := m.From].  [can] is the model-level [can_vote]. *)
-  Local Ltac vote_grant_tail r_ id_ s_ m_ lok_eq ty_eq to_eq can :=
+      record [r.Vote := m.From].  [can] is the protocol-level [pcan_vote] of
+      [to_pstate s_]; [wf_] is [nstate_wf s_] and [lent_] its loan half. *)
+  Local Ltac vote_grant_tail r_ id_ s_ m_ lok_eq ty_eq to_eq can wf_ lent_ :=
     wp_auto;
     wp_apply wp_slice_literal; iSplitR; [done|]; iIntros "% [? _]";
     wp_auto; rewrite lok_eq;
     wp_apply (wp_Logger__logf with "Hlogger");
       [solve_log_method|];
     wp_apply P.wp_voteRespMsgType; [done|];
+    iDestruct (own_raftLog_unless_close _ _ lent_ with "Hlog") as "Hlog";
     iAssert (own_raft_phys cfg r_ id_ s_)
       with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
       as "Hphys";
       [iApply (own_raft_phys_intro with
-          "Hlogger Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done|];
-    iDestruct (own_raft_bare_split with "Hphys") as (tvS lgS) "(Hphys & HtrkS & HlogS)";
+          "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done|];
     wp_apply (P.wp_raft__send with "[$Hphys]") as "Hphys";
       [done|left; exists mtype.VoteResp; split_and!;
             [by right|apply mtype_of_MsgVoteResp|done|w32_ne|done]|];
-    iDestruct (own_raft_bare_join with "Hphys HtrkS HlogS") as "Hphys";
     (* [wp_hidden]: an [iNamed] on a goal holding the whole body is ~12s *)
     wp_hidden (iNamedSuffix "Hphys" "2");
     rewrite ty_eq /MsgVote bool_decide_eq_true_2 //;
@@ -67,27 +67,28 @@ Implicit Type s : nstate.t.
       (send_msgs (s_ <| nstate.vote := m_.(raftpb.Message.From') |>)
          [msg.mk mtype.VoteResp id_ m_.(raftpb.Message.From')
             m_.(raftpb.Message.Term') false]));
-    (* [own_raft_phys_intro] does not apply here: its [s] is fixed by [Htrk2],
-       whose state is [send]'s [abs_msg] form of the message, and
-       [iApply] does not unify that with the [msg.mk] form in the goal.  Naming
-       the hypotheses to frame (instead of [iFrame "∗#%"]) is 2s against 17s. *)
+    (* the state is given explicitly: [send]'s postcondition states the
+       outbox with [send]'s [abs_msg] form of the message, and only
+       conversion relates that to the [msg.mk] form named here. *)
     iSplitL "Hr2 Htrk2 Hlog2 Hmsgs2 Hmsgs_cap2 HmsgsAA2 HmsgsAA_cap2 Hmisc2";
-      [rewrite /own_raft_phys /send_msgs /=;
-       iExists _, _, _, _;
-       iEval (simpl) in "Htrk2";
-       iFrame "Hr2 Htrk2 Hlog2 Hmsgs2 Hmsgs_cap2 HmsgsAA2 HmsgsAA_cap2 Hmisc2 Hlogger2";
-       simpl in *; iPureIntro; first [done | (split_and!; done)]|];
-    iPureIntro; split; [|done];
+      [iApply (own_raft_phys_intro _ _ _
+                 (send_msgs (s_ <| nstate.vote := m_.(raftpb.Message.From') |>)
+                    [msg.mk mtype.VoteResp id_ m_.(raftpb.Message.From')
+                       m_.(raftpb.Message.Term') false]) with
+         "Hr2 Hlogger2 Hprs2 Htrk2 Hlog2 Hmsgs2 Hmsgs_cap2 HmsgsAA2 HmsgsAA_cap2 Hmisc2");
+       done|];
+    iPureIntro; split; [exact wf_|]; split; [|done];
     exists [abs_msg mtype.Vote m_];
     split; [recv_elem|];
+    rewrite to_pstate_send_msgs to_pstate_vote;
     replace m_.(raftpb.Message.Term') with s_.(nstate.term) by congruence;
-    apply (step_grant_vote cfg id_ (abs_msg mtype.Vote m_) s_);
+    apply (step_grant_vote cfg id_ (abs_msg mtype.Vote m_) (to_pstate s_));
       [done|exact to_eq|done|(rewrite /abs_msg /=; congruence)|exact can].
 
   (** Decline: log, then [send] a rejection carrying [r.Term].  Always legal,
       so there is no side condition beyond the message being a [MsgVote]
       addressed to us.  [term_eq] is [own_raft_phys]'s [r.Term = s.term]. *)
-  Local Ltac vote_reject_tail r_ id_ s_ m_ lok_eq to_eq term_eq :=
+  Local Ltac vote_reject_tail r_ id_ s_ m_ lok_eq to_eq term_eq wf_ lent_ :=
     wp_auto;
     wp_apply wp_slice_literal; iSplitR; [done|]; iIntros "% [? _]";
     wp_auto; rewrite lok_eq;
@@ -95,26 +96,26 @@ Implicit Type s : nstate.t.
       [solve_log_method|];
     wp_apply P.wp_voteRespMsgType; [done|];
     rewrite term_eq;
+    iDestruct (own_raftLog_unless_close _ _ lent_ with "Hlog") as "Hlog";
     iAssert (own_raft_phys cfg r_ id_ s_)
       with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
       as "Hphys";
       [iApply (own_raft_phys_intro with
-          "Hlogger Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done|];
+          "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done|];
     (* The response carries [s.term], so [send]'s [m.Term ≠ 0] premise is the
        incoming message's, transported along [term_eq].  The [simpl] is not
        optional: the premise is stated about the *message literal*, so the
        goal is [{| ... |}.(Message.Term') ≠ W64 0] and [congruence] -- unlike
        [done]/[assumption] -- does not see through the projection. *)
-    iDestruct (own_raft_bare_split with "Hphys") as (tvS lgS) "(Hphys & HtrkS & HlogS)";
     wp_apply (P.wp_raft__send with "[$Hphys]") as "Hphys";
       [done|left; exists mtype.VoteResp; split_and!;
             [by right|apply mtype_of_MsgVoteResp|(simpl; congruence)|w32_ne|done]|];
-    iDestruct (own_raft_bare_join with "Hphys HtrkS HlogS") as "Hphys";
     iApply ("HΦ" $! interface.nil _); iFrame "Hphys";
-    iPureIntro; split; [|done];
+    iPureIntro; split; [exact wf_|]; split; [|done];
     exists [abs_msg mtype.Vote m_];
     split; [recv_elem|];
-    apply (step_reject_vote cfg id_ (abs_msg mtype.Vote m_) s_);
+    rewrite to_pstate_send_msgs;
+    apply (step_reject_vote cfg id_ (abs_msg mtype.Vote m_) (to_pstate s_));
       [done|exact to_eq].
 
   (** [MsgVote]: step down if the term is higher, then grant or decline.
@@ -156,6 +157,8 @@ Implicit Type s : nstate.t.
     (* this file: same term, and this node has not voted in it *)
     m.(raftpb.Message.Term') = s.(nstate.term) →
     s.(nstate.vote) = W64 0 →
+    (* [r.step] matches the role and nothing is on loan *)
+    nstate_wf s →
     {{{ is_pkg_init raft ∗
         "Hphys" ∷ own_raft_phys cfg r id s ∗
         (* the message's [Context] is readable and is not the leader-transfer
@@ -166,17 +169,21 @@ Implicit Type s : nstate.t.
       r @! (go.PointerType raft.raft) @! "Step" #m
     {{{ (err : error.t) s', RET #err;
         "Hphys" ∷ own_raft_phys cfg r id s' ∗
+        "%Hwf'" ∷ ⌜ nstate_wf s' ⌝ ∗
         (* [recv] is whatever this branch consumed -- nothing, or the incoming
            message once or twice.  Naming its elements rather than the list
            lets [wp_raft__Step] discharge the [is_message] side of
            [own_raft_ghost_step] from the single fact it holds about [m]. *)
         "%Hrefines" ∷ ⌜ ∃ recv,
             (∀ m', m' ∈ recv → m' = abs_msg mtype.Vote m) ∧
-            step cfg id s recv s' ⌝ ∗
+            step cfg id (to_pstate s) recv (to_pstate s') ⌝ ∗
         "%Herr" ∷ ⌜ err = interface.nil ⌝ }}}.
   Proof.
-    intros Hty Hto Hterm Hfnz Heq0 Hv00.
-    wp_start_folded as "@". iNamed "Hphys". wp_start_unfold. wp_auto.
+    intros Hty Hto Hterm Hfnz Heq0 Hv00 Hwf.
+    pose proof Hwf as [Hsfw Hlent].
+    wp_start_folded as "@". iNamed "Hphys".
+    iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog") as "Hlog".
+    wp_start_unfold. wp_auto.
     assert (Hle : ¬ (uint.Z rv.(raft.raft.Term') < uint.Z m.(raftpb.Message.Term')))
       by (rewrite Hterm0 Heq0; lia).
     assert (Hnlt : ¬ (uint.Z m.(raftpb.Message.Term') < uint.Z rv.(raft.raft.Term')))
@@ -206,14 +213,14 @@ Implicit Type s : nstate.t.
           destruct (decide (rv.(raft.raft.lead') = W64 0)) as [Hl0|Hl0].
           -- (* and recognises no leader: [canVote] *)
              rewrite Hl0 bool_decide_eq_true_2 //. wp_auto.
-             assert (Hcan : can_vote s m.(raftpb.Message.From'))
-               by (right; split; congruence).
+             assert (Hcan : pcan_vote (to_pstate s) m.(raftpb.Message.From'))
+               by (rewrite /pcan_vote /=; right; split; congruence).
              wp_apply (wp_raftLog__lastEntryID with "[$Hlog]")
                as "%lastID2 Hlog".
              wp_apply (wp_raftLog__isUpToDate with "[$Hlog]") as "%ok2 Hlog".
              destruct ok2.
-             ++ vote_grant_tail r id s m Hlok Hty Hto Hcan.
-             ++ vote_reject_tail r id s m Hlok Hto Hterm0.
+             ++ vote_grant_tail r id s m Hlok Hty Hto Hcan Hwf Hlent.
+             ++ vote_reject_tail r id s m Hlok Hto Hterm0 Hwf Hlent.
           -- (* but a leader is known, so the vote is declined.  [canVote]'s
                   second disjunct is now false, so the program goes on to
                   evaluate the third -- which needs [MsgPreVote].  This arm
@@ -232,7 +239,7 @@ Implicit Type s : nstate.t.
                 its [bool] result instead, so they can use [as]. *)
              wp_apply (wp_raftLog__lastEntryID with "[$Hlog]").
              iIntros "%lastID2 Hlog".
-             vote_reject_tail r id s m Hlok Hto Hterm0.
+             vote_reject_tail r id s m Hlok Hto Hterm0 Hwf Hlent.
   Qed.
 
 End branches.

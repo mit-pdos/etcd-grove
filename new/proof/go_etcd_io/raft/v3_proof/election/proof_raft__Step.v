@@ -43,51 +43,53 @@ Set Default Proof Using "Type".
   Lemma wp_raft__Step : wp_raft__Step_body.
   Proof.
     intros_ambient.
-    intros cfg γ r id s m.
+    intros cfg γ r id s ps m.
     (* Not [subst cfg]: the branch lemmas below are applied to [cfg] by
        name, and with the binder gone that resolves to Perennial's global
        [cfg] (a [language → Type]).  Move the witness instead. *)
     intros Hcfg.
-    intros Helection Hin Hhup Hvote Hvoteresp.
+    intros Helection Hin Hhup Hvote Hvoteresp Hrel.
+    destruct Hrel as [<- Hwf].
     iIntros (Φ) "(#Hinit & Hphys & Hghost & #Hm & #Hctx) HΦ".
     iApply wp_fupd.
     destruct Helection as [Hty | [Hty | Hty]].
     - (* MsgHup: a local message, handled by [hup]. *)
       destruct (Hhup Hty) as [Hmterm Hnowrap].
       wp_apply (H.wp_Step_MsgHup cfg with "[$Hphys]"); [done..|].
-      iIntros (err s') "(Hphys & %Hst & %Herr)".
-      assert (step γ.(re_cfg) id s [] s') as Hst' by (rewrite Hcfg; exact Hst).
+      iIntros (err s') "(Hphys & %Hwf' & %Hst & %Herr)".
+      assert (step γ.(re_cfg) id (to_pstate s) [] (to_pstate s')) as Hst'
+        by (rewrite Hcfg; exact Hst).
       iMod (own_raft_ghost_step_0 _ _ _ _ Hst' with "Hghost") as "Hghost".
-      iModIntro. iApply ("HΦ" $! err s'). iFrame.
-      iPureIntro. split; [by eexists []|done].
+      iModIntro. iApply ("HΦ" $! err s' (to_pstate s')). iFrame.
+      iPureIntro. split; [split; [done|exact Hwf']|]. split; [by eexists []|done].
     - (* MsgVote: answer the vote request, stepping down first if needed. *)
       destruct (Hvote Hty) as (Hto & Hterm & Hfnz).
       iDestruct ("Hm" $! mtype.Vote with "[]") as "#Hm'".
       { iPureIntro. rewrite Hty. apply mtype_of_MsgVote. }
       wp_apply (V.wp_Step_MsgVote cfg with "[$Hphys $Hctx]"); [done..|].
-      iIntros (err s') "(Hphys & %Hst & %Herr)".
+      iIntros (err s') "(Hphys & %Hwf' & %Hst & %Herr)".
       destruct Hst as (recv & Hrecv & Hstep).
-      assert (step γ.(re_cfg) id s recv s') as Hstep'
+      assert (step γ.(re_cfg) id (to_pstate s) recv (to_pstate s')) as Hstep'
         by (rewrite Hcfg; exact Hstep).
       iMod (own_raft_ghost_step _ _ _ _ _ Hstep' with "[] Hghost") as "Hghost".
       { iApply big_sepL_intro. iIntros "!> %k %m' %Hk".
         rewrite (Hrecv m'); [iFrame "#"|by eapply list_elem_of_lookup_2]. }
-      iModIntro. iApply ("HΦ" $! err s'). iFrame.
-      iPureIntro. split; [by eexists recv|done].
+      iModIntro. iApply ("HΦ" $! err s' (to_pstate s')). iFrame.
+      iPureIntro. split; [split; [done|exact Hwf']|]. split; [by eexists recv|done].
     - (* MsgVoteResp: tally the vote, possibly winning or losing. *)
       destruct (Hvoteresp Hty) as [Hto Hterm].
       iDestruct ("Hm" $! mtype.VoteResp with "[]") as "#Hm'".
       { iPureIntro. rewrite Hty. apply mtype_of_MsgVoteResp. }
       wp_apply (R.wp_Step_MsgVoteResp cfg with "[$Hphys]"); [done..|].
-      iIntros (err s') "(Hphys & %Hst & %Herr)".
+      iIntros (err s') "(Hphys & %Hwf' & %Hst & %Herr)".
       destruct Hst as (recv & Hrecv & Hstep).
-      assert (step γ.(re_cfg) id s recv s') as Hstep'
+      assert (step γ.(re_cfg) id (to_pstate s) recv (to_pstate s')) as Hstep'
         by (rewrite Hcfg; exact Hstep).
       iMod (own_raft_ghost_step _ _ _ _ _ Hstep' with "[] Hghost") as "Hghost".
       { iApply big_sepL_intro. iIntros "!> %k %m' %Hk".
         rewrite (Hrecv m'); [iFrame "#"|by eapply list_elem_of_lookup_2]. }
-      iModIntro. iApply ("HΦ" $! err s'). iFrame.
-      iPureIntro. split; [by eexists recv|done].
+      iModIntro. iApply ("HΦ" $! err s' (to_pstate s')). iFrame.
+      iPureIntro. split; [split; [done|exact Hwf']|]. split; [by eexists recv|done].
   Qed.
 
 End StepProof.

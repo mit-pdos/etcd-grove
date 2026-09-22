@@ -57,8 +57,8 @@ Set Default Proof Using "Type".
     rewrite Hty /MsgVoteResp.
     rewrite bool_decide_eq_false_2; last w32_ne.
     wp_auto.
-    (* pr := r.trk.Progress[m.From] *)
-    iDestruct (own_tracker_progress_map with "Htrk") as (prs) "(#Hprs & %Hdomprs & Htrk)".
+    (* pr := r.trk.Progress[m.From], through [own_raft_phys]'s own pin of
+       the progress map -- the tracker itself is not needed *)
     wp_apply (wp_map_lookup1 with "Hprs") as "_".
     case_bool_decide as Hnil.
     - (* no progress for the sender: log and return nil *)
@@ -69,7 +69,7 @@ Set Default Proof Using "Type".
       { rewrite /log_methods. set_solver. }
       iApply ("HΦ" $! interface.nil).
       iSplitL "Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc".
-      { rewrite /own_raft_phys /own_raft_phys_at.
+      { rewrite /own_raft_phys.
         iExists rv, msgs, msgsAA, lok. iFrame "Hr". iFrame "∗#%". }
       done.
     - (* the sender has a [Progress]: the second switch ignores us *)
@@ -79,7 +79,7 @@ Set Default Proof Using "Type".
       wp_auto.
       iApply ("HΦ" $! interface.nil).
       iSplitL "Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc".
-      { rewrite /own_raft_phys /own_raft_phys_at.
+      { rewrite /own_raft_phys.
         iExists rv, msgs, msgsAA, lok. iFrame "Hr". iFrame "∗#%". }
       done.
   Qed.

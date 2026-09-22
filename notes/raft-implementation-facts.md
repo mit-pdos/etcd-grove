@@ -72,9 +72,10 @@ The `becomeX` functions swap `r.step` between `stepFollower`,
 `stepCandidate` and `stepLeader`. `becomeFollower` assigns `r.step` **before**
 `r.state`, and calls `reset` in between — so there is a window where the
 pointer and the role disagree. Harmless single-threaded, but it is why
-`own_raft_phys` had to be parameterized over the step function
-(`own_raft_phys_at … f`) rather than tying `r.step` to the role
-unconditionally.
+`r.step` cannot be a function of the role in the abstract state: it is its
+own field, `nstate.stepfn : func.t` (since 2026-09-22; before that a
+variant predicate `own_raft_phys_at … f` carried it), and `nstate_wf`
+says the two agree between top-level calls.
 
 A `MsgVoteResp` reaches `r.step(m)` through `Step`'s default arm, so the
 pointer's value is load-bearing for that proof.

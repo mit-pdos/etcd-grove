@@ -31,8 +31,8 @@ forks, both on branch `goose`, wired up in `new/etc/update-goose-new.py` and
 
 - `v3_proof/base.v` — `IsPkgInit` instances for the raft package and its
   dependencies. Boilerplate; grows as new packages are pulled in.
-- `v3_proof/election_protocol.v` — the **protocol model**: the abstract node
-  state `nstate.t`, the transition relation `step`, the ghost state
+- `v3_proof/election_protocol.v` — the **protocol model**: the protocol
+  node state `pstate.t`, the transition relation `step`, the ghost state
   (`own_raft_ghost`, `is_message`, `is_vote`, `is_leader`) and the payoff
   `is_leader_unique`. The ghost state is constructed, not axiomatized:
   per-node `ghost_map`s of `term ↦ candidate`, no Iris invariant, `is_leader`
@@ -71,16 +71,41 @@ structure. Both share `etc/rocqscan.py`.
 including a leasing protocol proof), `pkg/v3`, `api/v3` protobuf packages and
 `server/v3/etcdserver`. Context for the raft work, not the current focus.
 
+## The three layers, and the one-predicate rule
+
+The proof is a refinement in three layers, each with its own state type
+(notes/decisions.md, "Three layers", 2026-09-22):
+
+1. **Go code and heap → `nstate.t`** (`election/defs.v`), by
+   `own_raft_phys r id s` (`election/inv_raft_phys.v`). Every Go-level spec
+   is a pre/postcondition on it. `nstate.t` carries the six protocol fields
+   plus `stepfn` (`r.step`), `progress` (the progress map), `log`
+   (`r.raftLog`) and `lent` (tracker and log on loan to the caller).
+2. **`nstate.t` → `pstate.t`** (`election_protocol.v`), by `nstate_rel`
+   (`defs.v`). Only `Step`'s spec mentions both.
+3. **`pstate.t` → protocol properties**: `own_raft_ghost`, `step`,
+   `raft_election_safety`.
+
+**The rule: one ownership predicate per object.** If a function cannot be
+specified with `own_raft_phys`, refine `nstate.t` and `own_raft_phys` until
+it can. Never add a variant predicate, a parameterised copy, or a spec on
+raw pieces of the struct. Three such variants (`own_raft_phys_at`,
+`own_raft_bare`, `own_raft_notrk`) existed until 2026-09-22 and were removed;
+see gotchas.md for the checklist. A function that touches the tracker or
+the log takes `s.(nstate.lent) = None`; `hup`, the `Step` helpers and
+`Step` take `nstate_wf s`.
+
 ## What is proved
 
-Every Hoare triple on the election path is `Qed` — **169 lemmas**, 78
+Every Hoare triple on the election path is `Qed` — **174 lemmas**, 78
 discharged signatures — except one deliberate, marked admission (below).
 The top of the development is:
 
 - **`Step.wp_raft__Step`** (`election/spec_raft__Step.v`): running `Step` on
-  an election message takes the physical struct from a state refining the
-  protocol state `s` to one refining `s'`, and moves `own_raft_ghost` from
-  `s` to `s'` at the same time, with `∃ recv, step cfg id s recv s'`.
+  an election message takes `own_raft_phys` from a physical state `s` with
+  `nstate_rel s ps` to some `s'` with `nstate_rel s' ps'`, and moves
+  `own_raft_ghost` from `ps` to `ps'` at the same time, with
+  `∃ recv, step cfg id ps recv ps'`.
 - **`raft_election_safety`** (`election.v`): two nodes whose ghost state says
   "leader in term `t`" are the same node.
 
@@ -129,48 +154,67 @@ say so in the journal.
 
 1. **`own_raft_phys` has no constructor.** There is no `newRaft` spec and no
    `is_Storage` instance (not even `MemoryStorage`), so nothing shows the
-   predicate is satisfiable — and it was provably `False` once before. Until
-   this exists, every triple in the development could in principle be
-   vacuous. `own_raft_ghost` *is* known inhabited (`own_raft_ghost_alloc`);
-   closing the same gap on the physical side is the highest-value work
-   available.
-2. **`HnoConfChange` is false of a real cluster.** `inv_raftlog.v:139`
+   predicate is satisfiable — and it was provably `False` twice before. The
+   second time was found on 2026-09-22 by *starting* the `newRaft` spec:
+   `own_tracker` demanded `Config.Learners ↦$ ∅`, which forces a non-nil
+   map, while every tracker `newRaft` builds has `Learners = LearnersNext =
+   nil`; fixed with `own_idset_opt` (`inv_tracker.v`). Until a constructor
+   exists, every triple in the development could in principle be vacuous.
+   `own_raft_ghost` *is* known inhabited (`own_raft_ghost_alloc`). What
+   `newRaft` needs, found so far: an `InitialState` triple (a premise of
+   `newRaft`'s spec, not a new `is_Storage` clause); `confchange.Restore`
+   and `raftpb.ConfState.Equivalent` are **not translated** (confchange is
+   `translate = ["Changer"]`), so either translate `confchange` or postulate
+   `Restore` for the voters-only case; `fmt.Sprintf`/`strings.Join` are
+   untranslated library calls; and item 2 below (`committed`/`applied`
+   across `lastEntryID`).
+2. **The log has three shapes, and none shows `committed`/`applied`.**
+   `own_raftLog` (existential split), `own_raftLog_at` (indexed by the
+   split) and the raw page-and-wand `raftLog.entries`/`slice` return are the
+   same variant pattern the raft struct just lost. By the rule above the log
+   should have *one* predicate indexed by an abstract log state
+   (`prev`, `sents`, `uents`, `committed`, `applied`, and a page on loan),
+   and `nstate.t` should carry that state rather than `log : loc`. `newRaft`
+   is blocked on it: `loadState`/`appliedTo` panic unless the caller knows
+   `committed` and `applied`, and `lastEntryID` sits between building the
+   log and calling them.
+3. **`HnoConfChange` is false of a real cluster.** `inv_raftlog.v:139`
    requires `Forall (λ e, Type = EntryNormal) (sents ++ uents)` — the *whole*
    log — while `RawNode.Bootstrap` (`new/code/go_etcd_io/raft/v3.v:391`)
    writes `EntryConfChange` entries at `v3.v:447`, and `StartNode` calls it.
    So `own_raft_phys` is unsatisfiable for a freshly bootstrapped node until
    compaction. Only "no conf change in `(applied, committed]`" is needed;
    weakening it is cheap and should happen.
-3. **`Ready` / `advance` / `acceptReady` are unverified.** No collection
+4. **`Ready` / `advance` / `acceptReady` are unverified.** No collection
    exists. They are the only thing that drains `msgs` and `msgsAfterAppend`,
    so `step_drain` — the model rule that exists for exactly this — refines
    nothing, and nothing shows `own_raft_phys` survives a drain. This blocks
    composing `Step` into a running node.
-4. **`tick` needs a scope decision.** `tickElection` calls `Step(MsgHup)`
+5. **`tick` needs a scope decision.** `tickElection` calls `Step(MsgHup)`
    (`v3.v:3497`), which is covered. `tickHeartbeat` calls `Step(MsgBeat)`
    unconditionally (`v3.v:3552`); its `Step(MsgCheckQuorum)` (`v3.v:3523`) is
    guarded by `r.checkQuorum` and so is dead under the scope. Either
    `tickHeartbeat` is out of scope — a leader never heartbeats, harmless for
    safety — or `MsgBeat` needs a branch. Decide and write it down; the scope
    table above does not currently say.
-5. **`isUpToDate` is unconstrained**, so a bug that makes a node grant to a
+6. **`isUpToDate` is unconstrained**, so a bug that makes a node grant to a
    stale candidate is invisible. Note what this does and does not cost: it is
    *not* an election-safety bug — at most one leader per term does not depend
    on log currency — so it cannot produce two leaders. It costs Leader
    Completeness, which is close to vacuous while the log only ever holds a
    leader's empty entry. Closing it needs a log model.
-6. **Bring `readonly.v` and `protocol.v` into the module discipline.** Eleven
+7. **Bring `readonly.v` and `protocol.v` into the module discipline.** Eleven
    triples are still stated loose. One is a real duplicate:
    `raft.stepLeader` has a second triple in `readonly.v` against a second
    ownership story (`own_raft`), `Admitted` with postcondition `True` and no
    users. Resolving it means deciding whether `own_raft` or `own_raft_phys`
    survives.
-7. **Decide the top-level Raft correctness statement** beyond election
+8. **Decide the top-level Raft correctness statement** beyond election
    safety, and write it down as a decision record.
-8. **Discharge `protocol.v`'s `Section axioms`** against the translated code,
+9. **Discharge `protocol.v`'s `Section axioms`** against the translated code,
    or record why each stays an axiom. Then extend past `Propose` to the rest
    of the `node` interface.
-9. Two stale comments, both misleading to an auditor: `election.v:20-23` says
+10. Two stale comments, both misleading to an auditor: `election.v:20-23` says
    the `inv_*.v` files hold the log and tracker as `Axiom`s (they are
    definitions), and `election_protocol.v:50-53` motivates including
    `App`/`Heartbeat` in the model by the higher-term step-down — true of the
@@ -182,8 +226,8 @@ say so in the journal.
 
 `etc/tcb-report.py` over the whole raft proof: **31 assumed — 23 `Axiom` and
 8 `Admitted.`**, 3 of the admits deliberate and marked `(* Trusted *)`. On
-the election path alone: **10 `Axiom` and 1 `Admitted`**, against 169 `Qed`
-lemmas and 78 discharged signatures — 3.6% of the development by line.
+the election path alone: **10 `Axiom` and 1 `Admitted`**, against 174 `Qed`
+lemmas and 78 discharged signatures — 4.0% of the development by line.
 
     etc/tcb-report.py                    # summary, and which files are incomplete
     etc/tcb-report.py --scope election
@@ -195,8 +239,8 @@ doc comments quote probe lemmas ending in `Admitted.`, and `spec_*.v` files
 are full of `Parameter`s.
 
 The count of axioms is the smaller half. The **definitions** the exported
-statements reach — 38 on the election path, 428 lines — are the rest of it:
-`raft_election_safety` says nothing if `nstate.t`, `step` or `own_raft_phys`
+statements reach — 44 on the election path, 471 lines — are the rest of it:
+`raft_election_safety` says nothing if `pstate.t`, `step`, `nstate_rel` or `own_raft_phys`
 is wrong, and none of those is an axiom.
 
 ### What the keywords mean

@@ -35,13 +35,13 @@ Definition wp_raft__increaseUncommittedSize_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
-    (r : loc) (rv : raft.raft.t) (es : slice.t)
+    (cfg : gset w64) (r : loc) (id : w64) (s : nstate.t) (es : slice.t)
     (ents : list raftpb.Entry.t) (dq : dfrac),
   Forall (λ e, sint.Z e.(raftpb.Entry.Data').(slice.len) = 0) ents →
-  {{{ is_pkg_init raft ∗ "Hr" ∷ r ↦ rv ∗ "Hes" ∷ es ↦*{dq} ents }}}
+  {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s ∗
+      "Hes" ∷ es ↦*{dq} ents }}}
     r @! (go.PointerType raft.raft) @! "increaseUncommittedSize" #es
-  {{{ (uc : w64), RET #true;
-      r ↦ (rv <| raft.raft.uncommittedSize' := uc |>) ∗ es ↦*{dq} ents }}}.
+  {{{ RET #true; own_raft_phys cfg r id s ∗ es ↦*{dq} ents }}}.
 
 Module Type RAFT__INCREASEUNCOMMITTEDSIZE.
   Parameter wp_raft__increaseUncommittedSize :
