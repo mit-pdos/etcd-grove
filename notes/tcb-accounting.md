@@ -79,31 +79,54 @@ Three further things check out, none of which the tool itself checks:
   `raftpb.Entry.Size` and `big.Int.Int64`, which are exactly two of the ten
   axioms — expected, not a discrepancy.
 
-## The gaps, worst first
+**What was not reproduced: step 1.** No `make` was run against that branch
+here. The tree carries 333 `.vos` files and no `.vo`/`.vok`, and `.vos`
+skips proof bodies by construction. The evidence offered was a manual `-vok`
+sweep described in a commit message ("99 pass, 0 fail"): not committed, not
+tied to a revision, not reproducible from the repository. CI
+(`.github/workflows/ci.yml:43`, `make -j4 -k ci`) *is* the real step 1, but
+it triggers only on pushes to `main` and PRs targeting `main`, and that
+branch is neither.
 
-### G1. The tool does not state its premise, and was read as if it had none
+So the strongest honest statement about it remains: **"the source says 169
+`Qed`, no `make` has been run against it here, and someone reported a `-vok`
+sweep passing on 2026-09-21."** That is a fact about how the branch was
+audited, not a defect in `tcb-report.py` — which is the whole of what the
+two-step process clarified.
 
-`tcb-report.py` and `rocqscan.py` contain no `subprocess`, no `rocq`, no
-reference to `.vo`/`.vok`. They strip comments and count sentences. **A
-`Qed.` in a file that does not typecheck is counted as a proof.**
+## The gaps
 
-Under the process above that is *correct behaviour*, not a defect — step 1
-is where proofs get checked. The defect is that nothing in the output says
-so, and the number was quoted on its own as evidence that the election path
-is proved.
+**Numbered in the order they were found, which is not their order of
+importance.** By importance: **G6, G3, G2, G4, G5, G7, G1**. The labels are
+cited in `journal.md` and in commit messages, so they stay put rather than
+being renumbered.
 
-It was not backed by a step 1 on this branch. The tree carries 333 `.vos`
-files and no `.vo`/`.vok`, and `.vos` skips proof bodies by construction.
-The evidence offered was a manual `-vok` sweep described in a commit message
-("99 pass, 0 fail"): not committed, not tied to a revision, not reproducible
-from the repository. CI (`.github/workflows/ci.yml:43`, `make -j4 -k ci`)
-*is* the real step 1, but it triggers only on pushes to `main` and PRs
-targeting `main`, and this branch is neither.
+### G1. A report cannot be tied to the build that backs it
 
-**So the strongest honest statement about that branch today is: "the source
-says 169 `Qed`, no `make` has been run against it here, and someone reported
-a `-vok` sweep passing on 2026-09-21."** The fix is item 1 below — make the
-tool say what it assumes — not to teach it to compile.
+**Most of this gap dissolved when the two-step process was written down on
+2026-09-22, and what is left is the least severe item in this list.** It is
+kept, shrunken, rather than deleted, because the reasoning is worth not
+re-deriving.
+
+What it used to say was "the tool never compiles anything" — `tcb-report.py`
+and `rocqscan.py` contain no `subprocess`, no `rocq`, no reference to
+`.vo`/`.vok`; they strip comments and count sentences, so a `Qed.` in a file
+that does not typecheck is counted as a proof. **That is the design, and it
+is right.** Step 1 checks proofs; a source scanner that also tried to would
+be a worse version of `make`. Criticising it for that was criticising it for
+not being a different tool.
+
+The other half of the old G1 — that the election branch's number was not
+backed by a build — is a fact about how that branch was audited, and now
+lives above under "What was not reproduced".
+
+**What genuinely survives is narrow:** a `tcb-report.py` run carries no
+record of *what it looked at*. It prints counts with no revision, so two
+halves of an audit cannot be shown to be about the same tree, and a figure
+pasted into a commit message or a notes file is unattributable a week later.
+The process says "quote step 1 and step 2 together"; nothing in the output
+helps anyone do that, or notices when they did not. Plan item 1 is the fix
+and it is roughly a header line.
 
 ### G2. `--scope` is a path filter, not a dependency cone
 
@@ -224,30 +247,18 @@ reader everything about the trust base that the build could not have told
 them** — and says plainly which of the two it is speaking for. It is not
 trying to become a proof checker; there is one, and it is `make`.
 
-Ordered by value per unit of work. Items 1-5 are pure additions to the
-existing scanner and need no build; item 6 consumes an artefact the build
-already almost produces.
+Ordered by importance, matching the list under "The gaps" above. Items 1-5
+are pure additions to the existing scanner and need no build; item 6
+consumes an artefact the build already almost produces.
 
 ### Slice 1 — one afternoon, no Rocq required
 
-1. **State the premise, in the output (G1).** A header line on every run:
-   *"Source-text analysis. It assumes `make` is green at this revision; it
-   does not check proofs."* Cheap, and it is the whole of the G1 fix. Worth
-   adding beside it: if `.vo` files exist under the scope, report the oldest
-   against the newest `.v`, so a stale build is visible; if none exist, say
-   `no build artifacts present`.
-2. **Check build reachability (G6).** `--require-reachable new/should_build.v`:
+1. **Check build reachability (G6).** `--require-reachable new/should_build.v`:
    warn — and under `--strict`, exit non-zero — on any scanned file outside
    the `Require` closure. Twenty lines on the existing parser, and it closes
    the one hole a green build cannot. **Do this first if only one thing gets
    done.**
-3. **Make `--scope` mean the dependency cone (G2).** Keep the path filter as
-   `--scope-dir` if anyone wants it, but make `--scope X` report the
-   transitive `Require` closure of the files under `X`. At minimum, always
-   print a boundary line: *"this scope requires N files outside it, carrying
-   M axioms and K admits"*, with the list. For `election` that turns
-   `assumed 11` into `assumed 23` and names `election_protocol.v`.
-4. **Flag never-allocated abstract predicates (G3).** For every
+2. **Flag never-allocated abstract predicates (G3).** For every
    `Axiom P : … → iProp Σ`, search the tree for a statement whose conclusion
    mentions `P` and whose premises do not — an allocation or initialisation
    lemma. If there is none, print `P` as **"never allocated: every statement
@@ -256,7 +267,13 @@ already almost produces.
    case of the tool doing something the build structurally cannot**: Rocq
    will happily check every proof in the development under the model that
    sends all three to `False`.
-5. **Give admissions a machine-readable marker (G4).** Replace free-text
+3. **Make `--scope` mean the dependency cone (G2).** Keep the path filter as
+   `--scope-dir` if anyone wants it, but make `--scope X` report the
+   transitive `Require` closure of the files under `X`. At minimum, always
+   print a boundary line: *"this scope requires N files outside it, carrying
+   M axioms and K admits"*, with the list. For `election` that turns
+   `assumed 11` into `assumed 23` and names `election_protocol.v`.
+4. **Give admissions a machine-readable marker (G4).** Replace free-text
    `(* Trusted *)` with a one-line grammar the tool parses and
    `check-module-discipline.py` gates, distinguishing at least:
    - `(* TCB: <reason> *)` — a deliberate assumption believed to be true;
@@ -266,6 +283,16 @@ already almost produces.
    Report an admitted lemma as assuming its **whole statement**, in those
    words — `Print Assumptions` names the whole triple, so the report should
    agree with what step 1 would say.
+5. **Make a run attributable (G1).** A header line carrying the revision
+   scanned and the premise: *"Source-text analysis at `<rev>` (`-dirty` if
+   the tree is modified). Assumes `make` is green at this revision; it does
+   not check proofs."* Then a pasted figure says which tree it describes.
+   Worth adding beside it: if `.vo` files exist under the scope, report the
+   oldest against the newest `.v`, so a stale build is visible; if none
+   exist, say `no build artifacts present`. **Lowest value of the seven** —
+   output hygiene, not a TCB check — but also the cheapest, and it is what
+   makes the two-command process auditable after the fact. Do it while
+   waiting for a build.
 
 ### Slice 2 — reconcile with what the build knows
 

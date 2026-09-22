@@ -2615,3 +2615,41 @@ meets the process before it meets the numbers, and `STATUS.md` is dated
 
 **No proof or tool code changed** — this is the plan, not its
 implementation. Items 1–5 of Slice 1 need no Rocq and are unclaimed.
+
+---
+
+## 2026-09-22 (later) — G1 mostly dissolved; the gap list is reordered
+
+Claude Opus 5 (background job), same branch. Upamanyu asked whether G1 in
+[tcb-accounting.md](tcb-accounting.md) still makes sense under the two-step
+process. Mostly it does not, and the file now says so rather than quietly
+keeping a gap that had lost its reason.
+
+**What G1 was, and what happened to its three parts:**
+
+- *"The tool never compiles anything."* **Retired.** That is the design and
+  it is right — step 1 checks proofs, and a source scanner that also tried
+  would be a worse `make`. Criticising it was criticising the tool for not
+  being a different tool. Stated in the file so nobody re-files it.
+- *"The election branch's number was not backed by a build."* **Not a tool
+  gap at all** — a fact about how that branch was audited. Moved up beside
+  the other findings about it, as "What was not reproduced: step 1", which
+  is where a reader looking for the branch's status will find it.
+- *"A run carries no record of what it looked at."* **Survives, narrowed.**
+  `tcb-report.py` prints counts with no revision, so the two halves of an
+  audit cannot be shown to be about the same tree and a figure pasted into a
+  commit message is unattributable a week later. Real, but output hygiene
+  rather than a TCB check.
+
+So G1 is now **the least severe of the seven**, and its plan item moved from
+first to last in Slice 1 — where it was contradicting the G6 item beside it,
+which said "do this first" while sitting at number 2.
+
+**Also fixed: the list said "worst first" and was not.** It is discovery
+order, and after two days of reframing the two orders had come apart. The
+heading now says so and gives the real one — **G6, G3, G2, G4, G5, G7,
+G1** — and the plan follows it. The labels themselves stay put: they are
+cited in this journal and in commit messages, so renumbering would cost more
+than the tidiness is worth.
+
+Nothing else changed; no proof or tool code has been touched on this branch.
