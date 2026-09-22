@@ -218,7 +218,7 @@ and owns only the heap that hangs off it. See the trust boundary below.
   `wp_for` that sends a self-addressed `MsgVoteResp` and one `MsgVote` per
   peer.  Its triple gained a no-wrap premise
   (`uint.Z s.(nstate.term) + 1 < 2^64`) the same day, without which it was
-  false; see "Known broken" in [STATUS.md](STATUS.md).  The loop invariant has
+  false; see [false-statements.md](false-statements.md).  The loop invariant has
   to quantify the range variable as well as the index — see
   [gotchas.md](gotchas.md).
 - `Step`: the top-level dispatch, and its `MsgHup` branch (modulo
