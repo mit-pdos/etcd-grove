@@ -40,16 +40,11 @@ Definition wp_unstable__truncateAndAppend_body :=
   (uint.Z e0.(raftpb.Entry.Index')
    = uint.Z uv.(raft.unstable.offset') + Z.of_nat (length uents))%Z →
   {{{ is_pkg_init raft ∗
-      "Hu" ∷ u ↦ uv ∗
-      "Hents" ∷ uv.(raft.unstable.entries') ↦* uents ∗
-      "Hents_cap" ∷ own_slice_cap raftpb.Entry.t
-                      uv.(raft.unstable.entries') (DfracOwn 1) ∗
+      "Hun" ∷ own_unstable u uv uents None ∗
       "Hes" ∷ es ↦*{dq} ents }}}
     u @! (go.PointerType raft.unstable) @! "truncateAndAppend" #es
   {{{ (sl : slice.t), RET #();
-      u ↦ (uv <| raft.unstable.entries' := sl |>) ∗
-      sl ↦* (uents ++ ents) ∗
-      own_slice_cap raftpb.Entry.t sl (DfracOwn 1) ∗
+      own_unstable u (uv <| raft.unstable.entries' := sl |>) (uents ++ ents) None ∗
       es ↦*{dq} ents }}}.
 
 Module Type UNSTABLE__TRUNCATEANDAPPEND.

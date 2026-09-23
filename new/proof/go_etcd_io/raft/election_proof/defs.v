@@ -163,13 +163,13 @@ End proof.
     - [lent] says the tracker's heap and the log are **on loan to the
       caller**: at [Some tv], [own_raft_phys] owns neither, pins
       [r.trk = tv], and whoever set it holds [own_tracker tv _] and the log
-      (whole, or as the page [raftLog.entries] lends plus the wand back)
+      (at no page, or on loan of the page [raftLog.entries] lends)
       outside the predicate.  Two callers need this.  [maybeSendAppend]
       holds one peer's [Progress] *and* a page of entries across [r.send]:
       [pr.SentEntries] needs the facts it learned about that [Progress]
       before the send, and [payloadsSize(ents)] reads the page after it.
-      [appendEntry] holds the log open at a fixed split across
-      [increaseUncommittedSize] -- the split is what relates the
+      [appendEntry] holds the log at a fixed state across
+      [increaseUncommittedSize] -- the state is what relates the
       [lastIndex()] it read to the [append] it does next.  Pinning [log]
       and the tracker value is what lets either of them know, after the
       call, that what it holds is still the struct's.  A function that

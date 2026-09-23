@@ -8,10 +8,11 @@ Definition wp_raftLog__hasNextOrInProgressSnapshot_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
-    (l : loc),
-  {{{ is_pkg_init raft ∗ own_raftLog l }}}
+    (l : loc) (ls : logstate.t),
+  ls.(logstate.page) = None →
+  {{{ is_pkg_init raft ∗ own_raftLog l ls }}}
     l @! (go.PointerType raft.raftLog) @! "hasNextOrInProgressSnapshot" #()
-  {{{ (b : bool), RET #b; own_raftLog l ∗ ⌜ b = false ⌝ }}}.
+  {{{ (b : bool), RET #b; own_raftLog l ls ∗ ⌜ b = false ⌝ }}}.
 
 Module Type RAFTLOG__HASNEXTORINPROGRESSSNAPSHOT.
   Parameter wp_raftLog__hasNextOrInProgressSnapshot : wp_raftLog__hasNextOrInProgressSnapshot_body.

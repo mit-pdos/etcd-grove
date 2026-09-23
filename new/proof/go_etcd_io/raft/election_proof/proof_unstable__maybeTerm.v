@@ -8,7 +8,7 @@ Import P.
     intros_ambient.
     intros u uv uents i.
 
-    intros Hns Hnw. wp_start as "H". iNamed "H". wp_auto.
+    intros Hns Hnw. wp_start as "H". iNamed "H". iNamed "Hun". wp_auto.
     iDestruct (own_slice_len with "Hents") as %[Hlen Hlen2].
     assert (bool_decide (uv.(raft.unstable.snapshot') = null) = true) as Hbsnap
       by (apply bool_decide_eq_true_2; done).
@@ -17,23 +17,25 @@ Import P.
         as Hb1 by (apply bool_decide_eq_true_2; done).
       rewrite Hb1 /=. wp_auto.
       rewrite Hbsnap /=. wp_auto.
-      iApply ("HΦ" $! (W64 0) false). iFrame. iPureIntro.
+      iApply ("HΦ" $! (W64 0) false). rewrite /own_unstable. iFrame. iPureIntro.
       split; [done | lia].
     - assert (bool_decide (uint.Z i < uint.Z uv.(raft.unstable.offset'))%Z = false)
         as Hb1 by (apply bool_decide_eq_false_2; done).
       rewrite Hb1 /=. wp_auto.
-      wp_apply (wp_unstable__maybeLastIndex _ _ _ Hns Hnw with "[$Hu $Hents]")
-        as "%last %ok (Hu & Hents & %Hok1 & %Hok2)".
+      wp_apply (wp_unstable__maybeLastIndex _ _ _ Hns Hnw with "[Hu Hents Hents_cap]")
+        as "%last %ok (Hun & %Hok1 & %Hok2)".
+      { rewrite /own_unstable. iFrame. }
+      iNamed "Hun".
       destruct (decide (uents = [])) as [He|Hne].
       + rewrite (Hok1 He) /=. wp_auto.
-        iApply ("HΦ" $! (W64 0) false). iFrame. iPureIntro.
+        iApply ("HΦ" $! (W64 0) false). rewrite /own_unstable. iFrame. iPureIntro.
         rewrite He /=. split; [done | lia].
       + destruct (Hok2 Hne) as [Hokt Hlast]. rewrite Hokt /=. wp_auto.
         destruct (decide (uint.Z last < uint.Z i)%Z) as [Hgt|Hle].
         * assert (bool_decide (uint.Z last < uint.Z i)%Z = true) as Hb2
             by (apply bool_decide_eq_true_2; exact Hgt).
           rewrite Hb2 /=. wp_auto.
-          iApply ("HΦ" $! (W64 0) false). iFrame. iPureIntro.
+          iApply ("HΦ" $! (W64 0) false). rewrite /own_unstable. iFrame. iPureIntro.
           split; [done | lia].
         * assert (bool_decide (uint.Z last < uint.Z i)%Z = false) as Hb2
             by (apply bool_decide_eq_false_2; exact Hle).
@@ -50,7 +52,7 @@ Import P.
           wp_auto.
           iDestruct ("Hback" with "He") as "Hents".
           rewrite (list_insert_id _ _ _ He_lk).
-          iApply ("HΦ" $! e.(raftpb.Entry.Term') true). iFrame. iPureIntro.
+          iApply ("HΦ" $! e.(raftpb.Entry.Term') true). rewrite /own_unstable. iFrame. iPureIntro.
           split; [intros _; lia | done].
   Qed.
 

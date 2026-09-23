@@ -13,7 +13,7 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
     reachable** -- it is not dead under our scope.  Returning [false]
     therefore needs [own_raftLog] to say that no entry in that range has
     [Type] [EntryConfChange] or [EntryConfChangeV2], which is
-    [HnoConfChange] in [own_raftLog_at] ([inv_raftlog.v]), together with
+    [HnoConfChange] in [own_raftLog] ([inv_raftlog.v]), together with
     [Happlied]/[Hcommitted] placing [(applied, committed]] inside the log so
     that [scan]'s bounds checks cannot panic.
 

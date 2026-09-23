@@ -8,7 +8,7 @@ Module UnstableTruncateAndAppendProof
   Proof.
     intros_ambient.
     intros u uv uents ents e0 es dq.
-    intros Hfirst Hcont. wp_start as "H". iNamed "H". wp_auto.
+    intros Hfirst Hcont. wp_start as "H". iNamed "H". iNamed "Hun". wp_auto.
     iDestruct (own_slice_len with "Hes") as %[Hlen Hlen'].
     iDestruct (own_slice_len with "Hents") as %[Hulen Hulen'].
     (* [ents[0].Index]: hand the element out of the slice for the field load *)
@@ -28,7 +28,7 @@ Module UnstableTruncateAndAppendProof
     wp_auto.
     wp_apply (wp_slice_append with "[$Hents $Hents_cap $Hes]")
       as "%sl (Hents & Hents_cap & Hes)".
-    iApply "HΦ". iFrame.
+    iApply "HΦ". rewrite /own_unstable. iFrame.
   Qed.
 
 End UnstableTruncateAndAppendProof.

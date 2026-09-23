@@ -14,10 +14,11 @@ Definition wp_raftLog__isUpToDate_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
-    (l : loc) (e : raft.entryID.t),
-  {{{ is_pkg_init raft ∗ own_raftLog l }}}
+    (l : loc) (e : raft.entryID.t) (ls : logstate.t),
+  ls.(logstate.page) = None →
+  {{{ is_pkg_init raft ∗ own_raftLog l ls }}}
     l @! (go.PointerType raft.raftLog) @! "isUpToDate" #e
-  {{{ (b : bool), RET #b; own_raftLog l }}}.
+  {{{ (b : bool), RET #b; own_raftLog l ls }}}.
 
 Module Type RAFTLOG__ISUPTODATE.
   Parameter wp_raftLog__isUpToDate : wp_raftLog__isUpToDate_body.

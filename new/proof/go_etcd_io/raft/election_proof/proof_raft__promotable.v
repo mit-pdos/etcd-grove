@@ -26,7 +26,7 @@ Import P.
     intros_ambient.
     intros cfg r id s Hlent.
     wp_start as "Hphys". iNamed "Hphys".
-    iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog") as "Hlog".
+    iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog") as (ls Hls) "Hlog".
     iDestruct (own_tracker_unless_open _ _ _ _ _ Hlent with "Htrk") as "Htrk".
     subst id.
     wp_auto.
@@ -41,10 +41,10 @@ Import P.
       wp_auto.
       rewrite Hnolearner. simpl.
       wp_auto.
-      wp_apply (P.wp_raftLog__hasNextOrInProgressSnapshot with "[$Hlog]")
+      wp_apply (P.wp_raftLog__hasNextOrInProgressSnapshot _ _ Hls with "[$Hlog]")
         as "%hb [Hlog %Hhb]".
       subst hb. simpl.
-      iDestruct (own_raftLog_unless_close _ _ Hlent with "Hlog") as "Hlog".
+      iDestruct (own_raftLog_unless_close _ _ _ Hlent with "Hlog [//]") as "Hlog".
       iDestruct ("Hprback" with "[Hpv Hinfl]") as "Htrk".
       { iExists pv, iv. rewrite /own_progress. iFrame "∗%". }
       iDestruct (own_tracker_unless_close _ _ _ _ _ Hlent with "Htrk") as "Htrk".
@@ -62,7 +62,7 @@ Import P.
       wp_apply (wp_map_lookup1 with "Hprs") as "_".
       rewrite Hnone /=.
       wp_auto.
-      iDestruct (own_raftLog_unless_close _ _ Hlent with "Hlog") as "Hlog".
+      iDestruct (own_raftLog_unless_close _ _ _ Hlent with "Hlog [//]") as "Hlog".
       iAssert (own_tracker cfg rv.(raft.raft.trk') s.(nstate.votes)
                  s.(nstate.progress))
         with "[Hvotes Hprogs Hvoters Hlearners HlearnersNext]" as "Htrk".

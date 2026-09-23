@@ -42,21 +42,22 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
     make the node decline to vote, which is always protocol-legal;
     [maybeSendAppend] puts it in a [MsgApp]'s [LogTerm], which the abstract
     message does not carry. *)
-Definition wp_raftLog__term_at_body :=
+Definition wp_raftLog__term_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
-    (l : loc) prev sents uents (i : w64),
-  {{{ is_pkg_init raft ∗ "Hlog" ∷ own_raftLog_at l prev sents uents }}}
+    (l : loc) (ls : logstate.t) (i : w64),
+  ls.(logstate.page) = None →
+  {{{ is_pkg_init raft ∗ "Hlog" ∷ own_raftLog l ls }}}
     l @! (go.PointerType raft.raftLog) @! "term" #i
   {{{ (t : w64) (err : interface.t), RET (#t, #err);
-      own_raftLog_at l prev sents uents ∗
+      own_raftLog l ls ∗
       ⌜ err = interface.nil ↔
-        (uint.Z prev.(raft.entryID.index') ≤ uint.Z i ≤
-         uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents)
-         + Z.of_nat (length uents))%Z ⌝ }}}.
+        (uint.Z ls.(logstate.prev).(raft.entryID.index') ≤ uint.Z i ≤
+         uint.Z ls.(logstate.prev).(raft.entryID.index') + Z.of_nat (length ls.(logstate.sents))
+         + Z.of_nat (length ls.(logstate.uents)))%Z ⌝ }}}.
 
 Module Type RAFTLOG__TERM.
-  Parameter wp_raftLog__term_at : wp_raftLog__term_at_body.
-  Arguments wp_raftLog__term_at {_ _ _ _ _ _ _ _}.
+  Parameter wp_raftLog__term : wp_raftLog__term_body.
+  Arguments wp_raftLog__term {_ _ _ _ _ _ _ _}.
 End RAFTLOG__TERM.

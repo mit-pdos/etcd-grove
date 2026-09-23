@@ -12,10 +12,11 @@ Definition wp_raftLog__lastEntryID_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
-    (l : loc),
-  {{{ is_pkg_init raft ∗ own_raftLog l }}}
+    (l : loc) (ls : logstate.t),
+  ls.(logstate.page) = None →
+  {{{ is_pkg_init raft ∗ own_raftLog l ls }}}
     l @! (go.PointerType raft.raftLog) @! "lastEntryID" #()
-  {{{ (e : raft.entryID.t), RET #e; own_raftLog l }}}.
+  {{{ (e : raft.entryID.t), RET #e; own_raftLog l ls }}}.
 
 Module Type RAFTLOG__LASTENTRYID.
   Parameter wp_raftLog__lastEntryID : wp_raftLog__lastEntryID_body.

@@ -88,11 +88,13 @@
 
     *** Structure
 
-    [own_raftLog_at l prev sents uents] is the workhorse; [own_raftLog l]
-    existentially quantifies the three.  The split is a parameter rather than
-    an existential inside because [raftLog.term] calls [firstIndex] and
-    [lastIndex] on itself, so the proof has to re-seal and re-open the
-    predicate mid-function and needs the split to come back unchanged.
+    [own_raftLog l ls] is the one predicate, indexed by [ls : logstate.t]
+    (below): the entry list, [committed], [applied], and a page on loan.
+    The entry list is in the index rather than existential inside because
+    [raftLog.term] calls [firstIndex] and [lastIndex] on itself, so the
+    proof has to re-seal and re-open the predicate mid-function and needs
+    the split to come back unchanged.  [own_unstable] is the predicate for
+    the embedded [unstable] struct.
 
     The [Storage] interface contract lives in [inv_storage.v]. *)
 
@@ -109,11 +111,82 @@ Ltac split_unstable l lv :=
                (P := l ↦ lv) (P' := l ↦ lv)
                with "Hl") as "[Huf Hlback]".
 
+(** The abstract state of a [raftLog]: what every [raftLog] spec is stated
+    at.
+
+    - [prev], [sents], [uents]: the entry list, as described above.
+    - [committed], [applied]: [l.committed] and [l.applied].  Nothing on the
+      election path writes them; they are in the state because
+      [hasUnappliedConfChanges] and [maybeSendAppend] read them and a spec
+      has to be able to say what was read.
+    - [page]: a slice **on loan** to the caller.  [raftLog.slice] and
+      [raftLog.entries] return a page of entries that shares memory with the
+      log (a sub-slice of [unstable.entries], a slice [Storage] lent, or a
+      fresh concatenation of the two); while it is out, the log holds a wand
+      back instead of those entries.  At [Some (s, es, dq)] the caller holds
+      [s ↦*{dq} es], and [own_raftLog_return_page] ends the loan.  Every
+      other spec takes [page = None].
+
+    (Until 2026-09-23 the log had three shapes: [own_raftLog_at l prev sents
+    uents], the existential [own_raftLog l], and the "page out" shape that
+    [slice]/[entries] returned as [l ↦ lv ∗ s ↦*{dq} es ∗ (l ↦ lv -∗ s ↦*{dq}
+    es -∗ own_raftLog_at …)].  notes/decisions.md, "One predicate per
+    object".) *)
+Module logstate.
+Record t :=
+  mk {
+      prev : raft.entryID.t;
+      sents : list raftpb.Entry.t;
+      uents : list raftpb.Entry.t;
+      committed : w64;
+      applied : w64;
+      page : option (slice.t * list raftpb.Entry.t * dfrac);
+    }.
+#[global] Instance settable : Settable t :=
+  settable! mk <prev; sents; uents; committed; applied; page>.
+End logstate.
+
+(** After [destruct ls as [prev sents uents …]], reduce the projections the
+    specs are written with.  Restricted to the six projections: a plain
+    [simpl in *] near a struct points-to can run for minutes
+    (notes/gotchas.md). *)
+Ltac logstate_simpl :=
+  cbn [logstate.prev logstate.sents logstate.uents logstate.committed
+       logstate.applied logstate.page] in *.
+
 Section proof.
 Context `{hG: heapGS Σ, !ffi_semantics _ _}.
 Context {sem : go.Semantics} {package_sem : raft.Assumptions}.
 Collection W := sem + package_sem.
 Set Default Proof Using "W".
+
+(** ** The [unstable] struct
+
+    [own_unstable u uv uents page] owns the [unstable] at [u] -- in the
+    development always the [unstable] field of a [raftLog] -- at value [uv],
+    together with its entry slice, holding [uents].  [page] is the same kind
+    of loan as [logstate.page]: [unstable.slice] lends a sub-slice of the
+    entries, and while it is out the predicate holds the wand back
+    ([own_unstable_return_page]).  Every other [unstable] spec takes
+    [page = None].  (Until 2026-09-23 the [unstable] specs were stated on
+    the raw [u ↦ uv ∗ uv.entries ↦* uents].) *)
+Definition own_unstable (u : loc) (uv : raft.unstable.t)
+    (uents : list raftpb.Entry.t)
+    (page : option (slice.t * list raftpb.Entry.t)) : iProp Σ :=
+  "Hu" ∷ u ↦ uv ∗
+  "Hents_cap" ∷ own_slice_cap raftpb.Entry.t uv.(raft.unstable.entries') (DfracOwn 1) ∗
+  "Hents" ∷ (match page with
+             | None => uv.(raft.unstable.entries') ↦* uents
+             | Some (s, es) => s ↦* es -∗ uv.(raft.unstable.entries') ↦* uents
+             end).
+
+Lemma own_unstable_return_page u uv uents s es :
+  own_unstable u uv uents (Some (s, es)) -∗ s ↦* es -∗ own_unstable u uv uents None.
+Proof.
+  iIntros "H Hs". iNamed "H". iFrame "Hu Hents_cap". iApply ("Hents" with "Hs").
+Qed.
+
+(** ** The log *)
 
 Definition log_indices_ok (prev : raft.entryID.t) (ents : list raftpb.Entry.t) : Prop :=
   ∀ (k : nat) e, ents !! k = Some e →
@@ -121,10 +194,12 @@ Definition log_indices_ok (prev : raft.entryID.t) (ents : list raftpb.Entry.t) :
 
 Definition EntryNormal : w32 := W32 0.
 
-Definition own_raftLog_at (l : loc) (prev : raft.entryID.t)
-                          (sents uents : list raftpb.Entry.t) : iProp Σ :=
-  ∃ (lv : raft.raftLog.t),
-  "Hl" ∷ l ↦ lv ∗
+(** Everything [own_raftLog] owns besides the struct itself, at struct value
+    [lv] and entry list [prev]/[sents]/[uents].  Not a second predicate for
+    the log: nothing is specified on it.  It is the part a page loan puts
+    behind a wand, and [own_raftLog_unfold] is how a proof gets at it. *)
+Definition own_raftLog_core (lv : raft.raftLog.t) (prev : raft.entryID.t)
+                            (sents uents : list raftpb.Entry.t) : iProp Σ :=
   "%Hidx" ∷ ⌜ log_indices_ok prev (sents ++ uents) ⌝ ∗
   "%Hnowrap" ∷ ⌜ (uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents)
                   + Z.of_nat (length uents) + 1 < 2^64)%Z ⌝ ∗
@@ -145,32 +220,93 @@ Definition own_raftLog_at (l : loc) (prev : raft.entryID.t)
                     ≤ uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents)
                       + Z.of_nat (length uents))%Z ⌝.
 
-Definition own_raftLog (l : loc) : iProp Σ :=
-  ∃ prev sents uents, own_raftLog_at l prev sents uents.
+(** The one predicate for a [raftLog], indexed by its abstract state [ls]
+    ([logstate.t], above).  The struct [l ↦ lv] stays outside the page
+    loan's wand: [maybeSendAppend] reads [r.raftLog.committed] while a page
+    is out ([own_raftLog_struct]). *)
+Definition own_raftLog (l : loc) (ls : logstate.t) : iProp Σ :=
+  ∃ (lv : raft.raftLog.t),
+  "Hl" ∷ l ↦ lv ∗
+  "%Hcm" ∷ ⌜ lv.(raft.raftLog.committed') = ls.(logstate.committed) ⌝ ∗
+  "%Hap" ∷ ⌜ lv.(raft.raftLog.applied') = ls.(logstate.applied) ⌝ ∗
+  "Hcore" ∷ (match ls.(logstate.page) with
+             | None => own_raftLog_core lv ls.(logstate.prev)
+                         ls.(logstate.sents) ls.(logstate.uents)
+             | Some (s, es, dq) =>
+                 s ↦*{dq} es -∗
+                 own_raftLog_core lv ls.(logstate.prev)
+                   ls.(logstate.sents) ls.(logstate.uents)
+             end).
 
-(** Open [own_raftLog] at some split and get a wand to close it again.  A
-    caller that holds only the existential form -- which is what
-    [own_raft_phys] carries -- needs this to use any of the indexed
-    ([_at]) log specs, since those are stated at a fixed split.  Same shape as
-    [own_raft_misc_option] in [inv_misc.v]. *)
-Lemma own_raftLog_acc l :
-  own_raftLog l -∗
-  ∃ prev sents uents,
-    own_raftLog_at l prev sents uents ∗
-    (own_raftLog_at l prev sents uents -∗ own_raftLog l).
+(** Open and close [own_raftLog] at no page, with the entry list as
+    variables -- the form every [raftLog] proof works at after
+    [destruct ls; logstate_simpl]. *)
+Lemma own_raftLog_unfold l prev sents uents cm ap :
+  own_raftLog l (logstate.mk prev sents uents cm ap None) ⊣⊢
+  ∃ lv, l ↦ lv ∗ ⌜ lv.(raft.raftLog.committed') = cm ⌝ ∗
+        ⌜ lv.(raft.raftLog.applied') = ap ⌝ ∗ own_raftLog_core lv prev sents uents.
+Proof. rewrite /own_raftLog /=. done. Qed.
+
+(** End a page loan. *)
+Lemma own_raftLog_return_page l ls s es dq :
+  ls.(logstate.page) = Some (s, es, dq) →
+  own_raftLog l ls -∗ s ↦*{dq} es -∗ own_raftLog l (ls <| logstate.page := None |>).
 Proof.
-  iIntros "H". iDestruct "H" as (prev sents uents) "H".
-  iExists prev, sents, uents. iFrame "H".
-  iIntros "H". iExists prev, sents, uents. iFrame "H".
+  intros Hpg. iIntros "H Hs". iNamed "H". rewrite Hpg.
+  iExists lv. iFrame "Hl". iSplitR; first done. iSplitR; first done.
+  iApply ("Hcore" with "Hs").
 Qed.
 
-Lemma own_raftLog_at_no_confchange l prev sents uents :
-  own_raftLog_at l prev sents uents -∗
-  ⌜ Forall (λ e, e.(raftpb.Entry.Type') = EntryNormal) (sents ++ uents) ⌝ ∗
-  own_raftLog_at l prev sents uents.
+(** The struct, for a field read, at any page.  [committed] and [applied]
+    are what the state says they are. *)
+Lemma own_raftLog_struct l ls :
+  own_raftLog l ls -∗
+  ∃ lv, l ↦ lv ∗
+        ⌜ lv.(raft.raftLog.committed') = ls.(logstate.committed) ∧
+          lv.(raft.raftLog.applied') = ls.(logstate.applied) ⌝ ∗
+        (l ↦ lv -∗ own_raftLog l ls).
 Proof.
-  iIntros "H". iDestruct "H" as (lv) "H". iNamed "H".
-  iSplitR; first done. iExists lv. iFrame "∗#%".
+  iIntros "H". iNamed "H". iExists lv. iFrame "Hl". iSplitR; first done.
+  iIntros "Hl". iExists lv. iFrame "Hl Hcore". done.
+Qed.
+
+(** [Hnowrap], read out without consuming the log.  Needed to know
+    [lastIndex() + 1] does not wrap, which is what makes the range premises
+    of [raftLog.slice] and [raftLog.mustCheckOutOfBounds] hold. *)
+Lemma own_raftLog_nowrap l ls :
+  ls.(logstate.page) = None →
+  own_raftLog l ls -∗
+  ⌜ (uint.Z ls.(logstate.prev).(raft.entryID.index')
+     + Z.of_nat (length ls.(logstate.sents))
+     + Z.of_nat (length ls.(logstate.uents)) + 1 < 2^64)%Z ⌝ ∗
+  own_raftLog l ls.
+Proof.
+  intros Hpg. iIntros "H". iNamed "H". rewrite Hpg. iNamed "Hcore".
+  iSplitR; first done. iExists lv. rewrite Hpg. iFrame "∗#%".
+Qed.
+
+Lemma own_raftLog_no_confchange l ls :
+  ls.(logstate.page) = None →
+  own_raftLog l ls -∗
+  ⌜ Forall (λ e, e.(raftpb.Entry.Type') = EntryNormal)
+      (ls.(logstate.sents) ++ ls.(logstate.uents)) ⌝ ∗
+  own_raftLog l ls.
+Proof.
+  intros Hpg. iIntros "H". iNamed "H". rewrite Hpg. iNamed "Hcore".
+  iSplitR; first done. iExists lv. rewrite Hpg. iFrame "∗#%".
+Qed.
+
+(** Start a page loan: what [raftLog.slice]'s exits build.  The wand is
+    whatever gives the log's entries back once the page is returned. *)
+Lemma own_raftLog_lend_page l lv prev sents uents cm ap s es dq :
+  l ↦ lv -∗
+  ⌜ lv.(raft.raftLog.committed') = cm ⌝ -∗
+  ⌜ lv.(raft.raftLog.applied') = ap ⌝ -∗
+  (s ↦*{dq} es -∗ own_raftLog_core lv prev sents uents) -∗
+  own_raftLog l (logstate.mk prev sents uents cm ap (Some (s, es, dq))).
+Proof.
+  iIntros "Hl %Hcm %Hap Hback". rewrite /own_raftLog /=.
+  iExists lv. iFrame "Hl Hback". done.
 Qed.
 
 (** Read a slice's length as a [Z], without consuming the slice. *)
@@ -186,7 +322,7 @@ Qed.
     [raftLog.scan lo hi pageSize v] pages through [[lo, hi)] and hands each
     page to the callback [v] as a slice *lent* out of the log (a sub-slice of
     [unstable.entries], or one the [Storage] lent, or a fresh concatenation).
-    [scan_closure f I P] is what [wp_raftLog__scan_at] asks of the callback:
+    [scan_closure f I P] is what [wp_raftLog__scan] asks of the callback:
     given any lent page whose entries all satisfy [P], with the caller's
     invariant [I], it returns a [nil] error and hands the page and [I] back.
     Same shape as [visit_closure] ([inv_tracker.v]).

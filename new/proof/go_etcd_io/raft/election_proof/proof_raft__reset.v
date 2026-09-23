@@ -136,7 +136,7 @@ End helper.
     wp_apply (wp_raft__abortLeaderTransfer with "[$Hphys]") as "Hphys".
     iDestruct "Hphys" as (rv2 msgs2 msgsAA2 lok2) "Hphys".
     iNamedSuffix "Hphys" "2".
-    iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog2") as "Hlog2".
+    iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog2") as (ls2 Hls2) "Hlog2".
     iDestruct (own_tracker_unless_open _ _ _ _ _ Hlent with "Htrk2") as "Htrk2".
     iDestruct (raft_split_trk with "Hr2") as "[Htrkf Hrback]".
     wp_apply (wp_ProgressTracker__ResetVotes with "[$Htrkf $Htrk2]")
@@ -150,7 +150,7 @@ End helper.
        so nothing here may fix it. *)
     wp_apply (wp_ProgressTracker__Visit _ _ _ _ s.(nstate.progress) _
                 (r_ptr ↦ r ∗
-                 own_raftLog rv2.(raft.raft.raftLog') ∗
+                 own_raftLog rv2.(raft.raft.raftLog') ls2 ∗
                  (∀ tvx, r.[raft.raft.t, "trk"] ↦ tvx -∗
                   r ↦ (rv2 <| raft.raft.trk' := tvx |>)))%I
                 with "[$Htrkf $Htrk $r $Hlog2 $Hrback]")
@@ -169,24 +169,16 @@ End helper.
          [r.trk.MaxInflight], so it needs the whole struct back *)
       iDestruct ("Hrback" $! tv0 with "Htrkf") as "Hr".
       wp_auto.
-      (* [lastIndex]'s spec is stated at a fixed split, so open
-         [own_raftLog] and close it again. *)
-      iDestruct (own_raftLog_acc with "Hlog")
-        as (lprev0 lsents0 luents0) "[Hlog Hlogback0]".
-      wp_apply (wp_raftLog__lastIndex_at with "[$Hlog]")
+      wp_apply (wp_raftLog__lastIndex _ _ Hls2 with "[$Hlog]")
         as "%li [Hlog %Hli0]".
-      iDestruct ("Hlogback0" with "Hlog") as "Hlog".
       wp_apply (wp_tracker_NewInflights _ _ HmaxI) as "%ifl Hifl".
       iDestruct "Hifl" as (ivnew bufnew) "Hifl".
       destruct (decide (i = rv2.(raft.raft.id'))) as [Hii|Hii].
       + assert (bool_decide (i = rv2.(raft.raft.id')) = true) as Hbi
           by (apply bool_decide_eq_true_2; done).
         rewrite Hbi /=. wp_auto.
-        iDestruct (own_raftLog_acc with "Hlog")
-          as (lprev1 lsents1 luents1) "[Hlog Hlogback1]".
-        wp_apply (wp_raftLog__lastIndex_at with "[$Hlog]")
+        wp_apply (wp_raftLog__lastIndex _ _ Hls2 with "[$Hlog]")
           as "%li2 [Hlog %Hli1]".
-        iDestruct ("Hlogback1" with "Hlog") as "Hlog".
         (* re-split: [Visit] gets the field back, [I] gets its quantified
            wand back.  [raft_split_trk] hands it back one setter deeper
            ([… <|trk' := tv0|> <|trk' := tvx|>]); the two records are
@@ -223,7 +215,7 @@ End helper.
     iDestruct ("Hmiscback" with "Hopt") as "Hmisc".
     wp_apply wp_newReadOnly as "%ro' Hro'".
     iDestruct (own_raft_misc_swap with "Hmisc Hro'") as "Hmisc".
-    iDestruct (own_raftLog_unless_close _ _ Hlent with "Hlog") as "Hlog".
+    iDestruct (own_raftLog_unless_close _ _ _ Hlent with "Hlog [//]") as "Hlog".
     iDestruct (own_tracker_unless_close _ _ _ _ _ Hlent with "Htrk") as "Htrk".
     iApply "HΦ".
     iApply (own_raft_phys_intro _ _ _ (reset_to s term) with

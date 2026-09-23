@@ -28,10 +28,10 @@ Import P.
       proof really has to walk the entries.
 
       - The early return needs only that [own_raftLog] can be closed again:
-        the two field reads go through [own_raftLog_at]'s [Hl].
+        the two field reads go through [own_raftLog]'s [Hl].
       - For the [scan], [Happlied]/[Hcommitted]/[Hnowrap] put
         [[applied+1, committed+1)] inside the log without wrapping, which is
-        exactly [wp_raftLog__scan_at]'s range premise, and [HnoConfChange]
+        exactly [wp_raftLog__scan]'s range premise, and [HnoConfChange]
         is its [Forall P (sents ++ uents)] premise at
         [P := λ e, e.(Type') = EntryNormal].
       - The invariant [I] handed to [scan] is [emp].  The closure's only
@@ -58,30 +58,33 @@ Import P.
     intros_ambient.
     intros cfg r id s Hlent.
     wp_start as "Hphys". iNamed "Hphys".
-    iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog") as "Hlog".
-    iRename "Hlog" into "Hlog0".
-    iDestruct (own_raftLog_acc with "Hlog0") as (prev sents uents) "[Hlog Hlogback]".
+    iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog") as (ls Hls) "Hlog".
+    destruct ls as [prev sents uents lcm lap lpg]; logstate_simpl; subst lpg.
     iNamed "Hlog".
+    iEval (rewrite /own_raftLog_core /=) in "Hcore". iNamed "Hcore".
     wp_auto.
     wp_if_destruct.
     - (* [applied >= committed]: the range is empty and the answer is [false] *)
-      iDestruct ("Hlogback" with "[Hl HStorage Huents Huents_cap]") as "Hlog0".
-      { iExists lv. iFrame "∗#%". }
-      iDestruct (own_raftLog_unless_close _ _ Hlent with "Hlog0") as "Hlog0".
+      iAssert (own_raftLog rv.(raft.raft.raftLog') (logstate.mk prev sents uents lcm lap None))
+        with "[Hl HStorage Huents Huents_cap]" as "Hlog0".
+      { iApply own_raftLog_unfold. iExists lv. rewrite /own_raftLog_core.
+        iFrame "∗#%". }
+      iDestruct (own_raftLog_unless_close _ _ _ Hlent with "Hlog0 [//]") as "Hlog0".
       iApply "HΦ".
       iApply (own_raft_phys_intro with
         "Hr Hlogger Htrk Hlog0 Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done.
-    - (* re-seal the log: [scan]'s spec is stated on [own_raftLog_at] *)
-      iAssert (own_raftLog_at rv.(raft.raft.raftLog') prev sents uents)
+    - (* re-seal the log: [scan] is specified on [own_raftLog] *)
+      iAssert (own_raftLog rv.(raft.raft.raftLog') (logstate.mk prev sents uents lcm lap None))
         with "[Hl HStorage Huents Huents_cap]" as "Hlog".
-      { iExists lv. iFrame "∗#%". }
+      { iApply own_raftLog_unfold. iExists lv. rewrite /own_raftLog_core.
+        iFrame "∗#%". }
       assert ((uint.Z prev.(raft.entryID.index') + 1
                ≤ uint.Z (word.add lv.(raft.raftLog.applied') (W64 1))
                ≤ uint.Z (word.add lv.(raft.raftLog.committed') (W64 1))
                ≤ uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents)
                  + Z.of_nat (length uents) + 1)%Z) as Hrange by word.
-      wp_apply (wp_raftLog__scan_at _ _ _ _ _ _ _ _ emp%I
-                  (λ e, e.(raftpb.Entry.Type') = EntryNormal) Hrange HnoConfChange
+      wp_apply (wp_raftLog__scan _ (logstate.mk prev sents uents lcm lap None) _ _ _ _ emp%I
+                  (λ e, e.(raftpb.Entry.Type') = EntryNormal) eq_refl Hrange HnoConfChange
                   with "[$Hlog]").
       { (* the callback, at [I := emp] *)
         iSplitR; first done.
@@ -128,8 +131,8 @@ Import P.
       iIntros "[Hlog _]".
       (* [scan] returned [nil], so the [Panicf] is dead and [found] is [false] *)
       wp_auto.
-      iDestruct ("Hlogback" with "Hlog") as "Hlog0".
-      iDestruct (own_raftLog_unless_close _ _ Hlent with "Hlog0") as "Hlog0".
+      iRename "Hlog" into "Hlog0".
+      iDestruct (own_raftLog_unless_close _ _ _ Hlent with "Hlog0 [//]") as "Hlog0".
       iApply "HΦ".
       iApply (own_raft_phys_intro with
         "Hr Hlogger Htrk Hlog0 Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done.

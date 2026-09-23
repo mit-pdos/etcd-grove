@@ -31,7 +31,7 @@ Import P.
     iIntros "Hphys".
     iDestruct "Hphys" as (rv0 msgs0 msgsAA0 lok0) "Hphys".
     iNamedSuffix "Hphys" "1".
-    iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog1") as "Hlog1".
+    iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog1") as (ls1 Hls1) "Hlog1".
     iDestruct (own_tracker_unless_open _ _ _ _ _ Hlent with "Htrk1") as "Htrk1".
     assert (rv0.(raft.raft.Vote') = s.(nstate.vote)) as Hvote1'.
     { rewrite Hvote1 /=. rewrite decide_True //. }
@@ -53,13 +53,8 @@ Import P.
     { iExists (pv <| tracker.Progress.RecentActive' := true |>), iv.
       rewrite /own_progress. iFrame "∗%". }
     iDestruct ("Hprback" with "Hpr") as "Htrk1".
-    (* [lastIndex]'s spec is stated at a fixed split, so open
-       [own_raftLog] and close it again. *)
-    iDestruct (own_raftLog_acc with "Hlog1")
-      as (lprev0 lsents0 luents0) "[Hlog1 Hlogback0]".
-    wp_apply (wp_raftLog__lastIndex_at with "[$Hlog1]")
+    wp_apply (wp_raftLog__lastIndex _ _ Hls1 with "[$Hlog1]")
       as "%li [Hlog1 %Hli0]".
-    iDestruct ("Hlogback0" with "Hlog1") as "Hlog1".
     wp_apply wp_traceBecomeLeader. try wp_auto.
     wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [Hes _]".
     wp_auto.
@@ -68,7 +63,7 @@ Import P.
        its axiom used to claim.  [MsgAppResp] has no [mtype_of], so it drops
        out of the abstract outbox and the state is unchanged.  Re-seal for the
        call, then unpack again for the [Infof] that follows it. *)
-    iDestruct (own_raftLog_unless_close _ _ Hlent with "Hlog1") as "Hlog1".
+    iDestruct (own_raftLog_unless_close _ _ _ Hlent with "Hlog1 [//]") as "Hlog1".
     iDestruct (own_tracker_unless_close _ _ _ _ _ Hlent with "Htrk1") as "Htrk1".
     iAssert (own_raft_phys cfg r id (become_leader id s))
       with "[Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1]"

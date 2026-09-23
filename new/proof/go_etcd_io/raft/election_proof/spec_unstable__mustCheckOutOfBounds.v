@@ -14,14 +14,13 @@ Definition wp_unstable__mustCheckOutOfBounds_body :=
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (u : loc) (uv : raft.unstable.t) (uents : list raftpb.Entry.t)
-      (dq : dfrac) (lo hi : w64),
+      (lo hi : w64),
   (uint.Z uv.(raft.unstable.offset') ≤ uint.Z lo ≤ uint.Z hi ≤
    uint.Z uv.(raft.unstable.offset') + Z.of_nat (length uents))%Z →
   (uint.Z uv.(raft.unstable.offset') + Z.of_nat (length uents) < 2^64)%Z →
-  {{{ is_pkg_init raft ∗ "Hu" ∷ u ↦ uv ∗
-      "Hents" ∷ uv.(raft.unstable.entries') ↦*{dq} uents }}}
+  {{{ is_pkg_init raft ∗ "Hun" ∷ own_unstable u uv uents None }}}
     u @! (go.PointerType raft.unstable) @! "mustCheckOutOfBounds" #lo #hi
-  {{{ RET #(); u ↦ uv ∗ uv.(raft.unstable.entries') ↦*{dq} uents }}}.
+  {{{ RET #(); own_unstable u uv uents None }}}.
 
 Module Type UNSTABLE__MUSTCHECKOUTOFBOUNDS.
   Parameter wp_unstable__mustCheckOutOfBounds : wp_unstable__mustCheckOutOfBounds_body.

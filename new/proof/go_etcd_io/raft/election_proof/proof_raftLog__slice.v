@@ -55,7 +55,7 @@ Import P.
       (notes/false-statements.md), whose fix was a premise.  Here a premise
       has nowhere to live: [hasUnappliedConfChanges] opens [own_raftLog],
       whose entry lists are existential, so nothing at [hup] or [Step] can
-      speak about [hi - lo]; and a bound *carried* in [own_raftLog_at] cannot
+      speak about [hi - lo]; and a bound *carried* in [own_raftLog] cannot
       be re-established by [appendEntry] (notes/decisions.md, 2026-09-20).
       What is being assumed is that the log fits in memory -- fewer than
       [2^63 - 2^61] unstable entries -- which the model, having no bound on
@@ -64,10 +64,11 @@ Import P.
       [readonly.v]; [etc/tcb-report.py] counts it separately), recorded in
       notes/STATUS.md "Trust base" and notes/false-statements.md.  Everything
       up to [Hfitsx] is machine-checked. *)
-  Lemma wp_raftLog__slice_at : wp_raftLog__slice_at_body.
+  Lemma wp_raftLog__slice : wp_raftLog__slice_body.
   Proof.
     intros_ambient.
-    intros l prev sents uents lo hi maxSize Hrange.
+    intros l ls lo hi maxSize Hpg Hrange.
+    destruct ls as [prev sents uents lcm lap lpg]; logstate_simpl; subst lpg.
     destruct Hrange as (Hr1 & Hr2 & Hr3).
     assert (Hmc : (uint.Z prev.(raft.entryID.index') + 1 ≤ uint.Z lo ≤ uint.Z hi ≤
                    uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents)
@@ -80,11 +81,13 @@ Import P.
     destruct errCompacted; try (exfalso; by apply HErrCompacted).
     destruct errUnavailable; try (exfalso; by apply HErrUnavailable).
     wp_auto.
-    wp_apply (wp_raftLog__mustCheckOutOfBounds_at _ _ _ _ _ _ Hmc with "[$Hlog]")
-      as "Hlog".
+    wp_apply (wp_raftLog__mustCheckOutOfBounds l (logstate.mk prev sents uents lcm lap None) lo hi eq_refl Hmc
+                with "[$Hlog]")
+      as "Hlog". logstate_simpl.
     rewrite bool_decide_eq_false_2; last (intros ->; lia).
     wp_auto.
     iNamed "Hlog".
+    iEval (rewrite /own_raftLog_core /=) in "Hcore". iNamed "Hcore".
     iDestruct (own_slice_len with "Huents") as %[Hulen Hulen'].
     wp_auto.
     wp_if_destruct.
@@ -96,8 +99,9 @@ Import P.
                                  + Z.of_nat (length uents))%Z) by lia.
       assert (Hnwu : (uint.Z lv.(raft.raftLog.unstable').(raft.unstable.offset')
                       + Z.of_nat (length uents) < 2^64)%Z) by lia.
-      wp_apply (wp_unstable__slice _ _ _ _ _ Hus Hnwu with "[$Huf $Huents]")
-        as "%s0 %es0 (Huf & Hs0 & (%Hlen0 & %Hin0 & %Hcap0) & Hback0)".
+      wp_apply (wp_unstable__slice _ _ _ _ _ Hus Hnwu with "[Huf Huents Huents_cap]")
+        as "%s0 %es0 ((Huf & Huents_cap & Hback0) & Hs0 & (%Hlen0 & %Hin0 & %Hcap0))".
+      { rewrite /own_unstable. iFrame. }
       wp_apply (wp_limitSize with "[$Hs0]")
         as "%s1 %nlim ([%Hn1a %Hn1b] & Hs1 & Hback1)".
       iDestruct (own_slice_len with "Hs1") as %[Hs1len Hs1len'].
@@ -118,14 +122,14 @@ Import P.
       { simpl. word. }
       { simpl. word. }
       iDestruct ("Hlback" with "Huf") as "Hl".
-      iApply ("HΦ" $! _ (take nlim es0) (DfracOwn 1) lv).
-      iFrame "Hl Hs2". iSplitR.
+      iApply ("HΦ" $! _ (take nlim es0) (DfracOwn 1)).
+      iFrame "Hs2". iSplitL; last first.
       { iPureIntro. split_and!.
         - exact Hnetake.
         - rewrite length_take. lia.
         - intros e He. apply elem_of_app. right. apply Hin0.
           rewrite -(take_drop nlim es0). apply elem_of_app. by left. }
-      iIntros "Hl Hs2".
+      iApply (own_raftLog_lend_page with "Hl [//] [//]"). iIntros "Hs2".
       iDestruct (own_slice_same_ptr_len
                    (slice.full_slice s1 raftpb.Entry.t (W64 0)
                       s1.(slice.len) s1.(slice.len)) s1 with "Hs2") as "Hs1".
@@ -135,7 +139,7 @@ Import P.
       { word. }
       iDestruct ("Hback1" with "Hs1") as "Hs0".
       iDestruct ("Hback0" with "Hs0") as "Huents".
-      iExists lv. iFrame "∗#%".
+      rewrite /own_raftLog_core. iFrame "∗#%".
     - (* the page starts in the stable prefix: [lo < unstable.offset] *)
       iAssert (is_Storage lv.(raft.raftLog.storage')) as "#Hsto".
       { iExact "HisStorage". }
@@ -156,13 +160,14 @@ Import P.
         wp_auto.
         rewrite bool_decide_eq_true_2; last word.
         wp_auto.
-        iApply ("HΦ" $! se ese dqe lv). iFrame "Hl Hse". iSplitR.
+        iApply ("HΦ" $! se ese dqe). iFrame "Hse". iSplitL; last first.
         { iPureIntro. split_and!.
           - exact Hnee.
           - lia.
           - intros ee Hee. apply elem_of_app. left. by apply Hine. }
-        iIntros "Hl Hse". iDestruct ("Hbacke" with "Hse") as "HStorage".
-        iExists lv. rewrite Hstok. iFrame "∗#%". all: (iPureIntro; done).
+        iApply (own_raftLog_lend_page with "Hl [//] [//]").
+          iIntros "Hse". iDestruct ("Hbacke" with "Hse") as "HStorage".
+        rewrite /own_raftLog_core Hstok. iFrame "∗#%". all: (iPureIntro; done).
       + (* cut = unstable.offset *)
         rewrite bool_decide_eq_false_2; last done.
         wp_auto. rewrite Hstok /=.
@@ -175,32 +180,35 @@ Import P.
         wp_auto.
         wp_if_destruct.
         { (* hi <= offset, i.e. hi = offset: the page is exactly the stable part *)
-          iApply ("HΦ" $! se ese dqe lv). iFrame "Hl Hse". iSplitR.
+          iApply ("HΦ" $! se ese dqe). iFrame "Hse". iSplitL; last first.
           { iPureIntro. split_and!.
             - exact Hnee.
             - lia.
             - intros ee Hee. apply elem_of_app. left. by apply Hine. }
-          iIntros "Hl Hse". iDestruct ("Hbacke" with "Hse") as "HStorage".
-          iExists lv. rewrite Hstok. iFrame "∗#%". all: (iPureIntro; done). }
+          iApply (own_raftLog_lend_page with "Hl [//] [//]").
+          iIntros "Hse". iDestruct ("Hbacke" with "Hse") as "HStorage".
+          rewrite /own_raftLog_core Hstok. iFrame "∗#%". all: (iPureIntro; done). }
         wp_if_destruct.
         { (* storage returned a short page: stop there *)
-          iApply ("HΦ" $! se ese dqe lv). iFrame "Hl Hse". iSplitR.
+          iApply ("HΦ" $! se ese dqe). iFrame "Hse". iSplitL; last first.
           { iPureIntro. split_and!.
             - exact Hnee.
             - lia.
             - intros ee Hee. apply elem_of_app. left. by apply Hine. }
-          iIntros "Hl Hse". iDestruct ("Hbacke" with "Hse") as "HStorage".
-          iExists lv. rewrite Hstok. iFrame "∗#%". all: (iPureIntro; done). }
+          iApply (own_raftLog_lend_page with "Hl [//] [//]").
+          iIntros "Hse". iDestruct ("Hbacke" with "Hse") as "HStorage".
+          rewrite /own_raftLog_core Hstok. iFrame "∗#%". all: (iPureIntro; done). }
         wp_apply (wp_entsSize with "[$Hse]") as "%sz1 Hse".
         wp_if_destruct.
         { (* the stable part already fills the page *)
-          iApply ("HΦ" $! se ese dqe lv). iFrame "Hl Hse". iSplitR.
+          iApply ("HΦ" $! se ese dqe). iFrame "Hse". iSplitL; last first.
           { iPureIntro. split_and!.
             - exact Hnee.
             - lia.
             - intros ee Hee. apply elem_of_app. left. by apply Hine. }
-          iIntros "Hl Hse". iDestruct ("Hbacke" with "Hse") as "HStorage".
-          iExists lv. rewrite Hstok. iFrame "∗#%". all: (iPureIntro; done). }
+          iApply (own_raftLog_lend_page with "Hl [//] [//]").
+          iIntros "Hse". iDestruct ("Hbacke" with "Hse") as "HStorage".
+          rewrite /own_raftLog_core Hstok. iFrame "∗#%". all: (iPureIntro; done). }
         split_unstable l lv.
         assert (Hus : (uint.Z lv.(raft.raftLog.unstable').(raft.unstable.offset')
                        ≤ uint.Z lv.(raft.raftLog.unstable').(raft.unstable.offset') ∧
@@ -210,8 +218,9 @@ Import P.
                                    + Z.of_nat (length uents))%Z) by lia.
         assert (Hnwu : (uint.Z lv.(raft.raftLog.unstable').(raft.unstable.offset')
                         + Z.of_nat (length uents) < 2^64)%Z) by lia.
-        wp_apply (wp_unstable__slice _ _ _ _ _ Hus Hnwu with "[$Huf $Huents]")
-          as "%s0 %es0 (Huf & Hs0 & (%Hlen0 & %Hin0 & %Hcap0) & Hback0)".
+        wp_apply (wp_unstable__slice _ _ _ _ _ Hus Hnwu with "[Huf Huents Huents_cap]")
+          as "%s0 %es0 ((Huf & Huents_cap & Hback0) & Hs0 & (%Hlen0 & %Hin0 & %Hcap0))".
+      { rewrite /own_unstable. iFrame. }
         wp_apply (wp_limitSize with "[$Hs0]")
           as "%s1 %nlim ([%Hn1a %Hn1b] & Hs1 & Hback1)".
         assert (Hlen0' : (0 < length es0)%nat) by lia.
@@ -239,45 +248,46 @@ Import P.
              iDestruct ("Hback1" with "Hs1") as "Hs0".
              iDestruct ("Hback0" with "Hs0") as "Huents".
              iDestruct ("Hlback" with "Huf") as "Hl".
-             iApply ("HΦ" $! se ese dqe lv). iFrame "Hl Hse". iSplitR.
+             iApply ("HΦ" $! se ese dqe). iFrame "Hse". iSplitL; last first.
              { iPureIntro. split_and!.
                - exact Hnee.
                - lia.
                - intros ee Hee. apply elem_of_app. left. by apply Hine. }
-             iIntros "Hl Hse". iDestruct ("Hbacke" with "Hse") as "HStorage".
-             iExists lv. rewrite Hstok. iFrame "∗#%". all: (iPureIntro; done).
+             iApply (own_raftLog_lend_page with "Hl [//] [//]").
+          iIntros "Hse". iDestruct ("Hbacke" with "Hse") as "HStorage".
+             rewrite /own_raftLog_core Hstok. iFrame "∗#%". all: (iPureIntro; done).
           -- wp_apply (wp_extend _ _ _ _ _ _ Hcapx Hfitsx with "[$Hse $Hs1]")
                as "%sx (Hsx & Hsx_cap & Hse & Hs1)".
              iDestruct ("Hlback" with "Huf") as "Hl".
-             iApply ("HΦ" $! sx (ese ++ take nlim es0) (DfracOwn 1) lv).
-             iFrame "Hl Hsx". iSplitR.
+             iApply ("HΦ" $! sx (ese ++ take nlim es0) (DfracOwn 1)).
+             iFrame "Hsx". iSplitL; last first.
              { iPureIntro. split_and!.
                - intros Hc. destruct ese as [|a ese']; [by apply Hnee | discriminate Hc].
                - rewrite length_app. lia.
                - intros ee Hee. apply elem_of_app in Hee as [Hee|Hee].
                  + apply elem_of_app. left. by apply Hine.
                  + apply elem_of_app. right. by apply Hintake. }
-             iIntros "Hl Hsx".
+             iApply (own_raftLog_lend_page with "Hl [//] [//]"). iIntros "Hsx".
              iDestruct ("Hback1" with "Hs1") as "Hs0".
              iDestruct ("Hback0" with "Hs0") as "Huents".
              iDestruct ("Hbacke" with "Hse") as "HStorage".
-             iExists lv. rewrite Hstok. iFrame "∗#%". all: (iPureIntro; done).
+             rewrite /own_raftLog_core Hstok. iFrame "∗#%". all: (iPureIntro; done).
         * wp_apply (wp_extend _ _ _ _ _ _ Hcapx Hfitsx with "[$Hse $Hs1]")
             as "%sx (Hsx & Hsx_cap & Hse & Hs1)".
           iDestruct ("Hlback" with "Huf") as "Hl".
-          iApply ("HΦ" $! sx (ese ++ take nlim es0) (DfracOwn 1) lv).
-          iFrame "Hl Hsx". iSplitR.
+          iApply ("HΦ" $! sx (ese ++ take nlim es0) (DfracOwn 1)).
+          iFrame "Hsx". iSplitL; last first.
           { iPureIntro. split_and!.
             - intros Hc. destruct ese as [|a ese']; [by apply Hnee | discriminate Hc].
             - rewrite length_app. lia.
             - intros ee Hee. apply elem_of_app in Hee as [Hee|Hee].
               + apply elem_of_app. left. by apply Hine.
               + apply elem_of_app. right. by apply Hintake. }
-          iIntros "Hl Hsx".
+          iApply (own_raftLog_lend_page with "Hl [//] [//]"). iIntros "Hsx".
           iDestruct ("Hback1" with "Hs1") as "Hs0".
           iDestruct ("Hback0" with "Hs0") as "Huents".
           iDestruct ("Hbacke" with "Hse") as "HStorage".
-          iExists lv. rewrite Hstok. iFrame "∗#%". all: (iPureIntro; done).
+          rewrite /own_raftLog_core Hstok. iFrame "∗#%". all: (iPureIntro; done).
   (* The only [admit] above is [Hfitsx]: "the log fits in memory".  See the
      header comment; deliberate. *)
   Admitted. (* Trusted *)

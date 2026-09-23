@@ -10,11 +10,11 @@ Definition wp_unstable__maybeFirstIndex_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
-    (u : loc) (uv : raft.unstable.t),
+    (u : loc) (uv : raft.unstable.t) (uents : list raftpb.Entry.t),
   uv.(raft.unstable.snapshot') = null →
-  {{{ is_pkg_init raft ∗ u ↦ uv }}}
+  {{{ is_pkg_init raft ∗ own_unstable u uv uents None }}}
     u @! (go.PointerType raft.unstable) @! "maybeFirstIndex" #()
-  {{{ (i : w64), RET (#i, #false); u ↦ uv }}}.
+  {{{ (i : w64), RET (#i, #false); own_unstable u uv uents None }}}.
 
 Module Type UNSTABLE__MAYBEFIRSTINDEX.
   Parameter wp_unstable__maybeFirstIndex : wp_unstable__maybeFirstIndex_body.

@@ -18,9 +18,11 @@ the fix is a new field of `nstate.t` (`election_proof/defs.v`) and a conjunct of
 wrong three times (`own_raft_phys_at`, `own_raft_bare`, `own_raft_notrk`,
 2026-09-16 to 2026-09-21) and undone on 2026-09-22; notes/decisions.md,
 "Three layers", has the whole story and the fields that replaced them
-(`stepfn`, `progress`, `log`, `lent`). The same holds for every object:
-the log still has three shapes (`own_raftLog`, `own_raftLog_at`, the raw
-page-and-wand of `raftLog.entries`) and is the next thing to fix.
+(`stepfn`, `progress`, `log`, `lent`). The same holds for every object,
+and was done for the tracker, `Progress`, `Inflights`, the log, `unstable`
+and `readOnly` on 2026-09-23 (decisions.md): a loan -- a page of the log
+handed to the caller -- is a field of the object's state
+(`logstate.page`), not a second shape.
 
 ## `own_raft_phys_intro` takes `r ↦ rv` first, and wants `s` when it moved
 
@@ -1593,3 +1595,36 @@ with a type error naming the whole environment. Iris's `done` closes
 `envs_entails Δ True` directly, including when the `True` is under a `match`
 that has just reduced to it (which is how `leader_wit`'s non-leader case
 arrives).
+
+## Working at a record-indexed predicate (`own_raftLog l ls`), 2026-09-23
+
+- **Destruct the state, then reduce only its projections.** The `raftLog`
+  proofs start `destruct ls as [prev sents uents lcm lap lpg];
+  logstate_simpl; subst lpg`. `logstate_simpl` is `cbn` restricted to the
+  six `logstate` projections (never `simpl in *`). A spec called at
+  `logstate.mk prev …` returns facts about `(logstate.mk prev …).(logstate.prev)`,
+  which `lia`/`word` treat as a different atom from `prev`: run
+  `logstate_simpl` (or `cbn [logstate.prev …] in H`) after the call.
+- **A state premise cannot be given as `eq_refl` with the state left to
+  unification.** `wp_raftLog__lastIndex _ _ eq_refl` fails: `eq_refl` has
+  to be elaborated against `logstate.page ?ls = None`, and a projection of
+  an evar does not unify with `None`. Give the state:
+  `wp_raftLog__lastIndex _ (logstate.mk prev sents uents lcm lap None) eq_refl`,
+  or a hypothesis `Hls : ls.(logstate.page) = None`, which fixes `?ls`.
+  Where the resource should fix the state instead, make the premise a
+  *wand* premise: `own_raftLog_unless_close` is
+  `… own_raftLog l ls -∗ ⌜ls.page = None⌝ -∗ …`, called
+  `with "Hlog [//]"`.
+- **`iNamed` does not unfold a plain definition.** It went through
+  `own_raftLog_at` because that began with `∃ lv`; `own_raftLog_core` is a
+  bare `∗`-chain and `iNamed "Hcore"` left it whole ("HisStorage not
+  found" later). `iEval (rewrite /own_raftLog_core /=) in "Hcore"` first.
+- **`iDestruct (own_raftLog_unfold with "Hlog")` did not use the lemma's
+  right-hand side**: with a `⊣⊢` lemma it unfolded `own_raftLog` itself,
+  leaving `own_raftLog`'s own names and projections of the literal. Open
+  with `iNamed "Hlog"`; the lemma is still the right way to *close*
+  (`iApply own_raftLog_unfold`).
+- **A struct sealed inside a predicate stops `wp_apply … as`'s automatic
+  `wp_auto`.** After `unstable.mustCheckOutOfBounds` returned
+  `own_unstable`, the field reads that follow were not stepped; an explicit
+  `iNamed "Hun". wp_auto.` was needed.

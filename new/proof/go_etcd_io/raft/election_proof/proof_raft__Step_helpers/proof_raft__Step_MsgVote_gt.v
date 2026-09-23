@@ -133,10 +133,10 @@ Implicit Type s : nstate.t.
     rewrite Hvote1 bool_decide_eq_false_2; last congruence. wp_auto.
     rewrite Hvote1 bool_decide_eq_true_2 //. wp_auto.
     rewrite Hlead1 bool_decide_eq_true_2 //. wp_auto.
-    iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog1") as "Hlog1".
-    wp_apply (wp_raftLog__lastEntryID with "[$Hlog1]") as "%lastID Hlog1".
-    wp_apply (wp_raftLog__isUpToDate with "[$Hlog1]") as "%uptodate Hlog1".
-    iDestruct (own_raftLog_unless_close _ _ Hlent with "Hlog1") as "Hlog1".
+    iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog1") as (ls1 Hls1) "Hlog1".
+    wp_apply (wp_raftLog__lastEntryID _ _ Hls1 with "[$Hlog1]") as "%lastID Hlog1".
+    wp_apply (wp_raftLog__isUpToDate _ _ _ Hls1 with "[$Hlog1]") as "%uptodate Hlog1".
+    iDestruct (own_raftLog_unless_close _ _ _ Hlent with "Hlog1 [//]") as "Hlog1".
     destruct uptodate.
     + (* the candidate's log is up to date: grant the vote *)
       wp_auto.

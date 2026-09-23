@@ -163,10 +163,10 @@ instance-visible, so they can never become Module Type fields:
 | --- | --- |
 | `defs.v` | message-type/state constants, `state_w64`, `mtype_of`, `abs_msg`, `w32_ne`; **the physical abstract state `nstate.t`**, `step_func_of`, the physical transitions (`send_msgs`, `reset_to`, `become_*`), `to_pstate`, `nstate_wf`, `nstate_rel`, and the lemmas that commute each transition with its protocol counterpart |
 | `inv_storage.v` | `own_Storage`, `term_at`, and `is_Storage` — the client-supplied `Storage` interface contract |
-| `inv_raftlog.v` | `own_raftLog`, `own_raftLog_at`, `own_raftLog_acc`, `log_indices_ok`, the `split_unstable` tactic |
-| `inv_tracker.v` | `own_tracker`, `own_progress`, `own_inflights`, `visit_closure`, the pure quorum lemmas, `wp_ProgressMap_len`, `wp_tracker_progress_lookup` |
+| `inv_raftlog.v` | `logstate.t` and `own_raftLog l ls` -- the one log predicate -- with `own_raftLog_unfold`, `own_raftLog_struct` (field reads), `own_raftLog_lend_page`/`own_raftLog_return_page` (the page loan), `own_raftLog_nowrap`; `own_unstable`; `log_indices_ok`; the `logstate_simpl` and `split_unstable` tactics |
+| `inv_tracker.v` | `own_tracker` (indexed by the progress map), `own_progress pr pv iv`, `own_inflights l iv buf`, `own_tracker_lookup`, `visit_closure`, the pure quorum lemmas, `wp_ProgressMap_len`, `wp_tracker_progress_lookup` |
 | `inv_logger.v` | `is_Logger`, `log_methods`, `wp_Logger__logf`, `solve_log_method` |
-| `inv_misc.v` | `own_raft_misc` and `own_raft_misc_option` |
+| `inv_misc.v` | `own_read_only` (the `readOnly` object), `own_raft_misc` built on it, `own_raft_misc_option`, `own_raft_misc_swap` |
 | `inv_raft_phys.v` | `own_raft_phys` -- the **only** ownership predicate for the raft struct -- its intro lemma, `own_tracker_unless`/`own_raftLog_unless` (the tracker and log conjuncts, empty while on loan) with their open/close lemmas, the outbox lemmas, the `wp_log` tactic |
 | `step_lemmas.v` | the `step_*` composition lemmas (protocol, on `pstate.t`), `vote_resp_result` (physical) and `pvote_resp_result` (protocol) with the lemmas relating them, `election_msg` |
 

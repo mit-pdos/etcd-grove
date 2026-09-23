@@ -24,15 +24,13 @@ Definition wp_unstable__slice_body :=
   (uint.Z uv.(raft.unstable.offset') ≤ uint.Z lo ∧ uint.Z lo < uint.Z hi ∧
    uint.Z hi ≤ uint.Z uv.(raft.unstable.offset') + Z.of_nat (length uents))%Z →
   (uint.Z uv.(raft.unstable.offset') + Z.of_nat (length uents) < 2^64)%Z →
-  {{{ is_pkg_init raft ∗ "Hu" ∷ u ↦ uv ∗
-      "Hents" ∷ uv.(raft.unstable.entries') ↦* uents }}}
+  {{{ is_pkg_init raft ∗ "Hun" ∷ own_unstable u uv uents None }}}
     u @! (go.PointerType raft.unstable) @! "slice" #lo #hi
   {{{ (s : slice.t) (es : list raftpb.Entry.t), RET #s;
-      u ↦ uv ∗ s ↦* es ∗
+      own_unstable u uv uents (Some (s, es)) ∗ s ↦* es ∗
       ⌜ (Z.of_nat (length es) = uint.Z hi - uint.Z lo)%Z ∧
         (∀ e, e ∈ es → e ∈ uents) ∧
-        s.(slice.cap) = s.(slice.len) ⌝ ∗
-      (s ↦* es -∗ uv.(raft.unstable.entries') ↦* uents) }}}.
+        s.(slice.cap) = s.(slice.len) ⌝ }}}.
 
 Module Type UNSTABLE__SLICE.
   Parameter wp_unstable__slice : wp_unstable__slice_body.

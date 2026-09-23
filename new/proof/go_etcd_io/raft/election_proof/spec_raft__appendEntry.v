@@ -74,7 +74,7 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
     *** The no-wrap gap, and how it is closed
 
     Handing [own_raft_phys] back after [raftLog.append] also asserts
-    [own_raftLog_at]'s [Hnowrap] -- that
+    [own_raftLog]'s [Hnowrap] -- that
     [prev.index + |sents| + |uents| + 1 < 2^64] still holds for the *longer*
     log.  The pre-state gives that bound at the old length, so until
     2026-09-20 this triple was an axiom with a documented over-claim, and the

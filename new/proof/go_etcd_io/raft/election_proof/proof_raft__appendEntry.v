@@ -25,21 +25,22 @@ Proof.
 Qed.
 
 (** The two facts about the log that [appendEntry] needs but
-    [own_raftLog_at] only holds inside: the index layout, and the bound that
+    [own_raftLog] only holds inside: the index layout, and the bound that
     makes one more entry fit.
 
     The bound is the whole point of [is_Storage]'s [Hbounded] clause: the
     stable prefix is below [2^61] by that contract, the unstable suffix is a
     Go slice and so below [2^63] by [own_slice_len], and their sum is what
     [lastIndex] returns. *)
-Lemma own_raftLog_at_facts (l : loc) prev sents uents :
-  own_raftLog_at l prev sents uents -∗
+Lemma own_raftLog_facts (l : loc) prev sents uents cm ap :
+  own_raftLog l (logstate.mk prev sents uents cm ap None) -∗
   ⌜ log_indices_ok prev (sents ++ uents) ∧
     (uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents)
      + Z.of_nat (length uents) < 2^61 + 2^63)%Z ⌝ ∗
-  own_raftLog_at l prev sents uents.
+  own_raftLog l (logstate.mk prev sents uents cm ap None).
 Proof.
   iIntros "H". iNamed "H".
+  iEval (rewrite /own_raftLog_core /=) in "Hcore". iNamed "Hcore".
   iAssert (is_Storage lv.(raft.raftLog.storage')) as "#Hsto".
   { iExact "HisStorage". }
   (* [iNamed] rather than a positional pattern: [is_Storage] is gaining
@@ -50,7 +51,8 @@ Proof.
   iDestruct (slice_len_Z with "Huents") as %Hul.
   iSplitR.
   { iPureIntro. split; [ done | word ]. }
-  iExists lv. iFrame "∗#%".
+  iApply own_raftLog_unfold. iExists lv. rewrite /own_raftLog_core.
+  iFrame "∗#%".
 Qed.
 
 (** ** The batch, as [appendEntry] rewrites it
@@ -160,11 +162,13 @@ Set Default Proof Using "Type".
     wp_start as "[Hphys Hes]". iNamed "Hphys". wp_auto.
     iDestruct (own_slice_len with "Hes") as %[Hlen Hlen'].
     (* [li := r.raftLog.lastIndex()], at a split that stays open *)
-    iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog") as "Hlog".
+    iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog") as (ls Hls) "Hlog".
     iDestruct (own_tracker_unless_open _ _ _ _ _ Hlent with "Htrk") as "Htrk".
-    iDestruct "Hlog" as (prev sents uents) "Hlog".
-    iDestruct (own_raftLog_at_facts with "Hlog") as "[[%Hidx %Hbnd] Hlog]".
-    wp_apply (wp_raftLog__lastIndex_at with "[$Hlog]") as "%li [Hlog %Hli]".
+    destruct ls as [prev sents uents lcm lap lpg]; logstate_simpl; subst lpg.
+    iDestruct (own_raftLog_facts with "Hlog") as "[[%Hidx %Hbnd] Hlog]".
+    wp_apply (wp_raftLog__lastIndex _ (logstate.mk prev sents uents lcm lap None) eq_refl with "[$Hlog]")
+      as "%li [Hlog %Hli]".
+    cbn [logstate.prev logstate.sents logstate.uents] in Hli.
     (* The stamping loop.  [slice.for_range] allocates its **own** counter,
        distinct from the Go-level [i] the body assigns [$key] to, and
        [wp_auto] parks in front of that [GoAlloc] (notes/gotchas.md) -- hence
@@ -264,18 +268,15 @@ Set Default Proof Using "Type".
               + 1 < 2^64)%Z as Hnw2
         by (rewrite length_imap; lia).
       rewrite Hlog1.
-      wp_apply (wp_raftLog__append_at _ _ _ _ _ _ _ Hidx2 Hnorm2 Hnw2
+      wp_apply (wp_raftLog__append _ (logstate.mk prev sents uents lcm lap None) _ _ _ eq_refl Hidx2 Hnorm2 Hnw2
                   with "[$Hlog $Hes]")
         as "%li2 (Hlog & Hes & %Hli2)".
       (* re-seal: the log at the longer split, then the struct *)
-      iAssert (own_raftLog rv.(raft.raft.raftLog')) with "[Hlog]" as "Hlog".
-      { iExists prev, sents,
-          (uents ++ imap (stamp rv.(raft.raft.Term') li) ents). iFrame. }
       (* [rv.(id')] rather than [id]: [word] runs [subst] over the context,
          and [own_raft_phys]'s [Hid : rv.(id') = id] is exactly the shape it
          eliminates, so by here the binder [id] is gone and every occurrence
          -- [HΦ] included -- reads [rv.(raft.raft.id')]. *)
-      iDestruct (own_raftLog_unless_close _ _ Hlent with "Hlog") as "Hlog".
+      iDestruct (own_raftLog_unless_close _ _ _ Hlent with "Hlog [//]") as "Hlog".
       iDestruct (own_tracker_unless_close _ _ _ _ _ Hlent with "Htrk") as "Htrk".
       rewrite -Hlog1 -Htv1.
       iAssert (own_raft_phys cfg r rv.(raft.raft.id') s)

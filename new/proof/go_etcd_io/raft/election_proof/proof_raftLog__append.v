@@ -34,11 +34,13 @@ End helper.
 Module RaftLogAppendProof (P : RAFTLOG__APPEND_POSTULATES) : RAFTLOG__APPEND.
 Import P.
 
-  Lemma wp_raftLog__append_at : wp_raftLog__append_at_body.
+  Lemma wp_raftLog__append : wp_raftLog__append_body.
   Proof.
     intros_ambient.
-    intros l prev sents uents ents es dq.
-    intros Hidx' Hnorm Hnowrap'. wp_start as "H". iNamed "H". wp_auto.
+    intros l ls ents es dq.
+    intros Hpg Hidx' Hnorm Hnowrap'.
+    destruct ls as [prev sents uents lcm lap lpg]; logstate_simpl; subst lpg.
+    wp_start as "H". iNamed "H". wp_auto.
     iDestruct (own_slice_len with "Hes") as %[Hlen Hlen'].
     destruct (decide (ents = [])) as [He|Hne].
     - (* [len(ents) == 0]: the log is untouched and the result is the old
@@ -46,7 +48,7 @@ Import P.
       subst ents. simpl in Hlen.
       rewrite bool_decide_eq_true_2; last word.
       wp_auto.
-      wp_apply (wp_raftLog__lastIndex_at with "[$Hlog]") as "%li [Hlog %Hli]".
+      wp_apply (wp_raftLog__lastIndex _ (logstate.mk prev sents uents lcm lap None) eq_refl with "[$Hlog]") as "%li [Hlog %Hli]". logstate_simpl.
       iApply ("HΦ" $! li). rewrite app_nil_r. iFrame.
       iPureIntro. simpl. lia.
     - (* the batch is non-empty: [ents[0]] exists *)
@@ -75,6 +77,7 @@ Import P.
       (* the [Panicf]: [after] is the old last index, which is at least
          [committed] *)
       iNamed "Hlog".
+      iEval (rewrite /own_raftLog_core /=) in "Hcore". iNamed "Hcore".
       wp_auto.
       rewrite bool_decide_eq_false_2; last word.
       wp_auto.
@@ -84,8 +87,9 @@ Import P.
               = uint.Z lv.(raft.raftLog.unstable').(raft.unstable.offset')
                 + Z.of_nat (length uents))%Z as Hcont by word.
       wp_apply (wp_unstable__truncateAndAppend _ _ _ _ _ _ _ He0 Hcont
-                  with "[$Huf $Huents $Huents_cap $Hes]")
-        as "%sl (Huf & Huents & Huents_cap & Hes)".
+                  with "[Huf Huents Huents_cap $Hes]")
+        as "%sl ((Huf & Huents_cap & Huents) & Hes)".
+      { rewrite /own_unstable. iFrame. }
       iDestruct ("Hlback" with "Huf") as "Hl".
       (* re-seal at the new split and read the new last index *)
       assert (Forall (λ e, e.(raftpb.Entry.Type') = EntryNormal)
@@ -98,14 +102,15 @@ Import P.
               ≤ uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents)
                 + Z.of_nat (length (uents ++ ents)))%Z as Hcm2
         by (rewrite length_app; lia).
-      iAssert (own_raftLog_at l prev sents (uents ++ ents))
+      iAssert (own_raftLog l (logstate.mk prev sents (uents ++ ents) lcm lap None))
         with "[Hl HStorage Huents Huents_cap]" as "Hlog".
-      { rewrite /own_raftLog_at.
+      { iApply own_raftLog_unfold.
         iExists (lv <| raft.raftLog.unstable' :=
                    lv.(raft.raftLog.unstable')
                      <| raft.unstable.entries' := sl |> |>).
-        iFrame "Hl". simpl. iFrame "∗#%". }
-      wp_apply (wp_raftLog__lastIndex_at with "[$Hlog]") as "%li [Hlog %Hli]".
+        iFrame "Hl". rewrite /own_raftLog_core. simpl. iFrame "∗#%". }
+      wp_apply (wp_raftLog__lastIndex _ (logstate.mk prev sents (uents ++ ents) lcm lap None)
+                  eq_refl with "[$Hlog]") as "%li [Hlog %Hli]". logstate_simpl.
       iApply ("HΦ" $! li). iFrame.
       iPureIntro. rewrite length_app in Hli. lia.
   Qed.

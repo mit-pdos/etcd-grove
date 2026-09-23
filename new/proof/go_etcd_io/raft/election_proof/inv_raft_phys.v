@@ -44,9 +44,17 @@ Definition own_tracker_unless (lent : option tracker.ProgressTracker.t)
   | Some tv0 => ⌜ tv = tv0 ⌝
   end.
 
+(** The log's state is quantified here rather than kept in [nstate.t]: no
+    spec on the election path needs to relate it across a call, and every
+    function that reads the log re-opens it (notes/decisions.md, "One
+    predicate per object").  Only at no page: a page loan never outlives
+    the function that took it. *)
 Definition own_raftLog_unless (lent : option tracker.ProgressTracker.t)
     (l : loc) : iProp Σ :=
-  match lent with None => own_raftLog l | Some _ => True end.
+  match lent with
+  | None => ∃ ls, ⌜ ls.(logstate.page) = None ⌝ ∗ own_raftLog l ls
+  | Some _ => True
+  end.
 
 Lemma own_tracker_unless_open lent tv votes prs :
   lent = None → own_tracker_unless lent tv votes prs -∗ own_tracker cfg tv votes prs.
@@ -57,12 +65,16 @@ Lemma own_tracker_unless_close lent tv votes prs :
 Proof. intros ->. auto. Qed.
 
 Lemma own_raftLog_unless_open lent l :
-  lent = None → own_raftLog_unless lent l -∗ own_raftLog l.
+  lent = None → own_raftLog_unless lent l -∗
+  ∃ ls, ⌜ ls.(logstate.page) = None ⌝ ∗ own_raftLog l ls.
 Proof. intros ->. auto. Qed.
 
-Lemma own_raftLog_unless_close lent l :
-  lent = None → own_raftLog l -∗ own_raftLog_unless lent l.
-Proof. intros ->. auto. Qed.
+(** The page premise is a wand premise rather than a Coq one so that the
+    log fixes [ls] first: callers write [with "Hlog [//]"]. *)
+Lemma own_raftLog_unless_close lent l ls :
+  lent = None →
+  own_raftLog l ls -∗ ⌜ ls.(logstate.page) = None ⌝ -∗ own_raftLog_unless lent l.
+Proof. intros ->. iIntros "H %Hpg". iExists ls. iFrame "H". done. Qed.
 
 (** The two conjuncts while on loan: nothing to own. *)
 Lemma own_tracker_unless_lent tv votes prs :

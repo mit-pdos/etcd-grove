@@ -82,7 +82,7 @@ Set Default Proof Using "Type".
         again, so move the (persistent) points-to into the □ context first. *)
     iDestruct "ErrSnapUnavail" as "#ErrSnapUnavail".
     iNamed "Hphys".
-    iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog") as "Hlog".
+    iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog") as (ls Hls) "Hlog".
     iDestruct (own_tracker_unless_open _ _ _ _ _ Hlent with "Htrk") as "Htrk".
     iDestruct (own_tracker_lookup _ _ _ _ _ _ Hprto with "Htrk")
       as "[Hpr Htrkback]".
@@ -99,14 +99,12 @@ Set Default Proof Using "Type".
       { iExists pv, iv. rewrite /own_progress. iFrame "∗%". }
       iDestruct ("Htrkback" with "Hpr") as "Htrk".
       iDestruct (own_tracker_unless_close _ _ _ _ _ Hlent with "Htrk") as "Htrk".
-      iDestruct (own_raftLog_unless_close _ _ Hlent with "Hlog") as "Hlog".
+      iDestruct (own_raftLog_unless_close _ _ _ Hlent with "Hlog [//]") as "Hlog".
       iApply (own_raft_phys_intro with
         "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
         done. }
-    iDestruct (own_raftLog_acc with "Hlog") as (prev sents uents) "[Hlog Hlogback]".
-    wp_apply (wp_raftLog__snapshot_at with "[$Hlog $ErrSnapUnavail]")
+    wp_apply (wp_raftLog__snapshot _ _ _ Hls with "[$Hlog $ErrSnapUnavail]")
       as "%snap %err [Hlog %Herr]".
-    iDestruct ("Hlogback" with "Hlog") as "Hlog".
     destruct Herr as [-> | [-> Hnz]].
     - (* [ErrSnapshotTemporarilyUnavailable]: log and return [false].  The
          [panic(err)] that follows the inner [if] is never reached. *)
@@ -122,7 +120,7 @@ Set Default Proof Using "Type".
       { iExists pv, iv. rewrite /own_progress. iFrame "∗%". }
       iDestruct ("Htrkback" with "Hpr") as "Htrk".
       iDestruct (own_tracker_unless_close _ _ _ _ _ Hlent with "Htrk") as "Htrk".
-      iDestruct (own_raftLog_unless_close _ _ Hlent with "Hlog") as "Hlog".
+      iDestruct (own_raftLog_unless_close _ _ _ Hlent with "Hlog [//]") as "Hlog".
       iApply (own_raft_phys_intro with
         "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
         done.
@@ -131,16 +129,11 @@ Set Default Proof Using "Type".
       wp_apply wp_IsEmptySnap as "%b %Hb".
       rewrite Hb bool_decide_eq_false_2 //. wp_auto.
       (* the third [Debugf]'s argument list calls [firstIndex] and then
-         reads [r.raftLog.committed] directly, so the log has to stay open
-         across both *)
-      iDestruct (own_raftLog_acc with "Hlog")
-        as (prev2 sents2 uents2) "[Hlog Hlogback]".
-      wp_apply (wp_raftLog__firstIndex_at with "[$Hlog]") as "%fi [Hlog %Hfi]".
-      iNamed "Hlog".
+         reads [r.raftLog.committed] directly: the struct, for the read *)
+      wp_apply (wp_raftLog__firstIndex _ _ Hls with "[$Hlog]") as "%fi [Hlog %Hfi]".
+      iDestruct (own_raftLog_struct with "Hlog") as (lv) "(Hl & _ & Hlogback)".
       wp_auto.
-      iAssert (own_raftLog rv.(raft.raft.raftLog'))
-        with "[Hl HStorage Huents Huents_cap Hlogback]" as "Hlog".
-      { iApply "Hlogback". rewrite /own_raftLog_at. iExists lv. iFrame "∗#%". }
+      iDestruct ("Hlogback" with "Hl") as "Hlog".
       wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
       wp_auto. rewrite Hlok.
       wp_apply (wp_Logger__logf with "Hlogger").
@@ -155,7 +148,7 @@ Set Default Proof Using "Type".
       (* the [Progress] and the log go back before [send] *)
       iDestruct ("Htrkback" with "Hpr") as "Htrk".
       iDestruct (own_tracker_unless_close _ _ _ _ _ Hlent with "Htrk") as "Htrk".
-      iDestruct (own_raftLog_unless_close _ _ Hlent with "Hlog") as "Hlog".
+      iDestruct (own_raftLog_unless_close _ _ _ Hlent with "Hlog [//]") as "Hlog".
       iAssert (own_raft_phys cfg r id s)
         with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys".
       { iApply (own_raft_phys_intro with

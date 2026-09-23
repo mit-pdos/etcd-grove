@@ -16,11 +16,10 @@ Definition wp_unstable__maybeTerm_body :=
       (uents : list raftpb.Entry.t) (i : w64),
   uv.(raft.unstable.snapshot') = null →
   (uint.Z uv.(raft.unstable.offset') + Z.of_nat (length uents) < 2^64)%Z →
-  {{{ is_pkg_init raft ∗ "Hu" ∷ u ↦ uv ∗
-      "Hents" ∷ uv.(raft.unstable.entries') ↦* uents }}}
+  {{{ is_pkg_init raft ∗ "Hun" ∷ own_unstable u uv uents None }}}
     u @! (go.PointerType raft.unstable) @! "maybeTerm" #i
   {{{ (t : w64) (ok : bool), RET (#t, #ok);
-      u ↦ uv ∗ uv.(raft.unstable.entries') ↦* uents ∗
+      own_unstable u uv uents None ∗
       ⌜ ok = true ↔ (uint.Z uv.(raft.unstable.offset') ≤ uint.Z i <
                      uint.Z uv.(raft.unstable.offset') + Z.of_nat (length uents))%Z ⌝ }}}.
 

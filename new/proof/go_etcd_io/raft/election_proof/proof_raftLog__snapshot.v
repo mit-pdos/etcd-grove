@@ -2,12 +2,14 @@ Require Export New.proof.go_etcd_io.raft.election_proof.postulates_raftLog__snap
 
 Module RaftLogSnapshotProof (P : RAFTLOG__SNAPSHOT_POSTULATES) : RAFTLOG__SNAPSHOT.
 
-  Lemma wp_raftLog__snapshot_at : wp_raftLog__snapshot_at_body.
+  Lemma wp_raftLog__snapshot : wp_raftLog__snapshot_body.
   Proof.
     intros_ambient.
-    intros l prev sents uents esu.
-
-    wp_start as "H". iNamed "H". iNamed "Hlog".
+    intros l ls esu Hpg.
+    destruct ls as [prev sents uents lcm lap lpg]; logstate_simpl; subst lpg.
+    wp_start as "H". iNamed "H".
+    iNamed "Hlog".
+    iEval (rewrite /own_raftLog_core /=) in "Hcore". iNamed "Hcore".
     iAssert (is_Storage lv.(raft.raftLog.storage')) as "#Hsto".
     { iExact "HisStorage". }
     iDestruct "Hsto" as (isv) "(%Hstok & #HLI & #HFI & #HT & #HE & #HB & #HSnap)".
@@ -18,7 +20,8 @@ Module RaftLogSnapshotProof (P : RAFTLOG__SNAPSHOT_POSTULATES) : RAFTLOG__SNAPSH
     wp_apply ("HSnap" with "[$HStorage $Hesu]") as "%snap %err [HStorage %Herr]".
     iApply ("HΦ" $! snap err).
     iSplitL; last done.
-    rewrite /own_raftLog_at. iExists lv. rewrite Hstok. iFrame "∗#%".
+    iApply own_raftLog_unfold. iExists lv. rewrite /own_raftLog_core Hstok.
+    iFrame "∗#%".
     by iPureIntro.
   Qed.
 

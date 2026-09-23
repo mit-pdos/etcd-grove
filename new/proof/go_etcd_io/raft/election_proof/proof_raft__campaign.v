@@ -298,9 +298,9 @@ Proof.
       iFrame. iPureIntro. word.
     + (* a peer: read the last entry, log, and send it a [MsgVote] *)
       rewrite bool_decide_eq_false_2 //. wp_auto.
-      iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog2") as "Hlog2".
-      wp_apply (wp_raftLog__lastEntryID with "[$Hlog2]") as "%lastID Hlog2".
-      iDestruct (own_raftLog_unless_close _ _ Hlent with "Hlog2") as "Hlog2".
+      iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog2") as (ls2 Hls2) "Hlog2".
+      wp_apply (wp_raftLog__lastEntryID _ _ Hls2 with "[$Hlog2]") as "%lastID Hlog2".
+      iDestruct (own_raftLog_unless_close _ _ _ Hlent with "Hlog2 [//]") as "Hlog2".
       wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
       wp_auto. rewrite Hlok2.
       wp_apply (wp_Logger__logf with "Hlogger2").

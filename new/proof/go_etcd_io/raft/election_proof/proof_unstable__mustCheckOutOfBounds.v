@@ -9,13 +9,13 @@ Module UnstableMustCheckOutOfBoundsProof (P : UNSTABLE__MUSTCHECKOUTOFBOUNDS_POS
   Lemma wp_unstable__mustCheckOutOfBounds : wp_unstable__mustCheckOutOfBounds_body.
   Proof.
     intros_ambient.
-    intros u uv uents dq lo hi Hrange Hnw.
-    wp_start as "H". iNamed "H". wp_auto.
+    intros u uv uents lo hi Hrange Hnw.
+    wp_start as "H". iNamed "H". iNamed "Hun". wp_auto.
     iDestruct (own_slice_len with "Hents") as %[Hlen1 Hlen2].
     rewrite bool_decide_eq_false_2; last lia. wp_auto.
     rewrite bool_decide_eq_false_2; last lia. wp_auto.
     rewrite bool_decide_eq_false_2; last word. wp_auto.
-    iApply "HΦ". iFrame.
+    iApply "HΦ". rewrite /own_unstable. iFrame.
   Qed.
 
 End UnstableMustCheckOutOfBoundsProof.

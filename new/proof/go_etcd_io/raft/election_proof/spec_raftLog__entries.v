@@ -18,27 +18,26 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
     [maybeSendAppend] only takes its length (for [Progress.SentEntries]) and
     its payload size, and puts it in a message.
 
-    [l ↦ lv] comes back with the page and the wand takes both, for the
-    reason spelled out in [spec_raftLog__slice.v]: the page aliases an
-    *entry buffer*, never the [raftLog] record, and [maybeSendAppend] has
-    to read [r.raftLog.committed] and run [send] while still holding the
-    page.  ([send] is stated on [own_raft_bare], which does not ask for
-    the log at all -- see [spec_raft__send.v].) *)
-Definition wp_raftLog__entries_at_body :=
+    The log comes back on loan of the page ([logstate.page]), as
+    [raftLog.slice]'s does, and for the reason spelled out there its struct
+    stays readable ([own_raftLog_struct]): [maybeSendAppend] has to read
+    [r.raftLog.committed] and run [send] while still holding the page.
+    ([send] is called with the log lent to the caller, [nstate.lent] --
+    see [spec_raft__send.v].) *)
+Definition wp_raftLog__entries_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
-    (l : loc) prev sents uents (i maxSize : w64),
-  (uint.Z prev.(raft.entryID.index') + 1 ≤ uint.Z i)%Z →
-  {{{ is_pkg_init raft ∗ "Hlog" ∷ own_raftLog_at l prev sents uents }}}
+    (l : loc) (ls : logstate.t) (i maxSize : w64),
+  ls.(logstate.page) = None →
+  (uint.Z ls.(logstate.prev).(raft.entryID.index') + 1 ≤ uint.Z i)%Z →
+  {{{ is_pkg_init raft ∗ "Hlog" ∷ own_raftLog l ls }}}
     l @! (go.PointerType raft.raftLog) @! "entries" #i #maxSize
-  {{{ (s : slice.t) (es : list raftpb.Entry.t) (dq : dfrac)
-      (lv : raft.raftLog.t),
+  {{{ (s : slice.t) (es : list raftpb.Entry.t) (dq : dfrac),
       RET (#s, #interface.nil);
-      l ↦ lv ∗ s ↦*{dq} es ∗
-      (l ↦ lv -∗ s ↦*{dq} es -∗ own_raftLog_at l prev sents uents) }}}.
+      own_raftLog l (ls <| logstate.page := Some (s, es, dq) |>) ∗ s ↦*{dq} es }}}.
 
 Module Type RAFTLOG__ENTRIES.
-  Parameter wp_raftLog__entries_at : wp_raftLog__entries_at_body.
-  Arguments wp_raftLog__entries_at {_ _ _ _ _ _ _ _}.
+  Parameter wp_raftLog__entries : wp_raftLog__entries_body.
+  Arguments wp_raftLog__entries {_ _ _ _ _ _ _ _}.
 End RAFTLOG__ENTRIES.

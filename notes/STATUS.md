@@ -103,6 +103,15 @@ see gotchas.md for the checklist. A function that touches the tracker or
 the log takes `s.(nstate.lent) = None`; `hup`, the `Step` helpers and
 `Step` take `nstate_wf s`.
 
+The same rule holds for every object the struct points at, and since
+2026-09-23 it is met on the election path: `own_tracker cfg tv votes prs`
+(indexed by the progress map), `own_progress pr pv iv`,
+`own_inflights l iv buf`, `own_raftLog l ls` with `ls : logstate.t`
+(entry list, `committed`, `applied`, and a page on loan),
+`own_unstable u uv uents page`, and `own_read_only ro`. The log's state is
+**not** in `nstate.t`: `own_raft_phys` quantifies it (decisions.md,
+2026-09-23).
+
 ## What is proved
 
 Every Hoare triple on the election path is `Qed` — **169 lemmas**, 78
@@ -179,16 +188,17 @@ say so in the journal.
    `Restore` for the voters-only case; `fmt.Sprintf`/`strings.Join` are
    untranslated library calls; and item 2 below (`committed`/`applied`
    across `lastEntryID`).
-2. **The log has three shapes, and none shows `committed`/`applied`.**
-   `own_raftLog` (existential split), `own_raftLog_at` (indexed by the
-   split) and the raw page-and-wand `raftLog.entries`/`slice` return are the
-   same variant pattern the raft struct just lost. By the rule above the log
-   should have *one* predicate indexed by an abstract log state
-   (`prev`, `sents`, `uents`, `committed`, `applied`, and a page on loan),
-   and `nstate.t` should carry that state rather than `log : loc`. `newRaft`
-   is blocked on it: `loadState`/`appliedTo` panic unless the caller knows
-   `committed` and `applied`, and `lastEntryID` sits between building the
-   log and calling them.
+2. **The log's state is quantified inside `own_raft_phys`, not in
+   `nstate.t`.** The log has one predicate since 2026-09-23,
+   `own_raftLog l ls` with `ls : logstate.t` (`prev`, `sents`, `uents`,
+   `committed`, `applied`, `page`), and every `raftLog` spec keeps `ls`
+   across the call -- so `lastEntryID` no longer loses `committed`/`applied`,
+   which unblocks that part of `newRaft`. What is *not* done is putting
+   `ls` into `nstate.t`: no election-path spec needs the log's state
+   related across a call to a function that takes `own_raft_phys`, so
+   `own_raft_phys` says `∃ ls, ⌜ls.page = None⌝ ∗ own_raftLog l ls`. The
+   first spec that needs it (plausibly `newRaft`'s postcondition, or
+   `appendEntry` stated at the log it produced) is the time to move it.
 3. **`HnoConfChange` is false of a real cluster.** `inv_raftlog.v:139`
    requires `Forall (λ e, Type = EntryNormal) (sents ++ uents)` — the *whole*
    log — while `RawNode.Bootstrap` (`new/code/go_etcd_io/raft/v3.v:391`)

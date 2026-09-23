@@ -5,11 +5,11 @@ Module UnstableMaybeFirstIndexProof (P : UNSTABLE__MAYBEFIRSTINDEX_POSTULATES) :
   Lemma wp_unstable__maybeFirstIndex : wp_unstable__maybeFirstIndex_body.
   Proof.
     intros_ambient.
-    intros u uv.
+    intros u uv uents.
 
-    intros Hns. wp_start as "Hu". wp_auto.
+    intros Hns. wp_start as "Hun". iNamed "Hun". wp_auto.
     rewrite Hns bool_decide_eq_true_2 //=. wp_auto.
-    iApply "HΦ". iFrame.
+    iApply "HΦ". rewrite /own_unstable. iFrame.
   Qed.
 
 End UnstableMaybeFirstIndexProof.

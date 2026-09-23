@@ -157,7 +157,7 @@ Definition is_Storage (st : raft.Storage.t) : iProp Σ :=
   (** The stable log's last index is far below [2^64].
 
       This is the one *pure* clause of the contract, and it is what makes
-      appending to the log possible at all.  [own_raftLog_at]'s [Hnowrap]
+      appending to the log possible at all.  [own_raftLog_core]'s [Hnowrap]
       says the whole log's last index leaves room for one more entry, and
       that bound is **not inductive**: after an append the log is one longer
       and the same bound is needed at the new length, so no invariant of the
@@ -195,7 +195,7 @@ Definition is_Storage (st : raft.Storage.t) : iProp Σ :=
 
       [raftLog.snapshot] ([new/code/go_etcd_io/raft/v3.v:864]) returns
       [l.unstable.snapshot] when it is non-nil and otherwise forwards to this
-      method; [own_raftLog_at]'s [Hnosnap] says it is always nil here, so
+      method; [own_raftLog_core]'s [Hnosnap] says it is always nil here, so
       every snapshot on this path comes from the client.
 
       The contract is the *disjunction* [maybeSendSnapshot] is written

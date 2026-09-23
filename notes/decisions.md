@@ -1279,13 +1279,11 @@ them, so they are physical-state fields.
   at a fixed split across a call, nor the tracker half of
   `maybeSendAppend`.
 
-**Not done, and known to be the same pattern** (STATUS lists them):
-the log's own predicates — `own_raftLog` (existential split),
+**Then done for the log** (2026-09-23, entry "One predicate per object"
+below): the log's three shapes — `own_raftLog` (existential split),
 `own_raftLog_at` (indexed by the split) and the raw
-`l ↦ lv ∗ (… -∗ own_raftLog_at …)` that `raftLog.entries`/`slice` return —
-are three shapes for one object, and none exposes `committed`/`applied`,
-which `newRaft` needs; the rule says to give the log one predicate indexed
-by an abstract log state that does.
+`l ↦ lv ∗ (… -∗ own_raftLog_at …)` that `raftLog.entries`/`slice` returned —
+are one predicate indexed by `logstate.t`.
 
 **The trace hooks** (amended 2026-09-23).  The six `traceX` hooks take `r`
 and were specified on raw pieces -- five on `own_raft_misc`, the struct's
@@ -1298,3 +1296,52 @@ back up) and a reopen at every call, several inside the most expensive
 (`{{{ is_pkg_init raft }}} … {{{ RET #(); True }}}`), which obeys the rule
 and costs callers nothing.  They are stated that way now.  Only true of
 the no-op build that is translated; the tracing build reads `r`.
+
+## 2026-09-23 — One predicate per object, below the raft struct too
+
+**Context.** "Three layers" gave the raft struct one predicate. Asked
+whether anything else owned the same state twice or in several shapes, the
+answer on the election path was yes, five times: `own_raft_phys` carried a
+persistent copy of the progress map's points-to (`#Hprs`) beside the one
+inside `own_tracker`; `Progress` and `Inflights` each had an indexed form
+(`own_progress_at`, `own_inflights_at`) and an existential one, and
+`Inflights.grow`/`reset` and `Progress.ResetState` were stated on raw
+points-tos; the log had three shapes; the `unstable` specs were on raw
+`u ↦ uv ∗ entries ↦* uents`; and `newReadOnly`'s postcondition was stated
+on more than the object it returns.
+
+**Decision.**
+- `own_tracker cfg tv votes prs`, indexed by the progress map; the copy in
+  `own_raft_phys` is gone. The `Visit` closure hands the tracker back at the
+  same `prs`.
+- `own_progress pr pv iv` and `own_inflights l iv buf` are the only forms.
+  `buf` is in `Inflights`' index because `grow` is specified by what it does
+  to the buffer; `Progress` quantifies it (no `Progress` method reads it).
+- `own_raftLog l (ls : logstate.t)`, `ls` = entry list, `committed`,
+  `applied`, and `page : option (slice × list Entry × dfrac)`. **A loan is a
+  field of the state**: `raftLog.slice`/`entries` return the log at
+  `ls <| page := Some (s, es, dq) |>` with the page outside, and
+  `own_raftLog_return_page` ends the loan. The struct `l ↦ lv` stays
+  outside the loan's wand so `maybeSendAppend` can read `committed` with a
+  page out (`own_raftLog_struct`). Every other `raftLog` spec takes
+  `ls.page = None`.
+- `own_unstable u uv uents page` for the embedded `unstable`, with its own
+  page (`unstable.slice`). The `raftLog` proofs assemble it from the
+  field points-to and the entries.
+- `newReadOnly` returns only `own_read_only ro`; `own_raft_misc` is built on
+  it and `own_raft_misc_swap` installs the new one.
+
+**The log's state is not in `nstate.t`.** The rule for the raft struct
+says the state must be precise enough for every spec. No election-path
+spec on `own_raft_phys` needs to relate the log's state across a call --
+each function that uses the log opens it, works at a fixed `ls`, and closes
+it -- so `own_raft_phys` keeps `∃ ls, ⌜ls.page = None⌝ ∗ own_raftLog l ls`.
+Moving `ls` into `nstate.t` is the fix the rule prescribes the first time a
+spec needs it; `newRaft`'s postcondition (which has to say what log it
+built) is the likely first.
+
+**Alternatives considered.** Stating the `raftLog` specs at the components
+(`own_raftLog l (logstate.mk prev sents uents cm ap None)`) needs no page
+premise and no `destruct` in the proofs, but reads worse at every spec and
+every caller holds an abstract `ls`. The page premise as a Coq premise
+costs an explicit state at positional calls (gotchas.md).

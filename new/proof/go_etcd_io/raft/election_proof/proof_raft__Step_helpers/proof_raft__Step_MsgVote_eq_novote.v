@@ -50,7 +50,7 @@ Implicit Type s : nstate.t.
     wp_apply (wp_Logger__logf with "Hlogger");
       [solve_log_method|];
     wp_apply P.wp_voteRespMsgType; [done|];
-    iDestruct (own_raftLog_unless_close _ _ lent_ with "Hlog") as "Hlog";
+    iDestruct (own_raftLog_unless_close _ _ _ lent_ with "Hlog [//]") as "Hlog";
     iAssert (own_raft_phys cfg r_ id_ s_)
       with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
       as "Hphys";
@@ -96,7 +96,7 @@ Implicit Type s : nstate.t.
       [solve_log_method|];
     wp_apply P.wp_voteRespMsgType; [done|];
     rewrite term_eq;
-    iDestruct (own_raftLog_unless_close _ _ lent_ with "Hlog") as "Hlog";
+    iDestruct (own_raftLog_unless_close _ _ _ lent_ with "Hlog [//]") as "Hlog";
     iAssert (own_raft_phys cfg r_ id_ s_)
       with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
       as "Hphys";
@@ -182,7 +182,7 @@ Implicit Type s : nstate.t.
     intros Hty Hto Hterm Hfnz Heq0 Hv00 Hwf.
     pose proof Hwf as [Hsfw Hlent].
     wp_start_folded as "@". iNamed "Hphys".
-    iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog") as "Hlog".
+    iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog") as (ls Hls) "Hlog".
     wp_start_unfold. wp_auto.
     assert (Hle : ¬ (uint.Z rv.(raft.raft.Term') < uint.Z m.(raftpb.Message.Term')))
       by (rewrite Hterm0 Heq0; lia).
@@ -215,9 +215,9 @@ Implicit Type s : nstate.t.
              rewrite Hl0 bool_decide_eq_true_2 //. wp_auto.
              assert (Hcan : pcan_vote (to_pstate s) m.(raftpb.Message.From'))
                by (rewrite /pcan_vote /=; right; split; congruence).
-             wp_apply (wp_raftLog__lastEntryID with "[$Hlog]")
+             wp_apply (wp_raftLog__lastEntryID _ _ Hls with "[$Hlog]")
                as "%lastID2 Hlog".
-             wp_apply (wp_raftLog__isUpToDate with "[$Hlog]") as "%ok2 Hlog".
+             wp_apply (wp_raftLog__isUpToDate _ _ _ Hls with "[$Hlog]") as "%ok2 Hlog".
              destruct ok2.
              ++ vote_grant_tail r id s m Hlok Hty Hto Hcan Hwf Hlent.
              ++ vote_reject_tail r id s m Hlok Hto Hterm0 Hwf Hlent.
@@ -237,7 +237,7 @@ Implicit Type s : nstate.t.
                 branch -- leaving [vote_reject_tail]'s own leading [wp_auto]
                 with nothing to do.  The arms that call [isUpToDate] block on
                 its [bool] result instead, so they can use [as]. *)
-             wp_apply (wp_raftLog__lastEntryID with "[$Hlog]").
+             wp_apply (wp_raftLog__lastEntryID _ _ Hls with "[$Hlog]").
              iIntros "%lastID2 Hlog".
              vote_reject_tail r id s m Hlok Hto Hterm0 Hwf Hlent.
   Qed.

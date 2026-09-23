@@ -2,7 +2,7 @@
 
 Audited 2026-09-21, against branch `worktree-election-close-admits` at
 `0b3943d1f`, whose commit message claims *"every Hoare triple on the election
-path is Qed except `wp_raftLog__slice_at`"*.
+path is Qed except `wp_raftLog__slice`"*.
 
 The short version: **that claim is true as a statement about the source text,
 and `tcb-report.py` reports it accurately — but it was quoted as if it were
@@ -60,7 +60,7 @@ reference to the tool, agrees with it exactly:
 
 | | count |
 |---|---|
-| `Admitted` | 1 (`wp_raftLog__slice_at`, marked `(* Trusted *)`) |
+| `Admitted` | 1 (`wp_raftLog__slice`, marked `(* Trusted *)`) |
 | `Axiom` | 10 |
 | `Qed` | 169 |
 | `Parameter` | 78 (all inside `Module Type`s) |
@@ -383,7 +383,7 @@ see "What the build was not checking" above. Items 2-4 are unclaimed.
    `check-module-discipline.py` gates, distinguishing at least:
    - `(* TCB: <reason> *)` — a deliberate assumption believed to be true;
    - `(* TCB-partial: false when <condition> *)` — known false outside a
-     stated regime, which `wp_raftLog__slice_at` is;
+     stated regime, which `wp_raftLog__slice` is;
    - and error on a trusted admission with no marker.
    Report an admitted lemma as assuming its **whole statement**, in those
    words — `Print Assumptions` names the whole triple, so the report should

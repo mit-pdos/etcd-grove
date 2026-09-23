@@ -27,12 +27,15 @@ Import P.
     assert (Hrange' : (uint.Z uv.(raft.unstable.offset') ≤ uint.Z lo ≤ uint.Z hi ≤
                        uint.Z uv.(raft.unstable.offset') + Z.of_nat (length uents))%Z)
       by lia.
-    wp_start as "H". iNamed "H".
+    wp_start as "H". iNamed "H". iNamed "Hun".
     iDestruct (own_slice_len with "Hents") as %[Hlen Hlen'].
     iDestruct (own_slice_wf with "Hents") as %Hwf.
     wp_auto.
-    wp_apply (wp_unstable__mustCheckOutOfBounds _ _ _ (DfracOwn 1) _ _ Hrange' Hnw
-                with "[$Hu $Hents]") as "[Hu Hents]".
+    wp_apply (wp_unstable__mustCheckOutOfBounds _ _ _ _ _ Hrange' Hnw
+                with "[Hu Hents Hents_cap]") as "Hun".
+    { rewrite /own_unstable. iFrame. }
+    iNamed "Hun".
+    wp_auto.
     rewrite decide_True; last word.
     wp_auto.
     set (lo' := word.sub lo uv.(raft.unstable.offset')).
@@ -54,8 +57,8 @@ Import P.
     { done. }
     { simpl. lia. }
     iApply ("HΦ" $! _ (subslice (sint.nat lo') (sint.nat hi') uents)).
-    iFrame "Hu Hs".
-    iSplitR.
+    iFrame "Hs".
+    iSplitL; last first.
     { iPureIntro. split_and!.
       - rewrite Hsublen. word.
       - intros e He. apply list_elem_of_lookup_1 in He as [i Hi].
@@ -64,6 +67,7 @@ Import P.
         rewrite subslice_lookup in Hi; last lia.
         eapply list_elem_of_lookup_2. exact Hi.
       - done. }
+    rewrite /own_unstable. iFrame "Hu Hents_cap".
     iIntros "Hs".
     iDestruct (own_slice_same_ptr_len
                  (slice.full_slice uv.(raft.unstable.entries') raftpb.Entry.t lo' hi' hi')
