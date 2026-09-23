@@ -3445,3 +3445,23 @@ downstream of `main`'s `spec_raft__Step.v`/`protocol.v` change that nobody
 re-checked; universe constraints, which `-vok` never checks; and
 `v3_proof/readonly.v`, which `make ci` compiles to `.vo` for the first time
 now that `should_build.v` requires it.
+
+---
+
+## 2026-09-23 (night) — `main` merged into `raft-phys-one-predicate`, checked
+
+`6071e5f91` merges `origin/main` (the constructed election ghost state, on
+the `election_proof/` layout) into the one-predicate refactor. Conflicts
+were in the notes (`decisions.md`, `journal.md`, `STATUS.md`: both sides
+kept, `main`'s first in `decisions.md`) and in `election.v`, where the
+`nstate` → `pstate` rename of this branch was ported onto `main`'s new
+`election_proof/election.v`.
+
+Checked: `.vok` of all 333 targets under `election_proof/` plus
+`v3_proof/readonly.v`, 0 errors. `STATUS.md`'s counts were re-run on the
+merged tree: 209 lemmas on the election path; 66 definitions, 701 lines;
+TCB 5.2%.
+
+Follow-up work (one predicate per *object* -- the tracker, `Progress`,
+`Inflights`, the log, `readOnly`) continues on `raft-object-predicates`,
+branched from this merge.
