@@ -121,16 +121,18 @@ HELPERS_RE = re.compile(rf"^proof_(?P<x>.+){re.escape(HELPERS_SUFFIX)}$")
 # text lives, and it is the thing to measure.
 BODY_SUFFIX = "_body"
 
-# An `Admitted` means "in scope but unfinished" (notes/STATUS.md) unless a
-# comment on its line says `Trusted`: an admission the development means to
-# keep.  The name is the marker's, not a claim about the TCB -- every
-# assumption is trusted, marked or not.
+# A comment on an `Admitted` line saying `Trusted` means the admission has
+# been signed off on *for now*.  It is still debt -- the goal is no admits --
+# and the name is the marker's, not a claim about the TCB: every assumption
+# is trusted, marked or not.
 TRUSTED_MARKER = r"\bTrusted\b"
 
-# An assumption whose statement ends in a sort or in `iProp Σ` declares an
-# opaque constant rather than asserting anything: `Axiom own_raft_ghost : ∀ γ
-# id s, iProp Σ.` introduces a predicate you cannot see, which is a different
-# (and milder) thing to trust than a claim that could be false.
+# An assumption whose statement ends in a sort or in `iProp Σ` is an
+# undefined declaration: `Axiom own_raft_ghost : ∀ γ id s, iProp Σ.` names a
+# predicate and gives it no definition.  Alone it asserts nothing and cannot
+# be false; what it means is fixed only by the other axioms about it, and
+# because nobody can see inside it, those can be satisfied trivially -- by
+# `False`, for the ghost state (notes/tcb-accounting.md, G3).
 DECLARATION_TAIL_RE = re.compile(r"(?:Type|Set|Prop|iProp\s+\S+|iProp)\s*\.?\s*$")
 
 
@@ -435,12 +437,17 @@ def follow_alias(decl, index):
 
 
 def assumption_shape(decl):
-    """ "triple", "property" or "declaration" -- what kind of thing is assumed."""
+    """ "triple", "undefined" or "other" -- what kind of thing is assumed.
+
+    "other" is whatever is neither a Hoare triple nor an undefined
+    declaration: in this development, facts about the undefined predicates,
+    from `Persistent` instances to the ghost state's step obligation.
+    """
     if decl.is_triple:
         return "triple"
     if DECLARATION_TAIL_RE.search(decl.statement.strip()):
-        return "declaration"
-    return "property"
+        return "undefined"
+    return "other"
 
 
 def status_of(decl):
@@ -973,39 +980,17 @@ def print_summary(rep, out):
         ", ".join(f"{n} {k}" for k, n in sorted(how.items())) or "nothing",
         out,
     )
+    # These three partition the assumed row: every assumption is in exactly
+    # one.  Nothing else belongs in this list -- a count along another axis
+    # (how many admits carry a comment marker, say) printed here reads as a
+    # fourth category and overlaps the others.
     for shape, label in (
         ("triple", "Hoare triples about Go code"),
-        ("property", "properties of the model"),
-        ("declaration", "opaque declarations"),
+        ("undefined", "undefined declarations"),
+        ("other", "other"),
     ):
         if shapes[shape]:
             print(f"    {label:<29}{shapes[shape]:>3}", file=out)
-    # Everything in this table is trusted; what the `(* Trusted *)` comment
-    # marks is narrower.  By the convention in notes/STATUS.md an `Admitted`
-    # means in scope but unfinished, and the marker picks out the admissions
-    # meant to stay.  Axioms are not classified by it -- the keyword itself
-    # is supposed to say "outside the protocol", which nothing checks.
-    kept = sum(1 for r in rep["assumed"] if r["trusted"] and r["how"] == "Admitted")
-    marked_axioms = sum(
-        1 for r in rep["assumed"] if r["trusted"] and r["how"] != "Admitted"
-    )
-    if how["Admitted"]:
-        rest = how["Admitted"] - kept
-        print(
-            "    {:<29}{:>3}   marked (* Trusted *); {}".format(
-                "admits meant to stay",
-                kept,
-                f"the other {rest} are unfinished" if rest else "none unfinished",
-            ),
-            file=out,
-        )
-    if marked_axioms:
-        print(
-            "    {:<29}{:>3}   the keyword already says that".format(
-                "axioms marked (* Trusted *)", marked_axioms
-            ),
-            file=out,
-        )
     if rep.get("assumed_outside_scope_dir"):
         print(
             "    {:<29}{:>3}   from outside the scope directory, reached"
@@ -1164,7 +1149,7 @@ def print_assumed(rep, out):
         if r["go_fns"]:
             what += "  [{}]".format(", ".join(r["go_fns"]))
         if r["trusted"]:
-            what += "  (meant to stay)"
+            what += "  (signed off for now)"
         where = "{}:{}".format(os.path.relpath(r["file"], rep["scope"]), r["line"])
         print(
             "{:<{w}} {:<9} {:<12} {}".format(
@@ -1438,8 +1423,8 @@ def selftest():
             f"assumed = {sorted(names)}",
         )
         shapes = {r["name"]: r["shape"] for r in rep["assumed"]}
-        want(shapes.get("own_state") == "declaration", "opaque declaration")
-        want(shapes.get("own_state_agree") == "property", "property")
+        want(shapes.get("own_state") == "undefined", "undefined declaration")
+        want(shapes.get("own_state_agree") == "other", "other")
         want(shapes.get("GProof.wp_G") == "triple", "admitted triple")
         want(rep["obligations"] == 2, "obligations = {}".format(rep["obligations"]))
         # G calls f, so f's collection is internal and G is a result; so is

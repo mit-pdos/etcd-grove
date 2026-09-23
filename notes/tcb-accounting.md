@@ -236,12 +236,14 @@ nearly closed. Gap-closing item 2 below is the cheap fix.
 
 ### G4. An `Admitted` is labelled more benignly than it is
 
-`proof_raftLog__slice.v:283` ends `Admitted. (* Trusted *)` and the tool
-counts it among the *"admits meant to stay"*, alongside the two genuine
-overflow assumptions at `readonly.v:464,471`. (Until 2026-09-23 that row read
-*"of those, trusted"*, which was misleading on its own terms: every
-assumption in the table is trusted. The marker only separates admissions
-meant to stay from unfinished ones.)
+`proof_raftLog__slice.v:283` ends `Admitted. (* Trusted *)`, and
+`--view assumed` tags it *"(signed off for now)"*, alongside the two
+overflow assumptions at `readonly.v:464,471`. (The summary table briefly
+counted these, first as *"of those, trusted"* and then as *"admits meant to
+stay"*. Both were wrong: every assumption in the table is trusted, and a
+signed-off admit is still debt — the goal is no admits. Since 2026-09-23 the
+summary counts only `Admitted` and `Axiom`, and splits them into Hoare
+triples about Go code, undefined declarations, and other.)
 
 Two things that hides:
 

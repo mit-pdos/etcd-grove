@@ -171,8 +171,9 @@ concurrent items edit the same shared file.
 | 13 | Final: `-vok` sweep of every proof-bearing file, `tcb-report`, `check-module-discipline`, notes | 6 | run 2026-09-21; see the summary below the table |
 
 **Outcome (2026-09-21).** Every Hoare triple on the election path is `Qed`
-except one deliberate, marked admission. `etc/tcb-report.py --scope election_proof`
-now counts **1 `Admitted` (trusted) and 10 `Axiom`s** against 169 Qed lemmas
+except one admission, signed off on for now and marked `(* Trusted *)`.
+`etc/tcb-report.py --scope election_proof`
+now counts **1 `Admitted` and 10 `Axiom`s** against 169 Qed lemmas
 and 78 discharged signatures, and every axiom is on the declared trust
 boundary: `is_Logger`/`is_Logger_pers`/`wp_Logger__logf` (client `Logger`),
 `own_Storage` (client `Storage`, whose contract `is_Storage` grew `Entries`,
@@ -337,7 +338,8 @@ for the `vos` closure.
 ## Trust base
 
 As of 2026-09-15 the raft proof assumes **50 axioms and 14 `Admitted.`** (2 of
-the admits deliberate, marked `(* Trusted *)` at `readonly.v:464,471`). The
+the admits signed off on for now, marked `(* Trusted *)` at
+`readonly.v:464,471` — still debt: the goal is no admits). The
 one axiom added that day is `own_raft_ghost_outbox`; more importantly, one of
 the 50 — `wp_raft__appendEntry`, then called `wp_raft__appendEmptyEntry` —
 **stopped being a false statement**. It
@@ -464,8 +466,9 @@ step does and does not establish, the seven known gaps and the plan are in
 [tcb-accounting.md](tcb-accounting.md).
 
 As of 2026-09-18 it reports, over the whole raft proof: **45 assumed** — 31
-`Axiom` and 14 `Admitted`, of which 18 are Hoare triples about Go code, 13
-are properties of the model, and 14 are opaque declarations — against **85
+`Axiom` and 14 `Admitted`, of which 18 are Hoare triples about Go code, 14
+are undefined declarations and 13 are other (as the tool names those
+categories since 2026-09-23) — against **85
 definitions, 651 lines**, reached from the exported statements. That last
 number is the one a count of axioms misses and is the larger half of the
 trust base: `wp_raft__Step` says nothing if `nstate.t`, `own_raft_phys` or

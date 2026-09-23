@@ -3013,3 +3013,27 @@ assumption from `wp_raftLog__slice_at`, whose own header says the triple is
 false at ~2^63 unstable entries. Nor does anything classify the axioms —
 the keyword is supposed to say "outside the protocol", but 12 of the 35 are
 the ghost-state axioms, which are owed work (STATUS next step #4).
+
+---
+
+## 2026-09-23 (evening) — the assumed breakdown: triples, undefined declarations, other
+
+At Upamanyu's direction. The summary's breakdown of the assumed row is now
+**Hoare triples about Go code / undefined declarations / other** (whole raft
+tree 15 / 15 / 13 = 43), replacing "opaque declarations" and "properties of
+the model" — the latter was a catch-all defined by exclusion, and none of
+its members is about the protocol model; they are facts about the undefined
+ghost predicates.
+
+The "admits meant to stay" row is gone. It was a count along a different
+axis — admits carrying a `(* Trusted *)` comment, all three of which are
+also triples — printed among the three categories, so it read as a fourth
+one that overlapped "Hoare triples about Go code". What matters in that
+table is how many things are `Admitted` or axiomatized, which the assumed
+row already says.
+
+And the marker's meaning is corrected everywhere: `(* Trusted *)` means an
+admission **signed off on for now**, not one "meant to stay" or
+"deliberate". It is still debt; the goal is no admits. `--view assumed`
+tags such admits "(signed off for now)"; STATUS's three mentions and
+tcb-accounting.md's G4 are updated.
