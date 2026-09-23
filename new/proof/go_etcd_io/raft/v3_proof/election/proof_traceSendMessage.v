@@ -5,8 +5,8 @@ Module TraceSendMessageProof (P : TRACESENDMESSAGE_POSTULATES) : TRACESENDMESSAG
   Lemma wp_traceSendMessage : wp_traceSendMessage_body.
   Proof.
     intros_ambient.
-    intros r mp rs ro pri.
-   wp_start as "Hm". by iApply "HΦ".
+    intros r mp.
+    wp_start. by iApply "HΦ".
   Qed.
 
 End TraceSendMessageProof.

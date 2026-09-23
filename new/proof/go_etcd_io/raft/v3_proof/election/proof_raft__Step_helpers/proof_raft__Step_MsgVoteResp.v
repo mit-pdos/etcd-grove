@@ -106,7 +106,7 @@ Implicit Type s : nstate.t.
     assert (Hn22 : bool_decide (m.(raftpb.Message.Type') = W32 22) = false)
       by (apply bool_decide_eq_false_2; rewrite Hty6; w32_ne).
     wp_start_folded as "@". iNamed "Hphys". wp_start_unfold. wp_auto.
-    wp_apply (wp_traceReceiveMessage with "[$Hmisc]") as "Hmisc".
+    wp_apply wp_traceReceiveMessage. try wp_auto.
     assert (bool_decide (m.(raftpb.Message.Term') = W64 0) = false) as Hz
       by by apply bool_decide_eq_false_2.
     rewrite Hz. rewrite bool_decide_eq_false_2; last done. wp_auto.

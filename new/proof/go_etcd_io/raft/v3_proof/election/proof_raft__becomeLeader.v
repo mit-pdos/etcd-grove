@@ -63,7 +63,7 @@ Import P.
     wp_apply (wp_raftLog__lastIndex_at with "[$Hlog1]")
       as "%li [Hlog1 %Hli0]".
     iDestruct ("Hlogback0" with "Hlog1") as "Hlog1".
-    wp_apply (wp_traceBecomeLeader with "[$Hmisc1]") as "Hmisc1".
+    wp_apply wp_traceBecomeLeader. try wp_auto.
     wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [Hes _]".
     wp_auto.
     (* [appendEntry] queues a self-addressed [MsgAppResp], so it writes

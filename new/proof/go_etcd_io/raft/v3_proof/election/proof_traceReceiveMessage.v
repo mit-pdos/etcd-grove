@@ -5,8 +5,8 @@ Module TraceReceiveMessageProof (P : TRACERECEIVEMESSAGE_POSTULATES) : TRACERECE
   Lemma wp_traceReceiveMessage : wp_traceReceiveMessage_body.
   Proof.
     intros_ambient.
-    intros r mp rs ro pri.
-   wp_start as "Hm". by iApply "HΦ".
+    intros r mp.
+    wp_start. by iApply "HΦ".
   Qed.
 
 End TraceReceiveMessageProof.

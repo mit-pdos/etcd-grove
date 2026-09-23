@@ -37,7 +37,7 @@ Import P.
     wp_auto. rewrite Hlok1.
     wp_apply (wp_Logger__logf with "Hlogger1").
     { rewrite /log_methods. set_solver. }
-    wp_apply (wp_traceBecomeCandidate with "[$Hmisc1]") as "Hmisc1".
+    wp_apply wp_traceBecomeCandidate. try wp_auto.
     iApply "HΦ".
     iApply (own_raft_phys_intro _ _ _ (become_candidate id s) with
       "Hr1 Hlogger1 Hprs1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1");

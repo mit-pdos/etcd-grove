@@ -1137,7 +1137,16 @@ the log's own predicates — `own_raftLog` (existential split),
 `l ↦ lv ∗ (… -∗ own_raftLog_at …)` that `raftLog.entries`/`slice` return —
 are three shapes for one object, and none exposes `committed`/`applied`,
 which `newRaft` needs; the rule says to give the log one predicate indexed
-by an abstract log state that does.  The five `traceX` hooks take `r` but
-are specified on `own_raft_misc` (their translated bodies are `do: #()`
-and read nothing); left alone because converting them buys nothing and
-costs a re-seal inside the most expensive `Step` helpers.
+by an abstract log state that does.
+
+**The trace hooks** (amended 2026-09-23).  The six `traceX` hooks take `r`
+and were specified on raw pieces -- five on `own_raft_misc`, the struct's
+miscellaneous conjunct, and `traceReplicate` on the entries slice.  The
+first version of this entry left them alone, on the grounds that moving
+them to `own_raft_phys` would cost a re-seal (fold the opened predicate
+back up) and a reopen at every call, several inside the most expensive
+`Step` helpers.  That was the wrong comparison: their translated bodies are
+`do: #()`, so the honest spec owns **nothing**
+(`{{{ is_pkg_init raft }}} … {{{ RET #(); True }}}`), which obeys the rule
+and costs callers nothing.  They are stated that way now.  Only true of
+the no-op build that is translated; the tracing build reads `r`.

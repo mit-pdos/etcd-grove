@@ -195,7 +195,10 @@ configuration, whereas this is about what was ever appended.
     λ: <> <>, exception_do (do:  #())
 
 Tracing is a disabled hook in this fork. They were `Axiom`s for days; each is
-a two-line proof. **Six of the nineteen election-path axioms cost nothing but
+a two-line proof. Since 2026-09-23 their specs (and `traceReplicate`'s)
+own nothing -- `{{{ is_pkg_init raft }}} … {{{ RET #(); True }}}` -- because
+the body touches nothing; a build with tracing on would need specs on
+`own_raft_phys`. **Six of the nineteen election-path axioms cost nothing but
 reading the generated body.**
 
 ## `campaign` sorts the voter ids

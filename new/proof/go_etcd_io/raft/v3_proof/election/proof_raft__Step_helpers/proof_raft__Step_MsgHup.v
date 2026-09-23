@@ -52,7 +52,7 @@ Implicit Type s : nstate.t.
     iNamed "Hphys".
     wp_start_unfold.
     wp_auto.
-    wp_apply (wp_traceReceiveMessage with "[$Hmisc]") as "Hmisc".
+    wp_apply wp_traceReceiveMessage. try wp_auto.
     (* [m.Term = 0] (a local message), so the term preamble is skipped. *)
     rewrite Hterm !bool_decide_eq_true_2 //.
     wp_auto.

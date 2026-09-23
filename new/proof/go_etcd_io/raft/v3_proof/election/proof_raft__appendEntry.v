@@ -246,7 +246,7 @@ Set Default Proof Using "Type".
       (* the struct's log is still the one held here *)
       assert (rv1.(raft.raft.raftLog') = rv.(raft.raft.raftLog')) as Hlog1
         by (rewrite Hlogp1 /= Hlogp //).
-      wp_apply (wp_traceReplicate with "[$Hes]") as "Hes".
+      wp_apply wp_traceReplicate. try wp_auto.
       (* [append]'s three premises *)
       assert (log_indices_ok prev
                 (sents ++ uents ++ imap (stamp rv.(raft.raft.Term') li) ents))

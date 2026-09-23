@@ -35,7 +35,7 @@ Qed.
     wp_auto;
     wp_apply (wp_slice_append with "[$Hmsgs $Hmsgs_cap $m_sl]")
       as "%msgs' (Hmsgs & Hmsgs_cap & _)";
-    wp_apply (wp_traceSendMessage with "[$Hmisc]") as "Hmisc";
+    wp_apply wp_traceSendMessage; try wp_auto;
     iApply "HΦ"; rewrite /own_raft_phys.
 
   Local Ltac send_tail_msgsAA :=
@@ -46,7 +46,7 @@ Qed.
     wp_auto;
     wp_apply (wp_slice_append with "[$HmsgsAA $HmsgsAA_cap $m_sl]")
       as "%msgsAA' (HmsgsAA & HmsgsAA_cap & _)";
-    wp_apply (wp_traceSendMessage with "[$Hmisc]") as "Hmisc";
+    wp_apply wp_traceSendMessage; try wp_auto;
     iApply "HΦ"; rewrite /own_raft_phys.
 
   Lemma wp_raft__send : wp_raft__send_body.

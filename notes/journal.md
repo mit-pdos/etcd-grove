@@ -2764,3 +2764,21 @@ Both variants were reverted before anything was built on them.
 `newRaft` itself. STATUS items 1 and 2 now say what it needs; item 2 (the
 log's three shapes, and no `committed`/`applied`) is the same kind of fix
 as this session's and should come first.
+
+## 2026-09-23 — The trace hooks own nothing
+
+Follow-up to the previous entry, same branch. The six `traceX` hooks
+(`traceBecome{Follower,Candidate,Leader}`, `traceReceiveMessage`,
+`traceSendMessage`, `traceReplicate`) were still specified on raw pieces:
+five on `own_raft_misc`, `traceReplicate` on the entries slice. Yesterday's
+entry left them alone because moving them onto `own_raft_phys` would have
+cost a re-seal and a reopen at each of their 12 call sites, several inside
+the `Step` helpers. That was the wrong comparison. Their translated bodies
+are `do: #()`, so the honest triple owns nothing:
+`{{{ is_pkg_init raft }}} … {{{ RET #(); True }}}`. They are stated that way
+now, and callers write `wp_apply wp_traceX. try wp_auto.` One small trap:
+`as "_"` fails against a `True` postcondition ("iIntro: nothing to
+introduce"). decisions.md ("Three layers") is amended to match.
+
+Evidence: `.vok` of all 332 election files, make exit 0; module discipline
+and TCB unchanged (10 `Axiom`, 1 `Admitted`).

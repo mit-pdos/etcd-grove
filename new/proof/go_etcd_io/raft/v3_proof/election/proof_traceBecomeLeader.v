@@ -5,8 +5,8 @@ Module TraceBecomeLeaderProof (P : TRACEBECOMELEADER_POSTULATES) : TRACEBECOMELE
   Lemma wp_traceBecomeLeader : wp_traceBecomeLeader_body.
   Proof.
     intros_ambient.
-    intros r rs ro pri.
-   wp_start as "Hm". by iApply "HΦ".
+    intros r.
+    wp_start. by iApply "HΦ".
   Qed.
 
 End TraceBecomeLeaderProof.

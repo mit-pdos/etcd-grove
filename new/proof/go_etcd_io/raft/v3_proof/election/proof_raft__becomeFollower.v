@@ -30,7 +30,7 @@ Import P.
     wp_auto. rewrite Hlok1.
     wp_apply (wp_Logger__logf with "Hlogger1").
     { rewrite /log_methods. set_solver. }
-    wp_apply (wp_traceBecomeFollower with "[$Hmisc1]") as "Hmisc1".
+    wp_apply wp_traceBecomeFollower. try wp_auto.
     iApply "HΦ".
     (* every pure goal is a field of [become_follower] computed, by
        conversion; do not [simpl in *] here -- the struct carries

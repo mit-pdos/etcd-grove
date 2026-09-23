@@ -189,7 +189,7 @@ Implicit Type s : nstate.t.
     assert (Hnlt : ¬ (uint.Z m.(raftpb.Message.Term') < uint.Z rv.(raft.raft.Term')))
       by (rewrite Hterm0 Heq0; lia).
     assert (Hv0 : rv.(raft.raft.Vote') ≠ W64 0) by (rewrite Hvote; exact Hv00).
-    wp_apply (wp_traceReceiveMessage with "[$Hmisc]") as "Hmisc".
+    wp_apply wp_traceReceiveMessage. try wp_auto.
     (* [m.Term ≠ 0], so the first arm of the term preamble is skipped. *)
     assert (bool_decide (m.(raftpb.Message.Term') = W64 0) = false) as Hz
     by by apply bool_decide_eq_false_2.

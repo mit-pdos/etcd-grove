@@ -5,8 +5,8 @@ Module TraceReplicateProof (P : TRACEREPLICATE_POSTULATES) : TRACEREPLICATE.
   Lemma wp_traceReplicate : wp_traceReplicate_body.
   Proof.
     intros_ambient.
-    intros r es ents dq.
-    wp_start as "Hes". by iApply "HΦ".
+    intros r es.
+    wp_start. by iApply "HΦ".
   Qed.
 
 End TraceReplicateProof.

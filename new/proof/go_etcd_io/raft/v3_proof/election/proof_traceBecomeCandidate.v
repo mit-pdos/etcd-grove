@@ -5,8 +5,8 @@ Module TraceBecomeCandidateProof (P : TRACEBECOMECANDIDATE_POSTULATES) : TRACEBE
   Lemma wp_traceBecomeCandidate : wp_traceBecomeCandidate_body.
   Proof.
     intros_ambient.
-    intros r rs ro pri.
-   wp_start as "Hm". by iApply "HΦ".
+    intros r.
+    wp_start. by iApply "HΦ".
   Qed.
 
 End TraceBecomeCandidateProof.
