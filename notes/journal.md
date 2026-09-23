@@ -2992,3 +2992,24 @@ fairly: the table had no header. It is **Rocq declarations** (one per
 statements, proofs excluded** (`rocqscan.py:362`). Every row uses the same
 two units, so `TCB 126` is 43 + 4 + 79 declarations. The summary now prints
 a `decls` / `stmt size` header and a two-line legend under the TCB row.
+
+---
+
+## 2026-09-23 (later still) — "of those, trusted" was the wrong label
+
+Upamanyu asked what "of those, trusted" meant, given that everything in the
+table counts toward the TCB. Right: the row was named after the
+`(* Trusted *)` comment marker, not the TCB sense of trusted. By the
+convention in STATUS.md an `Admitted` means in scope but unfinished, and the
+marker picks out the admissions the development means to keep; all three
+marked declarations are `Admitted`. The row now reads **"admits meant to
+stay — marked (* Trusted *); the other 5 are unfinished"** (whole raft tree:
+3 of 8; election cone: 1 of 1), `--view assumed` tags them "(meant to stay)",
+and the marker's comment no longer claims "everything else is debt", which
+was false of the 35 axioms.
+
+Still true, and still G4: the marker cannot tell a benign modelling
+assumption from `wp_raftLog__slice_at`, whose own header says the triple is
+false at ~2^63 unstable entries. Nor does anything classify the axioms —
+the keyword is supposed to say "outside the protocol", but 12 of the 35 are
+the ghost-state axioms, which are owed work (STATUS next step #4).

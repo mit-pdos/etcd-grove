@@ -121,8 +121,10 @@ HELPERS_RE = re.compile(rf"^proof_(?P<x>.+){re.escape(HELPERS_SUFFIX)}$")
 # text lives, and it is the thing to measure.
 BODY_SUFFIX = "_body"
 
-# A deliberate assumption -- one the development means to keep -- says so in
-# a comment on the same line.  Everything else is debt.
+# An `Admitted` means "in scope but unfinished" (notes/STATUS.md) unless a
+# comment on its line says `Trusted`: an admission the development means to
+# keep.  The name is the marker's, not a claim about the TCB -- every
+# assumption is trusted, marked or not.
 TRUSTED_MARKER = r"\bTrusted\b"
 
 # An assumption whose statement ends in a sort or in `iProp Σ` declares an
@@ -942,7 +944,6 @@ def print_provenance(rep, out):
 def print_summary(rep, out):
     shapes = collections.Counter(r["shape"] for r in rep["assumed"])
     how = collections.Counter(r["how"] for r in rep["assumed"])
-    trusted = sum(1 for r in rep["assumed"] if r["trusted"])
     n_def = len(rep["definitions"])
     def_lines = sum(d["lines"] for d in rep["definitions"])
     assumed_at = {(r["file"], r["line"]) for r in rep["assumed"]}
@@ -979,10 +980,29 @@ def print_summary(rep, out):
     ):
         if shapes[shape]:
             print(f"    {label:<29}{shapes[shape]:>3}", file=out)
-    if trusted:
+    # Everything in this table is trusted; what the `(* Trusted *)` comment
+    # marks is narrower.  By the convention in notes/STATUS.md an `Admitted`
+    # means in scope but unfinished, and the marker picks out the admissions
+    # meant to stay.  Axioms are not classified by it -- the keyword itself
+    # is supposed to say "outside the protocol", which nothing checks.
+    kept = sum(1 for r in rep["assumed"] if r["trusted"] and r["how"] == "Admitted")
+    marked_axioms = sum(
+        1 for r in rep["assumed"] if r["trusted"] and r["how"] != "Admitted"
+    )
+    if how["Admitted"]:
+        rest = how["Admitted"] - kept
         print(
-            "    {:<29}{:>3}   deliberate, marked in a comment".format(
-                "of those, trusted", trusted
+            "    {:<29}{:>3}   marked (* Trusted *); {}".format(
+                "admits meant to stay",
+                kept,
+                f"the other {rest} are unfinished" if rest else "none unfinished",
+            ),
+            file=out,
+        )
+    if marked_axioms:
+        print(
+            "    {:<29}{:>3}   the keyword already says that".format(
+                "axioms marked (* Trusted *)", marked_axioms
             ),
             file=out,
         )
@@ -1144,7 +1164,7 @@ def print_assumed(rep, out):
         if r["go_fns"]:
             what += "  [{}]".format(", ".join(r["go_fns"]))
         if r["trusted"]:
-            what += "  (trusted)"
+            what += "  (meant to stay)"
         where = "{}:{}".format(os.path.relpath(r["file"], rep["scope"]), r["line"])
         print(
             "{:<{w}} {:<9} {:<12} {}".format(

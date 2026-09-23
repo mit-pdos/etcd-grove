@@ -237,8 +237,11 @@ nearly closed. Gap-closing item 2 below is the cheap fix.
 ### G4. An `Admitted` is labelled more benignly than it is
 
 `proof_raftLog__slice.v:283` ends `Admitted. (* Trusted *)` and the tool
-prints it under *"of those, trusted — deliberate, marked in a comment"*,
-alongside the two genuine overflow assumptions at `readonly.v:464,471`.
+counts it among the *"admits meant to stay"*, alongside the two genuine
+overflow assumptions at `readonly.v:464,471`. (Until 2026-09-23 that row read
+*"of those, trusted"*, which was misleading on its own terms: every
+assumption in the table is trusted. The marker only separates admissions
+meant to stay from unfinished ones.)
 
 Two things that hides:
 
