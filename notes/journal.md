@@ -3326,3 +3326,37 @@ downstream of `main`'s `spec_raft__Step.v`/`protocol.v` change that nobody
 re-checked; universe constraints, which `-vok` never checks; and
 `v3_proof/readonly.v`, which `make ci` compiles to `.vo` for the first time
 now that `should_build.v` requires it.
+
+---
+
+## 2026-09-23 — why `sync_proof/rwmutex.v` is slow, and a 26% cut
+
+Asked to diagnose the slow RWMutex proof and speed it up. Baseline: **349 s**
+(vok, one core); no `.timing.sqlite3` anywhere had a row for it. The
+per-sentence (`-time-file`) and Ltac-profile breakdown is in
+[proof-performance.md](proof-performance.md). In short: no single hot spot.
+The cost splits between `word` (15%), `iFrame` (13%), `Qed` (13%) and the
+file's `rwInv*`/`rwStep`/`rwLinearize` macros (26%).
+
+The fixable part was the wp lemmas framing with a bare `iFrame` / `"[$]"`
+while the goal still held the rest of the Go function. Every hypothesis that
+does not fit is unified against the WP through `frame_wp`. Naming the
+hypothesis at the 14 atomic steps, giving `rwStep` an explicit
+specialization pattern, naming `Hstate_inv`/`Hstate2_inv` in
+`rwLinearize*`, and doing `iNext; iExists _, _, _, _, _` before `rwInvEnd`'s
+frame brought the file to **259 s**. Only proof scripts and file-local
+`Ltac`s changed. No statement changed, and no other file uses the macros
+(grep for `rwStep`).
+
+Not fixed: `word` spends ~65% of each call in `eliminate_word_ops`, i.e.
+1,595 rewrite attempts for 18 rewrites on one goal, while `lia` takes 25 ms.
+The fix belongs in `src/Helpers/Word/Automation.v` and would help every file.
+Dead ends worth not repeating are listed in the topic file.
+
+Checked: `rwmutex.v` and its one dependent `rwmutex_guard.v` pass `-vok`.
+A `.vo` check could not run, because its dependency
+`new/golang/theory/chan/au_spec/chan_au_recv.v:360` (and `chan_au_send.v:655`)
+fails with "No applicable tactic" on this toolchain. Those are inherited
+files this work did not touch; the failure is noted in STATUS. Timings on
+this machine drift by about ±12% with load from other agents, so compare
+lemmas you did not edit before believing a small difference.

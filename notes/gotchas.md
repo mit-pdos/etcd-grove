@@ -1538,3 +1538,15 @@ with a type error naming the whole environment. Iris's `done` closes
 `envs_entails Δ True` directly, including when the `True` is under a `match`
 that has just reduced to it (which is how `leader_wit`'s non-leader case
 arrives).
+
+## A bare `iFrame` or `"[$]"` next to a WP goal costs seconds — name the hypothesis
+
+`iFrame` with no arguments tries every hypothesis, and each one that does not
+fit is pushed through `frame_wand` → `frame_fupd` → `frame_wp` and into the
+WP postcondition. That is a unification against the whole rest of the Go
+function, once per hypothesis. In `new/proof/sync_proof/rwmutex.v`,
+`iFrame "HreaderCount_inv"` in place of a bare `iFrame` at an atomic step went
+from **2.1 s to 0.1 s**. The same holds for `iMod (lem with "[$]")` and
+`iMod ("HΦ" with "[$]")`: write `"[$Hwl $Hprot_inv]"`. When framing into
+`▷ ∃ x y z, …`, do `iNext; iExists _, _, _` first. Measurements and method:
+[proof-performance.md](proof-performance.md).

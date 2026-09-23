@@ -293,6 +293,13 @@ errors so far** — so **the merged tree has not been fully checked**. A full
 build is being run elsewhere. The last complete `.vok` of the raft tree was
 before that merge, at `454e0d780`: 336 files, 0 errors.
 
+**A `.vo` build hits an inherited failure.** On 2026-09-23 (`0c225c95a`,
+Rocq 9.4+alpha), `make new/proof/sync_proof/rwmutex_guard.vo` stopped in
+Perennial's own `new/golang/theory/chan/au_spec/chan_au_recv.v:360` and
+`chan_au_send.v:655`: `done` fails with "No applicable tactic". Nobody here
+has edited those files, and no local checkout had built them to `.vo`
+before. Not investigated. If `make ci` goes red there, this is why.
+
 **Checking your work.** `make <file>.vos` is a ~2s loop but **does not check
 proof bodies** — it will accept a script that does not run. Use
 `make <file>.vok` for the real check. Never claim a lemma is proved without
