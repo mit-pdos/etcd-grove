@@ -959,6 +959,12 @@ def print_summary(rep, out):
     )
     print_provenance(rep, out)
     print(file=out)
+    # The two numeric columns, named: without this, "assumed  43  125 lines"
+    # does not say what 43 counts.
+    print(
+        "  {:<29}{:>5}  {:>11}".format("", "decls", "stmt size"),
+        file=out,
+    )
     row(
         "assumed",
         len(rep["assumed"]),
@@ -1010,6 +1016,15 @@ def print_summary(rep, out):
         rep["tcb_lines"],
         "{} of the development".format(pct(rep["tcb_lines"], rep["lines"])),
         out,
+    )
+    print(
+        "  decls = Rocq declarations, one per Axiom, Admitted lemma, Definition,"
+        " Record, ...",
+        file=out,
+    )
+    print(
+        "  stmt size = source lines of those statements, proofs excluded",
+        file=out,
     )
     print(file=out)
     print(

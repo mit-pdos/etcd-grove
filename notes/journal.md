@@ -2980,3 +2980,15 @@ Verified: self-test extended with a leaf file holding a loose triple and a
 root lemma that is the only user of a definition; a mutant that promotes
 every root back to a result fails four of its assertions. Both ruff jobs
 clean; `check-module-discipline --scope election_proof` exits 0.
+
+---
+
+## 2026-09-23 (later) — tcb-report's summary table names its columns
+
+Upamanyu could not tell what the `43` in `assumed  43  125 lines` counted —
+fairly: the table had no header. It is **Rocq declarations** (one per
+`Axiom`, `Admitted` lemma, `Definition`, `Record`, …; the `43` is 35
+`Axiom` + 8 `Admitted`), and the second column is **source lines of those
+statements, proofs excluded** (`rocqscan.py:362`). Every row uses the same
+two units, so `TCB 126` is 43 + 4 + 79 declarations. The summary now prints
+a `decls` / `stmt size` header and a two-line legend under the TCB row.
