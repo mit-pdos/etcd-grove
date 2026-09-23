@@ -3303,3 +3303,26 @@ CONTRIBUTING.md, AGENTS.md, STATUS.md and tcb-accounting.md now passes it.
 
 Not changed, deliberately out of scope: `check-module-discipline.py` has the
 same `DEFAULT_PROOF_ROOT` hardcode (line 75).
+
+---
+
+## 2026-09-23 (late) — merged to main without a finished build
+
+After merging `main` into this branch (`157cb9b14`: the ghost-state
+construction onto the `election_proof/` layout), the build of the merged tree
+was **stopped at Upamanyu's request** — the machine was needed for other
+work — and he is building elsewhere. Where it got to: `.vos` closure clean
+(331 files, including the new `protocol.v` and its `From Perennial Require
+Import NamedProps`); `.vok` 206 of 336 raft files, 0 errors. The rest,
+including most of the `Step` helpers, is unchecked on this tree. STATUS
+says so under "Build state of this tree".
+
+Then pushed to `main` as a fast-forward, and the branches this work used
+deleted: `worktree-tcb-report-audit` (the pre-rebase copy) and
+`worktree-tcb-report-audit-rebased` (now contained in `main`).
+
+**If CI goes red after this push**, the likely places, in order: a file
+downstream of `main`'s `spec_raft__Step.v`/`protocol.v` change that nobody
+re-checked; universe constraints, which `-vok` never checks; and
+`v3_proof/readonly.v`, which `make ci` compiles to `.vo` for the first time
+now that `should_build.v` requires it.

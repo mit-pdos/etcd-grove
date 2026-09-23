@@ -285,6 +285,14 @@ an entry buffer, never the record. It sits on the
 
 ## Working on this
 
+**Build state of this tree.** At the merge that brought the ghost-state
+construction onto the `election_proof/` layout (`157cb9b14`, 2026-09-23):
+the `.vos` closure of `election_proof/election.v` and `v3.v` is clean (331
+files), and `.vok` of the raft tree was **stopped at 206 of 336 files, 0
+errors so far** — so **the merged tree has not been fully checked**. A full
+build is being run elsewhere. The last complete `.vok` of the raft tree was
+before that merge, at `454e0d780`: 336 files, 0 errors.
+
 **Checking your work.** `make <file>.vos` is a ~2s loop but **does not check
 proof bodies** — it will accept a script that does not run. Use
 `make <file>.vok` for the real check. Never claim a lemma is proved without
