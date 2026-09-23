@@ -82,7 +82,7 @@ Implicit Type s : nstate.t.
     split; [recv_elem|];
     replace m_.(raftpb.Message.Term') with s_.(nstate.term) by congruence;
     apply (step_grant_vote cfg id_ (abs_msg mtype.Vote m_) s_);
-      [done|exact to_eq|(rewrite /abs_msg /=; congruence)|exact can].
+      [done|exact to_eq|done|(rewrite /abs_msg /=; congruence)|exact can].
 
   (** Decline: log, then [send] a rejection carrying [r.Term].  Always legal,
       so there is no side condition beyond the message being a [MsgVote]

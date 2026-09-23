@@ -1074,6 +1074,15 @@ into triviality. That is worth having. It is not the result.
    leader, are the likely ones — its real job is keeping that obligation
    alive. (`own_raft_ghost_excl`, by contrast, is used by nothing at all.)
 
+   **Update, 2026-09-22:** the ghost state was then constructed on `main`
+   (`7cb3d419d`), and took exactly the shape this paragraph predicted the
+   uniqueness pair would force — each node's vote history in a ghost map,
+   held to one vote per term (`vote_hist_ok`); `is_message` certifying only
+   a granting `VoteResp`; `is_leader` a quorum of votes — with
+   `own_raft_ghost_alloc` showing it inhabited. The pair are lemmas now, so
+   the corollary no longer keeps an *axiom* alive. It is still their only
+   user, and `own_raft_ghost_excl` is still used by nothing.
+
    Independently of all this, the `Step` proof is not trivial: the ghost
    predicates are opaque, so every branch has to go through
    `own_raft_ghost_step` and prove the code's transition is a `step`. The

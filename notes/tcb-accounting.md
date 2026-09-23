@@ -37,7 +37,7 @@ Keeping the two apart is what makes each one's output mean something:
 | `make` establishes | `tcb-report.py` establishes |
 |---|---|
 | every `Qed` is real — proof bodies typecheck | whether the *statements* say what was meant: the definitions the exported triple is written in terms of, which is the larger half of the TCB |
-| a functor really discharges its signature's `Parameter`s, so an obligation is not an assumption | whether an axiom set has a non-trivial **model** — Rocq will never tell you that `own_raft_ghost := False` satisfies all twelve axioms |
+| a functor really discharges its signature's `Parameter`s, so an obligation is not an assumption | whether a predicate the results rest on is **satisfiable at all** — Rocq will never tell you that `False` satisfies a set of axioms (true of the twelve ghost-state axioms until they were constructed on 2026-09-22), or that a defined predicate has no constructor (true of `own_raft_phys` today) |
 | with an `assumptions.v`, `Print Assumptions` gives the exact transitive set of axioms and admitted lemmas a named theorem rests on, *through* `Notation`s and typeclass instances | **what is not in the build at all** — `make` silently does not check what nothing requires |
 | | whether an `Axiom` is a declared trust-boundary assumption or unfinished work, and whether the scope rule allows it |
 | | which Go function a triple is about, and whether that function exists in `new/code/` (this is `check-module-discipline.py`, sharing the parser) |
@@ -236,6 +236,17 @@ here is narrower: **no output of `tcb-report.py` would lead a reader to
 discover it**, and the scoped run reads as though the development were
 nearly closed. Gap-closing item 2 below is the cheap fix.
 
+**Update, 2026-09-22 — the ghost side is closed; the gap is not.** The
+ghost state was constructed on `main` (`7cb3d419d`): `own_raft_ghost`,
+`is_message` and `is_leader` are definitions, the twelve axioms are lemmas,
+and `own_raft_ghost_alloc` shows the predicate inhabited. So the instance
+above is gone. The same hazard is live one level down: **`own_raft_phys`
+has no constructor** — no `newRaft` spec, no `is_Storage` instance — so
+nothing shows the precondition of `wp_raft__Step` satisfiable, and it has
+been provably `False` once before (`STATUS.md`, "What still needs fixing",
+item 1). And that case is invisible even to plan item 2 as first written,
+which only looks at *axiomatized* predicates; see its update.
+
 ### G4. An `Admitted` is labelled more benignly than it is
 
 `proof_raftLog__slice.v:283` ends `Admitted. (* Trusted *)`, and
@@ -353,11 +364,20 @@ see "What the build was not checking" above. Items 2-4 are unclaimed.
    `Axiom P : … → iProp Σ`, search the tree for a statement whose conclusion
    mentions `P` and whose premises do not — an allocation or initialisation
    lemma. If there is none, print `P` as **"never allocated: every statement
-   that consumes it may be vacuous"**. On today's tree that flags
-   `own_raft_ghost`, `is_leader` and `is_message`. **This is the clearest
-   case of the tool doing something the build structurally cannot**: Rocq
-   will happily check every proof in the development under the model that
-   sends all three to `False`.
+   that consumes it may be vacuous"**. On the tree of 2026-09-21 that
+   flagged `own_raft_ghost`, `is_leader` and `is_message`. **This is the
+   clearest case of the tool doing something the build structurally
+   cannot**: Rocq will happily check every proof in a development whose
+   predicates are all `False`.
+
+   **Extend it to defined predicates** (added 2026-09-23). Since the ghost
+   state was constructed, the axiom-only version flags just the
+   client-supplied `is_Logger`, `own_Storage` and `own_big_Int`, which are
+   meant to be supplied from outside. The live instance is a *definition*:
+   `own_raft_phys`, which no lemma produces from nothing. So the check has
+   to cover every predicate a result's precondition mentions — axiom or
+   definition — and ask the same question of each: does anything allocate
+   it?
 3. **Give admissions a machine-readable marker (G4).** Replace free-text
    `(* Trusted *)` with a one-line grammar the tool parses and
    `check-module-discipline.py` gates, distinguishing at least:
@@ -425,10 +445,10 @@ Quote step 1 and step 2 together, or neither: **"`make` green at `<rev>`;
 text file.
 
 For step 2, quote **the full-tree run**
-(`etc/tcb-report.py --proof-root new/proof/go_etcd_io/raft` with no `--scope`), which on
-`worktree-election-close-admits` says *43 assumed — 8 `Admitted`, 35
-`Axiom` — 80 definitions, 953 lines, 6.2% of the development*, and say in the
-same breath that the numbers are syntactic and that the exported triple
-`wp_raft__Step` rests on an un-constructed ghost state. A `--scope election_proof`
-figure quoted on its own is misleading in three independent ways (G2, G3,
-G4).
+(`etc/tcb-report.py --proof-root new/proof/go_etcd_io/raft` with no
+`--scope`), which after the ghost-state construction says *31 assumed — 8
+`Admitted`, 23 `Axiom` — 86 definitions, a 970-line TCB, 6.1% of the
+development*, and say in the same breath that the numbers are syntactic
+and that `wp_raft__Step`'s precondition rests on `own_raft_phys`, which
+nothing yet shows satisfiable. A `--scope` figure no longer drops the
+scope's dependencies (G2 is fixed), but G3 and G4 still apply to it.

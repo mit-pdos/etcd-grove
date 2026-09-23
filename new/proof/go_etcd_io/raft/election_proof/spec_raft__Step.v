@@ -28,6 +28,11 @@ Definition wp_raft__Step_body :=
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (cfg : gset w64)
     (γ : raft_election_names) (r : loc) (id : w64) (s : nstate.t) (m : raftpb.Message.t),
+  (* The ghost state is about one configuration, and it is this one.  Without
+     this the caller could hand [own_raft_ghost_step] a [cfg] of its own
+     choosing -- a singleton one, say, in which the node is its own quorum --
+     and election safety would not hold.  See [raft_election_names]. *)
+  γ.(re_cfg) = cfg →
   election_msg m →
   (* The node is a voter.  [stepCandidate] needs this outright (its [poll]
      and [becomeLeader] both do) and [spec_stepCandidate_MsgVoteResp.v] says
