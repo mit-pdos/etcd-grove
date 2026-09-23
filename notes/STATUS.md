@@ -114,7 +114,7 @@ The same rule holds for every object the struct points at, and since
 
 ## What is proved
 
-Every Hoare triple on the election path is `Qed` — **209 lemmas**, 78
+Every Hoare triple on the election path is `Qed` — **211 lemmas**, 78
 discharged signatures — except one admission signed off on for now
 (below). **The result is the first of these two**; the second is an
 internal lemma that nothing uses yet — a *root lemma*, in `tcb-report`'s
@@ -257,7 +257,7 @@ known gaps and the plan are in [tcb-accounting.md](tcb-accounting.md).
 8 `Admitted.`**, 3 of the admits signed off on for now and marked
 `(* Trusted *)` — still debt; the goal is no admits. On the election path
 alone: **10 `Axiom` and 1 `Admitted`**; one result, `wp_raft__Step_body`;
-66 definitions, 701 lines; TCB 5.2% of the development by line.
+67 definitions, 719 lines; TCB 5.3% of the development by line.
 
     R=new/proof/go_etcd_io/raft      # required; the tool names no development
     etc/tcb-report.py --proof-root $R                  # summary, and which files are incomplete
@@ -276,7 +276,7 @@ doc comments quote probe lemmas ending in `Admitted.`, and `spec_*.v` files
 are full of `Parameter`s.
 
 The count of axioms is the smaller half. The **definitions** the results
-reach — 66 on the election path, 701 lines — are the rest of it:
+reach — 67 on the election path, 719 lines — are the rest of it:
 `wp_raft__Step` says nothing if `nstate.t`, `nstate_rel`, `pstate.t`,
 `step` or `own_raft_phys` is wrong, and none of those is an axiom.
 
@@ -339,13 +339,12 @@ an entry buffer, never the record. It sits on the
 
 ## Working on this
 
-**Build state of this tree.** At `6071e5f91` (branch
-`raft-phys-one-predicate`: `main`, including the ghost-state construction,
-merged into the one-predicate refactor), `.vok` of every file under
+**Build state of this tree.** On branch `raft-object-predicates`
+(2026-09-23), with the log refactor in: `.vok` of every file under
 `election_proof/` (helpers included) plus `v3_proof/readonly.v` -- 333
-targets -- passes, 0 errors (2026-09-23). On `main` itself, at `157cb9b14`,
-the `.vok` run was stopped at 206 of 336 files, 0 errors; the rest of that
-revision was checked elsewhere.
+targets -- passes, 0 errors. `raft-phys-one-predicate` at `6071e5f91`
+passed the same 333; on `main` at `157cb9b14` the `.vok` run was stopped at
+206 of 336 files, 0 errors, and the rest was checked elsewhere.
 
 **Checking your work.** `make <file>.vos` is a ~2s loop but **does not check
 proof bodies** — it will accept a script that does not run. Use

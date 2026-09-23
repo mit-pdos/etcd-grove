@@ -3465,3 +3465,43 @@ TCB 5.2%.
 Follow-up work (one predicate per *object* -- the tracker, `Progress`,
 `Inflights`, the log, `readOnly`) continues on `raft-object-predicates`,
 branched from this merge.
+
+---
+
+## 2026-09-23 (night, later) — one predicate per object below the raft struct
+
+On `raft-object-predicates`, branched from `raft-phys-one-predicate`.
+Asked "are there other predicates that own the same physical state as
+`own_raft_phys`, or several shapes of one object?" (election path only;
+the readOnly proof is out of scope) -- five, all fixed:
+
+- **Tracker.** `own_raft_phys` held a persistent copy of the progress map's
+  points-to beside the one in `own_tracker`. `own_tracker` is now indexed
+  by the map (`own_tracker cfg tv votes prs`); the copy is gone. The `Visit`
+  closure returns the tracker at the same `prs`. `stepLeader`'s
+  `MsgVoteResp` spec read the copy, so it now takes `s.lent = None` (its
+  caller has `nstate_wf`).
+- **`Progress`/`Inflights`.** `own_progress pr pv iv`, `own_inflights l iv
+  buf` only; `grow`, `reset`, `ResetState` restated on them.
+- **`readOnly`.** `newReadOnly` returns `own_read_only ro` only.
+- **Log.** `own_raftLog l (ls : logstate.t)` -- entry list, `committed`,
+  `applied`, page on loan -- is the one predicate; `_at` names dropped.
+  `own_unstable` for the embedded struct. `own_raft_phys` quantifies `ls`
+  (not in `nstate.t`: decisions.md).
+
+Two commits (`f1ecc4cf3` tracker/Progress/Inflights/readOnly; the log one
+after it), each checked with a full `.vok` sweep: 333 targets, 0 errors.
+Then `raft-phys-one-predicate` merged in for its notes. `tcb-report
+--scope election_proof`: 211 Qed lemmas, 67 definitions / 719 lines, TCB
+5.3%, axioms unchanged (10 + the trusted `wp_raftLog__slice`).
+`check-module-discipline --scope election_proof`: the same 5 notes/warnings.
+
+What bit (gotchas.md, "Working at a record-indexed predicate"): `iNamed`
+does not unfold a plain `∗`-chain definition; a `⊣⊢` unfold lemma used with
+`iDestruct` just unfolded the definition; spec postconditions at
+`logstate.mk …` need `logstate_simpl` before `lia`; and `eq_refl` for a
+state premise needs the state spelled out.
+
+`newRaft` (the original task) is still deferred; `committed`/`applied` now
+survive `lastEntryID`, which was one of its blockers.
+
