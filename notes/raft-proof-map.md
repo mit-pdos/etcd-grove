@@ -21,18 +21,18 @@ new/proof/go_etcd_io/raft/v3.v                   public surface
         ↓
 new/should_build.v:50                            what CI builds
 
-new/proof/go_etcd_io/raft/v3_proof/election_protocol.v   election model
+new/proof/go_etcd_io/raft/election_proof/protocol.v   election model
         ↓
-new/proof/go_etcd_io/raft/v3_proof/election/{defs,inv_*,step_lemmas}.v
+new/proof/go_etcd_io/raft/election_proof/{defs,inv_*,step_lemmas}.v
         ↓        shared vocabulary, outside the module system
-new/proof/go_etcd_io/raft/v3_proof/election/spec_<fn>.v   one per Go function
+new/proof/go_etcd_io/raft/election_proof/spec_<fn>.v   one per Go function
         ↓            ↓ postulates_<fn>.v          ↓ proof_<fn>.v
         ↓                              ↓ proof_<fn>_helpers/*.v (if several)
-new/proof/go_etcd_io/raft/v3_proof/election/link_<fn>.v
+new/proof/go_etcd_io/raft/election_proof/link_<fn>.v
         ↓
-new/proof/go_etcd_io/raft/v3_proof/election.v    aggregator + election safety
+new/proof/go_etcd_io/raft/election_proof/election.v    aggregator + election safety
         ↓
-new/should_build.v:51                            what CI builds
+new/should_build.v:50-52                         what CI builds
 ```
 
 ## `v3_proof/base.v`
@@ -106,18 +106,20 @@ i.e. the caller supplies the atomic update that appends `data` to the log.
 Extending this file to the rest of the `node` interface is the obvious next
 increment.
 
-## `v3_proof/election_protocol.v` — leader election, protocol side
+## `election_proof/protocol.v` — leader election, protocol side
 
 Added 2026-09-12. The protocol state machine: a node state is
 `(term, vote, lead, role, votes)`, the `Inductive step` relation is
 reflexive-transitive by construction, and `Section ghost` (lines 243–289)
 axiomatizes `own_raft_ghost` / `is_message` along with the one refinement
-obligation `own_raft_ghost_step` and the payoff `is_leader_unique`.
+obligation `own_raft_ghost_step` and `is_leader_unique`, which backs the
+election-safety sanity check (not the payoff — see [decisions.md](decisions.md),
+2026-09-21).
 
 The log is deliberately absent from the protocol model — `isUpToDate` can only
 make a node decline to vote, and declining is always protocol-legal.
 
-## `v3_proof/election/` — leader election, implementation side
+## `election_proof/` — leader election, implementation side
 
 Restructured 2026-09-14 from a single 1072-line `election.v` into **one file
 per Go function**, and extended on 2026-09-18 to cover *every* Go function
@@ -125,7 +127,7 @@ the path touches rather than only the thirteen top ones. 192 files, 44
 collections; the shape, and why, is in [decisions.md](decisions.md). To find
 a function's specification there is exactly one place to look:
 
-    v3_proof/election/spec_<fn>.v
+    election_proof/spec_<fn>.v
 
 and `etc/check-module-discipline.py` fails if a triple is anywhere else.
 

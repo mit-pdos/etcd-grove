@@ -43,7 +43,7 @@ There is a tutorial: @new/proof/PERENNIAL_PROOF_TUTORIAL.md, a reference:
 
 **One ownership predicate per object, indexed by an abstract state precise
 enough for every spec.** For the raft struct that is `own_raft_phys r id s`
-with `s : nstate.t` (`new/proof/go_etcd_io/raft/v3_proof/election/defs.v`):
+with `s : nstate.t` (`new/proof/go_etcd_io/raft/election_proof/defs.v`):
 every Go-level WP is stated on it. If a function cannot be specified that
 way, refine `nstate.t` and `own_raft_phys` until it can — do not add a
 variant predicate, a parameterised copy, or a spec on raw pieces of the
@@ -57,6 +57,14 @@ struct. The protocol state the ghost state is about is a separate type
 reachable from `new/should_build.v` is not being built. For a faster inner
 loop use `make vos`, or a targeted `make <file>.required_vos`.
 `CONTRIBUTING.md` has the details, including the `vos`/`vok` tricks.
+
+**Auditing is two separate commands**: `make` first — that is the only thing
+that checks the proofs — and then `etc/tcb-report.py --proof-root
+new/proof/go_etcd_io/raft`, whose entire job is to
+check what the build cannot (that the statements say what was meant, that an
+axiom set is not satisfied trivially, and that nothing is silently outside
+the build). Neither substitutes for the other; see
+`notes/tcb-accounting.md`.
 
 ## Adding tooling
 

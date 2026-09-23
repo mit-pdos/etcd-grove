@@ -720,7 +720,7 @@ Definition own_AckedIndexer (i : interface.t_ok) (acks : gmap w64 w64) I : iProp
     *loaded* array value, which the model gives no step to -- so no proof
     could get past it.  **That defect was fixed on 2026-09-17** (Goose now
     passes the array's address; see
-    [new/proof/go_etcd_io/raft/v3_proof/election/inv_misc.v]'s
+    [new/proof/go_etcd_io/raft/election_proof/inv_misc.v]'s
     [wp_campaign_peer_ids] for the write-up).  This axiom is therefore now
     dischargeable and should be discharged: it is core raft, so under the
     scope rule in notes/STATUS.md it may not be assumed. *)

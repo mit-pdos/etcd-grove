@@ -18,7 +18,7 @@ bypass it — see
 module system". `etc/check-module-discipline.py` checks it:
 
 ```
-etc/check-module-discipline.py --scope election   # clean
+etc/check-module-discipline.py --scope election_proof   # clean
 etc/check-module-discipline.py --summary
 etc/check-module-discipline.py --selftest        # the parsing contract
 ```
@@ -49,12 +49,13 @@ grepping: where the proof is incomplete, and what has to be believed for its
 results to mean anything.
 
 ```
-etc/tcb-report.py                        # summary + the incomplete files
-etc/tcb-report.py --scope election
-etc/tcb-report.py --view assumed         # every axiom and Admitted, classified
-etc/tcb-report.py --view surface         # the exported statements, and what they rest on
-etc/tcb-report.py --view files           # one line per file
-etc/tcb-report.py --format json
+R=new/proof/go_etcd_io/raft          # the development to report on; there is no default
+etc/tcb-report.py --proof-root $R                 # summary + the incomplete files
+etc/tcb-report.py --proof-root $R --scope election_proof
+etc/tcb-report.py --proof-root $R --view assumed  # every axiom and Admitted, classified
+etc/tcb-report.py --proof-root $R --view surface  # results, root lemmas, and what they rest on
+etc/tcb-report.py --proof-root $R --view files    # one line per file
+etc/tcb-report.py --proof-root $R --format json
 etc/tcb-report.py --selftest
 ```
 
@@ -143,8 +144,8 @@ We compile with [rocqc.py](etc/rocqc.py), a Python wrapper around `rocq
 compile`. Every build reports how long each file took, as it finishes:
 
 ```
-ROCQ COMPILE new/proof/go_etcd_io/raft/v3_proof/election/proof_raft__send.v
-ROCQ TIME   418.79s vo  new/proof/go_etcd_io/raft/v3_proof/election/proof_raft__send.v
+ROCQ COMPILE new/proof/go_etcd_io/raft/election_proof/proof_raft__send.v
+ROCQ TIME   418.79s vo  new/proof/go_etcd_io/raft/election_proof/proof_raft__send.v
 ```
 
 The seconds field is fixed-width, so `make ci 2>&1 | tee build.log` and then

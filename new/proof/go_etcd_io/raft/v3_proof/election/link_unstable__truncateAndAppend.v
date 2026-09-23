@@ -1,8 +1,0 @@
-Require Export New.proof.go_etcd_io.raft.v3_proof.election.proof_unstable__truncateAndAppend.
-
-Module UnstableTruncateAndAppendPostulates :
-  UNSTABLE__TRUNCATEANDAPPEND_POSTULATES.
-End UnstableTruncateAndAppendPostulates.
-
-Module UnstableTruncateAndAppend :=
-  UnstableTruncateAndAppendProof UnstableTruncateAndAppendPostulates.

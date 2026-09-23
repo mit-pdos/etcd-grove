@@ -1,6 +1,6 @@
 # Status
 
-**Last updated:** 2026-09-22
+**Last updated:** 2026-09-23
 
 This file is a snapshot of where the proof *is*. It carries no history: how
 something got this way is in [journal.md](journal.md), why a design was
@@ -26,29 +26,37 @@ forks, both on branch `goose`, wired up in `new/etc/update-goose-new.py` and
 
 ### The raft proof
 
-`new/proof/go_etcd_io/raft/` — reached from `new/should_build.v`, so
-`make ci` builds it.
+`new/proof/go_etcd_io/raft/` holds two developments side by side, both
+reached from `new/should_build.v`: the election proof in `election_proof/`,
+and the older read-index work in `v3_proof/`. They share only `base.v`.
+(The election work moved out of `v3_proof/election/` on 2026-09-22; see
+[decisions.md](decisions.md).)
 
 - `v3_proof/base.v` — `IsPkgInit` instances for the raft package and its
   dependencies. Boilerplate; grows as new packages are pulled in.
-- `v3_proof/election_protocol.v` — the **protocol model**: the protocol
-  node state `pstate.t`, the transition relation `step`, the ghost state
-  (`own_raft_ghost`, `is_message`, `is_vote`, `is_leader`) and the payoff
-  `is_leader_unique`. The ghost state is constructed, not axiomatized:
+- `election_proof/protocol.v` — the **protocol model**: the protocol node
+  state `pstate.t`, the transition relation `step`, the ghost state
+  (`own_raft_ghost`, `is_message`, `is_vote`, `is_leader`) and
+  `is_leader_unique`, the at-most-one-leader-per-term fact the model exists
+  to supply — an internal lemma, not the result (see "What is proved"). The ghost state is constructed, not axiomatized:
   per-node `ghost_map`s of `term ↦ candidate`, no Iris invariant, `is_leader`
   a quorum of votes, and `own_raft_ghost_alloc` to show it is inhabited.
   **No `Axiom`, no `Admitted`.**
-- `v3_proof/election/` (~190 files) and `v3_proof/election.v` — the
-  **implementation side**. One Go function per collection of four files:
+- `election_proof/` (332 files, flat) and `election_proof/election.v` —
+  the **implementation side**. One Go function per collection of four files:
   `spec_<fn>.v` (a `Module Type` with exactly one `Parameter`, the single
   place its Hoare triple is written), `postulates_<fn>.v`, `proof_<fn>.v` (a
   functor ascribed to the signature) and `link_<fn>.v`. **78 collections.**
   Shared predicates live in `defs.v`, `inv_*.v` and `step_lemmas.v`, outside
   the module system. A function whose proof needs several files gets a
-  `proof_<fn>_helpers/` directory (only `raft__Step` today, with eight).
+  `proof_<fn>_helpers/` directory (two today: `raft__Step`, with eight,
+  and `MajorityConfig__VoteResult`).
   `election.v` is an aggregator plus `raft_election_safety`.
 - `v3_proof/readonly.v` — the read-index/heartbeat protocol development.
-  **Not on the election path**; nothing under `election/` requires it.
+  **Not on the election path**; nothing under `election_proof/` requires it.
+  Until 2026-09-22 *nothing at all* required it, so `make ci` had never
+  compiled it; `should_build.v:51` now requires it as a stopgap pending a
+  clean-up of the old proofs. It checks (`-vok` clean).
 - `v3_proof/protocol.v` — an axiomatized node-level interface (`is_node`,
   `node.Ready`, `node.Advance`, `node.Propose`). **Not on the election path.**
 
@@ -58,7 +66,7 @@ Go function a spec really specifies, and errors on a triple outside the
 spec/proof shape, two triples for one function, a malformed spec file, an
 incomplete collection, or a name absent from `new/code/`.
 
-    etc/check-module-discipline.py --scope election   # 5 findings, all notes/warnings
+    etc/check-module-discipline.py --scope election_proof   # 5 findings, all notes/warnings
     etc/check-module-discipline.py --summary
     etc/check-module-discipline.py --selftest
 
@@ -76,12 +84,12 @@ including a leasing protocol proof), `pkg/v3`, `api/v3` protobuf packages and
 The proof is a refinement in three layers, each with its own state type
 (notes/decisions.md, "Three layers", 2026-09-22):
 
-1. **Go code and heap → `nstate.t`** (`election/defs.v`), by
-   `own_raft_phys r id s` (`election/inv_raft_phys.v`). Every Go-level spec
+1. **Go code and heap → `nstate.t`** (`election_proof/defs.v`), by
+   `own_raft_phys r id s` (`election_proof/inv_raft_phys.v`). Every Go-level spec
    is a pre/postcondition on it. `nstate.t` carries the six protocol fields
    plus `stepfn` (`r.step`), `progress` (the progress map), `log`
    (`r.raftLog`) and `lent` (tracker and log on loan to the caller).
-2. **`nstate.t` → `pstate.t`** (`election_protocol.v`), by `nstate_rel`
+2. **`nstate.t` → `pstate.t`** (`election_proof/protocol.v`), by `nstate_rel`
    (`defs.v`). Only `Step`'s spec mentions both.
 3. **`pstate.t` → protocol properties**: `own_raft_ghost`, `step`,
    `raft_election_safety`.
@@ -97,11 +105,14 @@ the log takes `s.(nstate.lent) = None`; `hup`, the `Step` helpers and
 
 ## What is proved
 
-Every Hoare triple on the election path is `Qed` — **174 lemmas**, 78
-discharged signatures — except one deliberate, marked admission (below).
-The top of the development is:
+Every Hoare triple on the election path is `Qed` — **169 lemmas**, 78
+discharged signatures — except one admission signed off on for now
+(below). **The result is the first of these two**; the second is an
+internal lemma that nothing uses yet — a *root lemma*, in `tcb-report`'s
+terms (decisions.md, 2026-09-21: what this development is for is verified
+specs of Go functions):
 
-- **`Step.wp_raft__Step`** (`election/spec_raft__Step.v`): running `Step` on
+- **`Step.wp_raft__Step`** (`election_proof/spec_raft__Step.v`): running `Step` on
   an election message takes `own_raft_phys` from a physical state `s` with
   `nstate_rel s ps` to some `s'` with `nstate_rel s' ps'`, and moves
   `own_raft_ghost` from `ps` to `ps'` at the same time, with
@@ -209,14 +220,17 @@ say so in the journal.
    ownership story (`own_raft`), `Admitted` with postcondition `True` and no
    users. Resolving it means deciding whether `own_raft` or `own_raft_phys`
    survives.
-8. **Decide the top-level Raft correctness statement** beyond election
-   safety, and write it down as a decision record.
+8. ~~Decide the top-level Raft correctness statement~~ — **decided
+   2026-09-21** ([decisions.md](decisions.md)): the result is verified specs
+   for the top-level Go functions, and protocol facts such as election
+   safety are internal lemmas in their service. What is left of this is
+   items 4 and 9.
 9. **Discharge `protocol.v`'s `Section axioms`** against the translated code,
    or record why each stays an axiom. Then extend past `Propose` to the rest
    of the `node` interface.
 10. Two stale comments, both misleading to an auditor: `election.v:20-23` says
    the `inv_*.v` files hold the log and tracker as `Axiom`s (they are
-   definitions), and `election_protocol.v:50-53` motivates including
+   definitions), and `election_proof/protocol.v:55-58` motivates including
    `App`/`Heartbeat` in the model by the higher-term step-down — true of the
    code, but under the scope above that transition is never received, so the
    rule refines nothing and a reader could take it for a discharged
@@ -224,24 +238,37 @@ say so in the journal.
 
 ## Trust base
 
-`etc/tcb-report.py` over the whole raft proof: **31 assumed — 23 `Axiom` and
-8 `Admitted.`**, 3 of the admits deliberate and marked `(* Trusted *)`. On
-the election path alone: **10 `Axiom` and 1 `Admitted`**, against 174 `Qed`
-lemmas and 78 discharged signatures — 4.0% of the development by line.
+**An audit is two commands, and neither substitutes for the other**:
+`make` first — the only thing that checks proofs — then `etc/tcb-report.py`,
+whose whole job is what the build cannot check. What each establishes, the
+known gaps and the plan are in [tcb-accounting.md](tcb-accounting.md).
 
-    etc/tcb-report.py                    # summary, and which files are incomplete
-    etc/tcb-report.py --scope election
-    etc/tcb-report.py --view assumed     # every axiom and admit, classified
-    etc/tcb-report.py --view surface     # what the exported statements rest on
+`etc/tcb-report.py` over the whole raft proof: **31 assumed — 23 `Axiom` and
+8 `Admitted.`**, 3 of the admits signed off on for now and marked
+`(* Trusted *)` — still debt; the goal is no admits. On the election path
+alone: **10 `Axiom` and 1 `Admitted`**; one result, `wp_raft__Step_body`;
+60 definitions, 658 lines; TCB 4.9% of the development by line.
+
+    R=new/proof/go_etcd_io/raft      # required; the tool names no development
+    etc/tcb-report.py --proof-root $R                  # summary, and which files are incomplete
+    etc/tcb-report.py --proof-root $R --scope election_proof   # the cone the build reaches
+    etc/tcb-report.py --proof-root $R --view assumed   # every axiom and admit, classified
+    etc/tcb-report.py --proof-root $R --view surface   # results, root lemmas, what they rest on
+
+It reports **results** (Go-function Hoare triples nothing else calls)
+separately from **root lemmas** (stated facts nothing uses yet, such as
+`raft_election_safety` — not results, not counted), splits the assumed
+into *Hoare triples about Go code / undefined declarations / other*, and
+lists any file under the proof root that the build does not reach.
 
 **Do not count these by hand, and do not grep for them.** A grep over-counts:
 doc comments quote probe lemmas ending in `Admitted.`, and `spec_*.v` files
 are full of `Parameter`s.
 
-The count of axioms is the smaller half. The **definitions** the exported
-statements reach — 44 on the election path, 471 lines — are the rest of it:
-`raft_election_safety` says nothing if `pstate.t`, `step`, `nstate_rel` or `own_raft_phys`
-is wrong, and none of those is an axiom.
+The count of axioms is the smaller half. The **definitions** the results
+reach — 60 on the election path, 658 lines — are the rest of it:
+`wp_raft__Step` says nothing if `nstate.t`, `nstate_rel`, `pstate.t`,
+`step` or `own_raft_phys` is wrong, and none of those is an axiom.
 
 ### What the keywords mean
 
@@ -274,7 +301,7 @@ decision, so none can hide an election-safety bug.
 | `wp_slices_Sort` | `proof_slices_Sort.v` | not translated. Permutation-only postcondition |
 | `wp_Entry__Size` | `proof_Entry__Size.v` | protobuf-generated `raftpb` code. The one a reader may want to argue about: a library in spirit, core raft in location |
 
-### The deliberate admission
+### The admission signed off on for now
 
 `proof_raftLog__slice.v` ends `Admitted. (* Trusted *)` for one arithmetic
 side condition, `|ents| + |unstable| < 2^63` at the `extend` call: Go computes
@@ -301,6 +328,14 @@ an entry buffer, never the record. It sits on the
   Perennial, which nothing in this tree has.
 
 ## Working on this
+
+**Build state of this tree.** At the merge that brought the ghost-state
+construction onto the `election_proof/` layout (`157cb9b14`, 2026-09-23):
+the `.vos` closure of `election_proof/election.v` and `v3.v` is clean (331
+files), and `.vok` of the raft tree was **stopped at 206 of 336 files, 0
+errors so far** — so **the merged tree has not been fully checked**. A full
+build is being run elsewhere. The last complete `.vok` of the raft tree was
+before that merge, at `454e0d780`: 336 files, 0 errors.
 
 **Checking your work.** `make <file>.vos` is a ~2s loop but **does not check
 proof bodies** — it will accept a script that does not run. Use
@@ -330,14 +365,17 @@ do not share a session table or a memory budget, only the machine.
 `--allow-stale`. See [gotchas.md](gotchas.md).
 
 For a file low in the dependency graph, `make <file>.vok` can beat rocq-warm
-outright — `election_protocol.v` sits directly on `proof_prelude` and checks
+outright — `election_proof/protocol.v` sits directly on `proof_prelude` and checks
 in 3–5s.
 
 **On a machine with no Rocq**, budget ~1.5h before you can check anything:
 `opam switch create perennial 5.2.1`, `opam pin add -n .`,
 `opam install --deps-only ./perennial.opam` (→ Rocq 9.4+alpha), then
-`make -j8 TIMED=false new/proof/go_etcd_io/raft/v3_proof/election.required_vos`
-for the `vos` closure.
+`make -j8 TIMED=false new/proof/go_etcd_io/raft/election_proof/election.required_vos`
+for the `vos` closure. **Check `opam switch list` first**: on the machine
+this repo is usually worked on, Rocq is installed in the `perennial` switch
+but not on a fresh shell's `PATH` — `eval "$(opam env --switch=perennial
+--set-switch)"` (gotchas.md).
 
 **Memory.** `proof_raft__Step.v` and its helpers are the expensive part of
 the tree; four at once peak around 8 GB, so `-j4` is the most a 15 GB box

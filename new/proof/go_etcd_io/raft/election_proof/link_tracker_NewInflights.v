@@ -1,0 +1,6 @@
+Require Export New.proof.go_etcd_io.raft.election_proof.proof_tracker_NewInflights.
+
+Module TrackerNewInflightsPostulates : TRACKER_NEWINFLIGHTS_POSTULATES.
+End TrackerNewInflightsPostulates.
+
+Module TrackerNewInflights := TrackerNewInflightsProof TrackerNewInflightsPostulates.

@@ -37,7 +37,7 @@ with --proof-root.
 Usage::
 
     etc/check-module-discipline.py                    # the default proof root
-    etc/check-module-discipline.py --scope election   # one directory of it
+    etc/check-module-discipline.py --scope election_proof   # one directory of it
     etc/check-module-discipline.py --summary
     etc/check-module-discipline.py --format json
     etc/check-module-discipline.py --selftest         # the parsing contract

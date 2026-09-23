@@ -249,8 +249,8 @@ def is_exported(go_fn):
 
     The last component is the function or method name.  This is about the
     *name*: a method of an unexported type is reported exported, because the
-    method is what a wrapper in the same package re-exports, which is how
-    ``raft.raft.Step`` is reached from outside.
+    method is what a wrapper in the same package re-exports, which is how a
+    method such as ``pkg.t.Step`` is reached from outside.
     """
     last = go_fn.split(".")[-1]
     return bool(last) and last[0].isupper()
@@ -386,26 +386,26 @@ SELFTEST_TRIPLES = [
     # a pointer-receiver method
     (
         (
-            '{{{ is_pkg_init raft }}} r @! (go.PointerType raft.raft) @! "poll" #from'
+            '{{{ is_pkg_init pkg }}} r @! (go.PointerType pkg.t) @! "run" #x'
             " {{{ RET #(); True }}}"
         ),
-        ["raft.raft.poll"],
+        ["pkg.t.run"],
         False,
     ),
     # a receiver expression that is itself a chain of field refs
     (
         (
-            '{{{ True }}} (trk.[tracker.ProgressTracker.t, "Config"]'
-            '.[tracker.Config.t, "Voters"]) @! (go.PointerType quorum.JointConfig)'
+            '{{{ True }}} (s.[a.Outer.t, "In"]'
+            '.[a.Inner.t, "Set"]) @! (go.PointerType b.Group)'
             ' @! "IDs" #() {{{ RET #(); True }}}'
         ),
-        ["quorum.JointConfig.IDs"],
+        ["b.Group.IDs"],
         False,
     ),
     # a package-level function
     (
-        "{{{ True }}} @! raft.traceSendMessage #r #mp {{{ RET #(); True }}}",
-        ["raft.traceSendMessage"],
+        "{{{ True }}} @! pkg.traceEvent #r #e {{{ RET #(); True }}}",
+        ["pkg.traceEvent"],
         False,
     ),
     # an untranslated function reached through the semantics
@@ -419,10 +419,7 @@ SELFTEST_TRIPLES = [
     ),
     # a predeclared builtin is not a Go function of the program
     (
-        (
-            "{{{ True }}} #(functions go.len [tracker.ProgressMap]) #mref"
-            " {{{ RET #(W64 0); True }}}"
-        ),
+        ("{{{ True }}} #(functions go.len [a.Map]) #mref {{{ RET #(W64 0); True }}}"),
         [],
         False,
     ),
@@ -430,7 +427,7 @@ SELFTEST_TRIPLES = [
     # specification of a Go function under verification
     (
         (
-            "{{{ is_Logger l }}} #(methods l.(interface.ty) meth l.(interface.v))"
+            "{{{ is_I l }}} #(methods l.(interface.ty) meth l.(interface.v))"
             " #format {{{ RET #(); True }}}"
         ),
         [],
@@ -439,8 +436,8 @@ SELFTEST_TRIPLES = [
     # a model-level map operation is neither
     (
         (
-            "{{{ own_tracker cfg tv votes }}} map.lookup1 go.uint64"
-            " (go.PointerType tracker.Progress) #m #i {{{ RET #pr; True }}}"
+            "{{{ own_table tbl }}} map.lookup1 go.uint64"
+            " (go.PointerType a.Entry) #m #i {{{ RET #e; True }}}"
         ),
         [],
         False,
@@ -451,30 +448,30 @@ SELFTEST_SOURCE = """\
 Require Export New.proof.a.b.
 From New.proof Require Import c d.
 
-Module role.
-Inductive t := Follower | Candidate | Leader.
-End role.
+Module color.
+Inductive t := Red | Green | Blue.
+End color.
 
 Module msg.
 Record t := mk { ty : mtype.t ; from : w64 }.
 End msg.
 
-Module Type POLL.
-  Parameter wp_poll : wp_poll_body.
-End POLL.
+Module Type F.
+  Parameter wp_f : wp_f_body.
+End F.
 
-Module PollProof (P : POLL_POSTULATES) : POLL.
-  Axiom wp_poll : wp_poll_body.
-End PollProof.
+Module FProof (P : F_POSTULATES) : F.
+  Axiom wp_f : wp_f_body.
+End FProof.
 
-Module Poll := PollProof PollPostulates.
+Module FInst := FProof FPostulates.
 
 Section proof.
 Lemma closed : P.
 Proof. exact I. Qed.
 Lemma open : Q.
 Proof. (* Admitted. is quoted here *) idtac. Admitted. (* Trusted *)
-Definition d := role.Leader.
+Definition d := color.Blue.
 End proof.
 """
 
@@ -506,7 +503,7 @@ def selftest():
     if "x" in out or "y" in out or "z" in out:
         bad.append(f"strip_comments left comment text: {out!r}")
 
-    if is_exported("raft.raft.Step") is not True or is_exported("raft.raft.poll"):
+    if is_exported("pkg.t.Step") is not True or is_exported("pkg.t.run"):
         bad.append("is_exported")
 
     if requires(SELFTEST_SOURCE) != ["New.proof.a.b", "New.proof.c", "New.proof.d"]:
@@ -517,16 +514,16 @@ def selftest():
     by_kind = {(d.kind, d.name): d for d in scanned}
     checks = [
         # the module path, and Section not being part of it
-        (by_kind[("Inductive", "t")].modpath == ("role",), "module path"),
+        (by_kind[("Inductive", "t")].modpath == ("color",), "module path"),
         (by_kind[("Record", "t")].modpath == ("msg",), "module path (second)"),
         # a Parameter in a signature is an obligation, not an assumption
         (
-            by_kind[("Parameter", "wp_poll")].in_module_type is True,
+            by_kind[("Parameter", "wp_f")].in_module_type is True,
             "Parameter in Module Type",
         ),
         # ... but the Axiom discharging it inside the functor is one
-        (by_kind[("Axiom", "wp_poll")].in_module_type is False, "Axiom in functor"),
-        # an instantiation opens no block, so `d` is not inside `Poll`
+        (by_kind[("Axiom", "wp_f")].in_module_type is False, "Axiom in functor"),
+        # an instantiation opens no block, so `d` is not inside `FInst`
         (decls["d"].modpath == (), "instantiation does not nest"),
         (decls["closed"].ended == "Qed", "Qed detected"),
         # a name used only in a proof script is a use, and is kept apart
@@ -546,8 +543,8 @@ def selftest():
             bad.append("scan_file: " + what)
 
     # A Record's fields and an Inductive's constructors come with the type.
-    ctors = sub_names("Inductive", " := Follower | Candidate | Leader.")
-    if ctors != ["Candidate", "Follower", "Leader"]:
+    ctors = sub_names("Inductive", " := Red | Green | Blue.")
+    if ctors != ["Blue", "Green", "Red"]:
         bad.append(f"sub_names ctors: {ctors}")
     fields = sub_names("Record", " := mk { ty : mtype.t ; from : w64 }.")
     if fields != ["from", "ty"]:

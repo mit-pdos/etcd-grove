@@ -1,0 +1,6 @@
+Require Export New.proof.go_etcd_io.raft.election_proof.proof_raftLog__hasNextOrInProgressSnapshot.
+
+Module RaftLogHasNextOrInProgressSnapshotPostulates : RAFTLOG__HASNEXTORINPROGRESSSNAPSHOT_POSTULATES.
+End RaftLogHasNextOrInProgressSnapshotPostulates.
+
+Module RaftLogHasNextOrInProgressSnapshot := RaftLogHasNextOrInProgressSnapshotProof RaftLogHasNextOrInProgressSnapshotPostulates.

@@ -1,0 +1,4 @@
+Require Export New.proof.go_etcd_io.raft.election_proof.spec_raftLog__hasNextOrInProgressSnapshot.
+
+Module Type RAFTLOG__HASNEXTORINPROGRESSSNAPSHOT_POSTULATES.
+End RAFTLOG__HASNEXTORINPROGRESSSNAPSHOT_POSTULATES.

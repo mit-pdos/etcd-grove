@@ -1,4 +1,0 @@
-Require Export New.proof.go_etcd_io.raft.v3_proof.election.spec_unstable__mustCheckOutOfBounds.
-
-Module Type UNSTABLE__MUSTCHECKOUTOFBOUNDS_POSTULATES.
-End UNSTABLE__MUSTCHECKOUTOFBOUNDS_POSTULATES.

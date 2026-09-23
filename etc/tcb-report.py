@@ -20,8 +20,11 @@ What counts as the TCB here, and why:
     ends in ``Admitted``.  Believed without proof, so believed.
   * **results** -- the statements of the things the development exports: a
     Hoare triple for a Go function that nothing else in the development
-    calls, and a theorem in a file that nothing else requires.  A reader has
-    to read these to know what was proved.
+    calls.  A reader has to read these to know what was proved.  Only
+    triples qualify, because the development exists to verify code
+    (notes/decisions.md, 2026-09-21): a lemma that nothing uses is a **root
+    lemma**, an internal protocol fact waiting for a spec to need it, and is
+    listed separately -- not a result, and not counted.
   * **definitions** -- everything those statements are written in terms of,
     transitively.  The abstract state machine, the ghost-state predicates,
     the refinement relation.  A wrong definition here makes a true theorem
@@ -42,23 +45,28 @@ And what does *not* count, which is the other half of the point:
 
 Usage::
 
-    etc/tcb-report.py                        # summary + what is incomplete
-    etc/tcb-report.py --scope election       # one directory of it
-    etc/tcb-report.py --view files           # every file's status
-    etc/tcb-report.py --view assumed         # every axiom and admit
-    etc/tcb-report.py --view surface         # the exported statements
-    etc/tcb-report.py --view all
-    etc/tcb-report.py --format json
+    etc/tcb-report.py --proof-root DIR               # summary + what is incomplete
+    etc/tcb-report.py --proof-root DIR --scope SUB   # what the build reaches from SUB
+    etc/tcb-report.py --proof-root DIR --view files  # every file's status
+    etc/tcb-report.py --proof-root DIR --view assumed   # every axiom and admit
+    etc/tcb-report.py --proof-root DIR --view surface   # results, root lemmas, defs
+    etc/tcb-report.py --proof-root DIR --view all
+    etc/tcb-report.py --proof-root DIR --format json
     etc/tcb-report.py --selftest
+
+``DIR`` is the development to report on, relative to ``--root``.  There is
+no default: which development to look at is the caller's choice, not the
+tool's.
 
 Always exits 0: this is a viewer, not a gate.  ``etc/check-module-discipline.py``
 is the gate, and the two share their parser (``etc/rocqscan.py``).
 
-Nothing here knows any particular package, function or file name.  It does
-know the *conventions* named in the constants below -- the collection layout,
-Perennial's triple notation, Goose's rendering of a call -- so
-``--proof-root`` aims it at another development that shares them, and it
-degrades to the file-status half for one that does not.
+Nothing here knows any particular development, package, function or file
+name.  It does know the *conventions* named in the constants below -- the
+collection layout, Perennial's triple notation, Goose's rendering of a call,
+this repository's build root -- so ``--proof-root`` aims it at any
+development that shares them, and it degrades to the file-status half for
+one that does not.
 
 How much to believe it
 ----------------------
@@ -100,9 +108,6 @@ from rocqscan import (
 # --------------------------------------------------------------------------
 # Defaults and conventions.
 
-# The development to look at.  Any tree of .v files will do.
-DEFAULT_PROOF_ROOT = "new/proof/go_etcd_io/raft"
-
 # The file kinds of a spec/postulates/proof/link collection, as
 # etc/check-module-discipline.py defines them.  Used for two things: to tell
 # an internal function's spec from an exported one (a collection nothing else
@@ -118,14 +123,18 @@ HELPERS_RE = re.compile(rf"^proof_(?P<x>.+){re.escape(HELPERS_SUFFIX)}$")
 # text lives, and it is the thing to measure.
 BODY_SUFFIX = "_body"
 
-# A deliberate assumption -- one the development means to keep -- says so in
-# a comment on the same line.  Everything else is debt.
+# A comment on an `Admitted` line saying `Trusted` means the admission has
+# been signed off on *for now*.  It is still debt -- the goal is no admits --
+# and the name is the marker's, not a claim about the TCB: every assumption
+# is trusted, marked or not.
 TRUSTED_MARKER = r"\bTrusted\b"
 
-# An assumption whose statement ends in a sort or in `iProp Σ` declares an
-# opaque constant rather than asserting anything: `Axiom own_raft_ghost : ∀ γ
-# id s, iProp Σ.` introduces a predicate you cannot see, which is a different
-# (and milder) thing to trust than a claim that could be false.
+# An assumption whose statement ends in a sort or in `iProp Σ` is an
+# undefined declaration: `Axiom own_state : ∀ γ s, iProp Σ.` names a
+# predicate and gives it no definition.  Alone it asserts nothing and cannot
+# be false; what it means is fixed only by the other axioms about it, and
+# because nobody can see inside it, those may be satisfiable trivially --
+# for instance by defining it as `False`.
 DECLARATION_TAIL_RE = re.compile(r"(?:Type|Set|Prop|iProp\s+\S+|iProp)\s*\.?\s*$")
 
 
@@ -168,15 +177,72 @@ def load(proof_root, root):
     return units
 
 
-def require_graph(units):
+ROCQPROJECT = "_RocqProject"
+LOADPATH_RE = re.compile(
+    r"^\s*-[QR]\s+(?P<dir>\S+)\s+(?P<logical>\S+)\s*$", re.MULTILINE
+)
+
+
+def logical_roots(root):
+    """[(logical prefix, directory)] from `_RocqProject`, longest first.
+
+    This is how Rocq itself turns `Lib.code.pkg.m` into a file, and the only
+    way to do it right: the tail-matching fallback below cannot tell that
+    logical path from `Lib.proof.pkg.m`, since they agree on their last two
+    components.  Getting that wrong invents an edge from any file that
+    requires the one to the other, which is how a dependency cone comes to
+    contain half a development.
+    """
+    path = os.path.join(root, ROCQPROJECT)
+    if not os.path.isfile(path):
+        return []
+    with open(path, encoding="utf-8", errors="replace") as f:
+        text = f.read()
+    roots = []
+    for m in LOADPATH_RE.finditer(text):
+        logical = m.group("logical")
+        prefix = () if logical in ('""', "''") else tuple(logical.split("."))
+        roots.append((prefix, os.path.join(root, m.group("dir"))))
+    roots.sort(key=lambda r: -len(r[0]))
+    return roots
+
+
+def resolve_logical(name, roots):
+    """The `.v` file a logical path names, or None."""
+    parts = name.split(".")
+    for prefix, directory in roots:
+        n = len(prefix)
+        if tuple(parts[:n]) == prefix and len(parts) > n:
+            cand = os.path.join(directory, *parts[n:]) + ".v"
+            if os.path.isfile(cand):
+                return os.path.normpath(cand)
+    return None
+
+
+def require_graph(units, roots=None):
     """path -> set of paths it requires, resolved by longest path suffix.
 
-    A logical path (``New.proof.go_etcd_io.raft.v3_proof.election.defs``)
-    and a file path (``new/proof/go_etcd_io/raft/v3_proof/election/defs.v``)
+    A logical path (``Lib.proof.pkg.defs``) and a file path
+    (``lib/proof/pkg/defs.v``)
     agree on their tail and disagree on their head, since the logical root is
     declared in _RocqProject rather than in the source.  Matching on the
-    longest common tail needs neither.
+    longest common tail needs neither.  It also cannot tell two logical
+    roots apart, so `roots` -- from `_RocqProject` -- is used instead when
+    it is available, and the tail match is the fallback for a tree that has
+    no such file.
     """
+    tracked = {os.path.normpath(u.path) for u in units}
+    if roots:
+        edges = collections.defaultdict(set)
+        for u in units:
+            with open(u.path, encoding="utf-8", errors="replace") as f:
+                text = strip_comments(f.read())
+            for req in requires(text):
+                hit = resolve_logical(req, roots)
+                if hit and hit in tracked and hit != os.path.normpath(u.path):
+                    edges[os.path.normpath(u.path)].add(hit)
+        return edges
+
     by_tail = collections.defaultdict(list)
     for u in units:
         for k in range(1, len(u.logpath) + 1):
@@ -194,6 +260,143 @@ def require_graph(units):
                         edges[u.path].add(hits[0].path)
                     break
     return edges
+
+
+# --------------------------------------------------------------------------
+# What the build compiles.
+#
+# The set of files this tool looks at should be the set `make` compiles, or
+# the two disagree and neither number means anything: a file on disk that
+# nothing requires is never checked by Rocq but is still counted here, and a
+# scoped report that stops at a directory drops the assumptions its own
+# files rest on.  See notes/tcb-accounting.md, G2 and G6.
+#
+# `make` expands its prerequisites from `.rocqdeps.d`, which is `rocq dep`
+# output (Makefile:47-53, and `%.vo: %.v _RocqProject | .rocqdeps.d` at 64).
+# Reading that file is therefore the build's own answer.  Parsing `Require`
+# lines instead is a second implementation of the same thing, and a second
+# implementation is how the two sets drift apart again -- so it is only the
+# fallback, and the report says which one it used.
+
+DEFAULT_BUILD_ROOT = "new/should_build.v"
+ROCQDEPS = ".rocqdeps.d"
+
+# `rocq dep` names the same file through several artefact suffixes; they all
+# collapse to one node.  Longest first, so `.required_vos` is not read as
+# `.vos`.
+ARTIFACT_SUFFIXES = (
+    ".required_vos",
+    ".required_vo",
+    ".v.beautified",
+    ".glob",
+    ".vos",
+    ".vok",
+    ".vio",
+    ".vo",
+    ".v",
+)
+
+
+def _stem(token):
+    """The `.v` file a `rocq dep` token names, or None if it names no file."""
+    for suffix in ARTIFACT_SUFFIXES:
+        if token.endswith(suffix):
+            return token[: -len(suffix)] + ".v"
+    return None
+
+
+def parse_rocqdeps(path, root):
+    """{.v path -> set of .v paths it depends on}, from `rocq dep` output.
+
+    The lines are make rules, `a.vo a.glob …: a.v b.vo c.vo`, possibly
+    continued with a trailing backslash.  A file depending on itself (every
+    rule lists its own `.v` as a prerequisite) is dropped.
+    """
+    with open(path, encoding="utf-8", errors="replace") as f:
+        text = f.read().replace("\\\n", " ")
+    graph = collections.defaultdict(set)
+    for line in text.split("\n"):
+        if ":" not in line:
+            continue
+        lhs, rhs = line.split(":", 1)
+        targets = {s for s in (_stem(t) for t in lhs.split()) if s}
+        prereqs = {s for s in (_stem(t) for t in rhs.split()) if s}
+        for t in targets:
+            tp = os.path.normpath(os.path.join(root, t))
+            for p in prereqs:
+                pp = os.path.normpath(os.path.join(root, p))
+                if pp != tp:
+                    graph[tp].add(pp)
+    return graph
+
+
+def source_dep_graph(units, extra, roots=None):
+    """Fallback dependency graph, from `Require` lines.
+
+    Restricted to the scanned units plus the build root, which is enough to
+    say which of *those* files the build reaches.  A file outside the proof
+    root that requires one inside it would be missed; nothing in this tree
+    does that, and with `.rocqdeps.d` present the question does not arise.
+    """
+    return require_graph(list(units) + list(extra), roots)
+
+
+def reachable(graph, seeds):
+    """Everything reachable from `seeds` through `graph`, seeds included."""
+    seen, stack = set(), [s for s in seeds]
+    while stack:
+        p = stack.pop()
+        if p in seen:
+            continue
+        seen.add(p)
+        stack.extend(graph.get(p, ()))
+    return seen
+
+
+def bare_unit(path, root):
+    """A Unit for a file outside the proof root -- the build root.
+
+    It carries no declarations: it exists so that the dependency graph can
+    be rooted at it, not so that it can be reported on.
+    """
+    with open(path, encoding="utf-8", errors="replace") as f:
+        raw = f.read()
+    rel = os.path.relpath(path, root)
+    return Unit(
+        path=path,
+        rel=rel,
+        logpath=tuple(rel[:-2].split(os.sep)),
+        role=None,
+        collection=None,
+        decls=[],
+        lines=raw.count("\n") + 1,
+    )
+
+
+def scope_seeds(scope_dir, units):
+    """Where a cone-scoped report starts.
+
+    An aggregator *beside* the directory is the honest root when there is
+    one -- `foo.v` next to `foo/` -- since such a file is what the build
+    root requires, so it defines the extent of what is built.
+
+    Otherwise every unit under the directory seeds the cone.  That is the
+    case for a self-contained directory that keeps its own aggregator
+    inside it, such as `foo/` holding `foo/all.v`, and it gives the same
+    answer: a cone seeded from all of a directory is
+    the old path filter plus everything those files depend on.  An unused
+    file *inside* the directory still seeds the cone, so it is the
+    build-root orphan check, not the scope, that catches one.
+    """
+    aggregator = scope_dir.rstrip(os.sep) + ".v"
+    if os.path.isfile(aggregator):
+        return [os.path.abspath(aggregator)], os.path.basename(aggregator)
+    under = [
+        u.path
+        for u in units
+        if os.path.abspath(u.path).startswith(os.path.abspath(scope_dir) + os.sep)
+    ]
+    return under, "every file under the directory"
 
 
 # --------------------------------------------------------------------------
@@ -236,12 +439,17 @@ def follow_alias(decl, index):
 
 
 def assumption_shape(decl):
-    """ "triple", "property" or "declaration" -- what kind of thing is assumed."""
+    """ "triple", "undefined" or "other" -- what kind of thing is assumed.
+
+    "other" is whatever is neither a Hoare triple nor an undefined
+    declaration: in this development, facts about the undefined predicates,
+    from `Persistent` instances to the ghost state's step obligation.
+    """
     if decl.is_triple:
         return "triple"
     if DECLARATION_TAIL_RE.search(decl.statement.strip()):
-        return "declaration"
-    return "property"
+        return "undefined"
+    return "other"
 
 
 def status_of(decl):
@@ -386,9 +594,12 @@ def mentions(units, index):
 
 
 def exported_surface(units, edges, index, mentioned):
-    """The declarations a client of this development has to read.
+    """The roots of the development: what nothing else in it depends on.
 
-    Two rules, one for each way a development exposes something:
+    Returns ``(triples, root_lemmas, internal_collections)``.  Only the
+    first are **results** -- the development exists to verify code, so what
+    a client consumes is a Hoare triple for a Go function
+    (notes/decisions.md, 2026-09-21).  Roots are found two ways:
 
       * a **collection** that no *other collection* requires or names
         specifies a Go function nothing else in the development calls -- a
@@ -396,14 +607,18 @@ def exported_surface(units, edges, index, mentioned):
         aggregator that re-exports every ``link_*`` so that CI builds them
         is deliberately not counted as a caller: re-exporting is not
         calling, and if it were, every collection would look internal.
-      * a **declaration** in a file nothing else requires, which nothing
-        else names.  That is a theorem stated for its own sake: the payoff,
-        or something nobody uses.
+      * a **declaration** in a non-collection file nothing else requires,
+        which nothing else names.  If its statement is a Hoare triple it is
+        a result, the same as a collection's.  If not, it is a **root
+        lemma**: a protocol fact nothing uses *yet*, which is an internal
+        step towards some spec, not something a client reads.  It is reported, so that it stays visible, but it is
+        neither a result nor part of the TCB.  Do not read "unused" as "safe
+        to delete": a root lemma can be the only thing using an axiom, and
+        so the only thing keeping that axiom's obligation alive.
 
-    Both are "nothing depends on it", which is what externally facing means
-    from inside a development.  Go's export rule is reported alongside, not
-    used to decide: an exported method whose spec something else in the
-    development calls is an internal callee here, however public it is in Go.
+    Go's export rule is reported alongside, not used to decide: an exported
+    method whose spec something else in the development calls is an
+    internal callee here, however public it is in Go.
     """
     by_path = {u.path: u for u in units}
     used_by = collections.defaultdict(set)
@@ -430,7 +645,7 @@ def exported_surface(units, edges, index, mentioned):
         if callers - {u.collection}:
             internal_colls.add(u.collection)
 
-    surface = []
+    surface, root_lemmas = [], []
     for u in units:
         if u.collection:
             if u.collection in internal_colls or u.role != "spec":
@@ -447,18 +662,22 @@ def exported_surface(units, edges, index, mentioned):
                 continue
             if mentioned.get((d.path, d.line)):
                 continue
-            surface.append((d, u))
-    return surface, internal_colls
+            # `Lemma wp_x : wp_x_body.` states a triple through an alias.
+            if follow_alias(d, index).is_triple:
+                surface.append((d, u))
+            else:
+                root_lemmas.append((d, u))
+    return surface, root_lemmas, internal_colls
 
 
 # --------------------------------------------------------------------------
 # The report
 
 
-def build_report(units, edges, scope_dir, root, marker):
+def build_report(units, edges, scope_dir, root, marker, selection=None):
     index = build_index(units)
     mentioned = mentions(units, index)
-    surface, internal_colls = exported_surface(units, edges, index, mentioned)
+    surface, roots, internal_colls = exported_surface(units, edges, index, mentioned)
 
     raw_lines = {}
     for u in units:
@@ -504,23 +723,51 @@ def build_report(units, edges, scope_dir, root, marker):
             }
         )
 
+    # Root lemmas: listed, never trusted.  An axiom or admit among them is
+    # already in `assumed`, which is where its cost is counted.
+    root_lemmas = [
+        {
+            "file": u.rel,
+            "line": d.line,
+            "name": qualified(d),
+            "kind": d.kind,
+            "status": status_of(d),
+            "lines": d.lines,
+        }
+        for d, u in roots
+    ]
+
     # The definitions the trusted statements rest on.  Seeds are the exported
     # statements and the statements of everything assumed: to know what an
-    # axiom assumes you have to read the definitions it is written in.
+    # axiom assumes you have to read the definitions it is written in.  Root
+    # lemmas do not seed it: nothing depends on them, so nothing a client
+    # reads is only as good as the definitions they mention.
     seeds = [d for d, _u in surface] + [d for d, _u, _r in assumed]
     defs, unresolved = closure(seeds, index, lambda d: (d.path, d.line))
 
     scope_abs = os.path.abspath(scope_dir)
+    selected = selection.get("paths") if selection else None
 
     def in_scope(rel):
         path = os.path.abspath(os.path.join(root, rel))
-        # Compare path components, not characters: `election` is not a
-        # prefix of `election_protocol.v` in any sense that matters.
+        if selected is not None:
+            # Cone mode: membership in the set the build reaches from this
+            # scope's root, which is what makes a scoped assumption count
+            # wherever it lives.
+            return path in selected
+        # Path-filter mode.  Compare path components, not characters, so
+        # that a scope of `.../foo` does not swallow a sibling `.../foo_bar`
+        # whose name merely starts the same way.
         return path == scope_abs or path.startswith(scope_abs + os.sep)
+
+    def outside_scope_dir(rel):
+        path = os.path.abspath(os.path.join(root, rel))
+        return not (path == scope_abs or path.startswith(scope_abs + os.sep))
 
     scoped_units = [f for f in files if in_scope(f[0].rel)]
     scoped_assumed = [r for _d, _u, r in assumed if in_scope(r["file"])]
     scoped_results = [r for r in results if in_scope(r["file"])]
+    scoped_roots = [r for r in root_lemmas if in_scope(r["file"])]
     scoped_defs = [d for d in defs if in_scope(os.path.relpath(d.path, root))]
 
     total_lines = sum(u.lines for u, _c, _k in scoped_units)
@@ -539,12 +786,25 @@ def build_report(units, edges, scope_dir, root, marker):
         + sum(r["lines"] for r in counted_results)
         + sum(d.lines for d in scoped_defs)
     )
+    sel = selection or {}
     return {
         "scope": os.path.relpath(scope_dir, root),
+        "scope_mode": sel.get("mode", "dir"),
+        "graph_source": sel.get("graph_source"),
+        "build_root": sel.get("build_root"),
+        "seeded_at": sel.get("seeded_at"),
+        "orphans": sel.get("orphans", []),
+        # Of the assumptions in this report, how many live outside the scope
+        # directory -- reached because the scope depends on them.  The count
+        # a path-filtered scope used to drop without saying so.
+        "assumed_outside_scope_dir": sum(
+            1 for r in scoped_assumed if outside_scope_dir(r["file"])
+        ),
         "files": len(scoped_units),
         "lines": total_lines,
         "assumed": scoped_assumed,
         "results": scoped_results,
+        "root_lemmas": scoped_roots,
         "definitions": [
             {
                 "file": os.path.relpath(d.path, root),
@@ -651,10 +911,45 @@ def row(label, count, lines, note, out, indent=2):
     )
 
 
+def print_provenance(rep, out):
+    """What was looked at, and on whose authority.
+
+    Four lines at most.  A number with no provenance is a number about an
+    unidentified tree, which is how a `--scope` figure came to be quoted as
+    evidence that a branch was proved.
+    """
+    rev = rep.get("revision") or "revision unknown"
+    print(
+        f"  source text at {rev} -- assumes `make` is green; proofs are not checked here",
+        file=out,
+    )
+    build = rep.get("build_state")
+    if build:
+        print(f"  {build}", file=out)
+    if rep.get("scope_mode") == "cone":
+        print(
+            "  files the build reaches from {}, per {}".format(
+                rep.get("seeded_at"), rep.get("graph_source")
+            ),
+            file=out,
+        )
+    else:
+        print(
+            "  --scope-dir: files under the path, NOT what the build reaches from it",
+            file=out,
+        )
+    n = len(rep.get("orphans") or [])
+    if n:
+        print(
+            "  {} scanned {} outside the build -- counted here, compiled by"
+            " nothing".format(n, "file is" if n == 1 else "files are"),
+            file=out,
+        )
+
+
 def print_summary(rep, out):
     shapes = collections.Counter(r["shape"] for r in rep["assumed"])
     how = collections.Counter(r["how"] for r in rep["assumed"])
-    trusted = sum(1 for r in rep["assumed"] if r["trusted"])
     n_def = len(rep["definitions"])
     def_lines = sum(d["lines"] for d in rep["definitions"])
     assumed_at = {(r["file"], r["line"]) for r in rep["assumed"]}
@@ -669,7 +964,14 @@ def print_summary(rep, out):
         ),
         file=out,
     )
+    print_provenance(rep, out)
     print(file=out)
+    # The two numeric columns, named: without this, "assumed  43  125 lines"
+    # does not say what 43 counts.
+    print(
+        "  {:<29}{:>5}  {:>11}".format("", "decls", "stmt size"),
+        file=out,
+    )
     row(
         "assumed",
         len(rep["assumed"]),
@@ -677,17 +979,22 @@ def print_summary(rep, out):
         ", ".join(f"{n} {k}" for k, n in sorted(how.items())) or "nothing",
         out,
     )
+    # These three partition the assumed row: every assumption is in exactly
+    # one.  Nothing else belongs in this list -- a count along another axis
+    # (how many admits carry a comment marker, say) printed here reads as a
+    # fourth category and overlaps the others.
     for shape, label in (
         ("triple", "Hoare triples about Go code"),
-        ("property", "properties of the model"),
-        ("declaration", "opaque declarations"),
+        ("undefined", "undefined declarations"),
+        ("other", "other"),
     ):
         if shapes[shape]:
             print(f"    {label:<29}{shapes[shape]:>3}", file=out)
-    if trusted:
+    if rep.get("assumed_outside_scope_dir"):
         print(
-            "    {:<29}{:>3}   deliberate, marked in a comment".format(
-                "of those, trusted", trusted
+            "    {:<29}{:>3}   from outside the scope directory, reached"
+            " through it".format(
+                "from its dependencies", rep["assumed_outside_scope_dir"]
             ),
             file=out,
         )
@@ -695,7 +1002,7 @@ def print_summary(rep, out):
         "results",
         len(rep["results"]) - rep["results_assumed"],
         res_lines,
-        "statements nothing else depends on",
+        "Go-function triples nothing else calls",
         out,
     )
     if rep["results_assumed"]:
@@ -714,6 +1021,15 @@ def print_summary(rep, out):
         "{} of the development".format(pct(rep["tcb_lines"], rep["lines"])),
         out,
     )
+    print(
+        "  decls = Rocq declarations, one per Axiom, Admitted lemma, Definition,"
+        " Record, ...",
+        file=out,
+    )
+    print(
+        "  stmt size = source lines of those statements, proofs excluded",
+        file=out,
+    )
     print(file=out)
     print(
         "  not trusted  {:>4}  obligations, each discharged by a functor".format(
@@ -728,6 +1044,17 @@ def print_summary(rep, out):
         file=out,
     )
     print("               {:>4}  lemmas with a Qed".format(rep["proved"]), file=out)
+    # Root lemmas that are themselves assumed are counted above, under
+    # assumed; only the proved ones belong in this block.
+    free_roots = [
+        r for r in rep["root_lemmas"] if r["status"] not in ("assumed", "admitted")
+    ]
+    if free_roots:
+        print(
+            f"               {len(free_roots):>4}  root lemmas -- stated, used by nothing yet"
+            " (--view surface)",
+            file=out,
+        )
     print(file=out)
 
     by_status = collections.Counter(f["status"] for f in rep["file_status"])
@@ -769,6 +1096,21 @@ def print_summary(rep, out):
                 file=out,
             )
 
+    orphans = rep.get("orphans") or []
+    if orphans:
+        print(file=out)
+        print(
+            f"Outside the build ({len(orphans)} files) -- nothing requires these, so `make`"
+            " never",
+            file=out,
+        )
+        print(
+            "compiles them and their Qeds are unchecked by anything:",
+            file=out,
+        )
+        for rel in orphans:
+            print("  " + shorten_path(rel, WIDTH - 2), file=out)
+
 
 def print_files(rep, out):
     print(
@@ -806,7 +1148,7 @@ def print_assumed(rep, out):
         if r["go_fns"]:
             what += "  [{}]".format(", ".join(r["go_fns"]))
         if r["trusted"]:
-            what += "  (trusted)"
+            what += "  (signed off for now)"
         where = "{}:{}".format(os.path.relpath(r["file"], rep["scope"]), r["line"])
         print(
             "{:<{w}} {:<9} {:<12} {}".format(
@@ -816,28 +1158,57 @@ def print_assumed(rep, out):
         )
 
 
+def _surface_row(rep, r, note, out):
+    where = "{}:{}".format(os.path.relpath(r["file"], rep["scope"]), r["line"])
+    print(
+        "  {:<{w}} {:<34} {:>3} lines  [{}]".format(
+            shorten_path(where, PATH_W),
+            shorten(r["name"], 34),
+            r["lines"],
+            note,
+            w=PATH_W,
+        ),
+        file=out,
+    )
+
+
 def print_surface(rep, out):
-    print("Externally-facing results ({}):".format(len(rep["results"])), file=out)
+    print(
+        "Externally-facing results: Go-function Hoare triples nothing else"
+        " calls ({}):".format(len(rep["results"])),
+        file=out,
+    )
     for r in sorted(rep["results"], key=lambda r: (r["file"], r["line"])):
         note = r["status"]
         if r["exported_in_go"]:
             note += ", exported in Go"
         elif r["go_fns"]:
             note += ", unexported in Go"
-        where = "{}:{}".format(os.path.relpath(r["file"], rep["scope"]), r["line"])
+        _surface_row(rep, r, note, out)
+    print(file=out)
+
+    roots = rep.get("root_lemmas") or []
+    print(
+        f"Root lemmas: stated, used by nothing yet ({len(roots)}) -- not results, and not"
+        " counted in the TCB.",
+        file=out,
+    )
+    if roots:
         print(
-            "  {:<{w}} {:<34} {:>3} lines  [{}]".format(
-                shorten_path(where, PATH_W),
-                shorten(r["name"], 34),
-                r["lines"],
-                note,
-                w=PATH_W,
-            ),
+            "  An internal fact waiting for a spec to need it.  Not the same as"
+            " safe to delete:",
             file=out,
         )
+        print(
+            "  it may be the only user of an axiom, and so the only thing keeping"
+            " its obligation alive.",
+            file=out,
+        )
+    for r in sorted(roots, key=lambda r: (r["file"], r["line"])):
+        _surface_row(rep, r, r["status"], out)
     print(file=out)
     print(
-        "Definitions they rest on ({}, {} lines):".format(
+        "Definitions the results rest on ({}, {} lines):".format(
             len(rep["definitions"]), num(sum(d["lines"] for d in rep["definitions"]))
         ),
         file=out,
@@ -880,6 +1251,66 @@ def print_surface(rep, out):
 
 
 # --------------------------------------------------------------------------
+
+
+def select_files(units, root, scope_dir, args):
+    """Which files to report on, and what is outside the build entirely.
+
+    Returns the selection `build_report` filters by, plus the provenance a
+    reader needs to judge it: which dependency graph was used, what it was
+    rooted at, and which scanned files the build never compiles.
+    """
+    unit_paths = {os.path.abspath(u.path) for u in units}
+    build_root = os.path.normpath(os.path.join(root, args.build_root))
+
+    roots = logical_roots(root)
+    deps_path = os.path.join(root, ROCQDEPS)
+    if os.path.isfile(deps_path):
+        graph = parse_rocqdeps(deps_path, root)
+        source = ROCQDEPS
+    elif os.path.isfile(build_root):
+        graph = source_dep_graph(units, [bare_unit(build_root, root)], roots)
+        source = "Require lines (no .rocqdeps.d -- run make)"
+    else:
+        graph = require_graph(units, roots)
+        source = f"Require lines (no .rocqdeps.d, no {args.build_root})"
+
+    built = (
+        {os.path.abspath(p) for p in reachable(graph, [build_root])}
+        if os.path.isfile(build_root)
+        else None
+    )
+    orphans = (
+        sorted(os.path.relpath(p, root) for p in unit_paths - built)
+        if built is not None
+        else []
+    )
+
+    if args.scope_dir:
+        return {
+            "mode": "dir",
+            "graph_source": source,
+            "build_root": args.build_root,
+            "seeded_at": None,
+            "orphans": orphans,
+        }
+
+    if os.path.abspath(scope_dir) == os.path.abspath(
+        os.path.join(root, args.proof_root)
+    ):
+        seeds, seeded_at = [build_root], os.path.relpath(build_root, root)
+    else:
+        seeds, seeded_at = scope_seeds(scope_dir, units)
+
+    cone = {os.path.abspath(p) for p in reachable(graph, seeds)}
+    return {
+        "mode": "cone",
+        "paths": unit_paths & cone,
+        "graph_source": source,
+        "build_root": args.build_root,
+        "seeded_at": seeded_at,
+        "orphans": orphans,
+    }
 
 
 def resolve_scope(scope, proof_root):
@@ -948,6 +1379,18 @@ Module GProof (P : F) : G.
   Example refl_ok : legal s s := eq_refl.
 End GProof.
 """,
+    # A file nothing requires, outside the collection layout: one triple
+    # stated as a loose lemma (a result) and one protocol fact nothing uses
+    # (a root lemma).  Only the first is a result, and only the first seeds
+    # the definitions closure.
+    "top.v": """\
+Require Export model.
+Definition only_used_here : Prop := True.
+Lemma only_used_here_refl : only_used_here -> only_used_here.
+Proof. auto. Qed.
+Lemma wp_h : {{{ True }}} @! pkg.h #x {{{ RET #(); True }}}.
+Proof. reflexivity. Qed.
+""",
 }
 
 
@@ -978,17 +1421,22 @@ def selftest():
             f"assumed = {sorted(names)}",
         )
         shapes = {r["name"]: r["shape"] for r in rep["assumed"]}
-        want(shapes.get("own_state") == "declaration", "opaque declaration")
-        want(shapes.get("own_state_agree") == "property", "property")
+        want(shapes.get("own_state") == "undefined", "undefined declaration")
+        want(shapes.get("own_state_agree") == "other", "other")
         want(shapes.get("GProof.wp_G") == "triple", "admitted triple")
         want(rep["obligations"] == 2, "obligations = {}".format(rep["obligations"]))
-        # G calls f, so f's collection is internal and only G is exported.
+        # G calls f, so f's collection is internal and G is a result; so is
+        # the loose triple wp_h.  The unused lemma beside it is a root lemma,
+        # not a result.
         results = {r["name"] for r in rep["results"]}
-        want(results == {"wp_G_body"}, f"results = {sorted(results)}")
+        want(results == {"wp_G_body", "wp_h"}, f"results = {sorted(results)}")
+        exported = {r["name"]: r["exported_in_go"] for r in rep["results"]}
         want(
-            [r["exported_in_go"] for r in rep["results"]] == [["pkg.T.G"]],
-            "Go export rule reported",
+            exported == {"wp_G_body": ["pkg.T.G"], "wp_h": []},
+            f"Go export rule reported: {exported}",
         )
+        roots = {r["name"] for r in rep["root_lemmas"]}
+        want(roots == {"only_used_here_refl"}, f"root lemmas = {sorted(roots)}")
         # The statements rest on `legal`, `st.t` (through `st.term`) and the
         # `_body` of the admitted triple -- but not on `wp_f_body`, which
         # nothing trusted mentions.
@@ -998,6 +1446,10 @@ def selftest():
             f"definition closure = {sorted(defs)}",
         )
         want("wp_f_body" not in defs, "internal spec not in the closure")
+        want(
+            "only_used_here" not in defs,
+            "a definition only a root lemma mentions is not in the closure",
+        )
         # a definition by term is not an unfinished proof
         want(
             not any(f["counts"].get("unclosed") for f in rep["file_status"]),
@@ -1012,6 +1464,7 @@ def selftest():
                 "dev/proof_f.v": "proved",
                 "dev/spec_G.v": "stated",
                 "dev/proof_G.v": "admitted",
+                "dev/top.v": "proved",
             },
             f"file status = {statuses}",
         )
@@ -1029,16 +1482,39 @@ def main():
     )
     ap.add_argument(
         "--proof-root",
-        default=DEFAULT_PROOF_ROOT,
-        help=f"the development to look at, relative to --root (default: {DEFAULT_PROOF_ROOT})",
+        default=None,
+        help="the development to look at, relative to --root -- a directory "
+        "of .v files.  Required (except with --selftest): the tool does not "
+        "pick a development for you",
     )
     ap.add_argument(
         "--scope",
         default=None,
-        help="restrict the report to a path, or to the bare name "
-        "of a directory anywhere under the proof root.  The "
-        "graph is still built from the whole proof root, so "
+        help="restrict the report to what the build reaches from a "
+        "directory's aggregator -- a path, or the bare name of a "
+        "directory anywhere under the proof root.  This is a dependency "
+        "cone: an assumption the scope rests on is counted wherever it "
+        "lives.  The graph is still built from the whole proof root, so "
         "scoping cannot invent exported results",
+    )
+    ap.add_argument(
+        "--scope-dir",
+        action="store_true",
+        help="make --scope the old path filter -- report only files "
+        "physically under the directory, dropping whatever they depend "
+        "on.  Not the build's view of the scope; see notes/tcb-accounting.md",
+    )
+    ap.add_argument(
+        "--build-root",
+        default=DEFAULT_BUILD_ROOT,
+        help=f"the file `make` builds, relative to --root "
+        f"(default: {DEFAULT_BUILD_ROOT}).  What is not reachable from it "
+        f"is not compiled by anything",
+    )
+    ap.add_argument(
+        "--strict",
+        action="store_true",
+        help="exit non-zero if any scanned file is outside the build",
     )
     ap.add_argument(
         "--view",
@@ -1060,6 +1536,8 @@ def main():
 
     if args.selftest:
         return selftest()
+    if not args.proof_root:
+        ap.error("--proof-root is required: name the development to report on")
 
     root = os.path.abspath(args.root)
     proof_root = os.path.join(root, args.proof_root)
@@ -1068,8 +1546,9 @@ def main():
     scope_dir = resolve_scope(args.scope, proof_root)
 
     units = load(proof_root, root)
-    edges = require_graph(units)
-    rep = build_report(units, edges, scope_dir, root, args.trusted_marker)
+    edges = require_graph(units, logical_roots(root))
+    selection = select_files(units, root, scope_dir, args)
+    rep = build_report(units, edges, scope_dir, root, args.trusted_marker, selection)
 
     if args.format == "json":
         print(json.dumps(rep, indent=2))

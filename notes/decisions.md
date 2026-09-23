@@ -129,7 +129,7 @@ admitted lemma is itself trusted and the definitions in its statement are too.
   which would fix both approximations listed below. Killed by availability —
   `.glob` is gitignored, is not produced by `vos`/`vok`, and exists only for
   files built to `.vo`. At the time of writing only `election.v` and
-  `election_protocol.v` had one; `base.v`, `protocol.v`, `readonly.v` and
+  `election_proof/protocol.v` had one; `base.v`, `protocol.v`, `readonly.v` and
   `v3.v` did not. A trust tool that works on a third of the trust base is not
   a trust tool. Worth revisiting if the build ever guarantees `.vo`.
 - `Print Assumptions` is the only ground truth and would catch assumptions
@@ -168,11 +168,11 @@ lemmas. Nothing stopped a second spec for the same Go function being written
 elsewhere, and the only thing distinguishing a trusted assumption from a
 finished proof was which `Section` a declaration happened to sit in. That is
 not hypothetical: `raft_names` is declared twice (`protocol.v:30` vs
-`readonly.v:51`), `is_quorum` twice (`election_protocol.v:84` vs
+`readonly.v:51`), `is_quorum` twice (`election_proof/protocol.v:84` vs
 `readonly.v:114`), and `readonly.v` axiomatizes `own_raft` as a second,
 incompatible ownership story for the struct `own_raft_phys` already covers.
 
-**Decision:** four files per Go function, under `v3_proof/election/`, modeled
+**Decision:** four files per Go function, under `election_proof/`, modeled
 on `mit-pdos/xv6iris`:
 
 | file | holds |
@@ -387,7 +387,7 @@ asserting it was assuming log replication, not election.
 `votes`, and no rule reads an `App`'s payload. A receiver only ever consumes
 an `App` through `step_higher_term`, which cares about its term and that a
 leader sent it — both still pinned. So the weaker rule refines the code and
-supports the same payoff theorem.
+supports the same election-safety check.
 
 **Do not strengthen it back** without first making `own_raftLog` and
 `Progress.State` transparent enough to prove the broadcast exactly. The
@@ -895,7 +895,7 @@ reader can judge how much is missing.
 where a sentence ends, what it declares and inside which modules, how a proof
 ended, and which Go function a triple's program expression names — with its
 own `--selftest`. It was lifted out of `check-module-discipline.py`, whose
-output on all of `--scope election`, the whole raft tree and `--format json`
+output on all of `--scope election_proof`, the whole raft tree and `--format json`
 is byte-identical before and after. One parsing contract was the point: it is
 the part most likely to rot, and two copies would rot apart.
 
@@ -1024,6 +1024,154 @@ tracker value as an extra postcondition equation (`rv'.(trk') = rv.(trk')`)
 call that demands `own_raftLog`. Indexing `own_raft_phys` by the tracker
 and log values everywhere — 95 call sites for no gain above `send`.
 
+---
+
+## 2026-09-21 — the result is verified specs for top-level raft functions; election safety is not the payoff
+
+This answers what `STATUS.md` carried as open next step #5, "decide what the
+top-level Raft correctness statement should be".
+
+**The object of study is code.** What this development is for is a Hoare
+triple on each function an etcd caller actually calls — the `node` interface
+(`Propose`, `Ready`, `Advance`, `Step`, `Campaign`, `Tick`) and `raft.Step`
+beneath it — each saying what running that Go function does to the state it
+owns. That is the deliverable, and it is the only thing a client of this
+proof consumes.
+
+**`raft_election_safety` is not the payoff.** It is an internal lemma, and
+calling it the payoff — which `election.v`, `election_proof/protocol.v`,
+`raft-election-refinement.md` and `raft-proof-map.md` all did until today —
+gets the shape of the work backwards. Delete the corollary and no
+verification claim about etcd's code is weaker; delete `wp_raft__Step` and
+there is nothing left. The protocol layer of `election_proof/protocol.v`, the
+refinement obligation and the whole election development exist **in service
+of** the function specs: they are how a triple about `Step` gets to say
+something stronger than "the struct fields changed".
+
+What the corollary is genuinely for is a **sanity check on the model** — it
+shows that `nstate.t` and `step` are strong enough to entail the property
+raft exists to provide, which is evidence the abstraction was not defined
+into triviality. That is worth having. It is not the result.
+
+**Consequences, in the order they bite:**
+
+1. **What belongs on the exported surface is the function specs.** Since
+   2026-09-23 `etc/tcb-report.py --view surface` has two sections: *results*
+   — Go-function Hoare triples nothing else in the development calls, which
+   for the election development is `wp_raft__Step_body` alone — and *root
+   lemmas*, stated facts nothing uses yet, which is where
+   `raft_election_safety` lives. Root lemmas are neither results nor counted
+   in the TCB. (Until then the tool promoted any unused theorem in a file
+   nothing required, and once `--scope` became a dependency cone that put
+   the corollary on the surface.)
+
+   **A root lemma is not therefore disposable.** `raft_election_safety` is
+   today the *only* user of `own_raft_ghost_is_leader` and
+   `is_leader_unique`, and that pair is what will stop the ghost state being
+   built trivially. Without it, `own_raft_ghost γ id s` := a per-`id`
+   exclusive token that ignores `s`, with `is_message` := `True`, satisfies
+   every other axiom in `Section ghost` — and is allocatable, so it is a real
+   model that certifies nothing. With it, that model fails: `step` has a win
+   transition, so two nodes could each step into Leader in the same term. A
+   construction therefore has to track leadership per term against vote
+   quorums, which is what forces `is_message` to certify votes. Until a spec
+   consumes the corollary — proposal or commit, which rely on a single
+   leader, are the likely ones — its real job is keeping that obligation
+   alive. (`own_raft_ghost_excl`, by contrast, is used by nothing at all.)
+
+   **Update, 2026-09-22:** the ghost state was then constructed on `main`
+   (`7cb3d419d`), and took exactly the shape this paragraph predicted the
+   uniqueness pair would force — each node's vote history in a ghost map,
+   held to one vote per term (`vote_hist_ok`); `is_message` certifying only
+   a granting `VoteResp`; `is_leader` a quorum of votes — with
+   `own_raft_ghost_alloc` showing it inhabited. The pair are lemmas now, so
+   the corollary no longer keeps an *axiom* alive. It is still their only
+   user, and `own_raft_ghost_excl` is still used by nothing.
+
+   Independently of all this, the `Step` proof is not trivial: the ghost
+   predicates are opaque, so every branch has to go through
+   `own_raft_ghost_step` and prove the code's transition is a `step`. The
+   uniqueness pair is what makes that relation worth being refined.
+2. **A protocol-level property earns its place only when a function spec or
+   its client needs it.** Do not add protocol theorems for their own sake.
+3. **"Is the proof done?" is answered by reading the triples**, not by
+   counting theorems or admits — which is the same point
+   [tcb-accounting.md](tcb-accounting.md) makes from the tooling side.
+4. The corollary cannot even do its sanity-check job while the ghost state is
+   axiomatized: with no allocation axiom for `own_raft_ghost`, the trivial
+   model satisfies every axiom in the `Section ghost` block and the corollary
+   holds vacuously. Constructing that ghost state (next step #4) is what
+   turns the check into a real one.
+5. **The top-level statement is still owed for the rest of the `node`
+   interface.** `v3.v` covers `Propose`; `protocol.v` axiomatizes `Ready` and
+   `Advance`. Those triples, discharged against the translated code, are the
+   remaining shape of the answer — not a new theorem above them.
+
+---
+
+## 2026-09-22 — the election proof gets its own directory, beside the old one
+
+`new/proof/go_etcd_io/raft/v3_proof/` had become two unrelated developments
+in one directory: the leader-election refinement (the current work, 332
+files) and the earlier read-index/heartbeat proofs (`protocol.v`,
+`readonly.v`). The election work is now `raft/election_proof/`, a **sibling**
+of `v3_proof/` rather than a subdirectory of it.
+
+**Layout**, flattened — there is no `election_proof/election/`:
+
+    raft/v3.v                     the old public surface
+    raft/v3_proof/base.v          IsPkgInit boilerplate, required by BOTH
+    raft/v3_proof/protocol.v      old: axiomatized node interface
+    raft/v3_proof/readonly.v      old: read-index work (and unbuilt -- STATUS)
+    raft/election_proof/election.v      aggregator + raft_election_safety
+    raft/election_proof/protocol.v      the model (was election_protocol.v)
+    raft/election_proof/{defs,step_lemmas,inv_*}.v
+    raft/election_proof/{spec,postulates,proof,link}_<fn>.v
+    raft/election_proof/proof_<fn>_helpers/   (two today: raft__Step,
+                                               MajorityConfig__VoteResult)
+
+**Why a sibling and not a subdirectory.** The old name said the election
+proof was part of the `v3_proof` development, and it is not: it shares
+`base.v` with it and nothing else. Nesting it also made every logical path
+carry two directory levels that meant nothing
+(`…raft.v3_proof.election.spec_raft__Step`), and it put the old proofs in
+the way of anyone reading the new tree.
+
+**Why the aggregator lives inside.** `election_proof/election.v` rather than
+a sibling `election_proof.v`, so that the whole development is one directory
+and `ls` of `raft/` shows two developments rather than two developments and
+a loose file. The cost is that `etc/tcb-report.py`'s cone cannot find the
+aggregator by the `v3.v`/`v3_proof/` convention and seeds from every file in
+the directory instead; that gives the same cone, and the docstring says so.
+
+**Why `base.v` stayed.** Both developments require it, and it is
+package-init boilerplate rather than proof. Moving it would have made the
+old tree depend on the new one, which is backwards; copying it would have
+left two lists of `IsPkgInit` instances to keep in step.
+
+**The cost, paid once.** 332 files moved and 709 lines of references
+rewritten across `.v`, `.md` and `etc/*.py`, verified statically: every
+`Require` in the raft tree resolves through `_RocqProject`'s load paths to a
+file that exists (703 require targets), nothing outside `journal.md`
+mentions the old paths, both self-tests pass, and
+`etc/check-module-discipline.py --scope election_proof` exits 0. Two
+requires in `should_build.v` do not resolve in `rocqscan`'s model
+(`New.proof.Import`, `New.proof.leasing_proof.protocol`); both are
+pre-existing parse gaps on lines this did not touch. **Then built**, at
+`454e0d780`: the `.vos` closure (471 files) and `.vok` of all 336 raft files,
+0 errors — details in `STATUS.md`.
+
+**Regenerated, not rebased.** The move was first made against a `main` that
+had 184 election files. Branch `worktree-election-close-admits` then landed
+on `main` with 330, 140 of them new, plus a second helper directory. A
+replayed rename would have moved the old 184 and left the new 140 behind
+with `Require` paths pointing at a directory that no longer existed. So on
+rebasing, this commit was **regenerated** by re-running the move and
+reference-rewrite scripts on `main`'s actual tree — the right treatment for
+any mechanical refactor that meets new files. The scripts move every `.v`
+file and every subdirectory rather than a named list, which is what caught
+`proof_MajorityConfig__VoteResult_helpers/`.
+
 
 ## 2026-09-22 — Three layers, and one ownership predicate per object
 
@@ -1031,22 +1179,22 @@ and log values everywhere — 95 call sites for no gain above `send`.
 its own state type:
 
 1. **Go code and heap → physical abstract state.**  `own_raft_phys r id s`
-   (`election/inv_raft_phys.v`) relates the raft struct and everything
-   hanging off it to `s : nstate.t` (`election/defs.v`).  Every Go-level
+   (`election_proof/inv_raft_phys.v`) relates the raft struct and everything
+   hanging off it to `s : nstate.t` (`election_proof/defs.v`).  Every Go-level
    spec is a pre/postcondition pair on `own_raft_phys`.  This is the layer
    the current work is on.
 2. **Physical state → protocol state.**  `nstate_rel s ps`
-   (`election/defs.v`) relates `s` to the protocol state `ps : pstate.t`
-   (`election_protocol.v`): `ps` is `s`'s six protocol fields
+   (`election_proof/defs.v`) relates `s` to the protocol state `ps : pstate.t`
+   (`election_proof/protocol.v`): `ps` is `s`'s six protocol fields
    (`to_pstate s`), `r.step` agrees with the role, and nothing is on loan.
-   `Step`'s spec (`election/spec_raft__Step.v`) is the only statement that
+   `Step`'s spec (`election_proof/spec_raft__Step.v`) is the only statement that
    mentions both layers.
 3. **Protocol state → protocol properties.**  `own_raft_ghost γ id ps`,
    the transition relation `step`, and `raft_election_safety`, all about
    `pstate.t` and free of Go.
 
 **The rule this entails, and which is now written into
-`election/defs.v`, `election/inv_raft_phys.v`, STATUS.md and
+`election_proof/defs.v`, `election_proof/inv_raft_phys.v`, STATUS.md and
 gotchas.md:** `nstate.t` is the *most abstract* description of the physical
 state that still lets *every* Go-level WP be stated on `own_raft_phys`.
 **If a function cannot be specified with `own_raft_phys`, refine `nstate.t`
@@ -1058,7 +1206,7 @@ every other object: one ownership predicate, indexed by an abstract state
 precise enough for all of that object's methods.
 
 **What this replaced.** Until 2026-09-22 one record, `nstate.t` in
-`election_protocol.v`, served as *both* the physical abstraction and the
+`election_proof/protocol.v`, served as *both* the physical abstraction and the
 protocol state, so anything the Go specs needed that the protocol did not
 have to be carried outside it.  That produced three variant predicates
 for the raft struct, each added to unblock one caller:
@@ -1094,7 +1242,7 @@ gone: the physical `nstate.t` is a new record with the six protocol fields
   open at a fixed split).  A function that touches either says
   `s.(nstate.lent) = None`; the top-level ones say `nstate_wf s`.
 
-and the protocol record in `election_protocol.v` became `pstate.t`, with
+and the protocol record in `election_proof/protocol.v` became `pstate.t`, with
 its functions prefixed `p` (`psend_msgs`, `pbecome_follower`, …,
 `pcan_vote`, `init_pstate`).  The physical ones keep the old names, so
 spec text such as `own_raft_phys cfg r id (become_follower s t l)` reads as

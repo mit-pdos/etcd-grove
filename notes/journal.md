@@ -2432,6 +2432,498 @@ which is worth a look — the cost is all elaboration, not proof checking.
 Treat these four numbers as `vo`-or-`vok`, per the conflation above; the
 first clean build after this commit will say which.
 
+---
+
+## 2026-09-21 — audit: what `tcb-report.py` does not establish about the election claim
+
+Claude Opus 5 (background job), branch `worktree-tcb-report-audit` off
+`main`. Read-only against branch `worktree-election-close-admits` at
+`0b3943d1f`, which claims *"every Hoare triple on the election path is Qed
+except `wp_raftLog__slice_at`"* and cites `etc/tcb-report.py --scope
+election` as the evidence. Nothing on that branch was touched.
+
+**The claim is true of the source text and the tool reports it accurately.**
+A comment-stripped scan written independently of the tool agrees with it
+exactly over the 330 files of `v3_proof/election/`: 1 `Admitted`, 10
+`Axiom`, 169 `Qed`, 78 `Parameter` (all in `Module Type`s), 0 `Abort`. Three
+things the tool does *not* check also hold: all 330 files are in the
+`Require` closure of `election.v`, which `should_build.v:51` requires; there
+are no soundness escape hatches anywhere under
+`new/proof/go_etcd_io/raft/` (no `Unset Guard/Positivity/Universe Checking`,
+no `bypass_check`, no admitted `Program` obligations);
+`check-module-discipline.py --scope election` exits 0, its two warnings
+being the `Entry.Size` and `big.Int.Int64` axioms, which is expected.
+
+**It does not follow that the tool demonstrates the claim.** Seven gaps,
+written up with the plan in the new [tcb-accounting.md](tcb-accounting.md).
+The three that change how the result should be read:
+
+- **It never compiles.** No `subprocess`, no `rocq`, no `.vo`/`.vok`
+  anywhere in `tcb-report.py` or `rocqscan.py`. A `Qed.` in a file that does
+  not typecheck counts as a proof. The tree has 333 `.vos` and no `.vo`;
+  `.vos` skips proof bodies by construction. The real evidence is a manual
+  `-vok` sweep reported in a commit message, uncommitted, not tied to a
+  revision. CI would be ground truth but fires only on `main` and PRs to it.
+- **`--scope` is a path filter** (`tcb-report.py:515-524`), applied after the
+  analysis. Every `election/` file requires `election_protocol.v` through
+  `defs.v`, and its **12 axioms do not appear** in the scoped report, which
+  prints `assumed 11`. The honest figure for the election development is 23.
+- **The payoff theorem is out of scope and currently vacuous.**
+  `raft_election_safety` lives in `election.v`, so `--view surface` under
+  the scope reports only `wp_raft__Step_body`. And `election_protocol.v` has
+  no allocation axiom for `own_raft_ghost`: taking
+  `own_raft_ghost := λ _ _ _, False` and `is_leader := λ _ _ _, False`
+  satisfies all twelve axioms, making both the corollary and `Step`'s triple
+  trivial. This is next step #4 in STATUS and is not new — what is new is
+  that **no output of the tool would lead a reader to it.**
+
+Also: the surviving admission is filed more gently than it deserves. The
+tool prints `wp_raftLog__slice_at` as *"trusted — deliberate"*, next to the
+two `readonly.v` overflow assumptions, while
+`proof_raftLog__slice.v`'s own header says the triple *"as stated is **false**
+at a log with ~2^63 unstable entries"*. And what enters the trust base is the
+whole triple, not the one admitted side condition at line 233 — the
+distinction the `(* Trusted *)` marker cannot carry.
+
+**Plan**, in three slices, in [tcb-accounting.md](tcb-accounting.md). Slice 1
+is an afternoon with no Rocq: make `--scope` a dependency cone, flag
+abstract predicates that nothing ever allocates, check reachability from
+`should_build.v`, and replace `(* Trusted *)` with a parsed marker that
+separates "assumed true" from "known false outside a stated regime". Slice 2
+is what makes the tool definitive: join against a committed `-vok` manifest
+keyed on git blob hashes, and diff the syntactic estimate against a real
+`Print Assumptions` archived by CI — which is nearly free, since CI already
+does the `.vo` build. Slice 3 gives `new/golang/defn/` its own line, because
+this branch edits the operational model (`defn/map.v`) and no invocation of
+the tool in the notes covers it.
+
+**Nothing was changed in the tool or the proofs.** The audit is the
+deliverable; the plan is unclaimed.
+
+---
+
+## 2026-09-21 (later) — election safety is not the payoff; the result is verified function specs
+
+Claude Opus 5 (background job), same branch `worktree-tcb-report-audit`.
+Correcting a framing the notes, the two protocol `.v` files and the earlier
+entry above all shared, at Upamanyu's direction.
+
+**The point.** This development verifies *code*. The result is a Hoare
+triple on each function an etcd caller calls — `raft.Step`, and the `node`
+interface above it. `raft_election_safety` is an **internal lemma**: a
+sanity check that `nstate.t` and `step` entail the property raft exists to
+provide, and so were not defined into triviality. Delete the corollary and
+no claim about etcd's code is weaker; delete `wp_raft__Step` and there is
+nothing left. Protocol-level theorems are in service of the function specs,
+not the other way round.
+
+This answers what `STATUS.md` had carried as open next step #5 ("decide what
+the top-level Raft correctness statement should be"), so that item is now a
+pointer to the new decision record rather than a question.
+
+**Changed** — comments and prose only, no proof text:
+
+- `notes/decisions.md` — new record at the end, with the five consequences.
+  Also one stale phrase at the old scope decision ("supports the same payoff
+  theorem" → "election-safety check").
+- `notes/STATUS.md` — next step #5 answered; next step #4 now says what is
+  actually at stake (the exported `wp_raft__Step` is vacuous, not merely the
+  corollary); the trust-base sentence reworded to name `wp_raft__Step`.
+- `notes/raft-election-refinement.md`, `notes/raft-proof-map.md` — both
+  called it the payoff; both now say sanity check and point at the decision.
+- `notes/tcb-accounting.md` — **G3 was wrong and is rewritten.** It had
+  faulted `tcb-report.py` for not surfacing `raft_election_safety`. Under
+  the correct framing the tool is right: the exported result of the election
+  development *is* `wp_raft__Step_body`, and a theorem nothing calls is a
+  leaf. The real gap is unchanged and sharper — that exported triple is
+  vacuous under the trivial ghost model and no output says so. The Slice 2
+  `Print Assumptions` item now names the function specs as what ground truth
+  must be taken at.
+- `v3_proof/election.v` and `v3_proof/election_protocol.v` — the three
+  header comments that said "payoff". Verified comment-only: delimiters and
+  string quotes balance, and both diffs sit entirely inside `(** … *)`
+  blocks. The `election.v` block is byte-identical on
+  `worktree-election-close-admits`, which does not touch it, so this merges
+  cleanly into the in-flight branch.
+
+**Not changed:** `election_protocol.v`'s scope note that "the point of the
+model is election safety" was reworded, but no axiom, definition or proof
+moved. Nothing needs re-checking.
+
+---
+
+## 2026-09-22 — the audit is two commands: `make`, then `tcb-report.py`
+
+Claude Opus 5 (background job), branch `worktree-tcb-report-audit`, at
+Upamanyu's direction. Process decision, and a rewrite of the plan that was
+written under the wrong premise.
+
+**The process.** An audit runs `make` first — `make ci`, or a narrower `.vo`
+target — and then `etc/tcb-report.py` separately. `make` is the only thing
+that checks proofs. `tcb-report.py`'s entire job is to check what the build
+cannot, which is why it does not and should not invoke Rocq.
+
+Writing the division out made the two tools' jobs much clearer than the
+audit had them:
+
+- **`make` establishes** that every `Qed` is real, that a functor really
+  discharges its signature's `Parameter`s, and — with an `assumptions.v` —
+  the exact transitive assumption set of a named theorem, seeing through
+  `Notation`s and typeclass instances.
+- **`tcb-report.py` establishes** whether the *statements* say what was
+  meant (the definitions half of the TCB, the larger one), whether an axiom
+  set has a non-trivial model, what is outside the build entirely, whether
+  an `Axiom` is a declared boundary or unfinished work, whether an admission
+  is a whole lemma or one side condition, and whether `new/golang/defn/` has
+  moved.
+
+**The insight this produced, which the audit had underweighted:** `make` is
+necessary *and silently incomplete*. It checks exactly what
+`should_build.v` reaches and says nothing about what it did not build, so a
+`link_*.v` dropped from `election.v` removes a collection from the build
+with no error anywhere. G6 (reachability) was filed sixth because it was
+found sixth; under this process it is **first in importance** — the one way
+a green build and a clean report can both be true of a development that is
+not being checked. It is now plan item 2, marked "do this first if only one
+thing gets done".
+
+**What changed in [tcb-accounting.md](tcb-accounting.md):**
+
+- new "The audit process" section with the two commands and the
+  division-of-labour table;
+- **G1 rewritten.** "The tool never compiles anything" was a criticism of
+  correct behaviour. The real defect is narrower: the output does not say it
+  assumes a green build, and the number was quoted as if it were proof
+  evidence. Fix is a header line, not a compiler;
+- G6 promoted with its reasoning; G7's fix is now the `Print Assumptions`
+  reconciliation rather than "subsumed by G1";
+- the plan is re-ordered and **one item is deleted**: the committed `-vok`
+  manifest for the tool to join against. That was step 1's job restated
+  inside a source scanner. If build provenance ever needs recording it
+  belongs beside the build, as a CI artefact. Recorded in the file as
+  "deliberately dropped", with why, so nobody re-proposes it;
+- the `Print Assumptions` item is reframed as a **two-way reconciliation** —
+  a name Rocq lists that the scanner missed means the printed TCB was too
+  small; an `Axiom` in the tree Rocq does *not* list is dead, or the theorem
+  does not rest on what everyone assumes. Neither direction is visible to
+  either tool alone, which is what makes it step 2's work and not step 1's.
+
+Also: `STATUS.md`'s tcb-report block now leads with the two commands,
+`CLAUDE.md`'s Building section gained a short paragraph so a fresh agent
+meets the process before it meets the numbers, and `STATUS.md` is dated
+2026-09-22.
+
+**No proof or tool code changed** — this is the plan, not its
+implementation. Items 1–5 of Slice 1 need no Rocq and are unclaimed.
+
+---
+
+## 2026-09-22 (later) — G1 mostly dissolved; the gap list is reordered
+
+Claude Opus 5 (background job), same branch. Upamanyu asked whether G1 in
+[tcb-accounting.md](tcb-accounting.md) still makes sense under the two-step
+process. Mostly it does not, and the file now says so rather than quietly
+keeping a gap that had lost its reason.
+
+**What G1 was, and what happened to its three parts:**
+
+- *"The tool never compiles anything."* **Retired.** That is the design and
+  it is right — step 1 checks proofs, and a source scanner that also tried
+  would be a worse `make`. Criticising it was criticising the tool for not
+  being a different tool. Stated in the file so nobody re-files it.
+- *"The election branch's number was not backed by a build."* **Not a tool
+  gap at all** — a fact about how that branch was audited. Moved up beside
+  the other findings about it, as "What was not reproduced: step 1", which
+  is where a reader looking for the branch's status will find it.
+- *"A run carries no record of what it looked at."* **Survives, narrowed.**
+  `tcb-report.py` prints counts with no revision, so the two halves of an
+  audit cannot be shown to be about the same tree and a figure pasted into a
+  commit message is unattributable a week later. Real, but output hygiene
+  rather than a TCB check.
+
+So G1 is now **the least severe of the seven**, and its plan item moved from
+first to last in Slice 1 — where it was contradicting the G6 item beside it,
+which said "do this first" while sitting at number 2.
+
+**Also fixed: the list said "worst first" and was not.** It is discovery
+order, and after two days of reframing the two orders had come apart. The
+heading now says so and gives the real one — **G6, G3, G2, G4, G5, G7,
+G1** — and the plan follows it. The labels themselves stay put: they are
+cited in this journal and in commit messages, so renumbering would cost more
+than the tidiness is worth.
+
+Nothing else changed; no proof or tool code has been touched on this branch.
+
+---
+
+## 2026-09-22 (later still) — G2 and G6 are one bug, and get one fix
+
+Claude Opus 5 (background job), same branch. Upamanyu, on being told how
+plan items 1 and 3 differed: *"So the goal is to make sure the set of files
+that are scanned by tcb-report are the same set of files built by make?
+Make that just one feature."* Yes, and it is a better design than either
+item was.
+
+**The root cause the two write-ups had missed.** `tcb-report.py` decides
+what to look at by **globbing a directory**; `make` decides by **walking a
+dependency graph**. Every discrepancy between them follows from that one
+difference — files on disk the build never compiles (G6), and files the
+build compiles that a scoped report drops (G2). Found a day apart, written
+up as two gaps, and only visible as one thing once someone asked what
+separated the fixes. The gaps stay numbered separately, since the symptoms
+are distinct and the labels are cited; the plan now has **one item** for
+both.
+
+**Plan item 1 is now "scan what `make` builds, not what a directory
+holds"**: the scanned set becomes a dependency closure rooted at
+`new/should_build.v`, or at the scope's aggregator under `--scope`. Both old
+behaviours fall out — an orphan is excluded *and reported* (excluding it
+silently would make an orphan look like the numbers improving), and a scoped
+report automatically reaches `election_protocol.v`, so `--scope election`
+prints `assumed 23` rather than `11`. `--scope-dir` survives as the old path
+filter, labelled as not being the build's view.
+
+**One implementation note that matters more than it looks.** Take the graph
+from **`.rocqdeps.d`** — `rocq dep` output, which is what `make` actually
+expands its prerequisites from (`Makefile:47-53` generates and includes it;
+`Makefile:64` makes every `.vo` depend on it) — and not from a fresh
+`Require` parse. A second parser is precisely how the two sets drift apart
+again, which is the thing being fixed. It is generated rather than
+committed, so the fallback to `rocqscan.requires` has to say in the output
+that it is a guess at the build graph rather than the build's own answer.
+
+Slice 1 is four items now (was five): the merged one, then G3, G4, G1.
+Later items renumbered 5 and 6; every cross-reference in the file checked.
+
+---
+
+## 2026-09-22 — tcb-report scans the build graph; readonly.v is unbuilt; the election proof moves out
+
+Claude Opus 5 / 5.5 (background job), branch `worktree-tcb-report-audit`.
+Written after the branch was **rebased onto `main`** once
+`worktree-election-close-admits` had landed there; the numbers below are for
+that tree.
+
+**Slice 1 item 1 of [tcb-accounting.md](tcb-accounting.md) is
+implemented.** `etc/tcb-report.py` no longer decides what to look at by
+globbing a directory: the scanned set is a dependency closure, rooted at
+`new/should_build.v`, or at a scope's aggregator under `--scope`, so it is
+the set `make` compiles. It reads `.rocqdeps.d` when present and says which
+graph it used. Logical paths now resolve through `_RocqProject` — the old
+longest-suffix match could not tell `New.code…raft.v3` from
+`New.proof…raft.v3` and invented an edge from `base.v` to `v3.v`.
+
+**It immediately found that `v3_proof/readonly.v` is built by nothing** —
+955 lines, 5 `Admitted`, 7 `Axiom`, required by no file under any spelling
+(confirmed by grep). `make ci` has never compiled it. `STATUS.md` next step
+#8 had been proposing work on its loose triples for days. This is the
+failure G6 was written about, found the first time anything looked.
+
+**On `main`'s tree, `--scope election_proof` now reports assumed 23** — 1
+`Admitted`, 22 `Axiom` — across 333 files. That is exactly the honest figure
+the 2026-09-21 audit computed by hand, when the path-filtered `--scope
+election` printed 11 by dropping `election_protocol.v`'s twelve. The whole
+tree: 335 of 336 files in the build, `readonly.v` the one outside it.
+
+**The election proof moved to `raft/election_proof/`**, a sibling of
+`v3_proof/`, flattened, aggregator inside, at Upamanyu's direction. Layout,
+reasons and costs are in [decisions.md](decisions.md). 332 files, 709
+reference lines.
+
+**How the rebase handled the move, which is the part worth knowing.** The
+move was first made on the pre-merge `main` (184 election files). By the time
+of the rebase `main` had 330 — 140 new, and a second helper directory,
+`proof_MajorityConfig__VoteResult_helpers/`. Replaying the original rename
+commit would have moved the old 184 and stranded the new 140 with dangling
+`Require` paths. So that one commit was **regenerated** instead: the other
+nine commits were cherry-picked onto `main` (conflicts only in append-only
+files and one "Last updated" date), and the move and rewrite scripts were
+re-run on the real tree. The move script now takes every `.v` file and every
+subdirectory, which is what caught the second helper directory the original
+hard-coded list would have missed. `journal.md` is excluded from the rewrite
+from the start, since its dated entries record the paths as they were.
+
+Static verification: 703 in-tree require targets all resolve except the two
+pre-existing `should_build.v` parse gaps; nothing outside this file names
+the old paths; both self-tests pass; `check-module-discipline --scope
+election_proof` exits 0; both ruff jobs clean. **Build owed on this tree**
+— the build recorded in the next entry was of the pre-rebase tree.
+955 lines, 5 `Admitted`, 7 `Axiom`. It requires `v3_proof/protocol.v`; no
+file in the repository requires *it*, under any spelling — confirmed by
+grep, independently of the tool. `make ci` has never compiled it, so its
+`Qed`s have never been checked by anything, and this section of `STATUS.md`
+opened by asserting that the directory was built.
+
+Worth noting for calibration: `STATUS.md` next step #8 had been proposing
+for days that its eleven loose triples be brought into the module
+discipline. Nobody had noticed the file was not in the build. **This is the
+failure G6 was written about, found the first time anything looked.**
+
+Also recorded: without `.rocqdeps.d` the fallback can *miss* an edge, since
+`rocqscan.requires` models `From X Require a b` as concatenation where Rocq
+does a prefix-filtered suffix match, and misses an `Import` that lands on
+the next line. `should_build.v` has two requires it cannot resolve for those
+reasons. So a false orphan is possible in principle — not here, where
+nothing names `readonly` at all. Fix the parser, and better, run `make` once
+so the build's own graph exists.
+
+### The election proof moved to `raft/election_proof/`
+
+At Upamanyu's direction, and because the previous finding made the point
+that `v3_proof/` was two unrelated developments sharing a directory: the
+election work is now a **sibling** of `v3_proof/`, flattened, with its
+aggregator inside it. `v3_proof/` keeps `base.v` (shared), `protocol.v` and
+`readonly.v`. Layout, the alternatives and the costs are in
+[decisions.md](decisions.md).
+
+~190 files moved, 451 lines of references rewritten across `.v`, `.md` and
+`etc/*.py`. Two things about how it was checked:
+
+- **There is no Rocq on this box, so the move is statically verified, not
+  compiled.** Every `Require` in the raft tree resolves through
+  `_RocqProject` to a file that exists (429 require targets, 0 unresolvable
+  except the two pre-existing `should_build.v` cases); nothing mentions the
+  old paths; `check-module-discipline.py --scope election_proof` exits 0;
+  both self-tests pass. **A build is owed** — `make -j8 TIMED=false
+  new/proof/go_etcd_io/raft/election_proof/election.required_vos`.
+- `notes/journal.md` was deliberately **excluded** from the reference
+  rewrite. It is append-only, and its dated entries are records of what the
+  paths were at the time. Everything else — STATUS, decisions, gotchas,
+  raft-proof-map, raft-election-refinement, tcb-accounting, CONTRIBUTING,
+  `bugs/` — was updated, including `--scope election` → `--scope
+  election_proof` in every command example.
+
+**Left for whoever picks this up:** run the build. Then Slice 1 items 2-4
+(never-allocated predicates, admission markers, run attribution), which are
+unclaimed and need no Rocq. And decide `readonly.v`'s fate: require it from
+`should_build.v` and find out whether it still compiles, or retire it
+deliberately.
+
+---
+
+## 2026-09-22 (evening) — the build: raft tree green at `.vok`, readonly.v included
+
+Claude Opus 5.5 (background job), branch `worktree-tcb-report-audit` at
+`21b678d3b`. Upamanyu asked for a build after the `election_proof/` move,
+which had been recorded as statically verified only.
+
+**Rocq was on the box all along** — `~/.opam/perennial/bin/rocq`, 9.4+alpha
+— just not on this shell's `PATH`. The earlier entry and the decision record
+said otherwise; the record is corrected, and gotchas.md now says how to
+find it.
+
+**What was run, and why not `make ci`.** Nothing anywhere had `.vo` files, so
+`make ci` would have meant a full `.vo` build of Perennial from scratch —
+hours on this box, with a `rocqworker` belonging to another session holding
+5.4 GB of the 15. Instead, the documented vos/vok route, in three phases:
+
+| phase | what | result |
+|---|---|---|
+| 1 | `.vos` closure of `election_proof/election.v` and `v3.v`, `-j4` | 459 files, **0 errors**, 8m16s, peak 1.2 GB |
+| 2 | `.vok` of all 197 raft files the build reaches, `-j2` | 197 files, **0 errors**, 27m, peak 2.8 GB |
+| 3 | `.vok` of `v3_proof/readonly.v`, an extra — nothing builds it | **0 errors**, 3m37s |
+
+`-j2` in phase 2 because the `Step` helpers peak ~2.3 GB each and three at
+once would have crowded the other session's worker. Phase 1 needed no
+rebuilds in phase 2, so the `.vos` closure was complete.
+
+**So:** the move is compiled, every proof body in the build checks, and
+`readonly.v` is not broken — only unwired. What this is *not*: a `make ci`.
+`-vok` skips universe-constraint checking (CONTRIBUTING.md), and the two
+`should_build.v` lines `rocqscan` cannot parse are off the raft path and
+were not exercised.
+
+**A scare worth recording, because it would have been easy to misread.**
+Phase 2 ended with `make` exit 0 and **zero `.vok` files on disk**. Rather
+than report either way, two direct tests: the exact `%.vok` invocation on a
+small file writes no `.vok` with or without `-o` (Rocq 9.4+alpha simply does
+not emit the marker), and a negative control — a file whose only `Qed`
+proves `False` — *fails* under the same flags while a true one passes. So
+the checking is real and the missing markers are a toolchain change. In
+gotchas.md, with the consequence that `make` can never treat a `.vok` target
+as up to date.
+
+**`.rocqdeps.d` now exists here**, so `etc/tcb-report.py` used the build's
+own graph for the first time. It agrees exactly with the fallback parser:
+197 files in the build, `readonly.v` the single orphan, a 195-file cone for
+`--scope election_proof`. That is also the first test of the `.rocqdeps.d`
+parser on real `rocq dep` output.
+
+Also found and verified: `etc/mkvok` matches nothing — it greps `make -n`
+for `echo "COQC`, and the Makefile prints `ROCQ COMPILE` (253 such lines for
+one target, 0 matches). In gotchas.md.
+
+**Left:** decide whether `readonly.v` is wired into `should_build.v` (it
+would pass) or retired. A real `make ci` is still the only thing that checks
+universes and the rest of `should_build.v`. Slice 1 items 2-4 remain
+unclaimed.
+
+---
+
+## 2026-09-22 (late) — readonly.v wired into should_build.v, as a stopgap
+
+Claude Opus 5.5 (background job), same branch. At Upamanyu's direction:
+`new/should_build.v:51` now requires `go_etcd_io.raft.v3_proof.readonly`,
+"for now" — the old proofs are due a larger clean-up later, and until then
+it is better checked than silently skipped.
+
+Verified through the build's own graph: after regenerating `.rocqdeps.d`,
+`rocq dep` records the new edge, and `etc/tcb-report.py` reports 198 files
+in the build (was 197) and **no file outside it**. The whole-tree assumed
+count rises from 33 to 45 — `readonly.v`'s 5 `Admitted` and 7 `Axiom`, which
+were always there and are now counted because they are now built. Not
+recompiled: `readonly.v` is unchanged and passed `-vok` an hour earlier, and
+the edit is one `Require` line. A `make ci` would compile `should_build.v`
+itself; nothing here has.
+
+The inserted line moved `election.v`'s entry from line 51 to 52; the three
+notes that cited it were corrected.
+
+---
+
+## 2026-09-22 (night) — rebased onto main; the merged election work builds green at `.vok`
+
+Claude Opus 5.5 (background job). Upamanyu asked for a rebase on `main`,
+which had meanwhile taken `worktree-election-close-admits` (17 commits, the
+election path closed modulo one admission) and a build-timing change.
+
+**How it was done.** Nine of the ten commits were cherry-picked onto `main`;
+their conflicts were all in append-only notes (`journal.md`, `decisions.md`,
+`gotchas.md` — keep both, `main`'s first), one "Last updated" date, and one
+`decisions.md` paragraph where the corrected text won. The tenth — the move
+to `election_proof/` — was **regenerated** rather than replayed, because
+`main` had 140 election files the original rename had never seen; the
+previous entry has the details. The pre-rebase branch is kept locally as
+`backup/tcb-report-audit-pre-rebase`; the rebased one was pushed as
+`worktree-tcb-report-audit-rebased`, since replacing the original remote
+branch needs a force-push, which is Upamanyu's call.
+
+**Then built, because a regenerated move over 140 unseen files is not
+something to leave unbuilt**, at `454e0d780`:
+
+| phase | what | result |
+|---|---|---|
+| 1 | `.vos` closure of `election_proof/election.v` and `v3.v`, `-j4` | 471 files, **0 errors**, 9m44s |
+| 2 | `.vok` of all 336 raft files — everything `should_build.v` reaches | 336 files, **0 errors**, 58m, peak 3.0 GB |
+
+This is the first reproducible build of the merged election work: the
+2026-09-21 audit's complaint was that its only evidence was a `-vok` sweep
+reported in a commit message. It still is not a `make ci` — `-vok` skips
+universe constraints — but it is a build at a named revision, re-runnable
+from the repository.
+
+`tcb-report.py`, now reading the regenerated `.rocqdeps.d`: **336 files in
+the build, none outside it**; the whole raft tree assumes 43 (8 `Admitted`,
+35 `Axiom`), and `--scope election_proof` 23 (1 and 22). The 43 is the same
+whole-tree figure the audit quoted for the election branch, now that
+`readonly.v`'s 12 are built and counted rather than merely present.
+
+The 3 gotchas from the earlier build still hold on `main`: its Makefile
+change only split the timing database by mode ("vok overwriting vo" meant
+timing rows), and left the `%.vok` rule alone.
+
+---
+
 ## 2026-09-22 — The election protocol's ghost state is constructed, not assumed
 
 Claude Opus 5 (background job), at Upamanyu's request: "prove all the axioms
@@ -2579,6 +3071,8 @@ separate worktrees do not share a session table or a memory budget, and the
 checkout. They still share `MemAvailable`, which eviction watches.
 `--compile` and `--rebuild` (build the `.vo`s from the check) are also
 documented now; neither is what this `vos`-only tree wants day to day.
+
+---
 
 ## 2026-09-22 (later) — Audit: what the election proof does *not* cover
 
@@ -2782,3 +3276,172 @@ introduce"). decisions.md ("Three layers") is amended to match.
 
 Evidence: `.vok` of all 332 election files, make exit 0; module discipline
 and TCB unchanged (10 `Axiom`, 1 `Admitted`).
+
+---
+
+## 2026-09-23 — tcb-report separates Go-function triples from root lemmas
+
+Claude Opus 5.5 (background job), branch `worktree-tcb-report-audit`
+(pushed as `…-rebased`). Upamanyu noticed `raft_election_safety` in
+`--view surface`'s "externally-facing results" and pointed out that it will
+be an internal protocol lemma serving some WP, not a result.
+
+**Why it was there.** `exported_surface` had two rules. Collections were
+handled correctly — a spec nothing calls is a result — but any file outside
+the collection layout that nothing in the proof root required had *every*
+unused non-definition promoted, triple or not; its docstring called such a
+theorem "the payoff". `should_build.v` is outside the proof root, so every
+aggregator looked like a leaf. That rule put `raft_election_safety` on the
+surface once `--scope` became a dependency cone, and `readonly.v`'s four
+protocol facts once it was wired in.
+
+**Now:** results are Go-function Hoare triples nothing else calls, however
+they are written — a collection's `_body`, or a loose lemma like `v3.v`'s
+`wp_Node__Propose` (checked through `follow_alias`). Everything else that
+nothing uses is a **root lemma**: its own section, not a result, not counted
+in the TCB and not seeding the definitions closure. An axiom or admit among
+them is still counted under assumed, as before.
+
+| | results | definitions | TCB |
+|---|---|---|---|
+| raft tree, before | 8 (+4 assumed) | 81 / 744 lines | 132 / 966 lines, 6.3% |
+| raft tree, after | 4 (+3 assumed) | 79 / 735 lines | 126 / 937 lines, 6.1% |
+| `--scope election_proof`, before | 2 | 53 / 605 lines | 78 / 689 lines |
+| `--scope election_proof`, after | **1** (`wp_raft__Step_body`) | 53 / 605 lines | 77 / 684 lines |
+
+Five root lemmas: `raft_election_safety`, and in `readonly.v`
+`start_heartbeat`, `start_req_ctx`, `heartbeat_ack_quorum_not_stale` and
+the assumed `is_committed_in_term_pers`. The election cone's definitions
+do not move, since everything the corollary mentions is reached from
+`Step`'s spec anyway.
+
+**The section says "not the same as safe to delete", for a reason worked out
+the same day** and recorded under consequence 1 of the 2026-09-21 decision:
+`raft_election_safety` is the *only* user of `own_raft_ghost_is_leader` and
+`is_leader_unique`, and without that pair the ghost state has a trivial,
+allocatable model (a per-id token ignoring `s`, `is_message` := `True`).
+Also found: `own_raft_ghost_excl` is used by nothing.
+
+**Left open:** the five triples for *unexported* Go functions in
+`readonly.v` (`wp_readOnly_*`, `sendMsgReadIndexresponse`,
+`stepLeader_MsgReadIndex`) are still results. By the 2026-09-21 decision no
+etcd caller can call them, so arguably they are not; making Go's export rule
+decide rather than annotate is Upamanyu's call. (`wp_Node__Propose` carries
+no Go tag either way: it calls `Propose` through the `Node` interface,
+`#(methods n.(interface.ty) "Propose" …)`, which names no concrete Go
+function to tag.)
+
+Verified: self-test extended with a leaf file holding a loose triple and a
+root lemma that is the only user of a definition; a mutant that promotes
+every root back to a result fails four of its assertions. Both ruff jobs
+clean; `check-module-discipline --scope election_proof` exits 0.
+
+---
+
+## 2026-09-23 (later) — tcb-report's summary table names its columns
+
+Upamanyu could not tell what the `43` in `assumed  43  125 lines` counted —
+fairly: the table had no header. It is **Rocq declarations** (one per
+`Axiom`, `Admitted` lemma, `Definition`, `Record`, …; the `43` is 35
+`Axiom` + 8 `Admitted`), and the second column is **source lines of those
+statements, proofs excluded** (`rocqscan.py:362`). Every row uses the same
+two units, so `TCB 126` is 43 + 4 + 79 declarations. The summary now prints
+a `decls` / `stmt size` header and a two-line legend under the TCB row.
+
+---
+
+## 2026-09-23 (later still) — "of those, trusted" was the wrong label
+
+Upamanyu asked what "of those, trusted" meant, given that everything in the
+table counts toward the TCB. Right: the row was named after the
+`(* Trusted *)` comment marker, not the TCB sense of trusted. By the
+convention in STATUS.md an `Admitted` means in scope but unfinished, and the
+marker picks out the admissions the development means to keep; all three
+marked declarations are `Admitted`. The row now reads **"admits meant to
+stay — marked (* Trusted *); the other 5 are unfinished"** (whole raft tree:
+3 of 8; election cone: 1 of 1), `--view assumed` tags them "(meant to stay)",
+and the marker's comment no longer claims "everything else is debt", which
+was false of the 35 axioms.
+
+Still true, and still G4: the marker cannot tell a benign modelling
+assumption from `wp_raftLog__slice_at`, whose own header says the triple is
+false at ~2^63 unstable entries. Nor does anything classify the axioms —
+the keyword is supposed to say "outside the protocol", but 12 of the 35 are
+the ghost-state axioms, which are owed work (STATUS next step #4).
+
+---
+
+## 2026-09-23 (evening) — the assumed breakdown: triples, undefined declarations, other
+
+At Upamanyu's direction. The summary's breakdown of the assumed row is now
+**Hoare triples about Go code / undefined declarations / other** (whole raft
+tree 15 / 15 / 13 = 43), replacing "opaque declarations" and "properties of
+the model" — the latter was a catch-all defined by exclusion, and none of
+its members is about the protocol model; they are facts about the undefined
+ghost predicates.
+
+The "admits meant to stay" row is gone. It was a count along a different
+axis — admits carrying a `(* Trusted *)` comment, all three of which are
+also triples — printed among the three categories, so it read as a fourth
+one that overlapped "Hoare triples about Go code". What matters in that
+table is how many things are `Admitted` or axiomatized, which the assumed
+row already says.
+
+And the marker's meaning is corrected everywhere: `(* Trusted *)` means an
+admission **signed off on for now**, not one "meant to stay" or
+"deliberate". It is still debt; the goal is no admits. `--view assumed`
+tags such admits "(signed off for now)"; STATUS's three mentions and
+tcb-accounting.md's G4 are updated.
+
+---
+
+## 2026-09-23 (night) — tcb-report no longer knows about etcd-raft
+
+At Upamanyu's direction: the tool must not be specialised to the election
+proof. It had one real hardcode — `DEFAULT_PROOF_ROOT =
+"new/proof/go_etcd_io/raft"`, so a bare `etc/tcb-report.py` silently
+reported on etcd-raft — plus docstrings, comments and `rocqscan.py`
+self-test fixtures written in this proof's names (`own_raft_ghost`,
+`raft_election_safety`, `v3.v`, `election_proof/`, `Follower | Candidate |
+Leader`, `raft.raft.poll`, `tracker.ProgressTracker`, …).
+
+`--proof-root` is now **required** (except for `--selftest`); with none the
+tool exits 2 with "name the development to report on". Every example is
+generic (`pkg.t.run`, `Lib.proof.pkg.m`, `foo/` beside `foo.v`), with the
+fixtures keeping the same syntactic shapes. What the tool still knows is
+conventions, not a development: Perennial's `{{{ }}}` triples, Goose's call
+forms, the collection layout, the `(* Trusted *)` marker, and this
+repository's `new/should_build.v` build root.
+
+Verified: all three self-tests pass, and 12 captured outputs —
+`check-module-discipline.py` three ways (which shares `rocqscan.py`),
+`tcb-report.py` in every view, scoped and not, and JSON — are
+**byte-identical** before and after, with `--proof-root
+new/proof/go_etcd_io/raft` passed explicitly. Every runnable invocation in
+CONTRIBUTING.md, AGENTS.md, STATUS.md and tcb-accounting.md now passes it.
+
+Not changed, deliberately out of scope: `check-module-discipline.py` has the
+same `DEFAULT_PROOF_ROOT` hardcode (line 75).
+
+---
+
+## 2026-09-23 (late) — merged to main without a finished build
+
+After merging `main` into this branch (`157cb9b14`: the ghost-state
+construction onto the `election_proof/` layout), the build of the merged tree
+was **stopped at Upamanyu's request** — the machine was needed for other
+work — and he is building elsewhere. Where it got to: `.vos` closure clean
+(331 files, including the new `protocol.v` and its `From Perennial Require
+Import NamedProps`); `.vok` 206 of 336 raft files, 0 errors. The rest,
+including most of the `Step` helpers, is unchecked on this tree. STATUS
+says so under "Build state of this tree".
+
+Then pushed to `main` as a fast-forward, and the branches this work used
+deleted: `worktree-tcb-report-audit` (the pre-rebase copy) and
+`worktree-tcb-report-audit-rebased` (now contained in `main`).
+
+**If CI goes red after this push**, the likely places, in order: a file
+downstream of `main`'s `spec_raft__Step.v`/`protocol.v` change that nobody
+re-checked; universe constraints, which `-vok` never checks; and
+`v3_proof/readonly.v`, which `make ci` compiles to `.vo` for the first time
+now that `should_build.v` requires it.

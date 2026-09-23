@@ -13,7 +13,7 @@ its own topic file in `notes/`, with a pointer from here.
 When a spec will not go through on `own_raft_phys` -- a callee needs a
 field the struct predicate hides, a caller must hold something across a
 call, a function runs while the struct is between two consistent states --
-the fix is a new field of `nstate.t` (`election/defs.v`) and a conjunct of
+the fix is a new field of `nstate.t` (`election_proof/defs.v`) and a conjunct of
 `own_raft_phys` that pins it, **not** a second predicate. This was done
 wrong three times (`own_raft_phys_at`, `own_raft_bare`, `own_raft_notrk`,
 2026-09-16 to 2026-09-21) and undone on 2026-09-22; notes/decisions.md,
@@ -156,7 +156,7 @@ It sometimes fails with "Cannot find witness" on goals as simple as
 `W32 5 = W32 0 → False`, in contexts where the same shape works elsewhere.
 Use instead:
 `intros Heq; apply (f_equal uint.Z) in Heq; vm_compute in Heq; discriminate.`
-(`w32_ne` in `new/proof/go_etcd_io/raft/v3_proof/election.v`.)
+(`w32_ne` in `new/proof/go_etcd_io/raft/election_proof/election.v`.)
 
 ## `wp_slice_literal` leaves the slice length unreduced
 
@@ -228,11 +228,11 @@ for a lemma whose type is *closed* (the `wp_<fn>_body` shape), forcing W's
 variables in would add binders its signature does not have, so the module
 ascription then fails with `Signature components for field ... do not match`.
 Restore the prelude default with `Set Default Proof Using "Type".` after the
-section — `new/proof/go_etcd_io/raft/v3_proof/election/proof_raft__Step.v`
+section — `new/proof/go_etcd_io/raft/election_proof/proof_raft__Step.v`
 does exactly this.
 ## The ambient binders of a `wp_<fn>_body`
 
-This is the single write-up of how `v3_proof/election/`'s closed-`_body` shape
+This is the single write-up of how `election_proof/`'s closed-`_body` shape
 handles the binders every spec opens with (`ext ffi ffi_interp0 Σ hG
 ffi_semantics0 sem package_sem`). The files themselves do not repeat it.
 
@@ -472,7 +472,7 @@ expected to have type "loc"` — which reads like a typo and is not.
 current environment" from `proof_raft__hup.v`, because the require chain
 `spec_raft__hup.v` → `inv_raft_phys.v` never reaches `step_lemmas.v`. The
 `step` **constructors** (`step_refl`, `step_campaign`, …) are always
-available, since they come in with `election_protocol.v` via `defs.v`; the
+available, since they come in with `election_proof/protocol.v` via `defs.v`; the
 derived composition lemmas in `step_lemmas.v` are not. Either use the
 constructor directly or check the chain first. (Found proving `hup`,
 2026-09-16.)
@@ -817,7 +817,7 @@ wp_func_call. wp_call.   (* wp_start's wp_func_call already ran, before the rewr
 
 There are siblings for `cap`, `clear`, `copy`, `delete`, `make1/2/3`. Worked
 example: `wp_ProgressMap_len` in
-`new/proof/go_etcd_io/raft/v3_proof/election/inv_tracker.v`.
+`new/proof/go_etcd_io/raft/election_proof/inv_tracker.v`.
 
 **`len` of an *array* type has no instance at all** — neither literal nor
 underlying-based; `new/golang/defn/array.v` declares none, and
@@ -1496,11 +1496,52 @@ and `etc/rocqc.py` migrates an old database in place the first time it writes
 to it. Legacy rows keep the only labels they can support: `vos`, or `vo` for
 everything else. `etc/timing-report.py --mode vok` on a freshly migrated
 database is therefore empty until something is rebuilt.
+## `rocq` is not on the `PATH` — it is in the `perennial` opam switch
+
+Found 2026-09-22. A fresh shell reports no `rocq`, `rocqc` or `coqc`, and
+`opam switch list` warns that the environment is not in sync. The toolchain
+is there — `~/.opam/perennial/bin/rocq`, Rocq 9.4+alpha — it just has to be
+put on the path first, in every shell, since shell state does not persist:
+
+    eval "$(opam env --switch=perennial --set-switch)"
+
+A session that did not know this recorded "there is no Rocq on the box" in
+`decisions.md` and settled for static verification of a 190-file move. Check
+`opam switch list` before concluding a build is impossible.
+
+## Rocq 9.4+alpha writes no `.vok` file, so a missing `.vok` proves nothing
+
+Found 2026-09-22. `rocq compile -vok X.v -o X.vok` exits 0 and writes
+`X.glob` and `.X.aux`, **but no `X.vok`** — with or without `-o`, even for a
+trivial file. `CONTRIBUTING.md` still says it "emits an empty `vok` file";
+on this toolchain it does not. Two consequences:
+
+- **Do not judge a `-vok` sweep by counting `.vok` files.** It will be zero
+  whether everything passed or nothing ran. Judge it by `make`'s exit status
+  and the `Error` lines in its log.
+- `make` can never consider a `.vok` target up to date, so every
+  `make … X.vok` rechecks from scratch. Budget accordingly: all 197 raft
+  files take ~27 minutes at `-j2`.
+
+**The checking itself is real** — confirmed with a negative control: a file
+requiring `election_proof/defs` whose only `Qed` proves `False` by `exact
+I` fails under the exact flags `make`'s `%.vok` rule uses (rc 1, the right
+type error), and the same file with a true lemma passes. The script is
+worth keeping as the template for "does this invocation actually check
+proofs?"
+
+## `etc/mkvok` is stale
+
+It collects its targets by grepping `make -n` for `echo "COQC `, but the
+`Makefile`'s rules now print `ROCQ COMPILE`, and its default `FILE` is
+`src/ShouldBuild.v`, where the build root is now `new/should_build.v`. It
+finds nothing. Drive `make` with explicit `.vok` targets instead, e.g. every
+file `etc/tcb-report.py` says the build reaches.
 
 ## `rewrite decide_False` takes the *outer* `decide` when they nest
 
 `become_follower`'s vote field is itself an `if decide (term = s.term) …`,
-and `vote_hist_ok` in `election_protocol.v` wraps that in
+and `vote_hist_ok` in `election_proof/protocol.v` wraps that in
 `if decide (… = W64 0) …`. `rewrite` matches outermost-leftmost, so
 `rewrite decide_False` picks the wrapper and leaves a side condition you
 cannot prove — reported as

@@ -1,0 +1,6 @@
+Require Export New.proof.go_etcd_io.raft.election_proof.proof_unstable__maybeLastIndex.
+
+Module UnstableMaybeLastIndexPostulates : UNSTABLE__MAYBELASTINDEX_POSTULATES.
+End UnstableMaybeLastIndexPostulates.
+
+Module UnstableMaybeLastIndex := UnstableMaybeLastIndexProof UnstableMaybeLastIndexPostulates.

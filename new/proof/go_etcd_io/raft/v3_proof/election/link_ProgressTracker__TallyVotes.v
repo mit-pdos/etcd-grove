@@ -1,8 +1,0 @@
-Require Export New.proof.go_etcd_io.raft.v3_proof.election.proof_ProgressTracker__TallyVotes.
-Require Export New.proof.go_etcd_io.raft.v3_proof.election.link_JointConfig__VoteResult.
-
-Module ProgressTrackerTallyVotesPostulates : PROGRESSTRACKER__TALLYVOTES_POSTULATES.
-  Include JointConfigVoteResult.
-End ProgressTrackerTallyVotesPostulates.
-
-Module ProgressTrackerTallyVotes := ProgressTrackerTallyVotesProof ProgressTrackerTallyVotesPostulates.

@@ -1,0 +1,6 @@
+Require Export New.proof.go_etcd_io.raft.election_proof.proof_ProgressTracker__RecordVote.
+
+Module ProgressTrackerRecordVotePostulates : PROGRESSTRACKER__RECORDVOTE_POSTULATES.
+End ProgressTrackerRecordVotePostulates.
+
+Module ProgressTrackerRecordVote := ProgressTrackerRecordVoteProof ProgressTrackerRecordVotePostulates.
