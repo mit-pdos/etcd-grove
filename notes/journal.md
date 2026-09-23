@@ -3037,3 +3037,33 @@ admission **signed off on for now**, not one "meant to stay" or
 "deliberate". It is still debt; the goal is no admits. `--view assumed`
 tags such admits "(signed off for now)"; STATUS's three mentions and
 tcb-accounting.md's G4 are updated.
+
+---
+
+## 2026-09-23 (night) — tcb-report no longer knows about etcd-raft
+
+At Upamanyu's direction: the tool must not be specialised to the election
+proof. It had one real hardcode — `DEFAULT_PROOF_ROOT =
+"new/proof/go_etcd_io/raft"`, so a bare `etc/tcb-report.py` silently
+reported on etcd-raft — plus docstrings, comments and `rocqscan.py`
+self-test fixtures written in this proof's names (`own_raft_ghost`,
+`raft_election_safety`, `v3.v`, `election_proof/`, `Follower | Candidate |
+Leader`, `raft.raft.poll`, `tracker.ProgressTracker`, …).
+
+`--proof-root` is now **required** (except for `--selftest`); with none the
+tool exits 2 with "name the development to report on". Every example is
+generic (`pkg.t.run`, `Lib.proof.pkg.m`, `foo/` beside `foo.v`), with the
+fixtures keeping the same syntactic shapes. What the tool still knows is
+conventions, not a development: Perennial's `{{{ }}}` triples, Goose's call
+forms, the collection layout, the `(* Trusted *)` marker, and this
+repository's `new/should_build.v` build root.
+
+Verified: all three self-tests pass, and 12 captured outputs —
+`check-module-discipline.py` three ways (which shares `rocqscan.py`),
+`tcb-report.py` in every view, scoped and not, and JSON — are
+**byte-identical** before and after, with `--proof-root
+new/proof/go_etcd_io/raft` passed explicitly. Every runnable invocation in
+CONTRIBUTING.md, AGENTS.md, STATUS.md and tcb-accounting.md now passes it.
+
+Not changed, deliberately out of scope: `check-module-discipline.py` has the
+same `DEFAULT_PROOF_ROOT` hardcode (line 75).

@@ -45,23 +45,28 @@ And what does *not* count, which is the other half of the point:
 
 Usage::
 
-    etc/tcb-report.py                        # summary + what is incomplete
-    etc/tcb-report.py --scope election_proof # what the build reaches from it
-    etc/tcb-report.py --view files           # every file's status
-    etc/tcb-report.py --view assumed         # every axiom and admit
-    etc/tcb-report.py --view surface         # results, root lemmas, their defs
-    etc/tcb-report.py --view all
-    etc/tcb-report.py --format json
+    etc/tcb-report.py --proof-root DIR               # summary + what is incomplete
+    etc/tcb-report.py --proof-root DIR --scope SUB   # what the build reaches from SUB
+    etc/tcb-report.py --proof-root DIR --view files  # every file's status
+    etc/tcb-report.py --proof-root DIR --view assumed   # every axiom and admit
+    etc/tcb-report.py --proof-root DIR --view surface   # results, root lemmas, defs
+    etc/tcb-report.py --proof-root DIR --view all
+    etc/tcb-report.py --proof-root DIR --format json
     etc/tcb-report.py --selftest
+
+``DIR`` is the development to report on, relative to ``--root``.  There is
+no default: which development to look at is the caller's choice, not the
+tool's.
 
 Always exits 0: this is a viewer, not a gate.  ``etc/check-module-discipline.py``
 is the gate, and the two share their parser (``etc/rocqscan.py``).
 
-Nothing here knows any particular package, function or file name.  It does
-know the *conventions* named in the constants below -- the collection layout,
-Perennial's triple notation, Goose's rendering of a call -- so
-``--proof-root`` aims it at another development that shares them, and it
-degrades to the file-status half for one that does not.
+Nothing here knows any particular development, package, function or file
+name.  It does know the *conventions* named in the constants below -- the
+collection layout, Perennial's triple notation, Goose's rendering of a call,
+this repository's build root -- so ``--proof-root`` aims it at any
+development that shares them, and it degrades to the file-status half for
+one that does not.
 
 How much to believe it
 ----------------------
@@ -103,9 +108,6 @@ from rocqscan import (
 # --------------------------------------------------------------------------
 # Defaults and conventions.
 
-# The development to look at.  Any tree of .v files will do.
-DEFAULT_PROOF_ROOT = "new/proof/go_etcd_io/raft"
-
 # The file kinds of a spec/postulates/proof/link collection, as
 # etc/check-module-discipline.py defines them.  Used for two things: to tell
 # an internal function's spec from an exported one (a collection nothing else
@@ -128,11 +130,11 @@ BODY_SUFFIX = "_body"
 TRUSTED_MARKER = r"\bTrusted\b"
 
 # An assumption whose statement ends in a sort or in `iProp Σ` is an
-# undefined declaration: `Axiom own_raft_ghost : ∀ γ id s, iProp Σ.` names a
+# undefined declaration: `Axiom own_state : ∀ γ s, iProp Σ.` names a
 # predicate and gives it no definition.  Alone it asserts nothing and cannot
 # be false; what it means is fixed only by the other axioms about it, and
-# because nobody can see inside it, those can be satisfied trivially -- by
-# `False`, for the ghost state (notes/tcb-accounting.md, G3).
+# because nobody can see inside it, those may be satisfiable trivially --
+# for instance by defining it as `False`.
 DECLARATION_TAIL_RE = re.compile(r"(?:Type|Set|Prop|iProp\s+\S+|iProp)\s*\.?\s*$")
 
 
@@ -184,12 +186,12 @@ LOADPATH_RE = re.compile(
 def logical_roots(root):
     """[(logical prefix, directory)] from `_RocqProject`, longest first.
 
-    This is how Rocq itself turns `New.code.go_etcd_io.raft.v3` into a file,
-    and the only way to do it right: the tail-matching fallback below cannot
-    tell that logical path from `New.proof.go_etcd_io.raft.v3`, since they
-    agree on their last three components.  Getting that wrong invents an
-    edge from the raft proof's `base.v` to the raft proof's `v3.v`, which is
-    how a dependency cone comes to contain half the development.
+    This is how Rocq itself turns `Lib.code.pkg.m` into a file, and the only
+    way to do it right: the tail-matching fallback below cannot tell that
+    logical path from `Lib.proof.pkg.m`, since they agree on their last two
+    components.  Getting that wrong invents an edge from any file that
+    requires the one to the other, which is how a dependency cone comes to
+    contain half a development.
     """
     path = os.path.join(root, ROCQPROJECT)
     if not os.path.isfile(path):
@@ -220,8 +222,8 @@ def resolve_logical(name, roots):
 def require_graph(units, roots=None):
     """path -> set of paths it requires, resolved by longest path suffix.
 
-    A logical path (``New.proof.go_etcd_io.raft.election_proof.defs``)
-    and a file path (``new/proof/go_etcd_io/raft/election_proof/defs.v``)
+    A logical path (``Lib.proof.pkg.defs``) and a file path
+    (``lib/proof/pkg/defs.v``)
     agree on their tail and disagree on their head, since the logical root is
     declared in _RocqProject rather than in the source.  Matching on the
     longest common tail needs neither.  It also cannot tell two logical
@@ -375,13 +377,13 @@ def scope_seeds(scope_dir, units):
     """Where a cone-scoped report starts.
 
     An aggregator *beside* the directory is the honest root when there is
-    one -- that is the `v3.v` / `v3_proof/` shape, and such a file is what
-    `should_build.v` requires, so it defines the extent of what is built.
+    one -- `foo.v` next to `foo/` -- since such a file is what the build
+    root requires, so it defines the extent of what is built.
 
     Otherwise every unit under the directory seeds the cone.  That is the
     case for a self-contained directory that keeps its own aggregator
-    inside it, such as `election_proof/` with `election_proof/election.v`,
-    and it gives the same answer: a cone seeded from all of a directory is
+    inside it, such as `foo/` holding `foo/all.v`, and it gives the same
+    answer: a cone seeded from all of a directory is
     the old path filter plus everything those files depend on.  An unused
     file *inside* the directory still seeds the cone, so it is the
     build-root orphan check, not the scope, that catches one.
@@ -607,11 +609,9 @@ def exported_surface(units, edges, index, mentioned):
         calling, and if it were, every collection would look internal.
       * a **declaration** in a non-collection file nothing else requires,
         which nothing else names.  If its statement is a Hoare triple it is
-        a result, the same as a collection's (``v3.v``'s
-        ``wp_Node__Propose`` is one).  If not, it is a **root lemma**: a
-        protocol fact nothing uses *yet* -- ``raft_election_safety`` is one
-        -- which is an internal step towards some spec, not something a
-        client reads.  It is reported, so that it stays visible, but it is
+        a result, the same as a collection's.  If not, it is a **root
+        lemma**: a protocol fact nothing uses *yet*, which is an internal
+        step towards some spec, not something a client reads.  It is reported, so that it stays visible, but it is
         neither a result nor part of the TCB.  Do not read "unused" as "safe
         to delete": a root lemma can be the only thing using an axiom, and
         so the only thing keeping that axiom's obligation alive.
@@ -756,7 +756,7 @@ def build_report(units, edges, scope_dir, root, marker, selection=None):
             # wherever it lives.
             return path in selected
         # Path-filter mode.  Compare path components, not characters, so
-        # that a scope of `.../election_proof` does not swallow a sibling
+        # that a scope of `.../foo` does not swallow a sibling `.../foo_bar`
         # whose name merely starts the same way.
         return path == scope_abs or path.startswith(scope_abs + os.sep)
 
@@ -796,8 +796,7 @@ def build_report(units, edges, scope_dir, root, marker, selection=None):
         "orphans": sel.get("orphans", []),
         # Of the assumptions in this report, how many live outside the scope
         # directory -- reached because the scope depends on them.  The count
-        # G2 was about: `--scope election_proof` used to print neither them nor
-        # the fact that it had dropped them.
+        # a path-filtered scope used to drop without saying so.
         "assumed_outside_scope_dir": sum(
             1 for r in scoped_assumed if outside_scope_dir(r["file"])
         ),
@@ -1381,10 +1380,9 @@ Module GProof (P : F) : G.
 End GProof.
 """,
     # A file nothing requires, outside the collection layout: one triple
-    # stated as a loose lemma (a result, like v3.v's wp_Node__Propose) and
-    # one protocol fact nothing uses (a root lemma, like
-    # raft_election_safety).  Only the first is a result, and only the first
-    # seeds the definitions closure.
+    # stated as a loose lemma (a result) and one protocol fact nothing uses
+    # (a root lemma).  Only the first is a result, and only the first seeds
+    # the definitions closure.
     "top.v": """\
 Require Export model.
 Definition only_used_here : Prop := True.
@@ -1484,8 +1482,10 @@ def main():
     )
     ap.add_argument(
         "--proof-root",
-        default=DEFAULT_PROOF_ROOT,
-        help=f"the development to look at, relative to --root (default: {DEFAULT_PROOF_ROOT})",
+        default=None,
+        help="the development to look at, relative to --root -- a directory "
+        "of .v files.  Required (except with --selftest): the tool does not "
+        "pick a development for you",
     )
     ap.add_argument(
         "--scope",
@@ -1536,6 +1536,8 @@ def main():
 
     if args.selftest:
         return selftest()
+    if not args.proof_root:
+        ap.error("--proof-root is required: name the development to report on")
 
     root = os.path.abspath(args.root)
     proof_root = os.path.join(root, args.proof_root)

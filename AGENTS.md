@@ -49,7 +49,8 @@ loop use `make vos`, or a targeted `make <file>.required_vos`.
 `CONTRIBUTING.md` has the details, including the `vos`/`vok` tricks.
 
 **Auditing is two separate commands**: `make` first — that is the only thing
-that checks the proofs — and then `etc/tcb-report.py`, whose entire job is to
+that checks the proofs — and then `etc/tcb-report.py --proof-root
+new/proof/go_etcd_io/raft`, whose entire job is to
 check what the build cannot (that the statements say what was meant, that an
 axiom set is not satisfied trivially, and that nothing is silently outside
 the build). Neither substitutes for the other; see

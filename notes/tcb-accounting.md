@@ -15,8 +15,10 @@ anyone.
 Set 2026-09-22. **An audit is two commands, in this order, and neither
 substitutes for the other.**
 
-    make ci                                    # or a narrower .vo target
-    etc/tcb-report.py                          # what the build cannot check
+    make ci                                           # or a narrower .vo target
+    etc/tcb-report.py --proof-root new/proof/go_etcd_io/raft   # what the build cannot check
+
+`--proof-root` is required: the tool names no development of its own.
 
 **Step 1 — `make` is the ground truth that the proofs check.** `make ci`
 builds `new/should_build.vo`, which reaches
@@ -423,7 +425,7 @@ Quote step 1 and step 2 together, or neither: **"`make` green at `<rev>`;
 text file.
 
 For step 2, quote **the full-tree run**
-(`etc/tcb-report.py` with no `--scope`), which on
+(`etc/tcb-report.py --proof-root new/proof/go_etcd_io/raft` with no `--scope`), which on
 `worktree-election-close-admits` says *43 assumed — 8 `Admitted`, 35
 `Axiom` — 80 definitions, 953 lines, 6.2% of the development*, and say in the
 same breath that the numbers are syntactic and that the exported triple

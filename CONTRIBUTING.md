@@ -49,12 +49,13 @@ grepping: where the proof is incomplete, and what has to be believed for its
 results to mean anything.
 
 ```
-etc/tcb-report.py                        # summary + the incomplete files
-etc/tcb-report.py --scope election_proof
-etc/tcb-report.py --view assumed         # every axiom and Admitted, classified
-etc/tcb-report.py --view surface         # the exported statements, and what they rest on
-etc/tcb-report.py --view files           # one line per file
-etc/tcb-report.py --format json
+R=new/proof/go_etcd_io/raft          # the development to report on; there is no default
+etc/tcb-report.py --proof-root $R                 # summary + the incomplete files
+etc/tcb-report.py --proof-root $R --scope election_proof
+etc/tcb-report.py --proof-root $R --view assumed  # every axiom and Admitted, classified
+etc/tcb-report.py --proof-root $R --view surface  # results, root lemmas, and what they rest on
+etc/tcb-report.py --proof-root $R --view files    # one line per file
+etc/tcb-report.py --proof-root $R --format json
 etc/tcb-report.py --selftest
 ```
 

@@ -60,9 +60,9 @@ errors, 58m at `-j2`, peak 3.0 GB. So every proof body in the raft build
 checks — the election work's included, which until now had only a
 commit-message report of a `-vok` sweep behind it. Two limits: `-vok` does
 not check universe constraints (CONTRIBUTING.md), so this is not a `make
-ci`; and it changes no assumption — `etc/tcb-report.py --scope
-election_proof` still lists 1 `Admitted` and 22 `Axiom`, and the whole raft
-tree 43 (8 and 35).
+ci`; and it changes no assumption — `etc/tcb-report.py --proof-root
+new/proof/go_etcd_io/raft --scope election_proof` still lists 1 `Admitted`
+and 22 `Axiom`, and the whole raft tree 43 (8 and 35).
 
 - `v3_proof/base.v` (62 lines) — `IsPkgInit` instances for the raft package and
   its dependencies (raftpb, quorum, tracker, confchange, strconv, strings,
@@ -172,7 +172,7 @@ concurrent items edit the same shared file.
 
 **Outcome (2026-09-21).** Every Hoare triple on the election path is `Qed`
 except one admission, signed off on for now and marked `(* Trusted *)`.
-`etc/tcb-report.py --scope election_proof`
+`etc/tcb-report.py --proof-root new/proof/go_etcd_io/raft --scope election_proof`
 now counts **1 `Admitted` and 10 `Axiom`s** against 169 Qed lemmas
 and 78 discharged signatures, and every axiom is on the declared trust
 boundary: `is_Logger`/`is_Logger_pers`/`wp_Logger__logf` (client `Logger`),
@@ -445,16 +445,17 @@ over-counts, because several doc comments quote a probe lemma ending in
 `Admitted.` and the `spec_*.v` files are full of `Parameter`s. Since
 2026-09-18 the counts are printed:
 
-    etc/tcb-report.py                    # summary, and which files are incomplete
-    etc/tcb-report.py --scope election_proof
-    etc/tcb-report.py --view assumed     # every axiom and admit, classified
-    etc/tcb-report.py --view surface     # results (Go triples), root lemmas, their defs
+    R=new/proof/go_etcd_io/raft      # required; the tool has no default
+    etc/tcb-report.py --proof-root $R                  # summary, and which files are incomplete
+    etc/tcb-report.py --proof-root $R --scope election_proof
+    etc/tcb-report.py --proof-root $R --view assumed   # every axiom and admit, classified
+    etc/tcb-report.py --proof-root $R --view surface   # results (Go triples), root lemmas, their defs
 
 **An audit is two commands, and this is only the second one** (set
 2026-09-22, [tcb-accounting.md](tcb-accounting.md)):
 
-    make ci                  # step 1: the proofs check.  Ground truth.
-    etc/tcb-report.py        # step 2: what step 1 cannot check.
+    make ci                                           # step 1: the proofs check.  Ground truth.
+    etc/tcb-report.py --proof-root new/proof/go_etcd_io/raft   # step 2: what step 1 cannot check.
 
 `tcb-report.py` is a source-text scanner and does not invoke Rocq — by
 design, since checking proofs is step 1's job. So a figure from it means
