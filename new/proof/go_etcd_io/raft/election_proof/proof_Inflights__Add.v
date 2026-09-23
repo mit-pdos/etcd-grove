@@ -28,8 +28,8 @@ Import P.
     [ iPureIntro; word | ];
     iIntros "Hbuf";
     wp_auto;
-    iApply "HΦ"; rewrite /own_inflights /own_inflights_at;
-    iExists _, _; iFrame "Hiv Hbuf Hbuf_cap"; iPureIntro;
+    iApply "HΦ"; iExists _, _; rewrite /own_inflights;
+    iFrame "Hiv Hbuf Hbuf_cap"; iPureIntro;
     rewrite /inflights_ok /= length_insert;
     split_and!; solve [ word | left; word | right; word ].
 
@@ -65,7 +65,7 @@ Import P.
   Lemma wp_Inflights__Add : wp_Inflights__Add_body.
   Proof.
     intros_ambient.
-    intros l iv index bytes Hfull.
+    intros l iv buf index bytes Hfull.
     wp_start as "H". iNamed "H". wp_auto.
     wp_apply (wp_Inflights__Full with "[$Hin]") as "Hin".
     rewrite Hfull.
@@ -98,11 +98,17 @@ Import P.
     - (* no wrap: [next = start + count] *)
       wp_if_destruct.
       + (* the occupied range reaches the end of the buffer: grow *)
-        wp_apply (wp_Inflights__grow with "[$Hiv $Hbuf $Hbuf_cap]")
+        iAssert (own_inflights l iv buf) with "[Hiv Hbuf Hbuf_cap]" as "Hin".
+        { rewrite /own_inflights. iFrame. iPureIntro.
+          exact (conj Hs0 (conj Hc (conj Hbl (conj Hsz (conj Hstart Hring))))). }
+        wp_apply (wp_Inflights__grow with "[$Hin]")
           as "%sl %buf' Hg".
         { word. }
         { word. }
-        iNamed "Hg".
+        iNamed "Hg". iNamed "Hin".
+        (* [own_inflights] states the buffer as [(iv <| buffer' := sl |>).(buffer')];
+           [add_store]'s [word] needs it as [sl] *)
+        iEval (rewrite /=) in "Hbuf".
         add_store (tracker.inflight.mk index bytes).
       + add_store (tracker.inflight.mk index bytes).
   Qed.

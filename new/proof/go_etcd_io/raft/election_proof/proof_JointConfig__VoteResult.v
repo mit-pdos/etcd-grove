@@ -21,7 +21,7 @@ Import P.
   Lemma wp_JointConfig__VoteResult : wp_JointConfig__VoteResult_body.
   Proof.
   intros_ambient.
-  intros cfg trk tv votes.
+  intros cfg trk tv votes prs.
   wp_start as "[Htrk Hown]". iNamed "Hown".
   wp_auto.
   wp_method_call. wp_call. wp_call.
@@ -58,21 +58,21 @@ Import P.
     iApply ("HΦ" $! VoteWon). iFrame "Htrk".
     iSplitL "Hvotes Hprogs Hvoters Hlearners HlearnersNext".
     { rewrite /own_tracker.
-      iExists prs, voters_ref, voters', learners, learnersNext. iFrame "∗#%". }
+      iExists voters_ref, voters', learners, learnersNext. iFrame "∗#%". }
     iPureIntro. split_and!; [ by left | by apply Hwon1 | by apply Hlost1 ].
   - (* [r1] lost, [r2] won: the second test fires on [r1] *)
     case_bool_decide as Hcmp; first (w8_absurd Hcmp). wp_auto.
     iApply ("HΦ" $! VoteLost). iFrame "Htrk".
     iSplitL "Hvotes Hprogs Hvoters Hlearners HlearnersNext".
     { rewrite /own_tracker.
-      iExists prs, voters_ref, voters', learners, learnersNext. iFrame "∗#%". }
+      iExists voters_ref, voters', learners, learnersNext. iFrame "∗#%". }
     iPureIntro. split_and!; [ by right; left | by apply Hwon1 | by apply Hlost1 ].
   - (* [r1] still pending: neither test fires *)
     case_bool_decide as Hcmp; first (w8_absurd Hcmp). wp_auto.
     iApply ("HΦ" $! VotePending). iFrame "Htrk".
     iSplitL "Hvotes Hprogs Hvoters Hlearners HlearnersNext".
     { rewrite /own_tracker.
-      iExists prs, voters_ref, voters', learners, learnersNext. iFrame "∗#%". }
+      iExists voters_ref, voters', learners, learnersNext. iFrame "∗#%". }
     iPureIntro.
     split_and!; [ by right; right | by apply Hwon1 | by apply Hlost1 ].
   Qed.

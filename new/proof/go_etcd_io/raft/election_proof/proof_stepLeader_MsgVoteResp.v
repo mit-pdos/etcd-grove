@@ -51,14 +51,19 @@ Set Default Proof Using "Type".
   Proof.
     intros_ambient.
     intros cfg r id s m.
-    intros Hty.
-    wp_start as "Hphys". iNamed "Hphys". wp_auto.
+    intros Hty Hlent.
+    wp_start as "Hphys". iNamed "Hphys".
+    (* the progress map's points-to, read out of the tracker and the
+       tracker closed again: nothing else of it is needed *)
+    iDestruct (own_tracker_unless_open _ _ _ _ _ Hlent with "Htrk") as "Htrk".
+    iDestruct (own_tracker_progress_map with "Htrk") as "(#Hprs & _ & Htrk)".
+    iDestruct (own_tracker_unless_close _ _ _ _ _ Hlent with "Htrk") as "Htrk".
+    wp_auto.
     (* first switch *)
     rewrite Hty /MsgVoteResp.
     rewrite bool_decide_eq_false_2; last w32_ne.
     wp_auto.
-    (* pr := r.trk.Progress[m.From], through [own_raft_phys]'s own pin of
-       the progress map -- the tracker itself is not needed *)
+    (* pr := r.trk.Progress[m.From] *)
     wp_apply (wp_map_lookup1 with "Hprs") as "_".
     case_bool_decide as Hnil.
     - (* no progress for the sender: log and return nil *)

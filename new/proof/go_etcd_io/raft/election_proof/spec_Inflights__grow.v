@@ -9,10 +9,11 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
       copy(newBuffer, in.buffer)
       in.buffer = newBuffer
 
-    Stated over the *pieces* of [own_inflights_at] rather than over the
-    predicate itself, because the premise and the conclusion are both about
-    the **length of the buffer**, which [own_inflights_at] hides.  The only
-    caller is [Inflights.Add], which holds the pieces open anyway.
+    Stated on [own_inflights] at the exact buffer contents: the premise and
+    the conclusion are both about the **length of the buffer**, which is why
+    [own_inflights] is indexed by the buffer and not only by the value.
+    (Until 2026-09-23 this was stated over the predicate's raw pieces.)  The
+    only caller is [Inflights.Add].
 
     The premise [len(buffer) < size] is the "grow on demand" contract, and it
     is necessary rather than convenient: with [size = 0] (hence
@@ -33,16 +34,10 @@ Definition wp_Inflights__grow_body :=
     (l : loc) (iv : tracker.Inflights.t) (buf : list tracker.inflight.t),
   (Z.of_nat (length buf) < sint.Z iv.(tracker.Inflights.size'))%Z →
   (sint.Z iv.(tracker.Inflights.size') < 2 ^ 62)%Z →
-  {{{ is_pkg_init tracker ∗
-      "Hiv" ∷ l ↦ iv ∗
-      "Hbuf" ∷ iv.(tracker.Inflights.buffer') ↦* buf ∗
-      "Hbuf_cap" ∷ own_slice_cap tracker.inflight.t
-                     iv.(tracker.Inflights.buffer') (DfracOwn 1) }}}
+  {{{ is_pkg_init tracker ∗ "Hin" ∷ own_inflights l iv buf }}}
     l @! (go.PointerType tracker.Inflights) @! "grow" #()
   {{{ (sl : slice.t) (buf' : list tracker.inflight.t), RET #();
-      "Hiv" ∷ l ↦ (iv <| tracker.Inflights.buffer' := sl |>) ∗
-      "Hbuf" ∷ sl ↦* buf' ∗
-      "Hbuf_cap" ∷ own_slice_cap tracker.inflight.t sl (DfracOwn 1) ∗
+      "Hin" ∷ own_inflights l (iv <| tracker.Inflights.buffer' := sl |>) buf' ∗
       "%Hlen" ∷ ⌜ Z.of_nat (length buf')
                   = Z.max 1 (Z.min (2 * Z.of_nat (length buf))
                                    (sint.Z iv.(tracker.Inflights.size'))) ⌝ ∗

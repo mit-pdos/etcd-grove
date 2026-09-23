@@ -7,10 +7,10 @@ Definition wp_Progress__BecomeReplicate_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
-    (pr : loc),
-  {{{ is_pkg_init tracker ∗ own_progress pr }}}
+    (pr : loc) (pv : tracker.Progress.t) (iv : tracker.Inflights.t),
+  {{{ is_pkg_init tracker ∗ own_progress pr pv iv }}}
     pr @! (go.PointerType tracker.Progress) @! "BecomeReplicate" #()
-  {{{ RET #(); own_progress pr }}}.
+  {{{ RET #(); ∃ pv' iv', own_progress pr pv' iv' }}}.
 
 Module Type PROGRESS__BECOMEREPLICATE.
   Parameter wp_Progress__BecomeReplicate : wp_Progress__BecomeReplicate_body.

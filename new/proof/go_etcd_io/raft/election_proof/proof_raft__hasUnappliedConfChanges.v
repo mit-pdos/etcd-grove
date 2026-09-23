@@ -70,7 +70,7 @@ Import P.
       iDestruct (own_raftLog_unless_close _ _ Hlent with "Hlog0") as "Hlog0".
       iApply "HΦ".
       iApply (own_raft_phys_intro with
-        "Hr Hlogger Hprs Htrk Hlog0 Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done.
+        "Hr Hlogger Htrk Hlog0 Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done.
     - (* re-seal the log: [scan]'s spec is stated on [own_raftLog_at] *)
       iAssert (own_raftLog_at rv.(raft.raft.raftLog') prev sents uents)
         with "[Hl HStorage Huents Huents_cap]" as "Hlog".
@@ -132,7 +132,7 @@ Import P.
       iDestruct (own_raftLog_unless_close _ _ Hlent with "Hlog0") as "Hlog0".
       iApply "HΦ".
       iApply (own_raft_phys_intro with
-        "Hr Hlogger Hprs Htrk Hlog0 Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done.
+        "Hr Hlogger Htrk Hlog0 Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done.
   Qed.
 
 End RaftHasUnappliedConfChangesProof.

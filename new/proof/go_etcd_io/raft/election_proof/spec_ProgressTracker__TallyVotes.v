@@ -37,11 +37,11 @@ Definition wp_ProgressTracker__TallyVotes_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
-    (cfg : gset w64) (trk : loc) tv votes,
-  {{{ is_pkg_init tracker ∗ trk ↦ tv ∗ own_tracker cfg tv votes }}}
+    (cfg : gset w64) (trk : loc) tv votes (prs : gmap w64 loc),
+  {{{ is_pkg_init tracker ∗ trk ↦ tv ∗ own_tracker cfg tv votes prs }}}
     trk @! (go.PointerType tracker.ProgressTracker) @! "TallyVotes" #()
   {{{ (g rj : w64) (res : w8), RET (#g, #rj, #res);
-      trk ↦ tv ∗ own_tracker cfg tv votes ∗
+      trk ↦ tv ∗ own_tracker cfg tv votes prs ∗
       ⌜ res = VoteWon ∨ res = VoteLost ∨ res = VotePending ⌝ ∗
       ⌜ res = VoteWon → is_quorum cfg (granted votes) ⌝ ∗
       (* [VoteLost] means the candidate **cannot still win**, not that a

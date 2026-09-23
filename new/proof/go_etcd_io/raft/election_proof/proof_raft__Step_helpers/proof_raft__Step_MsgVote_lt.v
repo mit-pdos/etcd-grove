@@ -100,7 +100,7 @@ Implicit Type s : nstate.t.
           with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
           as "Hphys".
         { iApply (own_raft_phys_intro with
-          "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
+          "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
         iApply ("HΦ" $! interface.nil s). iFrame "Hphys".
         iPureIntro. split; first exact Hwf. split; last done. exists [].
         split; [recv_elem|apply step_drop].

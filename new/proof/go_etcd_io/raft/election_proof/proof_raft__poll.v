@@ -21,7 +21,7 @@ Import P.
     intros_ambient.
     intros cfg r id s from t v Hlent.
     wp_start as "Hphys". iNamed "Hphys".
-    iDestruct (own_tracker_unless_open _ _ _ _ Hlent with "Htrk") as "Htrk".
+    iDestruct (own_tracker_unless_open _ _ _ _ _ Hlent with "Htrk") as "Htrk".
     wp_auto.
     destruct v.
     - (* a granted vote *)
@@ -43,7 +43,7 @@ Import P.
       wp_apply (wp_ProgressTracker__TallyVotes with "[$Htrkf $Htrk]")
         as "%g %rj %res (Htrkf & Htrk & %Hres & %Hwon & %Hlost)".
       iDestruct ("Hrback" with "Htrkf") as "Hr".
-      iDestruct (own_tracker_unless_close _ _ _ _ Hlent with "Htrk") as "Htrk".
+      iDestruct (own_tracker_unless_close _ _ _ _ _ Hlent with "Htrk") as "Htrk".
       iApply ("HΦ" $! g rj res).
       iSplitL "Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc".
       { rewrite /own_raft_phys. iExists rv, msgs, msgsAA, lok.
@@ -68,7 +68,7 @@ Import P.
       wp_apply (wp_ProgressTracker__TallyVotes with "[$Htrkf $Htrk]")
         as "%g %rj %res (Htrkf & Htrk & %Hres & %Hwon & %Hlost)".
       iDestruct ("Hrback" with "Htrkf") as "Hr".
-      iDestruct (own_tracker_unless_close _ _ _ _ Hlent with "Htrk") as "Htrk".
+      iDestruct (own_tracker_unless_close _ _ _ _ _ Hlent with "Htrk") as "Htrk".
       iApply ("HΦ" $! g rj res).
       iSplitL "Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc".
       { rewrite /own_raft_phys. iExists rv, msgs, msgsAA, lok.

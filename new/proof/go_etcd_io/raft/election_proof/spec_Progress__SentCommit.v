@@ -10,10 +10,10 @@ Definition wp_Progress__SentCommit_body :=
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (pr : loc) (pv : tracker.Progress.t) (iv : tracker.Inflights.t)
     (commit : w64),
-  {{{ is_pkg_init tracker ∗ "Hpr" ∷ own_progress_at pr pv iv }}}
+  {{{ is_pkg_init tracker ∗ "Hpr" ∷ own_progress pr pv iv }}}
     pr @! (go.PointerType tracker.Progress) @! "SentCommit" #commit
   {{{ RET #();
-      own_progress_at pr (pv <| tracker.Progress.sentCommit' := commit |>) iv }}}.
+      own_progress pr (pv <| tracker.Progress.sentCommit' := commit |>) iv }}}.
 
 Module Type PROGRESS__SENTCOMMIT.
   Parameter wp_Progress__SentCommit : wp_Progress__SentCommit_body.

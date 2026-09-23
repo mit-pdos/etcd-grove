@@ -11,7 +11,7 @@ Module JointConfigIDsProof (P : JOINTCONFIG__IDS_POSTULATES) : JOINTCONFIG__IDS.
   Proof.
     intros_ambient.
     intros cfg.
-    intros trk tv votes.
+    intros trk tv votes prs.
     wp_start as "[Htrk Hown]". iNamed "Hown".
     (* [wp_auto] reads [r.trk.Config.Voters] out of [trk ↦ tv] and reduces the
        pointer method to the value method applied to the [JointConfig] value. *)
@@ -81,7 +81,7 @@ Module JointConfigIDsProof (P : JOINTCONFIG__IDS_POSTULATES) : JOINTCONFIG__IDS.
        [own_tracker]'s own [voters_ref ↦$ voters]; re-seal the tracker first. *)
     iApply "HΦ". iFrame "Htrk".
     iSplitL "Hvotes Hprogs Hvoters Hlearners HlearnersNext".
-    { rewrite /own_tracker. iExists prs, voters_ref, voters, learners, learnersNext.
+    { rewrite /own_tracker. iExists voters_ref, voters, learners, learnersNext.
       iFrame "∗#%". }
     iFrame "Hmref".
     iPureIntro. rewrite Hidm Hkset Hvoters_dom //.

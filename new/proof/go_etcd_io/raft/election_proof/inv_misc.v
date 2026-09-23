@@ -29,32 +29,45 @@ Context (cfg : gset w64).
     [pendingReadIndexMessages] slice.  The *contents* are existential --
     election never reads any of it -- but the ownership is real, so nothing
     else in the development can claim the same heap. *)
-Definition own_raft_misc (readStates : slice.t) (ro : loc)
-                         (pendingReadIndex : slice.t) : iProp Σ :=
-  ∃ (rss : list raft.ReadState.t) (rov : raft.readOnly.t)
-    (acks : gmap w64 w64) (ucr : list loc)
-    (prims : list raftpb.Message.t),
-  "HreadStates" ∷ readStates ↦* rss ∗
-  "HreadStates_cap" ∷ own_slice_cap raft.ReadState.t readStates (DfracOwn 1) ∗
+(** The [readOnly] object: the struct, its [acks] map and its
+    [unconfirmedReads] slice.  Its own predicate because [newReadOnly]
+    allocates one: that spec owns nothing going in and hands back exactly
+    this (2026-09-23; it used to consume and return the whole of
+    [own_raft_misc], including two slices it never touches). *)
+Definition own_read_only (ro : loc) : iProp Σ :=
+  ∃ (rov : raft.readOnly.t) (acks : gmap w64 w64) (ucr : list loc),
   "Hro" ∷ ro ↦ rov ∗
   "Hacks" ∷ rov.(raft.readOnly.acks') ↦$ acks ∗
   "Hucr" ∷ rov.(raft.readOnly.unconfirmedReads') ↦* ucr ∗
   "Hucr_cap" ∷ own_slice_cap loc
-                 rov.(raft.readOnly.unconfirmedReads') (DfracOwn 1) ∗
+                 rov.(raft.readOnly.unconfirmedReads') (DfracOwn 1).
+
+(** Full ownership of the three fields election neither reads nor writes
+    and everything hanging off them: the [readStates] slice, the
+    [readOnly] object, and the [pendingReadIndexMessages] slice.  The
+    *contents* are existential -- election never reads any of it -- but the
+    ownership is real, so nothing else in the development can claim the
+    same heap. *)
+Definition own_raft_misc (readStates : slice.t) (ro : loc)
+                         (pendingReadIndex : slice.t) : iProp Σ :=
+  ∃ (rss : list raft.ReadState.t) (prims : list raftpb.Message.t),
+  "HreadStates" ∷ readStates ↦* rss ∗
+  "HreadStates_cap" ∷ own_slice_cap raft.ReadState.t readStates (DfracOwn 1) ∗
+  "Hro_obj" ∷ own_read_only ro ∗
   "Hpri" ∷ pendingReadIndex ↦* prims ∗
   "Hpri_cap" ∷ own_slice_cap raftpb.Message.t pendingReadIndex (DfracOwn 1).
 
 
 (** [reset] replaces [r.readOnly] with [newReadOnly(r.readOnly.option)].
     Two pieces are needed: reading the old object's [option] field, and
-    installing the fresh object. *)
+    installing the fresh object ([own_raft_misc_swap]). *)
 Lemma own_raft_misc_option rs ro pri :
   own_raft_misc rs ro pri -∗
   ∃ (o : raft.ReadOnlyOption.t),
     ro.[raft.readOnly.t, "option"] ↦ o ∗
     (ro.[raft.readOnly.t, "option"] ↦ o -∗ own_raft_misc rs ro pri).
 Proof.
-  iIntros "Hm". iNamed "Hm".
+  iIntros "Hm". iNamed "Hm". iNamed "Hro_obj".
   iExists rov.(raft.readOnly.option').
   iDestruct (access_strict
                (A := ro.[raft.readOnly.t, "option"] ↦ rov.(raft.readOnly.option'))
@@ -62,7 +75,16 @@ Proof.
                (P := ro ↦ rov) (P' := ro ↦ rov) with "Hro") as "[Hopt Hback]".
   iFrame "Hopt". iIntros "Hopt".
   iDestruct ("Hback" with "Hopt") as "Hro".
-  rewrite /own_raft_misc. iFrame.
+  rewrite /own_raft_misc /own_read_only. iFrame.
+Qed.
+
+(** Install a [readOnly] object the caller owns, dropping the old one.
+    Takes the new object's ownership, so it cannot re-point the predicate at
+    an object nobody allocated. *)
+Lemma own_raft_misc_swap rs ro ro' pri :
+  own_raft_misc rs ro pri -∗ own_read_only ro' -∗ own_raft_misc rs ro' pri.
+Proof.
+  iIntros "Hm Hro'". iNamed "Hm". rewrite /own_raft_misc. iFrame.
 Qed.
 
 

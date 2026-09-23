@@ -92,8 +92,9 @@ End helper.
         [raft_split_trk] before returning.
 
         [Visit] is told the progress map is [s.(nstate.progress)] and hands
-        it back at whatever tracker value it returns; that is what lets the
-        final re-seal re-establish [own_raft_phys]'s [Hprs].
+        the tracker back at that same map, at whatever tracker value it
+        returns; that is what lets the final re-seal re-establish
+        [own_raft_phys]'s [Htrk].
 
         The Goose closure literal reduces to
         [#(func.mk <> "id" (λ: "pr", …))] by the [wp_recc] pure step, so it
@@ -115,7 +116,7 @@ End helper.
     1-2: iSplitR; first done.
     1-2: iFrame "r term".
     1-2: iApply (own_raft_phys_intro _ _ _ s0 with
-           "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
+           "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
          try done.
     (* the vote goal of each arm: split on the [decide] in [s0] *)
     all: try (rewrite /s0 /=; case_decide; congruence).
@@ -129,14 +130,14 @@ End helper.
       with "[Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1]"
       as "Hphys".
     { iApply (own_raft_phys_intro _ _ _ (s1) with
-        "Hr1 Hlogger1 Hprs1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1");
+        "Hr1 Hlogger1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1");
         done. }
     wp_apply (wp_raft__resetRandomizedElectionTimeout with "[$Hphys]") as "Hphys".
     wp_apply (wp_raft__abortLeaderTransfer with "[$Hphys]") as "Hphys".
     iDestruct "Hphys" as (rv2 msgs2 msgsAA2 lok2) "Hphys".
     iNamedSuffix "Hphys" "2".
     iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog2") as "Hlog2".
-    iDestruct (own_tracker_unless_open _ _ _ _ Hlent with "Htrk2") as "Htrk2".
+    iDestruct (own_tracker_unless_open _ _ _ _ _ Hlent with "Htrk2") as "Htrk2".
     iDestruct (raft_split_trk with "Hr2") as "[Htrkf Hrback]".
     wp_apply (wp_ProgressTracker__ResetVotes with "[$Htrkf $Htrk2]")
       as "%votesRef [Htrkf Htrk]".
@@ -152,11 +153,11 @@ End helper.
                  own_raftLog rv2.(raft.raft.raftLog') ∗
                  (∀ tvx, r.[raft.raft.t, "trk"] ↦ tvx -∗
                   r ↦ (rv2 <| raft.raft.trk' := tvx |>)))%I
-                with "[$Htrkf $Htrk $r $Hlog2 $Hrback $Hprs2]")
-      as "(%tvfin & Htrkf & Htrk & #Hprsfin & r & Hlog & Hrback)".
+                with "[$Htrkf $Htrk $r $Hlog2 $Hrback]")
+      as "(%tvfin & Htrkf & Htrk & r & Hlog & Hrback)".
     { (* the [Visit] closure: re-initialise one [Progress] wholesale *)
       iModIntro. iIntros (i pr tv0).
-      wp_start as "(%Hicfg & %Hpri & %HmaxI & Htrkf & #Hprsv & Hpr & Hback &
+      wp_start as "(%Hicfg & %Hpri & %HmaxI & Htrkf & Hpr & Hback &
                     r & Hlog & Hrback)".
       (* Keep [Hnolearner]: [own_progress] carries
          [⌜pv.(IsLearner') = false⌝], and the closure has to hand it back.
@@ -176,7 +177,7 @@ End helper.
         as "%li [Hlog %Hli0]".
       iDestruct ("Hlogback0" with "Hlog") as "Hlog".
       wp_apply (wp_tracker_NewInflights _ _ HmaxI) as "%ifl Hifl".
-      iDestruct "Hifl" as (ivnew) "Hifl".
+      iDestruct "Hifl" as (ivnew bufnew) "Hifl".
       destruct (decide (i = rv2.(raft.raft.id'))) as [Hii|Hii].
       + assert (bool_decide (i = rv2.(raft.raft.id')) = true) as Hbi
           by (apply bool_decide_eq_true_2; done).
@@ -195,12 +196,11 @@ End helper.
         iApply "HΦ". iExists tv0.
         iSplitL "Htrkf"; first iExact "Htrkf".
         iSplitL "Hpv Hifl Hback".
-        { iApply "Hback". rewrite /own_progress /own_progress_at.
-          iExists _, ivnew. iFrame "Hpv". simpl. iFrame "Hifl".
+        { iApply "Hback". iExists _, ivnew. rewrite /own_progress. iFrame "Hpv". simpl. iFrame "Hifl".
           (* the [Progress] literal has no [State] field, so [State] is the
              zero value [StateProbe]; [IsLearner] is copied across *)
           iPureIntro. split; [ exact Hnolearner | rewrite /progress_state_ok; by left ]. }
-        iFrame "Hprsv r Hlog".
+        iFrame "r Hlog".
         iIntros (tvx) "Hf". iDestruct ("Hrback2" $! tvx with "Hf") as "Hr".
         iExact "Hr".
       + assert (bool_decide (i = rv2.(raft.raft.id')) = false) as Hbi
@@ -210,10 +210,9 @@ End helper.
         iApply "HΦ". iExists tv0.
         iSplitL "Htrkf"; first iExact "Htrkf".
         iSplitL "Hpv Hifl Hback".
-        { iApply "Hback". rewrite /own_progress /own_progress_at.
-          iExists _, ivnew. iFrame "Hpv". simpl. iFrame "Hifl".
+        { iApply "Hback". iExists _, ivnew. rewrite /own_progress. iFrame "Hpv". simpl. iFrame "Hifl".
           iPureIntro. split; [ exact Hnolearner | rewrite /progress_state_ok; by left ]. }
-        iFrame "Hprsv r Hlog".
+        iFrame "r Hlog".
         iIntros (tvx) "Hf". iDestruct ("Hrback2" $! tvx with "Hf") as "Hr".
         iExact "Hr". }
     (* [Visit] hands the field back; re-assemble the struct for the tail *)
@@ -222,12 +221,13 @@ End helper.
     iDestruct (own_raft_misc_option with "Hmisc2") as (o) "[Hopt Hmiscback]".
     wp_auto.
     iDestruct ("Hmiscback" with "Hopt") as "Hmisc".
-    wp_apply (wp_newReadOnly with "[$Hmisc]") as "%ro' Hmisc".
+    wp_apply wp_newReadOnly as "%ro' Hro'".
+    iDestruct (own_raft_misc_swap with "Hmisc Hro'") as "Hmisc".
     iDestruct (own_raftLog_unless_close _ _ Hlent with "Hlog") as "Hlog".
-    iDestruct (own_tracker_unless_close _ _ _ _ Hlent with "Htrk") as "Htrk".
+    iDestruct (own_tracker_unless_close _ _ _ _ _ Hlent with "Htrk") as "Htrk".
     iApply "HΦ".
     iApply (own_raft_phys_intro _ _ _ (reset_to s term) with
-      "Hr Hlogger2 Hprsfin Htrk Hlog Hmsgs2 Hmsgs_cap2 HmsgsAA2 HmsgsAA_cap2 Hmisc");
+      "Hr Hlogger2 Htrk Hlog Hmsgs2 Hmsgs_cap2 HmsgsAA2 HmsgsAA_cap2 Hmisc");
       done.
   Qed.
 

@@ -20,7 +20,7 @@ Import P.
       as "Hphys".
     { iApply (own_raft_phys_intro _ _ _
                 (s <| nstate.stepfn := step_func_of role.Leader |>) with
-        "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
+        "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
         done. }
     (* [reset] is called at the unchanged term, so the vote survives *)
     rewrite Hterm.
@@ -32,29 +32,26 @@ Import P.
     iDestruct "Hphys" as (rv0 msgs0 msgsAA0 lok0) "Hphys".
     iNamedSuffix "Hphys" "1".
     iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog1") as "Hlog1".
-    iDestruct (own_tracker_unless_open _ _ _ _ Hlent with "Htrk1") as "Htrk1".
+    iDestruct (own_tracker_unless_open _ _ _ _ _ Hlent with "Htrk1") as "Htrk1".
     assert (rv0.(raft.raft.Vote') = s.(nstate.vote)) as Hvote1'.
     { rewrite Hvote1 /=. rewrite decide_True //. }
     (* [r.tick], [r.lead := r.id], [r.state := StateLeader] *)
     wp_auto.
     rewrite Hid1.
     (* the leader's own [Progress] is marked replicating and recently active *)
-    wp_apply (wp_tracker_progress_lookup _ _ _ _ Hcfg with "[$Htrk1]")
-      as "%pr [Hpr Hprback]".
+    wp_apply (wp_tracker_progress_lookup _ _ _ _ _ Hcfg with "[$Htrk1]")
+      as "%pr (_ & Hpr & Hprback)".
+    iDestruct "Hpr" as (pv0 iv0) "Hpr".
     wp_apply (wp_Progress__BecomeReplicate with "[$Hpr]") as "Hpr".
     (* [own_progress] owns the whole [Progress] value (reshaped 2026-09-16 so
        that [reset]'s [Visit] closure can overwrite one wholesale), so the
        [RecentActive] assignment steps through [Hpv] with the generated
        [AccessStrict] instances and leaves [Inflights'] alone. *)
-    (* [own_progress] became [∃ pv iv, own_progress_at pr pv iv] with four
-       named conjuncts (2026-09-20); open it by name rather than
-       positionally, and put it back through [own_progress_intro]. *)
     iDestruct "Hpr" as (pv iv) "Hpa". iNamed "Hpa".
     wp_auto.
-    iAssert (own_progress pr) with "[Hpv Hinfl]" as "Hpr".
-    { iApply (own_progress_intro _
-                (pv <| tracker.Progress.RecentActive' := true |>) iv).
-      rewrite /own_progress_at. iFrame "∗%". }
+    iAssert (∃ pv iv, own_progress pr pv iv)%I with "[Hpv Hinfl]" as "Hpr".
+    { iExists (pv <| tracker.Progress.RecentActive' := true |>), iv.
+      rewrite /own_progress. iFrame "∗%". }
     iDestruct ("Hprback" with "Hpr") as "Htrk1".
     (* [lastIndex]'s spec is stated at a fixed split, so open
        [own_raftLog] and close it again. *)
@@ -72,12 +69,12 @@ Import P.
        out of the abstract outbox and the state is unchanged.  Re-seal for the
        call, then unpack again for the [Infof] that follows it. *)
     iDestruct (own_raftLog_unless_close _ _ Hlent with "Hlog1") as "Hlog1".
-    iDestruct (own_tracker_unless_close _ _ _ _ Hlent with "Htrk1") as "Htrk1".
+    iDestruct (own_tracker_unless_close _ _ _ _ _ Hlent with "Htrk1") as "Htrk1".
     iAssert (own_raft_phys cfg r id (become_leader id s))
       with "[Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1]"
       as "Hphys".
     { iApply (own_raft_phys_intro _ _ _ (become_leader id s) with
-        "Hr1 Hlogger1 Hprs1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1");
+        "Hr1 Hlogger1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1");
         done. }
     (* [appendEntry] writes [Term]/[Index] into every element of the slice,
        so it needs [Hes].  It returns [true] because the entry's [Data] is
@@ -101,7 +98,7 @@ Import P.
     { rewrite /log_methods. set_solver. }
     iApply "HΦ".
     iApply (own_raft_phys_intro with
-      "Hr2 Hlogger2 Hprs2 Htrk2 Hlog2 Hmsgs2 Hmsgs_cap2 HmsgsAA2 HmsgsAA_cap2 Hmisc2");
+      "Hr2 Hlogger2 Htrk2 Hlog2 Hmsgs2 Hmsgs_cap2 HmsgsAA2 HmsgsAA_cap2 Hmisc2");
       done.
   Qed.
 

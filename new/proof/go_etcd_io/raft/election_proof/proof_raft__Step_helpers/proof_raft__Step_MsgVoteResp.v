@@ -140,7 +140,7 @@ Implicit Type s : nstate.t.
       iAssert (own_raft_phys cfg r id s)
         with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys".
       { iApply (own_raft_phys_intro with
-          "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
+          "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
       wp_apply (P.wp_raft__becomeFollower _ _ _ _ _ _ Hlent with "[$Hphys]")
         as "Hphys".
       (* the model step: a VoteResp is not from_leader, so no leader is
@@ -175,7 +175,7 @@ Implicit Type s : nstate.t.
         with "[Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1]"
         as "Hphys".
       { iApply (own_raft_phys_intro with
-          "Hr1 Hlogger1 Hprs1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1"); done. }
+          "Hr1 Hlogger1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1"); done. }
       wp_apply (P.wp_stepFollower_MsgVoteResp with "[$Hphys]") as (err) "[Hphys %Herrn]".
       { done. }
       (* [stepFollower] returned [nil], so the error check falls through to
@@ -214,7 +214,7 @@ Implicit Type s : nstate.t.
         iApply ("HΦ" $! interface.nil s).
         iSplitL "Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc".
         { iApply (own_raft_phys_intro with
-          "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
+          "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
         iPureIntro. split; first exact Hwf. split; last done.
         exists []. split; last apply step_refl.
         recv_elem.
@@ -237,7 +237,7 @@ Implicit Type s : nstate.t.
           with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
           as "Hphys".
         { iApply (own_raft_phys_intro with
-          "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
+          "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
         destruct s.(nstate.role) eqn:Hrole.
         * (* Follower: [stepFollower] has no [MsgVoteResp] arm. *)
           assert (rv.(raft.raft.step') = functions raft.stepFollower []) as Hsf
@@ -299,6 +299,7 @@ Implicit Type s : nstate.t.
           wp_apply (P.wp_stepLeader_MsgVoteResp with "[$Hphys]")
             as (err) "[Hphys %Herrn]".
           { done. }
+          { exact Hlent. }
           rewrite Herrn. wp_auto.
           iApply ("HΦ" $! interface.nil s). iFrame "Hphys".
           iPureIntro. split; first exact Hwf. split; last done.

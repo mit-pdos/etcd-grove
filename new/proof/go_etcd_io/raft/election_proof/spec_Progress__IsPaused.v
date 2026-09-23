@@ -12,7 +12,7 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
     ([inv_tracker.v]): [bcastAppend] reaches [IsPaused] on every peer, so the
     panic has to be ruled out by an invariant rather than by inspection.
 
-    Stated at a fixed [Progress] value ([own_progress_at]) because the answer
+    Stated at a fixed [Progress] value ([own_progress pr pv iv]) because the answer
     *is* a function of that value, and [maybeSendAppend] needs to know which
     branch it took: a [false] answer tells it [State ≠ StateSnapshot], which
     is what makes the later [SentEntries] call legal (that one panics in
@@ -26,9 +26,9 @@ Definition wp_Progress__IsPaused_body :=
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (pr : loc) (pv : tracker.Progress.t) (iv : tracker.Inflights.t),
-  {{{ is_pkg_init tracker ∗ "Hpr" ∷ own_progress_at pr pv iv }}}
+  {{{ is_pkg_init tracker ∗ "Hpr" ∷ own_progress pr pv iv }}}
     pr @! (go.PointerType tracker.Progress) @! "IsPaused" #()
-  {{{ RET #(progress_paused pv); own_progress_at pr pv iv }}}.
+  {{{ RET #(progress_paused pv); own_progress pr pv iv }}}.
 
 Module Type PROGRESS__ISPAUSED.
   Parameter wp_Progress__IsPaused : wp_Progress__IsPaused_body.

@@ -8,7 +8,7 @@ Module ProgressSentCommitProof (P : PROGRESS__SENTCOMMIT_POSTULATES)
     intros_ambient.
     intros pr pv iv commit.
     wp_start as "H". iNamed "H". iNamed "Hpr". wp_auto.
-    iApply "HΦ". rewrite /own_progress_at. iFrame "∗%".
+    iApply "HΦ". rewrite /own_progress. iFrame "∗%".
   Qed.
 
 End ProgressSentCommitProof.

@@ -40,7 +40,7 @@ Import P.
       { rewrite /log_methods. set_solver. }
       iApply ("HΦ" $! s).
       iSplitL "Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc".
-      { iApply (own_raft_phys_intro with "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
+      { iApply (own_raft_phys_intro with "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
       iPureIntro. split; [done | apply step_refl].
     - (* not a leader *)
       assert (state_w64 s.(nstate.role) ≠ W64 2) as Hnl.
@@ -52,7 +52,7 @@ Import P.
       iAssert (own_raft_phys cfg r id s)
         with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
         as "Hphys".
-      { iApply (own_raft_phys_intro with "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
+      { iApply (own_raft_phys_intro with "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
       wp_auto.
       wp_apply (wp_raft__promotable _ _ _ _ Hlent with "[$Hphys]")
         as "%b [Hphys %Hb]".
@@ -63,7 +63,7 @@ Import P.
           as "Hphys".
         assert (id ∈ cfg) as Hin.
         { symmetry in Hb. by apply bool_decide_eq_true_1 in Hb. }
-        iClear "Hlogger Hprs".
+        iClear "Hlogger".
         iNamedSuffix "Hphys" "1".
         wp_auto.
         wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
@@ -74,7 +74,7 @@ Import P.
           with "[Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1]"
           as "Hphys".
         { iApply (own_raft_phys_intro with
-            "Hr1 Hlogger1 Hprs1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1");
+            "Hr1 Hlogger1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1");
             done. }
         wp_apply (P.wp_raft__campaign _ _ _ _ _ Ht Hrl Hin Hnowrap Hlent
                     with "[$Hphys]")
@@ -84,7 +84,7 @@ Import P.
         rewrite to_pstate_send_msgs to_pstate_become_candidate.
         apply step_campaign; done.
       + (* unpromotable: log and return, having done nothing *)
-        iClear "Hlogger Hprs".
+        iClear "Hlogger".
         iNamedSuffix "Hphys" "1".
         wp_auto.
         wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
@@ -94,7 +94,7 @@ Import P.
         iApply ("HΦ" $! s).
         iSplitL "Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1".
         { iApply (own_raft_phys_intro with
-            "Hr1 Hlogger1 Hprs1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1");
+            "Hr1 Hlogger1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1");
             done. }
         iPureIntro. split; [done | apply step_refl].
   Qed.

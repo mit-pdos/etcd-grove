@@ -6,7 +6,7 @@ Import P.
   Lemma wp_ProgressTracker__TallyVotes : wp_ProgressTracker__TallyVotes_body.
   Proof.
     intros_ambient.
-    intros cfg trk tv votes.
+    intros cfg trk tv votes prs.
 
     wp_start as "(Htrk & Hown)". iNamed "Hown".
     (* the [var _ quorum.VoteResult] declaration Go emits for the named return
@@ -23,7 +23,7 @@ Import P.
         "%Hi" ∷ ⌜ 0 ≤ i ⌝ ∗
         "Htrk" ∷ trk ↦ tv ∗
         "Hvotes" ∷ tv.(tracker.ProgressTracker.Votes') ↦$ votes ∗
-        "Hprogs" ∷ ([∗ map] pr ∈ prs, own_progress pr) ∗
+        "Hprogs" ∷ ([∗ map] pr ∈ prs, ∃ pv iv, own_progress pr pv iv) ∗
         "p" ∷ p_ptr ↦ trk ∗
         "pr" ∷ pr_ptr ↦ prv ∗
         "id" ∷ id_ptr ↦ idv ∗
@@ -56,7 +56,7 @@ Import P.
       rewrite Hnolearner. wp_auto.
       wp_apply (wp_map_lookup2 with "Hvotes"). iIntros "Hvotes".
       iDestruct ("Hback" with "[Hpv Hinfl]") as "Hprogs".
-      { rewrite /own_progress. iExists _. iFrame. done. }
+      { iExists _, _. rewrite /own_progress. iFrame "Hpv Hinfl". done. }
       destruct (votes !! key) as [[|]|] eqn:Hvk.
       - (* granted *)
         assert (Pgr key) as HPg by (rewrite /Pgr Hvk //).
@@ -112,7 +112,7 @@ Import P.
     wp_apply (wp_JointConfig__VoteResult with
                "[$Htrk Hvotes Hprogs Hvoters Hlearners HlearnersNext]").
     { rewrite /own_tracker.
-      iExists prs, voters_ref, voters, learners, learnersNext. iFrame "∗#%". }
+      iExists voters_ref, voters, learners, learnersNext. iFrame "∗#%". }
     iIntros (res) "(Htrk & Hown & %Hres & %Hwon & %Hlost)".
     wp_auto.
     iApply ("HΦ" $! (W64 (nsat Pgr keys)) (W64 (nsat Prj keys)) res).

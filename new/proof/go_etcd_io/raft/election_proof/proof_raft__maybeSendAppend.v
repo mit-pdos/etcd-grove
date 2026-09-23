@@ -147,14 +147,12 @@ Set Default Proof Using "Type".
     (* open the struct before the body is in the goal *)
     (* the first [iNamed] only strips the precondition's name *)
     iNamed "Hphys". iNamed "Hphys".
-    iDestruct (own_tracker_unless_open _ _ _ _ Hlent with "Htrk") as "Htrk".
+    iDestruct (own_tracker_unless_open _ _ _ _ _ Hlent with "Htrk") as "Htrk".
     iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog") as "Hlog".
-    iDestruct (own_tracker_progress_map with "Htrk") as (prs) "(#Hprs' & %Hdom & Htrk)".
-    iDestruct (progress_map_agree with "Hprs Hprs'") as %<-.
-    iClear "Hprs'".
+    iDestruct (own_tracker_progress_map with "Htrk") as "(#Hprs & %Hdom & Htrk)".
     assert (is_Some (s.(nstate.progress) !! to)) as [pr Hlk].
     { apply elem_of_dom. rewrite Hdom //. }
-    iDestruct (own_tracker_lookup _ _ _ _ _ _ Hlk with "Hprs Htrk") as "[Hpr Hprback]".
+    iDestruct (own_tracker_lookup _ _ _ _ _ _ Hlk with "Htrk") as "[Hpr Hprback]".
     wp_start_unfold.
     wp_auto.
     wp_apply (wp_map_lookup1 with "Hprs") as "_".
@@ -164,14 +162,15 @@ Set Default Proof Using "Type".
     destruct (progress_paused pv) eqn:Hpaused.
     { (* paused: nothing is sent, [false] *)
       wp_auto.
-      iDestruct (own_progress_intro with "Hpa") as "Hpr".
+      iAssert (∃ pv iv, own_progress pr pv iv)%I with "[Hpa]" as "Hpr";
+        first by iExists _, _.
       iDestruct ("Hprback" with "Hpr") as "Htrk".
-      iDestruct (own_tracker_unless_close _ _ _ _ Hlent with "Htrk") as "Htrk".
+      iDestruct (own_tracker_unless_close _ _ _ _ _ Hlent with "Htrk") as "Htrk".
       iDestruct (own_raftLog_unless_close _ _ Hlent with "Hlog") as "Hlog".
       iAssert (own_raft_phys cfg r id s)
         with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys".
       { iApply (own_raft_phys_intro with
-          "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
+          "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
       iDestruct (own_raft_phys_send_nil with "Hphys") as "Hphys".
       iApply ("HΦ" $! false []). iFrame "Hphys". iPureIntro. constructor. }
     (* not paused, so not in [StateSnapshot] -- [SentEntries]' first premise *)
@@ -189,17 +188,17 @@ Set Default Proof Using "Type".
          [Convert go.untyped_bool] in front of the [err != nil] test. *)
       wp_pure. wp_auto.
       iDestruct ("Hlogback" with "Hlog") as "Hlog".
-      iAssert (own_progress pr) with "[Hpv Hinfl]" as "Hpr".
-      { rewrite /own_progress /own_progress_at. iExists pv, iv. iFrame "∗%". }
+      iAssert (∃ pv iv, own_progress pr pv iv)%I with "[Hpv Hinfl]" as "Hpr".
+      { iExists pv, iv. rewrite /own_progress. iFrame "∗%". }
       (* the [Progress] goes back first: [maybeSendSnapshot] borrows it
          again by its key *)
       iDestruct ("Hprback" with "Hpr") as "Htrk".
-      iDestruct (own_tracker_unless_close _ _ _ _ Hlent with "Htrk") as "Htrk".
+      iDestruct (own_tracker_unless_close _ _ _ _ _ Hlent with "Htrk") as "Htrk".
       iDestruct (own_raftLog_unless_close _ _ Hlent with "Hlog") as "Hlog".
       iAssert (own_raft_phys cfg r id s)
         with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys".
       { iApply (own_raft_phys_intro with
-          "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
+          "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
       wp_apply (P.wp_raft__maybeSendSnapshot _ _ _ _ _ _ Hto Hlk Hlent
                   with "[$Hphys]") as "%b Hphys".
       try wp_auto.
@@ -213,6 +212,7 @@ Set Default Proof Using "Type".
     (* the three arms of the [||], each ending at [msa_pkg] *)
     destruct (decide (pv.(tracker.Progress.State') = W64 1)) as [Hrep|Hnrep];
     [ rewrite bool_decide_eq_true_2 //; wp_auto;
+      iDestruct "Hinfl" as (ibuf) "Hinfl";
       wp_apply (wp_Inflights__Full with "[$Hinfl]") as "Hinfl";
       destruct (inflights_full iv) eqn:Hfull;
       [ (* in [StateReplicate] with the window full: no entries are fetched,
@@ -259,15 +259,15 @@ Set Default Proof Using "Type".
         wp_auto;
         iDestruct ("Hlb" with "Hl Hpage") as "Hlog";
         iDestruct ("Hlogback" with "Hlog") as "Hlog";
-        iAssert (own_progress pr) with "[Hpv Hinfl]" as "Hpr";
-        [ rewrite /own_progress /own_progress_at; iExists pv, iv; iFrame "∗%" | ];
+        iAssert (∃ pv iv, own_progress pr pv iv)%I with "[Hpv Hinfl]" as "Hpr";
+        [ iExists pv, iv; rewrite /own_progress; iFrame "∗%" | ];
         iDestruct ("Hprback" with "Hpr") as "Htrk";
-        iDestruct (own_tracker_unless_close _ _ _ _ Hlent with "Htrk") as "Htrk";
+        iDestruct (own_tracker_unless_close _ _ _ _ _ Hlent with "Htrk") as "Htrk";
         iDestruct (own_raftLog_unless_close _ _ Hlent with "Hlog") as "Hlog";
         iAssert (own_raft_phys cfg r id s)
           with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys";
         [ iApply (own_raft_phys_intro with
-            "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
+            "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
           done | ];
         iDestruct (own_raft_phys_send_nil with "Hphys") as "Hphys";
         iApply ("HΦ" $! false []); iFrame "Hphys"; iPureIntro;
@@ -280,14 +280,15 @@ Set Default Proof Using "Type".
        borrow and the page stay here *)
     iPoseProof (own_raftLog_unless_lent rv.(raft.raft.trk')
                   rv.(raft.raft.raftLog')) as "Hnolog";
-    iPoseProof (own_tracker_unless_lent cfg rv.(raft.raft.trk') s.(nstate.votes))
+    iPoseProof (own_tracker_unless_lent cfg rv.(raft.raft.trk') s.(nstate.votes)
+                    s.(nstate.progress))
       as "Hnotrk";
     iAssert (own_raft_phys cfg r id
                (s <| nstate.lent := Some rv.(raft.raft.trk') |>))
       with "[Hr Hnotrk Hnolog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys";
     [ iApply (own_raft_phys_intro _ _ _
                 (s <| nstate.lent := Some rv.(raft.raft.trk') |>) with
-        "Hr Hlogger Hprs Hnotrk Hnolog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
+        "Hr Hlogger Hnotrk Hnolog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
       done | ];
     wp_apply (P.wp_raft__send with "[$Hphys]");
       [ done
@@ -305,8 +306,8 @@ Set Default Proof Using "Type".
     iEval (rewrite -Hlg2) in "Hl";
     try wp_auto;
     wp_apply (wp_payloadsSize with "[$Hpage]") as "%psz [Hpage _]";
-    iAssert (own_progress_at pr pv iv) with "[Hpv Hinfl]" as "Hpa";
-    [ rewrite /own_progress_at; iFrame "∗%" | ];
+    iAssert (own_progress pr pv iv) with "[Hpv Hinfl]" as "Hpa";
+    [ rewrite /own_progress; iFrame "∗%" | ];
     assert (Hwin2 : pv.(tracker.Progress.State') = W64 1 →
                     (0 < sint.Z sl.(slice.len))%Z → inflights_full iv = false);
     [ intros H1 H2; apply Hwin; [exact H1|]; intros Heq; rewrite Heq in Hlen;
@@ -320,9 +321,10 @@ Set Default Proof Using "Type".
     iEval (rewrite Hlg2) in "Hl";
     iDestruct ("Hlb" with "Hl Hpage") as "Hlog";
     iDestruct ("Hlogback" with "Hlog") as "Hlog";
-    iDestruct (own_progress_intro with "Hpa3") as "Hpr";
+    iAssert (∃ pv iv, own_progress pr pv iv)%I with "[Hpa3]" as "Hpr";
+    [ by iExists _, _ | ];
     iDestruct ("Hprback" with "Hpr") as "Htrk";
-    iDestruct (own_tracker_unless_close _ _ _ _ Hlent with "Htrk") as "Htrk";
+    iDestruct (own_tracker_unless_close _ _ _ _ _ Hlent with "Htrk") as "Htrk";
     iDestruct (own_raftLog_unless_close _ _ Hlent with "Hlog") as "Hlog";
     iEval (rewrite -Htv2) in "Htrk";
     iEval (rewrite -Hlg2) in "Hlog";
@@ -331,7 +333,7 @@ Set Default Proof Using "Type".
       with "[Hr2 Htrk Hlog Hmsgs2 Hmsgs_cap2 HmsgsAA2 HmsgsAA_cap2 Hmisc2]" as "Hphys";
     [ iApply (own_raft_phys_intro _ _ _
                 (send_msgs s [msg.mk mtype.App id to s.(nstate.term) false]) with
-        "Hr2 Hlogger2 Hprs2 Htrk Hlog Hmsgs2 Hmsgs_cap2 HmsgsAA2 HmsgsAA_cap2 Hmisc2");
+        "Hr2 Hlogger2 Htrk Hlog Hmsgs2 Hmsgs_cap2 HmsgsAA2 HmsgsAA_cap2 Hmisc2");
       done | ];
     iApply ("HΦ" $! true [msg.mk mtype.App id to s.(nstate.term) false]);
     iFrame "Hphys"; iPureIntro;

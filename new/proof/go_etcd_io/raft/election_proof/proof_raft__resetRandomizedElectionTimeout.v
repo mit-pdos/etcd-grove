@@ -20,7 +20,7 @@ Module RaftResetRandomizedElectionTimeoutProof (P : RAFT__RESETRANDOMIZEDELECTIO
       as "%v %Hv".
     iApply "HΦ".
     iApply (own_raft_phys_intro with
-      "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done.
+      "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done.
   Qed.
 
 End RaftResetRandomizedElectionTimeoutProof.

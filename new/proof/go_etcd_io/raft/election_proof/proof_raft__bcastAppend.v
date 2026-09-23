@@ -58,8 +58,7 @@ Proof. rewrite /app_sends. apply Forall_app_2. Qed.
     struct with a tracker-shaped hole":
 
       ∃ ms, r_ptr ↦ r ∗ ⌜ app_sends id s.term ms ⌝ ∗
-            (∀ tvx, r.[trk] ↦ tvx -∗ tvx.Progress ↦$□ s.progress -∗
-                    own_tracker cfg tvx s.votes -∗
+            (∀ tvx, r.[trk] ↦ tvx -∗ own_tracker cfg tvx s.votes s.progress -∗
                     own_raft_phys cfg r id (send_msgs s ms))
 
     quantified over the field value because [own_raft_phys] hides the
@@ -67,7 +66,7 @@ Proof. rewrite /app_sends. apply Forall_app_2. Qed.
     [rv'], and nothing in the predicate says [rv'.(trk') = tv].  That is
     also why [visit_closure]'s postcondition is existential in the tracker
     value; see [inv_tracker.v].  What it does pin is the progress map,
-    [nstate.progress], which is what the wand's second premise is.
+    [nstate.progress], which is the index of the wand's [own_tracker].
 
     [ms] accumulates.  Each iteration either sends nothing (the peer is the
     leader itself, or [maybeSendAppend] declined) or adds [App]s from [id]
@@ -85,47 +84,45 @@ Proof.
   intros Hlent.
   wp_start as "Hphys". wp_auto.
   iNamed "Hphys".
-  iDestruct (own_tracker_unless_open _ _ _ _ Hlent with "Htrk") as "Htrk".
+  iDestruct (own_tracker_unless_open _ _ _ _ _ Hlent with "Htrk") as "Htrk".
   iDestruct (raft_split_trk with "Hr") as "[Htrkf Hrback]".
   (* the hole, at [ms = []] *)
   iAssert (∃ (ms : list msg.t),
              "rp" ∷ r_ptr ↦ r ∗
              "%Hms" ∷ ⌜ app_sends id s.(nstate.term) ms ⌝ ∗
              "Hrest" ∷ (∀ tvx, r.[raft.raft.t, "trk"] ↦ tvx -∗
-                          tvx.(tracker.ProgressTracker.Progress') ↦$□ s.(nstate.progress) -∗
-                          own_tracker cfg tvx s.(nstate.votes) -∗
+                          own_tracker cfg tvx s.(nstate.votes) s.(nstate.progress) -∗
                           own_raft_phys cfg r id (send_msgs s ms)))%I
     with "[r Hrback Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "HI".
   { iExists []. iFrame "r". iSplitL ""; first (iPureIntro; by apply Forall_nil).
-    iIntros (tvx) "Hf #Hpx Htk".
+    iIntros (tvx) "Hf Htk".
     iDestruct ("Hrback" $! tvx with "Hf") as "Hr".
-    iDestruct (own_tracker_unless_close _ _ _ _ Hlent with "Htk") as "Htk".
+    iDestruct (own_tracker_unless_close _ _ _ _ _ Hlent with "Htk") as "Htk".
     iApply own_raft_phys_send_nil.
     iApply (own_raft_phys_intro _ _ _ s with
-             "Hr Hlogger Hpx Htk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
+             "Hr Hlogger Htk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
       done. }
   wp_apply (wp_ProgressTracker__Visit _ _ _ _ s.(nstate.progress) _
               (∃ (ms : list msg.t),
                  "rp" ∷ r_ptr ↦ r ∗
                  "%Hms" ∷ ⌜ app_sends id s.(nstate.term) ms ⌝ ∗
                  "Hrest" ∷ (∀ tvx, r.[raft.raft.t, "trk"] ↦ tvx -∗
-                          tvx.(tracker.ProgressTracker.Progress') ↦$□ s.(nstate.progress) -∗
-                          own_tracker cfg tvx s.(nstate.votes) -∗
+                          own_tracker cfg tvx s.(nstate.votes) s.(nstate.progress) -∗
                           own_raft_phys cfg r id (send_msgs s ms)))%I
-              with "[$Htrkf $Htrk $HI $Hprs]").
+              with "[$Htrkf $Htrk $HI]").
   { (* the closure *)
     iModIntro. iIntros (i pr tv0).
-    wp_start as "(%Hicfg & %Hpri & %HmaxI & Htrkf & #Hprsv & Hpr & Hback & HI)".
+    wp_start as "(%Hicfg & %Hpri & %HmaxI & Htrkf & Hpr & Hback & HI)".
     iNamed "HI".
     iDestruct ("Hback" with "Hpr") as "Htrk".
-    iDestruct ("Hrest" $! tv0 with "Htrkf Hprsv Htrk") as "Hphys".
+    iDestruct ("Hrest" $! tv0 with "Htrkf Htrk") as "Hphys".
     (* [iNamed] stops at the first name already in use, and the enclosing
        proof's [Hlogger] is still in the intuitionistic context -- it would
        leave [Hlok]/[Hlogger]/[Hmisc] bundled up inside "Hphys".  Clear it
        first; the struct we are opening carries its own. *)
-    iClear "Hlogger Hprs Hprsv".
+    iClear "Hlogger".
     iNamed "Hphys".
-    iDestruct (own_tracker_unless_open _ _ _ _ Hlent with "Htrk") as "Htrk".
+    iDestruct (own_tracker_unless_open _ _ _ _ _ Hlent with "Htrk") as "Htrk".
     wp_auto.
     destruct (decide (i = rv0.(raft.raft.id'))) as [Hii|Hii].
     - (* the leader itself: nothing is sent *)
@@ -134,26 +131,26 @@ Proof.
       rewrite Hbi /=. wp_auto.
       iDestruct (raft_split_trk with "Hr") as "[Htrkf Hrback0]".
       iApply "HΦ". iExists rv0.(raft.raft.trk').
-      iFrame "Htrkf Htrk Hprs".
+      iFrame "Htrkf Htrk".
       iExists ms. iFrame "rp". iSplitL ""; first (iPureIntro; exact Hms).
-      iIntros (tvx) "Hf #Hpx Htk".
+      iIntros (tvx) "Hf Htk".
       iDestruct ("Hrback0" $! tvx with "Hf") as "Hr".
-      iDestruct (own_tracker_unless_close _ _ _ _ Hlent with "Htk") as "Htk".
+      iDestruct (own_tracker_unless_close _ _ _ _ _ Hlent with "Htk") as "Htk".
       (* the abstract state has to be given: [Htk] alone would unify it
          with [s], not with [send_msgs s ms] *)
       iApply (own_raft_phys_intro cfg r id (send_msgs s ms) with
-               "Hr Hlogger Hpx Htk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
+               "Hr Hlogger Htk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
         done.
     - (* a peer: [sendAppend] may add [App]s *)
       assert (bool_decide (i = rv0.(raft.raft.id')) = false) as Hbi
         by (apply bool_decide_eq_false_2; done).
       rewrite Hbi /=. wp_auto.
-      iDestruct (own_tracker_unless_close _ _ _ _ Hlent with "Htrk") as "Htrk".
+      iDestruct (own_tracker_unless_close _ _ _ _ _ Hlent with "Htrk") as "Htrk".
       iAssert (own_raft_phys cfg r id (send_msgs s ms))
         with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
         as "Hphys".
       { iApply (own_raft_phys_intro cfg r id (send_msgs s ms) with
-                 "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
+                 "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
           done. }
       assert (i ≠ id) as Hne by congruence.
       (* [Hlent] is about [s]; the state [sendAppend] runs at is
@@ -165,25 +162,25 @@ Proof.
       rewrite send_msgs_app.
       (* [clear dependent]: the pure conjuncts of the first [iNamed]
          ([Hid0], [Hterm0], …) mention [rv0]. *)
-      iClear "Hlogger Hprs".
+      iClear "Hlogger".
       clear dependent rv0. clear dependent msgs0.
       clear dependent msgsAA0. clear dependent lok0.
       iNamed "Hphys".
-      iDestruct (own_tracker_unless_open _ _ _ _ Hlent with "Htrk") as "Htrk".
+      iDestruct (own_tracker_unless_open _ _ _ _ _ Hlent with "Htrk") as "Htrk".
       iDestruct (raft_split_trk with "Hr") as "[Htrkf Hrback0]".
       iApply "HΦ". iExists rv0.(raft.raft.trk').
-      iFrame "Htrkf Htrk Hprs".
+      iFrame "Htrkf Htrk".
       iExists (ms ++ ms'). iFrame "rp". iSplitL "".
       { iPureIntro. apply app_sends_app; [ exact Hms | exact Hms' ]. }
-      iIntros (tvx) "Hf #Hpx Htk".
+      iIntros (tvx) "Hf Htk".
       iDestruct ("Hrback0" $! tvx with "Hf") as "Hr".
-      iDestruct (own_tracker_unless_close _ _ _ _ Hlent with "Htk") as "Htk".
+      iDestruct (own_tracker_unless_close _ _ _ _ _ Hlent with "Htk") as "Htk".
       iApply (own_raft_phys_intro cfg r id (send_msgs s (ms ++ ms')) with
-               "Hr Hlogger Hpx Htk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
+               "Hr Hlogger Htk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
         done. }
-  iIntros "H". iDestruct "H" as (tvfin) "(Htrkf & Htrk & #Hprsfin & HI)".
+  iIntros "H". iDestruct "H" as (tvfin) "(Htrkf & Htrk & HI)".
   iNamed "HI".
-  iDestruct ("Hrest" $! tvfin with "Htrkf Hprsfin Htrk") as "Hphys".
+  iDestruct ("Hrest" $! tvfin with "Htrkf Htrk") as "Hphys".
   wp_auto.
   iApply ("HΦ" $! ms). by iFrame.
 Qed.

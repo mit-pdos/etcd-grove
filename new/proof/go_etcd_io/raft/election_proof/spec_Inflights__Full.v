@@ -15,10 +15,10 @@ Definition wp_Inflights__Full_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
-    (l : loc) (iv : tracker.Inflights.t),
-  {{{ is_pkg_init tracker ∗ "Hin" ∷ own_inflights_at l iv }}}
+    (l : loc) (iv : tracker.Inflights.t) (buf : list tracker.inflight.t),
+  {{{ is_pkg_init tracker ∗ "Hin" ∷ own_inflights l iv buf }}}
     l @! (go.PointerType tracker.Inflights) @! "Full" #()
-  {{{ RET #(inflights_full iv); own_inflights_at l iv }}}.
+  {{{ RET #(inflights_full iv); own_inflights l iv buf }}}.
 
 Module Type INFLIGHTS__FULL.
   Parameter wp_Inflights__Full : wp_Inflights__Full_body.

@@ -20,17 +20,17 @@ Module ProgressIsPausedProof (P : PROGRESS__ISPAUSED_POSTULATES) : PROGRESS__ISP
     - (* StateProbe *)
       case_decide as Hd; first (w64_absurd Hd).
       case_bool_decide as Hb; last (exfalso; by apply Hb).
-      wp_auto. iApply "HΦ". rewrite /own_progress_at. iFrame "∗%".
+      wp_auto. iApply "HΦ". rewrite /own_progress. iFrame "∗%".
     - (* StateReplicate *)
       case_decide as Hd; first (w64_absurd Hd).
       case_bool_decide as Hb1; first (w64_absurd Hb1).
       (* [wp_auto] runs the rest of the switch: the remaining tests are
          between closed [w64] literals and it discharges them itself. *)
-      wp_auto. iApply "HΦ". rewrite /own_progress_at. iFrame "∗%".
+      wp_auto. iApply "HΦ". rewrite /own_progress. iFrame "∗%".
     - (* StateSnapshot: paused unconditionally *)
       case_decide as Hd; last (exfalso; by apply Hd).
       case_bool_decide as Hb1; first (w64_absurd Hb1).
-      wp_auto. iApply "HΦ". rewrite /own_progress_at. iFrame "∗%".
+      wp_auto. iApply "HΦ". rewrite /own_progress. iFrame "∗%".
   Qed.
 
 End ProgressIsPausedProof.

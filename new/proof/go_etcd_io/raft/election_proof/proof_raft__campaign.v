@@ -58,9 +58,10 @@ Qed.
     [inv_tracker.v] on 2026-09-16 for exactly this call): [campaign] runs
     [make([]uint64, 0, len(idMap))] and [wp_slice_make3] needs
     [0 ≤ sint.Z cap].  Stated so that the tracker survives the read. *)
-Lemma own_tracker_cfg_size (tv : tracker.ProgressTracker.t) (votes : gmap w64 bool) :
-  own_tracker cfg tv votes -∗
-  ⌜ Z.of_nat (size cfg) < 2 ^ 63 ⌝ ∗ own_tracker cfg tv votes.
+Lemma own_tracker_cfg_size (tv : tracker.ProgressTracker.t) (votes : gmap w64 bool)
+    (prs : gmap w64 loc) :
+  own_tracker cfg tv votes prs -∗
+  ⌜ Z.of_nat (size cfg) < 2 ^ 63 ⌝ ∗ own_tracker cfg tv votes prs.
 (* [All], not the section's [W]: re-framing the read-only progress map
    ([own_map … DfracDiscarded]) pulls in [ffi_semantics0]. *)
 Proof using All.
@@ -68,7 +69,7 @@ Proof using All.
   iSplitR; first done.
   (* [#%] and not [%]: since 2026-09-20 the progress map is held read-only
      inside [own_tracker], so it sits in the intuitionistic context. *)
-  iExists prs, voters_ref, voters, learners, learnersNext. iFrame "∗#%".
+  iExists voters_ref, voters, learners, learnersNext. iFrame "∗#%".
 Qed.
 
 Lemma Infof_is_log_method : "Infof"%go ∈ log_methods.
@@ -97,13 +98,13 @@ Proof.
   (* [make([]uint64, 0, len(idMap))] needs the voter set to fit in a Go
      [int]; that bound is a conjunct of [own_tracker]. *)
   wp_start as "Hphys". iNamed "Hphys".
-  iDestruct (own_tracker_unless_open _ _ _ _ Hlent with "Htrk") as "Htrk".
+  iDestruct (own_tracker_unless_open _ _ _ _ _ Hlent with "Htrk") as "Htrk".
   iDestruct (own_tracker_cfg_size with "Htrk") as "[%Hcfg_fits Htrk]".
-  iDestruct (own_tracker_unless_close _ _ _ _ Hlent with "Htrk") as "Htrk".
+  iDestruct (own_tracker_unless_close _ _ _ _ _ Hlent with "Htrk") as "Htrk".
   iAssert (own_raft_phys cfg r id s)
     with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys".
   { iApply (own_raft_phys_intro with
-      "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
+      "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
   wp_auto.
   (* [promotable] is true, since [id ∈ cfg]; the warning is not logged. *)
   wp_apply (wp_raft__promotable _ _ _ _ Hlent with "[$Hphys]") as "%b [Hphys %Hb]".
@@ -115,7 +116,7 @@ Proof.
   wp_auto.
   wp_apply (P.wp_raft__becomeCandidate _ _ _ _ Hrole Hlent with "[$Hphys]") as "Hphys".
   iNamedSuffix "Hphys" "1".
-  iDestruct (own_tracker_unless_open _ _ _ _ Hlent with "Htrk1") as "Htrk1".
+  iDestruct (own_tracker_unless_open _ _ _ _ _ Hlent with "Htrk1") as "Htrk1".
   wp_auto.
   (* the voter ids, as a map.  [IDs] wants the tracker's location, which the
      generated [AccessStrict] instance splits out of [r ↦ rv0]; pin the load
@@ -181,8 +182,8 @@ Proof.
   iAssert (own_raft_phys cfg r id (become_candidate id s))
     with "[Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1]"
     as "Hphys".
-  { iDestruct (own_tracker_unless_close _ _ _ _ Hlent with "Htrk1") as "Htrk1".
-    iApply (own_raft_phys_intro _ _ _ (become_candidate id s) with "Hr1 Hlogger1 Hprs1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1");
+  { iDestruct (own_tracker_unless_close _ _ _ _ _ Hlent with "Htrk1") as "Htrk1".
+    iApply (own_raft_phys_intro _ _ _ (become_candidate id s) with "Hr1 Hlogger1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1");
       done. }
   iRename "id" into "idold".
   wp_alloc cur_ptr as "cur".

@@ -161,7 +161,7 @@ Set Default Proof Using "Type".
     iDestruct (own_slice_len with "Hes") as %[Hlen Hlen'].
     (* [li := r.raftLog.lastIndex()], at a split that stays open *)
     iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog") as "Hlog".
-    iDestruct (own_tracker_unless_open _ _ _ _ Hlent with "Htrk") as "Htrk".
+    iDestruct (own_tracker_unless_open _ _ _ _ _ Hlent with "Htrk") as "Htrk".
     iDestruct "Hlog" as (prev sents uents) "Hlog".
     iDestruct (own_raftLog_at_facts with "Hlog") as "[[%Hidx %Hbnd] Hlog]".
     wp_apply (wp_raftLog__lastIndex_at with "[$Hlog]") as "%li [Hlog %Hli]".
@@ -228,7 +228,8 @@ Set Default Proof Using "Type".
          log's split stays here *)
       iPoseProof (own_raftLog_unless_lent rv.(raft.raft.trk')
                     rv.(raft.raft.raftLog')) as "Hnolog".
-      iPoseProof (own_tracker_unless_lent cfg rv.(raft.raft.trk') s.(nstate.votes))
+      iPoseProof (own_tracker_unless_lent cfg rv.(raft.raft.trk') s.(nstate.votes)
+                    s.(nstate.progress))
         as "Hnotrk".
       iAssert (own_raft_phys cfg r rv.(raft.raft.id')
                  (s <| nstate.lent := Some rv.(raft.raft.trk') |>))
@@ -236,7 +237,7 @@ Set Default Proof Using "Type".
         as "Hphys".
       { iApply (own_raft_phys_intro _ _ _
                   (s <| nstate.lent := Some rv.(raft.raft.trk') |>) with
-          "Hr Hlogger Hprs Hnotrk Hnolog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
+          "Hr Hlogger Hnotrk Hnolog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
           done. }
       wp_apply (wp_raft__increaseUncommittedSize _ _ _ _ _ _ _ Hempty2
                   with "[$Hphys $Hes]") as "[Hphys Hes]".
@@ -275,13 +276,13 @@ Set Default Proof Using "Type".
          eliminates, so by here the binder [id] is gone and every occurrence
          -- [HΦ] included -- reads [rv.(raft.raft.id')]. *)
       iDestruct (own_raftLog_unless_close _ _ Hlent with "Hlog") as "Hlog".
-      iDestruct (own_tracker_unless_close _ _ _ _ Hlent with "Htrk") as "Htrk".
+      iDestruct (own_tracker_unless_close _ _ _ _ _ Hlent with "Htrk") as "Htrk".
       rewrite -Hlog1 -Htv1.
       iAssert (own_raft_phys cfg r rv.(raft.raft.id') s)
         with "[Hr1 Htrk Hlog Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1]"
         as "Hphys".
       { iApply (own_raft_phys_intro _ _ _ s with
-          "Hr1 Hlogger1 Hprs1 Htrk Hlog Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1");
+          "Hr1 Hlogger1 Htrk Hlog Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1");
           done. }
       (* the self-addressed [MsgAppResp]: [send_ok]'s third clause *)
       wp_apply (P.wp_raft__send with "[$Hphys]");

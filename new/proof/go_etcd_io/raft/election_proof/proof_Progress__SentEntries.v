@@ -23,12 +23,10 @@ Import P.
       wp_auto.
       case_bool_decide as Hgt.
       + wp_auto.
-        iApply "HΦ". rewrite /own_progress /own_progress_at.
-        iExists _, iv. iFrame "Hpv Hinfl". iPureIntro. split; [done|].
+        iApply "HΦ". iExists _, iv. rewrite /own_progress. iFrame "Hpv Hinfl". iPureIntro. split; [done|].
         rewrite /progress_state_ok /=. by left.
       + wp_auto.
-        iApply "HΦ". rewrite /own_progress /own_progress_at.
-        iExists _, iv. iFrame "Hpv Hinfl". iPureIntro. split; [done|].
+        iApply "HΦ". iExists _, iv. rewrite /own_progress. iFrame "Hpv Hinfl". iPureIntro. split; [done|].
         rewrite /progress_state_ok /=. by left.
     - (* StateReplicate *)
       case_bool_decide as Hb1; last (exfalso; by apply Hb1).
@@ -38,19 +36,19 @@ Import P.
            [Add] is legal because the caller promised the window is not
            full -- see the spec. *)
         wp_auto.
+        iDestruct "Hinfl" as (buf) "Hinfl".
         wp_apply (wp_Inflights__Add with "[$Hinfl]") as "Hinfl".
         { by apply Hnotfull. }
-        iDestruct "Hinfl" as (iv') "Hinfl".
+        iDestruct "Hinfl" as (iv' buf') "Hinfl".
         wp_apply (wp_Inflights__Full with "[$Hinfl]") as "Hinfl".
         try wp_auto.
-        iApply "HΦ". rewrite /own_progress /own_progress_at.
-        iExists _, iv'. iFrame "Hpv Hinfl". iPureIntro. split; [done|].
+        iApply "HΦ". iExists _, iv'. rewrite /own_progress. iFrame "Hpv Hinfl". iPureIntro. split; [done|].
         rewrite /progress_state_ok /=. by right; left.
       + wp_auto.
+        iDestruct "Hinfl" as (buf) "Hinfl".
         wp_apply (wp_Inflights__Full with "[$Hinfl]") as "Hinfl".
         try wp_auto.
-        iApply "HΦ". rewrite /own_progress /own_progress_at.
-        iExists _, iv. iFrame "Hpv Hinfl". iPureIntro. split; [done|].
+        iApply "HΦ". iExists _, iv. rewrite /own_progress. iFrame "Hpv Hinfl". iPureIntro. split; [done|].
         rewrite /progress_state_ok /=. by right; left.
   Qed.
 

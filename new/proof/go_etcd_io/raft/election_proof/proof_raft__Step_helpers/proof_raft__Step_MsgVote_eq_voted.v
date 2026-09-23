@@ -55,7 +55,7 @@ Implicit Type s : nstate.t.
       with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
       as "Hphys";
       [iApply (own_raft_phys_intro with
-          "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done|];
+          "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done|];
     wp_apply (P.wp_raft__send with "[$Hphys]") as "Hphys";
       [done|left; exists mtype.VoteResp; split_and!;
             [by right|apply mtype_of_MsgVoteResp|done|w32_ne|done]|];
@@ -75,7 +75,7 @@ Implicit Type s : nstate.t.
                  (send_msgs (s_ <| nstate.vote := m_.(raftpb.Message.From') |>)
                     [msg.mk mtype.VoteResp id_ m_.(raftpb.Message.From')
                        m_.(raftpb.Message.Term') false]) with
-         "Hr2 Hlogger2 Hprs2 Htrk2 Hlog2 Hmsgs2 Hmsgs_cap2 HmsgsAA2 HmsgsAA_cap2 Hmisc2");
+         "Hr2 Hlogger2 Htrk2 Hlog2 Hmsgs2 Hmsgs_cap2 HmsgsAA2 HmsgsAA_cap2 Hmisc2");
        done|];
     iPureIntro; split; [exact wf_|]; split; [|done];
     exists [abs_msg mtype.Vote m_];
@@ -101,7 +101,7 @@ Implicit Type s : nstate.t.
       with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
       as "Hphys";
       [iApply (own_raft_phys_intro with
-          "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done|];
+          "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done|];
     (* The response carries [s.term], so [send]'s [m.Term ≠ 0] premise is the
        incoming message's, transported along [term_eq].  The [simpl] is not
        optional: the premise is stated about the *message literal*, so the

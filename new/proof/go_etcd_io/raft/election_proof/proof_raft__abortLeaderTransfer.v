@@ -11,7 +11,7 @@ Module RaftAbortLeaderTransferProof (P : RAFT__ABORTLEADERTRANSFER_POSTULATES) :
     wp_start as "Hphys". iNamed "Hphys". wp_auto.
     iApply "HΦ".
     iApply (own_raft_phys_intro with
-      "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done.
+      "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done.
   Qed.
 
 End RaftAbortLeaderTransferProof.

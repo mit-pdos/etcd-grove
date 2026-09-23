@@ -42,17 +42,14 @@ Context (cfg : gset w64).
     progress map is now held read-only ([DfracDiscarded]) and so survives
     the closure call as a persistent hypothesis -- which is exactly what
     pins [prs] across a rebuild of the tracker. *)
-Lemma wp_visit (trk : loc) tv votes (prs0 : gmap w64 loc) (f : func.t)
+Lemma wp_visit (trk : loc) tv votes (prs : gmap w64 loc) (f : func.t)
     (I : iProp Σ) :
-  {{{ is_pkg_init tracker ∗ trk ↦ tv ∗ own_tracker cfg tv votes ∗
-      tv.(tracker.ProgressTracker.Progress') ↦$□ prs0 ∗ I ∗
-      □ visit_closure cfg trk votes prs0 f I }}}
+  {{{ is_pkg_init tracker ∗ trk ↦ tv ∗ own_tracker cfg tv votes prs ∗ I ∗
+      □ visit_closure cfg trk votes prs f I }}}
     trk @! (go.PointerType tracker.ProgressTracker) @! "Visit" #f
-  {{{ RET #(); ∃ tv', trk ↦ tv' ∗ own_tracker cfg tv' votes ∗
-                      tv'.(tracker.ProgressTracker.Progress') ↦$□ prs0 ∗ I }}}.
+  {{{ RET #(); ∃ tv', trk ↦ tv' ∗ own_tracker cfg tv' votes prs ∗ I }}}.
 Proof.
-  wp_start as "(Htrk & Hown & #Hprs0 & HI & #Hf)". iNamed "Hown".
-  iDestruct (progress_map_agree with "Hprs0 Hprs") as %->.
+  wp_start as "(Htrk & Hown & HI & #Hf)". iNamed "Hown".
   wp_auto.
   (* [n := len(p.Progress)] *)
   wp_apply (wp_ProgressMap_len with "Hprs") as "_".
@@ -160,10 +157,10 @@ Proof.
        inside the invariant (notes/gotchas.md, "A [for … range] loop
        variable must be inside the [wp_for] invariant"). *)
     (* re-seal the tracker: the closure is lent all of it *)
-    iAssert (own_tracker cfg tv votes)
+    iAssert (own_tracker cfg tv votes prs)
       with "[Hvotes Hprogs Hvoters Hlearners HlearnersNext]" as "Hown".
     { rewrite /own_tracker.
-      iExists prs, voters_ref, voters, learners, learnersNext. iFrame "∗#%". }
+      iExists voters_ref, voters, learners, learnersNext. iFrame "∗#%". }
     (* The tracker *value* is part of the invariant: the closure may hand
        back a different one (see [visit_closure], inv_tracker.v), and the
        loop only ever needs [dom prs = cfg], which holds at any of them. *)
@@ -178,9 +175,8 @@ Proof.
        "%Hj" ∷ ⌜ 0 ≤ sint.Z j ≤ Z.of_nat (length ys) ⌝ ∗
        "%Hyc" ∷ ⌜ ∀ y, y ∈ ys → y ∈ cfg ⌝ ∗
        "Htrk" ∷ trk ↦ tvc ∗
-       "#Hprsc0" ∷ tvc.(tracker.ProgressTracker.Progress') ↦$□ prs ∗
        "HI" ∷ I ∗
-       "Hown" ∷ own_tracker cfg tvc votes ∗
+       "Hown" ∷ own_tracker cfg tvc votes prs ∗
        "Hsl" ∷ sl ↦* ys)%I
       with "[i cur Htrk HI Hown Hsl]" as "IH".
     { iExists (W64 0), (W64 0), tv. iFrame "∗#". iPureIntro.
@@ -201,29 +197,29 @@ Proof.
          below goes through [Hyc] and [Hdomc], which mention it without
          naming it. *)
       pose proof (Hyc y ltac:(by eapply list_elem_of_lookup_2)) as Hycfg.
-      (* the progress map at the tracker value the loop currently holds *)
+      (* the progress map's points-to at the tracker value the loop
+         currently holds; the map itself is [prs] at every one of them *)
       iDestruct (own_tracker_progress_map with "Hown")
-        as (prsc) "(#Hprsc & %Hdomc & Hown)".
-      iDestruct (progress_map_agree with "Hprsc0 Hprsc") as %Heqprs.
-      assert (y ∈ dom prsc) as Hyd by (rewrite Hdomc; exact Hycfg).
-      assert (∃ prc, prsc !! y = Some prc) as [prc Hprc]
+        as "(#Hprsc & %Hdomc & Hown)".
+      assert (y ∈ dom prs) as Hyd by (rewrite ?Hdomc; exact Hycfg).
+      assert (∃ prc, prs !! y = Some prc) as [prc Hprc]
         by (apply elem_of_dom; exact Hyd).
       wp_apply (wp_map_lookup1 with "Hprsc") as "_".
       rewrite Hprc /=.
       iDestruct (own_tracker_maxinflight with "Hown") as "[%HmaxIc Hown]".
-      iDestruct (own_tracker_lookup _ _ _ _ _ _ Hprc with "Hprsc Hown")
+      iDestruct (own_tracker_lookup _ _ _ _ _ _ Hprc with "Hown")
         as "[Hpr Hback]".
       wp_apply ("Hf" $! y prc tvc with "[Htrk Hpr Hback HI]").
-      { iFrame "Htrk Hpr Hback HI Hprsc0". iPureIntro.
-        split; [exact Hycfg | split; [by rewrite Heqprs | exact HmaxIc]]. }
-      iIntros "H". iDestruct "H" as (tv2) "(Htrk & Hown & #Hprs2 & HI)".
+      { iFrame "Htrk Hpr Hback HI". iPureIntro.
+        split; [exact Hycfg | split; [exact Hprc | exact HmaxIc]]. }
+      iIntros "H". iDestruct "H" as (tv2) "(Htrk & Hown & HI)".
       (* [wp_apply … as …] would have run this; the explicit bracket form
          used here (for the two pure premises) does not. *)
       wp_auto.
       wp_for_post.
       iFrame "∗#". iPureIntro. split_and!; first [ word | exact Hyc ].
     + (* every id visited *)
-      iApply "HΦ". iExists tvc. iFrame "Htrk HI Hown Hprsc0".
+      iApply "HΦ". iExists tvc. iFrame "Htrk HI Hown".
 Qed.
 
 End helpers.

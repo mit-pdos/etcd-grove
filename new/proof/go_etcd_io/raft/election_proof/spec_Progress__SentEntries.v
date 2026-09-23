@@ -32,9 +32,9 @@ Definition wp_Progress__SentEntries_body :=
   pv.(tracker.Progress.State') ≠ W64 2 →
   (pv.(tracker.Progress.State') = W64 1 → (0 < sint.Z entries)%Z →
      inflights_full iv = false) →
-  {{{ is_pkg_init tracker ∗ "Hpr" ∷ own_progress_at pr pv iv }}}
+  {{{ is_pkg_init tracker ∗ "Hpr" ∷ own_progress pr pv iv }}}
     pr @! (go.PointerType tracker.Progress) @! "SentEntries" #entries #bytes
-  {{{ RET #(); own_progress pr }}}.
+  {{{ RET #(); ∃ pv' iv', own_progress pr pv' iv' }}}.
 
 Module Type PROGRESS__SENTENTRIES.
   Parameter wp_Progress__SentEntries : wp_Progress__SentEntries_body.

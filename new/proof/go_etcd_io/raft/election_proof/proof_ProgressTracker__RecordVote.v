@@ -5,7 +5,7 @@ Module ProgressTrackerRecordVoteProof (P : PROGRESSTRACKER__RECORDVOTE_POSTULATE
   Lemma wp_ProgressTracker__RecordVote : wp_ProgressTracker__RecordVote_body.
   Proof.
     intros_ambient.
-    intros cfg trk tv votes from v.
+    intros cfg trk tv votes prs from v.
 
     wp_start as "[Htrk Hown]". iNamed "Hown". wp_auto.
     wp_apply (wp_map_lookup2 with "Hvotes") as "Hvotes".
@@ -15,7 +15,7 @@ Module ProgressTrackerRecordVoteProof (P : PROGRESSTRACKER__RECORDVOTE_POSTULATE
       iApply "HΦ". iFrame "Htrk".
       destruct Hok as [v0 Hv0].
       rewrite /own_tracker /record_vote Hv0 /=.
-      iExists prs, voters_ref, voters, learners, learnersNext.
+      iExists voters_ref, voters, learners, learnersNext.
       iFrame "∗#%".
     - (* first vote from [from] *)
       wp_auto.
@@ -24,7 +24,7 @@ Module ProgressTrackerRecordVoteProof (P : PROGRESSTRACKER__RECORDVOTE_POSTULATE
       wp_apply (wp_map_insert with "Hvotes") as "Hvotes".
       iApply "HΦ". iFrame "Htrk".
       rewrite /own_tracker /record_vote Hok /=.
-      iExists prs, voters_ref, voters, learners, learnersNext.
+      iExists voters_ref, voters, learners, learnersNext.
       iFrame "∗#%".
   Qed.
 

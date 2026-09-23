@@ -37,9 +37,10 @@ Implicit Type s : nstate.t.
     [own_raftLog] with the [_open] lemmas and back with [_close]; none of
     them needs a [simpl] of the goal. *)
 Definition own_tracker_unless (lent : option tracker.ProgressTracker.t)
-    (tv : tracker.ProgressTracker.t) (votes : gmap w64 bool) : iProp Σ :=
+    (tv : tracker.ProgressTracker.t) (votes : gmap w64 bool)
+    (prs : gmap w64 loc) : iProp Σ :=
   match lent with
-  | None => own_tracker cfg tv votes
+  | None => own_tracker cfg tv votes prs
   | Some tv0 => ⌜ tv = tv0 ⌝
   end.
 
@@ -47,12 +48,12 @@ Definition own_raftLog_unless (lent : option tracker.ProgressTracker.t)
     (l : loc) : iProp Σ :=
   match lent with None => own_raftLog l | Some _ => True end.
 
-Lemma own_tracker_unless_open lent tv votes :
-  lent = None → own_tracker_unless lent tv votes -∗ own_tracker cfg tv votes.
+Lemma own_tracker_unless_open lent tv votes prs :
+  lent = None → own_tracker_unless lent tv votes prs -∗ own_tracker cfg tv votes prs.
 Proof. intros ->. auto. Qed.
 
-Lemma own_tracker_unless_close lent tv votes :
-  lent = None → own_tracker cfg tv votes -∗ own_tracker_unless lent tv votes.
+Lemma own_tracker_unless_close lent tv votes prs :
+  lent = None → own_tracker cfg tv votes prs -∗ own_tracker_unless lent tv votes prs.
 Proof. intros ->. auto. Qed.
 
 Lemma own_raftLog_unless_open lent l :
@@ -64,16 +65,16 @@ Lemma own_raftLog_unless_close lent l :
 Proof. intros ->. auto. Qed.
 
 (** The two conjuncts while on loan: nothing to own. *)
-Lemma own_tracker_unless_lent tv votes :
-  ⊢ own_tracker_unless (Some tv) tv votes.
+Lemma own_tracker_unless_lent tv votes prs :
+  ⊢ own_tracker_unless (Some tv) tv votes prs.
 Proof. by iPureIntro. Qed.
 
 Lemma own_raftLog_unless_lent tv l : ⊢ own_raftLog_unless (Some tv) l.
 Proof. auto. Qed.
 
 (** While on loan, the tracker field is the value it was lent at. *)
-Lemma own_tracker_unless_lent_eq tv0 tv votes :
-  own_tracker_unless (Some tv0) tv votes -∗ ⌜ tv = tv0 ⌝.
+Lemma own_tracker_unless_lent_eq tv0 tv votes prs :
+  own_tracker_unless (Some tv0) tv votes prs -∗ ⌜ tv = tv0 ⌝.
 Proof. auto. Qed.
 
 (** ** Physical ownership of the raft struct
@@ -107,17 +108,16 @@ Definition own_raft_phys (r : loc) (id : w64) s : iProp Σ :=
       agree is [nstate_wf], which [Step] carries. *)
   "%Hstepfn" ∷ ⌜ rv.(raft.raft.step') = s.(nstate.stepfn) ⌝ ∗
 
-  (** the vote tally, and the rest of the heap the tracker points at.  The
-      tracker's own bytes are covered by [Hr] above, since [trk] is embedded
-      by value; this is only what hangs off it. *)
-  "Htrk" ∷ own_tracker_unless s.(nstate.lent) rv.(raft.raft.trk') s.(nstate.votes) ∗
-  (** The progress map, pinned to [s.(nstate.progress)].  [own_tracker] holds
-      the same (read-only, hence duplicable) points-to; this copy is what
-      lets a proof know *which* [Progress] a peer has after a call it made
-      with the tracker sealed -- [maybeSendAppend] borrows [pr] before
-      [r.send] and must come back to the same pointer after. *)
-  "#Hprs" ∷ rv.(raft.raft.trk').(tracker.ProgressTracker.Progress')
-              ↦$□ s.(nstate.progress) ∗
+  (** the vote tally, the progress map and the rest of the heap the tracker
+      points at.  The tracker's own bytes are covered by [Hr] above, since
+      [trk] is embedded by value; this is only what hangs off it.  Indexed
+      by [s.(nstate.progress)]: that is what lets a proof know *which*
+      [Progress] a peer has after a call it made with the struct sealed.
+      (From 2026-09-22 to 2026-09-23 a second, persistent copy of the
+      progress map's points-to sat here, beside the one inside
+      [own_tracker]; indexing [own_tracker] by the map made it redundant.) *)
+  "Htrk" ∷ own_tracker_unless s.(nstate.lent) rv.(raft.raft.trk')
+             s.(nstate.votes) s.(nstate.progress) ∗
 
   (** the log, unless it is on loan to the caller ([nstate.lent]) *)
   "%Hlogp" ∷ ⌜ rv.(raft.raft.raftLog') = s.(nstate.log) ⌝ ∗
@@ -169,13 +169,13 @@ Definition own_raft_phys (r : loc) (id : w64) s : iProp Σ :=
     [iApply] with named hypotheses and pure side goals:
 
       iApply (own_raft_phys_intro with
-        "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done.
+        "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done.
 
     The pure premises are in the order the conjuncts appear in the predicate.
     [r ↦ rv] is the first spatial argument **on purpose**: it is what fixes
-    [rv], at the struct value the heap holds *now*.  If a persistent
-    argument came first, [rv] would be fixed from it -- at whatever struct
-    value that hypothesis was stated -- and after any field write the heap's
+    [rv], at the struct value the heap holds *now*.  If another argument
+    came first, [rv] would be fixed from it -- at whatever struct value that
+    hypothesis was stated -- and after any field write the heap's
     [r ↦ (rv <| … |>)] would then fail to match. *)
 Lemma own_raft_phys_intro r id s (rv : raft.raft.t)
     (msgs msgsAA : list raftpb.Message.t) (lok : interface.t_ok) :
@@ -196,8 +196,8 @@ Lemma own_raft_phys_intro r id s (rv : raft.raft.t)
   rv.(raft.raft.raftLog') = s.(nstate.log) →
   r ↦ rv -∗
   is_Logger lok -∗
-  rv.(raft.raft.trk').(tracker.ProgressTracker.Progress') ↦$□ s.(nstate.progress) -∗
-  own_tracker_unless s.(nstate.lent) rv.(raft.raft.trk') s.(nstate.votes) -∗
+  own_tracker_unless s.(nstate.lent) rv.(raft.raft.trk') s.(nstate.votes)
+    s.(nstate.progress) -∗
   own_raftLog_unless s.(nstate.lent) rv.(raft.raft.raftLog') -∗
   rv.(raft.raft.msgs') ↦* msgs -∗
   own_slice_cap raftpb.Message.t rv.(raft.raft.msgs') (DfracOwn 1) -∗
@@ -209,7 +209,7 @@ Lemma own_raft_phys_intro r id s (rv : raft.raft.t)
 Proof.
   intros Hid Hterm Hvote Hlead Hstate Hstepfn Houtbox HnoPreVote HnoCheckQuorum
     HnoLearner HnoTransfer Hid_nz HelectionTimeout Hlok Hlogp.
-  iIntros "Hr #Hlogger #Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc".
+  iIntros "Hr #Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc".
   rewrite /own_raft_phys. iExists rv, msgs, msgsAA, lok. iFrame "∗#%".
 Qed.
 
@@ -220,10 +220,9 @@ Lemma own_raft_phys_progress_dom r id s :
   own_raft_phys r id s -∗ ⌜ dom s.(nstate.progress) = cfg ⌝ ∗ own_raft_phys r id s.
 Proof.
   iIntros (Hlent) "H". iNamed "H".
-  iDestruct (own_tracker_unless_open _ _ _ Hlent with "Htrk") as "Htrk".
-  iDestruct (own_tracker_progress_map with "Htrk") as (prs) "(#Hprs' & %Hdom & Htrk)".
-  iDestruct (progress_map_agree with "Hprs Hprs'") as %<-.
-  iDestruct (own_tracker_unless_close _ _ _ Hlent with "Htrk") as "Htrk".
+  iDestruct (own_tracker_unless_open _ _ _ _ Hlent with "Htrk") as "Htrk".
+  iDestruct (own_tracker_progress_map with "Htrk") as "(#Hprs & %Hdom & Htrk)".
+  iDestruct (own_tracker_unless_close _ _ _ _ Hlent with "Htrk") as "Htrk".
   iSplitR; first done.
   rewrite /own_raft_phys. iExists rv, msgs, msgsAA, lok. iFrame "∗#%".
 Qed.

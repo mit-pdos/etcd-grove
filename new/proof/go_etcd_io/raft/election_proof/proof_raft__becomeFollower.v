@@ -15,7 +15,7 @@ Import P.
       as "Hphys".
     { iApply (own_raft_phys_intro _ _ _
                 (s <| nstate.stepfn := step_func_of role.Follower |>) with
-        "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
+        "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
         done. }
     (* [reset]'s state is left to the frame: given explicitly, it has to be
        matched against [Hphys] up to conversion, which ran for 24 minutes
@@ -37,7 +37,7 @@ Import P.
        [functions raft.tickElection []], and [simpl] goes into the
        semantics tables (12+ minutes, 2026-09-22) *)
     iApply (own_raft_phys_intro _ _ _ (become_follower s term lead) with
-      "Hr1 Hlogger1 Hprs1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1");
+      "Hr1 Hlogger1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1");
       done.
   Qed.
 

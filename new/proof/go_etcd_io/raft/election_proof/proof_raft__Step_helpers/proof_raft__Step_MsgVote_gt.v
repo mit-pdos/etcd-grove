@@ -105,7 +105,7 @@ Implicit Type s : nstate.t.
     iAssert (own_raft_phys cfg r id s)
       with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys".
     { iApply (own_raft_phys_intro with
-          "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
+          "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
     wp_apply (P.wp_raft__becomeFollower _ _ _ _ _ _ Hlent with "[$Hphys]")
       as "Hphys".
     (* the corresponding protocol step, recorded as a pure fact rather than
@@ -163,7 +163,7 @@ Implicit Type s : nstate.t.
         with "[Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1]"
         as "Hphys".
       { iApply (own_raft_phys_intro with
-          "Hr1 Hlogger1 Hprs1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1");
+          "Hr1 Hlogger1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1");
         unfold become_follower, reset_to; simpl; try (rewrite decide_False; [|exact Hne]); done. }
       (* [send] the granted vote response, then record the vote. *)
       wp_apply (P.wp_raft__send with "[$Hphys]") as "Hphys".
@@ -186,7 +186,7 @@ Implicit Type s : nstate.t.
                         <| nstate.vote := m.(raftpb.Message.From') |>)
              [msg.mk mtype.VoteResp id m.(raftpb.Message.From')
                 m.(raftpb.Message.Term') false]) with
-          "Hr2 Hlogger2 Hprs2 Htrk2 Hlog2 Hmsgs2 Hmsgs_cap2 HmsgsAA2 HmsgsAA_cap2 Hmisc2");
+          "Hr2 Hlogger2 Htrk2 Hlog2 Hmsgs2 Hmsgs_cap2 HmsgsAA2 HmsgsAA_cap2 Hmisc2");
           done. }
       iPureIntro. split; first exact (nstate_wf_become_follower _ _ _ Hlent).
       split; last done.
@@ -211,7 +211,7 @@ Implicit Type s : nstate.t.
         with "[Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1]"
         as "Hphys".
       { iApply (own_raft_phys_intro with
-          "Hr1 Hlogger1 Hprs1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1");
+          "Hr1 Hlogger1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1");
         unfold become_follower, reset_to; simpl; try (rewrite decide_False; [|exact Hne]); done. }
       wp_apply (P.wp_raft__send with "[$Hphys]") as "Hphys".
       { done. }

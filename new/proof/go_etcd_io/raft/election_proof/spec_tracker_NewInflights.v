@@ -17,7 +17,7 @@ Definition wp_tracker_NewInflights_body :=
   (0 ≤ sint.Z size < 2 ^ 62)%Z →
   {{{ is_pkg_init tracker }}}
     @! tracker.NewInflights #size #maxBytes
-  {{{ (l : loc), RET #l; own_inflights l }}}.
+  {{{ (l : loc), RET #l; ∃ iv buf, own_inflights l iv buf }}}.
 
 Module Type TRACKER_NEWINFLIGHTS.
   Parameter wp_tracker_NewInflights : wp_tracker_NewInflights_body.

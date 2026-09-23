@@ -7,24 +7,16 @@ Import P.
   Lemma wp_Progress__BecomeSnapshot : wp_Progress__BecomeSnapshot_body.
   Proof.
     intros_ambient.
-    intros pr snapshoti.
-
-    wp_start as "Hpr". iNamed "Hpr". iNamed "Hinfl". wp_auto.
-    (* [wp_apply … as] runs [wp_auto] for us, so the three stores that follow
-       the [ResetState] call are already taken *)
-    wp_apply (wp_Progress__ResetState with "[$Hpv $Hiv]") as "[Hpv Hiv]".
-    iApply "HΦ". rewrite /own_progress /own_progress_at /own_inflights_at /=.
-    (* as in [proof_Progress__BecomeReplicate.v]: frame the reset [Inflights]
-       first so that it, and not the pre-reset value, fixes the existential *)
-    iExists _, _. iFrame "Hpv".
-    iSplitL "Hiv Hbuf Hbuf_cap".
-    { simpl. iFrame "Hiv". iFrame.
-      iPureIntro. destruct Hinfl_ok as (?&?&?&?&?&?).
-      rewrite /inflights_ok /=. split_and!; word. }
-    (* [ResetState] carries [IsLearner'] across and installs [StateSnapshot],
-       which is [W64 2] -- the third disjunct of [progress_state_ok] *)
-    iPureIntro.
-    split; [ exact Hnolearner | rewrite /progress_state_ok /=; by right; right ].
+    intros pr pv iv snapshoti.
+    wp_start as "Hpr". wp_auto.
+    (* [ResetState] is specified on [own_progress] at the exact new values;
+       open what it returns to step the field writes that follow *)
+    assert (progress_state_ok (W64 2)) as Hst.
+    { rewrite /progress_state_ok. by right; right. }
+    wp_apply (wp_Progress__ResetState _ _ _ _ Hst with "[$Hpr]") as "Hpr".
+    iNamed "Hpr". wp_auto.
+    iApply "HΦ". iExists _, _. rewrite /own_progress. iFrame "Hpv Hinfl".
+    iPureIntro. split; done.
   Qed.
 
 End ProgressBecomeSnapshotProof.

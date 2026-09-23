@@ -83,8 +83,8 @@ Set Default Proof Using "Type".
     iDestruct "ErrSnapUnavail" as "#ErrSnapUnavail".
     iNamed "Hphys".
     iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog") as "Hlog".
-    iDestruct (own_tracker_unless_open _ _ _ _ Hlent with "Htrk") as "Htrk".
-    iDestruct (own_tracker_lookup _ _ _ _ _ _ Hprto with "Hprs Htrk")
+    iDestruct (own_tracker_unless_open _ _ _ _ _ Hlent with "Htrk") as "Htrk".
+    iDestruct (own_tracker_lookup _ _ _ _ _ _ Hprto with "Htrk")
       as "[Hpr Htrkback]".
     iNamed "Hpr".
     wp_auto.
@@ -95,13 +95,13 @@ Set Default Proof Using "Type".
       wp_apply (wp_Logger__logf with "Hlogger").
       { solve_log_method. }
       iApply ("HΦ" $! false).
-      iAssert (own_progress pr) with "[Hpv Hinfl]" as "Hpr".
-      { rewrite /own_progress /own_progress_at. iExists pv, iv. iFrame "∗%". }
+      iAssert (∃ pv iv, own_progress pr pv iv)%I with "[Hpv Hinfl]" as "Hpr".
+      { iExists pv, iv. rewrite /own_progress. iFrame "∗%". }
       iDestruct ("Htrkback" with "Hpr") as "Htrk".
-      iDestruct (own_tracker_unless_close _ _ _ _ Hlent with "Htrk") as "Htrk".
+      iDestruct (own_tracker_unless_close _ _ _ _ _ Hlent with "Htrk") as "Htrk".
       iDestruct (own_raftLog_unless_close _ _ Hlent with "Hlog") as "Hlog".
       iApply (own_raft_phys_intro with
-        "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
+        "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
         done. }
     iDestruct (own_raftLog_acc with "Hlog") as (prev sents uents) "[Hlog Hlogback]".
     wp_apply (wp_raftLog__snapshot_at with "[$Hlog $ErrSnapUnavail]")
@@ -118,13 +118,13 @@ Set Default Proof Using "Type".
       wp_apply (wp_Logger__logf with "Hlogger").
       { solve_log_method. }
       iApply ("HΦ" $! false).
-      iAssert (own_progress pr) with "[Hpv Hinfl]" as "Hpr".
-      { rewrite /own_progress /own_progress_at. iExists pv, iv. iFrame "∗%". }
+      iAssert (∃ pv iv, own_progress pr pv iv)%I with "[Hpv Hinfl]" as "Hpr".
+      { iExists pv, iv. rewrite /own_progress. iFrame "∗%". }
       iDestruct ("Htrkback" with "Hpr") as "Htrk".
-      iDestruct (own_tracker_unless_close _ _ _ _ Hlent with "Htrk") as "Htrk".
+      iDestruct (own_tracker_unless_close _ _ _ _ _ Hlent with "Htrk") as "Htrk".
       iDestruct (own_raftLog_unless_close _ _ Hlent with "Hlog") as "Hlog".
       iApply (own_raft_phys_intro with
-        "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
+        "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
         done.
     - (* a real snapshot: [Metadata.Index ≠ 0] kills [IsEmptySnap]'s panic *)
       wp_auto.
@@ -145,8 +145,8 @@ Set Default Proof Using "Type".
       wp_auto. rewrite Hlok.
       wp_apply (wp_Logger__logf with "Hlogger").
       { solve_log_method. }
-      iAssert (own_progress pr) with "[Hpv Hinfl]" as "Hpr".
-      { rewrite /own_progress /own_progress_at. iExists pv, iv. iFrame "∗%". }
+      iAssert (own_progress pr pv iv) with "[Hpv Hinfl]" as "Hpr".
+      { rewrite /own_progress. iFrame "∗%". }
       wp_apply (wp_Progress__BecomeSnapshot with "[$Hpr]") as "Hpr".
       wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
       wp_auto. rewrite Hlok.
@@ -154,12 +154,12 @@ Set Default Proof Using "Type".
       { solve_log_method. }
       (* the [Progress] and the log go back before [send] *)
       iDestruct ("Htrkback" with "Hpr") as "Htrk".
-      iDestruct (own_tracker_unless_close _ _ _ _ Hlent with "Htrk") as "Htrk".
+      iDestruct (own_tracker_unless_close _ _ _ _ _ Hlent with "Htrk") as "Htrk".
       iDestruct (own_raftLog_unless_close _ _ Hlent with "Hlog") as "Hlog".
       iAssert (own_raft_phys cfg r id s)
         with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys".
       { iApply (own_raft_phys_intro with
-          "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
+          "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
           done. }
       wp_apply (P.wp_raft__send with "[$Hphys]");
         [ done

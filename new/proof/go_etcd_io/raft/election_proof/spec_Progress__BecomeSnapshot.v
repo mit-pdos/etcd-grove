@@ -18,10 +18,11 @@ Definition wp_Progress__BecomeSnapshot_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
-    (pr : loc) (snapshoti : w64),
-  {{{ is_pkg_init tracker ∗ own_progress pr }}}
+    (pr : loc) (pv : tracker.Progress.t) (iv : tracker.Inflights.t)
+    (snapshoti : w64),
+  {{{ is_pkg_init tracker ∗ own_progress pr pv iv }}}
     pr @! (go.PointerType tracker.Progress) @! "BecomeSnapshot" #snapshoti
-  {{{ RET #(); own_progress pr }}}.
+  {{{ RET #(); ∃ pv' iv', own_progress pr pv' iv' }}}.
 
 Module Type PROGRESS__BECOMESNAPSHOT.
   Parameter wp_Progress__BecomeSnapshot : wp_Progress__BecomeSnapshot_body.

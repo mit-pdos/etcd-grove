@@ -23,7 +23,7 @@ Import P.
        increment. *)
     case_bool_decide as Hunc; wp_auto; (iApply "HΦ"; iFrame "Hes";
       iApply (own_raft_phys_intro with
-        "Hr Hlogger Hprs Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
+        "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
       done).
   Qed.
 

@@ -10,7 +10,7 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
        be false, not merely weak.
     2. It then writes [in.buffer[(in.start+in.count) mod in.size]], growing
        the buffer on demand.  That the slot is in range is the content of
-       [inflights_ok] in [own_inflights_at] ([inv_tracker.v]); without it the
+       [inflights_ok] in [own_inflights] ([inv_tracker.v]); without it the
        triple is *also* false (start = 100, count = 0, size = 1000, empty
        buffer is not [Full], grows to one slot and indexes slot 100).
 
@@ -22,11 +22,12 @@ Definition wp_Inflights__Add_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
-    (l : loc) (iv : tracker.Inflights.t) (index bytes : w64),
+    (l : loc) (iv : tracker.Inflights.t) (buf : list tracker.inflight.t)
+    (index bytes : w64),
   inflights_full iv = false →
-  {{{ is_pkg_init tracker ∗ "Hin" ∷ own_inflights_at l iv }}}
+  {{{ is_pkg_init tracker ∗ "Hin" ∷ own_inflights l iv buf }}}
     l @! (go.PointerType tracker.Inflights) @! "Add" #index #bytes
-  {{{ RET #(); own_inflights l }}}.
+  {{{ RET #(); ∃ iv' buf', own_inflights l iv' buf' }}}.
 
 Module Type INFLIGHTS__ADD.
   Parameter wp_Inflights__Add : wp_Inflights__Add_body.

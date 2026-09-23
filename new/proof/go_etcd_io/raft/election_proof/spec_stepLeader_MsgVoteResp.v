@@ -27,7 +27,12 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
     [nil] error.  Note in particular that no [m.From ∈ cfg] premise is needed:
     the lookup's result is only compared against [nil], and *both* outcomes
     return [nil] without touching the state, so the proof never has to know
-    whether the sender is a voter. *)
+    whether the sender is a voter.
+
+    [s.(nstate.lent) = None]: the lookup reads the progress map, which is
+    owned by the tracker.  (Until 2026-09-23 [own_raft_phys] held a second
+    copy of the map's points-to outside the tracker, and this spec read
+    that.)  Its only caller, [Step], holds [nstate_wf s]. *)
 Definition wp_stepLeader_MsgVoteResp_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
@@ -35,6 +40,7 @@ Definition wp_stepLeader_MsgVoteResp_body :=
     (cfg : gset w64)
     (r : loc) (id : w64) (s : nstate.t) (m : raftpb.Message.t),
   m.(raftpb.Message.Type') = MsgVoteResp →
+  s.(nstate.lent) = None →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     @! raft.stepLeader #r #m
   {{{ (err : error.t), RET #err;

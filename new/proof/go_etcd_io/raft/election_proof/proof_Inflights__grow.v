@@ -22,7 +22,19 @@ Module InflightsGrowProof (P : INFLIGHTS__GROW_POSTULATES) : INFLIGHTS__GROW.
                 with "[$Hsl $Hbuf]") as "%ncopy (%Hncopy & Hsl & Hbuf)";
     rewrite length_replicate take_ge; last word;
     rewrite drop_replicate;
-    iApply "HΦ"; iFrame "Hiv Hsl Hsl_cap"; iPureIntro; split;
+    iApply "HΦ"; rewrite /own_inflights; iFrame "Hiv Hsl Hsl_cap"; iPureIntro;
+    (* the ring invariant at the grown buffer: every field but [buffer] is
+       unchanged, and the occupied range still fits because the buffer only
+       got longer.  [len buf < size] rules out the "buffer is the full ring"
+       disjunct of the old invariant. *)
+    (* [Ltac] does not late-bind hypothesis names, so find it by type *)
+    match goal with H : inflights_ok _ _ |- _ =>
+      let Hring := fresh "Hring" in
+      destruct H as (? & ? & ? & ? & ? & Hring);
+      destruct Hring as [?|?]; [|exfalso; word] end;
+    split; [ rewrite /inflights_ok /= ?length_app ?length_replicate;
+             split_and!; first [ word | assumption | left; word ] | ];
+    split;
     rewrite ?length_app ?length_replicate;
     [ word | f_equal; f_equal; lia ].
 
@@ -30,7 +42,7 @@ Module InflightsGrowProof (P : INFLIGHTS__GROW_POSTULATES) : INFLIGHTS__GROW.
   Proof.
     intros_ambient.
     intros l iv buf Hsmall Hsize.
-    wp_start as "H". iNamed "H".
+    wp_start as "H". iNamed "H". iNamed "Hin".
     (* [len(in.buffer)] is the [slice.len] field; the pure length of [buf] is
        what both premises and the postcondition speak about. *)
     iDestruct (own_slice_len with "Hbuf") as %[Hblen Hblen0].
