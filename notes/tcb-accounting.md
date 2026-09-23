@@ -201,12 +201,19 @@ tool labels *"binders, and Perennial/stdpp/Rocq constants"*. Under
 ### G3. The one exported spec is vacuous under the trivial ghost model, and nothing says so
 
 The result this development is for is `wp_raft__Step` — a Hoare triple on a
-Go function — and `--scope election_proof --view surface` correctly reports
-`wp_raft__Step_body` as the sole externally-facing statement.
-`raft_election_safety` is an internal sanity check on the model, not the
-payoff ([decisions.md](decisions.md), 2026-09-21), so its absence from that
-surface is right, and an earlier version of this file was wrong to call it a
+Go function — and `--scope election_proof --view surface` reports
+`wp_raft__Step_body` as the sole externally-facing result.
+`raft_election_safety` is an internal lemma, not the payoff
+([decisions.md](decisions.md), 2026-09-21), so it does not belong among the
+results, and an earlier version of this file was wrong to call its absence a
 gap.
+
+(That was true by accident at first: `--scope` was a path filter and the
+corollary sat outside the directory. Once `--scope` became a dependency cone
+it reappeared, through a rule that promoted *any* unused theorem in a file
+nothing required. Since 2026-09-23 the surface has two sections — results,
+which must be Go-function triples, and *root lemmas*, stated facts nothing
+uses yet — and the corollary is in the second, not counted in the TCB.)
 
 The real problem is that the exported triple cannot yet mean anything.
 `own_raft_ghost`, `is_message` and `is_leader` are `Axiom`s, and

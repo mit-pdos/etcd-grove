@@ -1050,11 +1050,34 @@ into triviality. That is worth having. It is not the result.
 
 **Consequences, in the order they bite:**
 
-1. **What belongs on the exported surface is the function specs.**
-   `etc/tcb-report.py --view surface` reporting `wp_raft__Step_body` as the
-   sole externally-facing result of the election development is *correct*,
-   not an omission. A theorem like `raft_election_safety` that nothing calls
-   is a leaf, and the tool counting it as one is right.
+1. **What belongs on the exported surface is the function specs.** Since
+   2026-09-23 `etc/tcb-report.py --view surface` has two sections: *results*
+   — Go-function Hoare triples nothing else in the development calls, which
+   for the election development is `wp_raft__Step_body` alone — and *root
+   lemmas*, stated facts nothing uses yet, which is where
+   `raft_election_safety` lives. Root lemmas are neither results nor counted
+   in the TCB. (Until then the tool promoted any unused theorem in a file
+   nothing required, and once `--scope` became a dependency cone that put
+   the corollary on the surface.)
+
+   **A root lemma is not therefore disposable.** `raft_election_safety` is
+   today the *only* user of `own_raft_ghost_is_leader` and
+   `is_leader_unique`, and that pair is what will stop the ghost state being
+   built trivially. Without it, `own_raft_ghost γ id s` := a per-`id`
+   exclusive token that ignores `s`, with `is_message` := `True`, satisfies
+   every other axiom in `Section ghost` — and is allocatable, so it is a real
+   model that certifies nothing. With it, that model fails: `step` has a win
+   transition, so two nodes could each step into Leader in the same term. A
+   construction therefore has to track leadership per term against vote
+   quorums, which is what forces `is_message` to certify votes. Until a spec
+   consumes the corollary — proposal or commit, which rely on a single
+   leader, are the likely ones — its real job is keeping that obligation
+   alive. (`own_raft_ghost_excl`, by contrast, is used by nothing at all.)
+
+   Independently of all this, the `Step` proof is not trivial: the ghost
+   predicates are opaque, so every branch has to go through
+   `own_raft_ghost_step` and prove the code's transition is a `step`. The
+   uniqueness pair is what makes that relation worth being refined.
 2. **A protocol-level property earns its place only when a function spec or
    its client needs it.** Do not add protocol theorems for their own sake.
 3. **"Is the proof done?" is answered by reading the triples**, not by

@@ -446,7 +446,7 @@ over-counts, because several doc comments quote a probe lemma ending in
     etc/tcb-report.py                    # summary, and which files are incomplete
     etc/tcb-report.py --scope election_proof
     etc/tcb-report.py --view assumed     # every axiom and admit, classified
-    etc/tcb-report.py --view surface     # what the exported statements rest on
+    etc/tcb-report.py --view surface     # results (Go triples), root lemmas, their defs
 
 **An audit is two commands, and this is only the second one** (set
 2026-09-22, [tcb-accounting.md](tcb-accounting.md)):

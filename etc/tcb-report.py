@@ -20,8 +20,11 @@ What counts as the TCB here, and why:
     ends in ``Admitted``.  Believed without proof, so believed.
   * **results** -- the statements of the things the development exports: a
     Hoare triple for a Go function that nothing else in the development
-    calls, and a theorem in a file that nothing else requires.  A reader has
-    to read these to know what was proved.
+    calls.  A reader has to read these to know what was proved.  Only
+    triples qualify, because the development exists to verify code
+    (notes/decisions.md, 2026-09-21): a lemma that nothing uses is a **root
+    lemma**, an internal protocol fact waiting for a spec to need it, and is
+    listed separately -- not a result, and not counted.
   * **definitions** -- everything those statements are written in terms of,
     transitively.  The abstract state machine, the ghost-state predicates,
     the refinement relation.  A wrong definition here makes a true theorem
@@ -43,10 +46,10 @@ And what does *not* count, which is the other half of the point:
 Usage::
 
     etc/tcb-report.py                        # summary + what is incomplete
-    etc/tcb-report.py --scope election_proof       # one directory of it
+    etc/tcb-report.py --scope election_proof # what the build reaches from it
     etc/tcb-report.py --view files           # every file's status
     etc/tcb-report.py --view assumed         # every axiom and admit
-    etc/tcb-report.py --view surface         # the exported statements
+    etc/tcb-report.py --view surface         # results, root lemmas, their defs
     etc/tcb-report.py --view all
     etc/tcb-report.py --format json
     etc/tcb-report.py --selftest
@@ -580,9 +583,12 @@ def mentions(units, index):
 
 
 def exported_surface(units, edges, index, mentioned):
-    """The declarations a client of this development has to read.
+    """The roots of the development: what nothing else in it depends on.
 
-    Two rules, one for each way a development exposes something:
+    Returns ``(triples, root_lemmas, internal_collections)``.  Only the
+    first are **results** -- the development exists to verify code, so what
+    a client consumes is a Hoare triple for a Go function
+    (notes/decisions.md, 2026-09-21).  Roots are found two ways:
 
       * a **collection** that no *other collection* requires or names
         specifies a Go function nothing else in the development calls -- a
@@ -590,14 +596,20 @@ def exported_surface(units, edges, index, mentioned):
         aggregator that re-exports every ``link_*`` so that CI builds them
         is deliberately not counted as a caller: re-exporting is not
         calling, and if it were, every collection would look internal.
-      * a **declaration** in a file nothing else requires, which nothing
-        else names.  That is a theorem stated for its own sake: the payoff,
-        or something nobody uses.
+      * a **declaration** in a non-collection file nothing else requires,
+        which nothing else names.  If its statement is a Hoare triple it is
+        a result, the same as a collection's (``v3.v``'s
+        ``wp_Node__Propose`` is one).  If not, it is a **root lemma**: a
+        protocol fact nothing uses *yet* -- ``raft_election_safety`` is one
+        -- which is an internal step towards some spec, not something a
+        client reads.  It is reported, so that it stays visible, but it is
+        neither a result nor part of the TCB.  Do not read "unused" as "safe
+        to delete": a root lemma can be the only thing using an axiom, and
+        so the only thing keeping that axiom's obligation alive.
 
-    Both are "nothing depends on it", which is what externally facing means
-    from inside a development.  Go's export rule is reported alongside, not
-    used to decide: an exported method whose spec something else in the
-    development calls is an internal callee here, however public it is in Go.
+    Go's export rule is reported alongside, not used to decide: an exported
+    method whose spec something else in the development calls is an
+    internal callee here, however public it is in Go.
     """
     by_path = {u.path: u for u in units}
     used_by = collections.defaultdict(set)
@@ -624,7 +636,7 @@ def exported_surface(units, edges, index, mentioned):
         if callers - {u.collection}:
             internal_colls.add(u.collection)
 
-    surface = []
+    surface, root_lemmas = [], []
     for u in units:
         if u.collection:
             if u.collection in internal_colls or u.role != "spec":
@@ -641,8 +653,12 @@ def exported_surface(units, edges, index, mentioned):
                 continue
             if mentioned.get((d.path, d.line)):
                 continue
-            surface.append((d, u))
-    return surface, internal_colls
+            # `Lemma wp_x : wp_x_body.` states a triple through an alias.
+            if follow_alias(d, index).is_triple:
+                surface.append((d, u))
+            else:
+                root_lemmas.append((d, u))
+    return surface, root_lemmas, internal_colls
 
 
 # --------------------------------------------------------------------------
@@ -652,7 +668,7 @@ def exported_surface(units, edges, index, mentioned):
 def build_report(units, edges, scope_dir, root, marker, selection=None):
     index = build_index(units)
     mentioned = mentions(units, index)
-    surface, internal_colls = exported_surface(units, edges, index, mentioned)
+    surface, roots, internal_colls = exported_surface(units, edges, index, mentioned)
 
     raw_lines = {}
     for u in units:
@@ -698,9 +714,25 @@ def build_report(units, edges, scope_dir, root, marker, selection=None):
             }
         )
 
+    # Root lemmas: listed, never trusted.  An axiom or admit among them is
+    # already in `assumed`, which is where its cost is counted.
+    root_lemmas = [
+        {
+            "file": u.rel,
+            "line": d.line,
+            "name": qualified(d),
+            "kind": d.kind,
+            "status": status_of(d),
+            "lines": d.lines,
+        }
+        for d, u in roots
+    ]
+
     # The definitions the trusted statements rest on.  Seeds are the exported
     # statements and the statements of everything assumed: to know what an
-    # axiom assumes you have to read the definitions it is written in.
+    # axiom assumes you have to read the definitions it is written in.  Root
+    # lemmas do not seed it: nothing depends on them, so nothing a client
+    # reads is only as good as the definitions they mention.
     seeds = [d for d, _u in surface] + [d for d, _u, _r in assumed]
     defs, unresolved = closure(seeds, index, lambda d: (d.path, d.line))
 
@@ -726,6 +758,7 @@ def build_report(units, edges, scope_dir, root, marker, selection=None):
     scoped_units = [f for f in files if in_scope(f[0].rel)]
     scoped_assumed = [r for _d, _u, r in assumed if in_scope(r["file"])]
     scoped_results = [r for r in results if in_scope(r["file"])]
+    scoped_roots = [r for r in root_lemmas if in_scope(r["file"])]
     scoped_defs = [d for d in defs if in_scope(os.path.relpath(d.path, root))]
 
     total_lines = sum(u.lines for u, _c, _k in scoped_units)
@@ -763,6 +796,7 @@ def build_report(units, edges, scope_dir, root, marker, selection=None):
         "lines": total_lines,
         "assumed": scoped_assumed,
         "results": scoped_results,
+        "root_lemmas": scoped_roots,
         "definitions": [
             {
                 "file": os.path.relpath(d.path, root),
@@ -958,7 +992,7 @@ def print_summary(rep, out):
         "results",
         len(rep["results"]) - rep["results_assumed"],
         res_lines,
-        "statements nothing else depends on",
+        "Go-function triples nothing else calls",
         out,
     )
     if rep["results_assumed"]:
@@ -991,6 +1025,17 @@ def print_summary(rep, out):
         file=out,
     )
     print("               {:>4}  lemmas with a Qed".format(rep["proved"]), file=out)
+    # Root lemmas that are themselves assumed are counted above, under
+    # assumed; only the proved ones belong in this block.
+    free_roots = [
+        r for r in rep["root_lemmas"] if r["status"] not in ("assumed", "admitted")
+    ]
+    if free_roots:
+        print(
+            f"               {len(free_roots):>4}  root lemmas -- stated, used by nothing yet"
+            " (--view surface)",
+            file=out,
+        )
     print(file=out)
 
     by_status = collections.Counter(f["status"] for f in rep["file_status"])
@@ -1094,28 +1139,57 @@ def print_assumed(rep, out):
         )
 
 
+def _surface_row(rep, r, note, out):
+    where = "{}:{}".format(os.path.relpath(r["file"], rep["scope"]), r["line"])
+    print(
+        "  {:<{w}} {:<34} {:>3} lines  [{}]".format(
+            shorten_path(where, PATH_W),
+            shorten(r["name"], 34),
+            r["lines"],
+            note,
+            w=PATH_W,
+        ),
+        file=out,
+    )
+
+
 def print_surface(rep, out):
-    print("Externally-facing results ({}):".format(len(rep["results"])), file=out)
+    print(
+        "Externally-facing results: Go-function Hoare triples nothing else"
+        " calls ({}):".format(len(rep["results"])),
+        file=out,
+    )
     for r in sorted(rep["results"], key=lambda r: (r["file"], r["line"])):
         note = r["status"]
         if r["exported_in_go"]:
             note += ", exported in Go"
         elif r["go_fns"]:
             note += ", unexported in Go"
-        where = "{}:{}".format(os.path.relpath(r["file"], rep["scope"]), r["line"])
+        _surface_row(rep, r, note, out)
+    print(file=out)
+
+    roots = rep.get("root_lemmas") or []
+    print(
+        f"Root lemmas: stated, used by nothing yet ({len(roots)}) -- not results, and not"
+        " counted in the TCB.",
+        file=out,
+    )
+    if roots:
         print(
-            "  {:<{w}} {:<34} {:>3} lines  [{}]".format(
-                shorten_path(where, PATH_W),
-                shorten(r["name"], 34),
-                r["lines"],
-                note,
-                w=PATH_W,
-            ),
+            "  An internal fact waiting for a spec to need it.  Not the same as"
+            " safe to delete:",
             file=out,
         )
+        print(
+            "  it may be the only user of an axiom, and so the only thing keeping"
+            " its obligation alive.",
+            file=out,
+        )
+    for r in sorted(roots, key=lambda r: (r["file"], r["line"])):
+        _surface_row(rep, r, r["status"], out)
     print(file=out)
     print(
-        "Definitions they rest on ({}, {} lines):".format(
+        "Definitions the results rest on ({}, {} lines):".format(
             len(rep["definitions"]), num(sum(d["lines"] for d in rep["definitions"]))
         ),
         file=out,
@@ -1286,6 +1360,19 @@ Module GProof (P : F) : G.
   Example refl_ok : legal s s := eq_refl.
 End GProof.
 """,
+    # A file nothing requires, outside the collection layout: one triple
+    # stated as a loose lemma (a result, like v3.v's wp_Node__Propose) and
+    # one protocol fact nothing uses (a root lemma, like
+    # raft_election_safety).  Only the first is a result, and only the first
+    # seeds the definitions closure.
+    "top.v": """\
+Require Export model.
+Definition only_used_here : Prop := True.
+Lemma only_used_here_refl : only_used_here -> only_used_here.
+Proof. auto. Qed.
+Lemma wp_h : {{{ True }}} @! pkg.h #x {{{ RET #(); True }}}.
+Proof. reflexivity. Qed.
+""",
 }
 
 
@@ -1320,13 +1407,18 @@ def selftest():
         want(shapes.get("own_state_agree") == "property", "property")
         want(shapes.get("GProof.wp_G") == "triple", "admitted triple")
         want(rep["obligations"] == 2, "obligations = {}".format(rep["obligations"]))
-        # G calls f, so f's collection is internal and only G is exported.
+        # G calls f, so f's collection is internal and G is a result; so is
+        # the loose triple wp_h.  The unused lemma beside it is a root lemma,
+        # not a result.
         results = {r["name"] for r in rep["results"]}
-        want(results == {"wp_G_body"}, f"results = {sorted(results)}")
+        want(results == {"wp_G_body", "wp_h"}, f"results = {sorted(results)}")
+        exported = {r["name"]: r["exported_in_go"] for r in rep["results"]}
         want(
-            [r["exported_in_go"] for r in rep["results"]] == [["pkg.T.G"]],
-            "Go export rule reported",
+            exported == {"wp_G_body": ["pkg.T.G"], "wp_h": []},
+            f"Go export rule reported: {exported}",
         )
+        roots = {r["name"] for r in rep["root_lemmas"]}
+        want(roots == {"only_used_here_refl"}, f"root lemmas = {sorted(roots)}")
         # The statements rest on `legal`, `st.t` (through `st.term`) and the
         # `_body` of the admitted triple -- but not on `wp_f_body`, which
         # nothing trusted mentions.
@@ -1336,6 +1428,10 @@ def selftest():
             f"definition closure = {sorted(defs)}",
         )
         want("wp_f_body" not in defs, "internal spec not in the closure")
+        want(
+            "only_used_here" not in defs,
+            "a definition only a root lemma mentions is not in the closure",
+        )
         # a definition by term is not an unfinished proof
         want(
             not any(f["counts"].get("unclosed") for f in rep["file_status"]),
@@ -1350,6 +1446,7 @@ def selftest():
                 "dev/proof_f.v": "proved",
                 "dev/spec_G.v": "stated",
                 "dev/proof_G.v": "admitted",
+                "dev/top.v": "proved",
             },
             f"file status = {statuses}",
         )

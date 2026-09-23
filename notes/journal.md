@@ -2921,3 +2921,62 @@ whole-tree figure the audit quoted for the election branch, now that
 The 3 gotchas from the earlier build still hold on `main`: its Makefile
 change only split the timing database by mode ("vok overwriting vo" meant
 timing rows), and left the `%.vok` rule alone.
+
+---
+
+## 2026-09-23 — tcb-report separates Go-function triples from root lemmas
+
+Claude Opus 5.5 (background job), branch `worktree-tcb-report-audit`
+(pushed as `…-rebased`). Upamanyu noticed `raft_election_safety` in
+`--view surface`'s "externally-facing results" and pointed out that it will
+be an internal protocol lemma serving some WP, not a result.
+
+**Why it was there.** `exported_surface` had two rules. Collections were
+handled correctly — a spec nothing calls is a result — but any file outside
+the collection layout that nothing in the proof root required had *every*
+unused non-definition promoted, triple or not; its docstring called such a
+theorem "the payoff". `should_build.v` is outside the proof root, so every
+aggregator looked like a leaf. That rule put `raft_election_safety` on the
+surface once `--scope` became a dependency cone, and `readonly.v`'s four
+protocol facts once it was wired in.
+
+**Now:** results are Go-function Hoare triples nothing else calls, however
+they are written — a collection's `_body`, or a loose lemma like `v3.v`'s
+`wp_Node__Propose` (checked through `follow_alias`). Everything else that
+nothing uses is a **root lemma**: its own section, not a result, not counted
+in the TCB and not seeding the definitions closure. An axiom or admit among
+them is still counted under assumed, as before.
+
+| | results | definitions | TCB |
+|---|---|---|---|
+| raft tree, before | 8 (+4 assumed) | 81 / 744 lines | 132 / 966 lines, 6.3% |
+| raft tree, after | 4 (+3 assumed) | 79 / 735 lines | 126 / 937 lines, 6.1% |
+| `--scope election_proof`, before | 2 | 53 / 605 lines | 78 / 689 lines |
+| `--scope election_proof`, after | **1** (`wp_raft__Step_body`) | 53 / 605 lines | 77 / 684 lines |
+
+Five root lemmas: `raft_election_safety`, and in `readonly.v`
+`start_heartbeat`, `start_req_ctx`, `heartbeat_ack_quorum_not_stale` and
+the assumed `is_committed_in_term_pers`. The election cone's definitions
+do not move, since everything the corollary mentions is reached from
+`Step`'s spec anyway.
+
+**The section says "not the same as safe to delete", for a reason worked out
+the same day** and recorded under consequence 1 of the 2026-09-21 decision:
+`raft_election_safety` is the *only* user of `own_raft_ghost_is_leader` and
+`is_leader_unique`, and without that pair the ghost state has a trivial,
+allocatable model (a per-id token ignoring `s`, `is_message` := `True`).
+Also found: `own_raft_ghost_excl` is used by nothing.
+
+**Left open:** the five triples for *unexported* Go functions in
+`readonly.v` (`wp_readOnly_*`, `sendMsgReadIndexresponse`,
+`stepLeader_MsgReadIndex`) are still results. By the 2026-09-21 decision no
+etcd caller can call them, so arguably they are not; making Go's export rule
+decide rather than annotate is Upamanyu's call. (`wp_Node__Propose` carries
+no Go tag either way: it calls `Propose` through the `Node` interface,
+`#(methods n.(interface.ty) "Propose" …)`, which names no concrete Go
+function to tag.)
+
+Verified: self-test extended with a leaf file holding a loose triple and a
+root lemma that is the only user of a definition; a mutant that promotes
+every root back to a result fails four of its assertions. Both ruff jobs
+clean; `check-module-discipline --scope election_proof` exits 0.
