@@ -32,11 +32,20 @@ Implicit Type s : nstate.t.
     rewrite ?elem_of_app ?list_elem_of_singleton ?elem_of_nil in Hin;
     naive_solver.
 
+  (** The load of [r.step] in [r.step(r, m)].  Not [wp_raft_field]: the load
+      sits in the *function* position of an application, and [wp_apply]
+      does not find it there ("iApply: cannot apply", 2026-09-24); binding
+      it by hand with [wp_bind] and then applying the lemma works. *)
+  Local Ltac wp_load_step :=
+    wp_bind (![raft.stepFunc] _)%E;
+    iApply (wp_raft_load_step with "Hphys"); iIntros "!> Hphys".
+
   (** [MsgVoteResp]: the term preamble, then [r.step(m)].
 
       The one branch where all three [stepX] can run, so it is also the one
-      that needs [own_raft_phys]'s [Hstepfn] conjunct -- without the field
-      pinned to the role there is nothing to apply at [r.step(m)].  Three
+      that needs the [r.step] field pinned to the role: [wp_raft_load_step]
+      loads [s.stepfn], and [nstate_wf] says it is [step_func_of s.role] --
+      without that there is nothing to apply at [r.step(m)].  Three
       term cases, and the third splits three ways:
 
       - [m.Term > r.Term]: a [VoteResp] is not [from_leader], so the
@@ -105,15 +114,16 @@ Implicit Type s : nstate.t.
       by (apply bool_decide_eq_false_2; rewrite Hty6; w32_ne).
     assert (Hn22 : bool_decide (m.(raftpb.Message.Type') = W32 22) = false)
       by (apply bool_decide_eq_false_2; rewrite Hty6; w32_ne).
-    wp_start_folded as "@". iNamed "Hphys". wp_start_unfold. wp_auto.
+    wp_start_folded as "@". wp_start_unfold. wp_auto.
     wp_apply wp_traceReceiveMessage. try wp_auto.
     assert (bool_decide (m.(raftpb.Message.Term') = W64 0) = false) as Hz
       by by apply bool_decide_eq_false_2.
     rewrite Hz. rewrite bool_decide_eq_false_2; last done. wp_auto.
-    destruct (decide (uint.Z rv.(raft.raft.Term') < uint.Z m.(raftpb.Message.Term')))
+    wp_raft_field.
+    destruct (decide (uint.Z s.(nstate.term) < uint.Z m.(raftpb.Message.Term')))
       as [Hgt|Hle].
     - (* m.Term > r.Term: step down, then dispatch to stepFollower *)
-      assert (bool_decide (uint.Z rv.(raft.raft.Term') <
+      assert (bool_decide (uint.Z s.(nstate.term) <
                            uint.Z m.(raftpb.Message.Term')) = true) as Hb
         by by apply bool_decide_eq_true_2.
       rewrite Hb. rewrite bool_decide_eq_true_2 //. wp_auto.
@@ -126,21 +136,13 @@ Implicit Type s : nstate.t.
       (* not (MsgPreVoteResp && !Reject) *)
       rewrite Hn18. wp_auto.
       (* the "received a message with higher term" Infof *)
-      wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
-      wp_auto. rewrite Hlok.
-      wp_apply (wp_Logger__logf with "Hlogger").
-      { solve_log_method. }
+      wp_raft_log.
       (* a MsgVoteResp is not from a leader: not MsgApp/Heartbeat/Snap *)
       rewrite Hn3. wp_auto.
       (* not MsgHeartbeat, not MsgSnap either, so the else arm runs
          becomeFollower(m.Term, None) rather than adopting a leader *)
       rewrite Hn8. wp_auto.
       rewrite Hn7. wp_auto.
-      (* re-seal for becomeFollower *)
-      iAssert (own_raft_phys cfg r id s)
-        with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys".
-      { iApply (own_raft_phys_intro with
-          "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
       wp_apply (P.wp_raft__becomeFollower _ _ _ _ _ _ Hlent with "[$Hphys]")
         as "Hphys".
       (* the model step: a VoteResp is not from_leader, so no leader is
@@ -154,9 +156,8 @@ Implicit Type s : nstate.t.
         replace m.(raftpb.Message.Term') with
           (abs_msg mtype.VoteResp m).(msg.term) by done.
         apply step_higher_term.
-        - rewrite /abs_msg /= -Hterm0. exact Hgt.
+        - rewrite /abs_msg /=. exact Hgt.
         - rewrite /abs_msg /=. exact Hto. }
-      wp_hidden (iNamedSuffix "Hphys" "1").
       (* the type switch: none of its four cases matches a MsgVoteResp, so
          control reaches the default arm r.step(m) *)
       rewrite Hn0. wp_auto.
@@ -164,18 +165,12 @@ Implicit Type s : nstate.t.
       rewrite Hn22. wp_auto.
       rewrite Hn17. wp_auto.
       rewrite Hn5. wp_auto.
-      (* the default arm, [r.step(m)].  [Hstepfn1] pins the field: the
-         step-down made the role [Follower], so [step_func_of] is
-         [stepFollower]. *)
-      assert (rv0.(raft.raft.step') = functions raft.stepFollower []) as Hsf
-        by (rewrite Hstepfn1 //).
+      (* the default arm, [r.step(m)].  The step-down made the role
+         [Follower], so the loaded [stepfn] is [stepFollower]. *)
+      wp_load_step.
+      assert ((become_follower s m.(raftpb.Message.Term') (W64 0)).(nstate.stepfn)
+              = functions raft.stepFollower []) as Hsf by done.
       rewrite Hsf.
-      iAssert (own_raft_phys cfg r id
-                 (become_follower s m.(raftpb.Message.Term') (W64 0)))
-        with "[Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1]"
-        as "Hphys".
-      { iApply (own_raft_phys_intro with
-          "Hr1 Hlogger1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1"); done. }
       wp_apply (P.wp_stepFollower_MsgVoteResp with "[$Hphys]") as (err) "[Hphys %Herrn]".
       { done. }
       (* [stepFollower] returned [nil], so the error check falls through to
@@ -189,43 +184,38 @@ Implicit Type s : nstate.t.
       exists [abs_msg mtype.VoteResp m]. split; last exact Hsd.
       recv_elem.
     - (* m.Term ≤ r.Term *)
-      assert (bool_decide (uint.Z rv.(raft.raft.Term') <
+      assert (bool_decide (uint.Z s.(nstate.term) <
                            uint.Z m.(raftpb.Message.Term')) = false) as Hb
         by by apply bool_decide_eq_false_2.
       rewrite Hb Htf. wp_auto.
+      wp_raft_field.
       destruct (decide (uint.Z m.(raftpb.Message.Term') <
-                        uint.Z rv.(raft.raft.Term'))) as [Hlt|Hnlt].
+                        uint.Z s.(nstate.term))) as [Hlt|Hnlt].
       + (* m.Term < r.Term.  [checkQuorum] and [preVote] are both off and a
            [MsgVoteResp] is neither [MsgPreVote] nor [MsgStorageAppendResp],
            so every arm is skipped but the last, which only logs; then
            [return nil].  Nothing changed: [step_refl]. *)
         assert (bool_decide (uint.Z m.(raftpb.Message.Term') <
-                             uint.Z rv.(raft.raft.Term')) = true) as Hb2
+                             uint.Z s.(nstate.term)) = true) as Hb2
           by by apply bool_decide_eq_true_2.
         rewrite Hb2. rewrite bool_decide_eq_true_2 //. wp_auto.
-        rewrite HnoCheckQuorum. wp_auto.
-        rewrite HnoPreVote. wp_auto.
+        wp_raft_field.
+        wp_raft_field.
         rewrite Hn17. wp_auto.
         rewrite Hn20. wp_auto.
-        wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
-        wp_auto. rewrite Hlok.
-        wp_apply (wp_Logger__logf with "Hlogger").
-        { solve_log_method. }
-        iApply ("HΦ" $! interface.nil s).
-        iSplitL "Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc".
-        { iApply (own_raft_phys_intro with
-          "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
+        wp_raft_log.
+        iApply ("HΦ" $! interface.nil s). iFrame "Hphys".
         iPureIntro. split; first exact Hwf. split; last done.
         exists []. split; last apply step_refl.
         recv_elem.
       + (* m.Term = r.Term: the preamble does nothing and control reaches the
            type switch, whose default arm is [r.step(m)]. *)
         assert (bool_decide (uint.Z m.(raftpb.Message.Term') <
-                             uint.Z rv.(raft.raft.Term')) = false) as Hb2
+                             uint.Z s.(nstate.term)) = false) as Hb2
           by by apply bool_decide_eq_false_2.
         rewrite Hb2 Htf. wp_auto.
         assert (m.(raftpb.Message.Term') = s.(nstate.term)) as Hteq
-          by (rewrite -Hterm0; word).
+          by word.
         rewrite Hn0. wp_auto.
         rewrite Hn20. wp_auto.
         rewrite Hn22. wp_auto.
@@ -233,15 +223,11 @@ Implicit Type s : nstate.t.
         rewrite Hn5. wp_auto.
         (* the default arm, [r.step(m)].  Unlike the higher-term branch the
            role is untouched, so all three [stepX] are possible. *)
-        iAssert (own_raft_phys cfg r id s)
-          with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
-          as "Hphys".
-        { iApply (own_raft_phys_intro with
-          "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
+        wp_load_step.
         destruct s.(nstate.role) eqn:Hrole.
         * (* Follower: [stepFollower] has no [MsgVoteResp] arm. *)
-          assert (rv.(raft.raft.step') = functions raft.stepFollower []) as Hsf
-            by (rewrite Hstepfn Hsfw //).
+          assert (s.(nstate.stepfn) = functions raft.stepFollower []) as Hsf
+            by (rewrite Hsfw ?Hrole //).
           rewrite Hsf.
           wp_apply (P.wp_stepFollower_MsgVoteResp with "[$Hphys]")
             as (err) "[Hphys %Herrn]".
@@ -253,8 +239,8 @@ Implicit Type s : nstate.t.
           recv_elem.
         * (* Candidate: [stepCandidate] records the vote and may win or lose
              in the same call. *)
-          assert (rv.(raft.raft.step') = functions raft.stepCandidate []) as Hsf
-            by (rewrite Hstepfn Hsfw //).
+          assert (s.(nstate.stepfn) = functions raft.stepCandidate []) as Hsf
+            by (rewrite Hsfw ?Hrole //).
           rewrite Hsf.
           wp_apply (P.wp_stepCandidate_MsgVoteResp with "[$Hphys]")
             as (err s') "(Hphys & %Hres & %Herrn)".
@@ -293,8 +279,8 @@ Implicit Type s : nstate.t.
           { rewrite /abs_msg /=. exact Hteq. }
           { exact Hrole. }
         * (* Leader: [stepLeader]'s [MsgVoteResp] arm only reads. *)
-          assert (rv.(raft.raft.step') = functions raft.stepLeader []) as Hsf
-            by (rewrite Hstepfn Hsfw //).
+          assert (s.(nstate.stepfn) = functions raft.stepLeader []) as Hsf
+            by (rewrite Hsfw ?Hrole //).
           rewrite Hsf.
           wp_apply (P.wp_stepLeader_MsgVoteResp with "[$Hphys]")
             as (err) "[Hphys %Herrn]".

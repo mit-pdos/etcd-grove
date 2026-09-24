@@ -2,27 +2,6 @@ Require Export New.proof.go_etcd_io.raft.election_proof.postulates_stepLeader_Ms
 
 Module StepLeaderProof (P : STEPLEADER_POSTULATES) : STEPLEADER.
 
-Section helper.
-Context `{hG: heapGS Σ, !ffi_semantics _ _}.
-Context {sem : go.Semantics} {package_sem : raft.Assumptions}.
-
-(** Borrow the progress map out of [own_tracker], with a wand to put it back.
-
-    [stepLeader] looks up [r.trk.Progress[m.From]], and [m.From] is *not*
-    known to be a voter -- the message could be from anyone -- so
-    [wp_tracker_progress_lookup] (which has an [i ∈ cfg] side condition and
-    hands out an [own_progress]) does not apply.  The generic
-    [wp_map_lookup1] does, and all it needs is the [↦$] that [own_tracker]
-    already carries.  Nothing here changes the map, so a single non-quantified
-    wand is enough. *)
-(* [own_tracker_split_progress] is gone: since 2026-09-20 the progress map
-   is held read-only inside [own_tracker], so [own_tracker_progress_map]
-   ([inv_tracker.v]) hands it out persistently and no wand is needed. *)
-
-End helper.
-
-Set Default Proof Using "Type".
-
   (** Walk both type switches and fall off the end of each.
 
       The structure, and why each piece is there:
@@ -34,8 +13,13 @@ Set Default Proof Using "Type".
         computes the remaining four.
 
       - Between the switches the code reads [r.trk.Progress] and looks up
-        [m.From].  That is the only reason [own_raft_phys] has to be unsealed
-        at all here (contrast [stepFollower], which never touches the struct).
+        [m.From].  That is the only place the struct is touched (contrast
+        [stepFollower], which never touches it): [own_raft_phys_tracker]
+        hands out the tracker field, through which [wp_auto] reads
+        [Progress], and [own_tracker_progress_map] the map's points-to.
+        [m.From] is *not* known to be a voter -- the message could be from
+        anyone -- so [wp_tracker_progress_lookup] (which has an [i ∈ cfg]
+        side condition) does not apply; the generic [wp_map_lookup1] does.
 
       - The [pr == nil] test is decided by [case_bool_decide] rather than
         being resolved: we deliberately do *not* prove which way it goes.
@@ -52,41 +36,35 @@ Set Default Proof Using "Type".
     intros_ambient.
     intros cfg r id s m.
     intros Hty Hlent.
-    wp_start as "Hphys". iNamed "Hphys".
-    (* the progress map's points-to, read out of the tracker and the
-       tracker closed again: nothing else of it is needed *)
-    iDestruct (own_tracker_unless_open _ _ _ _ _ Hlent with "Htrk") as "Htrk".
-    iDestruct (own_tracker_progress_map with "Htrk") as "(#Hprs & _ & Htrk)".
-    iDestruct (own_tracker_unless_close _ _ _ _ _ Hlent with "Htrk") as "Htrk".
+    wp_start as "Hphys".
     wp_auto.
     (* first switch *)
     rewrite Hty /MsgVoteResp.
     rewrite bool_decide_eq_false_2; last w32_ne.
     wp_auto.
-    (* pr := r.trk.Progress[m.From] *)
+    (* pr := r.trk.Progress[m.From]: read the field, keep the map's
+       points-to (persistent) and give the tracker back unchanged *)
+    iDestruct (own_raft_phys_tracker with "Hphys")
+      as (tv) "(Htrkf & Htrk & Hback)"; first exact Hlent.
+    iDestruct (own_tracker_progress_map with "Htrk") as "(#Hprs & _ & Htrk)".
+    wp_auto.
+    iDestruct ("Hback" with "Htrkf Htrk") as "Hphys".
+    iDestruct (own_raft_phys_eq _ _ _ _ s with "Hphys") as "Hphys".
+    { by destruct s. }
     wp_apply (wp_map_lookup1 with "Hprs") as "_".
     case_bool_decide as Hnil.
     - (* no progress for the sender: log and return nil *)
       wp_auto.
-      wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
-      wp_auto. rewrite Hlok.
-      wp_apply (wp_Logger__logf with "Hlogger").
-      { rewrite /log_methods. set_solver. }
+      wp_raft_log.
       iApply ("HΦ" $! interface.nil).
-      iSplitL "Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc".
-      { rewrite /own_raft_phys.
-        iExists rv, msgs, msgsAA, lok. iFrame "Hr". iFrame "∗#%". }
-      done.
+      iFrame "Hphys". done.
     - (* the sender has a [Progress]: the second switch ignores us *)
       wp_auto.
       rewrite Hty /MsgVoteResp.
       rewrite bool_decide_eq_false_2; last w32_ne.
       wp_auto.
       iApply ("HΦ" $! interface.nil).
-      iSplitL "Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc".
-      { rewrite /own_raft_phys.
-        iExists rv, msgs, msgsAA, lok. iFrame "Hr". iFrame "∗#%". }
-      done.
+      iFrame "Hphys". done.
   Qed.
 
 End StepLeaderProof.

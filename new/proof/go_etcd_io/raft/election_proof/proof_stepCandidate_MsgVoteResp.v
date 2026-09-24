@@ -22,10 +22,10 @@ Import P.
     intros_ambient.
     intros cfg r id s m.
     intros Hty Hto Hterm Hrole Hcfg Hlent.
-    wp_start as "Hphys". iNamed "Hphys". wp_auto.
+    wp_start as "Hphys". wp_auto. wp_raft_field.
     (* [state = StateCandidate ≠ StatePreCandidate], so [myVoteRespType] is
        [MsgVoteResp]. *)
-    rewrite Hstate Hrole /state_w64 /StateCandidate.
+    rewrite Hrole /state_w64 /StateCandidate.
     rewrite bool_decide_eq_false_2; last w32_ne.
     wp_auto.
     (* the type switch: [MsgVoteResp] is none of [MsgProp], [MsgApp],
@@ -34,44 +34,29 @@ Import P.
        [W32 6], [wp_auto] decides the rest by computation. *)
     rewrite Hty /MsgVoteResp.
     rewrite bool_decide_eq_false_2; last w32_ne. wp_auto.
-    (* re-seal for the [poll] call *)
-    iAssert (own_raft_phys cfg r id s)
-      with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys".
-    { rewrite /own_raft_phys. iExists rv, msgs, msgsAA, lok. iFrame "∗#%". }
     wp_apply (P.wp_raft__poll _ _ _ _ _ _ _ Hlent with "[$Hphys]")
       as "%g %rj0 %res (Hphys & %Hres & %Hwon & %Hlost)".
-    (* unpack again: the [Infof] that follows reads [r.id] and [r.logger] *)
-    iNamedSuffix "Hphys" "1".
-    wp_auto.
-    wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
-    wp_auto. rewrite Hlok1.
-    wp_apply (wp_Logger__logf with "Hlogger1").
-    { rewrite /log_methods. set_solver. }
+    (* the [Infof] that follows reads [r.id], [r.Term] and [r.logger] *)
+    wp_raft_log.
+    set (s1 := s <| nstate.votes :=
+                 record_vote s.(nstate.votes) m.(raftpb.Message.From')
+                   (negb m.(raftpb.Message.Reject')) |>).
     destruct Hres as [Hres|[Hres|Hres]]; rewrite Hres.
     - (* [quorum.VoteWon]: become leader and broadcast. *)
       rewrite /VoteWon bool_decide_eq_true_2 //. wp_auto.
       (* [poll] does not touch the role, so we are still a candidate: not a
          pre-candidate, so this is [becomeLeader] and not [campaign]. *)
-      assert (rv0.(raft.raft.state') = StateCandidate) as Hstc.
-      { rewrite Hstate1 /= Hrole //. }
-      rewrite Hstc /StateCandidate bool_decide_eq_false_2; last w32_ne.
+      wp_raft_field.
+      assert (s1.(nstate.role) = role.Candidate) as Hrole1 by exact Hrole.
+      rewrite Hrole1 /state_w64 /StateCandidate bool_decide_eq_false_2; last w32_ne.
       wp_auto.
-      iAssert (own_raft_phys cfg r id
-                 (s <| nstate.votes :=
-                    record_vote s.(nstate.votes) m.(raftpb.Message.From')
-                      (negb m.(raftpb.Message.Reject')) |>))
-        with "[Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1]"
-        as "Hphys".
-      { rewrite /own_raft_phys. iExists rv0, msgs0, msgsAA0, lok0.
-        iFrame "∗#%". }
       wp_apply (P.wp_raft__becomeLeader with "[$Hphys]").
-      { rewrite /= Hrole. congruence. }
+      { rewrite Hrole1. congruence. }
       { done. }
       { exact Hlent. }
       iIntros "Hphys". wp_auto.
       (* [bcastAppend] adds *some* list of [App]s from [id] at the current
-         term -- not one per peer; see the lemma's comment in
-         [inv_raft_phys.v]. *)
+         term -- not one per peer; see [spec_raft__bcastAppend.v]. *)
       wp_apply (wp_raft__bcastAppend with "[$Hphys]"); first exact Hlent.
       iIntros (ms) "[Hphys %Hms]". try wp_auto.
       iApply ("HΦ" $! interface.nil _). iFrame "Hphys".
@@ -85,16 +70,8 @@ Import P.
         | rewrite /vote_resp_result // ].
     - (* [quorum.VoteLost]: step down at the unchanged term. *)
       rewrite /VoteLost bool_decide_eq_false_2; last w32_ne. wp_auto.
-      iAssert (own_raft_phys cfg r id
-                 (s <| nstate.votes :=
-                    record_vote s.(nstate.votes) m.(raftpb.Message.From')
-                      (negb m.(raftpb.Message.Reject')) |>))
-        with "[Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1]"
-        as "Hphys".
-      { rewrite /own_raft_phys. iExists rv0, msgs0, msgsAA0, lok0.
-        iFrame "∗#%". }
       (* the [r.Term] the code passes is [s1]'s term *)
-      rewrite Hterm1.
+      wp_raft_field.
       wp_apply (P.wp_raft__becomeFollower with "[$Hphys]"); first exact Hlent.
       iIntros "Hphys". try wp_auto.
       iApply ("HΦ" $! interface.nil _). iFrame "Hphys".
@@ -106,13 +83,7 @@ Import P.
         | rewrite /vote_resp_result // ].
     - (* [quorum.VotePending]: neither switch arm fires; keep waiting. *)
       rewrite /VotePending bool_decide_eq_false_2; last w32_ne. wp_auto.
-      iApply ("HΦ" $! interface.nil
-                (s <| nstate.votes :=
-                   record_vote s.(nstate.votes) m.(raftpb.Message.From')
-                     (negb m.(raftpb.Message.Reject')) |>)).
-      iSplitL "Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1".
-      { rewrite /own_raft_phys. iExists rv0, msgs0, msgsAA0, lok0.
-        iFrame "∗#%". }
+      iApply ("HΦ" $! interface.nil s1). iFrame "Hphys".
       iPureIntro. split; last done. exists false, false, [].
       split_and!;
         [ rewrite /app_sends; constructor

@@ -5,16 +5,6 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_tracker.
 Require Export New.proof.go_etcd_io.raft.election_proof.inv_logger.
 Require Export New.proof.go_etcd_io.raft.election_proof.inv_misc.
 
-(** Step over one logging call: build the variadic argument slice, then
-    apply the logger spec.  Expects [is_Logger] under the name [Hlogger]. *)
-Ltac wp_log lok_eq :=
-  wp_apply wp_slice_literal;
-  [ iSplitR;
-    [ done
-    | iIntros "% [? _]"; try wp_auto; rewrite lok_eq; try wp_auto;
-      wp_apply (wp_Logger__logf with "Hlogger") as "_";
-      [ rewrite /log_methods; set_solver | ] ] ].
-
 Section proof.
 Context `{hG: heapGS Σ, !ffi_semantics _ _}.
 Context {sem : go.Semantics} {package_sem : raft.Assumptions}.
@@ -104,7 +94,7 @@ Proof. auto. Qed.
     There is no [γ]: this predicate says nothing about ghost state.  The
     connection to the protocol is [nstate_rel] ([defs.v]), and [Step]'s spec
     is the only one that mentions both. *)
-Definition own_raft_phys (r : loc) (id : w64) s : iProp Σ :=
+Definition own_raft_phys_def (r : loc) (id : w64) s : iProp Σ :=
   ∃ (rv : raft.raft.t) (msgs msgsAA : list raftpb.Message.t)
     (lok : interface.t_ok),
   "Hr" ∷ r ↦ rv ∗
@@ -173,6 +163,18 @@ Definition own_raft_phys (r : loc) (id : w64) s : iProp Σ :=
   "Hmisc" ∷ own_raft_misc rv.(raft.raft.readStates') rv.(raft.raft.readOnly')
              rv.(raft.raft.pendingReadIndexMessages').
 
+(** Sealed: outside this file [own_raft_phys] cannot be unfolded, so a
+    program proof that reaches into the representation does not compile.
+    Every access goes through the interface at the end of this section. *)
+Local Definition own_raft_phys_aux : seal (@own_raft_phys_def). Proof. by eexists. Qed.
+Definition own_raft_phys := own_raft_phys_aux.(unseal).
+Local Definition own_raft_phys_unseal :
+  @own_raft_phys = @own_raft_phys_def := own_raft_phys_aux.(seal_eq).
+
+(** Open the predicate, in this file only. *)
+Local Tactic Notation "iNamed_phys" constr(H) :=
+  iEval (rewrite own_raft_phys_unseal) in H; iNamed H.
+
 (** Re-sealing [own_raft_phys] after a proof has taken it apart.
 
     [iFrame "∗#%"] against the unfolded predicate costs ~17s per use (2026-09-17
@@ -222,7 +224,7 @@ Proof.
   intros Hid Hterm Hvote Hlead Hstate Hstepfn Houtbox HnoPreVote HnoCheckQuorum
     HnoLearner HnoTransfer Hid_nz HelectionTimeout Hlok Hlogp.
   iIntros "Hr #Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc".
-  rewrite /own_raft_phys. iExists rv, msgs, msgsAA, lok. iFrame "∗#%".
+  rewrite own_raft_phys_unseal /own_raft_phys_def. iExists rv, msgs, msgsAA, lok. iFrame "∗#%".
 Qed.
 
 (** The progress map in [s] is the tracker's, and so has domain [cfg].  Read
@@ -231,12 +233,12 @@ Lemma own_raft_phys_progress_dom r id s :
   s.(nstate.lent) = None →
   own_raft_phys r id s -∗ ⌜ dom s.(nstate.progress) = cfg ⌝ ∗ own_raft_phys r id s.
 Proof.
-  iIntros (Hlent) "H". iNamed "H".
+  iIntros (Hlent) "H". iNamed_phys "H".
   iDestruct (own_tracker_unless_open _ _ _ _ Hlent with "Htrk") as "Htrk".
   iDestruct (own_tracker_progress_map with "Htrk") as "(#Hprs & %Hdom & Htrk)".
   iDestruct (own_tracker_unless_close _ _ _ _ Hlent with "Htrk") as "Htrk".
   iSplitR; first done.
-  rewrite /own_raft_phys. iExists rv, msgs, msgsAA, lok. iFrame "∗#%".
+  rewrite own_raft_phys_unseal /own_raft_phys_def. iExists rv, msgs, msgsAA, lok. iFrame "∗#%".
 Qed.
 
 (** Changing only the outbox, up to permutation. *)
@@ -244,8 +246,8 @@ Lemma own_raft_phys_outbox r id s (o : list msg.t) :
   o ≡ₚ s.(nstate.outbox) →
   own_raft_phys r id s -∗ own_raft_phys r id (s <| nstate.outbox := o |>).
 Proof.
-  iIntros (Ho) "H". iNamed "H".
-  rewrite /own_raft_phys. iExists rv, msgs, msgsAA, lok. simpl. iFrame "∗#%".
+  iIntros (Ho) "H". iNamed_phys "H".
+  rewrite own_raft_phys_unseal /own_raft_phys_def. iExists rv, msgs, msgsAA, lok. simpl. iFrame "∗#%".
   iPureIntro. by rewrite Ho.
 Qed.
 
@@ -338,11 +340,11 @@ Local Ltac reseal :=
   end.
 
 Local Ltac load_proof :=
-  iIntros (Φ) "H HΦ"; iNamed "H";
+  iIntros (Φ) "H HΦ"; iNamed_phys "H";
   wp_apply (wp_load_access with "Hr") as "Hr".
 
 Local Ltac store_proof :=
-  iIntros (Φ) "H HΦ"; iNamed "H";
+  iIntros (Φ) "H HΦ"; iNamed_phys "H";
   wp_apply (wp_store_access with "Hr") as "Hr";
   iApply "HΦ"; reseal.
 
@@ -553,44 +555,56 @@ Lemma wp_raft_store_leadTransferee r id s :
   {{{ RET #(); own_raft_phys r id s }}}.
 Proof. store_proof. Qed.
 
+(** Two states that are equal: for a state reached by a run of field
+    stores and the name a spec gives it ([become_follower s t l], say).
+    Proving the [=] with [reflexivity] is cheap; leaving it to unification
+    inside [iFrame] can run for minutes (notes/gotchas.md). *)
+Lemma own_raft_phys_eq r id s1 s2 :
+  s1 = s2 → own_raft_phys r id s1 -∗ own_raft_phys r id s2.
+Proof. intros ->. iIntros "$". Qed.
+
 (** *** Accessors *)
 
 (** One field of the struct points-to, with a wand taking back *any* value.
     The generated [AccessStrict] store instance fixes the new value when it
     is applied, which is too early for a value a later call produces (see
-    notes/gotchas.md); these unseal [l ↦ rv] instead. *)
-Local Ltac split_field_proof :=
+    notes/gotchas.md); these unseal [l ↦ rv] instead.  The pattern names the
+    field by position and keeps every other field in one hypothesis: framing
+    the 33 field points-tos one by one ([iNamed], then [iFrame "∗%"]) cost
+    ~40s per lemma, this ~6s (2026-09-24). *)
+Local Ltac split_field_proof pat :=
   iIntros "Hr";
   iEval (rewrite typed_pointsto_unseal /typed_pointsto_wrap /=) in "Hr";
-  iDestruct "Hr" as "[Hf %Hnn]"; iNamed "Hf";
-  iFrame; iIntros (x) "Hx";
+  iDestruct "Hr" as "[Hf %Hnn]";
+  iDestruct "Hf" as pat;
+  iFrame "Hx"; iIntros (x) "Hx";
   iEval (rewrite typed_pointsto_unseal /typed_pointsto_wrap /=);
-  iFrame "∗%".
+  iFrame; done.
 
 Local Lemma raft_split_trk (l : loc) (rv : raft.raft.t) :
   l ↦ rv -∗
   l.[raft.raft.t, "trk"] ↦ rv.(raft.raft.trk') ∗
   (∀ x, l.[raft.raft.t, "trk"] ↦ x -∗ l ↦ (rv <| raft.raft.trk' := x |>)).
-Proof. split_field_proof. Qed.
+Proof. split_field_proof "(? & ? & ? & ? & ? & ? & ? & Hx & Hrest)". Qed.
 
 Local Lemma raft_split_msgs (l : loc) (rv : raft.raft.t) :
   l ↦ rv -∗
   l.[raft.raft.t, "msgs"] ↦ rv.(raft.raft.msgs') ∗
   (∀ x, l.[raft.raft.t, "msgs"] ↦ x -∗ l ↦ (rv <| raft.raft.msgs' := x |>)).
-Proof. split_field_proof. Qed.
+Proof. split_field_proof "(? & ? & ? & ? & ? & ? & ? & ? & ? & ? & Hx & Hrest)". Qed.
 
 Local Lemma raft_split_msgsAA (l : loc) (rv : raft.raft.t) :
   l ↦ rv -∗
   l.[raft.raft.t, "msgsAfterAppend"] ↦ rv.(raft.raft.msgsAfterAppend') ∗
   (∀ x, l.[raft.raft.t, "msgsAfterAppend"] ↦ x -∗
         l ↦ (rv <| raft.raft.msgsAfterAppend' := x |>)).
-Proof. split_field_proof. Qed.
+Proof. split_field_proof "(? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & Hx & Hrest)". Qed.
 
 Local Lemma raft_split_readOnly (l : loc) (rv : raft.raft.t) :
   l ↦ rv -∗
   l.[raft.raft.t, "readOnly"] ↦ rv.(raft.raft.readOnly') ∗
   (∀ x, l.[raft.raft.t, "readOnly"] ↦ x -∗ l ↦ (rv <| raft.raft.readOnly' := x |>)).
-Proof. split_field_proof. Qed.
+Proof. split_field_proof "(? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & Hx & Hrest)". Qed.
 
 (** The tracker, as the tracker's own specs take it: the embedded struct's
     points-to and [own_tracker].  The wand takes it back at any tracker
@@ -607,7 +621,7 @@ Lemma own_raft_phys_tracker r id s :
            own_tracker cfg tv' votes' s.(nstate.progress) -∗
            own_raft_phys r id (s <| nstate.votes := votes' |>)).
 Proof.
-  iIntros (Hlent) "H". iNamed "H".
+  iIntros (Hlent) "H". iNamed_phys "H".
   iDestruct (own_tracker_unless_open _ _ _ _ Hlent with "Htrk") as "Htrk".
   iDestruct (raft_split_trk with "Hr") as "[Hf Hback]".
   iExists _. iFrame "Hf Htrk".
@@ -615,6 +629,28 @@ Proof.
   iDestruct ("Hback" $! tv' with "Hf") as "Hr".
   iDestruct (own_tracker_unless_close _ _ _ _ Hlent with "Htrk") as "Htrk".
   reseal.
+Qed.
+
+(** The same, put back at the same tally: the wand gives [own_raft_phys] at
+    [s] itself rather than at [s <| votes := s.votes |>], so a read-only use
+    (a map lookup, [JointConfig.IDs]), or a split and re-seal repeated
+    inside a [Visit] closure, does not pile up setters. *)
+Lemma own_raft_phys_tracker_same r id s :
+  s.(nstate.lent) = None →
+  own_raft_phys r id s -∗
+  ∃ tv, r.[raft.raft.t, "trk"] ↦ tv ∗
+        own_tracker cfg tv s.(nstate.votes) s.(nstate.progress) ∗
+        (∀ tvx, r.[raft.raft.t, "trk"] ↦ tvx -∗
+           own_tracker cfg tvx s.(nstate.votes) s.(nstate.progress) -∗
+           own_raft_phys r id s).
+Proof.
+  iIntros (Hlent) "Hphys".
+  iDestruct (own_raft_phys_tracker _ _ _ Hlent with "Hphys")
+    as (tv) "(Htrkf & Htrk & Hback)".
+  iExists tv. iFrame "Htrkf Htrk".
+  iIntros (tvx) "Htrkf Htrk".
+  iDestruct ("Hback" with "Htrkf Htrk") as "Hphys".
+  iApply (own_raft_phys_eq with "Hphys"). by destruct s.
 Qed.
 
 (** The log, at no page. *)
@@ -625,7 +661,7 @@ Lemma own_raft_phys_log r id s :
         (∀ ls', own_raftLog s.(nstate.log) ls' -∗ ⌜ ls'.(logstate.page) = None ⌝ -∗
                 own_raft_phys r id s).
 Proof.
-  iIntros (Hlent) "H". iNamed "H".
+  iIntros (Hlent) "H". iNamed_phys "H".
   iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog") as (ls Hls) "Hlog".
   iExists ls. iSplitR; first done. rewrite -Hlogp. iFrame "Hlog".
   iIntros (ls') "Hlog %Hls'".
@@ -644,7 +680,7 @@ Lemma own_raft_phys_lend r id s :
            own_raftLog s.(nstate.log) ls ∗
            own_raft_phys r id (s <| nstate.lent := Some tv |>).
 Proof.
-  iIntros (Hlent) "H". iNamed "H".
+  iIntros (Hlent) "H". iNamed_phys "H".
   iDestruct (own_tracker_unless_open _ _ _ _ Hlent with "Htrk") as "Htrk0".
   iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog") as (ls Hls) "Hlog0".
   iExists rv.(raft.raft.trk'), ls. iSplitR; first done.
@@ -672,7 +708,7 @@ Lemma own_raft_phys_unlend r id s tv votes prs ls :
   own_raft_phys r id (s <| nstate.lent := None |> <| nstate.votes := votes |>
                         <| nstate.progress := prs |>).
 Proof.
-  iIntros (Hpg) "H Htrk0 Hlog0". iNamed "H".
+  iIntros (Hpg) "H Htrk0 Hlog0". iNamed_phys "H".
   iDestruct (own_tracker_unless_lent_eq with "Htrk") as %Htv.
   iClear "Htrk Hlog".
   rewrite -Htv.
@@ -694,7 +730,7 @@ Lemma own_raft_phys_trk_lent r id s tv :
   (∀ tv', r.[raft.raft.t, "trk"] ↦ tv' -∗
           own_raft_phys r id (s <| nstate.lent := Some tv' |>)).
 Proof.
-  iIntros "H". iNamed "H".
+  iIntros "H". iNamed_phys "H".
   iDestruct (own_tracker_unless_lent_eq with "Htrk") as %Htv.
   iDestruct (raft_split_trk with "Hr") as "[Hf Hback]".
   rewrite Htv. iFrame "Hf".
@@ -719,7 +755,7 @@ Lemma own_raft_phys_msgs r id s :
               own_raft_phys r id
                 (s <| nstate.outbox := s.(nstate.outbox) ++ omap abs_msg_opt ms' |>)).
 Proof.
-  iIntros "H". iNamed "H".
+  iIntros "H". iNamed_phys "H".
   iDestruct (raft_split_msgs with "Hr") as "[Hf Hback]".
   iExists _, msgs. iFrame "Hf Hmsgs Hmsgs_cap".
   iIntros (sl' ms') "Hf Hmsgs Hmsgs_cap".
@@ -741,7 +777,7 @@ Lemma own_raft_phys_msgsAA r id s :
               own_raft_phys r id
                 (s <| nstate.outbox := s.(nstate.outbox) ++ omap abs_msg_opt ms' |>)).
 Proof.
-  iIntros "H". iNamed "H".
+  iIntros "H". iNamed_phys "H".
   iDestruct (raft_split_msgsAA with "Hr") as "[Hf Hback]".
   iExists _, msgsAA. iFrame "Hf HmsgsAA HmsgsAA_cap".
   iIntros (sl' ms') "Hf HmsgsAA HmsgsAA_cap".
@@ -758,7 +794,7 @@ Lemma own_raft_phys_readOnly r id s :
         (∀ ro', r.[raft.raft.t, "readOnly"] ↦ ro' -∗ own_read_only ro' -∗
                 own_raft_phys r id s).
 Proof.
-  iIntros "H". iNamed "H". iNamed "Hmisc".
+  iIntros "H". iNamed_phys "H". iNamed "Hmisc".
   iDestruct (raft_split_readOnly with "Hr") as "[Hf Hback]".
   iExists _. iFrame "Hf Hro_obj".
   iIntros (ro') "Hf Hro_obj".
@@ -769,13 +805,6 @@ Proof.
   reseal.
 Qed.
 
-(** Two states that are equal: for a state reached by a run of field
-    stores and the name a spec gives it ([become_follower s t l], say).
-    Proving the [=] with [reflexivity] is cheap; leaving it to unification
-    inside [iFrame] can run for minutes (notes/gotchas.md). *)
-Lemma own_raft_phys_eq r id s1 s2 :
-  s1 = s2 → own_raft_phys r id s1 -∗ own_raft_phys r id s2.
-Proof. intros ->. iIntros "$". Qed.
 
 End proof.
 
@@ -814,8 +843,7 @@ Ltac wp_raft_field :=
 
 (** A logging call through [r.logger]: the raft fields its arguments read,
     the variadic argument slice, the load of [r.logger], and the logger
-    spec.  Works on ["Hphys"], like [wp_raft_field].  Supersedes [wp_log],
-    which expects the logger's [is_Logger] from an unfolded predicate. *)
+    spec.  Works on ["Hphys"], like [wp_raft_field]. *)
 Ltac wp_raft_log :=
   repeat wp_raft_field;
   wp_apply wp_slice_literal;
