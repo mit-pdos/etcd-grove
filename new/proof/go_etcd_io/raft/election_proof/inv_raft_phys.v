@@ -264,4 +264,565 @@ Proof.
   rewrite /send_msgs app_nil_r. destruct s. auto.
 Qed.
 
+
+(** ** The interface: field lemmas and accessors
+
+    **Program proofs do not unfold [own_raft_phys].**  Every access to the
+    raft struct goes through one of the lemmas below, so that the struct's
+    representation -- [r ↦ rv], the abstraction relation, the scope
+    assumptions -- is written down, and relied on, in this file alone.
+    Changing the representation then means re-proving this section, not the
+    program proofs.  (Decided 2026-09-24; notes/decisions.md, "Program proofs
+    do not unfold [own_raft_phys]".)
+
+    [wp_auto] is *not* used for these accesses.  Its field automation
+    builds on full ownership of the struct, [r ↦ rv], which is exactly the
+    representation this predicate hides: with [own_raft_phys] sealed,
+    [wp_auto] stops in front of a load or store of a raft field, and the
+    proof continues with the lemma for that field.  [wp_raft_field] (after
+    the section) picks it for the accesses with no outputs to name.
+
+    There are three kinds.
+
+    - **Scalar fields**, one Hoare triple per load and per store, stated at
+      the expression [wp_auto] leaves behind: [![t] #(r.[raft.raft.t, f])]
+      and [GoStore t (#(r.[raft.raft.t, f]), #v)%V].  A field [nstate.t]
+      tracks is loaded at its abstract value and a store updates [s]; a
+      field pinned by a scope assumption is loaded at the pinned value and
+      has no store (or only a store of that value); a field the abstraction
+      does not track is loaded at an unknown value and stored freely.  If a
+      proof needs to know more about one of the latter -- that two loads
+      agree, say -- the rule is the usual one: add it to [nstate.t].
+    - **Heap hanging off a field**: the tracker, the log, the two message
+      queues, the [readOnly] object.  An *accessor* hands out the field's
+      points-to and the object's own predicate, together with a wand that
+      takes them back -- possibly changed -- and gives [own_raft_phys] at
+      the correspondingly changed state.  What the object is then used for
+      (a map lookup in [trk.Progress], [raftLog] methods, [append] on a
+      queue) is the object's business, specified by its own predicate, so
+      no operation on it is duplicated here.
+    - **Loans**: [own_raft_phys_lend] / [own_raft_phys_unlend] move the
+      tracker's heap and the log out of the predicate and back
+      ([nstate.lent]), and [own_raft_phys_trk_lent] reaches the tracker
+      field while they are out. *)
+
+Local Lemma wp_load_access {V t} `{!ZeroVal V} `{!TypedPointsto V} `{!IntoValTyped V t}
+    (l : loc) (v : V) (P : iProp Σ) `{!AccessStrict (l ↦ v) (l ↦ v) P P} Φ :
+  P -∗ ▷ (P -∗ Φ #v) -∗ WP ![t] #l {{ Φ }}.
+Proof.
+  iIntros "HP HΦ".
+  iDestruct (access_strict (A:=l ↦ v) (A':=l ↦ v) with "HP") as "[Hl Hback]".
+  wp_apply (wp_load with "Hl") as "Hl".
+  iApply "HΦ". iApply "Hback". iFrame.
+Qed.
+
+Local Lemma wp_store_access {V t} `{!ZeroVal V} `{!TypedPointsto V} `{!IntoValTyped V t}
+    (l : loc) (v w : V) (P P' : iProp Σ) `{!AccessStrict (l ↦ v) (l ↦ w) P P'} Φ :
+  P -∗ ▷ (P' -∗ Φ #()) -∗ WP GoStore t (#l, #w)%V {{ Φ }}.
+Proof.
+  iIntros "HP HΦ".
+  iDestruct (access_strict (A:=l ↦ v) (A':=l ↦ w) with "HP") as "[Hl Hback]".
+  wp_apply (wp_store with "Hl") as "Hl".
+  iApply "HΦ". iApply "Hback". iFrame.
+Qed.
+
+(** Re-seal at the state the goal names.  Given explicitly because
+    otherwise [own_raft_phys_intro]'s [s] is fixed by [Htrk] -- at the state
+    *before* the access -- and the conclusion no longer matches. *)
+Local Ltac reseal :=
+  lazymatch goal with
+  | |- environments.envs_entails _ (own_raft_phys _ _ ?s') =>
+      iApply (own_raft_phys_intro _ _ s' with
+        "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
+      try done
+  end.
+
+Local Ltac load_proof :=
+  iIntros (Φ) "H HΦ"; iNamed "H";
+  wp_apply (wp_load_access with "Hr") as "Hr".
+
+Local Ltac store_proof :=
+  iIntros (Φ) "H HΦ"; iNamed "H";
+  wp_apply (wp_store_access with "Hr") as "Hr";
+  iApply "HΦ"; reseal.
+
+(** *** Loads of fields [nstate.t] tracks, and of the pinned ones *)
+
+Lemma wp_raft_load_id r id s :
+  {{{ own_raft_phys r id s }}}
+    ![go.uint64] #(r.[raft.raft.t, "id"])
+  {{{ RET #id; own_raft_phys r id s }}}.
+Proof. load_proof. rewrite Hid. iApply "HΦ". reseal. Qed.
+
+Lemma wp_raft_load_Term r id s :
+  {{{ own_raft_phys r id s }}}
+    ![go.uint64] #(r.[raft.raft.t, "Term"])
+  {{{ RET #s.(nstate.term); own_raft_phys r id s }}}.
+Proof. load_proof. rewrite Hterm. iApply "HΦ". reseal. Qed.
+
+Lemma wp_raft_load_Vote r id s :
+  {{{ own_raft_phys r id s }}}
+    ![go.uint64] #(r.[raft.raft.t, "Vote"])
+  {{{ RET #s.(nstate.vote); own_raft_phys r id s }}}.
+Proof. load_proof. rewrite Hvote. iApply "HΦ". reseal. Qed.
+
+Lemma wp_raft_load_lead r id s :
+  {{{ own_raft_phys r id s }}}
+    ![go.uint64] #(r.[raft.raft.t, "lead"])
+  {{{ RET #s.(nstate.lead); own_raft_phys r id s }}}.
+Proof. load_proof. rewrite Hlead. iApply "HΦ". reseal. Qed.
+
+Lemma wp_raft_load_state r id s :
+  {{{ own_raft_phys r id s }}}
+    ![raft.StateType] #(r.[raft.raft.t, "state"])
+  {{{ RET #(state_w64 s.(nstate.role)); own_raft_phys r id s }}}.
+Proof. load_proof. rewrite Hstate. iApply "HΦ". reseal. Qed.
+
+Lemma wp_raft_load_step r id s :
+  {{{ own_raft_phys r id s }}}
+    ![raft.stepFunc] #(r.[raft.raft.t, "step"])
+  {{{ RET #s.(nstate.stepfn); own_raft_phys r id s }}}.
+Proof. load_proof. rewrite Hstepfn. iApply "HΦ". reseal. Qed.
+
+(** The log's *location*.  Its contents are [own_raft_phys_log]'s. *)
+Lemma wp_raft_load_raftLog r id s :
+  {{{ own_raft_phys r id s }}}
+    ![go.PointerType raft.raftLog] #(r.[raft.raft.t, "raftLog"])
+  {{{ RET #s.(nstate.log); own_raft_phys r id s }}}.
+Proof. load_proof. rewrite -Hlogp. iApply "HΦ". reseal. Qed.
+
+Lemma wp_raft_load_logger r id s :
+  {{{ own_raft_phys r id s }}}
+    ![raft.Logger] #(r.[raft.raft.t, "logger"])
+  {{{ (lok : interface.t_ok), RET #(interface.ok lok);
+      own_raft_phys r id s ∗ is_Logger lok }}}.
+Proof. load_proof. rewrite Hlok. iApply "HΦ". iSplitL; [reseal | done]. Qed.
+
+Lemma wp_raft_load_checkQuorum r id s :
+  {{{ own_raft_phys r id s }}}
+    ![go.bool] #(r.[raft.raft.t, "checkQuorum"])
+  {{{ RET #false; own_raft_phys r id s }}}.
+Proof. load_proof. rewrite HnoCheckQuorum. iApply "HΦ". reseal. Qed.
+
+Lemma wp_raft_load_preVote r id s :
+  {{{ own_raft_phys r id s }}}
+    ![go.bool] #(r.[raft.raft.t, "preVote"])
+  {{{ RET #false; own_raft_phys r id s }}}.
+Proof. load_proof. rewrite HnoPreVote. iApply "HΦ". reseal. Qed.
+
+Lemma wp_raft_load_isLearner r id s :
+  {{{ own_raft_phys r id s }}}
+    ![go.bool] #(r.[raft.raft.t, "isLearner"])
+  {{{ RET #false; own_raft_phys r id s }}}.
+Proof. load_proof. rewrite HnoLearner. iApply "HΦ". reseal. Qed.
+
+Lemma wp_raft_load_leadTransferee r id s :
+  {{{ own_raft_phys r id s }}}
+    ![go.uint64] #(r.[raft.raft.t, "leadTransferee"])
+  {{{ RET #(W64 0); own_raft_phys r id s }}}.
+Proof. load_proof. rewrite HnoTransfer. iApply "HΦ". reseal. Qed.
+
+(** *** Loads of fields the abstraction does not track *)
+
+Lemma wp_raft_load_electionTimeout r id s :
+  {{{ own_raft_phys r id s }}}
+    ![go.int] #(r.[raft.raft.t, "electionTimeout"])
+  {{{ (v : w64), RET #v; own_raft_phys r id s ∗ ⌜ 0 < sint.Z v ⌝ }}}.
+Proof. load_proof. iApply "HΦ". iSplitL; [reseal | done]. Qed.
+
+Lemma wp_raft_load_electionElapsed r id s :
+  {{{ own_raft_phys r id s }}}
+    ![go.int] #(r.[raft.raft.t, "electionElapsed"])
+  {{{ (v : w64), RET #v; own_raft_phys r id s }}}.
+Proof. load_proof. iApply "HΦ". reseal. Qed.
+
+Lemma wp_raft_load_heartbeatTimeout r id s :
+  {{{ own_raft_phys r id s }}}
+    ![go.int] #(r.[raft.raft.t, "heartbeatTimeout"])
+  {{{ (v : w64), RET #v; own_raft_phys r id s }}}.
+Proof. load_proof. iApply "HΦ". reseal. Qed.
+
+Lemma wp_raft_load_randomizedElectionTimeout r id s :
+  {{{ own_raft_phys r id s }}}
+    ![go.int] #(r.[raft.raft.t, "randomizedElectionTimeout"])
+  {{{ (v : w64), RET #v; own_raft_phys r id s }}}.
+Proof. load_proof. iApply "HΦ". reseal. Qed.
+
+Lemma wp_raft_load_pendingConfIndex r id s :
+  {{{ own_raft_phys r id s }}}
+    ![go.uint64] #(r.[raft.raft.t, "pendingConfIndex"])
+  {{{ (v : w64), RET #v; own_raft_phys r id s }}}.
+Proof. load_proof. iApply "HΦ". reseal. Qed.
+
+Lemma wp_raft_load_uncommittedSize r id s :
+  {{{ own_raft_phys r id s }}}
+    ![raft.entryPayloadSize] #(r.[raft.raft.t, "uncommittedSize"])
+  {{{ (v : raft.entryPayloadSize.t), RET #v; own_raft_phys r id s }}}.
+Proof. load_proof. iApply "HΦ". reseal. Qed.
+
+Lemma wp_raft_load_maxUncommittedSize r id s :
+  {{{ own_raft_phys r id s }}}
+    ![raft.entryPayloadSize] #(r.[raft.raft.t, "maxUncommittedSize"])
+  {{{ (v : raft.entryPayloadSize.t), RET #v; own_raft_phys r id s }}}.
+Proof. load_proof. iApply "HΦ". reseal. Qed.
+
+Lemma wp_raft_load_maxMsgSize r id s :
+  {{{ own_raft_phys r id s }}}
+    ![raft.entryEncodingSize] #(r.[raft.raft.t, "maxMsgSize"])
+  {{{ (v : raft.entryEncodingSize.t), RET #v; own_raft_phys r id s }}}.
+Proof. load_proof. iApply "HΦ". reseal. Qed.
+
+(** *** Stores to fields [nstate.t] tracks *)
+
+Lemma wp_raft_store_Term r id s (v : w64) :
+  {{{ own_raft_phys r id s }}}
+    GoStore go.uint64 (#(r.[raft.raft.t, "Term"]), #v)%V
+  {{{ RET #(); own_raft_phys r id (s <| nstate.term := v |>) }}}.
+Proof. store_proof. Qed.
+
+Lemma wp_raft_store_Vote r id s (v : w64) :
+  {{{ own_raft_phys r id s }}}
+    GoStore go.uint64 (#(r.[raft.raft.t, "Vote"]), #v)%V
+  {{{ RET #(); own_raft_phys r id (s <| nstate.vote := v |>) }}}.
+Proof. store_proof. Qed.
+
+Lemma wp_raft_store_lead r id s (v : w64) :
+  {{{ own_raft_phys r id s }}}
+    GoStore go.uint64 (#(r.[raft.raft.t, "lead"]), #v)%V
+  {{{ RET #(); own_raft_phys r id (s <| nstate.lead := v |>) }}}.
+Proof. store_proof. Qed.
+
+(** Stated at [state_w64 ro], so the caller names the role; the Go code
+    stores the constant ([StateFollower] = [W64 0]), which unifies with
+    [state_w64 role.Follower] by computation. *)
+Lemma wp_raft_store_state r id s (ro : role.t) :
+  {{{ own_raft_phys r id s }}}
+    GoStore raft.StateType (#(r.[raft.raft.t, "state"]), #(state_w64 ro))%V
+  {{{ RET #(); own_raft_phys r id (s <| nstate.role := ro |>) }}}.
+Proof. store_proof. Qed.
+
+Lemma wp_raft_store_step r id s (f : func.t) :
+  {{{ own_raft_phys r id s }}}
+    GoStore raft.stepFunc (#(r.[raft.raft.t, "step"]), #f)%V
+  {{{ RET #(); own_raft_phys r id (s <| nstate.stepfn := f |>) }}}.
+Proof. store_proof. Qed.
+
+(** *** Stores to fields the abstraction does not track, and the pinned one *)
+
+Lemma wp_raft_store_tick r id s (f : func.t) :
+  {{{ own_raft_phys r id s }}}
+    GoStore (go.FunctionType (go.Signature [] false []))
+      (#(r.[raft.raft.t, "tick"]), #f)%V
+  {{{ RET #(); own_raft_phys r id s }}}.
+Proof. store_proof. Qed.
+
+Lemma wp_raft_store_electionElapsed r id s (v : w64) :
+  {{{ own_raft_phys r id s }}}
+    GoStore go.int (#(r.[raft.raft.t, "electionElapsed"]), #v)%V
+  {{{ RET #(); own_raft_phys r id s }}}.
+Proof. store_proof. Qed.
+
+Lemma wp_raft_store_heartbeatElapsed r id s (v : w64) :
+  {{{ own_raft_phys r id s }}}
+    GoStore go.int (#(r.[raft.raft.t, "heartbeatElapsed"]), #v)%V
+  {{{ RET #(); own_raft_phys r id s }}}.
+Proof. store_proof. Qed.
+
+Lemma wp_raft_store_randomizedElectionTimeout r id s (v : w64) :
+  {{{ own_raft_phys r id s }}}
+    GoStore go.int (#(r.[raft.raft.t, "randomizedElectionTimeout"]), #v)%V
+  {{{ RET #(); own_raft_phys r id s }}}.
+Proof. store_proof. Qed.
+
+Lemma wp_raft_store_pendingConfIndex r id s (v : w64) :
+  {{{ own_raft_phys r id s }}}
+    GoStore go.uint64 (#(r.[raft.raft.t, "pendingConfIndex"]), #v)%V
+  {{{ RET #(); own_raft_phys r id s }}}.
+Proof. store_proof. Qed.
+
+Lemma wp_raft_store_uncommittedSize r id s (v : raft.entryPayloadSize.t) :
+  {{{ own_raft_phys r id s }}}
+    GoStore raft.entryPayloadSize (#(r.[raft.raft.t, "uncommittedSize"]), #v)%V
+  {{{ RET #(); own_raft_phys r id s }}}.
+Proof. store_proof. Qed.
+
+(** Only [None]: no leader transfer is in scope. *)
+Lemma wp_raft_store_leadTransferee r id s :
+  {{{ own_raft_phys r id s }}}
+    GoStore go.uint64 (#(r.[raft.raft.t, "leadTransferee"]), #(W64 0))%V
+  {{{ RET #(); own_raft_phys r id s }}}.
+Proof. store_proof. Qed.
+
+(** *** Accessors *)
+
+(** One field of the struct points-to, with a wand taking back *any* value.
+    The generated [AccessStrict] store instance fixes the new value when it
+    is applied, which is too early for a value a later call produces (see
+    notes/gotchas.md); these unseal [l ↦ rv] instead. *)
+Local Ltac split_field_proof :=
+  iIntros "Hr";
+  iEval (rewrite typed_pointsto_unseal /typed_pointsto_wrap /=) in "Hr";
+  iDestruct "Hr" as "[Hf %Hnn]"; iNamed "Hf";
+  iFrame; iIntros (x) "Hx";
+  iEval (rewrite typed_pointsto_unseal /typed_pointsto_wrap /=);
+  iFrame "∗%".
+
+Local Lemma raft_split_trk (l : loc) (rv : raft.raft.t) :
+  l ↦ rv -∗
+  l.[raft.raft.t, "trk"] ↦ rv.(raft.raft.trk') ∗
+  (∀ x, l.[raft.raft.t, "trk"] ↦ x -∗ l ↦ (rv <| raft.raft.trk' := x |>)).
+Proof. split_field_proof. Qed.
+
+Local Lemma raft_split_msgs (l : loc) (rv : raft.raft.t) :
+  l ↦ rv -∗
+  l.[raft.raft.t, "msgs"] ↦ rv.(raft.raft.msgs') ∗
+  (∀ x, l.[raft.raft.t, "msgs"] ↦ x -∗ l ↦ (rv <| raft.raft.msgs' := x |>)).
+Proof. split_field_proof. Qed.
+
+Local Lemma raft_split_msgsAA (l : loc) (rv : raft.raft.t) :
+  l ↦ rv -∗
+  l.[raft.raft.t, "msgsAfterAppend"] ↦ rv.(raft.raft.msgsAfterAppend') ∗
+  (∀ x, l.[raft.raft.t, "msgsAfterAppend"] ↦ x -∗
+        l ↦ (rv <| raft.raft.msgsAfterAppend' := x |>)).
+Proof. split_field_proof. Qed.
+
+Local Lemma raft_split_readOnly (l : loc) (rv : raft.raft.t) :
+  l ↦ rv -∗
+  l.[raft.raft.t, "readOnly"] ↦ rv.(raft.raft.readOnly') ∗
+  (∀ x, l.[raft.raft.t, "readOnly"] ↦ x -∗ l ↦ (rv <| raft.raft.readOnly' := x |>)).
+Proof. split_field_proof. Qed.
+
+(** The tracker, as the tracker's own specs take it: the embedded struct's
+    points-to and [own_tracker].  The wand takes it back at any tracker
+    value and vote tally, and at the same progress map ([nstate.progress]
+    is stable: nothing on the election path inserts into the map).  A map
+    lookup [r.trk.Progress[i]] is done on what this hands out, with
+    [own_tracker_progress_map] / [wp_tracker_progress_lookup]. *)
+Lemma own_raft_phys_tracker r id s :
+  s.(nstate.lent) = None →
+  own_raft_phys r id s -∗
+  ∃ tv, r.[raft.raft.t, "trk"] ↦ tv ∗
+        own_tracker cfg tv s.(nstate.votes) s.(nstate.progress) ∗
+        (∀ tv' votes', r.[raft.raft.t, "trk"] ↦ tv' -∗
+           own_tracker cfg tv' votes' s.(nstate.progress) -∗
+           own_raft_phys r id (s <| nstate.votes := votes' |>)).
+Proof.
+  iIntros (Hlent) "H". iNamed "H".
+  iDestruct (own_tracker_unless_open _ _ _ _ Hlent with "Htrk") as "Htrk".
+  iDestruct (raft_split_trk with "Hr") as "[Hf Hback]".
+  iExists _. iFrame "Hf Htrk".
+  iIntros (tv' votes') "Hf Htrk".
+  iDestruct ("Hback" $! tv' with "Hf") as "Hr".
+  iDestruct (own_tracker_unless_close _ _ _ _ Hlent with "Htrk") as "Htrk".
+  reseal.
+Qed.
+
+(** The log, at no page. *)
+Lemma own_raft_phys_log r id s :
+  s.(nstate.lent) = None →
+  own_raft_phys r id s -∗
+  ∃ ls, ⌜ ls.(logstate.page) = None ⌝ ∗ own_raftLog s.(nstate.log) ls ∗
+        (∀ ls', own_raftLog s.(nstate.log) ls' -∗ ⌜ ls'.(logstate.page) = None ⌝ -∗
+                own_raft_phys r id s).
+Proof.
+  iIntros (Hlent) "H". iNamed "H".
+  iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog") as (ls Hls) "Hlog".
+  iExists ls. iSplitR; first done. rewrite -Hlogp. iFrame "Hlog".
+  iIntros (ls') "Hlog %Hls'".
+  iDestruct (own_raftLog_unless_close _ _ _ Hlent with "Hlog [//]") as "Hlog".
+  reseal.
+Qed.
+
+(** Lend the tracker's heap and the log to the caller ([nstate.lent]).
+    The tracker is lent at the value the field holds, which
+    [own_raft_phys_trk_lent] reaches while the loan lasts. *)
+Lemma own_raft_phys_lend r id s :
+  s.(nstate.lent) = None →
+  own_raft_phys r id s -∗
+  ∃ tv ls, ⌜ ls.(logstate.page) = None ⌝ ∗
+           own_tracker cfg tv s.(nstate.votes) s.(nstate.progress) ∗
+           own_raftLog s.(nstate.log) ls ∗
+           own_raft_phys r id (s <| nstate.lent := Some tv |>).
+Proof.
+  iIntros (Hlent) "H". iNamed "H".
+  iDestruct (own_tracker_unless_open _ _ _ _ Hlent with "Htrk") as "Htrk0".
+  iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog") as (ls Hls) "Hlog0".
+  iExists rv.(raft.raft.trk'), ls. iSplitR; first done.
+  iFrame "Htrk0". rewrite -Hlogp. iFrame "Hlog0".
+  iPoseProof (own_tracker_unless_lent rv.(raft.raft.trk') s.(nstate.votes)
+                s.(nstate.progress)) as "Htrk".
+  iPoseProof (own_raftLog_unless_lent rv.(raft.raft.trk') rv.(raft.raft.raftLog'))
+    as "Hlog".
+  reseal.
+Qed.
+
+(** End a loan: the tracker comes back at any tally and progress map, the
+    log at any state with no page out.  Stated, like
+    [own_raft_phys_trk_lent], at the state [own_raft_phys_lend] produces:
+    [(s <| lent := x |>).(lent)] does not reduce to [x] for a variable [s]
+    (the setter destructures the record), so a premise [s.(lent) = Some tv]
+    would need a [destruct s] at every use.  A caller whose state has been
+    through a call since the loan began gets it into this form with
+    [own_raft_phys_eq] and [by destruct s]. *)
+Lemma own_raft_phys_unlend r id s tv votes prs ls :
+  ls.(logstate.page) = None →
+  own_raft_phys r id (s <| nstate.lent := Some tv |>) -∗
+  own_tracker cfg tv votes prs -∗
+  own_raftLog s.(nstate.log) ls -∗
+  own_raft_phys r id (s <| nstate.lent := None |> <| nstate.votes := votes |>
+                        <| nstate.progress := prs |>).
+Proof.
+  iIntros (Hpg) "H Htrk0 Hlog0". iNamed "H".
+  iDestruct (own_tracker_unless_lent_eq with "Htrk") as %Htv.
+  iClear "Htrk Hlog".
+  rewrite -Htv.
+  iDestruct (own_tracker_unless_close None _ _ _ eq_refl with "Htrk0") as "Htrk".
+  iAssert (own_raftLog rv.(raft.raft.raftLog') ls) with "[Hlog0]" as "Hlog0".
+  { rewrite Hlogp. destruct s. iExact "Hlog0". }
+  iDestruct (own_raftLog_unless_close None _ _ eq_refl with "Hlog0 [//]") as "Hlog".
+  reseal.
+Qed.
+
+(** The tracker field while the tracker is on loan: the loan follows the
+    field to whatever value it is given.  Stated at the state
+    [own_raft_phys_lend] produces, [s <| lent := Some tv |>], so that
+    re-splitting the field after putting it back matches the same [s]
+    again instead of stacking setters. *)
+Lemma own_raft_phys_trk_lent r id s tv :
+  own_raft_phys r id (s <| nstate.lent := Some tv |>) -∗
+  r.[raft.raft.t, "trk"] ↦ tv ∗
+  (∀ tv', r.[raft.raft.t, "trk"] ↦ tv' -∗
+          own_raft_phys r id (s <| nstate.lent := Some tv' |>)).
+Proof.
+  iIntros "H". iNamed "H".
+  iDestruct (own_tracker_unless_lent_eq with "Htrk") as %Htv.
+  iDestruct (raft_split_trk with "Hr") as "[Hf Hback]".
+  rewrite Htv. iFrame "Hf".
+  iIntros (tv') "Hf".
+  iDestruct ("Hback" $! tv' with "Hf") as "Hr".
+  iClear "Htrk Hlog".
+  iPoseProof (own_tracker_unless_lent tv' s.(nstate.votes) s.(nstate.progress))
+    as "Htrk".
+  iPoseProof (own_raftLog_unless_lent tv' rv.(raft.raft.raftLog')) as "Hlog".
+  reseal.
+Qed.
+
+(** [r.msgs], append-only: whatever is appended joins the abstract outbox
+    (at the end, up to permutation -- see [Houtbox]); a message type the
+    model does not describe drops out through [abs_msg_opt]. *)
+Lemma own_raft_phys_msgs r id s :
+  own_raft_phys r id s -∗
+  ∃ sl ms, r.[raft.raft.t, "msgs"] ↦ sl ∗ sl ↦* ms ∗
+           own_slice_cap raftpb.Message.t sl (DfracOwn 1) ∗
+           (∀ sl' ms', r.[raft.raft.t, "msgs"] ↦ sl' -∗ sl' ↦* (ms ++ ms') -∗
+              own_slice_cap raftpb.Message.t sl' (DfracOwn 1) -∗
+              own_raft_phys r id
+                (s <| nstate.outbox := s.(nstate.outbox) ++ omap abs_msg_opt ms' |>)).
+Proof.
+  iIntros "H". iNamed "H".
+  iDestruct (raft_split_msgs with "Hr") as "[Hf Hback]".
+  iExists _, msgs. iFrame "Hf Hmsgs Hmsgs_cap".
+  iIntros (sl' ms') "Hf Hmsgs Hmsgs_cap".
+  iDestruct ("Hback" $! sl' with "Hf") as "Hr".
+  reseal.
+  change (s.(nstate.outbox) ++ omap abs_msg_opt ms' ≡ₚ abs_outbox (msgs ++ ms') msgsAA).
+  rewrite Houtbox /abs_outbox omap_app -!assoc.
+  apply Permutation_app_head, Permutation_app_comm.
+Qed.
+
+(** [r.msgsAfterAppend], likewise. *)
+Lemma own_raft_phys_msgsAA r id s :
+  own_raft_phys r id s -∗
+  ∃ sl ms, r.[raft.raft.t, "msgsAfterAppend"] ↦ sl ∗ sl ↦* ms ∗
+           own_slice_cap raftpb.Message.t sl (DfracOwn 1) ∗
+           (∀ sl' ms', r.[raft.raft.t, "msgsAfterAppend"] ↦ sl' -∗
+              sl' ↦* (ms ++ ms') -∗
+              own_slice_cap raftpb.Message.t sl' (DfracOwn 1) -∗
+              own_raft_phys r id
+                (s <| nstate.outbox := s.(nstate.outbox) ++ omap abs_msg_opt ms' |>)).
+Proof.
+  iIntros "H". iNamed "H".
+  iDestruct (raft_split_msgsAA with "Hr") as "[Hf Hback]".
+  iExists _, msgsAA. iFrame "Hf HmsgsAA HmsgsAA_cap".
+  iIntros (sl' ms') "Hf HmsgsAA HmsgsAA_cap".
+  iDestruct ("Hback" $! sl' with "Hf") as "Hr".
+  reseal.
+  change (s.(nstate.outbox) ++ omap abs_msg_opt ms' ≡ₚ abs_outbox msgs (msgsAA ++ ms')).
+  rewrite Houtbox /abs_outbox omap_app -!assoc //.
+Qed.
+
+(** The [readOnly] object.  Election never reads it; [reset] replaces it. *)
+Lemma own_raft_phys_readOnly r id s :
+  own_raft_phys r id s -∗
+  ∃ ro, r.[raft.raft.t, "readOnly"] ↦ ro ∗ own_read_only ro ∗
+        (∀ ro', r.[raft.raft.t, "readOnly"] ↦ ro' -∗ own_read_only ro' -∗
+                own_raft_phys r id s).
+Proof.
+  iIntros "H". iNamed "H". iNamed "Hmisc".
+  iDestruct (raft_split_readOnly with "Hr") as "[Hf Hback]".
+  iExists _. iFrame "Hf Hro_obj".
+  iIntros (ro') "Hf Hro_obj".
+  iDestruct ("Hback" $! ro' with "Hf") as "Hr".
+  iAssert (own_raft_misc _ ro' _)
+    with "[HreadStates HreadStates_cap Hro_obj Hpri Hpri_cap]" as "Hmisc".
+  { rewrite /own_raft_misc. iFrame. }
+  reseal.
+Qed.
+
+(** Two states that are equal: for a state reached by a run of field
+    stores and the name a spec gives it ([become_follower s t l], say).
+    Proving the [=] with [reflexivity] is cheap; leaving it to unification
+    inside [iFrame] can run for minutes (notes/gotchas.md). *)
+Lemma own_raft_phys_eq r id s1 s2 :
+  s1 = s2 → own_raft_phys r id s1 -∗ own_raft_phys r id s2.
+Proof. intros ->. iIntros "$". Qed.
+
 End proof.
+
+(** One raft-field access with nothing to name: a load of a field whose
+    value the state determines, or a store.  Works on the hypothesis
+    ["Hphys"] and gives it back under the same name.  The accesses with
+    outputs -- [logger], the untracked loads -- and the accessors are
+    applied by hand. *)
+Ltac wp_raft_field :=
+  first
+  [ wp_apply (wp_raft_load_id with "Hphys") as "Hphys"
+  | wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"
+  | wp_apply (wp_raft_load_Vote with "Hphys") as "Hphys"
+  | wp_apply (wp_raft_load_lead with "Hphys") as "Hphys"
+  | wp_apply (wp_raft_load_state with "Hphys") as "Hphys"
+  | wp_apply (wp_raft_load_step with "Hphys") as "Hphys"
+  | wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys"
+  | wp_apply (wp_raft_load_checkQuorum with "Hphys") as "Hphys"
+  | wp_apply (wp_raft_load_preVote with "Hphys") as "Hphys"
+  | wp_apply (wp_raft_load_isLearner with "Hphys") as "Hphys"
+  | wp_apply (wp_raft_load_leadTransferee with "Hphys") as "Hphys"
+  | wp_apply (wp_raft_store_Term with "Hphys") as "Hphys"
+  | wp_apply (wp_raft_store_Vote with "Hphys") as "Hphys"
+  | wp_apply (wp_raft_store_lead with "Hphys") as "Hphys"
+  | wp_apply (wp_raft_store_state _ _ _ _ role.Follower with "Hphys") as "Hphys"
+  | wp_apply (wp_raft_store_state _ _ _ _ role.Candidate with "Hphys") as "Hphys"
+  | wp_apply (wp_raft_store_state _ _ _ _ role.Leader with "Hphys") as "Hphys"
+  | wp_apply (wp_raft_store_step with "Hphys") as "Hphys"
+  | wp_apply (wp_raft_store_tick with "Hphys") as "Hphys"
+  | wp_apply (wp_raft_store_electionElapsed with "Hphys") as "Hphys"
+  | wp_apply (wp_raft_store_heartbeatElapsed with "Hphys") as "Hphys"
+  | wp_apply (wp_raft_store_randomizedElectionTimeout with "Hphys") as "Hphys"
+  | wp_apply (wp_raft_store_pendingConfIndex with "Hphys") as "Hphys"
+  | wp_apply (wp_raft_store_uncommittedSize with "Hphys") as "Hphys"
+  | wp_apply (wp_raft_store_leadTransferee with "Hphys") as "Hphys" ].
+
+(** A logging call through [r.logger]: the raft fields its arguments read,
+    the variadic argument slice, the load of [r.logger], and the logger
+    spec.  Works on ["Hphys"], like [wp_raft_field].  Supersedes [wp_log],
+    which expects the logger's [is_Logger] from an unfolded predicate. *)
+Ltac wp_raft_log :=
+  repeat wp_raft_field;
+  wp_apply wp_slice_literal;
+  (* depending on the arguments, [wp_apply] may already have discharged the
+     precondition and introduced the slice *)
+  try (iSplitR; [ done | ]); try iIntros "% [? _]"; try wp_auto;
+  let lk := fresh "lok" in
+  wp_apply (wp_raft_load_logger with "Hphys") as (lk) "[Hphys #Hlg]";
+  wp_apply (wp_Logger__logf with "Hlg");
+  [ solve_log_method | try iIntros "_"; iClear "Hlg"; try wp_auto ].

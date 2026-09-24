@@ -10,21 +10,21 @@ Import P.
   Proof.
     intros_ambient.
     intros cfg r id s es ents dq.
-    intros Hzero. wp_start as "H". iNamed "H". iNamed "Hphys". wp_auto.
+    intros Hzero. wp_start as "H". iNamed "H". wp_auto.
     (* [payloadsSize] pins the result only for an all-empty batch, which is
        the premise here (it was widened on 2026-09-20 for [maybeSendAppend],
        so the zero comes back as an implication). *)
     wp_apply (wp_payloadsSize with "[$Hes]") as "%psz [Hes %Hpsz]".
     rewrite (Hpsz Hzero).
     (* [s] is [0], so the *middle* conjunct of the reject test is false
-       whatever [r.uncommittedSize] is -- but [&&] is a nest of [if]s and
-       [wp_auto] parks on the outermost one, which reads a field it knows
-       nothing about.  Split on it; both branches fall through to the
-       increment. *)
-    case_bool_decide as Hunc; wp_auto; (iApply "HΦ"; iFrame "Hes";
-      iApply (own_raft_phys_intro with
-        "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
-      done).
+       whatever [r.uncommittedSize] is -- but [&&] is a nest of [if]s, and
+       the outermost one reads a field [own_raft_phys] does not track.
+       Split on it; both branches fall through to the increment. *)
+    wp_apply (wp_raft_load_uncommittedSize with "Hphys") as "%u Hphys".
+    case_bool_decide as Hunc; wp_auto;
+      (wp_apply (wp_raft_load_uncommittedSize with "Hphys") as "%u' Hphys";
+       wp_apply (wp_raft_store_uncommittedSize with "Hphys") as "Hphys";
+       iApply "HΦ"; iFrame).
   Qed.
 
 End RaftIncreaseUncommittedSizeProof.
