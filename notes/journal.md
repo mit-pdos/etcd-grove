@@ -3578,4 +3578,6 @@ copies of the goal and rocq-warm's 4.2 GB ceiling; joining the arms with
 - `etc/tcb-report.py --proof-root new/proof/go_etcd_io/raft --scope
   election_proof`: 14 `Axiom` (was 10) + 1 `Admitted`; two results
   (`Step`, `newRaft`); 228 `Qed` lemmas; 74 definitions / 812 lines; TCB 5.5%.
-- Full `.vok` sweep after the `base.v` change: see the end of this entry.
+- Full `.vok` sweep after the `base.v` change: `make -k -j2` of every `.v`
+  under `new/proof/go_etcd_io/raft/` plus `etcd/server/v3/etcdserver.v` (which
+  imports it): **exit 0, 417 files checked, no errors**.
