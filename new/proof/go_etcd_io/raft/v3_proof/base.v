@@ -139,7 +139,12 @@ Definition is_initialized : iProp Σ :=
     (** the global RNG: the pointer, and the mutex behind it (added
         2026-09-20 for [resetRandomizedElectionTimeout]) *)
     "#globalRand" ∷ (global_addr raft.globalRand) ↦□ globalRand ∗
-    "#HglobalRand" ∷ is_lockedRand globalRand.
+    "#HglobalRand" ∷ is_lockedRand globalRand ∗
+    (** [emptyState = pb.HardState{}] ([node.go]), which [IsEmptyHardState]
+        compares against.  Nothing but the initializer writes it.  Added
+        2026-09-24 for [newRaft]. *)
+    "#emptyState" ∷ (global_addr raft.emptyState)
+                      ↦□ raftpb.HardState.mk (W64 0) (W64 0) (W64 0).
 
 #[global] Instance : IsPkgInit (iProp Σ) raft := define_is_pkg_init is_initialized.
 #[global] Instance : GetIsPkgInitWf (iProp Σ) raft := build_get_is_pkg_init_wf.

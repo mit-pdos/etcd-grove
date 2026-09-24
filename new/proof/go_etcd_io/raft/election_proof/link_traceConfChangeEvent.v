@@ -1,0 +1,6 @@
+Require Export New.proof.go_etcd_io.raft.election_proof.proof_traceConfChangeEvent.
+
+Module TraceConfChangeEventPostulates : TRACECONFCHANGEEVENT_POSTULATES.
+End TraceConfChangeEventPostulates.
+
+Module TraceConfChangeEvent := TraceConfChangeEventProof TraceConfChangeEventPostulates.
