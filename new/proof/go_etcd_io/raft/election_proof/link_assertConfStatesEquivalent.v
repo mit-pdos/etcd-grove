@@ -1,0 +1,8 @@
+Require Export New.proof.go_etcd_io.raft.election_proof.proof_assertConfStatesEquivalent.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_ConfState__Equivalent.
+
+Module AssertConfStatesEquivalentPostulates : ASSERTCONFSTATESEQUIVALENT_POSTULATES.
+  Include ConfStateEquivalent.
+End AssertConfStatesEquivalentPostulates.
+
+Module AssertConfStatesEquivalent := AssertConfStatesEquivalentProof AssertConfStatesEquivalentPostulates.
