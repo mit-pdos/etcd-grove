@@ -1628,3 +1628,59 @@ arrives).
   `wp_auto`.** After `unstable.mustCheckOutOfBounds` returned
   `own_unstable`, the field reads that follow were not stepped; an explicit
   `iNamed "Hun". wp_auto.` was needed.
+
+## Working against the sealed `own_raft_phys` (2026-09-24)
+
+`own_raft_phys` is sealed; the interface is the last section of
+`election_proof/inv_raft_phys.v` (decisions.md, "Program proofs do not
+unfold `own_raft_phys`").  What bit while converting the proofs to it:
+
+- **`wp_auto` stops in front of every raft-field access**, and a `wp_auto`
+  with nothing left to do *fails* ("Failed to progress") -- e.g. right after
+  a `wp_apply … as`, which already ran it.  Write `try wp_auto` where a
+  load used to be absorbed.
+- **A field load in function position is not found by `wp_apply`.**
+  `r.step(r, m)` is `![stepFunc] #(r.[…, "step"]) #r #m`, and
+  `wp_apply (wp_raft_load_step with "Hphys")` fails with "iApply: cannot
+  apply"; so does any field lemma there.  Bind by hand:
+  `wp_bind (![raft.stepFunc] _)%E; iApply (wp_raft_load_step with "Hphys"); iIntros "!> Hphys"`
+  (`wp_load_step` in `proof_raft__Step_MsgVoteResp.v`).
+- **Passing `Hlent` positionally pins the state.**
+  `own_raft_phys_tracker _ _ _ _ Hlent` takes `s` from `Hlent`'s type and then
+  fails against a `Hphys` at a setter chain over `s`.  Leave the premise
+  open: `iDestruct (own_raft_phys_tracker with "Hphys") as …; first exact Hlent.`
+  (A premise about `s` *is* accepted at `s` updated at other fields, by
+  conversion; it is the pinning that hurts.)
+- **`own_raft_phys_log` consumes `Hphys`**, so code that loads `r.raftLog`
+  again while the log is open cannot use it; lend instead
+  (`own_raft_phys_lend`), since at `s <| lent := Some tv |>` `Hphys` still
+  serves field loads.
+- **The tracker accessor gives the state back at `s <| votes := votes' |>`**
+  even when nothing changed; use `own_raft_phys_tracker_same` for a
+  read-only use or a split/re-seal repeated inside a `Visit` closure, or the
+  setters pile up.
+- **Relating a run of stores to the state a spec names**: `own_raft_phys_eq`
+  with `by destruct s` (or `reflexivity`).  Cheap.  Leaving it to unification
+  inside `iFrame`, or `simpl` on a state with `functions …` in it, is not.
+- **`wp_auto` reduces the value a field lemma returns**: after a load at
+  `become_follower s t l`, `r.Term` shows up as `t`, not as a projection,
+  so a `rewrite` with a projection lemma finds nothing to rewrite.
+
+Writing a triple for a *single* heap access (the field lemmas themselves):
+
+- **`wp_auto`'s load/store step does not strip the later off `HΦ`**, so
+  after `wp_auto` the goal `Φ v` cannot be closed from `▷ (… -∗ Φ v)`.
+  Apply the primitive `wp_load`/`wp_store` with `wp_apply` instead (it
+  introduces the later); `wp_load_access`/`wp_store_access` in
+  `inv_raft_phys.v` do that through any `AccessStrict` instance.
+- **`e1 <-[t] e2` is an expression pair**; after one pure step the goal is
+  `GoStore t (#l, #v)%V`, a value pair, which is what the store lemmas are
+  stated at.
+- **Unsealing a 33-field struct and re-framing it field by field costs
+  ~40s** (`iNamed`, then `iFrame "∗%"`).  Destructure positionally and keep
+  the untouched fields as one hypothesis: ~6s (`split_field_proof`).
+- **`wp_apply` sometimes introduces the postcondition itself** (e.g.
+  `wp_slice_literal` when its precondition is trivial, `wp_Logger__logf`'s
+  `True`), and an `as` pattern then fails with "iIntro: nothing to
+  introduce" -- a failure `try` around the whole step does not catch, since
+  it comes from inside `wp_apply`.  `wp_raft_log` tolerates both shapes.

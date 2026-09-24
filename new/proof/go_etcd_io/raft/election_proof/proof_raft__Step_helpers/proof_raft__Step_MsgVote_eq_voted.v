@@ -46,7 +46,7 @@ Implicit Type s : nstate.t.
       (["Hphys"] whole). *)
   Local Ltac vote_grant_tail id_ s_ m_ ty_eq to_eq can wf_ :=
     try wp_auto;
-    wp_raft_log;
+    (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Vote with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log);
     wp_apply P.wp_voteRespMsgType; [done|];
     wp_apply (P.wp_raft__send with "[$Hphys]") as "Hphys";
       [done|left; exists mtype.VoteResp; split_and!;
@@ -54,7 +54,8 @@ Implicit Type s : nstate.t.
     rewrite ty_eq /MsgVote bool_decide_eq_true_2 //;
     try wp_auto;
     (* [r.electionElapsed = 0; r.Vote = m.From] *)
-    repeat wp_raft_field;
+    wp_apply (wp_raft_store_electionElapsed with "Hphys") as "Hphys";
+    wp_apply (wp_raft_store_Vote with "Hphys") as "Hphys";
     iApply ("HΦ" $! interface.nil
       (send_msgs (s_ <| nstate.vote := m_.(raftpb.Message.From') |>)
          [msg.mk mtype.VoteResp id_ m_.(raftpb.Message.From')
@@ -78,12 +79,11 @@ Implicit Type s : nstate.t.
       addressed to us.  Starts with the log closed (["Hphys"] whole). *)
   Local Ltac vote_reject_tail id_ s_ m_ to_eq wf_ :=
     try wp_auto;
-    wp_raft_log;
+    (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Vote with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log);
     (* [Term: r.Term] and the [voteRespMsgType] call, in whichever order the
        struct literal evaluates them *)
-    repeat wp_raft_field;
+    wp_apply (wp_raft_load_Term with "Hphys") as "Hphys";
     wp_apply P.wp_voteRespMsgType; [done|];
-    repeat wp_raft_field;
     (* The response carries [s.term], so [send]'s [m.Term ≠ 0] premise is the
        incoming message's, transported along [m.Term = s.term].  The [simpl] is not
        optional: the premise is stated about the *message literal*, so the
@@ -173,12 +173,12 @@ Implicit Type s : nstate.t.
     assert (bool_decide (m.(raftpb.Message.Term') = W64 0) = false) as Hz
     by by apply bool_decide_eq_false_2.
     rewrite Hz. rewrite bool_decide_eq_false_2; last done. wp_auto.
-    wp_raft_field.
+    wp_apply (wp_raft_load_Term with "Hphys") as "Hphys".
       assert (bool_decide (uint.Z s.(nstate.term) <
                            uint.Z m.(raftpb.Message.Term')) = false) as Hb
         by by apply bool_decide_eq_false_2.
       rewrite Hb. rewrite bool_decide_eq_false_2; last done. wp_auto.
-      wp_raft_field.
+      wp_apply (wp_raft_load_Term with "Hphys") as "Hphys".
         assert (bool_decide (uint.Z m.(raftpb.Message.Term') <
                              uint.Z s.(nstate.term)) = false) as Hb2
           by by apply bool_decide_eq_false_2.
@@ -188,7 +188,7 @@ Implicit Type s : nstate.t.
         rewrite Hty /MsgVote bool_decide_eq_false_2; last w32_ne. wp_auto.
         (* [canVote] is the model's [can_vote]: the Go expression's third
            disjunct needs [MsgPreVote] and is dead here. *)
-        wp_raft_field.
+        wp_apply (wp_raft_load_Vote with "Hphys") as "Hphys".
           destruct (decide (s.(nstate.vote) = m.(raftpb.Message.From')))
             as [Hv1|Hv1].
           -- (* for this very candidate, so the vote may be granted again *)
@@ -197,13 +197,13 @@ Implicit Type s : nstate.t.
                by (rewrite /pcan_vote /=; left; congruence).
              (* each [raftLog] call: load the field, open the log, call,
                 close it again -- the next field load needs ["Hphys"] *)
-             wp_raft_field.
+             wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
              wp_hidden (iDestruct (own_raft_phys_log _ _ _ _ Hlent with "Hphys")
                           as (ls1 Hls1) "[Hlog Hlogback]").
              wp_apply (wp_raftLog__lastEntryID _ _ Hls1 with "[$Hlog]")
                as "%lastID2 Hlog".
              wp_hidden (iDestruct ("Hlogback" with "Hlog [//]") as "Hphys").
-             wp_raft_field.
+             wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
              wp_hidden (iDestruct (own_raft_phys_log _ _ _ _ Hlent with "Hphys")
                           as (ls2 Hls2) "[Hlog Hlogback]").
              wp_apply (wp_raftLog__isUpToDate _ _ _ Hls2 with "[$Hlog]") as "%ok2 Hlog".
@@ -215,13 +215,13 @@ Implicit Type s : nstate.t.
                   first two disjuncts are false, so again the third is
                   evaluated and its [MsgPreVote] test has to be decided. *)
              rewrite bool_decide_eq_false_2; last congruence. wp_auto.
-             wp_raft_field.
+             wp_apply (wp_raft_load_Vote with "Hphys") as "Hphys".
              rewrite bool_decide_eq_false_2; last congruence. wp_auto.
              rewrite (bool_decide_eq_false_2
                         (m.(raftpb.Message.Type') = W32 17));
                last (rewrite Hty /MsgVote; w32_ne).
              wp_auto.
-             wp_raft_field.
+             wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
              wp_hidden (iDestruct (own_raft_phys_log _ _ _ _ Hlent with "Hphys")
                           as (ls1 Hls1) "[Hlog Hlogback]").
              wp_apply (wp_raftLog__lastEntryID _ _ Hls1 with "[$Hlog]")

@@ -168,7 +168,7 @@ Set Default Proof Using "Type".
     assert (Hnosnap : pv.(tracker.Progress.State') ≠ W64 2).
     { intros Hc. rewrite /progress_paused decide_True // in Hpaused. }
     iNamed "Hpa".
-    wp_auto. wp_raft_field.
+    wp_auto. wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
     (* [r.raftLog.term(pr.Next - 1)] *)
     destruct ls as [prev sents uents lcm lap lpg]; logstate_simpl; subst lpg.
     iDestruct (own_raftLog_nowrap with "Hlog") as "[%Hnw Hlog]"; first done.
@@ -219,7 +219,7 @@ Set Default Proof Using "Type".
       | (* in [StateReplicate] with room: fetch a page *)
         wp_auto;
         wp_apply (wp_raft_load_maxMsgSize with "Hphys") as "%mms Hphys";
-        wp_raft_field;
+        wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys";
         wp_apply (wp_raftLog__entries _ (logstate.mk prev sents uents lcm lap None) _ _ eq_refl Hlo with "[$Hlog]")
           as "%sl_e %es_e %dq_e (Hlog & Hpage)";
         iDestruct (own_raftLog_struct with "Hlog") as (lv_e) "(Hl & _ & Hlogback2)";
@@ -231,7 +231,7 @@ Set Default Proof Using "Type".
     | (* not in [StateReplicate]: the first disjunct is true, fetch a page *)
       rewrite bool_decide_eq_false_2 //; wp_auto;
       wp_apply (wp_raft_load_maxMsgSize with "Hphys") as "%mms Hphys";
-      wp_raft_field;
+      wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys";
       wp_apply (wp_raftLog__entries _ (logstate.mk prev sents uents lcm lap None) _ _ eq_refl Hlo with "[$Hlog]")
         as "%sl_e %es_e %dq_e (Hlog & Hpage)";
       iDestruct (own_raftLog_struct with "Hlog") as (lv_e) "(Hl & _ & Hlogback2)";
@@ -264,7 +264,7 @@ Set Default Proof Using "Type".
     | wp_auto ];
     (* --- the message goes out; again once per goal --- *)
     (* the literal reads [r.raftLog.committed] through [Hl] *)
-    (try wp_auto; wp_raft_field;
+    (try wp_auto; wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys";
     wp_apply (P.wp_raft__send with "[$Hphys]");
       [ done
       | right; left; exists mtype.App; split_and!;
@@ -281,7 +281,7 @@ Set Default Proof Using "Type".
       simpl in Hlen; lia | ];
     wp_apply (wp_Progress__SentEntries _ _ _ _ _ Hnosnap Hwin2 with "[$Hpa]")
       as "Hpr";
-    try wp_auto; wp_raft_field;
+    try wp_auto; wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys";
     iDestruct "Hpr" as (pv3 iv3) "Hpa3";
     wp_apply (wp_Progress__SentCommit with "[$Hpa3]") as "Hpa3";
     try wp_auto;

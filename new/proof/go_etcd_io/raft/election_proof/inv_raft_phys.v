@@ -281,8 +281,11 @@ Qed.
     builds on full ownership of the struct, [r ↦ rv], which is exactly the
     representation this predicate hides: with [own_raft_phys] sealed,
     [wp_auto] stops in front of a load or store of a raft field, and the
-    proof continues with the lemma for that field.  [wp_raft_field] (after
-    the section) picks it for the accesses with no outputs to name.
+    proof continues with the lemma for that field, named explicitly:
+    [wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"].  There is
+    deliberately no tactic that searches the lemmas for the one that
+    applies: each failed [wp_apply] walks the whole program, and a proof
+    that names its lemma says which field it touches.
 
     There are three kinds.
 
@@ -808,44 +811,12 @@ Qed.
 
 End proof.
 
-(** One raft-field access with nothing to name: a load of a field whose
-    value the state determines, or a store.  Works on the hypothesis
-    ["Hphys"] and gives it back under the same name.  The accesses with
-    outputs -- [logger], the untracked loads -- and the accessors are
-    applied by hand. *)
-Ltac wp_raft_field :=
-  first
-  [ wp_apply (wp_raft_load_id with "Hphys") as "Hphys"
-  | wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"
-  | wp_apply (wp_raft_load_Vote with "Hphys") as "Hphys"
-  | wp_apply (wp_raft_load_lead with "Hphys") as "Hphys"
-  | wp_apply (wp_raft_load_state with "Hphys") as "Hphys"
-  | wp_apply (wp_raft_load_step with "Hphys") as "Hphys"
-  | wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys"
-  | wp_apply (wp_raft_load_checkQuorum with "Hphys") as "Hphys"
-  | wp_apply (wp_raft_load_preVote with "Hphys") as "Hphys"
-  | wp_apply (wp_raft_load_isLearner with "Hphys") as "Hphys"
-  | wp_apply (wp_raft_load_leadTransferee with "Hphys") as "Hphys"
-  | wp_apply (wp_raft_store_Term with "Hphys") as "Hphys"
-  | wp_apply (wp_raft_store_Vote with "Hphys") as "Hphys"
-  | wp_apply (wp_raft_store_lead with "Hphys") as "Hphys"
-  | wp_apply (wp_raft_store_state _ _ _ _ role.Follower with "Hphys") as "Hphys"
-  | wp_apply (wp_raft_store_state _ _ _ _ role.Candidate with "Hphys") as "Hphys"
-  | wp_apply (wp_raft_store_state _ _ _ _ role.Leader with "Hphys") as "Hphys"
-  | wp_apply (wp_raft_store_step with "Hphys") as "Hphys"
-  | wp_apply (wp_raft_store_tick with "Hphys") as "Hphys"
-  | wp_apply (wp_raft_store_electionElapsed with "Hphys") as "Hphys"
-  | wp_apply (wp_raft_store_heartbeatElapsed with "Hphys") as "Hphys"
-  | wp_apply (wp_raft_store_randomizedElectionTimeout with "Hphys") as "Hphys"
-  | wp_apply (wp_raft_store_pendingConfIndex with "Hphys") as "Hphys"
-  | wp_apply (wp_raft_store_uncommittedSize with "Hphys") as "Hphys"
-  | wp_apply (wp_raft_store_leadTransferee with "Hphys") as "Hphys" ].
-
-(** A logging call through [r.logger]: the raft fields its arguments read,
-    the variadic argument slice, the load of [r.logger], and the logger
-    spec.  Works on ["Hphys"], like [wp_raft_field]. *)
+(** A logging call through [r.logger], once the raft fields its arguments
+    read have been loaded (each with its own lemma, by the caller): the
+    variadic argument slice, the load of [r.logger], and the logger spec.
+    Works on ["Hphys"].  A fixed sequence of steps, no search: it applies
+    the same lemmas in the same order every time. *)
 Ltac wp_raft_log :=
-  repeat wp_raft_field;
   wp_apply wp_slice_literal;
   (* depending on the arguments, [wp_apply] may already have discharged the
      precondition and introduced the slice *)

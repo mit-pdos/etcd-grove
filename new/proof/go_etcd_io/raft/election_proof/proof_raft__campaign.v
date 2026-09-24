@@ -105,7 +105,7 @@ Proof.
   wp_auto.
   wp_apply (P.wp_raft__becomeCandidate _ _ _ _ Hrole Hlent with "[$Hphys]") as "Hphys".
   (* [term := r.Term], the new term; every [send] below carries it *)
-  wp_raft_field.
+  wp_apply (wp_raft_load_Term with "Hphys") as "Hphys".
   set (T := (become_candidate id s).(nstate.term)).
   assert (T = word.add s.(nstate.term) (W64 1)) as HTeq by reflexivity.
   assert (T ≠ W64 0) as HTnz by (rewrite HTeq; exact Hno_wrap).
@@ -237,7 +237,7 @@ Proof.
     assert (cmsg <$> take (Z.to_nat (sint.Z (word.add n (W64 1)))) xs
             = (cmsg <$> take (Z.to_nat (sint.Z n)) xs) ++ [cmsg y]) as Hgrow.
     { rewrite Hsucc (take_S_r _ _ y) // fmap_app //. }
-    try wp_auto. wp_raft_field.
+    try wp_auto. wp_apply (wp_raft_load_id with "Hphys") as "Hphys".
     destruct (decide (y = id)) as [->|Hney].
     + (* this node's own vote: a self-addressed [MsgVoteResp] *)
       rewrite bool_decide_eq_true_2 //. wp_auto.
@@ -269,14 +269,14 @@ Proof.
       wp_for_post.
       iFrame. iPureIntro. word.
     + (* a peer: read the last entry, log, and send it a [MsgVote] *)
-      rewrite bool_decide_eq_false_2 //. wp_auto. wp_raft_field.
+      rewrite bool_decide_eq_false_2 //. wp_auto. wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
       iDestruct (own_raft_phys_log _ _ _
                    (send_msgs (become_candidate id s)
                       (cmsg <$> take (Z.to_nat (sint.Z n)) xs)) Hlent with "Hphys")
         as (ls2 Hls2) "[Hlog Hback]".
       wp_apply (wp_raftLog__lastEntryID _ _ Hls2 with "[$Hlog]") as "%lastID Hlog".
       iDestruct ("Hback" with "Hlog [//]") as "Hphys".
-      wp_raft_log.
+      (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log).
       assert (send_msgs (send_msgs (become_candidate id s)
                            (cmsg <$> take (Z.to_nat (sint.Z n)) xs))
                         [msg.mk mtype.Vote id y T false]

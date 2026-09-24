@@ -17,7 +17,7 @@ Import P.
     intros_ambient.
     intros cfg r id s from t v Hlent.
     wp_start as "Hphys". wp_auto.
-    destruct v; wp_auto; wp_raft_log;
+    destruct v; wp_auto; (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log);
       iDestruct (own_raft_phys_tracker _ _ _ _ Hlent with "Hphys")
         as (tv) "(Htrkf & Htrk & Hback)";
       wp_apply (wp_ProgressTracker__RecordVote with "[$Htrkf $Htrk]")

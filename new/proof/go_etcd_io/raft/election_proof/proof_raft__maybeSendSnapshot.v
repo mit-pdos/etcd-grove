@@ -100,7 +100,7 @@ Set Default Proof Using "Type".
       { iExists pv, iv. rewrite /own_progress. iFrame "∗%". }
       iDestruct ("Htrkback" with "Hpr") as "Htrk".
       finish s Hlent. iFrame "Hphys". }
-    wp_raft_field.
+    wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
     wp_apply (wp_raftLog__snapshot _ _ _ Hls with "[$Hlog $ErrSnapUnavail]")
       as "%snap %err [Hlog %Herr]".
     destruct Herr as [-> | [-> Hnz]].
@@ -109,7 +109,7 @@ Set Default Proof Using "Type".
       destruct HErrSnapUnavail_new as (t & p & ->).
       wp_auto. rewrite decide_True //. wp_auto.
       rewrite bool_decide_eq_true_2 //. wp_auto.
-      wp_raft_log.
+      (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_raft_log).
       iApply ("HΦ" $! false).
       iAssert (∃ pv iv, own_progress pr pv iv)%I with "[Hpv Hinfl]" as "Hpr".
       { iExists pv, iv. rewrite /own_progress. iFrame "∗%". }
@@ -122,9 +122,10 @@ Set Default Proof Using "Type".
       (* the third [Debugf]'s argument list calls [firstIndex] and then
          reads [r.raftLog.committed] directly: the log's struct, for the
          read *)
-      repeat wp_raft_field.
+      wp_apply (wp_raft_load_id with "Hphys") as "Hphys".
+      wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
       wp_apply (wp_raftLog__firstIndex _ _ Hls with "[$Hlog]") as "%fi [Hlog %Hfi]".
-      wp_raft_field.
+      wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
       iDestruct (own_raftLog_struct with "Hlog") as (lv) "(Hl & _ & Hlogback)".
       wp_auto.
       iDestruct ("Hlogback" with "Hl") as "Hlog".
@@ -132,7 +133,7 @@ Set Default Proof Using "Type".
       iAssert (own_progress pr pv iv) with "[Hpv Hinfl]" as "Hpr".
       { rewrite /own_progress. iFrame "∗%". }
       wp_apply (wp_Progress__BecomeSnapshot with "[$Hpr]") as "Hpr".
-      wp_raft_log.
+      (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_raft_log).
       (* the [Progress] and the log go back before [send] *)
       iDestruct ("Htrkback" with "Hpr") as "Htrk".
       finish s Hlent.

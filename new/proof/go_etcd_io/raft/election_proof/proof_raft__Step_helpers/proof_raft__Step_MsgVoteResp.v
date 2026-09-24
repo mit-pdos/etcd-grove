@@ -32,7 +32,7 @@ Implicit Type s : nstate.t.
     rewrite ?elem_of_app ?list_elem_of_singleton ?elem_of_nil in Hin;
     naive_solver.
 
-  (** The load of [r.step] in [r.step(r, m)].  Not [wp_raft_field]: the load
+  (** The load of [r.step] in [r.step(r, m)].  Not [wp_apply wp_raft_load_step]: the load
       sits in the *function* position of an application, and [wp_apply]
       does not find it there ("iApply: cannot apply", 2026-09-24); binding
       it by hand with [wp_bind] and then applying the lemma works. *)
@@ -119,7 +119,7 @@ Implicit Type s : nstate.t.
     assert (bool_decide (m.(raftpb.Message.Term') = W64 0) = false) as Hz
       by by apply bool_decide_eq_false_2.
     rewrite Hz. rewrite bool_decide_eq_false_2; last done. wp_auto.
-    wp_raft_field.
+    wp_apply (wp_raft_load_Term with "Hphys") as "Hphys".
     destruct (decide (uint.Z s.(nstate.term) < uint.Z m.(raftpb.Message.Term')))
       as [Hgt|Hle].
     - (* m.Term > r.Term: step down, then dispatch to stepFollower *)
@@ -136,7 +136,7 @@ Implicit Type s : nstate.t.
       (* not (MsgPreVoteResp && !Reject) *)
       rewrite Hn18. wp_auto.
       (* the "received a message with higher term" Infof *)
-      wp_raft_log.
+      (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log).
       (* a MsgVoteResp is not from a leader: not MsgApp/Heartbeat/Snap *)
       rewrite Hn3. wp_auto.
       (* not MsgHeartbeat, not MsgSnap either, so the else arm runs
@@ -188,7 +188,7 @@ Implicit Type s : nstate.t.
                            uint.Z m.(raftpb.Message.Term')) = false) as Hb
         by by apply bool_decide_eq_false_2.
       rewrite Hb Htf. wp_auto.
-      wp_raft_field.
+      wp_apply (wp_raft_load_Term with "Hphys") as "Hphys".
       destruct (decide (uint.Z m.(raftpb.Message.Term') <
                         uint.Z s.(nstate.term))) as [Hlt|Hnlt].
       + (* m.Term < r.Term.  [checkQuorum] and [preVote] are both off and a
@@ -199,11 +199,11 @@ Implicit Type s : nstate.t.
                              uint.Z s.(nstate.term)) = true) as Hb2
           by by apply bool_decide_eq_true_2.
         rewrite Hb2. rewrite bool_decide_eq_true_2 //. wp_auto.
-        wp_raft_field.
-        wp_raft_field.
+        wp_apply (wp_raft_load_checkQuorum with "Hphys") as "Hphys".
+        wp_apply (wp_raft_load_preVote with "Hphys") as "Hphys".
         rewrite Hn17. wp_auto.
         rewrite Hn20. wp_auto.
-        wp_raft_log.
+        (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log).
         iApply ("HΦ" $! interface.nil s). iFrame "Hphys".
         iPureIntro. split; first exact Hwf. split; last done.
         exists []. split; last apply step_refl.

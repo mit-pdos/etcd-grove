@@ -69,18 +69,18 @@ Implicit Type s : nstate.t.
     assert (bool_decide (m.(raftpb.Message.Term') = W64 0) = false) as Hz
     by by apply bool_decide_eq_false_2.
     rewrite Hz. rewrite bool_decide_eq_false_2; last done. try wp_auto.
-    wp_raft_field.
+    wp_apply (wp_raft_load_Term with "Hphys") as "Hphys".
       assert (bool_decide (uint.Z s.(nstate.term) <
                            uint.Z m.(raftpb.Message.Term')) = false) as Hb
         by (apply bool_decide_eq_false_2; lia).
       rewrite Hb. rewrite bool_decide_eq_false_2; last done. try wp_auto.
-      wp_raft_field.
+      wp_apply (wp_raft_load_Term with "Hphys") as "Hphys".
         assert (bool_decide (uint.Z m.(raftpb.Message.Term') <
                              uint.Z s.(nstate.term)) = true) as Hb2
           by by apply bool_decide_eq_true_2.
         rewrite Hb2. rewrite bool_decide_eq_true_2 //. try wp_auto.
         (* neither [checkQuorum] nor [preVote] *)
-        do 2 wp_raft_field.
+        (wp_apply (wp_raft_load_checkQuorum with "Hphys") as "Hphys"; wp_apply (wp_raft_load_preVote with "Hphys") as "Hphys").
         (* not a MsgPreVote *)
         rewrite (bool_decide_eq_false_2 (m.(raftpb.Message.Type') = W32 17));
           last (rewrite Hty /MsgVote; w32_ne).
@@ -89,7 +89,7 @@ Implicit Type s : nstate.t.
         rewrite (bool_decide_eq_false_2 (m.(raftpb.Message.Type') = W32 20));
           last (rewrite Hty /MsgVote; w32_ne).
         try wp_auto.
-        wp_raft_log.
+        (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log).
         (* nothing was sent and nothing changed: dropping is [step_refl]. *)
         iApply ("HΦ" $! interface.nil s). iFrame "Hphys".
         iPureIntro. split; first exact Hwf. split; last done. exists [].

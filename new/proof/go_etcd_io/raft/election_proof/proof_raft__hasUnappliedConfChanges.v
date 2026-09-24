@@ -72,7 +72,7 @@ Import P.
     iEval (rewrite /own_raftLog_core /=) in "Hcore". iNamed "Hcore".
     wp_auto.
     (* the two reads of [r.raftLog] in the first [if] *)
-    do 2 (wp_raft_field; try wp_auto).
+    do 2 (wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys"; try wp_auto).
     wp_if_destruct.
     - (* [applied >= committed]: the range is empty and the answer is [false] *)
       iAssert (own_raftLog s.(nstate.log) (logstate.mk prev sents uents lcm lap None))
@@ -83,7 +83,7 @@ Import P.
       iApply "HΦ". iApply (own_raft_phys_eq with "Hphys"). exact Hs.
     - (* the reads of [r.raftLog] for [lo], [hi], [pageSize] and [scan]'s
          receiver *)
-      repeat (wp_raft_field; try wp_auto).
+      repeat (wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys"; try wp_auto).
       (* re-seal the log: [scan] is specified on [own_raftLog] *)
       iAssert (own_raftLog s.(nstate.log) (logstate.mk prev sents uents lcm lap None))
         with "[Hl HStorage Huents Huents_cap]" as "Hlog".

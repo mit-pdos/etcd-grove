@@ -19,7 +19,7 @@ Import P.
       - [id ∉ cfg]: the lookup yields [nil], so the first conjunct is
         [false] and the rest is never evaluated.  Result [false].
 
-      [r.id] and [r.raftLog] are read with [wp_raft_field]; the map
+      [r.id] and [r.raftLog] are read with their field lemmas; the map
       [r.trk.Progress] is read off the tracker object that
       [own_raft_phys_tracker] hands out, and the log's method runs on what
       [own_raft_phys_log] hands out.  Nothing is written to [r]. *)
@@ -28,7 +28,7 @@ Import P.
     intros_ambient.
     intros cfg r id s Hlent.
     wp_start as "Hphys". wp_auto.
-    wp_raft_field.
+    wp_apply (wp_raft_load_id with "Hphys") as "Hphys".
     iDestruct (own_raft_phys_tracker with "Hphys")
       as (tv) "(Htrkf & Htrk & Hback)"; first exact Hlent.
     wp_auto.
@@ -48,7 +48,7 @@ Import P.
       iDestruct ("Hback" with "Htrkf Htrk") as "Hphys".
       iDestruct (own_raft_phys_eq _ _ _ _ s with "Hphys") as "Hphys".
       { by destruct s. }
-      wp_raft_field.
+      wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
       iDestruct (own_raft_phys_log with "Hphys")
         as (ls Hls) "(Hlog & Hback)"; first exact Hlent.
       wp_apply (P.wp_raftLog__hasNextOrInProgressSnapshot _ _ Hls with "[$Hlog]")

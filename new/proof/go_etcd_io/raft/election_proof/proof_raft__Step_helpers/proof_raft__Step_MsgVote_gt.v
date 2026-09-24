@@ -69,7 +69,7 @@ Implicit Type s : nstate.t.
     assert (bool_decide (m.(raftpb.Message.Term') = W64 0) = false) as Hz
     by by apply bool_decide_eq_false_2.
     rewrite Hz. rewrite bool_decide_eq_false_2; last done. try wp_auto.
-    wp_raft_field.
+    wp_apply (wp_raft_load_Term with "Hphys") as "Hphys".
     assert (bool_decide (uint.Z s.(nstate.term) <
                          uint.Z m.(raftpb.Message.Term')) = true) as Hb
       by by apply bool_decide_eq_true_2.
@@ -81,7 +81,7 @@ Implicit Type s : nstate.t.
     wp_apply wp_string_to_bytes as "%ct_sl [ct_sl ct_cap]".
     wp_apply (wp_Equal _ _ DfracDiscarded (DfracOwn 1) ctx ("CampaignTransfer"%go)
                 with "[$Hctx_sl $ct_sl]") as "[_ ct_sl2]".
-    wp_raft_field.
+    wp_apply (wp_raft_load_checkQuorum with "Hphys") as "Hphys".
     assert (bool_decide (ctx = "CampaignTransfer"%go) = false) as Hnf
       by by apply bool_decide_eq_false_2.
     rewrite Hnf. try wp_auto.
@@ -93,7 +93,7 @@ Implicit Type s : nstate.t.
     assert (bool_decide (m.(raftpb.Message.Type') = W32 18) = false) as Hpvr
       by (apply bool_decide_eq_false_2; rewrite Hty /MsgVote; w32_ne).
     rewrite Hpvr. try wp_auto.
-    wp_raft_log.
+    (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log).
     (* a [MsgVote] is not from a leader, so no leader is adopted *)
     rewrite Hty /MsgVote bool_decide_eq_false_2; last w32_ne. try wp_auto.
     rewrite Hty /MsgVote bool_decide_eq_false_2; last w32_ne. try wp_auto.
@@ -120,20 +120,20 @@ Implicit Type s : nstate.t.
        [lead], so [canVote] holds. *)
     assert (Hne : m.(raftpb.Message.Term') ≠ s.(nstate.term)).
     { intros Heq. rewrite Heq in Hgt0. lia. }
-    wp_raft_field.
+    wp_apply (wp_raft_load_Vote with "Hphys") as "Hphys".
     rewrite (decide_False _ _ Hne) bool_decide_eq_false_2; last congruence.
     try wp_auto.
-    wp_raft_field.
+    wp_apply (wp_raft_load_Vote with "Hphys") as "Hphys".
     rewrite (decide_False _ _ Hne) bool_decide_eq_true_2 //. try wp_auto.
-    wp_raft_field.
+    wp_apply (wp_raft_load_lead with "Hphys") as "Hphys".
     (* the two log calls, each on the log taken out of [Hphys] and put back *)
-    wp_raft_field.
+    wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
     wp_hidden (iDestruct (own_raft_phys_log cfg r id
       (become_follower s m.(raftpb.Message.Term') (W64 0)) Hlent with "Hphys")
       as (ls1) "(%Hls1 & Hlog1 & Hback)").
     wp_apply (wp_raftLog__lastEntryID _ _ Hls1 with "[$Hlog1]") as "%lastID Hlog1".
     wp_hidden (iDestruct ("Hback" with "Hlog1 [//]") as "Hphys").
-    wp_raft_field.
+    wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
     wp_hidden (iDestruct (own_raft_phys_log cfg r id
       (become_follower s m.(raftpb.Message.Term') (W64 0)) Hlent with "Hphys")
       as (ls2) "(%Hls2 & Hlog1 & Hback)").
@@ -142,7 +142,7 @@ Implicit Type s : nstate.t.
     destruct uptodate.
     + (* the candidate's log is up to date: grant the vote *)
       try wp_auto.
-      wp_raft_log.
+      (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Vote with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log).
       wp_apply P.wp_voteRespMsgType; first done.
       (* the protocol step: grant the vote.  The [VoteResp] it sends is no
          longer a separate output -- it is the growth of the outbox, which the
@@ -165,7 +165,7 @@ Implicit Type s : nstate.t.
           [by right | apply mtype_of_MsgVoteResp | done | w32_ne | done]. }
       (* [m.Type = MsgVote], so the vote is recorded: [r.Vote := m.From]. *)
       rewrite Hty /MsgVote bool_decide_eq_true_2 //. try wp_auto.
-      do 2 wp_raft_field.
+      (wp_apply (wp_raft_store_electionElapsed with "Hphys") as "Hphys"; wp_apply (wp_raft_store_Vote with "Hphys") as "Hphys").
       iApply ("HΦ" $! interface.nil
         (send_msgs ((become_follower s m.(raftpb.Message.Term') (W64 0))
                       <| nstate.vote := m.(raftpb.Message.From') |>)
@@ -183,11 +183,11 @@ Implicit Type s : nstate.t.
       eapply step_trans; [exact Hstepdown|exact Hgrant].
     + (* the candidate's log is behind: decline, without recording a vote *)
       try wp_auto.
-      wp_raft_log.
+      (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Vote with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log).
       (* [r.Term] is [m.Term] after the step-down ([wp_auto] reduces the
          loaded term of [become_follower]), so the rejection carries the
          state's term -- which is what [step_reject_vote] sends. *)
-      wp_raft_field.
+      wp_apply (wp_raft_load_Term with "Hphys") as "Hphys".
       wp_apply P.wp_voteRespMsgType; first done.
       wp_apply (P.wp_raft__send with "[$Hphys]") as "Hphys".
       { done. }

@@ -54,7 +54,7 @@ Implicit Type s : nstate.t.
     rewrite Hty /MsgHup bool_decide_eq_true_2 //.
     wp_auto.
     (* no pre-vote, so this is a plain [hup(campaignElection)] *)
-    wp_raft_field.
+    wp_apply (wp_raft_load_preVote with "Hphys") as "Hphys".
     wp_apply (P.wp_raft__hup with "[$Hphys]") as "%s' (Hphys & %Hwf' & %Hstep)".
     { done. }
     { exact Hnowrap. }

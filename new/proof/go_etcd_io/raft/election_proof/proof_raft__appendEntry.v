@@ -159,7 +159,7 @@ Set Default Proof Using "Type".
     intros_ambient.
     intros cfg r id s es ents.
     intros Hempty Hnorm Hsmall Hlent.
-    wp_start as "[Hphys Hes]". wp_auto. wp_raft_field.
+    wp_start as "[Hphys Hes]". wp_auto. wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
     iDestruct (own_slice_len with "Hes") as %[Hlen Hlen'].
     (* [li := r.raftLog.lastIndex()], at a split that stays open *)
     iDestruct (own_raft_phys_lend _ _ _ _ Hlent with "Hphys")
@@ -260,7 +260,7 @@ Set Default Proof Using "Type".
         as "Hphys".
       iDestruct (own_raft_phys_eq _ _ _ _ s with "Hphys") as "Hphys".
       { destruct s; simpl in Hlent; subst. done. }
-      wp_raft_field.
+      wp_apply (wp_raft_load_id with "Hphys") as "Hphys".
       (* the self-addressed [MsgAppResp]: [send_ok]'s third clause *)
       wp_apply (P.wp_raft__send with "[$Hphys]");
         [ done

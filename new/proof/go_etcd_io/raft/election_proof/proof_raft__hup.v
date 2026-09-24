@@ -28,11 +28,11 @@ Import P.
     intros Ht Hnowrap Hwf.
     pose proof Hwf as [Hstepfn_wf Hlent].
     wp_start as "Hphys". wp_auto.
-    wp_raft_field.
+    wp_apply (wp_raft_load_state with "Hphys") as "Hphys".
     destruct (decide (s.(nstate.role) = role.Leader)) as [Hrl|Hrl].
     - (* already a leader: log and return, having done nothing *)
       rewrite Hrl bool_decide_eq_true_2 //. wp_auto.
-      wp_raft_log.
+      (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_raft_log).
       iApply ("HΦ" $! s). iFrame "Hphys".
       iPureIntro. split; [done | apply step_refl].
     - (* not a leader *)
@@ -52,7 +52,7 @@ Import P.
           as "Hphys".
         assert (id ∈ cfg) as Hin.
         { symmetry in Hb. by apply bool_decide_eq_true_1 in Hb. }
-        wp_raft_log.
+        (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log).
         wp_apply (P.wp_raft__campaign _ _ _ _ _ Ht Hrl Hin Hnowrap Hlent
                     with "[$Hphys]")
           as "%peers [%Hpeers Hphys]".
@@ -62,7 +62,7 @@ Import P.
         apply step_campaign; done.
       + (* unpromotable: log and return, having done nothing *)
         wp_auto.
-        wp_raft_log.
+        (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_raft_log).
         iApply ("HΦ" $! s). iFrame "Hphys".
         iPureIntro. split; [done | apply step_refl].
   Qed.

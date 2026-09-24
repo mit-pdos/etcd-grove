@@ -86,7 +86,7 @@ Proof.
     iNamed "HI".
     iDestruct ("Hback" with "Hpr") as "Htrk".
     iDestruct ("Hrest" $! tv0 with "Htrkf Htrk") as "Hphys".
-    wp_auto. wp_raft_field.
+    wp_auto. wp_apply (wp_raft_load_id with "Hphys") as "Hphys".
     destruct (decide (i = id)) as [Hii|Hii].
     - (* the leader itself: nothing is sent *)
       rewrite bool_decide_eq_true_2 //. wp_auto.

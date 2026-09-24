@@ -43,14 +43,15 @@ Import P.
     set (s0 := s <| nstate.term := term |>
                  <| nstate.vote := if decide (term = s.(nstate.term))
                                    then s.(nstate.vote) else W64 0 |>).
-    wp_raft_field.
+    wp_apply (wp_raft_load_Term with "Hphys") as "Hphys".
     wp_if_join (λ v, ⌜ v = execute_val ⌝ ∗ r_ptr ↦ r ∗ term_ptr ↦ term ∗
                      own_raft_phys cfg r id s0)%I
       with "[r term Hphys]".
     (* Two arms: [r.Term != term] writes [Term] and [Vote]; otherwise
        nothing is written and the vote survives. *)
     1-2: try wp_auto.
-    1-2: repeat wp_raft_field.
+    2: wp_apply (wp_raft_store_Term with "Hphys") as "Hphys".
+    2: wp_apply (wp_raft_store_Vote with "Hphys") as "Hphys".
     1-2: iSplitR; first done.
     1-2: iFrame "r term".
     1-2: iApply (own_raft_phys_eq with "Hphys").
@@ -60,7 +61,7 @@ Import P.
     iIntros (v) "(-> & r & term & Hphys)".
     wp_auto.
     (* [lead := None], [electionElapsed := 0], [heartbeatElapsed := 0] *)
-    do 3 wp_raft_field.
+    (wp_apply (wp_raft_store_lead with "Hphys") as "Hphys"; wp_apply (wp_raft_store_electionElapsed with "Hphys") as "Hphys"; wp_apply (wp_raft_store_heartbeatElapsed with "Hphys") as "Hphys").
     wp_apply (wp_raft__resetRandomizedElectionTimeout with "[$Hphys]") as "Hphys".
     wp_apply (wp_raft__abortLeaderTransfer with "[$Hphys]") as "Hphys".
     set (s1 := s0 <| nstate.lead := W64 0 |>).
@@ -94,7 +95,7 @@ Import P.
          it is not dropped here. *)
       iDestruct "Hpr" as (pv ivold) "(Hpv & Hinfl & %Hnolearner & %Hst)".
       iDestruct ("Hback" $! tv0 with "Htrkf") as "Hphys".
-      wp_auto. wp_raft_field.
+      wp_auto. wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
       wp_apply (wp_raftLog__lastIndex _ _ Hls with "[$Hlog]")
         as "%li [Hlog %Hli0]".
       (* [r.trk.MaxInflight], [r.trk.MaxInflightBytes]: fields of the
@@ -105,11 +106,11 @@ Import P.
       wp_apply (wp_tracker_NewInflights _ _ HmaxI) as "%ifl Hifl".
       iDestruct "Hifl" as (ivnew bufnew) "Hifl".
       iDestruct ("Hback" $! tv0 with "Htrkf") as "Hphys".
-      wp_raft_field.
+      wp_apply (wp_raft_load_id with "Hphys") as "Hphys".
       (* Both arms end the same way: hand the field back to [Visit], the
          [Progress] back to the tracker, and the wand back to [I]. *)
       destruct (decide (i = id)) as [Hii|Hii].
-      + rewrite bool_decide_true //. wp_auto. wp_raft_field.
+      + rewrite bool_decide_true //. wp_auto. wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
         wp_apply (wp_raftLog__lastIndex _ _ Hls with "[$Hlog]")
           as "%li2 [Hlog %Hli1]".
         iDestruct (own_raft_phys_trk_lent with "Hphys")
@@ -137,7 +138,7 @@ Import P.
                  s.(nstate.progress) ls Hls
                  with "Hphys Htrk Hlog") as "Hphys".
     (* [pendingConfIndex := 0], [uncommittedSize := 0] *)
-    try wp_auto. do 2 wp_raft_field.
+    try wp_auto. (wp_apply (wp_raft_store_pendingConfIndex with "Hphys") as "Hphys"; wp_apply (wp_raft_store_uncommittedSize with "Hphys") as "Hphys").
     (* [r.readOnly = newReadOnly(r.readOnly.option)] *)
     iDestruct (own_raft_phys_readOnly with "Hphys") as (ro) "(Hrof & Hro & Hback)".
     iDestruct (own_read_only_option with "Hro") as (o) "[Hopt Hroback]".

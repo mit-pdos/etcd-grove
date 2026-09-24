@@ -13,18 +13,18 @@ Import P.
     { destruct (s.(nstate.role)) eqn:Hro; try congruence;
         rewrite /state_w64 /StateFollower /StateCandidate;
         intros Heq; apply (f_equal uint.Z) in Heq; vm_compute in Heq; discriminate. }
-    wp_raft_field.
+    wp_apply (wp_raft_load_state with "Hphys") as "Hphys".
     rewrite bool_decide_eq_false_2 //. wp_auto.
     (* [r.step := stepCandidate], then [reset] at [r.Term + 1] *)
-    do 2 wp_raft_field.
+    (wp_apply (wp_raft_store_step with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys").
     (* [reset]'s state is left to the frame: given explicitly, it has to be
        matched against [Hphys] up to conversion, which ran for 24 minutes
        before failing (2026-09-22) *)
     wp_apply (P.wp_raft__reset with "[$Hphys]"); first exact Hlent.
     iIntros "Hphys".
     (* [r.tick], [r.Vote := r.id], [r.state := StateCandidate] *)
-    wp_auto. do 4 wp_raft_field.
-    wp_raft_log.
+    wp_auto. (wp_apply (wp_raft_store_tick with "Hphys") as "Hphys"; wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_store_Vote with "Hphys") as "Hphys"; wp_apply (wp_raft_store_state _ _ _ _ role.Candidate with "Hphys") as "Hphys").
+    (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log).
     wp_apply wp_traceBecomeCandidate. try wp_auto.
     iApply "HΦ".
     (* the stores above give [become_candidate] up to the order of the record

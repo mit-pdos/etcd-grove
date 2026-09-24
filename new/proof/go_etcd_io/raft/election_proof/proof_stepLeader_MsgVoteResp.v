@@ -55,7 +55,7 @@ Module StepLeaderProof (P : STEPLEADER_POSTULATES) : STEPLEADER.
     case_bool_decide as Hnil.
     - (* no progress for the sender: log and return nil *)
       wp_auto.
-      wp_raft_log.
+      (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_raft_log).
       iApply ("HΦ" $! interface.nil).
       iFrame "Hphys". done.
     - (* the sender has a [Progress]: the second switch ignores us *)

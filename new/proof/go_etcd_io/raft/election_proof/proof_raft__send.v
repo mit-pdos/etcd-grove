@@ -50,7 +50,7 @@ Qed.
     intros cfg r id s m out Hfrom Hok.
     wp_start as "@". wp_auto.
     (* [From] is unset, so [send] fills it in with [r.id]. *)
-    rewrite Hfrom bool_decide_eq_true_2 //. wp_auto. wp_raft_field.
+    rewrite Hfrom bool_decide_eq_true_2 //. wp_auto. wp_apply (wp_raft_load_id with "Hphys") as "Hphys".
     destruct Hok as [(ty & Hvoty & Hty & Hmterm & Hself & ->)
                     |[(ty & Hlty & Hty & Hmterm & Hself & ->)
                      |(Hty & HnPV & HnPVR & Hmterm & Hself & ->)]].
@@ -67,7 +67,7 @@ Qed.
         rewrite Hvt /MsgVote bool_decide_eq_false_2; last w32_ne. wp_auto.
         rewrite Hvt /MsgVote bool_decide_eq_false_2; last w32_ne. wp_auto.
         (* not self-addressed *)
-        wp_raft_field.
+        wp_apply (wp_raft_load_id with "Hphys") as "Hphys".
         rewrite bool_decide_eq_false_2; last exact (Hself Hvt). wp_auto.
         send_tail own_raft_phys_msgs.
         rewrite (omap_abs_msg_opt_one _ ty) //.
@@ -107,13 +107,13 @@ Qed.
       rewrite Hmterm. wp_auto.
       (* neither [MsgProp] nor [MsgReadIndex]: [Term := r.Term] *)
       rewrite bool_decide_eq_false_2 //. wp_auto.
-      rewrite bool_decide_eq_false_2 //. wp_auto. wp_raft_field.
+      rewrite bool_decide_eq_false_2 //. wp_auto. wp_apply (wp_raft_load_Term with "Hphys") as "Hphys".
       (* not a response *)
       rewrite bool_decide_eq_false_2 //. wp_auto.
       rewrite bool_decide_eq_false_2 //. wp_auto.
       rewrite bool_decide_eq_false_2 //. wp_auto.
       (* not self-addressed *)
-      wp_raft_field.
+      wp_apply (wp_raft_load_id with "Hphys") as "Hphys".
       rewrite bool_decide_eq_false_2 //. wp_auto.
       send_tail own_raft_phys_msgs.
       rewrite (omap_abs_msg_opt_one _ ty) //.
@@ -133,7 +133,7 @@ Qed.
         rewrite HProp /MsgProp bool_decide_eq_false_2; last w32_ne. wp_auto.
         assert (HnAR : m.(raftpb.Message.Type') ≠ MsgAppResp)
           by (rewrite HProp; w32_ne).
-        wp_raft_field.
+        wp_apply (wp_raft_load_id with "Hphys") as "Hphys".
       rewrite bool_decide_eq_false_2; last (intros Hto; exact (HnAR (Hself Hto))).
         wp_auto.
         send_tail own_raft_phys_msgs.
@@ -147,13 +147,13 @@ Qed.
         rewrite HRI /MsgReadIndex bool_decide_eq_false_2; last w32_ne. wp_auto.
         assert (HnAR : m.(raftpb.Message.Type') ≠ MsgAppResp)
           by (rewrite HRI; w32_ne).
-        wp_raft_field.
+        wp_apply (wp_raft_load_id with "Hphys") as "Hphys".
       rewrite bool_decide_eq_false_2; last (intros Hto; exact (HnAR (Hself Hto))).
         wp_auto.
         send_tail own_raft_phys_msgs.
         rewrite omap_abs_msg_opt_one_None //. }
       (* anything else: [Term := r.Term] *)
-      rewrite bool_decide_eq_false_2 //. wp_auto. wp_raft_field.
+      rewrite bool_decide_eq_false_2 //. wp_auto. wp_apply (wp_raft_load_Term with "Hphys") as "Hphys".
       destruct (decide (m.(raftpb.Message.Type') = MsgAppResp)) as [HAR|HnAR].
       { (* [MsgAppResp] is a response: onto [r.msgsAfterAppend], and it may be
            self-addressed ([appendEntry] does exactly that). *)
@@ -165,7 +165,7 @@ Qed.
       rewrite bool_decide_eq_false_2 //. wp_auto.
       rewrite bool_decide_eq_false_2 //. wp_auto.
       rewrite bool_decide_eq_false_2 //. wp_auto.
-      wp_raft_field.
+      wp_apply (wp_raft_load_id with "Hphys") as "Hphys".
       rewrite bool_decide_eq_false_2; last (intros Hto; exact (HnAR (Hself Hto))).
       wp_auto.
       send_tail own_raft_phys_msgs.

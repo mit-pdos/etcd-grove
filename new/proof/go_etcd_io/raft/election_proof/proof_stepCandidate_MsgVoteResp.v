@@ -22,7 +22,7 @@ Import P.
     intros_ambient.
     intros cfg r id s m.
     intros Hty Hto Hterm Hrole Hcfg Hlent.
-    wp_start as "Hphys". wp_auto. wp_raft_field.
+    wp_start as "Hphys". wp_auto. wp_apply (wp_raft_load_state with "Hphys") as "Hphys".
     (* [state = StateCandidate ≠ StatePreCandidate], so [myVoteRespType] is
        [MsgVoteResp]. *)
     rewrite Hrole /state_w64 /StateCandidate.
@@ -37,7 +37,7 @@ Import P.
     wp_apply (P.wp_raft__poll _ _ _ _ _ _ _ Hlent with "[$Hphys]")
       as "%g %rj0 %res (Hphys & %Hres & %Hwon & %Hlost)".
     (* the [Infof] that follows reads [r.id], [r.Term] and [r.logger] *)
-    wp_raft_log.
+    (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_raft_log).
     set (s1 := s <| nstate.votes :=
                  record_vote s.(nstate.votes) m.(raftpb.Message.From')
                    (negb m.(raftpb.Message.Reject')) |>).
@@ -46,7 +46,7 @@ Import P.
       rewrite /VoteWon bool_decide_eq_true_2 //. wp_auto.
       (* [poll] does not touch the role, so we are still a candidate: not a
          pre-candidate, so this is [becomeLeader] and not [campaign]. *)
-      wp_raft_field.
+      wp_apply (wp_raft_load_state with "Hphys") as "Hphys".
       assert (s1.(nstate.role) = role.Candidate) as Hrole1 by exact Hrole.
       rewrite Hrole1 /state_w64 /StateCandidate bool_decide_eq_false_2; last w32_ne.
       wp_auto.
@@ -71,7 +71,7 @@ Import P.
     - (* [quorum.VoteLost]: step down at the unchanged term. *)
       rewrite /VoteLost bool_decide_eq_false_2; last w32_ne. wp_auto.
       (* the [r.Term] the code passes is [s1]'s term *)
-      wp_raft_field.
+      wp_apply (wp_raft_load_Term with "Hphys") as "Hphys".
       wp_apply (P.wp_raft__becomeFollower with "[$Hphys]"); first exact Hlent.
       iIntros "Hphys". try wp_auto.
       iApply ("HΦ" $! interface.nil _). iFrame "Hphys".

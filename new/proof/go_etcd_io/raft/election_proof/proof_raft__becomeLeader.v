@@ -13,21 +13,21 @@ Import P.
     { destruct (s.(nstate.role)) eqn:Hro; try congruence;
         rewrite /state_w64 /StateCandidate /StateLeader;
         intros Heq; apply (f_equal uint.Z) in Heq; vm_compute in Heq; discriminate. }
-    wp_raft_field.
+    wp_apply (wp_raft_load_state with "Hphys") as "Hphys".
     rewrite bool_decide_eq_false_2 //. wp_auto.
     (* [r.step := stepLeader], then [reset] at the unchanged term, so the vote
        survives *)
-    do 2 wp_raft_field.
+    (wp_apply (wp_raft_store_step with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys").
     (* [reset]'s state is left to the frame: given explicitly, it has to be
        matched against [Hphys] up to conversion, which ran for 24 minutes
        before failing (2026-09-22) *)
     wp_apply (P.wp_raft__reset with "[$Hphys]"); first exact Hlent.
     iIntros "Hphys".
     (* [r.tick], [r.lead := r.id], [r.state := StateLeader] *)
-    wp_auto. do 4 wp_raft_field.
+    wp_auto. (wp_apply (wp_raft_store_tick with "Hphys") as "Hphys"; wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_store_lead with "Hphys") as "Hphys"; wp_apply (wp_raft_store_state _ _ _ _ role.Leader with "Hphys") as "Hphys").
     (* the leader's own [Progress] is marked replicating and recently active;
        the map lookup is on the tracker object *)
-    wp_raft_field.
+    wp_apply (wp_raft_load_id with "Hphys") as "Hphys".
     iDestruct (own_raft_phys_tracker with "Hphys")
       as (tv) "(Htrkf & Htrk & Hback)"; first exact Hlent.
     wp_auto.
@@ -47,12 +47,12 @@ Import P.
     iDestruct ("Hprback" with "Hpr") as "Htrk".
     iDestruct ("Hback" with "Htrkf Htrk") as "Hphys".
     (* [r.pendingConfIndex = r.raftLog.lastIndex()] *)
-    wp_raft_field.
+    wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
     iDestruct (own_raft_phys_log with "Hphys")
       as (ls Hls) "(Hlog & Hback)"; first exact Hlent.
     wp_apply (wp_raftLog__lastIndex _ _ Hls with "[$Hlog]") as "%li [Hlog _]".
     iDestruct ("Hback" with "Hlog [//]") as "Hphys".
-    wp_raft_field.
+    wp_apply (wp_raft_store_pendingConfIndex with "Hphys") as "Hphys".
     wp_apply wp_traceBecomeLeader. try wp_auto.
     wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [Hes _]".
     wp_auto.
@@ -76,7 +76,7 @@ Import P.
     { apply Forall_singleton. done. }
     { rewrite length_insert /=. lia. }
     { exact Hlent. }
-    wp_raft_log.
+    (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log).
     iApply "HΦ". iFrame "Hphys".
   Qed.
 
