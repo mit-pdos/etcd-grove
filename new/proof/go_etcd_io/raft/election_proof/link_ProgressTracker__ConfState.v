@@ -1,0 +1,8 @@
+Require Export New.proof.go_etcd_io.raft.election_proof.proof_ProgressTracker__ConfState.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_MajorityConfig__Slice.
+
+Module ProgressTrackerConfStatePostulates : PROGRESSTRACKER__CONFSTATE_POSTULATES.
+  Include MajorityConfigSlice.
+End ProgressTrackerConfStatePostulates.
+
+Module ProgressTrackerConfState := ProgressTrackerConfStateProof ProgressTrackerConfStatePostulates.

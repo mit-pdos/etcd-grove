@@ -1,0 +1,6 @@
+Require Export New.proof.go_etcd_io.raft.election_proof.proof_ConfState__Equivalent.
+
+Module ConfStateEquivalentPostulates : CONFSTATE__EQUIVALENT_POSTULATES.
+End ConfStateEquivalentPostulates.
+
+Module ConfStateEquivalent := ConfStateEquivalentProof ConfStateEquivalentPostulates.
