@@ -17,7 +17,8 @@ Module NewLogWithSizeProof (P : NEWLOGWITHSIZE_POSTULATES) : NEWLOGWITHSIZE.
     wp_apply ("HLI" with "HStorage") as "%li [%Hli HStorage]".
     try wp_auto.
     wp_apply wp_alloc. iIntros (l) "Hl". wp_auto.
-    iApply "HΦ". iApply own_raftLog_unfold. iExists _. iFrame "Hl".
+    iApply "HΦ". iFrame "Hl".
+    iSplitR; first (iPureIntro; simpl; split_and!; [done|apply word.unsigned_inj; word ..]).
     rewrite /own_raftLog_core /= app_nil_r. iFrame "HStorage Hsto2".
     repeat (iSplitR; [ first [ iPureIntro; (done || word)
                              | iApply own_slice_nil

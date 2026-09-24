@@ -119,6 +119,10 @@ Require Export New.proof.go_etcd_io.raft.election_proof.link_stepCandidate_MsgVo
 Require Export New.proof.go_etcd_io.raft.election_proof.link_stepFollower_MsgVoteResp.
 Require Export New.proof.go_etcd_io.raft.election_proof.link_stepLeader_MsgVoteResp.
 Require Export New.proof.go_etcd_io.raft.election_proof.link_raft__Step.
+(** The constructor: [newRaft] establishes [own_raft_phys]
+    ([spec_newRaft.v]).  Its collection pulls in the fifteen callees
+    written for it, four of them axioms for untranslated code. *)
+Require Export New.proof.go_etcd_io.raft.election_proof.link_newRaft.
 
 Section proof.
 Context `{hG: heapGS Σ, !ffi_semantics _ _}.
@@ -158,3 +162,28 @@ Proof.
 Qed.
 
 End proof.
+
+Section newRaft_post.
+Context `{hG: heapGS Σ, !ffi_semantics _ _}.
+Context {sem : go.Semantics} {package_sem : raft.Assumptions}.
+Collection W := sem + package_sem.
+Set Default Proof Using "W".
+
+(** [newRaft]'s postcondition, on a storage with no persisted [HardState],
+    is the protocol's initial state. *)
+Lemma newRaft_post_init (hs : raftpb.HardState.t) (s : nstate.t) :
+  hs_empty hs →
+  (nstate_wf s ∧
+   s.(nstate.term) = hs.(raftpb.HardState.Term') ∧
+   s.(nstate.vote) = hs.(raftpb.HardState.Vote') ∧
+   s.(nstate.lead) = W64 0 ∧ s.(nstate.role) = role.Follower ∧
+   s.(nstate.votes) = ∅ ∧ s.(nstate.outbox) = []) →
+  nstate_rel s init_pstate.
+Proof.
+  intros (HT & HV & _) (Hwf & Ht & Hv & Hl & Hr & Hvs & Ho).
+  split; last done.
+  destruct s; simpl in *; subst. rewrite /to_pstate /init_pstate /=.
+  by rewrite HT HV.
+Qed.
+End newRaft_post.
+
