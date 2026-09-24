@@ -3505,3 +3505,6 @@ state premise needs the state spelled out.
 `newRaft` (the original task) is still deferred; `committed`/`applied` now
 survive `lastEntryID`, which was one of its blockers.
 
+(2026-09-24) `raft-object-predicates` was fast-forwarded into
+`raft-phys-one-predicate` and deleted, locally and on `origin`; work
+continues on `raft-phys-one-predicate`.

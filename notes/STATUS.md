@@ -339,11 +339,11 @@ an entry buffer, never the record. It sits on the
 
 ## Working on this
 
-**Build state of this tree.** On branch `raft-object-predicates`
-(2026-09-23), with the log refactor in: `.vok` of every file under
-`election_proof/` (helpers included) plus `v3_proof/readonly.v` -- 333
-targets -- passes, 0 errors. `raft-phys-one-predicate` at `6071e5f91`
-passed the same 333; on `main` at `157cb9b14` the `.vok` run was stopped at
+**Build state of this tree.** At `7703bd1f0` (branch
+`raft-phys-one-predicate`, 2026-09-23, with the object-predicate refactor
+in): `.vok` of every file under `election_proof/` (helpers included) plus
+`v3_proof/readonly.v` -- 333 targets -- passes, 0 errors. `6071e5f91`, the
+merge of `main` before that refactor, passed the same 333; on `main` at `157cb9b14` the `.vok` run was stopped at
 206 of 336 files, 0 errors, and the rest was checked elsewhere.
 
 **Checking your work.** `make <file>.vos` is a ~2s loop but **does not check
