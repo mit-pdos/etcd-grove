@@ -251,9 +251,12 @@ Definition own_tracker (tv : tracker.ProgressTracker.t) (votes : gmap w64 bool)
      and it is true of any real raft: a node's own id is a voter. *)
   "%Hcfg_ne" ∷ ⌜ cfg ≠ ∅ ⌝ ∗
   (** **The inflight window is a sane size.**  [Config.validate] requires
-      [MaxInflightMsgs] to be in [(0, 1<<30]], and [newRaft] copies it into
-      the tracker; the bound is [2^62] rather than [1<<30] because that is
-      all any proof needs.  Needed because [reset]'s [Visit] closure calls
+      only [MaxInflightMsgs > 0] -- **it has no upper bound** (this comment
+      said [(0, 1<<30]] until 2026-09-24; notes/false-statements.md) --
+      and [newRaft] copies it into the tracker, so the [< 2^62] half is an
+      extra premise of [newRaft]'s spec, not something raft checks.  So
+      this predicate excludes valid configs with [MaxInflightMsgs ≥ 2^62].
+      Needed because [reset]'s [Visit] closure calls
       [tracker.NewInflights(r.trk.MaxInflight, …)], and the ring-buffer
       invariant of [own_inflights] pins [0 ≤ size < 2^62] (see
       [inflights_ok]).  Like [Hcfg_size] and [Hcfg_ne] it is a property of

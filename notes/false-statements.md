@@ -20,6 +20,7 @@ needed the fact and could not get it:
 | `TallyVotes`'s `VoteWon` conjunct | `MajorityConfig.VoteResult` returns `VoteWon` outright for an empty config (`quorum.v:412-418`), while `is_quorum ∅ q` is `0 < 0` |
 | `wp_raft__appendEntry`, again | owned no part of `es`, but the method writes `Term`/`Index` into every element (`v3.v:3453-3461`) — "own what you write" |
 | `wp_raft__appendEntry`, again | claimed `RET #true` unconditionally; there is a `return: #false` when `increaseUncommittedSize` rejects (`v3.v:3463`) |
+| `own_tracker`'s `HmaxInfl` comment (`inv_tracker.v`) | said `Config.validate` requires `MaxInflightMsgs ∈ (0, 1<<30]`; `validate` checks only `> 0` (`v3.v:2830-2832`). The conjunct itself (`< 2^62`) is needed and kept, so `own_raft_phys` is **unsatisfiable for a valid `Config` with `MaxInflightMsgs ≥ 2^62`**, and `newRaft`'s spec takes the bound as a premise of its own. Found 2026-09-24 writing that spec |
 
 **Nine of the ten were claims about what raft's code does that nobody had
 checked against the generated body** — the cheapest check available. The

@@ -3508,3 +3508,74 @@ survive `lastEntryID`, which was one of its blockers.
 (2026-09-24) `raft-object-predicates` was fast-forwarded into
 `raft-phys-one-predicate` and deleted, locally and on `origin`; work
 continues on `raft-phys-one-predicate`.
+
+## 2026-09-24 — `newRaft` proved: `own_raft_phys` has a constructor
+
+Branch `newraft`, off `raft-phys-one-predicate` (`3bcd64960`). Goal: prove
+`newRaft`, or exhibit bugs in the existing definitions that make it
+impossible. It is proved (`NewRaft.wp_newRaft`, `spec_newRaft.v`), modulo
+four new `Axiom`s for untranslated code, and it turned up four definitional
+problems -- none of which blocked the proof, all recorded in STATUS item 1.
+
+### What was built
+
+Twenty new collections: `newRaft` and its callees `Config.validate`
+(+ `IsLocalMsgTarget`), `newLogWithSize`, `tracker.MakeProgressTracker`,
+`traceInitState`, `traceConfChangeEvent`, `raft.switchToConfig` (non-leader
+case only), `ProgressTracker.ConfState` (+ `MajorityConfig.Slice`),
+`assertConfStatesEquivalent`, `IsEmptyHardState` (+ `isHardStateEqual`),
+`raft.loadState`, `raftLog.appliedTo`, `ProgressTracker.VoterNodes`; and
+the axioms `confchange.Restore`, `raftpb.ConfState.Equivalent`,
+`fmt.Sprintf`, `strings.Join`. `newRaft_post_init` (`election.v`): an empty
+`HardState` gives `nstate_rel s init_pstate`. `v3_proof/base.v`'s
+`is_initialized` gains `emptyState ↦□ HardState{}` (read by
+`IsEmptyHardState`), so everything downstream was re-checked.
+
+**How `newRaft` fits the one-predicate rule.** The struct satisfies
+`own_raft_phys` with the tracker and log **on loan** (`nstate.lent = Some
+tv0`) from the moment it is allocated -- `own_tracker` cannot hold of the
+empty tracker `MakeProgressTracker` builds (`Hcfg_ne`). `switchToConfig`
+takes the loaned struct plus `own_tracker` of the new tracker value;
+`loadState` and `appliedTo` work on the loaned `own_raftLog`; the loan ends
+just before `becomeFollower`, which needs `lent = None`. No variant
+predicate and no `ls` in `nstate.t` were needed (STATUS item 2).
+
+### Found
+
+1. **`own_tracker`'s `HmaxInfl` comment was false**: it said `validate`
+   bounds `MaxInflightMsgs` to `(0, 1<<30]`; `validate` checks only `> 0`.
+   So `own_raft_phys` excludes valid configs with `MaxInflightMsgs ≥ 2^62`;
+   `newRaft` takes the bound as a premise. Comment fixed,
+   false-statements.md row added.
+2. **`own_raftLog` forgets its storage.** `logstate.t` has no storage
+   field, so a caller holding the same `Storage` interface value by another
+   route (`newRaft`: `c.Storage.InitialState()` after `newLogWithSize`)
+   cannot use the log's `own_Storage`. `newLogWithSize`'s postcondition is
+   therefore stated unfolded, with `lv.storage = st`. Fix: add the field.
+3. **An empty `ConfState` is outside `own_raft_phys`** (`Hcfg_ne`) -- the
+   state of a node joining an existing cluster. Scope, not a bug; now in
+   the scope table.
+4. **Two of the four new axioms are core raft** (`Restore`, `Equivalent`).
+   `Restore`'s premise `voters ≠ []` is needed for the axiom's *soundness*:
+   with no voters `chain` runs no ops and returns the input maps themselves,
+   which the premise already owns.
+
+What remains for satisfiability: an `is_Storage` instance (`MemoryStorage`).
+
+### Proof-engineering notes
+
+In gotchas.md ("Proving a long function with sequential `if`s"). The one
+that cost most: splitting each `if` and carrying on under `all:` gave eight
+copies of the goal and rocq-warm's 4.2 GB ceiling; joining the arms with
+`wp_bind (if: _ then _ else _)%E` + `wp_wand` fixed it.
+
+### Evidence
+
+- `proof_newRaft.v`: `-vok` **353 s**, exit 0; every new `proof_*`/`link_*`
+  and `spec_newRaft`/`spec_newLogWithSize` checked with `make … .vok`.
+- `etc/check-module-discipline.py --scope election_proof`: the same 6
+  notes/warnings as before, no errors.
+- `etc/tcb-report.py --proof-root new/proof/go_etcd_io/raft --scope
+  election_proof`: 14 `Axiom` (was 10) + 1 `Admitted`; two results
+  (`Step`, `newRaft`); 228 `Qed` lemmas; 74 definitions / 812 lines; TCB 5.5%.
+- Full `.vok` sweep after the `base.v` change: see the end of this entry.

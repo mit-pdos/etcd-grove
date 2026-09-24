@@ -1,6 +1,6 @@
 # Status
 
-**Last updated:** 2026-09-23
+**Last updated:** 2026-09-24
 
 This file is a snapshot of where the proof *is*. It carries no history: how
 something got this way is in [journal.md](journal.md), why a design was
@@ -42,11 +42,11 @@ and the older read-index work in `v3_proof/`. They share only `base.v`.
   per-node `ghost_map`s of `term ↦ candidate`, no Iris invariant, `is_leader`
   a quorum of votes, and `own_raft_ghost_alloc` to show it is inhabited.
   **No `Axiom`, no `Admitted`.**
-- `election_proof/` (332 files, flat) and `election_proof/election.v` —
+- `election_proof/` (403 files, flat) and `election_proof/election.v` —
   the **implementation side**. One Go function per collection of four files:
   `spec_<fn>.v` (a `Module Type` with exactly one `Parameter`, the single
   place its Hoare triple is written), `postulates_<fn>.v`, `proof_<fn>.v` (a
-  functor ascribed to the signature) and `link_<fn>.v`. **78 collections.**
+  functor ascribed to the signature) and `link_<fn>.v`. **98 collections.**
   Shared predicates live in `defs.v`, `inv_*.v` and `step_lemmas.v`, outside
   the module system. A function whose proof needs several files gets a
   `proof_<fn>_helpers/` directory (two today: `raft__Step`, with eight,
@@ -114,9 +114,9 @@ The same rule holds for every object the struct points at, and since
 
 ## What is proved
 
-Every Hoare triple on the election path is `Qed` — **211 lemmas**, 78
+Every Hoare triple on the election path is `Qed` — **228 lemmas**, 98
 discharged signatures — except one admission signed off on for now
-(below). **The result is the first of these two**; the second is an
+(below). **The results are the first two of these three**; the third is an
 internal lemma that nothing uses yet — a *root lemma*, in `tcb-report`'s
 terms (decisions.md, 2026-09-21: what this development is for is verified
 specs of Go functions):
@@ -126,6 +126,15 @@ specs of Go functions):
   `nstate_rel s ps` to some `s'` with `nstate_rel s' ps'`, and moves
   `own_raft_ghost` from `ps` to `ps'` at the same time, with
   `∃ recv, step cfg id ps recv ps'`.
+- **`NewRaft.wp_newRaft`** (`election_proof/spec_newRaft.v`, 2026-09-24):
+  the **constructor**. From a `Config` and a `Storage` it returns
+  `own_raft_phys (list_to_set voters) r cv.ID s` at a state that is
+  `nstate_wf`, a follower with no leader, an empty tally and outbox, and
+  `term`/`vote` the persisted `HardState`'s; `newRaft_post_init`
+  (`election.v`) turns that into `nstate_rel s init_pstate` for an empty
+  `HardState`, the state `own_raft_ghost_alloc` starts every node in. So
+  `own_raft_phys` is established by code raft actually runs — *given* a
+  `Storage` meeting `is_Storage`; see "What still needs fixing", item 1.
 - **`raft_election_safety`** (`election.v`): two nodes whose ghost state says
   "leader in term `t`" are the same node.
 
@@ -162,6 +171,10 @@ Everything above holds **only** under these assumptions. They are premises of
 | A `MsgHup` cannot make the term wrap: `uint.Z s.term + 1 < 2^64` | `spec_raft__Step.v` |
 | Incoming `MsgVote`/`MsgVoteResp` are addressed to this node and have `Term ≠ 0`, `From ≠ 0`. **Go checks none of these** — they are assumptions about the transport and about peers | `spec_raft__Step.v` |
 | Crash safety is out of scope. `Step` is a `wp`, not a `wpc` | — |
+| `newRaft` only: `Config.validate` passes, with a non-nil `Logger` (Go would install its default one) | `config_valid`, `spec_Config__validate.v` |
+| `newRaft` only: **`MaxInflightMsgs < 2^62`** — not implied by `validate`, which checks only `> 0`; `own_tracker`'s `HmaxInfl` needs it | `spec_newRaft.v` |
+| `newRaft` only: the persisted `ConfState` is **voters-only, non-empty, duplicate-free and zero-free**. An empty one is what a node joining an existing cluster starts with (`StartNode` with no peers), so such a node is outside the development until it gets a snapshot | `spec_newRaft.v`, `spec_confchange_Restore.v` |
+| `newRaft` only: the stored entries have contiguous indices and no conf change; `hs.Commit` and `Config.Applied` lie where `loadState`/`appliedTo` would otherwise panic; `InitialState` returns `(hs, cs, nil)` | `spec_newRaft.v` |
 
 Two of these are not restrictions a deployment can honour as written:
 `HnoConfChange`, and — if you care about etcd's defaults — pre-vote and
@@ -172,22 +185,33 @@ check-quorum, both of which etcd's server turns on.
 Ranked by how much the proof's meaning depends on it. Unclaimed; pick one and
 say so in the journal.
 
-1. **`own_raft_phys` has no constructor.** There is no `newRaft` spec and no
-   `is_Storage` instance (not even `MemoryStorage`), so nothing shows the
-   predicate is satisfiable — and it was provably `False` twice before. The
-   second time was found on 2026-09-22 by *starting* the `newRaft` spec:
-   `own_tracker` demanded `Config.Learners ↦$ ∅`, which forces a non-nil
-   map, while every tracker `newRaft` builds has `Learners = LearnersNext =
-   nil`; fixed with `own_idset_opt` (`inv_tracker.v`). Until a constructor
-   exists, every triple in the development could in principle be vacuous.
-   `own_raft_ghost` *is* known inhabited (`own_raft_ghost_alloc`). What
-   `newRaft` needs, found so far: an `InitialState` triple (a premise of
-   `newRaft`'s spec, not a new `is_Storage` clause); `confchange.Restore`
-   and `raftpb.ConfState.Equivalent` are **not translated** (confchange is
-   `translate = ["Changer"]`), so either translate `confchange` or postulate
-   `Restore` for the voters-only case; `fmt.Sprintf`/`strings.Join` are
-   untranslated library calls; and item 2 below (`committed`/`applied`
-   across `lastEntryID`).
+1. **`own_raft_phys`'s constructor rests on `is_Storage`, and there is no
+   `is_Storage` instance.** `newRaft` is proved (2026-09-24), so
+   `own_raft_phys` is no longer only satisfiable by inspection: the struct
+   `newRaft` builds satisfies it. But `newRaft`'s spec takes `is_Storage`,
+   `own_Storage` and an `InitialState` triple as premises, and `own_Storage`
+   is an `Axiom` with no model -- so the chain ends at an unexhibited
+   storage. Proving `MemoryStorage` against `is_Storage` closes it. The
+   `newRaft` work also found, and left open:
+   - **`own_raftLog` forgets which `Storage` it holds.** `logstate.t` has no
+     storage field, so `own_Storage` sits inside the log at `lv.storage` for
+     an `lv` no caller can name. `newRaft` calls `c.Storage.InitialState()`
+     *after* building the log, through the `Config`'s alias of the same
+     interface value, and needs the log's `own_Storage` for it; nothing
+     relates the two. Worked around by stating `newLogWithSize`'s
+     postcondition in `own_raftLog_unfold`'s unfolded form plus
+     `lv.storage = st` -- a spec on raw pieces, against the one-predicate
+     rule. The fix is a `storage` field in `logstate.t` (19 files, 53 sites,
+     mechanical).
+   - **Two `Axiom`s about core raft**: `confchange.Restore` and
+     `raftpb.ConfState.Equivalent` are not translated
+     (`confchange.v.toml` is `translate = ["Changer"]`, `raftpb` is
+     types-only), so `spec_confchange_Restore.v` and
+     `spec_ConfState__Equivalent.v` state them for the voters-only case,
+     each checked against the Go in its comment. Translate `confchange` and
+     prove `Restore` (`Simple`/`apply`/`checkInvariants`).
+   - `own_tracker`'s `HmaxInfl` comment claimed `validate` bounds
+     `MaxInflightMsgs`; it does not ([false-statements.md](false-statements.md)).
 2. **The log's state is quantified inside `own_raft_phys`, not in
    `nstate.t`.** The log has one predicate since 2026-09-23,
    `own_raftLog l ls` with `ls : logstate.t` (`prev`, `sents`, `uents`,
@@ -196,9 +220,13 @@ say so in the journal.
    which unblocks that part of `newRaft`. What is *not* done is putting
    `ls` into `nstate.t`: no election-path spec needs the log's state
    related across a call to a function that takes `own_raft_phys`, so
-   `own_raft_phys` says `∃ ls, ⌜ls.page = None⌝ ∗ own_raftLog l ls`. The
-   first spec that needs it (plausibly `newRaft`'s postcondition, or
-   `appendEntry` stated at the log it produced) is the time to move it.
+   `own_raft_phys` says `∃ ls, ⌜ls.page = None⌝ ∗ own_raftLog l ls`.
+   `newRaft` did *not* need it moved: it keeps the tracker and log **on
+   loan** (`nstate.lent = Some tv`) from building the struct until after
+   `appliedTo`, so `loadState` and `appliedTo` are stated on the loaned
+   `own_raftLog`. The first spec that needs `ls` related across a sealed
+   `own_raft_phys` (plausibly `appendEntry` stated at the log it produced)
+   is the time to move it.
 3. **`HnoConfChange` is false of a real cluster.** `inv_raftlog.v:139`
    requires `Forall (λ e, Type = EntryNormal) (sents ++ uents)` — the *whole*
    log — while `RawNode.Bootstrap` (`new/code/go_etcd_io/raft/v3.v:391`)
@@ -253,11 +281,12 @@ say so in the journal.
 whose whole job is what the build cannot check. What each establishes, the
 known gaps and the plan are in [tcb-accounting.md](tcb-accounting.md).
 
-`etc/tcb-report.py` over the whole raft proof: **31 assumed — 23 `Axiom` and
+`etc/tcb-report.py` over the whole raft proof: **35 assumed — 27 `Axiom` and
 8 `Admitted.`**, 3 of the admits signed off on for now and marked
 `(* Trusted *)` — still debt; the goal is no admits. On the election path
-alone: **10 `Axiom` and 1 `Admitted`**; one result, `wp_raft__Step_body`;
-67 definitions, 719 lines; TCB 5.3% of the development by line.
+alone: **14 `Axiom` and 1 `Admitted`**; two results, `wp_raft__Step_body`
+and `wp_newRaft_body`; 74 definitions, 812 lines; TCB 5.5% of the
+development by line.
 
     R=new/proof/go_etcd_io/raft      # required; the tool names no development
     etc/tcb-report.py --proof-root $R                  # summary, and which files are incomplete
@@ -276,7 +305,7 @@ doc comments quote probe lemmas ending in `Admitted.`, and `spec_*.v` files
 are full of `Parameter`s.
 
 The count of axioms is the smaller half. The **definitions** the results
-reach — 67 on the election path, 719 lines — are the rest of it:
+reach — 74 on the election path, 812 lines — are the rest of it:
 `wp_raft__Step` says nothing if `nstate.t`, `nstate_rel`, `pstate.t`,
 `step` or `own_raft_phys` is wrong, and none of those is an axiom.
 
@@ -298,10 +327,13 @@ The only thing the election development may assume outright is the top-level
 scope. Everything in **core raft** — the log, the tracker, `Progress`,
 `bcastAppend` — must be constructed and proved.
 
-### The ten axioms on the election path
+### The fourteen axioms on the election path
 
-All are outside the raft protocol, and none feeds a vote or a leader
-decision, so none can hide an election-safety bug.
+Twelve are outside the raft protocol. **Two are about core raft** --
+`wp_confchange_Restore` and `wp_ConfState__Equivalent`, stated because the
+code is not translated -- and are debt (item 1 above). None feeds a vote or
+a leader decision: all four added on 2026-09-24 are reached only from
+`newRaft`, so none can hide an election-safety bug in `Step`.
 
 | axiom | file | why it is outside raft |
 |---|---|---|
@@ -310,6 +342,9 @@ decision, so none can hide an election-safety bug.
 | `own_big_Int`, `wp_big_NewInt`, `wp_big_Int__Int64`, `wp_rand_Int` | `inv_big.v`, `proof_big_*.v`, `proof_rand_Int.v` | `math/big` and the RNG behind `resetRandomizedElectionTimeout` |
 | `wp_slices_Sort` | `proof_slices_Sort.v` | not translated. Permutation-only postcondition |
 | `wp_Entry__Size` | `proof_Entry__Size.v` | protobuf-generated `raftpb` code. The one a reader may want to argue about: a library in spirit, core raft in location |
+| `wp_confchange_Restore` | `proof_confchange_Restore.v` | **core raft, not translated.** Voters-only `ConfState` onto the empty tracker; fresh config and progress maps. `voters ≠ []` is load-bearing: with no ops `Restore` returns the input maps themselves |
+| `wp_ConfState__Equivalent` | `proof_ConfState__Equivalent.v` | **core raft (`raftpb`), not translated.** Only the `nil` outcome, for permuted voter lists and empty other lists |
+| `wp_fmt_Sprintf`, `wp_strings_Join` | `proof_fmt_Sprintf.v`, `proof_strings_Join.v` | Go standard library, not translated. *Some* string; used only for `newRaft`'s log line |
 
 ### The admission signed off on for now
 

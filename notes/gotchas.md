@@ -1628,3 +1628,52 @@ arrives).
   `wp_auto`.** After `unstable.mustCheckOutOfBounds` returned
   `own_unstable`, the field reads that follow were not stepped; an explicit
   `iNamed "Hun". wp_auto.` was needed.
+
+## Proving a long function with sequential `if`s (`newRaft`), 2026-09-24
+
+- **Join the arms of an `if` with `wp_bind` + `wp_wand`, or the rest of the
+  proof runs once per path.** `newRaft` has `if !IsEmptyHardState(hs)`,
+  then `if c.Applied > 0`, then a loop. Case-splitting each one and carrying
+  on under `all:` gave 8 copies of a goal holding the whole raft struct, and
+  rocq-warm discarded the session at its 4.2 GB ceiling. Instead:
+
+      wp_bind (if: _ then _ else _)%E.
+      iApply (wp_wand _ _ _ (λ v, ⌜ v = execute_val ⌝ ∗ R)%I with "[…]").
+      { (* both arms, each ending at the same R *) }
+      iIntros (v) "(-> & …)". try wp_auto.
+
+  `e1 ;;; e2` is `exception_seq (λ, e2) e1`, so the `if` is in evaluation
+  position and `wp_bind` finds it; each arm ends in `do: …`, i.e.
+  `execute_val`. **Pass the local-variable points-tos the arm reads**
+  (`hs_ptr ↦ hs`, `r_ptr ↦ r`, …) into the `with "[…]"` and back out
+  through `R`: left behind, `wp_auto` silently fails to step the arm's
+  `let: "$a0" := ![T] "x"`.
+- **`iNamed "Hphys"` stops silently at a name clash.** A precondition
+  introduced as `"[Hphys Hlog]"` made `iNamed` stop at `own_raft_phys`'s own
+  `"Hlog"` conjunct, leaving every later conjunct (`%Hlogp`, …) packed; the
+  symptom is "The variable Hlogp was not found" several lines on. Keep
+  caller-side names disjoint from `own_raft_phys`'s (`Hr`, `Htrk`, `Hlog`,
+  `Hmsgs…`, `Hmisc`, `Hlogger`, and the `%H…` facts).
+- **A state premise at a `set`-bound state wants `ltac:(done)`, not
+  `eq_refl`.** `(s0 <| nstate.lent := Some tv' |>).(nstate.lent) = Some tv'`
+  with `s0` a `set` local: `eq_refl` and `ltac:(reflexivity)` both fail to
+  unify through the record update; `done` works.
+- **A `w64` equation is invisible to `lia`.** With
+  `Hcm2 : lv2.committed' = lv.committed'` in context, `lia` treats
+  `uint.Z lv2.committed'` and `uint.Z lv.committed'` as unrelated atoms;
+  `rewrite Hcm2 in H` first. And a `w64` *goal* such as
+  `word.sub fi (W64 1) = prev.index` needs `apply word.unsigned_inj; word`.
+- **A goal and `HΦ` that print identically may still not unify** (`Φ (# cs)`
+  for a returned `raftpb.ConfState.t`, in `switchToConfig`): the `#`
+  instances differ. `iSpecialize ("HΦ" $! cs xs with "[…]"); iExactEq "HΦ";
+  reflexivity` goes through.
+- **`wp_log` does not fit a log call whose arguments include a converted
+  struct** (`switchToConfig`'s `Infof(..., r.trk.Config)`): its
+  `iIntros "% [? _]"` fails with "nothing to introduce". Spell it out:
+  `wp_apply wp_slice_literal. iSplitR; first done. iIntros (?) "[? _]".
+  try wp_auto. rewrite Hlok. try wp_auto. wp_apply (wp_Logger__logf with
+  "Hlogger"); first solve_log_method.` Note no `as "_"` on the last call.
+- **`"Cannot find witness"` is `lia`'s (and `word`'s) failure message**, not
+  an existential's. When it appears after `iFrame "∗#%"; iPureIntro; …; lia`,
+  the arithmetic is missing a fact -- often a bound thrown away as `_`
+  (`own_slice_len`'s `0 ≤ len`).
