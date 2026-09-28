@@ -78,7 +78,9 @@ Import P.
       iFrame "Hvotes Hprsm Hprogs Hvref". rewrite Hcfgl Hcfgln.
       repeat (iSplitR; [first [iPureIntro; done | iLeft; done] |]).
       iPureIntro. done. }
-    wp_apply (P.wp_raft__switchToConfig _ _ _ s0 tv0 cfgv prsm ∅ prs eq_refl
+    iDestruct (own_raft_phys_eq _ _ _ s0 (s0 <| nstate.lent := Some tv0 |>) with "Hphys")
+      as "Hphys"; first done.
+    wp_apply (P.wp_raft__switchToConfig _ _ _ s0 tv0 cfgv prsm ∅ prs
                 ltac:(done) with "[$Hphys $Htrkn]")
       as "%cs2 %xs2 (Hphys & Htrkn & Hcs2v & %Hxs2 & %Hcs2l)".
     destruct Hcs2l as (Hc2a & Hc2b & Hc2c & Hc2al).
@@ -143,33 +145,27 @@ Import P.
     iIntros (v) "(-> & HL & c & Hc & raftlog)".
     try wp_auto.
     (* end the loan: the tracker and the log go back into the struct *)
-    iNamed "Hphys".
-    iDestruct (own_tracker_unless_lent_eq with "Htrk") as %Htv'.
-    iClear "Htrk Hlog".
-    try wp_auto.
-    iAssert (own_raft_phys cfgs r cv.(raft.Config.ID') (s1 <| nstate.lent := None |>))
-      with "[Hr Htrkn HL Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys";
-      [ iApply (own_raft_phys_intro _ _ _ (s1 <| nstate.lent := None |>) with
-          "Hr Hlogger [Htrkn] [HL] Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
-        [ done .. | rewrite Htv'; iExact "Htrkn"
-        | rewrite Hlogp; iExists ls2; iFrame "HL"; done ] | ].
+    set s1n := s1 <| nstate.lent := None |>.
+    iDestruct (own_raft_phys_eq _ _ _ _
+                 ((s0 <| nstate.term := hs.(raftpb.HardState.Term') |>
+                      <| nstate.vote := hs.(raftpb.HardState.Vote') |>)
+                    <| nstate.lent := Some tv' |>) with "Hphys") as "Hphys"; first done.
+    iDestruct (own_raft_phys_unlend _ _ _ _ tv' ∅ prs ls2 eq_refl
+                 with "Hphys Htrkn HL") as "Hphys".
+    iDestruct (own_raft_phys_eq _ _ _ _ s1n with "Hphys") as "Hphys"; first done.
+    (* [r.becomeFollower(r.Term, None)] *)
+    wp_apply (wp_raft_load_Term with "Hphys") as "Hphys".
     rewrite /raft.None'.
-    wp_apply (P.wp_raft__becomeFollower _ _ _ (s1 <| nstate.lent := None |>)
-                     rv.(raft.raft.Term') (W64 0) ltac:(done) with "[$Hphys]") as "Hphys".
-    set s3 := become_follower (s1 <| nstate.lent := None |>) rv.(raft.raft.Term') (W64 0).
+    wp_apply (P.wp_raft__becomeFollower _ _ _ s1n s1n.(nstate.term) (W64 0)
+                ltac:(done) with "[$Hphys]") as "Hphys".
+    set s3 := become_follower s1n s1n.(nstate.term) (W64 0).
     try wp_auto.
     (* [r.trk.VoterNodes()] *)
-    iDestruct "Hphys" as (rv3 msgs3 msgsAA3 lok3) "Hphys".
-    iNamedSuffix "Hphys" "3".
-    iDestruct (own_tracker_unless_open _ _ _ _ _ ltac:(done) with "Htrk3") as "Htrk3".
-    iDestruct (access_strict
-               (A := r.[raft.raft.t, "trk"] ↦ rv3.(raft.raft.trk'))
-               (A' := r.[raft.raft.t, "trk"] ↦ rv3.(raft.raft.trk'))
-               (P := r ↦ rv3) (P' := r ↦ rv3)
-               with "Hr3") as "[Htrkf Hrback]".
+    iDestruct (own_raft_phys_tracker_same _ _ _ s3 ltac:(done) with "Hphys")
+      as (tv3) "(Htrkf & Htrk3 & Htrkback)".
     wp_apply (P.wp_ProgressTracker__VoterNodes with "[$Htrkf $Htrk3]")
            as "%nsl %nxs (Htrkf & Htrk3 & Hnsl & %Hnxs)".
-    iDestruct ("Hrback" with "Htrkf") as "Hr3".
+    iDestruct ("Htrkback" with "Htrkf Htrk3") as "Hphys".
     try wp_auto.
     (* the log line's [nodesStrs] loop; what it builds is never read *)
     iAssert (∃ (k x : w64) (sl' : slice.t) (strs : list go_string),
@@ -202,24 +198,32 @@ Import P.
         wp_for_post;
         iFrame; iPureIntro; word
       | idtac ].
+    (* the log line: [r.id], [strings.Join(nodesStrs, ",")], [r.Term], then
+       [r.raftLog.committed] and [r.raftLog.applied] through the log *)
+    wp_apply (wp_raft_load_id with "Hphys") as "Hphys".
     wp_apply (P.wp_strings_Join with "[$Hstrs]") as "%joined Hstrs".
-    iDestruct (own_raftLog_unless_open _ _ ltac:(done) with "Hlog3") as (ls3) "[%Hpg3 Hlog3]".
-    iDestruct (own_raftLog_struct with "Hlog3") as (lv3) "(Hl3 & _ & Hl3back)".
     try wp_auto.
-    wp_apply wp_slice_literal. iSplitR; first done. iIntros (?) "[? _]".
-    try wp_auto. rewrite Hlok3. try wp_auto.
-    wp_apply (wp_Logger__logf with "Hlogger3"); first solve_log_method.
+    wp_apply (wp_raft_load_Term with "Hphys") as "Hphys".
+    try wp_auto.
+    wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
+    iDestruct (own_raft_phys_log _ _ _ s3 ltac:(done) with "Hphys")
+      as (? ?) "(Hlog3 & Hlogback)".
+    iDestruct (own_raftLog_struct with "Hlog3") as (?) "(Hl3 & _ & Hl3back)".
     try wp_auto.
     iDestruct ("Hl3back" with "Hl3") as "Hlog3".
-    iDestruct (own_raftLog_unless_close _ _ _ ltac:(done) with "Hlog3 [//]") as "Hlog3".
-    iDestruct (own_tracker_unless_close _ _ _ _ _ ltac:(done) with "Htrk3") as "Htrk3".
-    iApply ("HΦ" $! r s3).
-    iSplitL.
-    { iApply (own_raft_phys_intro _ _ _ s3 with
-        "Hr3 Hlogger3 Htrk3 Hlog3 Hmsgs3 Hmsgs_cap3 HmsgsAA3 HmsgsAA_cap3 Hmisc3"); done. }
+    iDestruct ("Hlogback" with "Hlog3 [//]") as "Hphys".
+    wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
+    iDestruct (own_raft_phys_log _ _ _ s3 ltac:(done) with "Hphys")
+      as (? ?) "(Hlog3 & Hlogback)".
+    iDestruct (own_raftLog_struct with "Hlog3") as (?) "(Hl3 & _ & Hl3back)".
+    try wp_auto.
+    iDestruct ("Hl3back" with "Hl3") as "Hlog3".
+    iDestruct ("Hlogback" with "Hlog3 [//]") as "Hphys".
+    wp_raft_log.
+    iApply ("HΦ" $! r s3). iFrame "Hphys".
     (* [becomeFollower(r.Term, None)] keeps the term, so [reset] keeps the
        vote: the state is the persisted [HardState]'s *)
-    iPureIntro. rewrite /s3 Hterm.
+    iPureIntro. rewrite /s3.
     split; first (apply nstate_wf_become_follower; done).
     rewrite /become_follower /reset_to. cbn [nstate.term nstate.vote nstate.lead
       nstate.role nstate.votes nstate.outbox set nstate.settable].

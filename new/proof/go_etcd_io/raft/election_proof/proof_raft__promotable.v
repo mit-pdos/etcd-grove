@@ -9,8 +9,8 @@ Import P.
         return pr != nil && !pr.IsLearner && !r.raftLog.hasNextOrInProgressSnapshot()
 
       Goose renders each [&&] as [If e1 e2 #false], so the proof splits on
-      whether [r.id] is a voter, which by [Hprs_dom] is whether it is in the
-      progress map:
+      whether [r.id] is a voter, which by the tracker's domain fact is
+      whether it is in the progress map:
 
       - [id ∈ cfg]: [wp_tracker_progress_lookup] hands out that voter's
         [own_progress], whose [pr ↦ pv] makes [pr ≠ nil] and whose
@@ -19,18 +19,20 @@ Import P.
       - [id ∉ cfg]: the lookup yields [nil], so the first conjunct is
         [false] and the rest is never evaluated.  Result [false].
 
-      The field reads [r.trk.Progress], [r.id] and [r.raftLog] step through
-      [r ↦ rv] by [wp_auto] alone; nothing is written to [r]. *)
+      [r.id] and [r.raftLog] are read with their field lemmas; the map
+      [r.trk.Progress] is read off the tracker object that
+      [own_raft_phys_tracker] hands out, and the log's method runs on what
+      [own_raft_phys_log] hands out.  Nothing is written to [r]. *)
   Lemma wp_raft__promotable : wp_raft__promotable_body.
   Proof.
     intros_ambient.
     intros cfg r id s Hlent.
-    wp_start as "Hphys". iNamed "Hphys".
-    iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog") as (ls Hls) "Hlog".
-    iDestruct (own_tracker_unless_open _ _ _ _ _ Hlent with "Htrk") as "Htrk".
-    subst id.
+    wp_start as "Hphys". wp_auto.
+    wp_apply (wp_raft_load_id with "Hphys") as "Hphys".
+    iDestruct (own_raft_phys_tracker with "Hphys")
+      as (tv) "(Htrkf & Htrk & Hback)"; first exact Hlent.
     wp_auto.
-    destruct (decide (rv.(raft.raft.id') ∈ cfg)) as [Hin|Hnin].
+    destruct (decide (id ∈ cfg)) as [Hin|Hnin].
     - (* a voter: its [Progress] is in the map and is not a learner's *)
       wp_apply (wp_tracker_progress_lookup _ _ _ _ _ Hin with "[$Htrk]")
         as "%pr (_ & Hpr & Hprback)".
@@ -41,39 +43,33 @@ Import P.
       wp_auto.
       rewrite Hnolearner. simpl.
       wp_auto.
+      iDestruct ("Hprback" with "[Hpv Hinfl]") as "Htrk".
+      { iExists pv, iv. rewrite /own_progress. iFrame "∗%". }
+      iDestruct ("Hback" with "Htrkf Htrk") as "Hphys".
+      iDestruct (own_raft_phys_eq _ _ _ _ s with "Hphys") as "Hphys".
+      { by destruct s. }
+      wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
+      iDestruct (own_raft_phys_log with "Hphys")
+        as (ls Hls) "(Hlog & Hback)"; first exact Hlent.
       wp_apply (P.wp_raftLog__hasNextOrInProgressSnapshot _ _ Hls with "[$Hlog]")
         as "%hb [Hlog %Hhb]".
       subst hb. simpl.
-      iDestruct (own_raftLog_unless_close _ _ _ Hlent with "Hlog [//]") as "Hlog".
-      iDestruct ("Hprback" with "[Hpv Hinfl]") as "Htrk".
-      { iExists pv, iv. rewrite /own_progress. iFrame "∗%". }
-      iDestruct (own_tracker_unless_close _ _ _ _ _ Hlent with "Htrk") as "Htrk".
-      iApply "HΦ".
-      iSplitL.
-      { iApply (own_raft_phys_intro with
-          "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
+      iDestruct ("Hback" with "Hlog [//]") as "Hphys".
+      iApply "HΦ". iFrame "Hphys".
       iPureIntro. rewrite bool_decide_eq_true_2 //.
     - (* not a voter: the lookup misses, [pr == nil] short-circuits to false *)
-      iNamed "Htrk".
-      assert (s.(nstate.progress) !! rv.(raft.raft.id') = None) as Hnone.
-      { apply not_elem_of_dom. rewrite Hprs_dom //. }
+      iDestruct (own_tracker_progress_map with "Htrk") as "(#Hprs & %Hdom & Htrk)".
+      assert (s.(nstate.progress) !! id = None) as Hnone.
+      { apply not_elem_of_dom. rewrite Hdom //. }
       (* the progress map is read-only now, so it stays in the persistent
          context: do not try to re-introduce it *)
       wp_apply (wp_map_lookup1 with "Hprs") as "_".
       rewrite Hnone /=.
       wp_auto.
-      iDestruct (own_raftLog_unless_close _ _ _ Hlent with "Hlog [//]") as "Hlog".
-      iAssert (own_tracker cfg rv.(raft.raft.trk') s.(nstate.votes)
-                 s.(nstate.progress))
-        with "[Hvotes Hprogs Hvoters Hlearners HlearnersNext]" as "Htrk".
-      { rewrite /own_tracker.
-        iExists voters_ref, voters, learners, learnersNext.
-        iFrame "∗#%". }
-      iDestruct (own_tracker_unless_close _ _ _ _ _ Hlent with "Htrk") as "Htrk".
+      iDestruct ("Hback" with "Htrkf Htrk") as "Hphys".
       iApply "HΦ".
       iSplitL.
-      { iApply (own_raft_phys_intro with
-          "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
+      { iApply (own_raft_phys_eq with "Hphys"). by destruct s. }
       iPureIntro. rewrite bool_decide_eq_false_2 //.
   Qed.
 

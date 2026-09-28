@@ -3,7 +3,7 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
 (** [newReadOnly(option)] allocates a fresh [readOnly] object and returns
     it.  It reads and writes nothing else, so it owns nothing going in and
     hands back only the new object ([own_read_only], [inv_misc.v]).
-    [reset] installs it with [own_raft_misc_swap], which needs the new
+    [reset] installs it with [own_raft_phys_readOnly], which needs the new
     object's ownership -- so the predicate can only be re-pointed at an
     object that was actually allocated.  (Until 2026-09-23 this spec
     consumed and returned the whole of [own_raft_misc], a raw piece of the

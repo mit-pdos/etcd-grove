@@ -38,45 +38,34 @@ Implicit Type s : nstate.t.
       is no closed expression to state a lemma about; they are tactics
       instead.  [Ltac] does not late-bind identifiers in [constr] positions,
       so every hypothesis a script uses is an argument -- the same convention
-      as [wp_log] in [inv_raft_phys.v]. *)
+      as [wp_raft_log] in [inv_raft_phys.v]. *)
 
   (** Grant the vote in the *current* term: log, [send] the response, and
       record [r.Vote := m.From].  [can] is the protocol-level [pcan_vote] of
-      [to_pstate s_]; [wf_] is [nstate_wf s_] and [lent_] its loan half. *)
-  Local Ltac vote_grant_tail r_ id_ s_ m_ lok_eq ty_eq to_eq can wf_ lent_ :=
-    wp_auto;
-    wp_apply wp_slice_literal; iSplitR; [done|]; iIntros "% [? _]";
-    wp_auto; rewrite lok_eq;
-    wp_apply (wp_Logger__logf with "Hlogger");
-      [solve_log_method|];
+      [to_pstate s_]; [wf_] is [nstate_wf s_].  Starts with the log closed
+      (["Hphys"] whole). *)
+  Local Ltac vote_grant_tail id_ s_ m_ ty_eq to_eq can wf_ :=
+    try wp_auto;
+    (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Vote with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log);
     wp_apply P.wp_voteRespMsgType; [done|];
-    iDestruct (own_raftLog_unless_close _ _ _ lent_ with "Hlog [//]") as "Hlog";
-    iAssert (own_raft_phys cfg r_ id_ s_)
-      with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
-      as "Hphys";
-      [iApply (own_raft_phys_intro with
-          "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done|];
     wp_apply (P.wp_raft__send with "[$Hphys]") as "Hphys";
       [done|left; exists mtype.VoteResp; split_and!;
             [by right|apply mtype_of_MsgVoteResp|done|w32_ne|done]|];
-    (* [wp_hidden]: an [iNamed] on a goal holding the whole body is ~12s *)
-    wp_hidden (iNamedSuffix "Hphys" "2");
     rewrite ty_eq /MsgVote bool_decide_eq_true_2 //;
-    wp_auto;
+    try wp_auto;
+    (* [r.electionElapsed = 0; r.Vote = m.From] *)
+    wp_apply (wp_raft_store_electionElapsed with "Hphys") as "Hphys";
+    wp_apply (wp_raft_store_Vote with "Hphys") as "Hphys";
     iApply ("HΦ" $! interface.nil
       (send_msgs (s_ <| nstate.vote := m_.(raftpb.Message.From') |>)
          [msg.mk mtype.VoteResp id_ m_.(raftpb.Message.From')
             m_.(raftpb.Message.Term') false]));
-    (* the state is given explicitly: [send]'s postcondition states the
-       outbox with [send]'s [abs_msg] form of the message, and only
-       conversion relates that to the [msg.mk] form named here. *)
-    iSplitL "Hr2 Htrk2 Hlog2 Hmsgs2 Hmsgs_cap2 HmsgsAA2 HmsgsAA_cap2 Hmisc2";
-      [iApply (own_raft_phys_intro _ _ _
-                 (send_msgs (s_ <| nstate.vote := m_.(raftpb.Message.From') |>)
-                    [msg.mk mtype.VoteResp id_ m_.(raftpb.Message.From')
-                       m_.(raftpb.Message.Term') false]) with
-         "Hr2 Hlogger2 Htrk2 Hlog2 Hmsgs2 Hmsgs_cap2 HmsgsAA2 HmsgsAA_cap2 Hmisc2");
-       done|];
+    (* the state is given explicitly: the stores leave
+       [send_msgs s_ out <| vote := From |>], with [out] in [send]'s form of
+       the message literal; only conversion (after [destruct s_]) relates it
+       to the [msg.mk] form named here. *)
+    iSplitL "Hphys";
+      [iApply (own_raft_phys_eq with "Hphys"); by destruct s_|];
     iPureIntro; split; [exact wf_|]; split; [|done];
     exists [abs_msg mtype.Vote m_];
     split; [recv_elem|];
@@ -87,23 +76,16 @@ Implicit Type s : nstate.t.
 
   (** Decline: log, then [send] a rejection carrying [r.Term].  Always legal,
       so there is no side condition beyond the message being a [MsgVote]
-      addressed to us.  [term_eq] is [own_raft_phys]'s [r.Term = s.term]. *)
-  Local Ltac vote_reject_tail r_ id_ s_ m_ lok_eq to_eq term_eq wf_ lent_ :=
-    wp_auto;
-    wp_apply wp_slice_literal; iSplitR; [done|]; iIntros "% [? _]";
-    wp_auto; rewrite lok_eq;
-    wp_apply (wp_Logger__logf with "Hlogger");
-      [solve_log_method|];
+      addressed to us.  Starts with the log closed (["Hphys"] whole). *)
+  Local Ltac vote_reject_tail id_ s_ m_ to_eq wf_ :=
+    try wp_auto;
+    (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Vote with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log);
+    (* [Term: r.Term] and the [voteRespMsgType] call, in whichever order the
+       struct literal evaluates them *)
+    wp_apply (wp_raft_load_Term with "Hphys") as "Hphys";
     wp_apply P.wp_voteRespMsgType; [done|];
-    rewrite term_eq;
-    iDestruct (own_raftLog_unless_close _ _ _ lent_ with "Hlog [//]") as "Hlog";
-    iAssert (own_raft_phys cfg r_ id_ s_)
-      with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
-      as "Hphys";
-      [iApply (own_raft_phys_intro with
-          "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done|];
     (* The response carries [s.term], so [send]'s [m.Term ≠ 0] premise is the
-       incoming message's, transported along [term_eq].  The [simpl] is not
+       incoming message's, transported along [m.Term = s.term].  The [simpl] is not
        optional: the premise is stated about the *message literal*, so the
        goal is [{| ... |}.(Message.Term') ≠ W64 0] and [congruence] -- unlike
        [done]/[assumption] -- does not see through the projection. *)
@@ -181,46 +163,57 @@ Implicit Type s : nstate.t.
   Proof.
     intros Hty Hto Hterm Hfnz Heq0 Hv00 Hwf.
     pose proof Hwf as [Hsfw Hlent].
-    wp_start_folded as "@". iNamed "Hphys".
-    iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog") as (ls Hls) "Hlog".
-    wp_start_unfold. wp_auto.
-    assert (Hle : ¬ (uint.Z rv.(raft.raft.Term') < uint.Z m.(raftpb.Message.Term')))
-      by (rewrite Hterm0 Heq0; lia).
-    assert (Hnlt : ¬ (uint.Z m.(raftpb.Message.Term') < uint.Z rv.(raft.raft.Term')))
-      by (rewrite Hterm0 Heq0; lia).
-    assert (Hv0 : rv.(raft.raft.Vote') = W64 0) by (rewrite Hvote; exact Hv00).
+    wp_start_folded as "@". wp_start_unfold. wp_auto.
+    assert (Hle : ¬ (uint.Z s.(nstate.term) < uint.Z m.(raftpb.Message.Term')))
+      by (rewrite Heq0; lia).
+    assert (Hnlt : ¬ (uint.Z m.(raftpb.Message.Term') < uint.Z s.(nstate.term)))
+      by (rewrite Heq0; lia).
     wp_apply wp_traceReceiveMessage. try wp_auto.
     (* [m.Term ≠ 0], so the first arm of the term preamble is skipped. *)
     assert (bool_decide (m.(raftpb.Message.Term') = W64 0) = false) as Hz
     by by apply bool_decide_eq_false_2.
     rewrite Hz. rewrite bool_decide_eq_false_2; last done. wp_auto.
-      assert (bool_decide (uint.Z rv.(raft.raft.Term') <
+    wp_apply (wp_raft_load_Term with "Hphys") as "Hphys".
+      assert (bool_decide (uint.Z s.(nstate.term) <
                            uint.Z m.(raftpb.Message.Term')) = false) as Hb
         by by apply bool_decide_eq_false_2.
       rewrite Hb. rewrite bool_decide_eq_false_2; last done. wp_auto.
+      wp_apply (wp_raft_load_Term with "Hphys") as "Hphys".
         assert (bool_decide (uint.Z m.(raftpb.Message.Term') <
-                             uint.Z rv.(raft.raft.Term')) = false) as Hb2
+                             uint.Z s.(nstate.term)) = false) as Hb2
           by by apply bool_decide_eq_false_2.
         rewrite Hb2. rewrite bool_decide_eq_false_2; last done. wp_auto.
-        assert (Hrt : rv.(raft.raft.Term') = m.(raftpb.Message.Term')) by word.
         (* the type switch: not MsgHup / MsgStorageAppendResp /
            MsgStorageApplyResp, not MsgPreVote, but MsgVote *)
         rewrite Hty /MsgVote bool_decide_eq_false_2; last w32_ne. wp_auto.
         (* [canVote] is the model's [can_vote]: the Go expression's third
            disjunct needs [MsgPreVote] and is dead here. *)
-          rewrite Hv0 bool_decide_eq_false_2; last congruence. wp_auto.
-          rewrite Hv0 bool_decide_eq_true_2 //. wp_auto.
-          destruct (decide (rv.(raft.raft.lead') = W64 0)) as [Hl0|Hl0].
+          wp_apply (wp_raft_load_Vote with "Hphys") as "Hphys".
+          rewrite Hv00 bool_decide_eq_false_2; last congruence. wp_auto.
+          wp_apply (wp_raft_load_Vote with "Hphys") as "Hphys".
+          rewrite Hv00 bool_decide_eq_true_2 //. wp_auto.
+          wp_apply (wp_raft_load_lead with "Hphys") as "Hphys".
+          destruct (decide (s.(nstate.lead) = W64 0)) as [Hl0|Hl0].
           -- (* and recognises no leader: [canVote] *)
              rewrite Hl0 bool_decide_eq_true_2 //. wp_auto.
              assert (Hcan : pcan_vote (to_pstate s) m.(raftpb.Message.From'))
                by (rewrite /pcan_vote /=; right; split; congruence).
-             wp_apply (wp_raftLog__lastEntryID _ _ Hls with "[$Hlog]")
+             (* each [raftLog] call: load the field, open the log, call,
+                close it again -- the next field load needs ["Hphys"] *)
+             wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
+             wp_hidden (iDestruct (own_raft_phys_log _ _ _ _ Hlent with "Hphys")
+                          as (ls1 Hls1) "[Hlog Hlogback]").
+             wp_apply (wp_raftLog__lastEntryID _ _ Hls1 with "[$Hlog]")
                as "%lastID2 Hlog".
-             wp_apply (wp_raftLog__isUpToDate _ _ _ Hls with "[$Hlog]") as "%ok2 Hlog".
+             wp_hidden (iDestruct ("Hlogback" with "Hlog [//]") as "Hphys").
+             wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
+             wp_hidden (iDestruct (own_raft_phys_log _ _ _ _ Hlent with "Hphys")
+                          as (ls2 Hls2) "[Hlog Hlogback]").
+             wp_apply (wp_raftLog__isUpToDate _ _ _ Hls2 with "[$Hlog]") as "%ok2 Hlog".
+             wp_hidden (iDestruct ("Hlogback" with "Hlog [//]") as "Hphys").
              destruct ok2.
-             ++ vote_grant_tail r id s m Hlok Hty Hto Hcan Hwf Hlent.
-             ++ vote_reject_tail r id s m Hlok Hto Hterm0 Hwf Hlent.
+             ++ vote_grant_tail id s m Hty Hto Hcan Hwf.
+             ++ vote_reject_tail id s m Hto Hwf.
           -- (* but a leader is known, so the vote is declined.  [canVote]'s
                   second disjunct is now false, so the program goes on to
                   evaluate the third -- which needs [MsgPreVote].  This arm
@@ -231,15 +224,13 @@ Implicit Type s : nstate.t.
                         (m.(raftpb.Message.Type') = W32 17));
                last (rewrite Hty /MsgVote; w32_ne).
              wp_auto.
-             (* No [as]: it would run [wp_auto], which here steps straight
-                through the [canVote && isUpToDate] test (both operands are
-                literals once [canVote] is [false]) and on into the rejection
-                branch -- leaving [vote_reject_tail]'s own leading [wp_auto]
-                with nothing to do.  The arms that call [isUpToDate] block on
-                its [bool] result instead, so they can use [as]. *)
-             wp_apply (wp_raftLog__lastEntryID _ _ Hls with "[$Hlog]").
-             iIntros "%lastID2 Hlog".
-             vote_reject_tail r id s m Hlok Hto Hterm0 Hwf Hlent.
+             wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
+             wp_hidden (iDestruct (own_raft_phys_log _ _ _ _ Hlent with "Hphys")
+                          as (ls1 Hls1) "[Hlog Hlogback]").
+             wp_apply (wp_raftLog__lastEntryID _ _ Hls1 with "[$Hlog]")
+               as "%lastID2 Hlog".
+             wp_hidden (iDestruct ("Hlogback" with "Hlog [//]") as "Hphys").
+             vote_reject_tail id s m Hto Hwf.
   Qed.
 
 End branches.

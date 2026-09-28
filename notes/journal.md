@@ -3509,6 +3509,51 @@ survive `lastEntryID`, which was one of its blockers.
 `raft-phys-one-predicate` and deleted, locally and on `origin`; work
 continues on `raft-phys-one-predicate`.
 
+---
+
+## 2026-09-24 — `own_raft_phys` sealed; program proofs use field lemmas
+
+Branch `raft-phys-field-lemmas` (from `main` at `3bcd64960`). Asked to make
+`own_raft_phys` an abstraction program proofs never unfold, with a lemma per
+field access and, for maps, an accessor that lends the inner object out
+rather than a lemma per map operation. Done; the design and what was
+rejected are in decisions.md ("Program proofs do not unfold
+`own_raft_phys`"), the traps in gotchas.md ("Working against the sealed
+`own_raft_phys`").
+
+- `inv_raft_phys.v`: `own_raft_phys` is sealed, and its last section is the
+  interface -- `wp_raft_load_<f>`/`wp_raft_store_<f>` for the fields the
+  election path touches, the accessors (`own_raft_phys_tracker`(`_same`),
+  `_log`, `_msgs`, `_msgsAA`, `_readOnly`), the loan lemmas (`_lend`,
+  `_unlend`, `_trk_lent`), `own_raft_phys_eq`, and `wp_raft_log`. `wp_log`
+  is gone. `inv_misc.v`: `own_raft_misc_option`/`_swap` replaced by
+  `own_read_only_option`.
+- All 28 program proofs that opened the predicate were rewritten against it
+  (six by hand as a pilot, the rest by five parallel agents with a shared
+  brief). None has an `iNamed "Hphys"`, a re-seal, or an `_unless_` lemma
+  left, and the seal makes sure of it.
+- A first version had a `wp_raft_field` tactic that tried every field lemma
+  in turn. Asked to make sure that was not slowing proofs down, it was
+  removed: instrumented to print the lemma each of its 110 call sites used,
+  every proof run once, and each site rewritten to the explicit
+  `wp_apply (wp_raft_load_<f> with "Hphys") as "Hphys"` sequence (8 by
+  hand: `repeat` and multi-goal sites). Cold `rocq-warm` time over the 28
+  proofs, two at a time on a shared box: **1919s with the search, 1545s
+  explicit** (about 20%; `becomeFollower`, `becomeCandidate`, `becomeLeader`,
+  `hup` and `reset` 35-45%).
+- `inv_raft_phys.v` itself went from ~70s to ~200s cold with ~45 new lemmas.
+  Unsealing the 33-field struct and re-framing it field by field had made it
+  ~330s; the positional split (`split_field_proof`) brought it down.
+
+Checked: `.vok` of all 333 targets under `election_proof/` plus
+`v3_proof/readonly.v`, 0 errors. `tcb-report --scope election_proof`: 255
+Qed lemmas, 69 definitions / 721 lines, TCB 5.3%, assumptions unchanged (10
+`Axiom` + the trusted `wp_raftLog__slice`). `check-module-discipline`: the
+same 5 notes/warnings.
+
+Not done: `own_raft_phys_intro` is still public -- it is the constructor a
+`newRaft` spec will need, and nothing but that should use it.
+
 ## 2026-09-24 — `newRaft` proved: `own_raft_phys` has a constructor
 
 Branch `newraft`, off `raft-phys-one-predicate` (`3bcd64960`). Goal: prove
@@ -3581,3 +3626,29 @@ copies of the goal and rocq-warm's 4.2 GB ceiling; joining the arms with
 - Full `.vok` sweep after the `base.v` change: `make -k -j2` of every `.v`
   under `new/proof/go_etcd_io/raft/` plus `etcd/server/v3/etcdserver.v` (which
   imports it): **exit 0, 417 files checked, no errors**.
+
+## 2026-09-28 — `main` (the sealed `own_raft_phys`) merged into `newraft`
+
+`main` gained `own_raft_phys` sealed behind field lemmas and accessors
+(entry "own_raft_phys sealed" above). Merged into `newraft`; only the notes
+conflicted. Three of this branch's proofs unfolded the predicate and were
+ported to the interface: `switchToConfig` (now stated at the setter form
+`s <| lent := Some tv |>` that `own_raft_phys_trk_lent` works at; uses a new
+`wp_raft_store_isLearner`, a store of the pinned value `false`), `loadState`,
+and `newRaft` (still constructs the struct with `own_raft_phys_intro`, the
+one legitimate use; ends the loan with `own_raft_phys_unlend`, reaches the
+tracker with `own_raft_phys_tracker_same` and the log with
+`own_raft_phys_log`). Two traps from `switchToConfig`: `(!ok || r.isLearner)`
+short-circuits, so on the `ok = false` path `isLearner` is never loaded and
+`r.state` is loaded twice; `wp_apply` of a load lemma that is not in
+evaluation position fails with "cannot apply", not "not found".
+
+The unfinished refactor (log state into `nstate.t`) is stashed as
+`newraft-phaseA-logst-wip-a548c275`; it was written against the unsealed
+predicate and is being redone against the accessors.
+
+Checked: `.vok` of all 417 targets (every `.v` under `raft/`, plus
+`etcd/server/v3/etcdserver.v`), 0 errors. `tcb-report --scope
+election_proof`: 273 Qed lemmas, 14 Axiom + 1 Admitted, two results, 76
+definitions / 817 lines, TCB 5.5%. `check-module-discipline`: 6
+notes/warnings, no errors.

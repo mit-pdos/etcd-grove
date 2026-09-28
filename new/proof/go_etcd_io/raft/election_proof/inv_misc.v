@@ -58,16 +58,17 @@ Definition own_raft_misc (readStates : slice.t) (ro : loc)
   "Hpri_cap" ∷ own_slice_cap raftpb.Message.t pendingReadIndex (DfracOwn 1).
 
 
-(** [reset] replaces [r.readOnly] with [newReadOnly(r.readOnly.option)].
-    Two pieces are needed: reading the old object's [option] field, and
-    installing the fresh object ([own_raft_misc_swap]). *)
-Lemma own_raft_misc_option rs ro pri :
-  own_raft_misc rs ro pri -∗
+(** [reset] replaces [r.readOnly] with [newReadOnly(r.readOnly.option)],
+    so it reads the old object's [option] field; it reaches the object
+    through [own_raft_phys_readOnly] ([inv_raft_phys.v]), which also
+    installs the new one. *)
+Lemma own_read_only_option ro :
+  own_read_only ro -∗
   ∃ (o : raft.ReadOnlyOption.t),
     ro.[raft.readOnly.t, "option"] ↦ o ∗
-    (ro.[raft.readOnly.t, "option"] ↦ o -∗ own_raft_misc rs ro pri).
+    (ro.[raft.readOnly.t, "option"] ↦ o -∗ own_read_only ro).
 Proof.
-  iIntros "Hm". iNamed "Hm". iNamed "Hro_obj".
+  iIntros "Hro_obj". iNamed "Hro_obj".
   iExists rov.(raft.readOnly.option').
   iDestruct (access_strict
                (A := ro.[raft.readOnly.t, "option"] ↦ rov.(raft.readOnly.option'))
@@ -75,16 +76,7 @@ Proof.
                (P := ro ↦ rov) (P' := ro ↦ rov) with "Hro") as "[Hopt Hback]".
   iFrame "Hopt". iIntros "Hopt".
   iDestruct ("Hback" with "Hopt") as "Hro".
-  rewrite /own_raft_misc /own_read_only. iFrame.
-Qed.
-
-(** Install a [readOnly] object the caller owns, dropping the old one.
-    Takes the new object's ownership, so it cannot re-point the predicate at
-    an object nobody allocated. *)
-Lemma own_raft_misc_swap rs ro ro' pri :
-  own_raft_misc rs ro pri -∗ own_read_only ro' -∗ own_raft_misc rs ro' pri.
-Proof.
-  iIntros "Hm Hro'". iNamed "Hm". rewrite /own_raft_misc. iFrame.
+  rewrite /own_read_only. iFrame.
 Qed.
 
 

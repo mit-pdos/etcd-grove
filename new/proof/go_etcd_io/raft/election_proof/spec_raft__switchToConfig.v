@@ -13,7 +13,9 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
     The tracker is **on loan** ([nstate.lent], [defs.v]) on both sides: the
     caller holds the new tracker's heap, [own_tracker cfg tv' votes prs] at
     the tracker value the two writes produce, and gets it back together with
-    a struct whose [r.trk] is pinned at [tv'].  That is what lets [newRaft]
+    a struct whose [r.trk] is pinned at [tv'].  Both sides are stated at
+    the setter form [s <| lent := Some _ |>], the form
+    [own_raft_phys_trk_lent] works at.  That is what lets [newRaft]
     call this before its tracker satisfies [own_tracker] -- the empty
     tracker [MakeProgressTracker] builds has no voters.
 
@@ -28,9 +30,8 @@ Definition wp_raft__switchToConfig_body :=
     (votes : gmap w64 bool) (prs : gmap w64 loc),
   let tv' := tv <| tracker.ProgressTracker.Config' := cfgv |>
                 <| tracker.ProgressTracker.Progress' := prsm |> in
-  s.(nstate.lent) = Some tv →
   s.(nstate.role) ≠ role.Leader →
-  {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s ∗
+  {{{ is_pkg_init raft ∗ own_raft_phys cfg r id (s <| nstate.lent := Some tv |>) ∗
       own_tracker cfg tv' votes prs }}}
     r @! (go.PointerType raft.raft) @! "switchToConfig" #cfgv #prsm
   {{{ (cs : raftpb.ConfState.t) (xs : list w64), RET #cs;

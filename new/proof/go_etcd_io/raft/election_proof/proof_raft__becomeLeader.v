@@ -7,39 +7,31 @@ Import P.
   Proof.
     intros_ambient.
     intros cfg r id s.
-    intros Hrole Hcfg Hlent. wp_start as "Hphys". iNamed "Hphys". wp_auto.
+    intros Hrole Hcfg Hlent. wp_start as "Hphys". wp_auto.
     (* [becomeLeader] panics on a follower; by assumption we are not one. *)
     assert (state_w64 s.(nstate.role) ≠ W64 0) as Hnf.
     { destruct (s.(nstate.role)) eqn:Hro; try congruence;
         rewrite /state_w64 /StateCandidate /StateLeader;
         intros Heq; apply (f_equal uint.Z) in Heq; vm_compute in Heq; discriminate. }
-    rewrite Hstate bool_decide_eq_false_2 //. wp_auto.
-    iAssert (own_raft_phys cfg r id
-               (s <| nstate.stepfn := step_func_of role.Leader |>))
-      with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
-      as "Hphys".
-    { iApply (own_raft_phys_intro _ _ _
-                (s <| nstate.stepfn := step_func_of role.Leader |>) with
-        "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
-        done. }
-    (* [reset] is called at the unchanged term, so the vote survives *)
-    rewrite Hterm.
+    wp_apply (wp_raft_load_state with "Hphys") as "Hphys".
+    rewrite bool_decide_eq_false_2 //. wp_auto.
+    (* [r.step := stepLeader], then [reset] at the unchanged term, so the vote
+       survives *)
+    (wp_apply (wp_raft_store_step with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys").
     (* [reset]'s state is left to the frame: given explicitly, it has to be
        matched against [Hphys] up to conversion, which ran for 24 minutes
        before failing (2026-09-22) *)
     wp_apply (P.wp_raft__reset with "[$Hphys]"); first exact Hlent.
     iIntros "Hphys".
-    iDestruct "Hphys" as (rv0 msgs0 msgsAA0 lok0) "Hphys".
-    iNamedSuffix "Hphys" "1".
-    iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog1") as (ls1 Hls1) "Hlog1".
-    iDestruct (own_tracker_unless_open _ _ _ _ _ Hlent with "Htrk1") as "Htrk1".
-    assert (rv0.(raft.raft.Vote') = s.(nstate.vote)) as Hvote1'.
-    { rewrite Hvote1 /=. rewrite decide_True //. }
     (* [r.tick], [r.lead := r.id], [r.state := StateLeader] *)
+    wp_auto. (wp_apply (wp_raft_store_tick with "Hphys") as "Hphys"; wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_store_lead with "Hphys") as "Hphys"; wp_apply (wp_raft_store_state _ _ _ _ role.Leader with "Hphys") as "Hphys").
+    (* the leader's own [Progress] is marked replicating and recently active;
+       the map lookup is on the tracker object *)
+    wp_apply (wp_raft_load_id with "Hphys") as "Hphys".
+    iDestruct (own_raft_phys_tracker with "Hphys")
+      as (tv) "(Htrkf & Htrk & Hback)"; first exact Hlent.
     wp_auto.
-    rewrite Hid1.
-    (* the leader's own [Progress] is marked replicating and recently active *)
-    wp_apply (wp_tracker_progress_lookup _ _ _ _ _ Hcfg with "[$Htrk1]")
+    wp_apply (wp_tracker_progress_lookup _ _ _ _ _ Hcfg with "[$Htrk]")
       as "%pr (_ & Hpr & Hprback)".
     iDestruct "Hpr" as (pv0 iv0) "Hpr".
     wp_apply (wp_Progress__BecomeReplicate with "[$Hpr]") as "Hpr".
@@ -52,30 +44,31 @@ Import P.
     iAssert (∃ pv iv, own_progress pr pv iv)%I with "[Hpv Hinfl]" as "Hpr".
     { iExists (pv <| tracker.Progress.RecentActive' := true |>), iv.
       rewrite /own_progress. iFrame "∗%". }
-    iDestruct ("Hprback" with "Hpr") as "Htrk1".
-    wp_apply (wp_raftLog__lastIndex _ _ Hls1 with "[$Hlog1]")
-      as "%li [Hlog1 %Hli0]".
+    iDestruct ("Hprback" with "Hpr") as "Htrk".
+    iDestruct ("Hback" with "Htrkf Htrk") as "Hphys".
+    (* [r.pendingConfIndex = r.raftLog.lastIndex()] *)
+    wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
+    iDestruct (own_raft_phys_log with "Hphys")
+      as (ls Hls) "(Hlog & Hback)"; first exact Hlent.
+    wp_apply (wp_raftLog__lastIndex _ _ Hls with "[$Hlog]") as "%li [Hlog _]".
+    iDestruct ("Hback" with "Hlog [//]") as "Hphys".
+    wp_apply (wp_raft_store_pendingConfIndex with "Hphys") as "Hphys".
     wp_apply wp_traceBecomeLeader. try wp_auto.
     wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [Hes _]".
     wp_auto.
-    (* [appendEntry] queues a self-addressed [MsgAppResp], so it writes
-       [r.msgsAfterAppend] and needs the whole struct -- not just the log, as
-       its axiom used to claim.  [MsgAppResp] has no [mtype_of], so it drops
-       out of the abstract outbox and the state is unchanged.  Re-seal for the
-       call, then unpack again for the [Infof] that follows it. *)
-    iDestruct (own_raftLog_unless_close _ _ _ Hlent with "Hlog1 [//]") as "Hlog1".
-    iDestruct (own_tracker_unless_close _ _ _ _ _ Hlent with "Htrk1") as "Htrk1".
-    iAssert (own_raft_phys cfg r id (become_leader id s))
-      with "[Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1]"
+    (* the state is now [become_leader] up to the order of the record
+       updates; no [simpl]: it carries a [functions …] value *)
+    iDestruct (own_raft_phys_eq _ _ _ _ (become_leader id s) with "Hphys")
       as "Hphys".
-    { iApply (own_raft_phys_intro _ _ _ (become_leader id s) with
-        "Hr1 Hlogger1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1");
-        done. }
+    { by destruct s. }
     (* [appendEntry] writes [Term]/[Index] into every element of the slice,
        so it needs [Hes].  It returns [true] because the entry's [Data] is
        nil, which is what the premise says: with a zero payload
        [increaseUncommittedSize] cannot reject, so the [Panic] on the
-       [false] branch below is dead code.  See [spec_raft__appendEntry.v]. *)
+       [false] branch below is dead code.  It also queues a self-addressed
+       [MsgAppResp], which has no [mtype_of] and so drops out of the
+       abstract outbox: the state is unchanged.  See
+       [spec_raft__appendEntry.v]. *)
     wp_apply (wp_raft__appendEntry with "[$Hphys $Hes]") as "%ents' [Hphys Hes]".
     (* empty payload; [Type] is the zero value [EntryNormal], which is what
        keeps the log's [HnoConfChange] true; and one entry is not [2^61]. *)
@@ -83,18 +76,8 @@ Import P.
     { apply Forall_singleton. done. }
     { rewrite length_insert /=. lia. }
     { exact Hlent. }
-    (* unpack again before [wp_auto]: the field reads in the [Infof] that
-       follows cannot be stepped through the sealed predicate *)
-    iNamedSuffix "Hphys" "2".
-    wp_auto.
-    wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
-    wp_auto. rewrite Hlok2.
-    wp_apply (wp_Logger__logf with "Hlogger2").
-    { rewrite /log_methods. set_solver. }
-    iApply "HΦ".
-    iApply (own_raft_phys_intro with
-      "Hr2 Hlogger2 Htrk2 Hlog2 Hmsgs2 Hmsgs_cap2 HmsgsAA2 HmsgsAA_cap2 Hmisc2");
-      done.
+    (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log).
+    iApply "HΦ". iFrame "Hphys".
   Qed.
 
 End BecomeLeaderProof.

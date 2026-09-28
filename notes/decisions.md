@@ -1345,3 +1345,68 @@ built) is the likely first.
 premise and no `destruct` in the proofs, but reads worse at every spec and
 every caller holds an abstract `ls`. The page premise as a Coq premise
 costs an explicit state at positional calls (gotchas.md).
+
+## 2026-09-24 — Program proofs do not unfold `own_raft_phys`
+
+**Context.** "Three layers" (above) made `own_raft_phys r id s` the one
+ownership predicate for the raft struct, but every program proof still
+opened it: `iNamed "Hphys"` to get `r ↦ rv` and the abstraction relation,
+`wp_auto` for the field accesses through `r ↦ rv`, then a re-seal with
+`own_raft_phys_intro` before each callee and an `iNamedSuffix` after it --
+about thirty opens and thirty re-seals across the election proofs,
+`campaign` and the `Step_MsgVote_*` helpers worst. So the predicate was an
+abstraction in the specs only; the representation was written into every
+proof, and changing it meant touching all of them.
+
+**Decision.** `own_raft_phys` is sealed (`own_raft_phys_def` +
+`seal`, `election_proof/inv_raft_phys.v`) and program proofs reach the struct
+only through the interface at the end of that file:
+
+- **One Hoare triple per field load and per field store**, stated at the
+  expression `wp_auto` leaves behind: `![t] #(r.[raft.raft.t, "f"])` and
+  `GoStore t (#(r.[raft.raft.t, "f"]), #v)%V`.  A field `nstate.t` tracks is
+  loaded at its abstract value and a store updates the state
+  (`wp_raft_store_Term : … {{{ own_raft_phys r id (s <| nstate.term := v |>) }}}`);
+  a field pinned by a scope assumption is loaded at the pinned value
+  (`checkQuorum` at `false`); an untracked field is loaded at an unknown
+  value (`∃ v`) and stored freely.  That last point is why the index did not
+  have to grow to every scalar field: if a proof needs two loads of an
+  untracked field to agree, the usual rule applies -- add it to `nstate.t`.
+- **Accessors for heap hanging off a field** -- the tracker, the log, the
+  two message queues, the `readOnly` object: a wand lemma hands out the
+  field's points-to and the object's own predicate, and takes them back
+  (possibly changed) for `own_raft_phys` at the correspondingly changed
+  state.  **Map accesses go through the accessor, not through per-operation
+  lemmas**: `r.trk.Progress[i]` is a lookup on the tracker object
+  `own_raft_phys_tracker` hands out, done with the tracker's own lemmas.
+  (The alternative -- a triple for `map.lookup1 … (![T] #(r.[trk].[Progress])) #i`,
+  another for insert, another for delete -- duplicates the map API for one
+  field path.)  The message queues' accessors are append-only: the wand
+  takes back `ms ++ ms'` and grows the abstract outbox by `ms'`.
+- **Loans** (`nstate.lent`, "Three layers") get `own_raft_phys_lend` /
+  `own_raft_phys_unlend`, and `own_raft_phys_trk_lent` reaches the tracker
+  field while the tracker is out.  The last two are stated at the setter
+  form `s <| lent := Some tv |>`, because `(s <| lent := x |>).(lent) = x`
+  does not typecheck by `eq_refl` for a variable `s`.
+
+**No search tactic, no `wp_auto` for raft fields.**  Each proof names the
+lemma for each access: `wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"`.
+A first version had `wp_raft_field`, which tried the ~25 field lemmas in
+turn; every failed `wp_apply` walks the whole program expression, which on
+the `Step` bodies is the slow part of a proof, and a proof that names its
+lemma says which field it touches.  (Its 110 call sites were replaced
+mechanically: the tactic was instrumented to print the lemma each site
+used, every proof was run once, and each site was rewritten to that
+sequence.)  `wp_raft_log` survives because it is a fixed sequence -- slice
+literal, `r.logger` load, `wp_Logger__logf` -- with no search; the loads of
+a log call's arguments are written out before it.
+
+**Rejected.**
+- *`AccessStrict` instances on `own_raft_phys`, so `wp_auto` handles field
+  accesses as it does for `r ↦ rv`.*  `wp_auto`'s field automation is built
+  on full ownership of the struct, which is the abstraction this predicate
+  exists to replace, and an instance would need every field's value to be
+  a function of the index -- the whole struct in `nstate.t`.
+- *Leaving the predicate unsealed and relying on convention.*  One
+  `iNamed "Hphys"` in a new proof would quietly bring the representation
+  back; sealed, it does not compile.

@@ -11,16 +11,18 @@ Module RaftResetRandomizedElectionTimeoutProof (P : RAFT__RESETRANDOMIZEDELECTIO
   Proof.
     intros_ambient.
     intros cfg r id s.
-    (* the randomized timeout is not abstracted; the bound [lockedRand.Intn]
-       needs is [own_raft_phys]'s [HelectionTimeout] *)
-    wp_start as "Hphys". iNamed "Hphys".
+    wp_start as "Hphys".
     iDestruct (is_pkg_init_access with "[$]") as "@".
     wp_auto.
-    wp_apply (P.wp_lockedRand__Intn _ _ HelectionTimeout with "[$HglobalRand]")
+    (* [r.electionTimeout] is read twice, and [own_raft_phys] does not track
+       it, so the two reads are unrelated -- all [Intn] needs of its
+       argument is the bound, which comes with each read *)
+    wp_apply (wp_raft_load_electionTimeout with "Hphys") as "%et1 [Hphys %Het1]".
+    wp_apply (wp_raft_load_electionTimeout with "Hphys") as "%et2 [Hphys %Het2]".
+    wp_apply (P.wp_lockedRand__Intn _ _ Het2 with "[$HglobalRand]")
       as "%v %Hv".
-    iApply "HΦ".
-    iApply (own_raft_phys_intro with
-      "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done.
+    wp_apply (wp_raft_store_randomizedElectionTimeout with "Hphys") as "Hphys".
+    iApply "HΦ". iFrame.
   Qed.
 
 End RaftResetRandomizedElectionTimeoutProof.

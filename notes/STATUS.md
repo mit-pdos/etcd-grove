@@ -114,7 +114,7 @@ The same rule holds for every object the struct points at, and since
 
 ## What is proved
 
-Every Hoare triple on the election path is `Qed` — **228 lemmas**, 98
+Every Hoare triple on the election path is `Qed` — **273 lemmas**, 98
 discharged signatures — except one admission signed off on for now
 (below). **The results are the first two of these three**; the third is an
 internal lemma that nothing uses yet — a *root lemma*, in `tcb-report`'s
@@ -150,9 +150,14 @@ and `own_raft_ghost_step` is applied in exactly one proof file. If you find
 yourself adding `own_raft_ghost` to a callee, that is the thing this layout
 exists to prevent.
 
-`proof_raft__poll.v` is the worked example to imitate: short, proved from
-scratch against the real code, and it demonstrates the `access_strict` idiom
-for pulling one field out of `r ↦ rv`.
+**Program proofs do not unfold `own_raft_phys`** -- it is sealed. Every
+access to the raft struct is a lemma from the interface section at the end
+of `inv_raft_phys.v`, named explicitly: one triple per field load and store,
+accessors for the tracker, log, message queues and `readOnly`, and
+lend/unlend for loans (decisions.md, 2026-09-24). `proof_raft__poll.v` is
+the short worked example (the tracker accessor); `proof_raft__reset.v` the
+long one (a loan across a `Visit` closure). The traps are in
+[gotchas.md](gotchas.md), "Working against the sealed `own_raft_phys`".
 
 ## The verified configuration
 
@@ -285,7 +290,7 @@ known gaps and the plan are in [tcb-accounting.md](tcb-accounting.md).
 8 `Admitted.`**, 3 of the admits signed off on for now and marked
 `(* Trusted *)` — still debt; the goal is no admits. On the election path
 alone: **14 `Axiom` and 1 `Admitted`**; two results, `wp_raft__Step_body`
-and `wp_newRaft_body`; 74 definitions, 812 lines; TCB 5.5% of the
+and `wp_newRaft_body`; 76 definitions, 817 lines; TCB 5.5% of the
 development by line.
 
     R=new/proof/go_etcd_io/raft      # required; the tool names no development
@@ -305,7 +310,7 @@ doc comments quote probe lemmas ending in `Admitted.`, and `spec_*.v` files
 are full of `Parameter`s.
 
 The count of axioms is the smaller half. The **definitions** the results
-reach — 74 on the election path, 812 lines — are the rest of it:
+reach — 76 on the election path, 817 lines — are the rest of it:
 `wp_raft__Step` says nothing if `nstate.t`, `nstate_rel`, `pstate.t`,
 `step` or `own_raft_phys` is wrong, and none of those is an axiom.
 
@@ -374,12 +379,11 @@ an entry buffer, never the record. It sits on the
 
 ## Working on this
 
-**Build state of this tree.** At `7703bd1f0` (branch
-`raft-phys-one-predicate`, 2026-09-23, with the object-predicate refactor
-in): `.vok` of every file under `election_proof/` (helpers included) plus
-`v3_proof/readonly.v` -- 333 targets -- passes, 0 errors. `6071e5f91`, the
-merge of `main` before that refactor, passed the same 333; on `main` at `157cb9b14` the `.vok` run was stopped at
-206 of 336 files, 0 errors, and the rest was checked elsewhere.
+**Build state of this tree.** On branch `raft-phys-field-lemmas`
+(2026-09-24, `own_raft_phys` sealed and every program proof converted to
+its field lemmas): `.vok` of every file under `election_proof/` (helpers
+included) plus `v3_proof/readonly.v` -- 333 targets -- passes, 0 errors.
+Its base (`main` at `3bcd64960`, notes-only past `7703bd1f0`) passed the same 333.
 
 **Checking your work.** `make <file>.vos` is a ~2s loop but **does not check
 proof bodies** — it will accept a script that does not run. Use
@@ -390,9 +394,9 @@ Perennial.
 
 **Writing against a big function.** Destructure the precondition before the
 body is unfolded (`wp_start_folded as "@". iNamed "Hown". wp_start_unfold.`),
-wrap a mid-body `iNamed`/`iNamedSuffix` in `wp_hidden (…)`, re-seal a big
-predicate with an intro lemma rather than `iFrame "∗#%"`, and do not
-`set_solver` a list membership. Each is a 10–100× difference on `Step`; see
+wrap a mid-body `iNamed`/`iNamedSuffix` in `wp_hidden (…)`, name the
+field lemma for each raft-field access rather than searching for it, and do
+not `set_solver` a list membership. Each is a 10–100× difference on `Step`; see
 [gotchas.md](gotchas.md).
 
 **Inner loop: rocq-warm**, specifically the

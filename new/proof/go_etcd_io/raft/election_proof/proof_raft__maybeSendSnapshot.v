@@ -10,11 +10,6 @@ Context {sem : go.Semantics} {package_sem : raft.Assumptions}.
 Collection W := sem + package_sem.
 Set Default Proof Using "W".
 
-(** The outbox-only bookkeeping, as in [proof_raft__campaign.v] and
-    [proof_raft__bcastAppend.v]; [Local] there and here.  Stated on
-    [own_raft_bare] (2026-09-21) because that is what [send]'s postcondition
-    hands back; note there is no [votes] premise, the vote tally having left
-    with the tracker. *)
 (** [MsgSnap] is not one of the four types the model describes, so
     [send_ok]'s third clause applies to it -- which is the whole reason the
     postcondition is at the same [s]. *)
@@ -32,6 +27,14 @@ Qed.
 End helpers.
 
 Set Default Proof Using "Type".
+
+  (* End the loan, and get from the state [own_raft_phys_unlend] names back
+     to [s]. *)
+  Local Ltac finish s Hlent :=
+    iDestruct (own_raft_phys_unlend with "Hphys Htrk Hlog") as "Hphys";
+    [ done | ];
+    iDestruct (own_raft_phys_eq _ _ _ _ s with "Hphys") as "Hphys";
+    [ destruct s; simpl in Hlent; subst; done | ].
 
   (** Three exits, and the two [panic]s are both killed by [is_Storage]'s
       [HSnapshot] ([inv_storage.v]), whose postcondition is the disjunction
@@ -64,11 +67,13 @@ Set Default Proof Using "Type".
       itself).  So the abstract outbox is unchanged and the postcondition is
       at the same [s], read back with [own_raft_phys_unsend].
 
-      **Resources.**  The struct arrives as [own_raft_phys]; [pr] is
-      borrowed out of its tracker with [own_tracker_lookup] (the premise
-      puts it at [to] in [s.(nstate.progress)], which [Hprs] pins), and put
-      back on every exit -- on the sending exit, before the [send], whose
-      spec wants the struct whole. *)
+      **Resources.**  The struct arrives as [own_raft_phys].  The body
+      holds [pr] -- borrowed out of the tracker with [own_tracker_lookup]
+      (the premise puts it at [to] in [s.(nstate.progress)]) -- and the log
+      at the same time as it reads raft fields for its log lines, so the
+      tracker and the log are lent out of the struct ([own_raft_phys_lend])
+      and the loan ends on every exit ([finish]) -- on the sending exit,
+      before the [send], whose spec wants the struct whole. *)
   Lemma wp_raft__maybeSendSnapshot : wp_raft__maybeSendSnapshot_body.
   Proof.
     intros_ambient.
@@ -81,28 +86,21 @@ Set Default Proof Using "Type".
         [err == ErrSnapshotTemporarilyUnavailable] test afterwards needs it
         again, so move the (persistent) points-to into the □ context first. *)
     iDestruct "ErrSnapUnavail" as "#ErrSnapUnavail".
-    iNamed "Hphys".
-    iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog") as (ls Hls) "Hlog".
-    iDestruct (own_tracker_unless_open _ _ _ _ _ Hlent with "Htrk") as "Htrk".
+    iDestruct (own_raft_phys_lend _ _ _ _ Hlent with "Hphys")
+      as (tv ls Hls) "(Htrk & Hlog & Hphys)".
     iDestruct (own_tracker_lookup _ _ _ _ _ _ Hprto with "Htrk")
       as "[Hpr Htrkback]".
     iNamed "Hpr".
     wp_auto.
     destruct pv.(tracker.Progress.RecentActive') eqn:Hra; wp_auto.
     2:{ (* not recently active: log and return [false] *)
-      wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
-      wp_auto. rewrite Hlok.
-      wp_apply (wp_Logger__logf with "Hlogger").
-      { solve_log_method. }
+      wp_raft_log.
       iApply ("HΦ" $! false).
       iAssert (∃ pv iv, own_progress pr pv iv)%I with "[Hpv Hinfl]" as "Hpr".
       { iExists pv, iv. rewrite /own_progress. iFrame "∗%". }
       iDestruct ("Htrkback" with "Hpr") as "Htrk".
-      iDestruct (own_tracker_unless_close _ _ _ _ _ Hlent with "Htrk") as "Htrk".
-      iDestruct (own_raftLog_unless_close _ _ _ Hlent with "Hlog [//]") as "Hlog".
-      iApply (own_raft_phys_intro with
-        "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
-        done. }
+      finish s Hlent. iFrame "Hphys". }
+    wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
     wp_apply (wp_raftLog__snapshot _ _ _ Hls with "[$Hlog $ErrSnapUnavail]")
       as "%snap %err [Hlog %Herr]".
     destruct Herr as [-> | [-> Hnz]].
@@ -111,49 +109,34 @@ Set Default Proof Using "Type".
       destruct HErrSnapUnavail_new as (t & p & ->).
       wp_auto. rewrite decide_True //. wp_auto.
       rewrite bool_decide_eq_true_2 //. wp_auto.
-      wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
-      wp_auto. rewrite Hlok.
-      wp_apply (wp_Logger__logf with "Hlogger").
-      { solve_log_method. }
+      (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_raft_log).
       iApply ("HΦ" $! false).
       iAssert (∃ pv iv, own_progress pr pv iv)%I with "[Hpv Hinfl]" as "Hpr".
       { iExists pv, iv. rewrite /own_progress. iFrame "∗%". }
       iDestruct ("Htrkback" with "Hpr") as "Htrk".
-      iDestruct (own_tracker_unless_close _ _ _ _ _ Hlent with "Htrk") as "Htrk".
-      iDestruct (own_raftLog_unless_close _ _ _ Hlent with "Hlog [//]") as "Hlog".
-      iApply (own_raft_phys_intro with
-        "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
-        done.
+      finish s Hlent. iFrame "Hphys".
     - (* a real snapshot: [Metadata.Index ≠ 0] kills [IsEmptySnap]'s panic *)
       wp_auto.
       wp_apply wp_IsEmptySnap as "%b %Hb".
       rewrite Hb bool_decide_eq_false_2 //. wp_auto.
       (* the third [Debugf]'s argument list calls [firstIndex] and then
-         reads [r.raftLog.committed] directly: the struct, for the read *)
+         reads [r.raftLog.committed] directly: the log's struct, for the
+         read *)
+      wp_apply (wp_raft_load_id with "Hphys") as "Hphys".
+      wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
       wp_apply (wp_raftLog__firstIndex _ _ Hls with "[$Hlog]") as "%fi [Hlog %Hfi]".
+      wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
       iDestruct (own_raftLog_struct with "Hlog") as (lv) "(Hl & _ & Hlogback)".
       wp_auto.
       iDestruct ("Hlogback" with "Hl") as "Hlog".
-      wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
-      wp_auto. rewrite Hlok.
-      wp_apply (wp_Logger__logf with "Hlogger").
-      { solve_log_method. }
+      wp_raft_log.
       iAssert (own_progress pr pv iv) with "[Hpv Hinfl]" as "Hpr".
       { rewrite /own_progress. iFrame "∗%". }
       wp_apply (wp_Progress__BecomeSnapshot with "[$Hpr]") as "Hpr".
-      wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
-      wp_auto. rewrite Hlok.
-      wp_apply (wp_Logger__logf with "Hlogger").
-      { solve_log_method. }
+      (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_raft_log).
       (* the [Progress] and the log go back before [send] *)
       iDestruct ("Htrkback" with "Hpr") as "Htrk".
-      iDestruct (own_tracker_unless_close _ _ _ _ _ Hlent with "Htrk") as "Htrk".
-      iDestruct (own_raftLog_unless_close _ _ _ Hlent with "Hlog [//]") as "Hlog".
-      iAssert (own_raft_phys cfg r id s)
-        with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys".
-      { iApply (own_raft_phys_intro with
-          "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
-          done. }
+      finish s Hlent.
       wp_apply (P.wp_raft__send with "[$Hphys]");
         [ done
         | right; right; split_and!;

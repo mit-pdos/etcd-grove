@@ -45,13 +45,7 @@ Implicit Type s : nstate.t.
         "%Herr" ∷ ⌜ err = interface.nil ⌝ }}}.
   Proof.
     intros Hty Hterm Hnowrap Hwf.
-    (* Take the precondition apart *before* the body is unfolded into the
-       goal: every [iDestruct] is linear in the goal size, and the translated
-       [Step] body is ~500KB.  See [wp_start_unfold]. *)
-    wp_start_folded as "@".
-    iNamed "Hphys".
-    wp_start_unfold.
-    wp_auto.
+    wp_start as "@". wp_auto.
     wp_apply wp_traceReceiveMessage. try wp_auto.
     (* [m.Term = 0] (a local message), so the term preamble is skipped. *)
     rewrite Hterm !bool_decide_eq_true_2 //.
@@ -60,14 +54,7 @@ Implicit Type s : nstate.t.
     rewrite Hty /MsgHup bool_decide_eq_true_2 //.
     wp_auto.
     (* no pre-vote, so this is a plain [hup(campaignElection)] *)
-    rewrite HnoPreVote. wp_auto.
-    (* re-seal the physical ownership for [hup] *)
-    (* re-seal with [own_raft_phys_intro] rather than [iFrame "∗#%"], which
-       costs ~17s against the unfolded predicate *)
-    iAssert (own_raft_phys cfg r id s)
-    with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys".
-    { iApply (own_raft_phys_intro with
-          "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
+    wp_apply (wp_raft_load_preVote with "Hphys") as "Hphys".
     wp_apply (P.wp_raft__hup with "[$Hphys]") as "%s' (Hphys & %Hwf' & %Hstep)".
     { done. }
     { exact Hnowrap. }

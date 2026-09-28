@@ -63,44 +63,34 @@ Implicit Type s : nstate.t.
         "%Herr" ∷ ⌜ err = interface.nil ⌝ }}}.
   Proof.
     intros Hty Hto Hterm Hfnz Hlt0 Hwf.
-    wp_start_folded as "@". iNamed "Hphys". wp_start_unfold. wp_auto.
-    assert (Hle : ¬ (uint.Z rv.(raft.raft.Term') < uint.Z m.(raftpb.Message.Term')))
-      by (rewrite Hterm0; lia).
-    assert (Hlt : uint.Z m.(raftpb.Message.Term') < uint.Z rv.(raft.raft.Term'))
-      by (rewrite Hterm0; exact Hlt0).
+    wp_start as "@". wp_auto.
     wp_apply wp_traceReceiveMessage. try wp_auto.
     (* [m.Term ≠ 0], so the first arm of the term preamble is skipped. *)
     assert (bool_decide (m.(raftpb.Message.Term') = W64 0) = false) as Hz
     by by apply bool_decide_eq_false_2.
-    rewrite Hz. rewrite bool_decide_eq_false_2; last done. wp_auto.
-      assert (bool_decide (uint.Z rv.(raft.raft.Term') <
+    rewrite Hz. rewrite bool_decide_eq_false_2; last done. try wp_auto.
+    wp_apply (wp_raft_load_Term with "Hphys") as "Hphys".
+      assert (bool_decide (uint.Z s.(nstate.term) <
                            uint.Z m.(raftpb.Message.Term')) = false) as Hb
-        by by apply bool_decide_eq_false_2.
-      rewrite Hb. rewrite bool_decide_eq_false_2; last done. wp_auto.
+        by (apply bool_decide_eq_false_2; lia).
+      rewrite Hb. rewrite bool_decide_eq_false_2; last done. try wp_auto.
+      wp_apply (wp_raft_load_Term with "Hphys") as "Hphys".
         assert (bool_decide (uint.Z m.(raftpb.Message.Term') <
-                             uint.Z rv.(raft.raft.Term')) = true) as Hb2
+                             uint.Z s.(nstate.term)) = true) as Hb2
           by by apply bool_decide_eq_true_2.
-        rewrite Hb2. rewrite bool_decide_eq_true_2 //. wp_auto.
-        rewrite HnoCheckQuorum. wp_auto.
-        rewrite HnoPreVote. wp_auto.
+        rewrite Hb2. rewrite bool_decide_eq_true_2 //. try wp_auto.
+        (* neither [checkQuorum] nor [preVote] *)
+        (wp_apply (wp_raft_load_checkQuorum with "Hphys") as "Hphys"; wp_apply (wp_raft_load_preVote with "Hphys") as "Hphys").
         (* not a MsgPreVote *)
         rewrite (bool_decide_eq_false_2 (m.(raftpb.Message.Type') = W32 17));
           last (rewrite Hty /MsgVote; w32_ne).
-        wp_auto.
+        try wp_auto.
         (* not a MsgStorageAppendResp either, so the message is just logged *)
         rewrite (bool_decide_eq_false_2 (m.(raftpb.Message.Type') = W32 20));
           last (rewrite Hty /MsgVote; w32_ne).
-        wp_auto.
-        wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
-        wp_auto. rewrite Hlok.
-        wp_apply (wp_Logger__logf with "Hlogger").
-        { solve_log_method. }
+        try wp_auto.
+        (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log).
         (* nothing was sent and nothing changed: dropping is [step_refl]. *)
-        iAssert (own_raft_phys cfg r id s)
-          with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]"
-          as "Hphys".
-        { iApply (own_raft_phys_intro with
-          "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
         iApply ("HΦ" $! interface.nil s). iFrame "Hphys".
         iPureIntro. split; first exact Hwf. split; last done. exists [].
         split; [recv_elem|apply step_drop].

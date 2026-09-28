@@ -72,9 +72,6 @@ Proof using All.
   iExists voters_ref, voters, learners, learnersNext. iFrame "∗#%".
 Qed.
 
-Lemma Infof_is_log_method : "Infof"%go ∈ log_methods.
-Proof. rewrite /log_methods list_elem_of_In /=. right. by left. Qed.
-
 Lemma wp_campaign (r : loc) (id : w64) (s : nstate.t) (t : raft.CampaignType.t) :
   t ≠ campaignPreElection →
   s.(nstate.role) ≠ role.Leader →
@@ -97,15 +94,7 @@ Proof.
   assert (word.add s.(nstate.term) (W64 1) ≠ W64 0) as Hno_wrap by word.
   (* [make([]uint64, 0, len(idMap))] needs the voter set to fit in a Go
      [int]; that bound is a conjunct of [own_tracker]. *)
-  wp_start as "Hphys". iNamed "Hphys".
-  iDestruct (own_tracker_unless_open _ _ _ _ _ Hlent with "Htrk") as "Htrk".
-  iDestruct (own_tracker_cfg_size with "Htrk") as "[%Hcfg_fits Htrk]".
-  iDestruct (own_tracker_unless_close _ _ _ _ _ Hlent with "Htrk") as "Htrk".
-  iAssert (own_raft_phys cfg r id s)
-    with "[Hr Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc]" as "Hphys".
-  { iApply (own_raft_phys_intro with
-      "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done. }
-  wp_auto.
+  wp_start as "Hphys". wp_auto.
   (* [promotable] is true, since [id ∈ cfg]; the warning is not logged. *)
   wp_apply (wp_raft__promotable _ _ _ _ Hlent with "[$Hphys]") as "%b [Hphys %Hb]".
   assert (b = true) as ->.
@@ -115,20 +104,21 @@ Proof.
   rewrite bool_decide_eq_false_2; last exact Ht.
   wp_auto.
   wp_apply (P.wp_raft__becomeCandidate _ _ _ _ Hrole Hlent with "[$Hphys]") as "Hphys".
-  iNamedSuffix "Hphys" "1".
-  iDestruct (own_tracker_unless_open _ _ _ _ _ Hlent with "Htrk1") as "Htrk1".
-  wp_auto.
-  (* the voter ids, as a map.  [IDs] wants the tracker's location, which the
-     generated [AccessStrict] instance splits out of [r ↦ rv0]; pin the load
-     instance, since the call does not change the tracker value. *)
-  iDestruct (access_strict
-               (A := r.[raft.raft.t, "trk"] ↦ rv0.(raft.raft.trk'))
-               (A' := r.[raft.raft.t, "trk"] ↦ rv0.(raft.raft.trk'))
-               (P := r ↦ rv0) (P' := r ↦ rv0)
-               with "Hr1") as "[Htrkf Hrback]".
-  wp_apply (wp_JointConfig__IDs with "[$Htrkf $Htrk1]")
-    as "%mref %idm (Htrkf & Htrk1 & Hidm & %Hdomidm)".
-  iDestruct ("Hrback" with "Htrkf") as "Hr1".
+  (* [term := r.Term], the new term; every [send] below carries it *)
+  wp_apply (wp_raft_load_Term with "Hphys") as "Hphys".
+  set (T := (become_candidate id s).(nstate.term)).
+  assert (T = word.add s.(nstate.term) (W64 1)) as HTeq by reflexivity.
+  assert (T ≠ W64 0) as HTnz by (rewrite HTeq; exact Hno_wrap).
+  (* the voter ids, as a map.  [IDs] is a method of the tracker's
+     [Config.Voters], so it takes the tracker object; the call does not
+     change it, and the struct is re-sealed right after. *)
+  iDestruct (own_raft_phys_tracker_same _ _ _ (become_candidate id s) Hlent
+               with "Hphys") as (tv) "(Htrkf & Htrk & Hback)".
+  iDestruct (own_tracker_cfg_size with "Htrk") as "[%Hcfg_fits Htrk]".
+  try wp_auto.
+  wp_apply (wp_JointConfig__IDs with "[$Htrkf $Htrk]")
+    as "%mref %idm (Htrkf & Htrk & Hidm & %Hdomidm)".
+  iDestruct ("Hback" with "Htrkf Htrk") as "Hphys".
   wp_apply (wp_map_len with "Hidm") as "Hidm".
   assert (size idm = size cfg) as Hszidm.
   { rewrite -Hdomidm size_dom //. }
@@ -178,13 +168,6 @@ Proof.
   { rewrite -Hdomidm -Hkset. by rewrite elements_list_to_set. }
   wp_auto.
   wp_apply (wp_slices_Sort with "[$Hsl]") as "%xs (Hsl & %Hxs)".
-  (* re-seal for the send loop; [send] wants the whole struct *)
-  iAssert (own_raft_phys cfg r id (become_candidate id s))
-    with "[Hr1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1]"
-    as "Hphys".
-  { iDestruct (own_tracker_unless_close _ _ _ _ _ Hlent with "Htrk1") as "Htrk1".
-    iApply (own_raft_phys_intro _ _ _ (become_candidate id s) with "Hr1 Hlogger1 Htrk1 Hlog1 Hmsgs1 Hmsgs_cap1 HmsgsAA1 HmsgsAA_cap1 Hmisc1");
-      done. }
   iRename "id" into "idold".
   wp_alloc cur_ptr as "cur".
   wp_auto.
@@ -196,10 +179,7 @@ Proof.
   { rewrite -(Permutation_length Hxs) Hklen Hszidm //. }
   (* [wp_if_destruct] runs [subst], which would otherwise eliminate [cfg] and
      [id] through these two equations and rename them throughout. *)
-  clear Hid Hid1 Hdomidm Hkset Hb.
-  set (T := rv0.(raft.raft.Term')).
-  assert (T = word.add s.(nstate.term) (W64 1)) as HTeq by exact Hterm1.
-  assert (T ≠ W64 0) as HTnz by (rewrite HTeq; exact Hno_wrap).
+  clear Hdomidm Hkset Hb.
   set (cmsg := (λ (y : w64), if decide (y = id)
                              then msg.mk mtype.VoteResp id id T false
                              else msg.mk mtype.Vote id y T false)).
@@ -251,27 +231,19 @@ Proof.
     wp_apply (wp_load_slice_index (V:=w64) (t:=go.uint64)
                 sl' (sint.Z n) xs (DfracOwn 1) y with "[$Hsl]") as "Hsl";
       try first [ word | iPureIntro; exact Hy | tc_solve | done ].
-    iNamedSuffix "Hphys" "2".
     assert (Z.to_nat (sint.Z (word.add n (W64 1))) = S (Z.to_nat (sint.Z n)))
       as Hsucc.
     { rewrite -Z2Nat.inj_succ; last word. f_equal. word. }
     assert (cmsg <$> take (Z.to_nat (sint.Z (word.add n (W64 1)))) xs
             = (cmsg <$> take (Z.to_nat (sint.Z n)) xs) ++ [cmsg y]) as Hgrow.
     { rewrite Hsucc (take_S_r _ _ y) // fmap_app //. }
-    wp_auto.
-    rewrite Hid2.
+    try wp_auto. wp_apply (wp_raft_load_id with "Hphys") as "Hphys".
     destruct (decide (y = id)) as [->|Hney].
     + (* this node's own vote: a self-addressed [MsgVoteResp] *)
       rewrite bool_decide_eq_true_2 //. wp_auto.
       (* the response type: [wp_auto] cannot step through the call that
          computes the literal's [Type] field *)
       wp_apply P.wp_voteRespMsgType; first done.
-      iAssert (own_raft_phys cfg r id
-                 (send_msgs (become_candidate id s)
-                    (cmsg <$> take (Z.to_nat (sint.Z n)) xs)))
-        with "[Hr2 Htrk2 Hlog2 Hmsgs2 Hmsgs_cap2 HmsgsAA2 HmsgsAA_cap2 Hmisc2]"
-        as "Hphys".
-      { rewrite /own_raft_phys. iExists _, _, _, _. iFrame "∗#%". }
       (* [send]'s side conditions: [From = 0] (the literal leaves it unset),
          and [send_ok]'s vote clause -- the type is a vote message, its
          [mtype_of], the term is nonzero (this is what the no-wrap premise
@@ -297,22 +269,14 @@ Proof.
       wp_for_post.
       iFrame. iPureIntro. word.
     + (* a peer: read the last entry, log, and send it a [MsgVote] *)
-      rewrite bool_decide_eq_false_2 //. wp_auto.
-      iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog2") as (ls2 Hls2) "Hlog2".
-      wp_apply (wp_raftLog__lastEntryID _ _ Hls2 with "[$Hlog2]") as "%lastID Hlog2".
-      iDestruct (own_raftLog_unless_close _ _ _ Hlent with "Hlog2 [//]") as "Hlog2".
-      wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [? _]".
-      wp_auto. rewrite Hlok2.
-      wp_apply (wp_Logger__logf with "Hlogger2").
-      { apply Infof_is_log_method. }
-      (* Nothing past this point reads a field of the raft struct, so the
-         struct can be re-sealed before the [ctx] branch. *)
-      iAssert (own_raft_phys cfg r id
-                 (send_msgs (become_candidate id s)
-                    (cmsg <$> take (Z.to_nat (sint.Z n)) xs)))
-        with "[Hr2 Htrk2 Hlog2 Hmsgs2 Hmsgs_cap2 HmsgsAA2 HmsgsAA_cap2 Hmisc2]"
-        as "Hphys".
-      { rewrite /own_raft_phys. iExists _, _, _, _. iFrame "∗#%". }
+      rewrite bool_decide_eq_false_2 //. wp_auto. wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
+      iDestruct (own_raft_phys_log _ _ _
+                   (send_msgs (become_candidate id s)
+                      (cmsg <$> take (Z.to_nat (sint.Z n)) xs)) Hlent with "Hphys")
+        as (ls2 Hls2) "[Hlog Hback]".
+      wp_apply (wp_raftLog__lastEntryID _ _ Hls2 with "[$Hlog]") as "%lastID Hlog".
+      iDestruct ("Hback" with "Hlog [//]") as "Hphys".
+      (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log).
       assert (send_msgs (send_msgs (become_candidate id s)
                            (cmsg <$> take (Z.to_nat (sint.Z n)) xs))
                         [msg.mk mtype.Vote id y T false]
