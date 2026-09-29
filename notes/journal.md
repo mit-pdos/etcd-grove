@@ -3818,3 +3818,31 @@ of `inv_raftlog.v` and `proof_unstable__truncateAndAppend.v`. `tcb-report
 fails in `chan/au_spec/chan_au_recv.v:360` (reproduced on 2e7f3e69b) and
 `chan_au_send.v:655`; STATUS item 11. `rocq` needs
 `$HOME/.opam/perennial/bin` on `PATH` (gotchas.md).
+
+## 2026-09-29 — `chan/au_spec` builds again: `done` on a dead `WP` branch
+
+What broke: the full `vo` build failed with "No applicable tactic" in
+`chan_au_recv.v` and `chan_au_send.v` (STATUS item 11, now deleted). Four
+sites, not two -- each `-vok` stopped at the first:
+`chan_au_recv.v:360` (`done`, context has `Hl : length (v :: buffer) = 0`),
+`chan_au_recv.v:782` (`wp_Receive`), `chan_au_send.v:655` (`wp_Send`) and
+`chan_au_send.v:865` (`wp_Close`), the last three `wp_if_destruct; first
+done.` with `Hnn : null ≠ null` in the context.
+
+Root cause: 25ce5ca6f (2026-09-17, "make wp tactics linear-cost-free")
+added `Ltac done ::=` in `new/golang/theory/proofmode.v`. On an
+`envs_entails _ (wp …)` goal it runs only `fast_done`/`trivial` with the
+program let-bound; stdpp's `discriminate` / `contradiction` / `¬_`-case arms,
+which used to close these dead branches, are no longer tried. Found by
+printing the goal at `chan_au_recv.v:782`; not bisected. The raft
+`.vos`/`.vok` sweeps never ran these proof bodies, so nobody noticed.
+
+Fix: `by exfalso` at all four sites (`{ done. }` -> `{ by exfalso. }`,
+`first done.` -> `first by exfalso.`). With the goal `False` the non-`WP`
+arm of `done` (stdpp's cascade) closes it. The override itself is left as
+is; gotchas.md has the trap.
+
+Checked: `make …/chan_au_recv.vok` 0, `make …/chan_au_send.vok` 0;
+`make -j4 …/chan_au_recv.vo …/chan_au_send.vo` 0 (rebuilt stale deps);
+downstream `make -k -j4 new/golang/theory/chan.vo` plus all eleven
+`chan/idioms/*.vo` 0. Not run: `make ci`.

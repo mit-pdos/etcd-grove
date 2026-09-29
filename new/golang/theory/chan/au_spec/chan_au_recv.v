@@ -357,7 +357,7 @@ Proof using W.
           word.
         }
         replace (sint.nat slice_val.(slice.len)) with 0%nat in *.
-        { done.  }
+        { by exfalso. }
         word.
       }
     }
@@ -779,7 +779,7 @@ Proof using W.
   wp_auto_lc 4.
   iSpecialize ("Hau" with "[$]").
 
-  wp_if_destruct; first done.
+  wp_if_destruct; first by exfalso.
   wp_for. iNamed "Hau".
   wp_apply (wp_TryReceive ch γ with "[$]").
   iSplit.

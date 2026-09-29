@@ -969,6 +969,15 @@ size but hit the same proofs:
   program — 36s for one rewrite. `done` now also catches goals with a `WP`
   under binders. If in doubt, write `rewrite … in H1 H2; [|exact Hne]`,
   which is 0.03s and says which side goal you meant.
+- **`done` on a `WP` goal does not use contradictory pure hypotheses.**
+  The `done ::=` override in `proofmode.v` tries only `fast_done`/`trivial`
+  there -- no `discriminate`, `contradiction` or `¬_` case split -- so a
+  branch that is dead because of `Hl : length (x :: l) = 0%nat` or
+  `Hnn : null ≠ null` is not closed by `done`/`first done`/`//` while the
+  goal is a `WP`. Write `by exfalso` (the goal is then `False`, not a `WP`,
+  and the full stdpp cascade runs). The override came in with 25ce5ca6f
+  (2026-09-17) and broke four such sites in `chan_au_recv.v` and
+  `chan_au_send.v` unnoticed for 12 days (2026-09-29 journal).
 
 One more, inside the framework rather than a proof, found in the second
 round of profiling the same day:

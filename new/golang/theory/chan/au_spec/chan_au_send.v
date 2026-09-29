@@ -652,7 +652,7 @@ Proof using W.
   wp_auto_lc 4.
   iSpecialize ("Hau" with "[$]").
 
-  wp_if_destruct; first done.
+  wp_if_destruct; first by exfalso.
   wp_for. iNamed "Hau".
   wp_apply (wp_TrySend with "[$] [Hau c v]").
   iSplit.
@@ -862,7 +862,7 @@ Proof using W.
   iDestruct (is_chan_not_null with "[$Hic]") as "%Hnn".
   wp_auto_lc 4.
   iSpecialize ("Hau" with "[$]").
-  wp_if_destruct; first done.
+  wp_if_destruct; first by exfalso.
   wp_for.
 
   wp_apply (wp_tryClose with "[$Hic]").
