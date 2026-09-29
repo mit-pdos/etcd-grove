@@ -21,14 +21,20 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
     fall-through -- so the joint answer is exactly the answer for [cfg].
 
     Both conjuncts are equivalences, not implications: nothing here is lost.
-    [is_quorum cfg ∅] is [False] at [cfg = ∅], but [own_tracker] carries
-    [Hcfg_ne : cfg ≠ ∅] (see [inv_tracker.v] for why it is there and why
-    adding it cost nothing), so the empty-config convention never bites. *)
+    The premise [cfg ≠ ∅] is what makes that true.  [MajorityConfig.VoteResult]
+    returns [VoteWon] outright for an empty config ("by convention, the
+    elections on an empty config win"), while [is_quorum ∅ q] unfolds to
+    [0 < 2 * 0] and is false, so at [cfg = ∅] the [VoteWon] conjunct would
+    fail.  The premise used to be a conjunct of [own_tracker]; it was moved
+    here so that the empty tracker is an [own_tracker ∅ …].  In the proof it
+    refutes the [map.nil] disjunct of [wp_MajorityConfig__VoteResult]'s
+    postcondition for the first component. *)
 Definition wp_JointConfig__VoteResult_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (cfg : gset w64) (trk : loc) tv votes (prs : gmap w64 loc),
+  cfg ≠ ∅ →
   {{{ is_pkg_init quorum ∗ trk ↦ tv ∗ own_tracker cfg tv votes prs }}}
     (trk.[tracker.ProgressTracker.t, "Config"].[tracker.Config.t, "Voters"])
       @! (go.PointerType quorum.JointConfig) @! "VoteResult"

@@ -6,7 +6,7 @@ Import P.
   Lemma wp_ProgressTracker__TallyVotes : wp_ProgressTracker__TallyVotes_body.
   Proof.
     intros_ambient.
-    intros cfg trk tv votes prs.
+    intros cfg trk tv votes prs Hcfg_ne.
 
     wp_start as "(Htrk & Hown)". iNamed "Hown".
     (* the [var _ quorum.VoteResult] declaration Go emits for the named return
@@ -109,7 +109,7 @@ Import P.
     wp_auto.
     (* [p.Config.Voters.VoteResult(p.Votes)]: re-seal the tracker and ask the
        joint quorum.  The two counters already hold the model's numbers. *)
-    wp_apply (wp_JointConfig__VoteResult with
+    wp_apply (wp_JointConfig__VoteResult _ _ _ _ _ Hcfg_ne with
                "[$Htrk Hvotes Hprogs Hvoters Hlearners HlearnersNext]").
     { rewrite /own_tracker.
       iExists voters_ref, voters, learners, learnersNext. iFrame "∗#%". }

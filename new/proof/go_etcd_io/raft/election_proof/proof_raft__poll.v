@@ -15,14 +15,14 @@ Import P.
   Lemma wp_raft__poll : wp_raft__poll_body.
   Proof.
     intros_ambient.
-    intros cfg r id s from t v Hlent.
+    intros cfg r id s from t v Hlent Hcfg_ne.
     wp_start as "Hphys". wp_auto.
     destruct v; wp_auto; (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log);
       iDestruct (own_raft_phys_tracker _ _ _ _ Hlent with "Hphys")
         as (tv) "(Htrkf & Htrk & Hback)";
       wp_apply (wp_ProgressTracker__RecordVote with "[$Htrkf $Htrk]")
         as "[Htrkf Htrk]";
-      wp_apply (wp_ProgressTracker__TallyVotes with "[$Htrkf $Htrk]")
+      wp_apply (wp_ProgressTracker__TallyVotes _ _ _ _ _ Hcfg_ne with "[$Htrkf $Htrk]")
         as "%g %rj %res (Htrkf & Htrk & %Hres & %Hwon & %Hlost)";
       iDestruct ("Hback" with "Htrkf Htrk") as "Hphys";
       iApply ("HΦ" $! g rj res); iFrame "Hphys"; iPureIntro; split_and!; done.

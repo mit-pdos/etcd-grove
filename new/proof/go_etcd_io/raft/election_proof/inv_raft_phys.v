@@ -817,6 +817,43 @@ Qed.
 
 End proof.
 
+(** *** Reconfiguration
+
+    The one accessor that changes [own_raft_phys]'s [cfg] index: the
+    tracker comes out at the old configuration and goes back at a new one,
+    with a new progress map ([nstate.progress]).  Only [own_tracker]
+    mentions [cfg], so nothing else is re-established.  [switchToConfig]
+    is the one user (for [newRaft]'s move from the empty configuration to
+    the persisted one). *)
+Section reconfig.
+Context `{hG: heapGS Σ, !ffi_semantics _ _}.
+Context {sem : go.Semantics} {package_sem : raft.Assumptions}.
+Collection W := sem + package_sem.
+Set Default Proof Using "W".
+
+Lemma own_raft_phys_reconfig cfg0 cfg r id s :
+  nstate_idle s →
+  own_raft_phys cfg0 r id s -∗
+  ∃ tv, r.[raft.raft.t, "trk"] ↦ tv ∗
+        own_tracker cfg0 tv s.(nstate.votes) s.(nstate.progress) ∗
+        (∀ tv' prs', r.[raft.raft.t, "trk"] ↦ tv' -∗
+           own_tracker cfg tv' s.(nstate.votes) prs' -∗
+           own_raft_phys cfg r id (s <| nstate.progress := prs' |>)).
+Proof.
+  iIntros ([Hlent _]) "H".
+  iEval (rewrite own_raft_phys_unseal) in "H". iNamed "H".
+  iDestruct (own_tracker_unless_open cfg0 _ _ _ _ Hlent with "Htrk") as "Htrk".
+  iDestruct (raft_split_trk with "Hr") as "[Hf Hback]".
+  iExists _. iFrame "Hf Htrk".
+  iIntros (tv' prs') "Hf Htrk".
+  iDestruct ("Hback" $! tv' with "Hf") as "Hr".
+  iDestruct (own_tracker_unless_close cfg _ _ _ _ Hlent with "Htrk") as "Htrk".
+  iApply (own_raft_phys_intro cfg r id (s <| nstate.progress := prs' |>) with
+    "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); try done.
+Qed.
+
+End reconfig.
+
 (** A logging call through [r.logger], once the raft fields its arguments
     read have been loaded (each with its own lemma, by the caller): the
     variadic argument slice, the load of [r.logger], and the logger spec.

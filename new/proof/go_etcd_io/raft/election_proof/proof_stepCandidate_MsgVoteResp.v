@@ -34,7 +34,8 @@ Import P.
        [W32 6], [wp_auto] decides the rest by computation. *)
     rewrite Hty /MsgVoteResp.
     rewrite bool_decide_eq_false_2; last w32_ne. wp_auto.
-    wp_apply (P.wp_raft__poll _ _ _ _ _ _ _ Hlent with "[$Hphys]")
+    assert (cfg ≠ ∅) as Hcfg_ne by set_solver.
+    wp_apply (P.wp_raft__poll _ _ _ _ _ _ _ Hlent Hcfg_ne with "[$Hphys]")
       as "%g %rj0 %res (Hphys & %Hres & %Hwon & %Hlost)".
     (* the [Infof] that follows reads [r.id], [r.Term] and [r.logger] *)
     (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_raft_log).

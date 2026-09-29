@@ -116,7 +116,7 @@ always owns `own_raftLog rv.raftLog s.logst`, a page on loan is recorded in
 
 ## What is proved
 
-Every Hoare triple on the election path is `Qed` — **274 lemmas**, 98
+Every Hoare triple on the election path is `Qed` — **277 lemmas**, 98
 discharged signatures — except one admission signed off on for now
 (below). **The results are the first two of these three**; the third is an
 internal lemma that nothing uses yet — a *root lemma*, in `tcb-report`'s
@@ -220,14 +220,14 @@ say so in the journal.
    - `own_tracker`'s `HmaxInfl` comment claimed `validate` bounds
      `MaxInflightMsgs`; it does not ([false-statements.md](false-statements.md)).
 2. **`nstate.lent` still exists, for the tracker only.** The log half
-   went on 2026-09-29 (above). What is left: `maybeSendAppend` and
-   `maybeSendSnapshot` lend the tracker to hold one `Progress` across
-   `r.send` (replace by pinning that peer's `Progress` value in `nstate.t`,
-   so `own_raft_phys` keeps owning it), and `newRaft`/`switchToConfig` lend
-   it because the empty tracker `MakeProgressTracker` builds is not an
-   `own_tracker` (`Hcfg_ne`; replace by stating `own_tracker` at the empty
-   configuration and moving `cfg ≠ ∅` to `VoteResult`/`TallyVotes`/`poll`).
-   Work in progress on `newraft`.
+   went on 2026-09-29, and `newRaft`/`switchToConfig` stopped using it the
+   same day (`own_tracker` now holds at the empty configuration;
+   `switchToConfig` changes configuration through
+   `own_raft_phys_reconfig`). Left: `maybeSendAppend`,
+   `maybeSendSnapshot` and `reset` lend the tracker to hold `Progress`
+   objects across calls that need the struct. Replace by pinning that
+   peer's `Progress` value in `nstate.t`, so `own_raft_phys` keeps owning
+   it; then delete `lent`. Work in progress on `newraft`.
 3. **`HnoConfChange` is false of a real cluster.** `inv_raftlog.v:139`
    requires `Forall (λ e, Type = EntryNormal) (sents ++ uents)` — the *whole*
    log — while `RawNode.Bootstrap` (`new/code/go_etcd_io/raft/v3.v:391`)
@@ -286,7 +286,7 @@ known gaps and the plan are in [tcb-accounting.md](tcb-accounting.md).
 8 `Admitted.`**, 3 of the admits signed off on for now and marked
 `(* Trusted *)` — still debt; the goal is no admits. On the election path
 alone: **14 `Axiom` and 1 `Admitted`**; two results, `wp_raft__Step_body`
-and `wp_newRaft_body`; 76 definitions, 816 lines; TCB 5.5% of the
+and `wp_newRaft_body`; 76 definitions, 814 lines; TCB 5.4% of the
 development by line.
 
     R=new/proof/go_etcd_io/raft      # required; the tool names no development
@@ -306,7 +306,7 @@ doc comments quote probe lemmas ending in `Admitted.`, and `spec_*.v` files
 are full of `Parameter`s.
 
 The count of axioms is the smaller half. The **definitions** the results
-reach — 76 on the election path, 816 lines — are the rest of it:
+reach — 76 on the election path, 814 lines — are the rest of it:
 `wp_raft__Step` says nothing if `nstate.t`, `nstate_rel`, `pstate.t`,
 `step` or `own_raft_phys` is wrong, and none of those is an axiom.
 

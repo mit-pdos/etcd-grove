@@ -218,6 +218,11 @@ Definition own_tracker (tv : tracker.ProgressTracker.t) (votes : gmap w64 bool)
   "%Hvoters_arr" ∷ ⌜ array.arr
       tv.(tracker.ProgressTracker.Config').(tracker.Config.Voters')
       = [voters_ref; map.nil] ⌝ ∗
+  (* and not a joint one on its way out: [AutoLeave] is only set on
+     entering a joint configuration.  [ConfState] reads it (added
+     2026-09-29, when [switchToConfig] stopped keeping the tracker value
+     in hand across the call) *)
+  "%Hautoleave" ∷ ⌜ tv.(tracker.ProgressTracker.Config').(tracker.Config.AutoLeave') = false ⌝ ∗
   "Hvoters" ∷ voters_ref ↦$ voters ∗
   "%Hvoters_dom" ∷ ⌜ dom voters = cfg ⌝ ∗
   (* no learners.  Either map may be [nil] -- and after [newRaft] both
@@ -235,21 +240,14 @@ Definition own_tracker (tv : tracker.ProgressTracker.t) (votes : gmap w64 bool)
      2^64] is consistent with every other conjunct here.  This is a property
      of the configuration, so it belongs with the configuration. *)
   "%Hcfg_size" ∷ ⌜ Z.of_nat (size cfg) < 2 ^ 63 ⌝ ∗
-  (* **The voter set is non-empty.**  Needed because
-     [MajorityConfig.VoteResult] returns [VoteWon] *outright* for an empty
-     config ([new/code/go_etcd_io/raft/v3/quorum.v:412-418] -- "by
-     convention, the elections on an empty config win"), while
-     [is_quorum ∅ q] unfolds to [0 < 2 * 0].  So without this,
-     [wp_ProgressTracker__TallyVotes]'s [VoteWon] conjunct is **false**;
-     found 2026-09-16.  Nothing else here excludes it: [dom prs = cfg] and
-     [dom voters = cfg] are both satisfiable at [∅].
-
-     Free to add: no proof in the development *constructs* an [own_tracker]
-     from scratch -- every lemma that re-establishes one does so from one it
-     was given -- so a new conjunct costs nothing but is preserved
-     everywhere.  Like [Hcfg_size] it is a property of the configuration,
-     and it is true of any real raft: a node's own id is a voter. *)
-  "%Hcfg_ne" ∷ ⌜ cfg ≠ ∅ ⌝ ∗
+  (* **No non-emptiness conjunct.**  From 2026-09-16 to 2026-09-29 this
+     predicate required [cfg ≠ ∅], because [MajorityConfig.VoteResult]
+     returns [VoteWon] outright for an empty configuration while
+     [is_quorum ∅ q] is false.  That made the *empty* tracker
+     [MakeProgressTracker] builds -- the one [newRaft] starts from -- not an
+     [own_tracker], so [newRaft] had to hold it on loan until
+     [switchToConfig].  The premise now sits where it is used:
+     [JointConfig.VoteResult], [TallyVotes] and [poll] take [cfg ≠ ∅]. *)
   (** **The inflight window is a sane size.**  [Config.validate] requires
       only [MaxInflightMsgs > 0] -- **it has no upper bound** (this comment
       said [(0, 1<<30]] until 2026-09-24; notes/false-statements.md) --
@@ -259,7 +257,7 @@ Definition own_tracker (tv : tracker.ProgressTracker.t) (votes : gmap w64 bool)
       Needed because [reset]'s [Visit] closure calls
       [tracker.NewInflights(r.trk.MaxInflight, …)], and the ring-buffer
       invariant of [own_inflights] pins [0 ≤ size < 2^62] (see
-      [inflights_ok]).  Like [Hcfg_size] and [Hcfg_ne] it is a property of
+      [inflights_ok]).  Like [Hcfg_size] it is a property of
       the configuration and is never written on the election path.
       Added 2026-09-20 for [bcastAppend]. *)
   "%HmaxInfl" ∷ ⌜ (0 ≤ sint.Z tv.(tracker.ProgressTracker.MaxInflight')
@@ -583,3 +581,72 @@ Qed.
 
 
 End proof.
+
+(** ** A configuration, and changing to one
+
+    [own_config cfg cfgv prsm prs] is what [confchange.Restore] builds for a
+    voters-only configuration [cfg]: the [Config] value [cfgv] with its
+    voter map, and the progress map at [prsm] with its [Progress] objects.
+    It is the part of [own_tracker] that [switchToConfig] replaces; the
+    vote tally and the tracker's other fields stay.  [own_tracker_reconfig]
+    is the one place an [own_tracker] changes its [cfg] index. *)
+Section config.
+Context `{hG: heapGS Σ, !ffi_semantics _ _}.
+Context {sem : go.Semantics} {package_sem : raft.Assumptions}.
+Collection W := sem + package_sem.
+Set Default Proof Using "W".
+
+Definition own_config (cfg : gset w64) (cfgv : tracker.Config.t) (prsm : loc)
+    (prs : gmap w64 loc) : iProp Σ :=
+  ∃ (vref : loc) (vm : gmap w64 unit),
+  "%Hcfgarr" ∷ ⌜ array.arr cfgv.(tracker.Config.Voters') = [vref; map.nil] ⌝ ∗
+  "%Hcfgl" ∷ ⌜ cfgv.(tracker.Config.Learners') = map.nil ⌝ ∗
+  "%Hcfgln" ∷ ⌜ cfgv.(tracker.Config.LearnersNext') = map.nil ⌝ ∗
+  "%Hcfgal" ∷ ⌜ cfgv.(tracker.Config.AutoLeave') = false ⌝ ∗
+  "Hvref" ∷ vref ↦$ vm ∗
+  "%Hvm" ∷ ⌜ dom vm = cfg ⌝ ∗
+  "#Hprsm" ∷ prsm ↦$□ prs ∗
+  "%Hprs" ∷ ⌜ dom prs = cfg ⌝ ∗
+  "Hprogs" ∷ ([∗ map] pr ∈ prs, ∃ pv iv, own_progress pr pv iv) ∗
+  "%Hcsz" ∷ ⌜ Z.of_nat (size cfg) < 2 ^ 63 ⌝.
+
+(** The tracker [MakeProgressTracker] builds is an [own_tracker] over the
+    empty configuration. *)
+Lemma own_tracker_empty (tv : tracker.ProgressTracker.t) (v0 : loc) :
+  array.arr tv.(tracker.ProgressTracker.Config').(tracker.Config.Voters') = [v0; map.nil] →
+  tv.(tracker.ProgressTracker.Config').(tracker.Config.Learners') = map.nil →
+  tv.(tracker.ProgressTracker.Config').(tracker.Config.LearnersNext') = map.nil →
+  tv.(tracker.ProgressTracker.Config').(tracker.Config.AutoLeave') = false →
+  (0 ≤ sint.Z tv.(tracker.ProgressTracker.MaxInflight') < 2 ^ 62)%Z →
+  v0 ↦$ (∅ : gmap w64 unit) -∗
+  tv.(tracker.ProgressTracker.Votes') ↦$ (∅ : gmap w64 bool) -∗
+  tv.(tracker.ProgressTracker.Progress') ↦$□ (∅ : gmap w64 loc) -∗
+  own_tracker ∅ tv ∅ ∅.
+Proof using All.
+  iIntros (Harr Hl Hln Hal Hmi) "Hv0 Hvotes #Hprs".
+  rewrite /own_tracker. iExists v0, ∅, ∅, ∅.
+  iFrame "Hvotes Hprs Hv0". rewrite Hl Hln.
+  iSplitL; first by rewrite big_sepM_empty.
+  repeat (iSplitR; [first [iPureIntro; done | iLeft; done] |]).
+  iPureIntro. split_and!; try done; rewrite ?dom_empty_L ?size_empty //; lia.
+Qed.
+
+(** Replace the configuration and the progress map of a tracker, keeping
+    its tally and inflight bound.  The old configuration's voter map and
+    [Progress] objects are dropped. *)
+Lemma own_tracker_reconfig cfg0 cfg tv votes prs0 cfgv prsm prs :
+  own_tracker cfg0 tv votes prs0 -∗
+  own_config cfg cfgv prsm prs -∗
+  own_tracker cfg (tv <| tracker.ProgressTracker.Config' := cfgv |>
+                      <| tracker.ProgressTracker.Progress' := prsm |>) votes prs.
+Proof using All.
+  iIntros "Hold Hnew". iNamed "Hold".
+  iClear "Hprs Hprogs Hvoters Hlearners HlearnersNext".
+  iNamed "Hnew".
+  rewrite /own_tracker. iExists vref, vm, ∅, ∅. simpl.
+  iFrame "Hvotes Hprsm Hprogs Hvref". rewrite Hcfgl Hcfgln.
+  repeat (iSplitR; [first [iPureIntro; done | iLeft; done] |]).
+  iPureIntro. done.
+Qed.
+
+End config.

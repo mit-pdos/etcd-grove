@@ -32,6 +32,9 @@ Import P.
     { done. }
     { rewrite Hvoters_arr. done. }
     wp_method_call. wp_call. wp_auto.
+    (* [Slice]'s postcondition gives back an [own_idset_opt], whose [map.nil]
+       disjunct we refute with the voter map's own points-to *)
+    iDestruct (own_map_not_nil with "Hvoters") as %Hvoters_nn.
     wp_apply (P.wp_MajorityConfig__Slice with "[Hvoters]") as "%sl0 %xs0 (Hvoters & Hsl0 & _ & %Hxs0)".
     { iRight. iFrame. }
     iDestruct ("Hcback" with "Hc0") as "Hvf".
@@ -67,7 +70,7 @@ Import P.
     iDestruct (own_slice_len with "Hsl2") as %[Hl2 Hl2'].
     iDestruct (own_slice_len with "Hsl3") as %[Hl3 Hl3'].
     iDestruct "Hvoters" as "[[%Hvn %Hve]|Hvoters]".
-    { exfalso. subst voters. apply Hcfg_ne. rewrite -Hvoters_dom dom_empty_L //. }
+    { exfalso. by apply Hvoters_nn. }
     iApply ("HΦ" $! _ xs0). iFrame "Htrk Hsl0".
     iSplitL "Hvotes Hprogs Hvoters Hlearners HlearnersNext".
     { rewrite /own_tracker. iExists voters_ref, voters, ∅, ∅.

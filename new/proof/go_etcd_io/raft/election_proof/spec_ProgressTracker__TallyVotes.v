@@ -31,13 +31,16 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
     The [VoteWon] conjunct is false at [cfg = ∅] -- [MajorityConfig.VoteResult]
     returns [VoteWon] outright for an empty config ("by convention, the
     elections on an empty config win"), while [is_quorum ∅ q] unfolds to
-    [0 < 2 * 0].  That is why [own_tracker] carries [Hcfg_ne : cfg ≠ ∅]; see
-    [inv_tracker.v] for why adding it cost nothing. *)
+    [0 < 2 * 0].  That is why this spec (like [wp_JointConfig__VoteResult],
+    which it passes the premise to) takes [cfg ≠ ∅]; the fact used to be a
+    conjunct of [own_tracker], and was moved out so that the empty tracker
+    is an [own_tracker ∅ …]. *)
 Definition wp_ProgressTracker__TallyVotes_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (cfg : gset w64) (trk : loc) tv votes (prs : gmap w64 loc),
+  cfg ≠ ∅ →
   {{{ is_pkg_init tracker ∗ trk ↦ tv ∗ own_tracker cfg tv votes prs }}}
     trk @! (go.PointerType tracker.ProgressTracker) @! "TallyVotes" #()
   {{{ (g rj : w64) (res : w8), RET (#g, #rj, #res);

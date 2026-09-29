@@ -3695,3 +3695,30 @@ same 6 notes/warnings.
 Next: `own_tracker` at the empty configuration (so `newRaft` needs no
 loan), then pin a `Progress` value in `nstate.t` instead of lending the
 tracker, then delete `lent`.
+
+## 2026-09-29 (later) — `own_tracker` at the empty configuration; `newRaft` lends nothing
+
+Second step towards removing `nstate.lent`.
+
+- `inv_tracker.v`: `own_tracker` no longer requires `cfg ≠ ∅`. It gains
+  `AutoLeave = false` (a simple configuration; needed because
+  `switchToConfig` no longer holds the tracker value across the call, so
+  `ConfState` has to say `AutoLeave = false` itself). New: `own_config` (the
+  pieces `confchange.Restore` builds), `own_tracker_empty` (what
+  `MakeProgressTracker` returns is `own_tracker ∅ …`), `own_tracker_reconfig`.
+- `cfg ≠ ∅` is now a premise of `JointConfig.VoteResult`, `TallyVotes` and
+  `poll`; `stepCandidate` derives it from `id ∈ cfg` (subagent).
+  `ConfState` rules out the nil voter map with `own_map_not_nil` instead.
+- `inv_raft_phys.v`: `own_raft_phys_reconfig cfg0 cfg`, the one accessor
+  that changes the `cfg` index. `switchToConfig` is stated on it:
+  `own_raft_phys cfg0 r id s ∗ own_config cfg … → own_raft_phys cfg r id
+  (s <| progress := prs |>)`, no loan. `confchange.Restore` takes the old
+  progress map at `↦$□`.
+- `newRaft` builds its struct over `∅`, idle, and never lends anything.
+
+Checked: `.vok` of all 412 targets under `election_proof/`, 0 errors.
+`tcb-report`: 277 Qed lemmas, assumptions unchanged.
+`check-module-discipline`: 6 notes/warnings.
+
+Next: pin a `Progress` value in `nstate.t` for `maybeSendAppend`,
+`maybeSendSnapshot`, `reset`; delete `lent`.

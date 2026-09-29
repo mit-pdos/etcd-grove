@@ -65,14 +65,14 @@ Definition wp_confchange_Restore_body :=
   {{{ is_pkg_init confchange ∗
       cs.(raftpb.ConfState.Voters') ↦*{dq} voters ∗
       v0 ↦$ (∅ : gmap w64 unit) ∗
-      tv.(tracker.ProgressTracker.Progress') ↦$ (∅ : gmap w64 loc) }}}
+      tv.(tracker.ProgressTracker.Progress') ↦$□ (∅ : gmap w64 loc) }}}
     @! confchange.Restore #chg #cs
   {{{ (cfgv : tracker.Config.t) (prsm : loc) (prs : gmap w64 loc)
       (vref : loc) (vm : gmap w64 unit),
       RET (#cfgv, #prsm, #interface.nil);
       cs.(raftpb.ConfState.Voters') ↦*{dq} voters ∗
       v0 ↦$ (∅ : gmap w64 unit) ∗
-      tv.(tracker.ProgressTracker.Progress') ↦$ (∅ : gmap w64 loc) ∗
+      tv.(tracker.ProgressTracker.Progress') ↦$□ (∅ : gmap w64 loc) ∗
       ⌜ array.arr cfgv.(tracker.Config.Voters') = [vref; map.nil] ∧
         cfgv.(tracker.Config.Learners') = map.nil ∧
         cfgv.(tracker.Config.LearnersNext') = map.nil ∧

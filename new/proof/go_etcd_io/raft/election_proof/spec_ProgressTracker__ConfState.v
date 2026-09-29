@@ -19,8 +19,7 @@ Definition wp_ProgressTracker__ConfState_body :=
       ⌜ cs.(raftpb.ConfState.VotersOutgoing').(slice.len) = W64 0 ∧
         cs.(raftpb.ConfState.Learners').(slice.len) = W64 0 ∧
         cs.(raftpb.ConfState.LearnersNext').(slice.len) = W64 0 ∧
-        cs.(raftpb.ConfState.AutoLeave')
-          = tv.(tracker.ProgressTracker.Config').(tracker.Config.AutoLeave') ⌝ }}}.
+        cs.(raftpb.ConfState.AutoLeave') = false ⌝ }}}.
 
 Module Type PROGRESSTRACKER__CONFSTATE.
   Parameter wp_ProgressTracker__ConfState : wp_ProgressTracker__ConfState_body.
