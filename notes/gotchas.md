@@ -977,7 +977,13 @@ size but hit the same proofs:
   goal is a `WP`. Write `by exfalso` (the goal is then `False`, not a `WP`,
   and the full stdpp cascade runs). The override came in with 25ce5ca6f
   (2026-09-17) and broke four such sites in `chan_au_recv.v` and
-  `chan_au_send.v` unnoticed for 12 days (2026-09-29 journal).
+  `chan_au_send.v` unnoticed for 12 days (2026-09-29 journal), and nine
+  more in five other files (same day). It also catches goals that merely
+  *contain* a `WP` -- an entailment `P ⊢ WP …`, an implication into one --
+  so `destruct (envs_app …) eqn:? => //` in `dsp_proofmode.v` failed too.
+  Where `try done` must close both live and dead branches (`destruct cst;
+  try done`), write `try done; try by exfalso`. Only a full `vo` build
+  finds these: `.vos`/`.vok` sweeps of the raft proof never run them.
 
 One more, inside the framework rather than a proof, found in the second
 round of profiling the same day:

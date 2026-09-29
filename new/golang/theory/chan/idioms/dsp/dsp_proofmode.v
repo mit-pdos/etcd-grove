@@ -188,7 +188,7 @@ Proof.
     [by eapply bi.wand_entails, (wp_dsp_recv _ lr_chan _ (tele_app tv) (tele_app tP') (tele_app tp))|
       f_equiv; first done].
   rewrite -bi.later_intro; apply bi.forall_intro=> x.
-  specialize (HΦ x). destruct (envs_app _ _) as [Δ'|] eqn:HΔ'=> //.
+  specialize (HΦ x). destruct (envs_app _ _) as [Δ'|] eqn:HΔ'; [|by exfalso].
   rewrite envs_app_sound //; simpl. by rewrite right_id HΦ.
 Qed.
 
@@ -287,8 +287,8 @@ Lemma tac_wp_send
 Proof.
   rewrite envs_entails_unseal /ProtoNormalize /MsgTele /= right_id texist_exist.
   intros ? Hp Hm [x HΦ]. rewrite envs_lookup_sound //; simpl.
-  destruct (envs_split _ _ _) as [[Δ1 Δ2]|] eqn:? => //.
-  destruct (envs_app _ _ _) as [Δ2'|] eqn:? => //.
+  destruct (envs_split _ _ _) as [[Δ1 Δ2]|] eqn:?; [|by exfalso].
+  destruct (envs_app _ _ _) as [Δ2'|] eqn:?; [|by exfalso].
   rewrite envs_split_sound //; rewrite (envs_app_sound Δ2) //; simpl.
   destruct HΦ as (-> & -> & ->). rewrite right_id assoc.
   assert ((lr_chan,rl_chan) ↣{γ} p ⊢

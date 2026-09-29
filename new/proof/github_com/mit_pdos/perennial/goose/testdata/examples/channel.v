@@ -54,7 +54,7 @@ Proof.
   wp_apply chan.wp_make2; first done.
   iIntros (c γc) "(#Hc_is_chan & _ & Hc_own)".
   wp_auto. iPersist "c".
-  destruct decide; first done.
+  destruct decide; first by exfalso.
   iMod (start_bag
     (λ v, ⌜v = Result.mk (query ++ "_primary.html"%go) true ∨
            v = Result.mk (query ++ "_secondary.html"%go) false⌝)%I
@@ -281,7 +281,7 @@ Proof.
   }
   wp_apply (wp_future_await (V:=unit) (t:=go.StructType []) with "[$Hisfut $HAwait]") as (v P pre post) "(%Hsplit & HP & _)" --no-auto.
   destruct pre; simpl in Hsplit; [injection Hsplit as <- | exfalso; by destruct pre].
-  destruct post; [|done].
+  destruct post; [|by exfalso].
   wp_auto.
   iApply "HΦ". done.
 Qed.

@@ -90,7 +90,7 @@ Proof using W.
   rewrite app_length Hlen_bs in Hlen_b.
   wp_auto.
   list_elem bs 7 as b7.
-  do 9 (destruct bs as [|? bs]; try done).
+  do 9 (destruct bs as [|? bs]; try done; try by exfalso).
 
   repeat (rewrite -> decide_True; last word;
           wp_apply (wp_load_slice_index with "[$Hb]") as "Hb"; [len| | ];
@@ -282,7 +282,7 @@ Proof using W.
   rewrite app_length Hlen_bs in Hlen_b.
   wp_auto.
   list_elem bs 3 as b3.
-  do 5 (destruct bs as [|? bs]; try done).
+  do 5 (destruct bs as [|? bs]; try done; try by exfalso).
 
   repeat (rewrite -> decide_True; last word;
           wp_apply (wp_load_slice_index with "[$Hb]") as "Hb"; [len| | ];

@@ -95,7 +95,7 @@ Proof.
     (* NOTE: if `clientv3.lessor.KeepAlive` returns `nil` for its error, it is guaranteed to
        return a non-nil chan, so this case is impossible. *)
     iDestruct (is_chan_not_null with "Hkch") as %hbad.
-    done.
+    by exfalso.
   }
   wp_auto.
   wp_apply chan.wp_make1 as "* (Hdonec_is & % & Hdonec)".

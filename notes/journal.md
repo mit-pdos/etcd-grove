@@ -3867,3 +3867,29 @@ the other eight callers were checked by `.vok` after rebuilding
 `new/should_build.vos`: truncateAndAppend, raft__send,
 MajorityConfig__Slice, ProgressTracker__VoterNodes, newRaft,
 raft__campaign, v3_proof/readonly, tchajed/marshal — all exit 0.
+
+## 2026-09-29 — `make ci` is green again: the remaining `done`-override sites
+
+The five files STATUS item 11 listed (now deleted), all the `done` override
+of 25ce5ca6f (gotchas.md): a branch dead by a contradictory hypothesis is
+not closed by `done`/`//` while the goal is, or contains, a `WP`. Each goal
+was checked on a scratch copy compiled against the built `.vo` files before
+the edit went in.
+
+- `chan/idioms/dsp/dsp_proofmode.v:191,290,291`:
+  `destruct (envs_app/envs_split …) eqn:? => //` → `…; [|by exfalso]` (the
+  `None` branch, where `HΦ` is `False`; the goal is an entailment into a
+  `WP`).
+- `goose/testdata/examples/channel.v:57` `first done` → `first by exfalso`;
+  `:284` `[|done]` → `[|by exfalso]`.
+- `goose/testdata/examples/channel/etcd_session.v:129,135`
+  `destruct cst; try done` → `…; try done; try by exfalso`.
+- `go_etcd_io/etcd/client/v3/concurrency.v:98` `done` → `by exfalso`.
+- `encoding/binary.v:93,285` `do n (destruct bs as [|? bs]; try done)` →
+  `…; try done; try by exfalso` (not a channel file, but it blocked the
+  whole raft cone).
+
+Checked: `make -k -j4 ci` exit 0, 431 files compiled, `new/should_build.vo`
+built -- the first full `vo` build of the raft proof since 2026-09-17.
+`tcb-report --proof-root …/election_proof`: 14 Axiom, 1 Admitted, 273 Qed
+(unchanged); `--proof-root …/raft`: 27 Axiom, 8 Admitted, 291 Qed.

@@ -126,13 +126,13 @@ Proof.
           iFrame "Hsessionc_is".
           iApply (own_broadcast_chan_nonblocking_receive with "[$]").
           iSplit.
-          { destruct cst; try done.
+          { destruct cst; try done; try by exfalso.
             iIntros "#Hclosed". wp_auto. iApply wp_fupd.
             wp_apply chan.wp_make1 as "* (#? & % & ?)".
             iMod (alloc_broadcast_chan with "[$] [$]") as "Hown".
             iDestruct (own_broadcast_chan_Unknown with "[$]") as "#?".
             iSplitR; first done. iFrame "∗#%". done. }
-          destruct cst; try done. iIntros. iFrame. done.
+          destruct cst; try done; try by exfalso. iIntros. iFrame. done.
         + rewrite big_sepL2_nil //. }
       { simpl. iIntros "@ [%H _]". wp_auto. subst.
         iSplitR; first done.
