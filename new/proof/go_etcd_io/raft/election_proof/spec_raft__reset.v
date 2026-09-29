@@ -12,7 +12,7 @@ Definition wp_raft__reset_body :=
     (cfg : gset w64)
     (r : loc) (id : w64) (s : nstate.t) (term : w64),
   (* [Visit]'s closure calls [lastIndex], so the log must be whole *)
-  s.(nstate.lent) = None →
+  nstate_idle s →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "reset" #term
   {{{ RET #(); own_raft_phys cfg r id (reset_to s term) }}}.

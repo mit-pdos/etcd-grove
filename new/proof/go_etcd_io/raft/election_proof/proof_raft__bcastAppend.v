@@ -56,7 +56,7 @@ Proof. rewrite /app_sends. apply Forall_app_2. Qed.
     the whole content of the postcondition.  One [App] per peer would be
     false; see [spec_raft__bcastAppend.v]. *)
 Lemma wp_bcast (r : loc) (id : w64) (s : nstate.t) :
-  s.(nstate.lent) = None →
+  nstate_idle s →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "bcastAppend" #()
   {{{ (ms : list msg.t), RET #();

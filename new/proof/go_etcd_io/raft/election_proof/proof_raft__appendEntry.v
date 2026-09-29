@@ -55,14 +55,7 @@ Proof.
   iFrame "∗#%".
 Qed.
 
-(** ** The batch, as [appendEntry] rewrites it
-
-    The loop sets [es[k].Term = r.Term] and [es[k].Index = li+1+k]; nothing
-    else about an entry changes, which is what keeps [Type = EntryNormal]
-    true of the appended entries. *)
-Definition stamp (tm li : w64) (k : nat) (e : raftpb.Entry.t) : raftpb.Entry.t :=
-  e <| raftpb.Entry.Term' := tm |>
-    <| raftpb.Entry.Index' := word.add (word.add li (W64 1)) (W64 k) |>.
+(** ** The batch, as [appendEntry] rewrites it: [stamp] ([defs.v]). *)
 
 (** One iteration of the loop, on the list: the prefix already stamped grows
     by one. *)
@@ -162,13 +155,19 @@ Set Default Proof Using "Type".
     wp_start as "[Hphys Hes]". wp_auto. wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
     iDestruct (own_slice_len with "Hes") as %[Hlen Hlen'].
     (* [li := r.raftLog.lastIndex()], at a split that stays open *)
-    iDestruct (own_raft_phys_lend _ _ _ _ Hlent with "Hphys")
-      as (tv ls Hls) "(Htrk & Hlog & Hphys)".
-    destruct ls as [prev sents uents lcm lap lpg]; logstate_simpl; subst lpg.
+    (* the log is read at the state [s] records, and put back unchanged *)
+    pose proof (nstate_idle_page _ Hlent) as Hpg.
+    destruct (s.(nstate.logst)) as [prev sents uents lcm lap lpg] eqn:Hls.
+    cbn in Hpg; subst lpg.
+    iDestruct (own_raft_phys_log_at with "Hphys") as "[Hlog Hlogback]".
+    iEval (rewrite Hls) in "Hlog".
     iDestruct (own_raftLog_facts with "Hlog") as "[[%Hidx %Hbnd] Hlog]".
     wp_apply (wp_raftLog__lastIndex _ (logstate.mk prev sents uents lcm lap None) eq_refl with "[$Hlog]")
       as "%li [Hlog %Hli]".
     cbn [logstate.prev logstate.sents logstate.uents] in Hli.
+    iDestruct ("Hlogback" with "Hlog") as "Hphys".
+    iDestruct (own_raft_phys_eq _ _ _ _ s with "Hphys") as "Hphys".
+    { destruct s; simpl in Hls; subst. done. }
     (* The stamping loop.  [slice.for_range] allocates its **own** counter,
        distinct from the Go-level [i] the body assigns [$key] to, and
        [wp_auto] parks in front of that [GoAlloc] (notes/gotchas.md) -- hence
@@ -248,20 +247,24 @@ Set Default Proof Using "Type".
               + Z.of_nat (length (imap (stamp s.(nstate.term) li) ents))
               + 1 < 2^64)%Z as Hnw2
         by (rewrite length_imap; lia).
+      iDestruct (own_raft_phys_log_at with "Hphys") as "[Hlog Hlogback]".
+      iEval (rewrite Hls) in "Hlog".
       wp_apply (wp_raftLog__append _ (logstate.mk prev sents uents lcm lap None) _ _ _ eq_refl Hidx2 Hnorm2 Hnw2
                   with "[$Hlog $Hes]")
         as "%li2 (Hlog & Hes & %Hli2)".
-      (* end the loan: the log at the longer split, the tracker as lent *)
-      iDestruct (own_raft_phys_unlend _ _ _ s tv s.(nstate.votes)
-                   s.(nstate.progress)
-                   (logstate.mk prev sents
-                      (uents ++ imap (stamp s.(nstate.term) li) ents) lcm lap None)
-                   eq_refl with "Hphys Htrk Hlog")
-        as "Hphys".
-      iDestruct (own_raft_phys_eq _ _ _ _ s with "Hphys") as "Hphys".
-      { destruct s; simpl in Hlent; subst. done. }
+      iDestruct ("Hlogback" with "Hlog") as "Hphys".
+      (* [li] is [log_last] of the log it was read from: [lastIndex()]
+         cannot wrap ([Hbnd]) *)
+      assert (log_last (logstate.mk prev sents uents lcm lap None) = li) as Hlast.
+      { rewrite /log_last /=. apply word.unsigned_inj.
+        pose proof (word.unsigned_range prev.(raft.entryID.index')).
+        rewrite word.unsigned_of_Z_nowrap; lia. }
+      set s' := s <| nstate.logst := log_append (logstate.mk prev sents uents lcm lap None)
+                     (imap (stamp s.(nstate.term)
+                              (log_last (logstate.mk prev sents uents lcm lap None))) ents) |>.
+      iDestruct (own_raft_phys_eq _ _ _ _ s' with "Hphys") as "Hphys".
+      { rewrite /s' Hlast. done. }
       wp_apply (wp_raft_load_id with "Hphys") as "Hphys".
-      (* the self-addressed [MsgAppResp]: [send_ok]'s third clause *)
       wp_apply (P.wp_raft__send with "[$Hphys]");
         [ done
         | right; right; split_and!;
@@ -270,8 +273,7 @@ Set Default Proof Using "Type".
         | ].
       iIntros "Hphys". wp_auto.
       iDestruct (own_raft_phys_unsend with "Hphys") as "Hphys".
-      iApply ("HΦ" $! (imap (stamp s.(nstate.term) li) ents)).
-      iFrame.
+      iApply "HΦ". rewrite Hlast. iFrame.
   Qed.
 
 End RaftAppendEntryProof.

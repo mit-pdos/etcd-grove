@@ -111,48 +111,8 @@ Ltac split_unstable l lv :=
                (P := l ↦ lv) (P' := l ↦ lv)
                with "Hl") as "[Huf Hlback]".
 
-(** The abstract state of a [raftLog]: what every [raftLog] spec is stated
-    at.
-
-    - [prev], [sents], [uents]: the entry list, as described above.
-    - [committed], [applied]: [l.committed] and [l.applied].  Nothing on the
-      election path writes them; they are in the state because
-      [hasUnappliedConfChanges] and [maybeSendAppend] read them and a spec
-      has to be able to say what was read.
-    - [page]: a slice **on loan** to the caller.  [raftLog.slice] and
-      [raftLog.entries] return a page of entries that shares memory with the
-      log (a sub-slice of [unstable.entries], a slice [Storage] lent, or a
-      fresh concatenation of the two); while it is out, the log holds a wand
-      back instead of those entries.  At [Some (s, es, dq)] the caller holds
-      [s ↦*{dq} es], and [own_raftLog_return_page] ends the loan.  Every
-      other spec takes [page = None].
-
-    (Until 2026-09-23 the log had three shapes: [own_raftLog_at l prev sents
-    uents], the existential [own_raftLog l], and the "page out" shape that
-    [slice]/[entries] returned as [l ↦ lv ∗ s ↦*{dq} es ∗ (l ↦ lv -∗ s ↦*{dq}
-    es -∗ own_raftLog_at …)].  notes/decisions.md, "One predicate per
-    object".) *)
-Module logstate.
-Record t :=
-  mk {
-      prev : raft.entryID.t;
-      sents : list raftpb.Entry.t;
-      uents : list raftpb.Entry.t;
-      committed : w64;
-      applied : w64;
-      page : option (slice.t * list raftpb.Entry.t * dfrac);
-    }.
-#[global] Instance settable : Settable t :=
-  settable! mk <prev; sents; uents; committed; applied; page>.
-End logstate.
-
-(** After [destruct ls as [prev sents uents …]], reduce the projections the
-    specs are written with.  Restricted to the six projections: a plain
-    [simpl in *] near a struct points-to can run for minutes
-    (notes/gotchas.md). *)
-Ltac logstate_simpl :=
-  cbn [logstate.prev logstate.sents logstate.uents logstate.committed
-       logstate.applied logstate.page] in *.
+(** [logstate.t], the log's abstract state, is defined in [defs.v]: the
+    physical raft state [nstate.t] contains one. *)
 
 Section proof.
 Context `{hG: heapGS Σ, !ffi_semantics _ _}.

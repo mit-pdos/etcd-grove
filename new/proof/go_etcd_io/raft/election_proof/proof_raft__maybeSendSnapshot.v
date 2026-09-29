@@ -31,10 +31,9 @@ Set Default Proof Using "Type".
   (* End the loan, and get from the state [own_raft_phys_unlend] names back
      to [s]. *)
   Local Ltac finish s Hlent :=
-    iDestruct (own_raft_phys_unlend with "Hphys Htrk Hlog") as "Hphys";
-    [ done | ];
+    iDestruct (own_raft_phys_unlend with "Hphys Htrk") as "Hphys";
     iDestruct (own_raft_phys_eq _ _ _ _ s with "Hphys") as "Hphys";
-    [ destruct s; simpl in Hlent; subst; done | ].
+    [ destruct s; destruct Hlent as [Hl1 _]; cbn in Hl1; subst; done | ].
 
   (** Three exits, and the two [panic]s are both killed by [is_Storage]'s
       [HSnapshot] ([inv_storage.v]), whose postcondition is the disjunction
@@ -69,11 +68,13 @@ Set Default Proof Using "Type".
 
       **Resources.**  The struct arrives as [own_raft_phys].  The body
       holds [pr] -- borrowed out of the tracker with [own_tracker_lookup]
-      (the premise puts it at [to] in [s.(nstate.progress)]) -- and the log
-      at the same time as it reads raft fields for its log lines, so the
-      tracker and the log are lent out of the struct ([own_raft_phys_lend])
-      and the loan ends on every exit ([finish]) -- on the sending exit,
-      before the [send], whose spec wants the struct whole. *)
+      (the premise puts it at [to] in [s.(nstate.progress)]) -- while it
+      reads raft fields for its log lines, so the tracker is lent out of the
+      struct ([own_raft_phys_lend]) and the loan ends on every exit
+      ([finish]) -- on the sending exit, before the [send], whose spec wants
+      the struct whole.  The log is not lent: each [raftLog] call and the
+      read of [r.raftLog.committed] take it out with
+      [own_raft_phys_log_same] and put it back at the same state. *)
   Lemma wp_raft__maybeSendSnapshot : wp_raft__maybeSendSnapshot_body.
   Proof.
     intros_ambient.
@@ -87,7 +88,10 @@ Set Default Proof Using "Type".
         again, so move the (persistent) points-to into the □ context first. *)
     iDestruct "ErrSnapUnavail" as "#ErrSnapUnavail".
     iDestruct (own_raft_phys_lend _ _ _ _ Hlent with "Hphys")
-      as (tv ls Hls) "(Htrk & Hlog & Hphys)".
+      as (tv) "(Htrk & Hphys)".
+    (* the log stays in the struct; its page is empty at the lent state *)
+    assert (Hpg : (s <| nstate.lent := Some tv |>).(nstate.logst).(logstate.page) = None)
+      by (pose proof (nstate_idle_page _ Hlent); by destruct s).
     iDestruct (own_tracker_lookup _ _ _ _ _ _ Hprto with "Htrk")
       as "[Hpr Htrkback]".
     iNamed "Hpr".
@@ -101,8 +105,10 @@ Set Default Proof Using "Type".
       iDestruct ("Htrkback" with "Hpr") as "Htrk".
       finish s Hlent. iFrame "Hphys". }
     wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
-    wp_apply (wp_raftLog__snapshot _ _ _ Hls with "[$Hlog $ErrSnapUnavail]")
+    iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hlogback]".
+    wp_apply (wp_raftLog__snapshot _ _ _ Hpg with "[$Hlog $ErrSnapUnavail]")
       as "%snap %err [Hlog %Herr]".
+    iDestruct ("Hlogback" with "Hlog") as "Hphys".
     destruct Herr as [-> | [-> Hnz]].
     - (* [ErrSnapshotTemporarilyUnavailable]: log and return [false].  The
          [panic(err)] that follows the inner [if] is never reached. *)
@@ -124,11 +130,15 @@ Set Default Proof Using "Type".
          read *)
       wp_apply (wp_raft_load_id with "Hphys") as "Hphys".
       wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
-      wp_apply (wp_raftLog__firstIndex _ _ Hls with "[$Hlog]") as "%fi [Hlog %Hfi]".
+      iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hlogback]".
+      wp_apply (wp_raftLog__firstIndex _ _ Hpg with "[$Hlog]") as "%fi [Hlog %Hfi]".
+      iDestruct ("Hlogback" with "Hlog") as "Hphys".
       wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
-      iDestruct (own_raftLog_struct with "Hlog") as (lv) "(Hl & _ & Hlogback)".
+      iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hlogback]".
+      iDestruct (own_raftLog_struct with "Hlog") as (lv) "(Hl & _ & Hlb)".
       wp_auto.
-      iDestruct ("Hlogback" with "Hl") as "Hlog".
+      iDestruct ("Hlb" with "Hl") as "Hlog".
+      iDestruct ("Hlogback" with "Hlog") as "Hphys".
       wp_raft_log.
       iAssert (own_progress pr pv iv) with "[Hpv Hinfl]" as "Hpr".
       { rewrite /own_progress. iFrame "∗%". }

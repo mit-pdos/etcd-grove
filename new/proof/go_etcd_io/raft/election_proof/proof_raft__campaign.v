@@ -77,7 +77,7 @@ Lemma wp_campaign (r : loc) (id : w64) (s : nstate.t) (t : raft.CampaignType.t) 
   s.(nstate.role) ≠ role.Leader →
   id ∈ cfg →
   uint.Z s.(nstate.term) + 1 < 2 ^ 64 →
-  s.(nstate.lent) = None →
+  nstate_idle s →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "campaign" #t
   {{{ (peers : list w64), RET #();

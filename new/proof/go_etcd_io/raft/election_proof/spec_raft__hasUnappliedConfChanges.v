@@ -31,7 +31,7 @@ Definition wp_raft__hasUnappliedConfChanges_body :=
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (cfg : gset w64) (r : loc) (id : w64) (s : nstate.t),
   (* it scans the log *)
-  s.(nstate.lent) = None →
+  nstate_idle s →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "hasUnappliedConfChanges" #()
   {{{ RET #false; own_raft_phys cfg r id s }}}.

@@ -130,6 +130,71 @@ Qed.
 
 End proof.
 
+(** The abstract state of a [raftLog]: what every [raftLog] spec is stated
+    at.
+
+    - [prev], [sents], [uents]: the entry list, as described above.
+    - [committed], [applied]: [l.committed] and [l.applied].  Nothing on the
+      election path writes them; they are in the state because
+      [hasUnappliedConfChanges] and [maybeSendAppend] read them and a spec
+      has to be able to say what was read.
+    - [page]: a slice **on loan** to the caller.  [raftLog.slice] and
+      [raftLog.entries] return a page of entries that shares memory with the
+      log (a sub-slice of [unstable.entries], a slice [Storage] lent, or a
+      fresh concatenation of the two); while it is out, the log holds a wand
+      back instead of those entries.  At [Some (s, es, dq)] the caller holds
+      [s ↦*{dq} es], and [own_raftLog_return_page] ends the loan.  Every
+      other spec takes [page = None].
+
+    (Until 2026-09-23 the log had three shapes: [own_raftLog_at l prev sents
+    uents], the existential [own_raftLog l], and the "page out" shape that
+    [slice]/[entries] returned as [l ↦ lv ∗ s ↦*{dq} es ∗ (l ↦ lv -∗ s ↦*{dq}
+    es -∗ own_raftLog_at …)].  notes/decisions.md, "One predicate per
+    object".) *)
+Module logstate.
+Record t :=
+  mk {
+      prev : raft.entryID.t;
+      sents : list raftpb.Entry.t;
+      uents : list raftpb.Entry.t;
+      committed : w64;
+      applied : w64;
+      page : option (slice.t * list raftpb.Entry.t * dfrac);
+    }.
+#[global] Instance settable : Settable t :=
+  settable! mk <prev; sents; uents; committed; applied; page>.
+End logstate.
+
+(** After [destruct ls as [prev sents uents …]], reduce the projections the
+    specs are written with.  Restricted to the six projections: a plain
+    [simpl in *] near a struct points-to can run for minutes
+    (notes/gotchas.md). *)
+Ltac logstate_simpl :=
+  cbn [logstate.prev logstate.sents logstate.uents logstate.committed
+       logstate.applied logstate.page] in *.
+
+(** ** Physical transitions of the log
+
+    [log_last ls] is [lastIndex()] of a log at [ls], as a [w64]; the
+    [raftLog] specs return it as a [Z] equation, and [own_raftLog]'s
+    [Hnowrap] says the [W64] does not wrap. *)
+Definition log_last (ls : logstate.t) : w64 :=
+  W64 (uint.Z ls.(logstate.prev).(raft.entryID.index')
+       + Z.of_nat (length ls.(logstate.sents))
+       + Z.of_nat (length ls.(logstate.uents))).
+
+(** [raftLog.append] at the end of the log: the batch joins the unstable
+    suffix ([spec_raftLog__append.v]). *)
+Definition log_append (ls : logstate.t) (ents : list raftpb.Entry.t) : logstate.t :=
+  ls <| logstate.uents := ls.(logstate.uents) ++ ents |>.
+
+(** [appendEntry]'s stamping loop: [es[k].Term = r.Term] and
+    [es[k].Index = li+1+k]; nothing else about an entry changes, which is
+    what keeps [Type = EntryNormal] true of the appended entries. *)
+Definition stamp (tm li : w64) (k : nat) (e : raftpb.Entry.t) : raftpb.Entry.t :=
+  e <| raftpb.Entry.Term' := tm |>
+    <| raftpb.Entry.Index' := word.add (word.add li (W64 1)) (W64 k) |>.
+
 (** * The physical abstract state
 
     [nstate.t] is what [own_raft_phys r id s] ([inv_raft_phys.v]) is indexed
@@ -193,12 +258,13 @@ Record t :=
       stepfn : func.t;                (** [r.step] *)
       progress : gmap w64 loc;        (** [r.trk.Progress], as a map *)
       log : loc;                      (** [r.raftLog] *)
+      logst : logstate.t;             (** the log's abstract state *)
       lent : option tracker.ProgressTracker.t;
                                       (** tracker heap and log on loan *)
     }.
 End defn.
 #[global] Instance settable {ext : ffi_syntax} : Settable (@t ext) :=
-  settable! (@mk ext) <term; vote; lead; role; votes; outbox; stepfn; progress; log; lent>.
+  settable! (@mk ext) <term; vote; lead; role; votes; outbox; stepfn; progress; log; logst; lent>.
 End nstate.
 
 Section phys_state.
@@ -248,11 +314,23 @@ Definition become_candidate (id : w64) s : nstate.t :=
     <| nstate.role := role.Candidate |>
     <| nstate.stepfn := step_func_of role.Candidate |>.
 
-Definition become_leader (id : w64) s : nstate.t :=
+(** [becomeLeader] up to its [appendEntry]: what [reset], the [lead] and
+    [state] writes and [r.step] leave. *)
+Definition become_leader_pre (id : w64) s : nstate.t :=
   reset_to s s.(nstate.term)
     <| nstate.lead := id |>
     <| nstate.role := role.Leader |>
     <| nstate.stepfn := step_func_of role.Leader |>.
+
+(** The empty entry a new leader appends ([pb.Entry{Data: nil}], the zero
+    [Entry]), stamped at the leader's term and the log's next index. *)
+Definition leader_entry s : raftpb.Entry.t :=
+  stamp s.(nstate.term) (log_last s.(nstate.logst)) 0 (zero_val raftpb.Entry.t).
+
+(** [becomeLeader]: [become_leader_pre], then the empty entry appended. *)
+Definition become_leader (id : w64) s : nstate.t :=
+  become_leader_pre id s
+    <| nstate.logst := log_append s.(nstate.logst) [leader_entry s] |>.
 
 (** ** The connection to the protocol state *)
 
@@ -260,12 +338,25 @@ Definition to_pstate s : pstate.t :=
   pstate.mk s.(nstate.term) s.(nstate.vote) s.(nstate.lead) s.(nstate.role)
             s.(nstate.votes) s.(nstate.outbox).
 
+(** A state between two calls: nothing is on loan to a caller -- no log
+    page, no tracker.  The premise every function that touches the log or
+    the tracker takes.  (Until 2026-09-25 this was the bare
+    [s.(nstate.lent) = None], and [own_raft_phys] quantified the log's
+    state.) *)
+Definition nstate_idle s : Prop :=
+  s.(nstate.lent) = None ∧ s.(nstate.logst).(logstate.page) = None.
+
+Lemma nstate_idle_page s : nstate_idle s → s.(nstate.logst).(logstate.page) = None.
+Proof. by intros []. Qed.
+
+Lemma nstate_idle_lent s : nstate_idle s → s.(nstate.lent) = None.
+Proof. by intros []. Qed.
+
 (** A physical state that can take a protocol step: [r.step] agrees with the
     role, and nothing is on loan.  Every [becomeX] establishes the
     first; the second holds between any two top-level calls. *)
 Definition nstate_wf s : Prop :=
-  s.(nstate.stepfn) = step_func_of s.(nstate.role) ∧
-  s.(nstate.lent) = None.
+  s.(nstate.stepfn) = step_func_of s.(nstate.role) ∧ nstate_idle s.
 
 (** [s] refines the protocol state [ps]. *)
 Definition nstate_rel s (ps : pstate.t) : Prop :=
@@ -289,7 +380,7 @@ Proof. done. Qed.
 
 Lemma to_pstate_become_leader id s :
   to_pstate (become_leader id s) = pbecome_leader id (to_pstate s).
-Proof. rewrite /become_leader /reset_to /to_pstate /= decide_True //. Qed.
+Proof. rewrite /become_leader /become_leader_pre /reset_to /to_pstate /= decide_True //. Qed.
 
 Lemma to_pstate_votes s v :
   to_pstate (s <| nstate.votes := v |>) = to_pstate s <| pstate.votes := v |>.
@@ -300,16 +391,16 @@ Lemma to_pstate_vote s v :
 Proof. done. Qed.
 
 Lemma nstate_wf_become_follower s term lead :
-  s.(nstate.lent) = None → nstate_wf (become_follower s term lead).
-Proof. done. Qed.
+  nstate_idle s → nstate_wf (become_follower s term lead).
+Proof. intros [H1 H2]. split; [done|split; done]. Qed.
 
 Lemma nstate_wf_become_candidate id s :
-  s.(nstate.lent) = None → nstate_wf (become_candidate id s).
-Proof. done. Qed.
+  nstate_idle s → nstate_wf (become_candidate id s).
+Proof. intros [H1 H2]. split; [done|split; done]. Qed.
 
 Lemma nstate_wf_become_leader id s :
-  s.(nstate.lent) = None → nstate_wf (become_leader id s).
-Proof. done. Qed.
+  nstate_idle s → nstate_wf (become_leader id s).
+Proof. intros [H1 H2]. split; [done|split; done]. Qed.
 
 Lemma nstate_wf_send_msgs s ms : nstate_wf s → nstate_wf (send_msgs s ms).
 Proof. done. Qed.

@@ -19,31 +19,17 @@ Context (cfg : gset w64).
 
 Implicit Type s : nstate.t.
 
-(** The tracker and log conjuncts of [own_raft_phys], at loan state
-    [lent] ([nstate.lent], [defs.v]): the heap itself when nothing is on
-    loan; when the caller holds it, nothing but the tracker value it was
-    lent at.  A proof that opens [own_raft_phys] under
-    [s.(nstate.lent) = None] turns [Htrk]/[Hlog] into [own_tracker] /
-    [own_raftLog] with the [_open] lemmas and back with [_close]; none of
-    them needs a [simpl] of the goal. *)
+(** The tracker conjunct of [own_raft_phys], at loan state [lent]
+    ([nstate.lent], [defs.v]): the heap itself when nothing is on loan;
+    when the caller holds it, nothing but the tracker value it was lent at.
+    (Until 2026-09-28 the log had the same shape, [own_raftLog_unless];
+    since then its state is in [nstate.t] and it is never on loan.) *)
 Definition own_tracker_unless (lent : option tracker.ProgressTracker.t)
     (tv : tracker.ProgressTracker.t) (votes : gmap w64 bool)
     (prs : gmap w64 loc) : iProp Σ :=
   match lent with
   | None => own_tracker cfg tv votes prs
   | Some tv0 => ⌜ tv = tv0 ⌝
-  end.
-
-(** The log's state is quantified here rather than kept in [nstate.t]: no
-    spec on the election path needs to relate it across a call, and every
-    function that reads the log re-opens it (notes/decisions.md, "One
-    predicate per object").  Only at no page: a page loan never outlives
-    the function that took it. *)
-Definition own_raftLog_unless (lent : option tracker.ProgressTracker.t)
-    (l : loc) : iProp Σ :=
-  match lent with
-  | None => ∃ ls, ⌜ ls.(logstate.page) = None ⌝ ∗ own_raftLog l ls
-  | Some _ => True
   end.
 
 Lemma own_tracker_unless_open lent tv votes prs :
@@ -54,25 +40,10 @@ Lemma own_tracker_unless_close lent tv votes prs :
   lent = None → own_tracker cfg tv votes prs -∗ own_tracker_unless lent tv votes prs.
 Proof. intros ->. auto. Qed.
 
-Lemma own_raftLog_unless_open lent l :
-  lent = None → own_raftLog_unless lent l -∗
-  ∃ ls, ⌜ ls.(logstate.page) = None ⌝ ∗ own_raftLog l ls.
-Proof. intros ->. auto. Qed.
-
-(** The page premise is a wand premise rather than a Coq one so that the
-    log fixes [ls] first: callers write [with "Hlog [//]"]. *)
-Lemma own_raftLog_unless_close lent l ls :
-  lent = None →
-  own_raftLog l ls -∗ ⌜ ls.(logstate.page) = None ⌝ -∗ own_raftLog_unless lent l.
-Proof. intros ->. iIntros "H %Hpg". iExists ls. iFrame "H". done. Qed.
-
-(** The two conjuncts while on loan: nothing to own. *)
+(** The conjunct while on loan: nothing to own. *)
 Lemma own_tracker_unless_lent tv votes prs :
   ⊢ own_tracker_unless (Some tv) tv votes prs.
 Proof. by iPureIntro. Qed.
-
-Lemma own_raftLog_unless_lent tv l : ⊢ own_raftLog_unless (Some tv) l.
-Proof. auto. Qed.
 
 (** While on loan, the tracker field is the value it was lent at. *)
 Lemma own_tracker_unless_lent_eq tv0 tv votes prs :
@@ -121,9 +92,12 @@ Definition own_raft_phys_def (r : loc) (id : w64) s : iProp Σ :=
   "Htrk" ∷ own_tracker_unless s.(nstate.lent) rv.(raft.raft.trk')
              s.(nstate.votes) s.(nstate.progress) ∗
 
-  (** the log, unless it is on loan to the caller ([nstate.lent]) *)
+  (** the log, at the state [s] records ([nstate.logst]).  Never on loan:
+      a page [raftLog.slice] lends out is recorded in [logst.page]
+      instead.  (Until 2026-09-28 the log's state was quantified here, and
+      the log went on loan with the tracker.) *)
   "%Hlogp" ∷ ⌜ rv.(raft.raft.raftLog') = s.(nstate.log) ⌝ ∗
-  "Hlog" ∷ own_raftLog_unless s.(nstate.lent) rv.(raft.raft.raftLog') ∗
+  "Hlog" ∷ own_raftLog rv.(raft.raft.raftLog') s.(nstate.logst) ∗
 
   (** outgoing messages.  [send] routes vote/append *responses* to
       [msgsAfterAppend] and everything else to [msgs]; the model has a single
@@ -212,7 +186,7 @@ Lemma own_raft_phys_intro r id s (rv : raft.raft.t)
   is_Logger lok -∗
   own_tracker_unless s.(nstate.lent) rv.(raft.raft.trk') s.(nstate.votes)
     s.(nstate.progress) -∗
-  own_raftLog_unless s.(nstate.lent) rv.(raft.raft.raftLog') -∗
+  own_raftLog rv.(raft.raft.raftLog') s.(nstate.logst) -∗
   rv.(raft.raft.msgs') ↦* msgs -∗
   own_slice_cap raftpb.Message.t rv.(raft.raft.msgs') (DfracOwn 1) -∗
   rv.(raft.raft.msgsAfterAppend') ↦* msgsAA -∗
@@ -230,10 +204,10 @@ Qed.
 (** The progress map in [s] is the tracker's, and so has domain [cfg].  Read
     out without consuming anything. *)
 Lemma own_raft_phys_progress_dom r id s :
-  s.(nstate.lent) = None →
+  nstate_idle s →
   own_raft_phys r id s -∗ ⌜ dom s.(nstate.progress) = cfg ⌝ ∗ own_raft_phys r id s.
 Proof.
-  iIntros (Hlent) "H". iNamed_phys "H".
+  iIntros ([Hlent _]) "H". iNamed_phys "H".
   iDestruct (own_tracker_unless_open _ _ _ _ Hlent with "Htrk") as "Htrk".
   iDestruct (own_tracker_progress_map with "Htrk") as "(#Hprs & %Hdom & Htrk)".
   iDestruct (own_tracker_unless_close _ _ _ _ Hlent with "Htrk") as "Htrk".
@@ -624,7 +598,7 @@ Proof. split_field_proof "(? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ?
     lookup [r.trk.Progress[i]] is done on what this hands out, with
     [own_tracker_progress_map] / [wp_tracker_progress_lookup]. *)
 Lemma own_raft_phys_tracker r id s :
-  s.(nstate.lent) = None →
+  nstate_idle s →
   own_raft_phys r id s -∗
   ∃ tv, r.[raft.raft.t, "trk"] ↦ tv ∗
         own_tracker cfg tv s.(nstate.votes) s.(nstate.progress) ∗
@@ -632,7 +606,7 @@ Lemma own_raft_phys_tracker r id s :
            own_tracker cfg tv' votes' s.(nstate.progress) -∗
            own_raft_phys r id (s <| nstate.votes := votes' |>)).
 Proof.
-  iIntros (Hlent) "H". iNamed_phys "H".
+  iIntros ([Hlent _]) "H". iNamed_phys "H".
   iDestruct (own_tracker_unless_open _ _ _ _ Hlent with "Htrk") as "Htrk".
   iDestruct (raft_split_trk with "Hr") as "[Hf Hback]".
   iExists _. iFrame "Hf Htrk".
@@ -647,7 +621,7 @@ Qed.
     (a map lookup, [JointConfig.IDs]), or a split and re-seal repeated
     inside a [Visit] closure, does not pile up setters. *)
 Lemma own_raft_phys_tracker_same r id s :
-  s.(nstate.lent) = None →
+  nstate_idle s →
   own_raft_phys r id s -∗
   ∃ tv, r.[raft.raft.t, "trk"] ↦ tv ∗
         own_tracker cfg tv s.(nstate.votes) s.(nstate.progress) ∗
@@ -664,69 +638,94 @@ Proof.
   iApply (own_raft_phys_eq with "Hphys"). by destruct s.
 Qed.
 
-(** The log, at no page. *)
+(** The log, at the state [s] records, put back at any state.  This is the
+    accessor for a function that changes the log ([appendEntry]'s [append],
+    [loadState]'s [committed], [newRaft]'s [appliedTo]). *)
+Lemma own_raft_phys_log_at r id s :
+  own_raft_phys r id s -∗
+  own_raftLog s.(nstate.log) s.(nstate.logst) ∗
+  (∀ ls', own_raftLog s.(nstate.log) ls' -∗
+          own_raft_phys r id (s <| nstate.logst := ls' |>)).
+Proof.
+  iIntros "H". iNamed_phys "H".
+  rewrite -Hlogp. iFrame "Hlog".
+  iIntros (ls') "Hlog".
+  reseal.
+Qed.
+
+(** The log at the state [s] records, put back at that same state: for a
+    read through [own_raftLog] (a [raftLog] method that keeps its state, a
+    field load through [own_raftLog_struct]) at any loan or page state.
+    The wand gives [own_raft_phys] at [s] itself, so no [own_raft_phys_eq]
+    is needed afterwards. *)
+Lemma own_raft_phys_log_same r id s :
+  own_raft_phys r id s -∗
+  own_raftLog s.(nstate.log) s.(nstate.logst) ∗
+  (own_raftLog s.(nstate.log) s.(nstate.logst) -∗ own_raft_phys r id s).
+Proof.
+  iIntros "H".
+  iDestruct (own_raft_phys_log_at with "H") as "[Hlog Hback]".
+  iFrame "Hlog". iIntros "Hlog".
+  iDestruct ("Hback" with "Hlog") as "H".
+  iApply (own_raft_phys_eq with "H"). by destruct s.
+Qed.
+
+(** The log, for a function that reads it and puts it back unchanged: at no
+    page ([nstate_idle]), and the wand gives [own_raft_phys] at [s] itself.
+    The existential and the [⌜ ls' = ls ⌝] premise keep the shape of the
+    accessor from before 2026-09-28, when the log's state was quantified:
+    callers write [as (ls Hls) "(Hlog & Hback)"] and [with "Hlog [//]"]. *)
 Lemma own_raft_phys_log r id s :
-  s.(nstate.lent) = None →
+  nstate_idle s →
   own_raft_phys r id s -∗
   ∃ ls, ⌜ ls.(logstate.page) = None ⌝ ∗ own_raftLog s.(nstate.log) ls ∗
-        (∀ ls', own_raftLog s.(nstate.log) ls' -∗ ⌜ ls'.(logstate.page) = None ⌝ -∗
+        (∀ ls', own_raftLog s.(nstate.log) ls' -∗ ⌜ ls' = ls ⌝ -∗
                 own_raft_phys r id s).
 Proof.
-  iIntros (Hlent) "H". iNamed_phys "H".
-  iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog") as (ls Hls) "Hlog".
-  iExists ls. iSplitR; first done. rewrite -Hlogp. iFrame "Hlog".
-  iIntros (ls') "Hlog %Hls'".
-  iDestruct (own_raftLog_unless_close _ _ _ Hlent with "Hlog [//]") as "Hlog".
-  reseal.
+  iIntros ([_ Hpg]) "H".
+  iDestruct (own_raft_phys_log_at with "H") as "[Hlog Hback]".
+  iExists s.(nstate.logst). iSplitR; first done. iFrame "Hlog".
+  iIntros (ls') "Hlog ->".
+  iDestruct ("Hback" with "Hlog") as "H".
+  iApply (own_raft_phys_eq with "H"). by destruct s.
 Qed.
 
-(** Lend the tracker's heap and the log to the caller ([nstate.lent]).
-    The tracker is lent at the value the field holds, which
-    [own_raft_phys_trk_lent] reaches while the loan lasts. *)
+(** Lend the tracker's heap to the caller ([nstate.lent]), at the value the
+    field holds, which [own_raft_phys_trk_lent] reaches while the loan
+    lasts.  The log stays in the struct: reach it with
+    [own_raft_phys_log(_at)], which need no loan. *)
 Lemma own_raft_phys_lend r id s :
-  s.(nstate.lent) = None →
+  nstate_idle s →
   own_raft_phys r id s -∗
-  ∃ tv ls, ⌜ ls.(logstate.page) = None ⌝ ∗
-           own_tracker cfg tv s.(nstate.votes) s.(nstate.progress) ∗
-           own_raftLog s.(nstate.log) ls ∗
-           own_raft_phys r id (s <| nstate.lent := Some tv |>).
+  ∃ tv, own_tracker cfg tv s.(nstate.votes) s.(nstate.progress) ∗
+        own_raft_phys r id (s <| nstate.lent := Some tv |>).
 Proof.
-  iIntros (Hlent) "H". iNamed_phys "H".
+  iIntros ([Hlent _]) "H". iNamed_phys "H".
   iDestruct (own_tracker_unless_open _ _ _ _ Hlent with "Htrk") as "Htrk0".
-  iDestruct (own_raftLog_unless_open _ _ Hlent with "Hlog") as (ls Hls) "Hlog0".
-  iExists rv.(raft.raft.trk'), ls. iSplitR; first done.
-  iFrame "Htrk0". rewrite -Hlogp. iFrame "Hlog0".
+  iExists rv.(raft.raft.trk'). iFrame "Htrk0".
   iPoseProof (own_tracker_unless_lent rv.(raft.raft.trk') s.(nstate.votes)
                 s.(nstate.progress)) as "Htrk".
-  iPoseProof (own_raftLog_unless_lent rv.(raft.raft.trk') rv.(raft.raft.raftLog'))
-    as "Hlog".
   reseal.
 Qed.
 
-(** End a loan: the tracker comes back at any tally and progress map, the
-    log at any state with no page out.  Stated, like
-    [own_raft_phys_trk_lent], at the state [own_raft_phys_lend] produces:
-    [(s <| lent := x |>).(lent)] does not reduce to [x] for a variable [s]
-    (the setter destructures the record), so a premise [s.(lent) = Some tv]
-    would need a [destruct s] at every use.  A caller whose state has been
-    through a call since the loan began gets it into this form with
-    [own_raft_phys_eq] and [by destruct s]. *)
-Lemma own_raft_phys_unlend r id s tv votes prs ls :
-  ls.(logstate.page) = None →
+(** End a loan: the tracker comes back at any tally and progress map.
+    Stated, like [own_raft_phys_trk_lent], at the state
+    [own_raft_phys_lend] produces: [(s <| lent := x |>).(lent)] does not
+    reduce to [x] for a variable [s] (the setter destructures the record),
+    so a premise [s.(lent) = Some tv] would need a [destruct s] at every
+    use.  A caller whose state has been through a call since the loan began
+    gets it into this form with [own_raft_phys_eq] and [by destruct s]. *)
+Lemma own_raft_phys_unlend r id s tv votes prs :
   own_raft_phys r id (s <| nstate.lent := Some tv |>) -∗
   own_tracker cfg tv votes prs -∗
-  own_raftLog s.(nstate.log) ls -∗
   own_raft_phys r id (s <| nstate.lent := None |> <| nstate.votes := votes |>
                         <| nstate.progress := prs |>).
 Proof.
-  iIntros (Hpg) "H Htrk0 Hlog0". iNamed_phys "H".
+  iIntros "H Htrk0". iNamed_phys "H".
   iDestruct (own_tracker_unless_lent_eq with "Htrk") as %Htv.
-  iClear "Htrk Hlog".
+  iClear "Htrk".
   rewrite -Htv.
   iDestruct (own_tracker_unless_close None _ _ _ eq_refl with "Htrk0") as "Htrk".
-  iAssert (own_raftLog rv.(raft.raft.raftLog') ls) with "[Hlog0]" as "Hlog0".
-  { rewrite Hlogp. destruct s. iExact "Hlog0". }
-  iDestruct (own_raftLog_unless_close None _ _ eq_refl with "Hlog0 [//]") as "Hlog".
   reseal.
 Qed.
 
@@ -747,10 +746,9 @@ Proof.
   rewrite Htv. iFrame "Hf".
   iIntros (tv') "Hf".
   iDestruct ("Hback" $! tv' with "Hf") as "Hr".
-  iClear "Htrk Hlog".
+  iClear "Htrk".
   iPoseProof (own_tracker_unless_lent tv' s.(nstate.votes) s.(nstate.progress))
     as "Htrk".
-  iPoseProof (own_raftLog_unless_lent tv' rv.(raft.raft.raftLog')) as "Hlog".
   reseal.
 Qed.
 

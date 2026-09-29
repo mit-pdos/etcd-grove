@@ -3652,3 +3652,46 @@ Checked: `.vok` of all 417 targets (every `.v` under `raft/`, plus
 election_proof`: 273 Qed lemmas, 14 Axiom + 1 Admitted, two results, 76
 definitions / 817 lines, TCB 5.5%. `check-module-discipline`: 6
 notes/warnings, no errors.
+
+## 2026-09-29 — The log's state in `nstate.t`; the log is never on loan
+
+Asked to move the log's state into `nstate.t` and work towards removing
+`nstate.lent`. First step done (on `newraft`, after merging the sealed
+`own_raft_phys` from `main`).
+
+- `defs.v`: `logstate.t` moved here from `inv_raftlog.v`; `nstate.t` gains
+  `logst`. New `log_last`, `log_append`, `stamp` (moved from
+  `proof_raft__appendEntry.v`), `leader_entry`, `become_leader_pre`;
+  `become_leader` now *includes* the append of the stamped empty entry.
+  `nstate_idle s := lent = None ∧ logst.page = None` is the premise every
+  function touching the tracker or the log takes (it replaced the bare
+  `lent = None` in 17 specs and local lemmas); `nstate_wf` uses it.
+- `inv_raft_phys.v`: `own_raft_phys` owns `own_raftLog rv.raftLog s.logst`
+  unconditionally; `own_raftLog_unless` is gone. Accessors:
+  `own_raft_phys_log_at` (take out, put back at any `ls'`, state
+  `s <| logst := ls' |>`), `own_raft_phys_log_same` (put back at the same
+  state; no premise), `own_raft_phys_log` (old shape, kept for its callers).
+  `_lend`/`_unlend` move the tracker only.
+- Specs that now say more: `appendEntry` returns the log at
+  `log_append s.logst (imap (stamp s.term (log_last s.logst)) ents)` (it used
+  to return the struct at the *same* `s`, true only because the log was
+  quantified away), `becomeLeader` at the new `become_leader`, `loadState`
+  at `logst.committed := hs.Commit`.
+- The pattern every log-reading proof now follows: the log cannot be held
+  outside the struct across a field load or a callee (those need
+  `own_raft_phys`), so it is taken out and put back around each `raftLog`
+  access. Ported by hand: `appendEntry`, `becomeLeader`, `loadState`,
+  `newRaft`; by subagents (one file each, shared brief):
+  `maybeSendAppend` (the page loan is now in `logst.page` across `send`;
+  its `msa_pkg` carries the struct), `reset` (the `Visit` closure rebuilds
+  the struct around its `lastIndex()` calls), `hasUnappliedConfChanges` (no
+  tracker loan at all any more), `maybeSendSnapshot`.
+
+Checked: `.vok` of all 412 targets under `election_proof/`, 0 errors.
+`tcb-report --scope election_proof`: 274 Qed lemmas, assumptions unchanged
+(14 Axiom + 1 Admitted), 76 definitions / 816 lines. `check-module-discipline`:
+same 6 notes/warnings.
+
+Next: `own_tracker` at the empty configuration (so `newRaft` needs no
+loan), then pin a `Progress` value in `nstate.t` instead of lending the
+tracker, then delete `lent`.

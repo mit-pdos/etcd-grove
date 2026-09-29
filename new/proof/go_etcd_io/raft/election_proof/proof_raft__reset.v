@@ -22,8 +22,10 @@ Import P.
         wand that takes the field back.  The closure applies that wand to
         read [r.raftLog] and [r.id], splits the field off again to read the
         two [MaxInflight] fields and to hand it back to [Visit], and
-        re-establishes [I].  The log comes along in [I] at the state it was
-        lent at, for the closure's two [lastIndex()] calls.  [I] also has
+        re-establishes [I].  The log is never lent: for the closure's two
+        [lastIndex()] calls it is taken out of the re-assembled
+        [own_raft_phys] and put back ([own_raft_phys_log_same]), its page
+        fact coming from [nstate_idle s].  [I] also has
         to carry the frame slot of the pointer variable ([r_ptr ↦ r]), which
         is easy to forget.
 
@@ -65,8 +67,9 @@ Import P.
     wp_apply (wp_raft__resetRandomizedElectionTimeout with "[$Hphys]") as "Hphys".
     wp_apply (wp_raft__abortLeaderTransfer with "[$Hphys]") as "Hphys".
     set (s1 := s0 <| nstate.lead := W64 0 |>).
+    pose proof (nstate_idle_page _ Hlent) as Hpg.
     iDestruct (own_raft_phys_lend _ _ _ s1 Hlent with "Hphys")
-      as (tv ls) "(%Hls & Htrk & Hlog & Hphys)".
+      as (tv) "(Htrk & Hphys)".
     set (sL := s1 <| nstate.lent := Some tv |>).
     iDestruct (own_raft_phys_trk_lent with "Hphys")
       as "[Htrkf Hback]".
@@ -79,15 +82,14 @@ Import P.
        (see [visit_closure], inv_tracker.v). *)
     wp_apply (wp_ProgressTracker__Visit _ _ _ _ s.(nstate.progress) _
                 (r_ptr ↦ r ∗
-                 own_raftLog s.(nstate.log) ls ∗
                  (∀ tvx, r.[raft.raft.t, "trk"] ↦ tvx -∗
                   own_raft_phys cfg r id (sL <| nstate.lent := Some tvx |>)))%I
-                with "[$Htrkf $Htrk $r $Hlog $Hback]")
-      as "(%tvfin & Htrkf & Htrk & r & Hlog & Hback)".
+                with "[$Htrkf $Htrk $r $Hback]")
+      as "(%tvfin & Htrkf & Htrk & r & Hback)".
     { (* the [Visit] closure: re-initialise one [Progress] wholesale *)
       iModIntro. iIntros (i pr tv0).
       wp_start as "(%Hicfg & %Hpri & %HmaxI & Htrkf & Hpr & Hprback &
-                    r & Hlog & Hback)".
+                    r & Hback)".
       (* Keep [Hnolearner]: [own_progress] carries
          [⌜pv.(IsLearner') = false⌝], and the closure has to hand it back.
          The [Progress] literal it writes copies [IsLearner] straight across
@@ -96,8 +98,10 @@ Import P.
       iDestruct "Hpr" as (pv ivold) "(Hpv & Hinfl & %Hnolearner & %Hst)".
       iDestruct ("Hback" $! tv0 with "Htrkf") as "Hphys".
       wp_auto. wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
-      wp_apply (wp_raftLog__lastIndex _ _ Hls with "[$Hlog]")
+      iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hphys]".
+      wp_apply (wp_raftLog__lastIndex _ _ Hpg with "[$Hlog]")
         as "%li [Hlog %Hli0]".
+      iDestruct ("Hphys" with "Hlog") as "Hphys".
       (* [r.trk.MaxInflight], [r.trk.MaxInflightBytes]: fields of the
          tracker, read through the tracker field *)
       iDestruct (own_raft_phys_trk_lent with "Hphys")
@@ -111,11 +115,13 @@ Import P.
          [Progress] back to the tracker, and the wand back to [I]. *)
       destruct (decide (i = id)) as [Hii|Hii].
       + rewrite bool_decide_true //. wp_auto. wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
-        wp_apply (wp_raftLog__lastIndex _ _ Hls with "[$Hlog]")
+        iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hphys]".
+        wp_apply (wp_raftLog__lastIndex _ _ Hpg with "[$Hlog]")
           as "%li2 [Hlog %Hli1]".
+        iDestruct ("Hphys" with "Hlog") as "Hphys".
         iDestruct (own_raft_phys_trk_lent with "Hphys")
           as "[Htrkf Hback]".
-        iApply "HΦ". iExists tv0. iFrame "Htrkf r Hlog".
+        iApply "HΦ". iExists tv0. iFrame "Htrkf r".
         iSplitL "Hpv Hifl Hprback".
         { iApply "Hprback". iExists _, ivnew. rewrite /own_progress. iFrame "Hpv". simpl. iFrame "Hifl".
           (* the [Progress] literal has no [State] field, so [State] is the
@@ -126,7 +132,7 @@ Import P.
       + rewrite bool_decide_false //. wp_auto.
         iDestruct (own_raft_phys_trk_lent with "Hphys")
           as "[Htrkf Hback]".
-        iApply "HΦ". iExists tv0. iFrame "Htrkf r Hlog".
+        iApply "HΦ". iExists tv0. iFrame "Htrkf r".
         iSplitL "Hpv Hifl Hprback".
         { iApply "Hprback". iExists _, ivnew. rewrite /own_progress. iFrame "Hpv". simpl. iFrame "Hifl".
           iPureIntro. split; [ exact Hnolearner | rewrite /progress_state_ok; by left ]. }
@@ -135,8 +141,8 @@ Import P.
     (* [Visit] hands the field back; end the loan at [ResetVotes]'s tally *)
     iDestruct ("Hback" $! tvfin with "Htrkf") as "Hphys".
     iDestruct (own_raft_phys_unlend _ _ _ sL tvfin ∅
-                 s.(nstate.progress) ls Hls
-                 with "Hphys Htrk Hlog") as "Hphys".
+                 s.(nstate.progress)
+                 with "Hphys Htrk") as "Hphys".
     (* [pendingConfIndex := 0], [uncommittedSize := 0] *)
     try wp_auto. (wp_apply (wp_raft_store_pendingConfIndex with "Hphys") as "Hphys"; wp_apply (wp_raft_store_uncommittedSize with "Hphys") as "Hphys").
     (* [r.readOnly = newReadOnly(r.readOnly.option)] *)
@@ -148,7 +154,8 @@ Import P.
     iDestruct ("Hback" with "Hrof Hro'") as "Hphys".
     iApply "HΦ".
     iApply (own_raft_phys_eq with "Hphys").
-    subst sL s1 s0. rewrite /reset_to. destruct s; simpl in Hlent; subst. done.
+    pose proof (nstate_idle_lent _ Hlent) as Hlent0.
+    subst sL s1 s0. rewrite /reset_to. destruct s; simpl in Hlent0; subst. done.
   Qed.
 
 End ResetProof.

@@ -40,7 +40,7 @@ Definition wp_stepLeader_MsgVoteResp_body :=
     (cfg : gset w64)
     (r : loc) (id : w64) (s : nstate.t) (m : raftpb.Message.t),
   m.(raftpb.Message.Type') = MsgVoteResp →
-  s.(nstate.lent) = None →
+  nstate_idle s →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     @! raft.stepLeader #r #m
   {{{ (err : error.t), RET #err;

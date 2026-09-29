@@ -3,6 +3,24 @@ Require Export New.proof.go_etcd_io.raft.election_proof.postulates_raft__hasUnap
 Module RaftHasUnappliedConfChangesProof (P : RAFT__HASUNAPPLIEDCONFCHANGES_POSTULATES) : RAFT__HASUNAPPLIEDCONFCHANGES.
 Import P.
 
+  Local Ltac read_field Hls :=
+    let Hc := fresh "Hc" in
+    let Ha := fresh "Ha" in
+    wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys";
+    iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hback]";
+    iEval (rewrite Hls) in "Hlog";
+    iDestruct (own_raftLog_struct with "Hlog") as (?) "(Hl & %Hlv & Hlb)";
+    match goal with
+    | H : raft.raftLog.committed' _ = _ ∧ _ |- _ => destruct H as [Hc Ha]
+    end;
+    simpl in Hc, Ha;
+    wp_auto;
+    try rewrite Hc; try rewrite Ha;
+    iDestruct ("Hlb" with "Hl") as "Hlog";
+    iEval (rewrite -Hls) in "Hlog";
+    iDestruct ("Hback" with "Hlog") as "Hphys";
+    clear Hc Ha.
+
   (** [hasUnappliedConfChanges] is
 
         if r.raftLog.applied >= r.raftLog.committed { return false }
@@ -27,8 +45,12 @@ Import P.
       [applied >= committed] — so the [scan] is genuinely reached and the
       proof really has to walk the entries.
 
-      - The early return needs only that [own_raftLog] can be closed again:
-        the two field reads go through [own_raftLog]'s [Hl].
+      - No loan: the log is inside [own_raft_phys], so each read of
+        [r.raftLog.f] loads the location through the struct and then takes
+        the log out ([own_raft_phys_log_same]) just for the field load
+        ([own_raftLog_struct]); [read_field] above.  The log's state pins
+        [applied]/[committed], so every read sees the values the facts
+        (unfolded once up front) are about.
       - For the [scan], [Happlied]/[Hcommitted]/[Hnowrap] put
         [[applied+1, committed+1)] inside the log without wrapping, which is
         exactly [wp_raftLog__scan]'s range premise, and [HnoConfChange]
@@ -57,44 +79,40 @@ Import P.
   Proof.
     intros_ambient.
     intros cfg r id s Hlent.
-    (* the state the loan ends at is [s] again *)
-    assert (s <| nstate.lent := None |> <| nstate.votes := s.(nstate.votes) |>
-              <| nstate.progress := s.(nstate.progress) |> = s) as Hs.
-    { destruct s; cbn in Hlent; by subst. }
     wp_start as "Hphys".
-    (* the log is borrowed for the whole call, with the tracker coming along
-       unused: [r.raftLog] is re-read for every field access, and those loads
-       need the struct *)
-    iDestruct (own_raft_phys_lend _ _ _ _ Hlent with "Hphys")
-      as (tv ls Hls) "(Htrk & Hlog & Hphys)".
-    destruct ls as [prev sents uents lcm lap lpg]; logstate_simpl; subst lpg.
-    iNamed "Hlog".
-    iEval (rewrite /own_raftLog_core /=) in "Hcore". iNamed "Hcore".
+    pose proof (nstate_idle_page _ Hlent) as Hpg.
+    destruct (s.(nstate.logst)) as [prev sents uents lcm lap lpg] eqn:Hls.
+    cbn in Hpg; subst lpg.
+    (* the log's facts, read once: [applied]/[committed] inside the log, and
+       no conf change in it.  No tracker loan: nothing here touches it. *)
+    iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hback]".
+    iEval (rewrite Hls own_raftLog_unfold) in "Hlog".
+    iDestruct "Hlog" as (lv) "(Hl & %Hcm & %Hap & Hcore)".
+    iEval (rewrite /own_raftLog_core) in "Hcore". iNamed "Hcore".
+    subst lcm lap.
+    iDestruct ("Hback" with "[Hl HStorage Huents Huents_cap]") as "Hphys".
+    { rewrite Hls own_raftLog_unfold. iExists lv. rewrite /own_raftLog_core.
+      iFrame "∗#%". done. }
+    (* each [r.raftLog.f] read: the struct gives the log's location, the
+       log (taken out and put back around the one load) the field, whose
+       value the log's state pins for [applied]/[committed] *)
     wp_auto.
-    (* the two reads of [r.raftLog] in the first [if] *)
-    do 2 (wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys"; try wp_auto).
+    read_field Hls. read_field Hls.
     wp_if_destruct.
     - (* [applied >= committed]: the range is empty and the answer is [false] *)
-      iAssert (own_raftLog s.(nstate.log) (logstate.mk prev sents uents lcm lap None))
-        with "[Hl HStorage Huents Huents_cap]" as "Hlog".
-      { iApply own_raftLog_unfold. iExists lv. rewrite /own_raftLog_core.
-        iFrame "∗#%". }
-      iDestruct (own_raft_phys_unlend with "Hphys Htrk Hlog") as "Hphys"; first done.
-      iApply "HΦ". iApply (own_raft_phys_eq with "Hphys"). exact Hs.
-    - (* the reads of [r.raftLog] for [lo], [hi], [pageSize] and [scan]'s
-         receiver *)
-      repeat (wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys"; try wp_auto).
-      (* re-seal the log: [scan] is specified on [own_raftLog] *)
-      iAssert (own_raftLog s.(nstate.log) (logstate.mk prev sents uents lcm lap None))
-        with "[Hl HStorage Huents Huents_cap]" as "Hlog".
-      { iApply own_raftLog_unfold. iExists lv. rewrite /own_raftLog_core.
-        iFrame "∗#%". }
+      by iApply "HΦ".
+    - (* the reads of [r.raftLog] for [lo], [hi], [pageSize] *)
+      read_field Hls. read_field Hls. read_field Hls.
+      wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
+      (* [scan] is specified on [own_raftLog] *)
+      iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hback]".
+      iEval (rewrite Hls) in "Hlog".
       assert ((uint.Z prev.(raft.entryID.index') + 1
                ≤ uint.Z (word.add lv.(raft.raftLog.applied') (W64 1))
                ≤ uint.Z (word.add lv.(raft.raftLog.committed') (W64 1))
                ≤ uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents)
                  + Z.of_nat (length uents) + 1)%Z) as Hrange by word.
-      wp_apply (wp_raftLog__scan _ (logstate.mk prev sents uents lcm lap None) _ _ _ _ emp%I
+      wp_apply (wp_raftLog__scan _ (logstate.mk prev sents uents lv.(raft.raftLog.committed') lv.(raft.raftLog.applied') None) _ _ _ _ emp%I
                   (λ e, e.(raftpb.Entry.Type') = EntryNormal) eq_refl Hrange HnoConfChange
                   with "[$Hlog]").
       { (* the callback, at [I := emp] *)
@@ -140,10 +158,11 @@ Import P.
           iFrame. iPureIntro. word.
         + iApply "HΦ". iFrame. }
       iIntros "[Hlog _]".
+      iEval (rewrite -Hls) in "Hlog".
+      iDestruct ("Hback" with "Hlog") as "Hphys".
       (* [scan] returned [nil], so the [Panicf] is dead and [found] is [false] *)
       wp_auto.
-      iDestruct (own_raft_phys_unlend with "Hphys Htrk Hlog") as "Hphys"; first done.
-      iApply "HΦ". iApply (own_raft_phys_eq with "Hphys"). exact Hs.
+      by iApply "HΦ".
   Qed.
 
 End RaftHasUnappliedConfChangesProof.

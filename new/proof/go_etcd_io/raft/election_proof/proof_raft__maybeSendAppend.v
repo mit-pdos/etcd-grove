@@ -35,27 +35,28 @@ Qed.
     to a common state and the rest of the proof is written once (the three
     goals are discharged by one [;]-chained script below).
 
-    The first three existentials are the page: where it is, what is in it,
-    at what fraction.  The log is on loan of that page ([logstate.page]).
-    On the third arm the page is [slice.nil], [[]], [DfracOwn 1]
+    The existentials are the page: where it is, what is in it, at what
+    fraction.  The log stays in the struct, on loan of that page: the
+    struct's [logstate.page] records it, and [own_raft_phys] -- which the
+    [send] and every later field read need -- is held at that state.  On the
+    third arm the page is [slice.nil], [[]], [DfracOwn 1]
     ([own_raftLog_lend_nil]), and rebinding the zero slice to a variable is
     what makes that arm's *program text* match the other two's, which is
-    what lets one script serve all three.  The fourth is the [raftLog]
-    record, held out of the log ([own_raftLog_struct]) because the message
-    literal and [SentCommit] read [r.raftLog.committed] through it; [Hlb]
-    puts it back.  [Hwin] is
+    what lets one script serve all three.  [Hwin] is
     [Progress.SentEntries]'s second premise in the only form all three arms
     can supply it: entries are fetched only when the window has room, so a
     non-empty page in [StateReplicate] means the window was not full -- and
     nothing between the test and [SentEntries] touches the window. *)
-Definition msa_pkg (ep lgp : loc) (pv : tracker.Progress.t)
-    (iv : tracker.Inflights.t) (ls : logstate.t) : iProp Σ :=
-  ∃ (sl : slice.t) (es : list raftpb.Entry.t) (dq : dfrac)
-    (lv : raft.raftLog.t),
+Definition msa_pkg (r : loc) (id : w64) (s : nstate.t)
+    (tv : tracker.ProgressTracker.t) (ep : loc) (pv : tracker.Progress.t)
+    (iv : tracker.Inflights.t) prev sents uents (lcm lap : w64) : iProp Σ :=
+  ∃ (sl : slice.t) (es : list raftpb.Entry.t) (dq : dfrac),
   "ents" ∷ ep ↦ sl ∗
-  "Hl" ∷ lgp ↦ lv ∗
   "Hpage" ∷ sl ↦*{dq} es ∗
-  "Hlb" ∷ (lgp ↦ lv -∗ own_raftLog lgp (ls <| logstate.page := Some (sl, es, dq) |>)) ∗
+  "Hphys" ∷ own_raft_phys cfg r id
+              (s <| nstate.lent := Some tv |>
+                 <| nstate.logst := logstate.mk prev sents uents lcm lap
+                                      (Some (sl, es, dq)) |>) ∗
   "%Hwin" ∷ ⌜ pv.(tracker.Progress.State') = W64 1 → es ≠ [] →
               inflights_full iv = false ⌝.
 
@@ -73,13 +74,28 @@ End helpers.
 
 Set Default Proof Using "Type".
 
-  (* End the loan, and get from the state [own_raft_phys_unlend] names back
-     to [s]. *)
+  (* End the tracker loan, and get from the state [own_raft_phys_unlend]
+     names back to [s]. *)
   Local Ltac finish s Hlent :=
-    iDestruct (own_raft_phys_unlend with "Hphys Htrk Hlog") as "Hphys";
-    [ done | ];
+    iDestruct (own_raft_phys_unlend with "Hphys Htrk") as "Hphys";
     iDestruct (own_raft_phys_eq _ _ _ _ s with "Hphys") as "Hphys";
-    [ destruct s; simpl in Hlent; subst; done | ].
+    [ destruct s; destruct Hlent as [Hl1 _]; cbn in Hl1; subst; done | ].
+
+  (* Return the page held in the struct's log ([logstate.page]): through the
+     log accessor, at whatever state [Hphys] is at. *)
+  Local Ltac return_page :=
+    iDestruct (own_raft_phys_log_at with "Hphys") as "[Hlog Hlogback]";
+    iDestruct (own_raftLog_return_page with "Hlog Hpage") as "Hlog"; [ done | ];
+    iDestruct ("Hlogback" with "Hlog") as "Hphys".
+
+  (* Open the log's record for a read of [r.raftLog.committed], which the
+     next [wp_auto] steps; [close_struct] puts it back at the same state. *)
+  Local Ltac open_struct :=
+    iDestruct (own_raft_phys_log_at with "Hphys") as "[Hlog Hlogback]";
+    iDestruct (own_raftLog_struct with "Hlog") as (?) "(Hl & _ & Hlb)".
+  Local Ltac close_struct :=
+    iDestruct ("Hlb" with "Hl") as "Hlog";
+    iDestruct ("Hlogback" with "Hlog") as "Hphys".
 
   (** [r.maybeSendAppend(to, sendIfEmpty)]
       ([raft__maybeSendAppendⁱᵐᵖˡ], new/code/go_etcd_io/raft/v3.v:3096).
@@ -88,17 +104,16 @@ Set Default Proof Using "Type".
       struct: one voter's [Progress], borrowed out of [own_tracker] --
       [pr.SentEntries] needs what this proof learned about it before the
       send -- and one page of entries, borrowed out of [own_raftLog] by
-      [raftLog.entries] -- [payloadsSize] reads it after the send.  So the
-      tracker's heap and the log are **lent** out of the struct for the
-      whole body ([own_raft_phys_lend]; [nstate.lent], [defs.v]), and every
-      raft field read, and the [send], is made on [own_raft_phys] at the
-      lent state.  [own_raft_phys_unlend] ends the loan on each exit
-      ([finish] for the exits that send nothing).  [raftLog.entries] hands
-      the [raftLog] *record* back alongside the page, which is what makes
-      the literal's [Commit: r.raftLog.committed] steppable while the page
-      is out.  (From 2026-09-21 to 2026-09-22 the same thing was done with a
-      variant predicate, [own_raft_bare].)
-
+      [raftLog.entries] -- [payloadsSize] reads it after the send.  The
+      tracker's heap is **lent** out of the struct for the whole body
+      ([own_raft_phys_lend]; [nstate.lent], [defs.v]).  The log is not: it
+      stays in the struct, and the page loan is recorded in the struct's
+      log state ([logstate.page]), so every raft field read, and the
+      [send], is made on [own_raft_phys] at the lent, paged state.  Each
+      [raftLog] call and each read of [r.raftLog.committed] opens the log
+      with [own_raft_phys_log_at] and puts it back.  At each exit the page
+      goes back ([return_page]) and [own_raft_phys_unlend] ends the tracker
+      loan ([finish] for the exits that send nothing).
 
       [maybeSendSnapshot] needs neither: on that exit the [Progress] goes
       back into the tracker first, and the callee borrows it again by its
@@ -137,11 +152,18 @@ Set Default Proof Using "Type".
     intros_ambient.
     intros cfg r id s to sendIfEmpty Hto Hcfg Hlent.
     wp_start_folded as "Hphys".
-    (* lend the tracker and the log before the body is in the goal *)
+    (* the log's state, as variables *)
+    pose proof (nstate_idle_page _ Hlent) as Hpg.
+    destruct (s.(nstate.logst)) as [prev sents uents lcm lap lpg] eqn:Hls.
+    cbn in Hpg; subst lpg.
+    (* lend the tracker before the body is in the goal *)
     (* the [iNamed] only strips the precondition's name *)
     iNamed "Hphys".
-    iDestruct (own_raft_phys_lend _ _ _ _ Hlent with "Hphys")
-      as (tv ls Hls) "(Htrk & Hlog & Hphys)".
+    iDestruct (own_raft_phys_lend with "Hphys") as (tv) "(Htrk & Hphys)";
+      first exact Hlent.
+    assert (Hls1 : (s <| nstate.lent := Some tv |>).(nstate.logst) =
+                   logstate.mk prev sents uents lcm lap None)
+      by (rewrite -Hls; by destruct s).
     iDestruct (own_tracker_progress_map with "Htrk") as "(#Hprs & %Hdom & Htrk)".
     assert (is_Some (s.(nstate.progress) !! to)) as [pr Hlk].
     { apply elem_of_dom. rewrite Hdom //. }
@@ -170,12 +192,17 @@ Set Default Proof Using "Type".
     iNamed "Hpa".
     wp_auto. wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
     (* [r.raftLog.term(pr.Next - 1)] *)
-    destruct ls as [prev sents uents lcm lap lpg]; logstate_simpl; subst lpg.
+    iDestruct (own_raft_phys_log_at with "Hphys") as "[Hlog Hlogback]".
+    iEval (rewrite Hls1) in "Hlog".
     iDestruct (own_raftLog_nowrap with "Hlog") as "[%Hnw Hlog]"; first done.
     cbn [logstate.prev logstate.sents logstate.uents] in Hnw.
     wp_apply (wp_raftLog__term _ (logstate.mk prev sents uents lcm lap None) _ eq_refl with "[$Hlog]")
       as "%pterm %err [Hlog %Herr]".
     cbn [logstate.prev logstate.sents logstate.uents] in Herr.
+    iDestruct ("Hlogback" with "Hlog") as "Hphys".
+    iDestruct (own_raft_phys_eq _ _ _ _ (s <| nstate.lent := Some tv |>)
+                 with "Hphys") as "Hphys";
+      first (rewrite -Hls; by destruct s).
     destruct err as [eok|].
     { (* the log no longer has [pr.Next - 1]: fall back to a snapshot.
          [wp_pure] first: [wp_auto] alone will not step the
@@ -203,42 +230,52 @@ Set Default Proof Using "Type".
       iDestruct "Hinfl" as (ibuf) "Hinfl";
       wp_apply (wp_Inflights__Full with "[$Hinfl]") as "Hinfl";
       destruct (inflights_full iv) eqn:Hfull;
-      [ (* in [StateReplicate] with the window full: no entries are fetched,
-           and the log stays whole -- open it just far enough to read
-           [committed] later *)
+      [ (* in [StateReplicate] with the window full: no entries are fetched;
+           lend the log an empty page, so the state matches the other arms *)
+        iDestruct (own_raft_phys_log_at with "Hphys") as "[Hlog Hlogback]";
+        iEval (rewrite Hls1) in "Hlog";
         iDestruct (own_raftLog_lend_nil with "Hlog") as "Hlog";
-        iDestruct (own_raftLog_struct with "Hlog") as (lvo) "(Hl & _ & Hlb0)";
-        iAssert (msa_pkg ents_ptr s.(nstate.log) pv iv (logstate.mk prev sents uents lcm lap None))
-          with "[ents Hl Hlb0]" as "HC";
-        [ rewrite /msa_pkg; iExists slice.nil, [], (DfracOwn 1), lvo;
-          iFrame "ents Hl";
+        iDestruct ("Hlogback" with "Hlog") as "Hphys";
+        iAssert (msa_pkg cfg r id s tv ents_ptr pv iv prev sents uents lcm lap)
+          with "[ents Hphys]" as "HC";
+        [ rewrite /msa_pkg; iExists slice.nil, [], (DfracOwn 1);
+          iFrame "ents";
           iSplitR; [ iApply own_slice_nil | ];
-          iSplitL "Hlb0"; [ iExact "Hlb0" | ];
+          iSplitL "Hphys";
+          [ iApply (own_raft_phys_eq with "Hphys"); by destruct s | ];
           iPureIntro; intros _ Hne; exfalso; exact (Hne eq_refl)
         | ]
       | (* in [StateReplicate] with room: fetch a page *)
         wp_auto;
         wp_apply (wp_raft_load_maxMsgSize with "Hphys") as "%mms Hphys";
         wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys";
+        iDestruct (own_raft_phys_log_at with "Hphys") as "[Hlog Hlogback]";
+        iEval (rewrite Hls1) in "Hlog";
         wp_apply (wp_raftLog__entries _ (logstate.mk prev sents uents lcm lap None) _ _ eq_refl Hlo with "[$Hlog]")
           as "%sl_e %es_e %dq_e (Hlog & Hpage)";
-        iDestruct (own_raftLog_struct with "Hlog") as (lv_e) "(Hl & _ & Hlogback2)";
+        iDestruct ("Hlogback" with "Hlog") as "Hphys";
         try wp_auto;
-        iAssert (msa_pkg ents_ptr s.(nstate.log) pv iv (logstate.mk prev sents uents lcm lap None))
-          with "[ents Hl Hpage Hlogback2]" as "HC";
-        [ rewrite /msa_pkg; iExists sl_e, es_e, dq_e, lv_e; iFrame;
+        iAssert (msa_pkg cfg r id s tv ents_ptr pv iv prev sents uents lcm lap)
+          with "[ents Hphys Hpage]" as "HC";
+        [ rewrite /msa_pkg; iExists sl_e, es_e, dq_e; iFrame "ents Hpage";
+          iSplitL "Hphys";
+          [ iApply (own_raft_phys_eq with "Hphys"); by destruct s | ];
           iPureIntro; intros _ _; exact Hfull | ] ]
     | (* not in [StateReplicate]: the first disjunct is true, fetch a page *)
       rewrite bool_decide_eq_false_2 //; wp_auto;
       wp_apply (wp_raft_load_maxMsgSize with "Hphys") as "%mms Hphys";
       wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys";
+      iDestruct (own_raft_phys_log_at with "Hphys") as "[Hlog Hlogback]";
+      iEval (rewrite Hls1) in "Hlog";
       wp_apply (wp_raftLog__entries _ (logstate.mk prev sents uents lcm lap None) _ _ eq_refl Hlo with "[$Hlog]")
         as "%sl_e %es_e %dq_e (Hlog & Hpage)";
-      iDestruct (own_raftLog_struct with "Hlog") as (lv_e) "(Hl & _ & Hlogback2)";
+      iDestruct ("Hlogback" with "Hlog") as "Hphys";
       try wp_auto;
-      iAssert (msa_pkg ents_ptr s.(nstate.log) pv iv (logstate.mk prev sents uents lcm lap None))
-        with "[ents Hl Hpage Hlogback2]" as "HC";
-      [ rewrite /msa_pkg; iExists sl_e, es_e, dq_e, lv_e; iFrame;
+      iAssert (msa_pkg cfg r id s tv ents_ptr pv iv prev sents uents lcm lap)
+        with "[ents Hphys Hpage]" as "HC";
+      [ rewrite /msa_pkg; iExists sl_e, es_e, dq_e; iFrame "ents Hpage";
+        iSplitL "Hphys";
+        [ iApply (own_raft_phys_eq with "Hphys"); by destruct s | ];
         iPureIntro; intros Hc; contradiction | ] ];
     (* --- three goals from here on, in the same state; the rest of the
            proof is one tactic, parenthesised so that it runs once per goal
@@ -252,8 +289,10 @@ Set Default Proof Using "Type".
       [ wp_auto
       | (* an empty page and the caller does not want an empty append *)
         wp_auto;
-        iDestruct ("Hlb" with "Hl") as "Hlog";
-        iDestruct (own_raftLog_return_page with "Hlog Hpage") as "Hlog"; [ done | ];
+        return_page;
+        iDestruct (own_raft_phys_eq _ _ _ _ (s <| nstate.lent := Some tv |>)
+                     with "Hphys") as "Hphys";
+        [ destruct s; cbn in Hls; subst; reflexivity | ];
         iAssert (∃ pv iv, own_progress pr pv iv)%I with "[Hpv Hinfl]" as "Hpr";
         [ iExists pv, iv; rewrite /own_progress; iFrame "∗%" | ];
         iDestruct ("Hprback" with "Hpr") as "Htrk";
@@ -263,8 +302,9 @@ Set Default Proof Using "Type".
         rewrite /app_sends; apply Forall_nil_2 ]
     | wp_auto ];
     (* --- the message goes out; again once per goal --- *)
-    (* the literal reads [r.raftLog.committed] through [Hl] *)
+    (* the literal reads [r.raftLog.committed] through the log's record *)
     (try wp_auto; wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys";
+    open_struct; try wp_auto; close_struct;
     wp_apply (P.wp_raft__send with "[$Hphys]");
       [ done
       | right; left; exists mtype.App; split_and!;
@@ -282,11 +322,12 @@ Set Default Proof Using "Type".
     wp_apply (wp_Progress__SentEntries _ _ _ _ _ Hnosnap Hwin2 with "[$Hpa]")
       as "Hpr";
     try wp_auto; wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys";
+    open_struct; try wp_auto;
     iDestruct "Hpr" as (pv3 iv3) "Hpa3";
     wp_apply (wp_Progress__SentCommit with "[$Hpa3]") as "Hpa3";
+    close_struct;
     try wp_auto;
-    iDestruct ("Hlb" with "Hl") as "Hlog";
-    iDestruct (own_raftLog_return_page with "Hlog Hpage") as "Hlog"; [ done | ];
+    return_page;
     iAssert (∃ pv iv, own_progress pr pv iv)%I with "[Hpa3]" as "Hpr";
     [ by iExists _, _ | ];
     iDestruct ("Hprback" with "Hpr") as "Htrk";
@@ -295,13 +336,12 @@ Set Default Proof Using "Type".
     iDestruct (own_raft_phys_eq _ _ _ _
                  ((send_msgs s [msg.mk mtype.App id to s.(nstate.term) false])
                     <| nstate.lent := Some tv |>) with "Hphys") as "Hphys";
-    [ by destruct s | ];
-    iDestruct (own_raft_phys_unlend with "Hphys Htrk Hlog") as "Hphys";
-    [ done | ];
+    [ destruct s; cbn in Hls; subst; reflexivity | ];
+    iDestruct (own_raft_phys_unlend with "Hphys Htrk") as "Hphys";
     iDestruct (own_raft_phys_eq _ _ _ _
                  (send_msgs s [msg.mk mtype.App id to s.(nstate.term) false])
                  with "Hphys") as "Hphys";
-    [ destruct s; simpl in Hlent; subst; done | ];
+    [ destruct s; destruct Hlent as [Hl1 _]; cbn in Hl1; subst; done | ];
     iApply ("HΦ" $! true [msg.mk mtype.App id to s.(nstate.term) false]);
     iFrame "Hphys"; iPureIntro;
     rewrite /app_sends; apply Forall_cons_2; [ done | apply Forall_nil_2 ])).

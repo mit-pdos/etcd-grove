@@ -1410,3 +1410,23 @@ a log call's arguments are written out before it.
 - *Leaving the predicate unsealed and relying on convention.*  One
   `iNamed "Hphys"` in a new proof would quietly bring the representation
   back; sealed, it does not compile.
+
+## 2026-09-29 — The log's state is in `nstate.t`
+
+**Context.** Since 2026-09-23 `own_raft_phys` quantified the log's state
+(`∃ ls, … own_raftLog l ls`), and `nstate.lent` loaned tracker and log
+together to callers that had to hold the log at a known state across a
+call. Asked to move the log's state into `nstate.t` and work towards
+removing `lent`.
+
+**Decision.** `nstate.logst : logstate.t`; `own_raft_phys` owns the log at
+it, always; a page lent by `raftLog.slice`/`entries` is recorded in
+`logst.page`, not outside the predicate. Transitions that change the log say
+how (`become_leader` appends `leader_entry s`), so specs up the call chain
+(`poll`, `stepCandidate`, `Step`) did not change shape.
+
+**Consequences.** Specs are more precise (`appendEntry`'s old postcondition
+at the same `s` was only true because the log was hidden). The cost is that
+a proof can no longer hold the log across a field load or callee: it takes
+it out and puts it back around each access (`own_raft_phys_log_same`).
+`lent` remains, for the tracker only; see STATUS item 2.

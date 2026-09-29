@@ -12,7 +12,7 @@ Definition wp_raft__becomeLeader_body :=
   s.(nstate.role) ≠ role.Follower →
   id ∈ cfg →
   (* it reads and appends to the log *)
-  s.(nstate.lent) = None →
+  nstate_idle s →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "becomeLeader" #()
   {{{ RET #(); own_raft_phys cfg r id (become_leader id s) }}}.

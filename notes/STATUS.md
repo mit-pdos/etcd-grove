@@ -1,6 +1,6 @@
 # Status
 
-**Last updated:** 2026-09-24
+**Last updated:** 2026-09-29
 
 This file is a snapshot of where the proof *is*. It carries no history: how
 something got this way is in [journal.md](journal.md), why a design was
@@ -108,13 +108,15 @@ The same rule holds for every object the struct points at, and since
 (indexed by the progress map), `own_progress pr pv iv`,
 `own_inflights l iv buf`, `own_raftLog l ls` with `ls : logstate.t`
 (entry list, `committed`, `applied`, and a page on loan),
-`own_unstable u uv uents page`, and `own_read_only ro`. The log's state is
-**not** in `nstate.t`: `own_raft_phys` quantifies it (decisions.md,
-2026-09-23).
+`own_unstable u uv uents page`, and `own_read_only ro`. Since 2026-09-29
+the log's state **is** in `nstate.t` (`logst : logstate.t`): `own_raft_phys`
+always owns `own_raftLog rv.raftLog s.logst`, a page on loan is recorded in
+`logst.page`, and `nstate.lent` loans only the tracker (decisions.md,
+2026-09-29).
 
 ## What is proved
 
-Every Hoare triple on the election path is `Qed` — **273 lemmas**, 98
+Every Hoare triple on the election path is `Qed` — **274 lemmas**, 98
 discharged signatures — except one admission signed off on for now
 (below). **The results are the first two of these three**; the third is an
 internal lemma that nothing uses yet — a *root lemma*, in `tcb-report`'s
@@ -217,21 +219,15 @@ say so in the journal.
      prove `Restore` (`Simple`/`apply`/`checkInvariants`).
    - `own_tracker`'s `HmaxInfl` comment claimed `validate` bounds
      `MaxInflightMsgs`; it does not ([false-statements.md](false-statements.md)).
-2. **The log's state is quantified inside `own_raft_phys`, not in
-   `nstate.t`.** The log has one predicate since 2026-09-23,
-   `own_raftLog l ls` with `ls : logstate.t` (`prev`, `sents`, `uents`,
-   `committed`, `applied`, `page`), and every `raftLog` spec keeps `ls`
-   across the call -- so `lastEntryID` no longer loses `committed`/`applied`,
-   which unblocks that part of `newRaft`. What is *not* done is putting
-   `ls` into `nstate.t`: no election-path spec needs the log's state
-   related across a call to a function that takes `own_raft_phys`, so
-   `own_raft_phys` says `∃ ls, ⌜ls.page = None⌝ ∗ own_raftLog l ls`.
-   `newRaft` did *not* need it moved: it keeps the tracker and log **on
-   loan** (`nstate.lent = Some tv`) from building the struct until after
-   `appliedTo`, so `loadState` and `appliedTo` are stated on the loaned
-   `own_raftLog`. The first spec that needs `ls` related across a sealed
-   `own_raft_phys` (plausibly `appendEntry` stated at the log it produced)
-   is the time to move it.
+2. **`nstate.lent` still exists, for the tracker only.** The log half
+   went on 2026-09-29 (above). What is left: `maybeSendAppend` and
+   `maybeSendSnapshot` lend the tracker to hold one `Progress` across
+   `r.send` (replace by pinning that peer's `Progress` value in `nstate.t`,
+   so `own_raft_phys` keeps owning it), and `newRaft`/`switchToConfig` lend
+   it because the empty tracker `MakeProgressTracker` builds is not an
+   `own_tracker` (`Hcfg_ne`; replace by stating `own_tracker` at the empty
+   configuration and moving `cfg ≠ ∅` to `VoteResult`/`TallyVotes`/`poll`).
+   Work in progress on `newraft`.
 3. **`HnoConfChange` is false of a real cluster.** `inv_raftlog.v:139`
    requires `Forall (λ e, Type = EntryNormal) (sents ++ uents)` — the *whole*
    log — while `RawNode.Bootstrap` (`new/code/go_etcd_io/raft/v3.v:391`)
@@ -290,7 +286,7 @@ known gaps and the plan are in [tcb-accounting.md](tcb-accounting.md).
 8 `Admitted.`**, 3 of the admits signed off on for now and marked
 `(* Trusted *)` — still debt; the goal is no admits. On the election path
 alone: **14 `Axiom` and 1 `Admitted`**; two results, `wp_raft__Step_body`
-and `wp_newRaft_body`; 76 definitions, 817 lines; TCB 5.5% of the
+and `wp_newRaft_body`; 76 definitions, 816 lines; TCB 5.5% of the
 development by line.
 
     R=new/proof/go_etcd_io/raft      # required; the tool names no development
@@ -310,7 +306,7 @@ doc comments quote probe lemmas ending in `Admitted.`, and `spec_*.v` files
 are full of `Parameter`s.
 
 The count of axioms is the smaller half. The **definitions** the results
-reach — 76 on the election path, 817 lines — are the rest of it:
+reach — 76 on the election path, 816 lines — are the rest of it:
 `wp_raft__Step` says nothing if `nstate.t`, `nstate_rel`, `pstate.t`,
 `step` or `own_raft_phys` is wrong, and none of those is an axiom.
 

@@ -11,7 +11,7 @@ Definition wp_raft__sendAppend_body :=
     (cfg : gset w64) (r : loc) (id : w64) (s : nstate.t) (to : w64),
   to ≠ id →
   to ∈ cfg →
-  s.(nstate.lent) = None →
+  nstate_idle s →
   {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "sendAppend" #to
   {{{ (ms : list msg.t), RET #();

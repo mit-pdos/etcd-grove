@@ -58,7 +58,7 @@ Import P.
     wp_auto.
     (* the state is now [become_leader] up to the order of the record
        updates; no [simpl]: it carries a [functions …] value *)
-    iDestruct (own_raft_phys_eq _ _ _ _ (become_leader id s) with "Hphys")
+    iDestruct (own_raft_phys_eq _ _ _ _ (become_leader_pre id s) with "Hphys")
       as "Hphys".
     { by destruct s. }
     (* [appendEntry] writes [Term]/[Index] into every element of the slice,
@@ -69,13 +69,18 @@ Import P.
        [MsgAppResp], which has no [mtype_of] and so drops out of the
        abstract outbox: the state is unchanged.  See
        [spec_raft__appendEntry.v]. *)
-    wp_apply (wp_raft__appendEntry with "[$Hphys $Hes]") as "%ents' [Hphys Hes]".
+    wp_apply (wp_raft__appendEntry with "[$Hphys $Hes]") as "[Hphys Hes]".
     (* empty payload; [Type] is the zero value [EntryNormal], which is what
        keeps the log's [HnoConfChange] true; and one entry is not [2^61]. *)
     { apply Forall_singleton. done. }
     { apply Forall_singleton. done. }
     { rewrite length_insert /=. lia. }
     { exact Hlent. }
+    (* [appendEntry] appended the stamped empty entry: that is
+       [become_leader] ([defs.v]) *)
+    iDestruct (own_raft_phys_eq _ _ _ _ (become_leader id s) with "Hphys")
+      as "Hphys".
+    { by destruct s. }
     (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log).
     iApply "HΦ". iFrame "Hphys".
   Qed.

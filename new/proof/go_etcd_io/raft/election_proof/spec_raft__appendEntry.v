@@ -112,7 +112,16 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
     field); [traceReplicate] is a literal no-op (v3.v:6364); and the
     [MsgAppResp] has no [mtype_of], so the abstract outbox is unchanged --
     it is [send_ok]'s third clause, and a self-addressed message is allowed
-    there for exactly this type. *)
+    there for exactly this type.
+
+    *** The log in the postcondition
+
+    Since 2026-09-25 the log's state is in [nstate.t], so the
+    postcondition says exactly what was appended: the batch, stamped with
+    the current term and consecutive indices after [lastIndex()]
+    ([stamp], [log_last], [log_append], [defs.v]).  Until then it returned
+    the struct at the *same* state, which was only true because
+    [own_raft_phys] quantified the log away. *)
 Definition wp_raft__appendEntry_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
@@ -126,11 +135,14 @@ Definition wp_raft__appendEntry_body :=
   (* a batch small enough that [lastIndex()+1+k] does not wrap *)
   (Z.of_nat (length ents) < 2^61)%Z →
   (* it reads and appends to the log *)
-  s.(nstate.lent) = None →
+  nstate_idle s →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s ∗ es ↦* ents }}}
     r @! (go.PointerType raft.raft) @! "appendEntry" #es
-  {{{ (ents' : list raftpb.Entry.t), RET #true;
-      own_raft_phys cfg r id s ∗ es ↦* ents' }}}.
+  {{{ RET #true;
+      own_raft_phys cfg r id
+        (s <| nstate.logst := log_append s.(nstate.logst)
+               (imap (stamp s.(nstate.term) (log_last s.(nstate.logst))) ents) |>) ∗
+      es ↦* imap (stamp s.(nstate.term) (log_last s.(nstate.logst))) ents }}}.
 
 Module Type RAFT__APPENDENTRY.
   Parameter wp_raft__appendEntry : wp_raft__appendEntry_body.

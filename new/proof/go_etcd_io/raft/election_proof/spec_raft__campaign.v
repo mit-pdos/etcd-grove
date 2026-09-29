@@ -27,7 +27,7 @@ Definition wp_raft__campaign_body :=
      notes/STATUS.md. *)
   uint.Z s.(nstate.term) + 1 < 2 ^ 64 →
   (* the tracker and the log are read *)
-  s.(nstate.lent) = None →
+  nstate_idle s →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "campaign" #t
   {{{ (peers : list w64), RET #();

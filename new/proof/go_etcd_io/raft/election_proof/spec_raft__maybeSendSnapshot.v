@@ -49,7 +49,7 @@ Definition wp_raft__maybeSendSnapshot_body :=
   to ≠ id →
   s.(nstate.progress) !! to = Some pr →
   (* it reads the log ([raftLog.snapshot], [firstIndex]) *)
-  s.(nstate.lent) = None →
+  nstate_idle s →
   {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "maybeSendSnapshot" #to #pr
   {{{ (b : bool), RET #b; own_raft_phys cfg r id s }}}.
