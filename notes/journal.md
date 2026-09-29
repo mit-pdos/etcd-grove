@@ -3796,3 +3796,25 @@ Checked: `.vok` of all 412 targets under `election_proof/` (sweep, 0
 errors). `tcb-report --proof-root …/election_proof`: 14 Axiom, 1 Admitted
 (unchanged), 274 Qed, 74 definitions / 802 lines. `check-module-discipline`:
 6 notes/warnings (unchanged).
+
+## 2026-09-29 — the two framework todo.md items: `wp__new_cap`, `wp_slice_append_persistent`
+
+- `new/golang/theory/slice.v`: `wp__new_cap` moved above the `wps`
+  section's `Context [V] …`, so it no longer quantifies over an unused type
+  and its two instances (which `wp_apply` left as shelved goals outside the
+  section). `wp_slice_append_persistent` moved in from
+  `election_proof/slice_persistent.v`, right after `wp_slice_append`, now
+  using a plain `wp_apply wp__new_cap`.
+- `election_proof/slice_persistent.v` deleted; `inv_raftlog.v` no longer
+  requires it (it gets `slice.v` through `inv_storage.v`).
+- Notes: both todo.md "Framework" entries deleted, the gotchas.md
+  `(V:=V)` entry deleted, decisions.md points at the new location.
+
+Checked: `slice.vo` (full), `new/should_build.vos` (whole closure), `.vok`
+of `inv_raftlog.v` and `proof_unstable__truncateAndAppend.v`. `tcb-report
+--proof-root …/election_proof`: 14 Axiom, 1 Admitted (unchanged), 273 Qed
+(274 before: `wp_slice_append_persistent` left the proof root for
+`slice.v`). Found on the way, not caused by this change: the full `vo` build
+fails in `chan/au_spec/chan_au_recv.v:360` (reproduced on 2e7f3e69b) and
+`chan_au_send.v:655`; STATUS item 11. `rocq` needs
+`$HOME/.opam/perennial/bin` on `PATH` (gotchas.md).

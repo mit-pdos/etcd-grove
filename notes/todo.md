@@ -12,27 +12,7 @@ Not for the next step of the work in flight — that is `STATUS.md`.
 
 ## Framework (`new/golang/`)
 
-- **`wp__new_cap` quantifies over an unused `V`** (added 2026-09-29).
-  `new/golang/theory/slice.v:905` states it inside `Section wps` after
-  `Context [V] `[!ZeroVal V] `[!TypedPointsto V]`, although the lemma
-  never mentions `V`. Inside the section that is harmless (the one use,
-  `wp_slice_append`, has `V` fixed); outside it the lemma takes an extra
-  type and two instances that nothing determines, and `wp_apply` leaves them
-  as shelved goals ("Expected a single focused goal but 3 goals are
-  focused" on the next tactic). Workaround:
-  `wp_apply (wp__new_cap (V:=V))` in
-  `new/proof/go_etcd_io/raft/election_proof/slice_persistent.v`. Fix: move
-  the lemma above that `Context` (it needs only `sem_fn`/`pre_sem`), then
-  drop the `(V:=V)`. Deferred because touching `slice.v` rebuilds all of
-  `new/`.
-
-- **`wp_slice_append_persistent` belongs in `slice.v`** (added 2026-09-29).
-  `append` onto a destination whose elements are held `↦*□`, with the
-  capacity slack owned. It lives in
-  `new/proof/go_etcd_io/raft/election_proof/slice_persistent.v` because
-  its one user is the raft log (`truncateAndAppend`). Move it next to
-  `wp_slice_append` when a second user appears, or together with the
-  `wp__new_cap` fix above (same rebuild).
+Nothing open.
 
 ## Raft proof
 

@@ -271,6 +271,16 @@ say so in the journal.
    code, but under the scope above that transition is never received, so the
    rule refines nothing and a reader could take it for a discharged
    obligation.
+11. **`make ci` does not get through `new/golang/theory/chan/au_spec/`**
+   (found 2026-09-29). A full `vo` build fails with "No applicable tactic"
+   at `chan_au_recv.v:360` (the `done` after the `replace`) and
+   `chan_au_send.v:655`. `chan_au_recv` fails the same way on 2e7f3e69b
+   with the old `slice.v`, so the slice.v change on 2026-09-29 did not
+   cause it; `chan_au_send` was seen failing only with the new one. Both are
+   inherited framework proofs, reached from `should_build.v` via
+   `v3_proof/protocol.v` and `chan/idioms`. The raft sessions' `.vos`/`.vok`
+   sweeps never check these proof bodies, which is why it went unnoticed.
+   Not investigated further.
 
 ## Trust base
 

@@ -1468,7 +1468,7 @@ truncating append goes through the cap-limited `u.slice`,
 
 **Consequences.** The `append` in `truncateAndAppend` needs a destination
 held read-only: `wp_slice_append_persistent`
-(`election_proof/slice_persistent.v`; to move into `slice.v`, todo.md).
+(`new/golang/theory/slice.v`, next to `wp_slice_append`).
 `is_Storage` is a stronger assumption than before (read-only for good
 rather than lent), but it is the interface's own. `maybeSendAppend`'s
 `MsgApp` may keep aliasing `ents` in `r.msgs` without the proof tracking

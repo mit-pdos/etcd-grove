@@ -100,7 +100,6 @@
     The [Storage] interface contract lives in [inv_storage.v]. *)
 
 Require Export New.proof.go_etcd_io.raft.election_proof.inv_storage.
-Require Export New.proof.go_etcd_io.raft.election_proof.slice_persistent.
 
 (** Split [l.unstable] out of [l ↦ lv] and get a wand to put it back.  The
     three [unstable.maybe*] specs are stated on a bare [*unstable], so every
@@ -139,8 +138,8 @@ Set Default Proof Using "W".
     reallocate and copy this slice instead of corrupting the neighbouring
     u.entries" ([log_unstable.go:228-234]).  So a sub-slice [unstable.slice]
     hands out is the caller's for good, with nothing to give back.
-    ([wp_slice_append_persistent] is the [append] this needs.)  (Until
-    2026-09-29 the entries were owned outright and [unstable.slice] *lent*
+    ([wp_slice_append_persistent], in [slice.v], is the [append] this
+    needs.)  (Until 2026-09-29 the entries were owned outright and [unstable.slice] *lent*
     a sub-slice, tracked by a [page] argument here; until 2026-09-23 the
     [unstable] specs were stated on the raw [u ↦ uv ∗ uv.entries ↦* uents].) *)
 Definition own_unstable (u : loc) (uv : raft.unstable.t)

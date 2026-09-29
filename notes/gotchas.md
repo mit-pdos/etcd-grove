@@ -1762,5 +1762,3 @@ Writing a triple for a *single* heap access (the field lemmas themselves):
 - **A section variable is the lemma's first argument.** A `Local Lemma`
   in a section with `Context (cfg : gset w64)` takes `cfg` first, so a
   positional use needs one more `_` than its statement shows.
-- **`wp__new_cap` takes an unused `V`** outside `slice.v`'s section; pass
-  `(V:=V)` (todo.md).
