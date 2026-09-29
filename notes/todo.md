@@ -12,7 +12,18 @@ Not for the next step of the work in flight — that is `STATUS.md`.
 
 ## Framework (`new/golang/`)
 
-Nothing open.
+- **The `done` override skips contradictions on `WP` goals** (added
+  2026-09-29). `proofmode.v:330` sends a goal that is or contains a `WP`
+  to `wp_done_wp_goal` (`fast_done`/`trivial` only), so a branch dead by a
+  contradictory hypothesis needs `by exfalso` (gotchas.md; 13 sites fixed
+  2026-09-29). The override exists because ssreflect's `//` runs `done` on
+  the main `WP` goal too (`rewrite lemma //`, 154 uses in
+  `election_proof/`), which failed at 7-38 s per use with the program
+  visible. Considered and left as-is for now: (a) hide the body and run the
+  full `wp_done_core` there (stdpp semantics back, ~1 s per failing `//`
+  per the 2026-09-17 table, unmeasured on today's tree); (b) drop the
+  override and write `rewrite …; last …` instead of `//` (a missed site
+  is a silent slowdown, not an error). Revisit if the trap bites again.
 
 ## Raft proof
 
