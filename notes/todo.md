@@ -14,6 +14,8 @@ Not for the next step of the work in flight — that is `STATUS.md`.
 
 Nothing open.
 
+- Instead of havign a new wp_slice_append_persistent, generalize wp_slice_append to work with any dq for the slice `s`.
+
 ## Raft proof
 
 - **Remove `nstate.log`** (added 2026-09-29). No spec mentions it. It
