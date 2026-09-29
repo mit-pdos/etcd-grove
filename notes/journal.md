@@ -3796,3 +3796,14 @@ Checked: `.vok` of all 412 targets under `election_proof/` (sweep, 0
 errors). `tcb-report --proof-root …/election_proof`: 14 Axiom, 1 Admitted
 (unchanged), 274 Qed, 74 definitions / 802 lines. `check-module-discipline`:
 6 notes/warnings (unchanged).
+
+## 2026-09-29 — spec audit (branch `election-spec-audit`): why `campaign` sorts
+
+The user is auditing the election specs file by file in
+`election_proof/audit.txt`, asking questions as `Q:` lines; answers go
+beneath them as `A:`. No proof files change on this branch.
+
+- `spec_slices_Sort.v`: the sort in `campaign` is for test determinism, not
+  correctness. Upstream `07c1ab6` added it together with the datadriven
+  interaction tests. Recorded in raft-implementation-facts.md under
+  "`campaign` sorts the voter ids".

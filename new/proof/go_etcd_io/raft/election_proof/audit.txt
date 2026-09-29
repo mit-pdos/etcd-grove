@@ -1,5 +1,23 @@
 - spec_slices_Sort.v
 Q: Why does the Go code sort if it's not necessary for correctness?
+A: For deterministic tests, not for correctness. Go randomises map
+   iteration order, and campaign enumerates the voters from the map that
+   JointConfig.IDs returns. Upstream commit 07c1ab6 ("raft/rafttest:
+   introduce datadriven testing", Tobias Schottdorf, Aug 2019) replaced
+   `for id := range r.prs.Voters.IDs()` with collect-then-sort in the same
+   change that added the datadriven interaction tests (testdata/*.txt,
+   e.g. testdata/campaign.txt). Those tests compare the printed log lines
+   and outgoing message lists verbatim ("sent MsgVote request to 2", then
+   to 3, ...), so the order vote requests are appended to r.msgs must be
+   reproducible. 065fbde later swapped sort.Slice for slices.Sort.
+   ProgressTracker.Visit, JointConfig/MajorityConfig String and friends
+   sort for the same reason.
+   Nothing in raft depends on the order: each vote request is independent
+   and the receiver cannot tell what order its peers were asked in. The
+   model says the same thing: step_campaign (protocol.v:226) takes any
+   `peers ≡ₚ elements (cfg ∖ {[id]})`, and proof_raft__campaign.v uses only
+   the permutation conjunct of wp_slices_Sort (line 175 onward), never
+   sortedness. That is why the spec's postcondition can be permutation-only.
 
 - spec_MajorityConfig__Slice.v
 - spec_Progress__ResetState.v

@@ -210,6 +210,14 @@ it is observable behaviour, and it is why `campaign` cannot be proved without
 a `slices.Sort` spec (which Goose does not translate; see
 [journal.md](journal.md)).
 
+Where it came from: upstream commit `07c1ab6` ("raft/rafttest: introduce
+datadriven testing", 2019) replaced `for id := range r.prs.Voters.IDs()`
+with collect-then-sort in the same change that added the `testdata/*.txt`
+interaction tests, which compare message order verbatim. The sort exists to
+make those tests reproducible under Go's randomised map iteration; `065fbde`
+later changed `sort.Slice` to `slices.Sort`. So the permutation-only
+`wp_slices_Sort` is not losing anything the protocol needs.
+
 ## `raftLog.scan` pages by byte budget inside `slice`, not by index (2026-09-20)
 
 `scan(lo, hi, pageSize, v)` calls `l.slice(lo, hi, pageSize)` with the
