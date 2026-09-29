@@ -51,12 +51,13 @@ Import P.
     try wp_auto.
     (* the struct, over the empty configuration: its tracker is the empty
        one [MakeProgressTracker] built, and its log is at the state
-       [newLogWithSize] built.  Nothing is on loan. *)
+       [newLogWithSize] built.  It holds no [Progress] yet, so [prvals] is
+       empty. *)
     set cfgs := (list_to_set voters : gset w64).
     set ls0 := logstate.mk prev ents [] prev.(raft.entryID.index')
                  prev.(raft.entryID.index').
     set s0 := nstate.mk (W64 0) (W64 0) (W64 0) role.Follower ∅ [] func.nil ∅ l
-                ls0 None.
+                ls0 ∅.
     iDestruct (own_tracker_empty tv0 v0 Htv0arr Htv0l Htv0ln Htv0al Hmi
                  with "Hv0 Hvotes Hprs0") as "Htrk0".
     iAssert (own_raft_misc slice.nil ro slice.nil) with "[Hro]" as "Hmisc".
@@ -78,8 +79,8 @@ Import P.
     { rewrite /own_config. iExists vref, vm. iFrame "Hvref Hprsm Hprogs".
       iPureIntro. split_and!; done. }
     wp_apply (P.wp_raft__switchToConfig _ _ _ _ s0 cfgv prsm prs
-                ltac:(done) ltac:(split; done) with "[$Hphys $Hcfg]")
-      as "%cs2 %xs2 (Hphys & Hcs2v & %Hxs2 & %Hcs2l)".
+                ltac:(done) with "[$Hphys $Hcfg]")
+      as "%cs2 %xs2 %pvs1 (Hphys & Hcs2v & %Hxs2 & %Hcs2l)".
     destruct Hcs2l as (Hc2a & Hc2b & Hc2c & Hc2al).
     try wp_auto.
     assert (voters ≡ₚ xs2) as Hperm.
@@ -93,7 +94,7 @@ Import P.
        is done once, for both. *)
     set ls1 := logstate.mk prev ents [] (committed_after prev hs)
                  prev.(raft.entryID.index').
-    set s1 := s0 <| nstate.progress := prs |>
+    set s1 := s0 <| nstate.progress := prs |> <| nstate.prvals := pvs1 |>
                  <| nstate.term := hs.(raftpb.HardState.Term') |>
                  <| nstate.vote := hs.(raftpb.HardState.Vote') |>
                  <| nstate.logst := ls1 |>.
@@ -116,8 +117,8 @@ Import P.
         { rewrite /log_last /ls0 /=.
           pose proof (word.unsigned_range prev.(raft.entryID.index')).
           rewrite word.unsigned_of_Z_nowrap; lia. }
-        wp_apply (P.wp_raft__loadState _ _ _ (s0 <| nstate.progress := prs |>) hs
-                    ltac:(assert ((s0 <| nstate.progress := prs |>).(nstate.logst) = ls0)
+        wp_apply (P.wp_raft__loadState _ _ _ (s0 <| nstate.progress := prs |> <| nstate.prvals := pvs1 |>) hs
+                    ltac:(assert ((s0 <| nstate.progress := prs |> <| nstate.prvals := pvs1 |>).(nstate.logst) = ls0)
                             as -> by done;
                           rewrite Hll /ls0 /=; specialize (Hhs Hnemp); lia)
                     with "[$Hphys]") as "Hphys".
@@ -160,11 +161,11 @@ Import P.
     wp_apply (wp_raft_load_Term with "Hphys") as "Hphys".
     rewrite /raft.None'.
     wp_apply (P.wp_raft__becomeFollower _ _ _ s1n s1n.(nstate.term) (W64 0)
-                ltac:(split; done) with "[$Hphys]") as "Hphys".
-    set s3 := become_follower s1n s1n.(nstate.term) (W64 0).
+                with "[$Hphys]") as "%pvs3 Hphys".
+    set s3 := become_follower s1n s1n.(nstate.term) (W64 0) <| nstate.prvals := pvs3 |>.
     try wp_auto.
     (* [r.trk.VoterNodes()] *)
-    iDestruct (own_raft_phys_tracker_same _ _ _ s3 ltac:(split; done) with "Hphys")
+    iDestruct (own_raft_phys_tracker_same _ _ _ s3 with "Hphys")
       as (tv3) "(Htrkf & Htrk3 & Htrkback)".
     wp_apply (P.wp_ProgressTracker__VoterNodes with "[$Htrkf $Htrk3]")
            as "%nsl %nxs (Htrkf & Htrk3 & Hnsl & %Hnxs)".
@@ -225,9 +226,9 @@ Import P.
     (* [becomeFollower(r.Term, None)] keeps the term, so [reset] keeps the
        vote: the state is the persisted [HardState]'s *)
     iPureIntro. rewrite /s3.
-    split; first (apply nstate_wf_become_follower; split; done).
+    split; first (apply nstate_wf_prvals, nstate_wf_become_follower).
     rewrite /become_follower /reset_to. cbn [nstate.term nstate.vote nstate.lead
-      nstate.role nstate.votes nstate.outbox set nstate.settable].
+      nstate.role nstate.votes nstate.outbox nstate.prvals set nstate.settable].
     rewrite decide_True //.
   Qed.
 

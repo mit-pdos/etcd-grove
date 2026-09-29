@@ -21,7 +21,7 @@ Import P.
   Proof.
     intros_ambient.
     intros cfg r id s m.
-    intros Hty Hto Hterm Hrole Hcfg Hlent.
+    intros Hty Hto Hterm Hrole Hcfg.
     wp_start as "Hphys". wp_auto. wp_apply (wp_raft_load_state with "Hphys") as "Hphys".
     (* [state = StateCandidate ≠ StatePreCandidate], so [myVoteRespType] is
        [MsgVoteResp]. *)
@@ -35,7 +35,7 @@ Import P.
     rewrite Hty /MsgVoteResp.
     rewrite bool_decide_eq_false_2; last w32_ne. wp_auto.
     assert (cfg ≠ ∅) as Hcfg_ne by set_solver.
-    wp_apply (P.wp_raft__poll _ _ _ _ _ _ _ Hlent Hcfg_ne with "[$Hphys]")
+    wp_apply (P.wp_raft__poll _ _ _ _ _ _ _ Hcfg_ne with "[$Hphys]")
       as "%g %rj0 %res (Hphys & %Hres & %Hwon & %Hlost)".
     (* the [Infof] that follows reads [r.id], [r.Term] and [r.logger] *)
     (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_raft_log).
@@ -54,16 +54,15 @@ Import P.
       wp_apply (P.wp_raft__becomeLeader with "[$Hphys]").
       { rewrite Hrole1. congruence. }
       { done. }
-      { exact Hlent. }
-      iIntros "Hphys". wp_auto.
+      iIntros (pvs1) "Hphys". wp_auto.
       (* [bcastAppend] adds *some* list of [App]s from [id] at the current
          term -- not one per peer; see [spec_raft__bcastAppend.v]. *)
-      wp_apply (wp_raft__bcastAppend with "[$Hphys]"); first exact Hlent.
-      iIntros (ms) "[Hphys %Hms]". try wp_auto.
+      wp_apply (wp_raft__bcastAppend with "[$Hphys]").
+      iIntros (ms pvs) "[Hphys %Hms]". try wp_auto.
       iApply ("HΦ" $! interface.nil _). iFrame "Hphys".
       (* The postcondition is [⌜∃ …⌝ ∗ ⌜err = nil⌝]; [iFrame "Hphys"] does
          *not* discharge the second, so [iPureIntro] leaves a conjunction. *)
-      iPureIntro. split; last done. exists true, false, ms. simpl in Hms.
+      iPureIntro. split; last done. exists true, false, ms, pvs. simpl in Hms.
       split_and!;
         [ exact Hms
         | intros _; by apply Hwon
@@ -73,10 +72,10 @@ Import P.
       rewrite /VoteLost bool_decide_eq_false_2; last w32_ne. wp_auto.
       (* the [r.Term] the code passes is [s1]'s term *)
       wp_apply (wp_raft_load_Term with "Hphys") as "Hphys".
-      wp_apply (P.wp_raft__becomeFollower with "[$Hphys]"); first exact Hlent.
-      iIntros "Hphys". try wp_auto.
+      wp_apply (P.wp_raft__becomeFollower with "[$Hphys]").
+      iIntros (pvs) "Hphys". try wp_auto.
       iApply ("HΦ" $! interface.nil _). iFrame "Hphys".
-      iPureIntro. split; last done. exists false, true, [].
+      iPureIntro. split; last done. exists false, true, [], pvs.
       split_and!;
         [ rewrite /app_sends; constructor
         | intros [=]
@@ -85,12 +84,13 @@ Import P.
     - (* [quorum.VotePending]: neither switch arm fires; keep waiting. *)
       rewrite /VotePending bool_decide_eq_false_2; last w32_ne. wp_auto.
       iApply ("HΦ" $! interface.nil s1). iFrame "Hphys".
-      iPureIntro. split; last done. exists false, false, [].
+      (* nothing wrote a [Progress]: the values are [s1]'s own *)
+      iPureIntro. split; last done. exists false, false, [], s1.(nstate.prvals).
       split_and!;
         [ rewrite /app_sends; constructor
         | intros [=]
         | intros [=]
-        | rewrite /vote_resp_result // ].
+        | rewrite /vote_resp_result /s1; by destruct s ].
   Qed.
 
 End StepCandidateProof.

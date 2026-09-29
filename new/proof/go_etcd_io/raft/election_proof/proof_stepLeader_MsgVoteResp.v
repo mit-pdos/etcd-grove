@@ -35,7 +35,7 @@ Module StepLeaderProof (P : STEPLEADER_POSTULATES) : STEPLEADER.
   Proof.
     intros_ambient.
     intros cfg r id s m.
-    intros Hty Hlent.
+    intros Hty.
     wp_start as "Hphys".
     wp_auto.
     (* first switch *)
@@ -45,7 +45,7 @@ Module StepLeaderProof (P : STEPLEADER_POSTULATES) : STEPLEADER.
     (* pr := r.trk.Progress[m.From]: read the field, keep the map's
        points-to (persistent) and give the tracker back unchanged *)
     iDestruct (own_raft_phys_tracker with "Hphys")
-      as (tv) "(Htrkf & Htrk & Hback)"; first exact Hlent.
+      as (tv) "(Htrkf & Htrk & Hback)".
     iDestruct (own_tracker_progress_map with "Htrk") as "(#Hprs & _ & Htrk)".
     wp_auto.
     iDestruct ("Hback" with "Htrkf Htrk") as "Hphys".

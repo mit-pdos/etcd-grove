@@ -11,11 +11,9 @@ Definition wp_raft__becomeLeader_body :=
     (r : loc) (id : w64) (s : nstate.t),
   s.(nstate.role) ≠ role.Follower →
   id ∈ cfg →
-  (* it reads and appends to the log *)
-  nstate_idle s →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "becomeLeader" #()
-  {{{ RET #(); own_raft_phys cfg r id (become_leader id s) }}}.
+  {{{ pvs, RET #(); own_raft_phys cfg r id (become_leader id s <| nstate.prvals := pvs |>) }}}.
 
 Module Type BECOMELEADER.
   Parameter wp_raft__becomeLeader : wp_raft__becomeLeader_body.

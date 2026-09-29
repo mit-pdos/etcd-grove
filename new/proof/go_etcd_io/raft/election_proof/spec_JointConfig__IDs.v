@@ -58,12 +58,12 @@ Definition wp_JointConfig__IDs_body :=
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (cfg : gset w64),
-  ∀ (trk : loc) tv votes (prs : gmap w64 loc),
-  {{{ is_pkg_init quorum ∗ trk ↦ tv ∗ own_tracker cfg tv votes prs }}}
+  ∀ (trk : loc) tv votes (prs : gmap w64 loc) (pvs : gmap w64 (tracker.Progress.t * tracker.Inflights.t)),
+  {{{ is_pkg_init quorum ∗ trk ↦ tv ∗ own_tracker cfg tv votes prs pvs }}}
     (trk.[tracker.ProgressTracker.t, "Config"].[tracker.Config.t, "Voters"])
       @! (go.PointerType quorum.JointConfig) @! "IDs" #()
   {{{ (mref : loc) (idm : gmap w64 unit), RET #mref;
-      trk ↦ tv ∗ own_tracker cfg tv votes prs ∗
+      trk ↦ tv ∗ own_tracker cfg tv votes prs pvs ∗
       mref ↦$ idm ∗ ⌜ dom idm = cfg ⌝ }}}.
 
 Module Type JOINTCONFIG__IDS.

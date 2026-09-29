@@ -26,17 +26,15 @@ Definition wp_raft__campaign_body :=
      term wraps to zero and the real code panics.  Added 2026-09-16; see
      notes/STATUS.md. *)
   uint.Z s.(nstate.term) + 1 < 2 ^ 64 →
-  (* the tracker and the log are read *)
-  nstate_idle s →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "campaign" #t
-  {{{ (peers : list w64), RET #();
+  {{{ (peers : list w64) pvs, RET #();
       ⌜ peers ≡ₚ elements (cfg ∖ {[id]}) ⌝ ∗
       let s' := become_candidate id s in
       own_raft_phys cfg r id
         (send_msgs s'
            ([msg.mk mtype.VoteResp id id s'.(nstate.term) false] ++
-            ((λ to, msg.mk mtype.Vote id to s'.(nstate.term) false) <$> peers))) }}}.
+            ((λ to, msg.mk mtype.Vote id to s'.(nstate.term) false) <$> peers)) <| nstate.prvals := pvs |>) }}}.
 
 Module Type CAMPAIGN.
   Parameter wp_raft__campaign : wp_raft__campaign_body.

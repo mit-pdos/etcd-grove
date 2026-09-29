@@ -88,8 +88,9 @@ The proof is a refinement in three layers, each with its own state type
    `own_raft_phys r id s` (`election_proof/inv_raft_phys.v`). Every Go-level spec
    is a pre/postcondition on it. `nstate.t` carries the six protocol fields
    plus `stepfn` (`r.step`), `progress` (the progress map), `log`
-   (`r.raftLog`), `logst` (the log's state) and `lent` (the tracker on
-   loan to the caller; being removed, "What still needs fixing" item 2).
+   (`r.raftLog`), `logst` (the log's state) and `prvals` (each peer's
+   `Progress`/`Inflights` values). **Every field is physical state**;
+   nothing is ever lent out of `own_raft_phys` (since 2026-09-29).
 2. **`nstate.t` → `pstate.t`** (`election_proof/protocol.v`), by `nstate_rel`
    (`defs.v`). Only `Step`'s spec mentions both.
 3. **`pstate.t` → protocol properties**: `own_raft_ghost`, `step`,
@@ -100,25 +101,26 @@ specified with `own_raft_phys`, refine `nstate.t` and `own_raft_phys` until
 it can. Never add a variant predicate, a parameterised copy, or a spec on
 raw pieces of the struct. Three such variants (`own_raft_phys_at`,
 `own_raft_bare`, `own_raft_notrk`) existed until 2026-09-22 and were removed;
-see gotchas.md for the checklist. A function that touches the tracker
-takes `nstate_idle s` (the tracker is not on loan); `hup`, the `Step` helpers and
-`Step` take `nstate_wf s`.
+see gotchas.md for the checklist. `hup`, the `Step` helpers and `Step`
+take `nstate_wf s` (`r.step` matches the role).
 
 The same rule holds for every object the struct points at, and since
-2026-09-23 it is met on the election path: `own_tracker cfg tv votes prs`
-(indexed by the progress map), `own_progress pr pv iv`,
+2026-09-23 it is met on the election path: `own_tracker cfg tv votes prs pvs`
+(indexed by the progress map and the `Progress` values), `own_progress pr pv iv`,
 `own_inflights l iv buf`, `own_raftLog l ls` with `ls : logstate.t`
 (entry list, `committed`, `applied`),
 `own_unstable u uv uents`, and `own_read_only ro`. Since 2026-09-29
 the log's state **is** in `nstate.t` (`logst : logstate.t`): `own_raft_phys`
 always owns `own_raftLog rv.raftLog s.logst`, the log holds its entries
 read-only (`↦*□`), so what `raftLog.slice`/`entries` return is the
-caller's for good with nothing lent, and `nstate.lent` loans only the
-tracker (decisions.md, 2026-09-29).
+caller's for good with nothing lent, and each peer's `Progress` value is
+in `nstate.prvals`, so a function that reads a `Progress`, calls into the
+struct and then writes it borrows it around each access instead of
+holding the tracker on loan (decisions.md, 2026-09-29, twice).
 
 ## What is proved
 
-Every Hoare triple on the election path is `Qed` — **272 lemmas**, 98
+Every Hoare triple on the election path is `Qed` — **274 lemmas**, 98
 discharged signatures — except one admission signed off on for now
 (below). **The results are the first two of these three**; the third is an
 internal lemma that nothing uses yet — a *root lemma*, in `tcb-report`'s
@@ -157,10 +159,12 @@ exists to prevent.
 **Program proofs do not unfold `own_raft_phys`** -- it is sealed. Every
 access to the raft struct is a lemma from the interface section at the end
 of `inv_raft_phys.v`, named explicitly: one triple per field load and store,
-accessors for the tracker, log, message queues and `readOnly`, and
-lend/unlend for loans (decisions.md, 2026-09-24). `proof_raft__poll.v` is
-the short worked example (the tracker accessor); `proof_raft__reset.v` the
-long one (a loan across a `Visit` closure). The traps are in
+accessors for the tracker, one peer's `Progress`, the log, message queues
+and `readOnly` (decisions.md, 2026-09-24). `proof_raft__poll.v` is the
+short worked example (the tracker accessor); `proof_raft__reset.v` the
+long one (a `Visit` closure whose invariant is the tracker accessor's
+wand); `proof_raft__maybeSendAppend.v` borrows one `Progress` around a
+`send`. The traps are in
 [gotchas.md](gotchas.md), "Working against the sealed `own_raft_phys`".
 
 ## The verified configuration
@@ -221,48 +225,32 @@ say so in the journal.
      prove `Restore` (`Simple`/`apply`/`checkInvariants`).
    - `own_tracker`'s `HmaxInfl` comment claimed `validate` bounds
      `MaxInflightMsgs`; it does not ([false-statements.md](false-statements.md)).
-2. **`nstate.lent` still exists, for the tracker only.** The log half
-   went on 2026-09-29, and `newRaft`/`switchToConfig` stopped using it the
-   same day (`own_tracker` now holds at the empty configuration;
-   `switchToConfig` changes configuration through
-   `own_raft_phys_reconfig`). Left: `maybeSendAppend`,
-   `maybeSendSnapshot` and `reset` lend the tracker to hold `Progress`
-   objects across calls that need the struct. The plan (in progress on
-   `newraft`): `reset` and `maybeSendSnapshot` need no loan -- `Visit`'s
-   invariant can be the tracker accessor's wand, as in `bcastAppend`, and
-   `maybeSendSnapshot` can borrow the `Progress` at each access.
-   `maybeSendAppend` needs `pr`'s *value* after `r.send` (`SentEntries`
-   panics in `StateSnapshot` and `Inflights.Add` panics when full), so
-   `nstate.t` gets each peer's `Progress`/`Inflights` values -- physical
-   state, unlike a "pin" (rejected 2026-09-29: `nstate.t` holds only
-   physical fields) -- and `own_tracker` is indexed by them. Then delete
-   `lent` and `nstate_idle`.
-3. **`HnoConfChange` is false of a real cluster.** `inv_raftlog.v:139`
+2. **`HnoConfChange` is false of a real cluster.** `inv_raftlog.v:139`
    requires `Forall (λ e, Type = EntryNormal) (sents ++ uents)` — the *whole*
    log — while `RawNode.Bootstrap` (`new/code/go_etcd_io/raft/v3.v:391`)
    writes `EntryConfChange` entries at `v3.v:447`, and `StartNode` calls it.
    So `own_raft_phys` is unsatisfiable for a freshly bootstrapped node until
    compaction. Only "no conf change in `(applied, committed]`" is needed;
    weakening it is cheap and should happen.
-4. **`Ready` / `advance` / `acceptReady` are unverified.** No collection
+3. **`Ready` / `advance` / `acceptReady` are unverified.** No collection
    exists. They are the only thing that drains `msgs` and `msgsAfterAppend`,
    so `step_drain` — the model rule that exists for exactly this — refines
    nothing, and nothing shows `own_raft_phys` survives a drain. This blocks
    composing `Step` into a running node.
-5. **`tick` needs a scope decision.** `tickElection` calls `Step(MsgHup)`
+4. **`tick` needs a scope decision.** `tickElection` calls `Step(MsgHup)`
    (`v3.v:3497`), which is covered. `tickHeartbeat` calls `Step(MsgBeat)`
    unconditionally (`v3.v:3552`); its `Step(MsgCheckQuorum)` (`v3.v:3523`) is
    guarded by `r.checkQuorum` and so is dead under the scope. Either
    `tickHeartbeat` is out of scope — a leader never heartbeats, harmless for
    safety — or `MsgBeat` needs a branch. Decide and write it down; the scope
    table above does not currently say.
-6. **`isUpToDate` is unconstrained**, so a bug that makes a node grant to a
+5. **`isUpToDate` is unconstrained**, so a bug that makes a node grant to a
    stale candidate is invisible. Note what this does and does not cost: it is
    *not* an election-safety bug — at most one leader per term does not depend
    on log currency — so it cannot produce two leaders. It costs Leader
    Completeness, which is close to vacuous while the log only ever holds a
    leader's empty entry. Closing it needs a log model.
-7. **Bring `readonly.v` and `protocol.v` into the module discipline.** Eleven
+6. **Bring `readonly.v` and `protocol.v` into the module discipline.** Eleven
    triples are still stated loose. One is a real duplicate:
    `raft.stepLeader` has a second triple in `readonly.v` against a second
    ownership story (`own_raft`), `Admitted` with postcondition `True` and no
@@ -273,7 +261,7 @@ say so in the journal.
    for the top-level Go functions, and protocol facts such as election
    safety are internal lemmas in their service. What is left of this is
    items 4 and 9.
-9. **Discharge `protocol.v`'s `Section axioms`** against the translated code,
+7. **Discharge `protocol.v`'s `Section axioms`** against the translated code,
    or record why each stays an axiom. Then extend past `Propose` to the rest
    of the `node` interface.
 10. Two stale comments, both misleading to an auditor: `election.v:20-23` says
@@ -295,7 +283,7 @@ known gaps and the plan are in [tcb-accounting.md](tcb-accounting.md).
 8 `Admitted.`**, 3 of the admits signed off on for now and marked
 `(* Trusted *)` — still debt; the goal is no admits. On the election path
 alone: **14 `Axiom` and 1 `Admitted`**; two results, `wp_raft__Step_body`
-and `wp_newRaft_body`; 76 definitions, 807 lines; TCB 5.4% of the
+and `wp_newRaft_body`; 74 definitions, 802 lines; TCB 5.4% of the
 development by line.
 
     R=new/proof/go_etcd_io/raft      # required; the tool names no development
@@ -315,7 +303,7 @@ doc comments quote probe lemmas ending in `Admitted.`, and `spec_*.v` files
 are full of `Parameter`s.
 
 The count of axioms is the smaller half. The **definitions** the results
-reach — 76 on the election path, 807 lines — are the rest of it:
+reach — 74 on the election path, 802 lines — are the rest of it:
 `wp_raft__Step` says nothing if `nstate.t`, `nstate_rel`, `pstate.t`,
 `step` or `own_raft_phys` is wrong, and none of those is an axiom.
 

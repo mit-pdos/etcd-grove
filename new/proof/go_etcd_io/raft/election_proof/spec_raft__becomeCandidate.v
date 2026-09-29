@@ -9,11 +9,9 @@ Definition wp_raft__becomeCandidate_body :=
     (cfg : gset w64)
     (r : loc) (id : w64) (s : nstate.t),
   s.(nstate.role) ≠ role.Leader →
-  (* [reset]'s [Visit] closure reads the log *)
-  nstate_idle s →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "becomeCandidate" #()
-  {{{ RET #(); own_raft_phys cfg r id (become_candidate id s) }}}.
+  {{{ pvs, RET #(); own_raft_phys cfg r id (become_candidate id s <| nstate.prvals := pvs |>) }}}.
 
 Module Type BECOMECANDIDATE.
   Parameter wp_raft__becomeCandidate : wp_raft__becomeCandidate_body.

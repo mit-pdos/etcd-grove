@@ -34,7 +34,7 @@ Implicit Type s : nstate.t.
     m.(raftpb.Message.Term') = W64 0 →
     (* an election increments the term; [send] panics if that wraps to zero *)
     uint.Z s.(nstate.term) + 1 < 2 ^ 64 →
-    (* [r.step] matches the role and nothing is on loan *)
+    (* [r.step] matches the role *)
     nstate_wf s →
     {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s }}}
       r @! (go.PointerType raft.raft) @! "Step" #m

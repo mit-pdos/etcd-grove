@@ -149,7 +149,7 @@ Set Default Proof Using "Type".
   Proof.
     intros_ambient.
     intros cfg r id s es ents.
-    intros Hempty Hnorm Hsmall Hlent.
+    intros Hempty Hnorm Hsmall.
     wp_start as "[Hphys Hes]". wp_auto. wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
     iDestruct (own_slice_len with "Hes") as %[Hlen Hlen'].
     (* [li := r.raftLog.lastIndex()], at a split that stays open *)

@@ -22,8 +22,6 @@ Definition wp_stepCandidate_MsgVoteResp_body :=
      scope and [becomeLeader] needs this premise outright; neither is
      available from [own_raft_phys], so it is threaded in from the caller. *)
   id ∈ cfg →
-  (* [poll] writes the tracker; [becomeLeader] appends to the log *)
-  nstate_idle s →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     @! raft.stepCandidate #r #m
   {{{ (err : error.t) s', RET #err;
@@ -41,7 +39,7 @@ Definition wp_stepCandidate_MsgVoteResp_body :=
          [won]/[lost] escaped here as unconstrained booleans.
 
          [record_vote] does not touch the term, so [s1]'s term is [s]'s. *)
-      ⌜ ∃ won lost ms,
+      ⌜ ∃ won lost ms pvs,
           let votes' := record_vote s.(nstate.votes)
                           m.(raftpb.Message.From')
                           (negb m.(raftpb.Message.Reject')) in
@@ -49,7 +47,7 @@ Definition wp_stepCandidate_MsgVoteResp_body :=
           (won = true → is_quorum cfg (granted votes')) ∧
           (lost = true → ¬ is_quorum cfg (cfg ∖ rejected votes')) ∧
           s' = vote_resp_result id s m.(raftpb.Message.From')
-                 m.(raftpb.Message.Reject') won lost ms ⌝ ∗
+                 m.(raftpb.Message.Reject') won lost ms <| nstate.prvals := pvs |> ⌝ ∗
       (* The [MsgVoteResp] arm of [stepCandidate]'s type switch ends in
          [return nil].  [Step] needs this written down: its own postcondition
          claims a [nil] error, and the code propagates a non-nil one out of

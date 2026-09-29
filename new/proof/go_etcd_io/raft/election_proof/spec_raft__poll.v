@@ -8,8 +8,6 @@ Definition wp_raft__poll_body :=
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (cfg : gset w64)
     (r : loc) (id : w64) (s : nstate.t) (from : w64) (t : w32) (v : bool),
-  (* it writes the tracker's vote map *)
-  nstate_idle s →
   (* [TallyVotes] needs it: an empty config "wins" every election in Go
      but is never a quorum in the model; see [spec_JointConfig__VoteResult.v] *)
   cfg ≠ ∅ →

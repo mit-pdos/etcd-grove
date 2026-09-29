@@ -31,12 +31,10 @@ Definition wp_raft__maybeSendAppend_body :=
     (sendIfEmpty : bool),
   to ≠ id →
   to ∈ cfg →
-  (* it borrows a [Progress] and reads the log *)
-  nstate_idle s →
   {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "maybeSendAppend" #to #sendIfEmpty
-  {{{ (b : bool) (ms : list msg.t), RET #b;
-      own_raft_phys cfg r id (send_msgs s ms) ∗
+  {{{ (b : bool) (ms : list msg.t) pvs, RET #b;
+      own_raft_phys cfg r id (send_msgs s ms <| nstate.prvals := pvs |>) ∗
       ⌜ app_sends id s.(nstate.term) ms ⌝ }}}.
 
 Module Type RAFT__MAYBESENDAPPEND.

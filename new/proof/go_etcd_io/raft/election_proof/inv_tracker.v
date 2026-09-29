@@ -187,9 +187,16 @@ Definition own_idset_opt (m : loc) (ids : gmap w64 unit) : iProp Σ :=
     The configuration is *simple*, not joint -- no reconfiguration and no
     learners are in scope -- which is recorded the same way [readonly.v]
     records it: the [JointConfig] array is [[voters_ref; map.nil]].  The
-    voter set and the domain of the progress map are both [cfg]. *)
+    voter set and the domain of the progress map are both [cfg].
+
+    [pvs] is what each [Progress] holds, with its [Inflights] value, by
+    peer ([nstate.prvals]): [prs] and [pvs] are paired key by key, so they
+    have the same domain.  (Until 2026-09-29 the values were existential
+    inside, and a caller that needed one across a call it made with the
+    struct sealed had to take the tracker out of [own_raft_phys] on loan.) *)
 Definition own_tracker (tv : tracker.ProgressTracker.t) (votes : gmap w64 bool)
-    (prs : gmap w64 loc) : iProp Σ :=
+    (prs : gmap w64 loc)
+    (pvs : gmap w64 (tracker.Progress.t * tracker.Inflights.t)) : iProp Σ :=
   ∃ (voters_ref : loc) (voters : gmap w64 unit)
     (learners learnersNext : gmap w64 unit),
   "Hvotes" ∷ tv.(tracker.ProgressTracker.Votes') ↦$ votes ∗
@@ -212,7 +219,7 @@ Definition own_tracker (tv : tracker.ProgressTracker.t) (votes : gmap w64 bool)
       have to take the map back to [DfracOwn 1].  Reconfiguration is out of
       scope (see [HnoConfChange] in [inv_raftlog.v]). *)
   "#Hprs" ∷ tv.(tracker.ProgressTracker.Progress') ↦$□ prs ∗
-  "Hprogs" ∷ ([∗ map] pr ∈ prs, ∃ pv iv, own_progress pr pv iv) ∗
+  "Hprogs" ∷ ([∗ map] pr; v ∈ prs; pvs, own_progress pr v.1 v.2) ∗
   "%Hprs_dom" ∷ ⌜ dom prs = cfg ⌝ ∗
   (* a simple configuration: second component of the joint config is nil *)
   "%Hvoters_arr" ∷ ⌜ array.arr
@@ -497,13 +504,16 @@ Qed.
     was got wrong. *)
 Definition visit_closure (trk : loc) (votes : gmap w64 bool)
   (prs : gmap w64 loc) (f : func.t) (I : iProp Σ) : iProp Σ :=
-  ∀ (i : w64) (pr : loc) (tv : tracker.ProgressTracker.t),
-    {{{ ⌜ i ∈ cfg ⌝ ∗ ⌜ prs !! i = Some pr ⌝ ∗
+  ∀ (i : w64) (pr : loc) (tv : tracker.ProgressTracker.t)
+    (pvs : gmap w64 (tracker.Progress.t * tracker.Inflights.t))
+    (pv : tracker.Progress.t) (iv : tracker.Inflights.t),
+    {{{ ⌜ i ∈ cfg ⌝ ∗ ⌜ prs !! i = Some pr ⌝ ∗ ⌜ pvs !! i = Some (pv, iv) ⌝ ∗
         ⌜ (0 ≤ sint.Z tv.(tracker.ProgressTracker.MaxInflight') < 2 ^ 62)%Z ⌝ ∗
-        trk ↦ tv ∗ (∃ pv iv, own_progress pr pv iv) ∗
-        ((∃ pv iv, own_progress pr pv iv) -∗ own_tracker tv votes prs) ∗ I }}}
+        trk ↦ tv ∗ own_progress pr pv iv ∗
+        (∀ pv' iv', own_progress pr pv' iv' -∗
+                    own_tracker tv votes prs (<[i := (pv', iv')]> pvs)) ∗ I }}}
       #f #i #pr
-    {{{ RET #(); ∃ tv', trk ↦ tv' ∗ own_tracker tv' votes prs ∗ I }}}.
+    {{{ RET #(); ∃ tv' pvs', trk ↦ tv' ∗ own_tracker tv' votes prs pvs' ∗ I }}}.
 
 
 (** The inflight-window bound, read out without consuming the tracker.
@@ -511,10 +521,10 @@ Definition visit_closure (trk : loc) (votes : gmap w64 bool)
     ...)], whose premise this is; the closure cannot reach [own_tracker]
     itself, so [reset] pulls the fact into the Coq context before the
     [Visit]. *)
-Lemma own_tracker_maxinflight tv votes prs :
-  own_tracker tv votes prs -∗
+Lemma own_tracker_maxinflight tv votes prs pvs :
+  own_tracker tv votes prs pvs -∗
   ⌜ (0 ≤ sint.Z tv.(tracker.ProgressTracker.MaxInflight') < 2 ^ 62)%Z ⌝ ∗
-  own_tracker tv votes prs.
+  own_tracker tv votes prs pvs.
 Proof using All.
   iIntros "Hown". iNamed "Hown".
   iSplitR; first (iPureIntro; exact HmaxInfl).
@@ -523,30 +533,63 @@ Proof using All.
 Qed.
 
 (** Borrow one voter's [Progress] out of the tracker, by its key in the
-    progress map the tracker is indexed by.  The caller can come back to
-    the *same* pointer after any call that returns the tracker at the same
-    [prs]. *)
-Lemma own_tracker_lookup tv votes (prs : gmap w64 loc) (i : w64) (pr : loc) :
+    progress map the tracker is indexed by, at the value [pvs] records for
+    it; give it back at any value, which the index then records.  The
+    caller can come back to the *same* pointer, and the same value, after
+    any call that returns the tracker at the same [prs] and [pvs]. *)
+Lemma own_tracker_lookup tv votes (prs : gmap w64 loc) pvs (i : w64) (pr : loc) :
   prs !! i = Some pr →
-  own_tracker tv votes prs -∗
-  (∃ pv iv, own_progress pr pv iv) ∗
-  ((∃ pv iv, own_progress pr pv iv) -∗ own_tracker tv votes prs).
+  own_tracker tv votes prs pvs -∗
+  ∃ pv iv, ⌜ pvs !! i = Some (pv, iv) ⌝ ∗ own_progress pr pv iv ∗
+    (∀ pv' iv', own_progress pr pv' iv' -∗
+                own_tracker tv votes prs (<[i := (pv', iv')]> pvs)).
 Proof using All.
   intros Hpr. iIntros "Hown". iNamed "Hown".
-  iDestruct (big_sepM_lookup_acc _ _ _ _ Hpr with "Hprogs") as "[Hpr Hback]".
-  iFrame "Hpr".
-  iIntros "Hpr". iDestruct ("Hback" with "Hpr") as "Hprogs".
+  iDestruct (big_sepM2_lookup_iff with "Hprogs") as %Hiff.
+  destruct (Hiff i) as [Hsome _]. destruct (Hsome ltac:(by eexists)) as [[pv iv] Hv].
+  iDestruct (big_sepM2_insert_acc _ _ _ _ _ _ Hpr Hv with "Hprogs") as "[Hp Hback]".
+  iExists pv, iv. iSplitR; first done. iFrame "Hp".
+  iIntros (pv' iv') "Hp".
+  iDestruct ("Hback" $! pr (pv', iv') with "Hp") as "Hprogs".
+  rewrite (insert_id prs i pr) //.
   rewrite /own_tracker.
   iExists voters_ref, voters, learners, learnersNext.
   iFrame "∗#%".
 Qed.
 
+(** The same, given back at the value it was borrowed at. *)
+Lemma own_tracker_lookup_same tv votes (prs : gmap w64 loc) pvs (i : w64) (pr : loc) :
+  prs !! i = Some pr →
+  own_tracker tv votes prs pvs -∗
+  ∃ pv iv, ⌜ pvs !! i = Some (pv, iv) ⌝ ∗ own_progress pr pv iv ∗
+    (own_progress pr pv iv -∗ own_tracker tv votes prs pvs).
+Proof using All.
+  intros Hpr. iIntros "Hown".
+  iDestruct (own_tracker_lookup _ _ _ _ _ _ Hpr with "Hown")
+    as (pv iv Hv) "[Hp Hback]".
+  iExists pv, iv. iSplitR; first done. iFrame "Hp".
+  iIntros "Hp". iDestruct ("Hback" with "Hp") as "Hown".
+  rewrite (insert_id pvs i (pv, iv)) //.
+Qed.
+
+(** The [Progress] values are indexed by the same peers as the map. *)
+Lemma own_tracker_prvals_dom tv votes prs pvs :
+  own_tracker tv votes prs pvs -∗
+  ⌜ dom pvs = dom prs ⌝ ∗ own_tracker tv votes prs pvs.
+Proof using All.
+  iIntros "Hown". iNamed "Hown".
+  iDestruct (big_sepM2_dom with "Hprogs") as %Hd.
+  iSplitR; first done.
+  rewrite /own_tracker. iExists voters_ref, voters, learners, learnersNext.
+  iFrame "∗#%".
+Qed.
+
 (** Read the progress map's points-to and domain out of the tracker without
     consuming it (the map is read-only, hence persistent). *)
-Lemma own_tracker_progress_map tv votes prs :
-  own_tracker tv votes prs -∗
+Lemma own_tracker_progress_map tv votes prs pvs :
+  own_tracker tv votes prs pvs -∗
   tv.(tracker.ProgressTracker.Progress') ↦$□ prs ∗ ⌜ dom prs = cfg ⌝ ∗
-  own_tracker tv votes prs.
+  own_tracker tv votes prs pvs.
 Proof using All.
   iIntros "Hown". iNamed "Hown".
   iFrame "Hprs". iSplitR; first (iPureIntro; exact Hprs_dom).
@@ -555,28 +598,27 @@ Proof using All.
 Qed.
 
 (** [trk.Progress[i]], for a voter [i]: [becomeLeader] looks up [r.id].
-    Only voters are in the map, whence the side condition. *)
-Lemma wp_tracker_progress_lookup tv votes prs (i : w64) :
+    Only voters are in the map, whence the side condition.  The [Progress]
+    comes out as [own_tracker_lookup] hands it out. *)
+Lemma wp_tracker_progress_lookup tv votes prs pvs (i : w64) :
   i ∈ cfg →
-  {{{ own_tracker tv votes prs }}}
+  {{{ own_tracker tv votes prs pvs }}}
     map.lookup1 go.uint64 (go.PointerType tracker.Progress)
       #(tv.(tracker.ProgressTracker.Progress')) #i
   {{{ (pr : loc), RET #pr;
       ⌜ prs !! i = Some pr ⌝ ∗
-      (∃ pv iv, own_progress pr pv iv) ∗
-      ((∃ pv iv, own_progress pr pv iv) -∗ own_tracker tv votes prs) }}}.
+      ∃ pv iv, ⌜ pvs !! i = Some (pv, iv) ⌝ ∗ own_progress pr pv iv ∗
+        (∀ pv' iv', own_progress pr pv' iv' -∗
+                    own_tracker tv votes prs (<[i := (pv', iv')]> pvs)) }}}.
 Proof.
-  intros Hi. iIntros (Φ) "Hown HΦ". iNamed "Hown".
+  intros Hi. iIntros (Φ) "Hown HΦ".
+  iDestruct (own_tracker_progress_map with "Hown") as "(#Hprs & %Hdom & Hown)".
   assert (is_Some (prs !! i)) as [pr Hpr].
-  { apply elem_of_dom. rewrite Hprs_dom //. }
+  { apply elem_of_dom. rewrite Hdom //. }
   wp_apply (wp_map_lookup1 with "Hprs") as "_".
   rewrite Hpr /=.
-  iDestruct (big_sepM_lookup_acc _ _ _ _ Hpr with "Hprogs") as "[Hpr Hback]".
-  iApply ("HΦ" $! pr). iFrame "Hpr". iSplitR; first done.
-  iIntros "Hpr". iDestruct ("Hback" with "Hpr") as "Hprogs".
-  rewrite /own_tracker.
-  iExists voters_ref, voters, learners, learnersNext.
-  iFrame "∗#%".
+  iApply ("HΦ" $! pr). iSplitR; first done.
+  iApply (own_tracker_lookup _ _ _ _ _ _ Hpr with "Hown").
 Qed.
 
 
@@ -610,6 +652,20 @@ Definition own_config (cfg : gset w64) (cfgv : tracker.Config.t) (prsm : loc)
   "Hprogs" ∷ ([∗ map] pr ∈ prs, ∃ pv iv, own_progress pr pv iv) ∗
   "%Hcsz" ∷ ⌜ Z.of_nat (size cfg) < 2 ^ 63 ⌝.
 
+(** Name the values of a map's worth of objects: a [big_sepM] of
+    existentials is a [big_sepM2] against some map of witnesses. *)
+Lemma big_sepM_exist_sepM2 {A B : Type} (m : gmap w64 A) (Φ : w64 → A → B → iProp Σ) :
+  ([∗ map] k ↦ x ∈ m, ∃ y, Φ k x y) -∗
+  ∃ m' : gmap w64 B, [∗ map] k ↦ x; y ∈ m; m', Φ k x y.
+Proof.
+  induction m as [|k x m Hk IH] using map_ind.
+  - iIntros "_". iExists ∅. by rewrite big_sepM2_empty.
+  - rewrite big_sepM_insert //. iIntros "[[%y Hy] Hm]".
+    iDestruct (IH with "Hm") as (m') "Hm".
+    iExists (<[k := y]> m').
+    iApply (big_sepM2_insert_2 with "Hy Hm").
+Qed.
+
 (** The tracker [MakeProgressTracker] builds is an [own_tracker] over the
     empty configuration. *)
 Lemma own_tracker_empty (tv : tracker.ProgressTracker.t) (v0 : loc) :
@@ -621,28 +677,34 @@ Lemma own_tracker_empty (tv : tracker.ProgressTracker.t) (v0 : loc) :
   v0 ↦$ (∅ : gmap w64 unit) -∗
   tv.(tracker.ProgressTracker.Votes') ↦$ (∅ : gmap w64 bool) -∗
   tv.(tracker.ProgressTracker.Progress') ↦$□ (∅ : gmap w64 loc) -∗
-  own_tracker ∅ tv ∅ ∅.
+  own_tracker ∅ tv ∅ ∅ ∅.
 Proof using All.
   iIntros (Harr Hl Hln Hal Hmi) "Hv0 Hvotes #Hprs".
   rewrite /own_tracker. iExists v0, ∅, ∅, ∅.
   iFrame "Hvotes Hprs Hv0". rewrite Hl Hln.
-  iSplitL; first by rewrite big_sepM_empty.
+  iSplitL; first by rewrite big_sepM2_empty.
   repeat (iSplitR; [first [iPureIntro; done | iLeft; done] |]).
   iPureIntro. split_and!; try done; rewrite ?dom_empty_L ?size_empty //; lia.
 Qed.
 
 (** Replace the configuration and the progress map of a tracker, keeping
     its tally and inflight bound.  The old configuration's voter map and
-    [Progress] objects are dropped. *)
-Lemma own_tracker_reconfig cfg0 cfg tv votes prs0 cfgv prsm prs :
-  own_tracker cfg0 tv votes prs0 -∗
+    [Progress] objects are dropped; the new ones hold whatever [Restore]
+    put in them. *)
+Lemma own_tracker_reconfig cfg0 cfg tv votes prs0 pvs0 cfgv prsm prs :
+  own_tracker cfg0 tv votes prs0 pvs0 -∗
   own_config cfg cfgv prsm prs -∗
-  own_tracker cfg (tv <| tracker.ProgressTracker.Config' := cfgv |>
-                      <| tracker.ProgressTracker.Progress' := prsm |>) votes prs.
+  ∃ pvs, own_tracker cfg (tv <| tracker.ProgressTracker.Config' := cfgv |>
+                             <| tracker.ProgressTracker.Progress' := prsm |>) votes prs pvs.
 Proof using All.
   iIntros "Hold Hnew". iNamed "Hold".
   iClear "Hprs Hprogs Hvoters Hlearners HlearnersNext".
   iNamed "Hnew".
+  iDestruct (big_sepM_mono _ (λ _ pr, ∃ v : tracker.Progress.t * tracker.Inflights.t,
+                                  own_progress pr v.1 v.2)%I with "Hprogs") as "Hprogs".
+  { iIntros (k pr _) "(%pv & %iv & Hp)". by iExists (pv, iv). }
+  iDestruct (big_sepM_exist_sepM2 with "Hprogs") as (pvs) "Hprogs".
+  iExists pvs.
   rewrite /own_tracker. iExists vref, vm, ∅, ∅. simpl.
   iFrame "Hvotes Hprsm Hprogs Hvref". rewrite Hcfgl Hcfgln.
   repeat (iSplitR; [first [iPureIntro; done | iLeft; done] |]).

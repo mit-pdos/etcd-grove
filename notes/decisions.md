@@ -1478,3 +1478,35 @@ the log at each of its seven exits. Known gap, not on the election path:
 
 **Rejected.** *A `pin` field recording a `Progress` value, for the
 tracker loan* — not physical state; `nstate.t` holds only physical fields.
+
+## 2026-09-29 — Each peer's `Progress` value is in `nstate.t`; nothing is ever lent
+
+**Context.** `nstate.lent : option ProgressTracker.t` let a function take
+the tracker's heap out of `own_raft_phys` for its whole body, so it could
+hold a `Progress` across a call on the struct. `reset`, `maybeSendSnapshot`
+and `maybeSendAppend` used it. A proposed replacement, a `pin` field
+recording one `Progress` value, was rejected: it is not physical state.
+
+**Decision.** `nstate.prvals : gmap w64 (Progress.t * Inflights.t)`, each
+peer's `Progress` and `Inflights` values; `own_tracker cfg tv votes prs pvs`
+pairs `prs` and `pvs` key by key (`big_sepM2`). `lent`, `nstate_idle`, the
+lend/unlend lemmas and every `nstate_idle s` premise are deleted;
+`nstate_wf` is just the `r.step` equation. Specs of functions that write a
+`Progress` quantify the new values in the postcondition (`{{{ pvs, RET …;
+own_raft_phys (X <| nstate.prvals := pvs |>) }}}`) rather than computing
+them: `reset`'s would need `MaxInflight` and the log's last index, and no
+caller looks.
+
+**How each former loan went.** `reset`: `Visit`'s invariant is the wand of
+`own_raft_phys_tracker_prvals` (as `bcastAppend` already did), and the
+closure re-seals whenever it needs the whole struct and re-borrows `pr` at
+the recorded value. `maybeSendSnapshot`: borrows `pr` at each of its two
+accesses. `maybeSendAppend`: borrows `pr` around each stretch that touches
+it (`own_raft_phys_pr`/`_upd`/`_any`); `SentEntries`' premises survive
+`r.send` because the state records `pr`'s value and `send` changes only the
+outbox. This is the one function that needed the values in the state.
+
+**Rejected.** *A pin* (above). *Keeping `lent`* — a loan is not state of
+the Go program. *Computing the new values in the transitions* — more
+precision than any caller uses, at the cost of more fields
+(`MaxInflight`).

@@ -37,8 +37,6 @@ Definition wp_raft__promotable_body :=
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (cfg : gset w64) (r : loc) (id : w64) (s : nstate.t),
-  (* it reads the log ([hasNextOrInProgressSnapshot]) *)
-  nstate_idle s →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "promotable" #()
   {{{ (b : bool), RET #b;

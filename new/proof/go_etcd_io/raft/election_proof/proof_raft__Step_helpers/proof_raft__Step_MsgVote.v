@@ -37,7 +37,7 @@ Implicit Type s : nstate.t.
     m.(raftpb.Message.Term') ≠ W64 0 →
     (* [send] stamps the sender's id into [From], and node ids are nonzero *)
     m.(raftpb.Message.From') ≠ W64 0 →
-    (* [r.step] matches the role and nothing is on loan *)
+    (* [r.step] matches the role *)
     nstate_wf s →
     {{{ is_pkg_init raft ∗
         "Hphys" ∷ own_raft_phys cfg r id s ∗

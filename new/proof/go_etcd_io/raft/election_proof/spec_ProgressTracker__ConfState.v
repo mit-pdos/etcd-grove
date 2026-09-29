@@ -10,11 +10,11 @@ Definition wp_ProgressTracker__ConfState_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
-    (cfg : gset w64) (trk : loc) tv votes (prs : gmap w64 loc),
-  {{{ is_pkg_init tracker ∗ trk ↦ tv ∗ own_tracker cfg tv votes prs }}}
+    (cfg : gset w64) (trk : loc) tv votes (prs : gmap w64 loc) (pvs : gmap w64 (tracker.Progress.t * tracker.Inflights.t)),
+  {{{ is_pkg_init tracker ∗ trk ↦ tv ∗ own_tracker cfg tv votes prs pvs }}}
     trk @! (go.PointerType tracker.ProgressTracker) @! "ConfState" #()
   {{{ (cs : raftpb.ConfState.t) (xs : list w64), RET #cs;
-      trk ↦ tv ∗ own_tracker cfg tv votes prs ∗
+      trk ↦ tv ∗ own_tracker cfg tv votes prs pvs ∗
       cs.(raftpb.ConfState.Voters') ↦* xs ∗ ⌜ xs ≡ₚ elements cfg ⌝ ∗
       ⌜ cs.(raftpb.ConfState.VotersOutgoing').(slice.len) = W64 0 ∧
         cs.(raftpb.ConfState.Learners').(slice.len) = W64 0 ∧

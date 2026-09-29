@@ -70,7 +70,7 @@ Implicit Type s : nstate.t.
     (* [stepCandidate] needs it; [Step] is the outermost caller, so it enters
        the development at [wp_raft__Step_body] -- see spec_raft__Step.v *)
     id ∈ cfg →
-    (* [r.step] matches the role and nothing is on loan *)
+    (* [r.step] matches the role *)
     nstate_wf s →
     {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s }}}
       r @! (go.PointerType raft.raft) @! "Step" #m
@@ -83,7 +83,7 @@ Implicit Type s : nstate.t.
         "%Herr" ∷ ⌜ err = interface.nil ⌝ }}}.
   Proof.
     intros Hty Hto Hterm Hcfg Hwf.
-    pose proof Hwf as [Hsfw Hlent].
+    assert (Hsfw : s.(nstate.stepfn) = step_func_of s.(nstate.role)) by exact Hwf.
     assert (Hty6 : m.(raftpb.Message.Type') = W32 6) by (rewrite Hty //).
     (* Hoist every type test this branch meets, as named facts.  Rewriting
        [bool_decide (Type = k)] inline hits whichever occurrence comes first,
@@ -143,8 +143,8 @@ Implicit Type s : nstate.t.
          becomeFollower(m.Term, None) rather than adopting a leader *)
       rewrite Hn8. wp_auto.
       rewrite Hn7. wp_auto.
-      wp_apply (P.wp_raft__becomeFollower _ _ _ _ _ _ Hlent with "[$Hphys]")
-        as "Hphys".
+      wp_apply (P.wp_raft__becomeFollower _ _ _ _ _ _ with "[$Hphys]")
+        as "%pvs Hphys".
       (* the model step: a VoteResp is not from_leader, so no leader is
          adopted and the new lead is 0 *)
       assert (step cfg id (to_pstate s) [abs_msg mtype.VoteResp m]
@@ -168,7 +168,8 @@ Implicit Type s : nstate.t.
       (* the default arm, [r.step(m)].  The step-down made the role
          [Follower], so the loaded [stepfn] is [stepFollower]. *)
       wp_load_step.
-      assert ((become_follower s m.(raftpb.Message.Term') (W64 0)).(nstate.stepfn)
+      assert ((become_follower s m.(raftpb.Message.Term') (W64 0)
+                 <| nstate.prvals := pvs |>).(nstate.stepfn)
               = functions raft.stepFollower []) as Hsf by done.
       rewrite Hsf.
       wp_apply (P.wp_stepFollower_MsgVoteResp with "[$Hphys]") as (err) "[Hphys %Herrn]".
@@ -177,9 +178,10 @@ Implicit Type s : nstate.t.
          the trailing [return nil]. *)
       rewrite Herrn. wp_auto.
       iApply ("HΦ" $! interface.nil
-                (become_follower s m.(raftpb.Message.Term') (W64 0))).
+                (become_follower s m.(raftpb.Message.Term') (W64 0)
+                   <| nstate.prvals := pvs |>)).
       iFrame "Hphys". iPureIntro.
-      split; first exact (nstate_wf_become_follower _ _ _ Hlent).
+      split; first done.
       split; last done.
       exists [abs_msg mtype.VoteResp m]. split; last exact Hsd.
       recv_elem.
@@ -249,15 +251,14 @@ Implicit Type s : nstate.t.
           { exact Hteq. }
           { exact Hrole. }
           { exact Hcfg. }
-          { exact Hlent. }
           rewrite Herrn. wp_auto.
-          destruct Hres as (won & lost & ms & Hms & Hwon & Hlost & ->).
+          destruct Hres as (won & lost & ms & pvs & Hms & Hwon & Hlost & ->).
           iApply ("HΦ" $! interface.nil _). iFrame "Hphys".
-          iPureIntro. split; first by apply nstate_wf_vote_resp_result.
+          iPureIntro. split; first by apply nstate_wf_prvals, nstate_wf_vote_resp_result.
           split; last done.
           exists [abs_msg mtype.VoteResp m]. split.
           { recv_elem. }
-          rewrite to_pstate_vote_resp_result /pvote_resp_result.
+          rewrite to_pstate_prvals to_pstate_vote_resp_result /pvote_resp_result.
           destruct won.
           { eapply (step_record_then_win cfg id (to_pstate s) (abs_msg mtype.VoteResp m) ms).
             - done.
@@ -285,7 +286,6 @@ Implicit Type s : nstate.t.
           wp_apply (P.wp_stepLeader_MsgVoteResp with "[$Hphys]")
             as (err) "[Hphys %Herrn]".
           { done. }
-          { exact Hlent. }
           rewrite Herrn. wp_auto.
           iApply ("HΦ" $! interface.nil s). iFrame "Hphys".
           iPureIntro. split; first exact Hwf. split; last done.

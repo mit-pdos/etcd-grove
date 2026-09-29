@@ -60,12 +60,12 @@ Proof.
 Qed.
 
 (** [vote_resp_result] keeps [nstate_wf]: every outcome is a [becomeX] or
-    leaves [r.step] and the role alone, and none of them lends anything. *)
+    leaves [r.step] and the role alone. *)
 Lemma nstate_wf_vote_resp_result id s from reject won lost ms :
   nstate_wf s → nstate_wf (vote_resp_result id s from reject won lost ms).
 Proof.
-  intros [Hsf Hl]. rewrite /vote_resp_result.
-  destruct won; [|destruct lost]; split; simpl; done.
+  intros Hsf. rewrite /vote_resp_result.
+  destruct won; [|destruct lost]; simpl; done.
 Qed.
 
 (** ** Branch lemmas

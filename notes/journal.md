@@ -3763,3 +3763,36 @@ Next: `lent`. `reset` and `maybeSendSnapshot` can drop the loan without
 new state (Visit's invariant = the tracker accessor's wand, as in
 `bcastAppend`); `maybeSendAppend` needs each peer's `Progress`/`Inflights`
 values in `nstate.t` (STATUS item 2).
+
+## 2026-09-29 (last) — `nstate.lent` is gone: each peer's `Progress` value is in `nstate.t`
+
+Second and third of the three removals (`logst.page` was the first,
+above; `nstate.pin` was never committed). Decision in decisions.md, "Each
+peer's `Progress` value is in `nstate.t`".
+
+- `defs.v`: `nstate.prvals` replaces `lent` (same position); `nstate_idle`
+  deleted; `nstate_wf` is the `r.step` equation alone.
+- `inv_tracker.v`: `own_tracker … prs pvs` (`big_sepM2`);
+  `own_tracker_lookup` returns the value and takes it back at any new one;
+  `own_tracker_lookup_same`, `own_tracker_prvals_dom`,
+  `big_sepM_exist_sepM2` (for `own_tracker_reconfig`, whose `Restore`
+  output has existential values); `visit_closure` hands the closure the
+  value and quantifies the returned ones.
+- `inv_raft_phys.v`: the tracker is always owned; lend/unlend/trk_lent
+  deleted; new `own_raft_phys_tracker_prvals` (take the tracker back at
+  new values) and `own_raft_phys_pr` / `_upd` / `_any` (one `Progress` by
+  its key, premises as pure wands -- gotchas.md).
+- Specs: 16 `nstate_idle` premises gone; the 11 functions that write a
+  `Progress` quantify the new values in the postcondition.
+- Proofs without a loan: `reset` (`Visit` invariant = accessor wand),
+  `maybeSendSnapshot`, `maybeSendAppend` (borrow `pr` around each
+  stretch; `send` keeps `prvals`), `bcastAppend` (lead). The other 23
+  proof files threaded the new binder (subagent, from a written brief).
+- Notes: raft-implementation-facts.md records which slices raft hands out
+  uncapped (answering an open question): only `readOnly.maybeAdvance`'s
+  result can overwrite live data, and its one caller never appends.
+
+Checked: `.vok` of all 412 targets under `election_proof/` (sweep, 0
+errors). `tcb-report --proof-root …/election_proof`: 14 Axiom, 1 Admitted
+(unchanged), 274 Qed, 74 definitions / 802 lines. `check-module-discipline`:
+6 notes/warnings (unchanged).

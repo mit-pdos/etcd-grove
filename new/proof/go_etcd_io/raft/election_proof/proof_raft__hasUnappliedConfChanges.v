@@ -78,7 +78,7 @@ Import P.
   Lemma wp_raft__hasUnappliedConfChanges : wp_raft__hasUnappliedConfChanges_body.
   Proof.
     intros_ambient.
-    intros cfg r id s Hlent.
+    intros cfg r id s.
     wp_start as "Hphys".
     destruct (s.(nstate.logst)) as [prev sents uents lcm lap] eqn:Hls.
     (* the log's facts, read once: [applied]/[committed] inside the log, and

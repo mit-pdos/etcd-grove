@@ -35,13 +35,16 @@ Proof. rewrite /app_sends. apply Forall_app_2. Qed.
     object -- the [trk] field and [own_tracker] -- and lends it to the
     closure; but [r.sendAppend(id)] is specified on [own_raft_phys], which
     includes that object.  So [I] carries exactly "the raft struct with a
-    tracker-shaped hole", the wand of [own_raft_phys_tracker_same]:
+    tracker-shaped hole", the wand of [own_raft_phys_tracker_prvals]:
 
       ∃ ms, r_ptr ↦ r ∗ ⌜ app_sends id s.term ms ⌝ ∗
-            (∀ tvx, r.[trk] ↦ tvx -∗ own_tracker cfg tvx s.votes s.progress -∗
-                    own_raft_phys cfg r id (send_msgs s ms))
+            (∀ tvx pvsx, r.[trk] ↦ tvx -∗
+                    own_tracker cfg tvx s.votes s.progress pvsx -∗
+                    own_raft_phys cfg r id (send_msgs s ms <| prvals := pvsx |>))
 
-    quantified over the field value because [own_raft_phys] hides it: after
+    quantified over the [Progress] values because [sendAppend] changes them
+    ([nstate.prvals]), and over the field value because [own_raft_phys]
+    hides it: after
     [sendAppend] the tracker is split off again at whatever value the
     struct now holds.  That is also why [visit_closure]'s postcondition is
     existential in the tracker value; see [inv_tracker.v].  What it does
@@ -56,62 +59,62 @@ Proof. rewrite /app_sends. apply Forall_app_2. Qed.
     the whole content of the postcondition.  One [App] per peer would be
     false; see [spec_raft__bcastAppend.v]. *)
 Lemma wp_bcast (r : loc) (id : w64) (s : nstate.t) :
-  nstate_idle s →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "bcastAppend" #()
-  {{{ (ms : list msg.t), RET #();
-      own_raft_phys cfg r id (send_msgs s ms) ∗
+  {{{ (ms : list msg.t) pvs, RET #();
+      own_raft_phys cfg r id (send_msgs s ms <| nstate.prvals := pvs |>) ∗
       ⌜ app_sends id s.(nstate.term) ms ⌝ }}}.
 Proof.
-  intros Hlent.
   wp_start as "Hphys". wp_auto.
   iDestruct (own_raft_phys_send_nil with "Hphys") as "Hphys".
-  (* [Hlent] is about [s]; it is passed at [send_msgs s ms] throughout,
-     which differs from [s] only in the outbox *)
-  iDestruct (own_raft_phys_tracker_same _ _ _ (send_msgs s []) Hlent with "Hphys")
+  iDestruct (own_raft_phys_tracker_prvals with "Hphys")
     as (tv) "(Htrkf & Htrk & Hrest)".
-  wp_apply (wp_ProgressTracker__Visit _ _ _ s.(nstate.votes) s.(nstate.progress) _
+  wp_apply (wp_ProgressTracker__Visit _ _ _ s.(nstate.votes) s.(nstate.progress) _ _
               (∃ (ms : list msg.t),
                  "rp" ∷ r_ptr ↦ r ∗
                  "%Hms" ∷ ⌜ app_sends id s.(nstate.term) ms ⌝ ∗
-                 "Hrest" ∷ (∀ tvx, r.[raft.raft.t, "trk"] ↦ tvx -∗
-                          own_tracker cfg tvx s.(nstate.votes) s.(nstate.progress) -∗
-                          own_raft_phys cfg r id (send_msgs s ms)))%I
+                 "Hrest" ∷ (∀ tvx pvsx, r.[raft.raft.t, "trk"] ↦ tvx -∗
+                          own_tracker cfg tvx s.(nstate.votes) s.(nstate.progress) pvsx -∗
+                          own_raft_phys cfg r id (send_msgs s ms <| nstate.prvals := pvsx |>)))%I
               with "[$Htrkf $Htrk r Hrest]").
   { iSplitL "r Hrest".
-    { iExists []. iFrame "r Hrest". iPureIntro. by apply Forall_nil. }
+    { iExists []. iFrame "r". iSplitR; first (iPureIntro; by apply Forall_nil).
+      iIntros (tvx pvsx) "Hf Ht". iDestruct ("Hrest" with "Hf Ht") as "Hphys".
+      iApply (own_raft_phys_eq with "Hphys"). reflexivity. }
     (* the closure *)
-    iModIntro. iIntros (i pr tv0).
-    wp_start as "(%Hicfg & %Hpri & %HmaxI & Htrkf & Hpr & Hback & HI)".
+    iModIntro. iIntros (i pr tv0 pvs0 pv iv).
+    wp_start as "(%Hicfg & %Hpri & %Hpvi & %HmaxI & Htrkf & Hpr & Hback & HI)".
     iNamed "HI".
     iDestruct ("Hback" with "Hpr") as "Htrk".
-    iDestruct ("Hrest" $! tv0 with "Htrkf Htrk") as "Hphys".
+    iDestruct ("Hrest" with "Htrkf Htrk") as "Hphys".
     wp_auto. wp_apply (wp_raft_load_id with "Hphys") as "Hphys".
     destruct (decide (i = id)) as [Hii|Hii].
     - (* the leader itself: nothing is sent *)
       rewrite bool_decide_eq_true_2 //. wp_auto.
-      iDestruct (own_raft_phys_tracker_same _ _ _ (send_msgs s ms) Hlent with "Hphys")
+      iDestruct (own_raft_phys_tracker_prvals with "Hphys")
         as (tv1) "(Htrkf & Htrk & Hrest)".
-      iApply "HΦ". iExists tv1. iFrame "Htrkf Htrk".
-      iExists ms. iFrame "rp Hrest". done.
-    - (* a peer: [sendAppend] may add [App]s *)
+      iApply "HΦ". iExists tv1, _. iFrame "Htrkf Htrk".
+      iExists ms. iFrame "rp". iSplitR; first done.
+      iIntros (tvx pvsx) "Hf Ht". iDestruct ("Hrest" with "Hf Ht") as "Hphys".
+      iApply (own_raft_phys_eq with "Hphys"). reflexivity.
+    - (* a peer: [sendAppend] may add [App]s and change [Progress]es *)
       rewrite bool_decide_eq_false_2 //. wp_auto.
-      wp_apply (wp_raft__sendAppend _ _ _ (send_msgs s ms) i Hii Hicfg Hlent
-                  with "[$Hphys]")
-        as "%ms' [Hphys %Hms']".
+      wp_apply (wp_raft__sendAppend _ _ _ _ i Hii Hicfg with "[$Hphys]")
+        as "%ms' %pvs' [Hphys %Hms']".
       try wp_auto.
-      rewrite send_msgs_app.
-      iDestruct (own_raft_phys_tracker_same _ _ _ (send_msgs s (ms ++ ms')) Hlent
-                   with "Hphys")
+      iDestruct (own_raft_phys_tracker_prvals with "Hphys")
         as (tv1) "(Htrkf & Htrk & Hrest)".
-      iApply "HΦ". iExists tv1. iFrame "Htrkf Htrk".
-      iExists (ms ++ ms'). iFrame "rp Hrest".
-      iPureIntro. apply app_sends_app; [ exact Hms | exact Hms' ]. }
-  iIntros "H". iDestruct "H" as (tvfin) "(Htrkf & Htrk & HI)".
+      iApply "HΦ". iExists tv1, _. iFrame "Htrkf Htrk".
+      iExists (ms ++ ms'). iFrame "rp".
+      iSplitR; first (iPureIntro; apply app_sends_app; [ exact Hms | exact Hms' ]).
+      iIntros (tvx pvsx) "Hf Ht". iDestruct ("Hrest" with "Hf Ht") as "Hphys".
+      iApply (own_raft_phys_eq with "Hphys").
+      rewrite /send_msgs -assoc. reflexivity. }
+  iIntros "H". iDestruct "H" as (tvfin pvsfin) "(Htrkf & Htrk & HI)".
   iNamed "HI".
-  iDestruct ("Hrest" $! tvfin with "Htrkf Htrk") as "Hphys".
+  iDestruct ("Hrest" $! tvfin pvsfin with "Htrkf Htrk") as "Hphys".
   wp_auto.
-  iApply ("HΦ" $! ms). by iFrame.
+  iApply ("HΦ" $! ms pvsfin). by iFrame.
 Qed.
 
 End helpers.
@@ -121,7 +124,7 @@ Set Default Proof Using "Type".
   Lemma wp_raft__bcastAppend : wp_raft__bcastAppend_body.
   Proof.
     intros_ambient.
-    intros cfg r id s Hlent.
+    intros cfg r id s.
     by apply wp_bcast.
   Qed.
 

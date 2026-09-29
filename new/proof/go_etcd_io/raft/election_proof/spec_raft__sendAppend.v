@@ -11,11 +11,10 @@ Definition wp_raft__sendAppend_body :=
     (cfg : gset w64) (r : loc) (id : w64) (s : nstate.t) (to : w64),
   to ≠ id →
   to ∈ cfg →
-  nstate_idle s →
   {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "sendAppend" #to
-  {{{ (ms : list msg.t), RET #();
-      own_raft_phys cfg r id (send_msgs s ms) ∗
+  {{{ (ms : list msg.t) pvs, RET #();
+      own_raft_phys cfg r id (send_msgs s ms <| nstate.prvals := pvs |>) ∗
       ⌜ app_sends id s.(nstate.term) ms ⌝ }}}.
 
 Module Type RAFT__SENDAPPEND.

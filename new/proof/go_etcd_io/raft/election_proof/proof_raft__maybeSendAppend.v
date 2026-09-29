@@ -24,21 +24,22 @@ Context (cfg : gset w64).
 
     The existentials are [ents]: the slice and its entries, read-only
     ([raftLog.entries] hands them out for good), so the log in the struct
-    is unchanged.  On the third arm they are [slice.nil] and [[]], and
-    rebinding the zero slice to a variable is what makes that arm's
-    *program text* match the other two's, which is what lets one script
-    serve all three.  [Hwin] is
+    is unchanged.  The struct is whole and at [s]: [pr] went back after the
+    reads each arm makes, at the same value.  On the third arm the
+    existentials are [slice.nil] and [[]], and rebinding the zero slice to
+    a variable is what makes that arm's *program text* match the other
+    two's, which is what lets one script serve all three.  [Hwin] is
     [Progress.SentEntries]'s second premise in the only form all three arms
     can supply it: entries are fetched only when the window has room, so a
-    non-empty [ents] in [StateReplicate] means the window was not full -- and
-    nothing between the test and [SentEntries] touches the window. *)
-Definition msa_pkg (r : loc) (id : w64) (s : nstate.t)
-    (tv : tracker.ProgressTracker.t) (ep : loc) (pv : tracker.Progress.t)
-    (iv : tracker.Inflights.t) : iProp Σ :=
+    non-empty [ents] in [StateReplicate] means the window was not full --
+    and nothing between the test and [SentEntries] touches the window,
+    which [nstate.prvals] records. *)
+Definition msa_pkg (r : loc) (id : w64) (s : nstate.t) (ep : loc)
+    (pv : tracker.Progress.t) (iv : tracker.Inflights.t) : iProp Σ :=
   ∃ (sl : slice.t) (es : list raftpb.Entry.t),
   "ents" ∷ ep ↦ sl ∗
   "Hents" ∷ sl ↦*□ es ∗
-  "Hphys" ∷ own_raft_phys cfg r id (s <| nstate.lent := Some tv |>) ∗
+  "Hphys" ∷ own_raft_phys cfg r id s ∗
   "%Hwin" ∷ ⌜ pv.(tracker.Progress.State') = W64 1 → es ≠ [] →
               inflights_full iv = false ⌝.
 
@@ -56,17 +57,10 @@ End helpers.
 
 Set Default Proof Using "Type".
 
-  (* End the tracker loan, and get from the state [own_raft_phys_unlend]
-     names back to [s]. *)
-  Local Ltac finish s Hlent :=
-    iDestruct (own_raft_phys_unlend with "Hphys Htrk") as "Hphys";
-    iDestruct (own_raft_phys_eq _ _ _ _ s with "Hphys") as "Hphys";
-    [ destruct s; destruct Hlent as [Hl1 _]; cbn in Hl1; subst; done | ].
-
   (* Open the log's record for a read of [r.raftLog.committed], which the
      next [wp_auto] steps; [close_struct] puts it back at the same state. *)
   Local Ltac open_struct :=
-    iDestruct (own_raft_phys_log_at with "Hphys") as "[Hlog Hlogback]";
+    iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hlogback]";
     iDestruct (own_raftLog_struct with "Hlog") as (?) "(Hl & _ & Hlb)".
   Local Ltac close_struct :=
     iDestruct ("Hlb" with "Hl") as "Hlog";
@@ -75,40 +69,42 @@ Set Default Proof Using "Type".
   (** [r.maybeSendAppend(to, sendIfEmpty)]
       ([raft__maybeSendAppendⁱᵐᵖˡ], new/code/go_etcd_io/raft/v3.v:3096).
 
-      **What is held across [r.send(...)].**  Two things read out of the
-      struct: one voter's [Progress], borrowed out of [own_tracker] --
+      **What is held across [r.send(...)].**  One voter's [Progress] --
       [pr.SentEntries] needs what this proof learned about it before the
-      send -- and [ents], which [raftLog.entries] hands out read-only and
-      for good -- [payloadsSize] reads it after the send.  The tracker's
-      heap is **lent** out of the struct for the whole body
-      ([own_raft_phys_lend]; [nstate.lent], [defs.v]).  The log is not: it
-      stays in the struct, unchanged.  Each [raftLog] call and each read of
-      [r.raftLog.committed] opens the log with [own_raft_phys_log_at] and
-      puts it back.  At each exit [own_raft_phys_unlend] ends the tracker
-      loan ([finish] for the exits that send nothing).
+      send (not [StateSnapshot]; a non-full window in [StateReplicate]) --
+      and [ents], which [raftLog.entries] hands out read-only and for good
+      ([payloadsSize] reads it after the send).  Neither is lent: [pr] is
+      borrowed out of the struct for each stretch of the body that touches
+      it ([own_raft_phys_pr] and its variants) and given back
+      before the next access to the struct, and what the proof knows about
+      it survives the calls in between because the state records its value
+      ([nstate.prvals], [s.(nstate.prvals) !! to = Some (pv, iv)]) and
+      [send] changes only the outbox.  (Until 2026-09-29 the tracker was
+      lent out of the struct for the whole body, [nstate.lent].)  Each
+      [raftLog] call and each read of [r.raftLog.committed] takes the log
+      out with [own_raft_phys_log_same] and puts it back.
 
-      [maybeSendSnapshot] needs neither: on that exit the [Progress] goes
-      back into the tracker first, and the callee borrows it again by its
-      key in [s.(nstate.progress)].
+      [maybeSendSnapshot] borrows the [Progress] again by its key in
+      [s.(nstate.progress)].
 
       The script, following the body:
 
       - [pr := r.trk.Progress[to]] hits because [to ∈ cfg]: take the
         (persistent) progress map out with [own_tracker_progress_map], step
-        the lookup with [wp_map_lookup1], and borrow the [own_progress] with
-        [own_tracker_lookup].  The borrow is returned exactly once, at
-        whichever exit is taken.
+        the lookup with [wp_map_lookup1]; [own_tracker_prvals_dom] gives
+        [pr]'s value [(pv, iv)].
       - [pr.IsPaused()]: on [true], return [false] having sent nothing; on
         [false] the answer [progress_paused pv = false] gives
         [pv.State ≠ StateSnapshot], which is [SentEntries]'s first premise.
       - [r.raftLog.term(pr.Next-1)] at the log's state.  On an error
         (the [interface.ok] case), [maybeSendSnapshot], whose postcondition
-        is at the same abstract state -- [MsgSnap] is model-invisible.  On
-        [interface.nil], the iff of [spec_raftLog__term.v] gives
-        [prev.index ≤ pr.Next - 1], and with [own_raftLog_core]'s [Hnowrap]
-        that is [prev.index + 1 ≤ pr.Next]: [pr.Next = 0] is excluded
-        because then the argument is [2^64 - 1], which the range puts out of
-        bounds.  That inequality is [raftLog.entries]'s only premise.
+        is at the same abstract state up to [Progress] values -- [MsgSnap]
+        is model-invisible.  On [interface.nil], the iff of
+        [spec_raftLog__term.v] gives [prev.index ≤ pr.Next - 1], and with
+        [own_raftLog_core]'s [Hnowrap] that is [prev.index + 1 ≤ pr.Next]:
+        [pr.Next = 0] is excluded because then the argument is [2^64 - 1],
+        which the range puts out of bounds.  That inequality is
+        [raftLog.entries]'s only premise.
       - the [||] and its three arms: see [msa_pkg] above.
       - [len(ents) == 0 && !sendIfEmpty] returns [false].
       - the second [if err != nil] is dead: [err] is [interface.nil] from
@@ -118,82 +114,80 @@ Set Default Proof Using "Type".
         [out = [msg.mk mtype.App id to s.term false]], which is
         [app_sends].
       - [SentEntries(len ents, payloadsSize ents)] and
-        [SentCommit(r.raftLog.committed)], then [return true]. *)
+        [SentCommit(r.raftLog.committed)], then [return true]; the
+        postcondition's [pvs] is what they leave. *)
   Lemma wp_raft__maybeSendAppend : wp_raft__maybeSendAppend_body.
   Proof.
     intros_ambient.
-    intros cfg r id s to sendIfEmpty Hto Hcfg Hlent.
+    intros cfg r id s to sendIfEmpty Hto Hcfg.
     wp_start_folded as "Hphys".
     (* the log's state, as variables *)
     destruct (s.(nstate.logst)) as [prev sents uents lcm lap] eqn:Hls.
-    (* lend the tracker before the body is in the goal *)
     (* the [iNamed] only strips the precondition's name *)
     iNamed "Hphys".
-    iDestruct (own_raft_phys_lend with "Hphys") as (tv) "(Htrk & Hphys)";
-      first exact Hlent.
-    assert (Hls1 : (s <| nstate.lent := Some tv |>).(nstate.logst) =
-                   logstate.mk prev sents uents lcm lap)
-      by (rewrite -Hls; by destruct s).
+    (* [r.trk.Progress] is read through the tracker field *)
+    iDestruct (own_raft_phys_tracker_same with "Hphys") as (tv) "(Htrkf & Htrk & Hback)".
     iDestruct (own_tracker_progress_map with "Htrk") as "(#Hprs & %Hdom & Htrk)".
+    iDestruct (own_tracker_prvals_dom with "Htrk") as "[%Hpdom Htrk]".
     assert (is_Some (s.(nstate.progress) !! to)) as [pr Hlk].
     { apply elem_of_dom. rewrite Hdom //. }
-    iDestruct (own_tracker_lookup _ _ _ _ _ _ Hlk with "Htrk") as "[Hpr Hprback]".
-    (* [r.trk.Progress] is read through the tracker field *)
-    iDestruct (own_raft_phys_trk_lent with "Hphys") as "[Htrkf Htrkback]".
+    assert (is_Some (s.(nstate.prvals) !! to)) as [[pv iv] Hpvs].
+    { apply elem_of_dom. rewrite Hpdom elem_of_dom. by eexists. }
     wp_start_unfold.
     wp_auto.
-    iDestruct ("Htrkback" with "Htrkf") as "Hphys".
+    iDestruct ("Hback" with "Htrkf Htrk") as "Hphys".
     wp_apply (wp_map_lookup1 with "Hprs") as "_".
     rewrite Hlk /=.
-    iDestruct "Hpr" as (pv iv) "Hpa".
+    (* [pr.IsPaused()] and [prevIndex := pr.Next - 1], on [pr] borrowed *)
+    iDestruct (own_raft_phys_pr with "Hphys [//] [//]") as "[Hpa Hpback]".
     wp_apply (wp_Progress__IsPaused with "[$Hpa]") as "Hpa".
     destruct (progress_paused pv) eqn:Hpaused.
     { (* paused: nothing is sent, [false] *)
       wp_auto.
-      iAssert (∃ pv iv, own_progress pr pv iv)%I with "[Hpa]" as "Hpr";
-        first by iExists _, _.
-      iDestruct ("Hprback" with "Hpr") as "Htrk".
-      finish s Hlent.
+      iDestruct ("Hpback" with "Hpa") as "Hphys".
       iDestruct (own_raft_phys_send_nil with "Hphys") as "Hphys".
-      iApply ("HΦ" $! false []). iFrame "Hphys". iPureIntro. constructor. }
+      iApply ("HΦ" $! false [] s.(nstate.prvals)). iSplitL.
+      - iApply (own_raft_phys_eq with "Hphys"). by destruct s.
+      - iPureIntro. constructor. }
     (* not paused, so not in [StateSnapshot] -- [SentEntries]' first premise *)
     assert (Hnosnap : pv.(tracker.Progress.State') ≠ W64 2).
     { intros Hc. rewrite /progress_paused decide_True // in Hpaused. }
     iNamed "Hpa".
-    wp_auto. wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
+    wp_auto.
+    iDestruct ("Hpback" with "[Hpv Hinfl]") as "Hphys".
+    { rewrite /own_progress. iFrame "∗%". }
+    wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
     (* [r.raftLog.term(pr.Next - 1)] *)
-    iDestruct (own_raft_phys_log_at with "Hphys") as "[Hlog Hlogback]".
-    iEval (rewrite Hls1) in "Hlog".
+    iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hlogback]".
+    iEval (rewrite Hls) in "Hlog".
     iDestruct (own_raftLog_nowrap with "Hlog") as "[%Hnw Hlog]".
     cbn [logstate.prev logstate.sents logstate.uents] in Hnw.
     wp_apply (wp_raftLog__term _ (logstate.mk prev sents uents lcm lap) _ with "[$Hlog]")
       as "%pterm %err [Hlog %Herr]".
     cbn [logstate.prev logstate.sents logstate.uents] in Herr.
+    iEval (rewrite -Hls) in "Hlog".
     iDestruct ("Hlogback" with "Hlog") as "Hphys".
-    iDestruct (own_raft_phys_eq _ _ _ _ (s <| nstate.lent := Some tv |>)
-                 with "Hphys") as "Hphys";
-      first (rewrite -Hls; by destruct s).
     destruct err as [eok|].
     { (* the log no longer has [pr.Next - 1]: fall back to a snapshot.
          [wp_pure] first: [wp_auto] alone will not step the
          [Convert go.untyped_bool] in front of the [err != nil] test. *)
       wp_pure. wp_auto.
-      iAssert (∃ pv iv, own_progress pr pv iv)%I with "[Hpv Hinfl]" as "Hpr".
-      { iExists pv, iv. rewrite /own_progress. iFrame "∗%". }
-      (* the [Progress] goes back first: [maybeSendSnapshot] borrows it
-         again by its key *)
-      iDestruct ("Hprback" with "Hpr") as "Htrk".
-      finish s Hlent.
-      wp_apply (P.wp_raft__maybeSendSnapshot _ _ _ _ _ _ Hto Hlk Hlent
-                  with "[$Hphys]") as "%b Hphys".
+      wp_apply (P.wp_raft__maybeSendSnapshot _ _ _ _ _ _ Hto Hlk
+                  with "[$Hphys]") as "%b %pvs' Hphys".
       try wp_auto.
-      iDestruct (own_raft_phys_send_nil with "Hphys") as "Hphys".
-      iApply ("HΦ" $! b []). iFrame "Hphys". iPureIntro. constructor. }
+      iApply ("HΦ" $! b [] pvs'). iSplitL.
+      - iApply (own_raft_phys_eq with "Hphys").
+        rewrite /send_msgs app_nil_r. by destruct s.
+      - iPureIntro. constructor. }
     (* [err = nil]: the iff gives [pr.Next] a lower bound against the log *)
     destruct Herr as [Herr1 _]. specialize (Herr1 eq_refl).
     assert (Hlo : (uint.Z prev.(raft.entryID.index') + 1
                    ≤ uint.Z pv.(tracker.Progress.Next'))%Z) by word.
-    wp_pure. wp_auto.
+    wp_pure.
+    (* [pr.State], [pr.Inflights.Full()], [pr.Next]: borrow [pr] again *)
+    iDestruct (own_raft_phys_pr with "Hphys [//] [//]") as "[Hpa Hpback]".
+    iNamed "Hpa".
+    wp_auto.
     (* the three arms of the [||], each ending at [msa_pkg] *)
     destruct (decide (pv.(tracker.Progress.State') = W64 1)) as [Hrep|Hnrep];
     [ rewrite bool_decide_eq_true_2 //; wp_auto;
@@ -201,7 +195,9 @@ Set Default Proof Using "Type".
       wp_apply (wp_Inflights__Full with "[$Hinfl]") as "Hinfl";
       destruct (inflights_full iv) eqn:Hfull;
       [ (* in [StateReplicate] with the window full: no entries are fetched *)
-        iAssert (msa_pkg cfg r id s tv ents_ptr pv iv)
+        iDestruct ("Hpback" with "[Hpv Hinfl]") as "Hphys";
+        [ rewrite /own_progress; iFrame "∗%" | ];
+        iAssert (msa_pkg cfg r id s ents_ptr pv iv)
           with "[ents Hphys]" as "HC";
         [ rewrite /msa_pkg; iExists slice.nil, [];
           iFrame "ents Hphys";
@@ -210,35 +206,37 @@ Set Default Proof Using "Type".
         | ]
       | (* in [StateReplicate] with room: fetch [ents] *)
         wp_auto;
+        iDestruct ("Hpback" with "[Hpv Hinfl]") as "Hphys";
+        [ rewrite /own_progress; iFrame "∗%" | ];
         wp_apply (wp_raft_load_maxMsgSize with "Hphys") as "%mms Hphys";
         wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys";
-        iDestruct (own_raft_phys_log_at with "Hphys") as "[Hlog Hlogback]";
-        iEval (rewrite Hls1) in "Hlog";
+        iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hlogback]";
+        iEval (rewrite Hls) in "Hlog";
         wp_apply (wp_raftLog__entries _ (logstate.mk prev sents uents lcm lap) _ _ Hlo with "[$Hlog]")
           as "%sl_e %es_e (Hlog & Hents)";
+        iEval (rewrite -Hls) in "Hlog";
         iDestruct ("Hlogback" with "Hlog") as "Hphys";
         try wp_auto;
-        iAssert (msa_pkg cfg r id s tv ents_ptr pv iv)
+        iAssert (msa_pkg cfg r id s ents_ptr pv iv)
           with "[ents Hphys Hents]" as "HC";
-        [ rewrite /msa_pkg; iExists sl_e, es_e; iFrame "ents Hents";
-          iSplitL "Hphys";
-          [ iApply (own_raft_phys_eq with "Hphys"); rewrite -Hls; by destruct s | ];
+        [ rewrite /msa_pkg; iExists sl_e, es_e; iFrame "ents Hents Hphys";
           iPureIntro; intros _ _; exact Hfull | ] ]
     | (* not in [StateReplicate]: the first disjunct is true, fetch [ents] *)
       rewrite bool_decide_eq_false_2 //; wp_auto;
+      iDestruct ("Hpback" with "[Hpv Hinfl]") as "Hphys";
+      [ rewrite /own_progress; iFrame "∗%" | ];
       wp_apply (wp_raft_load_maxMsgSize with "Hphys") as "%mms Hphys";
       wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys";
-      iDestruct (own_raft_phys_log_at with "Hphys") as "[Hlog Hlogback]";
-      iEval (rewrite Hls1) in "Hlog";
+      iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hlogback]";
+      iEval (rewrite Hls) in "Hlog";
       wp_apply (wp_raftLog__entries _ (logstate.mk prev sents uents lcm lap) _ _ Hlo with "[$Hlog]")
         as "%sl_e %es_e (Hlog & Hents)";
+      iEval (rewrite -Hls) in "Hlog";
       iDestruct ("Hlogback" with "Hlog") as "Hphys";
       try wp_auto;
-      iAssert (msa_pkg cfg r id s tv ents_ptr pv iv)
+      iAssert (msa_pkg cfg r id s ents_ptr pv iv)
         with "[ents Hphys Hents]" as "HC";
-      [ rewrite /msa_pkg; iExists sl_e, es_e; iFrame "ents Hents";
-        iSplitL "Hphys";
-        [ iApply (own_raft_phys_eq with "Hphys"); rewrite -Hls; by destruct s | ];
+      [ rewrite /msa_pkg; iExists sl_e, es_e; iFrame "ents Hents Hphys";
         iPureIntro; intros Hc; contradiction | ] ];
     (* --- three goals from here on, in the same state; the rest of the
            proof is one tactic, parenthesised so that it runs once per goal
@@ -252,16 +250,10 @@ Set Default Proof Using "Type".
       [ wp_auto
       | (* no entries, and the caller does not want an empty append *)
         wp_auto;
-        iDestruct (own_raft_phys_eq _ _ _ _ (s <| nstate.lent := Some tv |>)
-                     with "Hphys") as "Hphys";
-        [ destruct s; cbn in Hls; subst; reflexivity | ];
-        iAssert (∃ pv iv, own_progress pr pv iv)%I with "[Hpv Hinfl]" as "Hpr";
-        [ iExists pv, iv; rewrite /own_progress; iFrame "∗%" | ];
-        iDestruct ("Hprback" with "Hpr") as "Htrk";
-        finish s Hlent;
         iDestruct (own_raft_phys_send_nil with "Hphys") as "Hphys";
-        iApply ("HΦ" $! false []); iFrame "Hphys"; iPureIntro;
-        rewrite /app_sends; apply Forall_nil_2 ]
+        iApply ("HΦ" $! false [] s.(nstate.prvals)); iSplitL;
+        [ iApply (own_raft_phys_eq with "Hphys"); by destruct s
+        | iPureIntro; rewrite /app_sends; apply Forall_nil_2 ] ]
     | wp_auto ];
     (* --- the message goes out; again once per goal --- *)
     (* the literal reads [r.raftLog.committed] through the log's record *)
@@ -274,38 +266,30 @@ Set Default Proof Using "Type".
       | ];
     iIntros "Hphys";
     try wp_auto;
-    wp_apply (wp_payloadsSize with "[$Hents]") as "%psz [Hents _]";
-    iAssert (own_progress pr pv iv) with "[Hpv Hinfl]" as "Hpa";
-    [ rewrite /own_progress; iFrame "∗%" | ];
+    wp_apply (wp_payloadsSize with "[$Hents]") as "%psz [_ _]";
+    (* [pr.SentEntries(...)]: [send] changed only the outbox, so [pr] is
+       still at [(pv, iv)] *)
+    iDestruct (own_raft_phys_pr_upd with "Hphys [//] [//]") as "[Hpa Hpback]";
     assert (Hwin2 : pv.(tracker.Progress.State') = W64 1 →
                     (0 < sint.Z sl.(slice.len))%Z → inflights_full iv = false);
     [ intros H1 H2; apply Hwin; [exact H1|]; intros Heq; rewrite Heq in Hlen;
       simpl in Hlen; lia | ];
     wp_apply (wp_Progress__SentEntries _ _ _ _ _ Hnosnap Hwin2 with "[$Hpa]")
       as "Hpr";
-    try wp_auto; wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys";
-    open_struct; try wp_auto;
     iDestruct "Hpr" as (pv3 iv3) "Hpa3";
-    wp_apply (wp_Progress__SentCommit with "[$Hpa3]") as "Hpa3";
-    close_struct;
+    iDestruct ("Hpback" with "Hpa3") as "Hphys";
+    (* [pr.SentCommit(r.raftLog.committed)]: the argument first, then [pr]
+       once more, at the value [SentEntries] left *)
+    try wp_auto; wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys";
+    open_struct; try wp_auto; close_struct;
+    iDestruct (own_raft_phys_pr_any with "Hphys [//]") as (pv4 iv4) "[Hpa3 Hpback]";
+    wp_apply (wp_Progress__SentCommit with "[$Hpa3]") as "Hpa4";
+    iDestruct ("Hpback" with "Hpa4") as "Hphys";
     try wp_auto;
-    iAssert (∃ pv iv, own_progress pr pv iv)%I with "[Hpa3]" as "Hpr";
-    [ by iExists _, _ | ];
-    iDestruct ("Hprback" with "Hpr") as "Htrk";
-    (* end the loan: [send] changed the outbox, so first put the state in
-       the form [own_raft_phys_unlend] takes *)
-    iDestruct (own_raft_phys_eq _ _ _ _
-                 ((send_msgs s [msg.mk mtype.App id to s.(nstate.term) false])
-                    <| nstate.lent := Some tv |>) with "Hphys") as "Hphys";
-    [ destruct s; cbn in Hls; subst; reflexivity | ];
-    iDestruct (own_raft_phys_unlend with "Hphys Htrk") as "Hphys";
-    iDestruct (own_raft_phys_eq _ _ _ _
-                 (send_msgs s [msg.mk mtype.App id to s.(nstate.term) false])
-                 with "Hphys") as "Hphys";
-    [ destruct s; destruct Hlent as [Hl1 _]; cbn in Hl1; subst; done | ];
     iApply ("HΦ" $! true [msg.mk mtype.App id to s.(nstate.term) false]);
-    iFrame "Hphys"; iPureIntro;
-    rewrite /app_sends; apply Forall_cons_2; [ done | apply Forall_nil_2 ])).
+    iSplitL;
+    [ iApply (own_raft_phys_eq with "Hphys"); reflexivity
+    | iPureIntro; rewrite /app_sends; apply Forall_cons_2; [ done | apply Forall_nil_2 ] ])).
   Qed.
 
 End RaftMaybeSendAppendProof.

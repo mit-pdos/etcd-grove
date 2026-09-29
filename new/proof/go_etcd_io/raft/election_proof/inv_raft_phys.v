@@ -19,37 +19,6 @@ Context (cfg : gset w64).
 
 Implicit Type s : nstate.t.
 
-(** The tracker conjunct of [own_raft_phys], at loan state [lent]
-    ([nstate.lent], [defs.v]): the heap itself when nothing is on loan;
-    when the caller holds it, nothing but the tracker value it was lent at.
-    (Until 2026-09-28 the log had the same shape, [own_raftLog_unless];
-    since then its state is in [nstate.t] and it is never on loan.) *)
-Definition own_tracker_unless (lent : option tracker.ProgressTracker.t)
-    (tv : tracker.ProgressTracker.t) (votes : gmap w64 bool)
-    (prs : gmap w64 loc) : iProp Σ :=
-  match lent with
-  | None => own_tracker cfg tv votes prs
-  | Some tv0 => ⌜ tv = tv0 ⌝
-  end.
-
-Lemma own_tracker_unless_open lent tv votes prs :
-  lent = None → own_tracker_unless lent tv votes prs -∗ own_tracker cfg tv votes prs.
-Proof. intros ->. auto. Qed.
-
-Lemma own_tracker_unless_close lent tv votes prs :
-  lent = None → own_tracker cfg tv votes prs -∗ own_tracker_unless lent tv votes prs.
-Proof. intros ->. auto. Qed.
-
-(** The conjunct while on loan: nothing to own. *)
-Lemma own_tracker_unless_lent tv votes prs :
-  ⊢ own_tracker_unless (Some tv) tv votes prs.
-Proof. by iPureIntro. Qed.
-
-(** While on loan, the tracker field is the value it was lent at. *)
-Lemma own_tracker_unless_lent_eq tv0 tv votes prs :
-  own_tracker_unless (Some tv0) tv votes prs -∗ ⌜ tv = tv0 ⌝.
-Proof. auto. Qed.
-
 (** ** Physical ownership of the raft struct
 
     [own_raft_phys r id s] is full ownership of the [raft] struct at [r] and
@@ -84,13 +53,16 @@ Definition own_raft_phys_def (r : loc) (id : w64) s : iProp Σ :=
   (** the vote tally, the progress map and the rest of the heap the tracker
       points at.  The tracker's own bytes are covered by [Hr] above, since
       [trk] is embedded by value; this is only what hangs off it.  Indexed
-      by [s.(nstate.progress)]: that is what lets a proof know *which*
-      [Progress] a peer has after a call it made with the struct sealed.
+      by [s.(nstate.progress)] and [s.(nstate.prvals)]: that is what lets
+      a proof know *which* [Progress] a peer has, and what it holds, after
+      a call it made with the struct sealed.  (Until 2026-09-29 the
+      values were existential, and a proof that needed one across a call
+      took the tracker out of the predicate on loan, [nstate.lent].)
       (From 2026-09-22 to 2026-09-23 a second, persistent copy of the
       progress map's points-to sat here, beside the one inside
       [own_tracker]; indexing [own_tracker] by the map made it redundant.) *)
-  "Htrk" ∷ own_tracker_unless s.(nstate.lent) rv.(raft.raft.trk')
-             s.(nstate.votes) s.(nstate.progress) ∗
+  "Htrk" ∷ own_tracker cfg rv.(raft.raft.trk')
+             s.(nstate.votes) s.(nstate.progress) s.(nstate.prvals) ∗
 
   (** the log, at the state [s] records ([nstate.logst]).  Never on loan:
       what [raftLog.slice] returns is read-only and the caller's for good.
@@ -185,8 +157,8 @@ Lemma own_raft_phys_intro r id s (rv : raft.raft.t)
   rv.(raft.raft.raftLog') = s.(nstate.log) →
   r ↦ rv -∗
   is_Logger lok -∗
-  own_tracker_unless s.(nstate.lent) rv.(raft.raft.trk') s.(nstate.votes)
-    s.(nstate.progress) -∗
+  own_tracker cfg rv.(raft.raft.trk') s.(nstate.votes)
+    s.(nstate.progress) s.(nstate.prvals) -∗
   own_raftLog rv.(raft.raft.raftLog') s.(nstate.logst) -∗
   rv.(raft.raft.msgs') ↦* msgs -∗
   own_slice_cap raftpb.Message.t rv.(raft.raft.msgs') (DfracOwn 1) -∗
@@ -205,13 +177,10 @@ Qed.
 (** The progress map in [s] is the tracker's, and so has domain [cfg].  Read
     out without consuming anything. *)
 Lemma own_raft_phys_progress_dom r id s :
-  nstate_idle s →
   own_raft_phys r id s -∗ ⌜ dom s.(nstate.progress) = cfg ⌝ ∗ own_raft_phys r id s.
 Proof.
-  iIntros ([Hlent _]) "H". iNamed_phys "H".
-  iDestruct (own_tracker_unless_open _ _ _ _ Hlent with "Htrk") as "Htrk".
+  iIntros "H". iNamed_phys "H".
   iDestruct (own_tracker_progress_map with "Htrk") as "(#Hprs & %Hdom & Htrk)".
-  iDestruct (own_tracker_unless_close _ _ _ _ Hlent with "Htrk") as "Htrk".
   iSplitR; first done.
   rewrite own_raft_phys_unseal /own_raft_phys_def. iExists rv, msgs, msgsAA, lok. iFrame "∗#%".
 Qed.
@@ -281,10 +250,12 @@ Qed.
       (a map lookup in [trk.Progress], [raftLog] methods, [append] on a
       queue) is the object's business, specified by its own predicate, so
       no operation on it is duplicated here.
-    - **Loans**: [own_raft_phys_lend] / [own_raft_phys_unlend] move the
-      tracker's heap and the log out of the predicate and back
-      ([nstate.lent]), and [own_raft_phys_trk_lent] reaches the tracker
-      field while they are out. *)
+    Nothing is ever lent out of the predicate: an accessor's wand is the
+    only way to hold part of the struct across a step, and a call on the
+    struct needs the predicate whole.  (Until 2026-09-29 there were loans,
+    [own_raft_phys_lend] / [own_raft_phys_unlend], which moved the
+    tracker's heap out of the predicate for the length of a function body;
+    [nstate.lent].) *)
 
 Local Lemma wp_load_access {V t} `{!ZeroVal V} `{!TypedPointsto V} `{!IntoValTyped V t}
     (l : loc) (v : V) (P : iProp Σ) `{!AccessStrict (l ↦ v) (l ↦ v) P P} Φ :
@@ -594,26 +565,25 @@ Proof. split_field_proof "(? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ?
 
 (** The tracker, as the tracker's own specs take it: the embedded struct's
     points-to and [own_tracker].  The wand takes it back at any tracker
-    value and vote tally, and at the same progress map ([nstate.progress]
-    is stable: nothing on the election path inserts into the map).  A map
-    lookup [r.trk.Progress[i]] is done on what this hands out, with
-    [own_tracker_progress_map] / [wp_tracker_progress_lookup]. *)
+    value and vote tally, and at the same progress map and [Progress]
+    values ([nstate.progress] is stable: nothing on the election path
+    inserts into the map).  A map lookup [r.trk.Progress[i]] is done on
+    what this hands out, with [own_tracker_progress_map] /
+    [wp_tracker_progress_lookup]; a function that changes a [Progress]
+    uses [own_raft_phys_tracker_prvals]. *)
 Lemma own_raft_phys_tracker r id s :
-  nstate_idle s →
   own_raft_phys r id s -∗
   ∃ tv, r.[raft.raft.t, "trk"] ↦ tv ∗
-        own_tracker cfg tv s.(nstate.votes) s.(nstate.progress) ∗
+        own_tracker cfg tv s.(nstate.votes) s.(nstate.progress) s.(nstate.prvals) ∗
         (∀ tv' votes', r.[raft.raft.t, "trk"] ↦ tv' -∗
-           own_tracker cfg tv' votes' s.(nstate.progress) -∗
+           own_tracker cfg tv' votes' s.(nstate.progress) s.(nstate.prvals) -∗
            own_raft_phys r id (s <| nstate.votes := votes' |>)).
 Proof.
-  iIntros ([Hlent _]) "H". iNamed_phys "H".
-  iDestruct (own_tracker_unless_open _ _ _ _ Hlent with "Htrk") as "Htrk".
+  iIntros "H". iNamed_phys "H".
   iDestruct (raft_split_trk with "Hr") as "[Hf Hback]".
   iExists _. iFrame "Hf Htrk".
   iIntros (tv' votes') "Hf Htrk".
   iDestruct ("Hback" $! tv' with "Hf") as "Hr".
-  iDestruct (own_tracker_unless_close _ _ _ _ Hlent with "Htrk") as "Htrk".
   reseal.
 Qed.
 
@@ -622,21 +592,96 @@ Qed.
     (a map lookup, [JointConfig.IDs]), or a split and re-seal repeated
     inside a [Visit] closure, does not pile up setters. *)
 Lemma own_raft_phys_tracker_same r id s :
-  nstate_idle s →
   own_raft_phys r id s -∗
   ∃ tv, r.[raft.raft.t, "trk"] ↦ tv ∗
-        own_tracker cfg tv s.(nstate.votes) s.(nstate.progress) ∗
+        own_tracker cfg tv s.(nstate.votes) s.(nstate.progress) s.(nstate.prvals) ∗
         (∀ tvx, r.[raft.raft.t, "trk"] ↦ tvx -∗
-           own_tracker cfg tvx s.(nstate.votes) s.(nstate.progress) -∗
+           own_tracker cfg tvx s.(nstate.votes) s.(nstate.progress) s.(nstate.prvals) -∗
            own_raft_phys r id s).
 Proof.
-  iIntros (Hlent) "Hphys".
-  iDestruct (own_raft_phys_tracker _ _ _ Hlent with "Hphys")
+  iIntros "Hphys".
+  iDestruct (own_raft_phys_tracker with "Hphys")
     as (tv) "(Htrkf & Htrk & Hback)".
   iExists tv. iFrame "Htrkf Htrk".
   iIntros (tvx) "Htrkf Htrk".
   iDestruct ("Hback" with "Htrkf Htrk") as "Hphys".
   iApply (own_raft_phys_eq with "Hphys"). by destruct s.
+Qed.
+
+(** The tracker, put back with new [Progress] values (at the same tally):
+    for a function that writes a [Progress] -- [reset]'s [Visit] closure,
+    [becomeLeader]'s [RecentActive] and [BecomeReplicate], [SentEntries]. *)
+Lemma own_raft_phys_tracker_prvals r id s :
+  own_raft_phys r id s -∗
+  ∃ tv, r.[raft.raft.t, "trk"] ↦ tv ∗
+        own_tracker cfg tv s.(nstate.votes) s.(nstate.progress) s.(nstate.prvals) ∗
+        (∀ tv' pvs', r.[raft.raft.t, "trk"] ↦ tv' -∗
+           own_tracker cfg tv' s.(nstate.votes) s.(nstate.progress) pvs' -∗
+           own_raft_phys r id (s <| nstate.prvals := pvs' |>)).
+Proof.
+  iIntros "H". iNamed_phys "H".
+  iDestruct (raft_split_trk with "Hr") as "[Hf Hback]".
+  iExists _. iFrame "Hf Htrk".
+  iIntros (tv' pvs') "Hf Htrk".
+  iDestruct ("Hback" $! tv' with "Hf") as "Hr".
+  reseal.
+Qed.
+
+(** One peer's [Progress], borrowed out of the struct by its key at the
+    value [nstate.prvals] records, and given back at that value -- for a
+    read ([IsPaused], field loads, [Inflights.Full]).  The lookup of
+    [r.trk.Progress[to]] itself goes through [own_raft_phys_tracker_same]:
+    it reads the tracker field.  The two
+    lookups are premises inside the logic, so that [s] is fixed by the
+    struct hypothesis the lemma is applied to, not by the lookups' types:
+    [iDestruct (own_raft_phys_pr with "Hphys [//] [//]")]. *)
+Lemma own_raft_phys_pr r id s to pr pv iv :
+  own_raft_phys r id s -∗
+  ⌜ s.(nstate.progress) !! to = Some pr ⌝ -∗
+  ⌜ s.(nstate.prvals) !! to = Some (pv, iv) ⌝ -∗
+  own_progress pr pv iv ∗ (own_progress pr pv iv -∗ own_raft_phys r id s).
+Proof.
+  iIntros "Hphys %Hlk %Hv".
+  iDestruct (own_raft_phys_tracker_same with "Hphys") as (tv) "(Htrkf & Htrk & Hback)".
+  iDestruct (own_tracker_lookup_same _ _ _ _ _ _ _ Hlk with "Htrk")
+    as (pv' iv' Hv') "[Hp Hpb]".
+  rewrite Hv in Hv'. simplify_eq.
+  iFrame "Hp". iIntros "Hp". iApply ("Hback" with "Htrkf"). iApply ("Hpb" with "Hp").
+Qed.
+
+(** The same, given back at new values, which the state then records --
+    for a write ([SentEntries]). *)
+Lemma own_raft_phys_pr_upd r id s to pr pv iv :
+  own_raft_phys r id s -∗
+  ⌜ s.(nstate.progress) !! to = Some pr ⌝ -∗
+  ⌜ s.(nstate.prvals) !! to = Some (pv, iv) ⌝ -∗
+  own_progress pr pv iv ∗
+  (∀ pv' iv', own_progress pr pv' iv' -∗
+     own_raft_phys r id (s <| nstate.prvals := <[to := (pv', iv')]> s.(nstate.prvals) |>)).
+Proof.
+  iIntros "Hphys %Hlk %Hv".
+  iDestruct (own_raft_phys_tracker_prvals with "Hphys") as (tv) "(Htrkf & Htrk & Hback)".
+  iDestruct (own_tracker_lookup _ _ _ _ _ _ _ Hlk with "Htrk")
+    as (pv' iv' Hv') "[Hp Hpb]".
+  rewrite Hv in Hv'. simplify_eq.
+  iFrame "Hp". iIntros (pv'' iv'') "Hp". iApply ("Hback" with "Htrkf"). iApply ("Hpb" with "Hp").
+Qed.
+
+(** A write that does not need to know the value it overwrites
+    ([SentCommit]). *)
+Lemma own_raft_phys_pr_any r id s to pr :
+  own_raft_phys r id s -∗
+  ⌜ s.(nstate.progress) !! to = Some pr ⌝ -∗
+  ∃ pv iv, own_progress pr pv iv ∗
+  (∀ pv' iv', own_progress pr pv' iv' -∗
+     own_raft_phys r id (s <| nstate.prvals := <[to := (pv', iv')]> s.(nstate.prvals) |>)).
+Proof.
+  iIntros "Hphys %Hlk".
+  iDestruct (own_raft_phys_tracker_prvals with "Hphys") as (tv) "(Htrkf & Htrk & Hback)".
+  iDestruct (own_tracker_lookup _ _ _ _ _ _ _ Hlk with "Htrk")
+    as (pv' iv' Hv') "[Hp Hpb]".
+  iExists pv', iv'. iFrame "Hp". iIntros (pv'' iv'') "Hp".
+  iApply ("Hback" with "Htrkf"). iApply ("Hpb" with "Hp").
 Qed.
 
 (** The log, at the state [s] records, put back at any state.  This is the
@@ -669,68 +714,6 @@ Proof.
   iFrame "Hlog". iIntros "Hlog".
   iDestruct ("Hback" with "Hlog") as "H".
   iApply (own_raft_phys_eq with "H"). by destruct s.
-Qed.
-
-(** Lend the tracker's heap to the caller ([nstate.lent]), at the value the
-    field holds, which [own_raft_phys_trk_lent] reaches while the loan
-    lasts.  The log stays in the struct: reach it with
-    [own_raft_phys_log(_at)], which need no loan. *)
-Lemma own_raft_phys_lend r id s :
-  nstate_idle s →
-  own_raft_phys r id s -∗
-  ∃ tv, own_tracker cfg tv s.(nstate.votes) s.(nstate.progress) ∗
-        own_raft_phys r id (s <| nstate.lent := Some tv |>).
-Proof.
-  iIntros ([Hlent _]) "H". iNamed_phys "H".
-  iDestruct (own_tracker_unless_open _ _ _ _ Hlent with "Htrk") as "Htrk0".
-  iExists rv.(raft.raft.trk'). iFrame "Htrk0".
-  iPoseProof (own_tracker_unless_lent rv.(raft.raft.trk') s.(nstate.votes)
-                s.(nstate.progress)) as "Htrk".
-  reseal.
-Qed.
-
-(** End a loan: the tracker comes back at any tally and progress map.
-    Stated, like [own_raft_phys_trk_lent], at the state
-    [own_raft_phys_lend] produces: [(s <| lent := x |>).(lent)] does not
-    reduce to [x] for a variable [s] (the setter destructures the record),
-    so a premise [s.(lent) = Some tv] would need a [destruct s] at every
-    use.  A caller whose state has been through a call since the loan began
-    gets it into this form with [own_raft_phys_eq] and [by destruct s]. *)
-Lemma own_raft_phys_unlend r id s tv votes prs :
-  own_raft_phys r id (s <| nstate.lent := Some tv |>) -∗
-  own_tracker cfg tv votes prs -∗
-  own_raft_phys r id (s <| nstate.lent := None |> <| nstate.votes := votes |>
-                        <| nstate.progress := prs |>).
-Proof.
-  iIntros "H Htrk0". iNamed_phys "H".
-  iDestruct (own_tracker_unless_lent_eq with "Htrk") as %Htv.
-  iClear "Htrk".
-  rewrite -Htv.
-  iDestruct (own_tracker_unless_close None _ _ _ eq_refl with "Htrk0") as "Htrk".
-  reseal.
-Qed.
-
-(** The tracker field while the tracker is on loan: the loan follows the
-    field to whatever value it is given.  Stated at the state
-    [own_raft_phys_lend] produces, [s <| lent := Some tv |>], so that
-    re-splitting the field after putting it back matches the same [s]
-    again instead of stacking setters. *)
-Lemma own_raft_phys_trk_lent r id s tv :
-  own_raft_phys r id (s <| nstate.lent := Some tv |>) -∗
-  r.[raft.raft.t, "trk"] ↦ tv ∗
-  (∀ tv', r.[raft.raft.t, "trk"] ↦ tv' -∗
-          own_raft_phys r id (s <| nstate.lent := Some tv' |>)).
-Proof.
-  iIntros "H". iNamed_phys "H".
-  iDestruct (own_tracker_unless_lent_eq with "Htrk") as %Htv.
-  iDestruct (raft_split_trk with "Hr") as "[Hf Hback]".
-  rewrite Htv. iFrame "Hf".
-  iIntros (tv') "Hf".
-  iDestruct ("Hback" $! tv' with "Hf") as "Hr".
-  iClear "Htrk".
-  iPoseProof (own_tracker_unless_lent tv' s.(nstate.votes) s.(nstate.progress))
-    as "Htrk".
-  reseal.
 Qed.
 
 (** [r.msgs], append-only: whatever is appended joins the abstract outbox
@@ -813,23 +796,20 @@ Collection W := sem + package_sem.
 Set Default Proof Using "W".
 
 Lemma own_raft_phys_reconfig cfg0 cfg r id s :
-  nstate_idle s →
   own_raft_phys cfg0 r id s -∗
   ∃ tv, r.[raft.raft.t, "trk"] ↦ tv ∗
-        own_tracker cfg0 tv s.(nstate.votes) s.(nstate.progress) ∗
-        (∀ tv' prs', r.[raft.raft.t, "trk"] ↦ tv' -∗
-           own_tracker cfg tv' s.(nstate.votes) prs' -∗
-           own_raft_phys cfg r id (s <| nstate.progress := prs' |>)).
+        own_tracker cfg0 tv s.(nstate.votes) s.(nstate.progress) s.(nstate.prvals) ∗
+        (∀ tv' prs' pvs', r.[raft.raft.t, "trk"] ↦ tv' -∗
+           own_tracker cfg tv' s.(nstate.votes) prs' pvs' -∗
+           own_raft_phys cfg r id (s <| nstate.progress := prs' |> <| nstate.prvals := pvs' |>)).
 Proof.
-  iIntros ([Hlent _]) "H".
+  iIntros "H".
   iEval (rewrite own_raft_phys_unseal) in "H". iNamed "H".
-  iDestruct (own_tracker_unless_open cfg0 _ _ _ _ Hlent with "Htrk") as "Htrk".
   iDestruct (raft_split_trk with "Hr") as "[Hf Hback]".
   iExists _. iFrame "Hf Htrk".
-  iIntros (tv' prs') "Hf Htrk".
+  iIntros (tv' prs' pvs') "Hf Htrk".
   iDestruct ("Hback" $! tv' with "Hf") as "Hr".
-  iDestruct (own_tracker_unless_close cfg _ _ _ _ Hlent with "Htrk") as "Htrk".
-  iApply (own_raft_phys_intro cfg r id (s <| nstate.progress := prs' |>) with
+  iApply (own_raft_phys_intro cfg r id (s <| nstate.progress := prs' |> <| nstate.prvals := pvs' |>) with
     "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); try done.
 Qed.
 

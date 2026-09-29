@@ -48,11 +48,9 @@ Definition wp_raft__maybeSendSnapshot_body :=
     (cfg : gset w64) (r : loc) (id : w64) (s : nstate.t) (to : w64) (pr : loc),
   to ≠ id →
   s.(nstate.progress) !! to = Some pr →
-  (* it reads the log ([raftLog.snapshot], [firstIndex]) *)
-  nstate_idle s →
   {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "maybeSendSnapshot" #to #pr
-  {{{ (b : bool), RET #b; own_raft_phys cfg r id s }}}.
+  {{{ (b : bool) pvs, RET #b; own_raft_phys cfg r id (s <| nstate.prvals := pvs |>) }}}.
 
 Module Type RAFT__MAYBESENDSNAPSHOT.
   Parameter wp_raft__maybeSendSnapshot : wp_raft__maybeSendSnapshot_body.

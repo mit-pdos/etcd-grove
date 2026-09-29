@@ -16,6 +16,11 @@ Lemma send_msgs_app (s0 : nstate.t) (ms1 ms2 : list msg.t) :
   send_msgs (send_msgs s0 ms1) ms2 = send_msgs s0 (ms1 ++ ms2).
 Proof. rewrite /send_msgs /= app_assoc //. Qed.
 
+(** [becomeCandidate]'s new [Progress] values commute with the sends. *)
+Lemma send_msgs_prvals (s0 : nstate.t) ms pvs :
+  send_msgs (s0 <| nstate.prvals := pvs |>) ms = send_msgs s0 ms <| nstate.prvals := pvs |>.
+Proof. by destruct s0. Qed.
+
 (** [own_raft_phys] constrains the outbox only up to permutation, so the
     messages the loop actually sent can be reordered into the order the
     spec names ([own_raft_phys_outbox], [inv_raft_phys.v]). *)
@@ -59,9 +64,9 @@ Qed.
     [make([]uint64, 0, len(idMap))] and [wp_slice_make3] needs
     [0 ≤ sint.Z cap].  Stated so that the tracker survives the read. *)
 Lemma own_tracker_cfg_size (tv : tracker.ProgressTracker.t) (votes : gmap w64 bool)
-    (prs : gmap w64 loc) :
-  own_tracker cfg tv votes prs -∗
-  ⌜ Z.of_nat (size cfg) < 2 ^ 63 ⌝ ∗ own_tracker cfg tv votes prs.
+    (prs : gmap w64 loc) pvs :
+  own_tracker cfg tv votes prs pvs -∗
+  ⌜ Z.of_nat (size cfg) < 2 ^ 63 ⌝ ∗ own_tracker cfg tv votes prs pvs.
 (* [All], not the section's [W]: re-framing the read-only progress map
    ([own_map … DfracDiscarded]) pulls in [ffi_semantics0]. *)
 Proof using All.
@@ -77,18 +82,18 @@ Lemma wp_campaign (r : loc) (id : w64) (s : nstate.t) (t : raft.CampaignType.t) 
   s.(nstate.role) ≠ role.Leader →
   id ∈ cfg →
   uint.Z s.(nstate.term) + 1 < 2 ^ 64 →
-  nstate_idle s →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "campaign" #t
-  {{{ (peers : list w64), RET #();
+  {{{ (peers : list w64) pvs, RET #();
       ⌜ peers ≡ₚ elements (cfg ∖ {[id]}) ⌝ ∗
       let s' := become_candidate id s in
       own_raft_phys cfg r id
         (send_msgs s'
            ([msg.mk mtype.VoteResp id id s'.(nstate.term) false] ++
-            ((λ to, msg.mk mtype.Vote id to s'.(nstate.term) false) <$> peers))) }}}.
+            ((λ to, msg.mk mtype.Vote id to s'.(nstate.term) false) <$> peers))
+         <| nstate.prvals := pvs |>) }}}.
 Proof.
-  intros Ht Hrole Hid_cfg Hnowrap Hlent.
+  intros Ht Hrole Hid_cfg Hnowrap.
   (* [becomeCandidate] raises the term to [s.term + 1] and every [send] below
      carries it; [send] panics on a zero term, whence the premise. *)
   assert (word.add s.(nstate.term) (W64 1) ≠ W64 0) as Hno_wrap by word.
@@ -96,14 +101,14 @@ Proof.
      [int]; that bound is a conjunct of [own_tracker]. *)
   wp_start as "Hphys". wp_auto.
   (* [promotable] is true, since [id ∈ cfg]; the warning is not logged. *)
-  wp_apply (wp_raft__promotable _ _ _ _ Hlent with "[$Hphys]") as "%b [Hphys %Hb]".
+  wp_apply (wp_raft__promotable _ _ _ _ with "[$Hphys]") as "%b [Hphys %Hb]".
   assert (b = true) as ->.
   { rewrite Hb. by apply bool_decide_eq_true_2. }
   wp_auto.
   (* not a pre-election, so [becomeCandidate] *)
   rewrite bool_decide_eq_false_2; last exact Ht.
   wp_auto.
-  wp_apply (P.wp_raft__becomeCandidate _ _ _ _ Hrole Hlent with "[$Hphys]") as "Hphys".
+  wp_apply (P.wp_raft__becomeCandidate _ _ _ _ Hrole with "[$Hphys]") as "%pvs Hphys".
   (* [term := r.Term], the new term; every [send] below carries it *)
   wp_apply (wp_raft_load_Term with "Hphys") as "Hphys".
   set (T := (become_candidate id s).(nstate.term)).
@@ -112,7 +117,7 @@ Proof.
   (* the voter ids, as a map.  [IDs] is a method of the tracker's
      [Config.Voters], so it takes the tracker object; the call does not
      change it, and the struct is re-sealed right after. *)
-  iDestruct (own_raft_phys_tracker_same _ _ _ (become_candidate id s) Hlent
+  iDestruct (own_raft_phys_tracker_same _ _ _ (become_candidate id s <| nstate.prvals := pvs |>)
                with "Hphys") as (tv) "(Htrkf & Htrk & Hback)".
   iDestruct (own_tracker_cfg_size with "Htrk") as "[%Hcfg_fits Htrk]".
   try wp_auto.
@@ -210,7 +215,7 @@ Proof.
      "cur" ∷ cur_ptr ↦ c ∗
      "%Hn" ∷ ⌜ 0 ≤ sint.Z n ≤ Z.of_nat (length xs) ⌝ ∗
      "Hphys" ∷ own_raft_phys cfg r id
-       (send_msgs (become_candidate id s)
+       (send_msgs (become_candidate id s <| nstate.prvals := pvs |>)
           (cmsg <$> take (Z.to_nat (sint.Z n)) xs)))%I
     with "[i cur Hphys]" as "IH".
   { iExists (W64 0), (W64 0).
@@ -253,15 +258,15 @@ Proof.
         [done | left; exists mtype.VoteResp; split_and!;
                 [by right | apply mtype_of_MsgVoteResp | exact HTnz | w32_ne | done] |].
       iIntros "Hphys".
-      assert (send_msgs (send_msgs (become_candidate id s)
+      assert (send_msgs (send_msgs (become_candidate id s <| nstate.prvals := pvs |>)
                            (cmsg <$> take (Z.to_nat (sint.Z n)) xs))
                         [msg.mk mtype.VoteResp id id T false]
-              = send_msgs (become_candidate id s)
+              = send_msgs (become_candidate id s <| nstate.prvals := pvs |>)
                   (cmsg <$> take (Z.to_nat (sint.Z (word.add n (W64 1)))) xs))
         as Hstep.
       { rewrite send_msgs_app Hgrow Hcmsg_self //. }
       iAssert (own_raft_phys cfg r id
-                 (send_msgs (become_candidate id s)
+                 (send_msgs (become_candidate id s <| nstate.prvals := pvs |>)
                     (cmsg <$> take (Z.to_nat (sint.Z (word.add n (W64 1)))) xs)))
         with "[Hphys]" as "Hphys".
       { rewrite -Hstep. iExact "Hphys". }
@@ -274,10 +279,10 @@ Proof.
       wp_apply (wp_raftLog__lastEntryID with "[$Hlog]") as "%lastID Hlog".
       iDestruct ("Hback" with "Hlog") as "Hphys".
       (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log).
-      assert (send_msgs (send_msgs (become_candidate id s)
+      assert (send_msgs (send_msgs (become_candidate id s <| nstate.prvals := pvs |>)
                            (cmsg <$> take (Z.to_nat (sint.Z n)) xs))
                         [msg.mk mtype.Vote id y T false]
-              = send_msgs (become_candidate id s)
+              = send_msgs (become_candidate id s <| nstate.prvals := pvs |>)
                   (cmsg <$> take (Z.to_nat (sint.Z (word.add n (W64 1)))) xs))
         as Hstep.
       { rewrite send_msgs_app Hgrow (Hcmsg_peer y Hney) //. }
@@ -292,7 +297,7 @@ Proof.
                    | intros _; exact Hney | done] |].
         iIntros "Hphys".
         iAssert (own_raft_phys cfg r id
-                   (send_msgs (become_candidate id s)
+                   (send_msgs (become_candidate id s <| nstate.prvals := pvs |>)
                       (cmsg <$> take (Z.to_nat (sint.Z (word.add n (W64 1)))) xs)))
           with "[Hphys]" as "Hphys".
         { rewrite -Hstep. iExact "Hphys". }
@@ -306,7 +311,7 @@ Proof.
                    | intros _; exact Hney | done] |].
         iIntros "Hphys".
         iAssert (own_raft_phys cfg r id
-                   (send_msgs (become_candidate id s)
+                   (send_msgs (become_candidate id s <| nstate.prvals := pvs |>)
                       (cmsg <$> take (Z.to_nat (sint.Z (word.add n (W64 1)))) xs)))
           with "[Hphys]" as "Hphys".
         { rewrite -Hstep. iExact "Hphys". }
@@ -317,20 +322,26 @@ Proof.
     assert (sint.Z n = Z.of_nat (length xs)) as Hfull0 by word.
     assert (Z.to_nat (sint.Z n) = length xs) as Hfull.
     { rewrite Hfull0 Nat2Z.id //. }
-    assert (send_msgs (become_candidate id s)
+    assert (send_msgs (become_candidate id s <| nstate.prvals := pvs |>)
               (cmsg <$> take (Z.to_nat (sint.Z n)) xs)
-            = send_msgs (become_candidate id s) (cmsg <$> xs)) as Hall.
+            = send_msgs (become_candidate id s <| nstate.prvals := pvs |>) (cmsg <$> xs)) as Hall.
     { rewrite Hfull firstn_all //. }
     rewrite Hall.
-    iApply ("HΦ" $! (elements (cfg ∖ {[id]}))).
+    iApply ("HΦ" $! (elements (cfg ∖ {[id]})) pvs).
     iSplitR "Hphys"; first (iPureIntro; done).
-    iApply (own_raft_phys_send_perm with "Hphys").
+    iDestruct (own_raft_phys_send_perm _ _ _ _
+      ([msg.mk mtype.VoteResp id id T false] ++
+       ((λ to, msg.mk mtype.Vote id to T false) <$> elements (cfg ∖ {[id]})))
+      with "Hphys") as "Hphys".
+    2:{ (* [reset]'s new [Progress] values commute with the sends *)
+        iApply (own_raft_phys_eq with "Hphys").
+        rewrite send_msgs_prvals. reflexivity. }
     (* [xs] is [id] followed by the other voters, and [cmsg] turns those into
        the self-addressed [MsgVoteResp] and one [MsgVote] each. *)
     assert (cmsg <$> xs ≡ₚ cmsg <$> (id :: elements (cfg ∖ {[id]}))) as Hp1.
     { by apply (fmap_Permutation cmsg). }
     etrans; first exact Hp1.
-    rewrite fmap_cons Hcmsg_self Hpeers HTeq //.
+    rewrite fmap_cons Hcmsg_self Hpeers //.
 Qed.
 
 End helpers.

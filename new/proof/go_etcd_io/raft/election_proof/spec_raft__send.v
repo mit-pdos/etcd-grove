@@ -83,21 +83,22 @@ Definition send_ok {ext : ffi_syntax} (id : w64) (s : nstate.t) (m : raftpb.Mess
     lemmas here because a spec file states and does not prove
     (etc/check-module-discipline.py, F3). *)
 
-(** Stated on [own_raft_phys], for **any** [s] -- in particular one with
-    the tracker on loan to the caller ([nstate.lent]), which is
-    [maybeSendAppend]'s situation: it holds a [Progress] across this call,
-    and holds [ents] across it and reads it afterwards.  [send]
-    touches [r.msgs], [r.msgsAfterAppend], [r.logger] and the tracing hook,
-    and *reads* [r.id] and [r.Term]; everything else in [s] -- the tracker's
-    progress map, the log pointer, the loan -- comes back as it went in, because
-    [send_msgs] changes only the outbox.
+(** Stated on [own_raft_phys], for **any** [s].  [send] touches [r.msgs],
+    [r.msgsAfterAppend], [r.logger] and the tracing hook, and *reads*
+    [r.id] and [r.Term]; everything else in [s] -- the tracker's progress
+    map and [Progress] values, the log -- comes back as it went in, because
+    [send_msgs] changes only the outbox.  [maybeSendAppend] relies on it:
+    it reads a [Progress] before this call and needs it unchanged after
+    ([nstate.prvals]), and holds [ents] (read-only) across it.  (Until
+    2026-09-29 the tracker was lent out of the predicate for that,
+    [nstate.lent].)
 
     From 2026-09-21 to 2026-09-22 this was stated on a variant predicate,
     [own_raft_bare], which cut the tracker and the log out of the struct so
     that [maybeSendAppend] could hold a [Progress] and [ents] across the
     call.  That is exactly the pattern notes/decisions.md ("Three layers")
     now rules out: the fix was to make [nstate.t] say what the variant said
-    ([progress], [log], [log_lent]).  See notes/false-statements.md, 2026-09-21, for
+    ([progress], [log], and then [prvals]).  See notes/false-statements.md, 2026-09-21, for
     why [own_raft_phys] as it then was could not state it. *)
 Definition wp_raft__send_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)

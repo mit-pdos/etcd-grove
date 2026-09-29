@@ -303,3 +303,36 @@ dead under `own_raftLog_at`'s `Hnosnap`, so every snapshot on the election
 path comes from the client `Storage`. `Progress.BecomeSnapshot` keeps
 `progress_state_ok` (`StateSnapshot = 2`).
 
+
+## Which slices raft hands out uncapped (2026-09-29)
+
+Checked against upamanyus/etcd-raft 531b20c, for the read-only-entries
+change (decisions.md, 2026-09-29). **No log entry is ever written in
+place**: `unstable.slice` caps its result (`log_unstable.go:233`),
+`raftLog.slice` re-caps the unstable-only case (`log.go:508`),
+`MemoryStorage.Entries` caps (`storage.go:155`), and truncation
+reallocates through the capped `u.slice` (`log_unstable.go:212-213`). Five
+places do hand out a slice aliasing internal state *without* capping it:
+
+- `unstable.nextEntries`, `log_unstable.go:101`: `u.entries[inProgress:]`,
+  which becomes `Ready.Entries` (`rawnode.go:145`). An application append
+  reaches only the slack, but raft's next fast-path append
+  (`log_unstable.go:201`) writes the same slack and would overwrite it.
+- `readOnly.maybeAdvance`, `read_only.go:85`: returns
+  `ro.unconfirmedReads[:k]` and keeps `unconfirmedReads[k:]`. **An append
+  to the result would overwrite live pending reads.** Safe only by use:
+  its one caller (`raft.go:1592`) just ranges over it.
+- `Ready.Messages = r.msgs` (`rawnode.go:147`), `m.Responses =
+  r.msgsAfterAppend` (`rawnode.go:257`), `rd.ReadStates = r.readStates`
+  (`rawnode.go:161`): uncapped, but `acceptReady` sets each field to `nil`
+  (`rawnode.go:413,433-434`), so the application ends up owning the array.
+
+Conditional on the `Storage` contract: `raftLog.slice` returns
+`Storage.Entries`' result without re-capping (`log.go:520-533`), and
+`extend` appends in place into `cap(dst)` slack (`util.go:318-319`); both
+are safe exactly when `cap = len`, which `is_Storage` demands. `limitSize`
+(`util.go:276`) is uncapped but every caller re-caps. In the other
+direction, `truncateAndAppend`'s `u.entries = ents` (`log_unstable.go:206`)
+adopts the *caller's* slice, so a later fast-path append can write into
+the caller's slack: a spec of that arm must take the batch's ownership
+(today only the continuing arm is specified).

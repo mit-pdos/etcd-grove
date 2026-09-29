@@ -28,13 +28,6 @@ End helpers.
 
 Set Default Proof Using "Type".
 
-  (* End the loan, and get from the state [own_raft_phys_unlend] names back
-     to [s]. *)
-  Local Ltac finish s Hlent :=
-    iDestruct (own_raft_phys_unlend with "Hphys Htrk") as "Hphys";
-    iDestruct (own_raft_phys_eq _ _ _ _ s with "Hphys") as "Hphys";
-    [ destruct s; destruct Hlent as [Hl1 _]; cbn in Hl1; subst; done | ].
-
   (** Three exits, and the two [panic]s are both killed by [is_Storage]'s
       [HSnapshot] ([inv_storage.v]), whose postcondition is the disjunction
       "[ErrSnapshotTemporarilyUnavailable], or a snapshot with
@@ -66,19 +59,21 @@ Set Default Proof Using "Type".
       itself).  So the abstract outbox is unchanged and the postcondition is
       at the same [s], read back with [own_raft_phys_unsend].
 
-      **Resources.**  The struct arrives as [own_raft_phys].  The body
-      holds [pr] -- borrowed out of the tracker with [own_tracker_lookup]
-      (the premise puts it at [to] in [s.(nstate.progress)]) -- while it
-      reads raft fields for its log lines, so the tracker is lent out of the
-      struct ([own_raft_phys_lend]) and the loan ends on every exit
-      ([finish]) -- on the sending exit, before the [send], whose spec wants
-      the struct whole.  The log is not lent: each [raftLog] call and the
-      read of [r.raftLog.committed] take it out with
-      [own_raft_phys_log_same] and put it back at the same state. *)
+      **Resources.**  The struct arrives as [own_raft_phys], and stays
+      whole except around the two accesses to [*pr]: the
+      [pr.RecentActive] load and [pr.BecomeSnapshot].  Each borrows [pr]
+      out of the tracker by its key ([own_tracker_lookup]; the premise
+      puts it at [to] in [s.(nstate.progress)]) and gives it back at once
+      -- the first at the same value, the second at whatever
+      [BecomeSnapshot] leaves, which the postcondition's [pvs] records.
+      In between, the log lines read raft fields and the [raftLog] calls
+      take the log out with [own_raft_phys_log_same].  (Until 2026-09-29
+      the tracker was lent out of the struct for the whole body,
+      [nstate.lent].) *)
   Lemma wp_raft__maybeSendSnapshot : wp_raft__maybeSendSnapshot_body.
   Proof.
     intros_ambient.
-    intros cfg r id s to pr Hto Hprto Hlent.
+    intros cfg r id s to pr Hto Hprto.
 
     wp_start as "H". iNamed "H".
     iDestruct (is_pkg_init_access with "[$]") as "@".
@@ -87,20 +82,24 @@ Set Default Proof Using "Type".
         [err == ErrSnapshotTemporarilyUnavailable] test afterwards needs it
         again, so move the (persistent) points-to into the □ context first. *)
     iDestruct "ErrSnapUnavail" as "#ErrSnapUnavail".
-    iDestruct (own_raft_phys_lend _ _ _ _ Hlent with "Hphys")
-      as (tv) "(Htrk & Hphys)".
-    iDestruct (own_tracker_lookup _ _ _ _ _ _ Hprto with "Htrk")
-      as "[Hpr Htrkback]".
+    (* [pr.RecentActive]: borrow [pr] for the load, and give it back *)
+    iDestruct (own_raft_phys_tracker_same with "Hphys") as (tv) "(Htrkf & Htrk & Hback)".
+    iDestruct (own_tracker_lookup_same _ _ _ _ _ _ _ Hprto with "Htrk")
+      as (pv iv Hpv) "[Hpr Htrkback]".
     iNamed "Hpr".
     wp_auto.
+    iAssert (own_progress pr pv iv) with "[Hpv Hinfl]" as "Hpr".
+    { rewrite /own_progress. iFrame "∗%". }
+    iDestruct ("Htrkback" with "Hpr") as "Htrk".
+    iDestruct ("Hback" with "Htrkf Htrk") as "Hphys".
+    (* nothing below writes a [Progress] until [BecomeSnapshot] *)
+    iAssert (own_raft_phys cfg r id (s <| nstate.prvals := s.(nstate.prvals) |>))%I
+      with "[Hphys]" as "Hphys".
+    { iApply (own_raft_phys_eq with "Hphys"). by destruct s. }
     destruct pv.(tracker.Progress.RecentActive') eqn:Hra; wp_auto.
     2:{ (* not recently active: log and return [false] *)
       wp_raft_log.
-      iApply ("HΦ" $! false).
-      iAssert (∃ pv iv, own_progress pr pv iv)%I with "[Hpv Hinfl]" as "Hpr".
-      { iExists pv, iv. rewrite /own_progress. iFrame "∗%". }
-      iDestruct ("Htrkback" with "Hpr") as "Htrk".
-      finish s Hlent. iFrame "Hphys". }
+      iApply ("HΦ" $! false). iFrame "Hphys". }
     wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
     iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hlogback]".
     wp_apply (wp_raftLog__snapshot _ _ _ with "[$Hlog $ErrSnapUnavail]")
@@ -113,11 +112,7 @@ Set Default Proof Using "Type".
       wp_auto. rewrite decide_True //. wp_auto.
       rewrite bool_decide_eq_true_2 //. wp_auto.
       (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_raft_log).
-      iApply ("HΦ" $! false).
-      iAssert (∃ pv iv, own_progress pr pv iv)%I with "[Hpv Hinfl]" as "Hpr".
-      { iExists pv, iv. rewrite /own_progress. iFrame "∗%". }
-      iDestruct ("Htrkback" with "Hpr") as "Htrk".
-      finish s Hlent. iFrame "Hphys".
+      iApply ("HΦ" $! false). iFrame "Hphys".
     - (* a real snapshot: [Metadata.Index ≠ 0] kills [IsEmptySnap]'s panic *)
       wp_auto.
       wp_apply wp_IsEmptySnap as "%b %Hb".
@@ -137,13 +132,17 @@ Set Default Proof Using "Type".
       iDestruct ("Hlb" with "Hl") as "Hlog".
       iDestruct ("Hlogback" with "Hlog") as "Hphys".
       wp_raft_log.
-      iAssert (own_progress pr pv iv) with "[Hpv Hinfl]" as "Hpr".
-      { rewrite /own_progress. iFrame "∗%". }
+      (* [pr.BecomeSnapshot(sindex)]: borrow [pr] again, give it back at
+         the new value *)
+      iDestruct (own_raft_phys_tracker_prvals with "Hphys")
+        as (tv1) "(Htrkf & Htrk & Hback)".
+      iDestruct (own_tracker_lookup _ _ _ _ _ _ _ Hprto with "Htrk")
+        as (pv1 iv1 Hpv1) "[Hpr Htrkback]".
       wp_apply (wp_Progress__BecomeSnapshot with "[$Hpr]") as "Hpr".
-      (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_raft_log).
-      (* the [Progress] and the log go back before [send] *)
+      iDestruct "Hpr" as (pv2 iv2) "Hpr".
       iDestruct ("Htrkback" with "Hpr") as "Htrk".
-      finish s Hlent.
+      iDestruct ("Hback" with "Htrkf Htrk") as "Hphys".
+      (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_raft_log).
       wp_apply (P.wp_raft__send with "[$Hphys]");
         [ done
         | right; right; split_and!;
@@ -152,7 +151,7 @@ Set Default Proof Using "Type".
         | ].
       iIntros "Hphys". wp_auto.
       iDestruct (own_raft_phys_unsend with "Hphys") as "Hphys".
-      iApply ("HΦ" $! true). iFrame.
+      iApply ("HΦ" $! true). iApply (own_raft_phys_eq with "Hphys"). by destruct s.
   Qed.
 
 End RaftMaybeSendSnapshotProof.

@@ -42,12 +42,12 @@ Context (cfg : gset w64).
     progress map is now held read-only ([DfracDiscarded]) and so survives
     the closure call as a persistent hypothesis -- which is exactly what
     pins [prs] across a rebuild of the tracker. *)
-Lemma wp_visit (trk : loc) tv votes (prs : gmap w64 loc) (f : func.t)
+Lemma wp_visit (trk : loc) tv votes (prs : gmap w64 loc) (pvs : gmap w64 (tracker.Progress.t * tracker.Inflights.t)) (f : func.t)
     (I : iProp Σ) :
-  {{{ is_pkg_init tracker ∗ trk ↦ tv ∗ own_tracker cfg tv votes prs ∗ I ∗
+  {{{ is_pkg_init tracker ∗ trk ↦ tv ∗ own_tracker cfg tv votes prs pvs ∗ I ∗
       □ visit_closure cfg trk votes prs f I }}}
     trk @! (go.PointerType tracker.ProgressTracker) @! "Visit" #f
-  {{{ RET #(); ∃ tv', trk ↦ tv' ∗ own_tracker cfg tv' votes prs ∗ I }}}.
+  {{{ RET #(); ∃ tv' pvs', trk ↦ tv' ∗ own_tracker cfg tv' votes prs pvs' ∗ I }}}.
 Proof.
   wp_start as "(Htrk & Hown & HI & #Hf)". iNamed "Hown".
   wp_auto.
@@ -157,7 +157,7 @@ Proof.
        inside the invariant (notes/gotchas.md, "A [for … range] loop
        variable must be inside the [wp_for] invariant"). *)
     (* re-seal the tracker: the closure is lent all of it *)
-    iAssert (own_tracker cfg tv votes prs)
+    iAssert (own_tracker cfg tv votes prs pvs)
       with "[Hvotes Hprogs Hvoters Hlearners HlearnersNext]" as "Hown".
     { rewrite /own_tracker.
       iExists voters_ref, voters, learners, learnersNext. iFrame "∗#%". }
@@ -169,17 +169,18 @@ Proof.
        about it the body needs travels in the invariant. *)
     assert (∀ y, y ∈ ys → y ∈ cfg) as Hyc.
     { intros y0 Hy0. rewrite -Hprs_dom elem_of_dom. by apply Hys_dom. }
-    iAssert (∃ (j c : w64) (tvc : tracker.ProgressTracker.t),
+    iAssert (∃ (j c : w64) (tvc : tracker.ProgressTracker.t)
+               (pvsc : gmap w64 (tracker.Progress.t * tracker.Inflights.t)),
        "i" ∷ i_ptr ↦ j ∗
        "cur" ∷ cur_ptr ↦ c ∗
        "%Hj" ∷ ⌜ 0 ≤ sint.Z j ≤ Z.of_nat (length ys) ⌝ ∗
        "%Hyc" ∷ ⌜ ∀ y, y ∈ ys → y ∈ cfg ⌝ ∗
        "Htrk" ∷ trk ↦ tvc ∗
        "HI" ∷ I ∗
-       "Hown" ∷ own_tracker cfg tvc votes prs ∗
+       "Hown" ∷ own_tracker cfg tvc votes prs pvsc ∗
        "Hsl" ∷ sl ↦* ys)%I
       with "[i cur Htrk HI Hown Hsl]" as "IH".
-    { iExists (W64 0), (W64 0), tv. iFrame "∗#". iPureIntro.
+    { iExists (W64 0), (W64 0), tv, pvs. iFrame "∗#". iPureIntro.
       split; [word|exact Hyc]. }
     assert (sint.Z sl.(slice.len) = Z.of_nat (length ys)) as Hsllen'.
     { destruct Hys_len as [H1 H2]. rewrite H1 Z2Nat.id //. }
@@ -207,19 +208,19 @@ Proof.
       wp_apply (wp_map_lookup1 with "Hprsc") as "_".
       rewrite Hprc /=.
       iDestruct (own_tracker_maxinflight with "Hown") as "[%HmaxIc Hown]".
-      iDestruct (own_tracker_lookup _ _ _ _ _ _ Hprc with "Hown")
-        as "[Hpr Hback]".
-      wp_apply ("Hf" $! y prc tvc with "[Htrk Hpr Hback HI]").
+      iDestruct (own_tracker_lookup _ _ _ _ _ _ _ Hprc with "Hown")
+        as (pv iv Hpv) "[Hpr Hback]".
+      wp_apply ("Hf" $! y prc tvc pvsc pv iv with "[Htrk Hpr Hback HI]").
       { iFrame "Htrk Hpr Hback HI". iPureIntro.
-        split; [exact Hycfg | split; [exact Hprc | exact HmaxIc]]. }
-      iIntros "H". iDestruct "H" as (tv2) "(Htrk & Hown & HI)".
+        split; [exact Hycfg | split; [exact Hprc | split; [exact Hpv | exact HmaxIc]]]. }
+      iIntros "H". iDestruct "H" as (tv2 pvs2) "(Htrk & Hown & HI)".
       (* [wp_apply … as …] would have run this; the explicit bracket form
          used here (for the two pure premises) does not. *)
       wp_auto.
       wp_for_post.
       iFrame "∗#". iPureIntro. split_and!; first [ word | exact Hyc ].
     + (* every id visited *)
-      iApply "HΦ". iExists tvc. iFrame "Htrk HI Hown".
+      iApply "HΦ". iExists tvc, pvsc. iFrame "Htrk HI Hown".
 Qed.
 
 End helpers.
@@ -229,7 +230,7 @@ Set Default Proof Using "Type".
   Lemma wp_ProgressTracker__Visit : wp_ProgressTracker__Visit_body.
   Proof.
     intros_ambient.
-    intros cfg trk tv votes prs f I.
+    intros cfg trk tv votes prs pvs f I.
     apply wp_visit.
   Qed.
 

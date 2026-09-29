@@ -11,11 +11,9 @@ Definition wp_raft__becomeFollower_body :=
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (cfg : gset w64)
     (r : loc) (id : w64) (s : nstate.t) (term lead : w64),
-  (* [reset]'s [Visit] closure reads the log *)
-  nstate_idle s →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "becomeFollower" #term #lead
-  {{{ RET #(); own_raft_phys cfg r id (become_follower s term lead) }}}.
+  {{{ pvs, RET #(); own_raft_phys cfg r id (become_follower s term lead <| nstate.prvals := pvs |>) }}}.
 
 Module Type BECOMEFOLLOWER.
   Parameter wp_raft__becomeFollower : wp_raft__becomeFollower_body.

@@ -5,10 +5,8 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
     [[committed, lastIndex()]], hence the premise -- stated on the log's
     state [s.logst], which [nstate.t] records.
 
-    [nstate.lent] is not constrained: the one caller, [newRaft], calls it
-    with the tracker still on loan, and [loadState] does not touch the
-    tracker.  (Until 2026-09-25 the *log* had to be on loan too, because
-    [own_raft_phys] did not record its state.) *)
+    [loadState] does not touch the tracker.  (Until 2026-09-25 the *log*
+    had to be on loan, because [own_raft_phys] did not record its state.) *)
 Definition wp_raft__loadState_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)

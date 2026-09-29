@@ -26,25 +26,27 @@ Import P.
   Lemma wp_raft__promotable : wp_raft__promotable_body.
   Proof.
     intros_ambient.
-    intros cfg r id s Hlent.
+    intros cfg r id s.
     wp_start as "Hphys". wp_auto.
     wp_apply (wp_raft_load_id with "Hphys") as "Hphys".
     iDestruct (own_raft_phys_tracker with "Hphys")
-      as (tv) "(Htrkf & Htrk & Hback)"; first exact Hlent.
+      as (tv) "(Htrkf & Htrk & Hback)".
     wp_auto.
     destruct (decide (id ∈ cfg)) as [Hin|Hnin].
     - (* a voter: its [Progress] is in the map and is not a learner's *)
-      wp_apply (wp_tracker_progress_lookup _ _ _ _ _ Hin with "[$Htrk]")
-        as "%pr (_ & Hpr & Hprback)".
-      iDestruct "Hpr" as (pv iv) "(Hpv & Hinfl & %Hnolearner & %Hst)".
+      wp_apply (wp_tracker_progress_lookup _ _ _ _ _ _ Hin with "[$Htrk]")
+        as "%pr (_ & %pv & %iv & %Hpvs & Hpr & Hprback)".
+      iDestruct "Hpr" as "(Hpv & Hinfl & %Hnolearner & %Hst)".
       iDestruct (typed_pointsto_not_null with "Hpv") as %Hnn.
       (* [wp_apply] already reduced [pr != nil] to [negb (bool_decide (pr = null))] *)
       rewrite (bool_decide_eq_false_2 (pr = null) Hnn). simpl.
       wp_auto.
       rewrite Hnolearner. simpl.
       wp_auto.
-      iDestruct ("Hprback" with "[Hpv Hinfl]") as "Htrk".
-      { iExists pv, iv. rewrite /own_progress. iFrame "∗%". }
+      iDestruct ("Hprback" $! pv iv with "[Hpv Hinfl]") as "Htrk".
+      { rewrite /own_progress. iFrame "∗%". }
+      (* written back at the values it was read at *)
+      rewrite insert_id //.
       iDestruct ("Hback" with "Htrkf Htrk") as "Hphys".
       iDestruct (own_raft_phys_eq _ _ _ _ s with "Hphys") as "Hphys".
       { by destruct s. }

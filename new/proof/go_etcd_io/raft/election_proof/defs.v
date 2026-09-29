@@ -223,22 +223,23 @@ Definition stamp (tm li : w64) (k : nat) (e : raftpb.Entry.t) : raftpb.Entry.t :
       election path inserts into or deletes from it, so it is stable across
       every call, and a proof that borrows one peer's [Progress] can hand it
       back before a call and borrow it again after, at the same key.
+    - [prvals] is each peer's [Progress] *value*, with its [Inflights]
+      value: what [*pr] and [*pr.Inflights] hold for the [pr] that
+      [progress] maps the peer to.  [own_tracker] is indexed by it
+      ([inv_tracker.v]), so a spec says how it changes the [Progress]es,
+      or quantifies the new values.  [maybeSendAppend] needs it: it reads
+      [pr] before [r.send] and calls [pr.SentEntries] after, which panics
+      in [StateSnapshot] and, through [Inflights.Add], on a full window --
+      so it must know, after a call made with the struct sealed, that [pr]
+      still holds what it read.  (Until 2026-09-29 that was done by a field
+      [lent : option ProgressTracker.t]: the tracker's heap was *lent* out
+      of [own_raft_phys] to the caller, and every function that touched the
+      tracker took [lent = None]; before 2026-09-21, the variant predicate
+      [own_raft_bare].  A proposed replacement, a "pin" recording one
+      [Progress] value, was rejected: [nstate.t] holds only physical
+      state.)
     - [log] is [r.raftLog], the log's location (it never changes).
-    - [lent] says the tracker's heap is **on loan to the caller**: at
-      [Some tv], [own_raft_phys] does not own it, pins [r.trk = tv], and
-      whoever set it holds [own_tracker tv _] outside the predicate.  The
-      log is never on loan: [own_raft_phys] always owns it, at [logst].
-      [maybeSendAppend] needs this: it holds one peer's [Progress] across
-      [r.send], and [pr.SentEntries] needs the facts it learned about that
-      [Progress] before the send.  ([ents], which [payloadsSize(ents)]
-      reads after the send, is read-only and the caller's for good, so it
-      needs no loan.)  Pinning the tracker value is what lets the caller
-      know, after the call, that what it holds is still the struct's.  A
-      function that touches the tracker says so with the premise
-      [s.(nstate.lent) = None].  (This is [own_raft_bare], 2026-09-21,
-      moved into the state where it belongs.  Until 2026-09-28 the log went
-      on loan with the tracker, and [appendEntry] used that to hold the log
-      at a fixed state across [increaseUncommittedSize].)
+    - [logst] is the log's state ([logstate.t]).
 
     The first six fields are exactly [pstate.t]'s, with the same names, so
     that a spec's [s.(nstate.term)] reads the same as it always did. *)
@@ -257,12 +258,12 @@ Record t :=
       progress : gmap w64 loc;        (** [r.trk.Progress], as a map *)
       log : loc;                      (** [r.raftLog] *)
       logst : logstate.t;             (** the log's abstract state *)
-      lent : option tracker.ProgressTracker.t;
-                                      (** tracker heap on loan *)
+      prvals : gmap w64 (tracker.Progress.t * tracker.Inflights.t);
+                                      (** [*pr], [*pr.Inflights], per peer *)
     }.
 End defn.
 #[global] Instance settable {ext : ffi_syntax} : Settable (@t ext) :=
-  settable! (@mk ext) <term; vote; lead; role; votes; outbox; stepfn; progress; log; logst; lent>.
+  settable! (@mk ext) <term; vote; lead; role; votes; outbox; stepfn; progress; log; logst; prvals>.
 End nstate.
 
 Section phys_state.
@@ -336,21 +337,13 @@ Definition to_pstate s : pstate.t :=
   pstate.mk s.(nstate.term) s.(nstate.vote) s.(nstate.lead) s.(nstate.role)
             s.(nstate.votes) s.(nstate.outbox).
 
-(** A state between two calls: the tracker is not on loan to a caller.
-    The premise every function that touches the tracker takes.  (The
-    second conjunct was [logst.page = None] until 2026-09-29, when the
-    log's page loan went; it is [True] until [lent] goes too.) *)
-Definition nstate_idle s : Prop :=
-  s.(nstate.lent) = None ∧ True.
-
-Lemma nstate_idle_lent s : nstate_idle s → s.(nstate.lent) = None.
-Proof. by intros []. Qed.
-
-(** A physical state that can take a protocol step: [r.step] agrees with the
-    role, and nothing is on loan.  Every [becomeX] establishes the
-    first; the second holds between any two top-level calls. *)
+(** A physical state that can take a protocol step: [r.step] agrees with
+    the role.  Every [becomeX] establishes it.  (Until 2026-09-29 it also
+    said nothing was on loan, [nstate_idle s]: the tracker could be lent
+    out of [own_raft_phys] ([nstate.lent]), and until earlier the same day
+    a slice of the log ([logstate.page]).  Nothing is ever lent now.) *)
 Definition nstate_wf s : Prop :=
-  s.(nstate.stepfn) = step_func_of s.(nstate.role) ∧ nstate_idle s.
+  s.(nstate.stepfn) = step_func_of s.(nstate.role).
 
 (** [s] refines the protocol state [ps]. *)
 Definition nstate_rel s (ps : pstate.t) : Prop :=
@@ -385,16 +378,24 @@ Lemma to_pstate_vote s v :
 Proof. done. Qed.
 
 Lemma nstate_wf_become_follower s term lead :
-  nstate_idle s → nstate_wf (become_follower s term lead).
-Proof. intros [H1 H2]. split; [done|split; done]. Qed.
+  nstate_wf (become_follower s term lead).
+Proof. done. Qed.
 
 Lemma nstate_wf_become_candidate id s :
-  nstate_idle s → nstate_wf (become_candidate id s).
-Proof. intros [H1 H2]. split; [done|split; done]. Qed.
+  nstate_wf (become_candidate id s).
+Proof. done. Qed.
 
 Lemma nstate_wf_become_leader id s :
-  nstate_idle s → nstate_wf (become_leader id s).
-Proof. intros [H1 H2]. split; [done|split; done]. Qed.
+  nstate_wf (become_leader id s).
+Proof. done. Qed.
+
+(** A state with new [Progress] values is as well-formed as before: [r.step]
+    and the role are untouched. *)
+Lemma nstate_wf_prvals s pvs : nstate_wf s → nstate_wf (s <| nstate.prvals := pvs |>).
+Proof. done. Qed.
+
+Lemma to_pstate_prvals s pvs : to_pstate (s <| nstate.prvals := pvs |>) = to_pstate s.
+Proof. done. Qed.
 
 Lemma nstate_wf_send_msgs s ms : nstate_wf s → nstate_wf (send_msgs s ms).
 Proof. done. Qed.

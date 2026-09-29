@@ -1736,3 +1736,31 @@ Writing a triple for a *single* heap access (the field lemmas themselves):
   an existential's. When it appears after `iFrame "∗#%"; iPureIntro; …; lia`,
   the arithmetic is missing a fact -- often a bound thrown away as `_`
   (`own_slice_len`'s `0 ≤ len`).
+
+## Holding things read-only, and borrowing out of the struct without a loan (2026-09-29)
+
+- **Name a persistent conjunct spatially** (`"Huents" ∷ … ↦*□ uents`, not
+  `"#Huents"`) when the predicate is opened and re-sealed repeatedly. With
+  `#` the hypothesis survives the re-seal in the □ context, so the next
+  `iNamed` fails with `"Huents" not fresh`, and `iFrame "∗"` no longer
+  frames it (`iFrame "∗#"` would). A persistent assertion is happy in the
+  spatial context.
+- **`iMod (own_slice_persist …)` needs a WP (or update) goal.** After a
+  `wp_apply … as` whose continuation is only pure steps, the goal is
+  already `Φ v` and there is no modality to eliminate. Put `iApply
+  wp_fupd` *before* the `wp_apply`, persist, then `iModIntro`
+  (`proof_raftLog__slice.v`, the `extend` exits).
+- **A lemma whose premises are Coq hypotheses takes its state from
+  them, not from the hypothesis it is applied to.** `own_raft_phys_pr …
+  Hlk Hpvs with "Hphys"` with `Hlk : s.(progress) !! to = Some pr` fixes
+  the state to `s`, and fails on `"Hphys" : own_raft_phys … (send_msgs s
+  ms)` although the lookup is true there too. State such premises as pure
+  wands (`own_raft_phys … s -∗ ⌜ s.(progress) !! to = Some pr ⌝ -∗ …`)
+  and apply with `"Hphys [//] [//]"`: the state comes from `"Hphys"`, and
+  `done` closes the lookups by conversion (`own_raft_phys_pr` and its
+  variants in `inv_raft_phys.v`, used by `maybeSendAppend`).
+- **A section variable is the lemma's first argument.** A `Local Lemma`
+  in a section with `Context (cfg : gset w64)` takes `cfg` first, so a
+  positional use needs one more `_` than its statement shows.
+- **`wp__new_cap` takes an unused `V`** outside `slice.v`'s section; pass
+  `(V:=V)` (todo.md).

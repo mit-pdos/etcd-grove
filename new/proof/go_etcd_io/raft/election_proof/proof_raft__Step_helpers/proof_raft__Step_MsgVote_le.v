@@ -39,7 +39,7 @@ Implicit Type s : nstate.t.
     m.(raftpb.Message.From') ≠ W64 0 →
     (* this file: the incoming term is not higher, so no step-down *)
     ¬ (uint.Z s.(nstate.term) < uint.Z m.(raftpb.Message.Term')) →
-    (* [r.step] matches the role and nothing is on loan *)
+    (* [r.step] matches the role *)
     nstate_wf s →
     {{{ is_pkg_init raft ∗
         "Hphys" ∷ own_raft_phys cfg r id s ∗

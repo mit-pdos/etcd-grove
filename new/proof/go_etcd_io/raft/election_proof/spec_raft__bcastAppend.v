@@ -19,11 +19,10 @@ Definition wp_raft__bcastAppend_body :=
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (cfg : gset w64) (r : loc) id s,
-  nstate_idle s →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "bcastAppend" #()
-  {{{ (ms : list msg.t), RET #();
-      own_raft_phys cfg r id (send_msgs s ms) ∗
+  {{{ (ms : list msg.t) pvs, RET #();
+      own_raft_phys cfg r id (send_msgs s ms <| nstate.prvals := pvs |>) ∗
       ⌜ app_sends id s.(nstate.term) ms ⌝ }}}.
 
 Module Type RAFT__BCASTAPPEND.

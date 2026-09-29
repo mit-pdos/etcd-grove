@@ -7,11 +7,11 @@ Definition wp_ProgressTracker__VoterNodes_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
-    (cfg : gset w64) (trk : loc) tv votes (prs : gmap w64 loc),
-  {{{ is_pkg_init tracker ∗ trk ↦ tv ∗ own_tracker cfg tv votes prs }}}
+    (cfg : gset w64) (trk : loc) tv votes (prs : gmap w64 loc) (pvs : gmap w64 (tracker.Progress.t * tracker.Inflights.t)),
+  {{{ is_pkg_init tracker ∗ trk ↦ tv ∗ own_tracker cfg tv votes prs pvs }}}
     trk @! (go.PointerType tracker.ProgressTracker) @! "VoterNodes" #()
   {{{ (sl : slice.t) (xs : list w64), RET #sl;
-      trk ↦ tv ∗ own_tracker cfg tv votes prs ∗
+      trk ↦ tv ∗ own_tracker cfg tv votes prs pvs ∗
       sl ↦* xs ∗ ⌜ xs ≡ₚ elements cfg ⌝ }}}.
 
 Module Type PROGRESSTRACKER__VOTERNODES.

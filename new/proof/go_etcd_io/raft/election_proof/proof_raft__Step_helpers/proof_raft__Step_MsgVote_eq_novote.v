@@ -139,7 +139,7 @@ Implicit Type s : nstate.t.
     (* this file: same term, and this node has not voted in it *)
     m.(raftpb.Message.Term') = s.(nstate.term) →
     s.(nstate.vote) = W64 0 →
-    (* [r.step] matches the role and nothing is on loan *)
+    (* [r.step] matches the role *)
     nstate_wf s →
     {{{ is_pkg_init raft ∗
         "Hphys" ∷ own_raft_phys cfg r id s ∗
@@ -162,7 +162,6 @@ Implicit Type s : nstate.t.
         "%Herr" ∷ ⌜ err = interface.nil ⌝ }}}.
   Proof.
     intros Hty Hto Hterm Hfnz Heq0 Hv00 Hwf.
-    pose proof Hwf as [Hsfw Hlent].
     wp_start_folded as "@". wp_start_unfold. wp_auto.
     assert (Hle : ¬ (uint.Z s.(nstate.term) < uint.Z m.(raftpb.Message.Term')))
       by (rewrite Heq0; lia).
