@@ -1,0 +1,8 @@
+AI assistants should never edit manual-notes.txt under any circumstances.
+
+- Q: Are there other slices that are unprotected like unstable.slice() is
+  protected by slicing the capacity?
+
+- VoteResult() -> VoteLost does NOT mean that a quorum of no has been reached;
+  it could be 2 no's out of 4 servers (or it could be only one of the two
+  majorities in joint consensus.)

@@ -35,6 +35,8 @@ not edit anything there, and do not use them as a model for proof style. A
 change you want in `new/code/` has to be made in the Go fork and regenerated —
 see `notes/goose-workflow.md`.
 
+NEVER edit, write to, or modify manual-notes.txt under any circumstances.
+
 ## Proof writing
 
 There is a tutorial: @new/proof/PERENNIAL_PROOF_TUTORIAL.md, a reference:
