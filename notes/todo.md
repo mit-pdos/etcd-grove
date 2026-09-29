@@ -36,6 +36,20 @@ Not for the next step of the work in flight — that is `STATUS.md`.
 
 ## Raft proof
 
+- **Remove `nstate.log`** (added 2026-09-29). No spec mentions it. It
+  only makes `wp_raft_load_raftLog` (returns `#s.(nstate.log)`) and the
+  log accessors `own_raft_phys_log_at`/`_same` (hand out
+  `own_raftLog s.(nstate.log) …`) agree on the pointer. It was added
+  2026-09-22 so a caller holding the log *on loan* could tell after a call
+  that it still held the struct's log, and loans are gone. Fix: have the
+  log accessor hand out the field points-to `r.[raft.raft.t, "raftLog"] ↦ l`
+  with `own_raftLog l s.(nstate.logst)` and a wand back, as
+  `own_raft_phys_tracker` does for `trk`. Then delete `wp_raft_load_raftLog`
+  and the `Hlogp` conjunct, and rework its 31 uses in 14 files: accessor
+  first, then the load by `wp_auto`, then the wand. Also
+  `proof_raft__loadState.v:56`, and `nstate.mk … l …` in `proof_newRaft.v`.
+  Deferred because it is physical state and harmless.
+
 - **`nextUnstableEnts` returns an uncapped slice** (noted 2026-09-29).
   `log_unstable.go:101` returns `u.entries[inProgress:]` without a
   capacity limit, unlike `unstable.slice`. An application that appends to
