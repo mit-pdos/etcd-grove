@@ -1771,3 +1771,8 @@ Writing a triple for a *single* heap access (the field lemmas themselves):
 - **A section variable is the lemma's first argument.** A `Local Lemma`
   in a section with `Context (cfg : gset w64)` takes `cfg` first, so a
   positional use needs one more `_` than its statement shows.
+- **`s ↦*{dq} []` says nothing about `dq`.** A nil slice satisfies it
+  with no resource at all, and an empty array points-to is free at any
+  fraction. So a lemma that turns fresh, fully-owned elements into
+  `↦*{dq}` needs `✓dq` as a premise, even though the caller "owns" `s`:
+  `wp_slice_append_dfrac` takes `⌜✓dq_s⌝` for this reason.

@@ -271,6 +271,22 @@ say so in the journal.
    code, but under the scope above that transition is never received, so the
    rule refines nothing and a reader could take it for a discharged
    obligation.
+11. **`make ci` still fails, in five files outside the raft proof** (found
+   2026-09-29, after the `chan/au_spec` fix). All five have the same cause
+   as that fix: since 25ce5ca6f, `done` on a WP goal no longer closes a
+   branch that is dead because of a contradictory hypothesis (gotchas.md).
+   `new/golang/theory/chan/idioms/dsp/dsp_proofmode.v:192`,
+   `new/proof/encoding/binary.v:93` (`try done` leaves the `bs = []`
+   branches of `destruct bs`, so the next `destruct bs` finds no `bs`),
+   `goose/testdata/examples/channel.v:57`,
+   `goose/testdata/examples/channel/etcd_session.v:130`,
+   `go_etcd_io/etcd/client/v3/concurrency.v:98`. Only the `binary.v` goal
+   was printed; the others are inferred from the tactic at the error. They
+   block the `vo` build of everything downstream, including the whole raft
+   proof (via `v3_proof/protocol.v` → `chan/idioms`), so until they are
+   fixed the raft proof is checked only by `.vok`. The fix is either
+   `by exfalso` at each site, or making the override fall back to stdpp's
+   `done` when the goal is a WP.
 
 ## Trust base
 

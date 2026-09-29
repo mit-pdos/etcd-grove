@@ -3846,3 +3846,24 @@ Checked: `make …/chan_au_recv.vok` 0, `make …/chan_au_send.vok` 0;
 `make -j4 …/chan_au_recv.vo …/chan_au_send.vo` 0 (rebuilt stale deps);
 downstream `make -k -j4 new/golang/theory/chan.vo` plus all eleven
 `chan/idioms/*.vo` 0. Not run: `make ci`.
+
+## 2026-09-29 — `wp_slice_append_dfrac`: one `append` spec for any fraction on the destination
+
+The todo.md framework item, as the user specified: a general
+`wp_slice_append_dfrac` (destination `s ↦*{dq_s} vs` with a pure premise
+`⌜✓dq_s⌝`, result `s' ↦*{dq_s} (vs ++ vs')`), with `wp_slice_append`
+(`DfracOwn 1`) and `wp_slice_append_persistent` (`DfracDiscarded`) as
+two-line wrappers keeping their old statements, so no caller changed. The
+proof is the old persistent one with `own_slice_update_to_dfrac` in place
+of `own_slice_persist`. `✓dq_s` cannot be dropped: `s ↦*{dq} []` holds no
+resource (gotchas.md), so with `dq = DfracOwn 2`, `vs = []` and a
+non-empty `vs'` the postcondition would be `False`.
+
+Checked: `slice.vo` (full). `make -k -j4 ci`: all eight callers outside
+the failing cones built as `.vo` (bytes, std, strings, unittest,
+elimination_stack, channel_google, channel_fibonacci, chan_au_send); five
+pre-existing `done`-override failures (STATUS item 11) blocked the rest, so
+the other eight callers were checked by `.vok` after rebuilding
+`new/should_build.vos`: truncateAndAppend, raft__send,
+MajorityConfig__Slice, ProgressTracker__VoterNodes, newRaft,
+raft__campaign, v3_proof/readonly, tchajed/marshal — all exit 0.
