@@ -5,8 +5,8 @@ Module RaftLogHasNextOrInProgressSnapshotProof (P : RAFTLOG__HASNEXTORINPROGRESS
   Lemma wp_raftLog__hasNextOrInProgressSnapshot : wp_raftLog__hasNextOrInProgressSnapshot_body.
   Proof.
     intros_ambient.
-    intros l ls Hpg.
-    destruct ls as [prev sents uents lcm lap lpg]; logstate_simpl; subst lpg.
+    intros l ls.
+    destruct ls as [prev sents uents lcm lap]; logstate_simpl.
     wp_start as "Hlog".
     iNamed "Hlog".
     iEval (rewrite /own_raftLog_core /=) in "Hcore". iNamed "Hcore". wp_auto.

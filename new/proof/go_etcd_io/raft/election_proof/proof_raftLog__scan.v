@@ -43,12 +43,12 @@ Import P.
   Lemma wp_raftLog__scan : wp_raftLog__scan_body.
   Proof.
     intros_ambient.
-    intros l ls lo hi pageSize f I Pred Hpg Hrange HP.
-    destruct ls as [prev sents uents lcm lap lpg]; logstate_simpl; subst lpg.
+    intros l ls lo hi pageSize f I Pred Hrange HP.
+    destruct ls as [prev sents uents lcm lap]; logstate_simpl.
     wp_start as "H". iNamed "H". wp_auto.
     iAssert (∃ (cur : w64),
        "lo" ∷ lo_ptr ↦ cur ∗
-       "Hlog" ∷ own_raftLog l (logstate.mk prev sents uents lcm lap None) ∗
+       "Hlog" ∷ own_raftLog l (logstate.mk prev sents uents lcm lap) ∗
        "HI" ∷ I ∗
        "%Hcur" ∷ ⌜ (uint.Z prev.(raft.entryID.index') + 1 ≤ uint.Z cur ≤
                     uint.Z hi)%Z ⌝)%I
@@ -62,9 +62,9 @@ Import P.
                uint.Z hi ≤ uint.Z prev.(raft.entryID.index')
                  + Z.of_nat (length sents) + Z.of_nat (length uents) + 1)%Z)
         as Hsl by lia.
-      wp_apply (wp_raftLog__slice l (logstate.mk prev sents uents lcm lap None) cur hi pageSize eq_refl Hsl
+      wp_apply (wp_raftLog__slice l (logstate.mk prev sents uents lcm lap) cur hi pageSize Hsl
                  with "[$Hlog]")
-        as "%s %es %dq (Hlog & Hes & (%Hne & %Hlen & %Hin))". logstate_simpl.
+        as "%s %es (Hlog & #Hes & (%Hne & %Hlen & %Hin))". logstate_simpl.
       (* the "got 0 entries" error is dead: the page is non-empty *)
       iDestruct (slice_len_Z with "Hes") as %Hslen.
       assert (length es ≠ 0)%nat as Hlen0 by (destruct es; [done | simpl; lia]).
@@ -74,8 +74,7 @@ Import P.
       (* every entry of the page is an entry of the log, so [Pred] holds *)
       iAssert (⌜ Forall Pred es ⌝)%I as "HPes".
       { iPureIntro. eapply Forall_sublist_of; [exact HP | exact Hin]. }
-      wp_apply ("Hf" with "[$Hes $HPes $HI]") as "[Hes HI]".
-      iDestruct (own_raftLog_return_page with "Hlog Hes") as "Hlog"; first done.
+      wp_apply ("Hf" with "[$Hes $HPes $HI]") as "[_ HI]".
       wp_for_post.
       iFrame. iPureIntro. word.
     - (* [cur = hi]: the range is exhausted and the function returns nil *)

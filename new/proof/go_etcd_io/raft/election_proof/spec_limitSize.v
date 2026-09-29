@@ -9,7 +9,7 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
     wand back to the whole slice.  Which prefix is not specified beyond its
     length bounds, because the sizes come from [Entry.Size] (pointer receiver)
     ([spec_Entry__Size.v]), about whose value nothing is known -- and
-    nothing on the election path cares where a page is cut. *)
+    nothing on the election path cares where the slice is cut. *)
 Definition wp_limitSize_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)

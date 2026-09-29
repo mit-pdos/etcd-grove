@@ -20,9 +20,10 @@ wrong three times (`own_raft_phys_at`, `own_raft_bare`, `own_raft_notrk`,
 "Three layers", has the whole story and the fields that replaced them
 (`stepfn`, `progress`, `log`, `lent`). The same holds for every object,
 and was done for the tracker, `Progress`, `Inflights`, the log, `unstable`
-and `readOnly` on 2026-09-23 (decisions.md): a loan -- a page of the log
-handed to the caller -- is a field of the object's state
-(`logstate.page`), not a second shape.
+and `readOnly` on 2026-09-23 (decisions.md): a loan is a field of the
+object's state, not a second shape.  (The one such loan, of a slice of the
+log lent to the caller, was `logstate.page` until 2026-09-29, when the log
+started holding its entries read-only and the loan went.)
 
 ## `own_raft_phys_intro` takes `r ↦ rv` first, and wants `s` when it moved
 
@@ -1599,14 +1600,16 @@ arrives).
 ## Working at a record-indexed predicate (`own_raftLog l ls`), 2026-09-23
 
 - **Destruct the state, then reduce only its projections.** The `raftLog`
-  proofs start `destruct ls as [prev sents uents lcm lap lpg];
-  logstate_simpl; subst lpg`. `logstate_simpl` is `cbn` restricted to the
-  six `logstate` projections (never `simpl in *`). A spec called at
+  proofs start `destruct ls as [prev sents uents lcm lap];
+  logstate_simpl`. `logstate_simpl` is `cbn` restricted to the
+  five `logstate` projections (never `simpl in *`). A spec called at
   `logstate.mk prev …` returns facts about `(logstate.mk prev …).(logstate.prev)`,
   which `lia`/`word` treat as a different atom from `prev`: run
   `logstate_simpl` (or `cbn [logstate.prev …] in H`) after the call.
 - **A state premise cannot be given as `eq_refl` with the state left to
-  unification.** `wp_raftLog__lastIndex _ _ eq_refl` fails: `eq_refl` has
+  unification.** (Historical: the example is the `logstate.page = None`
+  premise, which went on 2026-09-29 with `logstate.page`.)
+  `wp_raftLog__lastIndex _ _ eq_refl` fails: `eq_refl` has
   to be elaborated against `logstate.page ?ls = None`, and a projection of
   an evar does not unify with `None`. Give the state:
   `wp_raftLog__lastIndex _ (logstate.mk prev sents uents lcm lap None) eq_refl`,

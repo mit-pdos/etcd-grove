@@ -30,6 +30,9 @@ If a fact only matters inside one conversation, it does not belong here.
   and where the trust boundary is.
 - **[goose-workflow.md](goose-workflow.md)** — how Go source in the etcd forks
   becomes Rocq in `new/code/`, and how to change it.
+- **[todo.md](todo.md)** — deferred work: workarounds that should
+  eventually become proper fixes, generalisations waiting for a second
+  user, known gaps outside the current scope. Kept current.
 - **[decisions.md](decisions.md)** — why the development is the way it is.
   Newest last.
 - **[journal.md](journal.md)** — dated log of what happened. For archaeology

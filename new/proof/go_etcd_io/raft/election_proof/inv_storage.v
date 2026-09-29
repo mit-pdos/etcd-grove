@@ -53,10 +53,20 @@
         reallocates instead of writing into [ms.ents].  [raftLog.slice]
         relies on this through [extend], whose in-place branch would
         otherwise write into storage memory this contract does not grant;
-      - the slice is **lent**, not given: the returned points-to comes with
-        a wand back to [own_Storage].  [MemoryStorage] hands out a view of
-        its own buffer, so ownership cannot be transferred.
-    The fraction is existential because the client chooses it.  What the
+      - the entries are handed out **read-only and for good**
+        ([s ↦*□ es], no wand back).  This is the interface's own contract
+        ([storage.go:56-67], upamanyus/etcd-raft 531b20c): "The caller of
+        Entries owns the returned slice, and may append to it. The
+        individual entries in the slice must not be mutated, neither by the
+        Storage implementation nor the caller."  [MemoryStorage] keeps it:
+        [Entries] caps the result ([storage.go:155]), [Append] rebuilds with
+        [append(ms.ents[:offset:offset], ...)] "as they may still be
+        referenced from outside MemoryStorage" ([storage.go:303-305]), and
+        [Compact] allocates.  The slack is not handed out: [cap = len].
+        (Until 2026-09-29 the slice was *lent*, at an existential fraction,
+        with a wand back to [own_Storage]; that forced a page loan on
+        [raftLog.slice]'s callers -- [logstate.page].)
+    What the
     returned entries *are* (which indices) is not stated; nothing on the
     election path reads them beyond their [Type], for which membership in
     the stored list is enough.
@@ -146,14 +156,14 @@ Definition is_Storage (st : raft.Storage.t) : iProp Σ :=
          ⌜ (uint.Z prev.(raft.entryID.index') + 1 ≤ uint.Z lo ∧ uint.Z lo < uint.Z hi ∧
             uint.Z hi ≤ uint.Z prev.(raft.entryID.index') + Z.of_nat (length ents) + 1)%Z ⌝ }}}
        #(methods i.(interface.ty) "Entries"%go i.(interface.v)) #lo #hi #maxSize
-     {{{ (s : slice.t) (es : list raftpb.Entry.t) (dq : dfrac),
+     {{{ (s : slice.t) (es : list raftpb.Entry.t),
          RET (#s, #interface.nil);
-         s ↦*{dq} es ∗
+         s ↦*□ es ∗
          ⌜ es ≠ [] ∧
            (Z.of_nat (length es) ≤ uint.Z hi - uint.Z lo)%Z ∧
            (∀ e, e ∈ es → e ∈ ents) ∧
            s.(slice.cap) = s.(slice.len) ⌝ ∗
-         (s ↦*{dq} es -∗ own_Storage st prev ents) }}}) ∗
+         own_Storage st prev ents }}}) ∗
   (** The stable log's last index is far below [2^64].
 
       This is the one *pure* clause of the contract, and it is what makes

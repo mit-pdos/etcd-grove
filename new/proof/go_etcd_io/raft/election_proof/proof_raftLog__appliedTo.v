@@ -5,8 +5,8 @@ Module RaftLogAppliedToProof (P : RAFTLOG__APPLIEDTO_POSTULATES) : RAFTLOG__APPL
   Lemma wp_raftLog__appliedTo : wp_raftLog__appliedTo_body.
   Proof.
     intros_ambient.
-    intros l ls i size Hpg Hi.
-    destruct ls as [prev sents uents lcm lap lpg]; logstate_simpl; subst lpg.
+    intros l ls i size Hi.
+    destruct ls as [prev sents uents lcm lap]; logstate_simpl.
     wp_start as "Hlog".
     iDestruct (own_raftLog_unfold with "Hlog") as (lv) "(Hl & %Hcm & %Hap & Hcore)".
     logstate_simpl.

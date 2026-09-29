@@ -47,7 +47,6 @@ Definition wp_raftLog__term_body :=
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (l : loc) (ls : logstate.t) (i : w64),
-  ls.(logstate.page) = None →
   {{{ is_pkg_init raft ∗ "Hlog" ∷ own_raftLog l ls }}}
     l @! (go.PointerType raft.raftLog) @! "term" #i
   {{{ (t : w64) (err : interface.t), RET (#t, #err);

@@ -7,7 +7,7 @@ Import P.
       - [len(ents) == 0]: the input comes straight back.  [es = []], so
         [take 0 es = es] and any [n] would do; [0] is chosen.
       - the loop's early [return ents[:limit]]: a two-index sub-slice, so
-        [n = limit] and the page is [own_slice_split_all]'s left half, with
+        [n = limit] and the result is [own_slice_split_all]'s left half, with
         the right half captured in the wand's closure.  This is the only
         [return] out of a [for:] body on the log path: [wp_auto] first
         turns [return: v] into [return_val v], and only then does

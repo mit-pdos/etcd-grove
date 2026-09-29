@@ -15,10 +15,10 @@ Definition wp_unstable__maybeLastIndex_body :=
       (uents : list raftpb.Entry.t),
   uv.(raft.unstable.snapshot') = null →
   (uint.Z uv.(raft.unstable.offset') + Z.of_nat (length uents) < 2^64)%Z →
-  {{{ is_pkg_init raft ∗ "Hun" ∷ own_unstable u uv uents None }}}
+  {{{ is_pkg_init raft ∗ "Hun" ∷ own_unstable u uv uents }}}
     u @! (go.PointerType raft.unstable) @! "maybeLastIndex" #()
   {{{ (i : w64) (ok : bool), RET (#i, #ok);
-      own_unstable u uv uents None ∗
+      own_unstable u uv uents ∗
       ⌜ uents = [] → ok = false ⌝ ∗
       ⌜ uents ≠ [] → ok = true ∧
         (uint.Z i = uint.Z uv.(raft.unstable.offset') + Z.of_nat (length uents) - 1)%Z ⌝ }}}.

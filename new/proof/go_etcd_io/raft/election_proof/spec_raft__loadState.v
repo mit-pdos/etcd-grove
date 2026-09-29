@@ -14,7 +14,6 @@ Definition wp_raft__loadState_body :=
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (cfg : gset w64) (r : loc) (id : w64) (s : nstate.t) (hs : raftpb.HardState.t),
-  s.(nstate.logst).(logstate.page) = None →
   (uint.Z s.(nstate.logst).(logstate.committed) ≤ uint.Z hs.(raftpb.HardState.Commit')
      ≤ uint.Z (log_last s.(nstate.logst)))%Z →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}

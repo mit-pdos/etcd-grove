@@ -8,7 +8,6 @@ Definition wp_raftLog__appliedTo_body :=
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (l : loc) (ls : logstate.t) (i size : w64),
-  ls.(logstate.page) = None →
   (uint.Z ls.(logstate.applied) ≤ uint.Z i ≤ uint.Z ls.(logstate.committed))%Z →
   {{{ is_pkg_init raft ∗ own_raftLog l ls }}}
     l @! (go.PointerType raft.raftLog) @! "appliedTo" #i #size

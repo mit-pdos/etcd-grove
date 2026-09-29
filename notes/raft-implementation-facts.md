@@ -244,7 +244,7 @@ caller's entries, so the caller's `Type` lands in the log —
 
 ## The append-broadcast path, checked against the bodies (2026-09-20)
 
-- `raftLog.slice` has **five** returning exits: the unstable-only page
+- `raftLog.slice` has **five** returning exits: the unstable-only slice
   (`ents[0:len:len]`) and four `return ents` from the storage path
   (`hi <= offset`, `len(ents) < cut-lo`, `size >= maxSize`, the
   `len(unstable)==1 && …` guard), plus `extend(ents, unstable)`, the only

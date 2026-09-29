@@ -49,12 +49,11 @@ Import P.
       iDestruct (own_raft_phys_eq _ _ _ _ s with "Hphys") as "Hphys".
       { by destruct s. }
       wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
-      iDestruct (own_raft_phys_log with "Hphys")
-        as (ls Hls) "(Hlog & Hback)"; first exact Hlent.
-      wp_apply (P.wp_raftLog__hasNextOrInProgressSnapshot _ _ Hls with "[$Hlog]")
+      iDestruct (own_raft_phys_log_same with "Hphys") as "(Hlog & Hback)".
+      wp_apply (P.wp_raftLog__hasNextOrInProgressSnapshot with "[$Hlog]")
         as "%hb [Hlog %Hhb]".
       subst hb. simpl.
-      iDestruct ("Hback" with "Hlog [//]") as "Hphys".
+      iDestruct ("Hback" with "Hlog") as "Hphys".
       iApply "HΦ". iFrame "Hphys".
       iPureIntro. rewrite bool_decide_eq_true_2 //.
     - (* not a voter: the lookup misses, [pr == nil] short-circuits to false *)

@@ -24,8 +24,7 @@ Import P.
         two [MaxInflight] fields and to hand it back to [Visit], and
         re-establishes [I].  The log is never lent: for the closure's two
         [lastIndex()] calls it is taken out of the re-assembled
-        [own_raft_phys] and put back ([own_raft_phys_log_same]), its page
-        fact coming from [nstate_idle s].  [I] also has
+        [own_raft_phys] and put back ([own_raft_phys_log_same]).  [I] also has
         to carry the frame slot of the pointer variable ([r_ptr ↦ r]), which
         is easy to forget.
 
@@ -67,7 +66,6 @@ Import P.
     wp_apply (wp_raft__resetRandomizedElectionTimeout with "[$Hphys]") as "Hphys".
     wp_apply (wp_raft__abortLeaderTransfer with "[$Hphys]") as "Hphys".
     set (s1 := s0 <| nstate.lead := W64 0 |>).
-    pose proof (nstate_idle_page _ Hlent) as Hpg.
     iDestruct (own_raft_phys_lend _ _ _ s1 Hlent with "Hphys")
       as (tv) "(Htrk & Hphys)".
     set (sL := s1 <| nstate.lent := Some tv |>).
@@ -99,7 +97,7 @@ Import P.
       iDestruct ("Hback" $! tv0 with "Htrkf") as "Hphys".
       wp_auto. wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
       iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hphys]".
-      wp_apply (wp_raftLog__lastIndex _ _ Hpg with "[$Hlog]")
+      wp_apply (wp_raftLog__lastIndex _ _ with "[$Hlog]")
         as "%li [Hlog %Hli0]".
       iDestruct ("Hphys" with "Hlog") as "Hphys".
       (* [r.trk.MaxInflight], [r.trk.MaxInflightBytes]: fields of the
@@ -116,7 +114,7 @@ Import P.
       destruct (decide (i = id)) as [Hii|Hii].
       + rewrite bool_decide_true //. wp_auto. wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
         iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hphys]".
-        wp_apply (wp_raftLog__lastIndex _ _ Hpg with "[$Hlog]")
+        wp_apply (wp_raftLog__lastIndex _ _ with "[$Hlog]")
           as "%li2 [Hlog %Hli1]".
         iDestruct ("Hphys" with "Hlog") as "Hphys".
         iDestruct (own_raft_phys_trk_lent with "Hphys")

@@ -42,7 +42,6 @@ Definition wp_raftLog__append_body :=
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (l : loc) (ls : logstate.t) (ents : list raftpb.Entry.t)
     (es : slice.t) (dq : dfrac),
-  ls.(logstate.page) = None →
   log_indices_ok ls.(logstate.prev) (ls.(logstate.sents) ++ ls.(logstate.uents) ++ ents) →
   Forall (λ e, e.(raftpb.Entry.Type') = EntryNormal) ents →
   (uint.Z ls.(logstate.prev).(raft.entryID.index') + Z.of_nat (length ls.(logstate.sents))

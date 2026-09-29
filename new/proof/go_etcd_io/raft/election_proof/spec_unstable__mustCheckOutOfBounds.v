@@ -18,9 +18,9 @@ Definition wp_unstable__mustCheckOutOfBounds_body :=
   (uint.Z uv.(raft.unstable.offset') ≤ uint.Z lo ≤ uint.Z hi ≤
    uint.Z uv.(raft.unstable.offset') + Z.of_nat (length uents))%Z →
   (uint.Z uv.(raft.unstable.offset') + Z.of_nat (length uents) < 2^64)%Z →
-  {{{ is_pkg_init raft ∗ "Hun" ∷ own_unstable u uv uents None }}}
+  {{{ is_pkg_init raft ∗ "Hun" ∷ own_unstable u uv uents }}}
     u @! (go.PointerType raft.unstable) @! "mustCheckOutOfBounds" #lo #hi
-  {{{ RET #(); own_unstable u uv uents None }}}.
+  {{{ RET #(); own_unstable u uv uents }}}.
 
 Module Type UNSTABLE__MUSTCHECKOUTOFBOUNDS.
   Parameter wp_unstable__mustCheckOutOfBounds : wp_unstable__mustCheckOutOfBounds_body.

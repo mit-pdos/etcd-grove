@@ -26,7 +26,7 @@ Module UnstableTruncateAndAppendProof
                 uv.(raft.unstable.entries').(slice.len)) as Hguard by word.
     rewrite Hguard !bool_decide_eq_true_2 //.
     wp_auto.
-    wp_apply (wp_slice_append with "[$Hents $Hents_cap $Hes]")
+    wp_apply (wp_slice_append_persistent with "[$Hents $Hents_cap $Hes]")
       as "%sl (Hents & Hents_cap & Hes)".
     iApply "HΦ". rewrite /own_unstable. iFrame.
   Qed.

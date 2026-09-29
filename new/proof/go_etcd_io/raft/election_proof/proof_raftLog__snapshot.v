@@ -5,8 +5,8 @@ Module RaftLogSnapshotProof (P : RAFTLOG__SNAPSHOT_POSTULATES) : RAFTLOG__SNAPSH
   Lemma wp_raftLog__snapshot : wp_raftLog__snapshot_body.
   Proof.
     intros_ambient.
-    intros l ls esu Hpg.
-    destruct ls as [prev sents uents lcm lap lpg]; logstate_simpl; subst lpg.
+    intros l ls esu.
+    destruct ls as [prev sents uents lcm lap]; logstate_simpl.
     wp_start as "H". iNamed "H".
     iNamed "Hlog".
     iEval (rewrite /own_raftLog_core /=) in "Hcore". iNamed "Hcore".

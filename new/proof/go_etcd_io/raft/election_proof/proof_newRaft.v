@@ -24,7 +24,7 @@ Import P.
     iEval (rewrite Hlvst) in "HSto".
     wp_apply ("HInit" with "[$HSto]"). iIntros "HSto Hvoters".
     iAssert (own_raftLog l (logstate.mk prev ents [] prev.(raft.entryID.index')
-                              prev.(raft.entryID.index') None))
+                              prev.(raft.entryID.index')))
       with "[Hl HSto Huents Huents_cap]" as "HL".
     { iApply own_raftLog_unfold. iExists lv. iFrame "Hl". iSplitR; [done|].
       iSplitR; [done|]. rewrite /own_raftLog_core Hlvst. iFrame "∗#%". }
@@ -36,7 +36,7 @@ Import P.
     try wp_auto.
     wp_apply wp_alloc. iIntros (r) "Hr". try wp_auto.
     wp_apply P.wp_traceInitState. try wp_auto.
-    wp_apply (P.wp_raftLog__lastEntryID with "[$HL]") as "%lastID HL"; first done.
+    wp_apply (P.wp_raftLog__lastEntryID with "[$HL]") as "%lastID HL".
     try wp_auto.
     assert (0 ≤ sint.Z tv0.(tracker.ProgressTracker.MaxInflight') < 2 ^ 62)%Z as Hmi.
     { rewrite Htv0mi HpMI. lia. }
@@ -54,7 +54,7 @@ Import P.
        [newLogWithSize] built.  Nothing is on loan. *)
     set cfgs := (list_to_set voters : gset w64).
     set ls0 := logstate.mk prev ents [] prev.(raft.entryID.index')
-                 prev.(raft.entryID.index') None.
+                 prev.(raft.entryID.index').
     set s0 := nstate.mk (W64 0) (W64 0) (W64 0) role.Follower ∅ [] func.nil ∅ l
                 ls0 None.
     iDestruct (own_tracker_empty tv0 v0 Htv0arr Htv0l Htv0ln Htv0al Hmi
@@ -92,7 +92,7 @@ Import P.
        same struct state [s1] and log state [ls1], so the rest of the proof
        is done once, for both. *)
     set ls1 := logstate.mk prev ents [] (committed_after prev hs)
-                 prev.(raft.entryID.index') None.
+                 prev.(raft.entryID.index').
     set s1 := s0 <| nstate.progress := prs |>
                  <| nstate.term := hs.(raftpb.HardState.Term') |>
                  <| nstate.vote := hs.(raftpb.HardState.Vote') |>
@@ -117,7 +117,9 @@ Import P.
           pose proof (word.unsigned_range prev.(raft.entryID.index')).
           rewrite word.unsigned_of_Z_nowrap; lia. }
         wp_apply (P.wp_raft__loadState _ _ _ (s0 <| nstate.progress := prs |>) hs
-                    ltac:(done) ltac:(rewrite /= Hll; specialize (Hhs Hnemp); lia)
+                    ltac:(assert ((s0 <| nstate.progress := prs |>).(nstate.logst) = ls0)
+                            as -> by done;
+                          rewrite Hll /ls0 /=; specialize (Hhs Hnemp); lia)
                     with "[$Hphys]") as "Hphys".
         try wp_auto. iFrame "hs r". iSplitR; first done.
         iApply (own_raft_phys_eq with "Hphys").
@@ -128,7 +130,7 @@ Import P.
     (* [if c.Applied > 0 { raftlog.appliedTo(c.Applied, 0) }], likewise *)
     set ap := if decide (cv.(raft.Config.Applied') = W64 0)
               then prev.(raft.entryID.index') else cv.(raft.Config.Applied').
-    set ls2 := logstate.mk prev ents [] (committed_after prev hs) ap None.
+    set ls2 := logstate.mk prev ents [] (committed_after prev hs) ap.
     set s2 := s1 <| nstate.logst := ls2 |>.
     wp_bind (if: _ then _ else _)%E.
     iApply (wp_wand _ _ _
@@ -144,7 +146,7 @@ Import P.
       - rewrite bool_decide_eq_true_2; [|word]. wp_auto.
         (* [raftlog] is [r.raftLog]: the log, through the accessor *)
         iDestruct (own_raft_phys_log_at with "Hphys") as "[HL Hlogback]".
-        wp_apply (P.wp_raftLog__appliedTo l ls1 cv'.(raft.Config.Applied') (W64 0) eq_refl
+        wp_apply (P.wp_raftLog__appliedTo l ls1 cv'.(raft.Config.Applied') (W64 0)
                     ltac:(rewrite HpAp; destruct Happ as [Happ|Happ]; [done|]; simpl; lia)
                     with "[$HL]") as "HL".
         iDestruct ("Hlogback" with "HL") as "Hphys".
@@ -207,19 +209,17 @@ Import P.
     wp_apply (wp_raft_load_Term with "Hphys") as "Hphys".
     try wp_auto.
     wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
-    iDestruct (own_raft_phys_log _ _ _ s3 ltac:(split; done) with "Hphys")
-      as (? ?) "(Hlog3 & Hlogback)".
+    iDestruct (own_raft_phys_log_same with "Hphys") as "(Hlog3 & Hlogback)".
     iDestruct (own_raftLog_struct with "Hlog3") as (?) "(Hl3 & _ & Hl3back)".
     try wp_auto.
     iDestruct ("Hl3back" with "Hl3") as "Hlog3".
-    iDestruct ("Hlogback" with "Hlog3 [//]") as "Hphys".
+    iDestruct ("Hlogback" with "Hlog3") as "Hphys".
     wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
-    iDestruct (own_raft_phys_log _ _ _ s3 ltac:(split; done) with "Hphys")
-      as (? ?) "(Hlog3 & Hlogback)".
+    iDestruct (own_raft_phys_log_same with "Hphys") as "(Hlog3 & Hlogback)".
     iDestruct (own_raftLog_struct with "Hlog3") as (?) "(Hl3 & _ & Hl3back)".
     try wp_auto.
     iDestruct ("Hl3back" with "Hl3") as "Hlog3".
-    iDestruct ("Hlogback" with "Hlog3 [//]") as "Hphys".
+    iDestruct ("Hlogback" with "Hlog3") as "Hphys".
     wp_raft_log.
     iApply ("HΦ" $! r s3). iFrame "Hphys".
     (* [becomeFollower(r.Term, None)] keeps the term, so [reset] keeps the

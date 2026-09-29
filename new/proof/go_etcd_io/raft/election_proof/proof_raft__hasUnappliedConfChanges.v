@@ -80,9 +80,7 @@ Import P.
     intros_ambient.
     intros cfg r id s Hlent.
     wp_start as "Hphys".
-    pose proof (nstate_idle_page _ Hlent) as Hpg.
-    destruct (s.(nstate.logst)) as [prev sents uents lcm lap lpg] eqn:Hls.
-    cbn in Hpg; subst lpg.
+    destruct (s.(nstate.logst)) as [prev sents uents lcm lap] eqn:Hls.
     (* the log's facts, read once: [applied]/[committed] inside the log, and
        no conf change in it.  No tracker loan: nothing here touches it. *)
     iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hback]".
@@ -112,8 +110,8 @@ Import P.
                ≤ uint.Z (word.add lv.(raft.raftLog.committed') (W64 1))
                ≤ uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents)
                  + Z.of_nat (length uents) + 1)%Z) as Hrange by word.
-      wp_apply (wp_raftLog__scan _ (logstate.mk prev sents uents lv.(raft.raftLog.committed') lv.(raft.raftLog.applied') None) _ _ _ _ emp%I
-                  (λ e, e.(raftpb.Entry.Type') = EntryNormal) eq_refl Hrange HnoConfChange
+      wp_apply (wp_raftLog__scan _ (logstate.mk prev sents uents lv.(raft.raftLog.committed') lv.(raft.raftLog.applied')) _ _ _ _ emp%I
+                  (λ e, e.(raftpb.Entry.Type') = EntryNormal) Hrange HnoConfChange
                   with "[$Hlog]").
       { (* the callback, at [I := emp] *)
         iSplitR; first done.

@@ -89,9 +89,6 @@ Set Default Proof Using "Type".
     iDestruct "ErrSnapUnavail" as "#ErrSnapUnavail".
     iDestruct (own_raft_phys_lend _ _ _ _ Hlent with "Hphys")
       as (tv) "(Htrk & Hphys)".
-    (* the log stays in the struct; its page is empty at the lent state *)
-    assert (Hpg : (s <| nstate.lent := Some tv |>).(nstate.logst).(logstate.page) = None)
-      by (pose proof (nstate_idle_page _ Hlent); by destruct s).
     iDestruct (own_tracker_lookup _ _ _ _ _ _ Hprto with "Htrk")
       as "[Hpr Htrkback]".
     iNamed "Hpr".
@@ -106,7 +103,7 @@ Set Default Proof Using "Type".
       finish s Hlent. iFrame "Hphys". }
     wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
     iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hlogback]".
-    wp_apply (wp_raftLog__snapshot _ _ _ Hpg with "[$Hlog $ErrSnapUnavail]")
+    wp_apply (wp_raftLog__snapshot _ _ _ with "[$Hlog $ErrSnapUnavail]")
       as "%snap %err [Hlog %Herr]".
     iDestruct ("Hlogback" with "Hlog") as "Hphys".
     destruct Herr as [-> | [-> Hnz]].
@@ -131,7 +128,7 @@ Set Default Proof Using "Type".
       wp_apply (wp_raft_load_id with "Hphys") as "Hphys".
       wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
       iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hlogback]".
-      wp_apply (wp_raftLog__firstIndex _ _ Hpg with "[$Hlog]") as "%fi [Hlog %Hfi]".
+      wp_apply (wp_raftLog__firstIndex _ _ with "[$Hlog]") as "%fi [Hlog %Hfi]".
       iDestruct ("Hlogback" with "Hlog") as "Hphys".
       wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
       iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hlogback]".

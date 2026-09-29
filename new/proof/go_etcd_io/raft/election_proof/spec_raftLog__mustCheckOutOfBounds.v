@@ -13,7 +13,6 @@ Definition wp_raftLog__mustCheckOutOfBounds_body :=
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (l : loc) (ls : logstate.t) (lo hi : w64),
-  ls.(logstate.page) = None →
   (uint.Z ls.(logstate.prev).(raft.entryID.index') + 1 ≤ uint.Z lo ≤ uint.Z hi ≤
    uint.Z ls.(logstate.prev).(raft.entryID.index') + Z.of_nat (length ls.(logstate.sents))
    + Z.of_nat (length ls.(logstate.uents)) + 1)%Z →

@@ -6,9 +6,9 @@ Import P.
   Lemma wp_raft__loadState : wp_raft__loadState_body.
   Proof.
     intros_ambient.
-    intros cfg r id s hs Hpg Hc.
-    destruct (s.(nstate.logst)) as [prev sents uents lcm lap lpg] eqn:Hls.
-    cbn in Hpg, Hc; subst lpg.
+    intros cfg r id s hs Hc.
+    destruct (s.(nstate.logst)) as [prev sents uents lcm lap] eqn:Hls.
+    cbn in Hc.
     wp_start as "Hphys".
     wp_auto.
     (* Each [r.raftLog.f] loads the pointer through the struct first, so the
@@ -17,9 +17,9 @@ Import P.
     wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
     iDestruct (own_raft_phys_log_at with "Hphys") as "[HL Hlogback]".
     iEval (rewrite Hls) in "HL".
-    iDestruct (own_raftLog_nowrap with "HL") as "[%Hnw HL]"; first done.
+    iDestruct (own_raftLog_nowrap with "HL") as "[%Hnw HL]".
     cbn in Hnw.
-    assert (uint.Z (log_last (logstate.mk prev sents uents lcm lap None))
+    assert (uint.Z (log_last (logstate.mk prev sents uents lcm lap))
             = uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents)
               + Z.of_nat (length uents))%Z as Hll.
     { rewrite /log_last /=.
@@ -38,7 +38,7 @@ Import P.
     wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
     iDestruct (own_raft_phys_log_at with "Hphys") as "[HL Hlogback]".
     iEval (rewrite Hls) in "HL".
-    wp_apply (P.wp_raftLog__lastIndex with "[$HL]") as "%li [HL %Hli]"; first done.
+    wp_apply (P.wp_raftLog__lastIndex with "[$HL]") as "%li [HL %Hli]".
     logstate_simpl.
     iDestruct ("Hlogback" with "HL") as "Hphys".
     iDestruct (own_raft_phys_eq _ _ _ _ s with "Hphys") as "Hphys".
@@ -52,7 +52,7 @@ Import P.
     iDestruct (own_raftLog_unfold with "HL") as (lv2) "(Hl & %Hcm2 & %Hap2 & Hcore)".
     logstate_simpl.
     try wp_auto.
-    set ls' := logstate.mk prev sents uents hs.(raftpb.HardState.Commit') lap None.
+    set ls' := logstate.mk prev sents uents hs.(raftpb.HardState.Commit') lap.
     iAssert (own_raftLog s.(nstate.log) ls')%I with "[Hl Hcore]" as "HL".
     { iApply (own_raftLog_unfold _ prev sents uents hs.(raftpb.HardState.Commit') lap).
       iExists _. iFrame "Hl". iSplitR; [done|]. iSplitR; [done|].

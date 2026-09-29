@@ -201,16 +201,16 @@ Implicit Type s : nstate.t.
              (* each [raftLog] call: load the field, open the log, call,
                 close it again -- the next field load needs ["Hphys"] *)
              wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
-             wp_hidden (iDestruct (own_raft_phys_log _ _ _ _ Hlent with "Hphys")
-                          as (ls1 Hls1) "[Hlog Hlogback]").
-             wp_apply (wp_raftLog__lastEntryID _ _ Hls1 with "[$Hlog]")
+             wp_hidden (iDestruct (own_raft_phys_log_same with "Hphys")
+                          as "[Hlog Hlogback]").
+             wp_apply (wp_raftLog__lastEntryID _ _ with "[$Hlog]")
                as "%lastID2 Hlog".
-             wp_hidden (iDestruct ("Hlogback" with "Hlog [//]") as "Hphys").
+             wp_hidden (iDestruct ("Hlogback" with "Hlog") as "Hphys").
              wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
-             wp_hidden (iDestruct (own_raft_phys_log _ _ _ _ Hlent with "Hphys")
-                          as (ls2 Hls2) "[Hlog Hlogback]").
-             wp_apply (wp_raftLog__isUpToDate _ _ _ Hls2 with "[$Hlog]") as "%ok2 Hlog".
-             wp_hidden (iDestruct ("Hlogback" with "Hlog [//]") as "Hphys").
+             wp_hidden (iDestruct (own_raft_phys_log_same with "Hphys")
+                          as "[Hlog Hlogback]").
+             wp_apply (wp_raftLog__isUpToDate _ _ _ with "[$Hlog]") as "%ok2 Hlog".
+             wp_hidden (iDestruct ("Hlogback" with "Hlog") as "Hphys").
              destruct ok2.
              ++ vote_grant_tail id s m Hty Hto Hcan Hwf.
              ++ vote_reject_tail id s m Hto Hwf.
@@ -225,11 +225,11 @@ Implicit Type s : nstate.t.
                last (rewrite Hty /MsgVote; w32_ne).
              wp_auto.
              wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
-             wp_hidden (iDestruct (own_raft_phys_log _ _ _ _ Hlent with "Hphys")
-                          as (ls1 Hls1) "[Hlog Hlogback]").
-             wp_apply (wp_raftLog__lastEntryID _ _ Hls1 with "[$Hlog]")
+             wp_hidden (iDestruct (own_raft_phys_log_same with "Hphys")
+                          as "[Hlog Hlogback]").
+             wp_apply (wp_raftLog__lastEntryID _ _ with "[$Hlog]")
                as "%lastID2 Hlog".
-             wp_hidden (iDestruct ("Hlogback" with "Hlog [//]") as "Hphys").
+             wp_hidden (iDestruct ("Hlogback" with "Hlog") as "Hphys").
              vote_reject_tail id s m Hto Hwf.
   Qed.
 

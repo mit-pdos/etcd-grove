@@ -85,7 +85,7 @@ Definition from_leader (ty : mtype.t) : bool :=
     It is *not* the abstraction [own_raft_phys] is indexed by -- that is the
     physical abstract state [nstate.t] ([election_proof/defs.v]), which carries
     whatever the Go-level specs need (the [r.step] function, the progress
-    map, a lent log page) on top of these fields.  The two are connected by
+    map, the log's abstract state) on top of these fields.  The two are connected by
     [nstate_rel] ([election_proof/defs.v]); [Step]'s spec is the one place that
     crosses from one to the other.  See notes/decisions.md, "Three layers".
 

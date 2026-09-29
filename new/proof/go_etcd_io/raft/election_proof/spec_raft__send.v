@@ -83,9 +83,10 @@ Definition send_ok {ext : ffi_syntax} (id : w64) (s : nstate.t) (m : raftpb.Mess
     lemmas here because a spec file states and does not prove
     (etc/check-module-discipline.py, F3). *)
 
-(** Stated on [own_raft_phys], for **any** [s] -- in particular one with a
-    log on loan to the caller ([nstate.lent]), which is [maybeSendAppend]'s situation:
-    it holds the page across this call and reads it afterwards.  [send]
+(** Stated on [own_raft_phys], for **any** [s] -- in particular one with
+    the tracker on loan to the caller ([nstate.lent]), which is
+    [maybeSendAppend]'s situation: it holds a [Progress] across this call,
+    and holds [ents] across it and reads it afterwards.  [send]
     touches [r.msgs], [r.msgsAfterAppend], [r.logger] and the tracing hook,
     and *reads* [r.id] and [r.Term]; everything else in [s] -- the tracker's
     progress map, the log pointer, the loan -- comes back as it went in, because
@@ -93,7 +94,7 @@ Definition send_ok {ext : ffi_syntax} (id : w64) (s : nstate.t) (m : raftpb.Mess
 
     From 2026-09-21 to 2026-09-22 this was stated on a variant predicate,
     [own_raft_bare], which cut the tracker and the log out of the struct so
-    that [maybeSendAppend] could hold a [Progress] and a page across the
+    that [maybeSendAppend] could hold a [Progress] and [ents] across the
     call.  That is exactly the pattern notes/decisions.md ("Three layers")
     now rules out: the fix was to make [nstate.t] say what the variant said
     ([progress], [log], [log_lent]).  See notes/false-statements.md, 2026-09-21, for

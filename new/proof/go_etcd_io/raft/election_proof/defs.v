@@ -138,13 +138,13 @@ End proof.
       election path writes them; they are in the state because
       [hasUnappliedConfChanges] and [maybeSendAppend] read them and a spec
       has to be able to say what was read.
-    - [page]: a slice **on loan** to the caller.  [raftLog.slice] and
-      [raftLog.entries] return a page of entries that shares memory with the
-      log (a sub-slice of [unstable.entries], a slice [Storage] lent, or a
-      fresh concatenation of the two); while it is out, the log holds a wand
-      back instead of those entries.  At [Some (s, es, dq)] the caller holds
-      [s ↦*{dq} es], and [own_raftLog_return_page] ends the loan.  Every
-      other spec takes [page = None].
+
+    Every field is physical.  Until 2026-09-29 there was a sixth, [page]:
+    a slice [raftLog.slice] had handed out while sharing memory with the
+    log, on loan, with a wand back in [own_raftLog].  It went when the log
+    started holding its entries read-only ([↦*□], [inv_raftlog.v]): a
+    slice [slice] returns is then the caller's for good, and there is no
+    loan to record.
 
     (Until 2026-09-23 the log had three shapes: [own_raftLog_at l prev sents
     uents], the existential [own_raftLog l], and the "page out" shape that
@@ -159,19 +159,18 @@ Record t :=
       uents : list raftpb.Entry.t;
       committed : w64;
       applied : w64;
-      page : option (slice.t * list raftpb.Entry.t * dfrac);
     }.
 #[global] Instance settable : Settable t :=
-  settable! mk <prev; sents; uents; committed; applied; page>.
+  settable! mk <prev; sents; uents; committed; applied>.
 End logstate.
 
 (** After [destruct ls as [prev sents uents …]], reduce the projections the
-    specs are written with.  Restricted to the six projections: a plain
+    specs are written with.  Restricted to the five projections: a plain
     [simpl in *] near a struct points-to can run for minutes
     (notes/gotchas.md). *)
 Ltac logstate_simpl :=
   cbn [logstate.prev logstate.sents logstate.uents logstate.committed
-       logstate.applied logstate.page] in *.
+       logstate.applied] in *.
 
 (** ** Physical transitions of the log
 
@@ -225,22 +224,21 @@ Definition stamp (tm li : w64) (k : nat) (e : raftpb.Entry.t) : raftpb.Entry.t :
       every call, and a proof that borrows one peer's [Progress] can hand it
       back before a call and borrow it again after, at the same key.
     - [log] is [r.raftLog], the log's location (it never changes).
-    - [lent] says the tracker's heap and the log are **on loan to the
-      caller**: at [Some tv], [own_raft_phys] owns neither, pins
-      [r.trk = tv], and whoever set it holds [own_tracker tv _] and the log
-      (at no page, or on loan of the page [raftLog.entries] lends)
-      outside the predicate.  Two callers need this.  [maybeSendAppend]
-      holds one peer's [Progress] *and* a page of entries across [r.send]:
-      [pr.SentEntries] needs the facts it learned about that [Progress]
-      before the send, and [payloadsSize(ents)] reads the page after it.
-      [appendEntry] holds the log at a fixed state across
-      [increaseUncommittedSize] -- the state is what relates the
-      [lastIndex()] it read to the [append] it does next.  Pinning [log]
-      and the tracker value is what lets either of them know, after the
-      call, that what it holds is still the struct's.  A function that
-      touches the tracker or the log says so with the premise
+    - [lent] says the tracker's heap is **on loan to the caller**: at
+      [Some tv], [own_raft_phys] does not own it, pins [r.trk = tv], and
+      whoever set it holds [own_tracker tv _] outside the predicate.  The
+      log is never on loan: [own_raft_phys] always owns it, at [logst].
+      [maybeSendAppend] needs this: it holds one peer's [Progress] across
+      [r.send], and [pr.SentEntries] needs the facts it learned about that
+      [Progress] before the send.  ([ents], which [payloadsSize(ents)]
+      reads after the send, is read-only and the caller's for good, so it
+      needs no loan.)  Pinning the tracker value is what lets the caller
+      know, after the call, that what it holds is still the struct's.  A
+      function that touches the tracker says so with the premise
       [s.(nstate.lent) = None].  (This is [own_raft_bare], 2026-09-21,
-      moved into the state where it belongs.)
+      moved into the state where it belongs.  Until 2026-09-28 the log went
+      on loan with the tracker, and [appendEntry] used that to hold the log
+      at a fixed state across [increaseUncommittedSize].)
 
     The first six fields are exactly [pstate.t]'s, with the same names, so
     that a spec's [s.(nstate.term)] reads the same as it always did. *)
@@ -260,7 +258,7 @@ Record t :=
       log : loc;                      (** [r.raftLog] *)
       logst : logstate.t;             (** the log's abstract state *)
       lent : option tracker.ProgressTracker.t;
-                                      (** tracker heap and log on loan *)
+                                      (** tracker heap on loan *)
     }.
 End defn.
 #[global] Instance settable {ext : ffi_syntax} : Settable (@t ext) :=
@@ -338,16 +336,12 @@ Definition to_pstate s : pstate.t :=
   pstate.mk s.(nstate.term) s.(nstate.vote) s.(nstate.lead) s.(nstate.role)
             s.(nstate.votes) s.(nstate.outbox).
 
-(** A state between two calls: nothing is on loan to a caller -- no log
-    page, no tracker.  The premise every function that touches the log or
-    the tracker takes.  (Until 2026-09-25 this was the bare
-    [s.(nstate.lent) = None], and [own_raft_phys] quantified the log's
-    state.) *)
+(** A state between two calls: the tracker is not on loan to a caller.
+    The premise every function that touches the tracker takes.  (The
+    second conjunct was [logst.page = None] until 2026-09-29, when the
+    log's page loan went; it is [True] until [lent] goes too.) *)
 Definition nstate_idle s : Prop :=
-  s.(nstate.lent) = None ∧ s.(nstate.logst).(logstate.page) = None.
-
-Lemma nstate_idle_page s : nstate_idle s → s.(nstate.logst).(logstate.page) = None.
-Proof. by intros []. Qed.
+  s.(nstate.lent) = None ∧ True.
 
 Lemma nstate_idle_lent s : nstate_idle s → s.(nstate.lent) = None.
 Proof. by intros []. Qed.

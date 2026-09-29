@@ -88,7 +88,8 @@ The proof is a refinement in three layers, each with its own state type
    `own_raft_phys r id s` (`election_proof/inv_raft_phys.v`). Every Go-level spec
    is a pre/postcondition on it. `nstate.t` carries the six protocol fields
    plus `stepfn` (`r.step`), `progress` (the progress map), `log`
-   (`r.raftLog`) and `lent` (tracker and log on loan to the caller).
+   (`r.raftLog`), `logst` (the log's state) and `lent` (the tracker on
+   loan to the caller; being removed, "What still needs fixing" item 2).
 2. **`nstate.t` → `pstate.t`** (`election_proof/protocol.v`), by `nstate_rel`
    (`defs.v`). Only `Step`'s spec mentions both.
 3. **`pstate.t` → protocol properties**: `own_raft_ghost`, `step`,
@@ -99,24 +100,25 @@ specified with `own_raft_phys`, refine `nstate.t` and `own_raft_phys` until
 it can. Never add a variant predicate, a parameterised copy, or a spec on
 raw pieces of the struct. Three such variants (`own_raft_phys_at`,
 `own_raft_bare`, `own_raft_notrk`) existed until 2026-09-22 and were removed;
-see gotchas.md for the checklist. A function that touches the tracker or
-the log takes `s.(nstate.lent) = None`; `hup`, the `Step` helpers and
+see gotchas.md for the checklist. A function that touches the tracker
+takes `nstate_idle s` (the tracker is not on loan); `hup`, the `Step` helpers and
 `Step` take `nstate_wf s`.
 
 The same rule holds for every object the struct points at, and since
 2026-09-23 it is met on the election path: `own_tracker cfg tv votes prs`
 (indexed by the progress map), `own_progress pr pv iv`,
 `own_inflights l iv buf`, `own_raftLog l ls` with `ls : logstate.t`
-(entry list, `committed`, `applied`, and a page on loan),
-`own_unstable u uv uents page`, and `own_read_only ro`. Since 2026-09-29
+(entry list, `committed`, `applied`),
+`own_unstable u uv uents`, and `own_read_only ro`. Since 2026-09-29
 the log's state **is** in `nstate.t` (`logst : logstate.t`): `own_raft_phys`
-always owns `own_raftLog rv.raftLog s.logst`, a page on loan is recorded in
-`logst.page`, and `nstate.lent` loans only the tracker (decisions.md,
-2026-09-29).
+always owns `own_raftLog rv.raftLog s.logst`, the log holds its entries
+read-only (`↦*□`), so what `raftLog.slice`/`entries` return is the
+caller's for good with nothing lent, and `nstate.lent` loans only the
+tracker (decisions.md, 2026-09-29).
 
 ## What is proved
 
-Every Hoare triple on the election path is `Qed` — **277 lemmas**, 98
+Every Hoare triple on the election path is `Qed` — **272 lemmas**, 98
 discharged signatures — except one admission signed off on for now
 (below). **The results are the first two of these three**; the third is an
 internal lemma that nothing uses yet — a *root lemma*, in `tcb-report`'s
@@ -225,9 +227,16 @@ say so in the journal.
    `switchToConfig` changes configuration through
    `own_raft_phys_reconfig`). Left: `maybeSendAppend`,
    `maybeSendSnapshot` and `reset` lend the tracker to hold `Progress`
-   objects across calls that need the struct. Replace by pinning that
-   peer's `Progress` value in `nstate.t`, so `own_raft_phys` keeps owning
-   it; then delete `lent`. Work in progress on `newraft`.
+   objects across calls that need the struct. The plan (in progress on
+   `newraft`): `reset` and `maybeSendSnapshot` need no loan -- `Visit`'s
+   invariant can be the tracker accessor's wand, as in `bcastAppend`, and
+   `maybeSendSnapshot` can borrow the `Progress` at each access.
+   `maybeSendAppend` needs `pr`'s *value* after `r.send` (`SentEntries`
+   panics in `StateSnapshot` and `Inflights.Add` panics when full), so
+   `nstate.t` gets each peer's `Progress`/`Inflights` values -- physical
+   state, unlike a "pin" (rejected 2026-09-29: `nstate.t` holds only
+   physical fields) -- and `own_tracker` is indexed by them. Then delete
+   `lent` and `nstate_idle`.
 3. **`HnoConfChange` is false of a real cluster.** `inv_raftlog.v:139`
    requires `Forall (λ e, Type = EntryNormal) (sents ++ uents)` — the *whole*
    log — while `RawNode.Bootstrap` (`new/code/go_etcd_io/raft/v3.v:391`)
@@ -286,7 +295,7 @@ known gaps and the plan are in [tcb-accounting.md](tcb-accounting.md).
 8 `Admitted.`**, 3 of the admits signed off on for now and marked
 `(* Trusted *)` — still debt; the goal is no admits. On the election path
 alone: **14 `Axiom` and 1 `Admitted`**; two results, `wp_raft__Step_body`
-and `wp_newRaft_body`; 76 definitions, 814 lines; TCB 5.4% of the
+and `wp_newRaft_body`; 76 definitions, 807 lines; TCB 5.4% of the
 development by line.
 
     R=new/proof/go_etcd_io/raft      # required; the tool names no development
@@ -306,7 +315,7 @@ doc comments quote probe lemmas ending in `Admitted.`, and `spec_*.v` files
 are full of `Parameter`s.
 
 The count of axioms is the smaller half. The **definitions** the results
-reach — 76 on the election path, 814 lines — are the rest of it:
+reach — 76 on the election path, 807 lines — are the rest of it:
 `wp_raft__Step` says nothing if `nstate.t`, `nstate_rel`, `pstate.t`,
 `step` or `own_raft_phys` is wrong, and none of those is an axiom.
 
@@ -339,7 +348,7 @@ a leader decision: all four added on 2026-09-24 are reached only from
 | axiom | file | why it is outside raft |
 |---|---|---|
 | `is_Logger`, `is_Logger_pers`, `wp_Logger__logf` | `inv_logger.v` | client-supplied interface. Covers only the **non-panicking** methods — a path reaching `Panic`/`Panicf` must be shown unreachable |
-| `own_Storage` | `inv_storage.v` | `raftLog.storage` is client-supplied; raft ships only `MemoryStorage`, for tests. A predicate, not a triple. Its contract `is_Storage` is real and constrains `Entries`, `Term`, `Snapshot` and a `< 2^61` bound on the stable last index |
+| `own_Storage` | `inv_storage.v` | `raftLog.storage` is client-supplied; raft ships only `MemoryStorage`, for tests. A predicate, not a triple. Its contract `is_Storage` is real and constrains `Entries`, `Term`, `Snapshot` and a `< 2^61` bound on the stable last index. Since 2026-09-29 `Entries` hands its result out **read-only for good** (`s ↦*□ es`, no wand back) — the `Storage` interface's documented contract (`storage.go:56-67`: entries "must not be mutated, neither by the Storage implementation nor the caller"), which `MemoryStorage` meets |
 | `own_big_Int`, `wp_big_NewInt`, `wp_big_Int__Int64`, `wp_rand_Int` | `inv_big.v`, `proof_big_*.v`, `proof_rand_Int.v` | `math/big` and the RNG behind `resetRandomizedElectionTimeout` |
 | `wp_slices_Sort` | `proof_slices_Sort.v` | not translated. Permutation-only postcondition |
 | `wp_Entry__Size` | `proof_Entry__Size.v` | protobuf-generated `raftpb` code. The one a reader may want to argue about: a library in spirit, core raft in location |
@@ -356,9 +365,9 @@ wraps, so the triple is false there. The bound is not derivable — `is_Storage`
 gives the stable part `< 2^61` and the model bounds any one slice at `2^63` —
 and it can be neither carried (an append cannot re-establish a carried bound)
 nor stated as a premise (nothing at `Step` can see the log's length). The
-same triple also hands the `raftLog` record back beside the page and takes
-both in its wand: a strictly stronger assumption, true because a page aliases
-an entry buffer, never the record. It sits on the
+same admitted triple also asserts that the log comes back unchanged beside
+a read-only result, which holds because the log holds its entries read-only
+(`↦*□`, `inv_raftlog.v`) and never writes one again. It sits on the
 `hup → hasUnappliedConfChanges → slice → extend` path, which cannot reach a
 `Term`/`Vote` write.
 

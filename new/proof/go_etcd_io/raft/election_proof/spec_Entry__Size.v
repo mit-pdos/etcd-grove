@@ -10,13 +10,13 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
     stands in for it, exactly as [spec_slices_Sort.v] does for [slices.Sort].
 
     It is reached on the election path: [raftLog.slice] applies
-    [limitSize] to every page it returns and [limitSize] calls
+    [limitSize] to every slice it returns and [limitSize] calls
     [ents[0].Size()] on any non-empty input ([v3.v:7497]), so
     [hasUnappliedConfChanges]'s [scan] hits it whenever
     [applied < committed].
 
     The postcondition says **nothing about the value**: [limitSize] and
-    [entsSize] only use the sizes to decide where to cut a page, and no
+    [entsSize] only use the sizes to decide where to cut a slice, and no
     caller on this path depends on where the cut falls -- [scan] pages until
     [lo] reaches [hi] whatever the page sizes are.  So this is the weakest
     triple that lets the call be stepped: it owns the receiver (the method

@@ -9,7 +9,6 @@ Definition wp_raftLog__hasNextOrInProgressSnapshot_body :=
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (l : loc) (ls : logstate.t),
-  ls.(logstate.page) = None →
   {{{ is_pkg_init raft ∗ own_raftLog l ls }}}
     l @! (go.PointerType raft.raftLog) @! "hasNextOrInProgressSnapshot" #()
   {{{ (b : bool), RET #b; own_raftLog l ls ∗ ⌜ b = false ⌝ }}}.

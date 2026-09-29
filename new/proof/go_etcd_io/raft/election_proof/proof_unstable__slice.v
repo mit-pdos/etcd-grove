@@ -11,14 +11,10 @@ Import P.
       ownership lemmas ([own_slice_slice]) only speak about
       [slice.slice entries V a b], whose [cap] is [entries.cap - a]; the two
       agree on pointer and length, so [own_slice_same_ptr_len]
-      ([inv_raftlog.v]) carries the points-to across, in both directions
-      (out, and back inside the wand).  That lemma needs a non-empty list,
-      which is why the spec demands [lo < hi].
-
-      Note the explicit [s], [dq] and [vs] on the closing
-      [rewrite (own_slice_slice ...)]: without them the setoid rewrite
-      matches the first [_ ↦*{_} _] in the *context* (the [take] half) and
-      leaves an unprovable side condition. *)
+      ([inv_raftlog.v]) carries the points-to across.  That lemma needs a
+      non-empty list, which is why the spec demands [lo < hi].  The entries
+      are read-only ([own_unstable]), so the sub-slice's points-to is
+      split off a persistent one and nothing has to be given back. *)
   Lemma wp_unstable__slice : wp_unstable__slice_body.
   Proof.
     intros_ambient.
@@ -27,14 +23,14 @@ Import P.
     assert (Hrange' : (uint.Z uv.(raft.unstable.offset') ≤ uint.Z lo ≤ uint.Z hi ≤
                        uint.Z uv.(raft.unstable.offset') + Z.of_nat (length uents))%Z)
       by lia.
-    wp_start as "H". iNamed "H". iNamed "Hun".
+    wp_start as "H". iNamed "H". iNamed "Hun". iDestruct "Hents" as "#Hents".
     iDestruct (own_slice_len with "Hents") as %[Hlen Hlen'].
     iDestruct (own_slice_wf with "Hents") as %Hwf.
     wp_auto.
     wp_apply (wp_unstable__mustCheckOutOfBounds _ _ _ _ _ Hrange' Hnw
                 with "[Hu Hents Hents_cap]") as "Hun".
-    { rewrite /own_unstable. iFrame. }
-    iNamed "Hun".
+    { rewrite /own_unstable. iFrame "∗#". }
+    iNamed "Hun". iDestruct "Hents" as "#Hents".
     wp_auto.
     rewrite decide_True; last word.
     wp_auto.
@@ -47,7 +43,7 @@ Import P.
     assert (Hsublen : length (subslice (sint.nat lo') (sint.nat hi') uents)
                       = (sint.nat hi' - sint.nat lo')%nat)
       by (apply subslice_length; word).
-    iDestruct (own_slice_slice lo' hi' with "Hents") as "(H1 & H2 & H3)"; first word.
+    iDestruct (own_slice_slice lo' hi' with "Hents") as "(_ & #H2 & _)"; first word.
     iDestruct (own_slice_same_ptr_len
                  (slice.slice uv.(raft.unstable.entries') raftpb.Entry.t lo' hi')
                  (slice.full_slice uv.(raft.unstable.entries') raftpb.Entry.t lo' hi' hi')
@@ -67,19 +63,7 @@ Import P.
         rewrite subslice_lookup in Hi; last lia.
         eapply list_elem_of_lookup_2. exact Hi.
       - done. }
-    rewrite /own_unstable. iFrame "Hu Hents_cap".
-    iIntros "Hs".
-    iDestruct (own_slice_same_ptr_len
-                 (slice.full_slice uv.(raft.unstable.entries') raftpb.Entry.t lo' hi' hi')
-                 (slice.slice uv.(raft.unstable.entries') raftpb.Entry.t lo' hi')
-                 with "Hs") as "H2".
-    { intros Hc. rewrite Hc /= in Hsublen. word. }
-    { done. }
-    { done. }
-    { simpl. word. }
-    rewrite (own_slice_slice lo' hi' uv.(raft.unstable.entries') (DfracOwn 1) uents);
-      last word.
-    iFrame.
+    rewrite /own_unstable. iFrame "∗#".
   Qed.
 
 End UnstableSliceProof.

@@ -5,7 +5,7 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
     ([log.go]).
 
     The callback is described by [scan_closure f I P] ([inv_raftlog.v]): it
-    gets each page lent, with [I] and the fact that every entry on the page
+    gets each page (read-only), with [I] and the fact that every entry on the page
     satisfies [P] -- which follows from [Forall P (sents ++ uents)], the
     premise, because every page is a sub-list of the log -- and must return
     [nil].  With that, the "got 0 entries" error is dead ([slice] returns a
@@ -21,7 +21,6 @@ Definition wp_raftLog__scan_body :=
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (l : loc) (ls : logstate.t) (lo hi pageSize : w64) (f : func.t)
       (I : iProp Σ) (P : raftpb.Entry.t → Prop),
-  ls.(logstate.page) = None →
   (uint.Z ls.(logstate.prev).(raft.entryID.index') + 1 ≤ uint.Z lo ≤ uint.Z hi ≤
    uint.Z ls.(logstate.prev).(raft.entryID.index') + Z.of_nat (length ls.(logstate.sents))
    + Z.of_nat (length ls.(logstate.uents)) + 1)%Z →

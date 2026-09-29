@@ -3,7 +3,7 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
 (** [entsSize(ents)]: the summed encoded size of the entries.  The value
     is unspecified, since [Entry.Size] (pointer receiver) is ([spec_Entry__Size.v]);
     [raftLog.slice] only compares it against [maxSize] to decide whether to
-    append the unstable part of a page, and either answer is fine. *)
+    append the unstable part of its result, and either answer is fine. *)
 Definition wp_entsSize_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)

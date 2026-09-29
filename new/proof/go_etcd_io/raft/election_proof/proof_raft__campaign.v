@@ -270,12 +270,9 @@ Proof.
       iFrame. iPureIntro. word.
     + (* a peer: read the last entry, log, and send it a [MsgVote] *)
       rewrite bool_decide_eq_false_2 //. wp_auto. wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
-      iDestruct (own_raft_phys_log _ _ _
-                   (send_msgs (become_candidate id s)
-                      (cmsg <$> take (Z.to_nat (sint.Z n)) xs)) Hlent with "Hphys")
-        as (ls2 Hls2) "[Hlog Hback]".
-      wp_apply (wp_raftLog__lastEntryID _ _ Hls2 with "[$Hlog]") as "%lastID Hlog".
-      iDestruct ("Hback" with "Hlog [//]") as "Hphys".
+      iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hback]".
+      wp_apply (wp_raftLog__lastEntryID with "[$Hlog]") as "%lastID Hlog".
+      iDestruct ("Hback" with "Hlog") as "Hphys".
       (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log).
       assert (send_msgs (send_msgs (become_candidate id s)
                            (cmsg <$> take (Z.to_nat (sint.Z n)) xs))

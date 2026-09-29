@@ -13,7 +13,6 @@ Definition wp_raftLog__lastEntryID_body :=
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (l : loc) (ls : logstate.t),
-  ls.(logstate.page) = None →
   {{{ is_pkg_init raft ∗ own_raftLog l ls }}}
     l @! (go.PointerType raft.raftLog) @! "lastEntryID" #()
   {{{ (e : raft.entryID.t), RET #e; own_raftLog l ls }}}.

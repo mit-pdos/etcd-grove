@@ -128,17 +128,15 @@ Implicit Type s : nstate.t.
     wp_apply (wp_raft_load_lead with "Hphys") as "Hphys".
     (* the two log calls, each on the log taken out of [Hphys] and put back *)
     wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
-    wp_hidden (iDestruct (own_raft_phys_log cfg r id
-      (become_follower s m.(raftpb.Message.Term') (W64 0)) Hlent with "Hphys")
-      as (ls1) "(%Hls1 & Hlog1 & Hback)").
-    wp_apply (wp_raftLog__lastEntryID _ _ Hls1 with "[$Hlog1]") as "%lastID Hlog1".
-    wp_hidden (iDestruct ("Hback" with "Hlog1 [//]") as "Hphys").
+    wp_hidden (iDestruct (own_raft_phys_log_same with "Hphys")
+      as "(Hlog1 & Hback)").
+    wp_apply (wp_raftLog__lastEntryID _ _ with "[$Hlog1]") as "%lastID Hlog1".
+    wp_hidden (iDestruct ("Hback" with "Hlog1") as "Hphys").
     wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
-    wp_hidden (iDestruct (own_raft_phys_log cfg r id
-      (become_follower s m.(raftpb.Message.Term') (W64 0)) Hlent with "Hphys")
-      as (ls2) "(%Hls2 & Hlog1 & Hback)").
-    wp_apply (wp_raftLog__isUpToDate _ _ _ Hls2 with "[$Hlog1]") as "%uptodate Hlog1".
-    wp_hidden (iDestruct ("Hback" with "Hlog1 [//]") as "Hphys").
+    wp_hidden (iDestruct (own_raft_phys_log_same with "Hphys")
+      as "(Hlog1 & Hback)").
+    wp_apply (wp_raftLog__isUpToDate _ _ _ with "[$Hlog1]") as "%uptodate Hlog1".
+    wp_hidden (iDestruct ("Hback" with "Hlog1") as "Hphys").
     destruct uptodate.
     + (* the candidate's log is up to date: grant the vote *)
       try wp_auto.

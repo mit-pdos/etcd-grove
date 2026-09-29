@@ -6,8 +6,8 @@ Import P.
   Lemma wp_raftLog__firstIndex : wp_raftLog__firstIndex_body.
   Proof.
     intros_ambient.
-    intros l ls Hpg.
-    destruct ls as [prev sents uents lcm lap lpg]; logstate_simpl; subst lpg.
+    intros l ls.
+    destruct ls as [prev sents uents lcm lap]; logstate_simpl.
     wp_start as "H". iNamed "H".
     iNamed "Hlog".
     iEval (rewrite /own_raftLog_core /=) in "Hcore". iNamed "Hcore". wp_auto.

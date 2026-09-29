@@ -15,7 +15,6 @@ Definition wp_raftLog__firstIndex_body :=
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (l : loc) (ls : logstate.t),
-  ls.(logstate.page) = None →
   {{{ is_pkg_init raft ∗ "Hlog" ∷ own_raftLog l ls }}}
     l @! (go.PointerType raft.raftLog) @! "firstIndex" #()
   {{{ (i : w64), RET #i;

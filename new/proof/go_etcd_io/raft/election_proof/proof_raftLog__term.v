@@ -32,8 +32,8 @@ Import P.
   Lemma wp_raftLog__term : wp_raftLog__term_body.
   Proof.
     intros_ambient.
-    intros l ls i Hpg.
-    destruct ls as [prev sents uents lcm lap lpg]; logstate_simpl; subst lpg.
+    intros l ls i.
+    destruct ls as [prev sents uents lcm lap]; logstate_simpl.
     wp_start as "H". iNamed "H".
     iDestruct (is_pkg_init_access with "[$]") as "@".
     iNamed "Hlog".
@@ -66,11 +66,11 @@ Import P.
                           + Z.of_nat (length uents))%Z).
       { intros Hc. apply Hok in Hc. done. }
       wp_auto.
-      iAssert (own_raftLog l (logstate.mk prev sents uents lcm lap None))
+      iAssert (own_raftLog l (logstate.mk prev sents uents lcm lap))
         with "[Hl HStorage Huents Huents_cap]" as "Hlog".
       { iApply own_raftLog_unfold. iExists lv. rewrite /own_raftLog_core. rewrite Hstok.
         iFrame "∗#%". all: (iPureIntro; done). }
-      wp_apply (wp_raftLog__firstIndex _ (logstate.mk prev sents uents lcm lap None) eq_refl with "[$Hlog]") as "%fi [Hlog %Hfi]". logstate_simpl.
+      wp_apply (wp_raftLog__firstIndex _ (logstate.mk prev sents uents lcm lap) with "[$Hlog]") as "%fi [Hlog %Hfi]". logstate_simpl.
       destruct (bool_decide (uint.Z (word.add i (W64 1)) < uint.Z fi)%Z) eqn:Hb1.
       + (* below the compaction boundary: [ErrCompacted] *)
         wp_auto.
@@ -78,7 +78,7 @@ Import P.
         iFrame "Hlog". iPureIntro. apply bool_decide_eq_true in Hb1.
         split; [ intros Hc; exfalso; by apply HErrCompacted | intros Hr; exfalso; word ].
       + wp_auto.
-        wp_apply (wp_raftLog__lastIndex _ (logstate.mk prev sents uents lcm lap None) eq_refl with "[$Hlog]") as "%li [Hlog %Hli]". logstate_simpl.
+        wp_apply (wp_raftLog__lastIndex _ (logstate.mk prev sents uents lcm lap) with "[$Hlog]") as "%li [Hlog %Hli]". logstate_simpl.
         destruct (bool_decide (uint.Z li < uint.Z i)%Z) eqn:Hb2.
         * (* past the last entry: [ErrUnavailable] *)
           wp_auto.

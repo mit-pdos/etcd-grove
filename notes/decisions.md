@@ -931,7 +931,7 @@ spec up to `Step`.
 length, and from `last + 1 < C` one cannot get `last + |ents| + 1 < C` for
 any `C`. A carried bound can only ever be consumed, never restored. Any
 proof that needs `|sents| + |uents| < 2^63` (Go `int` arithmetic in
-`extend`/`slice`) has to get it from the page — `hi - lo` at the `slice`
+`extend`/`slice`) has to get it from the slice `slice` returns — `hi - lo` at the `slice`
 call plus `Hbounded` plus the unstable slice's own length — not from
 `own_raftLog_at`.
 
@@ -1007,7 +1007,7 @@ through the other would put two existentials in front of every existing
 `iNamed "Hphys"`.
 
 **Why.** `maybeSendAppend` reads a `Progress` pointer and borrows the
-entries page out of the log *before* `r.send(...)`, and needs both
+entries `ents` out of the log *before* `r.send(...)`, and needs both
 *after* it (`pr.SentEntries(len(ents), payloadsSize(ents))` follows the
 send in the Go). A `send` specified on `own_raft_phys` demands the whole
 struct — tracker and log included — and returns it under `∃ rv'`, so the
@@ -1020,7 +1020,7 @@ borrowed thing persistent fixes re-finding, not holding.
 
 **Rejected.** Keeping `own_raft_phys` in `send`'s spec and threading the
 tracker value as an extra postcondition equation (`rv'.(trk') = rv.(trk')`)
-— it does not help with the log page, which cannot even be *held* across a
+— it does not help with `ents`, which cannot even be *held* across a
 call that demands `own_raftLog`. Indexing `own_raft_phys` by the tracker
 and log values everywhere — 95 call sites for no gain above `send`.
 
@@ -1218,7 +1218,7 @@ for the raft struct, each added to unblock one caller:
 - `own_raft_bare r id s f tv lg` and `own_raft_notrk r id s f tv` — the
   struct with the tracker and/or the log cut out, and their field values
   pinned as parameters, so that `maybeSendAppend` could hold a `Progress`
-  and a log page across `r.send` (2026-09-21, entry above).  `send` and
+  and `ents` across `r.send` (2026-09-21, entry above).  `send` and
   `maybeSendSnapshot` were stated on them.
 
 and five `raft` methods specified on raw pieces (`abortLeaderTransfer`,
@@ -1237,10 +1237,12 @@ gone: the physical `nstate.t` is a new record with the six protocol fields
 - `lent : option tracker.ProgressTracker.t` — the tracker's heap and the
   log are **on loan to the caller** (`Some tv`: `own_raft_phys` owns
   neither and pins `r.trk = tv`).  `maybeSendAppend` sets it across
-  `r.send` (it needs the *same* `Progress` facts after the send, and the
-  page); `appendEntry` across `increaseUncommittedSize` (it holds the log
+  `r.send` (it needs the *same* `Progress` facts after the send, and
+  `ents`); `appendEntry` across `increaseUncommittedSize` (it holds the log
   open at a fixed split).  A function that touches either says
   `s.(nstate.lent) = None`; the top-level ones say `nstate_wf s`.
+  Superseded 2026-09-29: the log now holds its entries read-only; see
+  inv_raftlog.v, own_unstable. (`lent` now loans only the tracker.)
 
 and the protocol record in `election_proof/protocol.v` became `pstate.t`, with
 its functions prefixed `p` (`psend_msgs`, `pbecome_follower`, …,
@@ -1274,7 +1276,7 @@ them, so they are physical-state fields.
   re-borrowed `Progress` comes back as `∃ pv iv`, and `SentEntries` needs
   the facts about `pv`/`iv` the proof established *before* the send.
   Hence the loan.
-- *A loan of just the log page* (`option (slice × dfrac × list Entry)`).
+- *A loan of just the slice `entries` returns* (`option (slice × dfrac × list Entry)`).
   Tried first; it does not cover `appendEntry`, which needs the whole log
   at a fixed split across a call, nor the tracker half of
   `maybeSendAppend`.
@@ -1320,16 +1322,20 @@ on more than the object it returns.
 - `own_raftLog l (ls : logstate.t)`, `ls` = entry list, `committed`,
   `applied`, and `page : option (slice × list Entry × dfrac)`. **A loan is a
   field of the state**: `raftLog.slice`/`entries` return the log at
-  `ls <| page := Some (s, es, dq) |>` with the page outside, and
+  `ls <| page := Some (s, es, dq) |>` with the lent slice outside, and
   `own_raftLog_return_page` ends the loan. The struct `l ↦ lv` stays
   outside the loan's wand so `maybeSendAppend` can read `committed` with a
-  page out (`own_raftLog_struct`). Every other `raftLog` spec takes
+  slice lent out (`own_raftLog_struct`). Every other `raftLog` spec takes
   `ls.page = None`.
 - `own_unstable u uv uents page` for the embedded `unstable`, with its own
-  page (`unstable.slice`). The `raftLog` proofs assemble it from the
+  loan (`unstable.slice`). The `raftLog` proofs assemble it from the
   field points-to and the entries.
 - `newReadOnly` returns only `own_read_only ro`; `own_raft_misc` is built on
   it and `own_raft_misc_swap` installs the new one.
+
+Superseded 2026-09-29: the log now holds its entries read-only; see
+inv_raftlog.v, own_unstable. (`logstate.page` and `own_unstable`'s `page`
+argument are gone.)
 
 **The log's state is not in `nstate.t`.** The rule for the raft struct
 says the state must be precise enough for every spec. No election-path
@@ -1341,9 +1347,9 @@ spec needs it; `newRaft`'s postcondition (which has to say what log it
 built) is the likely first.
 
 **Alternatives considered.** Stating the `raftLog` specs at the components
-(`own_raftLog l (logstate.mk prev sents uents cm ap None)`) needs no page
+(`own_raftLog l (logstate.mk prev sents uents cm ap None)`) needs no `page = None`
 premise and no `destruct` in the proofs, but reads worse at every spec and
-every caller holds an abstract `ls`. The page premise as a Coq premise
+every caller holds an abstract `ls`. The `page = None` premise as a Coq premise
 costs an explicit state at positional calls (gotchas.md).
 
 ## 2026-09-24 — Program proofs do not unfold `own_raft_phys`
@@ -1420,7 +1426,7 @@ call. Asked to move the log's state into `nstate.t` and work towards
 removing `lent`.
 
 **Decision.** `nstate.logst : logstate.t`; `own_raft_phys` owns the log at
-it, always; a page lent by `raftLog.slice`/`entries` is recorded in
+it, always; a slice lent by `raftLog.slice`/`entries` is recorded in
 `logst.page`, not outside the predicate. Transitions that change the log say
 how (`become_leader` appends `leader_entry s`), so specs up the call chain
 (`poll`, `stepCandidate`, `Step`) did not change shape.
@@ -1430,3 +1436,45 @@ at the same `s` was only true because the log was hidden). The cost is that
 a proof can no longer hold the log across a field load or callee: it takes
 it out and puts it back around each access (`own_raft_phys_log_same`).
 `lent` remains, for the tracker only; see STATUS item 2.
+
+Superseded 2026-09-29: the log now holds its entries read-only; see
+inv_raftlog.v, own_unstable. (Later the same day: `logst.page` is gone,
+and `slice`/`entries` hand out their result read-only and for good.)
+
+## 2026-09-29 — The log holds its entries read-only; no slice is lent
+
+**Context.** `logstate.page` recorded a slice `raftLog.slice`/`entries`
+had handed out while it shared memory with the log, with a wand back in
+`own_raftLog`. It was the last non-physical field of the log's state, and
+`nstate.t` is to have only physical fields.
+
+**Decision.** `own_unstable` and `own_raftLog_core` hold the unstable
+entries at `↦*□`, with the capacity slack owned (`own_slice_cap`);
+`unstable.slice`, `raftLog.slice`/`entries` and `scan` hand out their
+result `↦*□`, and the log comes back unchanged; `is_Storage`'s `Entries`
+returns `↦*□` with no wand. `logstate.page`, `own_unstable`'s `page`
+argument and the lend/return lemmas are deleted.
+
+**Why it is true of the code** (upamanyus/etcd-raft, 531b20c): no element
+of `u.entries` is ever written in place (`log_unstable.go`: every
+assignment re-slices, copies, adopts, or appends past `len`; the
+truncating append goes through the cap-limited `u.slice`,
+`log_unstable.go:228-234`); `raftLog.slice` re-caps its unstable result
+(`log.go:508`); `extend` writes in place only into `cap(dst)` slack
+(`util.go:318-319`), which `is_Storage`'s `cap = len` rules out; and
+`Storage.Entries`' documented contract forbids mutating returned entries
+(`storage.go:56-67`), which `MemoryStorage` honours (`storage.go:155`,
+`:303-305`).
+
+**Consequences.** The `append` in `truncateAndAppend` needs a destination
+held read-only: `wp_slice_append_persistent`
+(`election_proof/slice_persistent.v`; to move into `slice.v`, todo.md).
+`is_Storage` is a stronger assumption than before (read-only for good
+rather than lent), but it is the interface's own. `maybeSendAppend`'s
+`MsgApp` may keep aliasing `ents` in `r.msgs` without the proof tracking
+it. `raftLog.slice`'s proof got ~15% slower (605s → 709s), from re-sealing
+the log at each of its seven exits. Known gap, not on the election path:
+`nextUnstableEnts` returns an uncapped slice (todo.md).
+
+**Rejected.** *A `pin` field recording a `Progress` value, for the
+tracker loan* — not physical state; `nstate.t` holds only physical fields.

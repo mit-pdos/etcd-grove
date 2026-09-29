@@ -38,8 +38,8 @@ Import P.
   Proof.
     intros_ambient.
     intros l ls ents es dq.
-    intros Hpg Hidx' Hnorm Hnowrap'.
-    destruct ls as [prev sents uents lcm lap lpg]; logstate_simpl; subst lpg.
+    intros Hidx' Hnorm Hnowrap'.
+    destruct ls as [prev sents uents lcm lap]; logstate_simpl.
     wp_start as "H". iNamed "H". wp_auto.
     iDestruct (own_slice_len with "Hes") as %[Hlen Hlen'].
     destruct (decide (ents = [])) as [He|Hne].
@@ -48,7 +48,7 @@ Import P.
       subst ents. simpl in Hlen.
       rewrite bool_decide_eq_true_2; last word.
       wp_auto.
-      wp_apply (wp_raftLog__lastIndex _ (logstate.mk prev sents uents lcm lap None) eq_refl with "[$Hlog]") as "%li [Hlog %Hli]". logstate_simpl.
+      wp_apply (wp_raftLog__lastIndex _ (logstate.mk prev sents uents lcm lap) with "[$Hlog]") as "%li [Hlog %Hli]". logstate_simpl.
       iApply ("HΦ" $! li). rewrite app_nil_r. iFrame.
       iPureIntro. simpl. lia.
     - (* the batch is non-empty: [ents[0]] exists *)
@@ -102,15 +102,15 @@ Import P.
               ≤ uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents)
                 + Z.of_nat (length (uents ++ ents)))%Z as Hcm2
         by (rewrite length_app; lia).
-      iAssert (own_raftLog l (logstate.mk prev sents (uents ++ ents) lcm lap None))
+      iAssert (own_raftLog l (logstate.mk prev sents (uents ++ ents) lcm lap))
         with "[Hl HStorage Huents Huents_cap]" as "Hlog".
       { iApply own_raftLog_unfold.
         iExists (lv <| raft.raftLog.unstable' :=
                    lv.(raft.raftLog.unstable')
                      <| raft.unstable.entries' := sl |> |>).
         iFrame "Hl". rewrite /own_raftLog_core. simpl. iFrame "∗#%". }
-      wp_apply (wp_raftLog__lastIndex _ (logstate.mk prev sents (uents ++ ents) lcm lap None)
-                  eq_refl with "[$Hlog]") as "%li [Hlog %Hli]". logstate_simpl.
+      wp_apply (wp_raftLog__lastIndex _ (logstate.mk prev sents (uents ++ ents) lcm lap)
+                  with "[$Hlog]") as "%li [Hlog %Hli]". logstate_simpl.
       iApply ("HΦ" $! li). iFrame.
       iPureIntro. rewrite length_app in Hli. lia.
   Qed.

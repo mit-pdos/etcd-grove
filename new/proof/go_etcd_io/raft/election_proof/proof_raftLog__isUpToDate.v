@@ -6,9 +6,9 @@ Import P.
   Lemma wp_raftLog__isUpToDate : wp_raftLog__isUpToDate_body.
   Proof.
     intros_ambient.
-    intros l e ls Hpg.
+    intros l e ls.
     wp_start as "Hlog". wp_auto.
-    wp_apply (wp_raftLog__lastEntryID _ _ Hpg with "[$Hlog]") as "%our Hlog".
+    wp_apply (wp_raftLog__lastEntryID _ _ with "[$Hlog]") as "%our Hlog".
     repeat (case_bool_decide; try wp_auto).
     all: iApply "HΦ"; iFrame.
   Qed.

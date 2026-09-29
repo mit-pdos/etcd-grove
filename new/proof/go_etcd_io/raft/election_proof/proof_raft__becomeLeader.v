@@ -48,10 +48,9 @@ Import P.
     iDestruct ("Hback" with "Htrkf Htrk") as "Hphys".
     (* [r.pendingConfIndex = r.raftLog.lastIndex()] *)
     wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
-    iDestruct (own_raft_phys_log with "Hphys")
-      as (ls Hls) "(Hlog & Hback)"; first exact Hlent.
-    wp_apply (wp_raftLog__lastIndex _ _ Hls with "[$Hlog]") as "%li [Hlog _]".
-    iDestruct ("Hback" with "Hlog [//]") as "Hphys".
+    iDestruct (own_raft_phys_log_same with "Hphys") as "(Hlog & Hback)".
+    wp_apply (wp_raftLog__lastIndex with "[$Hlog]") as "%li [Hlog _]".
+    iDestruct ("Hback" with "Hlog") as "Hphys".
     wp_apply (wp_raft_store_pendingConfIndex with "Hphys") as "Hphys".
     wp_apply wp_traceBecomeLeader. try wp_auto.
     wp_apply wp_slice_literal. iSplitR; first done. iIntros "% [Hes _]".

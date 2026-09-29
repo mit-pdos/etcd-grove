@@ -270,14 +270,14 @@ but not sufficient for `maybeSendAppend`. The fix was `own_raft_notrk`
 still stands; what changed is where the pinned field lives: in the
 abstract state, not in a variant predicate.
 
-## The same family, fourth member: `send` owned the log the caller had a page of (2026-09-21)
+## The same family, fourth member: `send` owned the log the caller had a slice of (2026-09-21)
 
 Repairing `maybeSendSnapshot`'s precondition and `send`'s hidden tracker
 (above) was not enough for `maybeSendAppend`: `send`'s precondition also
-owned the **log**, and `raftLog.entries` lends its page *out of*
-`own_raftLog`, so the page and the log cannot be held at once — yet
+owned the **log**, and `raftLog.entries` lends its result *out of*
+`own_raftLog`, so `ents` and the log cannot be held at once — yet
 `payloadsSize(ents)` runs *after* the send (v3.v:3153-3157), and the
-message literal reads `r.raftLog.committed` while the page is out. The
+message literal reads `r.raftLog.committed` while `ents` is out. The
 sharpest form of the rule: **when a function borrows a sub-resource out of
 a predicate `P` and then calls something specified on `P`, the borrow must
 come back out of `P`'s precondition, not be re-derived from `P`'s
@@ -285,8 +285,11 @@ postcondition**; persistence of the borrowed thing fixes re-finding, not
 holding. Second tell, independent of the first: look at what the code does
 *after* a call, not just before it — a spec review that stops at the call
 misses this class. Fix: `own_raft_bare` (decisions.md), and
-`entries`/`slice` now hand the `raftLog` record back beside the page.
+`entries`/`slice` now hand the `raftLog` record back beside the result.
 **Superseded 2026-09-22**: `own_raft_bare` is gone; `maybeSendAppend` now
 puts the tracker and the log **on loan** (`nstate.lent := Some tv`) across
 `send`, and `send` is stated on `own_raft_phys` for any `s`.
+**Superseded 2026-09-29**: nothing of the log is lent any more; the log
+holds its entries read-only and `entries` hands `ents` out read-only and
+for good, so only the tracker is on loan across `send`.
 

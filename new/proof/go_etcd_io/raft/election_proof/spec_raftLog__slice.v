@@ -3,7 +3,7 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
 (** [l.slice(lo, hi, maxSize)]: a non-empty prefix of the log entries at
     [[lo, hi)], cut to roughly [maxSize] bytes ([log.go:497]).
 
-    Stated at the log's state [ls], at no page: it calls
+    Stated at the log's state [ls]: it calls
     [mustCheckOutOfBounds] (hence [firstIndex]/[lastIndex]) and reads the
     unstable suffix and the [Storage] directly.  The range premise makes every failure path dead:
     [mustCheckOutOfBounds] returns [nil], [Storage.Entries] cannot return
@@ -12,28 +12,19 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
     [lo < hi] rules out the empty early return.
 
     The result **aliases the log** in two of the three cases (a sub-slice
-    of [unstable.entries], or one the [Storage] lent), so it is lent: the
-    postcondition gives the page's points-to at some fraction, and the log
-    comes back at [ls <| page := Some (s, es, dq) |>] -- on loan of that
-    page ([logstate.page], [inv_raftlog.v]); [own_raftLog_return_page] ends
-    the loan.  In the third case (a page spanning the stable/unstable
-    boundary) the page is a fresh slice from [extend] and returning it
-    simply drops it.
+    of [unstable.entries], or one the [Storage] handed out); in the third
+    (a range spanning the stable/unstable boundary) it is a fresh slice
+    from [extend].  In every case it is returned **read-only and for
+    good**, [s ↦*□ es], and the log comes back unchanged: no entry of the
+    log is ever written again once it is in it -- [unstable] never writes
+    in place ([own_unstable], [inv_raftlog.v]) and [Storage] promises the
+    same ([is_Storage]'s [Entries], [inv_storage.v]) -- so there is nothing
+    to give back.  [maybeSendAppend] relies on it: it puts the result in a
+    [MsgApp], which [r.msgs] keeps, and reads it again ([payloadsSize])
+    after [r.send].  (Until 2026-09-29 the result was *lent*, and the log
+    came back "on loan of that page", [logstate.page].)
 
-    **The [raftLog] struct itself stays readable while the page is out**
-    (2026-09-21; since 2026-09-23 through [own_raftLog_struct]).  What the
-    page aliases is an *entry buffer* -- [unstable.entries], or one the
-    [Storage] lent -- never the [raftLog] record at [l], which is a
-    separate allocation that [slice] only reads through.  So the paged
-    [own_raftLog] keeps [l ↦ lv] outside the loan's wand.  [maybeSendAppend]
-    is what needs it: it holds the page from [raftLog.entries] across
-    [r.send(...)] (nothing else can give it the page back afterwards, and
-    [payloadsSize] needs it), and in between the message literal reads
-    [r.raftLog.committed].  With the old form the log was entirely
-    unavailable for the whole of that window, so the field read could not
-    be stepped at all.
-
-    What the page *is* is stated only as far as [scan] and its callers
+    What the result *is* is stated only as far as [scan] and its callers
     need: non-empty, at most [hi - lo] entries, every one an entry of the
     log.  That is enough for [hasUnappliedConfChanges] ([HnoConfChange] is
     a fact about every entry) and for [scan]'s progress.  If a later caller
@@ -44,15 +35,14 @@ Definition wp_raftLog__slice_body :=
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (l : loc) (ls : logstate.t) (lo hi maxSize : w64),
-  ls.(logstate.page) = None →
   (uint.Z ls.(logstate.prev).(raft.entryID.index') + 1 ≤ uint.Z lo ∧ uint.Z lo < uint.Z hi ∧
    uint.Z hi ≤ uint.Z ls.(logstate.prev).(raft.entryID.index') + Z.of_nat (length ls.(logstate.sents))
    + Z.of_nat (length ls.(logstate.uents)) + 1)%Z →
   {{{ is_pkg_init raft ∗ "Hlog" ∷ own_raftLog l ls }}}
     l @! (go.PointerType raft.raftLog) @! "slice" #lo #hi #maxSize
-  {{{ (s : slice.t) (es : list raftpb.Entry.t) (dq : dfrac),
+  {{{ (s : slice.t) (es : list raftpb.Entry.t),
       RET (#s, #interface.nil);
-      own_raftLog l (ls <| logstate.page := Some (s, es, dq) |>) ∗ s ↦*{dq} es ∗
+      own_raftLog l ls ∗ s ↦*□ es ∗
       ⌜ es ≠ [] ∧
         (Z.of_nat (length es) ≤ uint.Z hi - uint.Z lo)%Z ∧
         (∀ e, e ∈ es → e ∈ ls.(logstate.sents) ++ ls.(logstate.uents)) ⌝ }}}.

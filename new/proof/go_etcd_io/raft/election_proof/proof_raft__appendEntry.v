@@ -33,11 +33,11 @@ Qed.
     Go slice and so below [2^63] by [own_slice_len], and their sum is what
     [lastIndex] returns. *)
 Lemma own_raftLog_facts (l : loc) prev sents uents cm ap :
-  own_raftLog l (logstate.mk prev sents uents cm ap None) -∗
+  own_raftLog l (logstate.mk prev sents uents cm ap) -∗
   ⌜ log_indices_ok prev (sents ++ uents) ∧
     (uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents)
      + Z.of_nat (length uents) < 2^61 + 2^63)%Z ⌝ ∗
-  own_raftLog l (logstate.mk prev sents uents cm ap None).
+  own_raftLog l (logstate.mk prev sents uents cm ap).
 Proof.
   iIntros "H". iNamed "H".
   iEval (rewrite /own_raftLog_core /=) in "Hcore". iNamed "Hcore".
@@ -139,14 +139,12 @@ Set Default Proof Using "Type".
   (** [appendEntry] stamps the batch, charges it, appends it, and tells
       itself about it with a self-addressed [MsgAppResp].
 
-      The shape of the proof is set by the two [raftLog] specs being stated
-      at a *fixed* log split: the split is opened once, before
-      [lastIndex()], and stays open until after [append].  So the tracker
-      and the log are **lent** out of [own_raft_phys] for that stretch
-      ([own_raft_phys_lend]): the loop's [r.Term] loads and
-      [increaseUncommittedSize] run on the predicate at the lent state,
-      while the split, and the last index read at it, stay in this proof's
-      hands.  [own_raft_phys_unlend] ends the loan before [send]. *)
+      The log's state is in [nstate.t] ([nstate.logst]), so the
+      [lastIndex()] read and the [append] are both stated at [s]'s log
+      state, and the calls in between ([r.Term] loads,
+      [increaseUncommittedSize]) leave it alone: nothing is lent.  (Until
+      2026-09-28 the tracker and the log were lent out of [own_raft_phys]
+      for that stretch, to keep the log split fixed.) *)
   Lemma wp_raft__appendEntry : wp_raft__appendEntry_body.
   Proof.
     intros_ambient.
@@ -156,13 +154,11 @@ Set Default Proof Using "Type".
     iDestruct (own_slice_len with "Hes") as %[Hlen Hlen'].
     (* [li := r.raftLog.lastIndex()], at a split that stays open *)
     (* the log is read at the state [s] records, and put back unchanged *)
-    pose proof (nstate_idle_page _ Hlent) as Hpg.
-    destruct (s.(nstate.logst)) as [prev sents uents lcm lap lpg] eqn:Hls.
-    cbn in Hpg; subst lpg.
+    destruct (s.(nstate.logst)) as [prev sents uents lcm lap] eqn:Hls.
     iDestruct (own_raft_phys_log_at with "Hphys") as "[Hlog Hlogback]".
     iEval (rewrite Hls) in "Hlog".
     iDestruct (own_raftLog_facts with "Hlog") as "[[%Hidx %Hbnd] Hlog]".
-    wp_apply (wp_raftLog__lastIndex _ (logstate.mk prev sents uents lcm lap None) eq_refl with "[$Hlog]")
+    wp_apply (wp_raftLog__lastIndex _ (logstate.mk prev sents uents lcm lap) with "[$Hlog]")
       as "%li [Hlog %Hli]".
     cbn [logstate.prev logstate.sents logstate.uents] in Hli.
     iDestruct ("Hlogback" with "Hlog") as "Hphys".
@@ -249,19 +245,19 @@ Set Default Proof Using "Type".
         by (rewrite length_imap; lia).
       iDestruct (own_raft_phys_log_at with "Hphys") as "[Hlog Hlogback]".
       iEval (rewrite Hls) in "Hlog".
-      wp_apply (wp_raftLog__append _ (logstate.mk prev sents uents lcm lap None) _ _ _ eq_refl Hidx2 Hnorm2 Hnw2
+      wp_apply (wp_raftLog__append _ (logstate.mk prev sents uents lcm lap) _ _ _ Hidx2 Hnorm2 Hnw2
                   with "[$Hlog $Hes]")
         as "%li2 (Hlog & Hes & %Hli2)".
       iDestruct ("Hlogback" with "Hlog") as "Hphys".
       (* [li] is [log_last] of the log it was read from: [lastIndex()]
          cannot wrap ([Hbnd]) *)
-      assert (log_last (logstate.mk prev sents uents lcm lap None) = li) as Hlast.
+      assert (log_last (logstate.mk prev sents uents lcm lap) = li) as Hlast.
       { rewrite /log_last /=. apply word.unsigned_inj.
         pose proof (word.unsigned_range prev.(raft.entryID.index')).
         rewrite word.unsigned_of_Z_nowrap; lia. }
-      set s' := s <| nstate.logst := log_append (logstate.mk prev sents uents lcm lap None)
+      set s' := s <| nstate.logst := log_append (logstate.mk prev sents uents lcm lap)
                      (imap (stamp s.(nstate.term)
-                              (log_last (logstate.mk prev sents uents lcm lap None))) ents) |>.
+                              (log_last (logstate.mk prev sents uents lcm lap))) ents) |>.
       iDestruct (own_raft_phys_eq _ _ _ _ s' with "Hphys") as "Hphys".
       { rewrite /s' Hlast. done. }
       wp_apply (wp_raft_load_id with "Hphys") as "Hphys".

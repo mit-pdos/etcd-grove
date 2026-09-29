@@ -93,9 +93,10 @@ Definition own_raft_phys_def (r : loc) (id : w64) s : iProp Σ :=
              s.(nstate.votes) s.(nstate.progress) ∗
 
   (** the log, at the state [s] records ([nstate.logst]).  Never on loan:
-      a page [raftLog.slice] lends out is recorded in [logst.page]
-      instead.  (Until 2026-09-28 the log's state was quantified here, and
-      the log went on loan with the tracker.) *)
+      what [raftLog.slice] returns is read-only and the caller's for good.
+      (Until 2026-09-28 the log's state was quantified here, and the log
+      went on loan with the tracker; until 2026-09-29 a slice [raftLog.slice]
+      lent out was recorded in [logst.page].) *)
   "%Hlogp" ∷ ⌜ rv.(raft.raft.raftLog') = s.(nstate.log) ⌝ ∗
   "Hlog" ∷ own_raftLog rv.(raft.raft.raftLog') s.(nstate.logst) ∗
 
@@ -655,7 +656,7 @@ Qed.
 
 (** The log at the state [s] records, put back at that same state: for a
     read through [own_raftLog] (a [raftLog] method that keeps its state, a
-    field load through [own_raftLog_struct]) at any loan or page state.
+    field load through [own_raftLog_struct]).
     The wand gives [own_raft_phys] at [s] itself, so no [own_raft_phys_eq]
     is needed afterwards. *)
 Lemma own_raft_phys_log_same r id s :
@@ -666,26 +667,6 @@ Proof.
   iIntros "H".
   iDestruct (own_raft_phys_log_at with "H") as "[Hlog Hback]".
   iFrame "Hlog". iIntros "Hlog".
-  iDestruct ("Hback" with "Hlog") as "H".
-  iApply (own_raft_phys_eq with "H"). by destruct s.
-Qed.
-
-(** The log, for a function that reads it and puts it back unchanged: at no
-    page ([nstate_idle]), and the wand gives [own_raft_phys] at [s] itself.
-    The existential and the [⌜ ls' = ls ⌝] premise keep the shape of the
-    accessor from before 2026-09-28, when the log's state was quantified:
-    callers write [as (ls Hls) "(Hlog & Hback)"] and [with "Hlog [//]"]. *)
-Lemma own_raft_phys_log r id s :
-  nstate_idle s →
-  own_raft_phys r id s -∗
-  ∃ ls, ⌜ ls.(logstate.page) = None ⌝ ∗ own_raftLog s.(nstate.log) ls ∗
-        (∀ ls', own_raftLog s.(nstate.log) ls' -∗ ⌜ ls' = ls ⌝ -∗
-                own_raft_phys r id s).
-Proof.
-  iIntros ([_ Hpg]) "H".
-  iDestruct (own_raft_phys_log_at with "H") as "[Hlog Hback]".
-  iExists s.(nstate.logst). iSplitR; first done. iFrame "Hlog".
-  iIntros (ls') "Hlog ->".
   iDestruct ("Hback" with "Hlog") as "H".
   iApply (own_raft_phys_eq with "H"). by destruct s.
 Qed.

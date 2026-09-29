@@ -3722,3 +3722,44 @@ Checked: `.vok` of all 412 targets under `election_proof/`, 0 errors.
 
 Next: pin a `Progress` value in `nstate.t` for `maybeSendAppend`,
 `maybeSendSnapshot`, `reset`; delete `lent`.
+
+## 2026-09-29 (later still) — the log holds its entries read-only; `logstate.page` is gone
+
+Asked to remove `logst.page`, `nstate.lent` and `nstate.pin` (the last
+never committed: `nstate.t` is to hold only physical fields, and a pin is
+not). This entry is the first of the three; decision in decisions.md,
+"The log holds its entries read-only".
+
+- `slice_persistent.v` (new): `wp_slice_append_persistent`, Go's `append`
+  onto a destination held `↦*□` with its slack owned. `wp__new_cap`
+  needed `(V:=V)` (statement bug in `slice.v`; todo.md).
+- `inv_storage.v`: `Entries` returns `s ↦*□ es`, no wand (the `Storage`
+  interface's own contract, `storage.go:56-67`).
+- `inv_raftlog.v`: `own_unstable u uv uents` (no `page` argument) and
+  `own_raftLog_core` hold the unstable entries `↦*□`; `own_raftLog` has
+  no match on a page; `own_raftLog_lend_page`/`_return_page`,
+  `own_unstable_return_page` deleted. The persistent conjuncts are named
+  *spatially* (`"Huents"`, not `"#Huents"`): with `#`, re-opening the
+  predicate clashed on the name and `iFrame "∗"` stopped framing them.
+- `defs.v`: `logstate.page` deleted; `nstate_idle s` is `lent = None ∧
+  True` until `lent` goes.
+- Specs: `unstable.slice`, `raftLog.slice`/`entries` return `↦*□` and the
+  log unchanged; every `page = None` premise (14 specs) deleted.
+  `own_raft_phys_log` (the old-shaped accessor) deleted; callers use
+  `own_raft_phys_log_same`.
+- `raftLog.slice`'s proof re-seals the log at each exit (`reseal_log`);
+  its `extend` exits persist the fresh slice under `wp_fupd`. 605s → 709s.
+- The word "page" (invented, not etcd's) is gone from the proofs and
+  notes except for `raftLog.scan`'s own `pageSize` batches (subagent).
+- New: notes/todo.md, a log of deferred work (wp__new_cap, moving the
+  append lemma into `slice.v`, `nextUnstableEnts`' uncapped slice).
+
+Checked: `.vok` of all 412 targets under `election_proof/` (sweep, 0
+errors). `tcb-report --proof-root …/election_proof`: 14 Axiom, 1 Admitted
+(unchanged), 272 Qed, 76 definitions / 807 lines. `check-module-discipline`:
+6 notes/warnings (unchanged).
+
+Next: `lent`. `reset` and `maybeSendSnapshot` can drop the loan without
+new state (Visit's invariant = the tracker accessor's wand, as in
+`bcastAppend`); `maybeSendAppend` needs each peer's `Progress`/`Inflights`
+values in `nstate.t` (STATUS item 2).
