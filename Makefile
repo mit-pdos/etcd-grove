@@ -22,6 +22,20 @@ TIMING_DB:=.timing.sqlite3
 TIMING_MIN:=0
 # Extra flags for `make timing-report`, e.g. TIMING_REPORT_ARGS="--mode vok"
 TIMING_REPORT_ARGS:=
+# Extra flags for the report `make ci` prints and for `make build-report`,
+# e.g. BUILD_REPORT_ARGS="--markdown-to $GITHUB_STEP_SUMMARY" in CI
+BUILD_REPORT_ARGS:=
+
+# One id per top-level `make` run, with its start time and goals: etc/rocqc.py
+# files every compile under it, which is what lets etc/build-report.py tell
+# this build from earlier ones in $(TIMING_DB). A sub-make inherits the
+# parent's (the variables are exported, so their origin there is `environment`).
+ifeq ($(origin ROCQ_BUILD_ID),undefined)
+ROCQ_BUILD_ID := $(shell date -u +%Y%m%dT%H%M%SZ)-$(shell od -An -N3 -tx1 /dev/urandom | tr -d ' \n')
+ROCQ_BUILD_START := $(shell date +%s.%N)
+ROCQ_BUILD_GOALS := $(MAKECMDGOALS)
+endif
+export ROCQ_BUILD_ID ROCQ_BUILD_START ROCQ_BUILD_GOALS
 
 -include Makefile.test
 
@@ -88,7 +102,28 @@ skip-qed:
 unskip-qed:
 	$(Q)./etc/disable-qed.sh --undo $(SLOW_QED_FILES)
 
-ci: new/should_build.vo
+# What CI checks: new/should_build.vo, then a report of that build (time,
+# parallelism over time, critical path, slowest files; etc/build-report.py).
+# The build runs as a sub-make so that the report is printed even when it
+# fails; `make ci` exits with the build's status either way. Without the
+# rocqc.py wrapper (TIMED=false, or Rocq CI's TIMING) nothing is recorded, so
+# there is no report.
+ifeq ($(ROCQ_C),rocq compile)
+CI_REPORT := true
+else
+CI_REPORT := ./etc/build-report.py --db $(TIMING_DB) --build $(ROCQ_BUILD_ID) $(BUILD_REPORT_ARGS) \
+	|| echo "build-report failed (the build's own status is unaffected)" >&2
+endif
+
+ci:
+	$(Q)rc=0; $(MAKE) --no-print-directory new/should_build.vo || rc=$$?; \
+	echo; $(CI_REPORT); exit $$rc
+
+# The report `make ci` prints, for the latest build recorded in $(TIMING_DB)
+# -- whatever its goals. `./etc/build-report.py --list` lists them all.
+.PHONY: build-report
+build-report:
+	$(Q)./etc/build-report.py --db $(TIMING_DB) $(BUILD_REPORT_ARGS)
 
 # Where the last build spent its time. Each build mode is reported
 # separately, since a file's vo, vos and vok builds cost different amounts.

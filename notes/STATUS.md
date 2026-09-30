@@ -455,6 +455,12 @@ that and were not re-measured; expect each to be ~8 min shorter, since the
 saving is on their critical path too. Peak RSS of
 any single `rocq compile` was 3.9 GB. `rocq dep` on the whole tree: 2 s.
 
+**Every `make ci` now ends with a build report** — wall/CPU time,
+parallelism over time, the critical path, slowest files — and CI puts it on
+the run's summary page; `make build-report` reprints the latest. See
+CONTRIBUTING.md, "Build reports". Use it before guessing where build time
+goes.
+
 **Memory.** `proof_raft__Step.v` and its helpers are the expensive part of
 the tree; four at once peak around 8 GB, so `-j4` is the most a 15 GB box
 should run beside nothing else.

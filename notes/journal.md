@@ -3936,3 +3936,25 @@ green; `tcb-report` unchanged (14 Axiom, 1 Admitted in `election_proof`);
 module discipline 6 findings, as before the change (STATUS said 5; stale).
 Untouched big files got 10–20% slower in the same build — more of them now
 overlap — so compare wall time, not per-file seconds.
+
+## 2026-09-30 — `make ci` prints a build report
+
+Asked for, on every CI build: build time, parallelism over time, slowest
+files and the critical path. Added `etc/build-report.py` (standard library,
+`--selftest`), extended `etc/rocqc.py` to record every compile's start, end,
+CPU, peak memory and exit status per `make` run (`builds`/`build_files`;
+the Makefile sets `ROCQ_BUILD_ID` once per top-level make), made `make ci`
+run the build as a sub-make and print the report after it, pass or fail,
+exiting with the build's status, and passed `--markdown-to
+$GITHUB_STEP_SUMMARY` in `ci.yml`. How to read it: CONTRIBUTING.md, "Build
+reports"; why a mechanism: decisions.md.
+
+Checked: both selftests (18/18 each) and `ruff` clean; a two-file `make ci`
+(report correct by hand); a deliberately broken `election.v` under
+`make -k ci` (exit 2, report printed, the failure listed; file restored);
+and all of `election_proof/` rebuilt through `make -j24 ci`, rc 0. That last
+one took **21 minutes, not 13, because another session was running
+`make -j12` on the same machine** — the new "core share" row read 74%, which
+is how it showed; the per-file CPU < wall is the tell. So it is a
+demonstration of the report, not a timing; the 13-minute figure in
+STATUS.md stands from the uncontended run.
