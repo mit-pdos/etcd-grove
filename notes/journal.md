@@ -3893,3 +3893,61 @@ Checked: `make -k -j4 ci` exit 0, 431 files compiled, `new/should_build.vo`
 built -- the first full `vo` build of the raft proof since 2026-09-17.
 `tcb-report --proof-root …/election_proof`: 14 Axiom, 1 Admitted, 273 Qed
 (unchanged); `--proof-root …/raft`: 27 Axiom, 8 Admitted, 291 Qed.
+
+---
+
+## 2026-09-30 — `word` on top of `zify` (branch `word-zify`)
+
+The `word` tactic spent ~65% of each call in `eliminate_word_ops`, which
+tries every rewrite law against every hypothesis and restarts after each
+success: on one `rwmutex.v` goal, 1,595 rewrite attempts for 18 rewrites,
+while `lia` took 25 ms. New `src/Helpers/Word/ZifyWord.v` gives `zify`
+instances for `uint.Z`, `sint.Z`, `word.of_Z`, the arithmetic and bitwise
+operations and word equality, for w8/w16/w32/w64, so the translation to `Z`
+is one OCaml pass. Modular wrapping is a `wrapZ` constant with a
+`BinOpSpec` that supplies the Euclidean-division equations directly, so
+`Z.div_mod_to_equations` is not needed for it. `Automation.v`'s
+`solve_unsafe` now runs `zify; lia` on that; the old rewriting pipeline is
+kept, unchanged, as the fallback for shifts, divisions and moduli and for
+words of generic width (a `Section` variable `word : Interface.word w`),
+chosen up front by a syntactic scan.
+
+Measured: ~1.1 s → ~0.1 s per call on `rwmutex.v`'s goals; the file's 40
+calls went from 54 s to 5.5 s. The new path also proves some goals the old
+one could not (`word.sub (word.add x 1) 1 = x`). `word with tac` and
+`word.normalize` (used by `sync_proof/waitgroup.v`) are untouched.
+
+Two dead ends: batching the rewrites (2× at best — each rewrite is still an
+Ltac step) and letting a post-`zify` scan for leftover word operations
+trigger the fallback (it fired on `NotLocked (W32 0) = NotLocked r`, a
+term under a constructor that no path can use, and made those calls 10×
+slower). Pitfalls with `Add Zify` are in gotchas.md.
+
+Validation: every `.vok` in the transitive closure of `new/should_build.v`
+— 873 files, built from scratch at `-j12` — passes. Three proofs failed on
+the first pass and drove the fallback rules above: `pkg/v3/idutil.v` (a
+`2 ^ uint.Z (W64 48)` exponent, and a boolean `i <? uint.Z (W64 48)` that
+`zify` does not translate: closed constants are now evaluated first, by a
+step both pipelines share — `compute_closed_constants` replaces every maximal
+closed subterm headed by `uint.Z`/`sint.Z` or a `Z` operator with its
+`vm_compute` value, proved by `vm_compute; reflexivity`; `vm_compute` sees
+through the `Opaque` word instances, so `uint.Z (word.add (W64 1) (W64 2))`
+becomes `3` and `2^(64-1)` a numeral, which is what the old pipeline's
+`simplify_Z_constants` achieved for `Z` terms after rewriting. The guard
+is syntactic and runs *before* evaluating: only terms built from numerals,
+`Z` operators, word operators and the four instances are evaluated. A term
+with a Qed-opaque constant in it — a `sealed` definition — is not closed
+in the useful sense: `vm_compute` on it ground through the instance's
+range proofs for minutes and gigabytes, and its partial result would have
+put `Naive.mk` into the goal. Regression test `stuck_term_left_alone`), `channel/workq.v:30` (`swrap` unfolds to a
+`2^(64-1)`, so the exponent check must run after the unfolding) and
+`pdqSort/heapSort.v` (a divisor `sint.Z (W64 2)`). A fourth shape was found by asking what the old pipeline proves that the
+new one does not: a word operation inside a *boolean* equation,
+`(uint.Z (word.add x y) <? 200) = true` — `zify` never enters a boolean
+equation here (`ZifyBool` is not loaded), the rewriting pipeline rewrites
+under any context; such goals now take the fallback. Each is a regression
+test at the end of `Automation.v`. One proof script changed:
+`channel/workq.v` had a bullet proving `0 < length workers` that
+`list_elem`'s `try solve [len]` now discharges itself, so the bullet hit
+the WP goal; the bullet is gone. Expect the same shape elsewhere when a
+`try word`/`len` in some automation starts succeeding.

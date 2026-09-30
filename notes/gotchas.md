@@ -1782,3 +1782,18 @@ Writing a triple for a *single* heap access (the field lemmas themselves):
   fraction. So a lemma that turns fresh, fully-owned elements into
   `↦*{dq}` needs `✓dq` as a premise, even though the caller "owns" `s`:
   `wp_slice_append_dfrac` takes `⌜✓dq_s⌝` for this reason.
+
+## `Add Zify` registrations vanish at `End Section` and need an `Import`
+
+Two silent failure modes met while writing `src/Helpers/Word/ZifyWord.v`:
+
+- An `Add Zify InjTyp/UnOp/BinOp/BinRel …` inside a `Section` is dropped
+  at `End Section`, with no warning; `zify` then treats the terms as atoms
+  and `lia` fails with "Cannot find witness". Declare them at top level.
+- The registrations are import-scoped, like `#[export]` instances: a file
+  that only `Require`s the one that made them, or that imports a file which
+  merely `Import`ed it, does not see them. `Automation.v` therefore
+  `Require Export`s `ZifyWord`.
+
+Both bit in a `.vos` build, where a `Local Lemma … Proof. lia. Qed.` smoke
+test is not run; check with `Show Zify InjTyp.` from another file.
