@@ -607,7 +607,6 @@ Proof.
     iIntros "Hdocs".
     wp_auto.
     list_elem workers O as w.
-    { subst numWorkers. word. }
     rewrite -> decide_True.
     2:{ subst numWorkers. word. }
     wp_apply (wp_load_slice_index with "[$workers_sl]").
