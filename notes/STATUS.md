@@ -66,7 +66,7 @@ Go function a spec really specifies, and errors on a triple outside the
 spec/proof shape, two triples for one function, a malformed spec file, an
 incomplete collection, or a name absent from `new/code/`.
 
-    etc/check-module-discipline.py --scope election_proof   # 5 findings, all notes/warnings
+    etc/check-module-discipline.py --scope election_proof   # 6 findings, all notes/warnings
     etc/check-module-discipline.py --summary
     etc/check-module-discipline.py --selftest
 
@@ -440,14 +440,19 @@ master `7751ff3ea`, tree at `e5bb0dc33` (2026-09-30):
 | `make ci` (`new/should_build.vo`), clean | 872 | 65 min | 6.0 h | 5.5 |
 
 More cores would not help much: the builds are bound by their critical
-paths, not by CPU. `make ci`'s is 3,738 s over 60 files, and five files are
-most of it — `slices_proof/pdqSort/heapSort.v` (939 s, compiled alone while
-everything waits), `election_proof/proof_raftLog__slice.v` (865 s),
+paths, not by CPU. `make ci`'s was 3,738 s over 60 files, and five files
+were most of it — `slices_proof/pdqSort/heapSort.v` (939 s, compiled alone
+while everything waits), `election_proof/proof_raftLog__slice.v` (865 s),
 `chan/au_spec/chan_au_recv.v` (289 s), `golang/theory/slice.v` (246 s) and
-`election_proof/inv_raft_phys.v` (219 s). Of the 21 minutes the election
-proof takes alone, 19.3 are its critical path
-`inv_raft_phys.v` → `proof_raftLog__slice.v` → … → `election.v`; splitting
-`proof_raftLog__slice.v` is the one change that would shorten it. Peak RSS of
+`election_proof/inv_raft_phys.v` (219 s).
+
+**Since then (same machine, 2026-09-30)** the election proof's two slowest
+idioms were replaced (gotchas.md, "Re-seal with an `_intro` lemma"):
+`election_proof/` alone now rebuilds in **13 min** (was 21), its critical
+path 653 s (was 1,156 s): `inv_raft_phys.v` 144 s → `proof_raftLog__slice.v`
+374 s → … → `election.v`. The clean-closure and `make ci` rows above predate
+that and were not re-measured; expect each to be ~8 min shorter, since the
+saving is on their critical path too. Peak RSS of
 any single `rocq compile` was 3.9 GB. `rocq dep` on the whole tree: 2 s.
 
 **Memory.** `proof_raft__Step.v` and its helpers are the expensive part of

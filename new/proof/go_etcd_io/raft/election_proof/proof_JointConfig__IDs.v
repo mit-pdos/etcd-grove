@@ -81,8 +81,8 @@ Module JointConfigIDsProof (P : JOINTCONFIG__IDS_POSTULATES) : JOINTCONFIG__IDS.
        [own_tracker]'s own [voters_ref ↦$ voters]; re-seal the tracker first. *)
     iApply "HΦ". iFrame "Htrk".
     iSplitL "Hvotes Hprogs Hvoters Hlearners HlearnersNext".
-    { rewrite /own_tracker. iExists voters_ref, voters, learners, learnersNext.
-      iFrame "∗#%". }
+    { iApply (own_tracker_intro with
+    "Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext"); done. }
     iFrame "Hmref".
     iPureIntro. rewrite Hidm Hkset Hvoters_dom //.
   Qed.

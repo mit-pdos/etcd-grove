@@ -114,8 +114,8 @@ Import P.
        joint quorum.  The two counters already hold the model's numbers. *)
     wp_apply (wp_JointConfig__VoteResult _ _ _ _ _ _ Hcfg_ne with
                "[$Htrk Hvotes Hprogs Hvoters Hlearners HlearnersNext]").
-    { rewrite /own_tracker.
-      iExists voters_ref, voters, learners, learnersNext. iFrame "∗#%". }
+    { iApply (own_tracker_intro with
+    "Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext"); done. }
     iIntros (res) "(Htrk & Hown & %Hres & %Hwon & %Hlost)".
     wp_auto.
     iApply ("HΦ" $! (W64 (nsat Pgr keys)) (W64 (nsat Prj keys)) res).

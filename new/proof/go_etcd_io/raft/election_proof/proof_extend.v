@@ -37,7 +37,7 @@ Module ExtendProof (P : EXTEND_POSTULATES) : EXTEND.
     replace (length ds + length vs - length ds)%nat with (length vs) by lia.
     iDestruct (own_slice_len with "Hbuf") as %[Hlenb Hlenb'].
     rewrite length_app length_replicate in Hlenb.
-    rewrite decide_True; last word.
+    case_decide as Hdec; [clear Hdec | exfalso; apply Hdec; word].
     iDestruct (own_slice_split_all dst.(slice.len) with "Hbuf") as "[Hbuf1 Hbuf2]";
       first word.
     rewrite take_app_length'; last lia.

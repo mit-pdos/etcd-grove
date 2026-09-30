@@ -21,7 +21,8 @@ Import P.
   Local Ltac add_store v :=
     try wp_auto;
     iDestruct (own_slice_len with "Hbuf") as %[Hbl2 Hbl2'];
-    rewrite decide_True; last word;
+    let Hdec := fresh "Hdec" in
+    case_decide as Hdec; [clear Hdec | exfalso; apply Hdec; word];
     wp_auto;
     wp_apply (wp_store_slice_index (V:=tracker.inflight.t)
                 (t:=tracker.inflight) _ _ _ v with "[$Hbuf]");

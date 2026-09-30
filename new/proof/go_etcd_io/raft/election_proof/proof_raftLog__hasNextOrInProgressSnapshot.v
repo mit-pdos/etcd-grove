@@ -12,8 +12,7 @@ Module RaftLogHasNextOrInProgressSnapshotProof (P : RAFTLOG__HASNEXTORINPROGRESS
     iEval (rewrite /own_raftLog_core /=) in "Hcore". iNamed "Hcore". wp_auto.
     rewrite Hnosnap bool_decide_eq_true_2 //=.
     iApply ("HΦ" $! false). iSplit; last done.
-    iApply own_raftLog_unfold. iExists lv. rewrite /own_raftLog_core.
-    iFrame "∗#%".
+    iApply (own_raftLog_intro with "Hl HisStorage HStorage Huents Huents_cap"); done.
   Qed.
 
 End RaftLogHasNextOrInProgressSnapshotProof.

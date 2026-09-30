@@ -14,7 +14,7 @@ Module UnstableTruncateAndAppendProof
     (* [ents[0].Index]: hand the element out of the slice for the field load *)
     assert (0 < length ents)%nat as Hne
       by (apply lookup_lt_is_Some_1; eauto).
-    rewrite decide_True; last word.
+    case_decide as Hdec; [clear Hdec | exfalso; apply Hdec; word].
     iDestruct (own_slice_elem_acc 0 e0 es dq ents with "Hes")
       as "[He0 Hesback]"; [ word | exact Hfirst | ].
     wp_auto.

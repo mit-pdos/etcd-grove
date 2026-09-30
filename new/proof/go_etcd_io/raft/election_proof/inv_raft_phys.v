@@ -171,7 +171,9 @@ Proof.
   intros Hid Hterm Hvote Hlead Hstate Hstepfn Houtbox HnoPreVote HnoCheckQuorum
     HnoLearner HnoTransfer Hid_nz HelectionTimeout Hlok Hlogp.
   iIntros "Hr #Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc".
-  rewrite own_raft_phys_unseal /own_raft_phys_def. iExists rv, msgs, msgsAA, lok. iFrame "∗#%".
+  rewrite own_raft_phys_unseal /own_raft_phys_def. iExists rv, msgs, msgsAA, lok.
+  iFrame "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc".
+  iPureIntro. split_and!; done.
 Qed.
 
 (** The progress map in [s] is the tracker's, and so has domain [cfg].  Read
@@ -182,7 +184,8 @@ Proof.
   iIntros "H". iNamed_phys "H".
   iDestruct (own_tracker_progress_map with "Htrk") as "(#Hprs & %Hdom & Htrk)".
   iSplitR; first done.
-  rewrite own_raft_phys_unseal /own_raft_phys_def. iExists rv, msgs, msgsAA, lok. iFrame "∗#%".
+  iApply (own_raft_phys_intro _ _ s with
+    "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done.
 Qed.
 
 (** Changing only the outbox, up to permutation. *)
@@ -191,8 +194,9 @@ Lemma own_raft_phys_outbox r id s (o : list msg.t) :
   own_raft_phys r id s -∗ own_raft_phys r id (s <| nstate.outbox := o |>).
 Proof.
   iIntros (Ho) "H". iNamed_phys "H".
-  rewrite own_raft_phys_unseal /own_raft_phys_def. iExists rv, msgs, msgsAA, lok. simpl. iFrame "∗#%".
-  iPureIntro. by rewrite Ho.
+  iApply (own_raft_phys_intro _ _ (s <| nstate.outbox := o |>) with
+    "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); try done.
+  simpl. by rewrite Ho.
 Qed.
 
 (** Sending nothing, in both directions: an exit that sends nothing proves

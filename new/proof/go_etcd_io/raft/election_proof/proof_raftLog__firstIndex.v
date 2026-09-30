@@ -23,8 +23,7 @@ Import P.
     wp_apply ("HFI" with "HStorage") as "%fi2 [%Hfi HStorage]".
     iApply ("HΦ" $! fi2).
     iSplitL "Hl HStorage Huents Huents_cap".
-    { iApply own_raftLog_unfold. iExists lv. rewrite /own_raftLog_core. rewrite Hstok.
-      iFrame "∗#%". all: (iPureIntro; done). }
+    { iApply (own_raftLog_intro with "Hl HisStorage HStorage Huents Huents_cap"); done. }
     iPureIntro. word.
   Qed.
 

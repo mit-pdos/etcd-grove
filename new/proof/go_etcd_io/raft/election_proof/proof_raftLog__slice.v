@@ -4,13 +4,10 @@ Module RaftLogSliceProof (P : RAFTLOG__SLICE_POSTULATES) : RAFTLOG__SLICE.
 Import P.
 
   (* Re-seal the log at the state it was opened at, from the pieces
-     [iNamed "Hlog"] and [iNamed "Hcore"] named. *)
+     [iNamed "Hlog"] and [iNamed "Hcore"] named.  Not [iFrame "∗#%"] against
+     the unfolded predicate: that was 400s of this file (notes/gotchas.md). *)
   Local Ltac reseal_log :=
-    iApply own_raftLog_unfold; iExists _; iFrame "Hl";
-    rewrite /own_raftLog_core;
-    try (match goal with H : _ = interface.ok _ |- _ => rewrite H end);
-    iFrame "∗#%";
-    try (iPureIntro; done).
+    iApply (own_raftLog_intro with "Hl HisStorage HStorage Huents Huents_cap"); done.
 
   (** The body has three shapes of exit, and the range premise kills every
       error path on the way:
@@ -125,7 +122,9 @@ Import P.
       assert (Hnetake : take nlim es0 ≠ []).
       { intros Hc. assert (length (take nlim es0) = 0)%nat as Hz by (rewrite Hc //).
         rewrite length_take in Hz. lia. }
-      rewrite decide_True; last word.
+      (* not [rewrite decide_True]: its pattern is searched for through the
+         whole remaining program, ~100s here *)
+      case_decide as Hfs; last (exfalso; apply Hfs; word).
       wp_auto.
       iDestruct (own_slice_same_ptr_len s1
                    (slice.full_slice s1 raftpb.Entry.t (W64 0)

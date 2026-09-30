@@ -68,7 +68,7 @@ Import P.
         replace (length sents + length uents - length sents - length uents)%nat
           with 0%nat in Hidx' by lia.
         specialize (Hidx' He0). lia. }
-      rewrite decide_True; last word.
+      case_decide as Hdec; [clear Hdec | exfalso; apply Hdec; word].
       iDestruct (own_slice_elem_acc 0 e0 es dq ents with "Hes")
         as "[He0 Hesback]"; [ word | exact He0 | ].
       wp_auto.
@@ -104,11 +104,7 @@ Import P.
         by (rewrite length_app; lia).
       iAssert (own_raftLog l (logstate.mk prev sents (uents ++ ents) lcm lap))
         with "[Hl HStorage Huents Huents_cap]" as "Hlog".
-      { iApply own_raftLog_unfold.
-        iExists (lv <| raft.raftLog.unstable' :=
-                   lv.(raft.raftLog.unstable')
-                     <| raft.unstable.entries' := sl |> |>).
-        iFrame "Hl". rewrite /own_raftLog_core. simpl. iFrame "∗#%". }
+      { iApply (own_raftLog_intro with "Hl HisStorage HStorage Huents Huents_cap"); done. }
       wp_apply (wp_raftLog__lastIndex _ (logstate.mk prev sents (uents ++ ents) lcm lap)
                   with "[$Hlog]") as "%li [Hlog %Hli]". logstate_simpl.
       iApply ("HΦ" $! li). iFrame.

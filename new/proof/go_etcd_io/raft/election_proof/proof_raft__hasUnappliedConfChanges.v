@@ -89,8 +89,8 @@ Import P.
     iEval (rewrite /own_raftLog_core) in "Hcore". iNamed "Hcore".
     subst lcm lap.
     iDestruct ("Hback" with "[Hl HStorage Huents Huents_cap]") as "Hphys".
-    { rewrite Hls own_raftLog_unfold. iExists lv. rewrite /own_raftLog_core.
-      iFrame "∗#%". done. }
+    { rewrite Hls.
+      iApply (own_raftLog_intro with "Hl HisStorage HStorage Huents Huents_cap"); done. }
     (* each [r.raftLog.f] read: the struct gives the log's location, the
        log (taken out and put back around the one load) the field, whose
        value the log's state pins for [applied]/[committed] *)
@@ -131,11 +131,11 @@ Import P.
         + assert (∃ e, es !! Z.to_nat (sint.Z k) = Some e) as [e He]
             by (apply lookup_lt_is_Some_2; word).
           (* the range construct'sl own read of [ents[j]] *)
-          rewrite decide_True; last word.
+          case_decide as Hdec; [clear Hdec | exfalso; apply Hdec; word].
           wp_apply (wp_load_slice_index (V:=raftpb.Entry.t) (t:=raftpb.Entry)
                       sl (sint.Z k) es dq e with "[$Hes]") as "Hes";
             try first [ word | iPureIntro; exact He | tc_solve | done ].
-          rewrite decide_True; last word.
+          case_decide as Hdec; [clear Hdec | exfalso; apply Hdec; word].
           assert (e.(raftpb.Entry.Type') = EntryNormal) as HeT.
           { rewrite List.Forall_forall in HPes. apply HPes, list_elem_of_In.
             by eapply list_elem_of_lookup_2. }
@@ -146,7 +146,7 @@ Import P.
           wp_auto.
           rewrite HeT /EntryNormal bool_decide_eq_false_2; last w32_ne.
           wp_auto.
-          rewrite decide_True; last word.
+          case_decide as Hdec; [clear Hdec | exfalso; apply Hdec; word].
           wp_auto.
           rewrite HeT /EntryNormal bool_decide_eq_false_2; last w32_ne.
           wp_auto.

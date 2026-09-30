@@ -1795,22 +1795,40 @@ and `opam install rocq-runtime.dev rocq-core.dev rocq-stdlib.dev` *before*
 the `--deps-only` install. `rocq --version` should say `9.4+alpha`. The
 recipe is in STATUS.md, "Working on this".
 
-## `iFrame "%"` and pattern-less `rewrite decide_True` are what make `proof_raftLog__slice.v` slow
+## Re-seal with an `_intro` lemma, and step past a `decide` with `case_decide`
 
-Measured 2026-09-30 with `rocq compile -time` (Rocq master, one run each):
-the file costs ~720 s of tactic time (it ends in `Admitted`, so no `Qed`
-cost), and `word` is **not** the problem — 3.8 s in total. The cost is:
+Measured 2026-09-30 (per-sentence `-time` over all of `election_proof/`).
+Two idioms were ~1,350 s of the election proof's tactic time and most of its
+critical path; both are now replaced, and the replacements are the idiom to
+use:
 
-- `reseal_log`, 406 s over its 8 uses, growing from 30 s to 90 s with the
-  depth of the branch. Split at its first use: `iFrame "∗"` 6 s,
-  `iFrame "#"` 6 s, **`iFrame "%"` 34 s**, everything else 0.2 s. `"%"`
-  tries every Rocq hypothesis against the goal's pure conjuncts, so it
-  gets worse as `assert`s pile up.
-- `rewrite decide_True; last word` (line 128), 70–115 s, of which the
-  `word` is 3 s: the `rewrite` searches the whole remaining WP program for
-  `decide ?P`.
-- `wp_auto`/`wp_if_destruct`/`wp_apply`, 214 s together.
+- **Re-sealing a predicate with `iFrame "∗#%"`** (after `iExists`/unfold)
+  cost 20–90 s per use on `own_raftLog` and ~30 s on `own_tracker`, growing
+  with the number of hypotheses in context. Every frame attempt against a
+  non-matching conjunct is a failed unification, and `"%"` makes one per
+  pure hypothesis per conjunct. `word` was *not* the cost (3.8 s over all of
+  `proof_raftLog__slice.v`). Re-seal instead with the predicate's intro
+  lemma, one `iApply` with named hypotheses and pure side goals:
+  `own_raftLog_intro` (`inv_raftlog.v`), `own_tracker_intro`
+  (`inv_tracker.v`), `own_raft_phys_intro` (`inv_raft_phys.v`, the
+  2026-09-17 original of the pattern). A predicate that gets re-sealed in
+  more than a couple of places should get one.
+- **`rewrite decide_True; last word`** in a WP goal cost up to 240 s
+  (`proof_unstable__truncateAndAppend.v`): the pattern `decide ?P` is
+  searched for through the whole remaining program term. Write
+  `case_decide as Hdec; [clear Hdec | exfalso; apply Hdec; word]` instead
+  (~3 s; the `clear` keeps the context as the `rewrite` left it). **Inside
+  an `Ltac` body** the literal name does not survive hygiene ("Hypothesis
+  Hdec was not found"): bind it, `let Hdec := fresh "Hdec" in case_decide as
+  Hdec; …` (`proof_Inflights__Add.v`'s `add_store`).
 
-Untried fixes: frame the pure facts by name instead of `"%"`, and give
-`decide_True` its proof (or `case_decide`). The same `iFrame "∗#%"` idiom
-is used elsewhere in `election_proof/`.
+Two traps met on the way. `split_and!` also splits `a ≤ b ≤ c` and
+`0 ≤ x < y` into halves no hypothesis states, so closing an intro lemma's
+pure goals with `split_and!; done` fails; use `repeat split; first [done |
+lia]`. And `iFrame "H"` against a goal containing an *unsealed* predicate
+frames `H` inside it too, after which the intro lemma no longer matches the
+goal (`own_tracker_progress_map`): prove that conjunct with `iExact` first.
+
+Not yet addressed: `case_bool_decide` in `proof_Config__validate.v` (~80 s,
+likely the same search), and `newRaft.v:29`/`appliedTo.v:18`/
+`ResetVotes.v:14`, small re-seals of the old shape.

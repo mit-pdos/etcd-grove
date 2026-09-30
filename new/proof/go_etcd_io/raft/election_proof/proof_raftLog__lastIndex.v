@@ -27,14 +27,12 @@ Import P.
       wp_apply ("HLI" with "HStorage") as "%li2 [%Hli HStorage]".
       iApply ("HΦ" $! li2).
       iSplitL "Hl HStorage Huents Huents_cap".
-      { iApply own_raftLog_unfold. iExists lv. rewrite /own_raftLog_core. rewrite Hstok.
-        iFrame "∗#%". all: (iPureIntro; done). }
+      { iApply (own_raftLog_intro with "Hl HisStorage HStorage Huents Huents_cap"); done. }
       iPureIntro. rewrite He /=. lia.
     - destruct (Hok2 Hne) as [Hokt Hli]. rewrite Hokt /=. wp_auto.
       iApply ("HΦ" $! li).
       iSplitL "Hl HStorage Huents Huents_cap".
-      { iApply own_raftLog_unfold. iExists lv. rewrite /own_raftLog_core. rewrite Hstok.
-        iFrame "∗#%". all: (iPureIntro; done). }
+      { iApply (own_raftLog_intro with "Hl HisStorage HStorage Huents Huents_cap"); done. }
       iPureIntro. lia.
   Qed.
 

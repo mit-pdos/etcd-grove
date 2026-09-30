@@ -14,8 +14,8 @@ Import P.
     iNamed "Hown".
     iAssert (own_tracker cfg tv votes prs pvs)
       with "[Hvotes Hprogs Hvoters Hlearners HlearnersNext]" as "Hown".
-    { rewrite /own_tracker. iExists voters_ref, voters, learners, learnersNext.
-      iFrame "∗#%". }
+    { iApply (own_tracker_intro with
+    "Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext"); done. }
     try wp_auto.
     wp_apply (wp_map_len with "Hidm") as "Hidm".
     assert (size idm = size cfg) as Hszidm.

@@ -3912,3 +3912,27 @@ from scratch at `-j24`, all exit 0: election closure 664 files / 63 min;
 All three are critical-path bound (4.5–7.7 cores busy on average out of 24);
 `heapSort.v` (939 s) and `proof_raftLog__slice.v` (865 s) are each compiled
 with nothing else running.
+
+## 2026-09-30 — election proof 21 → 13 min: intro lemmas and `case_decide`
+
+Asked why `proof_raftLog__slice.v` (865 s, on the critical path) is slow and
+whether it is `word`. It is not: per-sentence `-time` put `word` at 3.8 s.
+`reseal_log` (`iFrame "∗#%"`) was 406 s over 8 exits, one
+`rewrite decide_True; last word` 74–119 s (of which `word` 3 s). Fixed there
+first (724 → 270 s alone), then profiled all 412 files with `make TIMING=1`
+to find the same idioms elsewhere (~1,350 s), and converted every site
+costing more than ~10 s:
+
+- new `own_raftLog_intro` (`inv_raftlog.v`) and `own_tracker_intro`
+  (`inv_tracker.v`), on the `own_raft_phys_intro` model; 11 `own_raftLog`
+  and 14 `own_tracker` re-seals now use them, plus the three `iFrame "∗#%"`
+  left in `inv_raft_phys.v`;
+- 20 `rewrite decide_True; last word` → `case_decide as Hdec; [clear Hdec |
+  exfalso; apply Hdec; word]`.
+
+Checked: `election_proof/` rebuilt from scratch at `-j24`, rc 0, 412 files,
+**13:04 wall (was 21:10)**, critical path 653 s (was 1,156 s); `make ci`
+green; `tcb-report` unchanged (14 Axiom, 1 Admitted in `election_proof`);
+module discipline 6 findings, as before the change (STATUS said 5; stale).
+Untouched big files got 10–20% slower in the same build — more of them now
+overlap — so compare wall time, not per-file seconds.

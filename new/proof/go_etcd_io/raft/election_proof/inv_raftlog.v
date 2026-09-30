@@ -202,6 +202,48 @@ Lemma own_raftLog_unfold l prev sents uents cm ap :
         ⌜ lv.(raft.raftLog.applied') = ap ⌝ ∗ own_raftLog_core lv prev sents uents.
 Proof. rewrite /own_raftLog /=. done. Qed.
 
+(** Re-sealing a log a proof has taken apart, as one [iApply] with named
+    hypotheses and pure side goals:
+
+      iApply (own_raftLog_intro with "Hl HisStorage HStorage Huents Huents_cap"); done.
+
+    Unfolding and closing it with [iFrame "∗#%"] instead cost 20-70s per use
+    (2026-09-30 measurement; notes/gotchas.md) -- the same reason
+    [own_raft_phys_intro] exists.  The pure premises are in the order the
+    conjuncts appear in [own_raftLog_core].  [l ↦ lv] comes first so that it
+    fixes [lv].  The storage is a separate [st] because a proof that has done
+    [rewrite Hstok] holds [HisStorage] and [HStorage] at [interface.ok _]
+    rather than at [lv.(storage')]; the first premise is then [Hstok]. *)
+Lemma own_raftLog_intro l prev sents uents cm ap (lv : raft.raftLog.t) st :
+  lv.(raft.raftLog.storage') = st →
+  lv.(raft.raftLog.committed') = cm →
+  lv.(raft.raftLog.applied') = ap →
+  log_indices_ok prev (sents ++ uents) →
+  (uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents)
+   + Z.of_nat (length uents) + 1 < 2^64)%Z →
+  (uint.Z lv.(raft.raftLog.unstable').(raft.unstable.offset')
+   = uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents) + 1)%Z →
+  lv.(raft.raftLog.unstable').(raft.unstable.snapshot') = null →
+  Forall (λ e, e.(raftpb.Entry.Type') = EntryNormal) (sents ++ uents) →
+  (uint.Z prev.(raft.entryID.index') ≤ uint.Z lv.(raft.raftLog.applied')
+   ≤ uint.Z lv.(raft.raftLog.committed'))%Z →
+  (uint.Z lv.(raft.raftLog.committed')
+   ≤ uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents)
+     + Z.of_nat (length uents))%Z →
+  l ↦ lv -∗
+  is_Storage st -∗
+  own_Storage st prev sents -∗
+  lv.(raft.raftLog.unstable').(raft.unstable.entries') ↦*□ uents -∗
+  own_slice_cap raftpb.Entry.t lv.(raft.raftLog.unstable').(raft.unstable.entries')
+    (DfracOwn 1) -∗
+  own_raftLog l (logstate.mk prev sents uents cm ap).
+Proof.
+  intros <- Hcm Hap Hidx Hnowrap Hoffset Hnosnap HnoConfChange Happlied Hcommitted.
+  iIntros "Hl #HisStorage HStorage #Huents Huents_cap".
+  iApply own_raftLog_unfold. iExists lv. iFrame "Hl HisStorage HStorage Huents Huents_cap".
+  iPureIntro. repeat split; first [done | lia].
+Qed.
+
 (** The struct, for a field read.  [committed] and [applied]
     are what the state says they are. *)
 Lemma own_raftLog_struct l ls :

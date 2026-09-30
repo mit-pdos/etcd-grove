@@ -270,6 +270,42 @@ Definition own_tracker (tv : tracker.ProgressTracker.t) (votes : gmap w64 bool)
   "%HmaxInfl" ∷ ⌜ (0 ≤ sint.Z tv.(tracker.ProgressTracker.MaxInflight')
                      < 2 ^ 62)%Z ⌝.
 
+(** Re-sealing a tracker a proof has taken apart, as one [iApply]:
+
+      iApply (own_tracker_intro with
+        "Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext"); done.
+
+    [iExists …; iFrame "∗#%"] against the unfolded predicate cost ~30s per
+    use in a proof body (2026-09-30 measurement; notes/gotchas.md).  The
+    pure premises are in the order the conjuncts appear in [own_tracker]. *)
+Lemma own_tracker_intro (tv : tracker.ProgressTracker.t) (votes : gmap w64 bool)
+    (prs : gmap w64 loc) (pvs : gmap w64 (tracker.Progress.t * tracker.Inflights.t))
+    (voters_ref : loc) (voters learners learnersNext : gmap w64 unit) :
+  dom prs = cfg →
+  array.arr tv.(tracker.ProgressTracker.Config').(tracker.Config.Voters')
+    = [voters_ref; map.nil] →
+  tv.(tracker.ProgressTracker.Config').(tracker.Config.AutoLeave') = false →
+  dom voters = cfg →
+  learners = ∅ ∧ learnersNext = ∅ →
+  Z.of_nat (size cfg) < 2 ^ 63 →
+  (0 ≤ sint.Z tv.(tracker.ProgressTracker.MaxInflight') < 2 ^ 62)%Z →
+  tv.(tracker.ProgressTracker.Votes') ↦$ votes -∗
+  tv.(tracker.ProgressTracker.Progress') ↦$□ prs -∗
+  ([∗ map] pr; v ∈ prs; pvs, own_progress pr v.1 v.2) -∗
+  voters_ref ↦$ voters -∗
+  own_idset_opt tv.(tracker.ProgressTracker.Config').(tracker.Config.Learners')
+    learners -∗
+  own_idset_opt tv.(tracker.ProgressTracker.Config').(tracker.Config.LearnersNext')
+    learnersNext -∗
+  own_tracker tv votes prs pvs.
+Proof using All.
+  intros Hprs_dom Hvoters_arr Hautoleave Hvoters_dom [Hl1 Hl2] Hcfg_size HmaxInfl.
+  iIntros "Hvotes #Hprs Hprogs Hvoters Hlearners HlearnersNext".
+  rewrite /own_tracker. iExists voters_ref, voters, learners, learnersNext.
+  iFrame "Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext".
+  iPureIntro. repeat split; first [done | lia].
+Qed.
+
 
 (** *** Pure facts about the quorum vocabulary
 
@@ -528,8 +564,8 @@ Lemma own_tracker_maxinflight tv votes prs pvs :
 Proof using All.
   iIntros "Hown". iNamed "Hown".
   iSplitR; first (iPureIntro; exact HmaxInfl).
-  rewrite /own_tracker. iExists voters_ref, voters, learners, learnersNext.
-  iFrame "∗#%".
+  iApply (own_tracker_intro with
+    "Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext"); done.
 Qed.
 
 (** Borrow one voter's [Progress] out of the tracker, by its key in the
@@ -552,9 +588,8 @@ Proof using All.
   iIntros (pv' iv') "Hp".
   iDestruct ("Hback" $! pr (pv', iv') with "Hp") as "Hprogs".
   rewrite (insert_id prs i pr) //.
-  rewrite /own_tracker.
-  iExists voters_ref, voters, learners, learnersNext.
-  iFrame "∗#%".
+  iApply (own_tracker_intro with
+    "Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext"); done.
 Qed.
 
 (** The same, given back at the value it was borrowed at. *)
@@ -580,8 +615,8 @@ Proof using All.
   iIntros "Hown". iNamed "Hown".
   iDestruct (big_sepM2_dom with "Hprogs") as %Hd.
   iSplitR; first done.
-  rewrite /own_tracker. iExists voters_ref, voters, learners, learnersNext.
-  iFrame "∗#%".
+  iApply (own_tracker_intro with
+    "Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext"); done.
 Qed.
 
 (** Read the progress map's points-to and domain out of the tracker without
@@ -592,9 +627,11 @@ Lemma own_tracker_progress_map tv votes prs pvs :
   own_tracker tv votes prs pvs.
 Proof using All.
   iIntros "Hown". iNamed "Hown".
-  iFrame "Hprs". iSplitR; first (iPureIntro; exact Hprs_dom).
-  rewrite /own_tracker. iExists voters_ref, voters, learners, learnersNext.
-  iFrame "∗#%".
+  (* not [iFrame "Hprs"]: it would also frame the copy inside the unsealed
+     [own_tracker], and [own_tracker_intro] would then no longer apply *)
+  iSplitR; first iExact "Hprs". iSplitR; first (iPureIntro; exact Hprs_dom).
+  iApply (own_tracker_intro with
+    "Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext"); done.
 Qed.
 
 (** [trk.Progress[i]], for a voter [i]: [becomeLeader] looks up [r.id].

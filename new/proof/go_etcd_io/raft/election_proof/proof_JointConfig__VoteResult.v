@@ -57,22 +57,22 @@ Import P.
     case_bool_decide as Hcmp; last (destruct (Hcmp eq_refl)). wp_auto.
     iApply ("HΦ" $! VoteWon). iFrame "Htrk".
     iSplitL "Hvotes Hprogs Hvoters Hlearners HlearnersNext".
-    { rewrite /own_tracker.
-      iExists voters_ref, voters', learners, learnersNext. iFrame "∗#%". }
+    { iApply (own_tracker_intro with
+    "Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext"); done. }
     iPureIntro. split_and!; [ by left | by apply Hwon1 | by apply Hlost1 ].
   - (* [r1] lost, [r2] won: the second test fires on [r1] *)
     case_bool_decide as Hcmp; first (w8_absurd Hcmp). wp_auto.
     iApply ("HΦ" $! VoteLost). iFrame "Htrk".
     iSplitL "Hvotes Hprogs Hvoters Hlearners HlearnersNext".
-    { rewrite /own_tracker.
-      iExists voters_ref, voters', learners, learnersNext. iFrame "∗#%". }
+    { iApply (own_tracker_intro with
+    "Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext"); done. }
     iPureIntro. split_and!; [ by right; left | by apply Hwon1 | by apply Hlost1 ].
   - (* [r1] still pending: neither test fires *)
     case_bool_decide as Hcmp; first (w8_absurd Hcmp). wp_auto.
     iApply ("HΦ" $! VotePending). iFrame "Htrk".
     iSplitL "Hvotes Hprogs Hvoters Hlearners HlearnersNext".
-    { rewrite /own_tracker.
-      iExists voters_ref, voters', learners, learnersNext. iFrame "∗#%". }
+    { iApply (own_tracker_intro with
+    "Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext"); done. }
     iPureIntro.
     split_and!; [ by right; right | by apply Hwon1 | by apply Hlost1 ].
   Qed.

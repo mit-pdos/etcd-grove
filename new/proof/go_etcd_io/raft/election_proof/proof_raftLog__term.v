@@ -58,8 +58,7 @@ Import P.
       wp_auto.
       iApply ("HΦ" $! t interface.nil).
       iSplitL; last (iPureIntro; split; [intros _; lia | done]).
-      iApply own_raftLog_unfold. iExists lv. rewrite /own_raftLog_core. rewrite Hstok.
-      iFrame "∗#%". all: (iPureIntro; done).
+      iApply (own_raftLog_intro with "Hl HisStorage HStorage Huents Huents_cap"); done.
     - assert (Hnotin : ¬ (uint.Z lv.(raft.raftLog.unstable').(raft.unstable.offset')
                           ≤ uint.Z i <
                           uint.Z lv.(raft.raftLog.unstable').(raft.unstable.offset')
@@ -68,8 +67,7 @@ Import P.
       wp_auto.
       iAssert (own_raftLog l (logstate.mk prev sents uents lcm lap))
         with "[Hl HStorage Huents Huents_cap]" as "Hlog".
-      { iApply own_raftLog_unfold. iExists lv. rewrite /own_raftLog_core. rewrite Hstok.
-        iFrame "∗#%". all: (iPureIntro; done). }
+      { iApply (own_raftLog_intro with "Hl HisStorage HStorage Huents Huents_cap"); done. }
       wp_apply (wp_raftLog__firstIndex _ (logstate.mk prev sents uents lcm lap) with "[$Hlog]") as "%fi [Hlog %Hfi]". logstate_simpl.
       destruct (bool_decide (uint.Z (word.add i (W64 1)) < uint.Z fi)%Z) eqn:Hb1.
       + (* below the compaction boundary: [ErrCompacted] *)
@@ -110,8 +108,7 @@ Import P.
           wp_auto.
           iApply ("HΦ" $! t2 interface.nil).
           iSplitL; last (iPureIntro; split; [intros _; lia | done]).
-          iApply own_raftLog_unfold. iExists lv. rewrite /own_raftLog_core. rewrite Hstok.
-          iFrame "∗#%". all: (iPureIntro; done).
+          iApply (own_raftLog_intro with "Hl HisStorage HStorage Huents Huents_cap"); done.
   Qed.
 
 End RaftLogTermProof.
