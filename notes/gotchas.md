@@ -1794,3 +1794,23 @@ silently downgrades `rocq-stdlib` to 9.1.0. To get master, add
 and `opam install rocq-runtime.dev rocq-core.dev rocq-stdlib.dev` *before*
 the `--deps-only` install. `rocq --version` should say `9.4+alpha`. The
 recipe is in STATUS.md, "Working on this".
+
+## `iFrame "%"` and pattern-less `rewrite decide_True` are what make `proof_raftLog__slice.v` slow
+
+Measured 2026-09-30 with `rocq compile -time` (Rocq master, one run each):
+the file costs ~720 s of tactic time (it ends in `Admitted`, so no `Qed`
+cost), and `word` is **not** the problem — 3.8 s in total. The cost is:
+
+- `reseal_log`, 406 s over its 8 uses, growing from 30 s to 90 s with the
+  depth of the branch. Split at its first use: `iFrame "∗"` 6 s,
+  `iFrame "#"` 6 s, **`iFrame "%"` 34 s**, everything else 0.2 s. `"%"`
+  tries every Rocq hypothesis against the goal's pure conjuncts, so it
+  gets worse as `assert`s pile up.
+- `rewrite decide_True; last word` (line 128), 70–115 s, of which the
+  `word` is 3 s: the `rewrite` searches the whole remaining WP program for
+  `decide ?P`.
+- `wp_auto`/`wp_if_destruct`/`wp_apply`, 214 s together.
+
+Untried fixes: frame the pure facts by name instead of `"%"`, and give
+`decide_True` its proof (or `case_decide`). The same `iFrame "∗#%"` idiom
+is used elsewhere in `election_proof/`.
