@@ -1782,3 +1782,15 @@ Writing a triple for a *single* heap access (the field lemmas themselves):
   fraction. So a lemma that turns fresh, fully-owned elements into
   `↦*{dq}` needs `✓dq` as a premise, even though the caller "owns" `s`:
   `wp_slice_append_dfrac` takes `⌜✓dq_s⌝` for this reason.
+
+## `opam install --deps-only` lands stable Rocq unless `core-dev` is added
+
+Found 2026-09-30, setting up a fresh machine. `perennial.opam` accepts
+`rocq-runtime` `>= 9.1 & < 9.3~ | = dev`, so with only the `rocq-released`
+repo opam resolves to **9.2.0**, not the 9.4+alpha this tree is developed
+against — and the `coq-record-update` pin (`rocq-stdlib < 9.2 | = dev`) then
+silently downgrades `rocq-stdlib` to 9.1.0. To get master, add
+`opam repo add --all-switches core-dev https://rocq-prover.org/opam/core-dev`
+and `opam install rocq-runtime.dev rocq-core.dev rocq-stdlib.dev` *before*
+the `--deps-only` install. `rocq --version` should say `9.4+alpha`. The
+recipe is in STATUS.md, "Working on this".

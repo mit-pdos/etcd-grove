@@ -1,6 +1,6 @@
 # Status
 
-**Last updated:** 2026-09-29
+**Last updated:** 2026-09-30
 
 This file is a snapshot of where the proof *is*. It carries no history: how
 something got this way is in [journal.md](journal.md), why a design was
@@ -409,14 +409,46 @@ For a file low in the dependency graph, `make <file>.vok` can beat rocq-warm
 outright — `election_proof/protocol.v` sits directly on `proof_prelude` and checks
 in 3–5s.
 
-**On a machine with no Rocq**, budget ~1.5h before you can check anything:
-`opam switch create perennial 5.2.1`, `opam pin add -n .`,
-`opam install --deps-only ./perennial.opam` (→ Rocq 9.4+alpha), then
-`make -j8 TIMED=false new/proof/go_etcd_io/raft/election_proof/election.required_vos`
-for the `vos` closure. **Check `opam switch list` first**: on the machine
-this repo is usually worked on, Rocq is installed in the `perennial` switch
-but not on a fresh shell's `PATH` — `eval "$(opam env --switch=perennial
---set-switch)"` (gotchas.md).
+**On a machine with no Rocq**, budget ~16 min for the toolchain and ~1h
+for a first `vo` build (measured 2026-09-30 on 24 cores; see below):
+
+    sudo apt install opam build-essential m4 pkg-config libgmp-dev bubblewrap
+    opam init --bare --disable-sandboxing
+    opam repo add --all-switches rocq-released https://rocq-prover.org/opam/released
+    opam repo add --all-switches core-dev https://rocq-prover.org/opam/core-dev
+    opam switch create perennial ocaml-base-compiler.5.4.1
+    eval "$(opam env --switch=perennial --set-switch)"
+    opam install rocq-runtime.dev rocq-core.dev rocq-stdlib.dev
+    opam pin add -n . && opam install --deps-only ./perennial.opam
+
+The `core-dev` repo is what gives Rocq master (9.4+alpha), the version this
+tree is developed against; without it opam picks stable 9.2.0 (gotchas.md).
+Go 1.26.0 (CI's pin, for Goose) goes in `/usr/local/go`; `ruff` via
+`uv tool install ruff==0.16.5`; rocq-warm per gotchas.md. **Check `opam
+switch list` first**: on the machine this repo is usually worked on, Rocq is
+installed in the `perennial` switch but not on a fresh shell's `PATH` —
+`eval "$(opam env --switch=perennial --set-switch)"` (gotchas.md).
+
+**Build times**, from scratch, `make -j24` on a 24-core / 94 GB box, Rocq
+master `7751ff3ea`, tree at `e5bb0dc33` (2026-09-30):
+
+| what | files | wall | CPU | avg cores |
+|---|---|---|---|---|
+| opam deps: OCaml 5.4.1 / Rocq core / stdlib / the five pins | — | 161 + 120 + 240 + 449 s ≈ 16 min | — | — |
+| `election_proof/election.vo` and its whole closure, clean | 664 | 63 min | 4.7 h | 4.5 |
+| `election_proof/` alone, everything below it built | 412 | 21 min | 2.7 h | 7.7 |
+| `make ci` (`new/should_build.vo`), clean | 872 | 65 min | 6.0 h | 5.5 |
+
+More cores would not help much: the builds are bound by their critical
+paths, not by CPU. `make ci`'s is 3,738 s over 60 files, and five files are
+most of it — `slices_proof/pdqSort/heapSort.v` (939 s, compiled alone while
+everything waits), `election_proof/proof_raftLog__slice.v` (865 s),
+`chan/au_spec/chan_au_recv.v` (289 s), `golang/theory/slice.v` (246 s) and
+`election_proof/inv_raft_phys.v` (219 s). Of the 21 minutes the election
+proof takes alone, 19.3 are its critical path
+`inv_raft_phys.v` → `proof_raftLog__slice.v` → … → `election.v`; splitting
+`proof_raftLog__slice.v` is the one change that would shorten it. Peak RSS of
+any single `rocq compile` was 3.9 GB. `rocq dep` on the whole tree: 2 s.
 
 **Memory.** `proof_raft__Step.v` and its helpers are the expensive part of
 the tree; four at once peak around 8 GB, so `-j4` is the most a 15 GB box

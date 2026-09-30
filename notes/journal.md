@@ -3893,3 +3893,22 @@ Checked: `make -k -j4 ci` exit 0, 431 files compiled, `new/should_build.vo`
 built -- the first full `vo` build of the raft proof since 2026-09-17.
 `tcb-report --proof-root …/election_proof`: 14 Axiom, 1 Admitted, 273 Qed
 (unchanged); `--proof-root …/raft`: 27 Axiom, 8 Admitted, 291 Qed.
+
+## 2026-09-30 — fresh-machine toolchain, and measured build times
+
+A new 24-core / 94 GB Ubuntu 26.04 box had nothing on it. Installed opam
+2.5.0, a `perennial` switch (OCaml 5.4.1, Rocq master `7751ff3ea`, stdlib
+dev `cdd77d8c6`, the five pins), Go 1.26.0 in `/usr/local/go`, uv 0.9.11,
+ruff 0.16.5, and the upamanyus `rocq-warm` in `~/rocq-warm` (symlinked into
+`~/.local/bin`, `ROCQ_WARM_MAX_SESSION_GB=32`). `~/.profile` puts all of it
+on `PATH` and evals the switch. The exact recipe and the timing table are in
+STATUS.md, "Working on this"; the stable-Rocq trap is in gotchas.md.
+
+A first attempt on stable Rocq 9.2.0 and a second on master both stopped at
+`chan/au_spec/chan_au_{recv,send}.v` ("No applicable tactic") — the `done`
+override, fixed on main by d2a852f94/3e8d16fa2. At e5bb0dc33, three builds
+from scratch at `-j24`, all exit 0: election closure 664 files / 63 min;
+`election_proof/` alone 412 files / 21 min; `make ci` 872 files / 65 min.
+All three are critical-path bound (4.5–7.7 cores busy on average out of 24);
+`heapSort.v` (939 s) and `proof_raftLog__slice.v` (865 s) are each compiled
+with nothing else running.
