@@ -20,8 +20,36 @@ A: For deterministic tests, not for correctness. Go randomises map
    sortedness. That is why the spec's postcondition can be permutation-only.
 
 - spec_MajorityConfig__Slice.v
+  Same sorting note as above; nothing to do.
+
 - spec_Progress__ResetState.v
+  + TODO: Define a new record that represents the pure abstraction of the
+    Progress struct; the records in the goose output and in generatedproof
+    aren't always the right abstraction for a proof to use. For instance, this
+    is the case with the `raft` struct, because of slices and pointer-indirection.
+    Basically, in the case of Progress, there should be a new `Progress.t`
+    record that has the contents of a Inflights record. The Inflights record should be
+    written to be as abstract as possible while enabling specs for the public
+    methods in inflights.go. There are also some private Inflights methods:
+    these might require some notion of `own_Inflights` that's private and more
+    detailed than the public `own_Inflights`; e.g., to track the buffer length.
+
+  + TODO: rename to "own_Progress" instead of "own_progress" to match the case
+    of the Go type. This should be done consistently for all predicate names so
+    it's easy to correlate Rocq definitions with the corresponding
+    definitions/concepts in Go.
+- spec_Progress__BecomeSnapshot.v
+- spec_Progress__SentCommit.v
+- spec_Progress__IsPaused.v
+- spec_Progress__BecomeReplicate.v
+- spec_Progress__SentEntries.v
+
 - spec_Inflights__reset.v
+- spec_Inflights__grow.v
+- spec_Inflights__Full.v
+- spec_Inflights__Add.v
+  TODO: in the proof, figure out why `add_store` needs the value being appended as an argument.
+
 - spec_lockedRand__Intn.v
 - spec_newReadOnly.v
 - spec_raft__send.v
@@ -40,11 +68,8 @@ A: For deterministic tests, not for correctness. Go randomises map
 - spec_raftLog__append.v
 - spec_Config__validate.v
 - spec_raft__becomeCandidate.v
-- spec_Progress__IsPaused.v
 - spec_unstable__truncateAndAppend.v
 - spec_raft__switchToConfig.v
-- spec_Progress__BecomeReplicate.v
-- spec_Progress__SentEntries.v
 - spec_stepFollower_MsgVoteResp.v
 - spec_raftLog__scan.v
 - spec_tracker_NewInflights.v
@@ -63,10 +88,8 @@ A: For deterministic tests, not for correctness. Go randomises map
 - spec_assertConfStatesEquivalent.v
 - spec_raft__bcastAppend.v
 - spec_newLogWithSize.v
-- spec_Inflights__Full.v
 - spec_ProgressTracker__VoterNodes.v
 - spec_JointConfig__VoteResult.v
-- spec_Inflights__Add.v
 - spec_raft__poll.v
 - spec_raft__becomeFollower.v
 - spec_unstable__mustCheckOutOfBounds.v
@@ -82,7 +105,6 @@ A: For deterministic tests, not for correctness. Go randomises map
 - spec_raft__appendEntry.v
 - spec_IsEmptySnap.v
 - spec_raftLog__snapshot.v
-- spec_Progress__SentCommit.v
 - spec_raftLog__isUpToDate.v
 - spec_raftLog__entries.v
 - spec_raft__hasUnappliedConfChanges.v
@@ -96,13 +118,11 @@ A: For deterministic tests, not for correctness. Go randomises map
 - spec_raftLog__mustCheckOutOfBounds.v
 - spec_stepLeader_MsgVoteResp.v
 - spec_big_NewInt.v
-- spec_Inflights__grow.v
 - spec_MakeProgressTracker.v
 - spec_fmt_Sprintf.v
 - spec_confchange_Restore.v
 - spec_ProgressTracker__ConfState.v
 - spec_entsSize.v
-- spec_Progress__BecomeSnapshot.v
 - spec_ProgressTracker__RecordVote.v
 - spec_rand_Int.v
 - spec_IsLocalMsgTarget.v

@@ -3,6 +3,14 @@ AI assistants should never edit manual-notes.txt under any circumstances.
 - Q: Are there other slices that are unprotected like unstable.slice() is
   protected by slicing the capacity?
 
+- Need to more carefully create examples of the good physical abstractions
+  (own_raft_phys, own_progress). Better yet: find the criteria for evaluating
+  these things. E.g., why was own_progress no good?
+
+- Fast proof checker specialized for raft in the style of bootstrap-go checker.
+
+--------------------------------------------------------------------------------
+
 - VoteResult() -> VoteLost does NOT mean that a quorum of no has been reached;
   it could be 2 no's out of 4 servers (or it could be only one of the two
   majorities in joint consensus.)
