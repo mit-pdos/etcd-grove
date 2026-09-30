@@ -4,6 +4,7 @@ From iris.proofmode Require Import proofmode.
 From Coq Require Import ssreflect.
 From coqutil.Word Require Import Interface Properties.
 From Perennial.Helpers.Word Require Import Integers.
+From Perennial.Helpers.Word Require Export ZifyWord.  (* [Add Zify] is import-scoped *)
 Set Default Proof Mode "Classic".
 
 (** User's guide to the [word] tactic.
@@ -34,9 +35,23 @@ Set Default Proof Mode "Classic".
 
 (** Developer's guide to the [word] tactic.
 
-    At a high-level, [word] rewrites everything it can to involve arithmetic
+    [word] has a fast path and a fallback, chosen by [solve_unsafe_dispatch].
+  The fast path unfolds [w64]/[W64] and friends, then lets [zify] translate the goal to [Z]
+  in one pass using the instances in ZifyWord.v (which cover [uint.Z],
+  [sint.Z], [word.of_Z], [add], [sub], [mul], [opp], the bitwise operations
+  and word equality, for the four concrete widths), and calls [lia]. A word
+  operation [zify] does not know -- a shift, a division, a modulus, a power
+  with a non-numeral exponent, any operation on a word of generic width, or
+  a word operation inside a boolean equation -- sends the goal to the fallback
+  ([solve_unsafe_rewrite]), which is the older rewriting pipeline described
+  below; the choice is made up front, by a syntactic scan of the context. A
+  word term under an opaque constructor or function (say [NotLocked (W32 0) =
+  NotLocked r]) is left alone by both paths, as it always was. The fallback is
+  also what [word with tac] and [normalize] use.
+
+    The fallback rewrites everything it can to involve arithmetic
   in [Z] (as opposed to operations on [word]), then it invokes [lia]. In more detail,
-  the steps [word] tactic takes are:
+  the steps it takes are:
   - Unfold types like [w64] to expose the underlying [word.rep ...] type.
     The remaining steps work with arbitrary [word] types, rather than
     hard-coding [w64], [w32], etc.
@@ -352,6 +367,109 @@ Ltac2 add_range_facts () :=
            end
   ).
 
+(* Does some subterm of [c] satisfy [p]? *)
+Ltac2 rec constr_exists (p : constr -> bool) (c : constr) : bool :=
+  if p c then true
+  else
+    let found := Ref.ref false in
+    Constr.Unsafe.iter
+      (fun c' => if Ref.get found then () else Ref.set found (constr_exists p c')) c;
+    Ref.get found.
+
+Ltac2 is_Z_numeral (c : constr) : bool :=
+  lazy_match! c with
+  | Z0 => true
+  | Zpos _ => true
+  | Zneg _ => true
+  | _ => false
+  end.
+
+
+(* Evaluating closed constants, before the dispatch (so before either path). [uint.Z (W64 48)], [2^(64-1)],
+   [uint.Z (word.add (W64 1) (W64 2))] are closed terms; [vm_compute]
+   evaluates them (the word instances are [Opaque] to [unfold] and friends,
+   but not to [vm_compute]), and the goal is easier with the numeral in their
+   place: [lia] does not evaluate a power with a non-numeral exponent, and
+   [zify] never enters a boolean equation, so a word term there gets no
+   facts unless it is already a number. Every maximal closed subterm headed
+   by [unsigned], [signed] or a [Z] operator is replaced by its value; the
+   replacement is proved by [vm_compute; reflexivity].
+
+   The guard is syntactic and runs before any evaluation: a term is evaluated
+   only if it is built from numerals, [Z] operators, the word operators and
+   the four concrete instances, nothing else. "No free variables" is not
+   enough: a term with an axiom or a Qed-opaque constant in it (a [sealed]
+   definition, say) is stuck, [vm_compute] grinds through the instance's
+   range proofs around it -- minutes and gigabytes, observed -- and what
+   comes out would put the instance's internals ([Naive.mk] and friends,
+   which it is meant to hide) into the goal. [Z.of_nat] is deliberately not
+   an operator here: a closed [Z.of_nat (2^64)%nat] would have [vm_compute]
+   build a unary number. The value is also checked to be a numeral, as a
+   second line of defence. *)
+Ltac2 is_computable_atom (c : constr) : bool :=
+  List.exist (fun k => Constr.equal c k)
+    ['w64_word_instance; 'w32_word_instance; 'w16_word_instance; 'w8_word_instance;
+     'W64; 'W32; 'W16; 'W8;
+     '(@unsigned); '(@signed); '(@of_Z); '(@Interface.word.add); '(@Interface.word.sub);
+     '(@Interface.word.mul); '(@Interface.word.opp); '(@Interface.word.or);
+     '(@Interface.word.and); '(@Interface.word.xor); '(@Interface.word.not);
+     '(@Interface.word.ndn);
+     '(@Z.add); '(@Z.sub); '(@Z.mul); '(@Z.opp); '(@Z.pow); '(@Z.modulo); '(@Z.div);
+     '(@Z.quot); '(@Z.rem); '(@Z.max); '(@Z.min); '(@Z.abs)].
+
+(* Built from the atoms above, constructors (numerals) and nothing else:
+   [vm_compute] on such a term terminates quickly and yields a numeral. *)
+Ltac2 rec is_computable (c : constr) : bool :=
+  match Constr.Unsafe.kind c with
+  | Constr.Unsafe.App h args =>
+      Bool.and (is_computable h) (Array.for_all is_computable args)
+  | Constr.Unsafe.Constructor _ _ => true
+  | Constr.Unsafe.Constant _ _ => is_computable_atom c
+  | _ => false
+  end.
+
+Ltac2 is_computable_head (h : constr) : bool :=
+  List.exist (fun k => Constr.equal h k)
+    ['(@unsigned); '(@signed); '(@Z.add); '(@Z.sub); '(@Z.mul); '(@Z.opp);
+     '(@Z.pow); '(@Z.modulo); '(@Z.div); '(@Z.quot); '(@Z.rem);
+     '(@Z.max); '(@Z.min); '(@Z.abs)].
+
+(* A maximal computable, non-numeral subterm of [c] with a computable head, if any.
+   [constr_exists] tests a term before its subterms, which gives maximality. *)
+Ltac2 find_computable (c : constr) : constr option :=
+  let found := Ref.ref None in
+  let _ := constr_exists (fun sub =>
+    match Constr.Unsafe.kind sub with
+    | Constr.Unsafe.App h _ =>
+        if Bool.and (is_computable_head h)
+             (Bool.and (Bool.neg (is_Z_numeral sub)) (is_computable sub))
+        then (Ref.set found (Some sub); true)
+        else false
+    | _ => false
+    end) c in
+  Ref.get found.
+
+Ltac2 rec compute_closed_constants_in (h : ident) : unit :=
+  match find_computable (Constr.type (Control.hyp h)) with
+  | None => ()
+  | Some occ =>
+      let v := Std.eval_vm None occ in
+      if Bool.neg (is_Z_numeral v) then ()   (* stuck: leave it alone *)
+      else (
+        ltac1:(occ v h |- replace occ with v in h by (vm_compute; reflexivity))
+          (Ltac1.of_constr occ) (Ltac1.of_constr v) (Ltac1.of_ident h);
+        compute_closed_constants_in h)
+  end.
+
+Ltac2 compute_closed_constants () : unit :=
+  List.iter (fun h => let (h, _, _) := h in compute_closed_constants_in h) (Control.hyps ()).
+
+(* [normalize] is the old pipeline, unchanged: proofs call it directly and
+   then work on the exact shapes it produces ([sync_proof/waitgroup.v] does
+   [set (x1 := 2 ^ (32 `mod` 2 ^ 64)) in *] after it), so nothing may be
+   added here. [compute_closed_constants] runs in [solve_unsafe_dispatch]
+   before either branch is chosen, which also covers the fallback when it is
+   reached through [word]. *)
 Ltac2 normalize tac :=
   handle_goal noop_logger;
   unfold_w_whatever ();
@@ -362,13 +480,145 @@ Ltac2 normalize tac :=
   simplify_Z_constants () (* FIXME: should probably simplify Z constants after zify *)
 .
 
+(** The rewriting pipeline: normalize by rewriting, then [lia]. This is the
+    fallback branch of [solve_unsafe_dispatch] below, and what [solve_unsafe_with] uses. *)
+Ltac2 solve_unsafe_rewrite () :=
+  normalize (fun () => ());
+  set_all ();
+  ltac1:(zify; Z.div_mod_to_equations);
+  subst_all ();
+  ltac1:(lia).
+
+(** Syntactic checks on the hypotheses (after [handle_goal] the goal is
+    [False]), used to pick the path. Each is a single scan of the context. *)
+
+(* Operations whose elimination has a side condition; ZifyWord.v has no
+   instance for them. *)
+Ltac2 has_side_goal_ops () : bool :=
+  lazy_match! goal with
+  | [ _ : context [ slu _ _ ] |- _ ] => true
+  | [ _ : context [ sru _ _ ] |- _ ] => true
+  | [ _ : context [ srs _ _ ] |- _ ] => true
+  | [ _ : context [ divu _ _ ] |- _ ] => true
+  | [ _ : context [ divs _ _ ] |- _ ] => true
+  | [ _ : context [ modu _ _ ] |- _ ] => true
+  | [ _ : context [ mods _ _ ] |- _ ] => true
+  | [ |- _ ] => false
+  end.
+
+(* Divisions [zify] leaves as atoms; they need [Z.div_mod_to_equations]. The
+   wraps ZifyWord.v itself introduces carry their own equations. *)
+Ltac2 has_div_mod () : bool :=
+  lazy_match! goal with
+  | [ _ : context [ Z.modulo _ _ ] |- _ ] => true
+  | [ _ : context [ Z.div _ _ ] |- _ ] => true
+  | [ _ : context [ Z.quot _ _ ] |- _ ] => true
+  | [ _ : context [ Z.rem _ _ ] |- _ ] => true
+  | [ _ : context [ Nat.div _ _ ] |- _ ] => true
+  | [ _ : context [ Nat.modulo _ _ ] |- _ ] => true
+  | [ _ : context [ N.div _ _ ] |- _ ] => true
+  | [ _ : context [ N.modulo _ _ ] |- _ ] => true
+  | [ _ : context [ wrap _ ] |- _ ] => true
+  | [ _ : context [ swrap _ ] |- _ ] => true
+  | [ |- _ ] => false
+  end.
+
+(* [lia] evaluates [2^32] but not [2^(32-1)] or [2^(uint.Z (W64 48))]: a
+   power whose exponent is not a numeral is an opaque atom to it. The
+   rewriting pipeline evaluates such exponents ([simplify_Z_constants]), so a
+   goal with one goes there. *)
+Ltac2 is_nonliteral_pow (c : constr) : bool :=
+  match Constr.Unsafe.kind c with
+  | Constr.Unsafe.App h args =>
+      if Bool.and (Constr.equal h '(@Z.pow)) (Int.equal (Array.length args) 2)
+      then Bool.neg (is_Z_numeral (Array.get args 1))
+      else false
+  | _ => false
+  end.
+
+Ltac2 has_nonliteral_pow () : bool :=
+  List.exist (fun h => let (_, _, t) := h in constr_exists is_nonliteral_pow t)
+    (Control.hyps ()).
+
+(* A word whose instance is not one of the four concrete ones (a Section
+   variable [word : Interface.word width], say): ZifyWord.v has no instances
+   for it, and [zify] would leave its equalities and ranges alone. *)
+Ltac2 is_generic_word_type (c : constr) : bool :=
+  match Constr.Unsafe.kind c with
+  | Constr.Unsafe.App h args =>
+      if Bool.and (Constr.equal h '(@rep)) (Int.equal (Array.length args) 2) then
+        let inst := Array.get args 1 in
+        Bool.neg (List.exist (fun k => Constr.equal inst k)
+          ['w64_word_instance; 'w32_word_instance; 'w16_word_instance; 'w8_word_instance])
+      else false
+  | _ => false
+  end.
+
+Ltac2 has_generic_word () : bool :=
+  List.exist (fun h => let (_, _, t) := h in constr_exists is_generic_word_type t)
+    (Control.hyps ()).
+
+(* [zify] does not translate a boolean equation (ZifyBool is not loaded),
+   so a word operation inside one, [(uint.Z (word.add x y) <? 200) = true]
+   say, would stay an atom without its wrap-around facts. The rewriting
+   pipeline rewrites under any context, so such goals go there. *)
+Ltac2 is_word_op_term (c : constr) : bool :=
+  match Constr.Unsafe.kind c with
+  | Constr.Unsafe.App f _ =>
+      List.exist (fun k => Constr.equal f k)
+        ['(@unsigned); '(@signed); '(@of_Z); '(@Interface.word.add); '(@Interface.word.sub);
+         '(@Interface.word.mul); '(@Interface.word.opp); '(@Interface.word.or);
+         '(@Interface.word.and); '(@Interface.word.xor); '(@Interface.word.not);
+         '(@Interface.word.ndn)]
+  | _ => false
+  end.
+
+Ltac2 is_bool_eq_with_word (c : constr) : bool :=
+  match Constr.Unsafe.kind c with
+  | Constr.Unsafe.App f args =>
+      if Bool.and (Constr.equal f '(@eq)) (Int.equal (Array.length args) 3) then
+        if Constr.equal (Array.get args 0) 'bool then
+          Bool.or (constr_exists is_word_op_term (Array.get args 1))
+                  (constr_exists is_word_op_term (Array.get args 2))
+        else false
+      else false
+  | _ => false
+  end.
+
+Ltac2 has_bool_eq_with_word () : bool :=
+  List.exist (fun h => let (_, _, t) := h in constr_exists is_bool_eq_with_word t)
+    (Control.hyps ()).
+
+(** The top-level solver: a little normalization, then the syntactic checks
+    above pick the branch -- [zify; lia], the fast path, or the rewriting
+    pipeline. Everything before the branch is a constant number of cheap
+    passes over the context; [zify] is one OCaml traversal. *)
+Ltac2 solve_unsafe_dispatch () :=
+  handle_goal noop_logger;
+  unfold_w_whatever ();
+  let divmod := has_div_mod () in
+  (* [swrap] unfolds to a [2^(width-1)], so unfold before looking for
+     non-numeral exponents; and evaluate closed constants first, so that a
+     [2^uint.Z (W64 48)] or a [2^(64-1)] becomes a numeral power. *)
+  unfold_word_wrap ();
+  compute_closed_constants ();
+  if Bool.or (has_side_goal_ops ())
+       (Bool.or (has_generic_word ()) (Bool.or (has_nonliteral_pow ()) (has_bool_eq_with_word ())))
+  then solve_unsafe_rewrite ()
+  else
+    (* [set_all]/[subst_all] as in the rewriting pipeline: big literals are
+       abstracted while [zify] and [Z.div_mod_to_equations] run and put back
+       for [lia]. Without this, a goal with a few nested [mod]s by [2^32] and
+       [2^64] ([sync_proof/waitgroup.v]'s [enc_get_wait]) does not finish
+       -- 50 minutes and 34 GB, observed -- and finishes in 30 ms with it. *)
+    set_all ();
+    ltac1:(zify);
+    (if divmod then ltac1:(Z.div_mod_to_equations) else ());
+    subst_all ();
+    ltac1:(lia).
+
 Module Export SetSolveUnsafe.
-Ltac2 Set solve_unsafe as old :=
-  (fun () => normalize (fun () => ());
-         set_all ();
-         ltac1:(zify; Z.div_mod_to_equations);
-         subst_all ();
-         ltac1:(lia)).
+Ltac2 Set solve_unsafe as old := (fun () => solve_unsafe_dispatch ()).
 End SetSolveUnsafe.
 
 Ltac2 solve_unsafe_with tac :=
@@ -407,3 +657,56 @@ Tactic Notation "word" "with" tactic(t) :=
 
 Tactic Notation "nat_cleanup" :=
   rewrite -> ?Nat2Z.id; rewrite -> ?Z2Nat.id by word.
+
+(** Regression tests for the dispatch; each of these once sent a goal
+    somewhere [lia] could not follow. *)
+Module word_tests.
+(* [zify] does not translate a boolean equation, so the [uint.Z (W64 48)]
+   inside it has to be evaluated to [48] first. *)
+Local Lemma closed_constant_in_bool (i : Z) : ¬ i < 48 → (i <? uint.Z (W64 48)) = false.
+Proof. intros. word. Qed.
+(* [swrap] unfolds to a [2^(64-1)]: the non-numeral exponent must be seen
+   after the unfolding, not before. *)
+Local Lemma swrap_exponent (i : w64) :
+  0 ≤ Z.rem (sint.Z i) 2 → Z.rem (sint.Z i) 2 < 2 →
+  0 ≤ word.swrap (word := w64_word_instance) (Z.rem (sint.Z i) 2) < 2.
+Proof. intros. word. Qed.
+(* A divisor [sint.Z (W64 2)] must become the numeral [2], or the division
+   is non-linear to [lia]. *)
+Local Lemma signed_divisor (x : w64) :
+  sint.Z x / sint.Z (W64 2) = sint.Z x / 2 ∧ sint.Z (W64 (-1)) = -1.
+Proof. word. Qed.
+(* A word operation inside a boolean equation: [zify] does not go there,
+   the rewriting pipeline does. *)
+Local Lemma word_op_in_bool_eq (x y : w64) :
+  uint.Z x < 100 → uint.Z y < 100 → (uint.Z (word.add x y) <? 200) = true.
+Proof. intros. word. Qed.
+(* Closed compound terms: a divisor built from words, and a [2^(64-1)]. *)
+Local Lemma closed_compound_constants (x : w64) :
+  uint.Z x / uint.Z (word.add (W64 1) (W64 1)) = uint.Z x / 2 ∧ uint.Z x < 2 ^ (64 - 1) + 2 ^ 63.
+Proof. word. Qed.
+(* A closed term [vm_compute] cannot finish -- here a Qed-opaque constant, as
+   a [sealed] definition is -- must be left exactly as it was, not replaced
+   by a partial evaluation exposing the word instance's internals. *)
+Local Lemma opaque_five : Z. Proof. exact 5. Qed.
+Local Lemma stuck_term_left_alone (x : w64) (H : uint.Z x = uint.Z (W64 opaque_five)) : True.
+Proof.
+  ltac2:(word.compute_closed_constants ()).
+  lazymatch type of H with uint.Z x = uint.Z (W64 opaque_five) => exact I end.
+Qed.
+(* Nested [mod]s by big literals ([waitgroup.v]'s [enc_get_wait], after its
+   own normalization): [lia] needs the literals abstracted while the
+   division equations are generated, or it does not terminate. *)
+Local Lemma nested_mods (a b : Z) :
+  0 ≤ a < 4294967296 → 0 ≤ b < 2147483648 →
+  ((((a `mod` 18446744073709551616 * 4294967296) `mod` 18446744073709551616
+     + b `mod` 18446744073709551616) `mod` 18446744073709551616)
+    `mod` 2147483648) `mod` 4294967296 = b.
+Proof. intros. word. Qed.
+Local Lemma pow_of_word_exponent (x : w64) :
+  uint.Z x < 2 ^ uint.Z (W64 48) → uint.Z x < 281474976710656.
+Proof. intros. word. Qed.
+Local Lemma generic_width `{word : Interface.word width} `{!word.ok word} (w0 w1 : word) :
+  Z.to_nat (uint.Z w0) = Z.to_nat (uint.Z w1) → w0 = w1.
+Proof. intros. word. Qed.
+End word_tests.
