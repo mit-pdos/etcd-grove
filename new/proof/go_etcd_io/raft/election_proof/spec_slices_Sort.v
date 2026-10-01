@@ -7,12 +7,15 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
     [New.proof.slices_proof.sort] proves [wp_SortFunc] against that.  So the
     call cannot be stepped, and this axiom is what stands in for it.
 
-    The postcondition is **only** that the slice is permuted.  Sortedness is
-    never used: [step_campaign] accepts any permutation of
-    [elements (cfg ∖ {[id]})], because the order in which a candidate sends
-    its vote requests is not observable in the model.  That makes this a
-    weak axiom -- it would follow from [wp_SortFunc]'s [Hperm] conjunct
-    alone.
+    The postcondition is that the slice is permuted **and sorted
+    ascending** -- [wp_SortFunc]'s [Hperm] and [Hsorted] conjuncts at the
+    order [<] on [uint.Z], which is what Go's [slices.Sort] does on
+    [uint64] ([cmp.Less]).  Sortedness was not stated until 2026-10-01:
+    [campaign], [Visit], [VoterNodes] and [MajorityConfig.Slice] need only
+    the permutation ([step_campaign] accepts any order of vote requests).
+    [MajorityConfig.CommittedIndex] needs the order -- it reads the quorum
+    index off the sorted acknowledgements at a fixed position -- so the
+    axiom was strengthened then, and only by that conjunct.
 
     To discharge it rather than assume it: add [slices.Sort] to the
     translated set in [new/etc/update-goose-new.py], regenerate, and derive
@@ -25,7 +28,9 @@ Definition wp_slices_Sort_body :=
   {{{ is_pkg_init slices ∗ data ↦* xs }}}
     #(functions slices.Sort [go.SliceType go.uint64; go.uint64]) #data
   {{{ (xs' : list w64), RET #();
-      data ↦* xs' ∗ ⌜ xs ≡ₚ xs' ⌝ }}}.
+      data ↦* xs' ∗ ⌜ xs ≡ₚ xs' ⌝ ∗
+      ⌜ ∀ (i j : nat) (xi xj : w64), xs' !! i = Some xi → xs' !! j = Some xj →
+          (i < j)%nat → uint.Z xi ≤ uint.Z xj ⌝ }}}.
 
 Module Type SLICES_SORT.
   Parameter wp_slices_Sort : wp_slices_Sort_body.

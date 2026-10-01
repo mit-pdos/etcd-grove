@@ -125,6 +125,24 @@ Require Export New.proof.go_etcd_io.raft.election_proof.link_raft__Step.
     written for it, four of them axioms for untranslated code. *)
 Require Export New.proof.go_etcd_io.raft.election_proof.link_newRaft.
 
+(** Log replication, wave 1 (2026-10-01): the tracker side.  [Progress]
+    updates a leader makes on a [MsgAppResp], [Inflights.FreeLE], and the
+    quorum commit index ([ProgressTracker.Committed] through
+    [MajorityConfig]/[JointConfig.CommittedIndex] and
+    [matchAckIndexer.AckedIndex]), plus the two pointer-reading helpers of
+    [handleAppendEntries]. *)
+Require Export New.proof.go_etcd_io.raft.election_proof.link_Progress__MaybeUpdate.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_Progress__MaybeDecrTo.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_Progress__BecomeProbe.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_Progress__CanBumpCommit.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_Inflights__FreeLE.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_matchAckIndexer__AckedIndex.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_MajorityConfig__CommittedIndex.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_JointConfig__CommittedIndex.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_ProgressTracker__Committed.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_pbEntryID.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_logSliceFromMsgApp.
+
 Section proof.
 Context `{hG: heapGS Σ, !ffi_semantics _ _}.
 Context {sem : go.Semantics} {package_sem : raft.Assumptions}.

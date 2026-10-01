@@ -3923,3 +3923,59 @@ green (full sweep from `protocol.v` ~26 min at -j8); `check-module-discipline
   (inv_tracker.v) now takes `I : gset → gmap → iProp` (the one change
   outside the brief's list).
 - `init_pstate` has an empty log; `newRaft_post_init` now requires one.
+
+## 2026-10-01 — replication wave 1, tracker side: ten new collections
+
+Branch `worktree-agent-aff55d2a2dd5dbc99` (from 301ff1d35). All `Qed`, all
+stated on `own_progress`/`own_inflights`/`own_tracker` at exact new values;
+`check-module-discipline --scope election_proof` unchanged (6 findings, none
+new). **Not yet reachable from `should_build.v`**: `election.v` was not
+edited (another agent's file); the coordinator must add the `link_*.v` of
+each collection below.
+
+- `Progress.MaybeUpdate` -> `progress_maybe_update pv n` (Match := n, Next
+  := `w64_max Next (n+1)`, MsgAppFlowPaused := false iff `Match < n`);
+  returns `bool_decide (Match < n)`.
+- `Progress.MaybeDecrTo` -> `progress_maybe_decr_to pv rejected matchHint`,
+  a (bool, value) pair, the four exits verbatim; Match/State/Inflights
+  never written; all `±1` as `word.add`/`word.sub` (they really wrap:
+  `own_progress` bounds neither Next nor Match).
+- `Progress.BecomeProbe` -> `progress_become_probe pv`, Inflights reset as
+  `ResetState`'s.  `ResetState`'s spec already pins the whole value (Match
+  included), so it was **not** widened.
+- `Progress.CanBumpCommit`: pure, `bool_decide (sc < index ∧ sc < Next-1)`.
+- `Inflights.FreeLE`: `own_inflights l iv' buf` with size/maxBytes/buffer
+  unchanged and `count' ≤ count`.  **Not** "Full() only becomes false":
+  `in.bytes -= bytes` can wrap, nothing ties `in.bytes` to the buffer.
+- `matchAckIndexer.AckedIndex`, `MajorityConfig.CommittedIndex`,
+  `JointConfig.CommittedIndex`, `ProgressTracker.Committed`: Committed
+  returns, for `cfg ≠ ∅`, `is_quorum_index cfg (pvs_match_at pvs) N` (some
+  voter's Match; a quorum has Match ≥ N; no larger index has a quorum), and
+  MaxUint64 for `cfg = ∅`.  MajorityConfig is stated for any indexer via a
+  new interface contract `is_AckedIndexer l P acked` (like `is_Storage`);
+  AckedIndex is stated on a new `own_progress_map` (the map plus its
+  Progress objects -- the object a `matchAckIndexer` is), because Joint
+  reads the voter map out of the same tracker while the indexer is lent.
+- `pbEntryID`, `logSliceFromMsgApp`: separate Goose functions; both take a
+  *pointer* and read through it (spec on `p ↦{dq} v`).
+
+Shared-file edits: `inv_tracker.v` (appended at the end, marked:
+`w64_min/max`, `wp_min2_uint64`, `pvs_acked`, `pvs_match_at`,
+`is_quorum_index`, `own_progress_map`, `is_AckedIndexer`);
+`spec_slices_Sort.v` **strengthened**: the axiom now also says the result
+is sorted ascending (wp_SortFunc's `Hsorted` at `<` on `uint.Z`) --
+CommittedIndex reads the quorum index off the sorted slice; the four
+callers' intro patterns gained `& _`.
+
+Gotchas met: `wp_if_join` substitutes a `dom ids = s` equation, after which
+`s` is gone from the branches (use `dom ids` throughout); stdlib's
+`List.filter_app` shadows stdpp's (`stdpp.list_basics.list.filter_app`);
+`nsat_size`/`is_quorum_alt` carry the heap section variables, so pure
+lemmas using them need the same `Section` context; `rewrite func_unfold`
+fails on an already-resolved `#(functions go.max …)` -- use
+`wp_max2_uint64` (framework) / `wp_min2_uint64` (new).  `FreeLE`'s proof
+is 170 s (was 350 s before turning its pure tail into `lia` goals).
+
+Checked: every new `link_*.vo` built; `election.vo` rebuilt as `.vo` over the whole
+`inv_tracker.v` cone (118 files, `proof_raft__Step` included), exit 0;
+the four `slices.Sort` callers rebuilt.
