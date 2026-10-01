@@ -56,10 +56,10 @@ Import P.
     iAssert (own_raftLog s.(nstate.log) ls')%I with "[Hl Hcore]" as "HL".
     { iApply (own_raftLog_unfold _ prev sents uents hs.(raftpb.HardState.Commit') lap).
       iExists _. iFrame "Hl". iSplitR; [done|]. iSplitR; [done|].
-      rewrite /own_raftLog_core. iEval (rewrite /own_raftLog_core) in "Hcore".
-      iDestruct "Hcore" as "(%Hidx & %Hnowrap & #HisStorage & HStorage & %Hoffset &
-        Huents & Huents_cap & %Hnosnap & %Hncc & %Happlied & %Hcommitted)".
-      simpl. iFrame "∗#%". iPureIntro. simpl. subst. rewrite Hcm2 in Happlied. lia. }
+      iEval (rewrite /own_raftLog_core /=) in "Hcore".
+      iDestruct "Hcore" as (stored) "Hcore". iNamed "Hcore".
+      rewrite /own_raftLog_core. iExists stored. simpl. iFrame "∗#%".
+      iPureIntro. simpl. subst. rewrite Hcm2 in Happlied. lia. }
     iDestruct ("Hlogback" with "HL") as "Hphys".
     wp_apply (wp_raft_store_Term with "Hphys") as "Hphys".
     try wp_auto.

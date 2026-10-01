@@ -1,0 +1,6 @@
+Require Export New.proof.go_etcd_io.raft.election_proof.proof_raftLog__zeroTermOnOutOfBounds.
+
+Module RaftLogZeroTermOnOutOfBoundsPostulates : RAFTLOG__ZEROTERMONOUTOFBOUNDS_POSTULATES.
+End RaftLogZeroTermOnOutOfBoundsPostulates.
+
+Module RaftLogZeroTermOnOutOfBounds := RaftLogZeroTermOnOutOfBoundsProof RaftLogZeroTermOnOutOfBoundsPostulates.

@@ -67,9 +67,14 @@
         with a wand back to [own_Storage]; that forced a page loan on
         [raftLog.slice]'s callers -- [logstate.page].)
     What the
-    returned entries *are* (which indices) is not stated; nothing on the
-    election path reads them beyond their [Type], for which membership in
-    the stored list is enough.
+    returned entries *are* is stated only as membership: every one is a
+    stored entry **below [hi]** ([take (hi - prev.index - 1) ents]).  The
+    bound was added 2026-10-01, when [own_raftLog]'s stable part became a
+    *visible prefix* of the stored entries ([inv_raftlog.v]): [raftLog.slice]
+    reads only below [unstable.offset], and without the bound it could not
+    tell an entry it got back from a shadowed one.  [MemoryStorage.Entries]
+    returns [ms.ents[lo-offset : hi-offset]] cut by [limitSize], so it
+    holds.
 
     Besides the four triples the contract has one **pure clause**,
     [Hbounded]: the stable log's last index is below [2^61].  It is the
@@ -161,7 +166,7 @@ Definition is_Storage (st : raft.Storage.t) : iProp Σ :=
          s ↦*□ es ∗
          ⌜ es ≠ [] ∧
            (Z.of_nat (length es) ≤ uint.Z hi - uint.Z lo)%Z ∧
-           (∀ e, e ∈ es → e ∈ ents) ∧
+           (∀ e, e ∈ es → e ∈ take (Z.to_nat (uint.Z hi - uint.Z prev.(raft.entryID.index') - 1)) ents) ∧
            s.(slice.cap) = s.(slice.len) ⌝ ∗
          own_Storage st prev ents }}}) ∗
   (** The stable log's last index is far below [2^64].

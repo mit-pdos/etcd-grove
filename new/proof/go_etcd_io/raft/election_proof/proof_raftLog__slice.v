@@ -5,12 +5,7 @@ Import P.
 
   (* Re-seal the log at the state it was opened at, from the pieces
      [iNamed "Hlog"] and [iNamed "Hcore"] named. *)
-  Local Ltac reseal_log :=
-    iApply own_raftLog_unfold; iExists _; iFrame "Hl";
-    rewrite /own_raftLog_core;
-    try (match goal with H : _ = interface.ok _ |- _ => rewrite H end);
-    iFrame "∗#%";
-    try (iPureIntro; done).
+  Local Ltac reseal_log := reseal_raftLog.
 
   (** The body has three shapes of exit, and the range premise kills every
       error path on the way:
@@ -102,6 +97,7 @@ Import P.
     iNamed "Hlog".
     iEval (rewrite /own_raftLog_core /=) in "Hcore". iNamed "Hcore".
     iDestruct (own_slice_len with "Huents") as %[Hulen Hulen'].
+    pose proof (prefix_length _ _ Hstored) as Hstlen.
     wp_auto.
     wp_if_destruct.
     - (* the result lies entirely in the unstable suffix *)
@@ -157,7 +153,7 @@ Import P.
       + (* cut = hi: the whole range is in storage *)
         rewrite bool_decide_eq_true_2; last done.
         wp_auto. rewrite Hstok /=.
-        wp_apply ("HEntries" $! prev sents lo hi maxSize with "[$HStorage]").
+        wp_apply ("HEntries" $! prev stored lo hi maxSize with "[$HStorage]").
         { iPureIntro. lia. }
         iIntros "%se %ese (#Hse & (%Hnee & %Hlene & %Hine & %Hcape) & HStorage)".
         wp_auto.
@@ -167,12 +163,12 @@ Import P.
         { iPureIntro. split_and!.
           - exact Hnee.
           - lia.
-          - intros ee Hee. apply elem_of_app. left. by apply Hine. }
+          - intros ee Hee. apply elem_of_app. left. eapply stored_take_visible; [exact Hstored | | by apply Hine]; lia. }
         reseal_log.
       + (* cut = unstable.offset *)
         rewrite bool_decide_eq_false_2; last done.
         wp_auto. rewrite Hstok /=.
-        wp_apply ("HEntries" $! prev sents lo
+        wp_apply ("HEntries" $! prev stored lo
                     lv.(raft.raftLog.unstable').(raft.unstable.offset')
                     maxSize with "[$HStorage]").
         { iPureIntro. lia. }
@@ -185,7 +181,7 @@ Import P.
           { iPureIntro. split_and!.
             - exact Hnee.
             - lia.
-            - intros ee Hee. apply elem_of_app. left. by apply Hine. }
+            - intros ee Hee. apply elem_of_app. left. eapply stored_take_visible; [exact Hstored | | by apply Hine]; lia. }
           reseal_log. }
         wp_if_destruct.
         { (* storage returned fewer entries than asked for: stop there *)
@@ -193,7 +189,7 @@ Import P.
           { iPureIntro. split_and!.
             - exact Hnee.
             - lia.
-            - intros ee Hee. apply elem_of_app. left. by apply Hine. }
+            - intros ee Hee. apply elem_of_app. left. eapply stored_take_visible; [exact Hstored | | by apply Hine]; lia. }
           reseal_log. }
         wp_apply (wp_entsSize with "[$Hse]") as "%sz1 _".
         wp_if_destruct.
@@ -202,7 +198,7 @@ Import P.
           { iPureIntro. split_and!.
             - exact Hnee.
             - lia.
-            - intros ee Hee. apply elem_of_app. left. by apply Hine. }
+            - intros ee Hee. apply elem_of_app. left. eapply stored_take_visible; [exact Hstored | | by apply Hine]; lia. }
           reseal_log. }
         split_unstable l lv.
         assert (Hus : (uint.Z lv.(raft.raftLog.unstable').(raft.unstable.offset')
@@ -245,7 +241,7 @@ Import P.
              { iPureIntro. split_and!.
                - exact Hnee.
                - lia.
-               - intros ee Hee. apply elem_of_app. left. by apply Hine. }
+               - intros ee Hee. apply elem_of_app. left. eapply stored_take_visible; [exact Hstored | | by apply Hine]; lia. }
              reseal_log.
           -- iApply wp_fupd.
              wp_apply (wp_extend _ _ _ _ _ _ Hcapx Hfitsx with "[$Hse $Hs1]")
@@ -258,7 +254,7 @@ Import P.
                - intros Hc. destruct ese as [|a ese']; [by apply Hnee | discriminate Hc].
                - rewrite length_app. lia.
                - intros ee Hee. apply elem_of_app in Hee as [Hee|Hee].
-                 + apply elem_of_app. left. by apply Hine.
+                 + apply elem_of_app. left. eapply stored_take_visible; [exact Hstored | | by apply Hine]; lia.
                  + apply elem_of_app. right. by apply Hintake. }
              reseal_log.
         * iApply wp_fupd.
@@ -272,7 +268,7 @@ Import P.
             - intros Hc. destruct ese as [|a ese']; [by apply Hnee | discriminate Hc].
             - rewrite length_app. lia.
             - intros ee Hee. apply elem_of_app in Hee as [Hee|Hee].
-              + apply elem_of_app. left. by apply Hine.
+              + apply elem_of_app. left. eapply stored_take_visible; [exact Hstored | | by apply Hine]; lia.
               + apply elem_of_app. right. by apply Hintake. }
           reseal_log.
   (* The only [admit] above is [Hfitsx]: "the log fits in memory".  See the

@@ -25,16 +25,22 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
     unrelated and the call cannot be proved.  The caller folds the result
     into [own_raftLog l (logstate.mk prev ents [] prev.index prev.index None)]
     with [own_raftLog_unfold].  The principled fix is a [storage] field in
-    [logstate.t] (notes/STATUS.md). *)
+    [logstate.t] (notes/STATUS.md).
+
+    The [Logger] is a non-nil one with [is_Logger] (since 2026-10-01):
+    [own_raftLog_core] carries it, for the [Infof]s of [findConflict] and
+    [unstable.truncateAndAppend], and the struct literal installs it as both
+    [l.logger] and [l.unstable.logger]. *)
 Definition wp_newLogWithSize_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (st : raft.Storage.t) (lg : raft.Logger.t) (maxSize : w64)
-    (prev : raft.entryID.t) (ents : list raftpb.Entry.t),
+    (prev : raft.entryID.t) (ents : list raftpb.Entry.t) (lok : interface.t_ok),
   log_indices_ok prev ents →
   Forall (λ e, e.(raftpb.Entry.Type') = EntryNormal) ents →
-  {{{ is_pkg_init raft ∗ is_Storage st ∗ own_Storage st prev ents }}}
+  lg = interface.ok lok →
+  {{{ is_pkg_init raft ∗ is_Storage st ∗ own_Storage st prev ents ∗ is_Logger lok }}}
     @! raft.newLogWithSize #st #lg #maxSize
   {{{ (l : loc) (lv : raft.raftLog.t), RET #l;
       l ↦ lv ∗

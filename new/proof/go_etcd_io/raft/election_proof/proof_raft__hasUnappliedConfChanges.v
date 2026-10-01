@@ -86,11 +86,11 @@ Import P.
     iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hback]".
     iEval (rewrite Hls own_raftLog_unfold) in "Hlog".
     iDestruct "Hlog" as (lv) "(Hl & %Hcm & %Hap & Hcore)".
-    iEval (rewrite /own_raftLog_core) in "Hcore". iNamed "Hcore".
+    iEval (rewrite /own_raftLog_core /=) in "Hcore".
+    iDestruct "Hcore" as (stored) "Hcore". iNamed "Hcore".
     subst lcm lap.
     iDestruct ("Hback" with "[Hl HStorage Huents Huents_cap]") as "Hphys".
-    { rewrite Hls own_raftLog_unfold. iExists lv. rewrite /own_raftLog_core.
-      iFrame "∗#%". done. }
+    { rewrite Hls. reseal_raftLog. }
     (* each [r.raftLog.f] read: the struct gives the log's location, the
        log (taken out and put back around the one load) the field, whose
        value the log's state pins for [applied]/[committed] *)

@@ -77,7 +77,8 @@ Import P.
       (* the [Panicf]: [after] is the old last index, which is at least
          [committed] *)
       iNamed "Hlog".
-      iEval (rewrite /own_raftLog_core /=) in "Hcore". iNamed "Hcore".
+      iEval (rewrite /own_raftLog_core /=) in "Hcore".
+      iDestruct "Hcore" as (stored) "Hcore". iNamed "Hcore".
       wp_auto.
       rewrite bool_decide_eq_false_2; last word.
       wp_auto.
@@ -104,11 +105,8 @@ Import P.
         by (rewrite length_app; lia).
       iAssert (own_raftLog l (logstate.mk prev sents (uents ++ ents) lcm lap))
         with "[Hl HStorage Huents Huents_cap]" as "Hlog".
-      { iApply own_raftLog_unfold.
-        iExists (lv <| raft.raftLog.unstable' :=
-                   lv.(raft.raftLog.unstable')
-                     <| raft.unstable.entries' := sl |> |>).
-        iFrame "Hl". rewrite /own_raftLog_core. simpl. iFrame "∗#%". }
+      { reseal_raftLog.
+        intros Hnil. apply app_eq_nil in Hnil as [_ ->]. done. }
       wp_apply (wp_raftLog__lastIndex _ (logstate.mk prev sents (uents ++ ents) lcm lap)
                   with "[$Hlog]") as "%li [Hlog %Hli]". logstate_simpl.
       iApply ("HΦ" $! li). iFrame.
