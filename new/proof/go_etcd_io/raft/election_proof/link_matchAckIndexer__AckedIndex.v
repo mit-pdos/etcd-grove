@@ -1,0 +1,7 @@
+Require Export New.proof.go_etcd_io.raft.election_proof.proof_matchAckIndexer__AckedIndex.
+
+Module MatchAckIndexerAckedIndexPostulates : MATCHACKINDEXER__ACKEDINDEX_POSTULATES.
+End MatchAckIndexerAckedIndexPostulates.
+
+Module MatchAckIndexerAckedIndex :=
+  MatchAckIndexerAckedIndexProof MatchAckIndexerAckedIndexPostulates.

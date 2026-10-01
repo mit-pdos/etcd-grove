@@ -1,0 +1,9 @@
+Require Export New.proof.go_etcd_io.raft.election_proof.proof_MajorityConfig__CommittedIndex.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_slices_Sort.
+
+Module MajorityConfigCommittedIndexPostulates : MAJORITYCONFIG__COMMITTEDINDEX_POSTULATES.
+  Include SlicesSort.
+End MajorityConfigCommittedIndexPostulates.
+
+Module MajorityConfigCommittedIndex :=
+  MajorityConfigCommittedIndexProof MajorityConfigCommittedIndexPostulates.
