@@ -3945,3 +3945,7 @@ lemmas using them need the same `Section` context; `rewrite func_unfold`
 fails on an already-resolved `#(functions go.max …)` -- use
 `wp_max2_uint64` (framework) / `wp_min2_uint64` (new).  `FreeLE`'s proof
 is 170 s (was 350 s before turning its pure tail into `lia` goals).
+
+Checked: every new `link_*.vo` built; `election.vo` rebuilt as `.vo` over the whole
+`inv_tracker.v` cone (118 files, `proof_raft__Step` included), exit 0;
+the four `slices.Sort` callers rebuilt.
