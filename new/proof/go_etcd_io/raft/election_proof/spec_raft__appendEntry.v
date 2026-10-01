@@ -31,39 +31,56 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
     asserts the safety of a write to memory it has no claim on -- the
     [wp_ProgressTracker__Visit] mistake again, one level out: not "own the
     receiver's fields" but "own what you write".  [es ↦* ents] is now a
-    precondition and comes back existentially quantified, since the method
-    has overwritten two fields of each entry.  It does come back:
-    [raftLog.append] copies the entry *values* into [unstable.entries], so
-    the caller's slice is not consumed.  (The witness is
-    [ents] with [Term := r.Term] and [Index := lastIndex()+1+k] in each
-    element; naming it here would pin [r.Term] and the log's length, neither
-    of which [own_raft_phys] exposes, and no caller needs it.)
+    precondition.  It comes back: [raftLog.append] copies the entry
+    *values* into [unstable.entries], so the caller's slice is not consumed
+    -- and since 2026-09-25 it comes back *named*, as the stamped batch
+    ([stamp], protocol.v): [Term := r.Term] and [Index := lastIndex()+1+k]
+    in element [k].  (Until the log's state was in [nstate.t] the witness
+    was existential, because naming it would have pinned the log's length.)
 
     **It claimed [RET #true] unconditionally**, and [appendEntry] does have a
     [return: #false] -- the path where [increaseUncommittedSize] rejects the
-    batch (v3.v:3462).  The fix is *not* to make the result existential.
+    batch (v3.v:3469).  The fix is *not* to make the result existential.
     [becomeLeader], the only caller in scope, does
 
         if !r.appendEntry(pb.Entry{Data: nil}) { r.logger.Panic(…) }
 
-    and [wp_Logger__logf] deliberately excludes [Panic], so an existential
-    result makes [becomeLeader] unprovable rather than merely weaker.  What
-    is actually true is that the reject path is unreachable *for an empty
-    payload*: [increaseUncommittedSize] returns [false] only when
+    and [wp_Logger__logf] deliberately excludes [Panic], so a bare
+    existential result makes [becomeLeader] unprovable rather than merely
+    weaker.  What is true is that the reject path is unreachable *for an
+    empty payload*: [increaseUncommittedSize] returns [false] only when
 
         uncommittedSize > 0 ∧ payloadsSize(ents) > 0 ∧ … > maxUncommittedSize
 
     ([raft__increaseUncommittedSizeⁱᵐᵖˡ], v3.v:5401), and
-    [payloadsSize] sums [len(e.Data)] (v3.v:7515,7524).  So [Hempty] below
-    -- every entry's [Data] is empty, which is exactly what [becomeLeader]
-    passes -- is what makes [RET #true] honest, and it is also what makes the
-    [Panic] demonstrably dead code rather than assumed away.
+    [payloadsSize] sums [len(e.Data)] (v3.v:7515,7524).
+
+    From 2026-09-18 to 2026-10-01 that was a *premise* ([Hempty]) and the
+    result was [RET #true].  Since 2026-10-01 the triple takes an arbitrary
+    [EntryNormal] batch -- what [stepLeader]'s [MsgProp] arm passes, and
+    what the model's [step_propose] describes -- so the result is a bool
+    [accepted], and the fact above is a *conjunct* of the postcondition:
+    [Forall (Data empty) ents → accepted = true].  That is as far as
+    acceptance can be pinned: the exact condition reads [r.uncommittedSize]
+    and [r.maxUncommittedSize], which [nstate.t] does not hold.
+    [becomeLeader] destructs [accepted] and kills the [false] branch with
+    the implication, so its [Panic] is still demonstrably dead code.
+
+    *** The two paths (read against the body, 2026-10-01)
+
+    The stamping loop (v3.v:3456) runs *before* [increaseUncommittedSize]
+    (v3.v:3463), so the caller's slice is stamped on both paths and
+    [es ↦* imap (stamp …) ents] is outside the [if].  The reject path
+    (v3.v:3466-3469) reads [r.id] and [r.logger], calls [Warningf], and
+    returns [false]: nothing in the struct is written, so it comes back at
+    [s].  The accept path writes [r.uncommittedSize] (which [own_raft_phys]
+    does not pin), appends, and sends the self-ack.  (The named result
+    [accepted], v3.v:3448, is allocated and never read: both exits are
+    [return: #b].)
 
     *** The premises
 
-    [Hempty] is the one just described.  The other two are what the *log*
-    needs, and both are discharged by [becomeLeader] from the literal it
-    builds:
+    Both are what the *log* needs:
 
     - [Hnorm]: no entry in the batch is a configuration change.
       [own_raftLog]'s [HnoConfChange] is about the whole log, so appending
@@ -110,11 +127,10 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
 
     *** The rest of the body
 
-    [increaseUncommittedSize] adds a zero payload, so [r.uncommittedSize] is
-    unchanged in everything [own_raft_phys] can see (it mentions no such
-    field); [traceReplicate] is a literal no-op (v3.v:6364); and the
-    [MsgAppResp] is [send_ok]'s [MsgAppResp] clause, which allows it to be
-    self-addressed.
+    [increaseUncommittedSize] writes [r.uncommittedSize], a field
+    [own_raft_phys] does not mention; [traceReplicate] is a literal no-op
+    (v3.v:6364); and the [MsgAppResp] is [send_ok]'s [MsgAppResp] clause,
+    which allows it to be self-addressed.
 
     *** The log in the postcondition
 
@@ -130,23 +146,29 @@ Definition wp_raft__appendEntry_body :=
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (cfg : gset w64),
   ∀ (r : loc) id s (es : slice.t) (ents : list raftpb.Entry.t),
-  (* empty payloads, so [increaseUncommittedSize] cannot reject -- see above *)
-  Forall (λ e, sint.Z e.(raftpb.Entry.Data').(slice.len) = 0) ents →
   (* no configuration change, so the log's [HnoConfChange] survives *)
   Forall (λ e, e.(raftpb.Entry.Type') = EntryNormal) ents →
   (* a batch small enough that [lastIndex()+1+k] does not wrap *)
   (Z.of_nat (length ents) < 2^61)%Z →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s ∗ es ↦* ents }}}
     r @! (go.PointerType raft.raft) @! "appendEntry" #es
-  {{{ RET #true;
-      own_raft_phys cfg r id
-        (send_msgs
-           (s <| nstate.logst := log_append s.(nstate.logst)
-                  (imap (stamp s.(nstate.term) (log_last s.(nstate.logst))) ents) |>)
-           [self_ack id
-              (s <| nstate.logst := log_append s.(nstate.logst)
-                     (imap (stamp s.(nstate.term) (log_last s.(nstate.logst))) ents) |>)]) ∗
-      es ↦* imap (stamp s.(nstate.term) (log_last s.(nstate.logst))) ents }}}.
+  {{{ (accepted : bool), RET #accepted;
+      (* an all-empty batch is never dropped -- see above *)
+      ⌜ Forall (λ e, sint.Z e.(raftpb.Entry.Data').(slice.len) = 0) ents →
+        accepted = true ⌝ ∗
+      (* stamped on both paths: the loop runs before the budget check *)
+      es ↦* imap (stamp s.(nstate.term) (log_last s.(nstate.logst))) ents ∗
+      if accepted then
+        own_raft_phys cfg r id
+          (send_msgs
+             (s <| nstate.logst := log_append s.(nstate.logst)
+                    (imap (stamp s.(nstate.term) (log_last s.(nstate.logst))) ents) |>)
+             [self_ack id
+                (s <| nstate.logst := log_append s.(nstate.logst)
+                       (imap (stamp s.(nstate.term) (log_last s.(nstate.logst))) ents) |>)])
+      else
+        (* dropped: [Warningf] and [return false], nothing written *)
+        own_raft_phys cfg r id s }}}.
 
 Module Type RAFT__APPENDENTRY.
   Parameter wp_raft__appendEntry : wp_raft__appendEntry_body.

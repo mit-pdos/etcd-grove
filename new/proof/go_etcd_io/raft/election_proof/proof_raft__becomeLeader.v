@@ -64,19 +64,23 @@ Import P.
       as "Hphys".
     { by destruct s. }
     (* [appendEntry] writes [Term]/[Index] into every element of the slice,
-       so it needs [Hes].  It returns [true] because the entry's [Data] is
-       nil, which is what the premise says: with a zero payload
-       [increaseUncommittedSize] cannot reject, so the [Panic] on the
-       [false] branch below is dead code.  It also queues a self-addressed
-       [MsgAppResp], the self-acknowledgement: the state is
-       [become_leader].  See
+       so it needs [Hes].  It returns a bool, and its postcondition says an
+       all-empty batch is never dropped; the entry's [Data] is nil, so
+       [accepted = true] and the [Panic] on the [false] branch below is
+       dead code.  It also queues a self-addressed [MsgAppResp], the
+       self-acknowledgement: the state is [become_leader].  See
        [spec_raft__appendEntry.v]. *)
-    wp_apply (wp_raft__appendEntry with "[$Hphys $Hes]") as "[Hphys Hes]".
-    (* empty payload; [Type] is the zero value [EntryNormal], which is what
-       keeps the log's [HnoConfChange] true; and one entry is not [2^61]. *)
-    { apply Forall_singleton. done. }
+    wp_apply (wp_raft__appendEntry with "[$Hphys $Hes]")
+      as "%accepted (%Hacc & Hes & Hphys)".
+    (* [Type] is the zero value [EntryNormal], which is what keeps the
+       log's [HnoConfChange] true; and one entry is not [2^61]. *)
     { apply Forall_singleton. done. }
     { rewrite length_insert /=. lia. }
+    (* empty payload, so accepted; the [false] branch is gone before any
+       [WP] is stepped on it *)
+    assert (accepted = true) as ->.
+    { apply Hacc. apply Forall_singleton. done. }
+    wp_auto.
     (* [appendEntry] appended the stamped empty entry: that is
        [become_leader] ([defs.v]) *)
     iDestruct (own_raft_phys_eq _ _ _ _
