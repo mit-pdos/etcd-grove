@@ -10,10 +10,9 @@ Import P.
       win and broadcast, lose and step down, or nothing.
 
       Each arm lands on [vote_resp_result] directly.  [VoteWon] is
-      [becomeLeader] followed by [bcastAppend], whose spec gives *some* list of
-      [App]s from [id] at the current term rather than one per peer -- which is
-      exactly what the weakened [step_win]/[app_sends] asks for, so no
-      massaging is needed.  [VoteLost] is [becomeFollower(r.Term, None)], and
+      [becomeLeader] followed by [bcastAppend], whose spec gives *some*
+      [repl_sends] list rather than one [App] per peer -- which is what
+      [step_win] asks for.  [VoteLost] is [becomeFollower(r.Term, None)], and
       [become_follower s1 s1.(nstate.term) (W64 0)] is verbatim
       [vote_resp_result]'s [lost] branch.  [VotePending] leaves the state at
       [s1] and sends nothing. *)

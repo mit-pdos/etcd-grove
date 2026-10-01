@@ -282,7 +282,7 @@ Implicit Type s : nstate.t.
                  is [pwin_state]'s up to the outbox and [Match] *)
               apply (repl_sends_prvals _ _ pvs) in Hms.
               rewrite /repl_sends to_pstate_become_leader in Hms.
-              eapply Forall_impl; [exact Hms|]. intros m' Hm'.
+              rewrite List.Forall_forall in Hms |- *. intros m' Hm'%Hms.
               eapply repl_ok_proper; [..|exact Hm']; reflexivity.
             - simpl. exact Hq. }
           destruct lost.

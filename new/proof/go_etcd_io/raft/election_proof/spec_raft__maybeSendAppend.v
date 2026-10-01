@@ -8,7 +8,7 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
 
       - [pr.IsPaused()] -> nothing sent, [false];
       - [r.raftLog.term(pr.Next-1)] errors -> [maybeSendSnapshot], which
-        sends a [MsgSnap] (model-invisible) or nothing;
+        sends a [MsgSnap] or nothing;
       - no entries and [!sendIfEmpty] -> nothing sent, [false];
       - otherwise one [MsgApp] to [to] at [r.Term].
 

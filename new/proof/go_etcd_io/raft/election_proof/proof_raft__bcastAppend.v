@@ -51,9 +51,9 @@ Proof. rewrite /send_msgs /= app_assoc //. Qed.
     splits the tracker off again for [Visit].
 
     [ms] accumulates.  Each iteration either sends nothing (the peer is the
-    leader itself, or [maybeSendAppend] declined) or adds [App]s from [id]
-    at [s.term], and [app_sends] is closed under concatenation -- which is
-    the whole content of the postcondition.  One [App] per peer would be
+    leader itself, or [maybeSendAppend] declined) or adds messages
+    [repl_sends] allows, which is closed under concatenation; no [Match]
+    moves.  That is the whole content of the postcondition.  One [App] per peer would be
     false; see [spec_raft__bcastAppend.v]. *)
 Lemma wp_bcast (r : loc) (id : w64) (s : nstate.t) :
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}

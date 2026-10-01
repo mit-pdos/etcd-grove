@@ -68,8 +68,8 @@ Import P.
        nil, which is what the premise says: with a zero payload
        [increaseUncommittedSize] cannot reject, so the [Panic] on the
        [false] branch below is dead code.  It also queues a self-addressed
-       [MsgAppResp], which has no [mtype_of] and so drops out of the
-       abstract outbox: the state is unchanged.  See
+       [MsgAppResp], the self-acknowledgement: the state is
+       [become_leader].  See
        [spec_raft__appendEntry.v]. *)
     wp_apply (wp_raft__appendEntry with "[$Hphys $Hes]") as "[Hphys Hes]".
     (* empty payload; [Type] is the zero value [EntryNormal], which is what

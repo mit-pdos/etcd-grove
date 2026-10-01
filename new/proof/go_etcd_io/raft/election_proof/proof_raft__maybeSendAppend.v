@@ -94,8 +94,7 @@ Set Default Proof Using "Type".
         [pv.State ≠ StateSnapshot], which is [SentEntries]'s first premise.
       - [r.raftLog.term(pr.Next-1)] at the log's state.  On an error
         (the [interface.ok] case), [maybeSendSnapshot], whose postcondition
-        is at the same abstract state up to [Progress] values -- [MsgSnap]
-        is model-invisible.  On [interface.nil], the iff of
+        is a [repl_sends] list ([MsgSnap]s) with [Match] untouched.  On [interface.nil], the iff of
         [spec_raftLog__term.v] gives [prev.index ≤ pr.Next - 1], and with
         [own_raftLog_core]'s [Hnowrap] that is [prev.index + 1 ≤ pr.Next]:
         [pr.Next = 0] is excluded because then the argument is [2^64 - 1],
@@ -107,8 +106,9 @@ Set Default Proof Using "Type".
         the [term] call, and [raftLog.entries] returns [interface.nil] too.
       - [r.send(pb.Message{To: to, Type: MsgApp, ...})] with [send_ok]'s
         second clause: [Term] is unset in the literal, [To = to ≠ id], and
-        [out = [msg.mk mtype.App id to s.term false]], which is
-        [app_sends].
+        [out] is the abstraction of the [MsgApp] literal, which is
+        [app_ok]: [Commit] is [r.raftLog.committed] ([own_raftLog_struct]),
+        the entries are entries of the log ([msa_pkg]'s [Hpkgin]).
       - [SentEntries(len ents, payloadsSize ents)] and
         [SentCommit(r.raftLog.committed)], then [return true]; the
         postcondition's [pvs] is what they leave. *)

@@ -3893,3 +3893,33 @@ Checked: `make -k -j4 ci` exit 0, 431 files compiled, `new/should_build.vo`
 built -- the first full `vo` build of the raft proof since 2026-09-17.
 `tcb-report --proof-root …/election_proof`: 14 Axiom, 1 Admitted, 273 Qed
 (unchanged); `--proof-root …/raft`: 27 Axiom, 8 Admitted, 291 Qed.
+
+## 2026-10-01 — replication model (agent A): protocol.v extended, phys specs moved to it
+
+Branch `worktree-raft-replication`.  `make -j8 …/election_proof/election.vo`
+green (full sweep from `protocol.v` ~26 min at -j8); `check-module-discipline
+--scope election_proof` no errors; `tcb-report` 8 Admitted (7 in
+`protocol.v` + the trusted `raftLog.slice` one), 14 Axiom, 342 Qed.
+
+- `protocol.v`: 12 message types (`Propose` is MsgProp: `Prop` is a
+  keyword), `msg.t` with index/logterm/commit/rejecthint/entries
+  (`msg.plain` for payload-free ones), `pstate.t` with base/log/commit/
+  matched, the phase-1 replication rules, per-node term-log / ack ghost maps,
+  `is_entry`/`is_acked`/`is_committed`.  Qed: every election case,
+  `step_win` (allocates the term log), and every new rule except
+  `step_propose`.  Admitted: `step_propose` ghost case, the three
+  "protocol facts", log_matching / leader_completeness /
+  state_machine_safety.
+- DEFERRED premises (model more permissive than design until the wave-1
+  log specs land): `step_grant_vote`'s up-to-date check, `step_campaign`'s
+  "request carries last entry id" (rule takes a per-peer `last`), `app_ok`'s
+  logterm and prefix clauses (it has `entries ⊆ log` from `raftLog.slice`).
+- Contradiction with the design: `MsgSnap` now has an `mtype_of`, and
+  `maybeSendSnapshot` is reachable from `bcastAppend`, so the broadcast
+  premise is `repl_ok = app_ok ∨ snap_ok`, not `app_ok`.
+- `matched` is `∅` for non-leaders (`to_pstate`'s decide), so only
+  reset/becomeLeader/stepCandidate and the send path state `Match` facts.
+  `reset` needed `Visit` to tell it every voter was visited: `visit_closure`
+  (inv_tracker.v) now takes `I : gset → gmap → iProp` (the one change
+  outside the brief's list).
+- `init_pstate` has an empty log; `newRaft_post_init` now requires one.
