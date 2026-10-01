@@ -143,6 +143,17 @@ Require Export New.proof.go_etcd_io.raft.election_proof.link_ProgressTracker__Co
 Require Export New.proof.go_etcd_io.raft.election_proof.link_pbEntryID.
 Require Export New.proof.go_etcd_io.raft.election_proof.link_logSliceFromMsgApp.
 
+(** Log replication, wave 1 (2026-10-01): the log side.  [raftLog.term],
+    [lastEntryID], [isUpToDate] and [unstable.maybeTerm] now pin the terms
+    they return; these are the follower's append decision and the commit
+    index. *)
+Require Export New.proof.go_etcd_io.raft.election_proof.link_raftLog__matchTerm.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_raftLog__zeroTermOnOutOfBounds.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_raftLog__findConflictByTerm.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_raftLog__findConflict.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_raftLog__commitTo.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_raftLog__maybeCommit.
+
 Section proof.
 Context `{hG: heapGS Σ, !ffi_semantics _ _}.
 Context {sem : go.Semantics} {package_sem : raft.Assumptions}.
