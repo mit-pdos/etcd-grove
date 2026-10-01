@@ -153,6 +153,7 @@ Require Export New.proof.go_etcd_io.raft.election_proof.link_raftLog__findConfli
 Require Export New.proof.go_etcd_io.raft.election_proof.link_raftLog__findConflict.
 Require Export New.proof.go_etcd_io.raft.election_proof.link_raftLog__commitTo.
 Require Export New.proof.go_etcd_io.raft.election_proof.link_raftLog__maybeCommit.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_raftLog__maybeAppend.
 
 Section proof.
 Context `{hG: heapGS Σ, !ffi_semantics _ _}.

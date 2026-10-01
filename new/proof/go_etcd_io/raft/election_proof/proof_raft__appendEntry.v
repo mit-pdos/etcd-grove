@@ -234,9 +234,41 @@ Set Default Proof Using "Type".
         by (rewrite length_imap; lia).
       iDestruct (own_raft_phys_log_at with "Hphys") as "[Hlog Hlogback]".
       iEval (rewrite Hls) in "Hlog".
-      wp_apply (wp_raftLog__append _ (logstate.mk prev sents uents lcm lap) _ _ _ Hidx2 Hnorm2 Hnw2
-                  with "[$Hlog $Hes]")
-        as "%li2 (Hlog & Hes & %Hli2)".
+      (* [append]'s widened spec: the stamped batch continues the log, so
+         it is a plain [log_append] and nothing is adopted *)
+      iDestruct (own_raftLog_committed with "Hlog") as "[%Hcmb Hlog]".
+      cbn [logstate.prev logstate.sents logstate.uents logstate.committed
+           logstate.applied] in Hcmb.
+      assert (∀ (k2 : nat) e, imap (stamp s.(nstate.term) li) ents !! k2 = Some e →
+                uint.Z e.(raftpb.Entry.Index')
+                = uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents)
+                  + Z.of_nat (length uents) + 1 + k2)%Z as Hk2.
+      { intros k2 e Hk. specialize (Hidx2 (length sents + length uents + k2)%nat e).
+        rewrite app_assoc lookup_app_r in Hidx2; last (rewrite length_app; lia).
+        rewrite length_app in Hidx2.
+        replace (length sents + length uents + k2 - (length sents + length uents))%nat
+          with k2 in Hidx2 by lia.
+        specialize (Hidx2 Hk). lia. }
+      destruct (log_truncate_append_cont (logstate.mk prev sents uents lcm lap)
+                  (imap (stamp s.(nstate.term) li) ents)) as [Htac Hado].
+      { intros e0 He0. specialize (Hk2 0%nat e0 He0). simpl. lia. }
+      iAssert (if log_adopts (logstate.mk prev sents uents lcm lap)
+                    (imap (stamp s.(nstate.term) li) ents)
+               then ⌜ DfracOwn 1 = DfracDiscarded ⌝ ∗ own_slice_cap raftpb.Entry.t es (DfracOwn 1)
+               else True)%I as "Hadopt".
+      { rewrite Hado. done. }
+      wp_apply (wp_raftLog__append _ (logstate.mk prev sents uents lcm lap)
+                  (imap (stamp s.(nstate.term) li) ents) _ _
+                  ltac:(intros e0 He0; pose proof (Hk2 0%nat e0 He0); simpl;
+                        split_and!; [lia | lia | | ];
+                        [ intros k2 e Hk; specialize (Hk2 k2 e Hk); lia
+                        | rewrite length_imap in Hnw2 |- *; lia ])
+                  Hnorm2
+                  with "[$Hlog $Hes $Hadopt]")
+        as "%li2 (Hlog & Hes & %Hsplit2 & %Hli2)".
+      rewrite Htac Hado.
+      rewrite Htac /log_append /= in Hli2.
+      rewrite length_app in Hli2.
       iDestruct ("Hlogback" with "Hlog") as "Hphys".
       (* [li] is [log_last] of the log it was read from: [lastIndex()]
          cannot wrap ([Hbnd]) *)

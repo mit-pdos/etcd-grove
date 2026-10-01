@@ -62,7 +62,8 @@ Import P.
         { apply lookup_lt_Some in Hi. lia. }
         rewrite subslice_lookup in Hi; last lia.
         eapply list_elem_of_lookup_2. exact Hi.
-      - done. }
+      - done.
+      - f_equal; [rewrite -Hlo' | rewrite -Hhi']; done. }
     rewrite /own_unstable. iFrame "∗#".
   Qed.
 

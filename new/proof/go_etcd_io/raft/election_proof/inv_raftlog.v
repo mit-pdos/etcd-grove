@@ -350,6 +350,65 @@ Proof.
   apply elem_of_app. by left.
 Qed.
 
+(** ** Appending with truncation ([raftLog.append])
+
+    [log_truncate_append ls ents] is the log state [raftLog.append(ents)]
+    leaves: everything below [ents[0].Index] is kept, then [ents].  When
+    the batch starts inside the stable part ([unstable.truncateAndAppend]'s
+    [fromIndex <= u.offset] arm) the *visible* stable part [sents] shrinks
+    to the entries below it and [ents] becomes the whole unstable suffix;
+    the storage keeps the shadowed tail ([own_raftLog_core]'s [stored]).
+    Otherwise [sents] is unchanged and the unstable suffix is cut at
+    [ents[0].Index] and extended.  [spec_raftLog__append.v] relates it to
+    [plog_truncate_append]. *)
+Definition log_truncate_append (ls : logstate.t) (ents : list raftpb.Entry.t) : logstate.t :=
+  match ents with
+  | [] => ls
+  | e0 :: _ =>
+      ls <| logstate.sents :=
+              take (Z.to_nat (uint.Z e0.(raftpb.Entry.Index')
+                              - uint.Z ls.(logstate.prev).(raft.entryID.index') - 1))
+                ls.(logstate.sents) |>
+         <| logstate.uents :=
+              take (Z.to_nat (uint.Z e0.(raftpb.Entry.Index')
+                              - uint.Z ls.(logstate.prev).(raft.entryID.index') - 1
+                              - Z.of_nat (length ls.(logstate.sents))))
+                ls.(logstate.uents) ++ ents |>
+  end.
+
+(** Whether [unstable.truncateAndAppend] takes its replace arm and adopts
+    the caller's slice as [u.entries]: the batch starts at or below
+    [u.offset] and does not simply continue the suffix (with an empty
+    suffix and [ents[0].Index = u.offset] the first arm, [append], wins). *)
+Definition log_adopts (ls : logstate.t) (ents : list raftpb.Entry.t) : bool :=
+  match ents with
+  | [] => false
+  | e0 :: _ =>
+      bool_decide (uint.Z e0.(raftpb.Entry.Index')
+                     ≤ uint.Z ls.(logstate.prev).(raft.entryID.index')
+                       + Z.of_nat (length ls.(logstate.sents)) + 1 ∧
+                   uint.Z e0.(raftpb.Entry.Index')
+                     ≠ uint.Z ls.(logstate.prev).(raft.entryID.index')
+                       + Z.of_nat (length ls.(logstate.sents))
+                       + Z.of_nat (length ls.(logstate.uents)) + 1)%Z
+  end.
+
+(** A batch that continues the log is a plain [log_append]. *)
+Lemma log_truncate_append_cont ls ents :
+  (∀ e0, ents !! 0%nat = Some e0 →
+     uint.Z e0.(raftpb.Entry.Index') = uint.Z ls.(logstate.prev).(raft.entryID.index')
+       + Z.of_nat (length ls.(logstate.sents)) + Z.of_nat (length ls.(logstate.uents)) + 1)%Z →
+  log_truncate_append ls ents = log_append ls ents ∧ log_adopts ls ents = false.
+Proof.
+  destruct ls as [prev sents uents cm ap]. rewrite /log_append /=.
+  destruct ents as [|e0 ents']; intros H.
+  - rewrite app_nil_r. split; done.
+  - specialize (H e0 eq_refl). simpl in H. rewrite /log_truncate_append /log_adopts /=.
+    split.
+    + rewrite take_ge; [|lia]. rewrite take_ge; [|lia]. done.
+    + apply bool_decide_eq_false_2. lia.
+Qed.
+
 (** Read a slice's length as a [Z], without consuming the slice. *)
 Lemma slice_len_Z (s : slice.t) (vs : list raftpb.Entry.t) dq :
   s ↦*{dq} vs -∗ ⌜ (Z.of_nat (length vs) = sint.Z s.(slice.len))%Z ⌝.
