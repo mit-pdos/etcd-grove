@@ -172,7 +172,7 @@ Proof.
   assert (keys ≡ₚ elements cfg) as Hkeys_perm.
   { rewrite -Hdomidm -Hkset. by rewrite elements_list_to_set. }
   wp_auto.
-  wp_apply (wp_slices_Sort with "[$Hsl]") as "%xs (Hsl & %Hxs)".
+  wp_apply (wp_slices_Sort with "[$Hsl]") as "%xs (Hsl & %Hxs & _)".
   iRename "id" into "idold".
   wp_alloc cur_ptr as "cur".
   wp_auto.

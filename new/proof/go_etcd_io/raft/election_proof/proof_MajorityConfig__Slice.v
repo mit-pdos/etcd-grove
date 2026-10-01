@@ -13,7 +13,7 @@ Import P.
     { (* the nil set: the range is a pure step, and [sl] stays nil *)
       subst m ids. wp_auto.
       iPoseProof (own_slice_nil (V:=w64) (DfracOwn 1)) as "Hsl0".
-      wp_apply (P.wp_slices_Sort with "[$Hsl0]") as "%xs (Hsl & %Hxs)".
+      wp_apply (P.wp_slices_Sort with "[$Hsl0]") as "%xs (Hsl & %Hxs & _)".
       iApply "HΦ". iFrame "Hsl". iSplitR; first (iLeft; done).
       iSplitL; first iApply own_slice_cap_nil.
       iPureIntro. rewrite dom_empty_L elements_empty. by symmetry. }
@@ -49,7 +49,7 @@ Import P.
     iIntros "HP Hm". rewrite /Pmap. iNamed "HP".
     rewrite Nat2Z.id -Hklen firstn_all.
     wp_auto.
-    wp_apply (P.wp_slices_Sort with "[$Hsl]") as "%xs (Hsl & %Hxs)".
+    wp_apply (P.wp_slices_Sort with "[$Hsl]") as "%xs (Hsl & %Hxs & _)".
     iApply "HΦ". iFrame "Hsl Hsl_cap". iSplitL "Hm"; first (iRight; done).
     iPureIntro. rewrite -Hkset elements_list_to_set //.
   Qed.

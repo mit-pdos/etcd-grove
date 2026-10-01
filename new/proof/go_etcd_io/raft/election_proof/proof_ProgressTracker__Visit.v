@@ -142,7 +142,7 @@ Proof.
     subst xs'.
     wp_auto.
     (* [slices.Sort(ids)]: a permutation is all the postcondition needs *)
-    wp_apply (P.wp_slices_Sort with "[$Hsl]") as "%ys (Hsl & %Hperm)".
+    wp_apply (P.wp_slices_Sort with "[$Hsl]") as "%ys (Hsl & %Hperm & _)".
     (* every entry of [ids] is a key of [prs] *)
     assert (∀ y, y ∈ ys → is_Some (prs !! y)) as Hys_dom.
     { intros y Hy. apply elem_of_dom. rewrite -Hkset elem_of_list_to_set.

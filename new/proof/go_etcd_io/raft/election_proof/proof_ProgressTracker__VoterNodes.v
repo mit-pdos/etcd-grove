@@ -57,7 +57,7 @@ Import P.
     iIntros "HP _". rewrite /Pmap. iNamed "HP".
     rewrite Nat2Z.id -Hklen firstn_all.
     wp_auto.
-    wp_apply (P.wp_slices_Sort with "[$Hsl]") as "%xs (Hsl & %Hxs)".
+    wp_apply (P.wp_slices_Sort with "[$Hsl]") as "%xs (Hsl & %Hxs & _)".
     try wp_auto.
     iApply "HΦ". iFrame "Htrk Hown Hsl". iPureIntro.
     rewrite -Hxs -Hdomidm -Hkset elements_list_to_set //.

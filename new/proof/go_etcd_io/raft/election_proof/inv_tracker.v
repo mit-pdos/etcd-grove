@@ -712,3 +712,99 @@ Proof using All.
 Qed.
 
 End config.
+
+(* ===================================================================== *)
+(** ** Replication-side additions (2026-10-01)
+
+    Added for the log-replication tracker collections
+    ([Progress.MaybeUpdate]/[MaybeDecrTo]/[BecomeProbe]/[CanBumpCommit],
+    [Inflights.FreeLE], [ProgressTracker.Committed] and the quorum
+    functions under it).  Kept at the end of the file, apart from the
+    election-era definitions above, so that concurrent edits merge. *)
+
+
+Set Default Proof Using "Type".
+
+(** Go's [min]/[max] builtins on [uint64], exactly as Goose's
+    [minⁱᵐᵖˡ]/[maxⁱᵐᵖˡ] ([new/golang/defn/predeclared.v]) compute them:
+    [min x y = if x < y then x else y], [max x y = if x > y then x else y]
+    (and Goose renders [x > y] as [y < x]).  Stated with [decide], the form
+    of the framework's [wp_max2_uint64] ([new/golang/theory/auto.v]). *)
+Definition w64_min (x y : w64) : w64 :=
+  if decide (uint.Z x < uint.Z y) then x else y.
+Definition w64_max (x y : w64) : w64 :=
+  if decide (uint.Z y < uint.Z x) then x else y.
+
+Lemma w64_min_spec x y :
+  uint.Z (w64_min x y) = Z.min (uint.Z x) (uint.Z y).
+Proof. rewrite /w64_min. case_decide; lia. Qed.
+
+Lemma w64_max_spec x y :
+  uint.Z (w64_max x y) = Z.max (uint.Z x) (uint.Z y).
+Proof. rewrite /w64_max. case_decide; lia. Qed.
+
+(** Each voter's [Match], read off the tracker's [Progress] values, with
+    [0] for a peer that has none (there is none such in [cfg]:
+    [own_tracker]'s two maps have domain [cfg]).  [pvs_acked] is the
+    [Option] form, which is what [matchAckIndexer.AckedIndex] returns. *)
+Definition pvs_acked (pvs : gmap w64 (tracker.Progress.t * tracker.Inflights.t))
+    (v : w64) : option w64 :=
+  (λ p, p.1.(tracker.Progress.Match')) <$> pvs !! v.
+Definition pvs_match_at (pvs : gmap w64 (tracker.Progress.t * tracker.Inflights.t))
+    (v : w64) : w64 :=
+  default (W64 0) (pvs_acked pvs v).
+
+(** [N] is the quorum index of the per-voter values [f] over the voter set
+    [s] -- what [MajorityConfig.CommittedIndex] computes by sorting:
+    [N] is one of the values, a quorum of [s] has a value [≥ N], and no
+    larger index has a quorum.  [is_quorum] is [protocol.v]'s. *)
+Definition is_quorum_index (s : gset w64) (f : w64 → w64) (N : w64) : Prop :=
+  (∃ v, v ∈ s ∧ f v = N) ∧
+  is_quorum s (filter (λ v, uint.Z N ≤ uint.Z (f v)) s) ∧
+  (∀ N' : w64, uint.Z N < uint.Z N' →
+         ¬ is_quorum s (filter (λ v, uint.Z N' ≤ uint.Z (f v)) s)).
+
+Section replication.
+Context `{hG: heapGS Σ, !ffi_semantics _ _}.
+Context {sem : go.Semantics} {package_sem : raft.Assumptions}.
+Collection W := sem + package_sem.
+Set Default Proof Using "W".
+
+(** [min] on [uint64]; the framework has [wp_max2_uint64] but no [min]. *)
+Lemma wp_min2_uint64 (x y : w64) :
+  {{{ True }}}
+    #(functions go.min [go.uint64; go.uint64]) #x #y
+  {{{ RET #(w64_min x y); True }}}.
+Proof.
+  change ([ _ ;  _]) with (replicate 2 go.uint64).
+  wp_start. rewrite /w64_min. wp_if_destruct; wp_end; destruct decide; try done; word.
+Qed.
+
+(** The progress *map* with the [Progress] objects it points at -- the
+    object a [tracker.matchAckIndexer] is (a named [ProgressMap]), and
+    exactly [own_tracker]'s ["Hprs"] and ["Hprogs"] conjuncts.  It is the
+    precondition of [matchAckIndexer.AckedIndex], which receives the map and
+    not the tracker: [ProgressTracker.Committed] hands
+    [matchAckIndexer(p.Progress)] to [JointConfig.CommittedIndex], which
+    reads the voter map out of the *same* tracker while the indexer is in
+    use, so the indexer cannot be specified on [own_tracker] whole. *)
+Definition own_progress_map (m : loc) (prs : gmap w64 loc)
+    (pvs : gmap w64 (tracker.Progress.t * tracker.Inflights.t)) : iProp Σ :=
+  "#Hprs" ∷ m ↦$□ prs ∗
+  "Hprogs" ∷ ([∗ map] pr; v ∈ prs; pvs, own_progress pr v.1 v.2).
+
+(** The [quorum.AckedIndexer] interface contract, against a resource [P]
+    the implementation needs and a function [acked] saying what each id's
+    acknowledged index is ([None]: "not a voter I know", which
+    [MajorityConfig.CommittedIndex] counts as [0]).  Persistent, like
+    [is_Storage] ([inv_storage.v]); one triple per method. *)
+Definition is_AckedIndexer (l : interface.t) (P : iProp Σ)
+    (acked : w64 → option w64) : iProp Σ :=
+  ∃ (i : interface.t_ok),
+  "%Hlok" ∷ ⌜ l = interface.ok i ⌝ ∗
+  "#HAckedIndex" ∷ □ (∀ (id : w64),
+     {{{ P }}}
+       #(methods i.(interface.ty) "AckedIndex"%go i.(interface.v)) #id
+     {{{ RET (#(default (W64 0) (acked id)), #(bool_decide (is_Some (acked id)))); P }}}).
+
+End replication.
