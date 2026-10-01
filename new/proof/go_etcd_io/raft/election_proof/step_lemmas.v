@@ -100,12 +100,14 @@ Lemma step_stepdown_then_vote id (s : pstate.t) (m : msg.t) :
   m.(msg.to) = id →
   m.(msg.from) ≠ W64 0 →
   uint.Z s.(pstate.term) < uint.Z m.(msg.term) →
+  plog_up_to_date s.(pstate.base) s.(pstate.log)
+    (raft.entryID.mk m.(msg.logterm) m.(msg.index)) = true →
   step cfg id s ([m] ++ [m])
        (psend_msgs ((pbecome_follower s m.(msg.term) (W64 0))
                      <| pstate.vote := m.(msg.from) |>)
           [msg.plain mtype.VoteResp id m.(msg.from) m.(msg.term) false]).
 Proof.
-  intros Hty Hto Hfrom Hlt.
+  intros Hty Hto Hfrom Hlt Hutd.
   eapply step_trans with
     (s₁ := pbecome_follower s m.(msg.term)
              (if from_leader m.(msg.ty) then m.(msg.from) else W64 0)).

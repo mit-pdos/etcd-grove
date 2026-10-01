@@ -44,7 +44,7 @@ Implicit Type s : nstate.t.
       record [r.Vote := m.From].  [can] is the protocol-level [pcan_vote] of
       [to_pstate s_]; [wf_] is [nstate_wf s_].  Starts with the log closed
       (["Hphys"] whole). *)
-  Local Ltac vote_grant_tail id_ s_ m_ ents_ ty_eq to_eq can wf_ :=
+  Local Ltac vote_grant_tail id_ s_ m_ ents_ ty_eq to_eq can wf_ utd :=
     try wp_auto;
     (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Vote with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log);
     wp_apply P.wp_voteRespMsgType; [done|];
@@ -72,7 +72,7 @@ Implicit Type s : nstate.t.
     rewrite to_pstate_send_msgs to_pstate_vote;
     replace m_.(raftpb.Message.Term') with s_.(nstate.term) by congruence;
     apply (step_grant_vote cfg id_ (abs_msg mtype.Vote m_ ents_) (to_pstate s_));
-      [done|exact to_eq|done|(rewrite /abs_msg /=; congruence)|exact can].
+      [done|exact to_eq|done|(rewrite /abs_msg /=; congruence)|exact can|symmetry; exact utd].
 
   (** Decline: log, then [send] a rejection carrying [r.Term].  Always legal,
       so there is no side condition beyond the message being a [MsgVote]
@@ -206,10 +206,10 @@ Implicit Type s : nstate.t.
              wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
              wp_hidden (iDestruct (own_raft_phys_log_same with "Hphys")
                           as "[Hlog Hlogback]").
-             wp_apply (wp_raftLog__isUpToDate _ _ _ with "[$Hlog]") as "%ok2 [Hlog _]".
+             wp_apply (wp_raftLog__isUpToDate _ _ _ with "[$Hlog]") as "%ok2 [Hlog %Hutd]".
              wp_hidden (iDestruct ("Hlogback" with "Hlog") as "Hphys").
              destruct ok2.
-             ++ vote_grant_tail id s m ents Hty Hto Hcan Hwf.
+             ++ vote_grant_tail id s m ents Hty Hto Hcan Hwf Hutd.
              ++ vote_reject_tail id s m ents Hto Hwf.
           -- (* for somebody else: declined.  Both halves of [canVote]'s
                   first two disjuncts are false, so again the third is

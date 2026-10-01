@@ -135,7 +135,7 @@ Implicit Type s : nstate.t.
     wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
     wp_hidden (iDestruct (own_raft_phys_log_same with "Hphys")
       as "(Hlog1 & Hback)").
-    wp_apply (wp_raftLog__isUpToDate _ _ _ with "[$Hlog1]") as "%uptodate [Hlog1 _]".
+    wp_apply (wp_raftLog__isUpToDate _ _ _ with "[$Hlog1]") as "%uptodate [Hlog1 %Hutd]".
     wp_hidden (iDestruct ("Hback" with "Hlog1") as "Hphys").
     destruct uptodate.
     + (* the candidate's log is up to date: grant the vote *)
@@ -153,7 +153,7 @@ Implicit Type s : nstate.t.
                      [msg.plain mtype.VoteResp id m.(raftpb.Message.From')
                         m.(raftpb.Message.Term') false]))) as Hgrant.
       { rewrite to_pstate_send_msgs to_pstate_vote to_pstate_become_follower.
-        apply step_grant_vote; [done|exact Hto|done|done|].
+        apply step_grant_vote; [done|exact Hto|done|done| |symmetry; exact Hutd].
         rewrite /pcan_vote /pbecome_follower /=. right.
         split; [by rewrite decide_False|done]. }
       (* [send] the granted vote response, then record the vote. *)

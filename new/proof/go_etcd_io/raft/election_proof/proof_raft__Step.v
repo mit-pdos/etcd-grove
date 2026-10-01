@@ -50,7 +50,7 @@ Set Default Proof Using "Type".
     intros Hcfg.
     intros Helection Hin Hhup Hvote Hvoteresp Hrel.
     destruct Hrel as [<- Hwf].
-    iIntros (Φ) "(#Hinit & Hphys & Hghost & #Hm & #Hctx) HΦ".
+    iIntros (Φ) "(#Hinit & Hphys & Hghost & #Hm & _ & #Hctx) HΦ".
     iDestruct "Hm" as (ents) "[#Hents #Hm]".
     iApply wp_fupd.
     destruct Helection as [Hty | [Hty | Hty]].

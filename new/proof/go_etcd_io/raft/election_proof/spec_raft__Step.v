@@ -67,6 +67,11 @@ Definition wp_raft__Step_body :=
       "#Hm" ∷ (∃ ents, m.(raftpb.Message.Entries') ↦*□ ents ∗
                 (∀ ty, ⌜ mtype_of m.(raftpb.Message.Type') = Some ty ⌝ -∗
                        is_message γ (abs_msg ty m ents))) ∗
+      (* the [Entries] slice's capacity, owned: [raftLog.maybeAppend] can
+         adopt the caller's slice ([unstable.truncateAndAppend]'s replace
+         arm, v3.v:1650), so a received [MsgApp] needs it.  The election
+         branches drop it. *)
+      "Hents_cap" ∷ own_slice_cap raftpb.Entry.t m.(raftpb.Message.Entries') (DfracOwn 1) ∗
       "#Hctx" ∷ (∃ ctx, m.(raftpb.Message.Context') ↦*□ ctx ∗
                         ⌜ ctx ≠ campaignTransfer ⌝)
   }}}

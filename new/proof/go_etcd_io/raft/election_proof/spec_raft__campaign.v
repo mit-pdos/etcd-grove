@@ -28,18 +28,20 @@ Definition wp_raft__campaign_body :=
   uint.Z s.(nstate.term) + 1 < 2 ^ 64 →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "campaign" #t
-  {{{ (peers : list w64) (last : w64 → raft.entryID.t) pvs, RET #();
+  {{{ (peers : list w64) pvs, RET #();
       ⌜ peers ≡ₚ elements (cfg ∖ {[id]}) ⌝ ∗
       let s' := become_candidate id s in
       (* each [MsgVote] carries the [lastEntryID()] read just before it was
-         built ([Index: last.index, LogTerm: last.term]); the spec of
-         [lastEntryID] does not pin it yet, so each peer's is named by
-         [last] (notes/raft-replication-model.md, [step_campaign]'s
-         deferred premise) *)
+         built ([Index: last.index, LogTerm: last.term]) -- the log's last
+         entry id, the same for every peer: nothing in the loop changes the
+         log *)
       own_raft_phys cfg r id
         (send_msgs s'
            ([msg.plain mtype.VoteResp id id s'.(nstate.term) false] ++
-            ((λ to, pvote_req id to s'.(nstate.term) (last to)) <$> peers)) <| nstate.prvals := pvs |>) }}}.
+            ((λ to, pvote_req id to s'.(nstate.term)
+                      (plog_last s.(nstate.logst).(logstate.prev)
+                         (s.(nstate.logst).(logstate.sents) ++ s.(nstate.logst).(logstate.uents))))
+             <$> peers)) <| nstate.prvals := pvs |>) }}}.
 
 Module Type CAMPAIGN.
   Parameter wp_raft__campaign : wp_raft__campaign_body.

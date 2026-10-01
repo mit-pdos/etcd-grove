@@ -496,11 +496,12 @@ Proof. done. Qed.
 (** [repl_ok] reads only the term, the log and the commit index. *)
 Lemma repl_ok_proper id (ps ps' : pstate.t) m :
   ps'.(pstate.term) = ps.(pstate.term) →
+  ps'.(pstate.base) = ps.(pstate.base) →
   ps'.(pstate.log) = ps.(pstate.log) →
   ps'.(pstate.commit) = ps.(pstate.commit) →
   repl_ok id ps m → repl_ok id ps' m.
 Proof.
-  intros Ht Hl Hc. rewrite /repl_ok /app_ok /snap_ok Ht Hl Hc. done.
+  intros Ht Hb Hl Hc. rewrite /repl_ok /app_ok /snap_ok Ht Hb Hl Hc. done.
 Qed.
 
 Lemma repl_sends_prvals id s pvs ms :

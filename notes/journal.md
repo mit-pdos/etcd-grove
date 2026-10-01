@@ -3979,3 +3979,26 @@ is 170 s (was 350 s before turning its pure tail into `lia` goals).
 Checked: every new `link_*.vo` built; `election.vo` rebuilt as `.vo` over the whole
 `inv_tracker.v` cone (118 files, `proof_raft__Step` included), exit 0;
 the four `slices.Sort` callers rebuilt.
+
+## 2026-10-01 — replication model: deferred premises un-deferred (agent A, second pass)
+
+On top of the merged wave-1 log/tracker specs (e13e1c07a).
+- `step_grant_vote` now requires `plog_up_to_date base log (logterm, index)`;
+  the three MsgVote Step helpers pass `isUpToDate`'s pinned result.
+- `step_campaign` has no per-peer `last`: requests carry `plog_last base log`;
+  `spec_raft__campaign.v` says so (loop invariant `∀ z, f z = L`).
+- `app_ok` has `plog_term_at base log index = Some logterm` (from the pinned
+  `raftLog.term` in `maybeSendAppend`).  Still DEFERRED: the entries-prefix
+  clause (needs the log agent's Part B: pinned `slice`).
+- `step_propose` gained a no-wrap premise and its ghost case is now Qed:
+  `lead_log_own` carries "every term-log index ≤ last index", which
+  `step_win` establishes and `term_log_insert_stamped` uses for freshness.
+- `spec_raft__Step.v` precondition gained
+  `"Hents_cap" ∷ own_slice_cap raftpb.Entry.t m.Entries' (DfracOwn 1)` for
+  the coming MsgApp branch (maybeAppend may adopt the slice); election
+  branches drop it.
+- Remaining admits (all in protocol.v): heartbeat_commit_le_last,
+  app_commit_le_lastnewi (needs the prefix clause), app_no_conflict_below_commit,
+  log_matching, leader_completeness, state_machine_safety.  The ghost state
+  holds the resources but not yet the invariants these need.
+`election.vo` green; tcb-report: 7 Admitted, 14 Axiom, 385 Qed.

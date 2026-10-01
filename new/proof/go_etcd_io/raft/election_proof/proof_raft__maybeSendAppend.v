@@ -159,7 +159,7 @@ Set Default Proof Using "Type".
     iDestruct (own_raftLog_nowrap with "Hlog") as "[%Hnw Hlog]".
     cbn [logstate.prev logstate.sents logstate.uents] in Hnw.
     wp_apply (wp_raftLog__term _ (logstate.mk prev sents uents lcm lap) _ with "[$Hlog]")
-      as "%pterm %err [Hlog [%Herr _]]".
+      as "%pterm %err [Hlog [%Herr %Hterm_at]]".
     cbn [logstate.prev logstate.sents logstate.uents] in Herr.
     iEval (rewrite -Hls) in "Hlog".
     iDestruct ("Hlogback" with "Hlog") as "Hphys".
@@ -174,6 +174,9 @@ Set Default Proof Using "Type".
       iApply ("HΦ" $! b ms' pvs'). iFrame "Hphys". done. }
     (* [err = nil]: the iff gives [pr.Next] a lower bound against the log *)
     destruct Herr as [Herr1 _]. specialize (Herr1 eq_refl).
+    (* and the term it returned is the log's at [pr.Next - 1]: [app_ok]'s
+       [logterm] clause *)
+    specialize (Hterm_at eq_refl).
     assert (Hlo : (uint.Z prev.(raft.entryID.index') + 1
                    ≤ uint.Z pv.(tracker.Progress.Next'))%Z) by word.
     wp_pure.
@@ -296,6 +299,7 @@ Set Default Proof Using "Type".
       [ rewrite /repl_sends; apply Forall_singleton; left;
         rewrite /app_ok /=; split_and!;
         [ done | done | done | exact Hto
+        | rewrite Hls; exact Hterm_at
         | destruct Hlvc as [Hlvc _]; rewrite Hlvc Hls /=; lia
         | exact Hpkgin ]
       | rewrite /= insert_insert_eq;

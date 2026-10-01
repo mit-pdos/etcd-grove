@@ -84,13 +84,16 @@ Lemma wp_campaign (r : loc) (id : w64) (s : nstate.t) (t : raft.CampaignType.t) 
   uint.Z s.(nstate.term) + 1 < 2 ^ 64 →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "campaign" #t
-  {{{ (peers : list w64) (last : w64 → raft.entryID.t) pvs, RET #();
+  {{{ (peers : list w64) pvs, RET #();
       ⌜ peers ≡ₚ elements (cfg ∖ {[id]}) ⌝ ∗
       let s' := become_candidate id s in
       own_raft_phys cfg r id
         (send_msgs s'
            ([msg.plain mtype.VoteResp id id s'.(nstate.term) false] ++
-            ((λ to, pvote_req id to s'.(nstate.term) (last to)) <$> peers))
+            ((λ to, pvote_req id to s'.(nstate.term)
+                      (plog_last s.(nstate.logst).(logstate.prev)
+                         (s.(nstate.logst).(logstate.sents) ++ s.(nstate.logst).(logstate.uents))))
+             <$> peers))
          <| nstate.prvals := pvs |>) }}}.
 Proof.
   intros Ht Hrole Hid_cfg Hnowrap.
@@ -214,17 +217,21 @@ Proof.
   (* [cur] -- the [slice.for_range]'s own [id] variable -- is assigned on every
      iteration, so it has to be existentially quantified *inside* the
      invariant.  So does [f]. *)
+  (* every request carries the log's last entry id, [L] *)
+  set (L := plog_last s.(nstate.logst).(logstate.prev)
+              (s.(nstate.logst).(logstate.sents) ++ s.(nstate.logst).(logstate.uents))).
   iAssert (∃ (n c : w64) (f : w64 → raft.entryID.t),
      "i" ∷ i_ptr ↦ n ∗
      "cur" ∷ cur_ptr ↦ c ∗
      "%Hn" ∷ ⌜ 0 ≤ sint.Z n ≤ Z.of_nat (length xs) ⌝ ∗
+     "%Hf" ∷ ⌜ ∀ z, f z = L ⌝ ∗
      "Hphys" ∷ own_raft_phys cfg r id
        (send_msgs (become_candidate id s <| nstate.prvals := pvs |>)
           (cmsg f <$> take (Z.to_nat (sint.Z n)) xs)))%I
     with "[i cur Hphys]" as "IH".
-  { iExists (W64 0), (W64 0), (λ _, raft.entryID.mk (W64 0) (W64 0)).
+  { iExists (W64 0), (W64 0), (λ _, L).
     rewrite (_ : Z.to_nat (sint.Z (W64 0)) = 0%nat); last word.
-    rewrite take_0 /=. iFrame. iPureIntro.
+    rewrite take_0 /=. iFrame. iPureIntro. split; last done.
     rewrite (_ : sint.Z (W64 0) = 0); last word. lia. }
   (* the bounds [word] needs to see that [i+1] does not overflow *)
   assert (sint.Z sl'.(slice.len) = Z.of_nat (length xs)) as Hsllen.
@@ -278,11 +285,11 @@ Proof.
       { rewrite (Hgrow f) // Hcmsg_self -send_msgs_app. iExact "Hphys". }
       wp_auto.
       wp_for_post.
-      iFrame. iPureIntro. word.
+      iFrame. iPureIntro. split; [word|done].
     + (* a peer: read the last entry, log, and send it a [MsgVote] *)
       rewrite bool_decide_eq_false_2 //. wp_auto. wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
       iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hback]".
-      wp_apply (wp_raftLog__lastEntryID with "[$Hlog]") as "%lastID [Hlog _]".
+      wp_apply (wp_raftLog__lastEntryID with "[$Hlog]") as "%lastID [Hlog %HlastID]".
       iDestruct ("Hback" with "Hlog") as "Hphys".
       (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log).
       set (f' := λ z, if decide (z = y) then lastID else f z).
@@ -290,6 +297,8 @@ Proof.
       { intros z Hz. rewrite /f' decide_False //. }
       assert (cmsg f' y = pvote_req id y T lastID) as Hcy.
       { rewrite Hcmsg_peer // /f' decide_True //. }
+      assert (∀ z, f' z = L) as Hf'L.
+      { intros z. rewrite /f'. case_decide; [|done]. rewrite HlastID. reflexivity. }
       (* [ctx] is the [campaignTransfer] marker or nil; the model does not
          look at a vote request's context, so both arms run the same tail. *)
       destruct (decide (t = campaignTransfer)) as [->|Hnt].
@@ -308,7 +317,7 @@ Proof.
         { rewrite (Hgrow f' Hf') Hcy -send_msgs_app. iExact "Hphys". }
         wp_auto.
         wp_for_post.
-        iFrame. iPureIntro. word.
+        iFrame. iPureIntro. split; [word|exact Hf'L].
       * rewrite bool_decide_eq_false_2 //. wp_auto.
         wp_apply (P.wp_raft__send _ _ _ _ _ [] [pvote_req id y T lastID]
                     with "[$Hphys]");
@@ -323,7 +332,7 @@ Proof.
         { rewrite (Hgrow f' Hf') Hcy -send_msgs_app. iExact "Hphys". }
         wp_auto.
         wp_for_post.
-        iFrame. iPureIntro. word.
+        iFrame. iPureIntro. split; [word|exact Hf'L].
   - (* every voter has been notified *)
     assert (sint.Z n = Z.of_nat (length xs)) as Hfull0 by word.
     assert (Z.to_nat (sint.Z n) = length xs) as Hfull.
@@ -333,11 +342,11 @@ Proof.
             = send_msgs (become_candidate id s <| nstate.prvals := pvs |>) (cmsg f <$> xs)) as Hall.
     { rewrite Hfull firstn_all //. }
     rewrite Hall.
-    iApply ("HΦ" $! (elements (cfg ∖ {[id]})) f pvs).
+    iApply ("HΦ" $! (elements (cfg ∖ {[id]})) pvs).
     iSplitR "Hphys"; first (iPureIntro; done).
     iDestruct (own_raft_phys_send_perm _ _ _ _
       ([msg.plain mtype.VoteResp id id T false] ++
-       ((λ to, pvote_req id to T (f to)) <$> elements (cfg ∖ {[id]})))
+       ((λ to, pvote_req id to T L) <$> elements (cfg ∖ {[id]})))
       with "Hphys") as "Hphys".
     2:{ (* [reset]'s new [Progress] values commute with the sends *)
         iApply (own_raft_phys_eq with "Hphys").
@@ -347,7 +356,9 @@ Proof.
     assert (cmsg f <$> xs ≡ₚ cmsg f <$> (id :: elements (cfg ∖ {[id]}))) as Hp1.
     { by apply (fmap_Permutation (cmsg f)). }
     etrans; first exact Hp1.
-    rewrite fmap_cons Hcmsg_self Hpeers //.
+    rewrite fmap_cons Hcmsg_self Hpeers.
+    rewrite (list_fmap_ext _ (λ to, pvote_req id to T L) (elements (cfg ∖ {[id]}))); first done.
+    intros i z _. simpl. rewrite Hf //.
 Qed.
 
 End helpers.
