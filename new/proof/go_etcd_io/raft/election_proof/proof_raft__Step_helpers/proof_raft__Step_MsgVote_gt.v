@@ -130,12 +130,12 @@ Implicit Type s : nstate.t.
     wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
     wp_hidden (iDestruct (own_raft_phys_log_same with "Hphys")
       as "(Hlog1 & Hback)").
-    wp_apply (wp_raftLog__lastEntryID _ _ with "[$Hlog1]") as "%lastID Hlog1".
+    wp_apply (wp_raftLog__lastEntryID _ _ with "[$Hlog1]") as "%lastID [Hlog1 _]".
     wp_hidden (iDestruct ("Hback" with "Hlog1") as "Hphys").
     wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
     wp_hidden (iDestruct (own_raft_phys_log_same with "Hphys")
       as "(Hlog1 & Hback)").
-    wp_apply (wp_raftLog__isUpToDate _ _ _ with "[$Hlog1]") as "%uptodate Hlog1".
+    wp_apply (wp_raftLog__isUpToDate _ _ _ with "[$Hlog1]") as "%uptodate [Hlog1 _]".
     wp_hidden (iDestruct ("Hback" with "Hlog1") as "Hphys").
     destruct uptodate.
     + (* the candidate's log is up to date: grant the vote *)

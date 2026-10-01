@@ -1,0 +1,8 @@
+Require Export New.proof.go_etcd_io.raft.election_proof.proof_raftLog__findConflictByTerm.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_raftLog__term.
+
+Module RaftLogFindConflictByTermPostulates : RAFTLOG__FINDCONFLICTBYTERM_POSTULATES.
+  Include RaftLogTerm.
+End RaftLogFindConflictByTermPostulates.
+
+Module RaftLogFindConflictByTerm := RaftLogFindConflictByTermProof RaftLogFindConflictByTermPostulates.

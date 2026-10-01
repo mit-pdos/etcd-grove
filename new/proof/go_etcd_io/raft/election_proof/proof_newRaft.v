@@ -14,20 +14,22 @@ Import P.
     wp_apply (P.wp_Config__validate _ _ Hvalid with "[$Hc]") as "%cv' (Hc & %Hpres)".
     destruct Hpres as (HpID & HpET & HpHT & HpSt & HpAp & HpMI & HpCQ & HpPV & HpLg).
     rewrite HpSt Hsto HpLg Hlok.
-    wp_apply (P.wp_newLogWithSize _ _ _ _ _ Hidx Hncc with "[$HisSto $HSto]") as "%l %lv (Hl & %Hlv & Hcore)".
+    wp_apply (P.wp_newLogWithSize _ _ _ _ _ lok Hidx Hncc eq_refl with "[$HisSto $HSto $Hlg0]") as "%l %lv (Hl & %Hlv & Hcore)".
     destruct Hlv as (Hlvst & Hlvcm & Hlvap).
     try wp_auto.
     rewrite HpSt Hsto /=.
     iEval (rewrite /own_raftLog_core) in "Hcore".
-    iDestruct "Hcore" as "(%Hlidx & %Hlnowrap & #HisSto' & HSto & %Hloffset &
-      Huents & Huents_cap & %Hlnosnap & %Hlncc & %Hlapplied & %Hlcommitted)".
+    iDestruct "Hcore" as (stored) "(%Hlidx & %Hlnowrap & #HisSto' & HSto & %Hlstored &
+      %Hlstored_eq & %Hloffset & Huents & Huents_cap & %Hlnosnap & %Hlncc & %Hlapplied &
+      %Hlcommitted & #Hllg & #Hulg)".
+    rewrite -(Hlstored_eq eq_refl).
     iEval (rewrite Hlvst) in "HSto".
     wp_apply ("HInit" with "[$HSto]"). iIntros "HSto Hvoters".
     iAssert (own_raftLog l (logstate.mk prev ents [] prev.(raft.entryID.index')
                               prev.(raft.entryID.index')))
       with "[Hl HSto Huents Huents_cap]" as "HL".
-    { iApply own_raftLog_unfold. iExists lv. iFrame "Hl". iSplitR; [done|].
-      iSplitR; [done|]. rewrite /own_raftLog_core Hlvst. iFrame "∗#%". }
+    { iApply (own_raftLog_intro with "Hl HisSto HSto Huents Huents_cap Hllg Hulg");
+        try done. all: rewrite ?Hlvap ?Hlvcm; done. }
     try wp_auto.
     wp_apply P.wp_MakeProgressTracker as "%tv0 %v0 (%Htv0 & Hv0 & Hvotes & Hprs0)".
     destruct Htv0 as (Htv0mi & Htv0mb & Htv0arr & Htv0l & Htv0ln & Htv0al).
@@ -36,7 +38,7 @@ Import P.
     try wp_auto.
     wp_apply wp_alloc. iIntros (r) "Hr". try wp_auto.
     wp_apply P.wp_traceInitState. try wp_auto.
-    wp_apply (P.wp_raftLog__lastEntryID with "[$HL]") as "%lastID HL".
+    wp_apply (P.wp_raftLog__lastEntryID with "[$HL]") as "%lastID [HL _]".
     try wp_auto.
     assert (0 ≤ sint.Z tv0.(tracker.ProgressTracker.MaxInflight') < 2 ^ 62)%Z as Hmi.
     { rewrite Htv0mi HpMI. lia. }

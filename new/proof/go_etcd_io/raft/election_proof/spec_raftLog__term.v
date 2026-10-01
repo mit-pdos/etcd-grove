@@ -1,4 +1,5 @@
 Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
+Require Export New.proof.go_etcd_io.raft.election_proof.plog.
 
 (** [l.term(i)]: the term of index [i].
 
@@ -34,14 +35,16 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
     dragging the [is_initialized] globals into the postcondition, and the
     iff already tells every caller which branch it is in.
 
-    The returned term is still not specified, and cannot be: in the unstable
-    part of the range the value comes from [unstable.maybeTerm], whose
-    triple does not pin it (and [term_at] describes the *stable* prefix
-    only).  Nothing on the election path reads it: [lastEntryID] only puts
-    it in an [entryID], and [isUpToDate] comparing the wrong terms can only
-    make the node decline to vote, which is always protocol-legal;
-    [maybeSendAppend] puts it in a [MsgApp]'s [LogTerm], which the abstract
-    message does not carry. *)
+    **The returned term is pinned** (since 2026-10-01): on the [nil]
+    branch it is [plog_term_at prev (sents ++ uents) i] ([plog.v]), the
+    term of the log the protocol model sees.  Log replication needs it --
+    [matchTerm], and through it [findConflict], [maybeAppend] and
+    [maybeCommit], compare it.  In the unstable window it comes from
+    [unstable.maybeTerm]'s widened spec, below it from [is_Storage]'s
+    [HTerm] ([term_at prev stored i]), which agrees with [plog_term_at] on
+    the visible stable prefix [sents] ([proof_raftLog__term.v]).  Until
+    then the term was unspecified and nothing on the election path read
+    it. *)
 Definition wp_raftLog__term_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
@@ -54,7 +57,9 @@ Definition wp_raftLog__term_body :=
       ⌜ err = interface.nil ↔
         (uint.Z ls.(logstate.prev).(raft.entryID.index') ≤ uint.Z i ≤
          uint.Z ls.(logstate.prev).(raft.entryID.index') + Z.of_nat (length ls.(logstate.sents))
-         + Z.of_nat (length ls.(logstate.uents)))%Z ⌝ }}}.
+         + Z.of_nat (length ls.(logstate.uents)))%Z ⌝ ∗
+      ⌜ err = interface.nil →
+        plog_term_at ls.(logstate.prev) (ls.(logstate.sents) ++ ls.(logstate.uents)) i = Some t ⌝ }}}.
 
 Module Type RAFTLOG__TERM.
   Parameter wp_raftLog__term : wp_raftLog__term_body.

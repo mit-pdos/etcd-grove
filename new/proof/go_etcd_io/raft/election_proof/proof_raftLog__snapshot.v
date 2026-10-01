@@ -20,9 +20,7 @@ Module RaftLogSnapshotProof (P : RAFTLOG__SNAPSHOT_POSTULATES) : RAFTLOG__SNAPSH
     wp_apply ("HSnap" with "[$HStorage $Hesu]") as "%snap %err [HStorage %Herr]".
     iApply ("HΦ" $! snap err).
     iSplitL; last done.
-    iApply own_raftLog_unfold. iExists lv. rewrite /own_raftLog_core Hstok.
-    iFrame "∗#%".
-    by iPureIntro.
+    reseal_raftLog.
   Qed.
 
 End RaftLogSnapshotProof.

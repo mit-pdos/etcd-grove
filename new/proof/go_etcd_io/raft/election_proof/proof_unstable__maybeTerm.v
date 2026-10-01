@@ -18,7 +18,7 @@ Import P.
       rewrite Hb1 /=. wp_auto.
       rewrite Hbsnap /=. wp_auto.
       iApply ("HΦ" $! (W64 0) false). rewrite /own_unstable. iFrame. iPureIntro.
-      split; [done | lia].
+      split; [split; [done | lia] | intros Hf; discriminate Hf].
     - assert (bool_decide (uint.Z i < uint.Z uv.(raft.unstable.offset'))%Z = false)
         as Hb1 by (apply bool_decide_eq_false_2; done).
       rewrite Hb1 /=. wp_auto.
@@ -29,14 +29,14 @@ Import P.
       destruct (decide (uents = [])) as [He|Hne].
       + rewrite (Hok1 He) /=. wp_auto.
         iApply ("HΦ" $! (W64 0) false). rewrite /own_unstable. iFrame. iPureIntro.
-        rewrite He /=. split; [done | lia].
+        rewrite He /=. split; [split; [done | lia] | intros Hf; discriminate Hf].
       + destruct (Hok2 Hne) as [Hokt Hlast]. rewrite Hokt /=. wp_auto.
         destruct (decide (uint.Z last < uint.Z i)%Z) as [Hgt|Hle].
         * assert (bool_decide (uint.Z last < uint.Z i)%Z = true) as Hb2
             by (apply bool_decide_eq_true_2; exact Hgt).
           rewrite Hb2 /=. wp_auto.
           iApply ("HΦ" $! (W64 0) false). rewrite /own_unstable. iFrame. iPureIntro.
-          split; [done | lia].
+          split; [split; [done | lia] | intros Hf; discriminate Hf].
         * assert (bool_decide (uint.Z last < uint.Z i)%Z = false) as Hb2
             by (apply bool_decide_eq_false_2; exact Hle).
           rewrite Hb2 /=. wp_auto.
@@ -53,7 +53,11 @@ Import P.
           iDestruct ("Hback" with "He") as "Hents".
           rewrite (list_insert_id _ _ _ He_lk).
           iApply ("HΦ" $! e.(raftpb.Entry.Term') true). rewrite /own_unstable. iFrame. iPureIntro.
-          split; [intros _; lia | done].
+          split; [split; [intros _; lia | done] |].
+          intros _. exists e. split; [|done].
+          replace (Z.to_nat (uint.Z i - uint.Z uv.(raft.unstable.offset')))
+            with (Z.to_nat (sint.Z (word.sub i uv.(raft.unstable.offset')))) by word.
+          exact He_lk.
   Qed.
 
 End UnstableMaybeTermProof.

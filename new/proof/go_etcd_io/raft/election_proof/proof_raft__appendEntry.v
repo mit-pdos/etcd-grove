@@ -28,7 +28,9 @@ Lemma own_raftLog_facts (l : loc) prev sents uents cm ap :
   own_raftLog l (logstate.mk prev sents uents cm ap).
 Proof.
   iIntros "H". iNamed "H".
-  iEval (rewrite /own_raftLog_core /=) in "Hcore". iNamed "Hcore".
+  iEval (rewrite /own_raftLog_core /=) in "Hcore".
+  iDestruct "Hcore" as (stored) "Hcore". iNamed "Hcore".
+  pose proof (prefix_length _ _ Hstored) as Hstlen.
   iAssert (is_Storage lv.(raft.raftLog.storage')) as "#Hsto".
   { iExact "HisStorage". }
   (* [iNamed] rather than a positional pattern: [is_Storage] is gaining
@@ -39,8 +41,7 @@ Proof.
   iDestruct (slice_len_Z with "Huents") as %Hul.
   iSplitR.
   { iPureIntro. split; [ done | word ]. }
-  iApply own_raftLog_unfold. iExists lv. rewrite /own_raftLog_core.
-  iFrame "∗#%".
+  reseal_raftLog.
 Qed.
 
 (** ** The batch, as [appendEntry] rewrites it: [stamp] ([defs.v]). *)

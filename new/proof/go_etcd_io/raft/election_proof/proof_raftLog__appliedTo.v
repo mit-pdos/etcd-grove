@@ -15,13 +15,10 @@ Module RaftLogAppliedToProof (P : RAFTLOG__APPLIEDTO_POSTULATES) : RAFTLOG__APPL
     rewrite bool_decide_eq_false_2; last (subst; lia). wp_auto.
     wp_apply wp_max2_uint64. try wp_auto.
     case_bool_decide; try wp_auto.
-    all: iApply "HΦ"; iApply (own_raftLog_unfold l prev sents uents lcm i); iExists _; iFrame "Hl";
-      iSplitR; [done|]; iSplitR; [done|].
-    all: rewrite /own_raftLog_core; iEval (rewrite /own_raftLog_core) in "Hcore";
-      iDestruct "Hcore" as "(%Hidx & %Hnowrap & #HisStorage & HStorage & %Hoffset &
-        Huents & Huents_cap & %Hnosnap & %Hncc & %Happlied & %Hcommitted)";
-      iFrame "∗#%";
-      iPureIntro; simpl; subst; lia.
+    all: iApply "HΦ"; iEval (rewrite /own_raftLog_core /=) in "Hcore";
+      iDestruct "Hcore" as (stored) "Hcore"; iNamed "Hcore";
+      reseal_raftLog.
+    all: simpl; subst; lia.
   Qed.
 
 End RaftLogAppliedToProof.

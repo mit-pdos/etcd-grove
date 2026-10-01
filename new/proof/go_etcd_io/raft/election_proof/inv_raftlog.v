@@ -100,6 +100,7 @@
     The [Storage] interface contract lives in [inv_storage.v]. *)
 
 Require Export New.proof.go_etcd_io.raft.election_proof.inv_storage.
+Require Export New.proof.go_etcd_io.raft.election_proof.inv_logger.
 
 (** Split [l.unstable] out of [l ↦ lv] and get a wand to put it back.  The
     three [unstable.maybe*] specs are stated on a bare [*unstable], so every
@@ -156,18 +157,47 @@ Definition log_indices_ok (prev : raft.entryID.t) (ents : list raftpb.Entry.t) :
 
 Definition EntryNormal : w32 := W32 0.
 
+(** A [Logger] interface value that is non-nil and satisfies [is_Logger].
+    One persistent assertion (rather than [∃ lg, ⌜x = ok lg⌝ ∗ is_Logger lg]
+    spread over the predicate) so that [iFrame] re-seals it as a unit: with
+    two loggers' [is_Logger]s in context it otherwise picks the wrong one. *)
+Definition is_Logger_val (x : interface.t) : iProp Σ :=
+  ∃ lg, ⌜ x = interface.ok lg ⌝ ∗ is_Logger lg.
+Global Instance is_Logger_val_pers x : Persistent (is_Logger_val x).
+Proof. apply _. Qed.
+
 (** Everything [own_raftLog] owns besides the struct itself, at struct value
     [lv] and entry list [prev]/[sents]/[uents].  Not a second predicate for
     the log: nothing is specified on it.  [own_raftLog_unfold] is how a
     proof gets at it.  The unstable entries are held read-only, as in
-    [own_unstable] and for the same reason. *)
+    [own_unstable] and for the same reason.
+
+    **[sents] is the *visible* stable part** (since 2026-10-01).  The
+    [Storage] holds [stored], of which [sents] is a prefix: when
+    [unstable.truncateAndAppend] takes its [fromIndex <= u.offset] arm
+    (a [MsgApp] that conflicts with an entry already handed to storage), the
+    new unstable suffix starts at [fromIndex] and *shadows* the tail of
+    [stored] from there on -- Go never deletes it from storage, it is just
+    no longer read: every read of the stable part ([term], [slice]) is below
+    [unstable.offset].  [Hstored_eq] says the shadowing needs a non-empty
+    suffix: with [uents = []], [lastIndex()] falls back to
+    [storage.LastIndex()], which is [prev.index + |stored|], so the two
+    must agree.
+
+    The two [Logger]s ([l.logger], and [l.unstable.logger], which
+    [newLogWithSize] sets to the same value) are carried so that the
+    [Infof]s of [findConflict] and [unstable.truncateAndAppend] can be
+    stepped. *)
 Definition own_raftLog_core (lv : raft.raftLog.t) (prev : raft.entryID.t)
                             (sents uents : list raftpb.Entry.t) : iProp Σ :=
+  ∃ (stored : list raftpb.Entry.t),
   "%Hidx" ∷ ⌜ log_indices_ok prev (sents ++ uents) ⌝ ∗
   "%Hnowrap" ∷ ⌜ (uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents)
                   + Z.of_nat (length uents) + 1 < 2^64)%Z ⌝ ∗
   "#HisStorage" ∷ is_Storage lv.(raft.raftLog.storage') ∗
-  "HStorage" ∷ own_Storage lv.(raft.raftLog.storage') prev sents ∗
+  "HStorage" ∷ own_Storage lv.(raft.raftLog.storage') prev stored ∗
+  "%Hstored" ∷ ⌜ sents `prefix_of` stored ⌝ ∗
+  "%Hstored_eq" ∷ ⌜ uents = [] → sents = stored ⌝ ∗
   "%Hoffset" ∷ ⌜ (uint.Z lv.(raft.raftLog.unstable').(raft.unstable.offset')
                  = uint.Z prev.(raft.entryID.index')
                    + Z.of_nat (length sents) + 1)%Z ⌝ ∗
@@ -181,7 +211,9 @@ Definition own_raftLog_core (lv : raft.raftLog.t) (prev : raft.entryID.t)
                   ≤ uint.Z lv.(raft.raftLog.committed'))%Z ⌝ ∗
   "%Hcommitted" ∷ ⌜ (uint.Z lv.(raft.raftLog.committed')
                     ≤ uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents)
-                      + Z.of_nat (length uents))%Z ⌝.
+                      + Z.of_nat (length uents))%Z ⌝ ∗
+  "#Hl_logger" ∷ is_Logger_val lv.(raft.raftLog.logger') ∗
+  "#Hu_logger" ∷ is_Logger_val lv.(raft.raftLog.unstable').(raft.unstable.logger').
 
 (** The one predicate for a [raftLog], indexed by its abstract state [ls]
     ([logstate.t], above). *)
@@ -201,6 +233,46 @@ Lemma own_raftLog_unfold l prev sents uents cm ap :
   ∃ lv, l ↦ lv ∗ ⌜ lv.(raft.raftLog.committed') = cm ⌝ ∗
         ⌜ lv.(raft.raftLog.applied') = ap ⌝ ∗ own_raftLog_core lv prev sents uents.
 Proof. rewrite /own_raftLog /=. done. Qed.
+
+(** Re-seal [own_raftLog] from the pieces [iNamed "Hlog"; iNamed "Hcore"]
+    names.  **Use this rather than [iFrame "∗#%"]**: with the existential
+    [stored] in [own_raftLog_core], [iFrame] spends ~35 s searching
+    (measured in [proof_raftLog__lastIndex.v], 2026-10-01).  [st] is the
+    storage as the hypotheses mention it -- [lv.storage], or [interface.ok
+    isv] after a [rewrite Hstok] -- and the premise [lv.storage = st] is then
+    [eq_refl] or [Hstok].  The [reseal_raftLog] tactic below applies it with
+    the standard names and closes the pure premises by assumption. *)
+Lemma own_raftLog_intro l lv st prev sents uents cm ap stored :
+  lv.(raft.raftLog.storage') = st →
+  lv.(raft.raftLog.committed') = cm →
+  lv.(raft.raftLog.applied') = ap →
+  log_indices_ok prev (sents ++ uents) →
+  (uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents)
+   + Z.of_nat (length uents) + 1 < 2^64)%Z →
+  sents `prefix_of` stored →
+  (uents = [] → sents = stored) →
+  (uint.Z lv.(raft.raftLog.unstable').(raft.unstable.offset')
+   = uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents) + 1)%Z →
+  lv.(raft.raftLog.unstable').(raft.unstable.snapshot') = null →
+  Forall (λ e, e.(raftpb.Entry.Type') = EntryNormal) (sents ++ uents) →
+  (uint.Z prev.(raft.entryID.index') ≤ uint.Z lv.(raft.raftLog.applied')
+   ≤ uint.Z lv.(raft.raftLog.committed'))%Z →
+  (uint.Z lv.(raft.raftLog.committed') ≤ uint.Z prev.(raft.entryID.index')
+     + Z.of_nat (length sents) + Z.of_nat (length uents))%Z →
+  l ↦ lv -∗
+  is_Storage st -∗
+  own_Storage st prev stored -∗
+  lv.(raft.raftLog.unstable').(raft.unstable.entries') ↦*□ uents -∗
+  own_slice_cap raftpb.Entry.t lv.(raft.raftLog.unstable').(raft.unstable.entries') (DfracOwn 1) -∗
+  is_Logger_val lv.(raft.raftLog.logger') -∗
+  is_Logger_val lv.(raft.raftLog.unstable').(raft.unstable.logger') -∗
+  own_raftLog l (logstate.mk prev sents uents cm ap).
+Proof.
+  intros <- Hcm Hap ?????????.
+  iIntros "Hl #Hst HSt Hu Hucap #Hl1 #Hl2".
+  iExists lv. iFrame "Hl". iSplit; [done|]. iSplit; [done|].
+  iExists stored. iFrame "Hst HSt Hu Hucap Hl1 Hl2". iPureIntro. done.
+Qed.
 
 (** The struct, for a field read.  [committed] and [applied]
     are what the state says they are. *)
@@ -229,6 +301,29 @@ Proof.
   iSplitR; first done. iExists lv. iFrame "∗#%".
 Qed.
 
+(** [Hidx] and the commit bounds, read out without consuming the log. *)
+Lemma own_raftLog_wf l ls :
+  own_raftLog l ls -∗
+  ⌜ log_indices_ok ls.(logstate.prev) (ls.(logstate.sents) ++ ls.(logstate.uents)) ⌝ ∗
+  own_raftLog l ls.
+Proof.
+  iIntros "H". iNamed "H". iNamed "Hcore".
+  iSplitR; first done. iExists lv. iFrame "∗#%".
+Qed.
+
+Lemma own_raftLog_committed l ls :
+  own_raftLog l ls -∗
+  ⌜ (uint.Z ls.(logstate.prev).(raft.entryID.index') ≤ uint.Z ls.(logstate.applied)
+     ≤ uint.Z ls.(logstate.committed)
+     ≤ uint.Z ls.(logstate.prev).(raft.entryID.index')
+       + Z.of_nat (length ls.(logstate.sents))
+       + Z.of_nat (length ls.(logstate.uents)))%Z ⌝ ∗
+  own_raftLog l ls.
+Proof.
+  iIntros "H". iNamed "H". iNamed "Hcore".
+  iSplitR; first (iPureIntro; rewrite -Hcm -Hap; lia). iExists lv. iFrame "∗#%".
+Qed.
+
 Lemma own_raftLog_no_confchange l ls :
   own_raftLog l ls -∗
   ⌜ Forall (λ e, e.(raftpb.Entry.Type') = EntryNormal)
@@ -237,6 +332,22 @@ Lemma own_raftLog_no_confchange l ls :
 Proof.
   iIntros "H". iNamed "H". iNamed "Hcore".
   iSplitR; first done. iExists lv. iFrame "∗#%".
+Qed.
+
+(** An entry [Storage.Entries] hands back for a range ending at or below
+    [unstable.offset] is an entry of the *visible* stable part [sents]
+    ([is_Storage]'s [HEntries] bounds it by [hi]; [Hstored] makes the
+    prefix below [hi] a prefix of [sents]). *)
+Lemma stored_take_visible (prev : raft.entryID.t) (sents stored : list raftpb.Entry.t)
+    (hi : w64) e :
+  sents `prefix_of` stored →
+  (uint.Z hi ≤ uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents) + 1)%Z →
+  e ∈ take (Z.to_nat (uint.Z hi - uint.Z prev.(raft.entryID.index') - 1)) stored →
+  e ∈ sents.
+Proof.
+  intros [k ->] Hhi He. rewrite take_app_le in He; [|lia].
+  rewrite -(take_drop (Z.to_nat (uint.Z hi - uint.Z prev.(raft.entryID.index') - 1)) sents).
+  apply elem_of_app. by left.
 Qed.
 
 (** Read a slice's length as a [Z], without consuming the slice. *)
@@ -304,3 +415,10 @@ Qed.
 
 
 End proof.
+
+(** Re-seal [own_raftLog l (logstate.mk …)] from the hypotheses
+    [iNamed "Hlog"; iNamed "Hcore"] introduced ([own_raftLog_intro]). *)
+Ltac reseal_raftLog :=
+  iApply (own_raftLog_intro with
+           "Hl HisStorage HStorage Huents Huents_cap Hl_logger Hu_logger");
+  try done.
