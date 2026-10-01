@@ -3893,3 +3893,35 @@ Checked: `make -k -j4 ci` exit 0, 431 files compiled, `new/should_build.vo`
 built -- the first full `vo` build of the raft proof since 2026-09-17.
 `tcb-report --proof-root …/election_proof`: 14 Axiom, 1 Admitted, 273 Qed
 (unchanged); `--proof-root …/raft`: 27 Axiom, 8 Admitted, 291 Qed.
+
+## 2026-10-01 — Replication wave 1, the log rows (agent a47481ec, branch worktree-agent-a47481ec793de7e21)
+
+Log-level specs for log replication, stated with `plog.v`, all `Qed`, module
+discipline clean (6 findings, unchanged). Three commits:
+
+- Part A: widened `unstable.maybeTerm` (term pinned), `raftLog.term`
+  (`err = nil → plog_term_at … = Some t`), `lastEntryID` (= `plog_last`),
+  `isUpToDate` (= `plog_up_to_date`); new `matchTerm`, `zeroTermOnOutOfBounds`
+  (nil error only, see its spec), `findConflictByTerm` (`i' ≤ index`),
+  `findConflict` (= `plog_find_conflict`; premise: batch at/above
+  `prev.index`), `commitTo`, `maybeCommit`, and `pbEntryID` (findConflict
+  calls it).
+- Part B: `own_raftLog_core` (inv_raftlog.v) quantifies `stored` with
+  `sents` its visible prefix and `uents = [] → sents = stored`; carries both
+  Loggers (`is_Logger_val`). `Storage.Entries`' membership clause is bounded
+  by `hi` (inv_storage.v) so `slice` stays inside the visible prefix.
+  `unstable.truncateAndAppend` all three arms; `unstable.slice` result
+  pinned; `raftLog.append` widened to `log_truncate_append` (no continuation
+  premise; adopt arm takes the batch `↦*□` + cap).
+- `raftLog.maybeAppend` (= `plog_maybe_append` + commit of
+  `min(committed, lastnewi)`; premises: `plog_wf a.prev ents`, no-wrap, the
+  conflict fact, EntryNormal; takes the batch's capacity).
+
+Gotchas met: with the existential `stored`, `iFrame "∗#%"` re-sealing the log
+took ~35 s per site -- use `own_raftLog_intro`/`reseal_raftLog`; `case_bool_decide`
+and unqualified `rewrite bool_decide_…/decide_…` hit copies in `HΦ` once
+postconditions mention `bool_decide`/`decide` (name them with `set`, or give
+the proposition explicitly); Goose `switch` gives nested
+`bool_decide (true = bool_decide P)`, rewrite the inner one explicitly.
+Cone build (`election.vo`): 25 min for part A, 22 min for part B at -j6;
+`proof_raftLog__slice.v` now ~12 min.
