@@ -6,12 +6,20 @@ Module InflightsFreeLEProof (P : INFLIGHTS__FREELE_POSTULATES) : INFLIGHTS__FREE
       [i = count]): [count -= i; bytes -= bytes; start = idx;
       if count == 0 { start = 0 }], then re-establish [inflights_ok] from
       the loop invariant [Hidx] and the ring invariant [Hring]. *)
-  Local Ltac freele_finish Hidx Hring :=
+  Local Ltac freele_finish Hidx Hring iv iw :=
     try wp_auto;
+    (* the new [count] as an integer, once, so that the many pure goals
+       below are [lia]'s rather than [word]'s (halves the check time) *)
+    let Hc := fresh "Hc'" in
+    assert (sint.Z (word.sub iv.(tracker.Inflights.count') iw)
+            = sint.Z iv.(tracker.Inflights.count') - sint.Z iw) as Hc by word;
+    let H0 := fresh "H0" in
+    assert (sint.Z (W64 0) = 0) as H0 by reflexivity;
     wp_if_destruct;
-    iApply "HΦ"; rewrite /own_inflights; iFrame "Hiv"; iFrame; iPureIntro; rewrite /inflights_ok /=;
+    iApply "HΦ"; rewrite /own_inflights; iFrame "Hiv"; iFrame; iPureIntro;
+    rewrite /inflights_ok /= ?Hc ?H0;
     destruct Hidx as [[? ?]|[? ?]]; destruct Hring;
-    split_and!; solve [ done | word | left; word | right; word ].
+    split_and!; solve [ done | lia | left; lia | right; lia | word ].
 
   (** The loop invariant: [0 ≤ i ≤ count] and [idx = (start + i) mod size],
       written as its two cases so that [word]/[lia] can use it.  An
@@ -81,7 +89,7 @@ Module InflightsFreeLEProof (P : INFLIGHTS__FREELE_POSTULATES) : INFLIGHTS__FREE
       wp_if_destruct.
       + (* [break]: the first inflight past [to] *)
         wp_for_post.
-        freele_finish Hidx Hring.
+        freele_finish Hidx Hring iv iw.
       + try wp_auto.
         rewrite decide_True; last word.
         iDestruct (own_slice_elem_acc (sint.Z idxv) e with "Hbuf")
@@ -96,7 +104,7 @@ Module InflightsFreeLEProof (P : INFLIGHTS__FREELE_POSTULATES) : INFLIGHTS__FREE
         * wp_for_post. iFrame. iPureIntro. split; first word.
           destruct Hidx as [[? ?]|[? ?]]; [left|right]; split; word.
     - (* [i = count]: every inflight is freed *)
-      freele_finish Hidx Hring.
+      freele_finish Hidx Hring iv iw.
   Qed.
 
 End InflightsFreeLEProof.
