@@ -138,7 +138,7 @@ Set Default Proof Using "Type".
   Proof.
     intros_ambient.
     intros cfg r id s es ents.
-    intros Hempty Hnorm Hsmall.
+    intros Hnorm Hsmall.
     wp_start as "[Hphys Hes]". wp_auto. wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
     iDestruct (own_slice_len with "Hes") as %[Hlen Hlen'].
     (* [li := r.raftLog.lastIndex()], at a split that stays open *)
@@ -208,13 +208,25 @@ Set Default Proof Using "Type".
       rewrite Hfull take_ge; last (rewrite length_imap; lia).
       rewrite drop_ge; last lia.
       rewrite app_nil_r.
-      (* the reject path is dead: every payload is empty, and the loop
-         rewrote only [Term] and [Index] *)
-      assert (Forall (λ e, sint.Z e.(raftpb.Entry.Data').(slice.len) = 0)
-                (imap (stamp s.(nstate.term) li) ents)) as Hempty2
-        by (by apply stamped_empty).
-      wp_apply (wp_raft__increaseUncommittedSize _ _ _ _ _ _ _ Hempty2
-                  with "[$Hphys $Hes]") as "[Hphys Hes]".
+      (* the budget check, on the *stamped* batch: the loop ran first *)
+      wp_apply (wp_raft__increaseUncommittedSize with "[$Hphys $Hes]")
+        as "%ok (Hphys & Hes & %Hok)".
+      (* acceptance is pinned only for an all-empty batch; stamping does
+         not touch [Data], so the implication transfers to [ents] *)
+      assert (Forall (λ e, sint.Z e.(raftpb.Entry.Data').(slice.len) = 0) ents
+              → ok = true) as Hacc.
+      { intros Hz. apply Hok. by apply stamped_empty. }
+      (* [li] is [log_last] of the log it was read from: [lastIndex()]
+         cannot wrap ([Hbnd]) *)
+      assert (log_last (logstate.mk prev sents uents lcm lap) = li) as Hlast.
+      { rewrite /log_last /=. apply word.unsigned_inj.
+        pose proof (word.unsigned_range prev.(raft.entryID.index')).
+        rewrite word.unsigned_of_Z_nowrap; lia. }
+      destruct ok; wp_auto; last first.
+      { (* dropped: [Warningf], [return false], the struct untouched *)
+        wp_apply (wp_raft_load_id with "Hphys") as "Hphys".
+        wp_raft_log.
+        iApply "HΦ". rewrite Hlast. iFrame. done. }
       wp_apply wp_traceReplicate. try wp_auto.
       wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
       (* [append]'s three premises *)
@@ -270,12 +282,6 @@ Set Default Proof Using "Type".
       rewrite Htac /log_append /= in Hli2.
       rewrite length_app in Hli2.
       iDestruct ("Hlogback" with "Hlog") as "Hphys".
-      (* [li] is [log_last] of the log it was read from: [lastIndex()]
-         cannot wrap ([Hbnd]) *)
-      assert (log_last (logstate.mk prev sents uents lcm lap) = li) as Hlast.
-      { rewrite /log_last /=. apply word.unsigned_inj.
-        pose proof (word.unsigned_range prev.(raft.entryID.index')).
-        rewrite word.unsigned_of_Z_nowrap; lia. }
       set s' := s <| nstate.logst := log_append (logstate.mk prev sents uents lcm lap)
                      (imap (stamp s.(nstate.term)
                               (log_last (logstate.mk prev sents uents lcm lap))) ents) |>.
@@ -295,7 +301,7 @@ Set Default Proof Using "Type".
         pose proof (word.unsigned_range prev.(raft.entryID.index')). lia. }
       { iApply own_slice_nil. }
       iIntros "Hphys". wp_auto.
-      iApply "HΦ". rewrite Hlast. iFrame.
+      iApply "HΦ". rewrite Hlast. iFrame. done.
   Qed.
 
 End RaftAppendEntryProof.

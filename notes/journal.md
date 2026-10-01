@@ -4034,3 +4034,34 @@ the proposition explicitly); Goose `switch` gives nested
 `bool_decide (true = bool_decide P)`, rewrite the inner one explicitly.
 Cone build (`election.vo`): 25 min for part A, 22 min for part B at -j6;
 `proof_raftLog__slice.v` now ~12 min.
+
+## 2026-10-01 — replication wave 2: `appendEntry` widened (arbitrary `EntryNormal` batch, drop path)
+
+`wp_raft__appendEntry` no longer takes `Forall (Data empty) ents` and no
+longer returns `RET #true`.  It takes any `EntryNormal` batch of fewer than
+`2^61` entries and returns `(accepted : bool)` with
+`⌜Forall (Data empty) ents → accepted = true⌝ ∗ es ↦* imap (stamp …) ents ∗
+if accepted then own_raft_phys (send_msgs (s<|logst := log_append …|>)
+[self_ack …]) else own_raft_phys s`.  The exact acceptance condition reads
+`r.uncommittedSize`/`r.maxUncommittedSize`, which `nstate.t` does not hold,
+so the implication is as far as it can be pinned; `becomeLeader` uses it to
+substitute `accepted = true` before stepping the `if !…{ Panic }`.
+
+Read against the body (v3.v:3446-3487): the stamping loop (3456) runs
+*before* `increaseUncommittedSize` (3463), so the caller's slice is stamped
+on both paths -- hence `es ↦* imap (stamp …)` outside the `if`; the reject
+path (3466-3469) reads `r.id` and `r.logger`, `Warningf`s and returns
+`false` without writing the struct; the named result `accepted` (3448) is
+allocated and never read.
+
+Second spec change (needed, minimal): `wp_raft__increaseUncommittedSize`
+also widened -- no empty-batch premise; returns `(ok : bool)` with the
+struct at `s` either way and `⌜Forall (Data empty) ents → ok = true⌝`.
+`appendEntry` is its only caller.  Its proof now walks the `&&` nest
+(`uncommittedSize > 0`, `s > 0`, `… > maxUncommittedSize`), with a local
+`incr` Ltac for the three fall-throughs.
+
+Files: `spec_/proof_raft__increaseUncommittedSize.v`,
+`spec_/proof_raft__appendEntry.v`, `proof_raft__becomeLeader.v`.  No
+dead-WP-branch `exfalso` was needed in `becomeLeader`: the bool is
+rewritten to `true` with the implication before `wp_auto` meets the `if`.
