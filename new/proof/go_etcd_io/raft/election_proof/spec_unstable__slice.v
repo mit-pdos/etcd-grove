@@ -32,7 +32,9 @@ Definition wp_unstable__slice_body :=
       own_unstable u uv uents ∗ s ↦*□ es ∗
       ⌜ (Z.of_nat (length es) = uint.Z hi - uint.Z lo)%Z ∧
         (∀ e, e ∈ es → e ∈ uents) ∧
-        s.(slice.cap) = s.(slice.len) ⌝ }}}.
+        s.(slice.cap) = s.(slice.len) ∧
+        es = subslice (Z.to_nat (uint.Z lo - uint.Z uv.(raft.unstable.offset')))
+               (Z.to_nat (uint.Z hi - uint.Z uv.(raft.unstable.offset'))) uents ⌝ }}}.
 
 Module Type UNSTABLE__SLICE.
   Parameter wp_unstable__slice : wp_unstable__slice_body.
