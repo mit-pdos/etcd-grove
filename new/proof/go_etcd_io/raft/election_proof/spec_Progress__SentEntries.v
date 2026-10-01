@@ -34,7 +34,10 @@ Definition wp_Progress__SentEntries_body :=
      inflights_full iv = false) →
   {{{ is_pkg_init tracker ∗ "Hpr" ∷ own_progress pr pv iv }}}
     pr @! (go.PointerType tracker.Progress) @! "SentEntries" #entries #bytes
-  {{{ RET #(); ∃ pv' iv', own_progress pr pv' iv' }}}.
+  {{{ RET #(); ∃ pv' iv', own_progress pr pv' iv' ∗
+      (* [Match] is untouched: the body never writes it (Match discipline,
+         notes/raft-replication-model.md) *)
+      ⌜ pv'.(tracker.Progress.Match') = pv.(tracker.Progress.Match') ⌝ }}}.
 
 Module Type PROGRESS__SENTENTRIES.
   Parameter wp_Progress__SentEntries : wp_Progress__SentEntries_body.

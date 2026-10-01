@@ -41,17 +41,9 @@ Definition msa_pkg (r : loc) (id : w64) (s : nstate.t) (ep : loc)
   "Hents" ∷ sl ↦*□ es ∗
   "Hphys" ∷ own_raft_phys cfg r id s ∗
   "%Hwin" ∷ ⌜ pv.(tracker.Progress.State') = W64 1 → es ≠ [] →
-              inflights_full iv = false ⌝.
+              inflights_full iv = false ⌝ ∗
+  "%Hpkgin" ∷ ⌜ Forall (λ e, e ∈ (to_pstate s).(pstate.log)) es ⌝.
 
-(** [MsgApp] is one of the four types the model describes, so [send_ok]'s
-    *second* clause applies: the message goes out at [r.Term]. *)
-Local Lemma mtype_of_MsgApp : mtype_of MsgApp = Some mtype.App.
-Proof.
-  rewrite /mtype_of.
-  case_decide as H1. { exfalso. rewrite /MsgApp /MsgVote in H1. word. }
-  case_decide as H2. { exfalso. rewrite /MsgApp /MsgVoteResp in H2. word. }
-  case_decide as H3; [done|congruence].
-Qed.
 
 End helpers.
 
@@ -62,6 +54,10 @@ Set Default Proof Using "Type".
   Local Ltac open_struct :=
     iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hlogback]";
     iDestruct (own_raftLog_struct with "Hlog") as (?) "(Hl & _ & Hlb)".
+  (* The same, keeping what was read: [Commit] in the [MsgApp] literal *)
+  Local Ltac open_struct_c :=
+    iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hlogback]";
+    iDestruct (own_raftLog_struct with "Hlog") as (lvc) "(Hl & %Hlvc & Hlb)".
   Local Ltac close_struct :=
     iDestruct ("Hlb" with "Hl") as "Hlog";
     iDestruct ("Hlogback" with "Hlog") as "Hphys".
@@ -148,7 +144,7 @@ Set Default Proof Using "Type".
       iDestruct (own_raft_phys_send_nil with "Hphys") as "Hphys".
       iApply ("HΦ" $! false [] s.(nstate.prvals)). iSplitL.
       - iApply (own_raft_phys_eq with "Hphys"). by destruct s.
-      - iPureIntro. constructor. }
+      - iPureIntro. split; [constructor|done]. }
     (* not paused, so not in [StateSnapshot] -- [SentEntries]' first premise *)
     assert (Hnosnap : pv.(tracker.Progress.State') ≠ W64 2).
     { intros Hc. rewrite /progress_paused decide_True // in Hpaused. }
@@ -173,12 +169,9 @@ Set Default Proof Using "Type".
          [Convert go.untyped_bool] in front of the [err != nil] test. *)
       wp_pure. wp_auto.
       wp_apply (P.wp_raft__maybeSendSnapshot _ _ _ _ _ _ Hto Hlk
-                  with "[$Hphys]") as "%b %pvs' Hphys".
+                  with "[$Hphys]") as "%b %ms' %pvs' (Hphys & %Hms' & %Hmm')".
       try wp_auto.
-      iApply ("HΦ" $! b [] pvs'). iSplitL.
-      - iApply (own_raft_phys_eq with "Hphys").
-        rewrite /send_msgs app_nil_r. by destruct s.
-      - iPureIntro. constructor. }
+      iApply ("HΦ" $! b ms' pvs'). iFrame "Hphys". done. }
     (* [err = nil]: the iff gives [pr.Next] a lower bound against the log *)
     destruct Herr as [Herr1 _]. specialize (Herr1 eq_refl).
     assert (Hlo : (uint.Z prev.(raft.entryID.index') + 1
@@ -202,7 +195,7 @@ Set Default Proof Using "Type".
         [ rewrite /msa_pkg; iExists slice.nil, [];
           iFrame "ents Hphys";
           iSplitR; [ iApply own_slice_nil | ];
-          iPureIntro; intros _ Hne; exfalso; exact (Hne eq_refl)
+          iPureIntro; split; [ intros _ Hne; exfalso; exact (Hne eq_refl) | apply Forall_nil_2 ]
         | ]
       | (* in [StateReplicate] with room: fetch [ents] *)
         wp_auto;
@@ -213,14 +206,17 @@ Set Default Proof Using "Type".
         iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hlogback]";
         iEval (rewrite Hls) in "Hlog";
         wp_apply (wp_raftLog__entries _ (logstate.mk prev sents uents lcm lap) _ _ Hlo with "[$Hlog]")
-          as "%sl_e %es_e (Hlog & Hents)";
+          as "%sl_e %es_e (Hlog & Hents & %Hin)";
         iEval (rewrite -Hls) in "Hlog";
         iDestruct ("Hlogback" with "Hlog") as "Hphys";
         try wp_auto;
         iAssert (msa_pkg cfg r id s ents_ptr pv iv)
           with "[ents Hphys Hents]" as "HC";
         [ rewrite /msa_pkg; iExists sl_e, es_e; iFrame "ents Hents Hphys";
-          iPureIntro; intros _ _; exact Hfull | ] ]
+          iPureIntro; split;
+          [ intros _ _; exact Hfull
+          | apply List.Forall_forall; intros e He; rewrite /= Hls; apply Hin; by apply list_elem_of_In ]
+        | ] ]
     | (* not in [StateReplicate]: the first disjunct is true, fetch [ents] *)
       rewrite bool_decide_eq_false_2 //; wp_auto;
       iDestruct ("Hpback" with "[Hpv Hinfl]") as "Hphys";
@@ -230,19 +226,22 @@ Set Default Proof Using "Type".
       iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hlogback]";
       iEval (rewrite Hls) in "Hlog";
       wp_apply (wp_raftLog__entries _ (logstate.mk prev sents uents lcm lap) _ _ Hlo with "[$Hlog]")
-        as "%sl_e %es_e (Hlog & Hents)";
+        as "%sl_e %es_e (Hlog & Hents & %Hin)";
       iEval (rewrite -Hls) in "Hlog";
       iDestruct ("Hlogback" with "Hlog") as "Hphys";
       try wp_auto;
       iAssert (msa_pkg cfg r id s ents_ptr pv iv)
         with "[ents Hphys Hents]" as "HC";
       [ rewrite /msa_pkg; iExists sl_e, es_e; iFrame "ents Hents Hphys";
-        iPureIntro; intros Hc; contradiction | ] ];
+        iPureIntro; split;
+        [ intros Hc; contradiction
+        | apply List.Forall_forall; intros e He; rewrite /= Hls; apply Hin; by apply list_elem_of_In ]
+      | ] ];
     (* --- three goals from here on, in the same state; the rest of the
            proof is one tactic, parenthesised so that it runs once per goal
            (in Ltac1 [A; [b|c]] counts *all* open goals, not the ones the
            previous step made) --- *)
-    (iEval (rewrite /msa_pkg) in "HC"; iNamed "HC"; try wp_auto;
+    (iEval (rewrite /msa_pkg) in "HC"; iNamed "HC"; iDestruct "Hents" as "#Hents"; try wp_auto;
     iDestruct (slice_len_Z with "Hents") as %Hlen;
     (* [if len(ents) == 0 && !sendIfEmpty { return false }] *)
     case_bool_decide as Hc1;
@@ -253,16 +252,17 @@ Set Default Proof Using "Type".
         iDestruct (own_raft_phys_send_nil with "Hphys") as "Hphys";
         iApply ("HΦ" $! false [] s.(nstate.prvals)); iSplitL;
         [ iApply (own_raft_phys_eq with "Hphys"); by destruct s
-        | iPureIntro; rewrite /app_sends; apply Forall_nil_2 ] ]
+        | iPureIntro; split; [ apply Forall_nil_2 | done ] ] ]
     | wp_auto ];
     (* --- the message goes out; again once per goal --- *)
     (* the literal reads [r.raftLog.committed] through the log's record *)
     (try wp_auto; wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys";
-    open_struct; try wp_auto; close_struct;
-    wp_apply (P.wp_raft__send with "[$Hphys]");
+    open_struct_c; try wp_auto; close_struct;
+    wp_apply (P.wp_raft__send _ _ _ _ _ es with "[$Hphys]");
       [ done
       | right; left; exists mtype.App; split_and!;
         [ by left | apply mtype_of_MsgApp | done | exact Hto | done ]
+      | iApply "Hents"
       | ];
     iIntros "Hphys";
     try wp_auto;
@@ -276,20 +276,30 @@ Set Default Proof Using "Type".
       simpl in Hlen; lia | ];
     wp_apply (wp_Progress__SentEntries _ _ _ _ _ Hnosnap Hwin2 with "[$Hpa]")
       as "Hpr";
-    iDestruct "Hpr" as (pv3 iv3) "Hpa3";
+    iDestruct "Hpr" as (pv3 iv3) "[Hpa3 %Hm3]";
     iDestruct ("Hpback" with "Hpa3") as "Hphys";
     (* [pr.SentCommit(r.raftLog.committed)]: the argument first, then [pr]
        once more, at the value [SentEntries] left *)
     try wp_auto; wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys";
     open_struct; try wp_auto; close_struct;
-    iDestruct (own_raft_phys_pr_any with "Hphys [//]") as (pv4 iv4) "[Hpa3 Hpback]";
+    iDestruct (own_raft_phys_pr_upd _ _ _ _ _ _ pv3 iv3 with "Hphys [//] []")
+      as "[Hpa3 Hpback]";
+    [ iPureIntro; rewrite /= lookup_insert_eq //
+    | ];
     wp_apply (wp_Progress__SentCommit with "[$Hpa3]") as "Hpa4";
     iDestruct ("Hpback" with "Hpa4") as "Hphys";
     try wp_auto;
-    iApply ("HΦ" $! true [msg.mk mtype.App id to s.(nstate.term) false]);
+    iApply ("HΦ" $! true);
     iSplitL;
     [ iApply (own_raft_phys_eq with "Hphys"); reflexivity
-    | iPureIntro; rewrite /app_sends; apply Forall_cons_2; [ done | apply Forall_nil_2 ] ])).
+    | iPureIntro; split;
+      [ rewrite /repl_sends; apply Forall_singleton; left;
+        rewrite /app_ok /=; split_and!;
+        [ done | done | done | exact Hto
+        | destruct Hlvc as [Hlvc _]; rewrite Hlvc Hls /=; lia
+        | exact Hpkgin ]
+      | rewrite /= insert_insert_eq;
+        apply (prvals_match_insert_same _ _ (pv, iv)); [ exact Hpvs | simpl; exact Hm3 ] ] ])).
   Qed.
 
 End RaftMaybeSendAppendProof.

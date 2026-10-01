@@ -1,12 +1,15 @@
 Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
 
-(** Out of scope: the empty entry a new leader appends.  [appendEntry]
-    stamps the current term and the next indices into the caller's batch,
-    charges it against the uncommitted-entry budget, appends it to the log
-    and then queues a self-addressed [MsgAppResp]
-    ([raft__appendEntryⁱᵐᵖˡ], new/code/go_etcd_io/raft/v3.v:3446).
-    [mtype_of MsgAppResp = None], so [abs_msg_opt] drops it and the abstract
-    state -- outbox included -- is unchanged.
+(** [appendEntry] stamps the current term and the next indices into the
+    caller's batch, charges it against the uncommitted-entry budget, appends
+    it to the log and then queues a self-addressed [MsgAppResp] at the new
+    last index ([raft__appendEntryⁱᵐᵖˡ], new/code/go_etcd_io/raft/v3.v:3446:
+    [r.send(pb.Message{To: r.id, Type: pb.MsgAppResp, Index: li})], [li]
+    what [raftLog.append] returned).  Since 2026-10-01 [MsgAppResp] has an
+    abstraction, so the outbox grows by that message, [self_ack] ([defs.v]):
+    the leader acknowledging its own append, which the model's [step_win]
+    and [step_propose] send.  (Until then [mtype_of MsgAppResp = None] and
+    the abstract outbox was unchanged.)
 
     Three pieces of history, because this claim has been wrong before.  Its
     form before 2026-09-15 owned only [own_raftLog] while the code it
@@ -110,9 +113,8 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
     [increaseUncommittedSize] adds a zero payload, so [r.uncommittedSize] is
     unchanged in everything [own_raft_phys] can see (it mentions no such
     field); [traceReplicate] is a literal no-op (v3.v:6364); and the
-    [MsgAppResp] has no [mtype_of], so the abstract outbox is unchanged --
-    it is [send_ok]'s third clause, and a self-addressed message is allowed
-    there for exactly this type.
+    [MsgAppResp] is [send_ok]'s [MsgAppResp] clause, which allows it to be
+    self-addressed.
 
     *** The log in the postcondition
 
@@ -138,8 +140,12 @@ Definition wp_raft__appendEntry_body :=
     r @! (go.PointerType raft.raft) @! "appendEntry" #es
   {{{ RET #true;
       own_raft_phys cfg r id
-        (s <| nstate.logst := log_append s.(nstate.logst)
-               (imap (stamp s.(nstate.term) (log_last s.(nstate.logst))) ents) |>) ∗
+        (send_msgs
+           (s <| nstate.logst := log_append s.(nstate.logst)
+                  (imap (stamp s.(nstate.term) (log_last s.(nstate.logst))) ents) |>)
+           [self_ack id
+              (s <| nstate.logst := log_append s.(nstate.logst)
+                     (imap (stamp s.(nstate.term) (log_last s.(nstate.logst))) ents) |>)]) ∗
       es ↦* imap (stamp s.(nstate.term) (log_last s.(nstate.logst))) ents }}}.
 
 Module Type RAFT__APPENDENTRY.

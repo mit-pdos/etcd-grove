@@ -20,15 +20,17 @@ Set Default Proof Using "Type".
     - (* [i] is past the end: [nil] and no error; the log is untouched. *)
       wp_auto.
       iApply ("HΦ" $! slice.nil []).
-      iFrame "Hlog". iApply own_slice_nil.
+      iFrame "Hlog". iSplitL; first iApply own_slice_nil.
+      iPureIntro. intros e He. by apply elem_of_nil in He.
     - wp_auto.
       wp_apply (wp_raftLog__lastIndex _ (logstate.mk prev sents uents lcm lap) with "[$Hlog]") as "%li2 [Hlog %Hli2]". logstate_simpl.
       wp_apply (wp_raftLog__slice _ (logstate.mk prev sents uents lcm lap) _ _ _ with "[$Hlog]")
         as "%sl %es (Hlog & Hsl & %Hes)".
       { logstate_simpl. word. }
       logstate_simpl.
+      destruct Hes as (_ & _ & Hin).
       try wp_auto.
-      iApply ("HΦ" $! sl es). iFrame "Hlog Hsl".
+      iApply ("HΦ" $! sl es). iFrame "Hlog Hsl". done.
   Qed.
 
 End RaftLogEntriesProof.

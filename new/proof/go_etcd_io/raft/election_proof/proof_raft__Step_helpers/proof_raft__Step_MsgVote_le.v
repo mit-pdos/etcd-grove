@@ -31,7 +31,8 @@ Implicit Type s : nstate.t.
       they check in parallel; this lemma only picks one.  [m.Term < r.Term] drops
       the message; [m.Term = r.Term] answers it, and how depends on whether this
       node has already voted in the term. *)
-  Lemma wp_Step_MsgVote_le r id s (m : raftpb.Message.t) :
+  Lemma wp_Step_MsgVote_le r id s (m : raftpb.Message.t)
+      (ents : list raftpb.Entry.t) :
     m.(raftpb.Message.Type') = MsgVote →
     m.(raftpb.Message.To') = id →
     m.(raftpb.Message.Term') ≠ W64 0 →
@@ -57,18 +58,18 @@ Implicit Type s : nstate.t.
            lets [wp_raft__Step] discharge the [is_message] side of
            [own_raft_ghost_step] from the single fact it holds about [m]. *)
         "%Hrefines" ∷ ⌜ ∃ recv,
-            (∀ m', m' ∈ recv → m' = abs_msg mtype.Vote m) ∧
+            (∀ m', m' ∈ recv → m' = abs_msg mtype.Vote m ents) ∧
             step cfg id (to_pstate s) recv (to_pstate s') ⌝ ∗
         "%Herr" ∷ ⌜ err = interface.nil ⌝ }}}.
   Proof.
     intros Hty Hto Hterm Hfnz Hle0 Hwf.
     destruct (decide (uint.Z m.(raftpb.Message.Term') < uint.Z s.(nstate.term)))
       as [Hlt|Hnlt].
-    - exact (Lt.wp_Step_MsgVote_lt cfg r id s m Hty Hto Hterm Hfnz Hlt Hwf).
+    - exact (Lt.wp_Step_MsgVote_lt cfg r id s m ents Hty Hto Hterm Hfnz Hlt Hwf).
     - assert (Heq : m.(raftpb.Message.Term') = s.(nstate.term)) by word.
       destruct (decide (s.(nstate.vote) = W64 0)) as [Hv0|Hv0].
-      + exact (EqNovote.wp_Step_MsgVote_eq_novote cfg r id s m Hty Hto Hterm Hfnz Heq Hv0 Hwf).
-      + exact (EqVoted.wp_Step_MsgVote_eq_voted cfg r id s m Hty Hto Hterm Hfnz Heq Hv0 Hwf).
+      + exact (EqNovote.wp_Step_MsgVote_eq_novote cfg r id s m ents Hty Hto Hterm Hfnz Heq Hv0 Hwf).
+      + exact (EqVoted.wp_Step_MsgVote_eq_voted cfg r id s m ents Hty Hto Hterm Hfnz Heq Hv0 Hwf).
   Qed.
 
 End branches.

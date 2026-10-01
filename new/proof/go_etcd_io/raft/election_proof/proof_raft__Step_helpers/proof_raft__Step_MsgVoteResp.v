@@ -63,7 +63,8 @@ Implicit Type s : nstate.t.
         [stepCandidate] records the vote and may win or lose in the same
         call, which is [step_record_then_win] / [step_record_then_lose] /
         [step_record_vote] on its [won]/[lost] flags. *)
-  Lemma wp_Step_MsgVoteResp r id s (m : raftpb.Message.t) :
+  Lemma wp_Step_MsgVoteResp r id s (m : raftpb.Message.t)
+      (ents : list raftpb.Entry.t) :
     m.(raftpb.Message.Type') = MsgVoteResp →
     m.(raftpb.Message.To') = id →
     m.(raftpb.Message.Term') ≠ W64 0 →
@@ -78,7 +79,7 @@ Implicit Type s : nstate.t.
         "Hphys" ∷ own_raft_phys cfg r id s' ∗
         "%Hwf'" ∷ ⌜ nstate_wf s' ⌝ ∗
         "%Hrefines" ∷ ⌜ ∃ recv,
-            (∀ m', m' ∈ recv → m' = abs_msg mtype.VoteResp m) ∧
+            (∀ m', m' ∈ recv → m' = abs_msg mtype.VoteResp m ents) ∧
             step cfg id (to_pstate s) recv (to_pstate s') ⌝ ∗
         "%Herr" ∷ ⌜ err = interface.nil ⌝ }}}.
   Proof.
@@ -147,14 +148,14 @@ Implicit Type s : nstate.t.
         as "%pvs Hphys".
       (* the model step: a VoteResp is not from_leader, so no leader is
          adopted and the new lead is 0 *)
-      assert (step cfg id (to_pstate s) [abs_msg mtype.VoteResp m]
+      assert (step cfg id (to_pstate s) [abs_msg mtype.VoteResp m ents]
                 (to_pstate (become_follower s m.(raftpb.Message.Term') (W64 0)))) as Hsd.
       { rewrite to_pstate_become_follower.
         replace (W64 0) with
-          (if from_leader (abs_msg mtype.VoteResp m).(msg.ty)
-           then (abs_msg mtype.VoteResp m).(msg.from) else W64 0) by done.
+          (if from_leader (abs_msg mtype.VoteResp m ents).(msg.ty)
+           then (abs_msg mtype.VoteResp m ents).(msg.from) else W64 0) by done.
         replace m.(raftpb.Message.Term') with
-          (abs_msg mtype.VoteResp m).(msg.term) by done.
+          (abs_msg mtype.VoteResp m ents).(msg.term) by done.
         apply step_higher_term.
         - rewrite /abs_msg /=. exact Hgt.
         - rewrite /abs_msg /=. exact Hto. }
@@ -183,7 +184,7 @@ Implicit Type s : nstate.t.
       iFrame "Hphys". iPureIntro.
       split; first done.
       split; last done.
-      exists [abs_msg mtype.VoteResp m]. split; last exact Hsd.
+      exists [abs_msg mtype.VoteResp m ents]. split; last exact Hsd.
       recv_elem.
     - (* m.Term ≤ r.Term *)
       assert (bool_decide (uint.Z s.(nstate.term) <
@@ -244,6 +245,14 @@ Implicit Type s : nstate.t.
           assert (s.(nstate.stepfn) = functions raft.stepCandidate []) as Hsf
             by (rewrite Hsfw ?Hrole //).
           rewrite Hsf.
+          (* the node is in its own progress map: what makes [reset]'s
+             [Match] values a [leader_match_ok] if it wins *)
+          wp_hidden (iDestruct (own_raft_phys_tracker_same with "Hphys")
+                       as (tvd) "(Htrkf & Htrk & Hback)").
+          wp_hidden (iDestruct (own_tracker_prvals_dom with "Htrk") as "[%Hpd Htrk]").
+          wp_hidden (iDestruct (own_tracker_progress_map with "Htrk") as "(_ & %Hprd & Htrk)").
+          wp_hidden (iDestruct ("Hback" with "Htrkf Htrk") as "Hphys").
+          assert (Hid : id ∈ dom s.(nstate.prvals)) by (rewrite Hpd Hprd; exact Hcfg).
           wp_apply (P.wp_stepCandidate_MsgVoteResp with "[$Hphys]")
             as (err s') "(Hphys & %Hres & %Herrn)".
           { done. }
@@ -252,23 +261,32 @@ Implicit Type s : nstate.t.
           { exact Hrole. }
           { exact Hcfg. }
           rewrite Herrn. wp_auto.
-          destruct Hres as (won & lost & ms & pvs & Hms & Hwon & Hlost & ->).
+          destruct Hres as (won & lost & ms & pvs & Hwon & Hlost & ->).
           iApply ("HΦ" $! interface.nil _). iFrame "Hphys".
           iPureIntro. split; first by apply nstate_wf_prvals, nstate_wf_vote_resp_result.
           split; last done.
-          exists [abs_msg mtype.VoteResp m]. split.
+          exists [abs_msg mtype.VoteResp m ents]. split.
           { recv_elem. }
-          rewrite to_pstate_prvals to_pstate_vote_resp_result /pvote_resp_result.
+          rewrite to_pstate_vote_resp_result; last (rewrite Hrole; done).
+          rewrite /pvote_resp_result.
           destruct won.
-          { eapply (step_record_then_win cfg id (to_pstate s) (abs_msg mtype.VoteResp m) ms).
+          { destruct (Hwon eq_refl) as (Hq & Hms & Hmt).
+            eapply (step_record_then_win cfg id (to_pstate s) (abs_msg mtype.VoteResp m ents)
+                      (prvals_match pvs) ms).
             - done.
             - rewrite /abs_msg /=. exact Hto.
             - rewrite /abs_msg /=. exact Hteq.
             - exact Hrole.
-            - simpl. exact Hms.
-            - simpl. by apply Hwon. }
+            - rewrite Hmt. by apply (reset_matched_leader_ok id s Hid).
+            - (* the broadcast was judged at [become_leader]'s state, which
+                 is [pwin_state]'s up to the outbox and [Match] *)
+              apply (repl_sends_prvals _ _ pvs) in Hms.
+              rewrite /repl_sends to_pstate_become_leader in Hms.
+              eapply Forall_impl; [exact Hms|]. intros m' Hm'.
+              eapply repl_ok_proper; [..|exact Hm']; reflexivity.
+            - simpl. exact Hq. }
           destruct lost.
-          { eapply (step_record_then_lose cfg id (to_pstate s) (abs_msg mtype.VoteResp m)).
+          { eapply (step_record_then_lose cfg id (to_pstate s) (abs_msg mtype.VoteResp m ents)).
             - done.
             - rewrite /abs_msg /=. exact Hto.
             - rewrite /abs_msg /=. exact Hteq.

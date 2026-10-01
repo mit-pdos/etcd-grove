@@ -11,18 +11,6 @@ Set Default Proof Using "W".
 
 Context (cfg : gset w64).
 
-(** [MsgAppResp] is not one of the four types the model describes, so
-    [send_ok]'s third clause applies to it. *)
-Lemma mtype_of_MsgAppResp : mtype_of MsgAppResp = None.
-Proof.
-  rewrite /mtype_of.
-  repeat (case_decide as Hc;
-          [ exfalso; revert Hc; rewrite /MsgAppResp /MsgVote /MsgVoteResp
-              /MsgApp /MsgHeartbeat; intros Hc;
-            apply (f_equal uint.Z) in Hc; vm_compute in Hc; discriminate
-          | ]).
-  done.
-Qed.
 
 (** The two facts about the log that [appendEntry] needs but
     [own_raftLog] only holds inside: the index layout, and the bound that
@@ -261,14 +249,19 @@ Set Default Proof Using "Type".
       iDestruct (own_raft_phys_eq _ _ _ _ s' with "Hphys") as "Hphys".
       { rewrite /s' Hlast. done. }
       wp_apply (wp_raft_load_id with "Hphys") as "Hphys".
-      wp_apply (P.wp_raft__send with "[$Hphys]");
-        [ done
-        | right; right; split_and!;
-          [ apply mtype_of_MsgAppResp | w32_ne | w32_ne | done
-          | by intros _ | done ]
-        | ].
+      (* the self-acknowledgement: [send_ok]'s [MsgAppResp] clause, with no
+         entries *)
+      wp_apply (P.wp_raft__send _ _ _ _ _ []
+                  [self_ack id s'] with "[$Hphys]").
+      { done. }
+      { right; right; right; left. split_and!; [done|done|].
+        rewrite /self_ack /abs_msg_from /=. repeat f_equal.
+        rewrite /s' /log_append /=. symmetry. rewrite /log_last /=.
+        apply word.unsigned_inj. rewrite Hli2 /= !length_app !length_imap.
+        rewrite length_imap in Hnw2. rewrite word.unsigned_of_Z_nowrap; [lia|].
+        pose proof (word.unsigned_range prev.(raft.entryID.index')). lia. }
+      { iApply own_slice_nil. }
       iIntros "Hphys". wp_auto.
-      iDestruct (own_raft_phys_unsend with "Hphys") as "Hphys".
       iApply "HΦ". rewrite Hlast. iFrame.
   Qed.
 

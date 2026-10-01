@@ -31,7 +31,8 @@ Implicit Type s : nstate.t.
 
   (** [MsgVote] with [m.Term > r.Term]: step down to follower first, then
       grant or decline in the new term. *)
-  Lemma wp_Step_MsgVote_gt r id s (m : raftpb.Message.t) :
+  Lemma wp_Step_MsgVote_gt r id s (m : raftpb.Message.t)
+      (ents : list raftpb.Entry.t) :
     m.(raftpb.Message.Type') = MsgVote →
     m.(raftpb.Message.To') = id →
     m.(raftpb.Message.Term') ≠ W64 0 →
@@ -57,7 +58,7 @@ Implicit Type s : nstate.t.
            lets [wp_raft__Step] discharge the [is_message] side of
            [own_raft_ghost_step] from the single fact it holds about [m]. *)
         "%Hrefines" ∷ ⌜ ∃ recv,
-            (∀ m', m' ∈ recv → m' = abs_msg mtype.Vote m) ∧
+            (∀ m', m' ∈ recv → m' = abs_msg mtype.Vote m ents) ∧
             step cfg id (to_pstate s) recv (to_pstate s') ⌝ ∗
         "%Herr" ∷ ⌜ err = interface.nil ⌝ }}}.
   Proof.
@@ -101,13 +102,13 @@ Implicit Type s : nstate.t.
       as "%pvs Hphys".
     (* the corresponding protocol step, recorded as a pure fact rather than
        taken on the ghost state: this lemma is ghost-free. *)
-    assert (step cfg id (to_pstate s) [abs_msg mtype.Vote m]
+    assert (step cfg id (to_pstate s) [abs_msg mtype.Vote m ents]
               (to_pstate (become_follower s m.(raftpb.Message.Term') (W64 0)))) as Hstepdown.
     { rewrite to_pstate_become_follower.
       replace (W64 0) with
-        (if from_leader (abs_msg mtype.Vote m).(msg.ty)
-         then (abs_msg mtype.Vote m).(msg.from) else W64 0) by done.
-      replace m.(raftpb.Message.Term') with (abs_msg mtype.Vote m).(msg.term)
+        (if from_leader (abs_msg mtype.Vote m ents).(msg.ty)
+         then (abs_msg mtype.Vote m ents).(msg.from) else W64 0) by done.
+      replace m.(raftpb.Message.Term') with (abs_msg mtype.Vote m ents).(msg.term)
         by done.
       apply step_higher_term.
       - rewrite /abs_msg /=. exact Hgt0.
@@ -145,21 +146,22 @@ Implicit Type s : nstate.t.
          longer a separate output -- it is the growth of the outbox, which the
          [send] below has to match. *)
       assert (step cfg id (to_pstate (become_follower s m.(raftpb.Message.Term') (W64 0)))
-                [abs_msg mtype.Vote m]
+                [abs_msg mtype.Vote m ents]
                 (to_pstate
                   (send_msgs ((become_follower s m.(raftpb.Message.Term') (W64 0))
                                 <| nstate.vote := m.(raftpb.Message.From') |>)
-                     [msg.mk mtype.VoteResp id m.(raftpb.Message.From')
+                     [msg.plain mtype.VoteResp id m.(raftpb.Message.From')
                         m.(raftpb.Message.Term') false]))) as Hgrant.
       { rewrite to_pstate_send_msgs to_pstate_vote to_pstate_become_follower.
         apply step_grant_vote; [done|exact Hto|done|done|].
         rewrite /pcan_vote /pbecome_follower /=. right.
         split; [by rewrite decide_False|done]. }
       (* [send] the granted vote response, then record the vote. *)
-      wp_apply (P.wp_raft__send with "[$Hphys]") as "Hphys".
+      wp_apply (P.wp_raft__send _ _ _ _ _ [] with "[$Hphys]") as "Hphys".
       { done. }
       { left; exists mtype.VoteResp; split_and!;
           [by right | apply mtype_of_MsgVoteResp | done | w32_ne | done]. }
+      { iApply own_slice_nil. }
       (* [m.Type = MsgVote], so the vote is recorded: [r.Vote := m.From]. *)
       rewrite Hty /MsgVote bool_decide_eq_true_2 //. try wp_auto.
       (wp_apply (wp_raft_store_electionElapsed with "Hphys") as "Hphys"; wp_apply (wp_raft_store_Vote with "Hphys") as "Hphys").
@@ -167,7 +169,7 @@ Implicit Type s : nstate.t.
         (send_msgs ((become_follower s m.(raftpb.Message.Term') (W64 0)
                        <| nstate.prvals := pvs |>)
                       <| nstate.vote := m.(raftpb.Message.From') |>)
-           [msg.mk mtype.VoteResp id m.(raftpb.Message.From')
+           [msg.plain mtype.VoteResp id m.(raftpb.Message.From')
               m.(raftpb.Message.Term') false])).
       iSplitL "Hphys".
       { (* the vote was stored after [send], whose postcondition states the
@@ -175,7 +177,7 @@ Implicit Type s : nstate.t.
         iApply (own_raft_phys_eq with "Hphys"). by destruct s. }
       iPureIntro. split; first done.
       split; last done.
-      eexists ([abs_msg mtype.Vote m] ++ [abs_msg mtype.Vote m]).
+      eexists ([abs_msg mtype.Vote m ents] ++ [abs_msg mtype.Vote m ents]).
       split.
       { recv_elem. }
       eapply step_trans; [exact Hstepdown|exact Hgrant].
@@ -187,18 +189,20 @@ Implicit Type s : nstate.t.
          state's term -- which is what [step_reject_vote] sends. *)
       wp_apply (wp_raft_load_Term with "Hphys") as "Hphys".
       wp_apply P.wp_voteRespMsgType; first done.
-      wp_apply (P.wp_raft__send with "[$Hphys]") as "Hphys".
+      wp_apply (P.wp_raft__send _ _ _ _ _ [] with "[$Hphys]") as "Hphys".
       { done. }
       { left; exists mtype.VoteResp; split_and!;
           [by right | apply mtype_of_MsgVoteResp | done | w32_ne | done]. }
+      { iApply own_slice_nil. }
       iApply ("HΦ" $! interface.nil _). iFrame "Hphys".
       iPureIntro. split; first done.
       split; last done.
-      eexists ([abs_msg mtype.Vote m] ++ [abs_msg mtype.Vote m]).
+      eexists ([abs_msg mtype.Vote m ents] ++ [abs_msg mtype.Vote m ents]).
       split.
       { recv_elem. }
-      rewrite to_pstate_send_msgs to_pstate_prvals to_pstate_become_follower.
-      apply (step_stepdown_then_reject cfg id (to_pstate s) (abs_msg mtype.Vote m));
+      rewrite to_pstate_send_msgs to_pstate_prvals_nl; last (simpl; congruence).
+      rewrite to_pstate_become_follower.
+      apply (step_stepdown_then_reject cfg id (to_pstate s) (abs_msg mtype.Vote m ents));
         [done|exact Hto|rewrite /abs_msg /=; exact Hgt0].
   Qed.
 

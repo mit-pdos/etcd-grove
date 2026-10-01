@@ -995,18 +995,19 @@ Qed.
     term.  A leader that stops being one must have moved to a higher term:
     that is what keeps it from ever allocating a second term log for one
     term.  The caller supplies the new state's [Match] and commit facts. *)
-Lemma own_log_ghost_mono' γ id s s' :
-  s'.(pstate.log) = s.(pstate.log) →
+Lemma own_log_ghost_upd γ id s s' :
   (s'.(pstate.role) = role.Leader →
      s.(pstate.role) = role.Leader ∧ s'.(pstate.term) = s.(pstate.term)) →
   (s'.(pstate.role) ≠ role.Leader → s.(pstate.role) = role.Leader →
      uint.Z s.(pstate.term) < uint.Z s'.(pstate.term)) →
   uint.Z s.(pstate.term) ≤ uint.Z s'.(pstate.term) →
-  own_log_ghost γ id s -∗ matched_ok γ s' -∗ is_committed γ s'.(pstate.commit) -∗
+  own_log_ghost γ id s -∗
+  ([∗ list] e ∈ s'.(pstate.log), is_entry γ e) -∗
+  matched_ok γ s' -∗ is_committed γ s'.(pstate.commit) -∗
   own_log_ghost γ id s'.
 Proof.
-  iIntros (Hlog Hlead Hdown Hle) "H #Hm' #Hc'". iDestruct "H" as (γm terms γa acks) "H". iNamed "H".
-  iExists γm, terms, γa, acks. iFrame "Hterms Hacks Htfrags Hafrags Hm' Hc'".
+  iIntros (Hlead Hdown Hle) "H #He' #Hm' #Hc'". iDestruct "H" as (γm terms γa acks) "H". iNamed "H".
+  iExists γm, terms, γa, acks. iFrame "Hterms Hacks Htfrags Hafrags He' Hm' Hc'".
   iSplit; first done.
   iSplit.
   { iPureIntro. intros t Ht. destruct (Hterms_ok t Ht) as [Hlt | [-> Hr]].
@@ -1020,9 +1021,27 @@ Proof.
     - destruct (Hlead Hr') as (Hr & Ht).
       iEval (rewrite /lead_log_own Hr) in "Htlog". rewrite Hr' Ht. iExact "Htlog".
     - destruct (s'.(pstate.role)); [done|done|congruence]. }
-  iSplit; first done.
+  done.
+Qed.
+
+(** The same, for a step that leaves the log alone. *)
+Lemma own_log_ghost_mono' γ id s s' :
+  s'.(pstate.log) = s.(pstate.log) →
+  (s'.(pstate.role) = role.Leader →
+     s.(pstate.role) = role.Leader ∧ s'.(pstate.term) = s.(pstate.term)) →
+  (s'.(pstate.role) ≠ role.Leader → s.(pstate.role) = role.Leader →
+     uint.Z s.(pstate.term) < uint.Z s'.(pstate.term)) →
+  uint.Z s.(pstate.term) ≤ uint.Z s'.(pstate.term) →
+  own_log_ghost γ id s -∗ matched_ok γ s' -∗ is_committed γ s'.(pstate.commit) -∗
+  own_log_ghost γ id s'.
+Proof.
+  iIntros (Hlog Hlead Hdown Hle) "H #Hm' #Hc'".
+  iAssert ([∗ list] e ∈ s.(pstate.log), is_entry γ e)%I as "#He".
+  { iDestruct "H" as (γm terms γa acks) "H". iNamed "H". iFrame "#". }
+  iApply (own_log_ghost_upd with "H [] Hm' Hc'"); [done..|].
   rewrite Hlog. iFrame "#".
 Qed.
+
 
 (** The same, when [Match] and the commit index do not change either. *)
 Lemma own_log_ghost_mono γ id s s' :
@@ -1117,6 +1136,25 @@ Proof.
       iApply (big_sepL_elem_of with "Hents"). done.
     + by iApply (is_committed_le with "Hc").
   - rewrite /is_message Hty Hfrom Hterm. iFrame "Hl".
+Qed.
+
+(** Every entry [plog_maybe_append] leaves in the log was there or came
+    with the message. *)
+Local Lemma plog_maybe_append_elem b es prev ents li es' :
+  plog_maybe_append b es prev ents = Some (li, es') →
+  ∀ e, e ∈ es' → e ∈ es ∨ e ∈ ents.
+Proof.
+  rewrite /plog_maybe_append. case_decide; [|done]. intros [= <- <-] e.
+  case_decide; [by left|].
+  rewrite /plog_truncate_append.
+  match goal with
+  | |- context [drop ?k ents] =>
+      destruct (drop k ents) as [|e0 tl] eqn:Hd;
+      [ by left
+      | rewrite elem_of_app; intros [Hin|Hin];
+        [ left; eapply subseteq_take; exact Hin
+        | right; apply (subseteq_drop k ents); rewrite Hd; done ] ]
+  end.
 Qed.
 
 (** *** The refinement obligation, one rule at a time
@@ -1458,7 +1496,33 @@ Local Lemma own_raft_ghost_step_app_accept γ id s m lastnewi es' :
        [msg.mk mtype.AppResp id m.(msg.from) s.(pstate.term) false lastnewi
           (W64 0) (W64 0) (W64 0) []]).
 Proof.
-Admitted.
+  intros Hty Hterm Hrole Happ. iIntros "#Hm Hown". destruct_ghost.
+  iAssert (([∗ list] e ∈ m.(msg.entries), is_entry γ e) ∗ is_committed γ m.(msg.commit))%I
+    as "#[Hments Hmc]".
+  { rewrite /is_message Hty. iDestruct "Hm" as "(_ & $ & $)". }
+  iDestruct (own_log_ghost_ents with "Hlg") as "#Hents".
+  iDestruct (own_log_ghost_committed with "Hlg") as "#Hc".
+  iMod (own_log_ghost_ack _ _ _ s.(pstate.term) lastnewi with "Hlg") as "[Hlg #Hack]".
+  iModIntro.
+  iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
+           with "Hvoted [] Hfrags [] [] [] [Hlg]").
+  - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
+  - rewrite /psend_msgs /= big_sepL_app. iSplitR; [iFrame "#"|].
+    rewrite big_sepL_singleton /is_message /=. iFrame "#".
+  - rewrite /psend_msgs /padopt_leader /= granted_empty big_sepS_empty //.
+  - rewrite /leader_wit /psend_msgs /padopt_leader /=. done.
+  - iApply (own_log_ghost_upd with "Hlg [] [] []"); [log_mono_tac..| | |].
+    + (* every entry of the new log is an old one or one the leader sent *)
+      simpl. iApply big_sepL_intro. iIntros "!> %k %e %Hk".
+      apply list_elem_of_lookup_2 in Hk.
+      destruct (plog_maybe_append_elem _ _ _ _ _ _ Happ e Hk) as [Hin|Hin].
+      * iApply (big_sepL_elem_of with "Hents"). done.
+      * iApply (big_sepL_elem_of with "Hments"). done.
+    + rewrite /matched_ok /=. done.
+    + (* the old commit index, or at most [m.commit] *)
+      rewrite /= /plog_commit_to. case_decide; last iFrame "#".
+      iApply (is_committed_le with "Hmc"). case_decide; [lia|lia].
+Qed.
 
 (** [step_propose].  ADMITTED.  Informal argument: the leader owns the term
     log of its term ([lead_log_own]); each stamped entry is at an index

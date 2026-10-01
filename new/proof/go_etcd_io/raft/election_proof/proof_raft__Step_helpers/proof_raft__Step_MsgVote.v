@@ -31,7 +31,8 @@ Implicit Type s : nstate.t.
   (** [MsgVote]: step down if the term is higher, then grant or decline.  The
       two term cases are [wp_Step_MsgVote_gt] and [wp_Step_MsgVote_le], each in
       its own file so they check in parallel; this lemma only picks one. *)
-  Lemma wp_Step_MsgVote r id s (m : raftpb.Message.t) :
+  Lemma wp_Step_MsgVote r id s (m : raftpb.Message.t)
+      (ents : list raftpb.Entry.t) :
     m.(raftpb.Message.Type') = MsgVote →
     m.(raftpb.Message.To') = id →
     m.(raftpb.Message.Term') ≠ W64 0 →
@@ -55,15 +56,15 @@ Implicit Type s : nstate.t.
            lets [wp_raft__Step] discharge the [is_message] side of
            [own_raft_ghost_step] from the single fact it holds about [m]. *)
         "%Hrefines" ∷ ⌜ ∃ recv,
-            (∀ m', m' ∈ recv → m' = abs_msg mtype.Vote m) ∧
+            (∀ m', m' ∈ recv → m' = abs_msg mtype.Vote m ents) ∧
             step cfg id (to_pstate s) recv (to_pstate s') ⌝ ∗
         "%Herr" ∷ ⌜ err = interface.nil ⌝ }}}.
   Proof.
     intros Hty Hto Hterm Hfnz Hwf.
     destruct (decide (uint.Z s.(nstate.term) < uint.Z m.(raftpb.Message.Term')))
       as [Hgt|Hle].
-    - exact (G.wp_Step_MsgVote_gt cfg r id s m Hty Hto Hterm Hfnz Hgt Hwf).
-    - exact (L.wp_Step_MsgVote_le cfg r id s m Hty Hto Hterm Hfnz Hle Hwf).
+    - exact (G.wp_Step_MsgVote_gt cfg r id s m ents Hty Hto Hterm Hfnz Hgt Hwf).
+    - exact (L.wp_Step_MsgVote_le cfg r id s m ents Hty Hto Hterm Hfnz Hle Hwf).
   Qed.
 
 End branches.

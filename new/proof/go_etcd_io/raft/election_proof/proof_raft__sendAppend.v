@@ -9,7 +9,7 @@ Import P.
     intros cfg r id s to Hto Hcfg.
     wp_start as "Hphys". wp_auto.
     wp_apply (wp_raft__maybeSendAppend _ _ _ _ _ true Hto Hcfg with "[$Hphys]")
-      as "%b %ms %pvs [Hphys %Hms]".
+      as "%b %ms %pvs (Hphys & %Hms & %Hmm)".
     try wp_auto.
     iApply ("HΦ" $! ms pvs). by iFrame.
   Qed.

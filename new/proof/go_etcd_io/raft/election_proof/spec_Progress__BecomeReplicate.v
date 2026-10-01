@@ -10,7 +10,10 @@ Definition wp_Progress__BecomeReplicate_body :=
     (pr : loc) (pv : tracker.Progress.t) (iv : tracker.Inflights.t),
   {{{ is_pkg_init tracker ∗ own_progress pr pv iv }}}
     pr @! (go.PointerType tracker.Progress) @! "BecomeReplicate" #()
-  {{{ RET #(); ∃ pv' iv', own_progress pr pv' iv' }}}.
+  {{{ RET #(); ∃ pv' iv', own_progress pr pv' iv' ∗
+      (* [Match] is untouched: the body never writes it (Match discipline,
+         notes/raft-replication-model.md) *)
+      ⌜ pv'.(tracker.Progress.Match') = pv.(tracker.Progress.Match') ⌝ }}}.
 
 Module Type PROGRESS__BECOMEREPLICATE.
   Parameter wp_Progress__BecomeReplicate : wp_Progress__BecomeReplicate_body.

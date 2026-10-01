@@ -65,11 +65,12 @@ Import P.
       iSplitL; [iApply own_slice_nil|]. iSplitL; [iApply own_slice_cap_nil|].
       iSplitL; [iApply own_slice_nil|iApply own_slice_cap_nil]. }
     iDestruct (own_raft_phys_intro ∅ _ cv.(raft.Config.ID') s0 _ [] [] lok with
-      "Hr Hlg0 Htrk0 HL [] [] [] [] Hmisc") as "Hphys".
+      "Hr Hlg0 Htrk0 HL [] [] [] [] Hmisc []") as "Hphys".
     all: try done.
     1-4: simpl; rewrite ?HpID ?HpPV ?HpCQ ?HpLg ?HpET; try done; lia.
     1,3: iApply own_slice_nil.
     1,2: iApply own_slice_cap_nil.
+    1: iApply outbox_rel_nil.
     (* the configuration [Restore] built, as [switchToConfig] installs it *)
     iMod (own_map_persist with "Hprsm") as "#Hprsm".
     iDestruct (own_slice_len with "Hvoters") as %[Hvlen Hvlen'].

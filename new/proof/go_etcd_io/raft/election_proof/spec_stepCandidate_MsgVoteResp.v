@@ -26,9 +26,8 @@ Definition wp_stepCandidate_MsgVoteResp_body :=
     @! raft.stepCandidate #r #m
   {{{ (err : error.t) s', RET #err;
       own_raft_phys cfg r id s' ∗
-      (* [ms] is what [bcastAppend] broadcast on a win: some list of [App]s
-         from [id] at the current term, possibly empty.  [record_vote] does
-         not touch the term, so this is [s]'s term. *)
+      (* [ms] is what [bcastAppend] broadcast on a win: what [repl_sends]
+         allows, possibly nothing. *)
       (* The quorum facts are **part of the spec**, not incidental.  Without
          them this triple is true but useless to its caller: [Step]'s
          [MsgVoteResp] branch has to justify the resulting [role.Leader] by
@@ -43,8 +42,12 @@ Definition wp_stepCandidate_MsgVoteResp_body :=
           let votes' := record_vote s.(nstate.votes)
                           m.(raftpb.Message.From')
                           (negb m.(raftpb.Message.Reject')) in
-          app_sends id s.(nstate.term) ms ∧
-          (won = true → is_quorum cfg (granted votes')) ∧
+          (won = true →
+             is_quorum cfg (granted votes') ∧
+             (* the broadcast, judged at the new leader's state *)
+             repl_sends id (become_leader id (s <| nstate.votes := votes' |>)) ms ∧
+             (* [Match] is what [becomeLeader]'s [reset] left *)
+             prvals_match pvs = reset_matched id (log_last s.(nstate.logst)) s.(nstate.prvals)) ∧
           (lost = true → ¬ is_quorum cfg (cfg ∖ rejected votes')) ∧
           s' = vote_resp_result id s m.(raftpb.Message.From')
                  m.(raftpb.Message.Reject') won lost ms <| nstate.prvals := pvs |> ⌝ ∗

@@ -19,57 +19,71 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
 
     The model has a single outbox, so the routing is invisible here: the
     abstract outbox grows by [out], the abstraction of the message as queued
-    ([abs_msg_opt] applied to the stamped message), given case by case by
+    ([abs_msg_from] of the stamped message), given case by case by
     [send_ok] below.  There is no [is_message] precondition: [send] does not
     have to know the message is protocol-legal, it only records that the node
     put it in its outbox.  Legality is established once, by [Step], against
     [own_raft_ghost]. *)
 
-(** The message-type constants the body compares against that [defs.v] does
-    not name (the model never sees these types). *)
-Definition MsgProp : w32 := W32 2.
-Definition MsgReadIndex : w32 := W32 15.
+(** [send_ok id s m ents out]: the message [m], whose [Entries] slice holds
+    [ents], takes a non-panicking path through [send] on a node with id [id]
+    in state [s], and [out] is what the abstract outbox grows by -- the
+    abstraction of the message as queued, i.e. of [m] with [From := id] and
+    [Term] as [send] leaves it ([abs_msg_from], [defs.v]).  One clause per
+    shape a caller builds:
 
-(** [send_ok id s m out]: the message [m] takes a non-panicking path through
-    [send] on a node with id [id] in state [s], and [out] is what the abstract
-    outbox grows by.  One clause per shape a caller builds:
+    (a) a vote request/response ([MsgVote], [MsgVoteResp]).  [Term] is the
+        caller's and is kept.  A [MsgVote] goes onto [r.msgs] and must not
+        be self-addressed; a [MsgVoteResp] is a response and may be.
+    (b) a message stamped with the current term and queued on [r.msgs]:
+        [MsgApp], [MsgHeartbeat], [MsgSnap], [MsgHeartbeatResp].  [Term]
+        must be unset; the abstract message carries [s.term], which is what
+        [send] stamps in ([r.Term = s.term] by [own_raft_phys]).  Not
+        self-addressed ([Panicf]).
+    (c) a message the model does not describe ([mtype_of = None]).  It is
+        queued and drops out of the abstract outbox.  [Term] unset, not
+        self-addressed.
+    (d) [MsgAppResp]: stamped like (b), but a response, so it goes onto
+        [r.msgsAfterAppend] and may be self-addressed ([appendEntry]'s
+        self-acknowledgement is).
+    (e) [MsgProp], forwarded to the leader: [Term] must be unset and stays
+        [0] (the body's [MsgProp]/[MsgReadIndex] exception); onto [r.msgs],
+        not self-addressed.
 
-    (a) a vote request/response.  [Term] is the caller's and is kept.
-    (b) a leader message the model describes ([MsgApp], [MsgHeartbeat]).
-        [Term] must be unset; the abstract message carries [s.term], which is
-        what [send] stamps in ([r.Term = s.term] by [own_raft_phys]).
-    (c) a message the model does not describe ([MsgAppResp], [MsgSnap], ...).
-        It is queued, and drops out of the abstract outbox ([abs_msg_opt]
-        is [None]), so the abstract state is unchanged up to [send_msgs s []].
-
-    Only (a) and [MsgAppResp] under (c) may be self-addressed: [send] panics
-    on any other self-addressed message.  The pre-vote types are excluded
-    from (c) because their [Term] discipline is (a)'s; [own_raft_phys] has
-    [preVote = false] anyway. *)
+    The pre-vote and read-index types are in no clause: nothing in scope
+    sends them ([own_raft_phys] has [preVote = false]; no read requests).
+    Until 2026-10-01 [MsgAppResp], [MsgSnap] and [MsgHeartbeatResp] were
+    under (c), invisible to the model. *)
 Definition send_ok {ext : ffi_syntax} (id : w64) (s : nstate.t) (m : raftpb.Message.t)
-    (out : list msg.t) : Prop :=
+    (ents : list raftpb.Entry.t) (out : list msg.t) : Prop :=
   (∃ ty,
      (m.(raftpb.Message.Type') = MsgVote ∨ m.(raftpb.Message.Type') = MsgVoteResp) ∧
      mtype_of m.(raftpb.Message.Type') = Some ty ∧
      m.(raftpb.Message.Term') ≠ W64 0 ∧
      (m.(raftpb.Message.Type') = MsgVote → m.(raftpb.Message.To') ≠ id) ∧
-     out = [msg.mk ty id m.(raftpb.Message.To')
-              m.(raftpb.Message.Term') m.(raftpb.Message.Reject')])
+     out = [abs_msg_from ty m id m.(raftpb.Message.Term') ents])
   ∨
   (∃ ty,
-     (m.(raftpb.Message.Type') = MsgApp ∨ m.(raftpb.Message.Type') = MsgHeartbeat) ∧
+     (m.(raftpb.Message.Type') = MsgApp ∨ m.(raftpb.Message.Type') = MsgHeartbeat ∨
+      m.(raftpb.Message.Type') = MsgSnap ∨ m.(raftpb.Message.Type') = MsgHeartbeatResp) ∧
      mtype_of m.(raftpb.Message.Type') = Some ty ∧
      m.(raftpb.Message.Term') = W64 0 ∧
      m.(raftpb.Message.To') ≠ id ∧
-     out = [msg.mk ty id m.(raftpb.Message.To')
-              s.(nstate.term) m.(raftpb.Message.Reject')])
+     out = [abs_msg_from ty m id s.(nstate.term) ents])
   ∨
   (mtype_of m.(raftpb.Message.Type') = None ∧
-   m.(raftpb.Message.Type') ≠ MsgPreVote ∧
-   m.(raftpb.Message.Type') ≠ MsgPreVoteResp ∧
    m.(raftpb.Message.Term') = W64 0 ∧
-   (m.(raftpb.Message.To') = id → m.(raftpb.Message.Type') = MsgAppResp) ∧
-   out = []).
+   m.(raftpb.Message.To') ≠ id ∧
+   out = [])
+  ∨
+  (m.(raftpb.Message.Type') = MsgAppResp ∧
+   m.(raftpb.Message.Term') = W64 0 ∧
+   out = [abs_msg_from mtype.AppResp m id s.(nstate.term) ents])
+  ∨
+  (m.(raftpb.Message.Type') = MsgProp ∧
+   m.(raftpb.Message.Term') = W64 0 ∧
+   m.(raftpb.Message.To') ≠ id ∧
+   out = [abs_msg_from mtype.Propose m id (W64 0) ents]).
 
 (** A caller discharges [send_ok] by picking the clause and splitting it:
     for a vote message with [ty] the abstract type,
@@ -78,10 +92,15 @@ Definition send_ok {ext : ffi_syntax} (id : w64) (s : nstate.t) (m : raftpb.Mess
         [by right | apply mtype_of_MsgVoteResp | <Term ≠ 0> | w32_ne | done]
 
     (the last [done] fixes [out]); for a [MsgApp], [right; left; exists
-    mtype.App; split_and!; [by left | .. | done | <To ≠ id> | done]]; for a
-    hidden type, [right; right; split_and!; [.. | done]].  These are not
-    lemmas here because a spec file states and does not prove
-    (etc/check-module-discipline.py, F3). *)
+    mtype.App; split_and!; [by left | .. | done | <To ≠ id> | done]]; for
+    [MsgAppResp], [right; right; right; left; split_and!; [done | done |
+    done]].  These are not lemmas here because a spec file states and does
+    not prove (etc/check-module-discipline.py, F3).
+
+    **[ents].**  [m.Entries ↦*□ ents] is a precondition: it is what
+    [own_raft_phys] keeps for the queued message ([outbox_rel],
+    [inv_raft_phys.v]).  For a message built without [Entries] the field
+    is [slice.nil] and [ents = []] ([own_slice_nil]). *)
 
 (** Stated on [own_raft_phys], for **any** [s].  [send] touches [r.msgs],
     [r.msgsAfterAppend], [r.logger] and the tracing hook, and *reads*
@@ -89,26 +108,21 @@ Definition send_ok {ext : ffi_syntax} (id : w64) (s : nstate.t) (m : raftpb.Mess
     map and [Progress] values, the log -- comes back as it went in, because
     [send_msgs] changes only the outbox.  [maybeSendAppend] relies on it:
     it reads a [Progress] before this call and needs it unchanged after
-    ([nstate.prvals]), and holds [ents] (read-only) across it.  (Until
-    2026-09-29 the tracker was lent out of the predicate for that,
-    [nstate.lent].)
+    ([nstate.prvals]), and holds [ents] (read-only) across it.
 
     From 2026-09-21 to 2026-09-22 this was stated on a variant predicate,
-    [own_raft_bare], which cut the tracker and the log out of the struct so
-    that [maybeSendAppend] could hold a [Progress] and [ents] across the
-    call.  That is exactly the pattern notes/decisions.md ("Three layers")
-    now rules out: the fix was to make [nstate.t] say what the variant said
-    ([progress], [log], and then [prvals]).  See notes/false-statements.md, 2026-09-21, for
-    why [own_raft_phys] as it then was could not state it. *)
+    [own_raft_bare]; see notes/decisions.md ("Three layers") and
+    notes/false-statements.md, 2026-09-21. *)
 Definition wp_raft__send_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (cfg : gset w64) (r : loc) (id : w64) (s : nstate.t)
-    (m : raftpb.Message.t) (out : list msg.t),
+    (m : raftpb.Message.t) (ents : list raftpb.Entry.t) (out : list msg.t),
   m.(raftpb.Message.From') = W64 0 →
-  send_ok id s m out →
-  {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s }}}
+  send_ok id s m ents out →
+  {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s ∗
+      "#Hents" ∷ m.(raftpb.Message.Entries') ↦*□ ents }}}
     r @! (go.PointerType raft.raft) @! "send" #m
   {{{ RET #(); own_raft_phys cfg r id (send_msgs s out) }}}.
 

@@ -14,7 +14,8 @@ Import P.
        matched against [Hphys] up to conversion, which ran for 24 minutes
        before failing (2026-09-22) *)
     wp_apply (P.wp_raft__reset with "[$Hphys]").
-    iIntros (pvs) "Hphys".
+    iIntros (pvs) "[Hphys _]".
+    (* [Match] is irrelevant for a non-leader ([to_pstate]) *)
     (* [r.tick], [r.lead := lead], [r.state := StateFollower] *)
     wp_auto. (wp_apply (wp_raft_store_tick with "Hphys") as "Hphys"; wp_apply (wp_raft_store_lead with "Hphys") as "Hphys"; wp_apply (wp_raft_store_state _ _ _ _ role.Follower with "Hphys") as "Hphys").
     (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log).

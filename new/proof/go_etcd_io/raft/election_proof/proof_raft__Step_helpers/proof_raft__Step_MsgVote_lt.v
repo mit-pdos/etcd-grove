@@ -32,7 +32,8 @@ Implicit Type s : nstate.t.
 
   (** [MsgVote] with [m.Term < r.Term]: a stale vote request, dropped
       silently after the log line. *)
-  Lemma wp_Step_MsgVote_lt r id s (m : raftpb.Message.t) :
+  Lemma wp_Step_MsgVote_lt r id s (m : raftpb.Message.t)
+      (ents : list raftpb.Entry.t) :
     m.(raftpb.Message.Type') = MsgVote →
     m.(raftpb.Message.To') = id →
     m.(raftpb.Message.Term') ≠ W64 0 →
@@ -58,7 +59,7 @@ Implicit Type s : nstate.t.
            lets [wp_raft__Step] discharge the [is_message] side of
            [own_raft_ghost_step] from the single fact it holds about [m]. *)
         "%Hrefines" ∷ ⌜ ∃ recv,
-            (∀ m', m' ∈ recv → m' = abs_msg mtype.Vote m) ∧
+            (∀ m', m' ∈ recv → m' = abs_msg mtype.Vote m ents) ∧
             step cfg id (to_pstate s) recv (to_pstate s') ⌝ ∗
         "%Herr" ∷ ⌜ err = interface.nil ⌝ }}}.
   Proof.

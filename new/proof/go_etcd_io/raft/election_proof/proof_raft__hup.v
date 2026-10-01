@@ -54,11 +54,12 @@ Import P.
         (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log).
         wp_apply (P.wp_raft__campaign _ _ _ _ _ Ht Hrl Hin Hnowrap
                     with "[$Hphys]")
-          as "%peers %pvs [%Hpeers Hphys]".
+          as "%peers %last %pvs [%Hpeers Hphys]".
         iApply "HΦ". iFrame "Hphys".
         iPureIntro. split; first by apply nstate_wf_prvals, nstate_wf_send_msgs, nstate_wf_become_candidate.
-        rewrite to_pstate_prvals to_pstate_send_msgs to_pstate_become_candidate.
-        apply step_campaign; done.
+        rewrite to_pstate_prvals_nl; last (simpl; congruence).
+        rewrite to_pstate_send_msgs to_pstate_become_candidate.
+        apply (step_campaign cfg id (to_pstate s) peers last); done.
       + (* unpromotable: log and return, having done nothing *)
         wp_auto.
         (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_raft_log).

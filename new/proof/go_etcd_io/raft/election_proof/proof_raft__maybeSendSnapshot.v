@@ -10,18 +10,13 @@ Context {sem : go.Semantics} {package_sem : raft.Assumptions}.
 Collection W := sem + package_sem.
 Set Default Proof Using "W".
 
-(** [MsgSnap] is not one of the four types the model describes, so
-    [send_ok]'s third clause applies to it -- which is the whole reason the
-    postcondition is at the same [s]. *)
-Local Lemma mtype_of_MsgSnap : mtype_of MsgSnap = None.
+(** Returning without sending: the state the caller expects. *)
+Local Lemma own_raft_phys_nosend cfg r id s :
+  own_raft_phys cfg r id (s <| nstate.prvals := s.(nstate.prvals) |>) -∗
+  own_raft_phys cfg r id (send_msgs s [] <| nstate.prvals := s.(nstate.prvals) |>).
 Proof.
-  rewrite /mtype_of.
-  repeat (case_decide as Hc;
-          [ exfalso; revert Hc; rewrite /MsgSnap /MsgVote /MsgVoteResp
-              /MsgApp /MsgHeartbeat; intros Hc;
-            apply (f_equal uint.Z) in Hc; vm_compute in Hc; discriminate
-          | ]).
-  done.
+  iIntros "H". iApply (own_raft_phys_eq with "H").
+  rewrite /send_msgs app_nil_r. by destruct s.
 Qed.
 
 End helpers.
@@ -99,7 +94,9 @@ Set Default Proof Using "Type".
     destruct pv.(tracker.Progress.RecentActive') eqn:Hra; wp_auto.
     2:{ (* not recently active: log and return [false] *)
       wp_raft_log.
-      iApply ("HΦ" $! false). iFrame "Hphys". }
+      iApply ("HΦ" $! false [] s.(nstate.prvals)).
+      iDestruct (own_raft_phys_nosend with "Hphys") as "$".
+      iPureIntro. split; [constructor|done]. }
     wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
     iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hlogback]".
     wp_apply (wp_raftLog__snapshot _ _ _ with "[$Hlog $ErrSnapUnavail]")
@@ -112,7 +109,9 @@ Set Default Proof Using "Type".
       wp_auto. rewrite decide_True //. wp_auto.
       rewrite bool_decide_eq_true_2 //. wp_auto.
       (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_raft_log).
-      iApply ("HΦ" $! false). iFrame "Hphys".
+      iApply ("HΦ" $! false [] s.(nstate.prvals)).
+      iDestruct (own_raft_phys_nosend with "Hphys") as "$".
+      iPureIntro. split; [constructor|done].
     - (* a real snapshot: [Metadata.Index ≠ 0] kills [IsEmptySnap]'s panic *)
       wp_auto.
       wp_apply wp_IsEmptySnap as "%b %Hb".
@@ -139,19 +138,27 @@ Set Default Proof Using "Type".
       iDestruct (own_tracker_lookup _ _ _ _ _ _ _ Hprto with "Htrk")
         as (pv1 iv1 Hpv1) "[Hpr Htrkback]".
       wp_apply (wp_Progress__BecomeSnapshot with "[$Hpr]") as "Hpr".
-      iDestruct "Hpr" as (pv2 iv2) "Hpr".
+      iDestruct "Hpr" as (pv2 iv2) "[Hpr %Hm2]".
       iDestruct ("Htrkback" with "Hpr") as "Htrk".
       iDestruct ("Hback" with "Htrkf Htrk") as "Hphys".
       (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_raft_log).
-      wp_apply (P.wp_raft__send with "[$Hphys]");
-        [ done
-        | right; right; split_and!;
-          [ apply mtype_of_MsgSnap | w32_ne | w32_ne | done
-          | intros Hc; exfalso; by apply Hto | done ]
-        | ].
+      (* [send_ok]'s stamped clause, for [MsgSnap], with no entries *)
+      wp_apply (P.wp_raft__send _ _ _ _ _ []
+                  [msg.mk mtype.Snap id to s.(nstate.term) false
+                     (W64 0) (W64 0) (W64 0) (W64 0) []] with "[$Hphys]").
+      { done. }
+      { right; left; exists mtype.Snap; split_and!;
+          [ right; right; left; done | apply mtype_of_MsgSnap | done | exact Hto
+          | reflexivity ]. }
+      { iApply own_slice_nil. }
       iIntros "Hphys". wp_auto.
-      iDestruct (own_raft_phys_unsend with "Hphys") as "Hphys".
-      iApply ("HΦ" $! true). iApply (own_raft_phys_eq with "Hphys"). by destruct s.
+      iApply ("HΦ" $! true _ (<[to := (pv2, iv2)]> s.(nstate.prvals))).
+      iSplitL.
+      { iApply (own_raft_phys_eq with "Hphys"). by destruct s. }
+      iPureIntro. split.
+      + rewrite /repl_sends. apply Forall_singleton. right.
+        rewrite /snap_ok /=. split_and!; done.
+      + by apply (prvals_match_insert_same _ _ (pv1, iv1)).
   Qed.
 
 End RaftMaybeSendSnapshotProof.

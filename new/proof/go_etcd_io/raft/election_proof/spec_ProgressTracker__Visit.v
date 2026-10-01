@@ -112,11 +112,11 @@ Definition wp_ProgressTracker__Visit_body :=
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (cfg : gset w64) (trk : loc) tv votes (prs : gmap w64 loc) (pvs : gmap w64 (tracker.Progress.t * tracker.Inflights.t)) (f : func.t)
-    (I : iProp Σ),
-  {{{ is_pkg_init tracker ∗ trk ↦ tv ∗ own_tracker cfg tv votes prs pvs ∗ I ∗
+    (I : gset w64 → gmap w64 (tracker.Progress.t * tracker.Inflights.t) → iProp Σ),
+  {{{ is_pkg_init tracker ∗ trk ↦ tv ∗ own_tracker cfg tv votes prs pvs ∗ I ∅ pvs ∗
       □ visit_closure cfg trk votes prs f I }}}
     trk @! (go.PointerType tracker.ProgressTracker) @! "Visit" #f
-  {{{ RET #(); ∃ tv' pvs', trk ↦ tv' ∗ own_tracker cfg tv' votes prs pvs' ∗ I }}}.
+  {{{ RET #(); ∃ tv' pvs', trk ↦ tv' ∗ own_tracker cfg tv' votes prs pvs' ∗ I cfg pvs' }}}.
 
 Module Type PROGRESSTRACKER__VISIT.
   Parameter wp_ProgressTracker__Visit : wp_ProgressTracker__Visit_body.

@@ -13,7 +13,12 @@ Definition wp_raft__reset_body :=
     (r : loc) (id : w64) (s : nstate.t) (term : w64),
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "reset" #term
-  {{{ pvs, RET #(); own_raft_phys cfg r id (reset_to s term <| nstate.prvals := pvs |>) }}}.
+  {{{ pvs, RET #(); own_raft_phys cfg r id (reset_to s term <| nstate.prvals := pvs |>) ∗
+      (* every peer's [Match] is [0], the node's own [lastIndex()]
+         ([reset_matched], [defs.v]): the Visit closure writes a fresh
+         [Progress{Match: 0, ...}] and then [pr.Match = lastIndex()] for
+         [r.id].  [becomeLeader] needs it ([step_win]'s [leader_match_ok]). *)
+      ⌜ prvals_match pvs = reset_matched id (log_last s.(nstate.logst)) s.(nstate.prvals) ⌝ }}}.
 
 Module Type RESET.
   Parameter wp_raft__reset : wp_raft__reset_body.

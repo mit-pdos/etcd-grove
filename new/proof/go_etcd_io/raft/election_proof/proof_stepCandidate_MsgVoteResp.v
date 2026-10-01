@@ -54,18 +54,20 @@ Import P.
       wp_apply (P.wp_raft__becomeLeader with "[$Hphys]").
       { rewrite Hrole1. congruence. }
       { done. }
-      iIntros (pvs1) "Hphys". wp_auto.
+      iIntros (pvs1) "[Hphys %Hmb]". wp_auto.
       (* [bcastAppend] adds *some* list of [App]s from [id] at the current
          term -- not one per peer; see [spec_raft__bcastAppend.v]. *)
       wp_apply (wp_raft__bcastAppend with "[$Hphys]").
-      iIntros (ms pvs) "[Hphys %Hms]". try wp_auto.
+      iIntros (ms pvs) "(Hphys & %Hms & %Hmm)". try wp_auto.
       iApply ("HΦ" $! interface.nil _). iFrame "Hphys".
       (* The postcondition is [⌜∃ …⌝ ∗ ⌜err = nil⌝]; [iFrame "Hphys"] does
          *not* discharge the second, so [iPureIntro] leaves a conjunction. *)
-      iPureIntro. split; last done. exists true, false, ms, pvs. simpl in Hms.
+      iPureIntro. split; last done. exists true, false, ms, pvs.
       split_and!;
-        [ exact Hms
-        | intros _; by apply Hwon
+        [ intros _; split_and!;
+          [ by apply Hwon
+          | apply (repl_sends_prvals _ _ pvs1); exact Hms
+          | rewrite Hmm; exact Hmb ]
         | intros [=]
         | rewrite /vote_resp_result // ].
     - (* [quorum.VoteLost]: step down at the unchanged term. *)
@@ -77,8 +79,7 @@ Import P.
       iApply ("HΦ" $! interface.nil _). iFrame "Hphys".
       iPureIntro. split; last done. exists false, true, [], pvs.
       split_and!;
-        [ rewrite /app_sends; constructor
-        | intros [=]
+        [ intros [=]
         | intros _; by apply Hlost
         | rewrite /vote_resp_result // ].
     - (* [quorum.VotePending]: neither switch arm fires; keep waiting. *)
@@ -87,8 +88,7 @@ Import P.
       (* nothing wrote a [Progress]: the values are [s1]'s own *)
       iPureIntro. split; last done. exists false, false, [], s1.(nstate.prvals).
       split_and!;
-        [ rewrite /app_sends; constructor
-        | intros [=]
+        [ intros [=]
         | intros [=]
         | rewrite /vote_resp_result /s1; by destruct s ].
   Qed.

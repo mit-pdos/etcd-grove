@@ -44,13 +44,13 @@ Implicit Type s : nstate.t.
       record [r.Vote := m.From].  [can] is the protocol-level [pcan_vote] of
       [to_pstate s_]; [wf_] is [nstate_wf s_].  Starts with the log closed
       (["Hphys"] whole). *)
-  Local Ltac vote_grant_tail id_ s_ m_ ty_eq to_eq can wf_ :=
+  Local Ltac vote_grant_tail id_ s_ m_ ents_ ty_eq to_eq can wf_ :=
     try wp_auto;
     (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Vote with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log);
     wp_apply P.wp_voteRespMsgType; [done|];
-    wp_apply (P.wp_raft__send with "[$Hphys]") as "Hphys";
+    wp_apply (P.wp_raft__send _ _ _ _ _ [] with "[$Hphys]") as "Hphys";
       [done|left; exists mtype.VoteResp; split_and!;
-            [by right|apply mtype_of_MsgVoteResp|done|w32_ne|done]|];
+            [by right|apply mtype_of_MsgVoteResp|done|w32_ne|done]|iApply own_slice_nil|];
     rewrite ty_eq /MsgVote bool_decide_eq_true_2 //;
     try wp_auto;
     (* [r.electionElapsed = 0; r.Vote = m.From] *)
@@ -58,7 +58,7 @@ Implicit Type s : nstate.t.
     wp_apply (wp_raft_store_Vote with "Hphys") as "Hphys";
     iApply ("HΦ" $! interface.nil
       (send_msgs (s_ <| nstate.vote := m_.(raftpb.Message.From') |>)
-         [msg.mk mtype.VoteResp id_ m_.(raftpb.Message.From')
+         [msg.plain mtype.VoteResp id_ m_.(raftpb.Message.From')
             m_.(raftpb.Message.Term') false]));
     (* the state is given explicitly: the stores leave
        [send_msgs s_ out <| vote := From |>], with [out] in [send]'s form of
@@ -67,17 +67,17 @@ Implicit Type s : nstate.t.
     iSplitL "Hphys";
       [iApply (own_raft_phys_eq with "Hphys"); by destruct s_|];
     iPureIntro; split; [exact wf_|]; split; [|done];
-    exists [abs_msg mtype.Vote m_];
+    exists [abs_msg mtype.Vote m_ ents_];
     split; [recv_elem|];
     rewrite to_pstate_send_msgs to_pstate_vote;
     replace m_.(raftpb.Message.Term') with s_.(nstate.term) by congruence;
-    apply (step_grant_vote cfg id_ (abs_msg mtype.Vote m_) (to_pstate s_));
+    apply (step_grant_vote cfg id_ (abs_msg mtype.Vote m_ ents_) (to_pstate s_));
       [done|exact to_eq|done|(rewrite /abs_msg /=; congruence)|exact can].
 
   (** Decline: log, then [send] a rejection carrying [r.Term].  Always legal,
       so there is no side condition beyond the message being a [MsgVote]
       addressed to us.  Starts with the log closed (["Hphys"] whole). *)
-  Local Ltac vote_reject_tail id_ s_ m_ to_eq wf_ :=
+  Local Ltac vote_reject_tail id_ s_ m_ ents_ to_eq wf_ :=
     try wp_auto;
     (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Vote with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log);
     (* [Term: r.Term] and the [voteRespMsgType] call, in whichever order the
@@ -89,15 +89,15 @@ Implicit Type s : nstate.t.
        optional: the premise is stated about the *message literal*, so the
        goal is [{| ... |}.(Message.Term') ≠ W64 0] and [congruence] -- unlike
        [done]/[assumption] -- does not see through the projection. *)
-    wp_apply (P.wp_raft__send with "[$Hphys]") as "Hphys";
+    wp_apply (P.wp_raft__send _ _ _ _ _ [] with "[$Hphys]") as "Hphys";
       [done|left; exists mtype.VoteResp; split_and!;
-            [by right|apply mtype_of_MsgVoteResp|(simpl; congruence)|w32_ne|done]|];
+            [by right|apply mtype_of_MsgVoteResp|(simpl; congruence)|w32_ne|done]|iApply own_slice_nil|];
     iApply ("HΦ" $! interface.nil _); iFrame "Hphys";
     iPureIntro; split; [exact wf_|]; split; [|done];
-    exists [abs_msg mtype.Vote m_];
+    exists [abs_msg mtype.Vote m_ ents_];
     split; [recv_elem|];
     rewrite to_pstate_send_msgs;
-    apply (step_reject_vote cfg id_ (abs_msg mtype.Vote m_) (to_pstate s_));
+    apply (step_reject_vote cfg id_ (abs_msg mtype.Vote m_ ents_) (to_pstate s_));
       [done|exact to_eq].
 
   (** [MsgVote]: step down if the term is higher, then grant or decline.
@@ -130,7 +130,8 @@ Implicit Type s : nstate.t.
       right after [lastEntryID] with [canVote] already decided. *)
   (** [MsgVote] with [m.Term = r.Term] and [r.Vote ≠ None]: grant again if the
       vote was for this candidate (and its log is up to date), else decline. *)
-  Lemma wp_Step_MsgVote_eq_voted r id s (m : raftpb.Message.t) :
+  Lemma wp_Step_MsgVote_eq_voted r id s (m : raftpb.Message.t)
+      (ents : list raftpb.Entry.t) :
     m.(raftpb.Message.Type') = MsgVote →
     m.(raftpb.Message.To') = id →
     m.(raftpb.Message.Term') ≠ W64 0 →
@@ -157,7 +158,7 @@ Implicit Type s : nstate.t.
            lets [wp_raft__Step] discharge the [is_message] side of
            [own_raft_ghost_step] from the single fact it holds about [m]. *)
         "%Hrefines" ∷ ⌜ ∃ recv,
-            (∀ m', m' ∈ recv → m' = abs_msg mtype.Vote m) ∧
+            (∀ m', m' ∈ recv → m' = abs_msg mtype.Vote m ents) ∧
             step cfg id (to_pstate s) recv (to_pstate s') ⌝ ∗
         "%Herr" ∷ ⌜ err = interface.nil ⌝ }}}.
   Proof.
@@ -208,8 +209,8 @@ Implicit Type s : nstate.t.
              wp_apply (wp_raftLog__isUpToDate _ _ _ with "[$Hlog]") as "%ok2 Hlog".
              wp_hidden (iDestruct ("Hlogback" with "Hlog") as "Hphys").
              destruct ok2.
-             ++ vote_grant_tail id s m Hty Hto Hcan Hwf.
-             ++ vote_reject_tail id s m Hto Hwf.
+             ++ vote_grant_tail id s m ents Hty Hto Hcan Hwf.
+             ++ vote_reject_tail id s m ents Hto Hwf.
           -- (* for somebody else: declined.  Both halves of [canVote]'s
                   first two disjuncts are false, so again the third is
                   evaluated and its [MsgPreVote] test has to be decided. *)
@@ -226,7 +227,7 @@ Implicit Type s : nstate.t.
              wp_apply (wp_raftLog__lastEntryID _ _ with "[$Hlog]")
                as "%lastID2 Hlog".
              wp_hidden (iDestruct ("Hlogback" with "Hlog") as "Hphys").
-             vote_reject_tail id s m Hto Hwf.
+             vote_reject_tail id s m ents Hto Hwf.
   Qed.
 
 End branches.

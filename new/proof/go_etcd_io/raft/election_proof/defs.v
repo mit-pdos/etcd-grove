@@ -21,14 +21,18 @@ Set Default Proof Using "W".
 (** ** Message-type constants, as Rocq values
 
     [raftpb.MessageType] is a [w32]; the Goose constants are opaque [val]s,
-    so we name the underlying numbers. *)
+    so we name the underlying numbers ([raftpb.v:74-120]). *)
 Definition MsgHup : w32 := W32 0.
+Definition MsgProp : w32 := W32 2.
 Definition MsgApp : w32 := W32 3.
 Definition MsgAppResp : w32 := W32 4.
 Definition MsgVote : w32 := W32 5.
 Definition MsgVoteResp : w32 := W32 6.
 Definition MsgSnap : w32 := W32 7.
 Definition MsgHeartbeat : w32 := W32 8.
+Definition MsgHeartbeatResp : w32 := W32 9.
+Definition MsgReadIndex : w32 := W32 15.
+Definition MsgReadIndexResp : w32 := W32 16.
 Definition MsgPreVote : w32 := W32 17.
 Definition MsgPreVoteResp : w32 := W32 18.
 Definition MsgStorageAppendResp : w32 := W32 20.
@@ -54,79 +58,71 @@ Definition state_w64 (ro : role.t) : w64 :=
 
 (** ** Abstraction of physical messages
 
-    Only election-related message types have an abstraction. *)
+    Every message type raft sends between nodes has an abstraction
+    ([mtype.t]); the local ones ([MsgHup], [MsgBeat], [MsgStorage*],
+    [MsgCheckQuorum], ...) do not, and [own_raft_phys] lets them drop out
+    of the abstract outbox.  (Until 2026-10-01 only the four election types
+    had one, and [MsgAppResp] -- which [appendEntry] queues -- dropped out
+    too.) *)
 Definition mtype_of (t : w32) : option mtype.t :=
-  if decide (t = MsgVote) then Some mtype.Vote
-  else if decide (t = MsgVoteResp) then Some mtype.VoteResp
-  else if decide (t = MsgApp) then Some mtype.App
-  else if decide (t = MsgHeartbeat) then Some mtype.Heartbeat
-  else None.
+  match uint.Z t with
+  | 2 => Some mtype.Propose
+  | 3 => Some mtype.App
+  | 4 => Some mtype.AppResp
+  | 5 => Some mtype.Vote
+  | 6 => Some mtype.VoteResp
+  | 7 => Some mtype.Snap
+  | 8 => Some mtype.Heartbeat
+  | 9 => Some mtype.HeartbeatResp
+  | 15 => Some mtype.ReadIndex
+  | 16 => Some mtype.ReadIndexResp
+  | 17 => Some mtype.PreVote
+  | 18 => Some mtype.PreVoteResp
+  | _ => None
+  end%Z.
 
 Lemma mtype_of_MsgVote : mtype_of MsgVote = Some mtype.Vote.
-Proof. rewrite /mtype_of. case_decide as H1; [done|congruence]. Qed.
-
+Proof. reflexivity. Qed.
 Lemma mtype_of_MsgVoteResp : mtype_of MsgVoteResp = Some mtype.VoteResp.
-Proof.
-  rewrite /mtype_of. case_decide as H1.
-  { exfalso. rewrite /MsgVoteResp /MsgVote in H1. word. }
-  case_decide as H2; [done|congruence].
-Qed.
+Proof. reflexivity. Qed.
+Lemma mtype_of_MsgApp : mtype_of MsgApp = Some mtype.App.
+Proof. reflexivity. Qed.
+Lemma mtype_of_MsgAppResp : mtype_of MsgAppResp = Some mtype.AppResp.
+Proof. reflexivity. Qed.
+Lemma mtype_of_MsgHeartbeat : mtype_of MsgHeartbeat = Some mtype.Heartbeat.
+Proof. reflexivity. Qed.
+Lemma mtype_of_MsgHeartbeatResp : mtype_of MsgHeartbeatResp = Some mtype.HeartbeatResp.
+Proof. reflexivity. Qed.
+Lemma mtype_of_MsgSnap : mtype_of MsgSnap = Some mtype.Snap.
+Proof. reflexivity. Qed.
+Lemma mtype_of_MsgProp : mtype_of MsgProp = Some mtype.Propose.
+Proof. reflexivity. Qed.
 
-Definition abs_msg (ty : mtype.t) (m : raftpb.Message.t) : msg.t :=
-  msg.mk ty m.(raftpb.Message.From') m.(raftpb.Message.To')
-            m.(raftpb.Message.Term') m.(raftpb.Message.Reject').
+(** A message type the model does not describe is none of the ones it does. *)
+Lemma mtype_of_None_ne (t : w32) :
+  mtype_of t = None →
+  t ≠ MsgProp ∧ t ≠ MsgApp ∧ t ≠ MsgAppResp ∧ t ≠ MsgVote ∧ t ≠ MsgVoteResp ∧
+  t ≠ MsgSnap ∧ t ≠ MsgHeartbeat ∧ t ≠ MsgHeartbeatResp ∧ t ≠ MsgReadIndex ∧
+  t ≠ MsgReadIndexResp ∧ t ≠ MsgPreVote ∧ t ≠ MsgPreVoteResp.
+Proof. intros Hn. split_and!; intros ->; vm_compute in Hn; discriminate Hn. Qed.
 
-(** The partial abstraction of a physical message: [None] for the message
-    types the election model does not describe.  [MsgAppResp] is the one that
-    matters — [appendEntry] queues one, so a total abstraction would make the
-    abstract outbox undefined exactly where [becomeLeader] needs it. *)
-Definition abs_msg_opt (m : raftpb.Message.t) : option msg.t :=
-  ty ← mtype_of m.(raftpb.Message.Type'); Some (abs_msg ty m).
+(** The abstraction of a physical message [m] whose [Entries] slice holds
+    [ents], with the sender and term given separately: [send] stamps both
+    ([From := r.id] when unset, [Term := r.Term] for most types), so what
+    reaches the queue is [m] with those two fields replaced. *)
+Definition abs_msg_from (ty : mtype.t) (m : raftpb.Message.t) (from term : w64)
+    (ents : list raftpb.Entry.t) : msg.t :=
+  msg.mk ty from m.(raftpb.Message.To') term m.(raftpb.Message.Reject')
+    m.(raftpb.Message.Index') m.(raftpb.Message.LogTerm')
+    m.(raftpb.Message.Commit') m.(raftpb.Message.RejectHint') ents.
 
-Lemma abs_msg_opt_Some ty m :
-  mtype_of m.(raftpb.Message.Type') = Some ty → abs_msg_opt m = Some (abs_msg ty m).
-Proof. rewrite /abs_msg_opt => ->. done. Qed.
-
-(** What [step_win] demands of a winner's broadcast: any list of [App]
-    messages from [id] at the given term, possibly empty.  Lives here rather
-    than in [step_lemmas.v] because [inv_raft_phys.v]'s [bcastAppend] axiom
-    needs it, and it does not mention [cfg]. *)
-Definition app_sends (id : w64) (term : w64) (ms : list msg.t) : Prop :=
-  Forall (λ m, m.(msg.ty) = mtype.App ∧ m.(msg.from) = id ∧
-               m.(msg.term) = term) ms.
-
-(** The abstract outbox of the two physical queues, together. *)
-Definition abs_outbox (msgs msgsAA : list raftpb.Message.t) : list msg.t :=
-  omap abs_msg_opt msgs ++ omap abs_msg_opt msgsAA.
-
-(** [send] appends to one queue or the other depending on the message type.
-    The abstract outbox grows at the end either way — but only up to
-    permutation, which is why [own_raft_phys] relates the two with [≡ₚ]. *)
-Lemma abs_outbox_snoc_msgs (msgs msgsAA : list raftpb.Message.t) m ty :
-  mtype_of m.(raftpb.Message.Type') = Some ty →
-  abs_outbox (msgs ++ [m]) msgsAA ≡ₚ abs_outbox msgs msgsAA ++ [abs_msg ty m].
-Proof.
-  intros Hty. rewrite /abs_outbox omap_app /=.
-  rewrite (abs_msg_opt_Some ty) //= -!assoc.
-  apply Permutation_app_head, Permutation_app_comm.
-Qed.
-
-Lemma abs_outbox_snoc_msgsAA (msgs msgsAA : list raftpb.Message.t) m ty :
-  mtype_of m.(raftpb.Message.Type') = Some ty →
-  abs_outbox msgs (msgsAA ++ [m]) ≡ₚ abs_outbox msgs msgsAA ++ [abs_msg ty m].
-Proof.
-  intros Hty. rewrite /abs_outbox omap_app /=.
-  rewrite (abs_msg_opt_Some ty) //= assoc //.
-Qed.
-
-(** A message the model does not describe leaves the abstract outbox alone. *)
-Lemma abs_outbox_snoc_msgsAA_None (msgs msgsAA : list raftpb.Message.t) m :
-  mtype_of m.(raftpb.Message.Type') = None →
-  abs_outbox msgs (msgsAA ++ [m]) = abs_outbox msgs msgsAA.
-Proof.
-  intros Hty. rewrite /abs_outbox omap_app /= /abs_msg_opt Hty /=.
-  by rewrite app_nil_r.
-Qed.
+(** The abstraction of a physical message.  Not a function of [m] alone:
+    [m.Entries] is a slice, and [ents] is the list it points to --
+    [own_raft_phys] holds [m.Entries ↦*□ ents] for every queued message
+    ([outbox_rel], [inv_raft_phys.v]). *)
+Definition abs_msg (ty : mtype.t) (m : raftpb.Message.t)
+    (ents : list raftpb.Entry.t) : msg.t :=
+  abs_msg_from ty m m.(raftpb.Message.From') m.(raftpb.Message.Term') ents.
 
 End proof.
 
@@ -187,12 +183,8 @@ Definition log_last (ls : logstate.t) : w64 :=
 Definition log_append (ls : logstate.t) (ents : list raftpb.Entry.t) : logstate.t :=
   ls <| logstate.uents := ls.(logstate.uents) ++ ents |>.
 
-(** [appendEntry]'s stamping loop: [es[k].Term = r.Term] and
-    [es[k].Index = li+1+k]; nothing else about an entry changes, which is
-    what keeps [Type = EntryNormal] true of the appended entries. *)
-Definition stamp (tm li : w64) (k : nat) (e : raftpb.Entry.t) : raftpb.Entry.t :=
-  e <| raftpb.Entry.Term' := tm |>
-    <| raftpb.Entry.Index' := word.add (word.add li (W64 1)) (W64 k) |>.
+(** [stamp], [appendEntry]'s stamping loop, is in [protocol.v] (since
+    2026-10-01: the model's [step_win] and [step_propose] stamp too). *)
 
 (** * The physical abstract state
 
@@ -326,22 +318,82 @@ Definition become_leader_pre (id : w64) s : nstate.t :=
 Definition leader_entry s : raftpb.Entry.t :=
   stamp s.(nstate.term) (log_last s.(nstate.logst)) 0 (zero_val raftpb.Entry.t).
 
-(** [becomeLeader]: [become_leader_pre], then the empty entry appended. *)
-Definition become_leader (id : w64) s : nstate.t :=
+(** [appendEntry]'s self-acknowledgement, at a state whose log already holds
+    the appended batch: a [MsgAppResp] to itself at the last index
+    ([r.send(pb.Message{To: r.id, Type: pb.MsgAppResp, Index: li})], with
+    [li] what [raftLog.append] returned).  Visible in the abstract outbox
+    since 2026-10-01. *)
+Definition self_ack (id : w64) s : msg.t :=
+  msg.mk mtype.AppResp id id s.(nstate.term) false (log_last s.(nstate.logst))
+    (W64 0) (W64 0) (W64 0) [].
+
+(** [becomeLeader] up to [appendEntry]'s [send]: [become_leader_pre], then
+    the empty entry appended. *)
+Definition become_leader_log (id : w64) s : nstate.t :=
   become_leader_pre id s
     <| nstate.logst := log_append s.(nstate.logst) [leader_entry s] |>.
 
+(** [becomeLeader]: the empty entry appended and self-acknowledged. *)
+Definition become_leader (id : w64) s : nstate.t :=
+  send_msgs (become_leader_log id s) [self_ack id (become_leader_log id s)].
+
 (** ** The connection to the protocol state *)
 
+(** Each peer's [Progress.Match]. *)
+Definition prvals_match (pvs : gmap w64 (tracker.Progress.t * tracker.Inflights.t))
+  : gmap w64 w64 :=
+  (λ p, p.1.(tracker.Progress.Match')) <$> pvs.
+
+(** Writing one peer's [Progress] without moving its [Match]. *)
+Lemma prvals_match_insert_same pvs i p p' :
+  pvs !! i = Some p →
+  p'.1.(tracker.Progress.Match') = p.1.(tracker.Progress.Match') →
+  prvals_match (<[i := p']> pvs) = prvals_match pvs.
+Proof.
+  intros Hi Hm. rewrite /prvals_match fmap_insert Hm.
+  apply insert_id. rewrite lookup_fmap Hi //.
+Qed.
+
+(** What [reset] leaves in [Match] ([raft.go:779-808]): [0] for every peer
+    in the progress map, then [lastIndex()] for the node itself. *)
+Definition reset_matched (id li : w64)
+    (pvs : gmap w64 (tracker.Progress.t * tracker.Inflights.t)) : gmap w64 w64 :=
+  map_imap (λ k _, Some (if decide (k = id) then li else W64 0)) pvs.
+
+(** [reset]'s [Match] values are what [step_win] asks of a new leader, when
+    the node is in the progress map. *)
+Lemma reset_matched_leader_ok id s :
+  id ∈ dom s.(nstate.prvals) →
+  ∀ ps, ps.(pstate.base) = s.(nstate.logst).(logstate.prev) →
+        ps.(pstate.log) = s.(nstate.logst).(logstate.sents) ++ s.(nstate.logst).(logstate.uents) →
+  leader_match_ok id ps (reset_matched id (log_last s.(nstate.logst)) s.(nstate.prvals)).
+Proof.
+  intros Hid ps Hb Hl. split.
+  - apply elem_of_dom in Hid as [p Hp].
+    rewrite /reset_matched map_lookup_imap Hp /=.
+    rewrite decide_True; last done.
+    rewrite /plast_index /plog_last_index_Z /log_last Hb Hl length_app.
+    do 2 f_equal. lia.
+  - intros v x Hne. rewrite /reset_matched map_lookup_imap.
+    destruct (s.(nstate.prvals) !! v); simpl; [|done].
+    rewrite decide_False; last done. intros Hx. by injection Hx as <-.
+Qed.
+
+(** [matched] is [Match] for a leader and [∅] otherwise ([pstate.t]): a
+    non-leader's [Progress] values are whatever its last [reset] left, and
+    no rule reads them.  This is what lets every non-leader spec leave the
+    [Progress] values unconstrained. *)
 Definition to_pstate s : pstate.t :=
   pstate.mk s.(nstate.term) s.(nstate.vote) s.(nstate.lead) s.(nstate.role)
-            s.(nstate.votes) s.(nstate.outbox).
+            s.(nstate.votes) s.(nstate.outbox)
+            s.(nstate.logst).(logstate.prev)
+            (s.(nstate.logst).(logstate.sents) ++ s.(nstate.logst).(logstate.uents))
+            s.(nstate.logst).(logstate.committed)
+            (if decide (s.(nstate.role) = role.Leader)
+             then prvals_match s.(nstate.prvals) else ∅).
 
 (** A physical state that can take a protocol step: [r.step] agrees with
-    the role.  Every [becomeX] establishes it.  (Until 2026-09-29 it also
-    said nothing was on loan, [nstate_idle s]: the tracker could be lent
-    out of [own_raft_phys] ([nstate.lent]), and until earlier the same day
-    a slice of the log ([logstate.page]).  Nothing is ever lent now.) *)
+    the role.  Every [becomeX] establishes it. *)
 Definition nstate_wf s : Prop :=
   s.(nstate.stepfn) = step_func_of s.(nstate.role).
 
@@ -349,8 +401,14 @@ Definition nstate_wf s : Prop :=
 Definition nstate_rel s (ps : pstate.t) : Prop :=
   to_pstate s = ps ∧ nstate_wf s.
 
+(** What [maybeSendAppend] and its callers may send, at the state [s] they
+    were called in: [repl_ok] ([protocol.v]) of the protocol reading of
+    [s].  Replaced [app_sends] on 2026-10-01. *)
+Definition repl_sends (id : w64) s (ms : list msg.t) : Prop :=
+  Forall (repl_ok id (to_pstate s)) ms.
+
 (** Each physical transition is its protocol counterpart on [to_pstate].
-    All by computation; stated so that proofs rewrite rather than unfold. *)
+    Stated so that proofs rewrite rather than unfold. *)
 Lemma to_pstate_send_msgs s ms :
   to_pstate (send_msgs s ms) = psend_msgs (to_pstate s) ms.
 Proof. done. Qed.
@@ -365,9 +423,30 @@ Lemma to_pstate_become_candidate id s :
   to_pstate (become_candidate id s) = pbecome_candidate id (to_pstate s).
 Proof. done. Qed.
 
-Lemma to_pstate_become_leader id s :
-  to_pstate (become_leader id s) = pbecome_leader id (to_pstate s).
-Proof. rewrite /become_leader /become_leader_pre /reset_to /to_pstate /= decide_True //. Qed.
+(** [lastIndex()] as the two layers write it. *)
+Lemma plast_index_to_pstate s :
+  plast_index (to_pstate s) = log_last s.(nstate.logst).
+Proof.
+  rewrite /plast_index /plog_last_index_Z /log_last /= length_app. f_equal. lia.
+Qed.
+
+Lemma leader_entry_to_pstate s :
+  leader_entry s = pleader_entry (to_pstate s).
+Proof. rewrite /leader_entry /pleader_entry plast_index_to_pstate //. Qed.
+
+(** [becomeLeader], with the [Progress] values [reset] left: the protocol's
+    win, up to its broadcast. *)
+Lemma to_pstate_become_leader id s pvs :
+  to_pstate (become_leader id s <| nstate.prvals := pvs |>)
+  = psend_msgs (pwin_state id (to_pstate s) (prvals_match pvs))
+      [pself_ack id (pwin_state id (to_pstate s) (prvals_match pvs))].
+Proof.
+  assert (Hw : to_pstate (become_leader_log id s <| nstate.prvals := pvs |>)
+               = pwin_state id (to_pstate s) (prvals_match pvs)).
+  { rewrite /become_leader_log /become_leader_pre /reset_to /to_pstate /pwin_state
+      /pappend /pbecome_leader /= decide_True // -app_assoc leader_entry_to_pstate //. }
+  rewrite /become_leader -Hw /pself_ack plast_index_to_pstate /self_ack //.
+Qed.
 
 Lemma to_pstate_votes s v :
   to_pstate (s <| nstate.votes := v |>) = to_pstate s <| pstate.votes := v |>.
@@ -394,10 +473,54 @@ Proof. done. Qed.
 Lemma nstate_wf_prvals s pvs : nstate_wf s → nstate_wf (s <| nstate.prvals := pvs |>).
 Proof. done. Qed.
 
-Lemma to_pstate_prvals s pvs : to_pstate (s <| nstate.prvals := pvs |>) = to_pstate s.
-Proof. done. Qed.
+(** New [Progress] values are invisible to the protocol unless the node is
+    leader and [Match] moved. *)
+Lemma to_pstate_prvals s pvs :
+  (s.(nstate.role) = role.Leader → prvals_match pvs = prvals_match s.(nstate.prvals)) →
+  to_pstate (s <| nstate.prvals := pvs |>) = to_pstate s.
+Proof.
+  intros H. rewrite /to_pstate /=.
+  destruct (decide (s.(nstate.role) = role.Leader)) as [Hr|Hr]; last done.
+  rewrite H //.
+Qed.
+
+(** The common case: a non-leader. *)
+Lemma to_pstate_prvals_nl s pvs :
+  s.(nstate.role) ≠ role.Leader →
+  to_pstate (s <| nstate.prvals := pvs |>) = to_pstate s.
+Proof. intros Hr. apply to_pstate_prvals. intros; congruence. Qed.
 
 Lemma nstate_wf_send_msgs s ms : nstate_wf s → nstate_wf (send_msgs s ms).
 Proof. done. Qed.
+
+(** [repl_ok] reads only the term, the log and the commit index. *)
+Lemma repl_ok_proper id (ps ps' : pstate.t) m :
+  ps'.(pstate.term) = ps.(pstate.term) →
+  ps'.(pstate.log) = ps.(pstate.log) →
+  ps'.(pstate.commit) = ps.(pstate.commit) →
+  repl_ok id ps m → repl_ok id ps' m.
+Proof.
+  intros Ht Hl Hc. rewrite /repl_ok /app_ok /snap_ok Ht Hl Hc. done.
+Qed.
+
+Lemma repl_sends_prvals id s pvs ms :
+  repl_sends id (s <| nstate.prvals := pvs |>) ms ↔ repl_sends id s ms.
+Proof.
+  rewrite /repl_sends. split; apply Forall_impl; intros m;
+    apply repl_ok_proper; done.
+Qed.
+
+Lemma repl_sends_app id s ms1 ms2 :
+  repl_sends id s ms1 → repl_sends id s ms2 → repl_sends id s (ms1 ++ ms2).
+Proof. rewrite /repl_sends. apply Forall_app_2. Qed.
+
+(** Sending messages, or changing [Progress] values, does not change what
+    [repl_ok] reads. *)
+Lemma repl_sends_send_prvals id s ms0 pvs ms :
+  repl_sends id (send_msgs s ms0 <| nstate.prvals := pvs |>) ms ↔ repl_sends id s ms.
+Proof.
+  rewrite /repl_sends. split; apply Forall_impl; intros m;
+    apply repl_ok_proper; done.
+Qed.
 
 End phys_state.

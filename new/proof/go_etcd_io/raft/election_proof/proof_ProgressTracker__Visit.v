@@ -43,11 +43,11 @@ Context (cfg : gset w64).
     the closure call as a persistent hypothesis -- which is exactly what
     pins [prs] across a rebuild of the tracker. *)
 Lemma wp_visit (trk : loc) tv votes (prs : gmap w64 loc) (pvs : gmap w64 (tracker.Progress.t * tracker.Inflights.t)) (f : func.t)
-    (I : iProp Σ) :
-  {{{ is_pkg_init tracker ∗ trk ↦ tv ∗ own_tracker cfg tv votes prs pvs ∗ I ∗
+    (I : gset w64 → gmap w64 (tracker.Progress.t * tracker.Inflights.t) → iProp Σ) :
+  {{{ is_pkg_init tracker ∗ trk ↦ tv ∗ own_tracker cfg tv votes prs pvs ∗ I ∅ pvs ∗
       □ visit_closure cfg trk votes prs f I }}}
     trk @! (go.PointerType tracker.ProgressTracker) @! "Visit" #f
-  {{{ RET #(); ∃ tv' pvs', trk ↦ tv' ∗ own_tracker cfg tv' votes prs pvs' ∗ I }}}.
+  {{{ RET #(); ∃ tv' pvs', trk ↦ tv' ∗ own_tracker cfg tv' votes prs pvs' ∗ I cfg pvs' }}}.
 Proof.
   wp_start as "(Htrk & Hown & HI & #Hf)". iNamed "Hown".
   wp_auto.
@@ -169,19 +169,26 @@ Proof.
        about it the body needs travels in the invariant. *)
     assert (∀ y, y ∈ ys → y ∈ cfg) as Hyc.
     { intros y0 Hy0. rewrite -Hprs_dom elem_of_dom. by apply Hys_dom. }
+    (* [ids] enumerates exactly the voters: what makes [I]'s visited set end
+       at [cfg] *)
+    assert (list_to_set ys = cfg) as Hysc.
+    { rewrite -Hprs_dom -Hkset. apply set_eq. intros y0.
+      rewrite !elem_of_list_to_set -Hperm elem_of_reverse //. }
     iAssert (∃ (j c : w64) (tvc : tracker.ProgressTracker.t)
                (pvsc : gmap w64 (tracker.Progress.t * tracker.Inflights.t)),
        "i" ∷ i_ptr ↦ j ∗
        "cur" ∷ cur_ptr ↦ c ∗
        "%Hj" ∷ ⌜ 0 ≤ sint.Z j ≤ Z.of_nat (length ys) ⌝ ∗
        "%Hyc" ∷ ⌜ ∀ y, y ∈ ys → y ∈ cfg ⌝ ∗
+       "%Hysc" ∷ ⌜ list_to_set ys = cfg ⌝ ∗
        "Htrk" ∷ trk ↦ tvc ∗
-       "HI" ∷ I ∗
+       "HI" ∷ I (list_to_set (take (Z.to_nat (sint.Z j)) ys)) pvsc ∗
        "Hown" ∷ own_tracker cfg tvc votes prs pvsc ∗
        "Hsl" ∷ sl ↦* ys)%I
       with "[i cur Htrk HI Hown Hsl]" as "IH".
     { iExists (W64 0), (W64 0), tv, pvs. iFrame "∗#". iPureIntro.
-      split; [word|exact Hyc]. }
+      (* [HI] is framed above: [take 0] is [[]] by computation *)
+      split_and!; [word|word|exact Hyc|exact Hysc]. }
     assert (sint.Z sl.(slice.len) = Z.of_nat (length ys)) as Hsllen'.
     { destruct Hys_len as [H1 H2]. rewrite H1 Z2Nat.id //. }
     wp_for "IH".
@@ -217,10 +224,17 @@ Proof.
       (* [wp_apply … as …] would have run this; the explicit bracket form
          used here (for the two pure premises) does not. *)
       wp_auto.
+      assert (Z.to_nat (sint.Z (word.add j (W64 1))) = S (Z.to_nat (sint.Z j))) as Hsucc
+        by word.
+      iAssert (I (list_to_set (take (Z.to_nat (sint.Z (word.add j (W64 1)))) ys)) pvs2)
+        with "[HI]" as "HI".
+      { rewrite Hsucc (take_S_r _ _ y Hy) list_to_set_app_L /= union_empty_r_L
+          union_comm_L. iFrame. }
       wp_for_post.
-      iFrame "∗#". iPureIntro. split_and!; first [ word | exact Hyc ].
+      iFrame "∗#". iPureIntro. split_and!; first [ word | exact Hyc | exact Hysc ].
     + (* every id visited *)
-      iApply "HΦ". iExists tvc, pvsc. iFrame "Htrk HI Hown".
+      iApply "HΦ". iExists tvc, pvsc. iFrame "Htrk Hown".
+      rewrite take_ge; last word. rewrite Hysc. iFrame "HI".
 Qed.
 
 End helpers.

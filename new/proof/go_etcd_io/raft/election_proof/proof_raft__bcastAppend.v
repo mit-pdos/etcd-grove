@@ -15,9 +15,6 @@ Local Lemma send_msgs_app (s0 : nstate.t) (ms1 ms2 : list msg.t) :
   send_msgs (send_msgs s0 ms1) ms2 = send_msgs s0 (ms1 ++ ms2).
 Proof. rewrite /send_msgs /= app_assoc //. Qed.
 
-Local Lemma app_sends_app (id t : w64) (ms1 ms2 : list msg.t) :
-  app_sends id t ms1 → app_sends id t ms2 → app_sends id t (ms1 ++ ms2).
-Proof. rewrite /app_sends. apply Forall_app_2. Qed.
 
 (** ** [bcastAppend]
 
@@ -37,7 +34,7 @@ Proof. rewrite /app_sends. apply Forall_app_2. Qed.
     includes that object.  So [I] carries exactly "the raft struct with a
     tracker-shaped hole", the wand of [own_raft_phys_tracker_prvals]:
 
-      ∃ ms, r_ptr ↦ r ∗ ⌜ app_sends id s.term ms ⌝ ∗
+      ∃ ms, r_ptr ↦ r ∗ ⌜ repl_sends id s ms ⌝ ∗ ⌜ prvals_match pvsx = prvals_match s.prvals ⌝ ∗
             (∀ tvx pvsx, r.[trk] ↦ tvx -∗
                     own_tracker cfg tvx s.votes s.progress pvsx -∗
                     own_raft_phys cfg r id (send_msgs s ms <| prvals := pvsx |>))
@@ -63,26 +60,29 @@ Lemma wp_bcast (r : loc) (id : w64) (s : nstate.t) :
     r @! (go.PointerType raft.raft) @! "bcastAppend" #()
   {{{ (ms : list msg.t) pvs, RET #();
       own_raft_phys cfg r id (send_msgs s ms <| nstate.prvals := pvs |>) ∗
-      ⌜ app_sends id s.(nstate.term) ms ⌝ }}}.
+      ⌜ repl_sends id s ms ⌝ ∗
+      ⌜ prvals_match pvs = prvals_match s.(nstate.prvals) ⌝ }}}.
 Proof.
   wp_start as "Hphys". wp_auto.
   iDestruct (own_raft_phys_send_nil with "Hphys") as "Hphys".
   iDestruct (own_raft_phys_tracker_prvals with "Hphys")
     as (tv) "(Htrkf & Htrk & Hrest)".
   wp_apply (wp_ProgressTracker__Visit _ _ _ s.(nstate.votes) s.(nstate.progress) _ _
-              (∃ (ms : list msg.t),
+              (λ _ pvsx, ∃ (ms : list msg.t),
                  "rp" ∷ r_ptr ↦ r ∗
-                 "%Hms" ∷ ⌜ app_sends id s.(nstate.term) ms ⌝ ∗
+                 "%Hms" ∷ ⌜ repl_sends id s ms ⌝ ∗
+                 "%Hmm" ∷ ⌜ prvals_match pvsx = prvals_match s.(nstate.prvals) ⌝ ∗
                  "Hrest" ∷ (∀ tvx pvsx, r.[raft.raft.t, "trk"] ↦ tvx -∗
                           own_tracker cfg tvx s.(nstate.votes) s.(nstate.progress) pvsx -∗
                           own_raft_phys cfg r id (send_msgs s ms <| nstate.prvals := pvsx |>)))%I
               with "[$Htrkf $Htrk r Hrest]").
   { iSplitL "r Hrest".
     { iExists []. iFrame "r". iSplitR; first (iPureIntro; by apply Forall_nil).
+      iSplitR; first done.
       iIntros (tvx pvsx) "Hf Ht". iDestruct ("Hrest" with "Hf Ht") as "Hphys".
       iApply (own_raft_phys_eq with "Hphys"). reflexivity. }
     (* the closure *)
-    iModIntro. iIntros (i pr tv0 pvs0 pv iv).
+    iModIntro. iIntros (i pr tv0 pvs0 pv iv D).
     wp_start as "(%Hicfg & %Hpri & %Hpvi & %HmaxI & Htrkf & Hpr & Hback & HI)".
     iNamed "HI".
     iDestruct ("Hback" with "Hpr") as "Htrk".
@@ -95,18 +95,23 @@ Proof.
         as (tv1) "(Htrkf & Htrk & Hrest)".
       iApply "HΦ". iExists tv1, _. iFrame "Htrkf Htrk".
       iExists ms. iFrame "rp". iSplitR; first done.
+      iSplitR; first (iPureIntro; simpl; rewrite (insert_id _ _ _ Hpvi) //).
       iIntros (tvx pvsx) "Hf Ht". iDestruct ("Hrest" with "Hf Ht") as "Hphys".
       iApply (own_raft_phys_eq with "Hphys"). reflexivity.
     - (* a peer: [sendAppend] may add [App]s and change [Progress]es *)
       rewrite bool_decide_eq_false_2 //. wp_auto.
       wp_apply (wp_raft__sendAppend _ _ _ _ i Hii Hicfg with "[$Hphys]")
-        as "%ms' %pvs' [Hphys %Hms']".
+        as "%ms' %pvs' (Hphys & %Hms' & %Hmm')".
       try wp_auto.
       iDestruct (own_raft_phys_tracker_prvals with "Hphys")
         as (tv1) "(Htrkf & Htrk & Hrest)".
       iApply "HΦ". iExists tv1, _. iFrame "Htrkf Htrk".
       iExists (ms ++ ms'). iFrame "rp".
-      iSplitR; first (iPureIntro; apply app_sends_app; [ exact Hms | exact Hms' ]).
+      iSplitR.
+      { iPureIntro. apply repl_sends_app; [ exact Hms | ].
+        exact (proj1 (repl_sends_send_prvals id s ms _ ms') Hms'). }
+      iSplitR.
+      { iPureIntro. simpl. rewrite Hmm' /= (insert_id _ _ _ Hpvi) //. }
       iIntros (tvx pvsx) "Hf Ht". iDestruct ("Hrest" with "Hf Ht") as "Hphys".
       iApply (own_raft_phys_eq with "Hphys").
       rewrite /send_msgs -assoc. reflexivity. }
@@ -114,7 +119,7 @@ Proof.
   iNamed "HI".
   iDestruct ("Hrest" $! tvfin pvsfin with "Htrkf Htrk") as "Hphys".
   wp_auto.
-  iApply ("HΦ" $! ms pvsfin). by iFrame.
+  iApply ("HΦ" $! ms pvsfin). iFrame "Hphys %".
 Qed.
 
 End helpers.

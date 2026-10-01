@@ -19,6 +19,47 @@ Context (cfg : gset w64).
 
 Implicit Type s : nstate.t.
 
+(** ** The abstract outbox of the two queues
+
+    [msg_abs m a]: the queued physical message [m] contributes [a] to the
+    abstract outbox -- [None] for a type the model does not describe
+    ([mtype_of = None]: [MsgHup], [MsgCheckQuorum], ...), else
+    [abs_msg ty m ents] where [ents] is what [m.Entries] points to, held
+    read-only.  The points-to is what makes the abstraction a function of
+    the heap rather than of [m] alone: [m.Entries] is a slice
+    ([notes/raft-replication-model.md], "Abstract messages").
+
+    [outbox_rel o msgs msgsAA]: the abstract outbox [o] is, up to
+    permutation, what the two queues contribute.  Persistent. *)
+Definition msg_abs (m : raftpb.Message.t) (a : option msg.t) : iProp Σ :=
+  (⌜ mtype_of m.(raftpb.Message.Type') = None ∧ a = None ⌝) ∨
+  (∃ ty ents, ⌜ mtype_of m.(raftpb.Message.Type') = Some ty ∧
+                a = Some (abs_msg ty m ents) ⌝ ∗
+              m.(raftpb.Message.Entries') ↦*□ ents).
+
+Definition abs_list (as_ : list (option msg.t)) : list msg.t := omap (λ a, a) as_.
+
+Definition outbox_rel (o : list msg.t) (msgs msgsAA : list raftpb.Message.t) : iProp Σ :=
+  ∃ (as1 as2 : list (option msg.t)),
+    ⌜ o ≡ₚ abs_list as1 ++ abs_list as2 ⌝ ∗
+    ([∗ list] m; a ∈ msgs; as1, msg_abs m a) ∗
+    ([∗ list] m; a ∈ msgsAA; as2, msg_abs m a).
+
+Global Instance msg_abs_pers m a : Persistent (msg_abs m a).
+Proof. apply _. Qed.
+Global Instance outbox_rel_pers o msgs msgsAA : Persistent (outbox_rel o msgs msgsAA).
+Proof. apply _. Qed.
+
+Lemma outbox_rel_nil : ⊢ outbox_rel [] [] [].
+Proof. iExists [], []. rewrite !big_sepL2_nil. done. Qed.
+
+Lemma outbox_rel_perm o o' msgs msgsAA :
+  o' ≡ₚ o → outbox_rel o msgs msgsAA -∗ outbox_rel o' msgs msgsAA.
+Proof.
+  iIntros (Hp) "(%as1 & %as2 & %Ho & H1 & H2)". iExists as1, as2. iFrame.
+  iPureIntro. by rewrite Hp.
+Qed.
+
 (** ** Physical ownership of the raft struct
 
     [own_raft_phys r id s] is full ownership of the [raft] struct at [r] and
@@ -88,7 +129,7 @@ Definition own_raft_phys_def (r : loc) (id : w64) s : iProp Σ :=
   "HmsgsAA" ∷ rv.(raft.raft.msgsAfterAppend') ↦* msgsAA ∗
   "HmsgsAA_cap" ∷ own_slice_cap raftpb.Message.t
                     rv.(raft.raft.msgsAfterAppend') (DfracOwn 1) ∗
-  "%Houtbox" ∷ ⌜ s.(nstate.outbox) ≡ₚ abs_outbox msgs msgsAA ⌝ ∗
+  "#Houtbox" ∷ outbox_rel s.(nstate.outbox) msgs msgsAA ∗
 
   (** scope assumptions *)
   "%HnoPreVote" ∷ ⌜ rv.(raft.raft.preVote') = false ⌝ ∗
@@ -130,7 +171,7 @@ Local Tactic Notation "iNamed_phys" constr(H) :=
     [iApply] with named hypotheses and pure side goals:
 
       iApply (own_raft_phys_intro with
-        "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); done.
+        "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox"); done.
 
     The pure premises are in the order the conjuncts appear in the predicate.
     [r ↦ rv] is the first spatial argument **on purpose**: it is what fixes
@@ -146,7 +187,6 @@ Lemma own_raft_phys_intro r id s (rv : raft.raft.t)
   rv.(raft.raft.lead') = s.(nstate.lead) →
   rv.(raft.raft.state') = state_w64 s.(nstate.role) →
   rv.(raft.raft.step') = s.(nstate.stepfn) →
-  s.(nstate.outbox) ≡ₚ abs_outbox msgs msgsAA →
   rv.(raft.raft.preVote') = false →
   rv.(raft.raft.checkQuorum') = false →
   rv.(raft.raft.isLearner') = false →
@@ -166,11 +206,12 @@ Lemma own_raft_phys_intro r id s (rv : raft.raft.t)
   own_slice_cap raftpb.Message.t rv.(raft.raft.msgsAfterAppend') (DfracOwn 1) -∗
   own_raft_misc rv.(raft.raft.readStates') rv.(raft.raft.readOnly')
     rv.(raft.raft.pendingReadIndexMessages') -∗
+  outbox_rel s.(nstate.outbox) msgs msgsAA -∗
   own_raft_phys r id s.
 Proof.
-  intros Hid Hterm Hvote Hlead Hstate Hstepfn Houtbox HnoPreVote HnoCheckQuorum
+  intros Hid Hterm Hvote Hlead Hstate Hstepfn HnoPreVote HnoCheckQuorum
     HnoLearner HnoTransfer Hid_nz HelectionTimeout Hlok Hlogp.
-  iIntros "Hr #Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc".
+  iIntros "Hr #Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc #Houtbox".
   rewrite own_raft_phys_unseal /own_raft_phys_def. iExists rv, msgs, msgsAA, lok. iFrame "∗#%".
 Qed.
 
@@ -191,8 +232,9 @@ Lemma own_raft_phys_outbox r id s (o : list msg.t) :
   own_raft_phys r id s -∗ own_raft_phys r id (s <| nstate.outbox := o |>).
 Proof.
   iIntros (Ho) "H". iNamed_phys "H".
-  rewrite own_raft_phys_unseal /own_raft_phys_def. iExists rv, msgs, msgsAA, lok. simpl. iFrame "∗#%".
-  iPureIntro. by rewrite Ho.
+  iDestruct (outbox_rel_perm _ o with "Houtbox") as "#Houtbox'"; first done.
+  rewrite own_raft_phys_unseal /own_raft_phys_def. iExists rv, msgs, msgsAA, lok. simpl.
+  iFrame "∗#%".
 Qed.
 
 (** Sending nothing, in both directions: an exit that sends nothing proves
@@ -284,7 +326,7 @@ Local Ltac reseal :=
   lazymatch goal with
   | |- environments.envs_entails _ (own_raft_phys _ _ ?s') =>
       iApply (own_raft_phys_intro _ _ s' with
-        "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc");
+        "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox");
       try done
   end.
 
@@ -716,27 +758,34 @@ Proof.
   iApply (own_raft_phys_eq with "H"). by destruct s.
 Qed.
 
-(** [r.msgs], append-only: whatever is appended joins the abstract outbox
-    (at the end, up to permutation -- see [Houtbox]); a message type the
-    model does not describe drops out through [abs_msg_opt]. *)
+(** [r.msgs], append-only: a message [m'] appended joins the abstract
+    outbox (at the end, up to permutation -- see [Houtbox]) as whatever
+    [msg_abs] says it contributes: nothing for a type the model does not
+    describe, else its abstraction, given [m'.Entries ↦*□ ents]. *)
 Lemma own_raft_phys_msgs r id s :
   own_raft_phys r id s -∗
   ∃ sl ms, r.[raft.raft.t, "msgs"] ↦ sl ∗ sl ↦* ms ∗
            own_slice_cap raftpb.Message.t sl (DfracOwn 1) ∗
-           (∀ sl' ms', r.[raft.raft.t, "msgs"] ↦ sl' -∗ sl' ↦* (ms ++ ms') -∗
+           (∀ sl' m' a, r.[raft.raft.t, "msgs"] ↦ sl' -∗ sl' ↦* (ms ++ [m']) -∗
               own_slice_cap raftpb.Message.t sl' (DfracOwn 1) -∗
+              msg_abs m' a -∗
               own_raft_phys r id
-                (s <| nstate.outbox := s.(nstate.outbox) ++ omap abs_msg_opt ms' |>)).
+                (s <| nstate.outbox := s.(nstate.outbox) ++ abs_list [a] |>)).
 Proof.
   iIntros "H". iNamed_phys "H".
   iDestruct (raft_split_msgs with "Hr") as "[Hf Hback]".
   iExists _, msgs. iFrame "Hf Hmsgs Hmsgs_cap".
-  iIntros (sl' ms') "Hf Hmsgs Hmsgs_cap".
+  iIntros (sl' m' a) "Hf Hmsgs Hmsgs_cap #Ha".
   iDestruct ("Hback" $! sl' with "Hf") as "Hr".
+  iDestruct "Houtbox" as (as1 as2 Ho) "[#H1 #H2]".
+  iAssert (outbox_rel (s.(nstate.outbox) ++ abs_list [a]) (msgs ++ [m']) msgsAA)
+    as "#Houtbox".
+  { iExists (as1 ++ [a]), as2. iSplit.
+    - iPureIntro. rewrite Ho /abs_list omap_app -!assoc.
+      apply Permutation_app_head, Permutation_app_comm.
+    - iSplit; last done. iApply big_sepL2_app; first done.
+      rewrite big_sepL2_singleton. done. }
   reseal.
-  change (s.(nstate.outbox) ++ omap abs_msg_opt ms' ≡ₚ abs_outbox (msgs ++ ms') msgsAA).
-  rewrite Houtbox /abs_outbox omap_app -!assoc.
-  apply Permutation_app_head, Permutation_app_comm.
 Qed.
 
 (** [r.msgsAfterAppend], likewise. *)
@@ -744,20 +793,26 @@ Lemma own_raft_phys_msgsAA r id s :
   own_raft_phys r id s -∗
   ∃ sl ms, r.[raft.raft.t, "msgsAfterAppend"] ↦ sl ∗ sl ↦* ms ∗
            own_slice_cap raftpb.Message.t sl (DfracOwn 1) ∗
-           (∀ sl' ms', r.[raft.raft.t, "msgsAfterAppend"] ↦ sl' -∗
-              sl' ↦* (ms ++ ms') -∗
+           (∀ sl' m' a, r.[raft.raft.t, "msgsAfterAppend"] ↦ sl' -∗
+              sl' ↦* (ms ++ [m']) -∗
               own_slice_cap raftpb.Message.t sl' (DfracOwn 1) -∗
+              msg_abs m' a -∗
               own_raft_phys r id
-                (s <| nstate.outbox := s.(nstate.outbox) ++ omap abs_msg_opt ms' |>)).
+                (s <| nstate.outbox := s.(nstate.outbox) ++ abs_list [a] |>)).
 Proof.
   iIntros "H". iNamed_phys "H".
   iDestruct (raft_split_msgsAA with "Hr") as "[Hf Hback]".
   iExists _, msgsAA. iFrame "Hf HmsgsAA HmsgsAA_cap".
-  iIntros (sl' ms') "Hf HmsgsAA HmsgsAA_cap".
+  iIntros (sl' m' a) "Hf HmsgsAA HmsgsAA_cap #Ha".
   iDestruct ("Hback" $! sl' with "Hf") as "Hr".
+  iDestruct "Houtbox" as (as1 as2 Ho) "[#H1 #H2]".
+  iAssert (outbox_rel (s.(nstate.outbox) ++ abs_list [a]) msgs (msgsAA ++ [m']))
+    as "#Houtbox".
+  { iExists as1, (as2 ++ [a]). iSplit.
+    - iPureIntro. rewrite Ho /abs_list omap_app -!assoc //.
+    - iSplit; first done. iApply big_sepL2_app; first done.
+      rewrite big_sepL2_singleton. done. }
   reseal.
-  change (s.(nstate.outbox) ++ omap abs_msg_opt ms' ≡ₚ abs_outbox msgs (msgsAA ++ ms')).
-  rewrite Houtbox /abs_outbox omap_app -!assoc //.
 Qed.
 
 (** The [readOnly] object.  Election never reads it; [reset] replaces it. *)
@@ -810,7 +865,7 @@ Proof.
   iIntros (tv' prs' pvs') "Hf Htrk".
   iDestruct ("Hback" $! tv' with "Hf") as "Hr".
   iApply (own_raft_phys_intro cfg r id (s <| nstate.progress := prs' |> <| nstate.prvals := pvs' |>) with
-    "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc"); try done.
+    "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox"); try done.
 Qed.
 
 End reconfig.

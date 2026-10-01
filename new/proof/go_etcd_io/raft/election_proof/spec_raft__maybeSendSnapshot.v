@@ -13,12 +13,14 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
       r.send(pb.Message{To: to, Type: MsgSnap, Snapshot: snapshot})
       return true
 
-    **The model sees nothing.**  [MsgSnap] has no [mtype_of], so it falls
-    under the third clause of [send_ok] ([spec_raft__send.v]) and
-    contributes nothing to the abstract outbox -- which is why the
-    postcondition is at the *same* [s].  [Term] is unset in the literal and
-    [to ≠ id] (the only caller, [maybeSendAppend], is reached from
-    [bcastAppend], which skips the leader itself), so that clause applies.
+    **What the model sees** (since 2026-10-01): the [MsgSnap], as an
+    [mtype.Snap] from [id] to [to] at the current term -- [send_ok]'s
+    stamped clause; [Term] is unset in the literal and [to ≠ id] (the only
+    caller, [maybeSendAppend], is reached from [bcastAppend], which skips
+    the leader itself).  The outbox grows by [ms], zero or one such
+    message, which is [repl_sends] ([snap_ok]).  Until 2026-10-01
+    [MsgSnap] had no [mtype_of] and the postcondition was at the same
+    [s].
 
     [pr] moves to [StateSnapshot], which is why the [Progress] comes back
     existentially quantified rather than at its old value.
@@ -50,7 +52,11 @@ Definition wp_raft__maybeSendSnapshot_body :=
   s.(nstate.progress) !! to = Some pr →
   {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "maybeSendSnapshot" #to #pr
-  {{{ (b : bool) pvs, RET #b; own_raft_phys cfg r id (s <| nstate.prvals := pvs |>) }}}.
+  {{{ (b : bool) (ms : list msg.t) pvs, RET #b;
+      own_raft_phys cfg r id (send_msgs s ms <| nstate.prvals := pvs |>) ∗
+      ⌜ repl_sends id s ms ⌝ ∗
+      (* [BecomeSnapshot] does not move [Match] *)
+      ⌜ prvals_match pvs = prvals_match s.(nstate.prvals) ⌝ }}}.
 
 Module Type RAFT__MAYBESENDSNAPSHOT.
   Parameter wp_raft__maybeSendSnapshot : wp_raft__maybeSendSnapshot_body.

@@ -22,7 +22,10 @@ Definition wp_Progress__BecomeSnapshot_body :=
     (snapshoti : w64),
   {{{ is_pkg_init tracker ∗ own_progress pr pv iv }}}
     pr @! (go.PointerType tracker.Progress) @! "BecomeSnapshot" #snapshoti
-  {{{ RET #(); ∃ pv' iv', own_progress pr pv' iv' }}}.
+  {{{ RET #(); ∃ pv' iv', own_progress pr pv' iv' ∗
+      (* [Match] is untouched: the body never writes it (Match discipline,
+         notes/raft-replication-model.md) *)
+      ⌜ pv'.(tracker.Progress.Match') = pv.(tracker.Progress.Match') ⌝ }}}.
 
 Module Type PROGRESS__BECOMESNAPSHOT.
   Parameter wp_Progress__BecomeSnapshot : wp_Progress__BecomeSnapshot_body.

@@ -3,6 +3,56 @@ Require Export New.proof.go_etcd_io.raft.election_proof.postulates_raft__reset.
 Module ResetProof (P : RESET_POSTULATES) : RESET.
 Import P.
 
+Section helpers.
+
+(** What [reset]'s [Visit] has done after visiting the ids in [D]: the
+    [Progress] values range over the same peers as before, and every visited
+    peer's [Match] is [reset]'s. *)
+Definition reset_inv (id li : w64)
+    (P0 pvs : gmap w64 (tracker.Progress.t * tracker.Inflights.t)) (D : gset w64) : Prop :=
+  dom pvs = dom P0 ∧
+  ∀ k p, k ∈ D → pvs !! k = Some p →
+    p.1.(tracker.Progress.Match') = (if decide (k = id) then li else W64 0).
+
+(** [lastIndex()]'s result, as [log_last]. *)
+Lemma log_last_unsigned (ls : logstate.t) (i : w64) :
+  uint.Z i = (uint.Z ls.(logstate.prev).(raft.entryID.index')
+              + Z.of_nat (length ls.(logstate.sents))
+              + Z.of_nat (length ls.(logstate.uents)))%Z →
+  i = log_last ls.
+Proof. intros H. apply word.unsigned_inj. rewrite /log_last -H. word. Qed.
+
+Lemma reset_inv_empty id li P0 : reset_inv id li P0 P0 ∅.
+Proof. split; [done|]. intros ???. set_solver. Qed.
+
+Lemma reset_inv_step id li P0 pvs D i v :
+  reset_inv id li P0 pvs D →
+  is_Some (pvs !! i) →
+  v.1.(tracker.Progress.Match') = (if decide (i = id) then li else W64 0) →
+  reset_inv id li P0 (<[i := v]> pvs) ({[i]} ∪ D).
+Proof.
+  intros [Hdom Hm] Hi Hv. split.
+  - rewrite dom_insert_lookup_L //.
+  - intros k p Hk Hp. destruct (decide (k = i)) as [->|Hne].
+    + rewrite lookup_insert_eq in Hp. by injection Hp as <-.
+    + rewrite lookup_insert_ne // in Hp. apply (Hm k); [set_solver|done].
+Qed.
+
+Lemma reset_inv_done id li P0 pvs :
+  reset_inv id li P0 pvs (dom P0) →
+  prvals_match pvs = reset_matched id li P0.
+Proof.
+  intros [Hdom Hm]. apply map_eq. intros k.
+  rewrite /prvals_match /reset_matched lookup_fmap map_lookup_imap.
+  destruct (pvs !! k) as [p|] eqn:Hk; destruct (P0 !! k) as [q|] eqn:HP; simpl.
+  - f_equal. apply (Hm k p); [by apply elem_of_dom|done].
+  - exfalso. apply not_elem_of_dom in HP. rewrite -Hdom elem_of_dom in HP. by apply HP.
+  - exfalso. apply not_elem_of_dom in Hk. rewrite Hdom elem_of_dom in Hk. by apply Hk.
+  - done.
+Qed.
+
+End helpers.
+
   (** [reset term] clears the vote iff the term changes, clears [lead] and the
       vote tally, and re-initialises everything the model does not see: the
       two tick counters, the randomised election timeout, the leader-transfer
@@ -22,17 +72,11 @@ Import P.
         (the tracker field), and writes [*pr].  So [I] is the wand of
         [own_raft_phys_tracker_prvals] -- the struct with a tracker-shaped
         hole, taking it back at any [Progress] values -- as in
-        [bcastAppend].  The closure fills the hole whenever it needs the
-        struct whole and borrows the tracker and [pr] again, at the values
-        [nstate.prvals] records, when it needs them.  [I] also has to carry
-        the frame slot of the pointer variable ([r_ptr ↦ r]), which is easy
-        to forget.  (Until 2026-09-29 the tracker was lent out of the
-        struct for the whole [Visit], [nstate.lent].)
-
-        [Visit] is told the progress map is [s.(nstate.progress)] and hands
-        the tracker back at that same map, at whatever tracker value and
-        [Progress] values it returns; the postcondition's [pvs] is the
-        latter.
+        [bcastAppend], plus (since 2026-10-01) [reset_inv]: the [Match] of
+        every peer visited so far is [reset]'s.  [Visit] ends at the full
+        voter set, which is the progress map's domain, so every peer's
+        [Match] is known ([reset_inv_done]).  [I] also has to carry the
+        frame slot of the pointer variable ([r_ptr ↦ r]).
 
         The Goose closure literal reduces to
         [#(func.mk <> "id" (λ: "pr", …))] by the [wp_recc] pure step, so it
@@ -41,7 +85,14 @@ Import P.
   Proof.
     intros_ambient.
     intros cfg r id s term.
-    wp_start as "Hphys". wp_auto.
+    wp_start as "Hphys".
+    (* [lastIndex()] does not wrap: the closure's [pr.Match = lastIndex()]
+       is then [log_last] *)
+    iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hlb]".
+    iDestruct (own_raftLog_nowrap with "Hlog") as "[%Hnw Hlog]".
+    iDestruct ("Hlb" with "Hlog") as "Hphys".
+    set (li0 := log_last s.(nstate.logst)).
+    wp_auto.
     set (s0 := s <| nstate.term := term |>
                  <| nstate.vote := if decide (term = s.(nstate.term))
                                    then s.(nstate.vote) else W64 0 |>).
@@ -74,30 +125,33 @@ Import P.
       as "%votesRef [Htrkf Htrk]".
     iDestruct ("Hback" with "Htrkf Htrk") as "Hphys".
     set (s2 := s1 <| nstate.votes := ∅ |>).
-    (* [Visit] owns the tracker field -- it reads [p.Progress] through its
-       pointer receiver -- and lends it to the closure together with one
-       [Progress].  The caller invariant [I] is the rest of the struct: the
-       wand of [own_raft_phys_tracker_prvals], which takes the tracker back
-       at any tracker value and any [Progress] values (see [visit_closure],
-       inv_tracker.v) -- the same shape as [bcastAppend]'s. *)
+    (* [Visit] owns the tracker field and lends it to the closure together
+       with one [Progress].  The caller invariant is the rest of the struct
+       -- the wand of [own_raft_phys_tracker_prvals] -- and [reset_inv]. *)
     iDestruct (own_raft_phys_tracker_prvals with "Hphys") as (tv1) "(Htrkf & Htrk & HI)".
+    iDestruct (own_tracker_prvals_dom with "Htrk") as "[%Hpdom Htrk]".
+    iDestruct (own_tracker_progress_map with "Htrk") as "(_ & %Hprdom & Htrk)".
+    assert (Hdomcfg : dom s.(nstate.prvals) = cfg) by (rewrite -Hprdom -Hpdom //).
     wp_apply (wp_ProgressTracker__Visit _ _ _ s2.(nstate.votes) s2.(nstate.progress)
                 s2.(nstate.prvals) _
-                (r_ptr ↦ r ∗
-                 (∀ tvx pvsx, r.[raft.raft.t, "trk"] ↦ tvx -∗
-                  own_tracker cfg tvx s2.(nstate.votes) s2.(nstate.progress) pvsx -∗
-                  own_raft_phys cfg r id (s2 <| nstate.prvals := pvsx |>)))%I
+                (λ D pvsx,
+                 r_ptr ↦ r ∗
+                 ⌜ reset_inv id li0 s.(nstate.prvals) pvsx D ⌝ ∗
+                 (∀ tvx pvsx', r.[raft.raft.t, "trk"] ↦ tvx -∗
+                  own_tracker cfg tvx s2.(nstate.votes) s2.(nstate.progress) pvsx' -∗
+                  own_raft_phys cfg r id (s2 <| nstate.prvals := pvsx' |>)))%I
                 with "[$Htrkf $Htrk $r $HI]")
-      as "(%tvfin & %pvsfin & Htrkf & Htrk & r & HI)".
-    { (* the [Visit] closure: re-initialise one [Progress] wholesale.  The
+      as "(%tvfin & %pvsfin & Htrkf & Htrk & r & %Hinv & HI)".
+    { iSplitR; first (iPureIntro; apply reset_inv_empty).
+      (* the [Visit] closure: re-initialise one [Progress] wholesale.  The
          [Progress] goes back into the tracker, and the tracker into the
          struct, whenever the next step needs the struct whole
          ([r.raftLog.lastIndex()], [r.id]); it is borrowed again, at the
          value [nstate.prvals] records, for the steps that need it
          ([pr.IsLearner], the store to [*pr], [pr.Match]). *)
-      iModIntro. iIntros (i pr tv0 pvs0 pv iv).
+      iModIntro. iIntros (i pr tv0 pvs0 pv iv D).
       wp_start as "(%Hicfg & %Hpri & %Hpvi & %HmaxI & Htrkf & Hpr & Hprback &
-                    r & HI)".
+                    r & %Hinv0 & HI)".
       iDestruct ("Hprback" with "Hpr") as "Htrk".
       iDestruct ("HI" with "Htrkf Htrk") as "Hphys".
       wp_auto. wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
@@ -113,10 +167,7 @@ Import P.
       iDestruct (own_tracker_lookup _ _ _ _ _ _ _ Hpri with "Htrk")
         as (pv1 iv1 Hpv1) "[Hpr Hprback]".
       (* Keep [Hnolearner]: [own_progress] carries
-         [⌜pv.(IsLearner') = false⌝], and the closure has to hand it back.
-         The [Progress] literal it writes copies [IsLearner] straight across
-         from the old one, so the fact carries over unchanged -- but only if
-         it is not dropped here. *)
+         [⌜pv.(IsLearner') = false⌝], and the closure has to hand it back. *)
       iDestruct "Hpr" as "(Hpv & _ & %Hnolearner & %Hst)".
       wp_auto.
       wp_apply (wp_tracker_NewInflights _ _ HmaxI2) as "%ifl Hifl".
@@ -146,12 +197,20 @@ Import P.
         iDestruct ("Hprback" with "[Hpv Hinfl]") as "Htrk".
         { rewrite /own_progress. iFrame "Hpv Hinfl". done. }
         iApply "HΦ". iExists tv3, _. iFrame "Htrkf Htrk r".
+        iSplitR.
+        { iPureIntro. simpl. rewrite !insert_insert_eq.
+          apply reset_inv_step; [done|rewrite Hpvi; by eexists|].
+          rewrite decide_True //=. rewrite /li0. apply log_last_unsigned. exact Hli1. }
         iIntros (tvx pvsx) "Hf Ht". iDestruct ("HI" $! tvx pvsx with "Hf Ht") as "Hphys".
         iApply (own_raft_phys_eq with "Hphys"). reflexivity.
       + rewrite bool_decide_false //. wp_auto.
         iDestruct (own_raft_phys_tracker_prvals with "Hphys")
           as (tv3) "(Htrkf & Htrk & HI)".
         iApply "HΦ". iExists tv3, _. iFrame "Htrkf Htrk r".
+        iSplitR.
+        { iPureIntro. simpl. rewrite !insert_insert_eq.
+          apply reset_inv_step; [done|rewrite Hpvi; by eexists|].
+          rewrite decide_False //. }
         iIntros (tvx pvsx) "Hf Ht". iDestruct ("HI" $! tvx pvsx with "Hf Ht") as "Hphys".
         iApply (own_raft_phys_eq with "Hphys"). reflexivity. }
     (* [Visit] hands the field and the tracker back *)
@@ -166,8 +225,10 @@ Import P.
     wp_apply wp_newReadOnly as "%ro' Hro'".
     iDestruct ("Hback" with "Hrof Hro'") as "Hphys".
     iApply ("HΦ" $! pvsfin).
-    iApply (own_raft_phys_eq with "Hphys").
-    subst s2 s1 s0. rewrite /reset_to. destruct s. done.
+    iSplitL.
+    - iApply (own_raft_phys_eq with "Hphys").
+      subst s2 s1 s0. rewrite /reset_to. destruct s. done.
+    - iPureIntro. apply reset_inv_done. rewrite Hdomcfg. exact Hinv.
   Qed.
 
 End ResetProof.

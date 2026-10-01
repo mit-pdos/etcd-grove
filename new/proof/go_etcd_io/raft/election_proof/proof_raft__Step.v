@@ -51,6 +51,7 @@ Set Default Proof Using "Type".
     intros Helection Hin Hhup Hvote Hvoteresp Hrel.
     destruct Hrel as [<- Hwf].
     iIntros (Φ) "(#Hinit & Hphys & Hghost & #Hm & #Hctx) HΦ".
+    iDestruct "Hm" as (ents) "[#Hents #Hm]".
     iApply wp_fupd.
     destruct Helection as [Hty | [Hty | Hty]].
     - (* MsgHup: a local message, handled by [hup]. *)
@@ -66,7 +67,7 @@ Set Default Proof Using "Type".
       destruct (Hvote Hty) as (Hto & Hterm & Hfnz).
       iDestruct ("Hm" $! mtype.Vote with "[]") as "#Hm'".
       { iPureIntro. rewrite Hty. apply mtype_of_MsgVote. }
-      wp_apply (V.wp_Step_MsgVote cfg with "[$Hphys $Hctx]"); [done..|].
+      wp_apply (V.wp_Step_MsgVote cfg _ _ _ _ ents with "[$Hphys $Hctx]"); [done..|].
       iIntros (err s') "(Hphys & %Hwf' & %Hst & %Herr)".
       destruct Hst as (recv & Hrecv & Hstep).
       assert (step γ.(re_cfg) id (to_pstate s) recv (to_pstate s')) as Hstep'
@@ -80,7 +81,7 @@ Set Default Proof Using "Type".
       destruct (Hvoteresp Hty) as [Hto Hterm].
       iDestruct ("Hm" $! mtype.VoteResp with "[]") as "#Hm'".
       { iPureIntro. rewrite Hty. apply mtype_of_MsgVoteResp. }
-      wp_apply (R.wp_Step_MsgVoteResp cfg with "[$Hphys]"); [done..|].
+      wp_apply (R.wp_Step_MsgVoteResp cfg _ _ _ _ ents with "[$Hphys]"); [done..|].
       iIntros (err s') "(Hphys & %Hwf' & %Hst & %Herr)".
       destruct Hst as (recv & Hrecv & Hstep).
       assert (step γ.(re_cfg) id (to_pstate s) recv (to_pstate s')) as Hstep'

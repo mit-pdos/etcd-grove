@@ -3,7 +3,8 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
 (** [r.sendAppend(to)] is [r.maybeSendAppend(to, true)] and nothing else
     ([raft__sendAppendⁱᵐᵖˡ], new/code/go_etcd_io/raft/v3.v:3076) -- the
     boolean result is dropped.  Same postcondition, therefore: the outbox
-    grows by some list of [App]s from [id] at the current term. *)
+    grows by some list of messages [repl_ok] allows, and [Match] does not
+    move. *)
 Definition wp_raft__sendAppend_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
@@ -15,7 +16,8 @@ Definition wp_raft__sendAppend_body :=
     r @! (go.PointerType raft.raft) @! "sendAppend" #to
   {{{ (ms : list msg.t) pvs, RET #();
       own_raft_phys cfg r id (send_msgs s ms <| nstate.prvals := pvs |>) ∗
-      ⌜ app_sends id s.(nstate.term) ms ⌝ }}}.
+      ⌜ repl_sends id s ms ⌝ ∗
+      ⌜ prvals_match pvs = prvals_match s.(nstate.prvals) ⌝ }}}.
 
 Module Type RAFT__SENDAPPEND.
   Parameter wp_raft__sendAppend : wp_raft__sendAppend_body.

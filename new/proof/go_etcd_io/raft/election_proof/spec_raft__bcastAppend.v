@@ -7,10 +7,9 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
     is nothing to send and [sendIfEmpty] is false).
 
     So this says **not** one [MsgApp] per peer, only that the outbox grew by
-    some list of [App]s from [id] at the current term.  That is exactly what
-    the weakened [step_win] asks for, and all the election model ever uses: a
-    receiver reads an [App] through [step_higher_term], which cares about its
-    term and that a leader sent it.  An earlier version of the model demanded
+    some list of messages [repl_ok] allows ([repl_sends], [defs.v]) -- which
+    is exactly what [step_win] and [step_send_apps] ask for -- and that no
+    [Match] moved.  An earlier version of the model demanded
     one per peer, which would have made this claim false -- the same trap
     [wp_raft__appendEntry] fell into before 2026-09-15 (it was called
     [wp_raft__appendEmptyEntry] then, after a Go method that does not exist). *)
@@ -23,7 +22,8 @@ Definition wp_raft__bcastAppend_body :=
     r @! (go.PointerType raft.raft) @! "bcastAppend" #()
   {{{ (ms : list msg.t) pvs, RET #();
       own_raft_phys cfg r id (send_msgs s ms <| nstate.prvals := pvs |>) ∗
-      ⌜ app_sends id s.(nstate.term) ms ⌝ }}}.
+      ⌜ repl_sends id s ms ⌝ ∗
+      ⌜ prvals_match pvs = prvals_match s.(nstate.prvals) ⌝ }}}.
 
 Module Type RAFT__BCASTAPPEND.
   Parameter wp_raft__bcastAppend : wp_raft__bcastAppend_body.

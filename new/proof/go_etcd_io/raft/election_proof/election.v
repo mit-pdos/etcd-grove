@@ -26,6 +26,7 @@
     Nothing in a [Module Type] is an assumption: a [Parameter] discharged by a
     real functor adds nothing to [Print Assumptions]. *)
 
+Require Export New.proof.go_etcd_io.raft.election_proof.plog.
 Require Export New.proof.go_etcd_io.raft.election_proof.defs.
 Require Export New.proof.go_etcd_io.raft.election_proof.inv_raftlog.
 Require Export New.proof.go_etcd_io.raft.election_proof.inv_tracker.
@@ -169,8 +170,12 @@ Context {sem : go.Semantics} {package_sem : raft.Assumptions}.
 Collection W := sem + package_sem.
 Set Default Proof Using "W".
 
-(** [newRaft]'s postcondition, on a storage with no persisted [HardState],
-    is the protocol's initial state. *)
+(** [newRaft]'s postcondition, on a storage with no persisted [HardState]
+    and an empty log, is the protocol's initial state.  (Since 2026-10-01
+    the protocol state has the log, and [init_pstate]'s is empty: a node
+    starting from a storage that already holds entries is not at
+    [init_pstate], and [own_raft_ghost_alloc] does not cover it -- its
+    entries would need [is_entry]s.) *)
 Lemma newRaft_post_init (hs : raftpb.HardState.t) (s : nstate.t) :
   hs_empty hs →
   (nstate_wf s ∧
@@ -178,11 +183,15 @@ Lemma newRaft_post_init (hs : raftpb.HardState.t) (s : nstate.t) :
    s.(nstate.vote) = hs.(raftpb.HardState.Vote') ∧
    s.(nstate.lead) = W64 0 ∧ s.(nstate.role) = role.Follower ∧
    s.(nstate.votes) = ∅ ∧ s.(nstate.outbox) = []) →
+  s.(nstate.logst).(logstate.prev) = raft.entryID.mk (W64 0) (W64 0) →
+  s.(nstate.logst).(logstate.sents) = [] →
+  s.(nstate.logst).(logstate.uents) = [] →
+  s.(nstate.logst).(logstate.committed) = W64 0 →
   nstate_rel s init_pstate.
 Proof.
-  intros (HT & HV & _) (Hwf & Ht & Hv & Hl & Hr & Hvs & Ho).
+  intros (HT & HV & _) (Hwf & Ht & Hv & Hl & Hr & Hvs & Ho) Hp Hse Hue Hc.
   split; last done.
-  destruct s; simpl in *; subst. rewrite /to_pstate /init_pstate /=.
+  destruct s as [?????? ??? [] ?]; simpl in *; subst. rewrite /to_pstate /init_pstate /=.
   by rewrite HT HV.
 Qed.
 End newRaft_post.

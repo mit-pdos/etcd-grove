@@ -502,18 +502,27 @@ Qed.
     so it cannot be denied it.  The two reads are at different times, so
     lending resolves it.  See [spec_ProgressTracker__Visit.v] for how this
     was got wrong. *)
+(** **The caller invariant is indexed** (2026-10-01) by the set [D] of ids
+    visited so far and the tracker's current [Progress] values: the closure
+    takes [I D pvs] to [I ({[i]} ∪ D) pvs'].  [reset] needs both -- its
+    postcondition says what [Match] every voter ends with, which is a fact
+    about every key, and about the values the tracker holds -- and [Visit]
+    ends at [I cfg]. *)
 Definition visit_closure (trk : loc) (votes : gmap w64 bool)
-  (prs : gmap w64 loc) (f : func.t) (I : iProp Σ) : iProp Σ :=
+  (prs : gmap w64 loc) (f : func.t)
+  (I : gset w64 → gmap w64 (tracker.Progress.t * tracker.Inflights.t) → iProp Σ)
+  : iProp Σ :=
   ∀ (i : w64) (pr : loc) (tv : tracker.ProgressTracker.t)
     (pvs : gmap w64 (tracker.Progress.t * tracker.Inflights.t))
-    (pv : tracker.Progress.t) (iv : tracker.Inflights.t),
+    (pv : tracker.Progress.t) (iv : tracker.Inflights.t) (D : gset w64),
     {{{ ⌜ i ∈ cfg ⌝ ∗ ⌜ prs !! i = Some pr ⌝ ∗ ⌜ pvs !! i = Some (pv, iv) ⌝ ∗
         ⌜ (0 ≤ sint.Z tv.(tracker.ProgressTracker.MaxInflight') < 2 ^ 62)%Z ⌝ ∗
         trk ↦ tv ∗ own_progress pr pv iv ∗
         (∀ pv' iv', own_progress pr pv' iv' -∗
-                    own_tracker tv votes prs (<[i := (pv', iv')]> pvs)) ∗ I }}}
+                    own_tracker tv votes prs (<[i := (pv', iv')]> pvs)) ∗ I D pvs }}}
       #f #i #pr
-    {{{ RET #(); ∃ tv' pvs', trk ↦ tv' ∗ own_tracker tv' votes prs pvs' ∗ I }}}.
+    {{{ RET #(); ∃ tv' pvs', trk ↦ tv' ∗ own_tracker tv' votes prs pvs' ∗
+                             I ({[i]} ∪ D) pvs' }}}.
 
 
 (** The inflight-window bound, read out without consuming the tracker.

@@ -1,7 +1,9 @@
 Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
 
 (** [becomeLeader] is [reset], the role transition, marking its own
-    [Progress] replicating, and the empty entry.  [id ∈ cfg] is needed because
+    [Progress] replicating, and the empty entry, which [appendEntry]
+    acknowledges with a self-addressed [MsgAppResp] ([become_leader],
+    [defs.v]).  [id ∈ cfg] is needed because
     only voters are in the [Progress] map. *)
 Definition wp_raft__becomeLeader_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
@@ -13,7 +15,11 @@ Definition wp_raft__becomeLeader_body :=
   id ∈ cfg →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "becomeLeader" #()
-  {{{ pvs, RET #(); own_raft_phys cfg r id (become_leader id s <| nstate.prvals := pvs |>) }}}.
+  {{{ pvs, RET #(); own_raft_phys cfg r id (become_leader id s <| nstate.prvals := pvs |>) ∗
+      (* [Match] is what [reset] left: [BecomeReplicate] and the
+         [RecentActive] store do not move it, and [appendEntry] does not
+         touch a [Progress] *)
+      ⌜ prvals_match pvs = reset_matched id (log_last s.(nstate.logst)) s.(nstate.prvals) ⌝ }}}.
 
 Module Type BECOMELEADER.
   Parameter wp_raft__becomeLeader : wp_raft__becomeLeader_body.

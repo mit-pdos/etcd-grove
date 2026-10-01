@@ -60,8 +60,13 @@ Definition wp_raft__Step_body :=
   {{{ is_pkg_init raft ∗
       "Hphys" ∷ own_raft_phys cfg r id s ∗
       "Hghost" ∷ own_raft_ghost γ id ps ∗
-      "#Hm" ∷ (∀ ty, ⌜ mtype_of m.(raftpb.Message.Type') = Some ty ⌝ -∗
-                     is_message γ (abs_msg ty m)) ∗
+      (* the message's [Entries] slice, read-only, and what the message
+         carries as a protocol message: its abstraction ([abs_msg], which
+         needs the entries) was legitimately sent.  [ents] is [[]] for a
+         message without entries ([Entries = nil]). *)
+      "#Hm" ∷ (∃ ents, m.(raftpb.Message.Entries') ↦*□ ents ∗
+                (∀ ty, ⌜ mtype_of m.(raftpb.Message.Type') = Some ty ⌝ -∗
+                       is_message γ (abs_msg ty m ents))) ∗
       "#Hctx" ∷ (∃ ctx, m.(raftpb.Message.Context') ↦*□ ctx ∗
                         ⌜ ctx ≠ campaignTransfer ⌝)
   }}}
