@@ -1,0 +1,9 @@
+Require Export New.proof.go_etcd_io.raft.election_proof.proof_ProgressTracker__Committed.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_JointConfig__CommittedIndex.
+
+Module ProgressTrackerCommittedPostulates : PROGRESSTRACKER__COMMITTED_POSTULATES.
+  Include JointConfigCommittedIndex.
+End ProgressTrackerCommittedPostulates.
+
+Module ProgressTrackerCommitted :=
+  ProgressTrackerCommittedProof ProgressTrackerCommittedPostulates.

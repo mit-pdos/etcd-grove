@@ -1,0 +1,6 @@
+Require Export New.proof.go_etcd_io.raft.election_proof.spec_ProgressTracker__Committed.
+Require Export New.proof.go_etcd_io.raft.election_proof.postulates_JointConfig__CommittedIndex.
+
+Module Type PROGRESSTRACKER__COMMITTED_POSTULATES.
+  Include JOINTCONFIG__COMMITTEDINDEX.
+End PROGRESSTRACKER__COMMITTED_POSTULATES.
