@@ -11,33 +11,33 @@ Import P.
   Lemma wp_Progress__BecomeProbe : wp_Progress__BecomeProbe_body.
   Proof.
     intros_ambient.
-    intros pr pv iv.
-    wp_start as "H". iNamed "H".
-    iPoseProof "Hpr" as "Hpr'". iNamed "Hpr'".
-    assert (progress_state_ok (W64 0)) as Hst by (by left).
+    intros pr p.
+    wp_start as "H". iNamed "H". iNamed "Hpr".
+    pose proof Habs as Habs0.
+    apply progress_abs_Some in Habs0 as (Hl & Hst & Hm & Hn & Hsc & Hps & _).
     rewrite /progress_become_probe /progress_become_probe_next.
     wp_auto.
-    destruct (decide (pv.(tracker.Progress.State') = W64 2)) as [Hs|Hs].
+    destruct (decide (p.(progress.state) = prstate.Snapshot)) as [Hs|Hs].
     - (* [StateSnapshot]: probe from past the pending snapshot *)
-      rewrite Hs. wp_auto.
-      iAssert (own_progress pr pv iv) with "[Hpv Hinfl]" as "Hpr".
-      { rewrite /own_progress. iFrame "∗%". }
-      wp_apply (wp_Progress__ResetState _ _ _ _ Hst with "[$Hpr]"). iIntros "Hpr".
+      assert (pv.(tracker.Progress.State') = W64 2) as Hs2 by rewrite Hst Hs //.
+      rewrite Hs2. wp_auto.
+      iDestruct (own_Progress_intro _ _ p with "Hpv Hinfl [//]") as "Hpr". clear Habs.
+      wp_apply (wp_Progress__ResetState _ _ prstate.Probe with "[$Hpr]") as "Hpr".
       iNamed "Hpr". wp_auto.
       wp_apply wp_max2_uint64.
       wp_apply wp_min2_uint64.
-      iApply "HΦ". rewrite /own_progress. iFrame "Hpv Hinfl". iPureIntro.
-      split; [exact Hnolearner | exact Hst].
+      iApply "HΦ". iExists _. iFrame "Hpv Hinfl". iPureIntro.
+      progress_abs_from Habs.
     - (* any other state: probe from [Match + 1] *)
-      rewrite bool_decide_eq_false_2; last done.
+      rewrite bool_decide_eq_false_2;
+        last (rewrite Hst; intros Hc; apply Hs, prstate_w64_inj; exact Hc).
       wp_auto.
-      iAssert (own_progress pr pv iv) with "[Hpv Hinfl]" as "Hpr".
-      { rewrite /own_progress. iFrame "∗%". }
-      wp_apply (wp_Progress__ResetState _ _ _ _ Hst with "[$Hpr]"). iIntros "Hpr".
+      iDestruct (own_Progress_intro _ _ p with "Hpv Hinfl [//]") as "Hpr". clear Habs.
+      wp_apply (wp_Progress__ResetState _ _ prstate.Probe with "[$Hpr]") as "Hpr".
       iNamed "Hpr". wp_auto.
       wp_apply wp_min2_uint64.
-      iApply "HΦ". rewrite /own_progress. iFrame "Hpv Hinfl". iPureIntro.
-      split; [exact Hnolearner | exact Hst].
+      iApply "HΦ". iExists _. iFrame "Hpv Hinfl". iPureIntro.
+      progress_abs_from Habs.
   Qed.
 
 End ProgressBecomeProbeProof.

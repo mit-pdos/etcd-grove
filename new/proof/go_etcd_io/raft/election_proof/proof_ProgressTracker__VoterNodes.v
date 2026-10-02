@@ -6,13 +6,13 @@ Import P.
   Lemma wp_ProgressTracker__VoterNodes : wp_ProgressTracker__VoterNodes_body.
   Proof.
     intros_ambient.
-    intros cfg trk tv votes prs pvs.
+    intros cfg trk tv [votes prs pvs].
     wp_start as "[Htrk Hown]".
     wp_auto.
     wp_apply (P.wp_JointConfig__IDs with "[$Htrk $Hown]")
       as "%mref %idm (Htrk & Hown & Hidm & %Hdomidm)".
-    iNamed "Hown".
-    iAssert (own_tracker cfg tv votes prs pvs)
+    iNamed "Hown". trk_simpl.
+    iAssert (own_tracker cfg tv (trk.mk votes prs pvs))
       with "[Hvotes Hprogs Hvoters Hlearners HlearnersNext]" as "Hown".
     { rewrite /own_tracker. iExists voters_ref, voters, learners, learnersNext.
       iFrame "∗#%". }

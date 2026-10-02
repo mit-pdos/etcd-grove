@@ -28,28 +28,28 @@ Context (cfg : gset w64).
     [wp_slice_make2].  The map range fills the slots from the back; its
     invariant says the last [i] slots hold the first [i] enumerated keys,
     reversed, so at the end [ids] is [reverse keys].  [slices.Sort] permutes
-    it.  The slice range then lends [trk ↦ tv], one [own_progress]
+    it.  The slice range then lends [trk ↦ tv], one [own_Progress]
     together with the accessor wand back to the whole tracker
     ([own_tracker_lookup]) and [I] to the closure for every entry; every
     entry is a key of [prs], which is what makes the [p.Progress[id]] lookup
     hit.
 
     The loop invariant carries [own_tracker] *whole* (2026-09-20).  It used
-    to carry [Hprs] and the [big_sepM] of [own_progress] separately and lend
+    to carry [Hprs] and the [big_sepM] of [own_Progress] separately and lend
     one [Progress] with [big_sepM_lookup_acc]; the closure now gives the
     tracker back rather than the [Progress], so the split has to be redone
     each iteration.  [own_tracker_lookup] does it, and it can because the
     progress map is now held read-only ([DfracDiscarded]) and so survives
     the closure call as a persistent hypothesis -- which is exactly what
     pins [prs] across a rebuild of the tracker. *)
-Lemma wp_visit (trk : loc) tv votes (prs : gmap w64 loc) (pvs : gmap w64 (tracker.Progress.t * tracker.Inflights.t)) (f : func.t)
-    (I : gset w64 → gmap w64 (tracker.Progress.t * tracker.Inflights.t) → iProp Σ) :
-  {{{ is_pkg_init tracker ∗ trk ↦ tv ∗ own_tracker cfg tv votes prs pvs ∗ I ∅ pvs ∗
+Lemma wp_visit (trk : loc) tv votes (prs : gmap w64 loc) (pvs : gmap w64 progress.t) (f : func.t)
+    (I : gset w64 → gmap w64 progress.t → iProp Σ) :
+  {{{ is_pkg_init tracker ∗ trk ↦ tv ∗ own_tracker cfg tv (trk.mk votes prs pvs) ∗ I ∅ pvs ∗
       □ visit_closure cfg trk votes prs f I }}}
     trk @! (go.PointerType tracker.ProgressTracker) @! "Visit" #f
-  {{{ RET #(); ∃ tv' pvs', trk ↦ tv' ∗ own_tracker cfg tv' votes prs pvs' ∗ I cfg pvs' }}}.
+  {{{ RET #(); ∃ tv' pvs', trk ↦ tv' ∗ own_tracker cfg tv' (trk.mk votes prs pvs') ∗ I cfg pvs' }}}.
 Proof.
-  wp_start as "(Htrk & Hown & HI & #Hf)". iNamed "Hown".
+  wp_start as "(Htrk & Hown & HI & #Hf)". iNamed "Hown". trk_simpl.
   wp_auto.
   (* [n := len(p.Progress)] *)
   wp_apply (wp_ProgressMap_len with "Hprs") as "_".
@@ -157,7 +157,7 @@ Proof.
        inside the invariant (notes/gotchas.md, "A [for … range] loop
        variable must be inside the [wp_for] invariant"). *)
     (* re-seal the tracker: the closure is lent all of it *)
-    iAssert (own_tracker cfg tv votes prs pvs)
+    iAssert (own_tracker cfg tv (trk.mk votes prs pvs))
       with "[Hvotes Hprogs Hvoters Hlearners HlearnersNext]" as "Hown".
     { rewrite /own_tracker.
       iExists voters_ref, voters, learners, learnersNext. iFrame "∗#%". }
@@ -175,7 +175,7 @@ Proof.
     { rewrite -Hprs_dom -Hkset. apply set_eq. intros y0.
       rewrite !elem_of_list_to_set -Hperm elem_of_reverse //. }
     iAssert (∃ (j c : w64) (tvc : tracker.ProgressTracker.t)
-               (pvsc : gmap w64 (tracker.Progress.t * tracker.Inflights.t)),
+               (pvsc : gmap w64 progress.t),
        "i" ∷ i_ptr ↦ j ∗
        "cur" ∷ cur_ptr ↦ c ∗
        "%Hj" ∷ ⌜ 0 ≤ sint.Z j ≤ Z.of_nat (length ys) ⌝ ∗
@@ -183,7 +183,7 @@ Proof.
        "%Hysc" ∷ ⌜ list_to_set ys = cfg ⌝ ∗
        "Htrk" ∷ trk ↦ tvc ∗
        "HI" ∷ I (list_to_set (take (Z.to_nat (sint.Z j)) ys)) pvsc ∗
-       "Hown" ∷ own_tracker cfg tvc votes prs pvsc ∗
+       "Hown" ∷ own_tracker cfg tvc (trk.mk votes prs pvsc) ∗
        "Hsl" ∷ sl ↦* ys)%I
       with "[i cur Htrk HI Hown Hsl]" as "IH".
     { iExists (W64 0), (W64 0), tv, pvs. iFrame "∗#". iPureIntro.
@@ -209,15 +209,16 @@ Proof.
          currently holds; the map itself is [prs] at every one of them *)
       iDestruct (own_tracker_progress_map with "Hown")
         as "(#Hprsc & %Hdomc & Hown)".
+      cbn [trk.prs] in Hdomc. iEval (cbn [trk.prs]) in "Hprsc".
       assert (y ∈ dom prs) as Hyd by (rewrite ?Hdomc; exact Hycfg).
       assert (∃ prc, prs !! y = Some prc) as [prc Hprc]
         by (apply elem_of_dom; exact Hyd).
       wp_apply (wp_map_lookup1 with "Hprsc") as "_".
       rewrite Hprc /=.
       iDestruct (own_tracker_maxinflight with "Hown") as "[%HmaxIc Hown]".
-      iDestruct (own_tracker_lookup _ _ _ _ _ _ _ Hprc with "Hown")
-        as (pv iv Hpv) "[Hpr Hback]".
-      wp_apply ("Hf" $! y prc tvc pvsc pv iv with "[Htrk Hpr Hback HI]").
+      iDestruct (own_tracker_lookup _ _ (trk.mk votes prs pvsc) _ _ Hprc with "Hown")
+        as (p Hpv) "[Hpr Hback]".
+      wp_apply ("Hf" $! y prc tvc pvsc p with "[Htrk Hpr Hback HI]").
       { iFrame "Htrk Hpr Hback HI". iPureIntro.
         split; [exact Hycfg | split; [exact Hprc | split; [exact Hpv | exact HmaxIc]]]. }
       iIntros "H". iDestruct "H" as (tv2 pvs2) "(Htrk & Hown & HI)".
@@ -244,7 +245,7 @@ Set Default Proof Using "Type".
   Lemma wp_ProgressTracker__Visit : wp_ProgressTracker__Visit_body.
   Proof.
     intros_ambient.
-    intros cfg trk tv votes prs pvs f I.
+    intros cfg trk tv [votes prs pvs] f I.
     apply wp_visit.
   Qed.
 

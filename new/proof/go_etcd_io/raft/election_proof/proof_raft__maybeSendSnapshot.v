@@ -79,12 +79,12 @@ Set Default Proof Using "Type".
     iDestruct "ErrSnapUnavail" as "#ErrSnapUnavail".
     (* [pr.RecentActive]: borrow [pr] for the load, and give it back *)
     iDestruct (own_raft_phys_tracker_same with "Hphys") as (tv) "(Htrkf & Htrk & Hback)".
-    iDestruct (own_tracker_lookup_same _ _ _ _ _ _ _ Hprto with "Htrk")
-      as (pv iv Hpv) "[Hpr Htrkback]".
+    iDestruct (own_tracker_lookup_same _ _ (trk.mk _ _ _) _ _ Hprto with "Htrk")
+      as (pp Hpl) "[Hpr Htrkback]".
     iNamed "Hpr".
     wp_auto.
-    iAssert (own_progress pr pv iv) with "[Hpv Hinfl]" as "Hpr".
-    { rewrite /own_progress. iFrame "∗%". }
+    iAssert (own_Progress pr pp) with "[Hpv Hinfl]" as "Hpr".
+    { iExists _. iFrame "∗%". }
     iDestruct ("Htrkback" with "Hpr") as "Htrk".
     iDestruct ("Hback" with "Htrkf Htrk") as "Hphys".
     (* nothing below writes a [Progress] until [BecomeSnapshot] *)
@@ -135,10 +135,9 @@ Set Default Proof Using "Type".
          the new value *)
       iDestruct (own_raft_phys_tracker_prvals with "Hphys")
         as (tv1) "(Htrkf & Htrk & Hback)".
-      iDestruct (own_tracker_lookup _ _ _ _ _ _ _ Hprto with "Htrk")
-        as (pv1 iv1 Hpv1) "[Hpr Htrkback]".
+      iDestruct (own_tracker_lookup _ _ (trk.mk _ _ _) _ _ Hprto with "Htrk")
+        as (p1 Hpv1) "[Hpr Htrkback]".
       wp_apply (wp_Progress__BecomeSnapshot with "[$Hpr]") as "Hpr".
-      iDestruct "Hpr" as (pv2 iv2) "[Hpr %Hm2]".
       iDestruct ("Htrkback" with "Hpr") as "Htrk".
       iDestruct ("Hback" with "Htrkf Htrk") as "Hphys".
       (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_raft_log).
@@ -152,13 +151,13 @@ Set Default Proof Using "Type".
           | reflexivity ]. }
       { iApply own_slice_nil. }
       iIntros "Hphys". wp_auto.
-      iApply ("HΦ" $! true _ (<[to := (pv2, iv2)]> s.(nstate.prvals))).
+      iApply ("HΦ" $! true _ (<[to := progress_become_snapshot p1 _]> s.(nstate.prvals))).
       iSplitL.
       { iApply (own_raft_phys_eq with "Hphys"). by destruct s. }
       iPureIntro. split.
       + rewrite /repl_sends. apply Forall_singleton. right.
         rewrite /snap_ok /=. split_and!; done.
-      + by apply (prvals_match_insert_same _ _ (pv1, iv1)).
+      + by apply (prvals_match_insert_same _ _ p1).
   Qed.
 
 End RaftMaybeSendSnapshotProof.

@@ -26,7 +26,20 @@ Module InflightsFreeLEProof (P : INFLIGHTS__FREELE_POSTULATES) : INFLIGHTS__FREE
       occupied slot [idx] (i.e. [i < count]) is inside the buffer by
       [inflights_ok]'s last conjunct: either the occupied range does not
       wrap and ends inside the buffer, or the buffer is the whole ring. *)
-  Lemma wp_Inflights__FreeLE : wp_Inflights__FreeLE_body.
+  Local Lemma wp_Inflights__FreeLE_internal :
+    ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
+      (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
+      (sem : go.Semantics) (package_sem : raft.Assumptions)
+      (l : loc) (iv : tracker.Inflights.t) (buf : list tracker.inflight.t)
+      (to : w64),
+    {{{ is_pkg_init tracker ∗ "Hin" ∷ own_inflights l iv buf }}}
+      l @! (go.PointerType tracker.Inflights) @! "FreeLE" #to
+    {{{ (iv' : tracker.Inflights.t), RET #();
+        own_inflights l iv' buf ∗
+        ⌜ iv'.(tracker.Inflights.size') = iv.(tracker.Inflights.size') ∧
+          iv'.(tracker.Inflights.maxBytes') = iv.(tracker.Inflights.maxBytes') ∧
+          iv'.(tracker.Inflights.buffer') = iv.(tracker.Inflights.buffer') ∧
+          sint.Z iv'.(tracker.Inflights.count') ≤ sint.Z iv.(tracker.Inflights.count') ⌝ }}}.
   Proof.
     intros_ambient.
     intros l iv buf to.
@@ -105,6 +118,22 @@ Module InflightsFreeLEProof (P : INFLIGHTS__FREELE_POSTULATES) : INFLIGHTS__FREE
           destruct Hidx as [[? ?]|[? ?]]; [left|right]; split; word.
     - (* [i = count]: every inflight is freed *)
       freele_finish Hidx Hring iv iw.
+  Qed.
+
+  (** The public triple: open [own_Inflights], run the ring-buffer proof
+      above on the internal [own_inflights], close it.  [inflights_freed]
+      is what the internal postcondition says about the record. *)
+  Lemma wp_Inflights__FreeLE : wp_Inflights__FreeLE_body.
+  Proof.
+    intros_ambient.
+    intros l i to.
+    iIntros (Φ) "[#Hinit Hin] HΦ". iNamed "Hin". iNamed "Hin".
+    iApply (wp_Inflights__FreeLE_internal with "[$Hinit $Hin]").
+    iIntros "!>" (iv') "[Hin %Hrel]".
+    iApply ("HΦ" $! (inflights_abs iv')). iSplitL.
+    { by iApply own_Inflights_intro. }
+    iPureIntro. subst i. destruct Hrel as (Hs & Hm & _ & Hc).
+    rewrite /inflights_freed /inflights_abs /= Hs Hm. split_and!; done.
   Qed.
 
 End InflightsFreeLEProof.

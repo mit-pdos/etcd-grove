@@ -21,8 +21,8 @@ Import P.
   Lemma wp_JointConfig__VoteResult : wp_JointConfig__VoteResult_body.
   Proof.
   intros_ambient.
-  intros cfg trk tv votes prs pvs Hcfg_ne.
-  wp_start as "[Htrk Hown]". iNamed "Hown".
+  intros cfg trk tv [votes prs pvs] Hcfg_ne.
+  wp_start as "[Htrk Hown]". iNamed "Hown". trk_simpl.
   wp_auto.
   wp_method_call. wp_call. wp_call.
   wp_auto.

@@ -21,7 +21,7 @@ Definition wp_matchAckIndexer__AckedIndex_body :=
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (mref : loc) (prs : gmap w64 loc)
-    (pvs : gmap w64 (tracker.Progress.t * tracker.Inflights.t)) (id : w64),
+    (pvs : gmap w64 progress.t) (id : w64),
   {{{ is_pkg_init tracker ∗ own_progress_map mref prs pvs }}}
     mref @! tracker.matchAckIndexer @! "AckedIndex" #id
   {{{ RET (#(default (W64 0) (pvs_acked pvs id)),

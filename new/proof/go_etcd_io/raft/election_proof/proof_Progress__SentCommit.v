@@ -6,9 +6,9 @@ Module ProgressSentCommitProof (P : PROGRESS__SENTCOMMIT_POSTULATES)
   Lemma wp_Progress__SentCommit : wp_Progress__SentCommit_body.
   Proof.
     intros_ambient.
-    intros pr pv iv commit.
+    intros pr p commit.
     wp_start as "H". iNamed "H". iNamed "Hpr". wp_auto.
-    iApply "HΦ". rewrite /own_progress. iFrame "∗%".
+    iApply "HΦ". iExists _. iFrame "Hpv Hinfl". iPureIntro.
+    progress_abs_from Habs.
   Qed.
-
 End ProgressSentCommitProof.

@@ -5,9 +5,9 @@ Module ProgressTrackerResetVotesProof (P : PROGRESSTRACKER__RESETVOTES_POSTULATE
   Lemma wp_ProgressTracker__ResetVotes : wp_ProgressTracker__ResetVotes_body.
   Proof.
     intros_ambient.
-    intros cfg trk tv votes prs pvs.
+    intros cfg trk tv [votes prs pvs].
 
-    wp_start as "[Htrk Hown]". iNamed "Hown". wp_auto.
+    wp_start as "[Htrk Hown]". iNamed "Hown". trk_simpl. wp_auto.
     wp_apply wp_map_make1. iIntros "%votesRef Hvotes_new". wp_auto.
     iApply ("HΦ" $! votesRef). iFrame "Htrk".
     rewrite /own_tracker /=.

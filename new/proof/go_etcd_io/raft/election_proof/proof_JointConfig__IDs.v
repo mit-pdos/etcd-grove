@@ -11,8 +11,8 @@ Module JointConfigIDsProof (P : JOINTCONFIG__IDS_POSTULATES) : JOINTCONFIG__IDS.
   Proof.
     intros_ambient.
     intros cfg.
-    intros trk tv votes prs pvs.
-    wp_start as "[Htrk Hown]". iNamed "Hown".
+    intros trk tv [votes prs pvs].
+    wp_start as "[Htrk Hown]". iNamed "Hown". trk_simpl.
     (* [wp_auto] reads [r.trk.Config.Voters] out of [trk ↦ tv] and reduces the
        pointer method to the value method applied to the [JointConfig] value. *)
     wp_auto.

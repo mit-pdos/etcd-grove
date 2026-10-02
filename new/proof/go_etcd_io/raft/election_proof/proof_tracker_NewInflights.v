@@ -13,13 +13,15 @@ Module TrackerNewInflightsProof (P : TRACKER_NEWINFLIGHTS_POSTULATES) : TRACKER_
        Allocate explicitly.  The literal leaves [buffer' := slice.nil], so the
        buffer is the empty slice. *)
     wp_apply wp_alloc. iIntros (l) "Hl". wp_auto.
-    iApply "HΦ". iExists _, []. rewrite /own_inflights /=. iFrame "Hl".
-    iSplitL; [iApply own_slice_nil|].
-    iSplitL; [iApply own_slice_cap_nil|].
-    (* the ring-buffer invariant at a fresh [Inflights]: everything is zero
-       and the buffer is empty, so only the [size] bounds have content --
-       exactly the premise. *)
-    iPureIntro. rewrite /inflights_ok /=. split_and!; word.
+    iApply "HΦ". iExists _, []. iSplitL.
+    { rewrite /own_inflights /=. iFrame "Hl".
+      iSplitL; [iApply own_slice_nil|].
+      iSplitL; [iApply own_slice_cap_nil|].
+      (* the ring-buffer invariant at a fresh [Inflights]: everything is zero
+         and the buffer is empty, so only the [size] bounds have content --
+         exactly the premise. *)
+      iPureIntro. rewrite /inflights_ok /=. split_and!; word. }
+    iPureIntro. rewrite /inflights_abs /inflights_new /=. f_equal; word.
   Qed.
 
 End TrackerNewInflightsProof.

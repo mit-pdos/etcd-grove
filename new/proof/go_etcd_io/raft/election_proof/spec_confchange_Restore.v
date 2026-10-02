@@ -42,7 +42,7 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
     needed by [assertConfStatesEquivalent], whose [Equivalent] check fails
     on a [ConfState] with a repeated voter.
 
-    [MaxInflight]'s bound is what [own_progress] (via [inflights_ok]) asks
+    [MaxInflight]'s bound is what [own_Progress] (via [inflights_ok]) asks
     of the fresh [Inflights]; see [spec_tracker_NewInflights.v]. *)
 Definition wp_confchange_Restore_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
@@ -79,7 +79,7 @@ Definition wp_confchange_Restore_body :=
         cfgv.(tracker.Config.AutoLeave') = false ⌝ ∗
       vref ↦$ vm ∗ ⌜ dom vm = list_to_set voters ⌝ ∗
       prsm ↦$ prs ∗ ⌜ dom prs = list_to_set voters ⌝ ∗
-      ([∗ map] pr ∈ prs, ∃ pv iv, own_progress pr pv iv) }}}.
+      ([∗ map] pr ∈ prs, ∃ p, own_Progress pr p) }}}.
 
 Module Type CONFCHANGE_RESTORE.
   Parameter wp_confchange_Restore : wp_confchange_Restore_body.

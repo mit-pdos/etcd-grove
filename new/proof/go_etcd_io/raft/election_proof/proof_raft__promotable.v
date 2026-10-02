@@ -34,17 +34,19 @@ Import P.
     wp_auto.
     destruct (decide (id ∈ cfg)) as [Hin|Hnin].
     - (* a voter: its [Progress] is in the map and is not a learner's *)
-      wp_apply (wp_tracker_progress_lookup _ _ _ _ _ _ Hin with "[$Htrk]")
-        as "%pr (_ & %pv & %iv & %Hpvs & Hpr & Hprback)".
-      iDestruct "Hpr" as "(Hpv & Hinfl & %Hnolearner & %Hst)".
+      wp_apply (wp_tracker_progress_lookup _ _ _ _ Hin with "[$Htrk]")
+        as "%pr (_ & %p & %Hpvs & Hpr & Hprback)".
+      iDestruct "Hpr" as (pv) "(Hpv & Hinfl & %Habs)".
+      pose proof Habs as Hnolearner.
+      apply progress_abs_Some in Hnolearner as (Hnolearner & _).
       iDestruct (typed_pointsto_not_null with "Hpv") as %Hnn.
       (* [wp_apply] already reduced [pr != nil] to [negb (bool_decide (pr = null))] *)
       rewrite (bool_decide_eq_false_2 (pr = null) Hnn). simpl.
       wp_auto.
       rewrite Hnolearner. simpl.
       wp_auto.
-      iDestruct ("Hprback" $! pv iv with "[Hpv Hinfl]") as "Htrk".
-      { rewrite /own_progress. iFrame "∗%". }
+      iDestruct ("Hprback" $! p with "[Hpv Hinfl]") as "Htrk".
+      { iExists pv. iFrame "∗%". }
       (* written back at the values it was read at *)
       rewrite insert_id //.
       iDestruct ("Hback" with "Htrkf Htrk") as "Hphys".

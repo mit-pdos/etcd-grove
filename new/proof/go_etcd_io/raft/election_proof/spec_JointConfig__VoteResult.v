@@ -33,20 +33,20 @@ Definition wp_JointConfig__VoteResult_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
-    (cfg : gset w64) (trk : loc) tv votes (prs : gmap w64 loc) (pvs : gmap w64 (tracker.Progress.t * tracker.Inflights.t)),
+    (cfg : gset w64) (trk : loc) tv (t : trk.t),
   cfg ≠ ∅ →
-  {{{ is_pkg_init quorum ∗ trk ↦ tv ∗ own_tracker cfg tv votes prs pvs }}}
+  {{{ is_pkg_init quorum ∗ trk ↦ tv ∗ own_tracker cfg tv t }}}
     (trk.[tracker.ProgressTracker.t, "Config"].[tracker.Config.t, "Voters"])
       @! (go.PointerType quorum.JointConfig) @! "VoteResult"
         #(tv.(tracker.ProgressTracker.Votes'))
   {{{ (res : w8), RET #res;
-      trk ↦ tv ∗ own_tracker cfg tv votes prs pvs ∗
+      trk ↦ tv ∗ own_tracker cfg tv t ∗
       ⌜ res = VoteWon ∨ res = VoteLost ∨ res = VotePending ⌝ ∗
-      ⌜ res = VoteWon ↔ is_quorum cfg (granted votes) ⌝ ∗
+      ⌜ res = VoteWon ↔ is_quorum cfg (granted t.(trk.votes)) ⌝ ∗
       (* [VoteLost] is "cannot still win", not "a majority rejected"; see
          [spec_ProgressTracker__TallyVotes.v] and [election_proof/protocol.v]'s
          [step_lose]. *)
-      ⌜ res = VoteLost ↔ ¬ is_quorum cfg (cfg ∖ rejected votes) ⌝ }}}.
+      ⌜ res = VoteLost ↔ ¬ is_quorum cfg (cfg ∖ rejected t.(trk.votes)) ⌝ }}}.
 
 Module Type JOINTCONFIG__VOTERESULT.
   Parameter wp_JointConfig__VoteResult : wp_JointConfig__VoteResult_body.

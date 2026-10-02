@@ -168,6 +168,287 @@ Ltac logstate_simpl :=
   cbn [logstate.prev logstate.sents logstate.uents logstate.committed
        logstate.applied] in *.
 
+(** ** The tracker's records (2026-10-02)
+
+    The public representation predicates of the tracker side --
+    [own_Inflights l i], [own_Progress pr p] and [own_tracker cfg tv t]
+    ([inv_tracker.v]) -- are indexed by these records rather than by the
+    Goose struct types: each holds exactly the state the exported methods'
+    specs need (notes/raft-replication-model.md, "Public representation
+    predicates").  They live here and not in [inv_tracker.v] because
+    [nstate.prvals] below is a map of [progress.t], and [inv_tracker.v]
+    builds on this file -- the same reason [logstate.t] is here. *)
+
+(* [Section proof] above set [Default Proof Using "W"], which outlives it *)
+Set Default Proof Using "Type".
+
+(** Go's [min]/[max] builtins on [uint64], exactly as Goose's
+    [minⁱᵐᵖˡ]/[maxⁱᵐᵖˡ] ([new/golang/defn/predeclared.v]) compute them:
+    [min x y = if x < y then x else y], [max x y = if x > y then x else y]
+    (and Goose renders [x > y] as [y < x]).  Stated with [decide], the form
+    of the framework's [wp_max2_uint64] ([new/golang/theory/auto.v]).
+    (Moved here from [inv_tracker.v] with the [Progress] methods.) *)
+Definition w64_min (x y : w64) : w64 :=
+  if decide (uint.Z x < uint.Z y) then x else y.
+Definition w64_max (x y : w64) : w64 :=
+  if decide (uint.Z y < uint.Z x) then x else y.
+
+Lemma w64_min_spec x y :
+  uint.Z (w64_min x y) = Z.min (uint.Z x) (uint.Z y).
+Proof. rewrite /w64_min. case_decide; lia. Qed.
+
+Lemma w64_max_spec x y :
+  uint.Z (w64_max x y) = Z.max (uint.Z x) (uint.Z y).
+Proof. rewrite /w64_max. case_decide; lia. Qed.
+
+(** An [Inflights] window, as its methods' callers see it: how many
+    messages and bytes are in flight, and the two limits.  The ring buffer
+    ([start], [buffer] and its contents) is internal to [Inflights]
+    ([own_inflights], [inv_tracker.v]).  [count] and [size] are Go [int]s,
+    [bytes] and [max_bytes] [uint64]s; all four as the integers they
+    denote. *)
+Module inflights.
+Record t := mk { count : Z; size : Z; bytes : Z; max_bytes : Z }.
+#[global] Instance settable : Settable t := settable! mk <count; size; bytes; max_bytes>.
+End inflights.
+
+(** [StateType], as an inductive: [StateProbe]/[StateReplicate]/
+    [StateSnapshot] = [0]/[1]/[2] (new/code/go_etcd_io/raft/v3/tracker.v:47-51).
+    No other value is reachable -- [Progress.IsPaused] panics on one. *)
+Module prstate.
+Inductive t := Probe | Replicate | Snapshot.
+#[global] Instance eq_dec : EqDecision t.
+Proof. solve_decision. Defined.
+End prstate.
+
+(** A [Progress], without [IsLearner] (no learners are in scope: the
+    abstraction function below is undefined on one) and with the state an
+    inductive.  [paused] is [MsgAppFlowPaused]; [infl] is the window
+    [Inflights] points at. *)
+Module progress.
+Record t := mk {
+  matched : w64; next : w64; sent_commit : w64;
+  state : prstate.t; pending_snapshot : w64;
+  recent_active : bool; paused : bool;
+  infl : inflights.t }.
+#[global] Instance settable : Settable t :=
+  settable! mk <matched; next; sent_commit; state; pending_snapshot; recent_active; paused; infl>.
+End progress.
+
+(** The tracker, as [own_tracker] is indexed by it: the vote tally, the
+    progress map (id to [*Progress] -- physical state, like [nstate.log],
+    because callers hold a raw [*Progress] across calls) and each peer's
+    [Progress].  ([tracker] is the Goose module's name.) *)
+Module trk.
+Record t := mk { votes : gmap w64 bool; prs : gmap w64 loc; peers : gmap w64 progress.t }.
+#[global] Instance settable : Settable t := settable! mk <votes; prs; peers>.
+End trk.
+
+(** *** Abstraction functions *)
+
+Definition prstate_w64 (st : prstate.t) : w64 :=
+  match st with
+  | prstate.Probe => W64 0
+  | prstate.Replicate => W64 1
+  | prstate.Snapshot => W64 2
+  end.
+
+Definition prstate_of_w64 (st : w64) : option prstate.t :=
+  if decide (st = W64 0) then Some prstate.Probe
+  else if decide (st = W64 1) then Some prstate.Replicate
+  else if decide (st = W64 2) then Some prstate.Snapshot
+  else None.
+
+Lemma prstate_of_w64_Some st p : prstate_of_w64 st = Some p ↔ st = prstate_w64 p.
+Proof.
+  rewrite /prstate_of_w64. split.
+  - repeat case_decide; intros Hp; simplify_eq; done.
+  - intros ->. destruct p; simpl; repeat case_decide; try done;
+      exfalso; match goal with H : _ = _ |- _ => apply (f_equal uint.Z) in H; vm_compute in H; discriminate H end.
+Qed.
+
+Lemma prstate_of_w64_w64 p : prstate_of_w64 (prstate_w64 p) = Some p.
+Proof. by apply prstate_of_w64_Some. Qed.
+
+Lemma prstate_w64_inj p1 p2 : prstate_w64 p1 = prstate_w64 p2 → p1 = p2.
+Proof.
+  intros H. apply prstate_of_w64_Some in H. rewrite prstate_of_w64_w64 in H.
+  by injection H.
+Qed.
+
+Lemma prstate_w64_ne p1 p2 : p1 ≠ p2 → prstate_w64 p1 ≠ prstate_w64 p2.
+Proof. intros Hne H. by apply Hne, prstate_w64_inj. Qed.
+
+Section abs.
+Context {ext : ffi_syntax} {go_gctx : GoGlobalContext}.
+
+Definition inflights_abs (iv : tracker.Inflights.t) : inflights.t :=
+  inflights.mk (sint.Z iv.(tracker.Inflights.count')) (sint.Z iv.(tracker.Inflights.size'))
+               (uint.Z iv.(tracker.Inflights.bytes')) (uint.Z iv.(tracker.Inflights.maxBytes')).
+
+(** [None] on a learner and on a state outside the three: what the two pure
+    conjuncts of [own_progress] used to rule out. *)
+Definition progress_abs (pv : tracker.Progress.t) (i : inflights.t) : option progress.t :=
+  if pv.(tracker.Progress.IsLearner') then None else
+  (λ st, progress.mk pv.(tracker.Progress.Match') pv.(tracker.Progress.Next')
+           pv.(tracker.Progress.sentCommit') st pv.(tracker.Progress.PendingSnapshot')
+           pv.(tracker.Progress.RecentActive') pv.(tracker.Progress.MsgAppFlowPaused') i)
+    <$> prstate_of_w64 pv.(tracker.Progress.State').
+
+(** What [progress_abs pv i = Some p] says, field by field. *)
+Lemma progress_abs_Some pv i p :
+  progress_abs pv i = Some p ↔
+  pv.(tracker.Progress.IsLearner') = false ∧
+  pv.(tracker.Progress.State') = prstate_w64 p.(progress.state) ∧
+  pv.(tracker.Progress.Match') = p.(progress.matched) ∧
+  pv.(tracker.Progress.Next') = p.(progress.next) ∧
+  pv.(tracker.Progress.sentCommit') = p.(progress.sent_commit) ∧
+  pv.(tracker.Progress.PendingSnapshot') = p.(progress.pending_snapshot) ∧
+  pv.(tracker.Progress.RecentActive') = p.(progress.recent_active) ∧
+  pv.(tracker.Progress.MsgAppFlowPaused') = p.(progress.paused) ∧
+  i = p.(progress.infl).
+Proof.
+  rewrite /progress_abs. destruct p as [m n sc st ps ra pa inf]; simpl.
+  destruct (pv.(tracker.Progress.IsLearner')); first naive_solver.
+  rewrite -prstate_of_w64_Some.
+  destruct (prstate_of_w64 _) as [st'|]; simpl; last naive_solver.
+  split.
+  - intros Heq. injection Heq. naive_solver.
+  - intros (_ & Hst & -> & -> & -> & -> & -> & -> & ->). by simplify_eq.
+Qed.
+End abs.
+
+(** *** The [Inflights] methods, on the record *)
+
+(** [Full()] (tracker.v:201):
+    [in.count == in.size || (in.maxBytes != 0 && in.bytes >= in.maxBytes)].
+    [Add] panics when it is [true]. *)
+Definition inflights_full (i : inflights.t) : bool :=
+  bool_decide (i.(inflights.count) = i.(inflights.size))
+  || (bool_decide (i.(inflights.max_bytes) ≠ 0) &&
+      bool_decide (i.(inflights.max_bytes) ≤ i.(inflights.bytes))).
+
+(** [reset()]: nothing in flight.  ([start] is internal.) *)
+Definition inflights_reset (i : inflights.t) : inflights.t :=
+  i <| inflights.count := 0 |> <| inflights.bytes := 0 |>.
+
+(** [Add(index, bytes)], on a window that is not full: one more message,
+    [bytes] more bytes ([uint64] addition, which wraps). *)
+Definition inflights_add (i : inflights.t) (b : w64) : inflights.t :=
+  i <| inflights.count := i.(inflights.count) + 1 |>
+    <| inflights.bytes := (i.(inflights.bytes) + uint.Z b) `mod` 2 ^ 64 |>.
+
+(** [FreeLE(to)]'s result is not a function of the record -- it depends on
+    the indices in the ring buffer -- so it is a relation: the limits are
+    unchanged and no more messages are in flight than before. *)
+Definition inflights_freed (i i' : inflights.t) : Prop :=
+  i'.(inflights.size) = i.(inflights.size) ∧
+  i'.(inflights.max_bytes) = i.(inflights.max_bytes) ∧
+  i'.(inflights.count) ≤ i.(inflights.count).
+
+(** [NewInflights(size, maxBytes)]. *)
+Definition inflights_new (size maxBytes : w64) : inflights.t :=
+  inflights.mk 0 (sint.Z size) 0 (uint.Z maxBytes).
+
+(** *** The [Progress] methods, on the record (progress.go)
+
+    Each is the method's effect, read off its body; the spec files give
+    the line.  [Match] is written only by [MaybeUpdate] (Match discipline,
+    notes/raft-replication-model.md).  The first four were in the spec
+    files, on [tracker.Progress.t], until 2026-10-02. *)
+
+(** [ResetState(state)]. *)
+Definition progress_reset_state (p : progress.t) (st : prstate.t) : progress.t :=
+  p <| progress.paused := false |>
+    <| progress.pending_snapshot := W64 0 |>
+    <| progress.state := st |>
+    <| progress.infl := inflights_reset p.(progress.infl) |>.
+
+(** [BecomeProbe()]: the new [Next], then the whole update. *)
+Definition progress_become_probe_next (p : progress.t) : w64 :=
+  if decide (p.(progress.state) = prstate.Snapshot) then
+    w64_max (word.add p.(progress.matched) (W64 1))
+            (word.add p.(progress.pending_snapshot) (W64 1))
+  else word.add p.(progress.matched) (W64 1).
+Definition progress_become_probe (p : progress.t) : progress.t :=
+  progress_reset_state p prstate.Probe
+    <| progress.next := progress_become_probe_next p |>
+    <| progress.sent_commit :=
+         w64_min p.(progress.sent_commit)
+                 (word.sub (progress_become_probe_next p) (W64 1)) |>.
+
+(** [BecomeReplicate()]. *)
+Definition progress_become_replicate (p : progress.t) : progress.t :=
+  progress_reset_state p prstate.Replicate
+    <| progress.next := word.add p.(progress.matched) (W64 1) |>.
+
+(** [BecomeSnapshot(snapshoti)]. *)
+Definition progress_become_snapshot (p : progress.t) (snapshoti : w64) : progress.t :=
+  progress_reset_state p prstate.Snapshot
+    <| progress.pending_snapshot := snapshoti |>
+    <| progress.next := word.add snapshoti (W64 1) |>
+    <| progress.sent_commit := snapshoti |>.
+
+(** [IsPaused()]. *)
+Definition progress_is_paused (p : progress.t) : bool :=
+  match p.(progress.state) with
+  | prstate.Snapshot => true
+  | _ => p.(progress.paused)
+  end.
+
+(** [SentEntries(entries, bytes)].  [StateSnapshot] panics; the spec's
+    premise excludes it, and this leaves the record alone there. *)
+Definition progress_sent_entries (p : progress.t) (entries bytes : w64) : progress.t :=
+  match p.(progress.state) with
+  | prstate.Replicate =>
+      if decide (0 < sint.Z entries) then
+        p <| progress.next := word.add p.(progress.next) entries |>
+          <| progress.infl := inflights_add p.(progress.infl) bytes |>
+          <| progress.paused := inflights_full (inflights_add p.(progress.infl) bytes) |>
+      else p <| progress.paused := inflights_full p.(progress.infl) |>
+  | prstate.Probe =>
+      if decide (0 < sint.Z entries) then p <| progress.paused := true |> else p
+  | prstate.Snapshot => p
+  end.
+
+(** [SentCommit(commit)]. *)
+Definition progress_sent_commit (p : progress.t) (commit : w64) : progress.t :=
+  p <| progress.sent_commit := commit |>.
+
+(** [CanBumpCommit(index)]. *)
+Definition progress_can_bump_commit (p : progress.t) (index : w64) : bool :=
+  bool_decide (uint.Z p.(progress.sent_commit) < uint.Z index ∧
+               uint.Z p.(progress.sent_commit)
+                 < uint.Z (word.sub p.(progress.next) (W64 1))).
+
+(** [MaybeUpdate(n)]: the new value; it is [p] itself when the ack is
+    stale.  The method returns [bool_decide (matched < n)]. *)
+Definition progress_maybe_update (p : progress.t) (n : w64) : progress.t :=
+  if bool_decide (uint.Z p.(progress.matched) < uint.Z n) then
+    p <| progress.matched := n |>
+      <| progress.next := w64_max p.(progress.next) (word.add n (W64 1)) |>
+      <| progress.paused := false |>
+  else p.
+
+(** [MaybeDecrTo(rejected, matchHint)]: the answer and the new value. *)
+Definition progress_maybe_decr_to (p : progress.t) (rejected matchHint : w64)
+    : bool * progress.t :=
+  if decide (p.(progress.state) = prstate.Replicate) then
+    if decide (uint.Z rejected ≤ uint.Z p.(progress.matched)) then (false, p)
+    else
+      let nx := word.add p.(progress.matched) (W64 1) in
+      (true, p <| progress.next := nx |>
+               <| progress.sent_commit :=
+                    w64_min p.(progress.sent_commit) (word.sub nx (W64 1)) |>)
+  else if decide (word.sub p.(progress.next) (W64 1) = rejected) then
+    let nx := w64_max (w64_min rejected (word.add matchHint (W64 1)))
+                      (word.add p.(progress.matched) (W64 1)) in
+    (true, p <| progress.next := nx |>
+             <| progress.sent_commit :=
+                  w64_min p.(progress.sent_commit) (word.sub nx (W64 1)) |>
+             <| progress.paused := false |>)
+  else (false, p).
+
 (** ** Physical transitions of the log
 
     [log_last ls] is [lastIndex()] of a log at [ls], as a [w64]; the
@@ -215,10 +496,11 @@ Definition log_append (ls : logstate.t) (ents : list raftpb.Entry.t) : logstate.
       election path inserts into or deletes from it, so it is stable across
       every call, and a proof that borrows one peer's [Progress] can hand it
       back before a call and borrow it again after, at the same key.
-    - [prvals] is each peer's [Progress] *value*, with its [Inflights]
-      value: what [*pr] and [*pr.Inflights] hold for the [pr] that
-      [progress] maps the peer to.  [own_tracker] is indexed by it
-      ([inv_tracker.v]), so a spec says how it changes the [Progress]es,
+    - [prvals] is each peer's [Progress], as the record [progress.t]
+      (with its [Inflights] window): what [*pr] and [*pr.Inflights] hold
+      for the [pr] that [progress] maps the peer to.  (Until 2026-10-02 a
+      pair of Goose values, [tracker.Progress.t * tracker.Inflights.t].)
+      [own_tracker] is indexed by it ([inv_tracker.v]), so a spec says how it changes the [Progress]es,
       or quantifies the new values.  [maybeSendAppend] needs it: it reads
       [pr] before [r.send] and calls [pr.SentEntries] after, which panics
       in [StateSnapshot] and, through [Inflights.Add], on a full window --
@@ -250,8 +532,7 @@ Record t :=
       progress : gmap w64 loc;        (** [r.trk.Progress], as a map *)
       log : loc;                      (** [r.raftLog] *)
       logst : logstate.t;             (** the log's abstract state *)
-      prvals : gmap w64 (tracker.Progress.t * tracker.Inflights.t);
-                                      (** [*pr], [*pr.Inflights], per peer *)
+      prvals : gmap w64 progress.t;   (** [*pr] with its window, per peer *)
     }.
 End defn.
 #[global] Instance settable {ext : ffi_syntax} : Settable (@t ext) :=
@@ -340,14 +621,13 @@ Definition become_leader (id : w64) s : nstate.t :=
 (** ** The connection to the protocol state *)
 
 (** Each peer's [Progress.Match]. *)
-Definition prvals_match (pvs : gmap w64 (tracker.Progress.t * tracker.Inflights.t))
-  : gmap w64 w64 :=
-  (λ p, p.1.(tracker.Progress.Match')) <$> pvs.
+Definition prvals_match (pvs : gmap w64 progress.t) : gmap w64 w64 :=
+  progress.matched <$> pvs.
 
 (** Writing one peer's [Progress] without moving its [Match]. *)
 Lemma prvals_match_insert_same pvs i p p' :
   pvs !! i = Some p →
-  p'.1.(tracker.Progress.Match') = p.1.(tracker.Progress.Match') →
+  p'.(progress.matched) = p.(progress.matched) →
   prvals_match (<[i := p']> pvs) = prvals_match pvs.
 Proof.
   intros Hi Hm. rewrite /prvals_match fmap_insert Hm.
@@ -356,8 +636,7 @@ Qed.
 
 (** What [reset] leaves in [Match] ([raft.go:779-808]): [0] for every peer
     in the progress map, then [lastIndex()] for the node itself. *)
-Definition reset_matched (id li : w64)
-    (pvs : gmap w64 (tracker.Progress.t * tracker.Inflights.t)) : gmap w64 w64 :=
+Definition reset_matched (id li : w64) (pvs : gmap w64 progress.t) : gmap w64 w64 :=
   map_imap (λ k _, Some (if decide (k = id) then li else W64 0)) pvs.
 
 (** [reset]'s [Match] values are what [step_win] asks of a new leader, when

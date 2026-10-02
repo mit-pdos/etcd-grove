@@ -4258,3 +4258,50 @@ For a proposal forwarded over the network the receiver gets a fresh copy,
 so the trusted network/Step boundary must hand out full ownership for
 `MsgProp` (or `appendEntry` must copy).  Step's premise table is in this
 session's final report.
+
+## 2026-10-02 — public representation predicates for the tracker side (records)
+
+Implemented notes/raft-replication-model.md, "Public representation
+predicates".  Branch `worktree-agent-a6dae695ac1d6e42c`, on 496c57590.
+
+- **Records live in `defs.v`, not `inv_tracker.v`** (deviation from the
+  design): `nstate.prvals : gmap w64 progress.t` needs `progress.t` before
+  `nstate`, and `inv_tracker.v` builds on `defs.v` -- same reason
+  `logstate.t` is there.  `defs.v` has `inflights.t {count size bytes
+  max_bytes : Z}`, `prstate.t` (Probe|Replicate|Snapshot; the design's
+  `pstate_kind`, renamed per the request), `progress.t {matched next
+  sent_commit state pending_snapshot recent_active paused infl}`,
+  `trk.t {votes prs peers}`, `inflights_abs`, `progress_abs` (None on a
+  learner or a state outside 0/1/2; `progress_abs_Some` unfolds it field
+  by field), and every method as a pure function
+  (`inflights_full/reset/add/new`, `inflights_freed` -- a relation, FreeLE's
+  result depends on the buffer -- `progress_reset_state`, `_become_probe`,
+  `_become_replicate`, `_become_snapshot`, `_is_paused`, `_sent_entries`,
+  `_sent_commit`, `_can_bump_commit`, `_maybe_update`, `_maybe_decr_to`).
+  `w64_min/max` moved there too.  `defs.v` needed `Set Default Proof Using
+  "Type"` after its `Section proof` (the `W` gotcha).
+- `inv_tracker.v`: `own_Inflights l i := ∃ iv buf, own_inflights l iv buf ∗
+  ⌜inflights_abs iv = i⌝`; `own_Progress pr p := ∃ pv, pr ↦ pv ∗
+  own_Inflights pv.Inflights' p.infl ∗ ⌜progress_abs pv p.infl = Some p⌝`
+  (own_progress and progress_state_ok are gone); `own_tracker cfg tv t`.
+  Helpers: `own_Progress_intro` (pure premise last), `own_Progress_of`
+  (record read off a value written wholesale -- reset's Visit closure),
+  Ltacs `progress_open`, `progress_abs_solve`, `progress_abs_from`,
+  `progress_simpl`, `trk_simpl` (outside the section).
+- Specs strengthened where the record made it possible: `SentEntries`,
+  `BecomeReplicate`, `BecomeSnapshot` return the exact record (were ∃ with
+  only Match pinned); `Inflights.Add` returns `inflights_add i bytes` (was ∃);
+  `NewInflights` returns `inflights_new size maxBytes`; `ResetState` takes a
+  `prstate.t` (passed as `#(prstate_w64 st)`), no premise.  `FreeLE`'s proof
+  keeps the ring-buffer triple as a `Local Lemma …_internal` in the proof
+  file and derives the public one.
+- Gotchas: `iApply (own_Progress_intro with "Hpv Hinfl")` leaves the record
+  an evar (`?p.infl` cannot be unified) -- write `iExists _. iFrame "Hpv
+  Hinfl". iPureIntro.` instead.  `iExists _, buf` before framing a ring
+  buffer lets `iFrame` pick the *old* value from `Hbuf`; give the new value.
+  Repeated `iNamed` of `own_Progress` reuses the Coq name `Habs` -- clear it
+  between openings (iNamed stops silently on a clash).  A visit_closure
+  hypothesis like `Hpri` arrives as `(trk.mk …).(trk.prs) !! i` and pins
+  the whole record when passed to `own_tracker_lookup _ _ (trk.mk _ _ _)`;
+  `cbn [trk.prs] in Hpri` first.  `destruct (p.(progress.state)) eqn:` also
+  rewrites the hypotheses that mention it.

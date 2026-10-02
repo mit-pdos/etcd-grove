@@ -51,21 +51,29 @@ Context (cfg : gset w64).
     whether it is full.  So the contents are existential -- what matters is
     that the object and its buffer are owned, so that a [Progress] can be
     overwritten wholesale. *)
-(** [Full()]'s answer, read off the [Inflights] value
-    ([Inflights__Fullⁱᵐᵖˡ], new/code/go_etcd_io/raft/v3/tracker.v:201):
+(** [Full()]'s answer ([inflights_full], [defs.v]), read off the
+    [Inflights] value ([Inflights__Fullⁱᵐᵖˡ],
+    new/code/go_etcd_io/raft/v3/tracker.v:201):
 
       in.count == in.size || (in.maxBytes != 0 && in.bytes >= in.maxBytes)
 
-    It is a function of [iv] and not an existential because [Inflights.Add]
-    **panics** when it is [true] ("cannot add into a Full inflights",
-    tracker.v:100), so [Add]'s triple can only be stated -- truthfully -- at
-    an [Inflights] value the caller knows is not full.  That is why
-    [own_inflights] is indexed by the value. *)
-Definition inflights_full (iv : tracker.Inflights.t) : bool :=
+    [Inflights.Add] **panics** when it is [true] ("cannot add into a Full
+    inflights", tracker.v:100), so [Add]'s triple can only be stated --
+    truthfully -- at a window the caller knows is not full.  That is why
+    [own_Inflights] is indexed by a record that determines it.  (Until
+    2026-10-02 [inflights_full] was this right-hand side, on the Goose
+    value.) *)
+Lemma inflights_full_abs (iv : tracker.Inflights.t) :
+  inflights_full (inflights_abs iv) =
   bool_decide (iv.(tracker.Inflights.count') = iv.(tracker.Inflights.size'))
   || (bool_decide (iv.(tracker.Inflights.maxBytes') ≠ W64 0) &&
       bool_decide (uint.Z iv.(tracker.Inflights.maxBytes')
                    ≤ uint.Z iv.(tracker.Inflights.bytes'))).
+Proof.
+  rewrite /inflights_full /inflights_abs /=. f_equal; [|f_equal].
+  - apply bool_decide_ext. split; [intros; word | intros ->; done].
+  - apply bool_decide_ext. split; intros H Hc; apply H; [rewrite Hc; done | word].
+Qed.
 
 (** The ring-buffer invariant, over the [Inflights] value and the *length* of
     the buffer it points at.
@@ -97,13 +105,14 @@ Definition inflights_ok (iv : tracker.Inflights.t) (buflen : Z) : Prop :=
       ≤ buflen)%Z
    ∨ buflen = sint.Z iv.(tracker.Inflights.size')).
 
-(** The one predicate for an [Inflights] object, indexed by its value [iv]
-    and the contents [buf] of its ring buffer.  [buf] is in the index
-    because [grow] is specified by what it does to the buffer.  A caller
-    that does not care writes [∃ iv buf, own_inflights l iv buf].  (Until
+(** The **internal** predicate for an [Inflights] object, indexed by its
+    value [iv] and the contents [buf] of its ring buffer.  [buf] is in the
+    index because [grow] is specified by what it does to the buffer.  Only
+    [Inflights]' own methods see it: [grow] is stated on it, and the other
+    methods' proofs open [own_Inflights] to it.  (Until 2026-10-02 this was
+    the one predicate, and every caller's spec named the Goose value; until
     2026-09-23 there were two forms, [own_inflights_at l iv] and the
-    existential [own_inflights l], and [grow]/[reset] were stated on raw
-    points-tos; notes/decisions.md, "Three layers".) *)
+    existential [own_inflights l]; notes/decisions.md, "Three layers".) *)
 Definition own_inflights (l : loc) (iv : tracker.Inflights.t)
     (buf : list tracker.inflight.t) : iProp Σ :=
     "Hiv" ∷ l ↦ iv ∗
@@ -111,6 +120,20 @@ Definition own_inflights (l : loc) (iv : tracker.Inflights.t)
     "Hbuf_cap" ∷ own_slice_cap tracker.inflight.t
                    iv.(tracker.Inflights.buffer') (DfracOwn 1) ∗
     "%Hinfl_ok" ∷ ⌜ inflights_ok iv (Z.of_nat (length buf)) ⌝.
+
+(** The **public** predicate for an [Inflights] object, indexed by the
+    record [inflights.t] ([defs.v]): how many messages and bytes are in
+    flight, and the two limits -- exactly what the exported methods' specs
+    ([Full], [Add], [FreeLE], [reset], [NewInflights]) say.  The ring
+    buffer is hidden. *)
+Definition own_Inflights (l : loc) (i : inflights.t) : iProp Σ :=
+  ∃ (iv : tracker.Inflights.t) (buf : list tracker.inflight.t),
+    "Hin" ∷ own_inflights l iv buf ∗
+    "%Hiabs" ∷ ⌜ inflights_abs iv = i ⌝.
+
+Lemma own_Inflights_intro l iv buf :
+  own_inflights l iv buf -∗ own_Inflights l (inflights_abs iv).
+Proof. iIntros "Hin". iExists iv, buf. by iFrame. Qed.
 
 (** *** Per-peer replication progress.
 
@@ -123,42 +146,64 @@ Definition own_inflights (l : loc) (iv : tracker.Inflights.t)
     A field assignment like [becomeLeader]'s [pr.RecentActive := true] steps
     through [pr ↦ pv] with the generated [AccessStrict] instances and leaves
     [Inflights'] alone, so [own_inflights] survives it untouched. *)
-(** The three states a [Progress] may legally be in
-    ([StateProbe]/[StateReplicate]/[StateSnapshot] = [W64 0]/[1]/[2],
-    new/code/go_etcd_io/raft/v3/tracker.v:47-51).  [Progress.IsPaused]
-    **panics** on anything else ("unexpected state", tracker.v:456), and
-    [bcastAppend] reaches it on every peer, so this has to be an invariant
-    rather than a hope.  It is: [reset]'s [Visit] closure writes a literal
-    with no [State] field, i.e. the zero value [StateProbe], and
-    [ResetState] -- the only other writer on this path, behind
-    [BecomeReplicate] and [BecomeSnapshot] -- is always passed one of the
-    three. *)
-Definition progress_state_ok (st : tracker.StateType.t) : Prop :=
-  st = W64 0 ∨ st = W64 1 ∨ st = W64 2.
+(** The **public** predicate for a [Progress] object, indexed by the
+    record [progress.t] ([defs.v]), which includes its [Inflights] window
+    [infl].  [IsPaused]'s answer is a function of [state] and [paused], and
+    [SentEntries] reaches [Inflights.Add], whose precondition is
+    [inflights_full infl = false].
 
-(** The one predicate for a [Progress] object, indexed by its value [pv]
-    and its [Inflights] value [iv]: [IsPaused]'s answer is a function of
-    [State] and [MsgAppFlowPaused], and [SentEntries] reaches
-    [Inflights.Add], whose precondition is [inflights_full iv = false].  The
-    ring buffer's contents are not in the index: no [Progress] method looks
-    at them.  A caller that does not care writes
-    [∃ pv iv, own_progress pr pv iv].  (Until 2026-09-23 this was
-    [own_progress_at], beside an existential [own_progress pr].) *)
-Definition own_progress (pr : loc) (pv : tracker.Progress.t)
-                        (iv : tracker.Inflights.t) : iProp Σ :=
+    [progress_abs pv infl = Some p] says what the two pure conjuncts of the
+    old [own_progress pr pv iv] said (until 2026-10-02), and more:
+
+    - **not a learner** ([IsLearner = false]): no learners are in scope.
+      Added 2026-09-16 because [wp_raft__promotable] needs it: [promotable]
+      returns [pr != nil && !pr.IsLearner && ...], and without it its
+      postcondition [b = bool_decide (id ∈ cfg)] is not derivable.
+    - **the state is one of the three** ([StateProbe]/[StateReplicate]/
+      [StateSnapshot]): [Progress.IsPaused] **panics** on anything else
+      ("unexpected state", tracker.v:456), and [bcastAppend] reaches it on
+      every peer.  [reset]'s [Visit] closure writes a literal with no
+      [State] field, i.e. the zero value [StateProbe], and [ResetState] is
+      always passed one of the three.
+
+    A field assignment like [becomeLeader]'s [pr.RecentActive := true]
+    steps through ["Hpv"] with the generated [AccessStrict] instances and
+    leaves [Inflights'] alone.  Ownership is of the whole [Progress]
+    *value*, because [reset]'s [Visit] closure overwrites one wholesale. *)
+Definition own_Progress (pr : loc) (p : progress.t) : iProp Σ :=
+  ∃ (pv : tracker.Progress.t),
     "Hpv" ∷ pr ↦ pv ∗
-    "Hinfl" ∷ (∃ buf, own_inflights pv.(tracker.Progress.Inflights') iv buf) ∗
-    (** No learners are in scope, so no voter's [Progress] is a learner's.
-        Added 2026-09-16 because [wp_raft__promotable] needs it: [promotable]
-        returns [pr != nil && !pr.IsLearner && ...], and without this conjunct
-        its postcondition [b = bool_decide (id ∈ cfg)] is not derivable.  It is
-        preserved by everything that writes a [Progress]: [reset]'s [Visit]
-        closure copies [IsLearner] across, and [BecomeReplicate] /
-        [RecentActive := true] do not touch it. *)
-    "%Hnolearner" ∷ ⌜ pv.(tracker.Progress.IsLearner') = false ⌝ ∗
-    "%Hstate_ok" ∷ ⌜ progress_state_ok pv.(tracker.Progress.State') ⌝.
+    "Hinfl" ∷ own_Inflights pv.(tracker.Progress.Inflights') p.(progress.infl) ∗
+    "%Habs" ∷ ⌜ progress_abs pv p.(progress.infl) = Some p ⌝.
 
+(** Re-seal [own_Progress] after field writes: the record read off the
+    value.  The pure premise is last, so that [iApply (own_Progress_intro
+    with "Hpv Hinfl")] fixes the value from ["Hpv"] and leaves
+    [progress_abs pv' (p.infl) = Some p] to [progress_abs_solve]. *)
+Lemma own_Progress_intro pr (pv : tracker.Progress.t) (p : progress.t) :
+  pr ↦ pv -∗ own_Inflights pv.(tracker.Progress.Inflights') p.(progress.infl) -∗
+  ⌜ progress_abs pv p.(progress.infl) = Some p ⌝ -∗
+  own_Progress pr p.
+Proof. iIntros "Hpv Hinfl %Habs". iExists pv. iFrame "∗%". Qed.
 
+(** The same, at the record read off the value: for a [Progress] written
+    wholesale ([reset]'s [Visit] closure) or field by field, when the
+    caller wants the record to be whatever the value says. *)
+Definition progress_of (pv : tracker.Progress.t) (st : prstate.t) (i : inflights.t)
+    : progress.t :=
+  progress.mk pv.(tracker.Progress.Match') pv.(tracker.Progress.Next')
+    pv.(tracker.Progress.sentCommit') st pv.(tracker.Progress.PendingSnapshot')
+    pv.(tracker.Progress.RecentActive') pv.(tracker.Progress.MsgAppFlowPaused') i.
+
+Lemma own_Progress_of pr (pv : tracker.Progress.t) (st : prstate.t) (i : inflights.t) :
+  pv.(tracker.Progress.IsLearner') = false →
+  pv.(tracker.Progress.State') = prstate_w64 st →
+  pr ↦ pv -∗ own_Inflights pv.(tracker.Progress.Inflights') i -∗
+  own_Progress pr (progress_of pv st i).
+Proof.
+  iIntros (Hl Hst) "Hpv Hinfl". iApply (own_Progress_intro _ _ (progress_of pv st i) with "Hpv Hinfl").
+  iPureIntro. apply progress_abs_Some. rewrite /progress_of /=. split_and!; done.
+Qed.
 
 (** An id set ([map[uint64]struct{}]) that is either [nil] or owned.
 
@@ -189,17 +234,18 @@ Definition own_idset_opt (m : loc) (ids : gmap w64 unit) : iProp Σ :=
     records it: the [JointConfig] array is [[voters_ref; map.nil]].  The
     voter set and the domain of the progress map are both [cfg].
 
-    [pvs] is what each [Progress] holds, with its [Inflights] value, by
-    peer ([nstate.prvals]): [prs] and [pvs] are paired key by key, so they
-    have the same domain.  (Until 2026-09-29 the values were existential
-    inside, and a caller that needed one across a call it made with the
-    struct sealed had to take the tracker out of [own_raft_phys] on loan.) *)
-Definition own_tracker (tv : tracker.ProgressTracker.t) (votes : gmap w64 bool)
-    (prs : gmap w64 loc)
-    (pvs : gmap w64 (tracker.Progress.t * tracker.Inflights.t)) : iProp Σ :=
+    It is indexed by one record [t : trk.t] ([defs.v]): the tally
+    [t.votes], the progress map [t.prs], and [t.peers], what each
+    [Progress] holds, by peer ([nstate.prvals]): [prs] and [peers] are
+    paired key by key, so they have the same domain.  (Until 2026-10-02
+    the three were separate arguments and [peers] held Goose values; until
+    2026-09-29 the values were existential inside, and a caller that
+    needed one across a call it made with the struct sealed had to take
+    the tracker out of [own_raft_phys] on loan.) *)
+Definition own_tracker (tv : tracker.ProgressTracker.t) (t : trk.t) : iProp Σ :=
   ∃ (voters_ref : loc) (voters : gmap w64 unit)
     (learners learnersNext : gmap w64 unit),
-  "Hvotes" ∷ tv.(tracker.ProgressTracker.Votes') ↦$ votes ∗
+  "Hvotes" ∷ tv.(tracker.ProgressTracker.Votes') ↦$ t.(trk.votes) ∗
   (** **Read-only.**  The progress *map* is allocated once, by
       [newTracker]/[confchange], and on the election path nothing ever
       inserts into it or deletes from it -- only the [Progress] *values* it
@@ -218,9 +264,9 @@ Definition own_tracker (tv : tracker.ProgressTracker.t) (votes : gmap w64 bool)
       It is a genuine restriction: a proof of a reconfiguration path would
       have to take the map back to [DfracOwn 1].  Reconfiguration is out of
       scope (see [HnoConfChange] in [inv_raftlog.v]). *)
-  "#Hprs" ∷ tv.(tracker.ProgressTracker.Progress') ↦$□ prs ∗
-  "Hprogs" ∷ ([∗ map] pr; v ∈ prs; pvs, own_progress pr v.1 v.2) ∗
-  "%Hprs_dom" ∷ ⌜ dom prs = cfg ⌝ ∗
+  "#Hprs" ∷ tv.(tracker.ProgressTracker.Progress') ↦$□ t.(trk.prs) ∗
+  "Hprogs" ∷ ([∗ map] pr; p ∈ t.(trk.prs); t.(trk.peers), own_Progress pr p) ∗
+  "%Hprs_dom" ∷ ⌜ dom t.(trk.prs) = cfg ⌝ ∗
   (* a simple configuration: second component of the joint config is nil *)
   "%Hvoters_arr" ∷ ⌜ array.arr
       tv.(tracker.ProgressTracker.Config').(tracker.Config.Voters')
@@ -449,8 +495,8 @@ Qed.
     the peer up in [r.trk.Progress] *itself* and then calls [r.send], whose
     triple is stated on [own_raft_phys] -- which contains [own_tracker].  So
     the closure needs the entire tracker, not one [Progress] out of it, and
-    with only [own_progress pr] in hand it could not even step the
-    [map.lookup1].  Handing it [own_progress pr] *plus* the accessor wand
+    with only [own_Progress pr] in hand it could not even step the
+    [map.lookup1].  Handing it [own_Progress pr] *plus* the accessor wand
     costs [Visit] nothing (it does its own lookup before each call and does
     not touch the map during one) and leaves [reset]'s closure free to keep
     using the lone [Progress].  The postcondition asks only for the tracker
@@ -485,7 +531,7 @@ Qed.
     closure can no longer read that bound out of the enclosing proof's
     context, and it cannot read it out of [own_tracker] either -- it holds
     the tracker only as a wand, and cashing that wand costs it the
-    [own_progress] it is there to overwrite.  So [Visit], which does hold
+    [own_Progress] it is there to overwrite.  So [Visit], which does hold
     the tracker, hands the fact over.
 
     **Why the progress map stays fixed** ([prs]).  The tracker value may
@@ -510,18 +556,17 @@ Qed.
     ends at [I cfg]. *)
 Definition visit_closure (trk : loc) (votes : gmap w64 bool)
   (prs : gmap w64 loc) (f : func.t)
-  (I : gset w64 → gmap w64 (tracker.Progress.t * tracker.Inflights.t) → iProp Σ)
+  (I : gset w64 → gmap w64 progress.t → iProp Σ)
   : iProp Σ :=
   ∀ (i : w64) (pr : loc) (tv : tracker.ProgressTracker.t)
-    (pvs : gmap w64 (tracker.Progress.t * tracker.Inflights.t))
-    (pv : tracker.Progress.t) (iv : tracker.Inflights.t) (D : gset w64),
-    {{{ ⌜ i ∈ cfg ⌝ ∗ ⌜ prs !! i = Some pr ⌝ ∗ ⌜ pvs !! i = Some (pv, iv) ⌝ ∗
+    (pvs : gmap w64 progress.t) (p : progress.t) (D : gset w64),
+    {{{ ⌜ i ∈ cfg ⌝ ∗ ⌜ prs !! i = Some pr ⌝ ∗ ⌜ pvs !! i = Some p ⌝ ∗
         ⌜ (0 ≤ sint.Z tv.(tracker.ProgressTracker.MaxInflight') < 2 ^ 62)%Z ⌝ ∗
-        trk ↦ tv ∗ own_progress pr pv iv ∗
-        (∀ pv' iv', own_progress pr pv' iv' -∗
-                    own_tracker tv votes prs (<[i := (pv', iv')]> pvs)) ∗ I D pvs }}}
+        trk ↦ tv ∗ own_Progress pr p ∗
+        (∀ p', own_Progress pr p' -∗
+               own_tracker tv (trk.mk votes prs (<[i := p']> pvs))) ∗ I D pvs }}}
       #f #i #pr
-    {{{ RET #(); ∃ tv' pvs', trk ↦ tv' ∗ own_tracker tv' votes prs pvs' ∗
+    {{{ RET #(); ∃ tv' pvs', trk ↦ tv' ∗ own_tracker tv' (trk.mk votes prs pvs') ∗
                              I ({[i]} ∪ D) pvs' }}}.
 
 
@@ -530,10 +575,10 @@ Definition visit_closure (trk : loc) (votes : gmap w64 bool)
     ...)], whose premise this is; the closure cannot reach [own_tracker]
     itself, so [reset] pulls the fact into the Coq context before the
     [Visit]. *)
-Lemma own_tracker_maxinflight tv votes prs pvs :
-  own_tracker tv votes prs pvs -∗
+Lemma own_tracker_maxinflight tv t :
+  own_tracker tv t -∗
   ⌜ (0 ≤ sint.Z tv.(tracker.ProgressTracker.MaxInflight') < 2 ^ 62)%Z ⌝ ∗
-  own_tracker tv votes prs pvs.
+  own_tracker tv t.
 Proof using All.
   iIntros "Hown". iNamed "Hown".
   iSplitR; first (iPureIntro; exact HmaxInfl).
@@ -542,49 +587,49 @@ Proof using All.
 Qed.
 
 (** Borrow one voter's [Progress] out of the tracker, by its key in the
-    progress map the tracker is indexed by, at the value [pvs] records for
-    it; give it back at any value, which the index then records.  The
-    caller can come back to the *same* pointer, and the same value, after
-    any call that returns the tracker at the same [prs] and [pvs]. *)
-Lemma own_tracker_lookup tv votes (prs : gmap w64 loc) pvs (i : w64) (pr : loc) :
-  prs !! i = Some pr →
-  own_tracker tv votes prs pvs -∗
-  ∃ pv iv, ⌜ pvs !! i = Some (pv, iv) ⌝ ∗ own_progress pr pv iv ∗
-    (∀ pv' iv', own_progress pr pv' iv' -∗
-                own_tracker tv votes prs (<[i := (pv', iv')]> pvs)).
+    progress map the tracker is indexed by, at the record [t.peers] holds
+    for it; give it back at any record, which the index then records.  The
+    caller can come back to the *same* pointer, and the same record, after
+    any call that returns the tracker at the same [prs] and [peers]. *)
+Lemma own_tracker_lookup tv (t : trk.t) (i : w64) (pr : loc) :
+  t.(trk.prs) !! i = Some pr →
+  own_tracker tv t -∗
+  ∃ p, ⌜ t.(trk.peers) !! i = Some p ⌝ ∗ own_Progress pr p ∗
+    (∀ p', own_Progress pr p' -∗
+           own_tracker tv (trk.mk t.(trk.votes) t.(trk.prs) (<[i := p']> t.(trk.peers)))).
 Proof using All.
   intros Hpr. iIntros "Hown". iNamed "Hown".
   iDestruct (big_sepM2_lookup_iff with "Hprogs") as %Hiff.
-  destruct (Hiff i) as [Hsome _]. destruct (Hsome ltac:(by eexists)) as [[pv iv] Hv].
+  destruct (Hiff i) as [Hsome _]. destruct (Hsome ltac:(by eexists)) as [p Hv].
   iDestruct (big_sepM2_insert_acc _ _ _ _ _ _ Hpr Hv with "Hprogs") as "[Hp Hback]".
-  iExists pv, iv. iSplitR; first done. iFrame "Hp".
-  iIntros (pv' iv') "Hp".
-  iDestruct ("Hback" $! pr (pv', iv') with "Hp") as "Hprogs".
-  rewrite (insert_id prs i pr) //.
+  iExists p. iSplitR; first done. iFrame "Hp".
+  iIntros (p') "Hp".
+  iDestruct ("Hback" $! pr p' with "Hp") as "Hprogs".
+  rewrite (insert_id t.(trk.prs) i pr) //.
   rewrite /own_tracker.
   iExists voters_ref, voters, learners, learnersNext.
   iFrame "∗#%".
 Qed.
 
-(** The same, given back at the value it was borrowed at. *)
-Lemma own_tracker_lookup_same tv votes (prs : gmap w64 loc) pvs (i : w64) (pr : loc) :
-  prs !! i = Some pr →
-  own_tracker tv votes prs pvs -∗
-  ∃ pv iv, ⌜ pvs !! i = Some (pv, iv) ⌝ ∗ own_progress pr pv iv ∗
-    (own_progress pr pv iv -∗ own_tracker tv votes prs pvs).
+(** The same, given back at the record it was borrowed at. *)
+Lemma own_tracker_lookup_same tv (t : trk.t) (i : w64) (pr : loc) :
+  t.(trk.prs) !! i = Some pr →
+  own_tracker tv t -∗
+  ∃ p, ⌜ t.(trk.peers) !! i = Some p ⌝ ∗ own_Progress pr p ∗
+    (own_Progress pr p -∗ own_tracker tv t).
 Proof using All.
   intros Hpr. iIntros "Hown".
-  iDestruct (own_tracker_lookup _ _ _ _ _ _ Hpr with "Hown")
-    as (pv iv Hv) "[Hp Hback]".
-  iExists pv, iv. iSplitR; first done. iFrame "Hp".
+  iDestruct (own_tracker_lookup _ _ _ _ Hpr with "Hown")
+    as (p Hv) "[Hp Hback]".
+  iExists p. iSplitR; first done. iFrame "Hp".
   iIntros "Hp". iDestruct ("Hback" with "Hp") as "Hown".
-  rewrite (insert_id pvs i (pv, iv)) //.
+  rewrite (insert_id t.(trk.peers) i p) //.
 Qed.
 
-(** The [Progress] values are indexed by the same peers as the map. *)
-Lemma own_tracker_prvals_dom tv votes prs pvs :
-  own_tracker tv votes prs pvs -∗
-  ⌜ dom pvs = dom prs ⌝ ∗ own_tracker tv votes prs pvs.
+(** The [Progress] records are indexed by the same peers as the map. *)
+Lemma own_tracker_prvals_dom tv t :
+  own_tracker tv t -∗
+  ⌜ dom t.(trk.peers) = dom t.(trk.prs) ⌝ ∗ own_tracker tv t.
 Proof using All.
   iIntros "Hown". iNamed "Hown".
   iDestruct (big_sepM2_dom with "Hprogs") as %Hd.
@@ -595,10 +640,10 @@ Qed.
 
 (** Read the progress map's points-to and domain out of the tracker without
     consuming it (the map is read-only, hence persistent). *)
-Lemma own_tracker_progress_map tv votes prs pvs :
-  own_tracker tv votes prs pvs -∗
-  tv.(tracker.ProgressTracker.Progress') ↦$□ prs ∗ ⌜ dom prs = cfg ⌝ ∗
-  own_tracker tv votes prs pvs.
+Lemma own_tracker_progress_map tv t :
+  own_tracker tv t -∗
+  tv.(tracker.ProgressTracker.Progress') ↦$□ t.(trk.prs) ∗ ⌜ dom t.(trk.prs) = cfg ⌝ ∗
+  own_tracker tv t.
 Proof using All.
   iIntros "Hown". iNamed "Hown".
   iFrame "Hprs". iSplitR; first (iPureIntro; exact Hprs_dom).
@@ -609,29 +654,79 @@ Qed.
 (** [trk.Progress[i]], for a voter [i]: [becomeLeader] looks up [r.id].
     Only voters are in the map, whence the side condition.  The [Progress]
     comes out as [own_tracker_lookup] hands it out. *)
-Lemma wp_tracker_progress_lookup tv votes prs pvs (i : w64) :
+Lemma wp_tracker_progress_lookup tv t (i : w64) :
   i ∈ cfg →
-  {{{ own_tracker tv votes prs pvs }}}
+  {{{ own_tracker tv t }}}
     map.lookup1 go.uint64 (go.PointerType tracker.Progress)
       #(tv.(tracker.ProgressTracker.Progress')) #i
   {{{ (pr : loc), RET #pr;
-      ⌜ prs !! i = Some pr ⌝ ∗
-      ∃ pv iv, ⌜ pvs !! i = Some (pv, iv) ⌝ ∗ own_progress pr pv iv ∗
-        (∀ pv' iv', own_progress pr pv' iv' -∗
-                    own_tracker tv votes prs (<[i := (pv', iv')]> pvs)) }}}.
+      ⌜ t.(trk.prs) !! i = Some pr ⌝ ∗
+      ∃ p, ⌜ t.(trk.peers) !! i = Some p ⌝ ∗ own_Progress pr p ∗
+        (∀ p', own_Progress pr p' -∗
+               own_tracker tv (trk.mk t.(trk.votes) t.(trk.prs) (<[i := p']> t.(trk.peers)))) }}}.
 Proof.
   intros Hi. iIntros (Φ) "Hown HΦ".
   iDestruct (own_tracker_progress_map with "Hown") as "(#Hprs & %Hdom & Hown)".
-  assert (is_Some (prs !! i)) as [pr Hpr].
+  assert (is_Some (t.(trk.prs) !! i)) as [pr Hpr].
   { apply elem_of_dom. rewrite Hdom //. }
   wp_apply (wp_map_lookup1 with "Hprs") as "_".
   rewrite Hpr /=.
   iApply ("HΦ" $! pr). iSplitR; first done.
-  iApply (own_tracker_lookup _ _ _ _ _ _ Hpr with "Hown").
+  iApply (own_tracker_lookup _ _ _ _ Hpr with "Hown").
 Qed.
 
 
 End proof.
+
+(** Open [own_Progress]: after [iNamed "Hpr"], turn ["%Habs"] into the
+    record's fields, written as the value's -- [p] becomes
+    [progress.mk pv.Match' pv.Next' … st … inf], with [Hst] relating [st] to
+    [pv.State'] and [Hl] saying [pv] is not a learner's. *)
+Ltac progress_open Habs p :=
+  let Hl := fresh "Hl" in let Hst := fresh "Hst" in
+  apply progress_abs_Some in Habs as (Hl & Hst & ? & ? & ? & ? & ? & ? & _);
+  let m := fresh "m" in let n := fresh "n" in let sc := fresh "sc" in
+  let st := fresh "st" in let ps := fresh "ps" in let ra := fresh "ra" in
+  let pa := fresh "pa" in let inf := fresh "inf" in
+  destruct p as [m n sc st ps ra pa inf];
+  cbn [progress.matched progress.next progress.sent_commit progress.state
+       progress.pending_snapshot progress.recent_active progress.paused
+       progress.infl] in *;
+  subst m n sc ps ra pa.
+
+(** The pure side of [own_Progress_intro]: every field of the value against
+    the record. *)
+Ltac progress_abs_solve :=
+  apply progress_abs_Some; simpl; split_and?; try done.
+
+(** Reduce the tracker record's projections everywhere, after
+    [destruct t as [votes prs pvs]] and [iNamed] of [own_tracker]. *)
+Ltac trk_simpl := cbn [trk.votes trk.prs trk.peers] in *.
+
+(** Reduce the record's projections, and nothing else (safe on a [WP]
+    goal). *)
+Ltac progress_simpl :=
+  cbn [progress.matched progress.next progress.sent_commit progress.state
+       progress.pending_snapshot progress.recent_active progress.paused
+       progress.infl].
+
+(** The pure side of [own_Progress_intro] after a run of field writes, from
+    the [progress_abs] fact the predicate was opened with: unfold the
+    record methods, reduce, and match field by field.  For a goal that is
+    pure (after [iPureIntro]) -- it runs [simpl in *]. *)
+Ltac progress_abs_from Habs :=
+  apply progress_abs_Some in Habs; apply progress_abs_Some;
+  try unfold progress_reset_state, progress_become_probe, progress_become_probe_next,
+             progress_become_replicate, progress_become_snapshot,
+             progress_sent_entries, progress_sent_commit, progress_maybe_update,
+             progress_maybe_decr_to in *;
+  unfold w64_max, w64_min in *;
+  simpl in *;
+  repeat match goal with H : _ ∧ _ |- _ => destruct H end;
+  repeat match goal with
+         | H : ?f ?x = _ |- _ => is_var x; progress (rewrite H); clear H
+         end;
+  split_and?; try done; try congruence.
 
 (** ** A configuration, and changing to one
 
@@ -658,7 +753,7 @@ Definition own_config (cfg : gset w64) (cfgv : tracker.Config.t) (prsm : loc)
   "%Hvm" ∷ ⌜ dom vm = cfg ⌝ ∗
   "#Hprsm" ∷ prsm ↦$□ prs ∗
   "%Hprs" ∷ ⌜ dom prs = cfg ⌝ ∗
-  "Hprogs" ∷ ([∗ map] pr ∈ prs, ∃ pv iv, own_progress pr pv iv) ∗
+  "Hprogs" ∷ ([∗ map] pr ∈ prs, ∃ p, own_Progress pr p) ∗
   "%Hcsz" ∷ ⌜ Z.of_nat (size cfg) < 2 ^ 63 ⌝.
 
 (** Name the values of a map's worth of objects: a [big_sepM] of
@@ -686,7 +781,7 @@ Lemma own_tracker_empty (tv : tracker.ProgressTracker.t) (v0 : loc) :
   v0 ↦$ (∅ : gmap w64 unit) -∗
   tv.(tracker.ProgressTracker.Votes') ↦$ (∅ : gmap w64 bool) -∗
   tv.(tracker.ProgressTracker.Progress') ↦$□ (∅ : gmap w64 loc) -∗
-  own_tracker ∅ tv ∅ ∅ ∅.
+  own_tracker ∅ tv (trk.mk ∅ ∅ ∅).
 Proof using All.
   iIntros (Harr Hl Hln Hal Hmi) "Hv0 Hvotes #Hprs".
   rewrite /own_tracker. iExists v0, ∅, ∅, ∅.
@@ -700,19 +795,18 @@ Qed.
     its tally and inflight bound.  The old configuration's voter map and
     [Progress] objects are dropped; the new ones hold whatever [Restore]
     put in them. *)
-Lemma own_tracker_reconfig cfg0 cfg tv votes prs0 pvs0 cfgv prsm prs :
-  own_tracker cfg0 tv votes prs0 pvs0 -∗
+Lemma own_tracker_reconfig cfg0 cfg tv t cfgv prsm prs :
+  own_tracker cfg0 tv t -∗
   own_config cfg cfgv prsm prs -∗
   ∃ pvs, own_tracker cfg (tv <| tracker.ProgressTracker.Config' := cfgv |>
-                             <| tracker.ProgressTracker.Progress' := prsm |>) votes prs pvs.
+                             <| tracker.ProgressTracker.Progress' := prsm |>)
+                     (trk.mk t.(trk.votes) prs pvs).
 Proof using All.
   iIntros "Hold Hnew". iNamed "Hold".
   iClear "Hprs Hprogs Hvoters Hlearners HlearnersNext".
   iNamed "Hnew".
-  iDestruct (big_sepM_mono _ (λ _ pr, ∃ v : tracker.Progress.t * tracker.Inflights.t,
-                                  own_progress pr v.1 v.2)%I with "Hprogs") as "Hprogs".
-  { iIntros (k pr _) "(%pv & %iv & Hp)". by iExists (pv, iv). }
-  iDestruct (big_sepM_exist_sepM2 with "Hprogs") as (pvs) "Hprogs".
+  iDestruct (big_sepM_exist_sepM2 (B:=progress.t) _ (λ _ pr p, own_Progress pr p)
+               with "Hprogs") as (pvs) "Hprogs".
   iExists pvs.
   rewrite /own_tracker. iExists vref, vm, ∅, ∅. simpl.
   iFrame "Hvotes Hprsm Hprogs Hvref". rewrite Hcfgl Hcfgln.
@@ -734,33 +828,16 @@ End config.
 
 Set Default Proof Using "Type".
 
-(** Go's [min]/[max] builtins on [uint64], exactly as Goose's
-    [minⁱᵐᵖˡ]/[maxⁱᵐᵖˡ] ([new/golang/defn/predeclared.v]) compute them:
-    [min x y = if x < y then x else y], [max x y = if x > y then x else y]
-    (and Goose renders [x > y] as [y < x]).  Stated with [decide], the form
-    of the framework's [wp_max2_uint64] ([new/golang/theory/auto.v]). *)
-Definition w64_min (x y : w64) : w64 :=
-  if decide (uint.Z x < uint.Z y) then x else y.
-Definition w64_max (x y : w64) : w64 :=
-  if decide (uint.Z y < uint.Z x) then x else y.
-
-Lemma w64_min_spec x y :
-  uint.Z (w64_min x y) = Z.min (uint.Z x) (uint.Z y).
-Proof. rewrite /w64_min. case_decide; lia. Qed.
-
-Lemma w64_max_spec x y :
-  uint.Z (w64_max x y) = Z.max (uint.Z x) (uint.Z y).
-Proof. rewrite /w64_max. case_decide; lia. Qed.
+(* [w64_min]/[w64_max] moved to [defs.v] (2026-10-02), with the
+   [Progress] methods that use them. *)
 
 (** Each voter's [Match], read off the tracker's [Progress] values, with
     [0] for a peer that has none (there is none such in [cfg]:
     [own_tracker]'s two maps have domain [cfg]).  [pvs_acked] is the
     [Option] form, which is what [matchAckIndexer.AckedIndex] returns. *)
-Definition pvs_acked (pvs : gmap w64 (tracker.Progress.t * tracker.Inflights.t))
-    (v : w64) : option w64 :=
-  (λ p, p.1.(tracker.Progress.Match')) <$> pvs !! v.
-Definition pvs_match_at (pvs : gmap w64 (tracker.Progress.t * tracker.Inflights.t))
-    (v : w64) : w64 :=
+Definition pvs_acked (pvs : gmap w64 progress.t) (v : w64) : option w64 :=
+  progress.matched <$> pvs !! v.
+Definition pvs_match_at (pvs : gmap w64 progress.t) (v : w64) : w64 :=
   default (W64 0) (pvs_acked pvs v).
 
 (** [N] is the quorum index of the per-voter values [f] over the voter set
@@ -798,9 +875,9 @@ Qed.
     reads the voter map out of the *same* tracker while the indexer is in
     use, so the indexer cannot be specified on [own_tracker] whole. *)
 Definition own_progress_map (m : loc) (prs : gmap w64 loc)
-    (pvs : gmap w64 (tracker.Progress.t * tracker.Inflights.t)) : iProp Σ :=
+    (pvs : gmap w64 progress.t) : iProp Σ :=
   "#Hprs" ∷ m ↦$□ prs ∗
-  "Hprogs" ∷ ([∗ map] pr; v ∈ prs; pvs, own_progress pr v.1 v.2).
+  "Hprogs" ∷ ([∗ map] pr; p ∈ prs; pvs, own_Progress pr p).
 
 (** The [quorum.AckedIndexer] interface contract, against a resource [P]
     the implementation needs and a function [acked] saying what each id's
