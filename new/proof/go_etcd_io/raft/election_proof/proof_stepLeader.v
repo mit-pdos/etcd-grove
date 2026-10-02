@@ -478,7 +478,7 @@ Proof.
     wp_auto.
     destruct (decide (p2.(progress.state) = prstate.Snapshot)) as [Hst2|Hst2].
     { (* [StateSnapshot]: [pr.Match + 1 >= r.raftLog.firstIndex()] *)
-      rewrite (bool_decide_eq_true_2 (prstate_w64 p2.(progress.state) = W64 2));
+      rewrite ?Hst (bool_decide_eq_true_2 (prstate_w64 p2.(progress.state) = W64 2));
         last by rewrite Hst2.
       wp_auto. try rewrite Hm.
       iDestruct ("Hpback" $! p2 with "[Hpv Hinfl]") as "Hphys".
@@ -511,25 +511,27 @@ Proof.
         pose proof Habs as Hsm. apply progress_abs_Some in Hsm as (_ & Hst & _).
         wp_auto. rewrite Hst.
         rewrite (bool_decide_eq_false_2 (prstate_w64 p2.(progress.state) = W64 1));
-          last exact (prstate_w64_ne _ prstate.Replicate ltac:(by rewrite Hst2)).
+          last exact (prstate_w64_ne p2.(progress.state) prstate.Replicate ltac:(by rewrite Hst2)).
         rewrite (bool_decide_eq_false_2 (true = false)) //.
         wp_auto.
         iDestruct ("Hpback" $! p2 with "[Hpv Hinfl]") as "Hphys".
         { iExists _. iFrame "∗%". }
         iSplitR; [done|]. iExists p2. iFrame "Hphys m r pr". done. }
-    rewrite (bool_decide_eq_false_2 (prstate_w64 p2.(progress.state) = W64 2));
+    rewrite ?Hst (bool_decide_eq_false_2 (prstate_w64 p2.(progress.state) = W64 2));
       last exact (prstate_w64_ne _ prstate.Snapshot Hst2).
     wp_auto.
     destruct (decide (p2.(progress.state) = prstate.Replicate)) as [Hst1|Hst1].
     - (* [StateReplicate]: [pr.Inflights.FreeLE(m.Index)] *)
-      rewrite (bool_decide_eq_true_2 (prstate_w64 p2.(progress.state) = W64 1));
+      rewrite ?Hst (bool_decide_eq_true_2 (prstate_w64 p2.(progress.state) = W64 1));
         last by rewrite Hst1.
       rewrite (bool_decide_eq_true_2 (true = true)) //.
       wp_auto.
       wp_apply (wp_Inflights__FreeLE with "[$Hinfl]") as "%i' [Hinfl _]".
       iDestruct ("Hpback" $! (p2 <| progress.infl := i' |>) with "[Hpv Hinfl]") as "Hphys".
       { iExists _. iFrame "Hpv Hinfl". iPureIntro.
-        progress_abs_from Habs. }
+        assert (Hst1' : prstate_w64 p2.(progress.state) = prstate_w64 prstate.Replicate)
+          by (rewrite Hst1; done).
+        progress_abs_from Habs. all: exact Hst1'. }
       iSplitR; [done|]. iExists _. iFrame "Hphys m r pr". done.
     - (* no fourth state *)
       exfalso. destruct (p2.(progress.state)); congruence. }
@@ -594,7 +596,7 @@ Proof.
         wp_apply (wp_Progress__CanBumpCommit with "[$Hpa]") as "Hpa".
         iDestruct ("Hpback" $! p3 with "Hpa") as "Hphys".
         iDestruct (own_raft_phys_ins_id with "Hphys") as "Hphys"; first done.
-        wp_if_destruct.
+        rewrite /progress_can_bump_commit. wp_if_destruct.
         * wp_apply (wp_raft__sendAppend _ _ _ _ _ (not_eq_sym Hdiff) Hfcfg with "[$Hphys]")
             as "%ms %pvs4 (Hphys & %Hms & %Hmm4)".
           iSplitR; [done|]. iExists s.(nstate.logst).(logstate.committed), ms, pvs4.
