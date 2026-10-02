@@ -125,6 +125,7 @@ Implicit Type s : nstate.t.
     (* the other types' premises of the [stepX] specs are vacuous *)
     assert (Hnot : ∀ t : w32, t ≠ W32 2 → m.(raftpb.Message.Type') ≠ t).
     { intros t Ht Hc. apply Ht. rewrite -Hc Hty2 //. }
+    assert (HnVR : m.(raftpb.Message.Type') ≠ MsgVoteResp) by (apply Hnot; w32_ne).
     wp_start_folded as "@". wp_start_unfold. wp_auto.
     wp_apply wp_traceReceiveMessage. try wp_auto.
     (* [m.Term = 0]: a local message, the term preamble is skipped *)
@@ -146,16 +147,18 @@ Implicit Type s : nstate.t.
       iMod (own_slice_persist with "Hents") as "#Hents".
       wp_apply (P.wp_stepFollower _ _ _ _ _ ents with "[$Hphys Hcap]").
       { right; left. exact Hty. }
-      { intros _. split_and!; [exact Hfrom | exact Hterm | apply Hlok; rewrite Hrole; done]. }
+      { intros _. split_and!; [exact Hfrom | exact Hterm | apply Hlok; congruence]. }
       { intros Hc. exfalso. by apply (Hnot MsgApp); [w32_ne|]. }
       { intros Hc. exfalso. by apply (Hnot MsgHeartbeat); [w32_ne|]. }
       { iIntros "_". iFrame "#∗". }
       iIntros (err s1 dropped) "(Hphys & %Hres & Herrn)".
-      (* [case_decide] takes the outermost [decide] (notes/gotchas.md) *)
-      revert Hres. rewrite /follower_step_result.
-      case_decide as Hc; first (exfalso; revert Hc; apply Hnot; w32_ne).
-      case_decide as Hc'; last (intros; exfalso; by apply Hc').
-      case_decide as Hl0; intros [-> ->].
+      (* each [decide] named by its proof: [case_decide] would pick up the
+         [bool_decide]s in [Hn0]... *)
+      rewrite /follower_step_result in Hres.
+      rewrite (decide_False _ _ HnVR) in Hres.
+      rewrite (decide_True _ _ Hty) in Hres.
+      clear Hn0 Hn20 Hn22 Hn17 Hn5.
+      revert Hres. case_decide as Hl0; intros [-> ->].
       + (* no leader known: dropped *)
         finish_err err; (iApply ("HΦ" $! _ s); iFrame "Hphys"; finish_drop).
       + (* forwarded: [step_prop_forward] *)
@@ -168,7 +171,7 @@ Implicit Type s : nstate.t.
         exists [abs_msg mtype.Propose m ents]. split.
         { recv_elem. }
         rewrite to_pstate_send_msgs.
-        apply (step_prop_forward cfg id (to_pstate s) (abs_msg mtype.Propose m ents)).
+        apply (step_prop_forward cfg id (abs_msg mtype.Propose m ents) (to_pstate s)).
         * done.
         * exact Hrole.
         * exact Hl0.
@@ -179,17 +182,17 @@ Implicit Type s : nstate.t.
       wp_apply (P.wp_stepCandidate _ _ _ _ _ ents with "[$Hphys]").
       { right; left. exact Hty. }
       { intros Hc. exfalso.
-        destruct Hc as [Hc|[Hc|Hc]]; revert Hc; apply Hnot; w32_ne. }
+        destruct Hc as [Hc|[Hc|Hc]]; (eapply Hnot; last exact Hc; w32_ne). }
       { exact Hrole. }
       { exact Hcfg. }
       { intros Hc. exfalso. by apply (Hnot MsgApp); [w32_ne|]. }
       { intros Hc. exfalso. by apply (Hnot MsgHeartbeat); [w32_ne|]. }
       { iIntros "%Hc". exfalso. by apply (Hnot MsgApp); [w32_ne|]. }
       iIntros (err s1 dropped) "(Hphys & %Hres & Herrn)".
-      revert Hres. rewrite /candidate_step_result.
-      case_decide as Hc; first (exfalso; revert Hc; apply Hnot; w32_ne).
-      case_decide as Hc'; last (intros; exfalso; by apply Hc').
-      intros [-> ->].
+      rewrite /candidate_step_result in Hres.
+      rewrite (decide_False _ _ HnVR) in Hres.
+      rewrite (decide_True _ _ Hty) in Hres.
+      destruct Hres as [-> ->].
       finish_err err; (iApply ("HΦ" $! _ s); iFrame "Hphys"; finish_drop).
     - (* Leader: append and broadcast, or drop *)
       assert (s.(nstate.stepfn) = functions raft.stepLeader []) as Hsf
@@ -207,9 +210,9 @@ Implicit Type s : nstate.t.
       { exact Hrole. }
       { exact Hcfg. }
       { intros Hc. exfalso. by apply (Hnot MsgAppResp); [w32_ne|]. }
-      { intros [Hc|[Hc _]]; exfalso; revert Hc; apply Hnot; w32_ne. }
+      { intros [Hc|[Hc _]]; exfalso; (eapply Hnot; last exact Hc; w32_ne). }
       { intros _. split_and!; [exact Hne | exact Hnorm | exact Hlen]. }
-      rewrite /leader_step_result decide_True in Hres; last exact Hty.
+      rewrite /leader_step_result (decide_True _ _ Hty) in Hres.
       rewrite /leader_propose_result in Hres.
       destruct dropped; cbv beta iota in Hres.
       + (* [appendEntry] refused the batch *)

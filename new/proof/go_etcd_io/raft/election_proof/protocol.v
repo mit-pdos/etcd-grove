@@ -385,6 +385,16 @@ Definition pcan_vote (s : pstate.t) (from : w64) : Prop :=
 Definition lead_ok (s : pstate.t) : Prop :=
   s.(pstate.role) ≠ role.Leader → s.(pstate.lead) ≠ id.
 
+(** A follower's vote tally is empty.  Also an invariant ([own_raft_ghost]
+    carries it): every rule that makes a follower clears the tally
+    ([pbecome_follower], [padopt_leader]), and [step_record_vote] needs a
+    candidate.  [Step] needs it where the code and the model take
+    different routes to the same follower: a follower at the current term
+    receiving [MsgApp]/[MsgHeartbeat] runs [r.lead = m.From], leaving the
+    tally alone, where [padopt_leader] sets it to [∅]. *)
+Definition follower_votes_ok (s : pstate.t) : Prop :=
+  s.(pstate.role) = role.Follower → s.(pstate.votes) = ∅.
+
 (** What a leader's [MsgApp] says ([maybeSendAppend]: [Index: pr.Next-1,
     LogTerm: term(pr.Next-1), Entries: entries(pr.Next, maxMsgSize),
     Commit: committed]).
@@ -1021,7 +1031,8 @@ Definition own_raft_ghost γ (id : w64) (s : pstate.t) : iProp Σ :=
     "#Htally" ∷ ([∗ set] v ∈ granted s.(pstate.votes), is_vote γ v s.(pstate.term) id) ∗
     "#Hlead"  ∷ leader_wit γ id s ∗
     "Hlg"     ∷ own_log_ghost γ id s ∗
-    "%Hlead_ok" ∷ ⌜ lead_ok id s ⌝.
+    "%Hlead_ok" ∷ ⌜ lead_ok id s ⌝ ∗
+    "%Hfollower_votes" ∷ ⌜ follower_votes_ok s ⌝.
 
 Global Instance own_raft_ghost_timeless γ id s : Timeless (own_raft_ghost γ id s).
 Proof. apply _. Qed.
@@ -1037,14 +1048,20 @@ Lemma own_raft_ghost_intro γ id s γv voted :
   leader_wit γ id s -∗
   own_log_ghost γ id s -∗
   ⌜ lead_ok id s ⌝ -∗
+  ⌜ follower_votes_ok s ⌝ -∗
   own_raft_ghost γ id s.
 Proof.
-  iIntros (??) "H1 %H2 #H3 #H4 #H5 #H6 H7 %H8". iExists γv, voted. by iFrame "∗#%".
+  iIntros (??) "H1 %H2 #H3 #H4 #H5 #H6 H7 %H8 %H9". iExists γv, voted. by iFrame "∗#%".
 Qed.
 
 (** A non-leader does not record itself as leader. *)
 Lemma own_raft_ghost_lead_ok γ id s :
   own_raft_ghost γ id s -∗ ⌜ lead_ok id s ⌝.
+Proof. iIntros "H". iNamed "H". done. Qed.
+
+(** A follower's tally is empty. *)
+Lemma own_raft_ghost_follower_votes γ id s :
+  own_raft_ghost γ id s -∗ ⌜ follower_votes_ok s ⌝.
 Proof. iIntros "H". iNamed "H". done. Qed.
 
 Lemma matched_ok_eq γ s1 s2 :
@@ -1287,7 +1304,7 @@ Qed.
 
 Local Ltac destruct_ghost :=
   iDestruct "Hown" as (γv voted)
-    "(%Hname & %Hidnz & Hvoted & %Hhist & #Hfrags & #Hout & #Htally & #Hlead & Hlg & %Hlok)".
+    "(%Hname & %Hidnz & Hvoted & %Hhist & #Hfrags & #Hout & #Htally & #Hlead & Hlg & %Hlok & %Hfv)".
 
 (** [lead_ok] of the state a rule produces: unchanged role and leader, or a
     leader, or a follower with no leader / another node as leader. *)
@@ -1296,6 +1313,12 @@ Local Ltac lead_ok_tac :=
     [ assumption
     | rewrite /lead_ok /=; intros Hr;
       first [ by exfalso; apply Hr | assumption | congruence ] ].
+
+(** [follower_votes_ok] of the state a rule produces, likewise. *)
+Local Ltac follower_votes_tac :=
+  first
+    [ assumption
+    | rewrite /follower_votes_ok /=; intros Hr; first [ done | congruence ] ].
 
 (** [step_win]: allocate the term log, holding the leader's entry, and
     acknowledge the old and the new last index. *)
@@ -1352,7 +1375,7 @@ Proof.
   { rewrite Hs2commit. iFrame "#". }
   iModIntro.
   iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-           with "Hvoted [] Hfrags [] [] [] [-] [%]"); [ idtac .. | lead_ok_tac ].
+           with "Hvoted [] Hfrags [] [] [] [-] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
   - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); [exact Hs2term|exact Hs2vote].
   - rewrite psend_msgs_outbox Hs2out big_sepL_app.
     iSplitR; [iFrame "#"|]. rewrite big_sepL_cons. iSplitR.
@@ -1409,7 +1432,7 @@ Proof.
   { rewrite /leader_wit Hrole. iFrame "#". }
   iModIntro.
   iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-           with "Hvoted [] Hfrags [] [] [] [Hlg] [%]"); [ idtac .. | lead_ok_tac ].
+           with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
   - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
   - rewrite /psend_msgs /= big_sepL_app. iSplitR; [iFrame "#"|].
     iApply big_sepL_intro. iIntros "!> %k %m %Hk".
@@ -1434,7 +1457,7 @@ Proof.
   { rewrite /leader_wit Hrole. iFrame "#". }
   iModIntro.
   iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-           with "Hvoted [] Hfrags [] [] [] [Hlg] [%]"); [ idtac .. | lead_ok_tac ].
+           with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
   - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
   - rewrite /psend_msgs /= big_sepL_app. iSplitR; [iFrame "#"|].
     iApply big_sepL_intro. iIntros "!> %k %m %Hk".
@@ -1457,7 +1480,7 @@ Proof.
   iIntros "Hown". destruct_ghost.
   iModIntro.
   iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-           with "Hvoted [] Hfrags [] [] [] [Hlg] [%]"); [ idtac .. | lead_ok_tac ].
+           with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
   - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
   - rewrite /psend_msgs /= big_sepL_app. iSplitR; [iFrame "#"|].
     rewrite big_sepL_singleton. by iApply is_message_free.
@@ -1486,7 +1509,7 @@ Proof.
   { rewrite /is_message Hty Hrej -Hterm. iFrame "#". }
   iModIntro.
   iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-           with "Hvoted [] Hfrags [] [] [] [Hlg] [%]"); [ idtac .. | lead_ok_tac ].
+           with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
   - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
   - simpl. iFrame "#".
   - simpl. iFrame "#".
@@ -1511,7 +1534,7 @@ Proof.
   intros Hrole Hq. iIntros "Hown". destruct_ghost.
   iModIntro.
   iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-           with "Hvoted [] Hfrags [] [] [] [Hlg] [%]"); [ idtac .. | lead_ok_tac ].
+           with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
   - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
   - simpl. iFrame "#".
   - simpl. iFrame "#".
@@ -1547,7 +1570,7 @@ Proof.
     as "[Hlg #Hack]".
   iModIntro.
   iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-           with "Hvoted [] Hfrags [] [] [] [Hlg] [%]"); [ idtac .. | lead_ok_tac ].
+           with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
   - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
   - rewrite /psend_msgs /= big_sepL_app. iSplitR; [iFrame "#"|].
     rewrite big_sepL_singleton /is_message /=. iFrame "#".
@@ -1570,7 +1593,7 @@ Proof.
   intros Hfid Hrole. iIntros "Hown". destruct_ghost.
   iModIntro.
   iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-           with "Hvoted [] Hfrags [] [] [] [Hlg] [%]"); [ idtac .. | lead_ok_tac ].
+           with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
   - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
   - rewrite /psend_msgs /= big_sepL_app. iSplitR; [iFrame "#"|].
     rewrite big_sepL_singleton /is_message /=. done.
@@ -1598,7 +1621,7 @@ Proof.
   { rewrite /is_message Hty. iDestruct "Hm" as "[_ $]". }
   iModIntro.
   iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-           with "Hvoted [] Hfrags [] [] [] [Hlg] [%]"); [ idtac .. | lead_ok_tac ].
+           with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
   - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
   - rewrite /psend_msgs /= big_sepL_app. iSplitR; [iFrame "#"|].
     rewrite big_sepL_singleton /is_message /=. done.
@@ -1647,7 +1670,7 @@ Proof.
   iMod (own_log_ghost_ack _ _ _ s.(pstate.term) lastnewi with "Hlg") as "[Hlg #Hack]".
   iModIntro.
   iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-           with "Hvoted [] Hfrags [] [] [] [Hlg] [%]"); [ idtac .. | lead_ok_tac ].
+           with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
   - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
   - rewrite /psend_msgs /= big_sepL_app. iSplitR; [iFrame "#"|].
     rewrite big_sepL_singleton /is_message /=. iFrame "#".
@@ -1731,7 +1754,7 @@ Proof.
   { iExists γm. iFrame "%". iApply (big_sepM_lookup with "Htfrags"). done. }
   iModIntro.
   iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-           with "Hvoted [] Hfrags [] [] [] [-] [%]"); [ idtac .. | lead_ok_tac ].
+           with "Hvoted [] Hfrags [] [] [] [-] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
   - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
   - rewrite psend_msgs_outbox big_sepL_app. iSplitR; [iFrame "#"|].
     rewrite big_sepL_singleton /is_message /pself_ack /=.
@@ -1819,10 +1842,11 @@ Proof.
         eapply (vote_hist_fresh voted s); [exact Hhist|done]. }
     iModIntro.
     iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-             with "Hvoted [] Hfrags [] [] [] [Hlg] [%]");
+             with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%]");
       [ idtac ..
       | rewrite /lead_ok /pbecome_follower /=; intros _;
-        destruct (from_leader m.(msg.ty)); [by apply Hfl | congruence] ].
+        destruct (from_leader m.(msg.ty)); [by apply Hfl | congruence]
+      | follower_votes_tac ].
     + iPureIntro. exact Hhist'.
     + by rewrite /pbecome_follower /=.
     + rewrite /pbecome_follower /= granted_empty big_sepS_empty //.
@@ -1850,7 +1874,7 @@ Proof.
       - rewrite lookup_insert_eq decide_False //. }
     iModIntro.
     iApply (own_raft_ghost_intro _ _ _ γv (<[t' := id]> voted) Hname Hidnz
-             with "Hvoted [] [] [] [] [] [Hlg] [%]"); [ idtac .. | lead_ok_tac ].
+             with "Hvoted [] [] [] [] [] [Hlg] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
     + iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist'); reflexivity.
     + rewrite big_sepM_insert //. by iFrame "#".
     + rewrite /psend_msgs /pbecome_candidate /=.
@@ -1901,7 +1925,7 @@ Proof.
         + rewrite big_sepM_insert //. by iFrame "#". }
     iModIntro.
     iApply (own_raft_ghost_intro _ _ _ γv voted' Hname Hidnz
-             with "Hvoted [] Hfrags' [] [] [] [Hlg] [%]"); [ idtac .. | lead_ok_tac ].
+             with "Hvoted [] Hfrags' [] [] [] [Hlg] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
     + iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist'); reflexivity.
     + rewrite /psend_msgs /=. rewrite big_sepL_app. iSplitR; [iFrame "#"|].
       rewrite big_sepL_singleton. by iApply is_message_grant.
@@ -1913,7 +1937,7 @@ Proof.
     iIntros "_ Hown". destruct_ghost.
     iModIntro.
     iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-             with "Hvoted [] Hfrags [] [] [] [Hlg] [%]"); [ idtac .. | lead_ok_tac ].
+             with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
     + iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
     + rewrite /psend_msgs /=. rewrite big_sepL_app. iSplitR; [iFrame "#"|].
       rewrite big_sepL_singleton. by iApply is_message_reject.
@@ -1927,7 +1951,7 @@ Proof.
     destruct_ghost.
     iModIntro.
     iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-             with "Hvoted [] Hfrags [] [] [] [Hlg] [%]"); [ idtac .. | lead_ok_tac ].
+             with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
     + iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
     + iFrame "#".
     + simpl. iApply big_sepS_intro. iIntros "!> %v %Hv".
@@ -1953,7 +1977,7 @@ Proof.
       split; simpl; [done|exact Heq]. }
     iModIntro.
     iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-             with "Hvoted [] Hfrags [] [] [] [Hlg] [%]"); [ idtac .. | lead_ok_tac ].
+             with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
     + iPureIntro. exact Hhist'.
     + by rewrite /pbecome_follower /=.
     + rewrite /pbecome_follower /= granted_empty big_sepS_empty //.
@@ -1964,7 +1988,7 @@ Proof.
     iIntros "_ Hown". destruct_ghost.
     iModIntro.
     iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-             with "Hvoted [] Hfrags [] [] [] [Hlg] [%]"); [ idtac .. | lead_ok_tac ].
+             with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
     + iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
     + simpl. iApply big_sepL_intro. iIntros "!> %k %x %Hk".
       iApply (big_sepL_elem_of with "Hout").
@@ -2315,7 +2339,9 @@ Proof.
   rewrite /leader_wit /=.
   iSplit; first done. iSplit; first done. iSplit; first done. iSplit; first done.
   iSplitL "Hat Haa"; last first.
-  { iPureIntro. rewrite /lead_ok /=. intros _ Heq. apply Hnz. by rewrite Heq. }
+  { iPureIntro. split.
+    - rewrite /lead_ok /=. intros _ Heq. apply Hnz. by rewrite Heq.
+    - rewrite /follower_votes_ok /=. done. }
   iExists γm, ∅, γa, ∅. iFrame "Hat Haa".
   rewrite !big_sepM_empty big_sepL_nil /lead_log_own /matched_ok /=.
   iSplit; first done. iSplit; first done.
