@@ -642,3 +642,110 @@ fidelity): voters ownership and the applied bound in `HSnapshot` +
 `raftLog.snapshot`'s spec, then `snap_ok` gains `m.index ≤ s.commit` and
 `snap_ok_message` can be proved (with a `base` fact in `own_log_ghost`
 for a compacted index).
+
+## Phase 3: pre-vote, reconfiguration, read-only (scoping, 2026-10-02; not started)
+
+In the user's order. Each lifts one `own_raft_phys` scope conjunct, so each
+is a cone-wide change; none has been designed in detail yet, and the model
+rules below are sketches to be checked against the bodies first
+(`notes/false-statements.md`).
+
+### Pre-vote (`preVote = true`)
+
+Code (`raft.go`): `hup(campaignPreElection)` → `campaign` →
+`becomePreCandidate` (step := stepCandidate, votes reset, `lead := 0`,
+`state := StatePreCandidate`; **term and vote unchanged**) and sends
+`MsgPreVote` with `Term: r.Term + 1` (`campaign` sends at `term = r.Term+1`
+for pre-vote, `raft.go:1030-1040`). Receiver (`Step`): a `MsgPreVote` with a
+higher term does **not** step the node down (`raft.go:1102`); `canVote`
+gains the disjunct `m.Type == MsgPreVote && m.Term > r.Term` and the
+`inLease` check (`checkQuorum`, still false) is skipped; a granted
+`MsgPreVoteResp` carries the *future* term and does not record a vote;
+a rejecting `MsgPreVoteResp` at a higher term makes the receiver step
+down (`raft.go:1104`); a stale `MsgPreVote` is answered with a rejecting
+`MsgPreVoteResp` at the receiver's term (`raft.go:1144-1152`).
+`stepCandidate`: `myVoteRespType` is `MsgPreVoteResp` in `StatePreCandidate`,
+and winning runs `campaign(campaignElection)`, i.e. the real election.
+
+Model: `role.t` gains `PreCandidate` (`StatePreCandidate = 3`,
+`step_func_of` = `stepCandidate`); `pstate.votes` is reused for the
+pre-vote tally; rules `step_precampaign` (no term change; sends `PreVote`
+at `term+1`), `step_grant_prevote`/`step_reject_prevote` (no state change
+besides the send; granting needs the up-to-date check and
+`m.term > s.term`), `step_record_prevote`, `step_prewin` (quorum of
+pre-votes → `step_campaign`), `step_prelose` (→ follower). Ghost: a
+pre-vote grant is **free** (`is_message` trivial): it records nothing, so
+election safety is untouched; the model only has to let the code do what
+it does. Costs: `own_raft_phys`'s `HnoPreVote` goes (the field becomes
+`nstate.prevote : bool` or a `cfg`-like parameter); `Step`'s preamble
+proofs gain the `MsgPreVote`/`MsgPreVoteResp` arms (every existing branch
+re-checks); `campaign`, `hup`, `becomePreCandidate` (new), `poll`
+(`voteRespMsgType` for `MsgPreVote`), `stepCandidate` (the
+`StatePreCandidate` branch, incl. the win → `campaign` path), `tickElection`
+unchanged. `newRaft` copies `c.PreVote`.
+
+### Reconfiguration
+
+Code: a leader's `MsgProp` with `EntryConfChange`/`EntryConfChangeV2`
+entries (`raft.go:1296-1330`: `pendingConfIndex`, the "already pending"/
+joint checks, `traceChangeConfEvent`); the entry is replicated like any
+other; **application** happens through `RawNode`/`node` calling
+`ApplyConfChange` → `raft.applyConfChange` (`raft.go:1939`) →
+`confchange.Changer.{Simple,EnterJoint,LeaveJoint}` → `switchToConfig`,
+which may change the voter set, add learners, remove the node itself
+(`Progress[r.id] == nil` → a leader stops proposing), and transfers
+leadership on leaving a joint config. `hasUnappliedConfChanges` guards
+`hup`.
+
+Model: `cfg` stops being a parameter. The protocol state carries the
+configuration (`voters : gset w64`, possibly `outgoing` for joint
+consensus) and `step_win`/`step_commit`/`is_quorum` are relative to it;
+`is_leader γ id term` must say which configuration elected it, and
+election safety becomes the joint-consensus argument (quorums of both the
+incoming and outgoing configuration). That is a second protocol proof of
+the size of the election one. Costs on the implementation side: translate
+`confchange` (today `translate = ["Changer"]` only; `Restore` and
+`Equivalent` are axioms), drop `HnoConfChange` from `own_raftLog` in
+favour of "no conf change in `(applied, committed]`" (STATUS item 2),
+`own_tracker` over a joint `Config` (`Voters[1]`, `Learners`,
+`LearnersNext`, `AutoLeave`), `applyConfChange`/`switchToConfig` for real
+configs, `own_raft_phys_reconfig` becomes an ordinary transition, and the
+entry point `ApplyConfChange` is on `RawNode`, outside `Step` -- so the
+development needs its first spec above `Step` (STATUS item 3 is the same
+boundary). Suggested order: entries of type `EntryConfChange` allowed in
+the log first (the `MsgProp` loop's scope premise lifted; application
+still out of scope), then `applyConfChange` with the voter set as state,
+then joint consensus.
+
+### Read-only (`ReadOnlySafe`)
+
+Code: `MsgReadIndex` at the leader (`raft.go:1346-1360`): singleton →
+answer immediately; no entry committed in the current term → queue in
+`pendingReadIndexMessages`; else `sendMsgReadIndexResponse` →
+`readOnly.addRequest(committed, m)`, self-ack, `bcastHeartbeat` with a
+non-empty `heartbeatCtx`; `MsgHeartbeatResp` with a `Context` →
+`recvAck`, `maybeAdvance` → `responseToReadIndexReq` (a `ReadState` for a
+local request, `MsgReadIndexResp` for a forwarded one);
+`releasePendingReadIndexMessages` after a commit; a follower forwards
+`MsgReadIndex` to its leader and turns `MsgReadIndexResp` into a
+`ReadState`. The old `v3_proof/readonly.v` development is the protocol for
+exactly this (heartbeat contexts, acknowledgement quorums, `is_read_index`)
+and is the thing to reconcile with `protocol.v` (STATUS item 6).
+
+Model: the read index is a linearizability claim, not a safety-of-log
+claim: "`readIndex` ≤ the commit index of every later leader" follows from
+leader completeness plus a quorum of heartbeat acknowledgements in the
+leader's term. Rules: `step_readindex_queue`, `step_readindex_start`
+(heartbeat with context), `step_readindex_ack`, `step_readindex_resolve`
+(a quorum of acks for a context → `ReadState (readIndex, ctx)` or a
+`ReadIndexResp`). Costs: `own_read_only` gets real state (`acks`,
+`unconfirmedReads` as a queue of `(index, ctx, req)`), `own_raft_misc`'s
+`readStates`/`pendingReadIndexMessages` become indexed state, the
+heartbeat specs carry the context, `heartbeatCtx`'s `nil` result is no
+longer the only case, `MsgHeartbeatResp`'s empty-`Context` premise goes,
+and `readOnly.{addRequest,recvAck,maybeAdvance,AckedIndex}`,
+`responseToReadIndexReq`, `sendMsgReadIndexResponse`,
+`committedEntryInCurrentTerm`, `ProgressTracker.IsSingleton` get
+collections. `maybeAdvance` hands out an uncapped sub-slice of
+`unconfirmedReads` (raft-implementation-facts.md); its one caller only
+ranges over it.
