@@ -1,6 +1,6 @@
 # Status
 
-**Last updated:** 2026-09-29
+**Last updated:** 2026-10-02 (branch `worktree-raft-replication`, not yet on `main`)
 
 This file is a snapshot of where the proof *is*. It carries no history: how
 something got this way is in [journal.md](journal.md), why a design was
@@ -35,18 +35,40 @@ and the older read-index work in `v3_proof/`. They share only `base.v`.
 - `v3_proof/base.v` — `IsPkgInit` instances for the raft package and its
   dependencies. Boilerplate; grows as new packages are pulled in.
 - `election_proof/protocol.v` — the **protocol model**: the protocol node
-  state `pstate.t`, the transition relation `step`, the ghost state
-  (`own_raft_ghost`, `is_message`, `is_vote`, `is_leader`) and
-  `is_leader_unique`, the at-most-one-leader-per-term fact the model exists
-  to supply — an internal lemma, not the result (see "What is proved"). The ghost state is constructed, not axiomatized:
-  per-node `ghost_map`s of `term ↦ candidate`, no Iris invariant, `is_leader`
-  a quorum of votes, and `own_raft_ghost_alloc` to show it is inhabited.
-  **No `Axiom`, no `Admitted`.**
-- `election_proof/` (403 files, flat) and `election_proof/election.v` —
+  state `pstate.t` (term, vote, lead, role, votes, outbox, **and since
+  2026-10-01 the log** -- `base`, `log`, `commit` -- and the leader's
+  per-voter `matched`), the transition relation `step` (election rules plus
+  the replication rules `step_app_accept/_stale/_reject`, `step_heartbeat`,
+  `step_beat`, `step_app_resp`, `step_commit`, `step_send_apps`,
+  `step_propose`, `step_prop_forward`), the ghost state (`own_raft_ghost`,
+  `is_message`, `is_vote`, `is_leader`, and the per-term log authorities
+  `is_term_log`/`is_entry`/`is_acked`/`is_committed`) and the safety
+  statements. Constructed, not axiomatized, no Iris invariant.
+  **Since 2026-10-01 this file may contain `Admitted`** (user's decision,
+  [decisions.md](decisions.md)): five admits today, listed under "Trust
+  base". Everything else in the development stays `Qed`.
+- `election_proof/plog.v` — pure functions on an `(entryID, list Entry)`
+  log (`plog_term_at`, `plog_matches`, `plog_find_conflict`,
+  `plog_truncate_append`, `plog_maybe_append`, `plog_up_to_date`, ...),
+  shared by the model and the `raftLog` specs. Design:
+  [raft-replication-model.md](raft-replication-model.md).
+- `election_proof/` (flat) and `election_proof/election.v` —
   the **implementation side**. One Go function per collection of four files:
   `spec_<fn>.v` (a `Module Type` with exactly one `Parameter`, the single
   place its Hoare triple is written), `postulates_<fn>.v`, `proof_<fn>.v` (a
-  functor ascribed to the signature) and `link_<fn>.v`. **98 collections.**
+  functor ascribed to the signature) and `link_<fn>.v`. **125 collections**
+  (98 on 2026-09-29; the 27 added on 2026-10-01/02 are the replication
+  path: `raftLog.{matchTerm,findConflict,findConflictByTerm,commitTo,
+  maybeCommit,maybeAppend,zeroTermOnOutOfBounds}`, `raft.{handleAppendEntries,
+  handleHeartbeat,sendHeartbeat,bcastHeartbeat,bcastHeartbeatWithCtx,
+  maybeCommit}`, `Progress.{MaybeUpdate,MaybeDecrTo,BecomeProbe,CanBumpCommit}`,
+  `Inflights.FreeLE`, `ProgressTracker.Committed`, `MajorityConfig/
+  JointConfig.CommittedIndex`, `matchAckIndexer.AckedIndex`,
+  `readOnly.heartbeatCtx`, `releasePendingReadIndexMessages`, `traceCommit`,
+  `pbEntryID`, `logSliceFromMsgApp`). The three `stepX` collections are now
+  `stepFollower`, `stepCandidate`, `stepLeader` (renamed from
+  `*_MsgVoteResp`), each **one spec over every message type `Step`
+  dispatches to it** (the last arms are in flight, see "In flight").
   Shared predicates live in `defs.v`, `inv_*.v` and `step_lemmas.v`, outside
   the module system. A function whose proof needs several files gets a
   `proof_<fn>_helpers/` directory (two today: `raft__Step`, with eight,
@@ -131,7 +153,23 @@ specs of Go functions):
   an election message takes `own_raft_phys` from a physical state `s` with
   `nstate_rel s ps` to some `s'` with `nstate_rel s' ps'`, and moves
   `own_raft_ghost` from `ps` to `ps'` at the same time, with
-  `∃ recv, step cfg id ps recv ps'`.
+  `∃ recv, step cfg id ps recv ps'`. **Still only for
+  `MsgHup`/`MsgVote`/`MsgVoteResp`** (`election_msg`); the replication
+  branches are the next step (see "In flight"). The precondition now also
+  takes the message's `Entries` (`↦*□ ents` and their capacity --
+  `truncateAndAppend`'s replace arm adopts the slice) and the `is_message`
+  fact at `abs_msg ty m ents`.
+- **Everything `Step` will dispatch to for replication is specified and
+  `Qed`** (2026-10-01/02): `stepFollower`, `stepCandidate` (MsgVoteResp,
+  MsgProp, MsgApp), `stepLeader` (MsgVoteResp, MsgBeat, MsgHeartbeatResp,
+  MsgAppResp) and the whole call tree below them, stated on
+  `own_raft_phys`/`own_raftLog`/`own_progress` with `plog.v`'s functions:
+  the follower's append decision (`raftLog.maybeAppend` through
+  `matchTerm`/`findConflict`/`truncateAndAppend`'s three arms/`commitTo`),
+  the leader's commit (`maybeCommit` through `ProgressTracker.Committed`,
+  returning a quorum fact `is_quorum cfg (acked_by …)`), the heartbeat
+  chain, and `appendEntry` for an arbitrary `EntryNormal` batch with its
+  drop path.
 - **`NewRaft.wp_newRaft`** (`election_proof/spec_newRaft.v`, 2026-09-24):
   the **constructor**. From a `Config` and a `Storage` it returns
   `own_raft_phys (list_to_set voters) r cv.ID s` at a state that is
@@ -174,7 +212,10 @@ Everything above holds **only** under these assumptions. They are premises of
 
 | assumption | where |
 |---|---|
-| Only `MsgHup`/`MsgVote`/`MsgVoteResp` are ever passed to `Step`. Everything else is taken to be dropped by the network, so a node never *receives* `MsgApp`/`MsgHeartbeat`/`MsgSnap` and never steps down through them. Sending them is in scope and proved | `election_msg`, `spec_raft__Step.v` |
+| Only `MsgHup`/`MsgVote`/`MsgVoteResp` are ever passed to `Step` (**to be widened**: the callee specs for `MsgApp`, `MsgAppResp`, `MsgHeartbeat`, `MsgHeartbeatResp`, `MsgBeat`, `MsgProp` are done; the `Step` branches are in flight). Sending every replication message is in scope and proved | `election_msg`, `spec_raft__Step.v` |
+| A received `MsgApp`'s entries are `EntryNormal`, contiguous from `Index+1`, and conflict only above the receiver's commit index; a received `Heartbeat`'s `Commit` is at most the receiver's last index. The first two are proved from `is_message` (`app_recv_wf`); the last two are **admitted protocol facts** (`app_no_conflict_below_commit`, `heartbeat_commit_le_last`) | `protocol.v` |
+| No read-index requests: `readOnly.unconfirmedReads` and `pendingReadIndexMessages` are empty, so `heartbeatCtx` is `nil` and a `MsgHeartbeatResp` carries an empty `Context` | `inv_misc.v` |
+| `disableProposalForwarding = false` | in flight (`inv_raft_phys.v`) |
 | No proposals, no read-only requests | scope |
 | No reconfiguration, no learners; the voter set `cfg` is fixed, and **no `EntryConfChange` is anywhere in the log** | `HnoConfChange`, `inv_raftlog.v:139` |
 | No snapshot is ever received | `Hnosnap`, `inv_raftlog.v:139` |
@@ -192,6 +233,28 @@ Everything above holds **only** under these assumptions. They are premises of
 Two of these are not restrictions a deployment can honour as written:
 `HnoConfChange`, and — if you care about etcd's defaults — pre-vote and
 check-quorum, both of which etcd's server turns on.
+
+## In flight (2026-10-02)
+
+Branch `worktree-raft-replication`, pushed to origin at every merge. Two
+agents' branches are being merged next:
+
+- **Public representation predicates** (user's request, 2026-10-02):
+  `own_Progress`/`own_Inflights` indexed by spec records (`progress.t`,
+  `inflights.t`), `own_tracker` by one `trk.t` record,
+  `nstate.prvals : gmap w64 progress.t`. Design in
+  [raft-replication-model.md](raft-replication-model.md).
+- **The last `stepX` arms**: MsgHeartbeat at follower/candidate, the
+  follower's proposal forwarding (needs the `disableProposalForwarding`
+  conjunct), the leader's MsgProp, and no-op arms for the other types.
+
+Then: the `Step` branches `MsgApp`, `MsgHeartbeat`, `MsgAppResp`,
+`MsgHeartbeatResp`, `MsgBeat`, `MsgProp` (one helper file each under
+`proof_raft__Step_helpers/`, the dispatch, `election_msg` widened, and
+`err = nil ∨ (MsgProp ∧ err = ErrProposalDropped)`); then snapshots
+(`MsgSnap`/`restore`), pre-vote, reconfiguration, read-only -- in that
+order (user's instruction). `origin/main` has four commits (`4f48cb6de`)
+not yet merged into the branch; `873b7d26a` touches the election cone.
 
 ## What still needs fixing
 
@@ -244,12 +307,21 @@ say so in the journal.
    `tickHeartbeat` is out of scope — a leader never heartbeats, harmless for
    safety — or `MsgBeat` needs a branch. Decide and write it down; the scope
    table above does not currently say.
-5. **`isUpToDate` is unconstrained**, so a bug that makes a node grant to a
-   stale candidate is invisible. Note what this does and does not cost: it is
-   *not* an election-safety bug — at most one leader per term does not depend
-   on log currency — so it cannot produce two leaders. It costs Leader
-   Completeness, which is close to vacuous while the log only ever holds a
-   leader's empty entry. Closing it needs a log model.
+5. ~~**`isUpToDate` is unconstrained**~~ — **done 2026-10-01**:
+   `raftLog.isUpToDate`, `lastEntryID`, `term` and `unstable.maybeTerm` pin
+   their results (`plog_up_to_date`, `plog_last`, `plog_term_at`), and
+   `step_grant_vote` carries the up-to-date premise. What remains is the
+   protocol-level use of it: `leader_completeness` is admitted.
+5b. **The five admits in `protocol.v`** (`heartbeat_commit_le_last`,
+   `app_no_conflict_below_commit`, `log_matching`, `leader_completeness`,
+   `state_machine_safety`). All need one ghost invariant the state does not
+   carry yet: that a node's acknowledgement (`is_acked`) is backed by its own
+   log agreeing with the leader's term log up to that index, and that a
+   node's log agrees with the term logs of the leaders that created its
+   entries. The informal argument is in each admit's comment.
+5c. **Two assumptions on the client `Storage` were added** (`inv_storage.v`):
+   `Entries` returns a prefix of the stored entries from `lo` (its documented
+   contract; `MemoryStorage` meets it). Listed so an auditor sees them.
 6. **Bring `readonly.v` and `protocol.v` into the module discipline.** Eleven
    triples are still stated loose. One is a real duplicate:
    `raft.stepLeader` has a second triple in `readonly.v` against a second
@@ -279,12 +351,12 @@ say so in the journal.
 whose whole job is what the build cannot check. What each establishes, the
 known gaps and the plan are in [tcb-accounting.md](tcb-accounting.md).
 
-`etc/tcb-report.py` over the whole raft proof: **35 assumed — 27 `Axiom` and
-8 `Admitted.`**, 3 of the admits signed off on for now and marked
-`(* Trusted *)` — still debt; the goal is no admits. On the election path
-alone: **14 `Axiom` and 1 `Admitted`**; two results, `wp_raft__Step_body`
-and `wp_newRaft_body`; 74 definitions, 802 lines; TCB 5.4% of the
-development by line.
+`etc/tcb-report.py` on the election path (`--scope election_proof`,
+2026-10-02, at `496c57590`): **14 `Axiom` and 6 `Admitted`** -- the one
+signed off on in `raftLog.slice` and the five protocol-level admits in
+`protocol.v` (allowed there since 2026-10-01); 431 `Qed` lemmas; 115
+definitions, 1,161 lines; TCB 5.5% of the development by line. The
+whole-raft numbers (`v3_proof/` included) are the old ones plus these.
 
     R=new/proof/go_etcd_io/raft      # required; the tool names no development
     etc/tcb-report.py --proof-root $R                  # summary, and which files are incomplete

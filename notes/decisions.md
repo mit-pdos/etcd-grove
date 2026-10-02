@@ -1510,3 +1510,56 @@ outbox. This is the one function that needed the values in the state.
 the Go program. *Computing the new values in the transitions* — more
 precision than any caller uses, at the cost of more fields
 (`MaxInflight`).
+
+## 2026-10-01 — `protocol.v` may contain `Admitted`; the model grows to replication
+
+**Decision (user).** To extend `Step` past election, the protocol file may
+carry admitted lemmas: the ghost-state obligations of new rules and the
+safety consequences (log matching, leader completeness, state-machine
+safety). Everything below `Step` stays `Qed`, phys-only, and under the
+module discipline. The admits are debt, listed in STATUS.md, and each
+carries the informal argument in its comment. Five remain on 2026-10-02.
+
+**Why.** The implementation-side specs are the deliverable
+([2026-09-21](#2026-09-21--the-result-is-verified-specs-for-top-level-raft-functions-election-safety-is-not-the-payoff));
+the protocol-level invariants that justify a leader's commit are a separate,
+large proof that should not gate stating and proving what the code does.
+
+## 2026-10-01 — The protocol log is the wire entry type, in `plog.v`
+
+**Decision.** `pstate.t` carries `base : raft.entryID.t`, `log : list
+raftpb.Entry.t`, `commit : w64`; `protocol.v` requires the generated
+`raftpb` types (types only). The pure functions on such a log live in
+`election_proof/plog.v`, shared by the model and the `raftLog` specs, so a
+`raftLog` method's spec says it computes `plog_f prev (sents ++ uents) …`
+and the model's rule says the node moves to `plog_f base log …`.
+
+**Rejected — an abstract entry type.** A `(term, index)` pair, or a type
+parameter, would have needed a conversion at every `raftLog` spec and could
+not have carried `Data'`/`Type'` for the later conf-change rules. The wire
+type costs nothing: the model reads only `Term'`/`Index'`.
+
+## 2026-10-01 — The leader's `matched` is in `pstate.t`, and only for a leader
+
+**Decision.** `pstate.matched : gmap w64 w64` is each voter's
+`Progress.Match` **while the node is leader**, and `∅` otherwise;
+`to_pstate` computes it from `nstate.prvals`, so `nstate_rel` stays a
+function. `step_commit`'s premise is a quorum over `matched`; `step_win`
+pins what `reset` leaves (`leader_match_ok`: `0` for every voter,
+`lastIndex()` for the node); `step_app_resp` is `MaybeUpdate`.
+
+**Why `∅` for non-leaders.** A follower's `Progress` values are stale and
+nothing reads them; making them `∅` keeps every non-leader proof's
+`to_pstate_prvals` rewrite valid and confines the Match discipline (every
+spec that returns `<| prvals := pvs |>` now also says what happened to
+`Match`) to the leader path.
+
+**Rejected — justify commit from the received `AppResp`s alone.** The
+acknowledgements arrive one `Step` at a time; the knowledge must be state,
+and the only honest place is the field the code reads.
+
+**Consequence.** The abstraction of the outbox became spatial
+(`outbox_rel`, `inv_raft_phys.v`): an `App`'s abstract message carries the
+entry list behind `Entries`, so `send` takes `ents` with `m.Entries' ↦*□
+ents`, and `MsgAppResp` is now visible in the abstract outbox (the leader
+acknowledges its own append by message).

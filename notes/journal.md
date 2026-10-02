@@ -4174,3 +4174,34 @@ Branch `worktree-agent-a0b6f7b1e97196737` (from c9341cbd4).  All `Qed`.
   frame a `Hphys` at the same state; leave the state to the frame and
   discharge the pure premises as `{ exact … }` goals.  A spec-file definition
   mentioning `become_leader` needs the heap section `Context`.
+
+## 2026-10-02 — coordinator: wave 1 and wave 2 merged; the branch and what is next
+
+Branch `worktree-raft-replication` (pushed after every merge). Work was
+done by parallel agents in their own worktrees, each on disjoint files,
+with the shared files (`protocol.v`, `defs.v`, `inv_raft_phys.v`) owned
+by one "model" agent in the branch's worktree; the coordinator merged and
+rebuilt. Merged so far, in order: the design note and `plog.v`
+(`301ff1d35`); the model refactor (`88ebd8177`); the tracker side
+(`4ee72d8f6`); the log side, part A (`a3ca67c7c`); the un-deferred model
+premises (`cf831053a`); the log side, part B with `maybeAppend`
+(`8c2855629`); `appendEntry` widened (`c9341cbd4`); slice/entries pinned,
+`app_ok` complete, receiver lemmas (`571ccc38e`); the heartbeat chain,
+`maybeCommit`, `stepLeader` widened (`556a14bba`); the follower side,
+`handleAppendEntries`, `stepFollower`/`stepCandidate` widened
+(`496c57590`). Each agent's own entry above has the details.
+
+Checked at `496c57590`: `make -k -j6 …/election.vo` exit 0 (521 files);
+`check-module-discipline --scope election_proof`: 3 warnings, no errors;
+`tcb-report --scope election_proof`: 14 Axiom, 6 Admitted (5 in
+`protocol.v`, 1 trusted in `raftLog.slice`), 431 Qed.
+
+Two things bit the coordination itself and are in the agents' briefs now:
+(1) a temporary agent worktree that ends a turn unchanged is deleted, and
+new worktrees branch from `origin/main`, which moved (`4f48cb6de`) -- so
+briefs start with `git reset --hard <base>` and "do not stop"; (2) API
+session limits killed every Opus agent twice; resuming them with "commit a
+checkpoint first" lost nothing.
+
+In flight: the public-predicate refactor (user's request, see the model
+note) and the last `stepX` arms; then the `Step` branches.

@@ -19,7 +19,7 @@ needed the fact and could not get it:
 | `wp_ProgressTracker__Visit` | owned no part of the tracker *struct*, but `Visit` has a pointer receiver and loads `p.Progress` through it (`tracker.v:809`, `:837`) |
 | `TallyVotes`'s `VoteWon` conjunct | `MajorityConfig.VoteResult` returns `VoteWon` outright for an empty config (`quorum.v:412-418`), while `is_quorum ∅ q` is `0 < 0` |
 | `wp_raft__appendEntry`, again | owned no part of `es`, but the method writes `Term`/`Index` into every element (`v3.v:3453-3461`) — "own what you write" |
-| `wp_raft__appendEntry`, again | claimed `RET #true` unconditionally; there is a `return: #false` when `increaseUncommittedSize` rejects (`v3.v:3463`) |
+| `wp_raft__appendEntry`, again | claimed `RET #true` unconditionally; there is a `return: #false` when `increaseUncommittedSize` rejects (`v3.v:3469`; this file said 3463 until 2026-10-01) |
 | `own_tracker`'s `HmaxInfl` comment (`inv_tracker.v`) | said `Config.validate` requires `MaxInflightMsgs ∈ (0, 1<<30]`; `validate` checks only `> 0` (`v3.v:2830-2832`). The conjunct itself (`< 2^62`) is needed and kept, so `own_raft_phys` is **unsatisfiable for a valid `Config` with `MaxInflightMsgs ≥ 2^62`**, and `newRaft`'s spec takes the bound as a premise of its own. Found 2026-09-24 writing that spec |
 
 **Nine of the ten were claims about what raft's code does that nobody had
@@ -180,7 +180,7 @@ alone once you read `raft__appendEntryⁱᵐᵖˡ` in `new/code/go_etcd_io/raft/
   values into `unstable.entries` rather than taking the caller's slice.
 - **`RET #true` for an arbitrary `es`.** `appendEntry` does have a
   `return: #false`: the path where `increaseUncommittedSize(es)` rejects the
-  batch (`v3.v:3463`). The triple quantified over every `es : slice.t`, so it
+  batch (`v3.v:3469`). The triple quantified over every `es : slice.t`, so it
   claimed the batch is always accepted.
 
 **The obvious fix is also wrong, and this is the more useful half of the
@@ -293,3 +293,14 @@ puts the tracker and the log **on loan** (`nstate.lent := Some tv`) across
 holds its entries read-only and `entries` hands `ents` out read-only and
 for good, so only the tracker is on loan across `send`.
 
+
+## 2026-10-01: a received `MsgApp`'s entries need their capacity, not only a read-only view
+
+Found writing `raftLog.maybeAppend`. `unstable.truncateAndAppend`'s replace
+arm (`fromIndex <= u.offset`, `v3.v:1650`) does `u.entries = ents`: it
+**adopts the caller's slice**, so a later in-place append by raft writes
+into the caller's slack. A spec that takes the batch at `↦*□` alone is
+therefore too weak to be satisfied by the proof (the predicate needs the
+capacity), and `Step`'s precondition for a `MsgApp` takes `own_slice_cap
+m.Entries' (DfracOwn 1)` beside `m.Entries' ↦*□ ents`. The design note had
+assumed `↦*□` would do.
