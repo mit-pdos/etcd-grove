@@ -1,6 +1,6 @@
 # Status
 
-**Last updated:** 2026-10-02, 22:00 UTC (branch `worktree-raft-replication` at `53988c87a`; `origin/main` `4f48cb6de` merged in; not yet on `main`)
+**Last updated:** 2026-10-03 (branch `worktree-raft-replication` at `d50b693a0`; `origin/main` `4f48cb6de` merged in; not yet on `main`)
 
 This file is a snapshot of where the proof *is*. It carries no history: how
 something got this way is in [journal.md](journal.md), why a design was
@@ -395,9 +395,10 @@ and acks live in its own ghost maps) -- they have to be restated over the
 whole cluster, see item 5b. `heartbeat_commit_le_last`,
 `app_no_conflict_below_commit` and `log_matching` were proved on
 2026-10-02 from the acknowledgement-backed-by-log invariant in
-`own_log_ghost` (`acks_ok`, `log_recs`, `lead_prefix`). About 500 `Qed`
-lemmas; two results (`Step`, `newRaft`). `make ci` exit 0 at `c0edb8a9f`
-(512 files); the numbers after this merge are to be re-run. The
+`own_log_ghost` (`acks_ok`, `log_recs`, `lead_prefix`). 544 `Qed`
+lemmas; two results (`Step`, `newRaft`); 144 definitions, 1,342 lines;
+TCB 5.2% of the development by line. `make ci` exit 0 at `d50b693a0`
+(540 files). The
 whole-raft numbers (`v3_proof/` included) are the old ones plus these.
 
     R=new/proof/go_etcd_io/raft      # required; the tool names no development
