@@ -73,7 +73,7 @@ Import P.
       rewrite bool_decide_eq_false_2 //. wp_auto.
       (* every entry of the page is an entry of the log, so [Pred] holds *)
       iAssert (⌜ Forall Pred es ⌝)%I as "HPes".
-      { iPureIntro. eapply Forall_sublist_of; [exact HP | exact Hin]. }
+      { iPureIntro. eapply Forall_sublist_of; [exact HP | exact (proj1 Hin)]. }
       wp_apply ("Hf" with "[$Hes $HPes $HI]") as "[_ HI]".
       wp_for_post.
       iFrame. iPureIntro. word.

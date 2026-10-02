@@ -42,7 +42,37 @@ Definition msa_pkg (r : loc) (id : w64) (s : nstate.t) (ep : loc)
   "Hphys" ∷ own_raft_phys cfg r id s ∗
   "%Hwin" ∷ ⌜ pv.(tracker.Progress.State') = W64 1 → es ≠ [] →
               inflights_full iv = false ⌝ ∗
-  "%Hpkgin" ∷ ⌜ Forall (λ e, e ∈ (to_pstate s).(pstate.log)) es ⌝.
+  "%Hpkgin" ∷ ⌜ Forall (λ e, e ∈ (to_pstate s).(pstate.log)) es ⌝ ∗
+  "%Hpkgpre" ∷ ⌜ es `prefix_of` plog_from (to_pstate s).(pstate.base) (to_pstate s).(pstate.log)
+                                 pv.(tracker.Progress.Next') ⌝.
+
+(** The [MsgApp]'s batch, from what the log says ([app_ok]'s last two
+    clauses): [Index = pr.Next - 1], the entries a prefix of the log from
+    [pr.Next]. *)
+Lemma msa_app_facts (s : nstate.t) prev sents uents lcm lap (t n : w64) es :
+  s.(nstate.logst) = logstate.mk prev sents uents lcm lap →
+  plog_wf prev (sents ++ uents) →
+  (uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents)
+   + Z.of_nat (length uents) + 1 < 2^64)%Z →
+  (uint.Z prev.(raft.entryID.index') ≤ uint.Z (word.sub n (W64 1)) ≤
+   uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents) + Z.of_nat (length uents))%Z →
+  Forall (λ e, e.(raftpb.Entry.Type') = W32 0) (sents ++ uents) →
+  es `prefix_of` plog_from (to_pstate s).(pstate.base) (to_pstate s).(pstate.log) n →
+  es `prefix_of` plog_from (to_pstate s).(pstate.base) (to_pstate s).(pstate.log)
+                   (word.add (word.sub n (W64 1)) (W64 1)) ∧
+  (plog_wf (raft.entryID.mk t (word.sub n (W64 1))) es ∧
+   uint.Z (word.sub n (W64 1)) + Z.of_nat (length es) + 1 < 2 ^ 64 ∧
+   Forall (λ e, e.(raftpb.Entry.Type') = W32 0) es).
+Proof.
+  intros Hls Hwf Hnw Hi HN Hpre.
+  rewrite (_ : word.add (word.sub n (W64 1)) (W64 1) = n); [|word].
+  split; [exact Hpre|].
+  rewrite /to_pstate Hls /= in Hpre.
+  apply (app_payload_from_log prev (sents ++ uents)); try done.
+  - rewrite length_app. lia.
+  - rewrite /plog_last_index_Z length_app. lia.
+  - rewrite (_ : word.add (word.sub n (W64 1)) (W64 1) = n); [exact Hpre|word].
+Qed.
 
 
 End helpers.
@@ -158,6 +188,9 @@ Set Default Proof Using "Type".
     iEval (rewrite Hls) in "Hlog".
     iDestruct (own_raftLog_nowrap with "Hlog") as "[%Hnw Hlog]".
     cbn [logstate.prev logstate.sents logstate.uents] in Hnw.
+    iDestruct (own_raftLog_wf with "Hlog") as "[%Hlwf Hlog]".
+    iDestruct (own_raftLog_no_confchange with "Hlog") as "[%Hlnc Hlog]".
+    cbn [logstate.prev logstate.sents logstate.uents] in Hlwf, Hlnc.
     wp_apply (wp_raftLog__term _ (logstate.mk prev sents uents lcm lap) _ with "[$Hlog]")
       as "%pterm %err [Hlog [%Herr %Hterm_at]]".
     cbn [logstate.prev logstate.sents logstate.uents] in Herr.
@@ -198,7 +231,7 @@ Set Default Proof Using "Type".
         [ rewrite /msa_pkg; iExists slice.nil, [];
           iFrame "ents Hphys";
           iSplitR; [ iApply own_slice_nil | ];
-          iPureIntro; split; [ intros _ Hne; exfalso; exact (Hne eq_refl) | apply Forall_nil_2 ]
+          iPureIntro; split_and!; [ intros _ Hne; exfalso; exact (Hne eq_refl) | apply Forall_nil_2 | apply prefix_nil ]
         | ]
       | (* in [StateReplicate] with room: fetch [ents] *)
         wp_auto;
@@ -209,16 +242,17 @@ Set Default Proof Using "Type".
         iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hlogback]";
         iEval (rewrite Hls) in "Hlog";
         wp_apply (wp_raftLog__entries _ (logstate.mk prev sents uents lcm lap) _ _ Hlo with "[$Hlog]")
-          as "%sl_e %es_e (Hlog & Hents & %Hin)";
+          as "%sl_e %es_e (Hlog & Hents & [%Hin %Hpre])";
         iEval (rewrite -Hls) in "Hlog";
         iDestruct ("Hlogback" with "Hlog") as "Hphys";
         try wp_auto;
         iAssert (msa_pkg cfg r id s ents_ptr pv iv)
           with "[ents Hphys Hents]" as "HC";
         [ rewrite /msa_pkg; iExists sl_e, es_e; iFrame "ents Hents Hphys";
-          iPureIntro; split;
+          iPureIntro; split_and!;
           [ intros _ _; exact Hfull
-          | apply List.Forall_forall; intros e He; rewrite /= Hls; apply Hin; by apply list_elem_of_In ]
+          | apply List.Forall_forall; intros e He; rewrite /= Hls; apply Hin; by apply list_elem_of_In
+          | rewrite /= Hls; exact Hpre ]
         | ] ]
     | (* not in [StateReplicate]: the first disjunct is true, fetch [ents] *)
       rewrite bool_decide_eq_false_2 //; wp_auto;
@@ -229,16 +263,17 @@ Set Default Proof Using "Type".
       iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hlogback]";
       iEval (rewrite Hls) in "Hlog";
       wp_apply (wp_raftLog__entries _ (logstate.mk prev sents uents lcm lap) _ _ Hlo with "[$Hlog]")
-        as "%sl_e %es_e (Hlog & Hents & %Hin)";
+        as "%sl_e %es_e (Hlog & Hents & [%Hin %Hpre])";
       iEval (rewrite -Hls) in "Hlog";
       iDestruct ("Hlogback" with "Hlog") as "Hphys";
       try wp_auto;
       iAssert (msa_pkg cfg r id s ents_ptr pv iv)
         with "[ents Hphys Hents]" as "HC";
       [ rewrite /msa_pkg; iExists sl_e, es_e; iFrame "ents Hents Hphys";
-        iPureIntro; split;
+        iPureIntro; split_and!;
         [ intros Hc; contradiction
-        | apply List.Forall_forall; intros e He; rewrite /= Hls; apply Hin; by apply list_elem_of_In ]
+        | apply List.Forall_forall; intros e He; rewrite /= Hls; apply Hin; by apply list_elem_of_In
+        | rewrite /= Hls; exact Hpre ]
       | ] ];
     (* --- three goals from here on, in the same state; the rest of the
            proof is one tactic, parenthesised so that it runs once per goal
@@ -292,6 +327,8 @@ Set Default Proof Using "Type".
     wp_apply (wp_Progress__SentCommit with "[$Hpa3]") as "Hpa4";
     iDestruct ("Hpback" with "Hpa4") as "Hphys";
     try wp_auto;
+    pose proof (msa_app_facts s prev sents uents lcm lap pterm pv.(tracker.Progress.Next') es
+                  Hls Hlwf Hnw Herr1 Hlnc Hpkgpre) as Hfacts;
     iApply ("HΦ" $! true);
     iSplitL;
     [ iApply (own_raft_phys_eq with "Hphys"); reflexivity
@@ -301,7 +338,9 @@ Set Default Proof Using "Type".
         [ done | done | done | exact Hto
         | rewrite Hls; exact Hterm_at
         | destruct Hlvc as [Hlvc _]; rewrite Hlvc Hls /=; lia
-        | exact Hpkgin ]
+        | exact Hpkgin
+        | exact (proj1 Hfacts)
+        | exact (proj2 Hfacts) ]
       | rewrite /= insert_insert_eq;
         apply (prvals_match_insert_same _ _ (pv, iv)); [ exact Hpvs | simpl; exact Hm3 ] ] ])).
   Qed.

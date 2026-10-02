@@ -3,6 +3,59 @@ Require Export New.proof.go_etcd_io.raft.election_proof.postulates_raftLog__slic
 Module RaftLogSliceProof (P : RAFTLOG__SLICE_POSTULATES) : RAFTLOG__SLICE.
 Import P.
 
+Section prefix_helpers.
+Context {A : Type}.
+Implicit Types l sents stored uents ese : list A.
+
+(** Which entries [slice] returns, as list facts: each exit's result is a
+    prefix of the log from [lo] ([plog_from]). *)
+Lemma prefix_drop_take (a b : nat) l : drop a (take b l) `prefix_of` drop a l.
+Proof.
+  rewrite -{2}(take_drop b l).
+  destruct (decide (a ≤ length (take b l))%nat) as [Ha|Ha].
+  - rewrite drop_app_le; [|exact Ha]. by apply prefix_app_r.
+  - rewrite (drop_ge (take b l) a); [apply prefix_nil|lia].
+Qed.
+
+(** A [Storage.Entries] result for a range inside the visible stable part. *)
+Lemma slice_stable_prefix sents stored uents ese (k m : nat) :
+  sents `prefix_of` stored → (k ≤ m)%nat → (m ≤ length sents)%nat →
+  ese `prefix_of` drop k (take m stored) →
+  ese `prefix_of` drop k (sents ++ uents).
+Proof.
+  intros [r ->] Hkm Hm Hp. rewrite take_app_le in Hp; [|done].
+  rewrite drop_app_le; [|lia]. apply prefix_app_r.
+  etrans; [exact Hp|]. apply prefix_drop_take.
+Qed.
+
+(** ... which, when it is as long as asked for, is all of it. *)
+Lemma slice_stable_full sents stored ese (k : nat) :
+  sents `prefix_of` stored → (k ≤ length sents)%nat →
+  ese `prefix_of` drop k (take (length sents) stored) →
+  (length sents - k ≤ length ese)%nat →
+  ese = drop k sents.
+Proof.
+  intros [r ->] Hk Hp Hlen. rewrite take_app_length in Hp.
+  apply prefix_length_eq; [done|]. rewrite length_drop. lia.
+Qed.
+
+(** An [unstable.slice] result, cut by [limitSize]. *)
+Lemma slice_unstable_prefix sents uents (a b n : nat) :
+  take n (drop a (take b uents)) `prefix_of` drop (length sents + a) (sents ++ uents).
+Proof.
+  rewrite drop_app_add. etrans; [apply prefix_take|]. apply prefix_drop_take.
+Qed.
+
+(** The whole stable part from [lo], then a cut prefix of the unstable one. *)
+Lemma slice_both_prefix sents uents (k b n : nat) :
+  (k ≤ length sents)%nat →
+  drop k sents ++ take n (drop 0 (take b uents)) `prefix_of` drop k (sents ++ uents).
+Proof.
+  intros Hk. rewrite drop_app_le //. apply prefix_app.
+  rewrite drop_0. etrans; [apply prefix_take|]. apply prefix_take.
+Qed.
+End prefix_helpers.
+
   (* Re-seal the log at the state it was opened at, from the pieces
      [iNamed "Hlog"] and [iNamed "Hcore"] named. *)
   Local Ltac reseal_log := reseal_raftLog.
@@ -109,7 +162,7 @@ Import P.
       assert (Hnwu : (uint.Z lv.(raft.raftLog.unstable').(raft.unstable.offset')
                       + Z.of_nat (length uents) < 2^64)%Z) by lia.
       wp_apply (wp_unstable__slice _ _ _ _ _ Hus Hnwu with "[Huf Huents Huents_cap]")
-        as "%s0 %es0 ((Huf & Huents_cap & Huents) & #Hs0 & (%Hlen0 & %Hin0 & %Hcap0))".
+        as "%s0 %es0 ((Huf & Huents_cap & Huents) & #Hs0 & (%Hlen0 & %Hin0 & %Hcap0 & %Hes0))".
       { rewrite /own_unstable. iFrame. }
       wp_apply (wp_limitSize with "[$Hs0]")
         as "%s1 %nlim ([%Hn1a %Hn1b] & #Hs1 & _)".
@@ -137,7 +190,13 @@ Import P.
         - exact Hnetake.
         - rewrite length_take. lia.
         - intros e He. apply elem_of_app. right. apply Hin0.
-          rewrite -(take_drop nlim es0). apply elem_of_app. by left. }
+          rewrite -(take_drop nlim es0). apply elem_of_app. by left.
+        - rewrite Hes0 /plog_from /subslice.
+          replace (Z.to_nat (uint.Z lo - uint.Z prev.(raft.entryID.index') - 1))
+            with (length sents
+                  + Z.to_nat (uint.Z lo - uint.Z lv.(raft.raftLog.unstable').(raft.unstable.offset')))%nat
+            by lia.
+          apply slice_unstable_prefix. }
       reseal_log.
     - (* the result starts in the stable prefix: [lo < unstable.offset] *)
       iAssert (is_Storage lv.(raft.raftLog.storage')) as "#Hsto".
@@ -155,7 +214,7 @@ Import P.
         wp_auto. rewrite Hstok /=.
         wp_apply ("HEntries" $! prev stored lo hi maxSize with "[$HStorage]").
         { iPureIntro. lia. }
-        iIntros "%se %ese (#Hse & (%Hnee & %Hlene & %Hine & %Hcape) & HStorage)".
+        iIntros "%se %ese (#Hse & (%Hnee & %Hlene & %Hine & %Hcape & %Hpre) & HStorage)".
         wp_auto.
         rewrite bool_decide_eq_true_2; last word.
         wp_auto.
@@ -163,7 +222,8 @@ Import P.
         { iPureIntro. split_and!.
           - exact Hnee.
           - lia.
-          - intros ee Hee. apply elem_of_app. left. eapply stored_take_visible; [exact Hstored | | by apply Hine]; lia. }
+          - intros ee Hee. apply elem_of_app. left. eapply stored_take_visible; [exact Hstored | | by apply Hine]; lia.
+          - rewrite /plog_from. eapply slice_stable_prefix; [exact Hstored| | |exact Hpre]; lia. }
         reseal_log.
       + (* cut = unstable.offset *)
         rewrite bool_decide_eq_false_2; last done.
@@ -172,7 +232,7 @@ Import P.
                     lv.(raft.raftLog.unstable').(raft.unstable.offset')
                     maxSize with "[$HStorage]").
         { iPureIntro. lia. }
-        iIntros "%se %ese (#Hse & (%Hnee & %Hlene & %Hine & %Hcape) & HStorage)".
+        iIntros "%se %ese (#Hse & (%Hnee & %Hlene & %Hine & %Hcape & %Hpre) & HStorage)".
         iDestruct (own_slice_len with "Hse") as %[Hselen Hselen'].
         wp_auto.
         wp_if_destruct.
@@ -181,7 +241,8 @@ Import P.
           { iPureIntro. split_and!.
             - exact Hnee.
             - lia.
-            - intros ee Hee. apply elem_of_app. left. eapply stored_take_visible; [exact Hstored | | by apply Hine]; lia. }
+            - intros ee Hee. apply elem_of_app. left. eapply stored_take_visible; [exact Hstored | | by apply Hine]; lia.
+            - rewrite /plog_from. eapply slice_stable_prefix; [exact Hstored| | |exact Hpre]; lia. }
           reseal_log. }
         wp_if_destruct.
         { (* storage returned fewer entries than asked for: stop there *)
@@ -189,7 +250,8 @@ Import P.
           { iPureIntro. split_and!.
             - exact Hnee.
             - lia.
-            - intros ee Hee. apply elem_of_app. left. eapply stored_take_visible; [exact Hstored | | by apply Hine]; lia. }
+            - intros ee Hee. apply elem_of_app. left. eapply stored_take_visible; [exact Hstored | | by apply Hine]; lia.
+            - rewrite /plog_from. eapply slice_stable_prefix; [exact Hstored| | |exact Hpre]; lia. }
           reseal_log. }
         wp_apply (wp_entsSize with "[$Hse]") as "%sz1 _".
         wp_if_destruct.
@@ -198,7 +260,8 @@ Import P.
           { iPureIntro. split_and!.
             - exact Hnee.
             - lia.
-            - intros ee Hee. apply elem_of_app. left. eapply stored_take_visible; [exact Hstored | | by apply Hine]; lia. }
+            - intros ee Hee. apply elem_of_app. left. eapply stored_take_visible; [exact Hstored | | by apply Hine]; lia.
+            - rewrite /plog_from. eapply slice_stable_prefix; [exact Hstored| | |exact Hpre]; lia. }
           reseal_log. }
         split_unstable l lv.
         assert (Hus : (uint.Z lv.(raft.raftLog.unstable').(raft.unstable.offset')
@@ -210,7 +273,7 @@ Import P.
         assert (Hnwu : (uint.Z lv.(raft.raftLog.unstable').(raft.unstable.offset')
                         + Z.of_nat (length uents) < 2^64)%Z) by lia.
         wp_apply (wp_unstable__slice _ _ _ _ _ Hus Hnwu with "[Huf Huents Huents_cap]")
-          as "%s0 %es0 ((Huf & Huents_cap & Huents) & #Hs0 & (%Hlen0 & %Hin0 & %Hcap0))".
+          as "%s0 %es0 ((Huf & Huents_cap & Huents) & #Hs0 & (%Hlen0 & %Hin0 & %Hcap0 & %Hes0))".
         { rewrite /own_unstable. iFrame. }
         wp_apply (wp_limitSize with "[$Hs0]")
           as "%s1 %nlim ([%Hn1a %Hn1b] & #Hs1 & _)".
@@ -232,6 +295,17 @@ Import P.
              [Hulen] gives [|uents| < 2^63]; the sum of the two parts is
              bounded only by [2^61 + 2^63]. *)
           admit. }
+        (* [Storage.Entries] returned the whole range [lo, offset): the
+           [len(ents) < cut-lo] fast path was not taken *)
+        assert (Hnotshort : (length sents - Z.to_nat (uint.Z lo - uint.Z prev.(raft.entryID.index') - 1)
+                             ≤ length ese)%nat) by word.
+        (* wrapped in a conjunction so that [wp_if_destruct]'s [subst] keeps [ese] *)
+        assert (Hese : ese = drop (Z.to_nat (uint.Z lo - uint.Z prev.(raft.entryID.index') - 1)) sents ∧ True).
+        { split; [|done]. eapply slice_stable_full; [exact Hstored|lia| |exact Hnotshort].
+          replace (length sents)
+            with (Z.to_nat (uint.Z lv.(raft.raftLog.unstable').(raft.unstable.offset')
+                            - uint.Z prev.(raft.entryID.index') - 1)) by lia.
+          exact Hpre. }
         wp_if_destruct.
         * (* [len(unstable) == 1]: one more size check before giving up *)
           wp_apply (wp_entsSize with "[$Hs1]") as "%sz2 _".
@@ -241,7 +315,8 @@ Import P.
              { iPureIntro. split_and!.
                - exact Hnee.
                - lia.
-               - intros ee Hee. apply elem_of_app. left. eapply stored_take_visible; [exact Hstored | | by apply Hine]; lia. }
+               - intros ee Hee. apply elem_of_app. left. eapply stored_take_visible; [exact Hstored | | by apply Hine]; lia.
+            - rewrite /plog_from. eapply slice_stable_prefix; [exact Hstored| | |exact Hpre]; lia. }
              reseal_log.
           -- iApply wp_fupd.
              wp_apply (wp_extend _ _ _ _ _ _ Hcapx Hfitsx with "[$Hse $Hs1]")
@@ -255,7 +330,12 @@ Import P.
                - rewrite length_app. lia.
                - intros ee Hee. apply elem_of_app in Hee as [Hee|Hee].
                  + apply elem_of_app. left. eapply stored_take_visible; [exact Hstored | | by apply Hine]; lia.
-                 + apply elem_of_app. right. by apply Hintake. }
+                 + apply elem_of_app. right. by apply Hintake.
+               - rewrite /plog_from (proj1 Hese); try rewrite Hes0; rewrite /subslice.
+                 replace (Z.to_nat (uint.Z lv.(raft.raftLog.unstable').(raft.unstable.offset')
+                                    - uint.Z lv.(raft.raftLog.unstable').(raft.unstable.offset')))
+                   with 0%nat by lia.
+                 apply slice_both_prefix. lia. }
              reseal_log.
         * iApply wp_fupd.
           wp_apply (wp_extend _ _ _ _ _ _ Hcapx Hfitsx with "[$Hse $Hs1]")
@@ -269,7 +349,12 @@ Import P.
             - rewrite length_app. lia.
             - intros ee Hee. apply elem_of_app in Hee as [Hee|Hee].
               + apply elem_of_app. left. eapply stored_take_visible; [exact Hstored | | by apply Hine]; lia.
-              + apply elem_of_app. right. by apply Hintake. }
+              + apply elem_of_app. right. by apply Hintake.
+            - rewrite /plog_from (proj1 Hese); try rewrite Hes0; rewrite /subslice.
+              replace (Z.to_nat (uint.Z lv.(raft.raftLog.unstable').(raft.unstable.offset')
+                                 - uint.Z lv.(raft.raftLog.unstable').(raft.unstable.offset')))
+                with 0%nat by lia.
+              apply slice_both_prefix. lia. }
           reseal_log.
   (* The only [admit] above is [Hfitsx]: "the log fits in memory".  See the
      header comment; deliberate. *)

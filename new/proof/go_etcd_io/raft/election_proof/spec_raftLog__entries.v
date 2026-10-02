@@ -30,11 +30,11 @@ Definition wp_raftLog__entries_body :=
   {{{ (s : slice.t) (es : list raftpb.Entry.t),
       RET (#s, #interface.nil);
       own_raftLog l ls ∗ s ↦*□ es ∗
-      (* every entry returned is an entry of the log (what [raftLog.slice]
-         says).  Not yet *which* entries: that needs [slice] (and below it
-         [unstable.slice], [Storage.Entries], [limitSize]) to pin them;
-         notes/raft-replication-model.md, [app_ok]'s deferred clause. *)
-      ⌜ ∀ e, e ∈ es → e ∈ ls.(logstate.sents) ++ ls.(logstate.uents) ⌝ }}}.
+      (* every entry returned is an entry of the log, and they are the
+         log's from [i] on, cut short by [maxSize] ([raftLog.slice]) *)
+      ⌜ (∀ e, e ∈ es → e ∈ ls.(logstate.sents) ++ ls.(logstate.uents)) ∧
+        es `prefix_of` plog_from ls.(logstate.prev)
+                         (ls.(logstate.sents) ++ ls.(logstate.uents)) i ⌝ }}}.
 
 Module Type RAFTLOG__ENTRIES.
   Parameter wp_raftLog__entries : wp_raftLog__entries_body.

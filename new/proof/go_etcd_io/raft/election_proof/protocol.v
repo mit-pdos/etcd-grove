@@ -176,6 +176,44 @@ Lemma stamp_index_eq (L : Z) (k : nat) :
   uint.Z (word.add (word.add (W64 L) (W64 1)) (W64 (Z.of_nat k))) = L + 1 + k.
 Proof. intros. word. Qed.
 
+(** What a receiver of an [App] needs of its batch ([raftLog.maybeAppend]'s
+    premises): consecutive indices from [index + 1], no wrap, no conf
+    change (phase-1 scope). *)
+Definition app_payload_ok (m : msg.t) : Prop :=
+  plog_wf (raft.entryID.mk m.(msg.logterm) m.(msg.index)) m.(msg.entries) ∧
+  uint.Z m.(msg.index) + Z.of_nat (length m.(msg.entries)) + 1 < 2 ^ 64 ∧
+  Forall (λ e, e.(raftpb.Entry.Type') = W32 0) m.(msg.entries).
+
+(** A prefix of a well-formed, no-wrap, conf-change-free log from [i + 1]
+    on is a batch [app_payload_ok] accepts at [(t, i)]. *)
+Lemma app_payload_from_log (b : raft.entryID.t) (L : list raftpb.Entry.t) (t i : w64)
+    (es : list raftpb.Entry.t) :
+  plog_wf b L →
+  uint.Z b.(raft.entryID.index') + Z.of_nat (length L) + 1 < 2 ^ 64 →
+  uint.Z b.(raft.entryID.index') ≤ uint.Z i ≤ plog_last_index_Z b L →
+  Forall (λ e, e.(raftpb.Entry.Type') = W32 0) L →
+  es `prefix_of` plog_from b L (word.add i (W64 1)) →
+  plog_wf (raft.entryID.mk t i) es ∧
+  uint.Z i + Z.of_nat (length es) + 1 < 2 ^ 64 ∧
+  Forall (λ e, e.(raftpb.Entry.Type') = W32 0) es.
+Proof.
+  intros Hwf Hnw Hi HN Hpre.
+  rewrite /plog_last_index_Z in Hi.
+  rewrite /plog_from in Hpre.
+  replace (Z.to_nat (uint.Z (word.add i (W64 1)) - uint.Z b.(raft.entryID.index') - 1))
+    with (Z.to_nat (uint.Z i - uint.Z b.(raft.entryID.index'))) in Hpre by word.
+  set (k := Z.to_nat (uint.Z i - uint.Z b.(raft.entryID.index'))) in *.
+  pose proof (prefix_length _ _ Hpre) as Hlen. rewrite length_drop in Hlen.
+  split_and!.
+  - intros j e Hj. simpl.
+    pose proof (prefix_lookup_Some _ _ _ _ Hj Hpre) as Hj'.
+    rewrite lookup_drop in Hj'. specialize (Hwf _ _ Hj'). lia.
+  - lia.
+  - rewrite List.Forall_forall in HN. apply List.Forall_forall. intros e He. apply HN.
+    apply list_elem_of_In. rewrite -(take_drop k L) elem_of_app. right.
+    apply (elem_of_prefix es); [by apply list_elem_of_In|exact Hpre].
+Qed.
+
 Section model.
 
 (** [cfg] is the (fixed) set of voters; [id] the node being described. *)
@@ -340,20 +378,23 @@ Definition pcan_vote (s : pstate.t) (from : w64) : Prop :=
     LogTerm: term(pr.Next-1), Entries: entries(pr.Next, maxMsgSize),
     Commit: committed]).
 
-    [(index, logterm)] is an entry of the leader's log (since 2026-10-01,
-    second wave: [raftLog.term] now pins the term it returns).
-
-    DEFERRED (see the header): the design's prefix clause,
-      [m.entries `prefix_of` plog_from s.base s.log (word.add m.index (W64 1))],
-    is not here yet: [raftLog.entries] only says its entries are entries of
-    the log.  What *is* here, [Forall (∈ s.log) m.entries], is what
-    [raftLog.slice] gives. *)
+    [(index, logterm)] is an entry of the leader's log ([raftLog.term]
+    pins the term it returns), and the entries are the leader's from
+    [index + 1] on, cut short ([raftLog.entries] / [raftLog.slice] return a
+    prefix of the log from the index asked for).  [app_payload_ok] is what
+    a receiver needs of the batch itself ([raftLog.maybeAppend]'s premises);
+    the sender has it from its own log's well-formedness, no-wrap and
+    no-conf-change facts ([app_payload_from_log]), and [is_message] carries
+    it. *)
 Definition app_ok (s : pstate.t) (m : msg.t) : Prop :=
   m.(msg.ty) = mtype.App ∧ m.(msg.from) = id ∧ m.(msg.term) = s.(pstate.term) ∧
   m.(msg.to) ≠ id ∧
   plog_term_at s.(pstate.base) s.(pstate.log) m.(msg.index) = Some m.(msg.logterm) ∧
   uint.Z m.(msg.commit) ≤ uint.Z s.(pstate.commit) ∧
-  Forall (λ e, e ∈ s.(pstate.log)) m.(msg.entries).
+  Forall (λ e, e ∈ s.(pstate.log)) m.(msg.entries) ∧
+  m.(msg.entries) `prefix_of` plog_from s.(pstate.base) s.(pstate.log)
+                                (word.add m.(msg.index) (W64 1)) ∧
+  app_payload_ok m.
 
 (** [maybeSendSnapshot]'s [MsgSnap].  Snapshots are phase 2; all the model
     records of one is that the leader of the current term sent it. *)
@@ -803,6 +844,7 @@ Definition is_message γ (m : msg.t) : iProp Σ :=
       if m.(msg.reject) then True%I
       else is_vote γ m.(msg.from) m.(msg.term) m.(msg.to)
   | mtype.App =>
+      ⌜ app_payload_ok m ⌝ ∗
       is_leader γ m.(msg.from) m.(msg.term) ∗
       ([∗ list] e ∈ m.(msg.entries), is_entry γ e) ∗
       is_committed γ m.(msg.commit)
@@ -1185,8 +1227,8 @@ Local Lemma repl_ok_message γ id s m :
   is_message γ m.
 Proof.
   iIntros (Hr Hok) "#Hl #Hents #Hc".
-  destruct Hok as [(Hty & Hfrom & Hterm & _ & _ & Hcm & Hes) | (Hty & Hfrom & Hterm & _)].
-  - rewrite /is_message Hty Hfrom Hterm. iFrame "Hl". iSplit.
+  destruct Hok as [(Hty & Hfrom & Hterm & _ & _ & Hcm & Hes & _ & Hpay) | (Hty & Hfrom & Hterm & _)].
+  - rewrite /is_message Hty Hfrom Hterm. iFrame "Hl". iSplit; first (iPureIntro; exact Hpay). iSplit.
     + iApply big_sepL_intro. iIntros "!> %k %e %Hk".
       pose proof (Forall_lookup_1 _ _ _ _ Hes Hk) as Hin.
       iApply (big_sepL_elem_of with "Hents"). done.
@@ -1562,7 +1604,7 @@ Proof.
   intros Hty Hterm Hrole Happ. iIntros "#Hm Hown". destruct_ghost.
   iAssert (([∗ list] e ∈ m.(msg.entries), is_entry γ e) ∗ is_committed γ m.(msg.commit))%I
     as "#[Hments Hmc]".
-  { rewrite /is_message Hty. iDestruct "Hm" as "(_ & $ & $)". }
+  { rewrite /is_message Hty. iDestruct "Hm" as "(_ & _ & $ & $)". }
   iDestruct (own_log_ghost_ents with "Hlg") as "#Hents".
   iDestruct (own_log_ghost_committed with "Hlg") as "#Hc".
   iMod (own_log_ghost_ack _ _ _ s.(pstate.term) lastnewi with "Hlg") as "[Hlg #Hack]".
@@ -1957,12 +1999,104 @@ Lemma heartbeat_commit_le_last γ id ps m :
 Proof.
 Admitted.
 
+(** What [raftLog.maybeAppend] needs of a received [App]'s batch: carried
+    by the message ([app_payload_ok]). *)
+Lemma app_recv_wf γ id ps m :
+  m.(msg.ty) = mtype.App →
+  m.(msg.to) = id →
+  m.(msg.term) = ps.(pstate.term) →
+  own_raft_ghost γ id ps -∗ is_message γ m -∗
+  ⌜ plog_wf (raft.entryID.mk m.(msg.logterm) m.(msg.index)) m.(msg.entries) ∧
+    uint.Z m.(msg.index) + Z.of_nat (length m.(msg.entries)) + 1 < 2 ^ 64 ∧
+    Forall (λ e, e.(raftpb.Entry.Type') = W32 0) m.(msg.entries) ⌝.
+Proof.
+  iIntros (Hty _ _) "_ Hm". rewrite /is_message Hty.
+  iDestruct "Hm" as "(%Hpay & _)". done.
+Qed.
+
+(** [plog_find_conflict] returns the index of the first entry that does
+    not match, all before it matching. *)
+Local Lemma plog_find_conflict_some b es ents :
+  plog_find_conflict b es ents ≠ W64 0 →
+  ∃ (d : nat) e, ents !! d = Some e ∧
+    e.(raftpb.Entry.Index') = plog_find_conflict b es ents ∧
+    (∀ (j : nat) e', (j < d)%nat → ents !! j = Some e' → plog_matches b es (ent_id e')).
+Proof.
+  induction ents as [|a ents IH]; simpl; [done|].
+  case_decide as Ha.
+  - intros Hne. destruct (IH Hne) as (d & e & Hd & He & Hbefore).
+    exists (S d), e. split_and!; [done|done|].
+    intros [|j] e' Hj Hj'; simpl in Hj'.
+    + by injection Hj' as <-.
+    + apply (Hbefore j); [lia|done].
+  - intros _. exists 0%nat, a. split_and!; [done|done|]. intros j e' Hj. lia.
+Qed.
+
+(** ... and [0] when every entry matches, provided no entry has index
+    [0]. *)
+Local Lemma plog_find_conflict_zero b es ents :
+  (∀ (k : nat) e, ents !! k = Some e → e.(raftpb.Entry.Index') ≠ W64 0) →
+  plog_find_conflict b es ents = W64 0 →
+  ∀ (k : nat) e, ents !! k = Some e → plog_matches b es (ent_id e).
+Proof.
+  induction ents as [|a ents IH]; simpl; intros Hnz Hci k e Hk; [done|].
+  case_decide as Ha.
+  - destruct k as [|k]; simpl in Hk; [by injection Hk as <-|].
+    apply (IH (λ k e H, Hnz (S k) e H) Hci k e Hk).
+  - exfalso. apply (Hnz 0%nat a); done.
+Qed.
+
+(** After [plog_maybe_append] of a well-formed, non-wrapping batch, the
+    log reaches [lastnewi]: the batch's entries are all there (no
+    conflict), or the log was cut at the first conflict and the rest of
+    the batch appended. *)
+Lemma plog_maybe_append_last b es (prev : raft.entryID.t) ents lastnewi es' :
+  plog_wf prev ents →
+  uint.Z prev.(raft.entryID.index') + Z.of_nat (length ents) + 1 < 2 ^ 64 →
+  plog_maybe_append b es prev ents = Some (lastnewi, es') →
+  uint.Z lastnewi ≤ plog_last_index_Z b es'.
+Proof.
+  intros Hwf Hnw. rewrite /plog_maybe_append. case_decide as Hm; [|done].
+  intros [= <- <-].
+  rewrite word.unsigned_of_Z_nowrap; [|pose proof (word.unsigned_range prev.(raft.entryID.index')); lia].
+  pose proof (plog_term_at_Some_range _ _ _ _ Hm) as [Hb Hl].
+  assert (Hnz : ∀ (k : nat) e, ents !! k = Some e → e.(raftpb.Entry.Index') ≠ W64 0).
+  { intros k e Hk Hz. specialize (Hwf _ _ Hk). rewrite Hz in Hwf.
+    change (uint.Z (W64 0)) with 0 in Hwf.
+    pose proof (word.unsigned_range prev.(raft.entryID.index')). lia. }
+  case_decide as Hci.
+  - (* no conflict: the last entry of the batch is in the log *)
+    destruct (decide (length ents = 0%nat)) as [H0|H0]; [lia|].
+    destruct (lookup_lt_is_Some_2 ents (length ents - 1)%nat ltac:(lia)) as [e He].
+    pose proof (plog_find_conflict_zero _ _ _ Hnz Hci _ _ He) as Hme.
+    rewrite /plog_matches /ent_id /= in Hme.
+    pose proof (plog_term_at_Some_range _ _ _ _ Hme) as [_ Hle].
+    specialize (Hwf _ _ He). simpl in Hwf. lia.
+  - (* a conflict at batch position [d]: cut there, append the rest *)
+    destruct (plog_find_conflict_some _ _ _ Hci) as (d & e & Hd & Hei & Hbefore).
+    pose proof (Hwf _ _ Hd) as Hed. simpl in Hed.
+    set (ci := plog_find_conflict b es ents) in *.
+    assert (Hdrop : Z.to_nat (uint.Z ci - uint.Z prev.(raft.entryID.index') - 1) = d) by
+      (rewrite -Hei; lia).
+    rewrite Hdrop (drop_S _ _ _ Hd).
+    (* the conflicting entry is at most one past the log's end *)
+    assert (Hend : uint.Z e.(raftpb.Entry.Index') ≤ plog_last_index_Z b es + 1).
+    { destruct d as [|d']; [lia|].
+      destruct (lookup_lt_is_Some_2 ents d' ltac:(apply lookup_lt_Some in Hd; lia)) as [e' He'].
+      pose proof (Hbefore d' e' ltac:(lia) He') as Hme'.
+      rewrite /plog_matches /ent_id /= in Hme'.
+      pose proof (plog_term_at_Some_range _ _ _ _ Hme') as [_ Hle].
+      pose proof (Hwf _ _ He') as Hed'. simpl in Hed'. lia. }
+    rewrite /plog_truncate_append /plog_last_index_Z length_app length_take /=.
+    rewrite length_drop.
+    apply lookup_lt_Some in Hd.
+    rewrite /plog_last_index_Z in Hend Hl.
+    lia.
+Qed.
+
 (** [maybeAppend]'s [commitTo(min(committed, lastnewi))] panics if the log
-    ends before it.  Informal argument: after [plog_maybe_append] the log
-    holds [m.entries] at indices [m.index+1 .. lastnewi] -- either they
-    were all there already (no conflict) or they were appended -- provided
-    [m.entries] has consecutive indices from [m.index+1], which is
-    [app_ok]'s DEFERRED prefix clause carried by the message. *)
+    ends before it: it never does ([plog_maybe_append_last], from the
+    batch's [app_payload_ok]). *)
 Lemma app_commit_le_lastnewi γ id ps m lastnewi es' :
   m.(msg.ty) = mtype.App →
   m.(msg.to) = id →
@@ -1973,7 +2107,10 @@ Lemma app_commit_le_lastnewi γ id ps m lastnewi es' :
   own_raft_ghost γ id ps -∗ is_message γ m -∗
   ⌜ uint.Z lastnewi ≤ plog_last_index_Z ps.(pstate.base) es' ⌝.
 Proof.
-Admitted.
+  iIntros (Hty Hto Hterm Happ) "Hown #Hm".
+  iDestruct (app_recv_wf with "Hown Hm") as %(Hwf & Hnw & _); [done..|].
+  iPureIntro. eapply plog_maybe_append_last; [exact Hwf| |exact Happ]. exact Hnw.
+Qed.
 
 (** [maybeAppend] panics if the first conflicting index is at or below the
     commit index ([ci ≤ l.committed]).  Informal argument: everything up
@@ -1981,17 +2118,17 @@ Admitted.
     log of every later leader (Leader Completeness), so the leader of
     [m.term] -- whose entries [m.entries] are -- agrees with this log up to
     [committed]; a conflict can only be above it. *)
-Lemma app_no_conflict_below_commit γ id ps m lastnewi es' :
+Lemma app_no_conflict_below_commit γ id ps m :
   m.(msg.ty) = mtype.App →
   m.(msg.to) = id →
   m.(msg.term) = ps.(pstate.term) →
   uint.Z ps.(pstate.commit) ≤ uint.Z m.(msg.index) →
-  plog_maybe_append ps.(pstate.base) ps.(pstate.log)
-    (raft.entryID.mk m.(msg.logterm) m.(msg.index)) m.(msg.entries)
-    = Some (lastnewi, es') →
   own_raft_ghost γ id ps -∗ is_message γ m -∗
-  ⌜ let ci := plog_find_conflict ps.(pstate.base) ps.(pstate.log) m.(msg.entries) in
-    ci = W64 0 ∨ uint.Z ps.(pstate.commit) < uint.Z ci ⌝.
+  ⌜ plog_matches ps.(pstate.base) ps.(pstate.log)
+      (raft.entryID.mk m.(msg.logterm) m.(msg.index)) →
+    plog_find_conflict ps.(pstate.base) ps.(pstate.log) m.(msg.entries) = W64 0 ∨
+    uint.Z ps.(pstate.commit)
+    < uint.Z (plog_find_conflict ps.(pstate.base) ps.(pstate.log) m.(msg.entries)) ⌝.
 Proof.
 Admitted.
 

@@ -45,7 +45,10 @@ Definition wp_raftLog__slice_body :=
       own_raftLog l ls ∗ s ↦*□ es ∗
       ⌜ es ≠ [] ∧
         (Z.of_nat (length es) ≤ uint.Z hi - uint.Z lo)%Z ∧
-        (∀ e, e ∈ es → e ∈ ls.(logstate.sents) ++ ls.(logstate.uents)) ⌝ }}}.
+        (∀ e, e ∈ es → e ∈ ls.(logstate.sents) ++ ls.(logstate.uents)) ∧
+        (* the log's entries at [lo, lo+1, ...], cut short by [maxSize] *)
+        es `prefix_of` plog_from ls.(logstate.prev)
+                         (ls.(logstate.sents) ++ ls.(logstate.uents)) lo ⌝ }}}.
 
 Module Type RAFTLOG__SLICE.
   Parameter wp_raftLog__slice : wp_raftLog__slice_body.

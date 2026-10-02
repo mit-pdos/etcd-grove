@@ -167,7 +167,15 @@ Definition is_Storage (st : raft.Storage.t) : iProp Σ :=
          ⌜ es ≠ [] ∧
            (Z.of_nat (length es) ≤ uint.Z hi - uint.Z lo)%Z ∧
            (∀ e, e ∈ es → e ∈ take (Z.to_nat (uint.Z hi - uint.Z prev.(raft.entryID.index') - 1)) ents) ∧
-           s.(slice.cap) = s.(slice.len) ⌝ ∗
+           s.(slice.cap) = s.(slice.len) ∧
+           (* *which* entries: the stored ones at [lo, lo+1, ...], cut
+              short by [maxSize] (the [Storage] interface's documented
+              contract: "Entries returns a slice of consecutive log entries
+              in the range [lo, hi)"; [MemoryStorage] returns
+              [limitSize(ents[lo-offset:hi-offset])]).  Added 2026-10-01
+              for [app_ok]'s prefix clause. *)
+           es `prefix_of` drop (Z.to_nat (uint.Z lo - uint.Z prev.(raft.entryID.index') - 1))
+                            (take (Z.to_nat (uint.Z hi - uint.Z prev.(raft.entryID.index') - 1)) ents) ⌝ ∗
          own_Storage st prev ents }}}) ∗
   (** The stable log's last index is far below [2^64].
 
