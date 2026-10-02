@@ -281,6 +281,32 @@ legible in `tcb-report`. The safety statements -- `log_matching`,
 `protocol.v` as lemmas over the ghost assertions and may be admitted.
 Say in each admit's comment what the informal argument is.
 
+**As built, replication-safety pass (2026-10-02).** The design above with
+these changes (`protocol.v`, "Logs as persistent knowledge" and
+"Acknowledgements, justified"):
+
+- `is_term_log γ v t γt b l0`: the term log also records the leader's
+  base `b` and log `l0` at its win; the term log (`γt : index ↦ (entry,
+  prevterm)`) holds only entries created in `t`, each with its
+  predecessor's term. `is_entry_r γ e pt`; `is_entry γ e := ∃ pt, …`.
+- `own_log_ghost` gained `log_ok` (`plog_wf_r` -- well-formed *in range*,
+  since `step_win` can wrap at `lastIndex() = 2^64-1` -- and `base ≤
+  commit ≤ lastIndex()`), `log_recs` (every entry's `is_entry_r` with its
+  predecessor's term *in this log*), `acks_term` (acks only at one's own
+  term) and `acks_ok` (a non-leader's acks of its current term above its
+  commit index are `ack_agree`: the log agrees at `i` with a
+  `lead_prefix` of that term's leader). `lead_log_own` also keeps `l0 ⊑
+  log` and a term-log fragment for each entry after `l0`.
+- `is_message`: `App` carries `∃ bL l, lead_prefix from term bL l ∗
+  ⌜(logterm, index) ∈ l ∧ entries ⊑ l after index⌝` (replacing the
+  per-entry `is_entry`s); `Snap` the same for `(logterm, index)`;
+  `Heartbeat` `∃ i ≥ Commit, is_acked to term i`.
+- No rule changed. `log_matching`, `heartbeat_commit_le_last` and
+  `app_no_conflict_below_commit` are `Qed`; `leader_completeness` and
+  `state_machine_safety` are not provable from two nodes' ghost state
+  (their comments: a third node's votes/acks are unconstrained) and stay
+  admitted with the remaining obligation spelled out.
+
 ### Protocol facts the code needs
 
 Several `Panicf`/`panic` paths in the replication code are dead only by

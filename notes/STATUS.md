@@ -45,8 +45,9 @@ and the older read-index work in `v3_proof/`. They share only `base.v`.
   `is_term_log`/`is_entry`/`is_acked`/`is_committed`) and the safety
   statements. Constructed, not axiomatized, no Iris invariant.
   **Since 2026-10-01 this file may contain `Admitted`** (user's decision,
-  [decisions.md](decisions.md)): five admits today, listed under "Trust
-  base". Everything else in the development stays `Qed`.
+  [decisions.md](decisions.md)): three admits today (2026-10-02:
+  `snap_ok_message`, `leader_completeness`, `state_machine_safety`),
+  listed under "Trust base". Everything else in the development stays `Qed`.
 - `election_proof/plog.v` — pure functions on an `(entryID, list Entry)`
   log (`plog_term_at`, `plog_matches`, `plog_find_conflict`,
   `plog_truncate_append`, `plog_maybe_append`, `plog_up_to_date`, ...),
@@ -221,7 +222,7 @@ Everything above holds **only** under these assumptions. They are premises of
 | assumption | where |
 |---|---|
 | Only the nine `step_msg` types are passed to `Step`; `MsgSnap`, the pre-vote, read-index, leader-transfer, check-quorum and storage-response types are taken to be dropped by the network (phases 2 and 3). A received `MsgApp`/`MsgHeartbeat`/`MsgHeartbeatResp`, and a rejecting `MsgAppResp`, has `From ≠ id` (a node never sends itself one: `send` panics) | `step_msg`, `spec_raft__Step.v` |
-| A received `MsgApp`'s entries are `EntryNormal`, contiguous from `Index+1`, and conflict only above the receiver's commit index; a received `Heartbeat`'s `Commit` is at most the receiver's last index. The first two are proved from `is_message` (`app_recv_wf`); the last two are **admitted protocol facts** (`app_no_conflict_below_commit`, `heartbeat_commit_le_last`) | `protocol.v` |
+| A received `MsgApp`'s entries are `EntryNormal`, contiguous from `Index+1`, and conflict only above the receiver's commit index; a received `Heartbeat`'s `Commit` is at most the receiver's last index. All four are proved from `own_raft_ghost` and `is_message` (`app_recv_wf`, `app_no_conflict_below_commit`, `heartbeat_commit_le_last`; since 2026-10-02 none is admitted) | `protocol.v` |
 | No read-index requests: `readOnly.unconfirmedReads` and `pendingReadIndexMessages` are empty, so `heartbeatCtx` is `nil` and a `MsgHeartbeatResp` carries an empty `Context` | `inv_misc.v` |
 | `disableProposalForwarding = false` (`newRaft` copies the `Config` field; a scope premise of `newRaft`'s spec) | `inv_raft_phys.v`, `spec_newRaft.v` |
 | No proposals, no read-only requests | scope |
@@ -328,18 +329,28 @@ say so in the journal.
    `step_grant_vote` carries the up-to-date premise. What remains is the
    protocol-level use of it: `leader_completeness` is admitted.
 5a. **`snap_ok_message` (admitted, `protocol.v`)**: what a leader's
-   `MsgSnap` carries (`is_committed index`, `is_snap_meta`). Not provable
+   `MsgSnap` carries (`is_committed index`, `is_snap_meta`, and since
+   2026-10-02 that the leader's log has `(term, index)` --
+   `plog_term_at base log index = Some term` -- from which `is_message`'s
+   `lead_prefix` for a `Snap` is built). Not provable
    from the model: `is_Storage`'s `HSnapshot` says only `index ≠ 0`. Needs
    `HSnapshot` to pin the metadata to the stored log below `applied`, and
    `raftLog.snapshot`'s spec to pass it on. Also: `msg_abs`'s `MsgSnap`
    case is not tied to the heap (see raft-replication-model.md).
-5b. **The five admits in `protocol.v`** (`heartbeat_commit_le_last`,
-   `app_no_conflict_below_commit`, `log_matching`, `leader_completeness`,
-   `state_machine_safety`). All need one ghost invariant the state does not
-   carry yet: that a node's acknowledgement (`is_acked`) is backed by its own
-   log agreeing with the leader's term log up to that index, and that a
-   node's log agrees with the term logs of the leaders that created its
-   entries. The informal argument is in each admit's comment.
+5b. **`leader_completeness` and `state_machine_safety` (admitted,
+   `protocol.v`)** -- the other three of the former five
+   (`heartbeat_commit_le_last`, `app_no_conflict_below_commit`,
+   `log_matching`) are `Qed` since 2026-10-02 (journal). These two are
+   **not provable as stated**: they hold two nodes' ghost state, and the
+   argument needs a third node (the voter in the commit quorum and the
+   election quorum) to have behaved -- its votes and acknowledgements are
+   fragments of its own maps, unconstrained without its `own_raft_ghost`.
+   A proof needs (1) a cluster-wide statement (every voter's
+   `own_raft_ghost`, or an Iris invariant over them), (2) a per-node
+   history invariant tying each vote to the voter's log at the time and to
+   its earlier acknowledgements, (3) `is_committed` naming the committed
+   entries. Spelled out in `leader_completeness`'s comment. Nothing
+   downstream consumes either lemma.
 5c. **Two assumptions on the client `Storage` were added** (`inv_storage.v`):
    `Entries` returns a prefix of the stored entries from `lo` (its documented
    contract; `MemoryStorage` meets it). Listed so an auditor sees them.
@@ -377,7 +388,10 @@ known gaps and the plan are in [tcb-accounting.md](tcb-accounting.md).
 signed off on in `raftLog.slice` and the five protocol-level admits in
 `protocol.v` (allowed there since 2026-10-01: `heartbeat_commit_le_last`,
 `app_no_conflict_below_commit`, `log_matching`, `leader_completeness`,
-`state_machine_safety`); 494 `Qed` lemmas; two results (`Step`, `newRaft`);
+`state_machine_safety`); 494 `Qed` lemmas; (later on 2026-10-02 the
+`protocol.v` admits went to three -- `snap_ok_message`,
+`leader_completeness`, `state_machine_safety` -- see the journal; numbers
+not re-run); two results (`Step`, `newRaft`);
 129 definitions, 1,195 lines; TCB 4.9% of the development by line. The
 whole-raft numbers (`v3_proof/` included) are the old ones plus these.
 

@@ -1835,3 +1835,27 @@ is framed into the unfolded `own_raftLog`'s logger conjuncts first (2026-10-02).
 Not yet addressed: `case_bool_decide` in `proof_Config__validate.v` (~80 s,
 likely the same search), and `newRaft.v:29`/`appliedTo.v:18`/
 `ResetVotes.v:14`, small re-seals of the old shape.
+
+## Ghost-state proofs in `protocol.v` (2026-10-02)
+
+- **`ltac:(lia)` inside a term with a `_` argument** runs before the `_` is
+  unified, and fails "Cannot find witness": `Hagree _ ltac:(lia)`,
+  `Hbef _ x ltac:(lia) Hx`. Give the argument explicitly, or use
+  `unshelve epose proof … ; [lia|]`.
+- **`iPoseProof (lem with "…") as "H"` leaves the continuation as the last
+  goal.** Count it in `[tac..| | |]`: with `iApply` the main goal is
+  consumed, with `iPoseProof` it is not.
+- **Projections of a literal record stay unreduced in instantiated lemma
+  hypotheses** (`{| … index' := m.index |}.(index')`, `(t, i).2`); `lia`
+  treats them as fresh atoms. `simpl in H` first.
+- **`Implicit Type γ` covers `γ1`/`γ2`**: a lemma binding `γ1 : gname` is
+  rejected; name term-log ghost names `γt1`.
+- **`set x := …` variables are atoms for `lia`** even when the definition is
+  in context: `unfold x in *` (inside the sub-proof that needs it).
+- **`iFrame "Hl"` frames inside an unfolded definition** that contains the
+  same assertion (`is_leader` inside `lead_prefix`); the later
+  `iFrame "Hp"` then fails. Prove such conjuncts with `iSplit; iExact`.
+- The worktree sandbox refuses some long Bash commands (heredocs with
+  Python edits, `touch $(git …)`) as "too complex": put the script in a
+  file and run it, and run `git` commands on their own.
+
