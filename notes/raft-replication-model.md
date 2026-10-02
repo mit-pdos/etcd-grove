@@ -416,3 +416,82 @@ without compiling:
 `.vo` (full check) rather than `.vok`; there is no reason to use `.vos`
 here. Do not run `make` with no target, and do not run two `make`s at
 once in one worktree (the `.rocqdeps.d` regeneration races).
+
+## Public representation predicates (requested 2026-10-02)
+
+The tracker-side predicates leak the Goose struct types into every spec:
+`own_progress pr (pv : tracker.Progress.t) (iv : tracker.Inflights.t)`,
+`own_inflights l iv buf`, `own_tracker cfg tv votes prs pvs` with
+`pvs : gmap w64 (tracker.Progress.t * tracker.Inflights.t)`, and
+`nstate.prvals` of the same type. Specs of exported methods then say
+`pv.(tracker.Progress.State') = W64 1`, pin ring-buffer fields nobody
+outside `Inflights` reads, and take four or five arguments where one record
+would do. The rule, from the user: **a public predicate per object, indexed
+by one record of exactly the state the exported methods' specs need; an
+internal predicate, with the extra arguments, for the object's own
+methods.** Spec-oriented records, not `Progress.t`/`Inflights.t`/
+`ProgressTracker.t`.
+
+### Records (`inv_tracker.v`)
+
+    Module inflights.
+      Record t := mk { count : Z; size : Z; bytes : Z; max_bytes : Z }.
+      Definition full (i : t) : bool := bool_decide (count = size) || (max_bytes ≠ 0 && max_bytes ≤ bytes).
+      Definition reset (i : t) : t := i <| count := 0 |> <| bytes := 0 |>.   (* Inflights.reset *)
+      (* Add, FreeLE as functions where the result is determined; FreeLE's result
+         is "count' ≤ count, bytes' arbitrary" -- stated as a relation. *)
+    Module pstate_kind. Inductive t := Probe | Replicate | Snapshot.   (* StateType, as an inductive *)
+    Module progress.
+      Record t := mk {
+        matched : w64; next : w64; sent_commit : w64;
+        state : pstate_kind.t; pending_snapshot : w64;
+        recent_active : bool; paused : bool;            (* MsgAppFlowPaused *)
+        infl : inflights.t }.
+      (* pure versions of every exported method: maybe_update, maybe_decr_to,
+         become_probe, become_replicate, become_snapshot, is_paused, sent_entries,
+         sent_commit, can_bump_commit, reset_state -- moved from the spec files
+         where the tracker agent defined them (progress_maybe_update, ...). *)
+    Module trk.   (* [tracker] is the Goose module's name *)
+      Record t := mk { votes : gmap w64 bool; prs : gmap w64 loc; peers : gmap w64 progress.t }.
+
+`IsLearner = false` and `progress_state_ok` disappear into the record (no
+learner field; the state is an inductive), so the two pure conjuncts of
+today's `own_progress` go.
+
+### Predicates
+
+    own_Inflights (l : loc) (i : inflights.t) : iProp :=
+      ∃ iv buf, own_inflights l iv buf ∗ ⌜ inflights_abs iv = i ⌝          (* public *)
+    own_inflights l iv buf                                                   (* internal; grow, Add's ring arithmetic *)
+    own_Progress (pr : loc) (p : progress.t) : iProp :=
+      ∃ pv, pr ↦ pv ∗ own_Inflights pv.Inflights' p.infl ∗ ⌜ progress_abs pv = Some p ⌝   (* public *)
+    own_tracker cfg (tv : tracker.ProgressTracker.t) (t : trk.t)             (* indexed by one record *)
+
+`progress_abs pv : option progress.t` is `None` when `IsLearner` or the
+state is not one of the three; the predicate then says exactly what the two
+old pure conjuncts said. `prs` stays in the tracker record because callers
+hold a raw `*Progress` across `send` (`maybeSendAppend`) and the
+`own_raft_phys_pr` accessors are keyed by it; it is physical state, like
+`nstate.log`.
+
+### Where it lands
+
+- `nstate.prvals : gmap w64 progress.t` (was `gmap w64 (Progress.t * Inflights.t)`);
+  `prvals_match pvs := progress.matched <$> pvs`; `nstate.votes`,
+  `nstate.progress`, `nstate.prvals` stay separate fields, and
+  `own_raft_phys` passes `{| votes := s.votes; prs := s.progress; peers := s.prvals |}`
+  to `own_tracker`.
+- Every `spec_Progress__*.v` and `spec_Inflights__{Full,Add,FreeLE,reset}.v`
+  is restated on `own_Progress` / `own_Inflights` with the pure function of
+  the record; `Inflights__grow` stays on the internal predicate.
+- `spec_ProgressTracker__*`, `spec_raft__{reset,maybeSendAppend,maybeSendSnapshot,sendAppend,bcastAppend,sendHeartbeat,bcastHeartbeat*,becomeLeader}`,
+  `spec_stepLeader.v`, `inv_raft_phys.v`'s accessors
+  (`own_raft_phys_pr*`, `_tracker*`), `visit_closure`, `own_progress_map`
+  (fold it into `own_tracker` or define it on the record) follow.
+- The pure functions the tracker agent put in spec files
+  (`progress_maybe_update`, `progress_maybe_decr_to`, `progress_become_probe*`)
+  move into `inv_tracker.v` on `progress.t`.
+
+Sequencing: after the heartbeat/leader and follower branches of 2026-10-01
+are merged (they are stated on the old predicates), before the `Step`
+branches of wave 3, so that wave 3 is written against the final shapes.
