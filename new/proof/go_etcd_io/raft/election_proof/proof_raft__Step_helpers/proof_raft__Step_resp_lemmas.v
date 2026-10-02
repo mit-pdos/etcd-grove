@@ -190,7 +190,7 @@ Proof.
     assert (step cfg id (P1 <| pstate.commit := c |>) []
               (psend_msgs (P1 <| pstate.commit := c |>) ms)) as H3.
     { apply step_send_apps; first exact Hr.
-      eapply Forall_impl; first exact Hms.
+      eapply Forall_impl; last exact Hms.
       intros m' Hm'. eapply repl_ok_proper; [..|exact Hm']; reflexivity. }
     exists ([abs_msg mtype.AppResp m ents] ++ ([] ++ [])). split.
     { intros ? Hin. rewrite !elem_of_app list_elem_of_singleton elem_of_nil in Hin.

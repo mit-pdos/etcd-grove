@@ -4258,3 +4258,37 @@ For a proposal forwarded over the network the receiver gets a fresh copy,
 so the trusted network/Step boundary must hand out full ownership for
 `MsgProp` (or `appendEntry` must copy).  Step's premise table is in this
 session's final report.
+
+## 2026-10-02 — `Step` branches `MsgAppResp`, `MsgHeartbeatResp`, `MsgBeat`
+
+Branch `worktree-agent-a766bded85044ef8b` (from `6d528cc61`).  All `Qed`,
+no `Admitted`.  The three branch lemmas are stated exactly as the dispatch
+brief asked for:
+`wp_Step_MsgAppResp`, `wp_Step_MsgHeartbeatResp`, `wp_Step_MsgBeat`. They
+are not yet `Require`d by `proof_raft__Step.v`; the dispatch agent does that.
+Files under `proof_raft__Step_helpers/`:
+
+- `proof_raft__Step_resp_lemmas.v`: pure lemmas, no functor.
+  `follower_/candidate_step_result_noop` (Beat/AppResp/HeartbeatResp reach
+  no arm), `leader_beat_step` (`step_beat`), `leader_hbresp_step`
+  (`step_send_apps`), `leader_appresp_step` (no progress → `step_refl`;
+  reject → `step_send_apps`; accept → `step_app_resp`, then `step_commit`
+  or `step_refl`, then `step_send_apps`, chained with `step_trans`).  The
+  accepted case rests on `to_pstate (s <| prvals := pvs |>) = to_pstate s
+  <| matched := prvals_match pvs |>` for a leader.  None of this depends on
+  `prvals`'s element type.
+- `_Resp_gt.v` and `_Resp_lt.v`: the higher-term and stale cases, **for
+  both response types at once** (`ty` is a parameter: the two types take
+  the same path through the preamble), so there are two files instead of
+  four.
+- `_MsgAppResp_eq.v` and `_MsgHeartbeatResp_eq.v`: current term, split
+  three ways on the role.
+- `_MsgAppResp.v` and `_MsgHeartbeatResp.v` combine the term cases; `_MsgBeat.v`
+  is one file (`Term = 0` skips the preamble, as for `MsgHup`).
+
+Check times (`make -j1 <file>.vo`): lemmas 4 s, Resp_gt 75 s, Resp_lt 57 s,
+AppResp_eq 44 s, HeartbeatResp_eq 43 s, MsgBeat 33 s, each combining file 4 s.
+
+Gotcha: stdpp's `Forall_impl` is not in scope; the name resolves to the
+stdlib's, whose arguments are `(∀ x, P x → Q x) → Forall P l → …`, so
+`eapply Forall_impl; first exact H` fails.  Write `last exact H`.
