@@ -154,6 +154,8 @@ Require Export New.proof.go_etcd_io.raft.election_proof.link_raftLog__findConfli
 Require Export New.proof.go_etcd_io.raft.election_proof.link_raftLog__commitTo.
 Require Export New.proof.go_etcd_io.raft.election_proof.link_unstable__restore.
 Require Export New.proof.go_etcd_io.raft.election_proof.link_raftLog__restore.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_raft__restore.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_raft__handleSnapshot.
 Require Export New.proof.go_etcd_io.raft.election_proof.link_raftLog__maybeCommit.
 Require Export New.proof.go_etcd_io.raft.election_proof.link_raftLog__maybeAppend.
 (* Replication wave 2, follower side (2026-10-01): handleAppendEntries.
