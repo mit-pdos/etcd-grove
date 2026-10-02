@@ -719,12 +719,13 @@ Proof.
   iDestruct (own_raft_phys_tracker_same with "Hphys") as (tv) "(Htrkf & Htrk & Hback)".
   iDestruct (own_tracker_progress_map with "Htrk") as "(#Hprs & %Hdom & Htrk)".
   iDestruct (own_tracker_prvals_dom with "Htrk") as "[%Hpdom Htrk]".
+  cbn [trk.prs trk.peers] in Hdom, Hpdom.
   wp_auto.
   iDestruct ("Hback" with "Htrkf Htrk") as "Hphys".
   wp_apply (wp_map_lookup1 with "Hprs") as "_".
   destruct (s.(nstate.progress) !! id) as [pr|] eqn:Hlk; last first.
   { exfalso. apply not_elem_of_dom in Hlk. apply Hlk. by rewrite Hdom. }
-  assert (is_Some (s.(nstate.prvals) !! id)) as [[pv iv] Hpvs].
+  assert (is_Some (s.(nstate.prvals) !! id)) as [p Hpvs].
   { apply elem_of_dom. rewrite Hpdom elem_of_dom Hlk. by eexists. }
   iAssert (⌜ pr ≠ null ⌝ ∗ own_raft_phys cfg r id s)%I with "[Hphys]" as "[%Hnn Hphys]".
   { iDestruct (own_raft_phys_pr_upd with "Hphys [//] [//]") as "[Hpa Hpback]".
@@ -732,7 +733,7 @@ Proof.
     iDestruct (typed_pointsto_not_null with "Hpv") as %Hnn.
     iSplitR; first done.
     iDestruct ("Hpback" with "[Hpv Hinfl]") as "Hphys".
-    { rewrite /own_progress. iFrame "∗%". }
+    { iExists _. iFrame "∗%". }
     iApply (own_raft_phys_eq with "Hphys"). rewrite insert_id //. by destruct s. }
   clear Hdom Hpdom.
   simpl. rewrite bool_decide_eq_false_2 //.
