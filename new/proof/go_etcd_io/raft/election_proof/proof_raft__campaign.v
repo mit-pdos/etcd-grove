@@ -81,6 +81,7 @@ Lemma wp_campaign (r : loc) (id : w64) (s : nstate.t) (t : raft.CampaignType.t) 
   t ≠ campaignPreElection →
   s.(nstate.role) ≠ role.Leader →
   id ∈ cfg →
+  s.(nstate.logst).(logstate.snap) = None →
   uint.Z s.(nstate.term) + 1 < 2 ^ 64 →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "campaign" #t
@@ -96,7 +97,7 @@ Lemma wp_campaign (r : loc) (id : w64) (s : nstate.t) (t : raft.CampaignType.t) 
              <$> peers))
          <| nstate.prvals := pvs |>) }}}.
 Proof.
-  intros Ht Hrole Hid_cfg Hnowrap.
+  intros Ht Hrole Hid_cfg Hsn Hnowrap.
   (* [becomeCandidate] raises the term to [s.term + 1] and every [send] below
      carries it; [send] panics on a zero term, whence the premise. *)
   assert (word.add s.(nstate.term) (W64 1) ≠ W64 0) as Hno_wrap by word.

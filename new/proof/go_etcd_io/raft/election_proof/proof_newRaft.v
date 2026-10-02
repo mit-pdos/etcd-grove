@@ -19,17 +19,19 @@ Import P.
     try wp_auto.
     rewrite HpSt Hsto /=.
     iEval (rewrite /own_raftLog_core) in "Hcore".
-    iDestruct "Hcore" as (stored) "(%Hlidx & %Hlnowrap & #HisSto' & HSto & %Hlstored &
-      %Hlstored_eq & %Hloffset & Huents & Huents_cap & %Hlnosnap & %Hlncc & %Hlapplied &
+    iDestruct "Hcore" as (sprev stored) "(%Hlidx & %Hlnowrap & #HisSto' & HSto & %Hlstore &
+      #Hlsnap & %Hloffset & Huents & Huents_cap & %Hlncc & %Hlapplied & %Hlpapplied &
       %Hlcommitted & #Hllg & #Hulg)".
+    destruct Hlstore as (Hsp & Hlstored & Hlstored_eq). subst sprev.
     rewrite -(Hlstored_eq eq_refl).
     iEval (rewrite Hlvst) in "HSto".
     wp_apply ("HInit" with "[$HSto]"). iIntros "HSto Hvoters".
     iAssert (own_raftLog l (logstate.mk prev ents [] prev.(raft.entryID.index')
-                              prev.(raft.entryID.index')))
+                              prev.(raft.entryID.index') None))
       with "[Hl HSto Huents Huents_cap]" as "HL".
-    { iApply (own_raftLog_intro with "Hl HisSto HSto Huents Huents_cap Hllg Hulg");
-        try done. all: rewrite ?Hlvap ?Hlvcm; done. }
+    { iApply (own_raftLog_intro with "Hl HisSto HSto Hlsnap Huents Huents_cap Hllg Hulg");
+        try done. all: rewrite ?Hlvap ?Hlvcm;
+        first [done | (split_and!; done) | (split; lia) | (intros; lia)]. }
     try wp_auto.
     wp_apply P.wp_MakeProgressTracker as "%tv0 %v0 (%Htv0 & Hv0 & Hvotes & Hprs0)".
     destruct Htv0 as (Htv0mi & Htv0mb & Htv0arr & Htv0l & Htv0ln & Htv0al).
@@ -57,7 +59,7 @@ Import P.
        empty. *)
     set cfgs := (list_to_set voters : gset w64).
     set ls0 := logstate.mk prev ents [] prev.(raft.entryID.index')
-                 prev.(raft.entryID.index').
+                 prev.(raft.entryID.index') None.
     set s0 := nstate.mk (W64 0) (W64 0) (W64 0) role.Follower ∅ [] func.nil ∅ l
                 ls0 ∅.
     iDestruct (own_tracker_empty tv0 v0 Htv0arr Htv0l Htv0ln Htv0al Hmi
@@ -96,7 +98,7 @@ Import P.
        same struct state [s1] and log state [ls1], so the rest of the proof
        is done once, for both. *)
     set ls1 := logstate.mk prev ents [] (committed_after prev hs)
-                 prev.(raft.entryID.index').
+                 prev.(raft.entryID.index') None.
     set s1 := s0 <| nstate.progress := prs |> <| nstate.prvals := pvs1 |>
                  <| nstate.term := hs.(raftpb.HardState.Term') |>
                  <| nstate.vote := hs.(raftpb.HardState.Vote') |>
@@ -134,7 +136,7 @@ Import P.
     (* [if c.Applied > 0 { raftlog.appliedTo(c.Applied, 0) }], likewise *)
     set ap := if decide (cv.(raft.Config.Applied') = W64 0)
               then prev.(raft.entryID.index') else cv.(raft.Config.Applied').
-    set ls2 := logstate.mk prev ents [] (committed_after prev hs) ap.
+    set ls2 := logstate.mk prev ents [] (committed_after prev hs) ap None.
     set s2 := s1 <| nstate.logst := ls2 |>.
     wp_bind (if: _ then _ else _)%E.
     iApply (wp_wand _ _ _

@@ -1,35 +1,5 @@
 Require Export New.proof.go_etcd_io.raft.election_proof.postulates_raftLog__append.
 
-Section helper.
-Context `{hG: heapGS Σ, !ffi_semantics _ _}.
-Context {sem : go.Semantics} {package_sem : raft.Assumptions}.
-
-(** Split the [unstable] field out of [l ↦ lv], keeping a wand that accepts
-    *any* new value for it.
-
-    [inv_raftlog.v]'s [split_unstable] is not enough here: it pins the field
-    at the value it had, and [truncateAndAppend] installs a new
-    [entries] slice -- whose value is introduced by that call's own
-    postcondition, i.e. after the [AccessStrict] store instance's evar was
-    created.  Same situation and same fix as [raft_split_trk] in
-    [proof_raft__reset.v]; see notes/gotchas.md, "The [AccessStrict] store
-    instance cannot take a value the call has not produced yet". *)
-Local Lemma raftLog_split_unstable (l : loc) (lv : raft.raftLog.t) :
-  l ↦ lv -∗
-  l.[raft.raftLog.t, "unstable"] ↦ lv.(raft.raftLog.unstable') ∗
-  (∀ uv, l.[raft.raftLog.t, "unstable"] ↦ uv -∗
-         l ↦ (lv <| raft.raftLog.unstable' := uv |>)).
-Proof.
-  iIntros "Hl".
-  iEval (rewrite typed_pointsto_unseal /typed_pointsto_wrap /=) in "Hl".
-  iDestruct "Hl" as "[Hf %Hnn]". iNamed "Hf".
-  iFrame "unstable".
-  iIntros (uv) "Huv".
-  iEval (rewrite typed_pointsto_unseal /typed_pointsto_wrap /=).
-  iFrame "∗%".
-Qed.
-
-End helper.
 
 (** The split of the new entry list: the stable part below [e0.Index],
     then the unstable part below it, then the batch. *)
@@ -65,7 +35,7 @@ Import P.
     intros_ambient.
     intros l ls ents es dq.
     intros Hpre Hnorm.
-    destruct ls as [prev sents uents lcm lap]; logstate_simpl.
+    destruct ls as [prev sents uents lcm lap snap]; logstate_simpl.
     wp_start as "H". iNamed "H". wp_auto.
     iDestruct (own_slice_len with "Hes") as %[Hlen Hlen'].
     destruct ents as [|e0 ents'].
@@ -74,7 +44,7 @@ Import P.
       simpl in Hlen.
       rewrite bool_decide_eq_true_2; last word.
       wp_auto.
-      wp_apply (wp_raftLog__lastIndex _ (logstate.mk prev sents uents lcm lap) with "[$Hlog]") as "%li [Hlog %Hli]". logstate_simpl.
+      wp_apply (wp_raftLog__lastIndex _ (logstate.mk prev sents uents lcm lap snap) with "[$Hlog]") as "%li [Hlog %Hli]". logstate_simpl.
       iApply ("HΦ" $! li). simpl. iFrame.
       iPureIntro. rewrite /plog_truncate_append. split; [done | lia].
     - (* the batch is non-empty: [ents[0]] exists *)
@@ -94,7 +64,7 @@ Import P.
       (* the [Panicf]: [after = e0.Index - 1 >= committed] *)
       iNamed "Hlog".
       iEval (rewrite /own_raftLog_core /=) in "Hcore".
-      iDestruct "Hcore" as (stored) "Hcore". iNamed "Hcore". logstate_simpl.
+      iDestruct "Hcore" as (sprev stored) "Hcore". iNamed "Hcore". logstate_simpl.
       pose proof (f_equal uint.Z Hcm) as HcmZ.
       wp_auto.
       rewrite bool_decide_eq_false_2; last word.
@@ -114,7 +84,7 @@ Import P.
                            uint.Z e0.(raftpb.Entry.Index')
                              ≠ uint.Z lv.(raft.raftLog.unstable').(raft.unstable.offset')
                                + Z.of_nat (length uents))%Z
-              = log_adopts (logstate.mk prev sents uents lcm lap) ents) as Hadopt_eq.
+              = log_adopts (logstate.mk prev sents uents lcm lap snap) ents) as Hadopt_eq.
       { rewrite /log_adopts /=. apply bool_decide_ext. rewrite Hoffset. lia. }
       wp_apply (wp_unstable__truncateAndAppend _ _ _ _ _ _ _ _ He0 Hle' Hnw' Hulg
                   with "[Huf Huents Huents_cap $Hes $Hulgr Hadopt]")
@@ -155,27 +125,32 @@ Import P.
       assert (uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents')
               + Z.of_nat (length uents') + 1 < 2^64)%Z as Hnw2.
       { lia. }
-      assert (sents' `prefix_of` stored) as Hst2.
-      { etrans; [apply prefix_take | done]. }
-      assert (uents' = [] → sents' = stored) as Hsteq2.
-      { intros Hnil. apply app_eq_nil in Hnil as [_ Hnil]. discriminate Hnil. }
+      (* the storage relation: the visible stable part is cut, or -- with a
+         snapshot pending -- stays empty *)
+      assert (log_store_ok snap sprev stored prev sents' uents') as Hst2.
+      { destruct snap as [sid|].
+        - destruct Hstore as (Hp & Hs & Hsid). split; [done|split; [|done]].
+          rewrite /sents' Hs take_nil //.
+        - destruct Hstore as (Hp & Hstored & _). split_and!; [done| |].
+          + etrans; [apply prefix_take | done].
+          + intros Hnil. apply app_eq_nil in Hnil as [_ Hnil]. discriminate Hnil. }
       assert (uint.Z uv'.(raft.unstable.offset')
               = uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents') + 1)%Z as Hoff2.
       { rewrite Hoff'. rewrite /sents' length_take. lia. }
-      assert (uv'.(raft.unstable.snapshot') = null) as Hsnap2 by (rewrite Hsnap'; done).
       assert (uint.Z lv.(raft.raftLog.committed')
               ≤ uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents')
                 + Z.of_nat (length uents'))%Z as Hcm2 by lia.
       iEval (rewrite -Hlg') in "Hu_logger".
-      iAssert (own_raftLog l (logstate.mk prev sents' uents' lcm lap))
+      iEval (rewrite -Hsnap') in "Husnap".
+      iAssert (own_raftLog l (logstate.mk prev sents' uents' lcm lap snap))
         with "[Hl HStorage Hents Hents_cap]" as "Hlog".
       { iApply (own_raftLog_intro with
-                 "Hl HisStorage HStorage Hents Hents_cap Hl_logger Hu_logger");
+                 "Hl HisStorage HStorage Husnap Hents Hents_cap Hl_logger Hu_logger");
           done. }
-      wp_apply (wp_raftLog__lastIndex _ (logstate.mk prev sents' uents' lcm lap)
+      wp_apply (wp_raftLog__lastIndex _ (logstate.mk prev sents' uents' lcm lap snap)
                   with "[$Hlog]") as "%li [Hlog %Hli]". logstate_simpl.
       iApply ("HΦ" $! li). iFrame "Hlog Hes". iPureIntro. split; [exact Hsplit |].
-      change (log_truncate_append _ ents) with (logstate.mk prev sents' uents' lcm lap).
+      change (log_truncate_append _ ents) with (logstate.mk prev sents' uents' lcm lap snap).
       cbn [logstate.prev logstate.sents logstate.uents]. lia.
   Qed.
 

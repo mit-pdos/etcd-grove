@@ -129,7 +129,7 @@ End prefix_helpers.
   Proof.
     intros_ambient.
     intros l ls lo hi maxSize Hrange.
-    destruct ls as [prev sents uents lcm lap]; logstate_simpl.
+    destruct ls as [prev sents uents lcm lap snap]; logstate_simpl.
     destruct Hrange as (Hr1 & Hr2 & Hr3).
     assert (Hmc : (uint.Z prev.(raft.entryID.index') + 1 ≤ uint.Z lo ≤ uint.Z hi ≤
                    uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents)
@@ -142,7 +142,7 @@ End prefix_helpers.
     destruct errCompacted; try (exfalso; by apply HErrCompacted).
     destruct errUnavailable; try (exfalso; by apply HErrUnavailable).
     wp_auto.
-    wp_apply (wp_raftLog__mustCheckOutOfBounds l (logstate.mk prev sents uents lcm lap) lo hi Hmc
+    wp_apply (wp_raftLog__mustCheckOutOfBounds l (logstate.mk prev sents uents lcm lap snap) lo hi Hmc
                 with "[$Hlog]")
       as "Hlog". logstate_simpl.
     rewrite bool_decide_eq_false_2; last (intros ->; lia).
@@ -150,7 +150,6 @@ End prefix_helpers.
     iNamed "Hlog".
     iEval (rewrite /own_raftLog_core /=) in "Hcore". iNamed "Hcore".
     iDestruct (own_slice_len with "Huents") as %[Hulen Hulen'].
-    pose proof (prefix_length _ _ Hstored) as Hstlen.
     wp_auto.
     wp_if_destruct.
     - (* the result lies entirely in the unstable suffix *)
@@ -200,7 +199,14 @@ End prefix_helpers.
             by lia.
           apply slice_unstable_prefix. }
       reseal_log.
-    - (* the result starts in the stable prefix: [lo < unstable.offset] *)
+    - (* the result starts in the stable prefix: [lo < unstable.offset].
+         With a snapshot pending there is no stable prefix -- [offset] is
+         [prev.index + 1 <= lo] -- so this branch is dead, and [Storage]
+         is never asked about the shadowed entries. *)
+      destruct snap as [sid|].
+      { exfalso. destruct Hstore as (_ & -> & _). simpl in Hoffset. word. }
+      pose proof Hstore as (Hsp & Hstored & _). subst sprev.
+      pose proof (prefix_length _ _ Hstored) as Hstlen.
       iAssert (is_Storage lv.(raft.raftLog.storage')) as "#Hsto".
       { iExact "HisStorage". }
       iDestruct "Hsto" as (isv) "Hsto1". iNamed "Hsto1".

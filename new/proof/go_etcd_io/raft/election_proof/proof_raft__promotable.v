@@ -56,10 +56,16 @@ Import P.
       iDestruct (own_raft_phys_log_same with "Hphys") as "(Hlog & Hback)".
       wp_apply (P.wp_raftLog__hasNextOrInProgressSnapshot with "[$Hlog]")
         as "%hb [Hlog %Hhb]".
-      subst hb. simpl.
+      subst hb.
       iDestruct ("Hback" with "Hlog") as "Hphys".
       iApply "HΦ". iFrame "Hphys".
-      iPureIntro. rewrite bool_decide_eq_true_2 //.
+      iPureIntro.
+      destruct (s.(nstate.logst).(logstate.snap)) as [sid|].
+      + rewrite (bool_decide_eq_true_2 (Some sid ≠ None)) //.
+        rewrite (bool_decide_eq_false_2 (id ∈ cfg ∧ Some sid = None)) //.
+        intros [_ Hc]. discriminate Hc.
+      + rewrite (bool_decide_eq_false_2 (None ≠ None)); last (by intros ?).
+        rewrite (bool_decide_eq_true_2 (id ∈ cfg ∧ (None : option raft.entryID.t) = None)) //.
     - (* not a voter: the lookup misses, [pr == nil] short-circuits to false *)
       iDestruct (own_tracker_progress_map with "Htrk") as "(#Hprs & %Hdom & Htrk)".
       assert (s.(nstate.progress) !! id = None) as Hnone.
@@ -73,7 +79,7 @@ Import P.
       iApply "HΦ".
       iSplitL.
       { iApply (own_raft_phys_eq with "Hphys"). by destruct s. }
-      iPureIntro. rewrite bool_decide_eq_false_2 //.
+      iPureIntro. rewrite bool_decide_eq_false_2 //. intros [? _]. done.
   Qed.
 
 End RaftPromotableProof.

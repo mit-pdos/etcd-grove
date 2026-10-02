@@ -59,27 +59,28 @@
       [Hcommitted] below placing [(applied, committed]] inside the log).  It
       holds because **no configuration change is ever requested** -- a scope
       assumption, see below.
-    - [prev.index <= applied <= committed <= prev.index + |sents| + |uents|]:
-      raft compacts only up to [applied] and commits only what it has.
-    - **[unstable.snapshot = nil]**: no snapshot is ever received or taken --
-      a scope assumption, see below.  This is what makes
-      [hasNextOrInProgressSnapshot] return [false], which [promotable] needs.
+    - [prev.index <= committed], [applied <= committed <= prev.index +
+      |sents| + |uents|], and [prev.index <= applied] when no snapshot is
+      pending: raft compacts only up to [applied] and commits only what it
+      has.  A received snapshot moves [prev] and [committed] to its index
+      and leaves [applied] below it until the application applies it.
+    - **a pending snapshot** ([logstate.snap], since 2026-10-02): when
+      [unstable.snapshot] is set, the log starts at the snapshot's id with
+      no stable part, and the [Storage] is shadowed ([log_store_ok]).
 
     *** Scope assumptions written into the predicate
 
-    Two, both in the same class as [own_raft_phys]'s [preVote = false]: they
-    are preserved by everything on the election path, so a predicate may
-    assert them, but they do restrict the runs covered.
+    One, in the same class as [own_raft_phys]'s [preVote = false]: it is
+    preserved by everything on the election path, so a predicate may assert
+    it, but it does restrict the runs covered.
 
     1. **No configuration change is ever requested.**  Sanctioned scope.  With
        it, no [EntryConfChange]/[EntryConfChangeV2] is ever appended, so
        [HnoConfChange] is preserved by [append] (the only log write on this
        path is the single empty [EntryNormal] a new leader appends).
-    2. **No snapshot is ever received or applied.**  [newLog] starts with
-       [unstable.snapshot = nil]; only [unstable.restore] (i.e. handling a
-       [MsgSnap], or [raft.restore]) sets it, and that is not an election
-       message.  Recorded here because it was *not* in the sanctioned list and
-       is needed for [hasNextOrInProgressSnapshot].
+    (Until 2026-10-02 there was a second: no snapshot is ever received,
+    [unstable.snapshot = nil].  [logstate.snap] replaced it when [MsgSnap]
+    came into scope.)
 
     Note what is **not** assumed: that [term(lastIndex())] succeeds.  That is
     the fact [lastEntryID] needs, and it is *proved* here from the conjuncts
@@ -90,7 +91,8 @@
     *** Structure
 
     [own_raftLog l ls] is the one predicate, indexed by [ls : logstate.t]
-    (below): the entry list, [committed] and [applied].
+    (below): the entry list, [committed], [applied] and the pending
+    snapshot.
     The entry list is in the index rather than existential inside because
     [raftLog.term] calls [firstIndex] and [lastIndex] on itself, so the
     proof has to re-seal and re-open the predicate mid-function and needs
@@ -188,27 +190,98 @@ Proof. apply _. Qed.
     [newLogWithSize] sets to the same value) are carried so that the
     [Infof]s of [findConflict] and [unstable.truncateAndAppend] can be
     stepped. *)
-Definition own_raftLog_core (lv : raft.raftLog.t) (prev : raft.entryID.t)
+(** ** A pending snapshot (since 2026-10-02)
+
+    [unstable.restore(s)] ([log_unstable.go:188]) stores [&s] in
+    [u.snapshot], the address of [restore]'s by-value parameter -- a fresh
+    heap cell nothing else points to.  Nothing writes through it until
+    [stableSnapTo] clears the field ([MsgStorageAppendResp], out of scope),
+    and [raftLog.snapshot()] reads it by value, so the log holds it
+    read-only.  [own_snap p snap] says what [p = u.snapshot] is: [nil] for
+    [None], and for [Some sid] a pointer to a [Snapshot] whose metadata is
+    [sid]. *)
+Local Definition own_snap_def (p : loc) (snap : option raft.entryID.t) : iProp Σ :=
+  match snap with
+  | None => ⌜ p = null ⌝
+  | Some sid =>
+      ∃ (sv : raftpb.Snapshot.t), p ↦□ sv ∗
+        ⌜ sv.(raftpb.Snapshot.Metadata').(raftpb.SnapshotMetadata.Index')
+            = sid.(raft.entryID.index') ∧
+          sv.(raftpb.Snapshot.Metadata').(raftpb.SnapshotMetadata.Term')
+            = sid.(raft.entryID.term') ⌝
+  end.
+(** Sealed: unfolded, a [None]/[Some] instance reduces to its body, and the
+    re-seal lemmas ([own_raftLog_intro]) can then no longer infer [snap]
+    from the hypothesis.  [own_snap_None]/[own_snap_Some] open it. *)
+Local Definition own_snap_aux : seal (@own_snap_def). Proof. by eexists. Qed.
+Definition own_snap := own_snap_aux.(unseal).
+Local Definition own_snap_unseal : @own_snap = @own_snap_def := own_snap_aux.(seal_eq).
+
+Lemma own_snap_None p : own_snap p None ⊣⊢ ⌜ p = null ⌝.
+Proof. rewrite own_snap_unseal //. Qed.
+Lemma own_snap_Some p sid :
+  own_snap p (Some sid) ⊣⊢
+  ∃ (sv : raftpb.Snapshot.t), p ↦□ sv ∗
+    ⌜ sv.(raftpb.Snapshot.Metadata').(raftpb.SnapshotMetadata.Index')
+        = sid.(raft.entryID.index') ∧
+      sv.(raftpb.Snapshot.Metadata').(raftpb.SnapshotMetadata.Term')
+        = sid.(raft.entryID.term') ⌝.
+Proof. rewrite own_snap_unseal //. Qed.
+Global Instance own_snap_pers p snap : Persistent (own_snap p snap).
+Proof. rewrite own_snap_unseal. destruct snap; apply _. Qed.
+
+(** How the visible log relates to what [Storage] holds, by whether a
+    snapshot is pending.  The storage holds [stored] after [sprev]
+    ([own_Storage]).
+
+    - No snapshot: [sprev] is the log's [prev], and [sents] is a prefix of
+      [stored] -- all of it when the unstable suffix is empty (see
+      [own_raftLog_core]).
+    - A pending snapshot [sid]: the log starts at [sid] with no stable part
+      ([sents = []]); the storage is **shadowed**.  It still holds its old
+      boundary and entries, and nothing reads them while the snapshot is
+      pending: [firstIndex]/[lastIndex] answer from the snapshot arms of
+      [unstable.maybeFirstIndex]/[maybeLastIndex], [term] answers [i <
+      sid.index] with [ErrCompacted] (its [firstIndex] test) and
+      [i = sid.index] from [maybeTerm], and [slice]'s range starts at
+      [firstIndex = offset], above every stored index it could ask
+      [Storage.Entries] for.  [sid.index] is non-zero (the snapshot's index
+      is above the commit index it replaced) and below [2^61], the bound
+      [is_Storage]'s [Hbounded] gives an unshadowed storage: once the
+      snapshot is applied it becomes the storage's boundary, and
+      [appendEntry]'s no-wrap argument needs it meanwhile. *)
+Definition log_store_ok (snap : option raft.entryID.t) (sprev : raft.entryID.t)
+    (stored : list raftpb.Entry.t) (prev : raft.entryID.t)
+    (sents uents : list raftpb.Entry.t) : Prop :=
+  match snap with
+  | None => sprev = prev ∧ sents `prefix_of` stored ∧ (uents = [] → sents = stored)
+  | Some sid => prev = sid ∧ sents = [] ∧
+               (0 < uint.Z sid.(raft.entryID.index') < 2^61)%Z
+  end.
+
+Definition own_raftLog_core (lv : raft.raftLog.t) (snap : option raft.entryID.t)
+                            (prev : raft.entryID.t)
                             (sents uents : list raftpb.Entry.t) : iProp Σ :=
-  ∃ (stored : list raftpb.Entry.t),
+  ∃ (sprev : raft.entryID.t) (stored : list raftpb.Entry.t),
   "%Hidx" ∷ ⌜ log_indices_ok prev (sents ++ uents) ⌝ ∗
   "%Hnowrap" ∷ ⌜ (uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents)
                   + Z.of_nat (length uents) + 1 < 2^64)%Z ⌝ ∗
   "#HisStorage" ∷ is_Storage lv.(raft.raftLog.storage') ∗
-  "HStorage" ∷ own_Storage lv.(raft.raftLog.storage') prev stored ∗
-  "%Hstored" ∷ ⌜ sents `prefix_of` stored ⌝ ∗
-  "%Hstored_eq" ∷ ⌜ uents = [] → sents = stored ⌝ ∗
+  "HStorage" ∷ own_Storage lv.(raft.raftLog.storage') sprev stored ∗
+  "%Hstore" ∷ ⌜ log_store_ok snap sprev stored prev sents uents ⌝ ∗
+  "#Husnap" ∷ own_snap lv.(raft.raftLog.unstable').(raft.unstable.snapshot') snap ∗
   "%Hoffset" ∷ ⌜ (uint.Z lv.(raft.raftLog.unstable').(raft.unstable.offset')
                  = uint.Z prev.(raft.entryID.index')
                    + Z.of_nat (length sents) + 1)%Z ⌝ ∗
   "Huents" ∷ lv.(raft.raftLog.unstable').(raft.unstable.entries') ↦*□ uents ∗
   "Huents_cap" ∷ own_slice_cap raftpb.Entry.t
                    lv.(raft.raftLog.unstable').(raft.unstable.entries') (DfracOwn 1) ∗
-  "%Hnosnap" ∷ ⌜ lv.(raft.raftLog.unstable').(raft.unstable.snapshot') = null ⌝ ∗
   "%HnoConfChange" ∷ ⌜ Forall (λ e, e.(raftpb.Entry.Type') = EntryNormal)
                          (sents ++ uents) ⌝ ∗
-  "%Happlied" ∷ ⌜ (uint.Z prev.(raft.entryID.index') ≤ uint.Z lv.(raft.raftLog.applied')
-                  ≤ uint.Z lv.(raft.raftLog.committed'))%Z ⌝ ∗
+  "%Happlied" ∷ ⌜ (uint.Z prev.(raft.entryID.index') ≤ uint.Z lv.(raft.raftLog.committed') ∧
+                  uint.Z lv.(raft.raftLog.applied') ≤ uint.Z lv.(raft.raftLog.committed'))%Z ⌝ ∗
+  "%Hpapplied" ∷ ⌜ snap = None →
+                   (uint.Z prev.(raft.entryID.index') ≤ uint.Z lv.(raft.raftLog.applied'))%Z ⌝ ∗
   "%Hcommitted" ∷ ⌜ (uint.Z lv.(raft.raftLog.committed')
                     ≤ uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents)
                       + Z.of_nat (length uents))%Z ⌝ ∗
@@ -222,16 +295,16 @@ Definition own_raftLog (l : loc) (ls : logstate.t) : iProp Σ :=
   "Hl" ∷ l ↦ lv ∗
   "%Hcm" ∷ ⌜ lv.(raft.raftLog.committed') = ls.(logstate.committed) ⌝ ∗
   "%Hap" ∷ ⌜ lv.(raft.raftLog.applied') = ls.(logstate.applied) ⌝ ∗
-  "Hcore" ∷ own_raftLog_core lv ls.(logstate.prev)
+  "Hcore" ∷ own_raftLog_core lv ls.(logstate.snap) ls.(logstate.prev)
               ls.(logstate.sents) ls.(logstate.uents).
 
 (** Open and close [own_raftLog] with the entry list as variables -- the
     form every [raftLog] proof works at after [destruct ls;
     logstate_simpl]. *)
-Lemma own_raftLog_unfold l prev sents uents cm ap :
-  own_raftLog l (logstate.mk prev sents uents cm ap) ⊣⊢
+Lemma own_raftLog_unfold l prev sents uents cm ap snap :
+  own_raftLog l (logstate.mk prev sents uents cm ap snap) ⊣⊢
   ∃ lv, l ↦ lv ∗ ⌜ lv.(raft.raftLog.committed') = cm ⌝ ∗
-        ⌜ lv.(raft.raftLog.applied') = ap ⌝ ∗ own_raftLog_core lv prev sents uents.
+        ⌜ lv.(raft.raftLog.applied') = ap ⌝ ∗ own_raftLog_core lv snap prev sents uents.
 Proof. rewrite /own_raftLog /=. done. Qed.
 
 (** Re-seal [own_raftLog] from the pieces [iNamed "Hlog"; iNamed "Hcore"]
@@ -242,36 +315,36 @@ Proof. rewrite /own_raftLog /=. done. Qed.
     isv] after a [rewrite Hstok] -- and the premise [lv.storage = st] is then
     [eq_refl] or [Hstok].  The [reseal_raftLog] tactic below applies it with
     the standard names and closes the pure premises by assumption. *)
-Lemma own_raftLog_intro l lv st prev sents uents cm ap stored :
+Lemma own_raftLog_intro l lv st snap prev sents uents cm ap sprev stored :
   lv.(raft.raftLog.storage') = st →
   lv.(raft.raftLog.committed') = cm →
   lv.(raft.raftLog.applied') = ap →
   log_indices_ok prev (sents ++ uents) →
   (uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents)
    + Z.of_nat (length uents) + 1 < 2^64)%Z →
-  sents `prefix_of` stored →
-  (uents = [] → sents = stored) →
+  log_store_ok snap sprev stored prev sents uents →
   (uint.Z lv.(raft.raftLog.unstable').(raft.unstable.offset')
    = uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents) + 1)%Z →
-  lv.(raft.raftLog.unstable').(raft.unstable.snapshot') = null →
   Forall (λ e, e.(raftpb.Entry.Type') = EntryNormal) (sents ++ uents) →
-  (uint.Z prev.(raft.entryID.index') ≤ uint.Z lv.(raft.raftLog.applied')
-   ≤ uint.Z lv.(raft.raftLog.committed'))%Z →
+  (uint.Z prev.(raft.entryID.index') ≤ uint.Z lv.(raft.raftLog.committed') ∧
+   uint.Z lv.(raft.raftLog.applied') ≤ uint.Z lv.(raft.raftLog.committed'))%Z →
+  (snap = None → uint.Z prev.(raft.entryID.index') ≤ uint.Z lv.(raft.raftLog.applied'))%Z →
   (uint.Z lv.(raft.raftLog.committed') ≤ uint.Z prev.(raft.entryID.index')
      + Z.of_nat (length sents) + Z.of_nat (length uents))%Z →
   l ↦ lv -∗
   is_Storage st -∗
-  own_Storage st prev stored -∗
+  own_Storage st sprev stored -∗
+  own_snap lv.(raft.raftLog.unstable').(raft.unstable.snapshot') snap -∗
   lv.(raft.raftLog.unstable').(raft.unstable.entries') ↦*□ uents -∗
   own_slice_cap raftpb.Entry.t lv.(raft.raftLog.unstable').(raft.unstable.entries') (DfracOwn 1) -∗
   is_Logger_val lv.(raft.raftLog.logger') -∗
   is_Logger_val lv.(raft.raftLog.unstable').(raft.unstable.logger') -∗
-  own_raftLog l (logstate.mk prev sents uents cm ap).
+  own_raftLog l (logstate.mk prev sents uents cm ap snap).
 Proof.
-  intros <- Hcm Hap ?????????.
-  iIntros "Hl #Hst HSt Hu Hucap #Hl1 #Hl2".
+  intros <- Hcm Hap ????????.
+  iIntros "Hl #Hst HSt #Hsn Hu Hucap #Hl1 #Hl2".
   iExists lv. iFrame "Hl". iSplit; [done|]. iSplit; [done|].
-  iExists stored. iFrame "Hst HSt Hu Hucap Hl1 Hl2". iPureIntro. done.
+  iExists sprev, stored. iFrame "Hst HSt Hsn Hu Hucap Hl1 Hl2". iPureIntro. done.
 Qed.
 
 (** The struct, for a field read.  [committed] and [applied]
@@ -313,15 +386,36 @@ Qed.
 
 Lemma own_raftLog_committed l ls :
   own_raftLog l ls -∗
-  ⌜ (uint.Z ls.(logstate.prev).(raft.entryID.index') ≤ uint.Z ls.(logstate.applied)
-     ≤ uint.Z ls.(logstate.committed)
+  ⌜ (uint.Z ls.(logstate.prev).(raft.entryID.index') ≤ uint.Z ls.(logstate.committed) ∧
+     uint.Z ls.(logstate.applied) ≤ uint.Z ls.(logstate.committed)
      ≤ uint.Z ls.(logstate.prev).(raft.entryID.index')
        + Z.of_nat (length ls.(logstate.sents))
-       + Z.of_nat (length ls.(logstate.uents)))%Z ⌝ ∗
+       + Z.of_nat (length ls.(logstate.uents)))%Z ∧
+    (ls.(logstate.snap) = None →
+     uint.Z ls.(logstate.prev).(raft.entryID.index') ≤ uint.Z ls.(logstate.applied))%Z ⌝ ∗
   own_raftLog l ls.
 Proof.
   iIntros "H". iNamed "H". iNamed "Hcore".
-  iSplitR; first (iPureIntro; rewrite -Hcm -Hap; lia). iExists lv. iFrame "∗#%".
+  iSplitR.
+  { iPureIntro. rewrite -Hcm -Hap. split; [lia|]. intros Hs. specialize (Hpapplied Hs). lia. }
+  iExists lv. iFrame "∗#%".
+Qed.
+
+(** The pending snapshot's facts ([log_store_ok]), read out without
+    consuming the log: with a snapshot pending, the log starts at it with no
+    stable part.  [appendEntry] and [raftLog.restore]'s callers need the
+    index bound. *)
+Lemma own_raftLog_snap l ls sid :
+  ls.(logstate.snap) = Some sid →
+  own_raftLog l ls -∗
+  ⌜ ls.(logstate.prev) = sid ∧ ls.(logstate.sents) = [] ∧
+    (0 < uint.Z sid.(raft.entryID.index') < 2^61)%Z ⌝ ∗
+  own_raftLog l ls.
+Proof.
+  iIntros (Hs) "H". iNamed "H". iNamed "Hcore".
+  pose proof Hstore as Hst'. rewrite Hs in Hst'.
+  iSplitR; first (iPureIntro; exact Hst').
+  iExists lv. iFrame "∗#%".
 Qed.
 
 Lemma own_raftLog_no_confchange l ls :
@@ -473,11 +567,35 @@ Proof.
 Qed.
 
 
+(** Split the [unstable] field out of [l ↦ lv], keeping a wand that accepts
+    *any* new value for it.  [split_unstable] (above) is not enough for a
+    call that installs a new [unstable] value -- [truncateAndAppend]'s new
+    [entries], [unstable.restore] -- since the new value is introduced by
+    that call's own postcondition, after the [AccessStrict] store
+    instance's evar was created (notes/gotchas.md, "The [AccessStrict]
+    store instance cannot take a value the call has not produced yet").
+    Moved here from [proof_raftLog__append.v] on 2026-10-02 for
+    [raftLog.restore]. *)
+Lemma raftLog_split_unstable (l : loc) (lv : raft.raftLog.t) :
+  l ↦ lv -∗
+  l.[raft.raftLog.t, "unstable"] ↦ lv.(raft.raftLog.unstable') ∗
+  (∀ uv, l.[raft.raftLog.t, "unstable"] ↦ uv -∗
+         l ↦ (lv <| raft.raftLog.unstable' := uv |>)).
+Proof.
+  iIntros "Hl".
+  iEval (rewrite typed_pointsto_unseal /typed_pointsto_wrap /=) in "Hl".
+  iDestruct "Hl" as "[Hf %Hnn]". iNamed "Hf".
+  iFrame "unstable".
+  iIntros (uv) "Huv".
+  iEval (rewrite typed_pointsto_unseal /typed_pointsto_wrap /=).
+  iFrame "∗%".
+Qed.
+
 End proof.
 
 (** Re-seal [own_raftLog l (logstate.mk …)] from the hypotheses
     [iNamed "Hlog"; iNamed "Hcore"] introduced ([own_raftLog_intro]). *)
 Ltac reseal_raftLog :=
   iApply (own_raftLog_intro with
-           "Hl HisStorage HStorage Huents Huents_cap Hl_logger Hu_logger");
+           "Hl HisStorage HStorage Husnap Huents Huents_cap Hl_logger Hu_logger");
   try done.

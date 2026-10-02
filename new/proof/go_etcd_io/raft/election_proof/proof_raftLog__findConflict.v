@@ -11,7 +11,7 @@ Import P.
   Proof.
     intros_ambient.
     intros l ls es dq ents Hge.
-    destruct ls as [prev sents uents lcm lap]; logstate_simpl.
+    destruct ls as [prev sents uents lcm lap snap]; logstate_simpl.
     set (es_all := sents ++ uents).
     wp_start as "H". iNamed "H". wp_auto.
     iDestruct (own_slice_len with "Hes") as %[Hlen Hlen'].
@@ -19,7 +19,7 @@ Import P.
     iAssert (∃ (n k : w64),
       "Hj" ∷ j ↦ n ∗
       "i" ∷ i_ptr ↦ k ∗
-      "Hlog" ∷ own_raftLog l (logstate.mk prev sents uents lcm lap) ∗
+      "Hlog" ∷ own_raftLog l (logstate.mk prev sents uents lcm lap snap) ∗
       "Hes" ∷ es ↦*{dq} ents ∗
       "%Hn" ∷ ⌜ (0 ≤ sint.Z n ≤ Z.of_nat (length ents))%Z ⌝ ∗
       "%Hfc" ∷ ⌜ plog_find_conflict prev es_all ents
@@ -43,7 +43,7 @@ Import P.
       wp_apply (wp_pbEntryID with "[$He]") as "He".
       iDestruct ("Hesback" with "He") as "Hes".
       rewrite list_insert_id //.
-      wp_apply (wp_raftLog__matchTerm _ (logstate.mk prev sents uents lcm lap) (ent_id e)
+      wp_apply (wp_raftLog__matchTerm _ (logstate.mk prev sents uents lcm lap snap) (ent_id e)
                   with "[$Hlog]") as "%b [Hlog %Hb]". logstate_simpl.
       assert (drop (sint.nat n) ents = e :: drop (S (sint.nat n)) ents) as Hdrop.
       { by apply drop_S. }
@@ -63,13 +63,13 @@ Import P.
         { rewrite List.Forall_forall in Hge. apply Hge.
           apply list_elem_of_In. by eapply list_elem_of_lookup_2. }
         wp_auto.
-        wp_apply (wp_raftLog__lastIndex _ (logstate.mk prev sents uents lcm lap)
+        wp_apply (wp_raftLog__lastIndex _ (logstate.mk prev sents uents lcm lap snap)
                     with "[$Hlog]") as "%li [Hlog %Hli]". logstate_simpl.
         destruct (decide (uint.Z e.(raftpb.Entry.Index') ≤ uint.Z li)%Z) as [Hle|Hgt].
         * (* [id.index <= lastIndex()]: the [Infof] *)
           rewrite bool_decide_eq_true_2; last done.
           wp_auto.
-          wp_apply (wp_raftLog__term _ (logstate.mk prev sents uents lcm lap)
+          wp_apply (wp_raftLog__term _ (logstate.mk prev sents uents lcm lap snap)
                       e.(raftpb.Entry.Index') with "[$Hlog]")
             as "%t %err (Hlog & %Herr & _)". logstate_simpl.
           assert (err = interface.nil) as -> by (apply Herr; lia).
@@ -84,7 +84,7 @@ Import P.
           wp_auto.
           (* the logger is loaded: re-seal before [rewrite Hlg], which would
              also rewrite the [Hl_logger] the re-seal needs *)
-          iAssert (own_raftLog l (logstate.mk prev sents uents lcm lap))
+          iAssert (own_raftLog l (logstate.mk prev sents uents lcm lap snap))
             with "[Hl HStorage Huents Huents_cap]" as "Hlog".
           { reseal_raftLog. }
           rewrite Hlg. try wp_auto.

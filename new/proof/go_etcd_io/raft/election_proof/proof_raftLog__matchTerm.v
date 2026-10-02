@@ -7,9 +7,9 @@ Import P.
   Proof.
     intros_ambient.
     intros l ls id.
-    destruct ls as [prev sents uents lcm lap]; logstate_simpl.
+    destruct ls as [prev sents uents lcm lap snap]; logstate_simpl.
     wp_start as "H". iNamed "H". wp_auto.
-    wp_apply (wp_raftLog__term _ (logstate.mk prev sents uents lcm lap) _ with "[$Hlog]")
+    wp_apply (wp_raftLog__term _ (logstate.mk prev sents uents lcm lap snap) _ with "[$Hlog]")
       as "%t %err (Hlog & %Herr & %Ht & _)". logstate_simpl.
     destruct err as [eok|].
     - (* [err != nil]: [id.index] is out of range, so [plog_term_at] is [None] *)

@@ -1,6 +1,9 @@
 Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
 
-(** [r.promotable()]: true exactly when this node is a voter.  It reads
+(** [r.promotable()]: true exactly when this node is a voter **and has no
+    pending snapshot** ([logstate.snap = None]; the third conjunct,
+    [!hasNextOrInProgressSnapshot()], was constantly true until snapshots
+    came into scope on 2026-10-02).  It reads
     [r.id], [r.trk.Progress] and [r.raftLog], so it is stated against the
     raft struct rather than against three unrelated parameters.
 
@@ -41,7 +44,8 @@ Definition wp_raft__promotable_body :=
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "promotable" #()
   {{{ (b : bool), RET #b;
-      own_raft_phys cfg r id s ∗ ⌜ b = bool_decide (id ∈ cfg) ⌝ }}}.
+      own_raft_phys cfg r id s ∗
+      ⌜ b = bool_decide (id ∈ cfg ∧ s.(nstate.logst).(logstate.snap) = None) ⌝ }}}.
 
 Module Type RAFT__PROMOTABLE.
   Parameter wp_raft__promotable : wp_raft__promotable_body.

@@ -47,7 +47,7 @@ Definition wp_newLogWithSize_body :=
       ⌜ lv.(raft.raftLog.storage') = st ∧
         lv.(raft.raftLog.committed') = prev.(raft.entryID.index') ∧
         lv.(raft.raftLog.applied') = prev.(raft.entryID.index') ⌝ ∗
-      own_raftLog_core lv prev ents [] }}}.
+      own_raftLog_core lv None prev ents [] }}}.
 
 Module Type NEWLOGWITHSIZE.
   Parameter wp_newLogWithSize : wp_newLogWithSize_body.
