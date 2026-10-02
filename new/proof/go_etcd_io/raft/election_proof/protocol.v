@@ -28,21 +28,15 @@
     the [raftLog] specs are stated with too.
 
     **Admitted.**  By the user's decision of 2026-10-01 this file may contain
-    [Admitted] lemmas: the ghost-state obligations of some of the replication
-    rules ([own_raft_ghost_step_<rule>]), the protocol facts the code's
-    [Panicf]s rely on, and the replication safety statements.  Each says in
-    its comment what the informal argument is.  Everything about election
-    is still [Qed].
+    [Admitted] lemmas.  Since 2026-10-02 there are three: the client
+    assumption [snap_ok_message] (a [Storage] contract, not a protocol
+    fact), and [leader_completeness] / [state_machine_safety], which are
+    not provable from two nodes' ghost state (their comments say why and
+    what a proof needs).  Every rule's ghost update, the four protocol facts
+    the code's [Panicf]s rely on, and [log_matching] are [Qed].
 
-    **Deferred premise.**  One clause the design calls for is *not* yet
-    in the rules: [app_ok]'s "the entries are a prefix of the log after
-    [index]" -- [raftLog.entries] does not say which entries it returns
-    (it is marked [DEFERRED] below).  Until it is in, the model is more
-    permissive than the code on that point, and the admitted
-    replication-safety lemmas below are **not** consequences of it.  (The
-    other three deferred premises -- [step_grant_vote]'s up-to-date check,
-    [step_campaign]'s last entry id, [app_ok]'s [logterm] -- went in on
-    2026-10-01 with the pinned [raftLog] specs.) *)
+    The deferred premises of 2026-10-01 are all in ([app_ok]'s prefix
+    clause went in on 2026-10-02 with the pinned [raftLog.entries]). *)
 
 From RecordUpdate Require Import RecordSet.
 From Perennial Require Import NamedProps.
@@ -1250,12 +1244,26 @@ End model.
       at least [i]; [i = 0] is free.
 
     [is_message] attaches these to the messages that report them, and
-    [own_raft_ghost] keeps an [is_entry] for every entry of the node's log,
-    the leader's [is_acked] for every [Match], and [is_committed] of its
-    commit index.  These pieces do not yet carry the invariants that would
-    make [log_matching] etc. provable (see the admitted lemmas at the end);
-    what is proved is that every rule preserves them, for the rules whose
-    case is [Qed]. *)
+    [own_raft_ghost] keeps the leader's [is_acked] for every [Match] and
+    [is_committed] of its commit index.
+
+    Replication safety (2026-10-02):
+
+    - The term log of [(v, t)] also records [v]'s base and log when it won
+      [t] ([is_term_log γ v t γt b l0]), and holds each entry [v] creates
+      in [t] with its predecessor's term: [is_entry_r γ e pt].
+    - [log_recs γ b es]: every entry of a log has [is_entry_r] with its
+      predecessor's term *in that log*.  [own_log_ghost] keeps it of the
+      node's log, with [log_ok] (well-formed in range, [base ≤ commit ≤
+      lastIndex()]).  Log Matching follows from two logs' records alone.
+    - [lead_prefix γ ldr t bL l]: [l] is a log the leader of [t] had.  An
+      [App] or [Snap] carries one, covering what it says.
+    - [ack_agree]: a log agrees at [i] with a [lead_prefix] of [t].
+      [own_log_ghost] keeps it ([acks_ok]) of every acknowledgement a
+      non-leader made in its current term above its commit index, and
+      that a node acknowledges only at its own term ([acks_term]).  A
+      [Heartbeat] carries the acknowledgement its [Commit] is bounded by.
+      That is [heartbeat_commit_le_last]. *)
 
 Record raft_election_names := {
     (** The voter set this ghost state is about.  It lives in [γ] rather than
@@ -3279,23 +3287,18 @@ Qed.
     stated for [ps.term ≤ m.term] rather than equality.  A stale message
     ([m.term < ps.term]) is dropped by the preamble and needs none of them,
     except [app_recv_wf], which holds of any [App] ([is_message] carries
-    it).  [app_recv_wf] and [app_commit_le_lastnewi] are proved;
-    [heartbeat_commit_le_last] and [app_no_conflict_below_commit] are
-    ADMITTED. *)
+    it).  All four are proved (the last two since 2026-10-02, from the
+    acknowledgement invariant [acks_ok] and from arithmetic). *)
 
 (** [handleHeartbeat]'s [commitTo(m.Commit)] panics if [lastIndex() <
-    m.Commit].  Informal argument: the leader sends [Commit: min(pr.Match,
-    committed)], and [pr.Match] is acknowledged by the follower
-    ([is_acked]) for this term; within one term a follower's log only grows
-    past what it acknowledged to that term's leader (it only truncates on a
-    conflict with an [App] of a different term), so its last index is at
-    least the [Match].  For a message of a higher term: the receiver has
-    acknowledged nothing in [m.term] yet (it acknowledges only at its own
-    term), so [pr.Match] is [0] and so is [m.Commit].  A leader of
-    [m.term] receives no heartbeat in [m.term] (leaders do not send to
-    themselves, and a second leader of the term is excluded by
-    [is_leader_unique]) -- the role premise.  [Step] holds the ghost state
-    before its term preamble: hence [≤]. *)
+    m.Commit].  It does not: the leader sends [Commit ≤ pr.Match], and
+    [is_message] carries the receiver's acknowledgement of [pr.Match] in
+    [m.term].  The receiver acknowledges only at its own term
+    ([acks_term]), so for a message of a higher term [pr.Match] is [0];
+    at its own term (where it is not leader -- the role premise) the
+    acknowledgement is at most the commit index or justified by its log
+    ([acks_ok], [ack_agree]), and either way within it ([log_ok]).  [Step]
+    holds the ghost state before its term preamble: hence [≤]. *)
 Lemma heartbeat_commit_le_last γ id ps m :
   m.(msg.ty) = mtype.Heartbeat →
   m.(msg.to) = id →
@@ -3304,7 +3307,27 @@ Lemma heartbeat_commit_le_last γ id ps m :
   own_raft_ghost γ id ps -∗ is_message γ m -∗
   ⌜ uint.Z m.(msg.commit) ≤ plog_last_index_Z ps.(pstate.base) ps.(pstate.log) ⌝.
 Proof.
-Admitted.
+  iIntros (Hty Hto Hle Hrole) "Hown #Hm".
+  iEval (rewrite /is_message Hty) in "Hm".
+  iDestruct "Hm" as "(_ & _ & %i & %Hci & Hack)".
+  iDestruct "Hown" as (γv voted) "(_ & _ & _ & _ & _ & _ & _ & _ & Hlg & _)".
+  iDestruct "Hlg" as (γm terms γa acks) "Hlg". iNamed "Hlg".
+  destruct Hlog_ok as (_ & _ & Hcl).
+  pose proof (plog_last_index_Z_nonneg ps.(pstate.base) ps.(pstate.log)).
+  iDestruct "Hack" as "[%H0 | (%γa' & %Hγa' & Hfrag)]".
+  { iPureIntro. lia. }
+  rewrite Hto Haname in Hγa'. injection Hγa' as <-.
+  iDestruct (ghost_map_lookup with "Hacks Hfrag") as %Hk.
+  pose proof (Hacks_term _ ltac:(by eexists)) as Hkt. simpl in Hkt.
+  assert (Heq : m.(msg.term) = ps.(pstate.term)) by (apply word.unsigned_inj; lia).
+  specialize (Hrole Heq).
+  rewrite /acks_ok. destruct (ps.(pstate.role)) eqn:Hr; [| |congruence].
+  all: iDestruct (big_sepM_lookup with "Hacks_ok") as "Hk"; first exact Hk.
+  all: destruct (decide (uint.Z ps.(pstate.commit) < uint.Z i)) as [Hlt|Hge];
+         [|iPureIntro; lia].
+  all: iDestruct ("Hk" $! (conj Heq Hlt)) as "[%Hil _]".
+  all: simpl in Hil; iPureIntro; lia.
+Qed.
 
 (** What [raftLog.maybeAppend] needs of a received [App]'s batch: carried
     by the message ([app_payload_ok]).  No premise on the terms: it is a
@@ -3341,15 +3364,12 @@ Proof.
 Qed.
 
 (** [maybeAppend] panics if the first conflicting index is at or below the
-    commit index ([ci ≤ l.committed]).  Informal argument: everything up
-    to [committed] is committed (State Machine Safety) and hence in the
-    log of every later leader (Leader Completeness), so the leader of
-    [m.term] -- whose entries [m.entries] are -- agrees with this log up to
-    [committed]; a conflict can only be above it.  That needs [m.term] to
-    be no earlier than the receiver's term ([≤], since [Step] holds the
-    ghost state before its term preamble): a stale [App] from a deposed
-    leader may well conflict below the commit index, and [Step] drops it
-    unread. *)
+    commit index ([ci ≤ l.committed]).  Under [maybeAppend]'s caller's
+    premise [committed ≤ m.Index] that is arithmetic: a conflict is the
+    index of one of the batch's entries, which are at [m.Index + 1] and
+    above ([app_payload_ok]).  (Until 2026-10-02 this was admitted as a
+    consequence of Leader Completeness; the premise makes it local.  The
+    term premise is not needed.) *)
 Lemma app_no_conflict_below_commit γ id ps m :
   m.(msg.ty) = mtype.App →
   m.(msg.to) = id →
@@ -3362,26 +3382,36 @@ Lemma app_no_conflict_below_commit γ id ps m :
     uint.Z ps.(pstate.commit)
     < uint.Z (plog_find_conflict ps.(pstate.base) ps.(pstate.log) m.(msg.entries)) ⌝.
 Proof.
-Admitted.
+  iIntros (Hty _ _ Hcm) "_ Hm". iEval (rewrite /is_message Hty) in "Hm".
+  iDestruct "Hm" as "(%Hpay & _)". iPureIntro. intros _.
+  destruct Hpay as (Hwf & Hnw & _).
+  destruct (decide (plog_find_conflict ps.(pstate.base) ps.(pstate.log) m.(msg.entries) = W64 0))
+    as [|Hne]; [by left|right].
+  destruct (plog_find_conflict_some _ _ _ Hne) as (d & e & Hd & He & _ & _).
+  specialize (Hwf _ _ Hd). simpl in Hwf. rewrite -He. lia.
+Qed.
 
 (** *** Replication safety
 
     The three properties replication is for, as entailments between the
-    ghost states of nodes.  ADMITTED, and -- while [app_ok]'s DEFERRED
-    prefix clause is missing -- **not consequences of the model** (an [App]
-    may carry any entries of the leader's log, not necessarily the ones
-    after [index], in order).  They are stated so that the shape of the
-    goal is fixed; the per-index half of Log Matching, [is_entry_agree], is
-    proved.  Even with that clause, the ghost state does not yet carry the
-    invariants these need (that an acknowledgement is justified by the
-    acknowledging node's log, that a node's log agrees with the term logs
-    of its entries' leaders); [own_raft_ghost] holds the resources, not
-    those facts. *)
+    ghost states of nodes.  Log Matching is proved (2026-10-02).  Leader
+    Completeness and State Machine Safety are ADMITTED, and **cannot be
+    proved as stated**, from the ghost state of two nodes: see
+    [leader_completeness]'s comment for why and for what a proof needs. *)
+
+(** A node's log and its records. *)
+Lemma own_raft_ghost_log γ id s :
+  own_raft_ghost γ id s -∗ ⌜ log_ok s ⌝ ∗ log_recs γ s.(pstate.base) s.(pstate.log).
+Proof.
+  iIntros "Hown". iDestruct "Hown" as (γv voted) "(_ & _ & _ & _ & _ & _ & _ & _ & Hlg & _)".
+  iApply (own_log_ghost_recs with "Hlg").
+Qed.
 
 (** Log Matching: two logs that have the same term at an index agree on
-    every entry up to it.  Informal argument: by induction on the leader's
-    term, using that a follower accepts an [App] only when it matches at
-    [(logterm, index)] and that a leader never overwrites its own log. *)
+    every entry up to it (above both bases).  Proved since 2026-10-02 from
+    the two logs' records alone ([log_recs_agree], [plog_match_down]):
+    entries at one (term, index) are one entry with one predecessor term,
+    because the term log of that term's (unique) leader says so. *)
 Lemma log_matching γ id1 id2 s1 s2 (i t : w64) :
   plog_term_at s1.(pstate.base) s1.(pstate.log) i = Some t →
   plog_term_at s2.(pstate.base) s2.(pstate.log) i = Some t →
@@ -3392,14 +3422,71 @@ Lemma log_matching γ id1 id2 s1 s2 (i t : w64) :
       plog_entry_at s1.(pstate.base) s1.(pstate.log) j =
       plog_entry_at s2.(pstate.base) s2.(pstate.log) j ⌝.
 Proof.
-Admitted.
+  iIntros (H1 H2) "H1 H2".
+  iDestruct (own_raft_ghost_log with "H1") as "[%Hok1 #Hr1]".
+  iDestruct (own_raft_ghost_log with "H2") as "[%Hok2 #Hr2]".
+  destruct Hok1 as (Hwf1 & _ & _). destruct Hok2 as (Hwf2 & _ & _).
+  iDestruct (log_recs_agree with "Hr1 Hr2") as %HRA.
+  iPureIntro. intros j Hji Hb1 Hb2.
+  assert (Hj : plog_term_at s1.(pstate.base) s1.(pstate.log) j =
+               plog_term_at s2.(pstate.base) s2.(pstate.log) j).
+  { apply (plog_match_down _ _ _ _ i Hwf1 Hwf2 HRA); [rewrite H1; by eexists|by rewrite H1 H2|lia..]. }
+  pose proof (plog_term_at_Some_range _ _ _ _ H1) as [_ Hl1].
+  destruct (plog_term_at_in_range s1.(pstate.base) s1.(pstate.log) j ltac:(lia)) as [tj Htj].
+  destruct (plog_term_at_Some_entry _ _ _ _ Hwf1 Htj Hb1) as (e1 & He1 & Hi1 & Ht1).
+  rewrite Hj in Htj.
+  destruct (plog_term_at_Some_entry _ _ _ _ Hwf2 Htj Hb2) as (e2 & He2 & Hi2 & Ht2).
+  rewrite !plog_entry_at_lookup //. rewrite He1 He2.
+  pose proof (word.unsigned_range j).
+  destruct (HRA _ _ _ _ He1 He2 ltac:(lia) ltac:(lia) ltac:(congruence) ltac:(congruence))
+    as [-> _].
+  done.
+Qed.
 
 (** Leader Completeness: an entry another node has committed, at a term no
-    later than the leader's, is in the leader's log.  Informal argument:
-    it was acknowledged by a quorum; the leader was elected by a quorum;
-    the two meet in a voter whose log had the entry when it voted, and the
-    [isUpToDate] check ([step_grant_vote]'s premise) then puts
-    the entry in the candidate's log. *)
+    later than the leader's, is in the leader's log.  Informal argument
+    (Raft §5.4.3): it was acknowledged by a quorum [Q] in some term [tc];
+    every leader of a later term [T] was elected by a quorum [V]; [Q] and [V]
+    meet in a voter [x] whose log had the entry when it voted in [T] (by
+    induction on [T]: the leaders between [tc] and [T] had it, so their
+    [App]s never cut [x]'s log below it), and the [isUpToDate] check
+    ([step_grant_vote]'s premise) then puts the entry in the candidate's
+    log, by Log Matching against the candidate's last entry.
+
+    ADMITTED, and **not provable as stated** (2026-10-02).  The statement
+    holds the ghost state of two nodes only, and quantifies over [γ]; the
+    argument's middle step is about a *third* node [x] -- that its vote in
+    [T] came after, and agreed with, its acknowledgement in [tc] -- and
+    [x]'s votes and acknowledgements are fragments of [x]'s own maps, which
+    nothing outside [x]'s [own_raft_ghost] constrains.  Counter-model: three
+    voters; node 2 has [commit = i] backed by [is_committed i] from
+    acknowledgements of nodes 2 and 3 in term 1; node 1 leads term 2 by
+    the votes of nodes 1 and 3 and lacks the entry; node 3's ghost maps
+    (held by nobody) contain both the acknowledgement and the vote.  Every
+    fact the two given [own_raft_ghost]s hold is consistent with that.
+    (Log Matching escapes this: it rests only on agreement of fragments,
+    which no third party can break.)
+
+    What a proof needs, precisely:
+    (1) the statement over the whole cluster -- [own_raft_ghost] of every
+        voter, or an Iris invariant holding them (the protocol's global
+        state); with node-local ghost state there is no other way to know
+        a third node behaved;
+    (2) a per-node *history* invariant, which [own_raft_ghost] lacks: for
+        every vote [(T ↦ c)] a node cast, its last entry id at that moment
+        (so that [step_grant_vote]'s [plog_up_to_date] premise bounds [c]'s
+        last id, which [c]'s log at its win -- [is_term_log]'s [l0] --
+        reaches), and for every acknowledgement [(tc, i')] it made before,
+        that its log at vote time still agreed with the leader of [tc] up
+        to the part every leader between [tc] and [T] shares.  Today the
+        justification of an acknowledgement ([acks_ok]) is kept only
+        within its own term, which is all [heartbeat_commit_le_last]
+        needs;
+    (3) [is_committed] naming *which* entries are committed (the
+        committing leader's [lead_prefix] up to [i], with [i]'s entry of
+        the leader's term -- [step_commit]'s premise), so that a node's
+        log up to its commit index can be said to agree with it; and the
+        induction on [T] of the informal argument over those facts. *)
 Lemma leader_completeness γ id1 id2 s1 s2 (i : w64) e :
   s1.(pstate.role) = role.Leader →
   uint.Z s2.(pstate.term) ≤ uint.Z s1.(pstate.term) →
@@ -3413,7 +3500,14 @@ Admitted.
 
 (** State Machine Safety: two nodes agree on every index both have
     committed.  Informal argument: Log Matching plus Leader Completeness,
-    as in the Raft paper (§5.4.3). *)
+    as in the Raft paper (§5.4.3): both entries are the committing
+    leaders' entries at [i], and the later of the two leaders has the
+    earlier one's ([leader_completeness]).  ADMITTED, for
+    [leader_completeness]'s reason, and not reducible to that lemma as
+    stated: the two committing leaders are third nodes, whose
+    [own_raft_ghost] the statement does not hold.  With (1)-(3) of
+    [leader_completeness]'s comment it is a corollary of it and
+    [log_matching]. *)
 Lemma state_machine_safety γ id1 id2 s1 s2 (i : w64) :
   uint.Z i ≤ uint.Z s1.(pstate.commit) →
   uint.Z i ≤ uint.Z s2.(pstate.commit) →
