@@ -88,7 +88,7 @@ Go function a spec really specifies, and errors on a triple outside the
 spec/proof shape, two triples for one function, a malformed spec file, an
 incomplete collection, or a name absent from `new/code/`.
 
-    etc/check-module-discipline.py --scope election_proof   # 5 findings, all notes/warnings
+    etc/check-module-discipline.py --scope election_proof   # 3 findings, all warnings (2026-10-02)
     etc/check-module-discipline.py --summary
     etc/check-module-discipline.py --selftest
 
@@ -504,14 +504,57 @@ For a file low in the dependency graph, `make <file>.vok` can beat rocq-warm
 outright — `election_proof/protocol.v` sits directly on `proof_prelude` and checks
 in 3–5s.
 
-**On a machine with no Rocq**, budget ~1.5h before you can check anything:
-`opam switch create perennial 5.2.1`, `opam pin add -n .`,
-`opam install --deps-only ./perennial.opam` (→ Rocq 9.4+alpha), then
-`make -j8 TIMED=false new/proof/go_etcd_io/raft/election_proof/election.required_vos`
-for the `vos` closure. **Check `opam switch list` first**: on the machine
-this repo is usually worked on, Rocq is installed in the `perennial` switch
-but not on a fresh shell's `PATH` — `eval "$(opam env --switch=perennial
---set-switch)"` (gotchas.md).
+**On a machine with no Rocq**, budget ~16 min for the toolchain and ~1h
+for a first `vo` build (measured 2026-09-30 on 24 cores; see below):
+
+    sudo apt install opam build-essential m4 pkg-config libgmp-dev bubblewrap
+    opam init --bare --disable-sandboxing
+    opam repo add --all-switches rocq-released https://rocq-prover.org/opam/released
+    opam repo add --all-switches core-dev https://rocq-prover.org/opam/core-dev
+    opam switch create perennial ocaml-base-compiler.5.4.1
+    eval "$(opam env --switch=perennial --set-switch)"
+    opam install rocq-runtime.dev rocq-core.dev rocq-stdlib.dev
+    opam pin add -n . && opam install --deps-only ./perennial.opam
+
+The `core-dev` repo is what gives Rocq master (9.4+alpha), the version this
+tree is developed against; without it opam picks stable 9.2.0 (gotchas.md).
+Go 1.26.0 (CI's pin, for Goose) goes in `/usr/local/go`; `ruff` via
+`uv tool install ruff==0.16.5`; rocq-warm per gotchas.md. **Check `opam
+switch list` first**: on the machine this repo is usually worked on, Rocq is
+installed in the `perennial` switch but not on a fresh shell's `PATH` —
+`eval "$(opam env --switch=perennial --set-switch)"` (gotchas.md).
+
+**Build times**, from scratch, `make -j24` on a 24-core / 94 GB box, Rocq
+master `7751ff3ea`, tree at `e5bb0dc33` (2026-09-30):
+
+| what | files | wall | CPU | avg cores |
+|---|---|---|---|---|
+| opam deps: OCaml 5.4.1 / Rocq core / stdlib / the five pins | — | 161 + 120 + 240 + 449 s ≈ 16 min | — | — |
+| `election_proof/election.vo` and its whole closure, clean | 664 | 63 min | 4.7 h | 4.5 |
+| `election_proof/` alone, everything below it built | 412 | 21 min | 2.7 h | 7.7 |
+| `make ci` (`new/should_build.vo`), clean | 872 | 65 min | 6.0 h | 5.5 |
+
+More cores would not help much: the builds are bound by their critical
+paths, not by CPU. `make ci`'s was 3,738 s over 60 files, and five files
+were most of it — `slices_proof/pdqSort/heapSort.v` (939 s, compiled alone
+while everything waits), `election_proof/proof_raftLog__slice.v` (865 s),
+`chan/au_spec/chan_au_recv.v` (289 s), `golang/theory/slice.v` (246 s) and
+`election_proof/inv_raft_phys.v` (219 s).
+
+**Since then (same machine, 2026-09-30)** the election proof's two slowest
+idioms were replaced (gotchas.md, "Re-seal with an `_intro` lemma"):
+`election_proof/` alone now rebuilds in **13 min** (was 21), its critical
+path 653 s (was 1,156 s): `inv_raft_phys.v` 144 s → `proof_raftLog__slice.v`
+374 s → … → `election.v`. The clean-closure and `make ci` rows above predate
+that and were not re-measured; expect each to be ~8 min shorter, since the
+saving is on their critical path too. Peak RSS of
+any single `rocq compile` was 3.9 GB. `rocq dep` on the whole tree: 2 s.
+
+**Every `make ci` now ends with a build report** — wall/CPU time,
+parallelism over time, the critical path, slowest files — and CI puts it on
+the run's summary page; `make build-report` reprints the latest. See
+CONTRIBUTING.md, "Build reports". Use it before guessing where build time
+goes.
 
 **Memory.** `proof_raft__Step.v` and its helpers are the expensive part of
 the tree; four at once peak around 8 GB, so `-j4` is the most a 15 GB box

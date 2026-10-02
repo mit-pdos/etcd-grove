@@ -32,7 +32,7 @@ Import P.
     { rewrite /own_unstable. iFrame "∗#". }
     iNamed "Hun". iDestruct "Hents" as "#Hents".
     wp_auto.
-    rewrite decide_True; last word.
+    case_decide as Hdec; [clear Hdec | exfalso; apply Hdec; word].
     wp_auto.
     set (lo' := word.sub lo uv.(raft.unstable.offset')).
     set (hi' := word.sub hi uv.(raft.unstable.offset')).

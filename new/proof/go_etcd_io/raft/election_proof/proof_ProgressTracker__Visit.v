@@ -63,7 +63,7 @@ Proof.
       "Hsl" ∷ sl ↦* xs ∗
       "%Hxs_len" ∷ ⌜ length xs = size prs ⌝)%I) with "[n ids sl]".
   - (* fast path: [ids = sl[:n]] aliases the stack array *)
-    rewrite decide_True; last word.
+    case_decide as Hdec; [clear Hdec | exfalso; apply Hdec; word].
     wp_auto.
     iDestruct (slice_array with "sl") as "Hsl"; first (simpl; lia).
     iDestruct (own_slice_split_all (W64 (size prs)) with "Hsl") as "[Hsl _]";
@@ -105,7 +105,7 @@ Proof.
       pose proof (lookup_lt_Some _ _ _ Hkey) as Hi_lt.
       wp_auto.
       (* [n--; ids[n] = id] *)
-      rewrite decide_True; last word.
+      case_decide as Hdec; [clear Hdec | exfalso; apply Hdec; word].
       replace (word.sub (W64 (Z.of_nat (size prs) - i)) (W64 1))
         with (W64 (Z.of_nat (size prs) - (i + 1))) by word.
       wp_auto.
@@ -159,8 +159,8 @@ Proof.
     (* re-seal the tracker: the closure is lent all of it *)
     iAssert (own_tracker cfg tv (trk.mk votes prs pvs))
       with "[Hvotes Hprogs Hvoters Hlearners HlearnersNext]" as "Hown".
-    { rewrite /own_tracker.
-      iExists voters_ref, voters, learners, learnersNext. iFrame "∗#%". }
+    { iApply (own_tracker_intro with
+    "Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext"); done. }
     (* The tracker *value* is part of the invariant: the closure may hand
        back a different one (see [visit_closure], inv_tracker.v), and the
        loop only ever needs [dom prs = cfg], which holds at any of them. *)
@@ -196,7 +196,7 @@ Proof.
     + (* another id to visit: [f(id, p.Progress[id])] *)
       assert (∃ y, ys !! Z.to_nat (sint.Z j) = Some y) as [y Hy].
       { apply lookup_lt_is_Some_2. word. }
-      rewrite decide_True; last word.
+      case_decide as Hdec; [clear Hdec | exfalso; apply Hdec; word].
       wp_apply (wp_load_slice_index (V:=w64) (t:=go.uint64)
                   sl (sint.Z j) ys (DfracOwn 1) y with "[$Hsl]") as "Hsl";
         try first [ word | iPureIntro; exact Hy | tc_solve | done ].

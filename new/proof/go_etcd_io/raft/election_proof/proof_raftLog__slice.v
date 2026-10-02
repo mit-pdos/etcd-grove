@@ -174,7 +174,9 @@ End prefix_helpers.
       assert (Hnetake : take nlim es0 ≠ []).
       { intros Hc. assert (length (take nlim es0) = 0)%nat as Hz by (rewrite Hc //).
         rewrite length_take in Hz. lia. }
-      rewrite decide_True; last word.
+      (* not [rewrite decide_True]: its pattern is searched for through the
+         whole remaining program, ~100s here *)
+      case_decide as Hfs; last (exfalso; apply Hfs; word).
       wp_auto.
       iDestruct (own_slice_same_ptr_len s1
                    (slice.full_slice s1 raftpb.Entry.t (W64 0)

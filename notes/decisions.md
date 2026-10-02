@@ -1511,6 +1511,39 @@ the Go program. *Computing the new values in the transitions* — more
 precision than any caller uses, at the cost of more fields
 (`MaxInflight`).
 
+## 2026-09-30 — `make ci` prints a build report
+
+**Decision.** Every `make ci` ends with `etc/build-report.py`'s report on
+that build — wall and CPU time, parallelism over time, the observed critical
+path and the unlimited-cores bound, slowest files, CPU by directory, failed
+compiles — and CI puts it on the run's summary page. `etc/rocqc.py`, which
+already wrapped every compile, now also records each compile's start, end,
+CPU, peak memory and status under a per-`make`-run id the Makefile sets
+(`builds`/`build_files` in `.timing.sqlite3`).
+
+**Why a mechanism rather than a sentence** (the second entry above asks
+for the benefit to be demonstrated): the owner asked for the report on every
+CI build, and the same analysis done by hand on 2026-09-30 is what found
+that the election proof was bound by one 14-minute chain, not by cores —
+fixing it took the election proof from 21 to 13 minutes. Without per-build
+start/end times that analysis needs a scratch script and a re-run every
+time; `file_timings` keeps one duration per file, overwritten each build,
+and cannot give parallelism or a critical path.
+
+**Shape.** The existing wrapper and database, extended, rather than a
+second recorder: no new dependency (standard library only, like
+`timing-report.py`), nothing that a build without the wrapper (`TIMED=false`,
+Rocq CI's `TIMING`) depends on, and `make ci`'s exit status is the build's.
+The build runs as a sub-make of `ci` so that a failing build still gets its
+report. Rows accumulate per build; at ~900 rows a full build that is not yet
+worth pruning (`make clean` deletes the database).
+
+**Rejected.** *Sampling `ps` during the build* — a second process to manage
+and it would miss short compiles; start/end per compile is exact. *A
+mermaid chart for GitHub* — whether the summary page renders
+`xychart-beta` is not something this repo can test; a text chart in a code
+block renders everywhere, terminal included.
+
 ## 2026-10-01 — `protocol.v` may contain `Admitted`; the model grows to replication
 
 **Decision (user).** To extend `Step` past election, the protocol file may

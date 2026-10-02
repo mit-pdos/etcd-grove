@@ -37,7 +37,7 @@ Import P.
     assert (0 < length es)%nat as Hne by word.
     assert (∃ e0, es !! 0%nat = Some e0) as [e0 He0]
       by (apply lookup_lt_is_Some_2; lia).
-    rewrite decide_True; last word.
+    case_decide as Hdec; [clear Hdec | exfalso; apply Hdec; word].
     iDestruct (own_slice_elem_acc 0 e0 with "Hs") as "[He Hsback]"; [lia|done|].
     wp_auto.
     wp_apply (wp_Entry__Size with "[$He]") as "%sz0 He".
@@ -53,7 +53,7 @@ Import P.
     wp_if_destruct.
     - assert (∃ e, es !! Z.to_nat (sint.Z lim) = Some e) as [e He]
         by (apply lookup_lt_is_Some_2; word).
-      rewrite decide_True; last word.
+      case_decide as Hdec; [clear Hdec | exfalso; apply Hdec; word].
       iDestruct (own_slice_elem_acc (sint.Z lim) e with "Hs") as "[He Hsback]";
         [word|done|].
       wp_auto.
@@ -61,7 +61,7 @@ Import P.
       iDestruct ("Hsback" with "He") as "Hs".
       rewrite list_insert_id //.
       wp_if_destruct.
-      + rewrite decide_True; last word.
+      + case_decide as Hdec; [clear Hdec | exfalso; apply Hdec; word].
         wp_auto. wp_for_post.
         iDestruct (own_slice_split_all lim with "Hs") as "[Hs1 Hs2]"; first word.
         iApply ("HΦ" $! (slice.slice s raftpb.Entry.t (W64 0) lim)

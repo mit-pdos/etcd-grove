@@ -29,7 +29,7 @@ Import P.
     wp_if_destruct.
     - assert (∃ e, es !! Z.to_nat (sint.Z n) = Some e) as [e He].
       { apply lookup_lt_is_Some_2. word. }
-      rewrite decide_True; last word.
+      case_decide as Hdec; [clear Hdec | exfalso; apply Hdec; word].
       wp_apply (wp_load_slice_index (V:=raftpb.Entry.t) (t:=raftpb.Entry)
                   s (sint.Z n) es dq e with "[$Hs]") as "Hs";
         try first [ word | iPureIntro; exact He | tc_solve | done ].

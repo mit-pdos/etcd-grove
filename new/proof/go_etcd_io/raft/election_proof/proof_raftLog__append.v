@@ -85,7 +85,7 @@ Import P.
       simpl in Hlen.
       rewrite bool_decide_eq_false_2; last word.
       wp_auto.
-      rewrite decide_True; last word.
+      case_decide as Hdec; [clear Hdec | exfalso; apply Hdec; word].
       iDestruct (own_slice_elem_acc 0 e0 es dq ents with "Hes")
         as "[He0 Hesback]"; [ word | exact He0 | ].
       wp_auto.

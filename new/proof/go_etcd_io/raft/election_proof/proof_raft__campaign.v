@@ -73,7 +73,8 @@ Proof using All.
   iSplitR; first done.
   (* [#%] and not [%]: since 2026-09-20 the progress map is held read-only
      inside [own_tracker], so it sits in the intuitionistic context. *)
-  iExists voters_ref, voters, learners, learnersNext. iFrame "∗#%".
+  iApply (own_tracker_intro with
+    "Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext"); done.
 Qed.
 
 Lemma wp_campaign (r : loc) (id : w64) (s : nstate.t) (t : raft.CampaignType.t) :
@@ -242,7 +243,7 @@ Proof.
   - (* one more voter to notify *)
     assert (∃ y, xs !! Z.to_nat (sint.Z n) = Some y) as [y Hy].
     { apply lookup_lt_is_Some_2. word. }
-    rewrite decide_True; last word.
+    case_decide as Hdec; [clear Hdec | exfalso; apply Hdec; word].
     wp_apply (wp_load_slice_index (V:=w64) (t:=go.uint64)
                 sl' (sint.Z n) xs (DfracOwn 1) y with "[$Hsl]") as "Hsl";
       try first [ word | iPureIntro; exact Hy | tc_solve | done ].

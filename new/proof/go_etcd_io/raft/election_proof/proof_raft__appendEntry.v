@@ -180,19 +180,19 @@ Set Default Proof Using "Type".
         rewrite lookup_drop.
         replace (sint.nat n `min` length ents)%nat with (sint.nat n) by word.
         rewrite -He. f_equal. word. }
-      rewrite decide_True; last word.
+      case_decide as Hdec; [clear Hdec | exfalso; apply Hdec; word].
       wp_apply (wp_load_slice_index (V:=raftpb.Entry.t) (t:=raftpb.Entry)
                   es (sint.Z n) _ (DfracOwn 1) e with "[$Hes]") as "Hes";
         try first [ word | iPureIntro; exact Hcur | tc_solve | done ].
       wp_apply (wp_raft_load_Term with "Hphys") as "Hphys".
-      rewrite decide_True; last word.
+      case_decide as Hdec; [clear Hdec | exfalso; apply Hdec; word].
       iDestruct (own_slice_elem_acc (sint.Z n) e es (DfracOwn 1) _
                    with "Hes") as "[He Hesback]";
         [ word | exact Hcur | ].
       wp_auto.
       (* the [Index] store has its own bounds [decide]; one [rewrite] does
          not reach it, since ssreflect rewrites only the first occurrence *)
-      rewrite decide_True; last word.
+      case_decide as Hdec; [clear Hdec | exfalso; apply Hdec; word].
       wp_auto.
       iDestruct ("Hesback" with "He") as "Hes".
       rewrite (stamp_step s.(nstate.term) li ents (sint.nat n) n e He);

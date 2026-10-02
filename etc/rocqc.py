@@ -7,13 +7,21 @@
 #
 #   - a per-file line on stdout as each file finishes (--print-time),
 #   - a row per file in the `file_timings` table (--timing-db),
-#   - a row per Qed in the `qed_timings` table.
+#   - a row per Qed in the `qed_timings` table,
+#   - when the Makefile has set ROCQ_BUILD_ID, a row per compile in
+#     `build_files` (start, end, CPU, peak memory, exit status), and one per
+#     build in `builds`.
 #
-# `etc/timing-report.py` reads the database back. Run `./etc/rocqc.py
-# --selftest` to check this file against the fixtures in etc/test_coqc/.
+# `file_timings` and `qed_timings` keep the latest time for each file, across
+# builds; `build_files` keeps every build apart, which is what makes a
+# per-build report possible. `etc/timing-report.py` reads the former back,
+# `etc/build-report.py` the latter. Run `./etc/rocqc.py --selftest` to check
+# this file against the fixtures in etc/test_coqc/.
 
 
+import os
 import re
+import resource
 import sqlite3
 import subprocess
 import sys
@@ -31,12 +39,72 @@ FILE_TIMINGS_SCHEMA = (
     + """PRIMARY KEY (fname, mode) )"""
 )
 
+# One row per `make` run that compiled anything: its id and start time (both
+# set once by the Makefile), the goals it was given, and its -j.
+BUILDS_SCHEMA = (
+    """CREATE TABLE IF NOT EXISTS builds """
+    + """(build text NOT NULL PRIMARY KEY, start real, goals text, jobs integer)"""
+)
+
+# One row per compile within a build. Times are seconds since the epoch;
+# user/sys are the CPU seconds of `rocq compile` and its children, maxrss_kb
+# their peak resident memory. A failed compile is recorded too (status != 0).
+BUILD_FILES_SCHEMA = (
+    """CREATE TABLE IF NOT EXISTS build_files """
+    + """(build text NOT NULL, fname text NOT NULL, mode text NOT NULL, """
+    + """start real NOT NULL, end real NOT NULL, user real, sys real, """
+    + """maxrss_kb integer, status integer NOT NULL, """
+    + """PRIMARY KEY (build, fname, mode) )"""
+)
+
+
+def make_jobs(makeflags):
+    """The -j of the `make` that ran us, from $MAKEFLAGS: 0 for an unbounded
+    `-j`, 1 when there is none, None when we were not run by make."""
+    if makeflags is None:
+        return None
+    m = re.search(r"(?:^|\s)-j(\d*)(?:\s|$)", makeflags)
+    if m is None:
+        return 1
+    return int(m.group(1)) if m.group(1) else 0
+
+
+class BuildInfo:
+    """The build a compile belongs to, from the environment the Makefile sets.
+    None of it is required: without ROCQ_BUILD_ID nothing per-build is kept."""
+
+    def __init__(self, build, start, goals, jobs):
+        self.build = build
+        self.start = start
+        self.goals = goals
+        self.jobs = jobs
+
+    @classmethod
+    def from_env(cls, env=None):
+        env = os.environ if env is None else env
+        build = env.get("ROCQ_BUILD_ID")
+        if not build:
+            return None
+        try:
+            start = float(env.get("ROCQ_BUILD_START", ""))
+        except ValueError:
+            start = None
+        return cls(
+            build,
+            start,
+            env.get("ROCQ_BUILD_GOALS", ""),
+            make_jobs(env.get("MAKEFLAGS")),
+        )
+
 
 class NullDb:
     def add_qed(self, fname, ident, time):
         pass
 
     def add_file(self, fname, mode, time):
+        pass
+
+    def add_build_file(self, info, fname, mode, start, end, usage, status):
         pass
 
     def close(self):
@@ -52,6 +120,9 @@ class StdoutDb:
     def add_file(self, fname, mode, time):
         if time > 0.1:
             print(f"{fname} [{mode}] {time:0.2f}")
+
+    def add_build_file(self, info, fname, mode, start, end, usage, status):
+        pass
 
     def close(self):
         pass
@@ -72,6 +143,8 @@ class TimingDb:
         )
         migrate_file_timings(conn)
         conn.execute(FILE_TIMINGS_SCHEMA)
+        conn.execute(BUILDS_SCHEMA)
+        conn.execute(BUILD_FILES_SCHEMA)
         return cls(conn)
 
     def add_qed(self, fname, ident, time):
@@ -86,8 +159,39 @@ class TimingDb:
             (fname, mode, time),
         )
 
+    def add_build_file(self, info, fname, mode, start, end, usage, status):
+        """Record one compile of build `info`; `usage` is a
+        (user, sys, maxrss_kb) triple, or None if it could not be measured."""
+        if info is None:
+            return
+        user, sys_, maxrss = usage if usage is not None else (None, None, None)
+        # Every compile of a build offers the same builds row; the first wins.
+        self.conn.execute(
+            """INSERT OR IGNORE INTO builds VALUES (?,?,?,?)""",
+            (info.build, info.start, info.goals, info.jobs),
+        )
+        self.conn.execute(
+            """INSERT OR REPLACE INTO build_files VALUES (?,?,?,?,?,?,?,?,?)""",
+            (info.build, fname, mode, start, end, user, sys_, maxrss, status),
+        )
+
     def close(self):
         self.conn.close()
+
+
+def child_usage():
+    """(user, sys, maxrss_kb) of the children this process has waited for.
+
+    rocqc.py runs exactly one `rocq compile` (which may run its own worker
+    process; waited-for descendants are included), so this is that
+    compile's cost. ru_maxrss is in KiB on Linux and bytes on macOS.
+    """
+    try:
+        ru = resource.getrusage(resource.RUSAGE_CHILDREN)
+    except (OSError, ValueError):
+        return None
+    maxrss = ru.ru_maxrss // 1024 if sys.platform == "darwin" else ru.ru_maxrss
+    return (ru.ru_utime, ru.ru_stime, maxrss)
 
 
 def file_timings_columns(conn):
@@ -185,7 +289,7 @@ class Classify:
 
 
 class CoqcFilter:
-    def __init__(self, vfile, mode, db, contents, start, print_time=None):
+    def __init__(self, vfile, mode, db, contents, start, print_time=None, build=None):
         self.vfile = vfile
         self.mode = mode
         self.contents = contents
@@ -194,10 +298,14 @@ class CoqcFilter:
         # Seconds a file must take before its time is printed, or None to
         # print nothing.
         self.print_time = print_time
+        # The BuildInfo this compile belongs to, or None to keep no per-build row.
+        self.build = build
         self.curr_def = None
 
     @classmethod
-    def from_coqargs(cls, args, db, contents=None, start=None, print_time=None):
+    def from_coqargs(
+        cls, args, db, contents=None, start=None, print_time=None, build=None
+    ):
         """Extract the build mode and the input vfile from rocq compile's arguments."""
         if "-vos" in args:
             mode = "vos"
@@ -212,7 +320,7 @@ class CoqcFilter:
                 break
         if start is None:
             start = datetime.now(timezone.utc)
-        return cls(vfile, mode, db, contents, start, print_time=print_time)
+        return cls(vfile, mode, db, contents, start, print_time=print_time, build=build)
 
     @classmethod
     def from_contents(cls, contents, db, start=None):
@@ -274,11 +382,26 @@ class CoqcFilter:
         print(f"ROCQ TIME {delta:8.2f}s {self.mode:3s} {self.vfile}")
         sys.stdout.flush()
 
-    def done(self, end_t=None, record=True):
+    def done(self, end_t=None, record=True, status=0, usage=None):
+        """Finish: record the file's time if `record`, and -- whatever the
+        outcome -- this compile's row in its build, with exit `status` and
+        resource `usage` (see child_usage)."""
+        if end_t is None:
+            end_t = datetime.now(timezone.utc)
         delta = self.elapsed(end_t)
         if record:
             self.db.add_file(self.vfile, self.mode, delta)
             self.report(delta)
+        if self.build is not None:
+            self.db.add_build_file(
+                self.build,
+                self.vfile,
+                self.mode,
+                self.start.timestamp(),
+                end_t.timestamp(),
+                usage,
+                status,
+            )
         self.db.close()
 
 
@@ -395,7 +518,9 @@ if __name__ == "__main__":
     rocq_args += ["-set", "Printing Width=1000000"]
     rocq_args.extend(coq_args)
 
-    filter = CoqcFilter.from_coqargs(coq_args, db, print_time=args.print_time)
+    filter = CoqcFilter.from_coqargs(
+        coq_args, db, print_time=args.print_time, build=BuildInfo.from_env()
+    )
 
     p = subprocess.Popen(rocq_args, stdout=subprocess.PIPE, stderr=sys.stderr)
     try:
@@ -409,6 +534,7 @@ if __name__ == "__main__":
     p.wait()
     # A failed compile's elapsed time is not what that file costs to build, so
     # it is neither recorded nor printed -- it would otherwise overwrite the
-    # last good timing with the time taken to reach an error.
-    filter.done(record=p.returncode == 0)
+    # last good timing with the time taken to reach an error. Its build row is
+    # kept, marked failed: a build report should say what failed.
+    filter.done(record=p.returncode == 0, status=p.returncode, usage=child_usage())
     sys.exit(p.returncode)
