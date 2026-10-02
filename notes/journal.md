@@ -4433,3 +4433,29 @@ helpers).  `make -k -j4 …/election.vo` green; `check-module-discipline
   `iDestruct (lem with "H") as "#H'"` keeps `"H"` when the result is
   persistent, so the name must be fresh; an `Ltac` cannot name a hypothesis
   (`exact Hlok` resolves at definition time -- use `assumption`).
+
+## 2026-10-02 (evening) — coordinator: `Step` is `Qed` over nine message types; `make ci` green
+
+Merged in order after the morning entry: the heartbeat chain and widened
+`stepLeader` (`556a14bba`), the follower side (`496c57590`), the notes
+(`409d5238d`), wave 2b -- the `stepX` specs total over seven types
+(`6d528cc61`), the public tracker predicates (`80f90560d`, user's request;
+one lemma of `stepLeader`'s MsgProp arm needed porting, `2a1f8a771`), the
+phase-2 design note (`1151494f3`), the `Step` branch lemmas for
+MsgAppResp/MsgHeartbeatResp/MsgBeat (`7f17284f5`) and MsgApp/MsgHeartbeat
+(`eb25ca1ca`), and the dispatch with the MsgProp branch, the widened spec
+and the `lead_ok`/`follower_votes_ok` ghost invariants (`3574293f1`).
+
+Checked at `3574293f1`: `make -k -j6 ci` exit 0, 544 files compiled,
+`new/should_build.vo` built; `check-module-discipline --scope
+election_proof`: 3 warnings (pre-existing), no errors; `tcb-report --scope
+election_proof`: 14 Axiom, 6 Admitted (5 protocol-level + the trusted
+`slice`), 494 Qed, 125 collections.
+
+Two statement changes the branch proofs forced, both recorded in the spec
+comments: the MsgApp/MsgHeartbeat branch lemmas take their protocol-fact
+premises only for a message at or above the node's term (a stale leader's
+`App` can legitimately conflict below the commit index; it is dropped
+before `maybeAppend`), and `own_raft_ghost` carries `follower_votes_ok` (a
+follower's tally is empty) because `stepFollower`'s `MsgApp` arm leaves
+`trk.Votes` alone where `padopt_leader` says `∅`.
