@@ -121,14 +121,14 @@ Lemma finish_branch0 γ cfg r id s s' (m : raftpb.Message.t) (err : error.t)
   |={⊤}=> Φ #err.
 Proof.
   iIntros (Hcfg Hwf' Hstep) "Hghost Hphys Herr HΦ".
-  rewrite -Hcfg in Hstep.
-  iMod (own_raft_ghost_step_0 _ _ _ _ Hstep with "Hghost") as "Hghost".
+  assert (Hst' : step γ.(re_cfg) id (to_pstate s) [] (to_pstate s'))
+    by (rewrite Hcfg; exact Hstep).
+  iMod (own_raft_ghost_step_0 _ _ _ _ Hst' with "Hghost") as "Hghost".
   iModIntro. iApply ("HΦ" $! err s' (to_pstate s')). iFrame.
   iPureIntro. split; [split; [done|exact Hwf']|]. by eexists [].
 Qed.
 
-(** The message's [Entries], read-only for every type but a proposal, and
-    owned for a proposal. *)
+(** The message's [Entries], read-only for every type but a proposal. *)
 Lemma ents_ro (m : raftpb.Message.t) (ents : list raftpb.Entry.t) :
   m.(raftpb.Message.Type') ≠ MsgProp →
   (if decide (m.(raftpb.Message.Type') = MsgProp)
@@ -136,15 +136,6 @@ Lemma ents_ro (m : raftpb.Message.t) (ents : list raftpb.Entry.t) :
    else m.(raftpb.Message.Entries') ↦*□ ents) -∗
   m.(raftpb.Message.Entries') ↦*□ ents.
 Proof. intros Hne. rewrite decide_False //. auto. Qed.
-
-Lemma ents_own (m : raftpb.Message.t) (ents : list raftpb.Entry.t) :
-  m.(raftpb.Message.Type') = MsgProp →
-  (if decide (m.(raftpb.Message.Type') = MsgProp)
-   then m.(raftpb.Message.Entries') ↦* ents
-   else m.(raftpb.Message.Entries') ↦*□ ents) -∗
-  m.(raftpb.Message.Entries') ↦* ents.
-Proof. intros Heq. rewrite decide_True //. auto. Qed.
-
 
 (** *** The dispatch for the branches written elsewhere
 
@@ -494,31 +485,31 @@ Set Default Proof Using "Type".
     { (* MsgApp: [dispatch_App]. *)
       iDestruct ("Hmsg" $! mtype.App with "[]") as "#Hm'".
       { iPureIntro. rewrite Hty. apply mtype_of_MsgApp. }
-      iDestruct (ents_ro with "Hents") as "#Hents"; first (rewrite Hty; w32_ne).
-      iApply (dispatch_App with "Hinit Hphys Hghost Hents Hcap Hm' HΦ");
+      iDestruct (ents_ro with "Hents") as "#Hro"; first (rewrite Hty; w32_ne).
+      iApply (dispatch_App with "Hinit Hphys Hghost Hro Hcap Hm' HΦ");
         [exact (A.wp_Step_MsgApp cfg r id s m ents)|done..|exact (Happ Hty)]. }
     destruct (decide (m.(raftpb.Message.Type') = MsgAppResp)) as [Hty|Hn_ar].
     { (* MsgAppResp: [dispatch_AppResp]. *)
       iDestruct ("Hmsg" $! mtype.AppResp with "[]") as "#Hm'".
       { iPureIntro. rewrite Hty. apply mtype_of_MsgAppResp. }
-      iDestruct (ents_ro with "Hents") as "#Hents"; first (rewrite Hty; w32_ne).
-      iApply (dispatch_AppResp with "Hinit Hphys Hghost Hents Hm' HΦ");
+      iDestruct (ents_ro with "Hents") as "#Hro"; first (rewrite Hty; w32_ne).
+      iApply (dispatch_AppResp with "Hinit Hphys Hghost Hro Hm' HΦ");
         [exact (AR.wp_Step_MsgAppResp cfg r id s m ents)|done..|exact (Happresp Hty)]. }
     destruct (decide (m.(raftpb.Message.Type') = MsgHeartbeat)) as [Hty|Hn_hb].
     { (* MsgHeartbeat: [dispatch_Heartbeat]. *)
       iDestruct ("Hmsg" $! mtype.Heartbeat with "[]") as "#Hm'".
       { iPureIntro. rewrite Hty. apply mtype_of_MsgHeartbeat. }
-      iDestruct (ents_ro with "Hents") as "#Hents"; first (rewrite Hty; w32_ne).
-      iApply (dispatch_Heartbeat with "Hinit Hphys Hghost Hents Hm' HΦ");
+      iDestruct (ents_ro with "Hents") as "#Hro"; first (rewrite Hty; w32_ne).
+      iApply (dispatch_Heartbeat with "Hinit Hphys Hghost Hro Hm' HΦ");
         [exact (HB.wp_Step_MsgHeartbeat cfg r id s m ents)|done..|exact (Hhb Hty)]. }
     destruct (decide (m.(raftpb.Message.Type') = MsgHeartbeatResp)) as [Hty|Hn_hr].
     { (* MsgHeartbeatResp: [dispatch_HeartbeatResp]; the [Context] is empty. *)
       iDestruct ("Hmsg" $! mtype.HeartbeatResp with "[]") as "#Hm'".
       { iPureIntro. rewrite Hty. apply mtype_of_MsgHeartbeatResp. }
-      iDestruct (ents_ro with "Hents") as "#Hents"; first (rewrite Hty; w32_ne).
+      iDestruct (ents_ro with "Hents") as "#Hro"; first (rewrite Hty; w32_ne).
       iDestruct "Hctx" as (ctx) "(#Hctxp & _ & %Hctx0)".
       rewrite (Hctx0 Hty).
-      iApply (dispatch_HeartbeatResp with "Hinit Hphys Hghost Hents Hctxp Hm' HΦ");
+      iApply (dispatch_HeartbeatResp with "Hinit Hphys Hghost Hro Hctxp Hm' HΦ");
         [exact (HR.wp_Step_MsgHeartbeatResp cfg r id s m ents)|done..|exact (Hhbresp Hty)]. }
     destruct (decide (m.(raftpb.Message.Type') = MsgBeat)) as [Hty|Hn_beat].
     { (* MsgBeat: [dispatch_Beat]. *)
@@ -532,7 +523,8 @@ Set Default Proof Using "Type".
       iDestruct (own_raft_ghost_lead_ok with "Hghost") as %Hlok.
       iDestruct ("Hmsg" $! mtype.Propose with "[]") as "#Hm'".
       { iPureIntro. rewrite Hty. apply mtype_of_MsgProp. }
-      iDestruct (ents_own with "Hents") as "Hents"; first exact Hty.
+      (* [Hents] is owned: the [destruct (decide …)] above reduced its
+         [if decide (Type = MsgProp)] *)
       wp_apply (M.wp_Step_MsgProp cfg r id s m ents Hty Hterm Hfrom Hne Hnorm Hlen Hlok Hin Hwf
                  with "[$Hinit $Hphys $Hents $Hcap]").
       iIntros (err s') "(Hphys & %Hwf' & %Hst & Herr)".

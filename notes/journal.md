@@ -4380,3 +4380,56 @@ with `pvs` untyped in the lemmas), so the public-predicate refactor should
 not touch these files.
 Gotcha: `destruct s.(nstate.role) eqn:Hrole` also rewrites the role inside a
 premise `role = Follower → …`; apply it to `eq_refl` afterwards.
+
+## 2026-10-02 — `Step` over all nine message types; `lead_ok`/`follower_votes_ok`; the `MsgProp` branch
+
+Branch `worktree-agent-ac198a64ea8292159` (from `6d528cc61`, with the
+replication branch's `eb25ca1ca` merged in for the five other branch
+helpers).  `make -k -j4 …/election.vo` green; `check-module-discipline
+--scope election_proof`: 3 warnings, no errors; `tcb-report`: 14 Axiom,
+6 Admitted (unchanged: 5 in `protocol.v`, the trusted `raftLog.slice`),
+494 Qed.
+
+- `protocol.v`: two new pure invariants in `own_raft_ghost`, both
+  preserved by every rule (Qed): `lead_ok` (a non-leader never records
+  itself as leader; `step_higher_term` now requires `from_leader → from ≠
+  id`, `step_app_*`/`step_heartbeat` require `from ≠ id`) and
+  `follower_votes_ok` (a follower's tally is `∅`; the MsgApp/Heartbeat
+  helpers need it because `r.lead = m.From` leaves the tally alone where
+  `padopt_leader` clears it).  Exported `own_raft_ghost_lead_ok`,
+  `own_raft_ghost_follower_votes`.  Receiver lemmas for a message of a
+  higher term: `app_recv_wf` has no term premise at all (proved),
+  `app_commit_le_lastnewi`/`app_no_conflict_below_commit` take `ps.term ≤
+  m.term`, `heartbeat_commit_le_last` takes `ps.term ≤ m.term` and
+  `(m.term = ps.term → role ≠ Leader)`; the two admits stay admitted.
+- **The brief's MsgApp/MsgHeartbeat interface could not be met for a stale
+  message**: `app_no_conflict_below_commit` is false for an `App` from a
+  deposed leader (it can conflict below the commit index), and the
+  branch lemmas took the conflict/commit fact unconditionally.  A stale
+  message never reaches `maybeAppend`/`commitTo`, so the branch premises
+  are now guarded by `uint.Z s.term ≤ uint.Z m.Term` (marked GUARD in
+  `proof_raft__Step_MsgApp.v`/`_MsgHeartbeat.v`), and the unused premise
+  was dropped from `_MsgApp_lt.v`/`_MsgHeartbeat_lt.v`.
+- `spec_raft__Step.v`: `step_msg` (nine types) replaces `election_msg`;
+  per-type transport premises; `Hm` is spatial, `∃ ents`, with the entries
+  owned (`↦*`) for `MsgProp` and `↦*□` otherwise, the proposal's batch facts,
+  and `□ is_message`; `Hctx` adds `MsgHeartbeatResp → ctx = []`; `Herr` is
+  `nil ∨ (MsgProp ∗ ErrProposalDropped ↦□ err)`.
+- `proof_raft__Step_helpers/proof_raft__Step_MsgProp.v`: follower forwards
+  (`step_prop_forward`, entries persisted first) or drops; candidate drops;
+  leader `step_propose` then `step_send_apps`, or drops.  `proposed`
+  (`spec_stepLeader.v`) agrees with `pappend`/`pself_ack`/`stamp`; nothing
+  changed there.  The no-wrap premise of `step_propose` comes from
+  `own_raftLog_nowrap` at the state *after* the append.
+- `proof_raft__Step.v`: one `dispatch_<Type>` lemma per merged branch, taking
+  the branch lemma as a hypothesis (derives the protocol premises from the
+  ghost state, takes `own_raft_ghost_step`); a leader receiving a heartbeat
+  of its own term is refuted by `is_leader_unique`.
+- Gotchas met: `case_decide` picks up `bool_decide`s in *hypotheses* (the
+  hoisted `Hn0 : bool_decide … = false` facts) -- name each `decide` by its
+  proof (`rewrite (decide_True _ _ Hty) in H`) or clear them first; a
+  `destruct (decide P)` on the WP goal also reduces `if decide P` inside the
+  IPM context (the `Hents` of the `MsgProp` arm came back already owned);
+  `iDestruct (lem with "H") as "#H'"` keeps `"H"` when the result is
+  persistent, so the name must be fresh; an `Ltac` cannot name a hypothesis
+  (`exact Hlok` resolves at definition time -- use `assumption`).
