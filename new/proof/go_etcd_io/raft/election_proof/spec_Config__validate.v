@@ -37,6 +37,7 @@ Definition config_preserved (cv cv' : raft.Config.t) : Prop :=
   cv'.(raft.Config.MaxInflightMsgs') = cv.(raft.Config.MaxInflightMsgs') ∧
   cv'.(raft.Config.CheckQuorum') = cv.(raft.Config.CheckQuorum') ∧
   cv'.(raft.Config.PreVote') = cv.(raft.Config.PreVote') ∧
+  cv'.(raft.Config.DisableProposalForwarding') = cv.(raft.Config.DisableProposalForwarding') ∧
   cv'.(raft.Config.Logger') = cv.(raft.Config.Logger').
 
 End defs.

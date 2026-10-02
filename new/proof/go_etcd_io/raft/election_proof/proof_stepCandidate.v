@@ -6,7 +6,9 @@ Import P.
   (** By type.  [MsgProp]: [Infof], then [return ErrProposalDropped] (the
       global's points-to from [is_pkg_init_access]).  [MsgApp]:
       [becomeFollower(m.Term, m.From)] with [m.Term = s.term], then
-      [handleAppendEntries] at the follower state.
+      [handleAppendEntries] at the follower state.  [MsgHeartbeat]: the
+      same [becomeFollower], then [handleHeartbeat].  [MsgBeat],
+      [MsgAppResp], [MsgHeartbeatResp]: no arm.
 
       [MsgVoteResp], unchanged since 2026-09: the type switch is walked to the
       [myVoteRespType] arm ([m.Type = MsgVoteResp], and [state = StateCandidate]
@@ -25,7 +27,7 @@ Import P.
   Proof.
     intros_ambient.
     intros cfg r id s m ents.
-    intros Hty Hterm Hrole Hcfg Happ.
+    intros Hty Hterm Hrole Hcfg Happ Hhb.
     wp_start as "[Hphys Hents]".
     iDestruct (is_pkg_init_access with "[$]") as "@".
     wp_auto. wp_apply (wp_raft_load_state with "Hphys") as "Hphys".
@@ -34,7 +36,7 @@ Import P.
     rewrite Hrole /state_w64 /StateCandidate.
     rewrite bool_decide_eq_false_2; last w32_ne.
     wp_auto.
-    destruct Hty as [Hty|[Hty|Hty]].
+    destruct Hty as [Hty|[Hty|[Hty|[Hty|Hty]]]].
     2:{ (* [MsgProp]: no leader to forward to; dropped *)
       rewrite Hty /MsgProp.
       rewrite bool_decide_eq_true_2 //. wp_auto.
@@ -47,7 +49,7 @@ Import P.
     2:{ (* [MsgApp]: [becomeFollower(m.Term, m.From)], then
          [handleAppendEntries] *)
       destruct (Happ Hty) as (Hwf & Hnw & Hnorm & Hconf).
-      specialize (Hterm (or_intror Hty)).
+      specialize (Hterm (or_intror (or_introl Hty))).
       rewrite Hty /MsgApp.
       rewrite bool_decide_eq_false_2; last w32_ne. wp_auto.
       wp_apply (wp_raft__becomeFollower with "[$Hphys]").
@@ -66,6 +68,39 @@ Import P.
       case_decide as H2; [exfalso; revert H2; w32_ne|].
       case_decide as H3; [|done].
       split; first done. exists pvs. rewrite -Hterm. exact Hres. }
+    2:{ (* [MsgHeartbeat]: [becomeFollower(m.Term, m.From)], then
+         [handleHeartbeat] *)
+      destruct (Hhb Hty) as (Hcommit & Hfrom).
+      specialize (Hterm (or_intror (or_intror Hty))).
+      rewrite Hty /MsgHeartbeat.
+      rewrite bool_decide_eq_false_2; last w32_ne. wp_auto.
+      wp_apply (wp_raft__becomeFollower with "[$Hphys]").
+      iIntros (pvs) "Hphys". try wp_auto.
+      wp_apply (wp_raft__handleHeartbeat with "[$Hphys]").
+      { exact Hcommit. }
+      { exact Hfrom. }
+      iIntros "Hphys". try wp_auto.
+      iApply ("HΦ" $! interface.nil _ false). iFrame "Hphys".
+      iPureIntro. split; last done.
+      rewrite /candidate_step_result Hty.
+      case_decide as H1; [exfalso; revert H1; w32_ne|].
+      case_decide as H2; [exfalso; revert H2; w32_ne|].
+      case_decide as H3; [exfalso; revert H3; w32_ne|].
+      case_decide as H4; [|done].
+      split; first done. exists pvs. rewrite -Hterm. reflexivity. }
+    2:{ (* [MsgBeat], [MsgAppResp], [MsgHeartbeatResp]: no arm *)
+      assert (m.(raftpb.Message.Type') ≠ MsgVoteResp ∧
+              m.(raftpb.Message.Type') ≠ MsgProp ∧
+              m.(raftpb.Message.Type') ≠ MsgApp ∧
+              m.(raftpb.Message.Type') ≠ MsgHeartbeat) as (H1 & H2 & H3 & H4).
+      { destruct Hty as [Hty|[Hty|Hty]]; rewrite Hty; split_and!; w32_ne. }
+      destruct Hty as [Hty|[Hty|Hty]]; rewrite Hty;
+        [rewrite /MsgBeat|rewrite /MsgAppResp|rewrite /MsgHeartbeatResp];
+        (rewrite bool_decide_eq_false_2; last w32_ne); wp_auto.
+      all: iApply ("HΦ" $! interface.nil s false); iFrame "Hphys"; iPureIntro.
+      all: rewrite /candidate_step_result decide_False // decide_False //
+             decide_False // decide_False // decide_True; [done|].
+      all: rewrite Hty; naive_solver. }
     specialize (Hterm (or_introl Hty)).
     (* the type switch: [MsgVoteResp] is none of [MsgProp], [MsgApp],
        [MsgHeartbeat], [MsgSnap], so it falls through to [myVoteRespType].

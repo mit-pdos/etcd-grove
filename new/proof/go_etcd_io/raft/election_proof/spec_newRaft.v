@@ -24,7 +24,9 @@ Require Export New.proof.go_etcd_io.raft.election_proof.spec_Config__validate.
       (found writing this spec, 2026-09-24).  Not a bug a real run can hit
       -- the buffer only grows to [2^62] with that many messages in flight
       -- but a gap between what raft accepts and what the proof covers.
-    - the development's scope: [PreVote = CheckQuorum = false].
+    - the development's scope: [PreVote = CheckQuorum = false], and
+      [DisableProposalForwarding = false] (a follower forwards proposals;
+      since 2026-10-02, for [stepFollower]'s forwarding arm).
     - the storage's contents ([own_Storage (interface.ok si) prev ents]):
       contiguous indices and **no configuration-change entry**.  The second
       is [HnoConfChange]'s scope assumption and is false of a node
@@ -82,6 +84,7 @@ Definition wp_newRaft_body :=
   (sint.Z cv.(raft.Config.MaxInflightMsgs') < 2 ^ 62)%Z →
   cv.(raft.Config.PreVote') = false →
   cv.(raft.Config.CheckQuorum') = false →
+  cv.(raft.Config.DisableProposalForwarding') = false →
   (* the stored log *)
   log_indices_ok prev ents →
   Forall (λ e, e.(raftpb.Entry.Type') = EntryNormal) ents →

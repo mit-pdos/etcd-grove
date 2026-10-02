@@ -11,13 +11,16 @@ Require Export New.proof.go_etcd_io.raft.election_proof.postulates_raft__becomeF
     [becomeLeader]/[bcastAppend], which carry their own specs. [BECOMEFOLLOWER]
     was missing, which made the [VoteLost] arm unprovable. Corrected
     2026-09-16.  [MsgApp] adds [becomeFollower] (already here) and
-    [handleAppendEntries] (2026-10-01); [MsgProp] only logs. *)
+    [handleAppendEntries] (2026-10-01); [MsgHeartbeat] adds
+    [handleHeartbeat] (2026-10-02); [MsgProp] only logs. *)
 Require Export New.proof.go_etcd_io.raft.election_proof.postulates_raft__bcastAppend.
 Require Export New.proof.go_etcd_io.raft.election_proof.postulates_raft__handleAppendEntries.
+Require Export New.proof.go_etcd_io.raft.election_proof.postulates_raft__handleHeartbeat.
 
 Module Type STEPCANDIDATE_POSTULATES.
   Include POLL.
   Include BECOMELEADER.
   Include BECOMEFOLLOWER.  Include RAFT__BCASTAPPEND.
   Include RAFT__HANDLEAPPENDENTRIES.
+  Include RAFT__HANDLEHEARTBEAT.
 End STEPCANDIDATE_POSTULATES.

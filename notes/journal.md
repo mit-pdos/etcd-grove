@@ -4174,3 +4174,56 @@ Branch `worktree-agent-a0b6f7b1e97196737` (from c9341cbd4).  All `Qed`.
   frame a `Hphys` at the same state; leave the state to the frame and
   discharge the pure premises as `{ exact … }` goals.  A spec-file definition
   mentioning `become_leader` needs the heap section `Context`.
+
+## 2026-10-02 — `stepLeader`/`stepFollower`/`stepCandidate` total over Step's seven types
+
+Branch `worktree-agent-ae371c984d368ea8a` (from 496c57590).  All `Qed`.
+Each step function's spec now covers `MsgVoteResp, MsgProp, MsgApp,
+MsgHeartbeat, MsgBeat, MsgAppResp, MsgHeartbeatResp` (the type premise lists
+all seven, `MsgVoteResp` first so Step's `by left` still works).
+
+- **Scope conjunct** `HpropForward : disableProposalForwarding = false` in
+  `own_raft_phys_def` (after `HnoPreVote`), a premise of
+  `own_raft_phys_intro` (after the preVote one) and a load lemma
+  `wp_raft_load_disableProposalForwarding`.  `newRaft` copies
+  `Config.DisableProposalForwarding`, so `spec_newRaft.v` gains the premise
+  `cv.DisableProposalForwarding = false` and `config_preserved`
+  (`spec_Config__validate.v`) the field.  `wp_raft_load_pendingReadIndexMessages`
+  moved into `inv_raft_phys.v`'s interface section; nothing outside
+  `inv_raft_phys.v` opens the seal any more.
+- `spec_raft__handleHeartbeat.v` now defines `heartbeat_result id s m` (its
+  postcondition's state, used by both follower and candidate results) and
+  `MsgBeat` (moved from `spec_stepLeader.v`: all three specs need it).
+- **Follower**: the `MsgProp` forwarding arm is proved (the DEFERRED
+  `lead = 0` premise is gone): `send` at `m <| To := lead |>` -- pass that
+  message explicitly to `wp_raft__send`, unification picks the stale `m`
+  otherwise.  `MsgHeartbeat`: two stores then `handleHeartbeat`, result
+  `heartbeat_result id (s <| lead := m.From |>) m`.  Beat/AppResp/
+  HeartbeatResp: unchanged.
+- **Candidate**: `MsgHeartbeat` = `becomeFollower(m.Term, m.From)` then
+  `handleHeartbeat` (`m.Term = s.term` premise extended to it); the three
+  no-ops.
+- **Leader**: `leader_step_result cfg id s m ents dropped s'` is
+  `if MsgProp then leader_propose_result … else dropped = false ∧
+  leader_nonprop_result …` (the old relation, renamed, its first disjunct
+  widened to `VoteResp ∨ App ∨ Heartbeat` -- the no-op types, both on a
+  progress hit and miss).  `MsgProp`: premises `ents ≠ []`, all
+  `EntryNormal`, `< 2^61`; `Hents : ⌜MsgProp⌝ -∗ m.Entries ↦* ents` at
+  **full** ownership (appendEntry stamps the slice), returned stamped.
+  Accepted: `proposed id s ents` (log appended + self-ack) then
+  `bcastAppend`'s `repl_sends`; rejected: `dropped = true`, `s' = s`.  The
+  postcondition is now `(err s' dropped)` like the other two.
+- Proof notes (`wp_stepLeader_prop`): the `Progress[r.id]` lookup evaluates
+  the key `r.id` first (`wp_raft_load_id` before the tracker accessor);
+  `wp_if_destruct` substs `dom progress = cfg` -- `clear Hdom` first; the
+  conf-change `for range` needs `wp_alloc j` (counter clash with `i`) and
+  `Hnorm`/`Hsmall` in the invariant; `e.Type` is read twice (two
+  `rewrite Hety`).  The whole `proof_stepLeader.v` takes ~15 min; iterate
+  on a lemma in a scratch file that `Require`s `postulates_stepLeader`.
+
+**Open, for Step**: a `MsgProp` arriving at a leader needs its `Entries`
+slice owned at fraction 1, but `is_message`/the outbox keep entries `↦*□`.
+For a proposal forwarded over the network the receiver gets a fresh copy,
+so the trusted network/Step boundary must hand out full ownership for
+`MsgProp` (or `appendEntry` must copy).  Step's premise table is in this
+session's final report.

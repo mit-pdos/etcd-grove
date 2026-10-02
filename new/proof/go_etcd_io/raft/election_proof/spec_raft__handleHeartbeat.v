@@ -24,6 +24,26 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
     list is [[]].  ([Context] is not part of the abstraction.)  Adopting the
     leader ([lead := m.From], [becomeFollower]) is the caller's business
     ([stepFollower]/[stepCandidate]); this function does not do it. *)
+(** [MsgBeat = 1] ([raftpb.v:76]): the local tick that makes a leader
+    [bcastHeartbeat].  [defs.v] names the types the model describes;
+    [MsgBeat] is not one of them, and lives here, beside the heartbeat
+    handler, because all three [stepX] specs mention it (until 2026-10-02 it
+    was local to [spec_stepLeader.v]). *)
+Definition MsgBeat : w32 := W32 1.
+
+(** The state after [handleHeartbeat]: [committed] moved by [commitTo], and
+    the [HeartbeatResp] queued.  Named because [stepFollower] and
+    [stepCandidate] state their [MsgHeartbeat] results with it. *)
+Definition heartbeat_result {ext : ffi_syntax} (id : w64) (s : nstate.t)
+    (m : raftpb.Message.t) : nstate.t :=
+  send_msgs
+    (s <| nstate.logst :=
+           s.(nstate.logst) <| logstate.committed :=
+             plog_commit_to s.(nstate.logst).(logstate.committed)
+               m.(raftpb.Message.Commit') |> |>)
+    [msg.plain mtype.HeartbeatResp id m.(raftpb.Message.From')
+       s.(nstate.term) false].
+
 Definition wp_raft__handleHeartbeat_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
@@ -35,15 +55,7 @@ Definition wp_raft__handleHeartbeat_body :=
   m.(raftpb.Message.From') ≠ id →
   {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "handleHeartbeat" #m
-  {{{ RET #();
-      own_raft_phys cfg r id
-        (send_msgs
-           (s <| nstate.logst :=
-                  s.(nstate.logst) <| logstate.committed :=
-                    plog_commit_to s.(nstate.logst).(logstate.committed)
-                      m.(raftpb.Message.Commit') |> |>)
-           [msg.plain mtype.HeartbeatResp id m.(raftpb.Message.From')
-              s.(nstate.term) false]) }}}.
+  {{{ RET #(); own_raft_phys cfg r id (heartbeat_result id s m) }}}.
 
 Module Type RAFT__HANDLEHEARTBEAT.
   Parameter wp_raft__handleHeartbeat : wp_raft__handleHeartbeat_body.

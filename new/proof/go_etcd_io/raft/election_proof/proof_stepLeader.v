@@ -84,35 +84,35 @@ Proof. rewrite /progress_maybe_update. case_bool_decide; case_decide; done. Qed.
 Local Ltac first_switch_skip Hty lit :=
   rewrite Hty /lit; rewrite bool_decide_eq_false_2; [|w32_ne]; wp_auto.
 
-(** ** [MsgVoteResp]: both switches fall through *)
-Lemma wp_stepLeader_voteresp r id s (m : raftpb.Message.t) :
-  m.(raftpb.Message.Type') = MsgVoteResp →
+(** ** [MsgVoteResp], [MsgApp], [MsgHeartbeat]: both switches fall through,
+    whether or not the sender has a [Progress] *)
+Lemma wp_stepLeader_noop r id s (m : raftpb.Message.t) :
+  m.(raftpb.Message.Type') = MsgVoteResp ∨ m.(raftpb.Message.Type') = MsgApp ∨
+  m.(raftpb.Message.Type') = MsgHeartbeat →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     @! raft.stepLeader #r #m
   {{{ (err : error.t) (s' : nstate.t), RET #err;
       own_raft_phys cfg r id s' ∗ ⌜ err = interface.nil ⌝ ∗
-      ⌜ leader_step_result cfg id s m s' ⌝ }}}.
+      ⌜ leader_nonprop_result cfg id s m s' ⌝ }}}.
 Proof.
   intros Hty.
   wp_start as "Hphys".
   wp_auto.
-  first_switch_skip Hty MsgVoteResp.
-  iDestruct (own_raft_phys_tracker_same with "Hphys") as (tv) "(Htrkf & Htrk & Hback)".
-  iDestruct (own_tracker_progress_map with "Htrk") as "(#Hprs & _ & Htrk)".
-  wp_auto.
-  iDestruct ("Hback" with "Htrkf Htrk") as "Hphys".
-  wp_apply (wp_map_lookup1 with "Hprs") as "_".
-  case_bool_decide as Hnil.
-  - wp_auto.
-    (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_raft_log).
-    iApply ("HΦ" $! interface.nil s). iFrame "Hphys".
-    iPureIntro. split; [done|]. left. done.
-  - wp_auto.
-    rewrite Hty /MsgVoteResp.
-    rewrite bool_decide_eq_false_2; last w32_ne.
-    wp_auto.
-    iApply ("HΦ" $! interface.nil s). iFrame "Hphys".
-    iPureIntro. split; [done|]. left. done.
+  assert (m.(raftpb.Message.Type') = W32 6 ∨ m.(raftpb.Message.Type') = W32 3 ∨
+          m.(raftpb.Message.Type') = W32 8) as Hl by exact Hty.
+  destruct Hl as [Hl|[Hl|Hl]]; rewrite Hl;
+    (rewrite bool_decide_eq_false_2; [|w32_ne]); wp_auto.
+  all: iDestruct (own_raft_phys_tracker_same with "Hphys") as (tv) "(Htrkf & Htrk & Hback)".
+  all: iDestruct (own_tracker_progress_map with "Htrk") as "(#Hprs & _ & Htrk)".
+  all: wp_auto.
+  all: iDestruct ("Hback" with "Htrkf Htrk") as "Hphys".
+  all: wp_apply (wp_map_lookup1 with "Hprs") as "_".
+  all: case_bool_decide as Hnil.
+  all: wp_auto.
+  all: try (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_raft_log).
+  all: try (rewrite Hl; (rewrite bool_decide_eq_false_2; [|w32_ne]); wp_auto).
+  all: iApply ("HΦ" $! interface.nil s); iFrame "Hphys".
+  all: iPureIntro; split; [done|]; left; split; [exact Hty|done].
 Qed.
 
 (** ** [MsgBeat]: [bcastHeartbeat], return *)
@@ -123,7 +123,7 @@ Lemma wp_stepLeader_beat r id s (m : raftpb.Message.t) :
     @! raft.stepLeader #r #m
   {{{ (err : error.t) (s' : nstate.t), RET #err;
       own_raft_phys cfg r id s' ∗ ⌜ err = interface.nil ⌝ ∗
-      ⌜ leader_step_result cfg id s m s' ⌝ }}}.
+      ⌜ leader_nonprop_result cfg id s m s' ⌝ }}}.
 Proof.
   intros Hty Hlead.
   wp_start as "Hphys".
@@ -161,7 +161,7 @@ Lemma wp_stepLeader_hbresp r id s (m : raftpb.Message.t) :
     @! raft.stepLeader #r #m
   {{{ (err : error.t) (s' : nstate.t), RET #err;
       own_raft_phys cfg r id s' ∗ ⌜ err = interface.nil ⌝ ∗
-      ⌜ leader_step_result cfg id s m s' ⌝ }}}.
+      ⌜ leader_nonprop_result cfg id s m s' ⌝ }}}.
 Proof.
   intros Hty Hlead Hself.
   wp_start as "[Hphys #Hctx]".
@@ -273,7 +273,7 @@ Lemma wp_stepLeader_appresp r id s (m : raftpb.Message.t) :
     @! raft.stepLeader #r #m
   {{{ (err : error.t) (s' : nstate.t), RET #err;
       own_raft_phys cfg r id s' ∗ ⌜ err = interface.nil ⌝ ∗
-      ⌜ leader_step_result cfg id s m s' ⌝ }}}.
+      ⌜ leader_nonprop_result cfg id s m s' ⌝ }}}.
 Proof.
   intros Hty Hlead Hid Hfrom0 Hself.
   wp_start as "Hphys".
@@ -670,25 +670,160 @@ Proof.
   - reflexivity.
 Qed.
 
+
+(** ** [MsgProp]
+
+    [len(m.Entries) == 0] is false ([ents ≠ []]); [r.trk.Progress[r.id]]
+    is a hit ([id ∈ cfg], and a [Progress] pointer is never nil);
+    [r.leadTransferee] is [0]; the conf-change loop reads each entry's
+    [Type] -- [EntryNormal], so neither [Unmarshal] arm runs and [cc] stays
+    nil -- and writes nothing.  Then [appendEntry] stamps the batch and,
+    if it accepts it, [bcastAppend]. *)
+Lemma wp_stepLeader_prop r id s (m : raftpb.Message.t) ents :
+  m.(raftpb.Message.Type') = MsgProp →
+  id ∈ cfg →
+  ents ≠ [] →
+  Forall (λ e, e.(raftpb.Entry.Type') = EntryNormal) ents →
+  (Z.of_nat (length ents) < 2^61)%Z →
+  {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s ∗
+      m.(raftpb.Message.Entries') ↦* ents }}}
+    @! raft.stepLeader #r #m
+  {{{ (err : error.t) (s' : nstate.t) (dropped : bool), RET #err;
+      own_raft_phys cfg r id s' ∗
+      ⌜ leader_propose_result id s ents dropped s' ⌝ ∗
+      (if dropped then (global_addr raft.ErrProposalDropped) ↦□ err
+       else ⌜ err = interface.nil ⌝) ∗
+      m.(raftpb.Message.Entries') ↦*
+        imap (stamp s.(nstate.term) (log_last s.(nstate.logst))) ents }}}.
+Proof.
+  intros Hty Hid Hne Hnorm Hsmall.
+  wp_start as "[Hphys Hes]".
+  iDestruct (is_pkg_init_access with "[$]") as "@".
+  wp_auto.
+  rewrite Hty /MsgProp. rewrite bool_decide_eq_false_2; [|w32_ne]. wp_auto.
+  iDestruct (own_slice_len with "Hes") as %[Hl1 Hl2].
+  rewrite bool_decide_eq_false_2; last first.
+  { intros Heq. apply Hne, length_zero_iff_nil. rewrite Hl1 Heq //. }
+  wp_auto.
+  wp_apply (wp_raft_load_id with "Hphys") as "Hphys".
+  iDestruct (own_raft_phys_tracker_same with "Hphys") as (tv) "(Htrkf & Htrk & Hback)".
+  iDestruct (own_tracker_progress_map with "Htrk") as "(#Hprs & %Hdom & Htrk)".
+  iDestruct (own_tracker_prvals_dom with "Htrk") as "[%Hpdom Htrk]".
+  wp_auto.
+  iDestruct ("Hback" with "Htrkf Htrk") as "Hphys".
+  wp_apply (wp_map_lookup1 with "Hprs") as "_".
+  destruct (s.(nstate.progress) !! id) as [pr|] eqn:Hlk; last first.
+  { exfalso. apply not_elem_of_dom in Hlk. apply Hlk. by rewrite Hdom. }
+  assert (is_Some (s.(nstate.prvals) !! id)) as [[pv iv] Hpvs].
+  { apply elem_of_dom. rewrite Hpdom elem_of_dom Hlk. by eexists. }
+  iAssert (⌜ pr ≠ null ⌝ ∗ own_raft_phys cfg r id s)%I with "[Hphys]" as "[%Hnn Hphys]".
+  { iDestruct (own_raft_phys_pr_upd with "Hphys [//] [//]") as "[Hpa Hpback]".
+    iNamed "Hpa".
+    iDestruct (typed_pointsto_not_null with "Hpv") as %Hnn.
+    iSplitR; first done.
+    iDestruct ("Hpback" with "[Hpv Hinfl]") as "Hphys".
+    { rewrite /own_progress. iFrame "∗%". }
+    iApply (own_raft_phys_eq with "Hphys"). rewrite insert_id //. by destruct s. }
+  clear Hdom Hpdom.
+  simpl. rewrite bool_decide_eq_false_2 //.
+  wp_auto.
+  wp_apply (wp_raft_load_leadTransferee with "Hphys") as "Hphys".
+  wp_alloc j as "Hj".
+  iAssert (∃ (n k : w64),
+    "Hj" ∷ j ↦ n ∗
+    "i" ∷ i_ptr ↦ k ∗
+    "Hes" ∷ m.(raftpb.Message.Entries') ↦* ents ∗
+    "%Hnorm" ∷ ⌜ Forall (λ e, e.(raftpb.Entry.Type') = EntryNormal) ents ⌝ ∗
+    "%Hsmall" ∷ ⌜ (Z.of_nat (length ents) < 2^61)%Z ⌝ ∗
+    "%Hn" ∷ ⌜ (0 ≤ sint.Z n ≤ Z.of_nat (length ents))%Z ⌝)%I
+    with "[Hj i Hes]" as "IH".
+  { iExists (W64 0), _. iFrame. iPureIntro. split; [done|word]. }
+  wp_auto.
+  wp_for "IH".
+  wp_if_destruct.
+  - assert (∃ e, ents !! sint.nat n = Some e) as [e He].
+    { apply lookup_lt_is_Some_2. word. }
+    rewrite decide_True; last word.
+    wp_apply (wp_load_slice_index (V:=raftpb.Entry.t) (t:=raftpb.Entry)
+                _ (sint.Z n) _ (DfracOwn 1) e with "[$Hes]") as "Hes";
+      try first [ word | iPureIntro; exact He | tc_solve | done ].
+    try wp_auto.
+    rewrite decide_True; last word.
+    iDestruct (own_slice_elem_acc (sint.Z n) e _ (DfracOwn 1) _
+                 with "Hes") as "[He Hesback]";
+      [ word | rewrite -He; f_equal; word | ].
+    wp_auto.
+    assert (e.(raftpb.Entry.Type') = EntryNormal) as Hety.
+    { rewrite List.Forall_forall in Hnorm. apply Hnorm, list_elem_of_In.
+      by eapply list_elem_of_lookup_2. }
+    rewrite Hety.
+    wp_auto.
+    rewrite Hety.
+    wp_auto.
+    iDestruct ("Hesback" with "He") as "Hes".
+    rewrite list_insert_id; last (rewrite -He; f_equal; word).
+    wp_for_post.
+    iFrame. iPureIntro. split_and!; [done|done|word|word].
+  - wp_apply (wp_raft__appendEntry _ _ _ _ _ _ Hnorm Hsmall with "[$Hphys $Hes]")
+      as "%acc (_ & Hes & Hphys)".
+    destruct acc; wp_auto.
+    + wp_apply (wp_raft__bcastAppend with "[$Hphys]") as "%ms %pvs (Hphys & %Hms & %Hmm)".
+      try wp_auto.
+      iApply ("HΦ" $! interface.nil _ false). iFrame "Hphys Hes".
+      iPureIntro. split; [|done].
+      rewrite /leader_propose_result. exists ms, pvs. split_and!; [reflexivity|exact Hms|].
+      rewrite Hmm. done.
+    + iApply ("HΦ" $! errPropDropped s true). iFrame "Hphys Hes ErrPropDropped".
+      done.
+Qed.
+
 End helpers.
 
 Set Default Proof Using "Type".
 
-  (** By the message type, one lemma each. *)
+  (** By the message type, one lemma each.  The non-[MsgProp] lemmas are
+      stated at [leader_nonprop_result] with [err = nil]; [HΦ'] turns
+      that into the postcondition with [dropped = false]. *)
   Lemma wp_stepLeader : wp_stepLeader_body.
   Proof.
     intros_ambient.
-    intros cfg r id s m Hty Hlead Hid Hfrom0 Hself.
-    iIntros (Φ) "(#Hinit & Hphys & Hctx) HΦ".
-    destruct Hty as [Hty|[Hty|[Hty|Hty]]].
-    - iApply (wp_stepLeader_voteresp cfg r id s m Hty with "[$Hinit $Hphys] HΦ").
-    - iApply (wp_stepLeader_beat cfg r id s m Hty Hlead with "[$Hinit $Hphys] HΦ").
+    intros cfg r id s m ents Hty Hlead Hid Hfrom0 Hself Hprop.
+    iIntros (Φ) "(#Hinit & Hphys & Hctx & Hents) HΦ".
+    destruct (decide (m.(raftpb.Message.Type') = MsgProp)) as [Hp|Hnp].
+    { destruct (Hprop Hp) as (Hne & Hnorm & Hsmall).
+      iDestruct ("Hents" with "[//]") as "Hes".
+      iApply (wp_stepLeader_prop cfg r id s m ents Hp Hid Hne Hnorm Hsmall
+                with "[$Hinit $Hphys $Hes]").
+      iIntros "!>" (err s' dropped) "(Hphys & %Hres & Herr & Hes)".
+      iApply ("HΦ" $! err s' dropped). iFrame "Hphys Herr".
+      iSplitR.
+      { iPureIntro. rewrite /leader_step_result decide_True //. }
+      iIntros "_". iExact "Hes". }
+    iAssert (▷ ∀ (err : error.t) (s' : nstate.t),
+               own_raft_phys cfg r id s' ∗ ⌜ err = interface.nil ⌝ ∗
+               ⌜ leader_nonprop_result cfg id s m s' ⌝ -∗ Φ #err)%I
+      with "[HΦ]" as "HΦ'".
+    { iIntros "!>" (err s') "(Hphys & %Herr & %Hres)".
+      iApply ("HΦ" $! err s' false). iFrame "Hphys".
+      iSplitR.
+      { iPureIntro. rewrite /leader_step_result decide_False //. }
+      iSplitR; first done.
+      iIntros "%Hc". by exfalso. }
+    destruct Hty as [Hty|[Hty|[Hty|[Hty|[Hty|[Hty|Hty]]]]]].
+    - iApply (wp_stepLeader_noop cfg r id s m (or_introl Hty)
+                with "[$Hinit $Hphys] HΦ'").
+    - iApply (wp_stepLeader_beat cfg r id s m Hty Hlead with "[$Hinit $Hphys] HΦ'").
     - iDestruct ("Hctx" with "[//]") as "#Hc".
       iApply (wp_stepLeader_hbresp cfg r id s m Hty Hlead (Hself (or_introl Hty))
-                with "[$Hinit $Hphys $Hc] HΦ").
+                with "[$Hinit $Hphys $Hc] HΦ'").
     - iApply (wp_stepLeader_appresp cfg r id s m Hty Hlead Hid (Hfrom0 Hty)
                 (λ Hr, Hself (or_intror (conj Hty Hr)))
-                with "[$Hinit $Hphys] HΦ").
+                with "[$Hinit $Hphys] HΦ'").
+    - by exfalso.
+    - iApply (wp_stepLeader_noop cfg r id s m (or_intror (or_introl Hty))
+                with "[$Hinit $Hphys] HΦ'").
+    - iApply (wp_stepLeader_noop cfg r id s m (or_intror (or_intror Hty))
+                with "[$Hinit $Hphys] HΦ'").
   Qed.
 
 End StepLeaderProof.

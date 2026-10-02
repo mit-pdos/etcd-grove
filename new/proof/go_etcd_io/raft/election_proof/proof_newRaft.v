@@ -7,12 +7,12 @@ Import P.
   Proof.
     intros_ambient.
     intros c cv lok si prev ents hs cs voters dqv
-      Hvalid Hlok Hsto HmaxInfl Hpv Hcq Hidx Hncc Hhs Happ Hvne Hvnd Hv0 Hcs1 Hcs2 Hcs3 Hal.
+      Hvalid Hlok Hsto HmaxInfl Hpv Hcq Hdpf Hidx Hncc Hhs Happ Hvne Hvnd Hv0 Hcs1 Hcs2 Hcs3 Hal.
     pose proof Hvalid as (HvID & HvID1 & HvID2 & Hticks & HvSt & HvInfl & HvIB & HvLog & HvRO).
     wp_start as "(Hc & #Hlg0 & #HisSto & HSto & #HInit)".
     wp_auto.
     wp_apply (P.wp_Config__validate _ _ Hvalid with "[$Hc]") as "%cv' (Hc & %Hpres)".
-    destruct Hpres as (HpID & HpET & HpHT & HpSt & HpAp & HpMI & HpCQ & HpPV & HpLg).
+    destruct Hpres as (HpID & HpET & HpHT & HpSt & HpAp & HpMI & HpCQ & HpPV & HpDPF & HpLg).
     rewrite HpSt Hsto HpLg Hlok.
     wp_apply (P.wp_newLogWithSize _ _ _ _ _ lok Hidx Hncc eq_refl with "[$HisSto $HSto $Hlg0]") as "%l %lv (Hl & %Hlv & Hcore)".
     destruct Hlv as (Hlvst & Hlvcm & Hlvap).
@@ -69,7 +69,7 @@ Import P.
     iDestruct (own_raft_phys_intro ∅ _ cv.(raft.Config.ID') s0 _ [] [] lok with
       "Hr Hlg0 Htrk0 HL [] [] [] [] Hmisc []") as "Hphys".
     all: try done.
-    1-4: simpl; rewrite ?HpID ?HpPV ?HpCQ ?HpLg ?HpET; try done; lia.
+    1-5: simpl; rewrite ?HpID ?HpPV ?HpDPF ?HpCQ ?HpLg ?HpET; try done; lia.
     1,3: iApply own_slice_nil.
     1,2: iApply own_slice_cap_nil.
     1: iApply outbox_rel_nil.

@@ -1,4 +1,5 @@
 Require Export New.proof.go_etcd_io.raft.election_proof.spec_raft__handleAppendEntries.
+Require Export New.proof.go_etcd_io.raft.election_proof.spec_raft__handleHeartbeat.
 Require Export New.proof.go_etcd_io.raft.election_proof.step_lemmas.
 
 (** * [stepCandidate], for the message types in scope
@@ -11,7 +12,12 @@ Require Export New.proof.go_etcd_io.raft.election_proof.step_lemmas.
     - [MsgApp]: [becomeFollower(m.Term, m.From)] -- "always [m.Term ==
       r.Term]", which is a premise here -- then [handleAppendEntries].
     - [MsgVoteResp]: record the vote, then win, lose or keep waiting.
-    - [MsgHeartbeat]: to be added with [handleHeartbeat]'s spec.
+    - [MsgHeartbeat]: [becomeFollower(m.Term, m.From)] -- again "always
+      [m.Term == r.Term]", a premise -- then [handleHeartbeat]
+      ([heartbeat_result] at the follower state).
+    - [MsgBeat], [MsgAppResp], [MsgHeartbeatResp]: no arm (they are none of
+      the above, nor [MsgSnap], [myVoteRespType] or [MsgTimeoutNow]);
+      nothing written, [nil].
 
     Ghost-free.  It used to take [own_raft_ghost] and [is_message] for the
     incoming message, but that was only ever feeding [own_raft_ghost_step];
@@ -65,8 +71,15 @@ Definition candidate_step_result (cfg : gset w64) (id : w64)
     ∃ pvs, handle_app_result id
              (become_follower s s.(nstate.term) m.(raftpb.Message.From')
                 <| nstate.prvals := pvs |>) m ents s'
-  (* MsgHeartbeat: [dropped = false ∧ ∃ pvs, handle_heartbeat_result …
-     (become_follower …)], once [handleHeartbeat] has a spec *)
+  else if decide (m.(raftpb.Message.Type') = MsgHeartbeat) then
+    dropped = false ∧
+    ∃ pvs, s' = heartbeat_result id
+                  (become_follower s s.(nstate.term) m.(raftpb.Message.From')
+                     <| nstate.prvals := pvs |>) m
+  else if decide (m.(raftpb.Message.Type') = MsgBeat ∨
+                  m.(raftpb.Message.Type') = MsgAppResp ∨
+                  m.(raftpb.Message.Type') = MsgHeartbeatResp) then
+    dropped = false ∧ s' = s
   else False.
 
 End results.
@@ -75,14 +88,16 @@ End results.
     - [s.role = Candidate]: [myVoteRespType] is then [MsgVoteResp] (and
       not [MsgPreVoteResp]); [r.step = stepCandidate] means it
       ([nstate_wf]);
-    - [m.Term = r.Term] for [MsgVoteResp] and [MsgApp] ([Step]'s term
-      preamble has run; for [MsgApp] it is the Go comment's "always
-      [m.Term == r.Term]");
+    - [m.Term = r.Term] for [MsgVoteResp], [MsgApp] and [MsgHeartbeat]
+      ([Step]'s term preamble has run; for the last two it is the Go
+      comment's "always [m.Term == r.Term]");
     - [id ∈ cfg]: a candidate that can win is a voter; [poll] needs [cfg]
       non-empty and [becomeLeader] needs this outright, and neither is
       available from [own_raft_phys], so it is threaded in from the caller;
     - [MsgApp]: [handleAppendEntries]'s premises, at [s] ([becomeFollower]
       leaves the log alone);
+    - [MsgHeartbeat]: [handleHeartbeat]'s premises, at [s] (likewise):
+      [m.Commit] within the log and [m.From ≠ id];
     - [Hents]: the [Entries] slice and its capacity, for [MsgApp] only. *)
 Definition wp_stepCandidate_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
@@ -92,8 +107,11 @@ Definition wp_stepCandidate_body :=
     (r : loc) (id : w64) (s : nstate.t) (m : raftpb.Message.t)
     (ents : list raftpb.Entry.t),
   (m.(raftpb.Message.Type') = MsgVoteResp ∨ m.(raftpb.Message.Type') = MsgProp ∨
-   m.(raftpb.Message.Type') = MsgApp) →
-  (m.(raftpb.Message.Type') = MsgVoteResp ∨ m.(raftpb.Message.Type') = MsgApp →
+   m.(raftpb.Message.Type') = MsgApp ∨ m.(raftpb.Message.Type') = MsgHeartbeat ∨
+   m.(raftpb.Message.Type') = MsgBeat ∨ m.(raftpb.Message.Type') = MsgAppResp ∨
+   m.(raftpb.Message.Type') = MsgHeartbeatResp) →
+  (m.(raftpb.Message.Type') = MsgVoteResp ∨ m.(raftpb.Message.Type') = MsgApp ∨
+   m.(raftpb.Message.Type') = MsgHeartbeat →
    m.(raftpb.Message.Term') = s.(nstate.term)) →
   s.(nstate.role) = role.Candidate →
   id ∈ cfg →
@@ -108,6 +126,11 @@ Definition wp_stepCandidate_body :=
         (raft.entryID.mk m.(raftpb.Message.LogTerm') m.(raftpb.Message.Index')) →
       plog_find_conflict ls.(logstate.prev) es ents = W64 0 ∨
       uint.Z ls.(logstate.committed) < uint.Z (plog_find_conflict ls.(logstate.prev) es ents))%Z) →
+  (m.(raftpb.Message.Type') = MsgHeartbeat →
+     (uint.Z m.(raftpb.Message.Commit')
+        ≤ plog_last_index_Z s.(nstate.logst).(logstate.prev)
+            (s.(nstate.logst).(logstate.sents) ++ s.(nstate.logst).(logstate.uents)))%Z ∧
+     m.(raftpb.Message.From') ≠ id) →
   {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s ∗
       "Hents" ∷ (⌜ m.(raftpb.Message.Type') = MsgApp ⌝ -∗
                  m.(raftpb.Message.Entries') ↦*□ ents ∗
