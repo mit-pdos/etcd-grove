@@ -112,7 +112,8 @@ Implicit Type s : nstate.t.
         by done.
       apply step_higher_term.
       - rewrite /abs_msg /=. exact Hgt0.
-      - rewrite /abs_msg /=. exact Hto. }
+      - rewrite /abs_msg /=. exact Hto.
+      - rewrite /abs_msg /=. by intros [=]. }
     (* the type switch: not MsgHup / MsgStorageAppendResp / MsgStorageApplyResp,
        not MsgPreVote, but MsgVote *)
     rewrite Hty /MsgVote bool_decide_eq_false_2; last w32_ne. try wp_auto.

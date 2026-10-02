@@ -29,12 +29,6 @@ Definition vote_resp_result id s (from : w64) (reject : bool) (won lost : bool)
   else s1.
 
 
-(** An election message: the only ones in scope. *)
-Definition election_msg (m : raftpb.Message.t) : Prop :=
-  m.(raftpb.Message.Type') = MsgHup ∨
-  m.(raftpb.Message.Type') = MsgVote ∨
-  m.(raftpb.Message.Type') = MsgVoteResp.
-
 (** ** Model-level lemmas justifying each branch of [Step]
 
     Protocol facts, about [pstate.t]: the [Step] proof applies them to
@@ -111,7 +105,7 @@ Proof.
   eapply step_trans with
     (s₁ := pbecome_follower s m.(msg.term)
              (if from_leader m.(msg.ty) then m.(msg.from) else W64 0)).
-  { by apply step_higher_term. }
+  { apply step_higher_term; [done|done|]. rewrite Hty /=. by intros [=]. }
   rewrite Hty /=.
   apply step_grant_vote; try done.
   (* [pbecome_follower] to a strictly greater term clears the vote and the
@@ -135,7 +129,7 @@ Proof.
   eapply step_trans with
     (s₁ := pbecome_follower s m.(msg.term)
              (if from_leader m.(msg.ty) then m.(msg.from) else W64 0)).
-  { by apply step_higher_term. }
+  { apply step_higher_term; [done|done|]. rewrite Hty /=. by intros [=]. }
   rewrite Hty /=.
   by apply step_reject_vote.
 Qed.

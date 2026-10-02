@@ -374,6 +374,17 @@ Definition record_vote (votes : gmap w64 bool) (from : w64) (v : bool)
 Definition pcan_vote (s : pstate.t) (from : w64) : Prop :=
   s.(pstate.vote) = from ∨ (s.(pstate.vote) = W64 0 ∧ s.(pstate.lead) = W64 0).
 
+(** A node that is not leader never records itself as the leader.  An
+    invariant of every reachable state ([own_raft_ghost] carries it): the
+    rules that adopt a sender as leader ([step_higher_term] for a
+    [from_leader] message, [step_app_*], [step_heartbeat]) require the
+    sender to be another node, [step_campaign]/[step_lose] clear [lead],
+    and [pbecome_leader] sets it only together with [role.Leader].  [Step]
+    needs it for a forwarded proposal: [send] [Panicf]s on a message to
+    oneself ([stepFollower]'s [MsgProp] premise [lead ≠ id]). *)
+Definition lead_ok (s : pstate.t) : Prop :=
+  s.(pstate.role) ≠ role.Leader → s.(pstate.lead) ≠ id.
+
 (** What a leader's [MsgApp] says ([maybeSendAppend]: [Index: pr.Next-1,
     LogTerm: term(pr.Next-1), Entries: entries(pr.Next, maxMsgSize),
     Commit: committed]).
@@ -439,6 +450,9 @@ Inductive step : pstate.t → list msg.t → pstate.t → Prop :=
 | step_higher_term m s :
   uint.Z s.(pstate.term) < uint.Z m.(msg.term) →
   m.(msg.to) = id →
+  (** a leader's message is from another node ([send] never queues a
+      leader message to oneself), so adopting its sender keeps [lead_ok] *)
+  (from_leader m.(msg.ty) = true → m.(msg.from) ≠ id) →
   step s [m]
        (pbecome_follower s m.(msg.term)
           (if from_leader m.(msg.ty) then m.(msg.from) else W64 0))
@@ -539,6 +553,7 @@ Inductive step : pstate.t → list msg.t → pstate.t → Prop :=
 | step_app_accept m s lastnewi es' :
   m.(msg.ty) = mtype.App →
   m.(msg.to) = id →
+  m.(msg.from) ≠ id →
   m.(msg.term) = s.(pstate.term) →
   s.(pstate.role) ≠ role.Leader →
   uint.Z s.(pstate.commit) ≤ uint.Z m.(msg.index) →
@@ -562,6 +577,7 @@ Inductive step : pstate.t → list msg.t → pstate.t → Prop :=
 | step_app_stale m s :
   m.(msg.ty) = mtype.App →
   m.(msg.to) = id →
+  m.(msg.from) ≠ id →
   m.(msg.term) = s.(pstate.term) →
   s.(pstate.role) ≠ role.Leader →
   uint.Z m.(msg.index) < uint.Z s.(pstate.commit) →
@@ -575,6 +591,7 @@ Inductive step : pstate.t → list msg.t → pstate.t → Prop :=
 | step_app_reject m s (hint hintterm : w64) :
   m.(msg.ty) = mtype.App →
   m.(msg.to) = id →
+  m.(msg.from) ≠ id →
   m.(msg.term) = s.(pstate.term) →
   s.(pstate.role) ≠ role.Leader →
   uint.Z s.(pstate.commit) ≤ uint.Z m.(msg.index) →
@@ -590,6 +607,7 @@ Inductive step : pstate.t → list msg.t → pstate.t → Prop :=
 | step_heartbeat m s :
   m.(msg.ty) = mtype.Heartbeat →
   m.(msg.to) = id →
+  m.(msg.from) ≠ id →
   m.(msg.term) = s.(pstate.term) →
   s.(pstate.role) ≠ role.Leader →
   uint.Z m.(msg.commit) ≤ plog_last_index_Z s.(pstate.base) s.(pstate.log) →
@@ -1002,7 +1020,8 @@ Definition own_raft_ghost γ (id : w64) (s : pstate.t) : iProp Σ :=
     "#Hout"   ∷ ([∗ list] m ∈ s.(pstate.outbox), is_message γ m) ∗
     "#Htally" ∷ ([∗ set] v ∈ granted s.(pstate.votes), is_vote γ v s.(pstate.term) id) ∗
     "#Hlead"  ∷ leader_wit γ id s ∗
-    "Hlg"     ∷ own_log_ghost γ id s.
+    "Hlg"     ∷ own_log_ghost γ id s ∗
+    "%Hlead_ok" ∷ ⌜ lead_ok id s ⌝.
 
 Global Instance own_raft_ghost_timeless γ id s : Timeless (own_raft_ghost γ id s).
 Proof. apply _. Qed.
@@ -1017,10 +1036,16 @@ Lemma own_raft_ghost_intro γ id s γv voted :
   ([∗ set] v ∈ granted s.(pstate.votes), is_vote γ v s.(pstate.term) id) -∗
   leader_wit γ id s -∗
   own_log_ghost γ id s -∗
+  ⌜ lead_ok id s ⌝ -∗
   own_raft_ghost γ id s.
 Proof.
-  iIntros (??) "H1 %H2 #H3 #H4 #H5 #H6 H7". iExists γv, voted. by iFrame "∗#%".
+  iIntros (??) "H1 %H2 #H3 #H4 #H5 #H6 H7 %H8". iExists γv, voted. by iFrame "∗#%".
 Qed.
+
+(** A non-leader does not record itself as leader. *)
+Lemma own_raft_ghost_lead_ok γ id s :
+  own_raft_ghost γ id s -∗ ⌜ lead_ok id s ⌝.
+Proof. iIntros "H". iNamed "H". done. Qed.
 
 Lemma matched_ok_eq γ s1 s2 :
   s2.(pstate.role) = s1.(pstate.role) →
@@ -1262,7 +1287,15 @@ Qed.
 
 Local Ltac destruct_ghost :=
   iDestruct "Hown" as (γv voted)
-    "(%Hname & %Hidnz & Hvoted & %Hhist & #Hfrags & #Hout & #Htally & #Hlead & Hlg)".
+    "(%Hname & %Hidnz & Hvoted & %Hhist & #Hfrags & #Hout & #Htally & #Hlead & Hlg & %Hlok)".
+
+(** [lead_ok] of the state a rule produces: unchanged role and leader, or a
+    leader, or a follower with no leader / another node as leader. *)
+Local Ltac lead_ok_tac :=
+  first
+    [ assumption
+    | rewrite /lead_ok /=; intros Hr;
+      first [ by exfalso; apply Hr | assumption | congruence ] ].
 
 (** [step_win]: allocate the term log, holding the leader's entry, and
     acknowledge the old and the new last index. *)
@@ -1319,7 +1352,7 @@ Proof.
   { rewrite Hs2commit. iFrame "#". }
   iModIntro.
   iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-           with "Hvoted [] Hfrags [] [] [] [-]").
+           with "Hvoted [] Hfrags [] [] [] [-] [%]"); [ idtac .. | lead_ok_tac ].
   - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); [exact Hs2term|exact Hs2vote].
   - rewrite psend_msgs_outbox Hs2out big_sepL_app.
     iSplitR; [iFrame "#"|]. rewrite big_sepL_cons. iSplitR.
@@ -1376,7 +1409,7 @@ Proof.
   { rewrite /leader_wit Hrole. iFrame "#". }
   iModIntro.
   iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-           with "Hvoted [] Hfrags [] [] [] [Hlg]").
+           with "Hvoted [] Hfrags [] [] [] [Hlg] [%]"); [ idtac .. | lead_ok_tac ].
   - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
   - rewrite /psend_msgs /= big_sepL_app. iSplitR; [iFrame "#"|].
     iApply big_sepL_intro. iIntros "!> %k %m %Hk".
@@ -1401,7 +1434,7 @@ Proof.
   { rewrite /leader_wit Hrole. iFrame "#". }
   iModIntro.
   iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-           with "Hvoted [] Hfrags [] [] [] [Hlg]").
+           with "Hvoted [] Hfrags [] [] [] [Hlg] [%]"); [ idtac .. | lead_ok_tac ].
   - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
   - rewrite /psend_msgs /= big_sepL_app. iSplitR; [iFrame "#"|].
     iApply big_sepL_intro. iIntros "!> %k %m %Hk".
@@ -1424,7 +1457,7 @@ Proof.
   iIntros "Hown". destruct_ghost.
   iModIntro.
   iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-           with "Hvoted [] Hfrags [] [] [] [Hlg]").
+           with "Hvoted [] Hfrags [] [] [] [Hlg] [%]"); [ idtac .. | lead_ok_tac ].
   - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
   - rewrite /psend_msgs /= big_sepL_app. iSplitR; [iFrame "#"|].
     rewrite big_sepL_singleton. by iApply is_message_free.
@@ -1453,7 +1486,7 @@ Proof.
   { rewrite /is_message Hty Hrej -Hterm. iFrame "#". }
   iModIntro.
   iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-           with "Hvoted [] Hfrags [] [] [] [Hlg]").
+           with "Hvoted [] Hfrags [] [] [] [Hlg] [%]"); [ idtac .. | lead_ok_tac ].
   - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
   - simpl. iFrame "#".
   - simpl. iFrame "#".
@@ -1478,7 +1511,7 @@ Proof.
   intros Hrole Hq. iIntros "Hown". destruct_ghost.
   iModIntro.
   iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-           with "Hvoted [] Hfrags [] [] [] [Hlg]").
+           with "Hvoted [] Hfrags [] [] [] [Hlg] [%]"); [ idtac .. | lead_ok_tac ].
   - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
   - simpl. iFrame "#".
   - simpl. iFrame "#".
@@ -1501,6 +1534,7 @@ Qed.
     acknowledge the commit index. *)
 Local Lemma own_raft_ghost_step_app_stale γ id s m :
   m.(msg.ty) = mtype.App →
+  m.(msg.from) ≠ id →
   s.(pstate.role) ≠ role.Leader →
   own_raft_ghost γ id s ==∗
   own_raft_ghost γ id
@@ -1508,12 +1542,12 @@ Local Lemma own_raft_ghost_step_app_stale γ id s m :
        [msg.mk mtype.AppResp id m.(msg.from) s.(pstate.term) false s.(pstate.commit)
           (W64 0) (W64 0) (W64 0) []]).
 Proof.
-  intros Hty Hrole. iIntros "Hown". destruct_ghost.
+  intros Hty Hfid Hrole. iIntros "Hown". destruct_ghost.
   iMod (own_log_ghost_ack _ _ _ s.(pstate.term) s.(pstate.commit) with "Hlg")
     as "[Hlg #Hack]".
   iModIntro.
   iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-           with "Hvoted [] Hfrags [] [] [] [Hlg]").
+           with "Hvoted [] Hfrags [] [] [] [Hlg] [%]"); [ idtac .. | lead_ok_tac ].
   - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
   - rewrite /psend_msgs /= big_sepL_app. iSplitR; [iFrame "#"|].
     rewrite big_sepL_singleton /is_message /=. iFrame "#".
@@ -1525,6 +1559,7 @@ Qed.
 (** [step_app_reject]: back to follower of [m.from]; a rejection carries
     nothing. *)
 Local Lemma own_raft_ghost_step_app_reject γ id s m hint hintterm :
+  m.(msg.from) ≠ id →
   s.(pstate.role) ≠ role.Leader →
   own_raft_ghost γ id s ==∗
   own_raft_ghost γ id
@@ -1532,10 +1567,10 @@ Local Lemma own_raft_ghost_step_app_reject γ id s m hint hintterm :
        [msg.mk mtype.AppResp id m.(msg.from) s.(pstate.term) true m.(msg.index)
           hintterm (W64 0) hint []]).
 Proof.
-  intros Hrole. iIntros "Hown". destruct_ghost.
+  intros Hfid Hrole. iIntros "Hown". destruct_ghost.
   iModIntro.
   iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-           with "Hvoted [] Hfrags [] [] [] [Hlg]").
+           with "Hvoted [] Hfrags [] [] [] [Hlg] [%]"); [ idtac .. | lead_ok_tac ].
   - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
   - rewrite /psend_msgs /= big_sepL_app. iSplitR; [iFrame "#"|].
     rewrite big_sepL_singleton /is_message /=. done.
@@ -1548,6 +1583,7 @@ Qed.
     the old one or the heartbeat's, which carries [is_committed]. *)
 Local Lemma own_raft_ghost_step_heartbeat γ id s m :
   m.(msg.ty) = mtype.Heartbeat →
+  m.(msg.from) ≠ id →
   s.(pstate.role) ≠ role.Leader →
   is_message γ m -∗
   own_raft_ghost γ id s ==∗
@@ -1557,12 +1593,12 @@ Local Lemma own_raft_ghost_step_heartbeat γ id s m :
           <| pstate.commit := plog_commit_to s.(pstate.commit) m.(msg.commit) |>)
        [msg.plain mtype.HeartbeatResp id m.(msg.from) s.(pstate.term) false]).
 Proof.
-  intros Hty Hrole. iIntros "#Hm Hown". destruct_ghost.
+  intros Hty Hfid Hrole. iIntros "#Hm Hown". destruct_ghost.
   iAssert (is_committed γ m.(msg.commit)) as "#Hmc".
   { rewrite /is_message Hty. iDestruct "Hm" as "[_ $]". }
   iModIntro.
   iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-           with "Hvoted [] Hfrags [] [] [] [Hlg]").
+           with "Hvoted [] Hfrags [] [] [] [Hlg] [%]"); [ idtac .. | lead_ok_tac ].
   - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
   - rewrite /psend_msgs /= big_sepL_app. iSplitR; [iFrame "#"|].
     rewrite big_sepL_singleton /is_message /=. done.
@@ -1585,6 +1621,7 @@ Qed.
     in [ents]" and its [drop] variant. *)
 Local Lemma own_raft_ghost_step_app_accept γ id s m lastnewi es' :
   m.(msg.ty) = mtype.App →
+  m.(msg.from) ≠ id →
   m.(msg.term) = s.(pstate.term) →
   s.(pstate.role) ≠ role.Leader →
   plog_maybe_append s.(pstate.base) s.(pstate.log)
@@ -1601,7 +1638,7 @@ Local Lemma own_raft_ghost_step_app_accept γ id s m lastnewi es' :
        [msg.mk mtype.AppResp id m.(msg.from) s.(pstate.term) false lastnewi
           (W64 0) (W64 0) (W64 0) []]).
 Proof.
-  intros Hty Hterm Hrole Happ. iIntros "#Hm Hown". destruct_ghost.
+  intros Hty Hfid Hterm Hrole Happ. iIntros "#Hm Hown". destruct_ghost.
   iAssert (([∗ list] e ∈ m.(msg.entries), is_entry γ e) ∗ is_committed γ m.(msg.commit))%I
     as "#[Hments Hmc]".
   { rewrite /is_message Hty. iDestruct "Hm" as "(_ & _ & $ & $)". }
@@ -1610,7 +1647,7 @@ Proof.
   iMod (own_log_ghost_ack _ _ _ s.(pstate.term) lastnewi with "Hlg") as "[Hlg #Hack]".
   iModIntro.
   iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-           with "Hvoted [] Hfrags [] [] [] [Hlg]").
+           with "Hvoted [] Hfrags [] [] [] [Hlg] [%]"); [ idtac .. | lead_ok_tac ].
   - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
   - rewrite /psend_msgs /= big_sepL_app. iSplitR; [iFrame "#"|].
     rewrite big_sepL_singleton /is_message /=. iFrame "#".
@@ -1694,7 +1731,7 @@ Proof.
   { iExists γm. iFrame "%". iApply (big_sepM_lookup with "Htfrags"). done. }
   iModIntro.
   iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-           with "Hvoted [] Hfrags [] [] [] [-]").
+           with "Hvoted [] Hfrags [] [] [] [-] [%]"); [ idtac .. | lead_ok_tac ].
   - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
   - rewrite psend_msgs_outbox big_sepL_app. iSplitR; [iFrame "#"|].
     rewrite big_sepL_singleton /is_message /pself_ack /=.
@@ -1738,7 +1775,7 @@ Proof.
   induction Hstep as
     [ s
     | s0 r1 s1 r2 s2 Hst1 IH1 Hst2 IH2
-    | m s Hlt Hto
+    | m s Hlt Hto Hfl
     | s peers Hrole Hin Hnowrap Hperm
     | m s Hty Hto Hfrom Hterm Hcan Hutd
     | m s Hty Hto
@@ -1746,10 +1783,10 @@ Proof.
     | s mt ms Hrole Hq Hmt Hms
     | s Hrole Hnq
     | s o' Hsub
-    | m s lastnewi es' Hty Hto Hterm Hrole Hcm Happ Hci
-    | m s Hty Hto Hterm Hrole Hidx
-    | m s hint hintterm Hty Hto Hterm Hrole Hcm Hnm
-    | m s Hty Hto Hterm Hrole Hcm
+    | m s lastnewi es' Hty Hto Hfid Hterm Hrole Hcm Happ Hci
+    | m s Hty Hto Hfid Hterm Hrole Hidx
+    | m s hint hintterm Hty Hto Hfid Hterm Hrole Hcm Hnm
+    | m s Hty Hto Hfid Hterm Hrole Hcm
     | s ms Hrole Hms
     | m s x Hty Hto Hterm Hrole Hrej Hx
     | s n Hrole Hlt Hle Htm Hq
@@ -1782,7 +1819,10 @@ Proof.
         eapply (vote_hist_fresh voted s); [exact Hhist|done]. }
     iModIntro.
     iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-             with "Hvoted [] Hfrags [] [] [] [Hlg]").
+             with "Hvoted [] Hfrags [] [] [] [Hlg] [%]");
+      [ idtac ..
+      | rewrite /lead_ok /pbecome_follower /=; intros _;
+        destruct (from_leader m.(msg.ty)); [by apply Hfl | congruence] ].
     + iPureIntro. exact Hhist'.
     + by rewrite /pbecome_follower /=.
     + rewrite /pbecome_follower /= granted_empty big_sepS_empty //.
@@ -1810,7 +1850,7 @@ Proof.
       - rewrite lookup_insert_eq decide_False //. }
     iModIntro.
     iApply (own_raft_ghost_intro _ _ _ γv (<[t' := id]> voted) Hname Hidnz
-             with "Hvoted [] [] [] [] [] [Hlg]").
+             with "Hvoted [] [] [] [] [] [Hlg] [%]"); [ idtac .. | lead_ok_tac ].
     + iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist'); reflexivity.
     + rewrite big_sepM_insert //. by iFrame "#".
     + rewrite /psend_msgs /pbecome_candidate /=.
@@ -1861,7 +1901,7 @@ Proof.
         + rewrite big_sepM_insert //. by iFrame "#". }
     iModIntro.
     iApply (own_raft_ghost_intro _ _ _ γv voted' Hname Hidnz
-             with "Hvoted [] Hfrags' [] [] [] [Hlg]").
+             with "Hvoted [] Hfrags' [] [] [] [Hlg] [%]"); [ idtac .. | lead_ok_tac ].
     + iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist'); reflexivity.
     + rewrite /psend_msgs /=. rewrite big_sepL_app. iSplitR; [iFrame "#"|].
       rewrite big_sepL_singleton. by iApply is_message_grant.
@@ -1873,7 +1913,7 @@ Proof.
     iIntros "_ Hown". destruct_ghost.
     iModIntro.
     iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-             with "Hvoted [] Hfrags [] [] [] [Hlg]").
+             with "Hvoted [] Hfrags [] [] [] [Hlg] [%]"); [ idtac .. | lead_ok_tac ].
     + iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
     + rewrite /psend_msgs /=. rewrite big_sepL_app. iSplitR; [iFrame "#"|].
       rewrite big_sepL_singleton. by iApply is_message_reject.
@@ -1887,7 +1927,7 @@ Proof.
     destruct_ghost.
     iModIntro.
     iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-             with "Hvoted [] Hfrags [] [] [] [Hlg]").
+             with "Hvoted [] Hfrags [] [] [] [Hlg] [%]"); [ idtac .. | lead_ok_tac ].
     + iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
     + iFrame "#".
     + simpl. iApply big_sepS_intro. iIntros "!> %v %Hv".
@@ -1913,7 +1953,7 @@ Proof.
       split; simpl; [done|exact Heq]. }
     iModIntro.
     iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-             with "Hvoted [] Hfrags [] [] [] [Hlg]").
+             with "Hvoted [] Hfrags [] [] [] [Hlg] [%]"); [ idtac .. | lead_ok_tac ].
     + iPureIntro. exact Hhist'.
     + by rewrite /pbecome_follower /=.
     + rewrite /pbecome_follower /= granted_empty big_sepS_empty //.
@@ -1924,7 +1964,7 @@ Proof.
     iIntros "_ Hown". destruct_ghost.
     iModIntro.
     iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-             with "Hvoted [] Hfrags [] [] [] [Hlg]").
+             with "Hvoted [] Hfrags [] [] [] [Hlg] [%]"); [ idtac .. | lead_ok_tac ].
     + iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
     + simpl. iApply big_sepL_intro. iIntros "!> %k %x %Hk".
       iApply (big_sepL_elem_of with "Hout").
@@ -1979,8 +2019,18 @@ Qed.
     Each is a [Panicf] in the replication code that is dead only by protocol
     reasoning (notes/raft-replication-model.md, "Protocol facts the code
     needs").  A callee's spec takes the fact as a premise; [Step] derives it
-    here, from the node's ghost state and the incoming message.  All three
-    are ADMITTED. *)
+    here, from the node's ghost state and the incoming message.
+
+    **The message may be of a higher term** (since 2026-10-02): [Step]
+    holds the ghost state at the state *before* its term preamble, and a
+    message from a later term makes the node step down first
+    ([becomeFollower] keeps the log and the commit index), so each lemma is
+    stated for [ps.term ≤ m.term] rather than equality.  A stale message
+    ([m.term < ps.term]) is dropped by the preamble and needs none of them,
+    except [app_recv_wf], which holds of any [App] ([is_message] carries
+    it).  [app_recv_wf] and [app_commit_le_lastnewi] are proved;
+    [heartbeat_commit_le_last] and [app_no_conflict_below_commit] are
+    ADMITTED. *)
 
 (** [handleHeartbeat]'s [commitTo(m.Commit)] panics if [lastIndex() <
     m.Commit].  Informal argument: the leader sends [Commit: min(pr.Match,
@@ -1988,29 +2038,36 @@ Qed.
     ([is_acked]) for this term; within one term a follower's log only grows
     past what it acknowledged to that term's leader (it only truncates on a
     conflict with an [App] of a different term), so its last index is at
-    least the [Match]. *)
+    least the [Match].  For a message of a higher term: the receiver has
+    acknowledged nothing in [m.term] yet (it acknowledges only at its own
+    term), so [pr.Match] is [0] and so is [m.Commit].  A leader of
+    [m.term] receives no heartbeat in [m.term] (leaders do not send to
+    themselves, and a second leader of the term is excluded by
+    [is_leader_unique]) -- the role premise.  [Step] holds the ghost state
+    before its term preamble: hence [≤]. *)
 Lemma heartbeat_commit_le_last γ id ps m :
   m.(msg.ty) = mtype.Heartbeat →
   m.(msg.to) = id →
-  m.(msg.term) = ps.(pstate.term) →
-  ps.(pstate.role) ≠ role.Leader →
+  uint.Z ps.(pstate.term) ≤ uint.Z m.(msg.term) →
+  (m.(msg.term) = ps.(pstate.term) → ps.(pstate.role) ≠ role.Leader) →
   own_raft_ghost γ id ps -∗ is_message γ m -∗
   ⌜ uint.Z m.(msg.commit) ≤ plog_last_index_Z ps.(pstate.base) ps.(pstate.log) ⌝.
 Proof.
 Admitted.
 
 (** What [raftLog.maybeAppend] needs of a received [App]'s batch: carried
-    by the message ([app_payload_ok]). *)
+    by the message ([app_payload_ok]).  No premise on the terms: it is a
+    fact of the message alone (until 2026-10-02 it was stated for
+    [m.term = ps.term]). *)
 Lemma app_recv_wf γ id ps m :
   m.(msg.ty) = mtype.App →
   m.(msg.to) = id →
-  m.(msg.term) = ps.(pstate.term) →
   own_raft_ghost γ id ps -∗ is_message γ m -∗
   ⌜ plog_wf (raft.entryID.mk m.(msg.logterm) m.(msg.index)) m.(msg.entries) ∧
     uint.Z m.(msg.index) + Z.of_nat (length m.(msg.entries)) + 1 < 2 ^ 64 ∧
     Forall (λ e, e.(raftpb.Entry.Type') = W32 0) m.(msg.entries) ⌝.
 Proof.
-  iIntros (Hty _ _) "_ Hm". rewrite /is_message Hty.
+  iIntros (Hty _) "_ Hm". rewrite /is_message Hty.
   iDestruct "Hm" as "(%Hpay & _)". done.
 Qed.
 
@@ -2100,14 +2157,14 @@ Qed.
 Lemma app_commit_le_lastnewi γ id ps m lastnewi es' :
   m.(msg.ty) = mtype.App →
   m.(msg.to) = id →
-  m.(msg.term) = ps.(pstate.term) →
+  uint.Z ps.(pstate.term) ≤ uint.Z m.(msg.term) →
   plog_maybe_append ps.(pstate.base) ps.(pstate.log)
     (raft.entryID.mk m.(msg.logterm) m.(msg.index)) m.(msg.entries)
     = Some (lastnewi, es') →
   own_raft_ghost γ id ps -∗ is_message γ m -∗
   ⌜ uint.Z lastnewi ≤ plog_last_index_Z ps.(pstate.base) es' ⌝.
 Proof.
-  iIntros (Hty Hto Hterm Happ) "Hown #Hm".
+  iIntros (Hty Hto _ Happ) "Hown #Hm".
   iDestruct (app_recv_wf with "Hown Hm") as %(Hwf & Hnw & _); [done..|].
   iPureIntro. eapply plog_maybe_append_last; [exact Hwf| |exact Happ]. exact Hnw.
 Qed.
@@ -2117,11 +2174,15 @@ Qed.
     to [committed] is committed (State Machine Safety) and hence in the
     log of every later leader (Leader Completeness), so the leader of
     [m.term] -- whose entries [m.entries] are -- agrees with this log up to
-    [committed]; a conflict can only be above it. *)
+    [committed]; a conflict can only be above it.  That needs [m.term] to
+    be no earlier than the receiver's term ([≤], since [Step] holds the
+    ghost state before its term preamble): a stale [App] from a deposed
+    leader may well conflict below the commit index, and [Step] drops it
+    unread. *)
 Lemma app_no_conflict_below_commit γ id ps m :
   m.(msg.ty) = mtype.App →
   m.(msg.to) = id →
-  m.(msg.term) = ps.(pstate.term) →
+  uint.Z ps.(pstate.term) ≤ uint.Z m.(msg.term) →
   uint.Z ps.(pstate.commit) ≤ uint.Z m.(msg.index) →
   own_raft_ghost γ id ps -∗ is_message γ m -∗
   ⌜ plog_matches ps.(pstate.base) ps.(pstate.log)
@@ -2253,6 +2314,8 @@ Proof.
   rewrite big_sepM_empty big_sepL_nil granted_empty big_sepS_empty.
   rewrite /leader_wit /=.
   iSplit; first done. iSplit; first done. iSplit; first done. iSplit; first done.
+  iSplitL "Hat Haa"; last first.
+  { iPureIntro. rewrite /lead_ok /=. intros _ Heq. apply Hnz. by rewrite Heq. }
   iExists γm, ∅, γa, ∅. iFrame "Hat Haa".
   rewrite !big_sepM_empty big_sepL_nil /lead_log_own /matched_ok /=.
   iSplit; first done. iSplit; first done.

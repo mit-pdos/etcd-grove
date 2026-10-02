@@ -158,7 +158,8 @@ Implicit Type s : nstate.t.
           (abs_msg mtype.VoteResp m ents).(msg.term) by done.
         apply step_higher_term.
         - rewrite /abs_msg /=. exact Hgt.
-        - rewrite /abs_msg /=. exact Hto. }
+        - rewrite /abs_msg /=. exact Hto.
+        - rewrite /abs_msg /=. by intros [=]. }
       (* the type switch: none of its four cases matches a MsgVoteResp, so
          control reaches the default arm r.step(m) *)
       rewrite Hn0. wp_auto.

@@ -1,13 +1,16 @@
 Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
 Require Export New.proof.go_etcd_io.raft.election_proof.step_lemmas.
+(* [MsgBeat] *)
+Require Export New.proof.go_etcd_io.raft.election_proof.spec_raft__handleHeartbeat.
 (* [wp_Equal], for the MsgVote branch's Context comparison. *)
 Require Export New.proof.bytes.
 
 (** The top-level dispatch, and **one spec like every other function**.  The
     per-message-type branches are proof structure, not specification: since
-    2026-09-17 they live in [proof_raft__Step_MsgHup.v], [_MsgVote.v] and
-    [_MsgVoteResp.v] (and below those, [_MsgVote_gt.v], [_MsgVote_le.v],
-    [_MsgVote_lt.v], [_MsgVote_eq_novote.v], [_MsgVote_eq_voted.v]), each a
+    2026-09-17 they live in [proof_raft__Step_MsgHup.v], [_MsgVote.v],
+    [_MsgVoteResp.v] and (2026-10-02) [_MsgProp.v] (and below those,
+    [_MsgVote_gt.v], [_MsgVote_le.v], [_MsgVote_lt.v],
+    [_MsgVote_eq_novote.v], [_MsgVote_eq_voted.v]), each a
     functor over [STEP_POSTULATES] with no [Module Type] and no [Parameter],
     so that [make -j] checks them in parallel.  Only [proof_raft__Step.v] and
     the combining files may [Require] one.  (An earlier version of this note
@@ -22,6 +25,25 @@ Require Export New.proof.bytes.
     [own_raft_ghost_step].  A caller that needs to know a pending outgoing
     message is protocol-legal gets that from [own_raft_ghost_outbox], not from
     [own_raft_phys]. *)
+(** The message types [Step] is specified for: every type its branches
+    cover (2026-10-02; until then only [MsgHup]/[MsgVote]/[MsgVoteResp],
+    [election_msg]).  [step_msg_all] is the full list. *)
+Definition step_msg_all : list w32 :=
+  [MsgHup; MsgVote; MsgVoteResp; MsgApp; MsgAppResp; MsgHeartbeat;
+   MsgHeartbeatResp; MsgBeat; MsgProp].
+
+(** TEMPORARY RESTRICTION (2026-10-02, branch of the MsgProp/dispatch
+    work).  The branch lemmas for [MsgApp], [MsgAppResp], [MsgHeartbeat],
+    [MsgHeartbeatResp] and [MsgBeat] are written in other branches; until
+    they are merged, [Step] is proved for the four types whose branches
+    exist.  To lift it, replace the list on the next line by
+    [step_msg_all], and follow the "TO ENABLE" notes in
+    [proof_raft__Step.v]. *)
+Definition step_msg_types : list w32 := [MsgHup; MsgVote; MsgVoteResp; MsgProp]. (* RESTRICTED: := step_msg_all *)
+
+Definition step_msg (m : raftpb.Message.t) : Prop :=
+  m.(raftpb.Message.Type') ∈ step_msg_types.
+
 Definition wp_raft__Step_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
@@ -34,7 +56,7 @@ Definition wp_raft__Step_body :=
      choosing -- a singleton one, say, in which the node is its own quorum --
      and election safety would not hold.  See [raft_election_names]. *)
   γ.(re_cfg) = cfg →
-  election_msg m →
+  step_msg m →
   (* The node is a voter.  [stepCandidate] needs this outright (its [poll]
      and [becomeLeader] both do) and [spec_stepCandidate_MsgVoteResp.v] says
      to thread it in "from the caller" -- but [Step] *is* the outermost
@@ -52,6 +74,30 @@ Definition wp_raft__Step_body :=
      m.(raftpb.Message.From') ≠ W64 0) →
   (m.(raftpb.Message.Type') = MsgVoteResp →
      m.(raftpb.Message.To') = id ∧ m.(raftpb.Message.Term') ≠ W64 0) →
+  (* The replication types, by what the transport and the peers guarantee
+     (Go checks none of it).  A leader's [MsgApp]/[MsgHeartbeat], and a
+     [MsgHeartbeatResp], come from another node: [send] never queues them
+     to oneself.  An accepting [MsgAppResp] may be the node's own
+     ([appendEntry]'s self-acknowledgement); a rejecting one is not. *)
+  (m.(raftpb.Message.Type') = MsgApp →
+     m.(raftpb.Message.To') = id ∧ m.(raftpb.Message.Term') ≠ W64 0 ∧
+     m.(raftpb.Message.From') ≠ W64 0 ∧ m.(raftpb.Message.From') ≠ id) →
+  (m.(raftpb.Message.Type') = MsgHeartbeat →
+     m.(raftpb.Message.To') = id ∧ m.(raftpb.Message.Term') ≠ W64 0 ∧
+     m.(raftpb.Message.From') ≠ W64 0 ∧ m.(raftpb.Message.From') ≠ id) →
+  (m.(raftpb.Message.Type') = MsgAppResp →
+     m.(raftpb.Message.To') = id ∧ m.(raftpb.Message.Term') ≠ W64 0 ∧
+     m.(raftpb.Message.From') ≠ W64 0 ∧
+     (m.(raftpb.Message.Reject') = true → m.(raftpb.Message.From') ≠ id)) →
+  (m.(raftpb.Message.Type') = MsgHeartbeatResp →
+     m.(raftpb.Message.To') = id ∧ m.(raftpb.Message.Term') ≠ W64 0 ∧
+     m.(raftpb.Message.From') ≠ W64 0 ∧ m.(raftpb.Message.From') ≠ id) →
+  (* [MsgBeat] and [MsgProp] are local ([Term = 0]); a proposal is not yet
+     stamped with a sender ([From = 0]).  The proposal's batch is
+     constrained in [Hm] below, where its list is named. *)
+  (m.(raftpb.Message.Type') = MsgBeat → m.(raftpb.Message.Term') = W64 0) →
+  (m.(raftpb.Message.Type') = MsgProp →
+     m.(raftpb.Message.Term') = W64 0 ∧ m.(raftpb.Message.From') = W64 0) →
   (* The one place the two layers meet.  [s] is the physical abstract state
      [own_raft_phys] is indexed by, [ps] the protocol state the ghost state
      is about, and [nstate_rel] ([defs.v]) connects them: [ps] is [s]'s
@@ -60,20 +106,36 @@ Definition wp_raft__Step_body :=
   {{{ is_pkg_init raft ∗
       "Hphys" ∷ own_raft_phys cfg r id s ∗
       "Hghost" ∷ own_raft_ghost γ id ps ∗
-      (* the message's [Entries] slice, read-only, and what the message
-         carries as a protocol message: its abstraction ([abs_msg], which
-         needs the entries) was legitimately sent.  [ents] is [[]] for a
-         message without entries ([Entries = nil]). *)
-      "#Hm" ∷ (∃ ents, m.(raftpb.Message.Entries') ↦*□ ents ∗
-                (∀ ty, ⌜ mtype_of m.(raftpb.Message.Type') = Some ty ⌝ -∗
-                       is_message γ (abs_msg ty m ents))) ∗
-      (* the [Entries] slice's capacity, owned: [raftLog.maybeAppend] can
-         adopt the caller's slice ([unstable.truncateAndAppend]'s replace
-         arm, v3.v:1650), so a received [MsgApp] needs it.  The election
-         branches drop it. *)
-      "Hents_cap" ∷ own_slice_cap raftpb.Entry.t m.(raftpb.Message.Entries') (DfracOwn 1) ∗
+      (* The message's [Entries] slice, holding [ents] ([[]] for a message
+         without entries, [Entries = nil]):
+         - a proposal is a local message whose batch the caller owns
+           outright -- [appendEntry] writes [Term]/[Index] into the
+           entries -- while every network message's entries are read-only;
+         - the slice's capacity, owned: [raftLog.maybeAppend] can adopt
+           the caller's slice ([unstable.truncateAndAppend]'s replace arm,
+           v3.v:1650), so a received [MsgApp] needs it;
+         - a proposal's batch is non-empty ([stepLeader]'s [Panicf]),
+           [EntryNormal] only (no conf change in scope) and short enough
+           for [appendEntry]'s indices not to wrap;
+         - what the message carries as a protocol message: its abstraction
+           ([abs_msg], which needs the entries) was legitimately sent. *)
+      "Hm" ∷ (∃ ents,
+         "Hents" ∷ (if decide (m.(raftpb.Message.Type') = MsgProp)
+                    then m.(raftpb.Message.Entries') ↦* ents
+                    else m.(raftpb.Message.Entries') ↦*□ ents) ∗
+         "Hents_cap" ∷ own_slice_cap raftpb.Entry.t m.(raftpb.Message.Entries') (DfracOwn 1) ∗
+         "%Hprop" ∷ ⌜ m.(raftpb.Message.Type') = MsgProp →
+                      ents ≠ [] ∧
+                      Forall (λ e, e.(raftpb.Entry.Type') = EntryNormal) ents ∧
+                      (Z.of_nat (length ents) < 2^61)%Z ⌝ ∗
+         "#Hmsg" ∷ □ (∀ ty, ⌜ mtype_of m.(raftpb.Message.Type') = Some ty ⌝ -∗
+                            is_message γ (abs_msg ty m ents))) ∗
+      (* the [Context]: not the leader-transfer marker (out of scope), and
+         empty on a heartbeat response (no read-index requests in scope:
+         [bcastHeartbeat] sends [nil] and [handleHeartbeat] echoes it) *)
       "#Hctx" ∷ (∃ ctx, m.(raftpb.Message.Context') ↦*□ ctx ∗
-                        ⌜ ctx ≠ campaignTransfer ⌝)
+                        ⌜ ctx ≠ campaignTransfer ⌝ ∗
+                        ⌜ m.(raftpb.Message.Type') = MsgHeartbeatResp → ctx = [] ⌝)
   }}}
     r @! (go.PointerType raft.raft) @! "Step" #m
   {{{ (err : error.t) s' ps', RET #err;
@@ -81,7 +143,10 @@ Definition wp_raft__Step_body :=
       "Hghost" ∷ own_raft_ghost γ id ps' ∗
       "%Hrel" ∷ ⌜ nstate_rel s' ps' ⌝ ∗
       "%Hrefines" ∷ ⌜ ∃ recv, step cfg id ps recv ps' ⌝ ∗
-      "%Herr" ∷ ⌜ err = interface.nil ⌝ }}}.
+      (* only a proposal can be dropped, with [ErrProposalDropped] *)
+      "Herr" ∷ (⌜ err = interface.nil ⌝ ∨
+                (⌜ m.(raftpb.Message.Type') = MsgProp ⌝ ∗
+                 (global_addr raft.ErrProposalDropped) ↦□ err)) }}}.
 
 Module Type STEP.
   Parameter wp_raft__Step : wp_raft__Step_body.
