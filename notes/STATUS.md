@@ -248,6 +248,14 @@ agents' branches are being merged next:
   follower's proposal forwarding (needs the `disableProposalForwarding`
   conjunct), the leader's MsgProp, and no-op arms for the other types.
 
+**Snapshots, model side, done** (2026-10-02, `e57c313f2`): `msg.voters`,
+`abs_snap`, `is_message` for `Snap`, rules `step_snap_restore/_fastfwd/_stale`
+(ghost updates Qed), `send_ok`'s `MsgSnap` clause, `Step`'s `"Hsnap"`
+conjunct (unused until `step_msg` gets `MsgSnap`).  One new admit,
+`snap_ok_message` -- a client-`Storage` assumption, not a protocol fact.
+Next: the log side (`logstate.snap`, `restore`, `handleSnapshot`, the
+`MsgSnap` `Step` branch); see raft-replication-model.md, "Phase 2".
+
 Then: the `Step` branches `MsgApp`, `MsgHeartbeat`, `MsgAppResp`,
 `MsgHeartbeatResp`, `MsgBeat`, `MsgProp` (one helper file each under
 `proof_raft__Step_helpers/`, the dispatch, `election_msg` widened, and
@@ -312,6 +320,12 @@ say so in the journal.
    their results (`plog_up_to_date`, `plog_last`, `plog_term_at`), and
    `step_grant_vote` carries the up-to-date premise. What remains is the
    protocol-level use of it: `leader_completeness` is admitted.
+5a. **`snap_ok_message` (admitted, `protocol.v`)**: what a leader's
+   `MsgSnap` carries (`is_committed index`, `is_snap_meta`). Not provable
+   from the model: `is_Storage`'s `HSnapshot` says only `index ≠ 0`. Needs
+   `HSnapshot` to pin the metadata to the stored log below `applied`, and
+   `raftLog.snapshot`'s spec to pass it on. Also: `msg_abs`'s `MsgSnap`
+   case is not tied to the heap (see raft-replication-model.md).
 5b. **The five admits in `protocol.v`** (`heartbeat_commit_le_last`,
    `app_no_conflict_below_commit`, `log_matching`, `leader_completeness`,
    `state_machine_safety`). All need one ghost invariant the state does not
