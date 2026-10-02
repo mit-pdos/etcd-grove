@@ -1,6 +1,6 @@
 # Status
 
-**Last updated:** 2026-10-02, 19:00 UTC (branch `worktree-raft-replication` at `3574293f1`, not yet on `main`)
+**Last updated:** 2026-10-02, 22:00 UTC (branch `worktree-raft-replication` at `53988c87a`; `origin/main` `4f48cb6de` merged in; not yet on `main`)
 
 This file is a snapshot of where the proof *is*. It carries no history: how
 something got this way is in [journal.md](journal.md), why a design was
@@ -373,12 +373,13 @@ whose whole job is what the build cannot check. What each establishes, the
 known gaps and the plan are in [tcb-accounting.md](tcb-accounting.md).
 
 `etc/tcb-report.py` on the election path (`--scope election_proof`,
-2026-10-02, at `3574293f1`): **14 `Axiom` and 6 `Admitted`** -- the one
-signed off on in `raftLog.slice` and the five protocol-level admits in
-`protocol.v` (allowed there since 2026-10-01: `heartbeat_commit_le_last`,
-`app_no_conflict_below_commit`, `log_matching`, `leader_completeness`,
-`state_machine_safety`); 494 `Qed` lemmas; two results (`Step`, `newRaft`);
-129 definitions, 1,195 lines; TCB 4.9% of the development by line. The
+2026-10-02, at `c0edb8a9f`, `origin/main` merged): **14 `Axiom` and 7
+`Admitted`** -- the one signed off on in `raftLog.slice`, the five
+protocol-level admits in `protocol.v` (allowed there since 2026-10-01:
+`heartbeat_commit_le_last`, `app_no_conflict_below_commit`,
+`log_matching`, `leader_completeness`, `state_machine_safety`), and
+`snap_ok_message` (a `Storage.Snapshot` assumption, phase 2); 501 `Qed`
+lemmas; two results (`Step`, `newRaft`). `make ci` exit 0, 512 files. The
 whole-raft numbers (`v3_proof/` included) are the old ones plus these.
 
     R=new/proof/go_etcd_io/raft      # required; the tool names no development
