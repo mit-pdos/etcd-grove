@@ -63,10 +63,9 @@ Qed.
     [inv_tracker.v] on 2026-09-16 for exactly this call): [campaign] runs
     [make([]uint64, 0, len(idMap))] and [wp_slice_make3] needs
     [0 ≤ sint.Z cap].  Stated so that the tracker survives the read. *)
-Lemma own_tracker_cfg_size (tv : tracker.ProgressTracker.t) (votes : gmap w64 bool)
-    (prs : gmap w64 loc) pvs :
-  own_tracker cfg tv votes prs pvs -∗
-  ⌜ Z.of_nat (size cfg) < 2 ^ 63 ⌝ ∗ own_tracker cfg tv votes prs pvs.
+Lemma own_tracker_cfg_size (tv : tracker.ProgressTracker.t) (t : trk.t) :
+  own_tracker cfg tv t -∗
+  ⌜ Z.of_nat (size cfg) < 2 ^ 63 ⌝ ∗ own_tracker cfg tv t.
 (* [All], not the section's [W]: re-framing the read-only progress map
    ([own_map … DfracDiscarded]) pulls in [ffi_semantics0]. *)
 Proof using All.

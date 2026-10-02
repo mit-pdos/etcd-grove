@@ -6,21 +6,24 @@ Module ProgressMaybeUpdateProof (P : PROGRESS__MAYBEUPDATE_POSTULATES)
   Lemma wp_Progress__MaybeUpdate : wp_Progress__MaybeUpdate_body.
   Proof.
     intros_ambient.
-    intros pr pv iv n.
-    wp_start as "H". iNamed "H". iNamed "Hpr". wp_auto.
-    rewrite /progress_maybe_update.
+    intros pr p n.
+    wp_start as "H". iNamed "H". iNamed "Hpr".
+    progress_open Habs p. wp_auto.
+    rewrite /progress_maybe_update. progress_simpl.
     destruct (decide (uint.Z n ≤ uint.Z pv.(tracker.Progress.Match'))) as [Hle|Hle].
     - (* [n <= pr.Match]: stale *)
       rewrite (bool_decide_eq_true_2 (uint.Z n ≤ _)); last done.
       wp_auto.
       rewrite bool_decide_eq_false_2; last lia.
-      iApply "HΦ". rewrite /own_progress. iFrame "∗%".
+      iApply "HΦ". iExists _. iFrame "Hpv Hinfl". iPureIntro.
+      progress_abs_solve.
     - rewrite (bool_decide_eq_false_2 (uint.Z n ≤ _)); last done.
       wp_auto.
       wp_apply wp_max2_uint64.
       rewrite (bool_decide_eq_true_2 (uint.Z pv.(tracker.Progress.Match') < uint.Z n));
         last lia.
-      iApply "HΦ". rewrite /own_progress. iFrame "∗%".
+      iApply "HΦ". iExists _. iFrame "Hpv Hinfl". iPureIntro.
+      progress_abs_solve.
   Qed.
 
 End ProgressMaybeUpdateProof.

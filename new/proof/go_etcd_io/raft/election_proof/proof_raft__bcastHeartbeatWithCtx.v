@@ -51,14 +51,14 @@ Proof.
   iDestruct (own_raft_phys_send_nil with "Hphys") as "Hphys".
   iDestruct (own_raft_phys_tracker_prvals with "Hphys")
     as (tv) "(Htrkf & Htrk & Hrest)".
-  wp_apply (wp_ProgressTracker__Visit _ _ _ s.(nstate.votes) s.(nstate.progress) _ _
+  wp_apply (wp_ProgressTracker__Visit _ _ _ (trk.mk s.(nstate.votes) s.(nstate.progress) _) _
               (λ _ pvsx, ∃ (ms : list msg.t),
                  "rp" ∷ r_ptr ↦ r ∗
                  "cp" ∷ ctx_ptr ↦ ctx ∗
                  "%Hms" ∷ ⌜ Forall (heartbeat_ok id (to_pstate s)) ms ⌝ ∗
                  "%Hmm" ∷ ⌜ prvals_match pvsx = prvals_match s.(nstate.prvals) ⌝ ∗
                  "Hrest" ∷ (∀ tvx pvsx, r.[raft.raft.t, "trk"] ↦ tvx -∗
-                          own_tracker cfg tvx s.(nstate.votes) s.(nstate.progress) pvsx -∗
+                          own_tracker cfg tvx (trk.mk s.(nstate.votes) s.(nstate.progress) pvsx) -∗
                           own_raft_phys cfg r id (send_msgs s ms <| nstate.prvals := pvsx |>)))%I
               with "[$Htrkf $Htrk r ctx Hrest]").
   { iSplitL "r ctx Hrest".
@@ -67,7 +67,7 @@ Proof.
       iIntros (tvx pvsx) "Hf Ht". iDestruct ("Hrest" with "Hf Ht") as "Hphys".
       iApply (own_raft_phys_eq with "Hphys"). reflexivity. }
     (* the closure *)
-    iModIntro. iIntros (i pr tv0 pvs0 pv iv D).
+    iModIntro. iIntros (i pr tv0 pvs0 p D).
     wp_start as "(%Hicfg & %Hpri & %Hpvi & %HmaxI & Htrkf & Hpr & Hback & HI)".
     iNamed "HI".
     iDestruct ("Hback" with "Hpr") as "Htrk".

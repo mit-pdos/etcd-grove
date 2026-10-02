@@ -8,7 +8,8 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
     false, and a [size] at or above [2^62] would let [Inflights.grow]'s
     [len(buffer) * 2] overflow.  The one caller on this path is [reset]'s
     [Visit] closure, passing [r.trk.MaxInflight], which [own_tracker]'s
-    [HmaxInfl] bounds.  Added 2026-09-20 with the invariant. *)
+    [HmaxInfl] bounds.  Added 2026-09-20 with the invariant.  The window
+    is empty: [inflights_new size maxBytes] ([defs.v]). *)
 Definition wp_tracker_NewInflights_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
@@ -17,7 +18,7 @@ Definition wp_tracker_NewInflights_body :=
   (0 ≤ sint.Z size < 2 ^ 62)%Z →
   {{{ is_pkg_init tracker }}}
     @! tracker.NewInflights #size #maxBytes
-  {{{ (l : loc), RET #l; ∃ iv buf, own_inflights l iv buf }}}.
+  {{{ (l : loc), RET #l; own_Inflights l (inflights_new size maxBytes) }}}.
 
 Module Type TRACKER_NEWINFLIGHTS.
   Parameter wp_tracker_NewInflights : wp_tracker_NewInflights_body.

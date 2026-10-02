@@ -22,7 +22,7 @@ Import P.
         as (tv) "(Htrkf & Htrk & Hback)";
       wp_apply (wp_ProgressTracker__RecordVote with "[$Htrkf $Htrk]")
         as "[Htrkf Htrk]";
-      wp_apply (wp_ProgressTracker__TallyVotes _ _ _ _ _ _ Hcfg_ne with "[$Htrkf $Htrk]")
+      wp_apply (wp_ProgressTracker__TallyVotes _ _ _ _ Hcfg_ne with "[$Htrkf $Htrk]")
         as "%g %rj %res (Htrkf & Htrk & %Hres & %Hwon & %Hlost)";
       iDestruct ("Hback" with "Htrkf Htrk") as "Hphys";
       iApply ("HΦ" $! g rj res); iFrame "Hphys"; iPureIntro; split_and!; done.

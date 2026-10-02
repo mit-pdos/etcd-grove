@@ -7,30 +7,29 @@ Ltac w64_absurd H :=
 
 Module ProgressIsPausedProof (P : PROGRESS__ISPAUSED_POSTULATES) : PROGRESS__ISPAUSED.
 
-  (** The three-armed switch, plus the [panic] arm that [progress_state_ok]
-      ([inv_tracker.v]) rules out.  [Hstate_ok] is [pose proof]d rather than
-      destructed so that it is still around for the re-seal. *)
+  (** The three-armed switch; the [panic] arm is ruled out by the record's
+      state being one of the three ([progress_abs], [defs.v]). *)
   Lemma wp_Progress__IsPaused : wp_Progress__IsPaused_body.
   Proof.
     intros_ambient.
-    intros pr pv iv.
-    wp_start as "H". iNamed "H". iNamed "Hpr". wp_auto.
-    rewrite /progress_paused.
-    pose proof Hstate_ok as Hs3. destruct Hs3 as [Hs|[Hs|Hs]]; rewrite Hs.
+    intros pr p.
+    wp_start as "H". iNamed "H". iNamed "Hpr".
+    progress_open Habs p. wp_auto.
+    rewrite /progress_is_paused /=.
+    destruct st; rewrite Hst; cbn [prstate_w64].
     - (* StateProbe *)
-      case_decide as Hd; first (w64_absurd Hd).
       case_bool_decide as Hb; last (exfalso; by apply Hb).
-      wp_auto. iApply "HΦ". rewrite /own_progress. iFrame "∗%".
+      wp_auto. iApply "HΦ". iExists _. iFrame "Hpv Hinfl". iPureIntro.
+      progress_abs_solve.
     - (* StateReplicate *)
-      case_decide as Hd; first (w64_absurd Hd).
       case_bool_decide as Hb1; first (w64_absurd Hb1).
       (* [wp_auto] runs the rest of the switch: the remaining tests are
          between closed [w64] literals and it discharges them itself. *)
-      wp_auto. iApply "HΦ". rewrite /own_progress. iFrame "∗%".
+      wp_auto. iApply "HΦ". iExists _. iFrame "Hpv Hinfl". iPureIntro.
+      progress_abs_solve.
     - (* StateSnapshot: paused unconditionally *)
-      case_decide as Hd; last (exfalso; by apply Hd).
       case_bool_decide as Hb1; first (w64_absurd Hb1).
-      wp_auto. iApply "HΦ". rewrite /own_progress. iFrame "∗%".
+      wp_auto. iApply "HΦ". iExists _. iFrame "Hpv Hinfl". iPureIntro.
+      progress_abs_solve.
   Qed.
-
 End ProgressIsPausedProof.

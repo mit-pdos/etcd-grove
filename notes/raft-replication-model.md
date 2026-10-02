@@ -495,3 +495,74 @@ hold a raw `*Progress` across `send` (`maybeSendAppend`) and the
 Sequencing: after the heartbeat/leader and follower branches of 2026-10-01
 are merged (they are stated on the old predicates), before the `Step`
 branches of wave 3, so that wave 3 is written against the final shapes.
+
+## Phase 2: snapshots (design, 2026-10-02; not started)
+
+What the code does (`raft.go:1827-1932`, `log.go:464`, `log_unstable.go`
+`restore`): `handleSnapshot` reads `*m.Snapshot` (nil → the zero
+`Snapshot`), calls `restore(s)` and replies `MsgAppResp{Index:
+lastIndex()}` on success or `MsgAppResp{Index: committed}` otherwise.
+`restore` returns `false` when `s.Metadata.Index ≤ committed`; when the
+node is not a follower (dead under our scope: both callers run after
+`becomeFollower`); when `r.id` is in none of the `ConfState`'s sets
+(dead under the fixed voter set, `id ∈ cfg`); and when
+`matchTerm (s.Metadata.Term, s.Metadata.Index)` holds, in which case it
+only `commitTo(s.Metadata.Index)`. Otherwise `raftLog.restore`:
+`committed := index`, `unstable.offset := index + 1`, `unstable.entries :=
+nil`, **`unstable.snapshot := &s`**; then the tracker is rebuilt from the
+`ConfState` (`MakeProgressTracker`, `confchange.Restore`, `switchToConfig`,
+`assertConfStatesEquivalent` -- all specified for `newRaft` already).
+
+### What has to change
+
+- **`own_raftLog` / `logstate.t`.** `Hnosnap` (`unstable.snapshot = null`)
+  is a scope conjunct today. A received snapshot sets the pointer, and it
+  stays set until `MsgStorageAppendResp` (out of scope) calls
+  `stableSnapTo`. So `logstate.t` gains `snap : option raft.entryID.t`
+  (the pending snapshot's `(term, index)`), `own_raftLog` owns
+  `unstable.snapshot ↦□ snap` when `Some`, and the index facts become:
+  with a pending snapshot the visible log is `prev = snap.id`, `sents = []`
+  (storage is shadowed below `offset = index + 1`), `uents` as before.
+  `firstIndex`/`lastIndex`/`term`/`maybeTerm` have snapshot arms
+  (`log_unstable.go:40-80`); their specs stay as stated on `prev`/`sents`/
+  `uents` -- only the proofs gain a case.
+- **`promotable`** becomes `b = bool_decide (id ∈ cfg ∧ snap = None)`
+  (`hasNextOrInProgressSnapshot`); `hup`/`campaign` take `snap = None`
+  from the state (a node with a pending snapshot does not campaign).
+- **`raftLog.snapshot()`** returns the pending one first; `maybeSendSnapshot`
+  (leader side, already proved) needs the new arm.
+- **Model.** `pstate.t` needs no new field: `base := (term, index)`,
+  `log := []`, `commit := index`. Rule:
+
+      step_snap m s : m.ty = Snap → m.to = id → m.term = s.term → s.role ≠ Leader →
+        (uint.Z s.commit < uint.Z m.index) →
+        ¬ plog_matches s.base s.log (mk m.logterm m.index) →
+        step s [m] (psend_msgs (padopt_leader s m.from
+                      <| base := mk m.logterm m.index |> <| log := [] |> <| commit := m.index |>)
+                    [AppResp id m.from s.term false m.index …])
+      step_snap_fastfwd …: plog_matches → commit := m.index, reply AppResp(m.index)
+      step_snap_stale …:   m.index ≤ s.commit → reply AppResp(s.commit)
+
+  The abstract `Snap` message carries `index`/`logterm` := the snapshot
+  metadata (`abs_msg` must read them through `m.Snapshot ↦□ snap`, so the
+  outbox relation gets a `Snap` case like `App`'s entries), and
+  `is_message` for `Snap` carries `is_committed γ m.index` plus
+  `is_entry`-like knowledge of `(index, term)` -- the leader sends a
+  snapshot only of its applied (hence committed) prefix. The receiver's
+  ghost update (`own_raft_ghost_step_snap`) replaces its whole log by the
+  committed prefix: provable from log matching once that is proved;
+  admit it meanwhile.
+- **`ConfState`.** Under the fixed-voter-set scope the snapshot's
+  `ConfState` is `cfg`'s voters (a transport premise of `Step` for
+  `MsgSnap`: `cs.Voters ≡ₚ elements cfg`, no learners, no outgoing);
+  `confchange.Restore`'s axiom and `switchToConfig`'s spec already cover
+  that case (`newRaft`). Reconfiguration proper is phase 3.
+- **Sender side.** `maybeSendSnapshot` is proved for the `Storage.Snapshot`
+  path; `snap_ok` (protocol.v) says only who sent it. It gains
+  `m.index ≤ s.commit` and the metadata facts once the message abstraction
+  carries them.
+
+Order of work: `logstate.snap` and the log proofs' snapshot arms (one
+agent; invalidates the cone), then `handleSnapshot`/`restore` as
+collections, `stepFollower`/`stepCandidate` `MsgSnap` arms, the `Step`
+branch, the model rule and ghost update.

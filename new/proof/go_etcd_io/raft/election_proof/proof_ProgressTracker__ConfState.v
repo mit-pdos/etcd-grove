@@ -6,8 +6,8 @@ Import P.
   Lemma wp_ProgressTracker__ConfState : wp_ProgressTracker__ConfState_body.
   Proof.
     intros_ambient.
-    intros cfg trk tv votes prs pvs.
-    wp_start as "[Htrk Hown]". iNamed "Hown".
+    intros cfg trk tv [votes prs pvs].
+    wp_start as "[Htrk Hown]". iNamed "Hown". trk_simpl.
     wp_auto.
     (* [Voters[0].Slice()]: the receiver is a pointer into the tracker's
        [JointConfig] array.  Split the array field out of [trk ↦ tv] and

@@ -23,20 +23,19 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
         [is_quorum] ([size cfg < 2 * size (q ∩ cfg)]);
       - no larger index has such a quorum.
 
-    [pvs_match_at pvs v] is [v]'s [Match] ([0] off the map, which no voter
+    [pvs_match_at t.(trk.peers) v] is [v]'s [Match] ([0] off the map, which no voter
     is: [own_tracker]'s maps have domain [cfg]). *)
 Definition wp_ProgressTracker__Committed_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
-    (cfg : gset w64) (trk : loc) tv votes (prs : gmap w64 loc)
-    (pvs : gmap w64 (tracker.Progress.t * tracker.Inflights.t)),
-  {{{ is_pkg_init tracker ∗ trk ↦ tv ∗ own_tracker cfg tv votes prs pvs }}}
+    (cfg : gset w64) (trk : loc) tv (t : trk.t),
+  {{{ is_pkg_init tracker ∗ trk ↦ tv ∗ own_tracker cfg tv t }}}
     trk @! (go.PointerType tracker.ProgressTracker) @! "Committed" #()
   {{{ (N : w64), RET #N;
-      trk ↦ tv ∗ own_tracker cfg tv votes prs pvs ∗
+      trk ↦ tv ∗ own_tracker cfg tv t ∗
       ⌜ cfg = ∅ → N = W64 (2 ^ 64 - 1) ⌝ ∗
-      ⌜ cfg ≠ ∅ → is_quorum_index cfg (pvs_match_at pvs) N ⌝ }}}.
+      ⌜ cfg ≠ ∅ → is_quorum_index cfg (pvs_match_at t.(trk.peers)) N ⌝ }}}.
 
 Module Type PROGRESSTRACKER__COMMITTED.
   Parameter wp_ProgressTracker__Committed : wp_ProgressTracker__Committed_body.

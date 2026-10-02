@@ -9,7 +9,7 @@ Import P.
   Lemma wp_ProgressTracker__Committed : wp_ProgressTracker__Committed_body.
   Proof.
     intros_ambient.
-    intros cfg trk tv votes prs pvs.
+    intros cfg trk tv t.
     wp_start as "(Htrk & Hown)".
     wp_auto.
     (* [is_pkg_init tracker] is in the persistent context, which a

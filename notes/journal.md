@@ -4258,3 +4258,125 @@ For a proposal forwarded over the network the receiver gets a fresh copy,
 so the trusted network/Step boundary must hand out full ownership for
 `MsgProp` (or `appendEntry` must copy).  Step's premise table is in this
 session's final report.
+
+## 2026-10-02 — public representation predicates for the tracker side (records)
+
+Implemented notes/raft-replication-model.md, "Public representation
+predicates".  Branch `worktree-agent-a6dae695ac1d6e42c`, on 496c57590.
+
+- **Records live in `defs.v`, not `inv_tracker.v`** (deviation from the
+  design): `nstate.prvals : gmap w64 progress.t` needs `progress.t` before
+  `nstate`, and `inv_tracker.v` builds on `defs.v` -- same reason
+  `logstate.t` is there.  `defs.v` has `inflights.t {count size bytes
+  max_bytes : Z}`, `prstate.t` (Probe|Replicate|Snapshot; the design's
+  `pstate_kind`, renamed per the request), `progress.t {matched next
+  sent_commit state pending_snapshot recent_active paused infl}`,
+  `trk.t {votes prs peers}`, `inflights_abs`, `progress_abs` (None on a
+  learner or a state outside 0/1/2; `progress_abs_Some` unfolds it field
+  by field), and every method as a pure function
+  (`inflights_full/reset/add/new`, `inflights_freed` -- a relation, FreeLE's
+  result depends on the buffer -- `progress_reset_state`, `_become_probe`,
+  `_become_replicate`, `_become_snapshot`, `_is_paused`, `_sent_entries`,
+  `_sent_commit`, `_can_bump_commit`, `_maybe_update`, `_maybe_decr_to`).
+  `w64_min/max` moved there too.  `defs.v` needed `Set Default Proof Using
+  "Type"` after its `Section proof` (the `W` gotcha).
+- `inv_tracker.v`: `own_Inflights l i := ∃ iv buf, own_inflights l iv buf ∗
+  ⌜inflights_abs iv = i⌝`; `own_Progress pr p := ∃ pv, pr ↦ pv ∗
+  own_Inflights pv.Inflights' p.infl ∗ ⌜progress_abs pv p.infl = Some p⌝`
+  (own_progress and progress_state_ok are gone); `own_tracker cfg tv t`.
+  Helpers: `own_Progress_intro` (pure premise last), `own_Progress_of`
+  (record read off a value written wholesale -- reset's Visit closure),
+  Ltacs `progress_open`, `progress_abs_solve`, `progress_abs_from`,
+  `progress_simpl`, `trk_simpl` (outside the section).
+- Specs strengthened where the record made it possible: `SentEntries`,
+  `BecomeReplicate`, `BecomeSnapshot` return the exact record (were ∃ with
+  only Match pinned); `Inflights.Add` returns `inflights_add i bytes` (was ∃);
+  `NewInflights` returns `inflights_new size maxBytes`; `ResetState` takes a
+  `prstate.t` (passed as `#(prstate_w64 st)`), no premise.  `FreeLE`'s proof
+  keeps the ring-buffer triple as a `Local Lemma …_internal` in the proof
+  file and derives the public one.
+- Gotchas: `iApply (own_Progress_intro with "Hpv Hinfl")` leaves the record
+  an evar (`?p.infl` cannot be unified) -- write `iExists _. iFrame "Hpv
+  Hinfl". iPureIntro.` instead.  `iExists _, buf` before framing a ring
+  buffer lets `iFrame` pick the *old* value from `Hbuf`; give the new value.
+  Repeated `iNamed` of `own_Progress` reuses the Coq name `Habs` -- clear it
+  between openings (iNamed stops silently on a clash).  A visit_closure
+  hypothesis like `Hpri` arrives as `(trk.mk …).(trk.prs) !! i` and pins
+  the whole record when passed to `own_tracker_lookup _ _ (trk.mk _ _ _)`;
+  `cbn [trk.prs] in Hpri` first.  `destruct (p.(progress.state)) eqn:` also
+  rewrites the hypotheses that mention it.
+
+## 2026-10-02 — `Step` branches `MsgAppResp`, `MsgHeartbeatResp`, `MsgBeat`
+
+Branch `worktree-agent-a766bded85044ef8b` (from `6d528cc61`).  All `Qed`,
+no `Admitted`.  The three branch lemmas are stated exactly as the dispatch
+brief asked for:
+`wp_Step_MsgAppResp`, `wp_Step_MsgHeartbeatResp`, `wp_Step_MsgBeat`. They
+are not yet `Require`d by `proof_raft__Step.v`; the dispatch agent does that.
+Files under `proof_raft__Step_helpers/`:
+
+- `proof_raft__Step_resp_lemmas.v`: pure lemmas, no functor.
+  `follower_/candidate_step_result_noop` (Beat/AppResp/HeartbeatResp reach
+  no arm), `leader_beat_step` (`step_beat`), `leader_hbresp_step`
+  (`step_send_apps`), `leader_appresp_step` (no progress → `step_refl`;
+  reject → `step_send_apps`; accept → `step_app_resp`, then `step_commit`
+  or `step_refl`, then `step_send_apps`, chained with `step_trans`).  The
+  accepted case rests on `to_pstate (s <| prvals := pvs |>) = to_pstate s
+  <| matched := prvals_match pvs |>` for a leader.  None of this depends on
+  `prvals`'s element type.
+- `_Resp_gt.v` and `_Resp_lt.v`: the higher-term and stale cases, **for
+  both response types at once** (`ty` is a parameter: the two types take
+  the same path through the preamble), so there are two files instead of
+  four.
+- `_MsgAppResp_eq.v` and `_MsgHeartbeatResp_eq.v`: current term, split
+  three ways on the role.
+- `_MsgAppResp.v` and `_MsgHeartbeatResp.v` combine the term cases; `_MsgBeat.v`
+  is one file (`Term = 0` skips the preamble, as for `MsgHup`).
+
+Check times (`make -j1 <file>.vo`): lemmas 4 s, Resp_gt 75 s, Resp_lt 57 s,
+AppResp_eq 44 s, HeartbeatResp_eq 43 s, MsgBeat 33 s, each combining file 4 s.
+
+Gotcha: stdpp's `Forall_impl` is not in scope; the name resolves to the
+stdlib's, whose arguments are `(∀ x, P x → Q x) → Forall P l → …`, so
+`eapply Forall_impl; first exact H` fails.  Write `last exact H`.
+
+## 2026-10-02 — `Step` branch lemmas for `MsgApp` and `MsgHeartbeat`
+
+Branch from `6d528cc61`.  All `Qed`, no `Admitted`.  Nine new files under
+`election_proof/proof_raft__Step_helpers/`, functors over `STEP_POSTULATES`
+(the dispatch, `spec_raft__Step.v` and `proof_raft__Step.v` untouched; the
+files are not yet `Require`d by anything -- the dispatch agent wires them in):
+
+- `proof_raft__Step_repl_lemmas.v`: pure lemmas, no functor.  `step_handle_app`
+  / `step_handle_heartbeat` turn `handle_app_result` / `heartbeat_result` at a
+  state `t` with `to_pstate t = padopt_leader ps m.From` into
+  `step_app_stale/_accept/_reject` / `step_heartbeat` at `ps`;
+  `adopt_after_stepdown`, `adopt_follower`, `adopt_candidate` establish that
+  equation for the three ways the leader is adopted; `follower_/candidate_/
+  leader_step_result_*` take the `decide` chains apart outside any WP.
+  Trick worth reusing: `destruct ps` then `injection` of the `to_pstate`
+  equation gives one field equation per `pstate` field, and the goal is then
+  closed by rewriting them (rewrite the `matched` one before the `role` one).
+- `proof_raft__Step_{MsgApp,MsgHeartbeat}_{gt,lt,eq}.v`, one term case each,
+  and the combining `proof_raft__Step_{MsgApp,MsgHeartbeat}.v` with the
+  statements exactly as briefed **plus one premise**:
+  `s.(nstate.role) = role.Follower → s.(nstate.votes) = ∅`.  The follower
+  arm at the current term (`r.lead = m.From`) leaves `r.trk.Votes` alone,
+  while every replication rule's `padopt_leader` sets `votes := ∅`; a
+  follower's tally is empty in every reachable state (becomeFollower's
+  `reset`, `newRaft`), but neither `nstate_wf` nor `own_raft_ghost` says so.
+  The dispatch has to supply it -- cheapest is to add it to `nstate_wf`.
+- Recv lists: `[a]` (current term), `[a] ++ [a]` (higher term:
+  `step_higher_term` then the rule, via `step_trans`), `[]` (stale term;
+  and the leader at its own term, `step_refl`).
+
+Checked in tree: `make -j1 …/proof_raft__Step_{MsgApp,MsgHeartbeat}.vo`
+exit 0 on top of a green `election.vo` cone build of `6d528cc61`.  Times
+(`vo`, App/Heartbeat): gt 172s/121s, lt 60s/59s, eq 42s/43s, combining 4s/4s,
+pure lemmas 5s.  `check-module-discipline --scope election_proof`: 3
+warnings, unchanged.  No `Progress`-level definition is used: the
+`prvals` the step-downs leave are carried opaquely (`<| nstate.prvals := pvs |>`
+with `pvs` untyped in the lemmas), so the public-predicate refactor should
+not touch these files.
+Gotcha: `destruct s.(nstate.role) eqn:Hrole` also rewrites the role inside a
+premise `role = Follower → …`; apply it to `eq_refl` afterwards.

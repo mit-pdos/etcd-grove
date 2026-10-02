@@ -40,7 +40,7 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
 
     Reaching [Storage.Snapshot] is what forced the [HSnapshot] triple into
     [is_Storage] ([inv_storage.v]).  This branch is genuinely reachable from
-    [own_raft_phys]: nothing in [own_progress] bounds [pr.Next] against the
+    [own_raft_phys]: nothing in [own_Progress] bounds [pr.Next] against the
     log, so [r.raftLog.term(pr.Next-1)] may legitimately return
     [ErrCompacted]. *)
 Definition wp_raft__maybeSendSnapshot_body :=

@@ -28,24 +28,23 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
     [c[0]]'s answer on both exits.  So the result is
     [MajorityConfig.CommittedIndex]'s for [cfg]: [MaxUint64] if [cfg] is
     empty, and otherwise the quorum index of the voters' [Match]
-    ([is_quorum_index], with [pvs_match_at pvs]; every voter has a
+    ([is_quorum_index], with [pvs_match_at t.(trk.peers)]; every voter has a
     [Progress], [own_tracker] makes the two maps' domains [cfg]). *)
 Definition wp_JointConfig__CommittedIndex_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
-    (cfg : gset w64) (trk : loc) tv votes (prs : gmap w64 loc)
-    (pvs : gmap w64 (tracker.Progress.t * tracker.Inflights.t)),
+    (cfg : gset w64) (trk : loc) tv (t : trk.t),
   {{{ is_pkg_init quorum ∗ is_pkg_init tracker ∗
-      trk ↦ tv ∗ own_tracker cfg tv votes prs pvs }}}
+      trk ↦ tv ∗ own_tracker cfg tv t }}}
     (trk.[tracker.ProgressTracker.t, "Config"].[tracker.Config.t, "Voters"])
       @! (go.PointerType quorum.JointConfig) @! "CommittedIndex"
         #(interface.mk_ok tracker.matchAckIndexer
             #(tv.(tracker.ProgressTracker.Progress')))
   {{{ (N : w64), RET #N;
-      trk ↦ tv ∗ own_tracker cfg tv votes prs pvs ∗
+      trk ↦ tv ∗ own_tracker cfg tv t ∗
       ⌜ cfg = ∅ → N = W64 (2 ^ 64 - 1) ⌝ ∗
-      ⌜ cfg ≠ ∅ → is_quorum_index cfg (pvs_match_at pvs) N ⌝ }}}.
+      ⌜ cfg ≠ ∅ → is_quorum_index cfg (pvs_match_at t.(trk.peers)) N ⌝ }}}.
 
 Module Type JOINTCONFIG__COMMITTEDINDEX.
   Parameter wp_JointConfig__CommittedIndex : wp_JointConfig__CommittedIndex_body.

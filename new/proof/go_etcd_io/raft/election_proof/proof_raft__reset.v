@@ -9,10 +9,10 @@ Section helpers.
     [Progress] values range over the same peers as before, and every visited
     peer's [Match] is [reset]'s. *)
 Definition reset_inv (id li : w64)
-    (P0 pvs : gmap w64 (tracker.Progress.t * tracker.Inflights.t)) (D : gset w64) : Prop :=
+    (P0 pvs : gmap w64 progress.t) (D : gset w64) : Prop :=
   dom pvs = dom P0 ∧
   ∀ k p, k ∈ D → pvs !! k = Some p →
-    p.1.(tracker.Progress.Match') = (if decide (k = id) then li else W64 0).
+    p.(progress.matched) = (if decide (k = id) then li else W64 0).
 
 (** [lastIndex()]'s result, as [log_last]. *)
 Lemma log_last_unsigned (ls : logstate.t) (i : w64) :
@@ -28,7 +28,7 @@ Proof. split; [done|]. intros ???. set_solver. Qed.
 Lemma reset_inv_step id li P0 pvs D i v :
   reset_inv id li P0 pvs D →
   is_Some (pvs !! i) →
-  v.1.(tracker.Progress.Match') = (if decide (i = id) then li else W64 0) →
+  v.(progress.matched) = (if decide (i = id) then li else W64 0) →
   reset_inv id li P0 (<[i := v]> pvs) ({[i]} ∪ D).
 Proof.
   intros [Hdom Hm] Hi Hv. split.
@@ -132,13 +132,13 @@ End helpers.
     iDestruct (own_tracker_prvals_dom with "Htrk") as "[%Hpdom Htrk]".
     iDestruct (own_tracker_progress_map with "Htrk") as "(_ & %Hprdom & Htrk)".
     assert (Hdomcfg : dom s.(nstate.prvals) = cfg) by (rewrite -Hprdom -Hpdom //).
-    wp_apply (wp_ProgressTracker__Visit _ _ _ s2.(nstate.votes) s2.(nstate.progress)
-                s2.(nstate.prvals) _
+    wp_apply (wp_ProgressTracker__Visit _ _ _
+                (trk.mk s2.(nstate.votes) s2.(nstate.progress) s2.(nstate.prvals)) _
                 (λ D pvsx,
                  r_ptr ↦ r ∗
                  ⌜ reset_inv id li0 s.(nstate.prvals) pvsx D ⌝ ∗
                  (∀ tvx pvsx', r.[raft.raft.t, "trk"] ↦ tvx -∗
-                  own_tracker cfg tvx s2.(nstate.votes) s2.(nstate.progress) pvsx' -∗
+                  own_tracker cfg tvx (trk.mk s2.(nstate.votes) s2.(nstate.progress) pvsx') -∗
                   own_raft_phys cfg r id (s2 <| nstate.prvals := pvsx' |>)))%I
                 with "[$Htrkf $Htrk $r $HI]")
       as "(%tvfin & %pvsfin & Htrkf & Htrk & r & %Hinv & HI)".
@@ -149,9 +149,10 @@ End helpers.
          ([r.raftLog.lastIndex()], [r.id]); it is borrowed again, at the
          value [nstate.prvals] records, for the steps that need it
          ([pr.IsLearner], the store to [*pr], [pr.Match]). *)
-      iModIntro. iIntros (i pr tv0 pvs0 pv iv D).
+      iModIntro. iIntros (i pr tv0 pvs0 p D).
       wp_start as "(%Hicfg & %Hpri & %Hpvi & %HmaxI & Htrkf & Hpr & Hprback &
                     r & %Hinv0 & HI)".
+      cbn [trk.prs trk.votes trk.peers] in Hpri, Hpvi.
       iDestruct ("Hprback" with "Hpr") as "Htrk".
       iDestruct ("HI" with "Htrkf Htrk") as "Hphys".
       wp_auto. wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
@@ -164,19 +165,19 @@ End helpers.
       iDestruct (own_raft_phys_tracker_prvals with "Hphys")
         as (tv2) "(Htrkf & Htrk & HI)".
       iDestruct (own_tracker_maxinflight with "Htrk") as "[%HmaxI2 Htrk]".
-      iDestruct (own_tracker_lookup _ _ _ _ _ _ _ Hpri with "Htrk")
-        as (pv1 iv1 Hpv1) "[Hpr Hprback]".
-      (* Keep [Hnolearner]: [own_progress] carries
-         [⌜pv.(IsLearner') = false⌝], and the closure has to hand it back. *)
-      iDestruct "Hpr" as "(Hpv & _ & %Hnolearner & %Hst)".
+      iDestruct (own_tracker_lookup _ _ (trk.mk _ _ _) _ _ Hpri with "Htrk")
+        as (p1 Hpv1) "[Hpr Hprback]".
+      (* Keep [Hnolearner]: [own_Progress]'s [progress_abs] says
+         [pv.(IsLearner') = false], and the closure has to hand it back. *)
+      iDestruct "Hpr" as (pv1) "(Hpv & _ & %Habs1)".
+      pose proof Habs1 as Hnolearner.
+      apply progress_abs_Some in Hnolearner as (Hnolearner & _).
       wp_auto.
       wp_apply (wp_tracker_NewInflights _ _ HmaxI2) as "%ifl Hifl".
-      iDestruct "Hifl" as (ivnew bufnew) "Hifl".
       (* the [Progress] literal has no [State] field, so [State] is the
          zero value [StateProbe]; [IsLearner] is copied across *)
       iDestruct ("Hprback" with "[Hpv Hifl]") as "Htrk".
-      { rewrite /own_progress. iFrame "Hpv". simpl. iFrame "Hifl".
-        iPureIntro. split; [ exact Hnolearner | rewrite /progress_state_ok; by left ]. }
+      { iApply (own_Progress_of _ _ prstate.Probe with "Hpv Hifl"); done. }
       iDestruct ("HI" with "Htrkf Htrk") as "Hphys".
       wp_apply (wp_raft_load_id with "Hphys") as "Hphys".
       (* Both arms end the same way: hand the field and the tracker back to
@@ -190,12 +191,14 @@ End helpers.
         (* [pr.Match = lastIndex()]: borrow [pr] once more *)
         iDestruct (own_raft_phys_tracker_prvals with "Hphys")
           as (tv3) "(Htrkf & Htrk & HI)".
-        iDestruct (own_tracker_lookup _ _ _ _ _ _ _ Hpri with "Htrk")
-          as (pv2 iv2 Hpv2) "[Hpr Hprback]".
-        iDestruct "Hpr" as "(Hpv & Hinfl & %Hnolearner2 & %Hst2)".
+        iDestruct (own_tracker_lookup _ _ (trk.mk _ _ _) _ _ Hpri with "Htrk")
+          as (p2 Hpv2) "[Hpr Hprback]".
+        iDestruct "Hpr" as (pv2) "(Hpv & Hinfl & %Habs2)".
+        pose proof Habs2 as Hst2.
+        apply progress_abs_Some in Hst2 as (Hnolearner2 & Hst2 & _).
         wp_auto.
         iDestruct ("Hprback" with "[Hpv Hinfl]") as "Htrk".
-        { rewrite /own_progress. iFrame "Hpv Hinfl". done. }
+        { iApply (own_Progress_of _ _ p2.(progress.state) with "Hpv Hinfl"); done. }
         iApply "HΦ". iExists tv3, _. iFrame "Htrkf Htrk r".
         iSplitR.
         { iPureIntro. simpl. rewrite !insert_insert_eq.

@@ -11,7 +11,7 @@ Import P.
     the two differ: [pvs_match_at] counts a voter with no [Progress] as
     [0].) *)
 Lemma is_quorum_index_acked (cfg : gset w64)
-    (pvs : gmap w64 (tracker.Progress.t * tracker.Inflights.t)) (N : w64) :
+    (pvs : gmap w64 progress.t) (N : w64) :
   (0 < uint.Z N)%Z →
   is_quorum_index cfg (pvs_match_at pvs) N →
   is_quorum cfg (dom (filter (λ '(_, x), uint.Z N ≤ uint.Z x) (prvals_match pvs))).
@@ -25,7 +25,7 @@ Proof.
   intros [[Hle Hv] _]. split; [|done].
   rewrite /pvs_match_at /pvs_acked in Hle.
   destruct (pvs !! v) as [p|] eqn:E; simpl in Hle; [|word].
-  exists p.1.(tracker.Progress.Match').
+  exists p.(progress.matched).
   apply map_lookup_filter_Some. split.
   - rewrite /prvals_match lookup_fmap E //.
   - simpl. lia.

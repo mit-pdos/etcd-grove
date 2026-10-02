@@ -25,7 +25,8 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
       postcondition as stated is **not derivable**: a voter whose [Progress]
       had [IsLearner = true] would make [promotable] return [false] while
       [id ∈ cfg].  That conjunct was added on 2026-09-16 and is now
-      [Hnolearner] in [own_progress].
+      [Hnolearner] in [own_progress]; since 2026-10-02 it is part of
+      [own_Progress]'s [progress_abs] ([defs.v]).
 
     The statement is correct as written; do not weaken it.  The proof is a
     case split on [id ∈ cfg]: present, the [r.trk.Progress[r.id]] lookup

@@ -103,7 +103,8 @@ Definition own_raft_phys_def (r : loc) (id : w64) s : iProp Σ :=
       progress map's points-to sat here, beside the one inside
       [own_tracker]; indexing [own_tracker] by the map made it redundant.) *)
   "Htrk" ∷ own_tracker cfg rv.(raft.raft.trk')
-             s.(nstate.votes) s.(nstate.progress) s.(nstate.prvals) ∗
+             {| trk.votes := s.(nstate.votes); trk.prs := s.(nstate.progress);
+                trk.peers := s.(nstate.prvals) |} ∗
 
   (** the log, at the state [s] records ([nstate.logst]).  Never on loan:
       what [raftLog.slice] returns is read-only and the caller's for good.
@@ -202,8 +203,9 @@ Lemma own_raft_phys_intro r id s (rv : raft.raft.t)
   rv.(raft.raft.raftLog') = s.(nstate.log) →
   r ↦ rv -∗
   is_Logger lok -∗
-  own_tracker cfg rv.(raft.raft.trk') s.(nstate.votes)
-    s.(nstate.progress) s.(nstate.prvals) -∗
+  own_tracker cfg rv.(raft.raft.trk')
+    {| trk.votes := s.(nstate.votes); trk.prs := s.(nstate.progress);
+       trk.peers := s.(nstate.prvals) |} -∗
   own_raftLog rv.(raft.raft.raftLog') s.(nstate.logst) -∗
   rv.(raft.raft.msgs') ↦* msgs -∗
   own_slice_cap raftpb.Message.t rv.(raft.raft.msgs') (DfracOwn 1) -∗
@@ -647,9 +649,9 @@ Proof. split_field_proof "(? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ?
 Lemma own_raft_phys_tracker r id s :
   own_raft_phys r id s -∗
   ∃ tv, r.[raft.raft.t, "trk"] ↦ tv ∗
-        own_tracker cfg tv s.(nstate.votes) s.(nstate.progress) s.(nstate.prvals) ∗
+        own_tracker cfg tv (trk.mk s.(nstate.votes) s.(nstate.progress) s.(nstate.prvals)) ∗
         (∀ tv' votes', r.[raft.raft.t, "trk"] ↦ tv' -∗
-           own_tracker cfg tv' votes' s.(nstate.progress) s.(nstate.prvals) -∗
+           own_tracker cfg tv' (trk.mk votes' s.(nstate.progress) s.(nstate.prvals)) -∗
            own_raft_phys r id (s <| nstate.votes := votes' |>)).
 Proof.
   iIntros "H". iNamed_phys "H".
@@ -667,9 +669,9 @@ Qed.
 Lemma own_raft_phys_tracker_same r id s :
   own_raft_phys r id s -∗
   ∃ tv, r.[raft.raft.t, "trk"] ↦ tv ∗
-        own_tracker cfg tv s.(nstate.votes) s.(nstate.progress) s.(nstate.prvals) ∗
+        own_tracker cfg tv (trk.mk s.(nstate.votes) s.(nstate.progress) s.(nstate.prvals)) ∗
         (∀ tvx, r.[raft.raft.t, "trk"] ↦ tvx -∗
-           own_tracker cfg tvx s.(nstate.votes) s.(nstate.progress) s.(nstate.prvals) -∗
+           own_tracker cfg tvx (trk.mk s.(nstate.votes) s.(nstate.progress) s.(nstate.prvals)) -∗
            own_raft_phys r id s).
 Proof.
   iIntros "Hphys".
@@ -687,9 +689,9 @@ Qed.
 Lemma own_raft_phys_tracker_prvals r id s :
   own_raft_phys r id s -∗
   ∃ tv, r.[raft.raft.t, "trk"] ↦ tv ∗
-        own_tracker cfg tv s.(nstate.votes) s.(nstate.progress) s.(nstate.prvals) ∗
+        own_tracker cfg tv (trk.mk s.(nstate.votes) s.(nstate.progress) s.(nstate.prvals)) ∗
         (∀ tv' pvs', r.[raft.raft.t, "trk"] ↦ tv' -∗
-           own_tracker cfg tv' s.(nstate.votes) s.(nstate.progress) pvs' -∗
+           own_tracker cfg tv' (trk.mk s.(nstate.votes) s.(nstate.progress) pvs') -∗
            own_raft_phys r id (s <| nstate.prvals := pvs' |>)).
 Proof.
   iIntros "H". iNamed_phys "H".
@@ -708,36 +710,36 @@ Qed.
     lookups are premises inside the logic, so that [s] is fixed by the
     struct hypothesis the lemma is applied to, not by the lookups' types:
     [iDestruct (own_raft_phys_pr with "Hphys [//] [//]")]. *)
-Lemma own_raft_phys_pr r id s to pr pv iv :
+Lemma own_raft_phys_pr r id s to pr p :
   own_raft_phys r id s -∗
   ⌜ s.(nstate.progress) !! to = Some pr ⌝ -∗
-  ⌜ s.(nstate.prvals) !! to = Some (pv, iv) ⌝ -∗
-  own_progress pr pv iv ∗ (own_progress pr pv iv -∗ own_raft_phys r id s).
+  ⌜ s.(nstate.prvals) !! to = Some p ⌝ -∗
+  own_Progress pr p ∗ (own_Progress pr p -∗ own_raft_phys r id s).
 Proof.
   iIntros "Hphys %Hlk %Hv".
   iDestruct (own_raft_phys_tracker_same with "Hphys") as (tv) "(Htrkf & Htrk & Hback)".
-  iDestruct (own_tracker_lookup_same _ _ _ _ _ _ _ Hlk with "Htrk")
-    as (pv' iv' Hv') "[Hp Hpb]".
-  rewrite Hv in Hv'. simplify_eq.
+  iDestruct (own_tracker_lookup_same _ _ (trk.mk _ _ _) _ _ Hlk with "Htrk")
+    as (p' Hv') "[Hp Hpb]".
+  simpl in Hv'. rewrite Hv in Hv'. simplify_eq.
   iFrame "Hp". iIntros "Hp". iApply ("Hback" with "Htrkf"). iApply ("Hpb" with "Hp").
 Qed.
 
 (** The same, given back at new values, which the state then records --
     for a write ([SentEntries]). *)
-Lemma own_raft_phys_pr_upd r id s to pr pv iv :
+Lemma own_raft_phys_pr_upd r id s to pr p :
   own_raft_phys r id s -∗
   ⌜ s.(nstate.progress) !! to = Some pr ⌝ -∗
-  ⌜ s.(nstate.prvals) !! to = Some (pv, iv) ⌝ -∗
-  own_progress pr pv iv ∗
-  (∀ pv' iv', own_progress pr pv' iv' -∗
-     own_raft_phys r id (s <| nstate.prvals := <[to := (pv', iv')]> s.(nstate.prvals) |>)).
+  ⌜ s.(nstate.prvals) !! to = Some p ⌝ -∗
+  own_Progress pr p ∗
+  (∀ p', own_Progress pr p' -∗
+     own_raft_phys r id (s <| nstate.prvals := <[to := p']> s.(nstate.prvals) |>)).
 Proof.
   iIntros "Hphys %Hlk %Hv".
   iDestruct (own_raft_phys_tracker_prvals with "Hphys") as (tv) "(Htrkf & Htrk & Hback)".
-  iDestruct (own_tracker_lookup _ _ _ _ _ _ _ Hlk with "Htrk")
-    as (pv' iv' Hv') "[Hp Hpb]".
-  rewrite Hv in Hv'. simplify_eq.
-  iFrame "Hp". iIntros (pv'' iv'') "Hp". iApply ("Hback" with "Htrkf"). iApply ("Hpb" with "Hp").
+  iDestruct (own_tracker_lookup _ _ (trk.mk _ _ _) _ _ Hlk with "Htrk")
+    as (p' Hv') "[Hp Hpb]".
+  simpl in Hv'. rewrite Hv in Hv'. simplify_eq.
+  iFrame "Hp". iIntros (p'') "Hp". iApply ("Hback" with "Htrkf"). iApply ("Hpb" with "Hp").
 Qed.
 
 (** A write that does not need to know the value it overwrites
@@ -745,15 +747,15 @@ Qed.
 Lemma own_raft_phys_pr_any r id s to pr :
   own_raft_phys r id s -∗
   ⌜ s.(nstate.progress) !! to = Some pr ⌝ -∗
-  ∃ pv iv, own_progress pr pv iv ∗
-  (∀ pv' iv', own_progress pr pv' iv' -∗
-     own_raft_phys r id (s <| nstate.prvals := <[to := (pv', iv')]> s.(nstate.prvals) |>)).
+  ∃ p, own_Progress pr p ∗
+  (∀ p', own_Progress pr p' -∗
+     own_raft_phys r id (s <| nstate.prvals := <[to := p']> s.(nstate.prvals) |>)).
 Proof.
   iIntros "Hphys %Hlk".
   iDestruct (own_raft_phys_tracker_prvals with "Hphys") as (tv) "(Htrkf & Htrk & Hback)".
-  iDestruct (own_tracker_lookup _ _ _ _ _ _ _ Hlk with "Htrk")
-    as (pv' iv' Hv') "[Hp Hpb]".
-  iExists pv', iv'. iFrame "Hp". iIntros (pv'' iv'') "Hp".
+  iDestruct (own_tracker_lookup _ _ (trk.mk _ _ _) _ _ Hlk with "Htrk")
+    as (p' Hv') "[Hp Hpb]".
+  iExists p'. iFrame "Hp". iIntros (p'') "Hp".
   iApply ("Hback" with "Htrkf"). iApply ("Hpb" with "Hp").
 Qed.
 
@@ -884,9 +886,9 @@ Set Default Proof Using "W".
 Lemma own_raft_phys_reconfig cfg0 cfg r id s :
   own_raft_phys cfg0 r id s -∗
   ∃ tv, r.[raft.raft.t, "trk"] ↦ tv ∗
-        own_tracker cfg0 tv s.(nstate.votes) s.(nstate.progress) s.(nstate.prvals) ∗
+        own_tracker cfg0 tv (trk.mk s.(nstate.votes) s.(nstate.progress) s.(nstate.prvals)) ∗
         (∀ tv' prs' pvs', r.[raft.raft.t, "trk"] ↦ tv' -∗
-           own_tracker cfg tv' s.(nstate.votes) prs' pvs' -∗
+           own_tracker cfg tv' (trk.mk s.(nstate.votes) prs' pvs') -∗
            own_raft_phys cfg r id (s <| nstate.progress := prs' |> <| nstate.prvals := pvs' |>)).
 Proof.
   iIntros "H".

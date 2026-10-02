@@ -4,7 +4,7 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
     quorum condition of the model.
 
     **Proved 2026-09-20** ([proof_ProgressTracker__TallyVotes.v]).  The
-    function counts the granted and rejected votes over [trk.Progress] and
+    function counts the granted and rejected t.(trk.votes) over [trk.Progress] and
     then delegates the verdict to
     [p.Config.Voters.VoteResult(p.Votes)]
     ([spec_JointConfig__VoteResult.v] and, under it,
@@ -39,21 +39,21 @@ Definition wp_ProgressTracker__TallyVotes_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
-    (cfg : gset w64) (trk : loc) tv votes (prs : gmap w64 loc) (pvs : gmap w64 (tracker.Progress.t * tracker.Inflights.t)),
+    (cfg : gset w64) (trk : loc) tv (t : trk.t),
   cfg ≠ ∅ →
-  {{{ is_pkg_init tracker ∗ trk ↦ tv ∗ own_tracker cfg tv votes prs pvs }}}
+  {{{ is_pkg_init tracker ∗ trk ↦ tv ∗ own_tracker cfg tv t }}}
     trk @! (go.PointerType tracker.ProgressTracker) @! "TallyVotes" #()
   {{{ (g rj : w64) (res : w8), RET (#g, #rj, #res);
-      trk ↦ tv ∗ own_tracker cfg tv votes prs pvs ∗
+      trk ↦ tv ∗ own_tracker cfg tv t ∗
       ⌜ res = VoteWon ∨ res = VoteLost ∨ res = VotePending ⌝ ∗
-      ⌜ res = VoteWon → is_quorum cfg (granted votes) ⌝ ∗
+      ⌜ res = VoteWon → is_quorum cfg (granted t.(trk.votes)) ⌝ ∗
       (* [VoteLost] means the candidate **cannot still win**, not that a
          majority rejected -- Go computes [votedCnt + missing < q], and
          [votedCnt + missing = size (cfg ∖ rejected)].  The old form,
-         [is_quorum cfg (rejected votes)], was false: 4 voters with 2
+         [is_quorum cfg (rejected t.(trk.votes))], was false: 4 voters with 2
          rejecting and 2 silent gives [VoteLost] with no rejection quorum.
          Corrected 2026-09-16; see election_proof/protocol.v's [step_lose]. *)
-      ⌜ res = VoteLost → ¬ is_quorum cfg (cfg ∖ rejected votes) ⌝ }}}.
+      ⌜ res = VoteLost → ¬ is_quorum cfg (cfg ∖ rejected t.(trk.votes)) ⌝ }}}.
 
 Module Type PROGRESSTRACKER__TALLYVOTES.
   Parameter wp_ProgressTracker__TallyVotes : wp_ProgressTracker__TallyVotes_body.
