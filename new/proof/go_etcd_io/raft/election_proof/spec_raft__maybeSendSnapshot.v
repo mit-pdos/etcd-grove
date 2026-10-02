@@ -15,12 +15,16 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
 
     **What the model sees** (since 2026-10-01): the [MsgSnap], as an
     [mtype.Snap] from [id] to [to] at the current term -- [send_ok]'s
-    stamped clause; [Term] is unset in the literal and [to ≠ id] (the only
-    caller, [maybeSendAppend], is reached from [bcastAppend], which skips
-    the leader itself).  The outbox grows by [ms], zero or one such
-    message, which is [repl_sends] ([snap_ok]).  Until 2026-10-01
-    [MsgSnap] had no [mtype_of] and the postcondition was at the same
-    [s].
+    [MsgSnap] clause; [Term] is unset in the literal and [to ≠ id] (the
+    only caller, [maybeSendAppend], is reached from [bcastAppend], which
+    skips the leader itself).  The outbox grows by [ms], zero or one such
+    message, which is [repl_sends] ([snap_ok]).  Since 2026-10-02 the
+    abstract message carries the snapshot's metadata ([abs_snap_from]):
+    [index]/[logterm] are the [Storage] snapshot's, and [snap_ok] records
+    that the index is non-zero -- all [is_Storage]'s [HSnapshot] gives.
+    The voters are not pinned (nothing owns the [ConfState.Voters] slice
+    here).  Until 2026-10-01 [MsgSnap] had no [mtype_of] and the
+    postcondition was at the same [s].
 
     [pr] moves to [StateSnapshot], which is why the [Progress] comes back
     existentially quantified rather than at its old value.

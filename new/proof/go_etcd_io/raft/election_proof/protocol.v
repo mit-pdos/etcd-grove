@@ -12,7 +12,10 @@
       - no check-quorum        ([r.checkQuorum = false]),
       - no read-only requests  (no [MsgReadIndex] is ever stepped),
       - no reconfiguration     (the voter set [cfg] is fixed, no learners),
-      - no snapshot received   (phase 2 of notes/raft-replication-model.md),
+      - no snapshot received   (phase 2 of notes/raft-replication-model.md:
+                                the rules [step_snap_*] and [is_message] for
+                                [Snap] are here since 2026-10-02, but [Step]
+                                is not yet specified for [MsgSnap]),
       - **no configuration change is ever requested** -- so the log contains
         no [EntryConfChange] or [EntryConfChangeV2] entry, and
         [r.hasUnappliedConfChanges()] is always [false].  See
@@ -71,10 +74,15 @@ End mtype.
 
 (** Every field of a [raftpb.Message] the protocol reads.  [entries] is the
     list behind [Message.Entries]; see [abs_msg] ([defs.v]) for why the
-    abstraction of a physical message needs that list as an argument. *)
+    abstraction of a physical message needs that list as an argument.
+
+    [index]/[logterm] of a [Snap] are the snapshot's [Metadata.Index]/
+    [Metadata.Term], and [voters] its [Metadata.ConfState.Voters] -- all
+    behind the pointer [Message.Snapshot], read by [abs_snap] ([defs.v]).
+    Every other message has [voters = []]. *)
 Module msg.
 Record t :=
-  mk {
+  mk_v {
       ty : mtype.t;
       from : w64;
       to : w64;
@@ -85,7 +93,16 @@ Record t :=
       commit : w64;              (** [Commit] *)
       rejecthint : w64;          (** [RejectHint] *)
       entries : list raftpb.Entry.t;   (** [Entries] *)
+      voters : list w64;         (** a [Snap]'s [ConfState.Voters]; [[]] otherwise *)
     }.
+
+(** A message with no voters -- every message but a [Snap].  An
+    abbreviation, not a definition: a message built with it is literally the
+    constructor applied to [[]], so nothing that reduces, injects or
+    rewrites a message has to unfold anything (added 2026-10-02 with the
+    [voters] field, so that no user of the ten-field [msg.mk] changed). *)
+Notation mk t0 fr to0 tm rj ix lt cm rh es :=
+  (mk_v t0 fr to0 tm rj ix lt cm rh es []).
 
 (** A message with no payload: every replication field zero. *)
 Definition plain (ty : mtype.t) (from to term : w64) (reject : bool) : t :=
@@ -417,11 +434,23 @@ Definition app_ok (s : pstate.t) (m : msg.t) : Prop :=
                                 (word.add m.(msg.index) (W64 1)) ∧
   app_payload_ok m.
 
-(** [maybeSendSnapshot]'s [MsgSnap].  Snapshots are phase 2; all the model
-    records of one is that the leader of the current term sent it. *)
+(** [maybeSendSnapshot]'s [MsgSnap]: from the leader of the current term,
+    carrying the metadata of the snapshot its [Storage] returned
+    ([abs_snap], [defs.v]), which is non-empty ([is_Storage]'s [HSnapshot]:
+    [Metadata.Index ≠ 0]).
+
+    **That is all the sender can say today.**  The snapshot is the
+    client's: [HSnapshot] relates neither its index to the commit index
+    (an application snapshots applied state, so [index ≤ applied ≤
+    committed] is the documented contract, but it is not in [is_Storage],
+    and [raftLog.snapshot]'s spec passes [HSnapshot] on verbatim) nor its
+    term to the log, and gives no ownership of [ConfState.Voters] -- so
+    [m.index ≤ s.commit] and the voters are *not* conjuncts here.  What a
+    receiver needs of the metadata is in [is_message], and the sender's
+    side of it is the admitted [snap_ok_message]. *)
 Definition snap_ok (s : pstate.t) (m : msg.t) : Prop :=
   m.(msg.ty) = mtype.Snap ∧ m.(msg.from) = id ∧ m.(msg.term) = s.(pstate.term) ∧
-  m.(msg.to) ≠ id.
+  m.(msg.to) ≠ id ∧ m.(msg.index) ≠ W64 0.
 
 (** What [maybeSendAppend] may send: an [App], or (when the log no longer
     has what the peer needs) a [Snap]. *)
@@ -686,6 +715,77 @@ Inductive step : pstate.t → list msg.t → pstate.t → Prop :=
           [msg.mk mtype.Propose id s.(pstate.lead) (W64 0) m.(msg.reject)
              m.(msg.index) m.(msg.logterm) m.(msg.commit) m.(msg.rejecthint)
              m.(msg.entries)])
+
+(** *** Snapshots (phase 2 of notes/raft-replication-model.md)
+
+    [handleSnapshot] (raft.go:1827) after [stepFollower]'s [r.lead =
+    m.From] / [stepCandidate]'s [becomeFollower(m.Term, m.From)] -- the
+    leader is adopted, as for an [App] ([padopt_leader]).  [restore(s)]
+    (raft.go:1849) returns [false] when [Metadata.Index ≤ committed]
+    ([step_snap_stale]); when the node is not a follower (dead: both callers
+    have just made it one); when [r.id] is in none of the [ConfState]'s sets
+    (dead under the fixed voter set: the voters are [cfg] and [id ∈ cfg],
+    premises below); and when the log already has [(Term, Index)], after
+    [commitTo(Index)] ([step_snap_fastfwd]).  Otherwise the log is replaced
+    by the snapshot ([step_snap_restore]).  The reply is [MsgAppResp{Index:
+    lastIndex()}] after a restore -- [Index], the unstable log being empty
+    at offset [Index + 1] -- and [MsgAppResp{Index: committed}] otherwise:
+    [Index] after the fast-forward, the old commit index when stale.  The
+    voter premise is on the message's [voters]: under the fixed-voter-set
+    scope [Step] takes it as a transport premise. *)
+
+(** [restore] proper: [raftLog.restore] makes the snapshot the compaction
+    boundary, with nothing after it, and commits it. *)
+| step_snap_restore m s :
+  m.(msg.ty) = mtype.Snap →
+  m.(msg.to) = id →
+  m.(msg.from) ≠ id →
+  m.(msg.term) = s.(pstate.term) →
+  s.(pstate.role) ≠ role.Leader →
+  m.(msg.voters) ≡ₚ elements cfg →
+  id ∈ cfg →
+  uint.Z s.(pstate.commit) < uint.Z m.(msg.index) →
+  ¬ plog_matches s.(pstate.base) s.(pstate.log)
+      (raft.entryID.mk m.(msg.logterm) m.(msg.index)) →
+  step s [m]
+       (psend_msgs
+          (padopt_leader s m.(msg.from)
+             <| pstate.base := raft.entryID.mk m.(msg.logterm) m.(msg.index) |>
+             <| pstate.log := [] |>
+             <| pstate.commit := m.(msg.index) |>)
+          [msg.mk mtype.AppResp id m.(msg.from) s.(pstate.term) false m.(msg.index)
+             (W64 0) (W64 0) (W64 0) []])
+
+(** The log already has the snapshot's last entry: [commitTo(Index)] only. *)
+| step_snap_fastfwd m s :
+  m.(msg.ty) = mtype.Snap →
+  m.(msg.to) = id →
+  m.(msg.from) ≠ id →
+  m.(msg.term) = s.(pstate.term) →
+  s.(pstate.role) ≠ role.Leader →
+  m.(msg.voters) ≡ₚ elements cfg →
+  id ∈ cfg →
+  uint.Z s.(pstate.commit) < uint.Z m.(msg.index) →
+  plog_matches s.(pstate.base) s.(pstate.log)
+    (raft.entryID.mk m.(msg.logterm) m.(msg.index)) →
+  step s [m]
+       (psend_msgs
+          (padopt_leader s m.(msg.from) <| pstate.commit := m.(msg.index) |>)
+          [msg.mk mtype.AppResp id m.(msg.from) s.(pstate.term) false m.(msg.index)
+             (W64 0) (W64 0) (W64 0) []])
+
+(** An obsolete snapshot: acknowledge the commit index. *)
+| step_snap_stale m s :
+  m.(msg.ty) = mtype.Snap →
+  m.(msg.to) = id →
+  m.(msg.from) ≠ id →
+  m.(msg.term) = s.(pstate.term) →
+  s.(pstate.role) ≠ role.Leader →
+  uint.Z m.(msg.index) ≤ uint.Z s.(pstate.commit) →
+  step s [m]
+       (psend_msgs (padopt_leader s m.(msg.from))
+          [msg.mk mtype.AppResp id m.(msg.from) s.(pstate.term) false s.(pstate.commit)
+             (W64 0) (W64 0) (W64 0) []])
 .
 
 End model.
@@ -850,6 +950,20 @@ Proof.
   iApply (ghost_map_elem_agree with "He1 He2").
 Qed.
 
+(** A snapshot's metadata [(t, i)] names an entry some leader created: the
+    last entry the snapshot covers.  Defined through [is_entry], not as new
+    ghost state, so it agrees with every other [is_entry] at [(t, i)]
+    ([is_entry_agree]): a snapshot's compacted prefix is no different from
+    entries still in a log, it is only no longer stored.  (2026-10-02.) *)
+Definition is_snap_meta γ (t i : w64) : iProp Σ :=
+  ∃ e, is_entry γ e ∗
+       ⌜ e.(raftpb.Entry.Term') = t ∧ e.(raftpb.Entry.Index') = i ⌝.
+
+Global Instance is_snap_meta_pers γ t i : Persistent (is_snap_meta γ t i).
+Proof. apply _. Qed.
+Global Instance is_snap_meta_timeless γ t i : Timeless (is_snap_meta γ t i).
+Proof. apply _. Qed.
+
 Lemma is_committed_0 γ : ⊢ is_committed γ (W64 0).
 Proof. iLeft. done. Qed.
 
@@ -881,7 +995,11 @@ Definition is_message γ (m : msg.t) : iProp Σ :=
       else is_acked γ m.(msg.from) m.(msg.term) m.(msg.index)
   | mtype.Heartbeat =>
       is_leader γ m.(msg.from) m.(msg.term) ∗ is_committed γ m.(msg.commit)
-  | mtype.Snap => is_leader γ m.(msg.from) m.(msg.term)
+  | mtype.Snap =>
+      (* the leader's, of a committed prefix ending in a real entry *)
+      is_leader γ m.(msg.from) m.(msg.term) ∗
+      is_committed γ m.(msg.index) ∗
+      is_snap_meta γ m.(msg.logterm) m.(msg.index)
   | _ => True%I
   end.
 
@@ -1259,6 +1377,28 @@ Local Lemma pleader_entry_term s :
   (pleader_entry s).(raftpb.Entry.Term') = s.(pstate.term).
 Proof. done. Qed.
 
+(** What a leader's [MsgSnap] carries beyond its leadership.  ADMITTED, and
+    **not a consequence of the model**: [snap_ok] says only that the index is
+    non-zero, because the snapshot is whatever the client's
+    [Storage.Snapshot] returned and [is_Storage] ([inv_storage.v],
+    [HSnapshot]) promises nothing more.  It is a *client assumption*, pending
+    in two places outside this file: [HSnapshot] must say that the
+    snapshot's [Metadata] is [(term_at i, i)] of the stored log for some
+    [i ≤ applied] (an application snapshots applied state; [applied ≤
+    committed] is [own_raftLog]'s), and [raftLog.snapshot]'s spec must pass
+    that on; then [snap_ok] can carry [m.index ≤ s.commit] and the entry
+    fact, and this lemma is [is_committed_le] plus the node's [is_entry] for
+    the entry at [m.index] -- or, when that entry is compacted, a fact about
+    [base] that [own_log_ghost] does not carry yet. *)
+Local Lemma snap_ok_message γ id s m :
+  s.(pstate.role) = role.Leader →
+  snap_ok id s m →
+  is_committed γ s.(pstate.commit) -∗
+  ([∗ list] e ∈ s.(pstate.log), is_entry γ e) -∗
+  is_committed γ m.(msg.index) ∗ is_snap_meta γ m.(msg.logterm) m.(msg.index).
+Proof.
+Admitted.
+
 (** What a leader's broadcast carries, from what the leader holds. *)
 Local Lemma repl_ok_message γ id s m :
   s.(pstate.role) = role.Leader →
@@ -1269,13 +1409,15 @@ Local Lemma repl_ok_message γ id s m :
   is_message γ m.
 Proof.
   iIntros (Hr Hok) "#Hl #Hents #Hc".
-  destruct Hok as [(Hty & Hfrom & Hterm & _ & _ & Hcm & Hes & _ & Hpay) | (Hty & Hfrom & Hterm & _)].
+  destruct Hok as [(Hty & Hfrom & Hterm & _ & _ & Hcm & Hes & _ & Hpay) | Hsnap].
   - rewrite /is_message Hty Hfrom Hterm. iFrame "Hl". iSplit; first (iPureIntro; exact Hpay). iSplit.
     + iApply big_sepL_intro. iIntros "!> %k %e %Hk".
       pose proof (Forall_lookup_1 _ _ _ _ Hes Hk) as Hin.
       iApply (big_sepL_elem_of with "Hents"). done.
     + by iApply (is_committed_le with "Hc").
-  - rewrite /is_message Hty Hfrom Hterm. iFrame "Hl".
+  - iDestruct (snap_ok_message γ id s m Hr Hsnap with "Hc Hents") as "[Hmc Hmeta]".
+    destruct Hsnap as (Hty & Hfrom & Hterm & _).
+    rewrite /is_message Hty Hfrom Hterm. iFrame "#".
 Qed.
 
 (** Every entry [plog_maybe_append] leaves in the log was there or came
@@ -1786,6 +1928,104 @@ Proof.
     iApply (is_committed_le with "Hcommit"). simpl. lia.
 Qed.
 
+(** [step_snap_stale]: back to follower of [m.from], acknowledging the
+    commit index -- [step_app_stale]'s update. *)
+Local Lemma own_raft_ghost_step_snap_stale γ id s m :
+  m.(msg.from) ≠ id →
+  s.(pstate.role) ≠ role.Leader →
+  own_raft_ghost γ id s ==∗
+  own_raft_ghost γ id
+    (psend_msgs (padopt_leader s m.(msg.from))
+       [msg.mk mtype.AppResp id m.(msg.from) s.(pstate.term) false s.(pstate.commit)
+          (W64 0) (W64 0) (W64 0) []]).
+Proof.
+  intros Hfid Hrole. iIntros "Hown". destruct_ghost.
+  iMod (own_log_ghost_ack _ _ _ s.(pstate.term) s.(pstate.commit) with "Hlg")
+    as "[Hlg #Hack]".
+  iModIntro.
+  iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
+           with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
+  - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
+  - rewrite /psend_msgs /= big_sepL_app. iSplitR; [iFrame "#"|].
+    rewrite big_sepL_singleton /is_message /=. iFrame "#".
+  - rewrite /psend_msgs /padopt_leader /= granted_empty big_sepS_empty //.
+  - rewrite /leader_wit /psend_msgs /padopt_leader /=. done.
+  - iApply (own_log_ghost_mono with "Hlg"); log_mono_tac.
+Qed.
+
+(** [step_snap_fastfwd]: the new commit index is the snapshot's, which the
+    message carries [is_committed] for; the acknowledgement is the node's
+    own to allocate. *)
+Local Lemma own_raft_ghost_step_snap_fastfwd γ id s m :
+  m.(msg.ty) = mtype.Snap →
+  m.(msg.from) ≠ id →
+  s.(pstate.role) ≠ role.Leader →
+  is_message γ m -∗
+  own_raft_ghost γ id s ==∗
+  own_raft_ghost γ id
+    (psend_msgs
+       (padopt_leader s m.(msg.from) <| pstate.commit := m.(msg.index) |>)
+       [msg.mk mtype.AppResp id m.(msg.from) s.(pstate.term) false m.(msg.index)
+          (W64 0) (W64 0) (W64 0) []]).
+Proof.
+  intros Hty Hfid Hrole. iIntros "#Hm Hown". destruct_ghost.
+  iAssert (is_committed γ m.(msg.index)) as "#Hmc".
+  { rewrite /is_message Hty. iDestruct "Hm" as "(_ & $ & _)". }
+  iMod (own_log_ghost_ack _ _ _ s.(pstate.term) m.(msg.index) with "Hlg")
+    as "[Hlg #Hack]".
+  iModIntro.
+  iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
+           with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
+  - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
+  - rewrite /psend_msgs /= big_sepL_app. iSplitR; [iFrame "#"|].
+    rewrite big_sepL_singleton /is_message /=. iFrame "#".
+  - rewrite /psend_msgs /padopt_leader /= granted_empty big_sepS_empty //.
+  - rewrite /leader_wit /psend_msgs /padopt_leader /=. done.
+  - iApply (own_log_ghost_mono' with "Hlg [] []"); [log_mono_tac..| |].
+    + rewrite /matched_ok /=. done.
+    + simpl. iFrame "#".
+Qed.
+
+(** [step_snap_restore]: the log is replaced by the snapshot -- no entries
+    after the new base, so nothing to justify there -- and the commit index
+    becomes the snapshot's, which the message carries [is_committed] for.
+    [own_log_ghost] holds no fact about [base], so the message's
+    [is_snap_meta] is not needed yet; it is what a base fact (wanted for
+    [log_matching]) will be established from. *)
+Local Lemma own_raft_ghost_step_snap_restore γ id s m :
+  m.(msg.ty) = mtype.Snap →
+  m.(msg.from) ≠ id →
+  s.(pstate.role) ≠ role.Leader →
+  is_message γ m -∗
+  own_raft_ghost γ id s ==∗
+  own_raft_ghost γ id
+    (psend_msgs
+       (padopt_leader s m.(msg.from)
+          <| pstate.base := raft.entryID.mk m.(msg.logterm) m.(msg.index) |>
+          <| pstate.log := [] |>
+          <| pstate.commit := m.(msg.index) |>)
+       [msg.mk mtype.AppResp id m.(msg.from) s.(pstate.term) false m.(msg.index)
+          (W64 0) (W64 0) (W64 0) []]).
+Proof.
+  intros Hty Hfid Hrole. iIntros "#Hm Hown". destruct_ghost.
+  iAssert (is_committed γ m.(msg.index)) as "#Hmc".
+  { rewrite /is_message Hty. iDestruct "Hm" as "(_ & $ & _)". }
+  iMod (own_log_ghost_ack _ _ _ s.(pstate.term) m.(msg.index) with "Hlg")
+    as "[Hlg #Hack]".
+  iModIntro.
+  iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
+           with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
+  - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
+  - rewrite /psend_msgs /= big_sepL_app. iSplitR; [iFrame "#"|].
+    rewrite big_sepL_singleton /is_message /=. iFrame "#".
+  - rewrite /psend_msgs /padopt_leader /= granted_empty big_sepS_empty //.
+  - rewrite /leader_wit /psend_msgs /padopt_leader /=. done.
+  - iApply (own_log_ghost_upd with "Hlg [] [] []"); [log_mono_tac..| | |].
+    + simpl. done.
+    + rewrite /matched_ok /=. done.
+    + simpl. iFrame "#".
+Qed.
+
 (** *** The refinement obligation *)
 
 Lemma own_raft_ghost_step γ (id : w64) s recv s' :
@@ -1815,7 +2055,10 @@ Proof.
     | s n Hrole Hlt Hle Htm Hq
     | s ms Hrole Hms
     | s ents Hrole Hnorm Hnw
-    | m s Hty Hrole Hlead ].
+    | m s Hty Hrole Hlead
+    | m s Hty Hto Hfid Hterm Hrole Hvoters Hidin Hlt Hnm
+    | m s Hty Hto Hfid Hterm Hrole Hvoters Hidin Hlt Hmt
+    | m s Hty Hto Hfid Hterm Hrole Hle ].
 
   - (* step_refl *)
     iIntros "_ Hown". by iFrame.
@@ -2036,6 +2279,18 @@ Proof.
   - (* step_prop_forward *)
     iIntros "_ Hown".
     by iMod (own_raft_ghost_step_prop_forward with "Hown") as "$".
+
+  - (* step_snap_restore *)
+    iIntros "Hrecv Hown". iDestruct "Hrecv" as "[#Hm _]".
+    by iMod (own_raft_ghost_step_snap_restore with "Hm Hown") as "$".
+
+  - (* step_snap_fastfwd *)
+    iIntros "Hrecv Hown". iDestruct "Hrecv" as "[#Hm _]".
+    by iMod (own_raft_ghost_step_snap_fastfwd with "Hm Hown") as "$".
+
+  - (* step_snap_stale *)
+    iIntros "_ Hown".
+    by iMod (own_raft_ghost_step_snap_stale with "Hown") as "$".
 Qed.
 
 (** *** Protocol facts the code needs

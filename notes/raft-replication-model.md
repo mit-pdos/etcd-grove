@@ -496,7 +496,7 @@ Sequencing: after the heartbeat/leader and follower branches of 2026-10-01
 are merged (they are stated on the old predicates), before the `Step`
 branches of wave 3, so that wave 3 is written against the final shapes.
 
-## Phase 2: snapshots (design, 2026-10-02; not started)
+## Phase 2: snapshots (design, 2026-10-02; model side done 2026-10-02)
 
 What the code does (`raft.go:1827-1932`, `log.go:464`, `log_unstable.go`
 `restore`): `handleSnapshot` reads `*m.Snapshot` (nil → the zero
@@ -566,3 +566,79 @@ Order of work: `logstate.snap` and the log proofs' snapshot arms (one
 agent; invalidates the cone), then `handleSnapshot`/`restore` as
 collections, `stepFollower`/`stepCandidate` `MsgSnap` arms, the `Step`
 branch, the model rule and ghost update.
+
+### Done 2026-10-02: the model and message side
+
+What is in (`protocol.v`, `defs.v`, `inv_raft_phys.v`, `spec/proof_raft__send.v`,
+`spec/proof_raft__maybeSendSnapshot.v`, `spec/proof_raft__Step.v`):
+
+- **`msg.t` has a field `voters : list w64`** (a `Snap`'s
+  `ConfState.Voters`, `[]` otherwise). The constructor is now `msg.mk_v`
+  (11 fields); `msg.mk` is an *abbreviation* (`Notation`) for `mk_v … []`,
+  so every ten-argument `msg.mk` in the tree is unchanged and still a
+  literal constructor application.
+- **`abs_snap m sv voters`** (`defs.v`, with `abs_snap_from m from term sv
+  voters` for `send`'s stamped form): `ty := Snap`, `index`/`logterm` :=
+  `sv.Metadata.Index`/`.Term`, `entries := []`, `voters`, the rest from `m`.
+  `abs_msg` is unchanged and is not used for `MsgSnap`. `mtype_of_Snap`:
+  only `MsgSnap` maps to `Snap`.
+- **`msg_abs`** (`inv_raft_phys.v`) has three cases: undescribed;
+  described-and-not-`Snap` (`abs_msg`, entries `↦*□`); `MsgSnap` with
+  `∃ sv voters, a = Some (abs_snap m sv voters)` -- **pure, not tied to the
+  heap**. Deviation from the brief, for two reasons: `send` (the only
+  producer of `msg_abs`) has no precondition carrying `m.Snapshot ↦□ sv`,
+  and adding one adds a goal at every `send` call site, including the
+  `Step` helpers (off-limits during the concurrent merge); and
+  `maybeSendSnapshot` could not supply `ConfState.Voters ↦*□ voters` anyway
+  (`raftLog.snapshot`'s spec returns the snapshot by value, `HSnapshot`
+  gives no ownership). Tying it: add `"#Hsnap"` to `send`'s precondition
+  (one bullet per caller), and voters ownership to `HSnapshot` +
+  `spec_raftLog__snapshot.v`.
+- **`send_ok`**: clause (b) is now `MsgApp | MsgHeartbeat | MsgReadIndexResp
+  | MsgHeartbeatResp` (`MsgReadIndexResp` takes the same body path and keeps
+  the third slot so `by right; right; right` still means `HeartbeatResp`);
+  the old clause (c) became `(c') ∨ (c)` with (c') `MsgSnap ∧ Term = 0 ∧
+  To ≠ id ∧ ∃ sv voters, out = [abs_snap_from m id s.term sv voters]` --
+  no caller used (c), so no caller's clause selection moved.
+- **`snap_ok`** gained only `m.index ≠ 0` (from `HSnapshot`). `m.index ≤
+  s.commit` is **not derivable**: `HSnapshot` does not relate the
+  snapshot to `applied`/the log, and `raftLog.snapshot` passes it on
+  verbatim. `maybeSendSnapshot` sends `abs_snap_from m id term snap []`
+  (`snap` the storage's snapshot; voters `[]`, unpinned).
+- **`is_message` for `Snap`**: `is_leader γ from term ∗ is_committed γ index ∗
+  is_snap_meta γ logterm index`, with `is_snap_meta γ t i := ∃ e, is_entry γ
+  e ∗ ⌜e.Term = t ∧ e.Index = i⌝` -- defined through `is_entry`, no new
+  ghost state, so it agrees with log entries by `is_entry_agree`.
+  The sender's side is **`snap_ok_message` (Admitted)**: a client
+  assumption about `Storage`, not a protocol fact (see its comment).
+- **Rules** `step_snap_restore`, `step_snap_fastfwd`, `step_snap_stale`
+  (premises: `Snap`, `to = id`, `from ≠ id`, `term = s.term`, role ≠
+  Leader; restore/fastfwd also `voters ≡ₚ elements cfg`, `id ∈ cfg`,
+  `commit < index`, and `¬`/`plog_matches base log (logterm, index)`;
+  stale `index ≤ commit`). All adopt the leader (`padopt_leader`) and reply
+  `AppResp(reject = false)` at `index` (restore, fastfwd) or `s.commit`
+  (stale), as `handleSnapshot` does. **All three ghost updates are Qed**:
+  `own_log_ghost` holds nothing about `base`, so a restore needs only
+  `is_committed index` (the message's) and the node's own ack.
+- **`Step`'s spec**: `Hm`'s `Hmsg` is `∀ ty, mtype_of = Some ty -∗ ty ≠ Snap
+  -∗ is_message (abs_msg ty m ents)`; new pure premise `MsgSnap → To = id ∧
+  Term ≠ 0 ∧ From ≠ 0 ∧ From ≠ id`; new `"#Hsnap" ∷ □ (⌜Type = MsgSnap⌝ -∗
+  ∃ sv voters, m.Snapshot ↦□ sv ∗ sv…ConfState.Voters ↦*□ voters ∗ ⌜voters
+  ≡ₚ elements cfg⌝ ∗ ⌜Learners/VotersOutgoing/LearnersNext have len 0⌝ ∗
+  is_message γ (abs_snap m sv voters))`. `step_msg` is **not** widened; the
+  proof rebuilds the old `Hmsg` (Snap is not in `step_msg`) and clears
+  `Hsnap`.
+
+**Next, for the log-side agent**: `logstate.snap` and the log proofs'
+snapshot arms; `raftLog.restore`, `raft.restore`, `raft.handleSnapshot`
+specs (replies as in the rules above; `restore`'s `found` loop needs `id ∈
+voters`, from `voters ≡ₚ elements cfg` and `id ∈ cfg`;
+`confchange.Restore` needs `0 ∉ voters` -- from `cfg`, check where that is
+known -- and the three empty sets `Hsnap` gives); `stepFollower`/
+`stepCandidate` `MsgSnap` arms; then add `MsgSnap` to `step_msg_types`, a
+`dispatch_Snap` in `proof_raft__Step.v` destructing `"Hsnap"` and the
+`Hsnapt` premise, choosing among the three rules. Separately (sender
+fidelity): voters ownership and the applied bound in `HSnapshot` +
+`raftLog.snapshot`'s spec, then `snap_ok` gains `m.index ≤ s.commit` and
+`snap_ok_message` can be proved (with a `base` fact in `own_log_ghost`
+for a compacted index).
