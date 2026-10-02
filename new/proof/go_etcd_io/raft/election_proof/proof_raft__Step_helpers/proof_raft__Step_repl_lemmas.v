@@ -66,7 +66,8 @@ Proof.
     rewrite Hprev Hlog in Happ.
     assert (Hm : plog_matches pbase plog
                    (raft.entryID.mk m.(raftpb.Message.LogTerm') m.(raftpb.Message.Index'))).
-    { revert Happ. rewrite /plog_maybe_append. case_decide; [done|discriminate]. }
+    { match goal with |- ?P => destruct (decide P) as [?|Hn]; [done|] end.
+      revert Happ. rewrite /plog_maybe_append (decide_False _ _ Hn). by intros ?. }
     eapply step_eq.
     { apply (step_app_accept _ _ (abs_msg mtype.App m ents) _ lastnewi es'); simpl; try done.
       - rewrite -Hcm. exact Hle.

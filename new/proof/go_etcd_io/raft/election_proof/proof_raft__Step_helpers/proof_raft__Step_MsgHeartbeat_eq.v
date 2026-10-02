@@ -106,7 +106,7 @@ Implicit Type s : nstate.t.
       assert (s.(nstate.stepfn) = functions raft.stepFollower []) as Hsf
         by (rewrite Hsfw ?Hrole //).
       rewrite Hsf.
-      pose proof (Hvotes Hrole) as Hvs.
+      pose proof (Hvotes eq_refl) as Hvs.
       wp_apply (P.wp_stepFollower _ _ _ _ _ ents with "[$Hphys]").
       { do 3 right; left. exact Hty. }
       { intros Hc. exfalso. rewrite Hty8 in Hc. revert Hc. w32_ne. }
