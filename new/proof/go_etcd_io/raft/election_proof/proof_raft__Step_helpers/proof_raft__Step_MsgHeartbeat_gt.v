@@ -133,6 +133,7 @@ Implicit Type s : nstate.t.
     - done.
     - done.
     - exact Hcommit.
+    - exact Hfid.
   Qed.
 
 End branches.

@@ -109,7 +109,8 @@ Implicit Type s : nstate.t.
         (abs_msg ty m ents).(msg.term) by done.
       apply step_higher_term.
       - rewrite /abs_msg /=. exact Hgt.
-      - rewrite /abs_msg /=. exact Hto. }
+      - rewrite /abs_msg /=. exact Hto.
+      - rewrite /abs_msg /abs_msg_from /= Hfl. by intros [=]. }
     (* the type switch's four tests, then the default arm *)
     rewrite Hn0. wp_auto.
     rewrite Hn20. wp_auto.

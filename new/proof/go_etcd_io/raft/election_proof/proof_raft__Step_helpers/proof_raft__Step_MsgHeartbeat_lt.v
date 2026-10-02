@@ -39,9 +39,7 @@ Implicit Type s : nstate.t.
     id ∈ cfg →
     nstate_wf s →
     (* protocol fact (heartbeat_commit_le_last) *)
-    (uint.Z m.(raftpb.Message.Commit')
-       ≤ plog_last_index_Z s.(nstate.logst).(logstate.prev)
-           (s.(nstate.logst).(logstate.sents) ++ s.(nstate.logst).(logstate.uents)))%Z →
+    (* (no commit premise: a stale heartbeat never reaches [commitTo]) *)
     (* this file: the incoming term is stale: logged and dropped *)
     uint.Z m.(raftpb.Message.Term') < uint.Z s.(nstate.term) →
     {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s ∗
@@ -55,7 +53,7 @@ Implicit Type s : nstate.t.
             step cfg id (to_pstate s) recv (to_pstate s') ⌝ ∗
         "%Herr" ∷ ⌜ err = interface.nil ⌝ }}}.
   Proof.
-    intros Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hcommit Hlt.
+    intros Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hlt.
     assert (Hty8 : m.(raftpb.Message.Type') = W32 8) by (rewrite Hty //).
     assert (Hn17 : bool_decide (m.(raftpb.Message.Type') = W32 17) = false)
       by (apply bool_decide_eq_false_2; rewrite Hty8; w32_ne).

@@ -27,19 +27,10 @@ Require Export New.proof.bytes.
     [own_raft_phys]. *)
 (** The message types [Step] is specified for: every type its branches
     cover (2026-10-02; until then only [MsgHup]/[MsgVote]/[MsgVoteResp],
-    [election_msg]).  [step_msg_all] is the full list. *)
-Definition step_msg_all : list w32 :=
+    [election_msg]). *)
+Definition step_msg_types : list w32 :=
   [MsgHup; MsgVote; MsgVoteResp; MsgApp; MsgAppResp; MsgHeartbeat;
    MsgHeartbeatResp; MsgBeat; MsgProp].
-
-(** TEMPORARY RESTRICTION (2026-10-02, branch of the MsgProp/dispatch
-    work).  The branch lemmas for [MsgApp], [MsgAppResp], [MsgHeartbeat],
-    [MsgHeartbeatResp] and [MsgBeat] are written in other branches; until
-    they are merged, [Step] is proved for the four types whose branches
-    exist.  To lift it, replace the list on the next line by
-    [step_msg_all], and follow the "TO ENABLE" notes in
-    [proof_raft__Step.v]. *)
-Definition step_msg_types : list w32 := [MsgHup; MsgVote; MsgVoteResp; MsgProp]. (* RESTRICTED: := step_msg_all *)
 
 Definition step_msg (m : raftpb.Message.t) : Prop :=
   m.(raftpb.Message.Type') ∈ step_msg_types.

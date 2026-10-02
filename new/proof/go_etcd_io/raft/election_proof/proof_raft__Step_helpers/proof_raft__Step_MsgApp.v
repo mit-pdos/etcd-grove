@@ -50,6 +50,10 @@ Implicit Type s : nstate.t.
     Forall (λ e, e.(raftpb.Entry.Type') = EntryNormal) ents →
     (let ls := s.(nstate.logst) in
      let es := ls.(logstate.sents) ++ ls.(logstate.uents) in
+     (* GUARD (2026-10-02, the dispatch): the protocol fact holds only for a
+        message no older than the receiver's term; a stale [MsgApp] is
+        dropped by the preamble and never reaches [maybeAppend] *)
+     (uint.Z s.(nstate.term) ≤ uint.Z m.(raftpb.Message.Term'))%Z →
      (uint.Z ls.(logstate.committed) ≤ uint.Z m.(raftpb.Message.Index'))%Z →
      plog_matches ls.(logstate.prev) es
        (raft.entryID.mk m.(raftpb.Message.LogTerm') m.(raftpb.Message.Index')) →
@@ -79,12 +83,14 @@ Implicit Type s : nstate.t.
     intros Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hpwf Hnw Hnorm Hconf Hvotes.
     destruct (decide (uint.Z s.(nstate.term) < uint.Z m.(raftpb.Message.Term')))
       as [Hgt|Hle].
-    - exact (G.wp_Step_MsgApp_gt cfg r id s m ents Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hpwf Hnw Hnorm Hconf Hgt).
+    - assert (Hg : (uint.Z s.(nstate.term) ≤ uint.Z m.(raftpb.Message.Term'))%Z) by word.
+      exact (G.wp_Step_MsgApp_gt cfg r id s m ents Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hpwf Hnw Hnorm (Hconf Hg) Hgt).
     - destruct (decide (uint.Z m.(raftpb.Message.Term') < uint.Z s.(nstate.term)))
         as [Hlt|Hnlt].
-      + exact (L.wp_Step_MsgApp_lt cfg r id s m ents Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hpwf Hnw Hnorm Hconf Hlt).
+      + exact (L.wp_Step_MsgApp_lt cfg r id s m ents Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hpwf Hnw Hnorm Hlt).
       + assert (Hteq : m.(raftpb.Message.Term') = s.(nstate.term)) by word.
-        exact (E.wp_Step_MsgApp_eq cfg r id s m ents Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hpwf Hnw Hnorm Hconf Hteq Hvotes).
+        assert (Hg : (uint.Z s.(nstate.term) ≤ uint.Z m.(raftpb.Message.Term'))%Z) by word.
+        exact (E.wp_Step_MsgApp_eq cfg r id s m ents Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hpwf Hnw Hnorm (Hconf Hg) Hteq Hvotes).
   Qed.
 
 End branches.

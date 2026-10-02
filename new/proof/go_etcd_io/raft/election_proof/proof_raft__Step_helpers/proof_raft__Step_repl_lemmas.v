@@ -46,9 +46,10 @@ Lemma step_handle_app id (ps : pstate.t) t (m : raftpb.Message.t)
    plog_find_conflict ps.(pstate.base) ps.(pstate.log) ents = W64 0 ∨
    uint.Z ps.(pstate.commit) < uint.Z (plog_find_conflict ps.(pstate.base) ps.(pstate.log) ents)) →
   handle_app_result id t m ents s' →
+  m.(raftpb.Message.From') ≠ id →
   step cfg id ps [abs_msg mtype.App m ents] (to_pstate s').
 Proof.
-  intros Ht Hto Hterm Hnl Hconf Hres.
+  intros Ht Hto Hterm Hnl Hconf Hres Hfid.
   destruct ps as [pterm pvote plead prole pvotes pout pbase plog pcommit pmatched].
   rewrite /to_pstate /padopt_leader /= in Ht.
   injection Ht as Htm Hvt Hld Hrl Hvs Hout Hprev Hlog Hcm Hmt.
@@ -92,9 +93,10 @@ Lemma step_handle_heartbeat id (ps : pstate.t) t (m : raftpb.Message.t)
   m.(raftpb.Message.Term') = ps.(pstate.term) →
   ps.(pstate.role) ≠ role.Leader →
   uint.Z m.(raftpb.Message.Commit') ≤ plog_last_index_Z ps.(pstate.base) ps.(pstate.log) →
+  m.(raftpb.Message.From') ≠ id →
   step cfg id ps [abs_msg mtype.Heartbeat m ents] (to_pstate (heartbeat_result id t m)).
 Proof.
-  intros Ht Hto Hterm Hnl Hc.
+  intros Ht Hto Hterm Hnl Hc Hfid.
   destruct ps as [pterm pvote plead prole pvotes pout pbase plog pcommit pmatched].
   rewrite /to_pstate /padopt_leader /= in Ht.
   injection Ht as Htm Hvt Hld Hrl Hvs Hout Hprev Hlog Hcm Hmt.
@@ -112,12 +114,13 @@ Lemma step_higher_term_leader id (ps : pstate.t) (ty : mtype.t)
   from_leader ty = true →
   uint.Z ps.(pstate.term) < uint.Z m.(raftpb.Message.Term') →
   m.(raftpb.Message.To') = id →
+  m.(raftpb.Message.From') ≠ id →
   step cfg id ps [abs_msg ty m ents]
     (pbecome_follower ps m.(raftpb.Message.Term') m.(raftpb.Message.From')).
 Proof.
-  intros Hfl Hgt Hto.
+  intros Hfl Hgt Hto Hfid.
   eapply step_eq.
-  { apply (step_higher_term _ _ (abs_msg ty m ents)); done. }
+  { apply (step_higher_term _ _ (abs_msg ty m ents)); [done|done|intros _; exact Hfid]. }
   rewrite /abs_msg /abs_msg_from /= Hfl //.
 Qed.
 

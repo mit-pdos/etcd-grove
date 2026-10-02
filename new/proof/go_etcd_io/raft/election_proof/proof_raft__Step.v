@@ -19,36 +19,24 @@
     an error.
 
     **The replication branches (2026-10-02).**  [MsgProp] is
-    [proof_raft__Step_MsgProp.v].  The branches for [MsgApp],
-    [MsgHeartbeat], [MsgAppResp], [MsgHeartbeatResp] and [MsgBeat] are
-    written in other branches of the work; their statements are fixed in
-    advance, and this file's dispatch for each of them is a lemma
-    ([dispatch_App], ...) that takes the branch lemma, at that statement, as
-    a hypothesis.  So the ghost-side work -- deriving each branch's protocol
+    [proof_raft__Step_MsgProp.v]; [MsgApp], [MsgHeartbeat], [MsgAppResp],
+    [MsgHeartbeatResp] and [MsgBeat] were written in parallel against
+    statements fixed in advance, so this file's dispatch for each of them
+    is a lemma ([dispatch_App], ...) that takes the branch lemma, at that
+    statement, as a hypothesis, and [wp_raft__Step] applies it to the
+    branch.  The ghost-side work -- deriving each branch's protocol
     premises from [own_raft_ghost] and [is_message], and taking
-    [own_raft_ghost_step] with the branch's [recv] -- is checked now, and
-    enabling a branch is a matter of applying its dispatch lemma to the
-    branch lemma.  Until then [step_msg] ([spec_raft__Step.v]) is
-    restricted to the four types whose branches exist.
-
-    TO ENABLE the five branches, once their files are merged:
-    1. [spec_raft__Step.v]: [step_msg_types := step_msg_all] (one line);
-    2. below: uncomment the five [Require Export]s and the five
-       [Module ... := ... P.] lines (marked "TO ENABLE");
-    3. in [wp_raft__Step]: replace each [out_of_scope] line (marked
-       "TO ENABLE") by the commented [iApply (dispatch_… …)] beside it. *)
+    [own_raft_ghost_step] with the branch's [recv] -- is in those lemmas. *)
 
 Require Export New.proof.go_etcd_io.raft.election_proof.proof_raft__Step_helpers.proof_raft__Step_MsgHup.
 Require Export New.proof.go_etcd_io.raft.election_proof.proof_raft__Step_helpers.proof_raft__Step_MsgVote.
 Require Export New.proof.go_etcd_io.raft.election_proof.proof_raft__Step_helpers.proof_raft__Step_MsgVoteResp.
 Require Export New.proof.go_etcd_io.raft.election_proof.proof_raft__Step_helpers.proof_raft__Step_MsgProp.
-(* TO ENABLE:
 Require Export New.proof.go_etcd_io.raft.election_proof.proof_raft__Step_helpers.proof_raft__Step_MsgApp.
 Require Export New.proof.go_etcd_io.raft.election_proof.proof_raft__Step_helpers.proof_raft__Step_MsgHeartbeat.
 Require Export New.proof.go_etcd_io.raft.election_proof.proof_raft__Step_helpers.proof_raft__Step_MsgAppResp.
 Require Export New.proof.go_etcd_io.raft.election_proof.proof_raft__Step_helpers.proof_raft__Step_MsgHeartbeatResp.
 Require Export New.proof.go_etcd_io.raft.election_proof.proof_raft__Step_helpers.proof_raft__Step_MsgBeat.
-*)
 
 Module StepProof (P : STEP_POSTULATES) : STEP.
 
@@ -56,13 +44,11 @@ Module H := StepMsgHup P.
 Module V := StepMsgVote P.
 Module R := StepMsgVoteResp P.
 Module M := StepMsgProp P.
-(* TO ENABLE:
 Module A := StepMsgApp P.
 Module HB := StepMsgHeartbeat P.
 Module AR := StepMsgAppResp P.
 Module HR := StepMsgHeartbeatResp P.
 Module B := StepMsgBeat P.
-*)
 
 Section dispatch.
 Context `{hG: heapGS Σ, !ffi_semantics _ _}.
@@ -159,18 +145,14 @@ Lemma ents_own (m : raftpb.Message.t) (ents : list raftpb.Entry.t) :
   m.(raftpb.Message.Entries') ↦* ents.
 Proof. intros Heq. rewrite decide_True //. auto. Qed.
 
-(** A type [step_msg] rules out. *)
-Lemma not_step_msg (t : w32) :
-  bool_decide (t ∈ step_msg_types) = false → t ∉ step_msg_types.
-Proof. intros H. by apply bool_decide_eq_false_1 in H. Qed.
 
 (** *** The dispatch for the branches written elsewhere
 
     Each takes the branch lemma, at the statement agreed for it, as the
     hypothesis [HB], and proves [Step]'s spec for that message type from
-    it.  The statements are copied verbatim from the briefs of the branch
-    work (2026-10-02) **except** for one guard each in [MsgApp] and
-    [MsgHeartbeat] (marked GUARD): the protocol fact behind the conflict
+    it.  The statements are the branch lemmas' own (2026-10-02).  [MsgApp]
+    and [MsgHeartbeat] also take [follower_votes_ok] ([protocol.v]), and
+    one guard each (marked GUARD, also in the branch files): the protocol fact behind the conflict
     premise ([app_no_conflict_below_commit]) and the commit premise
     ([heartbeat_commit_le_last]) holds only for a message no older than the
     receiver's term -- a stale [MsgApp] from a deposed leader can conflict
@@ -198,6 +180,7 @@ Lemma dispatch_App γ cfg r id s (m : raftpb.Message.t) (ents : list raftpb.Entr
       (raft.entryID.mk m.(raftpb.Message.LogTerm') m.(raftpb.Message.Index')) →
     plog_find_conflict ls.(logstate.prev) es ents = W64 0 ∨
     uint.Z ls.(logstate.committed) < uint.Z (plog_find_conflict ls.(logstate.prev) es ents))%Z →
+   (s.(nstate.role) = role.Follower → s.(nstate.votes) = ∅) →
    {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s ∗
        "#Hents" ∷ m.(raftpb.Message.Entries') ↦*□ ents ∗
        "Hcap" ∷ own_slice_cap raftpb.Entry.t m.(raftpb.Message.Entries') (DfracOwn 1) }}}
@@ -246,7 +229,10 @@ Proof.
         [done|exact Hto|exact Hle|exact Hcm|].
       iFrame "Hghost". iPureIntro. intros _ _. exact Hc.
     - iFrame "Hghost". iPureIntro. intros Hle Hcm. exfalso. by apply Hn. }
-  wp_apply (HB Hty Hto Hterm Hfnz Hfid Hin Hwf Hpwf Hnw Hnorm Hconf
+  (* a follower's tally is empty: the code's [r.lead = m.From] and the
+     model's [padopt_leader] agree *)
+  iDestruct (own_raft_ghost_follower_votes with "Hghost") as %Hfv.
+  wp_apply (HB Hty Hto Hterm Hfnz Hfid Hin Hwf Hpwf Hnw Hnorm Hconf Hfv
              with "[$Hinit $Hphys $Hents $Hcap]").
   iIntros (err s') "(Hphys & %Hwf' & %Hst & %Herr)".
   destruct Hst as (recv & Hrecv & Hstep).
@@ -267,6 +253,7 @@ Lemma dispatch_Heartbeat γ cfg r id s (m : raftpb.Message.t) (ents : list raftp
     uint.Z m.(raftpb.Message.Commit')
     ≤ plog_last_index_Z s.(nstate.logst).(logstate.prev)
         (s.(nstate.logst).(logstate.sents) ++ s.(nstate.logst).(logstate.uents)))%Z →
+   (s.(nstate.role) = role.Follower → s.(nstate.votes) = ∅) →
    {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s ∗
        "#Hents" ∷ m.(raftpb.Message.Entries') ↦*□ ents }}}
      r @! (go.PointerType raft.raft) @! "Step" #m
@@ -315,7 +302,8 @@ Proof.
         [done|exact Hto|exact Hle| |].
       { intros Heq Hr. apply Hnl. split; [exact Heq|exact Hr]. }
       iFrame "Hghost". iPureIntro. intros _. exact Hc. }
-  wp_apply (HB Hty Hto Hterm Hfnz Hfid Hin Hwf Hcl with "[$Hinit $Hphys $Hents]").
+  iDestruct (own_raft_ghost_follower_votes with "Hghost") as %Hfv.
+  wp_apply (HB Hty Hto Hterm Hfnz Hfid Hin Hwf Hcl Hfv with "[$Hinit $Hphys $Hents]").
   iIntros (err s') "(Hphys & %Hwf' & %Hst & %Herr)".
   destruct Hst as (recv & Hrecv & Hstep).
   iApply (finish_branch with "Hm Hghost Hphys [] HΦ"); [done..|].
@@ -446,9 +434,6 @@ End dispatch.
     their sections; that setting does not cross a [Require]). *)
 Set Default Proof Using "Type".
 
-(** A type outside [step_msg_types]: refuted by computing the membership. *)
-Local Ltac out_of_scope Hsm Hty :=
-  exfalso; revert Hsm; rewrite /step_msg Hty; apply not_step_msg; vm_compute; reflexivity.
 
   (** The top-level dispatch: the one triple in [STEP], and **the one place in
       this development where ghost state is updated**.  Each branch lemma
@@ -459,7 +444,7 @@ Local Ltac out_of_scope Hsm Hty :=
       has to happen after the branch lemma returns, when the goal would
       otherwise be the bare postcondition with no fancy update to absorb.
 
-      The type is decided one candidate at a time, in [step_msg_all]'s
+      The type is decided one candidate at a time, in [step_msg_types]'s
       order; what is left is none of them, which [step_msg] excludes. *)
   Lemma wp_raft__Step : wp_raft__Step_body.
   Proof.
@@ -507,48 +492,38 @@ Local Ltac out_of_scope Hsm Hty :=
       iLeft. by iPureIntro. }
     destruct (decide (m.(raftpb.Message.Type') = MsgApp)) as [Hty|Hn_app].
     { (* MsgApp: [dispatch_App]. *)
-      (* TO ENABLE: replace the next line by
       iDestruct ("Hmsg" $! mtype.App with "[]") as "#Hm'".
       { iPureIntro. rewrite Hty. apply mtype_of_MsgApp. }
       iDestruct (ents_ro with "Hents") as "#Hents"; first (rewrite Hty; w32_ne).
       iApply (dispatch_App with "Hinit Hphys Hghost Hents Hcap Hm' HΦ");
-        [exact (A.wp_Step_MsgApp cfg r id s m ents)|done..|exact (Happ Hty)]. *)
-      out_of_scope Hsm Hty. }
+        [exact (A.wp_Step_MsgApp cfg r id s m ents)|done..|exact (Happ Hty)]. }
     destruct (decide (m.(raftpb.Message.Type') = MsgAppResp)) as [Hty|Hn_ar].
     { (* MsgAppResp: [dispatch_AppResp]. *)
-      (* TO ENABLE: replace the next line by
       iDestruct ("Hmsg" $! mtype.AppResp with "[]") as "#Hm'".
       { iPureIntro. rewrite Hty. apply mtype_of_MsgAppResp. }
       iDestruct (ents_ro with "Hents") as "#Hents"; first (rewrite Hty; w32_ne).
       iApply (dispatch_AppResp with "Hinit Hphys Hghost Hents Hm' HΦ");
-        [exact (AR.wp_Step_MsgAppResp cfg r id s m ents)|done..|exact (Happresp Hty)]. *)
-      out_of_scope Hsm Hty. }
+        [exact (AR.wp_Step_MsgAppResp cfg r id s m ents)|done..|exact (Happresp Hty)]. }
     destruct (decide (m.(raftpb.Message.Type') = MsgHeartbeat)) as [Hty|Hn_hb].
     { (* MsgHeartbeat: [dispatch_Heartbeat]. *)
-      (* TO ENABLE: replace the next line by
       iDestruct ("Hmsg" $! mtype.Heartbeat with "[]") as "#Hm'".
       { iPureIntro. rewrite Hty. apply mtype_of_MsgHeartbeat. }
       iDestruct (ents_ro with "Hents") as "#Hents"; first (rewrite Hty; w32_ne).
       iApply (dispatch_Heartbeat with "Hinit Hphys Hghost Hents Hm' HΦ");
-        [exact (HB.wp_Step_MsgHeartbeat cfg r id s m ents)|done..|exact (Hhb Hty)]. *)
-      out_of_scope Hsm Hty. }
+        [exact (HB.wp_Step_MsgHeartbeat cfg r id s m ents)|done..|exact (Hhb Hty)]. }
     destruct (decide (m.(raftpb.Message.Type') = MsgHeartbeatResp)) as [Hty|Hn_hr].
     { (* MsgHeartbeatResp: [dispatch_HeartbeatResp]; the [Context] is empty. *)
-      (* TO ENABLE: replace the next line by
       iDestruct ("Hmsg" $! mtype.HeartbeatResp with "[]") as "#Hm'".
       { iPureIntro. rewrite Hty. apply mtype_of_MsgHeartbeatResp. }
       iDestruct (ents_ro with "Hents") as "#Hents"; first (rewrite Hty; w32_ne).
       iDestruct "Hctx" as (ctx) "(#Hctxp & _ & %Hctx0)".
       rewrite (Hctx0 Hty).
       iApply (dispatch_HeartbeatResp with "Hinit Hphys Hghost Hents Hctxp Hm' HΦ");
-        [exact (HR.wp_Step_MsgHeartbeatResp cfg r id s m ents)|done..|exact (Hhbresp Hty)]. *)
-      out_of_scope Hsm Hty. }
+        [exact (HR.wp_Step_MsgHeartbeatResp cfg r id s m ents)|done..|exact (Hhbresp Hty)]. }
     destruct (decide (m.(raftpb.Message.Type') = MsgBeat)) as [Hty|Hn_beat].
     { (* MsgBeat: [dispatch_Beat]. *)
-      (* TO ENABLE: replace the next line by
       iApply (dispatch_Beat with "Hinit Hphys Hghost HΦ");
-        [exact (B.wp_Step_MsgBeat cfg r id s m)|done..|exact (Hbeat Hty)]. *)
-      out_of_scope Hsm Hty. }
+        [exact (B.wp_Step_MsgBeat cfg r id s m)|done..|exact (Hbeat Hty)]. }
     destruct (decide (m.(raftpb.Message.Type') = MsgProp)) as [Hty|Hn_prop].
     { (* MsgProp: forward, append or drop ([proof_raft__Step_MsgProp.v]).
          The node's own [lead_ok] is what the follower's forwarding needs. *)
@@ -565,7 +540,7 @@ Local Ltac out_of_scope Hsm Hty :=
       iApply (finish_branch with "Hm' Hghost Hphys [Herr] HΦ"); [done..|].
       iDestruct "Herr" as "[%Herr|#Hd]"; [iLeft; by iPureIntro|iRight; by iFrame "#"]. }
     (* none of the nine *)
-    exfalso. cbv [step_msg step_msg_types step_msg_all] in Hsm.
+    exfalso. cbv [step_msg step_msg_types] in Hsm.
     repeat (apply elem_of_cons in Hsm as [Hsm|Hsm]; [congruence|]).
     by apply elem_of_nil in Hsm.
   Qed.

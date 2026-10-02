@@ -127,6 +127,7 @@ Implicit Type s : nstate.t.
       + exact Hteq.
       + simpl. rewrite Hrole. done.
       + exact Hcommit.
+      + exact Hfid.
     - (* Candidate: [becomeFollower(r.Term, m.From)], then the handler *)
       assert (s.(nstate.stepfn) = functions raft.stepCandidate []) as Hsf
         by (rewrite Hsfw ?Hrole //).
@@ -152,6 +153,7 @@ Implicit Type s : nstate.t.
       + exact Hteq.
       + simpl. rewrite Hrole. done.
       + exact Hcommit.
+      + exact Hfid.
     - (* Leader: [stepLeader] has no arm for it; nothing changes *)
       assert (s.(nstate.stepfn) = functions raft.stepLeader []) as Hsf
         by (rewrite Hsfw ?Hrole //).

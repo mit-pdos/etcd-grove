@@ -140,6 +140,7 @@ Implicit Type s : nstate.t.
     - done.
     - exact Hconf.
     - exact Hres.
+    - exact Hfid.
   Qed.
 
 End branches.

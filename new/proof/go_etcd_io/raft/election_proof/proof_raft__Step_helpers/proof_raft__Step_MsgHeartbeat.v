@@ -45,7 +45,10 @@ Implicit Type s : nstate.t.
     id ∈ cfg →
     nstate_wf s →
     (* protocol fact (heartbeat_commit_le_last) *)
-    (uint.Z m.(raftpb.Message.Commit')
+    (* GUARD (2026-10-02, the dispatch): only for a message no older than
+       the receiver's term; a stale heartbeat never reaches [commitTo] *)
+    (uint.Z s.(nstate.term) ≤ uint.Z m.(raftpb.Message.Term') →
+     uint.Z m.(raftpb.Message.Commit')
        ≤ plog_last_index_Z s.(nstate.logst).(logstate.prev)
            (s.(nstate.logst).(logstate.sents) ++ s.(nstate.logst).(logstate.uents)))%Z →
     (* ADDED (not in the brief): a follower's vote tally is empty.  The
@@ -71,12 +74,14 @@ Implicit Type s : nstate.t.
     intros Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hcommit Hvotes.
     destruct (decide (uint.Z s.(nstate.term) < uint.Z m.(raftpb.Message.Term')))
       as [Hgt|Hle].
-    - exact (G.wp_Step_MsgHeartbeat_gt cfg r id s m ents Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hcommit Hgt).
+    - assert (Hg : (uint.Z s.(nstate.term) ≤ uint.Z m.(raftpb.Message.Term'))%Z) by word.
+      exact (G.wp_Step_MsgHeartbeat_gt cfg r id s m ents Hty Hto Hterm Hfnz Hfid Hcfg Hwf (Hcommit Hg) Hgt).
     - destruct (decide (uint.Z m.(raftpb.Message.Term') < uint.Z s.(nstate.term)))
         as [Hlt|Hnlt].
-      + exact (L.wp_Step_MsgHeartbeat_lt cfg r id s m ents Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hcommit Hlt).
+      + exact (L.wp_Step_MsgHeartbeat_lt cfg r id s m ents Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hlt).
       + assert (Hteq : m.(raftpb.Message.Term') = s.(nstate.term)) by word.
-        exact (E.wp_Step_MsgHeartbeat_eq cfg r id s m ents Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hcommit Hteq Hvotes).
+        assert (Hg : (uint.Z s.(nstate.term) ≤ uint.Z m.(raftpb.Message.Term'))%Z) by word.
+        exact (E.wp_Step_MsgHeartbeat_eq cfg r id s m ents Hty Hto Hterm Hfnz Hfid Hcfg Hwf (Hcommit Hg) Hteq Hvotes).
   Qed.
 
 End branches.

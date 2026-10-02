@@ -42,13 +42,7 @@ Implicit Type s : nstate.t.
     plog_wf (raft.entryID.mk m.(raftpb.Message.LogTerm') m.(raftpb.Message.Index')) ents →
     (uint.Z m.(raftpb.Message.Index') + Z.of_nat (length ents) + 1 < 2^64)%Z →
     Forall (λ e, e.(raftpb.Entry.Type') = EntryNormal) ents →
-    (let ls := s.(nstate.logst) in
-     let es := ls.(logstate.sents) ++ ls.(logstate.uents) in
-     (uint.Z ls.(logstate.committed) ≤ uint.Z m.(raftpb.Message.Index'))%Z →
-     plog_matches ls.(logstate.prev) es
-       (raft.entryID.mk m.(raftpb.Message.LogTerm') m.(raftpb.Message.Index')) →
-     plog_find_conflict ls.(logstate.prev) es ents = W64 0 ∨
-     (uint.Z ls.(logstate.committed) < uint.Z (plog_find_conflict ls.(logstate.prev) es ents))%Z) →
+    (* (no conflict premise: a stale message never reaches [maybeAppend]) *)
     (* this file: the incoming term is stale: logged and dropped *)
     uint.Z m.(raftpb.Message.Term') < uint.Z s.(nstate.term) →
     {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s ∗
@@ -63,7 +57,7 @@ Implicit Type s : nstate.t.
             step cfg id (to_pstate s) recv (to_pstate s') ⌝ ∗
         "%Herr" ∷ ⌜ err = interface.nil ⌝ }}}.
   Proof.
-    intros Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hpwf Hnw Hnorm Hconf Hlt.
+    intros Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hpwf Hnw Hnorm Hlt.
     assert (Hty3 : m.(raftpb.Message.Type') = W32 3) by (rewrite Hty //).
     assert (Hn17 : bool_decide (m.(raftpb.Message.Type') = W32 17) = false)
       by (apply bool_decide_eq_false_2; rewrite Hty3; w32_ne).
