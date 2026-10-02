@@ -133,6 +133,10 @@ Definition own_raft_phys_def (r : loc) (id : w64) s : iProp Σ :=
 
   (** scope assumptions *)
   "%HnoPreVote" ∷ ⌜ rv.(raft.raft.preVote') = false ⌝ ∗
+  (** [Config.DisableProposalForwarding] is [false] ([newRaft]'s premise):
+      a follower forwards a proposal to the leader it knows.  Never
+      written after [newRaft].  Added 2026-10-02. *)
+  "%HpropForward" ∷ ⌜ rv.(raft.raft.disableProposalForwarding') = false ⌝ ∗
   "%HnoCheckQuorum" ∷ ⌜ rv.(raft.raft.checkQuorum') = false ⌝ ∗
   "%HnoLearner" ∷ ⌜ rv.(raft.raft.isLearner') = false ⌝ ∗
   "%HnoTransfer" ∷ ⌜ rv.(raft.raft.leadTransferee') = W64 0 ⌝ ∗
@@ -188,6 +192,7 @@ Lemma own_raft_phys_intro r id s (rv : raft.raft.t)
   rv.(raft.raft.state') = state_w64 s.(nstate.role) →
   rv.(raft.raft.step') = s.(nstate.stepfn) →
   rv.(raft.raft.preVote') = false →
+  rv.(raft.raft.disableProposalForwarding') = false →
   rv.(raft.raft.checkQuorum') = false →
   rv.(raft.raft.isLearner') = false →
   rv.(raft.raft.leadTransferee') = W64 0 →
@@ -209,7 +214,7 @@ Lemma own_raft_phys_intro r id s (rv : raft.raft.t)
   outbox_rel s.(nstate.outbox) msgs msgsAA -∗
   own_raft_phys r id s.
 Proof.
-  intros Hid Hterm Hvote Hlead Hstate Hstepfn HnoPreVote HnoCheckQuorum
+  intros Hid Hterm Hvote Hlead Hstate Hstepfn HnoPreVote HpropForward HnoCheckQuorum
     HnoLearner HnoTransfer Hid_nz HelectionTimeout Hlok Hlogp.
   iIntros "Hr #Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc #Houtbox".
   rewrite own_raft_phys_unseal /own_raft_phys_def. iExists rv, msgs, msgsAA, lok. iFrame "∗#%".
@@ -402,6 +407,32 @@ Lemma wp_raft_load_preVote r id s :
     ![go.bool] #(r.[raft.raft.t, "preVote"])
   {{{ RET #false; own_raft_phys r id s }}}.
 Proof. load_proof. rewrite HnoPreVote. iApply "HΦ". reseal. Qed.
+
+Lemma wp_raft_load_disableProposalForwarding r id s :
+  {{{ own_raft_phys r id s }}}
+    ![go.bool] #(r.[raft.raft.t, "disableProposalForwarding"])
+  {{{ RET #false; own_raft_phys r id s }}}.
+Proof. load_proof. rewrite HpropForward. iApply "HΦ". reseal. Qed.
+
+(** [r.pendingReadIndexMessages], at a slice of length [0] ([own_raft_misc]
+    holds it at the empty list).  Moved here from
+    [proof_releasePendingReadIndexMessages.v] on 2026-10-02. *)
+Lemma wp_raft_load_pendingReadIndexMessages r id s :
+  {{{ own_raft_phys r id s }}}
+    ![go.SliceType raftpb.Message] #(r.[raft.raft.t, "pendingReadIndexMessages"])
+  {{{ (sl : slice.t), RET #sl; own_raft_phys r id s ∗ ⌜ sl.(slice.len) = W64 0 ⌝ }}}.
+Proof.
+  iIntros (Φ) "H HΦ". iNamed_phys "H".
+  iNamed "Hmisc".
+  iDestruct (own_slice_len with "Hpri") as %[Hl Hl0].
+  wp_apply (wp_load_access with "Hr") as "Hr".
+  iApply "HΦ". iSplitL; last (iPureIntro; simpl in Hl; word).
+  iAssert (own_raft_misc rv.(raft.raft.readStates') rv.(raft.raft.readOnly')
+             rv.(raft.raft.pendingReadIndexMessages'))
+    with "[HreadStates HreadStates_cap Hro_obj Hpri Hpri_cap]" as "Hmisc".
+  { rewrite /own_raft_misc. iFrame. }
+  reseal.
+Qed.
 
 Lemma wp_raft_load_isLearner r id s :
   {{{ own_raft_phys r id s }}}

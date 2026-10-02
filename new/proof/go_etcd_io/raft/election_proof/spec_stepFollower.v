@@ -1,4 +1,5 @@
 Require Export New.proof.go_etcd_io.raft.election_proof.spec_raft__handleAppendEntries.
+Require Export New.proof.go_etcd_io.raft.election_proof.spec_raft__handleHeartbeat.
 
 (** * [stepFollower], for the message types in scope
 
@@ -6,26 +7,24 @@ Require Export New.proof.go_etcd_io.raft.election_proof.spec_raft__handleAppendE
     is a type switch over [m.Type] with arms for [MsgProp], [MsgApp],
     [MsgHeartbeat], [MsgSnap], [MsgTransferLeader], [MsgForgetLeader],
     [MsgTimeoutNow], [MsgReadIndex] and [MsgReadIndexResp], then
-    [return nil].  Specified here for three types:
+    [return nil].  Specified for every type [Step] dispatches to it:
 
-    - [MsgVoteResp]: no arm; nothing read or written, [nil].
+    - [MsgVoteResp], [MsgBeat], [MsgAppResp], [MsgHeartbeatResp]: no arm;
+      nothing read or written, [nil].
     - [MsgProp]: [r.lead == None] → [Infof] and [return ErrProposalDropped],
-      state unchanged.  Otherwise [r.disableProposalForwarding] is read
-      (a second drop, dead under scope), then [m.To = r.lead; r.send(m)]:
-      [send_ok]'s [MsgProp] clause (e) -- [Term] stays [0], [From] is
-      stamped [id] -- so the outbox grows by
-      [abs_msg_from mtype.Propose (m with To := lead) id 0 ents], which is
-      [step_prop_forward]'s message.  **DEFERRED**: [own_raft_phys] does
-      not pin [disableProposalForwarding] and [inv_raft_phys.v] has no load
-      lemma for it, so the forwarding arm cannot be stepped yet; the
-      premise [m.Type = MsgProp → s.lead = 0] below keeps the spec to the
-      leaderless arm until it can.  The result relation already states the
-      forwarding arm, and the premises it will need are already here.
+      state unchanged.  Otherwise [r.disableProposalForwarding] is read --
+      [false], by [own_raft_phys]'s [HpropForward] scope conjunct, so the
+      second drop is dead -- then [m.To = r.lead; r.send(m)]: [send_ok]'s
+      [MsgProp] clause (e) -- [Term] stays [0], [From] is stamped [id] --
+      so the outbox grows by [abs_msg_from mtype.Propose (m with To :=
+      lead) id 0 ents], which is [prop_forward] below and
+      [step_prop_forward]'s message.  (Until 2026-10-02 the forwarding arm
+      was deferred behind a premise [lead = 0].)
     - [MsgApp]: [r.electionElapsed = 0] (not tracked), [r.lead = m.From],
       then [handleAppendEntries] ([handle_app_result] at
       [s <| lead := m.From |>]); [nil].
-    - [MsgHeartbeat]: to be added with [handleHeartbeat]'s spec (a fourth
-      branch of [follower_step_result], next to [MsgApp]'s).
+    - [MsgHeartbeat]: the same two stores, then [handleHeartbeat]
+      ([heartbeat_result] at [s <| lead := m.From |>]); [nil].
 
     The role is never read: the triple holds for any [s].  (A caller
     reaching it through [r.step] knows [s.role = Follower] from
@@ -55,17 +54,25 @@ Definition follower_step_result {ext : ffi_syntax} (id : w64) (s : nstate.t)
   else if decide (m.(raftpb.Message.Type') = MsgApp) then
     dropped = false ∧
     handle_app_result id (s <| nstate.lead := m.(raftpb.Message.From') |>) m ents s'
-  (* MsgHeartbeat: [dropped = false ∧ handle_heartbeat_result …], once
-     [handleHeartbeat] has a spec *)
+  else if decide (m.(raftpb.Message.Type') = MsgHeartbeat) then
+    dropped = false ∧
+    s' = heartbeat_result id (s <| nstate.lead := m.(raftpb.Message.From') |>) m
+  else if decide (m.(raftpb.Message.Type') = MsgBeat ∨
+                  m.(raftpb.Message.Type') = MsgAppResp ∨
+                  m.(raftpb.Message.Type') = MsgHeartbeatResp) then
+    dropped = false ∧ s' = s
   else False.
 
 (** Premises, by type:
     - [MsgProp]: [From = 0] and [Term = 0] (a local proposal; [send]
       takes the first and its [MsgProp] clause the second) and
       [lead ≠ id] ([send]'s self-addressed [Panicf]) -- for the forwarding
-      arm; and, until that arm is proved, [lead = 0] (see above);
+      arm;
     - [MsgApp]: [handleAppendEntries]'s premises, at [s] ([lead] does not
       enter them);
+    - [MsgHeartbeat]: [handleHeartbeat]'s two -- [m.Commit] within the log
+      ([commitTo]'s [Panicf]; the protocol fact [heartbeat_commit_le_last])
+      and [m.From ≠ id] ([send]'s self-addressed [Panicf]);
     - [Hents]: the [Entries] slice for the two types that use it --
       read-only for [send]/[maybeAppend], with its capacity for
       [maybeAppend] (it may adopt the slice).  For [MsgVoteResp] the wand
@@ -78,12 +85,12 @@ Definition wp_stepFollower_body :=
     (r : loc) (id : w64) (s : nstate.t) (m : raftpb.Message.t)
     (ents : list raftpb.Entry.t),
   (m.(raftpb.Message.Type') = MsgVoteResp ∨ m.(raftpb.Message.Type') = MsgProp ∨
-   m.(raftpb.Message.Type') = MsgApp) →
+   m.(raftpb.Message.Type') = MsgApp ∨ m.(raftpb.Message.Type') = MsgHeartbeat ∨
+   m.(raftpb.Message.Type') = MsgBeat ∨ m.(raftpb.Message.Type') = MsgAppResp ∨
+   m.(raftpb.Message.Type') = MsgHeartbeatResp) →
   (m.(raftpb.Message.Type') = MsgProp →
      m.(raftpb.Message.From') = W64 0 ∧ m.(raftpb.Message.Term') = W64 0 ∧
-     s.(nstate.lead) ≠ id ∧
-     (* DEFERRED: the forwarding arm; see the header *)
-     s.(nstate.lead) = W64 0) →
+     s.(nstate.lead) ≠ id) →
   (m.(raftpb.Message.Type') = MsgApp →
      plog_wf (raft.entryID.mk m.(raftpb.Message.LogTerm') m.(raftpb.Message.Index')) ents ∧
      (uint.Z m.(raftpb.Message.Index') + Z.of_nat (length ents) + 1 < 2^64)%Z ∧
@@ -95,6 +102,11 @@ Definition wp_stepFollower_body :=
         (raft.entryID.mk m.(raftpb.Message.LogTerm') m.(raftpb.Message.Index')) →
       plog_find_conflict ls.(logstate.prev) es ents = W64 0 ∨
       uint.Z ls.(logstate.committed) < uint.Z (plog_find_conflict ls.(logstate.prev) es ents))%Z) →
+  (m.(raftpb.Message.Type') = MsgHeartbeat →
+     (uint.Z m.(raftpb.Message.Commit')
+        ≤ plog_last_index_Z s.(nstate.logst).(logstate.prev)
+            (s.(nstate.logst).(logstate.sents) ++ s.(nstate.logst).(logstate.uents)))%Z ∧
+     m.(raftpb.Message.From') ≠ id) →
   {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s ∗
       "Hents" ∷ (⌜ m.(raftpb.Message.Type') = MsgApp ∨ m.(raftpb.Message.Type') = MsgProp ⌝ -∗
                  m.(raftpb.Message.Entries') ↦*□ ents ∗

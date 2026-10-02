@@ -3,6 +3,7 @@ Require Export New.proof.go_etcd_io.raft.election_proof.link_raft__bcastHeartbea
 Require Export New.proof.go_etcd_io.raft.election_proof.link_raft__sendAppend.
 Require Export New.proof.go_etcd_io.raft.election_proof.link_raft__maybeSendAppend.
 Require Export New.proof.go_etcd_io.raft.election_proof.link_raft__bcastAppend.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_raft__appendEntry.
 Require Export New.proof.go_etcd_io.raft.election_proof.link_raft__maybeCommit.
 Require Export New.proof.go_etcd_io.raft.election_proof.link_releasePendingReadIndexMessages.
 Require Export New.proof.go_etcd_io.raft.election_proof.link_Progress__MaybeUpdate.
@@ -20,6 +21,7 @@ Module StepLeaderPostulates : STEPLEADER_POSTULATES.
   Include RaftSendAppend.
   Include RaftMaybeSendAppend.
   Include RaftBcastAppend.
+  Include RaftAppendEntry.
   Include RaftMaybeCommit.
   Include ReleasePendingReadIndexMessages.
   Include ProgressMaybeUpdate.

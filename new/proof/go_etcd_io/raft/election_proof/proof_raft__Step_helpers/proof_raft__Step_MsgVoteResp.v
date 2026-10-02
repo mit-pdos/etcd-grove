@@ -177,6 +177,7 @@ Implicit Type s : nstate.t.
       { by left. }
       { intros Hc. exfalso. rewrite Hty6 in Hc. revert Hc. w32_ne. }
       { intros Hc. exfalso. rewrite Hty6 in Hc. revert Hc. w32_ne. }
+      { intros Hc. exfalso. rewrite Hty6 in Hc. revert Hc. w32_ne. }
       { iIntros "%Hc". exfalso. rewrite Hty6 in Hc.
         destruct Hc as [Hc|Hc]; revert Hc; w32_ne. }
       iIntros (err s1 dropped) "(Hphys & %Hres & Herrn)".
@@ -243,6 +244,7 @@ Implicit Type s : nstate.t.
           { by left. }
           { intros Hc. exfalso. rewrite Hty6 in Hc. revert Hc. w32_ne. }
           { intros Hc. exfalso. rewrite Hty6 in Hc. revert Hc. w32_ne. }
+          { intros Hc. exfalso. rewrite Hty6 in Hc. revert Hc. w32_ne. }
           { iIntros "%Hc". exfalso. rewrite Hty6 in Hc.
             destruct Hc as [Hc|Hc]; revert Hc; w32_ne. }
           iIntros (err s1 dropped) "(Hphys & %Hres & Herrn)".
@@ -271,6 +273,7 @@ Implicit Type s : nstate.t.
           { intros _. exact Hteq. }
           { exact Hrole. }
           { exact Hcfg. }
+          { intros Hc. exfalso. rewrite Hty6 in Hc. revert Hc. w32_ne. }
           { intros Hc. exfalso. rewrite Hty6 in Hc. revert Hc. w32_ne. }
           { iIntros "%Hc". exfalso. rewrite Hty6 in Hc. revert Hc. w32_ne. }
           iIntros (err s' dropped) "(Hphys & %Hres & Herrn)".
@@ -323,14 +326,22 @@ Implicit Type s : nstate.t.
                    m.(raftpb.Message.Context') ↦*□ ([] : list w8))%I as "Hctx0".
           { iIntros "%Hc". exfalso. revert Hc. rewrite Hty /MsgVoteResp /MsgHeartbeatResp.
             w32_ne. }
-          wp_apply (P.wp_stepLeader with "[$Hphys $Hctx0]")
-            as (err s') "(Hphys & %Herrn & %Hres)".
+          iAssert (⌜ m.(raftpb.Message.Type') = MsgProp ⌝ -∗
+                   m.(raftpb.Message.Entries') ↦* ([] : list raftpb.Entry.t))%I as "Hents0".
+          { iIntros "%Hc". exfalso. revert Hc. rewrite Hty /MsgVoteResp /MsgProp.
+            w32_ne. }
+          wp_apply (P.wp_stepLeader _ _ _ _ _ [] with "[$Hphys $Hctx0 $Hents0]")
+            as (err s' dropped) "(Hphys & %Hres & Herrn & _)".
           { by left. }
           { exact Hrole. }
           { exact Hcfg. }
           { rewrite Hty /MsgVoteResp /MsgAppResp. intros Hc. exfalso. revert Hc. w32_ne. }
           { rewrite Hty /MsgVoteResp /MsgAppResp /MsgHeartbeatResp.
             intros [Hc|[Hc _]]; exfalso; revert Hc; w32_ne. }
+          { rewrite Hty /MsgVoteResp /MsgProp. intros Hc. exfalso. revert Hc. w32_ne. }
+          rewrite /leader_step_result decide_False in Hres;
+            last (rewrite Hty /MsgVoteResp /MsgProp; w32_ne).
+          destruct Hres as [-> Hres]. iDestruct "Herrn" as %Herrn.
           destruct Hres as [[_ ->]|[[Hc _]|[[Hc _]|[Hc _]]]];
             [| exfalso; revert Hc; rewrite Hty; w32_ne ..].
           rewrite Herrn. wp_auto.
