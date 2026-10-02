@@ -83,6 +83,12 @@ Definition wp_raft__Step_body :=
   (m.(raftpb.Message.Type') = MsgHeartbeatResp →
      m.(raftpb.Message.To') = id ∧ m.(raftpb.Message.Term') ≠ W64 0 ∧
      m.(raftpb.Message.From') ≠ W64 0 ∧ m.(raftpb.Message.From') ≠ id) →
+  (* A leader's [MsgSnap], likewise (2026-10-02, ahead of the [MsgSnap]
+     branch: [step_msg] does not include it yet, so this premise and
+     ["Hsnap"] below are unused for now). *)
+  (m.(raftpb.Message.Type') = MsgSnap →
+     m.(raftpb.Message.To') = id ∧ m.(raftpb.Message.Term') ≠ W64 0 ∧
+     m.(raftpb.Message.From') ≠ W64 0 ∧ m.(raftpb.Message.From') ≠ id) →
   (* [MsgBeat] and [MsgProp] are local ([Term = 0]); a proposal is not yet
      stamped with a sender ([From = 0]).  The proposal's batch is
      constrained in [Hm] below, where its list is named. *)
@@ -109,7 +115,9 @@ Definition wp_raft__Step_body :=
            [EntryNormal] only (no conf change in scope) and short enough
            for [appendEntry]'s indices not to wrap;
          - what the message carries as a protocol message: its abstraction
-           ([abs_msg], which needs the entries) was legitimately sent. *)
+           ([abs_msg], which needs the entries) was legitimately sent --
+           for every type but [MsgSnap], whose abstraction is [abs_snap]
+           (["Hsnap"] below). *)
       "Hm" ∷ (∃ ents,
          "Hents" ∷ (if decide (m.(raftpb.Message.Type') = MsgProp)
                     then m.(raftpb.Message.Entries') ↦* ents
@@ -120,13 +128,32 @@ Definition wp_raft__Step_body :=
                       Forall (λ e, e.(raftpb.Entry.Type') = EntryNormal) ents ∧
                       (Z.of_nat (length ents) < 2^61)%Z ⌝ ∗
          "#Hmsg" ∷ □ (∀ ty, ⌜ mtype_of m.(raftpb.Message.Type') = Some ty ⌝ -∗
+                            ⌜ ty ≠ mtype.Snap ⌝ -∗
                             is_message γ (abs_msg ty m ents))) ∗
       (* the [Context]: not the leader-transfer marker (out of scope), and
          empty on a heartbeat response (no read-index requests in scope:
          [bcastHeartbeat] sends [nil] and [handleHeartbeat] echoes it) *)
       "#Hctx" ∷ (∃ ctx, m.(raftpb.Message.Context') ↦*□ ctx ∗
                         ⌜ ctx ≠ campaignTransfer ⌝ ∗
-                        ⌜ m.(raftpb.Message.Type') = MsgHeartbeatResp → ctx = [] ⌝)
+                        ⌜ m.(raftpb.Message.Type') = MsgHeartbeatResp → ctx = [] ⌝) ∗
+      (* A [MsgSnap]'s snapshot (2026-10-02; unused until [step_msg] has
+         [MsgSnap]): what [m.Snapshot] points to, read-only, and the list
+         behind its [ConfState.Voters]; under the fixed-voter-set scope
+         those are [cfg]'s voters and the other three sets are empty (what
+         [confchange.Restore]'s spec covers); and the abstraction
+         [abs_snap] ([defs.v]) -- the snapshot's metadata, not [m]'s own
+         [Index]/[LogTerm] -- was legitimately sent. *)
+      "#Hsnap" ∷ □ (⌜ m.(raftpb.Message.Type') = MsgSnap ⌝ -∗
+         ∃ (sv : raftpb.Snapshot.t) (voters : list w64),
+           m.(raftpb.Message.Snapshot') ↦□ sv ∗
+           sv.(raftpb.Snapshot.Metadata').(raftpb.SnapshotMetadata.ConfState')
+             .(raftpb.ConfState.Voters') ↦*□ voters ∗
+           ⌜ voters ≡ₚ elements cfg ⌝ ∗
+           ⌜ let cs := sv.(raftpb.Snapshot.Metadata').(raftpb.SnapshotMetadata.ConfState') in
+             cs.(raftpb.ConfState.Learners').(slice.len) = W64 0 ∧
+             cs.(raftpb.ConfState.VotersOutgoing').(slice.len) = W64 0 ∧
+             cs.(raftpb.ConfState.LearnersNext').(slice.len) = W64 0 ⌝ ∗
+           is_message γ (abs_snap m sv voters))
   }}}
     r @! (go.PointerType raft.raft) @! "Step" #m
   {{{ (err : error.t) s' ps', RET #err;

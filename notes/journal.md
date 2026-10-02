@@ -4459,3 +4459,38 @@ premises only for a message at or above the node's term (a stale leader's
 before `maybeAppend`), and `own_raft_ghost` carries `follower_votes_ok` (a
 follower's tally is empty) because `stepFollower`'s `MsgApp` arm leaves
 `trk.Votes` alone where `padopt_leader` says `∅`.
+
+## 2026-10-02 — snapshots, the model and message side (phase 2, first half)
+
+Branch `worktree-agent-af26e6183641d8820`, from `3574293f1`; commit
+`e57c313f2`.  `make -k -j4 …/election.vo` green; `check-module-discipline
+--scope election_proof`: 3 warnings; `tcb-report`: 14 Axiom, **7 Admitted**
+(+1: `snap_ok_message`), 500 Qed.  Full account in
+notes/raft-replication-model.md, "Phase 2 … Done 2026-10-02".
+
+- `msg.t` gained `voters`; to keep every ten-argument `msg.mk` (including
+  in the `Step` helpers and `spec_stepFollower.v`, off-limits during the
+  concurrent merge) unchanged, the constructor is `msg.mk_v` and `msg.mk`
+  is a `Notation` abbreviation for `mk_v … []`.  Nothing downstream needed
+  an edit.
+- `abs_snap`/`abs_snap_from` (`defs.v`); `is_snap_meta` (via `is_entry`);
+  `is_message` for `Snap`; rules `step_snap_restore/_fastfwd/_stale`, all
+  three ghost updates Qed (the ghost state has no `base` fact, so a restore
+  needs only the message's `is_committed`).
+- **Two deviations from the brief, both forced by the file footprint**:
+  `msg_abs`'s `MsgSnap` case is pure (`∃ sv voters, a = Some (abs_snap …)`),
+  not heap-tied -- `send` has no precondition for `m.Snapshot ↦□ sv`, and
+  adding one is a new goal at every `send` call site; and `snap_ok` has
+  only `index ≠ 0` -- `index ≤ commit` is not derivable because
+  `HSnapshot`/`raftLog.snapshot` say nothing more and
+  `spec_raftLog__snapshot.v` was off-limits.  The sender's `is_message`
+  obligation is the admitted `snap_ok_message` (a client assumption).
+  `is_Storage` was **not** changed.
+- `send_ok`'s clause positions are load-bearing for callers' scripts
+  (`right; right; right; left` etc.): `MsgSnap` left clause (b) and was
+  replaced there by `MsgReadIndexResp` (same body path), and the new
+  `MsgSnap` clause is the left disjunct of the unused clause (c).
+- Gotcha met again: a `Local Ltac` that names a hypothesis (`HnS`) fails at
+  definition; match on the hypothesis' shape instead.
+- The base build of eb25ca1ca→3574293f1 was green (it needed two runs: the
+  first background run hit the 30 min tool limit; use timeout 7200000).

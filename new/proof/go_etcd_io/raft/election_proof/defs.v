@@ -98,6 +98,15 @@ Proof. reflexivity. Qed.
 Lemma mtype_of_MsgProp : mtype_of MsgProp = Some mtype.Propose.
 Proof. reflexivity. Qed.
 
+(** Only [MsgSnap] is abstracted as a [Snap]. *)
+Lemma mtype_of_Snap (t : w32) : mtype_of t = Some mtype.Snap → t = MsgSnap.
+Proof.
+  rewrite /mtype_of. intros H.
+  destruct (decide (uint.Z t = 7)) as [E|E].
+  { apply word.unsigned_inj. rewrite E. done. }
+  exfalso. repeat case_match; simplify_eq/=; lia.
+Qed.
+
 (** A message type the model does not describe is none of the ones it does. *)
 Lemma mtype_of_None_ne (t : w32) :
   mtype_of t = None →
@@ -119,10 +128,30 @@ Definition abs_msg_from (ty : mtype.t) (m : raftpb.Message.t) (from term : w64)
 (** The abstraction of a physical message.  Not a function of [m] alone:
     [m.Entries] is a slice, and [ents] is the list it points to --
     [own_raft_phys] holds [m.Entries ↦*□ ents] for every queued message
-    ([outbox_rel], [inv_raft_phys.v]). *)
+    ([outbox_rel], [inv_raft_phys.v]).  Not for a [MsgSnap]: see
+    [abs_snap]. *)
 Definition abs_msg (ty : mtype.t) (m : raftpb.Message.t)
     (ents : list raftpb.Entry.t) : msg.t :=
   abs_msg_from ty m m.(raftpb.Message.From') m.(raftpb.Message.Term') ents.
+
+(** The abstraction of a [MsgSnap] (2026-10-02).  What the protocol reads of
+    a snapshot is behind the pointer [m.Snapshot]: [sv] is the [Snapshot]
+    it points to, and [voters] the list behind [sv]'s
+    [Metadata.ConfState.Voters] slice.  [index]/[logterm] are the
+    snapshot's [Metadata.Index]/[Metadata.Term] -- not [m]'s own [Index]/
+    [LogTerm], which [maybeSendSnapshot] leaves at [0] -- and there are no
+    entries.  As for [abs_msg_from], [from]/[term] are given separately
+    because [send] stamps them. *)
+Definition abs_snap_from (m : raftpb.Message.t) (from term : w64)
+    (sv : raftpb.Snapshot.t) (voters : list w64) : msg.t :=
+  msg.mk_v mtype.Snap from m.(raftpb.Message.To') term m.(raftpb.Message.Reject')
+    sv.(raftpb.Snapshot.Metadata').(raftpb.SnapshotMetadata.Index')
+    sv.(raftpb.Snapshot.Metadata').(raftpb.SnapshotMetadata.Term')
+    m.(raftpb.Message.Commit') m.(raftpb.Message.RejectHint') [] voters.
+
+Definition abs_snap (m : raftpb.Message.t) (sv : raftpb.Snapshot.t)
+    (voters : list w64) : msg.t :=
+  abs_snap_from m m.(raftpb.Message.From') m.(raftpb.Message.Term') sv voters.
 
 End proof.
 

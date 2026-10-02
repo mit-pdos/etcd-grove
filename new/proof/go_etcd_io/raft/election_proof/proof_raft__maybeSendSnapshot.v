@@ -48,11 +48,13 @@ Set Default Proof Using "Type".
       only because there the error is [interface.nil], which the
       [nil]/[ok] case answers outright.
 
-      The [send] is [send_ok]'s third clause: [mtype_of MsgSnap = None],
-      [Term] is unset in the literal, and [To = to ≠ id] (the premise; the
-      caller chain [bcastAppend] -> [maybeSendAppend] skips the leader
-      itself).  So the abstract outbox is unchanged and the postcondition is
-      at the same [s], read back with [own_raft_phys_unsend].
+      The [send] is [send_ok]'s [MsgSnap] clause (c'): [Term] is unset in
+      the literal and [To = to ≠ id] (the premise; the caller chain
+      [bcastAppend] -> [maybeSendAppend] skips the leader itself).  The
+      outbox grows by [abs_snap_from] of the snapshot [raftLog.snapshot]
+      returned, which [snap_ok] accepts because its index is non-zero.
+      (This paragraph described [send_ok]'s third clause, with the
+      outbox unchanged, until 2026-10-01.)
 
       **Resources.**  The struct arrives as [own_raft_phys], and stays
       whole except around the two accesses to [*pr]: the
@@ -141,21 +143,23 @@ Set Default Proof Using "Type".
       iDestruct ("Htrkback" with "Hpr") as "Htrk".
       iDestruct ("Hback" with "Htrkf Htrk") as "Hphys".
       (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_raft_log).
-      (* [send_ok]'s stamped clause, for [MsgSnap], with no entries *)
-      wp_apply (P.wp_raft__send _ _ _ _ _ []
-                  [msg.mk mtype.Snap id to s.(nstate.term) false
-                     (W64 0) (W64 0) (W64 0) (W64 0) []] with "[$Hphys]").
+      (* [send_ok]'s [MsgSnap] clause, with no entries: the abstract message
+         carries the [Storage]'s snapshot [snap].  Its voters are not owned
+         here ([raftLog.snapshot] returns the snapshot by value and says
+         nothing of the [ConfState.Voters] slice), so the abstraction records
+         [[]] -- see [msg_abs] ([inv_raft_phys.v]). *)
+      wp_apply (P.wp_raft__send _ _ _ _ _ [] with "[$Hphys]").
       { done. }
-      { right; left; exists mtype.Snap; split_and!;
-          [ right; right; left; done | apply mtype_of_MsgSnap | done | exact Hto
-          | reflexivity ]. }
+      { right; right; left; left. split_and!;
+          [ done | done | exact Hto | by exists snap, [] ]. }
       { iApply own_slice_nil. }
       iIntros "Hphys". wp_auto.
       iApply ("HΦ" $! true _ (<[to := progress_become_snapshot p1 _]> s.(nstate.prvals))).
       iSplitL.
       { iApply (own_raft_phys_eq with "Hphys"). by destruct s. }
       iPureIntro. split.
-      + rewrite /repl_sends. apply Forall_singleton. right.
+      + (* [snap_ok]: the snapshot's index is non-zero ([HSnapshot]) *)
+        rewrite /repl_sends. apply Forall_singleton. right.
         rewrite /snap_ok /=. split_and!; done.
       + by apply (prvals_match_insert_same _ _ p1).
   Qed.

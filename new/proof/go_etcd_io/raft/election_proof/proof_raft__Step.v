@@ -445,10 +445,21 @@ Set Default Proof Using "Type".
        name, and with the binder gone that resolves to Perennial's global
        [cfg] (a [language → Type]).  Move the witness instead. *)
     intros Hcfg.
-    intros Hsm Hin Hhup Hvote Hvoteresp Happ Hhb Happresp Hhbresp Hbeat Hprop Hrel.
+    intros Hsm Hin Hhup Hvote Hvoteresp Happ Hhb Happresp Hhbresp Hsnapt Hbeat Hprop Hrel.
     destruct Hrel as [<- Hwf].
-    iIntros (Φ) "(#Hinit & Hphys & Hghost & Hm & #Hctx) HΦ".
-    iDestruct "Hm" as (ents) "(Hents & Hcap & %Hpents & #Hmsg)".
+    iIntros (Φ) "(#Hinit & Hphys & Hghost & Hm & #Hctx & #Hsnap) HΦ".
+    iDestruct "Hm" as (ents) "(Hents & Hcap & %Hpents & #Hmsg0)".
+    (* [MsgSnap] is not among [step_msg]'s types, so [Hm]'s [ty ≠ Snap]
+       guard always holds; ["Hsnap"] is for the [MsgSnap] branch to come. *)
+    assert (Hns : m.(raftpb.Message.Type') ≠ MsgSnap).
+    { intros Hs. rewrite /step_msg Hs in Hsm. cbv [step_msg_types] in Hsm.
+      repeat (apply elem_of_cons in Hsm as [Hsm|Hsm]; [revert Hsm; w32_ne|]).
+      by apply elem_of_nil in Hsm. }
+    iAssert (□ ∀ ty, ⌜ mtype_of m.(raftpb.Message.Type') = Some ty ⌝ -∗
+                     is_message γ (abs_msg ty m ents))%I as "#Hmsg".
+    { iIntros "!> %ty %Hty". iApply ("Hmsg0" with "[//] [%]").
+      intros ->. exact (Hns (mtype_of_Snap _ Hty)). }
+    iClear "Hsnap Hmsg0".
     iApply wp_fupd.
     destruct (decide (m.(raftpb.Message.Type') = MsgHup)) as [Hty|Hn_hup].
     { (* MsgHup: a local message, handled by [hup]. *)

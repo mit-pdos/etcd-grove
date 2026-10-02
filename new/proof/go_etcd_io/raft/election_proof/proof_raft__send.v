@@ -21,13 +21,15 @@ Import P.
     wp_apply wp_traceSendMessage; try wp_auto;
     iApply "HΦ".
 
-  (** A described type: the wand gets the abstraction of the queued
-      message, whose [Entries] is [m]'s, and the outbox is then [send_msgs s
-      out] by computation. *)
+  (** A described type other than [MsgSnap]: the wand gets the abstraction
+      of the queued message, whose [Entries] is [m]'s, and the outbox is then
+      [send_msgs s out] by computation. *)
   Local Ltac finish_some ty :=
     iDestruct ("Hback" with "Hf Hq Hq_cap []") as "Hphys";
-    [ iRight; iExists ty, _; iFrame "Hents"; iPureIntro;
-      split; [ done | reflexivity ]
+    [ iRight; iLeft; iExists ty, _; iFrame "Hents"; iPureIntro;
+      split_and!; [ done | first [ (intros ?; discriminate)
+                          | (intros ->; match goal with H : mtype_of _ = Some mtype.Snap |- _ =>
+                               apply mtype_of_Snap in H; congruence end) ] | reflexivity ]
     | iApply (own_raft_phys_eq with "Hphys"); reflexivity ].
 
   (** An undescribed type: it contributes nothing. *)
@@ -45,7 +47,8 @@ Import P.
     rewrite Hfrom bool_decide_eq_true_2 //. wp_auto. wp_apply (wp_raft_load_id with "Hphys") as "Hphys".
     destruct Hok as [(ty & Hvoty & Hty & Hmterm & Hself & ->)
                     |[(ty & Hlty & Hty & Hmterm & Hself & ->)
-                     |[(Hty & Hmterm & Hself & ->)
+                     |[[(HSnap & Hmterm & Hself & sv & voters & ->)
+                       |(Hty & Hmterm & Hself & ->)]
                       |[(HAR & Hmterm & ->)
                        |(HProp & Hmterm & Hself & ->)]]]].
     - (* (a) a vote message: [Term] is kept.  [MsgVote] goes onto [r.msgs],
@@ -54,6 +57,7 @@ Import P.
          [MsgVote] lands in front of whatever [msgsAfterAppend] holds. *)
       destruct Hvoty as [Hvt|Hvt].
       + (* [MsgVote] is not a response, so it goes onto [r.msgs]. *)
+        assert (HnS : m.(raftpb.Message.Type') ≠ MsgSnap) by (rewrite Hvt; w32_ne).
         rewrite Hvt /MsgVote bool_decide_eq_true_2 //. wp_auto.
         rewrite bool_decide_eq_false_2 //. wp_auto.
         (* [MsgVote] is none of the response types *)
@@ -66,6 +70,7 @@ Import P.
         send_tail own_raft_phys_msgs.
         finish_some ty.
       + (* [MsgVoteResp] is a response, so it goes onto [r.msgsAfterAppend]. *)
+        assert (HnS : m.(raftpb.Message.Type') ≠ MsgSnap) by (rewrite Hvt; w32_ne).
         rewrite Hvt /MsgVoteResp bool_decide_eq_false_2; last w32_ne.
         wp_auto.
         rewrite Hvt /MsgVoteResp bool_decide_eq_true_2 //. wp_auto.
@@ -91,6 +96,8 @@ Import P.
         by (destruct Hlty as [->|[->|[->| ->]]]; w32_ne).
       assert (HnAR : m.(raftpb.Message.Type') ≠ MsgAppResp)
         by (destruct Hlty as [->|[->|[->| ->]]]; w32_ne).
+      assert (HnS : m.(raftpb.Message.Type') ≠ MsgSnap)
+        by (destruct Hlty as [->|[->|[->| ->]]]; w32_ne).
       (* not a vote type *)
       rewrite bool_decide_eq_false_2 //. wp_auto.
       rewrite bool_decide_eq_false_2 //. wp_auto.
@@ -110,6 +117,33 @@ Import P.
       rewrite bool_decide_eq_false_2 //. wp_auto.
       send_tail own_raft_phys_msgs.
       finish_some ty.
+    - (* (c') [MsgSnap]: (b)'s path through the body; the abstract message is
+         the snapshot's, [abs_snap_from], at the caller's [sv]/[voters]. *)
+      assert (HnV : m.(raftpb.Message.Type') ≠ MsgVote) by (rewrite HSnap; w32_ne).
+      assert (HnVR : m.(raftpb.Message.Type') ≠ MsgVoteResp) by (rewrite HSnap; w32_ne).
+      assert (HnPV : m.(raftpb.Message.Type') ≠ MsgPreVote) by (rewrite HSnap; w32_ne).
+      assert (HnPVR : m.(raftpb.Message.Type') ≠ MsgPreVoteResp) by (rewrite HSnap; w32_ne).
+      assert (HnProp : m.(raftpb.Message.Type') ≠ MsgProp) by (rewrite HSnap; w32_ne).
+      assert (HnRI : m.(raftpb.Message.Type') ≠ MsgReadIndex) by (rewrite HSnap; w32_ne).
+      assert (HnAR : m.(raftpb.Message.Type') ≠ MsgAppResp) by (rewrite HSnap; w32_ne).
+      rewrite bool_decide_eq_false_2 //. wp_auto.
+      rewrite bool_decide_eq_false_2 //. wp_auto.
+      rewrite bool_decide_eq_false_2 //. wp_auto.
+      rewrite bool_decide_eq_false_2 //. wp_auto.
+      rewrite Hmterm. wp_auto.
+      rewrite bool_decide_eq_false_2 //. wp_auto.
+      rewrite bool_decide_eq_false_2 //. wp_auto. wp_apply (wp_raft_load_Term with "Hphys") as "Hphys".
+      rewrite bool_decide_eq_false_2 //. wp_auto.
+      rewrite bool_decide_eq_false_2 //. wp_auto.
+      rewrite bool_decide_eq_false_2 //. wp_auto.
+      wp_apply (wp_raft_load_id with "Hphys") as "Hphys".
+      rewrite bool_decide_eq_false_2 //. wp_auto.
+      send_tail own_raft_phys_msgs.
+      iDestruct ("Hback" with "Hf Hq Hq_cap []") as "Hphys".
+      { iRight; iRight; iPureIntro. split.
+        - rewrite /= HSnap. done.
+        - exists sv, voters. reflexivity. }
+      iApply (own_raft_phys_eq with "Hphys"). reflexivity.
     - (* (c) a type the model does not see: stamped, onto [r.msgs], and it
          drops out of the abstract outbox. *)
       destruct (mtype_of_None_ne _ Hty)
@@ -149,6 +183,7 @@ Import P.
       rewrite HAR /MsgAppResp bool_decide_eq_true_2 //. wp_auto.
       send_tail own_raft_phys_msgsAA.
       assert (Hty : mtype_of m.(raftpb.Message.Type') = Some mtype.AppResp) by (rewrite HAR; done).
+      assert (HnS : m.(raftpb.Message.Type') ≠ MsgSnap) by (rewrite HAR; w32_ne).
       finish_some mtype.AppResp.
     - (* (e) a forwarded proposal: [Term] stays zero; not a response *)
       assert (HnV : m.(raftpb.Message.Type') ≠ MsgVote) by (rewrite HProp; w32_ne).
@@ -169,8 +204,8 @@ Import P.
       rewrite bool_decide_eq_false_2 //. wp_auto.
       send_tail own_raft_phys_msgs.
       iDestruct ("Hback" with "Hf Hq Hq_cap []") as "Hphys".
-      { iRight; iExists mtype.Propose, _; iFrame "Hents"; iPureIntro.
-        split; [ rewrite /= HProp; done | reflexivity ]. }
+      { iRight; iLeft; iExists mtype.Propose, _; iFrame "Hents"; iPureIntro.
+        split_and!; [ rewrite /= HProp; done | (intros ?; discriminate) | reflexivity ]. }
       iApply (own_raft_phys_eq with "Hphys").
       rewrite /send_msgs /abs_msg /abs_msg_from /= Hmterm //.
   Qed.

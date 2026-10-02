@@ -258,6 +258,19 @@ model note, "Phase 2"), then pre-vote, reconfiguration, read-only.
 Also pending: `origin/main` has four commits (`4f48cb6de`) not merged into
 the branch, one of which (`873b7d26a`) touches the election cone.
 
+**Snapshots, model side, done** (2026-10-02, `e57c313f2`): `msg.voters`,
+`abs_snap`, `is_message` for `Snap`, rules `step_snap_restore/_fastfwd/_stale`
+(ghost updates Qed), `send_ok`'s `MsgSnap` clause, `Step`'s `"Hsnap"`
+conjunct (unused until `step_msg` gets `MsgSnap`). One new admit,
+`snap_ok_message` -- a client-`Storage` assumption (the snapshot's metadata
+is a committed entry id), not a protocol fact; and a known weakness: a
+*queued* `MsgSnap`'s abstraction (`msg_abs`) is not yet tied to the heap
+behind `m.Snapshot`, because `send` has no snapshot precondition and
+`raftLog.snapshot` returns the value -- tightening needs the
+`Storage.Snapshot` contract to pin the metadata and voters. Next: the log
+side (`logstate.snap`, `restore`, `handleSnapshot`, the `MsgSnap` `Step`
+branch); see raft-replication-model.md, "Phase 2".
+
 ## What still needs fixing
 
 Ranked by how much the proof's meaning depends on it. Unclaimed; pick one and
@@ -314,6 +327,12 @@ say so in the journal.
    their results (`plog_up_to_date`, `plog_last`, `plog_term_at`), and
    `step_grant_vote` carries the up-to-date premise. What remains is the
    protocol-level use of it: `leader_completeness` is admitted.
+5a. **`snap_ok_message` (admitted, `protocol.v`)**: what a leader's
+   `MsgSnap` carries (`is_committed index`, `is_snap_meta`). Not provable
+   from the model: `is_Storage`'s `HSnapshot` says only `index ≠ 0`. Needs
+   `HSnapshot` to pin the metadata to the stored log below `applied`, and
+   `raftLog.snapshot`'s spec to pass it on. Also: `msg_abs`'s `MsgSnap`
+   case is not tied to the heap (see raft-replication-model.md).
 5b. **The five admits in `protocol.v`** (`heartbeat_commit_le_last`,
    `app_no_conflict_below_commit`, `log_matching`, `leader_completeness`,
    `state_machine_safety`). All need one ghost invariant the state does not

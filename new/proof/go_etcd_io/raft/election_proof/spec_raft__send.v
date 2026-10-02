@@ -36,13 +36,23 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
         caller's and is kept.  A [MsgVote] goes onto [r.msgs] and must not
         be self-addressed; a [MsgVoteResp] is a response and may be.
     (b) a message stamped with the current term and queued on [r.msgs]:
-        [MsgApp], [MsgHeartbeat], [MsgSnap], [MsgHeartbeatResp].  [Term]
-        must be unset; the abstract message carries [s.term], which is what
-        [send] stamps in ([r.Term = s.term] by [own_raft_phys]).  Not
-        self-addressed ([Panicf]).
+        [MsgApp], [MsgHeartbeat], [MsgReadIndexResp], [MsgHeartbeatResp].
+        [Term] must be unset; the abstract message carries [s.term], which
+        is what [send] stamps in ([r.Term = s.term] by [own_raft_phys]).
+        Not self-addressed ([Panicf]).  ([MsgSnap] was here until
+        2026-10-02; it has its own clause now, (c').  [MsgReadIndexResp],
+        which nothing in scope sends, takes exactly this path through the
+        body and holds its place, so that a caller's [by right; right;
+        right] still picks [MsgHeartbeatResp].)
     (c) a message the model does not describe ([mtype_of = None]).  It is
         queued and drops out of the abstract outbox.  [Term] unset, not
         self-addressed.
+    (c') [MsgSnap] (2026-10-02): stamped and queued like (b), but the
+        abstract message is [abs_snap_from] -- the snapshot's metadata
+        [sv] and voters [voters], which the caller names: [m.Snapshot] is
+        a pointer and [send] does not read it.  (Stated as the left
+        disjunct of (c), which no caller uses, so that no caller's clause
+        selection moved.)
     (d) [MsgAppResp]: stamped like (b), but a response, so it goes onto
         [r.msgsAfterAppend] and may be self-addressed ([appendEntry]'s
         self-acknowledgement is).
@@ -65,16 +75,23 @@ Definition send_ok {ext : ffi_syntax} (id : w64) (s : nstate.t) (m : raftpb.Mess
   ∨
   (∃ ty,
      (m.(raftpb.Message.Type') = MsgApp ∨ m.(raftpb.Message.Type') = MsgHeartbeat ∨
-      m.(raftpb.Message.Type') = MsgSnap ∨ m.(raftpb.Message.Type') = MsgHeartbeatResp) ∧
+      m.(raftpb.Message.Type') = MsgReadIndexResp ∨
+      m.(raftpb.Message.Type') = MsgHeartbeatResp) ∧
      mtype_of m.(raftpb.Message.Type') = Some ty ∧
      m.(raftpb.Message.Term') = W64 0 ∧
      m.(raftpb.Message.To') ≠ id ∧
      out = [abs_msg_from ty m id s.(nstate.term) ents])
   ∨
-  (mtype_of m.(raftpb.Message.Type') = None ∧
-   m.(raftpb.Message.Term') = W64 0 ∧
-   m.(raftpb.Message.To') ≠ id ∧
-   out = [])
+  ((m.(raftpb.Message.Type') = MsgSnap ∧
+    m.(raftpb.Message.Term') = W64 0 ∧
+    m.(raftpb.Message.To') ≠ id ∧
+    ∃ (sv : raftpb.Snapshot.t) (voters : list w64),
+      out = [abs_snap_from m id s.(nstate.term) sv voters])
+   ∨
+   (mtype_of m.(raftpb.Message.Type') = None ∧
+    m.(raftpb.Message.Term') = W64 0 ∧
+    m.(raftpb.Message.To') ≠ id ∧
+    out = []))
   ∨
   (m.(raftpb.Message.Type') = MsgAppResp ∧
    m.(raftpb.Message.Term') = W64 0 ∧
@@ -94,7 +111,8 @@ Definition send_ok {ext : ffi_syntax} (id : w64) (s : nstate.t) (m : raftpb.Mess
     (the last [done] fixes [out]); for a [MsgApp], [right; left; exists
     mtype.App; split_and!; [by left | .. | done | <To ≠ id> | done]]; for
     [MsgAppResp], [right; right; right; left; split_and!; [done | done |
-    done]].  These are not lemmas here because a spec file states and does
+    done]]; for [MsgSnap], [right; right; left; left; split_and!; [done |
+    done | <To ≠ id> | exists sv, voters; done]].  These are not lemmas here because a spec file states and does
     not prove (etc/check-module-discipline.py, F3).
 
     **[ents].**  [m.Entries ↦*□ ents] is a precondition: it is what

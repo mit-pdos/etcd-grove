@@ -29,13 +29,28 @@ Implicit Type s : nstate.t.
     the heap rather than of [m] alone: [m.Entries] is a slice
     ([notes/raft-replication-model.md], "Abstract messages").
 
+    A [MsgSnap] is abstracted by [abs_snap m sv voters] instead (since
+    2026-10-02), the snapshot's metadata.  **Not yet tied to the heap**:
+    [sv]/[voters] should be what [m.Snapshot ↦□ sv] and [sv]'s
+    [ConfState.Voters ↦*□ voters] say, but [send] -- the only producer of
+    a [msg_abs] -- has no such precondition (adding one changes every
+    caller's proof), and [maybeSendSnapshot] could not supply the voters'
+    points-to anyway ([raftLog.snapshot]/[is_Storage]'s [HSnapshot] give no
+    ownership of them).  So today a queued [MsgSnap]'s metadata is whatever
+    its sender's spec says it is ([maybeSendSnapshot]: the [Storage]'s
+    snapshot), and nothing in [own_raft_phys] re-reads it.  The receiving
+    side, [Step]'s ["Hsnap"], does hold the points-tos.
+
     [outbox_rel o msgs msgsAA]: the abstract outbox [o] is, up to
     permutation, what the two queues contribute.  Persistent. *)
 Definition msg_abs (m : raftpb.Message.t) (a : option msg.t) : iProp Σ :=
   (⌜ mtype_of m.(raftpb.Message.Type') = None ∧ a = None ⌝) ∨
-  (∃ ty ents, ⌜ mtype_of m.(raftpb.Message.Type') = Some ty ∧
+  (∃ ty ents, ⌜ mtype_of m.(raftpb.Message.Type') = Some ty ∧ ty ≠ mtype.Snap ∧
                 a = Some (abs_msg ty m ents) ⌝ ∗
-              m.(raftpb.Message.Entries') ↦*□ ents).
+              m.(raftpb.Message.Entries') ↦*□ ents) ∨
+  (⌜ mtype_of m.(raftpb.Message.Type') = Some mtype.Snap ∧
+     ∃ (sv : raftpb.Snapshot.t) (voters : list w64),
+       a = Some (abs_snap m sv voters) ⌝).
 
 Definition abs_list (as_ : list (option msg.t)) : list msg.t := omap (λ a, a) as_.
 
