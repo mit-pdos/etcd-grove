@@ -4607,3 +4607,48 @@ still apply.
   election_proof`: 3 warnings, no errors. `tcb-report --scope
   election_proof`: 14 Axiom, 6 Admitted (5 `protocol.v`, `raftLog.slice`),
   495 Qed (+1: `own_tracker_intro`).
+
+## 2026-10-02 — replication safety in `protocol.v`: log records and justified acks; three admits closed
+
+Branch `worktree-agent-a4682d19edcb78d87`, from `c0edb8a9f`. Footprint:
+`protocol.v` only (no rule, receiver-lemma or `step_lemmas.v`/`defs.v`
+statement changed). `make -k -j4 …/election.vo` green (37m50s).
+
+**The invariant** (overview in `protocol.v`'s ghost-state header and in
+raft-replication-model.md, "As built, replication-safety pass"):
+- term logs record the leader's base and log at its win
+  (`is_term_log γ v t γt b l0`) and hold created entries with their
+  predecessor's term (`is_entry_r γ e pt`);
+- `own_log_ghost`: `log_ok` (`plog_wf_r`, `base ≤ commit ≤ last`),
+  `log_recs` (every entry's `is_entry_r` with its predecessor's term in this
+  log), `acks_term` (acks only at one's own term), `acks_ok` (a
+  non-leader's current-term acks above commit are `ack_agree`: the log
+  agrees at `i` with a `lead_prefix` of that term's leader);
+- `is_message`: `App`/`Snap` carry a `lead_prefix` of the sender's log
+  covering what they say; `Heartbeat` carries `∃ i ≥ Commit, is_acked to
+  term i`.
+
+**Closed**: `heartbeat_commit_le_last`, `app_no_conflict_below_commit`
+(pure arithmetic from `app_payload_ok` + the `commit ≤ m.index` premise --
+it never needed Leader Completeness), `log_matching` (from two logs'
+records alone). Every `own_raft_ghost_step` case and `own_raft_ghost_alloc`
+are Qed. **Remaining admits** (3): `snap_ok_message` (client-`Storage`
+assumption; its conclusion grew a third conjunct, that the leader's log
+has the snapshot's `(term, index)`), `leader_completeness`,
+`state_machine_safety`.
+
+**Finding: LC and SMS are not provable as stated.** They hold two nodes'
+`own_raft_ghost` and quantify over `γ`; the argument needs a third node
+(the voter in both quorums) to have voted only with the committed entry
+in its log, and that node's votes/acks are fragments of its own maps,
+which nothing constrains without its ghost state (counter-model in
+`leader_completeness`'s comment). A proof needs a cluster-wide statement,
+a per-node history invariant tying votes to logs and earlier acks, and an
+`is_committed` that names entries. Log Matching escapes this because it
+rests only on fragment agreement.
+
+Model observations: `step_win` has no no-wrap premise, so a log at
+`lastIndex() = 2^64-1` gets a wrapped entry -- hence `plog_wf_r`
+(well-formed in range) rather than `plog_wf`. `step_app_accept`'s
+conflict premise is implied by its `commit ≤ index` premise.
+
