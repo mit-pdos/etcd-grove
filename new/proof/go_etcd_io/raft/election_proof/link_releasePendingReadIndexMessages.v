@@ -1,0 +1,8 @@
+Require Export New.proof.go_etcd_io.raft.election_proof.proof_releasePendingReadIndexMessages.
+
+Module ReleasePendingReadIndexMessagesPostulates
+  : RELEASEPENDINGREADINDEXMESSAGES_POSTULATES.
+End ReleasePendingReadIndexMessagesPostulates.
+
+Module ReleasePendingReadIndexMessages :=
+  ReleasePendingReadIndexMessagesProof ReleasePendingReadIndexMessagesPostulates.

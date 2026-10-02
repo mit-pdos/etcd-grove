@@ -35,26 +35,36 @@ Context (cfg : gset w64).
     this (2026-09-23; it used to consume and return the whole of
     [own_raft_misc], including two slices it never touches). *)
 Definition own_read_only (ro : loc) : iProp Σ :=
-  ∃ (rov : raft.readOnly.t) (acks : gmap w64 w64) (ucr : list loc),
+  ∃ (rov : raft.readOnly.t) (acks : gmap w64 w64),
   "Hro" ∷ ro ↦ rov ∗
   "Hacks" ∷ rov.(raft.readOnly.acks') ↦$ acks ∗
-  "Hucr" ∷ rov.(raft.readOnly.unconfirmedReads') ↦* ucr ∗
+  (** Scope (phase 1): no read-index requests, so [unconfirmedReads] is
+      empty -- which is what makes [heartbeatCtx] return [nil].  Stated by
+      putting the empty list in the points-to rather than as a separate
+      [⌜ ucr = [] ⌝] over an existential [ucr]: the same assertion, and the
+      re-seals that frame this predicate by name keep working
+      (2026-10-01). *)
+  "Hucr" ∷ rov.(raft.readOnly.unconfirmedReads') ↦* ([] : list loc) ∗
   "Hucr_cap" ∷ own_slice_cap loc
                  rov.(raft.readOnly.unconfirmedReads') (DfracOwn 1).
 
 (** Full ownership of the three fields election neither reads nor writes
     and everything hanging off them: the [readStates] slice, the
     [readOnly] object, and the [pendingReadIndexMessages] slice.  The
-    *contents* are existential -- election never reads any of it -- but the
-    ownership is real, so nothing else in the development can claim the
+    [readStates] contents are existential -- nothing in scope reads them --
+    and the two read-index queues are empty (phase-1 scope, 2026-10-01);
+    the ownership is real, so nothing else in the development can claim the
     same heap. *)
 Definition own_raft_misc (readStates : slice.t) (ro : loc)
                          (pendingReadIndex : slice.t) : iProp Σ :=
-  ∃ (rss : list raft.ReadState.t) (prims : list raftpb.Message.t),
+  ∃ (rss : list raft.ReadState.t),
   "HreadStates" ∷ readStates ↦* rss ∗
   "HreadStates_cap" ∷ own_slice_cap raft.ReadState.t readStates (DfracOwn 1) ∗
   "Hro_obj" ∷ own_read_only ro ∗
-  "Hpri" ∷ pendingReadIndex ↦* prims ∗
+  (** Scope (phase 1): no read-index requests, so no [MsgReadIndex] is
+      pending -- which is what makes [releasePendingReadIndexMessages] a
+      no-op.  The empty list is in the points-to, as for [Hucr] above. *)
+  "Hpri" ∷ pendingReadIndex ↦* ([] : list raftpb.Message.t) ∗
   "Hpri_cap" ∷ own_slice_cap raftpb.Message.t pendingReadIndex (DfracOwn 1).
 
 

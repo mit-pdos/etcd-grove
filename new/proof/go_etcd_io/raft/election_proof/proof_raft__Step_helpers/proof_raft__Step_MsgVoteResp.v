@@ -301,9 +301,22 @@ Implicit Type s : nstate.t.
           assert (s.(nstate.stepfn) = functions raft.stepLeader []) as Hsf
             by (rewrite Hsfw ?Hrole //).
           rewrite Hsf.
-          wp_apply (P.wp_stepLeader_MsgVoteResp with "[$Hphys]")
-            as (err) "[Hphys %Herrn]".
-          { done. }
+          (* [stepLeader]'s widened spec: its premises about other message
+             types are vacuous here, and its [MsgVoteResp] case is "unchanged" *)
+          iAssert (⌜ m.(raftpb.Message.Type') = MsgHeartbeatResp ⌝ -∗
+                   m.(raftpb.Message.Context') ↦*□ ([] : list w8))%I as "Hctx0".
+          { iIntros "%Hc". exfalso. revert Hc. rewrite Hty /MsgVoteResp /MsgHeartbeatResp.
+            w32_ne. }
+          wp_apply (P.wp_stepLeader with "[$Hphys $Hctx0]")
+            as (err s') "(Hphys & %Herrn & %Hres)".
+          { by left. }
+          { exact Hrole. }
+          { exact Hcfg. }
+          { rewrite Hty /MsgVoteResp /MsgAppResp. intros Hc. exfalso. revert Hc. w32_ne. }
+          { rewrite Hty /MsgVoteResp /MsgAppResp /MsgHeartbeatResp.
+            intros [Hc|[Hc _]]; exfalso; revert Hc; w32_ne. }
+          destruct Hres as [[_ ->]|[[Hc _]|[[Hc _]|[Hc _]]]];
+            [| exfalso; revert Hc; rewrite Hty; w32_ne ..].
           rewrite Herrn. wp_auto.
           iApply ("HΦ" $! interface.nil s). iFrame "Hphys".
           iPureIntro. split; first exact Hwf. split; last done.

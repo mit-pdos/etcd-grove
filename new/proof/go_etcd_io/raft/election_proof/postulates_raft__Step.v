@@ -5,7 +5,7 @@ Require Export New.proof.go_etcd_io.raft.election_proof.postulates_voteRespMsgTy
 Require Export New.proof.go_etcd_io.raft.election_proof.postulates_raft__send.
 Require Export New.proof.go_etcd_io.raft.election_proof.postulates_stepCandidate_MsgVoteResp.
 Require Export New.proof.go_etcd_io.raft.election_proof.postulates_stepFollower_MsgVoteResp.
-Require Export New.proof.go_etcd_io.raft.election_proof.postulates_stepLeader_MsgVoteResp.
+Require Export New.proof.go_etcd_io.raft.election_proof.postulates_stepLeader.
 Require Export New.proof.go_etcd_io.raft.election_proof.postulates_traceReceiveMessage.
 Require Export New.proof.go_etcd_io.raft.election_proof.postulates_raftLog__lastEntryID.
 Require Export New.proof.go_etcd_io.raft.election_proof.postulates_raftLog__isUpToDate.
