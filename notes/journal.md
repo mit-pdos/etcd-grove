@@ -4289,8 +4289,13 @@ files are not yet `Require`d by anything -- the dispatch agent wires them in):
   `step_higher_term` then the rule, via `step_trans`), `[]` (stale term;
   and the leader at its own term, `step_refl`).
 
-Checked: each file with `rocq compile` (scratch copies, `-vo`): gt 337s/257s,
-lt 149s/144s, eq 62s/63s (App/Heartbeat; the gt/lt times are with a `-j4`
-cone build running beside them), pure lemmas 6s, combining files 5s.
+Checked in tree: `make -j1 …/proof_raft__Step_{MsgApp,MsgHeartbeat}.vo`
+exit 0 on top of a green `election.vo` cone build of `6d528cc61`.  Times
+(`vo`, App/Heartbeat): gt 172s/121s, lt 60s/59s, eq 42s/43s, combining 4s/4s,
+pure lemmas 5s.  `check-module-discipline --scope election_proof`: 3
+warnings, unchanged.  No `Progress`-level definition is used: the
+`prvals` the step-downs leave are carried opaquely (`<| nstate.prvals := pvs |>`
+with `pvs` untyped in the lemmas), so the public-predicate refactor should
+not touch these files.
 Gotcha: `destruct s.(nstate.role) eqn:Hrole` also rewrites the role inside a
 premise `role = Follower → …`; apply it to `eq_refl` afterwards.
