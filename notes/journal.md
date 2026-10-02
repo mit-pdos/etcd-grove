@@ -4026,3 +4026,5 @@ needs `typed_pointsto_not_null` on the borrowed `Progress` to rule out a
 nil pointer in the map; `(⌜P⌝ -∗ Q)` is the convenient form for a
 type-conditional resource premise (the caller discharges it with
 `exfalso` on the other types).
+
+Checked: `make -k -j6 .../election.vo` rebuilt the whole `inv_misc.v` cone (242 files, every `proof_raft__Step` helper included), 0 errors, exit 0; `check-module-discipline --scope election_proof`: 5 findings, no errors (the `stepLeader` N1 note is gone).
