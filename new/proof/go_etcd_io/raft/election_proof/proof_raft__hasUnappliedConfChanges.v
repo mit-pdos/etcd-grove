@@ -131,11 +131,11 @@ Import P.
         + assert (∃ e, es !! Z.to_nat (sint.Z k) = Some e) as [e He]
             by (apply lookup_lt_is_Some_2; word).
           (* the range construct'sl own read of [ents[j]] *)
-          rewrite decide_True; last word.
+          case_decide as Hdec; [clear Hdec | exfalso; apply Hdec; word].
           wp_apply (wp_load_slice_index (V:=raftpb.Entry.t) (t:=raftpb.Entry)
                       sl (sint.Z k) es dq e with "[$Hes]") as "Hes";
             try first [ word | iPureIntro; exact He | tc_solve | done ].
-          rewrite decide_True; last word.
+          case_decide as Hdec; [clear Hdec | exfalso; apply Hdec; word].
           assert (e.(raftpb.Entry.Type') = EntryNormal) as HeT.
           { rewrite List.Forall_forall in HPes. apply HPes, list_elem_of_In.
             by eapply list_elem_of_lookup_2. }
@@ -146,7 +146,7 @@ Import P.
           wp_auto.
           rewrite HeT /EntryNormal bool_decide_eq_false_2; last w32_ne.
           wp_auto.
-          rewrite decide_True; last word.
+          case_decide as Hdec; [clear Hdec | exfalso; apply Hdec; word].
           wp_auto.
           rewrite HeT /EntryNormal bool_decide_eq_false_2; last w32_ne.
           wp_auto.

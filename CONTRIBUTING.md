@@ -175,6 +175,42 @@ a database in place the next time it writes to one. `./etc/rocqc.py
 (those same checks are pytest tests in `etc/test_coqc.py`, but pytest is not
 a dependency and no CI job runs it).
 
+### Build reports
+
+`make ci` ends with a report on the build it just ran, pass or fail (it exits
+with the build's status either way):
+
+- **totals**: wall time from `make` starting to the last compile ending, CPU
+  time, the average and peak number of compiles running against the job
+  slots `-j` offered, and how long the build ran at most one compile;
+- **parallelism over time**, as a chart of running compiles;
+- the **critical path** as it happened: from the compile that finished last,
+  back through the dependency each step waited for. `idle` is the gap
+  between that dependency finishing and the step starting, which is waiting
+  for a free job slot (or, first step, for `make` to start). It also gives
+  the longest dependency chain by compile time, which is how long the build
+  would take with unlimited cores;
+- the **slowest files** (time, CPU, peak memory), **where the CPU went** by
+  directory, and any **failed compiles**.
+
+In GitHub Actions the same report, as markdown, goes on the run's summary
+page (`BUILD_REPORT_ARGS="--markdown-to $GITHUB_STEP_SUMMARY"` in
+`ci.yml`). By hand:
+
+```
+make build-report                          # the latest build, whatever its goals
+./etc/build-report.py --list               # every build recorded
+./etc/build-report.py --build ID --format markdown
+./etc/build-report.py --selftest
+```
+
+It works because `rocqc.py` also files each compile under the `make` run it
+belongs to: the Makefile sets `ROCQ_BUILD_ID` (with its start time and goals)
+once per top-level `make`, and `rocqc.py` records start, end, CPU, peak memory
+and exit status per compile in the `builds`/`build_files` tables, failed
+compiles included. With `TIMED=false`, or under Rocq CI's `TIMING`, there is
+no wrapper and so no report. Dependencies come from `.rocqdeps.d`.
+
 ## Updating Goose output
 
 This repo has committed versions of the output of Goose, to avoid making Goose

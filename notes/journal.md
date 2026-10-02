@@ -3894,6 +3894,71 @@ built -- the first full `vo` build of the raft proof since 2026-09-17.
 `tcb-report --proof-root …/election_proof`: 14 Axiom, 1 Admitted, 273 Qed
 (unchanged); `--proof-root …/raft`: 27 Axiom, 8 Admitted, 291 Qed.
 
+## 2026-09-30 — fresh-machine toolchain, and measured build times
+
+A new 24-core / 94 GB Ubuntu 26.04 box had nothing on it. Installed opam
+2.5.0, a `perennial` switch (OCaml 5.4.1, Rocq master `7751ff3ea`, stdlib
+dev `cdd77d8c6`, the five pins), Go 1.26.0 in `/usr/local/go`, uv 0.9.11,
+ruff 0.16.5, and the upamanyus `rocq-warm` in `~/rocq-warm` (symlinked into
+`~/.local/bin`, `ROCQ_WARM_MAX_SESSION_GB=32`). `~/.profile` puts all of it
+on `PATH` and evals the switch. The exact recipe and the timing table are in
+STATUS.md, "Working on this"; the stable-Rocq trap is in gotchas.md.
+
+A first attempt on stable Rocq 9.2.0 and a second on master both stopped at
+`chan/au_spec/chan_au_{recv,send}.v` ("No applicable tactic") — the `done`
+override, fixed on main by d2a852f94/3e8d16fa2. At e5bb0dc33, three builds
+from scratch at `-j24`, all exit 0: election closure 664 files / 63 min;
+`election_proof/` alone 412 files / 21 min; `make ci` 872 files / 65 min.
+All three are critical-path bound (4.5–7.7 cores busy on average out of 24);
+`heapSort.v` (939 s) and `proof_raftLog__slice.v` (865 s) are each compiled
+with nothing else running.
+
+## 2026-09-30 — election proof 21 → 13 min: intro lemmas and `case_decide`
+
+Asked why `proof_raftLog__slice.v` (865 s, on the critical path) is slow and
+whether it is `word`. It is not: per-sentence `-time` put `word` at 3.8 s.
+`reseal_log` (`iFrame "∗#%"`) was 406 s over 8 exits, one
+`rewrite decide_True; last word` 74–119 s (of which `word` 3 s). Fixed there
+first (724 → 270 s alone), then profiled all 412 files with `make TIMING=1`
+to find the same idioms elsewhere (~1,350 s), and converted every site
+costing more than ~10 s:
+
+- new `own_raftLog_intro` (`inv_raftlog.v`) and `own_tracker_intro`
+  (`inv_tracker.v`), on the `own_raft_phys_intro` model; 11 `own_raftLog`
+  and 14 `own_tracker` re-seals now use them, plus the three `iFrame "∗#%"`
+  left in `inv_raft_phys.v`;
+- 20 `rewrite decide_True; last word` → `case_decide as Hdec; [clear Hdec |
+  exfalso; apply Hdec; word]`.
+
+Checked: `election_proof/` rebuilt from scratch at `-j24`, rc 0, 412 files,
+**13:04 wall (was 21:10)**, critical path 653 s (was 1,156 s); `make ci`
+green; `tcb-report` unchanged (14 Axiom, 1 Admitted in `election_proof`);
+module discipline 6 findings, as before the change (STATUS said 5; stale).
+Untouched big files got 10–20% slower in the same build — more of them now
+overlap — so compare wall time, not per-file seconds.
+
+## 2026-09-30 — `make ci` prints a build report
+
+Asked for, on every CI build: build time, parallelism over time, slowest
+files and the critical path. Added `etc/build-report.py` (standard library,
+`--selftest`), extended `etc/rocqc.py` to record every compile's start, end,
+CPU, peak memory and exit status per `make` run (`builds`/`build_files`;
+the Makefile sets `ROCQ_BUILD_ID` once per top-level make), made `make ci`
+run the build as a sub-make and print the report after it, pass or fail,
+exiting with the build's status, and passed `--markdown-to
+$GITHUB_STEP_SUMMARY` in `ci.yml`. How to read it: CONTRIBUTING.md, "Build
+reports"; why a mechanism: decisions.md.
+
+Checked: both selftests (18/18 each) and `ruff` clean; a two-file `make ci`
+(report correct by hand); a deliberately broken `election.v` under
+`make -k ci` (exit 2, report printed, the failure listed; file restored);
+and all of `election_proof/` rebuilt through `make -j24 ci`, rc 0. That last
+one took **21 minutes, not 13, because another session was running
+`make -j12` on the same machine** — the new "core share" row read 74%, which
+is how it showed; the per-file CPU < wall is the tell. So it is a
+demonstration of the report, not a timing; the 13-minute figure in
+STATUS.md stands from the uncontended run.
+
 ## 2026-10-01 — replication model (agent A): protocol.v extended, phys specs moved to it
 
 Branch `worktree-raft-replication`.  `make -j8 …/election_proof/election.vo`
@@ -4433,3 +4498,51 @@ helpers).  `make -k -j4 …/election.vo` green; `check-module-discipline
   `iDestruct (lem with "H") as "#H'"` keeps `"H"` when the result is
   persistent, so the name must be fresh; an `Ltac` cannot name a hypothesis
   (`exact Hlok` resolves at definition time -- use `assumption`).
+
+## 2026-10-02 — merged `main` (4f48cb6de) into the replication branch: intro lemmas, `case_decide`, build report
+
+Merged `origin/main` at 4f48cb6de (build report in `make ci`; the
+election proof's 21 → 13 min re-seal/`case_decide` pass 873b7d26a; two
+notes commits) into the replication branch at 3574293f1. Our statements
+and semantics kept everywhere; main's tactic changes adopted where they
+still apply.
+
+- **Adopted.** `own_raft_phys_intro`'s own proof now frames by name rather
+  than `iFrame "∗#%"` (with `Houtbox`, which main's version predates);
+  `own_raft_phys_progress_dom`/`_outbox` re-seal through it.
+  `own_tracker_intro` (main's new lemma) is **restated for the record-indexed
+  tracker**: it takes `votes prs peers` and concludes
+  `own_tracker tv (trk.mk votes prs peers)` — the hypotheses must fix the
+  three maps, since `iApply … with` specialises before it unifies the
+  conclusion; the three `inv_tracker.v` lemmas whose goal is at a variable
+  `t` do `destruct t` first (`trk.t` has no definitional eta). All of
+  main's call sites (`JointConfig.IDs`, `JointConfig.VoteResult`,
+  `RecordVote`, `TallyVotes`, `Visit`, `VoterNodes`, `campaign`,
+  `own_tracker_lookup/_maxinflight/_prvals_dom/_progress_map`) went in
+  unchanged. All of main's `case_decide` replacements in auto-merged files
+  went in, plus the one in `proof_raftLog__append.v` (a conflict).
+  `proof_raft__loadState.v`'s log re-seal now uses our `reseal_raftLog`
+  (main's idea, our lemma).
+- **Ours kept (equivalent change already on the branch).** The replication
+  branch had its own `own_raftLog_intro` (with `stored`, the two
+  `stored` premises and the two logger premises) and `reseal_raftLog`
+  tactic, so main's `own_raftLog_intro` and its ~12 call sites in
+  `proof_raftLog__*.v`/`appendEntry`/`hasUnappliedConfChanges` were
+  dropped in favour of ours.
+- **Not adopted.** `rewrite decide_True; last word` sites that exist only
+  on this branch (`proof_stepLeader.v`, `proof_raftLog__findConflict.v`)
+  were left alone; candidates for the same treatment.
+- **Trap met.** In `own_raft_phys_intro`, `iFrame "… Hlogger …"` before
+  `Hlog` frames `is_Logger lok` *inside* the unfolded `own_raftLog`'s
+  logger conjuncts, and `Hlog` then no longer matches; frame `Hlog` first.
+  The same failure mode as main's `own_tracker_progress_map` note.
+- Notes: decisions.md/journal.md keep both sides (main's 2026-09-30 entries
+  placed before ours by date); STATUS.md is ours with main's
+  toolchain/build-time text folded in (it auto-merged).
+- Build/audit after the merge: `make -k -j4 ci` green in 38m57s wall
+  (127 min CPU; another agent was building on the same box). The election
+  proof's critical path now runs through `proof_stepLeader.v` (14m53s),
+  not the re-seal chain main shortened. `check-module-discipline --scope
+  election_proof`: 3 warnings, no errors. `tcb-report --scope
+  election_proof`: 14 Axiom, 6 Admitted (5 `protocol.v`, `raftLog.slice`),
+  495 Qed (+1: `own_tracker_intro`).

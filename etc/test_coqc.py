@@ -17,7 +17,7 @@ import tempfile
 from datetime import datetime, timedelta, timezone
 from os.path import join
 
-from rocqc import Classify, CoqcFilter, TimingDb
+from rocqc import BuildInfo, Classify, CoqcFilter, TimingDb, make_jobs
 
 
 class MemDb:
@@ -282,3 +282,62 @@ def test_fresh_database_gets_the_mode_schema():
         conn.close()
         assert "mode" in cols
         assert "is_vos" not in cols
+
+
+# --- per-build rows --------------------------------------------------------
+#
+# What etc/build-report.py reads: one `builds` row per make run, one
+# `build_files` row per compile, failed compiles included.
+
+
+def test_make_jobs_from_makeflags():
+    assert make_jobs(None) is None
+    assert make_jobs("s") == 1
+    assert make_jobs("ks -j4 --jobserver-auth=fifo:/tmp/GMfifo1") == 4
+    assert make_jobs("s -j") == 0
+    assert make_jobs("-j24") == 24
+
+
+def test_build_info_needs_an_id():
+    assert BuildInfo.from_env({}) is None
+    info = BuildInfo.from_env(
+        {
+            "ROCQ_BUILD_ID": "b1",
+            "ROCQ_BUILD_START": "100.5",
+            "ROCQ_BUILD_GOALS": "ci",
+            "MAKEFLAGS": "s -j8",
+        }
+    )
+    assert (info.build, info.start, info.goals, info.jobs) == ("b1", 100.5, "ci", 8)
+
+
+def test_build_rows_are_recorded_for_success_and_failure():
+    with tempfile.TemporaryDirectory() as d:
+        dbfile = join(d, "t.sqlite3")
+        info = BuildInfo("b1", 100.0, "ci", 4)
+        start = datetime.fromtimestamp(110.0, timezone.utc)
+        for vfile, status, record in (("new/a.v", 0, True), ("new/b.v", 1, False)):
+            filter = CoqcFilter(
+                vfile, "vo", TimingDb.from_file(dbfile), b"", start, build=info
+            )
+            filter.done(
+                end_t=start + timedelta(seconds=5),
+                record=record,
+                status=status,
+                usage=(4.0, 0.5, 2048),
+            )
+        conn = sqlite3.connect(dbfile)
+        builds = conn.execute("SELECT * FROM builds").fetchall()
+        rows = conn.execute(
+            "SELECT fname, start, end, user, maxrss_kb, status FROM build_files "
+            "ORDER BY fname"
+        ).fetchall()
+        timed = conn.execute("SELECT fname FROM file_timings").fetchall()
+        conn.close()
+        assert builds == [("b1", 100.0, "ci", 4)]
+        assert rows == [
+            ("new/a.v", 110.0, 115.0, 4.0, 2048, 0),
+            ("new/b.v", 110.0, 115.0, 4.0, 2048, 1),
+        ]
+        # the failed compile is in its build, but not in file_timings
+        assert timed == [("new/a.v",)]
