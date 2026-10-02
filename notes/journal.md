@@ -4258,3 +4258,39 @@ For a proposal forwarded over the network the receiver gets a fresh copy,
 so the trusted network/Step boundary must hand out full ownership for
 `MsgProp` (or `appendEntry` must copy).  Step's premise table is in this
 session's final report.
+
+## 2026-10-02 — `Step` branch lemmas for `MsgApp` and `MsgHeartbeat`
+
+Branch from `6d528cc61`.  All `Qed`, no `Admitted`.  Nine new files under
+`election_proof/proof_raft__Step_helpers/`, functors over `STEP_POSTULATES`
+(the dispatch, `spec_raft__Step.v` and `proof_raft__Step.v` untouched; the
+files are not yet `Require`d by anything -- the dispatch agent wires them in):
+
+- `proof_raft__Step_repl_lemmas.v`: pure lemmas, no functor.  `step_handle_app`
+  / `step_handle_heartbeat` turn `handle_app_result` / `heartbeat_result` at a
+  state `t` with `to_pstate t = padopt_leader ps m.From` into
+  `step_app_stale/_accept/_reject` / `step_heartbeat` at `ps`;
+  `adopt_after_stepdown`, `adopt_follower`, `adopt_candidate` establish that
+  equation for the three ways the leader is adopted; `follower_/candidate_/
+  leader_step_result_*` take the `decide` chains apart outside any WP.
+  Trick worth reusing: `destruct ps` then `injection` of the `to_pstate`
+  equation gives one field equation per `pstate` field, and the goal is then
+  closed by rewriting them (rewrite the `matched` one before the `role` one).
+- `proof_raft__Step_{MsgApp,MsgHeartbeat}_{gt,lt,eq}.v`, one term case each,
+  and the combining `proof_raft__Step_{MsgApp,MsgHeartbeat}.v` with the
+  statements exactly as briefed **plus one premise**:
+  `s.(nstate.role) = role.Follower → s.(nstate.votes) = ∅`.  The follower
+  arm at the current term (`r.lead = m.From`) leaves `r.trk.Votes` alone,
+  while every replication rule's `padopt_leader` sets `votes := ∅`; a
+  follower's tally is empty in every reachable state (becomeFollower's
+  `reset`, `newRaft`), but neither `nstate_wf` nor `own_raft_ghost` says so.
+  The dispatch has to supply it -- cheapest is to add it to `nstate_wf`.
+- Recv lists: `[a]` (current term), `[a] ++ [a]` (higher term:
+  `step_higher_term` then the rule, via `step_trans`), `[]` (stale term;
+  and the leader at its own term, `step_refl`).
+
+Checked: each file with `rocq compile` (scratch copies, `-vo`): gt 337s/257s,
+lt 149s/144s, eq 62s/63s (App/Heartbeat; the gt/lt times are with a `-j4`
+cone build running beside them), pure lemmas 6s, combining files 5s.
+Gotcha: `destruct s.(nstate.role) eqn:Hrole` also rewrites the role inside a
+premise `role = Follower → …`; apply it to `eq_refl` afterwards.
