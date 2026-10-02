@@ -4065,3 +4065,39 @@ Files: `spec_/proof_raft__increaseUncommittedSize.v`,
 `spec_/proof_raft__appendEntry.v`, `proof_raft__becomeLeader.v`.  No
 dead-WP-branch `exfalso` was needed in `becomeLeader`: the bool is
 rewritten to `true` with the implication before `wp_auto` meets the `if`.
+
+## 2026-10-01 — replication wave 2, follower side: `handleAppendEntries`; `stepFollower`/`stepCandidate` widened
+
+Branch `worktree-agent-a0b6f7b1e97196737` (from c9341cbd4).  All `Qed`.
+
+- New collection `raft__handleAppendEntries`: postcondition
+  `handle_app_result id s m ents s'` (spec file), one disjunct per exit
+  (stale / accept / reject).  The `MsgAppResp`s are `app_resp`, i.e.
+  `abs_msg_from mtype.AppResp m' id s.term []`, field for field what
+  `step_app_stale`/`_accept`/`_reject` send.  Premises are maybeAppend's at
+  the message, conflict fact further guarded by `committed ≤ m.Index`; no
+  `Type`/`From`/`To` premise (nothing needs them).
+- **Reject path calls `zeroTermOnOutOfBounds(term(m.Index))` with a possibly
+  non-nil error** (`m.Index > lastIndex` is the usual rejection).  Needed:
+  `spec_raftLog__term.v` gains a last conjunct (`err` is nil or the value of
+  `ErrCompacted`/`ErrUnavailable`, by the globals' `↦□`; five callers'
+  intro patterns gained `& _`); `zeroTermOnOutOfBounds` now takes that
+  disjunction and returns `t'` with `err = nil → t' = t`;
+  `v3_proof/base.v` `is_initialized` gains `is_new_error` for both globals
+  and the `ErrProposalDropped` points-to (+ non-nil).  Trusted additions.
+- `stepFollower_MsgVoteResp` → `stepFollower`, `stepCandidate_MsgVoteResp` →
+  `stepCandidate` (git mv), premise `Type ∈ {VoteResp, Prop, App}`,
+  results `follower_step_result`/`candidate_step_result` (if-decide chains
+  on the type; MsgHeartbeat slot marked), `dropped : bool` with
+  `if dropped then global_addr ErrProposalDropped ↦□ err else err = nil`.
+  **DEFERRED**: follower `MsgProp` forwarding — `disableProposalForwarding`
+  is neither pinned in `own_raft_phys` nor loadable through
+  `inv_raft_phys.v`; premise `MsgProp → lead = 0` until a conjunct and a
+  load lemma exist (the relation already states the forwarding arm).
+- Gotchas: `rewrite decide_False` on a nested if-decide chain picks the
+  *inner* `decide` (ssreflect order) and the side goal then fails as "No
+  primitive equality found" in `w32_ne`; `case_decide` takes the outermost.
+  `wp_apply (lem _ _ _ (s <| lead := … |>) … with "[$Hphys]")` failed to
+  frame a `Hphys` at the same state; leave the state to the frame and
+  discharge the pure premises as `{ exact … }` goals.  A spec-file definition
+  mentioning `become_leader` needs the heap section `Context`.

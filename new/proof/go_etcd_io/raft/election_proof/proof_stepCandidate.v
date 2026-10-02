@@ -3,7 +3,12 @@ Require Export New.proof.go_etcd_io.raft.election_proof.postulates_stepCandidate
 Module StepCandidateProof (P : STEPCANDIDATE_POSTULATES) : STEPCANDIDATE.
 Import P.
 
-  (** [stepCandidate] on a [MsgVoteResp].  The type switch is walked to the
+  (** By type.  [MsgProp]: [Infof], then [return ErrProposalDropped] (the
+      global's points-to from [is_pkg_init_access]).  [MsgApp]:
+      [becomeFollower(m.Term, m.From)] with [m.Term = s.term], then
+      [handleAppendEntries] at the follower state.
+
+      [MsgVoteResp], unchanged since 2026-09: the type switch is walked to the
       [myVoteRespType] arm ([m.Type = MsgVoteResp], and [state = StateCandidate]
       so [myVoteRespType] is [MsgVoteResp] and not [MsgPreVoteResp]), then
       [poll] records the vote and the [res] switch does one of three things:
