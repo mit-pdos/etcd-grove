@@ -84,6 +84,7 @@ Import P.
       wp_auto.
       iApply ("HΦ" $! t interface.nil).
       iSplitL; first reseal_raftLog.
+      iEval (rewrite bi.sep_assoc). iSplitR; last by iLeft.
       iPureIntro. split; [split; [intros _; lia | done] | intros _].
       destruct (Hokt eq_refl) as (e & He & ->).
       eapply (plog_term_at_lookup _ _ _
@@ -105,7 +106,8 @@ Import P.
       + (* below the compaction boundary: [ErrCompacted] *)
         wp_auto.
         iApply ("HΦ" $! (W64 0) errCompacted).
-        iFrame "Hlog". iPureIntro. apply bool_decide_eq_true in Hb1.
+        iFrame "Hlog". iEval (rewrite bi.sep_assoc). iSplitR; last (iRight; iLeft; iExact "ErrCompacted").
+        iPureIntro. apply bool_decide_eq_true in Hb1.
         split; [split; [ intros Hc; exfalso; by apply HErrCompacted | intros Hr; exfalso; word ]
                | intros Hc; exfalso; by apply HErrCompacted ].
       + wp_auto.
@@ -114,7 +116,8 @@ Import P.
         * (* past the last entry: [ErrUnavailable] *)
           wp_auto.
           iApply ("HΦ" $! (W64 0) errUnavailable).
-          iFrame "Hlog". iPureIntro. apply bool_decide_eq_true in Hb2.
+          iFrame "Hlog". iEval (rewrite bi.sep_assoc). iSplitR; last (iRight; iRight; iExact "ErrUnavailable").
+          iPureIntro. apply bool_decide_eq_true in Hb2.
           split; [split; [ intros Hc; exfalso; by apply HErrUnavailable
                          | intros Hr; exfalso; word ]
                  | intros Hc; exfalso; by apply HErrUnavailable ].
@@ -143,6 +146,7 @@ Import P.
           wp_auto.
           iApply ("HΦ" $! t2 interface.nil).
           iSplitL; first reseal_raftLog.
+          iEval (rewrite bi.sep_assoc). iSplitR; last by iLeft.
           iPureIntro. split; [split; [intros _; lia | done] | intros _].
           by eapply term_at_visible.
   Qed.

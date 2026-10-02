@@ -192,7 +192,7 @@ Set Default Proof Using "Type".
     iDestruct (own_raftLog_no_confchange with "Hlog") as "[%Hlnc Hlog]".
     cbn [logstate.prev logstate.sents logstate.uents] in Hlwf, Hlnc.
     wp_apply (wp_raftLog__term _ (logstate.mk prev sents uents lcm lap) _ with "[$Hlog]")
-      as "%pterm %err [Hlog [%Herr %Hterm_at]]".
+      as "%pterm %err (Hlog & %Herr & %Hterm_at & _)".
     cbn [logstate.prev logstate.sents logstate.uents] in Herr.
     iEval (rewrite -Hls) in "Hlog".
     iDestruct ("Hlogback" with "Hlog") as "Hphys".

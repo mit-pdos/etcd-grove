@@ -73,7 +73,9 @@ Import P.
                       e.(raftpb.Entry.Index') with "[$Hlog]")
             as "%t %err (Hlog & %Herr & _)". logstate_simpl.
           assert (err = interface.nil) as -> by (apply Herr; lia).
-          wp_apply (wp_raftLog__zeroTermOnOutOfBounds _ t interface.nil eq_refl).
+          wp_apply (wp_raftLog__zeroTermOnOutOfBounds _ t interface.nil with "[]")
+            as "%t' _".
+          { by iLeft. }
           wp_apply wp_slice_literal.
           try (iSplitR; [ done | ]); try iIntros "% [? _]"; try wp_auto.
           iNamed "Hlog". iEval (rewrite /own_raftLog_core /=) in "Hcore". iNamed "Hcore".

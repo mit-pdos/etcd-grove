@@ -1,9 +1,14 @@
-Require Export New.proof.go_etcd_io.raft.election_proof.postulates_stepCandidate_MsgVoteResp.
+Require Export New.proof.go_etcd_io.raft.election_proof.postulates_stepCandidate.
 
 Module StepCandidateProof (P : STEPCANDIDATE_POSTULATES) : STEPCANDIDATE.
 Import P.
 
-  (** [stepCandidate] on a [MsgVoteResp].  The type switch is walked to the
+  (** By type.  [MsgProp]: [Infof], then [return ErrProposalDropped] (the
+      global's points-to from [is_pkg_init_access]).  [MsgApp]:
+      [becomeFollower(m.Term, m.From)] with [m.Term = s.term], then
+      [handleAppendEntries] at the follower state.
+
+      [MsgVoteResp], unchanged since 2026-09: the type switch is walked to the
       [myVoteRespType] arm ([m.Type = MsgVoteResp], and [state = StateCandidate]
       so [myVoteRespType] is [MsgVoteResp] and not [MsgPreVoteResp]), then
       [poll] records the vote and the [res] switch does one of three things:
@@ -16,17 +21,52 @@ Import P.
       [become_follower s1 s1.(nstate.term) (W64 0)] is verbatim
       [vote_resp_result]'s [lost] branch.  [VotePending] leaves the state at
       [s1] and sends nothing. *)
-  Lemma wp_stepCandidate_MsgVoteResp : wp_stepCandidate_MsgVoteResp_body.
+  Lemma wp_stepCandidate : wp_stepCandidate_body.
   Proof.
     intros_ambient.
-    intros cfg r id s m.
-    intros Hty Hto Hterm Hrole Hcfg.
-    wp_start as "Hphys". wp_auto. wp_apply (wp_raft_load_state with "Hphys") as "Hphys".
+    intros cfg r id s m ents.
+    intros Hty Hterm Hrole Hcfg Happ.
+    wp_start as "[Hphys Hents]".
+    iDestruct (is_pkg_init_access with "[$]") as "@".
+    wp_auto. wp_apply (wp_raft_load_state with "Hphys") as "Hphys".
     (* [state = StateCandidate ≠ StatePreCandidate], so [myVoteRespType] is
        [MsgVoteResp]. *)
     rewrite Hrole /state_w64 /StateCandidate.
     rewrite bool_decide_eq_false_2; last w32_ne.
     wp_auto.
+    destruct Hty as [Hty|[Hty|Hty]].
+    2:{ (* [MsgProp]: no leader to forward to; dropped *)
+      rewrite Hty /MsgProp.
+      rewrite bool_decide_eq_true_2 //. wp_auto.
+      (wp_apply (wp_raft_load_id with "Hphys") as "Hphys";
+       wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log).
+      iApply ("HΦ" $! errPropDropped s true). iFrame "Hphys ErrPropDropped".
+      iPureIntro. rewrite /candidate_step_result Hty.
+      case_decide as H1; [exfalso; revert H1; w32_ne|].
+      case_decide as H2; done. }
+    2:{ (* [MsgApp]: [becomeFollower(m.Term, m.From)], then
+         [handleAppendEntries] *)
+      destruct (Happ Hty) as (Hwf & Hnw & Hnorm & Hconf).
+      specialize (Hterm (or_intror Hty)).
+      rewrite Hty /MsgApp.
+      rewrite bool_decide_eq_false_2; last w32_ne. wp_auto.
+      wp_apply (wp_raft__becomeFollower with "[$Hphys]").
+      iIntros (pvs) "Hphys". try wp_auto.
+      iDestruct ("Hents" with "[]") as "[#Hents Hcap]"; first done.
+      wp_apply (wp_raft__handleAppendEntries with "[$Hphys $Hents $Hcap]").
+      { exact Hwf. }
+      { exact Hnw. }
+      { exact Hnorm. }
+      { exact Hconf. }
+      iIntros (s') "[Hphys %Hres]". try wp_auto.
+      iApply ("HΦ" $! interface.nil s' false). iFrame "Hphys".
+      iPureIntro. split; last done.
+      rewrite /candidate_step_result Hty.
+      case_decide as H1; [exfalso; revert H1; w32_ne|].
+      case_decide as H2; [exfalso; revert H2; w32_ne|].
+      case_decide as H3; [|done].
+      split; first done. exists pvs. rewrite -Hterm. exact Hres. }
+    specialize (Hterm (or_introl Hty)).
     (* the type switch: [MsgVoteResp] is none of [MsgProp], [MsgApp],
        [MsgHeartbeat], [MsgSnap], so it falls through to [myVoteRespType].
        Only the first comparison needs help; once [m.Type] is the literal
@@ -58,10 +98,13 @@ Import P.
          term -- not one per peer; see [spec_raft__bcastAppend.v]. *)
       wp_apply (wp_raft__bcastAppend with "[$Hphys]").
       iIntros (ms pvs) "(Hphys & %Hms & %Hmm)". try wp_auto.
-      iApply ("HΦ" $! interface.nil _). iFrame "Hphys".
-      (* The postcondition is [⌜∃ …⌝ ∗ ⌜err = nil⌝]; [iFrame "Hphys"] does
-         *not* discharge the second, so [iPureIntro] leaves a conjunction. *)
-      iPureIntro. split; last done. exists true, false, ms, pvs.
+      iApply ("HΦ" $! interface.nil _ false). iFrame "Hphys".
+      (* The postcondition is [⌜result⌝ ∗ ⌜err = nil⌝]; [iFrame "Hphys"]
+         does *not* discharge the second, so [iPureIntro] leaves a
+         conjunction. *)
+      iPureIntro. split; last done.
+      rewrite /candidate_step_result. case_decide; [|done]. split; first done.
+      exists true, false, ms, pvs.
       split_and!;
         [ intros _; split_and!;
           [ by apply Hwon
@@ -75,17 +118,21 @@ Import P.
       wp_apply (wp_raft_load_Term with "Hphys") as "Hphys".
       wp_apply (P.wp_raft__becomeFollower with "[$Hphys]").
       iIntros (pvs) "Hphys". try wp_auto.
-      iApply ("HΦ" $! interface.nil _). iFrame "Hphys".
-      iPureIntro. split; last done. exists false, true, [], pvs.
+      iApply ("HΦ" $! interface.nil _ false). iFrame "Hphys".
+      iPureIntro. split; last done.
+      rewrite /candidate_step_result. case_decide; [|done]. split; first done.
+      exists false, true, [], pvs.
       split_and!;
         [ intros [=]
         | intros _; by apply Hlost
         | rewrite /vote_resp_result // ].
     - (* [quorum.VotePending]: neither switch arm fires; keep waiting. *)
       rewrite /VotePending bool_decide_eq_false_2; last w32_ne. wp_auto.
-      iApply ("HΦ" $! interface.nil s1). iFrame "Hphys".
+      iApply ("HΦ" $! interface.nil s1 false). iFrame "Hphys".
       (* nothing wrote a [Progress]: the values are [s1]'s own *)
-      iPureIntro. split; last done. exists false, false, [], s1.(nstate.prvals).
+      iPureIntro. split; last done.
+      rewrite /candidate_step_result. case_decide; [|done]. split; first done.
+      exists false, false, [], s1.(nstate.prvals).
       split_and!;
         [ intros [=]
         | intros [=]

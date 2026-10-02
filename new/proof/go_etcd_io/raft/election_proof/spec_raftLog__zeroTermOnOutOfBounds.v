@@ -1,21 +1,26 @@
 Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
 Require Export New.proof.go_etcd_io.raft.election_proof.plog.
 
-(** [l.zeroTermOnOutOfBounds(t, err)], at a [nil] error: returns [t].
+(** [l.zeroTermOnOutOfBounds(t, err)]: [t] for a [nil] error, [0] for
+    [ErrCompacted] / [ErrUnavailable].
 
     The body ([raftLog__zeroTermOnOutOfBoundsⁱᵐᵖˡ],
     new/code/go_etcd_io/raft/v3.v:1393) returns [t] for [err == nil], [0]
     for [err == ErrCompacted || err == ErrUnavailable], and [Panicf]s
-    otherwise.  **Only the [nil] case is specified**, as a premise.  The
-    other two would need, besides naming the two globals' values, that
-    they are comparable -- [err == ErrCompacted] with a non-[nil] [err]
-    is stuck on [CheckComparable] unless the dynamic type is known to be a
-    pointer ([is_new_error], [v3_proof/base.v]), and [is_initialized]
-    asserts that only of [ErrSnapshotTemporarilyUnavailable].  The one
-    caller, [findConflict], only calls it at an index in
-    [[prev.index, last]] (its own premise puts every batch entry at or
-    above [prev.index], and it tests [id.index <= lastIndex()]), where
-    [term] returns a [nil] error.  The result only feeds an [Infof].
+    otherwise.  The premise -- [err] is [nil] or the value of one of the
+    two globals -- is exactly what [raftLog.term]'s last conjunct gives,
+    and every caller passes [term]'s result straight in.
+
+    Until 2026-10-01 only the [nil] case was specified (as a pure
+    premise): comparing a non-[nil] [err] against [ErrCompacted] is stuck
+    on [CheckComparable] unless the dynamic type is known to be a pointer,
+    and [is_initialized] did not say so.  It now does ([is_new_error] for
+    both globals, [v3_proof/base.v]).  Widened for [handleAppendEntries],
+    whose reject path calls [zeroTermOnOutOfBounds(term(m.Index))] with
+    [m.Index] possibly past the last index, i.e. with [ErrUnavailable].
+    The result only feeds a [Debugf] there (and an [Infof] in
+    [findConflict]), so all that is said about it is that it is [t] on the
+    [nil] branch.
 
     The receiver is read only on the [Panicf] path, so the spec needs no
     ownership of the log. *)
@@ -24,10 +29,11 @@ Definition wp_raftLog__zeroTermOnOutOfBounds_body :=
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (l : loc) (t : w64) (err : interface.t),
-  err = interface.nil →
-  {{{ is_pkg_init raft }}}
+  {{{ is_pkg_init raft ∗
+      "#Herr" ∷ (⌜ err = interface.nil ⌝ ∨ (global_addr raft.ErrCompacted) ↦□ err ∨
+                 (global_addr raft.ErrUnavailable) ↦□ err) }}}
     l @! (go.PointerType raft.raftLog) @! "zeroTermOnOutOfBounds" #t #err
-  {{{ RET #t; True }}}.
+  {{{ (t' : w64), RET #t'; ⌜ err = interface.nil → t' = t ⌝ }}}.
 
 Module Type RAFTLOG__ZEROTERMONOUTOFBOUNDS.
   Parameter wp_raftLog__zeroTermOnOutOfBounds : wp_raftLog__zeroTermOnOutOfBounds_body.

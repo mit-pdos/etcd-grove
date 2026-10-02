@@ -17,7 +17,7 @@ Import P.
     wp_for "IH".
     wp_if_destruct.
     - wp_apply (wp_raftLog__term _ ls _ with "[$Hlog]")
-        as "%t %err (Hlog & %Herr & %Ht)".
+        as "%t %err (Hlog & %Herr & %Ht & _)".
       destruct err as [eok|].
       + wp_pure. wp_auto. wp_for_post.
         iApply "HΦ". iFrame. done.

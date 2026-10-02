@@ -173,8 +173,15 @@ Implicit Type s : nstate.t.
                  <| nstate.prvals := pvs |>).(nstate.stepfn)
               = functions raft.stepFollower []) as Hsf by done.
       rewrite Hsf.
-      wp_apply (P.wp_stepFollower_MsgVoteResp with "[$Hphys]") as (err) "[Hphys %Herrn]".
-      { done. }
+      wp_apply (P.wp_stepFollower _ _ _ _ _ [] with "[$Hphys]").
+      { by left. }
+      { intros Hc. exfalso. rewrite Hty6 in Hc. revert Hc. w32_ne. }
+      { intros Hc. exfalso. rewrite Hty6 in Hc. revert Hc. w32_ne. }
+      { iIntros "%Hc". exfalso. rewrite Hty6 in Hc.
+        destruct Hc as [Hc|Hc]; revert Hc; w32_ne. }
+      iIntros (err s1 dropped) "(Hphys & %Hres & Herrn)".
+      rewrite /follower_step_result decide_True // in Hres.
+      destruct Hres as [-> ->]. iDestruct "Herrn" as %Herrn.
       (* [stepFollower] returned [nil], so the error check falls through to
          the trailing [return nil]. *)
       rewrite Herrn. wp_auto.
@@ -232,9 +239,15 @@ Implicit Type s : nstate.t.
           assert (s.(nstate.stepfn) = functions raft.stepFollower []) as Hsf
             by (rewrite Hsfw ?Hrole //).
           rewrite Hsf.
-          wp_apply (P.wp_stepFollower_MsgVoteResp with "[$Hphys]")
-            as (err) "[Hphys %Herrn]".
-          { done. }
+          wp_apply (P.wp_stepFollower _ _ _ _ _ [] with "[$Hphys]").
+          { by left. }
+          { intros Hc. exfalso. rewrite Hty6 in Hc. revert Hc. w32_ne. }
+          { intros Hc. exfalso. rewrite Hty6 in Hc. revert Hc. w32_ne. }
+          { iIntros "%Hc". exfalso. rewrite Hty6 in Hc.
+            destruct Hc as [Hc|Hc]; revert Hc; w32_ne. }
+          iIntros (err s1 dropped) "(Hphys & %Hres & Herrn)".
+          rewrite /follower_step_result decide_True // in Hres.
+          destruct Hres as [-> ->]. iDestruct "Herrn" as %Herrn.
           rewrite Herrn. wp_auto.
           iApply ("HΦ" $! interface.nil s). iFrame "Hphys".
           iPureIntro. split; first exact Hwf. split; last done.
@@ -253,13 +266,16 @@ Implicit Type s : nstate.t.
           wp_hidden (iDestruct (own_tracker_progress_map with "Htrk") as "(_ & %Hprd & Htrk)").
           wp_hidden (iDestruct ("Hback" with "Htrkf Htrk") as "Hphys").
           assert (Hid : id ∈ dom s.(nstate.prvals)) by (rewrite Hpd Hprd; exact Hcfg).
-          wp_apply (P.wp_stepCandidate_MsgVoteResp with "[$Hphys]")
-            as (err s') "(Hphys & %Hres & %Herrn)".
-          { done. }
-          { exact Hto. }
-          { exact Hteq. }
+          wp_apply (P.wp_stepCandidate _ _ _ _ _ [] with "[$Hphys]").
+          { by left. }
+          { intros _. exact Hteq. }
           { exact Hrole. }
           { exact Hcfg. }
+          { intros Hc. exfalso. rewrite Hty6 in Hc. revert Hc. w32_ne. }
+          { iIntros "%Hc". exfalso. rewrite Hty6 in Hc. revert Hc. w32_ne. }
+          iIntros (err s' dropped) "(Hphys & %Hres & Herrn)".
+          rewrite /candidate_step_result decide_True // in Hres.
+          destruct Hres as [-> Hres]. iDestruct "Herrn" as %Herrn.
           rewrite Herrn. wp_auto.
           destruct Hres as (won & lost & ms & pvs & Hwon & Hlost & ->).
           iApply ("HΦ" $! interface.nil _). iFrame "Hphys".
