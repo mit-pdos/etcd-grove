@@ -6,7 +6,7 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
     Two things make the premise necessary rather than convenient.
 
     1. The body opens with [if in.Full() { panic("cannot add into a Full
-       inflights") }].  A triple without [inflights_full iv = false] would
+       inflights") }].  A triple without [inflights_full i = false] would
        be false, not merely weak.
     2. It then writes [in.buffer[(in.start+in.count) mod in.size]], growing
        the buffer on demand.  That the slot is in range is the content of
@@ -14,20 +14,19 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
        triple is *also* false (start = 100, count = 0, size = 1000, empty
        buffer is not [Full], grows to one slot and indexes slot 100).
 
-    The resulting [Inflights] value is existential: nothing on the election
-    path reads the window back.  [SentEntries] immediately re-tests [Full()],
-    and stores the answer in [MsgAppFlowPaused], which only [IsPaused]
-    reads -- and either answer there is fine. *)
+    The new record is [inflights_add i bytes] ([defs.v]): one more message,
+    [bytes] more bytes (wrapping, as [uint64]).  [SentEntries] immediately
+    re-tests [Full()] on it.  (Until 2026-10-02 the result was existential,
+    on [own_inflights] at the Goose value.) *)
 Definition wp_Inflights__Add_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
-    (l : loc) (iv : tracker.Inflights.t) (buf : list tracker.inflight.t)
-    (index bytes : w64),
-  inflights_full iv = false →
-  {{{ is_pkg_init tracker ∗ "Hin" ∷ own_inflights l iv buf }}}
+    (l : loc) (i : inflights.t) (index bytes : w64),
+  inflights_full i = false →
+  {{{ is_pkg_init tracker ∗ "Hin" ∷ own_Inflights l i }}}
     l @! (go.PointerType tracker.Inflights) @! "Add" #index #bytes
-  {{{ RET #(); ∃ iv' buf', own_inflights l iv' buf' }}}.
+  {{{ RET #(); own_Inflights l (inflights_add i bytes) }}}.
 
 Module Type INFLIGHTS__ADD.
   Parameter wp_Inflights__Add : wp_Inflights__Add_body.

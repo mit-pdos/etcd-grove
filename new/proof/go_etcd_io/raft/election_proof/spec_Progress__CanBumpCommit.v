@@ -1,6 +1,6 @@
 Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
 
-(** [pr.CanBumpCommit(index)] is a pure test on the [Progress] value
+(** [pr.CanBumpCommit(index)] is a pure test on the [Progress]
     ([Progress__CanBumpCommitⁱᵐᵖˡ], new/code/go_etcd_io/raft/v3/tracker.v:348;
     progress.go:189):
 
@@ -8,21 +8,16 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
 
     One exit, no panic, no call, no write.  [pr.Next-1] is [uint64]
     arithmetic and wraps to [2^64-1] at [Next = 0] (the body does not
-    guard it; [own_progress] does not bound [Next]), so the subtraction is
-    stated as [word.sub]. *)
+    guard it; [own_Progress] does not bound [Next]), so the subtraction is
+    [word.sub] in [progress_can_bump_commit] ([defs.v]). *)
 Definition wp_Progress__CanBumpCommit_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
-    (pr : loc) (pv : tracker.Progress.t) (iv : tracker.Inflights.t)
-    (index : w64),
-  {{{ is_pkg_init tracker ∗ "Hpr" ∷ own_progress pr pv iv }}}
+    (pr : loc) (p : progress.t) (index : w64),
+  {{{ is_pkg_init tracker ∗ "Hpr" ∷ own_Progress pr p }}}
     pr @! (go.PointerType tracker.Progress) @! "CanBumpCommit" #index
-  {{{ RET #(bool_decide
-              (uint.Z pv.(tracker.Progress.sentCommit') < uint.Z index ∧
-               uint.Z pv.(tracker.Progress.sentCommit')
-                 < uint.Z (word.sub pv.(tracker.Progress.Next') (W64 1))));
-      own_progress pr pv iv }}}.
+  {{{ RET #(progress_can_bump_commit p index); own_Progress pr p }}}.
 
 Module Type PROGRESS__CANBUMPCOMMIT.
   Parameter wp_Progress__CanBumpCommit : wp_Progress__CanBumpCommit_body.

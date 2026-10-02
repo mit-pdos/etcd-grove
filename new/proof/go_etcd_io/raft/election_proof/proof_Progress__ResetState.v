@@ -6,12 +6,11 @@ Import P.
   Lemma wp_Progress__ResetState : wp_Progress__ResetState_body.
   Proof.
     intros_ambient.
-    intros pr pv iv st Hst.
-    wp_start as "Hpr". iNamed "Hpr". iDestruct "Hinfl" as (buf) "Hinfl".
+    intros pr p st.
+    wp_start as "Hpr". iNamed "Hpr".
     wp_auto.
     wp_apply (wp_Inflights__reset with "[$Hinfl]") as "Hinfl".
-    iApply "HΦ". rewrite /own_progress. iFrame "Hpv Hinfl".
-    iPureIntro. split; [ exact Hnolearner | exact Hst ].
+    iApply "HΦ". iExists _. iFrame "Hpv Hinfl". iPureIntro.
+    progress_abs_from Habs.
   Qed.
-
 End ProgressResetStateProof.

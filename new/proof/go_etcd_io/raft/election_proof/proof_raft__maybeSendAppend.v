@@ -35,16 +35,16 @@ Context (cfg : gset w64).
     and nothing between the test and [SentEntries] touches the window,
     which [nstate.prvals] records. *)
 Definition msa_pkg (r : loc) (id : w64) (s : nstate.t) (ep : loc)
-    (pv : tracker.Progress.t) (iv : tracker.Inflights.t) : iProp Σ :=
+    (p : progress.t) : iProp Σ :=
   ∃ (sl : slice.t) (es : list raftpb.Entry.t),
   "ents" ∷ ep ↦ sl ∗
   "Hents" ∷ sl ↦*□ es ∗
   "Hphys" ∷ own_raft_phys cfg r id s ∗
-  "%Hwin" ∷ ⌜ pv.(tracker.Progress.State') = W64 1 → es ≠ [] →
-              inflights_full iv = false ⌝ ∗
+  "%Hwin" ∷ ⌜ p.(progress.state) = prstate.Replicate → es ≠ [] →
+              inflights_full p.(progress.infl) = false ⌝ ∗
   "%Hpkgin" ∷ ⌜ Forall (λ e, e ∈ (to_pstate s).(pstate.log)) es ⌝ ∗
   "%Hpkgpre" ∷ ⌜ es `prefix_of` plog_from (to_pstate s).(pstate.base) (to_pstate s).(pstate.log)
-                                 pv.(tracker.Progress.Next') ⌝.
+                                 p.(progress.next) ⌝.
 
 (** The [MsgApp]'s batch, from what the log says ([app_ok]'s last two
     clauses): [Index = pr.Next - 1], the entries a prefix of the log from
@@ -104,7 +104,7 @@ Set Default Proof Using "Type".
       it ([own_raft_phys_pr] and its variants) and given back
       before the next access to the struct, and what the proof knows about
       it survives the calls in between because the state records its value
-      ([nstate.prvals], [s.(nstate.prvals) !! to = Some (pv, iv)]) and
+      ([nstate.prvals], [s.(nstate.prvals) !! to = Some p]) and
       [send] changes only the outbox.  (Until 2026-09-29 the tracker was
       lent out of the struct for the whole body, [nstate.lent].)  Each
       [raftLog] call and each read of [r.raftLog.committed] takes the log
@@ -118,10 +118,10 @@ Set Default Proof Using "Type".
       - [pr := r.trk.Progress[to]] hits because [to ∈ cfg]: take the
         (persistent) progress map out with [own_tracker_progress_map], step
         the lookup with [wp_map_lookup1]; [own_tracker_prvals_dom] gives
-        [pr]'s value [(pv, iv)].
+        [pr]'s record [p].
       - [pr.IsPaused()]: on [true], return [false] having sent nothing; on
-        [false] the answer [progress_paused pv = false] gives
-        [pv.State ≠ StateSnapshot], which is [SentEntries]'s first premise.
+        [false] the answer [progress_is_paused p = false] gives
+        [p.state ≠ Snapshot], which is [SentEntries]'s first premise.
       - [r.raftLog.term(pr.Next-1)] at the log's state.  On an error
         (the [interface.ok] case), [maybeSendSnapshot], whose postcondition
         is a [repl_sends] list ([MsgSnap]s) with [Match] untouched.  On [interface.nil], the iff of
@@ -157,7 +157,7 @@ Set Default Proof Using "Type".
     iDestruct (own_tracker_prvals_dom with "Htrk") as "[%Hpdom Htrk]".
     assert (is_Some (s.(nstate.progress) !! to)) as [pr Hlk].
     { apply elem_of_dom. rewrite Hdom //. }
-    assert (is_Some (s.(nstate.prvals) !! to)) as [[pv iv] Hpvs].
+    assert (is_Some (s.(nstate.prvals) !! to)) as [p Hpvs].
     { apply elem_of_dom. rewrite Hpdom elem_of_dom. by eexists. }
     wp_start_unfold.
     wp_auto.
@@ -167,7 +167,7 @@ Set Default Proof Using "Type".
     (* [pr.IsPaused()] and [prevIndex := pr.Next - 1], on [pr] borrowed *)
     iDestruct (own_raft_phys_pr with "Hphys [//] [//]") as "[Hpa Hpback]".
     wp_apply (wp_Progress__IsPaused with "[$Hpa]") as "Hpa".
-    destruct (progress_paused pv) eqn:Hpaused.
+    destruct (progress_is_paused p) eqn:Hpaused.
     { (* paused: nothing is sent, [false] *)
       wp_auto.
       iDestruct ("Hpback" with "Hpa") as "Hphys".
@@ -176,12 +176,15 @@ Set Default Proof Using "Type".
       - iApply (own_raft_phys_eq with "Hphys"). by destruct s.
       - iPureIntro. split; [constructor|done]. }
     (* not paused, so not in [StateSnapshot] -- [SentEntries]' first premise *)
-    assert (Hnosnap : pv.(tracker.Progress.State') ≠ W64 2).
-    { intros Hc. rewrite /progress_paused decide_True // in Hpaused. }
+    assert (Hnosnap : p.(progress.state) ≠ prstate.Snapshot).
+    { intros Hc. rewrite /progress_is_paused Hc /= in Hpaused. discriminate. }
+    (* [pr.Next], read off the value: the record's [next] *)
     iNamed "Hpa".
-    wp_auto.
+    pose proof Habs as Habs0.
+    apply progress_abs_Some in Habs0 as (_ & Hst & _ & Hnx & _).
+    wp_auto. rewrite Hnx.
     iDestruct ("Hpback" with "[Hpv Hinfl]") as "Hphys".
-    { rewrite /own_progress. iFrame "∗%". }
+    { iExists _. iFrame "∗%". }
     wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
     (* [r.raftLog.term(pr.Next - 1)] *)
     iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hlogback]".
@@ -211,22 +214,23 @@ Set Default Proof Using "Type".
        [logterm] clause *)
     specialize (Hterm_at eq_refl).
     assert (Hlo : (uint.Z prev.(raft.entryID.index') + 1
-                   ≤ uint.Z pv.(tracker.Progress.Next'))%Z) by word.
+                   ≤ uint.Z p.(progress.next))%Z) by word.
     wp_pure.
     (* [pr.State], [pr.Inflights.Full()], [pr.Next]: borrow [pr] again *)
     iDestruct (own_raft_phys_pr with "Hphys [//] [//]") as "[Hpa Hpback]".
-    iNamed "Hpa".
-    wp_auto.
+    clear Hst Hnx Habs. iNamed "Hpa".
+    pose proof Habs as Habs0.
+    apply progress_abs_Some in Habs0 as (_ & Hst & _ & Hnx & _).
+    wp_auto. rewrite Hst ?Hnx.
     (* the three arms of the [||], each ending at [msa_pkg] *)
-    destruct (decide (pv.(tracker.Progress.State') = W64 1)) as [Hrep|Hnrep];
-    [ rewrite bool_decide_eq_true_2 //; wp_auto;
-      iDestruct "Hinfl" as (ibuf) "Hinfl";
+    destruct (decide (p.(progress.state) = prstate.Replicate)) as [Hrep|Hnrep];
+    [ rewrite bool_decide_eq_true_2; last (rewrite Hrep; done); wp_auto;
       wp_apply (wp_Inflights__Full with "[$Hinfl]") as "Hinfl";
-      destruct (inflights_full iv) eqn:Hfull;
+      destruct (inflights_full p.(progress.infl)) eqn:Hfull;
       [ (* in [StateReplicate] with the window full: no entries are fetched *)
         iDestruct ("Hpback" with "[Hpv Hinfl]") as "Hphys";
-        [ rewrite /own_progress; iFrame "∗%" | ];
-        iAssert (msa_pkg cfg r id s ents_ptr pv iv)
+        [ iExists _; iFrame "∗%" | ];
+        iAssert (msa_pkg cfg r id s ents_ptr p)
           with "[ents Hphys]" as "HC";
         [ rewrite /msa_pkg; iExists slice.nil, [];
           iFrame "ents Hphys";
@@ -236,17 +240,18 @@ Set Default Proof Using "Type".
       | (* in [StateReplicate] with room: fetch [ents] *)
         wp_auto;
         iDestruct ("Hpback" with "[Hpv Hinfl]") as "Hphys";
-        [ rewrite /own_progress; iFrame "∗%" | ];
+        [ iExists _; iFrame "∗%" | ];
         wp_apply (wp_raft_load_maxMsgSize with "Hphys") as "%mms Hphys";
         wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys";
         iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hlogback]";
         iEval (rewrite Hls) in "Hlog";
+        rewrite ?Hnx;
         wp_apply (wp_raftLog__entries _ (logstate.mk prev sents uents lcm lap) _ _ Hlo with "[$Hlog]")
           as "%sl_e %es_e (Hlog & Hents & [%Hin %Hpre])";
         iEval (rewrite -Hls) in "Hlog";
         iDestruct ("Hlogback" with "Hlog") as "Hphys";
         try wp_auto;
-        iAssert (msa_pkg cfg r id s ents_ptr pv iv)
+        iAssert (msa_pkg cfg r id s ents_ptr p)
           with "[ents Hphys Hents]" as "HC";
         [ rewrite /msa_pkg; iExists sl_e, es_e; iFrame "ents Hents Hphys";
           iPureIntro; split_and!;
@@ -255,19 +260,21 @@ Set Default Proof Using "Type".
           | rewrite /= Hls; exact Hpre ]
         | ] ]
     | (* not in [StateReplicate]: the first disjunct is true, fetch [ents] *)
-      rewrite bool_decide_eq_false_2 //; wp_auto;
+      rewrite bool_decide_eq_false_2;
+        last (intros Hc; apply Hnrep, prstate_w64_inj; exact Hc); wp_auto;
       iDestruct ("Hpback" with "[Hpv Hinfl]") as "Hphys";
-      [ rewrite /own_progress; iFrame "∗%" | ];
+      [ iExists _; iFrame "∗%" | ];
       wp_apply (wp_raft_load_maxMsgSize with "Hphys") as "%mms Hphys";
       wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys";
       iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hlogback]";
       iEval (rewrite Hls) in "Hlog";
+      rewrite ?Hnx;
       wp_apply (wp_raftLog__entries _ (logstate.mk prev sents uents lcm lap) _ _ Hlo with "[$Hlog]")
         as "%sl_e %es_e (Hlog & Hents & [%Hin %Hpre])";
       iEval (rewrite -Hls) in "Hlog";
       iDestruct ("Hlogback" with "Hlog") as "Hphys";
       try wp_auto;
-      iAssert (msa_pkg cfg r id s ents_ptr pv iv)
+      iAssert (msa_pkg cfg r id s ents_ptr p)
         with "[ents Hphys Hents]" as "HC";
       [ rewrite /msa_pkg; iExists sl_e, es_e; iFrame "ents Hents Hphys";
         iPureIntro; split_and!;
@@ -306,28 +313,28 @@ Set Default Proof Using "Type".
     try wp_auto;
     wp_apply (wp_payloadsSize with "[$Hents]") as "%psz [_ _]";
     (* [pr.SentEntries(...)]: [send] changed only the outbox, so [pr] is
-       still at [(pv, iv)] *)
+       still at [p] *)
     iDestruct (own_raft_phys_pr_upd with "Hphys [//] [//]") as "[Hpa Hpback]";
-    assert (Hwin2 : pv.(tracker.Progress.State') = W64 1 →
-                    (0 < sint.Z sl.(slice.len))%Z → inflights_full iv = false);
+    assert (Hwin2 : p.(progress.state) = prstate.Replicate →
+                    (0 < sint.Z sl.(slice.len))%Z → inflights_full p.(progress.infl) = false);
     [ intros H1 H2; apply Hwin; [exact H1|]; intros Heq; rewrite Heq in Hlen;
       simpl in Hlen; lia | ];
-    wp_apply (wp_Progress__SentEntries _ _ _ _ _ Hnosnap Hwin2 with "[$Hpa]")
+    wp_apply (wp_Progress__SentEntries _ _ _ _ Hnosnap Hwin2 with "[$Hpa]")
       as "Hpr";
-    iDestruct "Hpr" as (pv3 iv3) "[Hpa3 %Hm3]";
-    iDestruct ("Hpback" with "Hpa3") as "Hphys";
+    iDestruct ("Hpback" with "Hpr") as "Hphys";
     (* [pr.SentCommit(r.raftLog.committed)]: the argument first, then [pr]
        once more, at the value [SentEntries] left *)
     try wp_auto; wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys";
     open_struct; try wp_auto; close_struct;
-    iDestruct (own_raft_phys_pr_upd _ _ _ _ _ _ pv3 iv3 with "Hphys [//] []")
+    iDestruct (own_raft_phys_pr_upd _ _ _ _ _ _ (progress_sent_entries p sl.(slice.len) psz)
+                 with "Hphys [//] []")
       as "[Hpa3 Hpback]";
     [ iPureIntro; rewrite /= lookup_insert_eq //
     | ];
     wp_apply (wp_Progress__SentCommit with "[$Hpa3]") as "Hpa4";
     iDestruct ("Hpback" with "Hpa4") as "Hphys";
     try wp_auto;
-    pose proof (msa_app_facts s prev sents uents lcm lap pterm pv.(tracker.Progress.Next') es
+    pose proof (msa_app_facts s prev sents uents lcm lap pterm p.(progress.next) es
                   Hls Hlwf Hnw Herr1 Hlnc Hpkgpre) as Hfacts;
     iApply ("HΦ" $! true);
     iSplitL;
@@ -342,7 +349,9 @@ Set Default Proof Using "Type".
         | exact (proj1 Hfacts)
         | exact (proj2 Hfacts) ]
       | rewrite /= insert_insert_eq;
-        apply (prvals_match_insert_same _ _ (pv, iv)); [ exact Hpvs | simpl; exact Hm3 ] ] ])).
+        apply (prvals_match_insert_same _ _ p); [ exact Hpvs | ];
+        rewrite /progress_sent_commit /progress_sent_entries /=;
+        destruct (p.(progress.state)); repeat case_decide; done ] ])).
   Qed.
 
 End RaftMaybeSendAppendProof.

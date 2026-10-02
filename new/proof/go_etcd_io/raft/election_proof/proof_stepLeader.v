@@ -15,17 +15,17 @@ Context (cfg : gset w64).
     are [pvs] and given back at new values, keeping the state of the shape
     [s <| prvals := _ |>] (so that a run of writes does not pile up record
     updates). *)
-Lemma own_raft_phys_pr_at r id s pvs to pr pv iv :
+Lemma own_raft_phys_pr_at r id s pvs to pr p :
   own_raft_phys cfg r id (s <| nstate.prvals := pvs |>) -∗
   ⌜ s.(nstate.progress) !! to = Some pr ⌝ -∗
-  ⌜ pvs !! to = Some (pv, iv) ⌝ -∗
-  own_progress pr pv iv ∗
-  (∀ pv' iv', own_progress pr pv' iv' -∗
-     own_raft_phys cfg r id (s <| nstate.prvals := <[to := (pv', iv')]> pvs |>)).
+  ⌜ pvs !! to = Some p ⌝ -∗
+  own_Progress pr p ∗
+  (∀ p', own_Progress pr p' -∗
+     own_raft_phys cfg r id (s <| nstate.prvals := <[to := p']> pvs |>)).
 Proof.
   iIntros "Hphys %Hlk %Hv".
   iDestruct (own_raft_phys_pr_upd with "Hphys [//] [//]") as "[Hp Hback]".
-  iFrame "Hp". iIntros (pv' iv') "Hp".
+  iFrame "Hp". iIntros (p') "Hp".
   iDestruct ("Hback" with "Hp") as "Hphys".
   iApply (own_raft_phys_eq with "Hphys"). reflexivity.
 Qed.
@@ -65,18 +65,18 @@ Lemma commit_same_nil s pvs :
 Proof. rewrite /send_msgs app_nil_r. by destruct s as [?????????[]?]. Qed.
 
 (** [Match] under the [Progress] methods [stepLeader] calls. *)
-Lemma decr_to_match pv a b :
-  (progress_maybe_decr_to pv a b).2.(tracker.Progress.Match') = pv.(tracker.Progress.Match').
+Lemma decr_to_match p a b :
+  (progress_maybe_decr_to p a b).2.(progress.matched) = p.(progress.matched).
 Proof. rewrite /progress_maybe_decr_to. repeat case_decide; done. Qed.
 
-Lemma become_probe_match pv :
-  (progress_become_probe pv).(tracker.Progress.Match') = pv.(tracker.Progress.Match').
+Lemma become_probe_match p :
+  (progress_become_probe p).(progress.matched) = p.(progress.matched).
 Proof. done. Qed.
 
-Lemma maybe_update_match pv n :
-  (progress_maybe_update pv n).(tracker.Progress.Match') =
-  if decide (uint.Z pv.(tracker.Progress.Match') < uint.Z n) then n
-  else pv.(tracker.Progress.Match').
+Lemma maybe_update_match p n :
+  (progress_maybe_update p n).(progress.matched) =
+  if decide (uint.Z p.(progress.matched) < uint.Z n) then n
+  else p.(progress.matched).
 Proof. rewrite /progress_maybe_update. case_bool_decide; case_decide; done. Qed.
 
 (** The type switches: rewrite the message type to its literal and let
@@ -186,7 +186,7 @@ Proof.
   simpl in Hnil.
   assert (m.(raftpb.Message.From') ∈ cfg) as Hfcfg.
   { rewrite -Hdom elem_of_dom Hlk. by eexists. }
-  assert (is_Some (s.(nstate.prvals) !! m.(raftpb.Message.From'))) as [[pv iv] Hpvs].
+  assert (is_Some (s.(nstate.prvals) !! m.(raftpb.Message.From'))) as [p Hpvs].
   { apply elem_of_dom. rewrite Hpdom elem_of_dom Hlk. by eexists. }
   clear Hdom Hpdom.
   wp_auto.
@@ -198,15 +198,16 @@ Proof.
   iDestruct (own_raft_phys_pr_at with "Hphys [//] [//]") as "[Hpa Hpback]".
   iNamed "Hpa".
   wp_auto.
-  set (pv1 := pv <| tracker.Progress.RecentActive' := true |>
-                 <| tracker.Progress.MsgAppFlowPaused' := false |>).
-  iDestruct ("Hpback" $! pv1 iv with "[Hpv Hinfl]") as "Hphys".
-  { rewrite /own_progress. iFrame "∗%". }
-  set (pvs1 := <[m.(raftpb.Message.From') := (pv1, iv)]> s.(nstate.prvals)).
-  assert (Hpvs1 : pvs1 !! m.(raftpb.Message.From') = Some (pv1, iv))
+  set (p1 := p <| progress.recent_active := true |> <| progress.paused := false |>).
+  iDestruct ("Hpback" $! p1 with "[Hpv Hinfl]") as "Hphys".
+  { iExists _. iFrame "Hpv Hinfl". iPureIntro.
+    rewrite /p1. progress_abs_from Habs. }
+  clear Habs.
+  set (pvs1 := <[m.(raftpb.Message.From') := p1]> s.(nstate.prvals)).
+  assert (Hpvs1 : pvs1 !! m.(raftpb.Message.From') = Some p1)
     by (rewrite /pvs1 lookup_insert_eq //).
   assert (Hmm1 : prvals_match pvs1 = prvals_match s.(nstate.prvals))
-    by (apply (prvals_match_insert_same _ _ (pv, iv)); done).
+    by (apply (prvals_match_insert_same _ _ p); done).
   (* [if pr.Match < r.raftLog.lastIndex() || pr.State == StateProbe
        { r.sendAppend(m.From) }], joined *)
   wp_bind (if: _ then _ else _)%E.
@@ -228,7 +229,7 @@ Proof.
     iNamed "Hpa".
     wp_auto.
     iDestruct ("Hpback" with "[Hpv Hinfl]") as "Hphys".
-    { rewrite /own_progress. iFrame "∗%". }
+    { iExists _. iFrame "∗%". }
     wp_if_destruct.
     { hb_send. }
     hb_skip. }
@@ -292,7 +293,7 @@ Proof.
     { destruct (s.(nstate.progress) !! m.(raftpb.Message.From')) as [pr|] eqn:Hlk;
         [|iFrame; iPureIntro; by apply not_elem_of_dom].
       simpl in Hnil. subst pr.
-      assert (is_Some (s.(nstate.prvals) !! m.(raftpb.Message.From'))) as [[pv iv] Hpvs].
+      assert (is_Some (s.(nstate.prvals) !! m.(raftpb.Message.From'))) as [p Hpvs].
       { apply elem_of_dom. rewrite Hpdom elem_of_dom Hlk. by eexists. }
       iDestruct (own_raft_phys_pr with "Hphys [//] [//]") as "[Hpa _]".
       iNamed "Hpa".
@@ -309,7 +310,7 @@ Proof.
   { rewrite -Hdom elem_of_dom Hlk. by eexists. }
   assert (m.(raftpb.Message.From') ∈ dom s.(nstate.progress)) as Hfdom.
   { rewrite elem_of_dom Hlk. by eexists. }
-  assert (is_Some (s.(nstate.prvals) !! m.(raftpb.Message.From'))) as [[pv iv] Hpvs].
+  assert (is_Some (s.(nstate.prvals) !! m.(raftpb.Message.From'))) as [p Hpvs].
   { apply elem_of_dom. rewrite Hpdom elem_of_dom Hlk. by eexists. }
   clear Hdom Hpdom.
   wp_auto.
@@ -321,14 +322,16 @@ Proof.
   iDestruct (own_raft_phys_pr_at with "Hphys [//] [//]") as "[Hpa Hpback]".
   iNamed "Hpa".
   wp_auto.
-  set (pv1 := pv <| tracker.Progress.RecentActive' := true |>).
-  iDestruct ("Hpback" $! pv1 iv with "[Hpv Hinfl]") as "Hphys".
-  { rewrite /own_progress. iFrame "∗%". }
-  set (pvs1 := <[m.(raftpb.Message.From') := (pv1, iv)]> s.(nstate.prvals)).
-  assert (Hpvs1 : pvs1 !! m.(raftpb.Message.From') = Some (pv1, iv))
+  set (p1 := p <| progress.recent_active := true |>).
+  iDestruct ("Hpback" $! p1 with "[Hpv Hinfl]") as "Hphys".
+  { iExists _. iFrame "Hpv Hinfl". iPureIntro.
+    rewrite /p1. progress_abs_from Habs. }
+  clear Habs.
+  set (pvs1 := <[m.(raftpb.Message.From') := p1]> s.(nstate.prvals)).
+  assert (Hpvs1 : pvs1 !! m.(raftpb.Message.From') = Some p1)
     by (rewrite /pvs1 lookup_insert_eq //).
   assert (Hmm1 : prvals_match pvs1 = prvals_match s.(nstate.prvals))
-    by (apply (prvals_match_insert_same _ _ (pv, iv)); done).
+    by (apply (prvals_match_insert_same _ _ p); done).
   clearbody pvs1.
   destruct (m.(raftpb.Message.Reject')) eqn:Hrej.
   { (* rejected *)
@@ -352,16 +355,16 @@ Proof.
     (* [pr.MaybeDecrTo(m.Index, nextProbeIdx)] *)
     iDestruct (own_raft_phys_pr_at with "Hphys [//] [//]") as "[Hpa Hpback]".
     wp_apply (wp_Progress__MaybeDecrTo with "[$Hpa]") as "Hpa".
-    set (pv2 := (progress_maybe_decr_to pv1 m.(raftpb.Message.Index') np).2).
-    iDestruct ("Hpback" $! pv2 iv with "Hpa") as "Hphys".
-    set (pvs2 := <[m.(raftpb.Message.From') := (pv2, iv)]> pvs1).
-    assert (Hpvs2 : pvs2 !! m.(raftpb.Message.From') = Some (pv2, iv))
+    set (p2 := (progress_maybe_decr_to p1 m.(raftpb.Message.Index') np).2).
+    iDestruct ("Hpback" $! p2 with "Hpa") as "Hphys".
+    set (pvs2 := <[m.(raftpb.Message.From') := p2]> pvs1).
+    assert (Hpvs2 : pvs2 !! m.(raftpb.Message.From') = Some p2)
       by (rewrite /pvs2 lookup_insert_eq //).
     assert (Hmm2 : prvals_match pvs2 = prvals_match s.(nstate.prvals)).
-    { rewrite -Hmm1. apply (prvals_match_insert_same _ _ (pv1, iv)); [done|].
+    { rewrite -Hmm1. apply (prvals_match_insert_same _ _ p1); [done|].
       apply decr_to_match. }
     clearbody pvs2.
-    destruct ((progress_maybe_decr_to pv1 m.(raftpb.Message.Index') np).1) eqn:Hdec.
+    destruct ((progress_maybe_decr_to p1 m.(raftpb.Message.Index') np).1) eqn:Hdec.
     2:{ (* nothing to resend *)
       wp_auto.
       iApply ("HΦ" $! interface.nil (s <| nstate.prvals := pvs2 |>)). iFrame "Hphys".
@@ -373,11 +376,13 @@ Proof.
     (* [if pr.State == StateReplicate { pr.BecomeProbe() }] *)
     iDestruct (own_raft_phys_pr_at with "Hphys [//] [//]") as "[Hpa Hpback]".
     iNamed "Hpa".
-    wp_auto.
-    iAssert (own_progress pr pv2 iv) with "[Hpv Hinfl]" as "Hpa".
-    { rewrite /own_progress. iFrame "∗%". }
-    destruct (decide (pv2.(tracker.Progress.State') = W64 1)) as [Hrep|Hrep].
-    - rewrite bool_decide_eq_true_2 //. wp_auto.
+    pose proof Habs as Hst2. apply progress_abs_Some in Hst2 as (_ & Hst2 & _).
+    wp_auto. rewrite Hst2.
+    iAssert (own_Progress pr p2) with "[Hpv Hinfl]" as "Hpa".
+    { iExists _. iFrame "∗%". }
+    clear Habs.
+    destruct (decide (p2.(progress.state) = prstate.Replicate)) as [Hrep|Hrep].
+    - rewrite bool_decide_eq_true_2; last by rewrite Hrep. wp_auto.
       wp_apply (wp_Progress__BecomeProbe with "[$Hpa]") as "Hpa".
       iDestruct ("Hpback" with "Hpa") as "Hphys".
       wp_apply (wp_raft__sendAppend _ _ _ _ _ Hself Hfcfg with "[$Hphys]")
@@ -387,9 +392,10 @@ Proof.
       right; left. split_and!; [done|done|].
       exists ms, pvs. split_and!; [reflexivity| |].
       + eapply repl_sends_eq; [..|exact Hms]; done.
-      + rewrite Hmm /= -Hmm2. apply (prvals_match_insert_same _ _ (pv2, iv)); [done|].
+      + rewrite Hmm /= -Hmm2. apply (prvals_match_insert_same _ _ p2); [done|].
         apply become_probe_match.
-    - rewrite bool_decide_eq_false_2 //. wp_auto.
+    - rewrite bool_decide_eq_false_2; last exact (prstate_w64_ne _ prstate.Replicate Hrep).
+      wp_auto.
       iDestruct ("Hpback" with "Hpa") as "Hphys".
       wp_apply (wp_raft__sendAppend _ _ _ _ _ Hself Hfcfg with "[$Hphys]")
         as "%ms %pvs (Hphys & %Hms & %Hmm)".
@@ -398,39 +404,39 @@ Proof.
       right; left. split_and!; [done|done|].
       exists ms, pvs. split_and!; [reflexivity| |].
       + eapply repl_sends_eq; [..|exact Hms]; done.
-      + rewrite Hmm /= -Hmm2. apply (prvals_match_insert_same _ _ (pv2, iv)); done. }
+      + rewrite Hmm /= -Hmm2. apply (prvals_match_insert_same _ _ p2); done. }
   (* accepted *)
   wp_auto.
   (* [pr.MaybeUpdate(m.Index) || (pr.Match == m.Index && pr.State == StateProbe)]:
      its value does not matter to the postcondition, only that [pr] is
      left at [MaybeUpdate]'s value *)
   iDestruct (own_raft_phys_pr_at with "Hphys [//] [//]") as "[Hpa Hpback]".
-  set (pv2 := progress_maybe_update pv1 m.(raftpb.Message.Index')).
+  set (p2 := progress_maybe_update p1 m.(raftpb.Message.Index')).
   wp_bind (If _ #true _)%E.
-  iApply (wp_wand _ _ _ (λ v, ∃ c : bool, ⌜ v = #c ⌝ ∗ own_progress pr pv2 iv ∗
+  iApply (wp_wand _ _ _ (λ v, ∃ c : bool, ⌜ v = #c ⌝ ∗ own_Progress pr p2 ∗
                            "m" ∷ m_ptr ↦ m ∗ "pr" ∷ pr_ptr ↦ default null (Some pr))%I
             with "[Hpa m pr]").
   { wp_apply (wp_Progress__MaybeUpdate with "[$Hpa]") as "Hpa".
     iNamed "Hpa".
     wp_if_destruct.
-    - iExists true. iSplitR; [done|]. iFrame "m pr". rewrite /own_progress. iFrame "∗%".
+    - iExists true. iSplitR; [done|]. iFrame "m pr". iExists _. iFrame "∗%".
     - wp_if_destruct.
-      + iExists _. iSplitR; [done|]. iFrame "m pr". rewrite /own_progress. iFrame "∗%".
-      + iExists false. iSplitR; [done|]. iFrame "m pr". rewrite /own_progress. iFrame "∗%". }
+      + iExists _. iSplitR; [done|]. iFrame "m pr". iExists _. iFrame "∗%".
+      + iExists false. iSplitR; [done|]. iFrame "m pr". iExists _. iFrame "∗%". }
   iIntros (v) "(%c & -> & Hpa & m & pr)".
-  iDestruct ("Hpback" $! pv2 iv with "Hpa") as "Hphys".
-  set (x := pv.(tracker.Progress.Match')).
+  iDestruct ("Hpback" $! p2 with "Hpa") as "Hphys".
+  set (x := p.(progress.matched)).
   set (Mx := if decide (uint.Z x < uint.Z m.(raftpb.Message.Index'))
              then m.(raftpb.Message.Index') else x).
   assert (Hx : prvals_match s.(nstate.prvals) !! m.(raftpb.Message.From') = Some x)
     by (rewrite /prvals_match lookup_fmap Hpvs //).
-  set (pvs2 := <[m.(raftpb.Message.From') := (pv2, iv)]> pvs1).
-  assert (Hpvs2 : pvs2 !! m.(raftpb.Message.From') = Some (pv2, iv))
+  set (pvs2 := <[m.(raftpb.Message.From') := p2]> pvs1).
+  assert (Hpvs2 : pvs2 !! m.(raftpb.Message.From') = Some p2)
     by (rewrite /pvs2 lookup_insert_eq //).
   assert (Hmm2 : prvals_match pvs2 =
                  <[m.(raftpb.Message.From') := Mx]> (prvals_match s.(nstate.prvals))).
   { rewrite /pvs2 /prvals_match fmap_insert. rewrite -/(prvals_match pvs1) Hmm1 /=.
-    rewrite /pv2 maybe_update_match //. }
+    rewrite /p2 maybe_update_match //. }
   clearbody pvs2.
   destruct c.
   2:{ (* nothing to do *)
@@ -445,41 +451,45 @@ Proof.
   (* the [switch] on [pr.State], joined: [Match] does not move *)
   wp_bind (if: _ then _ else _)%E.
   iApply (wp_wand _ _ _
-    (λ v, ⌜ v = execute_val ⌝ ∗ ∃ pv3 iv3,
+    (λ v, ⌜ v = execute_val ⌝ ∗ ∃ p3,
        "Hphys" ∷ own_raft_phys cfg r id
-                   (s <| nstate.prvals := <[m.(raftpb.Message.From') := (pv3, iv3)]> pvs2 |>) ∗
-       "%Hm3" ∷ ⌜ pv3.(tracker.Progress.Match') = pv2.(tracker.Progress.Match') ⌝ ∗
+                   (s <| nstate.prvals := <[m.(raftpb.Message.From') := p3]> pvs2 |>) ∗
+       "%Hm3" ∷ ⌜ p3.(progress.matched) = p2.(progress.matched) ⌝ ∗
        "m" ∷ m_ptr ↦ m ∗ "r" ∷ r_ptr ↦ r ∗ "pr" ∷ pr_ptr ↦ default null (Some pr))%I
     with "[Hphys m r pr]").
   { iDestruct (own_raft_phys_pr_at with "Hphys [//] [//]") as "[Hpa Hpback]".
     iNamed "Hpa".
-    wp_auto.
-    destruct (decide (pv2.(tracker.Progress.State') = W64 0)) as [Hst0|Hst0].
+    pose proof Habs as Hsm. apply progress_abs_Some in Hsm as (_ & Hst & Hm & _).
+    wp_auto. rewrite Hst.
+    destruct (decide (p2.(progress.state) = prstate.Probe)) as [Hst0|Hst0].
     { (* [StateProbe]: [BecomeReplicate] *)
-      rewrite (bool_decide_eq_true_2 (pv2.(tracker.Progress.State') = W64 0)) //
-              (bool_decide_eq_true_2 (true = true)) //.
+      rewrite (bool_decide_eq_true_2 (prstate_w64 p2.(progress.state) = W64 0));
+        last by rewrite Hst0.
+      rewrite (bool_decide_eq_true_2 (true = true)) //.
       wp_auto.
-      iAssert (own_progress pr pv2 iv) with "[Hpv Hinfl]" as "Hpa".
-      { rewrite /own_progress. iFrame "∗%". }
+      iAssert (own_Progress pr p2) with "[Hpv Hinfl]" as "Hpa".
+      { iExists _. iFrame "∗%". }
       wp_apply (wp_Progress__BecomeReplicate with "[$Hpa]") as "Hpa".
-      iDestruct "Hpa" as (pv3 iv3) "[Hpa %Hm3]".
       iDestruct ("Hpback" with "Hpa") as "Hphys".
-      iSplitR; [done|]. iExists pv3, iv3. iFrame "Hphys m r pr". done. }
-    rewrite (bool_decide_eq_false_2 (pv2.(tracker.Progress.State') = W64 0)) //
-            (bool_decide_eq_false_2 (true = false)) //.
+      iSplitR; [done|]. iExists _. iFrame "Hphys m r pr". done. }
+    rewrite (bool_decide_eq_false_2 (prstate_w64 p2.(progress.state) = W64 0));
+      last exact (prstate_w64_ne _ prstate.Probe Hst0).
+    rewrite (bool_decide_eq_false_2 (true = false)) //.
     wp_auto.
-    destruct (decide (pv2.(tracker.Progress.State') = W64 2)) as [Hst2|Hst2].
+    destruct (decide (p2.(progress.state) = prstate.Snapshot)) as [Hst2|Hst2].
     { (* [StateSnapshot]: [pr.Match + 1 >= r.raftLog.firstIndex()] *)
-      rewrite (bool_decide_eq_true_2 (pv2.(tracker.Progress.State') = W64 2)) //.
-      wp_auto.
-      iDestruct ("Hpback" $! pv2 iv with "[Hpv Hinfl]") as "Hphys".
-      { rewrite /own_progress. iFrame "∗%". }
+      rewrite (bool_decide_eq_true_2 (prstate_w64 p2.(progress.state) = W64 2));
+        last by rewrite Hst2.
+      wp_auto. try rewrite Hm.
+      iDestruct ("Hpback" $! p2 with "[Hpv Hinfl]") as "Hphys".
+      { iExists _. iFrame "∗%". }
+      clear Habs.
       iDestruct (own_raft_phys_ins_id with "Hphys") as "Hphys"; first done.
       wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
       iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hlogback]".
       wp_apply (wp_raftLog__firstIndex with "[$Hlog]") as "%fi [Hlog _]".
       iDestruct ("Hlogback" with "Hlog") as "Hphys".
-      destruct (decide (uint.Z fi ≤ uint.Z (word.add pv2.(tracker.Progress.Match') (W64 1))))
+      destruct (decide (uint.Z fi ≤ uint.Z (word.add p2.(progress.matched) (W64 1))))
         as [Hfi|Hfi].
       - (* back from needing a snapshot: [BecomeProbe], [BecomeReplicate] *)
         rewrite (bool_decide_eq_true_2 (uint.Z fi ≤ _)) //
@@ -489,48 +499,46 @@ Proof.
         iDestruct (own_raft_phys_pr_at with "Hphys [//] [//]") as "[Hpa Hpback]".
         wp_apply (wp_Progress__BecomeProbe with "[$Hpa]") as "Hpa".
         wp_apply (wp_Progress__BecomeReplicate with "[$Hpa]") as "Hpa".
-        iDestruct "Hpa" as (pv3 iv3) "[Hpa %Hm3]".
         iDestruct ("Hpback" with "Hpa") as "Hphys".
-        iSplitR; [done|]. iExists pv3, iv3. iFrame "Hphys m r pr".
-        iPureIntro. rewrite Hm3. apply become_probe_match.
+        iSplitR; [done|]. iExists _. iFrame "Hphys m r pr".
+        iPureIntro. reflexivity.
       - rewrite (bool_decide_eq_false_2 (uint.Z fi ≤ _)) //
                 (bool_decide_eq_false_2 (true = false)) //.
         wp_auto.
         (* [pr.State == StateReplicate]: no, [StateSnapshot] *)
         iDestruct (own_raft_phys_pr_at with "Hphys [//] [//]") as "[Hpa Hpback]".
-        iNamed "Hpa".
-        wp_auto.
-        rewrite (bool_decide_eq_false_2 (pv2.(tracker.Progress.State') = W64 1));
-          [|rewrite Hst2; w32_ne].
+        clear Hst Hm. iNamed "Hpa".
+        pose proof Habs as Hsm. apply progress_abs_Some in Hsm as (_ & Hst & _).
+        wp_auto. rewrite Hst.
+        rewrite (bool_decide_eq_false_2 (prstate_w64 p2.(progress.state) = W64 1));
+          last exact (prstate_w64_ne _ prstate.Replicate ltac:(by rewrite Hst2)).
         rewrite (bool_decide_eq_false_2 (true = false)) //.
         wp_auto.
-        iDestruct ("Hpback" $! pv2 iv with "[Hpv Hinfl]") as "Hphys".
-        { rewrite /own_progress. iFrame "∗%". }
-        iSplitR; [done|]. iExists pv2, iv. iFrame "Hphys m r pr". done. }
-    rewrite (bool_decide_eq_false_2 (pv2.(tracker.Progress.State') = W64 2)) //.
+        iDestruct ("Hpback" $! p2 with "[Hpv Hinfl]") as "Hphys".
+        { iExists _. iFrame "∗%". }
+        iSplitR; [done|]. iExists p2. iFrame "Hphys m r pr". done. }
+    rewrite (bool_decide_eq_false_2 (prstate_w64 p2.(progress.state) = W64 2));
+      last exact (prstate_w64_ne _ prstate.Snapshot Hst2).
     wp_auto.
-    destruct (decide (pv2.(tracker.Progress.State') = W64 1)) as [Hst1|Hst1].
+    destruct (decide (p2.(progress.state) = prstate.Replicate)) as [Hst1|Hst1].
     - (* [StateReplicate]: [pr.Inflights.FreeLE(m.Index)] *)
-      rewrite (bool_decide_eq_true_2 (pv2.(tracker.Progress.State') = W64 1)) //
-              (bool_decide_eq_true_2 (true = true)) //.
+      rewrite (bool_decide_eq_true_2 (prstate_w64 p2.(progress.state) = W64 1));
+        last by rewrite Hst1.
+      rewrite (bool_decide_eq_true_2 (true = true)) //.
       wp_auto.
-      iDestruct "Hinfl" as (buf) "Hinfl".
-      wp_apply (wp_Inflights__FreeLE with "[$Hinfl]") as "%iv' [Hinfl _]".
-      iDestruct ("Hpback" $! pv2 iv' with "[Hpv Hinfl]") as "Hphys".
-      { rewrite /own_progress. iFrame "∗%". }
-      iSplitR; [done|]. iExists pv2, iv'. iFrame "Hphys m r pr". done.
-    - rewrite (bool_decide_eq_false_2 (pv2.(tracker.Progress.State') = W64 1)) //
-              (bool_decide_eq_false_2 (true = false)) //.
-      wp_auto.
-      iDestruct ("Hpback" $! pv2 iv with "[Hpv Hinfl]") as "Hphys".
-      { rewrite /own_progress. iFrame "∗%". }
-      iSplitR; [done|]. iExists pv2, iv. iFrame "Hphys m r pr". done. }
+      wp_apply (wp_Inflights__FreeLE with "[$Hinfl]") as "%i' [Hinfl _]".
+      iDestruct ("Hpback" $! (p2 <| progress.infl := i' |>) with "[Hpv Hinfl]") as "Hphys".
+      { iExists _. iFrame "Hpv Hinfl". iPureIntro.
+        progress_abs_from Habs. }
+      iSplitR; [done|]. iExists _. iFrame "Hphys m r pr". done.
+    - (* no fourth state *)
+      exfalso. destruct (p2.(progress.state)); congruence. }
   iIntros (v) "[-> HJ]". iNamed "HJ".
-  set (pvs3 := <[m.(raftpb.Message.From') := (pv3, iv3)]> pvs2).
-  assert (Hpvs3 : pvs3 !! m.(raftpb.Message.From') = Some (pv3, iv3))
+  set (pvs3 := <[m.(raftpb.Message.From') := p3]> pvs2).
+  assert (Hpvs3 : pvs3 !! m.(raftpb.Message.From') = Some p3)
     by (rewrite /pvs3 lookup_insert_eq //).
   assert (Hmm3 : prvals_match pvs3 = prvals_match pvs2)
-    by (apply (prvals_match_insert_same _ _ (pv2, iv)); done).
+    by (apply (prvals_match_insert_same _ _ p2); done).
   clearbody pvs3.
   wp_auto.
   (* [if r.maybeCommit() { release...; r.bcastAppend() } else if r.id != m.From &&
@@ -584,7 +592,7 @@ Proof.
         iDestruct ("Hlogback" with "Hlog") as "Hphys".
         iDestruct (own_raft_phys_pr_at with "Hphys [//] [//]") as "[Hpa Hpback]".
         wp_apply (wp_Progress__CanBumpCommit with "[$Hpa]") as "Hpa".
-        iDestruct ("Hpback" $! pv3 iv3 with "Hpa") as "Hphys".
+        iDestruct ("Hpback" $! p3 with "Hpa") as "Hphys".
         iDestruct (own_raft_phys_ins_id with "Hphys") as "Hphys"; first done.
         wp_if_destruct.
         * wp_apply (wp_raft__sendAppend _ _ _ _ _ (not_eq_sym Hdiff) Hfcfg with "[$Hphys]")

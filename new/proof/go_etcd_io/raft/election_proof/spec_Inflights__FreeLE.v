@@ -28,11 +28,11 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
     short-circuits, so [in.buffer[in.start]] is read only when
     [count > 0].  No call.
 
-    The postcondition is what downstream needs: the ring stays well-formed
-    ([own_inflights] at the new value, whose [inflights_ok] is the
-    invariant), the buffer and its contents are untouched, [size],
-    [maxBytes] and the buffer pointer are unchanged, and the occupancy does
-    not grow.  [bytes] is **not** bounded: [in.bytes -= bytes] is
+    The postcondition is what downstream needs, on the record
+    ([inflights_freed], [defs.v]): [size] and [maxBytes] are unchanged and
+    the occupancy does not grow; the ring stays well-formed inside
+    [own_Inflights].  The result is not a function of the record (it
+    depends on the indices in the buffer), hence the relation.  [bytes] is **not** bounded: [in.bytes -= bytes] is
     [uint64] arithmetic and nothing relates [in.bytes] to the sizes in the
     buffer, so the subtraction can wrap; hence [Full()] is *not* claimed to
     become false here -- only [count' ≤ count]. *)
@@ -40,16 +40,11 @@ Definition wp_Inflights__FreeLE_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
-    (l : loc) (iv : tracker.Inflights.t) (buf : list tracker.inflight.t)
-    (to : w64),
-  {{{ is_pkg_init tracker ∗ "Hin" ∷ own_inflights l iv buf }}}
+    (l : loc) (i : inflights.t) (to : w64),
+  {{{ is_pkg_init tracker ∗ "Hin" ∷ own_Inflights l i }}}
     l @! (go.PointerType tracker.Inflights) @! "FreeLE" #to
-  {{{ (iv' : tracker.Inflights.t), RET #();
-      own_inflights l iv' buf ∗
-      ⌜ iv'.(tracker.Inflights.size') = iv.(tracker.Inflights.size') ∧
-        iv'.(tracker.Inflights.maxBytes') = iv.(tracker.Inflights.maxBytes') ∧
-        iv'.(tracker.Inflights.buffer') = iv.(tracker.Inflights.buffer') ∧
-        sint.Z iv'.(tracker.Inflights.count') ≤ sint.Z iv.(tracker.Inflights.count') ⌝ }}}.
+  {{{ (i' : inflights.t), RET #();
+      own_Inflights l i' ∗ ⌜ inflights_freed i i' ⌝ }}}.
 
 Module Type INFLIGHTS__FREELE.
   Parameter wp_Inflights__FreeLE : wp_Inflights__FreeLE_body.

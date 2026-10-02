@@ -15,14 +15,16 @@ Module MatchAckIndexerAckedIndexProof (P : MATCHACKINDEXER__ACKEDINDEX_POSTULATE
     iDestruct (big_sepM2_lookup_iff with "Hprogs") as %Hiff.
     rewrite /pvs_acked.
     destruct (prs !! id) as [pr|] eqn:Hpr.
-    - destruct (proj1 (Hiff id) ltac:(by eexists)) as [[pv iv] Hpv].
-      rewrite Hpv /=.
-      iDestruct (big_sepM2_lookup_acc _ _ _ _ _ _ Hpr Hpv with "Hprogs")
+    - destruct (proj1 (Hiff id) ltac:(by eexists)) as [p Hp].
+      rewrite Hp /=.
+      iDestruct (big_sepM2_lookup_acc _ _ _ _ _ _ Hpr Hp with "Hprogs")
         as "[Hp Hback]".
-      iNamed "Hp". simpl.
-      wp_auto.
+      iNamed "Hp".
+      pose proof Habs as Habs'.
+      apply progress_abs_Some in Habs' as (_ & _ & Hm & _).
+      wp_auto. rewrite Hm.
       iDestruct ("Hback" with "[Hpv Hinfl]") as "Hprogs".
-      { rewrite /own_progress. iFrame "∗%". }
+      { iExists _. iFrame "∗%". }
       iApply "HΦ". iFrame "∗#".
     - assert (pvs !! id = None) as ->.
       { destruct (pvs !! id) eqn:Hv; last done.

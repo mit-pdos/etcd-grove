@@ -28,14 +28,16 @@ Import P.
     [ iPureIntro; word | ];
     iIntros "Hbuf";
     wp_auto;
-    iApply "HΦ"; iExists _, _; rewrite /own_inflights;
-    iFrame "Hiv Hbuf Hbuf_cap"; iPureIntro;
-    rewrite /inflights_ok /= length_insert;
-    split_and!; solve [ word | left; word | right; word ].
+    iApply "HΦ"; iExists _, _; iSplitL;
+    [ rewrite /own_inflights;
+      iFrame "Hiv Hbuf Hbuf_cap"; iPureIntro;
+      rewrite /inflights_ok /= length_insert;
+      split_and!; solve [ word | left; word | right; word ]
+    | iPureIntro; rewrite /inflights_abs /inflights_add /=; f_equal; word ].
 
   (** [in.Add(index, bytes)].
 
-      The premise [inflights_full iv = false] does two jobs.  Directly it
+      The premise [inflights_full i = false] does two jobs.  Directly it
       rules out the opening [panic].  Indirectly it gives [count < size],
       hence [0 < size], hence (by [inflights_ok]'s fifth conjunct)
       [start < size] -- and those are what make the index arithmetic
@@ -65,15 +67,15 @@ Import P.
   Lemma wp_Inflights__Add : wp_Inflights__Add_body.
   Proof.
     intros_ambient.
-    intros l iv buf index bytes Hfull.
+    intros l i index bytes Hfull.
     wp_start as "H". iNamed "H". wp_auto.
     wp_apply (wp_Inflights__Full with "[$Hin]") as "Hin".
     rewrite Hfull.
-    iNamed "Hin".
+    iNamed "Hin". iNamed "Hin". subst i.
+    rewrite inflights_full_abs in Hfull.
     iDestruct (own_slice_len with "Hbuf") as %[Hblen Hblen0].
     (* not full ⇒ [count ≠ size], and with [inflights_ok] that is
        [count < size], [0 < size] and [start < size]. *)
-    rewrite /inflights_full in Hfull.
     apply orb_false_elim in Hfull as [Hcnt _].
     apply bool_decide_eq_false in Hcnt.
     destruct Hinfl_ok as (Hs0 & Hc & Hbl & Hsz & Hstart & Hring).

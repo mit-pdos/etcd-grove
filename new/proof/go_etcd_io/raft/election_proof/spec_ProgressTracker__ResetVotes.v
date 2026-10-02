@@ -6,12 +6,12 @@ Definition wp_ProgressTracker__ResetVotes_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
-    (cfg : gset w64) (trk : loc) tv votes (prs : gmap w64 loc) (pvs : gmap w64 (tracker.Progress.t * tracker.Inflights.t)),
-  {{{ is_pkg_init tracker ∗ trk ↦ tv ∗ own_tracker cfg tv votes prs pvs }}}
+    (cfg : gset w64) (trk : loc) tv (t : trk.t),
+  {{{ is_pkg_init tracker ∗ trk ↦ tv ∗ own_tracker cfg tv t }}}
     trk @! (go.PointerType tracker.ProgressTracker) @! "ResetVotes" #()
   {{{ (votesRef : loc), RET #();
       trk ↦ (tv <| tracker.ProgressTracker.Votes' := votesRef |>) ∗
-      own_tracker cfg (tv <| tracker.ProgressTracker.Votes' := votesRef |>) ∅ prs pvs }}}.
+      own_tracker cfg (tv <| tracker.ProgressTracker.Votes' := votesRef |>) (t <| trk.votes := ∅ |>) }}}.
 
 Module Type PROGRESSTRACKER__RESETVOTES.
   Parameter wp_ProgressTracker__ResetVotes : wp_ProgressTracker__ResetVotes_body.

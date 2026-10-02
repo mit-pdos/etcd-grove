@@ -13,8 +13,8 @@ Import P.
   Lemma wp_JointConfig__CommittedIndex : wp_JointConfig__CommittedIndex_body.
   Proof.
   intros_ambient.
-  intros cfg trk tv votes prs pvs.
-  wp_start as "(Htrk & Hown)". iNamed "Hown".
+  intros cfg trk tv [votes prs pvs].
+  wp_start as "(Htrk & Hown)". iNamed "Hown". trk_simpl.
   wp_auto.
   wp_method_call. wp_call. wp_call.
   wp_auto.
@@ -57,7 +57,7 @@ Import P.
   iIntros (N1) "(Hc1 & _ & HP & %Hemp1 & _)".
   assert (N1 = W64 (2 ^ 64 - 1)) as -> by (by apply Hemp1).
   iDestruct ("Hcback" with "Hc1") as "c".
-  iAssert (own_tracker cfg tv votes prs pvs)
+  iAssert (own_tracker cfg tv (trk.mk votes prs pvs))
     with "[Hvotes HP Hvoters Hlearners HlearnersNext]" as "Hown".
   { iDestruct "HP" as "(_ & Hprogs)". rewrite /own_tracker.
     iExists voters_ref, voters', learners, learnersNext. iFrame "∗#%". }

@@ -12,22 +12,26 @@ Import P.
   Lemma wp_Progress__SentEntries : wp_Progress__SentEntries_body.
   Proof.
     intros_ambient.
-    intros pr pv iv entries bytes Hnotsnap Hnotfull.
-    wp_start as "H". iNamed "H". iNamed "Hpr". wp_auto.
-    (* [progress_state_ok] plus the premise leaves Probe and Replicate, so
-       the [panic] arm is unreachable. *)
-    destruct Hstate_ok as [Hs | [Hs | Hs]]; last congruence; rewrite Hs.
+    intros pr p entries bytes Hnotsnap Hnotfull.
+    wp_start as "H". iNamed "H". iNamed "Hpr".
+    pose proof Habs as Habs0.
+    apply progress_abs_Some in Habs0 as (Hl & Hst & _).
+    wp_auto.
+    rewrite /progress_sent_entries.
+    (* the record's state is Probe or Replicate -- the premise excludes
+       Snapshot -- so the [panic] arm is unreachable. *)
+    destruct (p.(progress.state)) eqn:Hps; last (exfalso; by apply Hnotsnap); rewrite Hst; cbn [prstate_w64].
     - (* StateProbe: the switch falls through to the second arm *)
       case_bool_decide as Hb1; first (w64_absurd Hb1).
       (* [wp_auto] runs the rest of the switch itself *)
       wp_auto.
       case_bool_decide as Hgt.
-      + wp_auto.
-        iApply "HΦ". iExists _, iv. rewrite /own_progress. iFrame "Hpv Hinfl". iPureIntro. split_and!; [done| |done].
-        rewrite /progress_state_ok /=. by left.
-      + wp_auto.
-        iApply "HΦ". iExists _, iv. rewrite /own_progress. iFrame "Hpv Hinfl". iPureIntro. split_and!; [done| |done].
-        rewrite /progress_state_ok /=. by left.
+      + rewrite decide_True //. wp_auto.
+        iApply "HΦ". iExists _. iFrame "Hpv Hinfl". iPureIntro.
+        progress_abs_from Habs.
+      + rewrite decide_False //. wp_auto.
+        iApply "HΦ". iExists _. iFrame "Hpv Hinfl". iPureIntro.
+        progress_abs_from Habs.
     - (* StateReplicate *)
       case_bool_decide as Hb1; last (exfalso; by apply Hb1).
       wp_auto.
@@ -35,21 +39,20 @@ Import P.
       + (* entries > 0: [Next] moves and the window records the batch.  The
            [Add] is legal because the caller promised the window is not
            full -- see the spec. *)
+        rewrite decide_True //.
         wp_auto.
-        iDestruct "Hinfl" as (buf) "Hinfl".
         wp_apply (wp_Inflights__Add with "[$Hinfl]") as "Hinfl".
         { by apply Hnotfull. }
-        iDestruct "Hinfl" as (iv' buf') "Hinfl".
         wp_apply (wp_Inflights__Full with "[$Hinfl]") as "Hinfl".
         try wp_auto.
-        iApply "HΦ". iExists _, iv'. rewrite /own_progress. iFrame "Hpv Hinfl". iPureIntro. split_and!; [done| |done].
-        rewrite /progress_state_ok /=. by right; left.
-      + wp_auto.
-        iDestruct "Hinfl" as (buf) "Hinfl".
+        iApply "HΦ". iExists _. iFrame "Hpv Hinfl". iPureIntro.
+        progress_abs_from Habs.
+      + rewrite decide_False //.
+        wp_auto.
         wp_apply (wp_Inflights__Full with "[$Hinfl]") as "Hinfl".
         try wp_auto.
-        iApply "HΦ". iExists _, iv. rewrite /own_progress. iFrame "Hpv Hinfl". iPureIntro. split_and!; [done| |done].
-        rewrite /progress_state_ok /=. by right; left.
+        iApply "HΦ". iExists _. iFrame "Hpv Hinfl". iPureIntro.
+        progress_abs_from Habs.
   Qed.
 
 End ProgressSentEntriesProof.

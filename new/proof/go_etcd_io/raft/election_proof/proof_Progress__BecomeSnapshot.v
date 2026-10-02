@@ -7,16 +7,13 @@ Import P.
   Lemma wp_Progress__BecomeSnapshot : wp_Progress__BecomeSnapshot_body.
   Proof.
     intros_ambient.
-    intros pr pv iv snapshoti.
+    intros pr p snapshoti.
     wp_start as "Hpr". wp_auto.
-    (* [ResetState] is specified on [own_progress] at the exact new values;
+    (* [ResetState] is specified on [own_Progress] at the exact new record;
        open what it returns to step the field writes that follow *)
-    assert (progress_state_ok (W64 2)) as Hst.
-    { rewrite /progress_state_ok. by right; right. }
-    wp_apply (wp_Progress__ResetState _ _ _ _ Hst with "[$Hpr]") as "Hpr".
+    wp_apply (wp_Progress__ResetState _ _ prstate.Snapshot with "[$Hpr]") as "Hpr".
     iNamed "Hpr". wp_auto.
-    iApply "HΦ". iExists _, _. rewrite /own_progress. iFrame "Hpv Hinfl".
-    iPureIntro. split; done.
+    iApply "HΦ". iExists _. iFrame "Hpv Hinfl". iPureIntro.
+    progress_abs_from Habs.
   Qed.
-
 End ProgressBecomeSnapshotProof.

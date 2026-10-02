@@ -37,6 +37,7 @@ Import P.
     iDestruct (own_raft_phys_tracker_same _ _ _ s' with "Hphys")
       as (tv3) "(Htrkf & Htrk & Hback)".
     iDestruct (own_tracker_progress_map with "Htrk") as "(#Hprs & %Hdom & Htrk)".
+    iEval (cbn [trk.prs]) in "Hprs".
     wp_auto.
     wp_apply (wp_map_lookup2 with "Hprs") as "_".
     (* [r.isLearner = ok && pr.IsLearner] is [false]: every voter's
@@ -45,13 +46,15 @@ Import P.
     { simpl. destruct s.(nstate.role) eqn:Hro; rewrite /= /StateFollower /StateCandidate;
         [| |congruence]; intros Heq; apply (f_equal uint.Z) in Heq; vm_compute in Heq; discriminate. }
     destruct (prs !! id) as [pr|] eqn:Hlk; simpl; try wp_auto.
-    - iDestruct (own_tracker_lookup_same _ _ _ _ _ _ _ Hlk with "Htrk")
-        as (pv iv) "(_ & Hpr & Hprback)".
+    - iDestruct (own_tracker_lookup_same _ _ (trk.mk _ _ _) _ _ Hlk with "Htrk")
+        as (p) "(_ & Hpr & Hprback)".
       iNamed "Hpr".
+      pose proof Habs as Hnolearner.
+      apply progress_abs_Some in Hnolearner as (Hnolearner & _).
       try wp_auto.
       rewrite Hnolearner.
       iDestruct ("Hprback" with "[Hpv Hinfl]") as "Htrk".
-      { rewrite /own_progress. iFrame "∗%". }
+      { iExists _. iFrame "∗%". }
       iDestruct ("Hback" with "Htrkf Htrk") as "Hphys".
       wp_apply (wp_raft_store_isLearner with "Hphys") as "Hphys".
       try wp_auto.

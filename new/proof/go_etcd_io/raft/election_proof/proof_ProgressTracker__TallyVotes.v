@@ -6,9 +6,9 @@ Import P.
   Lemma wp_ProgressTracker__TallyVotes : wp_ProgressTracker__TallyVotes_body.
   Proof.
     intros_ambient.
-    intros cfg trk tv votes prs pvs Hcfg_ne.
+    intros cfg trk tv [votes prs pvs] Hcfg_ne.
 
-    wp_start as "(Htrk & Hown)". iNamed "Hown".
+    wp_start as "(Htrk & Hown)". iNamed "Hown". trk_simpl.
     (* the [var _ quorum.VoteResult] declaration Go emits for the named return
        is an *anonymous* [GoAlloc], which [wp_auto] will not step past. *)
     wp_alloc res0 as "Hres0". wp_auto.
@@ -23,7 +23,7 @@ Import P.
         "%Hi" ∷ ⌜ 0 ≤ i ⌝ ∗
         "Htrk" ∷ trk ↦ tv ∗
         "Hvotes" ∷ tv.(tracker.ProgressTracker.Votes') ↦$ votes ∗
-        "Hprogs" ∷ ([∗ map] pr; v ∈ prs; pvs, own_progress pr v.1 v.2) ∗
+        "Hprogs" ∷ ([∗ map] pr; p ∈ prs; pvs, own_Progress pr p) ∗
         "p" ∷ p_ptr ↦ trk ∗
         "pr" ∷ pr_ptr ↦ prv ∗
         "id" ∷ id_ptr ↦ idv ∗
@@ -37,10 +37,11 @@ Import P.
     iSplitL "".
     { iIntros "!>" (i key prl) "[%Hkey %Hprl] HP". rewrite /Pmap. iNamed "HP".
       iDestruct (big_sepM2_lookup_iff with "Hprogs") as %Hiff.
-      destruct (proj1 (Hiff key) ltac:(by eexists)) as [[pvk ivk] Hpvk].
+      destruct (proj1 (Hiff key) ltac:(by eexists)) as [pk Hpvk].
       iDestruct (big_sepM2_lookup_acc _ _ _ _ _ _ Hprl Hpvk with "Hprogs")
         as "[Hpr Hback]".
-      simpl. iNamed "Hpr".
+      iNamed "Hpr".
+      pose proof Habs as Habs'. apply progress_abs_Some in Habs' as (Hnolearner & _).
       assert (Z.to_nat (i + 1) = S (Z.to_nat i)) as Hsucc.
       { rewrite -Z2Nat.inj_succ; last lia. f_equal. all: lia. }
       assert (take (Z.to_nat (i + 1)) keys = take (Z.to_nat i) keys ++ [key])
@@ -59,7 +60,7 @@ Import P.
       rewrite Hnolearner. wp_auto.
       wp_apply (wp_map_lookup2 with "Hvotes"). iIntros "Hvotes".
       iDestruct ("Hback" with "[Hpv Hinfl]") as "Hprogs".
-      { rewrite /own_progress. iFrame "Hpv Hinfl". done. }
+      { iExists _. iFrame "Hpv Hinfl". done. }
       destruct (votes !! key) as [[|]|] eqn:Hvk.
       - (* granted *)
         assert (Pgr key) as HPg by (rewrite /Pgr Hvk //).
@@ -112,7 +113,7 @@ Import P.
     wp_auto.
     (* [p.Config.Voters.VoteResult(p.Votes)]: re-seal the tracker and ask the
        joint quorum.  The two counters already hold the model's numbers. *)
-    wp_apply (wp_JointConfig__VoteResult _ _ _ _ _ _ Hcfg_ne with
+    wp_apply (wp_JointConfig__VoteResult _ _ _ (trk.mk votes prs pvs) Hcfg_ne with
                "[$Htrk Hvotes Hprogs Hvoters Hlearners HlearnersNext]").
     { rewrite /own_tracker.
       iExists voters_ref, voters, learners, learnersNext. iFrame "∗#%". }
