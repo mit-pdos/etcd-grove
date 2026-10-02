@@ -3979,3 +3979,50 @@ is 170 s (was 350 s before turning its pure tail into `lia` goals).
 Checked: every new `link_*.vo` built; `election.vo` rebuilt as `.vo` over the whole
 `inv_tracker.v` cone (118 files, `proof_raft__Step` included), exit 0;
 the four `slices.Sort` callers rebuilt.
+
+## 2026-10-01 — replication wave 2, heartbeat/leader side: stepLeader widened
+
+Branch from `e13e1c07a`.  All `Qed`, no `Admitted`.
+
+- **Scope conjuncts** (`inv_misc.v`): `own_read_only` now holds
+  `unconfirmedReads ↦* []` and `own_raft_misc` holds
+  `pendingReadIndexMessages ↦* []` (the empty list *in* the points-to, the
+  existential dropped -- equivalent to `⌜ ucr = [] ⌝`/`⌜ prims = [] ⌝`
+  and the by-name re-seals in `inv_raft_phys.v` keep working unchanged).
+  `newReadOnly`/`newRaft` establish them (one `iExists` each); `reset`
+  needed nothing.
+- **New collections**: `traceCommit` (no-op), `readOnly.heartbeatCtx`
+  (returns `slice.nil`), `releasePendingReadIndexMessages` (no-op),
+  `handleHeartbeat`, `sendHeartbeat`, `bcastHeartbeatWithCtx`,
+  `bcastHeartbeat`, `maybeCommit` (the `with_defer:` goes through
+  `wp_with_defer`, `new/golang/theory/defer.v`; then `wp_traceCommit` at the
+  `return:`).  `commit_ok cfg ps n` (`spec_raft__maybeCommit.v`) is
+  `step_commit`'s premises minus the role; `is_quorum_index_acked`
+  (`proof_raft__maybeCommit.v`) turns `Committed`'s `pvs_match_at` quorum
+  into `acked_by`'s (needs `N ≠ 0`, given by `committed < N`).
+- **`stepLeader_MsgVoteResp` → `stepLeader`** (git mv of the four files),
+  one spec for `MsgVoteResp`/`MsgBeat`/`MsgHeartbeatResp`/`MsgAppResp`,
+  postcondition `leader_step_result` (spec file; `app_resp_accepted` for
+  the accepting `MsgAppResp`).  Proof: one lemma per type; the
+  `MsgAppResp` accept path joins the `||` condition, the `State` switch,
+  the `maybeCommit` if/else and the `r.id != m.From` loop with
+  `wp_bind`+`wp_wand`, so the rest runs once.  Step's `MsgVoteResp`
+  helper calls the new spec.
+- **`r.pendingReadIndexMessages` has no field lemma** in `inv_raft_phys.v`
+  (which another agent owned this session), so
+  `proof_releasePendingReadIndexMessages.v` carries
+  `wp_raft_load_pendingReadIndexMessages`, opening the seal through the
+  qualified `inv_raft_phys.own_raft_phys_unseal`.  **Move it into
+  `inv_raft_phys.v`'s interface section.**
+- `MsgBeat` is `W32 1` (defined in `spec_stepLeader.v`; `defs.v` lacks it).
+
+Gotchas met: inside `wp_for` the Coq context is reverted (only the
+invariant's named pure facts come back) -- carry `m.From ≠ id`,
+`m.From ∈ cfg` in the invariant; `switch` on a bool compiles to
+`bool_decide (true = bool_decide P)`, rewrite the inner one first;
+`wp_if_destruct` `subst`s an equation `dom … = cfg` and replaces the
+section variable `cfg` -- `clear` such equations first; a `pr ≠ nil` test
+needs `typed_pointsto_not_null` on the borrowed `Progress` to rule out a
+nil pointer in the map; `(⌜P⌝ -∗ Q)` is the convenient form for a
+type-conditional resource premise (the caller discharges it with
+`exfalso` on the other types).

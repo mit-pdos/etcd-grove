@@ -11,7 +11,7 @@ Module NewReadOnlyProof (P : NEWREADONLY_POSTULATES) : NEWREADONLY.
     wp_apply wp_map_make1 as "%mref Hmref".
     wp_alloc ro' as "Hro'". wp_auto.
     iApply "HΦ". rewrite /own_read_only.
-    iExists _, ∅, ([] : list loc).
+    iExists _, ∅.
     iFrame "Hro'". simpl.
     iFrame "Hmref".
     iSplitL.

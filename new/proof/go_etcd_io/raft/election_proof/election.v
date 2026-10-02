@@ -118,7 +118,7 @@ Require Export New.proof.go_etcd_io.raft.election_proof.link_raft__campaign.
 Require Export New.proof.go_etcd_io.raft.election_proof.link_raft__hup.
 Require Export New.proof.go_etcd_io.raft.election_proof.link_stepCandidate_MsgVoteResp.
 Require Export New.proof.go_etcd_io.raft.election_proof.link_stepFollower_MsgVoteResp.
-Require Export New.proof.go_etcd_io.raft.election_proof.link_stepLeader_MsgVoteResp.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_stepLeader.
 Require Export New.proof.go_etcd_io.raft.election_proof.link_raft__Step.
 (** The constructor: [newRaft] establishes [own_raft_phys]
     ([spec_newRaft.v]).  Its collection pulls in the fifteen callees
@@ -153,6 +153,23 @@ Require Export New.proof.go_etcd_io.raft.election_proof.link_raftLog__findConfli
 Require Export New.proof.go_etcd_io.raft.election_proof.link_raftLog__findConflict.
 Require Export New.proof.go_etcd_io.raft.election_proof.link_raftLog__commitTo.
 Require Export New.proof.go_etcd_io.raft.election_proof.link_raftLog__maybeCommit.
+
+(** Log replication, wave 2 (2026-10-01): the heartbeat/leader side.
+    Heartbeats out ([sendHeartbeat], [bcastHeartbeatWithCtx],
+    [bcastHeartbeat], with [readOnly.heartbeatCtx] returning [nil] under
+    the scope) and in ([handleHeartbeat]); the leader's commit
+    ([maybeCommit], whose [defer traceCommit] is a no-op); and
+    [releasePendingReadIndexMessages], a no-op under the scope.  [stepLeader]
+    (above, renamed from [stepLeader_MsgVoteResp]) now covers [MsgBeat],
+    [MsgHeartbeatResp] and [MsgAppResp] besides [MsgVoteResp]. *)
+Require Export New.proof.go_etcd_io.raft.election_proof.link_traceCommit.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_readOnly__heartbeatCtx.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_releasePendingReadIndexMessages.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_raft__handleHeartbeat.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_raft__sendHeartbeat.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_raft__bcastHeartbeatWithCtx.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_raft__bcastHeartbeat.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_raft__maybeCommit.
 
 Section proof.
 Context `{hG: heapGS Σ, !ffi_semantics _ _}.
