@@ -323,7 +323,7 @@ End prefix_helpers.
                as "%sx (Hsx & _ & _ & _)".
              iMod (own_slice_persist with "Hsx") as "#Hsx".
              iModIntro.
-             iApply ("HΦ" $! sx (ese ++ take nlim es0)).
+             iApply ("HΦ" $! sx _).
              iFrame "Hsx". iSplitL; last first.
              { iPureIntro. split_and!.
                - intros Hc. destruct ese as [|a ese']; [by apply Hnee | discriminate Hc].
@@ -342,7 +342,7 @@ End prefix_helpers.
             as "%sx (Hsx & _ & _ & _)".
           iMod (own_slice_persist with "Hsx") as "#Hsx".
           iModIntro.
-          iApply ("HΦ" $! sx (ese ++ take nlim es0)).
+          iApply ("HΦ" $! sx _).
           iFrame "Hsx". iSplitL; last first.
           { iPureIntro. split_and!.
             - intros Hc. destruct ese as [|a ese']; [by apply Hnee | discriminate Hc].

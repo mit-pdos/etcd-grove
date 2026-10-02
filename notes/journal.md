@@ -4065,3 +4065,27 @@ Files: `spec_/proof_raft__increaseUncommittedSize.v`,
 `spec_/proof_raft__appendEntry.v`, `proof_raft__becomeLeader.v`.  No
 dead-WP-branch `exfalso` was needed in `becomeLeader`: the bool is
 rewritten to `true` with the implication before `wp_auto` meets the `if`.
+
+## 2026-10-02 — replication model: slice/entries pinned, app_ok complete, receiver lemmas (agent A, third pass)
+
+- `is_Storage`'s `HEntries` (inv_storage.v) gained `es prefix_of drop (lo-prev-1) (take (hi-prev-1) ents)`
+  -- the membership clause alone could not pin *which* entries come back.
+  This is an added assumption on the client's Storage (its documented
+  contract; MemoryStorage satisfies it).
+- `raftLog.slice` / `raftLog.entries` now also return
+  `es prefix_of plog_from prev (sents ++ uents) lo` (five exits of slice:
+  helper list lemmas `slice_stable_prefix`, `slice_stable_full`,
+  `slice_unstable_prefix`, `slice_both_prefix`; note `wp_if_destruct`'s
+  `subst` eats variable equations like `ese = …`/`es0 = …` -- wrap them in
+  `∧ True` or name the result `_`).  slice.v ~6 min now.
+- `app_ok` gained the prefix clause and `app_payload_ok` (consecutive
+  indices from index+1, no wrap, EntryNormal); `maybeSendAppend` proves them
+  (`msa_app_facts`, from the log's wf/no-wrap/no-conf-change facts).
+  `is_message` for App carries `⌜app_payload_ok m⌝`.
+- protocol.v: `app_recv_wf` and `app_commit_le_lastnewi` proved
+  (`plog_maybe_append_last`); `app_no_conflict_below_commit` restated in
+  maybeAppend's exact premise shape (still admitted); heartbeat_commit_le_last
+  and the three safety lemmas still admitted.  The AppResp/HeartbeatResp
+  shapes the rules send match `abs_msg_from` of handleAppendEntries' /
+  handleHeartbeat's literals.
+`election.vo` green; tcb-report 6 Admitted (5 protocol.v + trusted slice), 14 Axiom, 403 Qed.
