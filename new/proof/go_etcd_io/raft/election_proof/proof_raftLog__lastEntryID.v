@@ -36,7 +36,7 @@ Import P.
        index is [lastIndex], so the in-range clause of its postcondition
        applies and the error is [nil] -- which is what makes the [Panicf]
        on the next line unreachable. *)
-    wp_apply (wp_raftLog__term _ (logstate.mk prev sents uents lcm lap) _ with "[$Hlog]") as "%t %err (Hlog & %Herr & %Ht)". logstate_simpl.
+    wp_apply (wp_raftLog__term _ (logstate.mk prev sents uents lcm lap) _ with "[$Hlog]") as "%t %err (Hlog & %Herr & %Ht & _)". logstate_simpl.
     apply (proj2 Herr) in Hb. subst err. specialize (Ht eq_refl). wp_auto.
     iDestruct (own_raftLog_wf with "Hlog") as "[%Hwf Hlog]". logstate_simpl.
     iApply ("HΦ" $! (raft.entryID.mk t li)). iFrame. iPureIntro.

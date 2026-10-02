@@ -1,4 +1,4 @@
-Require Export New.proof.go_etcd_io.raft.election_proof.spec_stepCandidate_MsgVoteResp.
+Require Export New.proof.go_etcd_io.raft.election_proof.spec_stepCandidate.
 Require Export New.proof.go_etcd_io.raft.election_proof.postulates_raft__poll.
 Require Export New.proof.go_etcd_io.raft.election_proof.postulates_raft__becomeLeader.
 Require Export New.proof.go_etcd_io.raft.election_proof.postulates_raft__becomeFollower.
@@ -10,11 +10,14 @@ Require Export New.proof.go_etcd_io.raft.election_proof.postulates_raft__becomeF
     not call [send] itself -- the sends on this path are inside
     [becomeLeader]/[bcastAppend], which carry their own specs. [BECOMEFOLLOWER]
     was missing, which made the [VoteLost] arm unprovable. Corrected
-    2026-09-16. *)
+    2026-09-16.  [MsgApp] adds [becomeFollower] (already here) and
+    [handleAppendEntries] (2026-10-01); [MsgProp] only logs. *)
 Require Export New.proof.go_etcd_io.raft.election_proof.postulates_raft__bcastAppend.
+Require Export New.proof.go_etcd_io.raft.election_proof.postulates_raft__handleAppendEntries.
 
 Module Type STEPCANDIDATE_POSTULATES.
   Include POLL.
   Include BECOMELEADER.
   Include BECOMEFOLLOWER.  Include RAFT__BCASTAPPEND.
+  Include RAFT__HANDLEAPPENDENTRIES.
 End STEPCANDIDATE_POSTULATES.

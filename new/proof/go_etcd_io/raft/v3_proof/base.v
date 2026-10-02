@@ -118,7 +118,7 @@ Definition is_new_error (e : interface.t) : Prop :=
   ∃ (t : go.type) (p : loc), e = interface.mk_ok (go.PointerType t) #p.
 
 Definition is_initialized : iProp Σ :=
-  ∃ errStopped errCompacted errUnavailable errSnapUnavail (globalRand : loc),
+  ∃ errStopped errCompacted errUnavailable errSnapUnavail errPropDropped (globalRand : loc),
     "ErrStopped" ∷ (global_addr raft.ErrStopped) ↦□ errStopped ∗
     "%HErrStopped" ∷ ⌜ errStopped ≠ interface.nil ⌝ ∗
     (** [maybeSendSnapshot] compares [Storage.Snapshot]'s error against this
@@ -136,6 +136,19 @@ Definition is_initialized : iProp Σ :=
     "%HErrCompacted" ∷ ⌜ errCompacted ≠ interface.nil ⌝ ∗
     "ErrUnavailable" ∷ (global_addr raft.ErrUnavailable) ↦□ errUnavailable ∗
     "%HErrUnavailable" ∷ ⌜ errUnavailable ≠ interface.nil ⌝ ∗
+    (** [raftLog.zeroTermOnOutOfBounds] compares a non-[nil] error (what
+        [raftLog.term] returned) against both, which needs their dynamic
+        types to be comparable -- [is_new_error] above.  Both are
+        [errors.New(...)] in [storage.go].  Added 2026-10-01 for
+        [handleAppendEntries]'s reject path. *)
+    "%HErrCompacted_new" ∷ ⌜ is_new_error errCompacted ⌝ ∗
+    "%HErrUnavailable_new" ∷ ⌜ is_new_error errUnavailable ⌝ ∗
+    (** [ErrProposalDropped = errors.New("raft proposal dropped")]
+        ([raft.go]), which [stepFollower]/[stepCandidate] return for a
+        proposal they cannot forward.  Only loaded and returned, never
+        compared, so no [is_new_error].  Added 2026-10-01. *)
+    "ErrPropDropped" ∷ (global_addr raft.ErrProposalDropped) ↦□ errPropDropped ∗
+    "%HErrPropDropped" ∷ ⌜ errPropDropped ≠ interface.nil ⌝ ∗
     (** the global RNG: the pointer, and the mutex behind it (added
         2026-09-20 for [resetRandomizedElectionTimeout]) *)
     "#globalRand" ∷ (global_addr raft.globalRand) ↦□ globalRand ∗

@@ -30,10 +30,15 @@ Require Export New.proof.go_etcd_io.raft.election_proof.plog.
     [pr.Next = 0] the argument is [2^64 - 1], which [Hnowrap] puts outside
     the range, so [pr.Next ≠ 0] and the subtraction does not wrap.)
 
-    Naming the two errors would also be true ([ErrCompacted] below the
-    boundary, [ErrUnavailable] above it) but is not statable here without
-    dragging the [is_initialized] globals into the postcondition, and the
-    iff already tells every caller which branch it is in.
+    **Which error** (since 2026-10-01): a non-[nil] error is the value
+    of one of the two globals [ErrCompacted], [ErrUnavailable] -- the last
+    conjunct, stated by the globals' (persistent) points-tos since their
+    values are only known through [is_initialized].  [handleAppendEntries]
+    needs it: its reject path passes [term(m.Index)] straight to
+    [zeroTermOnOutOfBounds], which [Panicf]s on any other error, and
+    [m.Index] may well be past the last index there.  Which of the two
+    goes with which side of the range is true but not stated; nothing
+    needs it.
 
     **The returned term is pinned** (since 2026-10-01): on the [nil]
     branch it is [plog_term_at prev (sents ++ uents) i] ([plog.v]), the
@@ -59,7 +64,9 @@ Definition wp_raftLog__term_body :=
          uint.Z ls.(logstate.prev).(raft.entryID.index') + Z.of_nat (length ls.(logstate.sents))
          + Z.of_nat (length ls.(logstate.uents)))%Z ⌝ ∗
       ⌜ err = interface.nil →
-        plog_term_at ls.(logstate.prev) (ls.(logstate.sents) ++ ls.(logstate.uents)) i = Some t ⌝ }}}.
+        plog_term_at ls.(logstate.prev) (ls.(logstate.sents) ++ ls.(logstate.uents)) i = Some t ⌝ ∗
+      (⌜ err = interface.nil ⌝ ∨ (global_addr raft.ErrCompacted) ↦□ err ∨
+       (global_addr raft.ErrUnavailable) ↦□ err) }}}.
 
 Module Type RAFTLOG__TERM.
   Parameter wp_raftLog__term : wp_raftLog__term_body.

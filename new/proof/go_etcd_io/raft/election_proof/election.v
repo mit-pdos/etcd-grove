@@ -116,8 +116,8 @@ Require Export New.proof.go_etcd_io.raft.election_proof.link_raft__send.
 Require Export New.proof.go_etcd_io.raft.election_proof.link_raft__poll.
 Require Export New.proof.go_etcd_io.raft.election_proof.link_raft__campaign.
 Require Export New.proof.go_etcd_io.raft.election_proof.link_raft__hup.
-Require Export New.proof.go_etcd_io.raft.election_proof.link_stepCandidate_MsgVoteResp.
-Require Export New.proof.go_etcd_io.raft.election_proof.link_stepFollower_MsgVoteResp.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_stepCandidate.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_stepFollower.
 Require Export New.proof.go_etcd_io.raft.election_proof.link_stepLeader_MsgVoteResp.
 Require Export New.proof.go_etcd_io.raft.election_proof.link_raft__Step.
 (** The constructor: [newRaft] establishes [own_raft_phys]
