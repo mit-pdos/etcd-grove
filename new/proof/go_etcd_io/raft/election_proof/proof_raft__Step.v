@@ -37,6 +37,7 @@ Require Export New.proof.go_etcd_io.raft.election_proof.proof_raft__Step_helpers
 Require Export New.proof.go_etcd_io.raft.election_proof.proof_raft__Step_helpers.proof_raft__Step_MsgAppResp.
 Require Export New.proof.go_etcd_io.raft.election_proof.proof_raft__Step_helpers.proof_raft__Step_MsgHeartbeatResp.
 Require Export New.proof.go_etcd_io.raft.election_proof.proof_raft__Step_helpers.proof_raft__Step_MsgBeat.
+Require Export New.proof.go_etcd_io.raft.election_proof.proof_raft__Step_helpers.proof_raft__Step_MsgSnap.
 
 Module StepProof (P : STEP_POSTULATES) : STEP.
 
@@ -49,6 +50,7 @@ Module HB := StepMsgHeartbeat P.
 Module AR := StepMsgAppResp P.
 Module HR := StepMsgHeartbeatResp P.
 Module B := StepMsgBeat P.
+Module SN := StepMsgSnap P.
 
 Section dispatch.
 Context `{hG: heapGS Σ, !ffi_semantics _ _}.
@@ -418,6 +420,78 @@ Proof.
   iLeft. by iPureIntro.
 Qed.
 
+(** [MsgSnap] (2026-10-02): the snapshot and its voters come from
+    ["Hsnap"].  At the current term the receiver is not a leader -- the
+    sender leads that term ([is_message]'s [is_leader], [is_leader_unique])
+    -- and a follower's tally is empty ([follower_votes_ok]); the three
+    [step_snap_*] rules need no other protocol fact: a restore replaces the
+    log wholesale and the fast-forward's [commitTo] is in range by
+    [matchTerm]. *)
+Lemma dispatch_Snap γ cfg r id s (m : raftpb.Message.t)
+    (sv : raftpb.Snapshot.t) (voters : list w64) (Φ : val → iProp Σ) :
+  (m.(raftpb.Message.Type') = MsgSnap →
+   m.(raftpb.Message.To') = id →
+   m.(raftpb.Message.Term') ≠ W64 0 →
+   m.(raftpb.Message.From') ≠ W64 0 →
+   m.(raftpb.Message.From') ≠ id →
+   id ∈ cfg →
+   nstate_wf s →
+   snap_scope cfg sv voters →
+   (m.(raftpb.Message.Term') = s.(nstate.term) → s.(nstate.role) ≠ role.Leader) →
+   (s.(nstate.role) = role.Follower → s.(nstate.votes) = ∅) →
+   {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s ∗
+       "#Hsv" ∷ m.(raftpb.Message.Snapshot') ↦□ sv ∗
+       "#Hvs" ∷ sv.(raftpb.Snapshot.Metadata').(raftpb.SnapshotMetadata.ConfState')
+                  .(raftpb.ConfState.Voters') ↦*□ voters }}}
+     r @! (go.PointerType raft.raft) @! "Step" #m
+   {{{ (err : error.t) s', RET #err;
+       "Hphys" ∷ own_raft_phys cfg r id s' ∗
+       "%Hwf'" ∷ ⌜ nstate_wf s' ⌝ ∗
+       "%Hrefines" ∷ ⌜ ∃ recv,
+           (∀ m', m' ∈ recv → m' = abs_snap m sv voters) ∧
+           step cfg id (to_pstate s) recv (to_pstate s') ⌝ ∗
+       "%Herr" ∷ ⌜ err = interface.nil ⌝ }}}) →
+  γ.(re_cfg) = cfg →
+  id ∈ cfg →
+  nstate_wf s →
+  m.(raftpb.Message.Type') = MsgSnap →
+  m.(raftpb.Message.To') = id ∧ m.(raftpb.Message.Term') ≠ W64 0 ∧
+  m.(raftpb.Message.From') ≠ W64 0 ∧ m.(raftpb.Message.From') ≠ id →
+  snap_scope cfg sv voters →
+  is_pkg_init raft -∗
+  own_raft_phys cfg r id s -∗
+  own_raft_ghost γ id (to_pstate s) -∗
+  m.(raftpb.Message.Snapshot') ↦□ sv -∗
+  sv.(raftpb.Snapshot.Metadata').(raftpb.SnapshotMetadata.ConfState')
+    .(raftpb.ConfState.Voters') ↦*□ voters -∗
+  is_message γ (abs_snap m sv voters) -∗
+  ▷ step_post γ cfg r id (to_pstate s) m Φ -∗
+  WP r @! (go.PointerType raft.raft) @! "Step" #m {{ v, |={⊤}=> Φ v }}.
+Proof.
+  iIntros (HB Hcfg Hin Hwf Hty (Hto & Hterm & Hfnz & Hfid) Hscope)
+    "#Hinit Hphys Hghost #Hsv #Hvs #Hm HΦ".
+  (* at the current term the receiver is not a leader: the sender leads it *)
+  iAssert (⌜ m.(raftpb.Message.Term') = s.(nstate.term) →
+             s.(nstate.role) ≠ role.Leader ⌝ ∗
+           own_raft_ghost γ id (to_pstate s))%I with "[Hghost]" as "[%Hnl Hghost]".
+  { destruct (decide (m.(raftpb.Message.Term') = s.(nstate.term) ∧
+                      s.(nstate.role) = role.Leader)) as [[Heq Hr]|Hn].
+    - iDestruct (own_raft_ghost_is_leader with "Hghost") as "#Hl1"; first exact Hr.
+      iPoseProof "Hm" as "Hm2". iEval (rewrite /is_message /=) in "Hm2".
+      iDestruct "Hm2" as "[Hl2 _]".
+      iEval (rewrite Heq) in "Hl2".
+      iDestruct (is_leader_unique with "Hl1 Hl2") as %Hid.
+      exfalso. apply Hfid. by rewrite Hid.
+    - iFrame "Hghost". iPureIntro. intros Heq Hr. apply Hn. split; [exact Heq|exact Hr]. }
+  iDestruct (own_raft_ghost_follower_votes with "Hghost") as %Hfv.
+  wp_apply (HB Hty Hto Hterm Hfnz Hfid Hin Hwf Hscope Hnl Hfv
+             with "[$Hinit $Hphys $Hsv $Hvs]").
+  iIntros (err s') "(Hphys & %Hwf' & %Hst & %Herr)".
+  destruct Hst as (recv & Hrecv & Hstep).
+  iApply (finish_branch with "Hm Hghost Hphys [] HΦ"); [done..|].
+  iLeft. by iPureIntro.
+Qed.
+
 End dispatch.
 
 (** [wp_raft__Step]'s type is closed, so the prelude default is what the
@@ -449,18 +523,19 @@ Set Default Proof Using "Type".
     destruct Hrel as [<- Hwf].
     iIntros (Φ) "(#Hinit & Hphys & Hghost & Hm & #Hctx & #Hsnap) HΦ".
     iDestruct "Hm" as (ents) "(Hents & Hcap & %Hpents & #Hmsg0)".
-    (* [MsgSnap] is not among [step_msg]'s types, so [Hm]'s [ty ≠ Snap]
-       guard always holds; ["Hsnap"] is for the [MsgSnap] branch to come. *)
-    assert (Hns : m.(raftpb.Message.Type') ≠ MsgSnap).
-    { intros Hs. rewrite /step_msg Hs in Hsm. cbv [step_msg_types] in Hsm.
-      repeat (apply elem_of_cons in Hsm as [Hsm|Hsm]; [revert Hsm; w32_ne|]).
-      by apply elem_of_nil in Hsm. }
+    iApply wp_fupd.
+    destruct (decide (m.(raftpb.Message.Type') = MsgSnap)) as [Hty|Hns].
+    { (* MsgSnap: [dispatch_Snap], with the snapshot from ["Hsnap"]. *)
+      iDestruct ("Hsnap" with "[//]") as (sv voters) "(#Hsv & #Hvs & %Hscope & #Hm')".
+      iApply (dispatch_Snap with "Hinit Hphys Hghost Hsv Hvs Hm' HΦ");
+        [exact (SN.wp_Step_MsgSnap cfg r id s m sv voters)|done..|exact (Hsnapt Hty)|exact Hscope]. }
+    (* from here on [m] is not a [MsgSnap], so [Hm]'s [ty ≠ Snap] guard
+       always holds *)
     iAssert (□ ∀ ty, ⌜ mtype_of m.(raftpb.Message.Type') = Some ty ⌝ -∗
                      is_message γ (abs_msg ty m ents))%I as "#Hmsg".
     { iIntros "!> %ty %Hty". iApply ("Hmsg0" with "[//] [%]").
       intros ->. exact (Hns (mtype_of_Snap _ Hty)). }
     iClear "Hsnap Hmsg0".
-    iApply wp_fupd.
     destruct (decide (m.(raftpb.Message.Type') = MsgHup)) as [Hty|Hn_hup].
     { (* MsgHup: a local message, handled by [hup]. *)
       destruct (Hhup Hty) as [Hmterm Hnowrap].
@@ -542,7 +617,7 @@ Set Default Proof Using "Type".
       destruct Hst as (recv & Hrecv & Hstep).
       iApply (finish_branch with "Hm' Hghost Hphys [Herr] HΦ"); [done..|].
       iDestruct "Herr" as "[%Herr|#Hd]"; [iLeft; by iPureIntro|iRight; by iFrame "#"]. }
-    (* none of the nine *)
+    (* none of the ten *)
     exfalso. cbv [step_msg step_msg_types] in Hsm.
     repeat (apply elem_of_cons in Hsm as [Hsm|Hsm]; [congruence|]).
     by apply elem_of_nil in Hsm.
