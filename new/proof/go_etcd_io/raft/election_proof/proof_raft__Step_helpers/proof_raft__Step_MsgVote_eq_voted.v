@@ -50,7 +50,7 @@ Implicit Type s : nstate.t.
     wp_apply P.wp_voteRespMsgType; [done|];
     wp_apply (P.wp_raft__send _ _ _ _ _ [] with "[$Hphys]") as "Hphys";
       [done|left; exists mtype.VoteResp; split_and!;
-            [by right|apply mtype_of_MsgVoteResp|done|w32_ne|done]|iApply own_slice_nil|];
+            [by right|apply mtype_of_MsgVoteResp|done|w32_ne|done]|iSplitR; [iApply own_slice_nil | iApply send_no_snap; simpl; w32_ne]|];
     rewrite ty_eq /MsgVote bool_decide_eq_true_2 //;
     try wp_auto;
     (* [r.electionElapsed = 0; r.Vote = m.From] *)
@@ -91,7 +91,7 @@ Implicit Type s : nstate.t.
        [done]/[assumption] -- does not see through the projection. *)
     wp_apply (P.wp_raft__send _ _ _ _ _ [] with "[$Hphys]") as "Hphys";
       [done|left; exists mtype.VoteResp; split_and!;
-            [by right|apply mtype_of_MsgVoteResp|(simpl; congruence)|w32_ne|done]|iApply own_slice_nil|];
+            [by right|apply mtype_of_MsgVoteResp|(simpl; congruence)|w32_ne|done]|iSplitR; [iApply own_slice_nil | iApply send_no_snap; simpl; w32_ne]|];
     iApply ("HΦ" $! interface.nil _); iFrame "Hphys";
     iPureIntro; split; [exact wf_|]; split; [|done];
     exists [abs_msg mtype.Vote m_ ents_];

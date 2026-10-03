@@ -16,7 +16,7 @@ Module RaftLogAppliedToProof (P : RAFTLOG__APPLIEDTO_POSTULATES) : RAFTLOG__APPL
     wp_apply wp_max2_uint64. try wp_auto.
     case_bool_decide; try wp_auto.
     all: iApply "HΦ"; iEval (rewrite /own_raftLog_core /=) in "Hcore";
-      iDestruct "Hcore" as (sprev stored) "Hcore"; iNamed "Hcore";
+      iDestruct "Hcore" as (sprev stored ss) "Hcore"; iNamed "Hcore";
       reseal_raftLog.
     all: simpl; subst; first [lia | (intros Hn; specialize (Hpapplied Hn); lia)].
   Qed.

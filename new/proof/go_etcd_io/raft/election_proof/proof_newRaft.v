@@ -6,22 +6,22 @@ Import P.
   Lemma wp_newRaft : wp_newRaft_body.
   Proof.
     intros_ambient.
-    intros c cv lok si prev ents hs cs voters dqv
-      Hvalid Hlok Hsto HmaxInfl Hpv Hcq Hdpf Hidx Hncc Hhs Happ Hvne Hvnd Hv0 Hcs1 Hcs2 Hcs3 Hal.
+    intros c cv lok si prev ents ss hs cs voters dqv
+      Hvalid Hlok Hsto HmaxInfl Hpv Hcq Hdpf Hidx Hncc Hss Hhs Happ Hvne Hvnd Hv0 Hcs1 Hcs2 Hcs3 Hal.
     pose proof Hvalid as (HvID & HvID1 & HvID2 & Hticks & HvSt & HvInfl & HvIB & HvLog & HvRO).
     wp_start as "(Hc & #Hlg0 & #HisSto & HSto & #HInit)".
     wp_auto.
     wp_apply (P.wp_Config__validate _ _ Hvalid with "[$Hc]") as "%cv' (Hc & %Hpres)".
     destruct Hpres as (HpID & HpET & HpHT & HpSt & HpAp & HpMI & HpCQ & HpPV & HpDPF & HpLg).
     rewrite HpSt Hsto HpLg Hlok.
-    wp_apply (P.wp_newLogWithSize _ _ _ _ _ lok Hidx Hncc eq_refl with "[$HisSto $HSto $Hlg0]") as "%l %lv (Hl & %Hlv & Hcore)".
+    wp_apply (P.wp_newLogWithSize _ _ _ _ _ _ lok Hidx Hncc Hss eq_refl with "[$HisSto $HSto $Hlg0]") as "%l %lv (Hl & %Hlv & Hcore)".
     destruct Hlv as (Hlvst & Hlvcm & Hlvap).
     try wp_auto.
     rewrite HpSt Hsto /=.
     iEval (rewrite /own_raftLog_core) in "Hcore".
-    iDestruct "Hcore" as (sprev stored) "(%Hlidx & %Hlnowrap & #HisSto' & HSto & %Hlstore &
+    iDestruct "Hcore" as (sprev stored ss') "(%Hlidx & %Hlnowrap & #HisSto' & HSto & %Hlstore &
       #Hlsnap & %Hloffset & Huents & Huents_cap & %Hlncc & %Hlapplied & %Hlpapplied &
-      %Hlcommitted & #Hllg & #Hulg)".
+      %Hlcommitted & %Hlssnap & #Hllg & #Hulg)".
     destruct Hlstore as (Hsp & Hlstored & Hlstored_eq). subst sprev.
     rewrite -(Hlstored_eq eq_refl).
     iEval (rewrite Hlvst) in "HSto".

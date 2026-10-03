@@ -27,11 +27,15 @@ Require Export New.proof.go_etcd_io.raft.election_proof.spec_Config__validate.
     - the development's scope: [PreVote = CheckQuorum = false], and
       [DisableProposalForwarding = false] (a follower forwards proposals;
       since 2026-10-02, for [stepFollower]'s forwarding arm).
-    - the storage's contents ([own_Storage (interface.ok si) prev ents]):
-      contiguous indices and **no configuration-change entry**.  The second
+    - the storage's contents ([own_Storage (interface.ok si) prev ents ss]):
+      contiguous indices and **no configuration-change entry**, and a
+      snapshot [ss] that is empty or the compaction boundary (since
+      2026-10-03; [spec_newLogWithSize.v] says why).  The second
       is [HnoConfChange]'s scope assumption and is false of a node
       [RawNode.Bootstrap] just bootstrapped (notes/STATUS.md).
-    - [Storage.InitialState] returns [(hs, cs, nil)] and lends [cs.Voters].
+    - [Storage.InitialState] returns [(hs, cs, nil)] and lends [cs.Voters]
+      (whatever the storage's snapshot index [ss'] is by then: the log
+      built by [newLogWithSize] does not expose it).
       This is a premise, not a clause of [is_Storage]: it is a fact about
       one storage at one moment, and nothing else calls the method.
     - [hs.Commit] lies in [[prev.index, lastIndex]] unless [hs] is empty
@@ -74,7 +78,7 @@ Definition wp_newRaft_body :=
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (c : loc) (cv : raft.Config.t) (lok si : interface.t_ok)
-    (prev : raft.entryID.t) (ents : list raftpb.Entry.t)
+    (prev : raft.entryID.t) (ents : list raftpb.Entry.t) (ss : raft.entryID.t)
     (hs : raftpb.HardState.t) (cs : raftpb.ConfState.t)
     (voters : list w64) (dqv : dfrac),
   (* the Config *)
@@ -88,6 +92,7 @@ Definition wp_newRaft_body :=
   (* the stored log *)
   log_indices_ok prev ents →
   Forall (λ e, e.(raftpb.Entry.Type') = EntryNormal) ents →
+  (uint.Z ss.(raft.entryID.index') = 0 ∨ ss = prev) →
   (* the persisted HardState *)
   (¬ hs_empty hs →
    uint.Z prev.(raft.entryID.index') ≤ uint.Z hs.(raftpb.HardState.Commit')
@@ -102,9 +107,9 @@ Definition wp_newRaft_body :=
   cs.(raftpb.ConfState.LearnersNext').(slice.len) = W64 0 →
   cs.(raftpb.ConfState.AutoLeave') = false →
   {{{ is_pkg_init raft ∗ c ↦ cv ∗ is_Logger lok ∗
-      is_Storage (interface.ok si) ∗ own_Storage (interface.ok si) prev ents ∗
-      □ (∀ Φ, own_Storage (interface.ok si) prev ents -∗
-           (own_Storage (interface.ok si) prev ents -∗
+      is_Storage (interface.ok si) ∗ own_Storage (interface.ok si) prev ents ss ∗
+      □ (∀ Φ ss', own_Storage (interface.ok si) prev ents ss' -∗
+           (own_Storage (interface.ok si) prev ents ss' -∗
             cs.(raftpb.ConfState.Voters') ↦*{dqv} voters -∗
             Φ (#hs, #cs, #interface.nil)%V) -∗
            WP #(methods si.(interface.ty) "InitialState"%go si.(interface.v)) #()

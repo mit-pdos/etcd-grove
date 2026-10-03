@@ -220,7 +220,7 @@ End prefix_helpers.
       + (* cut = hi: the whole range is in storage *)
         rewrite bool_decide_eq_true_2; last done.
         wp_auto. rewrite Hstok /=.
-        wp_apply ("HEntries" $! prev stored lo hi maxSize with "[$HStorage]").
+        wp_apply ("HEntries" $! prev stored ss lo hi maxSize with "[$HStorage]").
         { iPureIntro. lia. }
         iIntros "%se %ese (#Hse & (%Hnee & %Hlene & %Hine & %Hcape & %Hpre) & HStorage)".
         wp_auto.
@@ -236,7 +236,7 @@ End prefix_helpers.
       + (* cut = unstable.offset *)
         rewrite bool_decide_eq_false_2; last done.
         wp_auto. rewrite Hstok /=.
-        wp_apply ("HEntries" $! prev stored lo
+        wp_apply ("HEntries" $! prev stored ss lo
                     lv.(raft.raftLog.unstable').(raft.unstable.offset')
                     maxSize with "[$HStorage]").
         { iPureIntro. lia. }

@@ -199,7 +199,9 @@ Proof. apply _. Qed.
     and [raftLog.snapshot()] reads it by value, so the log holds it
     read-only.  [own_snap p snap] says what [p = u.snapshot] is: [nil] for
     [None], and for [Some sid] a pointer to a [Snapshot] whose metadata is
-    [sid]. *)
+    [sid], with its [ConfState.Voters] slice held read-only too (since
+    2026-10-03: [raftLog.snapshot()] returns the snapshot by value, so the
+    slice it hands [maybeSendSnapshot] is this one). *)
 Local Definition own_snap_def (p : loc) (snap : option raft.entryID.t) : iProp Σ :=
   match snap with
   | None => ⌜ p = null ⌝
@@ -208,7 +210,10 @@ Local Definition own_snap_def (p : loc) (snap : option raft.entryID.t) : iProp �
         ⌜ sv.(raftpb.Snapshot.Metadata').(raftpb.SnapshotMetadata.Index')
             = sid.(raft.entryID.index') ∧
           sv.(raftpb.Snapshot.Metadata').(raftpb.SnapshotMetadata.Term')
-            = sid.(raft.entryID.term') ⌝
+            = sid.(raft.entryID.term') ⌝ ∗
+        ∃ (voters : list w64),
+          sv.(raftpb.Snapshot.Metadata').(raftpb.SnapshotMetadata.ConfState')
+            .(raftpb.ConfState.Voters') ↦*□ voters
   end.
 (** Sealed: unfolded, a [None]/[Some] instance reduces to its body, and the
     re-seal lemmas ([own_raftLog_intro]) can then no longer infer [snap]
@@ -225,7 +230,10 @@ Lemma own_snap_Some p sid :
     ⌜ sv.(raftpb.Snapshot.Metadata').(raftpb.SnapshotMetadata.Index')
         = sid.(raft.entryID.index') ∧
       sv.(raftpb.Snapshot.Metadata').(raftpb.SnapshotMetadata.Term')
-        = sid.(raft.entryID.term') ⌝.
+        = sid.(raft.entryID.term') ⌝ ∗
+    ∃ (voters : list w64),
+      sv.(raftpb.Snapshot.Metadata').(raftpb.SnapshotMetadata.ConfState')
+        .(raftpb.ConfState.Voters') ↦*□ voters.
 Proof. rewrite own_snap_unseal //. Qed.
 Global Instance own_snap_pers p snap : Persistent (own_snap p snap).
 Proof. rewrite own_snap_unseal. destruct snap; apply _. Qed.
@@ -259,15 +267,56 @@ Definition log_store_ok (snap : option raft.entryID.t) (sprev : raft.entryID.t)
                (0 < uint.Z sid.(raft.entryID.index') < 2^61)%Z
   end.
 
+(** The storage's own snapshot [ss] ([own_Storage]'s last index;
+    [Storage.Snapshot] returns it, [inv_storage.v]) is of a committed
+    prefix of the log (2026-10-03): its index is [0] (no snapshot yet), or
+    at or below [committed] with the log having [ss.term] at [ss.index]
+    (possibly as its base).  Kept only while no snapshot is pending -- a
+    pending one shadows the storage, and [raftLog.snapshot()] then returns
+    it instead.
+
+    This is how [maybeSendSnapshot]'s [MsgSnap] gets [snap_ok]'s commit
+    bound and log fact ([protocol.v]).  It is raft's invariant, not a
+    [Storage] property: true at [newLogWithSize] by its premise on the
+    initial storage ([ss] is the boundary, or empty), and preserved because
+    the storage never changes in scope, [committed] only grows, and an
+    [append] only rewrites entries above [committed]
+    ([plog_term_at_truncate_append_below]). *)
+Definition stored_snap_ok (ss : raft.entryID.t) (cm : w64) (prev : raft.entryID.t)
+    (es : list raftpb.Entry.t) : Prop :=
+  uint.Z ss.(raft.entryID.index') = 0 ∨
+  (uint.Z ss.(raft.entryID.index') ≤ uint.Z cm ∧
+   plog_term_at prev es ss.(raft.entryID.index') = Some ss.(raft.entryID.term')).
+
+Lemma stored_snap_ok_commit ss cm cm' prev es :
+  uint.Z cm ≤ uint.Z cm' → stored_snap_ok ss cm prev es → stored_snap_ok ss cm' prev es.
+Proof. intros ? [?|[? ?]]; [by left|right; split; [lia|done]]. Qed.
+
+(** An [append] keeps the log's terms below the batch. *)
+Lemma plog_term_at_truncate_append_below b es ents e0 (i : w64) t :
+  ents !! 0%nat = Some e0 →
+  uint.Z i < uint.Z e0.(raftpb.Entry.Index') →
+  plog_term_at b es i = Some t →
+  plog_term_at b (plog_truncate_append b es ents) i = Some t.
+Proof.
+  destruct ents as [|e0' ents']; [done|]. intros [= <-] Hlt.
+  rewrite /plog_truncate_append /plog_term_at.
+  case_decide; [done|]. case_decide; [done|].
+  destruct (es !! _) as [e|] eqn:He; [|done]. intros Ht.
+  rewrite lookup_app_l.
+  - rewrite lookup_take_lt; [|lia]. rewrite He. done.
+  - apply lookup_lt_Some in He. rewrite length_take. lia.
+Qed.
+
 Definition own_raftLog_core (lv : raft.raftLog.t) (snap : option raft.entryID.t)
                             (prev : raft.entryID.t)
                             (sents uents : list raftpb.Entry.t) : iProp Σ :=
-  ∃ (sprev : raft.entryID.t) (stored : list raftpb.Entry.t),
+  ∃ (sprev : raft.entryID.t) (stored : list raftpb.Entry.t) (ss : raft.entryID.t),
   "%Hidx" ∷ ⌜ log_indices_ok prev (sents ++ uents) ⌝ ∗
   "%Hnowrap" ∷ ⌜ (uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents)
                   + Z.of_nat (length uents) + 1 < 2^64)%Z ⌝ ∗
   "#HisStorage" ∷ is_Storage lv.(raft.raftLog.storage') ∗
-  "HStorage" ∷ own_Storage lv.(raft.raftLog.storage') sprev stored ∗
+  "HStorage" ∷ own_Storage lv.(raft.raftLog.storage') sprev stored ss ∗
   "%Hstore" ∷ ⌜ log_store_ok snap sprev stored prev sents uents ⌝ ∗
   "#Husnap" ∷ own_snap lv.(raft.raftLog.unstable').(raft.unstable.snapshot') snap ∗
   "%Hoffset" ∷ ⌜ (uint.Z lv.(raft.raftLog.unstable').(raft.unstable.offset')
@@ -285,6 +334,8 @@ Definition own_raftLog_core (lv : raft.raftLog.t) (snap : option raft.entryID.t)
   "%Hcommitted" ∷ ⌜ (uint.Z lv.(raft.raftLog.committed')
                     ≤ uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents)
                       + Z.of_nat (length uents))%Z ⌝ ∗
+  "%Hssnap" ∷ ⌜ snap = None →
+                stored_snap_ok ss lv.(raft.raftLog.committed') prev (sents ++ uents) ⌝ ∗
   "#Hl_logger" ∷ is_Logger_val lv.(raft.raftLog.logger') ∗
   "#Hu_logger" ∷ is_Logger_val lv.(raft.raftLog.unstable').(raft.unstable.logger').
 
@@ -315,7 +366,7 @@ Proof. rewrite /own_raftLog /=. done. Qed.
     isv] after a [rewrite Hstok] -- and the premise [lv.storage = st] is then
     [eq_refl] or [Hstok].  The [reseal_raftLog] tactic below applies it with
     the standard names and closes the pure premises by assumption. *)
-Lemma own_raftLog_intro l lv st snap prev sents uents cm ap sprev stored :
+Lemma own_raftLog_intro l lv st snap prev sents uents cm ap sprev stored ss :
   lv.(raft.raftLog.storage') = st →
   lv.(raft.raftLog.committed') = cm →
   lv.(raft.raftLog.applied') = ap →
@@ -331,9 +382,10 @@ Lemma own_raftLog_intro l lv st snap prev sents uents cm ap sprev stored :
   (snap = None → uint.Z prev.(raft.entryID.index') ≤ uint.Z lv.(raft.raftLog.applied'))%Z →
   (uint.Z lv.(raft.raftLog.committed') ≤ uint.Z prev.(raft.entryID.index')
      + Z.of_nat (length sents) + Z.of_nat (length uents))%Z →
+  (snap = None → stored_snap_ok ss lv.(raft.raftLog.committed') prev (sents ++ uents)) →
   l ↦ lv -∗
   is_Storage st -∗
-  own_Storage st sprev stored -∗
+  own_Storage st sprev stored ss -∗
   own_snap lv.(raft.raftLog.unstable').(raft.unstable.snapshot') snap -∗
   lv.(raft.raftLog.unstable').(raft.unstable.entries') ↦*□ uents -∗
   own_slice_cap raftpb.Entry.t lv.(raft.raftLog.unstable').(raft.unstable.entries') (DfracOwn 1) -∗
@@ -341,10 +393,10 @@ Lemma own_raftLog_intro l lv st snap prev sents uents cm ap sprev stored :
   is_Logger_val lv.(raft.raftLog.unstable').(raft.unstable.logger') -∗
   own_raftLog l (logstate.mk prev sents uents cm ap snap).
 Proof.
-  intros <- Hcm Hap ????????.
+  intros <- Hcm Hap ?????????.
   iIntros "Hl #Hst HSt #Hsn Hu Hucap #Hl1 #Hl2".
   iExists lv. iFrame "Hl". iSplit; [done|]. iSplit; [done|].
-  iExists sprev, stored. iFrame "Hst HSt Hsn Hu Hucap Hl1 Hl2". iPureIntro. done.
+  iExists sprev, stored, ss. iFrame "Hst HSt Hsn Hu Hucap Hl1 Hl2". iPureIntro. done.
 Qed.
 
 (** The struct, for a field read.  [committed] and [applied]

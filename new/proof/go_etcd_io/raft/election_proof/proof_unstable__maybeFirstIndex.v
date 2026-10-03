@@ -9,7 +9,7 @@ Module UnstableMaybeFirstIndexProof (P : UNSTABLE__MAYBEFIRSTINDEX_POSTULATES) :
     wp_start as "H". iNamed "H". iNamed "Hun". wp_auto.
     destruct snap as [sid|].
     - (* a pending snapshot: [snapshot.Metadata.Index + 1] *)
-      iEval (rewrite own_snap_Some) in "Hsnap". iDestruct "Hsnap" as (sv) "[#Hsv %Hmeta]".
+      iEval (rewrite own_snap_Some) in "Hsnap". iDestruct "Hsnap" as (sv) "(#Hsv & %Hmeta & _)".
       iDestruct (typed_pointsto_not_null with "Hsv") as %Hnn.
       rewrite (bool_decide_eq_false_2 (uv.(raft.unstable.snapshot') = null) Hnn) /=.
       wp_auto.

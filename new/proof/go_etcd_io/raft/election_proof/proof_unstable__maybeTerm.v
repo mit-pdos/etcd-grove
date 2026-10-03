@@ -16,7 +16,7 @@ Import P.
       rewrite Hb1 /=. wp_auto.
       destruct snap as [sid|].
       + (* below [offset], with a snapshot pending: its term at its index *)
-        iEval (rewrite own_snap_Some) in "Hsnap". iDestruct "Hsnap" as (sv) "[#Hsv %Hmeta]".
+        iEval (rewrite own_snap_Some) in "Hsnap". iDestruct "Hsnap" as (sv) "(#Hsv & %Hmeta & _)".
         iDestruct (typed_pointsto_not_null with "Hsv") as %Hnn.
         destruct Hmeta as [Hidx Htm].
         rewrite (bool_decide_eq_false_2 (uv.(raft.unstable.snapshot') = null) Hnn) /=.

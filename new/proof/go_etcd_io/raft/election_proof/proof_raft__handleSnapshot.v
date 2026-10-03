@@ -43,7 +43,7 @@ Import P.
                   with "[$Hphys]").
       { done. }
       { right; right; right; left. split_and!; [done|done|reflexivity]. }
-      { iApply own_slice_nil. }
+      { iSplitR; [iApply own_slice_nil | iApply send_no_snap; simpl; w32_ne]. }
       iIntros "Hphys". wp_auto.
       iApply "HΦ". iFrame "Hphys". iPureIntro. left. split; [exact Hst|done].
     - (* fast-forward: acknowledge the new commit index, the snapshot's *)
@@ -69,7 +69,7 @@ Import P.
                   with "[$Hphys]").
       { done. }
       { right; right; right; left. split_and!; [done|done|reflexivity]. }
-      { iApply own_slice_nil. }
+      { iSplitR; [iApply own_slice_nil | iApply send_no_snap; simpl; w32_ne]. }
       iIntros "Hphys". wp_auto.
       iApply "HΦ". iFrame "Hphys". iPureIntro. right; left. split_and!; [exact Hlt|exact Hm|done].
     - (* a restore: acknowledge the new last index, the snapshot's *)
@@ -94,7 +94,7 @@ Import P.
                   with "[$Hphys]").
       { done. }
       { right; right; right; left. split_and!; [done|done|reflexivity]. }
-      { iApply own_slice_nil. }
+      { iSplitR; [iApply own_slice_nil | iApply send_no_snap; simpl; w32_ne]. }
       iIntros "Hphys". wp_auto.
       iApply "HΦ". iFrame "Hphys". iPureIntro. right; right.
       split_and!; [exact Hlt|exact Hnm|]. by exists prs, pvs.

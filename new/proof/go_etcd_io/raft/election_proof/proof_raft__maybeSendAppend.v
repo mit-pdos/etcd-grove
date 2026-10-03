@@ -307,7 +307,7 @@ Set Default Proof Using "Type".
       [ done
       | right; left; exists mtype.App; split_and!;
         [ by left | apply mtype_of_MsgApp | done | exact Hto | done ]
-      | iApply "Hents"
+      | iSplitR; [iApply "Hents" | iApply send_no_snap; simpl; w32_ne]
       | ];
     iIntros "Hphys";
     try wp_auto;

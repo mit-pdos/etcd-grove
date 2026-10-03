@@ -48,7 +48,7 @@ Import P.
     { done. }
     { right; left. exists mtype.Heartbeat. split_and!;
         [ by right; left | reflexivity | done | exact Hto | reflexivity ]. }
-    { iApply own_slice_nil. }
+    { iSplitR; [iApply own_slice_nil | iApply send_no_snap; simpl; w32_ne]. }
     iIntros "Hphys". wp_auto.
     iDestruct (own_raft_phys_pr_upd with "Hphys [//] [//]") as "[Hpa Hpback]".
     wp_apply (wp_Progress__SentCommit with "[$Hpa]") as "Hpa".

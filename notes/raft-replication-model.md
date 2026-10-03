@@ -844,6 +844,60 @@ outside `protocol.v` (untouched).  What landed, in the order it was built:
   fast-forward is in range by `matchTerm`; a restore replaces the log).
   No rule needed changing.
 
-Still open on the snapshot path: the **sender side** (`maybeSendSnapshot`'s
-`msg_abs` is not tied to the heap; `snap_ok_message` admitted), and
-`stableSnapTo`/`Ready` (a pending snapshot is never cleared in scope).
+Still open on the snapshot path after that: the sender side (done next,
+below), and `stableSnapTo`/`Ready` (a pending snapshot is never cleared in
+scope).
+
+### Done 2026-10-03: the sender side (both deviations above removed)
+
+Branch `worktree-agent-a4805cdd87b17c9a2` (from `1de11b38d`).  All `Qed`
+outside `protocol.v`; **`snap_ok_message` is `Qed`** (protocol.v's
+admits are down to `leader_completeness`/`state_machine_safety`).
+
+- **The Storage contract pins the snapshot by naming it, not by bounding
+  it.**  `own_Storage st prev ents ss` gained a fourth index, `ss :
+  entryID`, the storage's current snapshot metadata (`MemoryStorage.snapshot`).
+  `HSnapshot`'s success case: `snap_id snap = ss`, `Index ≠ 0` (as before),
+  and `∃ voters, snap.Metadata.ConfState.Voters ↦*□ voters` (read-only, for
+  good, like `Entries`).  Why not "`Index ≤ applied`" or "a stored entry id
+  at or below …": a `Storage` does not know raft's `committed`/`applied`,
+  and any *pure* parameter standing for them is satisfiable only vacuously
+  (the client must meet it for every value the premise allows, e.g.
+  `applied = prev.index`, which forces `Index = prev.index` -- false for
+  etcd, which keeps catch-up entries after the snapshot).  So "the
+  snapshot is of a committed prefix" is **raft's invariant**, not the
+  storage's: `own_raftLog_core` gained `"%Hssnap" ∷ snap = None →
+  stored_snap_ok ss committed prev (sents ++ uents)` (`inv_raftlog.v`):
+  `ss.index = 0`, or `ss.index ≤ committed ∧ plog_term_at prev log
+  ss.index = Some ss.term`.  Established at `newLogWithSize` by a new
+  premise `ss.index = 0 ∨ ss = prev` (also on `newRaft`: fresh storage, or
+  the `ApplySnapshot`-then-`Append` restart path; excluded: restarting on a
+  storage whose snapshot is above its first index); preserved because the
+  storage never changes in scope, `commitTo` only grows `committed`
+  (`stored_snap_ok_commit`), and `append` rewrites only above `committed`
+  (`plog_term_at_truncate_append_below`).
+- **`own_snap`** (pending snapshot) also holds `∃ voters, Voters ↦*□ voters`;
+  `unstable.restore`/`raftLog.restore` take it (binder `voters`), and
+  `raft.restore` passes its `"#Hvoters"`.
+- **`raftLog.snapshot`'s spec**: `err = esu`, or `nil` with `Index ≠ 0`,
+  `Index ≤ committed`, `plog_term_at prev (sents ++ uents) Index = Some
+  Term`, and the voters' `↦*□`.  Pending arm: the snapshot is the base.
+- **`msg_abs`'s `MsgSnap` case** is `∃ sv voters, ⌜mtype_of = Some Snap ∧ a
+  = Some (abs_snap m sv voters)⌝ ∗ m.Snapshot ↦□ sv ∗ sv…Voters ↦*□ voters`.
+  **`send`** has a new conjunct `"#Hsnap" ∷ □ (⌜Type = MsgSnap⌝ -∗ ∃ sv
+  voters, ⌜out = [abs_snap_from m id s.term sv voters]⌝ ∗ m.Snapshot ↦□ sv
+  ∗ Voters ↦*□ voters)`; `send_ok`'s (c') lost its `∃ sv voters, out =`
+  (the precondition fixes `out` now, for the heap's `sv`/`voters`).  Other
+  callers discharge it with `send_no_snap` (`inv_raft_phys.v`), one
+  `iSplitR` at 21 call sites (6 in the `Step` helpers).
+- **`maybeSendSnapshot`** persists the local `snapshot` cell (`iPersist`)
+  before the `send` -- `&snapshot` escapes into the queue and nobody
+  writes it again.
+- **Model**: `snap_ok` gained `index ≤ commit ∧ plog_term_at base log
+  index = Some logterm`.  `own_log_ghost` gained `"#Hbase" ∷ base_ok γ
+  base` (`base.index = 0 ∨ is_snap_meta γ base.term base.index`); only
+  `step_snap_restore` moves the base, and the message's `is_snap_meta`
+  re-establishes it.  `snap_ok_message` (premises `plog_wf_r`, `snap_ok`,
+  `is_committed commit`, `log_recs`, `base_ok`) is then `is_committed_le`
+  plus either `base_ok` (snapshot at the base, the usual case after
+  `Compact`) or the log record of the entry at `index`.

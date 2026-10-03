@@ -28,7 +28,8 @@ Import P.
       iApply "HΦ".
       rewrite /plog_commit_to decide_True //.
       reseal_raftLog.
-      all: pose proof (f_equal uint.Z Hcm) as HcmZ; simpl; lia.
+      all: pose proof (f_equal uint.Z Hcm) as HcmZ; simpl;
+        first [lia | (intros Hs; eapply stored_snap_ok_commit; [|exact (Hssnap Hs)]; simpl; lia)].
     - rewrite bool_decide_eq_false_2; last (rewrite Hcm; lia).
       wp_auto.
       iApply "HΦ".

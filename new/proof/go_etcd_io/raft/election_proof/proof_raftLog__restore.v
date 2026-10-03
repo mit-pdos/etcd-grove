@@ -11,7 +11,7 @@ Import P.
   Lemma wp_raftLog__restore : wp_raftLog__restore_body.
   Proof.
     intros_ambient.
-    intros l ls sv Hcmlt Hlt.
+    intros l ls sv voters Hcmlt Hlt.
     destruct ls as [prev sents uents lcm lap snap]; logstate_simpl.
     wp_start as "H". iNamed "H".
     iNamed "Hlog".
@@ -25,9 +25,9 @@ Import P.
     wp_apply (wp_Logger__logf with "Hlgr"); first solve_log_method.
     try iIntros "_". try wp_auto.
     iDestruct (raftLog_split_unstable with "Hl") as "[Huf Hlback]".
-    wp_apply (wp_unstable__restore with "[Huf Huents Huents_cap]")
+    wp_apply (wp_unstable__restore _ _ _ _ voters with "[Huf Huents Huents_cap]")
       as "%uv' (Hun & #Hsn & %Huv')".
-    { rewrite /own_unstable. iFrame. }
+    { rewrite /own_unstable. iFrame "Huf Huents Huents_cap Hvoters". }
     destruct Huv' as [Hoff' Hlg'].
     iNamed "Hun".
     iDestruct ("Hlback" with "Hu") as "Hl".
