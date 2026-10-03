@@ -141,9 +141,9 @@ Import P.
           { exfalso. destruct Hstore as (-> & -> & _). simpl in Hrange.
             apply (Hnotsnap sid eq_refl). apply word.unsigned_inj. lia. }
           clear Hnotin Hnotsnap Hsoff Hnw Hok Hokt Hoffset Hstok Happlied Hpapplied Hcommitted
-                Hidx Hnowrap HnoConfChange Hb1 Hb2 Hfi Hli Hcm Hap Hstore.
+                Hidx Hnowrap HnoConfChange Hb1 Hb2 Hfi Hli Hcm Hap Hstore Hssnap.
           iClear "HisStorage HLI HFI HT HE HB HSnap Hl_logger Hu_logger Husnap".
-          clear lv isv fi li sprev stored.
+          clear lv isv fi li sprev stored ss.
           iNamed "Hlog".
           iEval (rewrite /own_raftLog_core /=) in "Hcore". iNamed "Hcore". wp_auto.
           iAssert (is_Storage lv.(raft.raftLog.storage')) as "#Hsto".
@@ -153,7 +153,7 @@ Import P.
           rewrite Hstok /=.
           pose proof Hstore as (-> & Hstored & _).
           pose proof (prefix_length _ _ Hstored) as Hstlen.
-          wp_apply ("HT" $! prev stored i with "[$HStorage]").
+          wp_apply ("HT" $! prev stored ss i with "[$HStorage]").
           { iPureIntro. lia. }
           iIntros (t2) "[%Ht2 HStorage]".
           wp_auto.

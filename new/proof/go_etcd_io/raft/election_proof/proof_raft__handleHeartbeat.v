@@ -23,7 +23,7 @@ Import P.
     { done. }
     { right; left. exists mtype.HeartbeatResp. split_and!;
         [ by right; right; right | reflexivity | done | exact Hfrom | reflexivity ]. }
-    { iApply own_slice_nil. }
+    { iSplitR; [iApply own_slice_nil | iApply send_no_snap; simpl; w32_ne]. }
     iIntros "Hphys". wp_auto.
     by iApply "HΦ".
   Qed.

@@ -14,6 +14,16 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
     whose storage holds the [EntryConfChange]s [Bootstrap] wrote
     (notes/STATUS.md, "What still needs fixing").
 
+    A third (2026-10-03) is about the storage's snapshot [ss]: it is empty
+    ([ss.index = 0]) or it *is* the compaction boundary ([ss = prev]).
+    That is [own_raftLog]'s [stored_snap_ok] at [committed = prev.index],
+    the commit index the log starts at.  It holds of a fresh
+    [MemoryStorage] (no snapshot, dummy entry [0]) and of the restart path
+    [ApplySnapshot]-then-[Append] (which sets [ents[0]] to the snapshot's
+    id); it excludes restarting on a storage whose snapshot lies above its
+    first index, whose index raft would only learn is committed from the
+    [HardState] [loadState] reads after this call.
+
     **The postcondition is [own_raftLog_unfold]'s right-hand side, not
     [own_raftLog]**, plus [lv.storage = st].  [own_raftLog l ls] forgets
     which [Storage] interface value the log holds: [logstate.t] has no
@@ -36,11 +46,13 @@ Definition wp_newLogWithSize_body :=
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (st : raft.Storage.t) (lg : raft.Logger.t) (maxSize : w64)
-    (prev : raft.entryID.t) (ents : list raftpb.Entry.t) (lok : interface.t_ok),
+    (prev : raft.entryID.t) (ents : list raftpb.Entry.t) (ss : raft.entryID.t)
+    (lok : interface.t_ok),
   log_indices_ok prev ents →
   Forall (λ e, e.(raftpb.Entry.Type') = EntryNormal) ents →
+  (uint.Z ss.(raft.entryID.index') = 0 ∨ ss = prev) →
   lg = interface.ok lok →
-  {{{ is_pkg_init raft ∗ is_Storage st ∗ own_Storage st prev ents ∗ is_Logger lok }}}
+  {{{ is_pkg_init raft ∗ is_Storage st ∗ own_Storage st prev ents ss ∗ is_Logger lok }}}
     @! raft.newLogWithSize #st #lg #maxSize
   {{{ (l : loc) (lv : raft.raftLog.t), RET #l;
       l ↦ lv ∗

@@ -30,16 +30,15 @@ Implicit Type s : nstate.t.
     ([notes/raft-replication-model.md], "Abstract messages").
 
     A [MsgSnap] is abstracted by [abs_snap m sv voters] instead (since
-    2026-10-02), the snapshot's metadata.  **Not yet tied to the heap**:
-    [sv]/[voters] should be what [m.Snapshot ↦□ sv] and [sv]'s
-    [ConfState.Voters ↦*□ voters] say, but [send] -- the only producer of
-    a [msg_abs] -- has no such precondition (adding one changes every
-    caller's proof), and [maybeSendSnapshot] could not supply the voters'
-    points-to anyway ([raftLog.snapshot]/[is_Storage]'s [HSnapshot] give no
-    ownership of them).  So today a queued [MsgSnap]'s metadata is whatever
-    its sender's spec says it is ([maybeSendSnapshot]: the [Storage]'s
-    snapshot), and nothing in [own_raft_phys] re-reads it.  The receiving
-    side, [Step]'s ["Hsnap"], does hold the points-tos.
+    2026-10-02), the snapshot's metadata and voters -- **read through the
+    heap** (since 2026-10-03), like [App]'s entries: [sv] is what
+    [m.Snapshot] points to and [voters] what [sv]'s [ConfState.Voters]
+    slice holds, both read-only.  [send] takes these points-tos for a
+    [MsgSnap] (its ["Hsnap"]); [maybeSendSnapshot] persists the local
+    [snapshot] variable whose address it queues (nobody writes it again)
+    and has the voters from [raftLog.snapshot] ([is_Storage]'s
+    [HSnapshot], or [own_snap] for a pending snapshot).  The receiving
+    side, [Step]'s ["Hsnap"], holds the same points-tos.
 
     [outbox_rel o msgs msgsAA]: the abstract outbox [o] is, up to
     permutation, what the two queues contribute.  Persistent. *)
@@ -48,9 +47,19 @@ Definition msg_abs (m : raftpb.Message.t) (a : option msg.t) : iProp Σ :=
   (∃ ty ents, ⌜ mtype_of m.(raftpb.Message.Type') = Some ty ∧ ty ≠ mtype.Snap ∧
                 a = Some (abs_msg ty m ents) ⌝ ∗
               m.(raftpb.Message.Entries') ↦*□ ents) ∨
-  (⌜ mtype_of m.(raftpb.Message.Type') = Some mtype.Snap ∧
-     ∃ (sv : raftpb.Snapshot.t) (voters : list w64),
-       a = Some (abs_snap m sv voters) ⌝).
+  (∃ (sv : raftpb.Snapshot.t) (voters : list w64),
+     ⌜ mtype_of m.(raftpb.Message.Type') = Some mtype.Snap ∧
+       a = Some (abs_snap m sv voters) ⌝ ∗
+     m.(raftpb.Message.Snapshot') ↦□ sv ∗
+     sv.(raftpb.Snapshot.Metadata').(raftpb.SnapshotMetadata.ConfState')
+       .(raftpb.ConfState.Voters') ↦*□ voters).
+
+(** [send]'s ["Hsnap"] precondition for a message that is not a
+    [MsgSnap]: vacuous. *)
+Lemma send_no_snap (m : raftpb.Message.t) (P : iProp Σ) :
+  m.(raftpb.Message.Type') ≠ MsgSnap →
+  ⊢ □ (⌜ m.(raftpb.Message.Type') = MsgSnap ⌝ -∗ P).
+Proof. iIntros (Hne) "!> %H". by exfalso. Qed.
 
 Definition abs_list (as_ : list (option msg.t)) : list msg.t := omap (λ a, a) as_.
 

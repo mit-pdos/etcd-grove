@@ -45,9 +45,9 @@ and the older read-index work in `v3_proof/`. They share only `base.v`.
   `is_term_log`/`is_entry`/`is_acked`/`is_committed`) and the safety
   statements. Constructed, not axiomatized, no Iris invariant.
   **Since 2026-10-01 this file may contain `Admitted`** (user's decision,
-  [decisions.md](decisions.md)): three admits today (2026-10-02:
-  `snap_ok_message`, `leader_completeness`, `state_machine_safety`),
-  listed under "Trust base". Everything else in the development stays `Qed`.
+  [decisions.md](decisions.md)): two admits today (2026-10-03:
+  `leader_completeness`, `state_machine_safety`; `snap_ok_message` is
+  `Qed` since 2026-10-03), listed under "Trust base". Everything else in the development stays `Qed`.
 - `election_proof/plog.v` — pure functions on an `(entryID, list Entry)`
   log (`plog_term_at`, `plog_matches`, `plog_find_conflict`,
   `plog_truncate_append`, `plog_maybe_append`, `plog_up_to_date`, ...),
@@ -280,9 +280,19 @@ the log proofs' snapshot arms, `unstable/raftLog/raft.restore`,
 `step_snap_stale/_fastfwd/_restore`.  New `Step` premises for `MsgSnap`:
 `0 ∉ cfg`, `AutoLeave = false`, `Index < 2^61` (inside `"Hsnap"`'s
 `snap_scope`).  Details: raft-replication-model.md, "Phase 2 … Done
-2026-10-02: the log and implementation side".  Next on this path: the
-sender side (`maybeSendSnapshot`'s abstraction tied to the heap,
-`snap_ok_message`), then pre-vote.
+2026-10-02: the log and implementation side".
+
+**Snapshots, sender side, done** (2026-10-03, branch
+`worktree-agent-a4805cdd87b17c9a2` from `1de11b38d`, not yet merged): a
+queued `MsgSnap`'s `msg_abs` reads `m.Snapshot ↦□ sv` and the voters'
+`↦*□` (`send` takes them, `"Hsnap"`; `maybeSendSnapshot` persists its
+local `snapshot`); `own_Storage` names the storage's snapshot `ss`,
+`HSnapshot` returns it with its voters read-only, and `own_raftLog` keeps
+`stored_snap_ok` (`ss` committed and in the log) -- a new `newRaft`/
+`newLogWithSize` premise `ss.index = 0 ∨ ss = prev`; `snap_ok` carries
+`index ≤ commit` and the log fact; `own_log_ghost` gained `base_ok`;
+**`snap_ok_message` is `Qed`**.  Details: raft-replication-model.md,
+"Phase 2 … Done 2026-10-03: the sender side".  Next: pre-vote.
 
 ## What still needs fixing
 
@@ -340,15 +350,13 @@ say so in the journal.
    their results (`plog_up_to_date`, `plog_last`, `plog_term_at`), and
    `step_grant_vote` carries the up-to-date premise. What remains is the
    protocol-level use of it: `leader_completeness` is admitted.
-5a. **`snap_ok_message` (admitted, `protocol.v`)**: what a leader's
-   `MsgSnap` carries (`is_committed index`, `is_snap_meta`, and since
-   2026-10-02 that the leader's log has `(term, index)` --
-   `plog_term_at base log index = Some term` -- from which `is_message`'s
-   `lead_prefix` for a `Snap` is built). Not provable
-   from the model: `is_Storage`'s `HSnapshot` says only `index ≠ 0`. Needs
-   `HSnapshot` to pin the metadata to the stored log below `applied`, and
-   `raftLog.snapshot`'s spec to pass it on. Also: `msg_abs`'s `MsgSnap`
-   case is not tied to the heap (see raft-replication-model.md).
+5a. ~~**`snap_ok_message` (admitted)**~~ -- **done 2026-10-03**: `Qed`,
+   from `snap_ok`'s new commit bound and log fact, which
+   `maybeSendSnapshot` gets from `raftLog.snapshot` (`HSnapshot` names
+   the storage's snapshot `ss`; `own_raftLog`'s `stored_snap_ok` relates
+   it to `committed`), plus `own_log_ghost`'s `base_ok`.  `msg_abs`'s
+   `MsgSnap` case is tied to the heap.  Remaining scope cost: `newRaft`
+   needs the storage's snapshot to be empty or at its first index.
 5b. **`leader_completeness` and `state_machine_safety` (admitted,
    `protocol.v`)** -- the other three of the former five
    (`heartbeat_commit_le_last`, `app_no_conflict_below_commit`,
@@ -397,9 +405,11 @@ known gaps and the plan are in [tcb-accounting.md](tcb-accounting.md).
 
 `etc/tcb-report.py` on the election path (`--scope election_proof`,
 2026-10-02, at the merge of `2a59ee8d9` into `c0edb8a9f`, `origin/main`
-merged): **14 `Axiom` and 4 `Admitted`** -- the one signed off on in
-`raftLog.slice`; `snap_ok_message` (a `Storage.Snapshot` assumption,
-phase 2); and the two safety theorems `leader_completeness` and
+merged): **14 `Axiom` and 4 `Admitted`**; on 2026-10-03 after the
+snapshot sender side (branch `worktree-agent-a4805cdd87b17c9a2`): **14
+`Axiom`, 3 `Admitted`, 571 `Qed`** -- the one signed off on in
+`raftLog.slice`; (`snap_ok_message`, the former fourth, is `Qed`); and
+the two safety theorems `leader_completeness` and
 `state_machine_safety`, which **cannot be proved as stated**: they
 quantify over two nodes' ghost states, and the argument needs the third
 node that is in both the commit quorum and the election quorum (its votes

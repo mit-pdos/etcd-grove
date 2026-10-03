@@ -8,14 +8,15 @@ Module UnstableRestoreProof (P : UNSTABLE__RESTORE_POSTULATES) : UNSTABLE__RESTO
   Lemma wp_unstable__restore : wp_unstable__restore_body.
   Proof.
     intros_ambient.
-    intros u uv uents sv.
+    intros u uv uents sv voters.
     wp_start as "H". iNamed "H". iNamed "Hun".
     iApply wp_fupd. wp_auto.
     iPersist "s". iModIntro.
     iApply "HΦ". rewrite /own_unstable. iFrame "Hu".
     iSplitL; [iSplitL; [iApply own_slice_cap_nil | iApply own_slice_nil] |].
     iSplit; last (iPureIntro; done).
-    rewrite own_snap_Some. iExists sv. iFrame "s". iPureIntro. done.
+    rewrite own_snap_Some. iExists sv. iFrame "s".
+    iSplit; [iPureIntro; done | iExists voters; iExact "Hvoters"].
   Qed.
 
 End UnstableRestoreProof.

@@ -88,7 +88,7 @@ Import P.
     iEval (rewrite Hls own_raftLog_unfold) in "Hlog".
     iDestruct "Hlog" as (lv) "(Hl & %Hcm & %Hap & Hcore)".
     iEval (rewrite /own_raftLog_core /=) in "Hcore".
-    iDestruct "Hcore" as (sprev stored) "Hcore". iNamed "Hcore".
+    iDestruct "Hcore" as (sprev stored ss) "Hcore". iNamed "Hcore".
     subst lcm lap. specialize (Hpapplied eq_refl).
     iDestruct ("Hback" with "[Hl HStorage Huents Huents_cap]") as "Hphys".
     { rewrite Hls. reseal_raftLog. }

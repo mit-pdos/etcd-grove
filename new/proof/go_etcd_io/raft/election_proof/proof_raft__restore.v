@@ -140,7 +140,7 @@ Import P.
       (* [r.raftLog.restore(s)] *)
       wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
       iDestruct (own_raft_phys_log_at with "Hphys") as "[Hlog Hlogback]".
-      wp_apply (wp_raftLog__restore _ _ sv with "[$Hlog]") as "Hlog".
+      wp_apply (wp_raftLog__restore _ _ sv voters with "[$Hlog $Hvoters]") as "Hlog".
       { simpl. lia. }
       { simpl. lia. }
       iDestruct ("Hlogback" with "Hlog") as "Hphys".

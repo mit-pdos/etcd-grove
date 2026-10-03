@@ -48,11 +48,15 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
         queued and drops out of the abstract outbox.  [Term] unset, not
         self-addressed.
     (c') [MsgSnap] (2026-10-02): stamped and queued like (b), but the
-        abstract message is [abs_snap_from] -- the snapshot's metadata
-        [sv] and voters [voters], which the caller names: [m.Snapshot] is
-        a pointer and [send] does not read it.  (Stated as the left
-        disjunct of (c), which no caller uses, so that no caller's clause
-        selection moved.)
+        abstract message is [abs_snap_from] of the snapshot [m.Snapshot]
+        points to and of that snapshot's [ConfState.Voters].  [send] does
+        not read the pointer, so the caller names the two and supplies
+        their read-only points-tos: the precondition's ["Hsnap"] fixes
+        [out = [abs_snap_from m id s.term sv voters]] for exactly those
+        [sv]/[voters] (since 2026-10-03; until then the clause itself
+        said [∃ sv voters, out = ...], untied to the heap).  (Stated as
+        the left disjunct of (c), which no caller uses, so that no
+        caller's clause selection moved.)
     (d) [MsgAppResp]: stamped like (b), but a response, so it goes onto
         [r.msgsAfterAppend] and may be self-addressed ([appendEntry]'s
         self-acknowledgement is).
@@ -84,9 +88,7 @@ Definition send_ok {ext : ffi_syntax} (id : w64) (s : nstate.t) (m : raftpb.Mess
   ∨
   ((m.(raftpb.Message.Type') = MsgSnap ∧
     m.(raftpb.Message.Term') = W64 0 ∧
-    m.(raftpb.Message.To') ≠ id ∧
-    ∃ (sv : raftpb.Snapshot.t) (voters : list w64),
-      out = [abs_snap_from m id s.(nstate.term) sv voters])
+    m.(raftpb.Message.To') ≠ id)
    ∨
    (mtype_of m.(raftpb.Message.Type') = None ∧
     m.(raftpb.Message.Term') = W64 0 ∧
@@ -112,13 +114,20 @@ Definition send_ok {ext : ffi_syntax} (id : w64) (s : nstate.t) (m : raftpb.Mess
     mtype.App; split_and!; [by left | .. | done | <To ≠ id> | done]]; for
     [MsgAppResp], [right; right; right; left; split_and!; [done | done |
     done]]; for [MsgSnap], [right; right; left; left; split_and!; [done |
-    done | <To ≠ id> | exists sv, voters; done]].  These are not lemmas here because a spec file states and does
-    not prove (etc/check-module-discipline.py, F3).
+    done | <To ≠ id>]].  These are not lemmas here because a spec file
+    states and does not prove (etc/check-module-discipline.py, F3).
 
     **[ents].**  [m.Entries ↦*□ ents] is a precondition: it is what
     [own_raft_phys] keeps for the queued message ([outbox_rel],
     [inv_raft_phys.v]).  For a message built without [Entries] the field
-    is [slice.nil] and [ents = []] ([own_slice_nil]). *)
+    is [slice.nil] and [ents = []] ([own_slice_nil]).
+
+    **["Hsnap"]** (2026-10-03): for a [MsgSnap], the snapshot [sv] that
+    [m.Snapshot] points to and its [ConfState.Voters] list [voters], both
+    read-only, and [out] is the abstraction at those -- what
+    [own_raft_phys] keeps for the queued message ([msg_abs]).  Every other
+    caller discharges it from its message type ([send_no_snap],
+    [inv_raft_phys.v]). *)
 
 (** Stated on [own_raft_phys], for **any** [s].  [send] touches [r.msgs],
     [r.msgsAfterAppend], [r.logger] and the tracing hook, and *reads*
@@ -140,7 +149,13 @@ Definition wp_raft__send_body :=
   m.(raftpb.Message.From') = W64 0 →
   send_ok id s m ents out →
   {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s ∗
-      "#Hents" ∷ m.(raftpb.Message.Entries') ↦*□ ents }}}
+      "#Hents" ∷ m.(raftpb.Message.Entries') ↦*□ ents ∗
+      "#Hsnap" ∷ □ (⌜ m.(raftpb.Message.Type') = MsgSnap ⌝ -∗
+                    ∃ (sv : raftpb.Snapshot.t) (voters : list w64),
+                      ⌜ out = [abs_snap_from m id s.(nstate.term) sv voters] ⌝ ∗
+                      m.(raftpb.Message.Snapshot') ↦□ sv ∗
+                      sv.(raftpb.Snapshot.Metadata').(raftpb.SnapshotMetadata.ConfState')
+                        .(raftpb.ConfState.Voters') ↦*□ voters) }}}
     r @! (go.PointerType raft.raft) @! "send" #m
   {{{ RET #(); own_raft_phys cfg r id (send_msgs s out) }}}.
 

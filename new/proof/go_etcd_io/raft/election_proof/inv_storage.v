@@ -17,13 +17,18 @@
 
     *** The abstraction
 
-    [own_Storage st prev ents] says: the storage behind the interface value
-    [st] holds the log entries [ents], immediately following the entry
-    [prev].  [prev] is the compaction boundary -- the last entry the storage
-    has discarded the payload of but still knows the term of.  This is exactly
-    how [MemoryStorage] represents its log (a dummy entry at [ents[0]]), and
-    it is what makes [Term] total on [[prev.index, prev.index + |ents|]]
-    rather than only on [(prev.index, ...]].
+    [own_Storage st prev ents ss] says: the storage behind the interface
+    value [st] holds the log entries [ents], immediately following the entry
+    [prev], and its most recent snapshot has metadata [ss] (as an
+    [entryID]: [(Metadata.Term, Metadata.Index)]).  [prev] is the compaction
+    boundary -- the last entry the storage has discarded the payload of but
+    still knows the term of.  This is exactly how [MemoryStorage] represents
+    its log (a dummy entry at [ents[0]]), and it is what makes [Term] total
+    on [[prev.index, prev.index + |ents|]] rather than only on
+    [(prev.index, ...]].  [ss] is [MemoryStorage.snapshot]'s metadata, which
+    [Snapshot()] returns (added 2026-10-03, so that [raft] can relate the
+    snapshot it forwards to its own commit index -- see [HSnapshot] and
+    [own_raftLog]'s [stored_snap_ok]).
 
     Index [prev.index + 1 + k] holds [ents !! k], so:
       - [FirstIndex()] = [prev.index + 1]
@@ -119,7 +124,8 @@ Set Default Proof Using "W".
     persistent) because a [Storage] is mutable -- [Append] and [Compact]
     change it -- so two different contents for the same [st] must not be
     simultaneously assertable. *)
-Axiom own_Storage : raft.Storage.t → raft.entryID.t → list raftpb.Entry.t → iProp Σ.
+Axiom own_Storage : raft.Storage.t → raft.entryID.t → list raftpb.Entry.t →
+                    raft.entryID.t → iProp Σ.
 
 (** The term of index [i] in the log [prev :: ents].  [None] outside the
     range the storage can answer for. *)
@@ -136,28 +142,28 @@ Definition term_at (prev : raft.entryID.t) (ents : list raftpb.Entry.t) (i : w64
 Definition is_Storage (st : raft.Storage.t) : iProp Σ :=
   ∃ (i : interface.t_ok),
   "%Hstok" ∷ ⌜ st = interface.ok i ⌝ ∗
-  "#HLastIndex" ∷ (∀ prev ents,
-     {{{ own_Storage st prev ents }}}
+  "#HLastIndex" ∷ (∀ prev ents ss,
+     {{{ own_Storage st prev ents ss }}}
        #(methods i.(interface.ty) "LastIndex"%go i.(interface.v)) #()
      {{{ (li : w64), RET (#li, #interface.nil);
          ⌜ (uint.Z li = uint.Z prev.(raft.entryID.index')
                         + Z.of_nat (length ents))%Z ⌝ ∗
-         own_Storage st prev ents }}}) ∗
-  "#HFirstIndex" ∷ (∀ prev ents,
-     {{{ own_Storage st prev ents }}}
+         own_Storage st prev ents ss }}}) ∗
+  "#HFirstIndex" ∷ (∀ prev ents ss,
+     {{{ own_Storage st prev ents ss }}}
        #(methods i.(interface.ty) "FirstIndex"%go i.(interface.v)) #()
      {{{ (fi : w64), RET (#fi, #interface.nil);
          ⌜ (uint.Z fi = uint.Z prev.(raft.entryID.index') + 1)%Z ⌝ ∗
-         own_Storage st prev ents }}}) ∗
-  "#HTerm" ∷ (∀ prev ents (i0 : w64),
-     {{{ own_Storage st prev ents ∗
+         own_Storage st prev ents ss }}}) ∗
+  "#HTerm" ∷ (∀ prev ents ss (i0 : w64),
+     {{{ own_Storage st prev ents ss ∗
          ⌜ (uint.Z prev.(raft.entryID.index') ≤ uint.Z i0 ≤
             uint.Z prev.(raft.entryID.index') + Z.of_nat (length ents))%Z ⌝ }}}
        #(methods i.(interface.ty) "Term"%go i.(interface.v)) #i0
      {{{ (t : w64), RET (#t, #interface.nil);
-         ⌜ term_at prev ents i0 = Some t ⌝ ∗ own_Storage st prev ents }}}) ∗
-  "#HEntries" ∷ (∀ prev ents (lo hi maxSize : w64),
-     {{{ own_Storage st prev ents ∗
+         ⌜ term_at prev ents i0 = Some t ⌝ ∗ own_Storage st prev ents ss }}}) ∗
+  "#HEntries" ∷ (∀ prev ents ss (lo hi maxSize : w64),
+     {{{ own_Storage st prev ents ss ∗
          ⌜ (uint.Z prev.(raft.entryID.index') + 1 ≤ uint.Z lo ∧ uint.Z lo < uint.Z hi ∧
             uint.Z hi ≤ uint.Z prev.(raft.entryID.index') + Z.of_nat (length ents) + 1)%Z ⌝ }}}
        #(methods i.(interface.ty) "Entries"%go i.(interface.v)) #lo #hi #maxSize
@@ -176,7 +182,7 @@ Definition is_Storage (st : raft.Storage.t) : iProp Σ :=
               for [app_ok]'s prefix clause. *)
            es `prefix_of` drop (Z.to_nat (uint.Z lo - uint.Z prev.(raft.entryID.index') - 1))
                             (take (Z.to_nat (uint.Z hi - uint.Z prev.(raft.entryID.index') - 1)) ents) ⌝ ∗
-         own_Storage st prev ents }}}) ∗
+         own_Storage st prev ents ss }}}) ∗
   (** The stable log's last index is far below [2^64].
 
       This is the one *pure* clause of the contract, and it is what makes
@@ -209,11 +215,11 @@ Definition is_Storage (st : raft.Storage.t) : iProp Σ :=
       [own_Storage st prev ents -∗ ⌜…⌝] would consume the storage
       (notes/gotchas.md, "Reading a pure fact out of a definition without
       consuming it"). *)
-  "#Hbounded" ∷ □ (∀ prev ents,
-     own_Storage st prev ents -∗
+  "#Hbounded" ∷ □ (∀ prev ents ss,
+     own_Storage st prev ents ss -∗
      ⌜ (uint.Z prev.(raft.entryID.index') + Z.of_nat (length ents)
         < 2^61)%Z ⌝ ∗
-     own_Storage st prev ents) ∗
+     own_Storage st prev ents ss) ∗
   (** [Snapshot()] -- added 2026-09-20 for [raft.maybeSendSnapshot].
 
       [raftLog.snapshot] ([new/code/go_etcd_io/raft/v3.v:864]) returns
@@ -235,19 +241,44 @@ Definition is_Storage (st : raft.Storage.t) : iProp Σ :=
       The error value is passed in as the package-level variable's
       points-to, so a proof compares the two interface values through
       [is_initialized] ([base.v]) rather than through a claim about
-      [errors.New].  What the snapshot *contains* is unspecified: raft only
-      forwards it and takes [Metadata.Index]/[Metadata.Term] for a
-      [Progress.BecomeSnapshot] and a [MsgSnap] the model does not see. *)
-  "#HSnapshot" ∷ (∀ prev ents (esu : interface.t),
-     {{{ own_Storage st prev ents ∗
+      [errors.New].
+
+      **What the snapshot is** (2026-10-03).  On success the snapshot's
+      metadata is the storage's own, [ss] ([snap_id], [defs.v]): "Snapshot
+      returns the most recent snapshot" ([storage.go:85]), and
+      [MemoryStorage.Snapshot] returns [ms.snapshot] by value.  That is all
+      this clause says about *which* snapshot; that it is of a committed
+      prefix of raft's log is not a property of a [Storage] at all, and is
+      kept by raft instead, as an invariant relating [ss] to its commit
+      index ([own_raftLog]'s [stored_snap_ok], [inv_raftlog.v]) -- true at
+      [newRaft] by a premise on the initial storage, and preserved because
+      nothing in scope changes the storage.
+      And the snapshot's [ConfState.Voters] slice is handed out
+      **read-only, for good** ([↦*□]), like [Entries]' result: the
+      snapshot comes back by value, but its slices are the storage's, which
+      [MemoryStorage] never writes in place ([CreateSnapshot] replaces the
+      whole [ConfState]; [ApplySnapshot] the whole snapshot).  raft puts
+      that slice in a [MsgSnap] ([maybeSendSnapshot]) and the abstraction of
+      the queued message reads it ([msg_abs], [inv_raft_phys.v]).
+
+      *Client assumptions* in this clause, as before: the snapshot is
+      non-empty on success (an empty one is a [panic] in raft; raft only
+      asks after a [Term] or [Entries] failed with [ErrCompacted], i.e.
+      once the storage has compacted, which presupposes a snapshot), and
+      the voters' read-only ownership. *)
+  "#HSnapshot" ∷ (∀ prev ents ss (esu : interface.t),
+     {{{ own_Storage st prev ents ss ∗
          (global_addr raft.ErrSnapshotTemporarilyUnavailable) ↦□ esu }}}
        #(methods i.(interface.ty) "Snapshot"%go i.(interface.v)) #()
      {{{ (snap : raftpb.Snapshot.t) (err : interface.t), RET (#snap, #err);
-         own_Storage st prev ents ∗
-         ⌜ err = esu ∨
-           (err = interface.nil ∧
-            snap.(raftpb.Snapshot.Metadata').(raftpb.SnapshotMetadata.Index')
-              ≠ W64 0) ⌝ }}}).
+         own_Storage st prev ents ss ∗
+         (⌜ err = esu ⌝ ∨
+          (⌜ err = interface.nil ∧ snap_id snap = ss ∧
+             snap.(raftpb.Snapshot.Metadata').(raftpb.SnapshotMetadata.Index')
+               ≠ W64 0 ⌝ ∗
+           ∃ (voters : list w64),
+             snap.(raftpb.Snapshot.Metadata').(raftpb.SnapshotMetadata.ConfState')
+               .(raftpb.ConfState.Voters') ↦*□ voters)) }}}).
 
 Global Instance is_Storage_pers st : Persistent (is_Storage st).
 Proof. apply _. Qed.

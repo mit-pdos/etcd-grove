@@ -9,7 +9,10 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
         u.snapshotInProgress = false
 
     [&s] is the address of the by-value parameter, a fresh heap cell; it
-    comes back read-only as [own_snap] of the snapshot's id ([snap_id]).
+    comes back read-only as [own_snap] of the snapshot's id ([snap_id]),
+    together with the caller's read-only [ConfState.Voters] (since
+    2026-10-03: [raftLog.snapshot()] hands the stored snapshot's voters to
+    [maybeSendSnapshot]).
     The old entries are dropped (the suffix is empty, a [nil] slice), and
     the logger is left alone. *)
 Definition wp_unstable__restore_body :=
@@ -17,8 +20,10 @@ Definition wp_unstable__restore_body :=
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (u : loc) (uv : raft.unstable.t) (uents : list raftpb.Entry.t)
-    (sv : raftpb.Snapshot.t),
-  {{{ is_pkg_init raft ∗ "Hun" ∷ own_unstable u uv uents }}}
+    (sv : raftpb.Snapshot.t) (voters : list w64),
+  {{{ is_pkg_init raft ∗ "Hun" ∷ own_unstable u uv uents ∗
+      "#Hvoters" ∷ sv.(raftpb.Snapshot.Metadata').(raftpb.SnapshotMetadata.ConfState')
+                     .(raftpb.ConfState.Voters') ↦*□ voters }}}
     u @! (go.PointerType raft.unstable) @! "restore" #sv
   {{{ (uv' : raft.unstable.t), RET #();
       own_unstable u uv' [] ∗

@@ -61,6 +61,8 @@ Import P.
         wp_apply (wp_raft__send _ _ _ _ (m <| raftpb.Message.To' := s.(nstate.lead) |>) ents with "[$Hphys $Hes]").
         { exact Hfrom0. }
         { right; right; right; right. split_and!; [done|done|simpl; congruence|reflexivity]. }
+        { iApply send_no_snap. simpl.
+          assert (Hp : m.(raftpb.Message.Type') = MsgProp) by done. rewrite Hp. w32_ne. }
         iIntros "Hphys". wp_auto.
         iApply ("HΦ" $! interface.nil _ false). iFrame "Hphys".
         iPureIntro. split; last done.

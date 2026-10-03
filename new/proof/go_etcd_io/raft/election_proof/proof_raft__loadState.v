@@ -55,9 +55,11 @@ Import P.
     set ls' := logstate.mk prev sents uents hs.(raftpb.HardState.Commit') lap snap.
     iAssert (own_raftLog s.(nstate.log) ls')%I with "[Hl Hcore]" as "HL".
     { iEval (rewrite /own_raftLog_core /=) in "Hcore".
-      iDestruct "Hcore" as (sprev stored) "Hcore". iNamed "Hcore".
+      iDestruct "Hcore" as (sprev stored ss) "Hcore". iNamed "Hcore".
       reseal_raftLog.
-      all: simpl; subst; rewrite ?Hcm2 in Happlied; lia. }
+      all: simpl; subst; rewrite ?Hcm2 in Happlied Hssnap; try lia.
+      intros Hs. eapply stored_snap_ok_commit; [|exact (Hssnap Hs)].
+      rewrite ?Hls in Hc. simpl in Hc. lia. }
     iDestruct ("Hlogback" with "HL") as "Hphys".
     wp_apply (wp_raft_store_Term with "Hphys") as "Hphys".
     try wp_auto.

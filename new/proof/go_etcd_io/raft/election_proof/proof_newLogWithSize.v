@@ -5,7 +5,7 @@ Module NewLogWithSizeProof (P : NEWLOGWITHSIZE_POSTULATES) : NEWLOGWITHSIZE.
   Lemma wp_newLogWithSize : wp_newLogWithSize_body.
   Proof.
     intros_ambient.
-    intros st lg maxSize prev ents lok Hidx Hnocc ->.
+    intros st lg maxSize prev ents ss lok Hidx Hnocc Hss ->.
     wp_start as "(#Hsto & HStorage & #Hlg)".
     iAssert (is_Storage st) as "#Hsto2"; first iExact "Hsto".
     iDestruct "Hsto" as (isv) "(%Hstok & #HLI & #HFI & #HT & #HE & #HB & #HSnap)".
@@ -19,8 +19,11 @@ Module NewLogWithSizeProof (P : NEWLOGWITHSIZE_POSTULATES) : NEWLOGWITHSIZE.
     wp_apply wp_alloc. iIntros (l) "Hl". wp_auto.
     iApply "HΦ". iFrame "Hl".
     iSplitR; first (iPureIntro; simpl; split_and!; [done|apply word.unsigned_inj; word ..]).
-    rewrite /own_raftLog_core /= app_nil_r. iExists prev, ents. iFrame "HStorage Hsto2".
+    rewrite /own_raftLog_core /= app_nil_r. iExists prev, ents, ss. iFrame "HStorage Hsto2".
     repeat (iSplitR; [ first [ iPureIntro; (done || word || (split_and!; done) || (split; word) || (intros; word))
+                             | (iPureIntro; intros _; rewrite /stored_snap_ok;
+                                destruct Hss as [?| ->]; [by left | right; split;
+                                  [simpl; word | apply plog_term_at_base]])
                              | (rewrite own_snap_None; iPureIntro; done)
                              | iApply own_slice_nil
                              | iApply own_slice_cap_nil

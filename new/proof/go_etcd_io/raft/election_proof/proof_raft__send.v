@@ -47,7 +47,7 @@ Import P.
     rewrite Hfrom bool_decide_eq_true_2 //. wp_auto. wp_apply (wp_raft_load_id with "Hphys") as "Hphys".
     destruct Hok as [(ty & Hvoty & Hty & Hmterm & Hself & ->)
                     |[(ty & Hlty & Hty & Hmterm & Hself & ->)
-                     |[[(HSnap & Hmterm & Hself & sv & voters & ->)
+                     |[[(HSnap & Hmterm & Hself)
                        |(Hty & Hmterm & Hself & ->)]
                       |[(HAR & Hmterm & ->)
                        |(HProp & Hmterm & Hself & ->)]]]].
@@ -138,11 +138,12 @@ Import P.
       rewrite bool_decide_eq_false_2 //. wp_auto.
       wp_apply (wp_raft_load_id with "Hphys") as "Hphys".
       rewrite bool_decide_eq_false_2 //. wp_auto.
+      iDestruct ("Hsnap" $! HSnap) as (sv voters ->) "[#Hsv #Hvoters]".
       send_tail own_raft_phys_msgs.
       iDestruct ("Hback" with "Hf Hq Hq_cap []") as "Hphys".
-      { iRight; iRight; iPureIntro. split.
+      { iRight; iRight. iExists sv, voters. iFrame "Hsv Hvoters". iPureIntro. split.
         - rewrite /= HSnap. done.
-        - exists sv, voters. reflexivity. }
+        - reflexivity. }
       iApply (own_raft_phys_eq with "Hphys"). reflexivity.
     - (* (c) a type the model does not see: stamped, onto [r.msgs], and it
          drops out of the abstract outbox. *)

@@ -4696,3 +4696,52 @@ Gotchas recorded (gotchas.md, "Snapshots, log side"): seal a predicate
 that matches on the index an intro lemma infers; IPM `rewrite` hits `HΦ`;
 `lia` and `set` aliases; `Require Export` order and `step`;
 `wp_raft_log`'s `"Hlg"`; the slice-of-slices loop.
+
+## 2026-10-03 — snapshots, sender side: `msg_abs` tied to the heap, `snap_ok_message` Qed
+
+Branch `worktree-agent-a4805cdd87b17c9a2` (from `1de11b38d`).  Removes
+both deviations the model-side agent recorded (raft-replication-model.md,
+"Phase 2 … Done 2026-10-03: the sender side", has the full list).
+
+- **Design decision: the Storage contract names the snapshot instead of
+  bounding it.**  The brief suggested `HSnapshot` say the metadata is a
+  stored entry id "at or below applied".  A `Storage` cannot promise
+  anything about raft's `applied`/`committed`, and a pure parameter for
+  them in the triple is satisfiable only vacuously (the client must meet
+  it for *every* value its premise allows -- `applied = prev.index` forces
+  `Index = prev.index`, false for etcd's `CreateSnapshot` + catch-up
+  `Compact`).  So `own_Storage` gained a fourth index `ss` (the storage's
+  current snapshot id; same single `Axiom`), `HSnapshot` returns exactly
+  `ss` (plus `Index ≠ 0`, and the voters' `↦*□`), and "of a committed
+  prefix" is **raft's invariant** `stored_snap_ok` in `own_raftLog_core`:
+  `ss.index = 0 ∨ (ss.index ≤ committed ∧ plog_term_at prev log ss.index
+  = Some ss.term)`.  Established at `newLogWithSize` from a new premise
+  `ss.index = 0 ∨ ss = prev` (propagated to `newRaft`, whose
+  `InitialState` wand now quantifies the snapshot id); preserved by
+  `commitTo`/`loadState` (grow `committed`) and `append` (only above
+  `committed`).
+- `own_snap` and `unstable/raftLog.restore` carry the pending snapshot's
+  voters; `raftLog.snapshot`'s spec gives `Index ≠ 0`, `Index ≤
+  committed`, the log fact and the voters.
+- `msg_abs`'s `MsgSnap` case holds `m.Snapshot ↦□ sv ∗ Voters ↦*□
+  voters`; `send` takes `"#Hsnap"` (conditional on `MsgSnap`, with the
+  `out` equation inside); `send_ok` (c') lost its `∃ sv voters`.  21
+  call sites gained `iSplitR; [.. | iApply send_no_snap; simpl; w32_ne]`
+  (6 in the `Step` helpers, the trivial extra conjunct the brief allowed;
+  `stepFollower`'s forward needed `MsgProp` rewritten first).
+  `maybeSendSnapshot` does `iPersist "snapshot"` before the `send`.
+- `protocol.v`: `snap_ok` + commit bound + log fact; `own_log_ghost` +
+  `base_ok γ base` (only `step_snap_restore` moves the base, the message's
+  `is_snap_meta` re-establishes it); `own_log_ghost_upd` takes it (3
+  callers); `snap_ok_message` `Qed`.
+
+Audit: `make -k -j4 …/election.vo` green; module discipline 3 warnings
+(unchanged); `tcb-report --scope election_proof`: 14 `Axiom`, 3
+`Admitted` (slice's signed-off one, `leader_completeness`,
+`state_machine_safety`), 571 `Qed`.
+
+Lesson (gotchas-worthy, recorded here): never start a second `make` on the
+cone while one is running, even a single-file one -- the two interleave
+and leave `.vo`s that "make inconsistent assumptions"; and a comment-only
+edit to `protocol.v` rebuilds the whole cone (~40 min), so batch comment
+edits to upstream files with real ones.

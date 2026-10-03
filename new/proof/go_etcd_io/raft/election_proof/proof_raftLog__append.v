@@ -64,7 +64,7 @@ Import P.
       (* the [Panicf]: [after = e0.Index - 1 >= committed] *)
       iNamed "Hlog".
       iEval (rewrite /own_raftLog_core /=) in "Hcore".
-      iDestruct "Hcore" as (sprev stored) "Hcore". iNamed "Hcore". logstate_simpl.
+      iDestruct "Hcore" as (sprev stored ss) "Hcore". iNamed "Hcore". logstate_simpl.
       pose proof (f_equal uint.Z Hcm) as HcmZ.
       wp_auto.
       rewrite bool_decide_eq_false_2; last word.
@@ -140,13 +140,20 @@ Import P.
       assert (uint.Z lv.(raft.raftLog.committed')
               ≤ uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents')
                 + Z.of_nat (length uents'))%Z as Hcm2 by lia.
+      (* the storage's snapshot is at or below [committed], so below the
+         batch: its term survives the truncation *)
+      assert (snap = None →
+              stored_snap_ok ss lv.(raft.raftLog.committed') prev (sents' ++ uents')) as Hss2.
+      { intros Hs. destruct (Hssnap Hs) as [?|[Hsle Hst]]; [by left|right; split; [done|]].
+        rewrite Hsplit. eapply plog_term_at_truncate_append_below; [exact He0 | | exact Hst].
+        lia. }
       iEval (rewrite -Hlg') in "Hu_logger".
       iEval (rewrite -Hsnap') in "Husnap".
       iAssert (own_raftLog l (logstate.mk prev sents' uents' lcm lap snap))
         with "[Hl HStorage Hents Hents_cap]" as "Hlog".
       { iApply (own_raftLog_intro with
                  "Hl HisStorage HStorage Husnap Hents Hents_cap Hl_logger Hu_logger");
-          done. }
+          first [done | exact Hss2]. }
       wp_apply (wp_raftLog__lastIndex _ (logstate.mk prev sents' uents' lcm lap snap)
                   with "[$Hlog]") as "%li [Hlog %Hli]". logstate_simpl.
       iApply ("HΦ" $! li). iFrame "Hlog Hes". iPureIntro. split; [exact Hsplit |].

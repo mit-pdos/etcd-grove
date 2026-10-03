@@ -277,7 +277,7 @@ Proof.
       wp_apply (P.wp_raft__send _ _ _ _ _ [] [msg.plain mtype.VoteResp id id T false]
                   with "[$Hphys]");
         [done | left; exists mtype.VoteResp; split_and!;
-                [by right | apply mtype_of_MsgVoteResp | exact HTnz | w32_ne | done] | iApply own_slice_nil |].
+                [by right | apply mtype_of_MsgVoteResp | exact HTnz | w32_ne | done] | iSplitR; [iApply own_slice_nil | iApply send_no_snap; simpl; w32_ne] |].
       iIntros "Hphys".
       iAssert (own_raft_phys cfg r id
                  (send_msgs (become_candidate id s <| nstate.prvals := pvs |>)
@@ -309,7 +309,7 @@ Proof.
                     with "[$Hphys]");
           [done | left; exists mtype.Vote; split_and!;
                   [by left | apply mtype_of_MsgVote | exact HTnz
-                   | intros _; exact Hney | done] | iApply own_slice_nil |].
+                   | intros _; exact Hney | done] | iSplitR; [iApply own_slice_nil | iApply send_no_snap; simpl; w32_ne] |].
         iIntros "Hphys".
         iAssert (own_raft_phys cfg r id
                    (send_msgs (become_candidate id s <| nstate.prvals := pvs |>)
@@ -324,7 +324,7 @@ Proof.
                     with "[$Hphys]");
           [done | left; exists mtype.Vote; split_and!;
                   [by left | apply mtype_of_MsgVote | exact HTnz
-                   | intros _; exact Hney | done] | iApply own_slice_nil |].
+                   | intros _; exact Hney | done] | iSplitR; [iApply own_slice_nil | iApply send_no_snap; simpl; w32_ne] |].
         iIntros "Hphys".
         iAssert (own_raft_phys cfg r id
                    (send_msgs (become_candidate id s <| nstate.prvals := pvs |>)

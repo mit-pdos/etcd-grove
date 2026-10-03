@@ -102,9 +102,10 @@ Set Default Proof Using "Type".
     wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
     iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hlogback]".
     wp_apply (wp_raftLog__snapshot _ _ _ with "[$Hlog $ErrSnapUnavail]")
-      as "%snap %err [Hlog %Herr]".
+      as "%snap %err [Hlog Herr]".
     iDestruct ("Hlogback" with "Hlog") as "Hphys".
-    destruct Herr as [-> | [-> Hnz]].
+    iDestruct "Herr" as "[%Herr | [%Herr (%voters & #Hvoters)]]";
+      [subst err | destruct Herr as (-> & Hnz & Hsle & Hsterm)].
     - (* [ErrSnapshotTemporarilyUnavailable]: log and return [false].  The
          [panic(err)] that follows the inner [if] is never reached. *)
       destruct HErrSnapUnavail_new as (t & p & ->).
@@ -143,22 +144,24 @@ Set Default Proof Using "Type".
       iDestruct ("Htrkback" with "Hpr") as "Htrk".
       iDestruct ("Hback" with "Htrkf Htrk") as "Hphys".
       (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_raft_log).
-      (* [send_ok]'s [MsgSnap] clause, with no entries: the abstract message
-         carries the [Storage]'s snapshot [snap].  Its voters are not owned
-         here ([raftLog.snapshot] returns the snapshot by value and says
-         nothing of the [ConfState.Voters] slice), so the abstraction records
-         [[]] -- see [msg_abs] ([inv_raft_phys.v]). *)
+      (* [send_ok]'s [MsgSnap] clause, with no entries.  [Snapshot:
+         &snapshot] queues the address of the local variable, which nothing
+         writes again: persist it, and the abstract message is the
+         snapshot [raftLog.snapshot] returned, with the voters it handed
+         out ([msg_abs], [inv_raft_phys.v]). *)
+      iPersist "snapshot".
       wp_apply (P.wp_raft__send _ _ _ _ _ [] with "[$Hphys]").
       { done. }
-      { right; right; left; left. split_and!;
-          [ done | done | exact Hto | by exists snap, [] ]. }
-      { iApply own_slice_nil. }
+      { right; right; left; left. split_and!; [ done | done | exact Hto ]. }
+      { iSplitR; first iApply own_slice_nil.
+        iIntros "!> _". iExists snap, voters. iFrame "snapshot Hvoters". done. }
       iIntros "Hphys". wp_auto.
       iApply ("HΦ" $! true _ (<[to := progress_become_snapshot p1 _]> s.(nstate.prvals))).
       iSplitL.
       { iApply (own_raft_phys_eq with "Hphys"). by destruct s. }
       iPureIntro. split.
-      + (* [snap_ok]: the snapshot's index is non-zero ([HSnapshot]) *)
+      + (* [snap_ok]: the snapshot's index is non-zero, at or below the
+           commit index, and an entry id of the log ([raftLog.snapshot]) *)
         rewrite /repl_sends. apply Forall_singleton. right.
         rewrite /snap_ok /=. split_and!; done.
       + by apply (prvals_match_insert_same _ _ p1).

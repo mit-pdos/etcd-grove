@@ -20,11 +20,15 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
     skips the leader itself).  The outbox grows by [ms], zero or one such
     message, which is [repl_sends] ([snap_ok]).  Since 2026-10-02 the
     abstract message carries the snapshot's metadata ([abs_snap_from]):
-    [index]/[logterm] are the [Storage] snapshot's, and [snap_ok] records
-    that the index is non-zero -- all [is_Storage]'s [HSnapshot] gives.
-    The voters are not pinned (nothing owns the [ConfState.Voters] slice
-    here).  Until 2026-10-01 [MsgSnap] had no [mtype_of] and the
-    postcondition was at the same [s].
+    [index]/[logterm] are those of the snapshot [raftLog.snapshot]
+    returned, and [snap_ok] records that the index is non-zero, at or
+    below the commit index, and an entry id of the log (since 2026-10-03,
+    from [raftLog.snapshot]'s spec).  Since 2026-10-03 the queued message's
+    abstraction is read through the heap ([msg_abs]): the proof persists
+    the local [snapshot] whose address the message carries, and passes
+    [send] the voters' read-only points-to [raftLog.snapshot] returned.
+    Until 2026-10-01 [MsgSnap] had no [mtype_of] and the postcondition was
+    at the same [s].
 
     [pr] moves to [StateSnapshot], which is why the [Progress] comes back
     existentially quantified rather than at its old value.

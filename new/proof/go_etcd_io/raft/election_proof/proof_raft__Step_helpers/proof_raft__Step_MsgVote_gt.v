@@ -162,7 +162,7 @@ Implicit Type s : nstate.t.
       { done. }
       { left; exists mtype.VoteResp; split_and!;
           [by right | apply mtype_of_MsgVoteResp | done | w32_ne | done]. }
-      { iApply own_slice_nil. }
+      { iSplitR; [iApply own_slice_nil | iApply send_no_snap; simpl; w32_ne]. }
       (* [m.Type = MsgVote], so the vote is recorded: [r.Vote := m.From]. *)
       rewrite Hty /MsgVote bool_decide_eq_true_2 //. try wp_auto.
       (wp_apply (wp_raft_store_electionElapsed with "Hphys") as "Hphys"; wp_apply (wp_raft_store_Vote with "Hphys") as "Hphys").
@@ -194,7 +194,7 @@ Implicit Type s : nstate.t.
       { done. }
       { left; exists mtype.VoteResp; split_and!;
           [by right | apply mtype_of_MsgVoteResp | done | w32_ne | done]. }
-      { iApply own_slice_nil. }
+      { iSplitR; [iApply own_slice_nil | iApply send_no_snap; simpl; w32_ne]. }
       iApply ("HΦ" $! interface.nil _). iFrame "Hphys".
       iPureIntro. split; first done.
       split; last done.

@@ -49,7 +49,7 @@ Import P.
                   with "[$Hphys]").
       { done. }
       { right; right; right; left. split_and!; [done|done|reflexivity]. }
-      { iApply own_slice_nil. }
+      { iSplitR; [iApply own_slice_nil | iApply send_no_snap; simpl; w32_ne]. }
       iIntros "Hphys". wp_auto.
       iApply "HΦ". iFrame "Hphys". iPureIntro. left. split; [lia|done].
     - (* [maybeAppend] *)
@@ -74,7 +74,7 @@ Import P.
                     with "[$Hphys]").
         { done. }
         { right; right; right; left. split_and!; [done|done|reflexivity]. }
-        { iApply own_slice_nil. }
+        { iSplitR; [iApply own_slice_nil | iApply send_no_snap; simpl; w32_ne]. }
         iIntros "Hphys". wp_auto.
         iApply "HΦ". iFrame "Hphys". iPureIntro. right; left.
         split; [lia|]. exists lni, es', ls'. split_and!; done.
@@ -111,7 +111,7 @@ Import P.
                     with "[$Hphys]").
         { done. }
         { right; right; right; left. split_and!; [done|done|reflexivity]. }
-        { iApply own_slice_nil. }
+        { iSplitR; [iApply own_slice_nil | iApply send_no_snap; simpl; w32_ne]. }
         iIntros "Hphys". wp_auto.
         iApply "HΦ". iFrame "Hphys". iPureIntro. right; right.
         split; [lia|]. split; [exact Hnm|]. by exists hint, hintterm.

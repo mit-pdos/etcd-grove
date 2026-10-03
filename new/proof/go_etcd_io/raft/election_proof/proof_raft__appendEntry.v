@@ -29,7 +29,7 @@ Lemma own_raftLog_facts (l : loc) prev sents uents cm ap snap :
 Proof.
   iIntros "H". iNamed "H".
   iEval (rewrite /own_raftLog_core /=) in "Hcore".
-  iDestruct "Hcore" as (sprev stored) "Hcore". iNamed "Hcore".
+  iDestruct "Hcore" as (sprev stored ss) "Hcore". iNamed "Hcore".
   iAssert (is_Storage lv.(raft.raftLog.storage')) as "#Hsto".
   { iExact "HisStorage". }
   (* [iNamed] rather than a positional pattern: [is_Storage] is gaining
@@ -305,7 +305,7 @@ Set Default Proof Using "Type".
         apply word.unsigned_inj. rewrite Hli2 /= !length_app !length_imap.
         rewrite length_imap in Hnw2. rewrite word.unsigned_of_Z_nowrap; [lia|].
         pose proof (word.unsigned_range prev.(raft.entryID.index')). lia. }
-      { iApply own_slice_nil. }
+      { iSplitR; [iApply own_slice_nil | iApply send_no_snap; simpl; w32_ne]. }
       iIntros "Hphys". wp_auto.
       iApply "HΦ". rewrite Hlast. iFrame. done.
   Qed.

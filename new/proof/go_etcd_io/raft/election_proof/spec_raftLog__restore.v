@@ -15,15 +15,19 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
     body (which cannot fail): the snapshot is above the commit index
     ([raft.restore]'s first test), so [applied <= committed] survives and
     the index is non-zero; and its index is below [2^61], [log_store_ok]'s
-    bound for a pending snapshot (a transport premise of [Step]). *)
+    bound for a pending snapshot (a transport premise of [Step]).  The
+    snapshot's [ConfState.Voters] are passed in read-only, for [own_snap]
+    (since 2026-10-03). *)
 Definition wp_raftLog__restore_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
-    (l : loc) (ls : logstate.t) (sv : raftpb.Snapshot.t),
+    (l : loc) (ls : logstate.t) (sv : raftpb.Snapshot.t) (voters : list w64),
   (uint.Z ls.(logstate.committed) < uint.Z (snap_id sv).(raft.entryID.index'))%Z →
   (uint.Z (snap_id sv).(raft.entryID.index') < 2^61)%Z →
-  {{{ is_pkg_init raft ∗ "Hlog" ∷ own_raftLog l ls }}}
+  {{{ is_pkg_init raft ∗ "Hlog" ∷ own_raftLog l ls ∗
+      "#Hvoters" ∷ sv.(raftpb.Snapshot.Metadata').(raftpb.SnapshotMetadata.ConfState')
+                     .(raftpb.ConfState.Voters') ↦*□ voters }}}
     l @! (go.PointerType raft.raftLog) @! "restore" #sv
   {{{ RET #(); own_raftLog l (log_restore ls (snap_id sv)) }}}.
 
