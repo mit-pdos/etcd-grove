@@ -1,6 +1,6 @@
 # Status
 
-**Last updated:** 2026-10-03 (branch `worktree-raft-replication`, snapshot receiver side merged on top of `d50b693a0`; `origin/main` `4f48cb6de` merged in; not yet on `main`)
+**Last updated:** 2026-10-03 (branch `worktree-raft-replication` at `1de11b38d`, `make ci` green; `origin/main` `4f48cb6de` merged in; not yet on `main`)
 
 This file is a snapshot of where the proof *is*. It carries no history: how
 something got this way is in [journal.md](journal.md), why a design was
@@ -407,10 +407,10 @@ and acks live in its own ghost maps) -- they have to be restated over the
 whole cluster, see item 5b. `heartbeat_commit_le_last`,
 `app_no_conflict_below_commit` and `log_matching` were proved on
 2026-10-02 from the acknowledgement-backed-by-log invariant in
-`own_log_ghost` (`acks_ok`, `log_recs`, `lead_prefix`). With the snapshot
-receiver side merged (2026-10-03) the numbers are re-run below in the
-journal; at `d50b693a0` they were 544 `Qed` lemmas, two results (`Step`,
-`newRaft`), 144 definitions, 1,342 lines, TCB 5.2%, `make ci` exit 0 (540
+`own_log_ghost` (`acks_ok`, `log_recs`, `lead_prefix`). At `1de11b38d`
+(2026-10-03, snapshot receiver side merged): 564 `Qed` lemmas, 129
+collections, two results (`Step`, `newRaft`), 149 definitions, 1,378
+lines, TCB 5.0% of the development by line; `make ci` exit 0 (559
 files). The
 whole-raft numbers (`v3_proof/` included) are the old ones plus these.
 
