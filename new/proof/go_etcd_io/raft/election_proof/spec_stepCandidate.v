@@ -1,5 +1,6 @@
 Require Export New.proof.go_etcd_io.raft.election_proof.spec_raft__handleAppendEntries.
 Require Export New.proof.go_etcd_io.raft.election_proof.spec_raft__handleHeartbeat.
+Require Export New.proof.go_etcd_io.raft.election_proof.spec_raft__handleSnapshot.
 Require Export New.proof.go_etcd_io.raft.election_proof.step_lemmas.
 
 (** * [stepCandidate], for the message types in scope
@@ -63,7 +64,7 @@ Definition cand_vote_resp_result (cfg : gset w64) (id : w64)
     (unconstrained: a follower's are invisible to [to_pstate]). *)
 Definition candidate_step_result (cfg : gset w64) (id : w64)
     (s : nstate.t) (m : raftpb.Message.t) (ents : list raftpb.Entry.t)
-    (dropped : bool) (s' : nstate.t) : Prop :=
+    (sv : raftpb.Snapshot.t) (dropped : bool) (s' : nstate.t) : Prop :=
   if decide (m.(raftpb.Message.Type') = MsgVoteResp) then dropped = false ∧ cand_vote_resp_result cfg id s m s'
   else if decide (m.(raftpb.Message.Type') = MsgProp) then dropped = true ∧ s' = s
   else if decide (m.(raftpb.Message.Type') = MsgApp) then
@@ -80,6 +81,11 @@ Definition candidate_step_result (cfg : gset w64) (id : w64)
                   m.(raftpb.Message.Type') = MsgAppResp ∨
                   m.(raftpb.Message.Type') = MsgHeartbeatResp) then
     dropped = false ∧ s' = s
+  else if decide (m.(raftpb.Message.Type') = MsgSnap) then
+    dropped = false ∧
+    ∃ pvs, handle_snap_result id
+             (become_follower s s.(nstate.term) m.(raftpb.Message.From')
+                <| nstate.prvals := pvs |>) m sv s'
   else False.
 
 End results.
@@ -105,13 +111,14 @@ Definition wp_stepCandidate_body :=
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (cfg : gset w64)
     (r : loc) (id : w64) (s : nstate.t) (m : raftpb.Message.t)
-    (ents : list raftpb.Entry.t),
+    (ents : list raftpb.Entry.t) (sv : raftpb.Snapshot.t) (voters : list w64),
   (m.(raftpb.Message.Type') = MsgVoteResp ∨ m.(raftpb.Message.Type') = MsgProp ∨
    m.(raftpb.Message.Type') = MsgApp ∨ m.(raftpb.Message.Type') = MsgHeartbeat ∨
-   m.(raftpb.Message.Type') = MsgBeat ∨ m.(raftpb.Message.Type') = MsgAppResp ∨
-   m.(raftpb.Message.Type') = MsgHeartbeatResp) →
+   (m.(raftpb.Message.Type') = MsgBeat ∨ m.(raftpb.Message.Type') = MsgAppResp ∨
+    m.(raftpb.Message.Type') = MsgHeartbeatResp) ∨
+   m.(raftpb.Message.Type') = MsgSnap) →
   (m.(raftpb.Message.Type') = MsgVoteResp ∨ m.(raftpb.Message.Type') = MsgApp ∨
-   m.(raftpb.Message.Type') = MsgHeartbeat →
+   m.(raftpb.Message.Type') = MsgHeartbeat ∨ m.(raftpb.Message.Type') = MsgSnap →
    m.(raftpb.Message.Term') = s.(nstate.term)) →
   s.(nstate.role) = role.Candidate →
   id ∈ cfg →
@@ -132,13 +139,18 @@ Definition wp_stepCandidate_body :=
             (s.(nstate.logst).(logstate.sents) ++ s.(nstate.logst).(logstate.uents)))%Z ∧
      m.(raftpb.Message.From') ≠ id) →
   {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s ∗
+      "Hsnap" ∷ (⌜ m.(raftpb.Message.Type') = MsgSnap ⌝ -∗
+                 ⌜ snap_scope cfg sv voters ⌝ ∗
+                 m.(raftpb.Message.Snapshot') ↦□ sv ∗
+                 sv.(raftpb.Snapshot.Metadata').(raftpb.SnapshotMetadata.ConfState')
+                   .(raftpb.ConfState.Voters') ↦*□ voters) ∗
       "Hents" ∷ (⌜ m.(raftpb.Message.Type') = MsgApp ⌝ -∗
                  m.(raftpb.Message.Entries') ↦*□ ents ∗
                  own_slice_cap raftpb.Entry.t m.(raftpb.Message.Entries') (DfracOwn 1)) }}}
     @! raft.stepCandidate #r #m
   {{{ (err : error.t) (s' : nstate.t) (dropped : bool), RET #err;
       own_raft_phys cfg r id s' ∗
-      ⌜ candidate_step_result cfg id s m ents dropped s' ⌝ ∗
+      ⌜ candidate_step_result cfg id s m ents sv dropped s' ⌝ ∗
       (if dropped then (global_addr raft.ErrProposalDropped) ↦□ err
        else ⌜ err = interface.nil ⌝) }}}.
 

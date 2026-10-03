@@ -1,5 +1,27 @@
 Require Export New.proof.go_etcd_io.raft.election_proof.spec_raft__handleAppendEntries.
 Require Export New.proof.go_etcd_io.raft.election_proof.spec_raft__handleHeartbeat.
+Require Export New.proof.go_etcd_io.raft.election_proof.spec_raft__handleSnapshot.
+
+(** For a caller of [stepFollower]/[stepCandidate] with a message that is
+    not a [MsgSnap]: the ["Hsnap"] premise's wand, discharged by its
+    antecedent's falsity -- some hypothesis [m.Type = c] (or a disjunction
+    of such) with [c] not [MsgSnap]. *)
+Ltac step_no_snap :=
+  iIntros "%"; exfalso;
+  match goal with
+  | Hs : raftpb.Message.Type' ?m = MsgSnap |- _ =>
+    first
+    [ match goal with
+      | H : raftpb.Message.Type' m = ?c |- _ =>
+          tryif unify c MsgSnap then fail
+          else (rewrite H in Hs; revert Hs; w32_ne)
+      end
+    | match goal with
+      | H : raftpb.Message.Type' m = _ ∨ _ |- _ =>
+          let Hd := fresh "Hd" in
+          destruct H as [Hd|[Hd|Hd]]; rewrite Hd in Hs; revert Hs; w32_ne
+      end ]
+  end.
 
 (** * [stepFollower], for the message types in scope
 
@@ -25,6 +47,9 @@ Require Export New.proof.go_etcd_io.raft.election_proof.spec_raft__handleHeartbe
       [s <| lead := m.From |>]); [nil].
     - [MsgHeartbeat]: the same two stores, then [handleHeartbeat]
       ([heartbeat_result] at [s <| lead := m.From |>]); [nil].
+    - [MsgSnap] (since 2026-10-02): the same two stores, then
+      [handleSnapshot] ([handle_snap_result] at [s <| lead := m.From |>],
+      for the snapshot [sv] that [m.Snapshot] points to); [nil].
 
     The role is never read: the triple holds for any [s].  (A caller
     reaching it through [r.step] knows [s.role = Follower] from
@@ -45,8 +70,8 @@ Definition prop_forward (id lead : w64) (m : raftpb.Message.t)
     returned [ErrProposalDropped] (the postcondition then says [err] is
     that global's value; otherwise [err = nil]). *)
 Definition follower_step_result {ext : ffi_syntax} (id : w64) (s : nstate.t)
-    (m : raftpb.Message.t) (ents : list raftpb.Entry.t) (dropped : bool)
-    (s' : nstate.t) : Prop :=
+    (m : raftpb.Message.t) (ents : list raftpb.Entry.t) (sv : raftpb.Snapshot.t)
+    (dropped : bool) (s' : nstate.t) : Prop :=
   if decide (m.(raftpb.Message.Type') = MsgVoteResp) then dropped = false ∧ s' = s
   else if decide (m.(raftpb.Message.Type') = MsgProp) then
     if decide (s.(nstate.lead) = W64 0) then dropped = true ∧ s' = s
@@ -61,6 +86,9 @@ Definition follower_step_result {ext : ffi_syntax} (id : w64) (s : nstate.t)
                   m.(raftpb.Message.Type') = MsgAppResp ∨
                   m.(raftpb.Message.Type') = MsgHeartbeatResp) then
     dropped = false ∧ s' = s
+  else if decide (m.(raftpb.Message.Type') = MsgSnap) then
+    dropped = false ∧
+    handle_snap_result id (s <| nstate.lead := m.(raftpb.Message.From') |>) m sv s'
   else False.
 
 (** Premises, by type:
@@ -83,11 +111,12 @@ Definition wp_stepFollower_body :=
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (cfg : gset w64)
     (r : loc) (id : w64) (s : nstate.t) (m : raftpb.Message.t)
-    (ents : list raftpb.Entry.t),
+    (ents : list raftpb.Entry.t) (sv : raftpb.Snapshot.t) (voters : list w64),
   (m.(raftpb.Message.Type') = MsgVoteResp ∨ m.(raftpb.Message.Type') = MsgProp ∨
    m.(raftpb.Message.Type') = MsgApp ∨ m.(raftpb.Message.Type') = MsgHeartbeat ∨
-   m.(raftpb.Message.Type') = MsgBeat ∨ m.(raftpb.Message.Type') = MsgAppResp ∨
-   m.(raftpb.Message.Type') = MsgHeartbeatResp) →
+   (m.(raftpb.Message.Type') = MsgBeat ∨ m.(raftpb.Message.Type') = MsgAppResp ∨
+    m.(raftpb.Message.Type') = MsgHeartbeatResp) ∨
+   m.(raftpb.Message.Type') = MsgSnap) →
   (m.(raftpb.Message.Type') = MsgProp →
      m.(raftpb.Message.From') = W64 0 ∧ m.(raftpb.Message.Term') = W64 0 ∧
      s.(nstate.lead) ≠ id) →
@@ -108,13 +137,19 @@ Definition wp_stepFollower_body :=
             (s.(nstate.logst).(logstate.sents) ++ s.(nstate.logst).(logstate.uents)))%Z ∧
      m.(raftpb.Message.From') ≠ id) →
   {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s ∗
+      "Hsnap" ∷ (⌜ m.(raftpb.Message.Type') = MsgSnap ⌝ -∗
+                 ⌜ snap_scope cfg sv voters ∧ s.(nstate.role) = role.Follower ∧
+                   s.(nstate.votes) = ∅ ∧ id ∈ cfg ⌝ ∗
+                 m.(raftpb.Message.Snapshot') ↦□ sv ∗
+                 sv.(raftpb.Snapshot.Metadata').(raftpb.SnapshotMetadata.ConfState')
+                   .(raftpb.ConfState.Voters') ↦*□ voters) ∗
       "Hents" ∷ (⌜ m.(raftpb.Message.Type') = MsgApp ∨ m.(raftpb.Message.Type') = MsgProp ⌝ -∗
                  m.(raftpb.Message.Entries') ↦*□ ents ∗
                  own_slice_cap raftpb.Entry.t m.(raftpb.Message.Entries') (DfracOwn 1)) }}}
     @! raft.stepFollower #r #m
   {{{ (err : error.t) (s' : nstate.t) (dropped : bool), RET #err;
       own_raft_phys cfg r id s' ∗
-      ⌜ follower_step_result id s m ents dropped s' ⌝ ∗
+      ⌜ follower_step_result id s m ents sv dropped s' ⌝ ∗
       (if dropped then (global_addr raft.ErrProposalDropped) ↦□ err
        else ⌜ err = interface.nil ⌝) }}}.
 

@@ -174,12 +174,12 @@ Implicit Type s : nstate.t.
                  <| nstate.prvals := pvs |>).(nstate.stepfn)
               = functions raft.stepFollower []) as Hsf by done.
       rewrite Hsf.
-      wp_apply (P.wp_stepFollower _ _ _ _ _ [] with "[$Hphys]").
+      wp_apply (P.wp_stepFollower _ _ _ _ _ [] (zero_val _) [] with "[$Hphys]").
       { by left. }
       { intros Hc. exfalso. rewrite Hty6 in Hc. revert Hc. w32_ne. }
       { intros Hc. exfalso. rewrite Hty6 in Hc. revert Hc. w32_ne. }
       { intros Hc. exfalso. rewrite Hty6 in Hc. revert Hc. w32_ne. }
-      { iIntros "%Hc". exfalso. rewrite Hty6 in Hc.
+      { iSplitR; [step_no_snap|]. iIntros "%Hc". exfalso. rewrite Hty6 in Hc.
         destruct Hc as [Hc|Hc]; revert Hc; w32_ne. }
       iIntros (err s1 dropped) "(Hphys & %Hres & Herrn)".
       rewrite /follower_step_result decide_True // in Hres.
@@ -241,12 +241,12 @@ Implicit Type s : nstate.t.
           assert (s.(nstate.stepfn) = functions raft.stepFollower []) as Hsf
             by (rewrite Hsfw ?Hrole //).
           rewrite Hsf.
-          wp_apply (P.wp_stepFollower _ _ _ _ _ [] with "[$Hphys]").
+          wp_apply (P.wp_stepFollower _ _ _ _ _ [] (zero_val _) [] with "[$Hphys]").
           { by left. }
           { intros Hc. exfalso. rewrite Hty6 in Hc. revert Hc. w32_ne. }
           { intros Hc. exfalso. rewrite Hty6 in Hc. revert Hc. w32_ne. }
           { intros Hc. exfalso. rewrite Hty6 in Hc. revert Hc. w32_ne. }
-          { iIntros "%Hc". exfalso. rewrite Hty6 in Hc.
+          { iSplitR; [step_no_snap|]. iIntros "%Hc". exfalso. rewrite Hty6 in Hc.
             destruct Hc as [Hc|Hc]; revert Hc; w32_ne. }
           iIntros (err s1 dropped) "(Hphys & %Hres & Herrn)".
           rewrite /follower_step_result decide_True // in Hres.
@@ -269,14 +269,14 @@ Implicit Type s : nstate.t.
           wp_hidden (iDestruct (own_tracker_progress_map with "Htrk") as "(_ & %Hprd & Htrk)").
           wp_hidden (iDestruct ("Hback" with "Htrkf Htrk") as "Hphys").
           assert (Hid : id ∈ dom s.(nstate.prvals)) by (rewrite Hpd Hprd; exact Hcfg).
-          wp_apply (P.wp_stepCandidate _ _ _ _ _ [] with "[$Hphys]").
+          wp_apply (P.wp_stepCandidate _ _ _ _ _ [] (zero_val _) [] with "[$Hphys]").
           { by left. }
           { intros _. exact Hteq. }
           { exact Hrole. }
           { exact Hcfg. }
           { intros Hc. exfalso. rewrite Hty6 in Hc. revert Hc. w32_ne. }
           { intros Hc. exfalso. rewrite Hty6 in Hc. revert Hc. w32_ne. }
-          { iIntros "%Hc". exfalso. rewrite Hty6 in Hc. revert Hc. w32_ne. }
+          { iSplitR; [step_no_snap|]. iIntros "%Hc". exfalso. rewrite Hty6 in Hc. revert Hc. w32_ne. }
           iIntros (err s' dropped) "(Hphys & %Hres & Herrn)".
           rewrite /candidate_step_result decide_True // in Hres.
           destruct Hres as [-> Hres]. iDestruct "Herrn" as %Herrn.

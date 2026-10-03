@@ -26,9 +26,9 @@ Import P.
   Lemma wp_stepCandidate : wp_stepCandidate_body.
   Proof.
     intros_ambient.
-    intros cfg r id s m ents.
+    intros cfg r id s m ents sv voters.
     intros Hty Hterm Hrole Hcfg Happ Hhb.
-    wp_start as "[Hphys Hents]".
+    wp_start as "(Hphys & Hsnap & Hents)".
     iDestruct (is_pkg_init_access with "[$]") as "@".
     wp_auto. wp_apply (wp_raft_load_state with "Hphys") as "Hphys".
     (* [state = StateCandidate ≠ StatePreCandidate], so [myVoteRespType] is
@@ -36,7 +36,7 @@ Import P.
     rewrite Hrole /state_w64 /StateCandidate.
     rewrite bool_decide_eq_false_2; last w32_ne.
     wp_auto.
-    destruct Hty as [Hty|[Hty|[Hty|[Hty|Hty]]]].
+    destruct Hty as [Hty|[Hty|[Hty|[Hty|[Hty|Hty]]]]].
     2:{ (* [MsgProp]: no leader to forward to; dropped *)
       rewrite Hty /MsgProp.
       rewrite bool_decide_eq_true_2 //. wp_auto.
@@ -71,7 +71,7 @@ Import P.
     2:{ (* [MsgHeartbeat]: [becomeFollower(m.Term, m.From)], then
          [handleHeartbeat] *)
       destruct (Hhb Hty) as (Hcommit & Hfrom).
-      specialize (Hterm (or_intror (or_intror Hty))).
+      specialize (Hterm (or_intror (or_intror (or_introl Hty)))).
       rewrite Hty /MsgHeartbeat.
       rewrite bool_decide_eq_false_2; last w32_ne. wp_auto.
       wp_apply (wp_raft__becomeFollower with "[$Hphys]").
@@ -101,6 +101,30 @@ Import P.
       all: rewrite /candidate_step_result decide_False // decide_False //
              decide_False // decide_False // decide_True; [done|].
       all: rewrite Hty; naive_solver. }
+    2:{ (* [MsgSnap]: [becomeFollower(m.Term, m.From)], then
+         [handleSnapshot] *)
+      iDestruct ("Hsnap" with "[//]") as "(%Hscope & #Hsv & #Hvs)".
+      specialize (Hterm (or_intror (or_intror (or_intror Hty)))).
+      rewrite Hty /MsgSnap.
+      rewrite bool_decide_eq_false_2; last w32_ne. wp_auto.
+      wp_apply (wp_raft__becomeFollower with "[$Hphys]").
+      iIntros (pvs) "Hphys". try wp_auto.
+      wp_apply (wp_raft__handleSnapshot _ _ _ _ _ sv voters with "[$Hphys $Hsv $Hvs]").
+      { done. }
+      { done. }
+      { exact Hcfg. }
+      { exact Hscope. }
+      iIntros (s') "[Hphys %Hres]". try wp_auto.
+      iApply ("HΦ" $! interface.nil s' false). iFrame "Hphys".
+      iPureIntro. split; last done.
+      rewrite /candidate_step_result Hty.
+      case_decide as H1; [exfalso; revert H1; w32_ne|].
+      case_decide as H2; [exfalso; revert H2; w32_ne|].
+      case_decide as H3; [exfalso; revert H3; w32_ne|].
+      case_decide as H4; [exfalso; revert H4; w32_ne|].
+      case_decide as H5; [exfalso; destruct H5 as [H5|[H5|H5]]; revert H5; w32_ne|].
+      case_decide as H6; [|done].
+      split; first done. exists pvs. rewrite -Hterm. exact Hres. }
     specialize (Hterm (or_introl Hty)).
     (* the type switch: [MsgVoteResp] is none of [MsgProp], [MsgApp],
        [MsgHeartbeat], [MsgSnap], so it falls through to [myVoteRespType].

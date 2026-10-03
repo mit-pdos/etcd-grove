@@ -170,9 +170,9 @@ Proof. done. Qed.
 
 (** ** Taking the [stepX] results apart, by type *)
 
-Lemma follower_step_result_app id s m ents dropped s' :
+Lemma follower_step_result_app id s m ents sv dropped s' :
   m.(raftpb.Message.Type') = MsgApp →
-  follower_step_result id s m ents dropped s' →
+  follower_step_result id s m ents sv dropped s' →
   dropped = false ∧
   handle_app_result id (s <| nstate.lead := m.(raftpb.Message.From') |>) m ents s'.
 Proof.
@@ -182,9 +182,9 @@ Proof.
   case_decide as H3; [done|]. done.
 Qed.
 
-Lemma follower_step_result_heartbeat id s m ents dropped s' :
+Lemma follower_step_result_heartbeat id s m ents sv dropped s' :
   m.(raftpb.Message.Type') = MsgHeartbeat →
-  follower_step_result id s m ents dropped s' →
+  follower_step_result id s m ents sv dropped s' →
   dropped = false ∧
   s' = heartbeat_result id (s <| nstate.lead := m.(raftpb.Message.From') |>) m.
 Proof.
@@ -195,9 +195,9 @@ Proof.
   case_decide as H4; [done|]. done.
 Qed.
 
-Lemma candidate_step_result_app id s m ents dropped s' :
+Lemma candidate_step_result_app id s m ents sv dropped s' :
   m.(raftpb.Message.Type') = MsgApp →
-  candidate_step_result cfg id s m ents dropped s' →
+  candidate_step_result cfg id s m ents sv dropped s' →
   dropped = false ∧
   ∃ pvs, handle_app_result id
            (become_follower s s.(nstate.term) m.(raftpb.Message.From')
@@ -209,9 +209,9 @@ Proof.
   case_decide as H3; [done|]. done.
 Qed.
 
-Lemma candidate_step_result_heartbeat id s m ents dropped s' :
+Lemma candidate_step_result_heartbeat id s m ents sv dropped s' :
   m.(raftpb.Message.Type') = MsgHeartbeat →
-  candidate_step_result cfg id s m ents dropped s' →
+  candidate_step_result cfg id s m ents sv dropped s' →
   dropped = false ∧
   ∃ pvs, s' = heartbeat_result id
                 (become_follower s s.(nstate.term) m.(raftpb.Message.From')
@@ -236,6 +236,111 @@ Proof.
   intros [-> Hres]. split; first done.
   destruct Hres as [[_ ->]|[[Hc _]|[[Hc _]|[Hc _]]]]; first done;
     exfalso; destruct Hty as [Hty|Hty]; rewrite Hty in Hc; revert Hc; w32_ne.
+Qed.
+
+(** ** Snapshots (2026-10-02)
+
+    [handle_snap_result] at the adopted state [t] refines the three
+    [step_snap_*] rules at [ps]; the term preamble's step-down for a
+    [MsgSnap] is [step_higher_term] at [abs_snap]. *)
+Lemma step_handle_snap id (ps : pstate.t) t (m : raftpb.Message.t)
+    (sv : raftpb.Snapshot.t) (voters : list w64) s' :
+  to_pstate t = padopt_leader ps m.(raftpb.Message.From') →
+  m.(raftpb.Message.To') = id →
+  m.(raftpb.Message.Term') = ps.(pstate.term) →
+  ps.(pstate.role) ≠ role.Leader →
+  m.(raftpb.Message.From') ≠ id →
+  snap_scope cfg sv voters →
+  id ∈ cfg →
+  handle_snap_result id t m sv s' →
+  step cfg id ps [abs_snap m sv voters] (to_pstate s').
+Proof.
+  intros Ht Hto Hterm Hnl Hfid Hscope Hin Hres.
+  destruct Hscope as (Hperm & _).
+  destruct ps as [pterm pvote plead prole pvotes pout pbase plog pcommit pmatched].
+  rewrite /to_pstate /padopt_leader /= in Ht.
+  injection Ht as Htm Hvt Hld Hrl Hvs Hout Hprev Hlog Hcm Hmt.
+  simpl in *.
+  rewrite /handle_snap_result /= in Hres.
+  destruct Hres as [[Hle ->]|[[Hlt [Hm ->]]|[Hlt [Hnm (prs & pvs & ->)]]]].
+  - (* obsolete *)
+    eapply step_eq.
+    { apply (step_snap_stale _ _ (abs_snap m sv voters)); simpl; try done.
+      rewrite -Hcm. exact Hle. }
+    rewrite /to_pstate /psend_msgs /send_msgs /padopt_leader /app_resp
+      /abs_snap /abs_snap_from /=.
+    rewrite Hmt Htm Hvt Hld Hrl Hvs Hout Hprev Hlog Hcm. done.
+  - (* fast-forward *)
+    rewrite Hprev Hlog in Hm.
+    eapply step_eq.
+    { apply (step_snap_fastfwd _ _ (abs_snap m sv voters)); simpl; try done.
+      rewrite -Hcm. exact Hlt. }
+    rewrite /to_pstate /psend_msgs /send_msgs /padopt_leader /app_resp
+      /abs_snap /abs_snap_from /=.
+    case_decide as Hd; [exfalso; congruence|].
+    rewrite Htm Hvt Hld Hrl Hvs Hout Hprev Hlog. done.
+  - (* restore *)
+    rewrite Hprev Hlog in Hnm.
+    eapply step_eq.
+    { apply (step_snap_restore _ _ (abs_snap m sv voters)); simpl; try done.
+      rewrite -Hcm. exact Hlt. }
+    rewrite /to_pstate /psend_msgs /send_msgs /padopt_leader /app_resp
+      /abs_snap /abs_snap_from /log_restore /snap_id /=.
+    case_decide as Hd; [exfalso; congruence|].
+    rewrite Htm Hvt Hld Hrl Hvs Hout. done.
+Qed.
+
+Lemma step_higher_term_snap id (ps : pstate.t) (m : raftpb.Message.t)
+    (sv : raftpb.Snapshot.t) (voters : list w64) :
+  uint.Z ps.(pstate.term) < uint.Z m.(raftpb.Message.Term') →
+  m.(raftpb.Message.To') = id →
+  m.(raftpb.Message.From') ≠ id →
+  step cfg id ps [abs_snap m sv voters]
+    (pbecome_follower ps m.(raftpb.Message.Term') m.(raftpb.Message.From')).
+Proof.
+  intros Hgt Hto Hfid.
+  eapply step_eq.
+  { apply (step_higher_term _ _ (abs_snap m sv voters)); [done|done|intros _; exact Hfid]. }
+  rewrite /abs_snap /abs_snap_from /= //.
+Qed.
+
+Lemma nstate_wf_handle_snap id t m sv s' :
+  nstate_wf t → handle_snap_result id t m sv s' → nstate_wf s'.
+Proof.
+  intros Hwf Hres. rewrite /handle_snap_result in Hres. cbv zeta in Hres.
+  destruct Hres as [[_ ->]|[[_ [_ ->]]|[_ [_ (? & ? & ->)]]]]; done.
+Qed.
+
+Lemma follower_step_result_snap id s m ents sv dropped s' :
+  m.(raftpb.Message.Type') = MsgSnap →
+  follower_step_result id s m ents sv dropped s' →
+  dropped = false ∧
+  handle_snap_result id (s <| nstate.lead := m.(raftpb.Message.From') |>) m sv s'.
+Proof.
+  intros Hty. rewrite /follower_step_result Hty.
+  case_decide as H1; [exfalso; revert H1; w32_ne|].
+  case_decide as H2; [exfalso; revert H2; w32_ne|].
+  case_decide as H3; [exfalso; revert H3; w32_ne|].
+  case_decide as H4; [exfalso; revert H4; w32_ne|].
+  case_decide as H5; [exfalso; destruct H5 as [H5|[H5|H5]]; revert H5; w32_ne|].
+  case_decide as H6; done.
+Qed.
+
+Lemma candidate_step_result_snap id s m ents sv dropped s' :
+  m.(raftpb.Message.Type') = MsgSnap →
+  candidate_step_result cfg id s m ents sv dropped s' →
+  dropped = false ∧
+  ∃ pvs, handle_snap_result id
+           (become_follower s s.(nstate.term) m.(raftpb.Message.From')
+              <| nstate.prvals := pvs |>) m sv s'.
+Proof.
+  intros Hty. rewrite /candidate_step_result Hty.
+  case_decide as H1; [exfalso; revert H1; w32_ne|].
+  case_decide as H2; [exfalso; revert H2; w32_ne|].
+  case_decide as H3; [exfalso; revert H3; w32_ne|].
+  case_decide as H4; [exfalso; revert H4; w32_ne|].
+  case_decide as H5; [exfalso; destruct H5 as [H5|[H5|H5]]; revert H5; w32_ne|].
+  case_decide as H6; done.
 Qed.
 
 End repl.

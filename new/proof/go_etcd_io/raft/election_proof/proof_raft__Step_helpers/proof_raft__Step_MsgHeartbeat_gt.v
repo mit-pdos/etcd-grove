@@ -110,12 +110,12 @@ Implicit Type s : nstate.t.
                <| nstate.prvals := pvs |>).(nstate.stepfn)
             = functions raft.stepFollower []) as Hsf by done.
     rewrite Hsf.
-    wp_apply (P.wp_stepFollower _ _ _ _ _ ents with "[$Hphys]").
+    wp_apply (P.wp_stepFollower _ _ _ _ _ ents (zero_val _) [] with "[$Hphys]").
     { do 3 right; left. exact Hty. }
     { intros Hc. exfalso. rewrite Hty8 in Hc. revert Hc. w32_ne. }
     { intros Hc. exfalso. rewrite Hty8 in Hc. revert Hc. w32_ne. }
     { intros _. split; [exact Hcommit|exact Hfid]. }
-    { iIntros "%Hc". exfalso. rewrite Hty8 in Hc.
+    { iSplitR; [step_no_snap|]. iIntros "%Hc". exfalso. rewrite Hty8 in Hc.
       destruct Hc as [Hc|Hc]; revert Hc; w32_ne. }
     iIntros (err s1 dropped) "(Hphys & %Hres & Herrn)".
     apply follower_step_result_heartbeat in Hres as [-> ->]; last exact Hty.
