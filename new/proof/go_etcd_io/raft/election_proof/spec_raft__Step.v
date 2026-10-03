@@ -1,4 +1,6 @@
 Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
+(* [snap_scope], for [MsgSnap]; before [step_lemmas], whose [step] must win *)
+Require Export New.proof.go_etcd_io.raft.election_proof.spec_raft__restore.
 Require Export New.proof.go_etcd_io.raft.election_proof.step_lemmas.
 (* [MsgBeat] *)
 Require Export New.proof.go_etcd_io.raft.election_proof.spec_raft__handleHeartbeat.
@@ -30,7 +32,7 @@ Require Export New.proof.bytes.
     [election_msg]). *)
 Definition step_msg_types : list w32 :=
   [MsgHup; MsgVote; MsgVoteResp; MsgApp; MsgAppResp; MsgHeartbeat;
-   MsgHeartbeatResp; MsgBeat; MsgProp].
+   MsgHeartbeatResp; MsgBeat; MsgProp; MsgSnap].
 
 Definition step_msg (m : raftpb.Message.t) : Prop :=
   m.(raftpb.Message.Type') ∈ step_msg_types.
@@ -83,9 +85,7 @@ Definition wp_raft__Step_body :=
   (m.(raftpb.Message.Type') = MsgHeartbeatResp →
      m.(raftpb.Message.To') = id ∧ m.(raftpb.Message.Term') ≠ W64 0 ∧
      m.(raftpb.Message.From') ≠ W64 0 ∧ m.(raftpb.Message.From') ≠ id) →
-  (* A leader's [MsgSnap], likewise (2026-10-02, ahead of the [MsgSnap]
-     branch: [step_msg] does not include it yet, so this premise and
-     ["Hsnap"] below are unused for now). *)
+  (* A leader's [MsgSnap], likewise (2026-10-02). *)
   (m.(raftpb.Message.Type') = MsgSnap →
      m.(raftpb.Message.To') = id ∧ m.(raftpb.Message.Term') ≠ W64 0 ∧
      m.(raftpb.Message.From') ≠ W64 0 ∧ m.(raftpb.Message.From') ≠ id) →
@@ -136,23 +136,25 @@ Definition wp_raft__Step_body :=
       "#Hctx" ∷ (∃ ctx, m.(raftpb.Message.Context') ↦*□ ctx ∗
                         ⌜ ctx ≠ campaignTransfer ⌝ ∗
                         ⌜ m.(raftpb.Message.Type') = MsgHeartbeatResp → ctx = [] ⌝) ∗
-      (* A [MsgSnap]'s snapshot (2026-10-02; unused until [step_msg] has
-         [MsgSnap]): what [m.Snapshot] points to, read-only, and the list
-         behind its [ConfState.Voters]; under the fixed-voter-set scope
-         those are [cfg]'s voters and the other three sets are empty (what
-         [confchange.Restore]'s spec covers); and the abstraction
-         [abs_snap] ([defs.v]) -- the snapshot's metadata, not [m]'s own
-         [Index]/[LogTerm] -- was legitimately sent. *)
+      (* A [MsgSnap]'s snapshot (2026-10-02): what [m.Snapshot] points to,
+         read-only, and the list behind its [ConfState.Voters]; under the
+         fixed-voter-set scope [snap_scope] ([spec_raft__restore.v]): the
+         voters are [cfg]'s, [cfg] is zero-free, the other three sets are
+         empty and [AutoLeave] is off (what [confchange.Restore]'s and
+         [assertConfStatesEquivalent]'s specs cover), and the index is
+         below [2^61] (a pending snapshot becomes the [Storage]'s boundary,
+         which [is_Storage]'s [Hbounded] bounds the same way).  And the
+         abstraction [abs_snap] ([defs.v]) -- the snapshot's metadata, not
+         [m]'s own [Index]/[LogTerm] -- was legitimately sent.  The two
+         added on 2026-10-02 with the branch ([W64 0 ∉ cfg], [AutoLeave],
+         the index bound) are transport/client assumptions like the
+         rest. *)
       "#Hsnap" ∷ □ (⌜ m.(raftpb.Message.Type') = MsgSnap ⌝ -∗
          ∃ (sv : raftpb.Snapshot.t) (voters : list w64),
            m.(raftpb.Message.Snapshot') ↦□ sv ∗
            sv.(raftpb.Snapshot.Metadata').(raftpb.SnapshotMetadata.ConfState')
              .(raftpb.ConfState.Voters') ↦*□ voters ∗
-           ⌜ voters ≡ₚ elements cfg ⌝ ∗
-           ⌜ let cs := sv.(raftpb.Snapshot.Metadata').(raftpb.SnapshotMetadata.ConfState') in
-             cs.(raftpb.ConfState.Learners').(slice.len) = W64 0 ∧
-             cs.(raftpb.ConfState.VotersOutgoing').(slice.len) = W64 0 ∧
-             cs.(raftpb.ConfState.LearnersNext').(slice.len) = W64 0 ⌝ ∗
+           ⌜ snap_scope cfg sv voters ⌝ ∗
            is_message γ (abs_snap m sv voters))
   }}}
     r @! (go.PointerType raft.raft) @! "Step" #m

@@ -19,8 +19,11 @@ Import P.
         in scope), so its logging arm is dead code.
 
       [promotable] is the one branch genuinely taken both ways: its result is
-      [bool_decide (r.id ∈ cfg)], which is exactly the [id ∈ cfg] premise
-      [campaign] needs, so the two arms are "campaign" and "return". *)
+      [bool_decide (r.id ∈ cfg ∧ snap = None)], which is exactly the
+      [id ∈ cfg] premise [campaign] needs together with the no-pending-
+      snapshot premise [hasUnappliedConfChanges] and [campaign] need (since
+      2026-10-02), so the two arms are "campaign" and "return": a node with
+      a pending snapshot logs and returns, [step_refl]. *)
   Lemma wp_raft__hup : wp_raft__hup_body.
   Proof.
     intros_ambient.
@@ -46,13 +49,13 @@ Import P.
         as "%b [Hphys %Hb]".
       destruct b.
       + (* a voter, so it may campaign *)
-        wp_auto.
-        wp_apply (wp_raft__hasUnappliedConfChanges _ _ _ _ with "[$Hphys]")
-          as "Hphys".
-        assert (id ∈ cfg) as Hin.
+        assert (id ∈ cfg ∧ s.(nstate.logst).(logstate.snap) = None) as [Hin Hsn].
         { symmetry in Hb. by apply bool_decide_eq_true_1 in Hb. }
+        wp_auto.
+        wp_apply (wp_raft__hasUnappliedConfChanges _ _ _ _ Hsn with "[$Hphys]")
+          as "Hphys".
         (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log).
-        wp_apply (P.wp_raft__campaign _ _ _ _ _ Ht Hrl Hin Hnowrap
+        wp_apply (P.wp_raft__campaign _ _ _ _ _ Ht Hrl Hin Hsn Hnowrap
                     with "[$Hphys]")
           as "%peers %pvs [%Hpeers Hphys]".
         iApply "HΦ". iFrame "Hphys".

@@ -49,8 +49,8 @@ Definition msa_pkg (r : loc) (id : w64) (s : nstate.t) (ep : loc)
 (** The [MsgApp]'s batch, from what the log says ([app_ok]'s last two
     clauses): [Index = pr.Next - 1], the entries a prefix of the log from
     [pr.Next]. *)
-Lemma msa_app_facts (s : nstate.t) prev sents uents lcm lap (t n : w64) es :
-  s.(nstate.logst) = logstate.mk prev sents uents lcm lap →
+Lemma msa_app_facts (s : nstate.t) prev sents uents lcm lap snap (t n : w64) es :
+  s.(nstate.logst) = logstate.mk prev sents uents lcm lap snap →
   plog_wf prev (sents ++ uents) →
   (uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents)
    + Z.of_nat (length uents) + 1 < 2^64)%Z →
@@ -148,7 +148,7 @@ Set Default Proof Using "Type".
     intros cfg r id s to sendIfEmpty Hto Hcfg.
     wp_start_folded as "Hphys".
     (* the log's state, as variables *)
-    destruct (s.(nstate.logst)) as [prev sents uents lcm lap] eqn:Hls.
+    destruct (s.(nstate.logst)) as [prev sents uents lcm lap snap] eqn:Hls.
     (* the [iNamed] only strips the precondition's name *)
     iNamed "Hphys".
     (* [r.trk.Progress] is read through the tracker field *)
@@ -194,7 +194,7 @@ Set Default Proof Using "Type".
     iDestruct (own_raftLog_wf with "Hlog") as "[%Hlwf Hlog]".
     iDestruct (own_raftLog_no_confchange with "Hlog") as "[%Hlnc Hlog]".
     cbn [logstate.prev logstate.sents logstate.uents] in Hlwf, Hlnc.
-    wp_apply (wp_raftLog__term _ (logstate.mk prev sents uents lcm lap) _ with "[$Hlog]")
+    wp_apply (wp_raftLog__term _ (logstate.mk prev sents uents lcm lap snap) _ with "[$Hlog]")
       as "%pterm %err (Hlog & %Herr & %Hterm_at & _)".
     cbn [logstate.prev logstate.sents logstate.uents] in Herr.
     iEval (rewrite -Hls) in "Hlog".
@@ -246,7 +246,7 @@ Set Default Proof Using "Type".
         iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hlogback]";
         iEval (rewrite Hls) in "Hlog";
         rewrite ?Hnx;
-        wp_apply (wp_raftLog__entries _ (logstate.mk prev sents uents lcm lap) _ _ Hlo with "[$Hlog]")
+        wp_apply (wp_raftLog__entries _ (logstate.mk prev sents uents lcm lap snap) _ _ Hlo with "[$Hlog]")
           as "%sl_e %es_e (Hlog & Hents & [%Hin %Hpre])";
         iEval (rewrite -Hls) in "Hlog";
         iDestruct ("Hlogback" with "Hlog") as "Hphys";
@@ -269,7 +269,7 @@ Set Default Proof Using "Type".
       iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hlogback]";
       iEval (rewrite Hls) in "Hlog";
       rewrite ?Hnx;
-      wp_apply (wp_raftLog__entries _ (logstate.mk prev sents uents lcm lap) _ _ Hlo with "[$Hlog]")
+      wp_apply (wp_raftLog__entries _ (logstate.mk prev sents uents lcm lap snap) _ _ Hlo with "[$Hlog]")
         as "%sl_e %es_e (Hlog & Hents & [%Hin %Hpre])";
       iEval (rewrite -Hls) in "Hlog";
       iDestruct ("Hlogback" with "Hlog") as "Hphys";
@@ -334,7 +334,7 @@ Set Default Proof Using "Type".
     wp_apply (wp_Progress__SentCommit with "[$Hpa3]") as "Hpa4";
     iDestruct ("Hpback" with "Hpa4") as "Hphys";
     try wp_auto;
-    pose proof (msa_app_facts s prev sents uents lcm lap pterm p.(progress.next) es
+    pose proof (msa_app_facts s prev sents uents lcm lap snap pterm p.(progress.next) es
                   Hls Hlwf Hnw Herr1 Hlnc Hpkgpre) as Hfacts;
     iApply ("HΦ" $! true);
     iSplitL;

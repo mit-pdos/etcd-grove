@@ -6,7 +6,7 @@ Module RaftLogAppliedToProof (P : RAFTLOG__APPLIEDTO_POSTULATES) : RAFTLOG__APPL
   Proof.
     intros_ambient.
     intros l ls i size Hi.
-    destruct ls as [prev sents uents lcm lap]; logstate_simpl.
+    destruct ls as [prev sents uents lcm lap snap]; logstate_simpl.
     wp_start as "Hlog".
     iDestruct (own_raftLog_unfold with "Hlog") as (lv) "(Hl & %Hcm & %Hap & Hcore)".
     logstate_simpl.
@@ -16,9 +16,9 @@ Module RaftLogAppliedToProof (P : RAFTLOG__APPLIEDTO_POSTULATES) : RAFTLOG__APPL
     wp_apply wp_max2_uint64. try wp_auto.
     case_bool_decide; try wp_auto.
     all: iApply "HΦ"; iEval (rewrite /own_raftLog_core /=) in "Hcore";
-      iDestruct "Hcore" as (stored) "Hcore"; iNamed "Hcore";
+      iDestruct "Hcore" as (sprev stored) "Hcore"; iNamed "Hcore";
       reseal_raftLog.
-    all: simpl; subst; lia.
+    all: simpl; subst; first [lia | (intros Hn; specialize (Hpapplied Hn); lia)].
   Qed.
 
 End RaftLogAppliedToProof.

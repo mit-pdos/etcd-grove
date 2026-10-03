@@ -78,17 +78,18 @@ Import P.
   Lemma wp_raft__hasUnappliedConfChanges : wp_raft__hasUnappliedConfChanges_body.
   Proof.
     intros_ambient.
-    intros cfg r id s.
+    intros cfg r id s Hsn.
     wp_start as "Hphys".
-    destruct (s.(nstate.logst)) as [prev sents uents lcm lap] eqn:Hls.
+    destruct (s.(nstate.logst)) as [prev sents uents lcm lap snap] eqn:Hls.
+    simpl in Hsn. subst snap.
     (* the log's facts, read once: [applied]/[committed] inside the log, and
        no conf change in it.  No tracker loan: nothing here touches it. *)
     iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hback]".
     iEval (rewrite Hls own_raftLog_unfold) in "Hlog".
     iDestruct "Hlog" as (lv) "(Hl & %Hcm & %Hap & Hcore)".
     iEval (rewrite /own_raftLog_core /=) in "Hcore".
-    iDestruct "Hcore" as (stored) "Hcore". iNamed "Hcore".
-    subst lcm lap.
+    iDestruct "Hcore" as (sprev stored) "Hcore". iNamed "Hcore".
+    subst lcm lap. specialize (Hpapplied eq_refl).
     iDestruct ("Hback" with "[Hl HStorage Huents Huents_cap]") as "Hphys".
     { rewrite Hls. reseal_raftLog. }
     (* each [r.raftLog.f] read: the struct gives the log's location, the
@@ -110,7 +111,7 @@ Import P.
                ≤ uint.Z (word.add lv.(raft.raftLog.committed') (W64 1))
                ≤ uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents)
                  + Z.of_nat (length uents) + 1)%Z) as Hrange by word.
-      wp_apply (wp_raftLog__scan _ (logstate.mk prev sents uents lv.(raft.raftLog.committed') lv.(raft.raftLog.applied')) _ _ _ _ emp%I
+      wp_apply (wp_raftLog__scan _ (logstate.mk prev sents uents lv.(raft.raftLog.committed') lv.(raft.raftLog.applied') None) _ _ _ _ emp%I
                   (λ e, e.(raftpb.Entry.Type') = EntryNormal) Hrange HnoConfChange
                   with "[$Hlog]").
       { (* the callback, at [I := emp] *)

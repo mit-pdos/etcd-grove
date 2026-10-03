@@ -6,11 +6,11 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
       if l.unstable.snapshot != nil { return *l.unstable.snapshot, nil }
       return l.storage.Snapshot()
 
-    [own_raftLog]'s [Hnosnap] says the unstable snapshot is always [nil]
-    on this path (no snapshot is ever received -- see [inv_raftlog.v]), so
-    the first branch is dead and the result is exactly what the
-    client-supplied [Storage] returns.  The postcondition is therefore
-    [is_Storage]'s [HSnapshot] clause verbatim ([inv_storage.v]): either the
+    A pending snapshot ([logstate.snap], since 2026-10-02) is returned by
+    value, with a [nil] error and a non-zero index ([log_store_ok]);
+    otherwise the result is exactly what the client-supplied [Storage]
+    returns.  The postcondition is [is_Storage]'s [HSnapshot] clause
+    verbatim ([inv_storage.v]), which covers both: either the
     distinguished [ErrSnapshotTemporarilyUnavailable] -- whose points-to the
     caller passes in, since the comparison in [maybeSendSnapshot] is against
     the package-level variable, not against a claim about [errors.New] -- or

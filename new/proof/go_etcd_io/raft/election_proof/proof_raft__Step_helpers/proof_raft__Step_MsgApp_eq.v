@@ -115,12 +115,12 @@ Implicit Type s : nstate.t.
         by (rewrite Hsfw ?Hrole //).
       rewrite Hsf.
       pose proof (Hvotes eq_refl) as Hvs.
-      wp_apply (P.wp_stepFollower _ _ _ _ _ ents with "[$Hphys Hcap]").
+      wp_apply (P.wp_stepFollower _ _ _ _ _ ents (zero_val _) [] with "[$Hphys Hcap]").
       { do 2 right; left. exact Hty. }
       { intros Hc. exfalso. rewrite Hty3 in Hc. revert Hc. w32_ne. }
       { intros _. split_and!; [exact Hpwf|exact Hnw|exact Hnorm|exact Hconf]. }
       { intros Hc. exfalso. rewrite Hty3 in Hc. revert Hc. w32_ne. }
-      { iIntros "_". iFrame "Hents Hcap". }
+      { iSplitR; [step_no_snap|]. iIntros "_". iFrame "Hents Hcap". }
       iIntros (err s1 dropped) "(Hphys & %Hres & Herrn)".
       apply follower_step_result_app in Hres as [-> Hres]; last exact Hty.
       iDestruct "Herrn" as %Herrn. rewrite Herrn. wp_auto.
@@ -140,14 +140,14 @@ Implicit Type s : nstate.t.
       assert (s.(nstate.stepfn) = functions raft.stepCandidate []) as Hsf
         by (rewrite Hsfw ?Hrole //).
       rewrite Hsf.
-      wp_apply (P.wp_stepCandidate _ _ _ _ _ ents with "[$Hphys Hcap]").
+      wp_apply (P.wp_stepCandidate _ _ _ _ _ ents (zero_val _) [] with "[$Hphys Hcap]").
       { do 2 right; left. exact Hty. }
       { intros _. exact Hteq. }
       { exact Hrole. }
       { exact Hcfg. }
       { intros _. split_and!; [exact Hpwf|exact Hnw|exact Hnorm|exact Hconf]. }
       { intros Hc. exfalso. rewrite Hty3 in Hc. revert Hc. w32_ne. }
-      { iIntros "_". iFrame "Hents Hcap". }
+      { iSplitR; [step_no_snap|]. iIntros "_". iFrame "Hents Hcap". }
       iIntros (err s1 dropped) "(Hphys & %Hres & Herrn)".
       apply candidate_step_result_app in Hres as [-> [pvs Hres]]; last exact Hty.
       iDestruct "Herrn" as %Herrn. rewrite Herrn. wp_auto.

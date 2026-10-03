@@ -145,12 +145,12 @@ Implicit Type s : nstate.t.
         by (rewrite Hsfw ?Hrole //).
       rewrite Hsf.
       iMod (own_slice_persist with "Hents") as "#Hents".
-      wp_apply (P.wp_stepFollower _ _ _ _ _ ents with "[$Hphys Hcap]").
+      wp_apply (P.wp_stepFollower _ _ _ _ _ ents (zero_val _) [] with "[$Hphys Hcap]").
       { right; left. exact Hty. }
       { intros _. split_and!; [exact Hfrom | exact Hterm | apply Hlok; congruence]. }
       { intros Hc. exfalso. by apply (Hnot MsgApp); [w32_ne|]. }
       { intros Hc. exfalso. by apply (Hnot MsgHeartbeat); [w32_ne|]. }
-      { iIntros "_". iFrame "#∗". }
+      { iSplitR; [step_no_snap|]. iIntros "_". iFrame "#∗". }
       iIntros (err s1 dropped) "(Hphys & %Hres & Herrn)".
       (* each [decide] named by its proof: [case_decide] would pick up the
          [bool_decide]s in [Hn0]... *)
@@ -179,15 +179,15 @@ Implicit Type s : nstate.t.
       assert (s.(nstate.stepfn) = functions raft.stepCandidate []) as Hsf
         by (rewrite Hsfw ?Hrole //).
       rewrite Hsf.
-      wp_apply (P.wp_stepCandidate _ _ _ _ _ ents with "[$Hphys]").
+      wp_apply (P.wp_stepCandidate _ _ _ _ _ ents (zero_val _) [] with "[$Hphys]").
       { right; left. exact Hty. }
       { intros Hc. exfalso.
-        destruct Hc as [Hc|[Hc|Hc]]; (eapply Hnot; last exact Hc; w32_ne). }
+        destruct Hc as [Hc|[Hc|[Hc|Hc]]]; (eapply Hnot; last exact Hc; w32_ne). }
       { exact Hrole. }
       { exact Hcfg. }
       { intros Hc. exfalso. by apply (Hnot MsgApp); [w32_ne|]. }
       { intros Hc. exfalso. by apply (Hnot MsgHeartbeat); [w32_ne|]. }
-      { iIntros "%Hc". exfalso. by apply (Hnot MsgApp); [w32_ne|]. }
+      { iSplitR; [step_no_snap|]. iIntros "%Hc". exfalso. by apply (Hnot MsgApp); [w32_ne|]. }
       iIntros (err s1 dropped) "(Hphys & %Hres & Herrn)".
       rewrite /candidate_step_result in Hres.
       rewrite (decide_False _ _ HnVR) in Hres.

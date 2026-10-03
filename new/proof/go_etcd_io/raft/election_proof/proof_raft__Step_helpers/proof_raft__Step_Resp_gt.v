@@ -122,16 +122,16 @@ Implicit Type s : nstate.t.
                <| nstate.prvals := pvs |>).(nstate.stepfn)
             = functions raft.stepFollower []) as Hsf by done.
     rewrite Hsf.
-    wp_apply (P.wp_stepFollower _ _ _ _ _ [] with "[$Hphys]").
-    { right; right; right; right. exact Hty3. }
+    wp_apply (P.wp_stepFollower _ _ _ _ _ [] (zero_val _) [] with "[$Hphys]").
+    { right; right; right; right; left. exact Hty3. }
     { intros Hc. exfalso. destruct Hty3 as [Ht|[Ht|Ht]]; rewrite Ht in Hc; revert Hc; w32_ne. }
     { intros Hc. exfalso. destruct Hty3 as [Ht|[Ht|Ht]]; rewrite Ht in Hc; revert Hc; w32_ne. }
     { intros Hc. exfalso. destruct Hty3 as [Ht|[Ht|Ht]]; rewrite Ht in Hc; revert Hc; w32_ne. }
-    { iIntros "%Hc". exfalso.
+    { iSplitR; [step_no_snap|]. iIntros "%Hc". exfalso.
       destruct Hc as [Hc|Hc]; destruct Hty3 as [Ht|[Ht|Ht]]; rewrite Ht in Hc;
         revert Hc; w32_ne. }
     iIntros (err s1 dropped) "(Hphys & %Hres & Herrn)".
-    destruct (follower_step_result_noop _ _ _ _ _ _ Hty3 Hres) as [-> ->]. iDestruct "Herrn" as %Herrn.
+    destruct (follower_step_result_noop _ _ _ _ _ _ _ Hty3 Hres) as [-> ->]. iDestruct "Herrn" as %Herrn.
     rewrite Herrn. wp_auto.
     iApply ("HΦ" $! interface.nil
               (become_follower s m.(raftpb.Message.Term') (W64 0)

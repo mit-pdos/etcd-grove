@@ -18,6 +18,9 @@ Definition wp_raft__campaign_body :=
   t ≠ campaignPreElection →
   s.(nstate.role) ≠ role.Leader →
   id ∈ cfg →
+  (* no snapshot pending: [promotable] is then true and its warning is not
+     logged.  ([hup] checks [promotable] first; 2026-10-02.) *)
+  s.(nstate.logst).(logstate.snap) = None →
   (* [becomeCandidate] sets [r.Term := r.Term + 1] and [campaign] then sends
      at that term.  [send] *panics* on a vote message whose [Term] is zero
      ([Panicf "term should be set when sending %s"] in [raft__sendⁱᵐᵖˡ]),

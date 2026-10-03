@@ -1,6 +1,7 @@
 Require Export New.proof.go_etcd_io.raft.election_proof.spec_stepFollower.
 Require Export New.proof.go_etcd_io.raft.election_proof.postulates_raft__handleAppendEntries.
 Require Export New.proof.go_etcd_io.raft.election_proof.postulates_raft__handleHeartbeat.
+Require Export New.proof.go_etcd_io.raft.election_proof.postulates_raft__handleSnapshot.
 Require Export New.proof.go_etcd_io.raft.election_proof.postulates_raft__send.
 
 (** [stepFollower]'s direct callees: [MsgApp]'s [handleAppendEntries],
@@ -9,5 +10,6 @@ Require Export New.proof.go_etcd_io.raft.election_proof.postulates_raft__send.
 Module Type STEPFOLLOWER_POSTULATES.
   Include RAFT__HANDLEAPPENDENTRIES.
   Include RAFT__HANDLEHEARTBEAT.
+  Include RAFT__HANDLESNAPSHOT.
   Include SEND.
 End STEPFOLLOWER_POSTULATES.

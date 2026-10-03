@@ -218,8 +218,9 @@ Definition is_Storage (st : raft.Storage.t) : iProp Σ :=
 
       [raftLog.snapshot] ([new/code/go_etcd_io/raft/v3.v:864]) returns
       [l.unstable.snapshot] when it is non-nil and otherwise forwards to this
-      method; [own_raftLog_core]'s [Hnosnap] says it is always nil here, so
-      every snapshot on this path comes from the client.
+      method.  It is non-nil only while a received snapshot is pending
+      ([logstate.snap], since 2026-10-02; until then it was always nil), so
+      every other snapshot on this path comes from the client.
 
       The contract is the *disjunction* [maybeSendSnapshot] is written
       against: either the distinguished, non-fatal

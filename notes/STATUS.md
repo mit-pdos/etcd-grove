@@ -1,6 +1,6 @@
 # Status
 
-**Last updated:** 2026-10-03 (branch `worktree-raft-replication` at `d50b693a0`; `origin/main` `4f48cb6de` merged in; not yet on `main`)
+**Last updated:** 2026-10-03 (branch `worktree-raft-replication`, snapshot receiver side merged on top of `d50b693a0`; `origin/main` `4f48cb6de` merged in; not yet on `main`)
 
 This file is a snapshot of where the proof *is*. It carries no history: how
 something got this way is in [journal.md](journal.md), why a design was
@@ -151,13 +151,13 @@ terms (decisions.md, 2026-09-21: what this development is for is verified
 specs of Go functions):
 
 - **`Step.wp_raft__Step`** (`election_proof/spec_raft__Step.v`): running `Step` on
-  any message of the nine types in scope -- `MsgHup`, `MsgVote`, `MsgVoteResp`,
+  any message of the ten types in scope -- `MsgHup`, `MsgVote`, `MsgVoteResp`,
   `MsgApp`, `MsgAppResp`, `MsgHeartbeat`, `MsgHeartbeatResp`, `MsgBeat`,
-  `MsgProp` (`step_msg`) -- takes `own_raft_phys` from a physical state `s`
+  `MsgProp`, and since 2026-10-02 (late) `MsgSnap` (`step_msg`) -- takes `own_raft_phys` from a physical state `s`
   with `nstate_rel s ps` to some `s'` with `nstate_rel s' ps'`, and moves
   `own_raft_ghost` from `ps` to `ps'` at the same time, with
   `∃ recv, step cfg id ps recv ps'`; `err` is `nil`, or `ErrProposalDropped`
-  for a dropped `MsgProp`. **`Qed` for all nine since 2026-10-02.** The
+  for a dropped `MsgProp`. **`Qed` for all ten since 2026-10-02.** The
   precondition takes the message's `Entries` (owned outright for a local
   `MsgProp`, which `appendEntry` stamps; read-only with their capacity for a
   network message, which `truncateAndAppend` may adopt), the `is_message`
@@ -221,13 +221,13 @@ Everything above holds **only** under these assumptions. They are premises of
 
 | assumption | where |
 |---|---|
-| Only the nine `step_msg` types are passed to `Step`; `MsgSnap`, the pre-vote, read-index, leader-transfer, check-quorum and storage-response types are taken to be dropped by the network (phases 2 and 3). A received `MsgApp`/`MsgHeartbeat`/`MsgHeartbeatResp`, and a rejecting `MsgAppResp`, has `From ≠ id` (a node never sends itself one: `send` panics) | `step_msg`, `spec_raft__Step.v` |
+| Only the ten `step_msg` types are passed to `Step`; the pre-vote, read-index, leader-transfer, check-quorum and storage-response types are taken to be dropped by the network (phase 3). A received `MsgApp`/`MsgHeartbeat`/`MsgHeartbeatResp`, and a rejecting `MsgAppResp`, has `From ≠ id` (a node never sends itself one: `send` panics) | `step_msg`, `spec_raft__Step.v` |
 | A received `MsgApp`'s entries are `EntryNormal`, contiguous from `Index+1`, and conflict only above the receiver's commit index; a received `Heartbeat`'s `Commit` is at most the receiver's last index. All four are proved from `own_raft_ghost` and `is_message` (`app_recv_wf`, `app_no_conflict_below_commit`, `heartbeat_commit_le_last`; since 2026-10-02 none is admitted) | `protocol.v` |
 | No read-index requests: `readOnly.unconfirmedReads` and `pendingReadIndexMessages` are empty, so `heartbeatCtx` is `nil` and a `MsgHeartbeatResp` carries an empty `Context` | `inv_misc.v` |
 | `disableProposalForwarding = false` (`newRaft` copies the `Config` field; a scope premise of `newRaft`'s spec) | `inv_raft_phys.v`, `spec_newRaft.v` |
 | No proposals, no read-only requests | scope |
 | No reconfiguration, no learners; the voter set `cfg` is fixed, and **no `EntryConfChange` is anywhere in the log** | `HnoConfChange`, `inv_raftlog.v:139` |
-| No snapshot is ever received | `Hnosnap`, `inv_raftlog.v:139` |
+| A received `MsgSnap` carries a snapshot (`m.Snapshot ↦□ sv`, its voters `↦*□`) whose `ConfState` is `cfg`'s voters only (no learners, not joint, `AutoLeave` off), with `0 ∉ cfg` and `Metadata.Index < 2^61`; it is `To = id`, `Term ≠ 0`, `From ≠ 0`, `From ≠ id` (`snap_scope`, `"Hsnap"`). A pending snapshot is never stored (`stableSnapTo`, `Ready` out of scope) | `spec_raft__Step.v`, `spec_raft__restore.v` |
 | No pre-vote, no check-quorum | `inv_raft_phys.v:112` |
 | No leader transfer (`leadTransferee = 0`, `Context ≠ campaignTransfer`) | `spec_raft__Step.v` |
 | Node ids are nonzero; `id ∈ cfg`; the ghost state's `cfg` is the physical one (`γ.(re_cfg) = cfg`) | `spec_raft__Step.v`, `own_raft_ghost` |
@@ -271,6 +271,18 @@ behind `m.Snapshot`, because `send` has no snapshot precondition and
 `Storage.Snapshot` contract to pin the metadata and voters. Next: the log
 side (`logstate.snap`, `restore`, `handleSnapshot`, the `MsgSnap` `Step`
 branch); see raft-replication-model.md, "Phase 2".
+
+**Snapshots, receiver side, done** (2026-10-02, branch
+`worktree-agent-a6ef9862e0d3133ee`, not yet merged): `logstate.snap` with
+the log proofs' snapshot arms, `unstable/raftLog/raft.restore`,
+`raft.handleSnapshot`, the `stepFollower`/`stepCandidate` `MsgSnap` arms,
+`promotable`'s snapshot conjunct, and the `MsgSnap` `Step` branch refining
+`step_snap_stale/_fastfwd/_restore`.  New `Step` premises for `MsgSnap`:
+`0 ∉ cfg`, `AutoLeave = false`, `Index < 2^61` (inside `"Hsnap"`'s
+`snap_scope`).  Details: raft-replication-model.md, "Phase 2 … Done
+2026-10-02: the log and implementation side".  Next on this path: the
+sender side (`maybeSendSnapshot`'s abstraction tied to the heap,
+`snap_ok_message`), then pre-vote.
 
 ## What still needs fixing
 
@@ -395,10 +407,11 @@ and acks live in its own ghost maps) -- they have to be restated over the
 whole cluster, see item 5b. `heartbeat_commit_le_last`,
 `app_no_conflict_below_commit` and `log_matching` were proved on
 2026-10-02 from the acknowledgement-backed-by-log invariant in
-`own_log_ghost` (`acks_ok`, `log_recs`, `lead_prefix`). 544 `Qed`
-lemmas; two results (`Step`, `newRaft`); 144 definitions, 1,342 lines;
-TCB 5.2% of the development by line. `make ci` exit 0 at `d50b693a0`
-(540 files). The
+`own_log_ghost` (`acks_ok`, `log_recs`, `lead_prefix`). With the snapshot
+receiver side merged (2026-10-03) the numbers are re-run below in the
+journal; at `d50b693a0` they were 544 `Qed` lemmas, two results (`Step`,
+`newRaft`), 144 definitions, 1,342 lines, TCB 5.2%, `make ci` exit 0 (540
+files). The
 whole-raft numbers (`v3_proof/` included) are the old ones plus these.
 
     R=new/proof/go_etcd_io/raft      # required; the tool names no development

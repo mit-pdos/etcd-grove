@@ -4652,3 +4652,47 @@ Model observations: `step_win` has no no-wrap premise, so a log at
 (well-formed in range) rather than `plog_wf`. `step_app_accept`'s
 conflict premise is implied by its `commit ≤ index` premise.
 
+
+## 2026-10-02/03 — snapshots, receiver side: `logstate.snap`, `restore`, `handleSnapshot`, `Step(MsgSnap)`
+
+Branch `worktree-agent-a6ef9862e0d3133ee` (from `c0edb8a9f`, the
+replication branch's head).  All `Qed` outside `protocol.v` (not touched).
+Commits: M1+M2 `3243f65af`, M3 `56b7944ed`, M4/M5 below.  Design and
+the full list: raft-replication-model.md, "Phase 2 … Done 2026-10-02: the
+log and implementation side".
+
+- **M1** `logstate.snap`; `own_raftLog_core` gains `log_store_ok` (storage
+  boundary `sprev` existential, shadowed while a snapshot is pending) and
+  the sealed `own_snap`; `prev ≤ applied` only without a snapshot.  Every
+  log proof adapted; the snapshot arms of `unstable.maybe*` and
+  `raftLog.firstIndex/lastIndex/term/snapshot/slice` proved;
+  `hasNextOrInProgressSnapshot` returns `snap ≠ None`; new collections
+  `unstable.restore`, `raftLog.restore`.  Mechanical cost: every
+  `logstate.mk`/`destruct ls as [...]` gained a sixth field.
+- **M2** `promotable = id ∈ cfg ∧ snap = None`; `hasUnappliedConfChanges`
+  and `campaign` take `snap = None` (from `hup`'s `promotable`).
+- **M3** `raft.restore`, `raft.handleSnapshot` (three live exits each;
+  premises `role = Follower`, `votes = ∅`, `id ∈ cfg`, `snap_scope`).  The
+  tracker rebuild needed one new accessor in `inv_raft_phys.v`,
+  `own_raft_phys_retrack` (tracker + `raftLog` field + log out together):
+  `restore` reads `lastIndex()` between storing the fresh tracker and
+  handing its voter map to `confchange.Restore`, and re-sealing in between
+  loses which tracker value the struct holds (`confchange.Restore`'s axiom
+  needs `Learners = nil` of *that* value).
+- **M4** `stepFollower`/`stepCandidate` `MsgSnap` arms (binders `sv
+  voters`, premise `"Hsnap"`, result relations take `sv`); 18 call sites
+  in the `Step` helpers pass `(zero_val _) []` and discharge `"Hsnap"`
+  with `step_no_snap`.  Both arms went through first time.
+- **M5** `Step` over ten types: `step_msg_types` has `MsgSnap`, `"Hsnap"`
+  carries `snap_scope` (new: `0 ∉ cfg`, `AutoLeave = false`, `Index <
+  2^61` -- none was available anywhere; transport/client assumptions,
+  listed in STATUS's scope table), branch files
+  `proof_raft__Step_MsgSnap{,_gt,_lt,_eq}.v`, `dispatch_Snap` (leader at
+  the message's term refuted by `is_leader_unique`; `follower_votes_ok`).
+  `step_handle_snap` maps the exits onto the three model rules; no rule
+  needed changing and no protocol fact beyond those two is used.
+
+Gotchas recorded (gotchas.md, "Snapshots, log side"): seal a predicate
+that matches on the index an intro lemma infers; IPM `rewrite` hits `HΦ`;
+`lia` and `set` aliases; `Require Export` order and `step`;
+`wp_raft_log`'s `"Hlg"`; the slice-of-slices loop.

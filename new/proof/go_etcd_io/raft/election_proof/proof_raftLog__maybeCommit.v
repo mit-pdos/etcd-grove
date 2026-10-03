@@ -7,7 +7,7 @@ Import P.
   Proof.
     intros_ambient.
     intros l ls aid.
-    destruct ls as [prev sents uents lcm lap]; logstate_simpl.
+    destruct ls as [prev sents uents lcm lap snap]; logstate_simpl.
     wp_start as "H". iNamed "H".
     iDestruct (own_raftLog_struct with "Hlog") as (lv) "(Hl & [%Hcm %Hap] & Hback)".
     logstate_simpl.
@@ -28,14 +28,14 @@ Import P.
     rewrite (bool_decide_eq_true_2 (uint.Z lcm < uint.Z aid.(raft.entryID.index'))%Z) //.
     wp_auto.
     iDestruct ("Hback" with "Hl") as "Hlog".
-    wp_apply (wp_raftLog__matchTerm _ (logstate.mk prev sents uents lcm lap) _
+    wp_apply (wp_raftLog__matchTerm _ (logstate.mk prev sents uents lcm lap snap) _
                 with "[$Hlog]") as "%b [Hlog %Hb]". logstate_simpl.
     destruct b.
     - (* [matchTerm]: commit.  [commitTo]'s premise from the match. *)
       symmetry in Hb. apply bool_decide_eq_true_1 in Hb.
       pose proof (plog_term_at_Some_range _ _ _ _ Hb) as Hrange.
       wp_auto.
-      wp_apply (wp_raftLog__commitTo _ (logstate.mk prev sents uents lcm lap) aid.(raft.entryID.index')
+      wp_apply (wp_raftLog__commitTo _ (logstate.mk prev sents uents lcm lap snap) aid.(raft.entryID.index')
                   ltac:(cbn [logstate.prev logstate.sents logstate.uents]; lia) with "[$Hlog]") as "Hlog".
       iApply "HΦ". simpl.
       rewrite /plog_commit_to decide_True; last lia.

@@ -25,10 +25,10 @@ Local Ltac kill_type_arms Hty :=
 
 (** [MsgBeat], [MsgAppResp] and [MsgHeartbeatResp] reach no arm of
     [stepFollower]. *)
-Lemma follower_step_result_noop id s m ents dropped s' :
+Lemma follower_step_result_noop id s m ents sv dropped s' :
   m.(raftpb.Message.Type') = MsgBeat ∨ m.(raftpb.Message.Type') = MsgAppResp ∨
   m.(raftpb.Message.Type') = MsgHeartbeatResp →
-  follower_step_result id s m ents dropped s' → dropped = false ∧ s' = s.
+  follower_step_result id s m ents sv dropped s' → dropped = false ∧ s' = s.
 Proof.
   intros Hty. rewrite /follower_step_result.
   kill_type_arms Hty.
@@ -37,10 +37,10 @@ Proof.
 Qed.
 
 (** Nor of [stepCandidate]. *)
-Lemma candidate_step_result_noop id s m ents dropped s' :
+Lemma candidate_step_result_noop id s m ents sv dropped s' :
   m.(raftpb.Message.Type') = MsgBeat ∨ m.(raftpb.Message.Type') = MsgAppResp ∨
   m.(raftpb.Message.Type') = MsgHeartbeatResp →
-  candidate_step_result cfg id s m ents dropped s' → dropped = false ∧ s' = s.
+  candidate_step_result cfg id s m ents sv dropped s' → dropped = false ∧ s' = s.
 Proof.
   intros Hty. rewrite /candidate_step_result.
   kill_type_arms Hty.

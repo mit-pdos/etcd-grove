@@ -20,17 +20,16 @@ Context (cfg : gset w64).
     stable prefix is below [2^61] by that contract, the unstable suffix is a
     Go slice and so below [2^63] by [own_slice_len], and their sum is what
     [lastIndex] returns. *)
-Lemma own_raftLog_facts (l : loc) prev sents uents cm ap :
-  own_raftLog l (logstate.mk prev sents uents cm ap) -∗
+Lemma own_raftLog_facts (l : loc) prev sents uents cm ap snap :
+  own_raftLog l (logstate.mk prev sents uents cm ap snap) -∗
   ⌜ log_indices_ok prev (sents ++ uents) ∧
     (uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents)
      + Z.of_nat (length uents) < 2^61 + 2^63)%Z ⌝ ∗
-  own_raftLog l (logstate.mk prev sents uents cm ap).
+  own_raftLog l (logstate.mk prev sents uents cm ap snap).
 Proof.
   iIntros "H". iNamed "H".
   iEval (rewrite /own_raftLog_core /=) in "Hcore".
-  iDestruct "Hcore" as (stored) "Hcore". iNamed "Hcore".
-  pose proof (prefix_length _ _ Hstored) as Hstlen.
+  iDestruct "Hcore" as (sprev stored) "Hcore". iNamed "Hcore".
   iAssert (is_Storage lv.(raft.raftLog.storage')) as "#Hsto".
   { iExact "HisStorage". }
   (* [iNamed] rather than a positional pattern: [is_Storage] is gaining
@@ -39,6 +38,13 @@ Proof.
   iDestruct "Hsto" as (isv) "#Hs". iNamed "Hs".
   iDestruct ("Hbounded" with "HStorage") as "[%Hstb HStorage]".
   iDestruct (slice_len_Z with "Huents") as %Hul.
+  (* the stable part: below the storage's bound, or -- with a snapshot
+     pending -- empty after a snapshot index below [2^61] *)
+  assert (uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents) < 2^61)%Z as Hsb.
+  { destruct snap as [sid|].
+    - pose proof Hstore as (-> & -> & Hsid). simpl. lia.
+    - pose proof Hstore as (-> & Hstored & _).
+      pose proof (prefix_length _ _ Hstored) as Hstlen. lia. }
   iSplitR.
   { iPureIntro. split; [ done | word ]. }
   reseal_raftLog.
@@ -143,11 +149,11 @@ Set Default Proof Using "Type".
     iDestruct (own_slice_len with "Hes") as %[Hlen Hlen'].
     (* [li := r.raftLog.lastIndex()], at a split that stays open *)
     (* the log is read at the state [s] records, and put back unchanged *)
-    destruct (s.(nstate.logst)) as [prev sents uents lcm lap] eqn:Hls.
+    destruct (s.(nstate.logst)) as [prev sents uents lcm lap snap] eqn:Hls.
     iDestruct (own_raft_phys_log_at with "Hphys") as "[Hlog Hlogback]".
     iEval (rewrite Hls) in "Hlog".
     iDestruct (own_raftLog_facts with "Hlog") as "[[%Hidx %Hbnd] Hlog]".
-    wp_apply (wp_raftLog__lastIndex _ (logstate.mk prev sents uents lcm lap) with "[$Hlog]")
+    wp_apply (wp_raftLog__lastIndex _ (logstate.mk prev sents uents lcm lap snap) with "[$Hlog]")
       as "%li [Hlog %Hli]".
     cbn [logstate.prev logstate.sents logstate.uents] in Hli.
     iDestruct ("Hlogback" with "Hlog") as "Hphys".
@@ -218,7 +224,7 @@ Set Default Proof Using "Type".
       { intros Hz. apply Hok. by apply stamped_empty. }
       (* [li] is [log_last] of the log it was read from: [lastIndex()]
          cannot wrap ([Hbnd]) *)
-      assert (log_last (logstate.mk prev sents uents lcm lap) = li) as Hlast.
+      assert (log_last (logstate.mk prev sents uents lcm lap snap) = li) as Hlast.
       { rewrite /log_last /=. apply word.unsigned_inj.
         pose proof (word.unsigned_range prev.(raft.entryID.index')).
         rewrite word.unsigned_of_Z_nowrap; lia. }
@@ -261,15 +267,15 @@ Set Default Proof Using "Type".
         replace (length sents + length uents + k2 - (length sents + length uents))%nat
           with k2 in Hidx2 by lia.
         specialize (Hidx2 Hk). lia. }
-      destruct (log_truncate_append_cont (logstate.mk prev sents uents lcm lap)
+      destruct (log_truncate_append_cont (logstate.mk prev sents uents lcm lap snap)
                   (imap (stamp s.(nstate.term) li) ents)) as [Htac Hado].
       { intros e0 He0. specialize (Hk2 0%nat e0 He0). simpl. lia. }
-      iAssert (if log_adopts (logstate.mk prev sents uents lcm lap)
+      iAssert (if log_adopts (logstate.mk prev sents uents lcm lap snap)
                     (imap (stamp s.(nstate.term) li) ents)
                then ⌜ DfracOwn 1 = DfracDiscarded ⌝ ∗ own_slice_cap raftpb.Entry.t es (DfracOwn 1)
                else True)%I as "Hadopt".
       { rewrite Hado. done. }
-      wp_apply (wp_raftLog__append _ (logstate.mk prev sents uents lcm lap)
+      wp_apply (wp_raftLog__append _ (logstate.mk prev sents uents lcm lap snap)
                   (imap (stamp s.(nstate.term) li) ents) _ _
                   ltac:(intros e0 He0; pose proof (Hk2 0%nat e0 He0); simpl;
                         split_and!; [lia | lia | | ];
@@ -282,9 +288,9 @@ Set Default Proof Using "Type".
       rewrite Htac /log_append /= in Hli2.
       rewrite length_app in Hli2.
       iDestruct ("Hlogback" with "Hlog") as "Hphys".
-      set s' := s <| nstate.logst := log_append (logstate.mk prev sents uents lcm lap)
+      set s' := s <| nstate.logst := log_append (logstate.mk prev sents uents lcm lap snap)
                      (imap (stamp s.(nstate.term)
-                              (log_last (logstate.mk prev sents uents lcm lap))) ents) |>.
+                              (log_last (logstate.mk prev sents uents lcm lap snap))) ents) |>.
       iDestruct (own_raft_phys_eq _ _ _ _ s' with "Hphys") as "Hphys".
       { rewrite /s' Hlast. done. }
       wp_apply (wp_raft_load_id with "Hphys") as "Hphys".

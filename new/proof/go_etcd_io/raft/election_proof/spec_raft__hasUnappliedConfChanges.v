@@ -30,6 +30,12 @@ Definition wp_raft__hasUnappliedConfChanges_body :=
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (cfg : gset w64) (r : loc) (id : w64) (s : nstate.t),
+  (* no snapshot pending: [applied] is then at or above the compaction
+     boundary, so [scan]'s range starts inside the log.  With one pending
+     [applied] may lie below the snapshot's index and [scan] would return
+     [ErrCompacted] into the [Panicf] -- the reason [hup] tests [promotable]
+     (which checks [hasNextOrInProgressSnapshot]) first.  Added 2026-10-02. *)
+  s.(nstate.logst).(logstate.snap) = None →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "hasUnappliedConfChanges" #()
   {{{ RET #false; own_raft_phys cfg r id s }}}.

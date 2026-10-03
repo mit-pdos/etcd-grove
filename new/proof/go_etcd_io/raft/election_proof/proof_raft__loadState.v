@@ -7,7 +7,7 @@ Import P.
   Proof.
     intros_ambient.
     intros cfg r id s hs Hc.
-    destruct (s.(nstate.logst)) as [prev sents uents lcm lap] eqn:Hls.
+    destruct (s.(nstate.logst)) as [prev sents uents lcm lap snap] eqn:Hls.
     cbn in Hc.
     wp_start as "Hphys".
     wp_auto.
@@ -19,7 +19,7 @@ Import P.
     iEval (rewrite Hls) in "HL".
     iDestruct (own_raftLog_nowrap with "HL") as "[%Hnw HL]".
     cbn in Hnw.
-    assert (uint.Z (log_last (logstate.mk prev sents uents lcm lap))
+    assert (uint.Z (log_last (logstate.mk prev sents uents lcm lap snap))
             = uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents)
               + Z.of_nat (length uents))%Z as Hll.
     { rewrite /log_last /=.
@@ -52,10 +52,10 @@ Import P.
     iDestruct (own_raftLog_unfold with "HL") as (lv2) "(Hl & %Hcm2 & %Hap2 & Hcore)".
     logstate_simpl.
     try wp_auto.
-    set ls' := logstate.mk prev sents uents hs.(raftpb.HardState.Commit') lap.
+    set ls' := logstate.mk prev sents uents hs.(raftpb.HardState.Commit') lap snap.
     iAssert (own_raftLog s.(nstate.log) ls')%I with "[Hl Hcore]" as "HL".
     { iEval (rewrite /own_raftLog_core /=) in "Hcore".
-      iDestruct "Hcore" as (stored) "Hcore". iNamed "Hcore".
+      iDestruct "Hcore" as (sprev stored) "Hcore". iNamed "Hcore".
       reseal_raftLog.
       all: simpl; subst; rewrite ?Hcm2 in Happlied; lia. }
     iDestruct ("Hlogback" with "HL") as "Hphys".

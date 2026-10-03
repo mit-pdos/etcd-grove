@@ -59,49 +59,56 @@ Import P.
   Proof.
     intros_ambient.
     intros l ls i.
-    destruct ls as [prev sents uents lcm lap]; logstate_simpl.
+    destruct ls as [prev sents uents lcm lap snap]; logstate_simpl.
     wp_start as "H". iNamed "H".
     iDestruct (is_pkg_init_access with "[$]") as "@".
     iNamed "Hlog".
     iEval (rewrite /own_raftLog_core /=) in "Hcore". iNamed "Hcore". wp_auto.
     assert (Hnw : (uint.Z lv.(raft.raftLog.unstable').(raft.unstable.offset') +
                    Z.of_nat (length uents) < 2^64)%Z) by lia.
+    (* a pending snapshot is [prev], with nothing stable after it *)
+    assert (Hsoff : ∀ sid, snap = Some sid →
+              uint.Z lv.(raft.raftLog.unstable').(raft.unstable.offset')
+              = uint.Z sid.(raft.entryID.index') + 1).
+    { intros sid ->. destruct Hstore as (-> & -> & _). simpl in Hoffset. lia. }
     iAssert (is_Storage lv.(raft.raftLog.storage')) as "#Hsto".
     { iExact "HisStorage". }
     iDestruct "Hsto" as (isv) "(%Hstok & #HLI & #HFI & #HT & #HE & #HB & #HSnap)".
     split_unstable l lv.
-    wp_apply (wp_unstable__maybeTerm _ _ _ _ Hnosnap Hnw
+    wp_apply (wp_unstable__maybeTerm _ _ _ snap _ Hsoff Hnw
                 with "[Huf Huents Huents_cap]")
       as "%t %ok ((Huf & Huents_cap & Huents) & %Hok & %Hokt)".
-    { rewrite /own_unstable. iFrame. }
+    { rewrite /own_unstable. iFrame "∗#". }
     iDestruct ("Hlback" with "Huf") as "Hl".
     destruct ok.
-    - (* the unstable suffix covers [i] *)
-      assert (Hin : (uint.Z lv.(raft.raftLog.unstable').(raft.unstable.offset')
-                     ≤ uint.Z i <
-                     uint.Z lv.(raft.raftLog.unstable').(raft.unstable.offset')
-                     + Z.of_nat (length uents))%Z) by (apply Hok; done).
+    - (* the unstable suffix covers [i], or [i] is the pending snapshot's *)
       wp_auto.
       iApply ("HΦ" $! t interface.nil).
       iSplitL; first reseal_raftLog.
       iEval (rewrite bi.sep_assoc). iSplitR; last by iLeft.
-      iPureIntro. split; [split; [intros _; lia | done] | intros _].
-      destruct (Hokt eq_refl) as (e & He & ->).
-      eapply (plog_term_at_lookup _ _ _
-                (length sents + Z.to_nat (uint.Z i
-                   - uint.Z lv.(raft.raftLog.unstable').(raft.unstable.offset')))%nat).
-      { rewrite lookup_app_r; [|lia]. rewrite -He. f_equal. lia. }
-      { lia. }
+      destruct (Hokt eq_refl) as [(Hin & e & He & ->)|(sid & -> & -> & ->)].
+      + iPureIntro. split; [split; [intros _; lia | done] | intros _].
+        eapply (plog_term_at_lookup _ _ _
+                  (length sents + Z.to_nat (uint.Z i
+                     - uint.Z lv.(raft.raftLog.unstable').(raft.unstable.offset')))%nat).
+        { rewrite lookup_app_r; [|lia]. rewrite -He. f_equal. lia. }
+        { lia. }
+      + destruct Hstore as (-> & -> & _).
+        iPureIntro. split; [split; [intros _; lia | done] | intros _].
+        apply plog_term_at_base.
     - assert (Hnotin : ¬ (uint.Z lv.(raft.raftLog.unstable').(raft.unstable.offset')
                           ≤ uint.Z i <
                           uint.Z lv.(raft.raftLog.unstable').(raft.unstable.offset')
                           + Z.of_nat (length uents))%Z).
-      { intros Hc. apply Hok in Hc. done. }
+      { intros Hc. assert (false = true) as Hf by (apply Hok; by left). done. }
+      assert (Hnotsnap : ∀ sid, snap = Some sid → i ≠ sid.(raft.entryID.index')).
+      { intros sid Hs Hi. assert (false = true) as Hf by (apply Hok; right; by exists sid).
+        done. }
       wp_auto.
-      iAssert (own_raftLog l (logstate.mk prev sents uents lcm lap))
+      iAssert (own_raftLog l (logstate.mk prev sents uents lcm lap snap))
         with "[Hl HStorage Huents Huents_cap]" as "Hlog".
       { reseal_raftLog. }
-      wp_apply (wp_raftLog__firstIndex _ (logstate.mk prev sents uents lcm lap) with "[$Hlog]") as "%fi [Hlog %Hfi]". logstate_simpl.
+      wp_apply (wp_raftLog__firstIndex _ (logstate.mk prev sents uents lcm lap snap) with "[$Hlog]") as "%fi [Hlog %Hfi]". logstate_simpl.
       destruct (bool_decide (uint.Z (word.add i (W64 1)) < uint.Z fi)%Z) eqn:Hb1.
       + (* below the compaction boundary: [ErrCompacted] *)
         wp_auto.
@@ -111,7 +118,7 @@ Import P.
         split; [split; [ intros Hc; exfalso; by apply HErrCompacted | intros Hr; exfalso; word ]
                | intros Hc; exfalso; by apply HErrCompacted ].
       + wp_auto.
-        wp_apply (wp_raftLog__lastIndex _ (logstate.mk prev sents uents lcm lap) with "[$Hlog]") as "%li [Hlog %Hli]". logstate_simpl.
+        wp_apply (wp_raftLog__lastIndex _ (logstate.mk prev sents uents lcm lap snap) with "[$Hlog]") as "%li [Hlog %Hli]". logstate_simpl.
         destruct (bool_decide (uint.Z li < uint.Z i)%Z) eqn:Hb2.
         * (* past the last entry: [ErrUnavailable] *)
           wp_auto.
@@ -128,10 +135,15 @@ Import P.
                             uint.Z prev.(raft.entryID.index')
                             + Z.of_nat (length sents))%Z).
           { split; first word. lia. }
-          clear Hnotin Hnw Hok Hokt Hoffset Hnosnap Hstok Happlied Hcommitted
-                Hidx Hnowrap HnoConfChange Hb1 Hb2 Hfi Hli Hcm Hap.
-          iClear "HisStorage HLI HFI HT HE HB HSnap Hl_logger Hu_logger".
-          clear lv isv fi li stored Hstored Hstored_eq.
+          (* with a snapshot pending the range is the snapshot's index alone,
+             which [maybeTerm] answered *)
+          destruct snap as [sid|].
+          { exfalso. destruct Hstore as (-> & -> & _). simpl in Hrange.
+            apply (Hnotsnap sid eq_refl). apply word.unsigned_inj. lia. }
+          clear Hnotin Hnotsnap Hsoff Hnw Hok Hokt Hoffset Hstok Happlied Hpapplied Hcommitted
+                Hidx Hnowrap HnoConfChange Hb1 Hb2 Hfi Hli Hcm Hap Hstore.
+          iClear "HisStorage HLI HFI HT HE HB HSnap Hl_logger Hu_logger Husnap".
+          clear lv isv fi li sprev stored.
           iNamed "Hlog".
           iEval (rewrite /own_raftLog_core /=) in "Hcore". iNamed "Hcore". wp_auto.
           iAssert (is_Storage lv.(raft.raftLog.storage')) as "#Hsto".
@@ -139,6 +151,7 @@ Import P.
           iDestruct "Hsto" as (isv)
             "(%Hstok & #HLI & #HFI & #HT & #HE & #HB & #HSnap)".
           rewrite Hstok /=.
+          pose proof Hstore as (-> & Hstored & _).
           pose proof (prefix_length _ _ Hstored) as Hstlen.
           wp_apply ("HT" $! prev stored i with "[$HStorage]").
           { iPureIntro. lia. }

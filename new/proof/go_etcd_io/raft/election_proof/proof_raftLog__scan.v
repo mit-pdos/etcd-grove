@@ -44,11 +44,11 @@ Import P.
   Proof.
     intros_ambient.
     intros l ls lo hi pageSize f I Pred Hrange HP.
-    destruct ls as [prev sents uents lcm lap]; logstate_simpl.
+    destruct ls as [prev sents uents lcm lap snap]; logstate_simpl.
     wp_start as "H". iNamed "H". wp_auto.
     iAssert (∃ (cur : w64),
        "lo" ∷ lo_ptr ↦ cur ∗
-       "Hlog" ∷ own_raftLog l (logstate.mk prev sents uents lcm lap) ∗
+       "Hlog" ∷ own_raftLog l (logstate.mk prev sents uents lcm lap snap) ∗
        "HI" ∷ I ∗
        "%Hcur" ∷ ⌜ (uint.Z prev.(raft.entryID.index') + 1 ≤ uint.Z cur ≤
                     uint.Z hi)%Z ⌝)%I
@@ -62,7 +62,7 @@ Import P.
                uint.Z hi ≤ uint.Z prev.(raft.entryID.index')
                  + Z.of_nat (length sents) + Z.of_nat (length uents) + 1)%Z)
         as Hsl by lia.
-      wp_apply (wp_raftLog__slice l (logstate.mk prev sents uents lcm lap) cur hi pageSize Hsl
+      wp_apply (wp_raftLog__slice l (logstate.mk prev sents uents lcm lap snap) cur hi pageSize Hsl
                  with "[$Hlog]")
         as "%s %es (Hlog & #Hes & (%Hne & %Hlen & %Hin))". logstate_simpl.
       (* the "got 0 entries" error is dead: the page is non-empty *)

@@ -7,7 +7,7 @@ Import P.
   Proof.
     intros_ambient.
     intros l ls tocommit Hle.
-    destruct ls as [prev sents uents lcm lap]; logstate_simpl.
+    destruct ls as [prev sents uents lcm lap snap]; logstate_simpl.
     rewrite /plog_last_index_Z length_app in Hle.
     wp_start as "H". iNamed "H".
     iDestruct (own_raftLog_struct with "Hlog") as (lv) "(Hl & [%Hcm %Hap] & Hback)".
@@ -17,7 +17,7 @@ Import P.
     - rewrite bool_decide_eq_true_2; last (rewrite Hcm; done).
       wp_auto.
       iDestruct ("Hback" with "Hl") as "Hlog".
-      wp_apply (wp_raftLog__lastIndex _ (logstate.mk prev sents uents lcm lap) with "[$Hlog]")
+      wp_apply (wp_raftLog__lastIndex _ (logstate.mk prev sents uents lcm lap snap) with "[$Hlog]")
         as "%li [Hlog %Hli]". logstate_simpl.
       rewrite bool_decide_eq_false_2; last lia.
       wp_auto.

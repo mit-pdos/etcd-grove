@@ -775,3 +775,75 @@ and `readOnly.{addRequest,recvAck,maybeAdvance,AckedIndex}`,
 collections. `maybeAdvance` hands out an uncapped sub-slice of
 `unconfirmedReads` (raft-implementation-facts.md); its one caller only
 ranges over it.
+
+### Done 2026-10-02: the log and implementation side (`Step` takes `MsgSnap`)
+
+Branch `worktree-agent-a6ef9862e0d3133ee` (from `c0edb8a9f`).  All `Qed`
+outside `protocol.v` (untouched).  What landed, in the order it was built:
+
+- **`logstate.snap : option entryID`** (`defs.v`), the pending snapshot.
+  `own_raftLog_core lv snap prev sents uents` (`inv_raftlog.v`) now
+  quantifies the storage's own boundary `sprev` with `stored`, related to
+  the visible log by `log_store_ok snap sprev stored prev sents uents`:
+  `None` -- `sprev = prev`, `sents` a prefix of `stored`, all of it when
+  `uents = []` (the old `Hstored`/`Hstored_eq`); `Some sid` -- `prev = sid`,
+  `sents = []`, `0 < sid.index < 2^61`, the storage **shadowed** (never
+  asked: `firstIndex`/`lastIndex` answer from the snapshot arms, `term`
+  answers `i < sid.index` with `ErrCompacted` and `i = sid.index` from
+  `maybeTerm`, `slice` starts at `firstIndex = offset`).  The snapshot cell
+  is `own_snap u.snapshot snap` -- **sealed** (`own_snap_None`/`_Some`
+  open it), because an unfolded instance stops `own_raftLog_intro` from
+  inferring `snap`.  `prev.index <= applied` holds only for `snap = None`
+  (a restore leaves `applied` below the new boundary); `prev.index <=
+  committed` always.  `to_pstate` is unchanged (`base := prev`).
+- Log proofs: `unstable.maybeFirstIndex/maybeLastIndex/maybeTerm` take
+  `own_snap` and cover the snapshot arms (`maybeTerm` needs `offset =
+  sid.index + 1`); `raftLog.firstIndex/lastIndex/term/snapshot/slice`
+  prove theirs; `hasNextOrInProgressSnapshot` returns `snap ≠ None`.  New
+  collections `unstable.restore` (stores `&s`, a fresh cell, persisted) and
+  `raftLog.restore` (`log_restore ls sid := mk sid [] [] sid.index applied
+  (Some sid)`; premises `committed < index < 2^61`).
+- **`promotable = id ∈ cfg ∧ snap = None`**; `hup` passes `snap = None` to
+  `hasUnappliedConfChanges` and `campaign` (both gained the premise: with a
+  pending snapshot `applied` may lie below the boundary and `scan` would
+  `Panicf`).  `hup`'s spec did not change.
+- **`raft.restore`** (`restore_result`) and **`raft.handleSnapshot`**
+  (`handle_snap_result`): one disjunct per live exit -- obsolete (reply
+  `AppResp(committed)`), fast-forward (`matchTerm` holds: `commitTo(Index)`,
+  reply `AppResp(Index)`), restore (`raftLog.restore`, tracker rebuilt,
+  reply `AppResp(lastIndex() = Index)`).  Premises: `role = Follower`,
+  `votes = ∅` (the fresh tracker's `Votes` is empty and `nstate.votes`
+  must not move), `id ∈ cfg`, and `snap_scope cfg sv voters`
+  (`spec_raft__restore.v`): `voters ≡ₚ elements cfg`, `0 ∉ cfg`, no
+  learners/outgoing/learnersNext, `AutoLeave = false`, `Index < 2^61`.
+  The tracker rebuild goes through the empty configuration as in
+  `newRaft`, with a new accessor **`own_raft_phys_retrack`**
+  (`inv_raft_phys.v`): the `trk` and `raftLog` fields and the log out
+  together, back at any configuration/tracker/log state -- needed because
+  `restore` stores the fresh tracker, loads it back and calls
+  `lastIndex()` *before* `confchange.Restore` takes the tracker's voter map,
+  and re-sealing in between would forget which tracker value the struct
+  holds.
+- **`stepFollower`/`stepCandidate` `MsgSnap` arms**: two new binders
+  `sv voters`, a precondition conjunct `"Hsnap" ∷ (⌜MsgSnap⌝ -∗ ⌜scope …⌝
+  ∗ m.Snapshot ↦□ sv ∗ Voters ↦*□ voters)` (the follower's pure part also
+  `role = Follower ∧ votes = ∅ ∧ id ∈ cfg`), the type premise's tail is
+  `(Beat ∨ AppResp ∨ HeartbeatResp) ∨ Snap`, the result relations take `sv`
+  (one more argument everywhere).  Callers with another type pass
+  `(zero_val _) []` and discharge `"Hsnap"` with `step_no_snap`
+  (`spec_stepFollower.v`).
+- **`Step`**: `step_msg_types` has `MsgSnap`; `"Hsnap"`'s pure part is now
+  `snap_scope cfg sv voters` (it adds `0 ∉ cfg`, `AutoLeave = false` and
+  the index bound to what the model side had); branch
+  `proof_raft__Step_helpers/proof_raft__Step_MsgSnap{,_gt,_lt,_eq}.v`;
+  `dispatch_Snap` derives "not a leader at the message's term" from
+  `is_leader_unique` and the follower's empty tally from
+  `follower_votes_ok`; `step_handle_snap` (repl lemmas) maps the three
+  exits to `step_snap_stale/_fastfwd/_restore`.  No protocol fact is
+  needed beyond those: no `Panicf` is reachable (`commitTo` in the
+  fast-forward is in range by `matchTerm`; a restore replaces the log).
+  No rule needed changing.
+
+Still open on the snapshot path: the **sender side** (`maybeSendSnapshot`'s
+`msg_abs` is not tied to the heap; `snap_ok_message` admitted), and
+`stableSnapTo`/`Ready` (a pending snapshot is never cleared in scope).

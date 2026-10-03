@@ -11,11 +11,11 @@ Set Default Proof Using "Type".
   Proof.
     intros_ambient.
     intros l ls i maxSize Hlo.
-    destruct ls as [prev sents uents lcm lap]; logstate_simpl.
+    destruct ls as [prev sents uents lcm lap snap]; logstate_simpl.
     wp_start as "H". iNamed "H". wp_auto.
     iDestruct (own_raftLog_nowrap with "Hlog") as "[%Hnw Hlog]".
     logstate_simpl.
-    wp_apply (wp_raftLog__lastIndex _ (logstate.mk prev sents uents lcm lap) with "[$Hlog]") as "%li [Hlog %Hli]". logstate_simpl.
+    wp_apply (wp_raftLog__lastIndex _ (logstate.mk prev sents uents lcm lap snap) with "[$Hlog]") as "%li [Hlog %Hli]". logstate_simpl.
     case_bool_decide as Hgt.
     - (* [i] is past the end: [nil] and no error; the log is untouched. *)
       wp_auto.
@@ -23,8 +23,8 @@ Set Default Proof Using "Type".
       iFrame "Hlog". iSplitL; first iApply own_slice_nil.
       iPureIntro. split; [intros e He; by apply elem_of_nil in He | apply prefix_nil].
     - wp_auto.
-      wp_apply (wp_raftLog__lastIndex _ (logstate.mk prev sents uents lcm lap) with "[$Hlog]") as "%li2 [Hlog %Hli2]". logstate_simpl.
-      wp_apply (wp_raftLog__slice _ (logstate.mk prev sents uents lcm lap) _ _ _ with "[$Hlog]")
+      wp_apply (wp_raftLog__lastIndex _ (logstate.mk prev sents uents lcm lap snap) with "[$Hlog]") as "%li2 [Hlog %Hli2]". logstate_simpl.
+      wp_apply (wp_raftLog__slice _ (logstate.mk prev sents uents lcm lap snap) _ _ _ with "[$Hlog]")
         as "%sl %es (Hlog & Hsl & %Hes)".
       { logstate_simpl. word. }
       logstate_simpl.

@@ -26,9 +26,9 @@ Import P.
   Proof.
     intros_ambient.
     intros l ls.
-    destruct ls as [prev sents uents lcm lap]; logstate_simpl.
+    destruct ls as [prev sents uents lcm lap snap]; logstate_simpl.
     wp_start as "Hlog". wp_auto.
-    wp_apply (wp_raftLog__lastIndex _ (logstate.mk prev sents uents lcm lap) with "[$Hlog]") as "%li [Hlog %Hli]". logstate_simpl.
+    wp_apply (wp_raftLog__lastIndex _ (logstate.mk prev sents uents lcm lap snap) with "[$Hlog]") as "%li [Hlog %Hli]". logstate_simpl.
     assert (Hb : (uint.Z prev.(raft.entryID.index') ≤ uint.Z li ≤
                   uint.Z prev.(raft.entryID.index') + Z.of_nat (length sents)
                   + Z.of_nat (length uents))%Z) by lia.
@@ -36,7 +36,7 @@ Import P.
        index is [lastIndex], so the in-range clause of its postcondition
        applies and the error is [nil] -- which is what makes the [Panicf]
        on the next line unreachable. *)
-    wp_apply (wp_raftLog__term _ (logstate.mk prev sents uents lcm lap) _ with "[$Hlog]") as "%t %err (Hlog & %Herr & %Ht & _)". logstate_simpl.
+    wp_apply (wp_raftLog__term _ (logstate.mk prev sents uents lcm lap snap) _ with "[$Hlog]") as "%t %err (Hlog & %Herr & %Ht & _)". logstate_simpl.
     apply (proj2 Herr) in Hb. subst err. specialize (Ht eq_refl). wp_auto.
     iDestruct (own_raftLog_wf with "Hlog") as "[%Hwf Hlog]". logstate_simpl.
     iApply ("HΦ" $! (raft.entryID.mk t li)). iFrame. iPureIntro.

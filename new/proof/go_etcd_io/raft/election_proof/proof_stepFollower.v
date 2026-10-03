@@ -16,18 +16,18 @@ Import P.
       - [MsgProp], with a leader: [disableProposalForwarding] is [false]
         ([wp_raft_load_disableProposalForwarding]), [m.To = r.lead] is a
         store into the local copy of [m], and [send] takes clause (e).
-      - [MsgApp]/[MsgHeartbeat]: two stores ([electionElapsed], untracked,
-        and [lead]), then [handleAppendEntries]/[handleHeartbeat] at
-        [s <| lead := m.From |>]. *)
+      - [MsgApp]/[MsgHeartbeat]/[MsgSnap]: two stores ([electionElapsed],
+        untracked, and [lead]), then [handleAppendEntries]/[handleHeartbeat]/
+        [handleSnapshot] at [s <| lead := m.From |>]. *)
   Lemma wp_stepFollower : wp_stepFollower_body.
   Proof.
     intros_ambient.
-    intros cfg r id s m ents.
+    intros cfg r id s m ents sv voters.
     intros Hty Hprop Happ Hhb.
-    wp_start as "[Hphys Hents]".
+    wp_start as "(Hphys & Hsnap & Hents)".
     iDestruct (is_pkg_init_access with "[$]") as "@".
     wp_auto.
-    destruct Hty as [Hty|[Hty|[Hty|[Hty|Hty]]]].
+    destruct Hty as [Hty|[Hty|[Hty|[Hty|[Hty|Hty]]]]].
     - (* [MsgVoteResp]: no arm *)
       rewrite Hty /MsgVoteResp.
       rewrite bool_decide_eq_false_2; last w32_ne.
@@ -117,6 +117,28 @@ Import P.
       all: rewrite /follower_step_result decide_False // decide_False //
              decide_False // decide_False // decide_True; [done|].
       all: rewrite Hty; naive_solver.
+    - (* [MsgSnap]: adopt the sender as leader, then [handleSnapshot] *)
+      iDestruct ("Hsnap" with "[//]")
+        as "((%Hscope & %Hrole & %Hvotes & %Hcfg) & #Hsv & #Hvs)".
+      rewrite Hty /MsgSnap.
+      rewrite bool_decide_eq_false_2; last w32_ne. wp_auto.
+      wp_apply (wp_raft_store_electionElapsed with "Hphys") as "Hphys".
+      wp_apply (wp_raft_store_lead with "Hphys") as "Hphys".
+      wp_apply (wp_raft__handleSnapshot _ _ _ _ _ sv voters with "[$Hphys $Hsv $Hvs]").
+      { exact Hrole. }
+      { exact Hvotes. }
+      { exact Hcfg. }
+      { exact Hscope. }
+      iIntros (s') "[Hphys %Hres]". try wp_auto.
+      iApply ("HΦ" $! interface.nil s' false). iFrame "Hphys".
+      iPureIntro. split; last done.
+      rewrite /follower_step_result Hty.
+      case_decide as H1; [exfalso; revert H1; w32_ne|].
+      case_decide as H2; [exfalso; revert H2; w32_ne|].
+      case_decide as H3; [exfalso; revert H3; w32_ne|].
+      case_decide as H4; [exfalso; revert H4; w32_ne|].
+      case_decide as H5; [exfalso; destruct H5 as [H5|[H5|H5]]; revert H5; w32_ne|].
+      case_decide as H6; done.
   Qed.
 
 End StepFollowerProof.

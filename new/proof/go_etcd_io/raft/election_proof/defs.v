@@ -184,9 +184,14 @@ Record t :=
       uents : list raftpb.Entry.t;
       committed : w64;
       applied : w64;
+      (** the pending, not yet stored snapshot's id ([unstable.snapshot],
+          set by [raftLog.restore]); [None] when there is none.  Added
+          2026-10-02 with [MsgSnap]: with a snapshot pending, [prev] is its
+          id and [sents = []] ([inv_raftlog.v], [log_store_ok]). *)
+      snap : option raft.entryID.t;
     }.
 #[global] Instance settable : Settable t :=
-  settable! mk <prev; sents; uents; committed; applied>.
+  settable! mk <prev; sents; uents; committed; applied; snap>.
 End logstate.
 
 (** After [destruct ls as [prev sents uents …]], reduce the projections the
@@ -195,7 +200,7 @@ End logstate.
     (notes/gotchas.md). *)
 Ltac logstate_simpl :=
   cbn [logstate.prev logstate.sents logstate.uents logstate.committed
-       logstate.applied] in *.
+       logstate.applied logstate.snap] in *.
 
 (** ** The tracker's records (2026-10-02)
 
@@ -492,6 +497,18 @@ Definition log_last (ls : logstate.t) : w64 :=
     suffix ([spec_raftLog__append.v]). *)
 Definition log_append (ls : logstate.t) (ents : list raftpb.Entry.t) : logstate.t :=
   ls <| logstate.uents := ls.(logstate.uents) ++ ents |>.
+
+(** A snapshot's id, [(Metadata.Term, Metadata.Index)] -- what
+    [raft.restore] builds as [id := entryID{term, index}]. *)
+Definition snap_id (sv : raftpb.Snapshot.t) : raft.entryID.t :=
+  raft.entryID.mk sv.(raftpb.Snapshot.Metadata').(raftpb.SnapshotMetadata.Term')
+    sv.(raftpb.Snapshot.Metadata').(raftpb.SnapshotMetadata.Index').
+
+(** [raftLog.restore(s)] ([spec_raftLog__restore.v]): the log is the
+    snapshot -- its id is the boundary, nothing after it, committed up to
+    it, [applied] untouched, the snapshot pending. *)
+Definition log_restore (ls : logstate.t) (sid : raft.entryID.t) : logstate.t :=
+  logstate.mk sid [] [] sid.(raft.entryID.index') ls.(logstate.applied) (Some sid).
 
 (** [stamp], [appendEntry]'s stamping loop, is in [protocol.v] (since
     2026-10-01: the model's [step_win] and [step_propose] stamp too). *)

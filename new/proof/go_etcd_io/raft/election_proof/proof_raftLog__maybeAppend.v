@@ -45,20 +45,20 @@ Import P.
   Proof.
     intros_ambient.
     intros l ls a ents committed Hwf Hnw Hnorm Hci.
-    destruct ls as [prev sents uents lcm lap]; logstate_simpl.
+    destruct ls as [prev sents uents lcm lap snap]; logstate_simpl.
     destruct a as [aterm aprev aents]. cbn [raft.logSlice.prev' raft.logSlice.entries'] in *.
     wp_start as "H". iNamed "H". wp_auto.
     iDestruct (own_slice_len with "Hents") as %[Hlen Hlen'].
     iDestruct (own_raftLog_wf with "Hlog") as "[%Hidx Hlog]". logstate_simpl.
     iDestruct (own_raftLog_committed with "Hlog") as "[%Hcmb Hlog]". logstate_simpl.
     iDestruct (own_raftLog_nowrap with "Hlog") as "[%Hnwl Hlog]". logstate_simpl.
-    wp_apply (wp_raftLog__matchTerm _ (logstate.mk prev sents uents lcm lap) aprev with "[$Hlog]") as "%b [Hlog %Hb]".
+    wp_apply (wp_raftLog__matchTerm _ (logstate.mk prev sents uents lcm lap snap) aprev with "[$Hlog]") as "%b [Hlog %Hb]".
     rewrite /plog_maybe_append. cbv zeta.
     destruct b.
     2:{ (* [a.prev] does not match: [(0, false)] *)
       symmetry in Hb. apply bool_decide_eq_false_1 in Hb.
       wp_auto. rewrite (decide_False (P := plog_matches _ _ _)) //.
-      iApply ("HΦ" $! (W64 0) false (logstate.mk prev sents uents lcm lap)). iFrame. done. }
+      iApply ("HΦ" $! (W64 0) false (logstate.mk prev sents uents lcm lap snap)). iFrame. done. }
     symmetry in Hb. apply bool_decide_eq_true_1 in Hb.
     cbn [logstate.prev logstate.sents logstate.uents] in Hb.
     rewrite (decide_True (P := plog_matches _ _ _)) //.
@@ -73,7 +73,7 @@ Import P.
     { apply List.Forall_forall. intros e He.
       apply list_elem_of_In in He. apply list_elem_of_lookup_1 in He as [k Hk].
       specialize (Hwf k e Hk). lia. }
-    wp_apply (wp_raftLog__findConflict _ (logstate.mk prev sents uents lcm lap) _ _ ents Hge with "[$Hlog $Hents]")
+    wp_apply (wp_raftLog__findConflict _ (logstate.mk prev sents uents lcm lap snap) _ _ ents Hge with "[$Hlog $Hents]")
       as "[Hlog _]".
     set (ci := plog_find_conflict prev (sents ++ uents) ents).
     fold ci in Hci.
@@ -151,17 +151,17 @@ Import P.
       replace (sint.nat (W64 k)) with k by word.
       set (ents2 := drop k ents).
       assert (ents2 !! 0%nat = Some e) as He2 by (rewrite /ents2 lookup_drop Nat.add_0_r //).
-      iAssert (if log_adopts (logstate.mk prev sents uents lcm lap) ents2
+      iAssert (if log_adopts (logstate.mk prev sents uents lcm lap snap) ents2
                then ⌜ DfracDiscarded = DfracDiscarded ⌝ ∗
                     own_slice_cap raftpb.Entry.t
                       (slice.slice aents raftpb.Entry.t (W64 k) aents.(slice.len)) (DfracOwn 1)
                else True)%I with "[Hcap']" as "Hadopt".
-      { destruct (log_adopts (logstate.mk prev sents uents lcm lap) ents2); [by iFrame|done]. }
+      { destruct (log_adopts (logstate.mk prev sents uents lcm lap snap) ents2); [by iFrame|done]. }
       try wp_auto.
       rewrite (decide_True (P := (0 ≤ sint.Z (W64 k) ≤ sint.Z aents.(slice.len)
                                     ≤ sint.Z aents.(slice.cap))%Z)); last word.
       wp_auto.
-      wp_apply (wp_raftLog__append _ (logstate.mk prev sents uents lcm lap) ents2 _ _
+      wp_apply (wp_raftLog__append _ (logstate.mk prev sents uents lcm lap snap) ents2 _ _
                   ltac:(intros e0 He0; rewrite He2 in He0; injection He0 as <-;
                         simpl; split_and!;
                         [ lia | lia
@@ -172,10 +172,10 @@ Import P.
                   with "[$Hlog $Hdrop $Hadopt]")
         as "%li (Hlog & _ & %Hsplit & %Hli)".
       try wp_auto.
-      pose proof (log_truncate_append_fields (logstate.mk prev sents uents lcm lap) ents2)
+      pose proof (log_truncate_append_fields (logstate.mk prev sents uents lcm lap snap) ents2)
         as (Hp1 & Hc1 & Ha1).
       cbn [logstate.prev logstate.committed logstate.applied] in Hp1, Hc1, Ha1.
-      set (ls1 := log_truncate_append (logstate.mk prev sents uents lcm lap) ents2).
+      set (ls1 := log_truncate_append (logstate.mk prev sents uents lcm lap snap) ents2).
       (* the new log reaches exactly [lastnewi] *)
       assert (uint.Z prev.(raft.entryID.index') + Z.of_nat (length ls1.(logstate.sents))
               + Z.of_nat (length ls1.(logstate.uents))

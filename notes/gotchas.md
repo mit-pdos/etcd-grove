@@ -1859,3 +1859,47 @@ likely the same search), and `newRaft.v:29`/`appliedTo.v:18`/
   Python edits, `touch $(git …)`) as "too complex": put the script in a
   file and run it, and run `git` commands on their own.
 
+
+## Snapshots, log side (2026-10-02)
+
+- **A predicate whose body is a `match` on an index must be sealed if an
+  intro lemma infers that index from it.**  `own_snap p snap` was a plain
+  `match snap with None => ⌜p = null⌝ | Some … end`; after `destruct snap`
+  the hypothesis showed up reduced (`⌜p = null⌝`) and `own_raftLog_intro`
+  could no longer unify `own_snap p ?snap` with it ("iSpecialize: cannot
+  instantiate").  `Arguments … : simpl never` did not help; sealing did
+  (`own_snap_None`/`own_snap_Some` open it).
+- **`rewrite H (bool_decide_eq_true_2 …) //=` on a WP goal also rewrites
+  the IPM context**, including `HΦ`.  A postcondition mentioning
+  `bool_decide (snap ≠ None)` was hit first and left an unprovable side
+  goal ("Expected a single focused goal but 2 goals are focused"); and
+  `rewrite Hnosnap` turned `own_snap lv.unstable.snapshot None` into
+  `own_snap null None`, which the re-seal then rejected.  Give the
+  proposition (and proof) explicitly:
+  `rewrite (bool_decide_eq_true_2 (p = null) Hnosnap)`.
+- **A pure goal `true = bool_decide P` may already be computed** to
+  `true = true` by the time you see it (an `iFrame`/`iPureIntro` reduced
+  the decidable instance); `case_bool_decide` then reports "No matching
+  clauses", or picks a `bool_decide` from a *hypothesis*.  `first [done |
+  rewrite (bool_decide_eq_true_2 P) //]`.
+- **`lia` treats a `set` alias and its body as different atoms**
+  (`set (ls := s.(nstate.logst))`, then a goal mentioning
+  `s.(nstate.logst).(logstate.committed)` from a callee's postcondition).
+  Don't `set` what a later spec will mention unfolded.  And `lia` does not
+  know `0 ≤ uint.Z x`: `uint.Z y < uint.Z x → 0 < uint.Z x` is `word`.
+- **`Require Export` order decides which `step` you get.**  Adding
+  `Require Export spec_raft__restore` *after* `step_lemmas` in
+  `spec_raft__Step.v` re-exported Perennial's language layer last, and
+  `step cfg id ps recv ps'` failed with "The term cfg has type gset w64
+  while it is expected to have type language.cfg ?Λ".  Put it before.
+- **`wp_raft_log` introduces `"Hlg"`**; a `#Hlg` of your own (from
+  `wp_raft_load_logger`) makes it fail with "iRename: Hlg not fresh".
+- **A loop over a slice literal of slices** (`restore`'s `found` search
+  over `[][]uint64{cs.Voters, …}`): `wp_slice_literal` then the gotcha
+  normalisation, an outer invariant pinned at iteration `0` (the inner
+  loop breaks with `found` on the first set, so the outer never posts),
+  `wp_load_slice_index (V:=slice.t) … (sint.Z (W64 0)) … V` with the
+  lookup closed by `reflexivity`; the inner loop's counter clashes with
+  the outer's (`wp_alloc j_ptr as "j"`); after the inner `break`,
+  `wp_for_post` twice (inner, then the outer's `if found { break }`).
+  `proof_raft__restore.v`.

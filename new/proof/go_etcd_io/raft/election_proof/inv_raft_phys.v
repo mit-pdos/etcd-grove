@@ -658,6 +658,24 @@ Local Lemma raft_split_readOnly (l : loc) (rv : raft.raft.t) :
   (∀ x, l.[raft.raft.t, "readOnly"] ↦ x -∗ l ↦ (rv <| raft.raft.readOnly' := x |>)).
 Proof. split_field_proof "(? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & Hx & Hrest)". Qed.
 
+(** Two fields at once, [raftLog] (read-only here) and [trk]: for
+    [own_raft_phys_retrack]. *)
+Local Lemma raft_split_raftLog_trk (l : loc) (rv : raft.raft.t) :
+  l ↦ rv -∗
+  l.[raft.raft.t, "raftLog"] ↦ rv.(raft.raft.raftLog') ∗
+  l.[raft.raft.t, "trk"] ↦ rv.(raft.raft.trk') ∗
+  (∀ x, l.[raft.raft.t, "raftLog"] ↦ rv.(raft.raft.raftLog') -∗
+        l.[raft.raft.t, "trk"] ↦ x -∗ l ↦ (rv <| raft.raft.trk' := x |>)).
+Proof.
+  iIntros "Hr".
+  iEval (rewrite typed_pointsto_unseal /typed_pointsto_wrap /=) in "Hr".
+  iDestruct "Hr" as "[Hf %Hnn]".
+  iDestruct "Hf" as "(? & ? & ? & ? & Hy & ? & ? & Hx & Hrest)".
+  iFrame "Hx Hy". iIntros (x) "Hy Hx".
+  iEval (rewrite typed_pointsto_unseal /typed_pointsto_wrap /=).
+  iFrame. done.
+Qed.
+
 (** The tracker, as the tracker's own specs take it: the embedded struct's
     points-to and [own_tracker].  The wand takes it back at any tracker
     value and vote tally, and at the same progress map and [Progress]
@@ -918,6 +936,41 @@ Proof.
   iIntros (tv' prs' pvs') "Hf Htrk".
   iDestruct ("Hback" $! tv' with "Hf") as "Hr".
   iApply (own_raft_phys_intro cfg r id (s <| nstate.progress := prs' |> <| nstate.prvals := pvs' |>) with
+    "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox"); try done.
+Qed.
+
+(** The tracker replaced while the log is in use (2026-10-02): [restore]
+    stores a fresh tracker into [r.trk], loads it back, calls
+    [r.raftLog.lastIndex()] and only then hands the new tracker's (empty)
+    voter map to [confchange.Restore] -- so between the store and that call
+    the struct cannot be re-sealed without losing which tracker value it
+    holds.  This accessor hands out the tracker field and the [raftLog]
+    field (read-only: its value is [s.log]) together with the log, and
+    takes them back at any tracker -- a new configuration [cfg], tally,
+    progress map and values -- and any log state. *)
+Lemma own_raft_phys_retrack cfg0 cfg r id s :
+  own_raft_phys cfg0 r id s -∗
+  ∃ tv, r.[raft.raft.t, "trk"] ↦ tv ∗
+        own_tracker cfg0 tv (trk.mk s.(nstate.votes) s.(nstate.progress) s.(nstate.prvals)) ∗
+        r.[raft.raft.t, "raftLog"] ↦ s.(nstate.log) ∗
+        own_raftLog s.(nstate.log) s.(nstate.logst) ∗
+        (∀ tv' votes' prs' pvs' ls',
+           r.[raft.raft.t, "raftLog"] ↦ s.(nstate.log) -∗
+           r.[raft.raft.t, "trk"] ↦ tv' -∗
+           own_tracker cfg tv' (trk.mk votes' prs' pvs') -∗
+           own_raftLog s.(nstate.log) ls' -∗
+           own_raft_phys cfg r id (s <| nstate.votes := votes' |> <| nstate.progress := prs' |>
+                                    <| nstate.prvals := pvs' |> <| nstate.logst := ls' |>)).
+Proof.
+  iIntros "H".
+  iEval (rewrite own_raft_phys_unseal) in "H". iNamed "H".
+  iDestruct (raft_split_raftLog_trk with "Hr") as "(Hlf & Hf & Hback)".
+  iExists _. iFrame "Hf Htrk". rewrite -Hlogp. iFrame "Hlf Hlog".
+  iIntros (tv' votes' prs' pvs' ls') "Hlf Hf Htrk Hlog".
+  iDestruct ("Hback" $! tv' with "Hlf Hf") as "Hr".
+  iApply (own_raft_phys_intro cfg r id
+            (s <| nstate.votes := votes' |> <| nstate.progress := prs' |>
+               <| nstate.prvals := pvs' |> <| nstate.logst := ls' |>) with
     "Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox"); try done.
 Qed.
 

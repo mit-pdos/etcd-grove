@@ -5,6 +5,7 @@ Require Export New.proof.go_etcd_io.raft.election_proof.link_raft__becomeFollowe
 Require Export New.proof.go_etcd_io.raft.election_proof.link_raft__bcastAppend.
 Require Export New.proof.go_etcd_io.raft.election_proof.link_raft__handleAppendEntries.
 Require Export New.proof.go_etcd_io.raft.election_proof.link_raft__handleHeartbeat.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_raft__handleSnapshot.
 
 Module StepCandidatePostulates : STEPCANDIDATE_POSTULATES.
   Include Poll.
@@ -12,6 +13,7 @@ Module StepCandidatePostulates : STEPCANDIDATE_POSTULATES.
   Include BecomeFollower.  Include RaftBcastAppend.
   Include RaftHandleAppendEntries.
   Include RaftHandleHeartbeat.
+  Include RaftHandleSnapshot.
 End StepCandidatePostulates.
 
 Module StepCandidate := StepCandidateProof StepCandidatePostulates.

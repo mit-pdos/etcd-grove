@@ -16,6 +16,7 @@ Require Export New.proof.go_etcd_io.raft.election_proof.postulates_raft__becomeF
 Require Export New.proof.go_etcd_io.raft.election_proof.postulates_raft__bcastAppend.
 Require Export New.proof.go_etcd_io.raft.election_proof.postulates_raft__handleAppendEntries.
 Require Export New.proof.go_etcd_io.raft.election_proof.postulates_raft__handleHeartbeat.
+Require Export New.proof.go_etcd_io.raft.election_proof.postulates_raft__handleSnapshot.
 
 Module Type STEPCANDIDATE_POSTULATES.
   Include POLL.
@@ -23,4 +24,5 @@ Module Type STEPCANDIDATE_POSTULATES.
   Include BECOMEFOLLOWER.  Include RAFT__BCASTAPPEND.
   Include RAFT__HANDLEAPPENDENTRIES.
   Include RAFT__HANDLEHEARTBEAT.
+  Include RAFT__HANDLESNAPSHOT.
 End STEPCANDIDATE_POSTULATES.
