@@ -1,0 +1,4 @@
+Require Export New.proof.go_etcd_io.raft.election_proof.spec_MemoryStorage__Term.
+
+Module Type MEMORYSTORAGE__PUBLIC_TERM_POSTULATES.
+End MEMORYSTORAGE__PUBLIC_TERM_POSTULATES.

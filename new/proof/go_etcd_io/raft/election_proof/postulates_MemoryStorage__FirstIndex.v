@@ -1,0 +1,6 @@
+Require Export New.proof.go_etcd_io.raft.election_proof.spec_MemoryStorage__FirstIndex.
+Require Export New.proof.go_etcd_io.raft.election_proof.postulates_MemoryStorage__firstIndex.
+
+Module Type MEMORYSTORAGE__PUBLIC_FIRSTINDEX_POSTULATES.
+  Include MEMORYSTORAGE__FIRSTINDEX.
+End MEMORYSTORAGE__PUBLIC_FIRSTINDEX_POSTULATES.

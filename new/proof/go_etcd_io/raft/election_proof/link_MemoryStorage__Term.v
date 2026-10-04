@@ -1,0 +1,6 @@
+Require Export New.proof.go_etcd_io.raft.election_proof.proof_MemoryStorage__Term.
+
+Module MemoryStoragePublicTermPostulates : MEMORYSTORAGE__PUBLIC_TERM_POSTULATES.
+End MemoryStoragePublicTermPostulates.
+
+Module MemoryStoragePublicTerm := MemoryStoragePublicTermProof MemoryStoragePublicTermPostulates.

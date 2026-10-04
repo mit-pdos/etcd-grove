@@ -4745,3 +4745,56 @@ cone while one is running, even a single-file one -- the two interleave
 and leave `.vo`s that "make inconsistent assumptions"; and a comment-only
 edit to `protocol.v` rebuilds the whole cone (~40 min), so batch comment
 edits to upstream files with real ones.
+
+## 2026-10-04 -- `MemoryStorage` meets the `Storage` contract
+
+Branch `worktree-agent-a3ff74b2c44c1facf`, from `aa00e75cf`.  STATUS item 1
+(no `is_Storage` instance) is half closed: raft's own `MemoryStorage` is
+shown to satisfy `is_Storage_with`; the `own_Storage` `Axiom` is untouched,
+so `newRaft` and the log proofs still run against it.
+
+- `inv_storage.v`: `is_Storage_with P st` is the old body with `own_Storage st`
+  replaced by `P`; `is_Storage st := is_Storage_with (own_Storage st) st`.
+  No caller changed (full `election.vo` rebuild green).
+- `inv_memstorage.v` (role None): `memstorage_fields` (the five non-mutex
+  fields at an abstract state), `memstorage_inv` (the lock invariant: half a
+  `ghost_var` holding `(prev, ents, ss)` plus the fields), and
+  `own_MemoryStorage ms prev ents ss` = `is_pkg_init raft` + `is_Mutex` on
+  `ms.[Mutex]` with that invariant + the other half of the ghost variable +
+  the bound `prev.index + |ents| < 2^61` + `ss.index ≠ 0`.  `ms.ents` is
+  held `↦*□ (dummy :: ents)` and the snapshot's voters `↦*□` inside the lock
+  (nothing in scope writes them in place; `Append` would rebuild).  The
+  predicate is exclusive through the ghost variable, so a later `Append` can
+  move `(prev, ents, ss)` under the lock; the lock invariant is the whole
+  state, because every method takes the lock.
+- Seven collections: `MemoryStorage__lastIndex`/`__firstIndex` (private, on
+  `memstorage_fields` with the lock held, bound as a premise) and
+  `MemoryStorage__LastIndex/FirstIndex/Term/Entries/Snapshot` (public, on
+  `own_MemoryStorage`, exactly `is_Storage`'s triples).  Module Types of the
+  public ones are `MEMORYSTORAGE__PUBLIC_*` since `lastIndex`/`LastIndex`
+  differ only in case.  `Entries` calls `lastIndex` and `limitSize` (both
+  reused through the postulates).  The instance lemma
+  `is_Storage_MemoryStorage ms : ⊢ is_Storage_with (own_MemoryStorage ms)
+  (interface.mk_ok (go.PointerType raft.MemoryStorage) #ms)` is in
+  `memstorage_instance.v`, not `inv_memstorage.v`: it uses the links, which
+  Require the predicate's file.
+- Finding about the contract: `is_Storage`'s `HSnapshot` is unsatisfiable by a
+  `MemoryStorage` that has no snapshot (`ss.index = 0`): `MemoryStorage.
+  Snapshot` returns the zero snapshot with a `nil` error, and the contract
+  allows only `ErrSnapshotTemporarilyUnavailable` or a snapshot with
+  `Index ≠ 0`.  `own_MemoryStorage` carries `ss.index ≠ 0` to meet it, which
+  also means a fresh `NewMemoryStorage()` is *not* in the predicate's
+  domain; `newRaft`'s premise `ss.index = 0 ∨ ss = prev` must then be the
+  second disjunct.  Everything else matched (no other panic or error path
+  is reachable under the contract's premises).
+- Gotchas met: a promoted `Lock`/`Unlock` through an embedded `sync.Mutex`
+  needs `wp_bind. wp_method_call. wp_call.` before `wp_apply wp_Mutex__Lock`
+  (and likewise for the deferred `Unlock`); `wp_apply` supplies
+  `is_pkg_init raft` itself, so `with "[$Hinit $Hown]"` fails with "cannot
+  frame own_..." -- use `"[$Hown]"`; `iNamed` on a lock invariant clashes with
+  the caller's `"Hgs"` (use `iNamedSuffix`); `word` fails with a record
+  equation in the context (`clear` it); `/tmp` is shared between agents (a
+  scratch `rc.sh` there was overwritten by another agent).
+- Audit: `make -k -j4 …/election.vo` green; discipline 3 warnings (no
+  errors); `tcb-report --scope election_proof`: 14 `Axiom`, 3 `Admitted`
+  (unchanged), 582 `Qed`, 136 obligations.

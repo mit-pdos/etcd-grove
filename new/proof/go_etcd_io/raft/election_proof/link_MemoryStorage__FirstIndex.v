@@ -1,0 +1,8 @@
+Require Export New.proof.go_etcd_io.raft.election_proof.proof_MemoryStorage__FirstIndex.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_MemoryStorage__firstIndex.
+
+Module MemoryStoragePublicFirstIndexPostulates : MEMORYSTORAGE__PUBLIC_FIRSTINDEX_POSTULATES.
+  Include MemoryStorageFirstIndex.
+End MemoryStoragePublicFirstIndexPostulates.
+
+Module MemoryStoragePublicFirstIndex := MemoryStoragePublicFirstIndexProof MemoryStoragePublicFirstIndexPostulates.

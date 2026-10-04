@@ -1,0 +1,6 @@
+Require Export New.proof.go_etcd_io.raft.election_proof.proof_MemoryStorage__lastIndex.
+
+Module MemoryStorageLastIndexPostulates : MEMORYSTORAGE__LASTINDEX_POSTULATES.
+End MemoryStorageLastIndexPostulates.
+
+Module MemoryStorageLastIndex := MemoryStorageLastIndexProof MemoryStorageLastIndexPostulates.
