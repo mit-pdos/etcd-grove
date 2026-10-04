@@ -65,8 +65,9 @@ Import P.
     iDestruct (own_tracker_empty tv0 v0 Htv0arr Htv0l Htv0ln Htv0al Hmi
                  with "Hv0 Hvotes Hprs0") as "Htrk0".
     iAssert (own_raft_misc slice.nil ro slice.nil) with "[Hro]" as "Hmisc".
-    { rewrite /own_raft_misc. iExists []. iFrame "Hro".
+    { rewrite /own_raft_misc. iExists [], _. iFrame "Hro".
       iSplitL; [iApply own_slice_nil|]. iSplitL; [iApply own_slice_cap_nil|].
+      iSplit; [done|].
       iSplitL; [iApply own_slice_nil|iApply own_slice_cap_nil]. }
     iDestruct (own_raft_phys_intro ∅ _ cv.(raft.Config.ID') s0 _ [] [] lok with
       "Hr Hlg0 Htrk0 HL [] [] [] [] Hmisc []") as "Hphys".

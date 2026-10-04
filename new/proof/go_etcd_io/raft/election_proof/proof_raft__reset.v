@@ -221,12 +221,13 @@ End helpers.
     (* [pendingConfIndex := 0], [uncommittedSize := 0] *)
     try wp_auto. (wp_apply (wp_raft_store_pendingConfIndex with "Hphys") as "Hphys"; wp_apply (wp_raft_store_uncommittedSize with "Hphys") as "Hphys").
     (* [r.readOnly = newReadOnly(r.readOnly.option)] *)
-    iDestruct (own_raft_phys_readOnly with "Hphys") as (ro) "(Hrof & Hro & Hback)".
-    iDestruct (own_read_only_option with "Hro") as (o) "[Hopt Hroback]".
+    iDestruct (own_raft_phys_readOnly with "Hphys") as (ro rr Hpend) "(Hrof & Hro & Hback)".
+    iDestruct (own_ReadOnly_option with "Hro") as (o) "[%Hsafe [Hopt Hroback]]".
     wp_auto.
     iDestruct ("Hroback" with "Hopt") as "Hro".
     wp_apply wp_newReadOnly as "%ro' Hro'".
-    iDestruct ("Hback" with "Hrof Hro'") as "Hphys".
+    iDestruct ("Hback" $! ro' (readonly.mk (bool_decide (o = W64 0)) [] ∅ (W64 0))
+      with "[//] Hrof Hro'") as "Hphys".
     iApply ("HΦ" $! pvsfin).
     iSplitL.
     - iApply (own_raft_phys_eq with "Hphys").

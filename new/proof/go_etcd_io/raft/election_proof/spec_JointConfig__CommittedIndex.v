@@ -1,8 +1,6 @@
 Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
 
-(** [c.CommittedIndex(l)] for the joint config, as [ProgressTracker.Committed]
-    calls it: the receiver is [&p.Config.Voters] and the indexer is
-    [matchAckIndexer(p.Progress)], the tracker's own progress map
+(** [c.CommittedIndex(l)] for the joint config
     ([quorum.JointConfig__CommittedIndexⁱᵐᵖˡ],
     new/code/go_etcd_io/raft/v3/quorum.v:126; joint.go:50):
 
@@ -12,39 +10,39 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
         return idx1                                  // exit 2
 
     No panic.  Calls: [MajorityConfig.CommittedIndex] twice; the indexer's
-    [AckedIndex] is reached from inside it, through the interface, and is
-    discharged here from [matchAckIndexer.AckedIndex]'s triple.
+    [AckedIndex] is reached from inside it, through the interface, by the
+    caller-supplied contract [is_AckedIndexer] ([inv_tracker.v]) -- the
+    indexer is arbitrary, with the resource [P] it needs, which comes back.
 
-    Stated on [own_tracker], like [JointConfig.VoteResult], with the
-    indexer argument fixed to the interface value
-    [Convert matchAckIndexer AckedIndexer p.Progress] evaluates to
-    ([interface.mk_ok tracker.matchAckIndexer #tv.Progress']): the voter
-    map ([c[0]]) and the progress map behind the indexer are two parts of
-    the same tracker, which is why the indexer is specified on
-    [own_progress_map] and not on [own_tracker].
+    (Until 2026-10-04 this was stated for the tracker's receiver and
+    indexer only, on [own_tracker].  It is now the general triple, so that
+    [readOnly.maybeAdvance] can use it with the read-only object as the
+    indexer; [ProgressTracker.Committed] ([proof_ProgressTracker__Committed.v])
+    instantiates it at the tracker.)
 
-    The configuration is simple ([own_tracker]'s [Hvoters_arr]): [c[1]] is
-    nil, its [CommittedIndex] is [MaxUint64] by convention, and [min] picks
-    [c[0]]'s answer on both exits.  So the result is
-    [MajorityConfig.CommittedIndex]'s for [cfg]: [MaxUint64] if [cfg] is
-    empty, and otherwise the quorum index of the voters' [Match]
-    ([is_quorum_index], with [pvs_match_at t.(trk.peers)]; every voter has a
-    [Progress], [own_tracker] makes the two maps' domains [cfg]). *)
+    The receiver is a [*JointConfig] at [c] (a caller holding a struct
+    field passes the field's location), pointing at a simple
+    configuration: [a = [m0; nil]], [m0] holding the voters ([dom ids]),
+    [c[1]] nil, whose [CommittedIndex] is [MaxUint64] by convention, so
+    that [min] picks [c[0]]'s answer on both exits.  The result is
+    [MaxUint64] for an empty configuration, and otherwise the quorum index
+    of [default 0 (acked v)] over the voters ([is_quorum_index]); a voter
+    the indexer does not know counts [0].  The voter map comes back at some
+    [ids'] with the same key set (the callee's contract). *)
 Definition wp_JointConfig__CommittedIndex_body :=
   ∀ (ext : ffi_syntax) (ffi : ffi_model) (ffi_interp0 : ffi_interp ffi)
     (Σ : gFunctors) (hG : heapGS Σ) (ffi_semantics0 : ffi_semantics ext ffi)
     (sem : go.Semantics) (package_sem : raft.Assumptions)
-    (cfg : gset w64) (trk : loc) tv (t : trk.t),
-  {{{ is_pkg_init quorum ∗ is_pkg_init tracker ∗
-      trk ↦ tv ∗ own_tracker cfg tv t }}}
-    (trk.[tracker.ProgressTracker.t, "Config"].[tracker.Config.t, "Voters"])
-      @! (go.PointerType quorum.JointConfig) @! "CommittedIndex"
-        #(interface.mk_ok tracker.matchAckIndexer
-            #(tv.(tracker.ProgressTracker.Progress')))
+    (c : loc) (a : quorum.JointConfig.t) (m0 : loc) (ids : gmap w64 unit)
+    (l : interface.t) (P : iProp Σ) (acked : w64 → option w64),
+  {{{ is_pkg_init quorum ∗ ⌜ Z.of_nat (size (dom ids)) < 2 ^ 63 ⌝ ∗
+      c ↦ a ∗ ⌜ array.arr a = [m0; map.nil] ⌝ ∗ m0 ↦$ ids ∗
+      is_AckedIndexer l P acked ∗ P }}}
+    c @! (go.PointerType quorum.JointConfig) @! "CommittedIndex" #l
   {{{ (N : w64), RET #N;
-      trk ↦ tv ∗ own_tracker cfg tv t ∗
-      ⌜ cfg = ∅ → N = W64 (2 ^ 64 - 1) ⌝ ∗
-      ⌜ cfg ≠ ∅ → is_quorum_index cfg (pvs_match_at t.(trk.peers)) N ⌝ }}}.
+      c ↦ a ∗ (∃ ids' : gmap w64 unit, ⌜ dom ids' = dom ids ⌝ ∗ m0 ↦$ ids') ∗ P ∗
+      ⌜ dom ids = ∅ → N = W64 (2 ^ 64 - 1) ⌝ ∗
+      ⌜ dom ids ≠ ∅ → is_quorum_index (dom ids) (λ v, default (W64 0) (acked v)) N ⌝ }}}.
 
 Module Type JOINTCONFIG__COMMITTEDINDEX.
   Parameter wp_JointConfig__CommittedIndex : wp_JointConfig__CommittedIndex_body.

@@ -4827,3 +4827,20 @@ raft-replication-model.md, "Phase 3 … Pre-vote … Done 2026-10-04".
   `.votes` no longer convert to the physical fields (`to_pstate_lead_0`,
   `to_pstate_lead_nonpre`, `follower_votes_ok_phys`).
 - Not done: `make ci` (only the `election.vo` cone was built).
+
+## 2026-10-04: `own_ReadOnly` on a record (read-only groundwork for phase 3)
+
+Branch `worktree-agent-abfcb89f4b53214c6` (from `aa00e75cf`).  `readonly.t` /
+`readreq.t` and `own_ReadOnly` in `inv_misc.v` (see the "`readonly.t`"
+paragraph in raft-replication-model.md); `own_raft_misc` carries `pending =
+[]`; `own_raft_phys_readOnly` widened; `newReadOnly`, `heartbeatCtx` restated;
+new collections `readOnly__{addRequest,recvAck,AckedIndex,maybeAdvance}`,
+required from `election.v`; `JointConfig.CommittedIndex`'s spec was generalised
+in place (it was fixed to `matchAckIndexer` on `own_tracker`, not general as
+the brief assumed) and `ProgressTracker.Committed` now derives the tracker
+case.  `reset`, `stepLeader`, `bcastHeartbeat`,
+`newRaft` adapted.  Records went in `inv_misc.v` rather than `defs.v` to avoid
+rebuilding the log and tracker cone.  Gotchas met: `case_decide` grabbed a
+`bool_decide` from a hypothesis (use `rewrite decide_True; last word`); `set`
+variables are opaque to `word`; `rewrite -take_drop` rewrites inside the
+proof-mode context too (use a generic split lemma).

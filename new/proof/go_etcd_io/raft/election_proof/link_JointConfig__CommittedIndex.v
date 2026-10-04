@@ -1,10 +1,8 @@
 Require Export New.proof.go_etcd_io.raft.election_proof.proof_JointConfig__CommittedIndex.
 Require Export New.proof.go_etcd_io.raft.election_proof.link_MajorityConfig__CommittedIndex.
-Require Export New.proof.go_etcd_io.raft.election_proof.link_matchAckIndexer__AckedIndex.
 
 Module JointConfigCommittedIndexPostulates : JOINTCONFIG__COMMITTEDINDEX_POSTULATES.
   Include MajorityConfigCommittedIndex.
-  Include MatchAckIndexerAckedIndex.
 End JointConfigCommittedIndexPostulates.
 
 Module JointConfigCommittedIndex :=
