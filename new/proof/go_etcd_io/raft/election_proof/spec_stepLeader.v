@@ -20,7 +20,9 @@ Require Export New.proof.go_etcd_io.raft.election_proof.spec_raft__appendEntry.
 
     This spec covers the seven types [Step] dispatches to it.
 
-    - [MsgVoteResp], [MsgApp], [MsgHeartbeat] are in neither switch: the
+    - [MsgVoteResp], [MsgApp], [MsgHeartbeat], and (since 2026-10-04)
+      [MsgPreVoteResp] -- a late pre-vote response, granted at the
+      leader's own term or a higher one -- are in neither switch: the
       progress lookup for [m.From] happens (hit or miss) and nothing
       changes.  (A leader receiving [MsgApp]/[MsgHeartbeat] at its own term
       is excluded by the protocol, not by the code.)
@@ -117,7 +119,8 @@ Definition leader_propose_result {ext : ffi_syntax} (id : w64) (s : nstate.t)
 Definition leader_nonprop_result {ext : ffi_syntax} (cfg : gset w64) (id : w64) (s : nstate.t)
     (m : raftpb.Message.t) (s' : nstate.t) : Prop :=
   ((m.(raftpb.Message.Type') = MsgVoteResp ∨ m.(raftpb.Message.Type') = MsgApp ∨
-    m.(raftpb.Message.Type') = MsgHeartbeat) ∧ s' = s) ∨
+    m.(raftpb.Message.Type') = MsgHeartbeat ∨ m.(raftpb.Message.Type') = MsgPreVoteResp) ∧
+   s' = s) ∨
   (m.(raftpb.Message.Type') = MsgBeat ∧
    ∃ ms pvs, s' = send_msgs s ms <| nstate.prvals := pvs |> ∧
              Forall (heartbeat_ok id (to_pstate s)) ms ∧
@@ -174,8 +177,8 @@ Definition wp_stepLeader_body :=
   (m.(raftpb.Message.Type') = MsgVoteResp ∨ m.(raftpb.Message.Type') = MsgBeat ∨
    m.(raftpb.Message.Type') = MsgHeartbeatResp ∨ m.(raftpb.Message.Type') = MsgAppResp ∨
    m.(raftpb.Message.Type') = MsgProp ∨ m.(raftpb.Message.Type') = MsgApp ∨
-   m.(raftpb.Message.Type') = MsgHeartbeat) →
-  s.(nstate.role) = role.Leader →
+   m.(raftpb.Message.Type') = MsgHeartbeat ∨ m.(raftpb.Message.Type') = MsgPreVoteResp) →
+  s.(nstate.role) = prole.Leader →
   id ∈ cfg →
   (m.(raftpb.Message.Type') = MsgAppResp → m.(raftpb.Message.From') ≠ W64 0) →
   (m.(raftpb.Message.Type') = MsgHeartbeatResp ∨

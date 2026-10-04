@@ -92,7 +92,7 @@ Implicit Type s : nstate.t.
     ents ≠ [] →
     Forall (λ e, e.(raftpb.Entry.Type') = EntryNormal) ents →
     (Z.of_nat (length ents) < 2^61)%Z →
-    (s.(nstate.role) ≠ role.Leader → s.(nstate.lead) ≠ id) →
+    (s.(nstate.role) = prole.Follower → s.(nstate.lead) ≠ id) →
     id ∈ cfg →
     nstate_wf s →
     {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s ∗
@@ -171,10 +171,13 @@ Implicit Type s : nstate.t.
         exists [abs_msg mtype.Propose m ents]. split.
         { recv_elem. }
         rewrite to_pstate_send_msgs.
+        assert (Hld : (to_pstate s).(pstate.lead) = s.(nstate.lead))
+          by (apply to_pstate_lead_nonpre; rewrite Hrole; discriminate).
+        rewrite -Hld.
         apply (step_prop_forward cfg id (abs_msg mtype.Propose m ents) (to_pstate s)).
         * done.
-        * exact Hrole.
-        * exact Hl0.
+        * rewrite to_pstate_role Hrole //.
+        * rewrite Hld. exact Hl0.
     - (* Candidate: drop *)
       assert (s.(nstate.stepfn) = functions raft.stepCandidate []) as Hsf
         by (rewrite Hsfw ?Hrole //).
@@ -183,10 +186,11 @@ Implicit Type s : nstate.t.
       { right; left. exact Hty. }
       { intros Hc. exfalso.
         destruct Hc as [Hc|[Hc|[Hc|Hc]]]; (eapply Hnot; last exact Hc; w32_ne). }
-      { exact Hrole. }
+      { by left. }
       { exact Hcfg. }
       { intros Hc. exfalso. by apply (Hnot MsgApp); [w32_ne|]. }
       { intros Hc. exfalso. by apply (Hnot MsgHeartbeat); [w32_ne|]. }
+      { intros _ Hc. exfalso. revert Hc. rewrite Hty. w32_ne. }
       { iSplitR; [step_no_snap|]. iIntros "%Hc". exfalso. by apply (Hnot MsgApp); [w32_ne|]. }
       iIntros (err s1 dropped) "(Hphys & %Hres & Herrn)".
       rewrite /candidate_step_result in Hres.
@@ -237,12 +241,32 @@ Implicit Type s : nstate.t.
         rewrite /repl_sends to_pstate_proposed in Hms.
         eapply step_trans.
         { apply step_propose.
-          - exact Hrole.
+          - rewrite to_pstate_role Hrole //.
           - exact Hnorm.
           - (* [Hnw] is about the state after the append *)
             simpl in Hnw. rewrite length_app length_imap in Hnw.
             rewrite /plog_last_index_Z /= length_app. lia. }
-        apply step_send_apps; [exact Hrole|exact Hms].
+        apply step_send_apps; [rewrite to_pstate_role Hrole //|exact Hms].
+    - (* PreCandidate (2026-10-04), as a candidate:: drop *)
+      assert (s.(nstate.stepfn) = functions raft.stepCandidate []) as Hsf
+        by (rewrite Hsfw ?Hrole //).
+      rewrite Hsf.
+      wp_apply (P.wp_stepCandidate _ _ _ _ _ ents (zero_val _) [] with "[$Hphys]").
+      { right; left. exact Hty. }
+      { intros Hc. exfalso.
+        destruct Hc as [Hc|[Hc|[Hc|Hc]]]; (eapply Hnot; last exact Hc; w32_ne). }
+      { by right. }
+      { exact Hcfg. }
+      { intros Hc. exfalso. by apply (Hnot MsgApp); [w32_ne|]. }
+      { intros Hc. exfalso. by apply (Hnot MsgHeartbeat); [w32_ne|]. }
+      { intros _ Hc. exfalso. revert Hc. rewrite Hty. w32_ne. }
+      { iSplitR; [step_no_snap|]. iIntros "%Hc". exfalso. by apply (Hnot MsgApp); [w32_ne|]. }
+      iIntros (err s1 dropped) "(Hphys & %Hres & Herrn)".
+      rewrite /candidate_step_result in Hres.
+      rewrite (decide_False _ _ HnVR) in Hres.
+      rewrite (decide_True _ _ Hty) in Hres.
+      destruct Hres as [-> ->].
+      finish_err err; (iApply ("HΦ" $! _ s); iFrame "Hphys"; finish_drop).
   Qed.
 
 End branches.

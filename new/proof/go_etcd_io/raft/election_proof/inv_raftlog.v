@@ -70,7 +70,7 @@
 
     *** Scope assumptions written into the predicate
 
-    One, in the same class as [own_raft_phys]'s [preVote = false]: it is
+    One, in the same class as [own_raft_phys]'s [checkQuorum = false]: it is
     preserved by everything on the election path, so a predicate may assert
     it, but it does restrict the runs covered.
 

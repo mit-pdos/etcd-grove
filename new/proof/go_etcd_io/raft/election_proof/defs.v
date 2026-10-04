@@ -12,6 +12,44 @@ Ltac w32_ne :=
 Ltac intros_ambient :=
   intros ext ffi ffi_interp0 Σ hG ffi_semantics0 sem package_sem.
 
+(** ** Physical roles (2026-10-04, pre-vote)
+
+    [r.state] has four values; the protocol's [role.t] ([protocol.v]) has
+    three.  [PreCandidate] ([StatePreCandidate], [becomePreCandidate]) is
+    an implementation detail of pre-vote: protocol-wise a pre-candidate is a
+    follower with no leader and an empty tally ([to_pstate] below;
+    notes/raft-replication-model.md, "Phase 3 ... Pre-vote"). *)
+Module prole.
+Inductive t := Follower | Candidate | Leader | PreCandidate.
+#[global] Instance eq_dec : EqDecision t.
+Proof. solve_decision. Defined.
+End prole.
+
+(** The protocol reading of a physical role. *)
+Definition prole_role (ro : prole.t) : role.t :=
+  match ro with
+  | prole.Follower | prole.PreCandidate => role.Follower
+  | prole.Candidate => role.Candidate
+  | prole.Leader => role.Leader
+  end.
+
+Lemma prole_role_leader ro : prole_role ro = role.Leader ↔ ro = prole.Leader.
+Proof. destruct ro; simpl; split; intros H; first [done | discriminate H]. Qed.
+
+Lemma prole_role_candidate ro : prole_role ro = role.Candidate ↔ ro = prole.Candidate.
+Proof. destruct ro; simpl; split; intros H; first [done | discriminate H]. Qed.
+
+Lemma prole_role_follower ro :
+  prole_role ro = role.Follower ↔ ro = prole.Follower ∨ ro = prole.PreCandidate.
+Proof.
+  destruct ro; simpl; split; intros H;
+    first [ by left | by right | done | discriminate H
+          | destruct H as [H|H]; discriminate H ].
+Qed.
+
+Lemma prole_role_not_leader ro : ro ≠ prole.Leader → prole_role ro ≠ role.Leader.
+Proof. intros Hne Hr. by apply Hne, prole_role_leader. Qed.
+
 Section proof.
 Context `{hG: heapGS Σ, !ffi_semantics _ _}.
 Context {sem : go.Semantics} {package_sem : raft.Assumptions}.
@@ -40,6 +78,7 @@ Definition MsgStorageAppendResp : w32 := W32 20.
 Definition StateFollower : w64 := W64 0.
 Definition StateCandidate : w64 := W64 1.
 Definition StateLeader : w64 := W64 2.
+Definition StatePreCandidate : w64 := W64 3.
 
 Definition campaignElection : raft.CampaignType.t := "CampaignElection"%go.
 Definition campaignPreElection : raft.CampaignType.t := "CampaignPreElection"%go.
@@ -49,11 +88,12 @@ Definition VotePending : w8 := W8 1.
 Definition VoteLost : w8 := W8 2.
 Definition VoteWon : w8 := W8 3.
 
-Definition state_w64 (ro : role.t) : w64 :=
+Definition state_w64 (ro : prole.t) : w64 :=
   match ro with
-  | role.Follower => StateFollower
-  | role.Candidate => StateCandidate
-  | role.Leader => StateLeader
+  | prole.Follower => StateFollower
+  | prole.Candidate => StateCandidate
+  | prole.Leader => StateLeader
+  | prole.PreCandidate => StatePreCandidate
   end.
 
 (** ** Abstraction of physical messages
@@ -96,6 +136,10 @@ Proof. reflexivity. Qed.
 Lemma mtype_of_MsgSnap : mtype_of MsgSnap = Some mtype.Snap.
 Proof. reflexivity. Qed.
 Lemma mtype_of_MsgProp : mtype_of MsgProp = Some mtype.Propose.
+Proof. reflexivity. Qed.
+Lemma mtype_of_MsgPreVote : mtype_of MsgPreVote = Some mtype.PreVote.
+Proof. reflexivity. Qed.
+Lemma mtype_of_MsgPreVoteResp : mtype_of MsgPreVoteResp = Some mtype.PreVoteResp.
 Proof. reflexivity. Qed.
 
 (** Only [MsgSnap] is abstracted as a [Snap]. *)
@@ -560,9 +604,16 @@ Definition log_restore (ls : logstate.t) (sid : raft.entryID.t) : logstate.t :=
       state.)
     - [log] is [r.raftLog], the log's location (it never changes).
     - [logst] is the log's state ([logstate.t]).
+    - [prevote] is [r.preVote] (since 2026-10-04; until then a scope
+      conjunct of [own_raft_phys] pinned it to [false]).  Written only by
+      [newRaft], from [Config.PreVote].
 
-    The first six fields are exactly [pstate.t]'s, with the same names, so
-    that a spec's [s.(nstate.term)] reads the same as it always did. *)
+    [role] is the *physical* role, [r.state] ([prole.t], four values);
+    [to_pstate] reads a pre-candidate as a follower.
+
+    The first six fields have [pstate.t]'s names, so that a spec's
+    [s.(nstate.term)] reads the same as it always did; [role] is the
+    physical role. *)
 Module nstate.
 Section defn.
 Context {ext : ffi_syntax}.
@@ -571,7 +622,7 @@ Record t :=
       term : w64;
       vote : w64;
       lead : w64;
-      role : role.t;
+      role : prole.t;                 (** [r.state]; see [prole.t] *)
       votes : gmap w64 bool;
       outbox : list msg.t;
       stepfn : func.t;                (** [r.step] *)
@@ -579,10 +630,11 @@ Record t :=
       log : loc;                      (** [r.raftLog] *)
       logst : logstate.t;             (** the log's abstract state *)
       prvals : gmap w64 progress.t;   (** [*pr] with its window, per peer *)
+      prevote : bool;                 (** [r.preVote] (2026-10-04) *)
     }.
 End defn.
 #[global] Instance settable {ext : ffi_syntax} : Settable (@t ext) :=
-  settable! (@mk ext) <term; vote; lead; role; votes; outbox; stepfn; progress; log; logst; prvals>.
+  settable! (@mk ext) <term; vote; lead; role; votes; outbox; stepfn; progress; log; logst; prvals; prevote>.
 End nstate.
 
 Section phys_state.
@@ -596,11 +648,11 @@ Implicit Type s : nstate.t.
 (** Which of the three [stepX] functions [r.step] holds in each role.  The
     [becomeX] functions assign these, and [Step] dispatches a message it does
     not handle inline through [r.step(m)]. *)
-Definition step_func_of (ro : role.t) : func.t :=
+Definition step_func_of (ro : prole.t) : func.t :=
   match ro with
-  | role.Follower => functions raft.stepFollower []
-  | role.Candidate => functions raft.stepCandidate []
-  | role.Leader => functions raft.stepLeader []
+  | prole.Follower => functions raft.stepFollower []
+  | prole.Candidate | prole.PreCandidate => functions raft.stepCandidate []
+  | prole.Leader => functions raft.stepLeader []
   end.
 
 (** ** Transitions of the physical state
@@ -623,22 +675,59 @@ Definition reset_to s (term : w64) : nstate.t :=
 Definition become_follower s (term lead : w64) : nstate.t :=
   reset_to s term
     <| nstate.lead := lead |>
-    <| nstate.role := role.Follower |>
-    <| nstate.stepfn := step_func_of role.Follower |>.
+    <| nstate.role := prole.Follower |>
+    <| nstate.stepfn := step_func_of prole.Follower |>.
 
 Definition become_candidate (id : w64) s : nstate.t :=
   reset_to s (word.add s.(nstate.term) (W64 1))
     <| nstate.vote := id |>
-    <| nstate.role := role.Candidate |>
-    <| nstate.stepfn := step_func_of role.Candidate |>.
+    <| nstate.role := prole.Candidate |>
+    <| nstate.stepfn := step_func_of prole.Candidate |>.
+
+(** [becomePreCandidate] (raft.go:912): [r.step], the tally ([ResetVotes]),
+    [lead := None] and the state.  **Term and vote unchanged**, and no
+    [reset]: the [Progress] values are left alone. *)
+Definition become_precandidate s : nstate.t :=
+  s <| nstate.role := prole.PreCandidate |>
+    <| nstate.lead := W64 0 |>
+    <| nstate.votes := ∅ |>
+    <| nstate.stepfn := step_func_of prole.PreCandidate |>.
+
+(** [campaignPreElection]'s request to [to] ([MsgPreVote] at the next term,
+    with the last entry id), as [send] queues it. *)
+Definition prevote_req (id to term : w64) (last : raft.entryID.t) : msg.t :=
+  msg.mk mtype.PreVote id to term false
+    last.(raft.entryID.index') last.(raft.entryID.term') (W64 0) (W64 0) [].
+
+(** What [campaign(t)] leaves, with [pre] whether [t] is
+    [campaignPreElection]: the role transition, then the self-addressed
+    response and one request per peer in [peers], each carrying the log's
+    last entry id.  An election is [becomeCandidate] and [MsgVote]s at the
+    new term; a pre-election is [becomePreCandidate] and [MsgPreVote]s at
+    [Term + 1] (the term itself does not move). *)
+Definition campaign_state (id : w64) s (pre : bool) (peers : list w64) : nstate.t :=
+  if pre then
+    send_msgs (become_precandidate s)
+      ([msg.plain mtype.PreVoteResp id id (word.add s.(nstate.term) (W64 1)) false] ++
+       ((λ to, prevote_req id to (word.add s.(nstate.term) (W64 1))
+                 (plog_last s.(nstate.logst).(logstate.prev)
+                    (s.(nstate.logst).(logstate.sents) ++ s.(nstate.logst).(logstate.uents))))
+        <$> peers))
+  else
+    send_msgs (become_candidate id s)
+      ([msg.plain mtype.VoteResp id id (become_candidate id s).(nstate.term) false] ++
+       ((λ to, pvote_req id to (become_candidate id s).(nstate.term)
+                 (plog_last s.(nstate.logst).(logstate.prev)
+                    (s.(nstate.logst).(logstate.sents) ++ s.(nstate.logst).(logstate.uents))))
+        <$> peers)).
 
 (** [becomeLeader] up to its [appendEntry]: what [reset], the [lead] and
     [state] writes and [r.step] leave. *)
 Definition become_leader_pre (id : w64) s : nstate.t :=
   reset_to s s.(nstate.term)
     <| nstate.lead := id |>
-    <| nstate.role := role.Leader |>
-    <| nstate.stepfn := step_func_of role.Leader |>.
+    <| nstate.role := prole.Leader |>
+    <| nstate.stepfn := step_func_of prole.Leader |>.
 
 (** The empty entry a new leader appends ([pb.Entry{Data: nil}], the zero
     [Entry]), stamped at the leader's term and the log's next index. *)
@@ -707,14 +796,26 @@ Qed.
 (** [matched] is [Match] for a leader and [∅] otherwise ([pstate.t]): a
     non-leader's [Progress] values are whatever its last [reset] left, and
     no rule reads them.  This is what lets every non-leader spec leave the
-    [Progress] values unconstrained. *)
+    [Progress] values unconstrained.
+
+    A pre-candidate (2026-10-04) is a follower with no leader and an empty
+    tally: the pre-vote tally in [trk.Votes] is invisible to the protocol
+    (notes/raft-replication-model.md, "Phase 3 ... Pre-vote").  Its
+    physical [lead] is [0] too ([becomePreCandidate] sets it, and nothing
+    writes it while the role lasts), but that is not recorded, so the
+    reading does not depend on it.  [prevote] is invisible. *)
 Definition to_pstate s : pstate.t :=
-  pstate.mk s.(nstate.term) s.(nstate.vote) s.(nstate.lead) s.(nstate.role)
-            s.(nstate.votes) s.(nstate.outbox)
+  pstate.mk s.(nstate.term) s.(nstate.vote)
+            (if decide (s.(nstate.role) = prole.PreCandidate) then W64 0
+             else s.(nstate.lead))
+            (prole_role s.(nstate.role))
+            (if decide (s.(nstate.role) = prole.PreCandidate) then ∅
+             else s.(nstate.votes))
+            s.(nstate.outbox)
             s.(nstate.logst).(logstate.prev)
             (s.(nstate.logst).(logstate.sents) ++ s.(nstate.logst).(logstate.uents))
             s.(nstate.logst).(logstate.committed)
-            (if decide (s.(nstate.role) = role.Leader)
+            (if decide (s.(nstate.role) = prole.Leader)
              then prvals_match s.(nstate.prvals) else ∅).
 
 (** A physical state that can take a protocol step: [r.step] agrees with
@@ -774,8 +875,66 @@ Proof.
 Qed.
 
 Lemma to_pstate_votes s v :
+  s.(nstate.role) ≠ prole.PreCandidate →
   to_pstate (s <| nstate.votes := v |>) = to_pstate s <| pstate.votes := v |>.
+Proof.
+  intros Hr. rewrite /to_pstate /=.
+  destruct (decide (s.(nstate.role) = prole.PreCandidate)) as [Hc|_]; [contradiction|done].
+Qed.
+
+(** A pre-candidate's tally is invisible. *)
+Lemma to_pstate_votes_pre s v :
+  s.(nstate.role) = prole.PreCandidate →
+  to_pstate (s <| nstate.votes := v |>) = to_pstate s.
+Proof.
+  intros Hr. rewrite /to_pstate /=.
+  destruct (decide (s.(nstate.role) = prole.PreCandidate)) as [_|Hc]; [done|contradiction].
+Qed.
+
+(** [becomePreCandidate] is, protocol-wise, a step down to a follower with
+    no leader at the same term: the vote is kept, the tally cleared. *)
+Lemma to_pstate_become_precandidate s :
+  to_pstate (become_precandidate s)
+  = pbecome_follower (to_pstate s) s.(nstate.term) (W64 0).
+Proof.
+  rewrite /to_pstate /pbecome_follower /=.
+  rewrite (decide_True _ _ (eq_refl s.(nstate.term))) //.
+Qed.
+
+(** The protocol's reading of the role, the leader and a follower's
+    tally. *)
+Lemma to_pstate_role s : (to_pstate s).(pstate.role) = prole_role s.(nstate.role).
 Proof. done. Qed.
+
+Lemma to_pstate_lead_0 s : s.(nstate.lead) = W64 0 → (to_pstate s).(pstate.lead) = W64 0.
+Proof. intros Hl. rewrite /to_pstate /=. case_decide; done. Qed.
+
+Lemma to_pstate_lead_nonpre s :
+  s.(nstate.role) ≠ prole.PreCandidate → (to_pstate s).(pstate.lead) = s.(nstate.lead).
+Proof.
+  intros Hr. rewrite /to_pstate /=.
+  destruct (decide (s.(nstate.role) = prole.PreCandidate)) as [Hc|_]; [contradiction|done].
+Qed.
+
+Lemma to_pstate_votes_nonpre s :
+  s.(nstate.role) ≠ prole.PreCandidate → (to_pstate s).(pstate.votes) = s.(nstate.votes).
+Proof.
+  intros Hr. rewrite /to_pstate /=.
+  destruct (decide (s.(nstate.role) = prole.PreCandidate)) as [Hc|_]; [contradiction|done].
+Qed.
+
+(** [follower_votes_ok] of the protocol reading, for the physical role. *)
+Lemma follower_votes_ok_phys s :
+  follower_votes_ok (to_pstate s) →
+  s.(nstate.role) = prole.Follower → s.(nstate.votes) = ∅.
+Proof.
+  intros Hfv Hr.
+  assert (Hrole : (to_pstate s).(pstate.role) = role.Follower)
+    by (rewrite /to_pstate /= Hr //).
+  specialize (Hfv Hrole). revert Hfv. rewrite /to_pstate /=.
+  destruct (decide (s.(nstate.role) = prole.PreCandidate)) as [Hc|_];
+    [rewrite Hr in Hc; discriminate Hc|done].
+Qed.
 
 Lemma to_pstate_vote s v :
   to_pstate (s <| nstate.vote := v |>) = to_pstate s <| pstate.vote := v |>.
@@ -793,6 +952,9 @@ Lemma nstate_wf_become_leader id s :
   nstate_wf (become_leader id s).
 Proof. done. Qed.
 
+Lemma nstate_wf_become_precandidate s : nstate_wf (become_precandidate s).
+Proof. done. Qed.
+
 (** A state with new [Progress] values is as well-formed as before: [r.step]
     and the role are untouched. *)
 Lemma nstate_wf_prvals s pvs : nstate_wf s → nstate_wf (s <| nstate.prvals := pvs |>).
@@ -801,17 +963,17 @@ Proof. done. Qed.
 (** New [Progress] values are invisible to the protocol unless the node is
     leader and [Match] moved. *)
 Lemma to_pstate_prvals s pvs :
-  (s.(nstate.role) = role.Leader → prvals_match pvs = prvals_match s.(nstate.prvals)) →
+  (s.(nstate.role) = prole.Leader → prvals_match pvs = prvals_match s.(nstate.prvals)) →
   to_pstate (s <| nstate.prvals := pvs |>) = to_pstate s.
 Proof.
   intros H. rewrite /to_pstate /=.
-  destruct (decide (s.(nstate.role) = role.Leader)) as [Hr|Hr]; last done.
+  destruct (decide (s.(nstate.role) = prole.Leader)) as [Hr|Hr]; last done.
   rewrite H //.
 Qed.
 
 (** The common case: a non-leader. *)
 Lemma to_pstate_prvals_nl s pvs :
-  s.(nstate.role) ≠ role.Leader →
+  s.(nstate.role) ≠ prole.Leader →
   to_pstate (s <| nstate.prvals := pvs |>) = to_pstate s.
 Proof. intros Hr. apply to_pstate_prvals. intros; congruence. Qed.
 

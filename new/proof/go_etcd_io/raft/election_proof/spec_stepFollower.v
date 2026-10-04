@@ -31,8 +31,9 @@ Ltac step_no_snap :=
     [MsgTimeoutNow], [MsgReadIndex] and [MsgReadIndexResp], then
     [return nil].  Specified for every type [Step] dispatches to it:
 
-    - [MsgVoteResp], [MsgBeat], [MsgAppResp], [MsgHeartbeatResp]: no arm;
-      nothing read or written, [nil].
+    - [MsgVoteResp], [MsgBeat], [MsgAppResp], [MsgHeartbeatResp], and
+      (since 2026-10-04) [MsgPreVoteResp]: no arm; nothing read or
+      written, [nil].
     - [MsgProp]: [r.lead == None] → [Infof] and [return ErrProposalDropped],
       state unchanged.  Otherwise [r.disableProposalForwarding] is read --
       [false], by [own_raft_phys]'s [HpropForward] scope conjunct, so the
@@ -89,6 +90,7 @@ Definition follower_step_result {ext : ffi_syntax} (id : w64) (s : nstate.t)
   else if decide (m.(raftpb.Message.Type') = MsgSnap) then
     dropped = false ∧
     handle_snap_result id (s <| nstate.lead := m.(raftpb.Message.From') |>) m sv s'
+  else if decide (m.(raftpb.Message.Type') = MsgPreVoteResp) then dropped = false ∧ s' = s
   else False.
 
 (** Premises, by type:
@@ -116,7 +118,7 @@ Definition wp_stepFollower_body :=
    m.(raftpb.Message.Type') = MsgApp ∨ m.(raftpb.Message.Type') = MsgHeartbeat ∨
    (m.(raftpb.Message.Type') = MsgBeat ∨ m.(raftpb.Message.Type') = MsgAppResp ∨
     m.(raftpb.Message.Type') = MsgHeartbeatResp) ∨
-   m.(raftpb.Message.Type') = MsgSnap) →
+   m.(raftpb.Message.Type') = MsgSnap ∨ m.(raftpb.Message.Type') = MsgPreVoteResp) →
   (m.(raftpb.Message.Type') = MsgProp →
      m.(raftpb.Message.From') = W64 0 ∧ m.(raftpb.Message.Term') = W64 0 ∧
      s.(nstate.lead) ≠ id) →
@@ -138,7 +140,7 @@ Definition wp_stepFollower_body :=
      m.(raftpb.Message.From') ≠ id) →
   {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s ∗
       "Hsnap" ∷ (⌜ m.(raftpb.Message.Type') = MsgSnap ⌝ -∗
-                 ⌜ snap_scope cfg sv voters ∧ s.(nstate.role) = role.Follower ∧
+                 ⌜ snap_scope cfg sv voters ∧ s.(nstate.role) = prole.Follower ∧
                    s.(nstate.votes) = ∅ ∧ id ∈ cfg ⌝ ∗
                  m.(raftpb.Message.Snapshot') ↦□ sv ∗
                  sv.(raftpb.Snapshot.Metadata').(raftpb.SnapshotMetadata.ConfState')

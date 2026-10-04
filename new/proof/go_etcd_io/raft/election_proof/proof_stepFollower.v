@@ -27,7 +27,7 @@ Import P.
     wp_start as "(Hphys & Hsnap & Hents)".
     iDestruct (is_pkg_init_access with "[$]") as "@".
     wp_auto.
-    destruct Hty as [Hty|[Hty|[Hty|[Hty|[Hty|Hty]]]]].
+    destruct Hty as [Hty|[Hty|[Hty|[Hty|[Hty|[Hty|Hty]]]]]].
     - (* [MsgVoteResp]: no arm *)
       rewrite Hty /MsgVoteResp.
       rewrite bool_decide_eq_false_2; last w32_ne.
@@ -141,6 +141,20 @@ Import P.
       case_decide as H4; [exfalso; revert H4; w32_ne|].
       case_decide as H5; [exfalso; destruct H5 as [H5|[H5|H5]]; revert H5; w32_ne|].
       case_decide as H6; done.
+    - (* [MsgPreVoteResp] (2026-10-04): no arm *)
+      rewrite Hty /MsgPreVoteResp.
+      rewrite bool_decide_eq_false_2; last w32_ne.
+      wp_auto.
+      iApply ("HΦ" $! interface.nil s false).
+      iFrame "Hphys". iPureIntro.
+      rewrite /follower_step_result Hty.
+      case_decide as H1; [exfalso; revert H1; w32_ne|].
+      case_decide as H2; [exfalso; revert H2; w32_ne|].
+      case_decide as H3; [exfalso; revert H3; w32_ne|].
+      case_decide as H4; [exfalso; revert H4; w32_ne|].
+      case_decide as H5; [exfalso; destruct H5 as [H5|[H5|H5]]; revert H5; w32_ne|].
+      case_decide as H6; [exfalso; revert H6; w32_ne|].
+      case_decide as H7; done.
   Qed.
 
 End StepFollowerProof.

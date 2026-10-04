@@ -38,6 +38,8 @@ Require Export New.proof.go_etcd_io.raft.election_proof.proof_raft__Step_helpers
 Require Export New.proof.go_etcd_io.raft.election_proof.proof_raft__Step_helpers.proof_raft__Step_MsgHeartbeatResp.
 Require Export New.proof.go_etcd_io.raft.election_proof.proof_raft__Step_helpers.proof_raft__Step_MsgBeat.
 Require Export New.proof.go_etcd_io.raft.election_proof.proof_raft__Step_helpers.proof_raft__Step_MsgSnap.
+Require Export New.proof.go_etcd_io.raft.election_proof.proof_raft__Step_helpers.proof_raft__Step_MsgPreVote.
+Require Export New.proof.go_etcd_io.raft.election_proof.proof_raft__Step_helpers.proof_raft__Step_MsgPreVoteResp.
 
 Module StepProof (P : STEP_POSTULATES) : STEP.
 
@@ -51,6 +53,8 @@ Module AR := StepMsgAppResp P.
 Module HR := StepMsgHeartbeatResp P.
 Module B := StepMsgBeat P.
 Module SN := StepMsgSnap P.
+Module PV := StepMsgPreVote P.
+Module PR := StepMsgPreVoteResp P.
 
 Section dispatch.
 Context `{hG: heapGS Σ, !ffi_semantics _ _}.
@@ -173,7 +177,7 @@ Lemma dispatch_App γ cfg r id s (m : raftpb.Message.t) (ents : list raftpb.Entr
       (raft.entryID.mk m.(raftpb.Message.LogTerm') m.(raftpb.Message.Index')) →
     plog_find_conflict ls.(logstate.prev) es ents = W64 0 ∨
     uint.Z ls.(logstate.committed) < uint.Z (plog_find_conflict ls.(logstate.prev) es ents))%Z →
-   (s.(nstate.role) = role.Follower → s.(nstate.votes) = ∅) →
+   (s.(nstate.role) = prole.Follower → s.(nstate.votes) = ∅) →
    {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s ∗
        "#Hents" ∷ m.(raftpb.Message.Entries') ↦*□ ents ∗
        "Hcap" ∷ own_slice_cap raftpb.Entry.t m.(raftpb.Message.Entries') (DfracOwn 1) }}}
@@ -224,7 +228,8 @@ Proof.
     - iFrame "Hghost". iPureIntro. intros Hle Hcm. exfalso. by apply Hn. }
   (* a follower's tally is empty: the code's [r.lead = m.From] and the
      model's [padopt_leader] agree *)
-  iDestruct (own_raft_ghost_follower_votes with "Hghost") as %Hfv.
+  iDestruct (own_raft_ghost_follower_votes with "Hghost") as %Hfv0.
+  pose proof (follower_votes_ok_phys s Hfv0) as Hfv.
   wp_apply (HB Hty Hto Hterm Hfnz Hfid Hin Hwf Hpwf Hnw Hnorm Hconf Hfv
              with "[$Hinit $Hphys $Hents $Hcap]").
   iIntros (err s') "(Hphys & %Hwf' & %Hst & %Herr)".
@@ -246,7 +251,7 @@ Lemma dispatch_Heartbeat γ cfg r id s (m : raftpb.Message.t) (ents : list raftp
     uint.Z m.(raftpb.Message.Commit')
     ≤ plog_last_index_Z s.(nstate.logst).(logstate.prev)
         (s.(nstate.logst).(logstate.sents) ++ s.(nstate.logst).(logstate.uents)))%Z →
-   (s.(nstate.role) = role.Follower → s.(nstate.votes) = ∅) →
+   (s.(nstate.role) = prole.Follower → s.(nstate.votes) = ∅) →
    {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s ∗
        "#Hents" ∷ m.(raftpb.Message.Entries') ↦*□ ents }}}
      r @! (go.PointerType raft.raft) @! "Step" #m
@@ -282,10 +287,11 @@ Proof.
       as [Hle|Hle]; last first.
     { iFrame "Hghost". iPureIntro. intros ?. lia. }
     destruct (decide (m.(raftpb.Message.Term') = s.(nstate.term) ∧
-                      s.(nstate.role) = role.Leader)) as [[Heq Hr]|Hnl].
+                      s.(nstate.role) = prole.Leader)) as [[Heq Hr]|Hnl].
     - (* a leader receiving a heartbeat of its own term: the sender is a
          second leader of the term, which [is_leader_unique] excludes *)
-      iDestruct (own_raft_ghost_is_leader with "Hghost") as "#Hl1"; first exact Hr.
+      iDestruct (own_raft_ghost_is_leader with "Hghost") as "#Hl1";
+        first (rewrite to_pstate_role Hr //).
       iPoseProof "Hm" as "Hm2". iEval (rewrite /is_message /=) in "Hm2".
       iDestruct "Hm2" as "[Hl2 _]".
       iEval (rewrite Heq) in "Hl2".
@@ -293,9 +299,10 @@ Proof.
       exfalso. apply Hfid. by rewrite Hid.
     - iDestruct (heartbeat_commit_le_last with "Hghost Hm") as %Hc;
         [done|exact Hto|exact Hle| |].
-      { intros Heq Hr. apply Hnl. split; [exact Heq|exact Hr]. }
+      { intros Heq Hr. apply Hnl. split; [exact Heq|by apply prole_role_leader]. }
       iFrame "Hghost". iPureIntro. intros _. exact Hc. }
-  iDestruct (own_raft_ghost_follower_votes with "Hghost") as %Hfv.
+  iDestruct (own_raft_ghost_follower_votes with "Hghost") as %Hfv0.
+  pose proof (follower_votes_ok_phys s Hfv0) as Hfv.
   wp_apply (HB Hty Hto Hterm Hfnz Hfid Hin Hwf Hcl Hfv with "[$Hinit $Hphys $Hents]").
   iIntros (err s') "(Hphys & %Hwf' & %Hst & %Herr)".
   destruct Hst as (recv & Hrecv & Hstep).
@@ -437,8 +444,8 @@ Lemma dispatch_Snap γ cfg r id s (m : raftpb.Message.t)
    id ∈ cfg →
    nstate_wf s →
    snap_scope cfg sv voters →
-   (m.(raftpb.Message.Term') = s.(nstate.term) → s.(nstate.role) ≠ role.Leader) →
-   (s.(nstate.role) = role.Follower → s.(nstate.votes) = ∅) →
+   (m.(raftpb.Message.Term') = s.(nstate.term) → s.(nstate.role) ≠ prole.Leader) →
+   (s.(nstate.role) = prole.Follower → s.(nstate.votes) = ∅) →
    {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s ∗
        "#Hsv" ∷ m.(raftpb.Message.Snapshot') ↦□ sv ∗
        "#Hvs" ∷ sv.(raftpb.Snapshot.Metadata').(raftpb.SnapshotMetadata.ConfState')
@@ -472,18 +479,20 @@ Proof.
     "#Hinit Hphys Hghost #Hsv #Hvs #Hm HΦ".
   (* at the current term the receiver is not a leader: the sender leads it *)
   iAssert (⌜ m.(raftpb.Message.Term') = s.(nstate.term) →
-             s.(nstate.role) ≠ role.Leader ⌝ ∗
+             s.(nstate.role) ≠ prole.Leader ⌝ ∗
            own_raft_ghost γ id (to_pstate s))%I with "[Hghost]" as "[%Hnl Hghost]".
   { destruct (decide (m.(raftpb.Message.Term') = s.(nstate.term) ∧
-                      s.(nstate.role) = role.Leader)) as [[Heq Hr]|Hn].
-    - iDestruct (own_raft_ghost_is_leader with "Hghost") as "#Hl1"; first exact Hr.
+                      s.(nstate.role) = prole.Leader)) as [[Heq Hr]|Hn].
+    - iDestruct (own_raft_ghost_is_leader with "Hghost") as "#Hl1";
+        first (rewrite to_pstate_role Hr //).
       iPoseProof "Hm" as "Hm2". iEval (rewrite /is_message /=) in "Hm2".
       iDestruct "Hm2" as "[Hl2 _]".
       iEval (rewrite Heq) in "Hl2".
       iDestruct (is_leader_unique with "Hl1 Hl2") as %Hid.
       exfalso. apply Hfid. by rewrite Hid.
     - iFrame "Hghost". iPureIntro. intros Heq Hr. apply Hn. split; [exact Heq|exact Hr]. }
-  iDestruct (own_raft_ghost_follower_votes with "Hghost") as %Hfv.
+  iDestruct (own_raft_ghost_follower_votes with "Hghost") as %Hfv0.
+  pose proof (follower_votes_ok_phys s Hfv0) as Hfv.
   wp_apply (HB Hty Hto Hterm Hfnz Hfid Hin Hwf Hscope Hnl Hfv
              with "[$Hinit $Hphys $Hsv $Hvs]").
   iIntros (err s') "(Hphys & %Hwf' & %Hst & %Herr)".
@@ -519,7 +528,8 @@ Set Default Proof Using "Type".
        name, and with the binder gone that resolves to Perennial's global
        [cfg] (a [language → Type]).  Move the witness instead. *)
     intros Hcfg.
-    intros Hsm Hin Hhup Hvote Hvoteresp Happ Hhb Happresp Hhbresp Hsnapt Hbeat Hprop Hrel.
+    intros Hsm Hin Hhup Hvote Hvoteresp Hprevote Hprevoteresp Happ Hhb Happresp Hhbresp
+      Hsnapt Hbeat Hprop Hrel.
     destruct Hrel as [<- Hwf].
     iIntros (Φ) "(#Hinit & Hphys & Hghost & Hm & #Hctx & #Hsnap) HΦ".
     iDestruct "Hm" as (ents) "(Hents & Hcap & %Hpents & #Hmsg0)".
@@ -567,6 +577,29 @@ Set Default Proof Using "Type".
       destruct Hst as (recv & Hrecv & Hstep).
       iApply (finish_branch with "Hm' Hghost Hphys [] HΦ"); [done..|].
       iLeft. by iPureIntro. }
+    destruct (decide (m.(raftpb.Message.Type') = MsgPreVote)) as [Hty|Hn_pv].
+    { (* MsgPreVote (2026-10-04): answered with a free [MsgPreVoteResp];
+         nothing received, nothing recorded. *)
+      destruct (Hprevote Hty) as (Hto & Hterm & Hfnz & _ & Hutd0).
+      iAssert (∃ ctx, m.(raftpb.Message.Context') ↦*□ ctx ∗
+                      ⌜ ctx ≠ campaignTransfer ⌝)%I as "#Hctx'".
+      { iDestruct "Hctx" as (ctx) "(#Hc & %Hc2 & _)".
+        iExists ctx. iFrame "Hc". iPureIntro. exact Hc2. }
+      wp_apply (PV.wp_Step_MsgPreVote cfg with "[$Hphys $Hctx']"); [done..|].
+      iIntros (err s') "(Hphys & %Hwf' & %Hst & %Herr)".
+      iApply (finish_branch0 with "Hghost Hphys [] HΦ"); [done..|].
+      iLeft. by iPureIntro. }
+    destruct (decide (m.(raftpb.Message.Type') = MsgPreVoteResp)) as [Hty|Hn_pvr].
+    { (* MsgPreVoteResp (2026-10-04): a pre-candidate's tally, or a
+         step-down on a rejection of a higher term. *)
+      destruct (Hprevoteresp Hty) as (Hto & Hterm & _ & Hnw).
+      iDestruct ("Hmsg" $! mtype.PreVoteResp with "[]") as "#Hm'".
+      { iPureIntro. rewrite Hty. apply mtype_of_MsgPreVoteResp. }
+      wp_apply (PR.wp_Step_MsgPreVoteResp cfg _ _ _ _ ents with "[$Hphys]"); [done..|].
+      iIntros (err s') "(Hphys & %Hwf' & %Hst & %Herr)".
+      destruct Hst as (recv & Hrecv & Hstep).
+      iApply (finish_branch with "Hm' Hghost Hphys [] HΦ"); [done..|].
+      iLeft. by iPureIntro. }
     destruct (decide (m.(raftpb.Message.Type') = MsgApp)) as [Hty|Hn_app].
     { (* MsgApp: [dispatch_App]. *)
       iDestruct ("Hmsg" $! mtype.App with "[]") as "#Hm'".
@@ -606,7 +639,11 @@ Set Default Proof Using "Type".
          The node's own [lead_ok] is what the follower's forwarding needs. *)
       destruct (Hprop Hty) as [Hterm Hfrom].
       destruct (Hpents Hty) as (Hne & Hnorm & Hlen).
-      iDestruct (own_raft_ghost_lead_ok with "Hghost") as %Hlok.
+      iDestruct (own_raft_ghost_lead_ok with "Hghost") as %Hlok0.
+      (* a follower's leader is its physical one *)
+      assert (Hlok : s.(nstate.role) = prole.Follower → s.(nstate.lead) ≠ id).
+      { intros Hf. rewrite -(to_pstate_lead_nonpre s); last (rewrite Hf; discriminate).
+        apply Hlok0. rewrite to_pstate_role Hf. discriminate. }
       iDestruct ("Hmsg" $! mtype.Propose with "[]") as "#Hm'".
       { iPureIntro. rewrite Hty. apply mtype_of_MsgProp. }
       (* [Hents] is owned: the [destruct (decide …)] above reduced its
@@ -617,7 +654,7 @@ Set Default Proof Using "Type".
       destruct Hst as (recv & Hrecv & Hstep).
       iApply (finish_branch with "Hm' Hghost Hphys [Herr] HΦ"); [done..|].
       iDestruct "Herr" as "[%Herr|#Hd]"; [iLeft; by iPureIntro|iRight; by iFrame "#"]. }
-    (* none of the ten *)
+    (* none of the twelve *)
     exfalso. cbv [step_msg step_msg_types] in Hsm.
     repeat (apply elem_of_cons in Hsm as [Hsm|Hsm]; [congruence|]).
     by apply elem_of_nil in Hsm.

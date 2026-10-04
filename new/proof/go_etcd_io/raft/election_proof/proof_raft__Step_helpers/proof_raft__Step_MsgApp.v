@@ -67,7 +67,7 @@ Implicit Type s : nstate.t.
        follower ([becomeFollower]'s [reset], [newRaft]) leaves it empty and a
        follower never records a vote, but neither [nstate_wf] nor the ghost
        state says so. *)
-    (s.(nstate.role) = role.Follower → s.(nstate.votes) = ∅) →
+    (s.(nstate.role) = prole.Follower → s.(nstate.votes) = ∅) →
     {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s ∗
         "#Hents" ∷ m.(raftpb.Message.Entries') ↦*□ ents ∗
         "Hcap" ∷ own_slice_cap raftpb.Entry.t m.(raftpb.Message.Entries') (DfracOwn 1) }}}

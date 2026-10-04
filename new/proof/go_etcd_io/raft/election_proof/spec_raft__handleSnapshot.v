@@ -51,7 +51,7 @@ Definition wp_raft__handleSnapshot_body :=
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (cfg : gset w64) (r : loc) (id : w64) (s : nstate.t)
     (m : raftpb.Message.t) (sv : raftpb.Snapshot.t) (voters : list w64),
-  s.(nstate.role) = role.Follower →
+  s.(nstate.role) = prole.Follower →
   s.(nstate.votes) = ∅ →
   id ∈ cfg →
   snap_scope cfg sv voters →

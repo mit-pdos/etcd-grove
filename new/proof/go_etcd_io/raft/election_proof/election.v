@@ -240,7 +240,7 @@ Lemma newRaft_post_init (hs : raftpb.HardState.t) (s : nstate.t) :
   (nstate_wf s ∧
    s.(nstate.term) = hs.(raftpb.HardState.Term') ∧
    s.(nstate.vote) = hs.(raftpb.HardState.Vote') ∧
-   s.(nstate.lead) = W64 0 ∧ s.(nstate.role) = role.Follower ∧
+   s.(nstate.lead) = W64 0 ∧ s.(nstate.role) = prole.Follower ∧
    s.(nstate.votes) = ∅ ∧ s.(nstate.outbox) = []) →
   s.(nstate.logst).(logstate.prev) = raft.entryID.mk (W64 0) (W64 0) →
   s.(nstate.logst).(logstate.sents) = [] →
@@ -250,7 +250,7 @@ Lemma newRaft_post_init (hs : raftpb.HardState.t) (s : nstate.t) :
 Proof.
   intros (HT & HV & _) (Hwf & Ht & Hv & Hl & Hr & Hvs & Ho) Hp Hse Hue Hc.
   split; last done.
-  destruct s as [?????? ??? [] ?]; simpl in *; subst. rewrite /to_pstate /init_pstate /=.
+  destruct s as [?????? ??? [] ? ?]; simpl in *; subst. rewrite /to_pstate /init_pstate /=.
   by rewrite HT HV.
 Qed.
 End newRaft_post.

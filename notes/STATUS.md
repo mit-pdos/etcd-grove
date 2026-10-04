@@ -1,6 +1,6 @@
 # Status
 
-**Last updated:** 2026-10-04 (branch `worktree-raft-replication` at `1fddf5333`, election cone green; `origin/main` `4f48cb6de` merged in; not yet on `main`)
+**Last updated:** 2026-10-04 (branch `worktree-raft-replication`, pre-vote merged on top of `1fddf5333`; `origin/main` `4f48cb6de` merged in; not yet on `main`; the combined tree's build is being verified)
 
 This file is a snapshot of where the proof *is*. It carries no history: how
 something got this way is in [journal.md](journal.md), why a design was
@@ -153,7 +153,8 @@ specs of Go functions):
 - **`Step.wp_raft__Step`** (`election_proof/spec_raft__Step.v`): running `Step` on
   any message of the ten types in scope -- `MsgHup`, `MsgVote`, `MsgVoteResp`,
   `MsgApp`, `MsgAppResp`, `MsgHeartbeat`, `MsgHeartbeatResp`, `MsgBeat`,
-  `MsgProp`, and since 2026-10-02 (late) `MsgSnap` (`step_msg`) -- takes `own_raft_phys` from a physical state `s`
+  `MsgProp`, since 2026-10-02 (late) `MsgSnap`, and since 2026-10-04
+  `MsgPreVote`/`MsgPreVoteResp` (`step_msg`, twelve types) -- takes `own_raft_phys` from a physical state `s`
   with `nstate_rel s ps` to some `s'` with `nstate_rel s' ps'`, and moves
   `own_raft_ghost` from `ps` to `ps'` at the same time, with
   `∃ recv, step cfg id ps recv ps'`; `err` is `nil`, or `ErrProposalDropped`
@@ -221,14 +222,15 @@ Everything above holds **only** under these assumptions. They are premises of
 
 | assumption | where |
 |---|---|
-| Only the ten `step_msg` types are passed to `Step`; the pre-vote, read-index, leader-transfer, check-quorum and storage-response types are taken to be dropped by the network (phase 3). A received `MsgApp`/`MsgHeartbeat`/`MsgHeartbeatResp`, and a rejecting `MsgAppResp`, has `From ≠ id` (a node never sends itself one: `send` panics) | `step_msg`, `spec_raft__Step.v` |
+| Only the twelve `step_msg` types (since 2026-10-04 with `MsgPreVote`/`MsgPreVoteResp`) are passed to `Step`; the read-index, leader-transfer, check-quorum and storage-response types are taken to be dropped by the network (phase 3). A received `MsgApp`/`MsgHeartbeat`/`MsgHeartbeatResp`, and a rejecting `MsgAppResp`, has `From ≠ id` (a node never sends itself one: `send` panics) | `step_msg`, `spec_raft__Step.v` |
 | A received `MsgApp`'s entries are `EntryNormal`, contiguous from `Index+1`, and conflict only above the receiver's commit index; a received `Heartbeat`'s `Commit` is at most the receiver's last index. All four are proved from `own_raft_ghost` and `is_message` (`app_recv_wf`, `app_no_conflict_below_commit`, `heartbeat_commit_le_last`; since 2026-10-02 none is admitted) | `protocol.v` |
 | No read-index requests: `readOnly.unconfirmedReads` and `pendingReadIndexMessages` are empty, so `heartbeatCtx` is `nil` and a `MsgHeartbeatResp` carries an empty `Context` | `inv_misc.v` |
 | `disableProposalForwarding = false` (`newRaft` copies the `Config` field; a scope premise of `newRaft`'s spec) | `inv_raft_phys.v`, `spec_newRaft.v` |
 | No proposals, no read-only requests | scope |
 | No reconfiguration, no learners; the voter set `cfg` is fixed, and **no `EntryConfChange` is anywhere in the log** | `HnoConfChange`, `inv_raftlog.v:139` |
 | A received `MsgSnap` carries a snapshot (`m.Snapshot ↦□ sv`, its voters `↦*□`) whose `ConfState` is `cfg`'s voters only (no learners, not joint, `AutoLeave` off), with `0 ∉ cfg` and `Metadata.Index < 2^61`; it is `To = id`, `Term ≠ 0`, `From ≠ 0`, `From ≠ id` (`snap_scope`, `"Hsnap"`). A pending snapshot is never stored (`stableSnapTo`, `Ready` out of scope) | `spec_raft__Step.v`, `spec_raft__restore.v` |
-| No pre-vote, no check-quorum | `inv_raft_phys.v:112` |
+| No check-quorum (`checkQuorum = false`). **Pre-vote is in scope since 2026-10-04**: `nstate.prevote` is `r.preVote`, either value, and `newRaft` copies `Config.PreVote` | `inv_raft_phys.v` (`HnoCheckQuorum`, `Hprevote`) |
+| Pre-vote only: a node at term `0` finds every `MsgPreVote` candidate up to date (else it would reject at `Term: 0`, which `send` panics on; true of every node etcd builds, not implied by `own_raft_phys`); a `MsgPreVoteResp` cannot make the term wrap (`uint.Z s.term + 1 < 2^64`, a pre-candidate's win runs `campaign`). `MsgPreVote`/`MsgPreVoteResp` are `To = id`, `Term ≠ 0`, `From ≠ 0` (and `From ≠ id` for `MsgPreVote`) | `spec_raft__Step.v` |
 | No leader transfer (`leadTransferee = 0`, `Context ≠ campaignTransfer`) | `spec_raft__Step.v` |
 | Node ids are nonzero; `id ∈ cfg`; the ghost state's `cfg` is the physical one (`γ.(re_cfg) = cfg`) | `spec_raft__Step.v`, `own_raft_ghost` |
 | A `MsgHup` cannot make the term wrap: `uint.Z s.term + 1 < 2^64` | `spec_raft__Step.v` |
@@ -240,8 +242,9 @@ Everything above holds **only** under these assumptions. They are premises of
 | `newRaft` only: the stored entries have contiguous indices and no conf change; `hs.Commit` and `Config.Applied` lie where `loadState`/`appliedTo` would otherwise panic; `InitialState` returns `(hs, cs, nil)` | `spec_newRaft.v` |
 
 Two of these are not restrictions a deployment can honour as written:
-`HnoConfChange`, and — if you care about etcd's defaults — pre-vote and
-check-quorum, both of which etcd's server turns on.
+`HnoConfChange`, and — if you care about etcd's defaults — check-quorum,
+which etcd's server turns on (pre-vote, the other default, is covered
+since 2026-10-04).
 
 ## Done on 2026-10-01/02, and what is next
 
@@ -281,6 +284,16 @@ the log proofs' snapshot arms, `unstable/raftLog/raft.restore`,
 `0 ∉ cfg`, `AutoLeave = false`, `Index < 2^61` (inside `"Hsnap"`'s
 `snap_scope`).  Details: raft-replication-model.md, "Phase 2 … Done
 2026-10-02: the log and implementation side".
+
+**Pre-vote, done** (2026-10-04, branch `worktree-agent-a55b1ab28ca9c10e1`
+from `1e5c18fce`, not yet merged): `nstate.role : prole.t` (four physical
+roles, `PreCandidate` read as a follower with no leader and an empty tally
+by `to_pstate`), `nstate.prevote`, `becomePreCandidate`, `campaign`/`hup`
+for `campaignPreElection`, `stepCandidate` in `StatePreCandidate`, `Step`
+over `MsgPreVote`/`MsgPreVoteResp` and the live stale-term `MsgAppResp`.
+Three protocol rules appended to `step` (`step_send_free`, `step_abandon`,
+`step_zero_ack`; ghost cases `Qed`).  Details: raft-replication-model.md,
+"Phase 3 … Pre-vote … Done 2026-10-04".  Next: reconfiguration.
 
 **Snapshots, sender side, done** (2026-10-03, branch
 `worktree-agent-a4805cdd87b17c9a2` from `1de11b38d`, not yet merged): a
@@ -422,7 +435,8 @@ whose whole job is what the build cannot check. What each establishes, the
 known gaps and the plan are in [tcb-accounting.md](tcb-accounting.md).
 
 `etc/tcb-report.py` on the election path (`--scope election_proof`,
-2026-10-04, at `5fa0f876d`): **14 `Axiom` and 3 `Admitted`** -- the one
+2026-10-04, at `5fa0f876d`; after pre-vote, on its branch: 14 `Axiom`, 3
+`Admitted`, 605 `Qed`, 130 collections, 574 files): **14 `Axiom` and 3 `Admitted`** -- the one
 signed off on in `raftLog.slice`, and the two safety theorems
 `leader_completeness` and `state_machine_safety`, which **cannot be proved
 as stated**: they quantify over two nodes' ghost states, and the argument

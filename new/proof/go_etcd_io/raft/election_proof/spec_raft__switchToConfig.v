@@ -26,7 +26,7 @@ Definition wp_raft__switchToConfig_body :=
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (cfg0 cfg : gset w64) (r : loc) (id : w64) (s : nstate.t)
     (cfgv : tracker.Config.t) (prsm : loc) (prs : gmap w64 loc),
-  s.(nstate.role) ≠ role.Leader →
+  s.(nstate.role) ≠ prole.Leader →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg0 r id s ∗ own_config cfg cfgv prsm prs }}}
     r @! (go.PointerType raft.raft) @! "switchToConfig" #cfgv #prsm
   {{{ (cs : raftpb.ConfState.t) (xs : list w64) pvs, RET #cs;

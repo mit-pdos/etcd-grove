@@ -77,51 +77,98 @@ Proof using All.
     "Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext"); done.
 Qed.
 
+(** The message types [campaign] sends, by [pre] ([t =
+    campaignPreElection]): the request and the self-addressed response. *)
+Definition vreq_ty (pre : bool) : mtype.t := if pre then mtype.PreVote else mtype.Vote.
+Definition vresp_ty (pre : bool) : mtype.t := if pre then mtype.PreVoteResp else mtype.VoteResp.
+Definition vreq_w32 (pre : bool) : w32 := if pre then MsgPreVote else MsgVote.
+Definition vresp_w32 (pre : bool) : w32 := if pre then MsgPreVoteResp else MsgVoteResp.
+
+(** The role transition [campaign] makes, by [pre]. *)
+Definition camp_role_state (id : w64) (s : nstate.t) (pre : bool) : nstate.t :=
+  if pre then become_precandidate s else become_candidate id s.
+
+Lemma camp_role_state_logst id s pre :
+  (camp_role_state id s pre).(nstate.logst) = s.(nstate.logst).
+Proof. by destruct pre. Qed.
+
+(** What the loop leaves is [campaign_state]. *)
+Lemma campaign_state_eq id s pre peers pvs :
+  send_msgs (camp_role_state id s pre <| nstate.prvals := pvs |>)
+    ([msg.plain (vresp_ty pre) id id (word.add s.(nstate.term) (W64 1)) false] ++
+     ((λ to, msg.mk (vreq_ty pre) id to (word.add s.(nstate.term) (W64 1)) false
+               (plog_last s.(nstate.logst).(logstate.prev)
+                  (s.(nstate.logst).(logstate.sents) ++ s.(nstate.logst).(logstate.uents)))
+                 .(raft.entryID.index')
+               (plog_last s.(nstate.logst).(logstate.prev)
+                  (s.(nstate.logst).(logstate.sents) ++ s.(nstate.logst).(logstate.uents)))
+                 .(raft.entryID.term')
+               (W64 0) (W64 0) []) <$> peers))
+  = campaign_state id s pre peers <| nstate.prvals := pvs |>.
+Proof. destruct pre; by destruct s. Qed.
+
 Lemma wp_campaign (r : loc) (id : w64) (s : nstate.t) (t : raft.CampaignType.t) :
-  t ≠ campaignPreElection →
-  s.(nstate.role) ≠ role.Leader →
+  s.(nstate.role) ≠ prole.Leader →
   id ∈ cfg →
-  s.(nstate.logst).(logstate.snap) = None →
   uint.Z s.(nstate.term) + 1 < 2 ^ 64 →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "campaign" #t
   {{{ (peers : list w64) pvs, RET #();
       ⌜ peers ≡ₚ elements (cfg ∖ {[id]}) ⌝ ∗
-      let s' := become_candidate id s in
       own_raft_phys cfg r id
-        (send_msgs s'
-           ([msg.plain mtype.VoteResp id id s'.(nstate.term) false] ++
-            ((λ to, pvote_req id to s'.(nstate.term)
-                      (plog_last s.(nstate.logst).(logstate.prev)
-                         (s.(nstate.logst).(logstate.sents) ++ s.(nstate.logst).(logstate.uents))))
-             <$> peers))
-         <| nstate.prvals := pvs |>) }}}.
+        (campaign_state id s (bool_decide (t = campaignPreElection)) peers
+           <| nstate.prvals := pvs |>) }}}.
 Proof.
-  intros Ht Hrole Hid_cfg Hsn Hnowrap.
-  (* [becomeCandidate] raises the term to [s.term + 1] and every [send] below
-     carries it; [send] panics on a zero term, whence the premise. *)
+  intros Hrole Hid_cfg Hnowrap.
+  (* every [send] below carries [Term + 1]; [send] panics on a zero term,
+     whence the premise. *)
   assert (word.add s.(nstate.term) (W64 1) ≠ W64 0) as Hno_wrap by word.
-  (* [make([]uint64, 0, len(idMap))] needs the voter set to fit in a Go
-     [int]; that bound is a conjunct of [own_tracker]. *)
   wp_start as "Hphys". wp_auto.
-  (* [promotable] is true, since [id ∈ cfg]; the warning is not logged. *)
+  (* [promotable] is only logged: [id ∈ cfg], but a pending snapshot makes
+     it false.  The two arms are joined. *)
   wp_apply (wp_raft__promotable _ _ _ _ with "[$Hphys]") as "%b [Hphys %Hb]".
-  assert (b = true) as ->.
-  { rewrite Hb. by apply bool_decide_eq_true_2. }
+  wp_bind (if: _ then _ else _)%E.
+  iApply (wp_wand _ _ _ (λ v, ⌜ v = execute_val ⌝ ∗ own_raft_phys cfg r id s ∗ r_ptr ↦ r)%I
+            with "[Hphys r]").
+  { destruct b; wp_auto.
+    - iSplitR; first done. iFrame "Hphys r".
+    - (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_raft_log).
+      iSplitR; first done. iFrame "Hphys r". }
+  iIntros (v) "[-> [Hphys r]]". wp_auto.
+  (* the role transition: [becomePreCandidate] and [Term + 1], or
+     [becomeCandidate] and the new [Term]; joined at the state each leaves *)
+  wp_bind (if: _ then _ else _)%E.
+  iApply (wp_wand _ _ _
+    (λ v, ⌜ v = execute_val ⌝ ∗ ∃ pvs,
+       "Hphys" ∷ own_raft_phys cfg r id
+         (camp_role_state id s (bool_decide (t = campaignPreElection))
+            <| nstate.prvals := pvs |>) ∗
+       "term" ∷ term_ptr ↦ word.add s.(nstate.term) (W64 1) ∗
+       "voteMsg" ∷ voteMsg_ptr ↦ vreq_w32 (bool_decide (t = campaignPreElection)) ∗
+       "r" ∷ r_ptr ↦ r ∗ "t" ∷ t_ptr ↦ t)%I
+    with "[Hphys term voteMsg r t]").
+  { destruct (decide (t = campaignPreElection)) as [Ht|Ht].
+    - rewrite (bool_decide_eq_true_2 _ Ht). wp_auto.
+      wp_apply (P.wp_raft__becomePreCandidate _ _ _ _ Hrole with "[$Hphys]") as "Hphys".
+      wp_apply (wp_raft_load_Term with "Hphys") as "Hphys".
+      iSplitR; first done. iExists s.(nstate.prvals). iFrame "term voteMsg r t".
+      iApply (own_raft_phys_eq with "Hphys"). by destruct s.
+    - rewrite (bool_decide_eq_false_2 _ Ht). wp_auto.
+      wp_apply (P.wp_raft__becomeCandidate _ _ _ _ Hrole with "[$Hphys]") as "%pvs Hphys".
+      wp_apply (wp_raft_load_Term with "Hphys") as "Hphys".
+      iSplitR; first done. iExists pvs. iFrame "Hphys voteMsg r t". iExact "term". }
+  iIntros (v) "[-> HJ]". iNamed "HJ".
+  remember (bool_decide (t = campaignPreElection)) as pre eqn:Hpre.
+  (* not needed below, and its [bool_decide] would be [case_decide]'s first
+     pick *)
+  clear Hpre.
+  set (T := word.add s.(nstate.term) (W64 1)).
+  assert (T ≠ W64 0) as HTnz by exact Hno_wrap.
   wp_auto.
-  (* not a pre-election, so [becomeCandidate] *)
-  rewrite bool_decide_eq_false_2; last exact Ht.
-  wp_auto.
-  wp_apply (P.wp_raft__becomeCandidate _ _ _ _ Hrole with "[$Hphys]") as "%pvs Hphys".
-  (* [term := r.Term], the new term; every [send] below carries it *)
-  wp_apply (wp_raft_load_Term with "Hphys") as "Hphys".
-  set (T := (become_candidate id s).(nstate.term)).
-  assert (T = word.add s.(nstate.term) (W64 1)) as HTeq by reflexivity.
-  assert (T ≠ W64 0) as HTnz by (rewrite HTeq; exact Hno_wrap).
   (* the voter ids, as a map.  [IDs] is a method of the tracker's
      [Config.Voters], so it takes the tracker object; the call does not
      change it, and the struct is re-sealed right after. *)
-  iDestruct (own_raft_phys_tracker_same _ _ _ (become_candidate id s <| nstate.prvals := pvs |>)
+  iDestruct (own_raft_phys_tracker_same _ _ _ (camp_role_state id s pre <| nstate.prvals := pvs |>)
                with "Hphys") as (tv) "(Htrkf & Htrk & Hback)".
   iDestruct (own_tracker_cfg_size with "Htrk") as "[%Hcfg_fits Htrk]".
   try wp_auto.
@@ -181,12 +228,12 @@ Proof.
   wp_alloc cur_ptr as "cur".
   wp_auto.
   (* [cmsg f y] is the message [campaign] sends on behalf of voter [y]: the
-     self-addressed [MsgVoteResp] when [y] is this node, a [MsgVote]
-     otherwise, carrying the entry id [f y] that [lastEntryID()] returned
-     when it was built.  [send] panics on a self-addressed non-response,
-     which is exactly why the code splits these two cases.  [f] is a ghost
-     function: [lastEntryID()] is called once per peer, and its spec does
-     not (yet) pin the result, so each request records its own. *)
+     self-addressed response when [y] is this node, a request otherwise,
+     carrying the entry id [f y] that [lastEntryID()] returned when it was
+     built.  [send] panics on a self-addressed request, which is exactly
+     why the code splits these two cases.  [f] is a ghost function:
+     [lastEntryID()] is called once per peer, and each request records its
+     own. *)
   assert (length xs = size cfg) as Hlenxs.
   { rewrite -(Permutation_length Hxs) Hklen Hszidm //. }
   assert (NoDup xs) as Hnodupxs.
@@ -194,20 +241,23 @@ Proof.
   (* [wp_if_destruct] runs [subst], which would otherwise eliminate [cfg] and
      [id] through these two equations and rename them throughout. *)
   clear Hdomidm Hkset Hb.
+  set (req := λ (y : w64) (e : raft.entryID.t),
+                msg.mk (vreq_ty pre) id y T false
+                  e.(raft.entryID.index') e.(raft.entryID.term') (W64 0) (W64 0) []).
   set (cmsg := (λ (f : w64 → raft.entryID.t) (y : w64),
                   if decide (y = id)
-                  then msg.plain mtype.VoteResp id id T false
-                  else pvote_req id y T (f y))).
-  assert (∀ f, cmsg f id = msg.plain mtype.VoteResp id id T false) as Hcmsg_self.
+                  then msg.plain (vresp_ty pre) id id T false
+                  else req y (f y))).
+  assert (∀ f, cmsg f id = msg.plain (vresp_ty pre) id id T false) as Hcmsg_self.
   { intros f. rewrite /cmsg /=. rewrite decide_True //. }
-  assert (∀ f z, z ≠ id → cmsg f z = pvote_req id z T (f z)) as Hcmsg_peer.
+  assert (∀ f z, z ≠ id → cmsg f z = req z (f z)) as Hcmsg_peer.
   { intros f z Hz. rewrite /cmsg /=. rewrite decide_False //. }
   (* [xs] enumerates the voters, so it is [id] followed by the other voters
      in some order -- which is exactly the shape [step_campaign] asks for. *)
   assert (xs ≡ₚ id :: elements (cfg ∖ {[id]})) as Hxs_split.
   { rewrite -Hxs Hkeys_perm. by apply elements_split. }
   assert (∀ f, cmsg f <$> elements (cfg ∖ {[id]})
-          = (λ to, pvote_req id to T (f to)) <$> elements (cfg ∖ {[id]}))
+          = (λ to, req to (f to)) <$> elements (cfg ∖ {[id]}))
     as Hpeers.
   { intros f. apply list_fmap_ext. intros i z Hiz.
     apply Hcmsg_peer. intros ->.
@@ -215,9 +265,6 @@ Proof.
     by eapply list_elem_of_lookup_2. }
   iDestruct (own_raft_phys_send_nil with "Hphys") as "Hphys".
   iDestruct (own_slice_len with "Hsl") as "%Hxslen".
-  (* [cur] -- the [slice.for_range]'s own [id] variable -- is assigned on every
-     iteration, so it has to be existentially quantified *inside* the
-     invariant.  So does [f]. *)
   (* every request carries the log's last entry id, [L] *)
   set (L := plog_last s.(nstate.logst).(logstate.prev)
               (s.(nstate.logst).(logstate.sents) ++ s.(nstate.logst).(logstate.uents))).
@@ -227,7 +274,7 @@ Proof.
      "%Hn" ∷ ⌜ 0 ≤ sint.Z n ≤ Z.of_nat (length xs) ⌝ ∗
      "%Hf" ∷ ⌜ ∀ z, f z = L ⌝ ∗
      "Hphys" ∷ own_raft_phys cfg r id
-       (send_msgs (become_candidate id s <| nstate.prvals := pvs |>)
+       (send_msgs (camp_role_state id s pre <| nstate.prvals := pvs |>)
           (cmsg f <$> take (Z.to_nat (sint.Z n)) xs)))%I
     with "[i cur Hphys]" as "IH".
   { iExists (W64 0), (W64 0), (λ _, L).
@@ -244,7 +291,8 @@ Proof.
   - (* one more voter to notify *)
     assert (∃ y, xs !! Z.to_nat (sint.Z n) = Some y) as [y Hy].
     { apply lookup_lt_is_Some_2. word. }
-    case_decide as Hdec; [clear Hdec | exfalso; apply Hdec; word].
+    destruct (decide (0 ≤ sint.Z n < sint.Z sl'.(slice.len))) as [Hdec|Hdec];
+      [idtac | exfalso; apply Hdec; word].
     wp_apply (wp_load_slice_index (V:=w64) (t:=go.uint64)
                 sl' (sint.Z n) xs (DfracOwn 1) y with "[$Hsl]") as "Hsl";
       try first [ word | iPureIntro; exact Hy | tc_solve | done ].
@@ -264,30 +312,36 @@ Proof.
       intros ->. apply Hfresh. by eapply list_elem_of_lookup_2. }
     try wp_auto. wp_apply (wp_raft_load_id with "Hphys") as "Hphys".
     destruct (decide (y = id)) as [->|Hney].
-    + (* this node's own vote: a self-addressed [MsgVoteResp] *)
+    + (* this node's own vote: a self-addressed response *)
       rewrite bool_decide_eq_true_2 //. wp_auto.
       (* the response type: [wp_auto] cannot step through the call that
          computes the literal's [Type] field *)
-      wp_apply P.wp_voteRespMsgType; first done.
+      wp_apply (P.wp_voteRespMsgType (vreq_w32 pre) (vresp_w32 pre)).
+      { destruct pre; [right|left]; done. }
       (* [send]'s side conditions: [From = 0] (the literal leaves it unset),
          and [send_ok]'s vote clause -- the type is a vote message, its
          [mtype_of], the term is nonzero (this is what the no-wrap premise
-         buys), and -- only for a [MsgVote] -- the destination is not this
-         node.  The last is vacuous here: this is the [MsgVoteResp] arm. *)
-      wp_apply (P.wp_raft__send _ _ _ _ _ [] [msg.plain mtype.VoteResp id id T false]
+         buys), and -- only for a request -- the destination is not this
+         node.  The last is vacuous here: this is a response. *)
+      wp_apply (P.wp_raft__send _ _ _ _ _ [] [msg.plain (vresp_ty pre) id id T false]
                   with "[$Hphys]");
-        [done | left; exists mtype.VoteResp; split_and!;
-                [by right | apply mtype_of_MsgVoteResp | exact HTnz | w32_ne | done] | iSplitR; [iApply own_slice_nil | iApply send_no_snap; simpl; w32_ne] |].
+        [done | left; exists (vresp_ty pre); split_and!;
+                [ destruct pre; [right; right; right|right; left]; done
+                | destruct pre; reflexivity
+                | exact HTnz
+                | destruct pre; simpl; intros [Hc|Hc]; revert Hc; w32_ne
+                | done]
+              | iSplitR; [iApply own_slice_nil | iApply send_no_snap; destruct pre; simpl; w32_ne] |].
       iIntros "Hphys".
       iAssert (own_raft_phys cfg r id
-                 (send_msgs (become_candidate id s <| nstate.prvals := pvs |>)
+                 (send_msgs (camp_role_state id s pre <| nstate.prvals := pvs |>)
                     (cmsg f <$> take (Z.to_nat (sint.Z (word.add n (W64 1)))) xs)))
         with "[Hphys]" as "Hphys".
       { rewrite (Hgrow f) // Hcmsg_self -send_msgs_app. iExact "Hphys". }
       wp_auto.
       wp_for_post.
       iFrame. iPureIntro. split; [word|done].
-    + (* a peer: read the last entry, log, and send it a [MsgVote] *)
+    + (* a peer: read the last entry, log, and send it a request *)
       rewrite bool_decide_eq_false_2 //. wp_auto. wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".
       iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hback]".
       wp_apply (wp_raftLog__lastEntryID with "[$Hlog]") as "%lastID [Hlog %HlastID]".
@@ -296,23 +350,27 @@ Proof.
       set (f' := λ z, if decide (z = y) then lastID else f z).
       assert (∀ z, z ≠ y → f' z = f z) as Hf'.
       { intros z Hz. rewrite /f' decide_False //. }
-      assert (cmsg f' y = pvote_req id y T lastID) as Hcy.
+      assert (cmsg f' y = req y lastID) as Hcy.
       { rewrite Hcmsg_peer // /f' decide_True //. }
       assert (∀ z, f' z = L) as Hf'L.
-      { intros z. rewrite /f'. case_decide; [|done]. rewrite HlastID. reflexivity. }
+      { intros z. rewrite /f'. case_decide; [|done]. rewrite HlastID /L.
+        rewrite -(camp_role_state_logst id s pre). reflexivity. }
       (* [ctx] is the [campaignTransfer] marker or nil; the model does not
          look at a vote request's context, so both arms run the same tail. *)
       destruct (decide (t = campaignTransfer)) as [->|Hnt].
       * rewrite bool_decide_eq_true_2 //. wp_auto.
         wp_apply wp_string_to_bytes as "%csl [Hcs Hcs_cap]".
-        wp_apply (P.wp_raft__send _ _ _ _ _ [] [pvote_req id y T lastID]
+        wp_apply (P.wp_raft__send _ _ _ _ _ [] [req y lastID]
                     with "[$Hphys]");
-          [done | left; exists mtype.Vote; split_and!;
-                  [by left | apply mtype_of_MsgVote | exact HTnz
-                   | intros _; exact Hney | done] | iSplitR; [iApply own_slice_nil | iApply send_no_snap; simpl; w32_ne] |].
+          [done | left; exists (vreq_ty pre); split_and!;
+                  [ destruct pre; [right; right; left|left]; done
+                  | destruct pre; reflexivity
+                  | exact HTnz
+                  | intros _; exact Hney | done]
+                | iSplitR; [iApply own_slice_nil | iApply send_no_snap; destruct pre; simpl; w32_ne] |].
         iIntros "Hphys".
         iAssert (own_raft_phys cfg r id
-                   (send_msgs (become_candidate id s <| nstate.prvals := pvs |>)
+                   (send_msgs (camp_role_state id s pre <| nstate.prvals := pvs |>)
                       (cmsg f' <$> take (Z.to_nat (sint.Z (word.add n (W64 1)))) xs)))
           with "[Hphys]" as "Hphys".
         { rewrite (Hgrow f' Hf') Hcy -send_msgs_app. iExact "Hphys". }
@@ -320,14 +378,17 @@ Proof.
         wp_for_post.
         iFrame. iPureIntro. split; [word|exact Hf'L].
       * rewrite bool_decide_eq_false_2 //. wp_auto.
-        wp_apply (P.wp_raft__send _ _ _ _ _ [] [pvote_req id y T lastID]
+        wp_apply (P.wp_raft__send _ _ _ _ _ [] [req y lastID]
                     with "[$Hphys]");
-          [done | left; exists mtype.Vote; split_and!;
-                  [by left | apply mtype_of_MsgVote | exact HTnz
-                   | intros _; exact Hney | done] | iSplitR; [iApply own_slice_nil | iApply send_no_snap; simpl; w32_ne] |].
+          [done | left; exists (vreq_ty pre); split_and!;
+                  [ destruct pre; [right; right; left|left]; done
+                  | destruct pre; reflexivity
+                  | exact HTnz
+                  | intros _; exact Hney | done]
+                | iSplitR; [iApply own_slice_nil | iApply send_no_snap; destruct pre; simpl; w32_ne] |].
         iIntros "Hphys".
         iAssert (own_raft_phys cfg r id
-                   (send_msgs (become_candidate id s <| nstate.prvals := pvs |>)
+                   (send_msgs (camp_role_state id s pre <| nstate.prvals := pvs |>)
                       (cmsg f' <$> take (Z.to_nat (sint.Z (word.add n (W64 1)))) xs)))
           with "[Hphys]" as "Hphys".
         { rewrite (Hgrow f' Hf') Hcy -send_msgs_app. iExact "Hphys". }
@@ -338,27 +399,28 @@ Proof.
     assert (sint.Z n = Z.of_nat (length xs)) as Hfull0 by word.
     assert (Z.to_nat (sint.Z n) = length xs) as Hfull.
     { rewrite Hfull0 Nat2Z.id //. }
-    assert (send_msgs (become_candidate id s <| nstate.prvals := pvs |>)
+    assert (send_msgs (camp_role_state id s pre <| nstate.prvals := pvs |>)
               (cmsg f <$> take (Z.to_nat (sint.Z n)) xs)
-            = send_msgs (become_candidate id s <| nstate.prvals := pvs |>) (cmsg f <$> xs)) as Hall.
+            = send_msgs (camp_role_state id s pre <| nstate.prvals := pvs |>) (cmsg f <$> xs)) as Hall.
     { rewrite Hfull firstn_all //. }
     rewrite Hall.
     iApply ("HΦ" $! (elements (cfg ∖ {[id]})) pvs).
     iSplitR "Hphys"; first (iPureIntro; done).
     iDestruct (own_raft_phys_send_perm _ _ _ _
-      ([msg.plain mtype.VoteResp id id T false] ++
-       ((λ to, pvote_req id to T L) <$> elements (cfg ∖ {[id]})))
+      ([msg.plain (vresp_ty pre) id id T false] ++
+       ((λ to, req to L) <$> elements (cfg ∖ {[id]})))
       with "Hphys") as "Hphys".
-    2:{ (* [reset]'s new [Progress] values commute with the sends *)
+    2:{ (* the role transition's new [Progress] values commute with the
+           sends, and the messages are [campaign_state]'s *)
         iApply (own_raft_phys_eq with "Hphys").
-        rewrite send_msgs_prvals. reflexivity. }
+        apply campaign_state_eq. }
     (* [xs] is [id] followed by the other voters, and [cmsg] turns those into
-       the self-addressed [MsgVoteResp] and one [MsgVote] each. *)
+       the self-addressed response and one request each. *)
     assert (cmsg f <$> xs ≡ₚ cmsg f <$> (id :: elements (cfg ∖ {[id]}))) as Hp1.
     { by apply (fmap_Permutation (cmsg f)). }
     etrans; first exact Hp1.
     rewrite fmap_cons Hcmsg_self Hpeers.
-    rewrite (list_fmap_ext _ (λ to, pvote_req id to T L) (elements (cfg ∖ {[id]}))); first done.
+    rewrite (list_fmap_ext _ (λ to, req to L) (elements (cfg ∖ {[id]}))); first done.
     intros i z _. simpl. rewrite Hf //.
 Qed.
 

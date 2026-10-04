@@ -1207,6 +1207,41 @@ Inductive step : pstate.t → list msg.t → pstate.t → Prop :=
        (psend_msgs (padopt_leader s m.(msg.from))
           [msg.mk mtype.AppResp id m.(msg.from) s.(pstate.term) false s.(pstate.commit)
              (W64 0) (W64 0) (W64 0) []])
+
+(** *** Pre-vote (phase 3, 2026-10-04)
+
+    Pre-vote is an implementation detail: the protocol does not model it
+    (notes/raft-replication-model.md, "Phase 3 ... Pre-vote").  What a
+    pre-vote does to protocol state is covered by these rules and the
+    existing ones ([step_campaign] for the real election a won pre-vote
+    starts, [step_higher_term] for a rejecting [PreVoteResp] of a higher
+    term). *)
+
+(** Sending a pre-vote message, which carries nothing ([msg_free]; that
+    definition is below, with the ghost state, so the premise names the
+    two types): a [PreVote] at the next term, a [PreVoteResp] either
+    way. *)
+| step_send_free s m :
+  m.(msg.ty) = mtype.PreVote ∨ m.(msg.ty) = mtype.PreVoteResp →
+  m.(msg.from) = id →
+  step s [] (psend_msgs s [m])
+
+(** A non-leader that (pre-)campaigns, or a pre-candidate that loses, is
+    a follower at the same term with no leader, keeping its vote
+    ([becomePreCandidate]: [lead := None], the tally reset).  For a
+    candidate this is [step_lose] without the quorum premise; a follower
+    forgets its leader. *)
+| step_abandon s :
+  s.(pstate.role) ≠ role.Leader →
+  step s [] (pbecome_follower s s.(pstate.term) (W64 0))
+
+(** [Step]'s stale-term arm with pre-vote on: a [MsgApp]/[MsgHeartbeat]
+    from a lower term is answered with [MsgAppResp{To: m.From}] -- [Term]
+    stamped, [Index = 0], which acknowledges nothing ([is_acked] at [0]
+    holds for free). *)
+| step_zero_ack s (to : w64) :
+  step s [] (psend_msgs s [msg.mk mtype.AppResp id to s.(pstate.term) false
+                             (W64 0) (W64 0) (W64 0) (W64 0) []])
 .
 
 End model.
@@ -3099,7 +3134,10 @@ Proof.
     | m s Hty Hrole Hlead
     | m s Hty Hto Hfid Hterm Hrole Hvoters Hidin Hlt Hnm
     | m s Hty Hto Hfid Hterm Hrole Hvoters Hidin Hlt Hmt
-    | m s Hty Hto Hfid Hterm Hrole Hle ].
+    | m s Hty Hto Hfid Hterm Hrole Hle
+    | s m Hfree Hfrom
+    | s Hrole
+    | s to ].
 
   - (* step_refl *)
     iIntros "_ Hown". by iFrame.
@@ -3332,6 +3370,47 @@ Proof.
   - (* step_snap_stale *)
     iIntros "_ Hown".
     by iMod (own_raft_ghost_step_snap_stale with "Hown") as "$".
+
+  - (* step_send_free: the outbox grows by a message that carries nothing *)
+    iIntros "_ Hown". destruct_ghost.
+    iModIntro.
+    iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
+             with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
+    + iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
+    + rewrite /psend_msgs /= big_sepL_app big_sepL_singleton. iFrame "Hout".
+      iApply is_message_free. by destruct Hfree as [-> | ->].
+    + simpl. iFrame "#".
+    + rewrite /leader_wit /=. iFrame "#".
+    + iApply (own_log_ghost_mono with "Hlg"); log_mono_tac.
+
+  - (* step_abandon: back to follower in the same term, so the vote stands
+       ([step_lose]'s case) *)
+    iIntros "_ Hown". destruct_ghost.
+    assert (Hhist' : vote_hist_ok voted
+                       (pbecome_follower s s.(pstate.term) (W64 0))).
+    { destruct Hhist as [Hdom Heq].
+      rewrite /vote_hist_ok pbecome_follower_vote_same.
+      split; simpl; [done|exact Heq]. }
+    iModIntro.
+    iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
+             with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
+    + iPureIntro. exact Hhist'.
+    + by rewrite /pbecome_follower /=.
+    + rewrite /pbecome_follower /= granted_empty big_sepS_empty //.
+    + rewrite /leader_wit /pbecome_follower /=. done.
+    + iApply (own_log_ghost_mono with "Hlg"); log_mono_tac.
+
+  - (* step_zero_ack: an acknowledgement of index [0] is free *)
+    iIntros "_ Hown". destruct_ghost.
+    iModIntro.
+    iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
+             with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
+    + iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
+    + rewrite /psend_msgs /= big_sepL_app big_sepL_singleton. iFrame "Hout".
+      rewrite /is_message /= /is_acked. iLeft. done.
+    + simpl. iFrame "#".
+    + rewrite /leader_wit /=. iFrame "#".
+    + iApply (own_log_ghost_mono with "Hlg"); log_mono_tac.
 Qed.
 
 (** *** Protocol facts the code needs

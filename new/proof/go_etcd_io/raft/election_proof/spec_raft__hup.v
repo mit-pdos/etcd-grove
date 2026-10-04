@@ -4,7 +4,9 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
     configuration change, then campaigns.  Genuinely disjunctive — it either
     campaigns or returns having done nothing — so unlike [campaign] its
     postcondition names the model's relation rather than a specific state; the
-    do-nothing case is [step_refl].
+    do-nothing case is [step_refl].  Since 2026-10-04 [t] is any campaign
+    type, [campaignPreElection] included: a pre-election is [step_abandon]
+    and free sends ([step_campaign_state], [step_lemmas.v]).
 
     Ghost-free: the [step] witness is a pure fact handed to the caller, which
     is where it is turned into an update of [own_raft_ghost]. *)
@@ -14,7 +16,6 @@ Definition wp_raft__hup_body :=
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (cfg : gset w64)
     (r : loc) (id : w64) (s : nstate.t) (t : raft.CampaignType.t),
-  t ≠ campaignPreElection →
   (* [hup] may reach [campaign], which increments the term -- see the note on
      [wp_raft__campaign_body]. *)
   uint.Z s.(nstate.term) + 1 < 2 ^ 64 →

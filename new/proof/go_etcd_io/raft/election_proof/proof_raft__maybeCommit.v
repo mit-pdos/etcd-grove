@@ -82,7 +82,7 @@ Qed.
       + rewrite /acked_by /= decide_True //.
         apply is_quorum_index_acked; [word | exact Hq].
     - iSplitL.
-      { iApply (own_raft_phys_eq with "Hphys"). by destruct s as [?????????[]?]. }
+      { iApply (own_raft_phys_eq with "Hphys"). by destruct s as [?????????[]??]. }
       iPureIntro. done.
   Qed.
 

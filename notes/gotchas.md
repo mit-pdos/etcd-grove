@@ -1903,3 +1903,30 @@ likely the same search), and `newRaft.v:29`/`appliedTo.v:18`/
   the outer's (`wp_alloc j_ptr as "j"`); after the inner `break`,
   `wp_for_post` twice (inner, then the outer's `if found { break }`).
   `proof_raft__restore.v`.
+
+## Pre-vote (2026-10-04)
+
+- **`case_decide` looks at hypotheses first** (stdpp's implementation
+  matches `H : context [decide _]` before the goal).  A hypothesis with an
+  `if bool_decide …` or a `decide` in it -- `Hmvr : mvr = if bool_decide
+  … then …` in `stepCandidate`, a `set` whose body has `decide` in
+  `campaign` -- makes the next `case_decide` destruct *that*, failing
+  later with "H is used in hypothesis …" or "… used in conclusion".
+  Restate such facts without `decide` (`Hmp`/`Hmc` implications), and
+  destruct the program's test by naming it: `destruct (decide (0 ≤ sint.Z
+  n < sint.Z sl.(slice.len))) as [Hd|Hd]`.
+- **`rewrite /MsgVote bool_decide_eq_true_2` after `subst`ing the type**
+  failed ("LHS does not match") where `rewrite bool_decide_eq_true_2 //`
+  (closing `MsgVote = W32 5` by `done`) works (`proof_voteRespMsgType.v`).
+- **`to_pstate`'s fields are no longer the physical ones** for an
+  abstract role: `(to_pstate s).(pstate.role)` is `prole_role s.role`,
+  `.lead`/`.votes` are `if decide (s.role = PreCandidate) …`.  A model
+  premise `ps.role = role.Leader` is `rewrite to_pstate_role Hrole //`,
+  not `exact Hrole`; `injection` of a `to_pstate` equation gives the
+  `if`-forms, which rewrite fine as long as the goal is `/=`-simplified
+  the same way.
+- A `wp_wand` join over a short-circuiting boolean expression whose
+  branches load sealed fields (`canVote`): inside, `repeat` a step tactic
+  that tries `progress wp_auto`, each field lemma, and a
+  `lazymatch goal with |- context [bool_decide ?P]` case split
+  (`proof_raft__Step_MsgPreVote_gt.v`, `cv_step`).

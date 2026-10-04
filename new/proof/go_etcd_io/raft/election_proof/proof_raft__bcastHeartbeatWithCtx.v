@@ -16,7 +16,7 @@ Context (cfg : gset w64).
     reading of a leader's state, given its two bounds against that state's
     [committed] and [Match]. *)
 Local Lemma heartbeat_ok_intro id (s : nstate.t) (to c : w64) :
-  s.(nstate.role) = role.Leader →
+  s.(nstate.role) = prole.Leader →
   to ≠ id →
   uint.Z c ≤ uint.Z s.(nstate.logst).(logstate.committed) →
   uint.Z c ≤ uint.Z (default (W64 0) (prvals_match s.(nstate.prvals) !! to)) →
@@ -38,7 +38,7 @@ Qed.
     pvsx |>], whose [committed] is [s]'s and whose [Match] values are
     [s]'s (the invariant's [Hmm]), so its bounds are bounds at [s]. *)
 Lemma wp_bcast_hb (r : loc) (id : w64) (s : nstate.t) (ctx : slice.t) :
-  s.(nstate.role) = role.Leader →
+  s.(nstate.role) = prole.Leader →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "bcastHeartbeatWithCtx" #ctx
   {{{ (ms : list msg.t) pvs, RET #();

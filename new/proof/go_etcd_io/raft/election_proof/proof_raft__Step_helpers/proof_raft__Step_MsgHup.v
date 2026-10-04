@@ -53,14 +53,14 @@ Implicit Type s : nstate.t.
     (* the type switch selects the [MsgHup] case *)
     rewrite Hty /MsgHup bool_decide_eq_true_2 //.
     wp_auto.
-    (* no pre-vote, so this is a plain [hup(campaignElection)] *)
+    (* [hup(campaignPreElection)] with pre-vote on, [hup(campaignElection)]
+       otherwise; [hup]'s spec covers both *)
     wp_apply (wp_raft_load_preVote with "Hphys") as "Hphys".
-    wp_apply (P.wp_raft__hup with "[$Hphys]") as "%s' (Hphys & %Hwf' & %Hstep)".
-    { done. }
-    { exact Hnowrap. }
-    { exact Hwf. }
-    iApply ("HΦ" $! interface.nil s'). iFrame "Hphys".
-    iPureIntro. split; [exact Hwf' | split; [exact Hstep | done]].
+    destruct (s.(nstate.prevote)); wp_auto.
+    all: wp_apply (P.wp_raft__hup with "[$Hphys]") as "%s' (Hphys & %Hwf' & %Hstep)";
+      [exact Hnowrap | exact Hwf |].
+    all: iApply ("HΦ" $! interface.nil s'); iFrame "Hphys".
+    all: iPureIntro; split; [exact Hwf' | split; [exact Hstep | done]].
   Qed.
 
 End branches.

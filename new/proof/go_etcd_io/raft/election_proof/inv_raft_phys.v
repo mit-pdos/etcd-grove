@@ -156,8 +156,11 @@ Definition own_raft_phys_def (r : loc) (id : w64) s : iProp Σ :=
                     rv.(raft.raft.msgsAfterAppend') (DfracOwn 1) ∗
   "#Houtbox" ∷ outbox_rel s.(nstate.outbox) msgs msgsAA ∗
 
+  (** [r.preVote], recorded (since 2026-10-04; until then a scope
+      conjunct pinned it to [false]).  Never written after [newRaft]. *)
+  "%Hprevote" ∷ ⌜ rv.(raft.raft.preVote') = s.(nstate.prevote) ⌝ ∗
+
   (** scope assumptions *)
-  "%HnoPreVote" ∷ ⌜ rv.(raft.raft.preVote') = false ⌝ ∗
   (** [Config.DisableProposalForwarding] is [false] ([newRaft]'s premise):
       a follower forwards a proposal to the leader it knows.  Never
       written after [newRaft].  Added 2026-10-02. *)
@@ -216,7 +219,7 @@ Lemma own_raft_phys_intro r id s (rv : raft.raft.t)
   rv.(raft.raft.lead') = s.(nstate.lead) →
   rv.(raft.raft.state') = state_w64 s.(nstate.role) →
   rv.(raft.raft.step') = s.(nstate.stepfn) →
-  rv.(raft.raft.preVote') = false →
+  rv.(raft.raft.preVote') = s.(nstate.prevote) →
   rv.(raft.raft.disableProposalForwarding') = false →
   rv.(raft.raft.checkQuorum') = false →
   rv.(raft.raft.isLearner') = false →
@@ -240,7 +243,7 @@ Lemma own_raft_phys_intro r id s (rv : raft.raft.t)
   outbox_rel s.(nstate.outbox) msgs msgsAA -∗
   own_raft_phys r id s.
 Proof.
-  intros Hid Hterm Hvote Hlead Hstate Hstepfn HnoPreVote HpropForward HnoCheckQuorum
+  intros Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCheckQuorum
     HnoLearner HnoTransfer Hid_nz HelectionTimeout Hlok Hlogp.
   iIntros "Hr #Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc #Houtbox".
   rewrite own_raft_phys_unseal /own_raft_phys_def. iExists rv, msgs, msgsAA, lok.
@@ -436,8 +439,8 @@ Proof. load_proof. rewrite HnoCheckQuorum. iApply "HΦ". reseal. Qed.
 Lemma wp_raft_load_preVote r id s :
   {{{ own_raft_phys r id s }}}
     ![go.bool] #(r.[raft.raft.t, "preVote"])
-  {{{ RET #false; own_raft_phys r id s }}}.
-Proof. load_proof. rewrite HnoPreVote. iApply "HΦ". reseal. Qed.
+  {{{ RET #s.(nstate.prevote); own_raft_phys r id s }}}.
+Proof. load_proof. rewrite Hprevote. iApply "HΦ". reseal. Qed.
 
 Lemma wp_raft_load_disableProposalForwarding r id s :
   {{{ own_raft_phys r id s }}}
@@ -549,8 +552,8 @@ Proof. store_proof. Qed.
 
 (** Stated at [state_w64 ro], so the caller names the role; the Go code
     stores the constant ([StateFollower] = [W64 0]), which unifies with
-    [state_w64 role.Follower] by computation. *)
-Lemma wp_raft_store_state r id s (ro : role.t) :
+    [state_w64 prole.Follower] by computation. *)
+Lemma wp_raft_store_state r id s (ro : prole.t) :
   {{{ own_raft_phys r id s }}}
     GoStore raft.StateType (#(r.[raft.raft.t, "state"]), #(state_w64 ro))%V
   {{{ RET #(); own_raft_phys r id (s <| nstate.role := ro |>) }}}.

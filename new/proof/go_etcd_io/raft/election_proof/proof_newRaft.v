@@ -7,7 +7,7 @@ Import P.
   Proof.
     intros_ambient.
     intros c cv lok si prev ents ss hs cs voters dqv
-      Hvalid Hlok Hsto HmaxInfl Hpv Hcq Hdpf Hidx Hncc Hss Hhs Happ Hvne Hvnd Hv0 Hcs1 Hcs2 Hcs3 Hal.
+      Hvalid Hlok Hsto HmaxInfl Hcq Hdpf Hidx Hncc Hss Hhs Happ Hvne Hvnd Hv0 Hcs1 Hcs2 Hcs3 Hal.
     pose proof Hvalid as (HvID & HvID1 & HvID2 & Hticks & HvSt & HvInfl & HvIB & HvLog & HvRO).
     wp_start as "(Hc & #Hlg0 & #HisSto & HSto & #HInit)".
     wp_auto.
@@ -60,8 +60,8 @@ Import P.
     set cfgs := (list_to_set voters : gset w64).
     set ls0 := logstate.mk prev ents [] prev.(raft.entryID.index')
                  prev.(raft.entryID.index') None.
-    set s0 := nstate.mk (W64 0) (W64 0) (W64 0) role.Follower ∅ [] func.nil ∅ l
-                ls0 ∅.
+    set s0 := nstate.mk (W64 0) (W64 0) (W64 0) prole.Follower ∅ [] func.nil ∅ l
+                ls0 ∅ cv.(raft.Config.PreVote').
     iDestruct (own_tracker_empty tv0 v0 Htv0arr Htv0l Htv0ln Htv0al Hmi
                  with "Hv0 Hvotes Hprs0") as "Htrk0".
     iAssert (own_raft_misc slice.nil ro slice.nil) with "[Hro]" as "Hmisc".
@@ -71,7 +71,7 @@ Import P.
     iDestruct (own_raft_phys_intro ∅ _ cv.(raft.Config.ID') s0 _ [] [] lok with
       "Hr Hlg0 Htrk0 HL [] [] [] [] Hmisc []") as "Hphys".
     all: try done.
-    1-5: simpl; rewrite ?HpID ?HpPV ?HpDPF ?HpCQ ?HpLg ?HpET; try done; lia.
+    1-4: simpl; rewrite ?HpID ?HpPV ?HpDPF ?HpCQ ?HpLg ?HpET; try done; lia.
     1,3: iApply own_slice_nil.
     1,2: iApply own_slice_cap_nil.
     1: iApply outbox_rel_nil.
@@ -233,7 +233,8 @@ Import P.
     iPureIntro. rewrite /s3.
     split; first (apply nstate_wf_prvals, nstate_wf_become_follower).
     rewrite /become_follower /reset_to. cbn [nstate.term nstate.vote nstate.lead
-      nstate.role nstate.votes nstate.outbox nstate.prvals set nstate.settable].
+      nstate.role nstate.votes nstate.outbox nstate.prvals nstate.prevote
+      set nstate.settable].
     rewrite decide_True //.
   Qed.
 

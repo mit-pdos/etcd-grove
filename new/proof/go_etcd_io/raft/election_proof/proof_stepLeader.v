@@ -55,14 +55,14 @@ Lemma commit_same s ms pvs pvs' :
   send_msgs (s <| nstate.logst := s.(nstate.logst) <| logstate.committed :=
                                     s.(nstate.logst).(logstate.committed) |> |>) ms
     <| nstate.prvals := pvs |>.
-Proof. by destruct s as [?????????[]?]. Qed.
+Proof. by destruct s as [?????????[]??]. Qed.
 
 Lemma commit_same_nil s pvs :
   s <| nstate.prvals := pvs |> =
   send_msgs (s <| nstate.logst := s.(nstate.logst) <| logstate.committed :=
                                     s.(nstate.logst).(logstate.committed) |> |>) []
     <| nstate.prvals := pvs |>.
-Proof. rewrite /send_msgs app_nil_r. by destruct s as [?????????[]?]. Qed.
+Proof. rewrite /send_msgs app_nil_r. by destruct s as [?????????[]??]. Qed.
 
 (** [Match] under the [Progress] methods [stepLeader] calls. *)
 Lemma decr_to_match p a b :
@@ -84,11 +84,11 @@ Proof. rewrite /progress_maybe_update. case_bool_decide; case_decide; done. Qed.
 Local Ltac first_switch_skip Hty lit :=
   rewrite Hty /lit; rewrite bool_decide_eq_false_2; [|w32_ne]; wp_auto.
 
-(** ** [MsgVoteResp], [MsgApp], [MsgHeartbeat]: both switches fall through,
-    whether or not the sender has a [Progress] *)
+(** ** [MsgVoteResp], [MsgApp], [MsgHeartbeat], [MsgPreVoteResp]: both
+    switches fall through, whether or not the sender has a [Progress] *)
 Lemma wp_stepLeader_noop r id s (m : raftpb.Message.t) :
   m.(raftpb.Message.Type') = MsgVoteResp ∨ m.(raftpb.Message.Type') = MsgApp ∨
-  m.(raftpb.Message.Type') = MsgHeartbeat →
+  m.(raftpb.Message.Type') = MsgHeartbeat ∨ m.(raftpb.Message.Type') = MsgPreVoteResp →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     @! raft.stepLeader #r #m
   {{{ (err : error.t) (s' : nstate.t), RET #err;
@@ -99,8 +99,9 @@ Proof.
   wp_start as "Hphys".
   wp_auto.
   assert (m.(raftpb.Message.Type') = W32 6 ∨ m.(raftpb.Message.Type') = W32 3 ∨
-          m.(raftpb.Message.Type') = W32 8) as Hl by exact Hty.
-  destruct Hl as [Hl|[Hl|Hl]]; rewrite Hl;
+          m.(raftpb.Message.Type') = W32 8 ∨ m.(raftpb.Message.Type') = W32 18) as Hl
+    by exact Hty.
+  destruct Hl as [Hl|[Hl|[Hl|Hl]]]; rewrite Hl;
     (rewrite bool_decide_eq_false_2; [|w32_ne]); wp_auto.
   all: iDestruct (own_raft_phys_tracker_same with "Hphys") as (tv) "(Htrkf & Htrk & Hback)".
   all: iDestruct (own_tracker_progress_map with "Htrk") as "(#Hprs & _ & Htrk)".
@@ -118,7 +119,7 @@ Qed.
 (** ** [MsgBeat]: [bcastHeartbeat], return *)
 Lemma wp_stepLeader_beat r id s (m : raftpb.Message.t) :
   m.(raftpb.Message.Type') = MsgBeat →
-  s.(nstate.role) = role.Leader →
+  s.(nstate.role) = prole.Leader →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     @! raft.stepLeader #r #m
   {{{ (err : error.t) (s' : nstate.t), RET #err;
@@ -154,7 +155,7 @@ Local Ltac hb_skip :=
 (** ** [MsgHeartbeatResp] *)
 Lemma wp_stepLeader_hbresp r id s (m : raftpb.Message.t) :
   m.(raftpb.Message.Type') = MsgHeartbeatResp →
-  s.(nstate.role) = role.Leader →
+  s.(nstate.role) = prole.Leader →
   m.(raftpb.Message.From') ≠ id →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s ∗
       m.(raftpb.Message.Context') ↦*□ ([] : list w8) }}}
@@ -266,7 +267,7 @@ Qed.
 (** ** [MsgAppResp] *)
 Lemma wp_stepLeader_appresp r id s (m : raftpb.Message.t) :
   m.(raftpb.Message.Type') = MsgAppResp →
-  s.(nstate.role) = role.Leader →
+  s.(nstate.role) = prole.Leader →
   id ∈ cfg →
   m.(raftpb.Message.From') ≠ W64 0 →
   (m.(raftpb.Message.Reject') = true → m.(raftpb.Message.From') ≠ id) →
@@ -446,7 +447,7 @@ Proof.
     right; right. split_and!; [done|done|].
     exists x, pvs2, s.(nstate.logst).(logstate.committed), [].
     split_and!; [done|done|by left|by apply Forall_nil|].
-    rewrite send_msgs_nil_prvals. by destruct s as [?????????[]?]. }
+    rewrite send_msgs_nil_prvals. by destruct s as [?????????[]??]. }
   wp_auto.
   (* the [switch] on [pr.State], joined: [Match] does not move *)
   wp_bind (if: _ then _ else _)%E.
@@ -820,7 +821,7 @@ Set Default Proof Using "Type".
       { iPureIntro. rewrite /leader_step_result decide_False //. }
       iSplitR; first done.
       iIntros "%Hc". by exfalso. }
-    destruct Hty as [Hty|[Hty|[Hty|[Hty|[Hty|[Hty|Hty]]]]]].
+    destruct Hty as [Hty|[Hty|[Hty|[Hty|[Hty|[Hty|[Hty|Hty]]]]]]].
     - iApply (wp_stepLeader_noop cfg r id s m (or_introl Hty)
                 with "[$Hinit $Hphys] HΦ'").
     - iApply (wp_stepLeader_beat cfg r id s m Hty Hlead with "[$Hinit $Hphys] HΦ'").
@@ -833,7 +834,9 @@ Set Default Proof Using "Type".
     - by exfalso.
     - iApply (wp_stepLeader_noop cfg r id s m (or_intror (or_introl Hty))
                 with "[$Hinit $Hphys] HΦ'").
-    - iApply (wp_stepLeader_noop cfg r id s m (or_intror (or_intror Hty))
+    - iApply (wp_stepLeader_noop cfg r id s m (or_intror (or_intror (or_introl Hty)))
+                with "[$Hinit $Hphys] HΦ'").
+    - iApply (wp_stepLeader_noop cfg r id s m (or_intror (or_intror (or_intror Hty)))
                 with "[$Hinit $Hphys] HΦ'").
   Qed.
 

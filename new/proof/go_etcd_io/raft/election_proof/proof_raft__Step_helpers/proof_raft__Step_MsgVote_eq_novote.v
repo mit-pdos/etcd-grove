@@ -47,10 +47,10 @@ Implicit Type s : nstate.t.
   Local Ltac vote_grant_tail id_ s_ m_ ents_ ty_eq to_eq can wf_ utd :=
     try wp_auto;
     (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Vote with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log);
-    wp_apply P.wp_voteRespMsgType; [done|];
+    wp_apply P.wp_voteRespMsgType; [by left|];
     wp_apply (P.wp_raft__send _ _ _ _ _ [] with "[$Hphys]") as "Hphys";
       [done|left; exists mtype.VoteResp; split_and!;
-            [by right|apply mtype_of_MsgVoteResp|done|w32_ne|done]|iSplitR; [iApply own_slice_nil | iApply send_no_snap; simpl; w32_ne]|];
+            [by right; left|apply mtype_of_MsgVoteResp|done|intros [Hc|Hc]; revert Hc; w32_ne|done]|iSplitR; [iApply own_slice_nil | iApply send_no_snap; simpl; w32_ne]|];
     rewrite ty_eq /MsgVote bool_decide_eq_true_2 //;
     try wp_auto;
     (* [r.electionElapsed = 0; r.Vote = m.From] *)
@@ -83,7 +83,7 @@ Implicit Type s : nstate.t.
     (* [Term: r.Term] and the [voteRespMsgType] call, in whichever order the
        struct literal evaluates them *)
     wp_apply (wp_raft_load_Term with "Hphys") as "Hphys";
-    wp_apply P.wp_voteRespMsgType; [done|];
+    wp_apply P.wp_voteRespMsgType; [by left|];
     (* The response carries [s.term], so [send]'s [m.Term ≠ 0] premise is the
        incoming message's, transported along [m.Term = s.term].  The [simpl] is not
        optional: the premise is stated about the *message literal*, so the
@@ -91,7 +91,7 @@ Implicit Type s : nstate.t.
        [done]/[assumption] -- does not see through the projection. *)
     wp_apply (P.wp_raft__send _ _ _ _ _ [] with "[$Hphys]") as "Hphys";
       [done|left; exists mtype.VoteResp; split_and!;
-            [by right|apply mtype_of_MsgVoteResp|(simpl; congruence)|w32_ne|done]|iSplitR; [iApply own_slice_nil | iApply send_no_snap; simpl; w32_ne]|];
+            [by right; left|apply mtype_of_MsgVoteResp|(simpl; congruence)|intros [Hc|Hc]; revert Hc; w32_ne|done]|iSplitR; [iApply own_slice_nil | iApply send_no_snap; simpl; w32_ne]|];
     iApply ("HΦ" $! interface.nil _); iFrame "Hphys";
     iPureIntro; split; [exact wf_|]; split; [|done];
     exists [abs_msg mtype.Vote m_ ents_];
@@ -197,7 +197,7 @@ Implicit Type s : nstate.t.
           -- (* and recognises no leader: [canVote] *)
              rewrite Hl0 bool_decide_eq_true_2 //. wp_auto.
              assert (Hcan : pcan_vote (to_pstate s) m.(raftpb.Message.From'))
-               by (rewrite /pcan_vote /=; right; split; congruence).
+               by (rewrite /pcan_vote; right; split; [rewrite /=; congruence|by apply to_pstate_lead_0]).
              (* each [raftLog] call: load the field, open the log, call,
                 close it again -- the next field load needs ["Hphys"] *)
              wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys".

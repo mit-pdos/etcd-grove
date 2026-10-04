@@ -116,10 +116,11 @@ Implicit Type s : nstate.t.
       wp_apply (P.wp_stepCandidate _ _ _ _ _ [] (zero_val _) [] with "[$Hphys]").
       { right; right; right; right; left. exact Hty3. }
       { intros _. exact Hteq. }
-      { exact Hrole. }
+      { by left. }
       { exact Hcfg. }
       { intros Hc. exfalso. rewrite Hty in Hc. revert Hc. w32_ne. }
       { intros Hc. exfalso. rewrite Hty in Hc. revert Hc. w32_ne. }
+      { intros _ Hc. exfalso. revert Hc. rewrite Hty. w32_ne. }
       { iSplitR; [step_no_snap|]. iIntros "%Hc". exfalso. rewrite Hty in Hc. revert Hc. w32_ne. }
       iIntros (err s1 dropped) "(Hphys & %Hres & Herrn)".
       destruct (candidate_step_result_noop cfg _ _ _ _ _ _ _ Hty3 Hres) as [-> ->]. iDestruct "Herrn" as %Herrn.
@@ -153,6 +154,26 @@ Implicit Type s : nstate.t.
       iApply ("HΦ" $! interface.nil s'). iFrame "Hphys".
       iPureIntro. split; first exact Hwf'. split; last done.
       exists []. split; last exact Hstep.
+      recv_elem.
+    - (* PreCandidate (2026-10-04), as a candidate:: no [MsgHeartbeatResp] arm either *)
+      assert (s.(nstate.stepfn) = functions raft.stepCandidate []) as Hsf
+        by (rewrite Hsfw ?Hrole //).
+      rewrite Hsf.
+      wp_apply (P.wp_stepCandidate _ _ _ _ _ [] (zero_val _) [] with "[$Hphys]").
+      { right; right; right; right; left. exact Hty3. }
+      { intros _. exact Hteq. }
+      { by right. }
+      { exact Hcfg. }
+      { intros Hc. exfalso. rewrite Hty in Hc. revert Hc. w32_ne. }
+      { intros Hc. exfalso. rewrite Hty in Hc. revert Hc. w32_ne. }
+      { intros _ Hc. exfalso. revert Hc. rewrite Hty. w32_ne. }
+      { iSplitR; [step_no_snap|]. iIntros "%Hc". exfalso. rewrite Hty in Hc. revert Hc. w32_ne. }
+      iIntros (err s1 dropped) "(Hphys & %Hres & Herrn)".
+      destruct (candidate_step_result_noop cfg _ _ _ _ _ _ _ Hty3 Hres) as [-> ->]. iDestruct "Herrn" as %Herrn.
+      rewrite Herrn. wp_auto.
+      iApply ("HΦ" $! interface.nil s). iFrame "Hphys".
+      iPureIntro. split; first exact Hwf. split; last done.
+      exists []. split; last apply step_refl.
       recv_elem.
   Qed.
 

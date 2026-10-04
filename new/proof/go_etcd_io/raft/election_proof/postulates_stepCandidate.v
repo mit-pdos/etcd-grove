@@ -17,6 +17,8 @@ Require Export New.proof.go_etcd_io.raft.election_proof.postulates_raft__bcastAp
 Require Export New.proof.go_etcd_io.raft.election_proof.postulates_raft__handleAppendEntries.
 Require Export New.proof.go_etcd_io.raft.election_proof.postulates_raft__handleHeartbeat.
 Require Export New.proof.go_etcd_io.raft.election_proof.postulates_raft__handleSnapshot.
+(* a pre-candidate's win starts the election (2026-10-04) *)
+Require Export New.proof.go_etcd_io.raft.election_proof.postulates_raft__campaign.
 
 Module Type STEPCANDIDATE_POSTULATES.
   Include POLL.
@@ -25,4 +27,5 @@ Module Type STEPCANDIDATE_POSTULATES.
   Include RAFT__HANDLEAPPENDENTRIES.
   Include RAFT__HANDLEHEARTBEAT.
   Include RAFT__HANDLESNAPSHOT.
+  Include CAMPAIGN.
 End STEPCANDIDATE_POSTULATES.

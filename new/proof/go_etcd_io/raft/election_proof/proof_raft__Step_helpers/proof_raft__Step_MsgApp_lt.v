@@ -93,17 +93,29 @@ Implicit Type s : nstate.t.
                          uint.Z s.(nstate.term)) = true) as Hb2
       by by apply bool_decide_eq_true_2.
     rewrite Hb2. rewrite bool_decide_eq_true_2 //. wp_auto.
-    (* (checkQuorum || preVote) && …: both off, so the whole test is false *)
+    (* (checkQuorum || preVote) && (MsgHeartbeat || MsgApp): [checkQuorum]
+       is off; with pre-vote on, a stale leader message is answered with a
+       bare [MsgAppResp] at the node's term (2026-10-04) *)
     wp_apply (wp_raft_load_checkQuorum with "Hphys") as "Hphys".
     wp_apply (wp_raft_load_preVote with "Hphys") as "Hphys".
-    (* not MsgPreVote, not MsgStorageAppendResp: only the log line *)
-    rewrite Hn17. wp_auto.
-    rewrite Hn20. wp_auto.
-    (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log).
-    iApply ("HΦ" $! interface.nil s). iFrame "Hphys".
-    iPureIntro. split; first exact Hwf. split; last done.
-    exists []. split; last apply step_refl.
-    recv_elem.
+    destruct (s.(nstate.prevote)); wp_auto.
+    - rewrite Hn8. wp_auto. rewrite Hy3. wp_auto.
+      wp_apply (P.wp_raft__send _ _ _ _ _ [] with "[$Hphys]") as "Hphys".
+      { done. }
+      { right; right; right; left. split_and!; done. }
+      { iSplitR; [iApply own_slice_nil | iApply send_no_snap; simpl; w32_ne]. }
+      iApply ("HΦ" $! interface.nil _). iFrame "Hphys".
+      iPureIntro. split; first by apply nstate_wf_send_msgs. split; last done.
+      exists []. split; first recv_elem.
+      rewrite to_pstate_send_msgs. apply step_zero_ack.
+    - (* not MsgPreVote, not MsgStorageAppendResp: only the log line *)
+      rewrite Hn17. wp_auto.
+      rewrite Hn20. wp_auto.
+      (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log).
+      iApply ("HΦ" $! interface.nil s). iFrame "Hphys".
+      iPureIntro. split; first exact Hwf. split; last done.
+      exists []. split; last apply step_refl.
+      recv_elem.
   Qed.
 
 End branches.

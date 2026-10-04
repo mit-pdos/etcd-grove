@@ -29,10 +29,10 @@ Require Export New.proof.bytes.
     [own_raft_phys]. *)
 (** The message types [Step] is specified for: every type its branches
     cover (2026-10-02; until then only [MsgHup]/[MsgVote]/[MsgVoteResp],
-    [election_msg]). *)
+    [election_msg]; [MsgPreVote]/[MsgPreVoteResp] since 2026-10-04). *)
 Definition step_msg_types : list w32 :=
   [MsgHup; MsgVote; MsgVoteResp; MsgApp; MsgAppResp; MsgHeartbeat;
-   MsgHeartbeatResp; MsgBeat; MsgProp; MsgSnap].
+   MsgHeartbeatResp; MsgBeat; MsgProp; MsgSnap; MsgPreVote; MsgPreVoteResp].
 
 Definition step_msg (m : raftpb.Message.t) : Prop :=
   m.(raftpb.Message.Type') ∈ step_msg_types.
@@ -67,6 +67,31 @@ Definition wp_raft__Step_body :=
      m.(raftpb.Message.From') ≠ W64 0) →
   (m.(raftpb.Message.Type') = MsgVoteResp →
      m.(raftpb.Message.To') = id ∧ m.(raftpb.Message.Term') ≠ W64 0) →
+  (* Pre-vote (2026-10-04), by what the transport and the peers guarantee,
+     like [MsgVote]; [Go] checks none of it.  Two more:
+     - a [MsgPreVote] of a higher term is answered at the node's own term
+       when the candidate's log is behind ([Term: r.Term, Reject: true];
+       the term is not raised for a pre-vote), and [send] panics on a vote
+       message with [Term = 0].  So a node at term [0] must find every
+       pre-vote candidate up to date -- true of a node whose log holds
+       nothing past term [0], i.e. of every node etcd builds (a fresh node
+       has an empty log; [Bootstrap] and [RestartNode] start at a term of
+       at least the log's), but not implied by [own_raft_phys], which
+       admits a persisted log ahead of the persisted term;
+     - a [MsgPreVoteResp] at a pre-candidate may win, which runs the real
+       [campaign] and increments the term: it must not wrap (as for
+       [MsgHup]). *)
+  (m.(raftpb.Message.Type') = MsgPreVote →
+     m.(raftpb.Message.To') = id ∧ m.(raftpb.Message.Term') ≠ W64 0 ∧
+     m.(raftpb.Message.From') ≠ W64 0 ∧ m.(raftpb.Message.From') ≠ id ∧
+     (s.(nstate.term) = W64 0 →
+      plog_up_to_date s.(nstate.logst).(logstate.prev)
+        (s.(nstate.logst).(logstate.sents) ++ s.(nstate.logst).(logstate.uents))
+        (raft.entryID.mk m.(raftpb.Message.LogTerm') m.(raftpb.Message.Index')) = true)) →
+  (m.(raftpb.Message.Type') = MsgPreVoteResp →
+     m.(raftpb.Message.To') = id ∧ m.(raftpb.Message.Term') ≠ W64 0 ∧
+     m.(raftpb.Message.From') ≠ W64 0 ∧
+     uint.Z s.(nstate.term) + 1 < 2 ^ 64) →
   (* The replication types, by what the transport and the peers guarantee
      (Go checks none of it).  A leader's [MsgApp]/[MsgHeartbeat], and a
      [MsgHeartbeatResp], come from another node: [send] never queues them

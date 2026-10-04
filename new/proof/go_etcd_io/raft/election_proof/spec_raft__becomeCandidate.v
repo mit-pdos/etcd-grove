@@ -8,7 +8,7 @@ Definition wp_raft__becomeCandidate_body :=
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (cfg : gset w64)
     (r : loc) (id : w64) (s : nstate.t),
-  s.(nstate.role) ≠ role.Leader →
+  s.(nstate.role) ≠ prole.Leader →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "becomeCandidate" #()
   {{{ pvs, RET #(); own_raft_phys cfg r id (become_candidate id s <| nstate.prvals := pvs |>) }}}.

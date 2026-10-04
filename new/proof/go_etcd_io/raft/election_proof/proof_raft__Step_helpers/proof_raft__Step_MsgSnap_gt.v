@@ -110,7 +110,7 @@ Implicit Type s : nstate.t.
             = functions raft.stepFollower []) as Hsf by done.
     rewrite Hsf.
     wp_apply (P.wp_stepFollower _ _ _ _ _ [] sv voters with "[$Hphys]").
-    { do 5 right. exact Hty. }
+    { do 5 right; left. exact Hty. }
     { intros Hc. exfalso. rewrite Hty7 in Hc. revert Hc. w32_ne. }
     { intros Hc. exfalso. rewrite Hty7 in Hc. revert Hc. w32_ne. }
     { intros Hc. exfalso. rewrite Hty7 in Hc. revert Hc. w32_ne. }

@@ -24,9 +24,11 @@ Require Export New.proof.go_etcd_io.raft.election_proof.spec_Config__validate.
       (found writing this spec, 2026-09-24).  Not a bug a real run can hit
       -- the buffer only grows to [2^62] with that many messages in flight
       -- but a gap between what raft accepts and what the proof covers.
-    - the development's scope: [PreVote = CheckQuorum = false], and
+    - the development's scope: [CheckQuorum = false], and
       [DisableProposalForwarding = false] (a follower forwards proposals;
-      since 2026-10-02, for [stepFollower]'s forwarding arm).
+      since 2026-10-02, for [stepFollower]'s forwarding arm).  [PreVote] is
+      either value since 2026-10-04: the state records it
+      ([nstate.prevote]).
     - the storage's contents ([own_Storage (interface.ok si) prev ents ss]):
       contiguous indices and **no configuration-change entry**, and a
       snapshot [ss] that is empty or the compaction boundary (since
@@ -86,7 +88,6 @@ Definition wp_newRaft_body :=
   cv.(raft.Config.Logger') = interface.ok lok →
   cv.(raft.Config.Storage') = interface.ok si →
   (sint.Z cv.(raft.Config.MaxInflightMsgs') < 2 ^ 62)%Z →
-  cv.(raft.Config.PreVote') = false →
   cv.(raft.Config.CheckQuorum') = false →
   cv.(raft.Config.DisableProposalForwarding') = false →
   (* the stored log *)
@@ -120,8 +121,9 @@ Definition wp_newRaft_body :=
       ⌜ nstate_wf s ∧
         s.(nstate.term) = hs.(raftpb.HardState.Term') ∧
         s.(nstate.vote) = hs.(raftpb.HardState.Vote') ∧
-        s.(nstate.lead) = W64 0 ∧ s.(nstate.role) = role.Follower ∧
-        s.(nstate.votes) = ∅ ∧ s.(nstate.outbox) = [] ⌝ }}}.
+        s.(nstate.lead) = W64 0 ∧ s.(nstate.role) = prole.Follower ∧
+        s.(nstate.votes) = ∅ ∧ s.(nstate.outbox) = [] ∧
+        s.(nstate.prevote) = cv.(raft.Config.PreVote') ⌝ }}}.
 
 Module Type NEWRAFT.
   Parameter wp_newRaft : wp_newRaft_body.

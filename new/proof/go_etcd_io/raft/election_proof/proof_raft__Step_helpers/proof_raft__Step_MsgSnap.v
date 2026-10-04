@@ -53,8 +53,8 @@ Implicit Type s : nstate.t.
     (* protocol facts the dispatch derives from the ghost state: at the
        current term the receiver is not a leader ([is_leader_unique]), and a
        follower's tally is empty ([follower_votes_ok]) *)
-    (m.(raftpb.Message.Term') = s.(nstate.term) → s.(nstate.role) ≠ role.Leader) →
-    (s.(nstate.role) = role.Follower → s.(nstate.votes) = ∅) →
+    (m.(raftpb.Message.Term') = s.(nstate.term) → s.(nstate.role) ≠ prole.Leader) →
+    (s.(nstate.role) = prole.Follower → s.(nstate.votes) = ∅) →
     {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s ∗
         "#Hsv" ∷ m.(raftpb.Message.Snapshot') ↦□ sv ∗
         "#Hvs" ∷ sv.(raftpb.Snapshot.Metadata').(raftpb.SnapshotMetadata.ConfState')

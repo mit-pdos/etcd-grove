@@ -213,13 +213,15 @@ Implicit Type s : nstate.t.
         rewrite Hb2. rewrite bool_decide_eq_true_2 //. wp_auto.
         wp_apply (wp_raft_load_checkQuorum with "Hphys") as "Hphys".
         wp_apply (wp_raft_load_preVote with "Hphys") as "Hphys".
-        rewrite Hn17. wp_auto.
-        rewrite Hn20. wp_auto.
-        (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log).
-        iApply ("HΦ" $! interface.nil s). iFrame "Hphys".
-        iPureIntro. split; first exact Hwf. split; last done.
-        exists []. split; last apply step_refl.
-        recv_elem.
+        (* with pre-vote on, [MsgHeartbeat || MsgApp] is evaluated: false *)
+        destruct (s.(nstate.prevote)); wp_auto;
+          [rewrite Hn8; wp_auto; rewrite Hn3; wp_auto|];
+          (rewrite Hn17; wp_auto; rewrite Hn20; wp_auto;
+           (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log);
+           iApply ("HΦ" $! interface.nil s); iFrame "Hphys";
+           iPureIntro; split; first exact Hwf; split; last done;
+           exists []; split; last apply step_refl;
+           recv_elem).
       + (* m.Term = r.Term: the preamble does nothing and control reaches the
            type switch, whose default arm is [r.step(m)]. *)
         assert (bool_decide (uint.Z m.(raftpb.Message.Term') <
@@ -272,14 +274,16 @@ Implicit Type s : nstate.t.
           wp_apply (P.wp_stepCandidate _ _ _ _ _ [] (zero_val _) [] with "[$Hphys]").
           { by left. }
           { intros _. exact Hteq. }
-          { exact Hrole. }
+          { by left. }
           { exact Hcfg. }
           { intros Hc. exfalso. rewrite Hty6 in Hc. revert Hc. w32_ne. }
           { intros Hc. exfalso. rewrite Hty6 in Hc. revert Hc. w32_ne. }
+          { intros _ Hc. exfalso. rewrite Hty6 in Hc. revert Hc. w32_ne. }
           { iSplitR; [step_no_snap|]. iIntros "%Hc". exfalso. rewrite Hty6 in Hc. revert Hc. w32_ne. }
           iIntros (err s' dropped) "(Hphys & %Hres & Herrn)".
           rewrite /candidate_step_result decide_True // in Hres.
           destruct Hres as [-> Hres]. iDestruct "Herrn" as %Herrn.
+          rewrite decide_False in Hres; last (rewrite Hrole; discriminate).
           rewrite Herrn. wp_auto.
           destruct Hres as (won & lost & ms & pvs & Hwon & Hlost & ->).
           iApply ("HΦ" $! interface.nil _). iFrame "Hphys".
@@ -287,7 +291,7 @@ Implicit Type s : nstate.t.
           split; last done.
           exists [abs_msg mtype.VoteResp m ents]. split.
           { recv_elem. }
-          rewrite to_pstate_vote_resp_result; last (rewrite Hrole; done).
+          rewrite to_pstate_vote_resp_result; last exact Hrole.
           rewrite /pvote_resp_result.
           destruct won.
           { destruct (Hwon eq_refl) as (Hq & Hms & Hmt).
@@ -296,7 +300,7 @@ Implicit Type s : nstate.t.
             - done.
             - rewrite /abs_msg /=. exact Hto.
             - rewrite /abs_msg /=. exact Hteq.
-            - exact Hrole.
+            - rewrite to_pstate_role Hrole //.
             - rewrite Hmt. by apply (reset_matched_leader_ok id s Hid).
             - (* the broadcast was judged at [become_leader]'s state, which
                  is [pwin_state]'s up to the outbox and [Match] *)
@@ -304,19 +308,19 @@ Implicit Type s : nstate.t.
               rewrite /repl_sends to_pstate_become_leader in Hms.
               rewrite List.Forall_forall in Hms |- *. intros m' Hm'%Hms.
               eapply repl_ok_proper; [..|exact Hm']; reflexivity.
-            - simpl. exact Hq. }
+            - simpl. rewrite decide_False; [exact Hq|rewrite Hrole; discriminate]. }
           destruct lost.
           { eapply (step_record_then_lose cfg id (to_pstate s) (abs_msg mtype.VoteResp m ents)).
             - done.
             - rewrite /abs_msg /=. exact Hto.
             - rewrite /abs_msg /=. exact Hteq.
-            - exact Hrole.
-            - simpl. by apply Hlost. }
+            - rewrite to_pstate_role Hrole //.
+            - simpl. rewrite decide_False; [by apply Hlost|rewrite Hrole; discriminate]. }
           apply step_record_vote.
           { done. }
           { rewrite /abs_msg /=. exact Hto. }
           { rewrite /abs_msg /=. exact Hteq. }
-          { exact Hrole. }
+          { rewrite to_pstate_role Hrole //. }
         * (* Leader: [stepLeader]'s [MsgVoteResp] arm only reads. *)
           assert (s.(nstate.stepfn) = functions raft.stepLeader []) as Hsf
             by (rewrite Hsfw ?Hrole //).
@@ -345,6 +349,29 @@ Implicit Type s : nstate.t.
           destruct Hres as [-> Hres]. iDestruct "Herrn" as %Herrn.
           destruct Hres as [[_ ->]|[[Hc _]|[[Hc _]|[Hc _]]]];
             [| exfalso; revert Hc; rewrite Hty; w32_ne ..].
+          rewrite Herrn. wp_auto.
+          iApply ("HΦ" $! interface.nil s). iFrame "Hphys".
+          iPureIntro. split; first exact Hwf. split; last done.
+          exists []. split; last apply step_refl.
+          recv_elem.
+        * (* PreCandidate (2026-10-04): [stepCandidate]'s [myVoteRespType] is
+             [MsgPreVoteResp], so a vote response is ignored. *)
+          assert (s.(nstate.stepfn) = functions raft.stepCandidate []) as Hsf
+            by (rewrite Hsfw ?Hrole //).
+          rewrite Hsf.
+          wp_apply (P.wp_stepCandidate _ _ _ _ _ [] (zero_val _) [] with "[$Hphys]").
+          { by left. }
+          { intros _. exact Hteq. }
+          { by right. }
+          { exact Hcfg. }
+          { intros Hc. exfalso. rewrite Hty6 in Hc. revert Hc. w32_ne. }
+          { intros Hc. exfalso. rewrite Hty6 in Hc. revert Hc. w32_ne. }
+          { intros _ Hc. exfalso. rewrite Hty6 in Hc. revert Hc. w32_ne. }
+          { iSplitR; [step_no_snap|]. iIntros "%Hc". exfalso. rewrite Hty6 in Hc. revert Hc. w32_ne. }
+          iIntros (err s' dropped) "(Hphys & %Hres & Herrn)".
+          rewrite /candidate_step_result decide_True // in Hres.
+          destruct Hres as [-> Hres]. iDestruct "Herrn" as %Herrn.
+          rewrite decide_True in Hres; last exact Hrole. subst s'.
           rewrite Herrn. wp_auto.
           iApply ("HΦ" $! interface.nil s). iFrame "Hphys".
           iPureIntro. split; first exact Hwf. split; last done.

@@ -55,7 +55,7 @@ Import P.
          [MsgVoteResp] onto [r.msgsAfterAppend]; either way the abstract
          outbox grows by exactly that message -- up to permutation, since a
          [MsgVote] lands in front of whatever [msgsAfterAppend] holds. *)
-      destruct Hvoty as [Hvt|Hvt].
+      destruct Hvoty as [Hvt|[Hvt|[Hvt|Hvt]]].
       + (* [MsgVote] is not a response, so it goes onto [r.msgs]. *)
         assert (HnS : m.(raftpb.Message.Type') ≠ MsgSnap) by (rewrite Hvt; w32_ne).
         rewrite Hvt /MsgVote bool_decide_eq_true_2 //. wp_auto.
@@ -66,7 +66,7 @@ Import P.
         rewrite Hvt /MsgVote bool_decide_eq_false_2; last w32_ne. wp_auto.
         (* not self-addressed *)
         wp_apply (wp_raft_load_id with "Hphys") as "Hphys".
-        rewrite bool_decide_eq_false_2; last exact (Hself Hvt). wp_auto.
+        rewrite bool_decide_eq_false_2; last exact (Hself (or_introl Hvt)). wp_auto.
         send_tail own_raft_phys_msgs.
         finish_some ty.
       + (* [MsgVoteResp] is a response, so it goes onto [r.msgsAfterAppend]. *)
@@ -78,6 +78,31 @@ Import P.
         rewrite Hvt /MsgVoteResp bool_decide_eq_false_2; last w32_ne.
         wp_auto.
         rewrite Hvt /MsgVoteResp bool_decide_eq_true_2 //. wp_auto.
+        send_tail own_raft_phys_msgsAA.
+        finish_some ty.
+      + (* [MsgPreVote] (2026-10-04): a request, onto [r.msgs], as [MsgVote]. *)
+        assert (HnS : m.(raftpb.Message.Type') ≠ MsgSnap) by (rewrite Hvt; w32_ne).
+        rewrite Hvt /MsgPreVote bool_decide_eq_false_2; last w32_ne. wp_auto.
+        rewrite Hvt /MsgPreVote bool_decide_eq_false_2; last w32_ne. wp_auto.
+        rewrite Hvt /MsgPreVote bool_decide_eq_true_2 //. wp_auto.
+        rewrite bool_decide_eq_false_2 //. wp_auto.
+        rewrite Hvt /MsgPreVote bool_decide_eq_false_2; last w32_ne. wp_auto.
+        rewrite Hvt /MsgPreVote bool_decide_eq_false_2; last w32_ne. wp_auto.
+        rewrite Hvt /MsgPreVote bool_decide_eq_false_2; last w32_ne. wp_auto.
+        wp_apply (wp_raft_load_id with "Hphys") as "Hphys".
+        rewrite bool_decide_eq_false_2; last exact (Hself (or_intror Hvt)). wp_auto.
+        send_tail own_raft_phys_msgs.
+        finish_some ty.
+      + (* [MsgPreVoteResp]: a response, onto [r.msgsAfterAppend]. *)
+        assert (HnS : m.(raftpb.Message.Type') ≠ MsgSnap) by (rewrite Hvt; w32_ne).
+        rewrite Hvt /MsgPreVoteResp bool_decide_eq_false_2; last w32_ne. wp_auto.
+        rewrite Hvt /MsgPreVoteResp bool_decide_eq_false_2; last w32_ne. wp_auto.
+        rewrite Hvt /MsgPreVoteResp bool_decide_eq_false_2; last w32_ne. wp_auto.
+        rewrite Hvt /MsgPreVoteResp bool_decide_eq_true_2 //. wp_auto.
+        rewrite bool_decide_eq_false_2 //. wp_auto.
+        rewrite Hvt /MsgPreVoteResp bool_decide_eq_false_2; last w32_ne. wp_auto.
+        rewrite Hvt /MsgPreVoteResp bool_decide_eq_false_2; last w32_ne. wp_auto.
+        rewrite Hvt /MsgPreVoteResp bool_decide_eq_true_2 //. wp_auto.
         send_tail own_raft_phys_msgsAA.
         finish_some ty.
     - (* (b) [Term] must be unset and is stamped with [r.Term] (= [s.term]);
