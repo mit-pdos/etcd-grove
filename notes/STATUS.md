@@ -299,8 +299,26 @@ local `snapshot`); `own_Storage` names the storage's snapshot `ss`,
 Ranked by how much the proof's meaning depends on it. Unclaimed; pick one and
 say so in the journal.
 
-1. **`own_raft_phys`'s constructor rests on `is_Storage`, and there is no
-   `is_Storage` instance.** `newRaft` is proved (2026-09-24), so
+1. ~~**`own_raft_phys`'s constructor rests on `is_Storage`, and there is no
+   `is_Storage` instance.**~~ **Instance proved 2026-10-04**:
+   `is_Storage_MemoryStorage` (`election_proof/memstorage_instance.v`)
+   shows raft's own `MemoryStorage` meets the contract, through seven
+   collections (`MemoryStorage.{LastIndex,FirstIndex,Term,Entries,Snapshot}`
+   and the two private index helpers) stated on `own_MemoryStorage`
+   (`inv_memstorage.v`: the struct behind its `sync.Mutex`, the state split
+   as a `ghost_var` between the lock invariant and the predicate). The
+   contract is factored as `is_Storage_with P st` with `is_Storage st :=
+   is_Storage_with (own_Storage st) st`; `own_Storage` is still the
+   `Axiom`, so the 14 axioms are unchanged. Switching the development to
+   MemoryStorage-only is one definition away (`own_Storage st … := ∃ ms,
+   ⌜st = mk_ok (*MemoryStorage) ms⌝ ∗ own_MemoryStorage ms …`) and would
+   remove that axiom; not done, to keep `newRaft` general. **One
+   restriction found**: the contract requires `Snapshot` to return a
+   non-empty snapshot or `ErrSnapshotTemporarilyUnavailable` (raft panics on
+   an empty one in `maybeSendSnapshot`), while a fresh `MemoryStorage`
+   returns the zero snapshot with a nil error -- so `own_MemoryStorage`
+   requires `ss.index ≠ 0`, i.e. a storage that has a snapshot. The
+   remaining parts of this item: `newRaft` is proved (2026-09-24), so
    `own_raft_phys` is no longer only satisfiable by inspection: the struct
    `newRaft` builds satisfies it. But `newRaft`'s spec takes `is_Storage`,
    `own_Storage` and an `InitialState` triple as premises, and `own_Storage`
