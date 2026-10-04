@@ -236,11 +236,11 @@ Proof.
   iIntros (v) "[-> HR]". iNamed "HR".
   wp_auto.
   (* [if r.readOnly.option != ReadOnlySafe || len(m.Context) == 0 { return nil }] *)
-  iDestruct (own_raft_phys_readOnly with "Hphys") as (ro) "(Hrof & Hro & Hback)".
-  iDestruct (own_read_only_option with "Hro") as (o) "[Hopt Hroback]".
+  iDestruct (own_raft_phys_readOnly with "Hphys") as (ro rr Hpend) "(Hrof & Hro & Hback)".
+  iDestruct (own_ReadOnly_option with "Hro") as (o) "[%Hsafe [Hopt Hroback]]".
   wp_auto.
   iDestruct ("Hroback" with "Hopt") as "Hro".
-  iDestruct ("Hback" with "Hrof Hro") as "Hphys".
+  iDestruct ("Hback" with "[//] Hrof Hro") as "Hphys".
   iDestruct (own_slice_len with "Hctx") as %[Hcl Hcl0].
   assert (Hcz : m.(raftpb.Message.Context').(slice.len) = W64 0) by (simpl in Hcl; word).
   iAssert (Φ #interface.nil) with "[HΦ Hphys]" as "HΦ".

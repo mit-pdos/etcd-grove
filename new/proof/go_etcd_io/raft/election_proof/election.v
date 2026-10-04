@@ -173,6 +173,17 @@ Require Export New.proof.go_etcd_io.raft.election_proof.link_raft__handleAppendE
     [MsgHeartbeatResp] and [MsgAppResp] besides [MsgVoteResp]. *)
 Require Export New.proof.go_etcd_io.raft.election_proof.link_traceCommit.
 Require Export New.proof.go_etcd_io.raft.election_proof.link_readOnly__heartbeatCtx.
+
+(** The read-only object's other methods (2026-10-04), stated on
+    [own_ReadOnly]'s record ([readonly.t], [inv_misc.v]).  Nothing in the
+    phase-1 scope calls them -- no [MsgReadIndex] is queued -- but phase 3
+    ([stepLeader]'s read-index path) is built on them, and the collection
+    must be in the build.  [maybeAdvance] needs [JointConfig.CommittedIndex]
+    at an arbitrary indexer. *)
+Require Export New.proof.go_etcd_io.raft.election_proof.link_readOnly__addRequest.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_readOnly__recvAck.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_readOnly__AckedIndex.
+Require Export New.proof.go_etcd_io.raft.election_proof.link_readOnly__maybeAdvance.
 Require Export New.proof.go_etcd_io.raft.election_proof.link_releasePendingReadIndexMessages.
 Require Export New.proof.go_etcd_io.raft.election_proof.link_raft__handleHeartbeat.
 Require Export New.proof.go_etcd_io.raft.election_proof.link_raft__sendHeartbeat.

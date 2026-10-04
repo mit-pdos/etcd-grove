@@ -461,7 +461,7 @@ Proof.
   iAssert (own_raft_misc rv.(raft.raft.readStates') rv.(raft.raft.readOnly')
              rv.(raft.raft.pendingReadIndexMessages'))
     with "[HreadStates HreadStates_cap Hro_obj Hpri Hpri_cap]" as "Hmisc".
-  { rewrite /own_raft_misc. iFrame. }
+  { rewrite /own_raft_misc. iFrame "∗%". }
   reseal.
 Qed.
 
@@ -895,21 +895,27 @@ Proof.
   reseal.
 Qed.
 
-(** The [readOnly] object.  Election never reads it; [reset] replaces it. *)
+(** The [readOnly] object.  Election never reads it; [reset] replaces it.
+    The object comes out at a record with no pending requests (phase-1
+    scope, [own_raft_misc]) and goes back at any record with none: [reset]
+    puts in a fresh one. *)
 Lemma own_raft_phys_readOnly r id s :
   own_raft_phys r id s -∗
-  ∃ ro, r.[raft.raft.t, "readOnly"] ↦ ro ∗ own_read_only ro ∗
-        (∀ ro', r.[raft.raft.t, "readOnly"] ↦ ro' -∗ own_read_only ro' -∗
-                own_raft_phys r id s).
+  ∃ ro (rr : readonly.t),
+    ⌜ rr.(readonly.pending) = [] ⌝ ∗
+    r.[raft.raft.t, "readOnly"] ↦ ro ∗ own_ReadOnly ro rr ∗
+    (∀ ro' (rr' : readonly.t), ⌜ rr'.(readonly.pending) = [] ⌝ -∗
+        r.[raft.raft.t, "readOnly"] ↦ ro' -∗ own_ReadOnly ro' rr' -∗
+        own_raft_phys r id s).
 Proof.
   iIntros "H". iNamed_phys "H". iNamed "Hmisc".
   iDestruct (raft_split_readOnly with "Hr") as "[Hf Hback]".
-  iExists _. iFrame "Hf Hro_obj".
-  iIntros (ro') "Hf Hro_obj".
+  iExists _, rr. iFrame "Hf Hro_obj". iSplit; first done.
+  iIntros (ro' rr' Hpend') "Hf Hro_obj".
   iDestruct ("Hback" $! ro' with "Hf") as "Hr".
   iAssert (own_raft_misc _ ro' _)
     with "[HreadStates HreadStates_cap Hro_obj Hpri Hpri_cap]" as "Hmisc".
-  { rewrite /own_raft_misc. iFrame. }
+  { rewrite /own_raft_misc. iExists rss, rr'. iFrame. done. }
   reseal.
 Qed.
 

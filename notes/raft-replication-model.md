@@ -522,6 +522,32 @@ Sequencing: after the heartbeat/leader and follower branches of 2026-10-01
 are merged (they are stated on the old predicates), before the `Step`
 branches of wave 3, so that wave 3 is written against the final shapes.
 
+### `readonly.t` (2026-10-04)
+
+The read-only object got the same treatment: `own_ReadOnly ro (r : readonly.t)`
+(`inv_misc.v`, public; replaces `own_read_only`), with `readonly.t := {safe :
+bool; pending : list readreq.t; acks : gmap w64 w64; confirmed : w64}` and
+`readreq.t := {index; from; ents : list raftpb.Entry.t}` (the part of a queued
+`readIndexRequest` anyone reads back: `responseToReadIndexReq` uses
+`req.From` and `req.Entries`).  The records and the pure functions
+(`readonly_add/recvAck/advance/position`) live at the top of `inv_misc.v`, not
+`defs.v`: a `defs.v` edit rebuilds the log and tracker cone.  Inside:
+the struct, the acks map, the queue held `↦*□` with only the slack owned
+(`own_slice_cap`), and each request `own_readreq p q` (persistent).
+`own_raft_misc` keeps `pending = []` as its phase-1 conjunct (phase 3 lifts
+it); `own_raft_phys_readOnly` hands the object out at a record with
+`pending = []` and takes it back at any such record.  `maybeAdvance`'s
+uncapped result is specified as `sl ↦*□ ptrs` plus `own_readreq` of the
+dropped records, with no capacity: no loan.  `acks` is indexed by *position*
+(the heartbeat context, `confirmed + len pending`), not by index.  Premises
+added for panics the state cannot exclude: `recvAck` needs `ctx = [] ∨ 8 ≤
+len`; `maybeAdvance` needs a non-empty voter set and every voter's ack `≤
+confirmed + len pending`.  `JointConfig.CommittedIndex` was *not* general over the indexer
+(its spec was fixed to `matchAckIndexer` on `own_tracker`): it is now the
+general triple (receiver `c ↦ a`, `a = [m0; nil]`, any `is_AckedIndexer`), and
+`ProgressTracker.Committed` instantiates it (its proof lifts the `Voters`
+field's location out of `trk ↦ tv` with two `access_strict`s).
+
 ## Phase 2: snapshots (design, 2026-10-02; model side done 2026-10-02)
 
 What the code does (`raft.go:1827-1932`, `log.go:464`, `log_unstable.go`
