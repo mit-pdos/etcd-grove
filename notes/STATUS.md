@@ -1,6 +1,6 @@
 # Status
 
-**Last updated:** 2026-10-04 (branch `worktree-raft-replication` at `5fa0f876d`, `make ci` green; `origin/main` `4f48cb6de` merged in; not yet on `main`)
+**Last updated:** 2026-10-04 (branch `worktree-raft-replication` at `1fddf5333`, election cone green; `origin/main` `4f48cb6de` merged in; not yet on `main`)
 
 This file is a snapshot of where the proof *is*. It carries no history: how
 something got this way is in [journal.md](journal.md), why a design was
@@ -430,9 +430,10 @@ needs the third node that is in both the commit quorum and the election
 quorum (its votes and acks live in its own ghost maps) -- they are being
 restated over the whole cluster, see item 5b. `heartbeat_commit_le_last`,
 `app_no_conflict_below_commit`, `log_matching` (2026-10-02) and
-`snap_ok_message` (2026-10-03) are proved. 571 `Qed` lemmas, 129
-collections, two results (`Step`, `newRaft`), 152 definitions, 1,425
-lines; `make ci` exit 0 (560 files). The whole-raft numbers (`v3_proof/`
+`snap_ok_message` (2026-10-03) are proved. 582 `Qed` lemmas, 136
+collections (the `MemoryStorage` ones included), two results (`Step`,
+`newRaft`); `make ci` exit 0 (560 files at `5fa0f876d`; the election cone
+rebuilt green at `1fddf5333`, 561 files). The whole-raft numbers (`v3_proof/`
 included) are the old ones plus these.
 
     R=new/proof/go_etcd_io/raft      # required; the tool names no development
