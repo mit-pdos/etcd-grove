@@ -693,22 +693,38 @@ down (`raft.go:1104`); a stale `MsgPreVote` is answered with a rejecting
 `stepCandidate`: `myVoteRespType` is `MsgPreVoteResp` in `StatePreCandidate`,
 and winning runs `campaign(campaignElection)`, i.e. the real election.
 
-Model: `role.t` gains `PreCandidate` (`StatePreCandidate = 3`,
-`step_func_of` = `stepCandidate`); `pstate.votes` is reused for the
-pre-vote tally; rules `step_precampaign` (no term change; sends `PreVote`
-at `term+1`), `step_grant_prevote`/`step_reject_prevote` (no state change
-besides the send; granting needs the up-to-date check and
-`m.term > s.term`), `step_record_prevote`, `step_prewin` (quorum of
-pre-votes → `step_campaign`), `step_prelose` (→ follower). Ghost: a
-pre-vote grant is **free** (`is_message` trivial): it records nothing, so
-election safety is untouched; the model only has to let the code do what
-it does. Costs: `own_raft_phys`'s `HnoPreVote` goes (the field becomes
-`nstate.prevote : bool` or a `cfg`-like parameter); `Step`'s preamble
-proofs gain the `MsgPreVote`/`MsgPreVoteResp` arms (every existing branch
-re-checks); `campaign`, `hup`, `becomePreCandidate` (new), `poll`
-(`voteRespMsgType` for `MsgPreVote`), `stepCandidate` (the
-`StatePreCandidate` branch, incl. the win → `campaign` path), `tickElection`
-unchanged. `newRaft` copies `c.PreVote`.
+**Model (decided with the user, 2026-10-04): pre-vote is an implementation
+detail; the protocol does not model it.** Nothing a pre-vote does touches
+protocol state: `becomePreCandidate` leaves `Term` and `Vote` alone, sets
+`lead := 0`, resets the physical tally and swaps `r.step`; a granted
+`MsgPreVote` records nothing on either side; a `MsgPreVoteResp` leads only
+to the real `campaign` (already `step_campaign`) or to `becomeFollower`.
+So:
+
+- `is_message` for `PreVote`/`PreVoteResp` stays `True` (they are already
+  in `mtype.t`); `pstate.role` is unchanged.
+- `nstate.role` gains the **physical** constructor `PreCandidate`
+  (`state_w64 = 3`, `step_func_of = stepCandidate`); `to_pstate` maps it to
+  `role.Follower` with `lead := 0` and `votes := ∅` (the pre-vote tally in
+  `trk.Votes` is invisible to the protocol; `follower_votes_ok` holds).
+- Two trivial rules: `step_send_free s m` (`msg_free m.ty = true` → outbox
+  `++ [m]`: a `PreVote` at `term+1`, a `PreVoteResp` either way) and
+  `step_abandon s` (a candidate that times out and pre-campaigns is,
+  protocol-wise, a follower at the same term keeping its vote). Both
+  preserve every ghost conjunct trivially: no vote is granted, no leader is
+  created. A rejecting `MsgPreVoteResp` at a higher term is
+  `step_higher_term` with a non-leader message, as today.
+
+Costs are all implementation-side: lift `HnoPreVote` from `own_raft_phys`
+(`nstate.prevote : bool`, or a parameter like `cfg`); collections
+`becomePreCandidate`, and the `StatePreCandidate` arms of `campaign`
+(`MsgPreVote` at `Term+1`), `hup`, `poll`/`voteRespMsgType`,
+`stepCandidate` (`myVoteRespType`, win → `campaign(campaignElection)`);
+`Step`'s preamble arms for `MsgPreVote` (never steps down; `canVote`'s
+third disjunct) and `MsgPreVoteResp` (step down only when rejecting at a
+higher term), and the stale-term rejecting `MsgPreVoteResp`. Every existing
+`Step` branch re-checks (the `preVote` loads stop being constant), but no
+refinement argument changes. `newRaft` copies `c.PreVote`.
 
 ### Reconfiguration
 
