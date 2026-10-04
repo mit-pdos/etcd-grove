@@ -649,6 +649,158 @@ Proof.
     specialize (Hwf _ _ Hk). simpl in Hwf. lia.
 Qed.
 
+(** ** Full logs (2026-10-03)
+
+    Leader Completeness compares logs *below* their compaction boundaries:
+    a voter's log at vote time against a candidate's, a follower's after a
+    snapshot against the leader's.  The ghost state therefore keeps, for
+    each log [(b, es)], the compacted prefix [fp] (entries [1 .. b.index],
+    the last one [b]) with its records, and reasons about the **full log**
+    [fp ++ es] from the fixed base [base0].  [full_ok] is the link; the
+    lemmas below translate [plog_term_at]/[plog_last] between the two
+    views.  ([plog_wf base0 F] already puts every entry of a full log at a
+    [w64] index: nothing in it has wrapped.) *)
+
+Definition base0 : raft.entryID.t := raft.entryID.mk (W64 0) (W64 0).
+
+Definition full_ok (b : raft.entryID.t) (fp : list raftpb.Entry.t) : Prop :=
+  Z.of_nat (length fp) = uint.Z b.(raft.entryID.index') ∧
+  plog_wf base0 fp ∧ plog_last base0 fp = b.
+
+Lemma base0_index : uint.Z base0.(raft.entryID.index') = 0.
+Proof. done. Qed.
+
+Lemma full_ok_base0 : full_ok base0 [].
+Proof. split_and!; [done| by intros ?? | done]. Qed.
+
+Lemma full_term_at b fp es (j : w64) :
+  full_ok b fp → uint.Z b.(raft.entryID.index') ≤ uint.Z j →
+  plog_term_at base0 (fp ++ es) j = plog_term_at b es j.
+Proof.
+  intros (Hlen & Hwf & Hlast) Hj.
+  rewrite /plog_term_at. rewrite base0_index.
+  rewrite decide_False; [|word]. rewrite decide_False; [|lia].
+  destruct (decide (uint.Z j = uint.Z b.(raft.entryID.index'))) as [Heq|Hne].
+  - destruct (decide (uint.Z j = 0)) as [H0|H0].
+    + (* the empty prefix: [b = base0] *)
+      assert (fp = []) as -> by (apply nil_length_inv; lia).
+      rewrite /plog_last /= in Hlast. subst b.
+      rewrite decide_True; [|done]. rewrite decide_True //.
+    + rewrite decide_False //. rewrite decide_True //.
+      rewrite lookup_app_l; [|lia].
+      rewrite /plog_last in Hlast.
+      destruct (list.last fp) as [x|] eqn:Hx.
+      * rewrite last_lookup in Hx.
+        replace (Z.to_nat (uint.Z j - 0 - 1)) with (pred (length fp)) by lia.
+        rewrite Hx /=. subst b. done.
+      * apply last_None in Hx. subst fp. simpl in Hlen. lia.
+  - rewrite decide_False; [|lia]. rewrite decide_False; [|lia].
+    rewrite decide_False; [|lia].
+    rewrite lookup_app_r; [|lia]. do 2 f_equal. lia.
+Qed.
+
+Lemma full_term_at_le b fp es (j : w64) :
+  full_ok b fp → uint.Z j ≤ uint.Z b.(raft.entryID.index') →
+  plog_term_at base0 (fp ++ es) j = plog_term_at base0 fp j.
+Proof.
+  intros (Hlen & _ & _) Hj. apply plog_term_at_app_l.
+  rewrite /plog_last_index_Z base0_index. lia.
+Qed.
+
+Lemma full_last b fp es :
+  full_ok b fp → plog_last base0 (fp ++ es) = plog_last b es.
+Proof.
+  intros (_ & _ & Hlast). rewrite /plog_last last_app.
+  destruct (list.last es); [done|]. exact Hlast.
+Qed.
+
+Lemma full_last_index b fp es :
+  full_ok b fp → plog_last_index_Z base0 (fp ++ es) = plog_last_index_Z b es.
+Proof.
+  intros (Hlen & _ & _). rewrite /plog_last_index_Z base0_index length_app. lia.
+Qed.
+
+Lemma full_up_to_date b fp es x :
+  full_ok b fp → plog_up_to_date base0 (fp ++ es) x = plog_up_to_date b es x.
+Proof. intros H. rewrite /plog_up_to_date (full_last _ _ _ H) //. Qed.
+
+Lemma full_wf b fp es :
+  full_ok b fp → plog_wf b es → plog_wf base0 (fp ++ es).
+Proof.
+  intros (Hlen & Hwf & _) Hwfe. apply plog_wf_app. split; [done|].
+  intros k e Hk. specialize (Hwfe k e Hk). rewrite base0_index. lia.
+Qed.
+
+(** In range, [plog_wf_r] is [plog_wf]. *)
+Lemma plog_wf_r_wf b es :
+  plog_wf_r b es → plog_last_index_Z b es < 2 ^ 64 → plog_wf b es.
+Proof.
+  intros Hwf Hr k e Hk. apply lookup_lt_Some in Hk as Hlt.
+  specialize (Hwf k e Hk). rewrite /plog_last_index_Z in Hr. lia.
+Qed.
+
+(** ... and a [plog_wf] log is in range. *)
+Lemma plog_wf_range b es :
+  plog_wf b es → plog_last_index_Z b es < 2 ^ 64.
+Proof.
+  intros Hwf. rewrite /plog_last_index_Z.
+  destruct (decide (length es = 0%nat)) as [H0|H0].
+  { rewrite H0. pose proof (word.unsigned_range b.(raft.entryID.index')). lia. }
+  destruct (lookup_lt_is_Some_2 es (pred (length es)) ltac:(lia)) as [e He].
+  specialize (Hwf _ _ He). pose proof (word.unsigned_range e.(raftpb.Entry.Index')). lia.
+Qed.
+
+(** The prefix of a full log up to [i], as the compacted prefix of the
+    log with base [(t, i)]. *)
+Lemma full_ok_take F (t i : w64) :
+  plog_wf base0 F → plog_term_at base0 F i = Some t →
+  full_ok (raft.entryID.mk t i) (take (Z.to_nat (uint.Z i)) F).
+Proof.
+  intros Hwf Ht.
+  pose proof (plog_term_at_Some_range _ _ _ _ Ht) as [_ Hle].
+  rewrite /plog_last_index_Z base0_index in Hle.
+  split_and!.
+  - rewrite length_take /=. lia.
+  - by apply plog_wf_take.
+  - rewrite /plog_last.
+    destruct (decide (uint.Z i = 0)) as [H0|H0].
+    + rewrite /plog_term_at base0_index decide_False in Ht; [|lia].
+      rewrite decide_True in Ht; [|lia]. injection Ht as <-.
+      replace (Z.to_nat (uint.Z i)) with 0%nat by lia. simpl.
+      rewrite /base0. f_equal. word.
+    + rewrite last_lookup length_take.
+      replace (pred (Z.to_nat (uint.Z i) `min` length F)) with (Z.to_nat (uint.Z i - 0 - 1)) by lia.
+      rewrite lookup_take_lt; [|lia].
+      rewrite /plog_term_at base0_index decide_False in Ht; [|lia].
+      rewrite decide_False in Ht; [|lia].
+      destruct (F !! _) as [x|] eqn:Hx; [|done]. simpl in Ht. injection Ht as <-.
+      rewrite /ent_id. f_equal.
+      specialize (Hwf _ _ Hx). rewrite base0_index in Hwf. word.
+Qed.
+
+Lemma plog_term_at_take_full F (n : nat) (j : w64) :
+  uint.Z j ≤ n → plog_term_at base0 (take n F) j = plog_term_at base0 F j.
+Proof. intros Hj. apply plog_term_at_take. rewrite base0_index. lia. Qed.
+
+(** A full log is defined everywhere up to its end. *)
+Lemma full_term_at_some F (j k : w64) :
+  is_Some (plog_term_at base0 F k) → uint.Z j ≤ uint.Z k →
+  is_Some (plog_term_at base0 F j).
+Proof.
+  intros [x Hx] Hjk. apply plog_term_at_in_range.
+  pose proof (plog_term_at_Some_range _ _ _ _ Hx). rewrite base0_index. word.
+Qed.
+
+(** Prefixes keep the terms they have. *)
+Lemma plog_term_at_prefix b F0 F (j : w64) :
+  F0 `prefix_of` F → is_Some (plog_term_at b F0 j) →
+  plog_term_at b F j = plog_term_at b F0 j.
+Proof.
+  intros [F' ->] [x Hx]. apply plog_term_at_app_l.
+  by pose proof (plog_term_at_Some_range _ _ _ _ Hx) as [_ ?].
+Qed.
+
+
 Section model.
 
 (** [cfg] is the (fixed) set of voters; [id] the node being described. *)
@@ -983,6 +1135,11 @@ Inductive step : pstate.t → list msg.t → pstate.t → Prop :=
 | step_win s mt ms :
   s.(pstate.role) = role.Candidate →
   is_quorum (granted s.(pstate.votes)) →
+  (** the leader's entry, at [lastIndex() + 1], does not wrap: the code's
+      [own_raftLog] [Hnowrap] of the candidate's log (2026-10-03; without
+      it a wrapped entry, at index [0], makes [isUpToDate] wrong and Leader
+      Completeness false at [2^64] entries) *)
+  plog_last_index_Z s.(pstate.base) s.(pstate.log) + 1 < 2 ^ 64 →
   leader_match_ok s mt →
   Forall (repl_ok (pwin_state s mt)) ms →
   step s [] (psend_msgs (pwin_state s mt) ([pself_ack (pwin_state s mt)] ++ ms))
@@ -3084,7 +3241,7 @@ Proof.
     | m s Hty Hto Hfrom Hterm Hcan Hutd
     | m s Hty Hto
     | m s Hty Hto Hterm Hrole
-    | s mt ms Hrole Hq Hmt Hms
+    | s mt ms Hrole Hq Hnw Hmt Hms
     | s Hrole Hnq
     | s o' Hsub
     | m s lastnewi es' Hty Hto Hfid Hterm Hrole Hcm Happ Hci
