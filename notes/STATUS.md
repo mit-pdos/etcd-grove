@@ -1,6 +1,6 @@
 # Status
 
-**Last updated:** 2026-10-03 (branch `worktree-raft-replication` at `1de11b38d`, `make ci` green; `origin/main` `4f48cb6de` merged in; not yet on `main`)
+**Last updated:** 2026-10-04 (branch `worktree-raft-replication` at `5fa0f876d`, `make ci` green; `origin/main` `4f48cb6de` merged in; not yet on `main`)
 
 This file is a snapshot of where the proof *is*. It carries no history: how
 something got this way is in [journal.md](journal.md), why a design was
@@ -404,25 +404,18 @@ whose whole job is what the build cannot check. What each establishes, the
 known gaps and the plan are in [tcb-accounting.md](tcb-accounting.md).
 
 `etc/tcb-report.py` on the election path (`--scope election_proof`,
-2026-10-02, at the merge of `2a59ee8d9` into `c0edb8a9f`, `origin/main`
-merged): **14 `Axiom` and 4 `Admitted`**; on 2026-10-03 after the
-snapshot sender side (branch `worktree-agent-a4805cdd87b17c9a2`): **14
-`Axiom`, 3 `Admitted`, 571 `Qed`** -- the one signed off on in
-`raftLog.slice`; (`snap_ok_message`, the former fourth, is `Qed`); and
-the two safety theorems `leader_completeness` and
-`state_machine_safety`, which **cannot be proved as stated**: they
-quantify over two nodes' ghost states, and the argument needs the third
-node that is in both the commit quorum and the election quorum (its votes
-and acks live in its own ghost maps) -- they have to be restated over the
-whole cluster, see item 5b. `heartbeat_commit_le_last`,
-`app_no_conflict_below_commit` and `log_matching` were proved on
-2026-10-02 from the acknowledgement-backed-by-log invariant in
-`own_log_ghost` (`acks_ok`, `log_recs`, `lead_prefix`). At `1de11b38d`
-(2026-10-03, snapshot receiver side merged): 564 `Qed` lemmas, 129
-collections, two results (`Step`, `newRaft`), 149 definitions, 1,378
-lines, TCB 5.0% of the development by line; `make ci` exit 0 (559
-files). The
-whole-raft numbers (`v3_proof/` included) are the old ones plus these.
+2026-10-04, at `5fa0f876d`): **14 `Axiom` and 3 `Admitted`** -- the one
+signed off on in `raftLog.slice`, and the two safety theorems
+`leader_completeness` and `state_machine_safety`, which **cannot be proved
+as stated**: they quantify over two nodes' ghost states, and the argument
+needs the third node that is in both the commit quorum and the election
+quorum (its votes and acks live in its own ghost maps) -- they are being
+restated over the whole cluster, see item 5b. `heartbeat_commit_le_last`,
+`app_no_conflict_below_commit`, `log_matching` (2026-10-02) and
+`snap_ok_message` (2026-10-03) are proved. 571 `Qed` lemmas, 129
+collections, two results (`Step`, `newRaft`), 152 definitions, 1,425
+lines; `make ci` exit 0 (560 files). The whole-raft numbers (`v3_proof/`
+included) are the old ones plus these.
 
     R=new/proof/go_etcd_io/raft      # required; the tool names no development
     etc/tcb-report.py --proof-root $R                  # summary, and which files are incomplete
