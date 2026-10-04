@@ -28,6 +28,19 @@ Definition vote_resp_result id s (from : w64) (reject : bool) (won lost : bool)
   else if lost then become_follower s1 s1.(nstate.term) (W64 0)
   else s1.
 
+(** The outcome of feeding a [MsgPreVoteResp] to a pre-candidate
+    ([stepCandidate] in [StatePreCandidate]): the tally records it, then
+    a win starts the real election ([campaign(campaignElection)], whose
+    requests go to [peers]), a loss is [becomeFollower(r.Term, None)], and
+    otherwise nothing.  The pre-vote tally is invisible to the protocol
+    ([to_pstate]). *)
+Definition prevote_resp_result id s (from : w64) (reject : bool) (won lost : bool)
+  (peers : list w64) : nstate.t :=
+  let s1 := s <| nstate.votes := record_vote s.(nstate.votes) from (negb reject) |> in
+  if won then campaign_state id s1 false peers
+  else if lost then become_follower s1 s1.(nstate.term) (W64 0)
+  else s1.
+
 
 (** ** Model-level lemmas justifying each branch of [Step]
 
@@ -47,15 +60,19 @@ Definition pvote_resp_result id (ps : pstate.t) (from : w64) (reject : bool)
 (** A candidate's outcome, with whatever [Progress] values the code left:
     [Match] is visible only if it won. *)
 Lemma to_pstate_vote_resp_result id s from reject won lost ms pvs :
-  s.(nstate.role) ≠ role.Leader →
+  s.(nstate.role) = prole.Candidate →
   to_pstate (vote_resp_result id s from reject won lost ms <| nstate.prvals := pvs |>)
   = pvote_resp_result id (to_pstate s) from reject won lost (prvals_match pvs) ms.
 Proof.
-  intros Hr. rewrite /vote_resp_result /pvote_resp_result.
+  intros Hrc. rewrite /vote_resp_result /pvote_resp_result.
+  assert (Hr : s.(nstate.role) ≠ prole.Leader) by (rewrite Hrc; discriminate).
+  assert (Hnp : s.(nstate.role) ≠ prole.PreCandidate) by (rewrite Hrc; discriminate).
   set (s1 := s <| nstate.votes := record_vote s.(nstate.votes) from (negb reject) |>).
   set (ps1 := to_pstate s <| pstate.votes :=
                 record_vote (to_pstate s).(pstate.votes) from (negb reject) |>).
-  assert (Hps1 : to_pstate s1 = ps1) by reflexivity.
+  assert (Hps1 : to_pstate s1 = ps1).
+  { rewrite /s1 /ps1 to_pstate_votes; last exact Hnp.
+    rewrite to_pstate_votes_nonpre //. }
   destruct won; [|destruct lost].
   - change (to_pstate (send_msgs (become_leader id s1 <| nstate.prvals := pvs |>) ms)
             = psend_msgs (pwin_state id ps1 (prvals_match pvs))
@@ -79,6 +96,17 @@ Proof.
   destruct won; [|destruct lost]; simpl; done.
 Qed.
 
+Lemma nstate_wf_campaign_state id s pre peers :
+  nstate_wf (campaign_state id s pre peers).
+Proof. rewrite /campaign_state. destruct pre; done. Qed.
+
+Lemma nstate_wf_prevote_resp_result id s from reject won lost peers :
+  nstate_wf s → nstate_wf (prevote_resp_result id s from reject won lost peers).
+Proof.
+  intros Hsf. rewrite /prevote_resp_result.
+  destruct won; [apply nstate_wf_campaign_state|destruct lost]; simpl; done.
+Qed.
+
 (** ** Branch lemmas
 
     These are pure facts about the protocol, independent of the program
@@ -87,6 +115,68 @@ Qed.
 (** Dropping a message is always legal. *)
 Lemma step_drop id (s : pstate.t) : step cfg id s [] s.
 Proof. constructor. Qed.
+
+(** Sending pre-vote messages from oneself, one [step_send_free] each. *)
+Lemma step_send_frees id (ps : pstate.t) (ms : list msg.t) :
+  Forall (λ m, (m.(msg.ty) = mtype.PreVote ∨ m.(msg.ty) = mtype.PreVoteResp) ∧
+               m.(msg.from) = id) ms →
+  step cfg id ps [] (psend_msgs ps ms).
+Proof.
+  induction ms as [|m ms IH] using rev_ind; intros Hms.
+  - rewrite /psend_msgs app_nil_r. destruct ps. apply step_refl.
+  - apply Forall_app in Hms as [Hms Hm]. apply Forall_singleton in Hm as [Hty Hfrom].
+    assert (psend_msgs ps (ms ++ [m]) = psend_msgs (psend_msgs ps ms) [m]) as ->.
+    { rewrite /psend_msgs /= app_assoc //. }
+    eapply (step_trans cfg id _ [] _ [] _); [by apply IH|].
+    by apply step_send_free.
+Qed.
+
+(** [campaign(t)] from a non-leader: an election is [step_campaign]; a
+    pre-election is [step_abandon] ([becomePreCandidate]) followed by its
+    [MsgPreVote]s and the self-addressed [MsgPreVoteResp], all free. *)
+Lemma step_campaign_state id s pre peers pvs :
+  s.(nstate.role) ≠ prole.Leader →
+  id ∈ cfg →
+  uint.Z s.(nstate.term) + 1 < 2 ^ 64 →
+  peers ≡ₚ elements (cfg ∖ {[id]}) →
+  step cfg id (to_pstate s) [] (to_pstate (campaign_state id s pre peers <| nstate.prvals := pvs |>)).
+Proof.
+  intros Hnl Hin Hnw Hperm.
+  rewrite to_pstate_prvals_nl; last (rewrite /campaign_state; destruct pre; done).
+  rewrite /campaign_state. destruct pre.
+  - rewrite to_pstate_send_msgs to_pstate_become_precandidate.
+    eapply (step_trans cfg id _ [] _ [] _).
+    { apply step_abandon. rewrite to_pstate_role. by apply prole_role_not_leader. }
+    apply step_send_frees. apply Forall_app. split.
+    + apply Forall_singleton. split; [by right|done].
+    + apply Forall_fmap, Forall_forall. intros to _. split; [by left|done].
+  - rewrite to_pstate_send_msgs to_pstate_become_candidate.
+    apply (step_campaign cfg id (to_pstate s) peers); [|done..].
+    rewrite to_pstate_role. by apply prole_role_not_leader.
+Qed.
+
+(** A pre-candidate's [MsgPreVoteResp]: pending is nothing, a loss is
+    [step_abandon], a win is [step_campaign]. *)
+Lemma step_prevote_resp_result id s from reject won lost peers pvs :
+  s.(nstate.role) = prole.PreCandidate →
+  id ∈ cfg →
+  uint.Z s.(nstate.term) + 1 < 2 ^ 64 →
+  (won = true → peers ≡ₚ elements (cfg ∖ {[id]})) →
+  step cfg id (to_pstate s) []
+    (to_pstate (prevote_resp_result id s from reject won lost peers <| nstate.prvals := pvs |>)).
+Proof.
+  intros Hpre Hin Hnw Hperm. rewrite /prevote_resp_result.
+  set (s1 := s <| nstate.votes := record_vote s.(nstate.votes) from (negb reject) |>).
+  assert (Hs1 : to_pstate s1 = to_pstate s) by (apply to_pstate_votes_pre; exact Hpre).
+  destruct won; [|destruct lost].
+  - rewrite -Hs1. apply step_campaign_state; [|done|done|by apply Hperm].
+    rewrite /s1 /= Hpre. discriminate.
+  - rewrite to_pstate_prvals_nl; last done.
+    rewrite to_pstate_become_follower Hs1.
+    apply step_abandon. rewrite to_pstate_role Hpre. discriminate.
+  - rewrite to_pstate_prvals_nl; last (rewrite /s1 /= Hpre; discriminate).
+    rewrite Hs1. apply step_refl.
+Qed.
 
 (** Stepping down and then answering a vote request, in one protocol step. *)
 Lemma step_stepdown_then_vote id (s : pstate.t) (m : msg.t) :

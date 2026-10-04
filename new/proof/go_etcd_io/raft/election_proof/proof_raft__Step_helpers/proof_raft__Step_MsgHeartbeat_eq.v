@@ -46,7 +46,7 @@ Implicit Type s : nstate.t.
     m.(raftpb.Message.Term') = s.(nstate.term) →
     (* a follower's vote tally is empty ([padopt_leader] clears it, and
        [nstate_wf] does not say so); see the combining file *)
-    (s.(nstate.role) = role.Follower → s.(nstate.votes) = ∅) →
+    (s.(nstate.role) = prole.Follower → s.(nstate.votes) = ∅) →
     {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s ∗
         "#Hents" ∷ m.(raftpb.Message.Entries') ↦*□ ents }}}
       r @! (go.PointerType raft.raft) @! "Step" #m
@@ -135,10 +135,11 @@ Implicit Type s : nstate.t.
       wp_apply (P.wp_stepCandidate _ _ _ _ _ ents (zero_val _) [] with "[$Hphys]").
       { do 3 right; left. exact Hty. }
       { intros _. exact Hteq. }
-      { exact Hrole. }
+      { by left. }
       { exact Hcfg. }
       { intros Hc. exfalso. rewrite Hty8 in Hc. revert Hc. w32_ne. }
       { intros _. split; [exact Hcommit|exact Hfid]. }
+      { intros _ Hc. exfalso. revert Hc. rewrite Hty. w32_ne. }
       { iSplitR; [step_no_snap|]. iIntros "%Hc". exfalso. rewrite Hty8 in Hc. revert Hc. w32_ne. }
       iIntros (err s1 dropped) "(Hphys & %Hres & Herrn)".
       apply candidate_step_result_heartbeat in Hres as [-> [pvs ->]]; last exact Hty.
@@ -166,7 +167,7 @@ Implicit Type s : nstate.t.
       { iIntros "%Hc". exfalso. revert Hc. rewrite Hty /MsgProp. w32_ne. }
       wp_apply (P.wp_stepLeader _ _ _ _ _ [] with "[$Hphys $Hctx0 $Hents0]")
         as (err s' dropped) "(Hphys & %Hres & Herrn & _)".
-      { do 6 right. exact Hty. }
+      { do 6 right; left. exact Hty. }
       { exact Hrole. }
       { exact Hcfg. }
       { rewrite Hty /MsgAppResp. intros Hc. exfalso. revert Hc. w32_ne. }
@@ -179,6 +180,33 @@ Implicit Type s : nstate.t.
       iPureIntro. split; first exact Hwf. split; last done.
       exists []. split; last apply step_refl.
       recv_elem.
+    - (* PreCandidate (2026-10-04), as a candidate:: [becomeFollower(r.Term, m.From)], then the handler *)
+      assert (s.(nstate.stepfn) = functions raft.stepCandidate []) as Hsf
+        by (rewrite Hsfw ?Hrole //).
+      rewrite Hsf.
+      wp_apply (P.wp_stepCandidate _ _ _ _ _ ents (zero_val _) [] with "[$Hphys]").
+      { do 3 right; left. exact Hty. }
+      { intros _. exact Hteq. }
+      { by right. }
+      { exact Hcfg. }
+      { intros Hc. exfalso. rewrite Hty8 in Hc. revert Hc. w32_ne. }
+      { intros _. split; [exact Hcommit|exact Hfid]. }
+      { intros _ Hc. exfalso. revert Hc. rewrite Hty. w32_ne. }
+      { iSplitR; [step_no_snap|]. iIntros "%Hc". exfalso. rewrite Hty8 in Hc. revert Hc. w32_ne. }
+      iIntros (err s1 dropped) "(Hphys & %Hres & Herrn)".
+      apply candidate_step_result_heartbeat in Hres as [-> [pvs ->]]; last exact Hty.
+      iDestruct "Herrn" as %Herrn. rewrite Herrn. wp_auto.
+      iApply ("HΦ" $! interface.nil _). iFrame "Hphys". iPureIntro.
+      split; first done.
+      split; last done.
+      exists [abs_msg mtype.Heartbeat m ents]. split; first recv_elem.
+      apply (step_handle_heartbeat cfg id _ _ m ents
+               (adopt_candidate s m.(raftpb.Message.From') pvs)).
+      + exact Hto.
+      + exact Hteq.
+      + simpl. rewrite Hrole. done.
+      + exact Hcommit.
+      + exact Hfid.
   Qed.
 
 End branches.

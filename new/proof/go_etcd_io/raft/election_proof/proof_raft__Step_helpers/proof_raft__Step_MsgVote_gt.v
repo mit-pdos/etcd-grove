@@ -142,7 +142,7 @@ Implicit Type s : nstate.t.
     + (* the candidate's log is up to date: grant the vote *)
       try wp_auto.
       (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Vote with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log).
-      wp_apply P.wp_voteRespMsgType; first done.
+      wp_apply P.wp_voteRespMsgType; first by left.
       (* the protocol step: grant the vote.  The [VoteResp] it sends is no
          longer a separate output -- it is the growth of the outbox, which the
          [send] below has to match. *)
@@ -161,7 +161,7 @@ Implicit Type s : nstate.t.
       wp_apply (P.wp_raft__send _ _ _ _ _ [] with "[$Hphys]") as "Hphys".
       { done. }
       { left; exists mtype.VoteResp; split_and!;
-          [by right | apply mtype_of_MsgVoteResp | done | w32_ne | done]. }
+          [by right; left | apply mtype_of_MsgVoteResp | done | intros [Hc|Hc]; revert Hc; w32_ne | done]. }
       { iSplitR; [iApply own_slice_nil | iApply send_no_snap; simpl; w32_ne]. }
       (* [m.Type = MsgVote], so the vote is recorded: [r.Vote := m.From]. *)
       rewrite Hty /MsgVote bool_decide_eq_true_2 //. try wp_auto.
@@ -189,11 +189,11 @@ Implicit Type s : nstate.t.
          loaded term of [become_follower]), so the rejection carries the
          state's term -- which is what [step_reject_vote] sends. *)
       wp_apply (wp_raft_load_Term with "Hphys") as "Hphys".
-      wp_apply P.wp_voteRespMsgType; first done.
+      wp_apply P.wp_voteRespMsgType; first by left.
       wp_apply (P.wp_raft__send _ _ _ _ _ [] with "[$Hphys]") as "Hphys".
       { done. }
       { left; exists mtype.VoteResp; split_and!;
-          [by right | apply mtype_of_MsgVoteResp | done | w32_ne | done]. }
+          [by right; left | apply mtype_of_MsgVoteResp | done | intros [Hc|Hc]; revert Hc; w32_ne | done]. }
       { iSplitR; [iApply own_slice_nil | iApply send_no_snap; simpl; w32_ne]. }
       iApply ("HΦ" $! interface.nil _). iFrame "Hphys".
       iPureIntro. split; first done.

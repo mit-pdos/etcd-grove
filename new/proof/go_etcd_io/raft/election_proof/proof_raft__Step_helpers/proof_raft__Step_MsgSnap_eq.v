@@ -42,9 +42,9 @@ Implicit Type s : nstate.t.
     (* this file: the current term *)
     m.(raftpb.Message.Term') = s.(nstate.term) →
     (* not a leader: the sender leads this term ([is_leader_unique]) *)
-    s.(nstate.role) ≠ role.Leader →
+    s.(nstate.role) ≠ prole.Leader →
     (* a follower's vote tally is empty ([follower_votes_ok]) *)
-    (s.(nstate.role) = role.Follower → s.(nstate.votes) = ∅) →
+    (s.(nstate.role) = prole.Follower → s.(nstate.votes) = ∅) →
     {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s ∗
         "#Hsv" ∷ m.(raftpb.Message.Snapshot') ↦□ sv ∗
         "#Hvs" ∷ sv.(raftpb.Snapshot.Metadata').(raftpb.SnapshotMetadata.ConfState')
@@ -100,7 +100,7 @@ Implicit Type s : nstate.t.
       rewrite Hsf.
       pose proof (Hvotes eq_refl) as Hvs.
       wp_apply (P.wp_stepFollower _ _ _ _ _ [] sv voters with "[$Hphys]").
-      { do 5 right. exact Hty. }
+      { do 5 right; left. exact Hty. }
       { intros Hc. exfalso. rewrite Hty7 in Hc. revert Hc. w32_ne. }
       { intros Hc. exfalso. rewrite Hty7 in Hc. revert Hc. w32_ne. }
       { intros Hc. exfalso. rewrite Hty7 in Hc. revert Hc. w32_ne. }
@@ -129,12 +129,13 @@ Implicit Type s : nstate.t.
         by (rewrite Hsfw ?Hrole //).
       rewrite Hsf.
       wp_apply (P.wp_stepCandidate _ _ _ _ _ [] sv voters with "[$Hphys]").
-      { do 5 right. exact Hty. }
+      { do 5 right; left. exact Hty. }
       { intros _. exact Hteq. }
-      { exact Hrole. }
+      { by left. }
       { exact Hcfg. }
       { intros Hc. exfalso. rewrite Hty7 in Hc. revert Hc. w32_ne. }
       { intros Hc. exfalso. rewrite Hty7 in Hc. revert Hc. w32_ne. }
+      { intros _ Hc. exfalso. revert Hc. rewrite Hty. w32_ne. }
       { iSplitR.
         - iIntros "_". iFrame "Hsv Hvs". iPureIntro. exact Hscope.
         - iIntros "%Hc". exfalso. rewrite Hty7 in Hc. revert Hc. w32_ne. }
@@ -156,6 +157,37 @@ Implicit Type s : nstate.t.
       + exact Hres.
     - (* Leader: excluded *)
       exfalso. by apply Hnl.
+    - (* PreCandidate (2026-10-04), as a candidate:: [becomeFollower(r.Term, m.From)], then [handleSnapshot] *)
+      assert (s.(nstate.stepfn) = functions raft.stepCandidate []) as Hsf
+        by (rewrite Hsfw ?Hrole //).
+      rewrite Hsf.
+      wp_apply (P.wp_stepCandidate _ _ _ _ _ [] sv voters with "[$Hphys]").
+      { do 5 right; left. exact Hty. }
+      { intros _. exact Hteq. }
+      { by right. }
+      { exact Hcfg. }
+      { intros Hc. exfalso. rewrite Hty7 in Hc. revert Hc. w32_ne. }
+      { intros Hc. exfalso. rewrite Hty7 in Hc. revert Hc. w32_ne. }
+      { intros _ Hc. exfalso. revert Hc. rewrite Hty. w32_ne. }
+      { iSplitR.
+        - iIntros "_". iFrame "Hsv Hvs". iPureIntro. exact Hscope.
+        - iIntros "%Hc". exfalso. rewrite Hty7 in Hc. revert Hc. w32_ne. }
+      iIntros (err s1 dropped) "(Hphys & %Hres & Herrn)".
+      apply candidate_step_result_snap in Hres as [-> [pvs Hres]]; last exact Hty.
+      iDestruct "Herrn" as %Herrn. rewrite Herrn. wp_auto.
+      iApply ("HΦ" $! interface.nil s1). iFrame "Hphys". iPureIntro.
+      split; first (eapply nstate_wf_handle_snap; [|exact Hres]; done).
+      split; last done.
+      exists [abs_snap m sv voters]. split; first recv_elem.
+      apply (step_handle_snap cfg id _ _ m sv voters s1
+               (adopt_candidate s m.(raftpb.Message.From') pvs)).
+      + exact Hto.
+      + exact Hteq.
+      + simpl. rewrite Hrole. done.
+      + exact Hfid.
+      + exact Hscope.
+      + exact Hcfg.
+      + exact Hres.
   Qed.
 
 End branches.

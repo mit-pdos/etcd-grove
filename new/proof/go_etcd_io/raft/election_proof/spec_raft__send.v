@@ -32,9 +32,10 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
     [Term] as [send] leaves it ([abs_msg_from], [defs.v]).  One clause per
     shape a caller builds:
 
-    (a) a vote request/response ([MsgVote], [MsgVoteResp]).  [Term] is the
-        caller's and is kept.  A [MsgVote] goes onto [r.msgs] and must not
-        be self-addressed; a [MsgVoteResp] is a response and may be.
+    (a) a vote request/response ([MsgVote], [MsgVoteResp], and since
+        2026-10-04 [MsgPreVote], [MsgPreVoteResp]).  [Term] is the
+        caller's and is kept.  A request goes onto [r.msgs] and must not
+        be self-addressed; a response may be.
     (b) a message stamped with the current term and queued on [r.msgs]:
         [MsgApp], [MsgHeartbeat], [MsgReadIndexResp], [MsgHeartbeatResp].
         [Term] must be unset; the abstract message carries [s.term], which
@@ -64,17 +65,19 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
         [0] (the body's [MsgProp]/[MsgReadIndex] exception); onto [r.msgs],
         not self-addressed.
 
-    The pre-vote and read-index types are in no clause: nothing in scope
-    sends them ([own_raft_phys] has [preVote = false]; no read requests).
+    The read-index types are in no clause: nothing in scope sends them (no
+    read requests).
     Until 2026-10-01 [MsgAppResp], [MsgSnap] and [MsgHeartbeatResp] were
     under (c), invisible to the model. *)
 Definition send_ok {ext : ffi_syntax} (id : w64) (s : nstate.t) (m : raftpb.Message.t)
     (ents : list raftpb.Entry.t) (out : list msg.t) : Prop :=
   (∃ ty,
-     (m.(raftpb.Message.Type') = MsgVote ∨ m.(raftpb.Message.Type') = MsgVoteResp) ∧
+     (m.(raftpb.Message.Type') = MsgVote ∨ m.(raftpb.Message.Type') = MsgVoteResp ∨
+      m.(raftpb.Message.Type') = MsgPreVote ∨ m.(raftpb.Message.Type') = MsgPreVoteResp) ∧
      mtype_of m.(raftpb.Message.Type') = Some ty ∧
      m.(raftpb.Message.Term') ≠ W64 0 ∧
-     (m.(raftpb.Message.Type') = MsgVote → m.(raftpb.Message.To') ≠ id) ∧
+     (m.(raftpb.Message.Type') = MsgVote ∨ m.(raftpb.Message.Type') = MsgPreVote →
+      m.(raftpb.Message.To') ≠ id) ∧
      out = [abs_msg_from ty m id m.(raftpb.Message.Term') ents])
   ∨
   (∃ ty,
@@ -108,7 +111,10 @@ Definition send_ok {ext : ffi_syntax} (id : w64) (s : nstate.t) (m : raftpb.Mess
     for a vote message with [ty] the abstract type,
 
       left; exists ty; split_and!;
-        [by right | apply mtype_of_MsgVoteResp | <Term ≠ 0> | w32_ne | done]
+        [by right; left | apply mtype_of_MsgVoteResp | <Term ≠ 0>
+         | intros [Hc|Hc]; revert Hc; w32_ne | done]
+
+    (the fourth discharges the request clause for a response type)
 
     (the last [done] fixes [out]); for a [MsgApp], [right; left; exists
     mtype.App; split_and!; [by left | .. | done | <To ≠ id> | done]]; for

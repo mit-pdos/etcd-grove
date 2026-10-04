@@ -669,7 +669,7 @@ fidelity): voters ownership and the applied bound in `HSnapshot` +
 `snap_ok_message` can be proved (with a `base` fact in `own_log_ghost`
 for a compacted index).
 
-## Phase 3: pre-vote, reconfiguration, read-only (scoping, 2026-10-02; not started)
+## Phase 3: pre-vote, reconfiguration, read-only (scoping, 2026-10-02; pre-vote done 2026-10-04)
 
 In the user's order. Each lifts one `own_raft_phys` scope conjunct, so each
 is a cone-wide change; none has been designed in detail yet, and the model
@@ -725,6 +725,69 @@ third disjunct) and `MsgPreVoteResp` (step down only when rejecting at a
 higher term), and the stale-term rejecting `MsgPreVoteResp`. Every existing
 `Step` branch re-checks (the `preVote` loads stop being constant), but no
 refinement argument changes. `newRaft` copies `c.PreVote`.
+
+#### Done 2026-10-04: pre-vote, as planned (plus one rule)
+
+Branch `worktree-agent-a55b1ab28ca9c10e1` (from `1e5c18fce`).  All `Qed`
+outside `protocol.v`; `make -k -j4 …/election.vo` green; module discipline
+3 warnings (unchanged); `tcb-report --scope election_proof`: 14 `Axiom`, 3
+`Admitted`, 605 `Qed`, 130 collections.
+
+- **Physical state** (`defs.v`).  `nstate.role : prole.t`
+  (`Follower | Candidate | Leader | PreCandidate`; `pstate.role` is still
+  `role.t`), `state_w64 PreCandidate = W64 3`, `step_func_of PreCandidate =
+  stepCandidate`, `prole_role` (a pre-candidate is a `role.Follower`).
+  `to_pstate` reads `lead := if PreCandidate then 0 else lead`, `role :=
+  prole_role role`, `votes := if PreCandidate then ∅ else votes` (the
+  pre-vote tally is invisible).  `nstate.prevote : bool` is `r.preVote`
+  (`own_raft_phys`'s `Hprevote`, replacing `HnoPreVote`;
+  `wp_raft_load_preVote` returns it); `newRaft` copies `Config.PreVote`
+  and its spec no longer assumes `false`.  `become_precandidate` (role,
+  `lead := 0`, `votes := ∅`, `stepfn`; term/vote/`Progress` untouched),
+  `to_pstate_become_precandidate : to_pstate (become_precandidate s) =
+  pbecome_follower (to_pstate s) s.term 0`, `prevote_req`,
+  `campaign_state id s pre peers`.  Lemmas `to_pstate_votes` (now needs
+  `role ≠ PreCandidate`), `to_pstate_votes_pre`, `to_pstate_lead_0`,
+  `follower_votes_ok_phys`.
+- **Collections.**  New `raft.becomePreCandidate` (premise `role ≠
+  Leader`).  `campaign(t)` returns `campaign_state … (bool_decide (t =
+  campaignPreElection)) peers` and covers `promotable`'s warning (the
+  `snap = None` premise went: the pre-vote win calls `campaign` without
+  it).  `hup` takes any `t`.  `voteRespMsgType` is relational (`Vote ↦
+  VoteResp`, `PreVote ↦ PreVoteResp`).  `send_ok` clause (a) has the two
+  pre-vote types.  `stepCandidate`: role `Candidate ∨ PreCandidate`; a
+  `MsgVoteResp` at a pre-candidate is a no-op, a `MsgPreVoteResp` at a
+  candidate too; at a pre-candidate `precand_vote_resp_result` /
+  `prevote_resp_result` (win = `campaign_state … false`, lose =
+  `become_follower s1 term 0`).  `stepFollower`/`stepLeader` take
+  `MsgPreVoteResp` as a no-op (it reaches `r.step` in any role).
+- **`Step`.**  Twelve types.  New premises: `MsgPreVote` -- `To = id`,
+  `Term ≠ 0`, `From ≠ 0`, `From ≠ id`, and **at term `0` the candidate is
+  up to date**: a higher-term pre-vote is rejected at the node's own term,
+  `send` panics on `Term = 0`, and nothing in `own_raft_phys` relates the
+  term to the log (a persisted log ahead of the persisted term would make
+  `Step` panic; etcd never builds one).  `MsgPreVoteResp` -- `To = id`,
+  `Term ≠ 0`, `From ≠ 0`, term no-wrap.  Branches
+  `proof_raft__Step_MsgPreVote{,_gt,_eq,_lt}.v` (always `step_send_free`;
+  `canVote` is evaluated under a `wp_wand` join) and
+  `proof_raft__Step_MsgPreVoteResp{,_gt,_eq,_lt}.v` (rejecting higher
+  term: `step_higher_term`; else per role, the pre-candidate by
+  `step_prevote_resp_result`); pure lemmas in
+  `proof_raft__Step_prevote_lemmas.v`.  Every existing helper re-checked:
+  the role destructs got a `PreCandidate` bullet (stepCandidate, as the
+  candidate), the stale-term helpers split on `prevote`.
+- **Stale-term `MsgAppResp`.**  With pre-vote on, `MsgApp`/`MsgHeartbeat`
+  of a lower term are answered with `MsgAppResp{To: m.From}` (`Index = 0`,
+  stamped `Term`).  `is_acked γ v t 0` holds for free (its first
+  disjunct), so `is_message` is satisfiable, but no rule sent an `AppResp`
+  outside the replication rules: a **third rule**, `step_zero_ack s to`
+  (outbox `++ [AppResp id to term false 0 0 0 0 []]`), was added.
+- **Rules** (appended to `step`, ghost cases `Qed`): `step_send_free s m`
+  (premise `ty = PreVote ∨ ty = PreVoteResp` and `from = id` -- `msg_free`
+  is defined after `step`, with the ghost state, so it could not be the
+  premise), `step_abandon s` (premise `role ≠ Leader`, not `= Candidate`:
+  a *follower* that pre-campaigns forgets its leader, which no other rule
+  allows), `step_zero_ack s to`.
 
 ### Reconfiguration
 

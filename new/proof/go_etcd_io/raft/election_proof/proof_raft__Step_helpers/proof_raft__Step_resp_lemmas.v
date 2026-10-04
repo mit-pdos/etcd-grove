@@ -50,23 +50,24 @@ Qed.
 
 (** [stepLeader] on [MsgBeat]: the heartbeats are [step_beat]'s. *)
 Lemma leader_beat_step id s m ents dropped s' :
-  s.(nstate.role) = role.Leader →
+  s.(nstate.role) = prole.Leader →
   m.(raftpb.Message.Type') = MsgBeat →
   nstate_wf s →
   leader_step_result cfg id s m ents dropped s' →
   dropped = false ∧ nstate_wf s' ∧ step cfg id (to_pstate s) [] (to_pstate s').
 Proof.
   intros Hr Hty Hwf.
+  assert (Hpr : (to_pstate s).(pstate.role) = role.Leader) by (rewrite to_pstate_role Hr //).
   rewrite /leader_step_result decide_False;
     last (rewrite Hty /MsgBeat /MsgProp; w32_ne).
   intros [-> Hres]. split; first done.
   destruct Hres as [[Hc _]|[[_ Hb]|[[Hc _]|[Hc _]]]].
-  - exfalso. rewrite Hty in Hc. destruct Hc as [Hc|[Hc|Hc]]; revert Hc; w32_ne.
+  - exfalso. rewrite Hty in Hc. destruct Hc as [Hc|[Hc|[Hc|Hc]]]; revert Hc; w32_ne.
   - destruct Hb as (ms & pvs & -> & Hok & Hpm).
     split; first exact Hwf.
     rewrite to_pstate_prvals; last (intros _; exact Hpm).
     rewrite to_pstate_send_msgs.
-    apply step_beat; [exact Hr|exact Hok].
+    apply step_beat; [exact Hpr|exact Hok].
   - exfalso. rewrite Hty in Hc. revert Hc. w32_ne.
   - exfalso. rewrite Hty in Hc. revert Hc. w32_ne.
 Qed.
@@ -74,46 +75,43 @@ Qed.
 (** [stepLeader] on [MsgHeartbeatResp]: [sendAppend]'s messages, no [Match]
     moved -- [step_send_apps]. *)
 Lemma leader_hbresp_step id s m ents dropped s' :
-  s.(nstate.role) = role.Leader →
+  s.(nstate.role) = prole.Leader →
   m.(raftpb.Message.Type') = MsgHeartbeatResp →
   nstate_wf s →
   leader_step_result cfg id s m ents dropped s' →
   dropped = false ∧ nstate_wf s' ∧ step cfg id (to_pstate s) [] (to_pstate s').
 Proof.
   intros Hr Hty Hwf.
+  assert (Hpr : (to_pstate s).(pstate.role) = role.Leader) by (rewrite to_pstate_role Hr //).
   rewrite /leader_step_result decide_False;
     last (rewrite Hty /MsgHeartbeatResp /MsgProp; w32_ne).
   intros [-> Hres]. split; first done.
   destruct Hres as [[Hc _]|[[Hc _]|[[_ Hb]|[Hc _]]]].
-  - exfalso. rewrite Hty in Hc. destruct Hc as [Hc|[Hc|Hc]]; revert Hc; w32_ne.
+  - exfalso. rewrite Hty in Hc. destruct Hc as [Hc|[Hc|[Hc|Hc]]]; revert Hc; w32_ne.
   - exfalso. rewrite Hty in Hc. revert Hc. w32_ne.
   - destruct Hb as (ms & pvs & -> & Hok & Hpm).
     split; first exact Hwf.
     rewrite to_pstate_prvals; last (intros _; exact Hpm).
     rewrite to_pstate_send_msgs.
-    apply step_send_apps; [exact Hr|exact Hok].
+    apply step_send_apps; [exact Hpr|exact Hok].
   - exfalso. rewrite Hty in Hc. revert Hc. w32_ne.
 Qed.
 
 (** A leader's [matched] is its [Progress] values' [Match]. *)
 Local Lemma to_pstate_matched_leader s :
-  s.(nstate.role) = role.Leader →
+  s.(nstate.role) = prole.Leader →
   (to_pstate s).(pstate.matched) = prvals_match s.(nstate.prvals).
 Proof.
-  intros Hr. rewrite /to_pstate.
-  case_decide as Hd; [reflexivity|exfalso; apply Hd; exact Hr].
+  intros Hr. rewrite /to_pstate /= Hr. reflexivity.
 Qed.
 
 (** New [Progress] values at a leader: only [matched] moves. *)
 Local Lemma to_pstate_prvals_leader s pvs :
-  s.(nstate.role) = role.Leader →
+  s.(nstate.role) = prole.Leader →
   to_pstate (s <| nstate.prvals := pvs |>)
   = to_pstate s <| pstate.matched := prvals_match pvs |>.
 Proof.
-  intros Hr. rewrite /to_pstate.
-  repeat (let Hd := fresh "Hd" in
-          case_decide as Hd; [|exfalso; apply Hd; exact Hr]).
-  reflexivity.
+  intros Hr. rewrite /to_pstate /= Hr. reflexivity.
 Qed.
 
 (** A protocol state with its commit index set to what it already is. *)
@@ -132,7 +130,7 @@ Proof. by destruct ps. Qed.
       judged at the raised [Match] map), then [step_send_apps] for what
       was sent after the commit. *)
 Lemma leader_appresp_step id s m ents0 ents dropped s' :
-  s.(nstate.role) = role.Leader →
+  s.(nstate.role) = prole.Leader →
   m.(raftpb.Message.Type') = MsgAppResp →
   m.(raftpb.Message.To') = id →
   m.(raftpb.Message.Term') = s.(nstate.term) →
@@ -143,11 +141,12 @@ Lemma leader_appresp_step id s m ents0 ents dropped s' :
           step cfg id (to_pstate s) recv (to_pstate s').
 Proof.
   intros Hr Hty Hto Hteq Hwf.
+  assert (Hpr : (to_pstate s).(pstate.role) = role.Leader) by (rewrite to_pstate_role Hr //).
   rewrite /leader_step_result decide_False;
     last (rewrite Hty /MsgAppResp /MsgProp; w32_ne).
   intros [-> Hres]. split; first done.
   destruct Hres as [[Hc _]|[[Hc _]|[[Hc _]|[_ Hres]]]].
-  { exfalso. rewrite Hty in Hc. destruct Hc as [Hc|[Hc|Hc]]; revert Hc; w32_ne. }
+  { exfalso. rewrite Hty in Hc. destruct Hc as [Hc|[Hc|[Hc|Hc]]]; revert Hc; w32_ne. }
   { exfalso. rewrite Hty in Hc. revert Hc. w32_ne. }
   { exfalso. rewrite Hty in Hc. revert Hc. w32_ne. }
   destruct Hres as [[_ ->]|[(_ & _ & Hb)|(_ & Hrej & Hacc)]].
@@ -162,7 +161,7 @@ Proof.
     { intros ? Hin. by apply elem_of_nil in Hin. }
     rewrite to_pstate_prvals; last (intros _; exact Hpm).
     rewrite to_pstate_send_msgs.
-    apply step_send_apps; [exact Hr|exact Hok].
+    apply step_send_apps; [exact Hpr|exact Hok].
   - (* accepted *)
     destruct Hacc as (x & pvs & c & ms & Hx & Hpvs & Hc & Hms & ->).
     split; first exact Hwf.
@@ -178,7 +177,7 @@ Proof.
       - done.
       - exact Hto.
       - exact Hteq.
-      - exact Hr.
+      - exact Hpr.
       - exact Hrej.
       - rewrite (to_pstate_matched_leader s Hr). exact Hx. }
     assert (step cfg id P1 [] (P1 <| pstate.commit := c |>)) as H2.
@@ -186,10 +185,10 @@ Proof.
       - assert (P1 <| pstate.commit := s.(nstate.logst).(logstate.committed) |> = P1)
           as -> by apply (pstate_commit_same P1).
         apply step_refl.
-      - apply step_commit; [exact Hr|exact Hlt|exact Hle|exact Hterm|exact Hq]. }
+      - apply step_commit; [exact Hpr|exact Hlt|exact Hle|exact Hterm|exact Hq]. }
     assert (step cfg id (P1 <| pstate.commit := c |>) []
               (psend_msgs (P1 <| pstate.commit := c |>) ms)) as H3.
-    { apply step_send_apps; first exact Hr.
+    { apply step_send_apps; first exact Hpr.
       eapply Forall_impl; last exact Hms.
       intros m' Hm'. eapply repl_ok_proper; [..|exact Hm']; reflexivity. }
     exists ([abs_msg mtype.AppResp m ents] ++ ([] ++ [])). split.

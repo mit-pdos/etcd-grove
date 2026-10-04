@@ -24,7 +24,7 @@ Import P.
     wp_apply (P.wp_raft__reset with "[$Hphys]").
     iIntros (pvs) "[Hphys %Hmr]".
     (* [r.tick], [r.lead := r.id], [r.state := StateLeader] *)
-    wp_auto. (wp_apply (wp_raft_store_tick with "Hphys") as "Hphys"; wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_store_lead with "Hphys") as "Hphys"; wp_apply (wp_raft_store_state _ _ _ _ role.Leader with "Hphys") as "Hphys").
+    wp_auto. (wp_apply (wp_raft_store_tick with "Hphys") as "Hphys"; wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_store_lead with "Hphys") as "Hphys"; wp_apply (wp_raft_store_state _ _ _ _ prole.Leader with "Hphys") as "Hphys").
     (* the leader's own [Progress] is marked replicating and recently active;
        the map lookup is on the tracker object *)
     wp_apply (wp_raft_load_id with "Hphys") as "Hphys".

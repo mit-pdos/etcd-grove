@@ -53,7 +53,7 @@ Implicit Type s : nstate.t.
     m.(raftpb.Message.Term') = s.(nstate.term) →
     (* a follower's vote tally is empty ([padopt_leader] clears it, and
        [nstate_wf] does not say so); see the combining file *)
-    (s.(nstate.role) = role.Follower → s.(nstate.votes) = ∅) →
+    (s.(nstate.role) = prole.Follower → s.(nstate.votes) = ∅) →
     {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s ∗
         "#Hents" ∷ m.(raftpb.Message.Entries') ↦*□ ents ∗
         "Hcap" ∷ own_slice_cap raftpb.Entry.t m.(raftpb.Message.Entries') (DfracOwn 1) }}}
@@ -143,10 +143,11 @@ Implicit Type s : nstate.t.
       wp_apply (P.wp_stepCandidate _ _ _ _ _ ents (zero_val _) [] with "[$Hphys Hcap]").
       { do 2 right; left. exact Hty. }
       { intros _. exact Hteq. }
-      { exact Hrole. }
+      { by left. }
       { exact Hcfg. }
       { intros _. split_and!; [exact Hpwf|exact Hnw|exact Hnorm|exact Hconf]. }
       { intros Hc. exfalso. rewrite Hty3 in Hc. revert Hc. w32_ne. }
+      { intros _ Hc. exfalso. revert Hc. rewrite Hty. w32_ne. }
       { iSplitR; [step_no_snap|]. iIntros "_". iFrame "Hents Hcap". }
       iIntros (err s1 dropped) "(Hphys & %Hres & Herrn)".
       apply candidate_step_result_app in Hres as [-> [pvs Hres]]; last exact Hty.
@@ -188,6 +189,34 @@ Implicit Type s : nstate.t.
       iPureIntro. split; first exact Hwf. split; last done.
       exists []. split; last apply step_refl.
       recv_elem.
+    - (* PreCandidate (2026-10-04), as a candidate:: [becomeFollower(r.Term, m.From)], then the handler *)
+      assert (s.(nstate.stepfn) = functions raft.stepCandidate []) as Hsf
+        by (rewrite Hsfw ?Hrole //).
+      rewrite Hsf.
+      wp_apply (P.wp_stepCandidate _ _ _ _ _ ents (zero_val _) [] with "[$Hphys Hcap]").
+      { do 2 right; left. exact Hty. }
+      { intros _. exact Hteq. }
+      { by right. }
+      { exact Hcfg. }
+      { intros _. split_and!; [exact Hpwf|exact Hnw|exact Hnorm|exact Hconf]. }
+      { intros Hc. exfalso. rewrite Hty3 in Hc. revert Hc. w32_ne. }
+      { intros _ Hc. exfalso. revert Hc. rewrite Hty. w32_ne. }
+      { iSplitR; [step_no_snap|]. iIntros "_". iFrame "Hents Hcap". }
+      iIntros (err s1 dropped) "(Hphys & %Hres & Herrn)".
+      apply candidate_step_result_app in Hres as [-> [pvs Hres]]; last exact Hty.
+      iDestruct "Herrn" as %Herrn. rewrite Herrn. wp_auto.
+      iApply ("HΦ" $! interface.nil s1). iFrame "Hphys". iPureIntro.
+      split; first (eapply nstate_wf_handle_app; [|exact Hres]; done).
+      split; last done.
+      exists [abs_msg mtype.App m ents]. split; first recv_elem.
+      apply (step_handle_app cfg id _ _ m ents s1
+               (adopt_candidate s m.(raftpb.Message.From') pvs)).
+      + exact Hto.
+      + exact Hteq.
+      + simpl. rewrite Hrole. done.
+      + exact Hconf.
+      + exact Hres.
+      + exact Hfid.
   Qed.
 
 End branches.

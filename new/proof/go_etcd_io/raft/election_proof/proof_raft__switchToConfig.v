@@ -44,7 +44,7 @@ Import P.
        [Progress] has [IsLearner = false] *)
     assert (state_w64 s'.(nstate.role) ≠ W64 2) as Hns.
     { simpl. destruct s.(nstate.role) eqn:Hro; rewrite /= /StateFollower /StateCandidate;
-        [| |congruence]; intros Heq; apply (f_equal uint.Z) in Heq; vm_compute in Heq; discriminate. }
+        [| |congruence|]; intros Heq; apply (f_equal uint.Z) in Heq; vm_compute in Heq; discriminate. }
     destruct (prs !! id) as [pr|] eqn:Hlk; simpl; try wp_auto.
     - iDestruct (own_tracker_lookup_same _ _ (trk.mk _ _ _) _ _ Hlk with "Htrk")
         as (p) "(_ & Hpr & Hprback)".

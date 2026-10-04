@@ -138,7 +138,7 @@ Proof. done. Qed.
     tally is empty -- [padopt_leader] clears it -- which [nstate.t] does not
     record by itself; it is the premise [Hvotes]. *)
 Lemma adopt_follower s (from : w64) :
-  s.(nstate.role) = role.Follower →
+  s.(nstate.role) = prole.Follower →
   s.(nstate.votes) = ∅ →
   to_pstate (s <| nstate.lead := from |>) = padopt_leader (to_pstate s) from.
 Proof.
@@ -277,7 +277,8 @@ Proof.
       rewrite -Hcm. exact Hlt. }
     rewrite /to_pstate /psend_msgs /send_msgs /padopt_leader /app_resp
       /abs_snap /abs_snap_from /=.
-    case_decide as Hd; [exfalso; congruence|].
+    destruct (decide (t.(nstate.role) = prole.Leader)) as [Hd|Hd];
+      [exfalso; rewrite Hd in Hrl; discriminate Hrl|].
     rewrite Htm Hvt Hld Hrl Hvs Hout Hprev Hlog. done.
   - (* restore *)
     rewrite Hprev Hlog in Hnm.
@@ -286,7 +287,8 @@ Proof.
       rewrite -Hcm. exact Hlt. }
     rewrite /to_pstate /psend_msgs /send_msgs /padopt_leader /app_resp
       /abs_snap /abs_snap_from /log_restore /snap_id /=.
-    case_decide as Hd; [exfalso; congruence|].
+    destruct (decide (t.(nstate.role) = prole.Leader)) as [Hd|Hd];
+      [exfalso; rewrite Hd in Hrl; discriminate Hrl|].
     rewrite Htm Hvt Hld Hrl Hvs Hout. done.
 Qed.
 

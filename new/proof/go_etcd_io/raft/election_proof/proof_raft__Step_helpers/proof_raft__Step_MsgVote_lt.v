@@ -80,21 +80,30 @@ Implicit Type s : nstate.t.
                              uint.Z s.(nstate.term)) = true) as Hb2
           by by apply bool_decide_eq_true_2.
         rewrite Hb2. rewrite bool_decide_eq_true_2 //. try wp_auto.
-        (* neither [checkQuorum] nor [preVote] *)
+        (* [checkQuorum] is off; with pre-vote on the type test runs: not
+           MsgHeartbeat, not MsgApp *)
         (wp_apply (wp_raft_load_checkQuorum with "Hphys") as "Hphys"; wp_apply (wp_raft_load_preVote with "Hphys") as "Hphys").
+        destruct (s.(nstate.prevote)); try wp_auto;
+          [ rewrite (bool_decide_eq_false_2 (m.(raftpb.Message.Type') = W32 8));
+              last (rewrite Hty /MsgVote; w32_ne);
+            try wp_auto;
+            rewrite (bool_decide_eq_false_2 (m.(raftpb.Message.Type') = W32 3));
+              last (rewrite Hty /MsgVote; w32_ne);
+            try wp_auto
+          | ].
         (* not a MsgPreVote *)
-        rewrite (bool_decide_eq_false_2 (m.(raftpb.Message.Type') = W32 17));
+        all: rewrite (bool_decide_eq_false_2 (m.(raftpb.Message.Type') = W32 17));
           last (rewrite Hty /MsgVote; w32_ne).
-        try wp_auto.
+        all: try wp_auto.
         (* not a MsgStorageAppendResp either, so the message is just logged *)
-        rewrite (bool_decide_eq_false_2 (m.(raftpb.Message.Type') = W32 20));
+        all: rewrite (bool_decide_eq_false_2 (m.(raftpb.Message.Type') = W32 20));
           last (rewrite Hty /MsgVote; w32_ne).
-        try wp_auto.
-        (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log).
+        all: try wp_auto.
+        all: (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log).
         (* nothing was sent and nothing changed: dropping is [step_refl]. *)
-        iApply ("HΦ" $! interface.nil s). iFrame "Hphys".
-        iPureIntro. split; first exact Hwf. split; last done. exists [].
-        split; [recv_elem|apply step_drop].
+        all: iApply ("HΦ" $! interface.nil s); iFrame "Hphys".
+        all: iPureIntro; split; first exact Hwf; split; last done; exists [].
+        all: split; [recv_elem|apply step_drop].
   Qed.
 
 End branches.

@@ -11,7 +11,7 @@ Definition wp_raft__becomeLeader_body :=
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (cfg : gset w64)
     (r : loc) (id : w64) (s : nstate.t),
-  s.(nstate.role) ≠ role.Follower →
+  s.(nstate.role) ≠ prole.Follower →
   id ∈ cfg →
   {{{ is_pkg_init raft ∗ own_raft_phys cfg r id s }}}
     r @! (go.PointerType raft.raft) @! "becomeLeader" #()

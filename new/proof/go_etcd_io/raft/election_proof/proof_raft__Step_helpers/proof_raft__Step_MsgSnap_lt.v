@@ -47,6 +47,10 @@ Implicit Type s : nstate.t.
       by (apply bool_decide_eq_false_2; rewrite Hty7; w32_ne).
     assert (Hn20 : bool_decide (m.(raftpb.Message.Type') = W32 20) = false)
       by (apply bool_decide_eq_false_2; rewrite Hty7; w32_ne).
+    assert (Hn8 : bool_decide (m.(raftpb.Message.Type') = W32 8) = false)
+      by (apply bool_decide_eq_false_2; rewrite Hty7; w32_ne).
+    assert (Hn3 : bool_decide (m.(raftpb.Message.Type') = W32 3) = false)
+      by (apply bool_decide_eq_false_2; rewrite Hty7; w32_ne).
     assert (Htf : bool_decide (true = false) = false) by done.
     wp_start_folded as "@". wp_start_unfold. wp_auto.
     wp_apply wp_traceReceiveMessage. try wp_auto.
@@ -63,17 +67,19 @@ Implicit Type s : nstate.t.
                          uint.Z s.(nstate.term)) = true) as Hb2
       by by apply bool_decide_eq_true_2.
     rewrite Hb2. rewrite bool_decide_eq_true_2 //. wp_auto.
-    (* (checkQuorum || preVote) && …: both off, so the whole test is false *)
+    (* (checkQuorum || preVote) && (MsgHeartbeat || MsgApp): [checkQuorum]
+       is off; with pre-vote on, the type test is false *)
     wp_apply (wp_raft_load_checkQuorum with "Hphys") as "Hphys".
     wp_apply (wp_raft_load_preVote with "Hphys") as "Hphys".
+    destruct (s.(nstate.prevote)); wp_auto;
+      [rewrite Hn8; wp_auto; rewrite Hn3; wp_auto|].
     (* not MsgPreVote, not MsgStorageAppendResp: only the log line *)
-    rewrite Hn17. wp_auto.
-    rewrite Hn20. wp_auto.
-    (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log).
-    iApply ("HΦ" $! interface.nil s). iFrame "Hphys".
-    iPureIntro. split; first exact Hwf. split; last done.
-    exists []. split; last apply step_refl.
-    recv_elem.
+    all: rewrite Hn17; wp_auto; rewrite Hn20; wp_auto.
+    all: (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log).
+    all: iApply ("HΦ" $! interface.nil s); iFrame "Hphys".
+    all: iPureIntro; split; first exact Hwf; split; last done.
+    all: exists []; split; last apply step_refl.
+    all: recv_elem.
   Qed.
 
 End branches.

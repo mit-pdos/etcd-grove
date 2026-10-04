@@ -4745,3 +4745,32 @@ cone while one is running, even a single-file one -- the two interleave
 and leave `.vo`s that "make inconsistent assumptions"; and a comment-only
 edit to `protocol.v` rebuilds the whole cone (~40 min), so batch comment
 edits to upstream files with real ones.
+
+## 2026-10-04 (late) — phase 3, pre-vote: `prole.t`, `nstate.prevote`, `Step` over twelve types
+
+Branch `worktree-agent-a55b1ab28ca9c10e1` (from `1e5c18fce`).  All `Qed`
+outside `protocol.v`; `make -k -j4 …/election.vo` green (six build rounds);
+module discipline 3 warnings; `tcb-report --scope election_proof`: 14
+`Axiom`, 3 `Admitted`, 605 `Qed`, 130 collections.  Full list in
+raft-replication-model.md, "Phase 3 … Pre-vote … Done 2026-10-04".
+
+- Plan followed (pre-vote is an implementation detail), with three
+  deviations, all in `protocol.v`'s appended rules: `step_send_free`'s
+  premise names the two pre-vote types (`msg_free` is defined later, in
+  the ghost section); `step_abandon` needs only `role ≠ Leader` (a
+  *follower* that pre-campaigns clears its leader, and nothing else
+  allows that); a third rule `step_zero_ack` for the stale-term
+  `MsgAppResp{Index: 0}` that pre-vote makes live (its `is_message` is
+  free: `is_acked` at `0`).  Ghost cases mirror `step_drain`/`step_lose`.
+- **Finding** (now a `Step` premise): a node at term `0` that rejects a
+  higher-term `MsgPreVote` replies with `Term: r.Term = 0` and `send`
+  `Panicf`s.  It needs a log ahead of the term (candidate not up to date
+  at term 0), which etcd never constructs but `own_raft_phys`/`newRaft`
+  admit.  Premise: `term = 0 → plog_up_to_date … = true`.
+- New pure lemma file `proof_raft__Step_prevote_lemmas.v`; all eight new
+  helper files went through on the first compile.  Most repair work was
+  in existing proofs: four-way role destructs, `exact Hrole` for model
+  premises (now `rewrite to_pstate_role Hrole //`), `(to_pstate s).lead`/
+  `.votes` no longer convert to the physical fields (`to_pstate_lead_0`,
+  `to_pstate_lead_nonpre`, `follower_votes_ok_phys`).
+- Not done: `make ci` (only the `election.vo` cone was built).
