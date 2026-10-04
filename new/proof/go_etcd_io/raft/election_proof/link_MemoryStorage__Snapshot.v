@@ -1,0 +1,6 @@
+Require Export New.proof.go_etcd_io.raft.election_proof.proof_MemoryStorage__Snapshot.
+
+Module MemoryStoragePublicSnapshotPostulates : MEMORYSTORAGE__PUBLIC_SNAPSHOT_POSTULATES.
+End MemoryStoragePublicSnapshotPostulates.
+
+Module MemoryStoragePublicSnapshot := MemoryStoragePublicSnapshotProof MemoryStoragePublicSnapshotPostulates.

@@ -180,6 +180,10 @@ Require Export New.proof.go_etcd_io.raft.election_proof.link_raft__bcastHeartbea
 Require Export New.proof.go_etcd_io.raft.election_proof.link_raft__bcastHeartbeat.
 Require Export New.proof.go_etcd_io.raft.election_proof.link_raft__maybeCommit.
 
+(** [MemoryStorage] meets [Storage]'s contract ([memstorage_instance.v]):
+    the five public methods and the two private helpers they call. *)
+Require Export New.proof.go_etcd_io.raft.election_proof.memstorage_instance.
+
 Section proof.
 Context `{hG: heapGS Σ, !ffi_semantics _ _}.
 Context {sem : go.Semantics} {package_sem : raft.Assumptions}.

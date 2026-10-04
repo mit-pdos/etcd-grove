@@ -136,34 +136,41 @@ Definition term_at (prev : raft.entryID.t) (ents : list raftpb.Entry.t) (i : w64
   else (λ e, e.(raftpb.Entry.Term')) <$>
          (ents !! Z.to_nat (uint.Z i - uint.Z prev.(raft.entryID.index') - 1)).
 
-(** The interface contract.  Persistent: it is a property of the interface
-    value (which method implementations it dispatches to), not of the
-    storage's current contents -- those live in [own_Storage]. *)
-Definition is_Storage (st : raft.Storage.t) : iProp Σ :=
+(** The interface contract, against an arbitrary ownership predicate [P] for
+    the storage's contents ([prev], [ents], [ss] as in [own_Storage]).
+    Persistent: it is a property of the interface value (which method
+    implementations it dispatches to), not of the storage's current contents
+    -- those live in [P].  [is_Storage] below is the case [P := own_Storage st]
+    that the rest of the development uses; a concrete implementation of the
+    interface is shown to satisfy the contract by proving [is_Storage_with]
+    for its own predicate (see [inv_memstorage.v]). *)
+Definition is_Storage_with
+  (P : raft.entryID.t → list raftpb.Entry.t → raft.entryID.t → iProp Σ)
+  (st : raft.Storage.t) : iProp Σ :=
   ∃ (i : interface.t_ok),
   "%Hstok" ∷ ⌜ st = interface.ok i ⌝ ∗
   "#HLastIndex" ∷ (∀ prev ents ss,
-     {{{ own_Storage st prev ents ss }}}
+     {{{ P prev ents ss }}}
        #(methods i.(interface.ty) "LastIndex"%go i.(interface.v)) #()
      {{{ (li : w64), RET (#li, #interface.nil);
          ⌜ (uint.Z li = uint.Z prev.(raft.entryID.index')
                         + Z.of_nat (length ents))%Z ⌝ ∗
-         own_Storage st prev ents ss }}}) ∗
+         P prev ents ss }}}) ∗
   "#HFirstIndex" ∷ (∀ prev ents ss,
-     {{{ own_Storage st prev ents ss }}}
+     {{{ P prev ents ss }}}
        #(methods i.(interface.ty) "FirstIndex"%go i.(interface.v)) #()
      {{{ (fi : w64), RET (#fi, #interface.nil);
          ⌜ (uint.Z fi = uint.Z prev.(raft.entryID.index') + 1)%Z ⌝ ∗
-         own_Storage st prev ents ss }}}) ∗
+         P prev ents ss }}}) ∗
   "#HTerm" ∷ (∀ prev ents ss (i0 : w64),
-     {{{ own_Storage st prev ents ss ∗
+     {{{ P prev ents ss ∗
          ⌜ (uint.Z prev.(raft.entryID.index') ≤ uint.Z i0 ≤
             uint.Z prev.(raft.entryID.index') + Z.of_nat (length ents))%Z ⌝ }}}
        #(methods i.(interface.ty) "Term"%go i.(interface.v)) #i0
      {{{ (t : w64), RET (#t, #interface.nil);
-         ⌜ term_at prev ents i0 = Some t ⌝ ∗ own_Storage st prev ents ss }}}) ∗
+         ⌜ term_at prev ents i0 = Some t ⌝ ∗ P prev ents ss }}}) ∗
   "#HEntries" ∷ (∀ prev ents ss (lo hi maxSize : w64),
-     {{{ own_Storage st prev ents ss ∗
+     {{{ P prev ents ss ∗
          ⌜ (uint.Z prev.(raft.entryID.index') + 1 ≤ uint.Z lo ∧ uint.Z lo < uint.Z hi ∧
             uint.Z hi ≤ uint.Z prev.(raft.entryID.index') + Z.of_nat (length ents) + 1)%Z ⌝ }}}
        #(methods i.(interface.ty) "Entries"%go i.(interface.v)) #lo #hi #maxSize
@@ -182,7 +189,7 @@ Definition is_Storage (st : raft.Storage.t) : iProp Σ :=
               for [app_ok]'s prefix clause. *)
            es `prefix_of` drop (Z.to_nat (uint.Z lo - uint.Z prev.(raft.entryID.index') - 1))
                             (take (Z.to_nat (uint.Z hi - uint.Z prev.(raft.entryID.index') - 1)) ents) ⌝ ∗
-         own_Storage st prev ents ss }}}) ∗
+         P prev ents ss }}}) ∗
   (** The stable log's last index is far below [2^64].
 
       This is the one *pure* clause of the contract, and it is what makes
@@ -216,10 +223,10 @@ Definition is_Storage (st : raft.Storage.t) : iProp Σ :=
       (notes/gotchas.md, "Reading a pure fact out of a definition without
       consuming it"). *)
   "#Hbounded" ∷ □ (∀ prev ents ss,
-     own_Storage st prev ents ss -∗
+     P prev ents ss -∗
      ⌜ (uint.Z prev.(raft.entryID.index') + Z.of_nat (length ents)
         < 2^61)%Z ⌝ ∗
-     own_Storage st prev ents ss) ∗
+     P prev ents ss) ∗
   (** [Snapshot()] -- added 2026-09-20 for [raft.maybeSendSnapshot].
 
       [raftLog.snapshot] ([new/code/go_etcd_io/raft/v3.v:864]) returns
@@ -267,11 +274,11 @@ Definition is_Storage (st : raft.Storage.t) : iProp Σ :=
       once the storage has compacted, which presupposes a snapshot), and
       the voters' read-only ownership. *)
   "#HSnapshot" ∷ (∀ prev ents ss (esu : interface.t),
-     {{{ own_Storage st prev ents ss ∗
+     {{{ P prev ents ss ∗
          (global_addr raft.ErrSnapshotTemporarilyUnavailable) ↦□ esu }}}
        #(methods i.(interface.ty) "Snapshot"%go i.(interface.v)) #()
      {{{ (snap : raftpb.Snapshot.t) (err : interface.t), RET (#snap, #err);
-         own_Storage st prev ents ss ∗
+         P prev ents ss ∗
          (⌜ err = esu ⌝ ∨
           (⌜ err = interface.nil ∧ snap_id snap = ss ∧
              snap.(raftpb.Snapshot.Metadata').(raftpb.SnapshotMetadata.Index')
@@ -279,6 +286,14 @@ Definition is_Storage (st : raft.Storage.t) : iProp Σ :=
            ∃ (voters : list w64),
              snap.(raftpb.Snapshot.Metadata').(raftpb.SnapshotMetadata.ConfState')
                .(raftpb.ConfState.Voters') ↦*□ voters)) }}}).
+
+(** The contract against the abstract [own_Storage]: what every client of the
+    interface assumes. *)
+Definition is_Storage (st : raft.Storage.t) : iProp Σ :=
+  is_Storage_with (own_Storage st) st.
+
+Global Instance is_Storage_with_pers P st : Persistent (is_Storage_with P st).
+Proof. apply _. Qed.
 
 Global Instance is_Storage_pers st : Persistent (is_Storage st).
 Proof. apply _. Qed.
