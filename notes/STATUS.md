@@ -435,8 +435,7 @@ whose whole job is what the build cannot check. What each establishes, the
 known gaps and the plan are in [tcb-accounting.md](tcb-accounting.md).
 
 `etc/tcb-report.py` on the election path (`--scope election_proof`,
-2026-10-04, at `5fa0f876d`; after pre-vote, on its branch: 14 `Axiom`, 3
-`Admitted`, 605 `Qed`, 130 collections, 574 files): **14 `Axiom` and 3 `Admitted`** -- the one
+2026-10-05, at `93d1d65da`): **14 `Axiom` and 3 `Admitted`** -- the one
 signed off on in `raftLog.slice`, and the two safety theorems
 `leader_completeness` and `state_machine_safety`, which **cannot be proved
 as stated**: they quantify over two nodes' ghost states, and the argument
@@ -444,10 +443,10 @@ needs the third node that is in both the commit quorum and the election
 quorum (its votes and acks live in its own ghost maps) -- they are being
 restated over the whole cluster, see item 5b. `heartbeat_commit_le_last`,
 `app_no_conflict_below_commit`, `log_matching` (2026-10-02) and
-`snap_ok_message` (2026-10-03) are proved. 582 `Qed` lemmas, 136
-collections (the `MemoryStorage` ones included), two results (`Step`,
-`newRaft`); `make ci` exit 0 (560 files at `5fa0f876d`; the election cone
-rebuilt green at `1fddf5333`, 561 files). The whole-raft numbers (`v3_proof/`
+`snap_ok_message` (2026-10-03) are proved. 626 `Qed` lemmas, 141
+collections (pre-vote, the read-only record and the `MemoryStorage`
+instance included), two results (`Step`, `newRaft`), 169 definitions,
+1,545 lines; `make ci` exit 0 (619 files). The whole-raft numbers (`v3_proof/`
 included) are the old ones plus these.
 
     R=new/proof/go_etcd_io/raft      # required; the tool names no development
