@@ -4873,3 +4873,47 @@ What remains in phase 3: the read-index `Step` arms over `own_ReadOnly`
 (`MsgReadIndex`/`MsgReadIndexResp`, `committedEntryInCurrentTerm`,
 `sendMsgReadIndexResponse`, `responseToReadIndexReq`, the
 `MsgHeartbeatResp` context path), and reconfiguration.
+
+## 2026-10-05 — the global committed log: `is_committed`/`own_committed`, `raft_commit_inv`
+
+Branch `worktree-agent-a43aff1f98fd7dbd6`, reset to `ca63d255f`. Footprint:
+`protocol.v` only (no rule, receiver lemma, `step_lemmas.v`/`defs.v` or
+downstream file changed). `make -k -j4 …/election.vo` green (615 files,
+45m44s); tcb-report: 14 Axiom, 1 Admitted (`raftLog.slice`), 753 Qed.
+
+User's direction: `is_committed` is the public predicate with prefix
+agreement against `own_committed γ log` (mono_list lb / auth), an internal
+invariant holds the authority with the facts justifying it, and messages
+carry the resources for now. Coordinator's correction mid-session: the
+authority is held **whole** inside the invariant (step_commit extends it in
+a leader's `Step`; the leader commits its own no-op with no client; no
+half can be outside) -- so `is_committed_prefix` (lb ⊑ auth) holds and
+`own_raft_ghost_alloc` returns `raft_commit_inv γ ∗ is_committed γ []`.
+Design as built: raft-replication-model.md, "As built: the global
+committed log".
+
+**The obstacle, and how it went.** Extending the global log at
+`step_commit` needs the new commit fact to agree with the stored one --
+Leader Completeness -- and `lc_core` needed the pivot voter's own ghost
+state (`cluster_ghost`), which the leader's step does not have. Two
+pieces replace it: (1) the invariant also holds half of every node's vote
+map with each vote's `vote_just` (`votes_tbl`; votes open the invariant to
+record themselves, `vote_insert`); (2) a per-node event history
+`re_evs` (mono_list of acks and votes, in term order) makes "the ack of an
+earlier term was before the vote" a persistent fact: `is_acked` carries
+`ack_ev`, `vote_just` carries `vote_ev`, `ev_pair` gives the history.
+`vote_just` could not go into `is_leader`/`is_win` directly: the
+definitions would be cyclic (`is_leader → vote_just → log_recs →
+is_entry_r → is_leader`; also `is_acked → … → hist → okL → cq → is_acked`),
+which is why the ack side carries only a pure-plus-lb fact and the vote
+side lives in the invariant.
+
+Side effects: `state_machine_safety` is now over two nodes (plain wand,
+from `is_committed_agree`), `leader_completeness` over two nodes as a fancy
+update; `cluster_ghost` is gone; `own_raft_ghost`/`own_log_ghost` are not
+`Timeless` (they hold an `inv`; nothing downstream needed it); the old
+index-valued `is_committed` is `is_committed_idx`.
+
+Inner loop: a fast tail check of `protocol.v` (admit proofs between
+`Section ghost.` and the work point; gotchas.md) cut 6-10 min checks to
+~40 s.

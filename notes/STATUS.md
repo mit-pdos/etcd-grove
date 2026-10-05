@@ -1,6 +1,6 @@
 # Status
 
-**Last updated:** 2026-10-04 (branch `worktree-raft-replication`, pre-vote merged on top of `1fddf5333`; `origin/main` `4f48cb6de` merged in; not yet on `main`; the combined tree's build is being verified)
+**Last updated:** 2026-10-05 (global committed log in `protocol.v`, branch of `worktree-raft-replication` at `ca63d255f`; earlier: 2026-10-04, branch `worktree-raft-replication`, pre-vote merged on top of `1fddf5333`; `origin/main` `4f48cb6de` merged in; not yet on `main`; the combined tree's build is being verified)
 
 This file is a snapshot of where the proof *is*. It carries no history: how
 something got this way is in [journal.md](journal.md), why a design was
@@ -42,8 +42,13 @@ and the older read-index work in `v3_proof/`. They share only `base.v`.
   `step_beat`, `step_app_resp`, `step_commit`, `step_send_apps`,
   `step_propose`, `step_prop_forward`), the ghost state (`own_raft_ghost`,
   `is_message`, `is_vote`, `is_leader`, and the per-term log authorities
-  `is_term_log`/`is_entry`/`is_acked`/`is_committed`) and the safety
-  statements. Constructed, not axiomatized, no Iris invariant.
+  `is_term_log`/`is_entry`/`is_acked`/`is_committed_idx`), and **since
+  2026-10-05 the global committed log**: the public `is_committed γ l`
+  (persistent prefix of the one global log) and its authority
+  `own_committed γ l`, held whole by the one Iris invariant
+  `raft_commit_inv` (with the justifying commit fact and a table of every
+  node's vote records); see raft-replication-model.md, "As built: the
+  global committed log". Constructed, not axiomatized.
   **Since 2026-10-01 this file may contain `Admitted`** (user's decision,
   [decisions.md](decisions.md)): two admits today (2026-10-03:
   `leader_completeness`, `state_machine_safety`; `snap_ok_message` is
@@ -405,6 +410,11 @@ say so in the journal.
    2026-10-02 journal entry). Both require the entry to lie above both
    nodes' compaction boundaries (`base.index < i`): a compacted prefix is
    not represented entry by entry.
+   **2026-10-05**: both are now over **two** nodes' ghost states, not the
+   cluster: the pivot voter's vote record is in the vote table of
+   `raft_commit_inv` and its acknowledgement history in the per-node event
+   histories (`ack_ev`/`vote_ev`); `state_machine_safety` is a plain wand
+   (via `is_committed_agree`), `leader_completeness` a fancy update.
 5c. **Two assumptions on the client `Storage` were added** (`inv_storage.v`):
    `Entries` returns a prefix of the stored entries from `lo` (its documented
    contract; `MemoryStorage` meets it). Listed so an auditor sees them.
@@ -437,7 +447,13 @@ say so in the journal.
 whose whole job is what the build cannot check. What each establishes, the
 known gaps and the plan are in [tcb-accounting.md](tcb-accounting.md).
 
-`etc/tcb-report.py` on the election path (`--scope election_proof`,
+**Latest audit (2026-10-05, global committed log, on `ca63d255f` + this branch's commits)**: `make -k -j4 …/election.vo` exit 0 (615 files, 45m44s);
+`etc/tcb-report.py --proof-root new/proof/go_etcd_io/raft --scope election_proof`:
+**14 `Axiom`, 1 `Admitted`** (the signed-off `raftLog.slice`), 753 `Qed`, 141
+collections, 10 results, 207 definitions (1,728 lines), 2 root lemmas;
+`protocol.v` has no `Admitted`; module discipline: 3 warnings (unchanged).
+
+Previous audit: `etc/tcb-report.py` on the election path (`--scope election_proof`,
 2026-10-05, at `93d1d65da`): **14 `Axiom` and 3 `Admitted`** -- the one
 signed off on in `raftLog.slice`, and the two safety theorems
 `leader_completeness` and `state_machine_safety`, which **cannot be proved
