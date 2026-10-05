@@ -1018,3 +1018,92 @@ ps1.term` has `e` at `i`, resp. that two nodes' committed prefixes agree at
 invariants described in STATUS.md item 5b. The statements over two nodes'
 ghost states alone are unprovable (journal, 2026-10-02): the argument needs
 the pivot voter's own records. `protocol.v` has no `Admitted` left.
+
+## As built: the global committed log (2026-10-05)
+
+The external face of commitment: clients see one global authoritative log.
+
+**Public predicates** (`protocol.v`, "The global committed log"; both sealed):
+
+    is_committed γ (l : list raftpb.Entry.t)   (* mono_list_lb_own γ.(re_commit) l: l is a prefix of the global log *)
+    own_committed γ l                         (* mono_list_auth_own γ.(re_commit) 1 l: the global log is l *)
+
+    is_committed_pers / is_committed_timeless / own_committed_timeless
+    is_committed_agree  : is_committed γ l1 -∗ is_committed γ l2 -∗ ⌜l1 ⊑ l2 ∨ l2 ⊑ l1⌝
+    own_committed_lb    : own_committed γ l -∗ is_committed γ l
+    is_committed_prefix : is_committed γ l -∗ own_committed γ l' -∗ ⌜l ⊑ l'⌝
+    is_committed_mono   : l1 ⊑ l2 → is_committed γ l2 -∗ is_committed γ l1
+
+The authority is held **whole** by the invariant (coordinator's correction
+of the same day): `step_commit` extends it inside a leader's `Step`, with
+no client involved, so no half can be outside. `is_committed` is the only
+client-facing resource. The old index-valued `is_committed γ i` is now
+`is_committed_idx` (internal; `snap_ok_message` and `own_log_ghost_committed`
+use it).
+
+**The invariant** (persistent, carried inside `own_log_ghost` as `Hinv`):
+
+    raft_commit_inv γ := inv raftN (∃ l, own_committed γ l ∗ committed_just γ l ∗ votes_tbl γ)
+    committed_just γ l := ⌜l = []⌝ ∨ ∃ t n G, cq γ t n G ∗ ⌜l = take n G⌝
+
+`cq γ t n G` (unchanged since 2026-10-03) is the justification: `G` is a
+full log of the leader of `t` (`lead_full`: its `is_win`, `lead_prefix`,
+`lpfull`), with an entry of term `t` at `n`, and a quorum of `is_acked … t
+i'` with `i' ≥ n`. `votes_tbl γ` holds **half of every node's vote map**
+with each vote's `vote_just`; the node holds the other half
+(`own_raft_ghost`'s `Hvoted` is `(1/2)` now; `own_raft_ghost_excl` uses the
+term-log map instead).
+
+**Why the vote table, and the event history.** Extending the global log
+needs Leader Completeness / agreement of two commit facts (`cq_agree`),
+which needs the pivot voter's records. These used to be read from the
+pivot's own ghost state, hence `cluster_ghost`. Now:
+- the vote record comes from `votes_tbl` (`votes_tbl_just`);
+- the history of the pivot's acknowledgement at vote time comes from a new
+  per-node **event history** `re_evs` (a `mono_list` of `aev = AAck t i |
+  AVote T d F`, in term order): `is_acked` carries `ack_ev` (the ack is in a
+  sorted lower bound), `vote_just` carries `vote_ev` (the vote is the last
+  event of a lower bound, with `hist` of every earlier ack of a lower
+  term), and `ev_pair` combines them. `own_log_ghost` gained `own_evs` (the
+  authority, sorted, terms ≤ the node's, acks in the ack map).
+So `lc_core`, `cq_lt_agree`, `cq_agree` take `votes_tbl γ` instead of
+`cluster_ghost γ S` (`tbl_voter` replaces `own_raft_ghost_voter` /
+`cluster_voter`), and the same section was moved before the step lemmas.
+
+**`is_message`** — App, Heartbeat and Snap each gained one conjunct inside
+their existing existentials:
+- App: `∃ bL l fp, lead_prefix … ∗ ⌜…⌝ ∗ lpfull … fp ∗ commit_in γ (fp ++ l) Commit term ∗ is_committed γ (take Commit (fp ++ l))`
+- Heartbeat: `∃ Fl, lead_full γ term Fl ∗ commit_in γ Fl Commit term ∗ is_committed γ (take Commit Fl)`
+- Snap: `∃ bL l fp, … ∗ commit_in γ (fp ++ l) Index term ∗ is_committed γ (take Index (fp ++ l))`
+(the committed prefix as entries, including the compacted prefix `fp`).
+
+**`own_raft_ghost`** keeps (in `own_log_ghost`) `Hcmt : is_committed γ
+(cprefix fp s)`, `cprefix fp s := take commit (fp ++ log)`. Exported:
+`own_raft_ghost_committed : own_raft_ghost γ id s -∗ ∃ fp, ⌜full_ok s.base
+fp⌝ ∗ is_committed γ (take commit (fp ++ s.log))` and `own_raft_ghost_inv`.
+
+**Which steps touch the global log.** Only `step_commit` extends it:
+`own_raft_ghost_step_commit` (now `={⊤}=∗`) builds `cq γ term n (fp ++
+log)` from the leader's `Match` quorum and calls `commit_extend`, which
+opens the invariant: the stored log is `take n0 G0` of an earlier `cq`;
+`cq_agree` (over the table) makes `G0` and `G` agree in terms up to
+`min n0 n`, `full_take_eq` (records ⇒ same entries) makes the prefixes
+equal there, so either the global log is extended to `take n G`
+(`mono_list_auth_own_update`) or it is already past it. Followers' commit
+moves take `is_committed` from the message: `step_app_accept` (the new log
+agrees with the leader's up to `lastnewi`), `step_heartbeat` (the ack the
+heartbeat carries, `ack_agree`), `step_snap_fastfwd` (the log has the
+snapshot's entry), `step_snap_restore` (the new compacted prefix is the
+leader's). `step_win`/`step_propose` append past the commit index
+(`cprefix_app`). Votes (`step_campaign`, `step_grant_vote`) open the
+invariant to record the vote in the table (`vote_insert`).
+
+**Allocation**: `own_raft_ghost_alloc E cfg ids : ⊢ |={E}=> ∃ γ, ⌜re_cfg =
+cfg⌝ ∗ raft_commit_inv γ ∗ is_committed γ [] ∗ [∗ set] id ∈ ids,
+own_raft_ghost γ id init_pstate` — no authority leaves the invariant.
+
+**Safety theorems** are now over two nodes: `state_machine_safety` is a plain
+wand on two `own_raft_ghost`s (from `is_committed_agree`);
+`leader_completeness` is a fancy update (`↑raftN ⊆ E`) that opens the
+invariant for the table. `cluster_ghost` is gone. `own_log_ghost` and
+`own_raft_ghost` are no longer `Timeless` (they hold an `inv`).
