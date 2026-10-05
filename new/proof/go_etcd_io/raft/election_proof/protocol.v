@@ -28,13 +28,14 @@
     the [raftLog] specs are stated with too.
 
     **Admitted.**  By the user's decision of 2026-10-01 this file may contain
-    [Admitted] lemmas.  Since 2026-10-03 there are two:
-    [leader_completeness] / [state_machine_safety], which are not provable
-    from two nodes' ghost state (their comments say why and what a proof
-    needs).  ([snap_ok_message], admitted on 2026-10-02 as a client
-    [Storage] assumption, is [Qed] since [snap_ok] carries the commit bound
-    and the log fact.)  Every rule's ghost update, the four protocol facts
-    the code's [Panicf]s rely on, and [log_matching] are [Qed].
+    [Admitted] lemmas.  Since 2026-10-03 it contains none: Leader
+    Completeness and State Machine Safety are [Qed], stated over the whole
+    cluster ([cluster_ghost], "Replication safety over the whole cluster"
+    below), from the history invariants added to [own_log_ghost] /
+    [own_raft_ghost] that day (full logs, campaign records, vote-time logs,
+    acknowledgement histories).  Every rule's ghost update, the four
+    protocol facts the code's [Panicf]s rely on, and [log_matching] are
+    [Qed] too.
 
     The deferred premises of 2026-10-01 are all in ([app_ok]'s prefix
     clause went in on 2026-10-02 with the pinned [raftLog.entries]). *)
@@ -5015,10 +5016,9 @@ Qed.
 (** *** Replication safety
 
     The three properties replication is for, as entailments between the
-    ghost states of nodes.  Log Matching is proved (2026-10-02).  Leader
-    Completeness and State Machine Safety are ADMITTED, and **cannot be
-    proved as stated**, from the ghost state of two nodes: see
-    [leader_completeness]'s comment for why and for what a proof needs. *)
+    ghost states of nodes.  Log Matching is proved (2026-10-02) from two
+    nodes' ghost state.  Leader Completeness and State Machine Safety are
+    proved (2026-10-03) over the whole cluster: see the next subsection. *)
 
 (** A node's log and its records. *)
 Lemma own_raft_ghost_log γ id s :

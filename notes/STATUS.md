@@ -357,20 +357,19 @@ say so in the journal.
    it to `committed`), plus `own_log_ghost`'s `base_ok`.  `msg_abs`'s
    `MsgSnap` case is tied to the heap.  Remaining scope cost: `newRaft`
    needs the storage's snapshot to be empty or at its first index.
-5b. **`leader_completeness` and `state_machine_safety` (admitted,
-   `protocol.v`)** -- the other three of the former five
-   (`heartbeat_commit_le_last`, `app_no_conflict_below_commit`,
-   `log_matching`) are `Qed` since 2026-10-02 (journal). These two are
-   **not provable as stated**: they hold two nodes' ghost state, and the
-   argument needs a third node (the voter in the commit quorum and the
-   election quorum) to have behaved -- its votes and acknowledgements are
-   fragments of its own maps, unconstrained without its `own_raft_ghost`.
-   A proof needs (1) a cluster-wide statement (every voter's
-   `own_raft_ghost`, or an Iris invariant over them), (2) a per-node
-   history invariant tying each vote to the voter's log at the time and to
-   its earlier acknowledgements, (3) `is_committed` naming the committed
-   entries. Spelled out in `leader_completeness`'s comment. Nothing
-   downstream consumes either lemma.
+5b. ~~**`leader_completeness` and `state_machine_safety` (admitted)**~~ --
+   **done 2026-10-05** (branch `worktree-agent-a7ff0c459a40b2ee6`): both
+   `Qed`, restated over the cluster (`cluster_ghost γ S`: every voter's
+   `own_raft_ghost`, `dom S = re_cfg`); `protocol.v` has no `Admitted`.
+   The proof (`lc_core`, induction on the leader's term) rests on new
+   per-node invariants: full logs (compacted prefix with records),
+   campaign records, vote-time logs, acknowledgement histories, commit
+   facts naming the committed log (notes/raft-replication-model.md, "As
+   built, leader-completeness pass"). **Model change**: `step_win` has a
+   no-wrap premise (`lastIndex() + 1 < 2^64`, the code's `Hnowrap`,
+   discharged in `proof_raft__Step_MsgVoteResp.v`) -- without it Leader
+   Completeness is false at `2^64` entries. Nothing downstream consumes
+   either theorem.
 5c. **Two assumptions on the client `Storage` were added** (`inv_storage.v`):
    `Entries` returns a prefix of the stored entries from `lo` (its documented
    contract; `MemoryStorage` meets it). Listed so an auditor sees them.
