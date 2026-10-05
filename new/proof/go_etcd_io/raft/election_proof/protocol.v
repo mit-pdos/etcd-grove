@@ -678,25 +678,19 @@ Lemma full_term_at b fp es (j : w64) :
   plog_term_at base0 (fp ++ es) j = plog_term_at b es j.
 Proof.
   intros (Hlen & Hwf & Hlast) Hj.
-  rewrite /plog_term_at. rewrite base0_index.
-  rewrite decide_False; [|word]. rewrite decide_False; [|lia].
-  destruct (decide (uint.Z j = uint.Z b.(raft.entryID.index'))) as [Heq|Hne].
-  - destruct (decide (uint.Z j = 0)) as [H0|H0].
-    + (* the empty prefix: [b = base0] *)
-      assert (fp = []) as -> by (apply nil_length_inv; lia).
-      rewrite /plog_last /= in Hlast. subst b.
-      rewrite decide_True; [|done]. rewrite decide_True //.
-    + rewrite decide_False //. rewrite decide_True //.
-      rewrite lookup_app_l; [|lia].
-      rewrite /plog_last in Hlast.
-      destruct (list.last fp) as [x|] eqn:Hx.
-      * rewrite last_lookup in Hx.
-        replace (Z.to_nat (uint.Z j - 0 - 1)) with (pred (length fp)) by lia.
-        rewrite Hx /=. subst b. done.
-      * apply last_None in Hx. subst fp. simpl in Hlen. lia.
-  - rewrite decide_False; [|lia]. rewrite decide_False; [|lia].
-    rewrite decide_False; [|lia].
-    rewrite lookup_app_r; [|lia]. do 2 f_equal. lia.
+  rewrite /plog_term_at base0_index.
+  repeat case_decide; try lia.
+  - (* the empty prefix: [b = base0] *)
+    assert (fp = []) as -> by (apply nil_length_inv; lia).
+    rewrite /plog_last /= in Hlast. subst b. done.
+  - rewrite lookup_app_l; [|lia].
+    rewrite /plog_last in Hlast.
+    destruct (list.last fp) as [x|] eqn:Hx.
+    + rewrite last_lookup in Hx.
+      replace (Z.to_nat (uint.Z j - 0 - 1)) with (pred (length fp)) by lia.
+      rewrite Hx /=. subst b. done.
+    + apply last_None in Hx. subst fp. simpl in Hlen. lia.
+  - rewrite lookup_app_r; [|lia]. do 2 f_equal. lia.
 Qed.
 
 Lemma full_term_at_le b fp es (j : w64) :
@@ -759,8 +753,9 @@ Proof.
   intros Hwf Ht.
   pose proof (plog_term_at_Some_range _ _ _ _ Ht) as [_ Hle].
   rewrite /plog_last_index_Z base0_index in Hle.
+  pose proof (word.unsigned_range i).
   split_and!.
-  - rewrite length_take /=. lia.
+  - rewrite length_take /= Nat.min_l; lia.
   - by apply plog_wf_take.
   - rewrite /plog_last.
     destruct (decide (uint.Z i = 0)) as [H0|H0].
@@ -800,6 +795,20 @@ Proof.
   by pose proof (plog_term_at_Some_range _ _ _ _ Hx) as [_ ?].
 Qed.
 
+
+(** The pure side of a campaign record ([is_camp], 2026-10-03): a
+    well-formed full log all of whose terms are below the campaign's. *)
+Definition camp_ok (T : w64) (F : list raftpb.Entry.t) : Prop :=
+  plog_wf base0 F ∧
+  ∀ (j x : w64), plog_term_at base0 F j = Some x → uint.Z x < uint.Z T.
+
+(** What an entry's record says of its predecessor term [pt] ([is_entry_r]):
+    the entry, at index [k], is past the leader's campaign log [F0]; it
+    follows [F0]'s last entry or one of its own term; [pt ≤ T]. *)
+Definition pt_ok (F0 : list raftpb.Entry.t) (T : w64) (k : Z) (pt : w64) : Prop :=
+  plog_last_index_Z base0 F0 < k ∧ uint.Z pt ≤ uint.Z T ∧
+  (k = plog_last_index_Z base0 F0 + 1 → pt = (plog_last base0 F0).(raft.entryID.term')) ∧
+  (plog_last_index_Z base0 F0 + 1 < k → pt = T).
 
 Section model.
 
@@ -1440,6 +1449,12 @@ Record raft_election_names := {
     re_terms : gmap w64 gname;
     (** [re_acks !! id]: node [id]'s acknowledgements, [(term, index) ↦ ()]. *)
     re_acks : gmap w64 gname;
+    (** [re_camp !! id]: node [id]'s campaign records, [term ↦ full log]
+        when it started the election of that term ([is_camp], 2026-10-03). *)
+    re_camp : gmap w64 gname;
+    (** [re_vlogs !! id]: node [id]'s vote-time logs, [k ↦ (term, full
+        log)], one per vote it cast ([is_vlog], 2026-10-03). *)
+    re_vlogs : gmap w64 gname;
   }.
 
 Section ghost.
@@ -1502,23 +1517,52 @@ Definition is_term_log γ (v t : w64) (γt : gname) (b : raft.entryID.t)
     (l0 : list raftpb.Entry.t) : iProp Σ :=
   ∃ γm, ⌜ γ.(re_terms) !! v = Some γm ⌝ ∗ t ↪[γm]□ (γt, b, l0).
 
+(** [c]'s campaign record of term [T]: its full log ([fp ++ log], see
+    "Full logs") when it became candidate in [T] -- unchanged until it wins
+    ([camp_own]), so it is also the log the leader of [T] started from.
+    Frozen when allocated ([step_campaign]); a [Vote] request carries it
+    ([is_message]), so the [(LogTerm, Index)] a voter checks is the last
+    entry of a log the candidate really had.  Every term in it is below [T]
+    (the candidate has nothing of its own term), which is [camp_ok].
+    (2026-10-03.) *)
+Definition is_camp γ (c T : w64) (F : list raftpb.Entry.t) : iProp Σ :=
+  ∃ γc, ⌜ γ.(re_camp) !! c = Some γc ∧ camp_ok T F ⌝ ∗ T ↪[γc]□ F.
+
+Global Instance is_camp_pers γ c T F : Persistent (is_camp γ c T F).
+Proof. apply _. Qed.
+Global Instance is_camp_timeless γ c T F : Timeless (is_camp γ c T F).
+Proof. apply _. Qed.
+
+Lemma is_camp_agree γ c T F1 F2 :
+  is_camp γ c T F1 -∗ is_camp γ c T F2 -∗ ⌜ F1 = F2 ⌝.
+Proof.
+  iIntros "(%γ1 & [%H1 _] & Hf1) (%γ2 & [%H2 _] & Hf2)".
+  rewrite H1 in H2. injection H2 as <-.
+  iApply (ghost_map_elem_agree with "Hf1 Hf2").
+Qed.
+
+Lemma is_camp_ok γ c T F : is_camp γ c T F -∗ ⌜ camp_ok T F ⌝.
+Proof. iIntros "(% & [_ %H] & _)". done. Qed.
+
 (** [e] was created by the leader of its term, after an entry of term
-    [pt]: the term log of [e]'s term holds [(e, pt)] at [e]'s index. *)
+    [pt]: the term log of [e]'s term holds [(e, pt)] at [e]'s index.  Since
+    2026-10-03 also: [e] is past the leader's campaign log [F0], its
+    predecessor is [F0]'s last entry or another entry of [e]'s term, and
+    [pt ≤ e.term] ([pt_ok]) -- which makes the terms of a log with records
+    non-decreasing, and lets Leader Completeness walk a log down from an
+    entry of term [T] to where the leader of [T] started. *)
 Definition is_entry_r γ (e : raftpb.Entry.t) (pt : w64) : iProp Σ :=
-  ∃ ldr γt b l0, is_leader γ ldr e.(raftpb.Entry.Term') ∗
+  ∃ ldr γt b l0 F0, is_leader γ ldr e.(raftpb.Entry.Term') ∗
                  is_term_log γ ldr e.(raftpb.Entry.Term') γt b l0 ∗
-                 e.(raftpb.Entry.Index') ↪[γt]□ (e, pt).
+                 is_camp γ ldr e.(raftpb.Entry.Term') F0 ∗
+                 e.(raftpb.Entry.Index') ↪[γt]□ (e, pt) ∗
+                 ⌜ pt_ok F0 e.(raftpb.Entry.Term') (uint.Z e.(raftpb.Entry.Index')) pt ⌝.
 
 Definition is_entry γ (e : raftpb.Entry.t) : iProp Σ := ∃ pt, is_entry_r γ e pt.
 
 Definition is_acked γ (v t i : w64) : iProp Σ :=
   ⌜ uint.Z i = 0 ⌝ ∨
   ∃ γa, ⌜ γ.(re_acks) !! v = Some γa ⌝ ∗ (t, i) ↪[γa]□ ().
-
-Definition is_committed γ (i : w64) : iProp Σ :=
-  ⌜ uint.Z i = 0 ⌝ ∨
-  ∃ (t : w64) q, ⌜ is_quorum γ.(re_cfg) q ⌝ ∗
-    [∗ set] v ∈ q, ∃ i', ⌜ uint.Z i ≤ uint.Z i' ⌝ ∗ is_acked γ v t i'.
 
 Global Instance is_term_log_pers γ v t γt b l0 : Persistent (is_term_log γ v t γt b l0).
 Proof. apply _. Qed.
@@ -1535,10 +1579,6 @@ Proof. apply _. Qed.
 Global Instance is_acked_pers γ v t i : Persistent (is_acked γ v t i).
 Proof. apply _. Qed.
 Global Instance is_acked_timeless γ v t i : Timeless (is_acked γ v t i).
-Proof. apply _. Qed.
-Global Instance is_committed_pers γ i : Persistent (is_committed γ i).
-Proof. apply _. Qed.
-Global Instance is_committed_timeless γ i : Timeless (is_committed γ i).
 Proof. apply _. Qed.
 
 (** Log matching at one index: two entries with the same term and index
@@ -1557,8 +1597,8 @@ Lemma is_entry_r_agree γ e1 pt1 e2 pt2 :
   e1.(raftpb.Entry.Index') = e2.(raftpb.Entry.Index') →
   is_entry_r γ e1 pt1 -∗ is_entry_r γ e2 pt2 -∗ ⌜ e1 = e2 ∧ pt1 = pt2 ⌝.
 Proof.
-  iIntros (Ht Hi) "(%l1 & %γ1 & %b1 & %l01 & #Hl1 & #Ht1 & #He1)
-                   (%l2 & %γ2 & %b2 & %l02 & #Hl2 & #Ht2 & #He2)".
+  iIntros (Ht Hi) "(%l1 & %γ1 & %b1 & %l01 & %F1 & #Hl1 & #Ht1 & _ & #He1 & _)
+                   (%l2 & %γ2 & %b2 & %l02 & %F2 & #Hl2 & #Ht2 & _ & #He2 & _)".
   iEval (rewrite Ht) in "Hl1 Ht1". iEval (rewrite Hi) in "He1".
   iDestruct (is_leader_unique with "Hl1 Hl2") as %<-.
   iDestruct (is_term_log_agree with "Ht1 Ht2") as %(<- & _ & _).
@@ -1603,20 +1643,6 @@ Global Instance base_ok_pers γ b : Persistent (base_ok γ b).
 Proof. apply _. Qed.
 Global Instance base_ok_timeless γ b : Timeless (base_ok γ b).
 Proof. apply _. Qed.
-
-Lemma is_committed_0 γ : ⊢ is_committed γ (W64 0).
-Proof. iLeft. done. Qed.
-
-(** What is committed up to [i] is committed up to anything below. *)
-Lemma is_committed_le γ (i j : w64) :
-  uint.Z j ≤ uint.Z i → is_committed γ i -∗ is_committed γ j.
-Proof.
-  iIntros (Hle) "[%H0 | (%t & %q & %Hq & #Hq)]".
-  - iLeft. iPureIntro. word.
-  - iRight. iExists t, q. iSplit; first done.
-    iApply (big_sepS_impl with "Hq"). iIntros "!> %v %Hv (%i' & %Hi' & #Ha)".
-    iExists i'. iFrame "Ha". iPureIntro. lia.
-Qed.
 
 (** *** Logs as persistent knowledge (2026-10-02)
 
@@ -1733,6 +1759,460 @@ Proof.
     iDestruct (ghost_map_elem_agree with "H1 H2") as %[= -> _]. done.
 Qed.
 
+(** *** Full logs as persistent knowledge (2026-10-03)
+
+    The records of a full log ([log_recs γ base0 F]) are those of its
+    compacted prefix and of its stored suffix ([log_recs_full]).  From them:
+    full logs match like stored ones ([full_match]), their terms never go
+    down ([recs_mono]), and below an entry of term [T] they have [T] all the
+    way to where [T]'s leader started ([recs_chain]). *)
+
+Lemma log_recs_full γ b fp es :
+  full_ok b fp → log_recs γ base0 fp -∗ log_recs γ b es -∗ log_recs γ base0 (fp ++ es).
+Proof.
+  iIntros (Hfull) "#H1 #H2". pose proof Hfull as (Hlen & _ & _).
+  rewrite /log_recs big_sepL_app. iSplit.
+  - iApply (big_sepL_impl with "H1"). iIntros "!> %k %x %Hk H".
+    case_decide as Hr; [|done]. iDestruct "H" as (pt Hpt) "Hx". iExists pt. iFrame "Hx".
+    iPureIntro. rewrite plog_term_at_app_l; [done|].
+    apply lookup_lt_Some in Hk. rewrite /pidx base0_index word.unsigned_of_Z_nowrap.
+    + rewrite /plog_last_index_Z base0_index. lia.
+    + rewrite base0_index in Hr. lia.
+  - iApply (big_sepL_impl with "H2"). iIntros "!> %k %x %Hk H".
+    rewrite base0_index. iRevert "H".
+    repeat case_decide; try lia; iIntros "H"; [|done].
+    iDestruct "H" as (pt Hpt) "Hx". iExists pt. iFrame "Hx".
+    iPureIntro.
+    assert (Hp : pidx base0 (length fp + k) = pidx b k).
+    { rewrite /pidx base0_index. f_equal. lia. }
+    rewrite Hp (full_term_at b fp es) //.
+    rewrite /pidx word.unsigned_of_Z_nowrap; [lia|].
+    pose proof (word.unsigned_range b.(raft.entryID.index')). lia.
+Qed.
+
+Lemma log_recs_take γ F (n : nat) :
+  log_recs γ base0 F -∗ log_recs γ base0 (take n F).
+Proof.
+  iIntros "#H". rewrite /log_recs.
+  iApply big_sepL_intro. iIntros "!> %k %x %Hk".
+  destruct (decide (k < n)%nat) as [Hlt|Hge];
+    [|rewrite lookup_take_ge in Hk; [done|lia]].
+  rewrite lookup_take_lt in Hk; [|done].
+  iDestruct (big_sepL_lookup with "H") as "Hx"; first exact Hk.
+  case_decide as Hr; [|done].
+  iDestruct "Hx" as (pt Hpt) "Hx". iExists pt. iFrame "Hx". iPureIntro.
+  rewrite plog_term_at_take_full; [done|].
+  rewrite /pidx base0_index word.unsigned_of_Z_nowrap; [lia|].
+  rewrite base0_index in Hr. lia.
+Qed.
+
+(** One entry's record, read out. *)
+Lemma log_recs_lookup γ F (k : nat) e :
+  F !! k = Some e → Z.of_nat k + 1 < 2 ^ 64 →
+  log_recs γ base0 F -∗
+  ∃ pt, ⌜ plog_term_at base0 F (W64 (Z.of_nat k)) = Some pt ⌝ ∗ is_entry_r γ e pt.
+Proof.
+  iIntros (Hk Hr) "#H".
+  iDestruct (big_sepL_lookup with "H") as "Hx"; first exact Hk.
+  rewrite base0_index decide_True; [|lia].
+  iDestruct "Hx" as (pt Hpt) "Hx". iExists pt. iFrame "Hx". iPureIntro.
+  rewrite /pidx base0_index Z.add_0_l in Hpt. done.
+Qed.
+
+Lemma is_entry_r_pt γ e pt :
+  is_entry_r γ e pt -∗ ⌜ uint.Z pt ≤ uint.Z e.(raftpb.Entry.Term') ⌝.
+Proof. iIntros "(% & % & % & % & % & _ & _ & _ & _ & %Hok)". iPureIntro. apply Hok. Qed.
+
+(** Full-log matching: two full logs with records that have the same term
+    at [i] agree everywhere below. *)
+Lemma full_match γ F1 F2 (i : w64) :
+  plog_wf base0 F1 → plog_wf base0 F2 →
+  is_Some (plog_term_at base0 F1 i) →
+  plog_term_at base0 F1 i = plog_term_at base0 F2 i →
+  log_recs γ base0 F1 -∗ log_recs γ base0 F2 -∗
+  ⌜ ∀ j : w64, uint.Z j ≤ uint.Z i →
+      plog_term_at base0 F1 j = plog_term_at base0 F2 j ⌝.
+Proof.
+  iIntros (Hw1 Hw2 Hs Heq) "#H1 #H2".
+  iDestruct (log_recs_agree with "H1 H2") as %HRA.
+  iPureIntro. intros j Hj.
+  apply (plog_match_down _ _ _ _ i (plog_wf_wf_r _ _ Hw1) (plog_wf_wf_r _ _ Hw2) HRA Hs Heq);
+    rewrite ?base0_index; [word|word|lia].
+Qed.
+
+(** The compacted prefix of a log with records is determined by its base. *)
+Lemma full_ok_unique γ b fp1 fp2 :
+  full_ok b fp1 → full_ok b fp2 →
+  log_recs γ base0 fp1 -∗ log_recs γ base0 fp2 -∗ ⌜ fp1 = fp2 ⌝.
+Proof.
+  iIntros (Hf1 Hf2) "#H1 #H2".
+  pose proof Hf1 as (Hl1 & Hw1 & _). pose proof Hf2 as (Hl2 & Hw2 & _).
+  iDestruct (log_recs_agree with "H1 H2") as %HRA.
+  assert (Hb : ∀ fp, full_ok b fp →
+            plog_term_at base0 fp b.(raft.entryID.index') = Some b.(raft.entryID.term')).
+  { intros fp Hf. rewrite -(app_nil_r fp) (full_term_at b fp []) //. apply plog_term_at_base. }
+  iDestruct (full_match _ _ _ b.(raft.entryID.index') Hw1 Hw2 with "H1 H2") as %Hm.
+  { rewrite Hb //; by eexists. }
+  { rewrite !Hb //. }
+  iPureIntro. apply list_eq. intros k.
+  destruct (fp1 !! k) as [e1|] eqn:He1; destruct (fp2 !! k) as [e2|] eqn:He2.
+  - pose proof (Hw1 _ _ He1) as Hi1. pose proof (Hw2 _ _ He2) as Hi2.
+    rewrite base0_index in Hi1 Hi2.
+    apply lookup_lt_Some in He1 as Hk.
+    assert (Ht : plog_term_at base0 fp1 (W64 (Z.of_nat k + 1)) = plog_term_at base0 fp2 (W64 (Z.of_nat k + 1))).
+    { apply Hm. word. }
+    rewrite (plog_term_at_lookup _ _ _ k e1) // in Ht; [|rewrite base0_index; word].
+    rewrite (plog_term_at_lookup _ _ _ k e2) // in Ht; [|rewrite base0_index; word].
+    injection Ht as Ht.
+    destruct (HRA _ _ _ _ He1 He2 ltac:(rewrite base0_index; word) ltac:(rewrite base0_index; word) Ht
+                ltac:(apply word.unsigned_inj; lia)) as [-> _].
+    done.
+  - apply lookup_lt_Some in He1. apply lookup_ge_None in He2. lia.
+  - apply lookup_lt_Some in He2. apply lookup_ge_None in He1. lia.
+  - done.
+Qed.
+
+(** Terms in a full log with records never go down. *)
+Lemma recs_mono γ F :
+  plog_wf base0 F →
+  log_recs γ base0 F -∗
+  ⌜ ∀ (j k x y : w64), uint.Z j ≤ uint.Z k →
+      plog_term_at base0 F j = Some x → plog_term_at base0 F k = Some y →
+      uint.Z x ≤ uint.Z y ⌝.
+Proof.
+  iIntros (Hwf) "#H".
+  pose proof (plog_wf_range _ _ Hwf) as Hrng. rewrite /plog_last_index_Z base0_index in Hrng.
+  iAssert (⌜ ∀ (k : nat) e, F !! k = Some e →
+              ∃ pt, plog_term_at base0 F (W64 (Z.of_nat k)) = Some pt ∧
+                    uint.Z pt ≤ uint.Z e.(raftpb.Entry.Term') ⌝)%I as %Hstep.
+  { iIntros (k e Hk). apply lookup_lt_Some in Hk as Hlt.
+    iDestruct (log_recs_lookup with "H") as (pt Hpt) "He"; [exact Hk|lia|].
+    iDestruct (is_entry_r_pt with "He") as %Hle. iPureIntro. eauto. }
+  iPureIntro.
+  intros j k x y Hjk Hx Hy.
+  remember (Z.to_nat (uint.Z k - uint.Z j)) as d eqn:Hd.
+  revert k y Hjk Hy Hd. induction d as [|d IH]; intros k y Hjk Hy Hd.
+  - assert (j = k) as -> by word. rewrite Hx in Hy. injection Hy as ->. lia.
+  - (* the entry at [k] follows one whose term is at most its own *)
+    pose proof (word.unsigned_range j).
+    assert (Hk0 : 0 < uint.Z k) by lia.
+    rewrite /plog_term_at base0_index in Hy.
+    rewrite decide_False in Hy; [|lia]. rewrite decide_False in Hy; [|lia].
+    destruct (F !! _) as [e|] eqn:He; [|done]. simpl in Hy. injection Hy as <-.
+    destruct (Hstep _ _ He) as (pt & Hpt & Hle).
+    set (k' := W64 (Z.of_nat (Z.to_nat (uint.Z k - 0 - 1)))) in *.
+    assert (Hk' : uint.Z k' = uint.Z k - 1) by (subst k'; word).
+    specialize (IH k' pt ltac:(lia) Hpt ltac:(lia)). lia.
+Qed.
+
+(** Walking down from an entry of term [T]: every entry of term [T] in a
+    full log with records sits past the campaign log [F0] of [T]'s leader,
+    and the one just past it follows [F0]'s last term. *)
+Lemma recs_chain γ F ldr (T : w64) F0 :
+  plog_wf base0 F →
+  is_leader γ ldr T -∗ is_camp γ ldr T F0 -∗ log_recs γ base0 F -∗
+  ⌜ ∀ k : w64, 0 < uint.Z k → plog_term_at base0 F k = Some T →
+      plog_last_index_Z base0 F0 < uint.Z k ∧
+      plog_term_at base0 F (W64 (plog_last_index_Z base0 F0))
+        = Some (plog_last base0 F0).(raft.entryID.term') ∧
+      ∀ j : w64, plog_last_index_Z base0 F0 < uint.Z j ≤ uint.Z k →
+        plog_term_at base0 F j = Some T ⌝.
+Proof.
+  iIntros (Hwf) "#Hl #Hc #H".
+  pose proof (plog_wf_range _ _ Hwf) as Hrng. rewrite /plog_last_index_Z base0_index in Hrng.
+  set (L0 := plog_last_index_Z base0 F0).
+  iAssert (⌜ ∀ (k : nat) e, F !! k = Some e → e.(raftpb.Entry.Term') = T →
+              (L0 < Z.of_nat k + 1)%Z ∧
+              ((Z.of_nat k + 1 = L0 + 1)%Z →
+                 plog_term_at base0 F (W64 (Z.of_nat k)) = Some (plog_last base0 F0).(raft.entryID.term')) ∧
+              ((L0 + 1 < Z.of_nat k + 1)%Z → plog_term_at base0 F (W64 (Z.of_nat k)) = Some T) ⌝)%I
+    as %Hstep.
+  { iIntros (k e Hk HT). apply lookup_lt_Some in Hk as Hlt.
+    iDestruct (log_recs_lookup with "H") as (pt Hpt) "He"; [exact Hk|lia|].
+    iDestruct "He" as (ldr' γt b l0 F0') "(#Hl' & _ & #Hc' & _ & %Hok)".
+    rewrite HT. iDestruct (is_leader_unique with "Hl Hl'") as %<-.
+    iDestruct (is_camp_agree with "Hc Hc'") as %<-.
+    specialize (Hwf _ _ Hk). rewrite base0_index in Hwf.
+    destruct Hok as (H1 & _ & H2 & H3). rewrite HT in H2 H3.
+    iPureIntro. split_and!.
+    - rewrite Hwf in H1. unfold L0. lia.
+    - intros Heq. rewrite Hpt. f_equal. apply H2. unfold L0 in Heq. lia.
+    - intros Hgt. rewrite Hpt. f_equal. apply H3. unfold L0 in Hgt. lia. }
+  iPureIntro. intros k Hk0 Hk.
+  remember (Z.to_nat (uint.Z k)) as d eqn:Hd.
+  revert k Hk0 Hk Hd. induction d as [|d IH]; intros k Hk0 Hk Hd; [lia|].
+  rewrite /plog_term_at base0_index in Hk.
+  rewrite decide_False in Hk; [|lia]. rewrite decide_False in Hk; [|lia].
+  destruct (F !! _) as [e|] eqn:He; [|done]. simpl in Hk. injection Hk as HT.
+  destruct (Hstep _ _ He HT) as (HL & Hfirst & Hnext).
+  rewrite Z2Nat.id in HL Hfirst Hnext; [|lia].
+  assert (HkT : plog_term_at base0 F k = Some T).
+  { rewrite /plog_term_at base0_index decide_False; [|lia]. rewrite decide_False; [|lia].
+    rewrite He /= HT //. }
+  split; [lia|].
+  destruct (decide (uint.Z k = L0 + 1)) as [Hfst|Hfst].
+  - specialize (Hfirst ltac:(lia)).
+    split.
+    + replace (W64 L0) with (W64 (uint.Z k - 0 - 1)) by (f_equal; lia). done.
+    + intros j Hj. assert (j = k) as -> by word. done.
+  - specialize (Hnext ltac:(lia)).
+    pose proof (plog_last_index_Z_nonneg base0 F0).
+    set (k' := W64 (uint.Z k - 0 - 1)).
+    assert (Hk' : uint.Z k' = uint.Z k - 1) by (subst k'; word).
+    destruct (IH k' ltac:(lia) Hnext ltac:(lia)) as (_ & Hb & Hall).
+    split; [done|].
+    intros j Hj. destruct (decide (uint.Z j = uint.Z k)) as [Hjk|Hjk].
+    + assert (j = k) as -> by word. done.
+    + apply Hall. lia.
+Qed.
+
+(** *** Leaders' full logs (2026-10-03)
+
+    [lpfull γ ldr t bL l fp]: [fp] is the compacted prefix of [ldr]'s log
+    [(bL, l)] in term [t], with records; the full log [fp ++ l] extends
+    [ldr]'s campaign log of [t], is well-formed, and has no term above
+    [t].  [lead_full γ t G]: [G] is the full log of a [lead_prefix] of
+    [t]. *)
+
+Definition lpfull γ (ldr t : w64) (bL : raft.entryID.t) (l fp : list raftpb.Entry.t)
+  : iProp Σ :=
+  ∃ F0, is_camp γ ldr t F0 ∗ log_recs γ base0 fp ∗
+    ⌜ full_ok bL fp ∧ F0 `prefix_of` fp ++ l ∧ plog_wf bL l ∧
+      ∀ (j x : w64), plog_term_at base0 (fp ++ l) j = Some x → uint.Z x ≤ uint.Z t ⌝.
+
+Global Instance lpfull_pers γ ldr t bL l fp : Persistent (lpfull γ ldr t bL l fp).
+Proof. apply _. Qed.
+Global Instance lpfull_timeless γ ldr t bL l fp : Timeless (lpfull γ ldr t bL l fp).
+Proof. apply _. Qed.
+
+Definition lead_full γ (t : w64) (G : list raftpb.Entry.t) : iProp Σ :=
+  ∃ ldr bL l fp, lead_prefix γ ldr t bL l ∗ lpfull γ ldr t bL l fp ∗ ⌜ G = fp ++ l ⌝.
+
+Global Instance lead_full_pers γ t G : Persistent (lead_full γ t G).
+Proof. apply _. Qed.
+Global Instance lead_full_timeless γ t G : Timeless (lead_full γ t G).
+Proof. apply _. Qed.
+
+Lemma lead_full_intro γ ldr t bL l fp :
+  lead_prefix γ ldr t bL l -∗ lpfull γ ldr t bL l fp -∗ lead_full γ t (fp ++ l).
+Proof. iIntros "#H1 #H2". iExists ldr, bL, l, fp. iFrame "#". done. Qed.
+
+Lemma lead_full_wf γ t G :
+  lead_full γ t G -∗
+  ⌜ plog_wf base0 G ∧ ∀ (j x : w64), plog_term_at base0 G j = Some x → uint.Z x ≤ uint.Z t ⌝ ∗
+  log_recs γ base0 G.
+Proof.
+  iIntros "(%ldr & %bL & %l & %fp & #Hp & (%F0 & _ & #Hfr & %Hfull & _ & %Hwf & %Ht) & ->)".
+  iDestruct (lead_prefix_wf with "Hp") as "[_ #Hr]".
+  iSplit; [iPureIntro; split; [by eapply full_wf|done]|].
+  iApply (log_recs_full with "Hfr Hr"). apply Hfull.
+Qed.
+
+Lemma lead_full_camp γ t G :
+  lead_full γ t G -∗
+  ∃ ldr F0, is_leader γ ldr t ∗ is_camp γ ldr t F0 ∗ ⌜ F0 `prefix_of` G ⌝.
+Proof.
+  iIntros "(%ldr & %bL & %l & %fp & (#Hl & _) & (%F0 & #Hc & _ & %Hfull & %Hpre & _) & ->)".
+  iExists ldr, F0. iFrame "#". done.
+Qed.
+
+(** Two full logs of one term's leader agree wherever both have a term. *)
+Lemma lead_full_agree γ t G1 G2 (j : w64) :
+  is_Some (plog_term_at base0 G1 j) → is_Some (plog_term_at base0 G2 j) →
+  lead_full γ t G1 -∗ lead_full γ t G2 -∗
+  ⌜ plog_term_at base0 G1 j = plog_term_at base0 G2 j ⌝.
+Proof.
+  iIntros (Hs1 Hs2) "#H1 #H2".
+  iDestruct (lead_full_wf with "H1") as "[[%Hw1 _] #Hr1]".
+  iDestruct (lead_full_wf with "H2") as "[[%Hw2 _] #Hr2]".
+  iDestruct "H1" as (ldr1 bL1 l1 fp1) "(#Hp1 & (%F1 & _ & _ & %Hf1 & _) & ->)".
+  iDestruct "H2" as (ldr2 bL2 l2 fp2) "(#Hp2 & (%F2 & _ & _ & %Hf2 & _) & ->)".
+  iDestruct (lead_prefix_base with "Hp1 Hp2") as %<-.
+  set (bi := bL1.(raft.entryID.index')).
+  destruct (decide (uint.Z bi ≤ uint.Z j)) as [Hge|Hlt].
+  - rewrite (full_term_at bL1 fp1 l1 j) // in Hs1.
+    rewrite (full_term_at bL1 fp2 l2 j) // in Hs2.
+    rewrite (full_term_at bL1 fp1 l1 j) // (full_term_at bL1 fp2 l2 j) //.
+    iApply (lead_prefix_agree with "Hp1 Hp2"); done.
+  - (* below the base: both have the base's term at the base, and match down *)
+    assert (Hb : plog_term_at base0 (fp1 ++ l1) bi = plog_term_at base0 (fp2 ++ l2) bi).
+    { rewrite (full_term_at bL1 fp1 l1) // (full_term_at bL1 fp2 l2) //.
+      rewrite !plog_term_at_base //. }
+    iDestruct (full_match _ _ _ bi Hw1 Hw2 with "Hr1 Hr2") as %Hm.
+    { rewrite (full_term_at bL1 fp1 l1) // plog_term_at_base. by eexists. }
+    { done. }
+    iPureIntro. apply Hm. lia.
+Qed.
+
+(** *** Commitment, naming the committed log (2026-10-03)
+
+    [cq γ t n G]: a quorum acknowledged the leader of [t] up to at least
+    [n], and [G], a full log of that leader, has an entry of term [t] at
+    [n] -- what [step_commit] establishes.  [commit_in γ F c tm]: the full
+    log [F] agrees, at [c], with such a [G] for some [t ≤ tm] with
+    [c ≤ n].  A node keeps [commit_in] of its commit index; messages carry
+    it of the [Commit] they report.  [is_committed γ i] forgets the log. *)
+
+Definition cq γ (t n : w64) (G : list raftpb.Entry.t) : iProp Σ :=
+  ⌜ plog_term_at base0 G n = Some t ⌝ ∗ lead_full γ t G ∗
+  ∃ q, ⌜ is_quorum γ.(re_cfg) q ⌝ ∗
+    [∗ set] v ∈ q, ∃ i', ⌜ uint.Z n ≤ uint.Z i' ⌝ ∗ is_acked γ v t i'.
+
+Global Instance cq_pers γ t n G : Persistent (cq γ t n G).
+Proof. apply _. Qed.
+Global Instance cq_timeless γ t n G : Timeless (cq γ t n G).
+Proof. apply _. Qed.
+
+Definition commit_in γ (F : list raftpb.Entry.t) (c tm : w64) : iProp Σ :=
+  ⌜ uint.Z c = 0 ⌝ ∨
+  ∃ t n G, cq γ t n G ∗
+    ⌜ uint.Z c ≤ uint.Z n ∧ uint.Z t ≤ uint.Z tm ∧
+      plog_term_at base0 G c = plog_term_at base0 F c ⌝.
+
+Global Instance commit_in_pers γ F c tm : Persistent (commit_in γ F c tm).
+Proof. apply _. Qed.
+Global Instance commit_in_timeless γ F c tm : Timeless (commit_in γ F c tm).
+Proof. apply _. Qed.
+
+Definition is_committed γ (i : w64) : iProp Σ :=
+  ⌜ uint.Z i = 0 ⌝ ∨ ∃ t n G, ⌜ uint.Z i ≤ uint.Z n ⌝ ∗ cq γ t n G.
+
+Global Instance is_committed_pers γ i : Persistent (is_committed γ i).
+Proof. apply _. Qed.
+Global Instance is_committed_timeless γ i : Timeless (is_committed γ i).
+Proof. apply _. Qed.
+
+Lemma is_committed_0 γ : ⊢ is_committed γ (W64 0).
+Proof. iLeft. done. Qed.
+
+(** What is committed up to [i] is committed up to anything below. *)
+Lemma is_committed_le γ (i j : w64) :
+  uint.Z j ≤ uint.Z i → is_committed γ i -∗ is_committed γ j.
+Proof.
+  iIntros (Hle) "[%H0 | (%t & %n & %G & %Hi & #Hq)]".
+  - iLeft. iPureIntro. word.
+  - iRight. iExists t, n, G. iFrame "Hq". iPureIntro. lia.
+Qed.
+
+Lemma commit_in_committed γ F c tm : commit_in γ F c tm -∗ is_committed γ c.
+Proof.
+  iIntros "[%H0 | (%t & %n & %G & #Hq & %Hc & _)]"; [by iLeft|].
+  iRight. iExists t, n, G. iFrame "Hq". done.
+Qed.
+
+Lemma cq_full γ t n G :
+  cq γ t n G -∗ ⌜ plog_wf base0 G ⌝ ∗ log_recs γ base0 G.
+Proof.
+  iIntros "(_ & #Hf & _)". iDestruct (lead_full_wf with "Hf") as "[[% _] $]". done.
+Qed.
+
+(** [commit_in] of a full log with records holds of anything below, and
+    of any log that agrees with it at its commit point. *)
+Lemma commit_in_le γ F (c c' tm : w64) :
+  plog_wf base0 F → uint.Z c' ≤ uint.Z c →
+  log_recs γ base0 F -∗ commit_in γ F c tm -∗ commit_in γ F c' tm.
+Proof.
+  iIntros (Hwf Hle) "#Hr [%H0 | (%t & %n & %G & #Hq & %Hc & %Ht & %Heq)]".
+  { iLeft. iPureIntro. word. }
+  iDestruct (cq_full with "Hq") as "[%HwG #HrG]".
+  iPoseProof "Hq" as "(%Hn & _)".
+  assert (HsG : is_Some (plog_term_at base0 G c)).
+  { apply (full_term_at_some _ _ n); [by eexists|lia]. }
+  iDestruct (full_match _ _ _ c HwG Hwf HsG Heq with "HrG Hr") as %Hm.
+  iRight. iExists t, n, G. iFrame "Hq".
+  iPureIntro. split_and!; [lia|done|]. apply Hm. lia.
+Qed.
+
+Lemma commit_in_agree γ F F' (c tm tm' : w64) :
+  uint.Z tm ≤ uint.Z tm' →
+  plog_term_at base0 F' c = plog_term_at base0 F c →
+  commit_in γ F c tm -∗ commit_in γ F' c tm'.
+Proof.
+  iIntros (Htm Heq) "[%H0 | (%t & %n & %G & #Hq & %Hc & %Ht & %HG)]"; [by iLeft|].
+  iRight. iExists t, n, G. iFrame "Hq". iPureIntro. split_and!; [done|lia|congruence].
+Qed.
+
+(** *** Histories of acknowledgements (2026-10-03)
+
+    What Leader Completeness needs of a voter is that its log, at the
+    moment it voted in [T], still agreed with every acknowledgement it had
+    made in an earlier term [t] -- *unless* the leaders of the terms in
+    between disagreed among themselves, which the induction over terms
+    rules out.  [hist γ F t i B] says that of the full log [F] and an
+    acknowledgement [(t, i)], for leaders of terms below [B]: at every
+    index [j ≤ i], [F] has what some log [okL] -- of a leader of a term in
+    [[t, B)], or a committed log of an earlier term -- has there; or two
+    such logs already disagree at or below [j].  Each node keeps [hist] of
+    each of its acknowledgements ([own_log_ghost]); the bound [B] is
+    [bnd s] -- the current term, plus one when the node has a leader or
+    is one. *)
+
+Definition okL γ (t : w64) (B : Z) (j : w64) (X : list raftpb.Entry.t) : iProp Σ :=
+  (∃ t'' : w64, ⌜ uint.Z t ≤ uint.Z t'' < B ⌝ ∗ lead_full γ t'' X) ∨
+  (∃ t'' n'' : w64, ⌜ uint.Z t'' < uint.Z t ∧ uint.Z j ≤ uint.Z n'' ⌝ ∗ cq γ t'' n'' X).
+
+Global Instance okL_pers γ t B j X : Persistent (okL γ t B j X).
+Proof. apply _. Qed.
+
+Definition hist γ (F : list raftpb.Entry.t) (t i : w64) (B : Z) : iProp Σ :=
+  ∀ (j : w64) (_ : 0 < uint.Z j ≤ uint.Z i),
+    (∃ X, okL γ t B j X ∗
+       ⌜ is_Some (plog_term_at base0 X j) ∧ plog_term_at base0 X j = plog_term_at base0 F j ⌝) ∨
+    (∃ (j' : w64) X1 X2, ⌜ uint.Z j' ≤ uint.Z j ⌝ ∗ okL γ t B j' X1 ∗ okL γ t B j' X2 ∗
+       ⌜ is_Some (plog_term_at base0 X1 j') ∧ is_Some (plog_term_at base0 X2 j') ∧
+         plog_term_at base0 X1 j' ≠ plog_term_at base0 X2 j' ⌝).
+
+Global Instance hist_pers γ F t i B : Persistent (hist γ F t i B).
+Proof. apply _. Qed.
+
+Lemma okL_mono γ t B B' j X : B ≤ B' → okL γ t B j X -∗ okL γ t B' j X.
+Proof.
+  iIntros (HB) "[(%t'' & %Ht & #H) | H]"; [iLeft|by iRight].
+  iExists t''. iFrame "H". iPureIntro. lia.
+Qed.
+
+Lemma okL_le γ t B j j' X : uint.Z j' ≤ uint.Z j → okL γ t B j X -∗ okL γ t B j' X.
+Proof.
+  iIntros (Hj) "[H | (%t'' & %n'' & %Ht & #H)]"; [by iLeft|iRight].
+  iExists t'', n''. iFrame "H". iPureIntro. lia.
+Qed.
+
+Lemma hist_mono γ F t i B B' : B ≤ B' → hist γ F t i B -∗ hist γ F t i B'.
+Proof.
+  iIntros (HB) "#H %j %Hj". iDestruct ("H" $! j Hj) as "[(%X & #HX & %HXj) | (%j' & %X1 & %X2 & %Hj' & #H1 & #H2 & %Hd)]".
+  - iLeft. iExists X. iFrame "%". iApply (okL_mono with "HX"); done.
+  - iRight. iExists j', X1, X2. iFrame "%".
+    iSplit; iApply (okL_mono with "[]"); done.
+Qed.
+
+(** A log that keeps every term [F] has keeps its histories. *)
+Lemma hist_keep γ F F' t i B :
+  (∀ j : w64, 0 < uint.Z j ≤ uint.Z i → is_Some (plog_term_at base0 F j) →
+     plog_term_at base0 F' j = plog_term_at base0 F j) →
+  hist γ F t i B -∗ hist γ F' t i B.
+Proof.
+  iIntros (Hk) "#H %j %Hj". iDestruct ("H" $! j Hj) as "[(%X & #HX & %Hs & %HXj) | Hc]"; [|by iRight].
+  iLeft. iExists X. iFrame "HX". iPureIntro. split; [done|].
+  rewrite HXj Hk //. by rewrite -HXj.
+Qed.
+
+(** A full log that agrees with [okL]-log [X] at [i] has a history of
+    [(t, i)]. *)
+Lemma hist_of_agree γ F X t i B :
+  plog_wf base0 F →
+  is_Some (plog_term_at base0 X i) → plog_term_at base0 X i = plog_term_at base0 F i →
+  log_recs γ base0 F -∗ okL γ t B i X -∗ hist γ F t i B.
+Proof.
+  iIntros (HwF Hs Heq) "#HrF #HX %j %Hj". iLeft. iExists X.
+  iAssert (⌜ plog_wf base0 X ⌝ ∗ log_recs γ base0 X)%I as "[%HwX #HrX]".
+  { iDestruct "HX" as "[(% & _ & #Hf) | (% & % & _ & #Hq)]".
+    - iDestruct (lead_full_wf with "Hf") as "[[% _] $]". done.
+    - iApply (cq_full with "Hq"). }
+  iDestruct (full_match _ _ _ i HwX HwF Hs Heq with "HrX HrF") as %Hm.
+  iSplit; first (iApply (okL_le with "HX"); lia).
+  iPureIntro. split; [apply (full_term_at_some _ _ i); [done|lia]|]. apply Hm. lia.
+Qed.
+
 (** *** Acknowledgements, justified
 
     [ack_agree γ b es t i]: the log [(b, es)] reaches [i] and has, at [i],
@@ -1747,7 +2227,8 @@ Definition ack_agree γ (b : raft.entryID.t) (es : list raftpb.Entry.t) (t i : w
   : iProp Σ :=
   ⌜ uint.Z i ≤ plog_last_index_Z b es ⌝ ∗
   ∃ ldr bL l, lead_prefix γ ldr t bL l ∗
-    ⌜ is_Some (plog_term_at bL l i) ∧ plog_term_at bL l i = plog_term_at b es i ⌝.
+    ⌜ is_Some (plog_term_at bL l i) ∧ plog_term_at bL l i = plog_term_at b es i ⌝ ∗
+    ∃ fp, lpfull γ ldr t bL l fp.
 
 Global Instance ack_agree_pers γ b es t i : Persistent (ack_agree γ b es t i).
 Proof. apply _. Qed.
@@ -1764,7 +2245,7 @@ Lemma ack_agree_term γ b es t i ldr' bL l' (j : w64) :
   log_recs γ b es -∗ ack_agree γ b es t i -∗ lead_prefix γ ldr' t bL l' -∗
   ⌜ plog_term_at b es j = plog_term_at bL l' j ⌝.
 Proof.
-  iIntros (Hwf Hj1 Hj2 Hji Hs') "#Hr (%Hi & %ldr & %bL0 & %l & #Hp & %Hs & %Heq) #Hp'".
+  iIntros (Hwf Hj1 Hj2 Hji Hs') "#Hr (%Hi & %ldr & %bL0 & %l & #Hp & [%Hs %Heq] & _) #Hp'".
   iDestruct (lead_prefix_base with "Hp Hp'") as %->.
   iDestruct (lead_prefix_wf with "Hp") as "[%Hwfl #Hrl]".
   iDestruct (log_recs_agree with "Hr Hrl") as %HRA.
@@ -1781,32 +2262,44 @@ Qed.
 
 Definition is_message γ (m : msg.t) : iProp Σ :=
   match m.(msg.ty) with
+  | mtype.Vote =>
+      (* the candidate's campaign record, whose last entry the request
+         reports (2026-10-03) *)
+      ∃ Fc, is_camp γ m.(msg.from) m.(msg.term) Fc ∗
+        ⌜ plog_last base0 Fc = raft.entryID.mk m.(msg.logterm) m.(msg.index) ⌝
   | mtype.VoteResp =>
       if m.(msg.reject) then True%I
       else is_vote γ m.(msg.from) m.(msg.term) m.(msg.to)
   | mtype.App =>
       ⌜ app_payload_ok m ⌝ ∗
       is_leader γ m.(msg.from) m.(msg.term) ∗
-      (* the leader's log [l] has [(logterm, index)] and the entries after *)
-      (∃ bL l, lead_prefix γ m.(msg.from) m.(msg.term) bL l ∗
+      (* the leader's log [l] has [(logterm, index)] and the entries after;
+         its full log agrees with a committed log at [Commit] *)
+      (∃ bL l fp, lead_prefix γ m.(msg.from) m.(msg.term) bL l ∗
          ⌜ plog_term_at bL l m.(msg.index) = Some m.(msg.logterm) ∧
-           m.(msg.entries) `prefix_of` plog_from bL l (word.add m.(msg.index) (W64 1)) ⌝) ∗
-      is_committed γ m.(msg.commit)
+           m.(msg.entries) `prefix_of` plog_from bL l (word.add m.(msg.index) (W64 1)) ⌝ ∗
+         lpfull γ m.(msg.from) m.(msg.term) bL l fp ∗
+         commit_in γ (fp ++ l) m.(msg.commit) m.(msg.term)) ∗
+      ⌜ m.(msg.from) ≠ W64 0 ⌝
   | mtype.AppResp =>
       if m.(msg.reject) then True%I
       else is_acked γ m.(msg.from) m.(msg.term) m.(msg.index)
   | mtype.Heartbeat =>
-      is_leader γ m.(msg.from) m.(msg.term) ∗ is_committed γ m.(msg.commit) ∗
+      is_leader γ m.(msg.from) m.(msg.term) ∗
+      (∃ Fl, lead_full γ m.(msg.term) Fl ∗ commit_in γ Fl m.(msg.commit) m.(msg.term)) ∗
       (* [Commit ≤ pr.Match], which the receiver acknowledged *)
-      (∃ i, ⌜ uint.Z m.(msg.commit) ≤ uint.Z i ⌝ ∗ is_acked γ m.(msg.to) m.(msg.term) i)
+      (∃ i, ⌜ uint.Z m.(msg.commit) ≤ uint.Z i ⌝ ∗ is_acked γ m.(msg.to) m.(msg.term) i) ∗
+      ⌜ m.(msg.from) ≠ W64 0 ⌝
   | mtype.Snap =>
       (* the leader's, of a committed prefix ending in a real entry *)
       is_leader γ m.(msg.from) m.(msg.term) ∗
-      is_committed γ m.(msg.index) ∗
       is_snap_meta γ m.(msg.logterm) m.(msg.index) ∗
       (* the leader's log has the snapshot's last entry *)
-      (∃ bL l, lead_prefix γ m.(msg.from) m.(msg.term) bL l ∗
-         ⌜ plog_term_at bL l m.(msg.index) = Some m.(msg.logterm) ⌝)
+      (∃ bL l fp, lead_prefix γ m.(msg.from) m.(msg.term) bL l ∗
+         ⌜ plog_term_at bL l m.(msg.index) = Some m.(msg.logterm) ⌝ ∗
+         lpfull γ m.(msg.from) m.(msg.term) bL l fp ∗
+         commit_in γ (fp ++ l) m.(msg.index) m.(msg.term)) ∗
+      ⌜ m.(msg.from) ≠ W64 0 ⌝
   | _ => True%I
   end.
 
@@ -1822,7 +2315,7 @@ Qed.
 (** The message types that carry nothing. *)
 Definition msg_free (ty : mtype.t) : bool :=
   match ty with
-  | mtype.Vote | mtype.HeartbeatResp | mtype.Propose | mtype.PreVote
+  | mtype.HeartbeatResp | mtype.Propose | mtype.PreVote
   | mtype.PreVoteResp | mtype.ReadIndex | mtype.ReadIndexResp => true
   | _ => false
   end.
@@ -1970,8 +2463,82 @@ Proof. rewrite /acks_ok. destruct (s.(pstate.role)); apply _. Qed.
 Global Instance acks_ok_timeless γ s acks : Timeless (acks_ok γ s acks).
 Proof. rewrite /acks_ok. destruct (s.(pstate.role)); apply _. Qed.
 
+(** *** The history invariants (2026-10-03)
+
+    [bnd s]: the terms whose leaders a node's histories ([hist]) may
+    mention -- those below its term, and its term itself once it has a
+    leader or is one.  It never decreases, and it is the node's term
+    exactly when it can cast a first vote ([pcan_vote] with no vote and no
+    leader), which is what a vote records ([vlogs_ok]). *)
+Definition bnd (s : pstate.t) : Z :=
+  if decide (s.(pstate.lead) = W64 0 ∧ s.(pstate.role) ≠ role.Leader)
+  then uint.Z s.(pstate.term) else uint.Z s.(pstate.term) + 1.
+
+(** No term in a node's full log is above its own; a candidate has none
+    of its own term either. *)
+Definition terms_le (s : pstate.t) (F : list raftpb.Entry.t) : Prop :=
+  ∀ (j x : w64), plog_term_at base0 F j = Some x →
+    uint.Z x ≤ uint.Z s.(pstate.term) ∧
+    (s.(pstate.role) = role.Candidate → uint.Z x < uint.Z s.(pstate.term)).
+
+(** A candidate's full log is its campaign record; a leader's extends it,
+    by at least the leader's entry, and ends in an entry of its term. *)
+Definition camp_own γ (id : w64) (s : pstate.t) (F : list raftpb.Entry.t) : iProp Σ :=
+  match s.(pstate.role) with
+  | role.Candidate => is_camp γ id s.(pstate.term) F
+  | role.Leader => ∃ F0, is_camp γ id s.(pstate.term) F0 ∗
+       ⌜ F0 `prefix_of` F ∧ plog_last_index_Z base0 F0 < plog_last_index_Z base0 F ∧
+         (plog_last base0 F).(raft.entryID.term') = s.(pstate.term) ⌝
+  | role.Follower => True
+  end.
+
+Global Instance camp_own_pers γ id s F : Persistent (camp_own γ id s F).
+Proof. rewrite /camp_own. destruct (s.(pstate.role)); apply _. Qed.
+Global Instance camp_own_timeless γ id s F : Timeless (camp_own γ id s F).
+Proof. rewrite /camp_own. destruct (s.(pstate.role)); apply _. Qed.
+
+(** Node [v]'s [k]-th vote-time log: it voted in [T] with full log [F]. *)
+Definition is_vlog γ (v : w64) (k : nat) (T : w64) (F : list raftpb.Entry.t) : iProp Σ :=
+  ∃ γl, ⌜ γ.(re_vlogs) !! v = Some γl ⌝ ∗ k ↪[γl]□ (T, F).
+
+Global Instance is_vlog_pers γ v k T F : Persistent (is_vlog γ v k T F).
+Proof. apply _. Qed.
+Global Instance is_vlog_timeless γ v k T F : Timeless (is_vlog γ v k T F).
+Proof. apply _. Qed.
+
+(** A vote-time log has the history of every acknowledgement of an
+    earlier term (all of them were made before the vote: a node
+    acknowledges only at its own term). *)
+Definition vlogs_ok γ (s : pstate.t) (acks : gmap (w64 * w64) unit)
+    (vlogs : gmap nat (w64 * list raftpb.Entry.t)) : iProp Σ :=
+  [∗ map] x ∈ vlogs, ⌜ uint.Z x.1 ≤ uint.Z s.(pstate.term) ⌝ ∗
+    [∗ map] k ↦ _ ∈ acks, ∀ _ : uint.Z k.1 < uint.Z x.1, hist γ x.2 k.1 k.2 (uint.Z x.1).
+
+Global Instance vlogs_ok_pers γ s acks vlogs : Persistent (vlogs_ok γ s acks vlogs).
+Proof. apply _. Qed.
+
+Definition hists_ok γ (s : pstate.t) (F : list raftpb.Entry.t)
+    (acks : gmap (w64 * w64) unit) : iProp Σ :=
+  [∗ map] k ↦ _ ∈ acks, hist γ F k.1 k.2 (bnd s).
+
+Global Instance hists_ok_pers γ s F acks : Persistent (hists_ok γ s F acks).
+Proof. apply _. Qed.
+
+(** What a vote of [v] for [c] in [T] records: [v]'s full log [Fv] then
+    ([is_vlog]), with records, and that [c]'s campaign log was at least as
+    up to date ([step_grant_vote]'s premise). *)
+Definition vote_just γ (v T c : w64) : iProp Σ :=
+  ∃ k Fv Fc, is_vlog γ v k T Fv ∗ is_camp γ c T Fc ∗ log_recs γ base0 Fv ∗
+    ⌜ plog_wf base0 Fv ∧ plog_up_to_date base0 Fv (plog_last base0 Fc) = true ⌝.
+
+Global Instance vote_just_pers γ v T c : Persistent (vote_just γ v T c).
+Proof. apply _. Qed.
+Global Instance vote_just_timeless γ v T c : Timeless (vote_just γ v T c).
+Proof. apply _. Qed.
+
 Definition own_log_ghost γ (id : w64) (s : pstate.t) : iProp Σ :=
-  ∃ γm terms γa (acks : gmap (w64 * w64) unit),
+  ∃ γm terms γa (acks : gmap (w64 * w64) unit) fp γc
+    (camps : gmap w64 (list raftpb.Entry.t)) γl (vlogs : gmap nat (w64 * list raftpb.Entry.t)),
     "%Htname"  ∷ ⌜ γ.(re_terms) !! id = Some γm ⌝ ∗
     "Hterms"   ∷ ghost_map_auth γm 1 terms ∗
     "#Htfrags" ∷ ([∗ map] t ↦ γt ∈ terms, t ↪[γm]□ γt) ∗
@@ -1985,11 +2552,31 @@ Definition own_log_ghost γ (id : w64) (s : pstate.t) : iProp Σ :=
     "%Hlog_ok" ∷ ⌜ log_ok s ⌝ ∗
     "#Hrecs"   ∷ log_recs γ s.(pstate.base) s.(pstate.log) ∗
     "#Hmatched" ∷ matched_ok γ s ∗
-    "#Hcommit" ∷ is_committed γ s.(pstate.commit) ∗
-    "#Hbase"   ∷ base_ok γ s.(pstate.base).
+    "#Hcommit" ∷ commit_in γ (fp ++ s.(pstate.log)) s.(pstate.commit) s.(pstate.term) ∗
+    "#Hbase"   ∷ base_ok γ s.(pstate.base) ∗
+    (* 2026-10-03: the full log, campaign records, vote-time logs and the
+       histories of acknowledgements *)
+    "%Hfull"   ∷ ⌜ full_ok s.(pstate.base) fp ∧ plog_wf s.(pstate.base) s.(pstate.log) ∧
+                   terms_le s (fp ++ s.(pstate.log)) ⌝ ∗
+    "#Hfrecs"  ∷ log_recs γ base0 fp ∗
+    "%Hcname"  ∷ ⌜ γ.(re_camp) !! id = Some γc ⌝ ∗
+    "Hcamps"   ∷ ghost_map_auth γc 1 camps ∗
+    "%Hcamps_ok" ∷ ⌜ ∀ T, is_Some (camps !! T) → uint.Z T ≤ uint.Z s.(pstate.term) ⌝ ∗
+    "#Hcown"   ∷ camp_own γ id s (fp ++ s.(pstate.log)) ∗
+    "%Hlname"  ∷ ⌜ γ.(re_vlogs) !! id = Some γl ⌝ ∗
+    "Hvlogs"   ∷ ghost_map_auth γl 1 vlogs ∗
+    "#Hvlogs_ok" ∷ vlogs_ok γ s acks vlogs ∗
+    "#Hhists"  ∷ hists_ok γ s (fp ++ s.(pstate.log)) acks.
 
 Global Instance own_log_ghost_timeless γ id s : Timeless (own_log_ghost γ id s).
 Proof. apply _. Qed.
+
+(** A role other than follower has voted for itself; a candidate has no
+    leader.  (Invariants of every reachable state, 2026-10-03: what makes
+    [bnd] never decrease and a first vote happen at [bnd s = term].) *)
+Definition role_ok (id : w64) (s : pstate.t) : Prop :=
+  (s.(pstate.role) ≠ role.Follower → s.(pstate.vote) = id) ∧
+  (s.(pstate.role) = role.Candidate → s.(pstate.lead) = W64 0).
 
 Definition own_raft_ghost γ (id : w64) (s : pstate.t) : iProp Σ :=
   ∃ γv voted,
@@ -2003,7 +2590,9 @@ Definition own_raft_ghost γ (id : w64) (s : pstate.t) : iProp Σ :=
     "#Hlead"  ∷ leader_wit γ id s ∗
     "Hlg"     ∷ own_log_ghost γ id s ∗
     "%Hlead_ok" ∷ ⌜ lead_ok id s ⌝ ∗
-    "%Hfollower_votes" ∷ ⌜ follower_votes_ok s ⌝.
+    "%Hfollower_votes" ∷ ⌜ follower_votes_ok s ⌝ ∗
+    "#Hvrecs" ∷ ([∗ map] t ↦ c ∈ voted, vote_just γ id t c) ∗
+    "%Hrole_ok" ∷ ⌜ role_ok id s ⌝.
 
 Global Instance own_raft_ghost_timeless γ id s : Timeless (own_raft_ghost γ id s).
 Proof. apply _. Qed.
@@ -2020,9 +2609,11 @@ Lemma own_raft_ghost_intro γ id s γv voted :
   own_log_ghost γ id s -∗
   ⌜ lead_ok id s ⌝ -∗
   ⌜ follower_votes_ok s ⌝ -∗
+  ([∗ map] t ↦ c ∈ voted, vote_just γ id t c) -∗
+  ⌜ role_ok id s ⌝ -∗
   own_raft_ghost γ id s.
 Proof.
-  iIntros (??) "H1 %H2 #H3 #H4 #H5 #H6 H7 %H8 %H9". iExists γv, voted. by iFrame "∗#%".
+  iIntros (??) "H1 %H2 #H3 #H4 #H5 #H6 H7 %H8 %H9 #H10 %H11". iExists γv, voted. by iFrame "∗#%".
 Qed.
 
 (** A non-leader does not record itself as leader. *)
@@ -2139,8 +2730,11 @@ Lemma own_log_ghost_upd γ id s s' :
      s'.(pstate.base) = s.(pstate.base) ∧ s'.(pstate.log) = s.(pstate.log)) →
   (s'.(pstate.role) ≠ role.Leader → s.(pstate.role) = role.Leader →
      uint.Z s.(pstate.term) < uint.Z s'.(pstate.term)) →
+  (s'.(pstate.role) = role.Candidate →
+     s.(pstate.role) = role.Candidate ∧ s'.(pstate.term) = s.(pstate.term)) →
   uint.Z s.(pstate.term) ≤ uint.Z s'.(pstate.term) →
   uint.Z s.(pstate.commit) ≤ uint.Z s'.(pstate.commit) →
+  bnd s ≤ bnd s' →
   log_ok s' →
   own_log_ghost γ id s -∗
   □ (⌜ s'.(pstate.term) = s.(pstate.term) ⌝ -∗ ∀ i,
@@ -2148,49 +2742,102 @@ Lemma own_log_ghost_upd γ id s s' :
        ack_agree γ s.(pstate.base) s.(pstate.log) s.(pstate.term) i -∗
        ack_agree γ s'.(pstate.base) s'.(pstate.log) s.(pstate.term) i) -∗
   log_recs γ s'.(pstate.base) s'.(pstate.log) -∗
-  matched_ok γ s' -∗ is_committed γ s'.(pstate.commit) -∗
+  matched_ok γ s' -∗
   base_ok γ s'.(pstate.base) -∗
+  (∀ fp, ⌜ full_ok s.(pstate.base) fp ∧ plog_wf s.(pstate.base) s.(pstate.log) ∧
+           terms_le s (fp ++ s.(pstate.log)) ⌝ -∗
+     log_recs γ base0 fp -∗
+     commit_in γ (fp ++ s.(pstate.log)) s.(pstate.commit) s.(pstate.term) -∗
+     ∃ fp', ⌜ (full_ok s'.(pstate.base) fp' ∧ plog_wf s'.(pstate.base) s'.(pstate.log) ∧
+               terms_le s' (fp' ++ s'.(pstate.log))) ∧
+              (s'.(pstate.role) ≠ role.Follower → fp' ++ s'.(pstate.log) = fp ++ s.(pstate.log)) ⌝ ∗
+       log_recs γ base0 fp' ∗
+       commit_in γ (fp' ++ s'.(pstate.log)) s'.(pstate.commit) s'.(pstate.term) ∗
+       □ (∀ t i, ⌜ uint.Z t ≤ uint.Z s.(pstate.term) ⌝ -∗
+            hist γ (fp ++ s.(pstate.log)) t i (bnd s) -∗
+            hist γ (fp' ++ s'.(pstate.log)) t i (bnd s'))) -∗
   own_log_ghost γ id s'.
 Proof.
-  iIntros (Hlead Hdown Hle Hcm Hok') "H #Hkeep #Hr' #Hm' #Hc' #Hb'".
-  iDestruct "H" as (γm terms γa acks) "H". iNamed "H".
+  iIntros (Hlead Hdown Hcand Hle Hcm Hbnd Hok') "H #Hkeep #Hr' #Hm' #Hb' Hnew".
+  iDestruct "H" as (γm terms γa acks fp γc camps γl vlogs) "H". iNamed "H".
+  iDestruct ("Hnew" $! fp with "[%] Hfrecs Hcommit")
+    as (fp' [Hfull' Hfeq]) "(#Hfr' & #Hc' & #Hh)"; first done.
   iDestruct (acks_ok_upd _ s s' acks Hle Hdown Hcm Hacks_term with "Hkeep Hacks_ok")
     as "#Hacks'".
-  iExists γm, terms, γa, acks.
-  iSplit; first done. iFrame "Hterms Htfrags".
-  iSplit.
-  { iPureIntro. intros t Ht. destruct (Hterms_ok t Ht) as [Hlt | [-> Hr]].
+  assert (Hterms_ok' : terms_ok terms s').
+  { intros t Ht. destruct (Hterms_ok t Ht) as [Hlt | [-> Hr]].
     - left. lia.
     - destruct (decide (s'.(pstate.role) = role.Leader)) as [Hr'|Hr'].
       + destruct (Hlead Hr') as (_ & -> & _). by right.
       + left. by apply Hdown. }
-  iSplitL "Htlog".
+  assert (Hacks_term' : acks_term s' acks).
+  { intros k Hk. specialize (Hacks_term k Hk). lia. }
+  assert (Hcamps_ok' : ∀ T, is_Some (camps !! T) → uint.Z T ≤ uint.Z s'.(pstate.term)).
+  { intros T HT. specialize (Hcamps_ok T HT). lia. }
+  iAssert (lead_log_own γ s' terms) with "[Htlog]" as "Htlog".
   { rewrite /lead_log_own.
     destruct (decide (s'.(pstate.role) = role.Leader)) as [Hr'|Hr'].
     - destruct (Hlead Hr') as (Hr & Ht & Hb & Hl).
       iEval (rewrite /lead_log_own Hr) in "Htlog". rewrite Hr' Ht Hb Hl. iExact "Htlog".
     - destruct (s'.(pstate.role)); [done|done|congruence]. }
-  iSplit; first done. iFrame "Hacks Hafrags Hacks' Hr' Hm' Hc' Hb'".
-  iPureIntro. split; [|done]. intros k Hk. specialize (Hacks_term k Hk). lia.
+  iAssert (camp_own γ id s' (fp' ++ s'.(pstate.log))) as "#Hcown'".
+  { rewrite /camp_own. destruct (s'.(pstate.role)) eqn:Hr'; [done| |].
+    - destruct (Hcand eq_refl) as [Hr Ht]. rewrite Hfeq; [|discriminate].
+      iEval (rewrite /camp_own Hr) in "Hcown". rewrite Ht. iExact "Hcown".
+    - destruct (Hlead eq_refl) as (Hr & Ht & _). rewrite Hfeq; [|discriminate].
+      iEval (rewrite /camp_own Hr) in "Hcown". rewrite Ht. iExact "Hcown". }
+  iAssert (vlogs_ok γ s' acks vlogs) as "#Hvlogs'".
+  { iApply (big_sepM_impl with "Hvlogs_ok"). iIntros "!> %k %x %Hx [%Hxt #Hx]".
+    iFrame "Hx". iPureIntro. lia. }
+  iAssert (hists_ok γ s' (fp' ++ s'.(pstate.log)) acks) as "#Hhists'".
+  { iApply (big_sepM_impl with "Hhists"). iIntros "!> %k %u %Hk #Hk".
+    iApply ("Hh" with "[%] Hk"). apply Hacks_term. by eexists. }
+  iExists γm, terms, γa, acks, fp', γc, camps, γl, vlogs.
+  iFrame "∗#%".
 Qed.
 
 Local Lemma own_log_ghost_recs γ id s :
   own_log_ghost γ id s -∗ ⌜ log_ok s ⌝ ∗ log_recs γ s.(pstate.base) s.(pstate.log).
-Proof. iIntros "H". iDestruct "H" as (γm terms γa acks) "H". iNamed "H". iFrame "#%". Qed.
+Proof. iIntros "H". iDestruct "H" as (γm terms γa acks fp γc camps γl vlogs) "H". iNamed "H". iFrame "#%". Qed.
+
+(** The full log, with what the node keeps of it. *)
+Local Lemma own_log_ghost_full γ id s :
+  own_log_ghost γ id s -∗
+  ∃ fp, ⌜ full_ok s.(pstate.base) fp ∧ plog_wf s.(pstate.base) s.(pstate.log) ∧
+          terms_le s (fp ++ s.(pstate.log)) ⌝ ∗
+    log_recs γ base0 fp ∗
+    commit_in γ (fp ++ s.(pstate.log)) s.(pstate.commit) s.(pstate.term) ∗
+    camp_own γ id s (fp ++ s.(pstate.log)).
+Proof.
+  iIntros "H". iDestruct "H" as (γm terms γa acks fp γc camps γl vlogs) "H". iNamed "H".
+  iExists fp. iSplit; first done. iSplit; first iExact "Hfrecs".
+  iSplit; first iExact "Hcommit". iExact "Hcown".
+Qed.
+
+Local Lemma own_log_ghost_wf γ id s :
+  own_log_ghost γ id s -∗ ⌜ plog_wf s.(pstate.base) s.(pstate.log) ⌝.
+Proof.
+  iIntros "H". iDestruct "H" as (γm terms γa acks fp γc camps γl vlogs) "H". iNamed "H".
+  iPureIntro. apply Hfull.
+Qed.
 
 Local Lemma own_log_ghost_committed γ id s :
   own_log_ghost γ id s -∗ is_committed γ s.(pstate.commit).
-Proof. iIntros "H". iDestruct "H" as (γm terms γa acks) "H". iNamed "H". iFrame "#". Qed.
+Proof.
+  iIntros "H". iDestruct (own_log_ghost_full with "H") as (fp _) "(_ & #Hc & _)".
+  iApply (commit_in_committed with "Hc").
+Qed.
 
 Local Lemma own_log_ghost_matched γ id s :
   own_log_ghost γ id s -∗ matched_ok γ s.
-Proof. iIntros "H". iDestruct "H" as (γm terms γa acks) "H". iNamed "H". iFrame "#". Qed.
+Proof. iIntros "H". iDestruct "H" as (γm terms γa acks fp γc camps γl vlogs) "H". iNamed "H". iFrame "#". Qed.
 
 Local Lemma own_log_ghost_base γ id s :
   own_log_ghost γ id s -∗ base_ok γ s.(pstate.base).
-Proof. iIntros "H". iDestruct "H" as (γm terms γa acks) "H". iNamed "H". iFrame "#". Qed.
+Proof. iIntros "H". iDestruct "H" as (γm terms γa acks fp γc camps γl vlogs) "H". iNamed "H". iFrame "#". Qed.
 
-(** The same, for a step that leaves the log alone. *)
+(** The same, for a step that leaves the log alone.  The caller says how
+    the commit fact moves to the new commit index. *)
 Lemma own_log_ghost_mono' γ id s s' :
   s'.(pstate.log) = s.(pstate.log) →
   s'.(pstate.base) = s.(pstate.base) →
@@ -2198,18 +2845,27 @@ Lemma own_log_ghost_mono' γ id s s' :
      s.(pstate.role) = role.Leader ∧ s'.(pstate.term) = s.(pstate.term)) →
   (s'.(pstate.role) ≠ role.Leader → s.(pstate.role) = role.Leader →
      uint.Z s.(pstate.term) < uint.Z s'.(pstate.term)) →
+  (s'.(pstate.role) = role.Candidate →
+     s.(pstate.role) = role.Candidate ∧ s'.(pstate.term) = s.(pstate.term)) →
   uint.Z s.(pstate.term) ≤ uint.Z s'.(pstate.term) →
   uint.Z s.(pstate.commit) ≤ uint.Z s'.(pstate.commit) →
+  bnd s ≤ bnd s' →
   (s'.(pstate.commit) = s.(pstate.commit) ∨
    uint.Z s'.(pstate.commit) ≤ plog_last_index_Z s.(pstate.base) s.(pstate.log)) →
-  own_log_ghost γ id s -∗ matched_ok γ s' -∗ is_committed γ s'.(pstate.commit) -∗
+  own_log_ghost γ id s -∗ matched_ok γ s' -∗
+  (∀ fp, ⌜ full_ok s.(pstate.base) fp ∧ plog_wf s.(pstate.base) s.(pstate.log) ⌝ -∗
+     log_recs γ base0 fp -∗
+     commit_in γ (fp ++ s.(pstate.log)) s.(pstate.commit) s.(pstate.term) -∗
+     commit_in γ (fp ++ s.(pstate.log)) s'.(pstate.commit) s'.(pstate.term)) -∗
   own_log_ghost γ id s'.
 Proof.
-  iIntros (Hlog Hbase Hlead Hdown Hle Hcm Hcl) "H #Hm' #Hc'".
+  iIntros (Hlog Hbase Hlead Hdown Hcand Hle Hcm Hbnd Hcl) "H #Hm' Hcnew".
   iDestruct (own_log_ghost_recs with "H") as "#[%Hok Hr]".
   iDestruct (own_log_ghost_base with "H") as "#Hb".
-  iApply (own_log_ghost_upd with "H [] [] Hm' Hc' [Hb]").
+  iApply (own_log_ghost_upd with "H [] [] Hm' [Hb] [Hcnew]").
   - intros Hr'. destruct (Hlead Hr') as [? ?]. done.
+  - done.
+  - done.
   - done.
   - done.
   - done.
@@ -2218,6 +2874,14 @@ Proof.
   - iIntros "!> _ %i _ H". rewrite Hlog Hbase. done.
   - rewrite Hlog Hbase. done.
   - rewrite Hbase. done.
+  - iIntros (fp (Hf & Hw & Ht)) "#Hfr #Hc".
+    iDestruct ("Hcnew" $! fp with "[%] Hfr Hc") as "#Hc'"; first done.
+    iExists fp. iSplit; [|iSplit; [iExact "Hfr"|iSplit]].
+    + iPureIntro. rewrite Hlog Hbase. split; [split_and!; [done|done|]|done].
+      intros j x Hx. destruct (Ht j x Hx) as [H1 H2]. split; [lia|].
+      intros Hc. destruct (Hcand Hc) as [Hc0 ->]. by apply H2.
+    + rewrite Hlog. iExact "Hc'".
+    + iIntros "!> %t %i _ #H". rewrite Hlog. iApply (hist_mono with "H"). done.
 Qed.
 
 (** The same, when [Match] and the commit index do not change either. *)
@@ -2230,30 +2894,42 @@ Lemma own_log_ghost_mono γ id s s' :
      s'.(pstate.matched) = s.(pstate.matched)) →
   (s'.(pstate.role) ≠ role.Leader → s.(pstate.role) = role.Leader →
      uint.Z s.(pstate.term) < uint.Z s'.(pstate.term)) →
+  (s'.(pstate.role) = role.Candidate →
+     s.(pstate.role) = role.Candidate ∧ s'.(pstate.term) = s.(pstate.term)) →
   uint.Z s.(pstate.term) ≤ uint.Z s'.(pstate.term) →
+  bnd s ≤ bnd s' →
   own_log_ghost γ id s -∗ own_log_ghost γ id s'.
 Proof.
-  iIntros (Hlog Hbase Hcm Hlead Hdown Hle) "H".
+  iIntros (Hlog Hbase Hcm Hlead Hdown Hcand Hle Hbnd) "H".
   iDestruct (own_log_ghost_matched with "H") as "#Hm".
-  iDestruct (own_log_ghost_committed with "H") as "#Hc".
   iApply (own_log_ghost_mono' with "H [] []").
   - done.
   - done.
   - intros Hr'. destruct (Hlead Hr') as (? & ? & ?). done.
   - done.
   - done.
+  - done.
   - rewrite Hcm. lia.
+  - done.
   - by left.
   - rewrite /matched_ok. destruct (decide (s'.(pstate.role) = role.Leader)) as [Hr'|Hr'].
     + destruct (Hlead Hr') as (Hr & Ht & Hmt).
       iEval (rewrite /matched_ok Hr) in "Hm". rewrite Hr' Ht Hmt. iExact "Hm".
     + destruct (s'.(pstate.role)); [done|done|congruence].
-  - rewrite Hcm. iExact "Hc".
+  - iIntros (fp _) "_ #Hc". rewrite Hcm.
+    iApply (commit_in_agree with "Hc"); [done|done].
 Qed.
+
+(** [bnd] across a step: unfold and compare. *)
+Local Ltac bnd_tac :=
+  rewrite /bnd /=; repeat case_decide; simpl in *; try lia; exfalso;
+  repeat match goal with H : _ ∧ _ |- _ => destruct H end;
+  first [ congruence
+        | match goal with H : ¬ (_ ∧ _) |- _ => apply H; split; congruence end ].
 
 (** Discharging [own_log_ghost_mono]'s premises for a concrete step. *)
 Local Ltac log_mono_tac :=
-  simpl; intros; first [ done | congruence | lia | word | (split_and!; done) ].
+  simpl; intros; first [ done | congruence | lia | word | (split_and!; done) | bnd_tac ].
 
 (** Adding an acknowledgement to one's own map: fresh, or already there. *)
 Local Lemma acks_add γa (acks : gmap (w64 * w64) unit) (k : w64 * w64) :
@@ -2277,22 +2953,44 @@ Proof.
   rewrite lookup_insert_ne in Hu; [|done]. apply Hat. by eexists.
 Qed.
 
-(** A node acknowledges at its own term, with the justification
-    [acks_ok] asks of it. *)
-Local Lemma own_log_ghost_ack γ id s t i :
-  uint.Z t ≤ uint.Z s.(pstate.term) →
-  ack_ok γ s (t, i) -∗ own_log_ghost γ id s ==∗ own_log_ghost γ id s ∗ is_acked γ id t i.
+(** The per-acknowledgement invariants of a new acknowledgement, at the
+    node's term: its history, and nothing for the vote-time logs (they are
+    of terms up to this one). *)
+Local Lemma ack_invs_insert γ s F acks vlogs (i : w64) :
+  hist γ F s.(pstate.term) i (bnd s) -∗
+  hists_ok γ s F acks -∗ vlogs_ok γ s acks vlogs -∗
+  hists_ok γ s F (<[(s.(pstate.term), i) := ()]> acks) ∗
+  vlogs_ok γ s (<[(s.(pstate.term), i) := ()]> acks) vlogs.
 Proof.
-  iIntros (Ht) "#Hk H". iDestruct "H" as (γm terms γa acks) "H". iNamed "H".
-  iMod (acks_add _ _ (t, i) with "Hacks Hafrags") as "(Hacks & #Hafr' & #Hnew)".
+  iIntros "#Hh #Hhs #Hv". iSplit.
+  - iApply (big_sepM_insert_2 with "[Hh] Hhs"). done.
+  - iApply (big_sepM_impl with "Hv"). iIntros "!> %k %x %Hx [%Hxt #Hx]".
+    iSplit; first done. iApply (big_sepM_insert_2 with "[] Hx").
+    iIntros (Hlt). simpl in Hlt. lia.
+Qed.
+
+(** A node acknowledges at its own term, with the justification
+    [acks_ok] asks of it and the history [hists_ok] asks of it. *)
+Local Lemma own_log_ghost_ack γ id s i :
+  ack_ok γ s (s.(pstate.term), i) -∗
+  (∀ fp, ⌜ full_ok s.(pstate.base) fp ∧ plog_wf s.(pstate.base) s.(pstate.log) ⌝ -∗
+     log_recs γ base0 fp -∗
+     commit_in γ (fp ++ s.(pstate.log)) s.(pstate.commit) s.(pstate.term) -∗
+     hist γ (fp ++ s.(pstate.log)) s.(pstate.term) i (bnd s)) -∗
+  own_log_ghost γ id s ==∗ own_log_ghost γ id s ∗ is_acked γ id s.(pstate.term) i.
+Proof.
+  iIntros "#Hk Hhnew H". iDestruct "H" as (γm terms γa acks fp γc camps γl vlogs) "H". iNamed "H".
+  iDestruct ("Hhnew" $! fp with "[%] Hfrecs Hcommit") as "#Hh"; first (destruct Hfull as (? & ? & ?); done).
+  iDestruct (ack_invs_insert with "Hh Hhists Hvlogs_ok") as "[#Hhists' #Hvlogs']".
+  iMod (acks_add _ _ (s.(pstate.term), i) with "Hacks Hafrags") as "(Hacks & #Hafr' & #Hnew)".
+  assert (Hacks_term' : acks_term s (<[(s.(pstate.term), i) := ()]> acks))
+    by (apply (acks_term_insert s); [lia|done]).
+  iAssert (acks_ok γ s (<[(s.(pstate.term), i) := ()]> acks)) as "#Hacks_ok'".
+  { rewrite /acks_ok. destruct (s.(pstate.role)); [| |done];
+      iApply (big_sepM_insert_2 with "[Hk] Hacks_ok"); done. }
   iModIntro. iSplitR "".
-  - iExists γm, terms, γa, _.
-    iSplit; first done. iFrame "Hterms Htfrags Htlog Hacks Hafr' Hrecs Hmatched Hcommit Hbase".
-    iSplit; first done. iSplit; first done.
-    iSplit; first (iPureIntro; by apply acks_term_insert).
-    iSplit; last done.
-    rewrite /acks_ok. destruct (s.(pstate.role)); [| |done];
-      iApply (big_sepM_insert_2 with "[Hk] Hacks_ok"); done.
+  - iExists γm, terms, γa, (<[(s.(pstate.term), i) := ()]> acks), fp, γc, camps, γl, vlogs.
+    iFrame "Hcommit Hcown Hhists' Hvlogs' Hacks_ok' Hafr'". iFrame "∗#%".
   - iRight. iExists γa. by iFrame "#%".
 Qed.
 
@@ -2300,22 +2998,173 @@ Local Lemma pleader_entry_term s :
   (pleader_entry s).(raftpb.Entry.Term') = s.(pstate.term).
 Proof. done. Qed.
 
-(** A leader's whole log is a log of the leader of its term. *)
+(** A leader's whole log is a log of the leader of its term, with its
+    full log and the commit fact about it. *)
+Local Lemma own_log_ghost_lead_full γ id s :
+  s.(pstate.role) = role.Leader →
+  is_leader γ id s.(pstate.term) -∗ own_log_ghost γ id s -∗
+  (∃ fp, lead_prefix γ id s.(pstate.term) s.(pstate.base) s.(pstate.log) ∗
+     lpfull γ id s.(pstate.term) s.(pstate.base) s.(pstate.log) fp ∗
+     commit_in γ (fp ++ s.(pstate.log)) s.(pstate.commit) s.(pstate.term)) ∗
+  own_log_ghost γ id s.
+Proof.
+  iIntros (Hr) "#Hl H". iDestruct "H" as (γm terms γa acks fp γc camps γl vlogs) "H". iNamed "H".
+  iEval (rewrite /lead_log_own Hr) in "Htlog".
+  iDestruct "Htlog" as (γt M l0 Hγt) "(Ha & #Hfr & %Hdom & %Hpre & #Hlf)".
+  iPoseProof "Hcown" as "Hcown0". iEval (rewrite /camp_own Hr) in "Hcown0".
+  iDestruct "Hcown0" as (F0) "[#Hc0 %HF0]".
+  pose proof Hfull as (Hf & Hw & Ht).
+  iSplitR "Ha Hterms Hacks Hcamps Hvlogs".
+  - iExists fp. iFrame "Hcommit". iSplit.
+    + rewrite /lead_prefix. iFrame "Hl". iExists γt, l0. iFrame "#". iSplit.
+      * iExists γm. iSplit; first done. iApply (big_sepM_lookup with "Htfrags"). done.
+      * iPureIntro. split; [by destruct Hlog_ok|done].
+    + iExists F0. iFrame "Hc0 Hfrecs". iPureIntro. split_and!; [done|by destruct HF0 as [? _]|done|].
+      intros j x Hx. by destruct (Ht j x Hx).
+  - iExists γm, terms, γa, acks, fp, γc, camps, γl, vlogs.
+    iFrame "Hcommit Hcown Hhists Hvlogs_ok". iFrame "∗#%".
+    rewrite /lead_log_own Hr. iExists γt, M, l0. by iFrame "∗#%".
+Qed.
+
 Local Lemma own_log_ghost_lead_prefix γ id s :
   s.(pstate.role) = role.Leader →
   is_leader γ id s.(pstate.term) -∗ own_log_ghost γ id s -∗
   lead_prefix γ id s.(pstate.term) s.(pstate.base) s.(pstate.log) ∗ own_log_ghost γ id s.
 Proof.
-  iIntros (Hr) "#Hl H". iDestruct "H" as (γm terms γa acks) "H". iNamed "H".
-  iEval (rewrite /lead_log_own Hr) in "Htlog".
-  iDestruct "Htlog" as (γt M l0 Hγt) "(Ha & #Hfr & %Hdom & %Hpre & #Hlf)".
-  iSplitR "Ha Hterms Hacks".
-  - rewrite /lead_prefix. iFrame "Hl". iExists γt, l0. iFrame "#". iSplit.
-    + iExists γm. iSplit; first done. iApply (big_sepM_lookup with "Htfrags"). done.
-    + iPureIntro. split; [by destruct Hlog_ok|done].
-  - iExists γm, terms, γa, acks. iFrame "∗#%".
-    rewrite /lead_log_own Hr. iExists γt, M, l0. by iFrame "∗#%".
+  iIntros (Hr) "#Hl H".
+  iDestruct (own_log_ghost_lead_full with "Hl H") as "[(%fp & $ & _) $]"; done.
 Qed.
+
+Lemma bnd_le s : bnd s ≤ uint.Z s.(pstate.term) + 1.
+Proof. rewrite /bnd. case_decide; lia. Qed.
+
+Lemma bnd_ge s : uint.Z s.(pstate.term) ≤ bnd s.
+Proof. rewrite /bnd. case_decide; lia. Qed.
+
+(** [step_campaign], on the log ghost state: record the campaign log (the
+    full log, unchanged since) and, for the self-vote, the vote-time log --
+    with the histories of every earlier acknowledgement. *)
+Local Lemma own_log_ghost_campaign γ id s :
+  s.(pstate.role) ≠ role.Leader →
+  uint.Z s.(pstate.term) + 1 < 2 ^ 64 →
+  own_log_ghost γ id s ==∗
+  ∃ k F, own_log_ghost γ id (pbecome_candidate id s) ∗
+    is_camp γ id (word.add s.(pstate.term) (W64 1)) F ∗
+    is_vlog γ id k (word.add s.(pstate.term) (W64 1)) F ∗ log_recs γ base0 F ∗
+    ⌜ plog_wf base0 F ∧ plog_last base0 F = plog_last s.(pstate.base) s.(pstate.log) ⌝.
+Proof.
+  iIntros (Hr Hnw) "H". iDestruct "H" as (γm terms γa acks fp γc camps γl vlogs) "H". iNamed "H".
+  set (T' := word.add s.(pstate.term) (W64 1)).
+  assert (HT' : uint.Z T' = uint.Z s.(pstate.term) + 1) by (rewrite /T'; word).
+  destruct Hfull as (Hf & Hw & Htle).
+  set (F := fp ++ s.(pstate.log)).
+  assert (HwF : plog_wf base0 F) by (by eapply full_wf).
+  set (sc := pbecome_candidate id s).
+  assert (Hsc_term : sc.(pstate.term) = T') by reflexivity.
+  assert (Hsc_role : sc.(pstate.role) = role.Candidate) by reflexivity.
+  assert (Hsc_lead : sc.(pstate.lead) = W64 0) by reflexivity.
+  assert (Hsc_log : sc.(pstate.log) = s.(pstate.log)) by reflexivity.
+  assert (Hsc_base : sc.(pstate.base) = s.(pstate.base)) by reflexivity.
+  assert (Hsc_commit : sc.(pstate.commit) = s.(pstate.commit)) by reflexivity.
+  clearbody sc.
+  assert (Hsc_bnd : bnd sc = uint.Z T').
+  { rewrite /bnd Hsc_lead Hsc_role Hsc_term. case_decide as Hc; [done|]. exfalso. apply Hc. done. }
+  pose proof (bnd_le s) as Hbs.
+  assert (Hcfree : camps !! T' = None).
+  { destruct (camps !! T') eqn:Hc; [|done]. exfalso.
+    specialize (Hcamps_ok T' ltac:(by eexists)). lia. }
+  iMod (ghost_map_insert_persist T' F Hcfree with "Hcamps") as "[Hcamps #Hcf]".
+  set (k := fresh (dom vlogs)).
+  assert (Hkfree : vlogs !! k = None).
+  { apply not_elem_of_dom. apply is_fresh. }
+  iMod (ghost_map_insert_persist k (T', F) Hkfree with "Hvlogs") as "[Hvlogs #Hvf]".
+  iAssert (is_camp γ id T' F) as "#Hcamp".
+  { iExists γc. iFrame "Hcf". iPureIntro. split; [done|]. split; [done|].
+    intros j x Hx. destruct (Htle j x Hx) as [? _]. lia. }
+  iAssert (log_recs γ base0 F) as "#HrF".
+  { iApply (log_recs_full with "Hfrecs Hrecs"). done. }
+  iModIntro. iExists k, F.
+  iSplitR "".
+  2:{ iFrame "Hcamp HrF". iSplit; [iExists γl; by iFrame "#%"|].
+      iPureIntro. split; [done|]. by apply full_last. }
+  assert (Hterms_ok' : terms_ok terms sc).
+  { intros t Ht. left. rewrite Hsc_term HT'.
+    destruct (Hterms_ok t Ht) as [? | [_ ?]]; [lia|done]. }
+  assert (Hacks_term' : acks_term sc acks).
+  { intros kk Hk. specialize (Hacks_term kk Hk). rewrite Hsc_term HT'. lia. }
+  assert (Hlog_ok' : log_ok sc) by (rewrite /log_ok Hsc_base Hsc_log Hsc_commit; exact Hlog_ok).
+  assert (Hfull' : full_ok sc.(pstate.base) fp ∧ plog_wf sc.(pstate.base) sc.(pstate.log) ∧
+                   terms_le sc (fp ++ sc.(pstate.log))).
+  { rewrite Hsc_base Hsc_log. split_and!; [done|done|]. intros j x Hx. rewrite Hsc_term HT'.
+    destruct (Htle j x Hx) as [? _]. split; intros; lia. }
+  assert (Hcamps_ok' : ∀ T, is_Some (<[T' := F]> camps !! T) → uint.Z T ≤ uint.Z sc.(pstate.term)).
+  { intros T [x Hx]. rewrite Hsc_term HT'. destruct (decide (T = T')) as [->|Hne]; [lia|].
+    rewrite lookup_insert_ne // in Hx. specialize (Hcamps_ok T ltac:(by eexists)). lia. }
+  iAssert (lead_log_own γ sc terms) as "Htlog'".
+  { rewrite /lead_log_own Hsc_role //. }
+  iAssert (acks_ok γ sc acks) as "#Hacks_ok'".
+  { rewrite /acks_ok Hsc_role. iApply big_sepM_intro. iIntros "!> %kk %u %Hk".
+    iIntros ([Hk1 _]). exfalso. specialize (Hacks_term kk ltac:(by eexists)).
+    rewrite Hk1 Hsc_term HT' in Hacks_term. lia. }
+  iAssert (matched_ok γ sc) as "#Hmatched'".
+  { rewrite /matched_ok Hsc_role. done. }
+  iAssert (commit_in γ (fp ++ sc.(pstate.log)) sc.(pstate.commit) sc.(pstate.term)) as "#Hcommit'".
+  { rewrite Hsc_log Hsc_commit. iApply (commit_in_agree with "Hcommit"); [|done]. rewrite Hsc_term HT'. lia. }
+  iAssert (camp_own γ id sc (fp ++ sc.(pstate.log))) as "#Hcown'".
+  { rewrite /camp_own Hsc_role Hsc_term Hsc_log. iExact "Hcamp". }
+  iAssert (log_recs γ sc.(pstate.base) sc.(pstate.log)) as "#Hrecs'".
+  { rewrite Hsc_base Hsc_log. iExact "Hrecs". }
+  iAssert (base_ok γ sc.(pstate.base)) as "#Hbase'".
+  { rewrite Hsc_base. iExact "Hbase". }
+  iAssert (vlogs_ok γ sc acks (<[k := (T', F)]> vlogs)) as "#Hvlogs'".
+  { iApply big_sepM_insert_2.
+    - iSplit; first (iPureIntro; simpl; rewrite Hsc_term; lia).
+      iApply (big_sepM_impl with "Hhists"). iIntros "!> %kk %u %Hk #Hh %Hlt".
+      iApply (hist_mono with "Hh"). simpl. lia.
+    - iApply (big_sepM_impl with "Hvlogs_ok"). iIntros "!> %kk %x %Hx [%Hxt #Hx]".
+      iFrame "Hx". iPureIntro. rewrite Hsc_term. lia. }
+  iAssert (hists_ok γ sc (fp ++ sc.(pstate.log)) acks) as "#Hhists'".
+  { rewrite Hsc_log. iApply (big_sepM_impl with "Hhists"). iIntros "!> %kk %u %Hk #Hh".
+    iApply (hist_mono with "Hh"). rewrite Hsc_bnd. lia. }
+  iExists γm, terms, γa, acks, fp, γc, (<[T' := F]> camps), γl, (<[k := (T', F)]> vlogs).
+  iFrame "Hcommit' Hcown' Hhists' Hvlogs' Hacks_ok' Hmatched' Hrecs' Hbase'".
+  iFrame "Hterms Hacks Hcamps Hvlogs Htlog' Htfrags Hafrags Hfrecs".
+  iPureIntro. done.
+Qed.
+
+(** A first vote, on the log ghost state: record the vote-time log, which
+    has the histories of all acknowledgements (the bound is the term: a
+    first vote is cast with no leader). *)
+Local Lemma own_log_ghost_vote γ id s :
+  bnd s = uint.Z s.(pstate.term) →
+  own_log_ghost γ id s ==∗
+  ∃ k F, own_log_ghost γ id s ∗ is_vlog γ id k s.(pstate.term) F ∗ log_recs γ base0 F ∗
+    ⌜ plog_wf base0 F ∧
+      ∀ x, plog_up_to_date base0 F x = plog_up_to_date s.(pstate.base) s.(pstate.log) x ⌝.
+Proof.
+  iIntros (Hbnd) "H". iDestruct "H" as (γm terms γa acks fp γc camps γl vlogs) "H". iNamed "H".
+  pose proof Hfull as (Hf & Hw & Htle).
+  set (F := fp ++ s.(pstate.log)).
+  set (k := fresh (dom vlogs)).
+  assert (Hkfree : vlogs !! k = None).
+  { apply not_elem_of_dom. apply is_fresh. }
+  iMod (ghost_map_insert_persist k (s.(pstate.term), F) Hkfree with "Hvlogs") as "[Hvlogs #Hvf]".
+  iAssert (vlogs_ok γ s acks (<[k := (s.(pstate.term), F)]> vlogs)) as "#Hvlogs'".
+  { iApply big_sepM_insert_2; [|iExact "Hvlogs_ok"].
+    iSplit; first (iPureIntro; simpl; lia).
+    iApply (big_sepM_impl with "Hhists"). iIntros "!> %kk %u %Hk #Hh %Hlt".
+    simpl. rewrite -Hbnd. iExact "Hh". }
+  iModIntro. iExists k, F.
+  iSplitR "".
+  2:{ iSplit; [iExists γl; by iFrame "#%"|]. iSplit.
+      - iApply (log_recs_full with "Hfrecs Hrecs"). done.
+      - iPureIntro. split; [by eapply full_wf|]. intros x. by apply full_up_to_date. }
+  iExists γm, terms, γa, acks, fp, γc, camps, γl, (<[k := (s.(pstate.term), F)]> vlogs).
+  iFrame "Hcommit Hcown Hhists Hvlogs' Hacks_ok Hmatched".
+  iFrame "Hterms Hacks Hcamps Hvlogs Htlog Htfrags Hafrags Hrecs Hbase Hfrecs".
+  iPureIntro. done.
+Qed.
+
 
 (** What a leader's [MsgSnap] carries beyond its leadership.  [Qed] since
     2026-10-03 (admitted from 2026-10-02 as a client assumption, before
@@ -2364,27 +3213,127 @@ Proof.
 Qed.
 
 (** What a leader's broadcast carries, from what the leader holds. *)
-Local Lemma repl_ok_message γ id s m :
+Local Lemma repl_ok_message γ id s m fp :
   plog_wf_r s.(pstate.base) s.(pstate.log) →
-  repl_ok id s m →
+  repl_ok id s m → id ≠ W64 0 →
   is_leader γ id s.(pstate.term) -∗
   lead_prefix γ id s.(pstate.term) s.(pstate.base) s.(pstate.log) -∗
+  lpfull γ id s.(pstate.term) s.(pstate.base) s.(pstate.log) fp -∗
   log_recs γ s.(pstate.base) s.(pstate.log) -∗
-  is_committed γ s.(pstate.commit) -∗
+  commit_in γ (fp ++ s.(pstate.log)) s.(pstate.commit) s.(pstate.term) -∗
   base_ok γ s.(pstate.base) -∗
   is_message γ m.
 Proof.
-  iIntros (Hr Hok) "#Hl #Hp #Hrecs #Hc #Hb".
+  iIntros (Hr Hok Hid) "#Hl #Hp #Hlf #Hrecs #Hc #Hb".
+  iPoseProof "Hlf" as (F0) "(_ & #Hfr & %Hfull & _ & %Hwl & _)".
+  iDestruct (log_recs_full with "Hfr Hrecs") as "#HrF"; first done.
+  pose proof (full_wf _ _ _ Hfull Hwl) as HwF.
   destruct Hok as [(Hty & Hfrom & Hterm & _ & Hidx & Hcm & _ & Hpre & Hpay) | Hsnap].
   - rewrite /is_message Hty Hfrom Hterm.
-    iSplit; first (iPureIntro; exact Hpay). iSplit; first iExact "Hl". iSplit.
-    + iExists s.(pstate.base), s.(pstate.log). iSplit; first iExact "Hp". iPureIntro; split; done.
-    + by iApply (is_committed_le with "Hc").
-  - iDestruct (snap_ok_message γ id s m Hr Hsnap with "Hc Hrecs Hb") as "(Hmc & Hmeta & %Hidx)".
-    destruct Hsnap as (Hty & Hfrom & Hterm & _).
+    iSplit; first (iPureIntro; exact Hpay). iSplit; first iExact "Hl".
+    iSplit; last done.
+    iExists s.(pstate.base), s.(pstate.log), fp. iSplit; first iExact "Hp".
+    iSplit; first (iPureIntro; split; done). iSplit; first iExact "Hlf".
+    iApply (commit_in_le with "HrF Hc"); done.
+  - iDestruct (commit_in_committed with "Hc") as "#Hc'".
+    iDestruct (snap_ok_message γ id s m Hr Hsnap with "Hc' Hrecs Hb") as "(_ & Hmeta & %Hidx)".
+    pose proof Hsnap as (Hty & Hfrom & Hterm & _ & _ & Hle & _).
     rewrite /is_message Hty Hfrom Hterm.
-    iSplit; first iExact "Hl". iSplit; first iExact "Hmc". iSplit; first iExact "Hmeta".
-    iExists s.(pstate.base), s.(pstate.log). iSplit; first iExact "Hp". iPureIntro; done.
+    iSplit; first iExact "Hl". iSplit; first iExact "Hmeta". iSplit; last done.
+    iExists s.(pstate.base), s.(pstate.log), fp. iSplit; first iExact "Hp".
+    iSplit; first done. iSplit; first iExact "Hlf".
+    iApply (commit_in_le with "HrF Hc"); done.
+Qed.
+
+(** A full log at its commit index has the history of an
+    acknowledgement there, at any term at least the commit fact's. *)
+Local Lemma hist_of_commit γ F (c tm : w64) B :
+  plog_wf base0 F → uint.Z tm < B →
+  log_recs γ base0 F -∗ commit_in γ F c tm -∗ hist γ F tm c B.
+Proof.
+  iIntros (HwF HB) "#HrF [%H0 | (%t & %n & %G & #Hq & %Hc & %Ht & %HG)]".
+  { iIntros (j Hj). lia. }
+  iPoseProof "Hq" as "(%Hn & #Hfl & _)".
+  assert (HsG : is_Some (plog_term_at base0 G c)).
+  { apply (full_term_at_some _ _ n); [by eexists|lia]. }
+  iApply (hist_of_agree _ F G with "HrF"); [done|done|done|].
+  destruct (decide (t = tm)) as [->|Hne].
+  - iLeft. iExists tm. iFrame "Hfl". iPureIntro. lia.
+  - iRight. iExists t, n. iFrame "Hq". iPureIntro. split; [|lia].
+    assert (uint.Z t ≠ uint.Z tm) by (intros ?; apply Hne; by apply word.unsigned_inj). lia.
+Qed.
+
+(** An acknowledgement justified by the log, in full-log terms. *)
+Local Lemma ack_agree_full γ b es fp (t i : w64) :
+  full_ok b fp → uint.Z b.(raft.entryID.index') ≤ uint.Z i →
+  ack_agree γ b es t i -∗
+  ∃ X, lead_full γ t X ∗
+    ⌜ is_Some (plog_term_at base0 X i) ∧
+      plog_term_at base0 X i = plog_term_at base0 (fp ++ es) i ⌝.
+Proof.
+  iIntros (Hf Hb) "(_ & %ldr & %bL & %l & #Hp & [%Hs %Heq] & %fpX & #Hpf)".
+  iExists (fpX ++ l). iSplit; first iApply (lead_full_intro with "Hp Hpf").
+  iPoseProof "Hpf" as (F0) "(_ & _ & %HfX & _)".
+  destruct Hs as [x Hx]. pose proof (plog_term_at_Some_range _ _ _ _ Hx) as [HbL _].
+  rewrite (full_term_at bL fpX l) // (full_term_at b fp es) //.
+Qed.
+
+(** A non-leader's own acknowledgement of its term above its commit index
+    is justified by its log. *)
+Local Lemma own_log_ghost_ack_agree γ id s (i : w64) :
+  own_log_ghost γ id s -∗ is_acked γ id s.(pstate.term) i -∗
+  ∀ _ : s.(pstate.role) ≠ role.Leader ∧ uint.Z s.(pstate.commit) < uint.Z i,
+    ack_agree γ s.(pstate.base) s.(pstate.log) s.(pstate.term) i.
+Proof.
+  iIntros "H [%H0 | (%γa' & %Hγa' & #Hfrag)]"; [iIntros ([_ Hlt]); word|].
+  iDestruct "H" as (γm terms γa acks fp γc camps γl vlogs) "H". iNamed "H".
+  rewrite Haname in Hγa'. injection Hγa' as <-.
+  iDestruct (ghost_map_lookup with "Hacks Hfrag") as %Hk.
+  iIntros ([Hr Hlt]).
+  rewrite /acks_ok. destruct (s.(pstate.role)); [| |congruence].
+  all: iDestruct (big_sepM_lookup with "Hacks_ok") as "Hk"; first exact Hk.
+  all: iApply ("Hk" $! (conj eq_refl Hlt)).
+Qed.
+
+(** Histories across a log change that keeps the log below [c], puts a
+    leader's log [Y] (of a term in range) on [[c, L]], and drops what is
+    past [L] -- where the old log disagreed with [Y] at some [k] in
+    [[c, L]] (the cut of [step_app_accept], the snapshot index of
+    [step_snap_restore]). *)
+Local Lemma hist_replace γ F F' Y (t i T : w64) B B' (c : Z) (k L : w64) :
+  B ≤ B' → uint.Z t ≤ uint.Z T → uint.Z T < B' →
+  0 < uint.Z k → c ≤ uint.Z k ≤ uint.Z L →
+  (∀ j : w64, uint.Z j < c → plog_term_at base0 F' j = plog_term_at base0 F j) →
+  (∀ j : w64, c ≤ uint.Z j ≤ uint.Z L →
+     plog_term_at base0 F' j = plog_term_at base0 Y j ∧ is_Some (plog_term_at base0 Y j)) →
+  plog_term_at base0 F k ≠ plog_term_at base0 Y k →
+  (∀ j : w64, uint.Z L < uint.Z j → plog_term_at base0 F' j = None) →
+  lead_full γ T Y -∗ hist γ F t i B -∗ hist γ F' t i B'.
+Proof.
+  iIntros (HB Ht HT Hk0 Hk Hlow Hmid Hdiff Hhigh) "#HY #Hh %j %Hj".
+  iAssert (∀ j', okL γ t B' j' Y)%I as "#HokY".
+  { iIntros (j'). iLeft. iExists T. iFrame "HY". iPureIntro. lia. }
+  destruct (decide (uint.Z j < c)) as [Hjc|Hjc].
+  - iDestruct ("Hh" $! j Hj) as "[(%X & #HX & %Hs & %HXj) | (%j' & %X1 & %X2 & %Hj' & #H1 & #H2 & %Hd)]".
+    + iLeft. iExists X. iSplit; first (iApply (okL_mono with "HX"); done).
+      iPureIntro. rewrite Hlow //.
+    + iRight. iExists j', X1, X2. iSplit; first done.
+      iSplit; first (iApply (okL_mono with "H1"); done).
+      iSplit; first (iApply (okL_mono with "H2"); done). done.
+  - destruct (decide (uint.Z j ≤ uint.Z L)) as [HjL|HjL].
+    + destruct (Hmid j ltac:(lia)) as [Heq Hs].
+      iLeft. iExists Y. iSplit; first iApply "HokY". iPureIntro. by rewrite Heq.
+    + iRight.
+      destruct (Hmid k ltac:(lia)) as [_ HsY].
+      assert (Hkj : 0 < uint.Z k ≤ uint.Z i) by lia.
+      iDestruct ("Hh" $! k Hkj) as "[(%X & #HX & %Hs & %HXk) | (%j' & %X1 & %X2 & %Hj' & #H1 & #H2 & %Hd)]".
+      * iExists k, X, Y. iSplit; first (iPureIntro; lia).
+        iSplit; first (iApply (okL_mono with "HX"); done).
+        iSplit; first iApply "HokY".
+        iPureIntro. split_and!; [done|done|]. rewrite HXk. done.
+      * iExists j', X1, X2. iSplit; first (iPureIntro; lia).
+        iSplit; first (iApply (okL_mono with "H1"); done).
+        iSplit; first (iApply (okL_mono with "H2"); done). done.
 Qed.
 
 (** *** The refinement obligation, one rule at a time
@@ -2394,7 +3343,17 @@ Qed.
 
 Local Ltac destruct_ghost :=
   iDestruct "Hown" as (γv voted)
-    "(%Hname & %Hidnz & Hvoted & %Hhist & #Hfrags & #Hout & #Htally & #Hlead & Hlg & %Hlok & %Hfv)".
+    "(%Hname & %Hidnz & Hvoted & %Hhist & #Hfrags & #Hout & #Htally & #Hlead & Hlg & %Hlok & %Hfv & #Hvrecs & %Hrok)".
+
+(** [role_ok] of the state a rule produces: unchanged role, vote and
+    leader, or a follower. *)
+Local Ltac role_ok_tac :=
+  first
+    [ assumption
+    | let H1 := fresh in let H2 := fresh in
+      match goal with H : role_ok _ _ |- _ => pose proof H as [H1 H2] end;
+      rewrite /role_ok /psend_msgs /padopt_leader /pbecome_follower /=; split; intros ?;
+      first [ congruence | done | by apply H1 | by apply H2 ] ].
 
 (** [lead_ok] of the state a rule produces: unchanged role and leader, or a
     leader, or a follower with no leader / another node as leader. *)
@@ -2416,13 +3375,14 @@ Local Ltac follower_votes_tac :=
 Local Lemma own_raft_ghost_step_win γ id s mt ms :
   s.(pstate.role) = role.Candidate →
   is_quorum γ.(re_cfg) (granted s.(pstate.votes)) →
+  plog_last_index_Z s.(pstate.base) s.(pstate.log) + 1 < 2 ^ 64 →
   leader_match_ok id s mt →
   Forall (repl_ok id (pwin_state id s mt)) ms →
   own_raft_ghost γ id s ==∗
   own_raft_ghost γ id (psend_msgs (pwin_state id s mt)
                          ([pself_ack id (pwin_state id s mt)] ++ ms)).
 Proof.
-  intros Hrole Hq [Hmid Hmoth] Hms.
+  intros Hrole Hq Hnw [Hmid Hmoth] Hms.
   (* name the new state and record what it is, then forget its body, so
      that no [simpl] below unfolds it on one side of a match only *)
   set (s2 := pwin_state id s mt) in *.
@@ -2435,12 +3395,28 @@ Proof.
   assert (Hs2commit : s2.(pstate.commit) = s.(pstate.commit)) by reflexivity.
   assert (Hs2base : s2.(pstate.base) = s.(pstate.base)) by reflexivity.
   assert (Hs2matched : s2.(pstate.matched) = mt) by reflexivity.
+  assert (Hs2lead : s2.(pstate.lead) = id) by reflexivity.
   clearbody s2.
+  set (sf := psend_msgs s2 ([pself_ack id s2] ++ ms)).
+  assert (Hsflog : sf.(pstate.log) = s2.(pstate.log)) by reflexivity.
+  assert (Hsfterm : sf.(pstate.term) = s.(pstate.term)) by (rewrite -Hs2term; reflexivity).
+  assert (Hsfrole : sf.(pstate.role) = role.Leader) by (rewrite -Hs2role; reflexivity).
+  assert (Hsfcommit : sf.(pstate.commit) = s.(pstate.commit)) by (rewrite -Hs2commit; reflexivity).
+  assert (Hsfbase : sf.(pstate.base) = s.(pstate.base)) by (rewrite -Hs2base; reflexivity).
+  assert (Hsfmatched : sf.(pstate.matched) = mt) by (rewrite -Hs2matched; reflexivity).
+  assert (Hsfbnd : bnd sf = uint.Z s.(pstate.term) + 1).
+  { rewrite /bnd Hsfterm Hsfrole decide_False //. intros [_ Hr]. by apply Hr. }
   iIntros "Hown". destruct_ghost.
+  assert (Hsbnd : bnd s = uint.Z s.(pstate.term)).
+  { rewrite /bnd decide_True //. split; [apply Hrok; done|congruence]. }
   iAssert (is_leader γ id s.(pstate.term)) as "#Hnewlead".
   { iExists (granted s.(pstate.votes)). by iFrame "#". }
-  iDestruct "Hlg" as (γm terms γa acks) "Hlg". iNamed "Hlg".
+  iDestruct "Hlg" as (γm terms γa acks fp γc camps γl vlogs) "Hlg". iNamed "Hlg".
   destruct Hlog_ok as (Hwf & Hbc & Hcl).
+  destruct Hfull as (Hfp & Hwl & Htle).
+  iEval (rewrite /camp_own Hrole) in "Hcown".
+  set (F := fp ++ s.(pstate.log)).
+  assert (HwF : plog_wf base0 F) by (by eapply full_wf).
   (* the current term has no term log: the node was not leader in it *)
   assert (Hfree : terms !! s.(pstate.term) = None).
   { destruct (terms !! s.(pstate.term)) eqn:Ht; last done.
@@ -2451,29 +3427,55 @@ Proof.
   set (pt0 := (plog_last s.(pstate.base) s.(pstate.log)).(raft.entryID.term')).
   set (L := plog_last_index_Z s.(pstate.base) s.(pstate.log)).
   pose proof (plog_last_index_Z_nonneg s.(pstate.base) s.(pstate.log)) as HL0.
+  assert (HLF : plog_last_index_Z base0 F = L) by (by apply full_last_index).
+  assert (HlastF : plog_last base0 F = plog_last s.(pstate.base) s.(pstate.log))
+    by (by apply full_last).
+  (* the leader's entry, at [L + 1] *)
+  assert (Heidx : uint.Z e.(raftpb.Entry.Index') = L + 1).
+  { pose proof (stamp_index_eq L 0 HL0 ltac:(lia)) as H.
+    rewrite /e /pleader_entry /stamp /plast_index /=. rewrite /L in H. simpl in H. lia. }
+  assert (Heterm : e.(raftpb.Entry.Term') = s.(pstate.term)) by done.
+  (* the candidate's last term is below its term *)
+  assert (Hpt0 : uint.Z pt0 < uint.Z s.(pstate.term)).
+  { pose proof (plog_term_at_last base0 F HwF) as Hlt.
+    rewrite HlastF in Hlt. by apply (Htle _ _ Hlt). }
   iMod (ghost_map_alloc {[ e.(raftpb.Entry.Index') := (e, pt0) ]}) as (γt) "[Htauth Htel]".
   rewrite big_sepM_singleton.
   iMod (ghost_map_elem_persist with "Htel") as "#Htel".
   iMod (ghost_map_insert_persist s.(pstate.term) (γt, s.(pstate.base), s.(pstate.log)) Hfree
          with "Hterms") as "[Hterms #Htnew]".
-  iMod (acks_add _ _ (s.(pstate.term), plast_index s) with "Hacks Hafrags")
-    as "(Hacks & #Hafr1 & #Hk1)".
-  iMod (acks_add _ _ (s.(pstate.term), plast_index s2) with "Hacks Hafr1")
-    as "(Hacks & #Hafr2 & #Hk2)".
   iAssert (is_term_log γ id s.(pstate.term) γt s2.(pstate.base) s.(pstate.log)) as "#Htl".
   { iExists γm. rewrite Hs2base. by iFrame "#%". }
   iAssert (is_entry_r γ e pt0) as "#He".
-  { iExists id, γt, s2.(pstate.base), s.(pstate.log). rewrite /e pleader_entry_term. iFrame "#". }
-  (* the leader's entry, at [L + 1] when that is in range *)
-  assert (Heidx : L + 1 < 2 ^ 64 → uint.Z e.(raftpb.Entry.Index') = L + 1).
-  { intros HL. pose proof (stamp_index_eq L 0 HL0 ltac:(lia)) as H.
-    rewrite /e /pleader_entry /stamp /plast_index /=. rewrite /L in H HL. simpl in H. lia. }
-  assert (Hwf2 : plog_wf_r s2.(pstate.base) s2.(pstate.log)).
-  { rewrite Hs2log Hs2base. intros k x Hk Hr.
-    destruct (decide (k < length s.(pstate.log))%nat) as [Hlt|Hge].
-    - rewrite lookup_app_l in Hk; [|done]. by apply Hwf.
-    - rewrite lookup_app_r in Hk; [|lia]. apply list_lookup_singleton_Some in Hk as [Hk <-].
-      rewrite /L /plog_last_index_Z in Heidx. rewrite Heidx; lia. }
+  { iExists id, γt, s2.(pstate.base), s.(pstate.log), F. rewrite /e pleader_entry_term.
+    iFrame "#". iPureIntro. rewrite /pt_ok -/e HLF Heidx HlastF.
+    split_and!; [lia|lia|done|lia]. }
+  assert (Hwl2 : plog_wf s2.(pstate.base) s2.(pstate.log)).
+  { rewrite Hs2log Hs2base. apply plog_wf_app. split; [done|].
+    intros k x Hk. apply list_lookup_singleton_Some in Hk as [-> <-].
+    rewrite Heidx /L /plog_last_index_Z. lia. }
+  assert (Hwf2 : plog_wf_r s2.(pstate.base) s2.(pstate.log)) by (by apply plog_wf_wf_r).
+  set (F2 := fp ++ s2.(pstate.log)).
+  assert (HF2 : F2 = F ++ [e]) by (rewrite /F2 /F Hs2log app_assoc //).
+  assert (HwF2 : plog_wf base0 F2).
+  { rewrite /F2. apply (full_wf s.(pstate.base)); [exact Hfp|rewrite -Hs2base; exact Hwl2]. }
+  assert (HLF2 : plog_last_index_Z base0 F2 = L + 1).
+  { rewrite HF2 /plog_last_index_Z length_app /= base0_index.
+    rewrite /plog_last_index_Z base0_index in HLF. lia. }
+  (* [F2] keeps [F]'s terms, and has [T] at [L + 1] *)
+  assert (HkeepF : ∀ j : w64, is_Some (plog_term_at base0 F j) →
+                     plog_term_at base0 F2 j = plog_term_at base0 F j).
+  { intros j [x Hx]. rewrite HF2. apply plog_term_at_app_l.
+    by pose proof (plog_term_at_Some_range _ _ _ _ Hx) as [_ ?]. }
+  assert (HtF2 : ∀ (j x : w64), plog_term_at base0 F2 j = Some x →
+                   uint.Z x ≤ uint.Z s.(pstate.term)).
+  { intros j x Hx. pose proof (plog_term_at_Some_range _ _ _ _ Hx) as [_ Hj].
+    destruct (decide (uint.Z j ≤ L)) as [Hle|Hgt].
+    - rewrite HF2 plog_term_at_app_l in Hx; [|lia].
+      destruct (Htle _ _ Hx) as [? _]. lia.
+    - rewrite HF2 plog_term_at_app_r in Hx; [|lia].
+      replace (Z.to_nat _) with 0%nat in Hx by lia. simpl in Hx.
+      injection Hx as <-. lia. }
   iAssert (log_recs γ s2.(pstate.base) s2.(pstate.log)) as "#Hrecs2".
   { rewrite /log_recs Hs2log Hs2base big_sepL_app big_sepL_singleton. iSplit.
     - iApply (big_sepL_impl with "Hrecs"). iIntros "!> %k %x %Hk H".
@@ -2489,6 +3491,7 @@ Proof.
       { rewrite word.unsigned_of_Z_nowrap; [rewrite /L; lia|]. split; [lia|].
         rewrite /L /plog_last_index_Z. lia. }
       apply plog_term_at_last_r; [done|]. rewrite /plog_last_index_Z. lia. }
+  iDestruct (log_recs_full with "Hfrecs Hrecs2") as "#HrF2"; first (rewrite Hs2base //).
   iAssert (lead_frags γt s.(pstate.log) s2.(pstate.log)) as "#Hlf2".
   { rewrite /lead_frags Hs2log big_sepL_app big_sepL_singleton. iSplit.
     - iApply big_sepL_intro. iIntros "!> %k %x %Hk".
@@ -2497,66 +3500,125 @@ Proof.
   iAssert (lead_prefix γ id s2.(pstate.term) s2.(pstate.base) s2.(pstate.log)) as "#Hp2".
   { rewrite /lead_prefix Hs2term. iFrame "Hnewlead". iExists γt, s.(pstate.log). iFrame "Htl Hrecs2 Hlf2".
     iPureIntro. split; [done|]. rewrite Hs2log. by apply prefix_app_r. }
+  iAssert (lpfull γ id s2.(pstate.term) s2.(pstate.base) s2.(pstate.log) fp) as "#Hpf2".
+  { iExists F. rewrite Hs2term Hs2base. iFrame "Hcown Hfrecs". iPureIntro.
+    split_and!; [done| |rewrite -Hs2base //|exact HtF2].
+    rewrite -/F2 HF2. by apply prefix_app_r. }
+  iDestruct (lead_full_intro with "Hp2 Hpf2") as "#Hfull2".
   iAssert (is_leader γ id s2.(pstate.term)) as "#Hnewlead2".
   { rewrite Hs2term. iFrame "#". }
-  iAssert (is_committed γ s2.(pstate.commit)) as "#Hcommit2".
-  { rewrite Hs2commit. iFrame "#". }
+  iAssert (commit_in γ F2 s2.(pstate.commit) s2.(pstate.term)) as "#Hcommit2".
+  { rewrite Hs2commit Hs2term. iApply (commit_in_agree with "Hcommit"); [done|].
+    apply HkeepF. apply plog_term_at_in_range. rewrite base0_index HLF. word. }
   iAssert (base_ok γ s2.(pstate.base)) as "#Hbase2".
   { rewrite Hs2base. iExact "Hbase". }
+  (* the two acknowledgements, with their histories *)
+  iAssert (∀ i : w64, ⌜ uint.Z i ≤ L + 1 ⌝ -∗ hist γ F2 s.(pstate.term) i (bnd sf))%I as "#Hhnew".
+  { iIntros (i Hi). iApply (hist_of_agree _ F2 F2 with "HrF2 []"); [done| |done|].
+    - apply plog_term_at_in_range. rewrite base0_index HLF2. word.
+    - iLeft. iExists s.(pstate.term). rewrite Hsfbnd -Hs2term -/F2. iFrame "Hfull2". iPureIntro. lia. }
+  iAssert (hists_ok γ sf F2 acks) as "#Hhists2".
+  { iApply (big_sepM_impl with "Hhists"). iIntros "!> %k %u %Hk #Hk".
+    iApply (hist_mono γ F2 k.1 k.2 (bnd s) (bnd sf) with "[Hk]"); [rewrite Hsfbnd Hsbnd; lia|].
+    iApply (hist_keep with "Hk"). intros j _ Hj. by apply HkeepF. }
+  iAssert (vlogs_ok γ sf acks vlogs) as "#Hvlogs2".
+  { iApply (big_sepM_impl with "Hvlogs_ok"). iIntros "!> %k %x %Hx [%Hxt #Hx]".
+    iFrame "Hx". iPureIntro. rewrite Hsfterm. lia. }
+  iDestruct (ack_invs_insert _ sf F2 _ _ (plast_index s) with "[] Hhists2 Hvlogs2")
+    as "[#Hhists3 #Hvlogs3]".
+  { rewrite Hsfterm. iApply "Hhnew". iPureIntro. rewrite /plast_index -/L. word. }
+  iDestruct (ack_invs_insert _ sf F2 _ _ (plast_index s2) with "[] Hhists3 Hvlogs3")
+    as "[#Hhists4 #Hvlogs4]".
+  { rewrite Hsfterm. iApply "Hhnew". iPureIntro.
+    rewrite /plast_index Hs2log Hs2base /plog_last_index_Z length_app /=.
+    rewrite /L /plog_last_index_Z in Hnw |- *. word. }
+  rewrite Hsfterm.
+  iMod (acks_add _ _ (s.(pstate.term), plast_index s) with "Hacks Hafrags")
+    as "(Hacks & #Hafr1 & #Hk1)".
+  iMod (acks_add _ _ (s.(pstate.term), plast_index s2) with "Hacks Hafr1")
+    as "(Hacks & #Hafr2 & #Hk2)".
   iModIntro.
   iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-           with "Hvoted [] Hfrags [] [] [] [-] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
+           with "Hvoted [] Hfrags [] [] [] [-] [%] [%] Hvrecs [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac | idtac ].
   - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); [exact Hs2term|exact Hs2vote].
   - rewrite psend_msgs_outbox Hs2out big_sepL_app.
     iSplitR; [iFrame "#"|]. rewrite big_sepL_cons. iSplitR.
     + rewrite /is_message /pself_ack /=. iRight. iExists γa. rewrite -Hs2term. by iFrame "#%".
     + iApply big_sepL_intro. iIntros "!> %k %x %Hk".
-      iApply (repl_ok_message _ id s2 with "Hnewlead2 Hp2 Hrecs2 Hcommit2 Hbase2").
+      iApply (repl_ok_message _ id s2 _ fp with "Hnewlead2 Hp2 Hpf2 Hrecs2 Hcommit2 Hbase2").
       * done.
       * exact (Forall_lookup_1 _ _ _ _ Hms Hk).
+      * done.
   - rewrite psend_msgs_votes Hs2votes granted_empty big_sepS_empty //.
   - rewrite /leader_wit psend_msgs_role Hs2role psend_msgs_term. iFrame "#".
-  - iExists γm, (<[s.(pstate.term) := (γt, s.(pstate.base), s.(pstate.log))]> terms), γa, _.
-    iSplit; first done. iFrame "Hterms".
-    iSplit; first (rewrite (big_sepM_insert _ terms) //; by iFrame "#").
-    iSplit.
-    { iPureIntro. intros t Ht. rewrite psend_msgs_term psend_msgs_role Hs2term Hs2role.
+  - assert (Hterms_ok' : terms_ok (<[s.(pstate.term) := (γt, s.(pstate.base), s.(pstate.log))]> terms) sf).
+    { intros t Ht. rewrite Hsfterm Hsfrole.
       destruct (decide (t = s.(pstate.term))) as [->|Hne]; first by right.
       rewrite lookup_insert_ne // in Ht.
       destruct (Hterms_ok t Ht) as [Hlt | [-> Hr]]; [by left | congruence]. }
-    iSplitL "Htauth".
-    { rewrite /lead_log_own psend_msgs_role psend_msgs_term psend_msgs_base psend_msgs_log
-        Hs2role Hs2term.
+    assert (Hacks_term' : acks_term sf (<[(s.(pstate.term), plast_index s2) := ()]>
+                                        (<[(s.(pstate.term), plast_index s) := ()]> acks))).
+    { rewrite /acks_term Hsfterm.
+      apply (acks_term_insert s); [lia|]. apply (acks_term_insert s); [lia|done]. }
+    assert (Hlog_ok' : log_ok sf).
+    { rewrite /log_ok Hsfbase Hsflog Hsfcommit.
+      split_and!; [rewrite -Hs2base; done|done|].
+      rewrite Hs2log /plog_last_index_Z length_app /=.
+      rewrite /plog_last_index_Z in Hcl. lia. }
+    assert (Hfull' : full_ok sf.(pstate.base) fp ∧ plog_wf sf.(pstate.base) sf.(pstate.log) ∧
+                     terms_le sf (fp ++ sf.(pstate.log))).
+    { rewrite Hsfbase Hsflog. split_and!; [done|rewrite -Hs2base //|].
+      intros j x Hx. rewrite Hsfterm Hsfrole. split; [by apply (HtF2 j x)|done]. }
+    assert (Hcamps_ok' : ∀ T, is_Some (camps !! T) → uint.Z T ≤ uint.Z sf.(pstate.term)).
+    { intros T HT. rewrite Hsfterm. by apply Hcamps_ok. }
+    iAssert (camp_own γ id sf (fp ++ sf.(pstate.log))) as "#Hcown2".
+    { rewrite /camp_own Hsfrole Hsfterm Hsflog -/F2. iExists F. iFrame "Hcown".
+      iPureIntro. split_and!.
+      - rewrite HF2. by apply prefix_app_r.
+      - rewrite HLF HLF2. lia.
+      - rewrite HF2 /plog_last last_app /=. done. }
+    iAssert (lead_log_own γ sf (<[s.(pstate.term) := (γt, s.(pstate.base), s.(pstate.log))]> terms))
+      with "[Htauth]" as "Htlog'".
+    { rewrite /lead_log_own Hsfrole Hsfterm Hsfbase Hsflog.
       iExists γt, _, s.(pstate.log). iFrame "Htauth Hlf2".
-      iSplit; first (iPureIntro; rewrite lookup_insert_eq Hs2base //).
+      iSplit; first (iPureIntro; rewrite lookup_insert_eq //).
       rewrite big_sepM_singleton. iFrame "#".
       iPureIntro. split.
       - intros i [x Hx]. apply lookup_singleton_Some in Hx as [<- _].
-        rewrite Hs2log Hs2base /plog_last_index_Z length_app /=.
-        pose proof (stamp_index_le L 0 HL0) as Hle.
-        rewrite /e /pleader_entry /stamp /plast_index /=.
-        rewrite /L /plog_last_index_Z in Hle |- *. lia.
+        rewrite Hs2log /plog_last_index_Z length_app /=.
+        rewrite Heidx /L /plog_last_index_Z. lia.
       - rewrite Hs2log. by apply prefix_app_r. }
-    iSplit; first done. iFrame "Hacks Hafr2".
-    iSplit.
-    { iPureIntro. rewrite /acks_term psend_msgs_term Hs2term.
-      apply (acks_term_insert s); [lia|]. apply (acks_term_insert s); [lia|done]. }
-    iSplit; first (rewrite /acks_ok psend_msgs_role Hs2role //).
-    iSplit.
-    { iPureIntro. rewrite /log_ok psend_msgs_base psend_msgs_log psend_msgs_commit Hs2commit.
-      split_and!; [done|rewrite Hs2base; done|].
-      rewrite Hs2log Hs2base /plog_last_index_Z length_app /=.
-      rewrite /plog_last_index_Z in Hcl. lia. }
-    iSplit; first (rewrite psend_msgs_base psend_msgs_log; iFrame "#").
-    iSplit; last (iSplit; [rewrite psend_msgs_commit; iFrame "#"
-                          | rewrite psend_msgs_base Hs2base; iExact "Hbase"]).
-    rewrite /matched_ok psend_msgs_role psend_msgs_matched psend_msgs_term
-      Hs2role Hs2matched Hs2term.
-    iApply big_sepM_intro. iIntros "!> %v %x %Hv".
-    destruct (decide (v = id)) as [->|Hne].
-    + rewrite Hmid in Hv. injection Hv as <-.
-      iRight. iExists γa. by iFrame "#%".
-    + rewrite (Hmoth v x Hne Hv). iLeft. done.
+    iAssert (matched_ok γ sf) as "#Hmatched'".
+    { rewrite /matched_ok Hsfrole Hsfmatched Hsfterm.
+      iApply big_sepM_intro. iIntros "!> %v %x %Hv".
+      destruct (decide (v = id)) as [->|Hne].
+      + rewrite Hmid in Hv. injection Hv as <-.
+        iRight. iExists γa. by iFrame "#%".
+      + rewrite (Hmoth v x Hne Hv). iLeft. done. }
+    iAssert (acks_ok γ sf (<[(s.(pstate.term), plast_index s2) := ()]>
+                            (<[(s.(pstate.term), plast_index s) := ()]> acks))) as "#Hacks_ok'".
+    { rewrite /acks_ok Hsfrole //. }
+    iAssert (commit_in γ (fp ++ sf.(pstate.log)) sf.(pstate.commit) sf.(pstate.term)) as "#Hcommit'".
+    { rewrite Hsflog Hsfcommit Hsfterm -Hs2commit -Hs2term. iExact "Hcommit2". }
+    iAssert (hists_ok γ sf (fp ++ sf.(pstate.log)) (<[(s.(pstate.term), plast_index s2) := ()]>
+                            (<[(s.(pstate.term), plast_index s) := ()]> acks))) as "#Hhists'".
+    { rewrite Hsflog. iExact "Hhists4". }
+    iAssert (vlogs_ok γ sf (<[(s.(pstate.term), plast_index s2) := ()]>
+                            (<[(s.(pstate.term), plast_index s) := ()]> acks)) vlogs) as "#Hvlogs'".
+    { iExact "Hvlogs4". }
+    iAssert (log_recs γ sf.(pstate.base) sf.(pstate.log)) as "#Hrecs'".
+    { rewrite Hsfbase Hsflog -Hs2base. iExact "Hrecs2". }
+    iAssert (base_ok γ sf.(pstate.base)) as "#Hbase'".
+    { rewrite Hsfbase. iExact "Hbase". }
+    iAssert ([∗ map] t ↦ γt ∈ <[s.(pstate.term) := (γt, s.(pstate.base), s.(pstate.log))]> terms,
+               t ↪[γm]□ γt)%I as "#Htfrags'".
+    { rewrite (big_sepM_insert _ terms) //. by iFrame "#". }
+    iExists γm, _, γa, _, fp, γc, camps, γl, vlogs.
+    iFrame "Hcommit' Hcown2 Hhists' Hvlogs' Hacks_ok' Hmatched' Hrecs' Hbase' Htfrags' Hafr2".
+    iFrame "Hterms Hacks Hcamps Hvlogs Htlog' Hfrecs". iPureIntro. done.
+  - split.
+    + intros _. rewrite /psend_msgs /= Hs2vote. apply Hrok. congruence.
+    + rewrite psend_msgs_role Hs2role. done.
 Qed.
 
 (** [step_beat]: a heartbeat carries the leadership, a commit index the
@@ -2567,20 +3629,27 @@ Local Lemma own_raft_ghost_step_beat γ id s ms :
   own_raft_ghost γ id s ==∗ own_raft_ghost γ id (psend_msgs s ms).
 Proof.
   intros Hrole Hms. iIntros "Hown". destruct_ghost.
-  iDestruct (own_log_ghost_committed with "Hlg") as "#Hc".
   iDestruct (own_log_ghost_matched with "Hlg") as "#Hmatched".
   iEval (rewrite /matched_ok Hrole) in "Hmatched".
   iAssert (is_leader γ id s.(pstate.term)) as "#Hl".
   { rewrite /leader_wit Hrole. iFrame "#". }
+  iDestruct (own_log_ghost_recs with "Hlg") as "#[%Hok Hrecs]".
+  iDestruct (own_log_ghost_lead_full with "Hl Hlg") as "[(%fp & #Hp & #Hpf & #Hc) Hlg]"; first done.
+  iDestruct (lead_full_intro with "Hp Hpf") as "#Hfl".
+  iDestruct (lead_full_wf with "Hfl") as "[[%HwF _] #HrF]".
   iModIntro.
   iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-           with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
+           with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%] Hvrecs [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac | role_ok_tac ].
   - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
   - rewrite /psend_msgs /= big_sepL_app. iSplitR; [iFrame "#"|].
     iApply big_sepL_intro. iIntros "!> %k %m %Hk".
     destruct (Forall_lookup_1 _ _ _ _ Hms Hk) as (Hty & Hfrom & Hterm & _ & Hcm & Hmatch).
-    rewrite /is_message Hty Hfrom Hterm. iFrame "Hl".
-    iSplit; first by iApply (is_committed_le with "Hc").
+    rewrite /is_message Hty Hfrom Hterm.
+    iSplit; first iExact "Hl".
+    iSplit.
+    { iExists (fp ++ s.(pstate.log)). iSplit; first iExact "Hfl".
+      iApply (commit_in_le with "HrF Hc"); done. }
+    iSplit; last done.
     rewrite /match_of in Hmatch.
     destruct (s.(pstate.matched) !! m.(msg.to)) as [x|] eqn:Hx; simpl in Hmatch.
     + iExists x. iSplit; first done. iApply (big_sepM_lookup with "Hmatched"). done.
@@ -2597,19 +3666,18 @@ Local Lemma own_raft_ghost_step_send_apps γ id s ms :
   own_raft_ghost γ id s ==∗ own_raft_ghost γ id (psend_msgs s ms).
 Proof.
   intros Hrole Hms. iIntros "Hown". destruct_ghost.
-  iDestruct (own_log_ghost_committed with "Hlg") as "#Hc".
   iDestruct (own_log_ghost_recs with "Hlg") as "#[%Hok Hrecs]".
   iDestruct (own_log_ghost_base with "Hlg") as "#Hb".
   iAssert (is_leader γ id s.(pstate.term)) as "#Hl".
   { rewrite /leader_wit Hrole. iFrame "#". }
-  iDestruct (own_log_ghost_lead_prefix with "Hl Hlg") as "[#Hp Hlg]"; first done.
+  iDestruct (own_log_ghost_lead_full with "Hl Hlg") as "[(%fp & #Hp & #Hpf & #Hc) Hlg]"; first done.
   iModIntro.
   iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-           with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
+           with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%] Hvrecs [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac | role_ok_tac ].
   - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
   - rewrite /psend_msgs /= big_sepL_app. iSplitR; [iFrame "#"|].
     iApply big_sepL_intro. iIntros "!> %k %m %Hk".
-    iApply (repl_ok_message _ id s with "Hl Hp Hrecs Hc Hb"); first (destruct Hok; done).
+    iApply (repl_ok_message _ id s _ fp with "Hl Hp Hpf Hrecs Hc Hb"); [by destruct Hok| |done].
     exact (Forall_lookup_1 _ _ _ _ Hms Hk).
   - rewrite /psend_msgs /=. iFrame "#".
   - rewrite /leader_wit /psend_msgs /=. iFrame "#".
@@ -2628,7 +3696,7 @@ Proof.
   iIntros "Hown". destruct_ghost.
   iModIntro.
   iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-           with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
+           with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%] Hvrecs [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac | role_ok_tac ].
   - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
   - rewrite /psend_msgs /= big_sepL_app. iSplitR; [iFrame "#"|].
     rewrite big_sepL_singleton. by iApply is_message_free.
@@ -2657,7 +3725,7 @@ Proof.
   { rewrite /is_message Hty Hrej -Hterm. iFrame "#". }
   iModIntro.
   iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-           with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
+           with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%] Hvrecs [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac | role_ok_tac ].
   - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
   - simpl. iFrame "#".
   - simpl. iFrame "#".
@@ -2665,7 +3733,7 @@ Proof.
   - iDestruct (own_log_ghost_matched with "Hlg") as "#Hmatched".
     iDestruct (own_log_ghost_committed with "Hlg") as "#Hc".
     iApply (own_log_ghost_mono' with "Hlg [] []"); [log_mono_tac..| by left | |];
-      last (simpl; iFrame "#").
+      last (iIntros (fp _) "_ #Hc'"; simpl; iExact "Hc'").
     rewrite /matched_ok /= Hrole.
     iEval (rewrite /matched_ok ?Hrole) in "Hmatched".
     iApply big_sepM_insert_2; last done.
@@ -2678,13 +3746,20 @@ Local Lemma own_raft_ghost_step_commit γ id s n :
   s.(pstate.role) = role.Leader →
   uint.Z s.(pstate.commit) < uint.Z n →
   uint.Z n ≤ plog_last_index_Z s.(pstate.base) s.(pstate.log) →
+  plog_term_at s.(pstate.base) s.(pstate.log) n = Some s.(pstate.term) →
   is_quorum γ.(re_cfg) (acked_by s n) →
   own_raft_ghost γ id s ==∗ own_raft_ghost γ id (s <| pstate.commit := n |>).
 Proof.
-  intros Hrole Hlt Hle Hq. iIntros "Hown". destruct_ghost.
+  intros Hrole Hlt Hle Htm Hq. iIntros "Hown". destruct_ghost.
+  iAssert (is_leader γ id s.(pstate.term)) as "#Hl".
+  { rewrite /leader_wit Hrole. iFrame "#". }
+  iDestruct (own_log_ghost_recs with "Hlg") as "#[%Hok Hrecs]".
+  iDestruct (own_log_ghost_lead_full with "Hl Hlg") as "[(%fp0 & #Hp & #Hpf & _) Hlg]"; first done.
+  iDestruct (lead_full_intro with "Hp Hpf") as "#Hfl".
+  iPoseProof "Hpf" as (F0) "(_ & #Hfr0 & %Hfull0 & _)".
   iModIntro.
   iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-           with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
+           with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%] Hvrecs [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac | role_ok_tac ].
   - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
   - simpl. iFrame "#".
   - simpl. iFrame "#".
@@ -2693,9 +3768,15 @@ Proof.
     iApply (own_log_ghost_mono' with "Hlg [] []"); [log_mono_tac..| right; simpl; lia | |].
     { rewrite /matched_ok /= Hrole. iEval (rewrite /matched_ok ?Hrole) in "Hmatched".
       iFrame "#". }
-    simpl.
+    iIntros (fp [Hf _]) "#Hfr _". simpl.
+    iDestruct (full_ok_unique with "Hfr Hfr0") as %<-; [done|done|].
     iEval (rewrite /matched_ok ?Hrole) in "Hmatched".
-    iRight. iExists s.(pstate.term), (acked_by s n). iSplit; first done.
+    destruct Hok as (_ & Hbc & _).
+    iRight. iExists s.(pstate.term), n, (fp ++ s.(pstate.log)).
+    iSplit; last (iPureIntro; split_and!; [done|done|done]).
+    iSplit; first (iPureIntro; rewrite (full_term_at s.(pstate.base)) //; lia).
+    iSplit; first iExact "Hfl".
+    iExists (acked_by s n). iSplit; first done.
     iApply big_sepS_intro. iIntros "!> %v %Hv".
     rewrite /acked_by elem_of_dom in Hv. destruct Hv as [x Hx].
     apply map_lookup_filter_Some in Hx as [Hx Hle'].
@@ -2709,18 +3790,28 @@ Local Lemma own_raft_ghost_step_app_stale γ id s m :
   m.(msg.ty) = mtype.App →
   m.(msg.from) ≠ id →
   s.(pstate.role) ≠ role.Leader →
+  is_message γ m -∗
   own_raft_ghost γ id s ==∗
   own_raft_ghost γ id
     (psend_msgs (padopt_leader s m.(msg.from))
        [msg.mk mtype.AppResp id m.(msg.from) s.(pstate.term) false s.(pstate.commit)
           (W64 0) (W64 0) (W64 0) []]).
 Proof.
-  intros Hty Hfid Hrole. iIntros "Hown". destruct_ghost.
-  iMod (own_log_ghost_ack _ _ _ s.(pstate.term) s.(pstate.commit) with "[] Hlg")
-    as "[Hlg #Hack]"; [lia| iIntros ([_ ?]); simpl in *; lia |].
+  intros Hty Hfid Hrole. iIntros "#Hm Hown". destruct_ghost.
+  iAssert (⌜ m.(msg.from) ≠ W64 0 ⌝)%I as %Hfnz.
+  { rewrite /is_message Hty. iDestruct "Hm" as "(_ & _ & _ & $)". }
+  iDestruct (own_log_ghost_recs with "Hlg") as "#[%Hok Hrecs]".
+  iDestruct (own_log_ghost_mono γ id s (padopt_leader s m.(msg.from)) with "Hlg") as "Hlg";
+    [log_mono_tac..|].
+  iMod (own_log_ghost_ack _ _ _ s.(pstate.commit) with "[] [] Hlg") as "[Hlg #Hack]".
+  { iIntros ([_ ?]). simpl in *. lia. }
+  { iIntros (fp [Hf Hw]) "#Hfr #Hc". iApply (hist_of_commit with "[] Hc").
+    - by eapply full_wf.
+    - rewrite /bnd /= decide_False; [lia|]. naive_solver.
+    - iApply (log_recs_full with "Hfr Hrecs"). done. }
   iModIntro.
   iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-           with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
+           with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%] Hvrecs [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac | role_ok_tac ].
   - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
   - rewrite /psend_msgs /= big_sepL_app. iSplitR; [iFrame "#"|].
     rewrite big_sepL_singleton /is_message /=. iFrame "#".
@@ -2732,18 +3823,22 @@ Qed.
 (** [step_app_reject]: back to follower of [m.from]; a rejection carries
     nothing. *)
 Local Lemma own_raft_ghost_step_app_reject γ id s m hint hintterm :
+  m.(msg.ty) = mtype.App →
   m.(msg.from) ≠ id →
   s.(pstate.role) ≠ role.Leader →
+  is_message γ m -∗
   own_raft_ghost γ id s ==∗
   own_raft_ghost γ id
     (psend_msgs (padopt_leader s m.(msg.from))
        [msg.mk mtype.AppResp id m.(msg.from) s.(pstate.term) true m.(msg.index)
           hintterm (W64 0) hint []]).
 Proof.
-  intros Hfid Hrole. iIntros "Hown". destruct_ghost.
+  intros Hty Hfid Hrole. iIntros "#Hm Hown". destruct_ghost.
+  iAssert (⌜ m.(msg.from) ≠ W64 0 ⌝)%I as %Hfnz.
+  { rewrite /is_message Hty. iDestruct "Hm" as "(_ & _ & _ & $)". }
   iModIntro.
   iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-           with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
+           with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%] Hvrecs [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac | role_ok_tac ].
   - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
   - rewrite /psend_msgs /= big_sepL_app. iSplitR; [iFrame "#"|].
     rewrite big_sepL_singleton /is_message /=. done.
@@ -2757,6 +3852,8 @@ Qed.
     the rule's premise puts within the log. *)
 Local Lemma own_raft_ghost_step_heartbeat γ id s m :
   m.(msg.ty) = mtype.Heartbeat →
+  m.(msg.to) = id →
+  m.(msg.term) = s.(pstate.term) →
   m.(msg.from) ≠ id →
   s.(pstate.role) ≠ role.Leader →
   uint.Z m.(msg.commit) ≤ plog_last_index_Z s.(pstate.base) s.(pstate.log) →
@@ -2768,23 +3865,49 @@ Local Lemma own_raft_ghost_step_heartbeat γ id s m :
           <| pstate.commit := plog_commit_to s.(pstate.commit) m.(msg.commit) |>)
        [msg.plain mtype.HeartbeatResp id m.(msg.from) s.(pstate.term) false]).
 Proof.
-  intros Hty Hfid Hrole Hcm. iIntros "#Hm Hown". destruct_ghost.
-  iAssert (is_committed γ m.(msg.commit)) as "#Hmc".
-  { rewrite /is_message Hty. iDestruct "Hm" as "(_ & $ & _)". }
+  intros Hty Hto Hterm Hfid Hrole Hcm. iIntros "#Hm Hown". destruct_ghost.
+  iAssert ((∃ Fl, lead_full γ s.(pstate.term) Fl ∗
+              commit_in γ Fl m.(msg.commit) s.(pstate.term)) ∗
+           (∃ i, ⌜ uint.Z m.(msg.commit) ≤ uint.Z i ⌝ ∗ is_acked γ id s.(pstate.term) i) ∗
+           ⌜ m.(msg.from) ≠ W64 0 ⌝)%I
+    as "((%Fl & #Hfl & #Hmc) & (%i & %Hi & #Hack) & %Hfnz)".
+  { rewrite /is_message Hty -Hto -Hterm. iDestruct "Hm" as "(_ & $ & $ & $)". }
+  (* above the commit index, the log agrees with the leader's at [m.commit] *)
+  iDestruct (own_log_ghost_ack_agree with "Hlg Hack") as "#Hagree".
+  iDestruct (own_log_ghost_recs with "Hlg") as "#[%Hok Hrecs]".
   iModIntro.
   iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-           with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
+           with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%] Hvrecs [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac | role_ok_tac ].
   - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
   - rewrite /psend_msgs /= big_sepL_app. iSplitR; [iFrame "#"|].
     rewrite big_sepL_singleton /is_message /=. done.
   - rewrite /psend_msgs /padopt_leader /= granted_empty big_sepS_empty //.
   - rewrite /leader_wit /psend_msgs /padopt_leader /=. done.
-  - iDestruct (own_log_ghost_committed with "Hlg") as "#Hc".
-    iApply (own_log_ghost_mono' with "Hlg [] []"); [log_mono_tac..| | | |].
+  - iApply (own_log_ghost_mono' with "Hlg [] []"); [log_mono_tac..| | | | |].
     + rewrite /= /plog_commit_to. case_decide; lia.
+    + bnd_tac.
     + rewrite /= /plog_commit_to. case_decide; [by right|by left].
     + rewrite /matched_ok /=. done.
-    + rewrite /= /plog_commit_to. case_decide; iFrame "#".
+    + iIntros (fp [Hf Hw]) "#Hfr #Hc". rewrite /= /plog_commit_to.
+      case_decide as Hlt; last iExact "Hc".
+      assert (Hci : uint.Z s.(pstate.commit) < uint.Z i) by lia.
+      iDestruct ("Hagree" $! (conj Hrole Hci)) as "#Ha".
+      iDestruct (ack_agree_full _ _ _ fp with "Ha") as (X) "[#HX [%HsX %HXi]]";
+        [done|destruct Hok as (_ & ? & _); lia|].
+      iDestruct (log_recs_full with "Hfr Hrecs") as "#HrF"; first done.
+      pose proof (full_wf _ _ _ Hf Hw) as HwF.
+      iDestruct (lead_full_wf with "HX") as "[[%HwX _] #HrX]".
+      iDestruct (full_match _ _ _ i HwX HwF HsX HXi with "HrX HrF") as %Hm.
+      iDestruct "Hmc" as "[%H0 | (%t & %n & %G & #Hq & %Hc & %Ht & %HG)]"; [word|].
+      iDestruct (cq_full with "Hq") as "[%HwG _]".
+      iPoseProof "Hq" as "(%Hn & _)".
+      assert (HsG : is_Some (plog_term_at base0 G m.(msg.commit))).
+      { apply (full_term_at_some _ _ n); [by eexists|lia]. }
+      iDestruct (lead_full_agree _ _ X Fl m.(msg.commit) with "HX Hfl") as %HXl.
+      { apply (full_term_at_some _ _ i); [done|lia]. }
+      { rewrite -HG. done. }
+      iRight. iExists t, n, G. iFrame "Hq". iPureIntro. split_and!; [done|done|].
+      rewrite HG -HXl. apply Hm. lia.
 Qed.
 
 (** [step_app_accept].  The new log is the old one cut at the first
@@ -2819,16 +3942,22 @@ Local Lemma own_raft_ghost_step_app_accept γ id s m lastnewi es' :
 Proof.
   intros Hty Hfid Hterm Hrole Hcidx Happ. iIntros "#Hm Hown". destruct_ghost.
   iAssert (⌜ app_payload_ok m ⌝ ∗
-           (∃ bL l, lead_prefix γ m.(msg.from) m.(msg.term) bL l ∗
+           (∃ bL l fpL, lead_prefix γ m.(msg.from) m.(msg.term) bL l ∗
               ⌜ plog_term_at bL l m.(msg.index) = Some m.(msg.logterm) ∧
-                m.(msg.entries) `prefix_of` plog_from bL l (word.add m.(msg.index) (W64 1)) ⌝) ∗
-           is_committed γ m.(msg.commit))%I
-    as "(%Hpay & (%bL & %l' & #Hp' & %Hprev' & %Hpre') & #Hmc)".
+                m.(msg.entries) `prefix_of` plog_from bL l (word.add m.(msg.index) (W64 1)) ⌝ ∗
+              lpfull γ m.(msg.from) m.(msg.term) bL l fpL ∗
+              commit_in γ (fpL ++ l) m.(msg.commit) m.(msg.term)) ∗
+           ⌜ m.(msg.from) ≠ W64 0 ⌝)%I
+    as "(%Hpay & (%bL & %l' & %fpL & #Hp' & [%Hprev' %Hpre'] & #Hpf' & #Hmc) & %Hfnz)".
   { iEval (rewrite /is_message Hty) in "Hm". iDestruct "Hm" as "($ & _ & $ & $)". }
-  iEval (rewrite Hterm) in "Hp'".
+  iEval (rewrite Hterm) in "Hp' Hpf' Hmc".
+  iDestruct (lead_full_intro with "Hp' Hpf'") as "#HLf".
+  iDestruct (lead_full_wf with "HLf") as "[[%HwLf _] #HrLf]".
+  iPoseProof "Hpf'" as (FL0) "(_ & _ & %HfL & _)".
+  set (Lf := fpL ++ l').
   destruct Hpay as (Hwfb & Hnw & _).
   iDestruct (own_log_ghost_recs with "Hlg") as "#[%Hok Hrecs]".
-  iDestruct (own_log_ghost_committed with "Hlg") as "#Hc".
+  iDestruct (own_log_ghost_wf with "Hlg") as %Hwl.
   destruct Hok as (Hwf & Hbc & Hcl).
   pose proof (plog_maybe_append_inv _ _ _ _ _ _ Hwfb Hnw Happ) as (Hmatch & Hli & Hcase).
   simpl in Hli, Hcase.
@@ -2909,30 +4038,123 @@ Proof.
       exfalso. apply Hnm.
       rewrite /plog_matches /ent_id /= Hj (Hlb e.(raftpb.Entry.Index') ltac:(lia)).
       eapply plog_term_at_lookup; [exact Hd|]. simpl. lia. }
-    iDestruct "Ha" as (Hil ldr bL0 l0) "[#Hp0 %Hs0]".
+    iDestruct "Ha" as (Hil ldr bL0 l0) "(#Hp0 & %Hs0 & #Hpf0)".
     rewrite Hes'. iSplit.
     - iPureIntro. rewrite plog_cut_last; [|lia]. rewrite length_drop. lia.
-    - iExists ldr, bL0, l0. iFrame "Hp0". iPureIntro. destruct Hs0 as [? Heq0].
+    - iExists ldr, bL0, l0. iFrame "Hp0 Hpf0". iPureIntro. destruct Hs0 as [? Heq0].
       split; [done|]. rewrite Heq0. symmetry. apply plog_cut_keep; lia. }
+  (* the new log, as a full log: the old one below the batch, the leader's
+     on the batch, nothing after it when it was cut *)
+  assert (Hlast'' : plog_last_index_Z s.(pstate.base) es' < 2 ^ 64 ∧
+                    (es' ≠ s.(pstate.log) → plog_last_index_Z s.(pstate.base) es' = uint.Z lastnewi)).
+  { destruct Hcase as [[-> _] | (d & e & Hd & Hnm & Hbefore & Hei & Hend & Hes')].
+    - split; [by apply plog_wf_range|done].
+    - rewrite Hes' plog_cut_last; [|lia]. rewrite length_drop.
+      apply lookup_lt_Some in Hd. split; lia. }
+  assert (Hwl' : plog_wf s.(pstate.base) es').
+  { apply plog_wf_r_wf; [done|apply Hlast'']. }
+  assert (Hfull_new : ∀ fp, full_ok s.(pstate.base) fp →
+      (∀ j : w64, uint.Z j ≤ uint.Z m.(msg.index) →
+         plog_term_at base0 (fp ++ es') j = plog_term_at base0 (fp ++ s.(pstate.log)) j) ∧
+      (∀ j : w64, uint.Z m.(msg.index) ≤ uint.Z j ≤ uint.Z lastnewi →
+         plog_term_at base0 (fp ++ es') j = plog_term_at base0 Lf j ∧
+         is_Some (plog_term_at base0 Lf j))).
+  { intros fp Hf. split.
+    - intros j Hj. destruct (decide (uint.Z j < uint.Z s.(pstate.base).(raft.entryID.index'))).
+      + rewrite !(full_term_at_le s.(pstate.base) fp) //; lia.
+      + rewrite !(full_term_at s.(pstate.base) fp) //; [|lia..].
+        destruct (decide (uint.Z j = uint.Z m.(msg.index))) as [Hjm|Hjm].
+        * assert (j = m.(msg.index)) as -> by word.
+          destruct (Hagree m.(msg.index)) as [Heq _]; [lia|].
+          rewrite Heq Hprev'. symmetry. exact Hmatch.
+        * destruct Hcase as [[-> _] | (d & e & Hd & Hnm & Hbefore & Hei & Hend & Hes')]; [done|].
+          rewrite Hes'. apply plog_cut_keep; lia.
+    - intros j Hj. destruct (Hagree j ltac:(lia)) as [Heq Hs].
+      rewrite (full_term_at s.(pstate.base) fp) //; try lia.
+      rewrite /Lf (full_term_at bL fpL) //; try lia. }
   iDestruct (own_log_ghost_base with "Hlg") as "#Hb".
-  iPoseProof (own_log_ghost_upd γ id s
-                (padopt_leader s m.(msg.from) <| pstate.log := es' |> <| pstate.commit := c' |>)
-               with "Hlg [] Hrecs' [] [] [Hb]") as "Hlg"; [log_mono_tac..| | | | | |].
+  set (s' := padopt_leader s m.(msg.from) <| pstate.log := es' |> <| pstate.commit := c' |>).
+  assert (Hbnd' : bnd s' = uint.Z s.(pstate.term) + 1).
+  { rewrite /bnd /= decide_False //. naive_solver. }
+  iPoseProof (own_log_ghost_upd γ id s s'
+               with "Hlg [] Hrecs' [] [Hb] []") as "Hlg"; [log_mono_tac..| | | | | | | ].
+  { rewrite Hbnd'. rewrite /bnd. case_decide; lia. }
   { rewrite /log_ok /=. split_and!; [done|lia|].
     destruct Hc'2 as [?| ->]; [lia|]. lia. }
   { iModIntro. iIntros "_ %i %Hi #Ha". simpl in Hi. iApply ("Hkeep" with "[//] [%] Ha"). done. }
   { rewrite /matched_ok /=. done. }
-  { rewrite /= /c' /plog_commit_to. case_decide; last iFrame "#".
-    iApply (is_committed_le with "Hmc"). case_decide; [lia|lia]. }
   { simpl. iExact "Hb". }
-  iMod (own_log_ghost_ack _ _ _ s.(pstate.term) lastnewi with "[] Hlg") as "[Hlg #Hack]".
-  { simpl. lia. }
+  { iIntros (fp (Hf & Hw & Htle)) "#Hfr #Hc".
+    destruct (Hfull_new fp Hf) as [Hlow Hmid].
+    iDestruct (log_recs_full with "Hfr Hrecs'") as "#HrF'"; first done.
+    iDestruct (log_recs_full with "Hfr Hrecs") as "#HrF"; first done.
+    pose proof (full_wf _ _ _ Hf Hwl') as HwF'.
+    pose proof (full_wf _ _ _ Hf Hw) as HwF.
+    destruct (Hmid lastnewi ltac:(lia)) as [Hli' Hsli].
+    iDestruct (full_match _ _ _ lastnewi HwLf HwF' Hsli (eq_sym Hli') with "HrLf HrF'") as %HmL.
+    iPoseProof "Hpf'" as (?) "(_ & _ & _ & _ & _ & %HtL)".
+    iExists fp. simpl. iSplit; [iPureIntro; split_and!|iSplit; [iExact "Hfr"|iSplit]].
+    - done.
+    - done.
+    - (* terms: the old log's, or the leader's *)
+      intros j x Hx. split; [|done].
+      destruct (decide (uint.Z j ≤ uint.Z m.(msg.index))) as [Hjm|Hjm].
+      + rewrite Hlow // in Hx. by destruct (Htle j x Hx).
+      + destruct (decide (uint.Z j ≤ uint.Z lastnewi)) as [HjL|HjL].
+        * rewrite (proj1 (Hmid j ltac:(lia))) in Hx. by apply (HtL j x).
+        * destruct Hcase as [[-> _] | (d & e & Hd & Hnm & Hbefore & Hei & Hend & Hes')].
+          { by destruct (Htle j x Hx). }
+          exfalso. pose proof (plog_term_at_Some_range _ _ _ _ Hx) as [_ Hr].
+          rewrite (full_last_index s.(pstate.base)) // in Hr.
+          apply lookup_lt_Some in Hd.
+          rewrite Hes' plog_cut_last in Hr; [|lia]. rewrite length_drop in Hr. lia.
+    - intros Hr. exfalso. by apply Hr.
+    - (* the commit fact *)
+      rewrite /s' /c' /plog_commit_to /=. case_decide as Hlt.
+      + iApply (commit_in_agree _ Lf); [done| |].
+        { symmetry. apply HmL. case_decide; lia. }
+        iApply (commit_in_le with "HrLf Hmc"); [done|]. case_decide; lia.
+      + iApply (commit_in_agree with "Hc"); [done|]. apply Hlow. lia.
+    - (* histories *)
+      iIntros "!> %t %i %Ht #Hh". rewrite Hbnd'.
+      destruct Hcase as [[-> _] | (d & e & Hd & Hnm & Hbefore & Hei & Hend & Hes')].
+      { iApply (hist_mono with "Hh"). rewrite /bnd. case_decide; lia. }
+      pose proof (Hwfb _ _ Hd) as Hed. simpl in Hed.
+      apply lookup_lt_Some in Hd as Hdlen.
+      iApply (hist_replace _ _ _ Lf t i s.(pstate.term) _ _ (uint.Z e.(raftpb.Entry.Index'))
+                e.(raftpb.Entry.Index') lastnewi with "HLf Hh").
+      + rewrite /bnd. case_decide; lia.
+      + done.
+      + lia.
+      + lia.
+      + lia.
+      + intros j Hj.
+        destruct (decide (uint.Z j < uint.Z s.(pstate.base).(raft.entryID.index'))).
+        * rewrite !(full_term_at_le s.(pstate.base) fp) //; lia.
+        * rewrite !(full_term_at s.(pstate.base) fp) //; [|lia..].
+          rewrite Hes'. apply plog_cut_keep; lia.
+      + intros j Hj. apply Hmid. lia.
+      + rewrite (full_term_at s.(pstate.base) fp) //; [|lia].
+        rewrite /Lf (full_term_at bL fpL) //; [|lia].
+        rewrite (Hlb e.(raftpb.Entry.Index')); [|lia].
+        rewrite (plog_term_at_lookup _ _ _ d e Hd); [|simpl; lia].
+        exact Hnm.
+      + intros j Hj. apply plog_term_at_None_range. right.
+        rewrite (full_last_index s.(pstate.base)) //.
+        rewrite Hes' plog_cut_last; [|lia]. rewrite length_drop. lia. }
+  iMod (own_log_ghost_ack _ _ _ lastnewi with "[] [] Hlg") as "[Hlg #Hack]".
   { iIntros ([_ _]). simpl. iSplit; first (iPureIntro; lia).
-    iExists m.(msg.from), bL, l'. iFrame "Hp'". iPureIntro.
-    destruct (Hagree lastnewi ltac:(lia)) as [Heq Hs]. split; [done|]. by rewrite Heq. }
+    iExists m.(msg.from), bL, l'. iFrame "Hp'". iSplit; last (iExists fpL; iFrame "Hpf'").
+    iPureIntro. destruct (Hagree lastnewi ltac:(lia)) as [Heq Hs]. split; [done|]. by rewrite Heq. }
+  { iIntros (fp [Hf Hw]) "#Hfr _". simpl.
+    destruct (Hfull_new fp Hf) as [_ Hmid].
+    iDestruct (log_recs_full with "Hfr Hrecs'") as "#HrF'"; first done.
+    destruct (Hmid lastnewi ltac:(lia)) as [Hli' Hsli].
+    iApply (hist_of_agree _ _ Lf with "HrF'"); [by eapply full_wf|done|done|].
+    iLeft. iExists s.(pstate.term). iFrame "HLf". iPureIntro. rewrite Hbnd'. lia. }
   iModIntro.
   iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-           with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
+           with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%] Hvrecs [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac | role_ok_tac ].
   - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
   - rewrite /psend_msgs /= big_sepL_app. iSplitR; [iFrame "#"|].
     rewrite big_sepL_singleton /is_message /=. iFrame "#".
@@ -2994,18 +4216,22 @@ Proof.
   iIntros "Hown". destruct_ghost.
   iAssert (is_leader γ id s.(pstate.term)) as "#Hl".
   { rewrite /leader_wit Hrole. iFrame "#". }
-  iDestruct "Hlg" as (γm terms γa acks) "Hlg". iNamed "Hlg".
+  iDestruct "Hlg" as (γm terms γa acks fp γc camps γl vlogs) "Hlg". iNamed "Hlg".
   iEval (rewrite /lead_log_own Hrole) in "Htlog".
   iDestruct "Htlog" as (γt M l0 Hγt) "(Htauth & #Htel & %Hdom & %Hpre & #Hlf)".
+  iPoseProof "Hcown" as "Hcown0". iEval (rewrite /camp_own Hrole) in "Hcown0".
+  iDestruct "Hcown0" as (F0) "[#Hc0 (%HF0pre & %HF0len & %HlastT)]".
   destruct Hlog_ok as (Hwf & Hbc & Hcl).
+  destruct Hfull as (Hfp & Hwl & Htle).
   set (L := plog_last_index_Z s.(pstate.base) s.(pstate.log)).
   pose proof (plog_last_index_Z_nonneg s.(pstate.base) s.(pstate.log)) as HL.
   set (pt0 := (plog_last s.(pstate.base) s.(pstate.log)).(raft.entryID.term')).
+  assert (Hpt0 : pt0 = s.(pstate.term)) by (rewrite /pt0 -(full_last _ fp) //).
+  assert (HLF : plog_last_index_Z base0 (fp ++ s.(pstate.log)) = L) by (by apply full_last_index).
   set (ptf := λ k : nat, if decide (k = 0%nat) then pt0 else s.(pstate.term)).
+  assert (Hptf : ∀ k, ptf k = s.(pstate.term)) by (intros k; rewrite /ptf; case_decide; done).
   iMod (term_log_insert_stamped γt M s.(pstate.term) L ents ptf HL Hnw Hdom
           with "Htauth Htel") as (M') "(Htauth & #Htel' & %Hdom' & #Hnew)".
-  iMod (acks_add _ _ (s.(pstate.term), plast_index s') with "Hacks Hafrags")
-    as "(Hacks & #Hafr' & #Hk)".
   iAssert (is_term_log γ id s.(pstate.term) γt s.(pstate.base) l0) as "#Htl".
   { iExists γm. iFrame "%". iApply (big_sepM_lookup with "Htfrags"). done. }
   set (nw := imap (stamp s.(pstate.term) (W64 L)) ents).
@@ -3014,6 +4240,7 @@ Proof.
   assert (Hs'term : s'.(pstate.term) = s.(pstate.term)) by reflexivity.
   assert (Hs'base : s'.(pstate.base) = s.(pstate.base)) by reflexivity.
   assert (Hs'cm : s'.(pstate.commit) = s.(pstate.commit)) by reflexivity.
+  assert (Hs'bnd : bnd s' = bnd s) by reflexivity.
   assert (Hnwk : ∀ (k : nat) x, nw !! k = Some x →
                    uint.Z x.(raftpb.Entry.Index') = L + 1 + k ∧
                    x.(raftpb.Entry.Term') = s.(pstate.term)).
@@ -3046,70 +4273,147 @@ Proof.
           destruct (lookup_lt_is_Some_2 nw (k - 1) ltac:(lia)) as [y Hy].
           replace (Z.to_nat (L + k - L - 1)) with (k - 1)%nat by lia.
           rewrite Hy /=. destruct (Hnwk _ _ Hy) as [_ ->]. done.
-      + iExists id, γt, s.(pstate.base), l0. rewrite Hxt. iFrame "#". }
+      + iExists id, γt, s.(pstate.base), l0, F0. rewrite Hxt. iFrame "#".
+        iPureIntro. rewrite /pt_ok Hxi Hptf. rewrite HLF in HF0len. split_and!; [lia|lia|lia|done]. }
   iAssert (lead_frags γt l0 (s.(pstate.log) ++ nw)) as "#Hlf'".
   { rewrite /lead_frags big_sepL_app. iSplit; [iExact "Hlf"|].
     iApply (big_sepL_impl with "Hnew"). iIntros "!> %k %x %Hk #Hx".
     apply prefix_length in Hpre. rewrite decide_True; [|lia]. iExists (ptf k). iFrame "Hx". }
+  (* the new full log extends the old one, with entries of the term *)
+  set (F' := fp ++ s'.(pstate.log)).
+  assert (HF' : F' = (fp ++ s.(pstate.log)) ++ nw) by (rewrite /F' Hs'log app_assoc //).
+  assert (Hwl' : plog_wf s.(pstate.base) (s.(pstate.log) ++ nw)).
+  { apply plog_wf_app. split; [done|]. intros k x Hk. destruct (Hnwk _ _ Hk) as [Hxi _].
+    rewrite Hxi /L /plog_last_index_Z. lia. }
+  assert (HkeepF : ∀ j : w64, is_Some (plog_term_at base0 (fp ++ s.(pstate.log)) j) →
+                     plog_term_at base0 F' j = plog_term_at base0 (fp ++ s.(pstate.log)) j).
+  { intros j [x Hx]. rewrite HF'. apply plog_term_at_app_l.
+    by pose proof (plog_term_at_Some_range _ _ _ _ Hx) as [_ ?]. }
+  assert (HtF' : terms_le s' F').
+  { intros j x Hx. rewrite Hs'term Hs'role Hrole. split; [|done].
+    pose proof (plog_term_at_Some_range _ _ _ _ Hx) as [_ Hj].
+    destruct (decide (uint.Z j ≤ L)) as [Hle|Hgt].
+    - rewrite HF' plog_term_at_app_l in Hx; [|lia]. by destruct (Htle _ _ Hx).
+    - rewrite HF' plog_term_at_app_r in Hx; [|lia].
+      destruct (nw !! _) as [y|] eqn:Hy; [|done]. simpl in Hx. injection Hx as <-.
+      destruct (Hnwk _ _ Hy) as [_ ->]. lia. }
+  iAssert (camp_own γ id s' F') as "#Hcown'".
+  { rewrite /camp_own Hs'role Hrole Hs'term. iExists F0. iFrame "Hc0". iPureIntro. split_and!.
+    - rewrite HF'. by apply prefix_app_r.
+    - rewrite HF' /plog_last_index_Z length_app. rewrite /plog_last_index_Z in HF0len. lia.
+    - rewrite HF' /plog_last last_app. destruct (list.last nw) as [y|] eqn:Hy.
+      + rewrite last_lookup in Hy. destruct (Hnwk _ _ Hy) as [_ ?]. done.
+      + done. }
+  iAssert (hists_ok γ s' F' acks) as "#Hhists'".
+  { iApply (big_sepM_impl with "Hhists"). iIntros "!> %k %u %Hk #Hk". rewrite Hs'bnd.
+    iApply (hist_keep with "Hk"). intros j _ Hj. by apply HkeepF. }
+  iAssert (commit_in γ F' s'.(pstate.commit) s'.(pstate.term)) as "#Hcommit'".
+  { rewrite Hs'cm Hs'term. iApply (commit_in_agree with "Hcommit"); [done|].
+    apply HkeepF. apply plog_term_at_in_range. rewrite base0_index HLF. word. }
+  iAssert (lead_log_own γ s' terms) with "[Htauth]" as "Htlog'".
+  { rewrite /lead_log_own Hs'role Hs'term Hs'base Hs'log Hrole.
+    iExists γt, M', l0. iFrame "Htauth Htel' Hlf'". iSplit; first done.
+    iPureIntro. split.
+    - intros i Hi. specialize (Hdom' i Hi).
+      rewrite /plog_last_index_Z length_app Hlen. rewrite /L /plog_last_index_Z in Hdom'. lia.
+    - by apply prefix_app_r. }
+  assert (Hlog_ok' : log_ok s').
+  { rewrite /log_ok Hs'base Hs'log Hs'cm.
+    split_and!; [|done|].
+    - by apply plog_wf_wf_r.
+    - rewrite /plog_last_index_Z length_app. rewrite /plog_last_index_Z in Hcl. lia. }
+  iAssert (matched_ok γ s') as "#Hmatched'".
+  { iApply (matched_ok_eq with "Hmatched"); done. }
+  iAssert (vlogs_ok γ s' acks vlogs) as "#Hvlogs'".
+  { rewrite /vlogs_ok Hs'term. iExact "Hvlogs_ok". }
+  iAssert (acks_ok γ s' acks) as "#Hacks_ok'".
+  { rewrite /acks_ok Hs'role Hrole //. }
+  iAssert (log_recs γ s'.(pstate.base) s'.(pstate.log)) as "#Hrecs''".
+  { rewrite Hs'base Hs'log. iExact "Hrecs'". }
+  iAssert (base_ok γ s'.(pstate.base)) as "#Hbase'".
+  { rewrite Hs'base. iExact "Hbase". }
+  assert (Hterms_ok' : terms_ok terms s').
+  { intros t Ht. rewrite Hs'term Hs'role. by apply Hterms_ok. }
+  assert (Hacks_term' : acks_term s' acks).
+  { intros k Hk. rewrite Hs'term. by apply Hacks_term. }
+  assert (Hfull' : full_ok s'.(pstate.base) fp ∧ plog_wf s'.(pstate.base) s'.(pstate.log) ∧
+                   terms_le s' (fp ++ s'.(pstate.log))).
+  { rewrite Hs'base Hs'log. split_and!; [done|done|]. rewrite -Hs'log. exact HtF'. }
+  assert (Hcamps_ok' : ∀ T, is_Some (camps !! T) → uint.Z T ≤ uint.Z s'.(pstate.term)).
+  { intros T HT. rewrite Hs'term. by apply Hcamps_ok. }
+  iAssert (own_log_ghost γ id s')
+    with "[Hterms Hacks Hcamps Hvlogs Htlog']" as "Hlg".
+  { iExists γm, terms, γa, acks, fp, γc, camps, γl, vlogs.
+    iFrame "Hcommit' Hcown' Hhists' Hvlogs' Hacks_ok' Hmatched' Hrecs'' Hbase'".
+    iFrame "Hterms Hacks Hcamps Hvlogs Htlog' Htfrags Hafrags Hfrecs". iPureIntro. done. }
+  (* the self-acknowledgement *)
+  iAssert (is_leader γ id s'.(pstate.term)) as "#Hl'".
+  { rewrite Hs'term. iExact "Hl". }
+  iDestruct (own_log_ghost_lead_full with "Hl' Hlg") as "[(%fp' & #Hp' & #Hpf' & _) Hlg]";
+    first (rewrite Hs'role //).
+  iDestruct (lead_full_intro with "Hp' Hpf'") as "#HLf".
+  iMod (own_log_ghost_ack _ _ _ (plast_index s') with "[] [] Hlg") as "[Hlg #Hack]".
+  { iIntros ([_ Hlt]).
+    assert (HLs' : plog_last_index_Z s'.(pstate.base) s'.(pstate.log) = L + Z.of_nat (length ents)).
+    { rewrite Hs'log Hs'base /plog_last_index_Z length_app Hlen. rewrite /L /plog_last_index_Z. lia. }
+    assert (Hpl : uint.Z (plast_index s') = L + Z.of_nat (length ents)).
+    { rewrite /plast_index HLs'. word. }
+    change ((s'.(pstate.term), plast_index s').1) with (s'.(pstate.term)).
+    change ((s'.(pstate.term), plast_index s').2) with (plast_index s').
+    iSplit; first (iPureIntro; lia).
+    iExists id, s'.(pstate.base), s'.(pstate.log). iFrame "Hp'".
+    iSplit; last (iExists fp'; iFrame "Hpf'").
+    iPureIntro. split; [|done]. apply plog_term_at_in_range.
+    split; [rewrite Hs'base; lia|rewrite HLs'; lia]. }
+  { iIntros (fp2 [Hf2 Hw2]) "#Hfr2 _".
+    iPoseProof "Hpf'" as (?) "(_ & #Hfr' & %Hf' & _)".
+    iDestruct (full_ok_unique with "Hfr2 Hfr'") as %<-; [done|done|].
+    iDestruct (lead_full_wf with "HLf") as "[[%HwL _] #HrL]".
+    iApply (hist_of_agree _ _ (fp2 ++ s'.(pstate.log)) with "HrL"); [done| |done|].
+    - apply plog_term_at_in_range. rewrite base0_index (full_last_index s'.(pstate.base)) //.
+      rewrite /plast_index. pose proof (plog_wf_range _ _ Hw2).
+      pose proof (plog_last_index_Z_nonneg s'.(pstate.base) s'.(pstate.log)). word.
+    - iLeft. iExists s'.(pstate.term). iFrame "HLf". iPureIntro.
+      rewrite /bnd decide_False; [lia|]. rewrite Hs'role Hrole. naive_solver. }
   iModIntro.
   iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-           with "Hvoted [] Hfrags [] [] [] [-] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
+           with "Hvoted [] Hfrags [] [] [] [-] [%] [%] Hvrecs [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac | role_ok_tac ].
   - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
   - rewrite psend_msgs_outbox big_sepL_app. iSplitR; [iFrame "#"|].
-    rewrite big_sepL_singleton /is_message /pself_ack /=.
-    iRight. iExists γa. by iFrame "#%".
+    rewrite big_sepL_singleton /is_message /pself_ack /=. iExact "Hack".
   - rewrite psend_msgs_votes /=. iFrame "#".
   - rewrite /leader_wit psend_msgs_role psend_msgs_term /= Hrole. iFrame "#".
-  - iExists γm, terms, γa, _.
-    iSplit; first done. iFrame "Hterms Htfrags".
-    iSplit; first done.
-    iSplitL "Htauth".
-    { rewrite /lead_log_own psend_msgs_role psend_msgs_term psend_msgs_base psend_msgs_log
-        Hs'role Hs'term Hs'base Hs'log Hrole.
-      iExists γt, M', l0. iFrame "Htauth Htel' Hlf'". iSplit; first done.
-      iPureIntro. split.
-      - intros i Hi. specialize (Hdom' i Hi).
-        rewrite /plog_last_index_Z length_app Hlen. rewrite /L /plog_last_index_Z in Hdom'. lia.
-      - by apply prefix_app_r. }
-    iSplit; first done. iFrame "Hacks Hafr'".
-    iSplit.
-    { iPureIntro. rewrite /acks_term psend_msgs_term Hs'term.
-      apply (acks_term_insert s); [lia|done]. }
-    iSplit; first (rewrite /acks_ok psend_msgs_role Hs'role Hrole //).
-    iSplit.
-    { iPureIntro. rewrite /log_ok psend_msgs_base psend_msgs_log psend_msgs_commit
-        Hs'base Hs'log Hs'cm.
-      split_and!; [|done|].
-      - intros k x Hk Hr. destruct (decide (k < length s.(pstate.log))%nat) as [Hlt|Hge].
-        + rewrite lookup_app_l in Hk; [|done]. by apply Hwf.
-        + rewrite lookup_app_r in Hk; [|lia]. destruct (Hnwk _ _ Hk) as [Hxi _].
-          rewrite Hxi /L /plog_last_index_Z. lia.
-      - rewrite /plog_last_index_Z length_app. rewrite /plog_last_index_Z in Hcl. lia. }
-    iSplit; first (rewrite psend_msgs_base psend_msgs_log Hs'base Hs'log; iFrame "#").
-    iSplit.
-    { iApply (matched_ok_eq with "Hmatched"); done. }
-    iSplit.
-    { iApply (is_committed_le with "Hcommit"). simpl. lia. }
-    rewrite psend_msgs_base Hs'base. iExact "Hbase".
+  - iApply (own_log_ghost_mono with "Hlg"); log_mono_tac.
 Qed.
 
 (** [step_snap_stale]: back to follower of [m.from], acknowledging the
     commit index -- [step_app_stale]'s update. *)
 Local Lemma own_raft_ghost_step_snap_stale γ id s m :
+  m.(msg.ty) = mtype.Snap →
   m.(msg.from) ≠ id →
   s.(pstate.role) ≠ role.Leader →
+  is_message γ m -∗
   own_raft_ghost γ id s ==∗
   own_raft_ghost γ id
     (psend_msgs (padopt_leader s m.(msg.from))
        [msg.mk mtype.AppResp id m.(msg.from) s.(pstate.term) false s.(pstate.commit)
           (W64 0) (W64 0) (W64 0) []]).
 Proof.
-  intros Hfid Hrole. iIntros "Hown". destruct_ghost.
-  iMod (own_log_ghost_ack _ _ _ s.(pstate.term) s.(pstate.commit) with "[] Hlg")
-    as "[Hlg #Hack]"; [lia| iIntros ([_ ?]); simpl in *; lia |].
+  intros Hty Hfid Hrole. iIntros "#Hm Hown". destruct_ghost.
+  iAssert (⌜ m.(msg.from) ≠ W64 0 ⌝)%I as %Hfnz.
+  { rewrite /is_message Hty. iDestruct "Hm" as "(_ & _ & _ & $)". }
+  iDestruct (own_log_ghost_recs with "Hlg") as "#[%Hok Hrecs]".
+  iDestruct (own_log_ghost_mono γ id s (padopt_leader s m.(msg.from)) with "Hlg") as "Hlg";
+    [log_mono_tac..|].
+  iMod (own_log_ghost_ack _ _ _ s.(pstate.commit) with "[] [] Hlg") as "[Hlg #Hack]".
+  { iIntros ([_ ?]). simpl in *. lia. }
+  { iIntros (fp [Hf Hw]) "#Hfr #Hc". iApply (hist_of_commit with "[] Hc").
+    - by eapply full_wf.
+    - rewrite /bnd /= decide_False; [lia|]. naive_solver.
+    - iApply (log_recs_full with "Hfr Hrecs"). done. }
   iModIntro.
   iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-           with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
+           with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%] Hvrecs [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac | role_ok_tac ].
   - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
   - rewrite /psend_msgs /= big_sepL_app. iSplitR; [iFrame "#"|].
     rewrite big_sepL_singleton /is_message /=. iFrame "#".
@@ -3119,11 +4423,12 @@ Proof.
 Qed.
 
 (** [step_snap_fastfwd]: the new commit index is the snapshot's, which the
-    message carries [is_committed] for and the log reaches (it has the
-    snapshot's last entry); acknowledging it needs no justification. *)
+    message carries the commit fact for and the log reaches (it has the
+    snapshot's last entry, which the leader's log has too). *)
 Local Lemma own_raft_ghost_step_snap_fastfwd γ id s m :
   m.(msg.ty) = mtype.Snap →
   m.(msg.from) ≠ id →
+  m.(msg.term) = s.(pstate.term) →
   s.(pstate.role) ≠ role.Leader →
   uint.Z s.(pstate.commit) < uint.Z m.(msg.index) →
   plog_matches s.(pstate.base) s.(pstate.log)
@@ -3136,20 +4441,36 @@ Local Lemma own_raft_ghost_step_snap_fastfwd γ id s m :
        [msg.mk mtype.AppResp id m.(msg.from) s.(pstate.term) false m.(msg.index)
           (W64 0) (W64 0) (W64 0) []]).
 Proof.
-  intros Hty Hfid Hrole Hlt Hmt. iIntros "#Hm Hown". destruct_ghost.
-  iAssert (is_committed γ m.(msg.index)) as "#Hmc".
-  { rewrite /is_message Hty. iDestruct "Hm" as "(_ & $ & _)". }
-  pose proof (plog_term_at_Some_range _ _ _ _ Hmt) as [_ Hle]. simpl in Hle.
-  iPoseProof (own_log_ghost_mono' γ id s
-                (padopt_leader s m.(msg.from) <| pstate.commit := m.(msg.index) |>)
-               with "Hlg [] []") as "Hlg"; [log_mono_tac..| right; simpl; lia | | |].
+  intros Hty Hfid Hterm Hrole Hlt Hmt. iIntros "#Hm Hown". destruct_ghost.
+  iAssert ((∃ bL l fpL, lead_prefix γ m.(msg.from) m.(msg.term) bL l ∗
+              ⌜ plog_term_at bL l m.(msg.index) = Some m.(msg.logterm) ⌝ ∗
+              lpfull γ m.(msg.from) m.(msg.term) bL l fpL ∗
+              commit_in γ (fpL ++ l) m.(msg.index) m.(msg.term)) ∗
+           ⌜ m.(msg.from) ≠ W64 0 ⌝)%I
+    as "((%bL & %l' & %fpL & #Hp' & %Hidx' & #Hpf' & #Hmc) & %Hfnz)".
+  { iEval (rewrite /is_message Hty) in "Hm". iDestruct "Hm" as "(_ & _ & $ & $)". }
+  iEval (rewrite Hterm) in "Hmc".
+  iPoseProof "Hpf'" as (FL0) "(_ & _ & %HfL & _)".
+  pose proof (plog_term_at_Some_range _ _ _ _ Hidx') as [HbL _].
+  pose proof (plog_term_at_Some_range _ _ _ _ Hmt) as [Hb Hle]. simpl in Hb, Hle.
+  iDestruct (own_log_ghost_recs with "Hlg") as "#[%Hok Hrecs]".
+  set (s1 := padopt_leader s m.(msg.from) <| pstate.commit := m.(msg.index) |>).
+  iPoseProof (own_log_ghost_mono' γ id s s1 with "Hlg [] []") as "Hlg";
+    [log_mono_tac..| right; simpl; lia | | |].
   { rewrite /matched_ok /=. done. }
-  { simpl. iFrame "#". }
-  iMod (own_log_ghost_ack _ _ _ s.(pstate.term) m.(msg.index) with "[] Hlg")
-    as "[Hlg #Hack]"; [simpl; lia| iIntros ([_ ?]); simpl in *; lia |].
+  { iIntros (fp [Hf Hw]) "_ _". simpl.
+    iApply (commit_in_agree with "Hmc"); [done|].
+    rewrite (full_term_at bL fpL) //; try lia. rewrite (full_term_at s.(pstate.base) fp) //; try lia.
+    rewrite Hidx'. exact Hmt. }
+  iMod (own_log_ghost_ack _ _ _ m.(msg.index) with "[] [] Hlg") as "[Hlg #Hack]".
+  { iIntros ([_ ?]). simpl in *. lia. }
+  { iIntros (fp [Hf Hw]) "#Hfr #Hc". iApply (hist_of_commit with "[] Hc").
+    - by eapply full_wf.
+    - rewrite /bnd /= decide_False; [lia|]. naive_solver.
+    - iApply (log_recs_full with "Hfr [Hrecs]"); [done|]. simpl. iExact "Hrecs". }
   iModIntro.
   iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-           with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
+           with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%] Hvrecs [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac | role_ok_tac ].
   - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
   - rewrite /psend_msgs /= big_sepL_app. iSplitR; [iFrame "#"|].
     rewrite big_sepL_singleton /is_message /=. iFrame "#".
@@ -3159,13 +4480,15 @@ Proof.
 Qed.
 
 (** [step_snap_restore]: the log is replaced by the snapshot -- no entries
-    after the new base, so no records to keep -- and the commit index
-    becomes the snapshot's, which the message carries [is_committed] for.
-    No justified acknowledgement of this term is above the snapshot: the
-    log would then agree with the leader at the snapshot's index
-    ([ack_agree_term]), where the leader has the snapshot's last entry
-    ([is_message]'s [lead_prefix]) -- but the rule's premise is that the
-    log does not have it. *)
+    after the new base, so no records to keep; the compacted prefix is the
+    leader's full log up to the snapshot -- and the commit index becomes
+    the snapshot's, which the message carries the commit fact for.  No
+    justified acknowledgement of this term is above the snapshot: the log
+    would then agree with the leader at the snapshot's index
+    ([ack_agree_term]), where the leader has the snapshot's last entry --
+    but the rule's premise is that the log does not have it.  Histories
+    move to the leader's log ([hist_replace]), which disagrees with the old
+    log at the snapshot's index. *)
 Local Lemma own_raft_ghost_step_snap_restore γ id s m :
   m.(msg.ty) = mtype.Snap →
   m.(msg.from) ≠ id →
@@ -3186,23 +4509,41 @@ Local Lemma own_raft_ghost_step_snap_restore γ id s m :
           (W64 0) (W64 0) (W64 0) []]).
 Proof.
   intros Hty Hfid Hterm Hrole Hlt Hnm. iIntros "#Hm Hown". destruct_ghost.
-  iAssert (is_committed γ m.(msg.index) ∗
-           is_snap_meta γ m.(msg.logterm) m.(msg.index) ∗
-           ∃ bL l, lead_prefix γ m.(msg.from) m.(msg.term) bL l ∗
-             ⌜ plog_term_at bL l m.(msg.index) = Some m.(msg.logterm) ⌝)%I
-    as "(#Hmc & #Hmeta & %bL & %l' & #Hp' & %Hidx')".
+  iAssert (is_snap_meta γ m.(msg.logterm) m.(msg.index) ∗
+           (∃ bL l fpL, lead_prefix γ m.(msg.from) m.(msg.term) bL l ∗
+              ⌜ plog_term_at bL l m.(msg.index) = Some m.(msg.logterm) ⌝ ∗
+              lpfull γ m.(msg.from) m.(msg.term) bL l fpL ∗
+              commit_in γ (fpL ++ l) m.(msg.index) m.(msg.term)) ∗
+           ⌜ m.(msg.from) ≠ W64 0 ⌝)%I
+    as "(#Hmeta & (%bL & %l' & %fpL & #Hp' & %Hidx' & #Hpf' & #Hmc) & %Hfnz)".
   { iEval (rewrite /is_message Hty) in "Hm". iDestruct "Hm" as "(_ & $ & $ & $)". }
-  iEval (rewrite Hterm) in "Hp'".
+  iEval (rewrite Hterm) in "Hp' Hpf' Hmc".
+  iDestruct (lead_full_intro with "Hp' Hpf'") as "#HLf".
+  iDestruct (lead_full_wf with "HLf") as "[[%HwLf %HtLf] #HrLf]".
+  iPoseProof "Hpf'" as (FL0) "(_ & _ & %HfL & _)".
+  set (Lf := fpL ++ l').
   iDestruct (own_log_ghost_recs with "Hlg") as "#[%Hok Hrecs]".
   destruct Hok as (Hwf & Hbc & Hcl).
   pose proof (plog_term_at_Some_range _ _ _ _ Hidx') as [HbL _].
-  (* the new base is the snapshot's metadata, which the message names *)
-  iPoseProof (own_log_ghost_upd γ id s
-                (padopt_leader s m.(msg.from)
-                   <| pstate.base := raft.entryID.mk m.(msg.logterm) m.(msg.index) |>
-                   <| pstate.log := [] |>
-                   <| pstate.commit := m.(msg.index) |>)
-               with "Hlg [] [] [] Hmc [Hmeta]") as "Hlg"; [log_mono_tac..| | | | | | ].
+  set (idx := m.(msg.index)).
+  assert (HLidx : plog_term_at base0 Lf idx = Some m.(msg.logterm)).
+  { rewrite /Lf (full_term_at bL fpL) //. }
+  set (fp' := take (Z.to_nat (uint.Z idx)) Lf).
+  assert (Hfp' : full_ok (raft.entryID.mk m.(msg.logterm) idx) fp') by (by apply full_ok_take).
+  assert (Hfp'j : ∀ j : w64, uint.Z j ≤ uint.Z idx →
+             plog_term_at base0 (fp' ++ []) j = plog_term_at base0 Lf j).
+  { intros j Hj. rewrite app_nil_r /fp' plog_term_at_take_full //. lia. }
+  assert (Hfp'last : plog_last_index_Z base0 (fp' ++ []) = uint.Z idx).
+  { rewrite app_nil_r. pose proof Hfp' as (Hl & _). rewrite /plog_last_index_Z base0_index. simpl in Hl. lia. }
+  set (s' := padopt_leader s m.(msg.from)
+               <| pstate.base := raft.entryID.mk m.(msg.logterm) m.(msg.index) |>
+               <| pstate.log := [] |>
+               <| pstate.commit := m.(msg.index) |>).
+  assert (Hbnd' : bnd s' = uint.Z s.(pstate.term) + 1).
+  { rewrite /bnd /= decide_False //. naive_solver. }
+  iPoseProof (own_log_ghost_upd γ id s s'
+               with "Hlg [] [] [] [Hmeta] []") as "Hlg"; [log_mono_tac..| | | | | | | | ].
+  { rewrite Hbnd'. rewrite /bnd. case_decide; lia. }
   { rewrite /log_ok /plog_last_index_Z /=. split_and!; [by intros ??|lia|lia]. }
   { iIntros "!> _ %i %Hi #Ha". simpl in Hi.
     iDestruct (ack_agree_term _ _ _ _ i _ bL l' m.(msg.index) Hwf with "Hrecs Ha Hp'")
@@ -3211,11 +4552,43 @@ Proof.
   { rewrite /log_recs /=. done. }
   { rewrite /matched_ok /=. done. }
   { rewrite /base_ok /=. iRight. iExact "Hmeta". }
-  iMod (own_log_ghost_ack _ _ _ s.(pstate.term) m.(msg.index) with "[] Hlg")
-    as "[Hlg #Hack]"; [simpl; lia| iIntros ([_ ?]); simpl in *; lia |].
+  { iIntros (fp (Hf & Hw & Htle)) "#Hfr #Hc".
+    iExists fp'. simpl.
+    iSplit; [iPureIntro; split_and!|iSplit; [|iSplit]].
+    - done.
+    - by intros ??.
+    - intros j x Hx. split; [|done].
+      rewrite app_nil_r /fp' in Hx.
+      pose proof (plog_term_at_Some_range _ _ _ _ Hx) as [_ Hj].
+      rewrite /plog_last_index_Z length_take base0_index in Hj.
+      rewrite plog_term_at_take_full in Hx; [|lia]. by apply (HtLf j x).
+    - intros Hr. exfalso. by apply Hr.
+    - iApply log_recs_take. iExact "HrLf".
+    - iApply (commit_in_agree with "Hmc"); [done|]. apply Hfp'j. lia.
+    - iIntros "!> %t %i %Ht #Hh". rewrite Hbnd'.
+      iDestruct (log_recs_full with "Hfr Hrecs") as "#HrF"; first done.
+      iApply (hist_replace _ _ _ Lf t i s.(pstate.term) _ _ 1 idx idx with "HLf Hh").
+      + rewrite /bnd. case_decide; lia.
+      + done.
+      + lia.
+      + rewrite /idx. word.
+      + rewrite /idx. word.
+      + intros j Hj. assert (uint.Z j = 0) as Hj0 by word.
+        rewrite /plog_term_at !base0_index. repeat case_decide; try lia. done.
+      + intros j Hj. rewrite Hfp'j; [|lia]. split; [done|].
+        apply (full_term_at_some _ _ idx); [rewrite HLidx; by eexists|lia].
+      + assert (Hidxb : uint.Z s.(pstate.base).(raft.entryID.index') ≤ uint.Z idx) by (rewrite /idx; lia).
+        rewrite HLidx (full_term_at s.(pstate.base) fp s.(pstate.log) idx Hf Hidxb). exact Hnm.
+      + intros j Hj. apply plog_term_at_None_range. right. rewrite Hfp'last. lia. }
+  iMod (own_log_ghost_ack _ _ _ m.(msg.index) with "[] [] Hlg") as "[Hlg #Hack]".
+  { iIntros ([_ ?]). simpl in *. lia. }
+  { iIntros (fp [Hf Hw]) "#Hfr #Hc". iApply (hist_of_commit with "[] Hc").
+    - by eapply full_wf.
+    - rewrite Hbnd' /s' /=. lia.
+    - iApply (log_recs_full with "Hfr []"); [done|]. rewrite /log_recs /=. done. }
   iModIntro.
   iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-           with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
+           with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%] Hvrecs [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac | role_ok_tac ].
   - iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
   - rewrite /psend_msgs /= big_sepL_app. iSplitR; [iFrame "#"|].
     rewrite big_sepL_singleton /is_message /=. iFrame "#".
@@ -3283,11 +4656,11 @@ Proof.
         eapply (vote_hist_fresh voted s); [exact Hhist|done]. }
     iModIntro.
     iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-             with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%]");
+             with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%] Hvrecs [%]");
       [ idtac ..
       | rewrite /lead_ok /pbecome_follower /=; intros _;
         destruct (from_leader m.(msg.ty)); [by apply Hfl | congruence]
-      | follower_votes_tac ].
+      | follower_votes_tac | role_ok_tac ].
     + iPureIntro. exact Hhist'.
     + by rewrite /pbecome_follower /=.
     + rewrite /pbecome_follower /= granted_empty big_sepS_empty //.
@@ -3297,6 +4670,8 @@ Proof.
   - (* step_campaign: the term goes up by one, so it is fresh, and the node
        votes for itself there *)
     iIntros "_ Hown". destruct_ghost.
+    iMod (own_log_ghost_campaign with "Hlg") as (kv F) "(Hlg & #Hcamp & #Hvl & #HrF & %HwF & %HlastF)";
+      [done|done|].
     set (t' := word.add s.(pstate.term) (W64 1)).
     assert (Ht' : uint.Z t' = uint.Z s.(pstate.term) + 1) by (subst t'; word).
     assert (Hcterm : (pbecome_candidate id s).(pstate.term) = t') by reflexivity.
@@ -3313,9 +4688,12 @@ Proof.
         rewrite lookup_insert_ne // in Hc.
         unshelve epose proof (Hdom t _) as Hle; [by eexists|]. lia.
       - rewrite lookup_insert_eq decide_False //. }
+    iAssert (vote_just γ id t' id) as "#Hvj".
+    { iExists kv, F, F. iFrame "Hvl Hcamp HrF". iPureIntro. split; [done|].
+      rewrite /plog_up_to_date bool_decide_eq_true. right. split; [done|lia]. }
     iModIntro.
     iApply (own_raft_ghost_intro _ _ _ γv (<[t' := id]> voted) Hname Hidnz
-             with "Hvoted [] [] [] [] [] [Hlg] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
+             with "Hvoted [] [] [] [] [] [Hlg] [%] [%] [] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac | idtac | idtac ].
     + iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist'); reflexivity.
     + rewrite big_sepM_insert //. by iFrame "#".
     + rewrite /psend_msgs /pbecome_candidate /=.
@@ -3323,38 +4701,54 @@ Proof.
       rewrite big_sepL_cons. iSplitR.
       * by iApply is_message_grant.
       * rewrite big_sepL_fmap. iApply big_sepL_intro.
-        iIntros "!> %k %x %Hk". by iApply is_message_free.
+        iIntros "!> %k %x %Hk". rewrite /is_message /pvote_req /=.
+        iExists F. iFrame "Hcamp". iPureIntro. rewrite HlastF.
+        by destruct (plog_last s.(pstate.base) s.(pstate.log)).
     + rewrite /psend_msgs /pbecome_candidate /= granted_empty big_sepS_empty //.
     + rewrite /leader_wit /psend_msgs /pbecome_candidate /=. done.
     + iApply (own_log_ghost_mono with "Hlg"); log_mono_tac.
+    + rewrite big_sepM_insert //. by iFrame "#".
+    + rewrite /role_ok /psend_msgs /pbecome_candidate /=. done.
 
   - (* step_grant_vote: either the node has already voted this way, or the
-       current term is free in the history *)
-    iIntros "_ Hown". destruct_ghost.
+       current term is free in the history -- then the vote records the
+       voter's log, which the candidate's campaign log (the request carries
+       it) is at least as up to date as *)
+    iIntros "Hrecv Hown". iDestruct "Hrecv" as "[#Hm _]". destruct_ghost.
+    iAssert (∃ Fc, is_camp γ m.(msg.from) m.(msg.term) Fc ∗
+               ⌜ plog_last base0 Fc = raft.entryID.mk m.(msg.logterm) m.(msg.index) ⌝)%I
+      as (Fc) "[#Hcamp %HFc]".
+    { rewrite /is_message Hty. iExact "Hm". }
+    iEval (rewrite Hterm) in "Hcamp".
     iAssert (|==> ∃ voted', ghost_map_auth γv 1 voted' ∗
                   ⌜ vote_hist_ok voted' (s <| pstate.vote := m.(msg.from) |>) ⌝ ∗
                   ([∗ map] t ↦ c ∈ voted', is_vote γ id t c) ∗
-                  is_vote γ id s.(pstate.term) m.(msg.from))%I
-      with "[Hvoted]" as ">(%voted' & Hvoted & %Hhist' & #Hfrags' & #Hgrant)".
-    { destruct Hcan as [Hsame | [Hnovote _]].
+                  ([∗ map] t ↦ c ∈ voted', vote_just γ id t c) ∗
+                  is_vote γ id s.(pstate.term) m.(msg.from) ∗ own_log_ghost γ id s)%I
+      with "[Hvoted Hlg]" as ">(%voted' & Hvoted & %Hhist' & #Hfrags' & #Hvrecs' & #Hgrant & Hlg)".
+    { destruct Hcan as [Hsame | [Hnovote Hnolead]].
       - (* already voted for this candidate *)
         destruct Hhist as [Hdom Heq].
         assert (Hvnz : s.(pstate.vote) ≠ W64 0) by (rewrite Hsame; exact Hfrom).
         assert (Hlook : voted !! s.(pstate.term) = Some m.(msg.from)).
         { rewrite Heq decide_False //. by rewrite Hsame. }
-        iExists voted. iFrame "Hvoted Hfrags".
+        iExists voted. iFrame "Hvoted Hfrags Hvrecs Hlg".
         iDestruct (big_sepM_lookup _ _ _ _ Hlook with "Hfrags") as "#Hone".
         iFrame "Hone". iPureIntro.
         split; [exact Hdom|]. simpl. rewrite -Hsame. exact Heq.
-      - (* first vote of this term *)
+      - (* first vote of this term: no leader, so a follower *)
         assert (Hfree : voted !! s.(pstate.term) = None).
         { destruct Hhist as [_ Heq]. rewrite Heq decide_True //. }
+        assert (Hbnd : bnd s = uint.Z s.(pstate.term)).
+        { rewrite /bnd decide_True //. split; [done|]. intros Hr.
+          destruct Hrok as [Hv _]. apply Hidnz. rewrite -Hnovote. symmetry. apply Hv. congruence. }
+        iMod (own_log_ghost_vote with "Hlg") as (kv Fv) "(Hlg & #Hvl & #HrFv & %HwFv & %Hutd')"; [done|].
         iMod (ghost_map_insert_persist s.(pstate.term) m.(msg.from) Hfree
                with "Hvoted") as "[Hvoted #Hnew]".
         iAssert (is_vote γ id s.(pstate.term) m.(msg.from)) as "#Hisvote".
         { iExists γv. by iFrame "#". }
         iModIntro. iExists (<[s.(pstate.term) := m.(msg.from)]> voted).
-        iFrame "Hvoted Hisvote".
+        iFrame "Hvoted Hisvote Hlg".
         iSplitR.
         + iPureIntro. destruct Hhist as [Hdom _]. split.
           * simpl. intros t [c Hc]. destruct (decide (t = s.(pstate.term)))
@@ -3363,10 +4757,18 @@ Proof.
             rewrite lookup_insert_ne // in Hc.
             unshelve epose proof (Hdom t _) as Hle; [by eexists|]. lia.
           * simpl. rewrite lookup_insert_eq decide_False //.
-        + rewrite big_sepM_insert //. by iFrame "#". }
+        + iSplit; [rewrite big_sepM_insert //; by iFrame "#"|].
+          rewrite big_sepM_insert //. iSplitR; [|iExact "Hvrecs"].
+          iExists kv, Fv, Fc. iSplit; first iExact "Hvl". iSplit; first iExact "Hcamp".
+          iSplit; first iExact "HrFv". iPureIntro. split; [done|].
+          rewrite Hutd' HFc. exact Hutd. }
     iModIntro.
     iApply (own_raft_ghost_intro _ _ _ γv voted' Hname Hidnz
-             with "Hvoted [] Hfrags' [] [] [] [Hlg] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
+             with "Hvoted [] Hfrags' [] [] [] [Hlg] [%] [%] Hvrecs' [%]");
+      [ idtac .. | lead_ok_tac | follower_votes_tac
+      | (destruct Hrok as [Hv Hc]; rewrite /role_ok /psend_msgs /=; split; [|done]; intros Hr;
+         destruct Hcan as [Hs|[Hn _]];
+         [rewrite -Hs; by apply Hv|exfalso; apply Hidnz; rewrite -Hn; symmetry; by apply Hv]) ].
     + iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist'); reflexivity.
     + rewrite /psend_msgs /=. rewrite big_sepL_app. iSplitR; [iFrame "#"|].
       rewrite big_sepL_singleton. by iApply is_message_grant.
@@ -3378,7 +4780,7 @@ Proof.
     iIntros "_ Hown". destruct_ghost.
     iModIntro.
     iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-             with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
+             with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%] Hvrecs [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac | role_ok_tac ].
     + iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
     + rewrite /psend_msgs /=. rewrite big_sepL_app. iSplitR; [iFrame "#"|].
       rewrite big_sepL_singleton. by iApply is_message_reject.
@@ -3392,7 +4794,7 @@ Proof.
     destruct_ghost.
     iModIntro.
     iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-             with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
+             with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%] Hvrecs [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac | role_ok_tac ].
     + iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
     + iFrame "#".
     + simpl. iApply big_sepS_intro. iIntros "!> %v %Hv".
@@ -3416,9 +4818,10 @@ Proof.
     { destruct Hhist as [Hdom Heq].
       rewrite /vote_hist_ok pbecome_follower_vote_same.
       split; simpl; [done|exact Heq]. }
+    pose proof (proj2 Hrok Hrole) as Hlead0.
     iModIntro.
     iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-             with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
+             with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%] Hvrecs [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac | role_ok_tac ].
     + iPureIntro. exact Hhist'.
     + by rewrite /pbecome_follower /=.
     + rewrite /pbecome_follower /= granted_empty big_sepS_empty //.
@@ -3429,7 +4832,7 @@ Proof.
     iIntros "_ Hown". destruct_ghost.
     iModIntro.
     iApply (own_raft_ghost_intro _ _ _ γv voted Hname Hidnz
-             with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac ].
+             with "Hvoted [] Hfrags [] [] [] [Hlg] [%] [%] Hvrecs [%]"); [ idtac .. | lead_ok_tac | follower_votes_tac | role_ok_tac ].
     + iPureIntro. apply (vote_hist_ok_eq _ _ _ Hhist); reflexivity.
     + simpl. iApply big_sepL_intro. iIntros "!> %k %x %Hk".
       iApply (big_sepL_elem_of with "Hout").
@@ -3443,12 +4846,12 @@ Proof.
     by iMod (own_raft_ghost_step_app_accept with "Hm Hown") as "$".
 
   - (* step_app_stale *)
-    iIntros "_ Hown".
-    by iMod (own_raft_ghost_step_app_stale with "Hown") as "$".
+    iIntros "Hrecv Hown". iDestruct "Hrecv" as "[#Hm _]".
+    by iMod (own_raft_ghost_step_app_stale with "Hm Hown") as "$".
 
   - (* step_app_reject *)
-    iIntros "_ Hown".
-    by iMod (own_raft_ghost_step_app_reject with "Hown") as "$".
+    iIntros "Hrecv Hown". iDestruct "Hrecv" as "[#Hm _]".
+    by iMod (own_raft_ghost_step_app_reject with "Hm Hown") as "$".
 
   - (* step_heartbeat *)
     iIntros "Hrecv Hown". iDestruct "Hrecv" as "[#Hm _]".
@@ -3487,8 +4890,8 @@ Proof.
     by iMod (own_raft_ghost_step_snap_fastfwd with "Hm Hown") as "$".
 
   - (* step_snap_stale *)
-    iIntros "_ Hown".
-    by iMod (own_raft_ghost_step_snap_stale with "Hown") as "$".
+    iIntros "Hrecv Hown". iDestruct "Hrecv" as "[#Hm _]".
+    by iMod (own_raft_ghost_step_snap_stale with "Hm Hown") as "$".
 Qed.
 
 (** *** Protocol facts the code needs
@@ -3527,9 +4930,9 @@ Lemma heartbeat_commit_le_last γ id ps m :
 Proof.
   iIntros (Hty Hto Hle Hrole) "Hown #Hm".
   iEval (rewrite /is_message Hty) in "Hm".
-  iDestruct "Hm" as "(_ & _ & %i & %Hci & Hack)".
+  iDestruct "Hm" as "(_ & _ & (%i & %Hci & Hack) & _)".
   iDestruct "Hown" as (γv voted) "(_ & _ & _ & _ & _ & _ & _ & _ & Hlg & _)".
-  iDestruct "Hlg" as (γm terms γa acks) "Hlg". iNamed "Hlg".
+  iDestruct "Hlg" as (γm terms γa acks fp γc camps γl vlogs) "Hlg". iNamed "Hlg".
   destruct Hlog_ok as (_ & _ & Hcl).
   pose proof (plog_last_index_Z_nonneg ps.(pstate.base) ps.(pstate.log)).
   iDestruct "Hack" as "[%H0 | (%γa' & %Hγa' & Hfrag)]".
