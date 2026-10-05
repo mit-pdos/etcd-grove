@@ -5179,11 +5179,15 @@ Proof.
   iMod (alloc_maps (K:=w64) (V:=w64) ids) as (nv) "Hv".
   iMod (alloc_maps (K:=w64) (V:=term_rec) ids) as (nt) "Ht".
   iMod (alloc_maps (K:=w64 * w64) (V:=unit) ids) as (na) "Ha".
-  iModIntro. iExists {| re_cfg := cfg; re_votes := nv; re_terms := nt; re_acks := na |}.
+  iMod (alloc_maps (K:=w64) (V:=list raftpb.Entry.t) ids) as (nc) "Hc".
+  iMod (alloc_maps (K:=nat) (V:=w64 * list raftpb.Entry.t) ids) as (nl) "Hl".
+  iModIntro. iExists {| re_cfg := cfg; re_votes := nv; re_terms := nt; re_acks := na;
+                        re_camp := nc; re_vlogs := nl |}.
   iSplit; first done.
-  iCombine "Hv Ht Ha" as "H". rewrite -!big_sepS_sep.
+  iCombine "Hv Ht Ha Hc Hl" as "H". rewrite -!big_sepS_sep.
   iApply (big_sepS_impl with "H").
-  iIntros "!> %id %Hid ((%γv & %Hγv & Hav) & (%γm & %Hγm & Hat) & (%γa & %Hγa & Haa))".
+  iIntros "!> %id %Hid ((%γv & %Hγv & Hav) & (%γm & %Hγm & Hat) & (%γa & %Hγa & Haa) &
+                        (%γc & %Hγc & Hac) & (%γl & %Hγl & Hal))".
   iExists γv, ∅.
   iSplit; first done.
   iSplit.
@@ -5191,23 +5195,41 @@ Proof.
   iFrame "Hav".
   iSplit.
   { iPureIntro. split; [by intros t []|]. rewrite lookup_empty //. }
-  rewrite big_sepM_empty big_sepL_nil granted_empty big_sepS_empty.
+  rewrite !big_sepM_empty big_sepL_nil granted_empty big_sepS_empty.
   rewrite /leader_wit /=.
   iSplit; first done. iSplit; first done. iSplit; first done. iSplit; first done.
-  iSplitL "Hat Haa"; last first.
-  { iPureIntro. split.
+  iSplitL "Hat Haa Hac Hal"; last first.
+  { iPureIntro. split_and!.
     - rewrite /lead_ok /=. intros _ Heq. apply Hnz. by rewrite Heq.
-    - rewrite /follower_votes_ok /=. done. }
-  iExists γm, ∅, γa, ∅. iFrame "Hat Haa".
+    - rewrite /follower_votes_ok /=. done.
+    - done.
+    - split; [by intros []|by intros []]. }
+  iExists γm, ∅, γa, ∅, [], γc, ∅, γl, ∅.
   assert (terms_ok ∅ init_pstate) by (by intros t []).
   assert (acks_term init_pstate ∅) by (intros k [? Hk]; by rewrite lookup_empty in Hk).
   assert (log_ok init_pstate)
     by (rewrite /log_ok /plog_last_index_Z /=; split_and!; [by intros ??|lia|lia]).
-  iFrame "%".
-  rewrite /lead_log_own /matched_ok /acks_ok /log_recs /= !big_sepM_empty.
-  repeat iSplit; try done.
-  - iApply is_committed_0.
-  - iLeft. done.
+  assert (Hfull : full_ok init_pstate.(pstate.base) [] ∧
+                  plog_wf init_pstate.(pstate.base) init_pstate.(pstate.log) ∧
+                  terms_le init_pstate ([] ++ init_pstate.(pstate.log))).
+  { split_and!; [apply full_ok_base0|by intros ??|].
+    intros j x Hx. simpl in Hx. rewrite /plog_term_at /= in Hx.
+    repeat case_decide; simplify_eq; try done. }
+  assert (∀ T, is_Some ((∅ : gmap w64 (list raftpb.Entry.t)) !! T) →
+               uint.Z T ≤ uint.Z init_pstate.(pstate.term)) by (intros T [? HT]; done).
+  iAssert (commit_in {| re_cfg := cfg; re_votes := nv; re_terms := nt; re_acks := na; re_camp := nc; re_vlogs := nl |} ([] ++ init_pstate.(pstate.log)) init_pstate.(pstate.commit)
+             init_pstate.(pstate.term)) as "#Hcm".
+  { iLeft. done. }
+  iSplit; [done|]. iSplitL "Hat"; [iExact "Hat"|]. iSplit; [by rewrite big_sepM_empty|].
+  iSplit; [done|]. iSplit; [by rewrite /lead_log_own|]. iSplit; [done|].
+  iSplitL "Haa"; [iExact "Haa"|]. iSplit; [by rewrite big_sepM_empty|]. iSplit; [done|].
+  iSplit; [by rewrite /acks_ok /= big_sepM_empty|]. iSplit; [done|].
+  iSplit; [rewrite /log_recs /=; done|]. iSplit; [by rewrite /matched_ok|].
+  iSplit; [iExact "Hcm"|]. iSplit; [by iLeft|]. iSplit; [done|].
+  iSplit; [rewrite /log_recs /=; done|]. iSplit; [done|]. iSplitL "Hac"; [iExact "Hac"|].
+  iSplit; [done|]. iSplit; [by rewrite /camp_own|]. iSplit; [done|].
+  iSplitL "Hal"; [iExact "Hal"|]. iSplit; [by rewrite /vlogs_ok big_sepM_empty|].
+  by rewrite /hists_ok big_sepM_empty.
 Qed.
 
 End ghost.
