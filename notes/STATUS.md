@@ -444,18 +444,18 @@ whose whole job is what the build cannot check. What each establishes, the
 known gaps and the plan are in [tcb-accounting.md](tcb-accounting.md).
 
 `etc/tcb-report.py` on the election path (`--scope election_proof`,
-2026-10-05, at `93d1d65da`): **14 `Axiom` and 3 `Admitted`** -- the one
-signed off on in `raftLog.slice`, and the two safety theorems
-`leader_completeness` and `state_machine_safety`, which **cannot be proved
-as stated**: they quantify over two nodes' ghost states, and the argument
-needs the third node that is in both the commit quorum and the election
-quorum (its votes and acks live in its own ghost maps) -- they are being
-restated over the whole cluster, see item 5b. `heartbeat_commit_le_last`,
-`app_no_conflict_below_commit`, `log_matching` (2026-10-02) and
-`snap_ok_message` (2026-10-03) are proved. 626 `Qed` lemmas, 141
-collections (pre-vote, the read-only record and the `MemoryStorage`
-instance included), two results (`Step`, `newRaft`), 169 definitions,
-1,545 lines; `make ci` exit 0 (619 files). The whole-raft numbers (`v3_proof/`
+2026-10-05, at `8922304da`, after merging the cluster-wide safety pass):
+**14 `Axiom` and 1 `Admitted`** -- the arithmetic side condition signed off
+on in `raftLog.slice`. **Every protocol-level lemma is `Qed`**:
+`own_raft_ghost_step` for all 26 rules, `own_raft_ghost_alloc`, the
+receiver facts `Step` consumes (`app_recv_wf`, `app_commit_le_lastnewi`,
+`app_no_conflict_below_commit`, `heartbeat_commit_le_last`,
+`snap_ok_message`), `log_matching`, and `leader_completeness` and
+`state_machine_safety` over the whole cluster (`cluster_ghost`, item 5b).
+722 `Qed` lemmas, 141 collections (pre-vote, the read-only record and the
+`MemoryStorage` instance included), 10 results (`Step`, `newRaft` and the
+`MemoryStorage` methods), 190 definitions, 2,012 lines (5.3% of the
+development); `make ci` exit 0 (618 files, 2026-10-05). The whole-raft numbers (`v3_proof/`
 included) are the old ones plus these.
 
     R=new/proof/go_etcd_io/raft      # required; the tool names no development
