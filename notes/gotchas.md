@@ -1930,3 +1930,19 @@ likely the same search), and `newRaft.v:29`/`appliedTo.v:18`/
   that tries `progress wp_auto`, each field lemma, and a
   `lazymatch goal with |- context [bool_decide ?P]` case split
   (`proof_raft__Step_MsgPreVote_gt.v`, `cv_step`).
+- **IPM keeps a spatial hypothesis used by a lemma only when the
+  destruct pattern makes the result persistent up front**:
+  `iDestruct (own_raft_ghost_log with "H1") as "#[%Hok _]"` keeps `"H1"`;
+  `as "[%Hok _]"` or `as (x) "…"` consumes it (`protocol.v`,
+  `state_machine_safety`, 2026-10-05).
+- **`rewrite` in proof mode rewrites the hypotheses too** (they are part of
+  the goal): `rewrite take_app_le` meant for the goal also rewrote `"Hcmt"`
+  (`take c (fp ++ log)` → `take c fp`, with a bogus side condition).  State
+  a lemma whose left side only the goal has (`cprefix_app`).
+- **Fast-checking the tail of `protocol.v`** (5,600 lines, ~10 min): admit
+  every proof between `Section ghost.` and the line you are working on
+  and add `Set Default Proof Using "All".` after the section's `Context`
+  (an admitted lemma takes every section variable, which breaks a later
+  `Qed`'s inferred `Proof using`).  Do not admit inside `Section model`:
+  admitted lemmas there pick up `cfg`/`id` and every `rewrite` with them
+  leaves two shelved goals (`gset w64`, `w64`).  ~40 s per check.
