@@ -235,10 +235,11 @@ Lemma step_record_then_win id (s : pstate.t) (m : msg.t) mt ms :
   leader_match_ok id s1 mt →
   Forall (repl_ok id (pwin_state id s1 mt)) ms →
   is_quorum cfg (granted s1.(pstate.votes)) →
+  plog_last_index_Z s.(pstate.base) s.(pstate.log) + 1 < 2 ^ 64 →
   step cfg id s ([m] ++ [])
        (psend_msgs (pwin_state id s1 mt) ([pself_ack id (pwin_state id s1 mt)] ++ ms)).
 Proof.
-  intros ???? s1 Hmt Hms Hq.
+  intros ???? s1 Hmt Hms Hq Hnw.
   eapply step_trans; [by apply step_record_vote|].
   by apply step_win.
 Qed.

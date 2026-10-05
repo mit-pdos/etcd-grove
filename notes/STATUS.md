@@ -388,20 +388,23 @@ say so in the journal.
    it to `committed`), plus `own_log_ghost`'s `base_ok`.  `msg_abs`'s
    `MsgSnap` case is tied to the heap.  Remaining scope cost: `newRaft`
    needs the storage's snapshot to be empty or at its first index.
-5b. **`leader_completeness` and `state_machine_safety` (admitted,
-   `protocol.v`)** -- the other three of the former five
-   (`heartbeat_commit_le_last`, `app_no_conflict_below_commit`,
-   `log_matching`) are `Qed` since 2026-10-02 (journal). These two are
-   **not provable as stated**: they hold two nodes' ghost state, and the
-   argument needs a third node (the voter in the commit quorum and the
-   election quorum) to have behaved -- its votes and acknowledgements are
-   fragments of its own maps, unconstrained without its `own_raft_ghost`.
-   A proof needs (1) a cluster-wide statement (every voter's
-   `own_raft_ghost`, or an Iris invariant over them), (2) a per-node
-   history invariant tying each vote to the voter's log at the time and to
-   its earlier acknowledgements, (3) `is_committed` naming the committed
-   entries. Spelled out in `leader_completeness`'s comment. Nothing
-   downstream consumes either lemma.
+5b. ~~**`leader_completeness` and `state_machine_safety` (admitted)**~~ —
+   **proved 2026-10-05**, and with them every protocol-level lemma in
+   `protocol.v`. The ghost state gained, per node: log records (`log_recs`:
+   each entry with its predecessor's term), justified acknowledgements
+   (`acks_ok`, `ack_agree`: an ack is backed by the node's log agreeing with
+   the leader's term log up to that index), the leader-prefix facts
+   (`lead_prefix`), `base_ok`, and -- for the two safety theorems -- the
+   node's full log history, campaign records (`is_camp`: the candidate's log
+   at campaign time, so `step_grant_vote`'s up-to-date premise is reflected
+   in the ghost), vote-time logs and ack histories (`Hvrecs`, `role_ok`).
+   Both theorems are stated over `cluster_ghost γ S` -- every voter's
+   `own_raft_ghost` -- because the quorum-intersection argument needs the
+   pivot node's votes and acks, which live in its own ghost maps; over two
+   nodes' ghost states alone they were unprovable (counter-model in the
+   2026-10-02 journal entry). Both require the entry to lie above both
+   nodes' compaction boundaries (`base.index < i`): a compacted prefix is
+   not represented entry by entry.
 5c. **Two assumptions on the client `Storage` were added** (`inv_storage.v`):
    `Entries` returns a prefix of the stored entries from `lo` (its documented
    contract; `MemoryStorage` meets it). Listed so an auditor sees them.

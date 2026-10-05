@@ -1006,3 +1006,15 @@ admits are down to `leader_completeness`/`state_machine_safety`).
   `is_committed commit`, `log_recs`, `base_ok`) is then `is_committed_le`
   plus either `base_ok` (snapshot at the base, the usual case after
   `Compact`) or the log record of the entry at `index`.
+
+## As built, 2026-10-05: the safety theorems over the cluster
+
+`leader_completeness γ S id1 ps1 id2 ps2 i e` and `state_machine_safety γ S
+id1 ps1 id2 ps2 i` take `cluster_ghost γ S` (every voter's
+`own_raft_ghost`) and conclude, for an entry `e` committed at `id1`
+(`i ≤ ps1.commit`, above both bases), that a leader `id2` at a term `≥
+ps1.term` has `e` at `i`, resp. that two nodes' committed prefixes agree at
+`i`. Proved by `lc_core`, an induction on terms, from the per-node history
+invariants described in STATUS.md item 5b. The statements over two nodes'
+ghost states alone are unprovable (journal, 2026-10-02): the argument needs
+the pivot voter's own records. `protocol.v` has no `Admitted` left.

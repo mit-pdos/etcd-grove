@@ -4844,3 +4844,32 @@ rebuilding the log and tracker cone.  Gotchas met: `case_decide` grabbed a
 `bool_decide` from a hypothesis (use `rewrite decide_True; last word`); `set`
 variables are opaque to `word`; `rewrite -take_drop` rewrites inside the
 proof-mode context too (use a generic split lemma).
+
+## 2026-10-05 — coordinator: the safety theorems are `Qed` over the cluster; branch state
+
+Merged in order since the 2026-10-02 coordinator entry: the sender side of
+snapshots (`5fa0f876d`), the `MemoryStorage` instance (`8ab342672`),
+pre-vote as an implementation detail (`482f65dc8`), the read-only record
+(`93d1d65da`), and the cluster-wide safety pass (this merge; the Opus agent
+was cut off by rate limits four times and resumed each time with a
+checkpoint-first instruction; its final commit `2cac70468` was green on
+its base, 556 files). The merge had two hand resolutions: `protocol.v`'s
+`own_raft_ghost_step` cases for pre-vote's three appended rules
+(`step_send_free`, `step_abandon`, `step_zero_ack`) rewritten in the new
+ghost shape (mirroring `step_drain`/`step_lose`; `step_abandon` needs an
+explicit `destruct (Hrole …)` for `own_log_ghost_mono`'s leader-step-down
+side goal, since `role ≠ Leader` is not a `congruence` fact), and the
+`MsgVoteResp` helper's `step_win` goals (pre-vote's `decide_False` on the
+role plus the new no-wrap goal).
+
+Decisions recorded today: `own_Storage` stays abstract -- the user
+(2026-10-05) does not want the development specialised to
+`own_MemoryStorage`; the `MemoryStorage` instance is a satisfiability
+witness for `is_Storage`, nothing more. Pre-vote is an implementation
+detail (user, 2026-10-04): no protocol content beyond `step_send_free`,
+`step_abandon`, `step_zero_ack`.
+
+What remains in phase 3: the read-index `Step` arms over `own_ReadOnly`
+(`MsgReadIndex`/`MsgReadIndexResp`, `committedEntryInCurrentTerm`,
+`sendMsgReadIndexResponse`, `responseToReadIndexReq`, the
+`MsgHeartbeatResp` context path), and reconfiguration.

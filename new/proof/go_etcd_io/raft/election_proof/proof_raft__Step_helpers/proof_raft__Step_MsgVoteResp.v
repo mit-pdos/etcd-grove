@@ -271,6 +271,10 @@ Implicit Type s : nstate.t.
           wp_hidden (iDestruct (own_tracker_progress_map with "Htrk") as "(_ & %Hprd & Htrk)").
           wp_hidden (iDestruct ("Hback" with "Htrkf Htrk") as "Hphys").
           assert (Hid : id ∈ dom s.(nstate.prvals)) by (rewrite Hpd Hprd; exact Hcfg).
+          (* the log's [Hnowrap]: [step_win]'s no-wrap premise *)
+          wp_hidden (iDestruct (own_raft_phys_log_same with "Hphys") as "[Hlog Hback]").
+          wp_hidden (iDestruct (own_raftLog_nowrap with "Hlog") as "[%Hlnw Hlog]").
+          wp_hidden (iDestruct ("Hback" with "Hlog") as "Hphys").
           wp_apply (P.wp_stepCandidate _ _ _ _ _ [] (zero_val _) [] with "[$Hphys]").
           { by left. }
           { intros _. exact Hteq. }
@@ -308,7 +312,8 @@ Implicit Type s : nstate.t.
               rewrite /repl_sends to_pstate_become_leader in Hms.
               rewrite List.Forall_forall in Hms |- *. intros m' Hm'%Hms.
               eapply repl_ok_proper; [..|exact Hm']; reflexivity.
-            - simpl. rewrite decide_False; [exact Hq|rewrite Hrole; discriminate]. }
+            - simpl. rewrite decide_False; [exact Hq|rewrite Hrole; discriminate].
+            - rewrite /plog_last_index_Z /to_pstate /= length_app. lia. }
           destruct lost.
           { eapply (step_record_then_lose cfg id (to_pstate s) (abs_msg mtype.VoteResp m ents)).
             - done.
