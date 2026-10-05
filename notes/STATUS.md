@@ -405,6 +405,12 @@ say so in the journal.
    2026-10-02 journal entry). Both require the entry to lie above both
    nodes' compaction boundaries (`base.index < i`): a compacted prefix is
    not represented entry by entry.
+   **Model change**: `step_win` has a no-wrap premise (`lastIndex() + 1 <
+   2^64`, the code's `Hnowrap`, discharged in
+   `proof_raft__Step_MsgVoteResp.v`) -- without it Leader Completeness is
+   false at `2^64` entries. Nothing downstream consumes either theorem yet;
+   the 2026-10-05 redesign (global committed log) is to make `lc_core`
+   the lemma behind `step_commit`'s extension of `own_committed`.
 5c. **Two assumptions on the client `Storage` were added** (`inv_storage.v`):
    `Entries` returns a prefix of the stored entries from `lo` (its documented
    contract; `MemoryStorage` meets it). Listed so an auditor sees them.

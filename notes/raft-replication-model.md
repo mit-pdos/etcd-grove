@@ -307,6 +307,60 @@ these changes (`protocol.v`, "Logs as persistent knowledge" and
   (their comments: a third node's votes/acks are unconstrained) and stay
   admitted with the remaining obligation spelled out.
 
+**As built, leader-completeness pass (2026-10-03/05).** Both safety
+theorems are `Qed`, stated over the cluster; `protocol.v` has no
+`Admitted`. Changes (all in `protocol.v` unless said):
+
+- **Model**: `step_win` gained the premise `lastIndex() + 1 < 2^64`
+  (the code's `own_raftLog` `Hnowrap`; discharged in
+  `proof_raft__Step_MsgVoteResp.v`, threaded through
+  `step_record_then_win` in `step_lemmas.v`). Without it Leader
+  Completeness is *false* in the model: a leader that wrapped its log has
+  last id `(T, 0)`, votes for any candidate with last term `T`, and a
+  3-node counterexample loses a committed entry.
+- **Full logs** ("Full logs", before `Section model`): a node's log
+  `(b, es)` has a ghost compacted prefix `fp` (`full_ok b fp`: entries
+  `1..b.index`, ending in `b`), with records; Leader Completeness compares
+  full logs `fp ++ es` from `base0`, so snapshots are no special case.
+  `lpfull`/`lead_full γ t G` carry the leader's full log next to
+  `lead_prefix`.
+- **Campaign records** (`re_camp`, `is_camp γ c T F`, frozen at
+  `step_campaign`, `camp_ok`: well-formed, every term `< T`); a `Vote`
+  request carries the candidate's (`is_message`); a candidate's full log
+  is it, a leader's extends it (`camp_own`). `is_entry_r` now also names
+  the camp of the entry's term and `pt_ok`: the entry is past the camp's
+  end, follows its last entry or one of its own term, `pt ≤ term` (so
+  record-carrying logs have non-decreasing terms, `recs_mono`, and
+  `recs_chain` walks an entry of term `T` down to where `T`'s leader
+  started).
+- **Commit facts name the log**: `cq γ t n G` (quorum acks of `t` at
+  `≥ n`, `G` a `lead_full` of `t` with term `t` at `n`), `commit_in γ F c
+  tm` (`F` agrees with such a `G`, `t ≤ tm`, at `c`); a node keeps
+  `commit_in` of its commit index, `App`/`Heartbeat`/`Snap` carry it of
+  what they report; `is_committed` is derived. Messages from a leader
+  also carry `from ≠ 0`.
+- **Histories**: `hist γ F t i B` -- at each `j ≤ i`, `F` has what some
+  `okL` log has (a `lead_full` of a term in `[t, B)`, or a committed log of
+  an earlier term), or two such logs already disagree at or below `j`.
+  Every ack has its history for the current full log at bound `bnd s`
+  (the term, `+1` once the node has a leader or is one); a log change
+  keeps it (`hist_keep`, `hist_replace` for the cut of `step_app_accept`
+  and `step_snap_restore`).
+- **Vote records**: each vote `T ↦ c` in `voted` has `vote_just`: an
+  `is_vlog` (new map `re_vlogs`) naming the voter's full log `Fv` at vote
+  time, `c`'s camp, `Fv`'s records and `up_to_date(Fv, last camp)`;
+  `vlogs_ok` keeps, for each vote-time log, the history of every earlier
+  ack at bound `T` (a first vote is cast with `bnd s = term`).
+  `role_ok` (non-follower → voted for itself; candidate → no leader) is
+  new in `own_raft_ghost`.
+- **Theorems**: `cluster_ghost γ S := ⌜dom S = re_cfg⌝ ∗ [∗ map] id ↦ ps
+  ∈ S, own_raft_ghost γ id ps`. `lc_core` (induction on the leader's
+  term): a `cq t n F`, `t < T`, puts term `t` at `n` in every recorded log
+  reaching the end of `T`'s camp. `leader_completeness` /
+  `state_machine_safety` (cluster, primary) follow with
+  `commit_in_leader`, `cq_agree`. The receiver lemmas' statements are
+  unchanged.
+
 ### Protocol facts the code needs
 
 Several `Panicf`/`panic` paths in the replication code are dead only by

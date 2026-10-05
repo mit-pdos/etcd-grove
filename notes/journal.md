@@ -4873,3 +4873,35 @@ What remains in phase 3: the read-index `Step` arms over `own_ReadOnly`
 (`MsgReadIndex`/`MsgReadIndexResp`, `committedEntryInCurrentTerm`,
 `sendMsgReadIndexResponse`, `responseToReadIndexReq`, the
 `MsgHeartbeatResp` context path), and reconfiguration.
+
+## 2026-10-05 -- Leader Completeness and State Machine Safety Qed (cluster-wide)
+
+Branch `worktree-agent-a7ff0c459a40b2ee6`. `protocol.v` has no `Admitted`.
+
+- Statements (primary): `leader_completeness γ S id1 ps1 id2 ps2 i e` and
+  `state_machine_safety γ S id1 ps1 id2 ps2 i`, over
+  `cluster_ghost γ S := ⌜dom S = re_cfg⌝ ∗ [∗ map] id ↦ ps ∈ S,
+  own_raft_ghost γ id ps` (entries above the compaction boundaries).
+- Core: `lc_core` (induction on the leader's term): a commit fact
+  `cq t n F` with `t < T` puts term `t` at `n` in every recorded full log
+  that reaches the end of `T`'s leader's campaign log.
+- New ghost state: full logs (compacted prefix `fp`, `full_ok`), campaign
+  records (`re_camp`, `is_camp`), vote-time logs (`re_vlogs`, `is_vlog`,
+  `vlogs_ok`), acknowledgement histories (`hist`/`okL`, `hists_ok`),
+  commit facts naming the log (`cq`, `commit_in`), `pt_ok` in `is_entry_r`,
+  `role_ok`; 2026-10-05 for the pre-vote merge: winning quorums
+  (`re_wins`, `is_win`; `is_leader := ∃ q, is_win`) and a ghost known
+  leader `kl` (own_log_ghost is indexed by it; `bnd s kl` is `term+1` iff
+  `kl = Some _`), so `step_abandon` (lead forgotten at the same term) keeps
+  the history bound; a first vote cast after learning the leader records
+  that the voter is not in its winning quorum, which `lc_core` uses.
+- Model: `step_win` has a no-wrap premise (`lastIndex()+1 < 2^64`;
+  counterexample to LC without it), discharged in
+  `proof_raft__Step_MsgVoteResp.v` via `own_raftLog_nowrap`.
+- Cone (`election.vo`) green at `aa211f3a5` (before the pre-vote merge);
+  the merged file `protocol.v` + `step_lemmas.v` compile.
+- Gotcha: `iFrame` with persistent hypotheses frames *into* existentials of
+  other conjuncts (e.g. `log_recs` into `commit_in`'s `lead_full`); frame
+  the exactly-matching conjuncts (`"Hcommit Hcown ..."`) first, or use
+  explicit `iSplit`s. Also `rocq` arguments like `ltac:(lia)` inside
+  `conj`/`$!` fail because the expected type is an evar: assert first.
