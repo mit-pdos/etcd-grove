@@ -1,5 +1,8 @@
 /-
-Port of `election_proof/spec_Progress__BecomeReplicate.v`.
+Port of `election_proof/spec_Progress__BecomeReplicate.v` (feb5c73d4).
+
+Lean notes: `progress_become_replicate` is `progressBecomeReplicate` (`Defs.lean`);
+Rocq's `Progress__BecomeReplicateⁱᵐᵖˡ` is `tracker.Progress.BecomeReplicate.impl`.
 -/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
 
@@ -17,14 +20,23 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `pr.BecomeReplicate()` moves a `Progress` into the replicating state. It says
-nothing about votes, terms or roles, so the model does not see it. -/
+/-- `pr.BecomeReplicate()` moves a `Progress` into the replicating state
+(`tracker.Progress.BecomeReplicate.impl`, Rocq new/code/go_etcd_io/raft/v3/tracker.v;
+progress.go):
+
+    pr.ResetState(StateReplicate)
+    pr.Next = pr.Match + 1
+
+It says nothing about votes, terms or roles, so the model does not see it. The new
+record is `progressBecomeReplicate p` (`Defs.lean`); it leaves `matched` alone (Match
+discipline, notes/raft-replication-model.md). `pr.Match + 1` is `uint64` arithmetic
+and wraps, so it is `w64` addition. -/
 abbrev tracker.Progress.BecomeReplicate.spec : Prop :=
-  ∀ (pr : Loc) (pv : tracker.Progress) (iv : tracker.Inflights),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ ownProgress pr pv iv }}
+  ∀ (pr : Loc) (p : Progress),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ ownProgress pr p }}
     (App (Val (pr @!! go.GoType.PointerType tracker.Progress.ty @!! go!"BecomeReplicate"))
       (Val #()))
-  {{ RET #(); ∃ pv' iv', ownProgress pr pv' iv' }}
+  {{ RET #(); ownProgress pr (progressBecomeReplicate p) }}
 
 end spec
 

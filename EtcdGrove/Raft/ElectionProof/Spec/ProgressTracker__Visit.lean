@@ -1,6 +1,4 @@
-/-
-Port of `election_proof/spec_ProgressTracker__Visit.v`.
--/
+/- Port of election_proof/spec_ProgressTracker__Visit.v (feb5c73d4). -/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
 
 noncomputable section
@@ -52,7 +50,7 @@ conjuncts, which is the same failure as the `r.step` one; see main's notes/STATU
 table.
 
 **The repair**, applied: `trk ↦ tv` in the pre- and postcondition, and lent to the
-closure as well (`visitClosure cfg trk votes prs f I`, `InvTracker.lean`). Lending is
+closure as well (`visitClosure cfg trk t.votes t.prs f I`, `InvTracker.lean`). Lending is
 necessary, not cosmetic -- see that definition's comment. `proof_raft__reset.v` keeps
 the field split out with its `raft_split_trk` instead of re-assembling it after
 `ResetVotes`, and its closure applies the continuation wand to read
@@ -104,20 +102,20 @@ it is defined, `InvTracker.lean`):
   in it. `ownRaftPhys` hides the struct value, so a closure that calls back into the
   raft struct cannot promise to return the field at the value it was handed.
 
-The loop invariant here therefore carries `trk ↦ tv'` and `ownTracker cfg tv' votes`
+The loop invariant here therefore carries `trk ↦ tv'` and `ownTracker cfg tv' t`
 at a value that moves, and re-splits one `Progress` out each iteration with
 `ownTracker_lookup` -- which is possible only because the progress map is now held
 read-only, so the key/pointer fact survives the rebuild. -/
 abbrev tracker.ProgressTracker.Visit.spec : Prop :=
-  ∀ (cfg : GSet w64) (trk : Loc) (tv : tracker.ProgressTracker) (votes : GMap w64 Bool)
-    (prs : GMap w64 Loc) (pvs : GMap w64 (tracker.Progress × tracker.Inflights))
-    (f : GoFunc) (I : IProp GF),
+  ∀ (cfg : GSet w64) (trk : Loc) (tv : tracker.ProgressTracker) (t : Trk) (f : GoFunc)
+    (I : GSet w64 → GMap w64 Progress → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ trk ↦ tv ∗
-      ownTracker cfg tv votes prs pvs ∗ I ∗
-      □ visitClosure cfg trk votes prs f I }}
+      ownTracker cfg tv t ∗ I ∅ t.peers ∗
+      □ visitClosure cfg trk t.votes t.prs f I }}
     (App (Val (trk @!! go.GoType.PointerType tracker.ProgressTracker.ty @!! go!"Visit"))
       (Val #f))
-  {{ RET #(); ∃ tv' pvs', trk ↦ tv' ∗ ownTracker cfg tv' votes prs pvs' ∗ I }}
+  {{ RET #(); ∃ tv' pvs', trk ↦ tv' ∗ ownTracker cfg tv' ⟨t.votes, t.prs, pvs'⟩ ∗
+      I cfg pvs' }}
 
 end spec
 

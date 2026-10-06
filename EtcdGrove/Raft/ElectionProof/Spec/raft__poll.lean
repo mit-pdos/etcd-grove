@@ -1,7 +1,8 @@
 /-
-Port of `election_proof/spec_raft__poll.v`.
+Port of election_proof/spec_raft__poll.v (feb5c73d4).
 
-Lean notes: the Rocq binder `from` is `src` (`from` is a Lean keyword), as in
+Lean notes:
+the Rocq binder `from` is `src` (`from` is a Lean keyword), as in
 `recordVote`. The postcondition's `let votes' := …` is kept; its body is wrapped in
 `iprop(…)` so that the separating conjunction elaborates after the `let`. The return
 `(#g, #rj, #res)` is `PairV (PairV #g #rj) #res`.

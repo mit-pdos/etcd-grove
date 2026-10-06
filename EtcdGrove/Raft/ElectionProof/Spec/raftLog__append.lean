@@ -1,7 +1,16 @@
 /-
-Port of `election_proof/spec_raftLog__append.v`.
+Port of `election_proof/spec_raftLog__append.v` (feb5c73d4).
+
+Lean notes:
+* `ents !! 0%nat = Some e0` is `ents[0]? = some e0`; the chained `a < b ≤ c` is
+  `a < b ∧ b ≤ c`; `Forall P ents` is `∀ e ∈ ents, P e`.
+* `log_adopts`/`log_truncate_append` (`InvRaftlog.lean`) are `logAdopts`/
+  `logTruncateAppend`, `plog_truncate_append` (`Plog.lean`) is `plogTruncateAppend`;
+  `DfracDiscarded` is `DFrac.discard`. `logAdopts` is a `Bool`, so the two `if`s are
+  on it directly, their branches written as `iprop(…)`.
 -/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
+import EtcdGrove.Raft.ElectionProof.Plog
 
 noncomputable section
 
@@ -17,10 +26,9 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `l.append(ents)`: add a batch to the end of the log, returning the new last index
-(`raftLog.append.impl`, `Perennial/Code/go_etcd_io/raft/v3.lean`).
-
-The body is short and has one panic:
+/-- `l.append(ents)`: splice a batch into the log, truncating whatever it overwrites,
+and return the new last index (`raftLog.append.impl`,
+`Perennial/Code/go_etcd_io/raft/v3.lean`; Rocq new/code/go_etcd_io/raft/v3.v:599).
 
     if len(ents) == 0 { return l.lastIndex() }
     if after := ents[0].Index - 1; after < l.committed {
@@ -29,42 +37,56 @@ The body is short and has one panic:
     l.unstable.truncateAndAppend(ents)
     return l.lastIndex()
 
-The postcondition *names* the new state: `ls` with `uents ++ ents` as the unstable
-suffix.
+**Widened 2026-10-01** from "the batch continues the log" to any batch starting inside
+or right after it, which is what `maybeAppend` needs (it appends the suffix of a
+`MsgApp` from the first conflict on). The new state is `logTruncateAppend ls ents`
+(`InvRaftlog.lean`); its entries are `plogTruncateAppend prev (sents ++ uents) ents`
+(`Plog.lean`), which the postcondition states. A batch starting in the stable part
+shrinks the visible stable part `sents` and becomes the whole unstable suffix (the
+shadowed storage tail stays in `Storage`).
 
-The premises are what makes the batch a legal continuation of the log, and they are
-exactly what discharges the `Panicf`:
+Premises (for a non-empty batch, `e0 = ents[0]`):
 
-- `Hidx`: the whole log, batch included, still has contiguous indices from
-  `prev.index+1`. In particular `ents[0].Index` is `prev.index+|sents|+|uents|+1`, so
-  `after` is the current last index, which is `≥ l.committed` by `ownRaftLog`'s
-  `Hcommitted` -- the panic is dead code, not assumed away. It also fixes the `after`
-  subtraction: `ents[0].Index ≥ 1`, so it does not wrap.
-- `Hnorm`: the batch holds no configuration change, which is what keeps `ownRaftLog`'s
-  `HnoConfChange` true of the longer log. Under this development's scope no
-  configuration change is ever proposed (`InvRaftlog.lean`), so a caller supplies it
-  from the entry it built.
-- `Hnowrap`: the *new* last index still leaves room, i.e.
-  `prev.index + |sents| + |uents| + |ents| + 1 < 2^64`. `ownRaftLog` asserts this bound
-  at the old length and a longer log needs it at the new one, so it cannot be derived
-  and has to be asked for. See `Spec/raft__appendEntry.lean` for where the caller gets
-  it.
+- `committed < e0.Index <= lastIndex() + 1`: the upper bound is `truncateAndAppend`'s
+  (a gap would be a `Panicf` in `u.slice`); the lower bound makes the `Panicf` above
+  dead (`after = e0.Index - 1 >= committed`) -- the protocol fact "an accepted `MsgApp`
+  never rewrites a committed entry" (`raft-replication-model.md`, "Protocol facts the
+  code needs") -- and keeps `committed` inside the new log;
+- contiguous indices from `e0.Index` and `e0.Index + |ents| < 2^64`: the new log is
+  `LogIndicesOk` and does not wrap. `ownRaftLog` cannot carry a bound that survives a
+  longer log (`InvRaftlog.lean`), so the caller supplies it;
+- no configuration change in the batch (`HnoConfChange`'s scope).
 
-The batch is *lent*: `truncateAndAppend` copies the entry values into
-`unstable.entries`, so `es` comes back at the caller's fraction. -/
+**The batch**: lent and returned unless `logAdopts ls ents` -- the batch starts at or
+below the unstable offset without continuing the suffix -- in which case
+`truncateAndAppend` adopts the slice itself as `u.entries`, and the caller hands it
+over read-only with its capacity (`Spec/unstable__truncateAndAppend.lean`).
+`appendEntry`'s batch continues the log, so for it `logAdopts` is `false`
+(`logTruncateAppend_cont`). -/
 abbrev raftLog.append.spec : Prop :=
   ∀ (l : Loc) (ls : LogState) (ents : List raftpb.Entry) (es : GoSlice) (dq : DFrac),
-  LogIndicesOk ls.prev (ls.sents ++ ls.uents ++ ents) →
+  (∀ e0, ents[0]? = some e0 →
+     (uint.Z ls.committed < uint.Z e0.Index' ∧
+      uint.Z e0.Index' ≤ uint.Z ls.prev.index' + (ls.sents.length : Int)
+        + (ls.uents.length : Int) + 1) ∧
+     (∀ (k : Nat) e, ents[k]? = some e →
+        uint.Z e.Index' = uint.Z e0.Index' + (k : Int)) ∧
+     uint.Z e0.Index' + (ents.length : Int) < 2^64) →
   (∀ e ∈ ents, e.Type' = EntryNormal) →
-  uint.Z ls.prev.index' + (ls.sents.length : Int) + (ls.uents.length : Int)
-    + (ents.length : Int) + 1 < 2^64 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls ∗
-      "Hes" ∷ es ↦*{dq} ents }}
+      "Hes" ∷ es ↦*{dq} ents ∗
+      "Hadopt" ∷ (if logAdopts ls ents
+                  then iprop(⌜dq = DFrac.discard⌝ ∗ ownSliceCap raftpb.Entry es (DFrac.own 1))
+                  else iprop(True)) }}
     (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"append")) (Val #es))
   {{ (li : w64), RET #li;
-      ownRaftLog l { ls with uents := ls.uents ++ ents } ∗ es ↦*{dq} ents ∗
-      ⌜uint.Z li = uint.Z ls.prev.index' + (ls.sents.length : Int)
-                   + (ls.uents.length : Int) + (ents.length : Int)⌝ }}
+      ownRaftLog l (logTruncateAppend ls ents) ∗
+      (if logAdopts ls ents then iprop(True) else iprop(es ↦*{dq} ents)) ∗
+      ⌜(logTruncateAppend ls ents).sents ++ (logTruncateAppend ls ents).uents
+          = plogTruncateAppend ls.prev (ls.sents ++ ls.uents) ents ∧
+        uint.Z li = uint.Z ls.prev.index'
+                    + ((logTruncateAppend ls ents).sents.length : Int)
+                    + ((logTruncateAppend ls ents).uents.length : Int)⌝ }}
 
 end spec
 

@@ -1,8 +1,8 @@
 /-
-Port of `election_proof/spec_ProgressTracker__VoterNodes.v`.
+Port of `election_proof/spec_ProgressTracker__VoterNodes.v` (feb5c73d4).
 
-Lean notes: Rocq leaves the types of `tv` and `votes` implicit; they are written out
-(`tracker.ProgressTracker`, `GMap w64 Bool`, as in `ownTracker`). `elements cfg` is
+Lean notes: Rocq leaves the type of `tv` implicit; it is written out
+(`tracker.ProgressTracker`, as in `ownTracker`). Rocq's `trk.t` record is `Trk`. `elements cfg` is
 `GMap.elements cfg`.
 -/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
@@ -24,14 +24,13 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `p.VoterNodes()` is the voter ids, sorted. As for `MajorityConfig.Slice`, only the
 permutation is stated. `newRaft` uses it only to build a log line. -/
 abbrev tracker.ProgressTracker.VoterNodes.spec : Prop :=
-  ∀ (cfg : GSet w64) (trk : Loc) (tv : tracker.ProgressTracker) (votes : GMap w64 Bool)
-    (prs : GMap w64 Loc) (pvs : GMap w64 (tracker.Progress × tracker.Inflights)),
+  ∀ (cfg : GSet w64) (trk : Loc) (tv : tracker.ProgressTracker) (t : Trk),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ trk ↦ tv ∗
-      ownTracker cfg tv votes prs pvs }}
+      ownTracker cfg tv t }}
     (App (Val (trk @!! go.GoType.PointerType tracker.ProgressTracker.ty @!! go!"VoterNodes"))
       (Val #()))
   {{ (sl : GoSlice) (xs : List w64), RET #sl;
-      trk ↦ tv ∗ ownTracker cfg tv votes prs pvs ∗
+      trk ↦ tv ∗ ownTracker cfg tv t ∗
       sl ↦* xs ∗ ⌜xs ≡ₚ GMap.elements cfg⌝ }}
 
 end spec

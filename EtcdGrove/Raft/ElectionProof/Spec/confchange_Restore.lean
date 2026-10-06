@@ -1,5 +1,5 @@
 /-
-Port of `election_proof/spec_confchange_Restore.v`.
+Port of `election_proof/spec_confchange_Restore.v` (feb5c73d4).
 
 Lean notes:
 * Rocq's `(#cfgv, #prsm, #interface.nil)` is the left-nested
@@ -89,7 +89,7 @@ abbrev confchange.Restore.spec : Prop :=
         cfgv.AutoLeave' = false⌝ ∗
       vref ↦$ vm ∗ ⌜domSet vm = GMap.listToSet voters⌝ ∗
       prsm ↦$ prs ∗ ⌜domSet prs = GMap.listToSet voters⌝ ∗
-      ([∗map] _k ↦ pr ∈ prs, ∃ pv iv, ownProgress pr pv iv) }}
+      ([∗map] _k ↦ pr ∈ prs, ∃ p, ownProgress pr p) }}
 
 end spec
 

@@ -1,10 +1,8 @@
-/-
-Port of `election_proof/spec_raft__becomeLeader.v`.
+/- Port of election_proof/spec_raft__becomeLeader.v (feb5c73d4).
 
-Lean notes:
-* Rocq's `become_leader id s <| nstate.prvals := pvs |>` is
-  `{ becomeLeader id s with prvals := pvs }`, and the type of the untyped binder `pvs`
-  is written out.
+Lean notes: Rocq's `become_leader id s <| nstate.prvals := pvs |>` is
+`{ becomeLeader id s with prvals := pvs }`, and the type of the untyped binder `pvs` is
+written out.
 -/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
 
@@ -23,16 +21,20 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `becomeLeader` is `reset`, the role transition, marking its own `Progress`
-replicating, and the empty entry. `id ∈ cfg` is needed because only voters are in the
-`Progress` map. -/
+replicating, and the empty entry, which `appendEntry` acknowledges with a
+self-addressed `MsgAppResp` (`becomeLeader`, `Defs.lean`). `id ∈ cfg` is needed because
+only voters are in the `Progress` map. -/
 abbrev raft.becomeLeader.spec : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState),
   s.role ≠ .follower →
   id ∈ cfg →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"becomeLeader")) (Val #()))
-  {{ (pvs : GMap w64 (tracker.Progress × tracker.Inflights)), RET #();
-      ownRaftPhys cfg r id { becomeLeader id s with prvals := pvs } }}
+  {{ (pvs : GMap w64 Progress), RET #();
+      ownRaftPhys cfg r id { becomeLeader id s with prvals := pvs } ∗
+      -- `Match` is what `reset` left: `BecomeReplicate` and the `RecentActive` store do
+      -- not move it, and `appendEntry` does not touch a `Progress`
+      ⌜prvalsMatch pvs = resetMatched id (logLast s.logst) s.prvals⌝ }}
 
 end spec
 

@@ -1,6 +1,4 @@
-/-
-Port of `election_proof/spec_voteRespMsgType.v`.
--/
+/- Port of election_proof/spec_voteRespMsgType.v (feb5c73d4). -/
 import EtcdGrove.Raft.ElectionProof.Defs
 
 noncomputable section
@@ -17,13 +15,16 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `voteRespMsgType(MsgVote)` is `MsgVoteResp`. -/
+/-- `voteRespMsgType` maps a vote request to its response type: `MsgVote` to
+`MsgVoteResp`, and (since 2026-10-04) `MsgPreVote` to `MsgPreVoteResp`. Any other type
+panics. Stated as a relation between `t` and the result `r`, so that a caller names the
+result it expects. -/
 abbrev voteRespMsgType.spec : Prop :=
-  ∀ (t : w32),
-  t = MsgVote →
+  ∀ (t r : w32),
+  (t = MsgVote ∧ r = MsgVoteResp) ∨ (t = MsgPreVote ∧ r = MsgPreVoteResp) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 }}
     (App (Val #(functions voteRespMsgType [])) (Val #t))
-  {{ RET #MsgVoteResp; True }}
+  {{ RET #r; True }}
 
 end spec
 

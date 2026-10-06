@@ -1,5 +1,5 @@
 /-
-Port of `election_proof/spec_rand_Int.v`.
+Port of election_proof/spec_rand_Int.v (feb5c73d4).
 -/
 import EtcdGrove.Raft.ElectionProof.InvBig
 

@@ -1,9 +1,9 @@
 /-
-Port of `election_proof/spec_ProgressTracker__RecordVote.v`.
+Port of election_proof/spec_ProgressTracker__RecordVote.v (feb5c73d4).
 
 Lean notes: the Rocq binder `from` is `src` (`from` is a Lean keyword). Rocq leaves
-the types of `tv` and `votes` implicit; they are written out (`tracker.ProgressTracker`,
-`GMap w64 Bool`, as in `ownTracker`).
+the type of `tv` implicit; it is written out (`tracker.ProgressTracker`, as in
+`ownTracker`).
 -/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
 
@@ -24,14 +24,14 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `RecordVote` only inserts into the map `p.Votes` already refers to, so the tracker
 value is unchanged. First write wins, which is `recordVote`. -/
 abbrev tracker.ProgressTracker.RecordVote.spec : Prop :=
-  ∀ (cfg : GSet w64) (trk : Loc) (tv : tracker.ProgressTracker) (votes : GMap w64 Bool)
-    (prs : GMap w64 Loc) (pvs : GMap w64 (tracker.Progress × tracker.Inflights))
+  ∀ (cfg : GSet w64) (trk : Loc) (tv : tracker.ProgressTracker) (t : Trk)
     (src : w64) (v : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ trk ↦ tv ∗
-      ownTracker cfg tv votes prs pvs }}
+      ownTracker cfg tv t }}
     (App (App (Val (trk @!! go.GoType.PointerType tracker.ProgressTracker.ty @!! go!"RecordVote"))
       (Val #src)) (Val #v))
-  {{ RET #(); trk ↦ tv ∗ ownTracker cfg tv (recordVote votes src v) prs pvs }}
+  {{ RET #(); trk ↦ tv ∗
+      ownTracker cfg tv { t with votes := recordVote t.votes src v } }}
 
 end spec
 

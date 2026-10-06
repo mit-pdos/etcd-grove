@@ -1,5 +1,8 @@
 /-
-Port of `election_proof/spec_JointConfig__IDs.v`.
+Port of `election_proof/spec_JointConfig__IDs.v` (feb5c73d4).
+
+Lean notes: the type of Rocq's untyped binder `tv` is written out
+(`tracker.ProgressTracker`); Rocq's `trk.t` record is `Trk`.
 -/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
 
@@ -68,14 +71,13 @@ one; do not weaken it.
 It is now unblocked too and should be discharged. -/
 abbrev quorum.JointConfig.IDs.spec : Prop :=
   ∀ (cfg : GSet w64),
-  ∀ (trk : Loc) (tv : tracker.ProgressTracker) (votes : GMap w64 Bool) (prs : GMap w64 Loc)
-    (pvs : GMap w64 (tracker.Progress × tracker.Inflights)),
+  ∀ (trk : Loc) (tv : tracker.ProgressTracker) (t : Trk),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.quorum ∗ trk ↦ tv ∗
-      ownTracker cfg tv votes prs pvs }}
+      ownTracker cfg tv t }}
     (App (Val (((trk.[tracker.ProgressTracker, go!"Config"]).[tracker.Config, go!"Voters"])
       @!! go.GoType.PointerType quorum.JointConfig.ty @!! go!"IDs")) (Val #()))
   {{ (mref : Loc) (idm : GMap w64 Unit), RET #mref;
-      trk ↦ tv ∗ ownTracker cfg tv votes prs pvs ∗
+      trk ↦ tv ∗ ownTracker cfg tv t ∗
       mref ↦$ idm ∗ ⌜domSet idm = cfg⌝ }}
 
 end spec

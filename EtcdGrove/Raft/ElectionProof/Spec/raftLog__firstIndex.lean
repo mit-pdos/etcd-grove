@@ -1,6 +1,4 @@
-/-
-Port of `election_proof/spec_raftLog__firstIndex.v`.
--/
+/- Port of election_proof/spec_raftLog__firstIndex.v (feb5c73d4). -/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
 
 noncomputable section

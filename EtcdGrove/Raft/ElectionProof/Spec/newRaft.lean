@@ -1,5 +1,4 @@
-/-
-Port of `election_proof/spec_newRaft.v`.
+/- Port of election_proof/spec_newRaft.v (feb5c73d4).
 
 # `newRaft`: the constructor of `ownRaftPhys`
 
@@ -22,12 +21,18 @@ are, in order:
   `MaxInflightMsgs ≥ 2^62`** (found writing this spec, 2026-09-24). Not a bug a real run
   can hit -- the buffer only grows to `2^62` with that many messages in flight -- but a
   gap between what raft accepts and what the proof covers.
-- the development's scope: `PreVote = CheckQuorum = false`.
-- the storage's contents (`ownStorage (interface.ok si) prev ents`): contiguous indices
-  and **no configuration-change entry**. The second is `HnoConfChange`'s scope
-  assumption and is false of a node `RawNode.Bootstrap` just bootstrapped
-  (notes/STATUS.md).
-- `Storage.InitialState` returns `(hs, cs, nil)` and lends `cs.Voters`. This is a
+- the development's scope: `CheckQuorum = false`, and `DisableProposalForwarding =
+  false` (a follower forwards proposals; since 2026-10-02, for `stepFollower`'s
+  forwarding arm). `PreVote` is either value since 2026-10-04: the state records it
+  (`NState.prevote`).
+- the storage's contents (`ownStorage (interface.ok si) prev ents ss`): contiguous
+  indices and **no configuration-change entry**, and a snapshot `ss` that is empty or the
+  compaction boundary (since 2026-10-03; `Spec/newLogWithSize.lean` says why). The second
+  is `HnoConfChange`'s scope assumption and is false of a node `RawNode.Bootstrap` just
+  bootstrapped (notes/STATUS.md).
+- `Storage.InitialState` returns `(hs, cs, nil)` and lends `cs.Voters` (whatever the
+  storage's snapshot index `ss'` is by then: the log built by `newLogWithSize` does not
+  expose it). This is a
   premise, not a clause of `isStorage`: it is a fact about one storage at one moment,
   and nothing else calls the method.
 - `hs.Commit` lies in `[prev.index, lastIndex]` unless `hs` is empty (else `loadState`
@@ -91,7 +96,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `newRaft(c)`: see the file header. -/
 abbrev newRaft.spec : Prop :=
   ∀ (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
-    (prev : entryID) (ents : List raftpb.Entry)
+    (prev : entryID) (ents : List raftpb.Entry) (ss : entryID)
     (hs : raftpb.HardState) (cs : raftpb.ConfState)
     (voters : List w64) (dqv : DFrac),
   -- the Config
@@ -99,11 +104,12 @@ abbrev newRaft.spec : Prop :=
   cv.Logger' = interface.ok lok →
   cv.Storage' = interface.ok si →
   sint.Z cv.MaxInflightMsgs' < 2 ^ 62 →
-  cv.PreVote' = false →
   cv.CheckQuorum' = false →
+  cv.DisableProposalForwarding' = false →
   -- the stored log
   LogIndicesOk prev ents →
   (∀ e ∈ ents, e.Type' = EntryNormal) →
+  (uint.Z ss.index' = 0 ∨ ss = prev) →
   -- the persisted HardState
   (¬ HsEmpty hs →
    uint.Z prev.index' ≤ uint.Z hs.Commit' ∧
@@ -118,9 +124,9 @@ abbrev newRaft.spec : Prop :=
   cs.LearnersNext'.len = W64 0 →
   cs.AutoLeave' = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
-      isStorage (interface.ok si) ∗ ownStorage (interface.ok si) prev ents ∗
-      □ (∀ Φ : val → IProp GF, ownStorage (interface.ok si) prev ents -∗
-           (ownStorage (interface.ok si) prev ents -∗
+      isStorage (interface.ok si) ∗ ownStorage (interface.ok si) prev ents ss ∗
+      □ (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) prev ents ss' -∗
+           (ownStorage (interface.ok si) prev ents ss' -∗
             cs.Voters' ↦*{dqv} voters -∗
             Φ (PairV (PairV #hs #cs) #interface.nil)) -∗
            WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) }}
@@ -131,7 +137,8 @@ abbrev newRaft.spec : Prop :=
         s.term = hs.Term' ∧
         s.vote = hs.Vote' ∧
         s.lead = W64 0 ∧ s.role = .follower ∧
-        s.votes = ∅ ∧ s.outbox = []⌝ }}
+        s.votes = ∅ ∧ s.outbox = [] ∧
+        s.prevote = cv.PreVote'⌝ }}
 
 end spec
 

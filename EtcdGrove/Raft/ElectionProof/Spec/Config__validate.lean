@@ -1,6 +1,4 @@
-/-
-Port of `election_proof/spec_Config__validate.v`.
--/
+/- Port of election_proof/spec_Config__validate.v (feb5c73d4). -/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
 
 noncomputable section
@@ -41,6 +39,7 @@ def ConfigPreserved (cv cv' : Config) : Prop :=
   cv'.MaxInflightMsgs' = cv.MaxInflightMsgs' ∧
   cv'.CheckQuorum' = cv.CheckQuorum' ∧
   cv'.PreVote' = cv.PreVote' ∧
+  cv'.DisableProposalForwarding' = cv.DisableProposalForwarding' ∧
   cv'.Logger' = cv.Logger'
 
 end defs

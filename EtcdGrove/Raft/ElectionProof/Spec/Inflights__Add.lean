@@ -1,5 +1,5 @@
 /-
-Port of `election_proof/spec_Inflights__Add.v`.
+Port of election_proof/spec_Inflights__Add.v (feb5c73d4).
 -/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
 
@@ -23,24 +23,24 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 Two things make the premise necessary rather than convenient.
 
 1. The body opens with `if in.Full() { panic("cannot add into a Full inflights") }`.
-   A triple without `inflightsFull iv = false` would be false, not merely weak.
+   A triple without `inflightsFull i = false` would be false, not merely weak.
 2. It then writes `in.buffer[(in.start+in.count) mod in.size]`, growing the buffer on
    demand. That the slot is in range is the content of `InflightsOk` in
    `ownInflights` (`InvTracker.lean`); without it the triple is *also* false
    (start = 100, count = 0, size = 1000, empty buffer is not `Full`, grows to one slot
    and indexes slot 100).
 
-The resulting `Inflights` value is existential: nothing on the election path reads the
-window back. `SentEntries` immediately re-tests `Full()`, and stores the answer in
-`MsgAppFlowPaused`, which only `IsPaused` reads -- and either answer there is fine. -/
+The new record is `inflightsAdd i bytes` (`Defs.lean`): one more message, `bytes` more
+bytes (wrapping, as `uint64`). `SentEntries` immediately re-tests `Full()` on it.
+(Until 2026-10-02 the result was existential, on `ownInflights` at the Goose value.) -/
 abbrev tracker.Inflights.Add.spec : Prop :=
-  ∀ (l : Loc) (iv : tracker.Inflights) (buf : List tracker.inflight) (index bytes : w64),
-  inflightsFull iv = false →
+  ∀ (l : Loc) (i : Inflights) (index bytes : w64),
+  inflightsFull i = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗
-      "Hin" ∷ ownInflights l iv buf }}
+      "Hin" ∷ ownInflights l i }}
     (App (App (Val (l @!! go.GoType.PointerType tracker.Inflights.ty @!! go!"Add"))
       (Val #index)) (Val #bytes))
-  {{ RET #(); ∃ iv' buf', ownInflights l iv' buf' }}
+  {{ RET #(); ownInflights l (inflightsAdd i bytes) }}
 
 end spec
 

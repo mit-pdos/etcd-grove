@@ -1,4 +1,9 @@
-/- Port of election_proof/spec_raft__maybeSendAppend.v. -/
+/- Port of election_proof/spec_raft__maybeSendAppend.v (feb5c73d4).
+
+Lean notes: Rocq's `send_msgs s ms <| nstate.prvals := pvs |>` is
+`{ sendMsgs s ms with prvals := pvs }`, and the type of the untyped binder `pvs` is
+written out.
+-/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
 
 noncomputable section
@@ -23,13 +28,16 @@ statement true of all four:
 
   - `pr.IsPaused()` -> nothing sent, `false`;
   - `r.raftLog.term(pr.Next-1)` errors -> `maybeSendSnapshot`, which sends a `MsgSnap`
-    (model-invisible) or nothing;
+    or nothing;
   - no entries and `!sendIfEmpty` -> nothing sent, `false`;
   - otherwise one `MsgApp` to `to` at `r.Term`.
 
-So: the outbox grows by *some* list of `App`s from `id` at the current term -- in fact
-zero or one, but nothing above needs that, and saying "one" would be false. This is the
-same weakening as `raft.bcastAppend.spec`'s.
+So: the outbox grows by *some* list of messages `ReplOk` allows (`Protocol/Model.lean`:
+an `App` from `id` to `to` at the current term, carrying entries of the log and a
+commit index no larger than the log's, or a `Snap`) -- in fact zero or one, but nothing
+above needs that, and saying "one" would be false. This is the same weakening as
+`raft.bcastAppend.spec`'s. (Until 2026-10-01: `AppSends`, `App`s with only the sender
+and term pinned.)
 
 The premises. `to ≠ id` is what `send_ok`'s `MsgApp` clause needs (`send` panics on a
 self-addressed `MsgApp`); `bcastAppend`'s closure tests `id == r.id` and returns first.
@@ -44,10 +52,11 @@ abbrev raft.maybeSendAppend.spec : Prop :=
       "Hphys" ∷ ownRaftPhys cfg r id s }}
     (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"maybeSendAppend"))
       (Val #to)) (Val #sendIfEmpty))
-  {{ (b : Bool) (ms : List Msg) (pvs : GMap w64 (tracker.Progress × tracker.Inflights)),
-      RET #b;
+  {{ (b : Bool) (ms : List Msg) (pvs : GMap w64 Progress), RET #b;
       ownRaftPhys cfg r id { sendMsgs s ms with prvals := pvs } ∗
-      ⌜AppSends id s.term ms⌝ }}
+      ⌜ReplSends id s ms⌝ ∗
+      -- `SentEntries`, `SentCommit`, `BecomeSnapshot` leave `Match` alone
+      ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}
 
 end spec
 

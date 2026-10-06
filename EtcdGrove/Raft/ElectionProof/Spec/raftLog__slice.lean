@@ -1,8 +1,11 @@
 /-
-Port of `election_proof/spec_raftLog__slice.v`.
+Port of election_proof/spec_raftLog__slice.v (feb5c73d4).
 
-Lean notes: the return `(#s, #interface.nil)` is `PairV #s #interface.nil`;
-`Z.of_nat (length es)` is `(es.length : Int)`.
+Lean notes:
+* The return `(#s, #interface.nil)` is `PairV #s #interface.nil`;
+  `Z.of_nat (length es)` is `(es.length : Int)`; `` `prefix_of` `` is `<+:`.
+* `plog_from` is `plogFrom` (`Plog.lean`, imported through `InvRaftPhys`; the Rocq
+  file does not `Require` `plog` either).
 -/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
 
@@ -59,7 +62,9 @@ abbrev raftLog.slice.spec : Prop :=
       ownRaftLog l ls ∗ s ↦*□ es ∗
       ⌜es ≠ [] ∧
         (es.length : Int) ≤ uint.Z hi - uint.Z lo ∧
-        (∀ e, e ∈ es → e ∈ ls.sents ++ ls.uents)⌝ }}
+        (∀ e, e ∈ es → e ∈ ls.sents ++ ls.uents) ∧
+        -- the log's entries at `[lo, lo+1, ...]`, cut short by `maxSize`
+        es <+: plogFrom ls.prev (ls.sents ++ ls.uents) lo⌝ }}
 
 end spec
 

@@ -1,5 +1,7 @@
-/-
-Port of `election_proof/spec_unstable__slice.v`.
+/- Port of election_proof/spec_unstable__slice.v (feb5c73d4).
+
+Lean notes: Rocq's `Z.to_nat` is `Int.toNat`; `subslice` is Perennial's
+(`Perennial/Std/List.lean`, `(l.take m).drop n` as in Rocq).
 -/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
 
@@ -44,7 +46,9 @@ abbrev unstable.slice.spec : Prop :=
       ownUnstable u uv uents ∗ s ↦*□ es ∗
       ⌜(es.length : Int) = uint.Z hi - uint.Z lo ∧
         (∀ e, e ∈ es → e ∈ uents) ∧
-        s.cap = s.len⌝ }}
+        s.cap = s.len ∧
+        es = subslice (uint.Z lo - uint.Z uv.offset').toNat
+               (uint.Z hi - uint.Z uv.offset').toNat uents⌝ }}
 
 end spec
 

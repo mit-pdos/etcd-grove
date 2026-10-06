@@ -1,5 +1,8 @@
 /-
-Port of `election_proof/spec_raftLog__entries.v`.
+Port of `election_proof/spec_raftLog__entries.v` (feb5c73d4).
+
+Lean notes: ``es `prefix_of` l`` is `es <+: l`; `plog_from` is `plogFrom` (`Plog.lean`,
+reached through `InvRaftPhys`, as in Rocq).
 -/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
 
@@ -41,7 +44,11 @@ abbrev raftLog.entries.spec : Prop :=
     (App (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"entries")) (Val #i))
       (Val #maxSize))
   {{ (s : GoSlice) (es : List raftpb.Entry), RET (PairV #s #interface.nil);
-      ownRaftLog l ls ∗ s ↦*□ es }}
+      ownRaftLog l ls ∗ s ↦*□ es ∗
+      -- every entry returned is an entry of the log, and they are the log's from `i` on,
+      -- cut short by `maxSize` (`raftLog.slice`)
+      ⌜(∀ e, e ∈ es → e ∈ ls.sents ++ ls.uents) ∧
+        es <+: plogFrom ls.prev (ls.sents ++ ls.uents) i⌝ }}
 
 end spec
 

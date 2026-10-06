@@ -1,4 +1,4 @@
-/- Port of election_proof/spec_raftLog__scan.v. -/
+/- Port of election_proof/spec_raftLog__scan.v (feb5c73d4). -/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
 
 noncomputable section

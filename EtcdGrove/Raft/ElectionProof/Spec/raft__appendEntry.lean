@@ -1,6 +1,7 @@
-/- Port of election_proof/spec_raft__appendEntry.v.
+/- Port of election_proof/spec_raft__appendEntry.v (feb5c73d4).
 
 Lean notes: Rocq's `imap` is `List.mapIdx` (same argument order: index, then element).
+The Rocq `Forall (λ e, …) ents` premises are `∀ e ∈ ents, …`.
 -/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
 
@@ -18,12 +19,15 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- Out of scope: the empty entry a new leader appends. `appendEntry` stamps the
-current term and the next indices into the caller's batch, charges it against the
-uncommitted-entry budget, appends it to the log and then queues a self-addressed
-`MsgAppResp` (`raft.appendEntry.impl`, `Perennial/Code/go_etcd_io/raft/v3.lean`).
-`mtypeOf MsgAppResp = none`, so `absMsgOpt` drops it and the abstract state -- outbox
-included -- is unchanged.
+/-- `appendEntry` stamps the current term and the next indices into the caller's batch,
+charges it against the uncommitted-entry budget, appends it to the log and then queues
+a self-addressed `MsgAppResp` at the new last index (`raft.appendEntry.impl`,
+`Perennial/Code/go_etcd_io/raft/v3.lean`: `r.send(pb.Message{To: r.id, Type:
+pb.MsgAppResp, Index: li})`, `li` what `raftLog.append` returned). Since 2026-10-01
+`MsgAppResp` has an abstraction, so the outbox grows by that message, `selfAck`
+(`Defs.lean`): the leader acknowledging its own append, which the model's `Step.win`
+and `Step.propose` send. (Until then `mtypeOf MsgAppResp = none` and the abstract outbox
+was unchanged.)
 
 Three pieces of history, because this claim has been wrong before. Its form before
 2026-09-15 owned only `ownRaftLog` while the code it describes writes
@@ -42,12 +46,12 @@ the body for.
 element* of the slice (`raft.appendEntry.impl`'s `slice.for_range`), so a triple that
 does not own `es` asserts the safety of a write to memory it has no claim on -- the
 `ProgressTracker.Visit` mistake again, one level out: not "own the receiver's fields"
-but "own what you write". `es ↦* ents` is now a precondition and comes back
-existentially quantified, since the method has overwritten two fields of each entry.
-It does come back: `raftLog.append` copies the entry *values* into `unstable.entries`,
-so the caller's slice is not consumed. (The witness is `ents` with `Term := r.Term` and
-`Index := lastIndex()+1+k` in each element; naming it here would pin `r.Term` and the
-log's length, neither of which `ownRaftPhys` exposes, and no caller needs it.)
+but "own what you write". `es ↦* ents` is now a precondition. It comes back:
+`raftLog.append` copies the entry *values* into `unstable.entries`, so the caller's
+slice is not consumed -- and since 2026-09-25 it comes back *named*, as the stamped
+batch (`stamp`, `Protocol/Model.lean`): `Term := r.Term` and `Index :=
+lastIndex()+1+k` in element `k`. (Until the log's state was in `NState` the witness
+was existential, because naming it would have pinned the log's length.)
 
 **It claimed `RET #true` unconditionally**, and `appendEntry` does have a
 `return: #false` -- the path where `increaseUncommittedSize` rejects the batch. The fix
@@ -55,22 +59,37 @@ is *not* to make the result existential. `becomeLeader`, the only caller in scop
 
     if !r.appendEntry(pb.Entry{Data: nil}) { r.logger.Panic(…) }
 
-and `Logger.wp_logf` deliberately excludes `Panic`, so an existential result makes
-`becomeLeader` unprovable rather than merely weaker. What is actually true is that the
-reject path is unreachable *for an empty payload*: `increaseUncommittedSize` returns
-`false` only when
+and `Logger.wp_logf` deliberately excludes `Panic`, so a bare existential result makes
+`becomeLeader` unprovable rather than merely weaker. What is true is that the reject
+path is unreachable *for an empty payload*: `increaseUncommittedSize` returns `false`
+only when
 
     uncommittedSize > 0 ∧ payloadsSize(ents) > 0 ∧ … > maxUncommittedSize
 
-(`raft.increaseUncommittedSize.impl`), and `payloadsSize` sums `len(e.Data)`. So
-`Hempty` below -- every entry's `Data` is empty, which is exactly what `becomeLeader`
-passes -- is what makes `RET #true` honest, and it is also what makes the `Panic`
-demonstrably dead code rather than assumed away.
+(`raft.increaseUncommittedSize.impl`), and `payloadsSize` sums `len(e.Data)`.
+
+From 2026-09-18 to 2026-10-01 that was a *premise* (`Hempty`) and the result was
+`RET #true`. Since 2026-10-01 the triple takes an arbitrary `EntryNormal` batch -- what
+`stepLeader`'s `MsgProp` arm passes, and what the model's `Step.propose` describes -- so
+the result is a bool `accepted`, and the fact above is a *conjunct* of the
+postcondition: `(∀ e ∈ ents, Data empty) → accepted = true`. That is as far as
+acceptance can be pinned: the exact condition reads `r.uncommittedSize` and
+`r.maxUncommittedSize`, which `NState` does not hold. `becomeLeader` destructs
+`accepted` and kills the `false` branch with the implication, so its `Panic` is still
+demonstrably dead code.
+
+### The two paths (read against the body, 2026-10-01)
+
+The stamping loop runs *before* `increaseUncommittedSize`, so the caller's slice is
+stamped on both paths and `es ↦* ents.mapIdx (stamp …)` is outside the `if`. The reject
+path reads `r.id` and `r.logger`, calls `Warningf`, and returns `false`: nothing in the
+struct is written, so it comes back at `s`. The accept path writes `r.uncommittedSize`
+(which `ownRaftPhys` does not pin), appends, and sends the self-ack. (The named result
+`accepted` is allocated and never read: both exits are `return: #b`.)
 
 ### The premises
 
-`Hempty` is the one just described. The other two are what the *log* needs, and both
-are discharged by `becomeLeader` from the literal it builds:
+Both are what the *log* needs:
 
 - `Hnorm`: no entry in the batch is a configuration change. `ownRaftLog`'s
   `HnoConfChange` is about the whole log, so appending an `EntryConfChange` would break
@@ -110,11 +129,9 @@ spec is unchanged.
 
 ### The rest of the body
 
-`increaseUncommittedSize` adds a zero payload, so `r.uncommittedSize` is unchanged in
-everything `ownRaftPhys` can see (it mentions no such field); `traceReplicate` is a
-literal no-op; and the `MsgAppResp` has no `mtypeOf`, so the abstract outbox is
-unchanged -- it is `send_ok`'s third clause, and a self-addressed message is allowed
-there for exactly this type.
+`increaseUncommittedSize` writes `r.uncommittedSize`, a field `ownRaftPhys` does not
+mention; `traceReplicate` is a literal no-op; and the `MsgAppResp` is `SendOk`'s
+`MsgAppResp` clause, which allows it to be self-addressed.
 
 ### The log in the postcondition
 
@@ -126,8 +143,6 @@ the log away. -/
 abbrev raft.appendEntry.spec : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (es : GoSlice)
     (ents : List raftpb.Entry),
-  -- empty payloads, so `increaseUncommittedSize` cannot reject -- see above
-  (∀ e ∈ ents, sint.Z e.Data'.len = 0) →
   -- no configuration change, so the log's `HnoConfChange` survives
   (∀ e ∈ ents, e.Type' = EntryNormal) →
   -- a batch small enough that `lastIndex()+1+k` does not wrap
@@ -135,11 +150,22 @@ abbrev raft.appendEntry.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s ∗
       es ↦* ents }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"appendEntry")) (Val #es))
-  {{ RET #true;
-      ownRaftPhys cfg r id
-        { s with logst :=
-            (logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst)))) } ∗
-      es ↦* ents.mapIdx (stamp s.term (logLast s.logst)) }}
+  {{ (accepted : Bool), RET #accepted;
+      -- an all-empty batch is never dropped -- see above
+      ⌜(∀ e ∈ ents, sint.Z e.Data'.len = 0) → accepted = true⌝ ∗
+      -- stamped on both paths: the loop runs before the budget check
+      es ↦* ents.mapIdx (stamp s.term (logLast s.logst)) ∗
+      if accepted then
+        ownRaftPhys cfg r id
+          (sendMsgs
+            { s with logst :=
+                logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }
+            [selfAck id
+              { s with logst :=
+                  logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }])
+      else
+        -- dropped: `Warningf` and `return false`, nothing written
+        ownRaftPhys cfg r id s }}
 
 end spec
 

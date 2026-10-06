@@ -1,4 +1,4 @@
-/- Port of election_proof/spec_Entry__Size.v.
+/- Port of election_proof/spec_Entry__Size.v (feb5c73d4).
 
 Lean notes: the precondition is ascribed `(… : IProp GF)`, since with no `isPkgInit`
 conjunct nothing else fixes the logic the points-to lives in (Rocq infers it from `Σ`).

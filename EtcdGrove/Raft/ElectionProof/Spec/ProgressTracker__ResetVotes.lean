@@ -1,9 +1,10 @@
 /-
-Port of `election_proof/spec_ProgressTracker__ResetVotes.v`.
+Port of `election_proof/spec_ProgressTracker__ResetVotes.v` (feb5c73d4).
 
 Lean notes:
-* The types of Rocq's untyped binders `tv votes` are written out
-  (`tracker.ProgressTracker`, `GMap w64 Bool`), as `ownTracker` forces them.
+* The type of Rocq's untyped binder `tv` is written out (`tracker.ProgressTracker`),
+  as `ownTracker` forces it. Rocq's `trk.t` record is `Trk`, and
+  `t <| trk.votes := ∅ |>` is `{ t with votes := ∅ }`.
 -/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
 
@@ -24,15 +25,14 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `ResetVotes` assigns a fresh empty map to `p.Votes`, so it changes the tracker
 value as well as the heap it points at. -/
 abbrev tracker.ProgressTracker.ResetVotes.spec : Prop :=
-  ∀ (cfg : GSet w64) (trk : Loc) (tv : tracker.ProgressTracker) (votes : GMap w64 Bool)
-    (prs : GMap w64 Loc) (pvs : GMap w64 (tracker.Progress × tracker.Inflights)),
+  ∀ (cfg : GSet w64) (trk : Loc) (tv : tracker.ProgressTracker) (t : Trk),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ trk ↦ tv ∗
-      ownTracker cfg tv votes prs pvs }}
+      ownTracker cfg tv t }}
     (App (Val (trk @!! go.GoType.PointerType tracker.ProgressTracker.ty @!! go!"ResetVotes"))
       (Val #()))
   {{ (votesRef : Loc), RET #();
       trk ↦ { tv with Votes' := votesRef } ∗
-      ownTracker cfg { tv with Votes' := votesRef } ∅ prs pvs }}
+      ownTracker cfg { tv with Votes' := votesRef } { t with votes := ∅ } }}
 
 end spec
 

@@ -1,9 +1,9 @@
 /-
-Port of `election_proof/spec_JointConfig__VoteResult.v`.
+Port of `election_proof/spec_JointConfig__VoteResult.v` (feb5c73d4).
 
 Lean notes:
-* The types of Rocq's untyped binders `tv votes` are written out
-  (`tracker.ProgressTracker`, `GMap w64 Bool`), as `ownTracker` forces them.
+* The type of Rocq's untyped binder `tv` is written out (`tracker.ProgressTracker`),
+  as `ownTracker` forces it. Rocq's `trk.t` record is `Trk`.
 * The reference `quorum.JointConfig__VoteResultⁱᵐᵖˡ` is to the Lean generated code
   `quorum.JointConfig.VoteResult.impl`.
 -/
@@ -52,21 +52,20 @@ here so that the empty tracker is an `ownTracker ∅ …`. In the proof it refut
 `map.nil` disjunct of `MajorityConfig.wp_VoteResult`'s postcondition for the first
 component. -/
 abbrev quorum.JointConfig.VoteResult.spec : Prop :=
-  ∀ (cfg : GSet w64) (trk : Loc) (tv : tracker.ProgressTracker) (votes : GMap w64 Bool)
-    (prs : GMap w64 Loc) (pvs : GMap w64 (tracker.Progress × tracker.Inflights)),
+  ∀ (cfg : GSet w64) (trk : Loc) (tv : tracker.ProgressTracker) (t : Trk),
   cfg ≠ ∅ →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.quorum ∗ trk ↦ tv ∗
-      ownTracker cfg tv votes prs pvs }}
+      ownTracker cfg tv t }}
     (App (Val ((trk.[tracker.ProgressTracker, go!"Config"]).[tracker.Config, go!"Voters"]
         @!! go.GoType.PointerType quorum.JointConfig.ty @!! go!"VoteResult"))
       (Val #(tv.Votes')))
   {{ (res : w8), RET #res;
-      trk ↦ tv ∗ ownTracker cfg tv votes prs pvs ∗
+      trk ↦ tv ∗ ownTracker cfg tv t ∗
       ⌜res = VoteWon ∨ res = VoteLost ∨ res = VotePending⌝ ∗
-      ⌜res = VoteWon ↔ IsQuorum cfg (granted votes)⌝ ∗
+      ⌜res = VoteWon ↔ IsQuorum cfg (granted t.votes)⌝ ∗
       -- `VoteLost` is "cannot still win", not "a majority rejected"; see
       -- `spec_ProgressTracker__TallyVotes.v` and `Protocol.lean`'s `Step.lose`.
-      ⌜res = VoteLost ↔ ¬ IsQuorum cfg (cfg \ rejected votes)⌝ }}
+      ⌜res = VoteLost ↔ ¬ IsQuorum cfg (cfg \ rejected t.votes)⌝ }}
 
 end spec
 

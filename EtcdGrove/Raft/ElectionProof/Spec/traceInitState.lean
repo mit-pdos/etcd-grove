@@ -1,5 +1,5 @@
 /-
-Port of `election_proof/spec_traceInitState.v`.
+Port of election_proof/spec_traceInitState.v (feb5c73d4).
 -/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
 

@@ -1,5 +1,5 @@
 /-
-Port of `election_proof/spec_ProgressTracker__TallyVotes.v`.
+Port of election_proof/spec_ProgressTracker__TallyVotes.v (feb5c73d4).
 -/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
 
@@ -21,7 +21,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 condition of the model.
 
 **Proved 2026-09-20** (`proof_ProgressTracker__TallyVotes.v`). The function counts the
-granted and rejected votes over `trk.Progress` and then delegates the verdict to
+granted and rejected `t.votes` over `trk.Progress` and then delegates the verdict to
 `p.Config.Voters.VoteResult(p.Votes)` (`spec_JointConfig__VoteResult.v` and, under it,
 `spec_MajorityConfig__VoteResult.v`), which is where the quorum arithmetic lives. What
 the loop here contributes is the two counters, and they are *not* what the
@@ -49,24 +49,23 @@ config win"), while `IsQuorum ∅ q` unfolds to `0 < 2 * 0`. That is why this sp
 used to be a conjunct of `ownTracker`, and was moved out so that the empty tracker is
 an `ownTracker ∅ …`. -/
 abbrev tracker.ProgressTracker.TallyVotes.spec : Prop :=
-  ∀ (cfg : GSet w64) (trk : Loc) (tv : tracker.ProgressTracker) (votes : GMap w64 Bool)
-    (prs : GMap w64 Loc) (pvs : GMap w64 (tracker.Progress × tracker.Inflights)),
+  ∀ (cfg : GSet w64) (trk : Loc) (tv : tracker.ProgressTracker) (t : Trk),
   cfg ≠ ∅ →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ trk ↦ tv ∗
-      ownTracker cfg tv votes prs pvs }}
+      ownTracker cfg tv t }}
     (App (Val (trk @!! go.GoType.PointerType tracker.ProgressTracker.ty @!! go!"TallyVotes"))
       (Val #()))
   {{ (g rj : w64) (res : w8), RET (PairV (PairV #g #rj) #res);
-      trk ↦ tv ∗ ownTracker cfg tv votes prs pvs ∗
+      trk ↦ tv ∗ ownTracker cfg tv t ∗
       ⌜res = VoteWon ∨ res = VoteLost ∨ res = VotePending⌝ ∗
-      ⌜res = VoteWon → IsQuorum cfg (granted votes)⌝ ∗
+      ⌜res = VoteWon → IsQuorum cfg (granted t.votes)⌝ ∗
       -- `VoteLost` means the candidate **cannot still win**, not that a majority
       -- rejected -- Go computes `votedCnt + missing < q`, and
       -- `votedCnt + missing = size (cfg \ rejected)`. The old form,
-      -- `IsQuorum cfg (rejected votes)`, was false: 4 voters with 2 rejecting and 2
+      -- `IsQuorum cfg (rejected t.votes)`, was false: 4 voters with 2 rejecting and 2
       -- silent gives `VoteLost` with no rejection quorum. Corrected 2026-09-16; see
       -- `Protocol.lean`'s `Step.lose`.
-      ⌜res = VoteLost → ¬ IsQuorum cfg (cfg \ rejected votes)⌝ }}
+      ⌜res = VoteLost → ¬ IsQuorum cfg (cfg \ rejected t.votes)⌝ }}
 
 end spec
 

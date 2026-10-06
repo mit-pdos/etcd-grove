@@ -1,12 +1,15 @@
 /-
-Port of `election_proof/spec_raftLog__term.v`.
+Port of election_proof/spec_raftLog__term.v (feb5c73d4).
 
 Lean notes:
 * Rocq's `(#t, #err)` is `PairV #t #err`; the chained `a ≤ b ≤ c` is a conjunction.
+  `global_addr raft.ErrCompacted` is `globalAddr ErrCompacted`; `plog_term_at` is
+  `plogTermAt` (`Plog.lean`).
 * The reference `raftLog__termⁱᵐᵖˡ, new/code/go_etcd_io/raft/v3.v:1063` is to the
   Lean generated code `raftLog.term.impl`.
 -/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
+import EtcdGrove.Raft.ElectionProof.Plog
 
 noncomputable section
 
@@ -48,18 +51,22 @@ fallen through, it calls `r.raftLog.entries(pr.Next, …)`, whose premise is
 argument is `2^64 - 1`, which `Hnowrap` puts outside the range, so `pr.Next ≠ 0` and
 the subtraction does not wrap.)
 
-Naming the two errors would also be true (`ErrCompacted` below the boundary,
-`ErrUnavailable` above it) but is not statable here without dragging the
-`is_initialized` globals into the postcondition, and the iff already tells every caller
-which branch it is in.
+**Which error** (since 2026-10-01): a non-`nil` error is the value of one of the two
+globals `ErrCompacted`, `ErrUnavailable` -- the last conjunct, stated by the globals'
+(persistent) points-tos since their values are only known through `is_initialized`.
+`handleAppendEntries` needs it: its reject path passes `term(m.Index)` straight to
+`zeroTermOnOutOfBounds`, which `Panicf`s on any other error, and `m.Index` may well be
+past the last index there. Which of the two goes with which side of the range is true
+but not stated; nothing needs it.
 
-The returned term is still not specified, and cannot be: in the unstable part of the
-range the value comes from `unstable.maybeTerm`, whose triple does not pin it (and
-`termAt` describes the *stable* prefix only). Nothing on the election path reads it:
-`lastEntryID` only puts it in an `entryID`, and `isUpToDate` comparing the wrong terms
-can only make the node decline to vote, which is always protocol-legal;
-`maybeSendAppend` puts it in a `MsgApp`'s `LogTerm`, which the abstract message does
-not carry. -/
+**The returned term is pinned** (since 2026-10-01): on the `nil` branch it is
+`plogTermAt prev (sents ++ uents) i` (`Plog.lean`), the term of the log the protocol
+model sees. Log replication needs it -- `matchTerm`, and through it `findConflict`,
+`maybeAppend` and `maybeCommit`, compare it. In the unstable window it comes from
+`unstable.maybeTerm`'s widened spec, below it from `isStorage`'s `HTerm`
+(`termAt prev stored i`), which agrees with `plogTermAt` on the visible stable prefix
+`sents` (`Proof/raftLog__term.lean`). Until then the term was unspecified and nothing
+on the election path read it. -/
 abbrev raftLog.term.spec : Prop :=
   ∀ (l : Loc) (ls : LogState) (i : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls }}
@@ -69,7 +76,11 @@ abbrev raftLog.term.spec : Prop :=
       ⌜err = interface.nil ↔
         (uint.Z ls.prev.index' ≤ uint.Z i ∧
          uint.Z i ≤ uint.Z ls.prev.index' + (ls.sents.length : Int)
-           + (ls.uents.length : Int))⌝ }}
+           + (ls.uents.length : Int))⌝ ∗
+      ⌜err = interface.nil →
+        plogTermAt ls.prev (ls.sents ++ ls.uents) i = some t⌝ ∗
+      (⌜err = interface.nil⌝ ∨ globalAddr ErrCompacted ↦□ err ∨
+       globalAddr ErrUnavailable ↦□ err) }}
 
 end spec
 

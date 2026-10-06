@@ -1,5 +1,5 @@
 /-
-Port of `election_proof/spec_IsEmptySnap.v`.
+Port of election_proof/spec_IsEmptySnap.v (feb5c73d4).
 -/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
 

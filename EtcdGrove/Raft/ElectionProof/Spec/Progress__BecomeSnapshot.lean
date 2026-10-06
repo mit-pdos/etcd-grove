@@ -1,5 +1,11 @@
 /-
-Port of `election_proof/spec_Progress__BecomeSnapshot.v`.
+Port of election_proof/spec_Progress__BecomeSnapshot.v (feb5c73d4).
+
+Lean notes:
+* Rocq's `own_Progress pr p` with `p : progress.t` is `ownProgress pr p` with
+  `p : Progress` (`Defs.lean`); `progress_become_snapshot` is `progressBecomeSnapshot`.
+* The reference `Progress__BecomeSnapshotⁱᵐᵖˡ` is to the Lean generated code
+  `tracker.Progress.BecomeSnapshot.impl`.
 -/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
 
@@ -27,15 +33,14 @@ the pending snapshot index (`tracker.Progress.BecomeSnapshot.impl`,
     pr.sentCommit = snapshoti
 
 Like `BecomeReplicate`, it says nothing about votes, terms or roles, so the model does
-not see it; the content of the triple is that `ownProgress`'s invariants survive -- in
-particular `ProgressStateOk`, since `StateSnapshot` is one of the three legal states
-(`InvTracker.lean`). -/
+not see it. The new record is `progressBecomeSnapshot p snapshoti` (`Defs.lean`);
+`matched` is untouched (Match discipline, notes/raft-replication-model.md). -/
 abbrev tracker.Progress.BecomeSnapshot.spec : Prop :=
-  ∀ (pr : Loc) (pv : tracker.Progress) (iv : tracker.Inflights) (snapshoti : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ ownProgress pr pv iv }}
+  ∀ (pr : Loc) (p : Progress) (snapshoti : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ ownProgress pr p }}
     (App (Val (pr @!! go.GoType.PointerType tracker.Progress.ty @!! go!"BecomeSnapshot"))
       (Val #snapshoti))
-  {{ RET #(); ∃ pv' iv', ownProgress pr pv' iv' }}
+  {{ RET #(); ownProgress pr (progressBecomeSnapshot p snapshoti) }}
 
 end spec
 

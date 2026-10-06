@@ -1,4 +1,13 @@
-/- Port of election_proof/spec_Inflights__grow.v. -/
+/-
+Port of election_proof/spec_Inflights__grow.v (feb5c73d4).
+
+Lean notes:
+* Rocq's three-argument `own_inflights l iv buf` (the internal predicate, indexed by
+  the Goose value and the ring buffer) is `ownInflightsRaw` (`InvTracker.lean`): the
+  Lean name `ownInflights` is the public, record-indexed `own_Inflights`.
+* The reference `Inflights__growⁱᵐᵖˡ` is to the Lean generated code
+  `tracker.Inflights.grow.impl`.
+-/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
 
 noncomputable section
@@ -24,10 +33,10 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
     copy(newBuffer, in.buffer)
     in.buffer = newBuffer
 
-Stated on `ownInflights` at the exact buffer contents: the premise and the conclusion
-are both about the **length of the buffer**, which is why `ownInflights` is indexed by
-the buffer and not only by the value. (Until 2026-09-23 this was stated over the
-predicate's raw pieces.) The only caller is `Inflights.Add`.
+Stated on `ownInflightsRaw` at the exact buffer contents: the premise and the
+conclusion are both about the **length of the buffer**, which is why `ownInflightsRaw`
+is indexed by the buffer and not only by the value. (Until 2026-09-23 this was stated
+over the predicate's raw pieces.) The only caller is `Inflights.Add`.
 
 The premise `len(buffer) < size` is the "grow on demand" contract, and it is necessary
 rather than convenient: with `size = 0` (hence `len(buffer) = 0`, by `InflightsOk`) the
@@ -44,10 +53,10 @@ abbrev tracker.Inflights.grow.spec : Prop :=
   (buf.length : Int) < sint.Z iv.size' →
   sint.Z iv.size' < 2 ^ 62 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗
-      "Hin" ∷ ownInflights l iv buf }}
+      "Hin" ∷ ownInflightsRaw l iv buf }}
     (App (Val (l @!! go.GoType.PointerType tracker.Inflights.ty @!! go!"grow")) (Val #()))
   {{ (sl : GoSlice) (buf' : List tracker.inflight), RET #();
-      "Hin" ∷ ownInflights l { iv with buffer' := sl } buf' ∗
+      "Hin" ∷ ownInflightsRaw l { iv with buffer' := sl } buf' ∗
       "%Hlen" ∷ ⌜(buf'.length : Int)
                   = max 1 (min (2 * (buf.length : Int)) (sint.Z iv.size'))⌝ ∗
       "%Hcontents" ∷ ⌜buf' = buf ++ List.replicate (buf'.length - buf.length)

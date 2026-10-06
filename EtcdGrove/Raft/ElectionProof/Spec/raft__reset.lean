@@ -1,5 +1,9 @@
 /-
-Port of `election_proof/spec_raft__reset.v`.
+Port of `election_proof/spec_raft__reset.v` (feb5c73d4).
+
+Lean notes: the type of Rocq's untyped binder `pvs` is written out
+(`GMap w64 Progress`, as `NState.prvals` forces it); `prvals_match`, `reset_matched`,
+`log_last` are `prvalsMatch`, `resetMatched`, `logLast` (`Defs.lean`).
 -/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
 
@@ -25,8 +29,13 @@ abbrev raft.reset.spec : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (term : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"reset")) (Val #term))
-  {{ (pvs : GMap w64 (tracker.Progress × tracker.Inflights)), RET #();
-      ownRaftPhys cfg r id { resetTo s term with prvals := pvs } }}
+  {{ (pvs : GMap w64 Progress), RET #();
+      ownRaftPhys cfg r id { resetTo s term with prvals := pvs } ∗
+      -- every peer's `Match` is `0`, the node's own `lastIndex()` (`resetMatched`,
+      -- `Defs.lean`): the Visit closure writes a fresh `Progress{Match: 0, ...}` and then
+      -- `pr.Match = lastIndex()` for `r.id`. `becomeLeader` needs it (`Step.win`'s
+      -- `LeaderMatchOk`).
+      ⌜prvalsMatch pvs = resetMatched id (logLast s.logst) s.prvals⌝ }}
 
 end spec
 

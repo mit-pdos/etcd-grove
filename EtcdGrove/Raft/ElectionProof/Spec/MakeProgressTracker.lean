@@ -1,6 +1,4 @@
-/-
-Port of `election_proof/spec_MakeProgressTracker.v`.
--/
+/- Port of election_proof/spec_MakeProgressTracker.v (feb5c73d4). -/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
 
 noncomputable section

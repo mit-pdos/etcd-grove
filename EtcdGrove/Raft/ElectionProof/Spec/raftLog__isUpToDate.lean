@@ -1,7 +1,8 @@
 /-
-Port of `election_proof/spec_raftLog__isUpToDate.v`.
+Port of election_proof/spec_raftLog__isUpToDate.v (feb5c73d4).
 -/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
+import EtcdGrove.Raft.ElectionProof.Plog
 
 noncomputable section
 
@@ -18,19 +19,20 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `l.isUpToDate(e)`: whether the candidate's last entry `e` is at least as up to date
-as ours, which is the log half of the `MsgVote` check.
+as ours, which is the log half of the `MsgVote` check: `plogUpToDate` (`Plog.lean`) of
+the log the protocol sees.
 
-The returned boolean is **not** specified, only that the call returns and hands the log
-back. That is all the election path needs: answering `false` when it could have
-answered `true` makes the node decline to vote, which is always protocol-legal, and
-answering `true` is only reachable when the log comparison in `lastEntryID` genuinely
-holds. Specifying it would mean relating the entry lists, which the election model does
-not mention. -/
+Pinned since 2026-10-01 (before, only "returns and hands the log back"): with a log in
+the protocol model, granting a vote records that this check passed (`Step.grantVote`'s
+premise), which leader completeness depends on. The body (`raftLog.isUpToDate.impl`,
+`Perennial/Code/go_etcd_io/raft/v3.lean`) is `lastEntryID()` and a short-circuit
+comparison, so this is `lastEntryID`'s widened spec plus the two `Bool` connectives. -/
 abbrev raftLog.isUpToDate.spec : Prop :=
   ∀ (l : Loc) (e : entryID) (ls : LogState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftLog l ls }}
     (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"isUpToDate")) (Val #e))
-  {{ (b : Bool), RET #b; ownRaftLog l ls }}
+  {{ (b : Bool), RET #b; ownRaftLog l ls ∗
+      ⌜b = plogUpToDate ls.prev (ls.sents ++ ls.uents) e⌝ }}
 
 end spec
 

@@ -1,6 +1,4 @@
-/-
-Port of `election_proof/spec_big_Int__Int64.v`.
--/
+/- Port of election_proof/spec_big_Int__Int64.v (feb5c73d4). -/
 import EtcdGrove.Raft.ElectionProof.InvBig
 
 noncomputable section

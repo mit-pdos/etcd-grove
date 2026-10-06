@@ -1,4 +1,10 @@
-/- Port of election_proof/spec_raft__becomeCandidate.v. -/
+/-
+Port of election_proof/spec_raft__becomeCandidate.v (feb5c73d4).
+
+Lean notes:
+* Rocq's `pvs` is untyped; its type is `GMap w64 Progress`, that of `NState.prvals`.
+  `prole.Leader` is `PRole.leader`.
+-/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
 
 noncomputable section
@@ -22,7 +28,7 @@ abbrev raft.becomeCandidate.spec : Prop :=
   s.role ≠ .leader →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"becomeCandidate")) (Val #()))
-  {{ (pvs : GMap w64 (tracker.Progress × tracker.Inflights)), RET #();
+  {{ (pvs : GMap w64 Progress), RET #();
       ownRaftPhys cfg r id { becomeCandidate id s with prvals := pvs } }}
 
 end spec

@@ -1,4 +1,4 @@
-/- Port of election_proof/spec_raft__becomeFollower.v. -/
+/- Port of election_proof/spec_raft__becomeFollower.v (feb5c73d4). -/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
 
 noncomputable section
@@ -24,7 +24,7 @@ abbrev raft.becomeFollower.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s }}
     (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"becomeFollower"))
       (Val #term)) (Val #lead))
-  {{ (pvs : GMap w64 (tracker.Progress × tracker.Inflights)), RET #();
+  {{ (pvs : GMap w64 Progress), RET #();
       ownRaftPhys cfg r id { becomeFollower s term lead with prvals := pvs } }}
 
 end spec

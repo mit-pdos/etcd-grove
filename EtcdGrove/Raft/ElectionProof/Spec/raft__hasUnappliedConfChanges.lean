@@ -1,5 +1,7 @@
 /-
-Port of `election_proof/spec_raft__hasUnappliedConfChanges.v`.
+Port of `election_proof/spec_raft__hasUnappliedConfChanges.v` (feb5c73d4).
+
+Lean notes: `None` is `none`.
 -/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
 
@@ -42,6 +44,12 @@ that version was never proved. `r.logger` is also read, but only on the `Panicf`
 which is dead. -/
 abbrev raft.hasUnappliedConfChanges.spec : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState),
+  -- no snapshot pending: `applied` is then at or above the compaction boundary, so
+  -- `scan`'s range starts inside the log. With one pending `applied` may lie below the
+  -- snapshot's index and `scan` would return `ErrCompacted` into the `Panicf` -- the
+  -- reason `hup` tests `promotable` (which checks `hasNextOrInProgressSnapshot`)
+  -- first. Added 2026-10-02.
+  s.logst.snap = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"hasUnappliedConfChanges"))
       (Val #()))

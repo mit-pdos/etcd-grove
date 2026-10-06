@@ -1,4 +1,4 @@
-/- Port of election_proof/spec_Progress__SentEntries.v. -/
+/- Port of election_proof/spec_Progress__SentEntries.v (feb5c73d4). -/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
 import EtcdGrove.Raft.ElectionProof.Spec.Inflights__Full
 
@@ -26,24 +26,24 @@ It switches on `pr.State`:
     StateProbe:     MsgAppFlowPaused = true (if entries > 0)
     otherwise:      panic("sending append in unhandled state %s")
 
-Hence the two premises. `State ≠ StateSnapshot` rules out the panic (with
-`ProgressStateOk` from `ownProgress`, that leaves Probe and Replicate), and the second
-premise is `Inflights.Add`'s: `Add` panics on a full window. Both are exactly what
+Hence the two premises. `state ≠ .snapshot` rules out the panic, and the second premise
+is `Inflights.Add`'s: `Add` panics on a full window. Both are exactly what
 `maybeSendAppend` has when it gets here -- it only reaches this line after `IsPaused()`
 returned `false` (so the state is not Snapshot) and, in `StateReplicate`, entries are
 non-empty only when `!pr.Inflights.Full()` was the branch that fetched them.
 
-The resulting `Progress` is existential: `Next`, `MsgAppFlowPaused` and the window all
-move, and nothing above reads them back within one `bcastAppend`. -/
+The new record is `progressSentEntries p entries bytes` (`Defs.lean`); it leaves
+`matched` alone (Match discipline, notes/raft-replication-model.md). (Until 2026-10-02
+the result was existential, with only `Match` pinned.) -/
 abbrev tracker.Progress.SentEntries.spec : Prop :=
-  ∀ (pr : Loc) (pv : tracker.Progress) (iv : tracker.Inflights) (entries bytes : w64),
-  pv.State' ≠ W64 2 →
-  (pv.State' = W64 1 → 0 < sint.Z entries → inflightsFull iv = false) →
+  ∀ (pr : Loc) (p : Progress) (entries bytes : w64),
+  p.state ≠ .snapshot →
+  (p.state = .replicate → 0 < sint.Z entries → inflightsFull p.infl = false) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗
-      "Hpr" ∷ ownProgress pr pv iv }}
+      "Hpr" ∷ ownProgress pr p }}
     (App (App (Val (pr @!! go.GoType.PointerType tracker.Progress.ty @!! go!"SentEntries"))
       (Val #entries)) (Val #bytes))
-  {{ RET #(); ∃ pv' iv', ownProgress pr pv' iv' }}
+  {{ RET #(); ownProgress pr (progressSentEntries p entries bytes) }}
 
 end spec
 

@@ -1,5 +1,5 @@
 /-
-Port of `election_proof/spec_traceBecomeCandidate.v`.
+Port of election_proof/spec_traceBecomeCandidate.v (feb5c73d4).
 -/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
 
@@ -18,7 +18,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `traceBecomeCandidate(r)`: a tracing hook, and a **no-op** -- Goose translates it
-to `λ: <> <>, exception_do (do: #())`. See `spec_traceReceiveMessage.v`;
+to `λ: <> <>, exception_do (do: #())`. See `Spec/traceReceiveMessage.lean`;
 `becomeCandidate` is the caller.
 
 **It owns nothing** (changed 2026-09-23). Goose translates the hook to

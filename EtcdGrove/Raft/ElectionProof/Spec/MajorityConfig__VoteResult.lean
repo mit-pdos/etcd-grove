@@ -1,5 +1,5 @@
 /-
-Port of `election_proof/spec_MajorityConfig__VoteResult.v`.
+Port of election_proof/spec_MajorityConfig__VoteResult.v (feb5c73d4).
 
 Lean notes: `Z.of_nat (size s)` is `(GMap.size s : Int)`. The comment's remark that
 `ownTracker` carries `cfg ≠ ∅` is kept from Rocq as written, though `ownTracker` no

@@ -1,9 +1,4 @@
-/-
-Port of `election_proof/spec_Progress__IsPaused.v`.
-
-Lean notes: Rocq's `progress_paused` is `progressPaused`, with `if decide (…)` as a
-plain `if`.
--/
+/- Port of election_proof/spec_Progress__IsPaused.v (feb5c73d4). -/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
 
 noncomputable section
@@ -28,24 +23,20 @@ switches on `pr.State`:
     StateSnapshot              -> true
     anything else              -> panic("unexpected state")
 
-The fourth arm is why `ownProgress` carries `ProgressStateOk` (`InvTracker.lean`):
-`bcastAppend` reaches `IsPaused` on every peer, so the panic has to be ruled out by an
-invariant rather than by inspection.
+The fourth arm is why `ownProgress`'s record has an inductive state (`progressAbs`,
+`Defs.lean`): `bcastAppend` reaches `IsPaused` on every peer, so the panic has to be
+ruled out by an invariant rather than by inspection.
 
-Stated at a fixed `Progress` value (`ownProgress pr pv iv`) because the answer *is* a
-function of that value, and `maybeSendAppend` needs to know which branch it took: a
-`false` answer tells it `State ≠ StateSnapshot`, which is what makes the later
-`SentEntries` call legal (that one panics in `StateSnapshot`). -/
-def progressPaused (pv : tracker.Progress) : Bool :=
-  if pv.State' = W64 2 then true
-  else pv.MsgAppFlowPaused'
-
+The answer is `progressIsPaused p` (`Defs.lean`), a function of the record, and
+`maybeSendAppend` needs to know which branch it took: a `false` answer tells it
+`state ≠ .snapshot`, which is what makes the later `SentEntries` call legal (that one
+panics in `StateSnapshot`). -/
 abbrev tracker.Progress.IsPaused.spec : Prop :=
-  ∀ (pr : Loc) (pv : tracker.Progress) (iv : tracker.Inflights),
+  ∀ (pr : Loc) (p : Progress),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗
-      "Hpr" ∷ ownProgress pr pv iv }}
+      "Hpr" ∷ ownProgress pr p }}
     (App (Val (pr @!! go.GoType.PointerType tracker.Progress.ty @!! go!"IsPaused")) (Val #()))
-  {{ RET #(progressPaused pv); ownProgress pr pv iv }}
+  {{ RET #(progressIsPaused p); ownProgress pr p }}
 
 end spec
 

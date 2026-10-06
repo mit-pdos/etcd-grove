@@ -1,5 +1,5 @@
 /-
-Port of `election_proof/spec_raft__loadState.v`.
+Port of `election_proof/spec_raft__loadState.v` (feb5c73d4).
 
 Lean notes: Rocq's three chained updates `s <| term := … |> <| vote := … |> <| logst :=
 … |>` are one `{ s with term := …, vote := …, logst := { s.logst with committed := … } }`

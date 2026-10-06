@@ -1,7 +1,7 @@
 /-
-Port of `election_proof/spec_raft__promotable.v`.
+Port of election_proof/spec_raft__promotable.v (feb5c73d4).
 
-Lean notes: `bool_decide (id ∈ cfg)` is `decide (id ∈ cfg)`.
+Lean notes: `bool_decide (…)` is `decide (…)`.
 -/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
 
@@ -19,7 +19,9 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `r.promotable()`: true exactly when this node is a voter. It reads `r.id`,
+/-- `r.promotable()`: true exactly when this node is a voter **and has no pending
+snapshot** (`LogState.snap = none`; the third conjunct, `!hasNextOrInProgressSnapshot()`,
+was constantly true until snapshots came into scope on 2026-10-02). It reads `r.id`,
 `r.trk.Progress` and `r.raftLog`, so it is stated against the raft struct rather than
 against three unrelated parameters.
 
@@ -40,7 +42,8 @@ recorded here because the statement depends on them:
 - `ownProgress` (`InvTracker.lean`) did not record `pv.IsLearner' = false`, and without
   it the postcondition as stated is **not derivable**: a voter whose `Progress` had
   `IsLearner = true` would make `promotable` return `false` while `id ∈ cfg`. That
-  conjunct was added on 2026-09-16 and is now `Hnolearner` in `ownProgress`.
+  conjunct was added on 2026-09-16 and is now `Hnolearner` in `ownProgress`; since 2026-10-02 it is
+  part of `ownProgress`'s `progressAbs` (`Defs.lean`).
 
 The statement is correct as written; do not weaken it. The proof is a case split on
 `id ∈ cfg`: present, the `r.trk.Progress[r.id]` lookup (see
@@ -52,7 +55,8 @@ abbrev raft.promotable.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"promotable")) (Val #()))
   {{ (b : Bool), RET #b;
-      ownRaftPhys cfg r id s ∗ ⌜b = decide (id ∈ cfg)⌝ }}
+      ownRaftPhys cfg r id s ∗
+      ⌜b = decide (id ∈ cfg ∧ s.logst.snap = none)⌝ }}
 
 end spec
 

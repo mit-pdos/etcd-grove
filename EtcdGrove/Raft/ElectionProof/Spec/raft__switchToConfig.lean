@@ -1,5 +1,5 @@
 /-
-Port of `election_proof/spec_raft__switchToConfig.v`.
+Port of election_proof/spec_raft__switchToConfig.v (feb5c73d4).
 
 Lean notes:
 * Rocq's `s <| nstate.progress := prs |> <| nstate.prvals := pvs |>` is
@@ -49,7 +49,7 @@ abbrev raft.switchToConfig.spec : Prop :=
     (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"switchToConfig"))
       (Val #cfgv)) (Val #prsm))
   {{ (cs : raftpb.ConfState) (xs : List w64)
-      (pvs : GMap w64 (tracker.Progress × tracker.Inflights)), RET #cs;
+      (pvs : GMap w64 Progress), RET #cs;
       ownRaftPhys cfg r id { s with progress := prs, prvals := pvs } ∗
       cs.Voters' ↦* xs ∗ ⌜xs ≡ₚ elements cfg⌝ ∗
       ⌜cs.VotersOutgoing'.len = W64 0 ∧

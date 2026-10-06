@@ -1,4 +1,4 @@
-/- Port of election_proof/spec_raft__maybeSendSnapshot.v. -/
+/- Port of election_proof/spec_raft__maybeSendSnapshot.v (feb5c73d4). -/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
 
 noncomputable section
@@ -27,11 +27,18 @@ needs (`raft.maybeSendSnapshot.impl`, `Perennial/Code/go_etcd_io/raft/v3.lean`).
     r.send(pb.Message{To: to, Type: MsgSnap, Snapshot: snapshot})
     return true
 
-**The model sees nothing.** `MsgSnap` has no `mtypeOf`, so it falls under the third
-clause of `send_ok` (`Spec/raft__send.lean`) and contributes nothing to the abstract
-outbox -- which is why the postcondition is at the *same* `s`. `Term` is unset in the
-literal and `to ≠ id` (the only caller, `maybeSendAppend`, is reached from
-`bcastAppend`, which skips the leader itself), so that clause applies.
+**What the model sees** (since 2026-10-01): the `MsgSnap`, as an `.snap` from `id` to
+`to` at the current term -- `SendOk`'s `MsgSnap` clause; `Term` is unset in the literal
+and `to ≠ id` (the only caller, `maybeSendAppend`, is reached from `bcastAppend`, which
+skips the leader itself). The outbox grows by `ms`, zero or one such message, which is
+`ReplSends` (`SnapOk`). Since 2026-10-02 the abstract message carries the snapshot's
+metadata (`absSnapFrom`): `index`/`logterm` are those of the snapshot `raftLog.snapshot`
+returned, and `SnapOk` records that the index is non-zero, at or below the commit index,
+and an entry id of the log (since 2026-10-03, from `raftLog.snapshot`'s spec). Since
+2026-10-03 the queued message's abstraction is read through the heap (`msgAbs`): the
+proof persists the local `snapshot` whose address the message carries, and passes
+`send` the voters' read-only points-to `raftLog.snapshot` returned. Until 2026-10-01
+`MsgSnap` had no `mtypeOf` and the postcondition was at the same `s`.
 
 `pr` moves to `StateSnapshot`, which is why the `Progress` comes back existentially
 quantified rather than at its old value.
@@ -59,8 +66,11 @@ abbrev raft.maybeSendSnapshot.spec : Prop :=
       "Hphys" ∷ ownRaftPhys cfg r id s }}
     (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"maybeSendSnapshot"))
       (Val #to)) (Val #pr))
-  {{ (b : Bool) (pvs : GMap w64 (tracker.Progress × tracker.Inflights)), RET #b;
-      ownRaftPhys cfg r id { s with prvals := pvs } }}
+  {{ (b : Bool) (ms : List Msg) (pvs : GMap w64 Progress), RET #b;
+      ownRaftPhys cfg r id { sendMsgs s ms with prvals := pvs } ∗
+      ⌜ReplSends id s ms⌝ ∗
+      -- `BecomeSnapshot` does not move `Match`
+      ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}
 
 end spec
 

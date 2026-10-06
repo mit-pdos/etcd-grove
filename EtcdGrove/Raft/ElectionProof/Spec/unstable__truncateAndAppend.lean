@@ -1,5 +1,13 @@
 /-
-Port of `election_proof/spec_unstable__truncateAndAppend.v`.
+Port of election_proof/spec_unstable__truncateAndAppend.v (feb5c73d4).
+
+Lean notes:
+* Rocq's `bool_decide (P)` in the two `if`s is `decide (P)` (Lean's `if` on a
+  decidable proposition); `DfracDiscarded` is `DFrac.discard`; `is_Logger` is
+  `isLogger` (`InvLogger.lean`); `take (Z.to_nat x) l` is `l.take x.toNat`; Rocq's
+  `` `min` `` on `Z` is `min`.
+* The reference `unstable__truncateAndAppendⁱᵐᵖˡ, new/code/go_etcd_io/raft/v3.v:1650`
+  is to the Lean generated code `unstable.truncateAndAppend.impl`.
 -/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
 
@@ -17,46 +25,66 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `u.truncateAndAppend(ents)`: splice a batch into the unstable suffix
+/-- `u.truncateAndAppend(ents)`: splice a non-empty batch into the unstable suffix
 (`unstable.truncateAndAppend.impl`, `Perennial/Code/go_etcd_io/raft/v3.lean`).
 
 The body switches on where the batch starts, `fromIndex = ents[0].Index`:
 
-  - `fromIndex == u.offset+len(u.entries)`: it continues the suffix, so
-    `u.entries = append(u.entries, ents...)`;
-  - `fromIndex <= u.offset`: it replaces the suffix outright;
-  - otherwise: keep `u.entries[:fromIndex]` and append.
+  1. `fromIndex == u.offset+len(u.entries)`: it continues the suffix,
+     `u.entries = append(u.entries, ents...)`;
+  2. `fromIndex <= u.offset`: `Infof`, then the suffix is *replaced*:
+     `u.entries = ents`, `u.offset = fromIndex`, `u.offsetInProgress = u.offset`;
+  3. otherwise: `Infof`, then `keep := u.slice(u.offset, fromIndex)`,
+     `u.entries = append(keep, ents...)`,
+     `u.offsetInProgress = min(u.offsetInProgress, fromIndex)`.
 
-Only the first is specified, and the premise `Hcont` is exactly its guard. That is not
-a weakening of what the function does: the other two arms truncate, and the only caller
-in this development is `raftLog.append`, which is called from `appendEntry` with
-indices that continue the log by construction (`appendEntry` stamps `lastIndex()+1+i`
-into every entry before calling it). Both other arms also start with an `Infof`, which
-is fine, but they would need a spec saying which entries survive -- state it when a
-`MsgApp` path needs it.
+All three are specified (since 2026-10-01; before, only arm 1). One statement covers
+them: the new suffix is `take (fromIndex - u.offset) uents ++ ents` (`take 0` in arm 2,
+where the difference is `<= 0`; `take len` in arm 1) and the new offset is `fromIndex`
+if that is below `u.offset`, else `u.offset`. The premise
+`fromIndex <= u.offset + len` is what keeps arm 3's `u.slice` inside the suffix (its
+`mustCheckOutOfBounds` `Panicf`s otherwise); the no-wrap premise is `u.slice`'s.
+`u.logger` is a `Logger` for the two `Infof`s.
 
-Ownership. A pointer-receiver method that *writes* `u.entries` needs the receiver's
-fields (`notes/gotchas.md`), so `u ↦ uv` is here, and the suffix's own slice comes with
-its capacity: Go's `append` may reallocate, which is why the new slice value `sl` is
-existential in the postcondition and the struct comes back at
-`{ uv with entries' := sl }`. The batch `es` is *lent* -- `append` copies the values --
-so it is returned unchanged at the caller's fraction.
+**Ownership of the batch.** Arms 1 and 3 copy the entry values (`append`), so the
+batch is lent and comes back. Arm 2 *adopts the caller's slice*: `u.entries` then
+aliases it, and a later arm-1 `append` may write into its capacity slack
+(notes/raft-implementation-facts.md, "Which slices raft hands out uncapped"). So in
+that arm -- exactly when `fromIndex <= u.offset` and the batch does not continue the
+suffix -- the caller must hand the batch over read-only (`dq = DFrac.discard`) together
+with its capacity, and gets nothing back. The condition is computed in the spec, so a
+caller that knows its batch continues the suffix (`appendEntry`) owes nothing extra.
 
-No no-wrap premise is needed for the guard's `u.offset+len(u.entries)`: `Hcont`
-equates it with `uint.Z` of a `w64`, so it is below `2^64` already. -/
+The new `unstable` value is existential, with the three fields `ownRaftLog` tracks
+pinned: `offset` as above, `snapshot` and `logger` unchanged. `offsetInProgress` is not
+tracked by anything. -/
 abbrev unstable.truncateAndAppend.spec : Prop :=
   ∀ (u : Loc) (uv : unstable) (uents ents : List raftpb.Entry)
-    (e0 : raftpb.Entry) (es : GoSlice) (dq : DFrac),
+    (e0 : raftpb.Entry) (es : GoSlice) (dq : DFrac) (ulg : GoInterfaceOk),
   ents[0]? = some e0 →
-  uint.Z e0.Index' = uint.Z uv.offset' + (uents.length : Int) →
+  uint.Z e0.Index' ≤ uint.Z uv.offset' + (uents.length : Int) →
+  uint.Z uv.offset' + (uents.length : Int) < 2 ^ 64 →
+  uv.logger' = interface.ok ulg →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hun" ∷ ownUnstable u uv uents ∗
-      "Hes" ∷ es ↦*{dq} ents }}
+      "Hes" ∷ es ↦*{dq} ents ∗
+      "#Hlg" ∷ isLogger ulg ∗
+      "Hadopt" ∷ (if uint.Z e0.Index' ≤ uint.Z uv.offset' ∧
+                     uint.Z e0.Index' ≠ uint.Z uv.offset' + (uents.length : Int)
+                  then iprop(⌜dq = DFrac.discard⌝ ∗
+                             ownSliceCap raftpb.Entry es (DFrac.own 1))
+                  else True) }}
     (App (Val (u @!! go.GoType.PointerType unstable.ty @!! go!"truncateAndAppend"))
       (Val #es))
-  {{ (sl : GoSlice), RET #();
-      ownUnstable u { uv with entries' := sl } (uents ++ ents) ∗
-      es ↦*{dq} ents }}
+  {{ (uv' : unstable), RET #();
+      ownUnstable u uv'
+        (uents.take (uint.Z e0.Index' - uint.Z uv.offset').toNat ++ ents) ∗
+      ⌜uint.Z uv'.offset' = min (uint.Z e0.Index') (uint.Z uv.offset') ∧
+        uv'.snapshot' = uv.snapshot' ∧
+        uv'.logger' = uv.logger'⌝ ∗
+      (if uint.Z e0.Index' ≤ uint.Z uv.offset' ∧
+          uint.Z e0.Index' ≠ uint.Z uv.offset' + (uents.length : Int)
+       then True else es ↦*{dq} ents) }}
 
 end spec
 

@@ -1,4 +1,4 @@
-/- Port of election_proof/spec_Inflights__Full.v. -/
+/- Port of election_proof/spec_Inflights__Full.v (feb5c73d4). -/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
 
 noncomputable section
@@ -20,17 +20,17 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
     in.count == in.size || (in.maxBytes != 0 && in.bytes >= in.maxBytes)
 
-The answer is `inflightsFull iv` (`InvTracker.lean`), a function of the `Inflights`
-value -- which is why `ownInflights` is indexed by that value. The point is not this
-triple but `Inflights.Add`, which *panics* unless `Full()` is false; stating `Add`
-truthfully needs a name for "not full" that a caller can carry from the test to the
-use, and this is it. -/
+The answer is `inflightsFull i` (`Defs.lean`), a function of the record -- which is why
+`ownInflights` is indexed by one that determines it. The point is not this triple but
+`Inflights.Add`, which *panics* unless `Full()` is false; stating `Add` truthfully needs
+a name for "not full" that a caller can carry from the test to the use, and this is
+it. -/
 abbrev tracker.Inflights.Full.spec : Prop :=
-  ∀ (l : Loc) (iv : tracker.Inflights) (buf : List tracker.inflight),
+  ∀ (l : Loc) (i : Inflights),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗
-      "Hin" ∷ ownInflights l iv buf }}
+      "Hin" ∷ ownInflights l i }}
     (App (Val (l @!! go.GoType.PointerType tracker.Inflights.ty @!! go!"Full")) (Val #()))
-  {{ RET #(inflightsFull iv); ownInflights l iv buf }}
+  {{ RET #(inflightsFull i); ownInflights l i }}
 
 end spec
 

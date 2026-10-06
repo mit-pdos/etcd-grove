@@ -1,9 +1,8 @@
 /-
-Port of `election_proof/spec_ProgressTracker__ConfState.v`.
+Port of election_proof/spec_ProgressTracker__ConfState.v (feb5c73d4).
 
-Lean notes:
-* The types of Rocq's untyped binders `tv votes` are written out
-  (`tracker.ProgressTracker`, `GMap w64 Bool`), as `ownTracker` forces them.
+Lean notes: the type of Rocq's untyped binder `tv` is written out
+(`tracker.ProgressTracker`), as `ownTracker` forces it.
 -/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
 
@@ -27,14 +26,13 @@ configuration with no learners -- empty `VotersOutgoing`, `Learners` and
 `LearnersNext`. Only `Voters` is handed back with its elements; for the others their
 length is all any caller needs. -/
 abbrev tracker.ProgressTracker.ConfState.spec : Prop :=
-  ∀ (cfg : GSet w64) (trk : Loc) (tv : tracker.ProgressTracker) (votes : GMap w64 Bool)
-    (prs : GMap w64 Loc) (pvs : GMap w64 (tracker.Progress × tracker.Inflights)),
+  ∀ (cfg : GSet w64) (trk : Loc) (tv : tracker.ProgressTracker) (t : Trk),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ trk ↦ tv ∗
-      ownTracker cfg tv votes prs pvs }}
+      ownTracker cfg tv t }}
     (App (Val (trk @!! go.GoType.PointerType tracker.ProgressTracker.ty @!! go!"ConfState"))
       (Val #()))
   {{ (cs : raftpb.ConfState) (xs : List w64), RET #cs;
-      trk ↦ tv ∗ ownTracker cfg tv votes prs pvs ∗
+      trk ↦ tv ∗ ownTracker cfg tv t ∗
       cs.Voters' ↦* xs ∗ ⌜xs ≡ₚ elements cfg⌝ ∗
       ⌜cs.VotersOutgoing'.len = W64 0 ∧
         cs.Learners'.len = W64 0 ∧
