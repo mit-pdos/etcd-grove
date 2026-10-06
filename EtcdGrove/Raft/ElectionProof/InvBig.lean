@@ -1,5 +1,6 @@
 /-
-Port of `election_proof/inv_big.v`: `math/big.Int`, abstractly.
+Port of `election_proof/inv_big.v` (at feb5c73d4; unchanged since `main`): `math/big.Int`,
+abstractly.
 
 `lockedRand.Intn` -- the RNG behind `raft.resetRandomizedElectionTimeout` -- goes
 through `math/big`: `big.NewInt(int64(n))` builds the bound, `crypto/rand.Int` returns
