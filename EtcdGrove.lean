@@ -6,4 +6,6 @@ import EtcdGrove.Raft.ElectionProof.StepLemmas
 import EtcdGrove.Raft.ElectionProof.InvStorage
 import EtcdGrove.Raft.ElectionProof.InvRaftlog
 import EtcdGrove.Raft.ElectionProof.InvTracker
+import EtcdGrove.Raft.ElectionProof.InvMisc
+import EtcdGrove.Raft.ElectionProof.InvRaftPhys
 import EtcdGrove.Raft.ElectionProof.Election

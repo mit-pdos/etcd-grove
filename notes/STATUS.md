@@ -16,7 +16,7 @@ Porting `main`'s Rocq election proof (`new/proof/go_etcd_io/raft/election_proof/
 
 ## Next
 
-1. `inv_misc.v`, `inv_raft_phys.v` (every remaining spec is stated on
+1. (done) `inv_misc.v`, `inv_raft_phys.v` (every remaining spec is stated on
    `ownRaftPhys`).
 2. The remaining 93 specs (`spec_*.v`), then the proofs (`proof_*.v`), then
    `election.v` (the links and the results).
