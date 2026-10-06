@@ -1,5 +1,6 @@
 /-
-Port of `election_proof/inv_logger.v`: the `Logger` interface.
+Port of `election_proof/inv_logger.v` (at feb5c73d4; unchanged since `main`): the `Logger`
+interface.
 
 Every `Logger` method used on the election path returns unit and has no observable
 effect. `Panicf`/`Panic` are only reached on paths shown unreachable, so they get no
