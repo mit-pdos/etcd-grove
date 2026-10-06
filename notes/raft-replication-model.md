@@ -1225,3 +1225,74 @@ global log entry by entry (`fire_upto`, `fire_one`). Extending by the entry
 `own_committed (take m G ++ [e])` and its result is stored. The uniform
 `own_raft_ghost_step` therefore fires every committed proposal; its
 `step_propose` case registers nothing (downstream unchanged).
+
+## Phase 4: Propose (2026-10-06)
+
+**`Step`'s `MsgProp` arm carries the proposals' updates.** `wp_raft__Step_body`
+now binds the message's entries `ents` at the spec level (they were an `∃`
+inside `"Hm"`; logically the same for every other type) and a list
+`Qs : list (w64 → w64 → iProp Σ)`, and for `MsgProp`:
+
+    pre:  "Hprops" ∷ (if decide (Type = MsgProp)
+                      then [∗ list] e;Q ∈ ents;Qs, prop_au γ e Q else True)
+    post: "Hprops" ∷ (if decide (Type = MsgProp) then
+              (⌜ err = nil ∧ ps.role = Leader ⌝ ∗
+               [∗ list] k ↦ Q ∈ Qs, ∃ γp,
+                 is_prop γ ps.term (plast_index ps + 1 + k) γp Q ∗ prop_tok γp)
+            ∨ ([∗ list] e;Q ∈ ents;Qs, prop_au γ e Q)
+          else True)
+
+(`big_sepL2` makes `length Qs = length ents`; the index is
+`word.add (word.add (plast_index ps) (W64 1)) (W64 k)`, exactly
+`own_raft_ghost_step_propose_reg`'s.) Left disjunct: appended at the
+leader. Right: forwarded by a follower, or dropped (no leader, candidate,
+pre-candidate, `appendEntry` refused) -- the updates come back unrun.
+
+**How the ghost step is split.** `wp_Step_MsgProp` (the branch helper)
+used to return one `step` from `to_pstate s`; its `%Hrefines` is now a
+disjunction: either that (forward/drop), or -- appended at the leader --
+`err = nil`, the leader role, the batch `EntryNormal`, the no-wrap bound,
+and `step cfg id (psend_msgs ps1 [pself_ack id ps1]) [] (to_pstate s')`
+with `ps1 := pappend ps (imap (stamp ps.term (plast_index ps)) ents)`,
+i.e. the `step_send_apps` broadcast from `step_propose`'s state. The
+dispatch in `proof_raft__Step.v` (now decided **first**, before the other
+types, which get `Hprops = True` and the old `step_post`) applies
+`own_raft_ghost_step_propose_reg` for `step_propose`, then
+`own_raft_ghost_step_0` for the rest, and rebuilds `Hrefines` as
+`step_trans (step_propose …) Hstep`.
+
+**`From`.** `RawNode.Propose` stamps `From: rn.raft.id`, but `Step`'s
+`MsgProp` premise said `From = 0`, as did `stepFollower`'s and `send`'s
+(`send` writes `From := r.id` only when it is unset). All three now take
+`From = 0 ∨ From = id`; `send`'s proof joins the two arms of `if m.From ==
+None` with `wp_if_join` at `m <| From := id |>`. Every other `send`
+caller's premise went from `done` to `by left`.
+
+**`RawNode.Propose`** (`spec_RawNode__Propose.v`, `Qed`): for
+`prop_entry data_sl := zero_val Entry <| Data := data_sl |>`,
+
+    γ.re_cfg = cfg → id ∈ cfg → nstate_rel s ps → rnv.raft = r →
+    {{{ is_pkg_init raft ∗ rn ↦ rnv ∗ own_raft_phys cfg r id s ∗
+        own_raft_ghost γ id ps ∗ data_sl ↦*□ data ∗
+        prop_au γ (prop_entry data_sl) Q }}}
+      rn.Propose(data_sl)
+    {{{ err s' ps', RET err; rn ↦ rnv ∗ own_raft_phys cfg r id s' ∗
+        own_raft_ghost γ id ps' ∗ ⌜nstate_rel s' ps'⌝ ∗ ⌜∃ recv, step … ps recv ps'⌝ ∗
+        ( (⌜err = nil ∧ ps.role = Leader⌝ ∗
+           ∃ γp, is_prop γ ps.term (plast_index ps + 1) γp Q ∗ prop_tok γp)
+        ∨ (prop_au γ (prop_entry data_sl) Q ∗ (⌜err = nil⌝ ∨ ErrProposalDropped ↦□ err)) ) }}}
+
+The `RawNode` is taken raw (`rn ↦ rnv` and `own_raft_phys` of its `raft`
+field), to be folded into `own_RawNode` when `inv_rawnode.v` lands from the
+other branch.
+
+**What the client gets.** Now: `is_prop γ t i γp Q ∗ prop_tok γp` at the
+entry's `(t, i)` = `(ps.term, last + 1)`, or its update back. Later: once
+some `is_committed γ l` has an entry of term `t` at `pos i` (e.g. the
+node's own, `own_raft_ghost_committed`, after its commit index passes
+`i`), `prop_collect` trades the token for `▷ ▷ Q t i`. A forwarded
+proposal (`err = nil`, right disjunct) is not tracked: the update is back
+with the client and the forwarded `MsgProp` carries no ghost state, so if
+the leader appends it, the entry commits as an unregistered one (the log
+is extended directly, the client's `Q` never runs). Nothing yet lets a
+client learn which of its proposals the leader appended.

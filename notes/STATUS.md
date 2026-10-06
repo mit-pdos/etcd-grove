@@ -1,6 +1,6 @@
 # Status
 
-**Last updated:** 2026-10-05 (global committed log in `protocol.v`, branch of `worktree-raft-replication` at `ca63d255f`; earlier: 2026-10-04, branch `worktree-raft-replication`, pre-vote merged on top of `1fddf5333`; `origin/main` `4f48cb6de` merged in; not yet on `main`; the combined tree's build is being verified)
+**Last updated:** 2026-10-06 (`RawNode.Propose` and `Step`'s `MsgProp` arm with the proposal registry, branch of `worktree-raft-replication` at `a0280fc4c`; earlier: 2026-10-05, global committed log in `protocol.v`, branch of `worktree-raft-replication` at `ca63d255f`; earlier: 2026-10-04, branch `worktree-raft-replication`, pre-vote merged on top of `1fddf5333`; `origin/main` `4f48cb6de` merged in; not yet on `main`; the combined tree's build is being verified)
 
 This file is a snapshot of where the proof *is*. It carries no history: how
 something got this way is in [journal.md](journal.md), why a design was
@@ -189,6 +189,18 @@ specs of Go functions):
   returning `is_quorum cfg (acked_by …)`), the heartbeat chain,
   `appendEntry` for an arbitrary `EntryNormal` batch with its drop path,
   and proposal forwarding.
+- **`RawNodePropose.wp_RawNode__Propose`** (`election_proof/spec_RawNode__Propose.v`,
+  2026-10-06, `Qed`): the client's entry point. Given `prop_au γ e0 Q`
+  for the entry `Propose` builds, it returns, appended at the leader,
+  `is_prop γ ps.term (last + 1) γp Q ∗ prop_tok γp` (the client later
+  trades the token for `▷ ▷ Q t i` with `prop_collect` once
+  `is_committed` shows the entry), and otherwise (forwarded, dropped) the
+  update back. Rests on `Step`'s widened `MsgProp` arm (`"Hprops"`; the
+  leader's ghost step is `own_raft_ghost_step_propose_reg`). The `RawNode`
+  is taken raw (`rn ↦ rnv` + `own_raft_phys` of its `raft` field) until
+  `own_RawNode` lands. Since `Propose` calls `Step`, `tcb-report` now lists
+  `Propose`, not `Step`, among the results; `Step` is still the spec every
+  message goes through. Design: raft-replication-model.md, "Phase 4".
 - **`NewRaft.wp_newRaft`** (`election_proof/spec_newRaft.v`, 2026-09-24):
   the **constructor**. From a `Config` and a `Storage` it returns
   `own_raft_phys (list_to_set voters) r cv.ID s` at a state that is
@@ -235,7 +247,7 @@ Everything above holds **only** under these assumptions. They are premises of
 | A received `MsgApp`'s entries are `EntryNormal`, contiguous from `Index+1`, and conflict only above the receiver's commit index; a received `Heartbeat`'s `Commit` is at most the receiver's last index. All four are proved from `own_raft_ghost` and `is_message` (`app_recv_wf`, `app_no_conflict_below_commit`, `heartbeat_commit_le_last`; since 2026-10-02 none is admitted) | `protocol.v` |
 | No read-index requests: `readOnly.unconfirmedReads` and `pendingReadIndexMessages` are empty, so `heartbeatCtx` is `nil` and a `MsgHeartbeatResp` carries an empty `Context` | `inv_misc.v` |
 | `disableProposalForwarding = false` (`newRaft` copies the `Config` field; a scope premise of `newRaft`'s spec) | `inv_raft_phys.v`, `spec_newRaft.v` |
-| No proposals, no read-only requests | scope |
+| No read-only requests. Proposals are in scope since 2026-10-06 (`RawNode.Propose`, `Step`'s `MsgProp` with `"Hprops"`); a proposal's `From` is `0` or the node's own id | scope, `spec_raft__Step.v` |
 | No reconfiguration, no learners; the voter set `cfg` is fixed, and **no `EntryConfChange` is anywhere in the log** | `HnoConfChange`, `inv_raftlog.v:139` |
 | A received `MsgSnap` carries a snapshot (`m.Snapshot ↦□ sv`, its voters `↦*□`) whose `ConfState` is `cfg`'s voters only (no learners, not joint, `AutoLeave` off), with `0 ∉ cfg` and `Metadata.Index < 2^61`; it is `To = id`, `Term ≠ 0`, `From ≠ 0`, `From ≠ id` (`snap_scope`, `"Hsnap"`). A pending snapshot is never stored (`stableSnapTo`, `Ready` out of scope) | `spec_raft__Step.v`, `spec_raft__restore.v` |
 | No check-quorum (`checkQuorum = false`). **Pre-vote is in scope since 2026-10-04**: `nstate.prevote` is `r.preVote`, either value, and `newRaft` copies `Config.PreVote` | `inv_raft_phys.v` (`HnoCheckQuorum`, `Hprevote`) |
@@ -457,7 +469,14 @@ say so in the journal.
 whose whole job is what the build cannot check. What each establishes, the
 known gaps and the plan are in [tcb-accounting.md](tcb-accounting.md).
 
-**Latest audit (2026-10-06, proposal registry, at `8d3e1f9ed`)**: `make -k -j4 …/election.vo`
+**Latest audit (2026-10-06, `RawNode.Propose`, at this branch's head)**: `make -k -j4 …/election.vo`
+exit 0 (97 files rebuilt after widening `send`, then the Propose collection;
+cone 624 files); tcb-report `--scope election_proof`: **14 `Axiom`, 1
+`Admitted`** (`raftLog.slice`), 766 `Qed`, 142 collections, 10 results
+(`RawNode.Propose` replaces `raft.Step`), 200 definitions (1,732 lines);
+discipline: 3 warnings (unchanged).
+
+Before that: **Audit (2026-10-06, proposal registry, at `8d3e1f9ed`)**: `make -k -j4 …/election.vo`
 exit 0 (615 files, 45m33s); tcb-report `--scope election_proof`: **14 `Axiom`, 1
 `Admitted`** (`raftLog.slice`), 766 `Qed`, 141 collections, 10 results, 212
 definitions (1,751 lines); `protocol.v` has no `Admitted`; discipline: 3 warnings.

@@ -22,6 +22,8 @@ needed the fact and could not get it:
 | `wp_raft__appendEntry`, again | claimed `RET #true` unconditionally; there is a `return: #false` when `increaseUncommittedSize` rejects (`v3.v:3469`; this file said 3463 until 2026-10-01) |
 | `own_tracker`'s `HmaxInfl` comment (`inv_tracker.v`) | said `Config.validate` requires `MaxInflightMsgs ∈ (0, 1<<30]`; `validate` checks only `> 0` (`v3.v:2830-2832`). The conjunct itself (`< 2^62`) is needed and kept, so `own_raft_phys` is **unsatisfiable for a valid `Config` with `MaxInflightMsgs ≥ 2^62`**, and `newRaft`'s spec takes the bound as a premise of its own. Found 2026-09-24 writing that spec |
 
+| `wp_raft__Step`'s `MsgProp` premise (and `stepFollower`'s, `send`'s) | required `From = 0` ("a proposal is not yet stamped"); the one caller that proposes, `RawNode.Propose` (rawnode.go:90), sets `From: rn.raft.id`. Widened to `From = 0 ∨ From = id` on 2026-10-06, found writing that caller's spec |
+
 **Nine of the ten were claims about what raft's code does that nobody had
 checked against the generated body** — the cheapest check available. The
 tenth (`r.step`) was prose promising an invariant.

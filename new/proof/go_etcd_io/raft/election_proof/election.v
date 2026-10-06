@@ -120,6 +120,8 @@ Require Export New.proof.go_etcd_io.raft.election_proof.link_stepCandidate.
 Require Export New.proof.go_etcd_io.raft.election_proof.link_stepFollower.
 Require Export New.proof.go_etcd_io.raft.election_proof.link_stepLeader.
 Require Export New.proof.go_etcd_io.raft.election_proof.link_raft__Step.
+(** The client's entry point (2026-10-06): one [Step] of a [MsgProp]. *)
+Require Export New.proof.go_etcd_io.raft.election_proof.link_RawNode__Propose.
 (** The constructor: [newRaft] establishes [own_raft_phys]
     ([spec_newRaft.v]).  Its collection pulls in the fifteen callees
     written for it, four of them axioms for untranslated code. *)

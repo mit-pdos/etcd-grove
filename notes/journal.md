@@ -4983,3 +4983,37 @@ Gotcha found: proof-mode persistence of `[∗ list] k ↦ e ∈ ents, is_entry �
 (stamp_at e t (idx k))` took ~400 s of instance search per occurrence;
 naming it (`ents_rec`) with one instance makes it instant.
 Audit 2026-10-06: cone 615 files exit 0 (45m33s); tcb-report 14 Axiom, 1 Admitted, 766 Qed.
+
+## 2026-10-06 — `RawNode.Propose`; `Step`'s `MsgProp` arm registers proposals
+
+Branch `worktree-agent-a15587d0dfc2eb65d`, reset to `a0280fc4c`.
+`protocol.v` untouched. Design and statements: raft-replication-model.md,
+"Phase 4: Propose".
+
+1. **`Step`'s `MsgProp` arm** takes `"Hprops"` (`[∗ list] e;Q ∈ ents;Qs,
+   prop_au γ e Q`, `True` for other types) and returns, appended at the
+   leader, `is_prop`+`prop_tok` per entry at `(ps.term, last+1+k)`,
+   otherwise the updates. To name `ents` in the postcondition it is now a
+   spec-level binder (was `∃` in `"Hm"`). The `MsgProp` helper's
+   `Hrefines` is a disjunction whose appended case is "from
+   `step_propose`'s state, one step to `s'`"; the dispatch (now first)
+   runs `own_raft_ghost_step_propose_reg` then `own_raft_ghost_step_0`.
+   `ents_ro` deleted (the early `decide` reduces `"Hents"`).
+2. **`From`**: `RawNode.Propose` stamps `From: r.id`; `Step`/`stepFollower`/
+   `send` required `From = 0` (false-statements.md). Widened to `0 ∨ id`;
+   `send` joins the `if m.From == None` arms with `wp_if_join`; 28 caller
+   side goals `done` → `by left`.
+3. **`RawNode.Propose`** collection, `Qed`, required from `election.v`.
+   Raw `RawNode` premises (`rn ↦ rnv`, `rnv.raft = r`), to fold into
+   `own_RawNode` (other branch). `wp_auto` loads `rn.raft` from `rn ↦ rnv`
+   directly; the message literal and `wp_slice_literal` need nothing
+   special (gotchas.md).
+
+Audit: cone exit 0 (97 files rebuilt after `send`'s change, then the
+Propose collection); tcb-report 14 Axiom, 1 Admitted, 766 Qed, 142
+collections, 10 results (`RawNode.Propose` in, `raft.Step` out -- it now
+has a caller); discipline 3 warnings, unchanged.
+
+Open: a forwarded proposal's update returns to the client untracked (the
+forwarded `MsgProp` carries no ghost state), so a client has no way yet to
+learn that the leader appended it.

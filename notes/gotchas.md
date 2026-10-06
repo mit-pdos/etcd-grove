@@ -1951,3 +1951,16 @@ likely the same search), and `newRaft.v:29`/`appliedTo.v:18`/
   (stamp_at e t (idx k))` took ~400 s (`protocol.v`, 2026-10-06).  Name the
   big-op (`ents_rec`) and give it one `Persistent` instance.  Find such
   cases with `rocq compile -time` and sort.
+- **Two arms of an `if` that reach the same state: `wp_if_join`**, not a
+  case split before it (a split leaves two copies of the rest of the proof,
+  and the two goals cannot be merged afterwards -- the proof-mode
+  environments differ in their counters).  `proof_raft__send.v` (2026-10-06)
+  joins `if m.From == None { m.From = r.id }` at `m_ptr ↦ m <| From := id |>`,
+  proving the skip arm by record eta from `m.From = id`.
+- **A literal message makes `simpl` decide the spec's `if decide (Type =
+  MsgProp)`**: after `wp_apply` of `Step` on a composite literal, `simpl`
+  reduces the `decide` and `[∗ list]` over singletons; a following
+  `rewrite decide_True`/`big_sepL2_singleton` then fails to match
+  (`proof_RawNode__Propose.v`).  Also: `wp_slice_literal` hands back
+  `<[0 := e]> [zero]`, which `iAssert (sl ↦* [e]) with "[Hes]"; first done`
+  normalises by conversion.
