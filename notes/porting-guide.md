@@ -139,8 +139,9 @@ specs), `Proof/big_NewInt.lean` (a trust-boundary axiom).
 
 * The spec is `abbrev <T>.<M>.spec : Prop := ∀ args, premises → {{ … }} e {{ … }}`
   (an `abbrev`, so that `wp_apply h` works on a hypothesis `h : C.spec`) inside the
-  standard section variables; for a function `F`, `F.spec`; for a function of another
-  package, prefix it (`big.NewInt.spec`). It keeps the Rocq `Definition wp_<fn>_body`'s
+  standard section variables; for a function `F`, `F.spec`; for a function or a method of a type of another
+  package, prefix the package (`big.NewInt.spec`, `tracker.Progress.ResetState.spec`,
+  `quorum.JointConfig.IDs.spec`); a Lean keyword is quoted (`slices.«Sort».spec`). It keeps the Rocq `Definition wp_<fn>_body`'s
   comment. The Rocq binders `ext ffi … package_sem` are the section variables; the
   function's own binders are the `∀`.
 * The proof is `theorem <T>.<M>.wp_proof (wp_C₁ : C₁.spec (GF := GF) (hG := hG)) … :
