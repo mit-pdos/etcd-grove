@@ -1,5 +1,5 @@
 /-
-Port of `election_proof/inv_storage.v`: the `Storage` interface.
+Port of `election_proof/inv_storage.v` (at feb5c73d4): the `Storage` interface.
 
 `raftLog.storage` is a `Storage` **interface value**, supplied by the application (etcd
 provides one; raft itself only ships `MemoryStorage` for tests). It is therefore a
@@ -16,12 +16,16 @@ not axioms -- they are what a client has to supply, and a caller that has no
 
 ### The abstraction
 
-`ownStorage st prev ents` says: the storage behind the interface value `st` holds the
-log entries `ents`, immediately following the entry `prev`. `prev` is the compaction
-boundary -- the last entry the storage has discarded the payload of but still knows the
-term of. This is exactly how `MemoryStorage` represents its log (a dummy entry at
-`ents[0]`), and it is what makes `Term` total on `[prev.index, prev.index + |ents|]`
-rather than only on `(prev.index, ...]`.
+`ownStorage st prev ents ss` says: the storage behind the interface value `st` holds
+the log entries `ents`, immediately following the entry `prev`, and its most recent
+snapshot has metadata `ss` (as an `entryID`: `(Metadata.Term, Metadata.Index)`).
+`prev` is the compaction boundary -- the last entry the storage has discarded the
+payload of but still knows the term of. This is exactly how `MemoryStorage` represents
+its log (a dummy entry at `ents[0]`), and it is what makes `Term` total on
+`[prev.index, prev.index + |ents|]` rather than only on `(prev.index, ...]`. `ss` is
+`MemoryStorage.snapshot`'s metadata, which `Snapshot()` returns (added 2026-10-03, so
+that `raft` can relate the snapshot it forwards to its own commit index -- see
+`HSnapshot` and `ownRaftLog`'s `StoredSnapOk`).
 
 Index `prev.index + 1 + k` holds `ents[k]?`, so:
   - `FirstIndex()` = `prev.index + 1`
@@ -59,8 +63,13 @@ starts in the stable prefix. Its contract:
     `cap = len`. (Until 2026-09-29 the slice was *lent*, at an existential fraction,
     with a wand back to `ownStorage`; that forced a page loan on `raftLog.slice`'s
     callers -- `logstate.page`.)
-What the returned entries *are* (which indices) is not stated; nothing on the election
-path reads them beyond their `Type`, for which membership in the stored list is enough.
+What the returned entries *are* is stated only as membership: every one is a stored
+entry **below `hi`** (`ents.take (hi - prev.index - 1)`). The bound was added
+2026-10-01, when `ownRaftLog`'s stable part became a *visible prefix* of the stored
+entries (`InvRaftlog.lean`): `raftLog.slice` reads only below `unstable.offset`, and
+without the bound it could not tell an entry it got back from a shadowed one.
+`MemoryStorage.Entries` returns `ms.ents[lo-offset : hi-offset]` cut by `limitSize`,
+so it holds.
 
 Besides the four triples the contract has one **pure clause**, `Hbounded`: the stable
 log's last index is below `2^61`. It is the assumption that makes appending to the log
@@ -90,6 +99,7 @@ honest reading of raft's use of the interface.
 
 Lean notes: `ownStorage` is an `axiom` with its binders written out (`GF` and
 `FfiSyntax`, which `Storage`/`entryID` need); it mentions no other section variable.
+Rocq's `l1 `prefix_of` l2` is `l1 <+: l2`, `take n l`/`drop n l` are `l.take n`/`l.drop n`.
 The Rocq `ents !! k` is `ents[k]?` and `Z.to_nat` is `Int.toNat`. Inside `iprop(…)` a
 Texan triple is `□ (∀ Φ, …)`, as Rocq's `{{{ … }}}` is, so `isStorage` is persistent
 by `infer_instance`. A multiple return `(#li, #interface.nil)` is `PairV #li
@@ -112,7 +122,7 @@ scope; exclusive (not persistent) because a `Storage` is mutable -- `Append` and
 `Compact` change it -- so two different contents for the same `st` must not be
 simultaneously assertable. -/
 axiom ownStorage {GF : BundledGFunctors} [FfiSyntax] :
-  Storage → entryID → List raftpb.Entry → IProp GF
+  Storage → entryID → List raftpb.Entry → entryID → IProp GF
 
 section termAt
 variable [FfiSyntax]
@@ -133,33 +143,39 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- The interface contract. Persistent: it is a property of the interface value (which
-method implementations it dispatches to), not of the storage's current contents --
-those live in `ownStorage`. -/
-def isStorage (st : Storage) : IProp GF :=
+/-- The interface contract, against an arbitrary ownership predicate `P` for the
+storage's contents (`prev`, `ents`, `ss` as in `ownStorage`). Persistent: it is a
+property of the interface value (which method implementations it dispatches to), not
+of the storage's current contents -- those live in `P`. `isStorage` below is the case
+`P := ownStorage st` that the rest of the development uses; a concrete implementation
+of the interface is shown to satisfy the contract by proving `isStorageWith` for its
+own predicate (see `InvMemstorage.lean`). -/
+def isStorageWith (P : entryID → List raftpb.Entry → entryID → IProp GF) (st : Storage) :
+    IProp GF :=
   iprop(∃ (i : GoInterfaceOk),
   "%Hstok" ∷ ⌜st = interface.ok i⌝ ∗
-  "#HLastIndex" ∷ (∀ (prev : entryID) (ents : List raftpb.Entry),
-     {{ ownStorage st prev ents }}
+  "#HLastIndex" ∷ (∀ (prev : entryID) (ents : List raftpb.Entry) (ss : entryID),
+     {{ P prev ents ss }}
        (App (Val #(methods i.ty go!"LastIndex" i.v)) (Val #()))
      {{ (li : w64), RET (PairV #li #interface.nil);
          ⌜uint.Z li = uint.Z prev.index' + (ents.length : Int)⌝ ∗
-         ownStorage st prev ents }}) ∗
-  "#HFirstIndex" ∷ (∀ (prev : entryID) (ents : List raftpb.Entry),
-     {{ ownStorage st prev ents }}
+         P prev ents ss }}) ∗
+  "#HFirstIndex" ∷ (∀ (prev : entryID) (ents : List raftpb.Entry) (ss : entryID),
+     {{ P prev ents ss }}
        (App (Val #(methods i.ty go!"FirstIndex" i.v)) (Val #()))
      {{ (fi : w64), RET (PairV #fi #interface.nil);
          ⌜uint.Z fi = uint.Z prev.index' + 1⌝ ∗
-         ownStorage st prev ents }}) ∗
-  "#HTerm" ∷ (∀ (prev : entryID) (ents : List raftpb.Entry) (i0 : w64),
-     {{ ownStorage st prev ents ∗
+         P prev ents ss }}) ∗
+  "#HTerm" ∷ (∀ (prev : entryID) (ents : List raftpb.Entry) (ss : entryID) (i0 : w64),
+     {{ P prev ents ss ∗
          ⌜uint.Z prev.index' ≤ uint.Z i0 ∧
             uint.Z i0 ≤ uint.Z prev.index' + (ents.length : Int)⌝ }}
        (App (Val #(methods i.ty go!"Term" i.v)) (Val #i0))
      {{ (t : w64), RET (PairV #t #interface.nil);
-         ⌜termAt prev ents i0 = some t⌝ ∗ ownStorage st prev ents }}) ∗
-  "#HEntries" ∷ (∀ (prev : entryID) (ents : List raftpb.Entry) (lo hi maxSize : w64),
-     {{ ownStorage st prev ents ∗
+         ⌜termAt prev ents i0 = some t⌝ ∗ P prev ents ss }}) ∗
+  "#HEntries" ∷ (∀ (prev : entryID) (ents : List raftpb.Entry) (ss : entryID)
+      (lo hi maxSize : w64),
+     {{ P prev ents ss ∗
          ⌜uint.Z prev.index' + 1 ≤ uint.Z lo ∧ uint.Z lo < uint.Z hi ∧
             uint.Z hi ≤ uint.Z prev.index' + (ents.length : Int) + 1⌝ }}
        (App (App (App (Val #(methods i.ty go!"Entries" i.v)) (Val #lo)) (Val #hi))
@@ -169,9 +185,16 @@ def isStorage (st : Storage) : IProp GF :=
          s ↦*□ es ∗
          ⌜es ≠ [] ∧
            (es.length : Int) ≤ uint.Z hi - uint.Z lo ∧
-           (∀ e, e ∈ es → e ∈ ents) ∧
-           s.cap = s.len⌝ ∗
-         ownStorage st prev ents }}) ∗
+           (∀ e, e ∈ es → e ∈ ents.take (uint.Z hi - uint.Z prev.index' - 1).toNat) ∧
+           s.cap = s.len ∧
+           -- *which* entries: the stored ones at `[lo, lo+1, ...]`, cut short by
+           -- `maxSize` (the `Storage` interface's documented contract: "Entries returns a
+           -- slice of consecutive log entries in the range [lo, hi)"; `MemoryStorage`
+           -- returns `limitSize(ents[lo-offset:hi-offset])`). Added 2026-10-01 for
+           -- `AppOk`'s prefix clause.
+           es <+: (ents.take (uint.Z hi - uint.Z prev.index' - 1).toNat).drop
+                    (uint.Z lo - uint.Z prev.index' - 1).toNat⌝ ∗
+         P prev ents ss }}) ∗
   /- The stable log's last index is far below `2^64`.
 
      This is the one *pure* clause of the contract, and it is what makes appending to
@@ -199,37 +222,68 @@ def isStorage (st : Storage) : IProp GF :=
      persistent: an `icases` against a bare `ownStorage st prev ents -∗ ⌜…⌝` would
      consume the storage (main's notes/gotchas.md, "Reading a pure fact out of a
      definition without consuming it"). -/
-  "#Hbounded" ∷ □ (∀ (prev : entryID) (ents : List raftpb.Entry),
-     ownStorage st prev ents -∗
+  "#Hbounded" ∷ □ (∀ (prev : entryID) (ents : List raftpb.Entry) (ss : entryID),
+     P prev ents ss -∗
      ⌜uint.Z prev.index' + (ents.length : Int) < 2^61⌝ ∗
-     ownStorage st prev ents) ∗
+     P prev ents ss) ∗
   /- `Snapshot()` -- added 2026-09-20 for `raft.maybeSendSnapshot`.
 
-     `raftLog.snapshot` (Goose's `v3` code) returns `l.unstable.snapshot` when it is
-     non-nil and otherwise forwards to this method; `ownRaftLogCore`'s `Hnosnap` says it
-     is always nil here, so every snapshot on this path comes from the client.
+     `raftLog.snapshot` (`new/code/go_etcd_io/raft/v3.v:864`) returns
+     `l.unstable.snapshot` when it is non-nil and otherwise forwards to this method. It
+     is non-nil only while a received snapshot is pending (`LogState.snap`, since
+     2026-10-02; until then it was always nil), so every other snapshot on this path
+     comes from the client.
 
      The contract is the *disjunction* `maybeSendSnapshot` is written against: either
      the distinguished, non-fatal `ErrSnapshotTemporarilyUnavailable` -- for which raft
      has a `return false` -- or success with a **non-empty** snapshot. Both halves are
      needed, and for the same reason as `FirstIndex`/`Term`: any other error reaches
      `panic(err)`, and an empty snapshot on the success path reaches
-     `panic("need non-empty snapshot")`. "Non-empty" is `IsEmptySnap`'s test,
-     `Metadata.Index ≠ 0`.
+     `panic("need non-empty snapshot")` (`v3.v:3190-3196`). "Non-empty" is
+     `IsEmptySnap`'s test, `Metadata.Index ≠ 0` (`v3.v:2004`).
 
      The error value is passed in as the package-level variable's points-to, so a proof
-     compares the two interface values through `isPkgInit` (`Base.lean`) rather than
-     through a claim about `errors.New`. What the snapshot *contains* is unspecified:
-     raft only forwards it and takes `Metadata.Index`/`Metadata.Term` for a
-     `Progress.BecomeSnapshot` and a `MsgSnap` the model does not see. -/
-  "#HSnapshot" ∷ (∀ (prev : entryID) (ents : List raftpb.Entry) (esu : GoInterface),
-     {{ ownStorage st prev ents ∗
+     compares the two interface values through `isInitialized` (`Base.lean`) rather
+     than through a claim about `errors.New`.
+
+     **What the snapshot is** (2026-10-03). On success the snapshot's metadata is the
+     storage's own, `ss` (`snapId`, `Defs.lean`): "Snapshot returns the most recent
+     snapshot" (`storage.go:85`), and `MemoryStorage.Snapshot` returns `ms.snapshot` by
+     value. That is all this clause says about *which* snapshot; that it is of a
+     committed prefix of raft's log is not a property of a `Storage` at all, and is
+     kept by raft instead, as an invariant relating `ss` to its commit index
+     (`ownRaftLog`'s `StoredSnapOk`, `InvRaftlog.lean`) -- true at `newRaft` by a
+     premise on the initial storage, and preserved because nothing in scope changes
+     the storage. And the snapshot's `ConfState.Voters` slice is handed out
+     **read-only, for good** (`↦*□`), like `Entries`' result: the snapshot comes back
+     by value, but its slices are the storage's, which `MemoryStorage` never writes in
+     place (`CreateSnapshot` replaces the whole `ConfState`; `ApplySnapshot` the whole
+     snapshot). raft puts that slice in a `MsgSnap` (`maybeSendSnapshot`) and the
+     abstraction of the queued message reads it (`msgAbs`, `InvRaftPhys.lean`).
+
+     *Client assumptions* in this clause, as before: the snapshot is non-empty on
+     success (an empty one is a `panic` in raft; raft only asks after a `Term` or
+     `Entries` failed with `ErrCompacted`, i.e. once the storage has compacted, which
+     presupposes a snapshot), and the voters' read-only ownership. -/
+  "#HSnapshot" ∷ (∀ (prev : entryID) (ents : List raftpb.Entry) (ss : entryID)
+      (esu : GoInterface),
+     {{ P prev ents ss ∗
          globalAddr ErrSnapshotTemporarilyUnavailable ↦□ esu }}
        (App (Val #(methods i.ty go!"Snapshot" i.v)) (Val #()))
      {{ (snap : raftpb.Snapshot) (err : GoInterface), RET (PairV #snap #err);
-         ownStorage st prev ents ∗
-         ⌜err = esu ∨
-           (err = interface.nil ∧ snap.Metadata'.Index' ≠ W64 0)⌝ }}))
+         P prev ents ss ∗
+         (⌜err = esu⌝ ∨
+          (⌜err = interface.nil ∧ snapId snap = ss ∧ snap.Metadata'.Index' ≠ W64 0⌝ ∗
+           ∃ (voters : List w64), snap.Metadata'.ConfState'.Voters' ↦*□ voters)) }}))
+
+/-- The contract against the abstract `ownStorage`: what every client of the interface
+assumes. -/
+def isStorage (st : Storage) : IProp GF :=
+  isStorageWith (ownStorage st) st
+
+instance isStorageWith_pers (P : entryID → List raftpb.Entry → entryID → IProp GF)
+    (st : Storage) : Persistent (isStorageWith P st) := by
+  unfold isStorageWith; infer_instance
 
 instance isStorage_pers (st : Storage) : Persistent (isStorage (GF := GF) st) := by
   unfold isStorage; infer_instance
