@@ -41,7 +41,7 @@ Import P.
                   [app_resp id s m.(raftpb.Message.From') false
                      s.(nstate.logst).(logstate.committed) (W64 0) (W64 0)]
                   with "[$Hphys]").
-      { done. }
+      { by left. }
       { right; right; right; left. split_and!; [done|done|reflexivity]. }
       { iSplitR; [iApply own_slice_nil | iApply send_no_snap; simpl; w32_ne]. }
       iIntros "Hphys". wp_auto.
@@ -67,7 +67,7 @@ Import P.
                   [app_resp id s m.(raftpb.Message.From') false
                      (snap_id sv).(raft.entryID.index') (W64 0) (W64 0)]
                   with "[$Hphys]").
-      { done. }
+      { by left. }
       { right; right; right; left. split_and!; [done|done|reflexivity]. }
       { iSplitR; [iApply own_slice_nil | iApply send_no_snap; simpl; w32_ne]. }
       iIntros "Hphys". wp_auto.
@@ -92,7 +92,7 @@ Import P.
                   [app_resp id s m.(raftpb.Message.From') false
                      (snap_id sv).(raft.entryID.index') (W64 0) (W64 0)]
                   with "[$Hphys]").
-      { done. }
+      { by left. }
       { right; right; right; left. split_and!; [done|done|reflexivity]. }
       { iSplitR; [iApply own_slice_nil | iApply send_no_snap; simpl; w32_ne]. }
       iIntros "Hphys". wp_auto.

@@ -88,7 +88,7 @@ Implicit Type s : nstate.t.
   Lemma wp_Step_MsgProp r id s (m : raftpb.Message.t) (ents : list raftpb.Entry.t) :
     m.(raftpb.Message.Type') = MsgProp →
     m.(raftpb.Message.Term') = W64 0 →
-    m.(raftpb.Message.From') = W64 0 →
+    (m.(raftpb.Message.From') = W64 0 ∨ m.(raftpb.Message.From') = id) →
     ents ≠ [] →
     Forall (λ e, e.(raftpb.Entry.Type') = EntryNormal) ents →
     (Z.of_nat (length ents) < 2^61)%Z →

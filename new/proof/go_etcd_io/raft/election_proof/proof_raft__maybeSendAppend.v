@@ -304,7 +304,7 @@ Set Default Proof Using "Type".
     (try wp_auto; wp_apply (wp_raft_load_raftLog with "Hphys") as "Hphys";
     open_struct_c; try wp_auto; close_struct;
     wp_apply (P.wp_raft__send _ _ _ _ _ es with "[$Hphys]");
-      [ done
+      [ by left
       | right; left; exists mtype.App; split_and!;
         [ by left | apply mtype_of_MsgApp | done | exact Hto | done ]
       | iSplitR; [iApply "Hents" | iApply send_no_snap; simpl; w32_ne]

@@ -151,7 +151,7 @@ Set Default Proof Using "Type".
          out ([msg_abs], [inv_raft_phys.v]). *)
       iPersist "snapshot".
       wp_apply (P.wp_raft__send _ _ _ _ _ [] with "[$Hphys]").
-      { done. }
+      { by left. }
       { right; right; left; left. split_and!; [ done | done | exact Hto ]. }
       { iSplitR; first iApply own_slice_nil.
         iIntros "!> _". iExists snap, voters. iFrame "snapshot Hvoters". done. }

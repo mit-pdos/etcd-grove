@@ -298,7 +298,7 @@ Set Default Proof Using "Type".
          entries *)
       wp_apply (P.wp_raft__send _ _ _ _ _ []
                   [self_ack id s'] with "[$Hphys]").
-      { done. }
+      { by left. }
       { right; right; right; left. split_and!; [done|done|].
         rewrite /self_ack /abs_msg_from /=. repeat f_equal.
         rewrite /s' /log_append /=. symmetry. rewrite /log_last /=.

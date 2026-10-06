@@ -121,11 +121,13 @@ Definition wp_raft__Step_body :=
      m.(raftpb.Message.To') = id ∧ m.(raftpb.Message.Term') ≠ W64 0 ∧
      m.(raftpb.Message.From') ≠ W64 0 ∧ m.(raftpb.Message.From') ≠ id) →
   (* [MsgBeat] and [MsgProp] are local ([Term = 0]); a proposal is not yet
-     stamped with a sender ([From = 0]).  The proposal's batch is
+     stamped with a sender ([From = 0]), or is stamped with the node's own
+     id ([RawNode.Propose] sets [From: r.id]; since 2026-10-06).  The proposal's batch is
      constrained in [Hm] below, where its list is named. *)
   (m.(raftpb.Message.Type') = MsgBeat → m.(raftpb.Message.Term') = W64 0) →
   (m.(raftpb.Message.Type') = MsgProp →
-     m.(raftpb.Message.Term') = W64 0 ∧ m.(raftpb.Message.From') = W64 0) →
+     m.(raftpb.Message.Term') = W64 0 ∧
+     (m.(raftpb.Message.From') = W64 0 ∨ m.(raftpb.Message.From') = id)) →
   (* The one place the two layers meet.  [s] is the physical abstract state
      [own_raft_phys] is indexed by, [ps] the protocol state the ghost state
      is about, and [nstate_rel] ([defs.v]) connects them: [ps] is [s]'s

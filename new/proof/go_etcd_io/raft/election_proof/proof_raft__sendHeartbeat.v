@@ -45,7 +45,7 @@ Import P.
     wp_apply wp_min2_uint64.
     try wp_auto.
     wp_apply (wp_raft__send _ _ _ _ _ [] with "[$Hphys]").
-    { done. }
+    { by left. }
     { right; left. exists mtype.Heartbeat. split_and!;
         [ by right; left | reflexivity | done | exact Hto | reflexivity ]. }
     { iSplitR; [iApply own_slice_nil | iApply send_no_snap; simpl; w32_ne]. }

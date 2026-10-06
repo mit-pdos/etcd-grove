@@ -20,7 +20,7 @@ Import P.
     iDestruct ("Hlogback" with "Hlog") as "Hphys".
     try wp_auto.
     wp_apply (wp_raft__send _ _ _ _ _ [] with "[$Hphys]").
-    { done. }
+    { by left. }
     { right; left. exists mtype.HeartbeatResp. split_and!;
         [ by right; right; right | reflexivity | done | exact Hfrom | reflexivity ]. }
     { iSplitR; [iApply own_slice_nil | iApply send_no_snap; simpl; w32_ne]. }

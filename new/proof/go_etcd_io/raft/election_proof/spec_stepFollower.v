@@ -94,7 +94,8 @@ Definition follower_step_result {ext : ffi_syntax} (id : w64) (s : nstate.t)
   else False.
 
 (** Premises, by type:
-    - [MsgProp]: [From = 0] and [Term = 0] (a local proposal; [send]
+    - [MsgProp]: [From] unset or [id] (since 2026-10-06: [RawNode.Propose]
+      stamps [From: r.id]) and [Term = 0] (a local proposal; [send]
       takes the first and its [MsgProp] clause the second) and
       [lead ≠ id] ([send]'s self-addressed [Panicf]) -- for the forwarding
       arm;
@@ -120,7 +121,8 @@ Definition wp_stepFollower_body :=
     m.(raftpb.Message.Type') = MsgHeartbeatResp) ∨
    m.(raftpb.Message.Type') = MsgSnap ∨ m.(raftpb.Message.Type') = MsgPreVoteResp) →
   (m.(raftpb.Message.Type') = MsgProp →
-     m.(raftpb.Message.From') = W64 0 ∧ m.(raftpb.Message.Term') = W64 0 ∧
+     (m.(raftpb.Message.From') = W64 0 ∨ m.(raftpb.Message.From') = id) ∧
+     m.(raftpb.Message.Term') = W64 0 ∧
      s.(nstate.lead) ≠ id) →
   (m.(raftpb.Message.Type') = MsgApp →
      plog_wf (raft.entryID.mk m.(raftpb.Message.LogTerm') m.(raftpb.Message.Index')) ents ∧

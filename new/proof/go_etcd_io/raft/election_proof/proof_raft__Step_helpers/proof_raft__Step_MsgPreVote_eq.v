@@ -100,7 +100,7 @@ Implicit Type s : nstate.t.
         (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Vote with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log).
         wp_apply P.wp_voteRespMsgType; first by right.
         wp_apply (P.wp_raft__send _ _ _ _ _ [] with "[$Hphys]") as "Hphys".
-        { done. }
+        { by left. }
         { left; exists mtype.PreVoteResp; split_and!;
             [by right; right; right | apply mtype_of_MsgPreVoteResp | done
             | intros [Hc|Hc]; revert Hc; w32_ne | done]. }
@@ -117,7 +117,7 @@ Implicit Type s : nstate.t.
         wp_apply (wp_raft_load_Term with "Hphys") as "Hphys".
         wp_apply P.wp_voteRespMsgType; first by right.
         wp_apply (P.wp_raft__send _ _ _ _ _ [] with "[$Hphys]") as "Hphys".
-        { done. }
+        { by left. }
         { left; exists mtype.PreVoteResp; split_and!;
             [by right; right; right | apply mtype_of_MsgPreVoteResp | (simpl; congruence)
             | intros [Hc|Hc]; revert Hc; w32_ne | done]. }
@@ -130,7 +130,7 @@ Implicit Type s : nstate.t.
       wp_apply (wp_raft_load_Term with "Hphys") as "Hphys".
       wp_apply P.wp_voteRespMsgType; first by right.
       wp_apply (P.wp_raft__send _ _ _ _ _ [] with "[$Hphys]") as "Hphys".
-      { done. }
+      { by left. }
       { left; exists mtype.PreVoteResp; split_and!;
           [by right; right; right | apply mtype_of_MsgPreVoteResp | (simpl; congruence)
           | intros [Hc|Hc]; revert Hc; w32_ne | done]. }

@@ -101,7 +101,7 @@ Implicit Type s : nstate.t.
     destruct (s.(nstate.prevote)); wp_auto.
     - rewrite Hn8. wp_auto. rewrite Hy3. wp_auto.
       wp_apply (P.wp_raft__send _ _ _ _ _ [] with "[$Hphys]") as "Hphys".
-      { done. }
+      { by left. }
       { right; right; right; left. split_and!; done. }
       { iSplitR; [iApply own_slice_nil | iApply send_no_snap; simpl; w32_ne]. }
       iApply ("HΦ" $! interface.nil _). iFrame "Hphys".

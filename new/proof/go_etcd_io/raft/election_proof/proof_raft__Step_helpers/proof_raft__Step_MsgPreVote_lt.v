@@ -76,7 +76,7 @@ Implicit Type s : nstate.t.
     all: (wp_apply (wp_raft_load_id with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Vote with "Hphys") as "Hphys"; wp_apply (wp_raft_load_Term with "Hphys") as "Hphys"; wp_raft_log).
     all: wp_apply (wp_raft_load_Term with "Hphys") as "Hphys".
     all: wp_apply (P.wp_raft__send _ _ _ _ _ [] with "[$Hphys]") as "Hphys";
-      [ done
+      [ by left
       | left; exists mtype.PreVoteResp; split_and!;
           [by right; right; right | apply mtype_of_MsgPreVoteResp | (simpl; exact Hs0)
           | intros [Hc|Hc]; revert Hc; w32_ne | done]

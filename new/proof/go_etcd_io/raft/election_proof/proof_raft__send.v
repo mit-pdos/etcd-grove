@@ -43,8 +43,19 @@ Import P.
     intros_ambient.
     intros cfg r id s m ents out Hfrom Hok.
     wp_start as "@". wp_auto.
-    (* [From] is unset, so [send] fills it in with [r.id]. *)
-    rewrite Hfrom bool_decide_eq_true_2 //. wp_auto. wp_apply (wp_raft_load_id with "Hphys") as "Hphys".
+    (* [From] unset: [send] fills it in with [r.id]; already [r.id]
+       (2026-10-06): nothing is written.  Either way [m] is then [m] with
+       [From := id]. *)
+    wp_if_join (λ v, ⌜ v = execute_val ⌝ ∗ r_ptr ↦ r ∗
+                     m_ptr ↦ (m <| raftpb.Message.From' := id |>) ∗
+                     own_raft_phys cfg r id s)%I
+      with "[r m Hphys]".
+    { wp_apply (wp_raft_load_id with "Hphys") as "Hphys". try wp_auto.
+      by iFrame. }
+    { assert (Hmeq : m <| raftpb.Message.From' := id |> = m).
+      { destruct Hfrom as [Hf|Hf]; [done|]. destruct m; simpl in *. by subst. }
+      rewrite Hmeq. by iFrame. }
+    iIntros (v) "(-> & r & m & Hphys)". wp_auto.
     destruct Hok as [(ty & Hvoty & Hty & Hmterm & Hself & ->)
                     |[(ty & Hlty & Hty & Hmterm & Hself & ->)
                      |[[(HSnap & Hmterm & Hself)

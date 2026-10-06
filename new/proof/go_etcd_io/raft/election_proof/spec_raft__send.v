@@ -6,7 +6,8 @@ Require Export New.proof.go_etcd_io.raft.election_proof.inv_raft_phys.
     the abstract outbox grows.  What the body does, in order
     ([raft__sendⁱᵐᵖˡ] in new/code/go_etcd_io/raft/v3.v):
 
-    1. [From], if unset, becomes [r.id].
+    1. [From], if unset, becomes [r.id].  (Since 2026-10-06 [send] may
+       also be given a message whose [From] is already [r.id].)
     2. For a vote request/response ([MsgVote], [MsgVoteResp], [MsgPreVote],
        [MsgPreVoteResp]) the caller must have set [Term]: zero is a [Panicf].
        For every other type [Term] must be *unset* (non-zero is a [Panicf]),
@@ -152,7 +153,10 @@ Definition wp_raft__send_body :=
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (cfg : gset w64) (r : loc) (id : w64) (s : nstate.t)
     (m : raftpb.Message.t) (ents : list raftpb.Entry.t) (out : list msg.t),
-  m.(raftpb.Message.From') = W64 0 →
+  (* [From] unset, or already the node's own ([RawNode.Propose] stamps
+     [From: r.id] before [Step]; a follower forwards that proposal as it
+     is).  Either way the queued message has [From = id]. *)
+  (m.(raftpb.Message.From') = W64 0 ∨ m.(raftpb.Message.From') = id) →
   send_ok id s m ents out →
   {{{ is_pkg_init raft ∗ "Hphys" ∷ own_raft_phys cfg r id s ∗
       "#Hents" ∷ m.(raftpb.Message.Entries') ↦*□ ents ∗

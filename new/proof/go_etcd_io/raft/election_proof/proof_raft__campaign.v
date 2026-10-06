@@ -325,7 +325,7 @@ Proof.
          node.  The last is vacuous here: this is a response. *)
       wp_apply (P.wp_raft__send _ _ _ _ _ [] [msg.plain (vresp_ty pre) id id T false]
                   with "[$Hphys]");
-        [done | left; exists (vresp_ty pre); split_and!;
+        [by left | left; exists (vresp_ty pre); split_and!;
                 [ destruct pre; [right; right; right|right; left]; done
                 | destruct pre; reflexivity
                 | exact HTnz
@@ -362,7 +362,7 @@ Proof.
         wp_apply wp_string_to_bytes as "%csl [Hcs Hcs_cap]".
         wp_apply (P.wp_raft__send _ _ _ _ _ [] [req y lastID]
                     with "[$Hphys]");
-          [done | left; exists (vreq_ty pre); split_and!;
+          [by left | left; exists (vreq_ty pre); split_and!;
                   [ destruct pre; [right; right; left|left]; done
                   | destruct pre; reflexivity
                   | exact HTnz
@@ -380,7 +380,7 @@ Proof.
       * rewrite bool_decide_eq_false_2 //. wp_auto.
         wp_apply (P.wp_raft__send _ _ _ _ _ [] [req y lastID]
                     with "[$Hphys]");
-          [done | left; exists (vreq_ty pre); split_and!;
+          [by left | left; exists (vreq_ty pre); split_and!;
                   [ destruct pre; [right; right; left|left]; done
                   | destruct pre; reflexivity
                   | exact HTnz
