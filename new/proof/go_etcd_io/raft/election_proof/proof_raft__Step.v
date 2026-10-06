@@ -134,15 +134,6 @@ Proof.
   iPureIntro. split; [split; [done|exact Hwf']|]. by eexists [].
 Qed.
 
-(** The message's [Entries], read-only for every type but a proposal. *)
-Lemma ents_ro (m : raftpb.Message.t) (ents : list raftpb.Entry.t) :
-  m.(raftpb.Message.Type') ≠ MsgProp →
-  (if decide (m.(raftpb.Message.Type') = MsgProp)
-   then m.(raftpb.Message.Entries') ↦* ents
-   else m.(raftpb.Message.Entries') ↦*□ ents) -∗
-  m.(raftpb.Message.Entries') ↦*□ ents.
-Proof. intros Hne. rewrite decide_False //. auto. Qed.
-
 (** *** The dispatch for the branches written elsewhere
 
     Each takes the branch lemma, at the statement agreed for it, as the
@@ -523,7 +514,7 @@ Set Default Proof Using "Type".
   Lemma wp_raft__Step : wp_raft__Step_body.
   Proof.
     intros_ambient.
-    intros cfg γ r id s ps m.
+    intros cfg γ r id s ps m ents Qs.
     (* Not [subst cfg]: the branch lemmas below are applied to [cfg] by
        name, and with the binder gone that resolves to Perennial's global
        [cfg] (a [language → Type]).  Move the witness instead. *)
@@ -531,9 +522,67 @@ Set Default Proof Using "Type".
     intros Hsm Hin Hhup Hvote Hvoteresp Hprevote Hprevoteresp Happ Hhb Happresp Hhbresp
       Hsnapt Hbeat Hprop Hrel.
     destruct Hrel as [<- Hwf].
-    iIntros (Φ) "(#Hinit & Hphys & Hghost & Hm & #Hctx & #Hsnap) HΦ".
-    iDestruct "Hm" as (ents) "(Hents & Hcap & %Hpents & #Hmsg0)".
+    iIntros (Φ) "(#Hinit & Hphys & Hghost & Hm & Hprops & #Hctx & #Hsnap) HΦ".
+    iDestruct "Hm" as "(Hents & Hcap & %Hpents & #Hmsg0)".
     iApply wp_fupd.
+    destruct (decide (m.(raftpb.Message.Type') = MsgProp)) as [Hty|Hn_prop].
+    { (* MsgProp: forward, append or drop ([proof_raft__Step_MsgProp.v]).
+         The node's own [lead_ok] is what the follower's forwarding needs.
+         Decided first (2026-10-06) because it is the one type whose
+         postcondition carries more than [step_post]: the proposals'
+         updates, registered or handed back. *)
+      destruct (Hprop Hty) as [Hterm Hfrom].
+      destruct (Hpents Hty) as (Hne & Hnorm & Hlen).
+      iDestruct (own_raft_ghost_lead_ok with "Hghost") as %Hlok0.
+      (* a follower's leader is its physical one *)
+      assert (Hlok : s.(nstate.role) = prole.Follower → s.(nstate.lead) ≠ id).
+      { intros Hf. rewrite -(to_pstate_lead_nonpre s); last (rewrite Hf; discriminate).
+        apply Hlok0. rewrite to_pstate_role Hf. discriminate. }
+      iDestruct ("Hmsg0" $! mtype.Propose with "[] []") as "#Hm'".
+      { iPureIntro. rewrite Hty. apply mtype_of_MsgProp. }
+      { iPureIntro. discriminate. }
+      iDestruct (big_sepL2_length with "Hprops") as %HlenQ.
+      (* [Hents] is owned: the [destruct (decide …)] above reduced its
+         [if decide (Type = MsgProp)] *)
+      wp_apply (M.wp_Step_MsgProp cfg r id s m ents Hty Hterm Hfrom Hne Hnorm Hlen Hlok Hin Hwf
+                 with "[$Hinit $Hphys $Hents $Hcap]").
+      iIntros (err s') "(Hphys & %Hwf' & %Hst & Herr)".
+      destruct Hst as [(recv & Hrecv & Hstep)|(-> & Hrl & Hnorm0 & Hnw & Hstep)].
+      - (* forwarded or dropped: one uniform ghost step, the updates back *)
+        iMod (ghost_step_recv _ _ _ _ _ _ _ Hcfg Hrecv Hstep with "Hm' Hghost") as "Hghost".
+        iModIntro. iApply ("HΦ" $! err s' (to_pstate s')). iFrame "Hphys Hghost".
+        iSplit; first (iPureIntro; split; [done|exact Hwf']).
+        iSplit; first (iPureIntro; by eexists recv).
+        iSplitL "Herr".
+        { iDestruct "Herr" as "[%Herr|#Hd]"; [iLeft; by iPureIntro|iRight; by iFrame "#"]. }
+        iRight. iFrame "Hprops".
+      - (* appended at the leader: [step_propose]'s ghost update registers
+           the proposals ([own_raft_ghost_step_propose_reg]); the broadcast
+           after it is the uniform ghost step, consuming nothing *)
+        iMod (own_raft_ghost_step_propose_reg with "Hghost Hprops") as "[Hghost Hout]";
+          [exact Hrl|exact Hnw|lia|..].
+        assert (Hstep' : step γ.(re_cfg) id
+                  (let ps1 := pappend (to_pstate s)
+                     (imap (stamp (to_pstate s).(pstate.term) (plast_index (to_pstate s))) ents) in
+                   psend_msgs ps1 [pself_ack id ps1]) [] (to_pstate s'))
+          by (rewrite Hcfg; exact Hstep).
+        iMod (own_raft_ghost_step_0 _ _ _ _ Hstep' with "Hghost") as "Hghost".
+        iModIntro. iApply ("HΦ" $! interface.nil s' (to_pstate s')). iFrame "Hphys Hghost".
+        iSplit; first (iPureIntro; split; [done|exact Hwf']).
+        iSplit.
+        { iPureIntro. exists ([] ++ []). eapply step_trans; [|exact Hstep].
+          by apply step_propose. }
+        iSplitR; first (iLeft; by iPureIntro).
+        iLeft. iFrame "Hout". by iPureIntro. }
+    (* every other type: [Hprops] is [True] in the pre- and postcondition,
+       and the postcondition is [step_post] *)
+    iClear "Hprops".
+    (* and the entries are read-only: the [destruct (decide …)] reduced
+       ["Hents"]'s [if decide (Type = MsgProp)] *)
+    iDestruct "Hents" as "#Hents".
+    iAssert (▷ step_post γ cfg r id (to_pstate s) m Φ)%I with "[HΦ]" as "HΦ".
+    { iNext. iIntros (err s' ps') "(Hphys & Hghost & %Hrel' & %Href & Herr)".
+      iApply "HΦ". iFrame "Hphys Hghost Herr". by iPureIntro. }
     destruct (decide (m.(raftpb.Message.Type') = MsgSnap)) as [Hty|Hns].
     { (* MsgSnap: [dispatch_Snap], with the snapshot from ["Hsnap"]. *)
       iDestruct ("Hsnap" with "[//]") as (sv voters) "(#Hsv & #Hvs & %Hscope & #Hm')".
@@ -604,28 +653,28 @@ Set Default Proof Using "Type".
     { (* MsgApp: [dispatch_App]. *)
       iDestruct ("Hmsg" $! mtype.App with "[]") as "#Hm'".
       { iPureIntro. rewrite Hty. apply mtype_of_MsgApp. }
-      iDestruct (ents_ro with "Hents") as "#Hro"; first (rewrite Hty; w32_ne).
+      iPoseProof "Hents" as "#Hro".
       iApply (dispatch_App with "Hinit Hphys Hghost Hro Hcap Hm' HΦ");
         [exact (A.wp_Step_MsgApp cfg r id s m ents)|done..|exact (Happ Hty)]. }
     destruct (decide (m.(raftpb.Message.Type') = MsgAppResp)) as [Hty|Hn_ar].
     { (* MsgAppResp: [dispatch_AppResp]. *)
       iDestruct ("Hmsg" $! mtype.AppResp with "[]") as "#Hm'".
       { iPureIntro. rewrite Hty. apply mtype_of_MsgAppResp. }
-      iDestruct (ents_ro with "Hents") as "#Hro"; first (rewrite Hty; w32_ne).
+      iPoseProof "Hents" as "#Hro".
       iApply (dispatch_AppResp with "Hinit Hphys Hghost Hro Hm' HΦ");
         [exact (AR.wp_Step_MsgAppResp cfg r id s m ents)|done..|exact (Happresp Hty)]. }
     destruct (decide (m.(raftpb.Message.Type') = MsgHeartbeat)) as [Hty|Hn_hb].
     { (* MsgHeartbeat: [dispatch_Heartbeat]. *)
       iDestruct ("Hmsg" $! mtype.Heartbeat with "[]") as "#Hm'".
       { iPureIntro. rewrite Hty. apply mtype_of_MsgHeartbeat. }
-      iDestruct (ents_ro with "Hents") as "#Hro"; first (rewrite Hty; w32_ne).
+      iPoseProof "Hents" as "#Hro".
       iApply (dispatch_Heartbeat with "Hinit Hphys Hghost Hro Hm' HΦ");
         [exact (HB.wp_Step_MsgHeartbeat cfg r id s m ents)|done..|exact (Hhb Hty)]. }
     destruct (decide (m.(raftpb.Message.Type') = MsgHeartbeatResp)) as [Hty|Hn_hr].
     { (* MsgHeartbeatResp: [dispatch_HeartbeatResp]; the [Context] is empty. *)
       iDestruct ("Hmsg" $! mtype.HeartbeatResp with "[]") as "#Hm'".
       { iPureIntro. rewrite Hty. apply mtype_of_MsgHeartbeatResp. }
-      iDestruct (ents_ro with "Hents") as "#Hro"; first (rewrite Hty; w32_ne).
+      iPoseProof "Hents" as "#Hro".
       iDestruct "Hctx" as (ctx) "(#Hctxp & _ & %Hctx0)".
       rewrite (Hctx0 Hty).
       iApply (dispatch_HeartbeatResp with "Hinit Hphys Hghost Hro Hctxp Hm' HΦ");
@@ -634,26 +683,6 @@ Set Default Proof Using "Type".
     { (* MsgBeat: [dispatch_Beat]. *)
       iApply (dispatch_Beat with "Hinit Hphys Hghost HΦ");
         [exact (B.wp_Step_MsgBeat cfg r id s m)|done..|exact (Hbeat Hty)]. }
-    destruct (decide (m.(raftpb.Message.Type') = MsgProp)) as [Hty|Hn_prop].
-    { (* MsgProp: forward, append or drop ([proof_raft__Step_MsgProp.v]).
-         The node's own [lead_ok] is what the follower's forwarding needs. *)
-      destruct (Hprop Hty) as [Hterm Hfrom].
-      destruct (Hpents Hty) as (Hne & Hnorm & Hlen).
-      iDestruct (own_raft_ghost_lead_ok with "Hghost") as %Hlok0.
-      (* a follower's leader is its physical one *)
-      assert (Hlok : s.(nstate.role) = prole.Follower → s.(nstate.lead) ≠ id).
-      { intros Hf. rewrite -(to_pstate_lead_nonpre s); last (rewrite Hf; discriminate).
-        apply Hlok0. rewrite to_pstate_role Hf. discriminate. }
-      iDestruct ("Hmsg" $! mtype.Propose with "[]") as "#Hm'".
-      { iPureIntro. rewrite Hty. apply mtype_of_MsgProp. }
-      (* [Hents] is owned: the [destruct (decide …)] above reduced its
-         [if decide (Type = MsgProp)] *)
-      wp_apply (M.wp_Step_MsgProp cfg r id s m ents Hty Hterm Hfrom Hne Hnorm Hlen Hlok Hin Hwf
-                 with "[$Hinit $Hphys $Hents $Hcap]").
-      iIntros (err s') "(Hphys & %Hwf' & %Hst & Herr)".
-      destruct Hst as (recv & Hrecv & Hstep).
-      iApply (finish_branch with "Hm' Hghost Hphys [Herr] HΦ"); [done..|].
-      iDestruct "Herr" as "[%Herr|#Hd]"; [iLeft; by iPureIntro|iRight; by iFrame "#"]. }
     (* none of the twelve *)
     exfalso. cbv [step_msg step_msg_types] in Hsm.
     repeat (apply elem_of_cons in Hsm as [Hsm|Hsm]; [congruence|]).

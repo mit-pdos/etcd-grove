@@ -43,7 +43,13 @@ Definition wp_raft__Step_body :=
     (sem : go.Semantics) (package_sem : raft.Assumptions)
     (cfg : gset w64)
     (γ : raft_election_names) (r : loc) (id : w64) (s : nstate.t) (ps : pstate.t)
-    (m : raftpb.Message.t),
+    (m : raftpb.Message.t)
+    (* The message's [Entries] ([[]] for a message without entries), bound
+       here rather than in ["Hm"] since 2026-10-06 so that the postcondition
+       can hand a proposal's updates back unchanged; and, for a [MsgProp],
+       the client's result predicate for each proposed entry (["Hprops"];
+       unused for every other type). *)
+    (ents : list raftpb.Entry.t) (Qs : list (w64 → w64 → iProp Σ)),
   (* The ghost state is about one configuration, and it is this one.  Without
      this the caller could hand [own_raft_ghost_step] a [cfg] of its own
      choosing -- a singleton one, say, in which the node is its own quorum --
@@ -143,7 +149,7 @@ Definition wp_raft__Step_body :=
            ([abs_msg], which needs the entries) was legitimately sent --
            for every type but [MsgSnap], whose abstraction is [abs_snap]
            (["Hsnap"] below). *)
-      "Hm" ∷ (∃ ents,
+      "Hm" ∷ (
          "Hents" ∷ (if decide (m.(raftpb.Message.Type') = MsgProp)
                     then m.(raftpb.Message.Entries') ↦* ents
                     else m.(raftpb.Message.Entries') ↦*□ ents) ∗
@@ -155,6 +161,13 @@ Definition wp_raft__Step_body :=
          "#Hmsg" ∷ □ (∀ ty, ⌜ mtype_of m.(raftpb.Message.Type') = Some ty ⌝ -∗
                             ⌜ ty ≠ mtype.Snap ⌝ -∗
                             is_message γ (abs_msg ty m ents))) ∗
+      (* A proposal's client updates (2026-10-06), one per entry
+         ([prop_au], [protocol.v]: run when the entry, stamped, is
+         committed).  [big_sepL2] makes [length Qs = length ents].  Absent
+         for every other type. *)
+      "Hprops" ∷ (if decide (m.(raftpb.Message.Type') = MsgProp)
+                  then [∗ list] e;Q ∈ ents;Qs, prop_au γ e Q
+                  else True) ∗
       (* the [Context]: not the leader-transfer marker (out of scope), and
          empty on a heartbeat response (no read-index requests in scope:
          [bcastHeartbeat] sends [nil] and [handleHeartbeat] echoes it) *)
@@ -191,7 +204,22 @@ Definition wp_raft__Step_body :=
       (* only a proposal can be dropped, with [ErrProposalDropped] *)
       "Herr" ∷ (⌜ err = interface.nil ⌝ ∨
                 (⌜ m.(raftpb.Message.Type') = MsgProp ⌝ ∗
-                 (global_addr raft.ErrProposalDropped) ↦□ err)) }}}.
+                 (global_addr raft.ErrProposalDropped) ↦□ err)) ∗
+      (* A proposal (2026-10-06): appended at the leader ([step_propose]:
+         stamped at [ps]'s term and the indices after [ps]'s last), each
+         update is registered at its entry's [(term, index)] and the client
+         gets [is_prop] and the token to collect [Q t i] with
+         ([prop_collect]) once the entry is committed; otherwise --
+         forwarded by a follower, dropped (no leader known, a candidate,
+         [appendEntry] refused it) -- the updates come back unrun. *)
+      "Hprops" ∷ (if decide (m.(raftpb.Message.Type') = MsgProp)
+                  then (⌜ err = interface.nil ∧ ps.(pstate.role) = role.Leader ⌝ ∗
+                        [∗ list] k ↦ Q ∈ Qs, ∃ γp,
+                          is_prop γ ps.(pstate.term)
+                            (word.add (word.add (plast_index ps) (W64 1)) (W64 k)) γp Q ∗
+                          prop_tok γp)
+                       ∨ ([∗ list] e;Q ∈ ents;Qs, prop_au γ e Q)
+                  else True) }}}.
 
 Module Type STEP.
   Parameter wp_raft__Step : wp_raft__Step_body.

@@ -43,7 +43,7 @@ Implicit Type s : nstate.t.
       [ErrProposalDropped]'s value. *)
   Local Ltac finish_drop :=
     iSplitR; first (iPureIntro; done);
-    iSplitR; first (iPureIntro; exists []; split; [recv_elem | apply step_refl]);
+    iSplitR; first (iPureIntro; left; exists []; split; [recv_elem | apply step_refl]);
     iRight; iSimpl in "Herrn"; iFrame "Herrn".
 
   (** [proposed] ([spec_stepLeader.v]) is [step_propose]'s state: the log
@@ -102,9 +102,22 @@ Implicit Type s : nstate.t.
     {{{ (err : error.t) s', RET #err;
         "Hphys" ∷ own_raft_phys cfg r id s' ∗
         "%Hwf'" ∷ ⌜ nstate_wf s' ⌝ ∗
-        "%Hrefines" ∷ ⌜ ∃ recv,
+        (* Either one step from [s] consuming at most the proposal
+           (forwarded or dropped), or -- appended at the leader -- the
+           [step_propose] state's premises and one step from that state on
+           (the broadcast), so that [Step] can take [step_propose]'s ghost
+           update with the registry ([own_raft_ghost_step_propose_reg])
+           and the uniform one for the rest (2026-10-06). *)
+        "%Hrefines" ∷ ⌜ (∃ recv,
             (∀ m', m' ∈ recv → m' = abs_msg mtype.Propose m ents) ∧
-            step cfg id (to_pstate s) recv (to_pstate s') ⌝ ∗
+            step cfg id (to_pstate s) recv (to_pstate s')) ∨
+          (err = interface.nil ∧ (to_pstate s).(pstate.role) = role.Leader ∧
+           Forall (λ e, e.(raftpb.Entry.Type') = W32 0) ents ∧
+           plog_last_index_Z (to_pstate s).(pstate.base) (to_pstate s).(pstate.log)
+             + Z.of_nat (length ents) < 2 ^ 64 ∧
+           let ps1 := pappend (to_pstate s)
+                        (imap (stamp (to_pstate s).(pstate.term) (plast_index (to_pstate s))) ents) in
+           step cfg id (psend_msgs ps1 [pself_ack id ps1]) [] (to_pstate s')) ⌝ ∗
         "Herr" ∷ (⌜ err = interface.nil ⌝ ∨ global_addr raft.ErrProposalDropped ↦□ err) }}}.
   Proof.
     intros Hty Hterm Hfrom Hne Hnorm Hlen Hlok Hcfg Hwf.
@@ -167,7 +180,7 @@ Implicit Type s : nstate.t.
         iApply ("HΦ" $! interface.nil _). iFrame "Hphys".
         iSplitR; first (iPureIntro; exact Hwf).
         iSplitR; last (iLeft; by iPureIntro).
-        iPureIntro.
+        iPureIntro. left.
         exists [abs_msg mtype.Propose m ents]. split.
         { recv_elem. }
         rewrite to_pstate_send_msgs.
@@ -233,20 +246,19 @@ Implicit Type s : nstate.t.
         iApply ("HΦ" $! interface.nil _). iFrame "Hphys".
         iSplitR; first (iPureIntro; exact Hwf).
         iSplitR; last (iLeft; by iPureIntro).
-        iPureIntro.
-        exists ([] ++ []). split; first recv_elem.
-        rewrite to_pstate_prvals; last first.
-        { intros _. rewrite Hpvs //. }
-        rewrite to_pstate_send_msgs to_pstate_proposed.
-        rewrite /repl_sends to_pstate_proposed in Hms.
-        eapply step_trans.
-        { apply step_propose.
-          - rewrite to_pstate_role Hrole //.
-          - exact Hnorm.
-          - (* [Hnw] is about the state after the append *)
-            simpl in Hnw. rewrite length_app length_imap in Hnw.
-            rewrite /plog_last_index_Z /= length_app. lia. }
-        apply step_send_apps; [rewrite to_pstate_role Hrole //|exact Hms].
+        iPureIntro. right.
+        split_and!.
+        * done.
+        * rewrite to_pstate_role Hrole //.
+        * exact Hnorm.
+        * (* [Hnw] is about the state after the append *)
+          simpl in Hnw. rewrite length_app length_imap in Hnw.
+          rewrite /plog_last_index_Z /= length_app. lia.
+        * rewrite to_pstate_prvals; last first.
+          { intros _. rewrite Hpvs //. }
+          rewrite to_pstate_send_msgs to_pstate_proposed.
+          rewrite /repl_sends to_pstate_proposed in Hms.
+          apply step_send_apps; [rewrite to_pstate_role Hrole //|exact Hms].
     - (* PreCandidate (2026-10-04), as a candidate:: drop *)
       assert (s.(nstate.stepfn) = functions raft.stepCandidate []) as Hsf
         by (rewrite Hsfw ?Hrole //).
