@@ -109,6 +109,9 @@ into `isMutex … True`. -/
 def isLockedRand (lr : Loc) : IProp GF :=
   iprop("#Hmu" ∷ sync.isMutex (lr.[lockedRand, go!"mu"]) iprop(True))
 
+instance isLockedRand_persistent (lr : Loc) : Persistent (isLockedRand (GF := GF) lr) := by
+  unfold isLockedRand; infer_instance
+
 /-- An `error` value shaped the way `errors.New` builds one: an interface holding a
 **pointer**.
 
@@ -157,6 +160,14 @@ instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.raft.v3 :=
   define_is_pkg_init isInitialized
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.raft.v3 :=
   build_get_is_pkg_init_wf
+
+theorem isRandInitialized_access :
+    isPkgInit (PROP := IProp GF) pkg_id.crypto.rand ⊢ isRandInitialized :=
+  isPkgInit_access (PROP := IProp GF) pkg_id.crypto.rand
+
+theorem isInitialized_access :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ⊢ isInitialized :=
+  isPkgInit_access (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3
 
 end init
 
