@@ -1946,3 +1946,8 @@ likely the same search), and `newRaft.v:29`/`appliedTo.v:18`/
   `Qed`'s inferred `Proof using`).  Do not admit inside `Section model`:
   admitted lemmas there pick up `cfg`/`id` and every `rewrite` with them
   leaves two shelved goals (`gset w64`, `w64`).  ~40 s per check.
+- **Instance search can take minutes on an unfolded big-op over record
+  updates**: `iDestruct "H" as "#H"` on `[∗ list] k ↦ e ∈ ents, is_entry γ
+  (stamp_at e t (idx k))` took ~400 s (`protocol.v`, 2026-10-06).  Name the
+  big-op (`ents_rec`) and give it one `Persistent` instance.  Find such
+  cases with `rocq compile -time` and sort.
