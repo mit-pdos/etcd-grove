@@ -1161,3 +1161,67 @@ wand on two `own_raft_ghost`s (from `is_committed_agree`);
 `leader_completeness` is a fancy update (`↑raftN ⊆ E`) that opens the
 invariant for the table. `cluster_ghost` is gone. `own_log_ghost` and
 `own_raft_ghost` are no longer `Timeless` (they hold an `inv`).
+
+## As built: the proposal registry (2026-10-06)
+
+So that `Propose` can get a spec whose client update runs at **commit**
+time (`protocol.v`, "The proposal registry", "Registering and collecting
+proposals"). Exported:
+
+    prop_au γ (e0 : raftpb.Entry.t) (Q : w64 → w64 → iProp) :=
+      ∀ t i l, ⌜length l + 1 = uint.Z i⌝ -∗
+        own_committed γ (l ++ [stamp_at e0 t i]) -∗ own_committed γ (l ++ [stamp_at e0 t i]) ∗ Q t i
+    is_prop γ t i γp Q := ∃ e0, (t,i) ↪[re_props]□ (γp.1, γp.2, e0) ∗ saved_pred_own γp.1 □ (λ ti, Q ti.1 ti.2)
+    prop_tok γp := token γp.2
+    own_raft_ghost_step_propose_reg γ id s ents Qs :
+      role = Leader → L + |ents| < 2^64 → |Qs| = |ents| →
+      own_raft_ghost γ id s -∗ ([∗ list] e;Q ∈ ents;Qs, prop_au γ e Q) ={⊤}=∗
+      own_raft_ghost γ id (step_propose's state) ∗
+      [∗ list] k ↦ Q ∈ Qs, ∃ γp, is_prop γ term (plast_index s + 1 + k) γp Q ∗ prop_tok γp
+    prop_collect γ E t i γp Q l : ↑raftN ⊆ E →
+      raft_commit_inv γ -∗ is_prop γ t i γp Q -∗ prop_tok γp -∗ is_committed γ l -∗
+      ⌜∃ e, l !! pos i = Some e ∧ e.Term = t⌝ ={E}=∗ ▷ ▷ Q t i
+
+(`is_prop_pers`, `prop_tok_timeless`; `stamp_at e0 t i` = `e0` with Term `t`,
+Index `i`; `pos i = uint i - 1`.) The client proposes an unstamped `Entry`
+(the model's `Data'` is a slice; relating it to bytes is the implementation
+side's job).
+
+**Departure from the brief: the update is a plain wand, handed the
+authority, not the standard AU.** (1) The standard shape `|={⊤∖↑raftN,∅}=>
+∃ l, own_committed γ l ∗ …` *produces* `own_committed` — a second whole
+authority beside the invariant's, so no client could ever build one. Here
+the registry hands the client the extended log's authority and takes it
+back. (2) The update is stored in `raft_commit_inv`, so `step_commit`
+reaches it under a later, and a ghost step (`own_raft_ghost_step`, `={⊤}=∗`,
+no physical step, no later credits) cannot run a fancy update under a
+later; a wand under a later still yields its result under a later, which is
+where the registry keeps it. A client wanting a fancy update takes `Q :=
+λ t i, |={⊤∖↑raftN}=> Q' t i` and runs it after collecting. (Later credits at
+`Step` would allow the fancy-update form; that changes `own_raft_ghost_step`.)
+
+**Inside `raft_commit_inv`**: `∃ l R, own_committed γ l ∗ committed_just γ l ∗
+votes_tbl γ ∗ ghost_map_auth re_props 1 R ∗ props_idx γ R ∗ [∗ map] k ↦ v ∈ R,
+prop_slot γ k v l`. `props_idx` (persistent, timeless): each registered
+`(t,i) ↦ (γq,γk,e0)` has `is_entry γ (stamp_at e0 t i)` and `0 < i`.
+`prop_slot`: a saved predicate `Φ` at `γq` and one of pending (`l` has no
+entry of term `t` at `pos i`, and `prop_au γ e0 (λ t i, Φ (t,i))`), done
+(`l` has one, and `Φ (t,i)`), collected (`token γk`).
+
+**Freshness at registration**: a registered `(t,i)` carries the leader of
+`t`'s entry at `i`; the registering leader's term log has nothing past its
+last index (`own_raft_ghost_term_fresh`), so the new keys are absent — and,
+since committed entries have records, the global log has no entry of term
+`t` there either, so new slots start pending. Registration is
+`register_props` (by induction on the batch), between opening the invariant
+and running the existing `own_raft_ghost_step_propose`.
+
+**Firing order**: `commit_extend` (inside `step_commit`) now extends the
+global log entry by entry (`fire_upto`, `fire_one`). Extending by the entry
+`e` at position `m` of the committing leader's log changes the log only at
+`e`'s index, so every slot not at `(e.Term, e.Index)` is unaffected
+(`slot_keep`); the slot there, if any, is `e`'s own proposal
+(`is_entry_agree` with `props_idx`) and, pending, its wand runs with
+`own_committed (take m G ++ [e])` and its result is stored. The uniform
+`own_raft_ghost_step` therefore fires every committed proposal; its
+`step_propose` case registers nothing (downstream unchanged).

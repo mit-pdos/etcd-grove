@@ -6725,7 +6725,8 @@ Qed.
     its last index ([own_raft_ghost_term_fresh]) -- which also says the
     global log has no entry of term [t] there yet, so the new slots start
     pending.  [prop_collect] trades the client's token for the result once
-    its entry is committed. *)
+    its entry is committed: under two laters, one for the invariant the
+    result was stored in, one for the saved predicate naming it. *)
 
 (** A leader's term log has nothing past its last index. *)
 Local Lemma own_raft_ghost_term_fresh γ id s e :
@@ -6749,6 +6750,15 @@ Proof.
   specialize (Hdom _ ltac:(by eexists)). lia.
 Qed.
 
+(** The new entries' records, named: its persistence is one instance
+    (the instance search on the unfolded big separating conjunction over
+    [stamp_at] took minutes). *)
+Definition ents_rec γ (t : w64) (idx : nat → w64) (ents : list raftpb.Entry.t) : iProp Σ :=
+  [∗ list] k ↦ e ∈ ents, is_entry γ (stamp_at e t (idx k)).
+
+Global Instance ents_rec_pers γ t idx ents : Persistent (ents_rec γ t idx ents).
+Proof. rewrite /ents_rec. apply big_sepL_persistent. intros. apply is_entry_pers. Qed.
+
 Local Lemma register_props γ (t : w64) (idx : nat → w64) (l : list raftpb.Entry.t)
     (ents : list raftpb.Entry.t) (Qs : list (w64 → w64 → iProp Σ)) R :
   length Qs = length ents →
@@ -6758,7 +6768,7 @@ Local Lemma register_props γ (t : w64) (idx : nat → w64) (l : list raftpb.Ent
   (∀ k e, (k < length ents)%nat → l !! pos (idx k) = Some e → e.(raftpb.Entry.Term') ≠ t) →
   ghost_map_auth γ.(re_props) 1 R -∗ props_idx γ R -∗
   ([∗ map] k↦v ∈ R, ▷ prop_slot γ k v l) -∗
-  ([∗ list] k ↦ e ∈ ents, is_entry γ (stamp_at e t (idx k))) -∗
+  ents_rec γ t idx ents -∗
   ([∗ list] e;Q ∈ ents;Qs, prop_au γ e Q) ==∗
   ∃ R', ghost_map_auth γ.(re_props) 1 R' ∗ props_idx γ R' ∗
     ([∗ map] k↦v ∈ R', ▷ prop_slot γ k v l) ∗
@@ -6773,14 +6783,15 @@ Proof.
   iDestruct "Hents" as "#Hents".
   { destruct Qs as [|Q Qs]; [done|]. simpl in Hlen.
     rewrite big_sepL2_cons. iDestruct "Haus" as "[Hau Haus]".
-    rewrite big_sepL_cons. iDestruct "Hents" as "[Hent Hents']".
+    iEval (rewrite /ents_rec big_sepL_cons) in "Hents". iDestruct "Hents" as "[Hent Hents']".
+    iAssert (ents_rec γ t (λ k, idx (S k)) ents) as "Hents''"; first iExact "Hents'".
     iMod (saved_pred_alloc (λ ti : w64 * w64, Q ti.1 ti.2) DfracDiscarded) as (γq) "#Hsp"; first done.
     iMod token_alloc as (γk) "Htok".
     assert (Hfr0 : R !! (t, idx 0%nat) = None) by (apply Hfr; simpl; lia).
     iMod (ghost_map_insert_persist (t, idx 0%nat) ((γq, γk, e) : prop_rec) Hfr0 with "Hra")
       as "[Hra #Hfrag]".
     iMod (IH (λ k, idx (S k)) Qs (<[(t, idx 0%nat) := ((γq, γk, e) : prop_rec)]> R)
-            with "Hra [] [Hs Hau] Hents' Haus") as (R') "(Hra & Hidx' & Hs & Hout)".
+            with "Hra [] [Hs Hau] Hents'' Haus") as (R') "(Hra & Hidx' & Hs & Hout)".
     + lia.
     + intros k Hk. rewrite lookup_insert_ne; [apply Hfr; simpl; lia|].
       intros [= Heq]. apply Hinj in Heq; simpl; lia.
@@ -6845,8 +6856,8 @@ Proof.
     by reflexivity.
   assert (Hbase' : (psend_msgs s' [pself_ack id s']).(pstate.base) = s.(pstate.base))
     by reflexivity.
-  iAssert ([∗ list] k ↦ e ∈ ents, is_entry γ (stamp_at e s.(pstate.term) (idx k)))%I as "#Hents".
-  { iApply big_sepL_intro. iIntros "!> %k %e %Hk".
+  iAssert (ents_rec γ s.(pstate.term) idx ents) as "#Hents".
+  { rewrite /ents_rec. iApply big_sepL_intro. iIntros "!> %k %e %Hk".
     pose proof (lookup_lt_Some _ _ _ Hk) as Hklt.
     iEval (rewrite Hlog' Hbase') in "Hrecs'".
     assert (Hk' : (s.(pstate.log) ++ imap (stamp s.(pstate.term) (plast_index s)) ents)
@@ -6872,12 +6883,12 @@ Proof.
 Qed.
 
 (** Collecting: once the client's entry is committed -- a committed log has
-    an entry of term [t] at [i] -- the token buys the result.  Under a
-    later: the result was stored in the invariant ([prop_slot]). *)
+    an entry of term [t] at [i] -- the token buys the result, under two
+    laters (the invariant it was stored in; the saved predicate). *)
 Lemma prop_collect γ E (t i : w64) γp Q l :
   ↑raftN ⊆ E →
   raft_commit_inv γ -∗ is_prop γ t i γp Q -∗ prop_tok γp -∗ is_committed γ l -∗
-  ⌜ ∃ e, l !! pos i = Some e ∧ e.(raftpb.Entry.Term') = t ⌝ ={E}=∗ ▷ Q t i.
+  ⌜ ∃ e, l !! pos i = Some e ∧ e.(raftpb.Entry.Term') = t ⌝ ={E}=∗ ▷ ▷ Q t i.
 Proof.
   iIntros (HE) "#Hinv (%e0 & #Hfrag & #Hsp) Htok #Hc %Hl".
   iInv "Hinv" as (P R) "(>HP & >#Hj & >Htbl & >Hra & >#Hidx & Hslots)".
@@ -6890,14 +6901,17 @@ Proof.
   iDestruct "Hs" as (Φ) "[#Hsp' Hst]".
   iDestruct "Hst" as "[[>%Hnc Hau] | [[>%Hdone HQ] | >Htok']]".
   - exfalso. simpl in Hnc. by apply (Hnc e HeP).
-  - iDestruct (saved_pred_agree _ _ _ _ _ (t, i) with "Hsp' Hsp") as "#Heq".
+  - iEval (cbn [fst snd]) in "Hsp'".
+    iAssert (▷ ▷ (Φ (t, i) ≡ Q t i))%I as "#Heq".
+    { iNext. iApply (saved_pred_agree γp.1 DfracDiscarded DfracDiscarded Φ
+                       (λ ti : w64 * w64, Q ti.1 ti.2) (t, i) with "Hsp' Hsp"). }
     iSpecialize ("Hclose" $! ((γp.1, γp.2, e0) : prop_rec) with "[Htok]").
     { iNext. iExists Φ. iFrame "Hsp'". iRight. iRight. iFrame "Htok". }
     rewrite insert_id //.
     iEval (rewrite -big_sepM_later) in "Hclose".
     iModIntro. iSplitL "HP Htbl Hra Hclose".
     { iNext. iExists P, R. iFrame "HP Hj Htbl Hra Hidx Hclose". }
-    iModIntro. iNext. iEval (cbn) in "Heq". iRewrite -"Heq". iExact "HQ".
+    iModIntro. iNext. iNext. iRewrite -"Heq". iExact "HQ".
   - iDestruct (token_exclusive with "Htok Htok'") as %[].
 Qed.
 
