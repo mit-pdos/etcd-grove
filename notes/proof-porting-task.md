@@ -5,7 +5,7 @@ agents work in this repository at once, so touch only your own files.
 
 ## What to write
 
-For each `<fn>` in your batch, `~/etcd-grove/new/proof/go_etcd_io/raft/election_proof/
+For each `<fn>` in your batch, `~/etcd-grove-rr/new/proof/go_etcd_io/raft/election_proof/
 proof_<fn>.v` becomes `EtcdGrove/Raft/ElectionProof/Proof/<fn>.lean`.
 
 * Read `notes/porting-guide.md` ("Spec and proof files" and "Tactics") and
@@ -57,12 +57,12 @@ not run `lake build` on the whole project.
 ## Housekeeping
 
 * Use only your own scratch directory,
-  `/tmp/claude-1000/-home-ubuntu-perennial/c5cf1995-d725-409c-8019-529c34abc729/scratchpad/proofs<N>/`
+  `/home/ubuntu/etcd-grove-lean/.scratch/proofs<N>/` (gitignored)
   where `<N>` is your batch number. Never write in the scratchpad root or another
   agent's directory.
 * Do not run git commands that change state, and do not edit `EtcdGrove.lean`,
   `Election.lean`, or any file outside your `Proof/<fn>.lean` files.
-* Stay inside `/home/ubuntu/etcd-grove-lean` and your scratch directory; no operation
+* Write only inside `/home/ubuntu/etcd-grove-lean` (read the Rocq from `~/etcd-grove-rr`); no operation
   needs anything else.
 
 ## Report
