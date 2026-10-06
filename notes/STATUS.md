@@ -49,6 +49,10 @@ and the older read-index work in `v3_proof/`. They share only `base.v`.
   `raft_commit_inv` (with the justifying commit fact and a table of every
   node's vote records); see raft-replication-model.md, "As built: the
   global committed log". Constructed, not axiomatized.
+  **Since 2026-10-06** also the proposal registry (`prop_au`, `is_prop`,
+  `prop_tok`, `own_raft_ghost_step_propose_reg`, `prop_collect`): a
+  proposal's update runs when its entry is committed ("As built: the
+  proposal registry").
   **Since 2026-10-01 this file may contain `Admitted`** (user's decision,
   [decisions.md](decisions.md)): two admits today (2026-10-03:
   `leader_completeness`, `state_machine_safety`; `snap_ok_message` is
@@ -453,7 +457,12 @@ say so in the journal.
 whose whole job is what the build cannot check. What each establishes, the
 known gaps and the plan are in [tcb-accounting.md](tcb-accounting.md).
 
-**Latest audit (2026-10-05, global committed log, on `ca63d255f` + this branch's commits)**: `make -k -j4 …/election.vo` exit 0 (615 files, 45m44s);
+**Latest audit (2026-10-06, proposal registry, at `8d3e1f9ed`)**: `make -k -j4 …/election.vo`
+exit 0 (615 files, 45m33s); tcb-report `--scope election_proof`: **14 `Axiom`, 1
+`Admitted`** (`raftLog.slice`), 766 `Qed`, 141 collections, 10 results, 212
+definitions (1,751 lines); `protocol.v` has no `Admitted`; discipline: 3 warnings.
+
+Before that: **Audit (2026-10-05, global committed log, on `ca63d255f` + this branch's commits)**: `make -k -j4 …/election.vo` exit 0 (615 files, 45m44s);
 `etc/tcb-report.py --proof-root new/proof/go_etcd_io/raft --scope election_proof`:
 **14 `Axiom`, 1 `Admitted`** (the signed-off `raftLog.slice`), 753 `Qed`, 141
 collections, 10 results, 207 definitions (1,728 lines), 2 root lemmas;

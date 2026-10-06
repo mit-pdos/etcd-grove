@@ -4949,3 +4949,37 @@ index-valued `is_committed` is `is_committed_idx`.
 Inner loop: a fast tail check of `protocol.v` (admit proofs between
 `Section ghost.` and the work point; gotchas.md) cut 6-10 min checks to
 ~40 s.
+
+## 2026-10-06 — the proposal registry (`prop_au`, `is_prop`, `prop_tok`)
+
+Branch `worktree-agent-a43aff1f98fd7dbd6`, reset to `098818635`. Footprint:
+`protocol.v` only. Design and statements: raft-replication-model.md, "As
+built: the proposal registry".
+
+Coordinator's design: a registry inside `raft_commit_inv` of the
+proposals' atomic updates, registered at `step_propose` (new lemma
+`own_raft_ghost_step_propose_reg`; the uniform `own_raft_ghost_step`
+registers nothing) and fired at `step_commit`.
+
+**Two departures, both forced.** (1) The brief's AU shape
+`|={⊤∖↑raftN,∅}=> ∃ l, own_committed γ l ∗ (…)` produces a second whole
+`own_committed` beside the invariant's, so it is uninhabitable; the update
+is instead handed the extended log's authority and returns it. (2) It is a
+plain wand, not a fancy update: stored in the invariant, it is reached under
+a later, and `own_raft_ghost_step` (a ghost step, `={⊤}=∗`) has no later to
+spend; the wand's result lands under the later, in the slot. `prop_collect`
+returns `▷ ▷ Q t i` (invariant + saved predicate). Later credits at `Step`
+would allow a fancy-update `prop_au`; that would change
+`own_raft_ghost_step`.
+
+`commit_extend` now extends the global log entry by entry (`fire_upto`):
+a slot at another `(term, index)` is unaffected (`slot_keep`), the slot at
+the new entry's is its proposal (`is_entry_agree` against `props_idx`) and
+fires. Freshness of registration: `own_raft_ghost_term_fresh` (nothing in
+the leader's term log past its last index) against `props_idx`'s entries
+and against the global log's records.
+
+Gotcha found: proof-mode persistence of `[∗ list] k ↦ e ∈ ents, is_entry γ
+(stamp_at e t (idx k))` took ~400 s of instance search per occurrence;
+naming it (`ents_rec`) with one instance makes it instant.
+Audit 2026-10-06: cone 615 files exit 0 (45m33s); tcb-report 14 Axiom, 1 Admitted, 766 Qed.
