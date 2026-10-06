@@ -1,0 +1,16 @@
+name = "etcdGrove"
+defaultTargets = ["EtcdGrove"]
+
+# The Perennial framework (Lean port, branch `lean` of mit-pdos/perennial), which
+# also provides the Goose translation of etcd and etcd-raft (Perennial.Code.go_etcd_io).
+[[require]]
+name = "perennial"
+git = "https://github.com/mit-pdos/perennial"
+rev = "8c75a3dd4afb507c789271e2ee85c2aaec7a7bf3"
+
+# Proofs about etcd (starting with its Raft implementation).
+[[lean_lib]]
+name = "EtcdGrove"
+
+[leanOptions]
+linter.unusedSectionVars = false
