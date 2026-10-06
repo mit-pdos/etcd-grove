@@ -9,12 +9,16 @@ Porting `main`'s Rocq election proof (`new/proof/go_etcd_io/raft/election_proof/
 ## Done
 
 - Lake project depending on Perennial (`lakefile.toml`).
+- `protocol.v`, `defs.v`, `step_lemmas.v`, `inv_big.v`, `inv_logger.v`,
+  `inv_storage.v`, `inv_raftlog.v`, `inv_tracker.v`: ported, no `sorry`.
+- Five spec/proof collections (`big_NewInt`, `big_Int__Int64`, `rand_Int`,
+  `lockedRand__Intn`, `voteRespMsgType`) and their lines in `Election.lean`.
 
 ## Next
 
-1. The shared definitions: `protocol.v` (the protocol model and its ghost state),
-   `defs.v`, `inv_*.v`, `step_lemmas.v`.
-2. The 98 specs (`spec_*.v`), then the proofs (`proof_*.v`), then
+1. `inv_misc.v`, `inv_raft_phys.v` (every remaining spec is stated on
+   `ownRaftPhys`).
+2. The remaining 93 specs (`spec_*.v`), then the proofs (`proof_*.v`), then
    `election.v` (the links and the results).
 
 ## Differences from `main` besides the language
