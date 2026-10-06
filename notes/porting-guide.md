@@ -6,8 +6,10 @@ them before starting; Perennial's own ports of the raft proofs
 (`.lake/packages/perennial/Perennial/Proof/go_etcd_io/raft/v3_proof/{readonly,
 protocol}.lean`) show WP proofs in the same setting.
 
-The Rocq source is on branch `main` of this repository (checked out at
-`~/etcd-grove`): `new/proof/go_etcd_io/raft/election_proof/<file>.v`.
+The Rocq source is branch `worktree-raft-replication` of this repository, pinned at
+commit `feb5c73d4` (`git -C ~/etcd-grove show feb5c73d4:new/proof/go_etcd_io/raft/
+election_proof/<file>.v`; the branch keeps moving, so always read that commit, not the
+branch head or `main`). Its design notes are `notes/*.md` at the same commit.
 
 ## Files and modules
 

@@ -134,7 +134,7 @@ initializer; a proof that reads one needs the points-to, the load being through
 `GlobalVarAddr`, and the disequality, to decide `err == ErrX` when `err` is `nil`), the
 global RNG, and `emptyState`. -/
 def isInitialized : IProp GF :=
-  iprop(∃ (errStopped errCompacted errUnavailable errSnapUnavail : GoInterface)
+  iprop(∃ (errStopped errCompacted errUnavailable errSnapUnavail errPropDropped : GoInterface)
       (globalRand' : Loc),
     "ErrStopped" ∷ (globalAddr ErrStopped ↦□ errStopped : IProp GF) ∗
     "%HErrStopped" ∷ ⌜errStopped ≠ interface.nil⌝ ∗
@@ -149,6 +149,17 @@ def isInitialized : IProp GF :=
     "%HErrCompacted" ∷ ⌜errCompacted ≠ interface.nil⌝ ∗
     "ErrUnavailable" ∷ (globalAddr ErrUnavailable ↦□ errUnavailable : IProp GF) ∗
     "%HErrUnavailable" ∷ ⌜errUnavailable ≠ interface.nil⌝ ∗
+    -- `raftLog.zeroTermOnOutOfBounds` compares a non-`nil` error (what `raftLog.term`
+    -- returned) against both, which needs their dynamic types to be comparable --
+    -- `IsNewError` above. Both are `errors.New(...)` in `storage.go`. Added 2026-10-01
+    -- for `handleAppendEntries`'s reject path.
+    "%HErrCompacted_new" ∷ ⌜IsNewError errCompacted⌝ ∗
+    "%HErrUnavailable_new" ∷ ⌜IsNewError errUnavailable⌝ ∗
+    -- `ErrProposalDropped = errors.New("raft proposal dropped")` (`raft.go`), which
+    -- `stepFollower`/`stepCandidate` return for a proposal they cannot forward. Only
+    -- loaded and returned, never compared, so no `IsNewError`. Added 2026-10-01.
+    "ErrPropDropped" ∷ (globalAddr ErrProposalDropped ↦□ errPropDropped : IProp GF) ∗
+    "%HErrPropDropped" ∷ ⌜errPropDropped ≠ interface.nil⌝ ∗
     -- the global RNG: the pointer, and the mutex behind it
     "#globalRand" ∷ (globalAddr globalRand ↦□ globalRand' : IProp GF) ∗
     "#HglobalRand" ∷ isLockedRand globalRand' ∗
