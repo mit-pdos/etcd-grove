@@ -154,6 +154,14 @@ End pstate.
     what keeps [Type = EntryNormal] true of the appended entries.  (Moved
     here from [defs.v] on 2026-10-01: the model's [step_win] and
     [step_propose] stamp too.) *)
+(** An entry stamped at term [t] and index [i]: what a proposed (unstamped)
+    entry [e0] becomes in the log ([stamp] is the same at [i = li + 1 + k]).
+    And the list position of index [i] in a full log (from [base0]). *)
+Definition stamp_at (e0 : raftpb.Entry.t) (t i : w64) : raftpb.Entry.t :=
+  e0 <| raftpb.Entry.Term' := t |> <| raftpb.Entry.Index' := i |>.
+
+Definition pos (i : w64) : nat := Z.to_nat (uint.Z i - 1).
+
 Definition stamp (tm li : w64) (k : nat) (e : raftpb.Entry.t) : raftpb.Entry.t :=
   e <| raftpb.Entry.Term' := tm |>
     <| raftpb.Entry.Index' := word.add (word.add li (W64 1)) (W64 k) |>.
@@ -1509,6 +1517,10 @@ Record raft_election_names := {
         authority is in [raft_commit_inv] and whose lower bounds are
         [is_committed] (2026-10-05). *)
     re_commit : gname;
+    (** The proposal registry: a ghost map [(term, index) ↦ (γq, γk, e0)]
+        of the proposals registered by [own_raft_ghost_step_propose_reg],
+        whose authority is in [raft_commit_inv] (2026-10-05). *)
+    re_props : gname;
   }.
 
 (** An event of a node's history ([re_evs]): an acknowledgement [(t, i)],
@@ -2944,8 +2956,72 @@ Proof. apply _. Qed.
 
 Definition raftN : namespace := nroot .@ "raft_commit".
 
+(** *** The proposal registry (2026-10-05)
+
+    [prop_au γ e0 Q]: the client's update for a proposal of the unstamped
+    entry [e0], run **when the entry is committed** -- when the global
+    log [l] is extended to [l ++ [e]], [e = stamp_at e0 t i] the entry at
+    index [i = length l + 1].  It is handed the authority of the global log
+    just extended and must give it back unchanged; it produces [Q t i] (the
+    client learns where its entry landed).
+
+    It is a plain wand, not a fancy update: it is stored in
+    [raft_commit_inv], so it is under a later when [step_commit] runs it,
+    and a ghost step has no later to spend (no physical step, no credits);
+    a wand under a later still produces its result under a later, which is
+    where the registry keeps it.  A client that wants a fancy update takes
+    [Q := λ t i, |={⊤∖↑raftN}=> Q' t i] and runs it when it collects.
+
+    A registered proposal [(t, i) ↦ (γq, γk, e0)] has the leader's entry
+    [stamp_at e0 t i] ([props_idx], which keeps registration fresh: the
+    leader of [t] is creating index [i] now) and is in one of three states
+    ([prop_slot]): pending, holding the update, while the global log has no
+    entry of term [t] at [i]; done, holding its result [Φ (t, i)], once it
+    has; collected, holding the token the client traded for the result
+    ([prop_collect]).  The client's [Q] is tied to the slot's [Φ] by a
+    saved predicate ([is_prop]). *)
+
+Definition prop_au γ (e0 : raftpb.Entry.t) (Q : w64 → w64 → iProp Σ) : iProp Σ :=
+  ∀ (t i : w64) (l : list raftpb.Entry.t),
+    ⌜ (Z.of_nat (length l) + 1)%Z = uint.Z i ⌝ -∗
+    own_committed γ (l ++ [stamp_at e0 t i]) -∗
+    own_committed γ (l ++ [stamp_at e0 t i]) ∗ Q t i.
+
+Notation prop_rec := (gname * gname * raftpb.Entry.t)%type.
+
+Definition prop_slot γ (k : w64 * w64) (v : prop_rec) (l : list raftpb.Entry.t) : iProp Σ :=
+  ∃ Φ : w64 * w64 → iProp Σ, saved_pred_own v.1.1 DfracDiscarded Φ ∗
+    ( (⌜ ∀ e, l !! pos k.2 = Some e → e.(raftpb.Entry.Term') ≠ k.1 ⌝ ∗
+        prop_au γ v.2 (λ t i, Φ (t, i)))
+    ∨ (⌜ ∃ e, l !! pos k.2 = Some e ∧ e.(raftpb.Entry.Term') = k.1 ⌝ ∗ Φ k)
+    ∨ token v.1.2 ).
+
+Definition props_idx γ (R : gmap (w64 * w64) prop_rec) : iProp Σ :=
+  [∗ map] k ↦ v ∈ R, is_entry γ (stamp_at v.2 k.1 k.2) ∗ ⌜ 0 < uint.Z k.2 ⌝.
+
+Global Instance props_idx_pers γ R : Persistent (props_idx γ R).
+Proof. apply _. Qed.
+Global Instance props_idx_timeless γ R : Timeless (props_idx γ R).
+Proof. apply _. Qed.
+
+(** The client's handle on its proposal: registered at [(t, i)], with
+    result [Q]; and the token it trades for [Q t i]. *)
+Definition is_prop γ (t i : w64) (γp : gname * gname) (Q : w64 → w64 → iProp Σ) : iProp Σ :=
+  ∃ e0 : raftpb.Entry.t, (t, i) ↪[γ.(re_props)]□ ((γp.1, γp.2, e0) : prop_rec) ∗
+        saved_pred_own γp.1 DfracDiscarded (λ ti : w64 * w64, Q ti.1 ti.2).
+
+Definition prop_tok (γp : gname * gname) : iProp Σ := token γp.2.
+
+Global Instance is_prop_pers γ t i γp Q : Persistent (is_prop γ t i γp Q).
+Proof. apply _. Qed.
+Global Instance prop_tok_timeless γp : Timeless (prop_tok γp).
+Proof. apply _. Qed.
+
 Definition raft_commit_inv γ : iProp Σ :=
-  inv raftN (∃ l, own_committed γ l ∗ committed_just γ l ∗ votes_tbl γ).
+  inv raftN (∃ l (R : gmap (w64 * w64) prop_rec),
+               own_committed γ l ∗ committed_just γ l ∗ votes_tbl γ ∗
+               ghost_map_auth γ.(re_props) 1 R ∗ props_idx γ R ∗
+               [∗ map] k ↦ v ∈ R, prop_slot γ k v l).
 
 Global Instance raft_commit_inv_pers γ : Persistent (raft_commit_inv γ).
 Proof. apply _. Qed.
@@ -4225,41 +4301,169 @@ Proof.
     iPureIntro. intros j Hj. symmetry. apply H. lia.
 Qed.
 
+(** Firing the registry as the global log grows by one entry [e], the
+    entry at position [m] of a full log [G] with records.  A slot not at
+    [e]'s [(term, index)] is unaffected: the global log changes only at
+    [e]'s index, where its term is another ([slot_keep]).  The slot at
+    [e]'s [(term, index)], if any, is the proposal of [e] (both are the
+    leader's entry there, [is_entry_agree]): pending, its update runs with
+    the authority of the extended log and its result is stored
+    ([fire_one]). *)
+
+Lemma take_S_lookup_ne {A} (G : list A) (m p : nat) e :
+  G !! m = Some e → p ≠ m → take (S m) G !! p = take m G !! p.
+Proof.
+  intros He Hp. apply lookup_lt_Some in He.
+  destruct (decide (p < m)%nat) as [Hlt|Hge].
+  - rewrite !lookup_take_lt //; lia.
+  - rewrite !lookup_take_ge //; lia.
+Qed.
+
+Local Lemma slot_keep γ k v (G : list raftpb.Entry.t) (m : nat) e :
+  G !! m = Some e → uint.Z e.(raftpb.Entry.Index') = Z.of_nat m + 1 →
+  0 < uint.Z k.2 →
+  k ≠ (e.(raftpb.Entry.Term'), e.(raftpb.Entry.Index')) →
+  ▷ prop_slot γ k v (take m G) -∗ ▷ prop_slot γ k v (take (S m) G).
+Proof.
+  iIntros (He Hei Hk Hne) "Hs". iNext.
+  iDestruct "Hs" as (Φ) "[#Hsp Hst]". iExists Φ. iFrame "Hsp".
+  pose proof (lookup_lt_Some _ _ _ He) as Hlt.
+  destruct (decide (pos k.2 = m)) as [Hp|Hp].
+  - assert (Hk2 : k.2 = e.(raftpb.Entry.Index')).
+    { apply word.unsigned_inj. rewrite /pos in Hp. lia. }
+    assert (Hk1 : k.1 ≠ e.(raftpb.Entry.Term')).
+    { intros Heq. apply Hne. destruct k as [k1 k2]. simpl in *. by subst. }
+    assert (HSm : take (S m) G !! pos k.2 = Some e).
+    { rewrite Hp lookup_take_lt; [done|lia]. }
+    assert (Hm : take m G !! pos k.2 = None).
+    { rewrite Hp lookup_take_ge //; rewrite ?length_take; lia. }
+    iDestruct "Hst" as "[[%Hnc Hau] | [[%Hc HQ] | Htok]]".
+    + iLeft. iFrame "Hau". iPureIntro. intros e' He'. rewrite HSm in He'.
+      injection He' as <-. intros Heq'. apply Hk1. by rewrite Heq'.
+    + exfalso. destruct Hc as (e' & He' & _). rewrite Hm in He'. done.
+    + iRight. iRight. iFrame.
+  - rewrite (take_S_lookup_ne G m (pos k.2) e) //.
+Qed.
+
+Local Lemma fire_one γ E (G : list raftpb.Entry.t) (m : nat) e R :
+  plog_wf base0 G → G !! m = Some e →
+  log_recs γ base0 G -∗ own_committed γ (take m G) -∗ props_idx γ R -∗
+  ([∗ map] k↦v ∈ R, ▷ prop_slot γ k v (take m G)) ={E}=∗
+  own_committed γ (take (S m) G) ∗ ([∗ map] k↦v ∈ R, ▷ prop_slot γ k v (take (S m) G)).
+Proof.
+  iIntros (Hwf He) "#Hr HP #Hidx Hslots".
+  pose proof (Hwf _ _ He) as Hei. rewrite base0_index in Hei.
+  pose proof (word.unsigned_range e.(raftpb.Entry.Index')) as Hrng.
+  pose proof (lookup_lt_Some _ _ _ He) as Hlt.
+  iDestruct (log_recs_lookup with "Hr") as (pt _) "Her"; [exact He|lia|].
+  iMod (own_committed_extend _ _ (take (S m) G) with "HP") as "[HP _]".
+  { rewrite (take_S_r _ _ _ He). by apply prefix_app_r. }
+  set (t0 := e.(raftpb.Entry.Term')). set (i0 := e.(raftpb.Entry.Index')).
+  iAssert (∀ R', ⌜ R' !! (t0, i0) = None ⌝ -∗ props_idx γ R' -∗
+             ([∗ map] k↦v ∈ R', ▷ prop_slot γ k v (take m G)) -∗
+             [∗ map] k↦v ∈ R', ▷ prop_slot γ k v (take (S m) G))%I as "Hkeep".
+  { iIntros (R' HR') "#Hidx' Hs". iApply (big_sepM_impl with "Hs").
+    iIntros "!> %k %v %Hkv Hs".
+    iDestruct (big_sepM_lookup with "Hidx'") as "[_ %Hpos]"; first done.
+    iApply (slot_keep with "Hs"); [done|rewrite /i0 in Hei; lia|done|].
+    intros Hk. subst k. unfold t0, i0 in HR'. congruence. }
+  destruct (R !! (t0, i0)) as [v|] eqn:Hv; last first.
+  { iModIntro. iFrame "HP". iApply ("Hkeep" with "[//] Hidx Hslots"). }
+  iDestruct (big_sepM_delete with "Hslots") as "[Hs Hslots]"; first exact Hv.
+  iDestruct (big_sepM_delete with "Hidx") as "[[#Hie %Hpos0] #Hidx0]"; first exact Hv.
+  iDestruct (is_entry_agree _ e (stamp_at v.2 t0 i0) with "[Her] Hie") as %Heq;
+    [done|done|by iExists pt|].
+  iAssert (|={E}=> own_committed γ (take (S m) G) ∗ ▷ prop_slot γ (t0, i0) v (take (S m) G))%I
+    with "[HP Hs]" as ">[HP Hnew]".
+  { iDestruct "Hs" as (Φ) "[#Hsp Hst]".
+    iDestruct "Hst" as "[[>%Hnc Hau] | [[>%Hc HQ] | Htok]]".
+    - iDestruct ("Hau" $! t0 i0 (take m G)) as "Hau".
+      iEval (rewrite -Heq) in "Hau".
+      iAssert (▷ (own_committed γ (take m G ++ [e]) ∗ Φ (t0, i0)))%I with "[Hau HP]" as "[>HP HQ]".
+      { iNext. iApply ("Hau" with "[%] [HP]").
+        - rewrite length_take /i0. lia.
+        - rewrite -(take_S_r _ _ _ He). iExact "HP". }
+      iEval (rewrite -(take_S_r _ _ _ He)) in "HP".
+      iModIntro. iFrame "HP". iNext. iExists Φ. iFrame "Hsp". iRight. iLeft. iFrame "HQ".
+      iPureIntro. exists e. split; [|done].
+      replace (pos (t0, i0).2) with m by (rewrite /pos /i0 /=; lia).
+      rewrite lookup_take_lt; [done|lia].
+    - exfalso. destruct Hc as (e' & He' & _).
+      replace (pos (t0, i0).2) with m in He' by (rewrite /pos /i0 /=; lia).
+      rewrite lookup_take_ge in He'; first [congruence | lia].
+    - iModIntro. iFrame "HP". iNext. iExists Φ. iFrame "Hsp". iRight. iRight. iFrame. }
+  iModIntro. iFrame "HP".
+  iApply big_sepM_delete; first exact Hv. iFrame "Hnew".
+  iApply ("Hkeep" with "[%] Hidx0 Hslots"). by rewrite lookup_delete_eq.
+Qed.
+
+Local Lemma fire_upto γ E (G : list raftpb.Entry.t) R (d m : nat) :
+  plog_wf base0 G → (m + d ≤ length G)%nat →
+  log_recs γ base0 G -∗ own_committed γ (take m G) -∗ props_idx γ R -∗
+  ([∗ map] k↦v ∈ R, ▷ prop_slot γ k v (take m G)) ={E}=∗
+  own_committed γ (take (m + d) G) ∗ ([∗ map] k↦v ∈ R, ▷ prop_slot γ k v (take (m + d) G)).
+Proof.
+  revert m. induction d as [|d IH]; iIntros (m Hwf Hle) "#Hr HP #Hidx Hs".
+  - rewrite Nat.add_0_r. by iFrame.
+  - destruct (lookup_lt_is_Some_2 G m ltac:(lia)) as [e He].
+    iMod (fire_one with "Hr HP Hidx Hs") as "[HP Hs]"; [done|done|].
+    replace (m + S d)%nat with (S m + d)%nat by lia.
+    iApply (IH with "Hr HP Hidx Hs"); [done|lia].
+Qed.
+
 (** Committing: a new commit fact [cq γ t n G] extends the global log to
     [G]'s first [n] entries, or finds it already past them.  Inside the
     invariant, the global log is the first [n0] entries of the log [G0]
     of an earlier commit fact; the two commit facts agree below both
     ([cq_agree], from the vote table), so -- the logs having records --
-    the two prefixes are prefixes of one another ([full_take_eq]). *)
+    the two prefixes are prefixes of one another ([full_take_eq]).  The
+    extension is entry by entry, firing the registered proposals
+    ([fire_upto]). *)
 Lemma commit_extend γ E t n G :
   ↑raftN ⊆ E →
   raft_commit_inv γ -∗ cq γ t n G ={E}=∗ is_committed γ (take (Z.to_nat (uint.Z n)) G).
 Proof.
   iIntros (HE) "#Hinv #Hcq".
-  iInv "Hinv" as (P) "(>HP & >Hj & >Htbl)".
+  iInv "Hinv" as (P R) "(>HP & >Hj & >Htbl & >Hra & >#Hidx & Hslots)".
+  iEval (rewrite big_sepM_later) in "Hslots".
   iDestruct (cq_full with "Hcq") as "[%HwG #HrG]".
   iPoseProof "Hcq" as "(%HGn & _)".
+  pose proof (plog_term_at_Some_range _ _ _ _ HGn) as [_ HnG].
+  rewrite /plog_last_index_Z base0_index in HnG.
+  set (n' := Z.to_nat (uint.Z n)).
   iDestruct "Hj" as "[-> | (%t0 & %n0 & %G0 & #Hcq0 & ->)]".
-  - iMod (own_committed_extend _ [] (take (Z.to_nat (uint.Z n)) G) with "HP") as "[HP #Hc]";
-      first apply prefix_nil.
-    iModIntro. iSplitL "HP Htbl".
-    { iNext. iExists _. iFrame "HP Htbl". iRight. iExists t, n, G. iFrame "Hcq". done. }
+  - iMod (fire_upto _ _ G R n' 0 with "HrG [HP] Hidx [Hslots]") as "[HP Hslots]".
+    { done. }
+    { rewrite /n'. lia. }
+    { rewrite take_0. iExact "HP". }
+    { rewrite take_0. iExact "Hslots". }
+    simpl. iDestruct (own_committed_lb with "HP") as "#Hc".
+    iEval (rewrite -big_sepM_later) in "Hslots".
+    iModIntro. iSplitL "HP Htbl Hra Hslots".
+    { iNext. iExists _, R. iFrame "HP Htbl Hra Hidx Hslots".
+      iRight. iExists t, n, G. iFrame "Hcq". done. }
     iExact "Hc".
   - iDestruct (cq_full with "Hcq0") as "[%HwG0 #HrG0]".
     iPoseProof "Hcq0" as "(%HG0n & _)".
     destruct (decide (uint.Z n0 ≤ uint.Z n)) as [Hle|Hgt].
-    + (* the new prefix is longer: extend *)
+    + (* the new prefix is longer: extend, firing the registry *)
       iDestruct (cq_agree _ _ _ _ _ n0 with "Htbl Hcq0 Hcq") as %Hag; [lia|lia|].
       iDestruct (full_take_eq _ G0 G n0 with "HrG0 HrG") as %Htk.
       { done. }
       { done. }
       { rewrite HG0n. by eexists. }
       { apply Hag. lia. }
-      assert (Hp : take (Z.to_nat (uint.Z n0)) G0 `prefix_of` take (Z.to_nat (uint.Z n)) G).
-      { rewrite Htk. apply take_prefix_le. lia. }
-      iMod (own_committed_extend _ _ _ Hp with "HP") as "[HP #Hc]".
-      iModIntro. iSplitL "HP Htbl".
-      { iNext. iExists _. iFrame "HP Htbl". iRight. iExists t, n, G. iFrame "Hcq". done. }
+      iEval (rewrite Htk) in "HP Hslots".
+      set (n0' := Z.to_nat (uint.Z n0)).
+      iMod (fire_upto _ _ G R (n' - n0') n0' with "HrG HP Hidx Hslots") as "[HP Hslots]".
+      { done. }
+      { rewrite /n' /n0'. lia. }
+      replace (n0' + (n' - n0'))%nat with n' by (rewrite /n' /n0'; lia).
+      iDestruct (own_committed_lb with "HP") as "#Hc".
+      iEval (rewrite -big_sepM_later) in "Hslots".
+      iModIntro. iSplitL "HP Htbl Hra Hslots".
+      { iNext. iExists _, R. iFrame "HP Htbl Hra Hidx Hslots".
+        iRight. iExists t, n, G. iFrame "Hcq". done. }
       iExact "Hc".
     + (* the global log is already past it *)
       iDestruct (cq_agree _ _ _ _ _ n with "Htbl Hcq0 Hcq") as %Hag; [lia|lia|].
@@ -4269,8 +4473,10 @@ Proof.
       { apply (full_term_at_some _ _ n0); [rewrite HG0n; by eexists|lia]. }
       { apply Hag. lia. }
       iDestruct (own_committed_lb with "HP") as "#Hc0".
-      iModIntro. iSplitL "HP Htbl".
-      { iNext. iExists _. iFrame "HP Htbl". iRight. iExists t0, n0, G0. iFrame "Hcq0". done. }
+      iEval (rewrite -big_sepM_later) in "Hslots".
+      iModIntro. iSplitL "HP Htbl Hra Hslots".
+      { iNext. iExists _, R. iFrame "HP Htbl Hra Hidx Hslots".
+        iRight. iExists t0, n0, G0. iFrame "Hcq0". done. }
       iApply (is_committed_mono with "Hc0"). rewrite -Htk. apply take_prefix_le. lia.
 Qed.
 
@@ -4281,9 +4487,9 @@ Local Lemma vote_insert γ id γv voted T c :
   ghost_map_auth γv (1/2) (<[T := c]> voted) ∗ T ↪[γv]□ c.
 Proof.
   iIntros (Hγv Hfree) "#Hinv #Hj Ha".
-  iInv "Hinv" as (P) "(HP & Hjust & >Htbl)".
+  iInv "Hinv" as (P R) "(HP & Hjust & >Htbl & Hrest)".
   iMod (votes_tbl_insert with "Hj Htbl Ha") as "(Htbl & Ha & #Hf)"; [done|done|].
-  iModIntro. iSplitR "Ha"; [iNext; iExists P; iFrame|by iFrame "Ha Hf"].
+  iModIntro. iSplitR "Ha"; [iNext; iExists P, R; iFrame|by iFrame "Ha Hf"].
 Qed.
 
 (** *** The refinement obligation, one rule at a time
@@ -6502,10 +6708,197 @@ Lemma leader_completeness γ E id1 ps1 id2 ps2 (i : w64) e :
 Proof.
   iIntros (HE Hic He Hr2 Hterm Hb2) "H1 H2".
   iDestruct (own_raft_ghost_inv with "H1") as "#Hinv".
-  iInv "Hinv" as (P) "(HP & Hj & >Htbl)".
+  iInv "Hinv" as (P R) "(HP & Hj & >Htbl & Hrest)".
   iDestruct (leader_completeness_tbl with "Htbl H1 H2") as "#Hlc"; [done..|].
   iDestruct "Hlc" as %Hlc.
-  iModIntro. iSplitL "HP Hj Htbl"; [iNext; iExists P; iFrame|]. by iFrame.
+  iModIntro. iSplitL "HP Hj Htbl Hrest"; [iNext; iExists P, R; iFrame|]. by iFrame.
+Qed.
+
+(** *** Registering and collecting proposals (2026-10-05)
+
+    [own_raft_ghost_step_propose_reg] is [step_propose] with the proposals'
+    updates registered at the [(term, index)] the leader stamps them with;
+    the uniform [own_raft_ghost_step] registers nothing (its
+    [step_propose] case is unchanged).  Registration is fresh: a
+    registered [(t, i)] carries the entry of the leader of [t] at [i]
+    ([props_idx]), and the leader of [t] has nothing in its term log past
+    its last index ([own_raft_ghost_term_fresh]) -- which also says the
+    global log has no entry of term [t] there yet, so the new slots start
+    pending.  [prop_collect] trades the client's token for the result once
+    its entry is committed. *)
+
+(** A leader's term log has nothing past its last index. *)
+Local Lemma own_raft_ghost_term_fresh γ id s e :
+  s.(pstate.role) = role.Leader →
+  plog_last_index_Z s.(pstate.base) s.(pstate.log) < uint.Z e.(raftpb.Entry.Index') →
+  e.(raftpb.Entry.Term') = s.(pstate.term) →
+  own_raft_ghost γ id s -∗ is_entry γ e -∗ False.
+Proof.
+  iIntros (Hr Hi Ht) "Hown (%pt & %ldr & %γt' & %b & %l0' & %F0 & #Hl' & #Htl' & _ & #Hfr & _)".
+  iDestruct (own_raft_ghost_is_leader with "Hown") as "#Hl"; first done.
+  iDestruct "Hown" as (γv voted kl) "(_ & _ & _ & _ & _ & _ & _ & _ & Hlg & _)".
+  iDestruct "Hlg" as (γm terms γa acks fp γc camps γl vlogs γw wins) "H". iNamed "H".
+  iEval (rewrite /lead_log_own Hr) in "Htlog".
+  iDestruct "Htlog" as (γt M l0 Hγt) "(Ha & _ & %Hdom & _)".
+  iEval (rewrite Ht) in "Hl' Htl'".
+  iDestruct (is_leader_unique with "Hl Hl'") as %<-.
+  iDestruct "Htl'" as (γm' Hγm') "Htf". rewrite Htname in Hγm'. injection Hγm' as <-.
+  iDestruct (ghost_map_lookup with "Hterms Htf") as %Hlook.
+  rewrite Hγt in Hlook. injection Hlook as <- <- <-.
+  iDestruct (ghost_map_lookup with "Ha Hfr") as %HM.
+  specialize (Hdom _ ltac:(by eexists)). lia.
+Qed.
+
+Local Lemma register_props γ (t : w64) (idx : nat → w64) (l : list raftpb.Entry.t)
+    (ents : list raftpb.Entry.t) (Qs : list (w64 → w64 → iProp Σ)) R :
+  length Qs = length ents →
+  (∀ k, (k < length ents)%nat → R !! (t, idx k) = None) →
+  (∀ k1 k2, (k1 < length ents)%nat → (k2 < length ents)%nat → idx k1 = idx k2 → k1 = k2) →
+  (∀ k, (k < length ents)%nat → 0 < uint.Z (idx k)) →
+  (∀ k e, (k < length ents)%nat → l !! pos (idx k) = Some e → e.(raftpb.Entry.Term') ≠ t) →
+  ghost_map_auth γ.(re_props) 1 R -∗ props_idx γ R -∗
+  ([∗ map] k↦v ∈ R, ▷ prop_slot γ k v l) -∗
+  ([∗ list] k ↦ e ∈ ents, is_entry γ (stamp_at e t (idx k))) -∗
+  ([∗ list] e;Q ∈ ents;Qs, prop_au γ e Q) ==∗
+  ∃ R', ghost_map_auth γ.(re_props) 1 R' ∗ props_idx γ R' ∗
+    ([∗ map] k↦v ∈ R', ▷ prop_slot γ k v l) ∗
+    [∗ list] k ↦ Q ∈ Qs, ∃ γp, is_prop γ t (idx k) γp Q ∗ prop_tok γp.
+Proof.
+  revert idx Qs R. induction ents as [|e ents IH].
+  { intros idx Qs R Hlen Hfr Hinj Hpos Hnc. iIntros "Hra Hidx Hs Hents Haus".
+    destruct Qs; [|done]. iModIntro. iExists R. iFrame. }
+  intros idx Qs R Hlen Hfr Hinj Hpos Hnc.
+  iIntros "Hra Hidx Hs Hents Haus".
+  iDestruct "Hidx" as "#Hidx".
+  iDestruct "Hents" as "#Hents".
+  { destruct Qs as [|Q Qs]; [done|]. simpl in Hlen.
+    rewrite big_sepL2_cons. iDestruct "Haus" as "[Hau Haus]".
+    rewrite big_sepL_cons. iDestruct "Hents" as "[Hent Hents']".
+    iMod (saved_pred_alloc (λ ti : w64 * w64, Q ti.1 ti.2) DfracDiscarded) as (γq) "#Hsp"; first done.
+    iMod token_alloc as (γk) "Htok".
+    assert (Hfr0 : R !! (t, idx 0%nat) = None) by (apply Hfr; simpl; lia).
+    iMod (ghost_map_insert_persist (t, idx 0%nat) ((γq, γk, e) : prop_rec) Hfr0 with "Hra")
+      as "[Hra #Hfrag]".
+    iMod (IH (λ k, idx (S k)) Qs (<[(t, idx 0%nat) := ((γq, γk, e) : prop_rec)]> R)
+            with "Hra [] [Hs Hau] Hents' Haus") as (R') "(Hra & Hidx' & Hs & Hout)".
+    + lia.
+    + intros k Hk. rewrite lookup_insert_ne; [apply Hfr; simpl; lia|].
+      intros [= Heq]. apply Hinj in Heq; simpl; lia.
+    + intros k1 k2 Hk1 Hk2 Heq. apply Hinj in Heq; simpl; lia.
+    + intros k Hk. apply Hpos. simpl. lia.
+    + intros k e' Hk. apply Hnc. simpl. lia.
+    + rewrite /props_idx big_sepM_insert //. iFrame "Hidx Hent". iPureIntro. apply Hpos. simpl. lia.
+    + rewrite big_sepM_insert //. iFrame "Hs". iNext. iExists (λ ti : w64 * w64, Q ti.1 ti.2).
+      iFrame "Hsp". iLeft.
+      iFrame "Hau". iPureIntro. intros e' He'. apply (Hnc 0%nat e'); [simpl; lia|done].
+    + iModIntro. iExists R'. iFrame "Hra Hidx' Hs". rewrite big_sepL_cons. iFrame "Hout".
+      iExists (γq, γk). iFrame "Htok". iExists e. iFrame "#". }
+Qed.
+
+(** [step_propose], registering the proposals: each update [prop_au γ e Q]
+    is registered at the [(term, index)] its entry is stamped with, and the
+    client gets [is_prop] and the token for it. *)
+Lemma own_raft_ghost_step_propose_reg γ id s ents Qs :
+  s.(pstate.role) = role.Leader →
+  plog_last_index_Z s.(pstate.base) s.(pstate.log) + Z.of_nat (length ents) < 2 ^ 64 →
+  length Qs = length ents →
+  let s' := pappend s (imap (stamp s.(pstate.term) (plast_index s)) ents) in
+  own_raft_ghost γ id s -∗ ([∗ list] e;Q ∈ ents;Qs, prop_au γ e Q) ={⊤}=∗
+  own_raft_ghost γ id (psend_msgs s' [pself_ack id s']) ∗
+  [∗ list] k ↦ Q ∈ Qs, ∃ γp,
+    is_prop γ s.(pstate.term) (word.add (word.add (plast_index s) (W64 1)) (W64 k)) γp Q ∗
+    prop_tok γp.
+Proof.
+  intros Hrole Hnw Hlen s'.
+  iIntros "Hown Haus".
+  iDestruct (own_raft_ghost_inv with "Hown") as "#Hinv".
+  set (L := plog_last_index_Z s.(pstate.base) s.(pstate.log)).
+  pose proof (plog_last_index_Z_nonneg s.(pstate.base) s.(pstate.log)) as HL0.
+  set (idx := λ k : nat, word.add (word.add (plast_index s) (W64 1)) (W64 k)).
+  assert (Hidx : ∀ k, (k < length ents)%nat → uint.Z (idx k) = L + 1 + k).
+  { intros k Hk. rewrite /idx /plast_index -/L. apply stamp_index_eq; lia. }
+  iInv "Hinv" as (P R) "(>HP & >#Hj & >Htbl & >Hra & >#Hidxm & Hslots)".
+  iEval (rewrite big_sepM_later) in "Hslots".
+  (* the new keys are fresh in the registry *)
+  iAssert (⌜ ∀ k, (k < length ents)%nat → R !! (s.(pstate.term), idx k) = None ⌝)%I as %Hfr.
+  { iIntros (k Hk). destruct (R !! _) as [v|] eqn:Hv; [|done].
+    iDestruct (big_sepM_lookup with "Hidxm") as "[Hie _]"; first exact Hv.
+    iDestruct (own_raft_ghost_term_fresh with "Hown Hie") as %[]; [done| |done].
+    simpl. rewrite Hidx //. lia. }
+  (* the global log has no entry of the term at the new indices *)
+  iAssert (⌜ ∀ k e, (k < length ents)%nat → P !! pos (idx k) = Some e →
+             e.(raftpb.Entry.Term') ≠ s.(pstate.term) ⌝)%I as %Hnc.
+  { iIntros (k e Hk He Het).
+    iDestruct "Hj" as "[-> | (%t0 & %n0 & %G0 & #Hcq0 & ->)]"; [done|].
+    iDestruct (cq_full with "Hcq0") as "[%HwG0 #HrG0]".
+    apply lookup_take_Some in He as [He _].
+    pose proof (HwG0 _ _ He) as Hei. rewrite base0_index in Hei.
+    pose proof (word.unsigned_range e.(raftpb.Entry.Index')).
+    iDestruct (log_recs_lookup with "HrG0") as (pt _) "Her"; [exact He|lia|].
+    iApply (own_raft_ghost_term_fresh with "Hown [Her]"); [done| |done|by iExists pt].
+    specialize (Hidx k Hk). rewrite /pos in Hei. lia. }
+  (* the step *)
+  iMod (own_raft_ghost_step_propose with "Hown") as "Hown"; [done|done|].
+  iDestruct (own_raft_ghost_log with "Hown") as "#[%Hok' Hrecs']".
+  assert (Hlog' : (psend_msgs s' [pself_ack id s']).(pstate.log) =
+                  s.(pstate.log) ++ imap (stamp s.(pstate.term) (plast_index s)) ents)
+    by reflexivity.
+  assert (Hbase' : (psend_msgs s' [pself_ack id s']).(pstate.base) = s.(pstate.base))
+    by reflexivity.
+  iAssert ([∗ list] k ↦ e ∈ ents, is_entry γ (stamp_at e s.(pstate.term) (idx k)))%I as "#Hents".
+  { iApply big_sepL_intro. iIntros "!> %k %e %Hk".
+    pose proof (lookup_lt_Some _ _ _ Hk) as Hklt.
+    iEval (rewrite Hlog' Hbase') in "Hrecs'".
+    assert (Hk' : (s.(pstate.log) ++ imap (stamp s.(pstate.term) (plast_index s)) ents)
+                    !! (length s.(pstate.log) + k)%nat = Some (stamp_at e s.(pstate.term) (idx k))).
+    { rewrite lookup_app_r; [|lia]. replace (length s.(pstate.log) + k - length s.(pstate.log))%nat with k by lia.
+      rewrite list_lookup_imap Hk. done. }
+    iDestruct (big_sepL_lookup with "Hrecs'") as "He"; first exact Hk'.
+    rewrite decide_True; last (rewrite /L /plog_last_index_Z in Hnw; lia).
+    iDestruct "He" as (pt _) "He". by iExists pt. }
+  iMod (register_props γ s.(pstate.term) idx P ents Qs R
+          with "Hra Hidxm Hslots Hents Haus") as (R') "(Hra & #Hidx' & Hslots & Hout)".
+  { done. }
+  { done. }
+  { intros k1 k2 Hk1 Hk2 Heq.
+    assert (uint.Z (idx k1) = uint.Z (idx k2)) as Hz by (by rewrite Heq).
+    rewrite Hidx // Hidx // in Hz. lia. }
+  { intros k Hk. rewrite Hidx //. lia. }
+  { done. }
+  iEval (rewrite -big_sepM_later) in "Hslots".
+  iModIntro. iSplitL "HP Htbl Hra Hslots".
+  { iNext. iExists P, R'. iFrame "HP Hj Htbl Hra Hidx' Hslots". }
+  by iFrame.
+Qed.
+
+(** Collecting: once the client's entry is committed -- a committed log has
+    an entry of term [t] at [i] -- the token buys the result.  Under a
+    later: the result was stored in the invariant ([prop_slot]). *)
+Lemma prop_collect γ E (t i : w64) γp Q l :
+  ↑raftN ⊆ E →
+  raft_commit_inv γ -∗ is_prop γ t i γp Q -∗ prop_tok γp -∗ is_committed γ l -∗
+  ⌜ ∃ e, l !! pos i = Some e ∧ e.(raftpb.Entry.Term') = t ⌝ ={E}=∗ ▷ Q t i.
+Proof.
+  iIntros (HE) "#Hinv (%e0 & #Hfrag & #Hsp) Htok #Hc %Hl".
+  iInv "Hinv" as (P R) "(>HP & >#Hj & >Htbl & >Hra & >#Hidx & Hslots)".
+  iDestruct (ghost_map_lookup with "Hra Hfrag") as %Hv.
+  iDestruct (is_committed_prefix with "Hc HP") as %Hpre.
+  destruct Hl as (e & He & Het).
+  pose proof (prefix_lookup_Some _ _ _ _ He Hpre) as HeP.
+  iEval (rewrite big_sepM_later) in "Hslots".
+  iDestruct (big_sepM_insert_acc with "Hslots") as "[Hs Hclose]"; first exact Hv.
+  iDestruct "Hs" as (Φ) "[#Hsp' Hst]".
+  iDestruct "Hst" as "[[>%Hnc Hau] | [[>%Hdone HQ] | >Htok']]".
+  - exfalso. simpl in Hnc. by apply (Hnc e HeP).
+  - iDestruct (saved_pred_agree _ _ _ _ _ (t, i) with "Hsp' Hsp") as "#Heq".
+    iSpecialize ("Hclose" $! ((γp.1, γp.2, e0) : prop_rec) with "[Htok]").
+    { iNext. iExists Φ. iFrame "Hsp'". iRight. iRight. iFrame "Htok". }
+    rewrite insert_id //.
+    iEval (rewrite -big_sepM_later) in "Hclose".
+    iModIntro. iSplitL "HP Htbl Hra Hclose".
+    { iNext. iExists P, R. iFrame "HP Hj Htbl Hra Hidx Hclose". }
+    iModIntro. iNext. iEval (cbn) in "Heq". iRewrite -"Heq". iExact "HQ".
+  - iDestruct (token_exclusive with "Htok Htok'") as %[].
 Qed.
 
 (** *** Allocation
@@ -6573,7 +6966,8 @@ Proof.
   iMod (alloc_maps (K:=w64) (V:=gset w64) ids) as (nw) "[_ Hw]".
   iMod (alloc_evs ids) as (ne) "He".
   iMod own_committed_alloc as (γc) "[Hcauth #Hclb]".
-  pose (γ0 := Build_raft_election_names cfg nv nt na nc nl nw ne γc).
+  iMod (ghost_map_alloc_empty (K:=w64 * w64) (V:=prop_rec)) as (γpr) "Hpra".
+  pose (γ0 := Build_raft_election_names cfg nv nt na nc nl nw ne γc γpr).
   (* each vote map: half to the node, half to the table *)
   iAssert (([∗ set] x ∈ ids, ∃ γx, ⌜ nv !! x = Some γx ⌝ ∗ ghost_map_auth γx (1/2) (∅ : gmap w64 w64)) ∗
            ([∗ set] x ∈ ids, ∃ γx, ⌜ nv !! x = Some γx ⌝ ∗ ghost_map_auth γx (1/2) (∅ : gmap w64 w64)))%I
@@ -6584,9 +6978,13 @@ Proof.
   { rewrite /votes_tbl. iEval (rewrite -Hnv -big_sepM_dom) in "Hvt".
     iApply (big_sepM_impl with "Hvt"). iIntros "!> %v %γv %Hv (%γx & %Hx & Hav)".
     rewrite Hv in Hx. injection Hx as <-. iExists ∅. iFrame "Hav". by rewrite big_sepM_empty. }
-  iMod (inv_alloc raftN E (∃ l, own_committed γ0 l ∗ committed_just γ0 l ∗ votes_tbl γ0)
-         with "[Hcauth Htbl]") as "#Hinv".
-  { iNext. iExists []. rewrite own_committed_unseal. iFrame "Hcauth Htbl". by iLeft. }
+  iMod (inv_alloc raftN E (∃ l (R : gmap (w64 * w64) prop_rec),
+                             own_committed γ0 l ∗ committed_just γ0 l ∗ votes_tbl γ0 ∗
+                             ghost_map_auth γ0.(re_props) 1 R ∗ props_idx γ0 R ∗
+                             [∗ map] k ↦ v ∈ R, prop_slot γ0 k v l)
+         with "[Hcauth Htbl Hpra]") as "#Hinv".
+  { iNext. iExists [], ∅. rewrite own_committed_unseal. iFrame "Hcauth Htbl Hpra".
+    rewrite /props_idx !big_sepM_empty. iSplit; [by iLeft|done]. }
   iAssert (is_committed γ0 []) as "#Hc0".
   { rewrite is_committed_unseal. iExact "Hclb". }
   iModIntro. iExists γ0.
