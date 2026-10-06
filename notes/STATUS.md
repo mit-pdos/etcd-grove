@@ -7,23 +7,21 @@ branch `worktree-raft-replication` at `feb5c73d4` (582 files, ~38k lines; was `m
 412 files until 2026-10-06, and the files below were first ported from `main`) to Lean on top of Perennial's Lean port
 (mit-pdos/perennial `lean`, pinned at 8c75a3dd4).
 
-## Done (ported from `main`; to be brought up to `feb5c73d4`)
+## Done (at `feb5c73d4`)
 
-- Lake project depending on Perennial (`lakefile.toml`).
-- `protocol.v`, `defs.v`, `step_lemmas.v`, `inv_*.v`: ported from `main`, no `sorry`.
-- `Base.lean`: `isInitialized` at `feb5c73d4`.
-- The 98 specs of `main`; five proofs (`big_NewInt`, `big_Int__Int64`, `rand_Int`,
-  `lockedRand__Intn`, `voteRespMsgType`) and their lines in `Election.lean`.
+- Lake project depending on Perennial (`lakefile.toml`); `Base.lean`.
+- `plog.v`, `protocol.v` (7.1k lines: `Protocol/{Model,Ghost,GhostState,StepGhost,
+  LeaderCompleteness,Refinement,Facts}.lean`): **fully proved**. `#print axioms` of
+  `ownRaftGhost_step`, `leader_completeness`, `state_machine_safety`,
+  `ownRaftGhost_alloc`: only `propext`, `Classical.choice`, `Quot.sound`.
+- `defs.v`, `step_lemmas.v`, `inv_*.v` (incl. `inv_memstorage.v`): no `sorry`.
+- The 142 specs.
 
-## Next (moving to `feb5c73d4`)
+## Next
 
-1. `plog.v`, `protocol.v` (7.1k lines: the model, then the ghost state, the
-   step lemmas, Leader Completeness, the refinement obligation, the proposal
-   registry).
-2. `defs.v`, `step_lemmas.v`, `inv_*.v` (incl. the new `inv_memstorage.v`,
-   `memstorage_instance.v`), updated by the `main..feb5c73d4` diff.
-3. The 142 specs (41 unchanged from `main`), then the 145 proofs, then
-   `election.v`.
+1. The 142 proofs (in progress, worktree `~/etcd-grove-lean-spec`, branch
+   `lean-spec`).
+2. `memstorage_instance.v`, `election.v` (the links and the results).
 
 ## Differences from the Rocq besides the language
 
