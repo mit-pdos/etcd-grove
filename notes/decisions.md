@@ -1596,3 +1596,37 @@ and the only honest place is the field the code reads.
 entry list behind `Entries`, so `send` takes `ents` with `m.Entries' ↦*□
 ents`, and `MsgAppResp` is now visible in the abstract outbox (the leader
 acknowledges its own append by message).
+
+## 2026-10-05 — The committed log is one global resource, owned by the protocol invariant
+
+**Decision.** The external specification of raft is a single authoritative
+committed log. It is a `mono_list` under `re_commit`: `own_committed γ l`
+(the authority, fraction 1) lives **inside** the protocol invariant
+`raft_commit_inv γ` and never leaves it; `is_committed γ l` (the
+lower bound: persistent, pairwise prefix-agreeing, `is_committed_agree`)
+is the only client-facing resource. Only `step_commit` extends the log
+(the leader, with a quorum of acknowledgements in its term; justified by
+`lc_core`/`cq_agree`); followers take `is_committed` from the `App`,
+`Heartbeat` and `Snap` messages, which carry it for the sender's committed
+prefix. Every `own_raft_ghost γ id ps` yields `is_committed` for the node's
+own committed prefix (`own_raft_ghost_committed`).
+
+**Rejected — a client-held half of the authority.** With a fractional
+split, every extension would need the client's half present at the moment
+of commit. The commit happens inside a leader's `Step`, the leader commits
+its own no-op entry at term start with no client involved, and leadership
+moves between nodes -- no single party outside the invariant can be there
+every time. The "illusion of a single global log" is provided by the lower
+bounds instead, and by the logically atomic `Propose` below.
+
+**Consequence for `Propose` (design, 2026-10-05).** `Propose`'s atomic
+update is over the invariant-held `own_committed` -- the standard shape
+`|={⊤∖↑raftN,∅}=> ∃ l, own_committed γ l ∗ (own_committed γ (l ++ [e])
+={∅,⊤∖↑raftN}=∗ Q)`, as in the old admitted `wp_node__Propose`, but with
+its linearization point **deferred to commit**: the leader's `step_propose`
+stores the update in a registry keyed by the stamped `(term, index)` (saved
+predicates in `raft_commit_inv`), `step_commit` fires the registered
+updates in log order as it extends `l`, and the client trades a one-shot
+token for `Q` once `is_committed` shows its entry (`prop_collect`). A
+proposal at a non-leader returns the update unfired. Unregistered entries
+(no-ops, proposals through a raw `Step`) extend the log directly.
