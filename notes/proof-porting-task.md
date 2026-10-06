@@ -1,7 +1,10 @@
 # Porting a batch of `proof_*.v` files
 
-Instructions for an agent porting a batch of the election proof's Rocq proofs. Several
-agents work in this repository at once, so touch only your own files.
+Instructions for an agent porting a batch of the election proof's Rocq proofs (at
+feb5c73d4). Several agents work at once in the worktree
+`/home/ubuntu/etcd-grove-lean-spec` (branch `lean-spec`), so touch only your own files.
+`Protocol/Refinement.lean` there still has `sorry`s (another agent is proving it
+elsewhere); use its lemmas by their statements.
 
 ## What to write
 
@@ -23,6 +26,10 @@ proof_<fn>.v` becomes `EtcdGrove/Raft/ElectionProof/Proof/<fn>.lean`.
   with `#check @…` that they are all there. Keep the Rocq comment explaining why it is
   trusted. A Rocq `Admitted` is a theorem whose unfinished part is a `sorry` with a
   comment.
+* A few `Proof/<fn>.lean` already exist: ports of an older Rocq version (branch
+  `main`). Redo them against the feb5c73d4 Rocq and the current specs.
+* `raft.Step.spec` and `RawNode.Propose.spec` are stated at `HeapGS HasLC.hasLC GF`
+  (the ghost state holds an invariant); their proofs work at that instance too.
 * Keep the Rocq comments (translate names to Lean). File header
   `/- Port of election_proof/proof_<fn>.v. -/`, plus `Lean notes:` for differences.
 
@@ -48,7 +55,7 @@ proof_<fn>.v` becomes `EtcdGrove/Raft/ElectionProof/Proof/<fn>.lean`.
 ## Checking
 
     export PATH=$HOME/.elan/bin:$PATH
-    cd /home/ubuntu/etcd-grove-lean
+    cd /home/ubuntu/etcd-grove-lean-spec
     lake env lean EtcdGrove/Raft/ElectionProof/Proof/<fn>.lean
 
 The `Spec` modules are already built. Unused-section-variable warnings are harmless. Do
@@ -57,12 +64,12 @@ not run `lake build` on the whole project.
 ## Housekeeping
 
 * Use only your own scratch directory,
-  `/home/ubuntu/etcd-grove-lean/.scratch/proofs<N>/` (gitignored)
+  `/home/ubuntu/etcd-grove-lean-spec/.scratch/proofs<N>/` (gitignored)
   where `<N>` is your batch number. Never write in the scratchpad root or another
   agent's directory.
 * Do not run git commands that change state, and do not edit `EtcdGrove.lean`,
   `Election.lean`, or any file outside your `Proof/<fn>.lean` files.
-* Write only inside `/home/ubuntu/etcd-grove-lean` (read the Rocq from `~/etcd-grove-rr`); no operation
+* Write only inside `/home/ubuntu/etcd-grove-lean-spec` (read the Rocq from `~/etcd-grove-rr`); no operation
   needs anything else.
 
 ## Report
