@@ -368,11 +368,37 @@ instance voteEv_timeless (γ : RaftElectionNames) (v T : w64) (d : Bool)
     (F : List raftpb.Entry) : Timeless (voteEv (GF := GF) γ v T d F) := by
   unfold voteEv; infer_instance
 
+/-- The pure part of `ev_pair`: an acknowledgement of an earlier term than a vote, in a
+sorted history comparable with the history up to the vote, is before the vote. -/
+private theorem ev_pair_pure (L0 La : List Aev) (t i T : w64) (d : Bool) (F : List raftpb.Entry) :
+    uint.Z t < uint.Z T → Aev.ack t i ∈ La → EvSorted La →
+    (La <+: L0 ++ [Aev.vote T d F] ∨ L0 ++ [Aev.vote T d F] <+: La) →
+    Aev.ack t i ∈ L0 := by
+  intro HtT Hin Hsort Hp
+  rcases Hp with Hp | ⟨R, rfl⟩
+  · have := Hp.subset Hin
+    simpa using this
+  · rcases List.mem_append.mp Hin with Hin | Hin
+    · simpa using Hin
+    · exfalso
+      obtain ⟨p, Hp⟩ := List.mem_iff_getElem?.mp Hin
+      have := Hsort L0.length (L0.length + 1 + p) (Aev.vote T d F) (Aev.ack t i) (by omega)
+        (by simp) (by
+          rw [List.getElem?_append_right (by simp)]
+          simpa [show L0.length + 1 + p - (L0.length + 1) = p by omega] using Hp)
+      simp only [aevTerm] at this; omega
+
 theorem ev_pair (γ : RaftElectionNames) (v t i T : w64) (d : Bool) (F : List raftpb.Entry) :
     uint.Z t < uint.Z T →
     ⊢ ackEv (GF := GF) γ v t i -∗ voteEv γ v T d F -∗ hist γ F t i (vbnd T d) := by
-  -- PORT: proof
-  sorry
+  intro HtT
+  unfold ackEv voteEv
+  iintro ⟨%γe, %La, %HLa, #Ha⟩ ⟨%γe', %L0, %Hγe', #Hv, #Hh⟩
+  obtain ⟨Hγe, Hin, Hsort⟩ := HLa
+  rw [Hγe] at Hγe'; cases Hγe'
+  icases mono_list_lb_valid _ _ _ $$ Ha Hv with %Hp
+  iapply Hh
+  exact ⟨ev_pair_pure L0 La t i T d F HtT Hin Hsort Hp, HtT⟩
 
 def voteJust (γ : RaftElectionNames) (v T c : w64) : IProp GF :=
   iprop(∃ k d Fv Fc, isVlog γ v k T d Fv ∗ isCamp γ c T Fc ∗ logRecs γ base0 Fv ∗
@@ -407,13 +433,42 @@ instance ownEvs_timeless (γ : RaftElectionNames) (id T : w64) (acks : GMap (w64
 theorem ownEvs_mono (γ : RaftElectionNames) (id T T' : w64) (acks acks' : GMap (w64 × w64) Unit) :
     uint.Z T ≤ uint.Z T' → (∀ k, (acks !! k).isSome → (acks' !! k).isSome) →
     ⊢ ownEvs (GF := GF) γ id T acks -∗ ownEvs γ id T' acks' := by
-  -- PORT: proof
-  sorry
+  intro HT Hsub
+  unfold ownEvs
+  iintro ⟨%γe, %evs, %Hγe, Ha, %Hs, %Ht, %Hk⟩
+  iexists γe, evs
+  isplitr; · ipureintro; exact Hγe
+  isplitl [Ha]; · iexact Ha
+  ipureintro
+  refine ⟨Hs, fun e He => ?_, fun t i Hi => Hsub _ (Hk t i Hi)⟩
+  have := Ht e He; omega
 
 theorem ownEvs_ack (γ : RaftElectionNames) (id T : w64) (acks : GMap (w64 × w64) Unit) (i : w64) :
     ⊢ ownEvs (GF := GF) γ id T acks ==∗ ownEvs γ id T (<[(T, i) := ()]> acks) ∗ ackEv γ id T i := by
-  -- PORT: proof
-  sorry
+  unfold ownEvs ackEv
+  iintro ⟨%γe, %evs, %Hγe, Ha, %Hs, %Ht, %Hk⟩
+  imod monoListAuthOwn_update_app [Aev.ack T i] $$ Ha with ⟨Ha, #Hlb⟩
+  have Hs' : EvSorted (evs ++ [Aev.ack T i]) :=
+    EvSorted_snoc _ _ Hs (fun e He => Ht e He)
+  imodintro
+  isplitl [Ha]
+  · iexists γe, evs ++ [Aev.ack T i]
+    isplitr; · ipureintro; exact Hγe
+    isplitl [Ha]; · iexact Ha
+    ipureintro
+    refine ⟨Hs', fun e He => ?_, fun t i' Hi => ?_⟩
+    · rcases List.mem_append.mp He with He | He
+      · exact Ht e He
+      · simp only [List.mem_singleton] at He; subst He; simp [aevTerm]
+    · rcases List.mem_append.mp Hi with Hi | Hi
+      · by_cases Heq : (T, i) = (t, i')
+        · simp [Heq]
+        · simp only [GMap.lookup_insert_eq_iff, Heq, ↓reduceIte]; exact Hk t i' Hi
+      · simp only [List.mem_singleton, Aev.ack.injEq] at Hi
+        obtain ⟨rfl, rfl⟩ := Hi; simp
+  · iexists γe, evs ++ [Aev.ack T i]
+    isplitr; · ipureintro; exact ⟨Hγe, by simp, Hs'⟩
+    iexact Hlb
 
 theorem ownEvs_vote (γ : RaftElectionNames) (id T T' : w64) (acks : GMap (w64 × w64) Unit)
     (d : Bool) (F : List raftpb.Entry) :
@@ -421,8 +476,33 @@ theorem ownEvs_vote (γ : RaftElectionNames) (id T T' : w64) (acks : GMap (w64 �
     ⊢ ownEvs (GF := GF) γ id T acks -∗
       ([∗map] k ↦ _u ∈ acks, ∀ (_ : uint.Z k.1 < uint.Z T'), hist γ F k.1 k.2 (vbnd T' d)) ==∗
       ownEvs γ id T' acks ∗ voteEv γ id T' d F := by
-  -- PORT: proof
-  sorry
+  intro HT
+  unfold ownEvs voteEv
+  iintro ⟨%γe, %evs, %Hγe, Ha, %Hs, %Ht, %Hk⟩ #Hh
+  imod monoListAuthOwn_update_app [Aev.vote T' d F] $$ Ha with ⟨Ha, #Hlb⟩
+  imodintro
+  isplitl [Ha]
+  · iexists γe, evs ++ [Aev.vote T' d F]
+    isplitr; · ipureintro; exact Hγe
+    isplitl [Ha]; · iexact Ha
+    ipureintro
+    refine ⟨EvSorted_snoc _ _ Hs (fun e He => ?_), fun e He => ?_, fun t i Hi => ?_⟩
+    · have := Ht e He; show _ ≤ uint.Z T'; omega
+    · rcases List.mem_append.mp He with He | He
+      · have := Ht e He; omega
+      · simp only [List.mem_singleton] at He; subst He; simp [aevTerm]
+    · rcases List.mem_append.mp Hi with Hi | Hi
+      · exact Hk t i Hi
+      · simp at Hi
+  · iexists γe, evs
+    isplitr; · ipureintro; exact Hγe
+    isplitr; · iexact Hlb
+    iintro %t %i %Hin2
+    obtain ⟨Hin, Hlt⟩ := Hin2
+    obtain ⟨u, Hu⟩ := Option.isSome_iff_exists.mp (Hk t i Hin)
+    ihave Hx := BigSepM.bigSepM_lookup (i := (t, i)) Hu $$ Hh
+    iapply Hx
+    exact Hlt
 
 /-! ### The commit invariant (2026-10-05)
 
@@ -449,16 +529,55 @@ instance votesTbl_timeless (γ : RaftElectionNames) : Timeless (votesTbl (GF := 
 
 theorem votesTbl_just (γ : RaftElectionNames) (v T c : w64) :
     ⊢ votesTbl (GF := GF) γ -∗ isVote γ v T c -∗ voteJust γ v T c := by
-  -- PORT: proof
-  sorry
+  unfold votesTbl isVote
+  iintro Htbl ⟨%γv, %Hγv, #Hf⟩
+  icases BigSepM.bigSepM_lookup (i := v) Hγv $$ Htbl with ⟨%voted, Ha, #Hj⟩
+  icases ghost_map_lookup $$ Ha Hf with %Hl
+  iapply BigSepM.bigSepM_lookup Hl $$ Hj
+
+/-- `ghostMapAuth_agree`, keeping both authorities. -/
+private theorem ghostMapAuth_agree_keep {K V : Type} [DecidableEq K] [Pos.Countable K]
+    [Pos.Countable V] (γ : GName) (q1 q2 : Qp) (m1 m2 : GMap K V) :
+    (ghostMapAuth γ q1 m1 ∗ ghostMapAuth γ q2 m2 : IProp GF) ⊢
+      (ghostMapAuth γ q1 m1 ∗ ghostMapAuth γ q2 m2) ∗ ⌜m1 = m2⌝ :=
+  persistent_entails_left (by iintro ⟨H1, H2⟩; iapply ghostMapAuth_agree $$ H1 H2)
+
+/-- A whole ghost map authority is two halves. -/
+private theorem ghostMapAuth_halves {K V : Type} [DecidableEq K] [Pos.Countable K]
+    [Pos.Countable V] (γ : GName) (m : GMap K V) :
+    (ghostMapAuth γ 1 m : IProp GF) ⊣⊢
+      ghostMapAuth γ (1 : Qp).half m ∗ ghostMapAuth γ (1 : Qp).half m := by
+  conv => lhs; rw [← Qp.half_add_half 1]
+  exact (ghostMapAuth_fractional γ m).fractional _ _
 
 theorem votesTbl_insert (γ : RaftElectionNames) (id : w64) (γv : GName) (voted : GMap w64 w64)
     (T c : w64) :
     γ.reVotes !! id = some γv → voted !! T = none →
     ⊢ voteJust (GF := GF) γ id T c -∗ votesTbl γ -∗ ghostMapAuth γv (1 : Qp).half voted ==∗
       votesTbl γ ∗ ghostMapAuth γv (1 : Qp).half (<[T := c]> voted) ∗ T ↪[γv]□ c := by
-  -- PORT: proof
-  sorry
+  intro Hγv Hfree
+  unfold votesTbl
+  iintro #Hj Htbl Ha
+  icases BigSepM.bigSepM_insert_acc (i := id) Hγv $$ Htbl with ⟨⟨%voted', Ha', #Hjs⟩, Hclose⟩
+  icombine Ha Ha' as Hab
+  icases ghostMapAuth_agree_keep _ _ _ _ _ $$ Hab with ⟨Hab, %Heq⟩
+  subst Heq
+  ihave Ha := (ghostMapAuth_halves (GF := GF) γv voted).2 $$ Hab
+  imod ghost_map_insert_persist T c Hfree $$ Ha with ⟨Ha, #Hf⟩
+  icases (ghostMapAuth_halves (GF := GF) γv (<[T := c]> voted)).1 $$ Ha with ⟨Ha, Ha'⟩
+  imodintro
+  isplitl [Hclose Ha']
+  · ihave Hc := Hclose $$ %γv
+    have Hid : Std.insert γ.reVotes id γv = γ.reVotes := GMap.insert_id _ _ _ Hγv
+    rw [Hid]
+    iapply Hc
+    iexists (<[T := c]> voted)
+    isplitl [Ha']; · iexact Ha'
+    iapply (BigSepM.bigSepM_insert (Φ := fun T c => voteJust γ id T c) Hfree).2
+    isplitl; · iexact Hj
+    iexact Hjs
+  isplitl [Ha]; · iexact Ha
+  iexact Hf
 
 def committedJust (γ : RaftElectionNames) (l : List raftpb.Entry) : IProp GF :=
   iprop(⌜l = []⌝ ∨ ∃ t n G, cq γ t n G ∗ ⌜l = G.take (uint.Z n).toNat⌝)
@@ -688,8 +807,15 @@ theorem matchedOk_eq (γ : RaftElectionNames) (s1 s2 : PState) :
 theorem ownRaftGhost_excl (γ : RaftElectionNames) (id : w64) (s1 s2 : PState) :
     ⊢ ownRaftGhost (GF := GF) γ id s1 -∗ ownRaftGhost γ id s2 -∗ False := by
   -- the vote map is half the node's since 2026-10-05; the term-log map is whole
-  -- PORT: proof
-  sorry
+  unfold ownRaftGhost ownLogGhost
+  iintro ⟨%γ1, %v1, %k1, H1⟩ ⟨%γ2, %v2, %k2, H2⟩
+  icases H1 with ⟨_, _, _, _, _, _, _, _, ⟨%γm1, %t1, H1⟩, _⟩
+  icases H2 with ⟨_, _, _, _, _, _, _, _, ⟨%γm2, %t2, H2⟩, _⟩
+  icases H1 with ⟨%_, %_, %_, %_, %_, %_, %_, %_, %_, %Hn1, H1, _⟩
+  icases H2 with ⟨%_, %_, %_, %_, %_, %_, %_, %_, %_, %Hn2, H2, _⟩
+  rw [Hn1] at Hn2; cases Hn2
+  icases ghostMapAuth_valid_2 _ _ _ _ _ $$ H1 H2 with %Hq
+  exfalso; have := Hq.1; simp at this; grind
 
 /-- Everything in a node's outbox was legitimately put there. -/
 theorem ownRaftGhost_outbox (γ : RaftElectionNames) (id : w64) (s : PState) :
