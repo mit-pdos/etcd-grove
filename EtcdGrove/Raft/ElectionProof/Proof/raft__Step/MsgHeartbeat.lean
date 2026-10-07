@@ -72,8 +72,15 @@ theorem wp_Step_MsgHeartbeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .heartbeat m ents) ∧
             Step cfg id (toPState s) recv (toPState s')⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  -- PORT: proof
-  sorry
+  intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hcommit Hvotes
+  by_cases Hgt : uint.Z s.term < uint.Z m.Term'
+  · exact wp_Step_MsgHeartbeat_gt _P cfg r id s m ents Hty Hto Hterm Hfnz Hfid Hcfg Hwf
+      (Hcommit (by omega)) Hgt
+  · by_cases Hlt : uint.Z m.Term' < uint.Z s.term
+    · exact wp_Step_MsgHeartbeat_lt _P cfg r id s m ents Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hlt
+    · have Hteq : m.Term' = s.term := by word
+      exact wp_Step_MsgHeartbeat_eq _P cfg r id s m ents Hty Hto Hterm Hfnz Hfid Hcfg Hwf
+        (Hcommit (by omega)) Hteq Hvotes
 
 end StepProof
 

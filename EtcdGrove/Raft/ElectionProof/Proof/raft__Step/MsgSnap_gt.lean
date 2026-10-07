@@ -58,8 +58,63 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absSnap m sv voters) ∧
             Step cfg id (toPState s) recv (toPState s')⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  -- PORT: proof
-  sorry
+  intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hscope Hgt
+  wp_start as ⟨Hphys, #Hsv, #Hvs⟩
+  wp_auto
+  wp_apply _P.traceReceiveMessage
+  rw [decide_eq_false Hterm]
+  wp_auto
+  wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  rw [decide_eq_true Hgt]
+  wp_auto
+  -- (Type == MsgVote) || (Type == MsgPreVote): both false; the switch on MsgPreVote /
+  -- MsgPreVoteResp: neither
+  repeat (rw [Hty]; wp_auto)
+  -- "received a message with higher term"
+  wp_apply raft.wp_load_id $$ Hphys as Hphys
+  wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_raft_log
+  -- MsgApp || MsgHeartbeat || MsgSnap: the third holds
+  repeat (rw [Hty]; wp_auto)
+  -- becomeFollower(m.Term, m.From): a leader's message
+  wp_apply _P.becomeFollower cfg r id s m.Term' m.From' $$ [$Hphys] as %pvs Hphys
+  repeat (rw [Hty]; wp_auto)
+  wp_apply raft.wp_load_step $$ Hphys as Hphys
+  rw [show ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).stepfn
+      = functions stepFollower [] from rfl]
+  wp_apply _P.stepFollower cfg r id
+      ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) m [] sv voters
+      (.inr (.inr (.inr (.inr (.inr (.inl Hty))))))
+      (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+      (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+      (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+    $$ [$Hphys] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
+  · isplitl []
+    · iintro %_
+      isplitr
+      · ipureintro
+        exact ⟨Hscope, rfl, rfl, Hcfg⟩
+      · iframe Hsv Hvs
+    · iintro %Hc; exfalso; rw [Hty] at Hc
+      rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
+  obtain ⟨rfl, Hhs⟩ := followerStepResult_snap _ _ _ _ _ _ _ Hty Hres
+  simp only [Bool.false_eq_true, ↓reduceIte]
+  icases Herrn with %Herrn
+  subst Herrn
+  wp_auto
+  iapply HΦ $$ %interface.nil %s1
+  iframe Hphys
+  ipureintro
+  refine ⟨nstateWf_handle_snap _ _ _ _ _ ?_ Hhs, ?_, rfl⟩
+  · rfl
+  refine ⟨[absSnap m sv voters] ++ [absSnap m sv voters], ?_, ?_⟩
+  · intro m' Hm'
+    simp only [List.mem_append, List.mem_singleton, or_self] at Hm'
+    exact Hm'
+  · refine .trans _ _ _ _ _ (step_higher_term_snap cfg id (toPState s) m sv voters Hgt Hto Hfid) ?_
+    exact step_handle_snap cfg id _ _ m sv voters s1
+      (adopt_after_stepdown s m.Term' m.From' pvs) Hto rfl (by simp [pbecomeFollower]) Hfid
+      Hscope Hcfg Hhs
 
 end StepProof
 

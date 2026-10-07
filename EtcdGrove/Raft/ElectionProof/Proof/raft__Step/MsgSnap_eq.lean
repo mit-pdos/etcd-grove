@@ -62,8 +62,115 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absSnap m sv voters) ∧
             Step cfg id (toPState s) recv (toPState s')⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  -- PORT: proof
-  sorry
+  intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hscope Hteq Hnl Hvotes
+  wp_start as ⟨Hphys, #Hsv, #Hvs⟩
+  wp_auto
+  wp_apply _P.traceReceiveMessage
+  rw [decide_eq_false Hterm]
+  wp_auto
+  wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  rw [decide_eq_false (show ¬ uint.Z s.term < uint.Z m.Term' by rw [Hteq]; omega)]
+  wp_auto
+  wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  rw [decide_eq_false (show ¬ uint.Z m.Term' < uint.Z s.term by rw [Hteq]; omega)]
+  wp_auto
+  -- the type switch: none of its cases, so `r.step(m)`
+  repeat (rw [Hty]; wp_auto)
+  wp_apply raft.wp_load_step $$ Hphys as Hphys
+  rw [show s.stepfn = stepFuncOf s.role from Hwf]
+  cases Hrole : s.role
+  · -- Follower: `stepFollower`'s arm, with `r.lead = m.From`
+    simp only [stepFuncOf]
+    have Hvs := Hvotes Hrole
+    wp_apply _P.stepFollower cfg r id s m [] sv voters
+        (.inr (.inr (.inr (.inr (.inr (.inl Hty))))))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+      $$ [$Hphys] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
+    · isplitl []
+      · iintro %_
+        isplitr
+        · ipureintro
+          exact ⟨Hscope, Hrole, Hvs, Hcfg⟩
+        · iframe Hsv Hvs
+      · iintro %Hc; exfalso; rw [Hty] at Hc
+        rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
+    obtain ⟨rfl, Hhs⟩ := followerStepResult_snap _ _ _ _ _ _ _ Hty Hres
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    icases Herrn with %Herrn
+    subst Herrn
+    wp_auto
+    iapply HΦ $$ %interface.nil %s1
+    iframe Hphys
+    ipureintro
+    refine ⟨nstateWf_handle_snap (t := { s with lead := m.From' }) _ _ _ _ Hwf Hhs,
+      ⟨[absSnap m sv voters], ?_, ?_⟩, rfl⟩
+    · intro m' Hm'
+      exact List.mem_singleton.mp Hm'
+    · exact step_handle_snap cfg id _ _ m sv voters s1 (adopt_follower s m.From' Hrole Hvs) Hto
+        Hteq (by simp [toPState, Hrole, proleRole]) Hfid Hscope Hcfg Hhs
+  · -- Candidate: `becomeFollower(r.Term, m.From)`, then `handleSnapshot`
+    simp only [stepFuncOf]
+    wp_apply _P.stepCandidate cfg r id s m [] sv voters
+        (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))) (fun _ => Hteq) (.inl Hrole) Hcfg
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+      $$ [$Hphys] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
+    · isplitl []
+      · iintro %_
+        isplitr
+        · ipureintro
+          exact Hscope
+        · iframe Hsv Hvs
+      · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+    obtain ⟨rfl, pvs, Hhs⟩ := candidateStepResult_snap _ _ _ _ _ _ _ _ Hty Hres
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    icases Herrn with %Herrn
+    subst Herrn
+    wp_auto
+    iapply HΦ $$ %interface.nil %s1
+    iframe Hphys
+    ipureintro
+    refine ⟨nstateWf_handle_snap _ _ _ _ _ ?_ Hhs, ⟨[absSnap m sv voters], ?_, ?_⟩, rfl⟩
+    · rfl
+    · intro m' Hm'
+      exact List.mem_singleton.mp Hm'
+    · exact step_handle_snap cfg id _ _ m sv voters s1 (adopt_candidate s m.From' pvs) Hto Hteq
+        (by simp [toPState, Hrole, proleRole]) Hfid Hscope Hcfg Hhs
+  · -- Leader: excluded
+    exact absurd Hrole Hnl
+  · -- PreCandidate (2026-10-04), as a candidate: `becomeFollower(r.Term, m.From)`, then
+    -- `handleSnapshot`
+    simp only [stepFuncOf]
+    wp_apply _P.stepCandidate cfg r id s m [] sv voters
+        (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))) (fun _ => Hteq) (.inr Hrole) Hcfg
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+      $$ [$Hphys] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
+    · isplitl []
+      · iintro %_
+        isplitr
+        · ipureintro
+          exact Hscope
+        · iframe Hsv Hvs
+      · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+    obtain ⟨rfl, pvs, Hhs⟩ := candidateStepResult_snap _ _ _ _ _ _ _ _ Hty Hres
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    icases Herrn with %Herrn
+    subst Herrn
+    wp_auto
+    iapply HΦ $$ %interface.nil %s1
+    iframe Hphys
+    ipureintro
+    refine ⟨nstateWf_handle_snap _ _ _ _ _ ?_ Hhs, ⟨[absSnap m sv voters], ?_, ?_⟩, rfl⟩
+    · rfl
+    · intro m' Hm'
+      exact List.mem_singleton.mp Hm'
+    · exact step_handle_snap cfg id _ _ m sv voters s1 (adopt_candidate s m.From' pvs) Hto Hteq
+        (by simp [toPState, Hrole, proleRole]) Hfid Hscope Hcfg Hhs
 
 end StepProof
 

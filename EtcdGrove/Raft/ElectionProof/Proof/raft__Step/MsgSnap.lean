@@ -73,8 +73,16 @@ theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absSnap m sv voters) ∧
             Step cfg id (toPState s) recv (toPState s')⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  -- PORT: proof
-  sorry
+  intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hscope Hnl Hvotes
+  by_cases Hgt : uint.Z s.term < uint.Z m.Term'
+  · exact wp_Step_MsgSnap_gt _P cfg r id s m sv voters Hty Hto Hterm Hfnz Hfid Hcfg Hwf
+      Hscope Hgt
+  · by_cases Hlt : uint.Z m.Term' < uint.Z s.term
+    · wp_start_folded as ⟨Hphys, -, -⟩
+      iapply wp_Step_MsgSnap_lt _P cfg r id s m sv voters Hty Hto Hterm Hwf Hlt $$ [$Hpkg $Hphys] HΦ
+    · have Hteq : m.Term' = s.term := by word
+      exact wp_Step_MsgSnap_eq _P cfg r id s m sv voters Hty Hto Hterm Hfnz Hfid Hcfg Hwf
+        Hscope Hteq (Hnl Hteq) Hvotes
 
 end StepProof
 

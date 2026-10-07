@@ -57,8 +57,56 @@ theorem wp_Step_MsgHeartbeat_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .heartbeat m ents) ∧
             Step cfg id (toPState s) recv (toPState s')⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  -- PORT: proof
-  sorry
+  intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hlt
+  wp_start as ⟨Hphys, #Hents⟩
+  wp_auto
+  wp_apply _P.traceReceiveMessage
+  rw [decide_eq_false Hterm]
+  wp_auto
+  wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  rw [decide_eq_false (show ¬ uint.Z s.term < uint.Z m.Term' by omega)]
+  wp_auto
+  wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  rw [decide_eq_true Hlt]
+  wp_auto
+  wp_apply raft.wp_load_checkQuorum $$ Hphys as Hphys
+  wp_apply raft.wp_load_preVote $$ Hphys as Hphys
+  cases Hpv : s.prevote
+  · -- not MsgPreVote, not MsgStorageAppendResp: only the log line
+    wp_auto
+    rw [Hty]
+    wp_auto
+    rw [Hty]
+    wp_auto
+    wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_apply raft.wp_load_Term $$ Hphys as Hphys
+    wp_raft_log
+    iapply HΦ $$ %interface.nil %s
+    iframe Hphys
+    ipureintro
+    exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, .refl _⟩, rfl⟩
+  · -- with pre-vote on, a stale leader message is answered with a bare `MsgAppResp`
+    -- at the node's term (2026-10-04)
+    wp_auto
+    rw [Hty]
+    wp_auto
+    let ack : raftpb.Message :=
+      { Type' := W32 4, To' := m.From', From' := 0, Term' := 0, LogTerm' := 0, Index' := 0,
+        Entries' := slice.nil, Commit' := 0, Vote' := 0, Snapshot' := null, Reject' := false,
+        RejectHint' := 0, Context' := slice.nil, Responses' := slice.nil }
+    have Hok : SendOk id s ack [] [absMsgFrom .appResp ack id s.term []] :=
+      Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, rfl⟩)))
+    wp_apply _P.send cfg r id s ack [] _ (Or.inl rfl) Hok $$ [$Hphys] as Hphys
+    · isplitr
+      · iapply ownSlice_nil
+      · iapply send_no_snap
+        exact (by decide : W32 4 ≠ W32 7)
+    iapply HΦ $$ %interface.nil %_
+    iframe Hphys
+    ipureintro
+    refine ⟨nstateWf_sendMsgs _ _ Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, ?_⟩, rfl⟩
+    rw [toPState_sendMsgs]
+    exact .zeroAck _ _
 
 end StepProof
 
