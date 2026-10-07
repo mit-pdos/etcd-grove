@@ -57,8 +57,116 @@ theorem wp_Step_MsgHeartbeatResp_eq (_P : raft.Step.Postulates (GF := GF) (hG :=
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .heartbeatResp m ents) ∧
             Step cfg id (toPState s) recv (toPState s')⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  -- PORT: proof
-  sorry
+  intro Hty Hto Hterm Hteq Hfnz Hfid Hcfg Hwf
+  have Hty3 : m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp :=
+    .inr (.inr Hty)
+  wp_start as Hphys
+  iNamed Hphys
+  wp_auto
+  wp_apply _P.traceReceiveMessage
+  rw [decide_eq_false Hterm]
+  wp_auto
+  wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  rw [decide_eq_false (show ¬ (uint.Z s.term < uint.Z m.Term') by rw [Hteq]; omega)]
+  wp_auto
+  wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  rw [decide_eq_false (show ¬ (uint.Z m.Term' < uint.Z s.term) by rw [Hteq]; omega)]
+  wp_auto
+  -- the type switch: none of its four cases, so `r.step(m)`
+  rw [Hty]
+  wp_auto
+  wp_apply raft.wp_load_step $$ Hphys as Hphys
+  rw [show s.stepfn = stepFuncOf s.role from Hwf]
+  have Hsnap0 : ∀ (P : IProp GF), ⊢ (⌜m.Type' = MsgSnap⌝ -∗ P : IProp GF) := fun P => by
+    iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+  cases Hrole : s.role
+  · -- Follower: no `MsgHeartbeatResp` arm
+    simp only [stepFuncOf]
+    wp_apply _P.stepFollower cfg r id s m [] (zero_val _) []
+        (.inr (.inr (.inr (.inr (.inl Hty3)))))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+      $$ [$Hphys] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
+    · isplitl []
+      · iapply Hsnap0
+      · iintro %Hc; exfalso; rw [Hty] at Hc
+        rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
+    obtain ⟨rfl, Hs1⟩ := followerStepResult_noop _ _ _ _ _ _ _ Hty3 Hres
+    rw [Hs1]
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    icases Herrn with %Herrn
+    subst Herrn
+    wp_auto
+    iapply HΦ $$ %interface.nil %s
+    iframe Hphys
+    ipureintro
+    exact ⟨Hwf, ⟨[], fun _ Hin => absurd Hin List.not_mem_nil, .refl _⟩, rfl⟩
+  · -- Candidate: no `MsgHeartbeatResp` arm either
+    simp only [stepFuncOf]
+    wp_apply _P.stepCandidate cfg r id s m [] (zero_val _) []
+        (.inr (.inr (.inr (.inr (.inl Hty3)))))
+        (fun _ => Hteq)
+        (.inl Hrole) Hcfg
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+      $$ [$Hphys] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
+    · isplitl []
+      · iapply Hsnap0
+      · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+    obtain ⟨rfl, Hs1⟩ := candidateStepResult_noop _ _ _ _ _ _ _ _ Hty3 Hres
+    rw [Hs1]
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    icases Herrn with %Herrn
+    subst Herrn
+    wp_auto
+    iapply HΦ $$ %interface.nil %s
+    iframe Hphys
+    ipureintro
+    exact ⟨Hwf, ⟨[], fun _ Hin => absurd Hin List.not_mem_nil, .refl _⟩, rfl⟩
+  · -- Leader: `sendAppend` to a peer that is behind
+    simp only [stepFuncOf]
+    wp_apply _P.stepLeader cfg r id s m [] (.inr (.inr (.inl Hty))) Hrole Hcfg
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun _ => Hfid)
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+      $$ [$Hphys] as %err %s' %dropped ⟨Hphys, %Hres, Herrn, -⟩
+    · isplitl []
+      · iintro _; iexact Hctx0
+      · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+    obtain ⟨rfl, Hwf', Hstep⟩ := leader_hbresp_step cfg id s m [] dropped s' Hrole Hty Hwf Hres
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    icases Herrn with %Herrn
+    subst Herrn
+    wp_auto
+    iapply HΦ $$ %interface.nil %s'
+    iframe Hphys
+    ipureintro
+    exact ⟨Hwf', ⟨[], fun _ Hin => absurd Hin List.not_mem_nil, Hstep⟩, rfl⟩
+  · -- PreCandidate (2026-10-04), as a candidate: no `MsgHeartbeatResp` arm either
+    simp only [stepFuncOf]
+    wp_apply _P.stepCandidate cfg r id s m [] (zero_val _) []
+        (.inr (.inr (.inr (.inr (.inl Hty3)))))
+        (fun _ => Hteq)
+        (.inr Hrole) Hcfg
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+      $$ [$Hphys] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
+    · isplitl []
+      · iapply Hsnap0
+      · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+    obtain ⟨rfl, Hs1⟩ := candidateStepResult_noop _ _ _ _ _ _ _ _ Hty3 Hres
+    rw [Hs1]
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    icases Herrn with %Herrn
+    subst Herrn
+    wp_auto
+    iapply HΦ $$ %interface.nil %s
+    iframe Hphys
+    ipureintro
+    exact ⟨Hwf, ⟨[], fun _ Hin => absurd Hin List.not_mem_nil, .refl _⟩, rfl⟩
 
 end StepProof
 

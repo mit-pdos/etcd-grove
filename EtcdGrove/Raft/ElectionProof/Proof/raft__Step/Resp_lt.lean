@@ -51,8 +51,31 @@ theorem wp_Step_Resp_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg ty m ents) ∧
             Step cfg id (toPState s) recv (toPState s')⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  -- PORT: proof
-  sorry
+  intro Hty Hterm Hlt Hwf
+  wp_start as Hphys
+  iNamed Hphys
+  wp_auto
+  wp_apply _P.traceReceiveMessage
+  rw [decide_eq_false Hterm]
+  wp_auto
+  wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  rw [decide_eq_false (show ¬ (uint.Z s.term < uint.Z m.Term') by omega)]
+  wp_auto
+  wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  rw [decide_eq_true Hlt]
+  wp_auto
+  wp_apply raft.wp_load_checkQuorum $$ Hphys as Hphys
+  wp_apply raft.wp_load_preVote $$ Hphys as Hphys
+  rcases Hty with Hty | Hty <;> cases s.prevote <;> wp_auto
+  all_goals iterate 6 (try (rw [Hty]; wp_auto))
+  all_goals
+    wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_apply raft.wp_load_Term $$ Hphys as Hphys
+    wp_raft_log
+    iapply HΦ $$ %interface.nil %s
+    iframe Hphys
+    ipureintro
+    exact ⟨Hwf, ⟨[], fun _ Hin => absurd Hin List.not_mem_nil, .refl _⟩, rfl⟩
 
 end StepProof
 

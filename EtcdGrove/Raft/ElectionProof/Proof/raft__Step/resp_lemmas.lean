@@ -79,26 +79,35 @@ theorem leader_hbresp_step (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.
     (Hr : s.role = .leader) (Hty : m.Type' = MsgHeartbeatResp) (Hwf : NStateWf s)
     (H : LeaderStepResult cfg id s m ents dropped s') :
     dropped = false ∧ NStateWf s' ∧ Step cfg id (toPState s) [] (toPState s') := by
-  -- PORT: proof
-  sorry
+  have Hpr : (toPState s).role = .leader := by rw [toPState_role, Hr]; rfl
+  unfold LeaderStepResult at H
+  rw [ite_eq_right (by rw [Hty]; w32_ne)] at H
+  obtain ⟨rfl, Hres⟩ := H
+  refine ⟨rfl, ?_⟩
+  unfold LeaderNonpropResult at Hres
+  rcases Hres with ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨-, ms, pvs, rfl, Hok, Hpm⟩ | ⟨Hc, -⟩
+  · exfalso; rw [Hty] at Hc
+    rcases Hc with Hc | Hc | Hc | Hc <;> exact absurd Hc (by w32_ne)
+  · exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+  · refine ⟨Hwf, ?_⟩
+    rw [toPState_prvals (sendMsgs s ms) pvs (fun _ => Hpm), toPState_sendMsgs]
+    exact .sendApps _ ms Hpr Hok
+  · exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
 
 /-- A leader's `matched` is its `Progress` values' `Match`. -/
 private theorem toPState_matched_leader (s : NState) (Hr : s.role = .leader) :
     (toPState s).matched = prvalsMatch s.prvals := by
-  -- PORT: proof
-  sorry
+  simp [toPState, Hr]
 
 /-- New `Progress` values at a leader: only `matched` moves. -/
 private theorem toPState_prvals_leader (s : NState) (pvs : GMap w64 Progress)
     (Hr : s.role = .leader) :
     toPState { s with prvals := pvs } = { toPState s with matched := prvalsMatch pvs } := by
-  -- PORT: proof
-  sorry
+  simp [toPState, Hr]
 
 /-- A protocol state with its commit index set to what it already is. -/
 private theorem pstate_commit_same (ps : PState) : { ps with commit := ps.commit } = ps := by
-  -- PORT: proof
-  sorry
+  cases ps; rfl
 
 /-- `stepLeader` on `MsgAppResp` of the current term:
 
@@ -117,8 +126,52 @@ theorem leader_appresp_step (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb
     dropped = false ∧ NStateWf s' ∧
     ∃ recv, (∀ m' ∈ recv, m' = absMsg .appResp m ents) ∧
       Step cfg id (toPState s) recv (toPState s') := by
-  -- PORT: proof
-  sorry
+  have Hpr : (toPState s).role = .leader := by rw [toPState_role, Hr]; rfl
+  unfold LeaderStepResult at H
+  rw [ite_eq_right (by rw [Hty]; w32_ne)] at H
+  obtain ⟨rfl, Hres⟩ := H
+  refine ⟨rfl, ?_⟩
+  unfold LeaderNonpropResult at Hres
+  rcases Hres with ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨-, Hres⟩
+  · exfalso; rw [Hty] at Hc
+    rcases Hc with Hc | Hc | Hc | Hc <;> exact absurd Hc (by w32_ne)
+  · exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+  · exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+  rcases Hres with ⟨-, rfl⟩ | ⟨-, -, ms, pvs, rfl, Hok, Hpm⟩ | ⟨-, Hrej, Hacc⟩
+  · -- no `Progress` for the sender
+    exact ⟨Hwf, [], fun _ Hin => absurd Hin (List.not_mem_nil), .refl _⟩
+  · -- rejected
+    refine ⟨Hwf, [], fun _ Hin => absurd Hin (List.not_mem_nil), ?_⟩
+    rw [toPState_prvals (sendMsgs s ms) pvs (fun _ => Hpm), toPState_sendMsgs]
+    exact .sendApps _ ms Hpr Hok
+  · -- accepted
+    obtain ⟨x, pvs, c, ms, Hx, Hpvs, Hc, Hms, rfl⟩ := Hacc
+    refine ⟨Hwf, ?_⟩
+    have Hpr1 : (toPState { s with prvals := pvs }).role = .leader := Hpr
+    have H1 : Step cfg id (toPState s) [absMsg .appResp m ents]
+        (toPState { s with prvals := pvs }) := by
+      rw [toPState_prvals_leader s pvs Hr, Hpvs, ← toPState_matched_leader s Hr]
+      exact .appResp (absMsg .appResp m ents) (toPState s) x rfl Hto Hteq Hpr Hrej
+        (by rw [toPState_matched_leader s Hr]; exact Hx)
+    have H2 : Step cfg id (toPState { s with prvals := pvs }) []
+        { toPState { s with prvals := pvs } with commit := c } := by
+      rcases Hc with rfl | ⟨Hlt, Hle, Hterm, Hq⟩
+      · rw [show s.logst.committed = (toPState { s with prvals := pvs }).commit from rfl,
+          pstate_commit_same (toPState { s with prvals := pvs })]
+        exact .refl _
+      · exact .commit _ c Hpr1 Hlt Hle Hterm Hq
+    have H3 : Step cfg id { toPState { s with prvals := pvs } with commit := c } []
+        (psendMsgs { toPState { s with prvals := pvs } with commit := c } ms) :=
+      .sendApps _ ms Hpr1 (fun m' Hm' =>
+        replOk_proper _ _ _ _ rfl rfl rfl rfl (Hms m' Hm'))
+    refine ⟨[absMsg .appResp m ents] ++ ([] ++ []), ?_, ?_⟩
+    · intro m' Hin; simpa using Hin
+    · have He : toPState { sendMsgs { s with logst := { s.logst with committed := c } } ms with
+            prvals := pvs } =
+          psendMsgs { toPState { s with prvals := pvs } with commit := c } ms := by
+        simp [toPState, sendMsgs, psendMsgs, Hr]
+      rw [He]
+      exact .trans _ _ _ _ _ H1 (.trans _ _ _ _ _ H2 H3)
 
 end StepProof
 

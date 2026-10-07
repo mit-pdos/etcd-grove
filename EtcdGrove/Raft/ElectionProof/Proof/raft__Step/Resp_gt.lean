@@ -55,8 +55,62 @@ theorem wp_Step_Resp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg ty m ents) ∧
             Step cfg id (toPState s) recv (toPState s')⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  -- PORT: proof
-  sorry
+  intro Hty Hto Hterm Hgt Hwf
+  have Hfl : fromLeader ty = false := by
+    rcases Hty with ⟨_, rfl⟩ | ⟨_, rfl⟩ <;> rfl
+  have Hty3 : m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp := by
+    rcases Hty with ⟨Ht, _⟩ | ⟨Ht, _⟩
+    · exact .inr (.inl Ht)
+    · exact .inr (.inr Ht)
+  wp_start as Hphys
+  iNamed Hphys
+  wp_auto
+  wp_apply _P.traceReceiveMessage
+  rw [decide_eq_false Hterm]
+  wp_auto
+  wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  rw [decide_eq_true Hgt]
+  wp_auto
+  rcases Hty with ⟨Hty, -⟩ | ⟨Hty, -⟩
+  all_goals iterate 6 (try (rw [Hty]; wp_auto))
+  all_goals
+    wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_apply raft.wp_load_Term $$ Hphys as Hphys
+    wp_raft_log
+    iterate 6 (try (rw [Hty]; wp_auto))
+    wp_apply _P.becomeFollower $$ [$Hphys] as %pvs Hphys
+    iterate 6 (try (rw [Hty]; wp_auto))
+    wp_apply raft.wp_load_step $$ Hphys as Hphys
+    rw [show ({ becomeFollower s m.Term' (W64 0) with prvals := pvs } : NState).stepfn =
+      stepFuncOf .follower from rfl]
+    simp only [stepFuncOf]
+    wp_apply _P.stepFollower cfg r id { becomeFollower s m.Term' (W64 0) with prvals := pvs }
+        m [] (zero_val _) [] (.inr (.inr (.inr (.inr (.inl Hty3)))))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+      $$ [$Hphys] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
+    · isplitl []
+      · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+      · iintro %Hc; exfalso; rw [Hty] at Hc
+        rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
+    obtain ⟨rfl, Hs1⟩ := followerStepResult_noop _ _ _ _ _ _ _ Hty3 Hres
+    rw [Hs1]
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    icases Herrn with %Herrn
+    subst Herrn
+    wp_auto
+    iapply HΦ $$ %interface.nil %({ becomeFollower s m.Term' (W64 0) with prvals := pvs })
+    iframe Hphys
+    ipureintro
+    refine ⟨rfl, ⟨[absMsg ty m ents], fun _ Hin => List.mem_singleton.1 Hin, ?_⟩, rfl⟩
+    rw [toPState_prvals_nl (becomeFollower s m.Term' (W64 0)) pvs
+      (by simp [becomeFollower]), toPState_becomeFollower]
+    have Hst := Step.higherTerm (cfg := cfg) (id := id) (absMsg ty m ents) (toPState s) Hgt Hto
+      (fun h => by simp [absMsg, absMsgFrom, Hfl] at h)
+    rw [show (if fromLeader (absMsg ty m ents).ty then (absMsg ty m ents).src else W64 0)
+      = W64 0 by simp [absMsg, absMsgFrom, Hfl]] at Hst
+    exact Hst
 
 end StepProof
 
