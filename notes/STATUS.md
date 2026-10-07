@@ -1,11 +1,12 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-06
+**Last updated:** 2026-10-07
 
 Porting the Rocq election proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-raft-replication` at `feb5c73d4` (582 files, ~38k lines; was `main`'s
 412 files until 2026-10-06, and the files below were first ported from `main`) to Lean on top of Perennial's Lean port
-(mit-pdos/perennial `lean`, pinned at 8c75a3dd4).
+(mit-pdos/perennial `lean`, pinned at 0fe904415, which adds etcd-grove's Goose array fix
+and Go-model/theory additions to the Lean framework).
 
 ## Done (at `feb5c73d4`)
 
@@ -15,7 +16,9 @@ branch `worktree-raft-replication` at `feb5c73d4` (582 files, ~38k lines; was `m
   `ownRaftGhost_step`, `leader_completeness`, `state_machine_safety`,
   `ownRaftGhost_alloc`: only `propext`, `Classical.choice`, `Quot.sound`.
 - `defs.v`, `step_lemmas.v`, `inv_*.v` (incl. `inv_memstorage.v`): no `sorry`.
-- The 142 specs.
+- The 142 specs and the 142 proofs (`raft.Step`'s branches in `Proof/raft__Step/`,
+  one module per Rocq helper file). Trust boundary as in the Rocq: the state/logger
+  axioms and nine `axiom … .wp_proof` for code outside the scope.
 - `memstorage_instance.v` (`MemstorageInstance.lean`) and `election.v` (the links:
   `Election.lean`, generated; the results: `Results.lean`, which `#print axioms` the
   three top-level results): no `sorry` of their own. `raft.wp_Step` and
@@ -24,8 +27,8 @@ branch `worktree-raft-replication` at `feb5c73d4` (582 files, ~38k lines; was `m
 
 ## Next
 
-1. The 142 proofs (in progress, worktree `~/etcd-grove-lean-spec`, branch
-   `lean-spec`).
+- Push Perennial's `lean` (0fe904415) so the pin resolves from GitHub.
+- Follow `worktree-raft-replication` past feb5c73d4.
 
 ## Differences from the Rocq besides the language
 
