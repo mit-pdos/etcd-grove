@@ -1,7 +1,7 @@
 /-
 Port of `election_proof/inv_memstorage.v` (at feb5c73d4): `MemoryStorage`'s
 representation predicate, the ownership predicate its `isStorageWith` instance
-(`memstorage_instance.v`, not yet ported) is stated against.
+(`memstorage_instance.v`, `MemstorageInstance.lean`) is stated against.
 
 Lean notes: Rocq's left-nested tuple `(prev, ents, ss)` in the ghost variable is kept
 left-nested, `((prev, ents), ss)`. `ghost_var γ (1/2) v` is `ghostVar γ (1 : Qp).half v`,

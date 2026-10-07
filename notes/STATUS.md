@@ -16,12 +16,16 @@ branch `worktree-raft-replication` at `feb5c73d4` (582 files, ~38k lines; was `m
   `ownRaftGhost_alloc`: only `propext`, `Classical.choice`, `Quot.sound`.
 - `defs.v`, `step_lemmas.v`, `inv_*.v` (incl. `inv_memstorage.v`): no `sorry`.
 - The 142 specs.
+- `memstorage_instance.v` (`MemstorageInstance.lean`) and `election.v` (the links:
+  `Election.lean`, generated; the results: `Results.lean`, which `#print axioms` the
+  three top-level results): no `sorry` of their own. `raft.wp_Step` and
+  `RawNode.wp_Propose` still depend on `sorryAx`, through `Proof/raftLog__slice.lean`'s
+  one `sorry` (Rocq's deliberate `admit`, "the log fits in memory").
 
 ## Next
 
 1. The 142 proofs (in progress, worktree `~/etcd-grove-lean-spec`, branch
    `lean-spec`).
-2. `memstorage_instance.v`, `election.v` (the links and the results).
 
 ## Differences from the Rocq besides the language
 

@@ -338,3 +338,5 @@ import EtcdGrove.Raft.ElectionProof.Proof.unstable__slice
 import EtcdGrove.Raft.ElectionProof.Proof.unstable__truncateAndAppend
 import EtcdGrove.Raft.ElectionProof.Proof.voteRespMsgType
 import EtcdGrove.Raft.ElectionProof.Election
+import EtcdGrove.Raft.ElectionProof.MemstorageInstance
+import EtcdGrove.Raft.ElectionProof.Results
