@@ -77,7 +77,7 @@ theorem raftLog.scan.wp_proof
         uint.Z hi ≤ uint.Z ls.prev.index' + (ls.sents.length : Int)
           + (ls.uents.length : Int) + 1 := by omega
     wp_apply wp_raftLog_slice l ls cur hi pageSize Hsl $$ [$Hlog]
-      as %s %es ⟨Hlog, #Hes, %Hne, %Hlen, %Hin, %_⟩
+      as %s %es ⟨Hlog, #Hes, ⟨%Hne, %Hlen, %Hin, %_⟩, -⟩
     -- the "got 0 entries" error is dead: the page is non-empty
     ihave %Hslen := ownSlice_len $$ Hes
     have Hlen0 : es.length ≠ 0 := fun h => Hne (List.eq_nil_of_length_eq_zero h)

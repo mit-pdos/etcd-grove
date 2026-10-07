@@ -20,7 +20,7 @@ theorem raftLog.commitTo.wp_proof
     (wp_raftLog_lastIndex : raftLog.lastIndex.spec (GF := GF) (hG := hG)) :
     raftLog.commitTo.spec (GF := GF) (hG := hG) := by
   intro l ls tocommit Hle
-  obtain ⟨prev, sents, uents, lcm, lap, snap⟩ := ls
+  obtain ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ := ls
   simp only [plogLastIndexZ, List.length_append] at Hle ⊢
   wp_start as H
   iNamed H
@@ -32,13 +32,13 @@ theorem raftLog.commitTo.wp_proof
   · have Hlt : uint.Z lcm < uint.Z tocommit := Hcm ▸ Hif
     clear Hif Hcm Hap
     ihave Hlog := Hback $$ Hl
-    wp_apply wp_raftLog_lastIndex _ ⟨prev, sents, uents, lcm, lap, snap⟩ $$ [$Hlog]
+    wp_apply wp_raftLog_lastIndex _ ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ $$ [$Hlog]
       as %li ⟨Hlog, %Hli⟩
     simp only at Hli
     wp_if_destruct
     · exfalso; word
-    icases (ownRaftLog_unfold l prev sents uents lcm lap snap).1 $$ Hlog
-      with ⟨%lv, Hl, %Hcm', %Hap', Hcore⟩
+    icases (ownRaftLog_unfold l prev sents uents lcm lap snap lip lapg lpend lasz lamx).1 $$ Hlog
+      with ⟨%lv, Hl, %Hcm', %Hap', %Hapg, %Hip, %Hasz, %Hamx, Hcore⟩
     iunfold ownRaftLogCore at Hcore
     icases Hcore with ⟨%sprev, %stored, %ss, Hcore⟩
     iNamed Hcore

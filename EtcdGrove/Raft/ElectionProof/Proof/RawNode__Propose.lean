@@ -23,7 +23,7 @@ variable [AllG GF]
 /-- A premise of `Step` about another message type: `MsgProp` (`W32 2`) is not it. -/
 local macro "msg_ne" : tactic => `(tactic| (intro Hc; simp [MsgHup, MsgVote, MsgVoteResp,
   MsgPreVote, MsgPreVoteResp, MsgApp, MsgHeartbeat, MsgAppResp, MsgHeartbeatResp, MsgSnap,
-  MsgBeat] at Hc))
+  MsgBeat, MsgStorageAppendResp, MsgStorageApplyResp] at Hc))
 
 /-- `Step` on the literal message: `Type: MsgProp`, `From: r.id`, the one-entry batch;
 every other field zero. Its `MsgProp` arm, at the singleton batch, is the
@@ -31,10 +31,12 @@ postcondition. -/
 theorem RawNode.Propose.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
     RawNode.Propose.spec (GF := GF) (hG := hG) := by
-  intro cfg γ rn rnv r id s ps data_sl data Q Hcfg Hin Hrel Hr
-  subst Hr
+  intro cfg γ rn id s ps rs data_sl data Q Hcfg Hin Hrel
   wp_start as H
   iNamed H
+  unfold ownRawNode
+  icases Hrn with ⟨%rnv, %sv, %steps, Hrn⟩
+  iNamed Hrn
   wp_auto
   wp_apply raft.wp_load_id $$ Hphys as Hphys
   wp_apply wp_slice_literal (l := [propEntry data_sl])
@@ -50,7 +52,7 @@ theorem RawNode.Propose.wp_proof
     (by msg_ne) (by msg_ne)
     (by msg_ne) (by msg_ne)
     (by msg_ne)
-    (fun _ => ⟨rfl, .inr rfl⟩) Hrel
+    (fun _ => ⟨rfl, .inr rfl⟩) (by msg_ne) (by msg_ne) Hrel
     $$ [$Hphys $Hghost Hes Hcap Hau]
   · -- the message: its one-entry batch, owned; `Context` nil
     simp only [MsgProp, ite_true]
@@ -68,6 +70,10 @@ theorem RawNode.Propose.wp_proof
         simp only [List.mem_singleton] at He
         subst He
         rfl
+      isplitr
+      · ipureintro
+        intro Hc
+        simp [MsgStorageApplyResp] at Hc
       · imodintro
         iintro %ty %Hty _
         rw [show mtypeOf (W32 2) = some .propose from rfl] at Hty
@@ -94,7 +100,12 @@ theorem RawNode.Propose.wp_proof
   wp_auto
   iapply HΦ
   simp only [named]
-  iframe Hrn Hphys Hghost
+  iframe Hghost
+  isplitl [Hrn Hphys Hsteps Hsteps_cap Hpown]
+  · iexists rnv, sv, steps
+    iframe Hrn Hphys Hsoft Hsteps Hsteps_cap Hpend Hpown
+    ipureintro
+    exact ⟨Hasync, Hsoftv, Hhard⟩
   isplitr
   · ipureintro; exact Hrel'
   isplitr

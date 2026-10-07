@@ -18,9 +18,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem raftLog.hasNextOrInProgressSnapshot.wp_proof :
     raftLog.hasNextOrInProgressSnapshot.spec (GF := GF) (hG := hG) := by
   intro l ls
-  obtain ⟨prev, sents, uents, lcm, lap, snap⟩ := ls
+  obtain ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ := ls
   wp_start as Hlog
-  icases (ownRaftLog_unfold l prev sents uents lcm lap snap).1 $$ Hlog with ⟨%lv, Hl, %Hcm, %Hap, Hcore⟩
+  icases (ownRaftLog_unfold l prev sents uents lcm lap snap lip lapg lpend lasz lamx).1 $$ Hlog with ⟨%lv, Hl, %Hcm, %Hap, %Hapg, %Hip, %Hasz, %Hamx, Hcore⟩
   unfold ownRaftLogCore
   icases Hcore with ⟨%sprev, %stored, %ss, Hcore⟩
   iNamed Hcore

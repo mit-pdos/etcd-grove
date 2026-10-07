@@ -31,7 +31,7 @@ theorem raftLog.restore.wp_proof
     (wp_unstable_restore : unstable.restore.spec (GF := GF) (hG := hG)) :
     raftLog.restore.spec (GF := GF) (hG := hG) := by
   intro l ls sv voters Hcmlt Hlt
-  obtain ⟨prev, sents, uents, lcm, lap, snap⟩ := ls
+  obtain ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ := ls
   wp_start as H
   iNamed H
   iNamed Hlog
@@ -51,7 +51,7 @@ theorem raftLog.restore.wp_proof
   · unfold ownUnstable
     simp only [named]
     iframe Huf Huents Huents_cap Hvoters
-  obtain ⟨Hoff', Hlg'⟩ := Huv'
+  obtain ⟨Hoff', Hlg', Hoip'⟩ := Huv'
   iNamed Hun
   ihave Hl := Hlback $$ Hu
   iapply HΦ
@@ -60,7 +60,8 @@ theorem raftLog.restore.wp_proof
   simp only [snapId] at Hcmlt Hlt
   iapply ownRaftLog_intro l { lv with unstable' := uv', committed' := sv.Metadata'.Index' }
       lv.storage' (some (snapId sv)) (snapId sv) [] []
-      (snapId sv).index' lap sprev stored ss rfl rfl Hap ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_
+      (snapId sv).index' lap sprev stored ss ((snapId sv).index' + W64 1) lapg lpend lasz lamx
+      rfl rfl Hap ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ Hapg ?_ ?_ ?_ ?_ ?_ Hasz Hamx
     $$ Hl HisStorage HStorage Hsn Hents Hents_cap Hl_logger Hu_logger
   all_goals simp only [snapId, List.append_nil, List.length_nil, Int.natCast_zero, Int.add_zero]
   · intro k e h; simp at h
@@ -74,6 +75,11 @@ theorem raftLog.restore.wp_proof
   · intro h; cases h
   · omega
   · intro h; cases h
+  · rw [Hoip', Hoff']
+  · rw [Hoip']; omega
+  · intro h; cases h
+  · rw [Hcm] at Happlying; omega
+  · exact Hpaused
 
 end proof
 

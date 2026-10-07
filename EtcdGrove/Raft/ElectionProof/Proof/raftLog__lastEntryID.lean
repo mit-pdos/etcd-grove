@@ -39,10 +39,10 @@ theorem raftLog.lastEntryID.wp_proof
     (wp_raftLog_term : raftLog.term.spec (GF := GF) (hG := hG)) :
     raftLog.lastEntryID.spec (GF := GF) (hG := hG) := by
   intro l ls
-  obtain ⟨prev, sents, uents, lcm, lap, snap⟩ := ls
+  obtain ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ := ls
   wp_start as Hlog
   wp_auto
-  wp_apply wp_raftLog_lastIndex _ ⟨prev, sents, uents, lcm, lap, snap⟩ $$ [$Hlog]
+  wp_apply wp_raftLog_lastIndex _ ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ $$ [$Hlog]
     as %li ⟨Hlog, %Hli⟩
   have Hb : uint.Z prev.index' ≤ uint.Z li ∧
       uint.Z li ≤ uint.Z prev.index' + (sents.length : Int) + (uents.length : Int) := by
@@ -50,7 +50,7 @@ theorem raftLog.lastEntryID.wp_proof
   -- `raftLog.term`'s triple is total (`Spec/raftLog__term.lean`); here the index is
   -- `lastIndex`, so the in-range clause of its postcondition applies and the error is
   -- `nil` -- which is what makes the `Panicf` on the next line unreachable.
-  wp_apply wp_raftLog_term _ ⟨prev, sents, uents, lcm, lap, snap⟩ li $$ [$Hlog]
+  wp_apply wp_raftLog_term _ ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ li $$ [$Hlog]
     as %t %err ⟨Hlog, %Herr, %Ht, -⟩
   have Herr' := Herr.2 Hb
   subst Herr'

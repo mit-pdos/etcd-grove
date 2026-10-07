@@ -72,11 +72,15 @@ private theorem ownRaftLog_facts (l : Loc) (ls : LogState) :
     iframe Hl
     isplitr; · ipureintro; exact Hcm
     isplitr; · ipureintro; exact Hap
+    isplitr; · ipureintro; exact Hapg
+    isplitr; · ipureintro; exact Hip
+    isplitr; · ipureintro; exact Hasz
+    isplitr; · ipureintro; exact Hamx
     iexists sprev, stored, ss
     iframe HisStorage HStorage Husnap Huents Huents_cap Hl_logger Hu_logger
     ipureintro
     exact ⟨Hidx, Hnowrap, Hstore, Hoffset, HnoConfChange, Happlied, Hpapplied, Hcommitted,
-      Hssnap⟩
+      Hssnap, Hipb, Hpersist, Happlying, Hpaused⟩
 
 /-! The batch, as `appendEntry` rewrites it: `stamp` (`Protocol/Model.lean`). -/
 

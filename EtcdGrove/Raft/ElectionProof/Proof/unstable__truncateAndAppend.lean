@@ -77,7 +77,7 @@ theorem unstable.truncateAndAppend.wp_proof
     rw [List.take_of_length_le (by omega)]
     iframe
     ipureintro
-    exact ⟨by dsimp only; omega, rfl, rfl⟩
+    exact ⟨by dsimp only; omega, rfl, rfl, by simp only [truncOffsetInProgress, if_pos Hcont]⟩
   have Hguard : ¬e0.Index' = uv.offset' + uv.entries'.len := fun Heq => Hcont (by
     rw [Heq]; word)
   simp only [decide_eq_false Hguard]
@@ -103,9 +103,10 @@ theorem unstable.truncateAndAppend.wp_proof
       List.nil_append]
     iframe
     ipureintro
-    refine ⟨⟨?_, rfl, Hulg⟩, trivial⟩
-    dsimp only
-    omega
+    refine ⟨⟨?_, rfl, Hulg, ?_⟩, trivial⟩
+    · dsimp only
+      omega
+    · simp only [truncOffsetInProgress, if_neg Hcont, if_pos Hrep]
   -- arm 3: keep the suffix below `fromIndex`, then append
   have Had : ¬(uint.Z e0.Index' ≤ uint.Z uv.offset' ∧
       uint.Z e0.Index' ≠ uint.Z uv.offset' + (uents.length : Int)) := fun H => Hrep H.1
@@ -138,9 +139,11 @@ theorem unstable.truncateAndAppend.wp_proof
   · iapply HΦ
     iframe
     ipureintro
-    refine ⟨?_, rfl, Hulg⟩
-    dsimp only
-    omega
+    refine ⟨?_, rfl, Hulg, ?_⟩
+    · dsimp only
+      omega
+    · simp only [truncOffsetInProgress, if_neg Hcont, if_neg Hrep, w64Min]
+      split <;> first | rfl | (apply BitVec.eq_of_toNat_eq; word) | omega
   done
 
 end proof

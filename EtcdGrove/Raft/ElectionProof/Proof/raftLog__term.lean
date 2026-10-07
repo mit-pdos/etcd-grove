@@ -70,12 +70,12 @@ theorem raftLog.term.wp_proof
     (wp_raftLog_lastIndex : raftLog.lastIndex.spec (GF := GF) (hG := hG)) :
     raftLog.term.spec (GF := GF) (hG := hG) := by
   intro l ls i
-  obtain ⟨prev, sents, uents, lcm, lap, snap⟩ := ls
+  obtain ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ := ls
   wp_start as H
   iNamed H
   ihave #Hinit := isInitialized_access $$ Hpkg
   iNamed Hinit
-  icases (ownRaftLog_unfold l prev sents uents lcm lap snap).1 $$ Hlog with ⟨%lv, Hl, %Hcm, %Hap, Hcore⟩
+  icases (ownRaftLog_unfold l prev sents uents lcm lap snap lip lapg lpend lasz lamx).1 $$ Hlog with ⟨%lv, Hl, %Hcm, %Hap, %Hapg, %Hip, %Hasz, %Hamx, Hcore⟩
   unfold ownRaftLogCore
   icases Hcore with ⟨%sprev, %stored, %ss, Hcore⟩
   iNamed Hcore
@@ -137,9 +137,9 @@ theorem raftLog.term.wp_proof
     have Hnotsnap : ∀ sid, snap = some sid → i ≠ sid.index' := by
       intro sid Hs Hi; exact absurd (Hok.2 (Or.inr ⟨sid, Hs, Hi⟩)) (by simp)
     wp_auto
-    ihave Hlog : ownRaftLog l ⟨prev, sents, uents, lcm, lap, snap⟩ $$ [Hl HStorage Huents Huents_cap]
+    ihave Hlog : ownRaftLog l ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ $$ [Hl HStorage Huents Huents_cap]
     · reseal_raftLog
-    wp_apply wp_raftLog_firstIndex _ ⟨prev, sents, uents, lcm, lap, snap⟩ $$ [$Hlog]
+    wp_apply wp_raftLog_firstIndex _ ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ $$ [$Hlog]
       as %fi ⟨Hlog, %Hfi⟩
     dsimp only at Hfi
     by_cases Hb1 : uint.Z (i + W64 1) < uint.Z fi
@@ -157,7 +157,7 @@ theorem raftLog.term.wp_proof
       iright; ileft; iexact ErrCompacted
     rw [decide_eq_false Hb1]
     wp_auto
-    wp_apply wp_raftLog_lastIndex _ ⟨prev, sents, uents, lcm, lap, snap⟩ $$ [$Hlog]
+    wp_apply wp_raftLog_lastIndex _ ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ $$ [$Hlog]
       as %li ⟨Hlog, %Hli⟩
     dsimp only at Hli
     by_cases Hb2 : uint.Z li < uint.Z i
@@ -194,10 +194,11 @@ theorem raftLog.term.wp_proof
     | none =>
     clear Hnotin Hnotsnap Hsoff Hnw Hok Hokt Hoffset Hstok Happlied Hpapplied Hcommitted
       Hidx Hnowrap HnoConfChange Hb1 Hb2 Hfi Hli Hcm Hap Hstore Hssnap
+      Hapg Hip Hasz Hamx Hipb Hpersist Happlying Hpaused
     iclear HisStorage HLastIndex HFirstIndex HTerm HEntries Hbounded HSnapshot Hl_logger
       Hu_logger Husnap
     clear lv isv fi li sprev stored ss
-    icases (ownRaftLog_unfold l prev sents uents lcm lap none).1 $$ Hlog with ⟨%lv, Hl, %Hcm, %Hap, Hcore⟩
+    icases (ownRaftLog_unfold l prev sents uents lcm lap none lip lapg lpend lasz lamx).1 $$ Hlog with ⟨%lv, Hl, %Hcm, %Hap, %Hapg, %Hip, %Hasz, %Hamx, Hcore⟩
     unfold ownRaftLogCore
     icases Hcore with ⟨%sprev, %stored, %ss, Hcore⟩
     iNamed Hcore

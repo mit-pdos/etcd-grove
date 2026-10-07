@@ -50,6 +50,37 @@ private theorem truncateAppend_lengths (prev : entryID) (sents uents : List raft
   simp only [List.length_take, List.length_append, List.length_cons]
   omega
 
+omit go_gctx in
+/-- The persistence invariant across `truncateAndAppend` (the Rocq's `Hpers2`), stated
+over the bare quantities: `E` the batch's first index, `P` the old `prev.index`, `kip`
+and `k'` the old and new `offsetInProgress - offset`. -/
+private theorem append_persistOk (sprev : entryID)
+    (stored lpend sents uents : List raftpb.Entry) (e0 : raftpb.Entry)
+    (ents' : List raftpb.Entry) (E P kip k' : Int)
+    (Hpre0 : (sents ++ uents.take kip.toNat) <+: storApp sprev stored lpend)
+    (Hkip : kip.toNat ≤ uents.length)
+    (HP : P < E) (HE : E ≤ P + (sents.length : Int) + (uents.length : Int) + 1)
+    (Hk1 : k'.toNat ≤ kip.toNat)
+    (Hk2 : E < P + (sents.length : Int) + (uents.length : Int) + 1 →
+      k'.toNat ≤ (E - P - 1).toNat - sents.length)
+    (Hk3 : E = P + (sents.length : Int) + (uents.length : Int) + 1 → k'.toNat = kip.toNat) :
+    LogPersistOk sprev stored (sents.take (E - P - 1).toNat)
+      (uents.take (E - P - 1 - (sents.length : Int)).toNat ++ e0 :: ents') k' lpend := by
+  refine ⟨?_, ?_, ?_⟩
+  · refine List.IsPrefix.trans ?_ Hpre0
+    rw [show (E - P - 1 - (sents.length : Int)).toNat = (E - P - 1).toNat - sents.length
+      by omega]
+    exact persist_prefix_truncate sents uents (e0 :: ents') _ _ _ Hkip (by omega)
+      (fun _ => ⟨Hk1, Hk2 (by omega)⟩) (fun _ => Hk3 (by omega))
+  · -- never all handed out: the batch is not
+    intro Hfull
+    exfalso
+    simp only [List.length_append, List.length_take, List.length_cons] at Hfull
+    by_cases Hlt : E < P + (sents.length : Int) + (uents.length : Int) + 1
+    · have := Hk2 Hlt; omega
+    · have := Hk3 (by omega); omega
+  · intro Hnil; simp at Hnil
+
 /-- Two exits. An empty batch returns `lastIndex()` with the log untouched. Otherwise
 the `Panicf` is dead by the `committed` premise, `truncateAndAppend` gets the
 `unstable` field (its offset is `prev.index + |sents| + 1`, `Hoffset`), and the log is
@@ -60,7 +91,7 @@ theorem raftLog.append.wp_proof
     (wp_unstable_truncateAndAppend : unstable.truncateAndAppend.spec (GF := GF) (hG := hG)) :
     raftLog.append.spec (GF := GF) (hG := hG) := by
   intro l ls ents es dq Hpre Hnorm
-  obtain ⟨prev, sents, uents, lcm, lap, snap⟩ := ls
+  obtain ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ := ls
   wp_start as H
   iNamed H
   wp_auto
@@ -72,7 +103,7 @@ theorem raftLog.append.wp_proof
     simp only [List.length_nil] at Hlen
     rw [decide_eq_true (by word)]
     wp_auto
-    wp_apply wp_raftLog_lastIndex _ ⟨prev, sents, uents, lcm, lap, snap⟩ $$ [$Hlog]
+    wp_apply wp_raftLog_lastIndex _ ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ $$ [$Hlog]
       as %li ⟨Hlog, %Hli⟩
     iapply HΦ $$ %li
     simp only [logTruncateAppend, logAdopts, plogTruncateAppend, Bool.false_eq_true,
@@ -117,7 +148,7 @@ theorem raftLog.append.wp_proof
       omega
     have Hnw' : uint.Z lv.unstable'.offset' + (uents.length : Int) < 2 ^ 64 := by omega
     -- the two adopt conditions agree
-    have Hadopt_eq : (logAdopts ⟨prev, sents, uents, lcm, lap, snap⟩ (e0 :: ents') = true) =
+    have Hadopt_eq : (logAdopts ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ (e0 :: ents') = true) =
         (uint.Z e0.Index' ≤ uint.Z lv.unstable'.offset' ∧
           uint.Z e0.Index' ≠ uint.Z lv.unstable'.offset' + (uents.length : Int)) := by
       simp only [logAdopts, decide_eq_true_eq, Hoffset]
@@ -131,7 +162,7 @@ theorem raftLog.append.wp_proof
       iframe Huf Huents Huents_cap Hadopt
     iNamed Hun
     ihave Hl := Hlback $$ Hu
-    obtain ⟨Hoff', Hsnap', Hlg'⟩ := Huv'
+    obtain ⟨Hoff', Hsnap', Hlg', Hoip'⟩ := Huv'
     -- the new state
     have Hm : (uint.Z e0.Index' - uint.Z lv.unstable'.offset').toNat =
         (uint.Z e0.Index' - uint.Z prev.index' - 1 - (sents.length : Int)).toNat := by
@@ -201,15 +232,66 @@ theorem raftLog.append.wp_proof
         + ((uents.take (uint.Z e0.Index' - uint.Z prev.index' - 1 - (sents.length : Int)).toNat
             ++ e0 :: ents').length : Int) := by
       rw [Hcm]; omega
+    -- `offsetInProgress` (2026-10-05): `truncateAndAppend`'s arm-wise value is
+    -- `logTruncInprogress`, and the persistence invariant survives
+    -- (`persist_prefix_truncate`)
+    have Hip2 : uv'.offsetInProgress' = logTruncInprogress
+        ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ e0.Index' := by
+      rw [Hoip']
+      unfold truncOffsetInProgress logTruncInprogress w64Min
+      dsimp only
+      rw [← Hip]
+      repeat' split
+      all_goals first | rfl | (exfalso; omega) | (apply uint_Z_inj.1; omega)
+    have Hk' : (uint.Z uv'.offsetInProgress' - uint.Z uv'.offset').toNat
+          ≤ (uint.Z lv.unstable'.offsetInProgress' - uint.Z lv.unstable'.offset').toNat ∧
+        (uint.Z e0.Index' < uint.Z prev.index' + (sents.length : Int)
+            + (uents.length : Int) + 1 →
+          (uint.Z uv'.offsetInProgress' - uint.Z uv'.offset').toNat
+            ≤ (uint.Z e0.Index' - uint.Z prev.index' - 1).toNat - sents.length) ∧
+        (uint.Z e0.Index' = uint.Z prev.index' + (sents.length : Int)
+            + (uents.length : Int) + 1 →
+          (uint.Z uv'.offsetInProgress' - uint.Z uv'.offset').toNat
+            = (uint.Z lv.unstable'.offsetInProgress' - uint.Z lv.unstable'.offset').toNat) := by
+      rw [Hip2]
+      unfold logTruncInprogress
+      dsimp only
+      rw [← Hip]
+      repeat' split
+      all_goals omega
+    have Hipb2 : uint.Z uv'.offset' ≤ uint.Z uv'.offsetInProgress' ∧
+        uint.Z uv'.offsetInProgress' ≤ uint.Z uv'.offset'
+          + ((uents.take (uint.Z e0.Index' - uint.Z prev.index' - 1
+              - (sents.length : Int)).toNat ++ e0 :: ents').length : Int) := by
+      rw [Hip2]
+      unfold logTruncInprogress
+      dsimp only
+      rw [← Hip]
+      simp only [List.length_append, List.length_take, List.length_cons]
+      repeat' split
+      all_goals omega
+    have Hpers2 : snap = none →
+        LogPersistOk sprev stored
+          (sents.take (uint.Z e0.Index' - uint.Z prev.index' - 1).toNat)
+          (uents.take (uint.Z e0.Index' - uint.Z prev.index' - 1 - (sents.length : Int)).toNat
+            ++ e0 :: ents')
+          (uint.Z uv'.offsetInProgress' - uint.Z uv'.offset') lpend := by
+      intro Hs
+      obtain ⟨Hpre0, -, -⟩ := Hpersist Hs
+      obtain ⟨Hk1, Hk2, Hk3⟩ := Hk'
+      exact append_persistOk sprev stored lpend sents uents e0 ents' _ _ _ _ Hpre0
+        (by omega) Hprev (by omega) Hk1 Hk2 Hk3
     rw [← Hlg'] at Hulg
     rw [← Hsnap', ← Hlg']
     ihave Hlog : ownRaftLog l ⟨prev,
         sents.take (uint.Z e0.Index' - uint.Z prev.index' - 1).toNat,
         uents.take (uint.Z e0.Index' - uint.Z prev.index' - 1 - (sents.length : Int)).toNat
-          ++ e0 :: ents', lcm, lap, snap⟩ $$ [Hl HStorage Hents Hents_cap]
+          ++ e0 :: ents', lcm, lap, snap,
+        logTruncInprogress ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩
+          e0.Index', lapg, lpend, lasz, lamx⟩ $$ [Hl HStorage Hents Hents_cap]
     · iapply ownRaftLog_intro l { lv with unstable' := uv' } lv.storage' snap prev _ _ lcm lap
-          sprev stored ss rfl Hcm Hap Hidx' Hnw2 Hst2 Hoff2 Hnc'
-          Happlied Hpapplied Hcm2 Hss2
+          sprev stored ss _ lapg lpend lasz lamx rfl Hcm Hap Hidx' Hnw2 Hst2 Hoff2 Hnc'
+          Happlied Hpapplied Hcm2 Hss2 Hapg Hip2 Hipb2 Hpers2 Happlying Hpaused Hasz Hamx
         $$ Hl HisStorage HStorage Husnap Hents Hents_cap Hl_logger Hu_logger
     wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
     iapply HΦ $$ %li

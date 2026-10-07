@@ -114,7 +114,7 @@ theorem raftLog.slice.wp_proof
     (wp_extend : extend.spec (GF := GF) (hG := hG)) :
     raftLog.slice.spec (GF := GF) (hG := hG) := by
   intro l ls lo hi maxSize Hrange
-  obtain ⟨prev, sents, uents, lcm, lap, snap⟩ := ls
+  obtain ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ := ls
   obtain ⟨Hr1, Hr2, Hr3⟩ := Hrange
   dsimp only at Hr1 Hr3
   have Hmc : uint.Z prev.index' + 1 ≤ uint.Z lo ∧ uint.Z lo ≤ uint.Z hi ∧
@@ -134,7 +134,7 @@ theorem raftLog.slice.wp_proof
   | nil => exact absurd rfl HErrUnavailable
   | ok eu =>
   wp_auto
-  wp_apply wp_raftLog_mustCheckOutOfBounds l ⟨prev, sents, uents, lcm, lap, snap⟩ lo hi Hmc
+  wp_apply wp_raftLog_mustCheckOutOfBounds l ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ lo hi Hmc
     $$ [$Hlog] as Hlog
   rw [decide_eq_false (by rintro rfl; omega)]
   wp_auto
@@ -175,8 +175,11 @@ theorem raftLog.slice.wp_proof
     unfold ownUnstable
     icases Hun with ⟨Huf, Huents_cap, Huents⟩
     ihave Hl := Hlback $$ Huf
+    ihave Hcap := ownSliceCap_empty (V := raftpb.Entry)
+      (slice.fullSlice s1 raftpb.Entry (W64 0) s1.len s1.len) rfl
+      (by simp only [slice.fullSlice]; word)
     iapply HΦ $$ %_ %(es0.take nlim)
-    iframe Hs2
+    iframe Hs2 Hcap
     isplitl
     · reseal_raftLog
     ipureintro
@@ -239,8 +242,10 @@ theorem raftLog.slice.wp_proof
       obtain ⟨Hnee, Hlene, Hine, Hcape, Hpre⟩ := Hpost
       rw [decide_eq_true (by omega)]
       wp_auto
+      ihave %Hselen := ownSlice_len $$ Hse
+      ihave Hcap := ownSliceCap_empty (V := raftpb.Entry) se Hcape.symm (by omega)
       iapply HΦ $$ %se %ese
-      iframe Hse
+      iframe Hse Hcap
       isplitl
       · reseal_raftLog
       ipureintro
@@ -258,16 +263,18 @@ theorem raftLog.slice.wp_proof
       ihave %Hselen := ownSlice_len $$ Hse
       wp_if_destruct
       · -- `hi <= offset`, i.e. `hi = offset`: the result is exactly the stable part
+        ihave Hcap := ownSliceCap_empty (V := raftpb.Entry) se Hcape.symm (by omega)
         iapply HΦ $$ %se %ese
-        iframe Hse
+        iframe Hse Hcap
         isplitl
         · reseal_raftLog
         ipureintro
         exact Hfin _ ese (by omega) (by omega) Hnee Hlene Hine Hpre
       wp_if_destruct
       · -- storage returned fewer entries than asked for: stop there
+        ihave Hcap := ownSliceCap_empty (V := raftpb.Entry) se Hcape.symm (by omega)
         iapply HΦ $$ %se %ese
-        iframe Hse
+        iframe Hse Hcap
         isplitl
         · reseal_raftLog
         ipureintro
@@ -276,8 +283,9 @@ theorem raftLog.slice.wp_proof
       wp_apply wp_entsSize $$ [$Hse] as %sz1 -
       wp_if_destruct
       · -- the stable part already reaches `maxSize`
+        ihave Hcap := ownSliceCap_empty (V := raftpb.Entry) se Hcape.symm (by omega)
         iapply HΦ $$ %se %ese
-        iframe Hse
+        iframe Hse Hcap
         isplitl
         · reseal_raftLog
         ipureintro
@@ -336,28 +344,29 @@ theorem raftLog.slice.wp_proof
         wp_apply wp_entsSize $$ [$Hs1] as %sz2 -
         wp_if_destruct
         · -- the single unstable entry does not fit
+          ihave Hcap := ownSliceCap_empty (V := raftpb.Entry) se Hcape.symm (by omega)
           iapply HΦ $$ %se %ese
-          iframe Hse
+          iframe Hse Hcap
           isplitl
           · reseal_raftLog
           ipureintro
           exact Hfin _ ese (by omega) (by omega) Hnee Hlene Hine Hpre
         iapply wp_fupd
-        wp_apply wp_extend _ _ _ _ _ _ Hcapx Hfitsx $$ [$Hse $Hs1] as %sx ⟨Hsx, -, -, -⟩
+        wp_apply wp_extend _ _ _ _ _ _ Hcapx Hfitsx $$ [$Hse $Hs1] as %sx ⟨Hsx, Hsxcap, -, -⟩
         ipersist Hsx
         imodintro
         iapply HΦ $$ %sx %_
-        iframe Hsx
+        iframe Hsx Hsxcap
         isplitl
         · reseal_raftLog
         ipureintro
         exact Hext
       · iapply wp_fupd
-        wp_apply wp_extend _ _ _ _ _ _ Hcapx Hfitsx $$ [$Hse $Hs1] as %sx ⟨Hsx, -, -, -⟩
+        wp_apply wp_extend _ _ _ _ _ _ Hcapx Hfitsx $$ [$Hse $Hs1] as %sx ⟨Hsx, Hsxcap, -, -⟩
         ipersist Hsx
         imodintro
         iapply HΦ $$ %sx %_
-        iframe Hsx
+        iframe Hsx Hsxcap
         isplitl
         · reseal_raftLog
         ipureintro

@@ -18,7 +18,7 @@ Lean notes:
 * The callee specs (Rocq `STEP_POSTULATES`) are bundled as `raft.Step.Postulates`
   (`raft__Step/Base.lean`, with `stepPost`, `StepProof.ghost_step_recv`,
   `StepProof.finish_branch`, `StepProof.finish_branch0` and the `w32_ne` macro). The
-  twelve branch lemmas `StepProof.wp_Step_<Msg>` are in `raft__Step/<Msg>.lean`, one
+  fourteen branch lemmas `StepProof.wp_Step_<Msg>` are in `raft__Step/<Msg>.lean`, one
   module per Rocq file of `proof_raft__Step_helpers/` (names kept: `MsgVote_gt`,
   `repl_lemmas`, ...).
 * The proof works at `HeapGS HasLC.hasLC GF` with `[AllG GF]`, as the spec does.
@@ -37,6 +37,8 @@ import EtcdGrove.Raft.ElectionProof.Proof.raft__Step.MsgBeat
 import EtcdGrove.Raft.ElectionProof.Proof.raft__Step.MsgSnap
 import EtcdGrove.Raft.ElectionProof.Proof.raft__Step.MsgPreVote
 import EtcdGrove.Raft.ElectionProof.Proof.raft__Step.MsgPreVoteResp
+import EtcdGrove.Raft.ElectionProof.Proof.raft__Step.MsgStorageAppendResp
+import EtcdGrove.Raft.ElectionProof.Proof.raft__Step.MsgStorageApplyResp
 
 noncomputable section
 
@@ -310,17 +312,24 @@ theorem raft.Step.wp_proof
     (wp_stepLeader : stepLeader.spec (GF := GF) (hG := hG))
     (wp_traceReceiveMessage : traceReceiveMessage.spec (GF := GF) (hG := hG))
     (wp_raftLog_lastEntryID : raftLog.lastEntryID.spec (GF := GF) (hG := hG))
-    (wp_raftLog_isUpToDate : raftLog.isUpToDate.spec (GF := GF) (hG := hG)) :
+    (wp_raftLog_isUpToDate : raftLog.isUpToDate.spec (GF := GF) (hG := hG))
+    -- the storage acknowledgements (2026-10-05)
+    (wp_raftLog_stableTo : raftLog.stableTo.spec (GF := GF) (hG := hG))
+    (wp_raft_appliedTo : raft.appliedTo.spec (GF := GF) (hG := hG))
+    (wp_raft_reduceUncommittedSize : raft.reduceUncommittedSize.spec (GF := GF) (hG := hG))
+    (wp_entsSize : entsSize.spec (GF := GF) (hG := hG))
+    (wp_payloadsSize : payloadsSize.spec (GF := GF) (hG := hG)) :
     raft.Step.spec (GF := GF) (hG := hG) := by
   have P : raft.Step.Postulates (GF := GF) (hG := hG) :=
     ⟨wp_raft_hup, wp_raft_becomeFollower, wp_voteRespMsgType, wp_raft_send, wp_stepCandidate,
      wp_stepFollower, wp_stepLeader, wp_traceReceiveMessage, wp_raftLog_lastEntryID,
-     wp_raftLog_isUpToDate⟩
+     wp_raftLog_isUpToDate, wp_raftLog_stableTo, wp_raft_appliedTo,
+     wp_raft_reduceUncommittedSize, wp_entsSize, wp_payloadsSize⟩
   intro cfg γ r id s ps m ents Qs Hcfg Hsm Hin Hhup Hvote Hvoteresp Hprevote Hprevoteresp
-    Happ Hhb Happresp Hhbresp Hsnapt Hbeat Hprop Hrel
+    Happ Hhb Happresp Hhbresp Hsnapt Hbeat Hprop Hsar Hsapr Hrel
   obtain ⟨rfl, Hwf⟩ := Hrel
   iintro %Φ ⟨#Hinit, Hphys, Hghost, Hm, Hprops, #Hctx, #Hsnap⟩ HΦ
-  icases Hm with ⟨Hents, Hcap, %Hpents, #Hmsg0⟩
+  icases Hm with ⟨Hents, Hcap, %Hpents, %Happly, #Hmsg0⟩
   iapply wp_fupd
   by_cases Hty : m.Type' = MsgProp
   · -- MsgProp: forward, append or drop (`proof_raft__Step_MsgProp.v`). The node's own
@@ -494,10 +503,24 @@ theorem raft.Step.wp_proof
   · -- MsgBeat: `dispatch_Beat`.
     iapply dispatch_Beat P γ cfg r id s m Φ Hcfg Hin Hwf Hty (Hbeat Hty)
       $$ Hinit Hphys Hghost HΦ
-  -- none of the twelve
+  by_cases Hty : m.Type' = MsgStorageAppendResp
+  · -- MsgStorageAppendResp (2026-10-05): `stableTo`, invisible to the protocol.
+    obtain ⟨Hsn, Hle, Hstok⟩ := Hsar Hty
+    wp_apply (wp_Step_MsgStorageAppendResp P cfg r id s m Hty Hsn Hle Hstok Hwf) $$ [$Hphys]
+      as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr⟩
+    iapply finish_branch0 γ cfg r id s s' m err Φ Hcfg Hwf' Hst $$ Hghost Hphys [] HΦ
+    ileft; ipureintro; exact Herr
+  by_cases Hty : m.Type' = MsgStorageApplyResp
+  · -- MsgStorageApplyResp (2026-10-05): `appliedTo`, invisible to the protocol.
+    -- `Hents` is already read-only: the `MsgProp` case split reduced its `if`
+    wp_apply (wp_Step_MsgStorageApplyResp P cfg r id s m ents Hty (Hsapr Hty) (Happly Hty)
+        Hwf) $$ [$Hphys $Hents] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr⟩
+    iapply finish_branch0 γ cfg r id s s' m err Φ Hcfg Hwf' Hst $$ Hghost Hphys [] HΦ
+    ileft; ipureintro; exact Herr
+  -- none of the fourteen
   exfalso
   simp only [StepMsg, stepMsgTypes, List.mem_cons, List.not_mem_nil, _root_.or_false] at Hsm
-  rcases Hsm with h | h | h | h | h | h | h | h | h | h | h | h <;> contradiction
+  rcases Hsm with h | h | h | h | h | h | h | h | h | h | h | h | h | h <;> contradiction
 
 end dispatch
 

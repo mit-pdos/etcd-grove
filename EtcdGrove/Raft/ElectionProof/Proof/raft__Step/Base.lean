@@ -29,6 +29,12 @@ import EtcdGrove.Raft.ElectionProof.Spec.stepLeader
 import EtcdGrove.Raft.ElectionProof.Spec.traceReceiveMessage
 import EtcdGrove.Raft.ElectionProof.Spec.raftLog__lastEntryID
 import EtcdGrove.Raft.ElectionProof.Spec.raftLog__isUpToDate
+-- the storage acknowledgements (2026-10-05)
+import EtcdGrove.Raft.ElectionProof.Spec.raftLog__stableTo
+import EtcdGrove.Raft.ElectionProof.Spec.raft__appliedTo
+import EtcdGrove.Raft.ElectionProof.Spec.raft__reduceUncommittedSize
+import EtcdGrove.Raft.ElectionProof.Spec.entsSize
+import EtcdGrove.Raft.ElectionProof.Spec.payloadsSize
 
 noncomputable section
 
@@ -44,6 +50,7 @@ macro "w32_ne" : tactic =>
       Perennial.EtcdGrove.MsgVote, Perennial.EtcdGrove.MsgVoteResp, Perennial.EtcdGrove.MsgSnap,
       Perennial.EtcdGrove.MsgHeartbeat, Perennial.EtcdGrove.MsgHeartbeatResp,
       Perennial.EtcdGrove.MsgPreVote, Perennial.EtcdGrove.MsgPreVoteResp,
+      Perennial.EtcdGrove.MsgStorageAppendResp, Perennial.EtcdGrove.MsgStorageApplyResp,
       ne_eq]; word))
 
 section base
@@ -69,6 +76,12 @@ structure raft.Step.Postulates : Prop where
   traceReceiveMessage : traceReceiveMessage.spec (GF := GF) (hG := hG)
   lastEntryID : raftLog.lastEntryID.spec (GF := GF) (hG := hG)
   isUpToDate : raftLog.isUpToDate.spec (GF := GF) (hG := hG)
+  -- the storage acknowledgements (2026-10-05)
+  stableTo : raftLog.stableTo.spec (GF := GF) (hG := hG)
+  appliedTo : raft.appliedTo.spec (GF := GF) (hG := hG)
+  reduceUncommittedSize : raft.reduceUncommittedSize.spec (GF := GF) (hG := hG)
+  entsSize : entsSize.spec (GF := GF) (hG := hG)
+  payloadsSize : payloadsSize.spec (GF := GF) (hG := hG)
 
 /-- What `raft.Step.spec`'s postcondition hands to `Φ`: the continuation every dispatch
 lemma below ends in. -/

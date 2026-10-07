@@ -24,7 +24,7 @@ theorem raft.loadState.wp_proof
   intro cfg r id s hs Hc
   obtain ⟨term, vote, lead, role, votes, outbox, stepfn, progress, log, logst, prvals,
     prevote⟩ := s
-  obtain ⟨prev, sents, uents, lcm, lap, snap⟩ := logst
+  obtain ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ := logst
   dsimp only at Hc ⊢
   wp_start as Hphys
   wp_auto
@@ -38,7 +38,7 @@ theorem raft.loadState.wp_proof
   wp_auto
   ihave HL := HLback $$ Hl
   ihave Hphys := Hlogback $$ HL
-  have Hll : uint.Z (logLast ⟨prev, sents, uents, lcm, lap, snap⟩)
+  have Hll : uint.Z (logLast ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩)
       = uint.Z prev.index' + (sents.length : Int) + (uents.length : Int) := by
     simp only [logLast]; word
   rw [Hll] at Hc
@@ -56,18 +56,21 @@ theorem raft.loadState.wp_proof
   wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
   icases ownRaftPhys_log_at $$ Hphys with ⟨HL, Hlogback⟩
   dsimp only
-  icases (ownRaftLog_unfold _ _ _ _ _ _ _).1 $$ HL with ⟨%lv2, Hl, %Hcm2, %Hap2, Hcore⟩
+  icases (ownRaftLog_unfold _ _ _ _ _ _ _ _ _ _ _ _).1 $$ HL with
+    ⟨%lv2, Hl, %Hcm2, %Hap2, %Hapg2, %Hip2, %Hasz2, %Hamx2, Hcore⟩
   wp_auto
   iNamed Hcore
-  ihave HL : ownRaftLog log ⟨prev, sents, uents, hs.Commit', lap, snap⟩ $$
+  ihave HL : ownRaftLog log
+      ⟨prev, sents, uents, hs.Commit', lap, snap, lip, lapg, lpend, lasz, lamx⟩ $$
       [Hl HStorage Huents Huents_cap]
   · reseal_raftLog
     all_goals dsimp only
-    · rw [Hcm2] at Happlied; rw [Hap2] at Happlied ⊢; omega
-    · omega
-    · intro Hs
-      rw [Hcm2] at Hssnap
-      exact StoredSnapOk_commit _ _ _ _ _ Hc.1 (Hssnap Hs)
+    all_goals first
+      | (intro Hs
+         rw [Hcm2] at Hssnap
+         exact StoredSnapOk_commit _ _ _ _ _ Hc.1 (Hssnap Hs))
+      | omega
+      | (simp only [Hcm2, Hap2] at Happlied Happlying ⊢; omega)
   ihave Hphys := Hlogback $$ %_ HL
   wp_apply raft.wp_store_Term $$ Hphys as Hphys
   wp_apply raft.wp_store_Vote $$ Hphys as Hphys

@@ -52,17 +52,28 @@ theorem newRaft.wp_proof
     (wp_strings_Join : strings.Join.spec (GF := GF) (hG := hG)) :
     newRaft.spec (GF := GF) (hG := hG) := by
   intro c cv lok si prev ents ss hs cs voters dqv
-    Hvalid Hlok Hsto HmaxInfl Hcq Hdpf Hidx Hncc Hss Hhs Happ Hvne Hvnd Hv0 Hcs1 Hcs2 Hcs3 Hal
+    Hvalid Hlok Hsto HmaxInfl Hcq Hdpf Hmcs Hidx Hncc Hss Hhs Happ Hvne Hvnd Hv0 Hcs1 Hcs2 Hcs3 Hal
   obtain ⟨HvID, HvID1, HvID2, Hticks, HvSt, HvInfl, HvIB, HvLog, HvRO⟩ := Hvalid
   wp_start as ⟨Hc, #Hlg0, #HisSto, HSto, #HInit⟩
   wp_auto
   wp_apply wp_Config_validate _ _ ⟨HvID, HvID1, HvID2, Hticks, HvSt, HvInfl, HvIB, HvLog, HvRO⟩
     $$ [$Hc] as %cv' ⟨Hc, %Hpres⟩
-  obtain ⟨HpID, HpET, HpHT, HpSt, HpAp, HpMI, HpCQ, HpPV, HpDPF, HpLg⟩ := Hpres
+  obtain ⟨HpID, HpET, HpHT, HpSt, HpAp, HpMI, HpCQ, HpPV, HpDPF, HpLg, HpMC⟩ := Hpres
   rw [HpSt, Hsto, HpLg, Hlok]
-  wp_apply wp_newLogWithSize _ _ _ _ _ _ lok Hidx Hncc Hss rfl $$ [$HisSto $HSto $Hlg0]
+  have Hmcs' : 0 < uint.Z cv'.MaxCommittedSizePerReady' := by
+    rw [HpMC]
+    split
+    · rename_i Hz
+      rcases Hmcs with Hc | Hc
+      · exact absurd Hz Hc
+      · have : uint.Z cv.MaxSizePerMsg' ≠ 0 := fun H0 => Hc (by word)
+        word
+    · rename_i Hz
+      have : uint.Z cv.MaxCommittedSizePerReady' ≠ 0 := fun H0 => Hz (by word)
+      word
+  wp_apply wp_newLogWithSize _ _ _ _ _ _ lok Hidx Hncc Hss rfl Hmcs' $$ [$HisSto $HSto $Hlg0]
     as %l %lv ⟨Hl, %Hlv, Hcore⟩
-  obtain ⟨Hlvst, Hlvcm, Hlvap⟩ := Hlv
+  obtain ⟨Hlvst, Hlvcm, Hlvap, Hlvapg, Hlvip, Hlvasz, Hlvamx⟩ := Hlv
   iunfold ownRaftLogCore at Hcore
   icases Hcore with ⟨%sprev, %stored, %ss', Hcore⟩
   iNamed Hcore
@@ -73,9 +84,12 @@ theorem newRaft.wp_proof
   rw [Hlvst]
   rw [HpSt, Hsto]
   wp_apply HInit $$ [$HStorage] as HSto Hvoters
+  let ip0 := lv.unstable'.offsetInProgress'
   ihave HL := ownRaftLog_intro l lv (GoInterface.ok si) none prev ents [] prev.index' prev.index'
-    prev ents ss' Hlvst Hlvcm Hlvap Hidx Hnowrap ⟨rfl, Hlstored, Hlstored_eq⟩ Hoffset
+    prev ents ss' ip0 prev.index' [] (W64 0) cv'.MaxCommittedSizePerReady'
+    Hlvst Hlvcm Hlvap Hidx Hnowrap ⟨rfl, Hlstored, Hlstored_eq⟩ Hoffset
     HnoConfChange Happlied Hpapplied Hcommitted Hssnap
+    Hlvapg rfl Hipb Hpersist Happlying Hpaused Hlvasz Hlvamx
     $$ Hl HisSto HSto Husnap Huents Huents_cap Hl_logger Hu_logger
   wp_apply wp_MakeProgressTracker as %tv0 %v0 ⟨%Htv0, Hv0, Hvotes, Hprs0⟩
   obtain ⟨Htv0mi, Htv0mb, Htv0arr, Htv0l, Htv0ln, Htv0al⟩ := Htv0
@@ -93,13 +107,14 @@ theorem newRaft.wp_proof
   -- one `MakeProgressTracker` built, and its log is at the state
   -- `newLogWithSize` built. It holds no `Progress` yet, so `prvals` is
   -- empty.
-  let ls0 : LogState := ⟨prev, ents, [], prev.index', prev.index', none⟩
+  let ls0 : LogState := ⟨prev, ents, [], prev.index', prev.index', none, ip0, prev.index', [],
+    W64 0, cv'.MaxCommittedSizePerReady'⟩
   let s0 : NState := ⟨W64 0, W64 0, W64 0, .follower, ∅, [], func.nil, ∅, l, ls0, ∅,
     cv.PreVote'⟩
   ihave Htrk0 := ownTracker_empty tv0 v0 Htv0arr Htv0l Htv0ln Htv0al Hmi $$ Hv0 Hvotes Hprs0
   ihave Hmisc : ownRaftMisc (GF := GF) slice.nil ro slice.nil $$ [Hro]
   · unfold ownRaftMisc
-    iexists [], _
+    iexists _
     simp only [named]
     iframe Hro
     isplitr
@@ -145,7 +160,8 @@ theorem newRaft.wp_proof
   -- `if !IsEmptyHardState(hs) { r.loadState(hs) }`: both arms end at the
   -- same struct state `s1` and log state `ls1`, so the rest of the proof
   -- is done once, for both.
-  let ls1 : LogState := ⟨prev, ents, [], committedAfter prev hs, prev.index', none⟩
+  let ls1 : LogState := ⟨prev, ents, [], committedAfter prev hs, prev.index', none, ip0,
+    prev.index', [], W64 0, cv'.MaxCommittedSizePerReady'⟩
   let s1 : NState :=
     { s0 with progress := prs, prvals := pvs1, term := hs.Term', vote := hs.Vote', logst := ls1 }
   wp_join iprop(ownRaftPhys (listToSet voters) «$r0_ptr» cv.ID' s1 ∗ hs_ptr ↦ hs ∗
@@ -185,7 +201,8 @@ theorem newRaft.wp_proof
       simp only [s1, s0, ls1, ls0, committedAfter, Hemp, ↓reduceIte]
   -- `if c.Applied > 0 { raftlog.appliedTo(c.Applied, 0) }`, likewise
   let ap : w64 := if cv.Applied' = W64 0 then prev.index' else cv.Applied'
-  let ls2 : LogState := ⟨prev, ents, [], committedAfter prev hs, ap, none⟩
+  let ls2 : LogState := ⟨prev, ents, [], committedAfter prev hs, ap, none, ip0,
+    w64Max prev.index' ap, [], W64 0, cv'.MaxCommittedSizePerReady'⟩
   let s2 : NState := { s1 with logst := ls2 }
   rw [HpAp]
   wp_join iprop(ownRaftPhys (listToSet voters) «$r0_ptr» cv.ID' s2 ∗ c_ptr ↦ c ∗ c ↦ cv' ∗
@@ -208,7 +225,7 @@ theorem newRaft.wp_proof
   · have Ha0 : cv.Applied' = W64 0 := by word
     iframe c Hc raftlog
     iapply ownRaftPhys_eq _ _ _ _ _ ?_ $$ Hphys
-    simp only [s2, ls2, ap, ls1, s1, Ha0, ↓reduceIte]
+    simp only [s2, ls2, ap, ls1, s1, Ha0, ↓reduceIte, w64Max, Int.lt_irrefl]
   -- `r.becomeFollower(r.Term, None)`
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
   wp_apply wp_raft_becomeFollower _ _ _ s2 s2.term (W64 0) $$ [$Hphys] as %pvs3 Hphys

@@ -18,7 +18,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem newLogWithSize.wp_proof : newLogWithSize.spec (GF := GF) (hG := hG) := by
-  intro st lg maxSize prev ents ss lok Hidx Hnocc Hss Hlg
+  intro st lg maxSize prev ents ss lok Hidx Hnocc Hss Hlg Hmax
   subst Hlg
   wp_start as ⟨#Hsto, HStorage, #Hlg⟩
   ihave #Hsto2 : isStorage st $$ [Hsto]
@@ -35,7 +35,7 @@ theorem newLogWithSize.wp_proof : newLogWithSize.spec (GF := GF) (hG := hG) := b
   iframe Hl
   isplitr
   · ipureintro
-    refine ⟨rfl, ?_, ?_⟩ <;> (simp only []; apply BitVec.eq_of_toNat_eq; word)
+    refine ⟨rfl, ?_, ?_, ?_, ?_, rfl, rfl⟩ <;> first | (simp only []; apply BitVec.eq_of_toNat_eq; word) | (simp only []; word)
   unfold ownRaftLogCore
   iexists prev, ents, ss
   simp only [named, List.append_nil]
@@ -67,9 +67,20 @@ theorem newLogWithSize.wp_proof : newLogWithSize.spec (GF := GF) (hG := hG) := b
     rcases Hss with Hss | rfl
     · exact .inl Hss
     · exact .inr ⟨by word, plogTermAt_base _ _⟩
-  isplitl
+  isplitr
   · unfold isLoggerVal; iexists lok; iframe Hlg; ipureintro; rfl
-  unfold isLoggerVal; iexists lok; iframe Hlg; ipureintro; rfl
+  isplitr
+  · unfold isLoggerVal; iexists lok; iframe Hlg; ipureintro; rfl
+  isplitr
+  · ipureintro; simp only [List.length_nil]; word
+  isplitr
+  · ipureintro; intro _
+    refine ⟨?_, ?_, fun _ => rfl⟩
+    · simp [storApp]
+    · intro _; simp [storApp]
+  isplitr
+  · ipureintro; word
+  ipureintro; intro _; word
 
 end proof
 

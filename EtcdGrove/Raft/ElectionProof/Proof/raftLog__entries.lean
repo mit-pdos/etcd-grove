@@ -38,7 +38,7 @@ theorem raftLog.entries.wp_proof
     · ipureintro
       exact ⟨fun e He => absurd He (List.not_mem_nil), List.nil_prefix⟩
   · wp_apply wp_raftLog_lastIndex l ls $$ [$Hlog] as %li2 ⟨Hlog, %Hli2⟩
-    wp_apply wp_raftLog_slice l ls _ _ _ (by word) $$ [$Hlog] as %sl %es ⟨Hlog, Hsl, %Hes⟩
+    wp_apply wp_raftLog_slice l ls _ _ _ (by word) $$ [$Hlog] as %sl %es ⟨Hlog, Hsl, %Hes, -⟩
     obtain ⟨-, -, Hin, Hpre⟩ := Hes
     iapply HΦ
     iframe Hlog Hsl

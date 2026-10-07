@@ -39,7 +39,7 @@ theorem raftLog.findConflict.wp_proof
       raftLog.zeroTermOnOutOfBounds.spec (GF := GF) (hG := hG)) :
     raftLog.findConflict.spec (GF := GF) (hG := hG) := by
   intro l ls es dq ents Hge
-  obtain ⟨prev, sents, uents, lcm, lap, snap⟩ := ls
+  obtain ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ := ls
   wp_start as ⟨Hlog, Hes⟩
   iNamed Hlog
   iNamed Hes
@@ -53,7 +53,7 @@ theorem raftLog.findConflict.wp_proof
   ihave IH : iprop(∃ (n k : w64),
       "Hj" ∷ i_ptr ↦ n ∗
       "Hgi" ∷ gi_ptr ↦ k ∗
-      "Hlog" ∷ ownRaftLog l ⟨prev, sents, uents, lcm, lap, snap⟩ ∗
+      "Hlog" ∷ ownRaftLog l ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ ∗
       "Hes" ∷ es ↦*{dq} ents ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (ents.length : Int)⌝ ∗
       "%Hfc" ∷ ⌜plogFindConflict prev (sents ++ uents) ents
@@ -117,7 +117,7 @@ theorem raftLog.findConflict.wp_proof
         wp_auto
         -- the logger is loaded: re-seal before `rw [Hlg]`, which would also rewrite the
         -- `Hl_logger` the re-seal needs
-        ihave Hlog : ownRaftLog l ⟨prev, sents, uents, lcm, lap, snap⟩ $$
+        ihave Hlog : ownRaftLog l ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ $$
           [Hl HStorage Huents Huents_cap]
         · reseal_raftLog
         rw [Hlg]

@@ -1,5 +1,5 @@
 /-
-Port of `election_proof/election.v` (at feb5c73d4), the lemmas after its `Require`s; the
+Port of `election_proof/election.v` (at 857d09190), the lemmas after its `Require`s; the
 `Require`s themselves are `Election.lean` (generated) and `MemstorageInstance.lean`.
 
 ### Refinement of etcd raft's leader election
@@ -33,7 +33,7 @@ Trust boundary. Two kinds, and the layout keeps them apart:
 Nothing in a proof theorem's hypothesis list is an assumption: a callee spec taken as a
 hypothesis (Rocq's `postulates_*.v`, a `Module Type`) is discharged in `Election.lean` by
 the callee's own result, and adds nothing to `#print axioms`. The `#print axioms` at the
-end of this file print the trust base of the three top-level results in the build log.
+end of this file print the trust base of the top-level results in the build log.
 
 Lean notes:
 * `raft_election_safety`'s comment says, as the Rocq does, that it "cannot yet serve
@@ -119,3 +119,6 @@ end Perennial
 #print axioms Perennial.EtcdGrove.raft.wp_Step
 #print axioms Perennial.EtcdGrove.RawNode.wp_Propose
 #print axioms Perennial.EtcdGrove.wp_newRaft
+#print axioms Perennial.EtcdGrove.RawNode.wp_Ready
+#print axioms Perennial.EtcdGrove.RawNode.wp_Advance
+#print axioms Perennial.EtcdGrove.RawNode.wp_HasReady
