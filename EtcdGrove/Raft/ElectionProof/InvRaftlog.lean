@@ -1,5 +1,5 @@
 /-
-Port of `election_proof/inv_raftlog.v` (at feb5c73d4): the raft log.
+Port of `election_proof/inv_raftlog.v` (at 857d09190): the raft log.
 
 `ownRaftLog l` is full ownership of the `raftLog` struct at `l`, together with
 everything that hangs off it: the `unstable` suffix's entry slice and the `Storage`
@@ -98,7 +98,9 @@ is `ownSlice_same_ptr_len`. A Rocq lemma `P -∗ Q -∗ R` is `⊢ P -∗ Q -∗
 `Ltac reseal_raftLog` is the tactic macro `reseal_raftLog` (same hypothesis names).
 `plog_term_at_truncate_append_below` is `plogTermAt_truncateAppend_below`.
 `ownRaftLog_pure` (no Rocq counterpart) is the common proof of the `ownRaftLog_*`
-read-out lemmas.
+read-out lemmas. `stor_app`, `log_persist_ok`, `log_trunc_inprogress` are `storApp`,
+`LogPersistOk`, `logTruncInprogress`. In Rocq `a ≤ b ≤ c` is `a ≤ b ∧ b ≤ c`, written
+out here.
 -/
 import EtcdGrove.Raft.ElectionProof.InvStorage
 import EtcdGrove.Raft.ElectionProof.InvLogger
@@ -317,8 +319,37 @@ theorem plogTermAt_truncateAppend_below (b : entryID) (es ents : List raftpb.Ent
         List.getElem?_take_of_lt (by omega), He]
       exact Ht
 
+/-! ## The storage handshake (2026-10-05)
+
+`storApp sprev stored pend` is what a `Storage` holding `stored` after `sprev` holds
+once the entries `pend` are appended to it the way `MemoryStorage.Append` does
+(`storage.go`): everything at or above the batch's first index is replaced by the
+batch. `Append` is not part of the `Storage` interface raft uses; it is how the
+*application* persists `Ready.Entries`, and this is the state the application has to
+leave the storage in (`ownRaftLog_persist`). -/
+def storApp (sprev : entryID) (stored pend : List raftpb.Entry) : List raftpb.Entry :=
+  match pend with
+  | [] => stored
+  | e0 :: _ =>
+      stored.take (uint.Z e0.Index' - uint.Z sprev.index' - 1).toNat ++ pend
+
+/-- The persistence invariant (`Hpersist` below), with no snapshot pending: the stable
+part followed by the unstable entries already handed to the application
+(`offsetInProgress - offset` of them) is a prefix of what the storage holds once the
+unpersisted entries `pend` are appended -- everything raft has handed out is persisted,
+or is exactly `pend` -- *exactly* when all of the unstable suffix has been handed out
+(the application's truncating append leaves nothing behind it), and with no unstable
+entries nothing is waiting to be persisted. `unstable.stableTo` (an `Advance`) moves
+stable exactly entries this says are persisted, and the equality is what gives
+`LogStoreOk`'s `sents = stored` when it empties the suffix. -/
+def LogPersistOk (sprev : entryID) (stored : List raftpb.Entry)
+    (sents uents : List raftpb.Entry) (ipo : Int) (pend : List raftpb.Entry) : Prop :=
+  (sents ++ uents.take ipo.toNat) <+: storApp sprev stored pend ∧
+  (ipo.toNat = uents.length → sents ++ uents = storApp sprev stored pend) ∧
+  (uents = [] → pend = [])
+
 def ownRaftLogCore (lv : raftLog) (snap : Option entryID) (prev : entryID)
-    (sents uents : List raftpb.Entry) : IProp GF :=
+    (sents uents : List raftpb.Entry) (pend : List raftpb.Entry) : IProp GF :=
   iprop(∃ (sprev : entryID) (stored : List raftpb.Entry) (ss : entryID),
   "%Hidx" ∷ ⌜LogIndicesOk prev (sents ++ uents)⌝ ∗
   "%Hnowrap" ∷ ⌜uint.Z prev.index' + (sents.length : Int)
@@ -339,7 +370,23 @@ def ownRaftLogCore (lv : raftLog) (snap : Option entryID) (prev : entryID)
                     ≤ uint.Z prev.index' + (sents.length : Int) + (uents.length : Int)⌝ ∗
   "%Hssnap" ∷ ⌜snap = none → StoredSnapOk ss lv.committed' prev (sents ++ uents)⌝ ∗
   "#Hl_logger" ∷ isLoggerVal lv.logger' ∗
-  "#Hu_logger" ∷ isLoggerVal lv.unstable'.logger')
+  "#Hu_logger" ∷ isLoggerVal lv.unstable'.logger' ∗
+  -- what `Ready`/`Advance` need (2026-10-05): `offsetInProgress` lies between `offset`
+  -- and the end of the log (`nextEntries` slices at it); the persistence invariant
+  -- (`LogPersistOk`); `applying` between `applied` and `committed` (`nextCommittedEnts`
+  -- slices from `applying+1`); and while applying is not paused there is room under
+  -- `maxApplyingEntsSize` (`nextCommittedEnts`' `Panicf` on `maxSize <= 0`).
+  "%Hipb" ∷ ⌜uint.Z lv.unstable'.offset' ≤ uint.Z lv.unstable'.offsetInProgress' ∧
+             uint.Z lv.unstable'.offsetInProgress'
+               ≤ uint.Z lv.unstable'.offset' + (uents.length : Int)⌝ ∗
+  "%Hpersist" ∷ ⌜snap = none →
+                  LogPersistOk sprev stored sents uents
+                    (uint.Z lv.unstable'.offsetInProgress' - uint.Z lv.unstable'.offset')
+                    pend⌝ ∗
+  "%Happlying" ∷ ⌜uint.Z lv.applied' ≤ uint.Z lv.applying' ∧
+                   uint.Z lv.applying' ≤ uint.Z lv.committed'⌝ ∗
+  "%Hpaused" ∷ ⌜lv.applyingEntsPaused' = false →
+                 uint.Z lv.applyingEntsSize' < uint.Z lv.maxApplyingEntsSize'⌝)
 
 /-- The one predicate for a `raftLog`, indexed by its abstract state `ls` (`LogState`,
 above). -/
@@ -348,15 +395,25 @@ def ownRaftLog (l : Loc) (ls : LogState) : IProp GF :=
   "Hl" ∷ l ↦ lv ∗
   "%Hcm" ∷ ⌜lv.committed' = ls.committed⌝ ∗
   "%Hap" ∷ ⌜lv.applied' = ls.applied⌝ ∗
-  "Hcore" ∷ ownRaftLogCore lv ls.snap ls.prev ls.sents ls.uents)
+  "%Hapg" ∷ ⌜lv.applying' = ls.applying⌝ ∗
+  "%Hip" ∷ ⌜lv.unstable'.offsetInProgress' = ls.inprogress⌝ ∗
+  "%Hasz" ∷ ⌜lv.applyingEntsSize' = ls.apsize⌝ ∗
+  "%Hamx" ∷ ⌜lv.maxApplyingEntsSize' = ls.apmax⌝ ∗
+  "Hcore" ∷ ownRaftLogCore lv ls.snap ls.prev ls.sents ls.uents ls.unpersisted)
 
 /-- Open and close `ownRaftLog` with the entry list as variables -- the form every
 `raftLog` proof works at after `cases ls`. -/
 theorem ownRaftLog_unfold (l : Loc) (prev : entryID) (sents uents : List raftpb.Entry)
-    (cm ap : w64) (snap : Option entryID) :
-    ownRaftLog (GF := GF) l ⟨prev, sents, uents, cm, ap, snap⟩ ⊣⊢
+    (cm ap : w64) (snap : Option entryID) (ip apg : w64) (pend : List raftpb.Entry)
+    (asz amx : w64) :
+    ownRaftLog (GF := GF) l ⟨prev, sents, uents, cm, ap, snap, ip, apg, pend, asz, amx⟩ ⊣⊢
     ∃ lv, l ↦ lv ∗ ⌜lv.committed' = cm⌝ ∗
-          ⌜lv.applied' = ap⌝ ∗ ownRaftLogCore lv snap prev sents uents := by
+          ⌜lv.applied' = ap⌝ ∗
+          ⌜lv.applying' = apg⌝ ∗
+          ⌜lv.unstable'.offsetInProgress' = ip⌝ ∗
+          ⌜lv.applyingEntsSize' = asz⌝ ∗
+          ⌜lv.maxApplyingEntsSize' = amx⌝ ∗
+          ownRaftLogCore lv snap prev sents uents pend := by
   unfold ownRaftLog; simp only [named]; exact .rfl
 
 /-- Re-seal `ownRaftLog` from the pieces `iNamed Hlog; iNamed Hcore` names. **Use this
@@ -368,7 +425,8 @@ then `rfl` or `Hstok`. The `reseal_raftLog` tactic below applies it with the sta
 names and closes the pure premises by assumption. -/
 theorem ownRaftLog_intro (l : Loc) (lv : raftLog) (st : Storage) (snap : Option entryID)
     (prev : entryID) (sents uents : List raftpb.Entry) (cm ap : w64) (sprev : entryID)
-    (stored : List raftpb.Entry) (ss : entryID) :
+    (stored : List raftpb.Entry) (ss : entryID) (ip apg : w64) (pend : List raftpb.Entry)
+    (asz amx : w64) :
     lv.storage' = st →
     lv.committed' = cm →
     lv.applied' = ap →
@@ -381,6 +439,18 @@ theorem ownRaftLog_intro (l : Loc) (lv : raftLog) (st : Storage) (snap : Option 
     (snap = none → uint.Z prev.index' ≤ uint.Z lv.applied') →
     uint.Z lv.committed' ≤ uint.Z prev.index' + (sents.length : Int) + (uents.length : Int) →
     (snap = none → StoredSnapOk ss lv.committed' prev (sents ++ uents)) →
+    lv.applying' = apg →
+    lv.unstable'.offsetInProgress' = ip →
+    uint.Z lv.unstable'.offset' ≤ uint.Z lv.unstable'.offsetInProgress' ∧
+      uint.Z lv.unstable'.offsetInProgress' ≤ uint.Z lv.unstable'.offset' + (uents.length : Int) →
+    (snap = none →
+      LogPersistOk sprev stored sents uents
+        (uint.Z lv.unstable'.offsetInProgress' - uint.Z lv.unstable'.offset') pend) →
+    uint.Z lv.applied' ≤ uint.Z lv.applying' ∧ uint.Z lv.applying' ≤ uint.Z lv.committed' →
+    (lv.applyingEntsPaused' = false →
+      uint.Z lv.applyingEntsSize' < uint.Z lv.maxApplyingEntsSize') →
+    lv.applyingEntsSize' = asz →
+    lv.maxApplyingEntsSize' = amx →
     ⊢ l ↦ lv -∗
       isStorage (GF := GF) st -∗
       ownStorage st sprev stored ss -∗
@@ -389,9 +459,9 @@ theorem ownRaftLog_intro (l : Loc) (lv : raftLog) (st : Storage) (snap : Option 
       ownSliceCap raftpb.Entry lv.unstable'.entries' (DFrac.own 1) -∗
       isLoggerVal lv.logger' -∗
       isLoggerVal lv.unstable'.logger' -∗
-      ownRaftLog l ⟨prev, sents, uents, cm, ap, snap⟩ := by
+      ownRaftLog l ⟨prev, sents, uents, cm, ap, snap, ip, apg, pend, asz, amx⟩ := by
   intro Hst Hcm Hap Hidx Hnowrap Hstore Hoffset HnoConfChange Happlied Hpapplied
-    Hcommitted Hssnap
+    Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying Hpaused Hasz Hamx
   subst Hst
   iintro Hl #HisStorage HStorage #Husnap #Huents Huents_cap #Hl_logger #Hu_logger
   unfold ownRaftLog ownRaftLogCore
@@ -400,11 +470,15 @@ theorem ownRaftLog_intro (l : Loc) (lv : raftLog) (st : Storage) (snap : Option 
   iframe Hl
   isplitr; · ipureintro; exact Hcm
   isplitr; · ipureintro; exact Hap
+  isplitr; · ipureintro; exact Hapg
+  isplitr; · ipureintro; exact Hip
+  isplitr; · ipureintro; exact Hasz
+  isplitr; · ipureintro; exact Hamx
   iexists sprev, stored, ss
   iframe HisStorage HStorage Husnap Huents Huents_cap Hl_logger Hu_logger
   ipureintro
   exact ⟨Hidx, Hnowrap, Hstore, Hoffset, HnoConfChange, Happlied, Hpapplied, Hcommitted,
-    Hssnap⟩
+    Hssnap, Hipb, Hpersist, Happlying, Hpaused⟩
 
 /-- The struct, for a field read. `committed` and `applied` are what the state says
 they are. -/
@@ -424,7 +498,92 @@ theorem ownRaftLog_struct (l : Loc) (ls : LogState) :
   · iintro Hl
     iexists lv
     iframe Hl Hcore
-    ipureintro; exact ⟨Hcm, Hap⟩
+    ipureintro; exact ⟨Hcm, Hap, Hapg, Hip, Hasz, Hamx⟩
+
+/-- The `Ready`-side facts, read out without consuming the log: `inprogress` between
+`offset` and the end of the log, and `applying` between `applied` and `committed`. -/
+theorem ownRaftLog_ready_wf (l : Loc) (ls : LogState) :
+    ⊢ ownRaftLog (GF := GF) l ls -∗
+      ⌜(uint.Z ls.prev.index' + (ls.sents.length : Int) + 1 ≤ uint.Z ls.inprogress ∧
+        uint.Z ls.inprogress ≤ uint.Z ls.prev.index' + (ls.sents.length : Int)
+          + (ls.uents.length : Int) + 1) ∧
+       (uint.Z ls.applied ≤ uint.Z ls.applying ∧ uint.Z ls.applying ≤ uint.Z ls.committed)⌝ ∗
+      ownRaftLog l ls := by
+  iintro H0
+  unfold ownRaftLog
+  icases H0 with ⟨%lv, H0⟩
+  iNamed H0
+  unfold ownRaftLogCore
+  icases Hcore with ⟨%sprev, %stored, %ss, Hcore⟩
+  iNamed Hcore
+  isplitr
+  · ipureintro
+    rw [← Hip, ← Hapg, ← Hcm, ← Hap]
+    omega
+  · iexists lv
+    simp only [named]
+    iframe Hl
+    isplitr; · ipureintro; exact Hcm
+    isplitr; · ipureintro; exact Hap
+    isplitr; · ipureintro; exact Hapg
+    isplitr; · ipureintro; exact Hip
+    isplitr; · ipureintro; exact Hasz
+    isplitr; · ipureintro; exact Hamx
+    iexists sprev, stored, ss
+    iframe HisStorage HStorage Husnap Huents Huents_cap Hl_logger Hu_logger
+    ipureintro
+    exact ⟨Hidx, Hnowrap, Hstore, Hoffset, HnoConfChange, Happlied, Hpapplied, Hcommitted,
+      Hssnap, Hipb, Hpersist, Happlying, Hpaused⟩
+
+/-- The storage handshake's application side (2026-10-05): the `Storage` the log owns,
+opened so that the application can append the unpersisted entries to it, and closed at
+the state that leaves -- `storApp` of the entries `Ready` handed out, which is what
+`MemoryStorage.Append(rd.Entries)` does. The log then records nothing unpersisted.
+
+This is an accessor, not a loan: nothing else may be called on the log while it is
+open. A loan -- the storage out of `ownRaftLog` across calls, recorded in `LogState` --
+was the first design and does not work: `Step` between `Ready` and `Advance` is legal
+in Go, and `Step` reads the storage on most of its paths (`term` of a stable index for
+`matchTerm`/`findConflict`, `lastIndex` with an empty unstable part, `firstIndex` in
+every `term`/`slice`, `slice` and `snapshot` for a leader's `maybeSendAppend`), so
+`Step` could not keep its spec with the storage lent out. -/
+theorem ownRaftLog_persist (l : Loc) (ls : LogState) :
+    ⊢ ownRaftLog (GF := GF) l ls -∗
+      ∃ (st : Storage) (sprev : entryID) (stored : List raftpb.Entry) (ss : entryID),
+        isStorage st ∗ ownStorage st sprev stored ss ∗
+        (ownStorage st sprev (storApp sprev stored ls.unpersisted) ss -∗
+         ownRaftLog l { ls with unpersisted := [] }) := by
+  obtain ⟨prev, sents, uents, cm, ap, snap, ip, apg, pend, asz, amx⟩ := ls
+  iintro H
+  icases (ownRaftLog_unfold (GF := GF) l prev sents uents cm ap snap ip apg pend asz amx).1 $$ H
+    with ⟨%lv, Hl, %Hcm, %Hap, %Hapg, %Hip, %Hasz, %Hamx, Hcore⟩
+  unfold ownRaftLogCore
+  icases Hcore with ⟨%sprev, %stored, %ss, Hcore⟩
+  iNamed Hcore
+  iexists lv.storage', sprev, stored, ss
+  iframe HisStorage HStorage
+  iintro HStorage
+  have Hstore' : LogStoreOk snap sprev (storApp sprev stored pend) prev sents uents := by
+    cases snap with
+    | some sid => exact Hstore
+    | none =>
+      obtain ⟨Hpre, _, Hpe⟩ := Hpersist rfl
+      obtain ⟨Hsp, _, Hsu⟩ := Hstore
+      refine ⟨Hsp, (List.prefix_append sents _).trans Hpre, ?_⟩
+      intro Hu
+      rw [Hpe Hu]
+      exact Hsu Hu
+  have Hpersist' : snap = none →
+      LogPersistOk sprev (storApp sprev stored pend) sents uents
+        (uint.Z lv.unstable'.offsetInProgress' - uint.Z lv.unstable'.offset') [] := by
+    intro Hs
+    obtain ⟨Hpre, Heq, _⟩ := Hpersist Hs
+    exact ⟨Hpre, Heq, fun _ => rfl⟩
+  iapply ownRaftLog_intro l lv lv.storage' snap prev sents uents cm ap sprev
+    (storApp sprev stored pend) ss ip apg [] asz amx rfl Hcm Hap Hidx Hnowrap Hstore'
+    Hoffset HnoConfChange Happlied Hpapplied Hcommitted Hssnap Hapg Hip Hipb Hpersist'
+    Happlying Hpaused Hasz Hamx $$ Hl HisStorage HStorage Husnap Huents Huents_cap
+    Hl_logger Hu_logger
 
 /-- Read a pure fact of `ownRaftLogCore` out of `ownRaftLog`, without consuming it. The
 common shape of the `ownRaftLog_*` lemmas below (Rocq proves each by `iNamed`; `iFrame
@@ -458,11 +617,15 @@ theorem ownRaftLog_pure (l : Loc) (ls : LogState) (φ : Prop)
     iframe Hl
     isplitr; · ipureintro; exact Hcm
     isplitr; · ipureintro; exact Hap
+    isplitr; · ipureintro; exact Hapg
+    isplitr; · ipureintro; exact Hip
+    isplitr; · ipureintro; exact Hasz
+    isplitr; · ipureintro; exact Hamx
     iexists sprev, stored, ss
     iframe HisStorage HStorage Husnap Huents Huents_cap Hl_logger Hu_logger
     ipureintro
     exact ⟨Hidx, Hnowrap, Hstore, Hoffset, HnoConfChange, Happlied, Hpapplied, Hcommitted,
-      Hssnap⟩
+      Hssnap, Hipb, Hpersist, Happlying, Hpaused⟩
 
 /-- `Hnowrap`, read out without consuming the log. Needed to know `lastIndex() + 1`
 does not wrap, which is what makes the range premises of `raftLog.slice` and
@@ -523,6 +686,44 @@ theorem stored_take_visible (prev : entryID) (sents stored : List raftpb.Entry) 
   rw [List.take_append_of_le_length (by omega)] at He
   exact List.mem_of_mem_take He
 
+/-- `offsetInProgress` after `unstable.truncateAndAppend` of a batch starting at `f`:
+unchanged when the batch continues the log (the `append` arm), otherwise
+`min(offsetInProgress, f)` -- the replace arm sets it to `f` (the new offset, at or
+below the old one), the truncate arm to `min(offsetInProgress, f)`. (2026-10-05) -/
+def logTruncInprogress (ls : LogState) (f : w64) : w64 :=
+  if uint.Z f < uint.Z ls.prev.index' + (ls.sents.length : Int)
+                  + (ls.uents.length : Int) + 1
+  then (if uint.Z f < uint.Z ls.inprogress then f else ls.inprogress)
+  else ls.inprogress
+
+omit [GoGlobalContext] in
+/-- The persistence invariant survives `truncateAndAppend`: what is handed out
+afterwards (`k'` unstable entries past a stable part cut at the batch's position `m`) is
+a prefix of what was handed out before (`kip` past the old stable part). `k'` is what
+`logTruncInprogress` leaves: `kip` when the batch continues the log, at most `kip` and
+at most the kept part of the suffix otherwise. -/
+theorem persist_prefix_truncate {A : Type _} (sents uents ents : List A) (m kip k' : Nat)
+    (Hkip : kip ≤ uents.length)
+    (Hm : m ≤ sents.length + uents.length)
+    (Hlt : m < sents.length + uents.length → k' ≤ kip ∧ k' ≤ m - sents.length)
+    (Heq : m = sents.length + uents.length → k' = kip) :
+    (sents.take m ++ (uents.take (m - sents.length) ++ ents).take k')
+      <+: (sents ++ uents.take kip) := by
+  by_cases He : m = sents.length + uents.length
+  · rw [Heq He, He, List.take_of_length_le (by omega),
+      show sents.length + uents.length - sents.length = uents.length by omega,
+      List.take_of_length_le (Nat.le_refl _), List.take_append_of_le_length Hkip]
+    exact List.prefix_refl _
+  · obtain ⟨Hk1, Hk2⟩ := Hlt (by omega)
+    by_cases Hge : sents.length ≤ m
+    · rw [List.take_of_length_le Hge]
+      apply List.prefix_append_right_inj sents |>.2
+      rw [List.take_append_of_le_length (by rw [List.length_take]; omega), List.take_take,
+        show min k' (m - sents.length) = min k' kip by omega, ← List.take_take]
+      exact List.take_prefix _ _
+    · rw [show k' = 0 by omega, List.take_zero, List.append_nil]
+      exact (List.take_prefix _ _).trans (List.prefix_append _ _)
+
 /-! ## Appending with truncation (`raftLog.append`)
 
 `logTruncateAppend ls ents` is the log state `raftLog.append(ents)` leaves: everything
@@ -539,7 +740,8 @@ def logTruncateAppend (ls : LogState) (ents : List raftpb.Entry) : LogState :=
       { ls with
           sents := ls.sents.take (uint.Z e0.Index' - uint.Z ls.prev.index' - 1).toNat,
           uents := ls.uents.take (uint.Z e0.Index' - uint.Z ls.prev.index' - 1
-                                   - (ls.sents.length : Int)).toNat ++ ents }
+                                   - (ls.sents.length : Int)).toNat ++ ents,
+          inprogress := logTruncInprogress ls e0.Index' }
 
 /-- Whether `unstable.truncateAndAppend` takes its replace arm and adopts the caller's
 slice as `u.entries`: the batch starts at or below `u.offset` and does not simply
@@ -567,6 +769,8 @@ theorem logTruncateAppend_cont (ls : LogState) (ents : List raftpb.Entry)
     simp only [logTruncateAppend, logAdopts, logAppend]
     refine ⟨?_, ?_⟩
     · rw [List.take_of_length_le (by omega), List.take_of_length_le (by omega)]
+      simp only [logTruncInprogress, show ¬ (uint.Z e0.Index' < uint.Z ls.prev.index'
+        + (ls.sents.length : Int) + (ls.uents.length : Int) + 1) by omega, ite_false]
     · simp only [decide_eq_false_iff_not]; omega
 
 /-- Read a slice's length as an `Int`, without consuming the slice. -/
@@ -655,7 +859,7 @@ introduced (`ownRaftLog_intro`). The pure premises are closed by reducible `rfl`
 `assumption` (Rocq `try done`; a plain `assumption` runs out of recursion depth on the
 `2^64` bounds). -/
 macro "reseal_raftLog" : tactic =>
-  `(tactic| (iapply Perennial.EtcdGrove.ownRaftLog_intro _ _ _ _ _ _ _ _ _ _ _ _ $$ Hl HisStorage HStorage Husnap Huents Huents_cap Hl_logger Hu_logger) <;>
+  `(tactic| (iapply Perennial.EtcdGrove.ownRaftLog_intro _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ $$ Hl HisStorage HStorage Husnap Huents Huents_cap Hl_logger Hu_logger) <;>
     try (first | with_reducible rfl | with_reducible assumption))
 
 end EtcdGrove

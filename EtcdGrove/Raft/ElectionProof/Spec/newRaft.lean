@@ -1,4 +1,4 @@
-/- Port of election_proof/spec_newRaft.v (feb5c73d4).
+/- Port of election_proof/spec_newRaft.v (857d09190).
 
 # `newRaft`: the constructor of `ownRaftPhys`
 
@@ -106,6 +106,12 @@ abbrev newRaft.spec : Prop :=
   sint.Z cv.MaxInflightMsgs' < 2 ^ 62 →
   cv.CheckQuorum' = false →
   cv.DisableProposalForwarding' = false →
+  -- a positive applying-size limit (2026-10-05): with both `MaxCommittedSizePerReady`
+  -- and `MaxSizePerMsg` zero -- `validate` accepts that, and the documentation reads
+  -- `MaxSizePerMsg = 0` as "at most one entry per message" -- the log starts with
+  -- `maxApplyingEntsSize = 0` and applying unpaused, and the first `Ready` with a
+  -- committed entry reaches `nextCommittedEnts`' `Panicf` (`maxSize <= 0`)
+  (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
   -- the stored log
   LogIndicesOk prev ents →
   (∀ e ∈ ents, e.Type' = EntryNormal) →

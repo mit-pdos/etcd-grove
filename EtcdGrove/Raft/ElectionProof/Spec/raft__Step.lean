@@ -1,4 +1,4 @@
-/- Port of election_proof/spec_raft__Step.v (feb5c73d4).
+/- Port of election_proof/spec_raft__Step.v (857d09190).
 
 Lean notes:
 * The spec mentions ghost state (`ownRaftGhost`, `isMessage`, `propAu`, `isProp`,
@@ -16,13 +16,16 @@ Lean notes:
   imports `spec_raft__restore` before `step_lemmas` so that the model's `step` wins over
   any other `step` in scope; in Lean the model relation is `Step` and there is no
   clash.
-* Rocq's `step_msg_types`/`step_msg` are `stepMsgTypes`/`StepMsg`.
+* Rocq's `step_msg_types`/`step_msg` are `stepMsgTypes`/`StepMsg`; stdpp's
+  `list.last` is `List.getLast?`.
 * The context's existential is typed `ctx : List w8` (Rocq infers it from `↦*□` and
   the comparison with the `go_string` `campaignTransfer`).
 * `[∗ list] e;Q ∈ ents;Qs, …` is `bigSepL2`; Rocq's `word.add (word.add (plast_index
   ps) (W64 1)) (W64 k)` (`k : nat`) is `plastIndex ps + W64 1 + W64 (k : Int)`.
 -/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
+-- `StableOk`, for `MsgStorageAppendResp` (2026-10-05)
+import EtcdGrove.Raft.ElectionProof.InvReadylog
 -- `SnapScope`, for `MsgSnap`
 import EtcdGrove.Raft.ElectionProof.Spec.raft__restore
 import EtcdGrove.Raft.ElectionProof.StepLemmas
@@ -40,10 +43,13 @@ open Iris Iris.BI go_etcd_io.raft.v3
 
 /-- The message types `Step` is specified for: every type its branches cover
 (2026-10-02; until then only `MsgHup`/`MsgVote`/`MsgVoteResp`, `ElectionMsg`;
-`MsgPreVote`/`MsgPreVoteResp` since 2026-10-04). -/
+`MsgPreVote`/`MsgPreVoteResp` since 2026-10-04; the two local storage acknowledgements
+`RawNode.Advance` steps, `MsgStorageAppendResp`/`MsgStorageApplyResp`, since
+2026-10-05). -/
 def stepMsgTypes : List w32 :=
   [MsgHup, MsgVote, MsgVoteResp, MsgApp, MsgAppResp, MsgHeartbeat,
-   MsgHeartbeatResp, MsgBeat, MsgProp, MsgSnap, MsgPreVote, MsgPreVoteResp]
+   MsgHeartbeatResp, MsgBeat, MsgProp, MsgSnap, MsgPreVote, MsgPreVoteResp,
+   MsgStorageAppendResp, MsgStorageApplyResp]
 
 def StepMsg [FfiSyntax] (m : raftpb.Message) : Prop :=
   m.Type' ∈ stepMsgTypes
@@ -159,6 +165,22 @@ abbrev raft.Step.spec : Prop :=
   (m.Type' = MsgProp →
      m.Term' = W64 0 ∧
      (m.From' = W64 0 ∨ m.From' = id)) →
+  -- The two local acknowledgements `RawNode.Advance` steps (2026-10-05), as
+  -- `acceptReady` builds them (`InvRawnode.lean`, `appendAckMsg`, `applyAckMsg`). A
+  -- `MsgStorageAppendResp` carries no snapshot (a pending snapshot is out of `Ready`'s
+  -- scope; `appliedSnap` is phase 2), is not from a later term (it would make the node
+  -- step down to a term no message brought), and -- when its `stableTo` runs (`Term`
+  -- `0` or current, a nonzero `Index`) -- acknowledges only persisted entries
+  -- (`StableOk`: Go compares only the term at `Index`). A `MsgStorageApplyResp` is
+  -- local (`Term = 0`); its entries' last index is committed (the bound is in `"Hm"`,
+  -- where the list is named).
+  (m.Type' = MsgStorageAppendResp →
+     m.Snapshot' = null ∧
+     uint.Z m.Term' ≤ uint.Z s.term ∧
+     (m.Term' = W64 0 ∨ m.Term' = s.term →
+      m.Index' ≠ W64 0 →
+      StableOk s.logst (entryID.mk m.LogTerm' m.Index'))) →
+  (m.Type' = MsgStorageApplyResp → m.Term' = W64 0) →
   -- The one place the two layers meet. `s` is the physical abstract state
   -- `ownRaftPhys` is indexed by, `ps` the protocol state the ghost state is about,
   -- and `NStateRel` (`Defs.lean`) connects them: `ps` is `s`'s protocol fields,
@@ -189,6 +211,9 @@ abbrev raft.Step.spec : Prop :=
                       ents ≠ [] ∧
                       (∀ e ∈ ents, e.Type' = EntryNormal) ∧
                       (ents.length : Int) < 2^61⌝ ∗
+         "%Happly" ∷ ⌜m.Type' = MsgStorageApplyResp →
+                       ∀ e, ents.getLast? = some e →
+                       uint.Z e.Index' ≤ uint.Z s.logst.committed⌝ ∗
          "#Hmsg" ∷ □ (∀ ty, ⌜mtypeOf m.Type' = some ty⌝ -∗
                             ⌜ty ≠ .snap⌝ -∗
                             isMessage γ (absMsg ty m ents))) ∗

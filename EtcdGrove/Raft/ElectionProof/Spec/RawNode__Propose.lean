@@ -1,4 +1,4 @@
-/- Port of election_proof/spec_RawNode__Propose.v (feb5c73d4).
+/- Port of election_proof/spec_RawNode__Propose.v (857d09190).
 
 ## `RawNode.Propose` (rawnode.go:90), the client's entry point
 
@@ -20,9 +20,9 @@ Entries: []pb.Entry{{Data: data}}})` -- a one-entry batch whose entry is the zer
   update comes back unrun. A forwarded proposal is not tracked: when the leader appends
   it, the update is not there (the forwarded `MsgProp` carries no ghost state).
 
-**The `RawNode` is taken raw** (2026-10-06): the points-to of the struct at `rn`, whose
-`raft` field is `r`, next to `ownRaftPhys` of `r` and the ghost state. To be folded
-into `ownRawNode` (being written on another branch, `inv_rawnode.v`) when that lands.
+The `RawNode` is `ownRawNode` (`InvRawnode.lean`; folded in on 2026-10-06 when the
+RawNode branch merged): `Propose` only steps `rn.raft`, so the `RawNode`'s own state
+`rs` is unchanged.
 
 `From: rn.raft.id` is why `Step`'s `MsgProp` premise and `send`'s `From` premise admit
 `From = id` since 2026-10-06.
@@ -35,6 +35,7 @@ Lean notes:
 * Rocq's `word.add (plast_index ps) (W64 1)` is `plastIndex ps + W64 1`.
 -/
 import EtcdGrove.Raft.ElectionProof.Spec.raft__Step
+import EtcdGrove.Raft.ElectionProof.InvRawnode
 
 noncomputable section
 
@@ -59,25 +60,21 @@ variable [AllG GF]
 /-- See the file header. -/
 abbrev RawNode.Propose.spec : Prop :=
   ∀ (cfg : GSet w64) (γ : RaftElectionNames)
-    (rn : Loc) (rnv : RawNode) (r : Loc) (id : w64)
-    (s : NState) (ps : PState)
+    (rn : Loc) (id : w64)
+    (s : NState) (ps : PState) (rs : RNState)
     (data_sl : GoSlice) (data : List w8) (Q : w64 → w64 → IProp GF),
   -- `Step`'s premises that are not about the message
   γ.reCfg = cfg →
   id ∈ cfg →
   NStateRel s ps →
-  rnv.raft' = r →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      -- to become `ownRawNode` (see above)
-      "Hrn" ∷ rn ↦ rnv ∗
-      "Hphys" ∷ ownRaftPhys cfg r id s ∗
+      "Hrn" ∷ ownRawNode cfg rn id s rs ∗
       "Hghost" ∷ ownRaftGhost γ id ps ∗
       "#Hdata" ∷ data_sl ↦*□ data ∗
       "Hau" ∷ propAu γ (propEntry data_sl) Q }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Propose")) (Val #data_sl))
   {{ (err : GoInterface) (s' : NState) (ps' : PState), RET #err;
-      "Hrn" ∷ rn ↦ rnv ∗
-      "Hphys" ∷ ownRaftPhys cfg r id s' ∗
+      "Hrn" ∷ ownRawNode cfg rn id s' rs ∗
       "Hghost" ∷ ownRaftGhost γ id ps' ∗
       "%Hrel" ∷ ⌜NStateRel s' ps'⌝ ∗
       "%Hrefines" ∷ ⌜∃ recv, Step cfg id ps recv ps'⌝ ∗

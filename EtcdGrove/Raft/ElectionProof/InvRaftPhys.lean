@@ -1,5 +1,5 @@
 /-
-Port of `election_proof/inv_raft_phys.v` (at feb5c73d4): physical ownership of the raft
+Port of `election_proof/inv_raft_phys.v` (at 857d09190): physical ownership of the raft
 struct.
 
 ## Physical ownership of the raft struct
@@ -560,7 +560,7 @@ theorem raft.wp_load_pendingReadIndexMessages (r : Loc) (id : w64) (s : NState) 
   iintro %Φ H HΦ
   iNamed_phys H
   iunfold ownRaftMisc at Hmisc
-  icases Hmisc with ⟨%rss, %rr, Hmisc⟩
+  icases Hmisc with ⟨%rr, Hmisc⟩
   iNamed Hmisc
   ihave %Hl := ownSlice_len _ _ _ $$ Hpri
   wp_apply wp_load_access _ rv.pendingReadIndexMessages' $$ Hr as Hr
@@ -569,7 +569,7 @@ theorem raft.wp_load_pendingReadIndexMessages (r : Loc) (id : w64) (s : NState) 
   · ihave Hmisc : ownRaftMisc (GF := GF) rv.readStates' rv.readOnly'
         rv.pendingReadIndexMessages' $$ [HreadStates HreadStates_cap Hro_obj Hpri Hpri_cap]
     · unfold ownRaftMisc
-      iexists rss, rr
+      iexists rr
       simp only [named]
       iframe HreadStates HreadStates_cap Hro_obj Hpri Hpri_cap
       ipureintro; exact Hro_pending
@@ -874,6 +874,48 @@ private theorem raft_split_msgsAA (l : Loc) (rv : raft) :
       (∀ x, l.[raft, go!"msgsAfterAppend"] ↦ x -∗ l ↦ { rv with msgsAfterAppend' := x }) := by
   split_field_proof ⟨_, _, _, _, _, _, _, _, _, _, _, Hx, Hrest⟩
 
+/-- The fields `RawNode.Ready`/`HasReady` touch, out of the struct at once (2026-10-05).
+`readyWithoutAccept` sets `rd.Messages := r.msgs` and appends `r.msgsAfterAppend`'s
+outgoing messages to it -- *in place*, into `r.msgs`' spare capacity -- and only
+`acceptReady` then sets both queues to `nil`; in between it reads `r.id`, `r.Term`,
+`r.raftLog` and the log. The struct is not `ownRaftPhys` in between (the queue's slack
+belongs to `rd.Messages`, and a `send` would overwrite it), so the whole of `Ready` is
+proved with the struct open through this accessor: the scalar fields it reads, the two
+queues with their contents and capacity, the log, and a wand that takes them back with
+any queues, any abstract outbox they relate to, and the log at any state. `readStates`
+comes with its length, `0` in scope (`ownRaftMisc`). -/
+private theorem raft_split_view (l : Loc) (rv : raft) :
+    ⊢ (l ↦ rv : IProp GF) -∗
+      l.[raft, go!"id"] ↦ rv.id' ∗
+      l.[raft, go!"Term"] ↦ rv.Term' ∗
+      l.[raft, go!"Vote"] ↦ rv.Vote' ∗
+      l.[raft, go!"readStates"] ↦ rv.readStates' ∗
+      l.[raft, go!"raftLog"] ↦ rv.raftLog' ∗
+      l.[raft, go!"state"] ↦ rv.state' ∗
+      l.[raft, go!"msgs"] ↦ rv.msgs' ∗
+      l.[raft, go!"msgsAfterAppend"] ↦ rv.msgsAfterAppend' ∗
+      l.[raft, go!"lead"] ↦ rv.lead' ∗
+      (∀ x y, l.[raft, go!"id"] ↦ rv.id' -∗
+              l.[raft, go!"Term"] ↦ rv.Term' -∗
+              l.[raft, go!"Vote"] ↦ rv.Vote' -∗
+              l.[raft, go!"readStates"] ↦ rv.readStates' -∗
+              l.[raft, go!"raftLog"] ↦ rv.raftLog' -∗
+              l.[raft, go!"state"] ↦ rv.state' -∗
+              l.[raft, go!"msgs"] ↦ x -∗
+              l.[raft, go!"msgsAfterAppend"] ↦ y -∗
+              l.[raft, go!"lead"] ↦ rv.lead' -∗
+              l ↦ { rv with msgs' := x, msgsAfterAppend' := y }) := by
+  rw [typedPointsto_unseal_eq l rv]
+  iintro ⟨Hf, %Hnn⟩
+  simp only [TypedPointsto.typedPointstoDef]
+  icases Hf with ⟨Hid, HTerm, HVote, Hrs, Hlog, _, _, _, Hst, _, Hm, Hma, Hld, Hrest⟩
+  iframe Hid HTerm HVote Hrs Hlog Hst Hm Hma Hld
+  iintro %x %y Hid HTerm HVote Hrs Hlog Hst Hm Hma Hld
+  rw [typedPointsto_unseal_eq (V := raft) l]
+  simp only [TypedPointsto.typedPointstoDef]
+  iframe
+  ipureintro; exact Hnn
+
 private theorem raft_split_readOnly (l : Loc) (rv : raft) :
     ⊢ (l ↦ rv : IProp GF) -∗
       l.[raft, go!"readOnly"] ↦ rv.readOnly' ∗
@@ -1145,7 +1187,7 @@ theorem ownRaftPhys_readOnly (r : Loc) (id : w64) (s : NState) :
   iintro H
   iNamed_phys H
   iunfold ownRaftMisc at Hmisc
-  icases Hmisc with ⟨%rss, %rr, Hmisc⟩
+  icases Hmisc with ⟨%rr, Hmisc⟩
   iNamed Hmisc
   icases raft_split_readOnly r rv $$ Hr with ⟨Hf, Hback⟩
   iexists rv.readOnly', rr
@@ -1157,11 +1199,111 @@ theorem ownRaftPhys_readOnly (r : Loc) (id : w64) (s : NState) :
   ihave Hmisc : ownRaftMisc (GF := GF) rv.readStates' ro' rv.pendingReadIndexMessages'
       $$ [HreadStates HreadStates_cap Hro_obj Hpri Hpri_cap]
   · unfold ownRaftMisc
-    iexists rss, rr'
+    iexists rr'
     simp only [named]
     iframe HreadStates HreadStates_cap Hro_obj Hpri Hpri_cap
     ipureintro; exact Hpend'
   reseal s
+
+/-- Rocq `own_raft_phys_view`: the struct open for `RawNode.Ready` (see
+`raft_split_view`). -/
+theorem ownRaftPhys_view (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhys (GF := GF) cfg r id s -∗
+      iprop(∃ (rs sl1 sl2 : GoSlice) (ms1 ms2 : List raftpb.Message),
+        "Hf_id" ∷ r.[raft, go!"id"] ↦ id ∗
+        "Hf_Term" ∷ r.[raft, go!"Term"] ↦ s.term ∗
+        "Hf_Vote" ∷ r.[raft, go!"Vote"] ↦ s.vote ∗
+        "Hf_readStates" ∷ r.[raft, go!"readStates"] ↦ rs ∗
+        "%Hrs" ∷ ⌜rs.len = W64 0⌝ ∗
+        "Hf_raftLog" ∷ r.[raft, go!"raftLog"] ↦ s.log ∗
+        "Hf_state" ∷ r.[raft, go!"state"] ↦ stateW64 s.role ∗
+        "Hf_lead" ∷ r.[raft, go!"lead"] ↦ s.lead ∗
+        "Hf_msgs" ∷ r.[raft, go!"msgs"] ↦ sl1 ∗ "Hmsgs" ∷ sl1 ↦* ms1 ∗
+        "Hmsgs_cap" ∷ ownSliceCap raftpb.Message sl1 (DFrac.own 1) ∗
+        "Hf_msgsAA" ∷ r.[raft, go!"msgsAfterAppend"] ↦ sl2 ∗ "HmsgsAA" ∷ sl2 ↦* ms2 ∗
+        "HmsgsAA_cap" ∷ ownSliceCap raftpb.Message sl2 (DFrac.own 1) ∗
+        "#Houtbox" ∷ outboxRel s.outbox ms1 ms2 ∗
+        "Hlog" ∷ ownRaftLog s.log s.logst ∗
+        "Hclose" ∷ (∀ (sl1' sl2' : GoSlice) (ms1' ms2' : List raftpb.Message) (o : List Msg)
+                      (ls' : LogState),
+            r.[raft, go!"id"] ↦ id -∗
+            r.[raft, go!"Term"] ↦ s.term -∗
+            r.[raft, go!"Vote"] ↦ s.vote -∗
+            r.[raft, go!"readStates"] ↦ rs -∗
+            r.[raft, go!"raftLog"] ↦ s.log -∗
+            r.[raft, go!"state"] ↦ stateW64 s.role -∗
+            r.[raft, go!"lead"] ↦ s.lead -∗
+            r.[raft, go!"msgs"] ↦ sl1' -∗ sl1' ↦* ms1' -∗
+            ownSliceCap raftpb.Message sl1' (DFrac.own 1) -∗
+            r.[raft, go!"msgsAfterAppend"] ↦ sl2' -∗ sl2' ↦* ms2' -∗
+            ownSliceCap raftpb.Message sl2' (DFrac.own 1) -∗
+            outboxRel o ms1' ms2' -∗
+            ownRaftLog s.log ls' -∗
+            ownRaftPhys cfg r id { s with outbox := o, logst := ls' })) := by
+  iintro H
+  iNamed_phys H
+  iunfold ownRaftMisc at Hmisc
+  icases Hmisc with ⟨%rr, Hmisc⟩
+  iNamed Hmisc
+  ihave %Hrl := ownSlice_len _ _ _ $$ HreadStates
+  ihave Hmisc : ownRaftMisc (GF := GF) rv.readStates' rv.readOnly'
+      rv.pendingReadIndexMessages' $$ [HreadStates HreadStates_cap Hro_obj Hpri Hpri_cap]
+  · unfold ownRaftMisc
+    iexists rr
+    simp only [named]
+    iframe HreadStates HreadStates_cap Hro_obj Hpri Hpri_cap
+    ipureintro; exact Hro_pending
+  icases raft_split_view r rv $$ Hr with
+    ⟨Hfid, HfTerm, HfVote, Hfrs, Hflog, Hfst, Hfm, Hfma, Hfld, Hback⟩
+  ihave Hfid : r.[raft, go!"id"] ↦ id $$ [Hfid]
+  · rw [← Hid]; iexact Hfid
+  ihave HfTerm : r.[raft, go!"Term"] ↦ s.term $$ [HfTerm]
+  · rw [← Hterm]; iexact HfTerm
+  ihave HfVote : r.[raft, go!"Vote"] ↦ s.vote $$ [HfVote]
+  · rw [← Hvote]; iexact HfVote
+  ihave Hflog : r.[raft, go!"raftLog"] ↦ s.log $$ [Hflog]
+  · rw [← Hlogp]; iexact Hflog
+  ihave Hfst : r.[raft, go!"state"] ↦ stateW64 s.role $$ [Hfst]
+  · rw [← Hstate]; iexact Hfst
+  ihave Hfld : r.[raft, go!"lead"] ↦ s.lead $$ [Hfld]
+  · rw [← Hlead]; iexact Hfld
+  ihave Hlog : ownRaftLog (GF := GF) s.log s.logst $$ [Hlog]
+  · rw [← Hlogp]; iexact Hlog
+  iexists rv.readStates', rv.msgs', rv.msgsAfterAppend', msgs, msgsAA
+  simp only [named]
+  iframe Hfid HfTerm HfVote Hfrs Hflog Hfst Hfld Hfm Hfma Hmsgs Hmsgs_cap HmsgsAA
+    HmsgsAA_cap Houtbox Hlog
+  isplitr
+  · ipureintro
+    obtain ⟨Hl1, Hl2⟩ := Hrl
+    simp only [List.length_nil] at Hl1
+    apply BitVec.eq_of_toInt_eq
+    simp only [sint.nat] at Hl1
+    simp only [sint.Z] at Hl2
+    rw [show (W64 0).toInt = 0 by rfl]
+    omega
+  iintro %sl1' %sl2' %ms1' %ms2' %o %ls' Hfid HfTerm HfVote Hfrs Hflog Hfst Hfld Hfm Hmsgs
+    Hmsgs_cap Hfma HmsgsAA HmsgsAA_cap #Houtbox' Hlog
+  ihave Hfid : r.[raft, go!"id"] ↦ rv.id' $$ [Hfid]
+  · rw [Hid]; iexact Hfid
+  ihave HfTerm : r.[raft, go!"Term"] ↦ rv.Term' $$ [HfTerm]
+  · rw [Hterm]; iexact HfTerm
+  ihave HfVote : r.[raft, go!"Vote"] ↦ rv.Vote' $$ [HfVote]
+  · rw [Hvote]; iexact HfVote
+  ihave Hflog : r.[raft, go!"raftLog"] ↦ rv.raftLog' $$ [Hflog]
+  · rw [Hlogp]; iexact Hflog
+  ihave Hfst : r.[raft, go!"state"] ↦ rv.state' $$ [Hfst]
+  · rw [Hstate]; iexact Hfst
+  ihave Hfld : r.[raft, go!"lead"] ↦ rv.lead' $$ [Hfld]
+  · rw [Hlead]; iexact Hfld
+  ihave Hlog : ownRaftLog (GF := GF) rv.raftLog' ls' $$ [Hlog]
+  · rw [Hlogp]; iexact Hlog
+  ihave Hr := Hback $$ %sl1' %sl2' Hfid HfTerm HfVote Hfrs Hflog Hfst Hfm Hfma Hfld
+  iapply ownRaftPhys_intro _ _ _ { s with outbox := o, logst := ls' }
+      { rv with msgs' := sl1', msgsAfterAppend' := sl2' } ms1' ms2' lok
+    Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCheckQuorum HnoLearner
+    HnoTransfer Hid_nz HelectionTimeout Hlok Hlogp
+    $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox'
 
 end proof
 

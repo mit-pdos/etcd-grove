@@ -1,4 +1,4 @@
-/- Port of election_proof/spec_newLogWithSize.v (feb5c73d4). -/
+/- Port of election_proof/spec_newLogWithSize.v (857d09190). -/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
 
 noncomputable section
@@ -43,7 +43,8 @@ holds: `LogState` has no storage field, so `ownStorage` sits inside it at
 `c.Storage.InitialState()` *after* building the log -- through the `Config`'s copy of
 the same interface value -- and needs the log's `ownStorage` for that call; without
 `lv.storage' = st` the two are unrelated and the call cannot be proved. The caller
-folds the result into `ownRaftLog l ⟨prev, ents, [], prev.index', prev.index', none⟩`
+folds the result into
+`ownRaftLog l ⟨prev, ents, [], prev.index', prev.index', none, ip, prev.index', [], …⟩`
 with `ownRaftLog_unfold`. The principled fix is a `storage` field in `LogState`
 (notes/STATUS.md).
 
@@ -57,6 +58,10 @@ abbrev newLogWithSize.spec : Prop :=
   (∀ e ∈ ents, e.Type' = EntryNormal) →
   (uint.Z ss.index' = 0 ∨ ss = prev) →
   lg = interface.ok lok →
+  -- a positive applying-size limit (2026-10-05): the log starts with applying unpaused
+  -- at size `0`, and `nextCommittedEnts` `Panicf`s on
+  -- `maxApplyingEntsSize - applyingEntsSize <= 0`
+  0 < uint.Z maxSize →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isStorage st ∗
       ownStorage st prev ents ss ∗ isLogger lok }}
     (App (App (App (Val #(functions newLogWithSize [])) (Val #st)) (Val #lg))
@@ -65,8 +70,13 @@ abbrev newLogWithSize.spec : Prop :=
       l ↦ lv ∗
       ⌜lv.storage' = st ∧
         lv.committed' = prev.index' ∧
-        lv.applied' = prev.index'⌝ ∗
-      ownRaftLogCore lv none prev ents [] }}
+        lv.applied' = prev.index' ∧
+        lv.applying' = prev.index' ∧
+        uint.Z lv.unstable'.offsetInProgress'
+          = uint.Z prev.index' + (ents.length : Int) + 1 ∧
+        lv.applyingEntsSize' = W64 0 ∧
+        lv.maxApplyingEntsSize' = maxSize⌝ ∗
+      ownRaftLogCore lv none prev ents [] [] }}
 
 end spec
 

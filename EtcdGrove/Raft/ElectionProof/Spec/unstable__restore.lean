@@ -1,4 +1,4 @@
-/- Port of election_proof/spec_unstable__restore.v (feb5c73d4). -/
+/- Port of election_proof/spec_unstable__restore.v (857d09190). -/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
 
 noncomputable section
@@ -39,7 +39,8 @@ abbrev unstable.restore.spec : Prop :=
       ownUnstable u uv' [] ∗
       ownSnap uv'.snapshot' (some (snapId sv)) ∗
       ⌜uv'.offset' = sv.Metadata'.Index' + W64 1 ∧
-        uv'.logger' = uv.logger'⌝ }}
+        uv'.logger' = uv.logger' ∧
+        uv'.offsetInProgress' = uv'.offset'⌝ }}
 
 end spec
 

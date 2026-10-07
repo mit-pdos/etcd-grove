@@ -1,5 +1,5 @@
 /-
-Port of `election_proof/inv_misc.v` (at feb5c73d4): raft components election neither
+Port of `election_proof/inv_misc.v` (at 857d09190): raft components election neither
 reads nor writes.
 
 Lean notes: Rocq's section variable `cfg` is not used by anything in this file, so it
@@ -148,8 +148,11 @@ in scope reads them -- and the two read-index queues are empty (phase-1 scope,
 2026-10-01); the ownership is real, so nothing else in the development can claim the
 same heap. -/
 def ownRaftMisc (readStates : GoSlice) (ro : Loc) (pendingReadIndex : GoSlice) : IProp GF :=
-  iprop(∃ (rss : List ReadState) (rr : ReadOnly),
-  "HreadStates" ∷ readStates ↦* rss ∗
+  iprop(∃ (rr : ReadOnly),
+  -- Scope (phase 1): no read-index requests, so no `ReadState` is ever produced --
+  -- `Ready` hands out `r.readStates` only when it is non-empty (2026-10-05, pinned for
+  -- `Ready`/`HasReady`; until then the list was existential).
+  "HreadStates" ∷ readStates ↦* ([] : List ReadState) ∗
   "HreadStates_cap" ∷ ownSliceCap ReadState readStates (DFrac.own 1) ∗
   "Hro_obj" ∷ ownReadOnly ro rr ∗
   -- Scope (phase 1): no read-index requests -- which is what makes `heartbeatCtx`

@@ -1,4 +1,4 @@
-/- Port of election_proof/spec_Config__validate.v (feb5c73d4). -/
+/- Port of election_proof/spec_Config__validate.v (857d09190). -/
 import EtcdGrove.Raft.ElectionProof.InvRaftPhys
 
 noncomputable section
@@ -40,7 +40,12 @@ def ConfigPreserved (cv cv' : Config) : Prop :=
   cv'.CheckQuorum' = cv.CheckQuorum' ∧
   cv'.PreVote' = cv.PreVote' ∧
   cv'.DisableProposalForwarding' = cv.DisableProposalForwarding' ∧
-  cv'.Logger' = cv.Logger'
+  cv'.Logger' = cv.Logger' ∧
+  -- the `MaxCommittedSizePerReady` default (2026-10-05, for the log's applying limit):
+  -- `MaxSizePerMsg` when unset
+  cv'.MaxCommittedSizePerReady' =
+    (if cv.MaxCommittedSizePerReady' = W64 0 then cv.MaxSizePerMsg'
+     else cv.MaxCommittedSizePerReady')
 
 end defs
 

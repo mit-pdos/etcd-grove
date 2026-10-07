@@ -1,5 +1,5 @@
 /-
-Port of election_proof/spec_raftLog__slice.v (feb5c73d4).
+Port of election_proof/spec_raftLog__slice.v (857d09190).
 
 Lean notes:
 * The return `(#s, #interface.nil)` is `PairV #s #interface.nil`;
@@ -64,7 +64,12 @@ abbrev raftLog.slice.spec : Prop :=
         (es.length : Int) ≤ uint.Z hi - uint.Z lo ∧
         (∀ e, e ∈ es → e ∈ ls.sents ++ ls.uents) ∧
         -- the log's entries at `[lo, lo+1, ...]`, cut short by `maxSize`
-        es <+: plogFrom ls.prev (ls.sents ++ ls.uents) lo⌝ }}
+        es <+: plogFrom ls.prev (ls.sents ++ ls.uents) lo⌝ ∗
+      -- no spare capacity anyone else owns (2026-10-05): every exit re-caps
+      -- (`ents[:len:len]`), returns `Storage.Entries`' capped slice, or `extend`s into a
+      -- fresh one -- so the caller may hand the slice on where its capacity is demanded
+      -- (`Step`'s `Hents_cap`, for `Advance`'s `MsgStorageApplyResp`)
+      ownSliceCap raftpb.Entry s (DFrac.own 1) }}
 
 end spec
 

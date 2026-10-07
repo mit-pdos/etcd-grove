@@ -1,5 +1,5 @@
 /-
-Port of `election_proof/defs.v` (at feb5c73d4): shared vocabulary for the election
+Port of `election_proof/defs.v` (at 857d09190): shared vocabulary for the election
 proof.
 
 Lean notes:
@@ -232,6 +232,31 @@ structure LogState [FfiSyntax] where
   a snapshot pending, `prev` is its id and `sents = []` (`InvRaftlog.lean`,
   `LogStoreOk`). -/
   snap : Option entryID
+  /-- `unstable.offsetInProgress` (2026-10-05, for `Ready`): the unstable entries below
+  it have been handed to the application by a `Ready` (`acceptUnstable`);
+  `nextUnstableEnts` is the rest. Between `unstable.offset` and the end of the log
+  (`InvRaftlog.lean`, `Hipb`). -/
+  inprogress : w64
+  /-- `l.applying` (2026-10-05): the last index handed to the application for applying
+  (`acceptApplying`); `nextCommittedEnts` starts after it.
+  `applied <= applying <= committed`. -/
+  applying : w64
+  /-- The entries the last `Ready` handed out (`Ready.Entries`) that the application
+  has **not yet appended to the `Storage`** (2026-10-05); `[]` when there are none.
+  This is the storage handshake, recorded as a field of the log's state ("a loan is a
+  field of the state", notes/decisions.md): `ownRaftLog` still owns the `Storage` --
+  `Step` reads it on most paths, so it cannot be lent out -- and promises that once
+  the storage also holds these entries, the in-progress prefix of the log is persisted
+  (`InvRaftlog.lean`, `Hpersist`, `StorApp`). The application appends them through
+  `ownRaftLog_persist`, which empties the field; `Advance` requires it empty. -/
+  unpersisted : List raftpb.Entry
+  /-- `l.applyingEntsSize` and `l.maxApplyingEntsSize` (2026-10-05): the flow control
+  on handing out committed entries. In the state because `acceptApplying` calls
+  `maxAppliableIndex` between updating the size and the paused flag, and only what the
+  state records survives that call (`ownRaftLog`'s `Hpaused` needs the size to be
+  under the limit while applying is not paused). -/
+  apsize : w64
+  apmax : w64
 
 /-! ## The tracker's records (2026-10-02)
 
@@ -506,9 +531,11 @@ def snapId (sv : raftpb.Snapshot) : entryID :=
 
 /-- `raftLog.restore(s)` (`Spec/raftLog__restore.lean`): the log is the snapshot -- its
 id is the boundary, nothing after it, committed up to it, `applied` untouched, the
-snapshot pending. -/
+snapshot pending. `unstable.restore` sets `offsetInProgress` to the new offset;
+`applying` and the unpersisted entries are untouched. -/
 def logRestore (ls : LogState) (sid : entryID) : LogState :=
-  ⟨sid, [], [], sid.index', ls.applied, some sid⟩
+  ⟨sid, [], [], sid.index', ls.applied, some sid, sid.index' + W64 1, ls.applying,
+   ls.unpersisted, ls.apsize, ls.apmax⟩
 
 /-! `stamp`, `appendEntry`'s stamping loop, is in `Protocol/Model.lean` (since
 2026-10-01: the model's `Step.win` and `Step.propose` stamp too). -/

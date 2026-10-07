@@ -1,11 +1,12 @@
 /-
-Port of election_proof/spec_unstable__truncateAndAppend.v (feb5c73d4).
+Port of election_proof/spec_unstable__truncateAndAppend.v (857d09190).
 
 Lean notes:
 * Rocq's `bool_decide (P)` in the two `if`s is `decide (P)` (Lean's `if` on a
   decidable proposition); `DfracDiscarded` is `DFrac.discard`; `is_Logger` is
   `isLogger` (`InvLogger.lean`); `take (Z.to_nat x) l` is `l.take x.toNat`; Rocq's
   `` `min` `` on `Z` is `min`.
+* `trunc_offsetInProgress` is `truncOffsetInProgress`.
 * The reference `unstable__truncateAndAppendⁱᵐᵖˡ, new/code/go_etcd_io/raft/v3.v:1650`
   is to the Lean generated code `unstable.truncateAndAppend.impl`.
 -/
@@ -17,6 +18,14 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI go_etcd_io.raft.v3
+
+/-- `offsetInProgress` after the call, by arm (2026-10-05, for `Ready`): kept by arm 1,
+the new offset `fromIndex` in arm 2, `min(offsetInProgress, fromIndex)` in arm 3. A
+definition so that the proof's case splits on the arms do not reach into it. -/
+def truncOffsetInProgress [FfiSyntax] (uv : unstable) (n : Nat) (f : w64) : w64 :=
+  if uint.Z f = uint.Z uv.offset' + (n : Int) then uv.offsetInProgress'
+  else if uint.Z f ≤ uint.Z uv.offset' then f
+  else w64Min uv.offsetInProgress' f
 
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -81,7 +90,9 @@ abbrev unstable.truncateAndAppend.spec : Prop :=
         (uents.take (uint.Z e0.Index' - uint.Z uv.offset').toNat ++ ents) ∗
       ⌜uint.Z uv'.offset' = min (uint.Z e0.Index') (uint.Z uv.offset') ∧
         uv'.snapshot' = uv.snapshot' ∧
-        uv'.logger' = uv.logger'⌝ ∗
+        uv'.logger' = uv.logger' ∧
+        -- `offsetInProgress`, by arm (2026-10-05, for `Ready`)
+        uv'.offsetInProgress' = truncOffsetInProgress uv uents.length e0.Index'⌝ ∗
       (if uint.Z e0.Index' ≤ uint.Z uv.offset' ∧
           uint.Z e0.Index' ≠ uint.Z uv.offset' + (uents.length : Int)
        then True else es ↦*{dq} ents) }}

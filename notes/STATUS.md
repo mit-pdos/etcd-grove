@@ -25,6 +25,14 @@ and Go-model/theory additions to the Lean framework).
   `RawNode.wp_Propose` still depend on `sorryAx`, through `Proof/raftLog__slice.lean`'s
   one `sorry` (Rocq's deliberate `admit`, "the log fits in memory").
 
+## In progress: following the Rocq to 857d09190 (RawNode Ready/Advance/HasReady)
+
+- Phase 1 (done): `Defs`, `InvMisc`, `InvRaftlog`, `InvRaftPhys` at 857d09190; new
+  `InvReadylog`, `InvRawnode`; the 9 changed and 25 new `Spec/` files. All build, no
+  `sorry`.
+- Phase 2: the `Proof/` files (existing proofs broken by the new `LogState` fields and
+  `ownRaftLogCore`'s `pend` argument; the new functions' proofs) and `Election.lean`.
+
 ## Next
 
 - Push Perennial's `lean` (0fe904415) so the pin resolves from GitHub.
