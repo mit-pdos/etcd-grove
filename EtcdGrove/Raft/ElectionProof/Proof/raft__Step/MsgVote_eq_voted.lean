@@ -13,7 +13,13 @@ Lean notes:
 * Rocq's `Local Ltac recv_elem` (`∀ m' ∈ recv, m' = a` for the concrete `recv` lists
   `[]`, `[a]`, `[a] ++ [a]`, by rewriting the membership away rather than `set_solver`,
   which took 150s and more there) is not ported.
-* Rocq's `Local Ltac vote_grant_tail` and `vote_reject_tail` are not ported. `Step`'s
+* Rocq's `Local Ltac vote_grant_tail` and `vote_reject_tail` are the local macros
+  `vote_grant_tail` and `vote_reject_tail` (taking no arguments: they refer to the
+  proof's hypothesis names `Hty`, `Hto`, `Hterm`, `Hfnz`, `Heq0`, `Hwf`, and the grant
+  tail to `Hcan`/`Hutd`). The `send` premise of both is the helper `sendOk_voteResp`;
+  `send`'s precondition is framed with `$$ [Hphys]` then `iframe Hphys`, since `[$Hphys]`
+  would be an antiquotation inside the macro. The `MsgPreVote` type test is the local
+  macro `ty_ne`. `Step`'s
   `MsgVote` decision has exactly two tails -- grant the vote or decline it -- and the
   code reaches each of them by several routes through the `canVote` computation
   (already voted for this candidate; not voted and no leader; voted for somebody else; a
@@ -42,6 +48,89 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 variable [AllG GF]
 
 namespace StepProof
+
+omit ffi [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+/-- `send`'s premise for the vote response the `MsgVote` tails build (`Term: term`,
+`Reject: rej`). -/
+private theorem sendOk_voteResp (id : w64) (s : NState) (to term : w64) (rej : Bool)
+    (Ht : term ≠ W64 0) :
+    SendOk id s
+      { Type' := MsgVoteResp, To' := to, From' := 0, Term' := term, LogTerm' := 0,
+        Index' := 0, Entries' := slice.nil, Commit' := 0, Vote' := 0, Snapshot' := null,
+        Reject' := rej, RejectHint' := 0, Context' := slice.nil, Responses' := slice.nil }
+      [] [Msg.plain .voteResp id to term rej] :=
+  Or.inl ⟨.voteResp, Or.inr (Or.inl rfl), rfl, Ht,
+    fun Hc => by
+      exfalso; change MsgVoteResp = _ ∨ MsgVoteResp = _ at Hc
+      rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne), rfl⟩
+
+set_option hygiene false in
+/-- `m.Type' = W32 k` is false: `m` is a `MsgVote` (`Hty`). -/
+local macro "ty_ne " k:num : tactic =>
+  `(tactic| rw [decide_eq_false (show m.Type' ≠ W32 $k by rw [Hty]; w32_ne)])
+
+set_option hygiene false in
+/-- Rocq `vote_grant_tail`: log, `send` the response, record `r.Vote := m.From`
+(`Step.grantVote`). Needs `Hcan : PCanVote (toPState s) m.From'` and
+`Hutd : true = plogUpToDate …` in scope, and `Heq0 : m.Term' = s.term`. -/
+local macro "vote_grant_tail" : tactic => `(tactic| (
+  try wp_auto
+  wp_apply raft.wp_load_id $$ Hphys as Hphys
+  wp_apply raft.wp_load_Vote $$ Hphys as Hphys
+  wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_raft_log
+  wp_apply _P.voteRespMsgType m.Type' MsgVoteResp (.inl ⟨Hty, rfl⟩)
+  try wp_auto
+  wp_apply _P.send cfg r id s _ [] _ (.inl rfl)
+      (sendOk_voteResp id s m.From' m.Term' false Hterm) $$ [Hphys] as Hphys
+  · iframe Hphys
+    isplitr
+    · iapply ownSlice_nil
+    · iapply send_no_snap
+      exact (by w32_ne : MsgVoteResp ≠ MsgSnap)
+  rw [Hty]
+  try wp_auto
+  -- `r.electionElapsed = 0; r.Vote = m.From`
+  wp_apply raft.wp_store_electionElapsed $$ Hphys as Hphys
+  wp_apply raft.wp_store_Vote $$ Hphys as Hphys
+  iapply HΦ $$ %interface.nil %_
+  iframe Hphys
+  ipureintro
+  refine ⟨Hwf, ⟨[absMsg .vote m ents], fun m' Hm' => by simpa using Hm', ?_⟩, rfl⟩
+  have H : Step cfg id (toPState s) [absMsg .vote m ents]
+      (psendMsgs { toPState s with vote := m.From' }
+        [Msg.plain .voteResp id m.From' s.term false]) :=
+    Step.grantVote (absMsg .vote m ents) (toPState s) rfl Hto Hfnz Heq0 Hcan Hutd.symm
+  rw [← Heq0] at H
+  exact H))
+
+set_option hygiene false in
+/-- Rocq `vote_reject_tail`: log, then `send` a rejection carrying `r.Term`
+(`Step.rejectVote`). Always legal. -/
+local macro "vote_reject_tail" : tactic => `(tactic| (
+  try wp_auto
+  wp_apply raft.wp_load_id $$ Hphys as Hphys
+  wp_apply raft.wp_load_Vote $$ Hphys as Hphys
+  wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_raft_log
+  -- `Term: r.Term` and the `voteRespMsgType` call
+  wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_apply _P.voteRespMsgType m.Type' MsgVoteResp (.inl ⟨Hty, rfl⟩)
+  try wp_auto
+  -- the response carries `s.term`, so `send`'s `m.Term ≠ 0` premise is the incoming
+  -- message's, transported along `m.Term = s.term`
+  wp_apply _P.send cfg r id s _ [] _ (.inl rfl)
+      (sendOk_voteResp id s m.From' s.term true (Heq0 ▸ Hterm)) $$ [Hphys] as Hphys
+  · iframe Hphys
+    isplitr
+    · iapply ownSlice_nil
+    · iapply send_no_snap
+      exact (by w32_ne : MsgVoteResp ≠ MsgSnap)
+  iapply HΦ $$ %interface.nil %_
+  iframe Hphys
+  ipureintro
+  exact ⟨Hwf, ⟨[absMsg .vote m ents], fun m' Hm' => by simpa using Hm',
+    Step.rejectVote (absMsg .vote m ents) (toPState s) rfl Hto⟩, rfl⟩))
 
 /-! `MsgVote`: step down if the term is higher, then grant or decline.
 
@@ -100,8 +189,62 @@ theorem wp_Step_MsgVote_eq_voted (_P : raft.Step.Postulates (GF := GF) (hG := hG
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .vote m ents) ∧
             Step cfg id (toPState s) recv (toPState s')⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  -- PORT: proof
-  sorry
+  intro Hty Hto Hterm Hfnz Heq0 Hv00 Hwf
+  wp_start as ⟨Hphys, #Hctx⟩
+  wp_auto
+  have Hle : ¬ (uint.Z s.term < uint.Z m.Term') := by rw [Heq0]; omega
+  have Hnlt : ¬ (uint.Z m.Term' < uint.Z s.term) := by rw [Heq0]; omega
+  wp_apply _P.traceReceiveMessage
+  -- `m.Term ≠ 0`, so the first arm of the term preamble is skipped
+  rw [decide_eq_false Hterm]
+  wp_auto
+  wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  rw [decide_eq_false Hle]
+  wp_auto
+  wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  rw [decide_eq_false Hnlt]
+  wp_auto
+  -- the type switch: not MsgHup / MsgStorageAppendResp / MsgStorageApplyResp, not
+  -- MsgPreVote, but MsgVote
+  rw [Hty]
+  try wp_auto
+  -- `canVote` is the model's `PCanVote`: the Go expression's third disjunct needs
+  -- `MsgPreVote` and is dead here
+  wp_apply raft.wp_load_Vote $$ Hphys as Hphys
+  by_cases Hv1 : s.vote = m.From'
+  · -- for this very candidate, so the vote may be granted again
+    rw [decide_eq_true Hv1]
+    try wp_auto
+    have Hcan : PCanVote (toPState s) m.From' := Or.inl Hv1
+    -- each `raftLog` call: load the field, open the log, call, close it again -- the
+    -- next field load needs `Hphys`
+    wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+    icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
+    wp_apply _P.lastEntryID $$ [$Hlog] as %lastID2 ⟨Hlog, -⟩
+    ihave Hphys := Hlogback $$ Hlog
+    try wp_auto
+    wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+    icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
+    wp_apply _P.isUpToDate $$ [$Hlog] as %ok2 ⟨Hlog, %Hutd⟩
+    ihave Hphys := Hlogback $$ Hlog
+    cases ok2
+    · vote_reject_tail
+    · vote_grant_tail
+  · -- for somebody else: declined. Both halves of `canVote`'s first two disjuncts are
+    -- false, so again the third is evaluated and its `MsgPreVote` test has to be
+    -- decided.
+    rw [decide_eq_false Hv1]
+    try wp_auto
+    wp_apply raft.wp_load_Vote $$ Hphys as Hphys
+    rw [decide_eq_false Hv00]
+    try wp_auto
+    ty_ne 17
+    try wp_auto
+    wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+    icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
+    wp_apply _P.lastEntryID $$ [$Hlog] as %lastID2 ⟨Hlog, -⟩
+    ihave Hphys := Hlogback $$ Hlog
+    vote_reject_tail
 
 end StepProof
 

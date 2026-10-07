@@ -64,8 +64,13 @@ theorem wp_Step_MsgVote_le (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .vote m ents) ∧
             Step cfg id (toPState s) recv (toPState s')⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  -- PORT: proof
-  sorry
+  intro Hty Hto Hterm Hfnz Hle0 Hwf
+  by_cases Hlt : uint.Z m.Term' < uint.Z s.term
+  · exact wp_Step_MsgVote_lt _P cfg r id s m ents Hty Hto Hterm Hfnz Hlt Hwf
+  · have Heq : m.Term' = s.term := by word
+    by_cases Hv0 : s.vote = W64 0
+    · exact wp_Step_MsgVote_eq_novote _P cfg r id s m ents Hty Hto Hterm Hfnz Heq Hv0 Hwf
+    · exact wp_Step_MsgVote_eq_voted _P cfg r id s m ents Hty Hto Hterm Hfnz Heq Hv0 Hwf
 
 end StepProof
 

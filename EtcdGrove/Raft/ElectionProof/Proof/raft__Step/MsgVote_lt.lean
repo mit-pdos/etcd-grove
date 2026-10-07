@@ -63,8 +63,45 @@ theorem wp_Step_MsgVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .vote m ents) ∧
             Step cfg id (toPState s) recv (toPState s')⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  -- PORT: proof
-  sorry
+  intro Hty Hto Hterm Hfnz Hlt0 Hwf
+  wp_start as ⟨Hphys, #Hctx⟩
+  wp_auto
+  wp_apply _P.traceReceiveMessage
+  -- `m.Term ≠ 0`, so the first arm of the term preamble is skipped
+  rw [decide_eq_false Hterm]
+  wp_auto
+  wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  rw [decide_eq_false (show ¬ uint.Z s.term < uint.Z m.Term' by omega)]
+  wp_auto
+  wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  rw [decide_eq_true Hlt0]
+  wp_auto
+  -- `checkQuorum` is off; with pre-vote on the type test runs: not MsgHeartbeat, not MsgApp
+  wp_apply raft.wp_load_checkQuorum $$ Hphys as Hphys
+  wp_apply raft.wp_load_preVote $$ Hphys as Hphys
+  cases s.prevote
+  all_goals try wp_auto
+  -- pre-vote on: not MsgHeartbeat, not MsgApp
+  all_goals try
+    (rw [decide_eq_false (show m.Type' ≠ W32 8 by rw [Hty]; w32_ne)]
+     try wp_auto
+     rw [decide_eq_false (show m.Type' ≠ W32 3 by rw [Hty]; w32_ne)]
+     try wp_auto)
+  -- not a MsgPreVote
+  all_goals rw [decide_eq_false (show m.Type' ≠ W32 17 by rw [Hty]; w32_ne)]
+  all_goals try wp_auto
+  -- not a MsgStorageAppendResp either, so the message is just logged
+  all_goals rw [decide_eq_false (show m.Type' ≠ W32 20 by rw [Hty]; w32_ne)]
+  all_goals try wp_auto
+  all_goals
+    wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_apply raft.wp_load_Term $$ Hphys as Hphys
+    wp_raft_log
+    -- nothing was sent and nothing changed: dropping is `Step.refl`
+    iapply HΦ $$ %interface.nil %s
+    iframe Hphys
+    ipureintro
+    exact ⟨Hwf, ⟨[], fun _ H => absurd H List.not_mem_nil, step_drop cfg id _⟩, rfl⟩
 
 end StepProof
 
