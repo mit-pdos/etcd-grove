@@ -35,6 +35,16 @@ Before you finish, update `notes/STATUS.md` if anything moved.
   proofs (`theorem <T>.wp_<M> : <fn>.spec`); `Results.lean` states the protocol-level
   results.
 
+## Trust base
+
+`etc/tcb-report.py` reports what the proof rests on (needs `lake build`): the
+`sorry`s and axioms the results depend on, the exported results (linked results no
+other proof uses), and the definitions their statements are written in terms of. Run
+it when you need the report; don't commit its output (`-o` writes a file), which goes
+stale as the proof changes. `etc/tcb-report.py --check` exits 1 if this repository's
+axioms or `sorry`s differ from `etc/tcb-baseline.txt`; when you add or remove one on
+purpose, rerun with `--check --update`.
+
 ## Proof writing
 
 Perennial's Lean docs (in the dependency, `.lake/packages/perennial/docs/`):

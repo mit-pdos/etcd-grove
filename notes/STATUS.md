@@ -35,6 +35,8 @@ array fix and Go-model/theory additions to the Lean framework).
   `sorry` (Rocq's deliberate `admit`, "the log fits in memory"); `RawNode.wp_HasReady`
   and `wp_newRaft` do not.
 
+- Trust base: `etc/tcb-report.py` (gate: `--check` against `etc/tcb-baseline.txt`).
+
 ## Next
 
 - Push Perennial's `lean` (0fe904415) so the pin resolves from GitHub.
