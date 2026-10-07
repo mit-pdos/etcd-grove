@@ -49,8 +49,58 @@ theorem wp_Step_MsgPreVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜Step cfg id (toPState s) [] (toPState s')⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  -- PORT: proof
-  sorry
+  intro Hty Hto Hterm Hfnz Hlt0 Hwf
+  have Hn8 : decide (m.Type' = W32 8) = false := decide_eq_false (by rw [Hty]; w32_ne)
+  have Hn3 : decide (m.Type' = W32 3) = false := decide_eq_false (by rw [Hty]; w32_ne)
+  have Hy17 : decide (m.Type' = W32 17) = true := decide_eq_true Hty
+  have Hs0 : s.term ≠ W64 0 := by intro H0; rw [H0] at Hlt0; word
+  wp_start as Hphys
+  iNamed Hphys
+  wp_auto
+  wp_apply _P.traceReceiveMessage
+  -- `m.Term ≠ 0`, so the first arm of the term preamble is skipped
+  rw [decide_eq_false Hterm]
+  wp_auto
+  wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  rw [decide_eq_false (show ¬ uint.Z s.term < uint.Z m.Term' by omega)]
+  wp_auto
+  wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  rw [decide_eq_true Hlt0]
+  wp_auto
+  -- `(checkQuorum || preVote) && (MsgHeartbeat || MsgApp)`: false either way
+  wp_apply raft.wp_load_checkQuorum $$ Hphys as Hphys
+  wp_apply raft.wp_load_preVote $$ Hphys as Hphys
+  cases s.prevote <;> wp_auto
+  all_goals try (rw [Hn8]; wp_auto; rw [Hn3]; wp_auto)
+  -- `MsgPreVote`: reject at `r.Term`
+  all_goals
+    rw [Hy17]
+    wp_auto
+    wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+    icases ownRaftPhys_log_same cfg r id _ $$ Hphys with ⟨Hlog, Hback⟩
+    wp_apply _P.lastEntryID $$ [$Hlog] as %lastID ⟨Hlog, -⟩
+    ihave Hphys := Hback $$ Hlog
+    wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_apply raft.wp_load_Vote $$ Hphys as Hphys
+    wp_apply raft.wp_load_Term $$ Hphys as Hphys
+    wp_raft_log
+    wp_apply raft.wp_load_Term $$ Hphys as Hphys
+    wp_apply _P.send cfg r id s _ [] _ (Or.inl rfl)
+        (Or.inl ⟨.preVoteResp, Or.inr (Or.inr (Or.inr rfl)), mtypeOf_MsgPreVoteResp, Hs0,
+          fun Hc => by rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne), rfl⟩)
+      $$ [$Hphys]
+    · isplitr
+      · iapply ownSlice_nil
+      iapply send_no_snap
+      w32_ne
+    iintro Hphys
+    wp_auto
+    iapply HΦ $$ %interface.nil %_
+    iframe Hphys
+    ipureintro
+    refine ⟨nstateWf_sendMsgs _ _ Hwf, ?_, rfl⟩
+    rw [toPState_sendMsgs]
+    exact .sendFree _ _ (.inr rfl) rfl
 
 end StepProof
 

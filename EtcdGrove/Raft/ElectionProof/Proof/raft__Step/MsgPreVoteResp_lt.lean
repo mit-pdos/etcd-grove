@@ -49,8 +49,40 @@ theorem wp_Step_MsgPreVoteResp_lt (_P : raft.Step.Postulates (GF := GF) (hG := h
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .preVoteResp m ents) ∧
             Step cfg id (toPState s) recv (toPState s')⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  -- PORT: proof
-  sorry
+  intro Hty Hterm Hlt Hwf
+  wp_start as Hphys
+  iNamed Hphys
+  wp_auto
+  wp_apply _P.traceReceiveMessage
+  rw [decide_eq_false Hterm]
+  wp_auto
+  wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  rw [decide_eq_false (show ¬ uint.Z s.term < uint.Z m.Term' by omega)]
+  wp_auto
+  wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  rw [decide_eq_true Hlt]
+  wp_auto
+  wp_apply raft.wp_load_checkQuorum $$ Hphys as Hphys
+  wp_apply raft.wp_load_preVote $$ Hphys as Hphys
+  have Hn8 : decide (m.Type' = W32 8) = false := decide_eq_false (by rw [Hty]; w32_ne)
+  have Hn3 : decide (m.Type' = W32 3) = false := decide_eq_false (by rw [Hty]; w32_ne)
+  have Hn17 : decide (m.Type' = W32 17) = false := decide_eq_false (by rw [Hty]; w32_ne)
+  have Hn20 : decide (m.Type' = W32 20) = false := decide_eq_false (by rw [Hty]; w32_ne)
+  -- `checkQuorum` is off; with pre-vote on the type test runs and is false
+  cases s.prevote <;> wp_auto
+  all_goals try (rw [Hn8]; wp_auto; rw [Hn3]; wp_auto)
+  all_goals
+    rw [Hn17]
+    wp_auto
+    rw [Hn20]
+    wp_auto
+    wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_apply raft.wp_load_Term $$ Hphys as Hphys
+    wp_raft_log
+    iapply HΦ $$ %interface.nil %s
+    iframe Hphys
+    ipureintro
+    exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, .refl _⟩, rfl⟩
 
 end StepProof
 
