@@ -69,8 +69,57 @@ theorem wp_Step_MsgApp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .app m ents) ∧
             Step cfg id (toPState s) recv (toPState s')⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  -- PORT: proof
-  sorry
+  intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hpwf Hnw Hnorm Hconf Hgt
+  wp_start as Hphys
+  iNamed Hphys
+  wp_auto
+  wp_apply _P.traceReceiveMessage
+  rw [decide_eq_false Hterm]
+  wp_auto
+  wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  rw [decide_eq_true Hgt]
+  wp_auto
+  repeat (rw [Hty]; wp_auto)
+  -- "received a message with higher term"
+  wp_apply raft.wp_load_id $$ Hphys as Hphys
+  wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_raft_log
+  repeat (rw [Hty]; wp_auto)
+  -- `becomeFollower(m.Term, m.From)`: a leader's message
+  wp_apply _P.becomeFollower $$ [$Hphys] as %pvs Hphys
+  repeat (rw [Hty]; wp_auto)
+  wp_apply raft.wp_load_step $$ Hphys as Hphys
+  have Hsf : ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).stepfn =
+      functions stepFollower [] := rfl
+  rw [Hsf]
+  wp_apply _P.stepFollower cfg r id { becomeFollower s m.Term' m.From' with prvals := pvs } m
+      ents (zero_val _) [] (.inr (.inr (.inl Hty)))
+      (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+      (fun _ => ⟨Hpwf, Hnw, Hnorm, Hconf⟩)
+      (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+    $$ [$Hphys Hcap] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
+  · isplitl []
+    · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+    · iintro %_; iframe Hents Hcap
+  obtain ⟨rfl, Happ⟩ := followerStepResult_app _ _ _ _ _ _ _ Hty Hres
+  have Hwf1 : NStateWf
+      { ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) with
+          lead := m.From' } := rfl
+  simp only [Bool.false_eq_true, ↓reduceIte]
+  icases Herrn with %Herrn
+  subst Herrn
+  wp_auto
+  iapply HΦ $$ %interface.nil %s1
+  iframe Hphys
+  ipureintro
+  refine ⟨nstateWf_handle_app _ _ _ _ _ Hwf1 Happ, ?_, rfl⟩
+  refine ⟨[absMsg .app m ents] ++ [absMsg .app m ents], ?_, ?_⟩
+  · intro m' Hm'; simpa using Hm'
+  · refine Step.trans _ _ _ _ _
+      (step_higher_term_leader cfg id (toPState s) .app m ents rfl Hgt Hto Hfid) ?_
+    exact step_handle_app cfg id _ _ m ents s1
+      (adopt_after_stepdown s m.Term' m.From' pvs) Hto rfl (by simp [pbecomeFollower])
+      Hconf Happ Hfid
 
 end StepProof
 

@@ -70,8 +70,118 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .app m ents) ∧
             Step cfg id (toPState s) recv (toPState s')⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  -- PORT: proof
-  sorry
+  intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hpwf Hnw Hnorm Hconf Hteq Hvotes
+  wp_start as Hphys
+  iNamed Hphys
+  wp_auto
+  wp_apply _P.traceReceiveMessage
+  rw [decide_eq_false Hterm]
+  wp_auto
+  wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  rw [decide_eq_false (show ¬ uint.Z s.term < uint.Z m.Term' by rw [Hteq]; omega)]
+  wp_auto
+  wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  rw [decide_eq_false (show ¬ uint.Z m.Term' < uint.Z s.term by rw [Hteq]; omega)]
+  wp_auto
+  repeat (rw [Hty]; wp_auto)
+  wp_apply raft.wp_load_step $$ Hphys as Hphys
+  rw [show s.stepfn = stepFuncOf s.role from Hwf]
+  cases Hrole : s.role
+  · -- Follower: `stepFollower`'s arm, with `r.lead = m.From`
+    simp only [stepFuncOf]
+    have Hvs := Hvotes Hrole
+    wp_apply _P.stepFollower cfg r id s m ents (zero_val _) [] (.inr (.inr (.inl Hty)))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun _ => ⟨Hpwf, Hnw, Hnorm, Hconf⟩)
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+      $$ [$Hphys Hcap] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
+    · isplitl []
+      · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+      · iintro %_; iframe Hents Hcap
+    obtain ⟨rfl, Happ⟩ := followerStepResult_app _ _ _ _ _ _ _ Hty Hres
+    have Hwf1 : NStateWf { s with lead := m.From' } := Hwf
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    icases Herrn with %Herrn
+    subst Herrn
+    wp_auto
+    iapply HΦ $$ %interface.nil %s1
+    iframe Hphys
+    ipureintro
+    refine ⟨nstateWf_handle_app _ _ _ _ _ Hwf1 Happ, ⟨[absMsg .app m ents], ?_, ?_⟩, rfl⟩
+    · intro m' Hm'; simpa using Hm'
+    · exact step_handle_app cfg id _ _ m ents s1 (adopt_follower s m.From' Hrole Hvs) Hto Hteq
+        (by simp [toPState, Hrole, proleRole]) Hconf Happ Hfid
+  · -- Candidate: `becomeFollower(r.Term, m.From)`, then the handler
+    simp only [stepFuncOf]
+    wp_apply _P.stepCandidate cfg r id s m ents (zero_val _) [] (.inr (.inr (.inl Hty)))
+        (fun _ => Hteq) (.inl Hrole) Hcfg (fun _ => ⟨Hpwf, Hnw, Hnorm, Hconf⟩)
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+      $$ [$Hphys Hcap] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
+    · isplitl []
+      · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+      · iintro %_; iframe Hents Hcap
+    obtain ⟨rfl, pvs, Happ⟩ := candidateStepResult_app _ _ _ _ _ _ _ _ Hty Hres
+    have Hwf1 : NStateWf
+        ({ becomeFollower s s.term m.From' with prvals := pvs } : NState) := rfl
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    icases Herrn with %Herrn
+    subst Herrn
+    wp_auto
+    iapply HΦ $$ %interface.nil %s1
+    iframe Hphys
+    ipureintro
+    refine ⟨nstateWf_handle_app _ _ _ _ _ Hwf1 Happ, ⟨[absMsg .app m ents], ?_, ?_⟩, rfl⟩
+    · intro m' Hm'; simpa using Hm'
+    · exact step_handle_app cfg id _ _ m ents s1 (adopt_candidate s m.From' pvs) Hto Hteq
+        (by simp [toPState, Hrole, proleRole]) Hconf Happ Hfid
+  · -- Leader: `stepLeader` has no arm for it; nothing changes
+    simp only [stepFuncOf]
+    wp_apply _P.stepLeader cfg r id s m [] (.inr (.inr (.inr (.inr (.inr (.inl Hty))))))
+        Hrole Hcfg
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun Hc => by
+          exfalso; rw [Hty] at Hc
+          rcases Hc with Hc | ⟨Hc, -⟩ <;> exact absurd Hc (by w32_ne))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+      $$ [$Hphys] as %err %s' %dropped ⟨Hphys, %Hres, Herrn, -⟩
+    · isplitl []
+      · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+      · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+    obtain ⟨rfl, rfl⟩ := leaderStepResult_app_hb _ _ _ _ _ _ _ (.inl Hty) Hres
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    icases Herrn with %Herrn
+    subst Herrn
+    wp_auto
+    iapply HΦ $$ %interface.nil %_
+    iframe Hphys
+    ipureintro
+    exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, .refl _⟩, rfl⟩
+  · -- PreCandidate (2026-10-04), as a candidate: `becomeFollower(r.Term, m.From)`, then
+    -- the handler
+    simp only [stepFuncOf]
+    wp_apply _P.stepCandidate cfg r id s m ents (zero_val _) [] (.inr (.inr (.inl Hty)))
+        (fun _ => Hteq) (.inr Hrole) Hcfg (fun _ => ⟨Hpwf, Hnw, Hnorm, Hconf⟩)
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+      $$ [$Hphys Hcap] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
+    · isplitl []
+      · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+      · iintro %_; iframe Hents Hcap
+    obtain ⟨rfl, pvs, Happ⟩ := candidateStepResult_app _ _ _ _ _ _ _ _ Hty Hres
+    have Hwf1 : NStateWf
+        ({ becomeFollower s s.term m.From' with prvals := pvs } : NState) := rfl
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    icases Herrn with %Herrn
+    subst Herrn
+    wp_auto
+    iapply HΦ $$ %interface.nil %s1
+    iframe Hphys
+    ipureintro
+    refine ⟨nstateWf_handle_app _ _ _ _ _ Hwf1 Happ, ⟨[absMsg .app m ents], ?_, ?_⟩, rfl⟩
+    · intro m' Hm'; simpa using Hm'
+    · exact step_handle_app cfg id _ _ m ents s1 (adopt_candidate s m.From' pvs) Hto Hteq
+        (by simp [toPState, Hrole, proleRole]) Hconf Happ Hfid
 
 end StepProof
 
