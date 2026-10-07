@@ -1,6 +1,6 @@
 # Porting a batch of `spec_*.v` files (feb5c73d4)
 
-Instructions for an agent porting a batch of the election proof's Rocq specs. Several
+Instructions for an agent porting a batch of the Raft proof's Rocq specs. Several
 agents work in this worktree at once (`/home/ubuntu/etcd-grove-lean-spec`, branch
 `lean-spec`), so touch only your own files.
 
@@ -8,7 +8,7 @@ agents work in this worktree at once (`/home/ubuntu/etcd-grove-lean-spec`, branc
 
 For each `<fn>` in your batch, `~/etcd-grove-rr/new/proof/go_etcd_io/raft/election_proof/
 spec_<fn>.v` (read-only extraction of the Rocq at feb5c73d4) becomes
-`EtcdGrove/Raft/ElectionProof/Spec/<fn>.lean`.
+`EtcdGrove/Raft/Spec/<fn>.lean`.
 
 * Read `notes/porting-guide.md` (translation tables; "Spec and proof files"), then
   the model specs `Spec/lockedRand__Intn.lean` and `Spec/voteRespMsgType.lean`.
@@ -37,7 +37,7 @@ spec_<fn>.v` (read-only extraction of the Rocq at feb5c73d4) becomes
 * Imports follow the Rocq `Require Export`: `inv_raft_phys` → `InvRaftPhys`,
   `inv_memstorage` → `InvMemstorage`, `plog` → `Plog`, `step_lemmas` → `StepLemmas`,
   `inv_big` → `InvBig`, `defs` → `Defs`, `New.proof.bytes` → `Perennial.Proof.bytes`,
-  `spec_X` → `EtcdGrove.Raft.ElectionProof.Spec.X`.
+  `spec_X` → `EtcdGrove.Raft.Spec.X`.
 * Never change any file outside your batch's `Spec/<fn>.lean`. Do not weaken or change
   a statement; if one cannot be expressed, write the closest faithful statement, explain
   it in `Lean notes:`, and report it.
@@ -46,10 +46,10 @@ spec_<fn>.v` (read-only extraction of the Rocq at feb5c73d4) becomes
 
     export PATH=$HOME/.elan/bin:$PATH
     cd /home/ubuntu/etcd-grove-lean-spec
-    lake env lean EtcdGrove/Raft/ElectionProof/Spec/<fn>.lean
+    lake env lean EtcdGrove/Raft/Spec/<fn>.lean
 
 The dependencies are built. If a spec of yours imports another spec of yours, build
-that one first: `lake build EtcdGrove.Raft.ElectionProof.Spec.<other>` (only your own
+that one first: `lake build EtcdGrove.Raft.Spec.<other>` (only your own
 spec modules; never `lake build` anything else). For two or three specs, check in a
 scratch file that `#check @<T>.<M>.spec` shows the expected binders.
 

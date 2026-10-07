@@ -1,7 +1,7 @@
 # Filling in `raft.Step`'s branch proofs
 
 `Proof/raft__Step.lean`'s per-message branches are the modules
-`EtcdGrove/Raft/ElectionProof/Proof/raft__Step/<M>.lean`, one per Rocq file of
+`EtcdGrove/Raft/Proof/raft__Step/<M>.lean`, one per Rocq file of
 `~/etcd-grove-rr/new/proof/go_etcd_io/raft/election_proof/proof_raft__Step_helpers/
 proof_raft__Step_<M>.v` (read-only extraction of the Rocq at feb5c73d4). Statements
 are fixed; each unfinished proof is a `sorry` on the line after `-- PORT: proof`.
@@ -29,7 +29,7 @@ on its own group of modules.
 
     export PATH=$HOME/.elan/bin:$PATH
     cd /home/ubuntu/etcd-grove-lean-spec
-    lake env lean EtcdGrove/Raft/ElectionProof/Proof/raft__Step/<M>.lean
+    lake env lean EtcdGrove/Raft/Proof/raft__Step/<M>.lean
 
 **Never run `lake build`**: the modules yours imports are being edited by other agents
 and a build would recompile them half-edited. Every module's `.olean` is already built

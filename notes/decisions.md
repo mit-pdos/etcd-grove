@@ -20,7 +20,7 @@ keeps the proofs checking in parallel.
 **Decision:** per Go function, `Spec/<fn>.lean` holds `def <fn>.spec : Prop` (the
 triple, with its binders); `Proof/<fn>.lean` holds
 `theorem <fn>.wp_proof (h₁ : <callee₁>.spec) … : <fn>.spec`, importing only its
-callees' `Spec` files; `Election.lean` instantiates each proof with its callees'
+callees' `Spec` files; `Link.lean` instantiates each proof with its callees'
 results. Lean's global names make a second `<fn>.spec` a build error (the first
 guarantee); taking the callees' specs as hypotheses, with only their `Spec` files
 imported, is the second. The `postulates_` file becomes the hypothesis list.

@@ -1,6 +1,6 @@
 # Porting a Rocq file of `election_proof/` to Lean
 
-How the files already ported (`EtcdGrove/Raft/ElectionProof/{Protocol,Defs,InvBig,
+How the files already ported (`EtcdGrove/Raft/{Protocol,Defs,InvBig,
 InvLogger,StepLemmas}.lean`, `EtcdGrove/Raft/Base.lean`) translate Rocq. Read one of
 them before starting; Perennial's own ports of the raft proofs
 (`.lake/packages/perennial/Perennial/Proof/go_etcd_io/raft/v3_proof/{readonly,
@@ -13,9 +13,9 @@ branch head or `main`). Its design notes are `notes/*.md` at the same commit.
 
 ## Files and modules
 
-* `inv_tracker.v` → `EtcdGrove/Raft/ElectionProof/InvTracker.lean`, module
-  `EtcdGrove.Raft.ElectionProof.InvTracker` (UpperCamel of the Rocq file name).
-* `Require Export …election_proof.X` → `import EtcdGrove.Raft.ElectionProof.X`.
+* `inv_tracker.v` → `EtcdGrove/Raft/InvTracker.lean`, module
+  `EtcdGrove.Raft.InvTracker` (UpperCamel of the Rocq file name).
+* `Require Export …election_proof.X` → `import EtcdGrove.Raft.X`.
 * Everything is in `namespace Perennial` / `namespace EtcdGrove`; `open Iris Iris.BI
   go_etcd_io.raft.v3` (plus `Iris.ProofMode` for proofs).
 * Start the file with a `/- Port of … -/` header that keeps the Rocq file's leading
@@ -123,8 +123,8 @@ Rocq `Ltac` go here as a lemma or a small macro.
 ## Checking a file
 
     export PATH=$HOME/.elan/bin:$PATH
-    lake build EtcdGrove.Raft.ElectionProof.Defs        # dependencies, once
-    lake env lean EtcdGrove/Raft/ElectionProof/X.lean    # the file itself
+    lake build EtcdGrove.Raft.Defs        # dependencies, once
+    lake env lean EtcdGrove/Raft/X.lean    # the file itself
 
 (`lake env lean` ignores the lakefile's `linter.unusedSectionVars false`, so it warns
 about unused section variables: harmless.) Leave a `sorry` with a comment saying what
@@ -135,7 +135,7 @@ a proof go through without saying so in the file.
 
 `spec_<fn>.v` → `Spec/<fn>.lean`, `proof_<fn>.v` → `Proof/<fn>.lean` (the Rocq file
 name's `<fn>`, e.g. `Spec/raft__Step.lean`); `postulates_<fn>.v` becomes the hypothesis
-list of the proof theorem; `link_<fn>.v` becomes one line of `Election.lean`. Models:
+list of the proof theorem; `link_<fn>.v` becomes one line of `Link.lean`. Models:
 `Spec/lockedRand__Intn.lean`, `Proof/lockedRand__Intn.lean` (a proof with three callee
 specs), `Proof/big_NewInt.lean` (a trust-boundary axiom).
 
@@ -155,5 +155,5 @@ specs), `Proof/big_NewInt.lean` (a trust-boundary axiom).
   <…>.spec (GF := GF) (hG := hG)`; unfinished ones (Rocq `Admitted`) are a theorem with a
   `sorry`.
 * Proofs start with `intro` of the spec's binders and premises, then `wp_start as …`.
-* `Election.lean` gets `theorem T.wp_M : T.M.spec (GF := GF) (hG := hG) :=
+* `Link.lean` gets `theorem T.wp_M : T.M.spec (GF := GF) (hG := hG) :=
   T.M.wp_proof <callee results>`.

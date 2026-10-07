@@ -1,6 +1,6 @@
 # Porting a batch of `proof_*.v` files
 
-Instructions for an agent porting a batch of the election proof's Rocq proofs (at
+Instructions for an agent porting a batch of the Raft proof's Rocq proofs (at
 feb5c73d4). Several agents work at once in the worktree
 `/home/ubuntu/etcd-grove-lean-spec` (branch `lean-spec`), so touch only your own files.
 `Protocol/Refinement.lean` there still has `sorry`s (another agent is proving it
@@ -9,7 +9,7 @@ elsewhere); use its lemmas by their statements.
 ## What to write
 
 For each `<fn>` in your batch, `~/etcd-grove-rr/new/proof/go_etcd_io/raft/election_proof/
-proof_<fn>.v` becomes `EtcdGrove/Raft/ElectionProof/Proof/<fn>.lean`.
+proof_<fn>.v` becomes `EtcdGrove/Raft/Proof/<fn>.lean`.
 
 * Read `notes/porting-guide.md` ("Spec and proof files" and "Tactics") and
   `notes/decisions.md` first, then the models `Proof/lockedRand__Intn.lean` (a proof
@@ -56,7 +56,7 @@ proof_<fn>.v` becomes `EtcdGrove/Raft/ElectionProof/Proof/<fn>.lean`.
 
     export PATH=$HOME/.elan/bin:$PATH
     cd /home/ubuntu/etcd-grove-lean-spec
-    lake env lean EtcdGrove/Raft/ElectionProof/Proof/<fn>.lean
+    lake env lean EtcdGrove/Raft/Proof/<fn>.lean
 
 The `Spec` modules are already built. Unused-section-variable warnings are harmless. Do
 not run `lake build` on the whole project.
@@ -68,7 +68,7 @@ not run `lake build` on the whole project.
   where `<N>` is your batch number. Never write in the scratchpad root or another
   agent's directory.
 * Do not run git commands that change state, and do not edit `EtcdGrove.lean`,
-  `Election.lean`, or any file outside your `Proof/<fn>.lean` files.
+  `Link.lean`, or any file outside your `Proof/<fn>.lean` files.
 * Write only inside `/home/ubuntu/etcd-grove-lean-spec` (read the Rocq from `~/etcd-grove-rr`); no operation
   needs anything else.
 

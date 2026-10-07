@@ -6,7 +6,7 @@ full, lemma statements exact, each unfinished proof a `sorry` on the line after
 
 ## The task
 
-* Your module is `EtcdGrove/Raft/ElectionProof/Protocol/<M>.lean`. Its header names
+* Your module is `EtcdGrove/Raft/Protocol/<M>.lean`. Its header names
   the lines of `~/etcd-grove-rr/new/proof/go_etcd_io/raft/election_proof/protocol.v`
   it ports (read-only extraction of the Rocq at feb5c73d4). For each
   `-- PORT: proof` in your module, port the Rocq proof of that lemma and delete the
@@ -36,7 +36,7 @@ full, lemma statements exact, each unfinished proof a `sorry` on the line after
 
     export PATH=$HOME/.elan/bin:$PATH
     cd /home/ubuntu/etcd-grove-lean
-    lake env lean EtcdGrove/Raft/ElectionProof/Protocol/<M>.lean
+    lake env lean EtcdGrove/Raft/Protocol/<M>.lean
 
 **Never run `lake build`**: the other agents are editing the modules yours imports,
 and a build would recompile them half-edited. `lake env lean` uses the imports'
