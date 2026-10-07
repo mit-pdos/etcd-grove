@@ -234,7 +234,7 @@ theorem raft.campaign.wp_proof
     ipureintro
     omega
   -- the range is over, so `ids` holds every voter id exactly once.
-  iintro HP
+  iintro HP -
   iNamed HP
   rw [← Hklen, Int.toNat_natCast, List.take_length]
   wp_auto

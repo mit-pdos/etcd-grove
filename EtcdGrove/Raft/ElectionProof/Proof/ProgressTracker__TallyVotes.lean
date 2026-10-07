@@ -147,7 +147,7 @@ theorem tracker.ProgressTracker.TallyVotes.wp_proof
       iframe
       ipureintro; omega
   -- the range is over, so the counters hold the whole tally
-  iintro HP
+  iintro HP -
   iNamed HP
   dsimp only at Hklen
   rw [← Hklen, Int.toNat_natCast, List.take_length]

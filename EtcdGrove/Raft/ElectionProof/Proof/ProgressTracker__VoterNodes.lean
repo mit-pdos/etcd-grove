@@ -80,7 +80,7 @@ theorem tracker.ProgressTracker.VoterNodes.wp_proof
     iframe
     ipureintro
     omega
-  iintro HP
+  iintro HP -
   iNamed HP
   rw [← Hklen, Int.toNat_natCast, List.take_length]
   wp_auto
