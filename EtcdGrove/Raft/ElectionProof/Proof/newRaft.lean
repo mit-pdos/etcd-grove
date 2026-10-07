@@ -136,12 +136,151 @@ theorem newRaft.wp_proof
     as %cs2 %xs2 %pvs1 ⟨Hphys, Hcs2v, %Hxs2, %Hcs2l⟩
   obtain ⟨Hc2a, Hc2b, Hc2c, Hc2al⟩ := Hcs2l
   have Hperm : voters ≡ₚ xs2 := by
-    sorry
+    refine List.Perm.trans ?_ Hxs2.symm
+    refine (List.perm_ext_iff_of_nodup Hvnd (GMap.NoDup_elements _)).2 ?_
+    intro k; rw [GMap.elem_of_elements, GMap.elem_of_list_to_set]
   wp_apply wp_assertConfStatesEquivalent _ cs cs2 voters xs2 dqv (DFrac.own 1)
     Hperm Hcs1 Hcs2 Hcs3 Hc2a Hc2b Hc2c (by rw [Hal, Hc2al]) $$ [$Hvoters $Hcs2v]
     as ⟨Hvoters, Hcs2v⟩
-  trace_state
-  sorry
+  -- `if !IsEmptyHardState(hs) { r.loadState(hs) }`: both arms end at the
+  -- same struct state `s1` and log state `ls1`, so the rest of the proof
+  -- is done once, for both.
+  let ls1 : LogState := ⟨prev, ents, [], committedAfter prev hs, prev.index', none⟩
+  let s1 : NState :=
+    { s0 with progress := prs, prvals := pvs1, term := hs.Term', vote := hs.Vote', logst := ls1 }
+  wp_join iprop(ownRaftPhys (listToSet voters) «$r0_ptr» cv.ID' s1 ∗ hs_ptr ↦ hs ∗
+      r_ptr ↦ «$r0_ptr») at next
+    with [Hphys hs r] as ⟨Hphys, hs, r⟩
+  · wp_apply wp_IsEmptyHardState
+    by_cases Hemp : HsEmpty hs
+    · have Hd : decide (hs.Term' = W64 0 ∧ hs.Vote' = W64 0 ∧ hs.Commit' = W64 0) = true :=
+        decide_eq_true Hemp
+      rw [Hd]
+      wp_auto
+      isplitr
+      · ipureintro; rfl
+      iframe hs r
+      iapply ownRaftPhys_eq _ _ _ _ _ ?_ $$ Hphys
+      obtain ⟨HT, HV, _⟩ := Hemp
+      simp only [s1, s0, ls1, ls0, committedAfter, (show HsEmpty hs from ⟨HT, HV, ‹_›⟩), ↓reduceIte,
+        HT, HV]
+    · have Hd : decide (hs.Term' = W64 0 ∧ hs.Vote' = W64 0 ∧ hs.Commit' = W64 0) = false :=
+        decide_eq_false Hemp
+      rw [Hd]
+      wp_auto
+      have Hll : uint.Z (logLast ls0) = uint.Z prev.index' + (ents.length : Int) := by
+        simp only [logLast, ls0, List.length_nil]; word
+      have Hpre : uint.Z ({ s0 with progress := prs, prvals := pvs1 } : NState).logst.committed
+            ≤ uint.Z hs.Commit' ∧
+          uint.Z hs.Commit' ≤ uint.Z (logLast ({ s0 with progress := prs, prvals := pvs1 } : NState).logst) := by
+        have := Hhs Hemp
+        show uint.Z prev.index' ≤ _ ∧ _ ≤ uint.Z (logLast ls0)
+        rw [Hll]; exact this
+      wp_apply wp_raft_loadState _ _ _
+        { s0 with progress := prs, prvals := pvs1 } hs Hpre $$ [$Hphys] as Hphys
+      isplitr
+      · ipureintro; rfl
+      iframe hs r
+      iapply ownRaftPhys_eq _ _ _ _ _ ?_ $$ Hphys
+      simp only [s1, s0, ls1, ls0, committedAfter, Hemp, ↓reduceIte]
+  -- `if c.Applied > 0 { raftlog.appliedTo(c.Applied, 0) }`, likewise
+  let ap : w64 := if cv.Applied' = W64 0 then prev.index' else cv.Applied'
+  let ls2 : LogState := ⟨prev, ents, [], committedAfter prev hs, ap, none⟩
+  let s2 : NState := { s1 with logst := ls2 }
+  rw [HpAp]
+  wp_join iprop(ownRaftPhys (listToSet voters) «$r0_ptr» cv.ID' s2 ∗ c_ptr ↦ c ∗ c ↦ cv' ∗
+      raftlog_ptr ↦ l) with [Hphys c Hc raftlog] as ⟨Hphys, c, Hc, raftlog⟩
+  · -- `raftlog` is `r.raftLog`: the log, through the accessor
+    have Ha0 : cv.Applied' ≠ W64 0 := by intro h; rw [h] at Hif; exact absurd Hif (by decide)
+    have Hrng : uint.Z ls1.applied ≤ uint.Z cv'.Applied' ∧ uint.Z cv'.Applied' ≤ uint.Z ls1.committed := by
+      rw [HpAp]
+      rcases Happ with h | h
+      · exact absurd h Ha0
+      · exact h
+    icases ownRaftPhys_log_at _ «$r0_ptr» cv.ID' s1 $$ Hphys with ⟨HL, Hlogback⟩
+    wp_apply wp_raftLog_appliedTo l ls1 cv'.Applied' (W64 0) Hrng $$ [$HL] as HL
+    ihave Hphys := Hlogback $$ %_ HL
+    isplitr
+    · ipureintro; rfl
+    iframe c Hc raftlog
+    iapply ownRaftPhys_eq _ _ _ _ _ ?_ $$ Hphys
+    simp only [s2, ls2, ap, ls1, Ha0, ↓reduceIte, HpAp]
+  · have Ha0 : cv.Applied' = W64 0 := by word
+    iframe c Hc raftlog
+    iapply ownRaftPhys_eq _ _ _ _ _ ?_ $$ Hphys
+    simp only [s2, ls2, ap, ls1, s1, Ha0, ↓reduceIte]
+  -- `r.becomeFollower(r.Term, None)`
+  wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_apply wp_raft_becomeFollower _ _ _ s2 s2.term (W64 0) $$ [$Hphys] as %pvs3 Hphys
+  let s3 : NState := { becomeFollower s2 s2.term (W64 0) with prvals := pvs3 }
+  -- `r.trk.VoterNodes()`
+  icases ownRaftPhys_tracker_same _ _ _ s3 $$ Hphys with ⟨%tv3, Htrkf, Htrk3, Htrkback⟩
+  wp_apply wp_ProgressTracker_VoterNodes $$ [$Htrkf $Htrk3] as %nsl %nxs ⟨Htrkf, Htrk3, Hnsl, %Hnxs⟩
+  ihave Hphys := Htrkback $$ %tv3 Htrkf Htrk3
+  -- the log line's `nodesStrs` loop; what it builds is never read
+  ihave IH : iprop(∃ (k x : w64) (sl' : GoSlice) (strs : List GoString),
+      "i" ∷ i_ptr ↦ k ∗ "n" ∷ n_ptr ↦ x ∗ "nodesStrs" ∷ nodesStrs_ptr ↦ sl' ∗
+      "Hstrs" ∷ sl' ↦* strs ∗
+      "Hstrs_cap" ∷ ownSliceCap GoString sl' (DFrac.own 1) ∗
+      "Hnsl" ∷ nsl ↦* nxs ∗
+      "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ (nxs.length : Int)⌝) $$ [i n nodesStrs Hnsl]
+  · iexists W64 0, _, slice.nil, []
+    iframe i n nodesStrs Hnsl
+    isplitr
+    · iapply ownSlice_nil
+    isplitr
+    · iapply ownSliceCap_nil
+    ipureintro; constructor <;> word
+  wp_for IH
+  wp_if_destruct
+  · ihave %Hnl := ownSlice_len $$ Hnsl
+    have Hlt : (sint.Z k).toNat < nxs.length := by word
+    obtain ⟨e, He⟩ : ∃ e, nxs[(sint.Z k).toNat]? = some e := ⟨_, List.getElem?_eq_getElem Hlt⟩
+    simp only [show 0 ≤ sint.Z k ∧ sint.Z k < sint.Z nsl.len from ⟨Hk.1, Hif⟩, and_self]
+    wp_apply wp_load_slice_index nsl (sint.Z k) nxs (DFrac.own 1) e Hk.1 $$ [Hnsl] as Hnsl
+    · iframe; ipureintro; exact He
+    wp_apply wp_slice_literal
+    try (isplitr; (ipureintro; rfl))
+    iintro %sla ⟨Hargs, -⟩
+    wp_auto
+    wp_apply wp_fmt_Sprintf $$ [$Hargs] as %str Hargs
+    wp_apply wp_slice_literal
+    try (isplitr; (ipureintro; rfl))
+    iintro %sl2 ⟨Hsl2, -⟩
+    wp_auto
+    wp_apply wp_slice_append $$ [$Hstrs $Hstrs_cap $Hsl2] as %sl3 ⟨Hstrs, Hstrs_cap, -⟩
+    wp_for_post
+    iframe
+    iexists _, _, _, _
+    iframe
+    ipureintro; constructor <;> word
+  -- the log line: `r.id`, `strings.Join(nodesStrs, ",")`, `r.Term`, then
+  -- `r.raftLog.committed` and `r.raftLog.applied` through the log
+  wp_apply raft.wp_load_id $$ Hphys as Hphys
+  wp_apply wp_strings_Join $$ [$Hstrs] as %joined Hstrs
+  wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+  icases ownRaftPhys_log_same _ _ _ s3 $$ Hphys with ⟨Hlog3, Hlogback⟩
+  icases ownRaftLog_struct _ _ $$ Hlog3 with ⟨%lv3, Hl3, -, Hl3back⟩
+  wp_auto
+  ihave Hlog3 := Hl3back $$ Hl3
+  ihave Hphys := Hlogback $$ Hlog3
+  wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+  icases ownRaftPhys_log_same _ _ _ s3 $$ Hphys with ⟨Hlog3, Hlogback⟩
+  icases ownRaftLog_struct _ _ $$ Hlog3 with ⟨%lv4, Hl3, -, Hl3back⟩
+  wp_auto
+  ihave Hlog3 := Hl3back $$ Hl3
+  ihave Hphys := Hlogback $$ Hlog3
+  wp_raft_log
+  iapply HΦ $$ %«$r0_ptr» %s3
+  iframe Hphys
+  -- `becomeFollower(r.Term, None)` keeps the term, so `reset` keeps the
+  -- vote: the state is the persisted `HardState`'s
+  ipureintro
+  refine ⟨rfl, rfl, ?_, rfl, rfl, rfl, rfl, rfl⟩
+  show (if s2.term = s2.term then s2.vote else W64 0) = hs.Vote'
+  simp only [↓reduceIte]
+  rfl
 
 end proof
 
