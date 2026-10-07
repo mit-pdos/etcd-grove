@@ -1,41 +1,42 @@
 /- Port of election_proof/proof_raft__Step.v.
 
 The per-message-type lemmas are **proof structure, not specification**. `Step` is one
-Go function and therefore has exactly one spec, in `Spec/raft__Step.lean`. In Rocq the
-branches live in files of their own (`proof_raft__Step_helpers/`), functors over
-`STEP_POSTULATES` with no signature, so that `make -j` checks them in parallel.
+Go function and therefore has exactly one spec, in `Spec/raft__Step.lean`; giving each
+branch its own spec would put several Hoare triples for `r.Step` in several files,
+which is the thing this layout exists to prevent. The branches live in modules of their
+own (`Proof/raft__Step/`, Rocq `proof_raft__Step_helpers/`), so that they check in
+parallel; only this module (and the modules of that directory) may import them.
 
-**The replication branches (2026-10-02).** `MsgProp` is `proof_raft__Step_MsgProp.v`;
+**The replication branches (2026-10-02).** `MsgProp` is `raft__Step/MsgProp.lean`;
 `MsgApp`, `MsgHeartbeat`, `MsgAppResp`, `MsgHeartbeatResp` and `MsgBeat` were written in
 parallel against statements fixed in advance, so this file's dispatch for each of them is
-a lemma (`dispatch_App`, ...) that takes the branch lemma, at that statement, as a
-hypothesis, and `raft.Step.wp_proof` applies it to the branch. The ghost-side work --
-deriving each branch's protocol premises from `ownRaftGhost` and `isMessage`, and taking
-`ownRaftGhost_step` with the branch's `recv` -- is in those lemmas.
+a lemma (`dispatch_App`, ...), and `raft.Step.wp_proof` applies it. The ghost-side work
+-- deriving each branch's protocol premises from `ownRaftGhost` and `isMessage`, and
+taking `ownRaftGhost_step` with the branch's `recv` -- is in those lemmas.
 
 Lean notes:
-* The twelve branch lemmas (`wp_Step_MsgHup`, ..., Rocq
-  `proof_raft__Step_helpers/proof_raft__Step_<Msg>.v`, about 5900 Rocq lines with their
-  sub-case files) are **not ported in this file's batch**: they are stated here, at their
-  Rocq statements, as private theorems whose proofs are `sorry`. They are proved from
-  the callee specs this theorem takes as hypotheses (Rocq `STEP_POSTULATES`), so the
-  hypotheses are threaded through them as arguments, which a port of the helpers will
-  use; until then they are unused.
+* The callee specs (Rocq `STEP_POSTULATES`) are bundled as `raft.Step.Postulates`
+  (`raft__Step/Base.lean`, with `stepPost`, `StepProof.ghost_step_recv`,
+  `StepProof.finish_branch`, `StepProof.finish_branch0` and the `w32_ne` macro). The
+  twelve branch lemmas `StepProof.wp_Step_<Msg>` are in `raft__Step/<Msg>.lean`, one
+  module per Rocq file of `proof_raft__Step_helpers/` (names kept: `MsgVote_gt`,
+  `repl_lemmas`, ...).
 * The proof works at `HeapGS HasLC.hasLC GF` with `[AllG GF]`, as the spec does.
-* Rocq's `step_post` is `stepPost`; `ghost_step_recv`, `finish_branch`,
-  `finish_branch0` and the `dispatch_*` lemmas are private theorems of the same names.
+* Rocq's dispatch lemmas take the branch lemma as a hypothesis `HB`; here they take the
+  postulates `P` and call the imported branch lemma.
 -/
-import EtcdGrove.Raft.ElectionProof.Spec.raft__Step
-import EtcdGrove.Raft.ElectionProof.Spec.raft__hup
-import EtcdGrove.Raft.ElectionProof.Spec.raft__becomeFollower
-import EtcdGrove.Raft.ElectionProof.Spec.voteRespMsgType
-import EtcdGrove.Raft.ElectionProof.Spec.raft__send
-import EtcdGrove.Raft.ElectionProof.Spec.stepCandidate
-import EtcdGrove.Raft.ElectionProof.Spec.stepFollower
-import EtcdGrove.Raft.ElectionProof.Spec.stepLeader
-import EtcdGrove.Raft.ElectionProof.Spec.traceReceiveMessage
-import EtcdGrove.Raft.ElectionProof.Spec.raftLog__lastEntryID
-import EtcdGrove.Raft.ElectionProof.Spec.raftLog__isUpToDate
+import EtcdGrove.Raft.ElectionProof.Proof.raft__Step.MsgHup
+import EtcdGrove.Raft.ElectionProof.Proof.raft__Step.MsgVote
+import EtcdGrove.Raft.ElectionProof.Proof.raft__Step.MsgVoteResp
+import EtcdGrove.Raft.ElectionProof.Proof.raft__Step.MsgProp
+import EtcdGrove.Raft.ElectionProof.Proof.raft__Step.MsgApp
+import EtcdGrove.Raft.ElectionProof.Proof.raft__Step.MsgHeartbeat
+import EtcdGrove.Raft.ElectionProof.Proof.raft__Step.MsgAppResp
+import EtcdGrove.Raft.ElectionProof.Proof.raft__Step.MsgHeartbeatResp
+import EtcdGrove.Raft.ElectionProof.Proof.raft__Step.MsgBeat
+import EtcdGrove.Raft.ElectionProof.Proof.raft__Step.MsgSnap
+import EtcdGrove.Raft.ElectionProof.Proof.raft__Step.MsgPreVote
+import EtcdGrove.Raft.ElectionProof.Proof.raft__Step.MsgPreVoteResp
 
 noncomputable section
 
@@ -43,6 +44,7 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
+open StepProof
 
 section dispatch
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -51,438 +53,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 variable [AllG GF]
-
-/-- What `raft.Step.spec`'s postcondition hands to `Φ`: the continuation every dispatch
-lemma below ends in. -/
-def stepPost (γ : RaftElectionNames) (cfg : GSet w64) (r : Loc) (id : w64) (ps : PState)
-    (m : raftpb.Message) (Φ : val → IProp GF) : IProp GF :=
-  iprop(∀ (err : GoInterface) (s' : NState) (ps' : PState),
-    ("Hphys" ∷ ownRaftPhys cfg r id s' ∗
-     "Hghost" ∷ ownRaftGhost γ id ps' ∗
-     "%Hrel" ∷ ⌜NStateRel s' ps'⌝ ∗
-     "%Hrefines" ∷ ⌜∃ recv, Step cfg id ps recv ps'⌝ ∗
-     "Herr" ∷ (⌜err = interface.nil⌝ ∨
-               (⌜m.Type' = MsgProp⌝ ∗ globalAddr ErrProposalDropped ↦□ err))) -∗ Φ #err)
-
-/-- The one ghost update of a branch: `recv` is the incoming message, some number of
-times, and that message is `isMessage`. -/
-private theorem ghost_step_recv (γ : RaftElectionNames) (cfg : GSet w64) (id : w64)
-    (ps ps' : PState) (a : Msg) (recv : List Msg)
-    (Hcfg : γ.reCfg = cfg) (Hrecv : ∀ m' ∈ recv, m' = a) (Hstep : Step cfg id ps recv ps') :
-    ⊢ isMessage (GF := GF) γ a -∗ ownRaftGhost γ id ps ={⊤}=∗ ownRaftGhost γ id ps' := by
-  subst Hcfg
-  iintro #Hm Hg
-  ihave Hall : ([∗list] m ∈ recv, isMessage (GF := GF) γ m) $$ []
-  · iapply (BigSepL.bigSepL_intro (P := iprop(□ isMessage (GF := GF) γ a))
-      (fun k x hx => by
-        rw [Hrecv x (List.mem_of_getElem? hx)]
-        exact intuitionistically_elim))
-    iexact Hm
-  iapply ownRaftGhost_step γ id ps recv ps' Hstep $$ Hall Hg
-
-/-- A branch's postcondition, delivered: the ghost step, then `Φ`. -/
-private theorem finish_branch (γ : RaftElectionNames) (cfg : GSet w64) (r : Loc) (id : w64)
-    (s s' : NState) (m : raftpb.Message) (a : Msg) (recv : List Msg) (err : GoInterface)
-    (Φ : val → IProp GF)
-    (Hcfg : γ.reCfg = cfg) (Hwf' : NStateWf s') (Hrecv : ∀ m' ∈ recv, m' = a)
-    (Hstep : Step cfg id (toPState s) recv (toPState s')) :
-    ⊢ isMessage γ a -∗
-      ownRaftGhost γ id (toPState s) -∗
-      ownRaftPhys cfg r id s' -∗
-      (⌜err = interface.nil⌝ ∨
-        (⌜m.Type' = MsgProp⌝ ∗ globalAddr ErrProposalDropped ↦□ err)) -∗
-      stepPost γ cfg r id (toPState s) m Φ -∗
-      |={⊤}=> Φ #err := by
-  iintro #Hm Hghost Hphys Herr HΦ
-  imod ghost_step_recv γ cfg id _ _ a recv Hcfg Hrecv Hstep $$ Hm Hghost with Hghost
-  imodintro
-  unfold stepPost
-  iapply HΦ $$ %err %s' %(toPState s')
-  iframe Hphys Hghost Herr
-  ipureintro
-  exact ⟨⟨rfl, Hwf'⟩, ⟨recv, Hstep⟩⟩
-
-/-- The same, for a branch that consumed nothing. -/
-private theorem finish_branch0 (γ : RaftElectionNames) (cfg : GSet w64) (r : Loc) (id : w64)
-    (s s' : NState) (m : raftpb.Message) (err : GoInterface) (Φ : val → IProp GF)
-    (Hcfg : γ.reCfg = cfg) (Hwf' : NStateWf s')
-    (Hstep : Step cfg id (toPState s) [] (toPState s')) :
-    ⊢ ownRaftGhost γ id (toPState s) -∗
-      ownRaftPhys cfg r id s' -∗
-      (⌜err = interface.nil⌝ ∨
-        (⌜m.Type' = MsgProp⌝ ∗ globalAddr ErrProposalDropped ↦□ err)) -∗
-      stepPost γ cfg r id (toPState s) m Φ -∗
-      |={⊤}=> Φ #err := by
-  iintro Hghost Hphys Herr HΦ
-  have Hst' : Step γ.reCfg id (toPState s) [] (toPState s') := by rw [Hcfg]; exact Hstep
-  imod ownRaftGhost_step_0 γ id _ _ Hst' $$ Hghost with Hghost
-  imodintro
-  unfold stepPost
-  iapply HΦ $$ %err %s' %(toPState s')
-  iframe Hphys Hghost Herr
-  ipureintro
-  exact ⟨⟨rfl, Hwf'⟩, ⟨[], Hstep⟩⟩
-
-/-- Rocq `STEP_POSTULATES`: the callee specs the branches are proved from. -/
-structure raft.Step.Postulates : Prop where
-  hup : raft.hup.spec (GF := GF) (hG := hG)
-  becomeFollower : raft.becomeFollower.spec (GF := GF) (hG := hG)
-  voteRespMsgType : voteRespMsgType.spec (GF := GF) (hG := hG)
-  send : raft.send.spec (GF := GF) (hG := hG)
-  stepCandidate : stepCandidate.spec (GF := GF) (hG := hG)
-  /-- A `MsgVoteResp` falls through `Step`'s type switch to `r.step(m)`, which is any
-  of the three depending on the role -- on `m.Term > r.Term` the term preamble has
-  already run `becomeFollower`. -/
-  stepFollower : stepFollower.spec (GF := GF) (hG := hG)
-  stepLeader : stepLeader.spec (GF := GF) (hG := hG)
-  traceReceiveMessage : traceReceiveMessage.spec (GF := GF) (hG := hG)
-  lastEntryID : raftLog.lastEntryID.spec (GF := GF) (hG := hG)
-  isUpToDate : raftLog.isUpToDate.spec (GF := GF) (hG := hG)
-
-/-! ### The branches (Rocq `proof_raft__Step_helpers/`), not ported
-
-Each is stated as in its Rocq file; the proofs are `sorry` (see the Lean notes at the
-top of the file). -/
-
-/-- `proof_raft__Step_MsgHup.v`. -/
-private theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message) :
-    m.Type' = MsgHup →
-    m.Term' = W64 0 →
-    -- an election increments the term; `send` panics if that wraps to zero
-    uint.Z s.term + 1 < 2 ^ 64 →
-    -- `r.step` matches the role
-    NStateWf s →
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        "Hphys" ∷ ownRaftPhys cfg r id s }}
-      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
-    {{ (err : GoInterface) (s' : NState), RET #err;
-        "Hphys" ∷ ownRaftPhys cfg r id s' ∗
-        "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-        "%Hrefines" ∷ ⌜Step cfg id (toPState s) [] (toPState s')⌝ ∗
-        "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  -- proof in `proof_raft__Step_helpers/proof_raft__Step_MsgHup.v`, not ported
-  sorry
-
-/-- `proof_raft__Step_MsgVote.v`. -/
-private theorem wp_Step_MsgVote (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) :
-    m.Type' = MsgVote →
-    m.To' = id →
-    m.Term' ≠ W64 0 →
-    -- `send` stamps the sender's id into `From`, and node ids are nonzero
-    m.From' ≠ W64 0 →
-    NStateWf s →
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        "Hphys" ∷ ownRaftPhys cfg r id s ∗
-        -- the message's `Context` is readable and is not the leader-transfer marker:
-        -- leader transfer is out of scope
-        "#Hctx" ∷ (∃ (ctx : List w8), m.Context' ↦*□ ctx ∗ ⌜ctx ≠ campaignTransfer⌝) }}
-      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
-    {{ (err : GoInterface) (s' : NState), RET #err;
-        "Hphys" ∷ ownRaftPhys cfg r id s' ∗
-        "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-        -- `recv` is whatever this branch consumed -- nothing, or the incoming message
-        -- once or twice. Naming its elements rather than the list lets
-        -- `raft.Step.wp_proof` discharge the `isMessage` side of `ownRaftGhost_step`
-        -- from the single fact it holds about `m`.
-        "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .vote m ents) ∧
-            Step cfg id (toPState s) recv (toPState s')⌝ ∗
-        "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  -- proof in `proof_raft__Step_helpers/proof_raft__Step_MsgVote.v` (and `_MsgVote_*.v`),
-  -- not ported
-  sorry
-
-/-- `proof_raft__Step_MsgVoteResp.v`. -/
-private theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) :
-    m.Type' = MsgVoteResp →
-    m.To' = id →
-    m.Term' ≠ W64 0 →
-    -- `stepCandidate` needs it; `Step` is the outermost caller
-    id ∈ cfg →
-    NStateWf s →
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        "Hphys" ∷ ownRaftPhys cfg r id s }}
-      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
-    {{ (err : GoInterface) (s' : NState), RET #err;
-        "Hphys" ∷ ownRaftPhys cfg r id s' ∗
-        "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-        "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .voteResp m ents) ∧
-            Step cfg id (toPState s) recv (toPState s')⌝ ∗
-        "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  -- proof in `proof_raft__Step_helpers/proof_raft__Step_MsgVoteResp.v`, not ported
-  sorry
-
-/-- `proof_raft__Step_MsgPreVote.v`. -/
-private theorem wp_Step_MsgPreVote (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message) :
-    m.Type' = MsgPreVote →
-    m.To' = id →
-    m.Term' ≠ W64 0 →
-    m.From' ≠ W64 0 →
-    NStateWf s →
-    (s.term = W64 0 →
-      plogUpToDate s.logst.prev (s.logst.sents ++ s.logst.uents)
-        (entryID.mk m.LogTerm' m.Index') = true) →
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        "Hphys" ∷ ownRaftPhys cfg r id s ∗
-        "#Hctx" ∷ (∃ (ctx : List w8), m.Context' ↦*□ ctx ∗ ⌜ctx ≠ campaignTransfer⌝) }}
-      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
-    {{ (err : GoInterface) (s' : NState), RET #err;
-        "Hphys" ∷ ownRaftPhys cfg r id s' ∗
-        "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-        "%Hrefines" ∷ ⌜Step cfg id (toPState s) [] (toPState s')⌝ ∗
-        "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  -- proof in `proof_raft__Step_helpers/proof_raft__Step_MsgPreVote.v`, not ported
-  sorry
-
-/-- `proof_raft__Step_MsgPreVoteResp.v`. -/
-private theorem wp_Step_MsgPreVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) :
-    m.Type' = MsgPreVoteResp →
-    m.To' = id →
-    m.Term' ≠ W64 0 →
-    uint.Z s.term + 1 < 2 ^ 64 →
-    id ∈ cfg →
-    NStateWf s →
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        "Hphys" ∷ ownRaftPhys cfg r id s }}
-      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
-    {{ (err : GoInterface) (s' : NState), RET #err;
-        "Hphys" ∷ ownRaftPhys cfg r id s' ∗
-        "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-        "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .preVoteResp m ents) ∧
-            Step cfg id (toPState s) recv (toPState s')⌝ ∗
-        "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  -- proof in `proof_raft__Step_helpers/proof_raft__Step_MsgPreVoteResp.v`, not ported
-  sorry
-
-/-- `proof_raft__Step_MsgProp.v`. -/
-private theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) :
-    m.Type' = MsgProp →
-    m.Term' = W64 0 →
-    (m.From' = W64 0 ∨ m.From' = id) →
-    ents ≠ [] →
-    (∀ e ∈ ents, e.Type' = EntryNormal) →
-    (ents.length : Int) < 2^61 →
-    (s.role = .follower → s.lead ≠ id) →
-    id ∈ cfg →
-    NStateWf s →
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        "Hphys" ∷ ownRaftPhys cfg r id s ∗
-        "Hents" ∷ m.Entries' ↦* ents ∗
-        "Hcap" ∷ ownSliceCap raftpb.Entry m.Entries' (DFrac.own 1) }}
-      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
-    {{ (err : GoInterface) (s' : NState), RET #err;
-        "Hphys" ∷ ownRaftPhys cfg r id s' ∗
-        "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-        -- Either one step from `s` consuming at most the proposal (forwarded or
-        -- dropped), or -- appended at the leader -- the `Step.propose` state's premises
-        -- and one step from that state on (the broadcast), so that `Step` can take
-        -- `Step.propose`'s ghost update with the registry
-        -- (`ownRaftGhost_step_propose_reg`) and the uniform one for the rest
-        -- (2026-10-06).
-        "%Hrefines" ∷ ⌜(∃ recv, (∀ m' ∈ recv, m' = absMsg .propose m ents) ∧
-              Step cfg id (toPState s) recv (toPState s')) ∨
-            (err = interface.nil ∧ (toPState s).role = .leader ∧
-             (∀ e ∈ ents, e.Type' = W32 0) ∧
-             plogLastIndexZ (toPState s).base (toPState s).log + (ents.length : Int) < 2 ^ 64 ∧
-             Step cfg id
-               (psendMsgs (pappend (toPState s)
-                   (ents.mapIdx (stamp (toPState s).term (plastIndex (toPState s)))))
-                 [pselfAck id (pappend (toPState s)
-                   (ents.mapIdx (stamp (toPState s).term (plastIndex (toPState s)))))])
-               [] (toPState s'))⌝ ∗
-        "Herr" ∷ (⌜err = interface.nil⌝ ∨ globalAddr ErrProposalDropped ↦□ err) }} := by
-  -- proof in `proof_raft__Step_helpers/proof_raft__Step_MsgProp.v`, not ported
-  sorry
-
-/-- `proof_raft__Step_MsgApp.v`. -/
-private theorem wp_Step_MsgApp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) :
-    m.Type' = MsgApp →
-    m.To' = id →
-    m.Term' ≠ W64 0 →
-    m.From' ≠ W64 0 →
-    m.From' ≠ id →
-    id ∈ cfg →
-    NStateWf s →
-    -- protocol facts the dispatch derives from the ghost state (`app_recv_wf`,
-    -- `app_no_conflict_below_commit`)
-    PlogWf (entryID.mk m.LogTerm' m.Index') ents →
-    uint.Z m.Index' + (ents.length : Int) + 1 < 2^64 →
-    (∀ e ∈ ents, e.Type' = EntryNormal) →
-    -- GUARD (2026-10-02, the dispatch): the protocol fact holds only for a message no
-    -- older than the receiver's term; a stale `MsgApp` is dropped by the preamble and
-    -- never reaches `maybeAppend`
-    (uint.Z s.term ≤ uint.Z m.Term' →
-     uint.Z s.logst.committed ≤ uint.Z m.Index' →
-     PlogMatches s.logst.prev (s.logst.sents ++ s.logst.uents)
-       (entryID.mk m.LogTerm' m.Index') →
-     plogFindConflict s.logst.prev (s.logst.sents ++ s.logst.uents) ents = W64 0 ∨
-     uint.Z s.logst.committed <
-       uint.Z (plogFindConflict s.logst.prev (s.logst.sents ++ s.logst.uents) ents)) →
-    -- ADDED (not in the brief): a follower's vote tally is empty. The follower case
-    -- of `m.Term = r.Term` refines `step_app_accept` / `step_heartbeat` etc., whose
-    -- `padoptLeader` clears `votes`; the Go code's `r.lead = m.From` does not touch
-    -- `r.trk.Votes`, so the two agree only when the tally already is empty.
-    (s.role = .follower → s.votes = ∅) →
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        "Hphys" ∷ ownRaftPhys cfg r id s ∗
-        "#Hents" ∷ m.Entries' ↦*□ ents ∗
-        "Hcap" ∷ ownSliceCap raftpb.Entry m.Entries' (DFrac.own 1) }}
-      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
-    {{ (err : GoInterface) (s' : NState), RET #err;
-        "Hphys" ∷ ownRaftPhys cfg r id s' ∗
-        "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-        "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .app m ents) ∧
-            Step cfg id (toPState s) recv (toPState s')⌝ ∗
-        "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  -- proof in `proof_raft__Step_helpers/proof_raft__Step_MsgApp.v` (and `_MsgApp_*.v`),
-  -- not ported
-  sorry
-
-/-- `proof_raft__Step_MsgHeartbeat.v`. -/
-private theorem wp_Step_MsgHeartbeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) :
-    m.Type' = MsgHeartbeat →
-    m.To' = id →
-    m.Term' ≠ W64 0 →
-    m.From' ≠ W64 0 →
-    m.From' ≠ id →
-    id ∈ cfg →
-    NStateWf s →
-    -- protocol fact (`heartbeat_commit_le_last`); GUARD (2026-10-02, the dispatch):
-    -- only for a message no older than the receiver's term; a stale heartbeat never
-    -- reaches `commitTo`
-    (uint.Z s.term ≤ uint.Z m.Term' →
-     uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents)) →
-    -- ADDED (not in the brief): a follower's vote tally is empty (see `MsgApp`)
-    (s.role = .follower → s.votes = ∅) →
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        "Hphys" ∷ ownRaftPhys cfg r id s ∗
-        "#Hents" ∷ m.Entries' ↦*□ ents }}
-      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
-    {{ (err : GoInterface) (s' : NState), RET #err;
-        "Hphys" ∷ ownRaftPhys cfg r id s' ∗
-        "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-        "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .heartbeat m ents) ∧
-            Step cfg id (toPState s) recv (toPState s')⌝ ∗
-        "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  -- proof in `proof_raft__Step_helpers/proof_raft__Step_MsgHeartbeat.v` (and
-  -- `_MsgHeartbeat_*.v`), not ported
-  sorry
-
-/-- `proof_raft__Step_MsgAppResp.v`. -/
-private theorem wp_Step_MsgAppResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) :
-    m.Type' = MsgAppResp →
-    m.To' = id →
-    m.Term' ≠ W64 0 →
-    m.From' ≠ W64 0 →
-    (m.Reject' = true → m.From' ≠ id) →
-    id ∈ cfg →
-    NStateWf s →
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        "Hphys" ∷ ownRaftPhys cfg r id s ∗
-        "#Hents" ∷ m.Entries' ↦*□ ents }}
-      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
-    {{ (err : GoInterface) (s' : NState), RET #err;
-        "Hphys" ∷ ownRaftPhys cfg r id s' ∗
-        "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-        "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .appResp m ents) ∧
-            Step cfg id (toPState s) recv (toPState s')⌝ ∗
-        "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  -- proof in `proof_raft__Step_helpers/proof_raft__Step_MsgAppResp.v` (and
-  -- `_MsgAppResp_eq.v`), not ported
-  sorry
-
-/-- `proof_raft__Step_MsgHeartbeatResp.v`. -/
-private theorem wp_Step_MsgHeartbeatResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) :
-    m.Type' = MsgHeartbeatResp →
-    m.To' = id →
-    m.Term' ≠ W64 0 →
-    m.From' ≠ W64 0 →
-    m.From' ≠ id →
-    id ∈ cfg →
-    NStateWf s →
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        "Hphys" ∷ ownRaftPhys cfg r id s ∗
-        "#Hents" ∷ m.Entries' ↦*□ ents ∗
-        "#Hctx0" ∷ m.Context' ↦*□ ([] : List w8) }}
-      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
-    {{ (err : GoInterface) (s' : NState), RET #err;
-        "Hphys" ∷ ownRaftPhys cfg r id s' ∗
-        "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-        "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .heartbeatResp m ents) ∧
-            Step cfg id (toPState s) recv (toPState s')⌝ ∗
-        "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  -- proof in `proof_raft__Step_helpers/proof_raft__Step_MsgHeartbeatResp.v` (and
-  -- `_MsgHeartbeatResp_eq.v`), not ported
-  sorry
-
-/-- `proof_raft__Step_MsgBeat.v`. -/
-private theorem wp_Step_MsgBeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message) :
-    m.Type' = MsgBeat →
-    m.Term' = W64 0 →
-    id ∈ cfg →
-    NStateWf s →
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        "Hphys" ∷ ownRaftPhys cfg r id s }}
-      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
-    {{ (err : GoInterface) (s' : NState), RET #err;
-        "Hphys" ∷ ownRaftPhys cfg r id s' ∗
-        "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-        "%Hrefines" ∷ ⌜Step cfg id (toPState s) [] (toPState s')⌝ ∗
-        "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  -- proof in `proof_raft__Step_helpers/proof_raft__Step_MsgBeat.v`, not ported
-  sorry
-
-/-- `proof_raft__Step_MsgSnap.v`. -/
-private theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (sv : raftpb.Snapshot) (voters : List w64) :
-    m.Type' = MsgSnap →
-    m.To' = id →
-    m.Term' ≠ W64 0 →
-    m.From' ≠ W64 0 →
-    m.From' ≠ id →
-    id ∈ cfg →
-    NStateWf s →
-    -- the snapshot's `ConfState` is `cfg`'s voters, zero-free, no learners or joint
-    -- configuration; its index below `2^61` (`Step`'s `"Hsnap"`)
-    SnapScope cfg sv voters →
-    -- protocol facts the dispatch derives from the ghost state: at the current term
-    -- the receiver is not a leader (`isLeader_unique`), and a follower's tally is
-    -- empty (`FollowerVotesOk`)
-    (m.Term' = s.term → s.role ≠ .leader) →
-    (s.role = .follower → s.votes = ∅) →
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        "Hphys" ∷ ownRaftPhys cfg r id s ∗
-        "#Hsv" ∷ m.Snapshot' ↦□ sv ∗
-        "#Hvs" ∷ sv.Metadata'.ConfState'.Voters' ↦*□ voters }}
-      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
-    {{ (err : GoInterface) (s' : NState), RET #err;
-        "Hphys" ∷ ownRaftPhys cfg r id s' ∗
-        "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-        "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absSnap m sv voters) ∧
-            Step cfg id (toPState s) recv (toPState s')⌝ ∗
-        "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  -- proof in `proof_raft__Step_helpers/proof_raft__Step_MsgSnap.v` (and
-  -- `_MsgSnap_*.v`), not ported
-  sorry
 
 /-! ### The dispatch for the branches written elsewhere
 
@@ -494,11 +64,7 @@ branch statements): the protocol fact behind the conflict premise
 holds only for a message no older than the receiver's term -- a stale `MsgApp` from a
 deposed leader can conflict below the commit index -- and a stale message never reaches
 `maybeAppend`/`commitTo` (`Step`'s preamble drops it), so the branch lemma needs the
-premise only under `uint.Z s.term ≤ uint.Z m.Term`.
-
-Lean notes: Rocq's dispatch lemmas take the branch lemma as a hypothesis `HB` (the
-branches were in other modules); here they take the postulates `P` and call the branch
-lemma, which is in this file. -/
+premise only under `uint.Z s.term ≤ uint.Z m.Term`. -/
 
 private theorem dispatch_App (P : raft.Step.Postulates (GF := GF) (hG := hG))
     (γ : RaftElectionNames) (cfg : GSet w64) (r : Loc) (id : w64) (s : NState)
