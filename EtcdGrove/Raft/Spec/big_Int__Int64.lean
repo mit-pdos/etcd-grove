@@ -15,9 +15,8 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `p.Int64()` reads back a `big.Int` that fits in an `int64`.
-
-**Trust boundary**, like `big.NewInt.spec`: `math/big` is not translated. -/
+/-- `p.Int64()` reads back a `big.Int` that fits in an `int64`. Proved in Perennial
+(`math.big.wp_Int64`). -/
 abbrev big.Int.Int64.spec : Prop :=
   ∀ (p : Loc) (z : Int),
   - 2 ^ 63 ≤ z ∧ z < 2 ^ 63 →

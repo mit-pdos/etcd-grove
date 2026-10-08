@@ -24,6 +24,7 @@ import Perennial.Proof.cmp
 import Perennial.Proof.encoding.binary
 import Perennial.Proof.strings
 import Perennial.Proof.math
+import Perennial.Proof.math.bits
 import Perennial.Proof.bytes
 import Perennial.Proof.log
 import Perennial.Proof.io

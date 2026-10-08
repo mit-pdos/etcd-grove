@@ -17,13 +17,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- **Trust boundary**: an `axiom` rather than a `sorry` (Rocq: an `Axiom` inside the
-functor rather than an `Admitted` `Lemma`), so that it still counts as an assumption
-under `#print axioms`. `math/big` is not translated and is not raft; see
-`Spec/big_Int__Int64.lean` and notes/STATUS.md ("Trust base") for why it may be
-assumed. -/
-axiom big.Int.Int64.wp_proof : big.Int.Int64.spec (GF := GF) (hG := hG)
-
+/-- Proved in Perennial (`Perennial.Proof.math.big`). -/
+theorem big.Int.Int64.wp_proof : big.Int.Int64.spec (GF := GF) (hG := hG) := by
+  intro p z Hz
+  iintro %Φ ⟨_, Hp⟩ HΦ
+  iapply _root_.Perennial.math.big.wp_Int64 p z Hz $$ Hp HΦ
 
 end proof
 

@@ -59,7 +59,7 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 -- `hlc := HasLC.hasLC`, so that the heap's invariants are an `InvGS GF` (see the
 -- Lean notes)
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 variable [AllG GF]

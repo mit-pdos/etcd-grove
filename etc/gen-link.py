@@ -121,13 +121,13 @@ generic = [fn for fn in order if fn not in haslc]
 special = [fn for fn in order if fn in haslc]
 assert all(c not in haslc for fn in generic for c in callees[fn])
 out.append("section links\n" + VARS.format(
-    heap="variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]\nvariable [AllG GF]"))
+    heap="variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]\nvariable [AllG GF]"))
 out.extend(emit(fn) for fn in generic)
 out.append("end links\n")
 out.append("""/-! The specs stated at `HeapGS HasLC.hasLC GF`: the ghost state holds an
 invariant (`raftCommitInv`), whose world is the heap's only at `.hasLC`. -/""")
 out.append("section links_hasLC\n" + VARS.format(
-    heap="variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]\nvariable [AllG GF]"))
+    heap="variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]\nvariable [AllG GF]"))
 out.extend(emit(fn) for fn in special)
 out.append("end links_hasLC\n\nend EtcdGrove\nend Perennial")
 print("\n".join(out))

@@ -21,8 +21,9 @@ translation of etcd-raft is this repository's `EtcdRaft/`, generated and checked
   `inv_rawnode.v`): no `sorry`.
 - The 167 specs and the 167 proofs (`raft.Step`'s branches in `Proof/raft__Step/`,
   one module per Rocq helper file, incl. `MsgStorageAppendResp`/`MsgStorageApplyResp`).
-  Trust boundary as in the Rocq: the state/logger axioms and nine `axiom … .wp_proof`
-  for code outside the scope.
+  Trust boundary as in the Rocq at first: the state/logger axioms and nine
+  `axiom … .wp_proof` for code outside the scope (since 2026-10-08 only `.wp_proof`
+  axioms remain; see below).
 - **`RawNode.Ready` is proved here although it is `Admitted` in the Rocq**: the Rocq
   script stops (`Show. Admitted.`) after stepping all the code and closing the struct,
   before the postcondition; `Proof/RawNode__Ready.lean` ports that script and proves the
@@ -65,6 +66,62 @@ translation of etcd-raft is this repository's `EtcdRaft/`, generated and checked
   the proof takes it from the model (`Proof/extend.lean`), and what is trusted is
   unchanged. Every result is now `sorry`-free; `etc/tcb-report.py --check`: 13 axioms,
   0 sorries.
+- **`big.NewInt` and `big.Int.Int64` are proved (2026-10-08)**, in Perennial
+  (`Proof/math/big.lean`; `math/big.toml` translates `NewInt`, `Int.Int64` and `low64`):
+  `ownBigInt` is Perennial's `math.big.ownInt` (sign and little-endian word slice) instead
+  of an abstract axiom, the two specs are unchanged, and `crypto/rand.Int` (still assumed)
+  is stated over the concrete predicate. Perennial's Go semantics gained unary minus on
+  unsigned integers (`neg_uint64` & co., `Golang/Defn/Predeclared.lean`), which `NewInt`
+  uses. Perennial pinned at 584b17c54: `lake build` passes, `etc/goose.py --check`
+  passes, `etc/tcb-report.py --check`: 10 axioms, 0 sorries. `slices.Sort` and `strings.Join` stay assumed, and both specs
+  claim more than Go's code does in the model: `Sort` overflows `2*root+1` in its
+  heapsort fallback past 2^62 elements, `Join` panics if the total length overflows
+  `int` (and cannot be translated: `strings.Builder` uses `unsafe.String`).
+- **The `Logger` and `Storage` interfaces assume nothing (2026-10-08).** `isLogger`
+  (`InvLogger.lean`) is a definition, the formatting methods' triples bundled as
+  `isStorageWith` bundles `Storage`'s, so `isLogger_persistent` is an instance and
+  `Logger.wp_logf` a theorem: a client supplies the triples with its `Logger`.
+  `ownStorage` (`InvStorage.lean`) is the field of `class StorageModel GF`, a
+  parameter every section that reaches it carries (`[StorageModel GF]`, also in
+  `etc/gen-link.py`'s template), with deliberately no global instance; it stays
+  abstract (not specialised to `ownMemoryStorage`), but the results now hold for
+  *every* storage predicate instead of one unknown one, which no client could have
+  established (`newRaft`'s precondition asks for it, and `ownRawNode_persist` hands it
+  to the application to `Append`). Four axioms gone (`isLogger`,
+  `isLogger_persistent`, `Logger.wp_logf`, `ownStorage`); `etc/tcb-report.py
+  --check`: 6 axioms (`reflect.DeepEqual`, `fmt.Sprintf`, `strings.Join`,
+  `slices.Sort`, `rand.Int`, `raftpb.Entry.Size`), 0 sorries. `RawNode.wp_Ready` rests
+  on `Entry.Size` alone, `RawNode.wp_Propose` on `Entry.Size`, `rand.Int`,
+  `slices.Sort` and `reflect.DeepEqual`.
+- **`raftpb.Entry.Size` is proved (2026-10-08)**, no longer an axiom: `raftpb.toml`
+  translates `Entry.Size` and `sovRaft` (gogoproto, `raft.pb.go`) and imports
+  `math/bits`; `Proof/Entry__Size.lean` proves the triple from the body, with
+  `sovRaft` a Lean-first spec/proof pair (`etc/link-lean-first.txt`). The triple gained
+  only an `isPkgInit raftpb` conjunct (for `bits.Len64`), which `limitSize`/`entsSize`
+  discharge from `isPkgInit raft.v3`; no caller's spec changed. `etc/tcb-report.py
+  --check`: 5 axioms, 0 sorries; `RawNode.wp_Ready` and `wp_HasReady` now rest on none
+  of this repository's axioms, `RawNode.wp_Propose` on `rand.Int`, `slices.Sort`,
+  `reflect.DeepEqual`.
+- **What the five remaining axioms would take** (checked 2026-10-08, with "no
+  higher-level spec changes" as the constraint):
+  - `slices.Sort`: translatable (Perennial's `slices.toml`; the `*Ordered` pdqsort is
+    the sibling of the proved `SortFunc`), but the proved spec needs
+    `length ≤ 2^62`, as `wp_SortFunc` does (heapsort's `2*root+1` overflows past
+    that, so the current spec is false in the model). No caller has it: `Visit`,
+    `VoterNodes`, `campaign` get only `size cfg < 2^63` (`ownTracker`'s
+    `Hcfg_size`), `MajorityConfig.CommittedIndex` and `MajorityConfig.Slice` have
+    `< 2^63` or nothing, `ConfState.Equivalent` nothing; only the empty-slice calls
+    (`Slice`'s nil branch, `sortCopy_empty`) are bounded. Needs `Hcfg_size ≤ 2^62` in
+    `ownTracker` plus premises on `CommittedIndex`, `Slice`, `Equivalent`.
+  - `fmt.Sprintf`, `strings.Join`: not translatable (`fmt`'s printer reaches
+    `reflect`; `strings.Builder.String` is `unsafe.String`), and `Join`'s no-panic claim
+    needs a bound on the strings' total length that `Sprintf`'s "some string" cannot
+    give.
+  - `reflect.DeepEqual`: reflection, outside Goose.
+  - `rand.Int`: `crypto/rand.Reader` reads the OS RNG (a syscall), outside GooseLang.
+  The last four can only go by changing the Go code (the `upamanyus/etcd-raft`
+  `goose` fork) or by trusted models (`Perennial/TrustedCode`), which move the
+  trust rather than remove it.
 - Trust base: `etc/tcb-report.py` (gate: `--check` against `etc/tcb-baseline.txt`).
 - **Build checked 2026-10-08** at Perennial c35b7710d (a `--packages` override pointing
   at a checkout of the pinned commit): `lake build` completes (977 jobs, 0 errors); `etc/tcb-report.py --check`
@@ -150,6 +207,9 @@ target), generated and checked by `etc/goose.py` (now two projects, `etcd-raft` 
 
 ## Differences from the Rocq besides the language
 
+- No axiom for the `Logger` and `Storage` interfaces (Rocq: `is_Logger` and
+  `own_Storage` are `Axiom`s, with `wp_logf` a third): `isLogger` is a definition and
+  `ownStorage` a typeclass parameter (`StorageModel`), see "Done".
 - Names follow Perennial's Lean conventions (`raft.wp_Step`, `own_raft_phys` →
   `ownRaftPhys`, …); see Perennial's `etc/lean-rename/renames.tsv` for the
   framework's Rocq → Lean names.
