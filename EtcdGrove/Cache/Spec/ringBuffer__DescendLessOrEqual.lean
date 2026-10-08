@@ -27,13 +27,14 @@ abbrev ringBuffer.DescendLessOrEqual.spec : Prop :=
   ∀ {T' : Type} [ZeroVal T'] [TypedPointsto (GF := GF) T'] (T : go.GoType)
     [IntoValTyped (GF := GF) T' T] {V : Type}
     (r : Loc) (cap : Nat) (isItem : T' → V → IProp GF) (revOf : V → w64) (items : List V)
+    (dq : DFrac)
     (pivot : w64) (iter : GoFunc) (P : Nat → IProp GF) (Q : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
-      ownRingBuffer r cap isItem revOf items ∗ P 0 ∗
+      ownRingBuffer r cap isItem revOf items dq ∗ P 0 ∗
       iterSpec iter isItem revOf (descendLeVisited revOf pivot items) P Q }}
     (App (App (Val (r @!! go.GoType.PointerType (ringBuffer.ty T) @!! go!"DescendLessOrEqual"))
       (Val #pivot)) (Val #iter))
-  {{ RET #(); ownRingBuffer r cap isItem revOf items ∗
+  {{ RET #(); ownRingBuffer r cap isItem revOf items dq ∗
       (Q ∨ P (descendLeVisited revOf pivot items).length) }}
 
 end spec

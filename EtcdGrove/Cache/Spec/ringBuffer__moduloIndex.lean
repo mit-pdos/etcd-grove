@@ -28,13 +28,13 @@ the struct back unchanged (an `ownRingBuffer` postcondition would hide which buf
 abbrev ringBuffer.moduloIndex.spec : Prop :=
   ∀ {T' : Type} [ZeroVal T'] [TypedPointsto (GF := GF) T'] (T : go.GoType)
     [IntoValTyped (GF := GF) T' T]
-    (r : Loc) (rb : ringBuffer T') (index : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ r ↦ rb ∗
+    (r : Loc) (rb : ringBuffer T') (dq : DFrac) (index : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ r ↦{dq} rb ∗
       ⌜0 < sint.Z rb.buffer'.len ∧ -sint.Z rb.buffer'.len ≤ sint.Z index ∧
         sint.Z index + sint.Z rb.buffer'.len < 2 ^ 63⌝ }}
     (App (Val (r @!! go.GoType.PointerType (ringBuffer.ty T) @!! go!"moduloIndex"))
       (Val #index))
-  {{ RET #(W64 (sint.Z index % sint.Z rb.buffer'.len)); r ↦ rb }}
+  {{ RET #(W64 (sint.Z index % sint.Z rb.buffer'.len)); r ↦{dq} rb }}
 
 end spec
 

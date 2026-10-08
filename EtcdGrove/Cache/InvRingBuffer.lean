@@ -362,12 +362,16 @@ structure RingOk (rb : ringBuffer T') (cap n : Nat) : Prop where
   `revOf items[i]` (`%Hrev`, pure, for the searches) and whose `item` satisfies
   `isItem` with `items[i]` (`#Hitems`); unused slots hold anything;
 * the revisions are strictly increasing (`RevSorted`);
-* the stored `revisionOf` closure meets `revisionOfSpec`. -/
+* the stored `revisionOf` closure meets `revisionOfSpec`.
+
+`dq` is the fraction of the struct and the buffer held (`DFrac.own 1`, the default, to
+write: `Append`, `RebaseHistory`; any fraction to read); `ownRingBuffer_fractional` splits
+it. -/
 def ownRingBuffer (r : Loc) (cap : Nat) (isItem : T' → V → IProp GF) (revOf : V → w64)
-    (items : List V) : IProp GF :=
+    (items : List V) (dq : DFrac := DFrac.own 1) : IProp GF :=
   iprop(∃ (rb : ringBuffer T') (ents : List (entry T')),
-    "Hr" ∷ r ↦ rb ∗
-    "Hbuf" ∷ rb.buffer' ↦* ents ∗
+    "Hr" ∷ r ↦{dq} rb ∗
+    "Hbuf" ∷ rb.buffer' ↦*{dq} ents ∗
     "%Hok" ∷ ⌜RingOk rb cap items.length⌝ ∗
     "%Hrev" ∷ ⌜∀ (i : Nat) (v : V), items[i]? = some v →
       ∃ e, ents[ringSlot rb.tail' cap i]? = some e ∧ e.revision' = revOf v⌝ ∗
@@ -382,12 +386,12 @@ theorem ownRingBuffer_intro (r : Loc) (cap : Nat) (isItem : T' → V → IProp G
     (Hok : RingOk rb cap items.length)
     (Hrev : ∀ (i : Nat) (v : V), items[i]? = some v →
       ∃ e, ents[ringSlot rb.tail' cap i]? = some e ∧ e.revision' = revOf v)
-    (Hsorted : RevSorted revOf items) :
-    ⊢ (r ↦ rb : IProp GF) -∗ rb.buffer' ↦* ents -∗
+    (Hsorted : RevSorted revOf items) (dq : DFrac := DFrac.own 1) :
+    ⊢ (r ↦{dq} rb : IProp GF) -∗ rb.buffer' ↦*{dq} ents -∗
       □ (∀ (i : Nat) (v : V) (e : entry T'), ⌜items[i]? = some v⌝ -∗
         ⌜ents[ringSlot rb.tail' cap i]? = some e⌝ -∗ isItem e.item' v) -∗
       revisionOfSpec rb.revisionOf' isItem revOf -∗
-      ownRingBuffer r cap isItem revOf items := by
+      ownRingBuffer r cap isItem revOf items dq := by
   iintro Hr Hbuf #Hitems #HrevOf
   unfold ownRingBuffer
   iexists rb, ents
@@ -411,10 +415,45 @@ theorem ownRingBuffer_struct_acc (r : Loc) (cap : Nat) (isItem : T' → V → IP
   iintro Hr
   iapply ownRingBuffer_intro r cap isItem revOf items rb ents Hok Hrev Hsorted $$ Hr Hbuf Hitems HrevOf
 
+/-- `ownRingBuffer` is fractional in the fraction of the struct and buffer it holds (with
+the same items: the halves of a shared ring agree on everything). -/
+theorem ownRingBuffer_fractional (r : Loc) (cap : Nat) (isItem : T' → V → IProp GF)
+    (revOf : V → w64) (items : List V) :
+    Fractional (fun q => ownRingBuffer r cap isItem revOf items (DFrac.own q)) where
+  fractional q1 q2 := by
+    have hr : ∀ rb : ringBuffer T', (r ↦{DFrac.own (q1 + q2)} rb : IProp GF) ⊣⊢
+        r ↦{DFrac.own q1} rb ∗ r ↦{DFrac.own q2} rb := fun rb =>
+      (typedPointsto_dfractional (GF := GF) r rb).dfractional (DFrac.own q1) (DFrac.own q2)
+    have hb : ∀ (sl : GoSlice) (ents : List (entry T')),
+        (sl ↦*{DFrac.own (q1 + q2)} ents : IProp GF) ⊣⊢
+          sl ↦*{DFrac.own q1} ents ∗ sl ↦*{DFrac.own q2} ents := fun sl ents =>
+      (ownSlice_dfractional (GF := GF) sl ents).dfractional (DFrac.own q1) (DFrac.own q2)
+    refine ⟨?_, ?_⟩
+    · iintro H
+      iNamed H
+      icases (hr rb).1 $$ Hr with ⟨Hr1, Hr2⟩
+      icases (hb rb.buffer' ents).1 $$ Hbuf with ⟨Hb1, Hb2⟩
+      isplitl [Hr1 Hb1]
+      · iapply ownRingBuffer_intro r cap isItem revOf items rb ents Hok Hrev Hsorted (DFrac.own q1)
+          $$ Hr1 Hb1 Hitems HrevOf
+      · iapply ownRingBuffer_intro r cap isItem revOf items rb ents Hok Hrev Hsorted (DFrac.own q2)
+          $$ Hr2 Hb2 Hitems HrevOf
+    · iintro ⟨H1, H2⟩
+      iNamedSuffix H1 "1"
+      iNamedSuffix H2 "2"
+      icombine Hr1 Hr2 gives %Heq
+      subst Heq
+      icombine Hbuf1 Hbuf2 gives %Heq
+      subst Heq
+      iapply ownRingBuffer_intro r cap isItem revOf items rb ents Hok1 Hrev1 Hsorted1
+        (DFrac.own (q1 + q2)) $$ [Hr1 Hr2] [Hbuf1 Hbuf2] Hitems1 HrevOf1
+      · iapply (hr rb).2; iframe
+      · iapply (hb rb.buffer' ents).2; iframe
+
 /-- `ownRingBuffer` bounds the number of items by the capacity, and that by `2^61`. -/
 theorem ownRingBuffer_length (r : Loc) (cap : Nat) (isItem : T' → V → IProp GF)
-    (revOf : V → w64) (items : List V) :
-    ownRingBuffer r cap isItem revOf items ⊢ ⌜items.length ≤ cap ∧ cap ≤ 2 ^ 61⌝ := by
+    (revOf : V → w64) (items : List V) (dq : DFrac := DFrac.own 1) :
+    ownRingBuffer r cap isItem revOf items dq ⊢ ⌜items.length ≤ cap ∧ cap ≤ 2 ^ 61⌝ := by
   iintro H
   iNamed H
   ipureintro

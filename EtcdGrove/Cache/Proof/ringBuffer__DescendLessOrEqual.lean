@@ -19,22 +19,29 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
+-- `wp_load` from a fractional struct points-to: a field-store `AccessStrict` instance
+-- (which needs `DFrac.own 1`) is found first and the search does not backtrack to the
+-- load instance, so the store instances are switched off here (this proof only loads).
+attribute [-instance] ringBuffer.ringBuffer_access_store_buffer
+  ringBuffer.ringBuffer_access_store_head ringBuffer.ringBuffer_access_store_tail
+  ringBuffer.ringBuffer_access_store_size ringBuffer.ringBuffer_access_store_revisionOf
+
 theorem ringBuffer.DescendLessOrEqual.wp_proof
     (wp_findLastIndexLessOrEqual :
       ringBuffer.findLastIndexLessOrEqual.spec (GF := GF) (hG := hG))
     (wp_at : ringBuffer.«at».spec (GF := GF) (hG := hG)) :
     ringBuffer.DescendLessOrEqual.spec (GF := GF) (hG := hG) := by
-  intro T' _ _ T _ V r cap isItem revOf items pivot iter P Q
+  intro T' _ _ T _ V r cap isItem revOf items dq pivot iter P Q
   wp_start as ⟨H, HP, #Hiter⟩
   wp_auto
   wp_apply wp_findLastIndexLessOrEqual $$ [$H] as H
   iunfold iterSpec at Hiter
-  ihave %Hn := ownRingBuffer_length r cap isItem revOf items $$ H
+  ihave %Hn := ownRingBuffer_length r cap isItem revOf items dq $$ H
   have Hk := leCount_le revOf pivot items
   -- `m` items visited, `i = k - 1 - m`
   ihave HI : iprop(∃ (j : w64) (m : Nat),
       "i" ∷ i_ptr ↦ j ∗
-      "H" ∷ ownRingBuffer r cap isItem revOf items ∗
+      "H" ∷ ownRingBuffer r cap isItem revOf items dq ∗
       "HP" ∷ P m ∗
       "%Hm" ∷ ⌜sint.Z j = (leCount revOf pivot items : Int) - 1 - m ∧
         m ≤ leCount revOf pivot items⌝) $$ [i H HP]

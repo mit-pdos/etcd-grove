@@ -1626,6 +1626,21 @@ noncomputable def _Auth_RoleGrantPermission_Handler [FfiSyntax] [GoGlobalContext
 noncomputable def _Auth_RoleRevokePermission_Handler [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb._Auth_RoleRevokePermission_Handler"
 
+/-- go: rpc.pb.go:502:26 -/
+noncomputable def ResponseHeader.GetRevision.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "x"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ResponseHeader.ty)))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #(W64 0)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType ResponseHeader.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ResponseHeader.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType ResponseHeader.ty)))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef ResponseHeader.ty go!"Revision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ResponseHeader.ty)))) (Var "x")))))
+  (App (Val doExecute)
+  (Val #()))))))))
+
 instance info' : PkgInfo pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb where
   pkgImportedPkgs := [pkg_id.google_golang_org.protobuf.runtime.protoimpl, pkg_id.go_etcd_io.etcd.api.v3.mvccpb]
 
@@ -2144,6 +2159,7 @@ class ResponseHeader.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   set_unknownFields : ∀ (x : ResponseHeader) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ResponseHeader.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ResponseHeader)))
   get_sizeCache : ∀ (x : ResponseHeader), go.IsGoStepPureDetTagged under (StructFieldGet ResponseHeader.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : ResponseHeader) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ResponseHeader.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ResponseHeader)))
+  ptr_GetRevision_unfold : MethodUnfold (go.GoType.PointerType ResponseHeader.ty) go!"GetRevision" ResponseHeader.GetRevision.impl
 
 attribute [instance] ResponseHeader.TypeAssumptions.type_repr
   ResponseHeader.TypeAssumptions.underlying
@@ -2163,6 +2179,7 @@ attribute [instance] ResponseHeader.TypeAssumptions.type_repr
   ResponseHeader.TypeAssumptions.set_unknownFields
   ResponseHeader.TypeAssumptions.get_sizeCache
   ResponseHeader.TypeAssumptions.set_sizeCache
+  ResponseHeader.TypeAssumptions.ptr_GetRevision_unfold
 
 axiom RangeRequest : Type
 axiom RangeRequest.zero_val : ZeroVal RangeRequest

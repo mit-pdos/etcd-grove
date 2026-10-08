@@ -118,7 +118,9 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     for fn in order:
         args = " ".join(result(c) for c in callees[fn])
         body = f"{spec[fn]}.wp_proof" + (f" {args}" if args else "")
-        out.append(f"theorem {result(fn)} :\n    {spec[fn]}.spec (GF := GF) (hG := hG) :=\n"
+        # the specs with ghost state (the store's) take `[AllG GF]`
+        allg = " [AllG GF]" if "[AllG GF]" in open(os.path.join(lean, "Spec", f"{fn}.lean")).read() else ""
+        out.append(f"theorem {result(fn)}{allg} :\n    {spec[fn]}.spec (GF := GF) (hG := hG) :=\n"
                    f"  {body}\n")
     out.append("end links\n\nend EtcdGrove\nend Perennial")
     print("\n".join(out))

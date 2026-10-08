@@ -647,9 +647,11 @@ axiom SortByModRevision [FfiSyntax] [GoGlobalContext] : val
 
 axiom SortByValue [FfiSyntax] [GoGlobalContext] : val
 
-axiom EventTypeDelete [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def EventTypeDelete [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 1)
 
-axiom EventTypePut [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def EventTypePut [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 0)
 
 axiom closeSendErrTimeout [FfiSyntax] [GoGlobalContext] : val
 
@@ -1069,6 +1071,18 @@ noncomputable def NewWatchFromWatchClient [FfiSyntax] [GoGlobalContext] : GoStri
 
 noncomputable def streamKeyFromCtx [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.streamKeyFromCtx"
+
+/-- IsProgressNotify returns true if the WatchResponse is progress notification.
+
+    go: watch.go:139:26 -/
+noncomputable def WatchResponse.IsProgressNotify.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "wr"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "wr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType WatchResponse.ty)))) (Var "wr"))
+  (App (Val doReturn)
+  (If (If (If (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType Event.ty))))) (App (Val (GoInstruction (StructFieldRef WatchResponse.ty go!"Events"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType Event.ty))]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef WatchResponse.ty go!"Canceled"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr"))))) (Val #false)) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef WatchResponse.ty go!"Created"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr"))))) (Val #false)) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef WatchResponse.ty go!"CompactRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr")))) (Val #(W64 0)))) (Val #false)) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty) go!"GetRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (App (Val (GoInstruction (StructFieldRef WatchResponse.ty go!"Header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr"))))) (Val #())) (Val #(W64 0))))) (Val #false)))))))
 
 instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.v3 where
   pkgImportedPkgs := [pkg_id.context, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.sync, pkg_id.time, pkg_id.go_etcd_io.etcd.api.v3.mvccpb]
@@ -3186,6 +3200,7 @@ class WatchResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   set_closeErr : ∀ (x : WatchResponse) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet WatchResponse.underlying go!"closeErr") (PairV #x #y) (Val #(({ x with closeErr' := y } : WatchResponse)))
   get_CancelReason : ∀ (x : WatchResponse), go.IsGoStepPureDetTagged under (StructFieldGet WatchResponse.underlying go!"CancelReason") #x (Val #(x.CancelReason'))
   set_CancelReason : ∀ (x : WatchResponse) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet WatchResponse.underlying go!"CancelReason") (PairV #x #y) (Val #(({ x with CancelReason' := y } : WatchResponse)))
+  ptr_IsProgressNotify_unfold : MethodUnfold (go.GoType.PointerType WatchResponse.ty) go!"IsProgressNotify" WatchResponse.IsProgressNotify.impl
 
 attribute [instance] WatchResponse.TypeAssumptions.type_repr
   WatchResponse.TypeAssumptions.underlying
@@ -3203,6 +3218,7 @@ attribute [instance] WatchResponse.TypeAssumptions.type_repr
   WatchResponse.TypeAssumptions.set_closeErr
   WatchResponse.TypeAssumptions.get_CancelReason
   WatchResponse.TypeAssumptions.set_CancelReason
+  WatchResponse.TypeAssumptions.ptr_IsProgressNotify_unfold
 
 axiom watcher : Type
 axiom watcher.zero_val : ZeroVal watcher
