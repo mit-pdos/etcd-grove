@@ -20,11 +20,6 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 omit ffi [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
-private theorem isLoggerVal_open (x : GoInterface) :
-    isLoggerVal (GF := GF) x ⊢ ∃ lg, ⌜x = interface.ok lg⌝ ∗ isLogger lg := by
-  unfold isLoggerVal; exact .rfl
-
-omit ffi [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
 /-- Rocq `truncate_append_split`: the new visible stable part and unstable suffix make
 up `plogTruncateAppend` of the whole log. -/
 private theorem truncateAppend_split (prev : entryID) (sents uents : List raftpb.Entry)
@@ -143,7 +138,6 @@ theorem raftLog.append.wp_proof
     wp_auto
     -- hand the `unstable` field to `truncateAndAppend`
     icases raftLog_split_unstable $$ Hl with ⟨Huf, Hlback⟩
-    icases isLoggerVal_open _ $$ Hu_logger with ⟨%ulg, %Hulg, #Hulgr⟩
     have Hle' : uint.Z e0.Index' ≤ uint.Z lv.unstable'.offset' + (uents.length : Int) := by
       omega
     have Hnw' : uint.Z lv.unstable'.offset' + (uents.length : Int) < 2 ^ 64 := by omega
@@ -154,15 +148,19 @@ theorem raftLog.append.wp_proof
       simp only [logAdopts, decide_eq_true_eq, Hoffset]
       apply propext; omega
     simp only [Hadopt_eq]
-    wp_apply wp_unstable_truncateAndAppend _ _ _ _ _ _ _ _ He0 Hle' Hnw' Hulg
-        $$ [Huf Huents Huents_cap $Hes $Hulgr Hadopt]
-      as %uv' ⟨Hun, %Huv', Hes⟩
-    · unfold ownUnstable
-      simp only [named]
-      iframe Huf Huents Huents_cap Hadopt
-    iNamed Hun
-    ihave Hl := Hlback $$ Hu
-    obtain ⟨Hoff', Hsnap', Hlg', Hoip'⟩ := Huv'
+    wp_apply wp_unstable_truncateAndAppend _
+        ⟨uents, lv.unstable'.offset', lv.unstable'.offsetInProgress', snap⟩ _ _ _ _ He0 Hle' Hnw'
+        $$ [Huf Huents Huents_cap $Hes Hadopt] as ⟨Hun, Hes⟩
+    · isplitl [Huf Huents Huents_cap]
+      · close_unstable_log
+      iexact Hadopt
+    iclear Husnap Hu_logger
+    icases ownUnstable_reopen _ _ _ $$ Hlback Hun
+      with ⟨%uv', Hl, Hents_cap, Hents, #Husnap, #Hu_logger, %Huv'⟩
+    dsimp only at Huv' ⊢
+    obtain ⟨Hoffm, Hoip'⟩ := Huv'
+    have Hoff' : uint.Z uv'.offset' = min (uint.Z e0.Index') (uint.Z lv.unstable'.offset') := by
+      rw [Hoffm, w64Min_spec]
     -- the new state
     have Hm : (uint.Z e0.Index' - uint.Z lv.unstable'.offset').toNat =
         (uint.Z e0.Index' - uint.Z prev.index' - 1 - (sents.length : Int)).toNat := by
@@ -281,8 +279,6 @@ theorem raftLog.append.wp_proof
       obtain ⟨Hk1, Hk2, Hk3⟩ := Hk'
       exact append_persistOk sprev stored lpend sents uents e0 ents' _ _ _ _ Hpre0
         (by omega) Hprev (by omega) Hk1 Hk2 Hk3
-    rw [← Hlg'] at Hulg
-    rw [← Hsnap', ← Hlg']
     ihave Hlog : ownRaftLog l ⟨prev,
         sents.take (uint.Z e0.Index' - uint.Z prev.index' - 1).toNat,
         uents.take (uint.Z e0.Index' - uint.Z prev.index' - 1 - (sents.length : Int)).toNat

@@ -42,22 +42,22 @@ theorem raftLog.acceptUnstable.wp_proof
     push_cast at this
     omega
   have Hnw' : uint.Z lv.unstable'.offset' + (uents.length : Int) < 2^64 := by omega
-  wp_apply wp_unstable_acceptInProgress _ _ _ Hcontig Hnw' $$ [Huf Huents Huents_cap]
-    as %uv' ⟨Hun, %Huv'⟩
-  · unfold ownUnstable
-    simp only [named]
-    iframe # ∗
-  obtain ⟨Hent', Hoff', Hsnap', Hlg', Hip0, Hip1⟩ := Huv'
-  unfold ownUnstable
-  icases Hun with ⟨Hu, Huents_cap, Huents⟩
-  ihave Hl := Hlback $$ Hu
+  wp_apply wp_unstable_acceptInProgress _
+      ⟨uents, lv.unstable'.offset', lv.unstable'.offsetInProgress', snap⟩ Hcontig Hnw'
+      $$ [Huf Huents Huents_cap] as %nip ⟨Hun, %Hnip⟩
+  · close_unstable_log
+  dsimp only at Hnip
+  obtain ⟨Hip0, Hip1⟩ := Hnip
+  iclear Husnap Hu_logger
+  icases ownUnstable_reopen _ _ _ $$ Hlback Hun
+    with ⟨%uv', Hl, Huents_cap, Huents, #Husnap, #Hu_logger, %Huv'⟩
+  dsimp only at Huv' ⊢
+  obtain ⟨Hoff', Hipv⟩ := Huv'
   iapply HΦ
-  rw [← Hlg'] at *
-  rw [← Hsnap'] at *
-  rw [← Hent'] at *
   -- the new `offsetInProgress` is the end of the log
   have Hend : uint.Z uv'.offsetInProgress'
       = uint.Z lv.unstable'.offset' + (uents.length : Int) := by
+    rw [Hipv]
     by_cases He : uents = []
     · rw [Hip0 He]; subst uents; simp only [List.length_nil] at Hipb ⊢; omega
     · exact Hip1 He

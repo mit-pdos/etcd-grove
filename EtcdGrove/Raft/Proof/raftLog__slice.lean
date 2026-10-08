@@ -132,13 +132,16 @@ theorem raftLog.slice.wp_proof
   wp_auto
   wp_if_destruct
   · -- the result lies entirely in the unstable suffix
-    split_unstable l lv
+    icases raftLog_split_unstable l lv $$ Hl with ⟨Huf, Hlback⟩
     have Hus : uint.Z lv.unstable'.offset' ≤ uint.Z lo ∧ uint.Z lo < uint.Z hi ∧
         uint.Z hi ≤ uint.Z lv.unstable'.offset' + (uents.length : Int) := by omega
     have Hnwu : uint.Z lv.unstable'.offset' + (uents.length : Int) < 2 ^ 64 := by omega
-    wp_apply wp_unstable_slice _ _ _ _ _ Hus Hnwu $$ [Huf Huents Huents_cap]
+    wp_apply wp_unstable_slice _
+        ⟨uents, lv.unstable'.offset', lv.unstable'.offsetInProgress', snap⟩ _ _ Hus Hnwu
+        $$ [Huf Huents Huents_cap]
       as %s0 %es0 ⟨Hun, #Hs0, %Hes0p⟩
-    · unfold ownUnstable; simp only [named]; iframe Huf Huents Huents_cap
+    · close_unstable_log
+    dsimp only at Hes0p
     obtain ⟨Hlen0, Hin0, Hcap0, Hes0⟩ := Hes0p
     wp_apply wp_limitSize $$ [$Hs0] as %s1 %nlim ⟨%Hn1, #Hs1, -⟩
     ihave %Hs1len := ownSlice_len $$ Hs1
@@ -159,9 +162,7 @@ theorem raftLog.slice.wp_proof
       _ _ Hnetake (by simp only [slice.fullSlice, sliceIndexRef]
                       rw [show sint.Z (W64 0) = 0 from rfl, go.arrayIndexRef_0])
       (by simp only [slice.fullSlice]; word) (by simp only [slice.fullSlice]; word) $$ Hs1
-    unfold ownUnstable
-    icases Hun with ⟨Huf, Huents_cap, Huents⟩
-    ihave Hl := Hlback $$ Huf
+    reopen_unstable
     ihave Hcap := ownSliceCap_empty (V := raftpb.Entry)
       (slice.fullSlice s1 raftpb.Entry (W64 0) s1.len s1.len) rfl
       (by simp only [slice.fullSlice]; word)
@@ -279,19 +280,20 @@ theorem raftLog.slice.wp_proof
         · reseal_raftLog
         ipureintro
         exact Hfin _ ese (by omega) (by omega) Hnee Hlene Hine Hpre
-      split_unstable l lv
+      icases raftLog_split_unstable l lv $$ Hl with ⟨Huf, Hlback⟩
       have Hus : uint.Z lv.unstable'.offset' ≤ uint.Z lv.unstable'.offset' ∧
           uint.Z lv.unstable'.offset' < uint.Z hi ∧
           uint.Z hi ≤ uint.Z lv.unstable'.offset' + (uents.length : Int) := by omega
       have Hnwu : uint.Z lv.unstable'.offset' + (uents.length : Int) < 2 ^ 64 := by omega
-      wp_apply wp_unstable_slice _ _ _ _ _ Hus Hnwu $$ [Huf Huents Huents_cap]
+      wp_apply wp_unstable_slice _
+          ⟨uents, lv.unstable'.offset', lv.unstable'.offsetInProgress', none⟩ _ _ Hus Hnwu
+        $$ [Huf Huents Huents_cap]
         as %s0 %es0 ⟨Hun, #Hs0, %Hes0p⟩
-      · unfold ownUnstable; simp only [named]; iframe Huf Huents Huents_cap
+      · close_unstable_log
+      dsimp only at Hes0p
       obtain ⟨Hlen0, Hin0, Hcap0, Hes0⟩ := Hes0p
       wp_apply wp_limitSize $$ [$Hs0] as %s1 %nlim ⟨%Hn1, #Hs1, -⟩
-      unfold ownUnstable
-      icases Hun with ⟨Huf, Huents_cap, Huents⟩
-      ihave Hl := Hlback $$ Huf
+      reopen_unstable
       have Hne0 : es0 ≠ [] := by
         intro h; rw [h] at Hlen0; simp at Hlen0; omega
       have Hn1b := Hn1.2 Hne0

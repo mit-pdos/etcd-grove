@@ -21,11 +21,13 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem unstable.maybeTerm.wp_proof
     (wp_unstable_maybeLastIndex : unstable.maybeLastIndex.spec (GF := GF) (hG := hG)) :
     unstable.maybeTerm.spec (GF := GF) (hG := hG) := by
-  intro u uv uents snap i Hsoff Hnw
+  intro u us
+  obtain ⟨uents, off, ip, snap⟩ := us
+  intro i Hsoff Hnw
+  dsimp only at Hsoff Hnw
   wp_start as H
   iNamed H
-  iunfold ownUnstable at Hun
-  iNamed Hun
+  open_unstable
   wp_auto
   ihave %Hlen := ownSlice_len $$ Hents
   wp_if_destruct
@@ -42,26 +44,26 @@ theorem unstable.maybeTerm.wp_proof
       rw [Hidx]
       wp_if_destruct
       · iapply HΦ
-        unfold ownUnstable
-        iframe
+        isplitl
+        · close_unstable
         ipureintro
         refine ⟨⟨fun _ => Or.inr ⟨sid, rfl, rfl⟩, fun _ => rfl⟩, fun _ => ?_⟩
         exact Or.inr ⟨sid, rfl, rfl, Htm⟩
       · iapply HΦ
-        unfold ownUnstable
-        iframe
+        isplitl
+        · close_unstable
         ipureintro
         refine ⟨⟨fun h => (nomatch h), ?_⟩, fun h => (nomatch h)⟩
         rintro (Hc | ⟨sid', Hc, Hi⟩)
         · omega
         · cases Hc; exact absurd Hi.symm Hif
     | none =>
-      icases (ownSnap_None _).1 $$ Hsnap with %Hns
-      simp only [Hns, decide_true]
+      ihave %Hns := (ownSnap_None _).1 $$ Hsnap
+      simp only [decide_eq_true Hns]
       wp_auto
       iapply HΦ
-      unfold ownUnstable
-      iframe
+      isplitl
+      · close_unstable
       ipureintro
       refine ⟨⟨fun h => (nomatch h), ?_⟩, fun h => (nomatch h)⟩
       rintro (Hc | ⟨sid', Hc, _⟩)
@@ -72,13 +74,12 @@ theorem unstable.maybeTerm.wp_proof
       rintro ⟨sid, Hs, rfl⟩
       have := Hsoff sid Hs
       omega
-    wp_apply wp_unstable_maybeLastIndex _ _ _ snap Hnw $$ [Hu Hents Hents_cap]
-      as %last %ok ⟨Hun, %Hok1, %Hok2⟩
-    · unfold ownUnstable
-      simp only [named]
-      iframe # ∗
-    iunfold ownUnstable at Hun
-    iNamed Hun
+    wp_apply wp_unstable_maybeLastIndex u ⟨uents, uv.offset', uv.offsetInProgress', snap⟩ Hnw
+        $$ [Hu Hents Hents_cap] as %last %ok ⟨Hun, %Hok1, %Hok2⟩
+    · close_unstable
+    dsimp only at Hok1 Hok2
+    open_unstable_again
+    ihave %Hlen := ownSlice_len $$ Hents
     by_cases He : uents = []
     · obtain ⟨Hok, Hlast⟩ := Hok1 He
       subst Hok
@@ -92,8 +93,8 @@ theorem unstable.maybeTerm.wp_proof
         have := Hsoff sid rfl
         wp_if_destruct
         · iapply HΦ
-          unfold ownUnstable
-          iframe
+          isplitl
+          · close_unstable
           ipureintro
           refine ⟨⟨fun h => (nomatch h), ?_⟩, fun h => (nomatch h)⟩
           rintro (Hc | Hc)
@@ -104,8 +105,8 @@ theorem unstable.maybeTerm.wp_proof
         simp only [ne_eq, not_true_eq_false, decide_false]
         wp_auto
         iapply HΦ
-        unfold ownUnstable
-        iframe # ∗
+        isplitl
+        · close_unstable
         ipureintro
         refine ⟨⟨fun h => (nomatch h), ?_⟩, fun h => (nomatch h)⟩
         rintro (Hc | Hc)
@@ -116,8 +117,8 @@ theorem unstable.maybeTerm.wp_proof
       wp_auto
       wp_if_destruct
       · iapply HΦ
-        unfold ownUnstable
-        iframe
+        isplitl
+        · close_unstable
         ipureintro
         refine ⟨⟨fun h => (nomatch h), ?_⟩, fun h => (nomatch h)⟩
         rintro (Hc | Hc)
@@ -138,8 +139,8 @@ theorem unstable.maybeTerm.wp_proof
         iStructNamedSuffix He "_e"
         wp_auto
         iapply HΦ
-        unfold ownUnstable
-        iframe # ∗
+        isplitl
+        · close_unstable
         ipureintro
         refine ⟨⟨fun _ => Or.inl ⟨by omega, by omega⟩, fun _ => rfl⟩, fun _ => ?_⟩
         refine Or.inl ⟨⟨by omega, by omega⟩, e, ?_, rfl⟩

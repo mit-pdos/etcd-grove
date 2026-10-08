@@ -13,10 +13,11 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 /-- The unstable struct's hit test is the log's: the suffix starts at `logOffset`, and
 the log's term at an index of the suffix is the entry's. -/
-private theorem stableHit_unstable [FfiSyntax] (ls : LogState) (uv : unstable) (id : entryID)
+private theorem stableHit_unstable [FfiSyntax] (ls : LogState) (off ip : w64)
+    (sn : Option entryID) (id : entryID)
     (_Hidx : LogIndicesOk ls.prev (ls.sents ++ ls.uents))
-    (Hoff : uint.Z uv.offset' = logOffset ls) :
-    StableHit ls id ↔ UnstableHit uv ls.uents id := by
+    (Hoff : uint.Z off = logOffset ls) :
+    StableHit ls id ↔ UnstableHit ⟨ls.uents, off, ip, sn⟩ id := by
   obtain ⟨prev, sents, uents, _, _, _, _, _, _, _, _⟩ := ls
   simp only [StableHit, UnstableHit, logOffset, plogTermAt] at Hoff ⊢
   rw [Hoff]
@@ -63,10 +64,6 @@ theorem raftLog.stableTo.wp_proof
   icases Hcore with ⟨%sprev, %stored, %ss, Hcore⟩
   iNamed Hcore
   wp_auto
-  ihave #Hulgv : isLoggerVal lv.unstable'.logger' $$ [Hu_logger]
-  · iexact Hu_logger
-  iunfold isLoggerVal at Hulgv
-  icases Hulgv with ⟨%ulg, %Hulg, #Hulgr⟩
   icases raftLog_split_unstable l lv $$ Hl with ⟨Huf, Hlback⟩
   have Hsoff : ∀ sid, snap = some sid →
       uint.Z lv.unstable'.offset' = uint.Z sid.index' + 1 := by
@@ -76,25 +73,26 @@ theorem raftLog.stableTo.wp_proof
     simp only [List.length_nil] at Hoffset
     omega
   have Hnw' : uint.Z lv.unstable'.offset' + (uents.length : Int) < 2^64 := by omega
-  wp_apply wp_unstable_stableTo _ _ _ snap id ulg Hsoff Hnw' Hulg $$ [Huf Huents Huents_cap]
-    as %uv' %uents' ⟨Hun, %Huv'⟩
-  · unfold ownUnstable
-    simp only [named]
-    iframe # ∗
-  obtain ⟨Hsnap', Hlg', Hhit, Hmiss⟩ := Huv'
-  unfold ownUnstable
-  icases Hun with ⟨Hu, Huents_cap, Huents⟩
-  ihave Hl := Hlback $$ Hu
+  wp_apply wp_unstable_stableTo _
+      ⟨uents, lv.unstable'.offset', lv.unstable'.offsetInProgress', snap⟩ id Hsoff Hnw'
+      $$ [Huf Huents Huents_cap] as %us' ⟨Hun, %Hus'⟩
+  · close_unstable_log
+  obtain ⟨Hhit, Hmiss⟩ := Hus'
+  iclear Husnap Hu_logger
+  icases ownUnstable_reopen _ _ _ $$ Hlback Hun
+    with ⟨%uv', Hl, Huents_cap, Huents, #Husnap, #Hu_logger, %Huv'⟩
+  obtain ⟨Huoff, Huoip⟩ := Huv'
   iapply HΦ
-  rw [← Hlg'] at *
-  rw [← Hsnap'] at *
   have Hiff := stableHit_unstable ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩
-    lv.unstable' id Hidx Hoffset
+    lv.unstable'.offset' lv.unstable'.offsetInProgress' snap id Hidx Hoffset
   unfold logStableTo
   by_cases Hh : StableHit ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ id
   · -- the hit: the persisted prefix moves stable
     rw [if_pos Hh]
-    obtain ⟨rfl, Hoff', Hip'⟩ := Hhit (Hiff.1 Hh)
+    obtain rfl := Hhit (Hiff.1 Hh)
+    dsimp only at Huoff Huoip ⊢
+    have Hoff' := Huoff
+    have Hip' := Huoip
     obtain ⟨Hsn, Hidip, Hup⟩ := Hok Hh
     simp only at Hsn Hidip Hup
     subst snap lpend
@@ -148,7 +146,8 @@ theorem raftLog.stableTo.wp_proof
       exact Hps
   · -- a miss: nothing changes
     rw [if_neg Hh]
-    obtain ⟨rfl, rfl⟩ := Hmiss (fun H => Hh (Hiff.2 H))
+    obtain rfl := Hmiss (fun H => Hh (Hiff.2 H))
+    dsimp only at Huoff Huoip ⊢
     reseal_raftLog
 
 end proof

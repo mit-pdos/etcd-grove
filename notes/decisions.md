@@ -210,9 +210,26 @@ which unfolds the postcondition too) and `subst Hring`, then work on the Goose v
 as before; they close it with `ownInflightsRaw_intro`/`ownInflights_reseal`, whose
 pure premise is last so that `iapply … $$ Hiv Hbuf Hbuf_cap` fixes the value.
 
-**Not yet applied** (same shape; candidates, in order): `ownUnstable u uv uents`
-(`InvRaftlog.lean`, ~35 files; it changed arity once already, the `page` argument
-dropped 2026-09-29); the storage triple `prev ents ss` of `ownStorage` (an axiom),
+**`ownUnstable`** (`InvRaftlog.lean`) was `ownUnstable u uv uents`, the Goose value and
+the entries; it is now `ownUnstable u us` with
+`us : UnstableSt := { ents, offset, inprogress, snap }`. Its 13 specs read `offset`,
+`offsetInProgress`, the snapshot pointer -- always beside a separate premise
+`ownSnap uv.snapshot snap` -- and the logger, as `uv.logger = ok ulg ∗ isLogger ulg`.
+The predicate now holds the snapshot as `ownSnap` of `us.snap` and the logger as
+`isLoggerVal`, so those premises are gone, and so are the posts' "unchanged" facts
+about the value. New states are updates of `us` (`truncateAndAppend`'s is
+deterministic), or a new record (`restore`); `stableTo` and `acceptInProgress` keep a
+new state (resp. `offsetInProgress`) bound by the post, with its relation to `us`.
+The `unstable` proofs open the predicate with `open_unstable` (the record destructured
+first, so that `offset`/`offsetInProgress` are substituted by the value's) and close
+it with `close_unstable`/`ownUnstable_intro`. The `raftLog` callers split the field off
+with `raftLog_split_unstable` -- the `AccessStrict` macro `split_unstable` is gone,
+since every `unstable` method now hands back a value the caller has not seen -- and
+rebuild `ownRaftLogCore` at `{ lv with unstable' := uv' }` (`close_unstable_log`,
+`ownUnstable_reopen`, `reopen_unstable`).
+
+**Not yet applied** (same shape; candidates, in order): the storage triple `prev ents ss`
+of `ownStorage` (an axiom),
 `isStorageWith`, `memstorageFields`, `ownMemoryStorage` (`ss` added 2026-10-03);
 `ownProgressMap`. **`ownRaftLogCore` is left as is**: it is not specified on (only
 `newLogWithSize`'s spec names it) and its proofs work at the `LogState` fields as

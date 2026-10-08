@@ -17,11 +17,13 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem unstable.maybeLastIndex.wp_proof :
     unstable.maybeLastIndex.spec (GF := GF) (hG := hG) := by
-  intro u uv uents snap Hnw
+  intro u us
+  obtain ⟨uents, off, ip, snap⟩ := us
+  intro Hnw
   wp_start as H
   iNamed H
-  unfold ownUnstable
-  iNamed Hun
+  open_unstable
+  dsimp only at Hnw
   wp_auto
   ihave %Hlen := ownSlice_len $$ Hents
   by_cases He : uents = []
@@ -39,7 +41,8 @@ theorem unstable.maybeLastIndex.wp_proof :
       iStructNamed Metadata
       wp_auto
       iapply HΦ
-      iframe
+      isplitl
+      · close_unstable
       ipureintro
       exact ⟨fun _ => ⟨by simp, fun _ Hs => by cases Hs; exact Hmeta.1⟩, fun Hc => absurd rfl Hc⟩
     | none =>
@@ -47,7 +50,8 @@ theorem unstable.maybeLastIndex.wp_proof :
       rw [decide_eq_true Hns]
       wp_auto
       iapply HΦ
-      iframe
+      isplitl
+      · close_unstable
       ipureintro
       simp
   · have Hz : uv.entries'.len ≠ W64 0 := by
@@ -57,7 +61,8 @@ theorem unstable.maybeLastIndex.wp_proof :
     rw [decide_eq_false Hz]
     wp_auto
     iapply HΦ
-    iframe
+    isplitl
+    · close_unstable
     ipureintro
     refine ⟨fun Hc => absurd Hc He, fun _ => ⟨rfl, ?_⟩⟩
     word

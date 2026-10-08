@@ -38,15 +38,14 @@ theorem raftLog.lastIndex.wp_proof
   unfold isStorageWith
   icases Hsto with ⟨%isv, #Hsto⟩
   iNamed Hsto
-  split_unstable l lv
-  wp_apply wp_unstable_maybeLastIndex _ _ uents snap Hnw $$ [Huf Huents Huents_cap]
+  icases raftLog_split_unstable l lv $$ Hl with ⟨Huf, Hlback⟩
+  wp_apply wp_unstable_maybeLastIndex _
+      ⟨uents, lv.unstable'.offset', lv.unstable'.offsetInProgress', snap⟩ Hnw
+      $$ [Huf Huents Huents_cap]
     as %li %ok ⟨Hun, %Hok1, %Hok2⟩
-  · unfold ownUnstable
-    simp only [named]
-    iframe # ∗
-  unfold ownUnstable
-  icases Hun with ⟨Huf, Huents_cap, Huents⟩
-  ihave Hl := Hlback $$ Huf
+  · close_unstable_log
+  dsimp only at Hok1 Hok2
+  reopen_unstable
   by_cases He : uents = []
   · obtain ⟨rfl, Hli⟩ := Hok1 He
     subst He

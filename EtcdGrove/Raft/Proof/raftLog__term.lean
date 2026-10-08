@@ -93,15 +93,14 @@ theorem raftLog.term.wp_proof
   unfold isStorageWith
   icases Hsto with ⟨%isv, #Hsto⟩
   iNamed Hsto
-  split_unstable l lv
-  wp_apply wp_unstable_maybeTerm _ _ uents snap _ Hsoff Hnw $$ [Huf Huents Huents_cap]
+  icases raftLog_split_unstable l lv $$ Hl with ⟨Huf, Hlback⟩
+  wp_apply wp_unstable_maybeTerm _
+      ⟨uents, lv.unstable'.offset', lv.unstable'.offsetInProgress', snap⟩ _ Hsoff Hnw
+      $$ [Huf Huents Huents_cap]
     as %t %ok ⟨Hun, %Hok, %Hokt⟩
-  · unfold ownUnstable
-    simp only [named]
-    iframe # ∗
-  unfold ownUnstable
-  icases Hun with ⟨Huf, Huents_cap, Huents⟩
-  ihave Hl := Hlback $$ Huf
+  · close_unstable_log
+  dsimp only at Hok Hokt
+  reopen_unstable
   cases ok with
   | true =>
     -- the unstable suffix covers `i`, or `i` is the pending snapshot's
@@ -194,10 +193,10 @@ theorem raftLog.term.wp_proof
     | none =>
     clear Hnotin Hnotsnap Hsoff Hnw Hok Hokt Hoffset Hstok Happlied Hpapplied Hcommitted
       Hidx Hnowrap HnoConfChange Hb1 Hb2 Hfi Hli Hcm Hap Hstore Hssnap
-      Hapg Hip Hasz Hamx Hipb Hpersist Happlying Hpaused
+      Hapg Hip Hasz Hamx Hipb Hpersist Happlying Hpaused Huoff Huoip
     iclear HisStorage HLastIndex HFirstIndex HTerm HEntries Hbounded HSnapshot Hl_logger
       Hu_logger Husnap
-    clear lv isv fi li sprev stored ss
+    clear lv uv' isv fi li sprev stored ss
     icases (ownRaftLog_unfold l prev sents uents lcm lap none lip lapg lpend lasz lamx).1 $$ Hlog with ⟨%lv, Hl, %Hcm, %Hap, %Hapg, %Hip, %Hasz, %Hamx, Hcore⟩
     unfold ownRaftLogCore
     icases Hcore with ⟨%sprev, %stored, %ss, Hcore⟩

@@ -18,11 +18,11 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem unstable.nextSnapshot.wp_proof : unstable.nextSnapshot.spec (GF := GF) (hG := hG) := by
-  intro u uv uents snap
+  intro u us
+  obtain ⟨uents, off, ip, snap⟩ := us
   wp_start as H
   iNamed H
-  iunfold ownUnstable at Hun
-  iNamed Hun
+  open_unstable
   wp_auto
   cases snap with
   | some sid =>
@@ -32,18 +32,18 @@ theorem unstable.nextSnapshot.wp_proof : unstable.nextSnapshot.spec (GF := GF) (
     wp_auto
     rcases Hsip : uv.snapshotInProgress' <;> wp_auto <;>
     · iapply HΦ
-      unfold ownUnstable
-      iframe
+      isplitl
+      · close_unstable
       ipureintro
       intro h
       cases h
   | none =>
-    icases (ownSnap_None _).1 $$ Hsnap with %Hn
-    simp only [Hn, _root_.decide_true]
+    ihave %Hn := (ownSnap_None _).1 $$ Hsnap
+    simp only [decide_eq_true Hn]
     wp_auto
     iapply HΦ
-    unfold ownUnstable
-    iframe
+    isplitl
+    · close_unstable
     ipureintro
     intro _
     rfl

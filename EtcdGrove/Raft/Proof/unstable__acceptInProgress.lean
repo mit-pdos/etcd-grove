@@ -19,11 +19,13 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem unstable.acceptInProgress.wp_proof :
     unstable.acceptInProgress.spec (GF := GF) (hG := hG) := by
-  intro u uv uents Hidx Hnw
+  intro u us
+  obtain ⟨uents, off, ip, snap⟩ := us
+  intro Hidx Hnw
+  dsimp only at Hidx Hnw
   wp_start as H
   iNamed H
-  iunfold ownUnstable at Hun
-  iNamed Hun
+  open_unstable
   icases Hents with #Hents
   ihave %Hlen := ownSlice_len $$ Hents
   wp_auto
@@ -34,9 +36,8 @@ theorem unstable.acceptInProgress.wp_proof :
     · exfalso; simp at Hlen; word
     wp_if_destruct <;>
     · iapply HΦ
-      unfold ownUnstable
-      iframe Hu
-      iframe # ∗
+      isplitl
+      · close_unstable
       ipureintro
       simp
   · obtain ⟨es, e, Hes⟩ := List.eq_nil_or_concat uents |>.resolve_left He
@@ -59,11 +60,10 @@ theorem unstable.acceptInProgress.wp_proof :
     wp_auto
     wp_if_destruct <;>
     · iapply HΦ
-      unfold ownUnstable
-      iframe Hu
-      iframe # ∗
+      isplitl
+      · close_unstable
       ipureintro
-      refine ⟨rfl, rfl, rfl, rfl, fun h => absurd h He, fun _ => ?_⟩
+      refine ⟨fun h => absurd h He, fun _ => ?_⟩
       word
 
 end proof

@@ -46,17 +46,21 @@ theorem raftLog.restore.wp_proof
   rw [Hlg]
   wp_apply Logger.wp_logf lg _ _ _ (by decide) $$ Hlgr
   icases raftLog_split_unstable $$ Hl with ⟨Huf, Hlback⟩
-  wp_apply wp_unstable_restore _ _ _ _ voters $$ [Huf Huents Huents_cap]
-    as %uv' ⟨Hun, #Hsn, %Huv'⟩
-  · unfold ownUnstable
-    simp only [named]
-    iframe Huf Huents Huents_cap Hvoters
-  obtain ⟨Hoff', Hlg', Hoip'⟩ := Huv'
-  iNamed Hun
-  ihave Hl := Hlback $$ Hu
+  wp_apply wp_unstable_restore _
+      ⟨uents, lv.unstable'.offset', lv.unstable'.offsetInProgress', snap⟩ _ voters
+      $$ [Huf Huents Huents_cap] as Hun
+  · isplitl [Huf Huents Huents_cap]
+    · close_unstable_log
+    iframe Hvoters
+  iclear Hu_logger
+  icases ownUnstable_reopen _ _ _ $$ Hlback Hun
+    with ⟨%uv', Hl, Hents_cap, Hents, #Hsn, #Hu_logger, %Huv'⟩
+  dsimp only at Huv'
+  obtain ⟨Hoff', Hoip'⟩ := Huv'
+  rw [← Hoff'] at Hoip'
   iapply HΦ
   dsimp only [logRestore]
-  rw [← Hlg, ← Hlg']
+  rw [← Hlg]
   simp only [snapId] at Hcmlt Hlt
   iapply ownRaftLog_intro l { lv with unstable' := uv', committed' := sv.Metadata'.Index' }
       lv.storage' (some (snapId sv)) (snapId sv) [] []

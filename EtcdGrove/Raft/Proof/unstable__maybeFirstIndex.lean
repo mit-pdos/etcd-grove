@@ -19,10 +19,11 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem unstable.maybeFirstIndex.wp_proof :
     unstable.maybeFirstIndex.spec (GF := GF) (hG := hG) := by
-  intro u uv uents snap
+  intro u us
+  obtain ⟨uents, off, ip, snap⟩ := us
   wp_start as Hpre
   iNamed Hpre
-  iNamed Hun
+  open_unstable
   wp_auto
   cases snap with
   | some sid =>
@@ -35,8 +36,8 @@ theorem unstable.maybeFirstIndex.wp_proof :
     iStructNamed Metadata
     wp_auto
     iapply HΦ
-    unfold ownUnstable
-    iframe
+    isplitl
+    · close_unstable
     ipureintro
     refine ⟨by simp, ?_⟩
     rintro _ ⟨⟩
@@ -45,8 +46,8 @@ theorem unstable.maybeFirstIndex.wp_proof :
     ihave %Hns := (ownSnap_None _).1 $$ Hsnap
     wp_if_destruct
     · iapply HΦ
-      unfold ownUnstable
-      iframe
+      isplitl
+      · close_unstable
       ipureintro
       simp
     · exact absurd Hns Hif

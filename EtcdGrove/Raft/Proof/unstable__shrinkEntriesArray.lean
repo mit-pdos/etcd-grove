@@ -19,11 +19,11 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem unstable.shrinkEntriesArray.wp_proof :
     unstable.shrinkEntriesArray.spec (GF := GF) (hG := hG) := by
-  intro u uv uents
+  intro u us
+  obtain ⟨uents, off, ip, snap⟩ := us
   wp_start as H
   iNamed H
-  iunfold ownUnstable at Hun
-  iNamed Hun
+  open_unstable
   icases Hents with #Hents
   ihave %Hlen := ownSlice_len $$ Hents
   wp_auto
@@ -32,12 +32,12 @@ theorem unstable.shrinkEntriesArray.wp_proof :
     subst He
     wp_if_destruct
     · iapply HΦ
-      unfold ownUnstable
-      simp only [named]
-      iframe Hu
-      isplitl
+      iapply ownUnstable_intro $$ Hu
       · iapply ownSliceCap_nil
       · iapply ownSlice_nil
+      · iexact Hsnap
+      · iexact Hlogger
+      · ipureintro; exact ⟨rfl, rfl⟩
     · exfalso; simp at Hlen; word
   · wp_if_destruct
     · exfalso; apply He; apply List.eq_nil_of_length_eq_zero; word
@@ -56,13 +56,10 @@ theorem unstable.shrinkEntriesArray.wp_proof :
       ipersist Hsl
       wp_auto
       iapply HΦ
-      unfold ownUnstable
-      iframe Hu
-      iframe # ∗
-    · ispecialize HΦ $$ %uv.entries'
-      iapply HΦ
-      unfold ownUnstable
-      iframe # ∗
+      iapply ownUnstable_intro $$ Hu Hsl_cap Hsl Hsnap Hlogger
+      ipureintro; exact ⟨rfl, rfl⟩
+    · iapply HΦ
+      close_unstable
 
 end proof
 

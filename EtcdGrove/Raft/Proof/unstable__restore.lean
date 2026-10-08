@@ -18,23 +18,19 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- Straight-line: five field stores, the last of which installs the address of the
 parameter's own cell. That cell is persisted, which is what `ownSnap` holds. -/
 theorem unstable.restore.wp_proof : unstable.restore.spec (GF := GF) (hG := hG) := by
-  intro u uv uents sv voters
+  intro u us sv voters
   wp_start as H
   iNamed H
-  unfold ownUnstable
+  iunfold ownUnstable at Hun
   iNamed Hun
   iapply wp_fupd
   wp_auto
   ipersist s
   imodintro
   iapply HΦ
-  iframe Hu
-  simp only [named]
-  isplitl []
-  · isplitl []
-    · iapply ownSliceCap_nil
-    · iapply ownSlice_nil
-  isplitl []
+  iapply ownUnstable_intro $$ Hu
+  · iapply ownSliceCap_nil
+  · iapply ownSlice_nil
   · iapply (ownSnap_Some _ _).2
     iexists sv
     iframe s
@@ -42,7 +38,8 @@ theorem unstable.restore.wp_proof : unstable.restore.spec (GF := GF) (hG := hG) 
     · ipureintro; exact ⟨rfl, rfl⟩
     iexists voters
     iexact Hvoters
-  itrivial
+  · iexact Hlogger
+  · ipureintro; exact ⟨rfl, rfl⟩
 
 end proof
 

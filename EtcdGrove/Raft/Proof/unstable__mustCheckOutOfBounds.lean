@@ -20,11 +20,13 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 `ownSlice_len`, and the no-wrap premise so that the sum is exact. -/
 theorem unstable.mustCheckOutOfBounds.wp_proof :
     unstable.mustCheckOutOfBounds.spec (GF := GF) (hG := hG) := by
-  intro u uv uents lo hi Hrange Hnw
+  intro u us
+  obtain ⟨uents, off, ip, snap⟩ := us
+  intro lo hi Hrange Hnw
   wp_start as H
   iNamed H
-  unfold ownUnstable
-  iNamed Hun
+  open_unstable
+  dsimp only at Hrange Hnw
   wp_auto
   ihave %Hlen := ownSlice_len $$ Hents
   rw [decide_eq_false (show ¬ uint.Z hi < uint.Z lo by omega)]
@@ -34,7 +36,7 @@ theorem unstable.mustCheckOutOfBounds.wp_proof :
   rw [decide_eq_false (show ¬ uint.Z (uv.offset' + uv.entries'.len) < uint.Z hi by word)]
   wp_auto
   iapply HΦ
-  iframe
+  close_unstable
 
 end proof
 

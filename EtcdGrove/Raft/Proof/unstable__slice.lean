@@ -30,16 +30,19 @@ theorem unstable.slice.wp_proof
     (wp_unstable_mustCheckOutOfBounds :
       unstable.mustCheckOutOfBounds.spec (GF := GF) (hG := hG)) :
     unstable.slice.spec (GF := GF) (hG := hG) := by
-  intro u uv uents lo hi Hrange Hnw
+  intro u us
+  obtain ⟨uents, off, ip, snap⟩ := us
+  intro lo hi Hrange Hnw
+  dsimp only at Hrange Hnw
   obtain ⟨Hr1, Hr2, Hr3⟩ := Hrange
-  have Hrange' : uint.Z uv.offset' ≤ uint.Z lo ∧ uint.Z lo ≤ uint.Z hi ∧
-      uint.Z hi ≤ uint.Z uv.offset' + (uents.length : Int) := ⟨Hr1, by omega, Hr3⟩
+  have Hrange' : uint.Z off ≤ uint.Z lo ∧ uint.Z lo ≤ uint.Z hi ∧
+      uint.Z hi ≤ uint.Z off + (uents.length : Int) := ⟨Hr1, by omega, Hr3⟩
   wp_start as H
   iNamed H
   wp_auto
-  wp_apply wp_unstable_mustCheckOutOfBounds _ _ _ _ _ Hrange' Hnw $$ [$Hun] as Hun
-  unfold ownUnstable
-  iNamed Hun
+  wp_apply wp_unstable_mustCheckOutOfBounds u ⟨uents, off, ip, snap⟩ lo hi Hrange' Hnw
+    $$ [$Hun] as Hun
+  open_unstable
   ihave #Hents := Hents
   ihave %Hlen := ownSlice_len $$ Hents
   ihave %Hwf := ownSlice_wf $$ Hents
@@ -72,9 +75,8 @@ theorem unstable.slice.wp_proof
     (slice.fullSlice uv.entries' raftpb.Entry (lo - uv.offset') (hi - uv.offset') (hi - uv.offset'))
     _ _ Hne rfl rfl Hcap $$ H2
   iapply HΦ
-  iframe
-  isplitr
-  · iexact Hents
+  isplitl [Hu Hents_cap]
+  · close_unstable
   isplitr
   · iexact Hs
   ipureintro

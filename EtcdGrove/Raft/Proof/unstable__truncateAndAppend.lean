@@ -34,11 +34,18 @@ and the `append` reallocates; arm 3's `min` needs the `go.min` unfolding. -/
 theorem unstable.truncateAndAppend.wp_proof
     (wp_unstable_slice : unstable.slice.spec (GF := GF) (hG := hG)) :
     unstable.truncateAndAppend.spec (GF := GF) (hG := hG) := by
-  intro u uv uents ents e0 es dq ulg Hfirst Hle Hnw Hulg
+  intro u us
+  obtain ⟨uents, off, ip, snap⟩ := us
+  intro ents e0 es dq Hfirst Hle Hnw
+  dsimp only at Hle Hnw
   wp_start as H
   iNamed H
-  unfold ownUnstable
-  iNamed Hun
+  open_unstable
+  dsimp only
+  ihave #Hulgv : isLoggerVal uv.logger' $$ [Hlogger]
+  · iexact Hlogger
+  iunfold isLoggerVal at Hulgv
+  icases Hulgv with ⟨%ulg, %Hulg, #Hlg⟩
   wp_auto
   ihave %Hlen := ownSlice_len $$ Hes
   ihave %Hulen := ownSlice_len $$ Hents
@@ -75,9 +82,13 @@ theorem unstable.truncateAndAppend.wp_proof
       $$ [$Hents $Hents_cap $Hes] as %sl ⟨Hents, Hents_cap, Hes⟩
     iapply HΦ
     rw [List.take_of_length_le (by omega)]
-    iframe
-    ipureintro
-    exact ⟨by dsimp only; omega, rfl, rfl, by simp only [truncOffsetInProgress, if_pos Hcont]⟩
+    isplitl [Hu Hents_cap Hents]
+    · iapply ownUnstable_intro $$ Hu Hents_cap Hents Hsnap Hlogger
+      ipureintro
+      constructor
+      · unfold w64Min; rw [if_neg (by omega)]
+      · simp only [truncOffsetInProgress, if_pos Hcont]
+    iexact Hes
   have Hguard : ¬e0.Index' = uv.offset' + uv.entries'.len := fun Heq => Hcont (by
     rw [Heq]; word)
   simp only [decide_eq_false Hguard]
@@ -98,15 +109,20 @@ theorem unstable.truncateAndAppend.wp_proof
     rw [Hulg]
     wp_auto
     wp_apply Logger.wp_logf ulg _ _ _ (by simp [logMethods]) $$ Hlg
+    rw [← Hulg]
     iapply HΦ
     rw [show (uint.Z e0.Index' - uint.Z uv.offset').toNat = 0 by omega, List.take_zero,
       List.nil_append]
-    iframe
-    ipureintro
-    refine ⟨⟨?_, rfl, Hulg, ?_⟩, trivial⟩
-    · dsimp only
-      omega
-    · simp only [truncOffsetInProgress, if_neg Hcont, if_pos Hrep]
+    isplitl
+    · iapply ownUnstable_intro $$ Hu Hcap Hes Hsnap Hlogger
+      ipureintro
+      constructor
+      · unfold w64Min
+        split
+        · rfl
+        · apply BitVec.eq_of_toNat_eq; word
+      · simp only [truncOffsetInProgress, if_neg Hcont, if_pos Hrep]
+    itrivial
   -- arm 3: keep the suffix below `fromIndex`, then append
   have Had : ¬(uint.Z e0.Index' ≤ uint.Z uv.offset' ∧
       uint.Z e0.Index' ≠ uint.Z uv.offset' + (uents.length : Int)) := fun H => Hrep H.1
@@ -120,12 +136,14 @@ theorem unstable.truncateAndAppend.wp_proof
   rw [Hulg]
   wp_auto
   wp_apply Logger.wp_logf ulg _ _ _ (by simp [logMethods]) $$ Hlg
+  rw [← Hulg]
   have Hus : uint.Z uv.offset' ≤ uint.Z uv.offset' ∧ uint.Z uv.offset' < uint.Z e0.Index' ∧
       uint.Z e0.Index' ≤ uint.Z uv.offset' + (uents.length : Int) := ⟨Int.le_refl _, by omega, Hle⟩
-  wp_apply wp_unstable_slice _ _ _ _ _ Hus Hnw $$ [Hu Hents Hents_cap]
-    as %s0 %es0 ⟨Hun, #Hs0, %Hlen0, %Hin0, %Hcap0, %Hes0⟩
-  · unfold ownUnstable; simp only [named]; iframe
-  iNamed Hun
+  wp_apply wp_unstable_slice u ⟨uents, uv.offset', uv.offsetInProgress', snap⟩ _ _ Hus Hnw
+      $$ [Hu Hents Hents_cap] as %s0 %es0 ⟨Hun, #Hs0, %Hlen0, %Hin0, %Hcap0, %Hes0⟩
+  · close_unstable
+  dsimp only at Hes0
+  open_unstable_again
   rw [Int.sub_self, Int.toNat_zero, subslice, List.drop_zero] at Hes0
   subst Hes0
   ihave %Hs0len := ownSlice_len $$ Hs0
@@ -137,13 +155,14 @@ theorem unstable.truncateAndAppend.wp_proof
   wp_call
   wp_if_destruct <;>
   · iapply HΦ
-    iframe
-    ipureintro
-    refine ⟨?_, rfl, Hulg, ?_⟩
-    · dsimp only
-      omega
-    · simp only [truncOffsetInProgress, if_neg Hcont, if_neg Hrep, w64Min]
-      split <;> first | rfl | (apply BitVec.eq_of_toNat_eq; word) | omega
+    isplitl [Hu Hsl_cap Hsl]
+    · iapply ownUnstable_intro $$ Hu Hsl_cap Hsl Hsnap Hlogger
+      ipureintro
+      constructor
+      · unfold w64Min; rw [if_neg (by omega)]
+      · simp only [truncOffsetInProgress, if_neg Hcont, if_neg Hrep, w64Min]
+        split <;> first | rfl | (apply BitVec.eq_of_toNat_eq; word) | omega
+    iexact Hes
   done
 
 end proof

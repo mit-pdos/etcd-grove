@@ -29,14 +29,12 @@ theorem raftLog.nextUnstableEnts.wp_proof
   icases Hcore with ⟨%sprev, %stored, %ss, Hcore⟩
   iNamed Hcore
   wp_auto
-  split_unstable l lv
-  wp_apply wp_unstable_nextEntries _ _ _ Hipb $$ [Huf Huents Huents_cap] as %s ⟨Hun, #Hs⟩
-  · unfold ownUnstable
-    simp only [named]
-    iframe # ∗
-  unfold ownUnstable
-  icases Hun with ⟨Huf, Huents_cap, Huents⟩
-  ihave Hl := Hlback $$ Huf
+  icases raftLog_split_unstable l lv $$ Hl with ⟨Huf, Hlback⟩
+  wp_apply wp_unstable_nextEntries _
+      ⟨uents, lv.unstable'.offset', lv.unstable'.offsetInProgress', snap⟩ Hipb
+      $$ [Huf Huents Huents_cap] as %s ⟨Hun, #Hs⟩
+  · close_unstable_log
+  reopen_unstable
   iapply HΦ
   isplitl
   · reseal_raftLog

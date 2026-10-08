@@ -90,8 +90,8 @@ for the embedded `unstable` struct.
 
 The `Storage` interface contract lives in `InvStorage.lean`.
 
-Lean notes: the Rocq `Ltac split_unstable l lv` is the tactic macro `split_unstable`
-(same arguments; it acts on the hypothesis `Hl`, as the Ltac does). Rocq `Forall P l`
+Lean notes: the Rocq `Ltac split_unstable l lv` is `raftLog_split_unstable` (until
+2026-10-08 a tactic macro `split_unstable`; see that lemma). Rocq `Forall P l`
 is `∀ e ∈ l, P e`, so `Forall_sublist_of` is `forall_sublist_of`; `own_slice_same_ptr_len`
 is `ownSlice_same_ptr_len`. A Rocq lemma `P -∗ Q -∗ R` is `⊢ P -∗ Q -∗ R`. The Rocq
 `seal` of `own_snap` is an `@[irreducible]` definition with `ownSnap_unseal`. The Rocq
@@ -114,16 +114,6 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
-set_option hygiene false in
-/-- Split `l.unstable` out of `l ↦ lv` and get a wand to put it back. The three
-`unstable.maybe*` specs are stated on a bare `*unstable`, so every `raftLog` method
-that consults the suffix needs this first. Exported rather than local because those
-proofs now live in their own files. Acts on the hypothesis `Hl`, producing `Huf` (the
-field) and `Hlback` (the wand back). -/
-macro "split_unstable " l:term:max lv:term:max : tactic =>
-  `(tactic| icases (Perennial.go_etcd_io.raft.v3.raftLog.raftLog_access_load_unstable $l $lv (DFrac.own 1)).access_strict $$ Hl
-      with ⟨Huf, Hlback⟩)
-
 /-! `LogState`, the log's abstract state, is defined in `Defs.lean`: the physical raft
 state `NState` contains one. -/
 
@@ -140,36 +130,22 @@ theorem forall_sublist_of {A : Type _} (P : A → Prop) (l es : List A) :
   intro Hl Hin e He
   exact Hl e (Hin e He)
 
+/-- The state of an `unstable` struct as its specs speak of it (`ownUnstable`): the
+suffix's entries `ents`, which start at index `offset`; `inprogress`
+(`u.offsetInProgress`), below which they have been handed to the application; and the
+pending snapshot's id `snap` (`ownSnap`). -/
+structure UnstableSt [FfiSyntax] where
+  ents : List raftpb.Entry
+  offset : w64
+  inprogress : w64
+  snap : Option entryID
+
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-
-/-! ## The `unstable` struct
-
-`ownUnstable u uv uents` owns the `unstable` at `u` -- in the development always the
-`unstable` field of a `raftLog` -- at value `uv`, together with its entry slice,
-holding `uents`.
-
-**The entries are held read-only** (`↦*□`); only the slice's capacity slack is owned
-outright. That is what the Go code guarantees (`log_unstable.go`, upamanyus/etcd-raft
-531b20c): no statement ever writes an element of `u.entries` in place. Every assignment
-to `u.entries` re-slices it (`stableTo`), copies it into a new array
-(`shrinkEntriesArray`), adopts the caller's slice, or appends -- in place only past
-`len`, into the slack; the truncating case appends to `u.slice(...)`, which caps its
-result "so that an append will reallocate and copy this slice instead of corrupting
-the neighbouring u.entries" (`log_unstable.go:228-234`). So a sub-slice
-`unstable.slice` hands out is the caller's for good, with nothing to give back.
-(`wp_slice_append_persistent`, in `slice.v`, is the `append` this needs.) (Until
-2026-09-29 the entries were owned outright and `unstable.slice` *lent* a sub-slice,
-tracked by a `page` argument here; until 2026-09-23 the `unstable` specs were stated on
-the raw `u ↦ uv ∗ uv.entries ↦* uents`.) -/
-def ownUnstable (u : Loc) (uv : unstable) (uents : List raftpb.Entry) : IProp GF :=
-  iprop("Hu" ∷ u ↦ uv ∗
-  "Hents_cap" ∷ ownSliceCap raftpb.Entry uv.entries' (DFrac.own 1) ∗
-  "Hents" ∷ uv.entries' ↦*□ uents)
 
 /-! ## The log -/
 
@@ -243,6 +219,77 @@ theorem ownSnap_Some (p : Loc) (sid : entryID) :
 instance ownSnap_pers (p : Loc) (snap : Option entryID) :
     Persistent (ownSnap (GF := GF) p snap) := by
   rw [ownSnap_unseal]; cases snap <;> unfold ownSnapDef <;> infer_instance
+
+/-! ## The `unstable` struct
+
+`ownUnstable u us` owns the `unstable` at `u` -- in the development always the
+`unstable` field of a `raftLog` -- at the state `us : UnstableSt`, together with its
+entry slice. The Goose value is existential: `offset` and `offsetInProgress` are the
+record's, `snapshot` is `ownSnap` of the record's `snap`, and `logger` is a `Logger`
+(`isLoggerVal`) for the `Infof`s of `stableTo` and `truncateAndAppend`. (Until
+2026-10-08 it was `ownUnstable u uv uents`, indexed by the Goose value and the entries,
+and the specs took the snapshot as a separate `ownSnap uv.snapshot snap` and the logger
+as `uv.logger = ok ulg ∗ isLogger ulg`; notes/decisions.md, "Predicate indices".)
+
+**The entries are held read-only** (`↦*□`); only the slice's capacity slack is owned
+outright. That is what the Go code guarantees (`log_unstable.go`, upamanyus/etcd-raft
+531b20c): no statement ever writes an element of `u.entries` in place. Every assignment
+to `u.entries` re-slices it (`stableTo`), copies it into a new array
+(`shrinkEntriesArray`), adopts the caller's slice, or appends -- in place only past
+`len`, into the slack; the truncating case appends to `u.slice(...)`, which caps its
+result "so that an append will reallocate and copy this slice instead of corrupting
+the neighbouring u.entries" (`log_unstable.go:228-234`). So a sub-slice
+`unstable.slice` hands out is the caller's for good, with nothing to give back.
+(`wp_slice_append_persistent`, in `slice.v`, is the `append` this needs.) (Until
+2026-09-29 the entries were owned outright and `unstable.slice` *lent* a sub-slice,
+tracked by a `page` argument here; until 2026-09-23 the `unstable` specs were stated on
+the raw `u ↦ uv ∗ uv.entries ↦* uents`.) -/
+def ownUnstable (u : Loc) (us : UnstableSt) : IProp GF :=
+  iprop(∃ (uv : unstable),
+  "Hu" ∷ u ↦ uv ∗
+  "Hents_cap" ∷ ownSliceCap raftpb.Entry uv.entries' (DFrac.own 1) ∗
+  "Hents" ∷ uv.entries' ↦*□ us.ents ∗
+  "#Hsnap" ∷ ownSnap uv.snapshot' us.snap ∗
+  "#Hlogger" ∷ isLoggerVal uv.logger' ∗
+  "%Hoff" ∷ ⌜uv.offset' = us.offset⌝ ∗
+  "%Hoip" ∷ ⌜uv.offsetInProgress' = us.inprogress⌝)
+
+/-- Close `ownUnstable` at the state the pieces denote. The pure premise is last, so
+that `iapply ownUnstable_intro $$ Hu Hents_cap Hents Hsnap Hlogger` fixes the value, the
+entries and the snapshot from the hypotheses and leaves the two `offset`s as the
+goal. -/
+theorem ownUnstable_intro (u : Loc) (uv : unstable) (ents : List raftpb.Entry)
+    (off ip : w64) (snap : Option entryID) :
+    ⊢ (u ↦ uv : IProp GF) -∗ ownSliceCap raftpb.Entry uv.entries' (DFrac.own 1) -∗
+      uv.entries' ↦*□ ents -∗ ownSnap uv.snapshot' snap -∗ isLoggerVal uv.logger' -∗
+      ⌜uv.offset' = off ∧ uv.offsetInProgress' = ip⌝ -∗
+      ownUnstable u ⟨ents, off, ip, snap⟩ := by
+  iintro Hu Hents_cap #Hents #Hsnap #Hlogger %H
+  unfold ownUnstable
+  iexists uv
+  simp only [named]
+  iframe Hu Hents_cap Hents Hsnap Hlogger
+  ipureintro
+  exact H
+
+/-- Open the `ownUnstable` a `raftLog` method handed to an `unstable` method (the field
+split off with `raftLog_split_unstable`) and put the struct back together at the new
+value, with the pieces `ownRaftLogCore` keeps on it. -/
+theorem ownUnstable_reopen (l : Loc) (lv : raftLog) (us : UnstableSt) :
+    ⊢ (∀ uv, l.[raftLog, go!"unstable"] ↦ uv -∗ (l ↦ { lv with unstable' := uv } : IProp GF)) -∗
+      ownUnstable l.[raftLog, go!"unstable"] us -∗
+      ∃ uv, l ↦ { lv with unstable' := uv } ∗
+        ownSliceCap raftpb.Entry uv.entries' (DFrac.own 1) ∗
+        uv.entries' ↦*□ us.ents ∗ ownSnap uv.snapshot' us.snap ∗ isLoggerVal uv.logger' ∗
+        ⌜uv.offset' = us.offset ∧ uv.offsetInProgress' = us.inprogress⌝ := by
+  iintro Hlback Hun
+  iunfold ownUnstable at Hun
+  iNamed Hun
+  ihave Hl := Hlback $$ Hu
+  iexists uv
+  iframe Hl Hents_cap Hents Hsnap Hlogger
+  ipureintro
+  exact ⟨Hoff, Hoip⟩
 
 /-- How the visible log relates to what `Storage` holds, by whether a snapshot is
 pending. The storage holds `stored` after `sprev` (`ownStorage`).
@@ -830,12 +877,13 @@ theorem ownSlice_same_ptr_len {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V
     ipureintro; exact Hcap
 
 /-- Split the `unstable` field out of `l ↦ lv`, keeping a wand that accepts *any* new
-value for it. `split_unstable` (above) is not enough for a call that installs a new
-`unstable` value -- `truncateAndAppend`'s new `entries`, `unstable.restore` -- since the
-new value is introduced by that call's own postcondition, after the `AccessStrict`
-store instance's evar was created (notes/gotchas.md, "The `AccessStrict` store instance
-cannot take a value the call has not produced yet"). Moved here from
-`proof_raftLog__append.v` on 2026-10-02 for `raftLog.restore`. -/
+value for it. Since 2026-10-08 every `raftLog` method that calls an `unstable` method
+splits the field this way: `ownUnstable` keeps the Goose value existential, so every
+such call hands back a value the caller has not seen, which the `AccessStrict` store
+instance (the former macro `split_unstable`) cannot take, its evar being created before
+the call (notes/gotchas.md, "The `AccessStrict` store instance cannot take a value the
+call has not produced yet"). Moved here from `proof_raftLog__append.v` on 2026-10-02
+for `raftLog.restore`. -/
 theorem raftLog_split_unstable (l : Loc) (lv : raftLog) :
     ⊢ (l ↦ lv : IProp GF) -∗
       l.[raftLog, go!"unstable"] ↦ lv.unstable' ∗
@@ -857,10 +905,74 @@ set_option hygiene false in
 /-- Re-seal `ownRaftLog l ⟨…⟩` from the hypotheses `iNamed Hlog; iNamed Hcore`
 introduced (`ownRaftLog_intro`). The pure premises are closed by reducible `rfl` or
 `assumption` (Rocq `try done`; a plain `assumption` runs out of recursion depth on the
-`2^64` bounds). -/
+`2^64` bounds), or, after `reopen_unstable`, by the same once rewritten with
+`Huoff`/`Huoip`. -/
 macro "reseal_raftLog" : tactic =>
   `(tactic| (iapply Perennial.EtcdGrove.ownRaftLog_intro _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ $$ Hl HisStorage HStorage Husnap Huents Huents_cap Hl_logger Hu_logger) <;>
-    try (first | with_reducible rfl | with_reducible assumption))
+    try (first | with_reducible rfl | with_reducible assumption
+               | ((try rewrite [Huoff]); (try rewrite [Huoip]); with_reducible assumption)))
+
+set_option hygiene false in
+/-- Open `Hun : ownUnstable u ⟨uents, off, ip, snap⟩` in the proof of an `unstable`
+method (after `obtain ⟨uents, off, ip, snap⟩ := us`): the Goose value `uv` and the
+pieces `Hu`, `Hents_cap`, `Hents`, `Hsnap`, `Hlogger`, with `off` and `ip` replaced by
+`uv.offset'` and `uv.offsetInProgress'`, so that the proof works on the value. -/
+macro "open_unstable" : tactic =>
+  `(tactic| (
+    iunfold Perennial.EtcdGrove.ownUnstable at Hun
+    iNamed Hun
+    dsimp only at Hoff Hoip
+    subst Hoff Hoip))
+
+set_option hygiene false in
+/-- Reopen `Hun` after the proof of an `unstable` method handed it, closed by
+`close_unstable`, to another `unstable` method that keeps the state: the new value is
+`uv` again (the old one becomes inaccessible), with the pieces renamed as
+`open_unstable` names them, and the old value's `offset` and `offsetInProgress`
+rewritten to the new one's everywhere. -/
+macro "open_unstable_again" : tactic =>
+  `(tactic| (
+    iclear Hsnap Hlogger
+    iunfold Perennial.EtcdGrove.ownUnstable at Hun
+    icases Hun with ⟨%uv, Hu, Hents_cap, Hents, #Hsnap, #Hlogger, %Hoff, %Hoip⟩
+    dsimp only at Hoff Hoip
+    (try simp only [← Hoff, ← Hoip] at *)))
+
+set_option hygiene false in
+/-- Close `ownUnstable u ⟨uents, uv.offset', uv.offsetInProgress', snap⟩` from the pieces
+`open_unstable` named (`ownUnstable_intro`). -/
+macro "close_unstable" : tactic =>
+  `(tactic| (
+    iapply Perennial.EtcdGrove.ownUnstable_intro $$ Hu Hents_cap Hents Hsnap Hlogger
+    ipureintro
+    exact ⟨rfl, rfl⟩))
+
+set_option hygiene false in
+/-- In a `raftLog` method, close `ownUnstable` on the `unstable` field `Huf` (split off
+with `raftLog_split_unstable`) from `ownRaftLogCore`'s pieces, at
+`⟨uents, lv.unstable'.offset', lv.unstable'.offsetInProgress', snap⟩`. -/
+macro "close_unstable_log" : tactic =>
+  `(tactic| (
+    iapply Perennial.EtcdGrove.ownUnstable_intro $$ Huf Huents_cap Huents Husnap Hu_logger
+    ipureintro
+    exact ⟨rfl, rfl⟩))
+
+set_option hygiene false in
+/-- After a `raftLog` method has handed the `unstable` field to an `unstable` method that
+leaves its state as it was (`ownUnstable` at
+`⟨uents, lv.unstable'.offset', lv.unstable'.offsetInProgress', snap⟩` in and out), reopen
+the returned `Hun` with `Hlback` (`ownUnstable_reopen`, the wand of
+`raftLog_split_unstable`): `Hl` is then the log at the new value `uv'`, `Huents_cap`,
+`Huents`, `Husnap` and `Hu_logger` are its pieces, and `Huoff`/`Huoip` say that its
+`offset` and `offsetInProgress` are the old value's, which `reseal_raftLog` rewrites
+with, so that it closes the log as before. -/
+macro "reopen_unstable" : tactic =>
+  `(tactic| (
+    iclear Husnap Hu_logger
+    icases Perennial.EtcdGrove.ownUnstable_reopen _ _ _ $$ Hlback Hun
+      with ⟨%uv', Hl, Huents_cap, Huents, #Husnap, #Hu_logger, %Huv'⟩
+    obtain ⟨Huoff, Huoip⟩ := Huv'
+    dsimp only at Huoff Huoip))
 
 end EtcdGrove
 end Perennial

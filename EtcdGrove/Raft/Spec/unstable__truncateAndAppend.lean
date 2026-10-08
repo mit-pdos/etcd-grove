@@ -21,11 +21,12 @@ open Iris Iris.BI go_etcd_io.raft.v3
 
 /-- `offsetInProgress` after the call, by arm (2026-10-05, for `Ready`): kept by arm 1,
 the new offset `fromIndex` in arm 2, `min(offsetInProgress, fromIndex)` in arm 3. A
-definition so that the proof's case splits on the arms do not reach into it. -/
-def truncOffsetInProgress [FfiSyntax] (uv : unstable) (n : Nat) (f : w64) : w64 :=
-  if uint.Z f = uint.Z uv.offset' + (n : Int) then uv.offsetInProgress'
-  else if uint.Z f ≤ uint.Z uv.offset' then f
-  else w64Min uv.offsetInProgress' f
+definition so that the proof's case splits on the arms do not reach into it. (On the
+state record since 2026-10-08; before, on the Goose value and the entries' number.) -/
+def truncOffsetInProgress [FfiSyntax] (us : UnstableSt) (f : w64) : w64 :=
+  if uint.Z f = uint.Z us.offset + (us.ents.length : Int) then us.inprogress
+  else if uint.Z f ≤ uint.Z us.offset then f
+  else w64Min us.inprogress f
 
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -53,7 +54,7 @@ where the difference is `<= 0`; `take len` in arm 1) and the new offset is `from
 if that is below `u.offset`, else `u.offset`. The premise
 `fromIndex <= u.offset + len` is what keeps arm 3's `u.slice` inside the suffix (its
 `mustCheckOutOfBounds` `Panicf`s otherwise); the no-wrap premise is `u.slice`'s.
-`u.logger` is a `Logger` for the two `Infof`s.
+`u.logger` is a `Logger` for the two `Infof`s (`ownUnstable` says so).
 
 **Ownership of the batch.** Arms 1 and 3 copy the entry values (`append`), so the
 batch is lent and comes back. Arm 2 *adopts the caller's slice*: `u.entries` then
@@ -64,37 +65,33 @@ suffix -- the caller must hand the batch over read-only (`dq = DFrac.discard`) t
 with its capacity, and gets nothing back. The condition is computed in the spec, so a
 caller that knows its batch continues the suffix (`appendEntry`) owes nothing extra.
 
-The new `unstable` value is existential, with the three fields `ownRaftLog` tracks
-pinned: `offset` as above, `snapshot` and `logger` unchanged. `offsetInProgress` is not
-tracked by anything. -/
+The new state is an update of the old: the suffix and `offset` as above, and
+`offsetInProgress` by arm (`truncOffsetInProgress`); the snapshot is unchanged. (Until
+2026-10-08 the new Goose value was existential, with these fields pinned.) -/
 abbrev unstable.truncateAndAppend.spec : Prop :=
-  ∀ (u : Loc) (uv : unstable) (uents ents : List raftpb.Entry)
-    (e0 : raftpb.Entry) (es : GoSlice) (dq : DFrac) (ulg : GoInterfaceOk),
+  ∀ (u : Loc) (us : UnstableSt) (ents : List raftpb.Entry)
+    (e0 : raftpb.Entry) (es : GoSlice) (dq : DFrac),
   ents[0]? = some e0 →
-  uint.Z e0.Index' ≤ uint.Z uv.offset' + (uents.length : Int) →
-  uint.Z uv.offset' + (uents.length : Int) < 2 ^ 64 →
-  uv.logger' = interface.ok ulg →
+  uint.Z e0.Index' ≤ uint.Z us.offset + (us.ents.length : Int) →
+  uint.Z us.offset + (us.ents.length : Int) < 2 ^ 64 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hun" ∷ ownUnstable u uv uents ∗
+      "Hun" ∷ ownUnstable u us ∗
       "Hes" ∷ es ↦*{dq} ents ∗
-      "#Hlg" ∷ isLogger ulg ∗
-      "Hadopt" ∷ (if uint.Z e0.Index' ≤ uint.Z uv.offset' ∧
-                     uint.Z e0.Index' ≠ uint.Z uv.offset' + (uents.length : Int)
+      "Hadopt" ∷ (if uint.Z e0.Index' ≤ uint.Z us.offset ∧
+                     uint.Z e0.Index' ≠ uint.Z us.offset + (us.ents.length : Int)
                   then iprop(⌜dq = DFrac.discard⌝ ∗
                              ownSliceCap raftpb.Entry es (DFrac.own 1))
                   else True) }}
     (App (Val (u @!! go.GoType.PointerType unstable.ty @!! go!"truncateAndAppend"))
       (Val #es))
-  {{ (uv' : unstable), RET #();
-      ownUnstable u uv'
-        (uents.take (uint.Z e0.Index' - uint.Z uv.offset').toNat ++ ents) ∗
-      ⌜uint.Z uv'.offset' = min (uint.Z e0.Index') (uint.Z uv.offset') ∧
-        uv'.snapshot' = uv.snapshot' ∧
-        uv'.logger' = uv.logger' ∧
+  {{ RET #();
+      ownUnstable u { us with
+        ents := us.ents.take (uint.Z e0.Index' - uint.Z us.offset).toNat ++ ents,
+        offset := w64Min e0.Index' us.offset,
         -- `offsetInProgress`, by arm (2026-10-05, for `Ready`)
-        uv'.offsetInProgress' = truncOffsetInProgress uv uents.length e0.Index'⌝ ∗
-      (if uint.Z e0.Index' ≤ uint.Z uv.offset' ∧
-          uint.Z e0.Index' ≠ uint.Z uv.offset' + (uents.length : Int)
+        inprogress := truncOffsetInProgress us e0.Index' } ∗
+      (if uint.Z e0.Index' ≤ uint.Z us.offset ∧
+          uint.Z e0.Index' ≠ uint.Z us.offset + (us.ents.length : Int)
        then True else es ↦*{dq} ents) }}
 
 end spec
