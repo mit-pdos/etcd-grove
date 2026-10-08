@@ -3,6 +3,7 @@
 import EtcdGrove.Raft.Base
 import EtcdGrove.Raft.Plog
 import EtcdGrove.Raft.Protocol
+import EtcdGrove.Raft.Protocol.Facts
 import EtcdGrove.Raft.Defs
 import EtcdGrove.Raft.StepLemmas
 import EtcdGrove.Raft.InvBig

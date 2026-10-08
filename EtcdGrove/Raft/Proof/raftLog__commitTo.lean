@@ -1,4 +1,5 @@
 /- Port of election_proof/proof_raftLog__commitTo.v. -/
+import EtcdGrove.Raft.Protocol.Facts
 import EtcdGrove.Raft.Spec.raftLog__commitTo
 import EtcdGrove.Raft.Spec.raftLog__lastIndex
 

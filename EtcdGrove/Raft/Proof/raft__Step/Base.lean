@@ -18,6 +18,7 @@ Lean notes:
   module per file, `StepMsgVoteGt` etc.); the names are unique across the modules, as
   they are in Rocq (all the functors are instantiated in one file).
 -/
+import EtcdGrove.Raft.Protocol.Facts
 import EtcdGrove.Raft.Spec.raft__Step
 import EtcdGrove.Raft.Spec.raft__hup
 import EtcdGrove.Raft.Spec.raft__becomeFollower

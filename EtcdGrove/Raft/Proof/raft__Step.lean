@@ -25,6 +25,7 @@ Lean notes:
 * Rocq's dispatch lemmas take the branch lemma as a hypothesis `HB`; here they take the
   postulates `P` and call the imported branch lemma.
 -/
+import EtcdGrove.Raft.Protocol.Facts
 import EtcdGrove.Raft.Proof.raft__Step.MsgHup
 import EtcdGrove.Raft.Proof.raft__Step.MsgVote
 import EtcdGrove.Raft.Proof.raft__Step.MsgVoteResp

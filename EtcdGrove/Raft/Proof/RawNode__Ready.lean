@@ -16,6 +16,7 @@ argument); `needStorageAppendRespMsg`, `newStorageAppendRespMsg` and
 `nonself`, `selfmsgs`, `nonself_take_succ`, `selfmsgs_take_succ`, `selfabs`,
 `self_pending`, `self_pending_own`, `selfabs_in`, `msgs_abs_list`, `nonself_sepL`.
 -/
+import EtcdGrove.Raft.Protocol.Facts
 import EtcdGrove.Raft.Spec.RawNode__Ready
 import EtcdGrove.Raft.Spec.raftLog__nextUnstableEnts
 import EtcdGrove.Raft.Spec.raftLog__nextCommittedEnts
