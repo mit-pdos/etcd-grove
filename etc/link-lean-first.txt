@@ -1,0 +1,18 @@
+# Lean-first functions (no Rocq counterpart), read by etc/gen-link.py:
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
+# The confchange package, translated and proved 2026-10-08 (see InvConfchange.lean).
+confchange_incoming:
+confchange_outgoing:
+confchange_joint: confchange_outgoing
+confchange_nilAwareDelete:
+confchange_symdiff:
+confchange_checkInvariants: JointConfig__IDs confchange_joint confchange_outgoing
+confchange_checkAndReturn: confchange_checkInvariants
+Config__Clone:
+Changer__checkAndCopy: Config__Clone confchange_checkAndReturn
+Changer__initProgress: confchange_incoming tracker_NewInflights
+Changer__makeVoter: Changer__initProgress confchange_incoming confchange_nilAwareDelete
+Changer__apply: Changer__makeVoter confchange_incoming
+Changer__Simple: Changer__checkAndCopy confchange_joint Changer__apply confchange_incoming confchange_symdiff confchange_checkAndReturn
+confchange_toConfChangeSingle:
+confchange_chain:

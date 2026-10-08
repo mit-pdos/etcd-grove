@@ -25,22 +25,19 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem quorum.JointConfig.IDs.wp_proof :
     quorum.JointConfig.IDs.spec (GF := GF) (hG := hG) := by
-  intro cfg trk tv t
-  obtain ⟨votes, prs, pvs⟩ := t
-  wp_start as ⟨Htrk, Hown⟩
-  iNamed Hown
-  -- `wp_auto` reads `r.trk.Config.Voters` out of `trk ↦ tv` and reduces the pointer
-  -- method to the value method applied to the `JointConfig` value.
+  intro p jc v vm dq dqv Harr
+  wp_start as ⟨Hp, Hvoters⟩
+  -- `wp_auto` reads the `JointConfig` out of `p ↦{dq} jc` and reduces the pointer method
+  -- to the value method applied to the `JointConfig` value.
   wp_auto
-  dsimp only
   wp_method_call
   wp_call
-  -- `GoAlloc JointConfig` gives `"c" ∷ c_ptr ↦ tv.Config'.Voters'`
+  -- `GoAlloc JointConfig` gives `"c" ∷ c_ptr ↦ jc`
   wp_auto
   -- `m := map[uint64]struct{}{}`
   wp_apply wp_map_make1 (K := w64) (V := Unit) as %mref Hmref
-  -- `c[0]`: peel element 0 off the array; `Hvoters_arr` says it is `voters_ref`.
-  icases array_acc _ (sint.Z (W64 0)) _ _ _ voters_ref (by decide) (by rw [Hvoters_arr]; rfl)
+  -- `c[0]`: peel element 0 off the array; `Harr` says it is `v`.
+  icases array_acc _ (sint.Z (W64 0)) _ _ _ v (by decide) (by rw [Harr]; rfl)
     $$ c with ⟨Hc0, Hcback⟩
   wp_auto
   -- `for id := range c[0] { m[id] = struct{}{} }`. The invariant carries the domain of
@@ -95,7 +92,7 @@ theorem quorum.JointConfig.IDs.wp_proof :
       · rintro (h | h)
         · exact h
         · exact absurd h.symm hk
-  -- the range is over: `domSet idm` is every key, i.e. `domSet voters = cfg`
+  -- the range is over: `domSet idm` is every key, i.e. `domSet vm`
   iintro HP Hvoters
   iNamed HP
   rw [Int.toNat_natCast, ← Hklen, List.take_length] at Hidm
@@ -103,22 +100,20 @@ theorem quorum.JointConfig.IDs.wp_proof :
   -- the nil map is the pure step `wp_map_nil_for_range`, which `wp_auto` takes once the
   -- loop variable is allocated.
   ihave c := Hcback $$ Hc0
-  icases array_acc _ (sint.Z (W64 1)) _ _ _ map.nil (by decide) (by rw [Hvoters_arr]; rfl)
+  icases array_acc _ (sint.Z (W64 1)) _ _ _ map.nil (by decide)
+    (by
+      rw [list_set_lookup_self _ _ _ (show jc.arr[(sint.Z (W64 0)).toNat]? = some v by
+        rw [Harr]; rfl)]
+      show jc.arr[(sint.Z (W64 1)).toNat]? = some map.nil
+      rw [Harr]; rfl)
     $$ c with ⟨Hc1, Hcback⟩
   wp_auto
   wp_func_lits
   wp_auto
-  -- `return m`. `iframe Hmref` before the split could be matched against `ownTracker`'s
-  -- own `voters_ref ↦$ voters`; re-seal the tracker first.
+  -- `return m`
   iapply HΦ
-  iframe Htrk
-  isplitl [Hvotes Hprogs Hvoters Hlearners HlearnersNext]
-  · iapply ownTracker_intro cfg tv votes prs pvs voters_ref voters learners learnersNext
-      Hprs_dom Hvoters_arr Hautoleave Hvoters_dom Hno_learners Hcfg_size HmaxInfl
-      $$ Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext
-  iframe Hmref
+  iframe Hp Hvoters Hmref
   ipureintro
-  rw [← Hvoters_dom]
   apply GMap.set_eq; intro k
   rw [Hidm, Hkset, GMap.elem_of_dom, Option.isSome_iff_exists]
 

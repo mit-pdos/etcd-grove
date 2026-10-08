@@ -8,6 +8,11 @@ callees' results, in the postulates' order:
 
     theorem <T>.wp_<M> : <T>.<M>.spec (GF := GF) (hG := hG) := <T>.<M>.wp_proof <callees>
 
+Functions with no Rocq counterpart (Lean-first: the `confchange` package, translated
+and proved here on 2026-10-08) are listed in etc/link-lean-first.txt, one per line as
+`<fn>: <callee> <callee> ...` (the callees in the order of the `wp_proof`'s
+hypotheses), and linked the same way.
+
 usage: etc/gen-link.py ROCQ_PROOF_DIR > EtcdGrove/Raft/Link.lean
 """
 import glob
@@ -28,6 +33,20 @@ callees = {}
 for fn in fns:
     src = open(os.path.join(rocq, f"postulates_{fn}.v")).read()
     callees[fn] = [modtype[n] for n in re.findall(r"Include (\w+)\.", src)]
+
+# Lean-first functions: no spec_/postulates_ files; `etc/link-lean-first.txt`
+with open(os.path.join(here, "link-lean-first.txt")) as f:
+    for line in f:
+        line = line.split("#")[0].strip()
+        if not line:
+            continue
+        fn, _, cs = line.partition(":")
+        fn = fn.strip()
+        if fn in callees:
+            raise SystemExit(f"{fn}: both Rocq and Lean-first")
+        fns.append(fn)
+        callees[fn] = cs.split()
+fns.sort()
 
 spec = {}
 for fn in fns:

@@ -1,7 +1,7 @@
 /- Port of election_proof/spec_raft__handleHeartbeat.v (feb5c73d4).
 
 `r.handleHeartbeat(m)` (`raft.handleHeartbeat.impl`,
-`Perennial/Code/go_etcd_io/raft/v3.lean`; `raft.go:1822`):
+`EtcdRaft/Code/go_etcd_io/raft/v3.lean`; `raft.go:1822`):
 
     r.raftLog.commitTo(m.Commit)
     r.send(pb.Message{To: m.From, Type: pb.MsgHeartbeatResp, Context: m.Context})

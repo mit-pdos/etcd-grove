@@ -25,7 +25,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `in.grow()` doubles the ring buffer, capped at `in.size`
-(`tracker.Inflights.grow.impl`, `Perennial/Code/go_etcd_io/raft/v3/tracker.lean`):
+(`tracker.Inflights.grow.impl`, `EtcdRaft/Code/go_etcd_io/raft/v3/tracker.lean`):
 
     newSize := len(in.buffer) * 2
     if newSize == 0 { newSize = 1 } else if newSize > in.size { newSize = in.size }

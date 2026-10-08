@@ -16,7 +16,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `pr.IsPaused()` -- "should the leader hold off sending log entries to this peer".
-The body (`tracker.Progress.IsPaused.impl`, `Perennial/Code/go_etcd_io/raft/v3/tracker.lean`)
+The body (`tracker.Progress.IsPaused.impl`, `EtcdRaft/Code/go_etcd_io/raft/v3/tracker.lean`)
 switches on `pr.State`:
 
     StateProbe, StateReplicate -> pr.MsgAppFlowPaused

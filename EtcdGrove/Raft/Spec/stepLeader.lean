@@ -2,7 +2,7 @@
 
 ## `stepLeader(r, m)` on the message types a leader handles in phase 1
 
-`stepLeader.impl` (`Perennial/Code/go_etcd_io/raft/v3.lean`; `raft.go:1262`) is *two*
+`stepLeader.impl` (`EtcdRaft/Code/go_etcd_io/raft/v3.lean`; `raft.go:1262`) is *two*
 type switches with a progress-map lookup in between:
 
     switch m.Type {                 // MsgBeat, MsgCheckQuorum, MsgProp,

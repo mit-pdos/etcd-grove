@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `c.CommittedIndex(l)` for a *single* majority quorum
 (`quorum.MajorityConfig.CommittedIndex.impl`,
-`Perennial/Code/go_etcd_io/raft/v3/quorum.lean`; majority.go:121):
+`EtcdRaft/Code/go_etcd_io/raft/v3/quorum.lean`; majority.go:121):
 
     n := len(c)
     if n == 0 { return math.MaxUint64 }           // exit 1

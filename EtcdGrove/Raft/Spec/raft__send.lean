@@ -5,7 +5,7 @@ Port of `election_proof/spec_raft__send.v` (feb5c73d4).
 
 `send` is the only place a message reaches the network, so this is where the abstract
 outbox grows. What the body does, in order (`raft.send.impl` in
-`Perennial/Code/go_etcd_io/raft/v3.lean`):
+`EtcdRaft/Code/go_etcd_io/raft/v3.lean`):
 
 1. `From`, if unset, becomes `r.id`. (Since 2026-10-06 `send` may also be given a
    message whose `From` is already `r.id`.)

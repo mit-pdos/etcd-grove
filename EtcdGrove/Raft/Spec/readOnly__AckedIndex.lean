@@ -20,7 +20,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `ro.AckedIndex(voterID)` (`readOnly.AckedIndex.impl`,
-`Perennial/Code/go_etcd_io/raft/v3.lean`; `read_only.go:72`), the read-only object seen
+`EtcdRaft/Code/go_etcd_io/raft/v3.lean`; `read_only.go:72`), the read-only object seen
 as a `quorum.AckedIndexer`:
 
     idx, found := ro.acks[voterID]

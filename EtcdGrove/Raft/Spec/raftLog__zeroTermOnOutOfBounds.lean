@@ -27,7 +27,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `l.zeroTermOnOutOfBounds(t, err)`: `t` for a `nil` error, `0` for `ErrCompacted` /
 `ErrUnavailable`.
 
-The body (`raftLog.zeroTermOnOutOfBounds.impl`, `Perennial/Code/go_etcd_io/raft/v3.lean`)
+The body (`raftLog.zeroTermOnOutOfBounds.impl`, `EtcdRaft/Code/go_etcd_io/raft/v3.lean`)
 returns `t` for `err == nil`, `0` for `err == ErrCompacted || err == ErrUnavailable`,
 and `Panicf`s otherwise. The premise -- `err` is `nil` or the value of one of the two
 globals -- is exactly what `raftLog.term`'s last conjunct gives, and every caller passes

@@ -385,7 +385,7 @@ def main():
     )
     w(
         f"- **Perennial** (`{pin}`): the Goose translation of etcd raft "
-        "(`Perennial/Code/go_etcd_io/raft/v3.lean`) is trusted to mean what the Go code "
+        "(`EtcdRaft/Code/go_etcd_io/raft/v3.lean`) is trusted to mean what the Go code "
         "means, and Perennial's Go semantics to be Go's."
     )
     w(

@@ -18,7 +18,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `releasePendingReadIndexMessages(r)` (`releasePendingReadIndexMessages.impl`,
-`Perennial/Code/go_etcd_io/raft/v3.lean`; Rocq new/code/go_etcd_io/raft/v3.v:5423;
+`EtcdRaft/Code/go_etcd_io/raft/v3.lean`; Rocq new/code/go_etcd_io/raft/v3.v:5423;
 `raft.go:2115`):
 
     if len(r.pendingReadIndexMessages) == 0 { return }

@@ -16,7 +16,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `in.FreeLE(to)` frees the in-flight messages with index `<= to`
-(`tracker.Inflights.FreeLE.impl`, `Perennial/Code/go_etcd_io/raft/v3/tracker.lean`;
+(`tracker.Inflights.FreeLE.impl`, `EtcdRaft/Code/go_etcd_io/raft/v3/tracker.lean`;
 inflights.go:98):
 
     if in.count == 0 || to < in.buffer[in.start].index {

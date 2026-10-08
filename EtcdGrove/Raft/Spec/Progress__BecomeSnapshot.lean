@@ -25,7 +25,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `pr.BecomeSnapshot(snapshoti)` moves a `Progress` into `StateSnapshot` and records
 the pending snapshot index (`tracker.Progress.BecomeSnapshot.impl`,
-`Perennial/Code/go_etcd_io/raft/v3/tracker.lean`):
+`EtcdRaft/Code/go_etcd_io/raft/v3/tracker.lean`):
 
     pr.ResetState(StateSnapshot)
     pr.PendingSnapshot = snapshoti

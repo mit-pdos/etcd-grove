@@ -1,8 +1,7 @@
-# The project's part of the Raft proof's trust base (etc/tcb.py --check --update).
+# The project's part of the Raft proof's trust base (etc/tcb-report.py --check --update).
 axiom Logger.wp_logf
 axiom big.Int.Int64.wp_proof
 axiom big.NewInt.wp_proof
-axiom confchange.Restore.wp_proof
 axiom fmt.Sprintf.wp_proof
 axiom isLogger
 axiom isLogger_persistent

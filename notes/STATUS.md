@@ -6,8 +6,9 @@ Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
 `worktree-raft-replication`'s `feb5c73d4` and adds Ready/Advance/HasReady; the files
 were first ported from `main`, then from `feb5c73d4`) to Lean on top of Perennial's Lean
-port (mit-pdos/perennial `lean`, pinned at 0fe904415, which adds etcd-grove's Goose
-array fix and Go-model/theory additions to the Lean framework).
+port (mit-pdos/perennial `lean`, pinned at abbd678c1). The Goose
+translation of etcd-raft is this repository's `EtcdRaft/`, generated and checked by
+`etc/goose.py`.
 
 ## Done (at `857d09190`)
 
@@ -35,10 +36,29 @@ array fix and Go-model/theory additions to the Lean framework).
   `sorry` (Rocq's deliberate `admit`, "the log fits in memory"); `RawNode.wp_HasReady`
   and `wp_newRaft` do not.
 
+- **`confchange.Restore` is proved (2026-10-08)**, no longer an axiom. The package is
+  now translated in full (Perennial's `confchange.toml`), and `Restore` is proved from
+  `toConfChangeSingle`, `chain` and `Changer.Simple` (itself from `checkAndCopy`,
+  `Config.Clone`, `apply`, `makeVoter`, `initProgress`, `symdiff`, `checkAndReturn`,
+  `checkInvariants`, `joint`/`incoming`/`outgoing`, `nilAwareDelete`): 16 new
+  spec/proof pairs, Lean-first (no Rocq counterpart), listed in
+  `etc/link-lean-first.txt` for `etc/gen-link.py`; shared vocabulary in
+  `InvConfchange.lean`. `Restore.spec` is unchanged. `JointConfig.IDs.spec` was
+  generalized (any `JointConfig` cell, any fractions) with the old tracker form derived
+  (`IDs.spec_tracker`); `apply`/`Simple` take a `size vm < 2^63` premise (their
+  `len == 0` test is a 64-bit comparison). The translation needed a Goose fix: `cc := cc`
+  (the loop-local-copy idiom in `Restore`) read the *new* cell; see notes/decisions.md.
 - Trust base: `etc/tcb-report.py` (gate: `--check` against `etc/tcb-baseline.txt`).
+- **Build checked 2026-10-08** from a clean checkout (no `.lake`): `lake build` fetches
+  Perennial at the pin and completes (976 jobs, 0 errors); `etc/tcb-report.py --check`
+  passes (13 axioms, 1 sorry). Perennial's own `sorry`s (`Proof/errors.lean`,
+  `GeneratedProof/{os,strings,sync,fmt}.lean`, `Proof/context.lean`) are not reached by
+  any result.
+
 - Build timing: `etc/build-report.py build` (parallelism over time, critical path;
-  design in `decisions.md`); CI: `.github/workflows/lean.yml` (build with the report
-  on the summary page, `tcb-report.py --check`). First full build of this
+  design in `decisions.md`); CI: `.github/workflows/lean.yml` (self-hosted runner
+  `coqdev`, as in mit-pdos/xv6iris; build with the report on the summary page,
+  `tcb-report.py --check`). First full build of this
   repository's modules (dependencies built, 24 cores, 2026-10-08): 402 modules,
   3m48s wall, 40m35s CPU; the import chain bounds it at 3m02s, of which
   `Proof/stepLeader.lean` is 1m08s (the slowest module, and last on the path before
@@ -55,6 +75,8 @@ array fix and Go-model/theory additions to the Lean framework).
 
 ## Next
 
+- `raftpb.ConfState.Equivalent` is the remaining core-raft axiom (`raftpb` is
+  types-only; `Equivalent` lives in the hand-written `confstate.go`).
 - Follow the Rocq RawNode branch past 857d09190 (its worktree has an uncommitted
   edit to `proof_RawNode__Ready.v`, not ported).
 

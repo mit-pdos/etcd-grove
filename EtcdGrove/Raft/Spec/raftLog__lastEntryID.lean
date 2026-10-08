@@ -21,7 +21,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `l.lastEntryID()`: the id of the last entry, or of the compaction boundary `prev`
 when the log after it is empty -- `plogLast` (`Plog.lean`) of the log the protocol sees.
 
-The body (`raftLog.lastEntryID.impl`, `Perennial/Code/go_etcd_io/raft/v3.lean`) is
+The body (`raftLog.lastEntryID.impl`, `EtcdRaft/Code/go_etcd_io/raft/v3.lean`) is
 `lastIndex()` then `term(lastIndex())`, with a `Panicf` on an error from `term`; `term`'s
 iff kills it, and its widened postcondition (`plogTermAt … = some t`) pins the term.
 Until 2026-10-01 the result was unspecified (only `isUpToDate` read it, and a wrong
