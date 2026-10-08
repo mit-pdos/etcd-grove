@@ -28,6 +28,7 @@ The abstract state of a tree is the list of its entries `(v, k)`, keys strictly
 increasing.
 -/
 import EtcdGrove.Btree.Tree
+import EtcdGrove.Btree.Model
 import GoogleBtree.GeneratedProof.github_com.google.btree
 import Perennial.Proof.sync_proof.mutex
 
@@ -152,6 +153,14 @@ def ownNodes (o : ItemOrder GF V K) (c f : Loc) (less : GoFunc) (dq : DFrac) :
   | _, _ => iprop(False)
 end
 
+/-- The root `r` of a tree of degree `d` holding `s`: none (`nil`) for an empty tree, or
+a well-shaped subtree. -/
+def ownRoot (o : ItemOrder GF V K) (c f : Loc) (less : GoFunc) (d : Nat) (dq : DFrac)
+    (r : Loc) (s : List (V × K)) : IProp GF :=
+  iprop(⌜r = null ∧ s = []⌝ ∨
+    ∃ (h : Nat) (tr : Tree (V × K)),
+      ⌜tr.Shape d h ∧ tr.RootBounds d h ∧ tr.elems = s⌝ ∗ ownNode o c f less dq r tr)
+
 /-- **The B-tree at `t` holds the entries `s`** (keys strictly increasing), at fraction
 `dq`: `Clone` and every mutation need `DFrac.own 1`; the read-only methods take any
 fraction.
@@ -168,12 +177,84 @@ def ownBTree (o : ItemOrder GF V K) (t : Loc) (dq : DFrac) (s : List (V × K)) :
     "%Hlen" ∷ ⌜tv.length' = W64 s.length⌝ ∗
     "%Hsorted" ∷ ⌜Sorted o.lt s⌝ ∗
     "#Hitems" ∷ allItems o s ∗
-    "Hroot" ∷ (⌜tv.root' = null ∧ s = []⌝ ∨
-      ∃ (h : Nat) (tr : Tree (V × K)),
-        ⌜tr.Shape d h ∧ tr.RootBounds d h ∧ tr.elems = s⌝ ∗
-        ownNode o tv.cow' f less dq tv.root' tr))
+    "Hroot" ∷ ownRoot o tv.cow' f less d dq tv.root' s)
+
+/-! ### Owned nodes, piece by piece (for the node-level specs) -/
+
+/-- An owned node's own memory: its fields, its item slice (`is`, by value) and its
+child slice (the pointers `ps`), with their capacity. -/
+def nodeShallow (c : Loc) (dq : DFrac) (n : Loc) (is : List (V × K)) (ps : List Loc) :
+    IProp GF :=
+  iprop(∃ (isl csl : GoSlice),
+    nodeFields (V := V) n dq isl csl c ∗
+    isl ↦*{dq} is.map Prod.fst ∗ ownSliceCap V isl dq ∗
+    csl ↦*{dq} ps ∗ ownSliceCap Loc csl dq)
+
+/-- An owned node with subtree `t` (the left disjunct of `ownNode`). -/
+def ownedNode (o : ItemOrder GF V K) (c f : Loc) (less : GoFunc) (dq : DFrac) (n : Loc)
+    (t : Tree (V × K)) : IProp GF :=
+  iprop(∃ ps : List Loc, nodeShallow c dq n t.items ps ∗ ownNodes o c f less dq ps t.children)
+
+/-- An owned node (items `is`, children `cs`) whose child `i`, at `p`, is lent out: its
+`ownNode` is held separately (`mutableChild`). -/
+def ownedNodeHole (o : ItemOrder GF V K) (c f : Loc) (less : GoFunc) (n : Loc)
+    (is : List (V × K)) (cs : List (Tree (V × K))) (i : Nat) (p : Loc) : IProp GF :=
+  iprop(∃ ps : List Loc, ⌜ps[i]? = some p⌝ ∗ nodeShallow c (DFrac.own 1) n is ps ∗
+    ownNodes o c f less (DFrac.own 1) (ps.eraseIdx i) (cs.eraseIdx i))
+
+/-- The item a removal is given: one with the key, for `Target.key`. -/
+def targetItem (o : ItemOrder GF V K) (tgt : Target K) (item : V) : IProp GF :=
+  match tgt with
+  | .key k => o.item item k
+  | _ => iprop(True)
+
+instance targetItem_persistent (o : ItemOrder GF V K) (tgt : Target K) (item : V) :
+    Persistent (targetItem o tgt item) := by
+  unfold targetItem; split <;> infer_instance
+
+/-! ### Iteration -/
+
+/-- The key of an `optionalItem` bound: `none` if it is not valid. -/
+def optKey (o : ItemOrder GF V K) (oi : optionalItem V) (ks : Option K) : IProp GF :=
+  if oi.valid' then iprop(∃ k, ⌜ks = some k⌝ ∗ o.item oi.item' k) else iprop(⌜ks = none⌝)
+
+instance optKey_persistent (o : ItemOrder GF V K) (oi : optionalItem V) (ks : Option K) :
+    Persistent (optKey o oi ks) := by
+  unfold optKey; split <;> infer_instance
+
+/-- **The iterator protocol** for an iteration visiting the entries `r` in order: the
+callback is called on each next entry, with the visited prefix's `I pre false`, and
+returns whether to go on; `I pre true` records that it asked to stop after `pre`. -/
+def iterProtocol (o : ItemOrder GF V K) (iter : GoFunc) (r : List (V × K))
+    (I : List (V × K) → Bool → IProp GF) : IProp GF :=
+  iprop(□ ∀ (pre : List (V × K)) (e : V × K), ⌜(pre ++ [e]) <+: r⌝ -∗
+    {{ I pre false ∗ o.item e.1 e.2 }}
+      (App (Val #iter) (Val #e.1))
+    {{ (b : Bool), RET #b; I (pre ++ [e]) (!b) }})
+
+instance iterProtocol_persistent (o : ItemOrder GF V K) (iter : GoFunc) (r : List (V × K))
+    (I : List (V × K) → Bool → IProp GF) : Persistent (iterProtocol o iter r I) := by
+  unfold iterProtocol; infer_instance
+
+/-- What an iteration over `r` ends with: the callback stopped it after a prefix, or
+it visited all of `r`. -/
+def iterDone (r : List (V × K)) (I : List (V × K) → Bool → IProp GF) : IProp GF :=
+  iprop(∃ (pre : List (V × K)) (stopped : Bool),
+    I pre stopped ∗ ⌜pre <+: r ∧ (stopped = false → pre = r)⌝)
 
 end defs
+
+section orders
+variable {GF : BundledGFunctors} {V : Type}
+
+/-- The order of an ordered Go type (`NewOrderedG`): items are their own keys. -/
+def orderedOrder (lt : V → V → Prop) (h : StrictOrder lt) : ItemOrder GF V V where
+  lt := lt
+  order := h
+  item v k := iprop(⌜v = k⌝)
+  item_persistent _ _ := by infer_instance
+
+end orders
 
 end Btree
 end EtcdGrove

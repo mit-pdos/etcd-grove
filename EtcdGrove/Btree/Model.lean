@@ -50,7 +50,46 @@ def ascRange (s : List (V × K)) (start stop : Option K) : List (V × K) :=
 def descRange (s : List (V × K)) (start stop : Option K) : List (V × K) :=
   (s.filter (fun e => decide (descIn lt start stop e.2))).reverse
 
+/-- The number of entries with keys below `k`: where `items.find` puts `k`. -/
+def countLt (s : List (V × K)) (k : K) : Nat :=
+  (s.takeWhile (fun e => decide (lt e.2 k))).length
+
 end model
+
+/-- What `deleteItem`/`node.remove` remove: the entry with a key (`removeItem`), the
+smallest (`removeMin`) or the largest (`removeMax`). -/
+inductive Target (K : Type) where
+  | key (k : K)
+  | min
+  | max
+
+namespace Target
+variable {K : Type}
+
+/-- The `toRemove` constant. -/
+def code : Target K → w64
+  | .key _ => W64 0
+  | .min => W64 1
+  | .max => W64 2
+
+end Target
+
+section remove
+variable {V K : Type} (lt : K → K → Prop)
+
+/-- The entries left, and the item removed (if any). -/
+def removeOp : Target K → List (V × K) → List (V × K) × Option V
+  | .key k, s => (delete s k, lookup s k)
+  | .min, s => (s.tail, s.head?.map Prod.fst)
+  | .max, s => (s.dropLast, s.getLast?.map Prod.fst)
+
+/-- The child `node.remove` descends into, of a node with items `is`. -/
+def remIdx : Target K → List (V × K) → Nat
+  | .key k, is => countLt lt is k
+  | .min, _ => 0
+  | .max, is => is.length
+
+end remove
 
 end Btree
 end EtcdGrove
