@@ -48,8 +48,6 @@ array fix and Go-model/theory additions to the Lean framework).
   `24643b3`, `upamanyus/etcd` `3efe157`): raft 161 of 323 functions verified, 1962 of
   3646 Go code lines (53.8%; 143 functions sorry-free); etcd 16 of 3579 functions, 174
   of 45359 lines (0.4%, all from Perennial's public proofs).
-- The Perennial pin (0fe904415) resolves from GitHub: a fresh clone builds with
-  `lake build` (947 jobs, ~8.5 min on 32 cores) and passes `tcb-report.py --check`.
 
 ## Next
 
