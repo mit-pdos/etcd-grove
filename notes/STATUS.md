@@ -51,6 +51,9 @@ array fix and Go-model/theory additions to the Lean framework).
 
 ## Next
 
+- Multi-person, multi-agent collaboration: proposed in `notes/collaboration.md`
+  (2026-10-08), not yet implemented; its Rollout is the order to build it in.
+
 - Follow the Rocq RawNode branch past 857d09190 (its worktree has an uncommitted
   edit to `proof_RawNode__Ready.v`, not ported).
 
