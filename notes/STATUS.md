@@ -76,6 +76,11 @@ translation of etcd-raft is this repository's `EtcdRaft/`, generated and checked
   claim more than Go's code does in the model: `Sort` overflows `2*root+1` in its
   heapsort fallback past 2^62 elements, `Join` panics if the total length overflows
   `int` (and cannot be translated: `strings.Builder` uses `unsafe.String`).
+- **`ownInflightsRaw` is indexed by one pure record (2026-10-08)**, `InflightsRing`
+  (window, `start`, buffer length), instead of the Goose value and the buffer's
+  contents; `grow`'s spec is now deterministic and the public `Inflights` specs are
+  unchanged. The rule (one record, as small as the specs allow) and the predicates it
+  has not been applied to yet are in decisions.md, "Predicate indices".
 - Trust base: `etc/tcb-report.py` (gate: `--check` against `etc/tcb-baseline.txt`).
 - **Build checked 2026-10-08** at Perennial c35b7710d (a `--packages` override pointing
   at a checkout of the pinned commit): `lake build` completes (977 jobs, 0 errors); `etc/tcb-report.py --check`
@@ -98,6 +103,9 @@ translation of etcd-raft is this repository's `EtcdRaft/`, generated and checked
   of 45359 lines (0.4%, all from Perennial's public proofs).
 
 ## Next
+
+- Apply the one-record rule (decisions.md, "Predicate indices") to `ownUnstable`, then
+  the storage triple (`ownStorage` & co.), then `ownProgressMap`.
 
 - Follow the Rocq RawNode branch past 857d09190 (its worktree has an uncommitted
   edit to `proof_RawNode__Ready.v`, not ported).

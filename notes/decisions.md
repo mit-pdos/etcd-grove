@@ -175,3 +175,45 @@ Perennial's Go semantics already were ("Not checked by Lean").
 **Rejected -- carrying a `< 2^63` bound in `ownRaftLog`** (tried 2026-09-20): no
 constant bound survives `appendEntry`'s `append`, for the same reason -- which is why
 the model assumes it there too.
+
+---
+
+## Predicate indices: one record, as small as the specs allow
+
+**2026-10-08 · accepted**
+
+An Iris predicate's state is passed as **one record**, not as separate arguments, and
+the record holds **only what some spec stated on the predicate needs** -- pure Lean
+values, nothing of the Go struct beyond that (no slice headers, no addresses). Changing
+what a predicate tracks is then a field added to or dropped from the record, and specs
+that write a new state as an update (`{ r with f := v }`) survive it unchanged; a
+change of arity touches every spec and every proof that mentions the predicate.
+(`ownTracker`'s `votes`/`prs`/`peers`, three arguments until 2026-10-02, became `Trk`
+the same way.)
+
+**First application: `ownInflightsRaw`** (`InvTracker.lean`), the internal predicate
+of an `Inflights`, was `ownInflightsRaw l iv buf` -- the Goose value and the ring
+buffer's contents, as Rocq's `own_inflights`. It is now `ownInflightsRaw l r` with
+`r : InflightsRing := { win : Inflights, start : Int, buflen : Int }`, and the value
+and the contents are existential inside it (`r = inflightsRingOf iv buf`). The fields
+are what `grow`'s spec -- the only internal one -- needs: the length (its premise and
+its effect), the window (`size`, and that nothing else changes), and `start` (which
+`Add`, after a `grow`, needs unchanged). Not the contents: no spec states them
+(`FreeLE` reads them, but its spec is a relation on the window), so `grow`'s
+postcondition went from "some slice `sl` and contents `buf' = buf ++ zeroes`" to the
+deterministic `ownInflightsRaw l { r with buflen := max 1 (min (2 * r.buflen) r.win.size) }`.
+`InflightsOk` is stated on the record, which also discharges `grow`'s former
+`size < 2^62` premise.
+
+Proofs open the predicate by `iNamed`/`iunfold … at` (never `unfold` on the goal,
+which unfolds the postcondition too) and `subst Hring`, then work on the Goose value
+as before; they close it with `ownInflightsRaw_intro`/`ownInflights_reseal`, whose
+pure premise is last so that `iapply … $$ Hiv Hbuf Hbuf_cap` fixes the value.
+
+**Not yet applied** (same shape; candidates, in order): `ownUnstable u uv uents`
+(`InvRaftlog.lean`, ~35 files; it changed arity once already, the `page` argument
+dropped 2026-09-29); the storage triple `prev ents ss` of `ownStorage` (an axiom),
+`isStorageWith`, `memstorageFields`, `ownMemoryStorage` (`ss` added 2026-10-03);
+`ownProgressMap`. **`ownRaftLogCore` is left as is**: it is not specified on (only
+`newLogWithSize`'s spec names it) and its proofs work at the `LogState` fields as
+variables after `cases ls` by design (`ownRaftLog_unfold`).

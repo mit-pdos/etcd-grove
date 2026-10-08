@@ -17,17 +17,20 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem tracker.Inflights.grow.wp_proof : tracker.Inflights.grow.spec (GF := GF) (hG := hG) := by
-  intro l iv buf Hsmall Hsize
+  intro l r Hsmall
   wp_start as H
   iNamed H
   iunfold ownInflightsRaw at Hin
   iNamed Hin
+  subst Hring
   -- `len(in.buffer)` is the `slice.len` field; the pure length of `buf` is what both
-  -- premises and the postcondition speak about.
+  -- the premise and the postcondition speak about.
   ihave %Hblen := ownSlice_len $$ Hbuf
   wp_auto
   have Hok := Hinfl_ok
   unfold InflightsOk at Hok
+  simp only [inflightsRingOf, inflightsAbs] at Hok Hsmall ⊢
+  have Hsize : sint.Z iv.size' < 2 ^ 62 := Hok.2.2.2.1
   -- The three branches of the `newSize` computation differ only in the literal that
   -- reaches `make`; everything after it is joined.
   have Hlen0 : (buf.length : Int) = sint.Z iv.buffer'.len := by
@@ -64,20 +67,20 @@ theorem tracker.Inflights.grow.wp_proof : tracker.Inflights.grow.spec (GF := GF)
   rw [List.length_replicate, List.take_of_length_le Hle, List.drop_replicate]
   iapply HΦ
   unfold ownInflightsRaw
+  iexists { iv with buffer' := sl }, _
   simp only [named]
   iframe Hiv Hsl Hsl_cap
   ipureintro
-  -- the ring invariant at the grown buffer: every field but `buffer` is unchanged, and
+  -- the state the new value and buffer denote is the old one at the new length; the
+  -- ring invariant at the grown buffer: every field but `buffer` is unchanged, and
   -- the occupied range still fits because the buffer only got longer. `len buf < size`
   -- rules out the "buffer is the full ring" disjunct of the old invariant.
   have Hlenn : ((sint.nat n : Nat) : Int) = sint.Z n := by rw [Hsn]; omega
   obtain ⟨h1, h2, h3, h4, h5, h6⟩ := Hok
-  simp only [List.length_append, List.length_replicate]
+  simp only [inflightsRingOf, inflightsAbs, InflightsOk, List.length_append,
+    List.length_replicate, InflightsRing.mk.injEq, true_and]
   rw [Nat.add_sub_cancel' Hle, Hlenn]
-  refine ⟨?_, Hn, rfl⟩
-  unfold InflightsOk
-  simp only
-  refine ⟨h1, h2, ⟨by omega, by omega⟩, h4, h5, Or.inl ?_⟩
+  refine ⟨Hn.symm, h1, h2, ⟨by omega, by omega⟩, h4, h5, Or.inl ?_⟩
   rcases h6 with h6 | h6 <;> omega
 
 end proof
