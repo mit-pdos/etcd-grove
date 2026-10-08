@@ -3,10 +3,19 @@ name: Lean
 on:
   push:
     branches: ["lean"]
+    # Claims, task state and notes are pushed to `lean` all the time; they need no
+    # build (board.yml checks them).
+    paths-ignore: ["notes/**"]
   pull_request:
     branches: ["lean"]
   # allow running action manually.
   workflow_dispatch:
+
+# One build per ref at a time; a newer push replaces a queued (not a running) one, so
+# a busy `lean` builds its latest state instead of every push.
+concurrency:
+  group: lean-build-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   build:

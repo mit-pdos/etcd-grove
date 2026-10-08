@@ -51,11 +51,13 @@ array fix and Go-model/theory additions to the Lean framework).
 
 ## Next
 
-- Multi-person, multi-agent collaboration: proposed in `notes/collaboration.md`
-  (2026-10-08), not yet implemented; its Rollout is the order to build it in.
-
-- Follow the Rocq RawNode branch past 857d09190 (its worktree has an uncommitted
-  edit to `proof_RawNode__Ready.v`, not ported).
+- Work is organised as tasks and chat (`notes/collaboration.md`, the loop in
+  `AGENTS.md`, `etc/tasks.py status` for the live board). Next in its Rollout: the
+  first `roadmap-sync` task writes `notes/roadmap.md` from `manual-notes.txt`; then
+  the published dependency cache.
+- `lean` is the primary development since 2026-10-08; the Rocq branches are a
+  read-only reference, so the RawNode work past 857d09190 continues here (the Rocq
+  worktree's uncommitted edit to `proof_RawNode__Ready.v` is not followed).
 
 ## Differences from the Rocq besides the language
 

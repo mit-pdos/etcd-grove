@@ -1,0 +1,36 @@
+# Paths an agent may not push to `lean` directly: a change to one of them goes
+# through a PR that a person merges (etc/land.py opens it). CI fails a push to
+# `lean` that changes one outside a PR, unless the commit carries an
+# `Approved-by: <person>` trailer (for people pushing directly; agents never
+# add it). See notes/collaboration.md, "Landing". One glob per line (`*` within
+# a directory, `**` any number of directories). Keep this list short: it is
+# where people's attention goes. (`manual-notes.txt` is not here: agents may
+# not change it at all, and etc/land.py refuses to.)
+
+# What the proof rests on: an axiom or `sorry` added or removed.
+etc/tcb-baseline.txt
+
+# What the project claims: the top-level results, the specs of the exported
+# results, and the protocol model their statements are written in terms of.
+EtcdGrove/**/Results.lean
+EtcdGrove/Raft/Protocol.lean
+EtcdGrove/Raft/Protocol/**
+EtcdGrove/Raft/Spec/raft__Step.lean
+EtcdGrove/Raft/Spec/newRaft.lean
+EtcdGrove/Raft/Spec/RawNode__Propose.lean
+EtcdGrove/Raft/Spec/RawNode__Ready.lean
+EtcdGrove/Raft/Spec/RawNode__Advance.lean
+EtcdGrove/Raft/Spec/RawNode__HasReady.lean
+
+# The Perennial pin (and with it the Goose translation of the Go code).
+lakefile.toml
+lake-manifest.json
+lean-toolchain
+
+# The rules themselves.
+AGENTS.md
+CLAUDE.md
+etc/protected-paths.txt
+etc/land.py
+etc/tasks.py
+.github/**

@@ -61,3 +61,38 @@ busy"), and "idle" on the critical path is a wait for a free core, Lake's own
 work between compiles, or its start-up. Lean also elaborates a module's
 declarations in parallel, so the report charts cores busy (each compile's CPU
 spread over its run) next to compiles running.
+
+## Many people's agents, coordinating through `lean`
+
+**2026-10-08 · accepted** (the people running the project decided: agents push
+directly to `lean`; `lean` is the primary development; no per-person limits on
+agents)
+
+Several people run agents continuously on VMs watching this repository. Big ideas go
+between people and agents through files (`manual-notes.txt`, `notes/chat/`); small
+questions stay with each agent's own operator.
+
+**Decision:** `notes/collaboration.md`. In short: git on `origin` is the only shared
+medium and a push race the only lock; one file per task (`notes/tasks/`) and per chat
+thread (`notes/chat/`); `etc/tasks.py` changes them by committing that one file on top
+of a fresh `origin/lean` and pushing straight to `lean`, retrying on a lost race;
+liveness is pushes to the task branch, so `lean` carries no heartbeat commits;
+`etc/land.py` is the one way to land work (rebase, regenerate `Link.lean`, build,
+TCB check, push), except that protected paths (`etc/protected-paths.txt`) go through a
+PR a person merges, and CI (`board.yml`) fails a direct push that changed one.
+`etc/gen-link.py` now reads the callees from the Lean proofs' hypotheses instead of
+the Rocq `postulates_*.v` (same output), since the Rocq is no longer followed.
+
+**Rejected — every landing through a PR with auto-merge.** Claims, chat and notes must
+be pushed directly anyway; a user-owned repository has no merge queue, so "require up
+to date" would turn each landing into a rebase race in GitHub's UI; and gating only
+what changes the trust base or the claims puts people's attention where it counts.
+
+**Rejected — GitHub issues or discussions for tasks and chat.** They would put the
+coordination outside the repository, invisible to agents of other tools and to
+offline readers, and make the board depend on a token on every VM.
+
+**Rejected — one shared journal and a generated questions file.** With many agents an
+append-only file in one place is a permanent merge conflict, and a generated file
+committed on every state change churns `lean`; task logs, chat threads and
+`etc/tasks.py status` (printed, and on each `board.yml` run's summary) replace them.

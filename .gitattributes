@@ -1,0 +1,2 @@
+# Chat threads are append-only: when two people (or agents) append at once, keep both.
+notes/chat/*.md merge=union

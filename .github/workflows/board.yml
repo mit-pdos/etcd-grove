@@ -1,0 +1,27 @@
+name: Board
+
+# The coordination checks of notes/collaboration.md, on every push (cheap: no Lean).
+on:
+  push:
+    branches: ["lean"]
+  pull_request:
+    branches: ["lean"]
+  workflow_dispatch:
+
+jobs:
+  board:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Task board
+        run: ./etc/tasks.py check
+      - name: Link.lean is up to date
+        run: ./etc/gen-link.py --check
+      - name: Protected paths changed only through a PR
+        if: github.event_name == 'push'
+        run: ./etc/land.py --check-protected "${{ github.event.before }}" "${{ github.sha }}"
+      - name: Board summary
+        if: always()
+        run: ./etc/tasks.py status --markdown --no-fetch >> "$GITHUB_STEP_SUMMARY"
