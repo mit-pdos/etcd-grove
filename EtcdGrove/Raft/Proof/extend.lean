@@ -32,11 +32,25 @@ discharged first, or `wp_auto` stops at it).
 The tail is split off with `ownSlice_split_all` and put back with `ownSlice_combine`
 plus `ownSlice_trivial_slice_2`. -/
 theorem extend.wp_proof : extend.spec (GF := GF) (hG := hG) := by
-  intro dst vals ds vs dq1 dq2 Hcap Hfits
+  intro dst vals ds vs dq1 dq2 Hcap
   wp_start as ⟨Hdst, Hvals⟩
   wp_auto
   ihave %Hlen1 := ownSlice_len _ _ _ $$ Hdst
   ihave %Hlen2 := ownSlice_len _ _ _ $$ Hvals
+  ihave %Hwf1 := ownSlice_wf _ _ _ $$ Hdst
+  have Hl1 : (ds.length : Int) = sint.Z dst.len := by word
+  have Hl2 : (vs.length : Int) = sint.Z vals.len := by word
+  rcases Classical.em ((ds.length : Int) + (vs.length : Int) < 2 ^ 63) with Hfits | Hbig
+  case inr =>
+    -- `need` wraps negative: `need <= cap(dst)`, and `append(dst, vals...)` runs, whose
+    -- model assumes the lengths do not overflow (see the spec)
+    have Hwrap : sint.Z (dst.len + vals.len) < 0 := by word
+    wp_if_destruct
+    · wp_func_call
+      wp_call
+      wp_apply wp_sumAssumeNoOverflowSigned with %Hov
+      exfalso; omega
+    · exfalso; omega
   have Hneed : sint.Z (dst.len + vals.len) = (ds.length : Int) + (vs.length : Int) := by
     word
   have Hneed' : sint.nat (dst.len + vals.len) = ds.length + vs.length := by word

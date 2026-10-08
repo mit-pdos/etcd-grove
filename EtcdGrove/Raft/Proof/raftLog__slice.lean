@@ -2,7 +2,8 @@
 Port of `election_proof/proof_raftLog__slice.v`.
 
 Lean notes: Goose's `min` is stepped into (`wp_func_call; wp_call`) instead of
-Rocq's `func_unfold`; the Rocq `Admitted` is a `sorry` at `Hfitsx`.
+Rocq's `func_unfold`. The Rocq `Admitted` (`Hfitsx`, "the log fits in memory") was a
+`sorry` here until 2026-10-08; `extend.spec` no longer needs the bound (see it).
 -/
 import EtcdGrove.Raft.Spec.raftLog__slice
 import EtcdGrove.Raft.Spec.raftLog__mustCheckOutOfBounds
@@ -80,32 +81,18 @@ by `lo < hi`, and `err = ErrCompacted` / `err = ErrUnavailable` are excluded bec
 `isInitialized_access`) says both globals are non-nil. That is what makes the `Panicf`
 and the bare `panic` unreachable.
 
-**Unfinished: one arithmetic side condition (`Hfitsx`).** `extend` computes
-`need := len(dst) + len(vals)` as a Go `int` and then `make([]Entry, need, need)`, so
-`extend.spec` asks for `|ents| + |unstable| < 2^63`. Everything else about the call is
-discharged; that bound is **not derivable from the predicates as they stand**, and the
-missing step is the only `sorry` in this file.
-
-What is available: `|ents| = cut - lo <= |sents|`, and `isStorage`'s `Hbounded` gives
-`prev.index + |sents| < 2^61`; `|unstable| <= hi - offset <= |uents|`, and `uents` is a
-Go slice, so `ownSlice_len` gives `|uents| < 2^63`. Their sum is `< 2^61 + 2^63`, which
-clears `2^64` but not `2^63` -- exactly the arithmetic `InvRaftlog.lean`'s `Hnowrap`
-comment describes. Tightening `Hnowrap` to `2^63` does supply it, and was tried on
-2026-09-20 and reverted, because it makes `raft.appendEntry` unprovable (a bound below
-`2^63` has to be *carried* across an `append`, and no constant bound survives `+1`).
-
-So the triple as stated is **false** at a log with `~2^63` unstable entries: `need`
-wraps negative, `need <= cap(dst)` becomes true, and the code takes the `append` branch
-this development has not specified. It is the same shape as `campaign`'s term wrap
-(notes/false-statements.md), whose fix was a premise. Here a premise has nowhere to
-live: `hasUnappliedConfChanges` opens `ownRaftLog`, whose entry lists are existential,
-so nothing at `hup` or `Step` can speak about `hi - lo`; and a bound *carried* in
-`ownRaftLog` cannot be re-established by `appendEntry` (notes/decisions.md,
-2026-09-20). What is being assumed is that the log fits in memory -- fewer than
-`2^63 - 2^61` unstable entries -- which the model, having no bound on memory, cannot
-know. It is therefore the one deliberate, marked admission on the election path (Rocq:
-`Admitted. (* Trusted *)`), recorded in notes/STATUS.md "Trust base" and
-notes/false-statements.md. Everything up to `Hfitsx` is machine-checked. -/
+**The former admission (`Hfitsx`, resolved 2026-10-08).** `extend` computes
+`need := len(dst) + len(vals)` as a Go `int`, and its spec used to ask for
+`|ents| + |unstable| < 2^63`. That bound is not derivable from the predicates:
+`isStorage`'s `Hbounded` gives `prev.index + |sents| < 2^61`, `ownSlice_len` gives
+`|uents| < 2^63`, and their sum clears `2^64` but not `2^63` -- the arithmetic
+`InvRaftlog.lean`'s `Hnowrap` comment describes (tightening `Hnowrap` to `2^63` was
+tried on 2026-09-20 and reverted: `raft.appendEntry` cannot re-establish a bound below
+`2^63` across an `append`). So the Rocq script admits it (`Admitted. (* Trusted *)`,
+"the log fits in memory"), and so did this file. The resolution is in `extend`'s spec:
+past `2^63` the Go `int` wraps negative, the code takes its `append` branch, and the
+`append` model assumes no length overflow -- the very assumption the admission stated
+-- so `extend.spec` holds without the bound and nothing is admitted here. -/
 theorem raftLog.slice.wp_proof
     (wp_raftLog_mustCheckOutOfBounds : raftLog.mustCheckOutOfBounds.spec (GF := GF) (hG := hG))
     (wp_unstable_slice : unstable.slice.spec (GF := GF) (hG := hG))
@@ -312,12 +299,6 @@ theorem raftLog.slice.wp_proof
       have Hcapx : sint.Z se.cap < (ese.length : Int) + ((es0.take nlim).length : Int) := by
         have : ((sint.nat se.len : Nat) : Int) = sint.Z se.len := by word
         rw [Hcape, Hselen.1]; omega
-      have Hfitsx : (ese.length : Int) + ((es0.take nlim).length : Int) < 2 ^ 63 := by
-        -- NOT PROVABLE from the current predicates (Rocq: the one `admit` of
-        -- `proof_raftLog__slice.v`, "the log fits in memory", deliberate and trusted).
-        -- `Hsb` gives `prev.index + |sents| < 2^61` and `Hulen` gives `|uents| < 2^63`;
-        -- the sum of the two parts is bounded only by `2^61 + 2^63`. See the header.
-        sorry
       -- `Storage.Entries` returned the whole range `[lo, offset)`: the
       -- `len(ents) < cut-lo` fast path was not taken
       have Hese : ese = sents.drop (uint.Z lo - uint.Z prev.index' - 1).toNat := by
@@ -352,7 +333,7 @@ theorem raftLog.slice.wp_proof
           ipureintro
           exact Hfin _ ese (by omega) (by omega) Hnee Hlene Hine Hpre
         iapply wp_fupd
-        wp_apply wp_extend _ _ _ _ _ _ Hcapx Hfitsx $$ [$Hse $Hs1] as %sx ⟨Hsx, Hsxcap, -, -⟩
+        wp_apply wp_extend _ _ _ _ _ _ Hcapx $$ [$Hse $Hs1] as %sx ⟨Hsx, Hsxcap, -, -⟩
         ipersist Hsx
         imodintro
         iapply HΦ $$ %sx %_
@@ -362,7 +343,7 @@ theorem raftLog.slice.wp_proof
         ipureintro
         exact Hext
       · iapply wp_fupd
-        wp_apply wp_extend _ _ _ _ _ _ Hcapx Hfitsx $$ [$Hse $Hs1] as %sx ⟨Hsx, Hsxcap, -, -⟩
+        wp_apply wp_extend _ _ _ _ _ _ Hcapx $$ [$Hse $Hs1] as %sx ⟨Hsx, Hsxcap, -, -⟩
         ipersist Hsx
         imodintro
         iapply HΦ $$ %sx %_

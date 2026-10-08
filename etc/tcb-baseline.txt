@@ -12,4 +12,3 @@ axiom rand.Int.wp_proof
 axiom reflect.DeepEqual.wp_proof
 axiom slices.Sort.wp_proof
 axiom strings.Join.wp_proof
-sorry raftLog.slice.wp_proof
