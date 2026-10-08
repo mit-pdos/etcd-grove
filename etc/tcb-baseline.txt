@@ -1,6 +1,5 @@
 # The project's part of the Raft proof's trust base (etc/tcb-report.py --check --update).
 axiom fmt.Sprintf.wp_proof
-axiom raftpb.Entry.Size.wp_proof
 axiom rand.Int.wp_proof
 axiom reflect.DeepEqual.wp_proof
 axiom slices.Sort.wp_proof

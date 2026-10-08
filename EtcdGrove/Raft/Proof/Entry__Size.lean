@@ -1,7 +1,9 @@
 /-
-Port of election_proof/proof_Entry__Size.v.
+Port of election_proof/proof_Entry__Size.v (an `Axiom` there; proved here since
+2026-10-08 from the translated body).
 -/
 import EtcdGrove.Raft.Spec.Entry__Size
+import EtcdGrove.Raft.Spec.raftpb_sovRaft
 
 noncomputable section
 
@@ -17,10 +19,33 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- Trust boundary: an `axiom` rather than a `sorry`, so that it still counts as an
-assumption under `#print axioms`. See the spec file for why it may be assumed. -/
-axiom raftpb.Entry.Size.wp_proof : raftpb.Entry.Size.spec (GF := GF) (hG := hG)
-
+theorem raftpb.Entry.Size.wp_proof
+    (wp_sovRaft : raftpb.sovRaft.spec (GF := GF) (hG := hG)) :
+    raftpb.Entry.Size.spec (GF := GF) (hG := hG) := by
+  intro e dq ev
+  wp_start as He
+  ihave %Hnn := typedPointsto_not_null _ _ _ $$ He
+  wp_auto
+  wp_if_destruct
+  · wp_end
+  iStructNamed He
+  wp_auto
+  wp_apply wp_sovRaft with %n1 _
+  wp_apply wp_sovRaft with %n2 _
+  wp_apply wp_sovRaft with %n3 _
+  -- `Data` nil or not; either way the four fields go back into `e ↦{dq} ev`
+  wp_if_destruct
+  · ihave He : e ↦{dq} ev $$ [Term Index Type' Data]
+    · iapply typedPointsto_combine _ _ _ Hnn
+      simp only [TypedPointsto.typedPointstoDef, named]
+      iframe
+    wp_end
+  wp_apply wp_sovRaft with %n4 _
+  ihave He : e ↦{dq} ev $$ [Term Index Type' Data]
+  · iapply typedPointsto_combine _ _ _ Hnn
+    simp only [TypedPointsto.typedPointstoDef, named]
+    iframe
+  wp_end
 
 end proof
 

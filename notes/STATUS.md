@@ -93,6 +93,35 @@ translation of etcd-raft is this repository's `EtcdRaft/`, generated and checked
   `slices.Sort`, `rand.Int`, `raftpb.Entry.Size`), 0 sorries. `RawNode.wp_Ready` rests
   on `Entry.Size` alone, `RawNode.wp_Propose` on `Entry.Size`, `rand.Int`,
   `slices.Sort` and `reflect.DeepEqual`.
+- **`raftpb.Entry.Size` is proved (2026-10-08)**, no longer an axiom: `raftpb.toml`
+  translates `Entry.Size` and `sovRaft` (gogoproto, `raft.pb.go`) and imports
+  `math/bits`; `Proof/Entry__Size.lean` proves the triple from the body, with
+  `sovRaft` a Lean-first spec/proof pair (`etc/link-lean-first.txt`). The triple gained
+  only an `isPkgInit raftpb` conjunct (for `bits.Len64`), which `limitSize`/`entsSize`
+  discharge from `isPkgInit raft.v3`; no caller's spec changed. `etc/tcb-report.py
+  --check`: 5 axioms, 0 sorries; `RawNode.wp_Ready` and `wp_HasReady` now rest on none
+  of this repository's axioms, `RawNode.wp_Propose` on `rand.Int`, `slices.Sort`,
+  `reflect.DeepEqual`.
+- **What the five remaining axioms would take** (checked 2026-10-08, with "no
+  higher-level spec changes" as the constraint):
+  - `slices.Sort`: translatable (Perennial's `slices.toml`; the `*Ordered` pdqsort is
+    the sibling of the proved `SortFunc`), but the proved spec needs
+    `length ≤ 2^62`, as `wp_SortFunc` does (heapsort's `2*root+1` overflows past
+    that, so the current spec is false in the model). No caller has it: `Visit`,
+    `VoterNodes`, `campaign` get only `size cfg < 2^63` (`ownTracker`'s
+    `Hcfg_size`), `MajorityConfig.CommittedIndex` and `MajorityConfig.Slice` have
+    `< 2^63` or nothing, `ConfState.Equivalent` nothing; only the empty-slice calls
+    (`Slice`'s nil branch, `sortCopy_empty`) are bounded. Needs `Hcfg_size ≤ 2^62` in
+    `ownTracker` plus premises on `CommittedIndex`, `Slice`, `Equivalent`.
+  - `fmt.Sprintf`, `strings.Join`: not translatable (`fmt`'s printer reaches
+    `reflect`; `strings.Builder.String` is `unsafe.String`), and `Join`'s no-panic claim
+    needs a bound on the strings' total length that `Sprintf`'s "some string" cannot
+    give.
+  - `reflect.DeepEqual`: reflection, outside Goose.
+  - `rand.Int`: `crypto/rand.Reader` reads the OS RNG (a syscall), outside GooseLang.
+  The last four can only go by changing the Go code (the `upamanyus/etcd-raft`
+  `goose` fork) or by trusted models (`Perennial/TrustedCode`), which move the
+  trust rather than remove it.
 - Trust base: `etc/tcb-report.py` (gate: `--check` against `etc/tcb-baseline.txt`).
 - **Build checked 2026-10-08** at Perennial c35b7710d (a `--packages` override pointing
   at a checkout of the pinned commit): `lake build` completes (977 jobs, 0 errors); `etc/tcb-report.py --check`

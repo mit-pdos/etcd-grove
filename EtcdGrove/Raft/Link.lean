@@ -16,6 +16,7 @@ import EtcdGrove.Raft.Proof.ConfState__Equivalent
 import EtcdGrove.Raft.Proof.Config__Clone
 import EtcdGrove.Raft.Proof.Config__validate
 import EtcdGrove.Raft.Proof.Entry__Size
+import EtcdGrove.Raft.Proof.raftpb_sovRaft
 import EtcdGrove.Raft.Proof.Inflights__Add
 import EtcdGrove.Raft.Proof.Inflights__FreeLE
 import EtcdGrove.Raft.Proof.Inflights__Full
@@ -214,9 +215,13 @@ theorem Config.wp_validate :
     Config.validate.spec (GF := GF) (hG := hG) :=
   Config.validate.wp_proof wp_IsLocalMsgTarget
 
+theorem raftpb.wp_sovRaft :
+    raftpb.sovRaft.spec (GF := GF) (hG := hG) :=
+  raftpb.sovRaft.wp_proof
+
 theorem raftpb.Entry.wp_Size :
     raftpb.Entry.Size.spec (GF := GF) (hG := hG) :=
-  raftpb.Entry.Size.wp_proof
+  raftpb.Entry.Size.wp_proof raftpb.wp_sovRaft
 
 theorem tracker.Inflights.wp_Full :
     tracker.Inflights.Full.spec (GF := GF) (hG := hG) :=
