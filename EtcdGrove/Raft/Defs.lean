@@ -302,14 +302,15 @@ inductive PRState where
 
 /-- A `Progress`, without `IsLearner` (no learners are in scope: the abstraction
 function below is undefined on one) and with the state an inductive. `paused` is
-`MsgAppFlowPaused`; `infl` is the window `Inflights` points at. -/
+`MsgAppFlowPaused`; `infl` is the window `Inflights` points at. `RecentActive` is not in
+it: no spec states it (checkQuorum, which reads it, is out of scope; `maybeSendSnapshot`
+reads the Go field and case-splits on it). Until 2026-10-08 it was a field. -/
 structure Progress where
   matched : w64
   next : w64
   sentCommit : w64
   state : PRState
   pendingSnapshot : w64
-  recentActive : Bool
   paused : Bool
   infl : Inflights
 
@@ -371,8 +372,7 @@ of `ownProgress` used to rule out. -/
 def progressAbs (pv : tracker.Progress) (i : Inflights) : Option Progress :=
   if pv.IsLearner' then none else
   (prstateOfW64 pv.State').map fun st =>
-    ⟨pv.Match', pv.Next', pv.sentCommit', st, pv.PendingSnapshot', pv.RecentActive',
-     pv.MsgAppFlowPaused', i⟩
+    ⟨pv.Match', pv.Next', pv.sentCommit', st, pv.PendingSnapshot', pv.MsgAppFlowPaused', i⟩
 
 /-- What `progressAbs pv i = some p` says, field by field. -/
 theorem progressAbs_Some (pv : tracker.Progress) (i : Inflights) (p : Progress) :
@@ -383,11 +383,10 @@ theorem progressAbs_Some (pv : tracker.Progress) (i : Inflights) (p : Progress) 
     pv.Next' = p.next ∧
     pv.sentCommit' = p.sentCommit ∧
     pv.PendingSnapshot' = p.pendingSnapshot ∧
-    pv.RecentActive' = p.recentActive ∧
     pv.MsgAppFlowPaused' = p.paused ∧
     i = p.infl := by
   unfold progressAbs
-  obtain ⟨m, n, sc, st, ps, ra, pa, inf⟩ := p
+  obtain ⟨m, n, sc, st, ps, pa, inf⟩ := p
   cases hl : pv.IsLearner'
   · simp only [Bool.false_eq_true, ↓reduceIte, true_and]
     rw [← prstateOfW64_Some]
@@ -396,10 +395,10 @@ theorem progressAbs_Some (pv : tracker.Progress) (i : Inflights) (p : Progress) 
     | some st' =>
       simp only [Option.map_some, Option.some.injEq, Progress.mk.injEq]
       constructor
-      · rintro ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩
-        exact ⟨h4 ▸ rfl, h1, h2, h3, h5, h6, h7, h8⟩
-      · rintro ⟨h4, h1, h2, h3, h5, h6, h7, h8⟩
-        exact ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩
+      · rintro ⟨h1, h2, h3, h4, h5, h6, h7⟩
+        exact ⟨h4 ▸ rfl, h1, h2, h3, h5, h6, h7⟩
+      · rintro ⟨h4, h1, h2, h3, h5, h6, h7⟩
+        exact ⟨h1, h2, h3, h4, h5, h6, h7⟩
   · simp
 
 end abs

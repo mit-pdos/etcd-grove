@@ -31,8 +31,8 @@ theorem tracker.Progress.SentCommit.wp_proof :
   ipureintro
   have H := (progressAbs_Some _ _ _).1 Habs
   apply (progressAbs_Some _ _ _).2
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩ := H
-  exact ⟨h1, h2, h3, h4, rfl, h6, h7, h8, h9⟩
+  obtain ⟨h1, h2, h3, h4, h5, h6, h8, h9⟩ := H
+  exact ⟨h1, h2, h3, h4, rfl, h6, h8, h9⟩
 
 end proof
 

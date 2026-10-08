@@ -74,8 +74,8 @@ theorem tracker.Progress.BecomeProbe.wp_proof
     have H' := (progressAbs_Some _ _ _).1 Habs
     apply (progressAbs_Some _ _ _).2
     simp only [progressResetState, Hs, ite_true] at H' ⊢
-    obtain ⟨h1, h2, h3, -, h5, h6, h7, h8, -⟩ := H'
-    refine ⟨h1, h2, h3, ?_, ?_, h6, h7, h8, trivial⟩ <;> simp only [h3, h5, Hps]
+    obtain ⟨h1, h2, h3, -, h5, h6, h8, -⟩ := H'
+    refine ⟨h1, h2, h3, ?_, ?_, h6, h8, trivial⟩ <;> simp only [h3, h5, Hps]
   · -- any other state: probe from `Match + 1`
     rw [decide_eq_false (by
       rw [Hst]; intro Hc; exact Hs (prstateW64_inj _ _ (Hc.trans (by rfl))))]
@@ -100,8 +100,8 @@ theorem tracker.Progress.BecomeProbe.wp_proof
     have H' := (progressAbs_Some _ _ _).1 Habs
     apply (progressAbs_Some _ _ _).2
     simp only [progressResetState, Hs, ite_false] at H' ⊢
-    obtain ⟨h1, h2, h3, -, h5, h6, h7, h8, -⟩ := H'
-    refine ⟨h1, h2, h3, ?_, ?_, h6, h7, h8, trivial⟩ <;> simp only [h3, h5]
+    obtain ⟨h1, h2, h3, -, h5, h6, h8, -⟩ := H'
+    refine ⟨h1, h2, h3, ?_, ?_, h6, h8, trivial⟩ <;> simp only [h3, h5]
 
 end proof
 

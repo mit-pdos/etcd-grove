@@ -31,9 +31,9 @@ theorem tracker.Progress.ResetState.wp_proof
   · dsimp only [progressResetState]
     iexact Hinfl
   ipureintro
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩ := (progressAbs_Some _ _ _).1 Habs
+  obtain ⟨h1, h2, h3, h4, h5, h6, h8, h9⟩ := (progressAbs_Some _ _ _).1 Habs
   apply (progressAbs_Some _ _ _).2
-  exact ⟨h1, rfl, h3, h4, h5, rfl, h7, rfl, rfl⟩
+  exact ⟨h1, rfl, h3, h4, h5, rfl, rfl, rfl⟩
 
 end proof
 

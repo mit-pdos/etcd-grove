@@ -77,13 +77,13 @@ theorem raft.becomeLeader.wp_proof
   -- alone.
   iNamed Hpr
   wp_auto
-  ihave Hpr : ownProgress pr { progressBecomeReplicate p0 with recentActive := true }
+  ihave Hpr : ownProgress pr (progressBecomeReplicate p0)
       $$ [Hpv Hinfl]
   · iapply ownProgress_intro pr _ _ $$ Hpv [Hinfl]
     · iexact Hinfl
     ipureintro
-    obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩ := (progressAbs_Some _ _ _).1 Habs
-    exact (progressAbs_Some _ _ _).2 ⟨h1, h2, h3, h4, h5, h6, rfl, h8, h9⟩
+    obtain ⟨h1, h2, h3, h4, h5, h6, h8, h9⟩ := (progressAbs_Some _ _ _).1 Habs
+    exact (progressAbs_Some _ _ _).2 ⟨h1, h2, h3, h4, h5, h6, h8, h9⟩
   ihave Htrk := Hprback $$ %_ Hpr
   ihave Hphys := Hback $$ %_ %_ Htrkf Htrk
   -- `r.pendingConfIndex = r.raftLog.lastIndex()`
@@ -115,7 +115,7 @@ theorem raft.becomeLeader.wp_proof
   -- `appendEntry` appended the stamped empty entry: that is `becomeLeader` (`Defs.lean`)
   ihave Hphys : ownRaftPhys cfg r id
       { becomeLeader id s with
-        prvals := <[id := { progressBecomeReplicate p0 with recentActive := true }]> pvs }
+        prvals := <[id := progressBecomeReplicate p0]> pvs }
       $$ [Hphys]
   · iapply ownRaftPhys_eq cfg r id _ _ ?_ $$ Hphys
     subst hs1
@@ -128,7 +128,7 @@ theorem raft.becomeLeader.wp_proof
   ipureintro
   subst hs1
   dsimp only at Hpv0 ⊢
-  rw [prvalsMatch_insert_same _ _ p0 { progressBecomeReplicate p0 with recentActive := true }
+  rw [prvalsMatch_insert_same _ _ p0 (progressBecomeReplicate p0)
     Hpv0 rfl]
   exact Hmr
 

@@ -201,16 +201,16 @@ private theorem wp_stepLeader_hbresp
   · exact absurd rfl Hnn
   simp only [Hty, MsgHeartbeatResp]
   wp_auto
-  -- `pr.RecentActive = true; pr.MsgAppFlowPaused = false`
+  -- `pr.RecentActive = true; pr.MsgAppFlowPaused = false` (`RecentActive` is in no record)
   have Habs' := (progressAbs_Some _ _ _).1 Habs
-  ihave Hphys := Hpback $$ %{ p with recentActive := true, paused := false } [Hpv Hinfl]
-  · iapply ownProgress_intro pr _ { p with recentActive := true, paused := false } $$ Hpv Hinfl
+  ihave Hphys := Hpback $$ %{ p with paused := false } [Hpv Hinfl]
+  · iapply ownProgress_intro pr _ { p with paused := false } $$ Hpv Hinfl
     ipureintro
-    obtain ⟨H1, H2, H3, H4, H5, H6, -, -, -⟩ := Habs'
-    exact (progressAbs_Some _ _ _).2 ⟨H1, H2, H3, H4, H5, H6, rfl, rfl, rfl⟩
-  have Hmm1 : prvalsMatch (<[m.From' := { p with recentActive := true, paused := false }]> s.prvals)
+    obtain ⟨H1, H2, H3, H4, H5, H6, -, -⟩ := Habs'
+    exact (progressAbs_Some _ _ _).2 ⟨H1, H2, H3, H4, H5, H6, rfl, rfl⟩
+  have Hmm1 : prvalsMatch (<[m.From' := { p with paused := false }]> s.prvals)
       = prvalsMatch s.prvals := prvalsMatch_insert_same _ _ p _ Hpvs rfl
-  generalize Hp1 : ({ p with recentActive := true, paused := false } : Progress) = p1 at *
+  generalize Hp1 : ({ p with paused := false } : Progress) = p1 at *
   generalize Hpvs1 : (<[m.From' := p1]> s.prvals : GMap w64 Progress) = pvs1 at *
   have Hpvs1' : pvs1 !! m.From' = some p1 := by rw [← Hpvs1]; exact GMap.lookup_insert_eq _ _ _
   -- `if pr.Match < r.raftLog.lastIndex() || pr.State == StateProbe { r.sendAppend(m.From) }`,
@@ -343,27 +343,26 @@ private theorem wp_stepLeader_appresp
   · exact absurd rfl Hnn
   simp only [Hty, MsgAppResp]
   wp_auto
-  -- `pr.RecentActive = true`
+  -- `pr.RecentActive = true`: the record is unchanged (`RecentActive` is in none)
   have Habs' := (progressAbs_Some _ _ _).1 Habs
-  ihave Hphys := Hpback $$ %{ p with recentActive := true } [Hpv Hinfl]
-  · iapply ownProgress_intro pr _ { p with recentActive := true } $$ Hpv Hinfl
+  ihave Hphys := Hpback $$ %p [Hpv Hinfl]
+  · iapply ownProgress_intro pr _ p $$ Hpv Hinfl
     ipureintro
-    obtain ⟨H1, H2, H3, H4, H5, H6, -, H8, -⟩ := Habs'
-    exact (progressAbs_Some _ _ _).2 ⟨H1, H2, H3, H4, H5, H6, rfl, H8, rfl⟩
-  have Hmm1 : prvalsMatch (<[m.From' := { p with recentActive := true }]> s.prvals)
+    obtain ⟨H1, H2, H3, H4, H5, H6, H8, -⟩ := Habs'
+    exact (progressAbs_Some _ _ _).2 ⟨H1, H2, H3, H4, H5, H6, H8, rfl⟩
+  have Hmm1 : prvalsMatch (<[m.From' := p]> s.prvals)
       = prvalsMatch s.prvals := prvalsMatch_insert_same _ _ p _ Hpvs rfl
-  generalize Hp1 : ({ p with recentActive := true } : Progress) = p1 at *
-  generalize Hpvs1 : (<[m.From' := p1]> s.prvals : GMap w64 Progress) = pvs1 at *
-  have Hpvs1' : pvs1 !! m.From' = some p1 := by rw [← Hpvs1]; exact GMap.lookup_insert_eq _ _ _
+  generalize Hpvs1 : (<[m.From' := p]> s.prvals : GMap w64 Progress) = pvs1 at *
+  have Hpvs1' : pvs1 !! m.From' = some p := by rw [← Hpvs1]; exact GMap.lookup_insert_eq _ _ _
   cases Hrej : m.Reject'
   · -- accepted
     wp_auto
     -- `pr.MaybeUpdate(m.Index) || (pr.Match == m.Index && pr.State == StateProbe)`: its
     -- value does not matter to the postcondition, only that `pr` is left at
     -- `MaybeUpdate`'s value
-    icases ownRaftPhys_pr_at cfg r id s pvs1 m.From' pr p1 $$ Hphys %Hlk %Hpvs1' with ⟨Hpa, Hpback⟩
+    icases ownRaftPhys_pr_at cfg r id s pvs1 m.From' pr p $$ Hphys %Hlk %Hpvs1' with ⟨Hpa, Hpback⟩
     wp_join (Q := fun v => iprop(∃ c : Bool, ⌜v = #c⌝ ∗
-        ownProgress pr (progressMaybeUpdate p1 m.Index') ∗
+        ownProgress pr (progressMaybeUpdate p m.Index') ∗
         "m" ∷ m_ptr ↦ m ∗ "pr" ∷ pr_ptr ↦ pr)) at (If _ (Val #true) _) with [Hpa m pr]
     · wp_apply wp_Progress_MaybeUpdate $$ [$Hpa] as Hpa
       iNamed Hpa
@@ -386,20 +385,20 @@ private theorem wp_stepLeader_appresp
         iapply ownProgress_intro $$ Hpv Hinfl %Habs
     iintro ⟨%c, %Hv, Hpa, m, pr⟩
     subst Hv
-    ihave Hphys := Hpback $$ %(progressMaybeUpdate p1 m.Index') Hpa
+    ihave Hphys := Hpback $$ %(progressMaybeUpdate p m.Index') Hpa
     have Hx : prvalsMatch s.prvals !! m.From' = some p.matched := by
       simp only [prvalsMatch, GMap.fmap_eq, GMap.lookup_fmap, Hpvs]; rfl
-    have Hmm2 : prvalsMatch (<[m.From' := progressMaybeUpdate p1 m.Index']> pvs1) =
+    have Hmm2 : prvalsMatch (<[m.From' := progressMaybeUpdate p m.Index']> pvs1) =
         <[m.From' := if uint.Z p.matched < uint.Z m.Index' then m.Index' else p.matched]>
           (prvalsMatch s.prvals) := by
-      have Hpm : (progressMaybeUpdate p1 m.Index').matched =
+      have Hpm : (progressMaybeUpdate p m.Index').matched =
           if uint.Z p.matched < uint.Z m.Index' then m.Index' else p.matched := by
-        rw [← Hp1]; unfold progressMaybeUpdate
+        unfold progressMaybeUpdate
         split <;> rfl
       rw [← Hmm1, ← Hpm]
       simp only [prvalsMatch, GMap.fmap_eq]
       exact GMap.fmap_insert _ _ _ _
-    generalize Hp2 : progressMaybeUpdate p1 m.Index' = p2 at *
+    generalize Hp2 : progressMaybeUpdate p m.Index' = p2 at *
     generalize Hpvs2 : (<[m.From' := p2]> pvs1 : GMap w64 Progress) = pvs2 at *
     have Hpvs2' : pvs2 !! m.From' = some p2 := by rw [← Hpvs2]; exact GMap.lookup_insert_eq _ _ _
     cases c
@@ -447,8 +446,8 @@ private theorem wp_stepLeader_appresp
         wp_auto
         wp_apply wp_Inflights_FreeLE $$ [$Hinfl] as %i' ⟨Hinfl, -⟩
         have Habs3 : progressAbs pv i' = some { p2 with infl := i' } := by
-          obtain ⟨A1, A2, A3, A4, A5, A6, A7, A8, -⟩ := Habs2
-          exact (progressAbs_Some _ _ _).2 ⟨A1, A2, A3, A4, A5, A6, A7, A8, rfl⟩
+          obtain ⟨A1, A2, A3, A4, A5, A6, A8, -⟩ := Habs2
+          exact (progressAbs_Some _ _ _).2 ⟨A1, A2, A3, A4, A5, A6, A8, rfl⟩
         ihave Hpa := ownProgress_intro pr pv { p2 with infl := i' } $$ Hpv Hinfl %Habs3
         ihave Hphys := Hpback $$ %{ p2 with infl := i' } Hpa
         wp_join_done
@@ -670,13 +669,13 @@ private theorem wp_stepLeader_appresp
     iNamed HR
     wp_auto
     -- `pr.MaybeDecrTo(m.Index, nextProbeIdx)`
-    icases ownRaftPhys_pr_at cfg r id s pvs1 m.From' pr p1 $$ Hphys %Hlk %Hpvs1' with ⟨Hpa, Hpback⟩
+    icases ownRaftPhys_pr_at cfg r id s pvs1 m.From' pr p $$ Hphys %Hlk %Hpvs1' with ⟨Hpa, Hpback⟩
     wp_apply wp_Progress_MaybeDecrTo $$ [$Hpa] as Hpa
-    ihave Hphys := Hpback $$ %(progressMaybeDecrTo p1 m.Index' np).2 Hpa
-    have Hmm2 : prvalsMatch (<[m.From' := (progressMaybeDecrTo p1 m.Index' np).2]> pvs1)
+    ihave Hphys := Hpback $$ %(progressMaybeDecrTo p m.Index' np).2 Hpa
+    have Hmm2 : prvalsMatch (<[m.From' := (progressMaybeDecrTo p m.Index' np).2]> pvs1)
         = prvalsMatch s.prvals := by
-      rw [← Hmm1]; exact prvalsMatch_insert_same _ _ p1 _ Hpvs1' (decrTo_match _ _ _)
-    generalize Hp2 : (progressMaybeDecrTo p1 m.Index' np) = dp at *
+      rw [← Hmm1]; exact prvalsMatch_insert_same _ _ p _ Hpvs1' (decrTo_match _ _ _)
+    generalize Hp2 : (progressMaybeDecrTo p m.Index' np) = dp at *
     obtain ⟨b, p2⟩ := dp
     generalize Hpvs2 : (<[m.From' := p2]> pvs1 : GMap w64 Progress) = pvs2 at *
     have Hpvs2' : pvs2 !! m.From' = some p2 := by rw [← Hpvs2]; exact GMap.lookup_insert_eq _ _ _

@@ -47,7 +47,7 @@ theorem tracker.Progress.MaybeDecrTo.wp_proof :
   wp_start as H
   iNamed H
   iNamed Hpr
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩ := (progressAbs_Some _ _ _).1 Habs
+  obtain ⟨h1, h2, h3, h4, h5, h6, h8, h9⟩ := (progressAbs_Some _ _ _).1 Habs
   wp_auto
   wp_if_destruct
   · have Hs : p.state = .replicate :=
@@ -75,7 +75,7 @@ theorem tracker.Progress.MaybeDecrTo.wp_proof :
         iexact Hinfl
       ipureintro
       apply (progressAbs_Some _ _ _).2
-      refine ⟨h1, h2, h3, by rw [h3], ?_, h6, h7, h8, rfl⟩
+      refine ⟨h1, h2, h3, by rw [h3], ?_, h6, h8, rfl⟩
       rw [h5, h3]
   · have Hs : p.state ≠ .replicate := by
       intro Hc; apply Hif; rw [h2, Hc]; rfl
@@ -98,7 +98,7 @@ theorem tracker.Progress.MaybeDecrTo.wp_proof :
         iexact Hinfl
       ipureintro
       apply (progressAbs_Some _ _ _).2
-      refine ⟨h1, h2, h3, by rw [h3], ?_, h6, h7, rfl, rfl⟩
+      refine ⟨h1, h2, h3, by rw [h3], ?_, h6, rfl, rfl⟩
       dsimp only
       rw [h5, h3]
     · -- exit 3: stale

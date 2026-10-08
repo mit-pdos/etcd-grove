@@ -26,7 +26,7 @@ theorem tracker.Progress.MaybeUpdate.wp_proof :
   wp_start as H
   iNamed H
   iNamed Hpr
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩ := (progressAbs_Some _ _ _).1 Habs
+  obtain ⟨h1, h2, h3, h4, h5, h6, h8, h9⟩ := (progressAbs_Some _ _ _).1 Habs
   wp_auto
   wp_if_destruct
   · -- `n <= pr.Match`: stale
@@ -54,7 +54,7 @@ theorem tracker.Progress.MaybeUpdate.wp_proof :
         iexact Hinfl
       ipureintro
       apply (progressAbs_Some _ _ _).2
-      refine ⟨h1, h2, rfl, ?_, h5, h6, h7, rfl, rfl⟩
+      refine ⟨h1, h2, rfl, ?_, h5, h6, rfl, rfl⟩
       simp only [w64Max]
       rw [← h4]
       split <;> first | rfl | (exfalso; word)
