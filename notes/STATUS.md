@@ -10,6 +10,14 @@ port (mit-pdos/perennial `lean`, pinned at c35b7710d). The Goose
 translation of etcd-raft is this repository's `EtcdRaft/`, generated and checked by
 `etc/goose.py`.
 
+## Branch `no-wp-auto` (experiment, 2026-10-08)
+
+This branch disables `wp_auto` (`EtcdGrove/NoWpAuto.lean`; explicit uses are errors,
+the implicit run at the end of `wp_apply` & co. a no-op) and every proof spells out its
+steps; the build passes and the trust base is unchanged. Not meant to be merged into
+`lean`: it is the evidence for `notes/wp-auto-evaluation.md` (verdict: keep `wp_auto`,
+add a `wp_auto?` and better stop reports).
+
 ## Done (at `857d09190`)
 
 - Lake project depending on Perennial (`lakefile.toml`); `Base.lean`.
