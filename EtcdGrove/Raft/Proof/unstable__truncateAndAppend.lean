@@ -52,7 +52,7 @@ theorem unstable.truncateAndAppend.wp_proof
     eq_true ⟨by word, by word⟩, ↓reduceIte]
   icases ownSlice_elem_acc (sint.Z (W64 0)) e0 _ _ _ (by word) (by simpa using Hfirst) $$ Hes
     with ⟨He0, Hesback⟩
-  -- (a field load through a fractional struct points-to is not found by `wp_auto`: take
+  -- (a field load through a fractional struct points-to is not found by `wp_load`: take
   -- the field out by hand)
   icases (AccessStrict.access_strict
       (A := (sliceIndexRef raftpb.Entry (sint.Z (W64 0)) es).[raftpb.Entry, go!"Index"] ↦{dq}
@@ -147,9 +147,9 @@ theorem unstable.truncateAndAppend.wp_proof
   -- `min(u.offsetInProgress, fromIndex)`
   wp_func_call
   wp_call
-  -- TODO(no-wp-auto): wp_if_destruct runs: wp_load; wp_pures; wp_store; wp_pures; iclear u | wp_load; wp_pures; wp_store; wp_pures; iclear u
   wp_if_destruct <;>
-  · iapply HΦ
+  · wp_load; wp_pures; wp_store; wp_pures; iclear u
+    iapply HΦ
     iframe
     ipureintro
     refine ⟨?_, rfl, Hulg, ?_⟩

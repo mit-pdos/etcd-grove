@@ -21,11 +21,13 @@ set_option hygiene false in
 re-establish `InflightsOk` from the loop invariant `Hidx` and the ring invariant
 `Hring`. -/
 local macro "freele_finish" : tactic => `(tactic| (
-  try wp_auto
   -- the new `count` as an integer, once, so that the pure goals below are `omega`'s
   have Hc' : sint.Z (iv.count' - iw) = sint.Z iv.count' - sint.Z iw := by word
   have H0 : sint.Z (W64 0) = 0 := rfl
-  wp_if_destruct <;>
+  wp_if_destruct
+  -- `count == 0`: `start = 0`
+  focus (wp_load; wp_pures; wp_store; wp_pures; iclear Hin_ptr)
+  all_goals
   · iapply HΦ
     iframe
     ipureintro
@@ -51,11 +53,12 @@ private theorem wp_Inflights_FreeLE_internal (l : Loc) (iv : tracker.Inflights)
   ihave %Hblen := ownSlice_len $$ Hbuf
   obtain ⟨Hs0, Hc, Hbl, Hsz, Hstart, Hring⟩ := Hinfl_ok
   have Hlenz : (buf.length : Int) = sint.Z iv.buffer'.len := by rw [Hblen.1]; word
-  wp_auto
+  wp_alloc in_ptr as «in»; wp_pures; wp_alloc to_ptr as to; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures
   by_cases Hc0 : iv.count' = W64 0
   · -- exit 1, empty window
     rw [decide_eq_true Hc0]
-    wp_auto
+    wp_pures
     iapply HΦ
     iframe
     ipureintro
@@ -121,11 +124,8 @@ private theorem wp_Inflights_FreeLE_internal (l : Loc) (iv : tracker.Inflights)
       wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_store; wp_pures; wp_load
       wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures
       iclear to idx i bytes
-      -- TODO(no-wp-auto): macro `freele_finish` runs wp_auto: ∅ | wp_load; wp_pures; wp_store; wp_pures; iclear Hin_ptr | ∅
       freele_finish
-    -- TODO(no-wp-auto): try wp_auto (no progress) alone
     · wp_load; wp_load; wp_pures; wp_load; wp_load; wp_pures
-      try wp_auto
       simp only [Hidxb.1, Hb2, and_self, ↓reduceIte]
       icases ownSlice_elem_acc (sint.Z idxv) e _ _ _ Hidxb.1 He $$ Hbuf with ⟨He', Hback⟩
       wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures
@@ -160,7 +160,6 @@ private theorem wp_Inflights_FreeLE_internal (l : Loc) (iv : tracker.Inflights)
     wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures
     iclear to idx i bytes
     -- `i = count`: every inflight is freed
-    -- TODO(no-wp-auto): macro `freele_finish` runs wp_auto: ∅ | wp_load; wp_pures; wp_store; wp_pures; iclear Hin_ptr | ∅
     freele_finish
 
 /-- The public triple: open `ownInflights`, run the ring-buffer proof above on the

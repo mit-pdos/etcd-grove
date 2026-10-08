@@ -188,7 +188,6 @@ theorem newRaft.wp_proof
     prev.index', [], W64 0, cv'.MaxCommittedSizePerReady'⟩
   let s1 : NState :=
     { s0 with progress := prs, prvals := pvs1, term := hs.Term', vote := hs.Vote', logst := ls1 }
-  -- TODO(no-wp-auto): wp_join runs (cont first, then the cases): wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear hs
   wp_join iprop(ownRaftPhys (listToSet voters) «$r0_ptr» cv.ID' s1 ∗ hs_ptr ↦ hs ∗
       r_ptr ↦ «$r0_ptr») at next
     with [Hphys hs r] as ⟨Hphys, hs, r⟩
@@ -231,8 +230,8 @@ theorem newRaft.wp_proof
   let ls2 : LogState := ⟨prev, ents, [], committedAfter prev hs, ap, none, ip0,
     w64Max prev.index' ap, [], W64 0, cv'.MaxCommittedSizePerReady'⟩
   let s2 : NState := { s1 with logst := ls2 }
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear hs
   rw [HpAp]
-  -- TODO(no-wp-auto): wp_join runs (cont first, then the cases): wp_pures; wp_load; wp_pures; iclear c raftlog | wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures | ∅
   wp_join iprop(ownRaftPhys (listToSet voters) «$r0_ptr» cv.ID' s2 ∗ c_ptr ↦ c ∗ c ↦ cv' ∗
       raftlog_ptr ↦ l) with [Hphys c Hc raftlog] as ⟨Hphys, c, Hc, raftlog⟩
   · -- `raftlog` is `r.raftLog`: the log, through the accessor
@@ -242,6 +241,7 @@ theorem newRaft.wp_proof
       rcases Happ with h | h
       · exact absurd h Ha0
       · exact h
+    wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
     icases ownRaftPhys_log_at _ «$r0_ptr» cv.ID' s1 $$ Hphys with ⟨HL, Hlogback⟩
     wp_apply wp_raftLog_appliedTo l ls1 cv'.Applied' (W64 0) Hrng $$ [$HL] as HL
     wp_pures
@@ -255,6 +255,7 @@ theorem newRaft.wp_proof
     iframe c Hc raftlog
     iapply ownRaftPhys_eq _ _ _ _ _ ?_ $$ Hphys
     simp only [s2, ls2, ap, ls1, s1, Ha0, ↓reduceIte, w64Max, Int.lt_irrefl]
+  wp_pures; wp_load; wp_pures; iclear c raftlog
   -- `r.becomeFollower(r.Term, None)`
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
   wp_pures; wp_load; wp_pures
@@ -336,8 +337,8 @@ theorem newRaft.wp_proof
   wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear lastID
   ihave Hlog3 := Hl3back $$ Hl3
   ihave Hphys := Hlogback $$ Hlog3
-  -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; iclear r | ∅
   wp_raft_log
+  wp_pures; wp_load; wp_pures; iclear r
   iapply HΦ $$ %«$r0_ptr» %s3
   iframe Hphys
   -- `becomeFollower(r.Term, None)` keeps the term, so `reset` keeps the

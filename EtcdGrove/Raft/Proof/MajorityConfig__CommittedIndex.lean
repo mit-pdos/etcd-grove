@@ -186,13 +186,13 @@ theorem quorum.MajorityConfig.CommittedIndex.wp_proof
   iNamed Hl
   subst Hlok
   -- Both arms of the `if` end with `srt` an `n`-slot slice of zeros.
-  -- TODO(no-wp-auto): wp_join runs (cont first, then the cases): wp_load; wp_pures | wp_load; wp_pures; iclear stk
   wp_join iprop(∃ (sl : GoSlice) (xs : List w64),
       "n" ∷ n_ptr ↦ W64 (GMap.size ids) ∗
       "srt" ∷ srt_ptr ↦ sl ∗
       "Hsl" ∷ sl ↦* xs ∗
       "%Hxs" ∷ ⌜xs = List.replicate (GMap.size ids) (W64 0)⌝) with [n srt stk]
   · -- fast path: `srt = stk[:n]` aliases the stack array
+    wp_load; wp_pures
     rw [ite_eq_left (by word)]
     wp_pures; wp_store; wp_pures
     ihave Hsl := slice_array (V := w64) stk_ptr 7 _ (by decide) $$ stk
@@ -210,6 +210,7 @@ theorem quorum.MajorityConfig.CommittedIndex.wp_proof
     congr 1
     word
   · -- slow path: `srt = make([]uint64, n)`
+    wp_load; wp_pures; iclear stk
     wp_apply wp_slice_make2 (V := w64) (t := go.uint64) (W64 (GMap.size ids)) $$ [] as
       %sl ⟨Hsl, -⟩
     · ipureintro; word

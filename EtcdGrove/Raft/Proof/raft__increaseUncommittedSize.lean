@@ -20,7 +20,9 @@ set_option hygiene false in
 /-- The fall-through: `uncommittedSize += s`, then `return true`. -/
 local macro "incr" : tactic => `(tactic| (
   wp_apply raft.wp_load_uncommittedSize $$ Hphys as %u_inc Hphys
+  wp_load; wp_pures; iclear s
   wp_apply raft.wp_store_uncommittedSize $$ Hphys as Hphys
+  wp_pures
   iapply HΦ
   iframe
   ipureintro
@@ -45,8 +47,8 @@ theorem raft.increaseUncommittedSize.wp_proof
   · wp_load; wp_pures
     wp_if_destruct
     · wp_load; wp_pures
-      wp_load; wp_pures; wp_load; wp_pures
       wp_apply raft.wp_load_uncommittedSize $$ Hphys as %u' Hphys
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures
       wp_apply raft.wp_load_maxUncommittedSize $$ Hphys as %m Hphys
       wp_pures
       wp_if_destruct
@@ -57,13 +59,10 @@ theorem raft.increaseUncommittedSize.wp_proof
         intro Hz
         rw [Hpsz Hz] at *
         word
-      -- TODO(no-wp-auto): macro `incr` runs wp_auto: wp_load; wp_pures; iclear s | wp_pures
       · wp_load; wp_pures; wp_load; wp_pures; iclear r
         incr
-    -- TODO(no-wp-auto): macro `incr` runs wp_auto: wp_load; wp_pures; iclear s | wp_pures
     · wp_load; wp_pures; wp_load; wp_pures; iclear r
       incr
-  -- TODO(no-wp-auto): macro `incr` runs wp_auto: wp_load; wp_pures; iclear s | wp_pures
   · wp_load; wp_pures; wp_load; wp_pures; iclear r
     incr
 

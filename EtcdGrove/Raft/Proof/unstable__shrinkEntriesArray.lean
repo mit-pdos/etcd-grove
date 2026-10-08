@@ -42,9 +42,8 @@ theorem unstable.shrinkEntriesArray.wp_proof :
     · wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
       exfalso; simp at Hlen; word
   · wp_if_destruct
-    · wp_load; wp_pures; wp_store; wp_pures; iclear u
+    · exfalso; apply He; apply List.eq_nil_of_length_eq_zero; word
     wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
-      exfalso; apply He; apply List.eq_nil_of_length_eq_zero; word
     wp_if_destruct
     · wp_load; wp_pures; wp_load; wp_pures
       -- copy into an array of exactly the right size

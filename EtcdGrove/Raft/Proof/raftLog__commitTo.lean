@@ -39,9 +39,8 @@ theorem raftLog.commitTo.wp_proof
     wp_load; wp_pures
     simp only at Hli
     wp_if_destruct
-    · wp_load; wp_pures; wp_load; wp_pures
+    · exfalso; word
     wp_load; wp_pures; wp_load; wp_pures; iclear l tocommit
-      exfalso; word
     icases (ownRaftLog_unfold l prev sents uents lcm lap snap lip lapg lpend lasz lamx).1 $$ Hlog
       with ⟨%lv, Hl, %Hcm', %Hap', %Hapg, %Hip, %Hasz, %Hamx, Hcore⟩
     iunfold ownRaftLogCore at Hcore

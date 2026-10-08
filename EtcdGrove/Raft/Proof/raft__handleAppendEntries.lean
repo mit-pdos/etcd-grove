@@ -166,8 +166,8 @@ theorem raft.handleAppendEntries.wp_proof
       wp_pures
       wp_apply wp_raftLog_zeroTermOnOutOfBounds $$ [$Herr] as %t' -
       wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
-      -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures | ∅
       wp_raft_log
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures
       -- `hintIndex := min(m.Index, lastIndex())`
       wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
       wp_pures

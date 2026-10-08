@@ -417,9 +417,9 @@ theorem RawNode.Ready.wp_proof
   -- `rn.applyUnstableEntries()` is `!asyncStorageWrites`
   wp_method_call
   wp_call
-  -- TODO(no-wp-auto): wp_auto: no manual sequence found (['mismatch'])
-  wp_auto
+  wp_call; wp_alloc rn2_ptr as rn2; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear rn2
   rw [Hasync]
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures
   wp_apply wp_raftLog_nextCommittedEnts $$ [Hlog] as %sce %ce ⟨Hlog, #Hce, Hce_cap, %Hcepre, -⟩
   · iframe Hlog
   wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_alloc rd_ptr as rd; wp_pures; wp_store
@@ -444,11 +444,12 @@ theorem RawNode.Ready.wp_proof
   -- `r.softState()`, compared with `prevSoftSt`; the two arms joined
   wp_method_call
   wp_call
-  -- TODO(no-wp-auto): wp_auto: no manual sequence found (['mismatch'])
-  wp_auto
+  wp_pures; wp_call; wp_alloc r2_ptr as r2; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+  wp_load; wp_pures; wp_load; wp_pures; iclear r2
+  wp_alloc softSt_ptr as softSt; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures
   wp_apply wp_SoftState_equal $$ [$softSt $Hsoft] as ⟨softSt, -⟩
   wp_pures
-  -- TODO(no-wp-auto): wp_join runs (cont first, then the cases): wp_pures; wp_load; wp_pures | ∅ | wp_load; wp_pures; wp_alloc escapingSoftSt_ptr as escapingSoftSt; wp_pures; wp_store; wp_pures; wp_store; wp_pures; iclear softSt
   wp_join iprop(∃ sp, rd_ptr ↦ readyVal sp (zero_val raftpb.HardState) sents sce sl1 false ∗
       (if nodeSoftstate s = rs.soft then iprop(⌜sp = null⌝)
        else sp ↦ softstateVal (nodeSoftstate s)))
@@ -457,32 +458,41 @@ theorem RawNode.Ready.wp_proof
     iframe rd
     rw [ite_pos' (Hsoft_iff.1 Hif)]
     ipureintro; rfl
-  · iexists escapingSoftSt_ptr
+  · wp_load; wp_pures; wp_alloc escapingSoftSt_ptr as escapingSoftSt; wp_pures; wp_store; wp_pures
+    wp_store; wp_pures; iclear softSt
+    wp_join_done
+    iexists escapingSoftSt_ptr
     iframe rd
     rw [ite_neg' (fun Hc => Hif (Hsoft_iff.2 Hc))]
     simp only [softstateVal, nodeSoftstate]
     iexact escapingSoftSt
+  wp_pures; wp_load; wp_pures
   imod soft_persist _ _ _ $$ Hsoftp with #Hsoftp
   -- `r.hardState()`, compared with `prevHardSt`; the two arms joined
   icases ownRaftLog_struct _ _ $$ Hlog with ⟨%lv, Hl, %Hlv, Hlb⟩
   wp_method_call
   wp_call
-  -- TODO(no-wp-auto): wp_auto: no manual sequence found (['mismatch'])
-  wp_auto
+  wp_pures; wp_call; wp_alloc r2_ptr as r2; wp_pures
+  wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+  wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear r2
+  wp_alloc hardSt_ptr as hardSt; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+  wp_load; wp_pures
   ihave Hlog := Hlb $$ Hl
   rw [Hlv.1]
   clear Hlv
   wp_apply wp_isHardStateEqual
   wp_pures
   rw [Hhard]
-  -- TODO(no-wp-auto): wp_join runs (cont first, then the cases): wp_pures; wp_load; wp_pures; wp_load; wp_pures | ∅ | wp_load; wp_pures; wp_store; wp_pures; iclear hardSt
   wp_join iprop(rd_ptr ↦ readyVal sp (if nodeHardstate s = rs.hard then zero_val raftpb.HardState
       else hardstateVal (nodeHardstate s)) sents sce sl1 false) with [rd hardSt] as rd
   · rw [ite_pos' (Hhs_iff.1 Hif)]
     iexact rd
-  · rw [ite_neg' (fun Hc => Hif (Hhs_iff.2 Hc))]
+  · wp_load; wp_pures; wp_store; wp_pures; iclear hardSt
+    wp_join_done
+    rw [ite_neg' (fun Hc => Hif (Hhs_iff.2 Hc))]
     simp only [hardstateVal, nodeHardstate, readyVal]
     iexact rd
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures
   wp_apply wp_raftLog_hasNextUnstableSnapshot $$ [Hlog] as %bsn ⟨Hlog, %Hbsn⟩
   · iframe Hlog
   rw [Hbsn Hsnap]
@@ -494,8 +504,10 @@ theorem RawNode.Ready.wp_proof
   icases ownRaftLog_struct _ _ $$ Hlog with ⟨%lv2, Hl, %Hlv, Hlb⟩
   wp_method_call
   wp_call
-  -- TODO(no-wp-auto): wp_auto: no manual sequence found (['mismatch'])
-  wp_auto
+  wp_call; wp_alloc r2_ptr as r2; wp_pures
+  wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+  wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear r2
+  wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
   ihave Hlog := Hlb $$ Hl
   rw [Hlv.1, Hhard]
   clear Hlv
@@ -531,9 +543,9 @@ theorem RawNode.Ready.wp_proof
   wp_pures; wp_load; wp_pures
   cleanup_bool_decide
   ihave %Hl2 := ownSlice_len _ _ _ $$ HmsgsAA
-  -- TODO(no-wp-auto): wp_if_destruct: no manual sequence found (['ok', 'mismatch'])
   wp_if_destruct
-  · list_elem ms2 (sint.nat n) as mm
+  · wp_load; wp_pures
+    list_elem ms2 (sint.nat n) as mm
     rw [ite_pos' (show 0 ≤ sint.Z n ∧ sint.Z n < sint.Z sl2.len from ⟨Hn.1, Hif⟩)]
     wp_apply wp_load_slice_index sl2 (sint.Z n) ms2 (DFrac.own 1) mm Hn.1 $$ [HmsgsAA]
       with HmsgsAA
@@ -570,13 +582,15 @@ theorem RawNode.Ready.wp_proof
       ipureintro; word
   -- the loop is done: every message of `msgsAfterAppend` seen
   rw [List.take_of_length_le (l := ms2) (i := sint.nat n) (by word)]
+  -- `readyWithoutAccept` returns `rd`, which `Ready` stores in its own `rd` (`rd0`)
+  wp_pures; wp_load; wp_pures; iclear i m
+  wp_alloc rd0_ptr as rd0; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures
   -- `acceptReady`
   wp_method_call
   wp_call
   wp_call; wp_alloc rn_ptr as rn; wp_pures; wp_alloc rd_ptr as rd; wp_pures; wp_load; wp_pures
   -- `if rd.SoftState != nil { rn.prevSoftSt = rd.SoftState }`: either way `prevSoftSt`
   -- points to the node's soft state
-  -- TODO(no-wp-auto): wp_join runs (cont first, then the cases): wp_pures; wp_load; wp_pures | ∅ | wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures
   wp_join iprop(rn_ptr ↦ rn ∗ rd_ptr ↦ readyVal sp HS sents sce msl MS ∗
       ∃ psp, rn ↦ { rnv with prevSoftSt' := psp } ∗ psp ↦□ softstateVal (nodeSoftstate s))
     with [Hrn rn rd] as ⟨rn, rd, %psp, Hrn, #Hpsp⟩
@@ -590,7 +604,9 @@ theorem RawNode.Ready.wp_proof
     · rw [ite_neg' hc]
       ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hsoftp
       exact absurd rfl Hnn
-  · by_cases hc : nodeSoftstate s = rs.soft
+  · wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures
+    wp_join_done
+    by_cases hc : nodeSoftstate s = rs.soft
     · rw [ite_pos' hc]
       icases Hsoftp with %Hsp
       exact absurd Hsp Hif
@@ -599,10 +615,10 @@ theorem RawNode.Ready.wp_proof
       iexists sp
       iframe Hsoftp
       iexact Hrn
+  wp_pures; wp_load; wp_pures
   -- `if !IsEmptyHardState(rd.HardState) { rn.prevHardSt = rd.HardState }`
   wp_apply wp_IsEmptyHardState
   wp_pures
-  -- TODO(no-wp-auto): wp_join runs (cont first, then the cases): wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures | ∅ | wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures
   wp_join iprop(rn_ptr ↦ rn ∗ rd_ptr ↦ readyVal sp HS sents sce msl MS ∗
       rn ↦ { rnv with prevSoftSt' := psp,
                       prevHardSt' := hardstateVal (if hsEmptyAbs (nodeHardstate s) then rs.hard
@@ -623,6 +639,8 @@ theorem RawNode.Ready.wp_proof
     rw [HPH]
     iexact Hrn
   · -- non-empty: `prevHardSt = rd.HardState`
+    wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures
+    wp_join_done
     iframe rn rd
     have HPH : hardstateVal (if hsEmptyAbs (nodeHardstate s) then rs.hard else nodeHardstate s)
         = HS := by
@@ -636,6 +654,7 @@ theorem RawNode.Ready.wp_proof
         rw [this]; rfl
     rw [HPH]
     iexact Hrn
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
   rw [Hasync]
   ihave %Hs0 := ownSlice_len _ _ _ $$ Hsteps
   have Hs0' : rnv.stepsOnAdvance'.len = W64 0 := by
@@ -714,7 +733,6 @@ theorem RawNode.Ready.wp_proof
   wp_apply wp_needStorageAppendRespMsg_inline wp_raftLog_hasNextOrInProgressUnstableEnts
     wp_IsEmptySnap rnv.raft' s.log s.logst _ rfl $$ [$Hf_raftLog $Hlog] as ⟨Hf_raftLog, Hlog⟩
   wp_pures
-  -- TODO(no-wp-auto): wp_join runs (cont first, then the cases): wp_pures; wp_load; wp_pures | ∅ | wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
   wp_join iprop(rn_ptr ↦ rn ∗ rd_ptr ↦ readyVal sp HS sents sce msl MS ∗
       ownRaftLog s.log s.logst ∗ rnv.raft'.[raft, go!"raftLog"] ↦ s.log ∗
       rnv.raft'.[raft, go!"id"] ↦ id ∗ rnv.raft'.[raft, go!"Term"] ↦ s.term ∗
@@ -731,6 +749,7 @@ theorem RawNode.Ready.wp_proof
     rw [ite_pos' Hif, List.append_nil]
     iframe Hrn Hsteps Hsteps_cap
   · -- `newStorageAppendRespMsg(r, rd)`
+    wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
     wp_apply wp_newStorageAppendRespMsg_inline wp_raftLog_hasNextOrInProgressUnstableEnts
       wp_IsEmptySnap wp_raftLog_lastEntryID rnv.raft' id s.term s.log s.logst _ Hif rfl
       $$ [$Hf_id $Hf_Term $Hf_raftLog $Hlog] as ⟨Hf_id, Hf_Term, Hf_raftLog, Hlog⟩
@@ -749,11 +768,11 @@ theorem RawNode.Ready.wp_proof
     iexists stl'
     rw [ite_neg' Hif]
     iframe Hrn Hsteps Hsteps_cap
+  wp_pures; wp_load; wp_pures
   -- `if needStorageApplyRespMsg(rd) { ... newStorageApplyRespMsg(r, rd.CommittedEntries) ... }`
   ihave %Hcel := ownSlice_len _ _ _ $$ Hce
   wp_apply wp_needStorageApplyRespMsg
   wp_pures
-  -- TODO(no-wp-auto): wp_join runs (cont first, then the cases): wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures | wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures | ∅
   wp_join iprop(rn_ptr ↦ rn ∗ rd_ptr ↦ readyVal sp HS sents sce msl MS ∗
       rnv.raft'.[raft, go!"id"] ↦ id ∗
       ∃ stl', rn ↦ { rnv with prevSoftSt' := psp, prevHardSt' := PH, stepsOnAdvance' := stl' } ∗
@@ -768,6 +787,7 @@ theorem RawNode.Ready.wp_proof
   · -- committed entries: `newStorageApplyRespMsg(r, rd.CommittedEntries)`
     have Hce0 : ce ≠ [] := by
       intro Hc; subst Hc; simp at Hcel; word
+    wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
     wp_apply wp_newStorageApplyRespMsg_inline rnv.raft' id sce $$ [$Hf_id] as Hf_id
     wp_pures; wp_alloc m_ptr as m; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
     wp_pures; wp_load; wp_pures; iclear m
@@ -790,12 +810,14 @@ theorem RawNode.Ready.wp_proof
     iexists stl3
     rw [ite_pos' Hce0, ite_pos' Hce0, List.append_nil]
     iframe Hrn Hsteps Hsteps_cap
+  -- `r.msgs = nil; r.msgsAfterAppend = nil`
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
   wp_apply wp_raftLog_acceptUnstable _ _ Hunp $$ [Hlog] as Hlog
   · iframe Hlog
   wp_pures; wp_load; wp_pures
   -- `if len(rd.CommittedEntries) > 0 { ... acceptApplying(index, entsSize(ents),
   -- applyUnstableEntries()) }`
-  -- TODO(no-wp-auto): wp_join: no manual sequence found (['mismatch', 'ok', 'noprogress'])
   wp_join iprop(rn_ptr ↦ rn ∗ rd_ptr ↦ readyVal sp HS sents sce msl MS ∗
       rn ↦ { rnv with prevSoftSt' := psp, prevHardSt' := PH, stepsOnAdvance' := stl4 } ∗
       rnv.raft'.[raft, go!"raftLog"] ↦ s.log ∗
@@ -810,6 +832,8 @@ theorem RawNode.Ready.wp_proof
       | some e => exact ⟨e, rfl⟩
     obtain ⟨ce0, Hce0'⟩ := List.getLast?_eq_some_iff.1 He
     have Hlen0' : ce.length = ce0.length + 1 := by rw [Hce0']; simp
+    wp_load; wp_pures; wp_alloc ents_ptr as ents; wp_pures; wp_store; wp_pures; wp_load; wp_pures
+    wp_load; wp_pures
     rw [ite_pos' (show 0 ≤ sint.Z (sce.len - W64 1) ∧ sint.Z (sce.len - W64 1) < sint.Z sce.len
       by word)]
     have Hlk : ce[(sint.Z (sce.len - W64 1)).toNat]? = some e := by
@@ -825,9 +849,9 @@ theorem RawNode.Ready.wp_proof
     wp_pures; wp_load; wp_pures
     wp_method_call
     wp_call
-    -- TODO(no-wp-auto): wp_auto: no manual sequence found (['mismatch'])
-    wp_auto
+    wp_call; wp_alloc rn2_ptr as rn2; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear rn2
     rw [Hasync]
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
     have Hlast := ready_ce_last _ ce _ s.logst.committed s.logst.applying e Hidx
       ⟨by have := Hwf2.2 Hsnap; omega, Hwf1.2.2⟩ (by omega) Hcepre He
     wp_apply wp_raftLog_acceptApplying s.log (logAcceptUnstable s.logst) e.Index' sz' true
@@ -856,6 +880,7 @@ theorem RawNode.Ready.wp_proof
   have Hdrain : Step γ.reCfg id ps [] { ps with outbox := [] } :=
     Step.drain ps [] List.nil_subperm
   imod ownRaftGhost_step_0 _ _ _ _ Hdrain $$ Hghost with Hghost
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures
   wp_apply wp_traceReady
   wp_pures; wp_load; wp_pures; iclear rd
   -- the raft struct, closed with empty queues

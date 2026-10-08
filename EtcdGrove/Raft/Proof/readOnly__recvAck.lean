@@ -38,7 +38,8 @@ theorem readOnly.recvAck.wp_proof : readOnly.recvAck.spec (GF := GF) (hG := hG) 
   unfold ownReadOnly
   iNamed Hown
   ihave %Hcl := ownSlice_len _ _ _ $$ Hctx
-  wp_auto
+  wp_alloc ro_ptr as ro; wp_pures; wp_alloc ctx_ptr as ctx; wp_pures
+  wp_alloc from_ptr as «from»; wp_pures; wp_load; wp_pures
   wp_if_destruct
   · have Hnil : cs = [] := by
       apply List.eq_nil_of_length_eq_zero; rw [Hcl.1]; simp only [sint.nat]; word
@@ -67,6 +68,7 @@ theorem readOnly.recvAck.wp_proof : readOnly.recvAck.spec (GF := GF) (hG := hG) 
     rw [List.take_append_drop]
     wp_if_destruct
     all_goals
+      wp_load; wp_load; wp_pures; wp_load
       wp_apply wp_mapInsert $$ Hacks as Hacks
       wp_pures
       iapply HΦ

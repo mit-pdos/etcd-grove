@@ -30,8 +30,10 @@ theorem unstable.nextSnapshot.wp_proof : unstable.nextSnapshot.spec (GF := GF) (
     ihave %Hnn := typedPointsto_not_null $$ Hsv
     simp only [Hnn, _root_.decide_false]
     wp_pures; wp_load; wp_pures; wp_load
-    -- TODO(no-wp-auto): wp_auto (several runs): wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear u | wp_pures; iclear u
-    rcases Hsip : uv.snapshotInProgress' <;> wp_auto <;>
+    rcases Hsip : uv.snapshotInProgress'
+    case' false => wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear u
+    case' true => wp_pures; iclear u
+    all_goals
     · iapply HΦ
       unfold ownUnstable
       iframe

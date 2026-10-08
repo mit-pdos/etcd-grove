@@ -33,9 +33,19 @@ theorem raftLog.appliedTo.wp_proof : raftLog.appliedTo.spec (GF := GF) (hG := hG
   -- `max(l.applying, i)`
   wp_func_call
   wp_call
-  -- TODO(no-wp-auto): col 21: wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures; iclear l size | wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures; iclear l size | wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures; iclear l size | wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures; iclear l size
-  -- TODO(no-wp-auto): col 2: wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures | wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures
-  wp_if_destruct <;> wp_if_destruct
+  wp_if_destruct <;>
+    (wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures
+     wp_if_destruct
+     -- the `then` branch, then the `else` branch (`focus` leaves the goal open)
+     focus
+       wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_store; wp_pures
+       wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+       wp_store; wp_pures; iclear l size
+     rotate_left
+     focus
+       wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures
+       wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures; iclear l size
+     rotate_left)
   all_goals
     iapply HΦ
     iunfold ownRaftLogCore at Hcore

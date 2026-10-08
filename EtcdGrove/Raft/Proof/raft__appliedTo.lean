@@ -47,22 +47,17 @@ theorem raft.appliedTo.wp_proof
   wp_func_call
   wp_call
   wp_if_destruct
-  rotate_left
-  wp_alloc newApplied_ptr as newApplied; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
-  wp_pures; wp_load; wp_pures; iclear size
-  rotate_right
-  wp_alloc newApplied_ptr as newApplied; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
-  wp_pures; wp_load; wp_pures; iclear size
   all_goals
+    wp_alloc newApplied_ptr as newApplied; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
+    wp_pures; wp_load; wp_pures; iclear size
     -- `r.raftLog.appliedTo(newApplied, size)`
     wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
     wp_pures
     icases ownRaftPhys_log_at cfg r id s $$ Hphys with ⟨Hlog, Hback⟩
     first
-      -- TODO(no-wp-auto): wp_apply then: wp_pures; wp_load; wp_pures
       | wp_apply wp_raftLog_appliedTo _ _ index size (by omega) $$ [$Hlog] as Hlog
-      -- TODO(no-wp-auto): wp_apply then: wp_pures; wp_load; wp_pures
       | wp_apply wp_raftLog_appliedTo _ _ s.logst.applied size (by omega) $$ [$Hlog] as Hlog
+    wp_pures; wp_load; wp_pures
     ihave Hphys := Hback $$ %_ Hlog
     -- `r.trk.Config.AutoLeave` is `false`: the rest is dead
     icases ownRaftPhys_tracker_same cfg r id _ $$ Hphys with ⟨%tv, Htrkf, Htrk, Htback⟩

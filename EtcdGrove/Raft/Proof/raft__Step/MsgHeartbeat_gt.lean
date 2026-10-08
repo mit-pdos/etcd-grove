@@ -76,11 +76,11 @@ theorem wp_Step_MsgHeartbeat_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
   wp_pures; wp_load; wp_pures
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
   wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
-  -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures | ∅
   wp_raft_log
+  wp_pures; wp_load; wp_pures
   -- MsgApp || MsgHeartbeat || MsgSnap: the second holds
-  -- TODO(no-wp-auto): wp_auto (several runs): wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
-  repeat (rw [Hty]; wp_auto)
+  rw [Hty]; wp_pures; wp_load; wp_pures
+  rw [Hty]; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
   -- becomeFollower(m.Term, m.From): a leader's message
   wp_apply _P.becomeFollower cfg r id s m.Term' m.From' $$ [$Hphys] as %pvs Hphys
   wp_pures; wp_load; wp_pures

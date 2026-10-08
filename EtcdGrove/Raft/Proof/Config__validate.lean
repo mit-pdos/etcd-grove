@@ -45,22 +45,31 @@ theorem Config.validate.wp_proof
     cases h : cv.Logger' <;> simp_all
   wp_pures; wp_load; wp_pures; wp_load; wp_pures
   -- the three defaults and the two remaining checks
+  -- in each `wp_if_destruct` below: the positive branch's steps, `rotate_left`, the
+  -- negative branch's steps
   wp_if_destruct
+  wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures
   rotate_left
   wp_load; wp_pures; wp_load; wp_pures
-  rotate_right
-  wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures
-  -- TODO(no-wp-auto): wp_if_destruct runs: wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures | wp_load; wp_pures; wp_load; wp_pures | wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures | wp_load; wp_pures; wp_load; wp_pures
-  all_goals wp_if_destruct
+  all_goals (
+    wp_if_destruct
+    wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures
+    wp_load; wp_pures
+    rotate_left
+    wp_load; wp_pures; wp_load; wp_pures)
   all_goals rw [decide_eq_false (by word)]
   all_goals (wp_pures; wp_load; wp_pures; wp_load; wp_pures)
-  -- TODO(no-wp-auto): wp_if_destruct runs: wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures | wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures | wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures | wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures | wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures | wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures | wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures | wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures
-  all_goals wp_if_destruct
-  all_goals try (rw [decide_eq_false (by rcases Hib with h | h <;> first | contradiction | word)]; (wp_pures; wp_load; wp_pures; wp_load; wp_pures))
+  all_goals (
+    wp_if_destruct
+    wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+    rotate_left
+    wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures)
+  all_goals try (
+    rw [decide_eq_false (by rcases Hib with h | h <;> first | contradiction | word)]
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures)
   all_goals rw [Hlv]
   all_goals (wp_pures; wp_load; wp_pures; wp_load; wp_pures)
-  -- TODO(no-wp-auto): wp_if_destruct runs: wp_load; wp_pures; wp_load; wp_pures; iclear c | ∅ | wp_load; wp_pures; wp_load; wp_pures; iclear c | ∅ | wp_load; wp_pures; wp_load; wp_pures; iclear c | ∅ | wp_load; wp_pures; wp_load; wp_pures; iclear c | ∅ | wp_load; wp_pures; wp_load; wp_pures; iclear c | ∅ | wp_load; wp_pures; wp_load; wp_pures; iclear c | ∅ | wp_load; wp_pures; wp_load; wp_pures; iclear c | ∅ | wp_load; wp_pures; wp_load; wp_pures; iclear c | ∅
-  all_goals wp_if_destruct
+  all_goals (wp_if_destruct; wp_load; wp_pures; wp_load; wp_pures)
   all_goals try (rw [Hcq Hif]; wp_pures)
   all_goals iapply HΦ
   all_goals iframe Hc

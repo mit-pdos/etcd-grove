@@ -22,9 +22,11 @@ theorem isHardStateEqual.wp_proof : isHardStateEqual.spec (GF := GF) (hG := hG) 
   wp_start as -
   wp_alloc b_ptr as b; wp_pures; wp_alloc a_ptr as a; wp_pures; wp_load; wp_pures; wp_load; wp_pures
   wp_if_destruct
-  -- TODO(no-wp-auto): wp_if_destruct runs: wp_load; wp_pures; wp_load; wp_pures; iclear b a | ∅
   · wp_load; wp_pures; wp_load; wp_pures
-    wp_if_destruct <;>
+    wp_if_destruct
+    -- positive branch (the first goal): compare the `Commit` fields
+    wp_load; wp_pures; wp_load; wp_pures
+    all_goals
     · ispecialize HΦ $$ []
       · itrivial
       iExactEq HΦ

@@ -75,9 +75,7 @@ theorem wp_Step_MsgPreVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   wp_pures; wp_load; wp_pures
   wp_apply raft.wp_load_preVote $$ Hphys as Hphys
   cases s.prevote <;> (wp_pures; wp_load; wp_pures)
-  -- TODO(no-wp-auto): col 46: wp_pures; wp_load; wp_pures
-  -- TODO(no-wp-auto): col 27: wp_pures; wp_load; wp_pures
-  all_goals try (rw [Hn8]; wp_auto; rw [Hn3]; wp_auto)
+  all_goals try (rw [Hn8]; wp_pures; wp_load; wp_pures; rw [Hn3]; wp_pures; wp_load; wp_pures)
   -- `MsgPreVote`: reject at `r.Term`
   all_goals
     rw [Hy17]
@@ -95,8 +93,8 @@ theorem wp_Step_MsgPreVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     wp_pures
     wp_apply raft.wp_load_Term $$ Hphys as Hphys
     wp_pures
-    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures | ∅ | wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures | ∅
     wp_raft_log
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_Term $$ Hphys as Hphys
     wp_pures; wp_load; wp_pures
     wp_apply _P.send cfg r id s _ [] _ (Or.inl rfl)

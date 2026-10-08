@@ -119,9 +119,8 @@ theorem raftLog.nextCommittedEnts.wp_proof
     wp_load; wp_load; wp_pures; wp_load; wp_pures; wp_alloc maxSize_ptr as maxSize; wp_pures
     wp_store; wp_pures; wp_load; wp_pures
     wp_if_destruct
-    · wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+    · exfalso; subst lasz lamx; word
     wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear lo hi maxSize
-      exfalso; subst lasz lamx; word
     ihave Hlog : ownRaftLog l ⟨prev, sents, uents, lcm, lap, none, lip, lapg, lpend, lasz, lamx⟩
       $$ [Hl HStorage Huents Huents_cap]
     · reseal_raftLog

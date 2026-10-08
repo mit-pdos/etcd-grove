@@ -66,7 +66,6 @@ theorem stepCandidate.wp_proof
   wp_pures
   have Hpre_iff : stateW64 s.role = W64 3 ↔ s.role = .preCandidate := by
     cases s.role <;> decide
-  -- TODO(no-wp-auto): wp_join runs (cont first, then the cases): wp_pures; wp_load; wp_pures | ∅ | ∅
   wp_join iprop(myVoteRespType_ptr ↦
       (if s.role = .preCandidate then W32 18 else W32 6))
     with [myVoteRespType] as myVoteRespType
@@ -80,6 +79,7 @@ theorem stepCandidate.wp_proof
     rw [if_neg (fun h => Hif (Hpre_iff.2 h))]
     iframe myVoteRespType
     ipureintro; exact rfl
+  wp_pures; wp_load; wp_pures
   -- kept opaque below, so that the arms' `decide` rewrites find the program's
   -- comparisons and not this one
   generalize Hmvr : (if s.role = .preCandidate then W32 18 else W32 6) = mvr
@@ -118,8 +118,8 @@ theorem stepCandidate.wp_proof
     -- the `Infof` that follows reads `r.id`, `r.Term` and `r.logger`
     wp_apply raft.wp_load_id $$ Hphys as Hphys
     wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear m gr rj
-    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; iclear res | ∅
     wp_raft_log
+    wp_pures; wp_load; wp_pures; iclear res
     rcases Hres with rfl | rfl | rfl
     · -- `quorum.VoteWon`: become leader and broadcast. `poll` does not touch the role,
       -- so we are still a candidate: not a pre-candidate, so this is `becomeLeader` and
@@ -193,8 +193,8 @@ theorem stepCandidate.wp_proof
     wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_Term $$ Hphys as Hphys
     wp_pures
-    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures; iclear r | wp_pures | wp_pures; wp_load; wp_pures | ∅
     wp_raft_log
+    wp_pures; wp_load; wp_pures
     iapply HΦ $$ %errPropDropped %s %true
     iframe Hphys
     simp only [↓reduceIte]
@@ -316,8 +316,8 @@ theorem stepCandidate.wp_proof
       wp_load; wp_pures
       wp_apply raft.wp_load_id $$ Hphys as Hphys
       wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear m gr rj
-      -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; iclear res | ∅
       wp_raft_log
+      wp_pures; wp_load; wp_pures; iclear res
       have Hres_pv : ∀ (s' : NState) (won lost : Bool) (peers : List w64)
           (pvs : GMap w64 Progress),
           (won = true → IsQuorum cfg (granted (recordVote s.votes m.From' (!m.Reject'))) ∧

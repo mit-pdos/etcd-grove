@@ -26,8 +26,8 @@ pins `sint.nat (dst.len + vals.len) = |ds| + |vs|` from the `Hfits` premise, and
 rewriting with it up front keeps every later `take`/`drop`/`replicate` index a plain
 `Nat` so `omega` can see them. (2) `buf[len(dst):]` is a `slice.slice`, and
 `wp_slice_copy`'s slice cannot be inferred until the goal has actually been stepped to
-the call, hence the `wp_auto` before the second `copy` (the bounds `if` must be
-discharged first, or `wp_auto` stops at it).
+the call, hence the steps before the second `copy` (the bounds `if` must be
+discharged first, or the steps stop at it).
 
 The tail is split off with `ownSlice_split_all` and put back with `ownSlice_combine`
 plus `ownSlice_trivial_slice_2`. -/
@@ -59,9 +59,8 @@ theorem extend.wp_proof : extend.spec (GF := GF) (hG := hG) := by
     word
   have Hneed' : sint.nat (dst.len + vals.len) = ds.length + vs.length := by word
   wp_if_destruct
-  · wp_load; wp_pures; wp_load; wp_pures
+  · exfalso; omega
   wp_load; wp_load; wp_pures; iclear need
-    exfalso; omega
   wp_apply wp_slice_make3 (V := raftpb.Entry) (dst.len + vals.len) (dst.len + vals.len)
     (by omega) as %buf ⟨Hbuf, Hbuf_cap, %Hbufcap⟩
   wp_pures; wp_alloc buf_ptr as buf; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load

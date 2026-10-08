@@ -74,13 +74,17 @@ set_option hygiene false in
 (`Step.grantVote`). Needs `Hcan : PCanVote (toPState s) m.From'` and
 `Hutd : true = plogUpToDate …` in scope, and `Heq0 : m.Term' = s.term`. -/
 local macro "vote_grant_tail" : tactic => `(tactic| (
-  try wp_auto
   wp_apply raft.wp_load_id $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear lastID
   wp_apply raft.wp_load_Vote $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+  wp_load; wp_pures; iclear candLastID
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_pures
   wp_raft_log
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
   wp_apply _P.voteRespMsgType m.Type' MsgVoteResp (.inl ⟨Hty, rfl⟩)
-  try wp_auto
+  wp_pures; wp_load; wp_pures
   wp_apply _P.send cfg r id s _ [] _ (.inl rfl)
       (sendOk_voteResp id s m.From' m.Term' false Hterm) $$ [Hphys] as Hphys
   · iframe Hphys
@@ -88,11 +92,14 @@ local macro "vote_grant_tail" : tactic => `(tactic| (
     · iapply ownSlice_nil
     · iapply send_no_snap
       exact (by w32_ne : MsgVoteResp ≠ MsgSnap)
+  wp_pures; wp_load; wp_pures
   rw [Hty]
-  try wp_auto
+  wp_pures; wp_load; wp_pures
   -- `r.electionElapsed = 0; r.Vote = m.From`
   wp_apply raft.wp_store_electionElapsed $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear r m
   wp_apply raft.wp_store_Vote $$ Hphys as Hphys
+  wp_pures
   iapply HΦ $$ %interface.nil %_
   iframe Hphys
   ipureintro
@@ -108,15 +115,20 @@ set_option hygiene false in
 /-- Rocq `vote_reject_tail`: log, then `send` a rejection carrying `r.Term`
 (`Step.rejectVote`). Always legal. -/
 local macro "vote_reject_tail" : tactic => `(tactic| (
-  try wp_auto
   wp_apply raft.wp_load_id $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear lastID
   wp_apply raft.wp_load_Vote $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+  wp_load; wp_pures; iclear candLastID
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_pures
   wp_raft_log
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures
   -- `Term: r.Term` and the `voteRespMsgType` call
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures; iclear m
   wp_apply _P.voteRespMsgType m.Type' MsgVoteResp (.inl ⟨Hty, rfl⟩)
-  try wp_auto
+  wp_pures; wp_load; wp_pures; iclear r
   -- the response carries `s.term`, so `send`'s `m.Term ≠ 0` premise is the incoming
   -- message's, transported along `m.Term = s.term`
   wp_apply _P.send cfg r id s _ [] _ (.inl rfl)
@@ -126,6 +138,7 @@ local macro "vote_reject_tail" : tactic => `(tactic| (
     · iapply ownSlice_nil
     · iapply send_no_snap
       exact (by w32_ne : MsgVoteResp ≠ MsgSnap)
+  wp_pures
   iapply HΦ $$ %interface.nil %_
   iframe Hphys
   ipureintro
@@ -141,7 +154,7 @@ decides how many `decide`s each arm owes**. The Go expression is
                      || (m.Type == MsgPreVote && m.Term > r.Term)
 
 and Goose compiles `||`/`&&` to short-circuiting `If`s, so the number of comparisons
-`wp_auto` actually evaluates differs per arm:
+the execution actually evaluates differs per arm:
 
 - `Vote = m.From`: one (`true`, done).
 - `Vote = None`, `lead = None`: three (the second disjunct is `true`).
@@ -151,7 +164,7 @@ and Goose compiles `||`/`&&` to short-circuiting `If`s, so the number of compari
   `MsgPreVote` test again.
 
 The two four/three-comparison arms are the two that decline, and an earlier version of
-the Rocq script left their `MsgPreVote` `bool_decide` undischarged: `wp_auto` then
+the Rocq script left their `MsgPreVote` `bool_decide` undischarged: the automation then
 stopped in front of it, and the failure surfaced fifteen lines later as `iApply: cannot
 apply` at the `lastEntryID` call. So each arm does its own `decide` bookkeeping and
 only then calls the shared tail; the tails themselves (grant / decline, see the Lean
@@ -244,10 +257,10 @@ theorem wp_Step_MsgVote_eq_novote (_P : raft.Step.Postulates (GF := GF) (hG := h
     wp_apply _P.isUpToDate $$ [$Hlog] as %ok2 ⟨Hlog, %Hutd⟩
     ihave Hphys := Hlogback $$ Hlog
     cases ok2
-    -- TODO(no-wp-auto): macro `vote_reject_tail` runs wp_auto: wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear lastID | wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear candLastID | wp_pures | wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures | ∅ | wp_pures; wp_load; wp_pures; iclear m | wp_pures; wp_load; wp_pures; iclear r | ∅ | wp_pures
-    · vote_reject_tail
-    -- TODO(no-wp-auto): macro `vote_grant_tail` runs wp_auto: wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear lastID | wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear candLastID | wp_pures | wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures | ∅ | wp_pures; wp_load; wp_pures | ∅ | wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear r m | wp_pures
-    · vote_grant_tail
+    · wp_pures; wp_load; wp_pures
+      vote_reject_tail
+    · wp_pures; wp_load; wp_pures
+      vote_grant_tail
   · -- but a leader is known, so the vote is declined. `canVote`'s second disjunct is
     -- now false, so the program goes on to evaluate the third -- which needs
     -- `MsgPreVote`. This arm therefore discharges one more `decide` than the
@@ -264,7 +277,6 @@ theorem wp_Step_MsgVote_eq_novote (_P : raft.Step.Postulates (GF := GF) (hG := h
     wp_load; wp_pures; wp_alloc candLastID_ptr as candLastID; wp_pures; wp_store; wp_pures; wp_load
     wp_pures; wp_load; wp_pures; iclear canVote
     ihave Hphys := Hlogback $$ Hlog
-    -- TODO(no-wp-auto): macro `vote_reject_tail` runs wp_auto: ∅ | wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear lastID | wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear candLastID | wp_pures | wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures | ∅ | wp_pures; wp_load; wp_pures; iclear m | wp_pures; wp_load; wp_pures; iclear r | ∅ | wp_pures
     vote_reject_tail
 
 end StepProof

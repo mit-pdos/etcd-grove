@@ -73,27 +73,30 @@ local macro "rest" : tactic => `(tactic| (
   cases bsn
   · ihave %Hm1 := ownSlice_len _ _ _ $$ Hmsgs
     ihave %Hm2 := ownSlice_len _ _ _ $$ HmsgsAA
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures
     wp_if_destruct
     · finish_true
+    wp_load; wp_pures; wp_load; wp_pures
     have Hl1 := Hif; clear Hif
     wp_if_destruct
     · finish_true
+    wp_load; wp_pures; wp_load; wp_pures
     have Hl2 := Hif; clear Hif
     wp_apply wp_raftLog_hasNextUnstableEnts $$ [Hlog] as %bue ⟨Hlog, %Hue⟩
     · iframe Hlog
     cases bue
-    · wp_auto
+    · wp_pures; wp_load; wp_pures; iclear rn
       wp_method_call
       wp_call
-      wp_auto
+      wp_call; wp_alloc rn_ptr as rn; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+      wp_load; wp_pures; iclear rn
       rw [Hasync]
       wp_apply wp_raftLog_hasNextCommittedEnts $$ [Hlog] as %bce ⟨Hlog, _⟩
       · iframe Hlog
       cases bce
-      · wp_auto
+      · wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear r
         rw [Hrs]
-        wp_auto
+        wp_pures
         ihave %Hob := outboxRel_empty _ $$ Houtbox [] []
         · ipureintro; apply List.eq_nil_of_length_eq_zero; word
         · ipureintro; apply List.eq_nil_of_length_eq_zero; word
@@ -112,11 +115,11 @@ local macro "rest" : tactic => `(tactic| (
           · show SoftSt.mk _ _ = _
             rw [Hsoft_eq.1, Hsoft_eq.2, Hsoftv]; rfl
           · simpa using Hue
-      · wp_auto
+      · wp_pures; iclear r
         finish_true
-    · wp_auto
+    · wp_pures; iclear rn r
       finish_true
-  · wp_auto
+  · wp_pures; iclear rn r
     finish_true))
 
 theorem RawNode.HasReady.wp_proof
@@ -139,8 +142,10 @@ theorem RawNode.HasReady.wp_proof
   wp_pures; wp_store; wp_pures; wp_load; wp_pures
   wp_method_call
   wp_call
-  -- TODO(no-wp-auto): wp_auto: no manual sequence found (['mismatch'])
-  wp_auto
+  wp_call
+  wp_alloc r2_ptr as r2; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+  wp_load; wp_pures; iclear r2
+  wp_alloc softSt_ptr as softSt; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures
   wp_apply wp_SoftState_equal $$ [$softSt $Hsoft] as ⟨softSt, _⟩
   wp_pures; iclear softSt
   wp_if_destruct
@@ -152,8 +157,10 @@ theorem RawNode.HasReady.wp_proof
   icases ownRaftLog_struct _ _ $$ Hlog with ⟨%lv, Hl, %Hlv, Hlb⟩
   wp_method_call
   wp_call
-  -- TODO(no-wp-auto): wp_auto: no manual sequence found (['mismatch'])
-  wp_auto
+  wp_call
+  wp_alloc r2_ptr as r2; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+  wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear r2
+  wp_alloc hardSt_ptr as hardSt; wp_pures; wp_store; wp_pures; wp_load; wp_pures
   ihave Hlog := Hlb $$ Hl
   obtain ⟨Hcm, -⟩ := Hlv
   rw [Hcm]
@@ -164,7 +171,6 @@ theorem RawNode.HasReady.wp_proof
     have Hhs : hsEmptyAbs (nodeHardstate s) = true ∨ nodeHardstate s = rs.hard := by
       left; simp [hsEmptyAbs, nodeHardstate, Hif]
     clear Hcm Hif
-    -- TODO(no-wp-auto): macro `rest` runs wp_auto: ∅ | wp_pures; wp_load; wp_pures; wp_load; wp_pures | ∅ | wp_load; wp_pures; wp_load; wp_pures | ∅ | wp_load; wp_pures; wp_load; wp_pures | ∅ | wp_pures; wp_load; wp_pures; iclear rn | wp_call; wp_alloc rn_ptr as rn; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear rn | ∅ | wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear r | wp_pures | wp_pures; iclear r | wp_pures; iclear rn r | wp_pures; iclear rn r
     rest
   · wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear hardSt
     wp_pures
@@ -175,10 +181,10 @@ theorem RawNode.HasReady.wp_proof
       have Hhs : hsEmptyAbs (nodeHardstate s) = true ∨ nodeHardstate s = rs.hard := by
         right
         obtain ⟨H1, H2, H3⟩ := Hif
+        dsimp only at H1 H2 H3
         show HardSt.mk _ _ _ = _
         rw [H1, H2, H3]; rfl
       clear Hcm Hif
-      -- TODO(no-wp-auto): macro `rest` runs wp_auto: ∅ | wp_pures; wp_load; wp_pures; wp_load; wp_pures | ∅ | wp_load; wp_pures; wp_load; wp_pures | ∅ | wp_load; wp_pures; wp_load; wp_pures | ∅ | wp_pures; wp_load; wp_pures; iclear rn | wp_call; wp_alloc rn_ptr as rn; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear rn | ∅ | wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear r | wp_pures | wp_pures; iclear r | wp_pures; iclear rn r | wp_pures; iclear rn r
       rest
     · finish_true
 

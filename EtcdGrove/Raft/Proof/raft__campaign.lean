@@ -136,27 +136,28 @@ theorem raft.campaign.wp_proof
   -- it false. The two arms are joined.
   wp_apply wp_raft_promotable $$ [$Hphys] as %b ⟨Hphys, %Hb⟩
   wp_pures
-  -- TODO(no-wp-auto): wp_join runs (cont first, then the cases): wp_pures; wp_alloc term_ptr as term; wp_pures; wp_alloc voteMsg_ptr as voteMsg; wp_pures; wp_load; wp_pures
   wp_join at next with [Hphys r]
   · cases b
     · wp_pures; wp_load; wp_pures
       wp_apply raft.wp_load_id $$ Hphys as Hphys
       wp_pures
-      -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures | ∅
       wp_raft_log
+      wp_pures
       wp_join_done
     · wp_pures
       wp_join_done
+  wp_pures; wp_alloc term_ptr as term; wp_pures; wp_alloc voteMsg_ptr as voteMsg; wp_pures; wp_load
+  wp_pures
   -- the role transition: `becomePreCandidate` and `Term + 1`, or
   -- `becomeCandidate` and the new `Term`; joined at the state each leaves
-  -- TODO(no-wp-auto): wp_join runs (cont first, then the cases): wp_load; wp_pures | wp_load; wp_pures
   wp_join iprop(∃ (pvs : GMap w64 Progress),
       "Hphys" ∷ ownRaftPhys cfg r id
         { campRoleState id s (decide (t = campaignPreElection)) with prvals := pvs } ∗
       "term" ∷ term_ptr ↦ (s.term + W64 1) ∗
       "voteMsg" ∷ voteMsg_ptr ↦ vreqW32 (decide (t = campaignPreElection)) ∗
       "r" ∷ r_ptr ↦ r ∗ "t" ∷ t_ptr ↦ t) with [Hphys term voteMsg r t]
-  · wp_apply wp_raft_becomePreCandidate _ _ _ _ Hrole $$ [$Hphys] as Hphys
+  · wp_load; wp_pures
+    wp_apply wp_raft_becomePreCandidate _ _ _ _ Hrole $$ [$Hphys] as Hphys
     wp_pures
     rw [show raftpb.MsgPreVote = #MsgPreVote from rfl]
     wp_store; wp_pures; wp_load; wp_pures
@@ -167,7 +168,8 @@ theorem raft.campaign.wp_proof
     iexists s.prvals
     simp only [campaignPreElection, decide_true, campRoleState, vreqW32, ↓reduceIte]
     iframe
-  · wp_apply wp_raft_becomeCandidate _ _ _ _ Hrole $$ [$Hphys] as %pvs Hphys
+  · wp_load; wp_pures
+    wp_apply wp_raft_becomeCandidate _ _ _ _ Hrole $$ [$Hphys] as %pvs Hphys
     wp_pures
     rw [show raftpb.MsgVote = #MsgVote from rfl]
     wp_store; wp_pures; wp_load; wp_pures
@@ -304,8 +306,7 @@ theorem raft.campaign.wp_proof
       subst Hyid
       rw [decide_eq_true rfl]
       wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
-      -- the response type: `wp_auto` cannot step through the call that
-      -- computes the literal's `Type` field
+      -- the response type: a call that computes the literal's `Type` field
       wp_apply wp_voteRespMsgType (vreqW32 pre) (vrespW32 pre)
         (by cases pre <;> simp [vreqW32, vrespW32])
       wp_pures; wp_load; wp_pures
@@ -360,16 +361,19 @@ theorem raft.campaign.wp_proof
       wp_pures
       wp_apply raft.wp_load_Term $$ Hphys as Hphys
       wp_pures
-      -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_alloc ctx_ptr as ctx; wp_pures; wp_load; wp_pures | ∅
       wp_raft_log
+      wp_pures; wp_alloc ctx_ptr as ctx; wp_pures; wp_load; wp_pures
       rw [campRoleState_logst] at HlastID
       -- `ctx` is the `campaignTransfer` marker or nil; the model does not
       -- look at a vote request's context, so both arms run the same tail.
-      -- TODO(no-wp-auto): wp_join runs (cont first, then the cases): wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear last ctx | wp_load | ∅
       wp_join iprop(∃ (csl : GoSlice), ctx_ptr ↦ csl ∗ t_ptr ↦ t) with [ctx t] as ⟨%csl, ctx, t⟩
-      · wp_apply wp_string_to_bytes as %csl ⟨-, -⟩
+      · wp_load
+        wp_apply wp_string_to_bytes as %csl ⟨-, -⟩
         wp_pures; wp_store; wp_pures
         wp_join_done
+      -- the request literal's fields
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear last ctx
       wp_apply wp_raft_send _ _ _ _ _ [] [campReq pre id y (s.term + W64 1) lastID]
           (Or.inl rfl)
           (Or.inl ⟨vreqTy pre,

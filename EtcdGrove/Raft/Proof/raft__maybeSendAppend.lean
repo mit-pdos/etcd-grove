@@ -4,7 +4,7 @@ Port of election_proof/proof_raft__maybeSendAppend.v.
 Lean notes: Rocq's `msa_pkg` and its one `;`-chained script for the three arms are the
 macros `msa_fetch`/`msa_tail`/`msa_send`, which work on hypotheses of fixed names
 (`Hents : sl_e ↦*□ es_e`, `Hphys`, `Hwin`, `Hpkgin`, `Hpkgpre`). In the full-window
-arm `wp_auto` already decides `len(ents) == 0` on the zero slice, so that arm splits on
+arm the pure steps already decide `len(ents) == 0` on the zero slice, so that arm splits on
 `sendIfEmpty` itself and then calls `msa_send`. `msa_app_facts` is inlined
 (`app_payload_from_log`). The `MsgApp` send is `wp_send_app`.
 -/
@@ -85,13 +85,15 @@ local macro "msa_fetch" : tactic => `(tactic| (
   · iapply ownProgress_intro $$ Hpv Hinfl
     ipureintro; exact Habs
   wp_apply raft.wp_load_maxMsgSize $$ Hphys as %mms Hphys
+  wp_pures; wp_load; wp_pures
   wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+  wp_pures
   icases ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hlogback⟩
   wp_apply wp_raftLog_entries _ s.logst _ _ Hlo $$ [Hlog]
     as %sl_e %es_e ⟨Hlog, #Hents, %Hin, %Hpre⟩
   · iframe
-  ihave Hphys := Hlogback $$ Hlog
-  try wp_auto))
+  wp_pures; wp_store; wp_pures; wp_store; wp_pures; wp_load; wp_pures
+  ihave Hphys := Hlogback $$ Hlog))
 
 set_option hygiene false in
 /-- The message goes out: `r.send(MsgApp)`, `pr.SentEntries`, `pr.SentCommit`,
@@ -99,35 +101,41 @@ set_option hygiene false in
 local macro "msa_send" : tactic => `(tactic| (
   -- the literal reads `r.raftLog.committed` through the log's record
   wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+  wp_pures
   icases ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hlogback⟩
   icases ownRaftLog_struct _ _ $$ Hlog with ⟨%lvc, Hl, %Hlvc, Hlb⟩
-  wp_auto
+  wp_load; wp_pures; wp_load; wp_pures
   ihave Hlog := Hlb $$ Hl
   ihave Hphys := Hlogback $$ Hlog
   wp_apply wp_send_app wp_raft_send cfg r id s _ _ _ _ _ es_e Hto $$ [Hphys]
     as Hphys
   · iframe # ∗
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear ents
   wp_apply wp_payloadsSize $$ [] as %psz ⟨-, -⟩
   · iframe # ∗
+  wp_pures; wp_load; wp_pures
   -- `pr.SentEntries(...)`: `send` changed only the outbox, so `pr` is still at `p`
   icases ownRaftPhys_pr_upd cfg r id _ to pr p $$ Hphys %Hlk %Hpvs with ⟨Hpa, Hpback⟩
   have Hwin2 : p.state = .replicate → 0 < sint.Z sl_e.len → inflightsFull p.infl = false :=
     fun H1 H2 => Hwin H1 (fun Heq => by rw [Heq] at Hlen; simp at Hlen; omega)
   wp_apply wp_Progress_SentEntries pr p _ _ Hnosnap Hwin2 $$ [Hpa] as Hpa
   · iframe
+  wp_pures; wp_load; wp_pures; iclear r
   ihave Hphys := Hpback $$ %_ Hpa
   -- `pr.SentCommit(r.raftLog.committed)`: the argument first, then `pr` once more, at
   -- the value `SentEntries` left
   wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+  wp_pures
   icases ownRaftPhys_log_same cfg r id _ $$ Hphys with ⟨Hlog, Hlogback⟩
   icases ownRaftLog_struct _ _ $$ Hlog with ⟨%lvc2, Hl, %Hlvc2, Hlb⟩
-  wp_auto
+  wp_load; wp_pures; wp_load; wp_pures; iclear pr
   ihave Hlog := Hlb $$ Hl
   ihave Hphys := Hlogback $$ Hlog
   icases ownRaftPhys_pr_upd cfg r id _ to pr (progressSentEntries p sl_e.len psz)
     $$ Hphys %Hlk %(GMap.lookup_insert_eq _ _ _) with ⟨Hpa, Hpback⟩
   wp_apply wp_Progress_SentCommit $$ [Hpa] as Hpa
   · iframe
+  wp_pures
   ihave Hphys := Hpback $$ %_ Hpa
   iapply HΦ $$ %true
     %([Msg.mk MsgType.app id to s.term false (p.next - W64 1) pterm lvc.committed' (W64 0)
@@ -164,9 +172,10 @@ local macro "msa_tail" : tactic => `(tactic| (
   ihave %Hlen := slice_len_Z _ _ _ $$ Hents
   -- `if len(ents) == 0 && !sendIfEmpty { return false }`
   wp_if_destruct
-  · cases sendIfEmpty
+  · wp_load; wp_pures; iclear sendIfEmpty
+    cases sendIfEmpty
     · -- no entries, and the caller does not want an empty append
-      wp_auto
+      wp_pures; iclear r to pr prevIndex prevTerm ents err
       ihave Hphys := ownRaftPhys_send_nil cfg r id s $$ Hphys
       iapply HΦ $$ %false %([] : List Msg) %s.prvals
       isplitl
@@ -174,9 +183,12 @@ local macro "msa_tail" : tactic => `(tactic| (
         cases s; rfl
       ipureintro
       exact ⟨fun _ h => (nomatch h), rfl⟩
-    · wp_auto
+    · wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+      wp_load; wp_pures; iclear to prevIndex prevTerm err
       msa_send
-  · msa_send))
+  · wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+    wp_load; wp_pures; iclear sendIfEmpty to prevIndex prevTerm err
+    msa_send))
 
 /-- `r.maybeSendAppend(to, sendIfEmpty)`.
 
@@ -301,21 +313,19 @@ theorem raft.maybeSendAppend.wp_proof
     cases Hfull : inflightsFull p.infl
     · -- in `StateReplicate` with room: fetch `ents`
       wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
-      -- TODO(no-wp-auto): macro `msa_fetch` runs wp_auto: wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_store; wp_pures; wp_store; wp_pures; wp_load; wp_pures | ∅
       msa_fetch
       have Hwin : p.state = .replicate → es_e ≠ [] → inflightsFull p.infl = false :=
         fun _ _ => Hfull
       have Hpkgin : ∀ e ∈ es_e, e ∈ (toPState s).log := Hin
       have Hpkgpre : es_e <+: plogFrom (toPState s).base (toPState s).log p.next := Hpre
       clear Hin Hpre
-      -- TODO(no-wp-auto): macro `msa_tail` runs wp_auto: wp_load; wp_pures; iclear sendIfEmpty | wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear sendIfEmpty to prevIndex prevTerm err | wp_pures; iclear r to pr prevIndex prevTerm ents err | wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear to prevIndex prevTerm err | wp_pures | wp_load; wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear ents | wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures; iclear r | wp_pures | wp_load; wp_pures; wp_load; wp_pures; iclear pr | wp_pures | wp_pures | wp_load; wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear ents | wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures; iclear r | wp_pures | wp_load; wp_pures; wp_load; wp_pures; iclear pr | wp_pures
       msa_tail
     · -- in `StateReplicate` with the window full: no entries are fetched
       wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear sendIfEmpty
       ihave Hphys := Hpback $$ [Hpv Hinfl]
       · iapply ownProgress_intro $$ Hpv Hinfl
         ipureintro; exact Habs
-      -- `ents` is the zero slice, so `len(ents) == 0` was decided by `wp_auto`
+      -- `ents` is the zero slice, so `len(ents) == 0` was decided by `wp_pures`
       cases sendIfEmpty
       · -- no entries, and the caller does not want an empty append
         wp_pures; iclear r to pr prevIndex prevTerm err ents
@@ -339,20 +349,17 @@ theorem raft.maybeSendAppend.wp_proof
         have Hpkgpre : es_e <+: plogFrom (toPState s).base (toPState s).log p.next := by
           subst Hes; exact List.nil_prefix
         ihave %Hlen := slice_len_Z _ _ _ $$ Hents
-        -- TODO(no-wp-auto): macro `msa_send` runs wp_auto: wp_pures | wp_load; wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear ents | wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures; iclear r | wp_pures | wp_load; wp_pures; wp_load; wp_pures; iclear pr | wp_pures
         msa_send
   · wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
     -- not in `StateReplicate`: the first disjunct is true, fetch `ents`
     have Hnrep : p.state ≠ .replicate := by
       intro Hc; apply Hif; rw [Hst, Hc]; rfl
-    -- TODO(no-wp-auto): macro `msa_fetch` runs wp_auto: wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_store; wp_pures; wp_store; wp_pures; wp_load; wp_pures | ∅
     msa_fetch
     have Hwin : p.state = .replicate → es_e ≠ [] → inflightsFull p.infl = false :=
       fun Hc => absurd Hc Hnrep
     have Hpkgin : ∀ e ∈ es_e, e ∈ (toPState s).log := Hin
     have Hpkgpre : es_e <+: plogFrom (toPState s).base (toPState s).log p.next := Hpre
     clear Hin Hpre
-    -- TODO(no-wp-auto): macro `msa_tail` runs wp_auto: wp_load; wp_pures; iclear sendIfEmpty | wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear sendIfEmpty to prevIndex prevTerm err | wp_pures; iclear r to pr prevIndex prevTerm ents err | wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear to prevIndex prevTerm err | wp_pures | wp_load; wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear ents | wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures; iclear r | wp_pures | wp_load; wp_pures; wp_load; wp_pures; iclear pr | wp_pures | wp_pures | wp_load; wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear ents | wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures; iclear r | wp_pures | wp_load; wp_pures; wp_load; wp_pures; iclear pr | wp_pures
     msa_tail
 
 end proof

@@ -80,10 +80,11 @@ theorem wp_Step_Resp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_Term $$ Hphys as Hphys
     wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
-    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures | ∅ | wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures | ∅
     wp_raft_log
-    -- TODO(no-wp-auto): wp_auto (several runs): wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures
-    iterate 6 (try (rw [Hty]; wp_auto))
+    rw [Hty]; wp_pures; wp_load; wp_pures
+    rw [Hty]; wp_pures; wp_load; wp_pures
+    rw [Hty]; wp_pures; wp_load; wp_pures
+    rw [Hty]; wp_pures; wp_load; wp_pures; wp_load; wp_pures
     wp_apply _P.becomeFollower $$ [$Hphys] as %pvs Hphys
     wp_pures; wp_load; wp_pures
     iterate 6 (try (rw [Hty]; (wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear r m)))

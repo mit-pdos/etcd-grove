@@ -27,12 +27,12 @@ theorem raft.reduceUncommittedSize.wp_proof :
   wp_pures
   wp_if_destruct
   · wp_load; wp_pures; iclear r s
-    wp_pures
     wp_apply raft.wp_store_uncommittedSize $$ Hphys as Hphys
+    wp_pures
     iapply HΦ $$ Hphys
   · wp_load; wp_pures; wp_load; wp_pures; iclear r
-    wp_load; wp_pures; iclear s
     wp_apply raft.wp_load_uncommittedSize $$ Hphys as %v2 Hphys
+    wp_load; wp_pures; iclear s
     wp_apply raft.wp_store_uncommittedSize $$ Hphys as Hphys
     wp_pures
     iapply HΦ $$ Hphys

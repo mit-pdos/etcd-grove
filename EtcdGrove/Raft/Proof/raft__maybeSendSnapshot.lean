@@ -110,8 +110,8 @@ theorem raft.maybeSendSnapshot.wp_proof
   · iapply ownRaftPhys_eq cfg r id _ _ (by cases s; rfl) $$ Hphys
   cases Hra : pv.RecentActive' <;> (wp_pures; wp_load; wp_pures)
   · -- not recently active: log and return `false`
-    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; iclear r pr to | ∅
     wp_raft_log
+    wp_pures; iclear r pr to
     iapply HΦ $$ %false %([] : List Msg) %s.prvals
     isplitl [Hphys]
     · iapply ownRaftPhys_nosend $$ Hphys
@@ -132,8 +132,8 @@ theorem raft.maybeSendSnapshot.wp_proof
     wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_id $$ Hphys as Hphys
     wp_pures; wp_load; wp_pures
-    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; iclear r pr to snapshot err | ∅
     wp_raft_log
+    wp_pures; iclear r pr to snapshot err
     iapply HΦ $$ %false %([] : List Msg) %s.prvals
     isplitl [Hphys]
     · iapply ownRaftPhys_nosend $$ Hphys
@@ -167,8 +167,8 @@ theorem raft.maybeSendSnapshot.wp_proof
     iclear sterm
     ihave Hlog := Hlb $$ Hl
     ihave Hphys := Hlogback $$ Hlog
-    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear sindex | ∅
     wp_raft_log
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear sindex
     -- `pr.BecomeSnapshot(sindex)`: borrow `pr` again, give it back at
     -- the new value
     icases ownRaftPhys_pr_upd cfg r id s to pr pp $$ Hphys %Hprto %Hpl with ⟨Hpr, Hback⟩
@@ -177,8 +177,8 @@ theorem raft.maybeSendSnapshot.wp_proof
     ihave Hphys := Hback $$ %(progressBecomeSnapshot pp snap.Metadata'.Index') Hpr
     wp_apply raft.wp_load_id $$ Hphys as Hphys
     wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear pr
-    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear r to | ∅
     wp_raft_log
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear r to
     -- `send_ok`'s `MsgSnap` clause, with no entries. `Snapshot:
     -- &snapshot` queues the address of the local variable, which nothing
     -- writes again: persist it, and the abstract message is the

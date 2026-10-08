@@ -62,9 +62,8 @@ theorem confchange.Changer.makeVoter.wp_proof
     iNamed Hpr
     icases typedPointsto_not_null_dup _ _ _ $$ Hpv with ⟨Hpv, %Hprnn⟩
     wp_if_destruct
-    · wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear trk
+    · exact absurd rfl Hprnn
     wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear c trk pr
-      exact absurd rfl Hprnn
     -- `nilAwareDelete(&cfg.Learners, id)`, `nilAwareDelete(&cfg.LearnersNext, id)`
     icases (Access.access (A := iprop(cfgp.[tracker.Config, go!"Learners"] ↦ cfg.Learners'))
       (A' := iprop(cfgp.[tracker.Config, go!"Learners"] ↦ cfg.Learners'))

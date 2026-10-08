@@ -16,13 +16,15 @@ set_option hygiene false in
 /-- One of the three `Infof`-and-return exits (Rocq `log_exit`). -/
 local macro "log_exit" Hulg:ident : tactic => `(tactic| (
   wp_apply wp_slice_literal
+  wp_pures
   isplitr
   · ipureintro; rfl
   iintro %sl_ptr ⟨-, -⟩
-  wp_auto
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures
   rw [$Hulg:ident]
-  wp_auto
-  wp_apply Logger.wp_logf _ _ _ _ (by simp [logMethods]) $$ Hlg))
+  wp_pures
+  wp_apply Logger.wp_logf _ _ _ _ (by simp [logMethods]) $$ Hlg
+  wp_pures))
 
 set_option hygiene false in
 /-- Close a no-hit exit: nothing changed. -/
@@ -78,8 +80,8 @@ theorem unstable.stableTo.wp_proof
   cases ok
   · -- not in the log: no hit
     wp_pures; wp_load; wp_pures
-    -- TODO(no-wp-auto): macro `log_exit` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures | wp_pures | wp_pures; iclear u id gt
     log_exit Hulg
+    iclear u id gt
     no_hit Hulg
     exact absurd (Hok1.2 (Or.inl Hh.1)) Bool.false_ne_true
   wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures
@@ -87,8 +89,8 @@ theorem unstable.stableTo.wp_proof
   · -- the snapshot's index: no hit
     rw [decide_eq_true (by word)]
     wp_pures; wp_load; wp_pures
-    -- TODO(no-wp-auto): macro `log_exit` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures | wp_pures | wp_pures; iclear u id gt
     log_exit Hulg
+    iclear u id gt
     no_hit Hulg
     exact absurd Hh.1.1 (by omega)
   rw [decide_eq_false (by word)]
@@ -101,8 +103,8 @@ theorem unstable.stableTo.wp_proof
   · -- a different term at `id.index`: no hit
     rw [decide_eq_false Ht]
     wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear gt
-    -- TODO(no-wp-auto): macro `log_exit` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures | wp_pures | wp_pures; iclear u id
     log_exit Hulg
+    iclear u id
     no_hit Hulg
     obtain ⟨-, e', He', Ht'⟩ := Hh
     rw [He] at He'; cases He'; exact absurd Ht' Ht

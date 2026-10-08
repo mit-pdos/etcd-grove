@@ -144,11 +144,11 @@ theorem raft.reset.wp_proof
   wp_load; wp_pures
   -- Two arms: `r.Term != term` writes `Term` and `Vote`; otherwise nothing is written
   -- and the vote survives.
-  -- TODO(no-wp-auto): wp_join runs (cont first, then the cases): wp_pures; wp_load; wp_pures; iclear term | ∅ | wp_load; wp_pures; wp_load; wp_pures
   wp_join iprop(r_ptr ↦ r ∗ term_ptr ↦ term ∗ ownRaftPhys cfg r id
       { s with term := term, vote := if term = s.term then s.vote else W64 0 })
     with [r term Hphys] as ⟨r, term, Hphys⟩
-  · wp_apply raft.wp_store_Term $$ Hphys as Hphys
+  · wp_load; wp_pures; wp_load; wp_pures
+    wp_apply raft.wp_store_Term $$ Hphys as Hphys
     wp_pures; wp_load; wp_pures
     wp_apply raft.wp_store_Vote $$ Hphys as Hphys
     wp_pures
@@ -157,6 +157,7 @@ theorem raft.reset.wp_proof
     iframe r term
     iapply ownRaftPhys_eq cfg r id _ _ ?_ $$ Hphys
     rw [if_neg (Ne.symm Hif)]
+  wp_pures; wp_load; wp_pures; iclear term
   -- `lead := None`, `electionElapsed := 0`, `heartbeatElapsed := 0`
   wp_apply raft.wp_store_lead $$ Hphys as Hphys
   wp_pures; wp_load; wp_pures

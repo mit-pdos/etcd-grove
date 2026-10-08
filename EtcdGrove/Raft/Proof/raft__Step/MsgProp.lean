@@ -16,7 +16,7 @@ Lean notes:
 * Rocq's `Local Ltac`s are not ported: `wp_load_step` (binds the load of `r.step` in
   function position, as in `MsgVoteResp`), `finish_err err` (`Step`'s tail after
   `r.step(r, m)`: `if err != nil { return err }`, then `return nil`; destructs `err` and
-  runs `wp_auto`), `recv_elem` (`∀ m' ∈ recv, m' = a` for `recv` `[]` or `[a]`), and
+  takes the steps of each case), `recv_elem` (`∀ m' ∈ recv, m' = a` for `recv` `[]` or `[a]`), and
   `finish_drop` (a dropped proposal: the state is unchanged, `Step.refl`, and `err` is
   `ErrProposalDropped`'s value); their bodies are inlined at each use.
 * `ite_pos`/`ite_neg` are local helpers for the `if`s of `FollowerStepResult` etc.
@@ -158,9 +158,9 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       obtain ⟨rfl, rfl⟩ := Hres
       simp only [↓reduceIte]
       cases err
+      case' ok => wp_pures; wp_load; wp_pures; iclear err
+      case' nil => wp_pures; iclear err
       all_goals
-        -- TODO(no-wp-auto): wp_auto (several runs): wp_pures; wp_load; wp_pures; iclear err | wp_pures; iclear err
-        wp_auto
         iapply HΦ
         iframe Hphys
         isplitr
@@ -211,9 +211,9 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     obtain ⟨rfl, rfl⟩ := Hres
     simp only [↓reduceIte]
     cases err
+    case' ok => wp_pures; wp_load; wp_pures; iclear err
+    case' nil => wp_pures; iclear err
     all_goals
-      -- TODO(no-wp-auto): wp_auto (several runs): wp_pures; wp_load; wp_pures; iclear err | wp_pures; iclear err
-      wp_auto
       iapply HΦ
       iframe Hphys
       isplitr
@@ -268,9 +268,9 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       simp only [↓reduceIte] at Hres ⊢
       subst Hres
       cases err
+      case' ok => wp_pures; wp_load; wp_pures; iclear err
+      case' nil => wp_pures; iclear err
       all_goals
-        -- TODO(no-wp-auto): wp_auto (several runs): wp_pures; wp_load; wp_pures; iclear err | wp_pures; iclear err
-        wp_auto
         iapply HΦ
         iframe Hphys
         isplitr
@@ -299,9 +299,9 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     obtain ⟨rfl, rfl⟩ := Hres
     simp only [↓reduceIte]
     cases err
+    case' ok => wp_pures; wp_load; wp_pures; iclear err
+    case' nil => wp_pures; iclear err
     all_goals
-      -- TODO(no-wp-auto): wp_auto (several runs): wp_pures; wp_load; wp_pures; iclear err | wp_pures; iclear err
-      wp_auto
       iapply HΦ
       iframe Hphys
       isplitr

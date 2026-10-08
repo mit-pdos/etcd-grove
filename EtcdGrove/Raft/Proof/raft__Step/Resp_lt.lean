@@ -77,8 +77,16 @@ theorem wp_Step_Resp_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_Term $$ Hphys as Hphys
     wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
-    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; iclear r m | ∅ | wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; iclear r m | ∅ | wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; iclear r m | ∅ | wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; iclear r m | ∅
-    wp_raft_log
+    -- the log line (`wp_raft_log`, spelled out)
+    wp_apply wp_slice_literal; wp_pures
+    isplitr; (ipureintro; rfl)
+    iintro %_ ⟨_, -⟩
+    wp_pures; wp_load; wp_pures
+    wp_apply raft.wp_load_logger $$ Hphys as %lok ⟨Hphys, #Hlg⟩
+    wp_pures
+    wp_apply Logger.wp_logf lok _ _ _ (by decide) $$ Hlg
+    iclear Hlg
+    wp_pures; iclear r m
     iapply HΦ $$ %interface.nil %s
     iframe Hphys
     ipureintro

@@ -31,11 +31,12 @@ theorem unstable.acceptInProgress.wp_proof :
   · -- no entries: only the snapshot flag
     subst He
     wp_if_destruct
-    · wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures
+    · exfalso; simp at Hlen; word
     wp_load; wp_pures; wp_load; wp_pures
-      exfalso; simp at Hlen; word
-    -- TODO(no-wp-auto): wp_if_destruct runs: ∅ | wp_load; wp_pures; wp_store; wp_pures; iclear u
-    wp_if_destruct <;>
+    wp_if_destruct
+    rotate_left
+    wp_load; wp_pures; wp_store; wp_pures; iclear u
+    all_goals
     · iapply HΦ
       unfold ownUnstable
       iframe Hu
@@ -49,11 +50,8 @@ theorem unstable.acceptInProgress.wp_proof :
     have Heidx := Hidx _ _ Hle
     wp_if_destruct
     rotate_left
-    wp_load; wp_pures; wp_load; wp_pures
-    rotate_right
-    wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures
-    rotate_left
     · exfalso; word
+    wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures
     have Hbnd : 0 ≤ sint.Z (uv.entries'.len - W64 1) ∧
         sint.Z (uv.entries'.len - W64 1) < sint.Z uv.entries'.len := by
       constructor <;> word
@@ -65,8 +63,10 @@ theorem unstable.acceptInProgress.wp_proof :
     iStructNamedSuffix He "_e"
     wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
     wp_pures
-    -- TODO(no-wp-auto): wp_if_destruct runs: ∅ | wp_load; wp_pures; wp_store; wp_pures; iclear u
-    wp_if_destruct <;>
+    wp_if_destruct
+    rotate_left
+    wp_load; wp_pures; wp_store; wp_pures; iclear u
+    all_goals
     · iapply HΦ
       unfold ownUnstable
       iframe Hu

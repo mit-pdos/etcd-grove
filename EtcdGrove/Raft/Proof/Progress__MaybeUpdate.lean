@@ -50,9 +50,9 @@ theorem tracker.Progress.MaybeUpdate.wp_proof :
         { p with matched := n, next := w64Max p.next (n + W64 1), paused := false } := by
       rw [progressMaybeUpdate, ← h3]; split <;> first | rfl | (exfalso; word)
     rw [Hd, Hp]
-    -- TODO(no-wp-auto): wp_if_destruct runs: wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_store; wp_pures; iclear pr | wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_store; wp_pures; iclear pr
     wp_if_destruct <;>
-    · iapply HΦ
+    · wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_store; wp_pures
+      iapply HΦ
       iapply ownProgress_intro pr _ _ $$ Hpv [Hinfl]
       · dsimp only
         iexact Hinfl

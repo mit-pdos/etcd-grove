@@ -28,11 +28,11 @@ theorem raftLog.maybeCommit.wp_proof
   iNamed H
   icases ownRaftLog_struct l ls $$ Hlog with ⟨%lv, Hl, %Hlv, Hback⟩
   obtain ⟨Hcm, Hap⟩ := Hlv
-  wp_auto
+  wp_alloc l_ptr as l; wp_pures; wp_alloc at_ptr as at_; wp_pures; wp_load; wp_pures
   by_cases Ht0 : aid.term' = W64 0
   · -- `at.term == 0`: no
     rw [decide_eq_true Ht0]
-    wp_auto
+    wp_pures; iclear l at_
     iapply HΦ
     simp only [Bool.false_eq_true, ↓reduceIte]
     isplitl
@@ -49,7 +49,7 @@ theorem raftLog.maybeCommit.wp_proof
   case neg =>
     -- `at.index <= committed`: no
     rw [decide_eq_false Hlt]
-    wp_auto
+    wp_pures; iclear l at_
     iapply HΦ
     simp only [Bool.false_eq_true, ↓reduceIte]
     isplitl
@@ -68,7 +68,7 @@ theorem raftLog.maybeCommit.wp_proof
     -- `matchTerm`: commit. `commitTo`'s premise from the match.
     have Hm : PlogMatches ls.prev (ls.sents ++ ls.uents) aid := of_decide_eq_true Hb.symm
     have Hrange := plogTermAt_some_range _ _ _ _ Hm
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear l at_
     wp_apply wp_raftLog_commitTo _ ls aid.index' Hrange.2 $$ [$Hlog] as Hlog
     wp_pures
     iapply HΦ
@@ -78,7 +78,7 @@ theorem raftLog.maybeCommit.wp_proof
     symm
     exact decide_eq_true ⟨Ht0, Hlt, Hm⟩
   | false =>
-    wp_auto
+    wp_pures; iclear l at_
     iapply HΦ
     simp only [Bool.false_eq_true, ↓reduceIte]
     iframe

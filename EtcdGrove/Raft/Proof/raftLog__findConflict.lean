@@ -143,8 +143,8 @@ theorem raftLog.findConflict.wp_proof
         iapply HΦ
         iframe
       · wp_load; wp_pures; iclear id
-        wp_pures; iclear l ents Hj Hgi
         wp_for_post
+        wp_pures; iclear l ents Hj Hgi
         rw [← Hres]
         iapply HΦ
         iframe

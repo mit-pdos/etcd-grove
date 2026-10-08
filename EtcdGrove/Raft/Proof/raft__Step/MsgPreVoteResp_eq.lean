@@ -58,11 +58,12 @@ local macro "prevote_resp_dispatch" : tactic =>
         · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
         · iintro %Hc; exfalso; rw [Hty] at Hc
           rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
+      wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures
       obtain ⟨rfl, rfl⟩ := followerStepResult_prevoteresp _ _ _ _ _ _ _ Hty Hres
       simp only [Bool.false_eq_true, ↓reduceIte]
       icases Herrn with %Herrn
       subst Herrn
-      wp_auto
+      wp_pures; iclear err
       iapply HΦ $$ %interface.nil %_
       iframe Hphys
       ipureintro
@@ -84,12 +85,13 @@ local macro "prevote_resp_dispatch" : tactic =>
         isplitl []
         · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
         · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+      wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures
       obtain ⟨rfl, Hwf1, Hst⟩ :=
         candidateStepResult_prevoteresp cfg _ _ _ _ _ _ _ Hty (.inl Hrole) Hcfg Hnw Hwf Hres
       simp only [Bool.false_eq_true, ↓reduceIte]
       icases Herrn with %Herrn
       subst Herrn
-      wp_auto
+      wp_pures; iclear err
       iapply HΦ $$ %interface.nil %s1
       iframe Hphys
       ipureintro
@@ -108,11 +110,12 @@ local macro "prevote_resp_dispatch" : tactic =>
         isplitl []
         · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
         · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+      wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures
       obtain ⟨rfl, rfl⟩ := leaderStepResult_prevoteresp cfg _ _ _ _ _ _ Hty Hres
       simp only [Bool.false_eq_true, ↓reduceIte]
       icases Herrn with %Herrn
       subst Herrn
-      wp_auto
+      wp_pures; iclear err
       iapply HΦ $$ %interface.nil %_
       iframe Hphys
       ipureintro
@@ -133,12 +136,13 @@ local macro "prevote_resp_dispatch" : tactic =>
         isplitl []
         · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
         · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+      wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures
       obtain ⟨rfl, Hwf1, Hst⟩ :=
         candidateStepResult_prevoteresp cfg _ _ _ _ _ _ _ Hty (.inr Hrole) Hcfg Hnw Hwf Hres
       simp only [Bool.false_eq_true, ↓reduceIte]
       icases Herrn with %Herrn
       subst Herrn
-      wp_auto
+      wp_pures; iclear err
       iapply HΦ $$ %interface.nil %s1
       iframe Hphys
       ipureintro
@@ -190,7 +194,6 @@ theorem wp_Step_MsgPreVoteResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := h
   -- the type switch: none of its four cases, so `r.step(m)`
   rw [Hty]
   wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear r m
-  -- TODO(no-wp-auto): macro `prevote_resp_dispatch` runs wp_auto: ∅ | wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures | wp_pures; iclear err | wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures | wp_pures; iclear err | wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures | wp_pures; iclear err | wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures | wp_pures; iclear err
   prevote_resp_dispatch
 
 end StepProof

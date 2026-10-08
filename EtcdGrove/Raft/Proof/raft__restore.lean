@@ -110,11 +110,8 @@ theorem raft.restore.wp_proof
   subst Hk
   wp_if_destruct
   rotate_left
-  wp_load; wp_pures; wp_load; wp_pures; iclear i set found
-  rotate_right
-  wp_load; wp_pures
-  rotate_left
   · exfalso; apply Hif; word
+  wp_load; wp_pures
   wp_apply wp_load_slice_index (V := GoSlice) (t := go.uint64.SliceType) _ (sint.Z (W64 0)) _ _
       sv.Metadata'.ConfState'.Voters' (by decide) $$ [$Hrsl] as Hrsl
   · ipureintro; rfl
@@ -137,12 +134,12 @@ theorem raft.restore.wp_proof
   wp_pures; wp_load; wp_pures
   cleanup_bool_decide
   obtain ⟨Hk2b, Hk2n⟩ := Hk2
-  -- TODO(no-wp-auto): wp_if_destruct: no manual sequence found (['ok', 'mismatch'])
   wp_if_destruct
   rotate_left
   · -- the voters ran out without `id`: impossible
     exfalso; apply Hk2n
     rw [List.take_of_length_le (by word)]; exact Hidv
+  wp_load; wp_pures
   list_elem voters (sint.Z k2).toNat as y
   rw [ite_eq_left (show 0 ≤ sint.Z k2 ∧ sint.Z k2 < sint.Z sv.Metadata'.ConfState'.Voters'.len
     by word)]
@@ -172,8 +169,8 @@ theorem raft.restore.wp_proof
   subst y
   rw [decide_eq_true rfl]
   wp_pures; wp_store; wp_pures
-  -- TODO(no-wp-auto): wp_for_post: no manual sequence found (['mismatch'])
   wp_for_post
+  wp_pures; wp_load; wp_pures
   wp_for_post
   wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_alloc id_ptr as id; wp_pures
   wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear i set found
@@ -206,8 +203,8 @@ theorem raft.restore.wp_proof
     iclear last
     ihave Hlog := Hlb $$ Hl
     ihave Hphys := Hlogback $$ Hlog
-    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures | ∅
     wp_raft_log
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures
     -- `commitTo(Index)`: in range, the log has a term at `Index`
     obtain ⟨-, Hle⟩ := plogTermAt_some_range _ _ _ _ Hm
     wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
@@ -301,8 +298,8 @@ theorem raft.restore.wp_proof
     iclear id last
     ihave Hlog := Hlb $$ Hl
     ihave Hphys := Hlogback $$ Hlog
-    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures; iclear r | wp_pures | wp_pures | ∅
     wp_raft_log
+    wp_pures
     iapply HΦ $$ %true %_
     iframe Hphys
     ipureintro

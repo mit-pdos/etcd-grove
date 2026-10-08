@@ -59,8 +59,8 @@ theorem raft.hup.wp_proof
     wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_id $$ Hphys as Hphys
     wp_pures
-    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; iclear r t | ∅
     wp_raft_log
+    wp_pures; iclear r t
     iapply HΦ $$ %s
     iframe Hphys
     ipureintro
@@ -83,8 +83,8 @@ theorem raft.hup.wp_proof
       wp_pures; wp_load; wp_pures
       wp_apply raft.wp_load_Term $$ Hphys as Hphys
       wp_pures
-      -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear r t | ∅
       wp_raft_log
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear r t
       wp_apply wp_raft_campaign _ _ _ _ _ Hrl Hin Hnowrap $$ [$Hphys]
         as %peers %pvs ⟨%Hpeers, Hphys⟩
       wp_pures
@@ -98,8 +98,8 @@ theorem raft.hup.wp_proof
       wp_pures; wp_load; wp_pures
       wp_apply raft.wp_load_id $$ Hphys as Hphys
       wp_pures
-      -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; iclear r t | ∅
       wp_raft_log
+      wp_pures; iclear r t
       iapply HΦ $$ %s
       iframe Hphys
       ipureintro

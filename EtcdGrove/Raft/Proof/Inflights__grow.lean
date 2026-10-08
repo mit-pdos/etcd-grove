@@ -25,24 +25,28 @@ theorem tracker.Inflights.grow.wp_proof : tracker.Inflights.grow.spec (GF := GF)
   -- `len(in.buffer)` is the `slice.len` field; the pure length of `buf` is what both
   -- premises and the postcondition speak about.
   ihave %Hblen := ownSlice_len $$ Hbuf
-  wp_auto
+  wp_alloc in_ptr as «in»; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+  wp_alloc newSize_ptr as newSize; wp_pures; wp_store; wp_pures
+  wp_load; wp_pures
   have Hok := Hinfl_ok
   unfold InflightsOk at Hok
   -- The three branches of the `newSize` computation differ only in the literal that
   -- reaches `make`; everything after it is joined.
   have Hlen0 : (buf.length : Int) = sint.Z iv.buffer'.len := by
     rw [Hblen.1]; unfold sint.nat; exact Int.toNat_of_nonneg Hblen.2
-  -- TODO(no-wp-auto): wp_join runs (cont first, then the cases): wp_pures; wp_load; wp_pures; iclear newSize | wp_store; wp_pures | wp_load; wp_load; wp_pures; wp_load; wp_pures
   wp_join iprop(∃ (n : w64), newSize_ptr ↦ n ∗ l ↦ iv ∗ in_ptr ↦ l ∗
       ⌜sint.Z n = max 1 (min (2 * (buf.length : Int)) (sint.Z iv.size'))⌝)
     with [newSize Hiv «in»] as ⟨%n, newSize, Hiv, «in», %Hn⟩
   · -- `len(buffer) * 2 == 0`. The product cannot wrap -- `len(buffer)` is below
     -- `size < 2^62` -- so this says the buffer is empty, and the new size is the
     -- literal 1. `size ≥ 1` by `Hsmall`, so `1 ≤ size`.
+    wp_store; wp_pures
+    isplitr; · ipureintro; trivial
     iexists _; iframe newSize Hiv «in»
     ipureintro
     word
-  · wp_if_destruct
+  · wp_load; wp_load; wp_pures; wp_load; wp_pures
+    wp_if_destruct
     · wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures
       -- `2 * len(buffer) > size`: cap at `size`.
       isplitr; · ipureintro; trivial
@@ -58,11 +62,13 @@ theorem tracker.Inflights.grow.wp_proof : tracker.Inflights.grow.spec (GF := GF)
   -- `wp_slice_copy` leaves the destination at `take (len dst) src ++ drop (len src) dst`;
   -- with `dst` a `replicate` and `len src ≤ len dst` that is `buf ++ replicate (new - old)
   -- zero`.
+  wp_pures; wp_load; wp_pures
   wp_apply wp_slice_make2 (V := tracker.inflight) n as %sl ⟨Hsl, Hsl_cap⟩
   · ipureintro; omega
   wp_pures; wp_alloc newBuffer_ptr as newBuffer; wp_pures; wp_store; wp_pures; wp_load; wp_pures
   wp_load; wp_pures; wp_load; wp_pures
   wp_apply wp_slice_copy (V := tracker.inflight) $$ [$Hsl $Hbuf] as %ncopy ⟨%Hncopy, Hsl, Hbuf⟩
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures
   have Hsn : sint.nat n = (sint.Z n).toNat := rfl
   have Hle : buf.length ≤ sint.nat n := by rw [Hsn]; omega
   rw [List.length_replicate, List.take_of_length_le Hle, List.drop_replicate]

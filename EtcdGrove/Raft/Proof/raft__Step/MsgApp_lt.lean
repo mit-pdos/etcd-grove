@@ -92,15 +92,23 @@ theorem wp_Step_MsgApp_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_Term $$ Hphys as Hphys
     wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
-    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; iclear r m | ∅
-    wp_raft_log
+    -- the log line (`wp_raft_log`, spelled out)
+    wp_apply wp_slice_literal; wp_pures
+    isplitr; (ipureintro; rfl)
+    iintro %_ ⟨_, -⟩
+    wp_pures; wp_load; wp_pures
+    wp_apply raft.wp_load_logger $$ Hphys as %lok ⟨Hphys, #Hlg⟩
+    wp_pures
+    wp_apply Logger.wp_logf lok _ _ _ (by decide) $$ Hlg
+    iclear Hlg
+    wp_pures; iclear r m
     iapply HΦ $$ %interface.nil %s
     iframe Hphys
     ipureintro
     exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, .refl _⟩, rfl⟩
   · wp_pures; wp_load; wp_pures
-    -- TODO(no-wp-auto): wp_auto (several runs): wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures
-    repeat (rw [Hty]; wp_auto)
+    rw [Hty]; wp_pures; wp_load; wp_pures
+    rw [Hty]; wp_pures; wp_load; wp_pures; wp_load; wp_pures
     let ack : raftpb.Message :=
       { Type' := W32 4, To' := m.From', From' := 0, Term' := 0, LogTerm' := 0, Index' := 0,
         Entries' := slice.nil, Commit' := 0, Vote' := 0, Snapshot' := null, Reject' := false,

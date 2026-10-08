@@ -21,27 +21,30 @@ theorem confchange.toConfChangeSingle.wp_proof :
     confchange.toConfChangeSingle.spec (GF := GF) (hG := hG) := by
   intro cs voters dq Hvo Hl Hln
   wp_start as Hvs
-  -- `in` is a Lean keyword: name its cell by hand before `wp_auto` names the others
+  -- `in` is a Lean keyword: name its cell `Hin`
   wp_pures
   wp_alloc in_ptr as Hin
   wp_pures; wp_alloc out_ptr as out; wp_pures; wp_alloc cs_ptr as cs; wp_pures; wp_load; wp_pures
   wp_alloc id_ptr as id; wp_pures; wp_alloc i_ptr as i; wp_pures
   -- `for _, id := range cs.VotersOutgoing` (twice), `cs.Learners`, `cs.LearnersNext`: the
   -- slices are empty, so each loop exits at its first test
-  wp_for_core
+  wp_for
   wp_pures; wp_load; wp_pures
   cleanup_bool_decide
-  -- TODO(no-wp-auto): wp_if_destruct: no manual sequence found (['ok', 'mismatch'])
   wp_if_destruct
   · exfalso; rw [Hvo] at Hif; word
-  wp_for_core
+  -- the second range: fresh `id` and `i` cells (the first loop's are dead)
+  iclear id i
+  wp_load; wp_pures; wp_alloc id_ptr as id; wp_pures; wp_alloc i_ptr as i; wp_pures
+  wp_for
   wp_pures; wp_load; wp_pures
   cleanup_bool_decide
-  -- TODO(no-wp-auto): wp_if_destruct: no manual sequence found (['ok', 'mismatch'])
   wp_if_destruct
   · exfalso; rw [Hvo] at Hif; word
   -- `for _, id := range cs.Voters { in = append(in, AddNode id) }`: after `n` iterations
   -- `in` holds the first `n` voters' changes
+  iclear id i
+  wp_load; wp_pures; wp_alloc id_ptr as id; wp_pures; wp_alloc i_ptr as i; wp_pures
   ihave Hnil : (slice.nil ↦* ([] : List raftpb.ConfChangeSingle)) $$ []
   · iapply ownSlice_nil
   ihave Hcap : ownSliceCap raftpb.ConfChangeSingle slice.nil (DFrac.own 1) $$ []
@@ -58,15 +61,14 @@ theorem confchange.toConfChangeSingle.wp_proof :
     simp only [named, show sint.nat (W64 0) = 0 by rfl, List.take_zero, List.map_nil]
     iframe
     ipureintro; constructor <;> word
-  wp_for_core
-  iNamed IH
+  wp_for IH
   wp_pures; wp_load; wp_pures
   cleanup_bool_decide
-  -- TODO(no-wp-auto): wp_if_destruct: no manual sequence found (['ok', 'mismatch'])
   wp_if_destruct
   · have Hlt : sint.nat n < voters.length := by word
     obtain ⟨x, Hx⟩ : ∃ x, voters[sint.nat n]? = some x := ⟨_, List.getElem?_eq_getElem Hlt⟩
     have Hbnd' : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z cs.Voters'.len := ⟨Hn.1, by word⟩
+    wp_load; wp_pures
     simp only [Hbnd', and_self]
     wp_apply wp_load_slice_index cs.Voters' (sint.Z n) _ _ x Hn.1 $$ [Hvs] with Hvs
     · iframe Hvs; ipureintro; exact Hx
@@ -91,19 +93,21 @@ theorem confchange.toConfChangeSingle.wp_proof :
     -- `return out, in`
     have Hn' : sint.nat n = voters.length := by word
     rw [Hn', List.take_length]
-    wp_for_core
+    iclear id i
+    wp_load; wp_pures; wp_alloc id_ptr as id; wp_pures; wp_alloc i_ptr as i; wp_pures
+    wp_for
     wp_pures; wp_load; wp_pures
     cleanup_bool_decide
-    -- TODO(no-wp-auto): wp_if_destruct: no manual sequence found (['ok', 'mismatch'])
     wp_if_destruct
     · exfalso; rw [Hl] at Hif; word
-    wp_for_core
+    iclear id i
+    wp_load; wp_pures; wp_alloc id_ptr as id; wp_pures; wp_alloc i_ptr as i; wp_pures
+    wp_for
     wp_pures; wp_load; wp_pures
     cleanup_bool_decide
     wp_if_destruct
-    · wp_load; wp_pures
-    wp_load; wp_load; wp_pures; iclear out Hin id i
-      exfalso; rw [Hln] at Hif; word
+    · exfalso; rw [Hln] at Hif; word
+    wp_load; wp_load; wp_pures
     iapply HΦ
     iframe
 

@@ -34,9 +34,8 @@ theorem raftLog.mustCheckOutOfBounds.wp_proof
   wp_alloc l_ptr as l; wp_pures; wp_alloc hi_ptr as hi; wp_pures; wp_alloc lo_ptr as lo; wp_pures
   wp_load; wp_load; wp_pures
   wp_if_destruct
-  · wp_load; wp_pures; wp_load; wp_pures
+  · exfalso; word
   wp_load; wp_pures
-    exfalso; word
   wp_apply wp_raftLog_firstIndex _ ls $$ [$Hlog] as %fi ⟨Hlog, %Hfi⟩
   wp_pures; wp_alloc fi_ptr as fi; wp_pures; wp_store; wp_pures; wp_load; wp_load; wp_pures
   wp_if_destruct
@@ -46,8 +45,7 @@ theorem raftLog.mustCheckOutOfBounds.wp_proof
   wp_pures; wp_load; wp_pures; wp_alloc length_ptr as length; wp_pures; wp_store; wp_pures; wp_load
   wp_load; wp_load; wp_pures; iclear length
   wp_if_destruct
-  · wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear hi lo fi
-    exfalso; word
+  · exfalso; word
   iapply HΦ
   iframe Hlog
 

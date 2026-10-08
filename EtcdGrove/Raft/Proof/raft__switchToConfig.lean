@@ -50,8 +50,18 @@ theorem raft.switchToConfig.wp_proof
   icases ownRaftPhys_tracker_same cfg r id _ $$ Hphys with ⟨%tv1, Htrkf, Htrk, Hback⟩
   wp_load; wp_pures
   ihave Hphys := Hback $$ %tv1 Htrkf Htrk
-  -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures | ∅
-  wp_raft_log
+  wp_apply Perennial.wp_slice_literal
+  wp_pures
+  isplitr
+  · ipureintro
+    rfl
+  iintro %_ ⟨_, -⟩
+  wp_pures; wp_load; wp_pures
+  wp_apply raft.wp_load_logger $$ Hphys as %lok ⟨Hphys, #Hlg⟩
+  wp_pures
+  wp_apply Logger.wp_logf lok _ _ _ (by decide) $$ Hlg
+  iclear Hlg
+  wp_pures; wp_load; wp_pures
   -- `cs := r.trk.ConfState()`
   icases ownRaftPhys_tracker_same cfg r id _ $$ Hphys with ⟨%tv2, Htrkf, Htrk, Hback⟩
   wp_apply wp_ProgressTracker_ConfState $$ [$Htrkf $Htrk]

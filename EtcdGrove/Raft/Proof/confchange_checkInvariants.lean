@@ -135,8 +135,8 @@ theorem confchange.checkInvariants.wp_proof
   · wp_load; wp_pures; wp_alloc id_ptr as id; wp_pures; iclear i ids
     -- the learner ranges (nil), then the non-joint checks
     wp_func_lits
-    -- TODO(no-wp-auto): wp_auto: no manual sequence found (['mismatch'])
-    wp_auto
+    -- ranging over the nil `Learners` is a pure step; the `LearnersNext` loop has its own `id`
+    wp_pures; iclear id; wp_load; wp_pures; wp_alloc id_ptr as id; wp_pures
     wp_func_lits
     wp_pures; wp_load; wp_pures; iclear trk id
     wp_apply wp_confchange_joint

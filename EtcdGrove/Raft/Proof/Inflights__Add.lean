@@ -29,13 +29,15 @@ set_option hygiene false in
 `count` and `bytes`, and hand back `ownInflights`. (Rocq `Ltac add_store`; the stored value is
 always `⟨index, bytes⟩`, so it is not a parameter here.) -/
 macro "inflights_add_store" : tactic => `(tactic| (
-  try wp_auto
   rw [ite_of_true (by word)]
-  wp_auto
+  wp_pures
   wp_apply wp_store_slice_index (V := tracker.inflight) (t := tracker.inflight.ty) _ _ _
     ⟨index, bytes⟩ $$ [Hbuf] as Hbuf
   · iframe; ipureintro; word
-  wp_auto
+  wp_pures
+  -- `in.count++`, `in.bytes += bytes`
+  wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures
+  wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures
   iapply HΦ
   iexists _, _
   simp only [named]
@@ -85,7 +87,8 @@ theorem tracker.Inflights.Add.wp_proof
   intro l i index bytes Hfull
   wp_start as H
   iNamed H
-  wp_auto
+  wp_alloc in_ptr as «in»; wp_pures; wp_alloc bytes_ptr as bytes; wp_pures
+  wp_alloc index_ptr as index; wp_pures; wp_load; wp_pures
   wp_apply wp_Inflights_Full $$ [$Hin] as Hin
   rw [Hfull]
   unfold ownInflights
@@ -119,7 +122,6 @@ theorem tracker.Inflights.Add.wp_proof
     · wp_load; wp_pures
       -- unreachable: `next < size = len(buffer)`
       exfalso; word
-    -- TODO(no-wp-auto): macro `inflights_add_store` runs wp_auto: ∅ | wp_pures | ∅
     · wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures
       iclear index next
       inflights_add_store
@@ -143,9 +145,8 @@ theorem tracker.Inflights.Add.wp_proof
       -- `inflights_add_store`'s `word` needs it as `sl`
       dsimp only at Hinfl_ok ⊢
       ihave %Hblen' := ownSlice_len _ _ _ $$ Hbuf
-      -- TODO(no-wp-auto): macro `inflights_add_store` runs wp_auto: wp_load; wp_load; wp_pures; iclear next | wp_pures | ∅
+      wp_load; wp_load; wp_pures; iclear next
       inflights_add_store
-    -- TODO(no-wp-auto): macro `inflights_add_store` runs wp_auto: ∅ | wp_pures | ∅
     · wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures
       iclear index next
       inflights_add_store

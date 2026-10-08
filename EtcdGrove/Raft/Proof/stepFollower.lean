@@ -23,7 +23,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 set_option linter.unusedSimpArgs false in
 /-- By type. The type switch's first test is against `MsgProp`
-(`W32 2`); rewriting `m.Type` to its literal lets `wp_auto` decide
+(`W32 2`); rewriting `m.Type` to its literal lets `wp_pures` decide
 the rest by computation.
 
 - `MsgVoteResp`, `MsgBeat`, `MsgAppResp`, `MsgHeartbeatResp`: no arm
@@ -78,8 +78,8 @@ theorem stepFollower.wp_proof
       wp_pures; wp_load; wp_pures
       wp_apply raft.wp_load_Term $$ Hphys as Hphys
       wp_pures
-      -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; iclear m r | ∅
       wp_raft_log
+      wp_pures; wp_load; wp_pures; iclear m r
       iapply HΦ $$ %errPropDropped %s %true
       iframe Hphys
       simp only [↓reduceIte]

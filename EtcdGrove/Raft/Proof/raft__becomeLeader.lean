@@ -142,8 +142,8 @@ theorem raft.becomeLeader.wp_proof
   wp_pures; wp_load; wp_pures
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
   wp_pures
-  -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures; iclear r | wp_pures | wp_pures | ∅
   wp_raft_log
+  wp_pures
   iapply HΦ
   iframe
   ipureintro

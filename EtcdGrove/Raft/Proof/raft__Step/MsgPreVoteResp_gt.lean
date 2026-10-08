@@ -58,11 +58,12 @@ local macro "prevote_resp_dispatch" : tactic =>
         · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
         · iintro %Hc; exfalso; rw [Hty] at Hc
           rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
+      wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures
       obtain ⟨rfl, rfl⟩ := followerStepResult_prevoteresp _ _ _ _ _ _ _ Hty Hres
       simp only [Bool.false_eq_true, ↓reduceIte]
       icases Herrn with %Herrn
       subst Herrn
-      wp_auto
+      wp_pures; iclear err
       iapply HΦ $$ %interface.nil %_
       iframe Hphys
       ipureintro
@@ -84,12 +85,13 @@ local macro "prevote_resp_dispatch" : tactic =>
         isplitl []
         · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
         · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+      wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures
       obtain ⟨rfl, Hwf1, Hst⟩ :=
         candidateStepResult_prevoteresp cfg _ _ _ _ _ _ _ Hty (.inl Hrole) Hcfg Hnw Hwf Hres
       simp only [Bool.false_eq_true, ↓reduceIte]
       icases Herrn with %Herrn
       subst Herrn
-      wp_auto
+      wp_pures; iclear err
       iapply HΦ $$ %interface.nil %s1
       iframe Hphys
       ipureintro
@@ -108,11 +110,12 @@ local macro "prevote_resp_dispatch" : tactic =>
         isplitl []
         · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
         · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+      wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures
       obtain ⟨rfl, rfl⟩ := leaderStepResult_prevoteresp cfg _ _ _ _ _ _ Hty Hres
       simp only [Bool.false_eq_true, ↓reduceIte]
       icases Herrn with %Herrn
       subst Herrn
-      wp_auto
+      wp_pures; iclear err
       iapply HΦ $$ %interface.nil %_
       iframe Hphys
       ipureintro
@@ -133,12 +136,13 @@ local macro "prevote_resp_dispatch" : tactic =>
         isplitl []
         · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
         · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+      wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures
       obtain ⟨rfl, Hwf1, Hst⟩ :=
         candidateStepResult_prevoteresp cfg _ _ _ _ _ _ _ Hty (.inr Hrole) Hcfg Hnw Hwf Hres
       simp only [Bool.false_eq_true, ↓reduceIte]
       icases Herrn with %Herrn
       subst Herrn
-      wp_auto
+      wp_pures; iclear err
       iapply HΦ $$ %interface.nil %s1
       iframe Hphys
       ipureintro
@@ -202,7 +206,6 @@ theorem wp_Step_MsgPreVoteResp_gt (_P : raft.Step.Postulates (GF := GF) (hG := h
     wp_pures; wp_load; wp_pures
     rw [Hty]
     wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear r m
-    -- TODO(no-wp-auto): macro `prevote_resp_dispatch` runs wp_auto: ∅ | wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures | wp_pures; iclear err | wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures | wp_pures; iclear err | wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures | wp_pures; iclear err | wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures | wp_pures; iclear err
     prevote_resp_dispatch
   -- rejected: step down to the higher term, no leader
   wp_pures; wp_load; wp_pures
@@ -210,8 +213,16 @@ theorem wp_Step_MsgPreVoteResp_gt (_P : raft.Step.Postulates (GF := GF) (hG := h
   wp_pures; wp_load; wp_pures
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
   wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
-  -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures | ∅
-  wp_raft_log
+  -- the log line (`wp_raft_log`, spelled out)
+  wp_apply wp_slice_literal; wp_pures
+  isplitr; (ipureintro; rfl)
+  iintro %_ ⟨_, -⟩
+  wp_pures; wp_load; wp_pures
+  wp_apply raft.wp_load_logger $$ Hphys as %lok ⟨Hphys, #Hlg⟩
+  wp_pures
+  wp_apply Logger.wp_logf lok _ _ _ (by decide) $$ Hlg
+  iclear Hlg
+  wp_pures; wp_load; wp_pures
   rw [Hn3]
   wp_pures; wp_load; wp_pures
   rw [Hn8]

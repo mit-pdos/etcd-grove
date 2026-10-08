@@ -21,7 +21,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 set_option hygiene false in
 /-- Rocq's local `read_field`: one read of `r.raftLog.f` -- the struct gives the log's
 location, the log (taken out and put back around the one load) the field, whose value
-the log's state pins for `applied`/`committed`. Works on `Hphys`. -/
+the log's state pins for `applied`/`committed`. Works on `Hphys`. The steps after the
+field load differ between the call sites, which take them. -/
 local macro "read_field" : tactic => `(tactic| (
   wp_bind (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Val _))
   iapply Perennial.EtcdGrove.raft.wp_load_raftLog $$ Hphys
@@ -29,7 +30,7 @@ local macro "read_field" : tactic => `(tactic| (
   iintro Hphys
   icases Perennial.EtcdGrove.ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hback⟩
   icases Perennial.EtcdGrove.ownRaftLog_struct _ _ $$ Hlog with ⟨%lv, Hl, %Hlv, Hlb⟩
-  wp_auto
+  wp_pures; wp_load
   ihave Hlog := Hlb $$ Hl
   ihave Hphys := Hback $$ Hlog
   try rw [Hlv.1]
@@ -101,21 +102,23 @@ theorem raft.hasUnappliedConfChanges.wp_proof
   obtain ⟨Hpa, Hac, Hcl, Hnw, Hnc⟩ := Hfacts
   ihave Hphys := Hback $$ Hlog
   wp_alloc r_ptr as r; wp_pures; wp_load; wp_pures
-  -- TODO(no-wp-auto): macro `read_field` runs wp_auto: wp_pures; wp_load; wp_load; wp_pures
   read_field
-  -- TODO(no-wp-auto): macro `read_field` runs wp_auto: wp_pures; wp_load; wp_pures
+  wp_load; wp_pures
   read_field
+  wp_pures
   wp_if_destruct
   · -- `applied >= committed`: the range is empty and the answer is `false`
     iapply HΦ $$ Hphys
   wp_alloc found_ptr as found; wp_pures; wp_store; wp_pures; wp_load; wp_pures
   -- the reads of `r.raftLog` for `lo`, `hi`, `pageSize`
-  -- TODO(no-wp-auto): macro `read_field` runs wp_auto: wp_pures; wp_load; wp_pures; wp_load; wp_pures
   read_field
-  -- TODO(no-wp-auto): macro `read_field` runs wp_auto: wp_pures; wp_load; wp_pures; wp_alloc hi_ptr as hi; wp_pures; wp_alloc lo_ptr as lo; wp_pures; wp_store; wp_pures; wp_store; wp_pures; wp_load; wp_pures
+  wp_pures; wp_load; wp_pures
   read_field
-  -- TODO(no-wp-auto): macro `read_field` runs wp_auto: wp_pures; wp_load; wp_pures; wp_alloc pageSize_ptr as pageSize; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear pageSize
+  wp_pures; wp_alloc hi_ptr as hi; wp_pures; wp_alloc lo_ptr as lo; wp_pures; wp_store; wp_pures
+  wp_store; wp_pures; wp_load; wp_pures
   read_field
+  wp_pures; wp_alloc pageSize_ptr as pageSize; wp_pures; wp_store; wp_pures; wp_load; wp_pures
+  wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear pageSize
   wp_bind (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Val _))
   iapply raft.wp_load_raftLog $$ Hphys
   inext

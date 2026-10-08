@@ -1,8 +1,8 @@
 /- Port of election_proof/proof_raft__Step_helpers/proof_raft__Step_MsgVoteResp.v.
 
 One branch of `Step`'s proof, in its own file so that the branches check in parallel
--- each is a few minutes of `wp_auto` over the same 100k-node body, and in one file they
-ran back to back.
+-- each is a few minutes of symbolic execution over the same 100k-node body, and in one
+file they ran back to back.
 
 This is **proof structure, not specification**: `Step` has exactly one spec, in
 `Spec/raft__Step.lean`, and this module has no `Module Type` and no `Parameter`.
@@ -22,7 +22,7 @@ Lean notes:
   application, 2026-09-24) is not ported; `MsgBeat.lean` uses
   `wp_apply raft.wp_load_step $$ Hphys as Hphys` there, and so does this proof.
 * Rocq's hoisted `bool_decide` facts (`Hn17`, `Hn5`, …) are not needed: as in
-  `MsgApp_gt.lean`, `repeat (rw [Hty]; wp_auto)` evaluates each type test.
+  `MsgApp_gt.lean`, `rw [Hty]` before the steps of each type test evaluates it.
 * `ite_pos`/`ite_neg` are local helpers for the `if`s of `FollowerStepResult` etc.
 -/
 import EtcdGrove.Raft.Proof.raft__Step.Base
@@ -108,10 +108,11 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_Term $$ Hphys as Hphys
     wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
-    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures | ∅
     wp_raft_log
-    -- TODO(no-wp-auto): wp_auto (several runs): wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures
-    repeat (rw [Hty]; wp_auto)
+    wp_pures; wp_load; wp_pures
+    rw [Hty]; wp_pures; wp_load; wp_pures
+    rw [Hty]; wp_pures; wp_load; wp_pures
+    rw [Hty]; wp_pures; wp_load; wp_pures; wp_load; wp_pures
     -- a `MsgVoteResp` is not from a leader: `becomeFollower(m.Term, None)`
     wp_apply _P.becomeFollower $$ [$Hphys] as %pvs Hphys
     wp_pures; wp_load; wp_pures
@@ -168,8 +169,8 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         wp_pures; wp_load; wp_pures
         wp_apply raft.wp_load_Term $$ Hphys as Hphys
         wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
-        -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; iclear r m | ∅ | wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; iclear r m | ∅
         wp_raft_log
+        wp_pures; iclear r m
         iapply HΦ $$ %interface.nil %s
         iframe Hphys
         ipureintro

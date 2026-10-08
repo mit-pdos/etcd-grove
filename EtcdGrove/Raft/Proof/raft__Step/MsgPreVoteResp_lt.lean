@@ -74,9 +74,9 @@ theorem wp_Step_MsgPreVoteResp_lt (_P : raft.Step.Postulates (GF := GF) (hG := h
   have Hn20 : decide (m.Type' = W32 20) = false := decide_eq_false (by rw [Hty]; w32_ne)
   -- `checkQuorum` is off; with pre-vote on the type test runs and is false
   cases s.prevote <;> (wp_pures; wp_load; wp_pures)
-  -- TODO(no-wp-auto): col 46: wp_pures; wp_load; wp_pures
-  -- TODO(no-wp-auto): col 27: wp_pures; wp_load; wp_pures
-  all_goals try (rw [Hn8]; wp_auto; rw [Hn3]; wp_auto)
+  -- pre-vote on (the second goal): the `MsgPreVote`/`MsgVote` type tests
+  rotate_left
+  rw [Hn8]; wp_pures; wp_load; wp_pures; rw [Hn3]; wp_pures; wp_load; wp_pures
   all_goals
     rw [Hn17]
     wp_pures; wp_load; wp_pures
@@ -86,8 +86,8 @@ theorem wp_Step_MsgPreVoteResp_lt (_P : raft.Step.Postulates (GF := GF) (hG := h
     wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_Term $$ Hphys as Hphys
     wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
-    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; iclear r m | ∅ | wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; iclear r m | ∅
     wp_raft_log
+    wp_pures
     iapply HΦ $$ %interface.nil %s
     iframe Hphys
     ipureintro

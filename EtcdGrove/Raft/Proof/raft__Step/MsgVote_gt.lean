@@ -113,8 +113,8 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   wp_pures; wp_load; wp_pures
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
   wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
-  -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures | ∅
   wp_raft_log
+  wp_pures; wp_load; wp_pures
   -- a `MsgVote` is not from a leader, so no leader is adopted
   ty_ne 3
   wp_pures; wp_load; wp_pures
@@ -179,9 +179,9 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     wp_pures; iclear candLastID
     wp_apply raft.wp_load_Term $$ Hphys as Hphys
     wp_pures
-    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures | ∅ | wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures | ∅
     wp_raft_log
   · -- the candidate's log is behind: decline, without recording a vote
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_Term $$ Hphys as Hphys
     wp_pures; wp_load; wp_pures; iclear m
     wp_apply _P.voteRespMsgType m.Type' MsgVoteResp (.inl ⟨Hty, rfl⟩)
@@ -209,6 +209,7 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     · rw [toPState_sendMsgs, Hps1, Ht1]
       exact step_stepdown_then_reject cfg id (toPState s) (absMsg .vote m ents) rfl Hto Hgt0
   · -- the candidate's log is up to date: grant the vote
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
     wp_apply _P.voteRespMsgType m.Type' MsgVoteResp (.inl ⟨Hty, rfl⟩)
     wp_pures; wp_load; wp_pures
     let resp : raftpb.Message :=

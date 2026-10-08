@@ -64,21 +64,20 @@ theorem tracker.ProgressTracker.Visit.wp_proof
   wp_start as ⟨Htrk, Hown, HI, #Hf⟩
   iNamed Hown
   dsimp only at *
-  -- TODO(no-wp-auto): wp_auto: no manual sequence found (['mismatch'])
-  wp_auto
+  wp_alloc p_ptr as p; wp_pures; wp_alloc f_ptr as f; wp_pures; wp_load; wp_pures; wp_load; wp_pures
   -- `n := len(p.Progress)`
   wp_apply wp_ProgressMap_len $$ Hprs as -
   wp_pures; wp_alloc n_ptr as n; wp_pures; wp_store; wp_pures; wp_alloc sl_ptr as sl; wp_pures
   wp_alloc ids_ptr as ids; wp_pures; wp_load; wp_pures
   have Hsz : (GMap.size prs : Int) < 2 ^ 63 := by
     rw [← Hprs_dom, GMap.size_dom] at Hcfg_size; exact Hcfg_size
-  -- TODO(no-wp-auto): wp_join runs (cont first, then the cases): wp_load; wp_pures | wp_load; wp_pures; iclear sl
   wp_join iprop(∃ (sl : GoSlice) (xs : List w64),
       "n" ∷ n_ptr ↦ W64 (GMap.size prs) ∗
       "ids" ∷ ids_ptr ↦ sl ∗
       "Hsl" ∷ sl ↦* xs ∗
       "%Hxs_len" ∷ ⌜xs.length = GMap.size prs⌝) with [n ids sl]
   · -- fast path: `ids = sl[:n]` aliases the stack array
+    wp_load; wp_pures
     rw [ite_eq_left (by word)]
     wp_pures; wp_store; wp_pures
     ihave Hsl := slice_array (V := w64) sl_ptr 7 _ (by decide) $$ sl
@@ -95,6 +94,7 @@ theorem tracker.ProgressTracker.Visit.wp_proof
       List.length_take, List.length_replicate]
     word
   · -- slow path: `ids = make([]uint64, n)`
+    wp_load; wp_pures; iclear sl
     wp_apply wp_slice_make2 (V := w64) (t := go.uint64) (W64 (GMap.size prs)) $$ [] as
       %sl ⟨Hsl, -⟩
     · ipureintro; word

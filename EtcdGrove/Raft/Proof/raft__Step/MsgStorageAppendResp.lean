@@ -81,9 +81,19 @@ theorem wp_Step_MsgStorageAppendResp (_P : raft.Step.Postulates (GF := GF) (hG :
     wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_preVote $$ Hphys as Hphys
     -- not `MsgHeartbeat`/`MsgApp`, not `MsgPreVote`: the `MsgStorageAppendResp` arm
-    -- TODO(no-wp-auto): col 54: wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures
-    -- TODO(no-wp-auto): col 24: wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures
-    cases s.prevote <;> wp_auto <;> repeat (rw [Hty]; wp_auto)
+    cases s.prevote
+    -- `preVote` off
+    wp_pures; wp_load; wp_pures
+    rw [Hty]; wp_pures; wp_load; wp_pures
+    rw [Hty]; wp_pures; wp_load; wp_pures
+    rotate_left
+    -- `preVote` on
+    wp_pures; wp_load; wp_pures
+    rw [Hty]; wp_pures; wp_load; wp_pures
+    rw [Hty]; wp_pures; wp_load; wp_pures
+    rw [Hty]; wp_pures; wp_load; wp_pures
+    rw [Hty]; wp_pures; wp_load; wp_pures
+    rotate_left
     all_goals
       by_cases Hi0 : m.Index' = W64 0
       all_goals first
@@ -96,8 +106,8 @@ theorem wp_Step_MsgStorageAppendResp (_P : raft.Step.Postulates (GF := GF) (hG :
            wp_pures; wp_load; wp_pures
            wp_apply raft.wp_load_Term $$ Hphys as Hphys
            wp_pures; wp_load; wp_pures; wp_load; wp_pures
-           -- TODO(no-wp-auto): macro `wp_raft_log)` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures | ∅ | wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures | ∅
-           wp_raft_log)
+           wp_raft_log
+           wp_pures; wp_load; wp_pures)
     -- no snapshot
     all_goals
       rw [decide_eq_true Hsn]
@@ -130,7 +140,7 @@ theorem wp_Step_MsgStorageAppendResp (_P : raft.Step.Postulates (GF := GF) (hG :
        (wp_pures; wp_load; wp_pures))
   -- the type switch: `MsgStorageAppendResp`
   all_goals
-    repeat (rw [Hty]; (wp_pures; wp_load; wp_pures))
+    rw [Hty]; wp_pures; wp_load; wp_pures
     by_cases Hi0 : m.Index' = W64 0
     · rw [decide_eq_true Hi0]
       wp_pures; wp_load; wp_pures

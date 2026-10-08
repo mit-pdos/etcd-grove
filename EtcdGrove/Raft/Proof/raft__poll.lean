@@ -46,8 +46,16 @@ theorem raft.poll.wp_proof
     wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear t
     wp_apply raft.wp_load_Term $$ Hphys as Hphys
     wp_pures
-    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear v id | ∅ | wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear v id | ∅
-    wp_raft_log
+    -- the log line (`wp_raft_log`, spelled out)
+    wp_apply wp_slice_literal; wp_pures
+    isplitr; (ipureintro; rfl)
+    iintro %_ ⟨_, -⟩
+    wp_pures; wp_load; wp_pures
+    wp_apply raft.wp_load_logger $$ Hphys as %lok ⟨Hphys, #Hlg⟩
+    wp_pures
+    wp_apply Logger.wp_logf lok _ _ _ (by decide) $$ Hlg
+    iclear Hlg
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear v id
     icases ownRaftPhys_tracker cfg r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
     wp_apply wp_ProgressTracker_RecordVote $$ [$Htrkf $Htrk] as ⟨Htrkf, Htrk⟩
     wp_pures; wp_load; wp_pures; iclear r

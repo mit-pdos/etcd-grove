@@ -18,7 +18,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- The three-armed switch; the `panic` arm is ruled out by the record's state being
-one of the three (`progressAbs`, `Defs.lean`). `wp_auto` runs the switch: once the
+one of the three (`progressAbs`, `Defs.lean`). `wp_pures` runs the switch: once the
 state is a literal, the remaining tests are between closed `w64` literals. -/
 theorem tracker.Progress.IsPaused.wp_proof :
     tracker.Progress.IsPaused.spec (GF := GF) (hG := hG) := by
@@ -31,17 +31,19 @@ theorem tracker.Progress.IsPaused.wp_proof :
   wp_alloc pr_ptr as pr; wp_pures; wp_load; wp_pures; wp_load; wp_pures
   unfold progressIsPaused
   cases h : p.state <;> rw [h] at Hst <;> simp only [prstateW64] at Hst <;>
-    -- TODO(no-wp-auto): wp_auto (several runs): wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear pr | wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear pr | wp_pures; iclear pr
-    simp only [Hst] <;> wp_auto
+    simp only [Hst]
   · -- StateProbe
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures
     rw [Hpa]
     iapply HΦ
     iapply ownProgress_intro $$ Hpv Hinfl %Habs
   · -- StateReplicate
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures
     rw [Hpa]
     iapply HΦ
     iapply ownProgress_intro $$ Hpv Hinfl %Habs
   · -- StateSnapshot: paused unconditionally
+    wp_pures
     iapply HΦ
     iapply ownProgress_intro $$ Hpv Hinfl %Habs
 

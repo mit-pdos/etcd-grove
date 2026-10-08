@@ -33,9 +33,8 @@ theorem tracker.Config.Clone.wp_proof : tracker.Config.Clone.spec (GF := GF) (hG
   -- `clone(c.Voters[0])`, inlined: the map is not nil, so it is copied key by key
   ihave %Hvnn := ownMap_not_nil _ _ _ $$ Hv
   wp_if_destruct
-  · wp_load; wp_pures; iclear m
+  · exact absurd rfl Hvnn
   wp_load; wp_pures
-    exact absurd rfl Hvnn
   wp_apply wp_map_len $$ Hv as Hv
   wp_pures
   wp_apply wp_map_make2 as %mref Hmref
@@ -110,11 +109,14 @@ theorem tracker.Config.Clone.wp_proof : tracker.Config.Clone.spec (GF := GF) (hG
       show cfg.Voters'.arr[(sint.Z (W64 1)).toNat]? = some map.nil
       rw [Harr]; rfl)
     $$ Voters with ⟨Hv1, Hvback⟩
-  -- TODO(no-wp-auto): wp_auto: no manual sequence found (['mismatch'])
-  wp_auto
+  wp_pures; wp_load; wp_pures
+  wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+  wp_alloc m_ptr as m; wp_pures; wp_load; wp_pures; iclear m
   rw [Hl, Hln]
-  -- TODO(no-wp-auto): wp_auto: no manual sequence found (['mismatch'])
-  wp_auto
+  wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+  wp_alloc m_ptr as m; wp_pures; wp_load; wp_pures; iclear m
+  wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+  wp_alloc m_ptr as m; wp_pures; wp_load; wp_pures; iclear m
   -- `return Config{...}`: the receiver back together, the fresh voter map `mref`
   iapply HΦ
   ihave Voters := Hvback $$ Hv1

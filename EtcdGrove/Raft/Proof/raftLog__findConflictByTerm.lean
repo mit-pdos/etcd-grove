@@ -40,9 +40,9 @@ theorem raftLog.findConflictByTerm.wp_proof
   cleanup_bool_decide
   wp_if_destruct
   · wp_load; wp_pures; wp_load; wp_pures
+    wp_apply wp_raftLog_term $$ [$Hlog] as %t %err ⟨Hlog, %Herr, %Ht, -⟩
     wp_pures; wp_alloc err_ptr as err; wp_pures; wp_alloc ourTerm_ptr as ourTerm; wp_pures; wp_store
     wp_pures; wp_store; wp_pures; wp_load; wp_pures; iclear err
-    wp_apply wp_raftLog_term $$ [$Hlog] as %t %err ⟨Hlog, %Herr, %Ht, -⟩
     cases err with
     | ok eok =>
       wp_pures; wp_load; wp_pures; iclear ourTerm
@@ -56,8 +56,8 @@ theorem raftLog.findConflictByTerm.wp_proof
       wp_pures; wp_load; wp_load; wp_pures
       wp_if_destruct
       · wp_load; wp_load; wp_pures; iclear ourTerm
-        wp_pures; iclear l term index
         wp_for_post
+        wp_pures; iclear l term index
         iapply HΦ
         iframe
         ipureintro

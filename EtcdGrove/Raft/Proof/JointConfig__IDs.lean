@@ -27,7 +27,7 @@ theorem quorum.JointConfig.IDs.wp_proof :
     quorum.JointConfig.IDs.spec (GF := GF) (hG := hG) := by
   intro p jc v vm dq dqv Harr
   wp_start as ⟨Hp, Hvoters⟩
-  -- `wp_auto` reads the `JointConfig` out of `p ↦{dq} jc` and reduces the pointer method
+  -- Read the `JointConfig` out of `p ↦{dq} jc` and reduce the pointer method
   -- to the value method applied to the `JointConfig` value.
   wp_load; wp_pures
   wp_method_call
@@ -99,8 +99,8 @@ theorem quorum.JointConfig.IDs.wp_proof :
   iNamed HP
   rw [Int.toNat_natCast, ← Hklen, List.take_length] at Hidm
   -- `c[1]`: put element 0 back, peel element 1 off; it is `map.nil`, and ranging over
-  -- the nil map is the pure step `wp_map_nil_for_range`, which `wp_auto` takes once the
-  -- loop variable is allocated.
+  -- the nil map is the pure step `wp_map_nil_for_range`, which `wp_pures` takes once the
+  -- loop variable (a new `id`, named `id'`) is allocated.
   ihave c := Hcback $$ Hc0
   icases array_acc _ (sint.Z (W64 1)) _ _ _ map.nil (by decide)
     (by
@@ -109,10 +109,9 @@ theorem quorum.JointConfig.IDs.wp_proof :
       show jc.arr[(sint.Z (W64 1)).toNat]? = some map.nil
       rw [Harr]; rfl)
     $$ c with ⟨Hc1, Hcback⟩
-  -- TODO(no-wp-auto): wp_auto: no manual sequence found (['mismatch'])
-  wp_auto
+  wp_pures; wp_load; wp_pures; wp_alloc id_ptr' as id'; wp_pures
   wp_func_lits
-  wp_pures; wp_load; wp_pures; iclear m id
+  wp_pures; wp_load; wp_pures; iclear m id id'
   -- `return m`
   iapply HΦ
   iframe Hp Hvoters Hmref

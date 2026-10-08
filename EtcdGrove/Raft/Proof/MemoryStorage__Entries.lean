@@ -73,9 +73,8 @@ theorem MemoryStorage.Entries.wp_proof
   simp only [List.length_cons] at Hlen2
   obtain ⟨Hd0', Hd1'⟩ := Hdummy
   wp_if_destruct
-  · wp_load; wp_pures; wp_load; wp_pures
+  · exfalso; word
   wp_load; wp_pures; wp_load; wp_pures
-    exfalso; word
   wp_if_destruct
   · exfalso; word
   wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_load; wp_pures

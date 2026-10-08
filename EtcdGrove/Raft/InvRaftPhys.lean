@@ -1399,13 +1399,14 @@ Depending on the arguments, `wp_slice_literal`'s equation may already be dischar
 hence the `try`s (as in Rocq). -/
 macro "wp_raft_log" : tactic => `(tactic| (
   wp_apply Perennial.wp_slice_literal
+  wp_pures
   try (isplitr; (ipureintro; rfl))
   try iintro %_ ⟨_, -⟩
-  try wp_auto
+  wp_pures; wp_load; wp_pures
   wp_apply Perennial.EtcdGrove.raft.wp_load_logger $$ Hphys as %lok ⟨Hphys, #Hlg⟩
+  wp_pures
   wp_apply Perennial.EtcdGrove.Logger.wp_logf lok _ _ _ (by decide) $$ Hlg
-  iclear Hlg
-  try wp_auto))
+  iclear Hlg))
 
 end EtcdGrove
 end Perennial

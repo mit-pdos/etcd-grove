@@ -248,17 +248,18 @@ theorem raft.appendEntry.wp_proof
     have Hlast : logLast s.logst = li := by
       unfold logLast; word
     rw [Hlast]
-    -- TODO(no-wp-auto): wp_auto (several runs): wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures
-    cases ok <;> wp_auto
+    cases ok
     · -- dropped: `Warningf`, `return false`, the struct untouched
+      wp_pures; wp_load; wp_pures
       wp_apply raft.wp_load_id $$ Hphys as Hphys
       wp_pures
-      -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; iclear r es li | ∅
       wp_raft_log
+      wp_pures; iclear r es li
       iapply HΦ
       simp only [Bool.false_eq_true, ↓reduceIte]
       iframe
       ipureintro; exact fun h => absurd (Hacc h) (by decide)
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures
     wp_apply wp_traceReplicate
     wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear es
     wp_apply raft.wp_load_raftLog $$ Hphys as Hphys

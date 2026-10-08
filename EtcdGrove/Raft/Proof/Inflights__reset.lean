@@ -26,7 +26,12 @@ theorem tracker.Inflights.reset.wp_proof :
   iNamed Hin
   unfold ownInflightsRaw
   iNamed Hin
-  wp_auto
+  wp_pures
+  wp_alloc_auto
+  wp_pures
+  wp_load; wp_pures; wp_store; wp_pures
+  wp_load; wp_pures; wp_store; wp_pures
+  wp_load; wp_pures; wp_store; wp_pures
   iapply HΦ
   iexists { iv with start' := W64 0, count' := W64 0, bytes' := W64 0 }, buf
   simp only [named]

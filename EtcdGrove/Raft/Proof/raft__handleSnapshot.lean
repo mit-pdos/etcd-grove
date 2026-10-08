@@ -19,6 +19,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 /-- The reply of every exit: `SendOk`'s `MsgAppResp` clause, with no entries. -/
 private theorem appResp_sendOk (id : w64) (s : NState) (dst idx : w64) :
     SendOk id s
@@ -62,8 +63,8 @@ theorem raft.handleSnapshot.wp_proof
     wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear sindex sterm
     ihave Hlog := Hlb $$ Hl
     ihave Hphys := Hlogback $$ Hlog
-    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear m | ∅
     wp_raft_log
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear m
     wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
     wp_pures
     icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
@@ -94,8 +95,8 @@ theorem raft.handleSnapshot.wp_proof
     wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear sindex sterm
     ihave Hlog := Hlb $$ Hl
     ihave Hphys := Hlogback $$ Hlog
-    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear m | ∅
     wp_raft_log
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear m
     wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
     wp_pures
     icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
@@ -126,8 +127,8 @@ theorem raft.handleSnapshot.wp_proof
     wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear sindex sterm
     ihave Hlog := Hlb $$ Hl
     ihave Hphys := Hlogback $$ Hlog
-    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear m | ∅
     wp_raft_log
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear m
     wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
     wp_pures
     icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog, Hlogback⟩

@@ -37,7 +37,7 @@ theorem tracker.Inflights.Full.wp_proof : tracker.Inflights.Full.spec (GF := GF)
   iNamed Hin
   iNamed Hin
   iNamed Hin
-  wp_auto
+  wp_alloc in_ptr as in_; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
   subst Hiabs
   rw [inflightsFull_abs]
   wp_if_destruct
@@ -53,6 +53,7 @@ theorem tracker.Inflights.Full.wp_proof : tracker.Inflights.Full.spec (GF := GF)
       iapply HΦ
       iapply ownInflights_reseal l iv buf Hinfl_ok $$ Hiv Hbuf Hbuf_cap
     · -- maxBytes ≠ 0: the byte comparison decides
+      wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
       rw [show (false || decide (iv.maxBytes' ≠ W64 0) &&
           decide (uint.Z iv.maxBytes' ≤ uint.Z iv.bytes')) =
           decide (uint.Z iv.maxBytes' ≤ uint.Z iv.bytes') by
