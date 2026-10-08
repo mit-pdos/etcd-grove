@@ -56,8 +56,9 @@ translation of etcd-raft is this repository's `EtcdRaft/`, generated and checked
   any result.
 
 - Build timing: `etc/build-report.py build` (parallelism over time, critical path;
-  design in `decisions.md`); CI: `.github/workflows/lean.yml` (build with the report
-  on the summary page, `tcb-report.py --check`). First full build of this
+  design in `decisions.md`); CI: `.github/workflows/lean.yml` (self-hosted runner
+  `coqdev`, as in mit-pdos/xv6iris; build with the report on the summary page,
+  `tcb-report.py --check`). First full build of this
   repository's modules (dependencies built, 24 cores, 2026-10-08): 402 modules,
   3m48s wall, 40m35s CPU; the import chain bounds it at 3m02s, of which
   `Proof/stepLeader.lean` is 1m08s (the slowest module, and last on the path before

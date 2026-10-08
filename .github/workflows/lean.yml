@@ -1,5 +1,9 @@
 name: Lean
 
+# Runs on the self-hosted `coqdev` runner, as mit-pdos/xv6iris's Lean CI does.
+# The runner is persistent and shared with other repositories' jobs, which is
+# what most of the choices below are about.
+
 on:
   push:
     branches: ["lean"]
@@ -8,27 +12,65 @@ on:
   # allow running action manually.
   workflow_dispatch:
 
+# A new push does not cancel the run in progress: it waits as pending, and
+# GitHub keeps at most one pending run per group, so a burst of pushes
+# coalesces into one build of the latest commit. (Cancelling in progress would
+# starve CI whenever pushes come faster than a build, and the runner queues
+# behind other repositories' jobs anyway.)
+concurrency:
+  group: lean-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: coqdev
+    # A full build from nothing (Perennial and Iris included) is well under an
+    # hour on the runner; three hours means something hung.
+    timeout-minutes: 180
+
+    # `bash` selects `bash --noprofile --norc -eo pipefail {0}`; the default
+    # shell has no pipefail.
+    defaults:
+      run:
+        shell: bash
+
     steps:
-      - uses: actions/checkout@v4
-      - name: Install elan
+      # checkout's `git clean -ffdx` empties .lake/ (it is .gitignored), so
+      # every run starts with no build products; the dependencies come back
+      # through the cache below.
+      - uses: actions/checkout@v5
+
+      # elan lives in $HOME/.elan on the runner and persists across runs (and is
+      # shared with other jobs there), so it is installed only if absent, and
+      # without editing the runner's dotfiles. The toolchain of `lean-toolchain`
+      # is installed by elan on first use and is then simply there.
+      - name: Install elan (if absent)
         run: |
-          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh \
-            | sh -s -- -y --default-toolchain none
+          if [ ! -x "$HOME/.elan/bin/elan" ]; then
+            curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh \
+              | sh -s -- -y --no-modify-path --default-toolchain none
+          fi
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Install the pinned Lean toolchain
+        run: |
+          elan toolchain install "$(tr -d '[:space:]' < lean-toolchain)"
+          lake --version
       # The dependencies (Perennial, Iris, Batteries, Qq), built. Restored from
       # the newest run with the same pins and saved after every run, so a build
       # of them that fails part-way is not lost; this repository's own modules
       # are always built from scratch, so the build report covers all of them.
+      # Scoped to runner.name: nothing here is known to be relocatable across
+      # runners with different workspace paths.
       - name: Restore dependencies
         uses: actions/cache/restore@v4
         with:
           path: .lake/packages
-          key: lake-packages-${{ runner.os }}-${{ hashFiles('lean-toolchain', 'lake-manifest.json', 'lakefile.toml') }}-${{ github.run_id }}
+          key: lake-packages-${{ runner.os }}-${{ runner.name }}-${{ hashFiles('lean-toolchain', 'lake-manifest.json', 'lakefile.toml') }}-${{ github.run_id }}
           restore-keys: |
-            lake-packages-${{ runner.os }}-${{ hashFiles('lean-toolchain', 'lake-manifest.json', 'lakefile.toml') }}-
+            lake-packages-${{ runner.os }}-${{ runner.name }}-${{ hashFiles('lean-toolchain', 'lake-manifest.json', 'lakefile.toml') }}-
       - name: Install Go
         uses: actions/setup-go@v5
         with:
@@ -49,7 +91,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: .lake/packages
-          key: lake-packages-${{ runner.os }}-${{ hashFiles('lean-toolchain', 'lake-manifest.json', 'lakefile.toml') }}-${{ github.run_id }}
+          key: lake-packages-${{ runner.os }}-${{ runner.name }}-${{ hashFiles('lean-toolchain', 'lake-manifest.json', 'lakefile.toml') }}-${{ github.run_id }}
       - name: Upload build record
         if: always() && steps.build.outcome != 'skipped'
         uses: actions/upload-artifact@v4
