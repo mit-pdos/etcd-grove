@@ -6,7 +6,7 @@ Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
 `worktree-raft-replication`'s `feb5c73d4` and adds Ready/Advance/HasReady; the files
 were first ported from `main`, then from `feb5c73d4`) to Lean on top of Perennial's Lean
-port (mit-pdos/perennial `lean`, pinned at beb34b9; see Next for 43b7fc480). The Goose
+port (mit-pdos/perennial `lean`, pinned at abbd678c1). The Goose
 translation of etcd-raft is this repository's `EtcdRaft/`, generated and checked by
 `etc/goose.py`.
 
@@ -70,14 +70,6 @@ translation of etcd-raft is this repository's `EtcdRaft/`, generated and checked
 
 ## Next
 
-- **Blocked on Perennial:** push the 2026-10-08 Perennial commit 43b7fc480 (on top of
-  eafdc48d5) and merge it into Perennial's `lean`, keeping its Goose fix (`cc := cc` read
-  the new cell) and dropping its changes under `Perennial/Code/go_etcd_io/` and
-  `Perennial/GeneratedProof/go_etcd_io/` (Perennial no longer has etcd-raft's
-  translation; the `confchange.toml` change is already in `EtcdRaft/Code/`). Then pin the
-  merge here and run `etc/goose.py`. Until then `EtcdRaft/` is beb34b9's translation, in
-  which every `Restore` closure captures NodeID 0, so `Proof/confchange_Restore.lean` does
-  not build (nor `Link.lean` and what imports it).
 - `raftpb.ConfState.Equivalent` is the remaining core-raft axiom (`raftpb` is
   types-only; `Equivalent` lives in the hand-written `confstate.go`).
 - Follow the Rocq RawNode branch past 857d09190 (its worktree has an uncommitted
