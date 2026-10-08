@@ -102,14 +102,9 @@ theorem wp_slice_append_nil_empty (s : GoSlice) (hlen : s.len = W64 0) :
       rw [show sint.Z (W64 0) = 0 from rfl, go.arrayIndexRef_0]
       decide
     rw [Hsn]
-    -- `copy` into the empty slice: its loop runs zero times
-    wp_func_call
-    wp_call
-    wp_auto
-    have Hsn' : slice.slice slice.nil w64 0 (W64 0) = slice.nil := Hsn
-    rw [Hsn']
-    wp_for
-    wp_end
+    -- `copy` from the empty slice copies nothing
+    wp_apply wp_slice_copy_of_len_zero (V := w64) _ s hlen
+    iapply HΦ; itrivial
   · exfalso; rw [hlen] at Hif; exact Hif (by decide)
 
 end wp
