@@ -45,6 +45,18 @@ stale as the proof changes. `etc/tcb-report.py --check` exits 1 if this reposito
 axioms or `sorry`s differ from `etc/tcb-baseline.txt`; when you add or remove one on
 purpose, rerun with `--check --update`.
 
+## How much is verified
+
+`etc/verified-code.py` accounts for how much of raft's and etcd's Go code is verified
+(needs `lake build` and `go`): every Go function is verified, unfinished, assumed,
+translated or not translated, counted in functions and Go code lines, per package and
+per file. It reads the Go sources of the forks Perennial translates (cloned into
+`.lake/go-src` on first use), this repository's proofs from `.lake/tcb.json` (shared
+with `etc/tcb-report.py`; `--reuse` skips re-running Lean) and Perennial's public
+etcd/raft proofs from their source. It prints plain text (`--markdown` for Markdown;
+`-o FILE` writes Markdown if FILE ends in `.md`). Like the TCB report, don't commit
+its output.
+
 ## Proof writing
 
 Perennial's Lean docs (in the dependency, `.lake/packages/perennial/docs/`):
@@ -53,3 +65,10 @@ Perennial's Lean docs (in the dependency, `.lake/packages/perennial/docs/`):
 ## Building
 
 `lake build` (needs the `elan` toolchain in `lean-toolchain`).
+
+`etc/build-report.py build [LAKE_ARGS…]` runs `lake build` and then reports on it:
+wall and CPU time, parallelism over time, the critical path (with Lake's idle time
+per step), the unlimited-cores bound, the slowest modules and where the CPU went.
+CI (`.github/workflows/lean.yml`) runs the build this way and puts the report on
+the run's summary page. `etc/build-report.py` alone reprints the latest report,
+`--list` lists the recorded builds (`.lake/build-report/`).

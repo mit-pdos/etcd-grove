@@ -54,6 +54,19 @@ array fix and Go-model/theory additions to the Lean framework).
   `GeneratedProof/{os,strings,sync,fmt}.lean`, `Proof/context.lean`) are not reached by
   any result.
 
+- Build timing: `etc/build-report.py build` (parallelism over time, critical path;
+  design in `decisions.md`); CI: `.github/workflows/lean.yml` (build with the report
+  on the summary page, `tcb-report.py --check`). First full build of this
+  repository's modules (dependencies built, 24 cores, 2026-10-08): 402 modules,
+  3m48s wall, 40m35s CPU; the import chain bounds it at 3m02s, of which
+  `Proof/stepLeader.lean` is 1m08s (the slowest module, and last on the path before
+  `Link`); the Protocol chain (`Plog` … `Facts`) runs one compile at a time for the
+  first 1m10s.
+- Verified code: `etc/verified-code.py`. On 2026-10-08 (forks `upamanyus/etcd-raft`
+  `24643b3`, `upamanyus/etcd` `3efe157`): raft 161 of 323 functions verified, 1962 of
+  3646 Go code lines (53.8%; 143 functions sorry-free); etcd 16 of 3579 functions, 174
+  of 45359 lines (0.4%, all from Perennial's public proofs).
+
 ## Next
 
 - Push Perennial's `lean` with the 2026-10-08 commit 43b7fc480 (Goose fix, `confchange`
