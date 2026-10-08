@@ -70,10 +70,11 @@ the `.lean` files by hand.
 - `EtcdRaft/{Code,GeneratedProof}/go_etcd_io/raft/`: etcd-raft (the fork
   `upamanyus/etcd-raft`), as the `EtcdRaft` library (modules
   `EtcdRaft.Code.go_etcd_io.raft.v3`, ...).
-- `EtcdCache/{Code,GeneratedProof}/{go_etcd_io/etcd,k8s_io}/`: etcd's `cache` package
+- `EtcdCache/{Code,GeneratedProof}/{go_etcd_io/etcd,k8s_io,google_golang_org}/`: etcd's `cache` package
   (the fork `upamanyus/etcd`, branch `goose`), with bodies, and the types and names
   only of the packages it uses (`client/v3`, `api/v3/{mvccpb,etcdserverpb,
-  v3rpc/rpctypes}`, `k8s.io/utils/third_party/forked/golang/btree`), as the
+  v3rpc/rpctypes}`, `k8s.io/utils/third_party/forked/golang/btree`, protobuf's
+  `runtime/protoimpl` and `internal/impl`), as the
   `EtcdCache` library (modules `EtcdCache.Code.go_etcd_io.etcd.cache.v3`, ...).
   Types Goose cannot translate are axiomatized, and their generated instances are
   `sorry -- axiomatized type`; no proof uses them yet.

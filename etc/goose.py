@@ -89,7 +89,8 @@ PROJECTS = [
         repo="https://github.com/upamanyus/etcd",
         rev="48fd5a5071608e5c075b588c50e4efbfe300b00a",
         lib="EtcdCache",
-        lean_roots=["go.etcd.io/etcd=EtcdCache", "k8s.io=EtcdCache"],
+        lean_roots=["go.etcd.io/etcd=EtcdCache", "k8s.io=EtcdCache",
+                    "google.golang.org=EtcdCache"],
         packages=[
             # with bodies (cache/v3.toml)
             "go.etcd.io/etcd/cache/v3",
@@ -99,8 +100,11 @@ PROJECTS = [
             "go.etcd.io/etcd/api/v3/mvccpb",
             "go.etcd.io/etcd/api/v3/v3rpc/rpctypes",
             "k8s.io/utils/third_party/forked/golang/btree",
+            # the types of protobuf messages' fields (protoimpl.MessageState, ...)
+            "google.golang.org/protobuf/runtime/protoimpl",
+            "google.golang.org/protobuf/internal/impl",
         ],
-        owned=[os.path.join("go_etcd_io", "etcd"), "k8s_io"],
+        owned=[os.path.join("go_etcd_io", "etcd"), "k8s_io", "google_golang_org"],
     ),
 ]
 

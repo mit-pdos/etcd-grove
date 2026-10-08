@@ -111,11 +111,30 @@ target), generated and checked by `etc/goose.py` (now two projects, `etcd-raft` 
   `api/v3/mvccpb`, `api/v3/v3rpc/rpctypes`, `k8s.io/utils/third_party/forked/golang/btree`
   (with `sync` imported so that the generic `FreeList[T]` is translated: an
   axiomatized generic type comes out as `∀ (T : go.type), go.type`, which is not Lean).
-  Nothing else (grpc, zap, ...) is reached; types that would need it are axiomatized,
-  and their generated instances are `sorry -- axiomatized type` (286 of them, in
-  `GeneratedProof/`; no proof uses them, and the raft trust base is unaffected).
-  Standard-library packages are Perennial's.
-- `-lean-root go.etcd.io/etcd=EtcdCache -lean-root k8s.io=EtcdCache`.
+- **The protobuf messages the cache reads are real structs** (2026-10-08, second
+  commit): `mvccpb.KeyValue`, `mvccpb.Event`, `etcdserverpb.{ResponseHeader,
+  RangeResponse,WatchResponse}` are listed in their package's `translate` (type only,
+  no methods). `translate_types` alone never translates them: every protobuf-go v2
+  message has `state protoimpl.MessageState`, `unknownFields protoimpl.UnknownFields`,
+  `sizeCache protoimpl.SizeCache`, and Goose's `translate_types` refuses any type
+  mentioning another package's alias. Those three aliases come from two more
+  packages: `google.golang.org/protobuf/runtime/protoimpl` (just the three aliases;
+  `SizeCache`/`UnknownFields` translate to `int32`/`[]byte`; protoimpl's other aliases
+  must not be left to `translate_types`, which axiomatizes an alias-of-an-alias as
+  `axiom SizeCache`, not `SizeCache.ty`, a name the users do not find) and
+  `google.golang.org/protobuf/internal/impl` (names only, for `impl.MessageState`, whose
+  struct of `internal/pragma` types stays axiomatized: the `state` field is opaque).
+  `clientv3.GetResponse` (`type GetResponse pb.RangeResponse`), `clientv3.WatchResponse`,
+  `Op`, `OpOption`, `KV`, `Watcher`, `WatchChan` were already translated.
+  `clientv3.Client` is still axiomatized (the cache reads its `KV` and `Watcher` fields
+  in `newCache`): its other fields are grpc, grpc credentials, client's internal
+  resolver and zap types, which would each need a names-only translation.
+- Nothing else (grpc, zap, ...) is reached; types that would need it are axiomatized
+  (203 `axiom X.underlying`), and their generated instances are `sorry -- axiomatized
+  type` (426, in `GeneratedProof/`: 152 in the two protobuf packages, 236 in
+  `etcdserverpb`, 36 in `client/v3`, 2 in `rpctypes`; no proof uses them, and the raft
+  trust base is unaffected). Standard-library packages are Perennial's.
+- `-lean-root` maps `go.etcd.io/etcd`, `k8s.io` and `google.golang.org` to `EtcdCache`.
 - The two Goose bugs above belong fixed in Perennial's `goose/types.go`: `types.Unalias`
   in `getStructInfo` (tried: two lines, and the alias errors go away), the type arguments
   in `structInfoToGlangType` (not tried); with them the two fork commits could be dropped.
