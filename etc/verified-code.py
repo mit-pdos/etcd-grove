@@ -21,8 +21,8 @@ Needs a built project (`lake build`) and `go` (to parse the Go sources, with
                   theorem whose proof has no `sorry` of its own (read off the
                   elaborated environment, as `etc/tcb-report.py` does), or Perennial's
                   public etcd/raft proofs (`Perennial/Proof/go_etcd_io/`, which this
-                  project does not build) have a `wp_` theorem for it with no `sorry`
-                  in its text.  Its callees' specs may be assumed or unfinished;
+                  project does not build; none since Perennial's c5c3a575d) have a
+                  `wp_` theorem for it with no `sorry` in its text.  Its callees' specs may be assumed or unfinished;
                   "sorry-free" counts this repository's verified functions whose
                   linked result reaches no `sorry` at all;
   * unfinished -- it has a spec whose proof has a `sorry` of its own;
@@ -48,7 +48,10 @@ import textwrap
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 PERENNIAL = os.path.join(ROOT, ".lake", "packages", "perennial")
-CODE = os.path.join(PERENNIAL, "Perennial", "Code", "go_etcd_io")
+# The translation is this repository's since 2026-10-08 (EtcdGrove/Code); Perennial's
+# public etcd proofs were removed the same day (its c5c3a575d), so PUBLIC is empty
+# unless an older Perennial is pinned.
+CODE = os.path.join(ROOT, "EtcdGrove", "Code", "go_etcd_io")
 PUBLIC = os.path.join(PERENNIAL, "Perennial", "Proof", "go_etcd_io")
 NS = "Perennial.EtcdGrove."
 

@@ -118,3 +118,28 @@ the pattern (`rafttest` is not translated); the regenerated `raft/v3`, `quorum` 
 branch of `makeVoter`. The callers have it, but the spec's comment says it is not
 needed and keeping the statement identical is what makes "axiom replaced by theorem"
 auditable; the branch cost ~30 lines.
+
+---
+
+## The etcd-raft translation lives here
+
+**2026-10-08 · accepted (follows Perennial's c5c3a575d)**
+
+Perennial removed every `go_etcd_io` module (code, generated proofs, its own etcd
+proofs): etcd verification belongs to this repository. Its Goose grew `-lean-root
+PKG=ROOT` for that purpose: the packages under a Go path get modules
+`ROOT.Code.*`/`ROOT.GeneratedProof.*`, since Lake resolves every `Perennial.*` module
+in the Perennial package.
+
+**Decision:** the translation is generated into `EtcdGrove/Code/go_etcd_io/…` and
+`EtcdGrove/GeneratedProof/go_etcd_io/…` with `-lean-root go.etcd.io=EtcdGrove`
+(`etc/update-goose.py`), the package `.toml`s beside it. Declarations keep the
+`Perennial.go_etcd_io.…` namespace (`-lean-root` changes module names only), so the
+proofs are untouched: `Base.lean` and `Plog.lean` import the new modules and that is
+all. `trust_proofgen = true` stays: the generated proofs are `sorry`-free in what the
+results reach (`etc/tcb-report.py` reports them as this repository's now).
+
+**Consequence for the trust base.** The translation itself was always trusted
+(notes/STATUS.md, "Not checked by Lean"); it is now trusted *here*, where it can be
+regenerated and diffed against the Go sources with the pinned toolchain. A change to
+a package's translation scope is a commit in this repository, not in Perennial.

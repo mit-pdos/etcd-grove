@@ -6,8 +6,13 @@ Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
 `worktree-raft-replication`'s `feb5c73d4` and adds Ready/Advance/HasReady; the files
 were first ported from `main`, then from `feb5c73d4`) to Lean on top of Perennial's Lean
-port (mit-pdos/perennial `lean`, pinned at 43b7fc480, which adds etcd-grove's Goose
-array fix and Go-model/theory additions to the Lean framework).
+port (mit-pdos/perennial `lean`, pinned at abbd678c1). **The Goose translation of
+etcd-raft is this repository's since 2026-10-08** (`EtcdGrove/Code`,
+`EtcdGrove/GeneratedProof`, module root `EtcdGrove`, `etc/update-goose.py`): Perennial's
+c5c3a575d removed every `go_etcd_io` module from Perennial, and its `goose -lean-root`
+puts a dependent project's translation under its own root. The translation is
+byte-identical to the one Perennial carried at 43b7fc480, apart from the import lines;
+the declarations keep their `Perennial.go_etcd_io.…` namespace, so no proof changed.
 
 ## Done (at `857d09190`)
 
@@ -69,8 +74,8 @@ array fix and Go-model/theory additions to the Lean framework).
 
 ## Next
 
-- Push Perennial's `lean` with the 2026-10-08 commit 43b7fc480 (Goose fix, `confchange`
-  translation; on top of GitHub's eafdc48d5) so the pin resolves from GitHub.
+- Push Perennial's `lean` (abbd678c1: the Goose fix, the merge of c5c3a575d/beb34b9da,
+  a names-only `reflect`) so the pin resolves from GitHub.
 - `raftpb.ConfState.Equivalent` is the remaining core-raft axiom (`raftpb` is
   types-only; `Equivalent` lives in the hand-written `confstate.go`).
 - Follow the Rocq RawNode branch past 857d09190 (its worktree has an uncommitted
