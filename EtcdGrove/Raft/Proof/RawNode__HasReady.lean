@@ -129,7 +129,8 @@ theorem RawNode.HasReady.wp_proof
     (wp_raftLog_hasNextCommittedEnts :
       raftLog.hasNextCommittedEnts.spec (GF := GF) (hG := hG)) :
     RawNode.HasReady.spec (GF := GF) (hG := hG) := by
-  intro cfg rn id s rs
+  intro cfg rn id ⟨s, rsoft, rhard, rsteps⟩
+  dsimp only
   wp_start as H
   iNamed H
   iNamed Hrn
@@ -154,14 +155,14 @@ theorem RawNode.HasReady.wp_proof
   rw [Hcm]
   wp_apply wp_IsEmptyHardState
   wp_if_destruct
-  · have Hhs : hsEmptyAbs (nodeHardstate s) = true ∨ nodeHardstate s = rs.hard := by
+  · have Hhs : hsEmptyAbs (nodeHardstate s) = true ∨ nodeHardstate s = rhard := by
       left; simp [hsEmptyAbs, nodeHardstate, Hif]
     clear Hcm Hif
     rest
   · wp_apply wp_isHardStateEqual
     rw [Hhard]
     wp_if_destruct
-    · have Hhs : hsEmptyAbs (nodeHardstate s) = true ∨ nodeHardstate s = rs.hard := by
+    · have Hhs : hsEmptyAbs (nodeHardstate s) = true ∨ nodeHardstate s = rhard := by
         right
         obtain ⟨H1, H2, H3⟩ := Hif
         show HardSt.mk _ _ _ = _

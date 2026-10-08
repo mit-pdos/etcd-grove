@@ -76,17 +76,17 @@ ghost state moves by `Step`'s protocol steps -- and empties the queue. Like `Ste
 a top-level entry point and mentions `ownRaftGhost`. The `Ready` argument is unused. -/
 abbrev RawNode.Advance.spec : Prop :=
   ∀ (cfg : GSet w64) (γ : RaftNames) (rn : Loc) (id : w64)
-    (s : NState) (ps : PState) (rs : RNState) (rd : Ready),
+    (ps : PState) (rs : RNState) (rd : Ready),
   γ.reCfg = cfg →
   id ∈ cfg →
-  NStateRel s ps →
+  NStateRel rs.raft ps →
   PstepCommitMono cfg id →
-  AdvanceOk s rs.steps →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hrn" ∷ ownRawNode cfg rn id s rs ∗
+  AdvanceOk rs.raft rs.steps →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hrn" ∷ ownRawNode cfg rn id rs ∗
       "Hghost" ∷ ownRaftGhost γ id ps }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Advance")) (Val #rd))
   {{ (s' : NState) (ps' : PState), RET #();
-      ownRawNode cfg rn id s' { rs with steps := [] } ∗
+      ownRawNode cfg rn id { rs with raft := s', steps := [] } ∗
       ownRaftGhost γ id ps' ∗
       ⌜NStateRel s' ps' ∧ ∃ recv, Step cfg id ps recv ps'⌝ }}
 

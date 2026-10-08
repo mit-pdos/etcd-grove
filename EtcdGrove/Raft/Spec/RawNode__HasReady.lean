@@ -28,16 +28,16 @@ Committed entries are not part of the answer's meaning: `hasNextCommittedEnts` i
 `r.hardState()` and `rn.applyUnstableEntries()` are stepped through inline (the raft
 struct is open, `ownRaftPhys_view`, for the queue lengths). -/
 abbrev RawNode.HasReady.spec : Prop :=
-  ∀ (cfg : GSet w64) (rn : Loc) (id : w64) (s : NState) (rs : RNState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hrn" ∷ ownRawNode cfg rn id s rs }}
+  ∀ (cfg : GSet w64) (rn : Loc) (id : w64) (rs : RNState),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hrn" ∷ ownRawNode cfg rn id rs }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"HasReady")) (Val #()))
   {{ (b : Bool), RET #b;
-      ownRawNode cfg rn id s rs ∗
+      ownRawNode cfg rn id rs ∗
       ⌜b = false →
-        nodeSoftstate s = rs.soft ∧
-        (hsEmptyAbs (nodeHardstate s) = true ∨ nodeHardstate s = rs.hard) ∧
-        s.outbox = [] ∧
-        nextUnstable s.logst = []⌝ }}
+        nodeSoftstate rs.raft = rs.soft ∧
+        (hsEmptyAbs (nodeHardstate rs.raft) = true ∨ nodeHardstate rs.raft = rs.hard) ∧
+        rs.raft.outbox = [] ∧
+        nextUnstable rs.raft.logst = []⌝ }}
 
 end spec
 

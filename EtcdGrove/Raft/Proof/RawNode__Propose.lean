@@ -31,7 +31,8 @@ postcondition. -/
 theorem RawNode.Propose.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
     RawNode.Propose.spec (GF := GF) (hG := hG) := by
-  intro cfg γ rn id s ps rs data_sl data Q Hcfg Hin Hrel
+  intro cfg γ rn id ps ⟨s, rsoft, rhard, rsteps⟩ data_sl data Q Hcfg Hin Hrel
+  dsimp only at Hrel ⊢
   wp_start as H
   iNamed H
   unfold ownRawNode
