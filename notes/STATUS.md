@@ -6,9 +6,13 @@ Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
 `worktree-raft-replication`'s `feb5c73d4` and adds Ready/Advance/HasReady; the files
 were first ported from `main`, then from `feb5c73d4`) to Lean on top of Perennial's Lean
-port (mit-pdos/perennial `lean`, pinned at c35b7710d). The Goose
-translation of etcd-raft is this repository's `EtcdRaft/`, generated and checked by
-`etc/goose.py`.
+port (mit-pdos/perennial branch `lean-modules`, pinned at 16086a575: `lean` at
+584b17c54 on Lean's module system). The Goose translations of etcd-raft and etcd's
+`cache` package are this repository's `Code/` and `GeneratedProof/`, generated and
+checked by `etc/goose.py`. Files are laid out by kind and Go package path
+(`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
+system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
+module system").
 
 ## Done (at `857d09190`)
 
@@ -48,7 +52,7 @@ translation of etcd-raft is this repository's `EtcdRaft/`, generated and checked
   `len == 0` test is a 64-bit comparison). The translation needed a Goose fix: `cc := cc`
   (the loop-local-copy idiom in `Restore`) read the *new* cell; see notes/decisions.md.
 - **`raftpb.ConfState.Equivalent` is proved (2026-10-08)**, no longer an axiom: `raftpb`'s
-  translation includes it (`EtcdRaft/.../raftpb.toml`: `ConfState.Equivalent`, imports
+  translation includes it (`Code/go_etcd_io/raft/v3/raftpb.toml`: `ConfState.Equivalent`, imports
   `fmt`/`reflect`/`slices`). What it calls that Goose cannot model is
   `reflect.DeepEqual`; that is the new axiom, stated on two `ConfState` values as Go's
   `DeepEqual` reads on this struct (`Spec/reflect_DeepEqual.lean`, `confStateDeepEq` in
@@ -141,7 +145,10 @@ translation of etcd-raft is this repository's `EtcdRaft/`, generated and checked
   `Defs` and `Inv*` use), `Defs` starts at 0:29 and the build takes 3m01s (bound
   2m19s); what limits it now, and two measured upstream options (precompiled
   Perennial: −11% CPU; the module system for faster imports), are in
-  `decisions.md` ("Build speed").
+  `decisions.md` ("Build speed"). With every file (here and in Perennial) a module, a
+  compile's peak memory is 1.8 GiB instead of 2.8 GiB and a spec module (almost all
+  import) takes 2.1s of CPU instead of 2.6s; whole-build times on a quiet machine
+  are still to be measured (the 2026-10-08 runs shared the machine).
 - Verified code: `etc/verified-code.py`. On 2026-10-08 (forks `upamanyus/etcd-raft`
   `24643b3`, `upamanyus/etcd` `3efe157`): raft 161 of 323 functions verified, 1962 of
   3646 Go code lines (53.8%; 143 functions sorry-free); etcd 16 of 3579 functions, 174
@@ -150,9 +157,9 @@ translation of etcd-raft is this repository's `EtcdRaft/`, generated and checked
 ## etcd `cache`: the `EtcdCache` library (2026-10-08; translation only, no proofs)
 
 Preparation for verifying etcd's `cache` package (`go.etcd.io/etcd/cache/v3`) here, set
-up like the raft translation: the Lake library `EtcdCache` (`EtcdCache/`, a default
-target), generated and checked by `etc/goose.py` (now two projects, `etcd-raft` ->
-`EtcdRaft`, `etcd` -> `EtcdCache`; `EtcdRaft/` output unchanged).
+up like the raft translation (in `{Code,GeneratedProof}/{go_etcd_io/etcd,k8s_io,
+google_golang_org}/` since the layout by Go package path; it was the library `EtcdCache`),
+generated and checked by `etc/goose.py` (now two projects, `etcd-raft` and `etcd`).
 
 - **Source**: fork `upamanyus/etcd`, branch `goose-lean`, pinned at `48fd5a507`: branch
   `goose` rebased onto upstream `main` (`f061acd09`; it was on `3efe157f6`, 2026-03-29) without
@@ -198,7 +205,8 @@ target), generated and checked by `etc/goose.py` (now two projects, `etcd-raft` 
   type` (426, in `GeneratedProof/`: 152 in the two protobuf packages, 236 in
   `etcdserverpb`, 36 in `client/v3`, 2 in `rpctypes`; no proof uses them, and the raft
   trust base is unaffected). Standard-library packages are Perennial's.
-- `-lean-root` maps `go.etcd.io/etcd`, `k8s.io` and `google.golang.org` to `EtcdCache`.
+- `-lean-root` maps `go.etcd.io/etcd`, `k8s.io` and `google.golang.org` to the empty root
+  (modules `Code.go_etcd_io.etcd.cache.v3`, ...).
 - The two Goose bugs above belong fixed in Perennial's `goose/types.go`: `types.Unalias`
   in `getStructInfo` (tried: two lines, and the alias errors go away), the type arguments
   in `structInfoToGlangType` (not tried); with them the two fork commits could be dropped.

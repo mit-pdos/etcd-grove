@@ -98,7 +98,7 @@ What limits the build now, measured on that build:
 * **CPU (~39 min; what a 4-core CI runner is bound by).** See the next two
   sections: imports and interpreted tactics.
 
-## Build speed: importing (measured, not changed)
+## Build speed: importing (measured; acted on in "Lean's module system" below)
 
 **2026-10-08 · measured**
 
@@ -273,3 +273,67 @@ Perennial's Go semantics already were ("Not checked by Lean").
 **Rejected -- carrying a `< 2^63` bound in `ownRaftLog`** (tried 2026-09-20): no
 constant bound survives `appendEntry`'s `append`, for the same reason -- which is why
 the model assumes it there too.
+
+## Lean's module system (all files, here and in Perennial)
+
+**2026-10-08 · accepted**
+
+Importing cost every module ~2s and ~2 GiB, mostly loading the private part
+(proof bodies, private declarations) of what it imports, which a non-`module` file
+loads in full ("Build speed: importing" above).
+
+**Decision:** every file is a `module`: `public import`s, then `@[expose] public
+section`, so every declaration stays public and every definition's body visible,
+as before; only what importers load changes. Perennial does the same on branch
+`lean-modules` (`lean` at 584b17c54 converted, pinned at 16086a575), and its Goose
+translator and proofgen emit generated files in that form, so `etc/goose.py
+--check` still holds. What the conversion needed besides the mechanical part:
+
+* code run during elaboration (elaborators, delaborators, unexpanders, helpers,
+  `initialize`d caches, `register_option`s read by tactics) is `meta`;
+* a core simproc cannot be added to a simp set from a module (the attribute wants a
+  `meta` declaration): `word` passes them at its `simp only` calls and
+  `goose_wp_simp_extra` gets a local `dsimproc` wrapping `Int.reduceToNat`;
+* imports a dependency makes privately are no longer visible (Perennial's
+  `GMap.lean` imports `Batteries.Data.List.Perm` itself);
+* a private declaration cannot appear in a public body: `private local instance`
+  became `local instance` (Perennial), and the sealed `ownRaftPhys`, whose body is
+  the private `ownRaftPhysDef`, is `@[no_expose]` (its body stays in its file, which
+  is what the sealing meant).
+
+Checked: every root statement, type, axiom and `sorry` of this repository and of
+the Perennial definitions its statements reach (6517 entries) hashes the same as
+on `lean`; 44 definition bodies (derived `DecidableEq`, `Countable`,
+`typed_pointsto` instances, ...) differ, and with their proof subterms erased all 44
+hash the same: the module system only compiles the proofs inside them differently.
+
+Measured (2026-10-08, the machine shared with other builds, so no whole-build
+times yet): a compile's peak memory 1.8 GiB instead of 2.8 GiB; a spec module
+(almost all import) 2.1s of CPU instead of 2.6s; `import Perennial.Proof.ProofPrelude`
+from a `module`, 1.3s and 0.97 GB instead of 1.75s and 1.84 GB.
+
+## Layout by kind and Go package path
+
+**2026-10-08 · accepted**
+
+`EtcdRaft/`, `EtcdCache/` and `EtcdGrove/Raft/` were ad hoc. **Decision:** as in
+Perennial, by kind and then by Go package path, modules named after their paths:
+
+* `Code/<pkg>`, `GeneratedProof/<pkg>`: the Goose translations (goose's
+  `-lean-root PKG=`, the empty root, added to Perennial's translator for this:
+  modules `Code.go_etcd_io.raft.v3`, ...);
+* `Spec/<pkg>/<fn>`, `Proof/<pkg>/<fn>`: a Go function's spec and proof under its
+  package, read off the spec's name (`tracker.Progress.MaybeUpdate.spec`:
+  `go_etcd_io/raft/v3/tracker`; `big.NewInt.spec`: `math/big`), the file name without
+  a leading `<package>_` (`tracker_NewInflights` -> `.../tracker/NewInflights.lean`);
+  `etc/gen-link.py` finds a Rocq function's files by either name;
+* `Proof/go_etcd_io/raft/v3/`: the Raft proof's shared definitions (`Protocol`,
+  `Defs`, `Inv*`, `StepLemmas`, ...), `Link` and `Results`.
+
+One Lake library `EtcdGrove` globs the four directories (no root module). Lean
+namespaces are unchanged (`Perennial.EtcdGrove.*`, `Perennial.go_etcd_io.raft.v3.*`),
+so only module names and paths moved; private names embed their module, so the
+check above compares them without it.
+
+**Rejected — package path first** (`go_etcd_io/raft/v3/{Code,Spec,Proof}`): it would
+need the translator to put the package before the kind, unlike Perennial.
