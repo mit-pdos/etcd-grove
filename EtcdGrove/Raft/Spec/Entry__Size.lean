@@ -21,7 +21,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `Entry.Size()` (pointer receiver): the protobuf-encoded size of an entry.
 
-**Not translated.** `Perennial/Code/go_etcd_io/raft/v3/raftpb.lean` carries only the
+**Not translated.** `EtcdRaft/Code/go_etcd_io/raft/v3/raftpb.lean` carries only the
 message types, the enum constants and the field accessors; the gogoproto-generated
 marshalling code (`Size`, `Marshal`, `Unmarshal`, ...) is not in the translated set, so
 `raftpb.Assumptions` has no `MethodUnfold` for `Size` and the call cannot be stepped.

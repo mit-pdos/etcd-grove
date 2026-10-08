@@ -70,8 +70,8 @@ spread over its run) next to compiles running.
 
 `confchange.Restore` and `raftpb.ConfState.Equivalent` were the two axioms about core
 raft code (main's notes/STATUS.md, "The fourteen axioms"), stated because the code was
-not translated. `confchange` is now translated in full (Perennial's
-`Perennial/Code/go_etcd_io/raft/v3/confchange.toml`: `translate` unrestricted) and
+not translated. `confchange` is now translated in full
+(`EtcdRaft/Code/go_etcd_io/raft/v3/confchange.toml`: `translate` unrestricted) and
 `Restore` proved from its callees on the voters-only, non-joint path `newRaft` and
 `raft.restore` take. `Restore.spec` is unchanged, so its callers are untouched.
 

@@ -28,7 +28,7 @@ the `RejectHint`/`LogTerm` of a rejecting `MsgAppResp`, and the leader's next pr
 and the protocol model takes any hint (`Step.appReject` quantifies over it), so
 pinning it buys nothing for safety.
 
-The body (`raftLog.findConflictByTerm.impl`, `Perennial/Code/go_etcd_io/raft/v3.lean`;
+The body (`raftLog.findConflictByTerm.impl`, `EtcdRaft/Code/go_etcd_io/raft/v3.lean`;
 Rocq new/code/go_etcd_io/raft/v3.v:681) is
 
     for ; index > 0; index-- {

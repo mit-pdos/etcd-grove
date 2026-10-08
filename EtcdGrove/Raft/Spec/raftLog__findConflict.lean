@@ -26,7 +26,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 have (a different term at that index, or nothing there); `0` if it has them all --
 `plogFindConflict` (`Plog.lean`).
 
-The body (`raftLog.findConflict.impl`, `Perennial/Code/go_etcd_io/raft/v3.lean`):
+The body (`raftLog.findConflict.impl`, `EtcdRaft/Code/go_etcd_io/raft/v3.lean`):
 
     for i := range ents {
         if id := pbEntryID(&ents[i]); !l.matchTerm(id) {

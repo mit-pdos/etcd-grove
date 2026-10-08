@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `l.append(ents)`: splice a batch into the log, truncating whatever it overwrites,
 and return the new last index (`raftLog.append.impl`,
-`Perennial/Code/go_etcd_io/raft/v3.lean`; Rocq new/code/go_etcd_io/raft/v3.v:599).
+`EtcdRaft/Code/go_etcd_io/raft/v3.lean`; Rocq new/code/go_etcd_io/raft/v3.v:599).
 
     if len(ents) == 0 { return l.lastIndex() }
     if after := ents[0].Index - 1; after < l.committed {

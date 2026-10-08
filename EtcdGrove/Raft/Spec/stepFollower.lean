@@ -2,7 +2,7 @@
 
 ## `stepFollower`, for the message types in scope
 
-`stepFollower.impl` (`Perennial/Code/go_etcd_io/raft/v3.lean`; raft.go:1705) is a type
+`stepFollower.impl` (`EtcdRaft/Code/go_etcd_io/raft/v3.lean`; raft.go:1705) is a type
 switch over `m.Type` with arms for `MsgProp`, `MsgApp`, `MsgHeartbeat`, `MsgSnap`,
 `MsgTransferLeader`, `MsgForgetLeader`, `MsgTimeoutNow`, `MsgReadIndex` and
 `MsgReadIndexResp`, then `return nil`. Specified for every type `Step` dispatches to it:

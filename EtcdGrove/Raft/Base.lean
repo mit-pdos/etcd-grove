@@ -11,9 +11,9 @@ the packages' `initialize'` functions.
 Lean notes: see Perennial's `base.lean` for the instances that live in other Perennial
 files (`strings`, `math`, `bytes`, `log`, `io`, `errors`).
 -/
-import Perennial.Code.go_etcd_io.raft.v3
-import Perennial.GeneratedProof.go_etcd_io.raft.v3
-import Perennial.GeneratedProof.go_etcd_io.raft.v3.raftpb
+import EtcdRaft.Code.go_etcd_io.raft.v3
+import EtcdRaft.GeneratedProof.go_etcd_io.raft.v3
+import EtcdRaft.GeneratedProof.go_etcd_io.raft.v3.raftpb
 import Perennial.Proof.ProofPrelude
 import Perennial.Proof.context
 import Perennial.Proof.sync

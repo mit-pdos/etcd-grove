@@ -9,7 +9,7 @@ usage: etc/verified-code.py [-o REPORT.txt|REPORT.md]... [--markdown] [--functio
   --markdown   print Markdown instead of plain text on stdout
   --functions  also list every function of the Raft code with its status
   --go-src     where the Go sources are: DIR/etcd-raft and DIR/etcd, checkouts of
-               the forks Perennial translates (upamanyus/etcd-raft, upamanyus/etcd);
+               the translated forks (upamanyus/etcd-raft, upamanyus/etcd);
                default .lake/go-src, cloned there (shallow, at HEAD) if missing
   --json       the output of etc/tcb-report.lean, shared with etc/tcb-report.py
                (default .lake/tcb.json); --reuse skips re-running Lean
@@ -19,10 +19,8 @@ Needs a built project (`lake build`) and `go` (to parse the Go sources, with
 
   * verified   -- it has a spec, proved: this repository's `Proof/<fn>.lean` is a
                   theorem whose proof has no `sorry` of its own (read off the
-                  elaborated environment, as `etc/tcb-report.py` does), or Perennial's
-                  public etcd/raft proofs (`Perennial/Proof/go_etcd_io/`, which this
-                  project does not build) have a `wp_` theorem for it with no `sorry`
-                  in its text.  Its callees' specs may be assumed or unfinished;
+                  elaborated environment, as `etc/tcb-report.py` does).  Its callees'
+                  specs may be assumed or unfinished;
                   "sorry-free" counts this repository's verified functions whose
                   linked result reaches no `sorry` at all;
   * unfinished -- it has a spec whose proof has a `sorry` of its own;
@@ -47,9 +45,7 @@ import sys
 import textwrap
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-PERENNIAL = os.path.join(ROOT, ".lake", "packages", "perennial")
-CODE = os.path.join(PERENNIAL, "Perennial", "Code", "go_etcd_io")
-PUBLIC = os.path.join(PERENNIAL, "Perennial", "Proof", "go_etcd_io")
+CODE = os.path.join(ROOT, "EtcdRaft", "Code", "go_etcd_io")
 NS = "Perennial.EtcdGrove."
 
 FORKS = {"etcd-raft": "upamanyus/etcd-raft", "etcd": "upamanyus/etcd"}
@@ -196,98 +192,6 @@ def resolve_local(fn, by_key):
     return key if key in by_key else None
 
 
-def strip_comments(s):
-    """Lean source without its comments (good enough for `sorry`), lines kept."""
-    s = re.sub(r"/-.*?-/", lambda m: "\n" * m.group(0).count("\n"), s, flags=re.S)
-    return re.sub(r"--.*", "", s)
-
-
-DECL = re.compile(
-    r"^(?:@\[[^\]]*\]\s*)?(?:(?:private|protected|noncomputable)\s+)*"
-    r"(theorem|lemma|axiom)\s+(\S+)",
-    re.M,
-)
-TOPLEVEL = re.compile(
-    r"^(?:@\[|theorem|lemma|axiom|def|abbrev|instance|structure|class|inductive|"
-    r"end|namespace|section|open|variable|private|protected|noncomputable|"
-    r"set_option|local|attribute|example|#|/--)",
-    re.M,
-)
-
-
-def public_proofs(by_key):
-    """Perennial's public etcd/raft proofs, read from their source: Go function ->
-    (state, where).  A `wp_` theorem or axiom `[T.]wp_M` (or a variant
-    `wp_M_suffix`, `wp_T_M`) is matched to the function `T.M` of the package its
-    file is about."""
-    out = {}
-    rank = {"verified": 0, "unfinished": 1, "assumed": 2}
-    lower = {(p, r.lower(), n.lower()): (p, r, n) for p, r, n in by_key}
-    for dp, _, fs in os.walk(PUBLIC):
-        for f in sorted(fs):
-            if not f.endswith(".lean"):
-                continue
-            p = os.path.join(dp, f)
-            segs = os.path.relpath(p, PUBLIC)[: -len(".lean")].split("/")
-            for i, s in enumerate(segs):
-                if s.endswith("_proof"):
-                    segs = segs[:i] + [s.removesuffix("_proof")]
-                    break
-            pkg = "go.etcd.io/" + "/".join(segs)
-            text = strip_comments(read(p))
-            starts = [m.start() for m in TOPLEVEL.finditer(text)] + [len(text)]
-            for m in DECL.finditer(text):
-                kind, name = m.groups()
-                parts = name.split(".")
-                k = next((i for i, x in enumerate(parts) if x.startswith("wp_")), None)
-                if k is None:
-                    continue
-                recv = lean_ident(parts[k - 1]) if k > 0 else ""
-                key, variant = match_public(
-                    pkg, recv, lean_ident(parts[k][3:]), by_key, lower
-                )
-                if key is None:
-                    continue
-                end = next(s for s in starts if s > m.start())
-                if kind == "axiom":
-                    state = "assumed"
-                elif re.search(r"\bsorry\b", text[m.end() : end]):
-                    state = "unfinished"
-                else:
-                    state = "verified"
-                line = text.count("\n", 0, m.start()) + 1
-                where = f"`{os.path.relpath(p, PERENNIAL)}:{line}` `{name}`"
-                r = (variant, rank[state])
-                if key not in out or r < out[key][2]:
-                    out[key] = (state, where, r)
-    return {k: (s, where) for k, (s, where, _) in out.items()}
-
-
-def match_public(pkg, recv, rest, by_key, lower):
-    """The Go function a theorem `recv.wp_rest` of a proof of package `pkg` is about,
-    and whether its name only matches as a variant (`wp_M_suffix`: a spec of a special
-    case).  The package's subpackages are tried too (raft's proofs state some of
-    `tracker`'s and `quorum`'s), a receiver may be a function's first argument
-    (`raft.wp_f` for `f(r *raft)`), and names match up to case."""
-    pieces = rest.split("_")
-    names = [(recv, rest, False)]
-    if recv:
-        names.append(("", rest, False))
-    for i in range(len(pieces) - 1, 0, -1):  # wp_M_suffix
-        names.append((recv, "_".join(pieces[:i]), True))
-    if not recv:  # wp_T_M
-        for i in range(1, len(pieces)):
-            names.append(("_".join(pieces[:i]), "_".join(pieces[i:]), False))
-    pkgs = [pkg] + sorted({k[0] for k in by_key if k[0].startswith(pkg + "/")})
-    for exact in (True, False):
-        for r, n, variant in names:
-            for p in pkgs:
-                key = (p, r, n) if exact else lower.get((p, r.lower(), n.lower()))
-                if key in by_key:
-                    return key, variant
-    return None, False
-
-
 # --- the report --------------------------------------------------------------
 
 
@@ -315,23 +219,16 @@ def main():
     if not (args.reuse and os.path.exists(args.json)):
         run_lean(args.json)
     local = local_proofs(args.json)
-    public = public_proofs(by_key)
     goose = goose_functions()
 
     state = {}  # key -> (state, sorry-free, where the spec is)
     for k in goose:
         state[k] = ("translated", False, "")
-    for k, (s, where) in public.items():
-        state[k] = (s, False, where)
     outside = []
     for fn, (s, free) in sorted(local.items()):
         k = resolve_local(fn, by_key)
         if k is None:
             outside.append((fn, s))
-            continue
-        # this repository's spec, unless Perennial's is in a better state
-        prev = state.get(k)
-        if prev and prev[2] and STATES.index(prev[0]) < STATES.index(s):
             continue
         state[k] = (s, free, f"`{fn}.wp_proof`")
     missing = sorted(k for k in goose if k not in by_key)
@@ -403,8 +300,7 @@ def main():
         "that is an axiom), **translated** (Goose translates it, nothing specifies it), "
         "or not translated. Lines are Go code lines (not blank, not comments) from "
         "`func` to the closing brace. Specs are this repository's (elaborated: "
-        "`.lake/tcb.json`) and Perennial's public etcd/raft proofs (read from source: a "
-        "`wp_` theorem without `sorry` in its text).\n"
+        "`.lake/tcb.json`).\n"
     )
 
     w("## Summary\n")

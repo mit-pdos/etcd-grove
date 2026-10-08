@@ -24,7 +24,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `r.bcastHeartbeat()` (`raft.bcastHeartbeat.impl`, `Perennial/Code/go_etcd_io/raft/v3.lean`;
+/-- `r.bcastHeartbeat()` (`raft.bcastHeartbeat.impl`, `EtcdRaft/Code/go_etcd_io/raft/v3.lean`;
 `raft.go:722`):
 
       r.bcastHeartbeatWithCtx(r.readOnly.heartbeatCtx())

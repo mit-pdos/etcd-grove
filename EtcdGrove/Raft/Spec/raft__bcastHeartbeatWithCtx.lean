@@ -24,7 +24,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `r.bcastHeartbeatWithCtx(ctx)` (`raft.bcastHeartbeatWithCtx.impl`,
-`Perennial/Code/go_etcd_io/raft/v3.lean`; Rocq new/code/go_etcd_io/raft/v3.v:3293;
+`EtcdRaft/Code/go_etcd_io/raft/v3.lean`; Rocq new/code/go_etcd_io/raft/v3.v:3293;
 `raft.go:726`):
 
     r.trk.Visit(func(id uint64, _ *tracker.Progress) {

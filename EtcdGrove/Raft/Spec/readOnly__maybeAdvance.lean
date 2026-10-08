@@ -27,7 +27,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `ro.maybeAdvance(c)` (`readOnly.maybeAdvance.impl`,
-`Perennial/Code/go_etcd_io/raft/v3.lean`; Rocq new/code/go_etcd_io/raft/v3.v:6303;
+`EtcdRaft/Code/go_etcd_io/raft/v3.lean`; Rocq new/code/go_etcd_io/raft/v3.v:6303;
 `read_only.go:79`):
 
     newConfirmedReads := uint64(c.CommittedIndex(ro))     // ro as AckedIndexer

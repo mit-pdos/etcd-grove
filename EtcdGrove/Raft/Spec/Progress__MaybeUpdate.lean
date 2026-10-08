@@ -16,7 +16,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `pr.MaybeUpdate(n)` records that the peer has acknowledged index `n`
-(`tracker.Progress.MaybeUpdate.impl`, `Perennial/Code/go_etcd_io/raft/v3/tracker.lean`;
+(`tracker.Progress.MaybeUpdate.impl`, `EtcdRaft/Code/go_etcd_io/raft/v3/tracker.lean`;
 progress.go:205):
 
     if n <= pr.Match { return false }          // exit 1: stale ack

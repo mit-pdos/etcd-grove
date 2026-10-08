@@ -3,10 +3,9 @@
 This branch verifies **etcd** — starting with its Raft implementation — in Lean,
 using the Lean port of Perennial (branch `lean` of
 [mit-pdos/perennial](https://github.com/mit-pdos/perennial)), which is a Lake
-dependency (`lakefile.toml`, pinned in `lake-manifest.json`). The framework, the
-Goose translation of etcd and etcd-raft (`Perennial.Code.go_etcd_io`,
-`Perennial.GeneratedProof.go_etcd_io`) and the public etcd proofs live there; this
-repository holds the etcd proofs that are not public.
+dependency (`lakefile.toml`, pinned in `lake-manifest.json`). Perennial has the
+framework and the Goose translator; this repository has the Goose translation of
+etcd-raft (`EtcdRaft/`) and the proofs.
 
 It is a port of the Rocq development on branch `main` (`new/proof/go_etcd_io/raft/
 election_proof/`). The Rocq notes on `main` (`notes/`) still describe the proof:
@@ -50,10 +49,10 @@ purpose, rerun with `--check --update`.
 `etc/verified-code.py` accounts for how much of raft's and etcd's Go code is verified
 (needs `lake build` and `go`): every Go function is verified, unfinished, assumed,
 translated or not translated, counted in functions and Go code lines, per package and
-per file. It reads the Go sources of the forks Perennial translates (cloned into
-`.lake/go-src` on first use), this repository's proofs from `.lake/tcb.json` (shared
-with `etc/tcb-report.py`; `--reuse` skips re-running Lean) and Perennial's public
-etcd/raft proofs from their source. It prints plain text (`--markdown` for Markdown;
+per file. It reads the Go sources of the translated forks (cloned into
+`.lake/go-src` on first use), the translation in `EtcdRaft/`, and this repository's
+proofs from `.lake/tcb.json` (shared with `etc/tcb-report.py`; `--reuse` skips
+re-running Lean). It prints plain text (`--markdown` for Markdown;
 `-o FILE` writes Markdown if FILE ends in `.md`). Like the TCB report, don't commit
 its output.
 
@@ -61,6 +60,24 @@ its output.
 
 Perennial's Lean docs (in the dependency, `.lake/packages/perennial/docs/`):
 `PERENNIAL_PROOF_TUTORIAL.md`, `PERENNIAL_PROOF_REFERENCE.md`, `IRIS_PROOF_MODE.md`.
+
+## The Goose translation
+
+`EtcdRaft/{Code,GeneratedProof}/go_etcd_io/raft/` is the translation of etcd-raft
+(the fork `upamanyus/etcd-raft`, at the revision pinned in `etc/goose.py`) by the
+pinned Perennial's translator, as the `EtcdRaft` library (modules
+`EtcdRaft.Code.go_etcd_io.raft.v3`, ...; goose's `-lean-root` keeps them out of the
+`Perennial.*` names, which Lake resolves to the Perennial library). It is generated:
+never edit it by hand.
+`etc/goose.py` regenerates it (after bumping the Perennial or etcd-raft pin, or
+editing the Goose configuration `EtcdRaft/Code/**/*.toml`);
+`etc/goose.py --check` exits 1 if it differs from what the pinned translator
+produces, and CI runs that check before the build. To try a translator change
+before it is in Perennial, `etc/goose.py --perennial ../perennial` regenerates with
+that checkout's translator, and
+`lake build --packages=<file>` (a JSON list with
+`{"type": "path", "name": "perennial", "dir": "../perennial", ...}`) builds against
+it.
 
 ## Building
 

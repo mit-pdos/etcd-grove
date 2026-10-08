@@ -20,7 +20,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `ro.heartbeatCtx()` (`readOnly.heartbeatCtx.impl`,
-`Perennial/Code/go_etcd_io/raft/v3.lean`; `read_only.go:93`):
+`EtcdRaft/Code/go_etcd_io/raft/v3.lean`; `read_only.go:93`):
 
     if len(ro.unconfirmedReads) == 0 { return nil }
     pos := ro.confirmedReads + uint64(len(ro.unconfirmedReads))

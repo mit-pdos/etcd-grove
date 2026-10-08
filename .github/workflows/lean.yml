@@ -29,6 +29,15 @@ jobs:
           key: lake-packages-${{ runner.os }}-${{ hashFiles('lean-toolchain', 'lake-manifest.json', 'lakefile.toml') }}-${{ github.run_id }}
           restore-keys: |
             lake-packages-${{ runner.os }}-${{ hashFiles('lean-toolchain', 'lake-manifest.json', 'lakefile.toml') }}-
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.x"
+          cache: false
+      # Before the (long) build: the checked-in translation `EtcdRaft/` must be exactly
+      # what the pinned Perennial's translator produces from the pinned etcd-raft.
+      - name: Check the Goose translation
+        run: ./etc/goose.py --check
       - name: Build
         # `build-report.py build` runs `lake build` and prints a build report
         # after it, pass or fail (time, parallelism over time, critical path);

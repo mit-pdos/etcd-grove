@@ -16,7 +16,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `r.maybeSendSnapshot(to, pr)` -- the fallback when the log no longer has what a peer
-needs (`raft.maybeSendSnapshot.impl`, `Perennial/Code/go_etcd_io/raft/v3.lean`).
+needs (`raft.maybeSendSnapshot.impl`, `EtcdRaft/Code/go_etcd_io/raft/v3.lean`).
 
     if !pr.RecentActive        { Debugf; return false }
     snapshot, err := r.raftLog.snapshot()

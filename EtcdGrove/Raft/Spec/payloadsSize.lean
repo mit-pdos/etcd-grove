@@ -16,7 +16,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `payloadsSize(ents)`: the summed payload size of the entries (`payloadsSize.impl`,
-`Perennial/Code/go_etcd_io/raft/v3.lean`) -- a `slice.for_range` accumulating
+`EtcdRaft/Code/go_etcd_io/raft/v3.lean`) -- a `slice.for_range` accumulating
 `payloadSize(e)`, exactly `entsSize`'s shape.
 
 The result is **not** pinned to the sum of the `len(e.Data)`: that sum is computed in

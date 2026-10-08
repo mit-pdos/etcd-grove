@@ -25,7 +25,7 @@ the log the protocol sees.
 Pinned since 2026-10-01 (before, only "returns and hands the log back"): with a log in
 the protocol model, granting a vote records that this check passed (`Step.grantVote`'s
 premise), which leader completeness depends on. The body (`raftLog.isUpToDate.impl`,
-`Perennial/Code/go_etcd_io/raft/v3.lean`) is `lastEntryID()` and a short-circuit
+`EtcdRaft/Code/go_etcd_io/raft/v3.lean`) is `lastEntryID()` and a short-circuit
 comparison, so this is `lastEntryID`'s widened spec plus the two `Bool` connectives. -/
 abbrev raftLog.isUpToDate.spec : Prop :=
   ∀ (l : Loc) (e : entryID) (ls : LogState),

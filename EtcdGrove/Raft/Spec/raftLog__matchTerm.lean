@@ -24,7 +24,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `l.matchTerm(id)`: whether the log has term `id.term` at `id.index` --
 `PlogMatches` (`Plog.lean`) of the log the protocol sees.
 
-The body (`raftLog.matchTerm.impl`, `Perennial/Code/go_etcd_io/raft/v3.lean`; Rocq
+The body (`raftLog.matchTerm.impl`, `EtcdRaft/Code/go_etcd_io/raft/v3.lean`; Rocq
 new/code/go_etcd_io/raft/v3.v:1159) is `t, err := l.term(id.index); if err != nil {
 return false }; return t == id.term`. `term`'s spec makes both halves exact: the error
 is non-`nil` exactly when `id.index` is outside `[prev.index, last]`, where

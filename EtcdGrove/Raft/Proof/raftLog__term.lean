@@ -44,7 +44,7 @@ private theorem termAt_visible (prev : entryID) (sents uents stored : List raftp
     exact Ht
 
 /-- Four exits, in the order the body takes them (`raftLog.term.impl`,
-`Perennial/Code/go_etcd_io/raft/v3.lean`):
+`EtcdRaft/Code/go_etcd_io/raft/v3.lean`):
 
 - `unstable.maybeTerm` said yes -- the index is in the unstable suffix, the term comes
   back with a `nil` error, and `ok`'s iff puts `i` in range;

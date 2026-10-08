@@ -31,7 +31,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- The body, as Goose translates it (`Perennial/Code/go_etcd_io/raft/v3/tracker.lean`,
+/-- The body, as Goose translates it (`EtcdRaft/Code/go_etcd_io/raft/v3/tracker.lean`,
 `ProgressTracker.Visit.impl`):
 
     n := len(p.Progress)

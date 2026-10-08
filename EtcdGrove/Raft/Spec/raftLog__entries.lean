@@ -21,7 +21,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `l.entries(i, maxSize)` -- the log from index `i` on, capped (`raftLog.entries.impl`,
-`Perennial/Code/go_etcd_io/raft/v3.lean`; Rocq new/code/go_etcd_io/raft/v3.v:1102):
+`EtcdRaft/Code/go_etcd_io/raft/v3.lean`; Rocq new/code/go_etcd_io/raft/v3.v:1102):
 
     if i > l.lastIndex() { return nil, nil }
     return l.slice(i, l.lastIndex()+1, maxSize)

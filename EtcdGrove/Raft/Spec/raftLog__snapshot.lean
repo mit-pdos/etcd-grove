@@ -20,7 +20,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `l.snapshot()` -- the snapshot the log can offer a lagging peer
-(`raftLog.snapshot.impl`, `Perennial/Code/go_etcd_io/raft/v3.lean`):
+(`raftLog.snapshot.impl`, `EtcdRaft/Code/go_etcd_io/raft/v3.lean`):
 
     if l.unstable.snapshot != nil { return *l.unstable.snapshot, nil }
     return l.storage.Snapshot()

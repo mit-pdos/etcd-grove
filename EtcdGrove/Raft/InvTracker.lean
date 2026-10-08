@@ -94,7 +94,7 @@ the contents are existential -- what matters is that the object and its buffer a
 owned, so that a `Progress` can be overwritten wholesale. -/
 
 /-- `Full()`'s answer (`inflightsFull`, `Defs.lean`), read off the `Inflights` value
-(`Inflights.Full.impl`, `Perennial/Code/go_etcd_io/raft/v3/tracker.lean`):
+(`Inflights.Full.impl`, `EtcdRaft/Code/go_etcd_io/raft/v3/tracker.lean`):
 
     in.count == in.size || (in.maxBytes != 0 && in.bytes >= in.maxBytes)
 

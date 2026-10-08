@@ -23,7 +23,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `r.increaseUncommittedSize(ents)`: charge a batch against the uncommitted-entries
 budget, and say whether it fits (`raft.increaseUncommittedSize.impl`,
-`Perennial/Code/go_etcd_io/raft/v3.lean`).
+`EtcdRaft/Code/go_etcd_io/raft/v3.lean`).
 
 The body is
 

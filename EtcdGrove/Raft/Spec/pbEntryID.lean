@@ -18,7 +18,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `pbEntryID(entry)`: the id (`term`, `index`) of the entry behind the pointer --
 `entId` (`Plog.lean`). Two field loads and a struct literal (`pbEntryID.impl`,
-`Perennial/Code/go_etcd_io/raft/v3.lean`). The entry is lent at any fraction:
+`EtcdRaft/Code/go_etcd_io/raft/v3.lean`). The entry is lent at any fraction:
 `findConflict` calls it on `&ents[i]` of a batch it holds read-only. -/
 abbrev pbEntryID.spec : Prop :=
   ∀ (p : Loc) (dq : DFrac) (e : raftpb.Entry),

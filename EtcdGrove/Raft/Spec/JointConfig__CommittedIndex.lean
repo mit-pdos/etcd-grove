@@ -16,7 +16,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `c.CommittedIndex(l)` for the joint config (`quorum.JointConfig.CommittedIndex.impl`,
-`Perennial/Code/go_etcd_io/raft/v3/quorum.lean`; joint.go:50):
+`EtcdRaft/Code/go_etcd_io/raft/v3/quorum.lean`; joint.go:50):
 
     idx0 := c[0].CommittedIndex(l)
     idx1 := c[1].CommittedIndex(l)
