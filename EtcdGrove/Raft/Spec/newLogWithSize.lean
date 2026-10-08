@@ -53,30 +53,30 @@ carries it, for the `Infof`s of `findConflict` and `unstable.truncateAndAppend`,
 struct literal installs it as both `l.logger` and `l.unstable.logger`. -/
 abbrev newLogWithSize.spec : Prop :=
   ∀ (st : Storage) (lg : Logger) (maxSize : w64)
-    (prev : entryID) (ents : List raftpb.Entry) (ss : entryID) (lok : GoInterfaceOk),
-  LogIndicesOk prev ents →
-  (∀ e ∈ ents, e.Type' = EntryNormal) →
-  (uint.Z ss.index' = 0 ∨ ss = prev) →
+    (σ : StorState) (lok : GoInterfaceOk),
+  LogIndicesOk σ.prev σ.ents →
+  (∀ e ∈ σ.ents, e.Type' = EntryNormal) →
+  (uint.Z σ.ss.index' = 0 ∨ σ.ss = σ.prev) →
   lg = interface.ok lok →
   -- a positive applying-size limit (2026-10-05): the log starts with applying unpaused
   -- at size `0`, and `nextCommittedEnts` `Panicf`s on
   -- `maxApplyingEntsSize - applyingEntsSize <= 0`
   0 < uint.Z maxSize →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isStorage st ∗
-      ownStorage st prev ents ss ∗ isLogger lok }}
+      ownStorage st σ ∗ isLogger lok }}
     (App (App (App (Val #(functions newLogWithSize [])) (Val #st)) (Val #lg))
       (Val #maxSize))
   {{ (l : Loc) (lv : raftLog), RET #l;
       l ↦ lv ∗
       ⌜lv.storage' = st ∧
-        lv.committed' = prev.index' ∧
-        lv.applied' = prev.index' ∧
-        lv.applying' = prev.index' ∧
+        lv.committed' = σ.prev.index' ∧
+        lv.applied' = σ.prev.index' ∧
+        lv.applying' = σ.prev.index' ∧
         uint.Z lv.unstable'.offsetInProgress'
-          = uint.Z prev.index' + (ents.length : Int) + 1 ∧
+          = uint.Z σ.prev.index' + (σ.ents.length : Int) + 1 ∧
         lv.applyingEntsSize' = W64 0 ∧
         lv.maxApplyingEntsSize' = maxSize⌝ ∗
-      ownRaftLogCore lv none prev ents [] [] }}
+      ownRaftLogCore lv none σ.prev σ.ents [] [] }}
 
 end spec
 

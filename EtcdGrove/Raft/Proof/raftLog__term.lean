@@ -212,8 +212,9 @@ theorem raftLog.term.wp_proof
     obtain ⟨Hsp, Hstored, -⟩ := id Hstore
     subst Hsp
     have Hstlen := Hstored.length_le
-    wp_apply HTerm $$ %sprev %stored %ss %i [$HStorage] as %t2 ⟨%Ht2, HStorage⟩
-    · ipureintro; omega
+    wp_apply HTerm $$ %({ prev := sprev, ents := stored, ss := ss } : StorState) %i [$HStorage] as %t2 ⟨%Ht2, HStorage⟩
+    · ipureintro; dsimp only; omega
+    dsimp only at Ht2
     rw [← Hstok]
     iapply HΦ $$ %t2 %interface.nil
     isplitl [Hl HStorage Huents Huents_cap]

@@ -20,7 +20,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem MemoryStorage.Term.wp_proof :
     MemoryStorage.Term.spec (GF := GF) (hG := hG) := by
-  intro ms prev ents ss i0
+  intro ms ⟨prev, ents, ss⟩ i0
+  dsimp only at *
   wp_start as ⟨Hms, %Hrange⟩
   iunfold ownMemoryStorage at Hms
   icases Hms with ⟨%γ, Hms⟩
@@ -32,14 +33,13 @@ theorem MemoryStorage.Term.wp_proof :
   wp_call
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
   iunfold memstorageInv at Hinv
-  icases Hinv with ⟨%prev0, %ents0, %ss0, Hinv⟩
+  icases Hinv with ⟨%σ0, Hinv⟩
   iNamedSuffix Hinv "_inv"
   iunfold memstorageFields at Hfields_inv
   icases Hfields_inv with ⟨%hs, %snap, %es, %dummy, %cs, %voters, Hfields_inv⟩
   iNamed Hfields_inv
   icombine Hgs Hgs_inv gives % ⟨_, Heq⟩
-  simp only [Prod.mk.injEq] at Heq
-  obtain ⟨⟨rfl, rfl⟩, rfl⟩ := Heq
+  subst Heq
   wp_auto
   icases Hents with #Hents
   ihave %Hlen := ownSlice_len $$ Hents
@@ -95,7 +95,7 @@ theorem MemoryStorage.Term.wp_proof :
   wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hgs_inv HhardState Hsnapshot Hvoters Hents_f HcallStats]
   · inext
     unfold memstorageInv memstorageFields
-    iexists prev, ents, ss
+    iexists { prev := prev, ents := ents, ss := ss }
     iframe Hgs_inv
     iexists hs, snap, es, dummy, _, voters
     iframe # ∗

@@ -20,7 +20,8 @@ so the element access is the one `limitSize` uses (`ownSlice_elem_acc`) and the 
 is handed back at once. The sum does not wrap: `Hb`. -/
 theorem MemoryStorage.firstIndex.wp_proof :
     MemoryStorage.firstIndex.spec (GF := GF) (hG := hG) := by
-  intro ms prev ents ss Hb
+  intro ms ⟨prev, ents, ss⟩ Hb
+  dsimp only at *
   wp_start as H
   iNamed H
   unfold memstorageFields

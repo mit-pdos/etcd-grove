@@ -222,9 +222,10 @@ theorem raftLog.slice.wp_proof
       rw [decide_eq_true Hcut]
       wp_auto
       rw [Hstok]
-      wp_apply HEntries $$ %prev %stored %ss %lo %hi %maxSize [$HStorage]
+      wp_apply HEntries $$ %({ prev := prev, ents := stored, ss := ss } : StorState) %lo %hi %maxSize [$HStorage]
         as %se %ese ⟨#Hse, %Hpost, HStorage⟩
-      · ipureintro; omega
+      · ipureintro; dsimp only; omega
+      dsimp only at Hpost
       rw [← Hstok]
       obtain ⟨Hnee, Hlene, Hine, Hcape, Hpre⟩ := Hpost
       rw [decide_eq_true (by omega)]
@@ -242,9 +243,10 @@ theorem raftLog.slice.wp_proof
       rw [decide_eq_false Hcut]
       wp_auto
       rw [Hstok]
-      wp_apply HEntries $$ %prev %stored %ss %lo %lv.unstable'.offset' %maxSize [$HStorage]
+      wp_apply HEntries $$ %({ prev := prev, ents := stored, ss := ss } : StorState) %lo %lv.unstable'.offset' %maxSize [$HStorage]
         as %se %ese ⟨#Hse, %Hpost, HStorage⟩
-      · ipureintro; omega
+      · ipureintro; dsimp only; omega
+      dsimp only at Hpost
       rw [← Hstok]
       obtain ⟨Hnee, Hlene, Hine, Hcape, Hpre⟩ := Hpost
       ihave %Hselen := ownSlice_len $$ Hse

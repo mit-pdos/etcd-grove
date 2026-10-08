@@ -22,7 +22,8 @@ read-only (`↦*□`), so the element access is the one `limitSize` uses
 (`ownSlice_elem_acc`) and the entry is handed back at once. The sum does not wrap:
 `Hb`. -/
 theorem MemoryStorage.lastIndex.wp_proof : MemoryStorage.lastIndex.spec (GF := GF) (hG := hG) := by
-  intro ms prev ents ss Hb
+  intro ms ⟨prev, ents, ss⟩ Hb
+  dsimp only at *
   wp_start as Hf
   iNamed Hf
   iNamed Hf

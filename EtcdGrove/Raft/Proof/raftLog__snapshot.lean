@@ -75,6 +75,7 @@ theorem raftLog.snapshot.wp_proof : raftLog.snapshot.spec (GF := GF) (hG := hG) 
     iframe Hv
     ipureintro
     obtain ⟨rfl, Hid, Hnz⟩ := Herr
+    dsimp only at Hid
     rcases Hssnap rfl with Hz | ⟨Hle, Ht⟩
     · exfalso; apply Hnz; rw [← Hid] at Hz; simp only [snapId] at Hz; word
     · rw [← Hid] at Hle Ht; simp only [snapId] at Hle Ht

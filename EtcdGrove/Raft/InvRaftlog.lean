@@ -355,7 +355,7 @@ def ownRaftLogCore (lv : raftLog) (snap : Option entryID) (prev : entryID)
   "%Hnowrap" ∷ ⌜uint.Z prev.index' + (sents.length : Int)
                   + (uents.length : Int) + 1 < 2^64⌝ ∗
   "#HisStorage" ∷ isStorage lv.storage' ∗
-  "HStorage" ∷ ownStorage lv.storage' sprev stored ss ∗
+  "HStorage" ∷ ownStorage lv.storage' { prev := sprev, ents := stored, ss := ss } ∗
   "%Hstore" ∷ ⌜LogStoreOk snap sprev stored prev sents uents⌝ ∗
   "#Husnap" ∷ ownSnap lv.unstable'.snapshot' snap ∗
   "%Hoffset" ∷ ⌜uint.Z lv.unstable'.offset'
@@ -453,7 +453,7 @@ theorem ownRaftLog_intro (l : Loc) (lv : raftLog) (st : Storage) (snap : Option 
     lv.maxApplyingEntsSize' = amx →
     ⊢ l ↦ lv -∗
       isStorage (GF := GF) st -∗
-      ownStorage st sprev stored ss -∗
+      ownStorage st { prev := sprev, ents := stored, ss := ss } -∗
       ownSnap lv.unstable'.snapshot' snap -∗
       lv.unstable'.entries' ↦*□ uents -∗
       ownSliceCap raftpb.Entry lv.unstable'.entries' (DFrac.own 1) -∗
@@ -549,9 +549,9 @@ every `term`/`slice`, `slice` and `snapshot` for a leader's `maybeSendAppend`), 
 `Step` could not keep its spec with the storage lent out. -/
 theorem ownRaftLog_persist (l : Loc) (ls : LogState) :
     ⊢ ownRaftLog (GF := GF) l ls -∗
-      ∃ (st : Storage) (sprev : entryID) (stored : List raftpb.Entry) (ss : entryID),
-        isStorage st ∗ ownStorage st sprev stored ss ∗
-        (ownStorage st sprev (storApp sprev stored ls.unpersisted) ss -∗
+      ∃ (st : Storage) (σ : StorState),
+        isStorage st ∗ ownStorage st σ ∗
+        (ownStorage st { σ with ents := storApp σ.prev σ.ents ls.unpersisted } -∗
          ownRaftLog l { ls with unpersisted := [] }) := by
   obtain ⟨prev, sents, uents, cm, ap, snap, ip, apg, pend, asz, amx⟩ := ls
   iintro H
@@ -560,7 +560,7 @@ theorem ownRaftLog_persist (l : Loc) (ls : LogState) :
   unfold ownRaftLogCore
   icases Hcore with ⟨%sprev, %stored, %ss, Hcore⟩
   iNamed Hcore
-  iexists lv.storage', sprev, stored, ss
+  iexists lv.storage', { prev := sprev, ents := stored, ss := ss }
   iframe HisStorage HStorage
   iintro HStorage
   have Hstore' : LogStoreOk snap sprev (storApp sprev stored pend) prev sents uents := by

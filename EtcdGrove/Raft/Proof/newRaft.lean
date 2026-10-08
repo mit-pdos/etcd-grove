@@ -51,8 +51,9 @@ theorem newRaft.wp_proof
     (wp_fmt_Sprintf : fmt.Sprintf.spec (GF := GF) (hG := hG))
     (wp_strings_Join : strings.Join.spec (GF := GF) (hG := hG)) :
     newRaft.spec (GF := GF) (hG := hG) := by
-  intro c cv lok si prev ents ss hs cs voters dqv
+  intro c cv lok si ⟨prev, ents, ss⟩ hs cs voters dqv
     Hvalid Hlok Hsto HmaxInfl Hcq Hdpf Hmcs Hidx Hncc Hss Hhs Happ Hvne Hvnd Hv0 Hcs1 Hcs2 Hcs3 Hal
+  dsimp only at Hidx Hncc Hss Hhs Happ ⊢
   obtain ⟨HvID, HvID1, HvID2, Hticks, HvSt, HvInfl, HvIB, HvLog, HvRO⟩ := Hvalid
   wp_start as ⟨Hc, #Hlg0, #HisSto, HSto, #HInit⟩
   wp_auto
@@ -71,7 +72,7 @@ theorem newRaft.wp_proof
     · rename_i Hz
       have : uint.Z cv.MaxCommittedSizePerReady' ≠ 0 := fun H0 => Hz (by word)
       word
-  wp_apply wp_newLogWithSize _ _ _ _ _ _ lok Hidx Hncc Hss rfl Hmcs' $$ [$HisSto $HSto $Hlg0]
+  wp_apply wp_newLogWithSize _ _ _ _ lok Hidx Hncc Hss rfl Hmcs' $$ [$HisSto $HSto $Hlg0]
     as %l %lv ⟨Hl, %Hlv, Hcore⟩
   obtain ⟨Hlvst, Hlvcm, Hlvap, Hlvapg, Hlvip, Hlvasz, Hlvamx⟩ := Hlv
   iunfold ownRaftLogCore at Hcore

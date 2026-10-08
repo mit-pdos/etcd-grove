@@ -75,6 +75,7 @@ theorem raftLog.lastIndex.wp_proof
       isplitl
       · reseal_raftLog
       ipureintro
+      dsimp only at Hli2
       rw [Hsp, ← Hstored_eq rfl] at Hli2
       simp only [List.length_nil]
       omega

@@ -49,7 +49,8 @@ private theorem ownRaftLog_facts (l : Loc) (ls : LogState) :
   iunfold isStorageWith at Hsto
   icases Hsto with ⟨%isv, #Hs⟩
   iNamed Hs
-  icases Hbounded $$ %sprev %stored %ss HStorage with ⟨%Hstb, HStorage⟩
+  icases Hbounded $$ %({ prev := sprev, ents := stored, ss := ss } : StorState) HStorage with ⟨%Hstb, HStorage⟩
+  dsimp only at Hstb
   ihave %Hul := ownSlice_len $$ Huents
   -- the stable part: below the storage's bound, or -- with a snapshot
   -- pending -- empty after a snapshot index below `2^61`

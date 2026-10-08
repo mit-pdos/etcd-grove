@@ -96,7 +96,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `newRaft(c)`: see the file header. -/
 abbrev newRaft.spec : Prop :=
   ∀ (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
-    (prev : entryID) (ents : List raftpb.Entry) (ss : entryID)
+    (σ : StorState)
     (hs : raftpb.HardState) (cs : raftpb.ConfState)
     (voters : List w64) (dqv : DFrac),
   -- the Config
@@ -113,16 +113,16 @@ abbrev newRaft.spec : Prop :=
   -- committed entry reaches `nextCommittedEnts`' `Panicf` (`maxSize <= 0`)
   (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
   -- the stored log
-  LogIndicesOk prev ents →
-  (∀ e ∈ ents, e.Type' = EntryNormal) →
-  (uint.Z ss.index' = 0 ∨ ss = prev) →
+  LogIndicesOk σ.prev σ.ents →
+  (∀ e ∈ σ.ents, e.Type' = EntryNormal) →
+  (uint.Z σ.ss.index' = 0 ∨ σ.ss = σ.prev) →
   -- the persisted HardState
   (¬ HsEmpty hs →
-   uint.Z prev.index' ≤ uint.Z hs.Commit' ∧
-     uint.Z hs.Commit' ≤ uint.Z prev.index' + (ents.length : Int)) →
+   uint.Z σ.prev.index' ≤ uint.Z hs.Commit' ∧
+     uint.Z hs.Commit' ≤ uint.Z σ.prev.index' + (σ.ents.length : Int)) →
   (cv.Applied' = W64 0 ∨
-   uint.Z prev.index' ≤ uint.Z cv.Applied' ∧
-     uint.Z cv.Applied' ≤ uint.Z (committedAfter prev hs)) →
+   uint.Z σ.prev.index' ≤ uint.Z cv.Applied' ∧
+     uint.Z cv.Applied' ≤ uint.Z (committedAfter σ.prev hs)) →
   -- the persisted ConfState: voters only
   voters ≠ [] → voters.Nodup → W64 0 ∉ voters →
   cs.VotersOutgoing'.len = W64 0 →
@@ -130,9 +130,9 @@ abbrev newRaft.spec : Prop :=
   cs.LearnersNext'.len = W64 0 →
   cs.AutoLeave' = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
-      isStorage (interface.ok si) ∗ ownStorage (interface.ok si) prev ents ss ∗
-      □ (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) prev ents ss' -∗
-           (ownStorage (interface.ok si) prev ents ss' -∗
+      isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
+      □ (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
+           (ownStorage (interface.ok si) { σ with ss := ss' } -∗
             cs.Voters' ↦*{dqv} voters -∗
             Φ (PairV (PairV #hs #cs) #interface.nil)) -∗
            WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) }}

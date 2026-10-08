@@ -35,16 +35,16 @@ snapshot's metadata is the storage's `ss` (`snapId`); it is non-empty because
 `MemoryStorage` with no snapshot returns an empty one, which `isStorage` excludes); and
 its `ConfState.Voters` slice is the read-only one `ownMemoryStorage` holds. -/
 abbrev MemoryStorage.Snapshot.spec : Prop :=
-  ∀ (ms : Loc) (prev : entryID) (ents : List raftpb.Entry) (ss : entryID)
+  ∀ (ms : Loc) (σ : StorState)
     (esu : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hms" ∷ ownMemoryStorage ms prev ents ss ∗
+      "Hms" ∷ ownMemoryStorage ms σ ∗
       globalAddr ErrSnapshotTemporarilyUnavailable ↦□ esu }}
     (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"Snapshot")) (Val #()))
   {{ (snap : raftpb.Snapshot) (err : GoInterface), RET (PairV #snap #err);
-      ownMemoryStorage ms prev ents ss ∗
+      ownMemoryStorage ms σ ∗
       (⌜err = esu⌝ ∨
-       (⌜err = interface.nil ∧ snapId snap = ss ∧ snap.Metadata'.Index' ≠ W64 0⌝ ∗
+       (⌜err = interface.nil ∧ snapId snap = σ.ss ∧ snap.Metadata'.Index' ≠ W64 0⌝ ∗
         ∃ (voters : List w64), snap.Metadata'.ConfState'.Voters' ↦*□ voters)) }}
 
 end spec

@@ -18,7 +18,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem newLogWithSize.wp_proof : newLogWithSize.spec (GF := GF) (hG := hG) := by
-  intro st lg maxSize prev ents ss lok Hidx Hnocc Hss Hlg Hmax
+  intro st lg maxSize ⟨prev, ents, ss⟩ lok Hidx Hnocc Hss Hlg Hmax
+  dsimp only at *
   subst Hlg
   wp_start as ⟨#Hsto, HStorage, #Hlg⟩
   ihave #Hsto2 : isStorage st $$ [Hsto]

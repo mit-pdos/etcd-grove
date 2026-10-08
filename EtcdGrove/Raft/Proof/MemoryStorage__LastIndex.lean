@@ -21,7 +21,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem MemoryStorage.LastIndex.wp_proof
     (wp_MemoryStorage_lastIndex : MemoryStorage.lastIndex.spec (GF := GF) (hG := hG)) :
     MemoryStorage.LastIndex.spec (GF := GF) (hG := hG) := by
-  intro ms prev ents ss
+  intro ms ⟨prev, ents, ss⟩
+  dsimp only at *
   wp_start as Hms
   iNamed Hms
   iunfold ownMemoryStorage at Hms
@@ -34,28 +35,27 @@ theorem MemoryStorage.LastIndex.wp_proof
   wp_call
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
   iunfold memstorageInv at Hinv
-  icases Hinv with ⟨%prev0, %ents0, %ss0, Hinv⟩
+  icases Hinv with ⟨%σ0, Hinv⟩
   iNamedSuffix Hinv "_inv"
   iunfold memstorageFields at Hfields_inv
   icases Hfields_inv with ⟨%hs, %snap, %es, %dummy, %cs, %voters, Hfields_inv⟩
   iNamed Hfields_inv
   icombine Hgs Hgs_inv gives %Heq
   obtain ⟨_, Heq⟩ := Heq
-  simp only [Prod.mk.injEq] at Heq
-  obtain ⟨⟨rfl, rfl⟩, rfl⟩ := Heq
+  subst Heq
   wp_auto
-  ihave Hf : memstorageFields ms prev ents ss $$ [HhardState Hsnapshot Hvoters Hents_f Hents HcallStats]
+  ihave Hf : memstorageFields ms { prev := prev, ents := ents, ss := ss } $$ [HhardState Hsnapshot Hvoters Hents_f Hents HcallStats]
   · unfold memstorageFields
     iexists hs, snap, es, dummy, _, voters
     simp only [named]
     iframe
     ipureintro; exact ⟨Hsnap_id, Hdummy⟩
-  wp_apply wp_MemoryStorage_lastIndex _ _ _ _ Hbounded $$ [$Hf] as %li ⟨%Hli, Hf⟩
+  wp_apply wp_MemoryStorage_lastIndex _ _ Hbounded $$ [$Hf] as %li ⟨%Hli, Hf⟩
   wp_method_call
   wp_call
   wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hgs_inv Hf]
   · unfold memstorageInv
-    iexists prev, ents, ss
+    iexists { prev := prev, ents := ents, ss := ss }
     simp only [named]
     iframe
   iapply HΦ

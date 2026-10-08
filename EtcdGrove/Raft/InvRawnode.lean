@@ -183,17 +183,17 @@ application to append the entries the last `Ready` handed out (`ownRaftLog_persi
 `InvRaftlog.lean`). -/
 theorem ownRawNode_persist (rn : Loc) (id : w64) (rs : RNState) :
     ⊢ ownRawNode (GF := GF) cfg rn id rs -∗
-      ∃ (st : Storage) (sprev : entryID) (stored : List raftpb.Entry) (ss : entryID),
-        isStorage st ∗ ownStorage st sprev stored ss ∗
-        (ownStorage st sprev (storApp sprev stored rs.raft.logst.unpersisted) ss -∗
+      ∃ (st : Storage) (σ : StorState),
+        isStorage st ∗ ownStorage st σ ∗
+        (ownStorage st { σ with ents := storApp σ.prev σ.ents rs.raft.logst.unpersisted } -∗
          ownRawNode cfg rn id
            { rs with raft := { rs.raft with logst := { rs.raft.logst with unpersisted := [] } } }) := by
   iintro H
   icases ownRawNode_raft cfg rn id rs $$ H with ⟨%r, Hphys, Hback⟩
   icases ownRaftPhys_log_at cfg r id rs.raft $$ Hphys with ⟨Hlog, Hlback⟩
   icases ownRaftLog_persist rs.raft.log rs.raft.logst $$ Hlog with
-    ⟨%st, %sprev, %stored, %ss, #Hst, HSt, Hclose⟩
-  iexists st, sprev, stored, ss
+    ⟨%st, %σ, #Hst, HSt, Hclose⟩
+  iexists st, σ
   iframe Hst HSt
   iintro HSt
   iapply Hback

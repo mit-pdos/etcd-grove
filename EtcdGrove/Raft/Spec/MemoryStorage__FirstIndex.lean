@@ -30,14 +30,14 @@ return values, `err = nil`, same value), on `ownMemoryStorage` -- the one predic
 a `MemoryStorage` -- so that `isStorageWith (ownMemoryStorage ms)` is a rearrangement
 of the five public methods' specs (`InvMemstorage.lean`). -/
 abbrev MemoryStorage.FirstIndex.spec : Prop :=
-  ∀ (ms : Loc) (prev : entryID) (ents : List raftpb.Entry) (ss : entryID),
+  ∀ (ms : Loc) (σ : StorState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hms" ∷ ownMemoryStorage ms prev ents ss }}
+      "Hms" ∷ ownMemoryStorage ms σ }}
     (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"FirstIndex"))
       (Val #()))
   {{ (fi : w64), RET (PairV #fi #interface.nil);
-      ⌜uint.Z fi = uint.Z prev.index' + 1⌝ ∗
-      ownMemoryStorage ms prev ents ss }}
+      ⌜uint.Z fi = uint.Z σ.prev.index' + 1⌝ ∗
+      ownMemoryStorage ms σ }}
 
 end spec
 
