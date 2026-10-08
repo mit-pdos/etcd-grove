@@ -44,6 +44,10 @@ array fix and Go-model/theory additions to the Lean framework).
   `Proof/stepLeader.lean` is 1m08s (the slowest module, and last on the path before
   `Link`); the Protocol chain (`Plog` … `Facts`) runs one compile at a time for the
   first 1m10s.
+- Verified code: `etc/verified-code.py`. On 2026-10-08 (forks `upamanyus/etcd-raft`
+  `24643b3`, `upamanyus/etcd` `3efe157`): raft 161 of 323 functions verified, 1962 of
+  3646 Go code lines (53.8%; 143 functions sorry-free); etcd 16 of 3579 functions, 174
+  of 45359 lines (0.4%, all from Perennial's public proofs).
 
 ## Next
 

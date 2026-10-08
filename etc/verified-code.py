@@ -1,0 +1,557 @@
+#!/usr/bin/env python3
+"""Account for how much of etcd raft's and etcd's Go code is verified.
+
+usage: etc/verified-code.py [-o REPORT.md] [--functions] [--go-src DIR]
+                            [--json TCB.json] [--reuse]
+
+  -o           where to write the Markdown report (default: stdout)
+  --functions  also list every function of the Raft code with its status
+  --go-src     where the Go sources are: DIR/etcd-raft and DIR/etcd, checkouts of
+               the forks Perennial translates (upamanyus/etcd-raft, upamanyus/etcd);
+               default .lake/go-src, cloned there (shallow, at HEAD) if missing
+  --json       the output of etc/tcb-report.lean, shared with etc/tcb-report.py
+               (default .lake/tcb.json); --reuse skips re-running Lean
+
+Needs a built project (`lake build`) and `go` (to parse the Go sources, with
+`etc/verified-code.go`).  Every Go function and method is in exactly one state:
+
+  * verified   -- it has a spec, proved: this repository's `Proof/<fn>.lean` is a
+                  theorem whose proof has no `sorry` of its own (read off the
+                  elaborated environment, as `etc/tcb-report.py` does), or Perennial's
+                  public etcd/raft proofs (`Perennial/Proof/go_etcd_io/`, which this
+                  project does not build) have a `wp_` theorem for it with no `sorry`
+                  in its text.  Its callees' specs may be assumed or unfinished;
+                  "sorry-free" counts this repository's verified functions whose
+                  linked result reaches no `sorry` at all;
+  * unfinished -- it has a spec whose proof has a `sorry` of its own;
+  * assumed    -- its spec is an axiom (the trust boundary);
+  * translated -- Goose translates it, but nothing specifies it;
+  * not translated.
+
+Code is measured in functions and in Go code lines: the lines from `func` to the
+closing brace that hold code (not blank, not only comments).  Type, constant and
+variable declarations are not counted.  Excluded from the totals, and listed: test
+files, test-helper packages, generated files (protobuf), and the etcd modules that
+are not etcd itself (tests, tools).
+"""
+
+import argparse
+import collections
+import json
+import os
+import re
+import subprocess
+import sys
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+PERENNIAL = os.path.join(ROOT, ".lake", "packages", "perennial")
+CODE = os.path.join(PERENNIAL, "Perennial", "Code", "go_etcd_io")
+PUBLIC = os.path.join(PERENNIAL, "Perennial", "Proof", "go_etcd_io")
+NS = "Perennial.EtcdGrove."
+
+FORKS = {"etcd-raft": "upamanyus/etcd-raft", "etcd": "upamanyus/etcd"}
+RAFT_MOD = "go.etcd.io/raft/v3"
+RAFT_SUBPKGS = ["confchange", "quorum", "raftpb", "tracker"]
+# The modules of the etcd repository that make up etcd (not its tests or tools).
+ETCD_MODS = [
+    "go.etcd.io/etcd/api/v3",
+    "go.etcd.io/etcd/cache/v3",
+    "go.etcd.io/etcd/client/pkg/v3",
+    "go.etcd.io/etcd/client/v3",
+    "go.etcd.io/etcd/etcdctl/v3",
+    "go.etcd.io/etcd/etcdutl/v3",
+    "go.etcd.io/etcd/pkg/v3",
+    "go.etcd.io/etcd/server/v3",
+]
+# a package whose path has a segment like this is a test helper
+TEST_PKG = re.compile(r"(^|/)[^/]*(test|mock)[^/]*(/|$)")
+
+STATES = ["verified", "unfinished", "assumed", "translated", "not translated"]
+
+
+def read(path):
+    with open(path, encoding="utf-8") as f:
+        return f.read()
+
+
+def git(cwd, *args):
+    r = subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True)
+    return r.stdout.strip() if r.returncode == 0 else ""
+
+
+# --- the Go code -------------------------------------------------------------
+
+
+def go_sources(base):
+    os.makedirs(base, exist_ok=True)
+    dirs = {}
+    for name, repo in FORKS.items():
+        d = os.path.join(base, name)
+        if not os.path.isdir(d):
+            print(f"verified-code: cloning {repo} into {d}", file=sys.stderr)
+            r = subprocess.run(
+                ["git", "clone", "-q", "--depth", "1", f"https://github.com/{repo}", d]
+            )
+            if r.returncode != 0:
+                sys.exit(f"verified-code: could not clone {repo}; pass --go-src")
+        dirs[name] = d
+    return dirs
+
+
+def go_functions(dirs):
+    r = subprocess.run(
+        ["go", "run", "verified-code.go", *dirs],
+        cwd=os.path.join(ROOT, "etc"),
+        capture_output=True,
+        text=True,
+    )
+    sys.stderr.write(r.stderr)
+    if r.returncode != 0:
+        sys.exit("verified-code: etc/verified-code.go failed")
+    return [json.loads(line) for line in r.stdout.splitlines()]
+
+
+def module_of(pkg, mods):
+    return max((m for m in mods if pkg == m or pkg.startswith(m + "/")), key=len)
+
+
+# --- what is translated and what is proved -------------------------------------
+
+
+def lean_ident(s):
+    return s.replace("«", "").replace("»", "").rstrip("'")
+
+
+def goose_functions():
+    """(package, receiver, name) of every function Goose translates."""
+    out = set()
+    for dp, _, fs in os.walk(CODE):
+        for f in fs:
+            if not f.endswith(".lean"):
+                continue
+            rel = os.path.relpath(os.path.join(dp, f), CODE)[: -len(".lean")]
+            pkg = "go.etcd.io/" + rel
+            for m in re.finditer(
+                r"^(?:noncomputable )?def (\S+)\.impl ", read(os.path.join(dp, f)), re.M
+            ):
+                parts = [lean_ident(p) for p in m.group(1).split(".")]
+                recv, name = (parts[0], parts[1]) if len(parts) == 2 else ("", parts[0])
+                out.add((pkg, recv, name))
+    return out
+
+
+def run_lean(json_path):
+    env = dict(os.environ)
+    env["PATH"] = os.path.expanduser("~/.elan/bin") + os.pathsep + env.get("PATH", "")
+    with open(json_path, "w") as f:
+        r = subprocess.run(
+            ["lake", "env", "lean", "--run", "etc/tcb-report.lean"],
+            cwd=ROOT,
+            stdout=f,
+            env=env,
+        )
+    if r.returncode != 0:
+        sys.exit("verified-code: etc/tcb-report.lean failed; is the project built?")
+
+
+def local_proofs(json_path):
+    """This repository's specs: the Lean name of the function (`raftLog.slice`) ->
+    (state, sorry-free), from the linked results of `EtcdGrove.Raft.Link`."""
+    roots, axioms = {}, set()
+    for line in read(json_path).splitlines():
+        o = json.loads(line)
+        if o["t"] == "root" and o["module"] == "EtcdGrove.Raft.Link":
+            roots[o["name"]] = o
+        elif o["t"] == "axiom":
+            axioms.add(o["name"])
+    out = {}
+    for n, r in roots.items():
+        # `T.wp_M : T.M.spec`
+        *pre, last = n.removeprefix(NS).split(".")
+        fn = ".".join(pre + [last.removeprefix("wp_")])
+        inherited = {s for u in r["uses"] if u in roots for s in roots[u]["sorries"]}
+        own = set(r["sorries"]) - inherited
+        if f"{NS}{fn}.wp_proof" in axioms:
+            state = "assumed"
+        elif own:
+            state = "unfinished"
+        else:
+            state = "verified"
+        out[fn] = (state, not r["sorries"])
+    return out
+
+
+def resolve_local(fn, by_key):
+    """The Go function a spec of this repository is about, or None (Go's standard
+    library: `slices.Sort`, `big.NewInt`, …)."""
+    parts = fn.split(".")
+    if parts[0] in RAFT_SUBPKGS and len(parts) > 1:
+        pkg, parts = f"{RAFT_MOD}/{parts[0]}", parts[1:]
+    else:
+        pkg = RAFT_MOD
+    key = (pkg, parts[0], parts[1]) if len(parts) == 2 else (pkg, "", parts[0])
+    return key if key in by_key else None
+
+
+def strip_comments(s):
+    """Lean source without its comments (good enough for `sorry`), lines kept."""
+    s = re.sub(r"/-.*?-/", lambda m: "\n" * m.group(0).count("\n"), s, flags=re.S)
+    return re.sub(r"--.*", "", s)
+
+
+DECL = re.compile(
+    r"^(?:@\[[^\]]*\]\s*)?(?:(?:private|protected|noncomputable)\s+)*"
+    r"(theorem|lemma|axiom)\s+(\S+)",
+    re.M,
+)
+TOPLEVEL = re.compile(
+    r"^(?:@\[|theorem|lemma|axiom|def|abbrev|instance|structure|class|inductive|"
+    r"end|namespace|section|open|variable|private|protected|noncomputable|"
+    r"set_option|local|attribute|example|#|/--)",
+    re.M,
+)
+
+
+def public_proofs(by_key):
+    """Perennial's public etcd/raft proofs, read from their source: Go function ->
+    (state, where).  A `wp_` theorem or axiom `[T.]wp_M` (or a variant
+    `wp_M_suffix`, `wp_T_M`) is matched to the function `T.M` of the package its
+    file is about."""
+    out = {}
+    rank = {"verified": 0, "unfinished": 1, "assumed": 2}
+    lower = {(p, r.lower(), n.lower()): (p, r, n) for p, r, n in by_key}
+    for dp, _, fs in os.walk(PUBLIC):
+        for f in sorted(fs):
+            if not f.endswith(".lean"):
+                continue
+            p = os.path.join(dp, f)
+            segs = os.path.relpath(p, PUBLIC)[: -len(".lean")].split("/")
+            for i, s in enumerate(segs):
+                if s.endswith("_proof"):
+                    segs = segs[:i] + [s.removesuffix("_proof")]
+                    break
+            pkg = "go.etcd.io/" + "/".join(segs)
+            text = strip_comments(read(p))
+            starts = [m.start() for m in TOPLEVEL.finditer(text)] + [len(text)]
+            for m in DECL.finditer(text):
+                kind, name = m.groups()
+                parts = name.split(".")
+                k = next((i for i, x in enumerate(parts) if x.startswith("wp_")), None)
+                if k is None:
+                    continue
+                recv = lean_ident(parts[k - 1]) if k > 0 else ""
+                key, variant = match_public(
+                    pkg, recv, lean_ident(parts[k][3:]), by_key, lower
+                )
+                if key is None:
+                    continue
+                end = next(s for s in starts if s > m.start())
+                if kind == "axiom":
+                    state = "assumed"
+                elif re.search(r"\bsorry\b", text[m.end() : end]):
+                    state = "unfinished"
+                else:
+                    state = "verified"
+                line = text.count("\n", 0, m.start()) + 1
+                where = f"`{os.path.relpath(p, PERENNIAL)}:{line}` `{name}`"
+                r = (variant, rank[state])
+                if key not in out or r < out[key][2]:
+                    out[key] = (state, where, r)
+    return {k: (s, where) for k, (s, where, _) in out.items()}
+
+
+def match_public(pkg, recv, rest, by_key, lower):
+    """The Go function a theorem `recv.wp_rest` of a proof of package `pkg` is about,
+    and whether its name only matches as a variant (`wp_M_suffix`: a spec of a special
+    case).  The package's subpackages are tried too (raft's proofs state some of
+    `tracker`'s and `quorum`'s), a receiver may be a function's first argument
+    (`raft.wp_f` for `f(r *raft)`), and names match up to case."""
+    pieces = rest.split("_")
+    names = [(recv, rest, False)]
+    if recv:
+        names.append(("", rest, False))
+    for i in range(len(pieces) - 1, 0, -1):  # wp_M_suffix
+        names.append((recv, "_".join(pieces[:i]), True))
+    if not recv:  # wp_T_M
+        for i in range(1, len(pieces)):
+            names.append(("_".join(pieces[:i]), "_".join(pieces[i:]), False))
+    pkgs = [pkg] + sorted({k[0] for k in by_key if k[0].startswith(pkg + "/")})
+    for exact in (True, False):
+        for r, n, variant in names:
+            for p in pkgs:
+                key = (p, r, n) if exact else lower.get((p, r.lower(), n.lower()))
+                if key in by_key:
+                    return key, variant
+    return None, False
+
+
+# --- the report --------------------------------------------------------------
+
+
+def pct(a, b):
+    return f"{100 * a / b:.1f}%" if b else "–"
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    ap.add_argument("-o", "--out")
+    ap.add_argument("--functions", action="store_true")
+    ap.add_argument("--go-src", default=os.path.join(ROOT, ".lake", "go-src"))
+    ap.add_argument("--json", default=os.path.join(ROOT, ".lake", "tcb.json"))
+    ap.add_argument("--reuse", action="store_true")
+    args = ap.parse_args()
+
+    src = go_sources(os.path.abspath(args.go_src))
+    funcs = go_functions(list(src.values()))
+    by_key = collections.defaultdict(list)  # (pkg, recv, name) -> Go functions
+    for g in funcs:
+        if g["name"] not in ("init", "_"):
+            by_key[(g["pkg"], g["recv"], g["name"])].append(g)
+
+    if not (args.reuse and os.path.exists(args.json)):
+        run_lean(args.json)
+    local = local_proofs(args.json)
+    public = public_proofs(by_key)
+    goose = goose_functions()
+
+    state = {}  # key -> (state, sorry-free, where the spec is)
+    for k in goose:
+        state[k] = ("translated", False, "")
+    for k, (s, where) in public.items():
+        state[k] = (s, False, where)
+    outside = []
+    for fn, (s, free) in sorted(local.items()):
+        k = resolve_local(fn, by_key)
+        if k is None:
+            outside.append((fn, s))
+            continue
+        # this repository's spec, unless Perennial's is in a better state
+        prev = state.get(k)
+        if prev and prev[2] and STATES.index(prev[0]) < STATES.index(s):
+            continue
+        state[k] = (s, free, f"`{fn}.wp_proof`")
+    missing = sorted(k for k in goose if k not in by_key)
+
+    def st(k):
+        return state.get(k, ("not translated", False, ""))
+
+    # classify every Go function
+    rows = []  # (scope, module, pkg, g, state, free)
+    excluded = collections.Counter()  # reason -> code lines
+    excluded_n = collections.Counter()
+    excluded_tr = collections.Counter()  # reason -> translated functions
+    mods = [RAFT_MOD] + ETCD_MODS
+    for g in funcs:
+        k = (g["pkg"], g["recv"], g["name"])
+        s, free, _ = st(k) if g["name"] not in ("init", "_") else st(None)
+        pkg = g["pkg"]
+        in_mods = [m for m in mods if pkg == m or pkg.startswith(m + "/")]
+        reason = None
+        if not in_mods:
+            reason = "etcd modules outside etcd itself (tests, tools, the root module)"
+        elif g["generated"]:
+            reason = "generated code (protobuf)"
+        elif TEST_PKG.search(pkg[len(max(in_mods, key=len)) :]):
+            reason = "test-helper packages"
+        if reason:
+            excluded[reason] += g["sloc"]
+            excluded_n[reason] += 1
+            if s == "translated":
+                excluded_tr[reason] += 1
+            elif s != "not translated":
+                outside.append((fname(g), f"{s}, {reason}"))
+            continue
+        m = max(in_mods, key=len)
+        g["translated"] = k in goose
+        rows.append(("Raft" if m == RAFT_MOD else "etcd", m, pkg, g, s, free))
+
+    def tally(rs):
+        n = collections.Counter()
+        loc = collections.Counter()
+        for *_, g, s, free in rs:
+            n[s] += 1
+            loc[s] += g["sloc"]
+            if g["translated"]:
+                n["tr"] += 1
+                loc["tr"] += g["sloc"]
+            if s == "verified" and free:
+                n["free"] += 1
+                loc["free"] += g["sloc"]
+        return n, loc
+
+    out = []
+    w = out.append
+    head = git(ROOT, "rev-parse", "--short", "HEAD")
+    man = json.loads(read(os.path.join(ROOT, "lake-manifest.json")))
+    pin = next((p["rev"][:9] for p in man["packages"] if p["name"] == "perennial"), "?")
+    revs = {n: git(d, "rev-parse", "--short", "HEAD") or "?" for n, d in src.items()}
+
+    w("# Verified code\n")
+    w(
+        f"Generated by `etc/verified-code.py` at `{head}`; Perennial `{pin}`; Go sources "
+        + ", ".join(f"`{FORKS[n]}` at `{r}`" for n, r in revs.items())
+        + ". Do not edit by hand.\n"
+    )
+    w(
+        "Every Go function and method is counted once, in its best state: **verified** "
+        "(a proved spec whose proof has no `sorry` of its own; its callees' specs may be "
+        "assumed), **unfinished** (a spec whose proof has a `sorry`), **assumed** (a spec "
+        "that is an axiom), **translated** (Goose translates it, nothing specifies it), "
+        "or not translated. Lines are Go code lines (not blank, not comments) from "
+        "`func` to the closing brace. Specs are this repository's (elaborated: "
+        "`.lake/tcb.json`) and Perennial's public etcd/raft proofs (read from source: a "
+        "`wp_` theorem without `sorry` in its text).\n"
+    )
+
+    w("## Summary\n")
+    w(
+        "| code | functions | verified | sorry-free | unfinished | assumed | translated "
+        "| code lines | verified lines | translated lines |"
+    )
+    w("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
+    for scope in ["Raft", "etcd"]:
+        rs = [r for r in rows if r[0] == scope]
+        n, loc = tally(rs)
+        tot_n, tot_l = len(rs), sum(r[3]["sloc"] for r in rs)
+        tr_l = loc["tr"]
+        w(
+            f"| {scope} | {tot_n} | {n['verified']} ({pct(n['verified'], tot_n)}) "
+            f"| {n['free']} | {n['unfinished']} | {n['assumed']} | {n['translated']} "
+            f"| {tot_l} | **{loc['verified']} ({pct(loc['verified'], tot_l)})** "
+            f"| {tr_l} ({pct(tr_l, tot_l)}) |"
+        )
+    w(
+        "\n\"sorry-free\": verified, and the linked result reaches no `sorry` through its "
+        "callees (known only for this repository's proofs). \"translated lines\" counts "
+        "the functions Goose translates, whatever their state (an assumed spec may be of "
+        "a function it does not translate).\n"
+    )
+
+    for scope, title, key in [
+        ("Raft", "Raft, by package", lambda r: r[2]),
+        ("etcd", "etcd, by module", lambda r: r[1]),
+    ]:
+        w(f"## {title}\n")
+        w(
+            "| | functions | verified | unfinished | assumed | translated | code lines "
+            "| verified lines |"
+        )
+        w("|---|---:|---:|---:|---:|---:|---:|---:|")
+        groups = collections.defaultdict(list)
+        for r in rows:
+            if r[0] == scope:
+                groups[key(r)].append(r)
+        for gname in sorted(groups, key=lambda x: -sum(r[3]["sloc"] for r in groups[x])):
+            rs = groups[gname]
+            n, loc = tally(rs)
+            tot_l = sum(r[3]["sloc"] for r in rs)
+            w(
+                f"| `{gname}` | {len(rs)} | {n['verified']} | {n['unfinished']} "
+                f"| {n['assumed']} | {n['translated']} | {tot_l} "
+                f"| {loc['verified']} ({pct(loc['verified'], tot_l)}) |"
+            )
+        w("")
+        if scope == "etcd":
+            touched = collections.defaultdict(list)
+            for r in rows:
+                if r[0] == "etcd":
+                    touched[r[2]].append(r)
+            touched = {
+                p: rs for p, rs in touched.items() if any(r[4] != "not translated" for r in rs)
+            }
+            w("The etcd packages Goose translates any of:\n")
+            w(
+                "| package | functions | verified | unfinished | assumed | translated "
+                "| code lines | verified lines |"
+            )
+            w("|---|---:|---:|---:|---:|---:|---:|---:|")
+            for p in sorted(touched):
+                rs = touched[p]
+                n, loc = tally(rs)
+                tot_l = sum(r[3]["sloc"] for r in rs)
+                w(
+                    f"| `{p}` | {len(rs)} | {n['verified']} | {n['unfinished']} "
+                    f"| {n['assumed']} | {n['translated']} | {tot_l} "
+                    f"| {loc['verified']} ({pct(loc['verified'], tot_l)}) |"
+                )
+            w("")
+
+    w("## Raft, by file\n")
+    w("| file | functions | verified | code lines | verified lines |")
+    w("|---|---:|---:|---:|---:|")
+    files = collections.defaultdict(list)
+    for r in rows:
+        if r[0] == "Raft":
+            files[r[3]["file"]].append(r)
+    for f in sorted(files, key=lambda x: -sum(r[3]["sloc"] for r in files[x])):
+        rs = files[f]
+        n, loc = tally(rs)
+        tot_l = sum(r[3]["sloc"] for r in rs)
+        w(
+            f"| `{f}` | {len(rs)} | {n['verified']} | {tot_l} "
+            f"| {loc['verified']} ({pct(loc['verified'], tot_l)}) |"
+        )
+    w("")
+
+    w("## Specified but not verified\n")
+    w("| function | state | code lines | proof |")
+    w("|---|---|---:|---|")
+    for r in sorted(rows, key=lambda r: (r[0] != "Raft", r[2], r[3]["recv"], r[3]["name"])):
+        if r[4] in ("unfinished", "assumed"):
+            g = r[3]
+            where = st((g["pkg"], g["recv"], g["name"]))[2]
+            w(f"| `{fname(g)}` | {r[4]} | {g['sloc']} | {where} |")
+    w("")
+
+    w("## Excluded from the totals\n")
+    w("| | functions | translated | code lines |")
+    w("|---|---:|---:|---:|")
+    for reason in sorted(excluded, key=lambda x: -excluded[x]):
+        w(
+            f"| {reason} | {excluded_n[reason]} | {excluded_tr[reason]} "
+            f"| {excluded[reason]} |"
+        )
+    w("")
+    if outside:
+        w(
+            "Specs of functions outside the totals (Go's standard library, generated "
+            "code, …): "
+            + ", ".join(f"`{f}` ({s})" for f, s in outside)
+            + ".\n"
+        )
+    if missing:
+        w(
+            "Translated functions not found in the Go sources (the translation is of "
+            "another commit of the fork): "
+            + ", ".join(f"`{p}.{r + '.' if r else ''}{n}`" for p, r, n in missing)
+            + ".\n"
+        )
+
+    if args.functions:
+        w("## Every Raft function\n")
+        w("| function | file | state | code lines |")
+        w("|---|---|---|---:|")
+        for r in sorted(rows, key=lambda r: (r[2], r[3]["file"], r[3]["line"])):
+            if r[0] == "Raft":
+                g = r[3]
+                s = r[4] + (" (sorry-free)" if r[4] == "verified" and r[5] else "")
+                w(f"| `{fname(g)}` | `{g['file']}:{g['line']}` | {s} | {g['sloc']} |")
+        w("")
+
+    text = "\n".join(out)
+    if args.out:
+        with open(args.out, "w") as f:
+            f.write(text)
+        print(f"verified-code: wrote {args.out}", file=sys.stderr)
+    else:
+        print(text)
+    return 0
+
+
+def fname(g):
+    p = g["pkg"].removeprefix("go.etcd.io/")
+    return f"{p}.{g['recv'] + '.' if g['recv'] else ''}{g['name']}"
+
+
+if __name__ == "__main__":
+    sys.exit(main())
