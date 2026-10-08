@@ -1,0 +1,4 @@
+Worth verifying next:
+- https://github.com/etcd-io/etcd/tree/main/cache
+- as a high-level goal, the etcd run function (https://github.com/etcd-io/etcd/blob/f061acd0902d489041448cdd19d71a345d27b9f5/server/etcdserver/server.go#L751)
+- one level lower and more specific, https://github.com/etcd-io/etcd/blob/f061acd0902d489041448cdd19d71a345d27b9f5/server/etcdserver/server.go#L978 and hooks updating consistentIndex like https://github.com/etcd-io/etcd/blob/f061acd0902d489041448cdd19d71a345d27b9f5/server/etcdserver/server.go#L2448
