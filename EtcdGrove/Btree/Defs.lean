@@ -86,6 +86,10 @@ def nodeFields (n : Loc) (dq : DFrac) (is cs : GoSlice) (cow : Loc) : IProp GF :
     structFieldRef (node V) go!"children" n ↦{dq} cs ∗
     structFieldRef (node V) go!"cow" n ↦{dq} cow)
 
+instance nodeFields_persistent (n : Loc) (is cs : GoSlice) (cow : Loc) :
+    Persistent (nodeFields (GF := GF) (V := V) n DFrac.discard is cs cow) := by
+  unfold nodeFields; infer_instance
+
 /-- A node in the free list: no items or children, the capacity of both slices owned
 (`mutableFor` reuses it). -/
 def freeNode (n : Loc) : IProp GF :=
@@ -117,6 +121,15 @@ instance isCow_persistent (o : ItemOrder GF V K) (c f : Loc) (less : GoFunc) :
     Persistent (isCow o c f less) := by
   unfold isCow; infer_instance
 
+/-- An owned node's own memory: its fields, its item slice (`is`, by value) and its
+child slice (the pointers `ps`), with their capacity. -/
+def nodeShallow (c : Loc) (dq : DFrac) (n : Loc) (is : List (V × K)) (ps : List Loc) :
+    IProp GF :=
+  iprop(∃ (isl csl : GoSlice),
+    nodeFields (V := V) n dq isl csl c ∗
+    isl ↦*{dq} is.map Prod.fst ∗ ownSliceCap V isl dq ∗
+    csl ↦*{dq} ps ∗ ownSliceCap Loc csl dq)
+
 mutual
 /-- A frozen subtree: read-only forever, and none of its nodes has context `c`. -/
 def frozen (o : ItemOrder GF V K) (c f : Loc) (less : GoFunc) (n : Loc) :
@@ -131,7 +144,8 @@ def frozenList (o : ItemOrder GF V K) (c f : Loc) (less : GoFunc) :
     List Loc → List (Tree (V × K)) → IProp GF
   | [], [] => iprop(True)
   | p :: ps, t :: ts => iprop(frozen o c f less p t ∗ frozenList o c f less ps ts)
-  | _, _ => iprop(False)
+  | [], _ :: _ => iprop(False)
+  | _ :: _, [] => iprop(False)
 end
 
 mutual
@@ -139,18 +153,16 @@ mutual
 a frozen subtree. -/
 def ownNode (o : ItemOrder GF V K) (c f : Loc) (less : GoFunc) (dq : DFrac) (n : Loc) :
     Tree (V × K) → IProp GF
-  | .node is cs => iprop((∃ (isl csl : GoSlice) (ps : List Loc),
-        nodeFields (V := V) n dq isl csl c ∗
-        isl ↦*{dq} is.map Prod.fst ∗ ownSliceCap V isl dq ∗
-        csl ↦*{dq} ps ∗ ownSliceCap Loc csl dq ∗
-        ownNodes o c f less dq ps cs) ∨
+  | .node is cs => iprop((∃ ps : List Loc,
+        nodeShallow (V := V) c dq n is ps ∗ ownNodes o c f less dq ps cs) ∨
       frozen o c f less n (.node is cs))
 
 def ownNodes (o : ItemOrder GF V K) (c f : Loc) (less : GoFunc) (dq : DFrac) :
     List Loc → List (Tree (V × K)) → IProp GF
   | [], [] => iprop(True)
   | p :: ps, t :: ts => iprop(ownNode o c f less dq p t ∗ ownNodes o c f less dq ps ts)
-  | _, _ => iprop(False)
+  | [], _ :: _ => iprop(False)
+  | _ :: _, [] => iprop(False)
 end
 
 /-- The root `r` of a tree of degree `d` holding `s`: none (`nil`) for an empty tree, or
@@ -181,15 +193,6 @@ def ownBTree (o : ItemOrder GF V K) (t : Loc) (dq : DFrac) (s : List (V × K)) :
 
 /-! ### Owned nodes, piece by piece (for the node-level specs) -/
 
-/-- An owned node's own memory: its fields, its item slice (`is`, by value) and its
-child slice (the pointers `ps`), with their capacity. -/
-def nodeShallow (c : Loc) (dq : DFrac) (n : Loc) (is : List (V × K)) (ps : List Loc) :
-    IProp GF :=
-  iprop(∃ (isl csl : GoSlice),
-    nodeFields (V := V) n dq isl csl c ∗
-    isl ↦*{dq} is.map Prod.fst ∗ ownSliceCap V isl dq ∗
-    csl ↦*{dq} ps ∗ ownSliceCap Loc csl dq)
-
 /-- An owned node with subtree `t` (the left disjunct of `ownNode`). -/
 def ownedNode (o : ItemOrder GF V K) (c f : Loc) (less : GoFunc) (dq : DFrac) (n : Loc)
     (t : Tree (V × K)) : IProp GF :=
@@ -199,7 +202,8 @@ def ownedNode (o : ItemOrder GF V K) (c f : Loc) (less : GoFunc) (dq : DFrac) (n
 `ownNode` is held separately (`mutableChild`). -/
 def ownedNodeHole (o : ItemOrder GF V K) (c f : Loc) (less : GoFunc) (n : Loc)
     (is : List (V × K)) (cs : List (Tree (V × K))) (i : Nat) (p : Loc) : IProp GF :=
-  iprop(∃ ps : List Loc, ⌜ps[i]? = some p⌝ ∗ nodeShallow c (DFrac.own 1) n is ps ∗
+  iprop(∃ ps : List Loc, ⌜ps[i]? = some p ∧ ps.length = cs.length⌝ ∗
+    nodeShallow c (DFrac.own 1) n is ps ∗
     ownNodes o c f less (DFrac.own 1) (ps.eraseIdx i) (cs.eraseIdx i))
 
 /-- The item a removal is given: one with the key, for `Target.key`. -/
