@@ -161,9 +161,8 @@ target), generated and checked by `etc/goose.py` (now two projects, `etcd-raft` 
   argument: `entry.ty`, not `entry.ty T`). It is a *new* branch because the Rocq
   translations (etcd-grove `main`, Perennial `master`: `etc/ci-goose-check.py`) are
   regenerated from branch `goose` by name, so `goose` must stay at the March upstream.
-  **Not pushed yet**: until it is,
-  `etc/goose.py` needs `--src etcd=<checkout>` (or `$ETCD_SRC`), and CI's
-  `goose.py --check` fails for `etcd`. CI's Go is now 1.27 (etcd's `go.mod`).
+  Pushed 2026-10-08, so `etc/goose.py` fetches it from GitHub (`--src etcd=<checkout>` or
+  `$ETCD_SRC` only for an unpushed revision). CI's Go is now 1.27 (etcd's `go.mod`).
 - **With bodies**: all of `cache/v3` (every function and method, non-test files;
   `cache/v3.toml`: `translate = ["*"]`).
 - **Types and names only** (`translate = ["!*"]`, `translate_types = true`, a few
@@ -294,4 +293,4 @@ it imports). No `sorry`, no axiom: `etc/tcb-report.py --check` now also takes
   `TypeRepr` instances in `InvStore.lean`.
 - `etc/tcb-report.py --check`: 14 axioms, 2 sorries (the baseline gained the nine btree
   axioms, `newStore_RLocker` and Perennial's `fmt.wp_Errorf`). `etc/goose.py --check` passes
-  (with `--src etcd=/shared/etcd` until the fork is pushed).
+  (fetching the fork from GitHub).
