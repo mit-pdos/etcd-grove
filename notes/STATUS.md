@@ -21,8 +21,9 @@ translation of etcd-raft is this repository's `EtcdRaft/`, generated and checked
   `inv_rawnode.v`): no `sorry`.
 - The 167 specs and the 167 proofs (`raft.Step`'s branches in `Proof/raft__Step/`,
   one module per Rocq helper file, incl. `MsgStorageAppendResp`/`MsgStorageApplyResp`).
-  Trust boundary as in the Rocq: the state/logger axioms and nine `axiom … .wp_proof`
-  for code outside the scope.
+  Trust boundary as in the Rocq at first: the state/logger axioms and nine
+  `axiom … .wp_proof` for code outside the scope (since 2026-10-08 only `.wp_proof`
+  axioms remain; see below).
 - **`RawNode.Ready` is proved here although it is `Admitted` in the Rocq**: the Rocq
   script stops (`Show. Admitted.`) after stepping all the code and closing the struct,
   before the postcondition; `Proof/RawNode__Ready.lean` ports that script and proves the
@@ -76,6 +77,22 @@ translation of etcd-raft is this repository's `EtcdRaft/`, generated and checked
   claim more than Go's code does in the model: `Sort` overflows `2*root+1` in its
   heapsort fallback past 2^62 elements, `Join` panics if the total length overflows
   `int` (and cannot be translated: `strings.Builder` uses `unsafe.String`).
+- **The `Logger` and `Storage` interfaces assume nothing (2026-10-08).** `isLogger`
+  (`InvLogger.lean`) is a definition, the formatting methods' triples bundled as
+  `isStorageWith` bundles `Storage`'s, so `isLogger_persistent` is an instance and
+  `Logger.wp_logf` a theorem: a client supplies the triples with its `Logger`.
+  `ownStorage` (`InvStorage.lean`) is the field of `class StorageModel GF`, a
+  parameter every section that reaches it carries (`[StorageModel GF]`, also in
+  `etc/gen-link.py`'s template), with deliberately no global instance; it stays
+  abstract (not specialised to `ownMemoryStorage`), but the results now hold for
+  *every* storage predicate instead of one unknown one, which no client could have
+  established (`newRaft`'s precondition asks for it, and `ownRawNode_persist` hands it
+  to the application to `Append`). Four axioms gone (`isLogger`,
+  `isLogger_persistent`, `Logger.wp_logf`, `ownStorage`); `etc/tcb-report.py
+  --check`: 6 axioms (`reflect.DeepEqual`, `fmt.Sprintf`, `strings.Join`,
+  `slices.Sort`, `rand.Int`, `raftpb.Entry.Size`), 0 sorries. `RawNode.wp_Ready` rests
+  on `Entry.Size` alone, `RawNode.wp_Propose` on `Entry.Size`, `rand.Int`,
+  `slices.Sort` and `reflect.DeepEqual`.
 - Trust base: `etc/tcb-report.py` (gate: `--check` against `etc/tcb-baseline.txt`).
 - **Build checked 2026-10-08** at Perennial c35b7710d (a `--packages` override pointing
   at a checkout of the pinned commit): `lake build` completes (977 jobs, 0 errors); `etc/tcb-report.py --check`
@@ -104,6 +121,9 @@ translation of etcd-raft is this repository's `EtcdRaft/`, generated and checked
 
 ## Differences from the Rocq besides the language
 
+- No axiom for the `Logger` and `Storage` interfaces (Rocq: `is_Logger` and
+  `own_Storage` are `Axiom`s, with `wp_logf` a third): `isLogger` is a definition and
+  `ownStorage` a typeclass parameter (`StorageModel`), see "Done".
 - Names follow Perennial's Lean conventions (`raft.wp_Step`, `own_raft_phys` →
   `ownRaftPhys`, …); see Perennial's `etc/lean-rename/renames.tsv` for the
   framework's Rocq → Lean names.

@@ -24,10 +24,11 @@ Scope, matching `Raft/Protocol/`:
   - no reconfiguration and no learners.
 
 Trust boundary. Two kinds, and the layout keeps them apart:
-  - `Inv*.lean` holds the state axioms and the specs of raft components election does
-    not reason about (the log, the tracker's non-vote state, the `Logger` and tracing
-    helpers), and a `Proof/<fn>.lean` of a function outside the scope is an `axiom
-    <fn>.wp_proof`. These are Lean `axiom`s.
+  - A `Proof/<fn>.lean` of a function outside the scope is an `axiom <fn>.wp_proof`.
+    These are Lean `axiom`s. The client-supplied interfaces are not: `isLogger` is a
+    definition (the triples a client supplies), and `ownStorage` is a parameter, the
+    field of `StorageModel GF`, so the results hold for every storage predicate
+    (both axioms until 2026-10-08).
   - A function that is in scope but unfinished is a `sorry` inside its own
     `Proof/<fn>.lean`.
 Nothing in a proof theorem's hypothesis list is an assumption: a callee spec taken as a
@@ -58,7 +59,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
 variable [ext : FfiSyntax]
-variable {GF : BundledGFunctors} [AllG GF] [InvGS GF]
+variable {GF : BundledGFunctors} [AllG GF] [InvGS GF] [StorageModel GF]
 
 /-- **Sanity check on the model: election safety.**
 
