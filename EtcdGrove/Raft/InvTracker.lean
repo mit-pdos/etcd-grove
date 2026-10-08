@@ -968,9 +968,15 @@ theorem wp_min2_uint64 (x y : w64) :
 `matchAckIndexer.AckedIndex`, which receives the map and not the tracker:
 `ProgressTracker.Committed` hands `matchAckIndexer(p.Progress)` to
 `JointConfig.CommittedIndex`, which reads the voter map out of the *same* tracker while
-the indexer is in use, so the indexer cannot be specified on `ownTracker` whole. -/
-def ownProgressMap (m : Loc) (prs : GMap w64 Loc) (pvs : GMap w64 Progress) : IProp GF :=
-  iprop("#Hprs" ∷ m ↦$□ prs ∗
+the indexer is in use, so the indexer cannot be specified on `ownTracker` whole.
+
+Indexed by the progresses only: the map's contents (the `*Progress` pointers) are
+existential, since the one spec on it (`AckedIndex`) only carries them along; a caller
+that knows them (`Committed`, from `ownTracker`) gets them back with
+`progress_map_agree`. (Until 2026-10-08 the pointer map was an index.) -/
+def ownProgressMap (m : Loc) (pvs : GMap w64 Progress) : IProp GF :=
+  iprop(∃ (prs : GMap w64 Loc),
+    "#Hprs" ∷ m ↦$□ prs ∗
     "Hprogs" ∷ ([∗map] _k ↦ pr;p ∈ prs;pvs, ownProgress pr p))
 
 /-- The `quorum.AckedIndexer` interface contract, against a resource `P` the

@@ -34,12 +34,12 @@ on the tracker: see that definition for why. The result is `pvsAcked pvs id` in 
 `(value-or-0, ok)` form of `isAckedIndexer`'s contract, which is what this triple
 exists to discharge. -/
 abbrev tracker.matchAckIndexer.AckedIndex.spec : Prop :=
-  ∀ (mref : Loc) (prs : GMap w64 Loc) (pvs : GMap w64 Progress) (id : w64),
+  ∀ (mref : Loc) (pvs : GMap w64 Progress) (id : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗
-      ownProgressMap mref prs pvs }}
+      ownProgressMap mref pvs }}
     (App (Val (mref @!! tracker.matchAckIndexer.ty @!! go!"AckedIndex")) (Val #id))
   {{ RET (PairV #((pvsAcked pvs id).getD (W64 0)) #((pvsAcked pvs id).isSome));
-      ownProgressMap mref prs pvs }}
+      ownProgressMap mref pvs }}
 
 end spec
 

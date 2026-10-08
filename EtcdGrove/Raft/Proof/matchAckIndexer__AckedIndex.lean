@@ -21,7 +21,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 hits exactly when `pvsAcked pvs id` is `some`. -/
 theorem tracker.matchAckIndexer.AckedIndex.wp_proof :
     tracker.matchAckIndexer.AckedIndex.spec (GF := GF) (hG := hG) := by
-  intro mref prs pvs id
+  intro mref pvs id
   wp_start as Hm
   iNamed Hm
   wp_auto
@@ -48,6 +48,7 @@ theorem tracker.matchAckIndexer.AckedIndex.wp_proof :
       ipureintro; exact Habs
     iapply HΦ
     unfold ownProgressMap
+    iexists prs
     iframe Hprs Hprogs
   | none =>
     have Hv : pvs !! id = none := by
@@ -62,6 +63,7 @@ theorem tracker.matchAckIndexer.AckedIndex.wp_proof :
     wp_auto
     iapply HΦ
     unfold ownProgressMap
+    iexists prs
     iframe Hprs Hprogs
 
 end proof
