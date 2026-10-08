@@ -1,0 +1,5 @@
+# Only the three aliases that protobuf messages' fields have, to their targets in
+# internal/impl (MessageState) or their underlying types (SizeCache, UnknownFields);
+# the rest is names only.
+translate = ["!*", "MessageState", "SizeCache", "UnknownFields"]
+imports = ["!*", "google.golang.org/protobuf/internal/impl"]

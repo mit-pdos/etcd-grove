@@ -71,13 +71,15 @@ jobs:
           key: lake-packages-${{ runner.os }}-${{ runner.name }}-${{ hashFiles('lean-toolchain', 'lake-manifest.json', 'lakefile.toml') }}-${{ github.run_id }}
           restore-keys: |
             lake-packages-${{ runner.os }}-${{ runner.name }}-${{ hashFiles('lean-toolchain', 'lake-manifest.json', 'lakefile.toml') }}-
+      # etcd's go.mod (the fork pinned in etc/goose.py) asks for Go 1.27.
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.26.x"
+          go-version: "1.27.x"
           cache: false
-      # Before the (long) build: the checked-in translation `EtcdRaft/` must be exactly
-      # what the pinned Perennial's translator produces from the pinned etcd-raft.
+      # Before the (long) build: the checked-in translations `EtcdRaft/` and `EtcdCache/`
+      # must be exactly what the pinned Perennial's translator produces from the pinned
+      # etcd-raft and etcd.
       - name: Check the Goose translation
         run: ./etc/goose.py --check
       - name: Build
