@@ -8,7 +8,7 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI go_etcd_io.raft.v3
+open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -17,9 +17,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- **Trust boundary**: an `axiom` rather than a `sorry`, so that it counts as an
-assumption, not unfinished work. `math/big` is not translated and is not raft; see the spec. -/
-axiom big.NewInt.wp_proof : big.NewInt.spec (GF := GF) (hG := hG)
+/-- Proved in Perennial (`Perennial.Proof.math.big`). -/
+theorem big.NewInt.wp_proof : big.NewInt.spec (GF := GF) (hG := hG) := by
+  intro x
+  iintro %Φ _ HΦ
+  iapply _root_.Perennial.math.big.wp_NewInt x $$ [] HΦ
+  itrivial
 
 end proof
 

@@ -65,6 +65,17 @@ translation of etcd-raft is this repository's `EtcdRaft/`, generated and checked
   the proof takes it from the model (`Proof/extend.lean`), and what is trusted is
   unchanged. Every result is now `sorry`-free; `etc/tcb-report.py --check`: 13 axioms,
   0 sorries.
+- **`big.NewInt` and `big.Int.Int64` are proved (2026-10-08)**, in Perennial
+  (`Proof/math/big.lean`; `math/big.toml` translates `NewInt`, `Int.Int64` and `low64`):
+  `ownBigInt` is Perennial's `math.big.ownInt` (sign and little-endian word slice) instead
+  of an abstract axiom, the two specs are unchanged, and `crypto/rand.Int` (still assumed)
+  is stated over the concrete predicate. Perennial's Go semantics gained unary minus on
+  unsigned integers (`neg_uint64` & co., `Golang/Defn/Predeclared.lean`), which `NewInt`
+  uses. Perennial pinned at 584b17c54: `lake build` passes, `etc/goose.py --check`
+  passes, `etc/tcb-report.py --check`: 10 axioms, 0 sorries. `slices.Sort` and `strings.Join` stay assumed, and both specs
+  claim more than Go's code does in the model: `Sort` overflows `2*root+1` in its
+  heapsort fallback past 2^62 elements, `Join` panics if the total length overflows
+  `int` (and cannot be translated: `strings.Builder` uses `unsafe.String`).
 - Trust base: `etc/tcb-report.py` (gate: `--check` against `etc/tcb-baseline.txt`).
 - **Build checked 2026-10-08** at Perennial c35b7710d (a `--packages` override pointing
   at a checkout of the pinned commit): `lake build` completes (977 jobs, 0 errors); `etc/tcb-report.py --check`
