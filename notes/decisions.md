@@ -30,3 +30,60 @@ Trust-boundary triples are `axiom <fn>.wp_proof : <fn>.spec` and unfinished ones
 
 **Rejected — one file per function holding spec and proof.** Then a caller imports
 its callees' proofs, which both exposes them and serializes the build.
+
+---
+
+## `confchange`: translated and proved, Lean-first
+
+**2026-10-08 · accepted**
+
+`confchange.Restore` and `raftpb.ConfState.Equivalent` were the two axioms about core
+raft code (main's notes/STATUS.md, "The fourteen axioms"), stated because the code was
+not translated. `confchange` is now translated in full (Perennial's
+`Perennial/Code/go_etcd_io/raft/v3/confchange.toml`: `translate` unrestricted) and
+`Restore` proved from its callees on the voters-only, non-joint path `newRaft` and
+`raft.restore` take. `Restore.spec` is unchanged, so its callers are untouched.
+
+**Decision:** the new functions get the same discipline as the ported ones
+(`Spec/<fn>.lean`, `Proof/<fn>.lean`, linked in `Link.lean`), but have no Rocq
+counterpart: they are **Lean-first**. `etc/gen-link.py` reads them from
+`etc/link-lean-first.txt` (`<fn>: <callees in hypothesis order>`), so `Link.lean` can
+still be regenerated. Shared vocabulary (`ConfigSimple`, `addNodeCC`, `opSpec`) is in
+`InvConfchange.lean`, outside the discipline like the other `Inv*` files.
+
+**`chain` is specified higher-order.** `chain(chg, ops...)` runs closures; its spec
+takes an invariant `I : Nat → Config → Loc → IProp` on the (config, progress map) pair
+and, for each `i`, the triple of op `i` from `I i` to `I (i+1)` (`opSpec`). `Restore`
+instantiates `I` with "the first `i` voters are in, each with an owned `Progress`" and
+proves each `chg.Simple(cc)` closure's triple from `Simple`'s spec. This keeps `chain`'s
+proof independent of what the ops do.
+
+**`checkAndCopy` consumes the originals' `Progress` ownership.** Its shallow copy
+`ppr := *pr` shares the `Inflights` pointer, so the copies' `ownProgress` need the
+originals' inflight rings; the originals come back as bare points-tos (dropped). On this
+path they are garbage anyway (`chain` replaces them), except `MakeProgressTracker`'s
+empty map, which has none to lose.
+
+**Specs are stated for the case reached, not in general.** `joint` only for a `nil`
+outgoing map, `nilAwareDelete` only for a `nil` map, `apply`/`Simple` only for
+`[AddNode id]` with `id ≠ 0`, `symdiff` with a postcondition that says only "at most 1
+under the two inclusions `Simple` establishes" (the exact count would need a bound on
+the maps' sizes to rule out `n++` wrapping, which nothing on this path has). Widening
+them is ordinary proof work when a reconfiguration path needs it.
+
+**A Goose bug found on the way.** `cc := cc` (Go's loop-local-copy idiom, used twice in
+`Restore`) was translated as "allocate a fresh zero `cc`, then read `cc`", i.e. the new
+cell: `defineStmt` wrapped the allocations *around* the assignment it built, so a
+right-hand side naming a defined variable read the fresh cell. Every closure would have
+captured `NodeID = 0`, which `apply` skips, and `Restore` would have returned "removed
+all voters" -- the spec was unprovable against the translation. Fixed in Perennial's
+`goose/goose.go` (`defineStmt` evaluates such right-hand sides first, into `$def<i>`,
+only when a right-hand side reads a variable the statement defines; field and method
+names of the same name do not count). In the translated etcd code only `Restore` has
+the pattern (`rafttest` is not translated); the regenerated `raft/v3`, `quorum` and
+`tracker` are byte-identical.
+
+**Rejected -- requiring `voters.Nodup` in `Restore.spec`** to skip the repeated-voter
+branch of `makeVoter`. The callers have it, but the spec's comment says it is not
+needed and keeping the statement identical is what makes "axiom replaced by theorem"
+auditable; the branch cost ~30 lines.

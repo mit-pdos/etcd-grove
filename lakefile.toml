@@ -6,7 +6,7 @@ defaultTargets = ["EtcdGrove"]
 [[require]]
 name = "perennial"
 git = "https://github.com/mit-pdos/perennial"
-rev = "0fe90441579b4361f24bc30b77890c887ce2b2c7"
+rev = "43b7fc480e44e33684d2e587897be36e4cc1f2e0"
 
 # Proofs about etcd (starting with its Raft implementation).
 [[lean_lib]]
