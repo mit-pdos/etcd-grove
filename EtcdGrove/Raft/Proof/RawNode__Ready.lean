@@ -334,9 +334,6 @@ private theorem wp_newStorageAppendRespMsg_inline
   wp_auto
   wp_apply wp_raftLog_lastEntryID $$ [Hlog] as %e ⟨Hlog, %He⟩
   · iframe Hlog
-  -- (`wp_auto` stops before this `let:` of the struct-typed result)
-  wp_pure
-  wp_auto
   wp_apply wp_IsEmptySnap as %be %Hbe
   subst Hbe
   rw [Hsn]
@@ -402,10 +399,9 @@ theorem RawNode.Ready.wp_proof
   wp_method_call
   wp_call
   wp_auto
-  -- the outer `rn`/`rd` (of `Ready`) and the inner ones (of `readyWithoutAccept`)
-  rename_i rn0_ptr rd0_ptr
+  -- the outer `rn` (of `Ready`) and the inner one (of `readyWithoutAccept`)
+  rename_i rn0_ptr
   irename: (rn0_ptr ↦ (_ : Loc)) => rn0
-  irename: (rd0_ptr ↦ (_ : Ready)) => rd0
   wp_apply wp_raftLog_nextUnstableEnts $$ [Hlog] as %sents ⟨Hlog, #Hents⟩
   · iframe Hlog
   -- `rn.applyUnstableEntries()` is `!asyncStorageWrites`

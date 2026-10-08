@@ -108,11 +108,13 @@ cell: `defineStmt` wrapped the allocations *around* the assignment it built, so 
 right-hand side naming a defined variable read the fresh cell. Every closure would have
 captured `NodeID = 0`, which `apply` skips, and `Restore` would have returned "removed
 all voters" -- the spec was unprovable against the translation. Fixed in Perennial's
-`goose/goose.go` (`defineStmt` evaluates such right-hand sides first, into `$def<i>`,
-only when a right-hand side reads a variable the statement defines; field and method
-names of the same name do not count). In the translated etcd code only `Restore` has
-the pattern (`rafttest` is not translated); the regenerated `raft/v3`, `quorum` and
-`tracker` are byte-identical.
+`goose/goose.go` (c35b7710d): every define statement now binds its right-hand sides
+(`$r<i>`) first, then allocates the new variables, then stores, as Go evaluates the
+right-hand sides before the new names are in scope. (A first fix, 43b7fc480, did this
+only for right-hand sides naming a defined variable, via temporaries `$def<i>`.) The
+uniform order reorders every `:=` in the translation; in the proofs a `wp_auto` (or a
+`wp_pure` workaround) right after a call sometimes has nothing left to step, since the
+call's `wp_apply` now also steps the allocation that follows it.
 
 **Rejected -- requiring `voters.Nodup` in `Restore.spec`** to skip the repeated-voter
 branch of `makeVoter`. The callers have it, but the spec's comment says it is not
