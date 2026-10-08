@@ -228,9 +228,25 @@ since every `unstable` method now hands back a value the caller has not seen -- 
 rebuild `ownRaftLogCore` at `{ lv with unstable' := uv' }` (`close_unstable_log`,
 `ownUnstable_reopen`, `reopen_unstable`).
 
-**Not yet applied** (same shape; candidates, in order): the storage triple `prev ents ss`
-of `ownStorage` (an axiom),
-`isStorageWith`, `memstorageFields`, `ownMemoryStorage` (`ss` added 2026-10-03);
-`ownProgressMap`. **`ownRaftLogCore` is left as is**: it is not specified on (only
-`newLogWithSize`'s spec names it) and its proofs work at the `LogState` fields as
-variables after `cases ls` by design (`ownRaftLog_unfold`).
+**Also applied (2026-10-08)**, one commit each:
+
+- `ownStorage` (an axiom: its statement changes, its name in `tcb-baseline.txt` does
+  not), `isStorageWith`'s `P`, `memstorageFields`, `memstorageInv`'s ghost variable and
+  `ownMemoryStorage` take one `StorState := { prev, ents, ss }` (`InvStorage.lean`)
+  instead of three arguments; the persist lemmas return
+  `{ σ with ents := storApp … }`, `newRaft`'s `InitialState` clause `{ σ with ss := ss' }`.
+- `ownRawNode rn id s rs` is `ownRawNode rn id rs`: `RNState` has the node's `NState`
+  as `raft`; `Propose`/`Advance` return `{ rs with raft := s', … }`.
+- `ownProgressMap m prs pvs` is `ownProgressMap m pvs`: the pointer map is existential
+  (`AckedIndex` only carried it; `Committed` recovers it with `progress_map_agree`).
+- Fields no spec reads are dropped: `Progress.recentActive` (checkQuorum, which reads
+  it, is out of scope) and `ReadOnly.safe` (the option is case-split on the Go value).
+  Both come back if a spec ever needs them.
+
+**Left as is**, deliberately: `ownRaftLogCore` -- not specified on (only
+`newLogWithSize`'s spec names it), and its proofs work at the `LogState` fields as
+variables after `cases ls` by design (`ownRaftLog_unfold`); it names its storage record
+by fields (`{ prev := sprev, ents := stored, ss := ss }`). `visitClosure` (a closure
+contract, not an ownership predicate) and `ownConfig`'s `cfg` (a configuration
+parameter, which the rule exempts). The ghost predicates in `Protocol/` own no Go
+object and were not audited against the rule.

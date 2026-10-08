@@ -79,12 +79,18 @@ translation of etcd-raft is this repository's `EtcdRaft/`, generated and checked
 - **`ownInflightsRaw` is indexed by one pure record (2026-10-08)**, `InflightsRing`
   (window, `start`, buffer length), instead of the Goose value and the buffer's
   contents; `grow`'s spec is now deterministic and the public `Inflights` specs are
-  unchanged. The rule (one record, as small as the specs allow) and the predicates it
-  has not been applied to yet are in decisions.md, "Predicate indices".
+  unchanged. The rule (one record, as small as the specs allow) is in decisions.md,
+  "Predicate indices", with what else it was applied to and what is left as is.
 - **`ownUnstable` is indexed by one pure record (2026-10-08)**, `UnstableSt` (entries,
   `offset`, `offsetInProgress`, pending snapshot), instead of the Goose value and the
   entries; the predicate carries the snapshot's `ownSnap` and the logger, so the
   `unstable` specs lost those premises and their "unchanged" facts.
+- **The same rule, applied to the rest (2026-10-08)**: the storage's `prev`/`ents`/`ss`
+  are one `StorState` (`ownStorage`, still an axiom, changed statement, same name;
+  `isStorageWith`, the `MemoryStorage` predicates); `ownRawNode`'s raft state is
+  `RNState.raft`; `ownProgressMap`'s pointer map is existential; `Progress.recentActive`
+  and `ReadOnly.safe`, which no spec reads, are gone. `lake build` passes and
+  `etc/tcb-report.py --check` matches the baseline (10 axioms, 0 sorries).
 - Trust base: `etc/tcb-report.py` (gate: `--check` against `etc/tcb-baseline.txt`).
 - **Build checked 2026-10-08** at Perennial c35b7710d (a `--packages` override pointing
   at a checkout of the pinned commit): `lake build` completes (977 jobs, 0 errors); `etc/tcb-report.py --check`
@@ -107,9 +113,6 @@ translation of etcd-raft is this repository's `EtcdRaft/`, generated and checked
   of 45359 lines (0.4%, all from Perennial's public proofs).
 
 ## Next
-
-- Apply the one-record rule (decisions.md, "Predicate indices") to the storage triple
-  (`ownStorage` & co.), then `ownProgressMap`.
 
 - Follow the Rocq RawNode branch past 857d09190 (its worktree has an uncommitted
   edit to `proof_RawNode__Ready.v`, not ported).
