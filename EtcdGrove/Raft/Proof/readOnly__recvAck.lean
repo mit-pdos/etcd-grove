@@ -48,7 +48,7 @@ theorem readOnly.recvAck.wp_proof : readOnly.recvAck.spec (GF := GF) (hG := hG) 
     rw [readonlyRecvAck_nil]
     iexists rov, ptrs
     iframe Hro Hacks Hucr Hucr_cap Hreqs
-    ipureintro; exact ⟨Hro_safe, Hro_conf⟩
+    ipureintro; exact Hro_conf
   · have Hne : cs ≠ [] := by
       intro h; subst h; apply Hif; simp at Hcl; word
     have Hcs8 : 8 ≤ cs.length := by
@@ -71,8 +71,6 @@ theorem readOnly.recvAck.wp_proof : readOnly.recvAck.spec (GF := GF) (hG := hG) 
       iexists rov, ptrs
       simp only [named]
       iframe Hro Hucr Hucr_cap Hreqs
-      isplitr
-      · ipureintro; exact Hro_safe
       isplitr
       · ipureintro; exact Hro_conf
     · iExactEq Hacks

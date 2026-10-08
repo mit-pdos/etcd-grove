@@ -31,8 +31,6 @@ theorem newReadOnly.wp_proof : newReadOnly.spec (GF := GF) (hG := hG) := by
   isplitr
   · ipureintro; rfl
   isplitr
-  · ipureintro; rfl
-  isplitr
   · iapply ownSlice_nil
   isplitr
   · iapply ownSliceCap_nil
