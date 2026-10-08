@@ -1,5 +1,6 @@
 -- The root module: everything `lake build` checks. The proofs are reached through
--- `EtcdGrove.Raft.Link`, which links each of them to its callees' results.
+-- `EtcdGrove.Raft.Link` and `EtcdGrove.Cache.Link`, which link each of them to its
+-- callees' results.
 import EtcdGrove.Raft.Base
 import EtcdGrove.Raft.Plog
 import EtcdGrove.Raft.Protocol
@@ -367,3 +368,36 @@ import EtcdGrove.Raft.Proof.voteRespMsgType
 import EtcdGrove.Raft.Link
 import EtcdGrove.Raft.MemstorageInstance
 import EtcdGrove.Raft.Results
+
+-- etcd's `cache` package (`EtcdGrove/Cache/`), linked in `EtcdGrove.Cache.Link`.
+import EtcdGrove.Cache.Base
+import EtcdGrove.Cache.InvRingBuffer
+import EtcdGrove.Cache.Spec.newRingBuffer
+import EtcdGrove.Cache.Spec.ringBuffer__Append
+import EtcdGrove.Cache.Spec.ringBuffer__AscendGreaterOrEqual
+import EtcdGrove.Cache.Spec.ringBuffer__AscendLessThan
+import EtcdGrove.Cache.Spec.ringBuffer__DescendGreaterThan
+import EtcdGrove.Cache.Spec.ringBuffer__DescendLessOrEqual
+import EtcdGrove.Cache.Spec.ringBuffer__PeekLatest
+import EtcdGrove.Cache.Spec.ringBuffer__PeekOldest
+import EtcdGrove.Cache.Spec.ringBuffer__RebaseHistory
+import EtcdGrove.Cache.Spec.ringBuffer__at
+import EtcdGrove.Cache.Spec.ringBuffer__findFirstIndexGreaterOrEqual
+import EtcdGrove.Cache.Spec.ringBuffer__findLastIndexLessOrEqual
+import EtcdGrove.Cache.Spec.ringBuffer__full
+import EtcdGrove.Cache.Spec.ringBuffer__moduloIndex
+import EtcdGrove.Cache.Proof.newRingBuffer
+import EtcdGrove.Cache.Proof.ringBuffer__Append
+import EtcdGrove.Cache.Proof.ringBuffer__AscendGreaterOrEqual
+import EtcdGrove.Cache.Proof.ringBuffer__AscendLessThan
+import EtcdGrove.Cache.Proof.ringBuffer__DescendGreaterThan
+import EtcdGrove.Cache.Proof.ringBuffer__DescendLessOrEqual
+import EtcdGrove.Cache.Proof.ringBuffer__PeekLatest
+import EtcdGrove.Cache.Proof.ringBuffer__PeekOldest
+import EtcdGrove.Cache.Proof.ringBuffer__RebaseHistory
+import EtcdGrove.Cache.Proof.ringBuffer__at
+import EtcdGrove.Cache.Proof.ringBuffer__findFirstIndexGreaterOrEqual
+import EtcdGrove.Cache.Proof.ringBuffer__findLastIndexLessOrEqual
+import EtcdGrove.Cache.Proof.ringBuffer__full
+import EtcdGrove.Cache.Proof.ringBuffer__moduloIndex
+import EtcdGrove.Cache.Link

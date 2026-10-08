@@ -22,7 +22,7 @@ environment instead of the source text, so nothing is a lower bound:
     function that no other proof uses (every theorem of `EtcdGrove.Raft.Link` is one
     function's spec instantiated with its callees' results; a spec some other proof
     uses is internal: were it wrong, that proof would fail), and the protocol lemmas
-    of `EtcdGrove.Raft.Results`;
+    of `EtcdGrove.Raft.Results`; likewise the `cache` package's `EtcdGrove.Cache.Link`;
   * definitions -- this repository's definitions those statements are written in
     terms of, transitively through their bodies.  A wrong definition makes a true
     theorem say nothing, so these are trusted exactly as the axioms are.
@@ -46,6 +46,10 @@ BASELINE = os.path.join(ROOT, "etc", "tcb-baseline.txt")
 
 # Where a linked result's statement lives: `Link.lean` states `T.wp_M : T.M.spec`.
 SPEC_DIR = "EtcdGrove/Raft/Spec"
+
+# The modules of linked results (each states `T.wp_M : T.M.spec`): the Raft proof's and
+# the `cache` package's.
+LINKS = ("EtcdGrove.Raft.Link", "EtcdGrove.Cache.Link")
 
 # Source constructs that weaken what the kernel checks.
 RISKY = [
@@ -178,7 +182,7 @@ def main():
     used = {u for r in roots.values() for u in r["uses"]}
     exported = sorted(
         (r for n, r in roots.items() if n not in used),
-        key=lambda r: (r["module"] != "EtcdGrove.Raft.Link", short(r["name"])),
+        key=lambda r: (r["module"] not in LINKS, r["module"] != LINKS[0], short(r["name"])),
     )
     trusted_defs = sorted({d for r in exported for d in r["defs"] if d in defs})
 
@@ -258,7 +262,8 @@ def main():
     )
     w(
         f"Roots: the {len(roots)} theorems of `EtcdGrove/Raft/Link.lean` (every Go "
-        "function's linked result) and `EtcdGrove/Raft/Results.lean`.\n"
+        "function's linked result), `EtcdGrove/Raft/Results.lean` and "
+        "`EtcdGrove/Cache/Link.lean` (the `cache` package's linked results).\n"
     )
 
     w("## Summary\n")
@@ -298,7 +303,7 @@ def main():
         fa = sum(1 for a in r["axioms"] if a in fw_ax)
         where = (
             f"`{spec_file(r, defs)}`"
-            if r["module"] == "EtcdGrove.Raft.Link"
+            if r["module"] in LINKS
             else f"`{mod_path(r['module'])}:{r['line']}`"
         )
         w(f"| `{short(r['name'])}` | {where} | {sr} | {pa} | {fa} | {len(r['defs'])} |")

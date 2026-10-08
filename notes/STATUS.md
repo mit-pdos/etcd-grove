@@ -216,3 +216,34 @@ target), generated and checked by `etc/goose.py` (now two projects, `etcd-raft` 
 - The framework changes `main` made to Perennial's Rocq framework
   (`new/golang/theory/*.v`) are ported to Perennial's Lean framework where a proof
   here needs them, not to this repository.
+
+### The ring buffer (`cache/ringbuffer.go`): proved (2026-10-08)
+
+`ringBuffer[T]` is specified and proved in full, Lean-first, for any Go type argument `T`
+with Lean representation `T'` (Perennial's `atomic.Pointer[T]` instance assumptions):
+`newRingBuffer` and the 13 methods (`Append`, `full`, the four iterations, `PeekLatest`,
+`PeekOldest`, `RebaseHistory`, `moduloIndex`, `at`, the two binary searches), one
+`EtcdGrove/Cache/{Spec,Proof}/<fn>.lean` pair each, linked in `EtcdGrove/Cache/Link.lean`
+(generated: `etc/gen-link.py --cache`, from `etc/link-lean-first-cache.txt`). Package
+instances in `Cache/Base.lean` (`True` for the cache and the etcd, k8s and protobuf packages
+it imports). No `sorry`, no axiom: `etc/tcb-report.py --check` now also takes
+`EtcdGrove.Cache.Link`'s 14 results as roots (200 roots) and the baseline is unchanged.
+
+- **The predicate** (`InvRingBuffer.lean`): `ownRingBuffer r cap isItem revOf items`, the
+  model a list of abstract values `items : List V`, oldest first. `r ↦ rb`, `rb.buffer' ↦*
+  ents`, `RingOk` (`0 < cap ≤ 2^61`, `len(buffer) = cap`, `size = |items|`, `tail < cap`,
+  `head = (tail + size) % cap`), item `i` in slot `(tail + i) % cap` with `revision =
+  revOf items[i]` (pure) and `isItem item items[i]` (under `□`), revisions strictly
+  increasing (`RevSorted`), and the stored `revisionOf` closure's triple
+  (`revisionOfSpec`). `cap` is a parameter.
+- **Specs**: `Append` takes `isItem item v` (persistent) and `RevAbove` (revision above the
+  newest), and leaves `ringAppend cap items v`; the searches return `ltCount` /
+  `leCount - 1`; the iterations are loop-invariant style (`iterSpec`, `P : Nat → IProp`,
+  `Q` on early stop) over the exact visited sublists (`ascendGeVisited`, ...).
+- `newRingBuffer` asks for `capacity ≤ 2^61`: `at` computes `tail + i + len(buffer)`, up
+  to `3·cap`, which overflows a Go `int` past that, and Goose's `make` does not bound the
+  length. The demux's caller (`historyWindowSize`, unbounded in `Config`) will have to
+  supply it. See `decisions.md`.
+- No Goose or proofgen problem with the generic structs: `ringBuffer T'`/`entry T'`
+  points-tos, field access and the `[]entry[T]` slice all worked as generated.
+

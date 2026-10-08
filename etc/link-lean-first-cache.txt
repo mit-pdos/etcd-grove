@@ -1,0 +1,17 @@
+# The cache package's functions (all Lean-first: no Rocq counterpart), read by
+# `etc/gen-link.py --cache`: `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
+# The ring buffer (cache/ringbuffer.go), proved 2026-10-08 (see InvRingBuffer.lean).
+newRingBuffer:
+ringBuffer__full:
+ringBuffer__Append: ringBuffer__full
+ringBuffer__moduloIndex:
+ringBuffer__at: ringBuffer__moduloIndex
+ringBuffer__findFirstIndexGreaterOrEqual: ringBuffer__at
+ringBuffer__findLastIndexLessOrEqual: ringBuffer__at
+ringBuffer__AscendGreaterOrEqual: ringBuffer__findFirstIndexGreaterOrEqual ringBuffer__at
+ringBuffer__AscendLessThan: ringBuffer__findFirstIndexGreaterOrEqual ringBuffer__at
+ringBuffer__DescendGreaterThan: ringBuffer__findLastIndexLessOrEqual ringBuffer__at
+ringBuffer__DescendLessOrEqual: ringBuffer__findLastIndexLessOrEqual ringBuffer__at
+ringBuffer__PeekLatest:
+ringBuffer__PeekOldest:
+ringBuffer__RebaseHistory:

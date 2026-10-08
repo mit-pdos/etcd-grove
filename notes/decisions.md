@@ -175,3 +175,58 @@ Perennial's Go semantics already were ("Not checked by Lean").
 **Rejected -- carrying a `< 2^63` bound in `ownRaftLog`** (tried 2026-09-20): no
 constant bound survives `appendEntry`'s `append`, for the same reason -- which is why
 the model assumes it there too.
+
+---
+
+## ringBuffer: a persistent-item, sorted ring
+
+**2026-10-08 · accepted**
+
+etcd's `cache.ringBuffer[T]` (`cache/ringbuffer.go`) is the first proof about the
+`EtcdCache` translation: Lean-first, generic in `T`, in the raft discipline
+(`EtcdGrove/Cache/{Spec,Proof}/`, `Cache/Link.lean`, vocabulary in
+`Cache/InvRingBuffer.lean`).
+
+**Decision 1: sortedness is part of the predicate.** `ownRingBuffer` includes `RevSorted
+revOf items` (revisions strictly increasing as `sint.Z`), and `Append`'s precondition is
+`RevAbove` (the new revision above the newest). `Append` is the only writer, so this is
+where the invariant is enforced, and the searches and iterations can then be stated
+exactly: `findFirstIndexGreaterOrEqual` returns `ltCount` (the number of items `< pivot`),
+the first index `≥ pivot` only because the revisions are sorted.
+*Rejected:* sortedness as a premise of the searches (each caller would re-prove a fact
+of the ring's history).
+
+**Decision 2: `isItem` is persistent.** The predicate keeps `□ (… isItem e.item' v)`, and
+`Append` takes `[∀ p v, Persistent (isItem p v)]`, so the ring and the caller both keep
+`isItem item v` and the iteration hands it to `iter` without taking it back. The demux's
+items are `*mvccpb.Event` pointers read, never written, so `p ↦□ ev` fits.
+*Rejected:* owned items (`Append` would have to return the overwritten oldest item's
+ownership, and the iterations would lend and reclaim each item).
+
+**Also decided:**
+- **`cap` is a parameter** of `ownRingBuffer`, not an existential: it is fixed at
+  `newRingBuffer`, and `full`'s result and `Append`'s postcondition (`ringAppend cap`)
+  mention it. *Rejected:* existential `cap` (then exposed by every spec anyway).
+- **`cap ≤ 2^61`** is in the predicate and `newRingBuffer`'s precondition: `at` computes
+  `tail + i` and `moduloIndex` adds `len(buffer)`, up to `3·cap`; past `2^63/3` that
+  wraps and `at` reads the wrong slot, and Goose's `make` does not bound the length (Go's
+  allocator would). *Rejected:* only the slice's `< 2^63` (the spec would be false).
+- **Closure triples as `IProp`s**, like `opSpec`: `revisionOfSpec f isItem revOf` (on any
+  `p` with `isItem p v`, `f p` returns `revOf v`) is stored in the predicate;
+  `iterSpec iter isItem revOf vis P Q` is the loop-invariant triple of `iter` on the
+  `i`-th visited item (`P i ∗ isItem p v` to `P (i+1)` on `true`, `Q` on `false`), and
+  the methods end with `ownRingBuffer … ∗ (Q ∨ P vis.length)`. The closure does not get
+  the ring (the method holds it while iterating). *Rejected:* the Rocq scaffolding's
+  continuation form (`own_ringBuffer -∗ Φ #()` in the closure's postcondition), which
+  ties the closure's triple to the caller's `Φ`.
+- **The visited lists are exact sublists**: `items.drop (ltCount …)` (ascending `≥`),
+  `items.take (ltCount …)` (ascending `<`), and the reverses of `items.drop/take
+  (leCount …)` for the descents.
+- **`moduloIndex` is specified on the struct** (`r ↦ rb`, returning `(index + len) %
+  len`), not on `ownRingBuffer`: `at` has already loaded `r.buffer` when it calls it and
+  needs the same struct back. `at` is specified for in-range logical indices only (Go's
+  wraps others; no caller passes one).
+- **Generic specs quantify `T'`/`T` inside the `∀`** (`{T'} [ZeroVal T'] [TypedPointsto
+  T'] (T) [IntoValTyped T' T]`), so each `spec` is a `Prop` and `Link.lean` has the raft
+  shape; `etc/gen-link.py --cache` generates it from `etc/link-lean-first-cache.txt`.
+
