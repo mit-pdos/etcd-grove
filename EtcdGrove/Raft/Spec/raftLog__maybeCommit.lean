@@ -22,7 +22,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `l.maybeCommit(at)`: commit up to `at.index` if `at` is a non-zero-term entry of
 our log past the commit index.
 
-The body (`raftLog.maybeCommit.impl`, `Perennial/Code/go_etcd_io/raft/v3.lean`):
+The body (`raftLog.maybeCommit.impl`, `EtcdRaft/Code/go_etcd_io/raft/v3.lean`):
 
     if at.term != 0 && at.index > l.committed && l.matchTerm(at) {
         l.commitTo(at.index); return true

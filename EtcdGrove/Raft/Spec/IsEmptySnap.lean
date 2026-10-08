@@ -17,7 +17,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `IsEmptySnap(sp)` (`IsEmptySnap.impl`, `Perennial/Code/go_etcd_io/raft/v3.lean`)
+/-- `IsEmptySnap(sp)` (`IsEmptySnap.impl`, `EtcdRaft/Code/go_etcd_io/raft/v3.lean`)
 is one field test:
 
     return sp.Metadata.Index == 0

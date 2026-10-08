@@ -23,7 +23,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 The tempting shortcut does not work: the generated body (Rocq
 new/code/go_etcd_io/raft/v3.v:3732; `raft.hasUnappliedConfChanges.impl` in
-`Perennial/Code/go_etcd_io/raft/v3.lean`) opens with
+`EtcdRaft/Code/go_etcd_io/raft/v3.lean`) opens with
 
     if r.raftLog.applied >= r.raftLog.committed { return false }
 

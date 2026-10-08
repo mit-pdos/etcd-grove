@@ -24,7 +24,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `logSliceFromMsgApp(m)` repackages an append message as a `logSlice`
-(`logSliceFromMsgApp.impl`, `Perennial/Code/go_etcd_io/raft/v3.lean`; raft.go):
+(`logSliceFromMsgApp.impl`, `EtcdRaft/Code/go_etcd_io/raft/v3.lean`; raft.go):
 
     func logSliceFromMsgApp(m *pb.Message) logSlice {
       return logSlice{

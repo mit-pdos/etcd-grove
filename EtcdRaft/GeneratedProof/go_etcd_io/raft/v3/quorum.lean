@@ -7,7 +7,7 @@ import Perennial.GeneratedProof.slices
 import Perennial.GeneratedProof.strconv
 import Perennial.GeneratedProof.strings
 import Perennial.Golang.Theory
-import EtcdGrove.Code.go_etcd_io.raft.v3.quorum
+import EtcdRaft.Code.go_etcd_io.raft.v3.quorum
 
 set_option autoImplicit false
 set_option linter.unusedVariables false

@@ -22,7 +22,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `ro.addRequest(commitIndex, req)` (`readOnly.addRequest.impl`,
-`Perennial/Code/go_etcd_io/raft/v3.lean`; `read_only.go:60`):
+`EtcdRaft/Code/go_etcd_io/raft/v3.lean`; `read_only.go:60`):
 
       ro.unconfirmedReads = append(ro.unconfirmedReads,
           &readIndexRequest{req: req, index: commitIndex})

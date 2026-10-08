@@ -21,7 +21,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `r.maybeSendAppend(to, sendIfEmpty)` -- at most one `MsgApp` to one peer
-(`raft.maybeSendAppend.impl`, `Perennial/Code/go_etcd_io/raft/v3.lean`).
+(`raft.maybeSendAppend.impl`, `EtcdRaft/Code/go_etcd_io/raft/v3.lean`).
 
 It can do four different things, and the postcondition is deliberately the weakest
 statement true of all four:

@@ -6,10 +6,10 @@ import Perennial.GeneratedProof.crypto.rand
 import Perennial.GeneratedProof.encoding.binary
 import Perennial.GeneratedProof.errors
 import Perennial.GeneratedProof.fmt
-import EtcdGrove.GeneratedProof.go_etcd_io.raft.v3.confchange
-import EtcdGrove.GeneratedProof.go_etcd_io.raft.v3.quorum
-import EtcdGrove.GeneratedProof.go_etcd_io.raft.v3.raftpb
-import EtcdGrove.GeneratedProof.go_etcd_io.raft.v3.tracker
+import EtcdRaft.GeneratedProof.go_etcd_io.raft.v3.confchange
+import EtcdRaft.GeneratedProof.go_etcd_io.raft.v3.quorum
+import EtcdRaft.GeneratedProof.go_etcd_io.raft.v3.raftpb
+import EtcdRaft.GeneratedProof.go_etcd_io.raft.v3.tracker
 import Perennial.GeneratedProof.io
 import Perennial.GeneratedProof.log
 import Perennial.GeneratedProof.math
@@ -19,8 +19,8 @@ import Perennial.GeneratedProof.slices
 import Perennial.GeneratedProof.strings
 import Perennial.GeneratedProof.sync
 import Perennial.Golang.Theory
-import EtcdGrove.Code.go_etcd_io.raft.v3
-import EtcdGrove.GeneratedProof.go_etcd_io.raft.v3.chunk3
+import EtcdRaft.Code.go_etcd_io.raft.v3
+import EtcdRaft.GeneratedProof.go_etcd_io.raft.v3.chunk3
 
 set_option autoImplicit false
 set_option linter.unusedVariables false

@@ -25,7 +25,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `l.commitTo(tocommit)`: raise `committed` to `tocommit`, never lower it --
 `plogCommitTo` (`Plog.lean`).
 
-The body (`raftLog.commitTo.impl`, `Perennial/Code/go_etcd_io/raft/v3.lean`):
+The body (`raftLog.commitTo.impl`, `EtcdRaft/Code/go_etcd_io/raft/v3.lean`):
 
     if l.committed < tocommit {
         if l.lastIndex() < tocommit { l.logger.Panicf(...) }

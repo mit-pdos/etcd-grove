@@ -2,8 +2,8 @@
 import Perennial.Code.fmt
 import Perennial.Code.slices
 import Perennial.Code.strings
-import EtcdGrove.Code.go_etcd_io.raft.v3.quorum
-import EtcdGrove.Code.go_etcd_io.raft.v3.raftpb
+import EtcdRaft.Code.go_etcd_io.raft.v3.quorum
+import EtcdRaft.Code.go_etcd_io.raft.v3.raftpb
 import Perennial.Golang.Defn
 
 set_option autoImplicit false
@@ -106,8 +106,8 @@ noncomputable def Inflights.Clone.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Lam BAnon
   (App (Val exceptionDo)
   (Let "in" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Inflights.ty)))) (Var "in"))
-  (Let "ins" (App (Val (GoInstruction (GoAlloc Inflights.ty))) (App (Val (GoInstruction (GoZeroVal Inflights.ty))) (Val #())))
   (Let "$r0" (App (Val (GoInstruction (GoLoad Inflights.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inflights.ty)))) (Var "in")))
+  (Let "ins" (App (Val (GoInstruction (GoAlloc Inflights.ty))) (App (Val (GoInstruction (GoZeroVal Inflights.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType inflight.ty)))) (Val UntypedNil))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType inflight.ty)))) (App (Val (GoInstruction (StructFieldRef Inflights.ty go!"buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inflights.ty)))) (Var "in"))))
@@ -138,11 +138,11 @@ noncomputable def Inflights.Add.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "next" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Inflights.ty go!"start"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inflights.ty)))) (Var "in")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Inflights.ty go!"count"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inflights.ty)))) (Var "in"))))))
+  (Let "next" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "size" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Inflights.ty go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inflights.ty)))) (Var "in"))))
+  (Let "size" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -192,13 +192,13 @@ noncomputable def Inflights.grow.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
-  (Let "newSize" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (Let "$r0" (App (Val (GoInstruction (GoOp GoMul go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType inflight.ty)))) (App (Val (GoInstruction (StructFieldRef Inflights.ty go!"buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inflights.ty)))) (Var "in"))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType inflight.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 2))))
+  (Let "newSize" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "newBuffer" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType inflight.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType inflight.ty)))) (Val #())))
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType inflight.ty)]))) (Val #())) (App (Val (GoInstruction (GoLoad go.int))) (Var "newSize")))
+  (Let "newBuffer" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType inflight.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType inflight.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType inflight.ty)))) (Var "newBuffer"))
@@ -236,8 +236,8 @@ noncomputable def Inflights.FreeLE.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "idx" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Inflights.ty go!"start"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inflights.ty)))) (Var "in"))))
+  (Let "idx" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (Let "bytes" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
@@ -264,8 +264,8 @@ noncomputable def Inflights.FreeLE.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Inflights.ty go!"count"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inflights.ty)))) (Var "in")))))))) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "size" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Inflights.ty go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inflights.ty)))) (Var "in"))))
+  (Let "size" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "idx")) (App (Val (GoInstruction (GoLoad go.int))) (Var "size")))))
@@ -388,8 +388,8 @@ noncomputable def Progress.BecomeProbe.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef Progress.ty go!"sentCommit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Progress.ty)))) (Var "pr"))) (Var "$r0")))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals StateType.ty))) (Pair (App (Val (GoInstruction (GoLoad StateType.ty))) (App (Val (GoInstruction (StructFieldRef Progress.ty go!"State"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Progress.ty)))) (Var "pr")))) (Val StateSnapshot))))
-  (Let "pendingSnapshot" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Progress.ty go!"PendingSnapshot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Progress.ty)))) (Var "pr"))))
+  (Let "pendingSnapshot" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Progress.ty go!"Match"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Progress.ty)))) (Var "pr")))) (Val #(W64 1))))
@@ -681,8 +681,8 @@ noncomputable def Progress.String.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.strings.Builder.ty) go!"String"))) (Var "buf")) (Val #())))))
-  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Inflights.ty) go!"Count"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inflights.ty)))) (App (Val (GoInstruction (StructFieldRef Progress.ty go!"Inflights"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Progress.ty)))) (Var "pr"))))) (Val #()))
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (Val #(W64 0)))))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -754,9 +754,9 @@ noncomputable def ProgressMap.String.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Lam BAnon
   (App (Val exceptionDo)
   (Let "m" (App (Val (GoInstruction (GoAlloc ProgressMap.ty))) (Var "m"))
-  (Let "ids" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.uint64)))) (Val #())))
   (Let "$r0" (App (App (App (Val (GoInstruction (FuncResolve go.make3 [(go.GoType.SliceType go.uint64)]))) (Val #())) (Val #(W64 0))) (Let "$a0" (App (Val (GoInstruction (GoLoad ProgressMap.ty))) (Var "m"))
   (App (App (Val (GoInstruction (FuncResolve go.len [ProgressMap.ty]))) (Val #())) (Var "$a0"))))
+  (Let "ids" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.uint64)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -865,14 +865,13 @@ noncomputable def Config.Clone.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Lam BAnon
   (App (Val exceptionDo)
   (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Config.ty)))) (Var "c"))
-  (Let "clone" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [(go.GoType.MapType go.uint64 (go.GoType.StructType []))] false [(go.GoType.MapType go.uint64 (go.GoType.StructType []))]))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [(go.GoType.MapType go.uint64 (go.GoType.StructType []))] false [(go.GoType.MapType go.uint64 (go.GoType.StructType []))]))))) (Val #())))
   (Let "$r0" (Lam "m"
   (App (Val exceptionDo)
   (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Var "m"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "mm" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Val #())))
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.MapType go.uint64 (go.GoType.StructType []))]))) (Val #())) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Var "m"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.MapType go.uint64 (go.GoType.StructType []))]))) (Val #())) (Var "$a0"))))
+  (Let "mm" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -895,6 +894,7 @@ noncomputable def Config.Clone.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Val UntypedNil)))
   (App (Val doExecute)
   (Val #())))))))
+  (Let "clone" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [(go.GoType.MapType go.uint64 (go.GoType.StructType []))] false [(go.GoType.MapType go.uint64 (go.GoType.StructType []))]))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [(go.GoType.MapType go.uint64 (go.GoType.StructType []))] false [(go.GoType.MapType go.uint64 (go.GoType.StructType []))]))))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Let "$v0" (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (App (Val (GoInstruction (IndexRef _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Config.ty go!"Voters"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Config.ty)))) (Var "c"))) (Val #(W64 0)))))
@@ -919,7 +919,6 @@ noncomputable def MakeProgressTracker.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val exceptionDo)
   (Let "maxBytes" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "maxBytes"))
   (Let "maxInflight" (App (Val (GoInstruction (GoAlloc go.int))) (Var "maxInflight"))
-  (Let "p" (App (Val (GoInstruction (GoAlloc ProgressTracker.ty))) (App (Val (GoInstruction (GoZeroVal ProgressTracker.ty))) (Val #())))
   (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.int))) (Var "maxInflight"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "maxBytes"))
   (Let "$v2" (Let "$v0" (Let "$v0" (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (LiteralValue []))
@@ -931,6 +930,7 @@ noncomputable def MakeProgressTracker.impl [FfiSyntax] [GoGlobalContext] : val :
   (Let "$v3" (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.uint64 go.bool)))) (LiteralValue []))
   (Let "$v4" (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.uint64 (go.GoType.PointerType Progress.ty))))) (LiteralValue []))
   (App (Val (GoInstruction (CompositeLiteral ProgressTracker.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"MaxInflight")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"MaxInflightBytes")) (ElementExpression go.uint64 (Var "$v1"))), (KeyedElement (some (KeyField go!"Config")) (ElementExpression Config.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"Votes")) (ElementExpression (go.GoType.MapType go.uint64 go.bool) (Var "$v3"))), (KeyedElement (some (KeyField go!"Progress")) (ElementExpression (go.GoType.MapType go.uint64 (go.GoType.PointerType Progress.ty)) (Var "$v4")))])))))))
+  (Let "p" (App (Val (GoInstruction (GoAlloc ProgressTracker.ty))) (App (Val (GoInstruction (GoZeroVal ProgressTracker.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (App (Val (GoInstruction (GoLoad ProgressTracker.ty))) (Var "p")))))
@@ -976,13 +976,13 @@ noncomputable def matchAckIndexer.AckedIndex.impl [FfiSyntax] [GoGlobalContext] 
   (App (Val exceptionDo)
   (Let "l" (App (Val (GoInstruction (GoAlloc matchAckIndexer.ty))) (Var "l"))
   (Let "id" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "id"))
-  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Let "pr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Progress.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Progress.ty)))) (Val #())))
   (Let "__p" (App (App (Val (map.lookup2 go.uint64 (go.GoType.PointerType Progress.ty))) (App (Val (GoInstruction (GoLoad matchAckIndexer.ty))) (Var "l"))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "pr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Progress.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Progress.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1023,9 +1023,9 @@ noncomputable def ProgressTracker.Visit.impl [FfiSyntax] [GoGlobalContext] : val
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
-  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad ProgressMap.ty))) (App (Val (GoInstruction (StructFieldRef ProgressTracker.ty go!"Progress"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ProgressTracker.ty)))) (Var "p"))))
   (App (App (Val (GoInstruction (FuncResolve go.len [ProgressMap.ty]))) (Val #())) (Var "$a0")))
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "sl" (App (Val (GoInstruction (GoAlloc (go.GoType.ArrayType 7 go.uint64)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ArrayType 7 go.uint64)))) (Val #())))
   (Let "ids" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.uint64)))) (Val #())))
@@ -1084,8 +1084,8 @@ noncomputable def ProgressTracker.QuorumActive.impl [FfiSyntax] [GoGlobalContext
   (Lam BAnon
   (App (Val exceptionDo)
   (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ProgressTracker.ty)))) (Var "p"))
-  (Let "votes" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.uint64 go.bool)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.uint64 go.bool)))) (Val #())))
   (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.uint64 go.bool)))) (LiteralValue []))
+  (Let "votes" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.uint64 go.bool)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.uint64 go.bool)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1121,12 +1121,12 @@ noncomputable def ProgressTracker.VoterNodes.impl [FfiSyntax] [GoGlobalContext] 
   (Lam BAnon
   (App (Val exceptionDo)
   (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ProgressTracker.ty)))) (Var "p"))
-  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Val #())))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty) go!"IDs"))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"Voters"))) (App (Val (GoInstruction (StructFieldRef ProgressTracker.ty go!"Config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ProgressTracker.ty)))) (Var "p"))))) (Val #()))
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "nodes" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.uint64)))) (Val #())))
   (Let "$r0" (App (App (App (Val (GoInstruction (FuncResolve go.make3 [(go.GoType.SliceType go.uint64)]))) (Val #())) (Val #(W64 0))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Var "m"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.MapType go.uint64 (go.GoType.StructType []))]))) (Val #())) (Var "$a0"))))
+  (Let "nodes" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.uint64)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1163,9 +1163,9 @@ noncomputable def ProgressTracker.LearnerNodes.impl [FfiSyntax] [GoGlobalContext
   (App (Val exceptionDo)
   (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ProgressTracker.ty)))) (Var "p"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "nodes" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.uint64)))) (Val #())))
   (Let "$r0" (App (App (App (Val (GoInstruction (FuncResolve go.make3 [(go.GoType.SliceType go.uint64)]))) (Val #())) (Val #(W64 0))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"Learners"))) (App (Val (GoInstruction (StructFieldRef ProgressTracker.ty go!"Config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ProgressTracker.ty)))) (Var "p")))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.MapType go.uint64 (go.GoType.StructType []))]))) (Val #())) (Var "$a0"))))
+  (Let "nodes" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.uint64)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1227,12 +1227,12 @@ noncomputable def ProgressTracker.RecordVote.impl [FfiSyntax] [GoGlobalContext] 
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
-  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Let "__p" (App (App (Val (map.lookup2 go.uint64 go.bool)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 go.bool)))) (App (Val (GoInstruction (StructFieldRef ProgressTracker.ty go!"Votes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ProgressTracker.ty)))) (Var "p"))))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
@@ -1259,9 +1259,9 @@ noncomputable def ProgressTracker.TallyVotes.impl [FfiSyntax] [GoGlobalContext] 
   (Let "granted" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ProgressTracker.ty)))) (Var "p"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "result" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.quorum.VoteResult.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.quorum.VoteResult.ty))) (Val #())))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 go.bool)))) (App (Val (GoInstruction (StructFieldRef ProgressTracker.ty go!"Votes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ProgressTracker.ty)))) (Var "p"))))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty) go!"VoteResult"))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"Voters"))) (App (Val (GoInstruction (StructFieldRef ProgressTracker.ty go!"Config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ProgressTracker.ty)))) (Var "p"))))) (Var "$a0")))
+  (Let "result" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.quorum.VoteResult.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.quorum.VoteResult.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Pair (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "granted")) (App (Val (GoInstruction (GoLoad go.int))) (Var "rejected"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.VoteResult.ty))) (Var "result"))))))
@@ -1276,13 +1276,13 @@ noncomputable def ProgressTracker.TallyVotes.impl [FfiSyntax] [GoGlobalContext] 
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "voted" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Let "v" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Let "__p" (App (App (Val (map.lookup2 go.uint64 go.bool)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 go.bool)))) (App (Val (GoInstruction (StructFieldRef ProgressTracker.ty go!"Votes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ProgressTracker.ty)))) (Var "p"))))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
+  (Let "voted" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "v" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon

@@ -2,12 +2,12 @@
 import Perennial.Proof.ProofPrelude
 import Perennial.GeneratedProof.errors
 import Perennial.GeneratedProof.fmt
-import EtcdGrove.GeneratedProof.go_etcd_io.raft.v3.quorum
-import EtcdGrove.GeneratedProof.go_etcd_io.raft.v3.raftpb
-import EtcdGrove.GeneratedProof.go_etcd_io.raft.v3.tracker
+import EtcdRaft.GeneratedProof.go_etcd_io.raft.v3.quorum
+import EtcdRaft.GeneratedProof.go_etcd_io.raft.v3.raftpb
+import EtcdRaft.GeneratedProof.go_etcd_io.raft.v3.tracker
 import Perennial.GeneratedProof.strings
 import Perennial.Golang.Theory
-import EtcdGrove.Code.go_etcd_io.raft.v3.confchange
+import EtcdRaft.Code.go_etcd_io.raft.v3.confchange
 
 set_option autoImplicit false
 set_option linter.unusedVariables false

@@ -35,7 +35,7 @@ against the log -- and the Go code does not assume it either: it branches on
 `err != nil` into `maybeSendSnapshot`. So the premise moved into the conclusion.
 
 That the triple can be total is a fact about the body (`raftLog.term.impl`,
-`Perennial/Code/go_etcd_io/raft/v3.lean`): it returns `(0, ErrCompacted)` for
+`EtcdRaft/Code/go_etcd_io/raft/v3.lean`): it returns `(0, ErrCompacted)` for
 `i+1 < firstIndex` and `(0, ErrUnavailable)` for `i > lastIndex`, and inside the range
 it asks `unstable.maybeTerm` and then `Storage.Term`, whose error path -- the only
 `panic` in the function -- is excluded by `isStorage`'s `HTerm`. Both `firstIndex` and

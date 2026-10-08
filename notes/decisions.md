@@ -70,8 +70,8 @@ spread over its run) next to compiles running.
 
 `confchange.Restore` and `raftpb.ConfState.Equivalent` were the two axioms about core
 raft code (main's notes/STATUS.md, "The fourteen axioms"), stated because the code was
-not translated. `confchange` is now translated in full (Perennial's
-`Perennial/Code/go_etcd_io/raft/v3/confchange.toml`: `translate` unrestricted) and
+not translated. `confchange` is now translated in full
+(`EtcdRaft/Code/go_etcd_io/raft/v3/confchange.toml`: `translate` unrestricted) and
 `Restore` proved from its callees on the voters-only, non-joint path `newRaft` and
 `raft.restore` take. `Restore.spec` is unchanged, so its callers are untouched.
 
@@ -108,41 +108,18 @@ cell: `defineStmt` wrapped the allocations *around* the assignment it built, so 
 right-hand side naming a defined variable read the fresh cell. Every closure would have
 captured `NodeID = 0`, which `apply` skips, and `Restore` would have returned "removed
 all voters" -- the spec was unprovable against the translation. Fixed in Perennial's
-`goose/goose.go` (`defineStmt` evaluates such right-hand sides first, into `$def<i>`,
-only when a right-hand side reads a variable the statement defines; field and method
-names of the same name do not count). In the translated etcd code only `Restore` has
-the pattern (`rafttest` is not translated); the regenerated `raft/v3`, `quorum` and
-`tracker` are byte-identical.
+`goose/goose.go` (c35b7710d): every define statement now binds its right-hand sides
+(`$r<i>`) first, then allocates the new variables, then stores, as Go evaluates the
+right-hand sides before the new names are in scope. (A first fix, 43b7fc480, did this
+only for right-hand sides naming a defined variable, via temporaries `$def<i>`.) The
+uniform order reorders every `:=` in the translation; in the proofs a `wp_auto` (or a
+`wp_pure` workaround) right after a call sometimes has nothing left to step, since the
+call's `wp_apply` now also steps the allocation that follows it.
 
 **Rejected -- requiring `voters.Nodup` in `Restore.spec`** to skip the repeated-voter
 branch of `makeVoter`. The callers have it, but the spec's comment says it is not
 needed and keeping the statement identical is what makes "axiom replaced by theorem"
 auditable; the branch cost ~30 lines.
-
----
-
-## The etcd-raft translation lives here
-
-**2026-10-08 · accepted (follows Perennial's c5c3a575d)**
-
-Perennial removed every `go_etcd_io` module (code, generated proofs, its own etcd
-proofs): etcd verification belongs to this repository. Its Goose grew `-lean-root
-PKG=ROOT` for that purpose: the packages under a Go path get modules
-`ROOT.Code.*`/`ROOT.GeneratedProof.*`, since Lake resolves every `Perennial.*` module
-in the Perennial package.
-
-**Decision:** the translation is generated into `EtcdGrove/Code/go_etcd_io/…` and
-`EtcdGrove/GeneratedProof/go_etcd_io/…` with `-lean-root go.etcd.io=EtcdGrove`
-(`etc/update-goose.py`), the package `.toml`s beside it. Declarations keep the
-`Perennial.go_etcd_io.…` namespace (`-lean-root` changes module names only), so the
-proofs are untouched: `Base.lean` and `Plog.lean` import the new modules and that is
-all. `trust_proofgen = true` stays: the generated proofs are `sorry`-free in what the
-results reach (`etc/tcb-report.py` reports them as this repository's now).
-
-**Consequence for the trust base.** The translation itself was always trusted
-(notes/STATUS.md, "Not checked by Lean"); it is now trusted *here*, where it can be
-regenerated and diffed against the Go sources with the pinned toolchain. A change to
-a package's translation scope is a commit in this repository, not in Perennial.
 
 ---
 

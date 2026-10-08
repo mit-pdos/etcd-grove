@@ -2,7 +2,7 @@
 
 ## `stepCandidate`, for the message types in scope
 
-`stepCandidate.impl` (`Perennial/Code/go_etcd_io/raft/v3.lean`; raft.go:1660) first
+`stepCandidate.impl` (`EtcdRaft/Code/go_etcd_io/raft/v3.lean`; raft.go:1660) first
 reads `r.state` to pick `myVoteRespType` (`MsgVoteResp` for a candidate,
 `MsgPreVoteResp` for a pre-candidate), then switches on `m.Type`:
 

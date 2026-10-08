@@ -26,7 +26,7 @@ was constantly true until snapshots came into scope on 2026-10-02). It reads `r.
 against three unrelated parameters.
 
 **Proved** (`Proof/raft__promotable.lean`; Rocq `Qed` 2026-09-19). The generated body
-(`raft.promotable.impl` in `Perennial/Code/go_etcd_io/raft/v3.lean`) is
+(`raft.promotable.impl` in `EtcdRaft/Code/go_etcd_io/raft/v3.lean`) is
 
     pr := r.trk.Progress[r.id]
     return pr != nil && !pr.IsLearner &&

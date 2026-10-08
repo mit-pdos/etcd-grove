@@ -17,7 +17,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `traceCommit(r)`: a tracing hook, and a **no-op** -- Goose translates it to
 `λ: <>, exception_do (do: #())` (`traceCommit.impl`,
-`Perennial/Code/go_etcd_io/raft/v3.lean`). Same shape as the other trace hooks
+`EtcdRaft/Code/go_etcd_io/raft/v3.lean`). Same shape as the other trace hooks
 (`Spec/traceBecomeLeader.lean`): it owns nothing. `maybeCommit` calls it through a
 `defer`. -/
 abbrev traceCommit.spec : Prop :=

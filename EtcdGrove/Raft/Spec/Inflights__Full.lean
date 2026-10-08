@@ -16,7 +16,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `in.Full()` -- no more messages may be dispatched (`tracker.Inflights.Full.impl`,
-`Perennial/Code/go_etcd_io/raft/v3/tracker.lean`):
+`EtcdRaft/Code/go_etcd_io/raft/v3/tracker.lean`):
 
     in.count == in.size || (in.maxBytes != 0 && in.bytes >= in.maxBytes)
 

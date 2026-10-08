@@ -73,7 +73,7 @@ there.
 
 Perennial's Rocq → Lean name table is `.lake/packages/perennial/etc/lean-rename/
 renames.tsv` (grep the Rocq name). The generated Lean code is in
-`.lake/packages/perennial/Perennial/Code/go_etcd_io/raft/v3*.lean` (definitions) and
+`EtcdRaft/Code/go_etcd_io/raft/v3*.lean` (definitions) and
 `…/GeneratedProof/…` (struct points-to instances): grep there for a type or field.
 
 ## Separation logic

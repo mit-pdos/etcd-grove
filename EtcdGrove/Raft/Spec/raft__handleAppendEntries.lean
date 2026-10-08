@@ -3,7 +3,7 @@
 ## `raft.handleAppendEntries`
 
 The follower's handling of a `MsgApp` (`raft.handleAppendEntries.impl`,
-`Perennial/Code/go_etcd_io/raft/v3.lean`; raft.go:1778). Three exits, in the order the
+`EtcdRaft/Code/go_etcd_io/raft/v3.lean`; raft.go:1778). Three exits, in the order the
 body takes them:
 
 1. `a.prev.index < r.raftLog.committed` (stale): send `MsgAppResp{To: m.From, Index:

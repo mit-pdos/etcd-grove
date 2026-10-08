@@ -18,7 +18,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `in.Add(index, bytes)` records one dispatched message (`Inflights.Add.impl`,
-`Perennial/Code/go_etcd_io/raft/v3/tracker.lean`).
+`EtcdRaft/Code/go_etcd_io/raft/v3/tracker.lean`).
 
 Two things make the premise necessary rather than convenient.
 

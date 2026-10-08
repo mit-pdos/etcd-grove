@@ -23,7 +23,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `r.sendAppend(to)` is `r.maybeSendAppend(to, true)` and nothing else
-(`raft.sendAppend.impl`, `Perennial/Code/go_etcd_io/raft/v3.lean`) -- the boolean
+(`raft.sendAppend.impl`, `EtcdRaft/Code/go_etcd_io/raft/v3.lean`) -- the boolean
 result is dropped. Same postcondition, therefore: the outbox grows by some list of
 messages `ReplOk` allows, and `Match` does not move. -/
 abbrev raft.sendAppend.spec : Prop :=

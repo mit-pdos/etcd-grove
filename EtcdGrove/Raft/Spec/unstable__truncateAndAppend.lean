@@ -35,7 +35,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `u.truncateAndAppend(ents)`: splice a non-empty batch into the unstable suffix
-(`unstable.truncateAndAppend.impl`, `Perennial/Code/go_etcd_io/raft/v3.lean`).
+(`unstable.truncateAndAppend.impl`, `EtcdRaft/Code/go_etcd_io/raft/v3.lean`).
 
 The body switches on where the batch starts, `fromIndex = ents[0].Index`:
 

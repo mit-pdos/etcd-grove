@@ -21,7 +21,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `l.AckedIndex(id)` for `l : matchAckIndexer`, the progress map seen as a
 `quorum.AckedIndexer` (`tracker.matchAckIndexer.AckedIndex.impl`,
-`Perennial/Code/go_etcd_io/raft/v3/tracker.lean`; tracker.go:169):
+`EtcdRaft/Code/go_etcd_io/raft/v3/tracker.lean`; tracker.go:169):
 
     pr, ok := l[id]
     if !ok { return 0, false }                    // exit 1

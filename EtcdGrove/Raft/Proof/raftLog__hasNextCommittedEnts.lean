@@ -82,7 +82,6 @@ theorem raftLog.hasNextCommittedEnts.wp_proof
     · iexact Hlog
     simp only at Hhi0
     have Hhi0' : uint.Z hi0 ≤ uint.Z lcm := by cases au <;> simp at Hhi0 <;> omega
-    wp_auto
     iapply HΦ
     iframe Hlog
     ipureintro

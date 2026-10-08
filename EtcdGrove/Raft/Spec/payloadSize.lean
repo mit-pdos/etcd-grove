@@ -18,7 +18,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `payloadSize(e)`: the size of one entry's payload, i.e. `len(e.Data)`
-(`payloadSize.impl`, `Perennial/Code/go_etcd_io/raft/v3.lean`).
+(`payloadSize.impl`, `EtcdRaft/Code/go_etcd_io/raft/v3.lean`).
 
 The entry is passed **by value** -- Goose allocates a local for it -- so the triple
 needs no ownership at all: the length of a slice *value* is a projection of that value,

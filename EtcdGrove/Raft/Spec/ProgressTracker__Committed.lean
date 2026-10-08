@@ -20,7 +20,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `p.Committed()`: the largest index a quorum of voters has acknowledged
 (`tracker.ProgressTracker.Committed.impl`,
-`Perennial/Code/go_etcd_io/raft/v3/tracker.lean`; tracker.go:179):
+`EtcdRaft/Code/go_etcd_io/raft/v3/tracker.lean`; tracker.go:179):
 
     return uint64(p.Voters.CommittedIndex(matchAckIndexer(p.Progress)))
 

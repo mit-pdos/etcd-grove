@@ -31,7 +31,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `l.maybeAppend(a, committed)`: a follower's handling of a `MsgApp`'s entries --
 `plogMaybeAppend` (`Plog.lean`) plus the commit.
 
-The body (`raftLog.maybeAppend.impl`, `Perennial/Code/go_etcd_io/raft/v3.lean`):
+The body (`raftLog.maybeAppend.impl`, `EtcdRaft/Code/go_etcd_io/raft/v3.lean`):
 
     if !l.matchTerm(a.prev) { return 0, false }
     lastnewi = a.prev.index + uint64(len(a.entries))

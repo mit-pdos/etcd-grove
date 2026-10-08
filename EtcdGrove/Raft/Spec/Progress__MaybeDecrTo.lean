@@ -16,7 +16,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `pr.MaybeDecrTo(rejected, matchHint)` reacts to a rejected `MsgApp`
-(`tracker.Progress.MaybeDecrTo.impl`, `Perennial/Code/go_etcd_io/raft/v3/tracker.lean`;
+(`tracker.Progress.MaybeDecrTo.impl`, `EtcdRaft/Code/go_etcd_io/raft/v3/tracker.lean`;
 progress.go:226):
 
     if pr.State == StateReplicate {

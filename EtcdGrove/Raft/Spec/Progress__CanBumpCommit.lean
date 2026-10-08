@@ -16,7 +16,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `pr.CanBumpCommit(index)` is a pure test on the `Progress`
-(`tracker.Progress.CanBumpCommit.impl`, `Perennial/Code/go_etcd_io/raft/v3/tracker.lean`;
+(`tracker.Progress.CanBumpCommit.impl`, `EtcdRaft/Code/go_etcd_io/raft/v3/tracker.lean`;
 progress.go:189):
 
     return index > pr.sentCommit && pr.sentCommit < pr.Next-1

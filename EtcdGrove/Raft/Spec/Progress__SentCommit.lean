@@ -16,7 +16,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `pr.SentCommit(commit)` is one field assignment (`tracker.Progress.SentCommit.impl`,
-`Perennial/Code/go_etcd_io/raft/v3/tracker.lean`): `pr.sentCommit = commit` --
+`EtcdRaft/Code/go_etcd_io/raft/v3/tracker.lean`): `pr.sentCommit = commit` --
 `progressSentCommit p commit` (`Defs.lean`). The field is read by
 `Progress.CanBumpCommit`. -/
 abbrev tracker.Progress.SentCommit.spec : Prop :=

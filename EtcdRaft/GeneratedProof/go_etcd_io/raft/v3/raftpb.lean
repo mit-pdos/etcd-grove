@@ -4,7 +4,7 @@ import Perennial.GeneratedProof.fmt
 import Perennial.GeneratedProof.reflect
 import Perennial.GeneratedProof.slices
 import Perennial.Golang.Theory
-import EtcdGrove.Code.go_etcd_io.raft.v3.raftpb
+import EtcdRaft.Code.go_etcd_io.raft.v3.raftpb
 
 set_option autoImplicit false
 set_option linter.unusedVariables false

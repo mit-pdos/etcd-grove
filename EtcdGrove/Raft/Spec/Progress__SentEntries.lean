@@ -17,7 +17,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `pr.SentEntries(entries, bytes)` records a `MsgApp` carrying `entries` entries
-(`tracker.Progress.SentEntries.impl`, `Perennial/Code/go_etcd_io/raft/v3/tracker.lean`).
+(`tracker.Progress.SentEntries.impl`, `EtcdRaft/Code/go_etcd_io/raft/v3/tracker.lean`).
 It switches on `pr.State`:
 
     StateReplicate: Next += entries (if entries > 0), then

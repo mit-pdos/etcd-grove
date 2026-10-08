@@ -307,16 +307,15 @@ noncomputable def ConfState.Equivalent.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val exceptionDo)
   (Let "cs" (App (Val (GoInstruction (GoAlloc ConfState.ty))) (Var "cs"))
   (Let "cs2" (App (Val (GoInstruction (GoAlloc ConfState.ty))) (Var "cs2"))
-  (Let "cs1" (App (Val (GoInstruction (GoAlloc ConfState.ty))) (App (Val (GoInstruction (GoZeroVal ConfState.ty))) (Val #())))
   (Let "$r0" (App (Val (GoInstruction (GoLoad ConfState.ty))) (Var "cs"))
+  (Let "cs1" (App (Val (GoInstruction (GoAlloc ConfState.ty))) (App (Val (GoInstruction (GoZeroVal ConfState.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "orig2" (App (Val (GoInstruction (GoAlloc ConfState.ty))) (App (Val (GoInstruction (GoZeroVal ConfState.ty))) (Val #())))
-  (Let "orig1" (App (Val (GoInstruction (GoAlloc ConfState.ty))) (App (Val (GoInstruction (GoZeroVal ConfState.ty))) (Val #())))
   (Let "$r0" (App (Val (GoInstruction (GoLoad ConfState.ty))) (Var "cs1"))
   (Let "$r1" (App (Val (GoInstruction (GoLoad ConfState.ty))) (Var "cs2"))
+  (Let "orig2" (App (Val (GoInstruction (GoAlloc ConfState.ty))) (App (Val (GoInstruction (GoZeroVal ConfState.ty))) (Val #())))
+  (Let "orig1" (App (Val (GoInstruction (GoAlloc ConfState.ty))) (App (Val (GoInstruction (GoZeroVal ConfState.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType (go.GoType.SliceType go.uint64))] false []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType (go.GoType.SliceType go.uint64))] false []))))) (Val #())))
   (Let "$r0" (Lam "sl"
   (App (Val exceptionDo)
   (Let "sl" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (go.GoType.SliceType go.uint64))))) (Var "sl"))
@@ -332,6 +331,7 @@ noncomputable def ConfState.Equivalent.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.slices.«Sort» [(go.GoType.SliceType go.uint64), go.uint64]))) (Val #())) (Var "$a0"))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.uint64)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (go.GoType.SliceType go.uint64))))) (Var "sl")) (Var "$r0"))))))))))
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType (go.GoType.SliceType go.uint64))] false []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType (go.GoType.SliceType go.uint64))] false []))))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon

@@ -22,7 +22,7 @@ Lean notes: Rocq's `l !! k` on lists is `l[k]?`, `list.last` is `List.getLast?`,
 (`PlogWf`, `PlogMatches`), so lemma names keep them as written (`PlogWf_app`).
 -/
 import Perennial.Proof.ProofPrelude
-import EtcdGrove.Code.go_etcd_io.raft.v3
+import EtcdRaft.Code.go_etcd_io.raft.v3
 
 set_option autoImplicit false
 
