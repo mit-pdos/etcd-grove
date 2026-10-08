@@ -90,10 +90,11 @@ variable (cfg : GSet w64)
 
 /-! ### Inflights
 
-A sliding window of in-flight append sizes. Election never inspects it: `reset`
-allocates a fresh one per peer, and `maybeSendAppend` only asks whether it is full. So
-the contents are existential -- what matters is that the object and its buffer are
-owned, so that a `Progress` can be overwritten wholesale. -/
+A sliding window of in-flight append sizes. Callers see it through the public record
+`Inflights` (how many messages and bytes are in flight, and the two limits): enough to
+state `Full`, `Add`, `FreeLE`, `reset` and `NewInflights` exactly. The ring (`start` and
+the buffer) is internal (`InflightsRing`), and the buffer's contents are in no index at
+all -- no spec states them. -/
 
 /-- `Full()`'s answer (`inflightsFull`, `Defs.lean`), read off the `Inflights` value
 (`Inflights.Full.impl`, `EtcdRaft/Code/go_etcd_io/raft/v3/tracker.lean`):

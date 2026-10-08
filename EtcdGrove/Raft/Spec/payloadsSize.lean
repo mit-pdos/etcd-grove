@@ -27,7 +27,8 @@ callers care about -- a batch of empty payloads weighs `0`.
 `increaseUncommittedSize`, reached from `appendEntry`, is called on the new leader's
 single empty `EntryNormal` and uses that implication. `maybeSendAppend` is the other
 caller and does not: it passes the result straight to `Progress.SentEntries`, which
-forwards it to `Inflights.Add`'s `bytes` field, which nothing reads back. The
+forwards it to `Inflights.Add`'s `bytes` field, which only `Full` reads back (against
+`maxBytes`). The
 unconditional half of the postcondition (an unspecified `n`) exists for it -- the
 entries it weighs come out of the log and may carry data. Widened from the
 `Forall`-premised form on 2026-09-20; the old conclusion is the new implication applied
