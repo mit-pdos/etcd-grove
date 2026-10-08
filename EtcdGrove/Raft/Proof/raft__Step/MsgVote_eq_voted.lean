@@ -191,59 +191,75 @@ theorem wp_Step_MsgVote_eq_voted (_P : raft.Step.Postulates (GF := GF) (hG := hG
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
   intro Hty Hto Hterm Hfnz Heq0 Hv00 Hwf
   wp_start as ⟨Hphys, #Hctx⟩
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_alloc m_ptr as m; wp_pures; wp_load; wp_pures
   have Hle : ¬ (uint.Z s.term < uint.Z m.Term') := by rw [Heq0]; omega
   have Hnlt : ¬ (uint.Z m.Term' < uint.Z s.term) := by rw [Heq0]; omega
   wp_apply _P.traceReceiveMessage
+  wp_pures; wp_load; wp_pures
   -- `m.Term ≠ 0`, so the first arm of the term preamble is skipped
   rw [decide_eq_false Hterm]
-  wp_auto
+  wp_pures; wp_load; wp_load; wp_pures
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_pures
   rw [decide_eq_false Hle]
-  wp_auto
+  wp_pures; wp_load; wp_load; wp_pures
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_pures
   rw [decide_eq_false Hnlt]
-  wp_auto
+  wp_pures; wp_load; wp_pures
   -- the type switch: not MsgHup / MsgStorageAppendResp / MsgStorageApplyResp, not
   -- MsgPreVote, but MsgVote
   rw [Hty]
-  try wp_auto
+  wp_pures; wp_load; wp_pures
   -- `canVote` is the model's `PCanVote`: the Go expression's third disjunct needs
   -- `MsgPreVote` and is dead here
   wp_apply raft.wp_load_Vote $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures
   by_cases Hv1 : s.vote = m.From'
   · -- for this very candidate, so the vote may be granted again
     rw [decide_eq_true Hv1]
-    try wp_auto
+    wp_pures; wp_alloc canVote_ptr as canVote; wp_pures; wp_store; wp_pures; wp_load; wp_pures
     have Hcan : PCanVote (toPState s) m.From' := Or.inl Hv1
     -- each `raftLog` call: load the field, open the log, call, close it again -- the
     -- next field load needs `Hphys`
     wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+    wp_pures
     icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
     wp_apply _P.lastEntryID $$ [$Hlog] as %lastID2 ⟨Hlog, -⟩
+    wp_pures; wp_alloc lastID_ptr as lastID; wp_pures; wp_store; wp_pures; wp_load; wp_pures
+    wp_load; wp_pures; wp_alloc candLastID_ptr as candLastID; wp_pures; wp_store; wp_pures; wp_load
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear canVote
     ihave Hphys := Hlogback $$ Hlog
-    try wp_auto
     wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+    wp_pures
     icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
     wp_apply _P.isUpToDate $$ [$Hlog] as %ok2 ⟨Hlog, %Hutd⟩
     ihave Hphys := Hlogback $$ Hlog
     cases ok2
+    -- TODO(no-wp-auto): macro `vote_reject_tail` runs wp_auto: wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear lastID | wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear candLastID | wp_pures | wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures | ∅ | wp_pures; wp_load; wp_pures; iclear m | wp_pures; wp_load; wp_pures; iclear r | ∅ | wp_pures
     · vote_reject_tail
+    -- TODO(no-wp-auto): macro `vote_grant_tail` runs wp_auto: wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear lastID | wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear candLastID | wp_pures | wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures | ∅ | wp_pures; wp_load; wp_pures | ∅ | wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear r m | wp_pures
     · vote_grant_tail
   · -- for somebody else: declined. Both halves of `canVote`'s first two disjuncts are
     -- false, so again the third is evaluated and its `MsgPreVote` test has to be
     -- decided.
     rw [decide_eq_false Hv1]
-    try wp_auto
+    wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_Vote $$ Hphys as Hphys
+    wp_pures
     rw [decide_eq_false Hv00]
-    try wp_auto
+    wp_pures; wp_load; wp_pures
     ty_ne 17
-    try wp_auto
+    wp_pures; wp_alloc canVote_ptr as canVote; wp_pures; wp_store; wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+    wp_pures
     icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
     wp_apply _P.lastEntryID $$ [$Hlog] as %lastID2 ⟨Hlog, -⟩
+    wp_pures; wp_alloc lastID_ptr as lastID; wp_pures; wp_store; wp_pures; wp_load; wp_pures
+    wp_load; wp_pures; wp_alloc candLastID_ptr as candLastID; wp_pures; wp_store; wp_pures; wp_load
+    wp_pures; wp_load; wp_pures; iclear canVote
     ihave Hphys := Hlogback $$ Hlog
+    -- TODO(no-wp-auto): macro `vote_reject_tail` runs wp_auto: ∅ | wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear lastID | wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear candLastID | wp_pures | wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures | ∅ | wp_pures; wp_load; wp_pures; iclear m | wp_pures; wp_load; wp_pures; iclear r | ∅ | wp_pures
     vote_reject_tail
 
 end StepProof

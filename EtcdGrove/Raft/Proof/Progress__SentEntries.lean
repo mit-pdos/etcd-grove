@@ -30,7 +30,8 @@ theorem tracker.Progress.SentEntries.wp_proof
   iNamed Hpr
   have Habs0 := (progressAbs_Some _ _ _).1 Habs
   obtain ⟨Hl, Hst, -⟩ := Habs0
-  wp_auto
+  wp_alloc pr_ptr as pr; wp_pures; wp_alloc bytes_ptr as bytes; wp_pures
+  wp_alloc entries_ptr as entries; wp_pures; wp_load; wp_pures; wp_load; wp_pures
   -- the record's state is Probe or Replicate -- the premise excludes
   -- Snapshot -- so the `panic` arm is unreachable.
   rw [Hst]
@@ -40,9 +41,10 @@ theorem tracker.Progress.SentEntries.wp_proof
     -- StateProbe: the switch falls through to the second arm
     rw [decide_eq_false (by simp [prstateW64])]
     rw [show tracker.StateProbe = #(prstateW64 .probe) from rfl]
-    wp_auto
+    wp_pures; wp_load; wp_pures; iclear bytes entries
     wp_if_destruct
-    · have Hgt : 0 < sint.Z entries := by word
+    · wp_load; wp_pures; wp_store; wp_pures; iclear pr
+      have Hgt : 0 < sint.Z entries := by word
       iapply HΦ
       iexists _
       iframe Hpv
@@ -62,14 +64,19 @@ theorem tracker.Progress.SentEntries.wp_proof
       exact Habs
   | replicate =>
     rw [decide_eq_true (by simp [prstateW64])]
-    wp_auto
+    wp_pures; wp_load; wp_pures
     wp_if_destruct
-    · -- entries > 0: `Next` moves and the window records the batch. The
+    · wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_store; wp_pures; wp_load
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+      iclear bytes entries
+      -- entries > 0: `Next` moves and the window records the batch. The
       -- `Add` is legal because the caller promised the window is not
       -- full -- see the spec.
       have Hgt : 0 < sint.Z entries := by word
       wp_apply wp_Inflights_Add _ _ _ _ (Hnotfull Hps Hgt) $$ [$Hinfl] as Hinfl
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures
       wp_apply wp_Inflights_Full $$ [$Hinfl] as Hinfl
+      wp_pures; wp_load; wp_pures; wp_store; wp_pures; iclear pr
       iapply HΦ
       iexists _
       iframe Hpv
@@ -79,8 +86,10 @@ theorem tracker.Progress.SentEntries.wp_proof
       rw [progressAbs_Some] at Habs ⊢
       obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩ := Habs
       exact ⟨h1, by rw [h2, Hps], h3, by simp only [h4], h5, h6, h7, rfl, rfl⟩
-    · have Hgt : ¬ 0 < sint.Z entries := by word
+    · wp_load; wp_pures; wp_load; wp_pures; iclear bytes entries
+      have Hgt : ¬ 0 < sint.Z entries := by word
       wp_apply wp_Inflights_Full $$ [$Hinfl] as Hinfl
+      wp_pures; wp_load; wp_pures; wp_store; wp_pures; iclear pr
       iapply HΦ
       iexists _
       iframe Hpv

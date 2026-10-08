@@ -25,14 +25,17 @@ theorem raft.switchToConfig.wp_proof
     raft.switchToConfig.spec (GF := GF) (hG := hG) := by
   intro cfg0 cfg r id s cfgv prsm prs Hrole
   wp_start as ⟨Hphys, Hnew⟩
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_alloc trk_ptr as trk; wp_pures; wp_alloc cfg_ptr as cfg
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures
   wp_apply wp_traceConfChangeEvent
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear cfg
   -- `r.trk.Config = cfg; r.trk.Progress = trk`: the one change of configuration, through
   -- `ownRaftPhys_reconfig`
   icases ownRaftPhys_reconfig cfg0 cfg r id s $$ Hphys with ⟨%tv, Htrkf, Hold, Hback⟩
   icases typedPointsto_not_null_dup _ _ _ $$ Htrkf with ⟨Htrkf, %Hnn⟩
   iStructNamed Htrkf
-  wp_auto
+  wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures
+  iclear trk
   ihave Htrkf : r.[raft, go!"trk"] ↦
       ({ tv with Config' := cfgv, Progress' := prsm } : tracker.ProgressTracker)
       $$ [Votes MaxInflight MaxInflightBytes Config Progress]
@@ -43,21 +46,27 @@ theorem raft.switchToConfig.wp_proof
   ihave Hphys := Hback $$ %_ %prs %pvs Htrkf Htrk
   -- the log line: `r.id`, `r.trk.Config`
   wp_apply raft.wp_load_id $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures
   icases ownRaftPhys_tracker_same cfg r id _ $$ Hphys with ⟨%tv1, Htrkf, Htrk, Hback⟩
-  wp_auto
+  wp_load; wp_pures
   ihave Hphys := Hback $$ %tv1 Htrkf Htrk
+  -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures | ∅
   wp_raft_log
   -- `cs := r.trk.ConfState()`
   icases ownRaftPhys_tracker_same cfg r id _ $$ Hphys with ⟨%tv2, Htrkf, Htrk, Hback⟩
   wp_apply wp_ProgressTracker_ConfState $$ [$Htrkf $Htrk]
     as %cs %xs ⟨Htrkf, Htrk, Hcs, %Hxs, %Hcs0⟩
+  wp_pures; wp_alloc cs_ptr as cs; wp_pures; wp_store; wp_pures; wp_load; wp_pures
   ihave Hphys := Hback $$ %tv2 Htrkf Htrk
   -- `pr, ok := r.trk.Progress[r.id]`
   wp_apply raft.wp_load_id $$ Hphys as Hphys
+  wp_load; wp_pures
   icases ownRaftPhys_tracker_same cfg r id _ $$ Hphys with ⟨%tv3, Htrkf, Htrk, Hback⟩
   icases ownTracker_progress_map cfg _ _ $$ Htrk with ⟨#Hprs, %Hdom, Htrk⟩
-  wp_auto
+  wp_load
   wp_apply wp_map_lookup2 $$ Hprs as -
+  wp_pures; wp_alloc ok_ptr as ok; wp_pures; wp_alloc pr_ptr as pr; wp_pures; wp_store; wp_pures
+  wp_store; wp_pures; wp_load
   -- `r.isLearner = ok && pr.IsLearner` is `false`: every voter's `Progress` has
   -- `IsLearner = false`
   have Hns : stateW64 s.role ≠ W64 2 := by
@@ -66,38 +75,44 @@ theorem raft.switchToConfig.wp_proof
   cases Hlk : prs !! id with
   | some pr =>
     simp only [Option.getD_some, Option.isSome_some]
-    wp_auto
+    wp_pures; wp_load; wp_pures; iclear pr
     icases ownTracker_lookup_same cfg _ _ id pr Hlk $$ Htrk with ⟨%p, -, Hpr, Hprback⟩
     iNamed Hpr
     have Hnolearner := ((progressAbs_Some _ _ _).1 Habs).1
-    wp_auto
+    wp_load; wp_pures; wp_load; wp_pures
     rw [Hnolearner]
     ihave Htrk := Hprback $$ [Hpv Hinfl]
     · iapply ownProgress_intro $$ Hpv Hinfl
       ipureintro; exact Habs
     ihave Hphys := Hback $$ %tv3 Htrkf Htrk
     wp_apply raft.wp_store_isLearner $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear ok
     wp_apply raft.wp_load_isLearner $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_state $$ Hphys as Hphys
+    wp_pures
     rw [decide_eq_false Hns]
-    wp_auto
+    wp_pures; wp_load; wp_pures; iclear r cs
     iapply HΦ
     iframe
     ipureintro
     exact ⟨Hxs, Hcs0⟩
   | none =>
     simp only [Option.getD_none, Option.isSome_none]
-    wp_auto
+    wp_pures; wp_load; wp_pures; iclear pr
     ihave Hphys := Hback $$ %tv3 Htrkf Htrk
     wp_apply raft.wp_store_isLearner $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear ok
     -- `!ok` is `true`: the `||` does not load `r.isLearner`, and `r.state` is loaded by
     -- both `if`s
     wp_apply raft.wp_load_state $$ Hphys as Hphys
+    wp_pures
     rw [decide_eq_false Hns]
-    wp_auto
+    wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_state $$ Hphys as Hphys
+    wp_pures
     rw [decide_eq_false Hns]
-    wp_auto
+    wp_pures; wp_load; wp_pures; iclear r cs
     iapply HΦ
     iframe
     ipureintro

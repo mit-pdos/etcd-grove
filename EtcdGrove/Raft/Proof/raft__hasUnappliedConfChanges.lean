@@ -100,15 +100,21 @@ theorem raft.hasUnappliedConfChanges.wp_proof
     with ⟨%Hfacts, Hlog⟩
   obtain ⟨Hpa, Hac, Hcl, Hnw, Hnc⟩ := Hfacts
   ihave Hphys := Hback $$ Hlog
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_load; wp_pures
+  -- TODO(no-wp-auto): macro `read_field` runs wp_auto: wp_pures; wp_load; wp_load; wp_pures
   read_field
+  -- TODO(no-wp-auto): macro `read_field` runs wp_auto: wp_pures; wp_load; wp_pures
   read_field
   wp_if_destruct
   · -- `applied >= committed`: the range is empty and the answer is `false`
     iapply HΦ $$ Hphys
+  wp_alloc found_ptr as found; wp_pures; wp_store; wp_pures; wp_load; wp_pures
   -- the reads of `r.raftLog` for `lo`, `hi`, `pageSize`
+  -- TODO(no-wp-auto): macro `read_field` runs wp_auto: wp_pures; wp_load; wp_pures; wp_load; wp_pures
   read_field
+  -- TODO(no-wp-auto): macro `read_field` runs wp_auto: wp_pures; wp_load; wp_pures; wp_alloc hi_ptr as hi; wp_pures; wp_alloc lo_ptr as lo; wp_pures; wp_store; wp_pures; wp_store; wp_pures; wp_load; wp_pures
   read_field
+  -- TODO(no-wp-auto): macro `read_field` runs wp_auto: wp_pures; wp_load; wp_pures; wp_alloc pageSize_ptr as pageSize; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear pageSize
   read_field
   wp_bind (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Val _))
   iapply raft.wp_load_raftLog $$ Hphys
@@ -134,7 +140,8 @@ theorem raft.hasUnappliedConfChanges.wp_proof
     iintro %Ψ
     imodintro
     iintro ⟨Hes, %HPes, -⟩ HΨ
-    wp_auto
+    wp_pures; wp_alloc ents_ptr as ents; wp_pures; wp_load; wp_pures; wp_alloc i_ptr as i; wp_pures
+    wp_alloc i_ptr as i; wp_pures
     -- the range construct's own counter `i_ptr` and the body's `i` (`ib`) share a Go
     -- name; rename the body's
     rename_i ibp
@@ -147,15 +154,20 @@ theorem raft.hasUnappliedConfChanges.wp_proof
       iframe
       ipureintro
       word
-    wp_for IH
+    wp_for_core
+    iNamed IH
+    wp_pures; wp_load; wp_pures
+    cleanup_bool_decide
     wp_if_destruct
-    · list_elem es (sint.nat k) as e
+    · wp_load; wp_pures
+      list_elem es (sint.nat k) as e
       -- the range construct's own read of `ents[j]`
       rw [ite_eq_left_of_eq_true _ _ (eq_true (by word))]
       wp_apply wp_load_slice_index sl (sint.Z k) es dq e (by word) $$ [Hes] with Hes
       · iframe
         ipureintro
         exact He_lookup
+      wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_load; wp_pures
       have HeT : e.Type' = EntryNormal := HPes e (List.mem_of_getElem? He_lookup)
       -- the two `ents[i].Type` reads load a *field*, so lend the element out rather than
       -- using `wp_load_slice_index`
@@ -164,13 +176,13 @@ theorem raft.hasUnappliedConfChanges.wp_proof
       icases typedPointsto_not_null_dup _ _ _ $$ Hel with ⟨Hel, %Hel_nn⟩
       iStructNamed Hel
       rw [ite_eq_left_of_eq_true _ _ (eq_true (by word))]
-      wp_auto
+      wp_pures; wp_load; wp_pures
       rw [decide_eq_false (by rw [HeT, EntryNormal]; word)]
-      wp_auto
+      wp_pures; wp_load; wp_load; wp_pures
       rw [ite_eq_left_of_eq_true _ _ (eq_true (by word))]
-      wp_auto
+      wp_pures; wp_load; wp_pures
       rw [decide_eq_false (by rw [HeT, EntryNormal]; word)]
-      wp_auto
+      wp_pures
       ihave Hel : sliceIndexRef raftpb.Entry (sint.Z k) sl ↦{dq} e $$ [Term Index Type' Data]
       · iapply typedPointsto_combine _ _ _ Hel_nn
         simp only [TypedPointsto.typedPointstoDef]
@@ -183,6 +195,7 @@ theorem raft.hasUnappliedConfChanges.wp_proof
         exact List.set_getElem_self h
       rw [Hset]
       wp_for_post
+      wp_load; wp_pures; wp_store
       iframe
       iexists k + W64 1, k
       iframe
@@ -190,6 +203,8 @@ theorem raft.hasUnappliedConfChanges.wp_proof
       word
     · iapply HΨ
       iframe
+  wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures; iclear r found lo hi err
   -- `scan` returned `nil`, so the `Panicf` is dead and `found` is `false`
   ihave Hphys := Hback $$ Hlog
   iapply HΦ $$ Hphys

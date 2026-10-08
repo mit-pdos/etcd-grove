@@ -23,8 +23,9 @@ theorem needStorageApplyRespMsg.wp_proof
     needStorageApplyRespMsg.spec (GF := GF) (hG := hG) := by
   intro rd
   wp_start as -
-  wp_auto
+  wp_alloc rd_ptr as rd; wp_pures; wp_load; wp_pures; iclear rd
   wp_apply wp_needStorageApplyMsg
+  wp_pures
   iapply HΦ
   ipureintro
   trivial

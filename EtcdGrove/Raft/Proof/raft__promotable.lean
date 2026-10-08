@@ -41,30 +41,34 @@ theorem raft.promotable.wp_proof
     raft.promotable.spec (GF := GF) (hG := hG) := by
   intro cfg r id s
   wp_start as Hphys
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_load; wp_pures
   wp_apply raft.wp_load_id $$ Hphys as Hphys
+  wp_load; wp_pures
   icases ownRaftPhys_tracker_same cfg r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
-  wp_auto
+  wp_load
   by_cases Hin : id ∈ cfg
   · -- a voter: its `Progress` is in the map and is not a learner's
     wp_apply wp_tracker_progress_lookup cfg tv _ id Hin $$ Htrk
       as %pr ⟨%Hlk, %p, %Hpv, Hpr, Hprback⟩
+    wp_pures; wp_alloc pr_ptr as pr; wp_pures; wp_store; wp_pures; wp_load; wp_pures
     iNamed Hpr
     have Hnolearner := ((progressAbs_Some _ _ _).1 Habs).1
     ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hpv
     -- `wp_auto` already reduced `pr != nil` to `!decide (pr = null)`
     simp only [decide_eq_false Hnn, Bool.not_false]
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear pr
     rw [Hnolearner]
-    wp_auto
+    wp_pures; wp_load; wp_pures; iclear r
     ihave Htrk := Hprback $$ %p [Hpv Hinfl]
     · iapply ownProgress_intro $$ Hpv Hinfl %Habs
     -- written back at the values it was read at
     simp only [GMap.insert_id s.prvals id p Hpv]
     ihave Hphys := Hback $$ Htrkf Htrk
     wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+    wp_pures
     icases ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hback⟩
     wp_apply wp_raftLog_hasNextOrInProgressSnapshot $$ [$Hlog] as %hb ⟨Hlog, %Hhb⟩
+    wp_pures
     subst hb
     ihave Hphys := Hback $$ Hlog
     iapply HΦ
@@ -81,9 +85,10 @@ theorem raft.promotable.wp_proof
     -- the progress map is read-only, so it stays in the persistent context
     wp_apply wp_map_lookup1 go.uint64 (go.GoType.PointerType tracker.Progress.ty) _ s.progress
       id _ $$ Hprs with -
+    wp_pures; wp_alloc pr_ptr as pr; wp_pures; wp_store; wp_pures; wp_load; wp_pures
     rw [Hnone]
     simp only [Option.getD_none]
-    wp_auto
+    wp_pures; iclear r pr
     ihave Hphys := Hback $$ Htrkf Htrk
     iapply HΦ
     iframe Hphys

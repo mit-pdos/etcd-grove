@@ -26,7 +26,8 @@ theorem pbEntryID.wp_proof : pbEntryID.spec (GF := GF) (hG := hG) := by
   -- its fields and put it back together at the end.
   icases typedPointsto_not_null_dup _ _ _ $$ He with ⟨He, %Hnn⟩
   iStructNamed He
-  wp_auto
+  wp_alloc entry_ptr as entry; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+  wp_load; wp_pures; iclear entry
   unfold entId
   iapply HΦ
   iapply typedPointsto_combine _ _ _ Hnn

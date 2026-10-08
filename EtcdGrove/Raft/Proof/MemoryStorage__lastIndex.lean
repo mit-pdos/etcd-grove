@@ -26,7 +26,7 @@ theorem MemoryStorage.lastIndex.wp_proof : MemoryStorage.lastIndex.spec (GF := G
   wp_start as Hf
   iNamed Hf
   iNamed Hf
-  wp_auto
+  wp_alloc ms_ptr as ms; wp_pures; wp_load; wp_pures; wp_load; wp_pures
   ihave %Hlen := ownSlice_len _ _ _ $$ Hents
   simp only [List.length_cons] at Hlen
   simp only [show (0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z es.len) = True from
@@ -38,7 +38,7 @@ theorem MemoryStorage.lastIndex.wp_proof : MemoryStorage.lastIndex.spec (GF := G
   -- Lean: `wp_load` does not find the field `Access` instance of a struct points-to at
   -- `DFrac.discard`, so split the (persistent) entry into its fields.
   iStructNamed He
-  wp_auto
+  wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures; iclear ms
   iapply HΦ
   isplitr
   · ipureintro

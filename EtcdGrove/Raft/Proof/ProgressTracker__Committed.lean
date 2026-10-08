@@ -33,7 +33,7 @@ theorem tracker.ProgressTracker.Committed.wp_proof
   unfold ownTracker
   iNamed Hown
   simp only at *
-  wp_auto
+  wp_alloc p_ptr as p; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear p
   ihave #Hidx : isAckedIndexer
       (interface.mkOk tracker.matchAckIndexer.ty #tv.Progress')
       (ownProgressMap tv.Progress' prs pvs) (pvsAcked pvs) $$ []
@@ -59,6 +59,7 @@ theorem tracker.ProgressTracker.Committed.wp_proof
       $$ [$Hidx $HP $Hvf $Hvoters] as %N ⟨Hvf, ⟨%voters', %Hdom, Hvoters⟩, HP, %Hemp, %Hq⟩
   · ipureintro
     exact ⟨by rw [Hvoters_dom]; exact Hcfg_size, Hvoters_arr⟩
+  wp_pures
   ihave Hcfgf := Hback2 $$ Hvf
   ihave Htrk := Hback1 $$ Hcfgf
   unfold ownProgressMap

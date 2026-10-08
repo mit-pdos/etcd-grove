@@ -35,10 +35,11 @@ theorem raftLog.hasNextCommittedEnts.wp_proof
   unfold ownRaftLogCore
   icases Hcore with ⟨%sprev, %stored, %ss, Hcore⟩
   iNamed Hcore
-  wp_auto
+  wp_alloc l_ptr as l; wp_pures; wp_alloc allowUnstable_ptr as allowUnstable; wp_pures; wp_load
+  wp_pures; wp_load
   cases Hpz : lv.applyingEntsPaused'
   case true =>
-    wp_auto
+    wp_pures; iclear l allowUnstable
     iapply HΦ
     isplitl
     · reseal_raftLog
@@ -49,7 +50,7 @@ theorem raftLog.hasNextCommittedEnts.wp_proof
   clear Hcm Hap Hapg Hip Hasz Hamx Hidx Hnowrap Hstore Hoffset HnoConfChange Happlied
     Hpapplied Hcommitted Hssnap Hipb Hpersist Happlying Hpaused
   iclear HisStorage Husnap Hl_logger Hu_logger
-  wp_auto
+  wp_pures; wp_load; wp_pures
   wp_apply wp_raftLog_hasNextOrInProgressSnapshot l _ $$ [Hlog] as %b ⟨Hlog, %Hb⟩
   · iexact Hlog
   simp only at Hb
@@ -57,20 +58,20 @@ theorem raftLog.hasNextCommittedEnts.wp_proof
   | some sid =>
     rw [decide_eq_true (by simp)] at Hb
     subst b
-    wp_auto
+    wp_pures; iclear l allowUnstable
     iapply HΦ
     iframe Hlog
     ipureintro; intro Hc; cases Hc
   | none =>
     rw [decide_eq_false (by simp)] at Hb
     subst b
-    wp_auto
+    wp_pures; wp_load; wp_pures
     icases (ownRaftLog_unfold l prev sents uents lcm lap none lip lapg lpend lasz lamx).1 $$ Hlog
       with ⟨%lv, Hl, %Hcm, %Hap, %Hapg, %Hip, %Hasz, %Hamx, Hcore⟩
     unfold ownRaftLogCore
     icases Hcore with ⟨%sprev, %stored, %ss, Hcore⟩
     iNamed Hcore
-    wp_auto
+    wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear l allowUnstable
     rw [Hapg]
     ihave Hlog : ownRaftLog l ⟨prev, sents, uents, lcm, lap, none, lip, lapg, lpend, lasz, lamx⟩
       $$ [Hl HStorage Huents Huents_cap]
@@ -80,6 +81,8 @@ theorem raftLog.hasNextCommittedEnts.wp_proof
     iclear HisStorage Husnap Hl_logger Hu_logger
     wp_apply wp_raftLog_maxAppliableIndex l _ au $$ [Hlog] as %hi0 ⟨Hlog, %Hhi0⟩
     · iexact Hlog
+    wp_pures; wp_alloc hi_ptr as hi; wp_pures; wp_alloc lo_ptr as lo; wp_pures; wp_store; wp_pures
+    wp_store; wp_pures; wp_load; wp_load; wp_pures; iclear lo hi
     simp only at Hhi0
     have Hhi0' : uint.Z hi0 ≤ uint.Z lcm := by cases au <;> simp at Hhi0 <;> omega
     iapply HΦ

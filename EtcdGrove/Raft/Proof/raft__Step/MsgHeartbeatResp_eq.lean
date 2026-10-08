@@ -62,19 +62,22 @@ theorem wp_Step_MsgHeartbeatResp_eq (_P : raft.Step.Postulates (GF := GF) (hG :=
     .inr (.inr Hty)
   wp_start as Hphys
   iNamed Hphys
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_alloc m_ptr as m; wp_pures; wp_load; wp_pures
   wp_apply _P.traceReceiveMessage
+  wp_pures; wp_load; wp_pures
   rw [decide_eq_false Hterm]
-  wp_auto
+  wp_pures; wp_load; wp_load; wp_pures
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_pures
   rw [decide_eq_false (show ¬ (uint.Z s.term < uint.Z m.Term') by rw [Hteq]; omega)]
-  wp_auto
+  wp_pures; wp_load; wp_load; wp_pures
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_pures
   rw [decide_eq_false (show ¬ (uint.Z m.Term' < uint.Z s.term) by rw [Hteq]; omega)]
-  wp_auto
+  wp_pures; wp_load; wp_pures
   -- the type switch: none of its four cases, so `r.step(m)`
   rw [Hty]
-  wp_auto
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear r m
   wp_apply raft.wp_load_step $$ Hphys as Hphys
   rw [show s.stepfn = stepFuncOf s.role from Hwf]
   have Hsnap0 : ∀ (P : IProp GF), ⊢ (⌜m.Type' = MsgSnap⌝ -∗ P : IProp GF) := fun P => by
@@ -92,12 +95,13 @@ theorem wp_Step_MsgHeartbeatResp_eq (_P : raft.Step.Postulates (GF := GF) (hG :=
       · iapply Hsnap0
       · iintro %Hc; exfalso; rw [Hty] at Hc
         rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
+    wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures
     obtain ⟨rfl, Hs1⟩ := followerStepResult_noop _ _ _ _ _ _ _ Hty3 Hres
     rw [Hs1]
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn
     subst Herrn
-    wp_auto
+    wp_pures; iclear err
     iapply HΦ $$ %interface.nil %s
     iframe Hphys
     ipureintro
@@ -115,12 +119,13 @@ theorem wp_Step_MsgHeartbeatResp_eq (_P : raft.Step.Postulates (GF := GF) (hG :=
     · isplitl []
       · iapply Hsnap0
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+    wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures
     obtain ⟨rfl, Hs1⟩ := candidateStepResult_noop _ _ _ _ _ _ _ _ Hty3 Hres
     rw [Hs1]
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn
     subst Herrn
-    wp_auto
+    wp_pures; iclear err
     iapply HΦ $$ %interface.nil %s
     iframe Hphys
     ipureintro
@@ -135,11 +140,12 @@ theorem wp_Step_MsgHeartbeatResp_eq (_P : raft.Step.Postulates (GF := GF) (hG :=
     · isplitl []
       · iintro _; iexact Hctx0
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+    wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures
     obtain ⟨rfl, Hwf', Hstep⟩ := leader_hbresp_step cfg id s m [] dropped s' Hrole Hty Hwf Hres
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn
     subst Herrn
-    wp_auto
+    wp_pures; iclear err
     iapply HΦ $$ %interface.nil %s'
     iframe Hphys
     ipureintro
@@ -157,12 +163,13 @@ theorem wp_Step_MsgHeartbeatResp_eq (_P : raft.Step.Postulates (GF := GF) (hG :=
     · isplitl []
       · iapply Hsnap0
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+    wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures
     obtain ⟨rfl, Hs1⟩ := candidateStepResult_noop _ _ _ _ _ _ _ _ Hty3 Hres
     rw [Hs1]
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn
     subst Herrn
-    wp_auto
+    wp_pures; iclear err
     iapply HΦ $$ %interface.nil %s
     iframe Hphys
     ipureintro

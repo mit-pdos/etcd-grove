@@ -26,9 +26,11 @@ theorem tracker.Progress.CanBumpCommit.wp_proof :
   iNamed Hpr
   have Habs' := (progressAbs_Some _ _ _).1 Habs
   obtain ⟨Hl, Hst, Hm, Hn, Hsc, -, -, -, -⟩ := Habs'
-  wp_auto
+  wp_alloc pr_ptr as pr; wp_pures; wp_alloc index_ptr as index; wp_pures; wp_load; wp_load; wp_pures
+  wp_load; wp_pures; iclear index
   wp_if_destruct
-  · rw [show decide (uint.Z pv.sentCommit' < uint.Z (pv.Next' - W64 1)) =
+  · wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures; iclear pr
+    rw [show decide (uint.Z pv.sentCommit' < uint.Z (pv.Next' - W64 1)) =
         progressCanBumpCommit p index by
       simp only [progressCanBumpCommit, ← Hsc, ← Hn, decide_eq_decide]
       exact ⟨fun h => ⟨Hif, h⟩, fun h => h.2⟩]

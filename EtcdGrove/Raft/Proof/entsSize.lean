@@ -32,7 +32,8 @@ theorem entsSize.wp_proof
   intro s es dq
   wp_start as Hs
   iNamed Hs
-  wp_auto
+  wp_alloc ents_ptr as ents; wp_pures; wp_alloc size_ptr as size; wp_pures; wp_load; wp_pures
+  wp_alloc ent_ptr as ent; wp_pures; wp_alloc i_ptr as i; wp_pures; iclear ents
   ihave %Hlen := ownSlice_len _ _ _ $$ Hs
   ihave IH : iprop(∃ (n sz : w64) (ev : raftpb.Entry),
       "i" ∷ i_ptr ↦ n ∗ "size" ∷ size_ptr ↦ sz ∗ "ent" ∷ ent_ptr ↦ ev ∗
@@ -41,22 +42,30 @@ theorem entsSize.wp_proof
     iframe
     ipureintro
     word
-  wp_for IH
+  wp_for_core
+  iNamed IH
+  wp_pures; wp_load; wp_pures
+  cleanup_bool_decide
   wp_if_destruct
-  · list_elem es (sint.nat n) as e
+  · wp_load; wp_pures
+    list_elem es (sint.nat n) as e
     rw [ite_eq_left_of_eq_true _ _ (eq_true (by word))]
     wp_apply wp_load_slice_index s (sint.Z n) es dq e Hn.1 $$ [Hs] with Hs
     · iframe
       ipureintro
       exact He_lookup
+    wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures
     wp_apply wp_Entry_Size $$ [$ent] as %sz2 ent
+    wp_pures; wp_store; wp_pures
     wp_for_post
+    wp_load; wp_pures; wp_store
     iframe
     iexists n + W64 1, sz + sz2, e
     iframe
     ipureintro
     word
-  · iapply HΦ $$ Hs
+  · wp_load; wp_pures; iclear i size ent
+    iapply HΦ $$ Hs
 
 end proof
 

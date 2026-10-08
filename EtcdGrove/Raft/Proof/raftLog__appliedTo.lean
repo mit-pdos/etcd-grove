@@ -23,14 +23,18 @@ theorem raftLog.appliedTo.wp_proof : raftLog.appliedTo.spec (GF := GF) (hG := hG
   wp_start as Hlog
   icases (ownRaftLog_unfold l prev sents uents lcm lap snap lip lapg lpend lasz lamx).1 $$ Hlog
     with ⟨%lv, Hl, %Hcm, %Hap, %Hapg, %Hip, %Hasz, %Hamx, Hcore⟩
-  wp_auto
+  wp_alloc l_ptr as l; wp_pures; wp_alloc size_ptr as size; wp_pures; wp_alloc i_ptr as i; wp_pures
+  wp_load; wp_pures; wp_load; wp_load; wp_pures
   rw [decide_eq_false (by rw [Hcm]; omega)]
-  wp_auto
+  wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures
   rw [decide_eq_false (by rw [Hap]; omega)]
-  wp_auto
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures; wp_load; wp_pures; iclear i
   -- `max(l.applying, i)`
   wp_func_call
   wp_call
+  -- TODO(no-wp-auto): col 21: wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures; iclear l size | wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures; iclear l size | wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures; iclear l size | wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures; iclear l size
+  -- TODO(no-wp-auto): col 2: wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures | wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures
   wp_if_destruct <;> wp_if_destruct
   all_goals
     iapply HΦ

@@ -43,7 +43,7 @@ theorem raftLog.maybeCommit.wp_proof
     rintro ⟨Hne, -, -⟩
     exact Hne Ht0
   rw [decide_eq_false Ht0]
-  wp_auto
+  wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures
   rw [Hcm]
   by_cases Hlt : uint.Z ls.committed < uint.Z aid.index'
   case neg =>
@@ -60,7 +60,7 @@ theorem raftLog.maybeCommit.wp_proof
     rintro ⟨-, Hlt', -⟩
     exact Hlt Hlt'
   rw [decide_eq_true Hlt]
-  wp_auto
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures
   ihave Hlog := Hback $$ Hl
   wp_apply wp_raftLog_matchTerm _ ls _ $$ [$Hlog] as %b ⟨Hlog, %Hb⟩
   cases b with
@@ -70,6 +70,7 @@ theorem raftLog.maybeCommit.wp_proof
     have Hrange := plogTermAt_some_range _ _ _ _ Hm
     wp_auto
     wp_apply wp_raftLog_commitTo _ ls aid.index' Hrange.2 $$ [$Hlog] as Hlog
+    wp_pures
     iapply HΦ
     rw [show plogCommitTo ls.committed aid.index' = aid.index' by simp [plogCommitTo, Hlt]]
     iframe

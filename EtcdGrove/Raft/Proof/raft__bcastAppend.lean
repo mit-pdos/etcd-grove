@@ -67,7 +67,7 @@ theorem raft.bcastAppend.wp_proof
     raft.bcastAppend.spec (GF := GF) (hG := hG) := by
   intro cfg r id s
   wp_start as Hphys
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_load; wp_pures
   icases ownRaftPhys_tracker_prvals $$ Hphys with ⟨%tv, Htrkf, Htrk, Hrest⟩
   wp_apply wp_ProgressTracker_Visit cfg _ tv ⟨s.votes, s.progress, s.prvals⟩ _
       (fun _ pvsx => iprop(∃ (ms : List Msg),
@@ -97,12 +97,13 @@ theorem raft.bcastAppend.wp_proof
     iNamed HI
     ihave Htrk := Hback $$ Hpr
     ihave Hphys := Hrest $$ Htrkf Htrk
-    wp_auto
+    wp_pures; wp_alloc id_ptr as id; wp_pures; wp_load; wp_load; wp_pures
     wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_pures
     by_cases Hii : i = id
     · -- the leader itself: nothing is sent
       rw [decide_eq_true Hii]
-      wp_auto
+      wp_pures; iclear id
       icases ownRaftPhys_tracker_prvals $$ Hphys with ⟨%tv1, Htrkf, Htrk, Hrest⟩
       ihave Htrk := ownTracker_cast cfg tv1 _ ⟨s.votes, s.progress, <[i := p]> pvs0⟩ ?_ $$ Htrk
       · rfl
@@ -123,10 +124,10 @@ theorem raft.bcastAppend.wp_proof
       iapply ownRaftPhys_eq cfg r id _ _ (by cases s; rfl) $$ Hphys
     · -- a peer: `sendAppend` may add `App`s and change `Progress`es
       rw [decide_eq_false Hii]
-      wp_auto
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear id
       wp_apply wp_raft_sendAppend _ _ _ _ i Hii Hicfg $$ [$Hphys]
         as %ms' %pvs' ⟨Hphys, %Hms', %Hmm'⟩
-      try wp_auto
+      wp_pures
       icases ownRaftPhys_tracker_prvals $$ Hphys with ⟨%tv1, Htrkf, Htrk, Hrest⟩
       ihave Htrk := ownTracker_cast cfg tv1 _ ⟨s.votes, s.progress, pvs'⟩ ?_ $$ Htrk
       · rfl
@@ -149,7 +150,7 @@ theorem raft.bcastAppend.wp_proof
   iintro ⟨%tvfin, %pvsfin, Htrkf, Htrk, HI⟩
   iNamed HI
   ihave Hphys := Hrest $$ %tvfin %pvsfin Htrkf Htrk
-  wp_auto
+  wp_pures; iclear rp
   iapply HΦ $$ %ms %pvsfin
   iframe Hphys
   ipureintro

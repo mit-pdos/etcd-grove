@@ -23,9 +23,10 @@ theorem confchange.joint.wp_proof
     confchange.joint.spec (GF := GF) (hG := hG) := by
   intro cfg v Harr
   wp_start as _
-  wp_auto
+  wp_alloc cfg_ptr as cfg; wp_pures; wp_load; wp_pures; iclear cfg
   -- `len` of the nil map is `0`, a pure step, and `0 > 0` is `false`
   wp_apply wp_confchange_outgoing _ v map.nil Harr
+  wp_pures
   wp_end
 
 end proof

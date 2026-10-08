@@ -24,8 +24,10 @@ theorem tracker.matchAckIndexer.AckedIndex.wp_proof :
   intro mref prs pvs id
   wp_start as Hm
   iNamed Hm
-  wp_auto
+  wp_alloc l_ptr as l; wp_pures; wp_alloc id_ptr as id; wp_pures; wp_load; wp_load; iclear l id
   wp_apply wp_map_lookup2 $$ Hprs as -
+  wp_pures; wp_alloc ok_ptr as ok; wp_pures; wp_alloc pr_ptr as pr; wp_pures; wp_store; wp_pures
+  wp_store; wp_pures; wp_load; wp_pures; iclear ok
   ihave %Hiff := BigSepM2.bigSepM2_lookup_iff $$ Hprogs
   have Hacked : pvsAcked pvs id = (pvs !! id).map Progress.matched := rfl
   rw [Hacked]
@@ -39,7 +41,7 @@ theorem tracker.matchAckIndexer.AckedIndex.wp_proof :
     have Hm := ((progressAbs_Some _ _ _).1 Habs).2.2.1
     rw [show (pvs !! id) = some p from Hp]
     simp only [Option.isSome_some, Option.map_some, Option.getD_some]
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear pr
     rw [Hm]
     ihave Hprogs := Hback $$ [Hpv Hinfl]
     · unfold ownProgress
@@ -59,7 +61,7 @@ theorem tracker.matchAckIndexer.AckedIndex.wp_proof :
         cases this
     rw [Hv]
     simp only [Option.isSome_none, Option.map_none, Option.getD_none]
-    wp_auto
+    wp_pures; iclear pr
     iapply HΦ
     unfold ownProgressMap
     iframe Hprs Hprogs

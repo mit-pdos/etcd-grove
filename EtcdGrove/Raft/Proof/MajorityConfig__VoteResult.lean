@@ -38,14 +38,14 @@ theorem quorum.MajorityConfig.VoteResult.wp_proof :
     quorum.MajorityConfig.VoteResult.spec (GF := GF) (hG := hG) := by
   intro s cref mref votes_ref dq votes
   wp_start as ⟨%Hsz, Hc, Hvotes, Hm⟩
-  wp_auto
+  wp_load; wp_pures
   wp_method_call
   wp_call
-  wp_auto
+  wp_call; wp_alloc c_ptr as c; wp_pures; wp_alloc votes_ptr as votes; wp_pures; wp_load; wp_pures
   icases Hm with (⟨%Hnil, %Hs⟩ | ⟨%ids, %Hids, Hids⟩)
   · -- the nil component of a simple config: `len(c) == 0`, so `VoteWon`.
     subst Hnil Hs
-    wp_auto
+    wp_pures; iclear c votes
     rw [show quorum.VoteWon = #VoteWon from rfl]
     iapply HΦ $$ %VoteWon
     iframe Hc Hvotes
@@ -54,13 +54,14 @@ theorem quorum.MajorityConfig.VoteResult.wp_proof :
     ipureintro
     exact ⟨Or.inl rfl, fun _ => rfl, fun h => absurd rfl h, fun h => absurd rfl h⟩
   wp_apply wp_map_len (t := quorum.MajorityConfig.ty) $$ Hids as Hids
+  wp_pures
   have Hsize : GMap.size ids = GMap.size s := by rw [← Hids, GMap.size_dom]
   rw [Hsize]
   by_cases Hne : s = ∅
   · -- a real but *empty* map: `len(c) == 0` too, so `VoteWon` again
     subst Hne
     rw [GMap.map_size_empty]
-    wp_auto
+    wp_pures; iclear c votes
     rw [show quorum.VoteWon = #VoteWon from rfl]
     iapply HΦ $$ %VoteWon
     iframe Hc Hvotes
@@ -77,7 +78,8 @@ theorem quorum.MajorityConfig.VoteResult.wp_proof :
     · exact absurd (GMap.map_size_empty_inv _ h) Hne
     · exact h
   rw [decide_eq_false (by word)]
-  wp_auto
+  wp_pures; wp_alloc votedCnt_ptr as votedCnt; wp_pures; wp_alloc missing_ptr as missing; wp_pures
+  wp_load; wp_pures; wp_alloc id_ptr as id; wp_pures
   wp_func_lits
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
   iapply wp_map_for_range (fun (keys : List w64) (i : Int) => iprop(∃ (idv : w64),
@@ -105,13 +107,15 @@ theorem quorum.MajorityConfig.VoteResult.wp_proof :
       rw [List.length_take]; omega
     have HgB := nsat_le (fun k => votes !! k = some true) (keys.take i.toNat)
     have HmB := nsat_le (fun k => votes !! k = none) (keys.take i.toNat)
-    wp_auto
+    wp_pures; wp_store; wp_pures; wp_load; wp_load
     wp_apply wp_map_lookup2 $$ Hvotes as Hvotes
+    wp_pures; wp_alloc ok_ptr as ok; wp_pures; wp_alloc v_ptr as v; wp_pures; wp_store; wp_pures
+    wp_store; wp_pures; wp_load; wp_pures; iclear ok
     rw [Htake, nsat_snoc, nsat_snoc]
     cases Hvk : votes !! key with
     | none =>
       -- no answer: `missing++; continue`
-      wp_auto
+      wp_pures; wp_load; wp_pures; wp_store; wp_pures; iclear v
       unfold forMapPostcondition
       ileft
       isplitr
@@ -128,7 +132,7 @@ theorem quorum.MajorityConfig.VoteResult.wp_proof :
       | true =>
         -- granted
         simp only [Option.getD_some]
-        wp_auto
+        wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures; iclear v
         unfold forMapPostcondition
         iright
         ileft
@@ -145,7 +149,7 @@ theorem quorum.MajorityConfig.VoteResult.wp_proof :
       | false =>
         -- rejected: neither counter moves
         simp only [Option.getD_some]
-        wp_auto
+        wp_pures; wp_load; wp_pures; iclear v
         unfold forMapPostcondition
         iright
         ileft
@@ -166,8 +170,9 @@ theorem quorum.MajorityConfig.VoteResult.wp_proof :
     rfl
   have Hgfin := nsat_granted s votes keys Hknodup Hks
   have Hmfin := nsat_missing s votes keys Hknodup Hks
-  wp_auto
+  wp_pures; wp_load; wp_pures; iclear c votes id
   wp_apply wp_map_len (t := quorum.MajorityConfig.ty) $$ Hids as Hids
+  wp_pures; wp_alloc q_ptr as q; wp_pures; wp_store; wp_pures; wp_load; wp_load; wp_pures
   rw [Hsize]
   -- `q := len(c)/2 + 1`, then the two comparisons. Everything below is
   -- arithmetic: `IsQuorum_alt` is the bridge to the model.
@@ -188,7 +193,7 @@ theorem quorum.MajorityConfig.VoteResult.wp_proof :
   by_cases Hwon : GMap.size s / 2 + 1 ≤ GMap.size (granted votes ∩ s)
   · -- `votedCnt >= q`: a quorum granted
     rw [decide_eq_true (by word)]
-    wp_auto
+    wp_pures; iclear votedCnt missing q
     rw [show quorum.VoteWon = #VoteWon from rfl]
     iapply HΦ $$ %VoteWon
     iframe Hc Hvotes
@@ -200,11 +205,11 @@ theorem quorum.MajorityConfig.VoteResult.wp_proof :
       fun _ => ⟨fun h => absurd h (by decide),
         fun Hnq => absurd ((IsQuorum_alt s _).2 (by rw [Hint]; omega)) Hnq⟩⟩
   rw [decide_eq_false (by word)]
-  wp_auto
+  wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures; iclear votedCnt missing q
   by_cases Hpend : GMap.size s / 2 + 1 ≤ GMap.size (s \ rejected votes)
   · -- `votedCnt + missing >= q`: the election is still winnable
     rw [decide_eq_true (by word)]
-    wp_auto
+    wp_pures
     rw [show quorum.VotePending = #VotePending from rfl]
     iapply HΦ $$ %VotePending
     iframe Hc Hvotes
@@ -217,7 +222,7 @@ theorem quorum.MajorityConfig.VoteResult.wp_proof :
       fun _ => ⟨fun h => absurd h (by decide),
         fun Hnq => absurd ((IsQuorum_alt s _).2 (by rw [Hint]; omega)) Hnq⟩⟩
   rw [decide_eq_false (by word)]
-  wp_auto
+  wp_pures
   -- `votedCnt + missing < q`: the candidate cannot still win
   rw [show quorum.VoteLost = #VoteLost from rfl]
   iapply HΦ $$ %VoteLost

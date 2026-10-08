@@ -25,14 +25,17 @@ theorem unstable.mustCheckOutOfBounds.wp_proof :
   iNamed H
   unfold ownUnstable
   iNamed Hun
-  wp_auto
+  wp_alloc u_ptr as u; wp_pures; wp_alloc hi_ptr as hi; wp_pures; wp_alloc lo_ptr as lo; wp_pures
+  wp_load; wp_load; wp_pures
   ihave %Hlen := ownSlice_len $$ Hents
   rw [decide_eq_false (show ¬ uint.Z hi < uint.Z lo by omega)]
-  wp_auto
+  wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures
+  wp_alloc upper_ptr as upper; wp_pures; wp_store; wp_pures; wp_load; wp_load; wp_pures; wp_load
+  wp_pures
   rw [decide_eq_false (show ¬ uint.Z lo < uint.Z uv.offset' by omega)]
-  wp_auto
+  wp_pures; wp_load; wp_load; wp_pures
   rw [decide_eq_false (show ¬ uint.Z (uv.offset' + uv.entries'.len) < uint.Z hi by word)]
-  wp_auto
+  wp_pures; iclear u hi lo upper
   iapply HΦ
   iframe
 

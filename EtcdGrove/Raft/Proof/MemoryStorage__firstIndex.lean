@@ -25,7 +25,7 @@ theorem MemoryStorage.firstIndex.wp_proof :
   iNamed H
   unfold memstorageFields
   iNamed Hf
-  wp_auto
+  wp_alloc ms_ptr as ms; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear ms
   ihave %Hlen := ownSlice_len $$ Hents
   simp only [List.length_cons] at Hlen
   simp only [show (0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z es.len) = True from
@@ -34,7 +34,7 @@ theorem MemoryStorage.firstIndex.wp_proof :
   ihave Hents := Hback $$ %dummy He
   rw [show (dummy :: ents).set (sint.Z (W64 0)).toNat dummy = dummy :: ents by simp]
   iStructNamed He
-  wp_auto
+  wp_pures; wp_load; wp_pures
   iapply HΦ
   isplitr
   · ipureintro

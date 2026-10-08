@@ -92,23 +92,30 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
   intro Hty Hto Hterm Hcfg Hwf
   wp_start as Hphys
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_alloc m_ptr as m; wp_pures; wp_load; wp_pures
   wp_apply _P.traceReceiveMessage
+  wp_pures; wp_load; wp_pures
   rw [decide_eq_false Hterm]
-  wp_auto
+  wp_pures; wp_load; wp_load; wp_pures
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_pures
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
   · rw [decide_eq_true Hgt]
-    wp_auto
-    repeat (rw [Hty]; wp_auto)
+    wp_pures; wp_load; wp_pures
+    repeat (rw [Hty]; (wp_pures; wp_load; wp_pures))
     -- "received a message with higher term"
     wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_Term $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures | ∅
     wp_raft_log
+    -- TODO(no-wp-auto): wp_auto (several runs): wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures
     repeat (rw [Hty]; wp_auto)
     -- a `MsgVoteResp` is not from a leader: `becomeFollower(m.Term, None)`
     wp_apply _P.becomeFollower $$ [$Hphys] as %pvs Hphys
-    repeat (rw [Hty]; wp_auto)
+    wp_pures; wp_load; wp_pures
+    repeat (rw [Hty]; (wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear r m))
     -- the default arm, `r.step(m)`: the role is now follower
     wp_apply raft.wp_load_step $$ Hphys as Hphys
     have Hsf : ({ becomeFollower s m.Term' (W64 0) with prvals := pvs } : NState).stepfn =
@@ -124,13 +131,14 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
       · iintro %Hc; exfalso; rw [Hty] at Hc
         rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
+    wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures
     unfold FollowerStepResult at Hres
     rw [ite_pos Hty] at Hres
     obtain ⟨rfl, rfl⟩ := Hres
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn
     subst Herrn
-    wp_auto
+    wp_pures; iclear err
     iapply HΦ
     iframe Hphys
     ipureintro
@@ -140,22 +148,27 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     exact Step.higherTerm (cfg := cfg) (id := id) (absMsg .voteResp m ents) (toPState s)
       Hgt Hto (by simp [absMsg, absMsgFrom, fromLeader])
   · rw [decide_eq_false Hgt]
-    wp_auto
+    wp_pures; wp_load; wp_load; wp_pures
     wp_apply raft.wp_load_Term $$ Hphys as Hphys
+    wp_pures
     by_cases Hlt : uint.Z m.Term' < uint.Z s.term
     · -- m.Term < r.Term: with `checkQuorum` and `preVote` both off and a `MsgVoteResp`
       -- neither `MsgPreVote` nor `MsgStorageAppendResp`, every arm is skipped but the
       -- last, which only logs; then `return nil`. Nothing changed: `Step.refl`.
       rw [decide_eq_true Hlt]
-      wp_auto
+      wp_pures; wp_load; wp_pures
       wp_apply raft.wp_load_checkQuorum $$ Hphys as Hphys
+      wp_pures; wp_load; wp_pures
       wp_apply raft.wp_load_preVote $$ Hphys as Hphys
       cases s.prevote
       all_goals
-        wp_auto
-        repeat (rw [Hty]; wp_auto)
+        wp_pures; wp_load; wp_pures
+        repeat (rw [Hty]; (wp_pures; wp_load; wp_pures))
         wp_apply raft.wp_load_id $$ Hphys as Hphys
+        wp_pures; wp_load; wp_pures
         wp_apply raft.wp_load_Term $$ Hphys as Hphys
+        wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+        -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; iclear r m | ∅ | wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; iclear r m | ∅
         wp_raft_log
         iapply HΦ $$ %interface.nil %s
         iframe Hphys
@@ -164,9 +177,9 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     · -- m.Term = r.Term: the preamble does nothing and control reaches the type
       -- switch, whose default arm is `r.step(m)`.
       rw [decide_eq_false Hlt]
-      wp_auto
+      wp_pures; wp_load; wp_pures
       have Hteq : m.Term' = s.term := by word
-      repeat (rw [Hty]; wp_auto)
+      repeat (rw [Hty]; (wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear r m))
       wp_apply raft.wp_load_step $$ Hphys as Hphys
       rw [show s.stepfn = stepFuncOf s.role from Hwf]
       cases Hrole : s.role
@@ -181,6 +194,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
           · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
           · iintro %Hc; exfalso; rw [Hty] at Hc
             rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
+        wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures
         unfold FollowerStepResult at Hres
         rw [ite_pos Hty] at Hres
         obtain ⟨rfl, Heq⟩ := Hres
@@ -188,7 +202,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         simp only [Bool.false_eq_true, ↓reduceIte]
         icases Herrn with %Herrn
         subst Herrn
-        wp_auto
+        wp_pures; iclear err
         iapply HΦ $$ %interface.nil %s
         iframe Hphys
         ipureintro
@@ -219,13 +233,14 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         · isplitl []
           · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
           · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+        wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures
         unfold CandidateStepResult at Hres
         rw [ite_pos Hty, ite_neg (by rw [Hrole]; decide)] at Hres
         obtain ⟨rfl, won, lost, ms, pvs, Hwon, Hlost, rfl⟩ := Hres
         simp only [Bool.false_eq_true, ↓reduceIte]
         icases Herrn with %Herrn
         subst Herrn
-        wp_auto
+        wp_pures; iclear err
         iapply HΦ
         iframe Hphys
         ipureintro
@@ -280,6 +295,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         · isplitl []
           · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
           · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+        wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures
         unfold LeaderStepResult at Hres
         rw [ite_neg (by rw [Hty]; w32_ne)] at Hres
         obtain ⟨rfl, Hres⟩ := Hres
@@ -291,7 +307,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         simp only [Bool.false_eq_true, ↓reduceIte]
         icases Herrn with %Herrn
         subst Herrn
-        wp_auto
+        wp_pures; iclear err
         iapply HΦ $$ %interface.nil %s
         iframe Hphys
         ipureintro
@@ -308,6 +324,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         · isplitl []
           · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
           · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+        wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures
         unfold CandidateStepResult at Hres
         rw [ite_pos Hty, ite_pos Hrole] at Hres
         obtain ⟨rfl, Heq⟩ := Hres
@@ -315,7 +332,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         simp only [Bool.false_eq_true, ↓reduceIte]
         icases Herrn with %Herrn
         subst Herrn
-        wp_auto
+        wp_pures; iclear err
         iapply HΦ $$ %interface.nil %s
         iframe Hphys
         ipureintro

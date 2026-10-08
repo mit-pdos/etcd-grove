@@ -24,8 +24,11 @@ theorem readOnly.AckedIndex.wp_proof : readOnly.AckedIndex.spec (GF := GF) (hG :
   iunfold ownReadOnly at Hown
   icases Hown with ⟨%rov, %ptrs, Hown⟩
   iNamed Hown
-  wp_auto
+  wp_alloc ro_ptr as ro; wp_pures; wp_alloc voterID_ptr as voterID; wp_pures; wp_load; wp_load
+  wp_pures; wp_load; iclear ro voterID
   wp_apply wp_map_lookup2 $$ Hacks as Hacks
+  wp_pures; wp_alloc found_ptr as found; wp_pures; wp_alloc idx_ptr as idx; wp_pures; wp_store
+  wp_pures; wp_store; wp_pures; wp_load; wp_load; wp_pures; iclear idx found
   simp only [Bool.decide_eq_true, show zero_val w64 = W64 0 from rfl]
   iapply HΦ
   unfold ownReadOnly

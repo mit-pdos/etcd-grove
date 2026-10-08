@@ -24,8 +24,11 @@ theorem tracker.Progress.ResetState.wp_proof
   intro pr p st
   wp_start as Hpr
   iNamed Hpr
-  wp_auto
+  wp_alloc pr_ptr as pr; wp_pures; wp_alloc state_ptr as state; wp_pures; wp_load; wp_pures
+  wp_store; wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+  wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear pr state
   wp_apply wp_Inflights_reset $$ [$Hinfl] as Hinfl
+  wp_pures
   iapply HΦ
   iapply ownProgress_intro pr _ (progressResetState p st) $$ Hpv [Hinfl]
   · dsimp only [progressResetState]

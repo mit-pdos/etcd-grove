@@ -25,15 +25,19 @@ theorem readOnly.addRequest.wp_proof : readOnly.addRequest.spec (GF := GF) (hG :
   iNamed Hown
   unfold ownReadOnly
   iNamed Hown
-  wp_auto
+  wp_alloc ro_ptr as ro; wp_pures; wp_alloc req_ptr as req; wp_pures
+  wp_alloc commitIndex_ptr as commitIndex; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures; wp_load; wp_pures; wp_alloc «$sl0_ptr» as «$sl0»; wp_pures; iclear req commitIndex
   ipersist «$sl0»
   wp_apply wp_slice_literal (V := Loc) [«$sl0_ptr»]
+  wp_pures
   isplitr
   · ipureintro; rfl
   iintro %sl ⟨Hsl, -⟩
-  wp_auto
+  wp_pures
   wp_apply wp_slice_append_persistent (V := Loc) _ _ _ _ _ $$ [$Hucr_cap $Hucr $Hsl]
     as %s' ⟨Hs', Hcap', -⟩
+  wp_pures; wp_load; wp_pures; wp_store; wp_pures; iclear ro
   iapply HΦ
   iexists { rov with unconfirmedReads' := s' }, ptrs ++ [«$sl0_ptr»]
   simp only [readonlyAdd, named]

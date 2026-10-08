@@ -44,11 +44,12 @@ theorem raftLog.nextCommittedEnts.wp_proof
   unfold ownRaftLogCore
   icases Hcore with ⟨%sprev, %stored, %ss, Hcore⟩
   iNamed Hcore
-  wp_auto
+  wp_alloc ents_ptr as ents; wp_pures; wp_alloc l_ptr as l; wp_pures
+  wp_alloc allowUnstable_ptr as allowUnstable; wp_pures; wp_load; wp_pures; wp_load
   cases Hpz : lv.applyingEntsPaused'
   case true =>
     -- paused: nothing
-    wp_auto
+    wp_pures; iclear ents l allowUnstable
     iapply HΦ
     isplitl [Hl HStorage Huents Huents_cap]
     · reseal_raftLog
@@ -62,7 +63,7 @@ theorem raftLog.nextCommittedEnts.wp_proof
   clear Hcm Hap Hapg Hip Hasz Hamx Hidx Hnowrap Hstore Hoffset HnoConfChange Happlied
     Hpapplied Hcommitted Hssnap Hipb Hpersist Happlying Hpaused
   iclear HisStorage Husnap Hl_logger Hu_logger
-  wp_auto
+  wp_pures; wp_load; wp_pures
   wp_apply wp_raftLog_hasNextOrInProgressSnapshot l _ $$ [Hlog] as %b ⟨Hlog, %Hb⟩
   · iexact Hlog
   simp only at Hb
@@ -71,7 +72,7 @@ theorem raftLog.nextCommittedEnts.wp_proof
     -- a pending snapshot: nothing
     rw [decide_eq_true (by simp)] at Hb
     subst b
-    wp_auto
+    wp_pures; iclear ents l allowUnstable
     iapply HΦ
     iframe Hlog
     isplitr; · iapply ownSlice_nil
@@ -80,14 +81,14 @@ theorem raftLog.nextCommittedEnts.wp_proof
   | none =>
     rw [decide_eq_false (by simp)] at Hb
     subst b
-    wp_auto
+    wp_pures; wp_load; wp_pures
     -- `lo := l.applying + 1`
     icases (ownRaftLog_unfold l prev sents uents lcm lap none lip lapg lpend lasz lamx).1 $$ Hlog
       with ⟨%lv, Hl, %Hcm, %Hap, %Hapg, %Hip, %Hasz, %Hamx, Hcore⟩
     unfold ownRaftLogCore
     icases Hcore with ⟨%sprev, %stored, %ss, Hcore⟩
     iNamed Hcore
-    wp_auto
+    wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear allowUnstable
     rw [Hapg]
     ihave Hlog : ownRaftLog l ⟨prev, sents, uents, lcm, lap, none, lip, lapg, lpend, lasz, lamx⟩
       $$ [Hl HStorage Huents Huents_cap]
@@ -97,6 +98,8 @@ theorem raftLog.nextCommittedEnts.wp_proof
     iclear HisStorage Husnap Hl_logger Hu_logger
     wp_apply wp_raftLog_maxAppliableIndex l _ au $$ [Hlog] as %hi0 ⟨Hlog, %Hhi0⟩
     · iexact Hlog
+    wp_pures; wp_alloc hi_ptr as hi; wp_pures; wp_alloc lo_ptr as lo; wp_pures; wp_store; wp_pures
+    wp_store; wp_pures; wp_load; wp_load; wp_pures
     simp only at Hhi0
     have Hhi0' : uint.Z hi0 ≤ uint.Z lcm := by cases au <;> simp at Hhi0 <;> omega
     wp_if_destruct
@@ -106,15 +109,19 @@ theorem raftLog.nextCommittedEnts.wp_proof
       isplitr; · iapply ownSlice_nil
       isplitr; · iapply ownSliceCap_nil
       ipureintro; exact ⟨List.nil_prefix, fun H => absurd rfl H⟩
+    wp_load; wp_pures
     -- `maxSize := l.maxApplyingEntsSize - l.applyingEntsSize`: positive
     icases (ownRaftLog_unfold l prev sents uents lcm lap none lip lapg lpend lasz lamx).1 $$ Hlog
       with ⟨%lv, Hl, %Hcm, %Hap, %Hapg, %Hip, %Hasz, %Hamx, Hcore⟩
     unfold ownRaftLogCore
     icases Hcore with ⟨%sprev, %stored, %ss, Hcore⟩
     iNamed Hcore
-    wp_auto
+    wp_load; wp_load; wp_pures; wp_load; wp_pures; wp_alloc maxSize_ptr as maxSize; wp_pures
+    wp_store; wp_pures; wp_load; wp_pures
     wp_if_destruct
-    · exfalso; subst lasz lamx; word
+    · wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+    wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear lo hi maxSize
+      exfalso; subst lasz lamx; word
     ihave Hlog : ownRaftLog l ⟨prev, sents, uents, lcm, lap, none, lip, lapg, lpend, lasz, lamx⟩
       $$ [Hl HStorage Huents Huents_cap]
     · reseal_raftLog
@@ -129,6 +136,8 @@ theorem raftLog.nextCommittedEnts.wp_proof
       specialize Hcb4 rfl
       refine ⟨?_, ?_, ?_⟩ <;> word
     · iexact Hlog
+    wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_store; wp_pures; wp_load
+    wp_pures; wp_load; wp_pures; iclear l ents err
     obtain ⟨-, Hlen, -, Hpre⟩ := Hes
     iapply HΦ
     iframe Hlog Hs Hcap

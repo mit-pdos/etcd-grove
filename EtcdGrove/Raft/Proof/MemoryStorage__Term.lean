@@ -26,11 +26,14 @@ theorem MemoryStorage.Term.wp_proof :
   icases Hms with ⟨%γ, Hms⟩
   iNamed Hms
   wp_apply wp_with_defer as %defer defer
+  wp_pures; wp_alloc ms_ptr as ms; wp_pures; wp_alloc i_ptr as i; wp_pures; wp_load; wp_pures
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_method_call
   wp_call
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures
   iunfold memstorageInv at Hinv
   icases Hinv with ⟨%prev0, %ents0, %ss0, Hinv⟩
   iNamedSuffix Hinv "_inv"
@@ -40,7 +43,7 @@ theorem MemoryStorage.Term.wp_proof :
   icombine Hgs Hgs_inv gives % ⟨_, Heq⟩
   simp only [Prod.mk.injEq] at Heq
   obtain ⟨⟨rfl, rfl⟩, rfl⟩ := Heq
-  wp_auto
+  wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures
   icases Hents with #Hents
   ihave %Hlen := ownSlice_len $$ Hents
   icases ownSlice_elem_acc 0 dummy es _ (dummy :: ents) (by omega) rfl $$ Hents with ⟨#He, -⟩
@@ -53,12 +56,15 @@ theorem MemoryStorage.Term.wp_proof :
   -- Lean: field loads through a struct points-to at a fraction other than `1` are
   -- not found by `wp_load` (see `pbEntryID`); split the entry into its fields
   iStructNamedSuffix He "_0"
-  wp_auto
+  wp_pures; wp_load; wp_pures; wp_alloc offset_ptr as offset; wp_pures; wp_store; wp_pures; wp_load
+  wp_load; wp_pures
   obtain ⟨Hd0, Hd1⟩ := Hdummy
   wp_if_destruct
   · exfalso; rw [Hd0] at Hif; word
+  wp_load; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
   wp_if_destruct
   · exfalso; rw [Hd0] at Hif; word
+  wp_load; wp_pures; wp_load; wp_load; wp_load; wp_pures; iclear ms i offset
   have Hn : sint.Z (i0 - dummy.Index') = uint.Z i0 - uint.Z prev.index' := by
     rw [Hd0]; word
   rw [Hn]
@@ -73,7 +79,7 @@ theorem MemoryStorage.Term.wp_proof :
     constructor <;> word
   simp only [H1, and_self, ↓reduceIte]
   iStructNamedSuffix He1 "_1"
-  wp_auto
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures
   have Hterm : termAt prev ents i0 = some e.Term' := by
     unfold termAt
     by_cases Hi : uint.Z i0 = uint.Z prev.index'
@@ -100,6 +106,7 @@ theorem MemoryStorage.Term.wp_proof :
     iexists hs, snap, es, dummy, _, voters
     iframe # ∗
     ipureintro; exact ⟨Hsnap_id, Hd0, Hd1⟩
+  wp_pures
   iapply HΦ
   isplitr
   · ipureintro; exact Hterm

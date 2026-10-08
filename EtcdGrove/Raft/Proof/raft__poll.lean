@@ -36,16 +36,24 @@ theorem raft.poll.wp_proof
     raft.poll.spec (GF := GF) (hG := hG) := by
   intro cfg r id s src t v Hcfg_ne
   wp_start as Hphys
-  wp_auto
-  cases v <;> wp_auto
+  wp_alloc result_ptr as result; wp_pures; wp_alloc rejected_ptr as rejected; wp_pures
+  wp_alloc granted_ptr as granted; wp_pures; wp_alloc r_ptr as r; wp_pures; wp_alloc v_ptr as v
+  wp_pures; wp_alloc t_ptr as t; wp_pures; wp_alloc id_ptr as id; wp_pures; wp_load
+  iclear result rejected granted
+  cases v <;> (wp_pures; wp_load; wp_pures)
   all_goals
     wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear t
     wp_apply raft.wp_load_Term $$ Hphys as Hphys
+    wp_pures
+    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear v id | ∅ | wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear v id | ∅
     wp_raft_log
     icases ownRaftPhys_tracker cfg r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
     wp_apply wp_ProgressTracker_RecordVote $$ [$Htrkf $Htrk] as ⟨Htrkf, Htrk⟩
+    wp_pures; wp_load; wp_pures; iclear r
     wp_apply wp_ProgressTracker_TallyVotes _ _ _ _ Hcfg_ne $$ [$Htrkf $Htrk]
       as %g %rj %res ⟨Htrkf, Htrk, %Hres, %Hwon, %Hlost⟩
+    wp_pures
     ihave Hphys := Hback $$ %tv %(recordVote s.votes src _) Htrkf Htrk
     iapply HΦ
     dsimp only

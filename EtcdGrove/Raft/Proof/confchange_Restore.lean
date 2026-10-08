@@ -46,9 +46,13 @@ theorem confchange.Restore.wp_proof
     confchange.Restore.spec (GF := GF) (hG := hG) := by
   intro chg cs voters dq v0 Hvne Hv0n Hcvo Hcl Hcln Hmi Harr Hl Hln
   wp_start as ⟨Hvs, Hv0, #Hpm⟩
-  wp_auto
+  wp_alloc cs_ptr as cs; wp_pures; wp_alloc chg_ptr as chg; wp_pures; wp_load; wp_pures
   wp_apply wp_confchange_toConfChangeSingle _ voters _ Hcvo Hcl Hcln $$ [$Hvs]
     as %ins ⟨Hvs, Hins, Hinscap⟩
+  wp_pures; wp_alloc incoming_ptr as incoming; wp_pures; wp_alloc outgoing_ptr as outgoing; wp_pures
+  wp_store; wp_pures; wp_store; wp_pures; wp_alloc ops_ptr as ops; wp_pures; wp_load; wp_pures
+  wp_load; wp_pures; wp_alloc cc_ptr as cc; wp_pures; wp_alloc i_ptr as i; wp_pures
+  iclear cs outgoing incoming
   ihave %Hvlen := ownSlice_len $$ Hvs
   ihave %Hinslen := ownSlice_len $$ Hins
   ihave Hnil : (slice.nil ↦* ([] : List GoFunc)) $$ []
@@ -76,25 +80,34 @@ theorem confchange.Restore.wp_proof
     imodintro
     iintro %j %f %Hjf
     simp at Hjf
-  wp_for IH
+  wp_for_core
+  iNamed IH
+  wp_pures; wp_load; wp_pures
+  cleanup_bool_decide
   wp_if_destruct
-  · have Hlt : sint.nat n < voters.length := by
+  · wp_load; wp_pures
+    have Hlt : sint.nat n < voters.length := by
       have := Hinslen.1; rw [List.length_map] at this; word
     obtain ⟨idn, Hidn⟩ : ∃ x, voters[sint.nat n]? = some x := ⟨_, List.getElem?_eq_getElem Hlt⟩
     have Hbnd' : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z ins.len := ⟨Hn.1, Hif⟩
     simp only [Hbnd', _root_.and_self]
     wp_apply wp_load_slice_index ins (sint.Z n) _ _ (addNodeCC idn) Hn.1 $$ [Hins] with Hins
     · iframe Hins; ipureintro; rw [List.getElem?_map, Hidn]; rfl
+    wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_alloc cc_ptr as cc; wp_pures
+    wp_store; wp_pures; wp_load; wp_pures
     -- the closure captures its loop-local copy `cc`, read-only from here on
     ipersist cc
     -- `ops = append(ops, func(chg Changer) {...})`
     wp_func_lits
     wp_apply wp_slice_literal (V := GoFunc) [_]
+    wp_pures
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
     wp_apply wp_slice_append $$ [$Hops $Hopscap $Hsl] as %ops2 ⟨Hops, Hopscap, -⟩
+    wp_pures; wp_store; wp_pures
     wp_for_post
+    wp_load; wp_pures; wp_store
     iframe HΦ Hv0 chg Hvs Hins Hinscap
     iexists n + W64 1, ops2, _, addNodeCC idn
     simp only [named]
@@ -123,8 +136,9 @@ theorem confchange.Restore.wp_proof
     unfold opSpec
     iintro %cfg %prs
     wp_start_folded as HI
-    wp_auto
+    wp_pures; wp_alloc chg_ptr as chg; wp_pures; wp_load; wp_pures
     wp_apply wp_slice_literal (V := raftpb.ConfChangeSingle) [addNodeCC idn]
+    wp_pures
     isplitr
     · ipureintro; rfl
     iintro %sl2 ⟨Hsl2, -⟩
@@ -139,6 +153,7 @@ theorem confchange.Restore.wp_proof
         (by rw [GMap.map_size_empty]; decide) Hcv rfl Hmi $$ [$chg $Hsl2 $Hv0 $Hpm]
         as %cfg' %trk %v' %prs'' ⟨chg, Hsl2, Hv0, -, %Hcs', Hv', Htrk, %Hd', Hprogs'⟩
       · iapply BigSepM.bigSepM_empty.2; iempintro
+      wp_pures; iclear chg
       iapply HΦ
       iframe Hv0
       iright
@@ -163,6 +178,7 @@ theorem confchange.Restore.wp_proof
         _ idn v vm prs' _ _ _ _ Hidn0 Hsz Hcs.1 Hd.1 Hmi
         $$ [$chg $Hsl2 $Hv $Hprs $Hprogs]
         as %cfg' %trk %v' %prs'' ⟨chg, Hsl2, -, -, %Hcs', Hv', Htrk, %Hd', Hprogs'⟩
+      wp_pures; iclear chg
       iapply HΦ
       iframe Hv0
       iright
@@ -178,7 +194,8 @@ theorem confchange.Restore.wp_proof
       · rcases h : vm !! idn with _ | ⟨⟩
         · rw [GMap.map_size_insert_None _ _ _ h]; omega
         · rw [GMap.insert_id _ _ _ h]; omega
-  · -- the loop is over: `chain(chg, ops...)`
+  · wp_load; wp_pures; wp_load; wp_pures; iclear chg i ops Hcc
+    -- the loop is over: `chain(chg, ops...)`
     have Hn' : sint.nat n = voters.length := by
       have := Hinslen.1; rw [List.length_map] at this; word
     ihave HI0 : restoreInv chg v0 voters 0 chg.Tracker'.Config' chg.Tracker'.Progress' $$ [Hv0]
@@ -188,6 +205,7 @@ theorem confchange.Restore.wp_proof
       ipureintro; exact ⟨rfl, rfl, rfl⟩
     wp_apply wp_confchange_chain chg ops' fs _ (restoreInv chg v0 voters) $$ [$Hops $HI0 $Hfs]
       as %cfg %prs ⟨Hops, HI⟩
+    wp_pures
     unfold restoreInv
     icases HI with ⟨Hv0, (⟨%Hj0, -, -⟩ | ⟨%v, %vm, %prs', %Hpos, %Hcs, Hv, Hprs, %Hd, Hprogs⟩)⟩
     · exfalso

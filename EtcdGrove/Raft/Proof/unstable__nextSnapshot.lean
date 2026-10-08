@@ -23,13 +23,14 @@ theorem unstable.nextSnapshot.wp_proof : unstable.nextSnapshot.spec (GF := GF) (
   iNamed H
   iunfold ownUnstable at Hun
   iNamed Hun
-  wp_auto
+  wp_alloc u_ptr as u; wp_pures; wp_load; wp_pures; wp_load; wp_pures
   cases snap with
   | some sid =>
     icases (ownSnap_Some _ _).1 $$ Hsnap with ⟨%sv, #Hsv, -⟩
     ihave %Hnn := typedPointsto_not_null $$ Hsv
     simp only [Hnn, _root_.decide_false]
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_load
+    -- TODO(no-wp-auto): wp_auto (several runs): wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear u | wp_pures; iclear u
     rcases Hsip : uv.snapshotInProgress' <;> wp_auto <;>
     · iapply HΦ
       unfold ownUnstable
@@ -40,7 +41,7 @@ theorem unstable.nextSnapshot.wp_proof : unstable.nextSnapshot.spec (GF := GF) (
   | none =>
     icases (ownSnap_None _).1 $$ Hsnap with %Hn
     simp only [Hn, _root_.decide_true]
-    wp_auto
+    wp_pures; iclear u
     iapply HΦ
     unfold ownUnstable
     iframe

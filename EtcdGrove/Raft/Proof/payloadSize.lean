@@ -18,7 +18,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem payloadSize.wp_proof : payloadSize.spec (GF := GF) (hG := hG) := by
   intro e
   wp_start as _
-  wp_auto
+  wp_alloc e_ptr as e; wp_pures; wp_load; wp_pures; iclear e
   iapply HΦ
   itrivial
 

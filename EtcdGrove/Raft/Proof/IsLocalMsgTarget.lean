@@ -20,13 +20,14 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem IsLocalMsgTarget.wp_proof : IsLocalMsgTarget.spec (GF := GF) (hG := hG) := by
   intro id
   wp_start as -
-  wp_auto
+  wp_alloc id_ptr as id; wp_pures; wp_load; wp_pures
   wp_if_destruct
   · ispecialize HΦ $$ []
     · itrivial
     iExactEq HΦ
     congr 2 <;> simp_all
-  · ispecialize HΦ $$ []
+  · wp_load; wp_pures; iclear id
+    ispecialize HΦ $$ []
     · itrivial
     iExactEq HΦ
     congr 2 <;> simp_all

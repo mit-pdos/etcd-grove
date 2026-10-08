@@ -20,10 +20,11 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem newReadOnly.wp_proof : newReadOnly.spec (GF := GF) (hG := hG) := by
   intro o
   wp_start
-  wp_auto
+  wp_alloc option_ptr as option; wp_pures; wp_load; wp_pures; iclear option
   wp_apply wp_map_make1 as %mref Hmref
+  wp_pures
   wp_alloc ro' as Hro'
-  wp_auto
+  wp_pures
   iapply HΦ
   unfold ownReadOnly
   iexists _, []

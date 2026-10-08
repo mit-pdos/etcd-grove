@@ -112,50 +112,63 @@ theorem wp_Step_MsgPreVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   have Hn5 : decide (m.Type' = W32 5) = false := decide_eq_false (by rw [Hty]; w32_ne)
   have Hy17 : decide (m.Type' = W32 17) = true := decide_eq_true Hty
   wp_start as ⟨Hphys, #Hctx⟩
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_alloc m_ptr as m; wp_pures; wp_load; wp_pures
   wp_apply _P.traceReceiveMessage
+  wp_pures; wp_load; wp_pures
   -- `m.Term ≠ 0`, so the first arm of the term preamble is skipped
   rw [decide_eq_false Hterm]
-  wp_auto
+  wp_pures; wp_load; wp_load; wp_pures
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_pures
   rw [decide_eq_true Hgt0]
-  wp_auto
+  wp_pures; wp_load; wp_pures
   -- `MsgVote || MsgPreVote`: the lease check
-  try (rw [Hn5]; wp_auto)
+  try (rw [Hn5]; (wp_pures; wp_load; wp_pures))
   rw [Hy17]
-  wp_auto
+  wp_pures; wp_load; wp_pures
   -- `force` is false (not a leader transfer) and `inLease` is false (no check-quorum),
   -- so the lease check does not drop the message
   icases Hctx with ⟨%ctx, Hctx_sl, %Hctx_ne⟩
   wp_apply wp_string_to_bytes as %ct_sl ⟨ct_sl, -⟩
+  wp_pures
   wp_apply bytes.wp_Equal _ _ DFrac.discard (DFrac.own 1) ctx (go!"CampaignTransfer")
       $$ [$Hctx_sl $ct_sl] as ⟨-, -⟩
+  wp_pures; wp_alloc force_ptr as force; wp_pures; wp_store; wp_pures; wp_load; wp_pures
   wp_apply raft.wp_load_checkQuorum $$ Hphys as Hphys
+  wp_pures; wp_alloc inLease_ptr as inLease; wp_pures; wp_store; wp_pures; wp_load; wp_pures
+  iclear force
   have Hctx_ne' : ctx ≠ go!"CampaignTransfer" := Hctx_ne
   rw [decide_eq_false Hctx_ne']
-  try wp_auto
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear inLease
   -- the step-down switch: `MsgPreVote`, so nothing
   rw [Hy17]
-  wp_auto
+  wp_pures; wp_load; wp_pures
   -- the type switch: not `MsgHup` / `MsgStorageAppendResp` / `MsgStorageApplyResp`,
   -- but `MsgPreVote`
   rw [Hty]
-  wp_auto
+  wp_pures; wp_load; wp_pures
   -- `canVote`: true by its third disjunct, whichever way the first two go; the
   -- evaluation is joined
+  -- TODO(no-wp-auto): wp_join runs (cont first, then the cases): wp_pures; wp_alloc canVote_ptr as canVote; wp_pures
   wp_join (Q := fun v => iprop(⌜v = #true⌝ ∗ ownRaftPhys cfg r id s ∗
       r_ptr ↦ r ∗ m_ptr ↦ m)) at (if: _ then _ else _) with [Hphys r m]
     as ⟨%Hv, Hphys, r, m⟩
+  -- TODO(no-wp-auto): macro `cv_step)` runs wp_auto: ∅ | wp_pures; wp_load; wp_pures | ∅ | ∅ | wp_load; wp_pures | ∅ | ∅ | wp_pures | ∅ | ∅ | wp_load; wp_pures | wp_load; wp_pures | ∅ | ∅ | wp_pures | ∅ | wp_load; wp_load; wp_pures | ∅ | ∅ | ∅ | ∅ | wp_load; wp_pures | ∅ | wp_pures | ∅ | ∅ | ∅ | ∅ | wp_load; wp_load; wp_pures | ∅ | ∅ | ∅ | ∅ | ∅ | ∅ | ∅ | ∅ | wp_pures | ∅ | ∅ | ∅ | ∅ | ∅ | ∅ | ∅ | ∅ | ∅ | ∅ | ∅ | ∅ | ∅ | ∅ | ∅ | ∅ | ∅ | ∅ | ∅ | ∅ | ∅
   · repeat (any_goals cv_step)
     all_goals first | wp_join_done | (exfalso; omega) | (exfalso; exact Hif Hty)
   subst Hv
-  wp_auto
+  wp_store; wp_pures; wp_load; wp_pures
   -- `lastEntryID`, then `isUpToDate`
   wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+  wp_pures
   icases ownRaftPhys_log_same cfg r id _ $$ Hphys with ⟨Hlog, Hback⟩
   wp_apply _P.lastEntryID $$ [$Hlog] as %lastID ⟨Hlog, -⟩
+  wp_pures; wp_alloc lastID_ptr as lastID; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures; wp_alloc candLastID_ptr as candLastID; wp_pures; wp_store; wp_pures; wp_load; wp_pures
+  wp_load; wp_pures; wp_load; wp_pures; iclear canVote
   ihave Hphys := Hback $$ Hlog
   wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+  wp_pures
   icases ownRaftPhys_log_same cfg r id _ $$ Hphys with ⟨Hlog, Hback⟩
   wp_apply _P.isUpToDate $$ [$Hlog] as %uptodate ⟨Hlog, %Hutd⟩
   ihave Hphys := Hback $$ Hlog
@@ -165,10 +178,12 @@ theorem wp_Step_MsgPreVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       have := Hutd0 H0
       rw [← Hutd] at this
       exact Bool.false_ne_true this
-    wp_auto
+    wp_pures; wp_load; wp_pures
+    -- TODO(no-wp-auto): macro `prevote_resp_tail` runs wp_auto: wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear lastID | wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear candLastID | wp_pures | wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures | ∅ | wp_pures; wp_load; wp_pures; iclear m | wp_pures; wp_load; wp_pures; iclear r | ∅ | wp_pures
     prevote_resp_tail
   -- up to date: grant at `m.Term`, recording nothing
-  wp_auto
+  wp_pures; wp_load; wp_pures
+  -- TODO(no-wp-auto): macro `prevote_resp_tail` runs wp_auto: wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear lastID | wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear candLastID | wp_pures | wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures | ∅ | wp_pures; wp_load; wp_pures | ∅ | wp_pures; wp_load; wp_pures | wp_pures; iclear r m
   prevote_resp_tail
 
 end StepProof

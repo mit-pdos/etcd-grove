@@ -20,7 +20,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem needStorageApplyMsg.wp_proof : needStorageApplyMsg.spec (GF := GF) (hG := hG) := by
   intro rd
   wp_start as -
-  wp_auto
+  wp_alloc rd_ptr as rd; wp_pures; wp_load; wp_pures; iclear rd
   ispecialize HΦ $$ []
   · itrivial
   iExactEq HΦ

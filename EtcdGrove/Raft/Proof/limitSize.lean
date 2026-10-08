@@ -41,11 +41,12 @@ theorem limitSize.wp_proof
   intro s es dq maxSize
   wp_start as H
   iNamed H
-  wp_auto
+  wp_alloc maxSize_ptr as maxSize; wp_pures; wp_alloc ents_ptr as ents; wp_pures; wp_load; wp_pures
   ihave %Hlen := ownSlice_len _ _ _ $$ Hs
   ihave %Hwf := ownSlice_wf _ _ _ $$ Hs
   wp_if_destruct
-  · have Hnil : es = [] := List.eq_nil_of_length_eq_zero (by rw [Hlen.1]; word)
+  · wp_load; wp_pures; iclear maxSize ents
+    have Hnil : es = [] := List.eq_nil_of_length_eq_zero (by rw [Hlen.1]; word)
     subst Hnil
     iapply HΦ $$ %s %0
     simp only [List.take_zero]
@@ -53,14 +54,17 @@ theorem limitSize.wp_proof
     isplitr
     · ipureintro; exact ⟨by simp, fun h => absurd rfl h⟩
     · iintro H; iexact H
+  wp_load; wp_pures
   have Hne : 0 < es.length := by rw [Hlen.1]; word
   obtain ⟨e0, He0⟩ : ∃ e0, es[0]? = some e0 :=
     ⟨es[0], List.getElem?_eq_getElem Hne⟩
   rw [ite_eq_left ⟨by word, by word⟩]
   icases ownSlice_elem_acc (sint.Z (W64 0)) e0 s dq es (by word) (by simpa using He0) $$ Hs
     with ⟨He, Hsback⟩
-  wp_auto
+  wp_pures
   wp_apply wp_Entry_Size $$ [$He] as %sz0 He
+  wp_pures; wp_alloc size_ptr as size; wp_pures; wp_store; wp_pures; wp_alloc limit_ptr as limit
+  wp_pures; wp_store; wp_pures
   ihave Hs := Hsback $$ He
   rw [show (sint.Z (W64 0)).toNat = 0 from rfl, list_set_id es 0 e0 He0]
   ihave IH : (∃ (lim sz : w64),
@@ -70,20 +74,27 @@ theorem limitSize.wp_proof
   · iexists _, _
     iframe limit size
     ipureintro; word
-  wp_for IH
+  wp_for_core
+  iNamed IH
+  wp_pures; wp_load; wp_load; wp_pures
+  cleanup_bool_decide
   wp_if_destruct
-  · obtain ⟨e, He⟩ : ∃ e, es[(sint.Z lim).toNat]? = some e :=
+  · wp_load; wp_load; wp_load; wp_pures
+    obtain ⟨e, He⟩ : ∃ e, es[(sint.Z lim).toNat]? = some e :=
       ⟨es[(sint.Z lim).toNat]'(by word), List.getElem?_eq_getElem _⟩
     rw [ite_eq_left ⟨by word, by word⟩]
     icases ownSlice_elem_acc (sint.Z lim) e s dq es (by word) He $$ Hs with ⟨He, Hsback⟩
-    wp_auto
+    wp_pures
     wp_apply wp_Entry_Size $$ [$He] as %szi He
+    wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures
     ihave Hs := Hsback $$ He
     rw [list_set_id es _ e He]
     wp_if_destruct
-    · rw [ite_eq_left ⟨by word, by word, by word⟩]
-      wp_auto
+    · wp_load; wp_pures; wp_load; wp_pures
+      rw [ite_eq_left ⟨by word, by word, by word⟩]
+      wp_pures
       wp_for_post
+      wp_pures; iclear maxSize ents limit size
       icases (ownSlice_split_all lim s dq es ⟨by word, by word⟩).1 $$ Hs with ⟨Hs1, Hs2⟩
       iapply HΦ $$ %(slice.slice s raftpb.Entry (W64 0) lim) %(sint.nat lim)
       iframe Hs1
@@ -95,11 +106,13 @@ theorem limitSize.wp_proof
       rw [List.take_append_drop]
       iapply ownSlice_trivial_slice_2 $$ Hs
     · wp_for_post
+      wp_load; wp_pures; wp_store; wp_pures
       iframe
       iexists _, _
       iframe
       ipureintro; word
-  · iapply HΦ $$ %s %es.length
+  · wp_load; wp_pures; iclear maxSize ents limit size
+    iapply HΦ $$ %s %es.length
     rw [List.take_length]
     iframe Hs
     isplitr

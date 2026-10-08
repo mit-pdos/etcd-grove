@@ -41,9 +41,11 @@ theorem raftLog.lastEntryID.wp_proof
   intro l ls
   obtain ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ := ls
   wp_start as Hlog
-  wp_auto
+  wp_alloc l_ptr as l; wp_pures; wp_load; wp_pures
   wp_apply wp_raftLog_lastIndex _ ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ $$ [$Hlog]
     as %li ⟨Hlog, %Hli⟩
+  wp_pures; wp_alloc index_ptr as index; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures
   have Hb : uint.Z prev.index' ≤ uint.Z li ∧
       uint.Z li ≤ uint.Z prev.index' + (sents.length : Int) + (uents.length : Int) := by
     simp only at Hli; omega
@@ -52,10 +54,12 @@ theorem raftLog.lastEntryID.wp_proof
   -- `nil` -- which is what makes the `Panicf` on the next line unreachable.
   wp_apply wp_raftLog_term _ ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ li $$ [$Hlog]
     as %t %err ⟨Hlog, %Herr, %Ht, -⟩
+  wp_pures; wp_alloc err_ptr as err; wp_pures; wp_alloc t_ptr as t; wp_pures; wp_store; wp_pures
+  wp_store; wp_pures; wp_load; wp_pures
   have Herr' := Herr.2 Hb
   subst Herr'
   have Ht' := Ht rfl
-  wp_auto
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear l index t err
   ihave ⟨%Hwf, Hlog⟩ := ownRaftLog_wf $$ Hlog
   iapply HΦ $$ %(entryID.mk t li)
   iframe Hlog

@@ -19,12 +19,14 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem tracker.NewInflights.wp_proof : tracker.NewInflights.spec (GF := GF) (hG := hG) := by
   intro size maxBytes Hsz
   wp_start as _
-  wp_auto
+  wp_alloc maxBytes_ptr as maxBytes; wp_pures; wp_alloc size_ptr as size; wp_pures; wp_load
+  wp_pures; wp_load; wp_pures; iclear maxBytes size
   -- `wp_auto` does not step a `GoAlloc` sitting in `return:` position -- the goal is
   -- still `WP exceptionDo (return: GoAlloc tracker.Inflights #{…})`. Allocate
   -- explicitly. The literal leaves `buffer' := slice.nil`, so the buffer is the empty
   -- slice.
   wp_apply wp_alloc as %l Hl
+  wp_pures
   iapply HΦ
   have Habs : inflightsNew size maxBytes =
       inflightsAbs

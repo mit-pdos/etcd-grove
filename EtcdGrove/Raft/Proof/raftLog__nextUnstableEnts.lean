@@ -28,12 +28,13 @@ theorem raftLog.nextUnstableEnts.wp_proof
   unfold ownRaftLogCore
   icases Hcore with ⟨%sprev, %stored, %ss, Hcore⟩
   iNamed Hcore
-  wp_auto
+  wp_alloc l_ptr as l; wp_pures; wp_load; wp_pures; iclear l
   split_unstable l lv
   wp_apply wp_unstable_nextEntries _ _ _ Hipb $$ [Huf Huents Huents_cap] as %s ⟨Hun, #Hs⟩
   · unfold ownUnstable
     simp only [named]
     iframe # ∗
+  wp_pures
   unfold ownUnstable
   icases Hun with ⟨Huf, Huents_cap, Huents⟩
   ihave Hl := Hlback $$ Huf

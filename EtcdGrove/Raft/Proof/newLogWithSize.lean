@@ -26,11 +26,18 @@ theorem newLogWithSize.wp_proof : newLogWithSize.spec (GF := GF) (hG := hG) := b
   iNamed Hsto
   subst Hstok
   icases Hbounded $$ HStorage with ⟨%Hbnd, HStorage⟩
-  wp_auto
+  wp_alloc maxApplyingEntsSize_ptr as maxApplyingEntsSize; wp_pures; wp_alloc logger_ptr as logger
+  wp_pures; wp_alloc storage_ptr as storage; wp_pures; wp_load; wp_pures
   wp_apply HFirstIndex $$ HStorage as %fi ⟨%Hfi, HStorage⟩
+  wp_pures; wp_alloc err_ptr as err; wp_pures; wp_alloc firstIndex_ptr as firstIndex; wp_pures
+  wp_store; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures
   wp_apply HLastIndex $$ HStorage as %li ⟨%Hli, HStorage⟩
+  wp_pures; wp_alloc lastIndex_ptr as lastIndex; wp_pures; wp_store; wp_pures; wp_store; wp_pures
+  wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+  wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+  iclear maxApplyingEntsSize logger storage firstIndex lastIndex err
   wp_alloc l as Hl
-  wp_auto
+  wp_pures
   iapply HΦ
   iframe Hl
   isplitr

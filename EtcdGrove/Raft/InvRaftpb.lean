@@ -91,12 +91,13 @@ theorem wp_slice_append_nil_empty (s : GoSlice) (hlen : s.len = W64 0) :
   wp_start as Hpre
   iclear Hpre
   wp_apply wp_sumAssumeNoOverflowSigned with %Hoverflow
+  wp_pures
   wp_if_destruct
   · rw [hlen]
     have h00 : (0 : w64) + W64 0 = W64 0 := by decide
     simp only [h00]
     rw [ite_eq_left ⟨by decide, by decide, by decide⟩]
-    wp_auto
+    wp_pures
     have Hsn : slice.slice slice.nil w64 (W64 0) (W64 0) = slice.nil := by
       simp only [slice.slice, sliceIndexRef]
       rw [show sint.Z (W64 0) = 0 from rfl, go.arrayIndexRef_0]
@@ -105,10 +106,13 @@ theorem wp_slice_append_nil_empty (s : GoSlice) (hlen : s.len = W64 0) :
     -- `copy` into the empty slice: its loop runs zero times
     wp_func_call
     wp_call
-    wp_auto
+    wp_alloc i_ptr as i; wp_pures
     have Hsn' : slice.slice slice.nil w64 0 (W64 0) = slice.nil := Hsn
     rw [Hsn']
-    wp_for
+    wp_for_core
+    wp_pures; wp_load; wp_pures
+    cleanup_bool_decide
+    wp_pures; wp_load; wp_pures; iclear i
     wp_end
   · exfalso; rw [hlen] at Hif; exact Hif (by decide)
 

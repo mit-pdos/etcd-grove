@@ -48,9 +48,11 @@ theorem tracker.Progress.MaybeDecrTo.wp_proof :
   iNamed H
   iNamed Hpr
   obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩ := (progressAbs_Some _ _ _).1 Habs
-  wp_auto
+  wp_alloc pr_ptr as pr; wp_pures; wp_alloc matchHint_ptr as matchHint; wp_pures
+  wp_alloc rejected_ptr as rejected; wp_pures; wp_load; wp_pures; wp_load; wp_pures
   wp_if_destruct
-  · have Hs : p.state = .replicate :=
+  · wp_load; wp_load; wp_pures; wp_load; wp_pures
+    have Hs : p.state = .replicate :=
       prstateW64_inj _ _ (by rw [← h2, Hif]; rfl)
     wp_if_destruct
     · -- exit 1
@@ -61,7 +63,9 @@ theorem tracker.Progress.MaybeDecrTo.wp_proof :
       iapply HΦ
       iapply ownProgress_intro $$ Hpv Hinfl
       ipureintro; exact Habs
-    · -- exit 2
+    · wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures
+      wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+      -- exit 2
       have Hp : progressMaybeDecrTo p rejected matchHint =
           (true, { p with next := p.matched + W64 1,
                           sentCommit := w64Min p.sentCommit (p.matched + W64 1 - W64 1) }) := by
@@ -69,6 +73,7 @@ theorem tracker.Progress.MaybeDecrTo.wp_proof :
         rw [if_neg (by rw [← h3]; exact Hif)]
       rw [Hp]
       wp_apply wp_min_u64
+      wp_pures; wp_load; wp_pures; wp_store; wp_pures; iclear pr matchHint rejected
       iapply HΦ
       iapply ownProgress_intro pr _ _ $$ Hpv [Hinfl]
       · dsimp only
@@ -77,13 +82,20 @@ theorem tracker.Progress.MaybeDecrTo.wp_proof :
       apply (progressAbs_Some _ _ _).2
       refine ⟨h1, h2, h3, by rw [h3], ?_, h6, h7, h8, rfl⟩
       rw [h5, h3]
-  · have Hs : p.state ≠ .replicate := by
+  · wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+    have Hs : p.state ≠ .replicate := by
       intro Hc; apply Hif; rw [h2, Hc]; rfl
     wp_if_destruct
-    · -- exit 4: a genuine rejection while probing
+    · wp_load; wp_pures; wp_load; wp_pures; iclear matchHint rejected
+      -- exit 4: a genuine rejection while probing
       wp_apply wp_min_u64
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures
       wp_apply wp_max_u64
+      wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load
+      wp_pures; wp_load; wp_pures
       wp_apply wp_min_u64
+      wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_store; wp_pures
+      iclear pr
       have Hp : progressMaybeDecrTo p (pv.Next' - W64 1) matchHint =
           (true, { p with next := w64Max (w64Min (pv.Next' - W64 1) (matchHint + W64 1)) (p.matched + W64 1),
                           sentCommit := w64Min p.sentCommit

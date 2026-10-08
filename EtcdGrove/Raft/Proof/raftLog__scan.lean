@@ -60,7 +60,8 @@ theorem raftLog.scan.wp_proof
   intro l ls lo hi pageSize f I P Hrange HP
   wp_start as H
   iNamed H
-  wp_auto
+  wp_alloc l_ptr as l; wp_pures; wp_alloc v_ptr as v; wp_pures; wp_alloc pageSize_ptr as pageSize
+  wp_pures; wp_alloc hi_ptr as hi; wp_pures; wp_alloc lo_ptr as lo; wp_pures
   ihave IH : iprop(∃ (cur : w64),
       "lo" ∷ lo_ptr ↦ cur ∗
       "Hlog" ∷ ownRaftLog l ls ∗
@@ -70,26 +71,34 @@ theorem raftLog.scan.wp_proof
   · iexists _
     iframe
     ipureintro; omega
-  wp_for IH
+  wp_for_core
+  iNamed IH
+  wp_pures; wp_load; wp_load; wp_pures
+  cleanup_bool_decide
   wp_if_destruct
-  · -- one more page: `cur < hi`, so `slice`'s range premise holds
+  · wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+    -- one more page: `cur < hi`, so `slice`'s range premise holds
     have Hsl : uint.Z ls.prev.index' + 1 ≤ uint.Z cur ∧ uint.Z cur < uint.Z hi ∧
         uint.Z hi ≤ uint.Z ls.prev.index' + (ls.sents.length : Int)
           + (ls.uents.length : Int) + 1 := by omega
     wp_apply wp_raftLog_slice l ls cur hi pageSize Hsl $$ [$Hlog]
       as %s %es ⟨Hlog, #Hes, ⟨%Hne, %Hlen, %Hin, %_⟩, -⟩
+    wp_pures; wp_alloc err_ptr as err; wp_pures; wp_alloc ents_ptr as ents; wp_pures; wp_store
+    wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear err
     -- the "got 0 entries" error is dead: the page is non-empty
     ihave %Hslen := ownSlice_len $$ Hes
     have Hlen0 : es.length ≠ 0 := fun h => Hne (List.eq_nil_of_length_eq_zero h)
     have Hsne : s.len ≠ W64 0 := by
       intro Heq0; rw [Heq0] at Hslen; apply Hlen0; rw [Hslen.1]; rfl
     simp only [Hsne, decide_false]
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_load
     -- every entry of the page is an entry of the log, so `P` holds
     have HPes : ∀ e ∈ es, P e := fun e he => HP e (Hin e he)
     iunfold scanClosure at Hf
     wp_apply Hf $$ %s %es %DFrac.discard [$Hes $HI] as ⟨-, HI⟩
     · ipureintro; exact HPes
+    wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
+    wp_load; wp_pures; wp_store; wp_pures; iclear ents err
     wp_for_post
     iframe
     iexists _

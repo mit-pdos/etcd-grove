@@ -65,29 +65,34 @@ theorem unstable.stableTo.wp_proof
   iNamed Hun
   icases Hents with #Hents
   ihave %Hlen := ownSlice_len $$ Hents
-  wp_auto
+  wp_alloc u_ptr as u; wp_pures; wp_alloc id_ptr as id; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures
   wp_apply wp_unstable_maybeTerm _ _ _ snap id.index' Hsoff Hnw $$ [Hu Hents_cap]
     as %gt %ok ⟨Hun, %Hok1, %Hok2⟩
   · unfold ownUnstable; simp only [named]; iframe # ∗
+  wp_pures; wp_alloc ok_ptr as ok; wp_pures; wp_alloc gt_ptr as gt; wp_pures; wp_store; wp_pures
+  wp_store; wp_pures; wp_load; wp_pures; iclear ok
   iunfold ownUnstable at Hun
   icases Hun with ⟨Hu, Hents_cap, -⟩
   simp only [named]
   cases ok
   · -- not in the log: no hit
-    wp_auto
+    wp_pures; wp_load; wp_pures
+    -- TODO(no-wp-auto): macro `log_exit` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures | wp_pures | wp_pures; iclear u id gt
     log_exit Hulg
     no_hit Hulg
     exact absurd (Hok1.2 (Or.inl Hh.1)) Bool.false_ne_true
-  wp_auto
+  wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures
   by_cases Hlt : uint.Z id.index' < uint.Z uv.offset'
   · -- the snapshot's index: no hit
     rw [decide_eq_true (by word)]
-    wp_auto
+    wp_pures; wp_load; wp_pures
+    -- TODO(no-wp-auto): macro `log_exit` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures | wp_pures | wp_pures; iclear u id gt
     log_exit Hulg
     no_hit Hulg
     exact absurd Hh.1.1 (by omega)
   rw [decide_eq_false (by word)]
-  wp_auto
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures
   obtain ⟨⟨Hr, e, He, rfl⟩⟩ | ⟨sid, Hs, Hi, -⟩ := Hok2 rfl
   rotate_left
   · exfalso; have := Hsoff sid Hs; rw [Hi] at Hlt; omega
@@ -95,13 +100,16 @@ theorem unstable.stableTo.wp_proof
   rotate_left
   · -- a different term at `id.index`: no hit
     rw [decide_eq_false Ht]
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear gt
+    -- TODO(no-wp-auto): macro `log_exit` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures | wp_pures | wp_pures; iclear u id
     log_exit Hulg
     no_hit Hulg
     obtain ⟨-, e', He', Ht'⟩ := Hh
     rw [He] at He'; cases He'; exact absurd Ht' Ht
   rw [decide_eq_true Ht]
-  wp_auto
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_alloc num_ptr as num
+  wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures; wp_load; wp_pures; iclear gt num
   -- the hit: drop the persisted prefix
   have Hnum : sint.Z (id.index' + W64 1 - uv.offset') =
       uint.Z id.index' + 1 - uint.Z uv.offset' := by word
@@ -111,8 +119,10 @@ theorem unstable.stableTo.wp_proof
       DFrac.discard uents ⟨by word, by word, by word⟩).1 $$ Hents with ⟨-, #Hents2, -⟩
   ihave Hents_cap := (ownSliceCap_slice uv.entries' (id.index' + W64 1 - uv.offset') _
       ⟨by word, by word, Hwf.2⟩).1 $$ Hents_cap
-  wp_auto
+  wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear id
   wp_apply wp_max2_uint64
+  wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; iclear u
   have Hsub : subslice (sint.nat (id.index' + W64 1 - uv.offset')) (sint.nat uv.entries'.len)
       uents = uents.drop (uint.Z id.index' + 1 - uint.Z uv.offset').toNat := by
     rw [subslice_def, List.take_of_length_le (by word)]
@@ -125,6 +135,7 @@ theorem unstable.stableTo.wp_proof
     simp only [named]
     iframe Hu Hents_cap
     iframe # ∗
+  wp_pures
   iapply HΦ
   iframe Hun
   ipureintro

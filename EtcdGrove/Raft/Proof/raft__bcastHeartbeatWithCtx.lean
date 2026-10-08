@@ -52,7 +52,7 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
   intro cfg r id s ctx Hlead
   wp_start as Hphys
   iNamed Hphys
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_alloc ctx_ptr as ctx; wp_pures; wp_load; wp_pures
   icases ownRaftPhys_tracker_prvals $$ Hphys with ⟨%tv, Htrkf, Htrk, Hrest⟩
   wp_apply wp_ProgressTracker_Visit cfg _ tv ⟨s.votes, s.progress, s.prvals⟩ _
       (fun _ pvsx => iprop(∃ (ms : List Msg),
@@ -83,14 +83,15 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
     iNamed HI
     ihave Htrk := Hback $$ Hpr
     ihave Hphys := Hrest $$ Htrkf Htrk
-    wp_auto
+    wp_pures; wp_alloc id_ptr as id; wp_pures; wp_load; wp_load; wp_pures
     wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_pures
     have Hmi : prvalsMatch (<[i := p]> pvs0) = prvalsMatch s.prvals := by
       rw [prvalsMatch_insert_same pvs0 i p p Hpvi rfl, Hmm]
     by_cases Hii : i = id
     · -- the leader itself: nothing is sent
       rw [decide_eq_true Hii]
-      wp_auto
+      wp_pures; iclear id
       icases ownRaftPhys_tracker_prvals $$ Hphys with ⟨%tv1, Htrkf, Htrk, Hrest⟩
       ihave Htrk := ownTracker_cast cfg tv1 _ ⟨s.votes, s.progress, <[i := p]> pvs0⟩ ?_ $$ Htrk
       · rfl
@@ -111,10 +112,10 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
       iapply ownRaftPhys_eq cfg r id _ _ (by cases s; rfl) $$ Hphys
     · -- a peer: one heartbeat
       rw [decide_eq_false Hii]
-      wp_auto
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear id
       wp_apply wp_raft_sendHeartbeat _ _ _ _ i ctx Hii Hicfg $$ [$Hphys]
         as %c %pvs' ⟨Hphys, %Hc1, %Hc2, %Hmm'⟩
-      try wp_auto
+      wp_pures
       icases ownRaftPhys_tracker_prvals $$ Hphys with ⟨%tv1, Htrkf, Htrk, Hrest⟩
       ihave Htrk := ownTracker_cast cfg tv1 _ ⟨s.votes, s.progress, pvs'⟩ ?_ $$ Htrk
       · rfl
@@ -147,7 +148,7 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
   ihave Hphys := Hrest $$ %tvfin %pvsfin Htrkf [Htrk]
   · iapply ownTracker_cast cfg tvfin _ _ ?_ $$ Htrk
     rfl
-  wp_auto
+  wp_pures; iclear rp cp
   iapply HΦ $$ %ms %pvsfin
   iframe Hphys
   ipureintro

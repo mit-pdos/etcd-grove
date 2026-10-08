@@ -75,12 +75,14 @@ theorem raft.send.wp_proof
   intro cfg r id s m ents out Hfrom Hok
   wp_start as H
   iNamed H
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_alloc m_ptr as m; wp_pures; wp_load; wp_pures
   -- `From` unset: `send` fills it in with `r.id`; already `r.id` (2026-10-06): nothing
   -- is written. Either way `m` is then `m` with `From := id`.
+  -- TODO(no-wp-auto): wp_join runs (cont first, then the cases): wp_pures; wp_load; wp_pures | wp_load; wp_pures | ∅
   wp_join iprop(r_ptr ↦ r ∗ m_ptr ↦ { m with From' := id } ∗ ownRaftPhys cfg r id s)
     with [r m Hphys] as ⟨r, m, Hphys⟩
   · wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_pures; wp_store; wp_pures
     iframe
     ipureintro; rfl
   · have Hmeq : { m with From' := id } = m := by
@@ -104,13 +106,15 @@ theorem raft.send.wp_proof
       simp only [MsgVote] at Hvt
       subst Hvt
       simp only at Hmterm Hself Hty ⊢
-      wp_auto
+      wp_pures; wp_load; wp_pures
       rw [decide_eq_false Hmterm]
-      wp_auto
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures
       -- not self-addressed
       wp_apply raft.wp_load_id $$ Hphys as Hphys
+      wp_pures
       rw [decide_eq_false (Hself (.inl rfl))]
-      wp_auto
+      wp_pures; wp_load; wp_pures
+      -- TODO(no-wp-auto): macro `send_tail` runs wp_auto: wp_load; wp_pures; wp_load; wp_pures | wp_pures | wp_pures | ∅ | wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; iclear r | wp_pures; iclear m
       send_tail ownRaftPhys_msgs
       finish_some
     · -- `MsgVoteResp` is a response, so it goes onto `r.msgsAfterAppend`.
@@ -119,9 +123,10 @@ theorem raft.send.wp_proof
       simp only [MsgVoteResp] at Hvt
       subst Hvt
       simp only at Hmterm Hself Hty ⊢
-      wp_auto
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures
       rw [decide_eq_false Hmterm]
-      wp_auto
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+      -- TODO(no-wp-auto): macro `send_tail` runs wp_auto: wp_load; wp_pures; wp_load; wp_pures | wp_pures | wp_pures | ∅ | wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; iclear r | wp_pures; iclear m
       send_tail ownRaftPhys_msgsAA
       finish_some
     · -- `MsgPreVote` (2026-10-04): a request, onto `r.msgs`, as `MsgVote`.
@@ -130,12 +135,14 @@ theorem raft.send.wp_proof
       simp only [MsgPreVote] at Hvt
       subst Hvt
       simp only at Hmterm Hself Hty ⊢
-      wp_auto
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
       rw [decide_eq_false Hmterm]
-      wp_auto
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures
       wp_apply raft.wp_load_id $$ Hphys as Hphys
+      wp_pures
       rw [decide_eq_false (Hself (.inr rfl))]
-      wp_auto
+      wp_pures; wp_load; wp_pures
+      -- TODO(no-wp-auto): macro `send_tail` runs wp_auto: wp_load; wp_pures; wp_load; wp_pures | wp_pures | wp_pures | ∅ | wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; iclear r | wp_pures; iclear m
       send_tail ownRaftPhys_msgs
       finish_some
     · -- `MsgPreVoteResp`: a response, onto `r.msgsAfterAppend`.
@@ -144,9 +151,10 @@ theorem raft.send.wp_proof
       simp only [MsgPreVoteResp] at Hvt
       subst Hvt
       simp only at Hmterm Hself Hty ⊢
-      wp_auto
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
       rw [decide_eq_false Hmterm]
-      wp_auto
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+      -- TODO(no-wp-auto): macro `send_tail` runs wp_auto: wp_load; wp_pures; wp_load; wp_pures | wp_pures | wp_pures | ∅ | wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; iclear r | wp_pures; iclear m
       send_tail ownRaftPhys_msgsAA
       finish_some
   · -- (b) `Term` must be unset and is stamped with `r.Term` (= `s.term`); not a
@@ -158,11 +166,16 @@ theorem raft.send.wp_proof
     rcases Hlty with Hvt | Hvt | Hvt | Hvt <;>
     · simp only [MsgApp, MsgHeartbeat, MsgReadIndexResp, MsgHeartbeatResp] at Hvt
       subst Hvt
-      wp_auto
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures
       wp_apply raft.wp_load_Term $$ Hphys as Hphys
+      wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load
+      wp_load; wp_pures
       wp_apply raft.wp_load_id $$ Hphys as Hphys
+      wp_pures
       rw [decide_eq_false Hself]
-      wp_auto
+      wp_pures; wp_load; wp_pures
+      -- TODO(no-wp-auto): macro `send_tail` runs wp_auto: wp_load; wp_pures; wp_load; wp_pures | wp_pures | wp_pures | ∅ | wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; iclear r | wp_pures; iclear m | wp_load; wp_pures; wp_load; wp_pures | wp_pures | wp_pures | ∅ | wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; iclear r | wp_pures; iclear m | wp_load; wp_pures; wp_load; wp_pures | wp_pures | wp_pures | ∅ | wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; iclear r | wp_pures; iclear m | wp_load; wp_pures; wp_load; wp_pures | wp_pures | wp_pures | ∅ | wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; iclear r | wp_pures; iclear m
       send_tail ownRaftPhys_msgs
       finish_some
   · -- (c') `MsgSnap`: (b)'s path through the body; the abstract message is the
@@ -171,13 +184,18 @@ theorem raft.send.wp_proof
       mresp⟩ := m
     simp only [MsgSnap] at HSnap Hmterm Hself ⊢
     subst HSnap Hmterm
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_Term $$ Hphys as Hphys
+    wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load
+    wp_load; wp_pures
     wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_pures
     rw [decide_eq_false Hself]
-    wp_auto
+    wp_pures; wp_load; wp_pures
     icases Hsnap $$ %rfl with ⟨%sv, %voters, %Hout, #Hsv, #Hvoters⟩
     subst Hout
+    -- TODO(no-wp-auto): macro `send_tail` runs wp_auto: wp_load; wp_pures; wp_load; wp_pures | wp_pures | wp_pures | ∅ | wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; iclear r | wp_pures; iclear m
     send_tail ownRaftPhys_msgs
     ihave Hphys := Hback $$ %q' %_ %(some (absSnap _ sv voters)) Hf Hq Hq_cap []
     · unfold msgAbs
@@ -199,10 +217,14 @@ theorem raft.send.wp_proof
     simp only at Hmterm Hself Hty ⊢
     subst Hmterm
     repeat (first
+      -- TODO(no-wp-auto): wp_auto (several runs): wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_load; wp_pures | ∅
       | (simp only [HnV, HnVR, HnPV, HnPVR, HnProp, HnRI, HnAR, decide_false]; wp_auto)
+      -- TODO(no-wp-auto): wp_apply then: wp_pures; wp_store; wp_pures; wp_load; wp_pures
       | (wp_apply raft.wp_load_Term $$ Hphys as Hphys)
+      -- TODO(no-wp-auto): wp_apply then: wp_pures
       | (wp_apply raft.wp_load_id $$ Hphys as Hphys)
-      | (rw [decide_eq_false Hself]; wp_auto))
+      | (rw [decide_eq_false Hself]; (wp_pures; wp_load; wp_pures)))
+    -- TODO(no-wp-auto): macro `send_tail` runs wp_auto: wp_load; wp_pures; wp_load; wp_pures | wp_pures | wp_pures | ∅ | wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; iclear r | wp_pures; iclear m
     send_tail ownRaftPhys_msgs
     finish_none
   · -- (d) `MsgAppResp`: stamped, and a response, so onto `r.msgsAfterAppend`; it may
@@ -211,9 +233,12 @@ theorem raft.send.wp_proof
       mresp⟩ := m
     simp only [MsgAppResp] at HAR Hmterm ⊢
     subst HAR Hmterm
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_Term $$ Hphys as Hphys
+    wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures
     have Hty : mtypeOf (W32 4) = some MsgType.appResp := rfl
+    -- TODO(no-wp-auto): macro `send_tail` runs wp_auto: wp_load; wp_pures; wp_load; wp_pures | wp_pures | wp_pures | ∅ | wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; iclear r | wp_pures; iclear m
     send_tail ownRaftPhys_msgsAA
     ihave Hphys := Hback $$ %q' %_ %(some (absMsg .appResp _ ents)) Hf Hq Hq_cap []
     · unfold msgAbs
@@ -229,10 +254,13 @@ theorem raft.send.wp_proof
       mresp⟩ := m
     simp only [MsgProp] at HProp Hmterm Hself ⊢
     subst HProp Hmterm
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures
     wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_pures
     rw [decide_eq_false Hself]
-    wp_auto
+    wp_pures; wp_load; wp_pures
+    -- TODO(no-wp-auto): macro `send_tail` runs wp_auto: wp_load; wp_pures; wp_load; wp_pures | wp_pures | wp_pures | ∅ | wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; iclear r | wp_pures; iclear m
     send_tail ownRaftPhys_msgs
     ihave Hphys := Hback $$ %q' %_ %(some (absMsg .propose _ ents)) Hf Hq Hq_cap []
     · unfold msgAbs

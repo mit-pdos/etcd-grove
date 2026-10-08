@@ -125,12 +125,13 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "Herr" ∷ (⌜err = interface.nil⌝ ∨ globalAddr ErrProposalDropped ↦□ err) }} := by
   intro Hty Hterm Hfrom Hne Hnorm Hlen Hlok Hcfg Hwf
   wp_start as ⟨Hphys, Hents, Hcap⟩
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_alloc m_ptr as m; wp_pures; wp_load; wp_pures
   wp_apply _P.traceReceiveMessage
+  wp_pures; wp_load; wp_pures
   rw [decide_eq_true Hterm]
-  wp_auto
+  wp_pures; wp_load; wp_pures
   rw [Hty]
-  wp_auto
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear r m
   wp_apply raft.wp_load_step $$ Hphys as Hphys
   rw [show s.stepfn = stepFuncOf s.role from Hwf]
   have HnVR : m.Type' ≠ MsgVoteResp := by rw [Hty]; w32_ne
@@ -148,6 +149,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
       · iintro _
         iframe Hents Hcap
+    wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures
     unfold FollowerStepResult at Hres
     rw [ite_neg HnVR, ite_pos Hty] at Hres
     by_cases Hl0 : s.lead = W64 0
@@ -157,6 +159,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       simp only [↓reduceIte]
       cases err
       all_goals
+        -- TODO(no-wp-auto): wp_auto (several runs): wp_pures; wp_load; wp_pures; iclear err | wp_pures; iclear err
         wp_auto
         iapply HΦ
         iframe Hphys
@@ -171,7 +174,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       simp only [Bool.false_eq_true, ↓reduceIte]
       icases Herrn with %Herrn
       subst Herrn
-      wp_auto
+      wp_pures; iclear err
       iapply HΦ
       iframe Hphys
       isplitr
@@ -202,12 +205,14 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     · isplitl []
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+    wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures
     unfold CandidateStepResult at Hres
     rw [ite_neg HnVR, ite_pos Hty] at Hres
     obtain ⟨rfl, rfl⟩ := Hres
     simp only [↓reduceIte]
     cases err
     all_goals
+      -- TODO(no-wp-auto): wp_auto (several runs): wp_pures; wp_load; wp_pures; iclear err | wp_pures; iclear err
       wp_auto
       iapply HΦ
       iframe Hphys
@@ -228,6 +233,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     · isplitl []
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
       · iintro _; iexact Hents
+    wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures
     unfold LeaderStepResult at Hres
     rw [ite_pos Hty] at Hres
     unfold LeaderProposeResult at Hres
@@ -237,7 +243,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       obtain ⟨ms, pvs, rfl, Hms, Hpvs⟩ := Hres
       icases Herrn with %Herrn
       subst Herrn
-      wp_auto
+      wp_pures; iclear err
       -- the appended log does not wrap: `ownRaftLog`'s `Hnowrap` at the new state
       icases ownRaftPhys_log_same cfg r id _ $$ Hphys with ⟨Hlog, Hback⟩
       icases ownRaftLog_nowrap _ _ $$ Hlog with ⟨%Hnw, Hlog⟩
@@ -263,6 +269,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       subst Hres
       cases err
       all_goals
+        -- TODO(no-wp-auto): wp_auto (several runs): wp_pures; wp_load; wp_pures; iclear err | wp_pures; iclear err
         wp_auto
         iapply HΦ
         iframe Hphys
@@ -286,12 +293,14 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     · isplitl []
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+    wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures
     unfold CandidateStepResult at Hres
     rw [ite_neg HnVR, ite_pos Hty] at Hres
     obtain ⟨rfl, rfl⟩ := Hres
     simp only [↓reduceIte]
     cases err
     all_goals
+      -- TODO(no-wp-auto): wp_auto (several runs): wp_pures; wp_load; wp_pures; iclear err | wp_pures; iclear err
       wp_auto
       iapply HΦ
       iframe Hphys

@@ -39,7 +39,7 @@ theorem unstable.truncateAndAppend.wp_proof
   iNamed H
   unfold ownUnstable
   iNamed Hun
-  wp_auto
+  wp_alloc u_ptr as u; wp_pures; wp_alloc ents_ptr as ents; wp_pures; wp_load; wp_pures
   ihave %Hlen := ownSlice_len $$ Hes
   ihave %Hulen := ownSlice_len $$ Hents
   obtain ⟨Hlen1, Hlen2⟩ := Hlen
@@ -60,7 +60,8 @@ theorem unstable.truncateAndAppend.wp_proof
       (A' := (sliceIndexRef raftpb.Entry (sint.Z (W64 0)) es).[raftpb.Entry, go!"Index"] ↦{dq}
         e0.Index')
       (P := sliceIndexRef raftpb.Entry (sint.Z (W64 0)) es ↦{dq} e0)) $$ He0 with ⟨He0, Hclose⟩
-  wp_auto
+  wp_pures; wp_load; wp_pures; wp_alloc fromIndex_ptr as fromIndex; wp_pures; wp_store; wp_pures
+  wp_load; wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures
   ihave He0 := Hclose $$ He0
   ihave Hes := Hesback $$ He0
   rw [list_insert_id (by simpa using Hfirst)]
@@ -70,9 +71,10 @@ theorem unstable.truncateAndAppend.wp_proof
     have Had : ¬(uint.Z e0.Index' ≤ uint.Z uv.offset' ∧
         uint.Z e0.Index' ≠ uint.Z uv.offset' + (uents.length : Int)) := fun H => H.2 Hcont
     simp only [Had, ↓reduceIte, decide_eq_true Hguard]
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear ents fromIndex
     wp_apply wp_slice_append_persistent (V := raftpb.Entry) _ _ _ _ _
       $$ [$Hents $Hents_cap $Hes] as %sl ⟨Hents, Hents_cap, Hes⟩
+    wp_pures; wp_load; wp_pures; wp_store; wp_pures; iclear u
     iapply HΦ
     rw [List.take_of_length_le (by omega)]
     iframe
@@ -81,7 +83,7 @@ theorem unstable.truncateAndAppend.wp_proof
   have Hguard : ¬e0.Index' = uv.offset' + uv.entries'.len := fun Heq => Hcont (by
     rw [Heq]; word)
   simp only [decide_eq_false Hguard]
-  wp_auto
+  wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures
   by_cases Hrep : uint.Z e0.Index' ≤ uint.Z uv.offset'
   · -- arm 2: replace the suffix, adopting the caller's slice
     have Had : uint.Z e0.Index' ≤ uint.Z uv.offset' ∧
@@ -89,15 +91,19 @@ theorem unstable.truncateAndAppend.wp_proof
     rw [ite_true_of Had, ite_true_of Had, decide_eq_true Hrep]
     icases Hadopt with ⟨%Hdq, Hcap⟩
     subst Hdq
-    wp_auto
+    wp_pures; wp_load; wp_pures
     wp_apply wp_slice_literal
+    wp_pures
     isplitr
     · ipureintro; rfl
     iintro %sl_ptr ⟨-, -⟩
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures
     rw [Hulg]
-    wp_auto
+    wp_pures
     wp_apply Logger.wp_logf ulg _ _ _ (by simp [logMethods]) $$ Hlg
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
+    wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store
+    wp_pures; iclear u ents fromIndex
     iapply HΦ
     rw [show (uint.Z e0.Index' - uint.Z uv.offset').toNat = 0 by omega, List.take_zero,
       List.nil_append]
@@ -111,20 +117,24 @@ theorem unstable.truncateAndAppend.wp_proof
   have Had : ¬(uint.Z e0.Index' ≤ uint.Z uv.offset' ∧
       uint.Z e0.Index' ≠ uint.Z uv.offset' + (uents.length : Int)) := fun H => Hrep H.1
   rw [ite_false_of Had, ite_false_of Had, decide_eq_false Hrep]
-  wp_auto
+  wp_pures; wp_load; wp_pures
   wp_apply wp_slice_literal
+  wp_pures
   isplitr
   · ipureintro; rfl
   iintro %sl_ptr ⟨-, -⟩
-  wp_auto
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures
   rw [Hulg]
-  wp_auto
+  wp_pures
   wp_apply Logger.wp_logf ulg _ _ _ (by simp [logMethods]) $$ Hlg
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
   have Hus : uint.Z uv.offset' ≤ uint.Z uv.offset' ∧ uint.Z uv.offset' < uint.Z e0.Index' ∧
       uint.Z e0.Index' ≤ uint.Z uv.offset' + (uents.length : Int) := ⟨Int.le_refl _, by omega, Hle⟩
   wp_apply wp_unstable_slice _ _ _ _ _ Hus Hnw $$ [Hu Hents Hents_cap]
     as %s0 %es0 ⟨Hun, #Hs0, %Hlen0, %Hin0, %Hcap0, %Hes0⟩
   · unfold ownUnstable; simp only [named]; iframe
+  wp_pures; wp_alloc keep_ptr as keep; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures; iclear ents keep
   iNamed Hun
   rw [Int.sub_self, Int.toNat_zero, subslice, List.drop_zero] at Hes0
   subst Hes0
@@ -132,9 +142,12 @@ theorem unstable.truncateAndAppend.wp_proof
   ihave Hs0cap := ownSliceCap_empty (V := raftpb.Entry) s0 Hcap0.symm Hs0len.2
   wp_apply wp_slice_append_persistent (V := raftpb.Entry) _ _ _ _ _
     $$ [$Hes $Hs0 $Hs0cap] as %sl ⟨Hsl, Hsl_cap, Hes⟩
+  wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures; iclear fromIndex
   -- `min(u.offsetInProgress, fromIndex)`
   wp_func_call
   wp_call
+  -- TODO(no-wp-auto): wp_if_destruct runs: wp_load; wp_pures; wp_store; wp_pures; iclear u | wp_load; wp_pures; wp_store; wp_pures; iclear u
   wp_if_destruct <;>
   · iapply HΦ
     iframe

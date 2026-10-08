@@ -72,22 +72,28 @@ theorem wp_Step_MsgApp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hpwf Hnw Hnorm Hconf Hgt
   wp_start as Hphys
   iNamed Hphys
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_alloc m_ptr as m; wp_pures; wp_load; wp_pures
   wp_apply _P.traceReceiveMessage
+  wp_pures; wp_load; wp_pures
   rw [decide_eq_false Hterm]
-  wp_auto
+  wp_pures; wp_load; wp_load; wp_pures
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_pures
   rw [decide_eq_true Hgt]
-  wp_auto
-  repeat (rw [Hty]; wp_auto)
+  wp_pures; wp_load; wp_pures
+  repeat (rw [Hty]; (wp_pures; wp_load; wp_pures))
   -- "received a message with higher term"
   wp_apply raft.wp_load_id $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+  -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures | ∅
   wp_raft_log
-  repeat (rw [Hty]; wp_auto)
+  repeat (rw [Hty]; (wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures))
   -- `becomeFollower(m.Term, m.From)`: a leader's message
   wp_apply _P.becomeFollower $$ [$Hphys] as %pvs Hphys
-  repeat (rw [Hty]; wp_auto)
+  wp_pures; wp_load; wp_pures
+  repeat (rw [Hty]; (wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear r m))
   wp_apply raft.wp_load_step $$ Hphys as Hphys
   have Hsf : ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).stepfn =
       functions stepFollower [] := rfl
@@ -101,6 +107,7 @@ theorem wp_Step_MsgApp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   · isplitl []
     · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
     · iintro %_; iframe Hents Hcap
+  wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures
   obtain ⟨rfl, Happ⟩ := followerStepResult_app _ _ _ _ _ _ _ Hty Hres
   have Hwf1 : NStateWf
       { ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) with
@@ -108,7 +115,7 @@ theorem wp_Step_MsgApp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   simp only [Bool.false_eq_true, ↓reduceIte]
   icases Herrn with %Herrn
   subst Herrn
-  wp_auto
+  wp_pures; iclear err
   iapply HΦ $$ %interface.nil %s1
   iframe Hphys
   ipureintro

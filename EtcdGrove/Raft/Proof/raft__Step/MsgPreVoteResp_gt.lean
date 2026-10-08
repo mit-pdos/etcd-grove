@@ -177,45 +177,52 @@ theorem wp_Step_MsgPreVoteResp_gt (_P : raft.Step.Postulates (GF := GF) (hG := h
   have Hy18 : decide (m.Type' = W32 18) = true := decide_eq_true Hty
   wp_start as Hphys
   iNamed Hphys
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_alloc m_ptr as m; wp_pures; wp_load; wp_pures
   wp_apply _P.traceReceiveMessage
+  wp_pures; wp_load; wp_pures
   -- `m.Term ≠ 0`, so the first arm of the term preamble is skipped
   rw [decide_eq_false Hterm]
-  wp_auto
+  wp_pures; wp_load; wp_load; wp_pures
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_pures
   rw [decide_eq_true Hgt]
-  wp_auto
+  wp_pures; wp_load; wp_pures
   -- `(Type == MsgVote) || (Type == MsgPreVote)`: both false
   rw [Hn5]
-  wp_auto
+  wp_pures; wp_load; wp_pures
   rw [Hn17]
-  wp_auto
+  wp_pures; wp_load; wp_pures
   -- the step-down switch: not `MsgPreVote`; `MsgPreVoteResp`, and `!Reject` decides
   rw [Hn17]
-  wp_auto
+  wp_pures; wp_load; wp_pures
   rw [Hy18]
-  wp_auto
+  wp_pures; wp_load; wp_pures
   cases Hrej : m.Reject'
   · -- granted: no step-down; `r.step(m)` in the current role
-    wp_auto
+    wp_pures; wp_load; wp_pures
     rw [Hty]
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear r m
+    -- TODO(no-wp-auto): macro `prevote_resp_dispatch` runs wp_auto: ∅ | wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures | wp_pures; iclear err | wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures | wp_pures; iclear err | wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures | wp_pures; iclear err | wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures | wp_pures; iclear err
     prevote_resp_dispatch
   -- rejected: step down to the higher term, no leader
-  wp_auto
+  wp_pures; wp_load; wp_pures
   wp_apply raft.wp_load_id $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+  -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures | ∅
   wp_raft_log
   rw [Hn3]
-  wp_auto
+  wp_pures; wp_load; wp_pures
   rw [Hn8]
-  wp_auto
+  wp_pures; wp_load; wp_pures
   rw [Hn7]
-  wp_auto
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures
   wp_apply _P.becomeFollower cfg r id s m.Term' (W64 0) $$ [$Hphys] as %pvs Hphys
+  wp_pures; wp_load; wp_pures
   -- the type switch: none of its cases, so `r.step(m)`
   rw [Hty]
-  wp_auto
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear r m
   wp_apply raft.wp_load_step $$ Hphys as Hphys
   have Hsd : Step cfg id (toPState s) [absMsg .preVoteResp m ents]
       (toPState (becomeFollower s m.Term' (W64 0))) := by
@@ -234,11 +241,12 @@ theorem wp_Step_MsgPreVoteResp_gt (_P : raft.Step.Postulates (GF := GF) (hG := h
     · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
     · iintro %Hc; exfalso; rw [Hty] at Hc
       rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
+  wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures
   obtain ⟨rfl, rfl⟩ := followerStepResult_prevoteresp _ _ _ _ _ _ _ Hty Hres
   simp only [Bool.false_eq_true, ↓reduceIte]
   icases Herrn with %Herrn
   subst Herrn
-  wp_auto
+  wp_pures; iclear err
   iapply HΦ $$ %interface.nil %_
   iframe Hphys
   ipureintro

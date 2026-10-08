@@ -94,7 +94,7 @@ theorem raftLog.append.wp_proof
   obtain ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ := ls
   wp_start as H
   iNamed H
-  wp_auto
+  wp_alloc l_ptr as l; wp_pures; wp_alloc ents_ptr as ents; wp_pures; wp_load; wp_pures
   ihave %Hlen := ownSlice_len $$ Hes
   cases ents with
   | nil =>
@@ -102,9 +102,10 @@ theorem raftLog.append.wp_proof
     -- The predicate does not have to be opened at all.
     simp only [List.length_nil] at Hlen
     rw [decide_eq_true (by word)]
-    wp_auto
+    wp_pures; wp_load; wp_pures
     wp_apply wp_raftLog_lastIndex _ ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ $$ [$Hlog]
       as %li ⟨Hlog, %Hli⟩
+    wp_pures; iclear l ents
     iapply HΦ $$ %li
     simp only [logTruncateAppend, logAdopts, plogTruncateAppend, Bool.false_eq_true,
       ite_false]
@@ -118,7 +119,7 @@ theorem raftLog.append.wp_proof
     dsimp only at Hrange Hnwb
     simp only [List.length_cons] at Hlen
     rw [decide_eq_false (by word)]
-    wp_auto
+    wp_pures; wp_load; wp_pures
     rw [ite_eq_left (show 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z es.len by word)]
     icases ownSlice_elem_acc (sint.Z (W64 0)) e0 es dq (e0 :: ents') (by decide) He0 $$ Hes
       with ⟨He0, Hesback⟩
@@ -130,7 +131,8 @@ theorem raftLog.append.wp_proof
         (A' := (sliceIndexRef raftpb.Entry (sint.Z (W64 0)) es).[raftpb.Entry, go!"Index"] ↦{dq}
           e0.Index')
         (P := sliceIndexRef raftpb.Entry (sint.Z (W64 0)) es ↦{dq} e0)) $$ He0 with ⟨He0, Hclose⟩
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_alloc after_ptr as after; wp_pures; wp_store; wp_pures; wp_load
+    wp_load; wp_pures
     ihave He0 := Hclose $$ He0
     ihave Hes := Hesback $$ He0
     rw [show ((e0 :: ents').set (sint.Z (W64 0)).toNat e0) = e0 :: ents' from rfl]
@@ -138,9 +140,9 @@ theorem raftLog.append.wp_proof
     iNamed Hlog
     iNamed Hcore
     dsimp only at *
-    wp_auto
+    wp_load; wp_pures
     rw [decide_eq_false (by rw [Hcm]; word)]
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear ents after
     -- hand the `unstable` field to `truncateAndAppend`
     icases raftLog_split_unstable $$ Hl with ⟨Huf, Hlback⟩
     icases isLoggerVal_open _ $$ Hu_logger with ⟨%ulg, %Hulg, #Hulgr⟩
@@ -160,6 +162,7 @@ theorem raftLog.append.wp_proof
     · unfold ownUnstable
       simp only [named]
       iframe Huf Huents Huents_cap Hadopt
+    wp_pures; wp_load; wp_pures; iclear l
     iNamed Hun
     ihave Hl := Hlback $$ Hu
     obtain ⟨Hoff', Hsnap', Hlg', Hoip'⟩ := Huv'
@@ -294,6 +297,7 @@ theorem raftLog.append.wp_proof
           Happlied Hpapplied Hcm2 Hss2 Hapg Hip2 Hipb2 Hpers2 Happlying Hpaused Hasz Hamx
         $$ Hl HisStorage HStorage Husnap Hents Hents_cap Hl_logger Hu_logger
     wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
+    wp_pures
     iapply HΦ $$ %li
     simp only [logTruncateAppend]
     iframe Hlog Hes

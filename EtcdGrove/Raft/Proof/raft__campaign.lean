@@ -131,20 +131,25 @@ theorem raft.campaign.wp_proof
   -- whence the premise.
   have Hno_wrap : s.term + W64 1 ≠ W64 0 := by word
   wp_start as Hphys
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_alloc t_ptr as t; wp_pures; wp_load; wp_pures
   -- `promotable` is only logged: `id ∈ cfg`, but a pending snapshot makes
   -- it false. The two arms are joined.
   wp_apply wp_raft_promotable $$ [$Hphys] as %b ⟨Hphys, %Hb⟩
+  wp_pures
+  -- TODO(no-wp-auto): wp_join runs (cont first, then the cases): wp_pures; wp_alloc term_ptr as term; wp_pures; wp_alloc voteMsg_ptr as voteMsg; wp_pures; wp_load; wp_pures
   wp_join at next with [Hphys r]
   · cases b
-    · wp_auto
+    · wp_pures; wp_load; wp_pures
       wp_apply raft.wp_load_id $$ Hphys as Hphys
+      wp_pures
+      -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures | ∅
       wp_raft_log
       wp_join_done
-    · wp_auto
+    · wp_pures
       wp_join_done
   -- the role transition: `becomePreCandidate` and `Term + 1`, or
   -- `becomeCandidate` and the new `Term`; joined at the state each leaves
+  -- TODO(no-wp-auto): wp_join runs (cont first, then the cases): wp_load; wp_pures | wp_load; wp_pures
   wp_join iprop(∃ (pvs : GMap w64 Progress),
       "Hphys" ∷ ownRaftPhys cfg r id
         { campRoleState id s (decide (t = campaignPreElection)) with prvals := pvs } ∗
@@ -152,18 +157,22 @@ theorem raft.campaign.wp_proof
       "voteMsg" ∷ voteMsg_ptr ↦ vreqW32 (decide (t = campaignPreElection)) ∗
       "r" ∷ r_ptr ↦ r ∗ "t" ∷ t_ptr ↦ t) with [Hphys term voteMsg r t]
   · wp_apply wp_raft_becomePreCandidate _ _ _ _ Hrole $$ [$Hphys] as Hphys
+    wp_pures
     rw [show raftpb.MsgPreVote = #MsgPreVote from rfl]
-    wp_auto
+    wp_store; wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_Term $$ Hphys as Hphys
+    wp_pures; wp_store; wp_pures
     isplitr
     · ipureintro; rfl
     iexists s.prvals
     simp only [campaignPreElection, decide_true, campRoleState, vreqW32, ↓reduceIte]
     iframe
   · wp_apply wp_raft_becomeCandidate _ _ _ _ Hrole $$ [$Hphys] as %pvs Hphys
+    wp_pures
     rw [show raftpb.MsgVote = #MsgVote from rfl]
-    wp_auto
+    wp_store; wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_Term $$ Hphys as Hphys
+    wp_pures; wp_pures; wp_store; wp_pures
     isplitr
     · ipureintro; rfl
     iexists pvs
@@ -173,23 +182,26 @@ theorem raft.campaign.wp_proof
   iintro HJ
   iNamed HJ
   generalize decide (t = campaignPreElection) = pre
-  wp_auto
+  wp_pures; wp_alloc ids_ptr as ids; wp_pures; wp_load; wp_pures
   -- the voter ids, as a map. `IDs` is a method of the tracker's
   -- `Config.Voters`, so it takes the tracker object; the call does not
   -- change it, and the struct is re-sealed right after.
   icases ownRaftPhys_tracker_same cfg r id _ $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
   wp_apply (quorum.JointConfig.IDs.spec_tracker wp_JointConfig_IDs) $$ [$Htrkf $Htrk] as %mref %idm ⟨Htrkf, Hown, Hidm, %Hdomidm⟩
+  wp_pures; wp_alloc idMap_ptr as idMap; wp_pures; wp_store; wp_pures; wp_load; wp_pures
   -- `ownTracker` pins the voter set's cardinality: `campaign` runs
   -- `make([]uint64, 0, len(idMap))` and `wp_slice_make3` needs `0 ≤ cap`.
   -- (Rocq's `own_tracker_cfg_size`; here the tracker is opened and re-sealed.)
   ihave %Hcfg_fits := ownTracker_cfg_size cfg tv _ $$ Hown
   ihave Hphys := Hback $$ %tv Htrkf Hown
   wp_apply wp_map_len $$ Hidm as Hidm
+  wp_pures
   have Hszidm : GMap.size idm = GMap.size cfg := by
     rw [← Hdomidm, GMap.size_dom]
   rw [Hszidm]
   wp_apply wp_slice_make3 (V := w64) (t := go.uint64) (W64 0) (W64 (GMap.size cfg))
     (by word) as %sl ⟨Hsl, Hsl_cap, %Hslcap⟩
+  wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_alloc id_ptr as id; wp_pures; iclear idMap
   simp only [List.replicate_zero]
   -- The map range appends the voter ids to `ids`, in the order `IDs` yields
   -- them. `0 ≤ i` has to be part of the invariant: `wp_map_for_range`'s
@@ -214,12 +226,14 @@ theorem raft.campaign.wp_proof
   · imodintro
     iintro %i %key %vv ⟨%Hkey, %Hvv⟩ HP
     iNamed HP
-    wp_auto
+    wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures
     wp_apply wp_slice_literal (V := w64) [key]
+    wp_pures
     isplitr
     · ipureintro; rfl
     iintro %sl2 ⟨Hsl2, -⟩
     wp_apply wp_slice_append $$ [$Hsl $Hsl_cap $Hsl2] as %sl3 ⟨Hsl, Hsl_cap, -⟩
+    wp_pures; wp_store; wp_pures
     unfold forMapPostcondition
     iright
     ileft
@@ -237,8 +251,10 @@ theorem raft.campaign.wp_proof
   iintro HP -
   iNamed HP
   rw [← Hklen, Int.toNat_natCast, List.take_length]
-  wp_auto
+  wp_pures; wp_load; wp_pures; iclear id
   wp_apply wp_slices_Sort $$ [$Hsl] as %xs ⟨Hsl, %Hxs, -⟩
+  wp_pures; wp_load; wp_pures; wp_alloc id_ptr as id; wp_pures; wp_alloc i_ptr as i; wp_pures
+  iclear ids
   have Hkeys_perm : keys ≡ₚ elements cfg := by
     refine (List.perm_ext_iff_of_nodup Hknodup (GMap.NoDup_elements cfg)).2 ?_
     intro k
@@ -262,30 +278,37 @@ theorem raft.campaign.wp_proof
     iframe
     ipureintro
     word
-  wp_for IH
+  wp_for_core
+  iNamed IH
+  wp_pures; wp_load; wp_pures
+  cleanup_bool_decide
   wp_if_destruct
-  · -- one more voter to notify
+  · wp_load; wp_pures
+    -- one more voter to notify
     obtain ⟨y, Hy⟩ : ∃ y, xs[(sint.Z n).toNat]? = some y :=
       ⟨_, List.getElem?_eq_getElem (by word)⟩
     rw [ite_of_true (by word)]
     wp_apply wp_load_slice_index (V := w64) (t := go.uint64) sl' (sint.Z n) xs (DFrac.own 1) y
       (by word) $$ [Hsl] as Hsl
     · iframe; ipureintro; exact Hy
+    wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_load; wp_pures
     have Hylt : (sint.Z n).toNat < xs.length := (List.getElem?_eq_some_iff.1 Hy).1
     -- `y` has not been visited yet: `xs` has no duplicates
     have Hgrow : xs.take (sint.Z (n + W64 1)).toNat = xs.take (sint.Z n).toNat ++ [y] := by
       rw [show (sint.Z (n + W64 1)).toNat = (sint.Z n).toNat + 1 by word, List.take_add_one, Hy]
       rfl
     wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_pures
     by_cases Hyid : y = id
     · -- this node's own vote: a self-addressed response
       subst Hyid
       rw [decide_eq_true rfl]
-      wp_auto
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
       -- the response type: `wp_auto` cannot step through the call that
       -- computes the literal's `Type` field
       wp_apply wp_voteRespMsgType (vreqW32 pre) (vrespW32 pre)
         (by cases pre <;> simp [vreqW32, vrespW32])
+      wp_pures; wp_load; wp_pures
       -- `send`'s side conditions: `From = 0` (the literal leaves it unset),
       -- and `SendOk`'s vote clause -- the type is a vote message, its
       -- `mtypeOf`, the term is nonzero (this is what the no-wrap premise
@@ -312,8 +335,9 @@ theorem raft.campaign.wp_proof
       · rw [Hgrow, List.map_append, ← sendMsgs_app]
         simp only [List.map_cons, List.map_nil, campMsg, ↓reduceIte]
         iexact Hphys
-      wp_auto
+      wp_pures
       wp_for_post
+      wp_pures; wp_load; wp_pures; wp_store
       iframe
       iexists _, _
       iframe
@@ -321,22 +345,30 @@ theorem raft.campaign.wp_proof
       word
     · -- a peer: read the last entry, log, and send it a request
       rw [decide_eq_false Hyid]
-      wp_auto
+      wp_pures; wp_load; wp_pures
       wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+      wp_pures
       icases ownRaftPhys_log_same cfg r id _ $$ Hphys with ⟨Hlog, Hback⟩
       ihave Hlog : ownRaftLog (campRoleState id s pre).log (campRoleState id s pre).logst $$ [Hlog]
       · simp only [sendMsgs_log, sendMsgs_logst]; iexact Hlog
       wp_apply wp_raftLog_lastEntryID $$ [$Hlog] as %lastID ⟨Hlog, %HlastID⟩
+      wp_pures; wp_alloc last_ptr as last; wp_pures; wp_store; wp_pures; wp_load; wp_pures
       ihave Hphys := Hback $$ [Hlog]
       · simp only [sendMsgs_log, sendMsgs_logst]; iexact Hlog
       wp_apply raft.wp_load_id $$ Hphys as Hphys
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load
+      wp_pures
       wp_apply raft.wp_load_Term $$ Hphys as Hphys
+      wp_pures
+      -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_alloc ctx_ptr as ctx; wp_pures; wp_load; wp_pures | ∅
       wp_raft_log
       rw [campRoleState_logst] at HlastID
       -- `ctx` is the `campaignTransfer` marker or nil; the model does not
       -- look at a vote request's context, so both arms run the same tail.
+      -- TODO(no-wp-auto): wp_join runs (cont first, then the cases): wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear last ctx | wp_load | ∅
       wp_join iprop(∃ (csl : GoSlice), ctx_ptr ↦ csl ∗ t_ptr ↦ t) with [ctx t] as ⟨%csl, ctx, t⟩
       · wp_apply wp_string_to_bytes as %csl ⟨-, -⟩
+        wp_pures; wp_store; wp_pures
         wp_join_done
       wp_apply wp_raft_send _ _ _ _ _ [] [campReq pre id y (s.term + W64 1) lastID]
           (Or.inl rfl)
@@ -359,8 +391,9 @@ theorem raft.campaign.wp_proof
       · rw [Hgrow, List.map_append, ← sendMsgs_app]
         simp only [List.map_cons, List.map_nil, campMsg, Hyid, ↓reduceIte, ← HlastID]
         iexact Hphys
-      wp_auto
+      wp_pures
       wp_for_post
+      wp_load; wp_pures; wp_store
       iframe
       iexists _, _
       iframe

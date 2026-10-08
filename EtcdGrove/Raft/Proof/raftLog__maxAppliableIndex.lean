@@ -41,10 +41,13 @@ theorem raftLog.maxAppliableIndex.wp_proof :
   unfold ownRaftLogCore
   icases Hcore with ⟨%sprev, %stored, %ss, Hcore⟩
   iNamed Hcore
-  wp_auto
+  wp_alloc l_ptr as l; wp_pures; wp_alloc allowUnstable_ptr as allowUnstable; wp_pures; wp_load
+  wp_pures; wp_load; wp_pures; wp_alloc hi_ptr as hi; wp_pures; wp_store; wp_pures; wp_load
+  wp_pures; iclear allowUnstable
   cases au
-  · wp_auto
+  · wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear l
     wp_apply wp_min_u64
+    wp_pures; wp_store; wp_pures; wp_load; wp_pures; iclear hi
     iapply HΦ
     isplitl
     · reseal_raftLog
@@ -52,7 +55,7 @@ theorem raftLog.maxAppliableIndex.wp_proof :
     simp only [w64Min_spec, logOffset, Bool.false_eq_true, ite_false]
     subst lcm
     word
-  · wp_auto
+  · wp_pures; wp_load; wp_pures; iclear l hi
     iapply HΦ
     isplitl
     · reseal_raftLog

@@ -43,7 +43,8 @@ theorem raftLog.findConflict.wp_proof
   wp_start as ⟨Hlog, Hes⟩
   iNamed Hlog
   iNamed Hes
-  wp_auto
+  wp_alloc l_ptr as l; wp_pures; wp_alloc ents_ptr as ents; wp_pures; wp_load; wp_pures
+  wp_alloc i_ptr as i; wp_pures; wp_alloc i_ptr as i; wp_pures
   ihave %Hlen := ownSlice_len _ _ _ $$ Hes
   -- the `for range` counter is `i_ptr`; the Go-level `i` (written from `$key`) is the
   -- inaccessible one
@@ -63,17 +64,24 @@ theorem raftLog.findConflict.wp_proof
     iframe
     ipureintro
     exact ⟨by word, rfl⟩
-  wp_for IH
+  wp_for_core
+  iNamed IH
+  wp_pures; wp_load; wp_pures
+  cleanup_bool_decide
   wp_if_destruct
-  · list_elem ents (sint.nat n) as e
+  · wp_load; wp_pures
+    list_elem ents (sint.nat n) as e
     rw [ite_eq_left_of_eq_true _ _ (eq_true (by word))]
     wp_apply wp_load_slice_index es (sint.Z n) ents dq e Hn.1 $$ [Hes] with Hes
     · iframe
       ipureintro
       exact He_lookup
+    wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_load; wp_pures
     rw [ite_eq_left_of_eq_true _ _ (eq_true (by word))]
     icases ownSlice_elem_acc (sint.Z n) e es dq ents Hn.1 He_lookup $$ Hes with ⟨He, Hesback⟩
     wp_apply wp_pbEntryID $$ [$He] as He
+    wp_pures; wp_alloc id_ptr as id; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
+    wp_pures
     ihave Hes := Hesback $$ %e He
     have Hset : ents.set (sint.Z n).toNat e = ents := by
       have hlt : (sint.Z n).toNat < ents.length := by word
@@ -83,6 +91,7 @@ theorem raftLog.findConflict.wp_proof
       rw [← hget]; exact List.set_getElem_self hlt
     rw [Hset]
     wp_apply wp_raftLog_matchTerm l _ (entId e) $$ [$Hlog] as %b ⟨Hlog, %Hb⟩
+    wp_pures
     have Hdrop : ents.drop (sint.nat n) = e :: ents.drop (sint.nat n + 1) := by
       have hlt : sint.nat n < ents.length := by word
       rw [List.drop_eq_getElem_cons hlt]
@@ -96,25 +105,30 @@ theorem raftLog.findConflict.wp_proof
         simp only [plogFindConflict, hm, ↓reduceIte]
       have Hgee : uint.Z prev.index' ≤ uint.Z e.Index' :=
         Hge e (List.mem_of_getElem? He_lookup)
-      wp_auto
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures
       wp_apply wp_raftLog_lastIndex l _ $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
+      wp_pures
       dsimp only at Hli
       wp_if_destruct
-      · -- `id.index <= lastIndex()`: the `Infof`
+      · wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+        -- `id.index <= lastIndex()`: the `Infof`
         wp_apply wp_raftLog_term l _ e.Index' $$ [$Hlog] as %t %err ⟨Hlog, %Herr, -, -⟩
+        wp_pures; wp_load; wp_pures
         have Herr0 : err = interface.nil := Herr.2 (by dsimp only; exact ⟨Hgee, by omega⟩)
         subst Herr0
         wp_apply wp_raftLog_zeroTermOnOutOfBounds l t interface.nil $$ [] as %t' -
         · ileft; ipureintro; rfl
+        wp_pures; wp_load; wp_pures
         wp_apply wp_slice_literal
+        wp_pures
         try (isplitr; (ipureintro; rfl))
         try iintro %_ ⟨_, -⟩
-        try wp_auto
+        wp_pures; wp_load; wp_pures
         iNamed Hlog
         iNamed Hcore
         dsimp only at *
         icases isLoggerVal_open _ $$ Hl_logger with ⟨%lg, %Hlg, #Hlgr⟩
-        wp_auto
+        wp_load; wp_pures
         -- the logger is loaded: re-seal before `rw [Hlg]`, which would also rewrite the
         -- `Hl_logger` the re-seal needs
         ihave Hlog : ownRaftLog l ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ $$
@@ -122,17 +136,22 @@ theorem raftLog.findConflict.wp_proof
         · reseal_raftLog
         rw [Hlg]
         wp_apply Logger.wp_logf lg _ _ _ (by decide) $$ Hlgr
+        wp_pures; wp_load; wp_pures; iclear id
+        wp_for_post
+        wp_pures; iclear l ents Hj Hgi
+        rw [← Hres]
+        iapply HΦ
+        iframe
+      · wp_load; wp_pures; iclear id
+        wp_pures; iclear l ents Hj Hgi
         wp_for_post
         rw [← Hres]
         iapply HΦ
         iframe
-      · wp_for_post
-        rw [← Hres]
-        iapply HΦ
-        iframe
     · -- the entry matches: keep scanning
-      wp_auto
+      wp_pures; iclear id
       wp_for_post
+      wp_load; wp_pures; wp_store
       iframe
       iexists n + W64 1, n
       iframe

@@ -29,6 +29,7 @@ import Perennial.Proof.log
 import Perennial.Proof.io
 import Perennial.Proof.errors
 import Perennial.Proof.sync_proof.mutex
+import EtcdGrove.NoWpAuto
 
 set_option linter.iris.style.nameCheck false
 set_option linter.unusedSectionVars false

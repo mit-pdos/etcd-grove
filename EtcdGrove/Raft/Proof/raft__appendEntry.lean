@@ -159,8 +159,10 @@ theorem raft.appendEntry.wp_proof
     raft.appendEntry.spec (GF := GF) (hG := hG) := by
   intro cfg r id s es ents Hnorm Hsmall
   wp_start as ⟨Hphys, Hes⟩
-  wp_auto
+  wp_alloc accepted_ptr as accepted; wp_pures; wp_alloc r_ptr as r; wp_pures; wp_alloc es_ptr as es
+  wp_pures; wp_load; wp_pures; iclear accepted
   wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+  wp_pures
   ihave %Hlen := ownSlice_len $$ Hes
   -- `li := r.raftLog.lastIndex()`: the log is read at the state `s` records, and put
   -- back unchanged
@@ -168,6 +170,8 @@ theorem raft.appendEntry.wp_proof
   icases ownRaftLog_facts _ _ $$ Hlog with ⟨%Hfacts, Hlog⟩
   obtain ⟨Hidx, Hbnd⟩ := Hfacts
   wp_apply wp_raftLog_lastIndex _ _ $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
+  wp_pures; wp_alloc li_ptr as li; wp_pures; wp_store; wp_pures; wp_load; wp_pures
+  wp_alloc i_ptr as i; wp_pures; wp_alloc i_ptr as i; wp_pures
   ihave Hphys := Hlogback $$ Hlog
   -- The stamping loop. `slice.forRange` allocates its **own** counter (`i_ptr`
   -- here), distinct from the Go-level `i` (`iraft`) the body assigns `$key` to,
@@ -184,9 +188,13 @@ theorem raft.appendEntry.wp_proof
     simp only [show sint.nat (W64 0) = 0 by rfl, List.take_zero, List.drop_zero, List.nil_append]
     iframe Hes
     ipureintro; constructor <;> word
-  wp_for IH
+  wp_for_core
+  iNamed IH
+  wp_pures; wp_load; wp_pures
+  cleanup_bool_decide
   wp_if_destruct
-  · have Hlt : sint.nat n < ents.length := by word
+  · wp_load; wp_pures
+    have Hlt : sint.nat n < ents.length := by word
     obtain ⟨e, He⟩ : ∃ e, ents[sint.nat n]? = some e := ⟨_, List.getElem?_eq_getElem Hlt⟩
     have Hcur : ((ents.mapIdx (stamp s.term li)).take (sint.nat n) ++ ents.drop (sint.nat n))[
         (sint.Z n).toNat]? = some e := by
@@ -196,13 +204,15 @@ theorem raft.appendEntry.wp_proof
     simp only [Hbnd', and_self]
     wp_apply wp_load_slice_index es (sint.Z n) _ (DFrac.own 1) e Hn.1 $$ [Hes] as Hes
     · iframe; ipureintro; exact Hcur
+    wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_Term $$ Hphys as Hphys
+    wp_pures; wp_load; wp_load; wp_pures
     simp only [Hbnd', and_self]
     icases ownSlice_elem_acc (sint.Z n) e es (DFrac.own 1) _ Hn.1 Hcur $$ Hes with ⟨He1, Hesback⟩
-    wp_auto
+    wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures
     -- the `Index` store has its own bounds `decide`
     simp only [Hbnd', and_self]
-    wp_auto
+    wp_pures; wp_store; wp_pures
     ihave Hes := Hesback $$ %_ He1
     have Hstep : ((ents.mapIdx (stamp s.term li)).take (sint.nat n) ++ ents.drop (sint.nat n)).set
         (sint.Z n).toNat
@@ -214,18 +224,21 @@ theorem raft.appendEntry.wp_proof
     dsimp only
     rw [Hstep]
     wp_for_post
+    wp_load; wp_pures; wp_store
     iframe
     iexists n + W64 1, n
     -- the counter moved on by one, so the stamped prefix does too
     rw [show sint.nat (n + W64 1) = sint.nat n + 1 by word]
     iframe
     ipureintro; constructor <;> word
-  · -- the loop is done: every entry is stamped
+  · wp_load; wp_pures; wp_load; wp_pures; iclear Hj
+    -- the loop is done: every entry is stamped
     have Hfull : sint.nat n = ents.length := by word
     rw [Hfull, List.take_of_length_le (by simp only [List.length_mapIdx]; omega),
       List.drop_of_length_le (by omega), List.append_nil]
     -- the budget check, on the *stamped* batch: the loop ran first
     wp_apply wp_raft_increaseUncommittedSize $$ [$Hphys $Hes] as %ok ⟨Hphys, Hes, %Hok⟩
+    wp_pures
     -- acceptance is pinned only for an all-empty batch; stamping does
     -- not touch `Data`, so the implication transfers to `ents`
     have Hacc : (∀ e ∈ ents, sint.Z e.Data'.len = 0) → ok = true := fun Hz =>
@@ -235,16 +248,21 @@ theorem raft.appendEntry.wp_proof
     have Hlast : logLast s.logst = li := by
       unfold logLast; word
     rw [Hlast]
+    -- TODO(no-wp-auto): wp_auto (several runs): wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures
     cases ok <;> wp_auto
     · -- dropped: `Warningf`, `return false`, the struct untouched
       wp_apply raft.wp_load_id $$ Hphys as Hphys
+      wp_pures
+      -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; iclear r es li | ∅
       wp_raft_log
       iapply HΦ
       simp only [Bool.false_eq_true, ↓reduceIte]
       iframe
       ipureintro; exact fun h => absurd (Hacc h) (by decide)
     wp_apply wp_traceReplicate
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear es
     wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+    wp_pures
     -- `append`'s premises
     have Hidx2 : LogIndicesOk s.logst.prev
         ((s.logst.sents ++ s.logst.uents) ++ ents.mapIdx (stamp s.term li)) :=
@@ -281,10 +299,12 @@ theorem raft.appendEntry.wp_proof
     wp_apply wp_raftLog_append _ _ _ _ _ Hpre Hnorm2 $$ [$Hlog $Hes]
       as %li2 ⟨Hlog, Hes, %Hsplit2, %Hli2⟩
     · rw [Hado]; simp only [Bool.false_eq_true, ↓reduceIte, named]; itrivial
+    wp_pures; wp_store; wp_pures; wp_load; wp_pures
     rw [Hado, Htac] at *
     simp only [Bool.false_eq_true, ↓reduceIte]
     ihave Hphys := Hlogback $$ %_ Hlog
     wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear r li
     have Hlast2 : logLast (logAppend s.logst (ents.mapIdx (stamp s.term li))) = li2 := by
       unfold logLast
       unfold logAppend at Hli2 ⊢
@@ -310,7 +330,7 @@ theorem raft.appendEntry.wp_proof
       show W32 4 ≠ MsgSnap
       decide
     iintro Hphys
-    wp_auto
+    wp_pures
     iapply HΦ
     simp only [↓reduceIte]
     iframe

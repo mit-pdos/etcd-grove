@@ -91,15 +91,22 @@ theorem raft.maybeCommit.wp_proof
   wp_start as H
   iNamed H
   wp_apply wp_with_defer as %defer defer
+  wp_pures; wp_alloc r_ptr as r; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures
+  wp_load; wp_pures
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures
   icases ownRaftPhys_tracker_same cfg r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
   wp_apply wp_ProgressTracker_Committed $$ [$Htrkf $Htrk] as %N ⟨Htrkf, Htrk, %Hempty, %Hq⟩
+  wp_pures; wp_load; wp_pures; iclear r
   ihave Hphys := Hback $$ %tv Htrkf Htrk
   wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+  wp_pures
   icases ownRaftPhys_log_at cfg r id s $$ Hphys with ⟨Hlog, Hlogback⟩
   wp_apply wp_raftLog_maybeCommit $$ [$Hlog] as %b ⟨Hlog, %Hb⟩
+  wp_pures; wp_load; wp_pures
   ihave Hphys := Hlogback $$ %_ Hlog
   wp_apply wp_traceCommit
+  wp_pures
   iapply HΦ $$ %b %N
   cases b with
   | true =>

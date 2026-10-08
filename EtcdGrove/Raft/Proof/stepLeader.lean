@@ -101,23 +101,27 @@ private theorem wp_stepLeader_noop (r : Loc) (id : w64) (s : NState) (m : raftpb
         ownRaftPhys cfg r id s' ∗ ⌜err = interface.nil⌝ ∗
         ⌜LeaderNonpropResult cfg id s m s'⌝ }} := by
   wp_start as Hphys
-  wp_auto
+  wp_alloc m_ptr as m; wp_pures; wp_alloc r_ptr as r; wp_pures; wp_load; wp_pures
   have Hres : LeaderNonpropResult cfg id s m s := Or.inl ⟨Hty, rfl⟩
   rcases Hty with Hl | Hl | Hl | Hl
   all_goals
     first
     | simp only [Hl, MsgVoteResp] | simp only [Hl, MsgApp] | simp only [Hl, MsgHeartbeat]
     | simp only [Hl, MsgPreVoteResp]
-    wp_auto
+    wp_pures; wp_load; wp_load; wp_pures
     icases ownRaftPhys_tracker_same cfg r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
     icases ownTracker_progress_map cfg tv _ $$ Htrk with ⟨#Hprs, -, Htrk⟩
-    wp_auto
+    wp_load
     ihave Hphys := Hback $$ Htrkf Htrk
     wp_apply wp_map_lookup1 go.uint64 (go.GoType.PointerType tracker.Progress.ty) _ s.progress
       m.From' _ $$ Hprs with -
+    wp_pures; wp_alloc pr_ptr as pr; wp_pures; wp_store; wp_pures; wp_load; wp_pures
+    -- TODO(no-wp-auto): wp_if_destruct runs: wp_load; wp_pures | wp_load; wp_pures | wp_load; wp_pures | wp_load; wp_pures | wp_load; wp_pures | wp_load; wp_pures | wp_load; wp_pures | wp_load; wp_pures
     wp_if_destruct
     · -- no `Progress` for the sender: `Debugf`, return
       wp_apply raft.wp_load_id $$ Hphys as Hphys
+      wp_pures; wp_load; wp_pures
+      -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; iclear m r pr | ∅ | wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; iclear m r pr | ∅ | wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; iclear m r pr | ∅ | wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; iclear m r pr | ∅
       wp_raft_log
       iapply HΦ
       iframe Hphys
@@ -126,7 +130,7 @@ private theorem wp_stepLeader_noop (r : Loc) (id : w64) (s : NState) (m : raftpb
     · first
       | simp only [Hl, MsgVoteResp] | simp only [Hl, MsgApp] | simp only [Hl, MsgHeartbeat]
       | simp only [Hl, MsgPreVoteResp]
-      wp_auto
+      wp_pures; iclear m r pr
       iapply HΦ
       iframe Hphys
       ipureintro
@@ -143,10 +147,11 @@ private theorem wp_stepLeader_beat
         ownRaftPhys cfg r id s' ∗ ⌜err = interface.nil⌝ ∗
         ⌜LeaderNonpropResult cfg id s m s'⌝ }} := by
   wp_start as Hphys
-  wp_auto
+  wp_alloc m_ptr as m; wp_pures; wp_alloc r_ptr as r; wp_pures; wp_load; wp_pures
   simp only [Hty, MsgBeat]
-  wp_auto
+  wp_pures; wp_load; wp_pures
   wp_apply wp_raft_bcastHeartbeat cfg r id s Hlead $$ [$Hphys] as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
+  wp_pures; iclear m r
   iapply HΦ
   iframe Hphys
   ipureintro
@@ -165,23 +170,26 @@ private theorem wp_stepLeader_hbresp
         ownRaftPhys cfg r id s' ∗ ⌜err = interface.nil⌝ ∗
         ⌜LeaderNonpropResult cfg id s m s'⌝ }} := by
   wp_start as ⟨Hphys, #Hctx⟩
-  wp_auto
+  wp_alloc m_ptr as m; wp_pures; wp_alloc r_ptr as r; wp_pures; wp_load; wp_pures
   simp only [Hty, MsgHeartbeatResp]
-  wp_auto
+  wp_pures; wp_load; wp_load; wp_pures
   icases ownRaftPhys_tracker_same cfg r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
   icases ownTracker_progress_map cfg tv _ $$ Htrk with ⟨#Hprs, %Hdom, Htrk⟩
   icases ownTracker_prvals_dom cfg tv _ $$ Htrk with ⟨%Hpdom, Htrk⟩
   dsimp only at Hdom Hpdom
-  wp_auto
+  wp_load
   ihave Hphys := Hback $$ Htrkf Htrk
   wp_apply wp_map_lookup1 go.uint64 (go.GoType.PointerType tracker.Progress.ty) _ s.progress
     m.From' _ $$ Hprs with -
+  wp_pures; wp_alloc pr_ptr as pr; wp_pures; wp_store; wp_pures; wp_load; wp_pures
   cases Hlk : s.progress !! m.From' with
   | none =>
     -- no `Progress` for the sender
     simp only [Option.getD_none]
-    wp_auto
+    wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures
+    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; iclear m r pr | ∅
     wp_raft_log
     iapply HΦ $$ %interface.nil %s
     iframe Hphys
@@ -198,9 +206,12 @@ private theorem wp_stepLeader_hbresp
   iNamed Hpa
   ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hpv
   wp_if_destruct
-  · exact absurd rfl Hnn
+  · wp_load; wp_pures
+  wp_load; wp_pures
+    exact absurd rfl Hnn
   simp only [Hty, MsgHeartbeatResp]
-  wp_auto
+  wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load
+  wp_pures; wp_load; wp_load; wp_pures
   -- `pr.RecentActive = true; pr.MsgAppFlowPaused = false`
   have Habs' := (progressAbs_Some _ _ _).1 Habs
   ihave Hphys := Hpback $$ %{ p with recentActive := true, paused := false } [Hpv Hinfl]
@@ -215,6 +226,7 @@ private theorem wp_stepLeader_hbresp
   have Hpvs1' : pvs1 !! m.From' = some p1 := by rw [← Hpvs1]; exact GMap.lookup_insert_eq _ _ _
   -- `if pr.Match < r.raftLog.lastIndex() || pr.State == StateProbe { r.sendAppend(m.From) }`,
   -- joined
+  -- TODO(no-wp-auto): wp_join runs (cont first, then the cases): wp_pures
   wp_join iprop(∃ (ms : List Msg) (pvs : GMap w64 Progress),
       "Hphys" ∷ ownRaftPhys cfg r id { sendMsgs s ms with prvals := pvs } ∗
       "%Hms" ∷ ⌜ReplSends id s ms⌝ ∗
@@ -222,27 +234,34 @@ private theorem wp_stepLeader_hbresp
       "m" ∷ m_ptr ↦ m ∗ "r" ∷ r_ptr ↦ r ∗ "pr" ∷ pr_ptr ↦ pr) at next
     with [Hphys m r pr] as HR
   · wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+    wp_pures
     icases ownRaftPhys_log_same cfg r id _ $$ Hphys with ⟨Hlog, Hlogback⟩
     wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
+    wp_pures
     ihave Hphys := Hlogback $$ Hlog
     wp_if_destruct
-    · -- behind
+    · wp_load; wp_pures; wp_load; wp_pures
+      -- behind
       wp_apply wp_raft_sendAppend cfg r id _ m.From' Hself Hfcfg $$ [$Hphys]
         as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
+      wp_pures
       wp_join_done
       iexists ms, pvs
       iframe
       ipureintro
       exact ⟨(replSends_prvals id s pvs1 ms).1 Hms, Hmm.trans Hmm1⟩
+    wp_load; wp_pures
     icases ownRaftPhys_pr cfg r id _ m.From' pr p1 $$ Hphys %Hlk %Hpvs1' with ⟨Hpa, Hpback⟩
     iNamed Hpa
-    wp_auto
+    wp_load; wp_pures
     ihave Hphys := Hpback $$ [Hpv Hinfl]
     · iapply ownProgress_intro $$ Hpv Hinfl %Habs
     wp_if_destruct
-    · -- probing
+    · wp_load; wp_pures; wp_load; wp_pures
+      -- probing
       wp_apply wp_raft_sendAppend cfg r id _ m.From' Hself Hfcfg $$ [$Hphys]
         as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
+      wp_pures
       wp_join_done
       iexists ms, pvs
       iframe
@@ -259,7 +278,7 @@ private theorem wp_stepLeader_hbresp
   -- `if r.readOnly.option != ReadOnlySafe || len(m.Context) == 0 { return nil }`
   icases ownRaftPhys_readOnly cfg r id _ $$ Hphys with ⟨%ro, %rr, %Hpend, Hrof, Hro, Hback⟩
   icases ownReadOnly_option ro rr $$ Hro with ⟨%o, %Hsafe, Hopt, Hroback⟩
-  wp_auto
+  wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear pr
   ihave Hro := Hroback $$ Hopt
   ihave Hphys := Hback $$ %ro %rr %Hpend Hrof Hro
   ihave %Hcl := ownSlice_len _ _ _ $$ Hctx
@@ -271,12 +290,12 @@ private theorem wp_stepLeader_hbresp
     exact ⟨rfl, Or.inr (Or.inr (Or.inl ⟨Hty, ms, pvs, rfl, Hms, Hmm⟩))⟩
   by_cases Ho : o = W64 0
   · simp only [Ho, decide_true, Bool.not_true]
-    wp_auto
+    wp_pures; wp_load; wp_pures
     rw [Hcz]
-    wp_auto
+    wp_pures; iclear m r
     iexact HΦ
   · simp only [Ho, decide_false, Bool.not_false]
-    wp_auto
+    wp_pures; iclear m r
     iexact HΦ
 
 /-- **`MsgAppResp`** -/
@@ -306,23 +325,26 @@ private theorem wp_stepLeader_appresp
         ownRaftPhys cfg r id s' ∗ ⌜err = interface.nil⌝ ∗
         ⌜LeaderNonpropResult cfg id s m s'⌝ }} := by
   wp_start as Hphys
-  wp_auto
+  wp_alloc m_ptr as m; wp_pures; wp_alloc r_ptr as r; wp_pures; wp_load; wp_pures
   simp only [Hty, MsgAppResp]
-  wp_auto
+  wp_pures; wp_load; wp_load; wp_pures
   icases ownRaftPhys_tracker_same cfg r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
   icases ownTracker_progress_map cfg tv _ $$ Htrk with ⟨#Hprs, %Hdom, Htrk⟩
   icases ownTracker_prvals_dom cfg tv _ $$ Htrk with ⟨%Hpdom, Htrk⟩
   dsimp only at Hdom Hpdom
-  wp_auto
+  wp_load
   ihave Hphys := Hback $$ Htrkf Htrk
   wp_apply wp_map_lookup1 go.uint64 (go.GoType.PointerType tracker.Progress.ty) _ s.progress
     m.From' _ $$ Hprs with -
+  wp_pures; wp_alloc pr_ptr as pr; wp_pures; wp_store; wp_pures; wp_load; wp_pures
   cases Hlk : s.progress !! m.From' with
   | none =>
     -- no `Progress` for the sender
     simp only [Option.getD_none]
-    wp_auto
+    wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures
+    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; iclear m r pr | ∅
     wp_raft_log
     iapply HΦ $$ %interface.nil %s
     iframe Hphys
@@ -340,9 +362,11 @@ private theorem wp_stepLeader_appresp
   iNamed Hpa
   ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hpv
   wp_if_destruct
-  · exact absurd rfl Hnn
+  · wp_load; wp_pures
+  wp_load; wp_pures
+    exact absurd rfl Hnn
   simp only [Hty, MsgAppResp]
-  wp_auto
+  wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load
   -- `pr.RecentActive = true`
   have Habs' := (progressAbs_Some _ _ _).1 Habs
   ihave Hphys := Hpback $$ %{ p with recentActive := true } [Hpv Hinfl]
@@ -357,7 +381,7 @@ private theorem wp_stepLeader_appresp
   have Hpvs1' : pvs1 !! m.From' = some p1 := by rw [← Hpvs1]; exact GMap.lookup_insert_eq _ _ _
   cases Hrej : m.Reject'
   · -- accepted
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures
     -- `pr.MaybeUpdate(m.Index) || (pr.Match == m.Index && pr.State == StateProbe)`: its
     -- value does not matter to the postcondition, only that `pr` is left at
     -- `MaybeUpdate`'s value
@@ -373,8 +397,10 @@ private theorem wp_stepLeader_appresp
         isplitr
         · ipureintro; rfl
         iapply ownProgress_intro $$ Hpv Hinfl %Habs
+      wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
       wp_if_destruct
-      · iexists _
+      · wp_load; wp_pures; wp_load; wp_pures
+        iexists _
         iframe
         isplitr
         · ipureintro; rfl
@@ -404,7 +430,7 @@ private theorem wp_stepLeader_appresp
     have Hpvs2' : pvs2 !! m.From' = some p2 := by rw [← Hpvs2]; exact GMap.lookup_insert_eq _ _ _
     cases c
     · -- nothing to do
-      wp_auto
+      wp_pures; iclear r
       iapply HΦ $$ %interface.nil %{ s with prvals := pvs2 }
       iframe Hphys
       ipureintro
@@ -412,10 +438,11 @@ private theorem wp_stepLeader_appresp
         p.matched, pvs2, s.logst.committed, [], Hx, Hmm2, Or.inl rfl,
         fun _ h => absurd h List.not_mem_nil, ?_⟩)⟩))⟩
       cases s; simp [sendMsgs]
-    wp_auto
+    wp_pures; wp_load; wp_pures
     -- the `switch` on `pr.State`, joined: `Match` does not move
     iNamed m
     iNamed pr
+    -- TODO(no-wp-auto): wp_join runs (cont first, then the cases): wp_pures
     wp_join iprop(∃ (p3 : Progress),
         "Hphys" ∷ ownRaftPhys cfg r id { s with prvals := <[m.From' := p3]> pvs2 } ∗
         "%Hm3" ∷ ⌜p3.matched = p2.matched⌝ ∗
@@ -427,25 +454,27 @@ private theorem wp_stepLeader_appresp
       have Habs2 := (progressAbs_Some _ _ _).1 Habs
       have Hst := Habs2.2.1
       have Hm := Habs2.2.2.1
-      wp_auto
+      wp_load; wp_pures
       rw [Hst]
       cases Hst2 : p2.state <;> simp only [prstateW64]
       · -- `StateProbe`: `BecomeReplicate`
-        wp_auto
+        wp_pures; wp_load; wp_pures
         ihave Hpa := ownProgress_intro pr _ p2 $$ Hpv Hinfl %Habs
         wp_apply wp_Progress_BecomeReplicate $$ [$Hpa] as Hpa
+        wp_pures
         ihave Hphys := Hpback $$ %(progressBecomeReplicate p2) Hpa
         wp_join_done
         iexists progressBecomeReplicate p2
         iframe
         ipureintro; rfl
       · -- `StateReplicate`: `pr.Inflights.FreeLE(m.Index)`
-        wp_auto
+        wp_pures; wp_load; wp_pures; wp_load; wp_pures
         simp only [Hst, Hst2, prstateW64]
-        wp_auto
+        wp_pures; wp_load; wp_pures; wp_load; wp_pures
         simp only [Hst, Hst2, prstateW64]
-        wp_auto
+        wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
         wp_apply wp_Inflights_FreeLE $$ [$Hinfl] as %i' ⟨Hinfl, -⟩
+        wp_pures
         have Habs3 : progressAbs pv i' = some { p2 with infl := i' } := by
           obtain ⟨A1, A2, A3, A4, A5, A6, A7, A8, -⟩ := Habs2
           exact (progressAbs_Some _ _ _).2 ⟨A1, A2, A3, A4, A5, A6, A7, A8, rfl⟩
@@ -456,38 +485,46 @@ private theorem wp_stepLeader_appresp
         iframe
         ipureintro; rfl
       · -- `StateSnapshot`: `pr.Match + 1 >= r.raftLog.firstIndex()`
-        wp_auto
+        wp_pures; wp_load; wp_pures; wp_load; wp_pures
         simp only [Hst, Hst2, prstateW64]
-        wp_auto
+        wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
         rw [Hm]
         ihave Hpa := ownProgress_intro pr _ p2 $$ Hpv Hinfl %Habs
         ihave Hphys := Hpback $$ %p2 Hpa
         ihave Hphys := ownRaftPhys_ins_id cfg r id s pvs2 m.From' p2 Hpvs2' $$ Hphys
         wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+        wp_pures
         icases ownRaftPhys_log_same cfg r id _ $$ Hphys with ⟨Hlog, Hlogback⟩
         wp_apply wp_raftLog_firstIndex $$ [$Hlog] as %fi ⟨Hlog, -⟩
+        wp_pures
         ihave Hphys := Hlogback $$ Hlog
         wp_if_destruct
-        · -- back from needing a snapshot: `BecomeProbe`, `BecomeReplicate`
+        · wp_load; wp_pures
+          -- back from needing a snapshot: `BecomeProbe`, `BecomeReplicate`
           wp_apply raft.wp_load_id $$ Hphys as Hphys
+          wp_pures; wp_load; wp_pures; wp_load; wp_pures
+          -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures | ∅
           wp_raft_log
           icases ownRaftPhys_pr_at cfg r id s pvs2 m.From' pr p2 $$ Hphys %Hlk %Hpvs2'
             with ⟨Hpa, Hpback⟩
           wp_apply wp_Progress_BecomeProbe $$ [$Hpa] as Hpa
+          wp_pures; wp_load; wp_pures
           wp_apply wp_Progress_BecomeReplicate $$ [$Hpa] as Hpa
+          wp_pures
           ihave Hphys := Hpback $$ %(progressBecomeReplicate (progressBecomeProbe p2)) Hpa
           wp_join_done
           iexists progressBecomeReplicate (progressBecomeProbe p2)
           iframe
           ipureintro; rfl
-        · -- `pr.State == StateReplicate`: no, `StateSnapshot`
+        · wp_load; wp_pures
+          -- `pr.State == StateReplicate`: no, `StateSnapshot`
           icases ownRaftPhys_pr_at cfg r id s pvs2 m.From' pr p2 $$ Hphys %Hlk %Hpvs2'
             with ⟨Hpa, Hpback⟩
           iNamed Hpa
           have Hst' := ((progressAbs_Some _ _ _).1 Habs).2.1
-          wp_auto
+          wp_load; wp_pures
           simp only [Hst', Hst2, prstateW64]
-          wp_auto
+          wp_pures
           ihave Hpa := ownProgress_intro pr _ p2 $$ Hpv Hinfl %Habs
           ihave Hphys := Hpback $$ %p2 Hpa
           wp_join_done
@@ -499,9 +536,10 @@ private theorem wp_stepLeader_appresp
       prvalsMatch_insert_same _ _ p2 _ Hpvs2' Hm3
     generalize Hpvs3 : (<[m.From' := p3]> pvs2 : GMap w64 Progress) = pvs3 at *
     have Hpvs3' : pvs3 !! m.From' = some p3 := by rw [← Hpvs3]; exact GMap.lookup_insert_eq _ _ _
-    wp_auto
+    wp_load; wp_pures
     -- `if r.maybeCommit() { release...; r.bcastAppend() } else if r.id != m.From &&
     --   pr.CanBumpCommit(r.raftLog.committed) { r.sendAppend(m.From) }`, joined
+    -- TODO(no-wp-auto): wp_join runs (cont first, then the cases): wp_pures
     wp_join iprop(∃ (c : w64) (ms : List Msg) (pvs4 : GMap w64 Progress),
         "Hphys" ∷ ownRaftPhys cfg r id
           { sendMsgs { s with logst := { s.logst with committed := c } } ms with prvals := pvs4 } ∗
@@ -514,12 +552,13 @@ private theorem wp_stepLeader_appresp
         as %b %N ⟨Hphys, %HN⟩
       cases b <;> simp only [Bool.false_eq_true, ↓reduceIte]
       · -- not committed: `r.id != m.From && pr.CanBumpCommit(r.raftLog.committed)`
-        wp_auto
+        wp_pures; wp_load; wp_pures
         wp_apply raft.wp_load_id $$ Hphys as Hphys
+        wp_pures; wp_load; wp_pures
         by_cases Hsame : id = m.From'
         · -- the leader's own acknowledgement
           simp only [eq_true Hsame, decide_true, Bool.not_true]
-          wp_auto
+          wp_pures
           wp_join_done
           iexists s.logst.committed, [], pvs3
           ihave Hphys := ownRaftPhys_eq cfg r id _
@@ -529,11 +568,12 @@ private theorem wp_stepLeader_appresp
           ipureintro
           exact ⟨Or.inl rfl, fun _ h => absurd h List.not_mem_nil, rfl⟩
         · simp only [Hsame, decide_false, Bool.not_false]
-          wp_auto
+          wp_pures; wp_load; wp_pures
           wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+          wp_pures
           icases ownRaftPhys_log_same cfg r id _ $$ Hphys with ⟨Hlog, Hlogback⟩
           icases ownRaftLog_struct _ _ $$ Hlog with ⟨%lv, Hl, -, Hlb⟩
-          wp_auto
+          wp_load; wp_pures; wp_load; wp_pures
           ihave Hlog := Hlb $$ Hl
           ihave Hphys := Hlogback $$ Hlog
           icases ownRaftPhys_pr_at cfg r id s pvs3 m.From' pr p3 $$ Hphys %Hlk %Hpvs3'
@@ -542,7 +582,7 @@ private theorem wp_stepLeader_appresp
           ihave Hphys := Hpback $$ %p3 Hpa
           ihave Hphys := ownRaftPhys_ins_id cfg r id s pvs3 m.From' p3 Hpvs3' $$ Hphys
           cases Hcb : progressCanBumpCommit p3 lv.committed'
-          · wp_auto
+          · wp_pures
             wp_join_done
             iexists s.logst.committed, [], pvs3
             ihave Hphys := ownRaftPhys_eq cfg r id _
@@ -551,9 +591,10 @@ private theorem wp_stepLeader_appresp
             iframe
             ipureintro
             exact ⟨Or.inl rfl, fun _ h => absurd h List.not_mem_nil, rfl⟩
-          · wp_auto
+          · wp_pures; wp_load; wp_pures; wp_load; wp_pures
             wp_apply wp_raft_sendAppend cfg r id _ m.From' (Ne.symm Hsame) Hfcfg $$ [$Hphys]
               as %ms %pvs4 ⟨Hphys, %Hms, %Hmm4⟩
+            wp_pures
             wp_join_done
             iexists s.logst.committed, ms, pvs4
             ihave Hphys := ownRaftPhys_eq cfg r id _
@@ -565,9 +606,11 @@ private theorem wp_stepLeader_appresp
             have := (replSends_prvals id s pvs3 ms).1 Hms
             simpa using this
       · -- committed: `releasePendingReadIndexMessages` is a no-op, then `bcastAppend`
-        wp_auto
+        wp_pures; wp_load; wp_pures
         wp_apply wp_releasePendingReadIndexMessages $$ [$Hphys] as Hphys
+        wp_pures; wp_load; wp_pures
         wp_apply wp_raft_bcastAppend $$ [$Hphys] as %ms %pvs4 ⟨Hphys, %Hms, %Hmm4⟩
+        wp_pures
         wp_join_done
         iexists N, ms, pvs4
         ihave Hphys := ownRaftPhys_eq cfg r id _
@@ -580,9 +623,11 @@ private theorem wp_stepLeader_appresp
           Hmm4⟩
     iNamed HJ
     generalize Hsc : ({ s with logst := { s.logst with committed := c } } : NState) = sc at *
-    wp_auto
+    wp_load; wp_pures
     wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures
     -- `if r.id != m.From { for r.maybeSendAppend(m.From, false) {} }`, joined
+    -- TODO(no-wp-auto): wp_join runs (cont first, then the cases): wp_pures
     wp_join iprop(∃ (ms' : List Msg) (pvs5 : GMap w64 Progress),
         "Hphys" ∷ ownRaftPhys cfg r id { sendMsgs sc (ms ++ ms') with prvals := pvs5 } ∗
         "%Hms'" ∷ ⌜ReplSends id sc ms'⌝ ∗
@@ -591,7 +636,7 @@ private theorem wp_stepLeader_appresp
       with [Hphys m r] as HJ
     · by_cases Hsame : id = m.From'
       · simp only [eq_true Hsame, decide_true, Bool.not_true]
-        wp_auto
+        wp_pures
         wp_join_done
         iexists [], pvs4
         rw [List.append_nil]
@@ -599,7 +644,7 @@ private theorem wp_stepLeader_appresp
         ipureintro
         exact ⟨fun _ h => absurd h List.not_mem_nil, rfl⟩
       simp only [Hsame, decide_false, Bool.not_false]
-      wp_auto
+      wp_pures
       ihave IH : iprop(∃ (ms' : List Msg) (pvs5 : GMap w64 Progress),
           "Hphys" ∷ ownRaftPhys cfg r id { sendMsgs sc (ms ++ ms') with prvals := pvs5 } ∗
           "%Hms'" ∷ ⌜ReplSends id sc ms'⌝ ∗
@@ -610,7 +655,10 @@ private theorem wp_stepLeader_appresp
         iframe
         ipureintro
         exact ⟨fun _ h => absurd h List.not_mem_nil, rfl⟩
-      wp_for IH
+      wp_for_core
+      iNamed IH
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures
+      cleanup_bool_decide
       wp_apply wp_raft_maybeSendAppend cfg r id _ m.From' false (Ne.symm Hsame) Hfcfg $$ [$Hphys]
         as %b %ms'' %pvs'' ⟨Hphys, %Hms'', %Hmm''⟩
       have Hms3 : ReplSends id sc (ms' ++ ms'') :=
@@ -627,7 +675,7 @@ private theorem wp_stepLeader_appresp
         ipureintro
         exact ⟨Hms3, Hmm''.trans Hmm5⟩
       · cleanup_bool_decide
-        wp_auto
+        wp_pures
         wp_for_post
         iframe
         iexists ms' ++ ms'', pvs''
@@ -635,12 +683,13 @@ private theorem wp_stepLeader_appresp
         ipureintro
         exact ⟨Hms3, Hmm''.trans Hmm5⟩
     iNamed HJ
-    wp_auto
+    wp_load; wp_load; wp_pures
     -- `m.From == r.leadTransferee && ...`: `leadTransferee = 0 ≠ m.From`, so
     -- `sendTimeoutNow` is not reached
     wp_apply raft.wp_load_leadTransferee $$ Hphys as Hphys
+    wp_pures
     simp only [Hfrom0, decide_false]
-    wp_auto
+    wp_pures; iclear pr m r
     iapply HΦ $$ %interface.nil %{ sendMsgs sc (ms ++ ms') with prvals := pvs5 }
     iframe Hphys
     ipureintro
@@ -654,21 +703,26 @@ private theorem wp_stepLeader_appresp
     · rw [← Hsc]
   · -- rejected
     have Hself := Hself Hrej
-    wp_auto
+    wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_alloc nextProbeIdx_ptr as nextProbeIdx; wp_pures; wp_store; wp_pures; wp_load; wp_pures | ∅
     wp_raft_log
     -- `nextProbeIdx`, from `findConflictByTerm` when `m.LogTerm > 0`
+    -- TODO(no-wp-auto): wp_join runs (cont first, then the cases): wp_pures | wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures | ∅
     wp_join iprop(∃ (np : w64),
         "nextProbeIdx" ∷ nextProbeIdx_ptr ↦ np ∗
         "Hphys" ∷ ownRaftPhys cfg r id { s with prvals := pvs1 } ∗
         "m" ∷ m_ptr ↦ m ∗ "r" ∷ r_ptr ↦ r) with [nextProbeIdx Hphys m r] as HR
     · wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+      wp_pures
       icases ownRaftPhys_log_same cfg r id _ $$ Hphys with ⟨Hlog, Hlogback⟩
       wp_apply wp_raftLog_findConflictByTerm $$ [$Hlog] as %i' %t' ⟨Hlog, -⟩
+      wp_pures; wp_store; wp_pures
       ihave Hphys := Hlogback $$ Hlog
       wp_join_done
     iNamed HR
-    wp_auto
+    wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear nextProbeIdx
     -- `pr.MaybeDecrTo(m.Index, nextProbeIdx)`
     icases ownRaftPhys_pr_at cfg r id s pvs1 m.From' pr p1 $$ Hphys %Hlk %Hpvs1' with ⟨Hpa, Hpback⟩
     wp_apply wp_Progress_MaybeDecrTo $$ [$Hpa] as Hpa
@@ -682,32 +736,36 @@ private theorem wp_stepLeader_appresp
     have Hpvs2' : pvs2 !! m.From' = some p2 := by rw [← Hpvs2]; exact GMap.lookup_insert_eq _ _ _
     cases b
     · -- nothing to resend
-      wp_auto
+      wp_pures; iclear pr m r
       iapply HΦ $$ %interface.nil %{ s with prvals := pvs2 }
       iframe Hphys
       ipureintro
       refine ⟨rfl, Or.inr (Or.inr (Or.inr ⟨Hty, Or.inr (Or.inl ⟨Hfdom, Hrej, [], pvs2, ?_,
         fun _ h => absurd h List.not_mem_nil, Hmm2⟩)⟩))⟩
       rw [sendMsgs_nil_prvals]
-    wp_auto
+    wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures
+    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures | ∅
     wp_raft_log
     -- `if pr.State == StateReplicate { pr.BecomeProbe() }`
     icases ownRaftPhys_pr_at cfg r id s pvs2 m.From' pr p2 $$ Hphys %Hlk %Hpvs2' with ⟨Hpa, Hpback⟩
     iNamed Hpa
     have Hst2 := ((progressAbs_Some _ _ _).1 Habs).2.1
-    wp_auto
+    wp_load; wp_pures
     rw [Hst2]
     ihave Hpa := ownProgress_intro pr _ p2 $$ Hpv Hinfl %Habs
     by_cases Hrep : p2.state = .replicate
     · rw [Hrep]
-      wp_auto
+      wp_pures; wp_load; wp_pures; iclear pr
       wp_apply wp_Progress_BecomeProbe $$ [$Hpa] as Hpa
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear m r
       ihave Hphys := Hpback $$ %(progressBecomeProbe p2) Hpa
       have HM3 : (progressBecomeProbe p2).matched = p2.matched := rfl
       generalize Hpvs3 : (<[m.From' := progressBecomeProbe p2]> pvs2 : GMap w64 Progress) = pvs3
       wp_apply wp_raft_sendAppend cfg r id _ m.From' Hself Hfcfg $$ [$Hphys]
         as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
+      wp_pures
       ihave Hphys := ownRaftPhys_eq cfg r id _ { sendMsgs s ms with prvals := pvs }
         (by simp [sendMsgs]) $$ Hphys
       iapply HΦ $$ %interface.nil %{ sendMsgs s ms with prvals := pvs }
@@ -720,12 +778,13 @@ private theorem wp_stepLeader_appresp
     · have Hne : prstateW64 p2.state ≠ W64 1 := by
         cases h : p2.state <;> simp_all [prstateW64]
       simp only [show (prstateW64 p2.state = W64 1) = False from eq_false Hne, decide_false]
-      wp_auto
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear pr m r
       ihave Hphys := Hpback $$ %p2 Hpa
       have HM3 : p2.matched = p2.matched := rfl
       generalize Hpvs3 : (<[m.From' := p2]> pvs2 : GMap w64 Progress) = pvs3
       wp_apply wp_raft_sendAppend cfg r id _ m.From' Hself Hfcfg $$ [$Hphys]
         as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
+      wp_pures
       ihave Hphys := ownRaftPhys_eq cfg r id _ { sendMsgs s ms with prvals := pvs }
         (by simp [sendMsgs]) $$ Hphys
       iapply HΦ $$ %interface.nil %{ sendMsgs s ms with prvals := pvs }
@@ -763,24 +822,28 @@ private theorem wp_stepLeader_prop
   unfold isInitialized
   icases Hinit with ⟨%e1, %e2, %e3, %e4, %errPropDropped, %gr, #Hinit⟩
   iNamed Hinit
-  wp_auto
+  wp_alloc m_ptr as m; wp_pures; wp_alloc r_ptr as r; wp_pures; wp_load; wp_pures
   simp only [Hty, MsgProp]
-  wp_auto
+  wp_pures; wp_load; wp_pures
   ihave %Hl := ownSlice_len _ _ _ $$ Hes
   wp_if_destruct
-  · exfalso
+  · wp_load; wp_pures
+    exfalso
     apply Hne
     apply List.eq_nil_of_length_eq_zero
     rw [Hl.1, Hif]; rfl
+  wp_load; wp_pures
   wp_apply raft.wp_load_id $$ Hphys as Hphys
+  wp_load; wp_pures
   icases ownRaftPhys_tracker_same cfg r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
   icases ownTracker_progress_map cfg tv _ $$ Htrk with ⟨#Hprs, %Hdom, Htrk⟩
   icases ownTracker_prvals_dom cfg tv _ $$ Htrk with ⟨%Hpdom, Htrk⟩
   dsimp only at Hdom Hpdom
-  wp_auto
+  wp_load
   ihave Hphys := Hback $$ Htrkf Htrk
   wp_apply wp_map_lookup1 go.uint64 (go.GoType.PointerType tracker.Progress.ty) _ s.progress
     id _ $$ Hprs with -
+  wp_pures
   obtain ⟨pr, Hlk⟩ : ∃ pr, s.progress !! id = some pr := by
     rw [← GMap.elem_of_dom, Hdom]; exact Hid
   obtain ⟨p, Hpvs⟩ : ∃ p, s.prvals !! id = some p := by
@@ -793,8 +856,11 @@ private theorem wp_stepLeader_prop
   rw [Hlk]
   simp only [Option.getD_some]
   wp_if_destruct
-  · exact absurd rfl Hnn
+  · wp_load; wp_pures; iclear m r
+  wp_load; wp_pures
+    exact absurd rfl Hnn
   wp_apply raft.wp_load_leadTransferee $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures; wp_alloc i_ptr as i; wp_pures; wp_alloc i_ptr as i; wp_pures
   rename_i gi_ptr
   irename : (gi_ptr ↦ zero_val w64 : IProp GF) => Hgi
   ihave IH : iprop(∃ (n k : w64),
@@ -806,36 +872,45 @@ private theorem wp_stepLeader_prop
     iframe
     ipureintro
     word
-  wp_for IH
+  wp_for_core
+  iNamed IH
+  wp_pures; wp_load; wp_pures
+  cleanup_bool_decide
   wp_if_destruct
-  · list_elem ents (sint.nat n) as e
+  · wp_load; wp_pures
+    list_elem ents (sint.nat n) as e
     rw [ite_eq_left_of_eq_true _ _ (eq_true (by word))]
     wp_apply wp_load_slice_index _ (sint.Z n) ents (DFrac.own 1) e Hn.1 $$ [Hes] with Hes
     · iframe
       ipureintro
       exact He_lookup
+    wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_load; wp_pures
     rw [ite_eq_left_of_eq_true _ _ (eq_true (by word))]
     icases ownSlice_elem_acc (sint.Z n) e _ (DFrac.own 1) ents Hn.1 He_lookup $$ Hes
       with ⟨He, Hesback⟩
     have Hety : e.Type' = EntryNormal := Hnorm e (List.mem_of_getElem? He_lookup)
-    wp_auto
+    wp_pures; wp_alloc e_ptr as e; wp_pures; wp_store; wp_pures; wp_alloc cc_ptr as cc; wp_pures
+    wp_load; wp_pures; wp_load; wp_pures
     simp only [Hety, EntryNormal]
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures
     simp only [Hety, EntryNormal]
-    wp_auto
+    wp_pures; wp_load; wp_pures; iclear e cc
     ihave Hes := Hesback $$ %e He
     rw [list_set_self ents (sint.Z n) e He_lookup]
     wp_for_post
+    wp_load; wp_pures; wp_store
     iframe
     iexists n + W64 1, n
     iframe
     ipureintro
     word
-  · wp_apply wp_raft_appendEntry cfg r id s _ ents Hnorm Hsmall $$ [$Hphys $Hes]
+  · wp_load; wp_pures; wp_load; wp_pures; iclear Hj Hgi
+    wp_apply wp_raft_appendEntry cfg r id s _ ents Hnorm Hsmall $$ [$Hphys $Hes]
       as %acc ⟨-, Hes, Hphys⟩
+    wp_pures
     cases acc <;> simp only [Bool.false_eq_true, ↓reduceIte]
     · -- dropped
-      wp_auto
+      wp_pures; wp_load; wp_pures; iclear m r
       iapply HΦ $$ %errPropDropped %s %true
       iframe Hphys Hes
       isplitr
@@ -843,8 +918,9 @@ private theorem wp_stepLeader_prop
         simp [LeaderProposeResult]
       simp only [↓reduceIte]
       iexact ErrPropDropped
-    · wp_auto
+    · wp_pures; wp_load; wp_pures
       wp_apply wp_raft_bcastAppend $$ [$Hphys] as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
+      wp_pures; iclear m r
       iapply HΦ $$ %interface.nil %_ %false
       iframe Hphys Hes
       isplitr

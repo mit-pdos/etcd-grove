@@ -139,15 +139,19 @@ theorem raft.reset.wp_proof
   icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog, Hlb⟩
   icases ownRaftLog_nowrap $$ Hlog with ⟨%Hnw, Hlog⟩
   ihave Hphys := Hlb $$ Hlog
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_alloc term_ptr as term; wp_pures; wp_load; wp_pures
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_load; wp_pures
   -- Two arms: `r.Term != term` writes `Term` and `Vote`; otherwise nothing is written
   -- and the vote survives.
+  -- TODO(no-wp-auto): wp_join runs (cont first, then the cases): wp_pures; wp_load; wp_pures; iclear term | ∅ | wp_load; wp_pures; wp_load; wp_pures
   wp_join iprop(r_ptr ↦ r ∗ term_ptr ↦ term ∗ ownRaftPhys cfg r id
       { s with term := term, vote := if term = s.term then s.vote else W64 0 })
     with [r term Hphys] as ⟨r, term, Hphys⟩
   · wp_apply raft.wp_store_Term $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures
     wp_apply raft.wp_store_Vote $$ Hphys as Hphys
+    wp_pures
     isplitr
     · ipureintro; exact rfl
     iframe r term
@@ -155,17 +159,22 @@ theorem raft.reset.wp_proof
     rw [if_neg (Ne.symm Hif)]
   -- `lead := None`, `electionElapsed := 0`, `heartbeatElapsed := 0`
   wp_apply raft.wp_store_lead $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures
   wp_apply raft.wp_store_electionElapsed $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures
   wp_apply raft.wp_store_heartbeatElapsed $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures
   wp_apply wp_raft_resetRandomizedElectionTimeout $$ [$Hphys] as Hphys
+  wp_pures; wp_load; wp_pures
   wp_apply wp_raft_abortLeaderTransfer $$ [$Hphys] as Hphys
+  wp_pures; wp_load; wp_pures
   -- `r.trk.ResetVotes()`, on the tracker the accessor hands out; put back at the empty
   -- tally
   icases ownRaftPhys_tracker $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
   wp_apply wp_ProgressTracker_ResetVotes $$ [$Htrkf $Htrk] as %votesRef ⟨Htrkf, Htrk⟩
+  wp_pures; wp_load; wp_pures
   ihave Hphys := Hback $$ Htrkf Htrk
   ihave Hphys := ownRaftPhys_eq cfg r id _ (resetTo s term) (by cases s; rfl) $$ Hphys
-  try wp_auto
   -- `Visit` owns the tracker field and lends it to the closure together with one
   -- `Progress`. The caller invariant is the rest of the struct -- the wand of
   -- `ownRaftPhys_tracker_prvals` -- and `ResetInv`.
@@ -197,10 +206,12 @@ theorem raft.reset.wp_proof
     have Hpri' : (resetTo s term).progress !! i = some pr := Hpri
     ihave Htrk := Hprback $$ Hpr
     ihave Hphys := HI $$ Htrkf Htrk
-    wp_auto
+    wp_pures; wp_alloc pr_ptr as pr; wp_pures; wp_alloc id_ptr as id; wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+    wp_pures
     icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog, Hphys⟩
     wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, %Hli0⟩
+    wp_pures; wp_load; wp_pures
     ihave Hphys := Hphys $$ Hlog
     -- `r.trk.MaxInflight`, `r.trk.MaxInflightBytes` through the tracker field, then
     -- `pr.IsLearner` and the store through `pr`
@@ -219,8 +230,10 @@ theorem raft.reset.wp_proof
     iNamed Hpr
     iclear Hinfl
     have Hnolearner := ((progressAbs_Some _ _ _).1 Habs).1
-    wp_auto
+    wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
     wp_apply wp_tracker_NewInflights _ _ HmaxI2 as %ifl Hifl
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load
+    wp_load; wp_pures; iclear id
     -- the `Progress` literal has no `State` field, so `State` is the zero value
     -- `StateProbe`; `IsLearner` is copied across
     ihave Htrk := Hprback $$ [Hpv Hifl]
@@ -232,14 +245,17 @@ theorem raft.reset.wp_proof
     · iapply ownTracker_cast _ _ _ _ ?_ $$ Htrk
       rfl
     wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_pures
     -- Both arms end the same way: hand the field and the tracker back to `Visit`, and
     -- the wand back to `I`.
     by_cases Hii : i = id
     · rw [decide_eq_true Hii]
-      wp_auto
+      wp_pures; wp_load; wp_pures
       wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+      wp_pures
       icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog, Hphys⟩
       wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li2 ⟨Hlog, %Hli1⟩
+      wp_pures; wp_load; wp_pures; iclear pr
       ihave Hphys := Hphys $$ Hlog
       -- `pr.Match = lastIndex()`: borrow `pr` once more
       icases ownRaftPhys_tracker_prvals $$ Hphys with ⟨%tv3, Htrkf, Htrk, HI⟩
@@ -252,7 +268,7 @@ theorem raft.reset.wp_proof
       icases Hpr with ⟨%pv2, Hpr⟩
       iNamed Hpr
       have Habs2 := (progressAbs_Some _ _ _).1 Habs
-      wp_auto
+      wp_store; wp_pures
       ihave Htrk := Hprback $$ [Hpv Hinfl]
       · iapply ownProgress_of pr { pv2 with Match' := li2 } p2.state _ Habs2.1 Habs2.2.1
           $$ Hpv Hinfl
@@ -278,7 +294,7 @@ theorem raft.reset.wp_proof
         rfl
       iapply ownRaftPhys_eq cfg r id _ _ (by rfl) $$ Hphys
     · rw [decide_eq_false Hii]
-      wp_auto
+      wp_pures; iclear pr
       icases ownRaftPhys_tracker_prvals $$ Hphys with ⟨%tv3, Htrkf, Htrk, HI⟩
       ihave Htrk := ownTracker_cast cfg tv3 _
         ⟨(resetTo s term).votes, (resetTo s term).progress, _⟩ ?_ $$ Htrk
@@ -296,20 +312,23 @@ theorem raft.reset.wp_proof
       · iapply ownTracker_cast _ _ _ _ ?_ $$ Ht
         rfl
       iapply ownRaftPhys_eq cfg r id _ _ (by rfl) $$ Hphys
+  wp_pures; wp_load; wp_pures
   -- `Visit` hands the field and the tracker back
   ihave Hphys := HI $$ %tvfin %pvsfin Htrkf [Htrk]
   · iapply ownTracker_cast _ _ _ _ ?_ $$ Htrk
     rfl
   -- `pendingConfIndex := 0`, `uncommittedSize := 0`
-  try wp_auto
   wp_apply raft.wp_store_pendingConfIndex $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures
   wp_apply raft.wp_store_uncommittedSize $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures
   -- `r.readOnly = newReadOnly(r.readOnly.option)`
   icases ownRaftPhys_readOnly $$ Hphys with ⟨%ro, %rr, %Hpend, Hrof, Hro, Hback⟩
   icases ownReadOnly_option $$ Hro with ⟨%o, %Hsafe, Hopt, Hroback⟩
-  wp_auto
+  wp_load; wp_pures; wp_load; wp_pures
   ihave Hro := Hroback $$ Hopt
   wp_apply wp_newReadOnly as %ro' Hro'
+  wp_pures; wp_load; wp_pures; wp_store; wp_pures; iclear r
   ihave Hphys := Hback $$ %ro' %(ReadOnly.mk (decide (o = W64 0)) [] ∅ (W64 0)) [] Hrof Hro'
   · ipureintro; rfl
   iapply HΦ $$ %pvsfin

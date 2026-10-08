@@ -28,27 +28,33 @@ theorem MemoryStorage.Entries.wp_proof
   icases Hms with ⟨%γ, Hms⟩
   iNamed Hms
   wp_apply wp_with_defer as %defer defer
+  wp_pures; wp_alloc ms_ptr as ms; wp_pures; wp_alloc maxSize_ptr as maxSize; wp_pures
+  wp_alloc hi_ptr as hi; wp_pures; wp_alloc lo_ptr as lo; wp_pures; wp_load; wp_pures
   -- `ms.Lock()`: the method of the embedded `sync.Mutex`
   wp_method_call
   wp_call
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures
   iNamedSuffix Hinv "_inv"
   ihave %Heq := ghostVar_agree $$ Hgs Hgs_inv
   simp only [Prod.mk.injEq] at Heq
   obtain ⟨⟨rfl, rfl⟩, rfl⟩ := Heq
   iNamed Hfields_inv
   icases Hents with #Hents
-  wp_auto
+  wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures
   ihave %Hlen := ownSlice_len _ _ _ $$ Hents
   simp only [List.length_cons] at Hlen
   icases ownSlice_elem_acc (sint.Z (W64 0)) dummy es DFrac.discard (dummy :: ents) (by word) rfl
     $$ Hents with ⟨#He, -⟩
   rw [ite_eq_left ⟨by word, by word⟩]
   iStructNamed He
-  wp_auto
+  wp_pures; wp_load; wp_pures; wp_alloc offset_ptr as offset; wp_pures; wp_store; wp_pures; wp_load
+  wp_load; wp_pures
   obtain ⟨Hd0, Hd1⟩ := Hdummy
   wp_if_destruct
   · exfalso; rw [Hd0] at Hif; omega
+  wp_load; wp_load; wp_pures
   ihave Hf : memstorageFields ms prev ents ss $$ [HhardState Hsnapshot Hvoters Hents_f HcallStats]
   · unfold memstorageFields
     iexists _, _, _, _, _, _
@@ -56,6 +62,7 @@ theorem MemoryStorage.Entries.wp_proof
     ipureintro
     exact ⟨Hsnap_id, Hd0, Hd1⟩
   wp_apply wp_MemoryStorage_lastIndex ms prev ents ss Hbounded $$ [$Hf] as %li ⟨%Hli, Hf⟩
+  wp_pures
   iclear Hents He Term Index Type' Data
   rw [Hd0]
   unfold memstorageFields
@@ -66,13 +73,17 @@ theorem MemoryStorage.Entries.wp_proof
   simp only [List.length_cons] at Hlen2
   obtain ⟨Hd0', Hd1'⟩ := Hdummy
   wp_if_destruct
-  · exfalso; word
+  · wp_load; wp_pures; wp_load; wp_pures
+  wp_load; wp_pures; wp_load; wp_pures
+    exfalso; word
   wp_if_destruct
   · exfalso; word
+  wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_load; wp_pures
+  iclear ms hi lo offset
   have Hlo' : sint.Z (lo - prev.index') = uint.Z lo - uint.Z prev.index' := by word
   have Hhi' : sint.Z (hi - prev.index') = uint.Z hi - uint.Z prev.index' := by word
   rw [ite_eq_left ⟨by word, by word, by word⟩]
-  wp_auto
+  wp_pures; wp_load; wp_pures; iclear maxSize
   -- the sub-slice `ents[lo-offset:hi-offset]` is `E0`
   have Hlon : sint.nat (lo - prev.index') = (uint.Z lo - uint.Z prev.index' - 1).toNat + 1 := by
     word
@@ -90,6 +101,8 @@ theorem MemoryStorage.Entries.wp_proof
       ⟨by word, by word, by word⟩).1 $$ Hents with ⟨-, #Hsub, -⟩
   rw [HE0] at *
   wp_apply wp_limitSize $$ [$Hsub] as %s1 %nlim ⟨%Hn, #Hs1, -⟩
+  wp_pures; wp_alloc ents_ptr as ents; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures; wp_load; wp_pures; iclear ents
   ihave %Hs1len := ownSlice_len _ _ _ $$ Hs1
   ihave %Hs1wf := ownSlice_wf _ _ _ $$ Hs1
   have HE0ne : (ents.take (uint.Z hi - uint.Z prev.index' - 1).toNat).drop
@@ -115,7 +128,7 @@ theorem MemoryStorage.Entries.wp_proof
     iframe HhardState Hsnapshot Hvoters Hents_f HcallStats Hents
     ipureintro
     exact ⟨Hsnap_id, Hd0', Hd1'⟩
-  wp_auto
+  wp_pures; wp_load; wp_pures
   -- the deferred `ms.Unlock()`
   wp_method_call
   wp_call
@@ -123,6 +136,7 @@ theorem MemoryStorage.Entries.wp_proof
   · unfold memstorageInv
     iexists prev, ents, ss
     iframe
+  wp_pures
   iapply HΦ
   iframe Hs2
   isplitr

@@ -25,10 +25,10 @@ theorem confchange.Changer.checkAndCopy.wp_proof
     confchange.Changer.checkAndCopy.spec (GF := GF) (hG := hG) := by
   intro p chg v vm prs dq dqv dqp Hcfg Hdom
   wp_start as ⟨Hp, Hv, Hpm, Hprogs⟩
-  wp_auto
+  wp_load; wp_pures
   wp_method_call
   wp_call
-  wp_auto
+  wp_call; wp_alloc c_ptr as c; wp_pures
   -- `cfg := c.Tracker.Config.Clone()`: the field of the local copy, and back
   icases (Access.access
     (A := iprop((c_ptr.[confchange.Changer, go!"Tracker"]).[tracker.ProgressTracker, go!"Config"] ↦
@@ -37,9 +37,12 @@ theorem confchange.Changer.checkAndCopy.wp_proof
       chg.Tracker'.Config'))
     (P := iprop(c_ptr ↦ chg))) $$ c with ⟨Hf, Hback⟩
   wp_apply wp_Config_Clone _ _ v vm _ _ Hcfg $$ [$Hf $Hv] as %cfg' %v' ⟨Hf, Hv, %Hcfg', Hv'⟩
+  wp_pures; wp_alloc cfg_ptr as cfg; wp_pures; wp_store; wp_pures
   ihave c := Hback $$ Hf
   -- `trk := tracker.ProgressMap{}`: a `make`
   wp_apply wp_map_make1 (K := w64) (V := Loc) as %trkm Htrk
+  wp_pures; wp_alloc trk_ptr as trk; wp_pures; wp_store; wp_pures; wp_load; wp_pures
+  wp_alloc pr_ptr as pr; wp_pures; wp_alloc id_ptr as id; wp_pures; iclear c
   -- `for id, pr := range c.Tracker.Progress { ppr := *pr; trk[id] = &ppr }`. Each copy
   -- takes the original's inflight ring, so the invariant marks the originals copied so
   -- far (`keys.take i`) as no longer owned.
@@ -86,8 +89,10 @@ theorem confchange.Changer.checkAndCopy.wp_proof
     icases Hk with (%Hin | ⟨%pp, Hpr⟩)
     · exact absurd Hin (not_mem_take_of_nodup Hknodup Hkey)
     iNamed Hpr
-    wp_auto
+    wp_pures; wp_store; wp_pures; wp_store; wp_pures; wp_load; wp_load; wp_pures
+    wp_alloc ppr_ptr as ppr; wp_pures; wp_store; wp_pures; wp_load; wp_load
     wp_apply wp_mapInsert $$ Htrk as Htrk
+    wp_pures
     unfold forMapPostcondition
     iright; ileft
     isplitr
@@ -138,9 +143,10 @@ theorem confchange.Changer.checkAndCopy.wp_proof
     rw [Hdom', Hkset]
     exact (GMap.elem_of_dom' _ _).symm
   -- `checkAndReturn(cfg, trk)`
-  wp_auto
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear cfg id pr trk
   wp_apply wp_confchange_checkAndReturn _ _ v' vm prs' _ _ Hcfg' Hdom'' $$ [$Hv' $Htrk]
     as ⟨Hv', Htrk⟩
+  wp_pures
   iapply HΦ
   iframe
   ipureintro

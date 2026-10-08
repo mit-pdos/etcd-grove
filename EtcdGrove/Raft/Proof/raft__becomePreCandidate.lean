@@ -22,30 +22,38 @@ theorem raft.becomePreCandidate.wp_proof
     raft.becomePreCandidate.spec (GF := GF) (hG := hG) := by
   intro cfg r id s Hrole
   wp_start as Hphys
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_load; wp_pures
   -- `becomePreCandidate` panics on a leader; by assumption we are not one.
   have Hnl : stateW64 s.role ≠ W64 2 := by
     cases Hro : s.role <;> first
       | exact absurd Hro Hrole
       | (simp only [stateW64, StateFollower, StateCandidate, StatePreCandidate]; decide)
   wp_apply raft.wp_load_state $$ Hphys as Hphys
+  wp_pures
   rw [decide_eq_false Hnl]
-  wp_auto
+  wp_pures; wp_load; wp_pures
   -- `r.step = stepCandidate`
   wp_apply raft.wp_store_step $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures
   -- `r.trk.ResetVotes()`, on the tracker the accessor hands out; put back at the empty
   -- tally
   icases ownRaftPhys_tracker cfg _ _ _ $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
   wp_apply wp_ProgressTracker_ResetVotes $$ [$Htrkf $Htrk] as %votesRef ⟨Htrkf, Htrk⟩
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures
   ihave Hphys := Hback $$ Htrkf Htrk
-  try wp_auto
   -- `r.tick`, `r.lead = None`, `r.state = StatePreCandidate`
   wp_apply raft.wp_store_tick $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures
   wp_apply raft.wp_store_lead $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures
   rw [show go_etcd_io.raft.v3.StatePreCandidate = #(stateW64 .preCandidate) from rfl]
   wp_apply raft.wp_store_state _ _ _ _ .preCandidate $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures
   wp_apply raft.wp_load_id $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_pures
+  -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures; iclear r | wp_pures | wp_pures | ∅
   wp_raft_log
   iapply HΦ
   -- the stores give `becomePrecandidate` up to the order of the record updates

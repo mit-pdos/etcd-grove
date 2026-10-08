@@ -23,9 +23,12 @@ theorem confchange.checkAndReturn.wp_proof
     confchange.checkAndReturn.spec (GF := GF) (hG := hG) := by
   intro cfg trk v vm prs dqv dqp Hcfg Hdom
   wp_start as ⟨Hv, Htrk⟩
-  wp_auto
+  wp_alloc trk_ptr as trk; wp_pures; wp_alloc cfg_ptr as cfg; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures
   wp_apply wp_confchange_checkInvariants _ _ v vm prs _ _ Hcfg Hdom $$ [$Hv $Htrk]
     as ⟨Hv, Htrk⟩
+  wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
+  wp_load; wp_pures; iclear trk cfg err
   wp_end
 
 end proof

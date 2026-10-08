@@ -105,49 +105,62 @@ theorem wp_Step_MsgPreVote_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   have Hs0 : s.term ≠ W64 0 := Heq0 ▸ Hterm
   wp_start as Hphys
   iNamed Hphys
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_alloc m_ptr as m; wp_pures; wp_load; wp_pures
   wp_apply _P.traceReceiveMessage
+  wp_pures; wp_load; wp_pures
   -- `m.Term ≠ 0`, so the first arm of the term preamble is skipped
   rw [decide_eq_false Hterm]
-  wp_auto
+  wp_pures; wp_load; wp_load; wp_pures
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_pures
   rw [decide_eq_false (show ¬ uint.Z s.term < uint.Z m.Term' by rw [Heq0]; omega)]
-  wp_auto
+  wp_pures; wp_load; wp_load; wp_pures
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_pures
   rw [decide_eq_false (show ¬ uint.Z m.Term' < uint.Z s.term by rw [Heq0]; omega)]
-  wp_auto
+  wp_pures; wp_load; wp_pures
   -- the type switch: not `MsgHup` / `MsgStorageAppendResp` / `MsgStorageApplyResp`,
   -- but `MsgPreVote`
   rw [Hty]
-  wp_auto
+  wp_pures; wp_load; wp_pures
   -- `canVote`, whatever it is; the evaluation is joined
+  -- TODO(no-wp-auto): wp_join runs (cont first, then the cases): wp_pures; wp_alloc canVote_ptr as canVote; wp_pures
   wp_join (Q := fun v => iprop(⌜∃ b : Bool, v = #b⌝ ∗ ownRaftPhys cfg r id s ∗
       r_ptr ↦ r ∗ m_ptr ↦ m)) at (if: _ then _ else _) with [Hphys r m]
     as ⟨%Hv, Hphys, r, m⟩
+  -- TODO(no-wp-auto): macro `cv_step)` runs wp_auto: ∅ | wp_pures; wp_load; wp_pures | ∅ | ∅ | wp_load; wp_pures | ∅ | ∅ | wp_pures | ∅ | ∅ | wp_load; wp_pures | wp_load; wp_pures | ∅ | ∅ | wp_pures | ∅ | wp_load; wp_load; wp_pures | ∅ | ∅ | ∅ | ∅ | wp_load; wp_pures | ∅ | wp_pures | ∅ | ∅ | ∅ | ∅ | wp_load; wp_load; wp_pures | ∅ | ∅ | ∅ | ∅ | ∅ | ∅ | ∅ | ∅ | wp_pures | ∅ | ∅ | ∅ | ∅ | ∅ | ∅ | ∅ | ∅ | ∅ | ∅ | ∅ | ∅ | ∅ | ∅ | ∅ | ∅ | ∅ | ∅ | ∅ | ∅ | ∅
   · repeat (any_goals cv_step)
     all_goals (iframe; ipureintro; exact ⟨_, rfl⟩)
   obtain ⟨cv, rfl⟩ := Hv
-  wp_auto
+  wp_store; wp_pures; wp_load; wp_pures
   wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+  wp_pures
   icases ownRaftPhys_log_same cfg r id _ $$ Hphys with ⟨Hlog, Hback⟩
   wp_apply _P.lastEntryID $$ [$Hlog] as %lastID ⟨Hlog, -⟩
+  wp_pures; wp_alloc lastID_ptr as lastID; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures; wp_alloc candLastID_ptr as candLastID; wp_pures; wp_store; wp_pures; wp_load
+  iclear canVote
   ihave Hphys := Hback $$ Hlog
   -- `canVote && isUpToDate(…)`: the reject arm is reached two ways
   cases cv
   · -- cannot vote: reject at `r.Term`
-    wp_auto
+    wp_pures; wp_load; wp_pures
+    -- TODO(no-wp-auto): macro `prevote_resp_tail` runs wp_auto: wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear lastID | wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear candLastID | wp_pures | wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures | ∅ | wp_pures; wp_load; wp_pures; iclear m | wp_pures; wp_load; wp_pures; iclear r | ∅ | wp_pures
     prevote_resp_tail
-  wp_auto
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures
   wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+  wp_pures
   icases ownRaftPhys_log_same cfg r id _ $$ Hphys with ⟨Hlog, Hback⟩
   wp_apply _P.isUpToDate $$ [$Hlog] as %uptodate ⟨Hlog, -⟩
   ihave Hphys := Hback $$ Hlog
   cases uptodate
   · -- behind: reject
-    wp_auto
+    wp_pures; wp_load; wp_pures
+    -- TODO(no-wp-auto): macro `prevote_resp_tail` runs wp_auto: wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear lastID | wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear candLastID | wp_pures | wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures | ∅ | wp_pures; wp_load; wp_pures; iclear m | wp_pures; wp_load; wp_pures; iclear r | ∅ | wp_pures
     prevote_resp_tail
   -- grant at `m.Term`, recording nothing
-  wp_auto
+  wp_pures; wp_load; wp_pures
+  -- TODO(no-wp-auto): macro `prevote_resp_tail` runs wp_auto: wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear lastID | wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear candLastID | wp_pures | wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures | ∅ | wp_pures; wp_load; wp_pures | ∅ | wp_pures; wp_load; wp_pures | wp_pures; iclear r m
   prevote_resp_tail
 
 end StepProof

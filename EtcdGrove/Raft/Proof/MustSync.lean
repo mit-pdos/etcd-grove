@@ -20,10 +20,13 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem MustSync.wp_proof : MustSync.spec (GF := GF) (hG := hG) := by
   intro st prevst n
   wp_start as -
-  wp_auto
+  wp_alloc entsnum_ptr as entsnum; wp_pures; wp_alloc prevst_ptr as prevst; wp_pures
+  wp_alloc st_ptr as st; wp_pures; wp_load; wp_pures; iclear entsnum
   wp_if_destruct
-  · wp_if_destruct
-    · ispecialize HΦ $$ []
+  · wp_load; wp_pures; wp_load; wp_pures
+    wp_if_destruct
+    · wp_load; wp_pures; wp_load; wp_pures; iclear prevst st
+      ispecialize HΦ $$ []
       · itrivial
       iExactEq HΦ
       congr 2 <;> simp_all

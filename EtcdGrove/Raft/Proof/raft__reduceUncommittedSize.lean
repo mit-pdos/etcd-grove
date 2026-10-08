@@ -22,13 +22,19 @@ theorem raft.reduceUncommittedSize.wp_proof :
   intro cfg r id s sz
   wp_start as Hphys
   iNamed Hphys
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_alloc s_ptr as s; wp_pures; wp_load; wp_load; wp_pures
   wp_apply raft.wp_load_uncommittedSize $$ Hphys as %v Hphys
+  wp_pures
   wp_if_destruct
-  · wp_apply raft.wp_store_uncommittedSize $$ Hphys as Hphys
-    iapply HΦ $$ Hphys
-  · wp_apply raft.wp_load_uncommittedSize $$ Hphys as %v2 Hphys
+  · wp_load; wp_pures; iclear r s
+    wp_pures
     wp_apply raft.wp_store_uncommittedSize $$ Hphys as Hphys
+    iapply HΦ $$ Hphys
+  · wp_load; wp_pures; wp_load; wp_pures; iclear r
+    wp_load; wp_pures; iclear s
+    wp_apply raft.wp_load_uncommittedSize $$ Hphys as %v2 Hphys
+    wp_apply raft.wp_store_uncommittedSize $$ Hphys as Hphys
+    wp_pures
     iapply HΦ $$ Hphys
 
 end proof

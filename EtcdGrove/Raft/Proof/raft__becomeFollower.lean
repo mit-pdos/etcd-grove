@@ -35,20 +35,30 @@ theorem raft.becomeFollower.wp_proof
     raft.becomeFollower.spec (GF := GF) (hG := hG) := by
   intro cfg r id s term lead
   wp_start as Hphys
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_alloc lead_ptr as lead; wp_pures; wp_alloc term_ptr as term
+  wp_pures; wp_load; wp_pures
   -- `r.step := stepFollower`
   wp_apply raft.wp_store_step $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear term
   -- `reset`'s state is left to the frame
   wp_apply wp_raft_reset $$ [$Hphys] as %pvs ⟨Hphys, -⟩
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures
   -- `Match` is irrelevant for a non-leader (`toPState`)
   -- `r.tick`, `r.lead := lead`, `r.state := StateFollower`
   wp_apply raft.wp_store_tick $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear lead
   wp_apply raft.wp_store_lead $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures
   wp_apply wp_store_state_follower $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures
   wp_apply raft.wp_load_id $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_pures
+  -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; iclear r | ∅
   wp_raft_log
   wp_apply wp_traceBecomeFollower
+  wp_pures
   iapply HΦ
   -- the stores above, in the order the Go code makes them, give `becomeFollower` up to
   -- the order of the record updates

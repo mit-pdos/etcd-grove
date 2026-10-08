@@ -27,9 +27,11 @@ theorem SoftState.equal.wp_proof : SoftState.equal.spec (GF := GF) (hG := hG) :=
   icases typedPointsto_not_null_dup _ _ _ $$ Hb with ⟨Hb, %Hnb⟩
   iStructNamedSuffix Ha "_a"
   iStructNamedSuffix Hb "_b"
-  wp_auto
+  wp_alloc a_ptr as a; wp_pures; wp_alloc b_ptr as b; wp_pures; wp_load; wp_pures; wp_load; wp_load
+  wp_pures; wp_load; wp_pures
   wp_if_destruct
-  · ispecialize HΦ $$ [Lead_a RaftState_a __a Lead_b RaftState_b __b]
+  · wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures; iclear a b
+    ispecialize HΦ $$ [Lead_a RaftState_a __a Lead_b RaftState_b __b]
     · isplitl [Lead_a RaftState_a __a]
       · iapply typedPointsto_combine _ _ _ Hna
         simp only [TypedPointsto.typedPointstoDef]

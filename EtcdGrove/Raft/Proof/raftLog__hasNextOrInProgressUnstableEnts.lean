@@ -27,7 +27,7 @@ theorem raftLog.hasNextOrInProgressUnstableEnts.wp_proof :
   icases Hcore with ⟨%sprev, %stored, %ss, Hcore⟩
   iNamed Hcore
   ihave %Hlen := ownSlice_len $$ Huents
-  wp_auto
+  wp_alloc l_ptr as l; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear l
   iapply HΦ
   isplitl
   · reseal_raftLog

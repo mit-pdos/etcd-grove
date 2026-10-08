@@ -27,10 +27,12 @@ theorem confchange.Changer.apply.wp_proof
   have Hcfg' := Hcfg
   obtain ⟨⟨Harr, Hl, Hln⟩, Hal⟩ := Hcfg'
   wp_start as ⟨Hp, Hcfgp, Hccs, Hv, Htrk, Hprogs⟩
-  wp_auto
+  wp_load; wp_pures
   wp_method_call
   wp_call
-  wp_auto
+  wp_call; wp_alloc c_ptr as c; wp_pures; wp_alloc ccs_ptr as ccs; wp_pures; wp_alloc trk_ptr as trk
+  wp_pures; wp_alloc cfg_ptr as cfg; wp_pures; wp_load; wp_pures; wp_alloc cc_ptr as cc; wp_pures
+  wp_alloc i_ptr as i; wp_pures; iclear ccs
   ihave %Hclen := ownSlice_len $$ Hccs
   have Hlen1 : sint.Z ccs.len = 1 := by
     have h : [addNodeCC id].length = (sint.Z ccs.len).toNat := Hclen.1
@@ -49,8 +51,15 @@ theorem confchange.Changer.apply.wp_proof
   · iexists W64 0, _, vm, prs
     iframe
     ipureintro; exact .inl ⟨rfl, rfl, rfl⟩
-  wp_for IH
+  wp_for_core
+  iNamed IH
+  wp_pures; wp_load; wp_pures
+  cleanup_bool_decide
   wp_if_destruct
+  rotate_left
+  wp_load; wp_pures; wp_load; wp_pures; iclear c trk cfg i cc
+  rotate_right
+  wp_load; wp_pures
   all_goals cleanup_bool_decide
   · rcases Hn with ⟨h0, h1, h2⟩ | ⟨h0, -, -⟩
     · have Hbnd' : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z ccs.len := ⟨by rw [h0]; decide, Hif⟩
@@ -58,14 +67,18 @@ theorem confchange.Changer.apply.wp_proof
       wp_apply wp_load_slice_index ccs (sint.Z n) _ _ (addNodeCC id) Hbnd'.1
         $$ [Hccs] with Hccs
       · iframe Hccs; ipureintro; rw [h0]; rfl
+      wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures
       -- `cc.NodeID == 0`: no
       wp_if_destruct
       · exact absurd rfl Hid
+      wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
       -- `cc.Type == ConfChangeAddNode`: yes
       have Hdom0 : domSet prs' = domSet vm' := by rw [← h1, ← h2]; exact Hdom
       wp_apply wp_Changer_makeVoter c_ptr cfgp trk v _ cfg id vm' prs' _ Hcfg Hdom0 Hmi
         $$ [$c $Hcfgp $Hv $Htrk $Hprogs] as %prs'' ⟨c, Hcfgp, Hv, Htrk, %Hdom'', Hprogs⟩
+      wp_pures
       wp_for_post
+      wp_load; wp_pures; wp_store
       iframe
       iexists n + W64 1, addNodeCC id, <[id := ()]> vm', prs''
       iframe
@@ -82,7 +95,9 @@ theorem confchange.Changer.apply.wp_proof
       omega
     -- `len(incoming(cfg.Voters)) == 0`: no, `id` is in it
     wp_apply wp_confchange_incoming _ v map.nil Harr
+    wp_pures
     wp_apply wp_map_len $$ Hv as Hv
+    wp_pures
     have Hpos : 0 < GMap.size vm' := by
       rw [h1]; exact GMap.map_size_nonzero _ id (by rw [GMap.lookup_insert_eq]; rfl)
     have Hle : GMap.size vm' ≤ GMap.size vm + 1 := by

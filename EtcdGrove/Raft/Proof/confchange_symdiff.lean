@@ -20,15 +20,18 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem confchange.symdiff.wp_proof : confchange.symdiff.spec (GF := GF) (hG := hG) := by
   intro l r ml mr dql dqr
   wp_start as ⟨Hl, Hr⟩
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_alloc l_ptr as l; wp_pures; wp_alloc n_ptr as n; wp_pures
+  wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear r l
   -- `pairs := [][2]MajorityConfig{{l, r}, {r, l}}`
   wp_apply wp_slice_literal (V := GoArray GoMap 2) [array.mk 2 [l, r], array.mk 2 [r, l]]
+  wp_pures
   isplitr
   · ipureintro; rfl
   iintro %sl ⟨Hsl, Hslcap⟩
   simp only [go.arrayLiteralSize, List.foldl]
   rw [show (max (max ((0 : Int) + 1 + 1) 0) 0) = 2 by decide]
-  wp_auto
+  wp_pures; wp_alloc pairs_ptr as pairs; wp_pures; wp_store; wp_pures; wp_load; wp_pures
+  wp_alloc p_ptr as p; wp_pures; wp_alloc i_ptr as i; wp_pures; iclear pairs
   -- `for _, p := range pairs`: pair 0 counts the ids of `l` not in `r` (none, under
   -- `l ⊆ r`), pair 1 the ids of `r` not in `l` (at most `x`). Everything is said under
   -- the two premises of the postcondition.
@@ -45,9 +48,13 @@ theorem confchange.symdiff.wp_proof : confchange.symdiff.spec (GF := GF) (hG := 
     iframe
     ipureintro
     refine ⟨by decide, by decide, fun _ _ _ => ⟨fun _ => rfl, fun h => absurd h (by decide)⟩⟩
-  wp_for IH
+  wp_for_core
+  iNamed IH
+  wp_pures; wp_load; wp_pures
+  cleanup_bool_decide
   wp_if_destruct
-  · have Hcase : sint.nat n = 0 ∨ sint.nat n = 1 := by word
+  · wp_load; wp_pures
+    have Hcase : sint.nat n = 0 ∨ sint.nat n = 1 := by word
     have Hbnd' : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z (W64 2) := ⟨Hn.1, by word⟩
     simp only [Hbnd', and_self]
     rcases Hcase with Hc | Hc
@@ -55,8 +62,9 @@ theorem confchange.symdiff.wp_proof : confchange.symdiff.spec (GF := GF) (hG := 
       wp_apply wp_load_slice_index _ (sint.Z n) _ _ (array.mk 2 [l, r]) Hn.1 $$ [Hsl] with Hsl
       · iframe Hsl; ipureintro
         show [array.mk 2 [l, r], array.mk 2 [r, l]][sint.nat n]? = _; rw [Hc]; rfl
+      wp_load; wp_pures; wp_store; wp_pures
       icases array_acc _ (sint.Z (W64 0)) _ _ _ l (by decide) rfl $$ p with ⟨Hp0, Hpback⟩
-      wp_auto
+      wp_load; wp_pures; wp_alloc id_ptr as id; wp_pures
       ihave p := Hpback $$ Hp0
       icases array_acc _ (sint.Z (W64 1)) _ _ _ r (by decide) rfl $$ p with ⟨Hp1, Hpback⟩
       wp_func_lits
@@ -77,8 +85,9 @@ theorem confchange.symdiff.wp_proof : confchange.symdiff.spec (GF := GF) (hG := 
       · imodintro
         iintro %i %key %vv ⟨%Hkey, %Hvv⟩ HP
         iNamed HP
-        wp_auto
+        wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
         wp_apply wp_map_lookup2 $$ Hr as Hr
+        wp_pures; wp_alloc ok_ptr as ok; wp_pures; wp_store; wp_pures; wp_load; wp_pures; iclear ok
         wp_if_destruct
         · -- `key ∈ r`: nothing to count
           unfold forMapPostcondition
@@ -89,7 +98,8 @@ theorem confchange.symdiff.wp_proof : confchange.symdiff.spec (GF := GF) (hG := 
           iframe
           ipureintro
           exact ⟨by omega, fun H1 => Hnv H1⟩
-        · -- `key ∉ r`: `n++`, only without the premise
+        · wp_load; wp_pures; wp_store; wp_pures
+          -- `key ∉ r`: `n++`, only without the premise
           unfold forMapPostcondition
           iright; ileft
           isplitr
@@ -102,6 +112,7 @@ theorem confchange.symdiff.wp_proof : confchange.symdiff.spec (GF := GF) (hG := 
       iNamed HP
       ihave p := Hpback $$ Hp1
       wp_for_post
+      wp_load; wp_pures; wp_store; iclear id
       iframe
       iexists n + W64 1, nv', _
       iframe
@@ -113,8 +124,9 @@ theorem confchange.symdiff.wp_proof : confchange.symdiff.spec (GF := GF) (hG := 
       wp_apply wp_load_slice_index _ (sint.Z n) _ _ (array.mk 2 [r, l]) Hn.1 $$ [Hsl] with Hsl
       · iframe Hsl; ipureintro
         show [array.mk 2 [l, r], array.mk 2 [r, l]][sint.nat n]? = _; rw [Hc]; rfl
+      wp_load; wp_pures; wp_store; wp_pures
       icases array_acc _ (sint.Z (W64 0)) _ _ _ r (by decide) rfl $$ p with ⟨Hp0, Hpback⟩
-      wp_auto
+      wp_load; wp_pures; wp_alloc id_ptr as id; wp_pures
       ihave p := Hpback $$ Hp0
       icases array_acc _ (sint.Z (W64 1)) _ _ _ l (by decide) rfl $$ p with ⟨Hp1, Hpback⟩
       wp_func_lits
@@ -142,8 +154,9 @@ theorem confchange.symdiff.wp_proof : confchange.symdiff.spec (GF := GF) (hG := 
       · imodintro
         iintro %i %key %vv ⟨%Hkey, %Hvv⟩ HP
         iNamed HP
-        wp_auto
+        wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
         wp_apply wp_map_lookup2 $$ Hl as Hl
+        wp_pures; wp_alloc ok_ptr as ok; wp_pures; wp_store; wp_pures; wp_load; wp_pures; iclear ok
         wp_if_destruct
         · -- `key ∈ l`: nothing to count
           unfold forMapPostcondition
@@ -158,7 +171,8 @@ theorem confchange.symdiff.wp_proof : confchange.symdiff.spec (GF := GF) (hG := 
           refine ⟨h0, h1, fun h => ?_⟩
           rw [show (i + 1).toNat = i.toNat + 1 by omega, List.take_add_one, Hkey]
           exact List.mem_append_left _ (h2 h)
-        · -- `key ∉ l`: `key = x`, and it is the first such key
+        · wp_load; wp_pures; wp_store; wp_pures
+          -- `key ∉ l`: `key = x`, and it is the first such key
           unfold forMapPostcondition
           iright; ileft
           isplitr
@@ -186,6 +200,7 @@ theorem confchange.symdiff.wp_proof : confchange.symdiff.spec (GF := GF) (hG := 
       iNamed HP
       ihave p := Hpback $$ Hp1
       wp_for_post
+      wp_load; wp_pures; wp_store; iclear id
       iframe
       iexists n + W64 1, nv', _
       iframe
@@ -193,7 +208,8 @@ theorem confchange.symdiff.wp_proof : confchange.symdiff.spec (GF := GF) (hG := 
       refine ⟨by word, by word, fun H1 x H2 => ⟨fun h => absurd h (by word), fun _ => ?_⟩⟩
       obtain ⟨h0, h1, -⟩ := Hnv H1 x H2
       exact ⟨h0, h1⟩
-  · -- `return n`
+  · wp_load; wp_pures; iclear i n p
+    -- `return n`
     iapply HΦ
     iframe
     ipureintro

@@ -54,23 +54,30 @@ theorem wp_Step_Resp_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   intro Hty Hterm Hlt Hwf
   wp_start as Hphys
   iNamed Hphys
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_alloc m_ptr as m; wp_pures; wp_load; wp_pures
   wp_apply _P.traceReceiveMessage
+  wp_pures; wp_load; wp_pures
   rw [decide_eq_false Hterm]
-  wp_auto
+  wp_pures; wp_load; wp_load; wp_pures
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_pures
   rw [decide_eq_false (show ¬ (uint.Z s.term < uint.Z m.Term') by omega)]
-  wp_auto
+  wp_pures; wp_load; wp_load; wp_pures
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_pures
   rw [decide_eq_true Hlt]
-  wp_auto
+  wp_pures; wp_load; wp_pures
   wp_apply raft.wp_load_checkQuorum $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures
   wp_apply raft.wp_load_preVote $$ Hphys as Hphys
-  rcases Hty with Hty | Hty <;> cases s.prevote <;> wp_auto
-  all_goals iterate 6 (try (rw [Hty]; wp_auto))
+  rcases Hty with Hty | Hty <;> cases s.prevote <;> (wp_pures; wp_load; wp_pures)
+  all_goals iterate 6 (try (rw [Hty]; (wp_pures; wp_load; wp_pures)))
   all_goals
     wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_Term $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; iclear r m | ∅ | wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; iclear r m | ∅ | wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; iclear r m | ∅ | wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; iclear r m | ∅
     wp_raft_log
     iapply HΦ $$ %interface.nil %s
     iframe Hphys

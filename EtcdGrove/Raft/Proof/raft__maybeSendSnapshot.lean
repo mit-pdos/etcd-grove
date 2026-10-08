@@ -96,7 +96,8 @@ theorem raft.maybeSendSnapshot.wp_proof
     with ⟨%pp, %Hpl, Hpr, Htrkback⟩
   iunfold ownProgress at Hpr
   iNamed Hpr
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_alloc pr_ptr as pr; wp_pures; wp_alloc to_ptr as to; wp_pures
+  wp_load; wp_pures; wp_load; wp_pures
   ihave Hpr : ownProgress (GF := GF) pr pp $$ [Hpv Hinfl]
   · unfold ownProgress
     iexists pv
@@ -107,8 +108,9 @@ theorem raft.maybeSendSnapshot.wp_proof
   -- nothing below writes a `Progress` until `BecomeSnapshot`
   ihave Hphys : ownRaftPhys (GF := GF) cfg r id { s with prvals := s.prvals } $$ [Hphys]
   · iapply ownRaftPhys_eq cfg r id _ _ (by cases s; rfl) $$ Hphys
-  cases Hra : pv.RecentActive' <;> wp_auto
+  cases Hra : pv.RecentActive' <;> (wp_pures; wp_load; wp_pures)
   · -- not recently active: log and return `false`
+    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; iclear r pr to | ∅
     wp_raft_log
     iapply HΦ $$ %false %([] : List Msg) %s.prvals
     isplitl [Hphys]
@@ -116,16 +118,21 @@ theorem raft.maybeSendSnapshot.wp_proof
     ipureintro
     exact ⟨fun _ h => (nomatch h), rfl⟩
   wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+  wp_pures
   icases ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hlogback⟩
   wp_apply wp_raftLog_snapshot _ _ _ $$ [$Hlog $ErrSnapUnavail] as %snap %err ⟨Hlog, Herr⟩
+  wp_pures; wp_alloc err_ptr as err; wp_pures; wp_alloc snapshot_ptr as snapshot; wp_pures; wp_store
+  wp_pures; wp_store; wp_pures; wp_load; wp_pures
   ihave Hphys := Hlogback $$ Hlog
   icases Herr with (%Herr | ⟨%Herr, %voters, #Hvoters⟩)
   · -- `ErrSnapshotTemporarilyUnavailable`: log and return `false`. The
     -- `panic(err)` that follows the inner `if` is never reached.
     subst Herr
     obtain ⟨t, p, rfl⟩ := HErrSnapUnavail_new
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures
+    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; iclear r pr to snapshot err | ∅
     wp_raft_log
     iapply HΦ $$ %false %([] : List Msg) %s.prvals
     isplitl [Hphys]
@@ -134,32 +141,43 @@ theorem raft.maybeSendSnapshot.wp_proof
     exact ⟨fun _ h => (nomatch h), rfl⟩
   · -- a real snapshot: `Metadata.Index ≠ 0` kills `IsEmptySnap`'s panic
     obtain ⟨rfl, Hnz, Hsle, Hsterm⟩ := Herr
-    wp_auto
+    wp_pures; wp_load; wp_pures; iclear err
     wp_apply wp_IsEmptySnap as %b %Hb
     subst Hb
     simp only [Hnz, decide_false]
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_alloc sterm_ptr as sterm; wp_pures
+    wp_alloc sindex_ptr as sindex; wp_pures; wp_store; wp_pures; wp_store; wp_pures; wp_load
+    wp_pures
     -- the third `Debugf`'s argument list calls `firstIndex` and then
     -- reads `r.raftLog.committed` directly: the log's struct, for the
     -- read
     wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+    wp_pures
     icases ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hlogback⟩
     wp_apply wp_raftLog_firstIndex _ _ $$ [$Hlog] as %fi ⟨Hlog, %Hfi⟩
+    wp_pures; wp_load; wp_pures
     ihave Hphys := Hlogback $$ Hlog
     wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+    wp_pures
     icases ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hlogback⟩
     icases ownRaftLog_struct _ _ $$ Hlog with ⟨%lv, Hl, -, Hlb⟩
-    wp_auto
+    wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+    iclear sterm
     ihave Hlog := Hlb $$ Hl
     ihave Hphys := Hlogback $$ Hlog
+    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear sindex | ∅
     wp_raft_log
     -- `pr.BecomeSnapshot(sindex)`: borrow `pr` again, give it back at
     -- the new value
     icases ownRaftPhys_pr_upd cfg r id s to pr pp $$ Hphys %Hprto %Hpl with ⟨Hpr, Hback⟩
     wp_apply wp_Progress_BecomeSnapshot $$ [$Hpr] as Hpr
+    wp_pures; wp_load; wp_pures
     ihave Hphys := Hback $$ %(progressBecomeSnapshot pp snap.Metadata'.Index') Hpr
     wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear pr
+    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear r to | ∅
     wp_raft_log
     -- `send_ok`'s `MsgSnap` clause, with no entries. `Snapshot:
     -- &snapshot` queues the address of the local variable, which nothing
@@ -183,7 +201,7 @@ theorem raft.maybeSendSnapshot.wp_proof
       iframe # 
       ipureintro; rfl
     iintro Hphys
-    wp_auto
+    wp_pures
     iapply HΦ $$ %true %([absSnapFrom m id s.term snap voters] : List Msg)
       %(<[to := progressBecomeSnapshot pp snap.Metadata'.Index']> s.prvals)
     isplitl [Hphys]

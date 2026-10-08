@@ -28,12 +28,13 @@ theorem raft.handleHeartbeat.wp_proof
   intro cfg r id s m Hcommit Hfrom
   wp_start as Hphys
   iNamed Hphys
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_alloc m_ptr as m; wp_pures; wp_load; wp_pures; wp_load; wp_pures
   wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+  wp_pures
   icases ownRaftPhys_log_at cfg r id s $$ Hphys with ⟨Hlog, Hlogback⟩
   wp_apply wp_raftLog_commitTo _ _ _ Hcommit $$ [$Hlog] as Hlog
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear r m
   ihave Hphys := Hlogback $$ Hlog
-  try wp_auto
   let hb : raftpb.Message :=
     { Type' := W32 9, To' := m.From', From' := 0, Term' := 0, LogTerm' := 0, Index' := 0,
       Entries' := slice.nil, Commit' := 0, Vote' := 0, Snapshot' := null, Reject' := false,
@@ -45,6 +46,7 @@ theorem raft.handleHeartbeat.wp_proof
     · iapply ownSlice_nil
     · iapply send_no_snap
       exact (by decide : W32 9 ≠ W32 7)
+  wp_pures
   iapply HΦ
   iapply ownRaftPhys_eq cfg r id _ (heartbeatResult id s m) (by cases s; rfl) $$ Hphys
 

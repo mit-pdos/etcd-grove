@@ -73,17 +73,20 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hpwf Hnw Hnorm Hconf Hteq Hvotes
   wp_start as Hphys
   iNamed Hphys
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_alloc m_ptr as m; wp_pures; wp_load; wp_pures
   wp_apply _P.traceReceiveMessage
+  wp_pures; wp_load; wp_pures
   rw [decide_eq_false Hterm]
-  wp_auto
+  wp_pures; wp_load; wp_load; wp_pures
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_pures
   rw [decide_eq_false (show ¬ uint.Z s.term < uint.Z m.Term' by rw [Hteq]; omega)]
-  wp_auto
+  wp_pures; wp_load; wp_load; wp_pures
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_pures
   rw [decide_eq_false (show ¬ uint.Z m.Term' < uint.Z s.term by rw [Hteq]; omega)]
-  wp_auto
-  repeat (rw [Hty]; wp_auto)
+  wp_pures; wp_load; wp_pures
+  repeat (rw [Hty]; (wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear r m))
   wp_apply raft.wp_load_step $$ Hphys as Hphys
   rw [show s.stepfn = stepFuncOf s.role from Hwf]
   cases Hrole : s.role
@@ -98,12 +101,13 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     · isplitl []
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
       · iintro %_; iframe Hents Hcap
+    wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures
     obtain ⟨rfl, Happ⟩ := followerStepResult_app _ _ _ _ _ _ _ Hty Hres
     have Hwf1 : NStateWf { s with lead := m.From' } := Hwf
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn
     subst Herrn
-    wp_auto
+    wp_pures; iclear err
     iapply HΦ $$ %interface.nil %s1
     iframe Hphys
     ipureintro
@@ -121,13 +125,14 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     · isplitl []
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
       · iintro %_; iframe Hents Hcap
+    wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures
     obtain ⟨rfl, pvs, Happ⟩ := candidateStepResult_app _ _ _ _ _ _ _ _ Hty Hres
     have Hwf1 : NStateWf
         ({ becomeFollower s s.term m.From' with prvals := pvs } : NState) := rfl
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn
     subst Herrn
-    wp_auto
+    wp_pures; iclear err
     iapply HΦ $$ %interface.nil %s1
     iframe Hphys
     ipureintro
@@ -148,11 +153,12 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     · isplitl []
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+    wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures
     obtain ⟨rfl, rfl⟩ := leaderStepResult_app_hb _ _ _ _ _ _ _ (.inl Hty) Hres
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn
     subst Herrn
-    wp_auto
+    wp_pures; iclear err
     iapply HΦ $$ %interface.nil %_
     iframe Hphys
     ipureintro
@@ -168,13 +174,14 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     · isplitl []
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
       · iintro %_; iframe Hents Hcap
+    wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures
     obtain ⟨rfl, pvs, Happ⟩ := candidateStepResult_app _ _ _ _ _ _ _ _ Hty Hres
     have Hwf1 : NStateWf
         ({ becomeFollower s s.term m.From' with prvals := pvs } : NState) := rfl
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn
     subst Herrn
-    wp_auto
+    wp_pures; iclear err
     iapply HΦ $$ %interface.nil %s1
     iframe Hphys
     ipureintro

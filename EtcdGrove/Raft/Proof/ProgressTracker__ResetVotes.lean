@@ -24,8 +24,9 @@ theorem tracker.ProgressTracker.ResetVotes.wp_proof :
   intro cfg trk tv t
   wp_start as ⟨Htrk, Hown⟩
   iNamed Hown
-  wp_auto
+  wp_alloc p_ptr as p; wp_pures
   wp_apply wp_map_make1 (K := w64) (V := Bool) as %votesRef Hvotes_new
+  wp_pures; wp_load; wp_pures; wp_store; wp_pures; iclear p
   iapply HΦ
   iframe Htrk
   iapply ownTracker_intro cfg { tv with Votes' := votesRef } ∅ t.prs t.peers voters_ref voters

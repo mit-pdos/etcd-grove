@@ -23,7 +23,7 @@ theorem unstable.maybeFirstIndex.wp_proof :
   wp_start as Hpre
   iNamed Hpre
   iNamed Hun
-  wp_auto
+  wp_alloc u_ptr as u; wp_pures; wp_load; wp_pures; wp_load; wp_pures
   cases snap with
   | some sid =>
     -- a pending snapshot: `snapshot.Metadata.Index + 1`
@@ -31,9 +31,10 @@ theorem unstable.maybeFirstIndex.wp_proof :
     ihave %Hnn := typedPointsto_not_null $$ Hsv
     wp_if_destruct
     · exact absurd Hif Hnn
+    wp_load; wp_pures; wp_load; wp_pures; iclear u
     iStructNamed Hsv
     iStructNamed Metadata
-    wp_auto
+    wp_load; wp_pures
     iapply HΦ
     unfold ownUnstable
     iframe
@@ -49,7 +50,8 @@ theorem unstable.maybeFirstIndex.wp_proof :
       iframe
       ipureintro
       simp
-    · exact absurd Hns Hif
+    · wp_load; wp_pures; wp_load; wp_pures; iclear u
+      exact absurd Hns Hif
 
 end proof
 

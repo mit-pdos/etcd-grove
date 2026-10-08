@@ -28,14 +28,16 @@ theorem raftLog.zeroTermOnOutOfBounds.wp_proof :
   iNamed Hinit
   icases Herr with (%Hnil | #Hc | #Hu)
   · subst Hnil
-    wp_auto
+    wp_alloc l_ptr as l; wp_pures; wp_alloc err_ptr as err; wp_pures; wp_alloc t_ptr as t; wp_pures
+    wp_load; wp_pures; wp_load; wp_pures; iclear l err t
     iapply HΦ
     ipureintro
     intro _; rfl
   · icombine Hc ErrCompacted gives %Heq
     subst Heq
     obtain ⟨ty, p, rfl⟩ := HErrCompacted_new
-    wp_auto
+    wp_alloc l_ptr as l; wp_pures; wp_alloc err_ptr as err; wp_pures; wp_alloc t_ptr as t; wp_pures
+    wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear l err t
     iapply HΦ
     ipureintro
     intro Hn; cases Hn
@@ -43,22 +45,23 @@ theorem raftLog.zeroTermOnOutOfBounds.wp_proof :
     subst Heq
     obtain ⟨ty, p, rfl⟩ := HErrUnavailable_new
     obtain ⟨tyc, pc, rfl⟩ := HErrCompacted_new
-    wp_auto
+    wp_alloc l_ptr as l; wp_pures; wp_alloc err_ptr as err; wp_pures; wp_alloc t_ptr as t; wp_pures
+    wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear t
     split
     · -- same dynamic type: compare the pointers
       by_cases Hp : p = pc
       · subst Hp
-        wp_auto
+        wp_pures; iclear l err
         iapply HΦ
         ipureintro
         intro Hn; cases Hn
-      · wp_auto
+      · wp_pures
         simp only [Hp, decide_false]
-        wp_auto
+        wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear l err
         iapply HΦ
         ipureintro
         intro Hn; cases Hn
-    · wp_auto
+    · wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear l err
       iapply HΦ
       ipureintro
       intro Hn; cases Hn

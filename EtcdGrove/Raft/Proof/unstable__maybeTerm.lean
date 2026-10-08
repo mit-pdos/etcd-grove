@@ -26,10 +26,12 @@ theorem unstable.maybeTerm.wp_proof
   iNamed H
   iunfold ownUnstable at Hun
   iNamed Hun
-  wp_auto
+  wp_alloc u_ptr as u; wp_pures; wp_alloc i_ptr as i; wp_pures; wp_load; wp_load; wp_pures; wp_load
+  wp_pures
   ihave %Hlen := ownSlice_len $$ Hents
   wp_if_destruct
-  · cases snap with
+  · wp_load; wp_pures; wp_load; wp_pures
+    cases snap with
     | some sid =>
       -- below `offset`, with a snapshot pending: its term at its index
       icases (ownSnap_Some _ _).1 $$ Hsnap with ⟨%sv, #Hsv, %Hmeta, -⟩
@@ -38,10 +40,11 @@ theorem unstable.maybeTerm.wp_proof
       simp only [Hnn, decide_false]
       iStructNamedSuffix Hsv "_s"
       iStructNamedSuffix Metadata_s "_m"
-      wp_auto
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures
       rw [Hidx]
       wp_if_destruct
-      · iapply HΦ
+      · wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear u i
+        iapply HΦ
         unfold ownUnstable
         iframe
         ipureintro
@@ -58,7 +61,7 @@ theorem unstable.maybeTerm.wp_proof
     | none =>
       icases (ownSnap_None _).1 $$ Hsnap with %Hns
       simp only [Hns, decide_true]
-      wp_auto
+      wp_pures; iclear u i
       iapply HΦ
       unfold ownUnstable
       iframe
@@ -67,7 +70,8 @@ theorem unstable.maybeTerm.wp_proof
       rintro (Hc | ⟨sid', Hc, _⟩)
       · omega
       · cases Hc
-  · -- at or above `offset`, a pending snapshot's index is not `i`
+  · wp_load; wp_pures
+    -- at or above `offset`, a pending snapshot's index is not `i`
     have Hnsnap : ¬ ∃ sid, snap = some sid ∧ i = sid.index' := by
       rintro ⟨sid, Hs, rfl⟩
       have := Hsoff sid Hs
@@ -77,6 +81,8 @@ theorem unstable.maybeTerm.wp_proof
     · unfold ownUnstable
       simp only [named]
       iframe # ∗
+    wp_pures; wp_alloc ok_ptr as ok; wp_pures; wp_alloc last_ptr as last; wp_pures; wp_store
+    wp_pures; wp_store; wp_pures; wp_load; wp_pures; iclear ok
     iunfold ownUnstable at Hun
     iNamed Hun
     by_cases He : uents = []
@@ -88,7 +94,7 @@ theorem unstable.maybeTerm.wp_proof
         -- only the snapshot: `last` is its index, below `i`
         simp only [ne_eq, reduceCtorEq, not_false_eq_true, decide_true]
         rw [Hlast sid rfl]
-        wp_auto
+        wp_pures; wp_load; wp_load; wp_pures; iclear last
         have := Hsoff sid rfl
         wp_if_destruct
         · iapply HΦ
@@ -99,10 +105,11 @@ theorem unstable.maybeTerm.wp_proof
           rintro (Hc | Hc)
           · simp only [List.length_nil] at Hc; omega
           · exact absurd Hc Hnsnap
-        · exfalso; apply Hnsnap; refine ⟨sid, rfl, ?_⟩; word
+        · wp_load; wp_pures; wp_load; wp_load; wp_load; wp_pures; wp_load; wp_pures; iclear u i
+          exfalso; apply Hnsnap; refine ⟨sid, rfl, ?_⟩; word
       | none =>
         simp only [ne_eq, not_true_eq_false, decide_false]
-        wp_auto
+        wp_pures; iclear u i last
         iapply HΦ
         unfold ownUnstable
         iframe # ∗
@@ -113,7 +120,7 @@ theorem unstable.maybeTerm.wp_proof
         · exact absurd Hc Hnsnap
     · obtain ⟨Hokt, Hlast⟩ := Hok2 He
       subst Hokt
-      wp_auto
+      wp_pures; wp_load; wp_load; wp_pures; iclear last
       wp_if_destruct
       · iapply HΦ
         unfold ownUnstable
@@ -123,7 +130,8 @@ theorem unstable.maybeTerm.wp_proof
         rintro (Hc | Hc)
         · omega
         · exact absurd Hc Hnsnap
-      · have Hbnd : 0 ≤ sint.Z (i - uv.offset') ∧
+      · wp_load; wp_pures; wp_load; wp_load; wp_load; wp_pures; wp_load; wp_pures; iclear u i
+        have Hbnd : 0 ≤ sint.Z (i - uv.offset') ∧
             sint.Z (i - uv.offset') < sint.Z uv.entries'.len := by
           constructor <;> word
         simp only [Hbnd, and_self, ↓reduceIte]
@@ -136,7 +144,7 @@ theorem unstable.maybeTerm.wp_proof
         icases ownSlice_elem_acc (sint.Z (i - uv.offset')) e uv.entries' _ uents Hbnd.1 He_lk
           $$ Hents with ⟨#He, -⟩
         iStructNamedSuffix He "_e"
-        wp_auto
+        wp_pures; wp_load; wp_pures
         iapply HΦ
         unfold ownUnstable
         iframe # ∗

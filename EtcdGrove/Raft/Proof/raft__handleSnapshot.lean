@@ -41,27 +41,34 @@ theorem raft.handleSnapshot.wp_proof
   intro cfg r id s m sv voters Hrole Hvotes Hin Hscope
   wp_start as H
   iNamed H
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_alloc m_ptr as m; wp_pures; wp_alloc s_ptr as s; wp_pures
+  wp_load; wp_pures
   ihave %Hnn := typedPointsto_not_null $$ Hsv
   rw [decide_eq_false Hnn]
-  wp_auto
+  wp_pures; wp_load; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+  wp_alloc sterm_ptr as sterm; wp_pures; wp_alloc sindex_ptr as sindex; wp_pures; wp_store; wp_pures
+  wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear s
   wp_apply wp_raft_restore _ _ _ _ sv voters Hrole Hvotes Hin Hscope $$ [$Hphys $Hvoters]
     as %b %s1 ⟨Hphys, %Hres⟩
   rcases Hres with ⟨Hst, rfl, rfl⟩ | ⟨Hlt, Hm, rfl, rfl⟩ | ⟨Hlt, Hnm, rfl, prs, pvs, rfl⟩
   · -- obsolete: acknowledge the commit index
-    wp_auto
+    wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+    wp_pures
     icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
     icases ownRaftLog_struct $$ Hlog with ⟨%lv, Hl, %Hlv, Hlb⟩
-    wp_auto
+    wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear sindex sterm
     ihave Hlog := Hlb $$ Hl
     ihave Hphys := Hlogback $$ Hlog
+    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear m | ∅
     wp_raft_log
     wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+    wp_pures
     icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
     icases ownRaftLog_struct $$ Hlog with ⟨%lv2, Hl, %Hlv2, Hlb⟩
-    wp_auto
+    wp_load; wp_pures; wp_load; wp_pures; iclear r
     ihave Hlog := Hlb $$ Hl
     ihave Hphys := Hlogback $$ Hlog
     rw [Hlv2.1]
@@ -71,24 +78,29 @@ theorem raft.handleSnapshot.wp_proof
       · iapply ownSlice_nil
       · iapply send_no_snap
         exact (by decide : W32 4 ≠ W32 7)
+    wp_pures
     iapply HΦ
     iframe Hphys
     ipureintro
     exact Or.inl ⟨Hst, rfl⟩
   · -- fast-forward: acknowledge the new commit index, the snapshot's
-    wp_auto
+    wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+    wp_pures
     icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
     icases ownRaftLog_struct $$ Hlog with ⟨%lv, Hl, %Hlv, Hlb⟩
-    wp_auto
+    wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear sindex sterm
     ihave Hlog := Hlb $$ Hl
     ihave Hphys := Hlogback $$ Hlog
+    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear m | ∅
     wp_raft_log
     wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+    wp_pures
     icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
     icases ownRaftLog_struct $$ Hlog with ⟨%lv2, Hl, %Hlv2, Hlb⟩
-    wp_auto
+    wp_load; wp_pures; wp_load; wp_pures; iclear r
     ihave Hlog := Hlb $$ Hl
     ihave Hphys := Hlogback $$ Hlog
     rw [Hlv2.1]
@@ -98,23 +110,29 @@ theorem raft.handleSnapshot.wp_proof
       · iapply ownSlice_nil
       · iapply send_no_snap
         exact (by decide : W32 4 ≠ W32 7)
+    wp_pures
     iapply HΦ
     iframe Hphys
     ipureintro
     exact Or.inr (Or.inl ⟨Hlt, Hm, rfl⟩)
   · -- a restore: acknowledge the new last index, the snapshot's
-    wp_auto
+    wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+    wp_pures
     icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
     icases ownRaftLog_struct $$ Hlog with ⟨%lv, Hl, %Hlv, Hlb⟩
-    wp_auto
+    wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear sindex sterm
     ihave Hlog := Hlb $$ Hl
     ihave Hphys := Hlogback $$ Hlog
+    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear m | ∅
     wp_raft_log
     wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+    wp_pures
     icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
     wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
+    wp_pures; wp_load; wp_pures; iclear r
     ihave Hphys := Hlogback $$ Hlog
     have Hli' : li = sv.Metadata'.Index' := by
       apply uint_Z_inj.1
@@ -127,6 +145,7 @@ theorem raft.handleSnapshot.wp_proof
       · iapply ownSlice_nil
       · iapply send_no_snap
         exact (by decide : W32 4 ≠ W32 7)
+    wp_pures
     iapply HΦ
     iframe Hphys
     ipureintro

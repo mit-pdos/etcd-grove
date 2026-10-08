@@ -30,13 +30,15 @@ theorem raft.bcastHeartbeat.wp_proof
   wp_start as Hphys
   iNamed Hphys
   icases ownRaftPhys_readOnly cfg r id s $$ Hphys with ⟨%ro, %rr, %Hpend, Hrof, Hro, Hback⟩
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_load; wp_pures; wp_load; wp_pures
   wp_apply wp_readOnly_heartbeatCtx $$ [$Hro] as %sl ⟨Hro, Hsl⟩
+  wp_pures; wp_load; wp_pures; iclear r
   icases Hsl with (⟨%_, %Hsl⟩ | ⟨%Hne, -⟩)
   · subst Hsl
     ihave Hphys := Hback $$ %ro %rr %Hpend Hrof Hro
     wp_apply wp_raft_bcastHeartbeatWithCtx _ _ _ _ _ Hlead $$ [$Hphys]
       as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
+    wp_pures
     iapply HΦ
     iframe Hphys
     ipureintro

@@ -32,6 +32,7 @@ theorem tracker.Inflights.grow.wp_proof : tracker.Inflights.grow.spec (GF := GF)
   -- reaches `make`; everything after it is joined.
   have Hlen0 : (buf.length : Int) = sint.Z iv.buffer'.len := by
     rw [Hblen.1]; unfold sint.nat; exact Int.toNat_of_nonneg Hblen.2
+  -- TODO(no-wp-auto): wp_join runs (cont first, then the cases): wp_pures; wp_load; wp_pures; iclear newSize | wp_store; wp_pures | wp_load; wp_load; wp_pures; wp_load; wp_pures
   wp_join iprop(∃ (n : w64), newSize_ptr ↦ n ∗ l ↦ iv ∗ in_ptr ↦ l ∗
       ⌜sint.Z n = max 1 (min (2 * (buf.length : Int)) (sint.Z iv.size'))⌝)
     with [newSize Hiv «in»] as ⟨%n, newSize, Hiv, «in», %Hn⟩
@@ -42,7 +43,8 @@ theorem tracker.Inflights.grow.wp_proof : tracker.Inflights.grow.spec (GF := GF)
     ipureintro
     word
   · wp_if_destruct
-    · -- `2 * len(buffer) > size`: cap at `size`.
+    · wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures
+      -- `2 * len(buffer) > size`: cap at `size`.
       isplitr; · ipureintro; trivial
       iexists _; iframe newSize Hiv «in»
       ipureintro
@@ -58,6 +60,8 @@ theorem tracker.Inflights.grow.wp_proof : tracker.Inflights.grow.spec (GF := GF)
   -- zero`.
   wp_apply wp_slice_make2 (V := tracker.inflight) n as %sl ⟨Hsl, Hsl_cap⟩
   · ipureintro; omega
+  wp_pures; wp_alloc newBuffer_ptr as newBuffer; wp_pures; wp_store; wp_pures; wp_load; wp_pures
+  wp_load; wp_pures; wp_load; wp_pures
   wp_apply wp_slice_copy (V := tracker.inflight) $$ [$Hsl $Hbuf] as %ncopy ⟨%Hncopy, Hsl, Hbuf⟩
   have Hsn : sint.nat n = (sint.Z n).toNat := rfl
   have Hle : buf.length ≤ sint.nat n := by rw [Hsn]; omega

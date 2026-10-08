@@ -23,10 +23,11 @@ theorem releasePendingReadIndexMessages.wp_proof :
   intro cfg r id s
   wp_start as Hphys
   iNamed Hphys
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_load; wp_pures
   wp_apply raft.wp_load_pendingReadIndexMessages $$ Hphys as %sl ⟨Hphys, %Hsl⟩
+  wp_pures
   rw [Hsl]
-  wp_auto
+  wp_pures; iclear r
   wp_end
 
 end proof

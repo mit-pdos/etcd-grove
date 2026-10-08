@@ -50,13 +50,16 @@ theorem raft.hup.wp_proof
     raft.hup.spec (GF := GF) (hG := hG) := by
   intro cfg r id s t Hnowrap Hwf
   wp_start as Hphys
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_alloc t_ptr as t; wp_pures; wp_load; wp_pures
   wp_apply raft.wp_load_state $$ Hphys as Hphys
+  wp_pures
   by_cases Hrl : s.role = .leader
   · -- already a leader: log and return, having done nothing
     rw [Hrl, decide_eq_true (by rfl)]
-    wp_auto
+    wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_pures
+    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; iclear r t | ∅
     wp_raft_log
     iapply HΦ $$ %s
     iframe Hphys
@@ -66,19 +69,25 @@ theorem raft.hup.wp_proof
     have Hnl : stateW64 s.role ≠ W64 2 := by
       cases h : s.role <;> simp_all [stateW64] <;> decide
     rw [decide_eq_false Hnl]
-    wp_auto
+    wp_pures; wp_load; wp_pures
     wp_apply wp_raft_promotable $$ [$Hphys] as %b ⟨Hphys, %Hb⟩
+    wp_pures
     cases b with
     | true =>
       -- a voter, so it may campaign
       obtain ⟨Hin, Hsn⟩ := of_decide_eq_true Hb.symm
-      wp_auto
+      wp_pures; wp_load; wp_pures
       wp_apply wp_raft_hasUnappliedConfChanges _ _ _ _ Hsn $$ [$Hphys] as Hphys
+      wp_pures; wp_load; wp_pures
       wp_apply raft.wp_load_id $$ Hphys as Hphys
+      wp_pures; wp_load; wp_pures
       wp_apply raft.wp_load_Term $$ Hphys as Hphys
+      wp_pures
+      -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear r t | ∅
       wp_raft_log
       wp_apply wp_raft_campaign _ _ _ _ _ Hrl Hin Hnowrap $$ [$Hphys]
         as %peers %pvs ⟨%Hpeers, Hphys⟩
+      wp_pures
       iapply HΦ
       iframe Hphys
       ipureintro
@@ -86,8 +95,10 @@ theorem raft.hup.wp_proof
         step_campaignState cfg _ _ _ _ _ Hrl Hin Hnowrap Hpeers⟩
     | false =>
       -- unpromotable: log and return, having done nothing
-      wp_auto
+      wp_pures; wp_load; wp_pures
       wp_apply raft.wp_load_id $$ Hphys as Hphys
+      wp_pures
+      -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; iclear r t | ∅
       wp_raft_log
       iapply HΦ $$ %s
       iframe Hphys

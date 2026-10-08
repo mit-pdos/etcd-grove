@@ -29,14 +29,17 @@ theorem raft.appliedTo.wp_proof
   intro cfg r id s index size Hidx
   wp_start as Hphys
   iNamed Hphys
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_alloc size_ptr as size; wp_pures; wp_alloc index_ptr as index
+  wp_pures; wp_load; wp_pures
   -- `oldApplied := r.raftLog.applied`
   wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+  wp_pures
   icases ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hback⟩
   icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hcb, Hlog⟩
   icases ownRaftLog_struct _ _ $$ Hlog with ⟨%lv, Hl, %Hlv, Hlb⟩
   obtain ⟨Hcm, Hap⟩ := Hlv
-  wp_auto
+  wp_load; wp_pures; wp_alloc oldApplied_ptr as oldApplied; wp_pures; wp_store; wp_pures; wp_load
+  wp_pures; wp_load; wp_pures; iclear index oldApplied
   ihave Hlog := Hlb $$ Hl
   ihave Hphys := Hback $$ Hlog
   rw [Hap]
@@ -44,20 +47,29 @@ theorem raft.appliedTo.wp_proof
   wp_func_call
   wp_call
   wp_if_destruct
+  rotate_left
+  wp_alloc newApplied_ptr as newApplied; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures; wp_load; wp_pures; iclear size
+  rotate_right
+  wp_alloc newApplied_ptr as newApplied; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures; wp_load; wp_pures; iclear size
   all_goals
     -- `r.raftLog.appliedTo(newApplied, size)`
     wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+    wp_pures
     icases ownRaftPhys_log_at cfg r id s $$ Hphys with ⟨Hlog, Hback⟩
     first
+      -- TODO(no-wp-auto): wp_apply then: wp_pures; wp_load; wp_pures
       | wp_apply wp_raftLog_appliedTo _ _ index size (by omega) $$ [$Hlog] as Hlog
+      -- TODO(no-wp-auto): wp_apply then: wp_pures; wp_load; wp_pures
       | wp_apply wp_raftLog_appliedTo _ _ s.logst.applied size (by omega) $$ [$Hlog] as Hlog
     ihave Hphys := Hback $$ %_ Hlog
     -- `r.trk.Config.AutoLeave` is `false`: the rest is dead
     icases ownRaftPhys_tracker_same cfg r id _ $$ Hphys with ⟨%tv, Htrkf, Htrk, Htback⟩
     icases ownTracker_autoleave cfg _ _ $$ Htrk with ⟨%Hal, Htrk⟩
-    wp_auto
+    wp_load
     rw [Hal]
-    wp_auto
+    wp_pures; iclear r newApplied
     ihave Hphys := Htback $$ %tv Htrkf Htrk
     iapply HΦ
     iapply ownRaftPhys_eq _ _ _ _ _ ?_ $$ Hphys

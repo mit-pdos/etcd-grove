@@ -23,16 +23,16 @@ constant `raftpb.MsgPreVote`, which is `#MsgPreVote` by `rfl`. -/
 theorem voteRespMsgType.wp_proof : voteRespMsgType.spec (GF := GF) (hG := hG) := by
   intro t r Ht
   wp_start as _
-  wp_auto
+  wp_alloc msgt_ptr as msgt; wp_pures; wp_load; wp_pures
   rcases Ht with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
   · simp only [show MsgVote = W32 5 from rfl, decide_true]
-    wp_auto
+    wp_pures; iclear msgt
     rw [show raftpb.MsgVoteResp = #MsgVoteResp from rfl]
     iapply HΦ
     itrivial
   · simp only [show (MsgPreVote = W32 5) ↔ False by decide, decide_false]
     rw [show raftpb.MsgPreVote = #MsgPreVote from rfl]
-    wp_auto
+    wp_pures; iclear msgt
     rw [show raftpb.MsgPreVoteResp = #MsgPreVoteResp from rfl]
     iapply HΦ
     itrivial

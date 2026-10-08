@@ -44,7 +44,8 @@ theorem tracker.Inflights.Full.wp_proof : tracker.Inflights.Full.spec (GF := GF)
   · -- count = size: the answer is `true || _`
     iapply HΦ
     iapply ownInflights_reseal l iv buf Hinfl_ok $$ Hiv Hbuf Hbuf_cap
-  · -- The program tests `maxBytes == 0` (negated), the postcondition `maxBytes ≠ 0`.
+  · wp_load; wp_pures; wp_load; wp_pures
+    -- The program tests `maxBytes == 0` (negated), the postcondition `maxBytes ≠ 0`.
     wp_if_destruct
     · -- maxBytes = 0: the byte test is skipped
       rw [show (false || decide (iv.maxBytes' ≠ W64 0) &&

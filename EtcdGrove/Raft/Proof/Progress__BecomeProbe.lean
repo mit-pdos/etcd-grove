@@ -47,21 +47,26 @@ theorem tracker.Progress.BecomeProbe.wp_proof
   have Habs0 := (progressAbs_Some _ _ _).1 Habs
   obtain ⟨Hl, Hst, Hm, Hn, Hsc, Hps, -⟩ := Habs0
   unfold progressBecomeProbe progressBecomeProbeNext
-  wp_auto
+  wp_alloc pr_ptr as pr; wp_pures; wp_load; wp_pures; wp_load; wp_pures
   by_cases Hs : p.state = .snapshot
   · -- `StateSnapshot`: probe from past the pending snapshot
     have Hs2 : pv.State' = W64 2 := by rw [Hst, Hs]; rfl
     rw [decide_eq_true Hs2]
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_alloc pendingSnapshot_ptr as pendingSnapshot
+    wp_pures; wp_store; wp_pures; wp_load; wp_pures
     ihave Hpr := ownProgress_intro pr pv p $$ Hpv Hinfl %Habs
     rw [show tracker.StateProbe = #(prstateW64 .probe) from rfl]
     wp_apply wp_Progress_ResetState _ _ .probe $$ [$Hpr] as Hpr
+    wp_pures; wp_load; wp_pures
     iunfold ownProgress at Hpr
     icases Hpr with ⟨%pv', Hpr⟩
     iNamed Hpr
-    wp_auto
+    wp_load; wp_pures; wp_load; wp_pures; iclear pendingSnapshot
     wp_apply wp_max2_uint64
+    wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load
+    wp_pures; wp_load; wp_pures
     wp_apply wp_min2_uint64
+    wp_pures; wp_load; wp_pures; wp_store; wp_pures; iclear pr
     iapply HΦ
     unfold ownProgress
     iexists _
@@ -79,15 +84,18 @@ theorem tracker.Progress.BecomeProbe.wp_proof
   · -- any other state: probe from `Match + 1`
     rw [decide_eq_false (by
       rw [Hst]; intro Hc; exact Hs (prstateW64_inj _ _ (Hc.trans (by rfl))))]
-    wp_auto
+    wp_pures; wp_load; wp_pures
     ihave Hpr := ownProgress_intro pr pv p $$ Hpv Hinfl %Habs
     rw [show tracker.StateProbe = #(prstateW64 .probe) from rfl]
     wp_apply wp_Progress_ResetState _ _ .probe $$ [$Hpr] as Hpr
+    wp_pures; wp_load; wp_pures
     iunfold ownProgress at Hpr
     icases Hpr with ⟨%pv', Hpr⟩
     iNamed Hpr
-    wp_auto
+    wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+    wp_load; wp_pures; wp_load; wp_pures
     wp_apply wp_min2_uint64
+    wp_pures; wp_load; wp_pures; wp_store; wp_pures; iclear pr
     iapply HΦ
     unfold ownProgress
     iexists _

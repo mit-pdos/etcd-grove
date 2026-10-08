@@ -31,7 +31,7 @@ theorem raftLog.lastIndex.wp_proof
   icases (ownRaftLog_unfold l prev sents uents lcm lap snap lip lapg lpend lasz lamx).1 $$ Hlog with ⟨%lv, Hl, %Hcm, %Hap, %Hapg, %Hip, %Hasz, %Hamx, Hcore⟩
   unfold ownRaftLogCore
   iNamed Hcore
-  wp_auto
+  wp_alloc l_ptr as l; wp_pures; wp_load; wp_pures
   have Hnw : uint.Z lv.unstable'.offset' + (uents.length : Int) < 2^64 := by omega
   ihave #Hsto : isStorageWith (ownStorage lv.storage') lv.storage' $$ [HisStorage]
   · unfold isStorage; iexact HisStorage
@@ -44,6 +44,8 @@ theorem raftLog.lastIndex.wp_proof
   · unfold ownUnstable
     simp only [named]
     iframe # ∗
+  wp_pures; wp_alloc ok_ptr as ok; wp_pures; wp_alloc i_ptr as i; wp_pures; wp_store; wp_pures
+  wp_store; wp_pures; wp_load; iclear ok
   unfold ownUnstable
   icases Hun with ⟨Huf, Huents_cap, Huents⟩
   ihave Hl := Hlback $$ Huf
@@ -54,7 +56,7 @@ theorem raftLog.lastIndex.wp_proof
     | some sid =>
       -- the pending snapshot's index
       rw [decide_eq_true (by simp)]
-      wp_auto
+      wp_pures; wp_load; wp_pures; iclear l i
       iapply HΦ
       obtain ⟨Hsid, Hse, -⟩ := id Hstore
       isplitl
@@ -65,11 +67,13 @@ theorem raftLog.lastIndex.wp_proof
       simp
     | none =>
       rw [decide_eq_false (by simp)]
-      wp_auto
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear l i
       rw [Hstok]
-      wp_auto
+      wp_pures
       obtain ⟨Hsp, -, Hstored_eq⟩ := id Hstore
       wp_apply HLastIndex $$ HStorage as %li2 ⟨%Hli2, HStorage⟩
+      wp_pures; wp_alloc err_ptr as err; wp_pures; wp_alloc i_ptr as i; wp_pures; wp_store; wp_pures
+      wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear i err
       rw [← Hstok]
       iapply HΦ
       isplitl
@@ -79,7 +83,7 @@ theorem raftLog.lastIndex.wp_proof
       simp only [List.length_nil]
       omega
   · obtain ⟨rfl, Hli⟩ := Hok2 He
-    wp_auto
+    wp_pures; wp_load; wp_pures; iclear l i
     iapply HΦ
     isplitl
     · reseal_raftLog

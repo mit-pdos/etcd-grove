@@ -24,7 +24,10 @@ theorem unstable.restore.wp_proof : unstable.restore.spec (GF := GF) (hG := hG) 
   unfold ownUnstable
   iNamed Hun
   iapply wp_fupd
-  wp_auto
+  wp_alloc u_ptr as u; wp_pures; wp_alloc s_ptr as s; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+  wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures
+  wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures
+  wp_store; wp_pures; iclear u
   ipersist s
   imodintro
   iapply HΦ

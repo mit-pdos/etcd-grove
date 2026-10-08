@@ -58,21 +58,23 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   intro Hty Hterm Hnowrap Hwf
   wp_start as Hphys
   iNamed Hphys
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_alloc m_ptr as m; wp_pures; wp_load; wp_pures
   wp_apply _P.traceReceiveMessage
+  wp_pures; wp_load; wp_pures
   -- `m.Term = 0` (a local message), so the term preamble is skipped
   rw [decide_eq_true Hterm]
-  wp_auto
+  wp_pures; wp_load; wp_pures
   -- the type switch selects the `MsgHup` case
   rw [Hty]
-  wp_auto
+  wp_pures; wp_load; wp_pures; iclear m
   -- `hup(campaignPreElection)` with pre-vote on, `hup(campaignElection)` otherwise;
   -- `hup`'s spec covers both
   wp_apply raft.wp_load_preVote $$ Hphys as Hphys
   cases s.prevote
   all_goals
-    wp_auto
+    wp_pures; wp_load; wp_pures; iclear r
     wp_apply _P.hup cfg r id s _ Hnowrap Hwf $$ [$Hphys] as %s' ⟨Hphys, %Hwf', %Hstep⟩
+    wp_pures
     iapply HΦ $$ %interface.nil %s'
     iframe Hphys
     ipureintro

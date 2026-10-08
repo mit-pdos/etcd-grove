@@ -26,12 +26,15 @@ theorem unstable.acceptInProgress.wp_proof :
   iNamed Hun
   icases Hents with #Hents
   ihave %Hlen := ownSlice_len $$ Hents
-  wp_auto
+  wp_alloc u_ptr as u; wp_pures; wp_load; wp_pures; wp_load; wp_pures
   by_cases He : uents = []
   · -- no entries: only the snapshot flag
     subst He
     wp_if_destruct
-    · exfalso; simp at Hlen; word
+    · wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures
+    wp_load; wp_pures; wp_load; wp_pures
+      exfalso; simp at Hlen; word
+    -- TODO(no-wp-auto): wp_if_destruct runs: ∅ | wp_load; wp_pures; wp_store; wp_pures; iclear u
     wp_if_destruct <;>
     · iapply HΦ
       unfold ownUnstable
@@ -46,6 +49,10 @@ theorem unstable.acceptInProgress.wp_proof :
     have Heidx := Hidx _ _ Hle
     wp_if_destruct
     rotate_left
+    wp_load; wp_pures; wp_load; wp_pures
+    rotate_right
+    wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures
+    rotate_left
     · exfalso; word
     have Hbnd : 0 ≤ sint.Z (uv.entries'.len - W64 1) ∧
         sint.Z (uv.entries'.len - W64 1) < sint.Z uv.entries'.len := by
@@ -56,7 +63,9 @@ theorem unstable.acceptInProgress.wp_proof :
     icases ownSlice_elem_acc (sint.Z (uv.entries'.len - W64 1)) e uv.entries' _ uents Hbnd.1 Hle'
       $$ Hents with ⟨#He, -⟩
     iStructNamedSuffix He "_e"
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
+    wp_pures
+    -- TODO(no-wp-auto): wp_if_destruct runs: ∅ | wp_load; wp_pures; wp_store; wp_pures; iclear u
     wp_if_destruct <;>
     · iapply HΦ
       unfold ownUnstable

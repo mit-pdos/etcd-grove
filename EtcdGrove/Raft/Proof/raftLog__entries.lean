@@ -26,9 +26,11 @@ theorem raftLog.entries.wp_proof
   intro l ls i maxSize Hlo
   wp_start as Hlog
   iNamed Hlog
-  wp_auto
+  wp_alloc l_ptr as l; wp_pures; wp_alloc maxSize_ptr as maxSize; wp_pures; wp_alloc i_ptr as i
+  wp_pures; wp_load; wp_load; wp_pures
   icases ownRaftLog_nowrap l ls $$ Hlog with ⟨%Hnw, Hlog⟩
   wp_apply wp_raftLog_lastIndex l ls $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
+  wp_pures
   wp_if_destruct
   · -- `i` is past the end: `nil` and no error; the log is untouched.
     iapply HΦ
@@ -37,8 +39,11 @@ theorem raftLog.entries.wp_proof
     · iapply ownSlice_nil (V := raftpb.Entry)
     · ipureintro
       exact ⟨fun e He => absurd He (List.not_mem_nil), List.nil_prefix⟩
-  · wp_apply wp_raftLog_lastIndex l ls $$ [$Hlog] as %li2 ⟨Hlog, %Hli2⟩
+  · wp_load; wp_pures; wp_load; wp_pures; iclear i
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear l maxSize
+    wp_apply wp_raftLog_lastIndex l ls $$ [$Hlog] as %li2 ⟨Hlog, %Hli2⟩
     wp_apply wp_raftLog_slice l ls _ _ _ (by word) $$ [$Hlog] as %sl %es ⟨Hlog, Hsl, %Hes, -⟩
+    wp_pures
     obtain ⟨-, -, Hin, Hpre⟩ := Hes
     iapply HΦ
     iframe Hlog Hsl

@@ -24,7 +24,8 @@ theorem raftLog.findConflictByTerm.wp_proof
   intro l ls index term
   wp_start as H
   iNamed H
-  wp_auto
+  wp_alloc l_ptr as l; wp_pures; wp_alloc term_ptr as term; wp_pures; wp_alloc index_ptr as index
+  wp_pures
   ihave IH : iprop(∃ (idx : w64),
       "index" ∷ index_ptr ↦ idx ∗
       "Hlog" ∷ ownRaftLog l ls ∗
@@ -33,26 +34,36 @@ theorem raftLog.findConflictByTerm.wp_proof
     iframe
     ipureintro
     omega
-  wp_for IH
+  wp_for_core
+  iNamed IH
+  wp_pures; wp_load; wp_pures
+  cleanup_bool_decide
   wp_if_destruct
-  · wp_apply wp_raftLog_term $$ [$Hlog] as %t %err ⟨Hlog, %Herr, %Ht, -⟩
+  · wp_load; wp_pures; wp_load; wp_pures
+    wp_pures; wp_alloc err_ptr as err; wp_pures; wp_alloc ourTerm_ptr as ourTerm; wp_pures; wp_store
+    wp_pures; wp_store; wp_pures; wp_load; wp_pures; iclear err
+    wp_apply wp_raftLog_term $$ [$Hlog] as %t %err ⟨Hlog, %Herr, %Ht, -⟩
     cases err with
     | ok eok =>
-      wp_auto
+      wp_pures; wp_load; wp_pures; iclear ourTerm
       wp_for_post
+      wp_pures; iclear l term index
       iapply HΦ
       iframe
       ipureintro
       exact Hidx
     | nil =>
-      wp_auto
+      wp_pures; wp_load; wp_load; wp_pures
       wp_if_destruct
-      · wp_for_post
+      · wp_load; wp_load; wp_pures; iclear ourTerm
+        wp_pures; iclear l term index
+        wp_for_post
         iapply HΦ
         iframe
         ipureintro
         exact Hidx
       · wp_for_post
+        wp_load; wp_pures; wp_store; wp_pures; iclear ourTerm
         iframe
         iexists _
         iframe

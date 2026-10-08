@@ -49,22 +49,26 @@ theorem readOnly.recvAck.wp_proof : readOnly.recvAck.spec (GF := GF) (hG := hG) 
     iexists rov, ptrs
     iframe Hro Hacks Hucr Hucr_cap Hreqs
     ipureintro; exact ⟨Hro_safe, Hro_conf⟩
-  · have Hne : cs ≠ [] := by
+  · wp_load; wp_load; wp_pures; wp_load
+    have Hne : cs ≠ [] := by
       intro h; subst h; apply Hif; simp at Hcl; word
     have Hcs8 : 8 ≤ cs.length := by
       rcases Hlen with h | h
       · exact absurd h Hne
       · exact h
     wp_apply wp_map_lookup1 $$ Hacks as Hacks
+    wp_pures; wp_load; wp_pures; iclear ctx
     rw [show cs = cs.take 8 ++ cs.drop 8 from (List.take_append_drop 8 cs).symm]
     wp_apply encoding.binary.wp_LittleEndian_Uint64 ctx (cs.take 8) dq (cs.drop 8)
       (by rw [List.length_take]; omega) $$ [$Hctx] as Hctx
+    wp_pures
     wp_func_call
     wp_call
     rw [List.take_append_drop]
     wp_if_destruct
     all_goals
       wp_apply wp_mapInsert $$ Hacks as Hacks
+      wp_pures
       iapply HΦ
       iframe Hctx
       rw [readonlyRecvAck_cons r src cs Hne]

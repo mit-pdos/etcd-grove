@@ -23,8 +23,9 @@ theorem raft.abortLeaderTransfer.wp_proof :
   -- `leadTransferee := None`; `ownRaftPhys` already says it is `0`
   -- (no leader transfer is in scope), so nothing abstract moves.
   wp_start as Hphys
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_load; wp_pures; iclear r
   wp_apply raft.wp_store_leadTransferee $$ Hphys as Hphys
+  wp_pures
   iapply HΦ
   iexact Hphys
 

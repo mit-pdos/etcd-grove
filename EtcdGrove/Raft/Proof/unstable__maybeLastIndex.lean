@@ -22,13 +22,14 @@ theorem unstable.maybeLastIndex.wp_proof :
   iNamed H
   unfold ownUnstable
   iNamed Hun
-  wp_auto
+  wp_alloc u_ptr as u; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_alloc l_ptr as l; wp_pures
+  wp_store; wp_pures; wp_load; wp_pures
   ihave %Hlen := ownSlice_len $$ Hents
   by_cases He : uents = []
   · subst He
     have Hz : uv.entries'.len = W64 0 := by simp at Hlen; word
     rw [decide_eq_true Hz]
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear l
     cases snap with
     | some sid =>
       -- the suffix is empty and a snapshot is pending: its index
@@ -37,7 +38,7 @@ theorem unstable.maybeLastIndex.wp_proof :
       rw [decide_eq_false Hnn]
       iStructNamed Hsv
       iStructNamed Metadata
-      wp_auto
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear u
       iapply HΦ
       iframe
       ipureintro
@@ -45,7 +46,7 @@ theorem unstable.maybeLastIndex.wp_proof :
     | none =>
       ihave %Hns := (ownSnap_None _).1 $$ Hsnap
       rw [decide_eq_true Hns]
-      wp_auto
+      wp_pures; iclear u
       iapply HΦ
       iframe
       ipureintro
@@ -55,7 +56,7 @@ theorem unstable.maybeLastIndex.wp_proof :
       | nil => exact He rfl
       | cons _ _ => simp at Hlen; word
     rw [decide_eq_false Hz]
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures; iclear u l
     iapply HΦ
     iframe
     ipureintro

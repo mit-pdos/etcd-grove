@@ -20,9 +20,11 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem isHardStateEqual.wp_proof : isHardStateEqual.spec (GF := GF) (hG := hG) := by
   intro a b
   wp_start as -
-  wp_auto
+  wp_alloc b_ptr as b; wp_pures; wp_alloc a_ptr as a; wp_pures; wp_load; wp_pures; wp_load; wp_pures
   wp_if_destruct
-  · wp_if_destruct <;>
+  -- TODO(no-wp-auto): wp_if_destruct runs: wp_load; wp_pures; wp_load; wp_pures; iclear b a | ∅
+  · wp_load; wp_pures; wp_load; wp_pures
+    wp_if_destruct <;>
     · ispecialize HΦ $$ []
       · itrivial
       iExactEq HΦ

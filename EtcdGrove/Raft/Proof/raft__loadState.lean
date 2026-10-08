@@ -27,15 +27,16 @@ theorem raft.loadState.wp_proof
   obtain ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ := logst
   dsimp only at Hc ⊢
   wp_start as Hphys
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_alloc state_ptr as state; wp_pures; wp_load; wp_load; wp_pures
   -- Each `r.raftLog.f` loads the pointer through the struct first, so the log is taken
   -- out and put back around each use; the first two put it back unchanged.
   wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+  wp_pures
   icases ownRaftPhys_log_same $$ Hphys with ⟨HL, Hlogback⟩
   ihave ⟨%Hnw, HL⟩ := ownRaftLog_nowrap $$ HL
   icases ownRaftLog_struct $$ HL with ⟨%lv, Hl, %Hlv, HLback⟩
   dsimp only at Hnw Hlv
-  wp_auto
+  wp_load; wp_pures
   ihave HL := HLback $$ Hl
   ihave Hphys := Hlogback $$ HL
   have Hll : uint.Z (logLast ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩)
@@ -43,22 +44,25 @@ theorem raft.loadState.wp_proof
     simp only [logLast]; word
   rw [Hll] at Hc
   rw [decide_eq_false (by rw [Hlv.1]; omega)]
-  wp_auto
+  wp_pures; wp_load; wp_load; wp_pures
   -- `r.raftLog.lastIndex()`
   wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+  wp_pures
   icases ownRaftPhys_log_same $$ Hphys with ⟨HL, Hlogback⟩
   wp_apply wp_raftLog_lastIndex $$ [$HL] as %li ⟨HL, %Hli⟩
+  wp_pures
   ihave Hphys := Hlogback $$ HL
   dsimp only at Hli
   rw [decide_eq_false (by omega)]
-  wp_auto
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures
   -- `r.raftLog.committed = state.Commit`
   wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+  wp_pures
   icases ownRaftPhys_log_at $$ Hphys with ⟨HL, Hlogback⟩
   dsimp only
   icases (ownRaftLog_unfold _ _ _ _ _ _ _ _ _ _ _ _).1 $$ HL with
     ⟨%lv2, Hl, %Hcm2, %Hap2, %Hapg2, %Hip2, %Hasz2, %Hamx2, Hcore⟩
-  wp_auto
+  wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures
   iNamed Hcore
   ihave HL : ownRaftLog log
       ⟨prev, sents, uents, hs.Commit', lap, snap, lip, lapg, lpend, lasz, lamx⟩ $$
@@ -73,7 +77,9 @@ theorem raft.loadState.wp_proof
       | (simp only [Hcm2, Hap2] at Happlied Happlying ⊢; omega)
   ihave Hphys := Hlogback $$ %_ HL
   wp_apply raft.wp_store_Term $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear r state
   wp_apply raft.wp_store_Vote $$ Hphys as Hphys
+  wp_pures
   iapply HΦ
   iexact Hphys
 

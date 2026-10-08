@@ -100,7 +100,9 @@ theorem raftLog.maybeAppend.wp_proof
   dsimp only at Hwf Hnw Hci ⊢
   wp_start as H
   iNamed H
-  wp_auto
+  wp_alloc ok_ptr as ok; wp_pures; wp_alloc lastnewi_ptr as lastnewi; wp_pures; wp_alloc l_ptr as l
+  wp_pures; wp_alloc committed_ptr as committed; wp_pures; wp_alloc a_ptr as a; wp_pures; wp_load
+  wp_pures; wp_load; wp_pures; iclear ok
   ihave %Hlen := ownSlice_len _ _ _ $$ Hents
   icases ownRaftLog_wf _ _ $$ Hlog with ⟨%Hidx, Hlog⟩
   icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hcmb, Hlog⟩
@@ -108,12 +110,13 @@ theorem raftLog.maybeAppend.wp_proof
   dsimp only at Hidx Hcmb Hnwl
   wp_apply wp_raftLog_matchTerm _ ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ aprev $$ [$Hlog]
     as %b ⟨Hlog, %Hb⟩
+  wp_pures
   dsimp only at Hb
   cases b with
   | false =>
     -- `a.prev` does not match: `(0, false)`
     have Hnm : ¬ PlogMatches prev (sents ++ uents) aprev := of_decide_eq_false Hb.symm
-    wp_auto
+    wp_pures; iclear lastnewi l committed a
     iapply HΦ
     iframe
     ipureintro
@@ -124,7 +127,8 @@ theorem raftLog.maybeAppend.wp_proof
     have Hci := Hci Hm
     have Hprange := matches_le_last _ _ _ Hm
     simp only [plogLastIndexZ, List.length_append] at Hprange
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
+    wp_pures
     -- `findConflict`: every entry is above `a.prev`, hence above `prev`
     have Hge : ∀ e ∈ ents, uint.Z prev.index' ≤ uint.Z e.Index' := by
       intro e He
@@ -133,6 +137,7 @@ theorem raftLog.maybeAppend.wp_proof
       omega
     wp_apply wp_raftLog_findConflict _ ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ _ _ ents Hge
       $$ [$Hlog $Hents] as ⟨Hlog, -⟩
+    wp_pures; wp_alloc ci_ptr as ci; wp_pures; wp_store; wp_pures; wp_load; wp_pures
     have Hlni : aprev.index' + aents.len = W64 (uint.Z aprev.index' + (ents.length : Int)) := by
       word
     rw [Hlni]
@@ -140,7 +145,7 @@ theorem raftLog.maybeAppend.wp_proof
       ⟨Hci0, Hall⟩ | ⟨k, e, Hk, Hcie, Hnm, Hbefore⟩
     · -- no conflict: the log already has every entry
       rw [Hci0]
-      wp_auto
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear committed a ci
       -- the log reaches `lastnewi`
       have Hreach : uint.Z aprev.index' + (ents.length : Int)
           ≤ uint.Z prev.index' + (sents.length : Int) + (uents.length : Int) := by
@@ -160,9 +165,11 @@ theorem raftLog.maybeAppend.wp_proof
           rw [show ents.length - 1 + 1 = ents.length by omega] at *
           omega
       wp_apply wp_min_u64
+      wp_pures; wp_load; wp_pures; iclear l
       wp_apply wp_raftLog_commitTo _ ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ _ ?_ $$ [$Hlog] as Hlog
       · simp only [plogLastIndexZ, List.length_append, w64Min]
         split <;> word
+      wp_pures; wp_load; wp_pures; iclear lastnewi
       iapply HΦ
       iframe
       ipureintro
@@ -177,19 +184,20 @@ theorem raftLog.maybeAppend.wp_proof
       rw [Hcie]
       have Hklt : k < ents.length := (List.getElem?_eq_some_iff.1 Hk).1
       simp only [Hcine, decide_false]
-      wp_auto
+      wp_pures; wp_load; wp_load; wp_pures
       icases ownRaftLog_struct _ _ $$ Hlog with ⟨%lv, Hl, %Hlv, Hback⟩
       obtain ⟨Hcm, -⟩ := Hlv
       dsimp only at Hcm
-      wp_auto
+      wp_load; wp_pures
       have Hnle : ¬ uint.Z e.Index' ≤ uint.Z lv.committed' := by rw [Hcm]; omega
       simp only [Hnle, decide_false]
       ihave Hlog := Hback $$ Hl
-      wp_auto
+      wp_pures; wp_load; wp_pures; wp_alloc offset_ptr as offset; wp_pures; wp_store; wp_pures
+      wp_load; wp_load; wp_pures; wp_load; wp_pures
       have Hsub : e.Index' - (aprev.index' + W64 1) = W64 (k : Int) := by word
       rw [Hsub]
       rw [decide_eq_false (by word)]
-      wp_auto
+      wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures; iclear a ci offset
       -- the batch from the conflict on: `a.entries[k:]`
       icases (ownSlice_split_all (W64 (k : Int)) aents DFrac.discard ents (by word)).1 $$ Hents
         with ⟨-, #Hdrop⟩
@@ -212,7 +220,7 @@ theorem raftLog.maybeAppend.wp_proof
           sint.Z aents.len ≤ sint.Z aents.cap := by
         word
       rw [ite_eq_left_of_eq_true _ _ (eq_true Hbnd)]
-      wp_auto
+      wp_pures; wp_load; wp_pures
       -- `ci <= lastIndex() + 1`: `ents[k-1]` (or `a.prev`) matched
       have Hcile : uint.Z e.Index' ≤ uint.Z prev.index' + (sents.length : Int)
           + (uents.length : Int) + 1 := by
@@ -247,6 +255,7 @@ theorem raftLog.maybeAppend.wp_proof
       wp_apply wp_raftLog_append _ ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ (ents.drop k) _ _
           Happ_pre (fun x Hx => Hnorm x (List.mem_of_mem_drop Hx)) $$ [$Hlog $Hdrop $Hadopt]
         as %li ⟨Hlog, -, %Hsplit, %Hli⟩
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear committed
       obtain ⟨Hp1, Hc1, Ha1⟩ := logTruncateAppend_fields ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩
         (ents.drop k)
       dsimp only at Hp1 Hc1 Ha1
@@ -265,11 +274,13 @@ theorem raftLog.maybeAppend.wp_proof
         push_cast at *
         omega
       wp_apply wp_min_u64
+      wp_pures; wp_load; wp_pures; iclear l
       wp_apply wp_raftLog_commitTo _ ls1 _ ?_ $$ [$Hlog] as Hlog
       · rw [Hp1]
         simp only [plogLastIndexZ, List.length_append, w64Min]
         push_cast
         split <;> word
+      wp_pures; wp_load; wp_pures; iclear lastnewi
       iapply HΦ
       iframe
       ipureintro

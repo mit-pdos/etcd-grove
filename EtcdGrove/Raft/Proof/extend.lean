@@ -34,7 +34,8 @@ plus `ownSlice_trivial_slice_2`. -/
 theorem extend.wp_proof : extend.spec (GF := GF) (hG := hG) := by
   intro dst vals ds vs dq1 dq2 Hcap
   wp_start as ⟨Hdst, Hvals⟩
-  wp_auto
+  wp_alloc vals_ptr as vals; wp_pures; wp_alloc dst_ptr as dst; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures; wp_alloc need_ptr as need; wp_pures; wp_store; wp_pures; wp_load; wp_load; wp_pures
   ihave %Hlen1 := ownSlice_len _ _ _ $$ Hdst
   ihave %Hlen2 := ownSlice_len _ _ _ $$ Hvals
   ihave %Hwf1 := ownSlice_wf _ _ _ $$ Hdst
@@ -46,20 +47,28 @@ theorem extend.wp_proof : extend.spec (GF := GF) (hG := hG) := by
     -- model assumes the lengths do not overflow (see the spec)
     have Hwrap : sint.Z (dst.len + vals.len) < 0 := by word
     wp_if_destruct
-    · wp_func_call
+    · wp_load; wp_pures; wp_load; wp_pures
+      wp_func_call
       wp_call
       wp_apply wp_sumAssumeNoOverflowSigned with %Hov
+      wp_pures
       exfalso; omega
-    · exfalso; omega
+    · wp_load; wp_load; wp_pures; iclear need
+      exfalso; omega
   have Hneed : sint.Z (dst.len + vals.len) = (ds.length : Int) + (vs.length : Int) := by
     word
   have Hneed' : sint.nat (dst.len + vals.len) = ds.length + vs.length := by word
   wp_if_destruct
-  · exfalso; omega
+  · wp_load; wp_pures; wp_load; wp_pures
+  wp_load; wp_load; wp_pures; iclear need
+    exfalso; omega
   wp_apply wp_slice_make3 (V := raftpb.Entry) (dst.len + vals.len) (dst.len + vals.len)
     (by omega) as %buf ⟨Hbuf, Hbuf_cap, %Hbufcap⟩
+  wp_pures; wp_alloc buf_ptr as buf; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures
   rw [Hneed']
   wp_apply wp_slice_copy $$ [$Hbuf $Hdst] as %n1 ⟨%Hn1, Hbuf, Hdst⟩
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear dst
   rw [List.length_replicate, List.take_of_length_le (by omega), List.drop_replicate,
     show ds.length + vs.length - ds.length = vs.length by omega]
   ihave %Hlenb := ownSlice_len _ _ _ $$ Hbuf
@@ -67,8 +76,9 @@ theorem extend.wp_proof : extend.spec (GF := GF) (hG := hG) := by
   rw [ite_eq_left_of_eq_true _ _ (eq_true (by word))]
   icases (ownSlice_split_all dst.len buf _ _ (by word)).1 $$ Hbuf with ⟨Hbuf1, Hbuf2⟩
   rw [List.take_left' (by word), List.drop_left' (by word)]
-  wp_auto
+  wp_pures; wp_load; wp_pures; iclear vals
   wp_apply wp_slice_copy (V := raftpb.Entry) $$ [$Hbuf2 $Hvals] as %n2 ⟨%Hn2, Hbuf2, Hvals⟩
+  wp_pures; wp_load; wp_pures; iclear buf
   rw [List.length_replicate, List.take_of_length_le (by omega), List.drop_replicate,
     Nat.sub_self, List.replicate_zero, List.append_nil]
   ihave Hbuf := ownSlice_combine dst.len buf (DFrac.own 1) ds vs (W64 0) buf.len

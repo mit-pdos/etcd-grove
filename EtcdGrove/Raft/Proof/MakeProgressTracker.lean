@@ -19,10 +19,14 @@ theorem tracker.MakeProgressTracker.wp_proof :
     tracker.MakeProgressTracker.spec (GF := GF) (hG := hG) := by
   intro mi mb
   wp_start as _
-  wp_auto
+  wp_alloc maxBytes_ptr as maxBytes; wp_pures; wp_alloc maxInflight_ptr as maxInflight; wp_pures
+  wp_load; wp_pures; wp_load; wp_pures; iclear maxBytes maxInflight
   wp_apply wp_map_make1 as %v0 Hv0
+  wp_pures
   wp_apply wp_map_make1 as %vm Hvm
+  wp_pures
   wp_apply wp_map_make1 as %pm Hpm
+  wp_pures; wp_alloc p_ptr as p; wp_pures; wp_store; wp_pures; wp_load; wp_pures; iclear p
   iapply HΦ
   iframe
   ipureintro

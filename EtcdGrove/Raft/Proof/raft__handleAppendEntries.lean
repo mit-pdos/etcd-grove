@@ -83,39 +83,48 @@ theorem raft.handleAppendEntries.wp_proof
   intro cfg r id s m ents Hwf Hnw Hnorm Hconf
   wp_start as Hpre
   iNamed Hpre
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_alloc m_ptr as m; wp_pures
   wp_apply wp_logSliceFromMsgApp $$ [$m] as m
+  wp_pures; wp_alloc a_ptr as a; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures
   -- the stale test reads `r.raftLog.committed`
   wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+  wp_pures
   icases ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hlogback⟩
   icases ownRaftLog_struct _ _ $$ Hlog with ⟨%lv, Hl, %Hlv, Hlb⟩
-  wp_auto
+  wp_load; wp_pures
   ihave Hlog := Hlb $$ Hl
   ihave Hphys := Hlogback $$ Hlog
   obtain ⟨Hcm, -⟩ := Hlv
   rw [Hcm]
   wp_if_destruct
-  · -- stale: acknowledge `committed`
+  · wp_load; wp_pures; wp_load; wp_pures
+    -- stale: acknowledge `committed`
     wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+    wp_pures
     icases ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hlogback⟩
     icases ownRaftLog_struct _ _ $$ Hlog with ⟨%lv2, Hl, %Hlv2, Hlb⟩
-    wp_auto
+    wp_load; wp_pures; wp_load; wp_pures
     ihave Hlog := Hlb $$ Hl
     ihave Hphys := Hlogback $$ Hlog
     obtain ⟨Hcm2, -⟩ := Hlv2
     rw [Hcm2]
     wp_apply wp_send_appResp wp_raft_send $$ [$Hphys] as Hphys
+    wp_pures; iclear r m a
     iapply HΦ
     iframe
     ipureintro
     exact .inl ⟨Hif, rfl⟩
-  · -- `maybeAppend`
+  · wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear a
+    -- `maybeAppend`
     wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+    wp_pures
     icases ownRaftPhys_log_at cfg r id s $$ Hphys with ⟨Hlog, Hlogback⟩
     wp_apply wp_raftLog_maybeAppend _ s.logst
         (logSlice.mk m.Term' (entryID.mk m.LogTerm' m.Index') m.Entries') ents m.Commit'
         Hwf Hnw Hnorm (fun Hm => Hconf (by omega) Hm) $$ [$Hlog $Hents $Hcap]
       as %lastnewi %ok %ls' ⟨Hlog, %Hma⟩
+    wp_pures; wp_alloc ok_ptr as ok; wp_pures; wp_alloc mlastIndex_ptr as mlastIndex; wp_pures
+    wp_store; wp_pures; wp_store; wp_pures; wp_load; iclear ok
     ihave Hphys := Hlogback $$ %ls' Hlog
     cases Hpm : plogMaybeAppend s.logst.prev (s.logst.sents ++ s.logst.uents)
         (entryID.mk m.LogTerm' m.Index') ents with
@@ -124,8 +133,9 @@ theorem raft.handleAppendEntries.wp_proof
       obtain ⟨lni, es'⟩ := res
       rw [Hpm] at Hma
       obtain ⟨rfl, rfl, Hprev, Hes, Happ, Hcm'⟩ := Hma
-      wp_auto
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear mlastIndex
       wp_apply wp_send_appResp wp_raft_send $$ [$Hphys] as Hphys
+      wp_pures; iclear r m
       iapply HΦ
       iframe
       ipureintro
@@ -143,26 +153,41 @@ theorem raft.handleAppendEntries.wp_proof
         unfold plogMaybeAppend at Hpm
         rw [if_pos Hc] at Hpm
         cases Hpm
-      wp_auto
+      wp_pures; wp_load; wp_pures; iclear mlastIndex
       wp_apply raft.wp_load_id $$ Hphys as Hphys
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures
       wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+      wp_pures
       icases ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hlogback⟩
       wp_apply wp_raftLog_term $$ [$Hlog] as %t %err ⟨Hlog, -, -, #Herr⟩
+      wp_pures; wp_load; wp_pures
       ihave Hphys := Hlogback $$ Hlog
       wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+      wp_pures
       wp_apply wp_raftLog_zeroTermOnOutOfBounds $$ [$Herr] as %t' -
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+      -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures | ∅
       wp_raft_log
       -- `hintIndex := min(m.Index, lastIndex())`
       wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+      wp_pures
       icases ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hlogback⟩
       wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, -⟩
+      wp_pures
       ihave Hphys := Hlogback $$ Hlog
       wp_apply wp_min_u64
+      wp_pures; wp_alloc hintIndex_ptr as hintIndex; wp_pures; wp_store; wp_pures; wp_load; wp_pures
+      wp_load; wp_pures; wp_load; wp_pures
       wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+      wp_pures
       icases ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hlogback⟩
       wp_apply wp_raftLog_findConflictByTerm $$ [$Hlog] as %hint %hintterm ⟨Hlog, -⟩
+      wp_pures; wp_alloc hintTerm_ptr as hintTerm; wp_pures; wp_store; wp_pures; wp_store; wp_pures
+      wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+      iclear r m hintIndex hintTerm
       ihave Hphys := Hlogback $$ Hlog
       wp_apply wp_send_appResp wp_raft_send $$ [$Hphys] as Hphys
+      wp_pures
       iapply HΦ
       iframe
       ipureintro

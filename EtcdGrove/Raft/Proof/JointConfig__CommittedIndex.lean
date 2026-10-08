@@ -49,11 +49,11 @@ theorem quorum.JointConfig.CommittedIndex.wp_proof
     quorum.JointConfig.CommittedIndex.spec (GF := GF) (hG := hG) := by
   intro c a m0 ids l PP acked
   wp_start as ⟨%Hsz, Hc, %Harr, Hm0, #Hidx, HP⟩
-  wp_auto
+  wp_load; wp_pures
   wp_method_call
   wp_call
   wp_call
-  wp_auto
+  wp_alloc c_ptr as c; wp_pures; wp_alloc l_ptr as l; wp_pures; wp_load; wp_pures
   icases array_acc_same' (GF := GF) _ (sint.Z (W64 0)) _ _ _ m0 (by decide) (by simp [Harr])
     $$ c with ⟨Hc0, Hcback⟩
   -- the voter map is a real map, so the callee's `map.nil` disjunct cannot come back for it
@@ -66,6 +66,7 @@ theorem quorum.JointConfig.CommittedIndex.wp_proof
     iexists ids
     iframe
     ipureintro; rfl
+  wp_pures; wp_alloc idx0_ptr as idx0; wp_pures; wp_store; wp_pures; wp_load; wp_pures; iclear l
   icases Hv with (⟨%Hnil, -⟩ | ⟨%voters', %Hvoters'_dom, Hvoters⟩)
   · exact absurd Hnil Hvnn
   -- `c[1]`: the nil component of a simple configuration
@@ -78,12 +79,14 @@ theorem quorum.JointConfig.CommittedIndex.wp_proof
     · ipureintro; rw [GMap.map_size_empty]; decide
     ileft
     ipureintro; exact ⟨rfl, rfl⟩
+  wp_pures; wp_alloc idx1_ptr as idx1; wp_pures; wp_store; wp_pures; wp_load; wp_load; wp_pures
   have HN1 : N1 = W64 (2 ^ 64 - 1) := Hemp1 rfl
   subst HN1
   ihave c := Hcback $$ Hc1
   -- `min`: `c[0]`'s answer on both exits
   wp_if_destruct
-  · iapply HΦ
+  · wp_load; wp_pures; iclear idx0 idx1 c
+    iapply HΦ
     iframe Hc HP
     isplitl [Hvoters]
     · iexists voters'
@@ -91,7 +94,8 @@ theorem quorum.JointConfig.CommittedIndex.wp_proof
       ipureintro; exact Hvoters'_dom
     ipureintro
     exact ⟨Hemp0, Hq0⟩
-  · have Heq : N0 = W64 (2 ^ 64 - 1) := by word
+  · wp_load; wp_pures; iclear idx0 idx1 c
+    have Heq : N0 = W64 (2 ^ 64 - 1) := by word
     subst Heq
     iapply HΦ
     iframe Hc HP

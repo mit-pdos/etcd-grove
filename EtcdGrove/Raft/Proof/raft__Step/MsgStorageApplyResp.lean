@@ -59,15 +59,16 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
   intro Hty Hterm Hlast Hwf
   wp_start as ⟨Hphys, #Hents⟩
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_alloc m_ptr as m; wp_pures; wp_load; wp_pures
   wp_apply _P.traceReceiveMessage
+  wp_pures; wp_load; wp_pures
   -- `m.Term = 0` (a local message), so the term preamble is skipped
   rw [decide_eq_true Hterm]
-  wp_auto
+  wp_pures; wp_load; wp_pures
   -- the type switch: not `MsgHup`, not `MsgStorageAppendResp`, but
   -- `MsgStorageApplyResp`
   rw [Hty]
-  wp_auto
+  wp_pures; wp_load; wp_pures
   ihave %Hlen := ownSlice_len $$ Hents
   cases He : ents.getLast? with
   | none =>
@@ -75,7 +76,7 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     rw [List.getLast?_eq_none_iff] at He
     subst He
     rw [decide_eq_false (by simp only [List.length_nil] at Hlen; word)]
-    wp_auto
+    wp_pures; iclear r m
     iapply HΦ $$ %interface.nil %s
     iframe Hphys
     ipureintro
@@ -84,18 +85,23 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     obtain ⟨es, rfl⟩ := List.getLast?_eq_some_iff.1 He
     simp only [List.length_append, List.length_singleton] at Hlen
     rw [decide_eq_true (by word)]
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures
     -- `m.Entries[len(m.Entries)-1].Index`
     rw [ite_eq_left ⟨by word, by word⟩]
     icases ownSlice_elem_acc (sint.Z (m.Entries'.len - W64 1)) e _ _ _ (by word)
       (by rw [show (sint.Z (m.Entries'.len - W64 1)).toNat = es.length by word]; simp)
       $$ Hents with ⟨#He, -⟩
     iStructNamed He
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_alloc index_ptr as index; wp_pures; wp_store; wp_pures; wp_load
+    wp_pures; wp_load; wp_pures; iclear index
     wp_apply _P.entsSize $$ [$Hents] as %sz -
+    wp_pures; wp_load; wp_pures
     wp_apply _P.appliedTo cfg r id s e.Index' sz (Hlast e He) $$ [$Hphys] as Hphys
+    wp_pures; wp_load; wp_pures; iclear m
     wp_apply _P.payloadsSize $$ [$Hents] as %psz -
+    wp_pures; wp_load; wp_pures; iclear r
     wp_apply _P.reduceUncommittedSize $$ [$Hphys] as Hphys
+    wp_pures
     iapply HΦ $$ %interface.nil %_
     iframe Hphys
     ipureintro

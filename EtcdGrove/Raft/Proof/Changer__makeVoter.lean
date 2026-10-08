@@ -29,19 +29,22 @@ theorem confchange.Changer.makeVoter.wp_proof
   have Hcfg' := Hcfg
   obtain ⟨⟨Harr, Hl, Hln⟩, Hal⟩ := Hcfg'
   wp_start as ⟨Hp, Hcfgp, Hv, Htrk, Hprogs⟩
-  wp_auto
+  wp_load; wp_pures
   wp_method_call
   wp_call
-  wp_auto
+  wp_call; wp_alloc c_ptr as c; wp_pures; wp_alloc id_ptr as id; wp_pures; wp_alloc trk_ptr as trk
+  wp_pures; wp_alloc cfg_ptr as cfg; wp_pures; wp_load; wp_load
   -- `pr := trk[id]`
   wp_apply wp_map_lookup1 $$ Htrk as Htrk
+  wp_pures; wp_alloc pr_ptr as pr; wp_pures; wp_store; wp_pures; wp_load; wp_pures
   rcases Hlk : prs !! id with _ | pr
   · -- a new id: `initProgress`
     simp only [Option.getD_none]
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear trk
     -- `c.initProgress(...)` on the local copy of the receiver
     wp_apply wp_Changer_initProgress c_ptr _ _ v _ _ _ _ _ _ Hcfg Hmi $$ [$c $Hcfgp $Hv $Htrk]
       as %pr %pp ⟨c, Hcfgp, Hv, Htrk, Hpr⟩
+    wp_pures; iclear id cfg pr c
     iapply HΦ
     iframe Hp Hcfgp Hv Htrk
     isplitr
@@ -59,13 +62,16 @@ theorem confchange.Changer.makeVoter.wp_proof
     iNamed Hpr
     icases typedPointsto_not_null_dup _ _ _ $$ Hpv with ⟨Hpv, %Hprnn⟩
     wp_if_destruct
-    · exact absurd rfl Hprnn
+    · wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear trk
+    wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear c trk pr
+      exact absurd rfl Hprnn
     -- `nilAwareDelete(&cfg.Learners, id)`, `nilAwareDelete(&cfg.LearnersNext, id)`
     icases (Access.access (A := iprop(cfgp.[tracker.Config, go!"Learners"] ↦ cfg.Learners'))
       (A' := iprop(cfgp.[tracker.Config, go!"Learners"] ↦ cfg.Learners'))
       (P := iprop(cfgp ↦ cfg))) $$ Hcfgp with ⟨Hf, Hback⟩
     rw [Hl]
     wp_apply wp_confchange_nilAwareDelete $$ [$Hf] as Hf
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures
     rw [← Hl]
     ihave Hcfgp := Hback $$ Hf
     icases (Access.access (A := iprop(cfgp.[tracker.Config, go!"LearnersNext"] ↦ cfg.LearnersNext'))
@@ -73,11 +79,13 @@ theorem confchange.Changer.makeVoter.wp_proof
       (P := iprop(cfgp ↦ cfg))) $$ Hcfgp with ⟨Hf, Hback⟩
     rw [Hln]
     wp_apply wp_confchange_nilAwareDelete $$ [$Hf] as Hf
+    wp_pures; wp_load; wp_load; wp_pures; iclear id cfg
     rw [← Hln]
     ihave Hcfgp := Hback $$ Hf
-    wp_auto
+    wp_load; wp_pures
     wp_apply wp_confchange_incoming _ v map.nil Harr
     wp_apply wp_mapInsert $$ Hv as Hv
+    wp_pures
     iapply HΦ
     iframe Hp Hcfgp Hv Htrk
     have Hid_vm : vm !! id = some () := by

@@ -26,20 +26,30 @@ theorem confchange.Changer.initProgress.wp_proof
   intro p cfgp trk v chg cfg id vm prs dq Hcfg Hmi
   obtain ⟨⟨Harr, Hl, Hln⟩, Hal⟩ := Hcfg
   wp_start as ⟨Hp, Hcfgp, Hv, Htrk⟩
-  wp_auto
+  wp_load; wp_pures
   wp_method_call
   wp_call
-  wp_auto
+  wp_call; wp_alloc c_ptr as c; wp_pures; wp_alloc isLearner_ptr as isLearner; wp_pures
+  wp_alloc id_ptr as id; wp_pures; wp_alloc trk_ptr as trk; wp_pures; wp_alloc cfg_ptr as cfg
+  wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures; iclear cfg
   wp_apply wp_confchange_incoming _ v map.nil Harr
   wp_apply wp_mapInsert $$ Hv as Hv
+  wp_pures; wp_load; wp_pures
   -- `max(c.LastIndex, 1)`: Goose's `max` is stepped into
   wp_func_call
   wp_call
   wp_if_destruct
+  rotate_left
+  wp_load; wp_pures; wp_load; wp_pures; iclear c
+  rotate_right
+  wp_load; wp_pures; wp_load; wp_pures; iclear c
   -- both branches of `max`: the fresh `Progress`, into the map, `StateProbe`
   all_goals
     wp_apply wp_tracker_NewInflights _ _ Hmi as %il Hinfl
+    wp_pures; wp_load; wp_pures; wp_alloc «$r0_ptr» as «$r0»; wp_pures; wp_load; wp_load
+    iclear isLearner id trk
     wp_apply wp_mapInsert $$ Htrk as Htrk
+    wp_pures
     iapply HΦ
     iframe Hp Hcfgp Hv Htrk
     iapply ownProgress_of _ _ .probe _ rfl rfl $$ «$r0» Hinfl

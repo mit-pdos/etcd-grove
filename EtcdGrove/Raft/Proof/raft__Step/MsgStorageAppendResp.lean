@@ -61,38 +61,47 @@ theorem wp_Step_MsgStorageAppendResp (_P : raft.Step.Postulates (GF := GF) (hG :
   intro Hty Hsn Hle Hstok Hwf
   wp_start as Hphys
   iNamed Hphys
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_alloc m_ptr as m; wp_pures; wp_load; wp_pures
   wp_apply _P.traceReceiveMessage
+  wp_pures; wp_load; wp_pures
   by_cases Hstale : m.Term' ≠ W64 0 ∧ uint.Z m.Term' < uint.Z s.term
   · -- stale: logged and dropped
     obtain ⟨Hnz, Hlt⟩ := Hstale
     rw [decide_eq_false Hnz]
-    wp_auto
+    wp_pures; wp_load; wp_load; wp_pures
     wp_apply raft.wp_load_Term $$ Hphys as Hphys
+    wp_pures
     rw [decide_eq_false (show ¬ uint.Z s.term < uint.Z m.Term' by omega)]
-    wp_auto
+    wp_pures; wp_load; wp_load; wp_pures
     wp_apply raft.wp_load_Term $$ Hphys as Hphys
+    wp_pures
     rw [decide_eq_true Hlt]
-    wp_auto
+    wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_checkQuorum $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_preVote $$ Hphys as Hphys
     -- not `MsgHeartbeat`/`MsgApp`, not `MsgPreVote`: the `MsgStorageAppendResp` arm
+    -- TODO(no-wp-auto): col 54: wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures
+    -- TODO(no-wp-auto): col 24: wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures
     cases s.prevote <;> wp_auto <;> repeat (rw [Hty]; wp_auto)
     all_goals
       by_cases Hi0 : m.Index' = W64 0
       all_goals first
         | (rw [decide_eq_true Hi0]
-           wp_auto)
+           (wp_pures; wp_load; wp_pures))
         | (rw [decide_eq_false Hi0]
-           wp_auto
+           wp_pures; wp_load; wp_pures
            -- the log line
            wp_apply raft.wp_load_id $$ Hphys as Hphys
+           wp_pures; wp_load; wp_pures
            wp_apply raft.wp_load_Term $$ Hphys as Hphys
+           wp_pures; wp_load; wp_pures; wp_load; wp_pures
+           -- TODO(no-wp-auto): macro `wp_raft_log)` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures | ∅ | wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures | ∅
            wp_raft_log)
     -- no snapshot
     all_goals
       rw [decide_eq_true Hsn]
-      wp_auto
+      wp_pures; iclear r m
       iapply HΦ $$ %interface.nil %s
       iframe Hphys
       ipureintro
@@ -107,37 +116,41 @@ theorem wp_Step_MsgStorageAppendResp (_P : raft.Step.Postulates (GF := GF) (hG :
   by_cases Hz : m.Term' = W64 0
   all_goals first
     | (rw [decide_eq_true Hz]
-       wp_auto)
+       (wp_pures; wp_load; wp_pures))
     | (rw [decide_eq_false Hz]
-       wp_auto
+       wp_pures; wp_load; wp_load; wp_pures
        have Heq : m.Term' = s.term := Hmt.resolve_left Hz
        wp_apply raft.wp_load_Term $$ Hphys as Hphys
+       wp_pures
        rw [decide_eq_false (show ¬ uint.Z s.term < uint.Z m.Term' by rw [Heq]; omega)]
-       wp_auto
+       wp_pures; wp_load; wp_load; wp_pures
        wp_apply raft.wp_load_Term $$ Hphys as Hphys
+       wp_pures
        rw [decide_eq_false (show ¬ uint.Z m.Term' < uint.Z s.term by rw [Heq]; omega)]
-       wp_auto)
+       (wp_pures; wp_load; wp_pures))
   -- the type switch: `MsgStorageAppendResp`
   all_goals
-    repeat (rw [Hty]; wp_auto)
+    repeat (rw [Hty]; (wp_pures; wp_load; wp_pures))
     by_cases Hi0 : m.Index' = W64 0
     · rw [decide_eq_true Hi0]
-      wp_auto
+      wp_pures; wp_load; wp_pures
       rw [decide_eq_true Hsn]
-      wp_auto
+      wp_pures; iclear r m
       iapply HΦ $$ %interface.nil %s
       iframe Hphys
       ipureintro
       exact ⟨Hwf, .refl _, rfl⟩
     · rw [decide_eq_false Hi0]
-      wp_auto
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
       -- `r.raftLog.stableTo(entryID{m.LogTerm, m.Index})`
       wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+      wp_pures
       icases ownRaftPhys_log_at cfg r id s $$ Hphys with ⟨Hlog, Hback⟩
       wp_apply _P.stableTo _ _ _ (Hstok Hmt Hi0) $$ [$Hlog] as Hlog
+      wp_pures; wp_load; wp_pures
       ihave Hphys := Hback $$ %_ Hlog
       rw [decide_eq_true Hsn]
-      wp_auto
+      wp_pures; iclear r m
       iapply HΦ $$ %interface.nil %_
       iframe Hphys
       ipureintro

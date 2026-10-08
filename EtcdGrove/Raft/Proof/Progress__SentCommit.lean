@@ -23,7 +23,8 @@ theorem tracker.Progress.SentCommit.wp_proof :
   iunfold ownProgress at Hpr
   icases Hpr with ⟨%pv, Hpr⟩
   iNamed Hpr
-  wp_auto
+  wp_alloc pr_ptr as pr; wp_pures; wp_alloc commit_ptr as commit; wp_pures; wp_load; wp_pures
+  wp_load; wp_pures; wp_store; wp_pures; iclear pr commit
   iapply HΦ
   iapply ownProgress_intro pr _ (progressSentCommit p commit) $$ Hpv [Hinfl]
   · dsimp only [progressSentCommit]

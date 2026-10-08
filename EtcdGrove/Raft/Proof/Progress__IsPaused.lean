@@ -28,9 +28,10 @@ theorem tracker.Progress.IsPaused.wp_proof :
   iNamed Hpr
   have Habs' := (progressAbs_Some _ _ _).1 Habs
   obtain ⟨-, Hst, -, -, -, -, -, Hpa, -⟩ := Habs'
-  wp_auto
+  wp_alloc pr_ptr as pr; wp_pures; wp_load; wp_pures; wp_load; wp_pures
   unfold progressIsPaused
   cases h : p.state <;> rw [h] at Hst <;> simp only [prstateW64] at Hst <;>
+    -- TODO(no-wp-auto): wp_auto (several runs): wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear pr | wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear pr | wp_pures; iclear pr
     simp only [Hst] <;> wp_auto
   · -- StateProbe
     rw [Hpa]

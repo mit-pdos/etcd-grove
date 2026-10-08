@@ -23,8 +23,10 @@ theorem raftLog.isUpToDate.wp_proof
     raftLog.isUpToDate.spec (GF := GF) (hG := hG) := by
   intro l e ls
   wp_start as Hlog
-  wp_auto
+  wp_alloc l_ptr as l; wp_pures; wp_alloc their_ptr as their; wp_pures; wp_load; wp_pures; iclear l
   wp_apply wp_raftLog_lastEntryID $$ [$Hlog] as %our ⟨Hlog, %Hour⟩
+  wp_pures; wp_alloc our_ptr as our; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures
   -- `their.term > our.term || (their.term == our.term && their.index >= our.index)`,
   -- which is `plogUpToDate` of `lastEntryID`'s result
   wp_if_destruct
@@ -34,9 +36,10 @@ theorem raftLog.isUpToDate.wp_proof
     subst Hour
     simp only [plogUpToDate]
     simp [Hif]
-  · by_cases Heq : e.term' = our.term'
+  · wp_load; wp_pures; wp_load; wp_pures
+    by_cases Heq : e.term' = our.term'
     · simp only [Heq, decide_true]
-      wp_auto
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear their our
       iapply HΦ
       iframe
       ipureintro
@@ -49,7 +52,7 @@ theorem raftLog.isUpToDate.wp_proof
         · exact absurd h Hif
         · exact h
     · simp only [Heq, decide_false]
-      wp_auto
+      wp_pures; iclear their our
       iapply HΦ
       iframe
       ipureintro

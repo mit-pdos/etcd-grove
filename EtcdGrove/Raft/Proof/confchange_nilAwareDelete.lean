@@ -21,7 +21,8 @@ theorem confchange.nilAwareDelete.wp_proof :
     confchange.nilAwareDelete.spec (GF := GF) (hG := hG) := by
   intro mp id dq
   wp_start as Hm
-  wp_auto
+  wp_alloc id_ptr as id; wp_pures; wp_alloc m_ptr as m; wp_pures; wp_load; wp_load; wp_pures
+  iclear id m
   wp_end
 
 end proof

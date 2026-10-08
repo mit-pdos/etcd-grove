@@ -65,33 +65,41 @@ theorem wp_Step_MsgApp_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hpwf Hnw Hnorm Hlt
   wp_start as Hphys
   iNamed Hphys
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_alloc m_ptr as m; wp_pures; wp_load; wp_pures
   wp_apply _P.traceReceiveMessage
+  wp_pures; wp_load; wp_pures
   rw [decide_eq_false Hterm]
-  wp_auto
+  wp_pures; wp_load; wp_load; wp_pures
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_pures
   rw [decide_eq_false (show ¬ uint.Z s.term < uint.Z m.Term' by omega)]
-  wp_auto
+  wp_pures; wp_load; wp_load; wp_pures
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_pures
   rw [decide_eq_true Hlt]
-  wp_auto
+  wp_pures; wp_load; wp_pures
   -- `(checkQuorum || preVote) && (MsgHeartbeat || MsgApp)`: `checkQuorum` is off; with
   -- pre-vote on, a stale leader message is answered with a bare `MsgAppResp` at the
   -- node's term (2026-10-04)
   wp_apply raft.wp_load_checkQuorum $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures
   wp_apply raft.wp_load_preVote $$ Hphys as Hphys
   cases Hpv : s.prevote
   · -- not MsgPreVote, not MsgStorageAppendResp: only the log line
-    wp_auto
-    repeat (rw [Hty]; wp_auto)
+    wp_pures; wp_load; wp_pures
+    repeat (rw [Hty]; (wp_pures; wp_load; wp_pures))
     wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_Term $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; iclear r m | ∅
     wp_raft_log
     iapply HΦ $$ %interface.nil %s
     iframe Hphys
     ipureintro
     exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, .refl _⟩, rfl⟩
-  · wp_auto
+  · wp_pures; wp_load; wp_pures
+    -- TODO(no-wp-auto): wp_auto (several runs): wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures
     repeat (rw [Hty]; wp_auto)
     let ack : raftpb.Message :=
       { Type' := W32 4, To' := m.From', From' := 0, Term' := 0, LogTerm' := 0, Index' := 0,
@@ -104,6 +112,7 @@ theorem wp_Step_MsgApp_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       · iapply ownSlice_nil
       · iapply send_no_snap
         exact (by decide : W32 4 ≠ W32 7)
+    wp_pures; iclear r m
     iapply HΦ $$ %interface.nil %_
     iframe Hphys
     ipureintro

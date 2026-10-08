@@ -35,7 +35,9 @@ theorem tracker.ProgressTracker.TallyVotes.wp_proof
   -- the `var _ quorum.VoteResult` declaration Go emits for the named return
   -- is an *anonymous* `GoAlloc`, which `wp_auto` will not step past.
   wp_alloc res0 as Hres0
-  wp_auto
+  wp_pures; wp_alloc rejected_ptr as rejected; wp_pures; wp_alloc granted_ptr as granted; wp_pures
+  wp_alloc p_ptr as p; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_alloc pr_ptr as pr
+  wp_pures; wp_alloc id_ptr as id; wp_pures
   -- `pr` and `id` are the range's own loop variables: the body assigns them
   -- on every iteration, so they must be existentially quantified *inside*
   -- the invariant -- the same trap `raft.campaign` documents for
@@ -85,12 +87,14 @@ theorem tracker.ProgressTracker.TallyVotes.wp_proof
     have HrB : nsat Prj (keys.take i.toNat) ≤ GMap.size cfg := by
       refine Nat.le_trans (nsat_le _ _) ?_
       rw [List.length_take]; omega
-    wp_auto
+    wp_pures; wp_store; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
     -- `if pr.IsLearner { continue }`: no voter is a learner, and without
     -- `Hnolearner` the `if` scrutinee is not a literal and `wp_auto` parks.
     rw [Hnolearner]
-    wp_auto
+    wp_pures; wp_load; wp_load; wp_pures; wp_load
     wp_apply wp_map_lookup2 $$ Hvotes as Hvotes
+    wp_pures; wp_alloc voted_ptr as voted; wp_pures; wp_alloc v_ptr as v; wp_pures; wp_store
+    wp_pures; wp_store; wp_pures; wp_load; wp_pures; iclear voted
     ihave Hprogs := Hback $$ [Hpv Hinfl]
     · unfold ownProgress
       iexists pv
@@ -105,7 +109,7 @@ theorem tracker.ProgressTracker.TallyVotes.wp_proof
         have HPg : Pgr key := Hvk
         have HPr : ¬ Prj key := by simp only [Prj, Hvk]; decide
         simp only [Option.isSome_some, decide_true, Option.getD_some]
-        wp_auto
+        wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures; iclear v
         iright; ileft
         isplitr
         · ipureintro; rfl
@@ -121,7 +125,7 @@ theorem tracker.ProgressTracker.TallyVotes.wp_proof
         have HPg : ¬ Pgr key := by simp only [Pgr, Hvk]; decide
         have HPr : Prj key := Hvk
         simp only [Option.isSome_some, decide_true, Option.getD_some]
-        wp_auto
+        wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures; iclear v
         iright; ileft
         isplitr
         · ipureintro; rfl
@@ -137,7 +141,7 @@ theorem tracker.ProgressTracker.TallyVotes.wp_proof
       have HPg : ¬ Pgr key := by simp only [Pgr, Hvk]; decide
       have HPr : ¬ Prj key := by simp only [Prj, Hvk]; decide
       simp only [Option.isSome_none]
-      wp_auto
+      wp_pures; iclear v
       ileft
       isplitr
       · ipureintro; rfl
@@ -151,7 +155,7 @@ theorem tracker.ProgressTracker.TallyVotes.wp_proof
   iNamed HP
   dsimp only at Hklen
   rw [← Hklen, Int.toNat_natCast, List.take_length]
-  wp_auto
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear p pr id
   -- `p.Config.Voters.VoteResult(p.Votes)`: re-seal the tracker and ask the
   -- joint quorum. The two counters already hold the model's numbers.
   ihave Hown := ownTracker_intro cfg tv votes prs pvs voters_ref voters
@@ -159,6 +163,8 @@ theorem tracker.ProgressTracker.TallyVotes.wp_proof
     HmaxInfl $$ Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext
   wp_apply wp_JointConfig_VoteResult cfg trk tv ⟨votes, prs, pvs⟩ Hcfg_ne $$ [$Htrk $Hown]
     as %res ⟨Htrk, Hown, %Hres, %Hwon, %Hlost⟩
+  wp_pures; wp_alloc result_ptr as result; wp_pures; wp_store; wp_pures; wp_load; wp_load; wp_pures
+  wp_load; wp_pures; iclear granted rejected result
   iapply HΦ
   iframe Htrk Hown
   ipureintro

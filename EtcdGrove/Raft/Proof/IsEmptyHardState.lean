@@ -26,8 +26,9 @@ theorem IsEmptyHardState.wp_proof
   ihave Hinit := isInitialized_access $$ Hpkg
   unfold isInitialized
   iNamed Hinit
-  wp_auto
+  wp_alloc st_ptr as st; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear st
   wp_apply wp_isHardStateEqual
+  wp_pures
   iapply HΦ
   itrivial
 

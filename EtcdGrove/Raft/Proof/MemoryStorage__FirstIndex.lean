@@ -29,10 +29,13 @@ theorem MemoryStorage.FirstIndex.wp_proof
   icases Hms with ⟨%γ, Hms⟩
   iNamed Hms
   wp_apply wp_with_defer as %defer defer
+  wp_pures; wp_alloc ms_ptr as ms; wp_pures; wp_load; wp_pures
   -- `ms.Lock()`: the method of the embedded `sync.Mutex`
   wp_method_call
   wp_call
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures
   iNamedSuffix Hinv "_inv"
   ihave %Heq := ghostVar_agree $$ Hgs Hgs_inv
   simp only [Prod.mk.injEq] at Heq
@@ -40,7 +43,7 @@ theorem MemoryStorage.FirstIndex.wp_proof
   iNamed Hfields_inv
   icases typedPointsto_not_null_dup _ _ _ $$ HcallStats with ⟨HcallStats, %Hcs_nn⟩
   iStructNamed HcallStats
-  wp_auto
+  wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; iclear ms
   ihave Hf : memstorageFields ms prev ents ss $$ [HhardState Hsnapshot Hvoters Hents_f Hents firstIndex lastIndex term entries snapshot initialState]
   · unfold memstorageFields
     iexists hs, snap, es, dummy, { cs with firstIndex' := cs.firstIndex' + W64 1 }, voters
@@ -53,6 +56,7 @@ theorem MemoryStorage.FirstIndex.wp_proof
     simp only [TypedPointsto.typedPointstoDef]
     iframe
   wp_apply wp_MemoryStorage_firstIndex ms prev ents ss Hbounded $$ [$Hf] as %fi ⟨%Hfi, Hf⟩
+  wp_pures; wp_load; wp_pures
   -- the deferred `ms.Unlock()`
   wp_method_call
   wp_call
@@ -60,6 +64,7 @@ theorem MemoryStorage.FirstIndex.wp_proof
   · unfold memstorageInv
     iexists prev, ents, ss
     iframe
+  wp_pures
   iapply HΦ
   isplitr
   · ipureintro; exact Hfi

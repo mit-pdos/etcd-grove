@@ -22,7 +22,8 @@ theorem logSliceFromMsgApp.wp_proof : logSliceFromMsgApp.spec (GF := GF) (hG := 
   wp_start as Hm
   icases typedPointsto_not_null_dup _ _ _ $$ Hm with ⟨Hm, %Hnn⟩
   iStructNamed Hm
-  wp_auto
+  wp_alloc m_ptr as m; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear m
   iapply HΦ
   iapply typedPointsto_combine _ _ _ Hnn
   simp only [TypedPointsto.typedPointstoDef]

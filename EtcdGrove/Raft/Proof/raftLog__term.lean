@@ -79,7 +79,7 @@ theorem raftLog.term.wp_proof
   unfold ownRaftLogCore
   icases Hcore with ⟨%sprev, %stored, %ss, Hcore⟩
   iNamed Hcore
-  wp_auto
+  wp_alloc l_ptr as l; wp_pures; wp_alloc i_ptr as i; wp_pures; wp_load; wp_pures; wp_load; wp_pures
   have Hnw : uint.Z lv.unstable'.offset' + (uents.length : Int) < 2 ^ 64 := by omega
   -- a pending snapshot is `prev`, with nothing stable after it
   have Hsoff : ∀ sid, snap = some sid →
@@ -99,13 +99,15 @@ theorem raftLog.term.wp_proof
   · unfold ownUnstable
     simp only [named]
     iframe # ∗
+  wp_pures; wp_alloc ok_ptr as ok; wp_pures; wp_alloc t_ptr as t; wp_pures; wp_store; wp_pures
+  wp_store; wp_pures; wp_load; iclear ok
   unfold ownUnstable
   icases Hun with ⟨Huf, Huents_cap, Huents⟩
   ihave Hl := Hlback $$ Huf
   cases ok with
   | true =>
     -- the unstable suffix covers `i`, or `i` is the pending snapshot's
-    wp_auto
+    wp_pures; wp_load; wp_pures; iclear l i t
     iapply HΦ $$ %t %interface.nil
     isplitl [Hl HStorage Huents Huents_cap]
     · reseal_raftLog
@@ -136,16 +138,17 @@ theorem raftLog.term.wp_proof
       intro Hc; exact absurd (Hok.2 (Or.inl Hc)) (by simp)
     have Hnotsnap : ∀ sid, snap = some sid → i ≠ sid.index' := by
       intro sid Hs Hi; exact absurd (Hok.2 (Or.inr ⟨sid, Hs, Hi⟩)) (by simp)
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear t
     ihave Hlog : ownRaftLog l ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ $$ [Hl HStorage Huents Huents_cap]
     · reseal_raftLog
     wp_apply wp_raftLog_firstIndex _ ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ $$ [$Hlog]
       as %fi ⟨Hlog, %Hfi⟩
+    wp_pures
     dsimp only at Hfi
     by_cases Hb1 : uint.Z (i + W64 1) < uint.Z fi
     · -- below the compaction boundary: `ErrCompacted`
       rw [decide_eq_true Hb1]
-      wp_auto
+      wp_pures; wp_load; wp_pures; iclear l i
       iapply HΦ $$ %(W64 0) %errCompacted
       iframe Hlog
       dsimp only
@@ -156,14 +159,15 @@ theorem raftLog.term.wp_proof
       · ipureintro; intro Hc; exact absurd Hc HErrCompacted
       iright; ileft; iexact ErrCompacted
     rw [decide_eq_false Hb1]
-    wp_auto
+    wp_pures; wp_load; wp_load; wp_pures
     wp_apply wp_raftLog_lastIndex _ ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ $$ [$Hlog]
       as %li ⟨Hlog, %Hli⟩
+    wp_pures
     dsimp only at Hli
     by_cases Hb2 : uint.Z li < uint.Z i
     · -- past the last entry: `ErrUnavailable`
       rw [decide_eq_true Hb2]
-      wp_auto
+      wp_pures; wp_load; wp_pures; iclear l i
       iapply HΦ $$ %(W64 0) %errUnavailable
       iframe Hlog
       dsimp only
@@ -175,7 +179,7 @@ theorem raftLog.term.wp_proof
       iright; iright; iexact ErrUnavailable
     -- in range, and not in the unstable window: ask the `Storage`
     rw [decide_eq_false Hb2]
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear l i
     have Hrange : uint.Z prev.index' ≤ uint.Z i ∧
         uint.Z i ≤ uint.Z prev.index' + (sents.length : Int) := by
       constructor
@@ -202,7 +206,7 @@ theorem raftLog.term.wp_proof
     unfold ownRaftLogCore
     icases Hcore with ⟨%sprev, %stored, %ss, Hcore⟩
     iNamed Hcore
-    wp_auto
+    wp_load; wp_pures
     ihave #Hsto : isStorageWith (ownStorage lv.storage') lv.storage' $$ [HisStorage]
     · unfold isStorage; iexact HisStorage
     unfold isStorageWith
@@ -214,6 +218,8 @@ theorem raftLog.term.wp_proof
     have Hstlen := Hstored.length_le
     wp_apply HTerm $$ %sprev %stored %ss %i [$HStorage] as %t2 ⟨%Ht2, HStorage⟩
     · ipureintro; omega
+    wp_pures; wp_alloc err_ptr as err; wp_pures; wp_alloc t_ptr as t; wp_pures; wp_store; wp_pures
+    wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear t err
     rw [← Hstok]
     iapply HΦ $$ %t2 %interface.nil
     isplitl [Hl HStorage Huents Huents_cap]

@@ -22,13 +22,15 @@ theorem tracker.ProgressTracker.RecordVote.wp_proof :
   dsimp only
   wp_start as ⟨Htrk, Hown⟩
   iNamed Hown
-  wp_auto
+  wp_alloc p_ptr as p; wp_pures; wp_alloc v_ptr as v; wp_pures; wp_alloc id_ptr as id; wp_pures
+  wp_load; wp_load; wp_pures; wp_load
   wp_apply wp_map_lookup2 $$ [$Hvotes] as Hvotes
+  wp_pures; wp_alloc ok_ptr as ok; wp_pures; wp_store; wp_pures; wp_load; wp_pures; iclear ok
   cases Hok : votes !! src with
   | some v0 =>
     -- already voted: first write wins, the map is left alone
     simp only [Option.isSome_some, decide_true, Bool.not_true]
-    wp_auto
+    wp_pures; iclear p v id
     iapply HΦ
     iframe Htrk
     simp only [recordVote, Hok]
@@ -38,8 +40,9 @@ theorem tracker.ProgressTracker.RecordVote.wp_proof :
   | none =>
     -- first vote from `src`
     simp only [Option.isSome_none, Bool.false_eq_true, decide_false, Bool.not_false]
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_load; iclear p v id
     wp_apply wp_mapInsert $$ [$Hvotes] as Hvotes
+    wp_pures
     iapply HΦ
     iframe Htrk
     simp only [recordVote, Hok]

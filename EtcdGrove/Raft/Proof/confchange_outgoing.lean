@@ -20,11 +20,11 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem confchange.outgoing.wp_proof : confchange.outgoing.spec (GF := GF) (hG := hG) := by
   intro jc v0 v1 Harr
   wp_start as _
-  wp_auto
+  wp_alloc voters_ptr as voters; wp_pures
   -- `voters[1]`: peel element 1 off the array cell
   icases array_acc _ (sint.Z (W64 1)) _ _ _ v1 (by decide) (by rw [Harr]; rfl)
     $$ voters with ⟨Hv1, -⟩
-  wp_auto
+  wp_load; wp_pures
   wp_end
 
 end proof

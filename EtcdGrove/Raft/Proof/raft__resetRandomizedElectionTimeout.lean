@@ -32,14 +32,18 @@ theorem raft.resetRandomizedElectionTimeout.wp_proof
   unfold isInitialized
   icases Hinit with ⟨%e1, %e2, %e3, %e4, %e5, %gr, #Hinit⟩
   iNamed Hinit
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_load; wp_pures
   -- `r.electionTimeout` is read twice, and `ownRaftPhys` does not track
   -- it, so the two reads are unrelated -- all `Intn` needs of its
   -- argument is the bound, which comes with each read
   wp_apply raft.wp_load_electionTimeout $$ Hphys as %et1 ⟨Hphys, %Het1⟩
+  wp_load; wp_pures
   wp_apply raft.wp_load_electionTimeout $$ Hphys as %et2 ⟨Hphys, %Het2⟩
+  wp_pures; wp_load; wp_pures
   wp_apply wp_lockedRand_Intn _ _ Het2 $$ [$HglobalRand] as %v %Hv
+  wp_pures; wp_load; wp_pures; iclear r
   wp_apply raft.wp_store_randomizedElectionTimeout $$ Hphys as Hphys
+  wp_pures
   iapply HΦ
   iexact Hphys
 

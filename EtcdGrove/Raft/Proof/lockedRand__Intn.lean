@@ -33,19 +33,24 @@ theorem lockedRand.Intn.wp_proof
   wp_start as #Hlr
   unfold isLockedRand at *
   iNamed Hlr
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_alloc n_ptr as n; wp_pures; wp_load; wp_pures
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, -⟩
+  wp_pures
   ihave #Hrand : isPkgInit (PROP := IProp GF) pkg_id.crypto.rand $$ []
   · iPkgInit
   ihave #Hreader := isRandInitialized_access $$ Hrand
   unfold isRandInitialized
   icases Hreader with ⟨%rdr, #Reader⟩
-  wp_auto
+  wp_load; wp_pures; wp_load; wp_pures; iclear n
   wp_apply wp_big_NewInt as %max Hmax
+  wp_pures
   wp_apply wp_rand_Int _ _ _ Hn $$ [$Reader $Hmax] as %v %z ⟨Hmax, Hv, %Hz⟩
+  wp_pures; wp_alloc v_ptr as v; wp_pures; wp_store; wp_pures; wp_load; wp_pures; iclear r
   wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked]
   · itrivial
+  wp_pures; wp_load; wp_pures; iclear v
   wp_apply wp_big_Int_Int64 _ _ (by have := word.signed_range n; omega) $$ [$Hv] as Hv
+  wp_pures
   iapply HΦ
   ipureintro
   word

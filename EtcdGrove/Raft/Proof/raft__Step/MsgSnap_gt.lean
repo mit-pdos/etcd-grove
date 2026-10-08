@@ -60,25 +60,32 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
   intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hscope Hgt
   wp_start as ⟨Hphys, #Hsv, #Hvs⟩
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_alloc m_ptr as m; wp_pures; wp_load; wp_pures
   wp_apply _P.traceReceiveMessage
+  wp_pures; wp_load; wp_pures
   rw [decide_eq_false Hterm]
-  wp_auto
+  wp_pures; wp_load; wp_load; wp_pures
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_pures
   rw [decide_eq_true Hgt]
-  wp_auto
+  wp_pures; wp_load; wp_pures
   -- (Type == MsgVote) || (Type == MsgPreVote): both false; the switch on MsgPreVote /
   -- MsgPreVoteResp: neither
-  repeat (rw [Hty]; wp_auto)
+  repeat (rw [Hty]; (wp_pures; wp_load; wp_pures))
   -- "received a message with higher term"
   wp_apply raft.wp_load_id $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+  -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures | ∅
   wp_raft_log
   -- MsgApp || MsgHeartbeat || MsgSnap: the third holds
+  -- TODO(no-wp-auto): wp_auto (several runs): wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
   repeat (rw [Hty]; wp_auto)
   -- becomeFollower(m.Term, m.From): a leader's message
   wp_apply _P.becomeFollower cfg r id s m.Term' m.From' $$ [$Hphys] as %pvs Hphys
-  repeat (rw [Hty]; wp_auto)
+  wp_pures; wp_load; wp_pures
+  repeat (rw [Hty]; (wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear r m))
   wp_apply raft.wp_load_step $$ Hphys as Hphys
   rw [show ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).stepfn
       = functions stepFollower [] from rfl]
@@ -97,11 +104,12 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       · iframe Hsv Hvs
     · iintro %Hc; exfalso; rw [Hty] at Hc
       rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
+  wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures
   obtain ⟨rfl, Hhs⟩ := followerStepResult_snap _ _ _ _ _ _ _ Hty Hres
   simp only [Bool.false_eq_true, ↓reduceIte]
   icases Herrn with %Herrn
   subst Herrn
-  wp_auto
+  wp_pures; iclear err
   iapply HΦ $$ %interface.nil %s1
   iframe Hphys
   ipureintro

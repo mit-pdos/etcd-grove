@@ -26,7 +26,9 @@ theorem unstable.nextEntries.wp_proof : unstable.nextEntries.spec (GF := GF) (hG
   icases Hents with #Hents
   ihave %Hlen := ownSlice_len $$ Hents
   ihave %Hwf := ownSlice_wf $$ Hents
-  wp_auto
+  wp_alloc u_ptr as u; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures
+  wp_alloc inProgress_ptr as inProgress; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures; wp_load; wp_pures
   have Hk : sint.Z (uv.offsetInProgress' - uv.offset') =
       uint.Z uv.offsetInProgress' - uint.Z uv.offset' := by word
   wp_if_destruct
@@ -36,8 +38,10 @@ theorem unstable.nextEntries.wp_proof : unstable.nextEntries.spec (GF := GF) (hG
     iframe # ∗
     rw [List.drop_eq_nil_of_le (by word)]
     iapply ownSlice_nil
-  · rw [ite_eq_left ⟨by word, by word, by word⟩]
-    wp_auto
+  · wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+    iclear u inProgress
+    rw [ite_eq_left ⟨by word, by word, by word⟩]
+    wp_pures
     icases (ownSlice_slice (uv.offsetInProgress' - uv.offset') uv.entries'.len uv.entries'
       DFrac.discard uents ⟨by word, by word, by word⟩).1 $$ Hents with ⟨-, #H2, -⟩
     iapply HΦ

@@ -28,11 +28,14 @@ theorem MemoryStorage.LastIndex.wp_proof
   icases Hms with ⟨%γ, Hms⟩
   iNamed Hms
   wp_apply wp_with_defer as %defer defer
+  wp_pures; wp_alloc ms_ptr as ms; wp_pures; wp_load; wp_pures
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_method_call
   wp_call
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures
   iunfold memstorageInv at Hinv
   icases Hinv with ⟨%prev0, %ents0, %ss0, Hinv⟩
   iNamedSuffix Hinv "_inv"
@@ -43,7 +46,7 @@ theorem MemoryStorage.LastIndex.wp_proof
   obtain ⟨_, Heq⟩ := Heq
   simp only [Prod.mk.injEq] at Heq
   obtain ⟨⟨rfl, rfl⟩, rfl⟩ := Heq
-  wp_auto
+  wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; iclear ms
   ihave Hf : memstorageFields ms prev ents ss $$ [HhardState Hsnapshot Hvoters Hents_f Hents HcallStats]
   · unfold memstorageFields
     iexists hs, snap, es, dummy, _, voters
@@ -51,6 +54,7 @@ theorem MemoryStorage.LastIndex.wp_proof
     iframe
     ipureintro; exact ⟨Hsnap_id, Hdummy⟩
   wp_apply wp_MemoryStorage_lastIndex _ _ _ _ Hbounded $$ [$Hf] as %li ⟨%Hli, Hf⟩
+  wp_pures; wp_load; wp_pures
   wp_method_call
   wp_call
   wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hgs_inv Hf]
@@ -58,6 +62,7 @@ theorem MemoryStorage.LastIndex.wp_proof
     iexists prev, ents, ss
     simp only [named]
     iframe
+  wp_pures
   iapply HΦ
   isplitr
   · ipureintro; exact Hli

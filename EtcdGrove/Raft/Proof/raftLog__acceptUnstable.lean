@@ -30,7 +30,7 @@ theorem raftLog.acceptUnstable.wp_proof
   unfold ownRaftLogCore
   icases Hcore with ⟨%sprev, %stored, %ss, Hcore⟩
   iNamed Hcore
-  wp_auto
+  wp_alloc l_ptr as l; wp_pures; wp_load; wp_pures; iclear l
   icases raftLog_split_unstable l lv $$ Hl with ⟨Huf, Hlback⟩
   have Hcontig : ∀ (k : Nat) (e : raftpb.Entry), uents[k]? = some e →
       uint.Z e.Index' = uint.Z lv.unstable'.offset' + (k : Int) := by
@@ -47,6 +47,7 @@ theorem raftLog.acceptUnstable.wp_proof
   · unfold ownUnstable
     simp only [named]
     iframe # ∗
+  wp_pures
   obtain ⟨Hent', Hoff', Hsnap', Hlg', Hip0, Hip1⟩ := Huv'
   unfold ownUnstable
   icases Hun with ⟨Hu, Huents_cap, Huents⟩

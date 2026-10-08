@@ -36,26 +36,31 @@ theorem raft.sendHeartbeat.wp_proof
   dsimp only at Hdom Hpdom
   obtain ⟨pr, Hlk⟩ := (GMap.elem_of_dom _ _).1 (Hdom ▸ Hcfg)
   obtain ⟨p, Hpvs⟩ := (GMap.elem_of_dom _ _).1 (Hpdom ▸ (GMap.elem_of_dom_2 _ _ _ Hlk))
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_alloc ctx_ptr as ctx; wp_pures; wp_alloc to_ptr as to; wp_pures
+  wp_load; wp_load; wp_pures; wp_load
   ihave Hphys := Hback $$ Htrkf Htrk
   wp_apply wp_map_lookup1 $$ Hprs as -
+  wp_pures; wp_alloc pr_ptr as pr; wp_pures; wp_store; wp_pures; wp_load; wp_pures
   rw [Hlk, Option.getD_some]
   -- `pr.Match`, then `r.raftLog.committed`
   icases ownRaftPhys_pr _ _ _ _ _ _ p $$ Hphys %Hlk %Hpvs with ⟨Hpa, Hpback⟩
   iNamed Hpa
   obtain ⟨-, -, Hm, -⟩ := (progressAbs_Some _ _ _).1 Habs
-  wp_auto
+  wp_load; wp_pures; wp_load; wp_pures
   rw [Hm]
   ihave Hphys := Hpback $$ [Hpv Hinfl]
   · iapply ownProgress_intro $$ Hpv Hinfl
     ipureintro; exact Habs
   wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+  wp_pures
   icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
   icases ownRaftLog_struct $$ Hlog with ⟨%lv, Hl, %Hlv, Hlb⟩
-  wp_auto
+  wp_load; wp_pures
   ihave Hlog := Hlb $$ Hl
   ihave Hphys := Hlogback $$ Hlog
   wp_apply wp_min2_uint64
+  wp_pures; wp_alloc commit_ptr as commit; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear r ctx to
   let c := w64Min p.matched lv.committed'
   let hb : raftpb.Message :=
     { Type' := W32 8, To' := to, From' := 0, Term' := 0, LogTerm' := 0, Index' := 0,
@@ -69,8 +74,10 @@ theorem raft.sendHeartbeat.wp_proof
     · iapply ownSlice_nil
     · iapply send_no_snap
       exact (by decide : W32 8 ≠ W32 7)
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear pr commit
   icases ownRaftPhys_pr_upd _ _ _ _ _ _ p $$ Hphys %Hlk %Hpvs with ⟨Hpa, Hpback⟩
   wp_apply wp_Progress_SentCommit $$ [$Hpa] as Hpa
+  wp_pures
   ihave Hphys := Hpback $$ Hpa
   iapply HΦ $$ %c %_
   iframe Hphys

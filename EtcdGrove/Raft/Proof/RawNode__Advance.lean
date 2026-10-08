@@ -198,9 +198,10 @@ theorem RawNode.Advance.wp_proof
   wp_start as H
   iNamed H
   iNamed Hrn
-  wp_auto
+  wp_alloc rn_ptr as rn; wp_pures; wp_load; wp_pures; wp_load
   rw [Hasync]
-  wp_auto
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_alloc m_ptr as m; wp_pures; wp_alloc i_ptr as i
+  wp_pures; wp_alloc i_ptr as i; wp_pures
   ihave %Hlen := BigSepL2.bigSepL2_length $$ Hpend
   ihave %Hsl := ownSlice_len _ _ _ $$ Hsteps
   -- the range construct's own counter `i_ptr` (Rocq's `j`) and the body's `i` share a
@@ -227,9 +228,13 @@ theorem RawNode.Advance.wp_proof
     iframe
     ipureintro
     exact ⟨by word, ⟨trivial, trivial⟩, ⟨Hrel, [], Step.refl _⟩, Hok⟩
-  wp_for IH
+  wp_for_core
+  iNamed IH
+  wp_pures; wp_load; wp_pures
+  cleanup_bool_decide
   wp_if_destruct
-  · have Hlt : sint.Z n < sint.Z rnv.stepsOnAdvance'.len := Hif
+  · wp_load; wp_pures
+    have Hlt : sint.Z n < sint.Z rnv.stepsOnAdvance'.len := Hif
     clear Hif
     -- the next pending message
     list_elem steps (sint.nat n) as mm
@@ -246,6 +251,8 @@ theorem RawNode.Advance.wp_proof
     · iframe
       ipureintro
       exact Hmm1
+    wp_load; wp_pures; wp_store; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+    wp_load; wp_pures
     rw [drop_cons_of_lookup Hp_lookup] at Hok1
     rw [drop_cons_of_lookup Hmm_lookup, drop_cons_of_lookup Hp_lookup]
     icases Hpown with ⟨Hpo, Hpown⟩
@@ -255,6 +262,7 @@ theorem RawNode.Advance.wp_proof
     obtain ⟨Hrel1, recv1, Hst1⟩ := Hrel1
     wp_apply wp_step_pending wp_raft_Step cfg γ rnv.raft' id s1 ps1 mm p Hcfg Hin
       Hrel1 Hpok $$ [$Hphys $Hghost $Hpm $Hpo] as %err %s2 %ps2 ⟨Hphys, Hghost, %Hst2⟩
+    wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures
     obtain ⟨Hrel2, recv2, Hst2⟩ := Hst2
     -- `stepsOnAdvance[i] = pb.Message{}`
     rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨Hn.1, Hlt⟩)]
@@ -263,7 +271,9 @@ theorem RawNode.Advance.wp_proof
     · iframe
       ipureintro
       constructor <;> word
+    wp_pures
     wp_for_post
+    wp_load; wp_pures; wp_store
     have Hc12 : uint.Z s1.logst.committed ≤ uint.Z s2.logst.committed := by
       have H := Hmono _ _ _ Hst2
       rw [← Hrel1.1, ← Hrel2.1] at H
@@ -276,10 +286,11 @@ theorem RawNode.Advance.wp_proof
       ⟨Hrel2, recv1 ++ recv2, Step.trans _ _ _ _ _ Hst1 Hst2⟩, Hrest s2 Hc12⟩
     rw [← HnS, List.drop_set_of_lt (by simp [sint.nat]), ← List.drop_drop, ← List.drop_drop,
       Hsteps1.2]
-  · -- the loop is done: `stepsOnAdvance = stepsOnAdvance[:0]`
+  · wp_load; wp_pures; wp_load; wp_pures; iclear i m
+    -- the loop is done: `stepsOnAdvance = stepsOnAdvance[:0]`
     ihave %Hwf := ownSlice_wf _ _ _ $$ Hsteps
     rw [ite_eq_left_of_eq_true _ _ (eq_true (by word))]
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_store; wp_pures; iclear rn
     icases (ownSlice_slice (W64 0) (W64 0) _ _ _ (by word)).1 $$ Hsteps with ⟨-, Hsl0, Hrest⟩
     ihave Hcap0 := ownSlice_slice_absorb_capacity _ _ (W64 0) (W64 0) (by word)
       $$ [$Hrest $Hsteps_cap]

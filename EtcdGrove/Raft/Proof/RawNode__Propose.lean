@@ -37,13 +37,16 @@ theorem RawNode.Propose.wp_proof
   unfold ownRawNode
   icases Hrn with ⟨%rnv, %sv, %steps, Hrn⟩
   iNamed Hrn
-  wp_auto
+  wp_alloc rn_ptr as rn; wp_pures; wp_alloc data_ptr as data; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures
   wp_apply raft.wp_load_id $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures; iclear data
   wp_apply wp_slice_literal (l := [propEntry data_sl])
+  wp_pures
   isplitr
   · ipureintro; rfl
   iintro %sl_ptr ⟨Hes, Hcap⟩
-  wp_auto
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear rn
   wp_apply wp_raft_Step cfg γ _ id s ps _ [propEntry data_sl] [Q] Hcfg
     (by simp [StepMsg, stepMsgTypes, MsgProp]) Hin
     (by msg_ne) (by msg_ne)
@@ -97,7 +100,7 @@ theorem RawNode.Propose.wp_proof
       simp [MsgSnap] at Hc
   simp only [MsgProp, ite_true]
   iintro %err %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, Herr, Hprops⟩
-  wp_auto
+  wp_pures
   iapply HΦ
   simp only [named]
   iframe Hghost

@@ -106,18 +106,28 @@ theorem tracker.Inflights.Add.wp_proof
     omega
   have Hszpos : 0 < sint.Z iv.size' := by omega
   have Hslt : sint.Z iv.start' < sint.Z iv.size' := by rcases Hstart with h | h <;> omega
-  wp_auto
+  wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures
+  wp_alloc next_ptr as next; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+  wp_alloc size_ptr as size; wp_pures; wp_store; wp_pures; wp_load; wp_load; wp_pures
   wp_if_destruct
-  · -- `start + count ≥ size`: the ring wraps, so the buffer is already
+  · wp_load; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures
+    iclear size
+    -- `start + count ≥ size`: the ring wraps, so the buffer is already
     -- the full ring.
     have HL : (buf.length : Int) = sint.Z iv.size' := by rcases Hring with h | h <;> word
     wp_if_destruct
-    · -- unreachable: `next < size = len(buffer)`
+    · wp_load; wp_pures
+      -- unreachable: `next < size = len(buffer)`
       exfalso; word
-    · inflights_add_store
-  · -- no wrap: `next = start + count`
+    -- TODO(no-wp-auto): macro `inflights_add_store` runs wp_auto: ∅ | wp_pures | ∅
+    · wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures
+      iclear index next
+      inflights_add_store
+  · wp_load; wp_load; wp_pures; wp_load; wp_pures; iclear size
+    -- no wrap: `next = start + count`
     wp_if_destruct
-    · -- the occupied range reaches the end of the buffer: grow
+    · wp_load; wp_pures
+      -- the occupied range reaches the end of the buffer: grow
       ihave Hin : ownInflightsRaw l iv buf $$ [Hiv Hbuf Hbuf_cap]
       · unfold ownInflightsRaw
         simp only [named]
@@ -125,6 +135,7 @@ theorem tracker.Inflights.Add.wp_proof
         ipureintro
         exact ⟨Hs0, Hc, Hbl, Hsz, Hstart, Hring⟩
       wp_apply wp_Inflights_grow _ _ _ (by word) (by word) $$ [$Hin] as %sl %buf' Hg
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear index
       iNamed Hg
       unfold ownInflightsRaw
       iNamed Hin
@@ -132,8 +143,12 @@ theorem tracker.Inflights.Add.wp_proof
       -- `inflights_add_store`'s `word` needs it as `sl`
       dsimp only at Hinfl_ok ⊢
       ihave %Hblen' := ownSlice_len _ _ _ $$ Hbuf
+      -- TODO(no-wp-auto): macro `inflights_add_store` runs wp_auto: wp_load; wp_load; wp_pures; iclear next | wp_pures | ∅
       inflights_add_store
-    · inflights_add_store
+    -- TODO(no-wp-auto): macro `inflights_add_store` runs wp_auto: ∅ | wp_pures | ∅
+    · wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures
+      iclear index next
+      inflights_add_store
 
 end proof
 

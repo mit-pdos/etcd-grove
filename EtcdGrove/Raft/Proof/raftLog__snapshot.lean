@@ -34,7 +34,7 @@ theorem raftLog.snapshot.wp_proof : raftLog.snapshot.spec (GF := GF) (hG := hG) 
   icases Hsto with ⟨%isv, #Hsto⟩
   iNamed Hsto
   subst lcm
-  wp_auto
+  wp_alloc l_ptr as l; wp_pures; wp_load; wp_pures; wp_load; wp_pures
   cases snap with
   | some sid =>
     -- the pending snapshot, read through `l.unstable.snapshot`
@@ -42,7 +42,7 @@ theorem raftLog.snapshot.wp_proof : raftLog.snapshot.spec (GF := GF) (hG := hG) 
     icases Hus with ⟨%sv, #Hsv, %Hmeta, %voters, #Hvoters⟩
     ihave %Hnn := typedPointsto_not_null $$ Hsv
     rw [decide_eq_false Hnn]
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures; iclear l
     iapply HΦ
     isplitl [Hl HStorage Huents Huents_cap]
     · reseal_raftLog
@@ -61,10 +61,11 @@ theorem raftLog.snapshot.wp_proof : raftLog.snapshot.spec (GF := GF) (hG := hG) 
     -- `l.unstable.snapshot` is `null`: the `Storage`'s
     ihave %Hnosnap := (ownSnap_None _).1 $$ Husnap
     rw [decide_eq_true Hnosnap]
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear l
     rw [Hstok]
-    wp_auto
+    wp_pures
     wp_apply HSnapshot $$ [$HStorage $Hesu] as %snap %err ⟨HStorage, Herr⟩
+    wp_pures
     rw [← Hstok]
     iapply HΦ
     isplitl [Hl HStorage Huents Huents_cap]

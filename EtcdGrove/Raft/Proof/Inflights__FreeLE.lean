@@ -70,11 +70,11 @@ private theorem wp_Inflights_FreeLE_internal (l : Loc) (iv : tracker.Inflights)
   have Hsbuf : sint.Z iv.start' < (buf.length : Int) := by omega
   obtain ⟨e0, He0⟩ : ∃ e0, buf[(sint.Z iv.start').toNat]? = some e0 :=
     List.getElem?_eq_some_iff.mpr ⟨by omega, rfl⟩ |> fun h => ⟨_, h⟩
-  wp_auto
+  wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures
   have Hb1 : sint.Z iv.start' < sint.Z iv.buffer'.len := by omega
   simp only [Hs0, Hb1, and_self, ↓reduceIte]
   icases ownSlice_elem_acc (sint.Z iv.start') e0 _ _ _ Hs0 He0 $$ Hbuf with ⟨He, Hback⟩
-  wp_auto
+  wp_pures; wp_load; wp_pures
   ihave Hbuf := Hback $$ He
   rw [list_insert_id He0]
   wp_if_destruct
@@ -83,6 +83,8 @@ private theorem wp_Inflights_FreeLE_internal (l : Loc) (iv : tracker.Inflights)
     iframe
     ipureintro
     exact ⟨⟨Hs0, Hc, Hbl, Hsz, Hstart, Hring⟩, rfl, rfl, rfl, Int.le_refl _⟩
+  wp_load; wp_pures; wp_load; wp_pures; wp_alloc idx_ptr as idx; wp_pures; wp_store; wp_pures
+  wp_alloc i_ptr as i; wp_pures; wp_alloc bytes_ptr as bytes; wp_pures; wp_store; wp_pures
   -- the loop: `i` counts freed slots, `idx` is `start + i` mod `size`
   ihave IH : iprop(∃ (idxv iw bv : w64),
       "idx" ∷ idx_ptr ↦ idxv ∗ "i" ∷ i_ptr ↦ iw ∗ "bytes" ∷ bytes_ptr ↦ bv ∗
@@ -96,32 +98,46 @@ private theorem wp_Inflights_FreeLE_internal (l : Loc) (iv : tracker.Inflights)
     ipureintro
     refine ⟨⟨by word, by word⟩, .inl ⟨by word, by word⟩⟩
   irename «in» => Hin_ptr
-  wp_for IH
+  wp_for_core
+  iNamed IH
+  wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures
+  cleanup_bool_decide
   wp_if_destruct
-  · -- `i < count`: slot `idx` is occupied, hence inside the buffer
+  · wp_load; wp_load; wp_pures; wp_load; wp_load; wp_pures
+    -- `i < count`: slot `idx` is occupied, hence inside the buffer
     have Hidxb : 0 ≤ sint.Z idxv ∧ sint.Z idxv < (buf.length : Int) := by omega
     obtain ⟨e, He⟩ : ∃ e, buf[(sint.Z idxv).toNat]? = some e :=
       ⟨_, List.getElem?_eq_some_iff.mpr ⟨by omega, rfl⟩⟩
     have Hb2 : sint.Z idxv < sint.Z iv.buffer'.len := by omega
     simp only [Hidxb.1, Hb2, and_self, ↓reduceIte]
     icases ownSlice_elem_acc (sint.Z idxv) e _ _ _ Hidxb.1 He $$ Hbuf with ⟨He', Hback⟩
-    wp_auto
+    wp_pures; wp_load; wp_pures
     ihave Hbuf := Hback $$ He'
     rw [list_insert_id He]
     wp_if_destruct
     · -- `break`: the first inflight past `to`
       wp_for_post
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_store; wp_pures
+      wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_store; wp_pures; wp_load
+      wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+      iclear to idx i bytes
+      -- TODO(no-wp-auto): macro `freele_finish` runs wp_auto: ∅ | wp_load; wp_pures; wp_store; wp_pures; iclear Hin_ptr | ∅
       freele_finish
-    · try wp_auto
+    -- TODO(no-wp-auto): try wp_auto (no progress) alone
+    · wp_load; wp_load; wp_pures; wp_load; wp_load; wp_pures
+      try wp_auto
       simp only [Hidxb.1, Hb2, and_self, ↓reduceIte]
       icases ownSlice_elem_acc (sint.Z idxv) e _ _ _ Hidxb.1 He $$ Hbuf with ⟨He', Hback⟩
-      wp_auto
+      wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+      wp_alloc size_ptr as size; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_store; wp_pures
+      wp_load; wp_load; wp_pures
       ihave Hbuf := Hback $$ He'
       rw [list_insert_id He]
-      try wp_auto
       wp_if_destruct
-      · -- `idx` wraps
+      · wp_load; wp_load; wp_pures; wp_store; wp_pures; iclear size
+        -- `idx` wraps
         wp_for_post
+        wp_load; wp_pures; wp_store; wp_pures
         iframe
         simp only [named]
         iexists _, _, _
@@ -129,6 +145,7 @@ private theorem wp_Inflights_FreeLE_internal (l : Loc) (iv : tracker.Inflights)
         ipureintro
         refine ⟨⟨by word, by word⟩, .inr ⟨by word, by word⟩⟩
       · wp_for_post
+        wp_load; wp_pures; wp_store; wp_pures; iclear size
         iframe
         simp only [named]
         iexists _, _, _
@@ -138,7 +155,12 @@ private theorem wp_Inflights_FreeLE_internal (l : Loc) (iv : tracker.Inflights)
         rcases Hidx with ⟨H1, H2⟩ | ⟨H1, H2⟩
         · exact .inl ⟨by word, by word⟩
         · exact .inr ⟨by word, by word⟩
-  · -- `i = count`: every inflight is freed
+  · wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_store; wp_pures; wp_load
+    wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures
+    wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+    iclear to idx i bytes
+    -- `i = count`: every inflight is freed
+    -- TODO(no-wp-auto): macro `freele_finish` runs wp_auto: ∅ | wp_load; wp_pures; wp_store; wp_pures; iclear Hin_ptr | ∅
     freele_finish
 
 /-- The public triple: open `ownInflights`, run the ring-buffer proof above on the

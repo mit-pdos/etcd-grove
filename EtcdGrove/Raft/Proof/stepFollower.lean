@@ -51,12 +51,12 @@ theorem stepFollower.wp_proof
   unfold isInitialized
   icases Hinit with ⟨%e1, %e2, %e3, %e4, %errPropDropped, %gr, #Hinit⟩
   iNamed Hinit
-  wp_auto
+  wp_alloc m_ptr as m; wp_pures; wp_alloc r_ptr as r; wp_pures; wp_load; wp_pures
   rcases Hty with Hty | Hty | Hty | Hty | Hty | Hty | Hty
   · -- `MsgVoteResp`: no arm
     rw [Hty]
     simp only [MsgVoteResp]
-    wp_auto
+    wp_pures; iclear m r
     iapply HΦ $$ %GoInterface.nil %s %false
     iframe Hphys
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -67,14 +67,18 @@ theorem stepFollower.wp_proof
     obtain ⟨Hfrom0, Hterm0, Hlid⟩ := Hprop Hty
     rw [Hty]
     simp only [MsgProp]
-    wp_auto
+    wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_lead $$ Hphys as Hphys
+    wp_pures
     by_cases Hlead : s.lead = W64 0
     · -- leaderless: dropped
       rw [decide_eq_true Hlead]
-      wp_auto
+      wp_pures; wp_load; wp_pures
       wp_apply raft.wp_load_id $$ Hphys as Hphys
+      wp_pures; wp_load; wp_pures
       wp_apply raft.wp_load_Term $$ Hphys as Hphys
+      wp_pures
+      -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; iclear m r | ∅
       wp_raft_log
       iapply HΦ $$ %errPropDropped %s %true
       iframe Hphys
@@ -85,9 +89,11 @@ theorem stepFollower.wp_proof
       iexact ErrPropDropped
     · -- forwarded to the leader
       rw [decide_eq_false Hlead]
-      wp_auto
+      wp_pures; wp_load; wp_pures
       wp_apply raft.wp_load_disableProposalForwarding $$ Hphys as Hphys
+      wp_pures; wp_load; wp_pures
       wp_apply raft.wp_load_lead $$ Hphys as Hphys
+      wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear r m
       ihave Hes := Hents $$ %(Or.inr trivial)
       icases Hes with ⟨#Hes, -⟩
       wp_apply wp_raft_send _ _ _ _ { m with To' := s.lead } ents [propForward id s.lead m ents]
@@ -96,7 +102,7 @@ theorem stepFollower.wp_proof
       · iapply send_no_snap
         simp [Hty, MsgProp, MsgSnap]
       iintro Hphys
-      wp_auto
+      wp_pures
       iapply HΦ $$ %GoInterface.nil %_ %false
       iframe
       simp only [Bool.false_eq_true, ↓reduceIte]
@@ -107,13 +113,16 @@ theorem stepFollower.wp_proof
     obtain ⟨Hwf, Hnw, Hnorm, Hconf⟩ := Happ Hty
     rw [Hty]
     simp only [MsgApp]
-    wp_auto
+    wp_pures; wp_load; wp_pures
     wp_apply raft.wp_store_electionElapsed $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures
     wp_apply raft.wp_store_lead $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear m r
     ihave Hes := Hents $$ %(Or.inl trivial)
     icases Hes with ⟨#Hes, Hcap⟩
     wp_apply wp_raft_handleAppendEntries _ _ _ { s with lead := m.From' } _ _ Hwf Hnw Hnorm Hconf $$ [$Hphys $Hes $Hcap]
       as %s' ⟨Hphys, %Hres⟩
+    wp_pures
     iapply HΦ $$ %GoInterface.nil %s' %false
     iframe
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -126,10 +135,13 @@ theorem stepFollower.wp_proof
     obtain ⟨Hcommit, Hfrom⟩ := Hhb Hty
     rw [Hty]
     simp only [MsgHeartbeat]
-    wp_auto
+    wp_pures; wp_load; wp_pures
     wp_apply raft.wp_store_electionElapsed $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures
     wp_apply raft.wp_store_lead $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear m r
     wp_apply wp_raft_handleHeartbeat _ _ _ { s with lead := m.From' } _ Hcommit Hfrom $$ [$Hphys] as Hphys
+    wp_pures
     iapply HΦ $$ %GoInterface.nil %_ %false
     iframe
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -139,7 +151,7 @@ theorem stepFollower.wp_proof
       MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp]
   · -- `MsgBeat`, `MsgAppResp`, `MsgHeartbeatResp`: no arm
     rcases Hty with Hty' | Hty' | Hty' <;> rw [Hty'] <;>
-      simp only [MsgBeat, MsgAppResp, MsgHeartbeatResp] <;> wp_auto
+      simp only [MsgBeat, MsgAppResp, MsgHeartbeatResp] <;> (wp_pures; iclear m r)
     all_goals
       iapply HΦ $$ %GoInterface.nil %s %false
       iframe Hphys
@@ -153,11 +165,14 @@ theorem stepFollower.wp_proof
     obtain ⟨Hscope, Hrole, Hvotes, Hcfg⟩ := Hsc
     rw [Hty]
     simp only [MsgSnap]
-    wp_auto
+    wp_pures; wp_load; wp_pures
     wp_apply raft.wp_store_electionElapsed $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures
     wp_apply raft.wp_store_lead $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear m r
     wp_apply wp_raft_handleSnapshot _ _ _ { s with lead := m.From' } _ sv voters Hrole Hvotes Hcfg Hscope $$ [$Hphys $Hsv $Hvs]
       as %s' ⟨Hphys, %Hres⟩
+    wp_pures
     iapply HΦ $$ %GoInterface.nil %s' %false
     iframe
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -169,7 +184,7 @@ theorem stepFollower.wp_proof
   · -- `MsgPreVoteResp` (2026-10-04): no arm
     rw [Hty]
     simp only [MsgPreVoteResp]
-    wp_auto
+    wp_pures; iclear m r
     iapply HΦ $$ %GoInterface.nil %s %false
     iframe Hphys
     simp only [Bool.false_eq_true, ↓reduceIte]

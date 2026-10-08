@@ -26,25 +26,32 @@ theorem unstable.shrinkEntriesArray.wp_proof :
   iNamed Hun
   icases Hents with #Hents
   ihave %Hlen := ownSlice_len $$ Hents
-  wp_auto
+  wp_alloc u_ptr as u; wp_pures; wp_load; wp_pures; wp_load; wp_pures
   by_cases He : uents = []
   · -- empty: `nil`
     subst He
     wp_if_destruct
-    · iapply HΦ
+    · wp_load; wp_pures; wp_store; wp_pures; iclear u
+      iapply HΦ
       unfold ownUnstable
       simp only [named]
       iframe Hu
       isplitl
       · iapply ownSliceCap_nil
       · iapply ownSlice_nil
-    · exfalso; simp at Hlen; word
+    · wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+      exfalso; simp at Hlen; word
   · wp_if_destruct
-    · exfalso; apply He; apply List.eq_nil_of_length_eq_zero; word
+    · wp_load; wp_pures; wp_store; wp_pures; iclear u
+    wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+      exfalso; apply He; apply List.eq_nil_of_length_eq_zero; word
     wp_if_destruct
-    · -- copy into an array of exactly the right size
+    · wp_load; wp_pures; wp_load; wp_pures
+      -- copy into an array of exactly the right size
       wp_apply wp_slice_make2 (V := raftpb.Entry) as %sl ⟨Hsl, Hsl_cap⟩
       · ipureintro; word
+      wp_pures; wp_alloc newEntries_ptr as newEntries; wp_pures; wp_store; wp_pures; wp_load
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures
       wp_apply +noauto wp_slice_copy $$ [$Hsl $Hents] as %n ⟨%Hn, Hsl, -⟩
       have Hcp : (uents.take (List.replicate (sint.nat uv.entries'.len)
             (zero_val raftpb.Entry)).length ++
@@ -54,7 +61,7 @@ theorem unstable.shrinkEntriesArray.wp_proof :
           List.drop_of_length_le (by rw [List.length_replicate, Hlen.1]; exact Nat.le_refl _), List.append_nil]
       rw [Hcp]
       ipersist Hsl
-      wp_auto
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures; iclear u newEntries
       iapply HΦ
       unfold ownUnstable
       iframe Hu

@@ -27,22 +27,27 @@ theorem raftLog.commitTo.wp_proof
   icases ownRaftLog_struct _ _ $$ Hlog with ⟨%lv0, Hl, %Hcmap, Hback⟩
   obtain ⟨Hcm, Hap⟩ := Hcmap
   simp only at Hcm Hap
-  wp_auto
+  wp_alloc l_ptr as l; wp_pures; wp_alloc tocommit_ptr as tocommit; wp_pures; wp_load; wp_pures
+  wp_load; wp_load; wp_pures
   wp_if_destruct
-  · have Hlt : uint.Z lcm < uint.Z tocommit := Hcm ▸ Hif
+  · wp_load; wp_pures
+    have Hlt : uint.Z lcm < uint.Z tocommit := Hcm ▸ Hif
     clear Hif Hcm Hap
     ihave Hlog := Hback $$ Hl
     wp_apply wp_raftLog_lastIndex _ ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ $$ [$Hlog]
       as %li ⟨Hlog, %Hli⟩
+    wp_load; wp_pures
     simp only at Hli
     wp_if_destruct
-    · exfalso; word
+    · wp_load; wp_pures; wp_load; wp_pures
+    wp_load; wp_pures; wp_load; wp_pures; iclear l tocommit
+      exfalso; word
     icases (ownRaftLog_unfold l prev sents uents lcm lap snap lip lapg lpend lasz lamx).1 $$ Hlog
       with ⟨%lv, Hl, %Hcm', %Hap', %Hapg, %Hip, %Hasz, %Hamx, Hcore⟩
     iunfold ownRaftLogCore at Hcore
     icases Hcore with ⟨%sprev, %stored, %ss, Hcore⟩
     iNamed Hcore
-    wp_auto
+    wp_store; wp_pures
     iapply HΦ
     rw [plogCommitTo, ite_eq_left Hlt]
     reseal_raftLog

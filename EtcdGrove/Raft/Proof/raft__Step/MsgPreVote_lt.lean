@@ -56,35 +56,49 @@ theorem wp_Step_MsgPreVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   have Hs0 : s.term ≠ W64 0 := by intro H0; rw [H0] at Hlt0; word
   wp_start as Hphys
   iNamed Hphys
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_alloc m_ptr as m; wp_pures; wp_load; wp_pures
   wp_apply _P.traceReceiveMessage
+  wp_pures; wp_load; wp_pures
   -- `m.Term ≠ 0`, so the first arm of the term preamble is skipped
   rw [decide_eq_false Hterm]
-  wp_auto
+  wp_pures; wp_load; wp_load; wp_pures
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_pures
   rw [decide_eq_false (show ¬ uint.Z s.term < uint.Z m.Term' by omega)]
-  wp_auto
+  wp_pures; wp_load; wp_load; wp_pures
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_pures
   rw [decide_eq_true Hlt0]
-  wp_auto
+  wp_pures; wp_load; wp_pures
   -- `(checkQuorum || preVote) && (MsgHeartbeat || MsgApp)`: false either way
   wp_apply raft.wp_load_checkQuorum $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures
   wp_apply raft.wp_load_preVote $$ Hphys as Hphys
-  cases s.prevote <;> wp_auto
+  cases s.prevote <;> (wp_pures; wp_load; wp_pures)
+  -- TODO(no-wp-auto): col 46: wp_pures; wp_load; wp_pures
+  -- TODO(no-wp-auto): col 27: wp_pures; wp_load; wp_pures
   all_goals try (rw [Hn8]; wp_auto; rw [Hn3]; wp_auto)
   -- `MsgPreVote`: reject at `r.Term`
   all_goals
     rw [Hy17]
-    wp_auto
+    wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+    wp_pures
     icases ownRaftPhys_log_same cfg r id _ $$ Hphys with ⟨Hlog, Hback⟩
     wp_apply _P.lastEntryID $$ [$Hlog] as %lastID ⟨Hlog, -⟩
+    wp_pures; wp_alloc last_ptr as last; wp_pures; wp_store; wp_pures; wp_load; wp_pures
     ihave Hphys := Hback $$ Hlog
     wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear last
     wp_apply raft.wp_load_Vote $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load
+    wp_pures
     wp_apply raft.wp_load_Term $$ Hphys as Hphys
+    wp_pures
+    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures | ∅ | wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures | ∅
     wp_raft_log
     wp_apply raft.wp_load_Term $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures
     wp_apply _P.send cfg r id s _ [] _ (Or.inl rfl)
         (Or.inl ⟨.preVoteResp, Or.inr (Or.inr (Or.inr rfl)), mtypeOf_MsgPreVoteResp, Hs0,
           fun Hc => by rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne), rfl⟩)
@@ -94,7 +108,7 @@ theorem wp_Step_MsgPreVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       iapply send_no_snap
       w32_ne
     iintro Hphys
-    wp_auto
+    wp_pures; iclear r m
     iapply HΦ $$ %interface.nil %_
     iframe Hphys
     ipureintro

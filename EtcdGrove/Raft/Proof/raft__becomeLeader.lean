@@ -43,22 +43,30 @@ theorem raft.becomeLeader.wp_proof
     raft.becomeLeader.spec (GF := GF) (hG := hG) := by
   intro cfg r id s Hrole Hcfg
   wp_start as Hphys
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_load; wp_pures
   -- `becomeLeader` panics on a follower; by assumption we are not one.
   have Hnf : stateW64 s.role ≠ W64 0 := by
     cases h : s.role <;> simp_all [stateW64, StateCandidate, StateLeader, StatePreCandidate]
   wp_apply raft.wp_load_state $$ Hphys as Hphys
+  wp_pures
   rw [decide_eq_false Hnf]
-  wp_auto
+  wp_pures; wp_load; wp_pures
   -- `r.step := stepLeader`, then `reset` at the unchanged term, so the vote survives
   wp_apply raft.wp_store_step $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures
   wp_apply wp_raft_reset $$ [$Hphys] as %pvs ⟨Hphys, %Hmr⟩
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures
   -- `r.tick`, `r.lead := r.id`, `r.state := StateLeader`
   wp_apply raft.wp_store_tick $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures
   wp_apply raft.wp_load_id $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures
   wp_apply raft.wp_store_lead $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures
   wp_apply wp_store_state_leader $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures
   -- the state is now `becomeLeaderPre` up to the order of the record updates
   ihave Hphys : ownRaftPhys cfg r id { becomeLeaderPre id s with prvals := pvs } $$ [Hphys]
   · iapply ownRaftPhys_eq cfg r id _ _ ?_ $$ Hphys
@@ -67,16 +75,19 @@ theorem raft.becomeLeader.wp_proof
   -- the leader's own `Progress` is marked replicating and recently active; the map
   -- lookup is on the tracker object
   wp_apply raft.wp_load_id $$ Hphys as Hphys
+  wp_load; wp_pures
   icases ownRaftPhys_tracker_prvals cfg r id _ $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
-  wp_auto
+  wp_load
   wp_apply wp_tracker_progress_lookup cfg tv _ id Hcfg $$ [$Htrk]
     as %pr ⟨-, %p0, %Hpv0, Hpr, Hprback⟩
+  wp_pures; wp_alloc pr_ptr as pr; wp_pures; wp_store; wp_pures; wp_load; wp_pures
   wp_apply wp_Progress_BecomeReplicate $$ [$Hpr] as Hpr
+  wp_pures; wp_load; wp_pures; iclear pr
   -- `ownProgress` owns the whole `Progress` value, so the `RecentActive` assignment steps
   -- through `Hpv` with the generated `AccessStrict` instances and leaves `Inflights'`
   -- alone.
   iNamed Hpr
-  wp_auto
+  wp_store; wp_pures; wp_load; wp_pures
   ihave Hpr : ownProgress pr { progressBecomeReplicate p0 with recentActive := true }
       $$ [Hpv Hinfl]
   · iapply ownProgress_intro pr _ _ $$ Hpv [Hinfl]
@@ -88,15 +99,21 @@ theorem raft.becomeLeader.wp_proof
   ihave Hphys := Hback $$ %_ %_ Htrkf Htrk
   -- `r.pendingConfIndex = r.raftLog.lastIndex()`
   wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+  wp_pures
   icases ownRaftPhys_log_same cfg r id _ $$ Hphys with ⟨Hlog, Hback⟩
   wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, -⟩
+  wp_pures; wp_load; wp_pures
   ihave Hphys := Hback $$ Hlog
   wp_apply raft.wp_store_pendingConfIndex $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures
   wp_apply wp_traceBecomeLeader
+  wp_pures; wp_alloc emptyEnt_ptr as emptyEnt; wp_pures; wp_store; wp_pures; wp_load; wp_pures
+  iclear emptyEnt
   wp_apply wp_slice_literal
+  wp_pures
   try (isplitr; (ipureintro; rfl))
   iintro %es ⟨Hes, -⟩
-  wp_auto
+  wp_pures; wp_load; wp_pures
   -- `appendEntry` writes `Term`/`Index` into every element of the slice, so it needs
   -- `Hes`. It returns a bool, and its postcondition says an all-empty batch is never
   -- dropped; the entry's `Data` is nil, so `accepted = true` and the `Panic` on the
@@ -107,11 +124,12 @@ theorem raft.becomeLeader.wp_proof
   wp_apply wp_raft_appendEntry cfg r id _ _ [zero_val raftpb.Entry]
       (by intro e He; simp at He; subst He; rfl) (by simp) $$ [$Hphys $Hes]
     as %accepted ⟨%Hacc, Hes, Hphys⟩
+  wp_pures
   -- empty payload, so accepted; the `false` branch is gone before any `WP` is stepped on it
   have Hacc' : accepted = true := Hacc (by intro e He; simp at He; subst He; rfl)
   subst Hacc'
   simp only [↓reduceIte]
-  wp_auto
+  wp_pures; wp_load; wp_pures
   -- `appendEntry` appended the stamped empty entry: that is `becomeLeader` (`Defs.lean`)
   ihave Hphys : ownRaftPhys cfg r id
       { becomeLeader id s with
@@ -121,7 +139,10 @@ theorem raft.becomeLeader.wp_proof
     subst hs1
     rfl
   wp_apply raft.wp_load_id $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_pures
+  -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures; iclear r | wp_pures | wp_pures | ∅
   wp_raft_log
   iapply HΦ
   iframe

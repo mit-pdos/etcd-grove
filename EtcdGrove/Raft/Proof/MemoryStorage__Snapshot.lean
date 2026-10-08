@@ -26,11 +26,14 @@ theorem MemoryStorage.Snapshot.wp_proof :
   icases Hms with ⟨%γ, Hms⟩
   iNamed Hms
   wp_apply wp_with_defer as %defer defer
+  wp_pures; wp_alloc ms_ptr as ms; wp_pures; wp_load; wp_pures
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_method_call
   wp_call
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures
   iunfold memstorageInv at Hinv
   icases Hinv with ⟨%prev0, %ents0, %ss0, Hinv⟩
   iNamedSuffix Hinv "_inv"
@@ -40,7 +43,8 @@ theorem MemoryStorage.Snapshot.wp_proof :
   icombine Hgs Hgs_inv gives % ⟨_, Heq⟩
   simp only [Prod.mk.injEq] at Heq
   obtain ⟨⟨rfl, rfl⟩, rfl⟩ := Heq
-  wp_auto
+  wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+  iclear ms
   icases Hvoters with #Hvoters
   wp_method_call
   wp_call
@@ -52,6 +56,7 @@ theorem MemoryStorage.Snapshot.wp_proof :
     iexists hs, snap, es, dummy, _, voters
     iframe # ∗
     ipureintro; exact ⟨Hsnap_id, Hdummy⟩
+  wp_pures
   iapply HΦ
   isplitl [Hgs]
   · unfold ownMemoryStorage

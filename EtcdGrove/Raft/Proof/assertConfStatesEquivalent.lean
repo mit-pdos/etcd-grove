@@ -21,9 +21,11 @@ theorem assertConfStatesEquivalent.wp_proof
     assertConfStatesEquivalent.spec (GF := GF) (hG := hG) := by
   intro l cs1 cs2 v1 v2 dq1 dq2 Hperm H1 H2 H3 H4 H5 H6 Hal
   wp_start as ⟨H1, H2⟩
-  wp_auto
+  wp_alloc cs2_ptr as cs2; wp_pures; wp_alloc cs1_ptr as cs1; wp_pures; wp_alloc l_ptr as l
+  wp_pures; wp_load; wp_pures; iclear cs2
   wp_apply wp_ConfState_Equivalent _ _ _ _ _ _ _ Hperm H1 H2 H3 H4 H5 H6 Hal
     $$ [$cs1 $H1 $H2] as ⟨-, H1, H2⟩
+  wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures; iclear l err
   iapply HΦ
   iframe
 

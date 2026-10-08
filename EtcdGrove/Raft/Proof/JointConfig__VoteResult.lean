@@ -54,11 +54,11 @@ theorem quorum.JointConfig.VoteResult.wp_proof
   iunfold ownTracker at Hown
   icases Hown with ⟨%voters_ref, %voters, %learners, %learnersNext, Hown⟩
   iNamed Hown
-  wp_auto
+  wp_load; wp_pures
   wp_method_call
   wp_call
   wp_call
-  wp_auto
+  wp_alloc c_ptr as c; wp_pures; wp_alloc votes_ptr as votes; wp_pures; wp_load; wp_pures
   icases array_acc_same' (GF := GF) _ (sint.Z (W64 0)) _ _ _ voters_ref (by decide)
       (by simp [Hvoters_arr]) $$ c with ⟨Hc0, Hcback⟩
   wp_apply wp_MajorityConfig_VoteResult cfg $$ [$Hc0 $Hvotes Hvoters]
@@ -69,6 +69,7 @@ theorem quorum.JointConfig.VoteResult.wp_proof
     iexists voters
     iframe
     ipureintro; exact Hvoters_dom
+  wp_pures; wp_alloc r1_ptr as r1; wp_pures; wp_store; wp_pures; wp_load; wp_pures; iclear votes
   -- the first component is the real voter set, so the `map.nil` disjunct of
   -- `MajorityConfig.VoteResult`'s postcondition would give `cfg = ∅`
   icases Hv with (⟨-, %Hemp⟩ | ⟨%voters', %Hvoters'_dom, Hvoters⟩)
@@ -83,6 +84,7 @@ theorem quorum.JointConfig.VoteResult.wp_proof
     · ipureintro; rw [GMap.map_size_empty]; decide
     ileft
     ipureintro; exact ⟨rfl, rfl⟩
+  wp_pures; wp_alloc r2_ptr as r2; wp_pures; wp_store; wp_pures; wp_load; wp_load; wp_pures
   -- "elections on an empty config win": `r2` is `VoteWon`, so the joint answer is `r1`
   -- on every path
   have HN2 : r2 = VoteWon := Hr2won rfl
@@ -95,21 +97,21 @@ theorem quorum.JointConfig.VoteResult.wp_proof
   rcases Hr1 with rfl | rfl | rfl
   · -- `r1 == r2`: both won
     rw [decide_eq_true rfl]
-    wp_auto
+    wp_pures; wp_load; wp_pures; iclear r1 r2 c
     iapply HΦ
     iframe Htrk Hown
     ipureintro
     exact ⟨Or.inl rfl, Hwon1 Hcfg_ne, Hlost1 Hcfg_ne⟩
   · -- `r1` lost, `r2` won: the second test fires on `r1`
     rw [decide_eq_false (by decide)]
-    wp_auto
+    wp_pures; wp_load; wp_pures; iclear r1 r2 c
     iapply HΦ
     iframe Htrk Hown
     ipureintro
     exact ⟨Or.inr (Or.inl rfl), Hwon1 Hcfg_ne, Hlost1 Hcfg_ne⟩
   · -- `r1` still pending: neither test fires
     rw [decide_eq_false (by decide)]
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear r1 r2 c
     iapply HΦ
     iframe Htrk Hown
     ipureintro

@@ -25,16 +25,18 @@ theorem quorum.MajorityConfig.Slice.wp_proof
     quorum.MajorityConfig.Slice.spec (GF := GF) (hG := hG) := by
   intro m ids
   wp_start as Hm
-  wp_auto
+  wp_alloc c_ptr as c; wp_pures; wp_alloc sl_ptr as sl; wp_pures; wp_load; wp_pures
+  wp_alloc id_ptr as id; wp_pures; iclear c
   unfold ownIdsetOpt
   icases Hm with (%Hnil | Hm)
   · -- the nil set: the range is a pure step, and `sl` stays nil
     obtain ⟨rfl, rfl⟩ := Hnil
     wp_func_lits
-    wp_auto
+    wp_pures; wp_load; wp_pures; iclear id
     ihave Hsl0 : (slice.nil ↦* ([] : List w64)) $$ []
     · iapply ownSlice_nil
     wp_apply wp_slices_Sort $$ [$Hsl0] as %xs ⟨Hsl, %Hxs, -⟩
+    wp_pures; wp_load; wp_pures; iclear sl
     iapply HΦ
     iframe Hsl
     isplitl []
@@ -69,14 +71,16 @@ theorem quorum.MajorityConfig.Slice.wp_proof
     · imodintro
       iintro %i %key %vv ⟨%Hkey, %Hvv⟩ HP
       iNamed HP
-      wp_auto
+      wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures
       wp_apply wp_slice_literal (V := w64) [key]
+      wp_pures
       isplitr
       · ipureintro; rfl
       iintro %sl2 ⟨Hsl2, -⟩
-      wp_auto
+      wp_pures
       wp_apply wp_slice_append (V := w64) _ _ _ _ _ $$ [$Hsl $Hsl_cap $Hsl2]
         as %sl3 ⟨Hsl, Hsl_cap, -⟩
+      wp_pures; wp_store; wp_pures
       unfold forMapPostcondition
       iright; ileft
       isplitr
@@ -92,8 +96,9 @@ theorem quorum.MajorityConfig.Slice.wp_proof
     iintro HP Hm
     iNamed HP
     rw [show (GMap.size ids : Int).toNat = keys.length by omega, List.take_length]
-    wp_auto
+    wp_pures; wp_load; wp_pures; iclear id
     wp_apply wp_slices_Sort $$ [$Hsl] as %xs ⟨Hsl, %Hxs, -⟩
+    wp_pures; wp_load; wp_pures; iclear sl
     iapply HΦ
     iframe Hsl Hsl_cap
     isplitl [Hm]

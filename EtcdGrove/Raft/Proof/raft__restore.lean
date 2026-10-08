@@ -56,12 +56,13 @@ theorem raft.restore.wp_proof
   obtain ⟨Hperm, H0, Hcl, Hcvo, Hcln, Hcal, Hidx61⟩ := Hscope
   wp_start as H
   iNamed H
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_alloc s_ptr as s; wp_pures; wp_load; wp_load; wp_pures
   -- `s.Metadata.Index <= r.raftLog.committed`
   wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+  wp_pures
   icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
   icases ownRaftLog_struct $$ Hlog with ⟨%lv, Hl, %Hlv, Hlb⟩
-  wp_auto
+  wp_load; wp_pures
   ihave Hlog := Hlb $$ Hl
   ihave Hphys := Hlogback $$ Hlog
   obtain ⟨Hcm, -⟩ := Hlv
@@ -69,25 +70,29 @@ theorem raft.restore.wp_proof
   by_cases Hst : uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.committed
   · -- obsolete
     rw [decide_eq_true Hst]
-    wp_auto
+    wp_pures; iclear r s
     iapply HΦ $$ %false %s
     iframe Hphys
     ipureintro
     exact .inl ⟨Hst, rfl, rfl⟩
   rw [decide_eq_false Hst]
-  wp_auto
+  wp_pures; wp_load; wp_pures
   -- `r.state != StateFollower`: a follower
   wp_apply raft.wp_load_state $$ Hphys as Hphys
+  wp_pures
   rw [Hrole, decide_eq_true (show stateW64 PRole.follower = W64 0 from rfl)]
-  wp_auto
+  wp_pures; wp_alloc found_ptr as found; wp_pures; wp_store; wp_pures; wp_load; wp_pures
+  wp_alloc cs_ptr as cs; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures
   -- the `found` search over `[Voters; Learners; VotersOutgoing]`
   wp_apply wp_slice_literal
+  wp_pures
   isplitr
   · ipureintro; rfl
   iintro %rsl ⟨Hrsl, -⟩
   simp only [show sint.nat (W64 (0 + 1)) = 1 from rfl, show sint.nat (W64 (0 + 1 + 1)) = 2 from rfl,
     List.set_cons_succ, List.set_cons_zero]
-  wp_auto
+  wp_pures; wp_alloc set_ptr as set; wp_pures; wp_alloc i_ptr as i; wp_pures
   ihave %Hrlen := ownSlice_len $$ Hrsl
   simp only [List.length_cons, List.length_nil] at Hrlen
   -- the outer loop runs once: `id` is among the voters, so the inner loop breaks with
@@ -98,14 +103,23 @@ theorem raft.restore.wp_proof
   · iexists W64 0, zero_val GoSlice
     iframe i set found
     ipureintro; rfl
-  wp_for IH
+  wp_for_core
+  iNamed IH
+  wp_pures; wp_load; wp_pures
+  cleanup_bool_decide
   subst Hk
   wp_if_destruct
+  rotate_left
+  wp_load; wp_pures; wp_load; wp_pures; iclear i set found
+  rotate_right
+  wp_load; wp_pures
   rotate_left
   · exfalso; apply Hif; word
   wp_apply wp_load_slice_index (V := GoSlice) (t := go.uint64.SliceType) _ (sint.Z (W64 0)) _ _
       sv.Metadata'.ConfState'.Voters' (by decide) $$ [$Hrsl] as Hrsl
   · ipureintro; rfl
+  wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_alloc id_ptr as id; wp_pures
+  wp_alloc i_ptr as i; wp_pures
   ihave %Hvlen := ownSlice_len $$ Hvoters
   have Hidv : id ∈ voters := by
     have := (GMap.elem_of_elements cfg id).2 Hin
@@ -118,8 +132,12 @@ theorem raft.restore.wp_proof
     iframe i id found
     ipureintro
     exact ⟨⟨by word, by word⟩, by simp⟩
-  wp_for IH2
+  wp_for_core
+  iNamed IH2
+  wp_pures; wp_load; wp_pures
+  cleanup_bool_decide
   obtain ⟨Hk2b, Hk2n⟩ := Hk2
+  -- TODO(no-wp-auto): wp_if_destruct: no manual sequence found (['ok', 'mismatch'])
   wp_if_destruct
   rotate_left
   · -- the voters ran out without `id`: impossible
@@ -131,13 +149,16 @@ theorem raft.restore.wp_proof
   wp_apply wp_load_slice_index (V := w64) (t := go.uint64) _ (sint.Z k2) voters _ y
       (by omega) $$ [$Hvoters] as -
   · ipureintro; exact Hy_lookup
+  wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_load; wp_pures
   wp_apply raft.wp_load_id $$ Hphys as Hphys
+  wp_pures
   by_cases Hne : y = id
   rotate_left
   · -- not this one: next
     rw [decide_eq_false Hne]
-    wp_auto
+    wp_pures
     wp_for_post
+    wp_load; wp_pures; wp_store
     iframe
     iexists _, _
     iframe
@@ -150,11 +171,15 @@ theorem raft.restore.wp_proof
   -- found: break the inner loop, then the outer one
   subst y
   rw [decide_eq_true rfl]
-  wp_auto
+  wp_pures; wp_store; wp_pures
+  -- TODO(no-wp-auto): wp_for_post: no manual sequence found (['mismatch'])
   wp_for_post
   wp_for_post
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_alloc id_ptr as id; wp_pures
+  wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear i set found
   -- `matchTerm(id)`
   wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+  wp_pures
   icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
   wp_apply wp_raftLog_matchTerm _ _ { term' := sv.Metadata'.Term', index' := sv.Metadata'.Index' }
     $$ [$Hlog] as %b ⟨Hlog, %Hb⟩
@@ -163,25 +188,33 @@ theorem raft.restore.wp_proof
   by_cases Hm : PlogMatches s.logst.prev (s.logst.sents ++ s.logst.uents) (snapId sv)
   · -- the log has the snapshot's last entry: fast-forward the commit
     rw [Hb, decide_eq_true Hm]
-    wp_auto
+    wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+    wp_pures
     icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
     wp_apply wp_raftLog_lastEntryID $$ [$Hlog] as %last ⟨Hlog, -⟩
+    wp_pures; wp_alloc last_ptr as last; wp_pures; wp_store; wp_pures; wp_load; wp_pures
     ihave Hphys := Hlogback $$ Hlog
     -- the `Infof`: `r.id`, `r.raftLog.committed`, the two ids
     wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+    wp_pures
     icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
     icases ownRaftLog_struct $$ Hlog with ⟨%lv2, Hl, -, Hlb⟩
-    wp_auto
+    wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+    iclear last
     ihave Hlog := Hlb $$ Hl
     ihave Hphys := Hlogback $$ Hlog
+    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures | ∅
     wp_raft_log
     -- `commitTo(Index)`: in range, the log has a term at `Index`
     obtain ⟨-, Hle⟩ := plogTermAt_some_range _ _ _ _ Hm
     wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+    wp_pures
     icases ownRaftPhys_log_at $$ Hphys with ⟨Hlog, Hlogback⟩
     wp_apply wp_raftLog_commitTo _ _ sv.Metadata'.Index' Hle $$ [$Hlog] as Hlog
+    wp_pures; iclear r s cs id
     ihave Hphys := Hlogback $$ Hlog
     iapply HΦ $$ %false %_
     iframe Hphys
@@ -190,20 +223,25 @@ theorem raft.restore.wp_proof
     simp only [plogCommitTo, snapId] at *
     rw [ite_eq_left (by omega)]
   · rw [Hb, decide_eq_false Hm]
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear s
     -- `r.raftLog.restore(s)`
     wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+    wp_pures
     icases ownRaftPhys_log_at $$ Hphys with ⟨Hlog, Hlogback⟩
     wp_apply wp_raftLog_restore _ _ sv voters (by simp only [snapId]; omega)
         (by simp only [snapId]; omega) $$ [$Hlog $Hvoters] as Hlog
+    wp_pures; wp_load; wp_pures
     ihave Hphys := Hlogback $$ %_ Hlog
     -- the tracker replaced by the empty one, the log used meanwhile
     icases ownRaftPhys_retrack _ ∅ $$ Hphys with ⟨%tv, Htrkf, Htrk, Hlf, Hlog, Hback⟩
     icases ownTracker_maxinflight $$ Htrk with ⟨%Hmi, -⟩
-    wp_auto
+    wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
     wp_apply wp_MakeProgressTracker as %tv0 %v0 ⟨%Htv0, Hv0, Hvotes0, Hprs0⟩
+    wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load
+    wp_pures; wp_load; wp_pures
     obtain ⟨Htv0mi, Htv0mb, Htv0arr, Htv0l, Htv0ln, Htv0al⟩ := Htv0
     wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, -⟩
+    wp_pures; wp_load; wp_pures
     -- `confchange.Restore`: the empty tracker, the voters-only `ConfState`
     ipersist Hprs0
     have Hmi0 : 0 ≤ sint.Z tv0.MaxInflight' ∧ sint.Z tv0.MaxInflight' < 2 ^ 62 := by
@@ -214,12 +252,17 @@ theorem raft.restore.wp_proof
     wp_apply wp_confchange_Restore { Tracker' := tv0, LastIndex' := li } _ voters DFrac.discard v0
         Hvne Hv0n Hcvo Hcl Hcln Hmi0 Htv0arr Htv0l Htv0ln $$ [$Hvoters $Hv0 $Hprs0]
       as %cfgv %prsm %prs %vref %vm ⟨-, Hv0, -, %Hcfgv, Hvref, %Hvm, Hprsm, %Hprs, Hprogs⟩
+    wp_pures; wp_alloc err_ptr as err; wp_pures; wp_alloc trk_ptr as trk; wp_pures
+    wp_alloc cfg_ptr as cfg; wp_pures; wp_store; wp_pures; wp_store; wp_pures; wp_store; wp_pures
+    wp_load; wp_pures; wp_load; wp_pures; iclear err
     obtain ⟨Hcfgarr, Hcfgl, Hcfgln, Hcfgal⟩ := Hcfgv
     -- the struct, re-sealed over the empty configuration
     ihave Htrk0 := ownTracker_empty tv0 v0 Htv0arr Htv0l Htv0ln Htv0al Hmi0 $$ Hv0 Hvotes0 Hprs0
     ihave Hphys := Hback $$ %tv0 %∅ %∅ %∅ %_ Hlf Htrkf Htrk0 Hlog
     -- `assertConfStatesEquivalent(r.logger, cs, r.switchToConfig(cfg, trk))`
     wp_apply raft.wp_load_logger $$ Hphys as %lok0 ⟨Hphys, #Hlg0⟩
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+    iclear cs cfg trk
     have Hcfgeq : GMap.listToSet voters = cfg := by
       apply GMap.set_eq; intro x
       rw [GMap.elem_of_list_to_set, Hperm.mem_iff, GMap.elem_of_elements]
@@ -236,21 +279,29 @@ theorem raft.restore.wp_proof
       exact ⟨Hcfgarr, Hcfgl, Hcfgln, Hcfgal, Hvm, Hprs, Hcfgeq ▸ Hcsz⟩
     wp_apply wp_raft_switchToConfig _ _ _ _ _ cfgv prsm prs (by simp [Hrole]) $$ [$Hphys $Hcfg]
       as %cs2 %xs2 %pvs1 ⟨Hphys, Hcs2v, %Hxs2, %Hcs2l⟩
+    wp_pures
     obtain ⟨Hc2a, Hc2b, Hc2c, Hc2al⟩ := Hcs2l
     have Hperm2 : voters ≡ₚ xs2 := Hperm.trans Hxs2.symm
     wp_apply wp_assertConfStatesEquivalent _ _ cs2 voters xs2 DFrac.discard (DFrac.own 1)
         Hperm2 Hcvo Hcl Hcln Hc2a Hc2b Hc2c (by rw [Hcal, Hc2al]) $$ [$Hvoters $Hcs2v] as -
+    wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+    wp_pures
     icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
     wp_apply wp_raftLog_lastEntryID $$ [$Hlog] as %last ⟨Hlog, -⟩
+    wp_pures; wp_alloc last_ptr as last; wp_pures; wp_store; wp_pures; wp_load; wp_pures
     ihave Hphys := Hlogback $$ Hlog
     wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+    wp_pures
     icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
     icases ownRaftLog_struct $$ Hlog with ⟨%lv3, Hl, -, Hlb⟩
-    wp_auto
+    wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+    iclear id last
     ihave Hlog := Hlb $$ Hl
     ihave Hphys := Hlogback $$ Hlog
+    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures; iclear r | wp_pures | wp_pures | ∅
     wp_raft_log
     iapply HΦ $$ %true %_
     iframe Hphys

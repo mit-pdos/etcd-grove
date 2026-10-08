@@ -58,22 +58,25 @@ theorem stepCandidate.wp_proof
   unfold isInitialized
   icases Hinit with ⟨%e1, %e2, %e3, %e4, %errPropDropped, %gr, #Hinit⟩
   iNamed Hinit
-  wp_auto
+  wp_alloc m_ptr as m; wp_pures; wp_alloc r_ptr as r; wp_pures
+  wp_alloc myVoteRespType_ptr as myVoteRespType; wp_pures; wp_load; wp_pures
   -- `myVoteRespType`: `MsgPreVoteResp` for a pre-candidate, `MsgVoteResp` for a
   -- candidate; the two arms are joined
   wp_apply raft.wp_load_state $$ Hphys as Hphys
+  wp_pures
   have Hpre_iff : stateW64 s.role = W64 3 ↔ s.role = .preCandidate := by
     cases s.role <;> decide
+  -- TODO(no-wp-auto): wp_join runs (cont first, then the cases): wp_pures; wp_load; wp_pures | ∅ | ∅
   wp_join iprop(myVoteRespType_ptr ↦
       (if s.role = .preCandidate then W32 18 else W32 6))
     with [myVoteRespType] as myVoteRespType
   · rw [show raftpb.MsgPreVoteResp = #(W32 18) from rfl]
-    wp_auto
+    wp_store; wp_pures
     rw [if_pos (Hpre_iff.1 Hif)]
     iframe myVoteRespType
     ipureintro; exact rfl
   · rw [show raftpb.MsgVoteResp = #(W32 6) from rfl]
-    wp_auto
+    wp_store; wp_pures
     rw [if_neg (fun h => Hif (Hpre_iff.2 h))]
     iframe myVoteRespType
     ipureintro; exact rfl
@@ -91,13 +94,13 @@ theorem stepCandidate.wp_proof
     have Hterm' := Hterm (Or.inl Hty)
     rw [Hty]
     simp only [MsgVoteResp]
-    wp_auto
+    wp_pures; wp_load; wp_pures; iclear myVoteRespType
     rcases Hrole with Hrole | Hrole
     rotate_left
     · -- a pre-candidate: `myVoteRespType` is `MsgPreVoteResp`; a vote response is
       -- ignored
       rw [Hmp Hrole]
-      wp_auto
+      wp_pures; iclear m r
       iapply HΦ $$ %GoInterface.nil %s %false
       iframe Hphys
       simp only [Bool.false_eq_true, ↓reduceIte]
@@ -105,27 +108,35 @@ theorem stepCandidate.wp_proof
       refine ⟨?_, trivial⟩
       simp [CandidateStepResult, Hty, Hrole, MsgVoteResp]
     rw [Hmc (by rw [Hrole]; decide)]
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
     have Hcfg_ne : cfg ≠ ∅ := fun h => GMap.not_elem_of_empty id (h ▸ Hcfg)
     wp_apply wp_raft_poll _ _ _ _ _ _ _ Hcfg_ne $$ [$Hphys]
       as %g %rj0 %res ⟨Hphys, %Hres, %Hwon, %Hlost⟩
+    wp_pures; wp_alloc res_ptr as res; wp_pures; wp_alloc rj_ptr as rj; wp_pures
+    wp_alloc gr_ptr as gr; wp_pures; wp_store; wp_pures; wp_store; wp_pures; wp_store; wp_pures
+    wp_load; wp_pures
     -- the `Infof` that follows reads `r.id`, `r.Term` and `r.logger`
     wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear m gr rj
+    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; iclear res | ∅
     wp_raft_log
     rcases Hres with rfl | rfl | rfl
     · -- `quorum.VoteWon`: become leader and broadcast. `poll` does not touch the role,
       -- so we are still a candidate: not a pre-candidate, so this is `becomeLeader` and
       -- not `campaign`.
       simp only [VoteWon]
-      wp_auto
+      wp_pures; wp_load; wp_pures
       wp_apply raft.wp_load_state $$ Hphys as Hphys
+      wp_pures
       rw [decide_eq_false (by simp only [Hrole]; decide)]
-      wp_auto
+      wp_pures; wp_load; wp_pures
       wp_apply wp_raft_becomeLeader _ _ _ _ (by simp only [Hrole]; decide) Hcfg $$ [$Hphys]
         as %pvs1 ⟨Hphys, %Hmb⟩
+      wp_pures; wp_load; wp_pures; iclear r
       -- `bcastAppend` adds *some* list of `App`s from `id` at the current term -- not one
       -- per peer; see `Spec/raft__bcastAppend.lean`.
       wp_apply wp_raft_bcastAppend $$ [$Hphys] as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
+      wp_pures
       iapply HΦ $$ %GoInterface.nil %_ %false
       iframe Hphys
       simp only [Bool.false_eq_true, ↓reduceIte]
@@ -141,10 +152,12 @@ theorem stepCandidate.wp_proof
       · cases s; rfl
     · -- `quorum.VoteLost`: step down at the unchanged term
       simp only [VoteLost]
-      wp_auto
+      wp_pures; wp_load; wp_pures
       -- the `r.Term` the code passes is `s1`'s term
       wp_apply raft.wp_load_Term $$ Hphys as Hphys
+      wp_pures; wp_load; wp_pures; iclear r
       wp_apply wp_raft_becomeFollower $$ [$Hphys] as %pvs Hphys
+      wp_pures
       iapply HΦ $$ %GoInterface.nil %_ %false
       iframe Hphys
       simp only [Bool.false_eq_true, ↓reduceIte]
@@ -158,7 +171,7 @@ theorem stepCandidate.wp_proof
       cases s; rfl
     · -- `quorum.VotePending`: neither switch arm fires; keep waiting
       simp only [VotePending]
-      wp_auto
+      wp_pures; iclear r
       iapply HΦ $$ %GoInterface.nil %_ %false
       iframe Hphys
       simp only [Bool.false_eq_true, ↓reduceIte]
@@ -175,9 +188,12 @@ theorem stepCandidate.wp_proof
   · -- `MsgProp`: no leader to forward to; dropped
     rw [Hty]
     simp only [MsgProp]
-    wp_auto
+    wp_pures; wp_load; wp_pures; iclear m myVoteRespType
     wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures
     wp_apply raft.wp_load_Term $$ Hphys as Hphys
+    wp_pures
+    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures; iclear r | wp_pures | wp_pures; wp_load; wp_pures | ∅
     wp_raft_log
     iapply HΦ $$ %errPropDropped %s %true
     iframe Hphys
@@ -191,12 +207,14 @@ theorem stepCandidate.wp_proof
     have Hterm' := Hterm (Or.inr (Or.inl Hty))
     rw [Hty]
     simp only [MsgApp]
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear myVoteRespType
     wp_apply wp_raft_becomeFollower $$ [$Hphys] as %pvs Hphys
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear m r
     ihave Hes := Hents $$ %trivial
     icases Hes with ⟨#Hes, Hcap⟩
     wp_apply wp_raft_handleAppendEntries _ _ _ { becomeFollower s m.Term' m.From' with prvals := pvs } _ _ Hwf Hnw Hnorm Hconf $$ [$Hphys $Hes $Hcap]
       as %s' ⟨Hphys, %Hres⟩
+    wp_pures
     iapply HΦ $$ %GoInterface.nil %s' %false
     iframe Hphys
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -211,9 +229,11 @@ theorem stepCandidate.wp_proof
     have Hterm' := Hterm (Or.inr (Or.inr (Or.inl Hty)))
     rw [Hty]
     simp only [MsgHeartbeat]
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear myVoteRespType
     wp_apply wp_raft_becomeFollower $$ [$Hphys] as %pvs Hphys
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear m r
     wp_apply wp_raft_handleHeartbeat _ _ _ { becomeFollower s m.Term' m.From' with prvals := pvs } _ Hcommit Hfrom $$ [$Hphys] as Hphys
+    wp_pures
     iapply HΦ $$ %GoInterface.nil %_ %false
     iframe Hphys
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -225,11 +245,11 @@ theorem stepCandidate.wp_proof
   · -- `MsgBeat`, `MsgAppResp`, `MsgHeartbeatResp`: no arm; `myVoteRespType` is one of
     -- the two response types, neither of these
     rcases Hty with Hty' | Hty' | Hty' <;> rw [Hty'] <;>
-      simp only [MsgBeat, MsgAppResp, MsgHeartbeatResp] <;> wp_auto
+      simp only [MsgBeat, MsgAppResp, MsgHeartbeatResp] <;> (wp_pures; wp_load; wp_pures; iclear myVoteRespType)
     all_goals
       by_cases Hp : s.role = .preCandidate
       · rw [Hmp Hp]
-        wp_auto
+        wp_pures; iclear m r
         iapply HΦ $$ %GoInterface.nil %s %false
         iframe Hphys
         simp only [Bool.false_eq_true, ↓reduceIte]
@@ -238,7 +258,7 @@ theorem stepCandidate.wp_proof
         simp [CandidateStepResult, Hty', MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
           MsgAppResp, MsgHeartbeatResp]
       · rw [Hmc Hp]
-        wp_auto
+        wp_pures; iclear m r
         iapply HΦ $$ %GoInterface.nil %s %false
         iframe Hphys
         simp only [Bool.false_eq_true, ↓reduceIte]
@@ -252,11 +272,13 @@ theorem stepCandidate.wp_proof
     ihave Hs := Hsnap $$ %rfl
     icases Hs with ⟨%Hscope, #Hsv, #Hvs⟩
     simp only [MsgSnap]
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear myVoteRespType
     wp_apply wp_raft_becomeFollower $$ [$Hphys] as %pvs Hphys
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear m r
     wp_apply wp_raft_handleSnapshot _ _ _ { becomeFollower s m.Term' m.From' with prvals := pvs }
         _ sv voters rfl rfl Hcfg Hscope $$ [$Hphys $Hsv $Hvs]
       as %s' ⟨Hphys, %Hres⟩
+    wp_pures
     iapply HΦ $$ %GoInterface.nil %s' %false
     iframe Hphys
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -270,12 +292,12 @@ theorem stepCandidate.wp_proof
   · -- `MsgPreVoteResp` (2026-10-04)
     rw [Hty]
     simp only [MsgPreVoteResp]
-    wp_auto
+    wp_pures; wp_load; wp_pures; iclear myVoteRespType
     rcases Hrole with Hrole | Hrole
     · -- a candidate: `myVoteRespType` is `MsgVoteResp`; a stale pre-vote response,
       -- ignored
       rw [Hmc (by rw [Hrole]; decide)]
-      wp_auto
+      wp_pures; iclear m r
       iapply HΦ $$ %GoInterface.nil %s %false
       iframe Hphys
       simp only [Bool.false_eq_true, ↓reduceIte]
@@ -285,11 +307,16 @@ theorem stepCandidate.wp_proof
         MsgBeat, MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp]
     · -- a pre-candidate: `poll`, then win, lose or wait
       rw [Hmp Hrole]
-      wp_auto
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
       have Hcfg_ne : cfg ≠ ∅ := fun h => GMap.not_elem_of_empty id (h ▸ Hcfg)
       wp_apply wp_raft_poll _ _ _ _ _ _ _ Hcfg_ne $$ [$Hphys]
         as %g %rj0 %res ⟨Hphys, %Hres, %Hwon, %Hlost⟩
+      wp_pures; wp_alloc res_ptr as res; wp_pures; wp_alloc rj_ptr as rj; wp_pures
+      wp_alloc gr_ptr as gr; wp_pures; wp_store; wp_pures; wp_store; wp_pures; wp_store; wp_pures
+      wp_load; wp_pures
       wp_apply raft.wp_load_id $$ Hphys as Hphys
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear m gr rj
+      -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; iclear res | ∅
       wp_raft_log
       have Hres_pv : ∀ (s' : NState) (won lost : Bool) (peers : List w64)
           (pvs : GMap w64 Progress),
@@ -307,16 +334,18 @@ theorem stepCandidate.wp_proof
       rcases Hres with rfl | rfl | rfl
       · -- `quorum.VoteWon`: the real election, `campaign(campaignElection)`
         simp only [VoteWon]
-        wp_auto
+        wp_pures; wp_load; wp_pures
         wp_apply raft.wp_load_state $$ Hphys as Hphys
+        wp_pures
         rw [decide_eq_true (by simp only [Hrole]; decide)]
-        wp_auto
+        wp_pures; wp_load; wp_pures; iclear r
         have Hnl1 : s.role ≠ .leader := by rw [Hrole]; decide
         have Hnw1 := Hpvnw Hrole Hty
         rw [show go_etcd_io.raft.v3.campaignElection = #campaignElection from rfl]
         wp_apply wp_raft_campaign _ _ _ { s with votes := recordVote s.votes m.From' (!m.Reject') }
             _ Hnl1 Hcfg Hnw1 $$ [$Hphys]
           as %peers %pvs ⟨%Hpeers, Hphys⟩
+        wp_pures
         iapply HΦ $$ %GoInterface.nil %_ %false
         iframe Hphys
         simp only [Bool.false_eq_true, ↓reduceIte]
@@ -327,9 +356,11 @@ theorem stepCandidate.wp_proof
         rfl
       · -- `quorum.VoteLost`: step down at the unchanged term
         simp only [VoteLost]
-        wp_auto
+        wp_pures; wp_load; wp_pures
         wp_apply raft.wp_load_Term $$ Hphys as Hphys
+        wp_pures; wp_load; wp_pures; iclear r
         wp_apply wp_raft_becomeFollower $$ [$Hphys] as %pvs Hphys
+        wp_pures
         iapply HΦ $$ %GoInterface.nil %_ %false
         iframe Hphys
         simp only [Bool.false_eq_true, ↓reduceIte]
@@ -338,7 +369,7 @@ theorem stepCandidate.wp_proof
         exact Hres_pv _ false true [] pvs (fun h => absurd h (by decide)) (fun _ => Hlost rfl) rfl
       · -- `quorum.VotePending`: keep waiting
         simp only [VotePending]
-        wp_auto
+        wp_pures; iclear r
         iapply HΦ $$ %GoInterface.nil %_ %false
         iframe Hphys
         simp only [Bool.false_eq_true, ↓reduceIte]

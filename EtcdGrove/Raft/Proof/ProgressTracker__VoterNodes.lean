@@ -29,18 +29,22 @@ theorem tracker.ProgressTracker.VoterNodes.wp_proof
     tracker.ProgressTracker.VoterNodes.spec (GF := GF) (hG := hG) := by
   intro cfg trk tv t
   wp_start as ⟨Htrk, Hown⟩
-  wp_auto
+  wp_alloc p_ptr as p; wp_pures; wp_load; wp_pures; iclear p
   wp_apply (quorum.JointConfig.IDs.spec_tracker wp_JointConfig_IDs) $$ [$Htrk $Hown] as %mref %idm ⟨Htrk, Hown, Hidm, %Hdomidm⟩
+  wp_pures; wp_alloc m_ptr as m; wp_pures; wp_store; wp_pures; wp_load; wp_pures
   iNamed Hown
   ihave Hown := ownTracker_intro cfg tv t.votes t.prs t.peers voters_ref voters
     learners learnersNext Hprs_dom Hvoters_arr Hautoleave Hvoters_dom Hno_learners Hcfg_size
     HmaxInfl $$ Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext
   wp_apply wp_map_len $$ Hidm as Hidm
+  wp_pures
   have Hszidm : GMap.size idm = GMap.size cfg := by
     rw [← Hdomidm, GMap.size_dom]
   rw [Hszidm]
   wp_apply wp_slice_make3 (V := w64) (t := go.uint64) (W64 0) (W64 (GMap.size cfg))
     (by word) as %sl ⟨Hsl, Hsl_cap, %Hslcap⟩
+  wp_pures; wp_alloc nodes_ptr as nodes; wp_pures; wp_store; wp_pures; wp_load; wp_pures
+  wp_alloc id_ptr as id; wp_pures; iclear m
   simp only [List.replicate_zero]
   wp_func_lits
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
@@ -61,12 +65,14 @@ theorem tracker.ProgressTracker.VoterNodes.wp_proof
   · imodintro
     iintro %i %key %vv ⟨%Hkey, %Hvv⟩ HP
     iNamed HP
-    wp_auto
+    wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures
     wp_apply wp_slice_literal (V := w64) [key]
+    wp_pures
     isplitr
     · ipureintro; rfl
     iintro %sl2 ⟨Hsl2, -⟩
     wp_apply wp_slice_append $$ [$Hsl $Hsl_cap $Hsl2] as %sl3 ⟨Hsl, Hsl_cap, -⟩
+    wp_pures; wp_store; wp_pures
     unfold forMapPostcondition
     iright
     ileft
@@ -83,8 +89,9 @@ theorem tracker.ProgressTracker.VoterNodes.wp_proof
   iintro HP -
   iNamed HP
   rw [← Hklen, Int.toNat_natCast, List.take_length]
-  wp_auto
+  wp_pures; wp_load; wp_pures; iclear id
   wp_apply wp_slices_Sort $$ [$Hsl] as %xs ⟨Hsl, %Hxs, -⟩
+  wp_pures; wp_load; wp_pures; iclear nodes
   iapply HΦ
   iframe
   ipureintro

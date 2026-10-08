@@ -24,7 +24,7 @@ theorem raftLog.hasNextOrInProgressSnapshot.wp_proof :
   unfold ownRaftLogCore
   icases Hcore with ⟨%sprev, %stored, %ss, Hcore⟩
   iNamed Hcore
-  wp_auto
+  wp_alloc l_ptr as l; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear l
   cases snap with
   | some sid =>
     ihave Hus := (ownSnap_Some _ sid).1 $$ Husnap

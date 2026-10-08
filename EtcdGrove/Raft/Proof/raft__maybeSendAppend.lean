@@ -223,9 +223,11 @@ theorem raft.maybeSendAppend.wp_proof
     rw [← GMap.elem_of_dom, Hdom]; exact Hcfg
   obtain ⟨p, Hpvs⟩ : ∃ p, s.prvals !! to = some p := by
     rw [← GMap.elem_of_dom, Hpdom, GMap.elem_of_dom, Hlk]; exact ⟨_, rfl⟩
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_alloc sendIfEmpty_ptr as sendIfEmpty; wp_pures
+  wp_alloc to_ptr as to; wp_pures; wp_load; wp_load; wp_pures; wp_load
   ihave Hphys := Hback $$ %tv Htrkf Htrk
   wp_apply wp_map_lookup1 $$ Hprs as -
+  wp_pures; wp_alloc pr_ptr as pr; wp_pures; wp_store; wp_pures; wp_load; wp_pures
   rw [Hlk]
   dsimp only [Option.getD_some]
   -- `pr.IsPaused()` and `prevIndex := pr.Next - 1`, on `pr` borrowed
@@ -234,7 +236,7 @@ theorem raft.maybeSendAppend.wp_proof
   cases Hpaused : progressIsPaused p
   case true =>
     -- paused: nothing is sent, `false`
-    wp_auto
+    wp_pures; iclear r sendIfEmpty to pr
     ihave Hphys := Hpback $$ Hpa
     ihave Hphys := ownRaftPhys_send_nil cfg r id s $$ Hphys
     iapply HΦ $$ %false %([] : List Msg) %s.prvals
@@ -250,25 +252,30 @@ theorem raft.maybeSendAppend.wp_proof
   -- `pr.Next`, read off the value: the record's `next`
   iNamed Hpa
   obtain ⟨-, Hst, -, Hnx, -⟩ := (progressAbs_Some _ _ _).1 Habs
-  wp_auto
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_alloc prevIndex_ptr as prevIndex; wp_pures
+  wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures
   rw [Hnx]
   ihave Hphys := Hpback $$ [Hpv Hinfl]
   · iapply ownProgress_intro $$ Hpv Hinfl
     ipureintro; exact Habs
   wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+  wp_pures
   -- `r.raftLog.term(pr.Next - 1)`
   icases ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hlogback⟩
   icases ownRaftLog_nowrap _ _ $$ Hlog with ⟨%Hnw, Hlog⟩
   icases ownRaftLog_wf _ _ $$ Hlog with ⟨%Hlwf, Hlog⟩
   icases ownRaftLog_no_confchange _ _ $$ Hlog with ⟨%Hlnc, Hlog⟩
   wp_apply wp_raftLog_term _ s.logst _ $$ [$Hlog] as %pterm %err ⟨Hlog, %Herr, %Hterm_at, -⟩
+  wp_pures; wp_alloc err_ptr as err; wp_pures; wp_alloc prevTerm_ptr as prevTerm; wp_pures; wp_store
+  wp_pures; wp_store; wp_pures; wp_load; wp_pures
   ihave Hphys := Hlogback $$ Hlog
   cases err with
   | ok eok =>
     -- the log no longer has `pr.Next - 1`: fall back to a snapshot
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
     wp_apply wp_raft_maybeSendSnapshot cfg r id s to pr Hto Hlk $$ [$Hphys]
       as %b %ms' %pvs' ⟨Hphys, %Hms', %Hmm'⟩
+    wp_pures; iclear r sendIfEmpty to pr prevIndex prevTerm err
     iapply HΦ
     iframe
     ipureintro
@@ -279,35 +286,39 @@ theorem raft.maybeSendAppend.wp_proof
   -- and the term it returned is the log's at `pr.Next - 1`: `AppOk`'s `logterm` clause
   have Hterm_at := Hterm_at rfl
   have Hlo : uint.Z s.logst.prev.index' + 1 ≤ uint.Z p.next := by word
-  wp_auto
+  wp_pures; wp_alloc ents_ptr as ents; wp_pures; wp_load; wp_pures
   -- `pr.State`, `pr.Inflights.Full()`, `pr.Next`: borrow `pr` again
   icases ownRaftPhys_pr cfg r id s to pr p $$ Hphys %Hlk %Hpvs with ⟨Hpa, Hpback⟩
   iNamed Hpa
   obtain ⟨-, Hst, -, Hnx, -⟩ := (progressAbs_Some _ _ _).1 Habs
-  wp_auto
+  wp_load; wp_pures
   -- the three arms of the `||`, each ending at the same state (Rocq's `msa_pkg`)
   wp_if_destruct
-  · have Hrep : p.state = .replicate := prstateW64_inj _ _ (by rw [← Hst, Hif]; rfl)
+  · wp_load; wp_pures; wp_load; wp_pures
+    have Hrep : p.state = .replicate := prstateW64_inj _ _ (by rw [← Hst, Hif]; rfl)
     wp_apply wp_Inflights_Full $$ [$Hinfl] as Hinfl
+    wp_pures
     cases Hfull : inflightsFull p.infl
     · -- in `StateReplicate` with room: fetch `ents`
-      wp_auto
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+      -- TODO(no-wp-auto): macro `msa_fetch` runs wp_auto: wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_store; wp_pures; wp_store; wp_pures; wp_load; wp_pures | ∅
       msa_fetch
       have Hwin : p.state = .replicate → es_e ≠ [] → inflightsFull p.infl = false :=
         fun _ _ => Hfull
       have Hpkgin : ∀ e ∈ es_e, e ∈ (toPState s).log := Hin
       have Hpkgpre : es_e <+: plogFrom (toPState s).base (toPState s).log p.next := Hpre
       clear Hin Hpre
+      -- TODO(no-wp-auto): macro `msa_tail` runs wp_auto: wp_load; wp_pures; iclear sendIfEmpty | wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear sendIfEmpty to prevIndex prevTerm err | wp_pures; iclear r to pr prevIndex prevTerm ents err | wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear to prevIndex prevTerm err | wp_pures | wp_load; wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear ents | wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures; iclear r | wp_pures | wp_load; wp_pures; wp_load; wp_pures; iclear pr | wp_pures | wp_pures | wp_load; wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear ents | wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures; iclear r | wp_pures | wp_load; wp_pures; wp_load; wp_pures; iclear pr | wp_pures
       msa_tail
     · -- in `StateReplicate` with the window full: no entries are fetched
-      wp_auto
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear sendIfEmpty
       ihave Hphys := Hpback $$ [Hpv Hinfl]
       · iapply ownProgress_intro $$ Hpv Hinfl
         ipureintro; exact Habs
       -- `ents` is the zero slice, so `len(ents) == 0` was decided by `wp_auto`
       cases sendIfEmpty
       · -- no entries, and the caller does not want an empty append
-        wp_auto
+        wp_pures; iclear r to pr prevIndex prevTerm err ents
         ihave Hphys := ownRaftPhys_send_nil cfg r id s $$ Hphys
         iapply HΦ $$ %false %([] : List Msg) %s.prvals
         isplitl
@@ -315,7 +326,8 @@ theorem raft.maybeSendAppend.wp_proof
           cases s; rfl
         ipureintro
         exact ⟨fun _ h => (nomatch h), rfl⟩
-      · wp_auto
+      · wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+        wp_load; wp_pures; wp_load; wp_pures; iclear to prevIndex prevTerm err
         ihave #Hents : (zero_val GoSlice : GoSlice) ↦*□ ([] : List raftpb.Entry) $$ []
         · iapply ownSlice_nil
         generalize (zero_val GoSlice : GoSlice) = sl_e
@@ -327,16 +339,20 @@ theorem raft.maybeSendAppend.wp_proof
         have Hpkgpre : es_e <+: plogFrom (toPState s).base (toPState s).log p.next := by
           subst Hes; exact List.nil_prefix
         ihave %Hlen := slice_len_Z _ _ _ $$ Hents
+        -- TODO(no-wp-auto): macro `msa_send` runs wp_auto: wp_pures | wp_load; wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear ents | wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures; iclear r | wp_pures | wp_load; wp_pures; wp_load; wp_pures; iclear pr | wp_pures
         msa_send
-  · -- not in `StateReplicate`: the first disjunct is true, fetch `ents`
+  · wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+    -- not in `StateReplicate`: the first disjunct is true, fetch `ents`
     have Hnrep : p.state ≠ .replicate := by
       intro Hc; apply Hif; rw [Hst, Hc]; rfl
+    -- TODO(no-wp-auto): macro `msa_fetch` runs wp_auto: wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_store; wp_pures; wp_store; wp_pures; wp_load; wp_pures | ∅
     msa_fetch
     have Hwin : p.state = .replicate → es_e ≠ [] → inflightsFull p.infl = false :=
       fun Hc => absurd Hc Hnrep
     have Hpkgin : ∀ e ∈ es_e, e ∈ (toPState s).log := Hin
     have Hpkgpre : es_e <+: plogFrom (toPState s).base (toPState s).log p.next := Hpre
     clear Hin Hpre
+    -- TODO(no-wp-auto): macro `msa_tail` runs wp_auto: wp_load; wp_pures; iclear sendIfEmpty | wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear sendIfEmpty to prevIndex prevTerm err | wp_pures; iclear r to pr prevIndex prevTerm ents err | wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear to prevIndex prevTerm err | wp_pures | wp_load; wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear ents | wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures; iclear r | wp_pures | wp_load; wp_pures; wp_load; wp_pures; iclear pr | wp_pures | wp_pures | wp_load; wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear ents | wp_pures; wp_load; wp_pures | wp_pures; wp_load; wp_pures; iclear r | wp_pures | wp_load; wp_pures; wp_load; wp_pures; iclear pr | wp_pures
     msa_tail
 
 end proof

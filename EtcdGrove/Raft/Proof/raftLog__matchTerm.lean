@@ -24,12 +24,15 @@ theorem raftLog.matchTerm.wp_proof
   intro l ls id
   wp_start as Hpre
   iNamed Hpre
-  wp_auto
+  wp_alloc l_ptr as l; wp_pures; wp_alloc id_ptr as id; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures; iclear l
   wp_apply wp_raftLog_term l ls $$ [$Hlog] as %t %err ⟨Hlog, %Herr, %Ht, -⟩
+  wp_pures; wp_alloc err_ptr as err; wp_pures; wp_alloc t_ptr as t; wp_pures; wp_store; wp_pures
+  wp_store; wp_pures; wp_load; wp_pures; iclear err
   cases err with
   | ok eok =>
     -- `err != nil`: `id.index` is out of range, so `plogTermAt` is `none`
-    wp_auto
+    wp_pures; iclear id t
     iapply HΦ
     iframe
     ipureintro
@@ -43,7 +46,7 @@ theorem raftLog.matchTerm.wp_proof
     cases Hc
   | nil =>
     have Ht := Ht rfl
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear id t
     iapply HΦ
     iframe
     ipureintro

@@ -29,7 +29,7 @@ theorem readOnly.heartbeatCtx.wp_proof :
   iNamed Hown
   ihave %Hl := ownSlice_len $$ Hucr
   ihave %Hlen := BigSepL2.bigSepL2_length $$ Hreqs
-  wp_auto
+  wp_alloc ro_ptr as ro; wp_pures; wp_load; wp_pures; wp_load; wp_pures
   wp_if_destruct
   · have Hnil : r.pending = [] := by
       apply List.eq_nil_of_length_eq_zero
@@ -42,7 +42,10 @@ theorem readOnly.heartbeatCtx.wp_proof :
       ipureintro; exact ⟨Hro_safe, Hro_conf⟩
     ileft
     ipureintro; exact ⟨Hnil, rfl⟩
-  · have Hne : r.pending ≠ [] := by
+  · wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures
+    wp_alloc unconfirmedReadPosition_ptr as unconfirmedReadPosition; wp_pures; wp_store; wp_pures
+    iclear ro
+    have Hne : r.pending ≠ [] := by
       intro Hnil
       rw [Hnil] at Hlen
       apply Hif
@@ -51,6 +54,8 @@ theorem readOnly.heartbeatCtx.wp_proof :
       word
     wp_apply wp_slice_make2 (V := w8) as %sl ⟨Hsl, Hcap⟩
     · ipureintro; word
+    wp_pures; wp_alloc encLastIndex_ptr as encLastIndex; wp_pures; wp_store; wp_pures; wp_load
+    wp_pures; wp_load; wp_pures; iclear unconfirmedReadPosition
     have Hpos : rov.confirmedReads' + rov.unconfirmedReads'.len = readonlyPosition r := by
       unfold readonlyPosition
       rw [← Hro_conf, ← Hlen, Hl.1]
@@ -59,6 +64,7 @@ theorem readOnly.heartbeatCtx.wp_proof :
     wp_apply encoding.binary.wp_LittleEndian_PutUint64 sl
       (List.replicate 8 (zero_val w8)) [] (readonlyPosition r) rfl $$ [Hsl] as Hsl
     · rw [List.append_nil]; iexact Hsl
+    wp_pures; wp_load; wp_pures; iclear encLastIndex
     iapply HΦ
     isplitl [Hro Hacks Hucr Hucr_cap Hreqs]
     · unfold ownReadOnly

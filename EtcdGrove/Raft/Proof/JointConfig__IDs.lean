@@ -29,17 +29,18 @@ theorem quorum.JointConfig.IDs.wp_proof :
   wp_start as ⟨Hp, Hvoters⟩
   -- `wp_auto` reads the `JointConfig` out of `p ↦{dq} jc` and reduces the pointer method
   -- to the value method applied to the `JointConfig` value.
-  wp_auto
+  wp_load; wp_pures
   wp_method_call
   wp_call
   -- `GoAlloc JointConfig` gives `"c" ∷ c_ptr ↦ jc`
-  wp_auto
+  wp_call; wp_alloc c_ptr as c; wp_pures
   -- `m := map[uint64]struct{}{}`
   wp_apply wp_map_make1 (K := w64) (V := Unit) as %mref Hmref
+  wp_pures; wp_alloc m_ptr as m; wp_pures; wp_store; wp_pures
   -- `c[0]`: peel element 0 off the array; `Harr` says it is `v`.
   icases array_acc _ (sint.Z (W64 0)) _ _ _ v (by decide) (by rw [Harr]; rfl)
     $$ c with ⟨Hc0, Hcback⟩
-  wp_auto
+  wp_load; wp_pures; wp_alloc id_ptr as id; wp_pures
   -- `for id := range c[0] { m[id] = struct{}{} }`. The invariant carries the domain of
   -- the partial map: after `i` iterations it is the first `i` keys of the enumeration.
   -- `id` is the loop variable, assigned every iteration, so it is existentially
@@ -68,8 +69,9 @@ theorem quorum.JointConfig.IDs.wp_proof :
   · imodintro
     iintro %i %key %vv ⟨%Hkey, %Hvv⟩ HP
     iNamed HP
-    wp_auto
+    wp_pures; wp_store; wp_pures; wp_load; wp_load
     wp_apply wp_mapInsert $$ Hmref as Hmref
+    wp_pures
     unfold forMapPostcondition
     iright; ileft
     isplitr
@@ -107,9 +109,10 @@ theorem quorum.JointConfig.IDs.wp_proof :
       show jc.arr[(sint.Z (W64 1)).toNat]? = some map.nil
       rw [Harr]; rfl)
     $$ c with ⟨Hc1, Hcback⟩
+  -- TODO(no-wp-auto): wp_auto: no manual sequence found (['mismatch'])
   wp_auto
   wp_func_lits
-  wp_auto
+  wp_pures; wp_load; wp_pures; iclear m id
   -- `return m`
   iapply HΦ
   iframe Hp Hvoters Hmref

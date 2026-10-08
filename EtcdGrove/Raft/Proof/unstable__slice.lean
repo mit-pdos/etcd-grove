@@ -36,14 +36,17 @@ theorem unstable.slice.wp_proof
       uint.Z hi ≤ uint.Z uv.offset' + (uents.length : Int) := ⟨Hr1, by omega, Hr3⟩
   wp_start as H
   iNamed H
-  wp_auto
+  wp_alloc u_ptr as u; wp_pures; wp_alloc hi_ptr as hi; wp_pures; wp_alloc lo_ptr as lo; wp_pures
+  wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
   wp_apply wp_unstable_mustCheckOutOfBounds _ _ _ _ _ Hrange' Hnw $$ [$Hun] as Hun
+  wp_pures; wp_load; wp_pures
   unfold ownUnstable
   iNamed Hun
   ihave #Hents := Hents
   ihave %Hlen := ownSlice_len $$ Hents
   ihave %Hwf := ownSlice_wf $$ Hents
-  wp_auto
+  wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures
+  wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures; iclear u hi lo
   obtain ⟨Hlen1, Hlen2⟩ := Hlen
   obtain ⟨-, Hwf⟩ := Hwf
   have Hlenz : (uents.length : Int) = sint.Z uv.entries'.len := by
@@ -55,7 +58,7 @@ theorem unstable.slice.wp_proof
       sint.Z (hi - uv.offset') ≤ sint.Z (hi - uv.offset') ∧
       sint.Z (hi - uv.offset') ≤ sint.Z uv.entries'.cap) = True from eq_true (by omega),
     ↓reduceIte]
-  wp_auto
+  wp_pures
   have Hsublen : (subslice (sint.nat (lo - uv.offset')) (sint.nat (hi - uv.offset')) uents).length
       = sint.nat (hi - uv.offset') - sint.nat (lo - uv.offset') :=
     subslice_length _ _ _ (by word)

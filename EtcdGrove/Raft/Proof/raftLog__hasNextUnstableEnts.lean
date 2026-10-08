@@ -22,9 +22,10 @@ theorem raftLog.hasNextUnstableEnts.wp_proof
   intro l ls
   wp_start as H
   iNamed H
-  wp_auto
+  wp_alloc l_ptr as l; wp_pures; wp_load; wp_pures; iclear l
   wp_apply wp_raftLog_nextUnstableEnts l ls $$ [Hlog] as %s ⟨Hlog, #Hs⟩
   · iexact Hlog
+  wp_pures
   ihave %Hlen := ownSlice_len _ _ _ $$ Hs
   iapply HΦ
   iframe Hlog

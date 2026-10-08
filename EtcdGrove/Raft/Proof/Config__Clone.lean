@@ -21,20 +21,26 @@ theorem tracker.Config.Clone.wp_proof : tracker.Config.Clone.spec (GF := GF) (hG
   intro p cfg v vm dq dqv Hcfg
   obtain ⟨Harr, Hl, Hln⟩ := Hcfg
   wp_start as ⟨Hp, Hv⟩
-  wp_auto
+  wp_alloc c_ptr as c; wp_pures; wp_alloc clone_ptr as clone; wp_pures; wp_store; wp_pures; wp_load
+  wp_pures
   -- the receiver is read at fraction `dq`: split the struct into its fields, then peel
   -- `Voters[0]` and `Voters[1]` off the array
   icases typedPointsto_not_null_dup _ _ _ $$ Hp with ⟨Hp, %Hnn⟩
   iStructNamed Hp
   icases array_acc _ (sint.Z (W64 0)) _ _ _ v (by decide) (by rw [Harr]; rfl)
     $$ Voters with ⟨Hv0, Hvback⟩
-  wp_auto
+  wp_load; wp_pures; wp_load; wp_pures; wp_alloc m_ptr as m; wp_pures; wp_load; wp_pures
   -- `clone(c.Voters[0])`, inlined: the map is not nil, so it is copied key by key
   ihave %Hvnn := ownMap_not_nil _ _ _ $$ Hv
   wp_if_destruct
-  · exact absurd rfl Hvnn
+  · wp_load; wp_pures; iclear m
+  wp_load; wp_pures
+    exact absurd rfl Hvnn
   wp_apply wp_map_len $$ Hv as Hv
+  wp_pures
   wp_apply wp_map_make2 as %mref Hmref
+  wp_pures; wp_alloc mm_ptr as mm; wp_pures; wp_store; wp_pures; wp_load; wp_pures
+  wp_alloc k_ptr as k; wp_pures; iclear m
   wp_func_lits
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
   iapply wp_map_for_range (fun (keys : List w64) (i : Int) => iprop(∃ (x : w64)
@@ -59,8 +65,9 @@ theorem tracker.Config.Clone.wp_proof : tracker.Config.Clone.spec (GF := GF) (hG
   · imodintro
     iintro %i %key %vv ⟨%Hkey, %Hvv⟩ HP
     iNamed HP
-    wp_auto
+    wp_pures; wp_store; wp_pures; wp_load; wp_load
     wp_apply wp_mapInsert $$ Hmref as Hmref
+    wp_pures
     unfold forMapPostcondition
     iright; ileft
     isplitr
@@ -103,8 +110,10 @@ theorem tracker.Config.Clone.wp_proof : tracker.Config.Clone.spec (GF := GF) (hG
       show cfg.Voters'.arr[(sint.Z (W64 1)).toNat]? = some map.nil
       rw [Harr]; rfl)
     $$ Voters with ⟨Hv1, Hvback⟩
+  -- TODO(no-wp-auto): wp_auto: no manual sequence found (['mismatch'])
   wp_auto
   rw [Hl, Hln]
+  -- TODO(no-wp-auto): wp_auto: no manual sequence found (['mismatch'])
   wp_auto
   -- `return Config{...}`: the receiver back together, the fresh voter map `mref`
   iapply HΦ

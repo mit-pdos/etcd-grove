@@ -30,7 +30,7 @@ theorem tracker.ProgressTracker.ConfState.wp_proof
   obtain ⟨votes, prs, pvs⟩ := t
   wp_start as ⟨Htrk, Hown⟩
   iNamed Hown
-  wp_auto
+  wp_alloc p_ptr as p; wp_pures; wp_load; wp_pures
   -- `Voters[0].Slice()`: the receiver is a pointer into the tracker's `JointConfig`
   -- array. Split the array field out of `trk ↦ tv` and element 0 out of the array.
   icases (Access.access
@@ -43,21 +43,23 @@ theorem tracker.ProgressTracker.ConfState.wp_proof
     $$ Hvf with ⟨Hc0, Hcback⟩
   wp_method_call
   wp_call
-  wp_auto
+  wp_load; wp_pures
   -- `Slice`'s postcondition gives back an `ownIdsetOpt`, whose `map.nil` disjunct we
   -- refute with the voter map's own points-to
   ihave %Hvoters_nn := ownMap_not_nil $$ Hvoters
   wp_apply wp_MajorityConfig_Slice _ voters $$ [Hvoters] as %sl0 %xs0 ⟨Hvoters, Hsl0, -, %Hxs0⟩
   · unfold ownIdsetOpt; iright; iexact Hvoters
+  wp_pures; wp_load; wp_pures
   ihave Hvf := Hcback $$ Hc0
   -- element 1, the nil outgoing config
   icases array_acc _ (sint.Z (W64 1)) _ _ _ map.nil (by decide) (by rw [Hvoters_arr]; rfl)
     $$ Hvf with ⟨Hc1, Hcback⟩
   wp_method_call
   wp_call
-  wp_auto
+  wp_load; wp_pures
   wp_apply wp_MajorityConfig_Slice map.nil ∅ $$ [] as %sl1 %xs1 ⟨-, Hsl1, -, %Hxs1⟩
   · unfold ownIdsetOpt; ileft; ipureintro; exact ⟨rfl, rfl⟩
+  wp_pures; wp_load; wp_pures
   ihave Hvf := Hcback $$ Hc1
   have Harr : array.mk 2 ((tv.Config'.Voters'.arr.set (sint.Z (W64 0)).toNat voters_ref).set
       (sint.Z (W64 1)).toNat map.nil) = tv.Config'.Voters' := by
@@ -68,10 +70,12 @@ theorem tracker.ProgressTracker.ConfState.wp_proof
     rfl
   rw [Harr]
   ihave Htrk := Htrkback $$ Hvf
-  wp_auto
+  wp_load; wp_pures
   wp_apply wp_MajorityConfig_Slice $$ [$Hlearners] as %sl2 %xs2 ⟨Hlearners, Hsl2, -, %Hxs2⟩
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures
   wp_apply wp_MajorityConfig_Slice $$ [$HlearnersNext]
     as %sl3 %xs3 ⟨HlearnersNext, Hsl3, -, %Hxs3⟩
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear p
   obtain ⟨rfl, rfl⟩ := Hno_learners
   obtain rfl := perm_elements_empty xs1 Hxs1
   obtain rfl := perm_elements_empty xs2 Hxs2

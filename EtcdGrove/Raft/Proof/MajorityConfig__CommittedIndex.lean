@@ -143,14 +143,14 @@ theorem quorum.MajorityConfig.CommittedIndex.wp_proof
     quorum.MajorityConfig.CommittedIndex.spec (GF := GF) (hG := hG) := by
   intro cs cref mref l Pres acked
   wp_start as ⟨%Hsz, Hc, Hm, #Hl, HP⟩
-  wp_auto
+  wp_load; wp_pures
   wp_method_call
   wp_call
-  wp_auto
+  wp_call; wp_alloc c_ptr as c; wp_pures; wp_alloc l_ptr as l; wp_pures; wp_load; wp_pures
   icases Hm with (⟨%Hnil, %Hs⟩ | ⟨%ids, %Hids, Hids⟩)
   · -- the nil component: `len(c) == 0`.
     subst Hnil Hs
-    wp_auto
+    wp_pures; wp_alloc n_ptr as n; wp_pures; wp_store; wp_pures; wp_load; wp_pures; iclear c l n
     iapply HΦ
     iframe Hc HP
     isplitr
@@ -158,6 +158,7 @@ theorem quorum.MajorityConfig.CommittedIndex.wp_proof
     ipureintro
     exact ⟨fun _ => rfl, fun h => absurd rfl h⟩
   wp_apply wp_map_len (t := quorum.MajorityConfig.ty) $$ Hids as Hids
+  wp_pures; wp_alloc n_ptr as n; wp_pures; wp_store; wp_pures; wp_load; wp_pures
   -- `wp_join` below would substitute `cs := domSet ids` anyway; do it now
   subst Hids
   by_cases Hemp : domSet ids = ∅
@@ -165,7 +166,7 @@ theorem quorum.MajorityConfig.CommittedIndex.wp_proof
     have Hz : GMap.size ids = 0 := by
       rw [(GMap.dom_empty_iff_L ids).1 Hemp, GMap.map_size_empty]
     rw [Hz]
-    wp_auto
+    wp_pures; iclear c l n
     iapply HΦ
     iframe Hc HP
     isplitl [Hids]
@@ -181,10 +182,11 @@ theorem quorum.MajorityConfig.CommittedIndex.wp_proof
     · exact h
   have Hsz' : (GMap.size ids : Int) < 2 ^ 63 := by rw [← GMap.size_dom]; exact Hsz
   rw [decide_eq_false (by word)]
-  wp_auto
+  wp_pures; wp_alloc stk_ptr as stk; wp_pures; wp_alloc srt_ptr as srt; wp_pures; wp_load; wp_pures
   iNamed Hl
   subst Hlok
   -- Both arms of the `if` end with `srt` an `n`-slot slice of zeros.
+  -- TODO(no-wp-auto): wp_join runs (cont first, then the cases): wp_load; wp_pures | wp_load; wp_pures; iclear stk
   wp_join iprop(∃ (sl : GoSlice) (xs : List w64),
       "n" ∷ n_ptr ↦ W64 (GMap.size ids) ∗
       "srt" ∷ srt_ptr ↦ sl ∗
@@ -192,7 +194,7 @@ theorem quorum.MajorityConfig.CommittedIndex.wp_proof
       "%Hxs" ∷ ⌜xs = List.replicate (GMap.size ids) (W64 0)⌝) with [n srt stk]
   · -- fast path: `srt = stk[:n]` aliases the stack array
     rw [ite_eq_left (by word)]
-    wp_auto
+    wp_pures; wp_store; wp_pures
     ihave Hsl := slice_array (V := w64) stk_ptr 7 _ (by decide) $$ stk
     icases (ownSlice_split_all (W64 (GMap.size ids)) _ _ _ (by simp only; word)).1 $$ Hsl
       with ⟨Hsl, -⟩
@@ -211,6 +213,7 @@ theorem quorum.MajorityConfig.CommittedIndex.wp_proof
     wp_apply wp_slice_make2 (V := w64) (t := go.uint64) (W64 (GMap.size ids)) $$ [] as
       %sl ⟨Hsl, -⟩
     · ipureintro; word
+    wp_pures; wp_store; wp_pures
     wp_join_done
     iexists _, _
     simp only [named]
@@ -220,7 +223,8 @@ theorem quorum.MajorityConfig.CommittedIndex.wp_proof
   iintro ⟨%sl, %xs, H⟩
   iNamed H
   subst Hxs
-  wp_auto
+  wp_pures; wp_load; wp_pures; wp_alloc i_ptr as i; wp_pures; wp_store; wp_pures; wp_load; wp_pures
+  wp_alloc id_ptr as id; wp_pures; iclear c
   ihave %Hsl_len := ownSlice_len _ _ _ $$ Hsl
   rw [List.length_replicate] at Hsl_len
   have Hsllen : sint.Z sl.len = (GMap.size ids : Int) := by
@@ -258,7 +262,7 @@ theorem quorum.MajorityConfig.CommittedIndex.wp_proof
     have Hk_lt : k.toNat < keys.length := (List.getElem?_eq_some_iff.1 Hkey).1
     have HJle := List.length_filterMap_le acked (keys.take k.toNat)
     rw [List.length_take] at HJle
-    wp_auto
+    wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures
     -- `l.AckedIndex(id)`; `wp_apply HAckedIndex $$ %key [HP]` does not go through
     ihave Hack := HAckedIndex $$ %key
     wp_bind (App (Val #(methods _ _ _)) (Val #key))
@@ -271,7 +275,9 @@ theorem quorum.MajorityConfig.CommittedIndex.wp_proof
       -- acknowledged: `srt[i] = idx; i--`
       simp only [Option.getD_some, Option.isSome_some, List.filterMap_cons, Hak,
         List.filterMap_nil]
-      wp_auto
+      wp_pures; wp_alloc ok_ptr as ok; wp_pures; wp_alloc idx_ptr as idx; wp_pures; wp_store
+      wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures
+      iclear idx ok
       generalize Ho : (keys.take k.toNat).filterMap acked = o at HJle ⊢
       have HJ : o.length < GMap.size ids := by omega
       have HiZ : sint.Z (W64 ((GMap.size ids : Int) - 1 - (o.length : Int))) =
@@ -282,6 +288,7 @@ theorem quorum.MajorityConfig.CommittedIndex.wp_proof
         rw [HiZ]
         simp only [List.length_append, List.length_replicate, List.length_reverse]
         omega
+      wp_pures; wp_load; wp_pures; wp_store; wp_pures
       rw [HiZ, show ((GMap.size ids : Int) - 1 - o.length).toNat = GMap.size ids - 1 - o.length
         by omega, show GMap.size ids - o.length = (GMap.size ids - 1 - o.length) + 1 by omega,
         set_replicate_last]
@@ -304,7 +311,8 @@ theorem quorum.MajorityConfig.CommittedIndex.wp_proof
       -- not acknowledged: the slot stays `0`
       simp only [Option.getD_none, Option.isSome_none, List.filterMap_cons, Hak,
         List.filterMap_nil, List.append_nil]
-      wp_auto
+      wp_pures; wp_alloc ok_ptr as ok; wp_pures; wp_alloc idx_ptr as idx; wp_pures; wp_store
+      wp_pures; wp_store; wp_pures; wp_load; wp_pures; iclear idx ok
       unfold forMapPostcondition
       iright
       ileft
@@ -319,8 +327,10 @@ theorem quorum.MajorityConfig.CommittedIndex.wp_proof
   iintro HP Hids
   iNamed HP
   rw [show ((GMap.size ids : Int)).toNat = keys.length by omega, List.take_length]
-  wp_auto
+  wp_pures; wp_load; wp_pures; iclear i id l
   wp_apply wp_slices_Sort $$ [$Hsl] as %ys ⟨Hsl, %Hperm, %Hsorted⟩
+  wp_pures; wp_load; wp_load; wp_pures; wp_alloc pos_ptr as pos; wp_pures; wp_store; wp_pures
+  wp_load; wp_load; wp_pures; iclear n srt pos
   have Hperm' : ys ≡ₚ keys.map (fun v => (acked v).getD (W64 0)) := by
     have H := fill_perm acked keys
     rw [Hklen] at H
@@ -339,6 +349,7 @@ theorem quorum.MajorityConfig.CommittedIndex.wp_proof
   wp_apply wp_load_slice_index (V := w64) (t := go.uint64) sl _ ys (DFrac.own 1) y (by omega)
     $$ [Hsl] as Hsl
   · iframe; ipureintro; rw [Int.toNat_natCast]; exact Hy
+  wp_pures
   have Hks : GMap.listToSet keys = domSet ids := by
     apply GMap.set_eq; intro k
     rw [GMap.elem_of_list_to_set, Hkset, GMap.elem_of_dom']

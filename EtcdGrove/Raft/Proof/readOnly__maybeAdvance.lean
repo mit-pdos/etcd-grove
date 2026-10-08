@@ -42,7 +42,7 @@ theorem readOnly.maybeAdvance.wp_proof
   intro ro r c m0 ids
   wp_start as H
   iNamed H
-  wp_auto
+  wp_alloc ro_ptr as ro; wp_pures; wp_alloc c_ptr as c; wp_pures; wp_load; wp_pures
   -- the indexer's contract, from `readOnly.AckedIndex`'s triple, with the whole object
   -- as its resource
   ihave #Hidx : isAckedIndexer (interface.mkOk (go.GoType.PointerType readOnly.ty) #ro)
@@ -62,8 +62,10 @@ theorem readOnly.maybeAdvance.wp_proof
   · isplitr
     · ipureintro; exact Hsz
     ipureintro; exact Hc
+  wp_pures; wp_alloc newConfirmedReads_ptr as newConfirmedReads; wp_pures; wp_store; wp_pures
+  wp_load; wp_load; wp_pures; iclear c
   iNamed Hown
-  wp_auto
+  wp_load; wp_pures
   ihave %Hl := ownSlice_len $$ Hucr
   ihave %Hwf := ownSlice_wf $$ Hucr
   ihave %Hlen := BigSepL2.bigSepL2_length $$ Hreqs
@@ -87,7 +89,8 @@ theorem readOnly.maybeAdvance.wp_proof
     · iapply ownSlice_nil
     iapply BigSepL2.bigSepL2_nil.2
     iempintro
-  · -- `N` is one of the acknowledged positions, so at most `confirmed + len pending`
+  · wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures
+    -- `N` is one of the acknowledged positions, so at most `confirmed + len pending`
     obtain ⟨⟨v, Hv, HNv⟩, -, -⟩ := Hq Hne
     have HNle : uint.Z N ≤ uint.Z rov.confirmedReads' + (r.pending.length : Int) := by
       rw [← HNv, Hro_conf]; exact Hbound v Hv
@@ -100,9 +103,12 @@ theorem readOnly.maybeAdvance.wp_proof
     have Hku : sint.Z (N - rov.confirmedReads') = uint.Z (N - rov.confirmedReads') := by
       word
     rw [ite_eq_left (by word)]
-    wp_auto
+    wp_pures; wp_alloc readStates_ptr as readStates; wp_pures; wp_store; wp_pures; wp_load; wp_pures
+    wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load
+    wp_pures
     rw [ite_eq_left (by word)]
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store
+    wp_pures; wp_load; wp_pures; iclear ro newConfirmedReads readStates
     icases (ownSlice_split_all (N - rov.confirmedReads') _ _ _ ⟨by word, by word⟩).1 $$ Hucr
       with ⟨Hpre, Hrest⟩
     ihave Hcap := (ownSliceCap_slice _ (N - rov.confirmedReads') _ ⟨by word, by word, Hwf.2⟩).1

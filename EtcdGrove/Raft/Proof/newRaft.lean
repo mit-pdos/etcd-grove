@@ -55,9 +55,12 @@ theorem newRaft.wp_proof
     Hvalid Hlok Hsto HmaxInfl Hcq Hdpf Hmcs Hidx Hncc Hss Hhs Happ Hvne Hvnd Hv0 Hcs1 Hcs2 Hcs3 Hal
   obtain ⟨HvID, HvID1, HvID2, Hticks, HvSt, HvInfl, HvIB, HvLog, HvRO⟩ := Hvalid
   wp_start as ⟨Hc, #Hlg0, #HisSto, HSto, #HInit⟩
-  wp_auto
+  wp_alloc c_ptr as c; wp_pures; wp_load; wp_pures
   wp_apply wp_Config_validate _ _ ⟨HvID, HvID1, HvID2, Hticks, HvSt, HvInfl, HvIB, HvLog, HvRO⟩
     $$ [$Hc] as %cv' ⟨Hc, %Hpres⟩
+  wp_pures; wp_alloc err_ptr as err; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures; iclear err
   obtain ⟨HpID, HpET, HpHT, HpSt, HpAp, HpMI, HpCQ, HpPV, HpDPF, HpLg, HpMC⟩ := Hpres
   rw [HpSt, Hsto, HpLg, Hlok]
   have Hmcs' : 0 < uint.Z cv'.MaxCommittedSizePerReady' := by
@@ -73,6 +76,8 @@ theorem newRaft.wp_proof
       word
   wp_apply wp_newLogWithSize _ _ _ _ _ _ lok Hidx Hncc Hss rfl Hmcs' $$ [$HisSto $HSto $Hlg0]
     as %l %lv ⟨Hl, %Hlv, Hcore⟩
+  wp_pures; wp_alloc raftlog_ptr as raftlog; wp_pures; wp_store; wp_pures; wp_load; wp_pures
+  wp_load; wp_pures
   obtain ⟨Hlvst, Hlvcm, Hlvap, Hlvapg, Hlvip, Hlvasz, Hlvamx⟩ := Hlv
   iunfold ownRaftLogCore at Hcore
   icases Hcore with ⟨%sprev, %stored, %ss', Hcore⟩
@@ -84,6 +89,11 @@ theorem newRaft.wp_proof
   rw [Hlvst]
   rw [HpSt, Hsto]
   wp_apply HInit $$ [$HStorage] as HSto Hvoters
+  wp_pures; wp_alloc err_ptr as err; wp_pures; wp_alloc cs_ptr as cs; wp_pures
+  wp_alloc hs_ptr as hs; wp_pures; wp_store; wp_pures; wp_store; wp_pures; wp_store; wp_pures
+  wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+  wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+  wp_load; wp_pures; wp_load; wp_pures
   let ip0 := lv.unstable'.offsetInProgress'
   ihave HL := ownRaftLog_intro l lv (GoInterface.ok si) none prev ents [] prev.index' prev.index'
     prev ents ss' ip0 prev.index' [] (W64 0) cv'.MaxCommittedSizePerReady'
@@ -92,16 +102,28 @@ theorem newRaft.wp_proof
     Hlvapg rfl Hipb Hpersist Happlying Hpaused Hlvasz Hlvamx
     $$ Hl HisSto HSto Husnap Huents Huents_cap Hl_logger Hu_logger
   wp_apply wp_MakeProgressTracker as %tv0 %v0 ⟨%Htv0, Hv0, Hvotes, Hprs0⟩
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures
   obtain ⟨Htv0mi, Htv0mb, Htv0arr, Htv0l, Htv0ln, Htv0al⟩ := Htv0
   wp_apply wp_newReadOnly as %ro Hro
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_alloc «$r0_ptr» as «$r0»
+  wp_pures; wp_alloc r_ptr as r; wp_pures; wp_store; wp_pures; wp_load; wp_pures
   wp_apply wp_traceInitState
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures
   wp_apply wp_raftLog_lastEntryID $$ [$HL] as %lastID ⟨HL, -⟩
+  wp_pures; wp_alloc lastID_ptr as lastID; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures
   have Hmi : 0 ≤ sint.Z tv0.MaxInflight' ∧ sint.Z tv0.MaxInflight' < 2 ^ 62 := by
     rw [Htv0mi, HpMI]; omega
   ipersist Hprs0
   wp_apply wp_confchange_Restore ⟨tv0, lastID.index'⟩ _ voters dqv v0 Hvne Hv0 Hcs1 Hcs2 Hcs3
     Hmi Htv0arr Htv0l Htv0ln $$ [$Hvoters $Hv0 $Hprs0]
     as %cfgv %prsm %prs %vref %vm ⟨Hvoters, Hv0, -, %Hcfgv, Hvref, %Hvm, Hprsm, %Hprs, Hprogs⟩
+  wp_pures; wp_alloc trk_ptr as trk; wp_pures; wp_alloc cfg_ptr as cfg; wp_pures; wp_store; wp_pures
+  wp_store; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+  wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear cs cfg trk err
   obtain ⟨Hcfgarr, Hcfgl, Hcfgln, Hcfgal⟩ := Hcfgv
   -- the struct, over the empty configuration: its tracker is the empty
   -- one `MakeProgressTracker` built, and its log is at the state
@@ -149,6 +171,7 @@ theorem newRaft.wp_proof
     exact ⟨Hcfgarr, Hcfgl, Hcfgln, Hcfgal, Hvm, Hprs, Hcsz⟩
   wp_apply wp_raft_switchToConfig _ _ _ _ s0 cfgv prsm prs (by simp only [s0]; decide) $$ [$Hphys $Hcfg]
     as %cs2 %xs2 %pvs1 ⟨Hphys, Hcs2v, %Hxs2, %Hcs2l⟩
+  wp_pures
   obtain ⟨Hc2a, Hc2b, Hc2c, Hc2al⟩ := Hcs2l
   have Hperm : voters ≡ₚ xs2 := by
     refine List.Perm.trans ?_ Hxs2.symm
@@ -157,6 +180,7 @@ theorem newRaft.wp_proof
   wp_apply wp_assertConfStatesEquivalent _ cs cs2 voters xs2 dqv (DFrac.own 1)
     Hperm Hcs1 Hcs2 Hcs3 Hc2a Hc2b Hc2c (by rw [Hal, Hc2al]) $$ [$Hvoters $Hcs2v]
     as ⟨Hvoters, Hcs2v⟩
+  wp_pures; wp_load; wp_pures
   -- `if !IsEmptyHardState(hs) { r.loadState(hs) }`: both arms end at the
   -- same struct state `s1` and log state `ls1`, so the rest of the proof
   -- is done once, for both.
@@ -164,15 +188,17 @@ theorem newRaft.wp_proof
     prev.index', [], W64 0, cv'.MaxCommittedSizePerReady'⟩
   let s1 : NState :=
     { s0 with progress := prs, prvals := pvs1, term := hs.Term', vote := hs.Vote', logst := ls1 }
+  -- TODO(no-wp-auto): wp_join runs (cont first, then the cases): wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear hs
   wp_join iprop(ownRaftPhys (listToSet voters) «$r0_ptr» cv.ID' s1 ∗ hs_ptr ↦ hs ∗
       r_ptr ↦ «$r0_ptr») at next
     with [Hphys hs r] as ⟨Hphys, hs, r⟩
   · wp_apply wp_IsEmptyHardState
+    wp_pures
     by_cases Hemp : HsEmpty hs
     · have Hd : decide (hs.Term' = W64 0 ∧ hs.Vote' = W64 0 ∧ hs.Commit' = W64 0) = true :=
         decide_eq_true Hemp
       rw [Hd]
-      wp_auto
+      wp_pures
       isplitr
       · ipureintro; rfl
       iframe hs r
@@ -183,7 +209,7 @@ theorem newRaft.wp_proof
     · have Hd : decide (hs.Term' = W64 0 ∧ hs.Vote' = W64 0 ∧ hs.Commit' = W64 0) = false :=
         decide_eq_false Hemp
       rw [Hd]
-      wp_auto
+      wp_pures; wp_load; wp_pures; wp_load; wp_pures
       have Hll : uint.Z (logLast ls0) = uint.Z prev.index' + (ents.length : Int) := by
         simp only [logLast, ls0, List.length_nil]; word
       have Hpre : uint.Z ({ s0 with progress := prs, prvals := pvs1 } : NState).logst.committed
@@ -194,6 +220,7 @@ theorem newRaft.wp_proof
         rw [Hll]; exact this
       wp_apply wp_raft_loadState _ _ _
         { s0 with progress := prs, prvals := pvs1 } hs Hpre $$ [$Hphys] as Hphys
+      wp_pures
       isplitr
       · ipureintro; rfl
       iframe hs r
@@ -205,6 +232,7 @@ theorem newRaft.wp_proof
     w64Max prev.index' ap, [], W64 0, cv'.MaxCommittedSizePerReady'⟩
   let s2 : NState := { s1 with logst := ls2 }
   rw [HpAp]
+  -- TODO(no-wp-auto): wp_join runs (cont first, then the cases): wp_pures; wp_load; wp_pures; iclear c raftlog | wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures | ∅
   wp_join iprop(ownRaftPhys (listToSet voters) «$r0_ptr» cv.ID' s2 ∗ c_ptr ↦ c ∗ c ↦ cv' ∗
       raftlog_ptr ↦ l) with [Hphys c Hc raftlog] as ⟨Hphys, c, Hc, raftlog⟩
   · -- `raftlog` is `r.raftLog`: the log, through the accessor
@@ -216,6 +244,7 @@ theorem newRaft.wp_proof
       · exact h
     icases ownRaftPhys_log_at _ «$r0_ptr» cv.ID' s1 $$ Hphys with ⟨HL, Hlogback⟩
     wp_apply wp_raftLog_appliedTo l ls1 cv'.Applied' (W64 0) Hrng $$ [$HL] as HL
+    wp_pures
     ihave Hphys := Hlogback $$ %_ HL
     isplitr
     · ipureintro; rfl
@@ -228,11 +257,14 @@ theorem newRaft.wp_proof
     simp only [s2, ls2, ap, ls1, s1, Ha0, ↓reduceIte, w64Max, Int.lt_irrefl]
   -- `r.becomeFollower(r.Term, None)`
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures
   wp_apply wp_raft_becomeFollower _ _ _ s2 s2.term (W64 0) $$ [$Hphys] as %pvs3 Hphys
+  wp_pures; wp_alloc nodesStrs_ptr as nodesStrs; wp_pures; wp_load; wp_pures
   let s3 : NState := { becomeFollower s2 s2.term (W64 0) with prvals := pvs3 }
   -- `r.trk.VoterNodes()`
   icases ownRaftPhys_tracker_same _ _ _ s3 $$ Hphys with ⟨%tv3, Htrkf, Htrk3, Htrkback⟩
   wp_apply wp_ProgressTracker_VoterNodes $$ [$Htrkf $Htrk3] as %nsl %nxs ⟨Htrkf, Htrk3, Hnsl, %Hnxs⟩
+  wp_pures; wp_alloc n_ptr as n; wp_pures; wp_alloc i_ptr as i; wp_pures
   ihave Hphys := Htrkback $$ %tv3 Htrkf Htrk3
   -- the log line's `nodesStrs` loop; what it builds is never read
   ihave IH : iprop(∃ (k x : w64) (sl' : GoSlice) (strs : List GoString),
@@ -248,46 +280,63 @@ theorem newRaft.wp_proof
     isplitr
     · iapply ownSliceCap_nil
     ipureintro; constructor <;> word
-  wp_for IH
+  wp_for_core
+  iNamed IH
+  wp_pures; wp_load; wp_pures
+  cleanup_bool_decide
   wp_if_destruct
-  · ihave %Hnl := ownSlice_len $$ Hnsl
+  · wp_load; wp_pures
+    ihave %Hnl := ownSlice_len $$ Hnsl
     have Hlt : (sint.Z k).toNat < nxs.length := by word
     obtain ⟨e, He⟩ : ∃ e, nxs[(sint.Z k).toNat]? = some e := ⟨_, List.getElem?_eq_getElem Hlt⟩
     simp only [show 0 ≤ sint.Z k ∧ sint.Z k < sint.Z nsl.len from ⟨Hk.1, Hif⟩, and_self]
     wp_apply wp_load_slice_index nsl (sint.Z k) nxs (DFrac.own 1) e Hk.1 $$ [Hnsl] as Hnsl
     · iframe; ipureintro; exact He
+    wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures
     wp_apply wp_slice_literal
+    wp_pures
     try (isplitr; (ipureintro; rfl))
     iintro %sla ⟨Hargs, -⟩
-    wp_auto
+    wp_pures
     wp_apply wp_fmt_Sprintf $$ [$Hargs] as %str Hargs
+    wp_pures
     wp_apply wp_slice_literal
+    wp_pures
     try (isplitr; (ipureintro; rfl))
     iintro %sl2 ⟨Hsl2, -⟩
-    wp_auto
+    wp_pures
     wp_apply wp_slice_append $$ [$Hstrs $Hstrs_cap $Hsl2] as %sl3 ⟨Hstrs, Hstrs_cap, -⟩
+    wp_pures; wp_store; wp_pures
     wp_for_post
+    wp_load; wp_pures; wp_store
     iframe
     iexists _, _, _, _
     iframe
     ipureintro; constructor <;> word
+  wp_load; wp_pures; iclear i n
   -- the log line: `r.id`, `strings.Join(nodesStrs, ",")`, `r.Term`, then
   -- `r.raftLog.committed` and `r.raftLog.applied` through the log
   wp_apply raft.wp_load_id $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures; iclear nodesStrs
   wp_apply wp_strings_Join $$ [$Hstrs] as %joined Hstrs
+  wp_pures; wp_load; wp_pures
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures
   wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+  wp_pures
   icases ownRaftPhys_log_same _ _ _ s3 $$ Hphys with ⟨Hlog3, Hlogback⟩
   icases ownRaftLog_struct _ _ $$ Hlog3 with ⟨%lv3, Hl3, -, Hl3back⟩
-  wp_auto
+  wp_load; wp_pures; wp_load; wp_pures
   ihave Hlog3 := Hl3back $$ Hl3
   ihave Hphys := Hlogback $$ Hlog3
   wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+  wp_pures
   icases ownRaftPhys_log_same _ _ _ s3 $$ Hphys with ⟨Hlog3, Hlogback⟩
   icases ownRaftLog_struct _ _ $$ Hlog3 with ⟨%lv4, Hl3, -, Hl3back⟩
-  wp_auto
+  wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear lastID
   ihave Hlog3 := Hl3back $$ Hl3
   ihave Hphys := Hlogback $$ Hlog3
+  -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; iclear r | ∅
   wp_raft_log
   iapply HΦ $$ %«$r0_ptr» %s3
   iframe Hphys

@@ -27,7 +27,8 @@ theorem tracker.Progress.MaybeUpdate.wp_proof :
   iNamed H
   iNamed Hpr
   obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩ := (progressAbs_Some _ _ _).1 Habs
-  wp_auto
+  wp_alloc pr_ptr as pr; wp_pures; wp_alloc n_ptr as n; wp_pures; wp_load; wp_load; wp_pures
+  wp_load; wp_pures
   wp_if_destruct
   · -- `n <= pr.Match`: stale
     have Hd : decide (uint.Z p.matched < uint.Z n) = false := by
@@ -38,7 +39,9 @@ theorem tracker.Progress.MaybeUpdate.wp_proof :
     iapply HΦ
     iapply ownProgress_intro $$ Hpv Hinfl
     ipureintro; exact Habs
-  · -- `max` is the builtin: step into it
+  · wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+    wp_load; wp_pures; iclear n
+    -- `max` is the builtin: step into it
     wp_func_call
     wp_call
     have Hd : decide (uint.Z p.matched < uint.Z n) = true := by
@@ -47,6 +50,7 @@ theorem tracker.Progress.MaybeUpdate.wp_proof :
         { p with matched := n, next := w64Max p.next (n + W64 1), paused := false } := by
       rw [progressMaybeUpdate, ← h3]; split <;> first | rfl | (exfalso; word)
     rw [Hd, Hp]
+    -- TODO(no-wp-auto): wp_if_destruct runs: wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_store; wp_pures; iclear pr | wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_store; wp_pures; iclear pr
     wp_if_destruct <;>
     · iapply HΦ
       iapply ownProgress_intro pr _ _ $$ Hpv [Hinfl]

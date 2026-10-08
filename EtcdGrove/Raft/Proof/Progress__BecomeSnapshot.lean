@@ -21,14 +21,16 @@ theorem tracker.Progress.BecomeSnapshot.wp_proof
     tracker.Progress.BecomeSnapshot.spec (GF := GF) (hG := hG) := by
   intro pr p snapshoti
   wp_start as Hpr
-  wp_auto
+  wp_alloc pr_ptr as pr; wp_pures; wp_alloc snapshoti_ptr as snapshoti; wp_pures; wp_load; wp_pures
   -- `ResetState` is specified on `ownProgress` at the exact new record;
   -- open what it returns to step the field writes that follow
   rw [show tracker.StateSnapshot = #(prstateW64 PRState.snapshot) from rfl]
   wp_apply wp_Progress_ResetState _ _ PRState.snapshot $$ [$Hpr] as Hpr
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures
   unfold ownProgress
   iNamed Hpr
-  wp_auto
+  wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures
+  wp_load; wp_pures; wp_store; wp_pures; iclear pr snapshoti
   iapply HΦ
   iexists _
   simp only [progressBecomeSnapshot]

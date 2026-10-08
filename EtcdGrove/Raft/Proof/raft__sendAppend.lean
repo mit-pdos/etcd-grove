@@ -23,9 +23,11 @@ theorem raft.sendAppend.wp_proof
     raft.sendAppend.spec (GF := GF) (hG := hG) := by
   intro cfg r id s to Hto Hcfg
   wp_start as Hphys
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_alloc to_ptr as to; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures; iclear r to
   wp_apply wp_raft_maybeSendAppend cfg r id s to true Hto Hcfg $$ [$Hphys]
     as %b %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
+  wp_pures
   iapply HΦ
   iframe
   ipureintro

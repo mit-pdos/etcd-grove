@@ -35,17 +35,23 @@ theorem raftLog.acceptApplying.wp_proof
   unfold ownRaftLogCore
   icases Hcore with ⟨%sprev, %stored, %ss, Hcore⟩
   iNamed Hcore
-  wp_auto
+  wp_alloc l_ptr as l; wp_pures; wp_alloc allowUnstable_ptr as allowUnstable; wp_pures
+  wp_alloc size_ptr as size; wp_pures; wp_alloc i_ptr as i; wp_pures; wp_load; wp_pures; wp_load
+  wp_load; wp_pures
   rw [decide_eq_false (by subst lcm; omega)]
-  wp_auto
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures; wp_load; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_load
+  wp_pures; wp_load; wp_pures; iclear size
   wp_if_destruct
-  · -- over the limit: paused, no `maxAppliableIndex`
+  · wp_load; wp_pures; wp_store; wp_pures; iclear l allowUnstable i
+    -- over the limit: paused, no `maxAppliableIndex`
     iapply HΦ
     reseal_raftLog
     all_goals (dsimp only; subst_vars; try omega)
     · intro h; cases h
     · rfl
-  · -- under the limit: the log is re-sealed for `maxAppliableIndex`
+  · wp_load; wp_load; wp_pures; wp_load; wp_pures; iclear allowUnstable i
+    -- under the limit: the log is re-sealed for `maxAppliableIndex`
     ihave Hlog : ownRaftLog l ⟨prev, sents, uents, lcm, lap, snap, lip, i, lpend, lasz + size, lamx⟩
       $$ [Hl HStorage Huents Huents_cap]
     · reseal_raftLog
@@ -59,7 +65,7 @@ theorem raftLog.acceptApplying.wp_proof
     unfold ownRaftLogCore
     icases Hcore with ⟨%sprev, %stored, %ss, Hcore⟩
     iNamed Hcore
-    wp_auto
+    wp_pures; wp_load; wp_pures; wp_store; wp_pures; iclear l
     iapply HΦ
     reseal_raftLog
     all_goals (dsimp only; subst_vars; try omega)

@@ -20,7 +20,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem IsEmptySnap.wp_proof : IsEmptySnap.spec (GF := GF) (hG := hG) := by
   intro sp
   wp_start as -
-  wp_auto
+  wp_alloc sp_ptr as sp; wp_pures; wp_load; wp_pures; iclear sp
   iapply HΦ
   ipureintro
   rfl

@@ -64,11 +64,15 @@ theorem tracker.ProgressTracker.Visit.wp_proof
   wp_start as ⟨Htrk, Hown, HI, #Hf⟩
   iNamed Hown
   dsimp only at *
+  -- TODO(no-wp-auto): wp_auto: no manual sequence found (['mismatch'])
   wp_auto
   -- `n := len(p.Progress)`
   wp_apply wp_ProgressMap_len $$ Hprs as -
+  wp_pures; wp_alloc n_ptr as n; wp_pures; wp_store; wp_pures; wp_alloc sl_ptr as sl; wp_pures
+  wp_alloc ids_ptr as ids; wp_pures; wp_load; wp_pures
   have Hsz : (GMap.size prs : Int) < 2 ^ 63 := by
     rw [← Hprs_dom, GMap.size_dom] at Hcfg_size; exact Hcfg_size
+  -- TODO(no-wp-auto): wp_join runs (cont first, then the cases): wp_load; wp_pures | wp_load; wp_pures; iclear sl
   wp_join iprop(∃ (sl : GoSlice) (xs : List w64),
       "n" ∷ n_ptr ↦ W64 (GMap.size prs) ∗
       "ids" ∷ ids_ptr ↦ sl ∗
@@ -76,7 +80,7 @@ theorem tracker.ProgressTracker.Visit.wp_proof
       "%Hxs_len" ∷ ⌜xs.length = GMap.size prs⌝) with [n ids sl]
   · -- fast path: `ids = sl[:n]` aliases the stack array
     rw [ite_eq_left (by word)]
-    wp_auto
+    wp_pures; wp_store; wp_pures
     ihave Hsl := slice_array (V := w64) sl_ptr 7 _ (by decide) $$ sl
     icases (ownSlice_split_all (W64 (GMap.size prs)) _ _ _ (by simp only; word)).1 $$ Hsl
       with ⟨Hsl, -⟩
@@ -94,6 +98,7 @@ theorem tracker.ProgressTracker.Visit.wp_proof
     wp_apply wp_slice_make2 (V := w64) (t := go.uint64) (W64 (GMap.size prs)) $$ [] as
       %sl ⟨Hsl, -⟩
     · ipureintro; word
+    wp_pures; wp_store; wp_pures
     wp_join_done
     iexists _, _
     simp only [named]
@@ -102,7 +107,7 @@ theorem tracker.ProgressTracker.Visit.wp_proof
     rw [List.length_replicate]; word
   iintro ⟨%sl, %xs, H⟩
   iNamed H
-  wp_auto
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_alloc id_ptr as id; wp_pures
   ihave %Hsl_len := ownSlice_len _ _ _ $$ Hsl
   have Hsllen : sint.Z sl.len = (GMap.size prs : Int) := by
     obtain ⟨H1, H2⟩ := Hsl_len; rw [Hxs_len] at H1; word
@@ -133,7 +138,8 @@ theorem tracker.ProgressTracker.Visit.wp_proof
     iintro %i %key %vv ⟨%Hkey, %Hvv⟩ HP
     iNamed HP
     have Hi_lt : i.toNat < keys.length := (List.getElem?_eq_some_iff.1 Hkey).1
-    wp_auto
+    wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
+    wp_load; wp_pures
     -- `n--; ids[n] = id`
     have Hn' : W64 ((GMap.size prs : Int) - i) - W64 1 = W64 ((GMap.size prs : Int) - (i + 1)) := by
       word
@@ -142,6 +148,7 @@ theorem tracker.ProgressTracker.Visit.wp_proof
     rw [Hn', ite_eq_left (by rw [Hn'Z]; omega)]
     wp_apply wp_store_slice_index (V := w64) (t := go.uint64) sl _ xs' key $$ [$Hsl] as Hsl
     · ipureintro; rw [Hn'Z]; omega
+    wp_pures
     rw [Hn'Z]
     unfold forMapPostcondition
     iright
@@ -164,9 +171,11 @@ theorem tracker.ProgressTracker.Visit.wp_proof
   rw [Int.sub_self, Int.toNat_zero, List.drop_zero, ← Hklen, Int.toNat_natCast,
     List.take_length] at Hxs'_suffix
   subst Hxs'_suffix
-  wp_auto
+  wp_pures; wp_load; wp_pures; iclear n id
   -- `slices.Sort(ids)`: a permutation is all the postcondition needs
   wp_apply wp_slices_Sort $$ [$Hsl] as %ys ⟨Hsl, %Hperm, -⟩
+  wp_pures; wp_load; wp_pures; wp_alloc id_ptr as id; wp_pures; wp_alloc i_ptr as i; wp_pures
+  iclear ids
   -- every entry of `ids` is a key of `prs`
   have Hys_dom : ∀ y, y ∈ ys → (prs !! y).isSome := by
     intro y Hy
@@ -205,9 +214,13 @@ theorem tracker.ProgressTracker.Visit.wp_proof
     iframe
     ipureintro
     word
-  wp_for IH
+  wp_for_core
+  iNamed IH
+  wp_pures; wp_load; wp_pures
+  cleanup_bool_decide
   wp_if_destruct
-  · -- another id to visit: `f(id, p.Progress[id])`
+  · wp_load; wp_pures
+    -- another id to visit: `f(id, p.Progress[id])`
     obtain ⟨y, Hy⟩ : ∃ y, ys[(sint.Z j).toNat]? = some y :=
       ⟨_, List.getElem?_eq_getElem (by word)⟩
     have Hycfg : y ∈ cfg := Hyc y (List.mem_of_getElem? Hy)
@@ -215,12 +228,14 @@ theorem tracker.ProgressTracker.Visit.wp_proof
     wp_apply wp_load_slice_index (V := w64) (t := go.uint64) sl (sint.Z j) ys (DFrac.own 1) y
       (by word) $$ [Hsl] as Hsl
     · iframe; ipureintro; exact Hy
+    wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load; wp_load; wp_pures; wp_load
     -- the progress map's points-to at the tracker value the loop currently holds;
     -- the map itself is `prs` at every one of them
     icases ownTracker_progress_map cfg tvc _ $$ Hown with ⟨#Hprsc, %Hdomc, Hown⟩
     obtain ⟨prc, Hprc⟩ : ∃ prc, prs !! y = some prc := by
       rw [← Hprs_dom, GMap.elem_of_dom] at Hycfg; exact Hycfg
     wp_apply wp_map_lookup1 $$ Hprsc as -
+    wp_pures; wp_load
     rw [Hprc, Option.getD_some]
     icases ownTracker_maxinflight cfg tvc _ $$ Hown with ⟨%HmaxIc, Hown⟩
     icases ownTracker_lookup cfg tvc ⟨votes, prs, pvsc⟩ y prc Hprc $$ Hown
@@ -231,6 +246,7 @@ theorem tracker.ProgressTracker.Visit.wp_proof
     · iframe Htrk Hpr Hback HI
       ipureintro
       exact ⟨Hycfg, Hprc, Hpv, HmaxIc⟩
+    wp_pures
     have HD : ({[y]} ∪ GMap.listToSet (ys.take (sint.Z j).toNat) : GSet w64) =
         GMap.listToSet (ys.take (sint.Z (j + W64 1)).toNat) := by
       rw [show (sint.Z (j + W64 1)).toNat = (sint.Z j).toNat + 1 by word, List.take_add_one, Hy]
@@ -241,6 +257,7 @@ theorem tracker.ProgressTracker.Visit.wp_proof
       exact Or.comm
     rw [HD]
     wp_for_post
+    wp_load; wp_pures; wp_store
     iframe
     iexists _, _, tv2, pvs2
     simp only [named]

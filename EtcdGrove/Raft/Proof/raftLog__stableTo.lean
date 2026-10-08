@@ -62,7 +62,8 @@ theorem raftLog.stableTo.wp_proof
   unfold ownRaftLogCore
   icases Hcore with ⟨%sprev, %stored, %ss, Hcore⟩
   iNamed Hcore
-  wp_auto
+  wp_alloc l_ptr as l; wp_pures; wp_alloc id_ptr as id; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures; iclear l id
   ihave #Hulgv : isLoggerVal lv.unstable'.logger' $$ [Hu_logger]
   · iexact Hu_logger
   iunfold isLoggerVal at Hulgv
@@ -81,6 +82,7 @@ theorem raftLog.stableTo.wp_proof
   · unfold ownUnstable
     simp only [named]
     iframe # ∗
+  wp_pures
   obtain ⟨Hsnap', Hlg', Hhit, Hmiss⟩ := Huv'
   unfold ownUnstable
   icases Hun with ⟨Hu, Huents_cap, Huents⟩

@@ -38,19 +38,24 @@ theorem raftLog.restore.wp_proof
   iNamed Hcore
   dsimp only at *
   icases isLoggerVal_open _ $$ Hl_logger with ⟨%lg, %Hlg, #Hlgr⟩
-  wp_auto
+  wp_alloc l_ptr as l; wp_pures; wp_alloc s_ptr as s; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+  wp_load; wp_pures
   wp_apply wp_slice_literal
+  wp_pures
   try (isplitr; (ipureintro; rfl))
   try iintro %_ ⟨_, -⟩
-  try wp_auto
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures
   rw [Hlg]
   wp_apply Logger.wp_logf lg _ _ _ (by decide) $$ Hlgr
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures; iclear l s
   icases raftLog_split_unstable $$ Hl with ⟨Huf, Hlback⟩
   wp_apply wp_unstable_restore _ _ _ _ voters $$ [Huf Huents Huents_cap]
     as %uv' ⟨Hun, #Hsn, %Huv'⟩
   · unfold ownUnstable
     simp only [named]
     iframe Huf Huents Huents_cap Hvoters
+  wp_pures
   obtain ⟨Hoff', Hlg', Hoip'⟩ := Huv'
   iNamed Hun
   ihave Hl := Hlback $$ Hu

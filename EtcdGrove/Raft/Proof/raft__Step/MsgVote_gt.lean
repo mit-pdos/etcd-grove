@@ -78,46 +78,56 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
   intro Hty Hto Hterm Hfnz Hgt0 Hwf
   wp_start as ⟨Hphys, #Hctx⟩
-  wp_auto
+  wp_alloc r_ptr as r; wp_pures; wp_alloc m_ptr as m; wp_pures; wp_load; wp_pures
   wp_apply _P.traceReceiveMessage
+  wp_pures; wp_load; wp_pures
   -- `m.Term ≠ 0`, so the first arm of the term preamble is skipped
   rw [decide_eq_false Hterm]
-  wp_auto
+  wp_pures; wp_load; wp_load; wp_pures
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_pures
   rw [decide_eq_true Hgt0]
-  wp_auto
+  wp_pures; wp_load; wp_pures
   rw [Hty]
-  wp_auto
+  wp_pures; wp_load; wp_pures
   -- `force` is false (not a leader transfer) and `inLease` is false (no check-quorum),
   -- so the lease check does not drop the message
   icases Hctx with ⟨%ctx, Hctx_sl, %Hctx_ne⟩
   wp_apply wp_string_to_bytes as %ct_sl ⟨ct_sl, -⟩
+  wp_pures
   wp_apply bytes.wp_Equal _ _ DFrac.discard (DFrac.own 1) ctx (go!"CampaignTransfer") $$ [$Hctx_sl $ct_sl]
     as ⟨-, -⟩
+  wp_pures; wp_alloc force_ptr as force; wp_pures; wp_store; wp_pures; wp_load; wp_pures
   wp_apply raft.wp_load_checkQuorum $$ Hphys as Hphys
+  wp_pures; wp_alloc inLease_ptr as inLease; wp_pures; wp_store; wp_pures; wp_load; wp_pures
+  iclear force
   have Hctx_ne' : ctx ≠ go!"CampaignTransfer" := Hctx_ne
   rw [decide_eq_false Hctx_ne']
-  try wp_auto
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear inLease
   -- neither MsgPreVote nor MsgPreVoteResp, so we fall through to the step-down
   ty_ne 17
-  try wp_auto
+  wp_pures; wp_load; wp_pures
   ty_ne 18
-  try wp_auto
+  wp_pures; wp_load; wp_pures
   wp_apply raft.wp_load_id $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures
+  -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures | ∅
   wp_raft_log
   -- a `MsgVote` is not from a leader, so no leader is adopted
   ty_ne 3
-  try wp_auto
+  wp_pures; wp_load; wp_pures
   ty_ne 8
-  try wp_auto
+  wp_pures; wp_load; wp_pures
   ty_ne 7
-  try wp_auto
+  wp_pures; wp_load; wp_pures; wp_load; wp_pures
   wp_apply _P.becomeFollower cfg r id s m.Term' (W64 0) $$ [$Hphys] as %pvs Hphys
+  wp_pures; wp_load; wp_pures
   -- the type switch: not MsgHup / MsgStorageAppendResp / MsgStorageApplyResp, not
   -- MsgPreVote, but MsgVote
   rw [Hty]
-  try wp_auto
+  wp_pures; wp_load; wp_pures
   -- Stepping down to a strictly greater term cleared both `Vote` and `lead`, so
   -- `canVote` holds
   have Hne : m.Term' ≠ s.term := by intro Heq; rw [Heq] at Hgt0; omega
@@ -134,35 +144,48 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     exact (toPState_prvals_nl (becomeFollower s m.Term' (W64 0)) pvs
       (by simp [becomeFollower])).trans (toPState_becomeFollower _ _ _)
   wp_apply raft.wp_load_Vote $$ Hphys as Hphys
+  wp_pures; wp_load; wp_pures
   rw [Hv1, decide_eq_false (fun h : W64 0 = m.From' => Hfnz h.symm)]
-  try wp_auto
+  wp_pures; wp_load; wp_pures
   wp_apply raft.wp_load_Vote $$ Hphys as Hphys
+  wp_pures
   rw [Hv1]
-  try wp_auto
+  wp_pures; wp_load; wp_pures
   wp_apply raft.wp_load_lead $$ Hphys as Hphys
+  wp_pures
   rw [Hl1]
-  try wp_auto
+  wp_pures; wp_alloc canVote_ptr as canVote; wp_pures; wp_store; wp_pures; wp_load; wp_pures
   -- the two log calls, each on the log taken out of `Hphys` and put back
   wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+  wp_pures
   icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog1, Hback⟩
   wp_apply _P.lastEntryID $$ [$Hlog1] as %lastID ⟨Hlog1, -⟩
+  wp_pures; wp_alloc lastID_ptr as lastID; wp_pures; wp_store; wp_pures; wp_load; wp_pures; wp_load
+  wp_pures; wp_alloc candLastID_ptr as candLastID; wp_pures; wp_store; wp_pures; wp_load; wp_pures
+  wp_load; wp_pures; wp_load; wp_pures; iclear canVote
   ihave Hphys := Hback $$ Hlog1
-  try wp_auto
   wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+  wp_pures
   icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog1, Hback⟩
   wp_apply _P.isUpToDate $$ [$Hlog1] as %uptodate ⟨Hlog1, %Hutd⟩
   ihave Hphys := Hback $$ Hlog1
   cases uptodate
-  all_goals try wp_auto
+  all_goals (wp_pures; wp_load; wp_pures)
   all_goals
     wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear lastID
     wp_apply raft.wp_load_Vote $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load
+    wp_pures; iclear candLastID
     wp_apply raft.wp_load_Term $$ Hphys as Hphys
+    wp_pures
+    -- TODO(no-wp-auto): macro `wp_raft_log` runs wp_auto: wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures | ∅ | wp_pures | wp_pures; wp_load; wp_pures | wp_pures | wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures | ∅
     wp_raft_log
   · -- the candidate's log is behind: decline, without recording a vote
     wp_apply raft.wp_load_Term $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures; iclear m
     wp_apply _P.voteRespMsgType m.Type' MsgVoteResp (.inl ⟨Hty, rfl⟩)
-    try wp_auto
+    wp_pures; wp_load; wp_pures; iclear r
     let resp : raftpb.Message :=
       { Type' := MsgVoteResp, To' := m.From', From' := 0, Term' := s1.term, LogTerm' := 0,
         Index' := 0, Entries' := slice.nil, Commit' := 0, Vote' := 0, Snapshot' := null,
@@ -177,6 +200,7 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       · iapply ownSlice_nil
       · iapply send_no_snap
         exact (by w32_ne : MsgVoteResp ≠ MsgSnap)
+    wp_pures
     iapply HΦ $$ %interface.nil %_
     iframe Hphys
     ipureintro
@@ -186,7 +210,7 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       exact step_stepdown_then_reject cfg id (toPState s) (absMsg .vote m ents) rfl Hto Hgt0
   · -- the candidate's log is up to date: grant the vote
     wp_apply _P.voteRespMsgType m.Type' MsgVoteResp (.inl ⟨Hty, rfl⟩)
-    try wp_auto
+    wp_pures; wp_load; wp_pures
     let resp : raftpb.Message :=
       { Type' := MsgVoteResp, To' := m.From', From' := 0, Term' := m.Term', LogTerm' := 0,
         Index' := 0, Entries' := slice.nil, Commit' := 0, Vote' := 0, Snapshot' := null,
@@ -202,11 +226,14 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       · iapply ownSlice_nil
       · iapply send_no_snap
         exact (by w32_ne : MsgVoteResp ≠ MsgSnap)
+    wp_pures; wp_load; wp_pures
     -- `m.Type = MsgVote`, so the vote is recorded: `r.Vote := m.From`
     rw [Hty]
-    try wp_auto
+    wp_pures; wp_load; wp_pures
     wp_apply raft.wp_store_electionElapsed $$ Hphys as Hphys
+    wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear r m
     wp_apply raft.wp_store_Vote $$ Hphys as Hphys
+    wp_pures
     iapply HΦ $$ %interface.nil %_
     iframe Hphys
     ipureintro

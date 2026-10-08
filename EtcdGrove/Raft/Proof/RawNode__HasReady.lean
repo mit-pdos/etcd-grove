@@ -135,12 +135,16 @@ theorem RawNode.HasReady.wp_proof
   iNamed Hrn
   icases ownRaftPhys_view cfg rnv.raft' id s $$ Hphys with ⟨%rss, %sl1, %sl2, %ms1, %ms2, Hv⟩
   iNamed Hv
-  wp_auto
+  wp_alloc rn_ptr as rn; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_alloc r_ptr as r
+  wp_pures; wp_store; wp_pures; wp_load; wp_pures
   wp_method_call
   wp_call
+  -- TODO(no-wp-auto): wp_auto: no manual sequence found (['mismatch'])
   wp_auto
   wp_apply wp_SoftState_equal $$ [$softSt $Hsoft] as ⟨softSt, _⟩
+  wp_pures; iclear softSt
   wp_if_destruct
+  wp_load; wp_pures
   rotate_left
   · finish_true
   have Hsoft_eq := Hif; clear Hif
@@ -148,25 +152,33 @@ theorem RawNode.HasReady.wp_proof
   icases ownRaftLog_struct _ _ $$ Hlog with ⟨%lv, Hl, %Hlv, Hlb⟩
   wp_method_call
   wp_call
+  -- TODO(no-wp-auto): wp_auto: no manual sequence found (['mismatch'])
   wp_auto
   ihave Hlog := Hlb $$ Hl
   obtain ⟨Hcm, -⟩ := Hlv
   rw [Hcm]
   wp_apply wp_IsEmptyHardState
+  wp_pures
   wp_if_destruct
-  · have Hhs : hsEmptyAbs (nodeHardstate s) = true ∨ nodeHardstate s = rs.hard := by
+  · wp_load; wp_pures; wp_load; wp_pures; iclear hardSt
+    have Hhs : hsEmptyAbs (nodeHardstate s) = true ∨ nodeHardstate s = rs.hard := by
       left; simp [hsEmptyAbs, nodeHardstate, Hif]
     clear Hcm Hif
+    -- TODO(no-wp-auto): macro `rest` runs wp_auto: ∅ | wp_pures; wp_load; wp_pures; wp_load; wp_pures | ∅ | wp_load; wp_pures; wp_load; wp_pures | ∅ | wp_load; wp_pures; wp_load; wp_pures | ∅ | wp_pures; wp_load; wp_pures; iclear rn | wp_call; wp_alloc rn_ptr as rn; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear rn | ∅ | wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear r | wp_pures | wp_pures; iclear r | wp_pures; iclear rn r | wp_pures; iclear rn r
     rest
-  · wp_apply wp_isHardStateEqual
+  · wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear hardSt
+    wp_pures
+    wp_apply wp_isHardStateEqual
     rw [Hhard]
     wp_if_destruct
-    · have Hhs : hsEmptyAbs (nodeHardstate s) = true ∨ nodeHardstate s = rs.hard := by
+    · wp_load; wp_pures; wp_load; wp_pures
+      have Hhs : hsEmptyAbs (nodeHardstate s) = true ∨ nodeHardstate s = rs.hard := by
         right
         obtain ⟨H1, H2, H3⟩ := Hif
         show HardSt.mk _ _ _ = _
         rw [H1, H2, H3]; rfl
       clear Hcm Hif
+      -- TODO(no-wp-auto): macro `rest` runs wp_auto: ∅ | wp_pures; wp_load; wp_pures; wp_load; wp_pures | ∅ | wp_load; wp_pures; wp_load; wp_pures | ∅ | wp_load; wp_pures; wp_load; wp_pures | ∅ | wp_pures; wp_load; wp_pures; iclear rn | wp_call; wp_alloc rn_ptr as rn; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear rn | ∅ | wp_pures; wp_load; wp_pures; wp_load; wp_pures; iclear r | wp_pures | wp_pures; iclear r | wp_pures; iclear rn r | wp_pures; iclear rn r
       rest
     · finish_true
 
