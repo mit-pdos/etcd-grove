@@ -95,12 +95,67 @@ What limits the build now, measured on that build:
   (`wp_stepLeader_noop`/`appresp`/`prop` ~45–50s each; `RawNode.Ready.wp_proof`
   one theorem). Only splitting those proofs into lemmas Lean elaborates in
   parallel would shorten it.
-* **CPU (~39 min; what a 4-core CI runner is bound by).** Each module pays
-  ~2s and ~2 GiB to import (`import Perennial.Proof.ProofPrelude` alone takes
-  1.75s), a third of all CPU. Of elaboration, ~20–25% is *interpretation*:
-  Perennial's and Iris's tactics run in Lean's interpreter. `precompileModules`
-  here does not help: Lake then loads each dependency as one shared library made
-  of the modules its root reaches, and Perennial's root does not reach the Goose
-  code (`undefined symbol: initialize_perennial_Perennial_Code_go__etcd__io_raft_v3`);
-  it needs Perennial (and Iris) to precompile upstream. Turning off async
-  elaboration or linters changes nothing (±1s).
+* **CPU (~39 min; what a 4-core CI runner is bound by).** See the next two
+  sections: imports and interpreted tactics.
+
+## Build speed: importing (measured, not changed)
+
+**2026-10-08 · measured**
+
+Every module pays ~2s and ~2 GiB before elaborating anything (wall / user+sys,
+a file with only the import, 24-core machine otherwise idle):
+
+| imports | wall | CPU | peak memory |
+|---|---|---|---|
+| nothing (`Init`) | 0.46s | 0.78s | 469 MB |
+| `Batteries` | 0.99s | 1.32s | 979 MB |
+| `Lean` | 1.50s | 1.86s | 1568 MB |
+| `Iris` | 1.68s | 2.02s | 1599 MB |
+| `Perennial` | 1.92s | 2.22s | 1911 MB |
+| `EtcdGrove.Raft.InvRawnode` | 2.08s | 2.44s | 1990 MB |
+
+Most of it is Lean's own `Lean` package, which Iris's and Perennial's tactics
+import. The `.olean` files are `mmap`ed, not copied, but a non-`module` file
+(every file here and in Perennial) imports all three parts of each module built
+with Lean's module system: core Lean's public `.olean`s are 356 MB, its
+`.olean.private`s (proof bodies, private declarations) 1360 MB. A `module` file
+imports only the public part: `module` + `import Lean` takes 0.9s and 705 MB,
+`module` + `import Iris` (Iris is all `module`s) 1.22s and 861 MB. A `module`
+cannot import a non-`module` (`cannot import non-module Perennial.Proof.ProofPrelude
+from module`), so this needs Perennial on the module system first, then every
+file here (a `module` header and `public`/`@[expose]` where another file needs a
+declaration or a `def`'s body, the specs included).
+
+## Build speed: precompiled tactics (measured, needs Perennial)
+
+**2026-10-08 · measured**
+
+Perennial's and Iris's tactics run in Lean's interpreter (`interpretation` in
+`-Dprofiler`: 11.2s of `RawNode__Ready`'s ~50s). `precompileModules = true` in
+this repository's lakefile fails: Lake then loads each dependency as one shared
+library made of the library's roots and what they import, and Perennial's root
+does not reach the Goose code (`undefined symbol:
+initialize_perennial_Perennial_Code_go__etcd__io_raft_v3`).
+
+Experiment (a copy with edited dependency lakefiles): Perennial's library with
+`precompileModules = true` and globs covering the Perennial modules imported
+here. Lake then also builds and loads Iris, Batteries and Qq as shared
+libraries; precompiling those as well made no further difference (proofs 24m54s
+vs 25m06s of CPU). Clean rebuild of this repository's 402 modules, quiet machine:
+
+| | interpreted | precompiled |
+|---|---|---|
+| wall | 3m01s | 2m52s |
+| CPU | 39m01s | 34m48s (−11%) |
+| proofs / specs CPU | 28m19s / 6m45s | 24m54s / 6m20s |
+| `Proof.RawNode__Ready` | 52s | 43.5s |
+| `Proof.stepLeader` | 66s | 65s |
+
+Interpretation drops to ~0 (16ms in `RawNode__Ready`), but part of what the
+profiler had charged to it was nested work (IPM instance search went from 5.4s
+to 12.2s), so the gain is the 11% measured, not the ~20% `interpretation`
+suggested. The cost is native code for the dependencies: building them and this
+repository from scratch went from 10m44s to 13m56s; CI caches the dependencies
+per pin. To adopt it, Perennial's `lakefile.toml` needs `precompileModules = true`
+and a library whose modules include everything downstream imports (e.g. globs
+`["Perennial.+"]`: 481 modules, of which this repository builds 242).
