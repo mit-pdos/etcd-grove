@@ -71,7 +71,8 @@ the `.lean` files by hand.
   `upamanyus/etcd-raft`), as the `EtcdRaft` library (modules
   `EtcdRaft.Code.go_etcd_io.raft.v3`, ...).
 - `EtcdCache/{Code,GeneratedProof}/{go_etcd_io/etcd,k8s_io,google_golang_org}/`: etcd's `cache` package
-  (the fork `upamanyus/etcd`, branch `goose`), with bodies, and the types and names
+  (the fork `upamanyus/etcd`, branch `goose-lean`; branch `goose` is the Rocq
+  side's), with bodies, and the types and names
   only of the packages it uses (`client/v3`, `api/v3/{mvccpb,etcdserverpb,
   v3rpc/rpctypes}`, `k8s.io/utils/third_party/forked/golang/btree`, protobuf's
   `runtime/protoimpl` and `internal/impl`), as the

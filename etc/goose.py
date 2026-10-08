@@ -85,7 +85,10 @@ PROJECTS = [
     ),
     Project(
         name="etcd",
-        # Branch `goose`: upstream main plus the commits that make it translatable.
+        # Branch `goose-lean`: upstream main (2026-10) plus the commits that make it
+        # translatable. Branch `goose` (upstream main of 2026-03) stays as it is: the
+        # Rocq translations (etcd-grove `main`, Perennial `master`) are regenerated
+        # from it by name.
         repo="https://github.com/upamanyus/etcd",
         rev="48fd5a5071608e5c075b588c50e4efbfe300b00a",
         lib="EtcdCache",
