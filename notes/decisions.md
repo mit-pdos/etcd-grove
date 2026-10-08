@@ -54,7 +54,10 @@ imports).
 time (when the line is read) and a duration, but not CPU or memory, and the line
 can lag the compile's end.
 
-Lake has no job limit: it starts every module whose imports are built. So the
-report compares against the machine's cores ("oversubscribed"), not job slots,
-and "idle" on the critical path is Lake's own work between compiles (or its
-start-up), never a wait for a slot.
+Lake runs at most one compile per core: in the first full build of this
+repository's modules on 24 cores (2026-10-08), 46s ran exactly 24 compiles and
+none ran more. So the report treats the cores as Lake's job slots ("all slots
+busy"), and "idle" on the critical path is a wait for a free core, Lake's own
+work between compiles, or its start-up. Lean also elaborates a module's
+declarations in parallel, so the report charts cores busy (each compile's CPU
+spread over its run) next to compiles running.

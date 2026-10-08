@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-07
+**Last updated:** 2026-10-08
 
 Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
@@ -36,10 +36,17 @@ array fix and Go-model/theory additions to the Lean framework).
   and `wp_newRaft` do not.
 
 - Trust base: `etc/tcb-report.py` (gate: `--check` against `etc/tcb-baseline.txt`).
+- Build timing: `etc/build-report.py build` (parallelism over time, critical path;
+  design in `decisions.md`); CI: `.github/workflows/lean.yml` (build with the report
+  on the summary page, `tcb-report.py --check`). First full build of this
+  repository's modules (dependencies built, 24 cores, 2026-10-08): 402 modules,
+  3m48s wall, 40m35s CPU; the import chain bounds it at 3m02s, of which
+  `Proof/stepLeader.lean` is 1m08s (the slowest module, and last on the path before
+  `Link`); the Protocol chain (`Plog` … `Facts`) runs one compile at a time for the
+  first 1m10s.
 
 ## Next
 
-- Push Perennial's `lean` (0fe904415) so the pin resolves from GitHub.
 - Follow the Rocq RawNode branch past 857d09190 (its worktree has an uncommitted
   edit to `proof_RawNode__Ready.v`, not ported).
 

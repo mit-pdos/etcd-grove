@@ -24,15 +24,18 @@ The report has five parts:
 
   - the totals: wall time from `lake` starting to the last compile ending,
     CPU time, average and peak number of compiles running, the machine's
-    cores, and the time the build ran at most one compile. Lake has no job
-    limit: it starts every module whose imports are built, so more compiles
-    than cores means the machine was oversubscribed;
-  - parallelism over time, as a chart of running compiles;
+    cores, the time all of them ran a compile, and the time the build ran at
+    most one. Lake runs at most one compile per core (observed: never more,
+    and runs pinned at the core count), so the cores are its job slots;
+  - parallelism over time, as charts of compiles running and of cores busy
+    (a Lean compile elaborates declarations in parallel, so it can keep more
+    than one core busy);
   - the critical path *as it happened*: starting from the compile that
     finished last, each step is the import that finished last before it
     could start. "idle" is the gap between that import finishing and the
-    module starting: Lake's own work between compiles (checking traces,
-    hashing artifacts), or, for the first step, Lake loading the workspace.
+    module starting: a wait for a free slot (all cores running compiles), or
+    Lake's own work between compiles, or, for the first step, Lake loading
+    the workspace.
     Next to it, the longest import chain by compile time: how long the build
     would take with unlimited cores;
   - the slowest modules, with CPU time and peak memory;
@@ -452,8 +455,8 @@ class Report:
         self.peak = peak_concurrency(cs)
         self.avg = sum(c.time for c in cs) / build.wall if build.wall > 0 else 0.0
         self.serial = time_at_most(cs, build.start, build.end, 1)
-        self.oversubscribed = (
-            build.wall - time_at_most(cs, build.start, build.end, build.cores)
+        self.saturated = (
+            build.wall - time_at_most(cs, build.start, build.end, build.cores - 1)
             if build.cores
             else None
         )
@@ -504,14 +507,14 @@ class Report:
                 ),
             )
         )
-        if self.oversubscribed:
+        if self.saturated is not None and b.wall > 0:
             rows.append(
                 (
-                    "oversubscribed",
-                    dur(self.oversubscribed),
+                    "all slots busy",
+                    dur(self.saturated),
                     (
-                        f"{self.oversubscribed / b.wall:.0%} of the wall time ran "
-                        "more compiles than cores"
+                        f"{self.saturated / b.wall:.0%} of the wall time ran a "
+                        "compile on every core"
                     ),
                 )
             )
@@ -588,8 +591,8 @@ class Report:
         waited = sum(w for _c, w in self.path)
         text = (
             f"{len(self.path)} compiles: {dur(spent)} compiling and {dur(waited)} "
-            f"idle (Lake loading the workspace, or its work between compiles), of "
-            f"the {dur(b.wall)} wall time"
+            f"idle (Lake starting up, all cores taken, or Lake's work between "
+            f"compiles), of the {dur(b.wall)} wall time"
         )
         if self.bound:
             bound = sum(c.time for c in self.bound)
