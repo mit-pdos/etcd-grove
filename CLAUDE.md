@@ -53,7 +53,9 @@ translated or not translated, counted in functions and Go code lines, per packag
 per file. It reads the Go sources of the forks Perennial translates (cloned into
 `.lake/go-src` on first use), this repository's proofs from `.lake/tcb.json` (shared
 with `etc/tcb-report.py`; `--reuse` skips re-running Lean) and Perennial's public
-etcd/raft proofs from their source. Like the TCB report, don't commit its output.
+etcd/raft proofs from their source. It prints plain text (`--markdown` for Markdown;
+`-o FILE` writes Markdown if FILE ends in `.md`). Like the TCB report, don't commit
+its output.
 
 ## Proof writing
 

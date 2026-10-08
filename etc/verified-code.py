@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Account for how much of etcd raft's and etcd's Go code is verified.
 
-usage: etc/verified-code.py [-o REPORT.md] [--functions] [--go-src DIR]
-                            [--json TCB.json] [--reuse]
+usage: etc/verified-code.py [-o REPORT.txt|REPORT.md]... [--markdown] [--functions]
+                            [--go-src DIR] [--json TCB.json] [--reuse]
 
-  -o           where to write the Markdown report (default: stdout)
+  -o           where to write the report (default: stdout), in Markdown if the file
+               name ends in `.md` and in plain text otherwise; may be repeated
+  --markdown   print Markdown instead of plain text on stdout
   --functions  also list every function of the Raft code with its status
   --go-src     where the Go sources are: DIR/etcd-raft and DIR/etcd, checkouts of
                the forks Perennial translates (upamanyus/etcd-raft, upamanyus/etcd);
@@ -42,6 +44,7 @@ import os
 import re
 import subprocess
 import sys
+import textwrap
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 PERENNIAL = os.path.join(ROOT, ".lake", "packages", "perennial")
@@ -294,7 +297,8 @@ def pct(a, b):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("-o", "--out")
+    ap.add_argument("-o", "--out", action="append", default=[])
+    ap.add_argument("--markdown", action="store_true")
     ap.add_argument("--functions", action="store_true")
     ap.add_argument("--go-src", default=os.path.join(ROOT, ".lake", "go-src"))
     ap.add_argument("--json", default=os.path.join(ROOT, ".lake", "tcb.json"))
@@ -538,14 +542,58 @@ def main():
                 w(f"| `{fname(g)}` | `{g['file']}:{g['line']}` | {s} | {g['sloc']} |")
         w("")
 
-    text = "\n".join(out)
-    if args.out:
-        with open(args.out, "w") as f:
-            f.write(text)
-        print(f"verified-code: wrote {args.out}", file=sys.stderr)
-    else:
-        print(text)
+    md = "\n".join(out)
+    for path in args.out:
+        with open(path, "w") as f:
+            f.write(md if path.endswith(".md") else to_text(md))
+        print(f"verified-code: wrote {path}", file=sys.stderr)
+    if not args.out:
+        print(md if args.markdown else to_text(md))
     return 0
+
+
+def plain(s):
+    """A Markdown line of this report without its inline markup."""
+    return s.replace("**", "").replace("`", "")
+
+
+def to_text(md, width=88):
+    """The report in plain text: headings underlined, tables as aligned columns,
+    paragraphs wrapped (the Markdown this script writes, not Markdown in general)."""
+    out, lines, i = [], md.split("\n"), 0
+    while i < len(lines):
+        line = lines[i]
+        if line.startswith("|"):
+            block = []
+            while i < len(lines) and lines[i].startswith("|"):
+                block.append([c.strip() for c in lines[i].strip().strip("|").split("|")])
+                i += 1
+            sep = block[1] if len(block) > 1 else []
+            right = [c.endswith(":") for c in sep]
+            rows = [[plain(c) for c in r] for k, r in enumerate(block) if k != 1]
+            ncol = max(len(r) for r in rows)
+            rows = [r + [""] * (ncol - len(r)) for r in rows]
+            wid = [max(len(r[j]) for r in rows) for j in range(ncol)]
+            rule = "  ".join("-" * x for x in wid)
+            for k, r in enumerate(rows):
+                cells = [
+                    c.rjust(wid[j]) if j < len(right) and right[j] else c.ljust(wid[j])
+                    for j, c in enumerate(r)
+                ]
+                out.append("  ".join(cells).rstrip())
+                if k == 0:
+                    out.append(rule)
+            continue
+        m = re.match(r"(#+) (.*)", line)
+        if m:
+            title = plain(m.group(2))
+            out += [title, ("=" if len(m.group(1)) == 1 else "-") * len(title)]
+        elif line.strip():
+            out += textwrap.wrap(plain(line), width) or [""]
+        else:
+            out.append("")
+        i += 1
+    return "\n".join(out)
 
 
 def fname(g):
