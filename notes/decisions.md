@@ -61,3 +61,46 @@ busy"), and "idle" on the critical path is a wait for a free core, Lake's own
 work between compiles, or its start-up. Lean also elaborates a module's
 declarations in parallel, so the report charts cores busy (each compile's CPU
 spread over its run) next to compiles running.
+
+## Build speed: the Protocol umbrella imports only what `Defs` uses
+
+**2026-10-08 · accepted**
+
+`Defs` imported `Protocol`, which imported the whole protocol development, so
+`Defs` and everything after it waited for `StepGhost` … `Facts` (the theorems,
+`Refinement` alone 23s), which ran one at a time for the first 1m10s. Only
+`Model`, `Ghost` and `GhostState` are used by `Defs`/`Inv*` (checked on the
+elaborated environment: which modules' constants each module's constants use);
+the theorems are used by four proofs (`RawNode__Ready`, `raftLog__commitTo`,
+`raft__Step`, `raft__Step/Base`) and, through `Link`, by `Results`.
+
+**Decision:** `Protocol.lean` imports the three, those four proofs import
+`Protocol.Facts`. Full build on 24 cores: 3m40s → 3m01s. No definition, statement
+or axiom changed: a hash of every root statement, trusted definition (type and
+body, auxiliaries included) and axiom is the same before and after.
+
+What limits the build now, measured on that build:
+
+* **Queueing on the critical path (~50s).** Lake has no job limit or priority:
+  a compile occupies one of Lean's worker threads (one per core), and the pool
+  is FIFO. When `InvRaftPhys` finishes, ~150 specs become ready at once (started
+  in reverse order of registration, i.e. of the root's import list), and the
+  next module of a critical chain (`Spec.stepLeader`, `InvRawnode`, then their
+  proofs) queues behind them and the proofs they release: `Proof.stepLeader`
+  waited 36s. **Rejected — ordering `EtcdGrove.lean` by remaining chain
+  length:** it does reorder siblings (tried: `stepLeader`'s callee specs ran
+  first), but the FIFO wait comes back one step later; 3m06s.
+* **The tail (~30s with ≤3 compiles):** `Proof.stepLeader` (66s, 3m14s CPU) and
+  `Proof.RawNode__Ready` (52s), each bounded by its longest declaration
+  (`wp_stepLeader_noop`/`appresp`/`prop` ~45–50s each; `RawNode.Ready.wp_proof`
+  one theorem). Only splitting those proofs into lemmas Lean elaborates in
+  parallel would shorten it.
+* **CPU (~39 min; what a 4-core CI runner is bound by).** Each module pays
+  ~2s and ~2 GiB to import (`import Perennial.Proof.ProofPrelude` alone takes
+  1.75s), a third of all CPU. Of elaboration, ~20–25% is *interpretation*:
+  Perennial's and Iris's tactics run in Lean's interpreter. `precompileModules`
+  here does not help: Lake then loads each dependency as one shared library made
+  of the modules its root reaches, and Perennial's root does not reach the Goose
+  code (`undefined symbol: initialize_perennial_Perennial_Code_go__etcd__io_raft_v3`);
+  it needs Perennial (and Iris) to precompile upstream. Turning off async
+  elaboration or linters changes nothing (±1s).

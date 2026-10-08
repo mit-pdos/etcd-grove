@@ -42,8 +42,10 @@ array fix and Go-model/theory additions to the Lean framework).
   repository's modules (dependencies built, 24 cores, 2026-10-08): 402 modules,
   3m48s wall, 40m35s CPU; the import chain bounds it at 3m02s, of which
   `Proof/stepLeader.lean` is 1m08s (the slowest module, and last on the path before
-  `Link`); the Protocol chain (`Plog` … `Facts`) runs one compile at a time for the
-  first 1m10s.
+  `Link`); the Protocol chain (`Plog` … `Facts`) ran one compile at a time for the
+  first 1m10s. Since `Protocol.lean` imports only `Model`/`Ghost`/`GhostState` (what
+  `Defs` and `Inv*` use), `Defs` starts at 0:29 and the build takes 3m01s (bound
+  2m19s); what limits it now is in `decisions.md` ("Build speed").
 - Verified code: `etc/verified-code.py`. On 2026-10-08 (forks `upamanyus/etcd-raft`
   `24643b3`, `upamanyus/etcd` `3efe157`): raft 161 of 323 functions verified, 1962 of
   3646 Go code lines (53.8%; 143 functions sorry-free); etcd 16 of 3579 functions, 174
