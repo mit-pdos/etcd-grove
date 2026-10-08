@@ -20,3 +20,7 @@ confchange_chain:
 # the (empty) Rocq postulates of spec_ConfState__Equivalent.v, an Axiom there.
 reflect_DeepEqual:
 ConfState__Equivalent: slices_Sort reflect_DeepEqual
+# raftpb.Entry.Size (raft.pb.go, gogoproto), proved 2026-10-08 from the translated body:
+# an Axiom in the Rocq (spec_Entry__Size.v), with sovRaft its one callee.
+raftpb_sovRaft:
+Entry__Size: raftpb_sovRaft

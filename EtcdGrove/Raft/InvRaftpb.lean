@@ -76,7 +76,7 @@ theorem sorted_perm_eq : ∀ (xs ys : List w64), xs ≡ₚ ys →
 section wp
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 
 /-- `append([]uint64(nil), s...)` for an empty `s` is `nil`, whatever `s`'s pointer:

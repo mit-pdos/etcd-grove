@@ -5,7 +5,7 @@ using the Lean port of Perennial (branch `lean` of
 [mit-pdos/perennial](https://github.com/mit-pdos/perennial)), which is a Lake
 dependency (`lakefile.toml`, pinned in `lake-manifest.json`). Perennial has the
 framework and the Goose translator; this repository has the Goose translation of
-etcd-raft (`EtcdRaft/`) and the proofs.
+etcd-raft (`EtcdRaft/`), of etcd's `cache` package (`EtcdCache/`), and the proofs.
 
 It is a port of the Rocq development on branch `main` (`new/proof/go_etcd_io/raft/
 election_proof/`). The Rocq notes on `main` (`notes/`) still describe the proof:
@@ -61,20 +61,37 @@ its output.
 Perennial's Lean docs (in the dependency, `.lake/packages/perennial/docs/`):
 `PERENNIAL_PROOF_TUTORIAL.md`, `PERENNIAL_PROOF_REFERENCE.md`, `IRIS_PROOF_MODE.md`.
 
-## The Goose translation
+## The Goose translations
 
-`EtcdRaft/{Code,GeneratedProof}/go_etcd_io/raft/` is the translation of etcd-raft
-(the fork `upamanyus/etcd-raft`, at the revision pinned in `etc/goose.py`) by the
-pinned Perennial's translator, as the `EtcdRaft` library (modules
-`EtcdRaft.Code.go_etcd_io.raft.v3`, ...; goose's `-lean-root` keeps them out of the
-`Perennial.*` names, which Lake resolves to the Perennial library). It is generated:
-never edit it by hand.
-`etc/goose.py` regenerates it (after bumping the Perennial or etcd-raft pin, or
-editing the Goose configuration `EtcdRaft/Code/**/*.toml`);
-`etc/goose.py --check` exits 1 if it differs from what the pinned translator
-produces, and CI runs that check before the build. To try a translator change
-before it is in Perennial, `etc/goose.py --perennial ../perennial` regenerates with
-that checkout's translator, and
+Two Lake libraries hold Goose translations by the pinned Perennial's translator, each
+of a fork at the revision pinned in `etc/goose.py`. They are generated: never edit
+the `.lean` files by hand.
+
+- `EtcdRaft/{Code,GeneratedProof}/go_etcd_io/raft/`: etcd-raft (the fork
+  `upamanyus/etcd-raft`), as the `EtcdRaft` library (modules
+  `EtcdRaft.Code.go_etcd_io.raft.v3`, ...).
+- `EtcdCache/{Code,GeneratedProof}/{go_etcd_io/etcd,k8s_io,google_golang_org}/`: etcd's `cache` package
+  (the fork `upamanyus/etcd`, branch `goose-lean`; branch `goose` is the Rocq
+  side's), with bodies, and the types and names
+  only of the packages it uses (`client/v3`, `api/v3/{mvccpb,etcdserverpb,
+  v3rpc/rpctypes}`, `k8s.io/utils/third_party/forked/golang/btree`, protobuf's
+  `runtime/protoimpl` and `internal/impl`), as the
+  `EtcdCache` library (modules `EtcdCache.Code.go_etcd_io.etcd.cache.v3`, ...).
+  Types Goose cannot translate are axiomatized, and their generated instances are
+  `sorry -- axiomatized type`; no proof uses them yet.
+
+goose's `-lean-root` maps every non-standard-library Go path a translation reaches to
+its library, keeping the modules out of the `Perennial.*` names (which Lake resolves
+to the Perennial library); standard-library packages are Perennial's.
+`etc/goose.py` regenerates both (after bumping the Perennial or a fork pin, or
+editing the Goose configuration `<lib>/Code/**/*.toml`; `--project NAME` for one);
+`etc/goose.py --check` exits 1 if they differ from what the pinned translator
+produces, and CI runs that check before the build. `--src NAME=DIR` (or
+`$ETCD_SRC`, `$ETCD_RAFT_SRC`) translates from a local checkout of the fork instead
+of cloning the pin, e.g. for a pinned revision not yet pushed; the output says so,
+and `--check` then requires the checkout to be at the pinned revision. To try a
+translator change before it is in Perennial, `etc/goose.py --perennial ../perennial`
+regenerates with that checkout's translator, and
 `lake build --packages=<file>` (a JSON list with
 `{"type": "path", "name": "perennial", "dir": "../perennial", ...}`) builds against
 it.

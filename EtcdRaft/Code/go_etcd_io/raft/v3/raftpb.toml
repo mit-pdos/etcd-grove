@@ -3,6 +3,8 @@ translate = [
   "Entry",
   "ConfState",
   "ConfState.Equivalent",
+  "Entry.Size",
+  "sovRaft",
   "ConfChangeTransition",
   "ConfChange",
   "ConfChangeV2",
@@ -51,8 +53,9 @@ translate = [
   "Message",
 ]
 
-# `ConfState.Equivalent` (confstate.go, hand-written) calls into these three
-imports = ["fmt", "reflect", "slices"]
+# `ConfState.Equivalent` (confstate.go, hand-written) calls into fmt, reflect and slices;
+# `Entry.Size` (raft.pb.go, gogoproto) calls `sovRaft`, which calls `math/bits.Len64`
+imports = ["fmt", "reflect", "slices", "math/bits"]
 
 trust_proofgen = true
 

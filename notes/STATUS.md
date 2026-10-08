@@ -21,8 +21,9 @@ translation of etcd-raft is this repository's `EtcdRaft/`, generated and checked
   `inv_rawnode.v`): no `sorry`.
 - The 167 specs and the 167 proofs (`raft.Step`'s branches in `Proof/raft__Step/`,
   one module per Rocq helper file, incl. `MsgStorageAppendResp`/`MsgStorageApplyResp`).
-  Trust boundary as in the Rocq: the state/logger axioms and nine `axiom … .wp_proof`
-  for code outside the scope.
+  Trust boundary as in the Rocq at first: the state/logger axioms and nine
+  `axiom … .wp_proof` for code outside the scope (since 2026-10-08 only `.wp_proof`
+  axioms remain; see below).
 - **`RawNode.Ready` is proved here although it is `Admitted` in the Rocq**: the Rocq
   script stops (`Show. Admitted.`) after stepping all the code and closing the struct,
   before the postcondition; `Proof/RawNode__Ready.lean` ports that script and proves the
@@ -76,6 +77,51 @@ translation of etcd-raft is this repository's `EtcdRaft/`, generated and checked
   claim more than Go's code does in the model: `Sort` overflows `2*root+1` in its
   heapsort fallback past 2^62 elements, `Join` panics if the total length overflows
   `int` (and cannot be translated: `strings.Builder` uses `unsafe.String`).
+- **The `Logger` and `Storage` interfaces assume nothing (2026-10-08).** `isLogger`
+  (`InvLogger.lean`) is a definition, the formatting methods' triples bundled as
+  `isStorageWith` bundles `Storage`'s, so `isLogger_persistent` is an instance and
+  `Logger.wp_logf` a theorem: a client supplies the triples with its `Logger`.
+  `ownStorage` (`InvStorage.lean`) is the field of `class StorageModel GF`, a
+  parameter every section that reaches it carries (`[StorageModel GF]`, also in
+  `etc/gen-link.py`'s template), with deliberately no global instance; it stays
+  abstract (not specialised to `ownMemoryStorage`), but the results now hold for
+  *every* storage predicate instead of one unknown one, which no client could have
+  established (`newRaft`'s precondition asks for it, and `ownRawNode_persist` hands it
+  to the application to `Append`). Four axioms gone (`isLogger`,
+  `isLogger_persistent`, `Logger.wp_logf`, `ownStorage`); `etc/tcb-report.py
+  --check`: 6 axioms (`reflect.DeepEqual`, `fmt.Sprintf`, `strings.Join`,
+  `slices.Sort`, `rand.Int`, `raftpb.Entry.Size`), 0 sorries. `RawNode.wp_Ready` rests
+  on `Entry.Size` alone, `RawNode.wp_Propose` on `Entry.Size`, `rand.Int`,
+  `slices.Sort` and `reflect.DeepEqual`.
+- **`raftpb.Entry.Size` is proved (2026-10-08)**, no longer an axiom: `raftpb.toml`
+  translates `Entry.Size` and `sovRaft` (gogoproto, `raft.pb.go`) and imports
+  `math/bits`; `Proof/Entry__Size.lean` proves the triple from the body, with
+  `sovRaft` a Lean-first spec/proof pair (`etc/link-lean-first.txt`). The triple gained
+  only an `isPkgInit raftpb` conjunct (for `bits.Len64`), which `limitSize`/`entsSize`
+  discharge from `isPkgInit raft.v3`; no caller's spec changed. `etc/tcb-report.py
+  --check`: 5 axioms, 0 sorries; `RawNode.wp_Ready` and `wp_HasReady` now rest on none
+  of this repository's axioms, `RawNode.wp_Propose` on `rand.Int`, `slices.Sort`,
+  `reflect.DeepEqual`.
+- **What the five remaining axioms would take** (checked 2026-10-08, with "no
+  higher-level spec changes" as the constraint):
+  - `slices.Sort`: translatable (Perennial's `slices.toml`; the `*Ordered` pdqsort is
+    the sibling of the proved `SortFunc`), but the proved spec needs
+    `length ≤ 2^62`, as `wp_SortFunc` does (heapsort's `2*root+1` overflows past
+    that, so the current spec is false in the model). No caller has it: `Visit`,
+    `VoterNodes`, `campaign` get only `size cfg < 2^63` (`ownTracker`'s
+    `Hcfg_size`), `MajorityConfig.CommittedIndex` and `MajorityConfig.Slice` have
+    `< 2^63` or nothing, `ConfState.Equivalent` nothing; only the empty-slice calls
+    (`Slice`'s nil branch, `sortCopy_empty`) are bounded. Needs `Hcfg_size ≤ 2^62` in
+    `ownTracker` plus premises on `CommittedIndex`, `Slice`, `Equivalent`.
+  - `fmt.Sprintf`, `strings.Join`: not translatable (`fmt`'s printer reaches
+    `reflect`; `strings.Builder.String` is `unsafe.String`), and `Join`'s no-panic claim
+    needs a bound on the strings' total length that `Sprintf`'s "some string" cannot
+    give.
+  - `reflect.DeepEqual`: reflection, outside Goose.
+  - `rand.Int`: `crypto/rand.Reader` reads the OS RNG (a syscall), outside GooseLang.
+  The last four can only go by changing the Go code (the `upamanyus/etcd-raft`
+  `goose` fork) or by trusted models (`Perennial/TrustedCode`), which move the
+  trust rather than remove it.
 - Trust base: `etc/tcb-report.py` (gate: `--check` against `etc/tcb-baseline.txt`).
 - **Build checked 2026-10-08** at Perennial c35b7710d (a `--packages` override pointing
   at a checkout of the pinned commit): `lake build` completes (977 jobs, 0 errors); `etc/tcb-report.py --check`
@@ -97,6 +143,63 @@ translation of etcd-raft is this repository's `EtcdRaft/`, generated and checked
   3646 Go code lines (53.8%; 143 functions sorry-free); etcd 16 of 3579 functions, 174
   of 45359 lines (0.4%, all from Perennial's public proofs).
 
+## etcd `cache`: the `EtcdCache` library (2026-10-08; translation only, no proofs)
+
+Preparation for verifying etcd's `cache` package (`go.etcd.io/etcd/cache/v3`) here, set
+up like the raft translation: the Lake library `EtcdCache` (`EtcdCache/`, a default
+target), generated and checked by `etc/goose.py` (now two projects, `etcd-raft` ->
+`EtcdRaft`, `etcd` -> `EtcdCache`; `EtcdRaft/` output unchanged).
+
+- **Source**: fork `upamanyus/etcd`, branch `goose-lean`, pinned at `48fd5a507`: branch
+  `goose` rebased onto upstream `main` (`f061acd09`; it was on `3efe157f6`, 2026-03-29) without
+  conflicts ("Avoid fallthrough", in `client/v3/leasing`, is now `b6b069ede`), plus two
+  new commits that change `cache/` only, both behavior-preserving workarounds for Goose
+  bugs: `5ae038f0f` names `mvccpb.Event` instead of its alias `clientv3.Event`
+  (Goose's `getStructInfo` does not `Unalias`, so `ev.Kv` on an alias-typed pointer is
+  rejected), `48fd5a507` selects `entry[T].revision` from a variable instead of from
+  `r.at(mid)` (Goose's `StructFieldGet` on a generic struct value omits the type
+  argument: `entry.ty`, not `entry.ty T`). It is a *new* branch because the Rocq
+  translations (etcd-grove `main`, Perennial `master`: `etc/ci-goose-check.py`) are
+  regenerated from branch `goose` by name, so `goose` must stay at the March upstream.
+  **Not pushed yet**: until it is,
+  `etc/goose.py` needs `--src etcd=<checkout>` (or `$ETCD_SRC`), and CI's
+  `goose.py --check` fails for `etcd`. CI's Go is now 1.27 (etcd's `go.mod`).
+- **With bodies**: all of `cache/v3` (every function and method, non-test files;
+  `cache/v3.toml`: `translate = ["*"]`).
+- **Types and names only** (`translate = ["!*"]`, `translate_types = true`, a few
+  imports kept so their types translate): `client/v3`, `api/v3/etcdserverpb`,
+  `api/v3/mvccpb`, `api/v3/v3rpc/rpctypes`, `k8s.io/utils/third_party/forked/golang/btree`
+  (with `sync` imported so that the generic `FreeList[T]` is translated: an
+  axiomatized generic type comes out as `∀ (T : go.type), go.type`, which is not Lean).
+- **The protobuf messages the cache reads are real structs** (2026-10-08, second
+  commit): `mvccpb.KeyValue`, `mvccpb.Event`, `etcdserverpb.{ResponseHeader,
+  RangeResponse,WatchResponse}` are listed in their package's `translate` (type only,
+  no methods). `translate_types` alone never translates them: every protobuf-go v2
+  message has `state protoimpl.MessageState`, `unknownFields protoimpl.UnknownFields`,
+  `sizeCache protoimpl.SizeCache`, and Goose's `translate_types` refuses any type
+  mentioning another package's alias. Those three aliases come from two more
+  packages: `google.golang.org/protobuf/runtime/protoimpl` (just the three aliases;
+  `SizeCache`/`UnknownFields` translate to `int32`/`[]byte`; protoimpl's other aliases
+  must not be left to `translate_types`, which axiomatizes an alias-of-an-alias as
+  `axiom SizeCache`, not `SizeCache.ty`, a name the users do not find) and
+  `google.golang.org/protobuf/internal/impl` (names only, for `impl.MessageState`, whose
+  struct of `internal/pragma` types stays axiomatized: the `state` field is opaque).
+  `clientv3.GetResponse` (`type GetResponse pb.RangeResponse`), `clientv3.WatchResponse`,
+  `Op`, `OpOption`, `KV`, `Watcher`, `WatchChan` were already translated.
+  `clientv3.Client` is still axiomatized (the cache reads its `KV` and `Watcher` fields
+  in `newCache`): its other fields are grpc, grpc credentials, client's internal
+  resolver and zap types, which would each need a names-only translation.
+- Nothing else (grpc, zap, ...) is reached; types that would need it are axiomatized
+  (203 `axiom X.underlying`), and their generated instances are `sorry -- axiomatized
+  type` (426, in `GeneratedProof/`: 152 in the two protobuf packages, 236 in
+  `etcdserverpb`, 36 in `client/v3`, 2 in `rpctypes`; no proof uses them, and the raft
+  trust base is unaffected). Standard-library packages are Perennial's.
+- `-lean-root` maps `go.etcd.io/etcd`, `k8s.io` and `google.golang.org` to `EtcdCache`.
+- The two Goose bugs above belong fixed in Perennial's `goose/types.go`: `types.Unalias`
+  in `getStructInfo` (tried: two lines, and the alias errors go away), the type arguments
+  in `structInfoToGlangType` (not tried); with them the two fork commits could be dropped.
+  The `go.type` in axiomatized generic types is a third (Lean backend).
+
 ## Next
 
 - Follow the Rocq RawNode branch past 857d09190 (its worktree has an uncommitted
@@ -104,6 +207,9 @@ translation of etcd-raft is this repository's `EtcdRaft/`, generated and checked
 
 ## Differences from the Rocq besides the language
 
+- No axiom for the `Logger` and `Storage` interfaces (Rocq: `is_Logger` and
+  `own_Storage` are `Axiom`s, with `wp_logf` a third): `isLogger` is a definition and
+  `ownStorage` a typeclass parameter (`StorageModel`), see "Done".
 - Names follow Perennial's Lean conventions (`raft.wp_Step`, `own_raft_phys` →
   `ownRaftPhys`, …); see Perennial's `etc/lean-rename/renames.tsv` for the
   framework's Rocq → Lean names.

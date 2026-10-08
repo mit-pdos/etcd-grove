@@ -1,0 +1,4 @@
+# Names only: the target of protoimpl.MessageState (whose struct, of internal/pragma
+# types, stays axiomatized).
+translate = ["!*"]
+imports = ["!*"]

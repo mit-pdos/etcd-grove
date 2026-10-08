@@ -42,7 +42,10 @@ Pure definitions need only `[FfiSyntax]` (and `[GoGlobalContext]
 A Rocq `Axiom` (an abstract predicate, a trust-boundary triple) is a Lean `axiom`
 whose binders are written out (an `axiom` does not pick up the instance section
 variables it does not mention: Perennial's `etc/fidelity-review.md`, H1), e.g.
-`axiom isLogger {GF : BundledGFunctors} : …` (`InvLogger.lean`). For a triple axiom
+`axiom slices.«Sort».wp_proof` (`Proof/slices_Sort.lean`). An abstract *predicate* is
+better not an axiom at all: a definition bundling the triples a client supplies
+(`isLogger`, `InvLogger.lean`) or a typeclass parameter (`StorageModel`,
+`InvStorage.lean`). For a triple axiom
 inside the section above, check with `#check @name` that the instance binders are
 there.
 
