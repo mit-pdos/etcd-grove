@@ -112,7 +112,7 @@ a file with only the import, 24-core machine otherwise idle):
 | `Lean` | 1.50s | 1.86s | 1568 MB |
 | `Iris` | 1.68s | 2.02s | 1599 MB |
 | `Perennial` | 1.92s | 2.22s | 1911 MB |
-| `EtcdGrove.Raft.InvRawnode` | 2.08s | 2.44s | 1990 MB |
+| `Proof.go_etcd_io.raft.v3.InvRawnode` | 2.08s | 2.44s | 1990 MB |
 
 Most of it is Lean's own `Lean` package, which Iris's and Perennial's tactics
 import. The `.olean` files are `mmap`ed, not copied, but a non-`module` file
