@@ -175,3 +175,69 @@ Perennial's Go semantics already were ("Not checked by Lean").
 **Rejected -- carrying a `< 2^63` bound in `ownRaftLog`** (tried 2026-09-20): no
 constant bound survives `appendEntry`'s `append`, for the same reason -- which is why
 the model assumes it there too.
+
+---
+
+## google/btree: a second proof tree, `EtcdGrove/Btree/`
+
+**2026-10-08 · accepted**
+
+etcd's watch cache (`etcd/cache`) keeps its snapshots in a B-tree, so the cache's proof
+needs one. The cache imports `k8s.io/utils/third_party/forked/golang/btree`, a fork of
+google/btree's generic `BTreeG`; this proof is of google/btree itself (`aeba20f`,
+`btree_generic.go`; `btree.go` is its pre-generics twin, excluded by its build tag), the
+upstream of that fork.
+
+**Decision:** translated into `GoogleBtree/` by `etc/goose.py` (now a list of
+translations), proved in `EtcdGrove/Btree/` with the Raft proof's discipline: one
+`Spec/<fn>.lean` and one `Proof/<fn>.lean` per Go function, a proof importing only its
+callees' specs. The predicates are in `Defs.lean`, the pure model in `Tree.lean` /
+`Model.lean`.
+
+**The top-level predicate** is `ownBTree o t dq s`: the tree at `t` holds the entries `s`
+at fraction `dq` (mutations and `Clone` need `DFrac.own 1`, reads any fraction).
+
+- **Keys, not items, are ordered.** `s : List (V × K)` pairs each Go item with a key,
+  keys strictly increasing under a strict total order `o.lt`, and `o.item v k` is a
+  persistent relation between an item and its key; `less` must decide `lt` on the keys
+  of the items it is called with (`isLess`). The cache's items are `*kvItem`s compared by
+  an immutable `key` field: there `item p k` is the persistent points-to of `p.key`, which
+  a pure order on `V` could not express (the keys are only known from the heap). For an
+  ordered type, `item v k := v = k` (`orderedOrder`). Requiring a strict *total* order
+  costs nothing: a strict weak order on items is a total one on its classes, which the
+  client takes as keys.
+- **Copy-on-write ownership.** A tree owns the nodes whose `cow` is its context and
+  mutates only those; `Clone` gives both trees fresh contexts, so every existing node
+  becomes shared and, since every write goes through `mutableFor`, read-only forever.
+  `ownNode` is per node either owned (fractional points-tos, children `ownNode` again) or
+  `frozen` (persistent, with every node below frozen too and known to have a different
+  context: `n.cow == cow` is a pointer comparison). `Clone` therefore needs the distinctness
+  of the fresh contexts from every node's context, from the points-to validity rule.
+- **The shape invariant** (`Tree.Shape`): uniform height, `len(children) = len(items) + 1`,
+  non-root nodes between `d - 1` and `2d - 1` items, an internal root with an item. The
+  code needs it for safety, not only for balance: a merge of children of different
+  heights, or a root left without items whose only child is minimal, makes `remove` index
+  out of range.
+
+**Rejected -- `node.print`'s spec.** It is unexported debug output (only the tests call
+it) through `fmt.Fprintf` and `strings.Repeat`, which Perennial has as names only; a spec
+would need new trusted axioms about `fmt`, for no client.
+
+---
+
+## Perennial's `copy` was not Go's: now a memmove
+
+**2026-10-08 · accepted (Perennial branch `copy-memmove`, 5075e9d; to be merged upstream)**
+
+Perennial modeled `copy(dst, src)` as a front-to-back loop in place. Go's `copy` allows
+overlapping slices; when `dst` starts past `src` in the same array the loop reads
+elements it has already overwritten. `items.insertAt` does exactly that
+(`copy(s[i+1:], s[i:])`), so under the old model insert provably corrupts the tree, and
+no correct spec of it can be proved. (Every existing proof used `wp_slice_copy`, whose
+separate ownership of the two slices excludes overlap, so none relied on the bad case.)
+
+**Decision:** in Perennial, `copy` runs the old loop (`slice.copyForward`) twice, through
+a fresh buffer holding all of `src`; `wp_slice_copy` keeps its statement, and
+`wp_slice_copy_within` specifies a copy between two parts of one slice (`insertAt`,
+`removeAt`). Until Perennial's `lean` has it and is re-pinned here, the btree proofs build
+against a checkout of the branch (`lake build --packages=<override>`).
