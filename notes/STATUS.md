@@ -52,6 +52,16 @@ the declarations keep their `Perennial.go_etcd_io.…` namespace, so no proof ch
   (`IDs.spec_tracker`); `apply`/`Simple` take a `size vm < 2^63` premise (their
   `len == 0` test is a 64-bit comparison). The translation needed a Goose fix: `cc := cc`
   (the loop-local-copy idiom in `Restore`) read the *new* cell; see notes/decisions.md.
+- **`raftpb.ConfState.Equivalent` is proved (2026-10-08)**, no longer an axiom: `raftpb`'s
+  translation (ours now) includes it (`raftpb.toml`: `ConfState.Equivalent`, imports
+  `fmt`/`reflect`/`slices`). What it calls that Goose cannot model is
+  `reflect.DeepEqual`; that is the new axiom, stated on two `ConfState` values as Go's
+  `DeepEqual` reads on this struct (`Spec/reflect_DeepEqual.lean`, `confStateDeepEq` in
+  `InvRaftpb.lean`, which also has `sorted_perm_eq` and `wp_slice_append_nil_empty`:
+  `append` of nothing onto `nil` is `nil`, with no ownership of the empty source,
+  which the callers do not have). So the two axioms about core raft code are gone;
+  the 13 that remain are all outside raft (`reflect`, `math/big`, `fmt`, `strings`,
+  `slices`, `rand`, the `Logger` and `Storage` interfaces, protobuf's `Entry.Size`).
 - Trust base: `etc/tcb-report.py` (gate: `--check` against `etc/tcb-baseline.txt`).
 - **Build checked 2026-10-08** from a clean checkout (no `.lake`): `lake build` fetches
   Perennial at the pin and completes (976 jobs, 0 errors); `etc/tcb-report.py --check`
@@ -76,8 +86,6 @@ the declarations keep their `Perennial.go_etcd_io.…` namespace, so no proof ch
 
 - Push Perennial's `lean` (abbd678c1: the Goose fix, the merge of c5c3a575d/beb34b9da,
   a names-only `reflect`) so the pin resolves from GitHub.
-- `raftpb.ConfState.Equivalent` is the remaining core-raft axiom (`raftpb` is
-  types-only; `Equivalent` lives in the hand-written `confstate.go`).
 - Follow the Rocq RawNode branch past 857d09190 (its worktree has an uncommitted
   edit to `proof_RawNode__Ready.v`, not ported).
 

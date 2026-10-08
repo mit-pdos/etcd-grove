@@ -7,9 +7,9 @@ axiom isLogger
 axiom isLogger_persistent
 axiom ownBigInt
 axiom ownStorage
-axiom raftpb.ConfState.Equivalent.wp_proof
 axiom raftpb.Entry.Size.wp_proof
 axiom rand.Int.wp_proof
+axiom reflect.DeepEqual.wp_proof
 axiom slices.Sort.wp_proof
 axiom strings.Join.wp_proof
 sorry raftLog.slice.wp_proof

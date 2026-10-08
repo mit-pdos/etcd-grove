@@ -159,6 +159,7 @@ import EtcdGrove.Raft.Proof.readOnly__addRequest
 import EtcdGrove.Raft.Proof.readOnly__heartbeatCtx
 import EtcdGrove.Raft.Proof.readOnly__maybeAdvance
 import EtcdGrove.Raft.Proof.readOnly__recvAck
+import EtcdGrove.Raft.Proof.reflect_DeepEqual
 import EtcdGrove.Raft.Proof.releasePendingReadIndexMessages
 import EtcdGrove.Raft.Proof.slices_Sort
 import EtcdGrove.Raft.Proof.stepCandidate
@@ -204,10 +205,6 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [AllG GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-
-theorem raftpb.ConfState.wp_Equivalent :
-    raftpb.ConfState.Equivalent.spec (GF := GF) (hG := hG) :=
-  raftpb.ConfState.Equivalent.wp_proof
 
 theorem wp_IsLocalMsgTarget :
     IsLocalMsgTarget.spec (GF := GF) (hG := hG) :=
@@ -256,6 +253,14 @@ theorem wp_IsEmptySnap :
 theorem slices.wp_Sort :
     slices.«Sort».spec (GF := GF) (hG := hG) :=
   slices.«Sort».wp_proof
+
+theorem reflect.wp_DeepEqual :
+    reflect.DeepEqual.spec (GF := GF) (hG := hG) :=
+  reflect.DeepEqual.wp_proof
+
+theorem raftpb.ConfState.wp_Equivalent :
+    raftpb.ConfState.Equivalent.spec (GF := GF) (hG := hG) :=
+  raftpb.ConfState.Equivalent.wp_proof slices.wp_Sort reflect.wp_DeepEqual
 
 theorem quorum.MajorityConfig.wp_CommittedIndex :
     quorum.MajorityConfig.CommittedIndex.spec (GF := GF) (hG := hG) :=

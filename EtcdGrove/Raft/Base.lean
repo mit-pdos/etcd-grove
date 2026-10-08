@@ -14,6 +14,7 @@ files (`strings`, `math`, `bytes`, `log`, `io`, `errors`).
 import EtcdGrove.Code.go_etcd_io.raft.v3
 import EtcdGrove.GeneratedProof.go_etcd_io.raft.v3
 import EtcdGrove.GeneratedProof.go_etcd_io.raft.v3.raftpb
+import Perennial.Code.reflect
 import Perennial.Proof.ProofPrelude
 import Perennial.Proof.context
 import Perennial.Proof.sync
@@ -46,6 +47,13 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- `reflect`, names-only (`raftpb`'s `ConfState.Equivalent` calls `reflect.DeepEqual`,
+the axiom `Spec/reflect_DeepEqual.lean`). -/
+instance reflect_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.reflect :=
+  define_is_pkg_init iprop(True)
+instance reflect_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.reflect :=
+  build_get_is_pkg_init_wf
 
 instance raftpb_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb :=
   define_is_pkg_init iprop(True)

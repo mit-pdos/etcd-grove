@@ -143,3 +143,32 @@ results reach (`etc/tcb-report.py` reports them as this repository's now).
 (notes/STATUS.md, "Not checked by Lean"); it is now trusted *here*, where it can be
 regenerated and diffed against the Go sources with the pinned toolchain. A change to
 a package's translation scope is a commit in this repository, not in Perennial.
+
+---
+
+## `ConfState.Equivalent`: `reflect.DeepEqual` is the axiom, not the raft code
+
+**2026-10-08 · accepted**
+
+`Equivalent` (confstate.go) sorts copies of the four id slices of both `ConfState`s
+and compares the results with `reflect.DeepEqual`. Goose has no model of reflection,
+so the raft code is proved and `reflect.DeepEqual` on two `ConfState` values is the
+axiom (`reflect` translated names-only in Perennial, like `crypto/rand`), stated as Go's
+`DeepEqual` reads on this struct: fields one by one, a slice field equal iff both nil
+or both non-nil with equal elements. The nil/non-nil distinction is why the proof
+tracks nil-ness: `append([]uint64(nil), s...)` is `nil` for an empty `s`, so the six
+empty slices come out `nil` on both sides whatever they were (`wp_slice_append_nil_empty`,
+proved from Perennial's `append`/`copy` model without ownership of `s`, since the
+callers only know the lengths). Sorted permutations being equal (`sorted_perm_eq`) is
+what makes the voter copies `DeepEqual`.
+
+**The closure is proved once.** `s := func(sl *[]uint64) {...}` is called eight times;
+its body is copied verbatim from the translation into `sortCopyBody`, its triple proved
+for a function value `f` *fixed by hypothesis* to that literal, and the stored closure is
+`generalize`d to `f` before the loop, so that `wp_auto` cannot inline it. Two triples
+(owned input, input only known empty) rather than one with a disjunction, so each
+returns exactly what it took and the caller frames the original voter slice.
+
+**Rejected -- strengthening the callers' premises to `= slice.nil`** for the six empty
+slices (which would have let `wp_slice_append` be used). It would change `newRaft`'s
+and `raft.restore`'s statements for a fact the proof can establish itself.

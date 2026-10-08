@@ -16,3 +16,7 @@ Changer__apply: Changer__makeVoter confchange_incoming
 Changer__Simple: Changer__checkAndCopy confchange_joint Changer__apply confchange_incoming confchange_symdiff confchange_checkAndReturn
 confchange_toConfChangeSingle:
 confchange_chain:
+# raftpb.ConfState.Equivalent (confstate.go), proved 2026-10-08: its callees override
+# the (empty) Rocq postulates of spec_ConfState__Equivalent.v, an Axiom there.
+reflect_DeepEqual:
+ConfState__Equivalent: slices_Sort reflect_DeepEqual

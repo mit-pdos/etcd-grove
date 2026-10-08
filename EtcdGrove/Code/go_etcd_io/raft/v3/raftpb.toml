@@ -2,6 +2,7 @@ translate = [
   "HardState",
   "Entry",
   "ConfState",
+  "ConfState.Equivalent",
   "ConfChangeTransition",
   "ConfChange",
   "ConfChangeV2",
@@ -50,7 +51,8 @@ translate = [
   "Message",
 ]
 
-imports = ["!*"]
+# `ConfState.Equivalent` (confstate.go, hand-written) calls into these three
+imports = ["fmt", "reflect", "slices"]
 
 trust_proofgen = true
 
