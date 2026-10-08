@@ -247,3 +247,51 @@ it imports). No `sorry`, no axiom: `etc/tcb-report.py --check` now also takes
 - No Goose or proofgen problem with the generic structs: `ringBuffer T'`/`entry T'`
   points-tos, field access and the `[]entry[T]` slice all worked as generated.
 
+### The store (`cache/store.go`, `cache/snapshot.go`): proved (2026-10-08)
+
+`newStore` and `store`'s `Get`, `getSnapshot`, `Restore`, `Apply`,
+`applyProgressNotifyLocked`, `applyEventsLocked`, `LatestRev`, with `validateRevisions`,
+`newKVItem`, `kvItemLess`, `newClonedSnapshot`, `snapshot.Range`, `isPrefixScan`,
+`probeItemFromKey`, and two methods of other packages translated for the store
+(`clientv3.WatchResponse.IsProgressNotify`, `etcdserverpb.ResponseHeader.GetRevision`;
+`client/v3.toml` also translates the constants `EventTypeDelete`/`EventTypePut`): one
+`Spec`/`Proof` pair each, linked in `Cache/Link.lean`. Design and rejected alternatives:
+`decisions.md`, "store: btree as the trust boundary, ghost state under the RWMutex".
+
+- **State model** (`InvStore.lean`): `StoreState` = latest revision, latest map, history of
+  `(rev, map)` snapshots, oldest first; a map (`KvMap`) is the btree's item list, entries
+  `(key, *KeyValue)` strictly sorted by Go's `<` on strings (`kvLess`, `go.GoStringLt`).
+  `StoreInv cap st`: `latest.rev ≥ 0`, maps sorted, at most `cap` snapshots with strictly
+  increasing revisions none above `latest.rev`. `StoreState.Synced` (newest snapshot =
+  latest map) holds after `Restore` and a successful `Apply` (`applyResp_synced`), not after a
+  failed one. Models: `snapModel` (`getSnapshot`), `kvRange` (`Range`), `applyEvents`/`applyResp`
+  (`Apply`, with the exact partial state of a failed delete), `restoreState` (`Restore`).
+- **Ghost shape**: `storeLockInv s γ cap q` is the `RWMutex`'s fractional `P q` (Perennial's
+  `ownRWMutex`): `q` of `latest.rev`, of the history ring (`ownRingBuffer` is now fractional) and
+  of a `monoNat` on `latest.rev`, and `q/2` of a `ghostVar` with the `StoreState`.
+  `storeWriter s γ cap st` (the other half, a mutex token, the latest tree, a lower bound);
+  `storeReader s γ cap` (a reader token: `RWMutex` bounds the readers; `newStore` returns
+  `actualMaxReaders - 1`); `storeRevLb γ r` (persistent); `isStore s γ cap` (persistent:
+  `revCond`'s `isCond`, `degree > 1`, `0 < cap ≤ 2^61`). Readers (`Get`, `getSnapshot`,
+  `LatestRev`) return facts about *some* state at least their lower bound (`storeSeen`);
+  `Apply`/`Restore` take and return `storeWriter` with the exact transition.
+- **Errors** are package variables (`Base.lean`: the cache's `ErrNotReady`, `rpctypes`'
+  `ErrFutureRev`/`ErrCompacted` point to fixed non-nil errors); specs return "the value of
+  that variable" (`snapErr`).
+- **Axioms (trust boundary)**: `ownBTree`, `ownBTree_dfractional` (`InvBtree.lean`) and the
+  `.wp_proof` of `btree.New`, `BTree.Clone`, `Get`, `ReplaceOrInsert`, `Delete`,
+  `AscendGreaterOrEqual`, `AscendRange` (the btree package is names-only).
+- **`sorry`**: one, `newStore_RLocker` (`Proof/newStore.lean`): `RWMutex.RLocker()` converts
+  `*RWMutex` to `*rlocker`, and Perennial's Go semantics has no step for a conversion between
+  two pointer types, so the call is stuck. `fmt.Errorf` (the error paths) is Perennial's own
+  `sorry` (`Proof/fmt.lean`), now reached.
+- **Perennial gaps found**: the pointer-to-pointer conversion above; no `isLocker` for
+  `rlocker` (the cache's `revCond.Wait` will need it); `wp_load` through a fractional or
+  persistent struct points-to fails (the Access search takes the field-store instance, which
+  needs `DFrac.own 1`, and does not backtrack), worked around per proof with
+  `attribute [-instance] …_access_store_…`; a struct field access finds `TypeRepr` through
+  the struct's `IntoValTyped` (for protobuf messages a `sorry`), worked around with direct
+  `TypeRepr` instances in `InvStore.lean`.
+- `etc/tcb-report.py --check`: 14 axioms, 2 sorries (the baseline gained the nine btree
+  axioms, `newStore_RLocker` and Perennial's `fmt.wp_Errorf`). `etc/goose.py --check` passes
+  (with `--src etcd=/shared/etcd` until the fork is pushed).

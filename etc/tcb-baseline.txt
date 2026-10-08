@@ -1,6 +1,17 @@
 # The project's part of the Raft proof's trust base (etc/tcb-report.py --check --update).
+axiom btree.BTree.AscendGreaterOrEqual.wp_proof
+axiom btree.BTree.AscendRange.wp_proof
+axiom btree.BTree.Clone.wp_proof
+axiom btree.BTree.Delete.wp_proof
+axiom btree.BTree.Get.wp_proof
+axiom btree.BTree.ReplaceOrInsert.wp_proof
+axiom btree.New.wp_proof
 axiom fmt.Sprintf.wp_proof
+axiom ownBTree
+axiom ownBTree_dfractional
 axiom rand.Int.wp_proof
 axiom reflect.DeepEqual.wp_proof
 axiom slices.Sort.wp_proof
 axiom strings.Join.wp_proof
+sorry Perennial.fmt.wp_Errorf
+sorry newStore_RLocker

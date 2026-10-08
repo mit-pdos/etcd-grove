@@ -230,3 +230,69 @@ ownership, and the iterations would lend and reclaim each item).
   T'] (T) [IntoValTyped T' T]`), so each `spec` is a `Prop` and `Link.lean` has the raft
   shape; `etc/gen-link.py --cache` generates it from `etc/link-lean-first-cache.txt`.
 
+
+---
+
+## store: btree as the trust boundary, ghost state under the RWMutex
+
+**2026-10-08 · accepted**
+
+etcd's cache `store` (`cache/store.go`, `cache/snapshot.go`) is specified and proved
+Lean-first like the ring buffer (`EtcdGrove/Cache/{Spec,Proof}/`, vocabulary in
+`InvStore.lean`, the btree abstraction in `InvBtree.lean`).
+
+**Decided with the user:**
+- **The btree is the trust boundary.** `k8s.io/utils/third_party/forked/golang/btree` stays
+  names-only; `ownBTree T t isItem less items dq` is an `axiom` (with `ownBTree_dfractional`:
+  Perennial's `DFractional`, as `typedPointsto` is), and the seven methods the store calls
+  (`New`, `Clone`, `Get`, `ReplaceOrInsert`, `Delete`, `AscendGreaterOrEqual`, `AscendRange`)
+  are `axiom … .wp_proof`, stated from the Go documentation over the sorted item list
+  (`btFind`/`btInsert`/`btDelete`/filters), every one assuming `StrictWeakOrder less` and a
+  persistent `isItem`. *Rejected:* translating the btree (copy-on-write nodes, free lists:
+  a large proof for a dependency).
+- **Ghost state under the RWMutex.** The lock invariant `storeLockInv s γ cap q` (Perennial's
+  guarded `ownRWMutex rw P`, `P` fractional) holds a `q`-fraction of `latest.rev` and the history
+  ring, of a `monoNat` on `latest.rev`, and `q/2` of a ghost variable with the abstract
+  `StoreState`; the writer (`storeWriter`) holds the other half and the latest tree; readers get
+  facts about *some* state with a lower bound (`storeRevLb`).
+- **Errors are package variables**: `ErrNotReady` (cache) and `rpctypes.ErrFutureRev`/
+  `ErrCompacted` are `globalAddr X ↦□ interface.ok e` in the packages' `IsPkgInit` facts
+  (`Base.lean`), and the specs say "the returned error is the value of that variable"
+  (`globalAddr X ↦□ err`, `snapErr`), not its message.
+
+**Decided here:**
+- **The map is a sorted list of `(key, *KeyValue)`** (`KvMap`), the btree's own item list:
+  `kvItemIs p (k, l)` is `p ↦□ kvItem{k, l}`, so a search probe (`kv = nil`) is an item too
+  (the btree's `less` closure compares probes with items), and the `KeyValue` contents are a
+  separate persistent `kvAt`. *Rejected:* `(key, KeyValue value)` entries (no `isItem` for a
+  probe) and a finite map (the btree's order is the list's).
+- **Readers hold a token.** `RWMutex` admits at most `actualMaxReaders` readers at once, and
+  Perennial's `ownRWMutex` counts them; so `Get`/`LatestRev` take `storeReader s γ cap` (one
+  `ownRWMutex`) besides the persistent `isStore`, and `newStore` returns `actualMaxReaders - 1`
+  of them (the writer has one). *Rejected:* a persistent `isStore` alone (it cannot pay for
+  `RLock`).
+- **The ring buffer is fractional.** Readers hold `P rfrac`, so `ownRingBuffer` gained a
+  fraction (`dq`, default `DFrac.own 1`, `ownRingBuffer_fractional`) and its read-only
+  `at`/`moduloIndex`/`findLastIndexLessOrEqual`/`DescendLessOrEqual` specs take any fraction;
+  the writing specs are unchanged.
+- **`Apply`'s failure path**: `applyEvents` is the code's loop as a function: batches of equal
+  revision; a failed delete (missing key) stops it with the earlier batches applied (their
+  snapshots appended, the revision the last one's) and the failing batch's earlier events
+  applied to the latest map, with no snapshot. So "the newest snapshot is the latest map"
+  (`StoreState.Synced`) is not in `StoreInv`: it holds after `Restore` and after a successful
+  `Apply` (`applyResp_synced`), not after a failed one.
+- **Preconditions the code relies on**: `Apply` takes events in revision order (`EvRevSorted`;
+  etcd's watch guarantees it, the store does not check, and without it the ring's revisions
+  would not increase); `Restore` takes `rev ≥ latest.rev` (the readers' lower bounds stay true;
+  `latest.rev ≥ 0` follows); `newStore` takes `degree > 1` (`btree.New` panics) and
+  `historyCapacity ≤ 2^61` (`newRingBuffer`).
+- **`IsProgressNotify` and the event-type constants are translated**, not assumed:
+  `client/v3.toml` translates `WatchResponse.IsProgressNotify`, `EventTypeDelete`,
+  `EventTypePut`, and `etcdserverpb.toml` `ResponseHeader.GetRevision` (two more spec/proof
+  pairs). *Rejected:* axioms for them (the bodies are three lines).
+- **Protobuf messages through their fields only.** `kvAt`, `eventAt`, `hdrAt` are field
+  points-tos (`Key`, `ModRevision`, `Type`, `Kv`, `Revision`), never a whole-message points-to:
+  a message's `TypedPointsto`/`IntoValTyped` contains the opaque `state : impl.MessageState`,
+  whose generated instances are `sorry` ("axiomatized type"). `InvStore.lean` also gives the
+  three messages' `TypeRepr` directly (high priority), since instance search otherwise found it
+  through those `IntoValTyped` instances for every field access.

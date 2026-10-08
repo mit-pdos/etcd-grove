@@ -6,7 +6,22 @@ hand.
 
 `#print axioms` on a result is its trust base.
 -/
+import EtcdGrove.Cache.Proof.BTree__AscendGreaterOrEqual
+import EtcdGrove.Cache.Proof.BTree__AscendRange
+import EtcdGrove.Cache.Proof.BTree__Clone
+import EtcdGrove.Cache.Proof.BTree__Delete
+import EtcdGrove.Cache.Proof.BTree__Get
+import EtcdGrove.Cache.Proof.BTree__ReplaceOrInsert
+import EtcdGrove.Cache.Proof.ResponseHeader__GetRevision
+import EtcdGrove.Cache.Proof.WatchResponse__IsProgressNotify
+import EtcdGrove.Cache.Proof.btree_New
+import EtcdGrove.Cache.Proof.isPrefixScan
+import EtcdGrove.Cache.Proof.kvItemLess
+import EtcdGrove.Cache.Proof.newClonedSnapshot
+import EtcdGrove.Cache.Proof.newKVItem
 import EtcdGrove.Cache.Proof.newRingBuffer
+import EtcdGrove.Cache.Proof.newStore
+import EtcdGrove.Cache.Proof.probeItemFromKey
 import EtcdGrove.Cache.Proof.ringBuffer__Append
 import EtcdGrove.Cache.Proof.ringBuffer__AscendGreaterOrEqual
 import EtcdGrove.Cache.Proof.ringBuffer__AscendLessThan
@@ -20,6 +35,15 @@ import EtcdGrove.Cache.Proof.ringBuffer__findFirstIndexGreaterOrEqual
 import EtcdGrove.Cache.Proof.ringBuffer__findLastIndexLessOrEqual
 import EtcdGrove.Cache.Proof.ringBuffer__full
 import EtcdGrove.Cache.Proof.ringBuffer__moduloIndex
+import EtcdGrove.Cache.Proof.snapshot__Range
+import EtcdGrove.Cache.Proof.store__Apply
+import EtcdGrove.Cache.Proof.store__Get
+import EtcdGrove.Cache.Proof.store__LatestRev
+import EtcdGrove.Cache.Proof.store__Restore
+import EtcdGrove.Cache.Proof.store__applyEventsLocked
+import EtcdGrove.Cache.Proof.store__applyProgressNotifyLocked
+import EtcdGrove.Cache.Proof.store__getSnapshot
+import EtcdGrove.Cache.Proof.validateRevisions
 
 noncomputable section
 
@@ -35,9 +59,69 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
+theorem btree.BTree.wp_AscendGreaterOrEqual :
+    btree.BTree.AscendGreaterOrEqual.spec (GF := GF) (hG := hG) :=
+  btree.BTree.AscendGreaterOrEqual.wp_proof
+
+theorem btree.BTree.wp_AscendRange :
+    btree.BTree.AscendRange.spec (GF := GF) (hG := hG) :=
+  btree.BTree.AscendRange.wp_proof
+
+theorem btree.BTree.wp_Clone :
+    btree.BTree.Clone.spec (GF := GF) (hG := hG) :=
+  btree.BTree.Clone.wp_proof
+
+theorem btree.BTree.wp_Delete :
+    btree.BTree.Delete.spec (GF := GF) (hG := hG) :=
+  btree.BTree.Delete.wp_proof
+
+theorem btree.BTree.wp_Get :
+    btree.BTree.Get.spec (GF := GF) (hG := hG) :=
+  btree.BTree.Get.wp_proof
+
+theorem btree.BTree.wp_ReplaceOrInsert :
+    btree.BTree.ReplaceOrInsert.spec (GF := GF) (hG := hG) :=
+  btree.BTree.ReplaceOrInsert.wp_proof
+
+theorem ResponseHeader.wp_GetRevision [AllG GF] :
+    ResponseHeader.GetRevision.spec (GF := GF) (hG := hG) :=
+  ResponseHeader.GetRevision.wp_proof
+
+theorem WatchResponse.wp_IsProgressNotify [AllG GF] :
+    WatchResponse.IsProgressNotify.spec (GF := GF) (hG := hG) :=
+  WatchResponse.IsProgressNotify.wp_proof ResponseHeader.wp_GetRevision
+
+theorem btree.wp_New :
+    btree.New.spec (GF := GF) (hG := hG) :=
+  btree.New.wp_proof
+
+theorem wp_isPrefixScan [AllG GF] :
+    isPrefixScan.spec (GF := GF) (hG := hG) :=
+  isPrefixScan.wp_proof
+
+theorem wp_kvItemLess [AllG GF] :
+    kvItemLess.spec (GF := GF) (hG := hG) :=
+  kvItemLess.wp_proof
+
+theorem wp_newClonedSnapshot [AllG GF] :
+    newClonedSnapshot.spec (GF := GF) (hG := hG) :=
+  newClonedSnapshot.wp_proof btree.BTree.wp_Clone
+
+theorem wp_newKVItem [AllG GF] :
+    newKVItem.spec (GF := GF) (hG := hG) :=
+  newKVItem.wp_proof
+
 theorem wp_newRingBuffer :
     newRingBuffer.spec (GF := GF) (hG := hG) :=
   newRingBuffer.wp_proof
+
+theorem wp_newStore [AllG GF] :
+    newStore.spec (GF := GF) (hG := hG) :=
+  newStore.wp_proof btree.wp_New wp_kvItemLess wp_newRingBuffer
+
+theorem wp_probeItemFromKey [AllG GF] :
+    probeItemFromKey.spec (GF := GF) (hG := hG) :=
+  probeItemFromKey.wp_proof
 
 theorem ringBuffer.wp_full :
     ringBuffer.full.spec (GF := GF) (hG := hG) :=
@@ -90,6 +174,42 @@ theorem ringBuffer.wp_PeekOldest :
 theorem ringBuffer.wp_RebaseHistory :
     ringBuffer.RebaseHistory.spec (GF := GF) (hG := hG) :=
   ringBuffer.RebaseHistory.wp_proof
+
+theorem snapshot.wp_Range [AllG GF] :
+    snapshot.Range.spec (GF := GF) (hG := hG) :=
+  snapshot.Range.wp_proof wp_probeItemFromKey wp_isPrefixScan btree.BTree.wp_Get btree.BTree.wp_AscendGreaterOrEqual btree.BTree.wp_AscendRange
+
+theorem wp_validateRevisions [AllG GF] :
+    validateRevisions.spec (GF := GF) (hG := hG) :=
+  validateRevisions.wp_proof WatchResponse.wp_IsProgressNotify
+
+theorem store.wp_applyProgressNotifyLocked [AllG GF] :
+    store.applyProgressNotifyLocked.spec (GF := GF) (hG := hG) :=
+  store.applyProgressNotifyLocked.wp_proof
+
+theorem store.wp_applyEventsLocked [AllG GF] :
+    store.applyEventsLocked.spec (GF := GF) (hG := hG) :=
+  store.applyEventsLocked.wp_proof btree.BTree.wp_Delete btree.BTree.wp_ReplaceOrInsert wp_newKVItem wp_newClonedSnapshot ringBuffer.wp_Append
+
+theorem store.wp_Apply [AllG GF] :
+    store.Apply.spec (GF := GF) (hG := hG) :=
+  store.Apply.wp_proof wp_validateRevisions WatchResponse.wp_IsProgressNotify store.wp_applyProgressNotifyLocked store.wp_applyEventsLocked
+
+theorem store.wp_getSnapshot [AllG GF] :
+    store.getSnapshot.spec (GF := GF) (hG := hG) :=
+  store.getSnapshot.wp_proof ringBuffer.wp_DescendLessOrEqual
+
+theorem store.wp_Get [AllG GF] :
+    store.Get.spec (GF := GF) (hG := hG) :=
+  store.Get.wp_proof store.wp_getSnapshot snapshot.wp_Range
+
+theorem store.wp_LatestRev [AllG GF] :
+    store.LatestRev.spec (GF := GF) (hG := hG) :=
+  store.LatestRev.wp_proof
+
+theorem store.wp_Restore [AllG GF] :
+    store.Restore.spec (GF := GF) (hG := hG) :=
+  store.Restore.wp_proof btree.wp_New wp_kvItemLess wp_newKVItem btree.BTree.wp_ReplaceOrInsert ringBuffer.wp_RebaseHistory wp_newClonedSnapshot ringBuffer.wp_Append
 
 end links
 

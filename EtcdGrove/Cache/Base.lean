@@ -5,9 +5,11 @@ imports (the counterpart of `EtcdGrove/Raft/Base.lean` for the `EtcdCache` libra
 `isPkgInit` of a package includes `isPkgInit` of everything it imports, so every package
 reachable from the cache's imports needs an instance. The standard-library ones (`bytes`,
 `context`, `errors`, `fmt`, `sync`, `time`) are Perennial's; the etcd, k8s and protobuf
-packages are translated names-only or types-only (`EtcdCache/Code/**.toml`), and no proof
-here reads a package-level variable of theirs, so their package facts are `True`. So is
-the cache's own: the ring buffer reads no global. Everything here is an assumption about
+packages are translated names-only or types-only (`EtcdCache/Code/**.toml`), and their
+package facts are `True` except where the store reads a package-level variable: the
+cache's `ErrNotReady` (`fmt.Errorf` at init) and `rpctypes`' `ErrFutureRev` and
+`ErrCompacted` each hold a fixed non-nil error (`globalAddr X ↦□ interface.ok e`, as
+Perennial's own packages state their globals). Everything here is an assumption about
 package initialization, as in `Raft/Base.lean`: nothing proves it from `initialize'`.
 -/
 import EtcdCache.Code.go_etcd_io.etcd.cache.v3
@@ -65,9 +67,16 @@ instance etcdserverpb_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb :=
   build_get_is_pkg_init_wf
 
+/-- `rpctypes`' package facts: the two errors the store returns. -/
+abbrev rpctypesInit : IProp GF :=
+  iprop((∃ e : GoInterfaceOk,
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrFutureRev ↦□ GoInterface.ok e) ∗
+    (∃ e : GoInterfaceOk,
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrCompacted ↦□ GoInterface.ok e))
+
 instance rpctypes_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init rpctypesInit
 instance rpctypes_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes :=
   build_get_is_pkg_init_wf
@@ -85,8 +94,12 @@ instance btree_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.utils.third_party.forked.golang.btree :=
   build_get_is_pkg_init_wf
 
+/-- The cache's package facts: `ErrNotReady`, which the store returns. -/
+abbrev cacheInit : IProp GF :=
+  iprop(∃ e : GoInterfaceOk, globalAddr ErrNotReady ↦□ GoInterface.ok e)
+
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init cacheInit
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 :=
   build_get_is_pkg_init_wf
 
