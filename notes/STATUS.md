@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-07
+**Last updated:** 2026-10-08
 
 Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
@@ -36,6 +36,10 @@ array fix and Go-model/theory additions to the Lean framework).
   and `wp_newRaft` do not.
 
 - Trust base: `etc/tcb-report.py` (gate: `--check` against `etc/tcb-baseline.txt`).
+- Verified code: `etc/verified-code.py`. On 2026-10-08 (forks `upamanyus/etcd-raft`
+  `24643b3`, `upamanyus/etcd` `3efe157`): raft 161 of 323 functions verified, 1962 of
+  3646 Go code lines (53.8%; 143 functions sorry-free); etcd 16 of 3579 functions, 174
+  of 45359 lines (0.4%, all from Perennial's public proofs).
 
 ## Next
 
