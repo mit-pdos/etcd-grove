@@ -1,15 +1,6 @@
 # The project's part of the Raft proof's trust base (etc/tcb-report.py --check --update).
-axiom Logger.wp_logf
-axiom big.Int.Int64.wp_proof
-axiom big.NewInt.wp_proof
 axiom fmt.Sprintf.wp_proof
-axiom isLogger
-axiom isLogger_persistent
-axiom ownBigInt
-axiom ownStorage
-axiom raftpb.ConfState.Equivalent.wp_proof
-axiom raftpb.Entry.Size.wp_proof
 axiom rand.Int.wp_proof
+axiom reflect.DeepEqual.wp_proof
 axiom slices.Sort.wp_proof
 axiom strings.Join.wp_proof
-sorry raftLog.slice.wp_proof

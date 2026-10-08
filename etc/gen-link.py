@@ -11,7 +11,8 @@ callees' results, in the postulates' order:
 Functions with no Rocq counterpart (Lean-first: the `confchange` package, translated
 and proved here on 2026-10-08) are listed in etc/link-lean-first.txt, one per line as
 `<fn>: <callee> <callee> ...` (the callees in the order of the `wp_proof`'s
-hypotheses), and linked the same way.
+hypotheses), and linked the same way; a Rocq-side function listed there has its
+callees overridden (a Rocq `Axiom` proved here).
 
 usage: etc/gen-link.py ROCQ_PROOF_DIR > EtcdGrove/Raft/Link.lean
 """
@@ -42,9 +43,10 @@ with open(os.path.join(here, "link-lean-first.txt")) as f:
             continue
         fn, _, cs = line.partition(":")
         fn = fn.strip()
-        if fn in callees:
-            raise SystemExit(f"{fn}: both Rocq and Lean-first")
-        fns.append(fn)
+        # a Rocq-side function may be listed to override its postulates (a Rocq
+        # `Axiom` proved here from callees the Rocq does not have)
+        if fn not in callees:
+            fns.append(fn)
         callees[fn] = cs.split()
 fns.sort()
 
@@ -119,13 +121,13 @@ generic = [fn for fn in order if fn not in haslc]
 special = [fn for fn in order if fn in haslc]
 assert all(c not in haslc for fn in generic for c in callees[fn])
 out.append("section links\n" + VARS.format(
-    heap="variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]\nvariable [AllG GF]"))
+    heap="variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]\nvariable [AllG GF]"))
 out.extend(emit(fn) for fn in generic)
 out.append("end links\n")
 out.append("""/-! The specs stated at `HeapGS HasLC.hasLC GF`: the ghost state holds an
 invariant (`raftCommitInv`), whose world is the heap's only at `.hasLC`. -/""")
 out.append("section links_hasLC\n" + VARS.format(
-    heap="variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]\nvariable [AllG GF]"))
+    heap="variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]\nvariable [AllG GF]"))
 out.extend(emit(fn) for fn in special)
 out.append("end links_hasLC\n\nend EtcdGrove\nend Perennial")
 print("\n".join(out))

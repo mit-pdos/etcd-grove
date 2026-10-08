@@ -206,13 +206,70 @@ cell: `defineStmt` wrapped the allocations *around* the assignment it built, so 
 right-hand side naming a defined variable read the fresh cell. Every closure would have
 captured `NodeID = 0`, which `apply` skips, and `Restore` would have returned "removed
 all voters" -- the spec was unprovable against the translation. Fixed in Perennial's
-`goose/goose.go` (`defineStmt` evaluates such right-hand sides first, into `$def<i>`,
-only when a right-hand side reads a variable the statement defines; field and method
-names of the same name do not count). In the translated etcd code only `Restore` has
-the pattern (`rafttest` is not translated); the regenerated `raft/v3`, `quorum` and
-`tracker` are byte-identical.
+`goose/goose.go` (c35b7710d): every define statement now binds its right-hand sides
+(`$r<i>`) first, then allocates the new variables, then stores, as Go evaluates the
+right-hand sides before the new names are in scope. (A first fix, 43b7fc480, did this
+only for right-hand sides naming a defined variable, via temporaries `$def<i>`.) The
+uniform order reorders every `:=` in the translation; in the proofs a `wp_auto` (or a
+`wp_pure` workaround) right after a call sometimes has nothing left to step, since the
+call's `wp_apply` now also steps the allocation that follows it.
 
 **Rejected -- requiring `voters.Nodup` in `Restore.spec`** to skip the repeated-voter
 branch of `makeVoter`. The callers have it, but the spec's comment says it is not
 needed and keeping the statement identical is what makes "axiom replaced by theorem"
 auditable; the branch cost ~30 lines.
+
+---
+
+## `ConfState.Equivalent`: `reflect.DeepEqual` is the axiom, not the raft code
+
+**2026-10-08 · accepted**
+
+`Equivalent` (confstate.go) sorts copies of the four id slices of both `ConfState`s
+and compares the results with `reflect.DeepEqual`. Goose has no model of reflection,
+so the raft code is proved and `reflect.DeepEqual` on two `ConfState` values is the
+axiom (`reflect` translated names-only in Perennial, like `crypto/rand`), stated as Go's
+`DeepEqual` reads on this struct: fields one by one, a slice field equal iff both nil
+or both non-nil with equal elements. The nil/non-nil distinction is why the proof
+tracks nil-ness: `append([]uint64(nil), s...)` is `nil` for an empty `s`, so the six
+empty slices come out `nil` on both sides whatever they were (`wp_slice_append_nil_empty`,
+proved from Perennial's `append`/`copy` model without ownership of `s`, since the
+callers only know the lengths). Sorted permutations being equal (`sorted_perm_eq`) is
+what makes the voter copies `DeepEqual`.
+
+**The closure is proved once.** `s := func(sl *[]uint64) {...}` is called eight times;
+its body is copied verbatim from the translation into `sortCopyBody`, its triple proved
+for a function value `f` *fixed by hypothesis* to that literal, and the stored closure is
+`generalize`d to `f` before the loop, so that `wp_auto` cannot inline it. Two triples
+(owned input, input only known empty) rather than one with a disjunction, so each
+returns exactly what it took and the caller frames the original voter slice.
+
+**Rejected -- strengthening the callers' premises to `= slice.nil`** for the six empty
+slices (which would have let `wp_slice_append` be used). It would change `newRaft`'s
+and `raft.restore`'s statements for a fact the proof can establish itself.
+
+---
+
+## `raftLog.slice`: the admission was the `append` model's own assumption
+
+**2026-10-08 · accepted**
+
+`extend` (util.go) computes `need := len(dst) + len(vals)` as a Go `int`, and its spec
+required `|dst| + |vals| < 2^63`; `raftLog.slice` could not establish it (the stable
+part is bounded by `2^61`, the unstable slice only by `2^63`) and admitted it, Rocq's one
+`Admitted` on the election path, "the log fits in memory" (main's
+notes/false-statements.md; `InvRaftlog.lean`'s `Hnowrap` comment).
+
+**Decision:** drop the premise. When the sum reaches `2^63`, `need` wraps negative, so
+`need <= cap(dst)` holds and the code takes the `append(dst, vals...)` branch; Goose's
+model of `append` (`go.append`, `Perennial/Golang/Defn/Slice.lean`) begins with
+`sumAssumeNoOverflowSigned`, an *assumption* that `len(dst) + len(vals)` does not
+overflow -- Goose models Go's `growslice` "len out of range" panic as an assumption,
+everywhere. The overflow case is therefore vacuous under the model, and the admitted
+fact was that assumption restated for one call site. `extend.wp_proof` now steps into
+`append` in that case and closes it from the assumption. Nothing new is trusted:
+Perennial's Go semantics already were ("Not checked by Lean").
+
+**Rejected -- carrying a `< 2^63` bound in `ownRaftLog`** (tried 2026-09-20): no
+constant bound survives `appendEntry`'s `append`, for the same reason -- which is why
+the model assumes it there too.

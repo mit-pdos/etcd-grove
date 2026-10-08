@@ -9,10 +9,10 @@ contract that raft relies on. So this file states that contract.
 The shape follows `ownAckedIndexer` (`v3_proof/readonly.lean`): a definition bundling
 one Hoare triple per method, against an abstract resource describing the stored log.
 
-**The whole trust surface of this file is one line**: the abstract predicate
-`ownStorage`, below. Everything else is a definition built from it, so the triples are
-not axioms -- they are what a client has to supply, and a caller that has no
-`isStorage` gets nothing.
+**This file assumes nothing**: the abstract predicate `ownStorage`, below, is a
+parameter (a field of the class `StorageModel`, which the results quantify over), and
+everything else is a definition built from it, so the triples are not axioms -- they
+are what a client has to supply, and a caller that has no `isStorage` gets nothing.
 
 ### The abstraction
 
@@ -97,8 +97,9 @@ excludes the panicking methods, so a proof cannot step past such a call at all -
 path must be shown unreachable. Saying "these three do not fail" is therefore the only
 honest reading of raft's use of the interface.
 
-Lean notes: `ownStorage` is an `axiom` with its binders written out (`GF` and
-`FfiSyntax`, which `Storage`/`entryID` need); it mentions no other section variable.
+Lean notes: `ownStorage` is the field of `class StorageModel GF` (binders `GF` and
+`FfiSyntax`, which `Storage`/`entryID` need), exported; a section that uses it has
+`[StorageModel GF]`.
 Rocq's `l1 `prefix_of` l2` is `l1 <+: l2`, `take n l`/`drop n l` are `l.take n`/`l.drop n`.
 The Rocq `ents !! k` is `ents[k]?` and `Z.to_nat` is `Int.toNat`. Inside `iprop(…)` a
 Texan triple is `□ (∀ Φ, …)`, as Rocq's `{{{ … }}}` is, so `isStorage` is persistent
@@ -116,13 +117,18 @@ namespace EtcdGrove
 
 open Iris Iris.BI go_etcd_io.raft.v3
 
-/-- The one assumption in this file: an abstract description of a client-supplied
-`Storage`'s contents. Abstract because the implementation is not raft's and is not in
-scope; exclusive (not persistent) because a `Storage` is mutable -- `Append` and
-`Compact` change it -- so two different contents for the same `st` must not be
-simultaneously assertable. -/
-axiom ownStorage {GF : BundledGFunctors} [FfiSyntax] :
-  Storage → entryID → List raftpb.Entry → entryID → IProp GF
+/-- An abstract description of a client-supplied `Storage`'s contents. A *parameter*
+of the development, not an assumption: abstract because the implementation is not
+raft's and is not in scope, so every result holds for whichever predicate the client
+proves `isStorageWith` for (`MemstorageInstance.lean` does it for `MemoryStorage`).
+Exclusive (not persistent) by intent, because a `Storage` is mutable -- `Append` and
+`Compact` change it; nothing assumes otherwise. There is deliberately no global
+instance: one would specialise every result to it. Until 2026-10-08 `ownStorage` was an
+`axiom`, which fixed one unknown predicate that no client could ever establish. -/
+class StorageModel (GF : BundledGFunctors) [FfiSyntax] where
+  ownStorage : Storage → entryID → List raftpb.Entry → entryID → IProp GF
+
+export StorageModel (ownStorage)
 
 section termAt
 variable [FfiSyntax]
@@ -139,7 +145,7 @@ end termAt
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 

@@ -13,7 +13,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
@@ -82,7 +82,6 @@ theorem raftLog.hasNextCommittedEnts.wp_proof
     · iexact Hlog
     simp only at Hhi0
     have Hhi0' : uint.Z hi0 ≤ uint.Z lcm := by cases au <;> simp at Hhi0 <;> omega
-    wp_auto
     iapply HΦ
     iframe Hlog
     ipureintro
