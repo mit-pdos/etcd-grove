@@ -107,12 +107,8 @@ reduces build times by about 10%.
 
 The dependencies are pinned to a particular commit hash (using an opam
 `pin-depends` clause) to avoid breaking the
-Perennial build when there are incompatible upstream changes. We use Dependabot
-to do monthly checks for dependency updates (see
-[.github/dependabot.yml](.github/dependabot.yml) and read the GitHub
-documentation). Unlike upstream, these are **not** auto-merged: upstream's
-auto-merge workflow relies on a GitHub Ruleset that gates merging on CI, which
-this fork does not have, so review and merge them yourself.
+Perennial build when there are incompatible upstream changes. Dependabot is not
+used in this fork: bump the pins by hand when you want a newer dependency.
 
 ## Tips for managing compilation time
 
