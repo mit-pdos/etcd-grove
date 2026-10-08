@@ -1,0 +1,52 @@
+name: Lean
+
+on:
+  push:
+    branches: ["lean"]
+  pull_request:
+    branches: ["lean"]
+  # allow running action manually.
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install elan
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh \
+            | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      # The dependencies (Perennial, Iris, Batteries, Qq), built. Restored from
+      # the newest run with the same pins and saved after every run, so a build
+      # of them that fails part-way is not lost; this repository's own modules
+      # are always built from scratch, so the build report covers all of them.
+      - name: Restore dependencies
+        uses: actions/cache/restore@v4
+        with:
+          path: .lake/packages
+          key: lake-packages-${{ runner.os }}-${{ hashFiles('lean-toolchain', 'lake-manifest.json', 'lakefile.toml') }}-${{ github.run_id }}
+          restore-keys: |
+            lake-packages-${{ runner.os }}-${{ hashFiles('lean-toolchain', 'lake-manifest.json', 'lakefile.toml') }}-
+      - name: Build
+        # `build-report.py build` runs `lake build` and prints a build report
+        # after it, pass or fail (time, parallelism over time, critical path);
+        # this also puts it on the run's summary page.
+        id: build
+        run: ./etc/build-report.py --markdown-to "$GITHUB_STEP_SUMMARY" build
+      - name: Save dependencies
+        if: always() && steps.build.outcome != 'skipped'
+        uses: actions/cache/save@v4
+        with:
+          path: .lake/packages
+          key: lake-packages-${{ runner.os }}-${{ hashFiles('lean-toolchain', 'lake-manifest.json', 'lakefile.toml') }}-${{ github.run_id }}
+      - name: Upload build record
+        if: always() && steps.build.outcome != 'skipped'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-record
+          path: .lake/build-report/*.jsonl
+          if-no-files-found: ignore
+      - name: Check the trust base
+        run: ./etc/tcb-report.py --check

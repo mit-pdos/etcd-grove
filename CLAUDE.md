@@ -53,3 +53,10 @@ Perennial's Lean docs (in the dependency, `.lake/packages/perennial/docs/`):
 ## Building
 
 `lake build` (needs the `elan` toolchain in `lean-toolchain`).
+
+`etc/build-report.py build [LAKE_ARGS…]` runs `lake build` and then reports on it:
+wall and CPU time, parallelism over time, the critical path (with Lake's idle time
+per step), the unlimited-cores bound, the slowest modules and where the CPU went.
+CI (`.github/workflows/lean.yml`) runs the build this way and puts the report on
+the run's summary page. `etc/build-report.py` alone reprints the latest report,
+`--list` lists the recorded builds (`.lake/build-report/`).
