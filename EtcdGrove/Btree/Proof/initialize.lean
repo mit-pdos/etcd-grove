@@ -15,15 +15,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.google.btree.Assumptions]
 
-/-- `wp_sort_initialize` is `sort`'s `wp_initialize'`, which Perennial does not prove
-(`Perennial/Proof/sort_proof/sort_init.lean` has only the `IsPkgInit` instance); it is
-a hypothesis until Perennial has it. -/
-theorem initialize.wp_proof
-    (wp_sort_initialize : ∀ (get_is_pkg_init : GoString → IProp GF),
-      GetIsPkgInitProp pkg_id.sort get_is_pkg_init →
-      {{ ownInitializing get_is_pkg_init }}
-        (App (Val _root_.Perennial.sort.initialize') (Val #()))
-      {{ RET #(); ownInitializing get_is_pkg_init ∗ isPkgInit (PROP := IProp GF) pkg_id.sort }}) :
+theorem initialize.wp_proof :
     initialize.spec (GF := GF) (hG := hG) := by
   intro get_is_pkg_init Hinit
   wp_start as Hown
@@ -34,7 +26,7 @@ theorem initialize.wp_proof
   wp_apply wp_GlobalAlloc (V := GoFunc) itemLess (LessFunc.ty Item.ty) as Hl
   wp_apply sync.wp_initialize' _ Hinit.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hsync⟩
   wp_apply strings.wp_initialize' _ Hinit.2.2.2.2.1 $$ Hown as ⟨Hown, #Hstrings⟩
-  wp_apply wp_sort_initialize _ Hinit.2.2.2.1 $$ Hown as ⟨Hown, #Hsort⟩
+  wp_apply sort.wp_initialize' _ Hinit.2.2.2.1 $$ Hown as ⟨Hown, #Hsort⟩
   wp_apply io.wp_initialize' _ Hinit.2.2.1 $$ Hown as ⟨Hown, #Hio⟩
   wp_apply +noauto fmt.wp_initialize' _ Hinit.2.1 $$ Hown as ⟨Hown, #Hfmt⟩
   wp_pures

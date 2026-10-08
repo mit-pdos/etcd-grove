@@ -367,3 +367,4 @@ import EtcdGrove.Raft.Proof.voteRespMsgType
 import EtcdGrove.Raft.Link
 import EtcdGrove.Raft.MemstorageInstance
 import EtcdGrove.Raft.Results
+import EtcdGrove.Btree.Results

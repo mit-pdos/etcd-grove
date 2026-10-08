@@ -20,7 +20,7 @@ import sys
 here = os.path.dirname(os.path.abspath(__file__))
 lean = os.path.join(here, "..", "EtcdGrove", "Btree")
 
-THM = re.compile(r"^theorem ([\w.«»']+)\.wp_proof\b(.*?):=", re.M | re.S)
+THM = re.compile(r"^theorem ([\w.«»']+)\.wp_proof\b(.*?):=\s*(?:by\b|\n)", re.M | re.S)
 HYP = re.compile(r"\(\s*\w+\s*:\s*([\w.«»']+)\.spec\b")
 
 proofs = {}  # spec name -> (module, callees)
