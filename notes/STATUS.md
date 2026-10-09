@@ -6,8 +6,8 @@ Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
 `worktree-raft-replication`'s `feb5c73d4` and adds Ready/Advance/HasReady; the files
 were first ported from `main`, then from `feb5c73d4`) to Lean on top of Perennial's Lean
-port (mit-pdos/perennial branch `lean-modules`, pinned at 16086a575: `lean` at
-584b17c54 on Lean's module system). The Goose translations of etcd-raft and etcd's
+port (mit-pdos/perennial `lean`, pinned at 2b8cb96a0, on Lean's module system since
+2026-10-09: branch `lean-modules`, merged into `lean`). The Goose translations of etcd-raft and etcd's
 `cache` package are this repository's `Code/` and `GeneratedProof/`, generated and
 checked by `etc/goose.py`. Files are laid out by kind and Go package path
 (`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module

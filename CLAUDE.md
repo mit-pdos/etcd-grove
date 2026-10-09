@@ -49,9 +49,11 @@ Every file starts with `module`, imports with `public import` and opens
 `@[expose] public section` after its imports, so every declaration is public and
 every definition's body visible to importers, as before the module system; what
 changes is that an importer loads only that public part (not proofs or private
-declarations), which halves the memory of a compile and speeds up imports. A
+declarations): importing Perennial's proof prelude takes half the memory and a
+quarter less time, and a compile's peak memory is about a third lower (2.8 to 1.8
+GiB, measured 2026-10-08; `notes/decisions.md`, "Lean's module system"). A
 definition sealed inside its file (`ownRaftPhys`) is `@[no_expose]`. New files follow
-the same pattern; Perennial's are modules too (branch `lean-modules`).
+the same pattern; Perennial's are modules too.
 
 ## Trust base
 

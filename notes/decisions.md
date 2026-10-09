@@ -479,8 +479,9 @@ loads in full ("Build speed: importing" above).
 
 **Decision:** every file is a `module`: `public import`s, then `@[expose] public
 section`, so every declaration stays public and every definition's body visible,
-as before; only what importers load changes. Perennial does the same on branch
-`lean-modules` (`lean` at 584b17c54 converted, pinned at 16086a575), and its Goose
+as before; only what importers load changes. Perennial does the same (converted on
+branch `lean-modules` from `lean` at 584b17c54, merged into `lean` at 2b8cb96a0 on
+2026-10-09), and its Goose
 translator and proofgen emit generated files in that form, so `etc/goose.py
 --check` still holds. What the conversion needed besides the mechanical part:
 
