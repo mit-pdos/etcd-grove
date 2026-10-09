@@ -1,0 +1,9 @@
+# Types and names only: function and method bodies are axiomatized.
+translate = ["!*"]
+# zapcore so that the generic `anyFieldC[T]` (a function type returning `zapcore.Field`) is
+# translated: Goose emits an axiomatized generic type as `∀ (T : go.type), go.type`, which
+# does not elaborate (the Lean name is go.GoType).
+imports = ["!*", "go.uber.org/zap/zapcore"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

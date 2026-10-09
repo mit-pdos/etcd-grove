@@ -1,0 +1,7 @@
+# Types and names only: function and method bodies are axiomatized.
+# Message, an alias of protoreflect.ProtoMessage (the type of apply.Result's Resp).
+translate = ["!*", "Message"]
+imports = ["!*", "google.golang.org/protobuf/reflect/protoreflect"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true
