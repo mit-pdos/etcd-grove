@@ -444,11 +444,12 @@ theorem Cache.watchEvents.wp_proof
       rintro (h' | h' | h') <;> simp_all
     icases watchRespOk_case cf.pfx k k' v r hnw $$ Hok with ⟨%Hcase, #Hch, #Hpr⟩
     unfold cacheWriter
-    icases Hw with ⟨Hdw, %Hwo⟩
+    icases Hw with ⟨Hdw, %Hwo, %B, Hbd⟩
     icases demuxWriter_inv $$ Hdw with ⟨Hdw, %Hinv⟩
-    ihave #Hcert := watchEvents_respCert cf.pfx cap cc r k k' Hinv Hkc Hcase $$ Hch Hpr
+    ihave #Hcert0 := watchEvents_respCert cf.pfx cap cc r k k' Hinv Hkc Hcase $$ Hch Hpr
+    imod respCert_cacheCert_cond cf cc r B _ $$ [$Hcert0 $Hbd] with ⟨%B', #Hcert, Hbd⟩
     wp_auto
-    wp_apply wp_Broadcast cf.demux γd cap (etcdStepCert cf.pfx) cc v r
+    wp_apply wp_Broadcast cf.demux γd cap (cacheCert cf) cc v r
       $$ [$HisDemux $Hdw $Hr $Hcert] as %berr Hb
     · ipureintro; exact watchCase_pre Hcase
     cases hb : broadcastCore cap cc r with
@@ -461,8 +462,10 @@ theorem Cache.watchEvents.wp_proof
       iapply HΦ
       iexists cc
       iframe Hdw
-      isplitr
-      · ipureintro; exact Hwo
+      isplitl [Hbd]
+      · isplitr
+        · ipureintro; exact Hwo
+        iexists B'; iexact Hbd
       isplitr
       · ipureintro; exact Hk0c
       ileft; iexact Haec
@@ -485,7 +488,11 @@ theorem Cache.watchEvents.wp_proof
       iexists k', n + 1, updResp cap cc r
       simp only [named]
       iframe Hcons Hdw Haec
-      ipureintro; exact ⟨ha.1, ha.2.2.2, ha.2.1, ha.2.2.1⟩
+      isplitl [Hbd]
+      · isplitr
+        · ipureintro; exact ha.1
+        iexists B'; iexact Hbd
+      ipureintro; exact ⟨ha.2.2.2, ha.2.1, ha.2.2.1⟩
   iapply BigAndL.bigAndL_cons.2
   isplit
   · -- `<-applyErr`: reset `ready`, return what was received

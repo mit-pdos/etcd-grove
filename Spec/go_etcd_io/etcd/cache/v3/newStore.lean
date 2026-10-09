@@ -25,9 +25,10 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 history of capacity `historyCapacity`, for `1 < degree <= 2^62` (`btree.New` panics below;
 above, the btree's `maxItems()` overflows and its second insert panics) and
 `0 < historyCapacity ≤ 2^61` (`newRingBuffer`'s bound; Go's caller validates the
-capacity). Returns the persistent `isStore`, the writer's half, a lower bound `0`, and the
-`RWMutex`'s reader tokens but the writer's. `E` is the store's snapshot certificate
-(`snapCert`), `R` its latest revision's, chosen by the caller (`R 0` for the empty store). -/
+capacity). Returns the persistent `isStore` and `isStoreWriter` (any number of writers), a lower
+bound `0`, and all but one of the `RWMutex`'s reader tokens. `E` is the store's snapshot
+certificate (`snapCert`), `R` its latest revision's, chosen by the caller (`R 0` for the empty
+store). -/
 abbrev newStore.spec : Prop :=
   ∀ (E : w64 → KvMap → IProp GF) (R : w64 → IProp GF) (degree historyCapacity : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
@@ -36,7 +37,7 @@ abbrev newStore.spec : Prop :=
     (App (App (Val (@! newStore)) (Val #degree)) (Val #historyCapacity))
   {{ (s : Loc) (γ : StoreNames), RET #s;
       isStore s γ (sint.nat historyCapacity) ∗
-      storeWriter s γ (sint.nat historyCapacity) E R StoreState.init ∗
+      isStoreWriter s γ (sint.nat historyCapacity) E R ∗
       storeRevLb γ (W64 0) ∗
       [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 1) (),
         storeReader s γ (sint.nat historyCapacity) E R }}

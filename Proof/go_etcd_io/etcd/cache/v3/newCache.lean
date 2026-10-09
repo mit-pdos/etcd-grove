@@ -73,14 +73,22 @@ theorem newCache.wp_proof
     exact ⟨trivial, fun h => by cases h⟩
   have hvalid : CfgValid cfg := ⟨by omega, by omega⟩
   obtain ⟨hH, hB, hP⟩ := Hcfg hvalid
+  -- the revision bound, at `0`
+  imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γb, Hba, -⟩
+  let R0 : w64 → IProp GF := fun r =>
+    iprop(etcdReached r ∗ (⌜sint.Z r ≤ 0⌝ ∨ monoNatLbOwn γb (sint.nat r)))
   ihave #HstorePre : ⌜1 < sint.Z cfg.BTreeDegree' ∧ sint.Z cfg.BTreeDegree' ≤ 2 ^ 62⌝ ∗
       ⌜0 < sint.Z cfg.HistoryWindowSize' ∧ sint.Z cfg.HistoryWindowSize' ≤ 2 ^ 61⌝ ∗
-      □ etcdReached (GF := GF) (W64 0) $$ []
+      □ R0 (W64 0) $$ []
   · isplitl
     · ipureintro; constructor <;> omega
     isplitl
     · ipureintro; constructor <;> omega
-    imodintro; iapply etcdReached_zero
+    imodintro
+    simp only [R0]
+    isplitl
+    · iapply etcdReached_zero
+    · ileft; ipureintro; decide
   ihave #HdemuxPre : ⌜0 < sint.Z cfg.HistoryWindowSize' ∧ sint.Z cfg.HistoryWindowSize' ≤ 2 ^ 61⌝ $$ []
   · ipureintro; constructor <;> omega
   -- the internal context
@@ -93,9 +101,9 @@ theorem newCache.wp_proof
   iunfold isEtcdClient at Hcl'
   icases Hcl' with ⟨%kv, %w, #HKVf, #HWf, #HisKV, #HisW, #HisPN⟩
   try wp_auto
-  wp_apply wp_newStore (etcdCert pfx) etcdReached cfg.BTreeDegree' cfg.HistoryWindowSize'
+  wp_apply wp_newStore (etcdCert pfx) R0 cfg.BTreeDegree' cfg.HistoryWindowSize'
     $$ [$Hpkg $HstorePre]
-    as %st %γs ⟨#HisStore, Hsw, #Hslb0, Hrds⟩
+    as %st %γs ⟨#HisStore, #HisStoreW, #Hslb0, Hrds⟩
   wp_apply wp_newReady $$ [$Hpkg] as %rd %γr ⟨#HisReady, -⟩
   wp_apply wp_newCPR (GoInterface.ok w) (GoInterface.ok clk) cfg.ProgressRequestInterval' $$ [$Hpkg]
     as %pr ⟨#HisPR, #HprRun⟩
@@ -111,7 +119,8 @@ theorem newCache.wp_proof
   obtain ⟨cfX, hX⟩ : ∃ x : CacheFields, x =
       { pfx := pfx, cfg := cfg, ready := rd, demux := null, store := st, γs := γs,
         scap := sint.nat cfg.HistoryWindowSize', kv := kv, pr := pr, watcher := w, ictx := ictx,
-        clock := clk, γwg := γwg, γwb := γwb, γwr := γwr, stop := cancel, γop := γop } := ⟨_, rfl⟩
+        clock := clk, γwg := γwg, γwb := γwb, γwr := γwr, stop := cancel, γop := γop,
+        γb := γb } := ⟨_, rfl⟩
   imod inv_alloc cacheWgN ⊤ (cacheWgInv (GF := GF) cfX) $$ [Hwgo Hwaiters Hwra Hbud0 Hwba] with #HwgInv
   · inext
     subst hX
@@ -131,7 +140,7 @@ theorem newCache.wp_proof
   ihave Hslot1 : cacheWgSlot (GF := GF) cfX ∗ cacheOpen cfX 1 $$ [H1 Hop]
   · subst hX; unfold cacheWgSlot cacheOpen; iframe
   -- `NewDemux`, which starts the resync loop
-  wp_apply wp_NewDemux (etcdStepCert pfx) ictx _ (cacheWgAddr «$r0_ptr»)
+  wp_apply wp_NewDemux (cacheCert cfX) ictx _ (cacheWgAddr «$r0_ptr»)
     iprop(cacheWgSlot cfX ∗ cacheOpen cfX 1) (cacheWgRunning cfX) (cacheOpen cfX 1)
     cfg.HistoryWindowSize' cfg.ResyncInterval' $$ [$Hpkg $Hictx $HdemuxPre $Hproto $Hslot1]
     as %d %γd %γn ⟨Hop, #HisDemux, Hdw, Hdhs, #Hnlb, Hrhs⟩
@@ -151,15 +160,17 @@ theorem newCache.wp_proof
   obtain ⟨cf, hcf⟩ : ∃ x : CacheFields, x = { cfX with demux := d } := ⟨_, rfl⟩
   have eInv : cacheWgInv (GF := GF) cfX = cacheWgInv cf := by subst hcf; rfl
   have eOpen : cacheOpen (GF := GF) cfX 1 = cacheOpen cf 1 := by subst hcf; rfl
+  have eCert : cacheCert (GF := GF) cfX = cacheCert cf := by subst hcf; rfl
+  have eRev : R0 = cacheRev (GF := GF) cf := by subst hcf hX; rfl
   have hf : cf.pfx = pfx ∧ cf.cfg = cfg ∧ cf.ready = rd ∧ cf.demux = d ∧ cf.store = st ∧
       cf.γs = γs ∧ cf.scap = sint.nat cfg.HistoryWindowSize' ∧ cf.kv = kv ∧ cf.pr = pr ∧
       cf.watcher = w ∧ cf.ictx = ictx ∧ cf.clock = clk ∧ cf.γwg = γwg ∧ cf.γwb = γwb ∧
-      cf.γwr = γwr ∧ cf.stop = cancel ∧ cf.γop = γop := by
+      cf.γwr = γwr ∧ cf.stop = cancel ∧ cf.γop = γop ∧ cf.γb = γb := by
     subst hcf hX; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
-      rfl, rfl⟩
+      rfl, rfl, rfl⟩
   obtain ⟨hpfx, hcfg, hrd, hd, hst, hγs, hscap, hkv, hpr, hw, hictx, hclk, hγwg, hγwb, hγwr,
-    hstop, hγop⟩ := hf
-  rw [eInv, eOpen]
+    hstop, hγop, hγb⟩ := hf
+  rw [eInv, eOpen, eCert, eRev]
   -- the cache's predicate
   ihave #HisCF : isCacheFields «$r0_ptr» cf γr γd (sint.nat cfg.HistoryWindowSize') $$ []
   · unfold isCacheFields
@@ -181,18 +192,25 @@ theorem newCache.wp_proof
   wp_apply wp_cacheWg_Add2 «$r0_ptr» cf 1 $$ [$Hsync $HisWg' $HwgInv' $H2' $Hop] as ⟨Hr2, Hop⟩
   icases ownToks_add_1 1 1 cf.γwr $$ Hr2 with ⟨Hr1, Hr1'⟩
   -- the watch loop
-  wp_apply wp_fork $$ [Hr1 Hdw Hsw]
+  wp_apply wp_fork $$ [Hr1 Hdw Hba]
   · wp_apply wp_with_defer as %defer defer
     try wp_auto
     wp_apply wp_getWatchLoop «$r0_ptr» cf γr γd (sint.nat cfg.HistoryWindowSize') DemuxCore.init
-      StoreState.init $$ [$Hpkg $HisCF Hdw Hsw] as -
-    · unfold cacheWriter
-      rw [hd, hpfx, hst, hγs, hscap]
+      $$ [$Hpkg $HisCF Hdw Hba Hr1] as ⟨Hr1, -⟩
+    · unfold cacheWriter cacheWgRunning
+      rw [hd, hpfx]
       iframe
-      ipureintro
-      intro h; exact absurd rfl h
-    wp_apply wp_cacheWg_Done «$r0_ptr» cf $$ [$Hsync $HisWg' $HwgInv' Hr1]
-    · unfold cacheWgRunning; iexact Hr1
+      isplitr
+      · ipureintro
+        intro h; exact absurd rfl h
+      iexists W64 0
+      unfold cacheBound
+      rw [hγb]
+      iframe
+      isplitl
+      · iapply etcdReached_zero
+      · ipureintro; decide
+    wp_apply wp_cacheWg_Done «$r0_ptr» cf $$ [$Hsync $HisWg' $HwgInv' $Hr1]
     itrivial
   -- the progress requestor's loop
   wp_apply wp_fork $$ [Hr1']

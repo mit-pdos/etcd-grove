@@ -463,6 +463,23 @@ theorem ownRingBuffer_length (r : Loc) (cap : Nat) (isItem : T' → V → IProp 
   ipureintro
   exact ⟨Hok.size_le, Hok.cap_le⟩
 
+/-- Every item of a ring has a Go item it models (`isItem`, persistent). -/
+theorem ownRingBuffer_items (r : Loc) (cap : Nat) (isItem : T' → V → IProp GF)
+    [∀ x v, Persistent (isItem x v)] (revOf : V → w64) (items : List V) (dq : DFrac) :
+    ownRingBuffer r cap isItem revOf items dq ⊢
+      ownRingBuffer r cap isItem revOf items dq ∗ □ ∀ v, ⌜v ∈ items⌝ -∗ ∃ x, isItem x v := by
+  iintro H
+  iNamed H
+  isplitl [Hr Hbuf]
+  · iapply ownRingBuffer_intro r cap isItem revOf items rb ents Hok Hrev Hsorted dq
+      $$ Hr Hbuf Hitems HrevOf
+  imodintro
+  iintro %v %Hv
+  obtain ⟨i, hi⟩ := List.mem_iff_getElem?.1 Hv
+  obtain ⟨e, he, -⟩ := Hrev i v hi
+  iexists e.item'
+  iapply Hitems $$ %i %v %e %hi %he
+
 end defs
 
 end EtcdGrove

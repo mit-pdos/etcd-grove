@@ -73,20 +73,37 @@ theorem newStore.wp_proof
     Prod.fst [] rb ents Hok' Hrev Hsorted $$ history Hbuf Hitems HrevOf
   iclear Hr
   imod ghostVar_alloc (GF := GF) StoreState.init with ⟨%γs, Hgs⟩
-  icases ghostVar_split γs StoreState.init (1 : Qp).half (1 : Qp).half $$ [Hgs] with ⟨Hgs1, Hgs2⟩
-  · rw [Qp.half_add_half]; iexact Hgs
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γr, Hauth, #Hlb⟩
+  imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γsn, Hsauth, -⟩
+  imod ghostVar_alloc (GF := GF) (some ([] : KvMap)) with ⟨%γt, Hgt⟩
+  icases ghostVar_split γt (some ([] : KvMap)) (1 : Qp).half (1 : Qp).half $$ [Hgt] with ⟨Hgt1, Hgt2⟩
+  · rw [Qp.half_add_half]; iexact Hgt
   have Hinv0 : StoreInv (sint.nat cap) StoreState.init := by
     constructor <;> simp [StoreState.init, RevSorted] <;> first | word | skip
-  imod sync.init_RWMutex (storeLockInv (hG := hG) «$r0_ptr» ⟨γs, γr⟩ (sint.nat cap) E R)
-    (storeMuAddr «$r0_ptr») $$ [Hgs1 Hauth Lrev Hhist] mu with Htoks
+  let γ : StoreNames := ⟨γs, γr, γsn, γt⟩
+  imod sync.init_RWMutex (storeLockInv (hG := hG) «$r0_ptr» γ (sint.nat cap) E R)
+    (storeMuAddr «$r0_ptr») $$ [Hgs Hauth Lrev Hhist Hgt1 Hsauth] mu with Htoks
   · inext
-    unfold storeLockInv
+    unfold storeLockInv storeLockRest
     iexists StoreState.init
-    simp only [named]
+    simp only [named, γ]
     iframe
     iframe HR0'
+    isplitr
+    · ipureintro; intro h hh; simp [StoreState.init] at hh
     ipureintro; exact Hinv0
+  imod inv_alloc storeTreeN ⊤ (storeTreeInv (hG := hG) «$r0_ptr» γ) $$ [Hgt2 Ltree Ht] with #HtreeInv
+  · inext
+    unfold storeTreeInv storeLatestTree
+    iexists some []
+    simp only [γ]
+    iframe Hgt2
+    iexists t
+    iframe
+    unfold kvsAt
+    imodintro
+    iintro %e %He
+    exact absurd He List.not_mem_nil
   iapply wp_fupd
   wp_apply sync.RWMutex.wp_RLocker
   wp_apply sync.wp_NewCond as %c #Hcond
@@ -95,8 +112,9 @@ theorem newStore.wp_proof
     ⟨_, (Nat.succ_pred_eq_of_pos (by have := sync.actualMaxReaders_pos; omega)).symm⟩
   rw [hn, List.replicate_succ, Nat.add_sub_cancel]
   icases BigSepL.bigSepL_cons.1 $$ Htoks with ⟨Hw, Hrd⟩
+  icases sync.ownRWMutex_guard $$ Hw with ⟨-, #Hguard⟩
   imodintro
-  iapply HΦ $$ %«$r0_ptr» %(StoreNames.mk γs γr)
+  iapply HΦ $$ %«$r0_ptr» %γ
   isplitr
   · unfold isStore
     iexists c, degree
@@ -104,22 +122,8 @@ theorem newStore.wp_proof
     iframe #
     ipureintro
     refine ⟨Hdeg, ?_, ?_⟩ <;> word
-  isplitl [Hgs2 Hw Ltree Ht]
-  · unfold storeWriter storeLatestTree
-    iframe Hgs2 Hw
-    isplitl
-    · iexists t
-      iframe
-      unfold kvsAt
-      imodintro
-      iintro %e %He
-      exact absurd He List.not_mem_nil
-    isplitr
-    · unfold storeRevLb
-      rw [show sint.nat StoreState.init.latestRev = 0 from rfl]
-      iexact Hlb
-    iframe HR0'
-    ipureintro; exact Hinv0
+  isplitr
+  · unfold isStoreWriter; iexact Hguard
   isplitr
   · unfold storeRevLb
     rw [show sint.nat (W64 0) = 0 from rfl]

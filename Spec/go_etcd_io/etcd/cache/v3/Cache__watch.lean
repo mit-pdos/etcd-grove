@@ -22,33 +22,31 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `c.watch(rev)`, by the demux's writer (`cacheWriter`, any state) and the store's writer (a
-synced state `st` whose latest map is etcd's state at `R`, at most its latest revision, with
-`0 < rev ≤ R + 1`): it initializes the demux at `rev` (`Init`), then loops: it registers a fresh
-store watcher from `rev` (`newWatcher`, `Register`), starts `applyStorage` on it with the store's
-writer, runs `watchEvents` with the demux's writer, unregisters the store watcher (which stops
-it), and waits for `applyStorage` by receiving from `applyErr`; it returns the first non-nil error
-of `watchEvents` or `applyStorage`.
+/-- `c.watch(rev)`, by the demux's writer (`cacheWriter`, any state, with the revision bound) in a
+goroutine of the cache's wait group (`cacheWgRunning`), when the store's newest snapshot is at
+least `R` with `0 < rev ≤ R + 1`: it initializes the demux at `rev` (`Init`), then loops: it
+registers a fresh store watcher from `rev` (`newWatcher`, `Register`), adds a goroutine to the wait
+group (`Add(1)`, which may not overflow the counter: Perennial's model assumption) that runs
+`applyStorage` on it and then hands its error over on `applyErr` or closes it, runs `watchEvents`,
+and unregisters the store watcher (which stops it); it returns `watchEvents`'s first non-nil
+error.
 
-The store's writer is the goroutine's from its start to the send or close on `applyErr`
-(`isHandoff`), and comes back to the loop at the first receive from `applyErr`, in
-`watchEvents`'s `select` or in the wait: no two writers of the store at once. On a `nil` from both,
-the store's latest map is again etcd's state at a revision `R' ≥ R` (at most the latest revision),
-which is what the next iteration's `applyStorage` needs (the demux replays from `rev ≤ R' + 1`).
+It does not wait for the goroutine: a stopped watcher's buffered responses may still be applied
+while the next iteration (or, after `watch` returns, the next `get`'s `Restore`) runs. The store
+is shared by its writers (`isStoreWriter`), and the goroutine needs only the store's newest
+snapshot at least `rev - 1`, which stays true. Each goroutine keeps its own watcher's consumer; an
+`applyErr` nobody reads is fine (buffered, capacity one).
 
-It returns a non-nil error, and both writers, in some states. -/
+It returns a non-nil error, the wait-group token, and the demux's writer, in some state. -/
 abbrev Cache.watch.spec : Prop :=
   ∀ (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNames) (cap : Nat)
-    (rev R : w64) (c0 : DemuxCore) (st : StoreState),
+    (rev R : w64) (c0 : DemuxCore),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
-      isCacheFields c cf γr γd cap ∗ cacheWriter cf γd cap c0 ∗
-      storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) etcdReached st ∗ isEtcdKvs R cf.pfx st.latest ∗
-      ⌜st.Synced ∧ 0 < sint.Z rev ∧ sint.Z rev ≤ sint.Z R + 1 ∧
-        sint.Z R ≤ sint.Z st.latestRev⌝ }}
+      isCacheFields c cf γr γd cap ∗ cacheWriter cf γd cap c0 ∗ cacheWgRunning cf ∗
+      storeSnapLb cf.γs R ∗ ⌜0 < sint.Z rev ∧ sint.Z rev ≤ sint.Z R + 1⌝ }}
     (App (Val (c @!! go.GoType.PointerType Cache.ty @!! go!"watch")) (Val #rev))
-  {{ (err : GoInterface), RET #err; ⌜err ≠ GoInterface.nil⌝ ∗
-      ∃ (c1 : DemuxCore) (st' : StoreState), cacheWriter cf γd cap c1 ∗
-        storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) etcdReached st' }}
+  {{ (err : GoInterface), RET #err; ⌜err ≠ GoInterface.nil⌝ ∗ cacheWgRunning cf ∗
+      ∃ c1 : DemuxCore, cacheWriter cf γd cap c1 }}
 
 end spec
 

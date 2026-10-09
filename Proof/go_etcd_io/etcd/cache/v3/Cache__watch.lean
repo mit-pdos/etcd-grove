@@ -37,21 +37,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- What `applyErr` carries with a value: a non-nil error. -/
-def watchP (v : GoError) : IProp GF := iprop(⌜v ≠ GoInterface.nil⌝)
-
-/-- What `applyErr` hands over with a value (`applyStorage` failed): the store's writer. -/
-def watchWs (cf : CacheFields) : IProp GF :=
-  iprop(∃ st : StoreState, storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) etcdReached st)
-
-/-- What `applyErr` hands over with a close that follows no value (`applyStorage` returned `nil`):
-the store's writer, at a synced state whose latest map is etcd's state at `Y' ≥ Y`, at most the
-latest revision. -/
-def watchWc (cf : CacheFields) (Y : w64) : IProp GF :=
-  iprop(∃ (st : StoreState) (Y' : w64), storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) etcdReached st ∗
-    isEtcdKvs Y' cf.pfx st.latest ∗
-    ⌜st.Synced ∧ sint.Z Y ≤ sint.Z Y' ∧ sint.Z Y' ≤ sint.Z st.latestRev⌝)
-
 theorem Cache.watch.wp_proof
     (wp_Init : demux.Init.spec (GF := GF) (hG := hG))
     (wp_newWatcher : newWatcher.spec (GF := GF) (hG := hG))

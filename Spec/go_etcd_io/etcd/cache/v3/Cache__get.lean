@@ -22,28 +22,28 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `c.get(ctx)`, by the store's writer, whose state is `st`: the client's prefix get, then
-`store.Restore(resp.Kvs, resp.Header.Revision)`. Either the client's error and `nil` (the store
-unchanged), or the response and `nil`: the header revision `R` is one at which etcd's state under
-the prefix is the map `m` the store now holds (`restoreState R m`, synced).
+/-- `c.get(ctx)`, by the holder of the cache's revision bound (`cacheBound`, at `B`): the client's
+prefix get, then `store.Restore(resp.Kvs, resp.Header.Revision)`. Either the client's error and
+`nil` (nothing changed), or the response and `nil`: the header revision `R` is at least `B` and
+below `2 ^ 63 - 1`, the bound is now `R`, and the store's latest revision and newest snapshot are
+at least `R` (the newest snapshot, its latest map, etcd's state at it: the store's certificate).
 
-`Restore` needs `R` at least the store's latest revision (finding 4: it does not check it): the
-writer knows etcd has reached the latest revision (`storeWriter`'s certificate, `etcdReached`),
-and the client's get is linearizable (`isEtcdKV`: a non-serializable get returns at least any
-revision etcd is known to have reached), and also bounds `R` below `2 ^ 63 - 1`. -/
+`Restore` needs `R` at least every revision the store can be at, now or after another writer's
+pending `Apply` (finding 4: `Restore` does not check it): all of them are at most the bound
+(`cacheRev`, the store's revision certificate), etcd has reached the bound (`cacheBound`), and the
+client's get is linearizable (`isEtcdKV`: a non-serializable get returns at least any revision
+etcd is known to have reached). -/
 abbrev Cache.get.spec : Prop :=
   ∀ (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNames) (cap : Nat)
-    (ctx : GoInterfaceOk) (s : context.ContextDesc (IProp GF)) (st : StoreState),
+    (ctx : GoInterfaceOk) (s : context.ContextDesc (IProp GF)) (B : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
-      isCacheFields c cf γr γd cap ∗ context.isContext ctx s ∗
-      storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) etcdReached st }}
+      isCacheFields c cf γr γd cap ∗ context.isContext ctx s ∗ cacheBound cf B }}
     (App (Val (c @!! go.GoType.PointerType Cache.ty @!! go!"get")) (Val #(GoInterface.ok ctx)))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) etcdReached st) ∨
-      (⌜err = GoInterface.nil⌝ ∗ ∃ (R : w64) (m : KvMap), getRespRev resp R ∗
-        storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) etcdReached (restoreState R m) ∗
-        isEtcdKvs R cf.pfx (restoreState R m).latest ∗ storeRevLb cf.γs R ∗
-        ⌜sint.Z st.latestRev ≤ sint.Z R ∧ sint.Z R < 2 ^ 63 - 1⌝) }}
+      (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ cacheBound cf B) ∨
+      (⌜err = GoInterface.nil⌝ ∗ ∃ R : w64, getRespRev resp R ∗ cacheBound cf R ∗
+        storeRevLb cf.γs R ∗ storeSnapLb cf.γs R ∗
+        ⌜sint.Z B ≤ sint.Z R ∧ sint.Z R < 2 ^ 63 - 1⌝) }}
 
 end spec
 

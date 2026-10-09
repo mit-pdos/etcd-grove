@@ -73,22 +73,23 @@ theorem store.Restore.wp_proof
     store.Restore.spec (GF := GF) (hG := hG) := by
   have wp_btree_New : btree.New.modelSpec (GF := GF) (hG := hG) := btree.New.modelSpec_of wp_btree_New
   have wp_ReplaceOrInsert : btree.BTree.ReplaceOrInsert.modelSpec (GF := GF) (hG := hG) := btree.BTree.ReplaceOrInsert.modelSpec_of wp_ReplaceOrInsert
-  intro s γ cap E R st kvsSl kvs dq rev
-  wp_start as ⟨#His, Hw, Hkvs, #HkvsAt, %Hrev, #HE, #HRr⟩
+  intro s γ cap E R P kvsSl kvs dq rev
+  wp_start as ⟨#His, #Hguard, Hkvs, #HkvsAt, HP0, %Hdom, #HE, #HRr⟩
   wp_apply wp_with_defer as %defer defer
-  unfold storeWriter
-  icases Hw with ⟨Hgw, Hmu, Htree, -, -, %Hinv⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
-  wp_apply sync.RWMutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, HP⟩
+  unfold isStoreWriter
+  wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hguard] as ⟨Hlocked, HP⟩
   unfold storeLockInv
   iNamed HP
-  icombine Hgw Hst gives % ⟨_, Heq⟩
-  subst Heq
   unfold isStore
   iNamed His
-  unfold storeLatestTree
-  icases Htree with ⟨%t0, Ht0, -, -⟩
+  unfold storeLockRest
+  icases Hrest with ⟨Hgt, Hsnap, %Hsynced⟩
+  -- the dominance: no revision the store can be at is above `rev`
+  icases keep_pure (Hdom st.latestRev) $$ [$HP0 $HR] with ⟨⟨HP0, -⟩, %Hrev⟩
+  -- borrow the latest tree
+  imod storeTree_borrow s γ st.latest $$ [$Htree $Hgt] with ⟨Htr, Hgt⟩
   ihave Hless : btLessSpec (functions kvItemLess []) (kvItemIs (hG := hG)) kvLess $$ []
   · unfold btLessSpec
     iintro %a %b %va %vb
@@ -98,6 +99,8 @@ theorem store.Restore.wp_proof
     iframe
     iPkgInit
   wp_auto
+  unfold storeLatestTree
+  icases Htr with ⟨%t0, Ht0, -, -⟩
   wp_apply wp_btree_New kvItemPtrT deg (functions kvItemLess []) (kvItemIs (hG := hG)) kvLess
     $$ [Hless] as %t Ht
   · iframe; ipureintro; exact ⟨Hdeg, kvLess_swo⟩
@@ -171,28 +174,34 @@ theorem store.Restore.wp_proof
       · simp [restoreState, RevSorted]
       · intro h hh; simp [restoreState] at hh; subst hh; simp [restoreState]
       · intro h hh; simp [restoreState] at hh; subst hh; exact Restore_restoreMap_sorted kvs
-    imod ghostVar_update_halves (restoreState rev kvs) γ.state st st $$ Hgw Hst with ⟨Hgw, Hst⟩
-    imod mono_nat_own_update (sint.nat rev) (by have := Hinv.rev_nonneg; word) $$ Hrev
+    have Hrev0 : 0 ≤ sint.Z rev := by have := Hinv.rev_nonneg; omega
+    imod ghostVar_update (restoreState rev kvs) γ.state st $$ Hst with Hst
+    imod mono_nat_own_update (sint.nat rev) (by word) $$ Hrev
       with ⟨Hrev, #Hlb⟩
-    wp_apply sync.RWMutex.wp_Unlock $$ [$Hlocked Hst Hrev HlatestRev Hhist] as Hmu
+    imod mono_nat_own_update (sint.nat rev + 1) (by
+        have := storeSnapKey_le cap st Hinv
+        have : sint.nat st.latestRev ≤ sint.nat rev := by word
+        omega) $$ Hsnap with ⟨Hsnap, #Hslb⟩
+    imod storeTree_return s γ (restoreMap kvs) $$ [$Htree $Hgt Ht0 Ht] with Hgt
+    · unfold storeLatestTree
+      iexists t
+      iframe
+      iexact HkvsR
+    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlocked Hst Hrev HlatestRev Hhist Hgt Hsnap]
     · iexists restoreState rev kvs
+      rw [storeSnapKey_restore rev kvs Hrev0]
       simp only [named, restoreState]
       iframe
       iframe HRr
+      isplitr
+      · ipureintro; exact restoreState_synced rev kvs
       ipureintro; exact Hinv'
     iapply HΦ
-    iframe Hkvs Hgw Hmu
-    isplitl [Ht0 Ht]
-    · isplitl
-      · iexists t
-        simp only [restoreState]
-        iframe
-        iexact HkvsR
-      · isplitr
-        · unfold storeRevLb; simp only [restoreState]; iexact Hlb
-        · simp only [restoreState]; iframe HRr; ipureintro; exact Hinv'
-    unfold storeRevLb
-    iexact Hlb
+    iframe Hkvs HP0
+    isplitr
+    · unfold storeRevLb; iexact Hlb
+    unfold storeSnapLb
+    iexact Hslb
 
 end proof
 

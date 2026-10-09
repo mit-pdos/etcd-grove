@@ -55,7 +55,7 @@ theorem Cache.waitTillRevision.wp_proof
   imod monoNatLbOwn_0 (GF := GF) cf.γs.rev with #Hlb0
   wp_auto
   unfold cacheReader
-  wp_apply wp_LatestRev cf.store cf.γs cf.scap (etcdCert cf.pfx) etcdReached (W64 0) $$ [$HisStore $Hrd]
+  wp_apply wp_LatestRev cf.store cf.γs cf.scap (etcdCert cf.pfx) (cacheRev cf) (W64 0) $$ [$HisStore $Hrd]
     as %lr ⟨Hrd, %st, #Hseen, #-, %Hlr⟩
   · unfold storeRevLb; rw [show sint.nat (W64 0) = 0 from rfl]; iexact Hlb0
   iunfold storeSeen at Hseen
@@ -118,7 +118,7 @@ theorem Cache.waitTillRevision.wp_proof
   iunfold storeReader at Hrd
   wp_apply +noauto sync.RWMutex.wp_RLock $$ [$Hrd] as ⟨Hrl, HP⟩
   ihave #Hlocker := sync.rlocker_isLockerWith (storeMuAddr cf.store)
-    (storeLockInv cf.store cf.γs cf.scap (etcdCert cf.pfx) etcdReached) $$ Hsync
+    (storeLockInv cf.store cf.γs cf.scap (etcdCert cf.pfx) (cacheRev cf)) $$ Hsync
   wp_auto
   -- the loop invariant: the context (`HP : ▷ P rfrac` from `RLock` and from `Wait`)
   wp_for_core
@@ -133,7 +133,7 @@ theorem Cache.waitTillRevision.wp_proof
     wp_if_destruct
     · -- timed out: `ErrCacheTimeout`
       wp_for_post
-      wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hst Hrev HlatestRev Hhist] as Hrd
+      wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hst Hrev HlatestRev Hhist Hrest] as Hrd
       · inext; iunfold storeLockInv; iexists st; simp only [named]; iframe; iframe #; ipureintro; exact Hinv
       wp_apply wp_remove cf.pr $$ [$HisPR]
       iapply HΦ
@@ -155,7 +155,7 @@ theorem Cache.waitTillRevision.wp_proof
       wp_apply HErrD $$ [] as %err' %herr'
       · iexact Hcl
       wp_for_post
-      wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hst Hrev HlatestRev Hhist] as Hrd
+      wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hst Hrev HlatestRev Hhist Hrest] as Hrd
       · inext; iunfold storeLockInv; iexists st; simp only [named]; iframe; iframe #; ipureintro; exact Hinv
       wp_apply wp_remove cf.pr $$ [$HisPR]
       iapply HΦ
@@ -169,11 +169,11 @@ theorem Cache.waitTillRevision.wp_proof
       wp_auto
       -- `revCond.Wait()`
       wp_apply +noauto sync.Cond.wp_Wait_with _ (sync.rlockerOf (storeMuAddr cf.store))
-        (sync.ownRWMutex (storeMuAddr cf.store) (storeLockInv cf.store cf.γs cf.scap (etcdCert cf.pfx) etcdReached))
+        (sync.ownRWMutex (storeMuAddr cf.store) (storeLockInv cf.store cf.γs cf.scap (etcdCert cf.pfx) (cacheRev cf)))
         iprop(sync.ownRWMutexRLocked (storeMuAddr cf.store)
-          (storeLockInv cf.store cf.γs cf.scap (etcdCert cf.pfx) etcdReached) ∗
-          ▷ storeLockInv cf.store cf.γs cf.scap (etcdCert cf.pfx) etcdReached sync.rfrac)
-        $$ [$Hcond $Hlocker Hrl Hst Hrev HlatestRev Hhist] as ⟨Hrl, HP⟩
+          (storeLockInv cf.store cf.γs cf.scap (etcdCert cf.pfx) (cacheRev cf)) ∗
+          ▷ storeLockInv cf.store cf.γs cf.scap (etcdCert cf.pfx) (cacheRev cf) sync.rfrac)
+        $$ [$Hcond $Hlocker Hrl Hst Hrev HlatestRev Hhist Hrest] as ⟨Hrl, HP⟩
       · iframe Hrl
         inext; iunfold storeLockInv; iexists st; simp only [named]; iframe; iframe #; ipureintro; exact Hinv
       wp_auto
@@ -186,7 +186,7 @@ theorem Cache.waitTillRevision.wp_proof
     simp only [Bool.false_eq_true, ↓reduceIte]
     ihave #Hlbl := monoNatLbOwn_get $$ Hrev
     wp_auto
-    wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hst Hrev HlatestRev Hhist] as Hrd
+    wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hst Hrev HlatestRev Hhist Hrest] as Hrd
     · inext; iunfold storeLockInv; iexists st; simp only [named]; iframe; iframe #; ipureintro; exact Hinv
     wp_apply wp_remove cf.pr $$ [$HisPR]
     iapply HΦ

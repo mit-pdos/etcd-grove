@@ -37,7 +37,7 @@ theorem store.LatestRev.wp_proof : store.LatestRev.spec (GF := GF) (hG := hG) :=
   unfold storeRevLb
   ihave %Hle := monoNatLbOwn_valid $$ Hrev Hlb
   wp_auto
-  wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hst Hrev HlatestRev Hhist]
+  wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hst Hrev HlatestRev Hhist Hrest]
   · inext; iexists st; simp only [named]; iframe; iframe #; ipureintro; exact Hinv
   iintro Hrd
   wp_auto

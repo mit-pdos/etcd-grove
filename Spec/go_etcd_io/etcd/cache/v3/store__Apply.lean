@@ -21,22 +21,31 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [AllG GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `s.Apply(resp)`, by the writer: the store's state becomes `(applyResp cap st r).1`, and
-the error is `nil` iff `(applyResp cap st r).2` (see `applyResp` for the cases, and
-`applyEvents` for what a failed delete leaves). The events must be in revision order
-(`EvRevSorted`, as etcd sends them), and the caller certifies every snapshot `Apply` appends
-(`snapCerts E (applyRespSnaps st r)`) and every revision it may move the latest revision to
-(`revCerts R (applyRespRevs st r)`). -/
+/-- `s.Apply(resp)`, by any writer (`isStoreWriter`): under the write lock, with the store in some
+state `st` (found there: any number of writers apply in turn), the state becomes
+`(applyResp cap st r).1`, and the error is `nil` iff `(applyResp cap st r).2` (see `applyResp`
+for the cases: a canceled response, or one `validateRevisions` rejects as stale, changes
+nothing). The events must be in revision order (`EvRevSorted`, as etcd sends them). The caller
+holds a lower bound `lo` on the newest snapshot (`storeSnapLb`) and certifies what `Apply` would
+do to any state at or above it (`storeApplyCert`: it changes nothing or succeeds, with every
+snapshot it appends and every revision it moves to certified), so that the store stays
+certified and synced whoever writes. The state found had a newest snapshot, the latest map, at a
+revision at least `lo`; afterwards the latest revision and the newest snapshot are at least
+those of `(applyResp cap st r).1`. (A canceled response is rejected before the lock: just an
+error.) -/
 abbrev store.Apply.spec : Prop :=
-  ∀ (s : Loc) (γ : StoreNames) (cap : Nat) (E : w64 → KvMap → IProp GF) (R : w64 → IProp GF) (st : StoreState)
-    (resp : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel),
+  ∀ (s : Loc) (γ : StoreNames) (cap : Nat) (E : w64 → KvMap → IProp GF) (R : w64 → IProp GF)
+    (lo : w64) (resp : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
-      isStore s γ cap ∗ storeWriter s γ cap E R st ∗ respAt resp r ∗ ⌜EvRevSorted r.events⌝ ∗
-      snapCerts E (applyRespSnaps st r) ∗ revCerts R (applyRespRevs st r) }}
+      isStore s γ cap ∗ isStoreWriter s γ cap E R ∗ respAt resp r ∗ ⌜EvRevSorted r.events⌝ ∗
+      storeSnapLb γ lo ∗ ⌜0 ≤ sint.Z lo⌝ ∗ storeApplyCert cap E R lo r }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Apply")) (Val #resp))
-  {{ (err : GoInterface), RET #err;
-      storeWriter s γ cap E R (applyResp cap st r).1 ∗
+  {{ (err : GoInterface), RET #err; ⌜r.canceled = true ∧ ∃ e, err = GoInterface.ok e⌝ ∨
+      ∃ st : StoreState,
+      ⌜StoreInv cap st ∧ st.Synced ∧
+        ∃ Y : w64, st.history.getLast? = some (Y, st.latest) ∧ sint.Z lo ≤ sint.Z Y⌝ ∗
       storeRevLb γ (applyResp cap st r).1.latestRev ∗
+      monoNatLbOwn γ.snap (storeSnapKey (applyResp cap st r).1) ∗
       ⌜if (applyResp cap st r).2 then err = GoInterface.nil else ∃ e, err = GoInterface.ok e⌝ }}
 
 end spec

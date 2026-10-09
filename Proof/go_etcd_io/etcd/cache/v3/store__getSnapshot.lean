@@ -85,7 +85,7 @@ theorem store.getSnapshot.wp_proof
   wp_if_destruct
   · -- not ready
     have Hm : snapModel st rev = .notReady := by simp [snapModel, Hif]
-    wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hst Hrev HlatestRev Hhist] as Hrd
+    wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hst Hrev HlatestRev Hhist Hrest] as Hrd
     · inext; iexists st; simp only [named]; iframe; iframe #; ipureintro; exact Hinv
     iapply HΦ
     iframe Hrd
@@ -108,7 +108,7 @@ theorem store.getSnapshot.wp_proof
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
     wp_apply fmt.wp_Errorf $$ [$Hsl] as %e _
-    wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hst Hrev HlatestRev Hhist] as Hrd
+    wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hst Hrev HlatestRev Hhist Hrest] as Hrd
     · inext; iexists st; simp only [named]; iframe; iframe #; ipureintro; exact Hinv
     iapply HΦ
     iframe Hrd
@@ -130,7 +130,7 @@ theorem store.getSnapshot.wp_proof
     have Hm : snapModel st rev = .future := by
       unfold snapModel; rw [ite_eq_right Hnz, ite_eq_right Hnn]; simp only [Hrev']
       rw [ite_eq_left Hif]
-    wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hst Hrev HlatestRev Hhist] as Hrd
+    wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hst Hrev HlatestRev Hhist Hrest] as Hrd
     · inext; iexists st; simp only [named]; iframe; iframe #; ipureintro; exact Hinv
     iapply HΦ
     iframe Hrd
@@ -182,7 +182,7 @@ theorem store.getSnapshot.wp_proof
     wp_auto
     rw [decide_eq_false Hpnn]
     wp_auto
-    wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hst Hrev HlatestRev Hhist] as Hrd
+    wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hst Hrev HlatestRev Hhist Hrest] as Hrd
     · inext; iexists st; simp only [named]; iframe; iframe #; ipureintro; exact Hinv
     iapply HΦ
     iframe Hrd
@@ -203,7 +203,7 @@ theorem store.getSnapshot.wp_proof
     have Hm : snapModel st rev = .compacted := by
       rw [Hbase, ← Hfirst, List.getElem?_eq_none (by omega)]
     wp_auto
-    wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hst Hrev HlatestRev Hhist] as Hrd
+    wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hst Hrev HlatestRev Hhist Hrest] as Hrd
     · inext; iexists st; simp only [named]; iframe; iframe #; ipureintro; exact Hinv
     iapply HΦ
     iframe Hrd
