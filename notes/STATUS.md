@@ -138,10 +138,12 @@ translation of etcd-raft is this repository's `EtcdRaft/`, generated and checked
   `Proof/stepLeader.lean` is 1m08s (the slowest module, and last on the path before
   `Link`); the Protocol chain (`Plog` … `Facts`) runs one compile at a time for the
   first 1m10s.
-- Verified code: `etc/verified-code.py`. On 2026-10-08 (forks `upamanyus/etcd-raft`
-  `24643b3`, `upamanyus/etcd` `3efe157`): raft 161 of 323 functions verified, 1962 of
-  3646 Go code lines (53.8%; 143 functions sorry-free); etcd 16 of 3579 functions, 174
-  of 45359 lines (0.4%, all from Perennial's public proofs).
+- Verified code: `etc/verified-code.py` (since 2026-10-09 it takes the forks and pins
+  from `etc/goose.py` and reads both translations). On 2026-10-09 (`upamanyus/etcd-raft`
+  `531b20c`, `upamanyus/etcd` `48fd5a5`): raft 175 of 323 functions verified, 2240 of
+  3641 Go code lines (61.5%, all sorry-free); etcd 79 of 3599 functions, 574 of 45564
+  lines (1.3%): the cache package 60 of 107 functions verified, 9 unfinished (the three
+  Perennial gaps below), 540 of 1204 lines (44.9%), and the client/protobuf getters.
 
 ## etcd `cache`: the `EtcdCache` library (2026-10-08; translation only, no proofs)
 
