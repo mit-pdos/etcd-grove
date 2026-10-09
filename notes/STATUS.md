@@ -6,9 +6,26 @@ Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
 `worktree-raft-replication`'s `feb5c73d4` and adds Ready/Advance/HasReady; the files
 were first ported from `main`, then from `feb5c73d4`) to Lean on top of Perennial's Lean
-port (mit-pdos/perennial `lean`, pinned at c35b7710d). The Goose
+port (mit-pdos/perennial `lean`, pinned at cbb85c041). The Goose
 translation of etcd-raft is this repository's `EtcdRaft/`, generated and checked by
 `etc/goose.py`.
+
+## Lean module system (2026-10-09)
+
+Perennial pinned at `cbb85c041`: the merge of upstream `lean` (every Perennial file is a
+`module`; Goose/proofgen emit modules; pointer conversions between types of the same
+underlying type; `slices.Sort` proved; `copy` modelled as a memmove) with `bytes.Compare`.
+What changed here:
+- `EtcdRaft/` and `EtcdCache/` regenerated (`etc/goose.py`): only the module header
+  (`module`, `public import`, `@[expose] public section`) of every file.
+- EtcdGrove's own files stay non-module files (importing modules from them is fine; a
+  non-module importer sees the private parts too, so `etc/tcb-report.lean` still finds
+  Perennial's `sorry`s): no change to `Link.lean`, `etc/gen-link.py` or the TCB scripts.
+- One proof broke, from the `copy` remodel, not the module system:
+  `wp_slice_append_nil_empty` (`InvRaftpb.lean`) stepped through `copy`'s loop; it now uses
+  Perennial's `wp_slice_copy_of_len_zero`. `extend`'s `wp_slice_copy` uses were unaffected.
+- `slices.Sort` stays an axiom: Perennial's `wp_Sort_uint64` needs `xs.length ≤ 2^62`,
+  which `slices.Sort.spec` does not have (see "What the five remaining axioms would take").
 
 ## Done (at `857d09190`)
 
