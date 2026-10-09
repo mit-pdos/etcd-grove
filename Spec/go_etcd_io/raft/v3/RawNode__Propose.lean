@@ -65,20 +65,20 @@ variable [AllG GF]
 abbrev RawNode.Propose.spec : Prop :=
   ∀ (cfg : GSet w64) (γ : RaftNames)
     (rn : Loc) (id : w64)
-    (ps : PState) (rs : RNState)
+    (s : NState) (ps : PState) (rs : RNState)
     (data_sl : GoSlice) (data : List w8) (Q : w64 → w64 → IProp GF),
   -- `Step`'s premises that are not about the message
   γ.reCfg = cfg →
   id ∈ cfg →
-  NStateRel rs.raft ps →
+  NStateRel s ps →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hrn" ∷ ownRawNode cfg rn id rs ∗
+      "Hrn" ∷ ownRawNode cfg rn id s rs ∗
       "Hghost" ∷ ownRaftGhost γ id ps ∗
       "#Hdata" ∷ data_sl ↦*□ data ∗
       "Hau" ∷ propAu γ (propEntry data_sl) Q }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Propose")) (Val #data_sl))
   {{ (err : GoInterface) (s' : NState) (ps' : PState), RET #err;
-      "Hrn" ∷ ownRawNode cfg rn id { rs with raft := s' } ∗
+      "Hrn" ∷ ownRawNode cfg rn id s' rs ∗
       "Hghost" ∷ ownRaftGhost γ id ps' ∗
       "%Hrel" ∷ ⌜NStateRel s' ps'⌝ ∗
       "%Hrefines" ∷ ⌜∃ recv, Step cfg id ps recv ps'⌝ ∗

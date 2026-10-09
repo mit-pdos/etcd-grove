@@ -20,6 +20,21 @@ namespace EtcdGrove
 
 open Iris Iris.BI go_etcd_io.raft.v3
 
+/-- The `RawNode` state after `Ready`: the previous soft state is the node's, the
+previous hard state the node's unless that is empty (`acceptReady` only records a
+non-empty `Ready.HardState`), and the local messages to step on `Advance` are the
+self-addressed responses from `msgsAfterAppend`, an acknowledgement of the log up to its
+last entry if there were unstable entries, and an acknowledgement of the committed
+entries handed out, if any. -/
+def readyRnstate [FfiSyntax] (s : NState) (rs : RNState) (selfs : List (Option Msg))
+    (ce : List raftpb.Entry) : RNState :=
+  ⟨nodeSoftstate s,
+   (if hsEmptyAbs (nodeHardstate s) then rs.hard else nodeHardstate s),
+   selfs.map Pending.self ++
+   (if s.logst.uents = [] then []
+    else [Pending.appendAck s.term (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents))]) ++
+   (if ce = [] then [] else [Pending.applyAck ce])⟩
+
 /-- The node after `Ready`: the outbox handed to the application, the unstable entries
 in progress and the handed-out ones the application's to persist (`logAcceptUnstable`),
 `applying` at the last committed entry handed out (`logAcceptApplying`; `sz` is
@@ -27,24 +42,6 @@ in progress and the handed-out ones the application's to persist (`logAcceptUnst
 def readyNstate [FfiSyntax] (s : NState) (ce : List raftpb.Entry) (sz : w64) : NState :=
   { s with outbox := [],
            logst := logAcceptApplying (logAcceptUnstable s.logst) ce sz }
-
-/-- The `RawNode` state after `Ready`: the node is `readyNstate`'s, the previous soft
-state is the node's, the previous hard state the node's unless that is empty
-(`acceptReady` only records a non-empty `Ready.HardState`), and the local messages to
-step on `Advance` are the self-addressed responses from `msgsAfterAppend`, an
-acknowledgement of the log up to its last entry if there were unstable entries, and an
-acknowledgement of the committed entries handed out, if any. (The soft state, hard state
-and acknowledgements are of the node *before* `Ready`.) -/
-def readyRnstate [FfiSyntax] (rs : RNState) (selfs : List (Option Msg))
-    (ce : List raftpb.Entry) (sz : w64) : RNState :=
-  { raft := readyNstate rs.raft ce sz,
-    soft := nodeSoftstate rs.raft,
-    hard := if hsEmptyAbs (nodeHardstate rs.raft) then rs.hard else nodeHardstate rs.raft,
-    steps := selfs.map Pending.self ++
-      (if rs.raft.logst.uents = [] then []
-       else [Pending.appendAck rs.raft.term
-               (plogLast rs.raft.logst.prev (rs.raft.logst.sents ++ rs.raft.logst.uents))]) ++
-      (if ce = [] then [] else [Pending.applyAck ce]) }
 
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -85,26 +82,26 @@ The `Ready` it returns:
 Ghost: the outbox is dropped (`step_drain`). -/
 abbrev RawNode.Ready.spec : Prop :=
   ∀ (cfg : GSet w64) (γ : RaftNames) (rn : Loc) (id : w64)
-    (ps : PState) (rs : RNState),
+    (s : NState) (ps : PState) (rs : RNState),
   γ.reCfg = cfg →
-  NStateRel rs.raft ps →
+  NStateRel s ps →
   rs.steps = [] →
-  rs.raft.logst.unpersisted = [] →
-  rs.raft.logst.snap = none →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hrn" ∷ ownRawNode cfg rn id rs ∗
+  s.logst.unpersisted = [] →
+  s.logst.snap = none →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hrn" ∷ ownRawNode cfg rn id s rs ∗
       "Hghost" ∷ ownRaftGhost γ id ps }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Ready")) (Val #()))
   {{ (rd : Ready) (ce : List raftpb.Entry) (sz : w64)
       (ms : List raftpb.Message) (selfs : List (Option Msg)), RET #rd;
-      "Hrn" ∷ ownRawNode cfg rn id (readyRnstate rs selfs ce sz) ∗
+      "Hrn" ∷ ownRawNode cfg rn id (readyNstate s ce sz) (readyRnstate s rs selfs ce) ∗
       "Hghost" ∷ ownRaftGhost γ id { ps with outbox := [] } ∗
-      "%Hrel" ∷ ⌜NStateRel (readyNstate rs.raft ce sz) { ps with outbox := [] } ∧
+      "%Hrel" ∷ ⌜NStateRel (readyNstate s ce sz) { ps with outbox := [] } ∧
                  Step cfg id ps [] { ps with outbox := [] }⌝ ∗
-      "#Hents" ∷ rd.Entries' ↦*□ nextUnstable rs.raft.logst ∗
+      "#Hents" ∷ rd.Entries' ↦*□ nextUnstable s.logst ∗
       "#Hce" ∷ rd.CommittedEntries' ↦*□ ce ∗
-      "%Hcepre" ∷ ⌜ce <+: logCommittedEnts rs.raft.logst⌝ ∗
+      "%Hcepre" ∷ ⌜ce <+: logCommittedEnts s.logst⌝ ∗
       "#Hcommitted" ∷ (∃ pre, isCommitted γ (pre ++ ce) ∗
-                       ⌜pre.length = (uint.Z rs.raft.logst.applying).toNat⌝) ∗
+                       ⌜pre.length = (uint.Z s.logst.applying).toNat⌝) ∗
       "Hmsgs" ∷ rd.Messages' ↦* ms ∗
       "Hmsgs_cap" ∷ ownSliceCap raftpb.Message rd.Messages' (DFrac.own 1) ∗
       "#Hmsgs_abs" ∷ ([∗list] m ∈ ms, ∃ a, msgAbs m a ∗
@@ -112,15 +109,15 @@ abbrev RawNode.Ready.spec : Prop :=
       "#Hselfs" ∷ ⌜∀ x, some x ∈ selfs → x ∈ ps.outbox⌝ ∗
       "#Hout" ∷ ([∗list] x ∈ ps.outbox, isMessage γ x) ∗
       "%Hhard" ∷ ⌜rd.HardState' =
-                  (if nodeHardstate rs.raft = rs.hard then zero_val raftpb.HardState
-                   else hardstateVal (nodeHardstate rs.raft))⌝ ∗
-      "Hsoft" ∷ (if nodeSoftstate rs.raft = rs.soft
+                  (if nodeHardstate s = rs.hard then zero_val raftpb.HardState
+                   else hardstateVal (nodeHardstate s))⌝ ∗
+      "Hsoft" ∷ (if nodeSoftstate s = rs.soft
                  then iprop(⌜rd.SoftState' = null⌝)
-                 else rd.SoftState' ↦□ softstateVal (nodeSoftstate rs.raft)) ∗
+                 else rd.SoftState' ↦□ softstateVal (nodeSoftstate s)) ∗
       "%Hsync" ∷ ⌜rd.MustSync' =
-                  decide (nextUnstable rs.raft.logst ≠ [] ∨
-                          rs.raft.vote ≠ rs.hard.vote ∨
-                          rs.raft.term ≠ rs.hard.term)⌝ ∗
+                  decide (nextUnstable s.logst ≠ [] ∨
+                          s.vote ≠ rs.hard.vote ∨
+                          s.term ≠ rs.hard.term)⌝ ∗
       "%Hsnapz" ∷ ⌜rd.Snapshot' = zero_val raftpb.Snapshot ∧
                    rd.ReadStates' = slice.nil⌝ }}
 

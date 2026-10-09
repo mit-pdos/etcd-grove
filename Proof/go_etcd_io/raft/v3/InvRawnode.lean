@@ -3,13 +3,11 @@ Port of `election_proof/inv_rawnode.v` (at 857d09190).
 
 **The `RawNode`, and what `Ready`/`Advance` need of the log (2026-10-05)**
 
-`ownRawNode cfg rn id rs` is the one predicate for a `RawNode` (`rawnode.go`),
-indexed by one record `rs` (`RNState`): the `raft` it points to at the physical state
-`rs.raft` (`ownRaftPhys`), and the RawNode's own state -- the previous
-`SoftState`/`HardState` it compares against, and the local messages it will step on
-`Advance`. Records, not Goose types, index it (notes/raft-replication-model.md,
-"Public representation predicates"; notes/decisions.md, "Predicate indices": until
-2026-10-08 the raft node's state was a separate argument `s`).
+`ownRawNode cfg rn id s rs` is the one predicate for a `RawNode` (`rawnode.go`): the
+struct, the `raft` it points to at the physical state `s` (`ownRaftPhys`), and the
+RawNode's own state `rs` (`RNState`) -- the previous `SoftState`/`HardState` it
+compares against, and the local messages it will step on `Advance`. Records, not Goose
+types, index it (notes/raft-replication-model.md, "Public representation predicates").
 
 Scope: `asyncStorageWrites = false` (a conjunct, like `ownRaftPhys`'s
 `checkQuorum = false`). With synchronous storage writes `Ready`'s `acceptReady` queues
@@ -75,8 +73,6 @@ inductive Pending [FfiSyntax] where
   | applyAck (ents : List raftpb.Entry)
 
 structure RNState [FfiSyntax] where
-  /-- `*rn.raft` -/
-  raft : NState
   /-- `*rn.prevSoftSt` -/
   soft : SoftSt
   /-- `rn.prevHardSt` -/
@@ -146,10 +142,10 @@ variable (cfg : GSet w64)
 
 /-! ## The one predicate for a `RawNode` -/
 
-def ownRawNode (rn : Loc) (id : w64) (rs : RNState) : IProp GF :=
+def ownRawNode (rn : Loc) (id : w64) (s : NState) (rs : RNState) : IProp GF :=
   iprop(∃ (rnv : RawNode) (sv : SoftState) (steps : List raftpb.Message),
   "Hrn" ∷ rn ↦ rnv ∗
-  "Hphys" ∷ ownRaftPhys cfg rnv.raft' id rs.raft ∗
+  "Hphys" ∷ ownRaftPhys cfg rnv.raft' id s ∗
   -- scope: synchronous storage writes (`Config.AsyncStorageWrites` unset); `NewRawNode`
   -- copies the `Config` field
   "%Hasync" ∷ ⌜rnv.asyncStorageWrites' = false⌝ ∗
@@ -165,10 +161,10 @@ def ownRawNode (rn : Loc) (id : w64) (rs : RNState) : IProp GF :=
 
 /-- The raft struct, for a `raft` method called on `rn.raft` -- in particular `Step`,
 which is legal between `Ready` and `Advance`. -/
-theorem ownRawNode_raft (rn : Loc) (id : w64) (rs : RNState) :
-    ⊢ ownRawNode (GF := GF) cfg rn id rs -∗
-      ∃ r, ownRaftPhys cfg r id rs.raft ∗
-           (∀ s', ownRaftPhys cfg r id s' -∗ ownRawNode cfg rn id { rs with raft := s' }) := by
+theorem ownRawNode_raft (rn : Loc) (id : w64) (s : NState) (rs : RNState) :
+    ⊢ ownRawNode (GF := GF) cfg rn id s rs -∗
+      ∃ r, ownRaftPhys cfg r id s ∗
+           (∀ s', ownRaftPhys cfg r id s' -∗ ownRawNode cfg rn id s' rs) := by
   iintro H
   unfold ownRawNode
   icases H with ⟨%rnv, %sv, %steps, H⟩
@@ -185,17 +181,17 @@ theorem ownRawNode_raft (rn : Loc) (id : w64) (rs : RNState) :
 /-- The storage handshake, at the RawNode: the `Storage` the log owns, for the
 application to append the entries the last `Ready` handed out (`ownRaftLog_persist`,
 `InvRaftlog.lean`). -/
-theorem ownRawNode_persist (rn : Loc) (id : w64) (rs : RNState) :
-    ⊢ ownRawNode (GF := GF) cfg rn id rs -∗
+theorem ownRawNode_persist (rn : Loc) (id : w64) (s : NState) (rs : RNState) :
+    ⊢ ownRawNode (GF := GF) cfg rn id s rs -∗
       ∃ (st : Storage) (σ : StorState),
         isStorage st ∗ ownStorage st σ ∗
-        (ownStorage st { σ with ents := storApp σ.prev σ.ents rs.raft.logst.unpersisted } -∗
+        (ownStorage st { σ with ents := storApp σ.prev σ.ents s.logst.unpersisted } -∗
          ownRawNode cfg rn id
-           { rs with raft := { rs.raft with logst := { rs.raft.logst with unpersisted := [] } } }) := by
+           { s with logst := { s.logst with unpersisted := [] } } rs) := by
   iintro H
-  icases ownRawNode_raft cfg rn id rs $$ H with ⟨%r, Hphys, Hback⟩
-  icases ownRaftPhys_log_at cfg r id rs.raft $$ Hphys with ⟨Hlog, Hlback⟩
-  icases ownRaftLog_persist rs.raft.log rs.raft.logst $$ Hlog with
+  icases ownRawNode_raft cfg rn id s rs $$ H with ⟨%r, Hphys, Hback⟩
+  icases ownRaftPhys_log_at cfg r id s $$ Hphys with ⟨Hlog, Hlback⟩
+  icases ownRaftLog_persist s.log s.logst $$ Hlog with
     ⟨%st, %σ, #Hst, HSt, Hclose⟩
   iexists st, σ
   iframe Hst HSt

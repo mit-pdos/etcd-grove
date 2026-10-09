@@ -198,7 +198,7 @@ private theorem wp_step_pending
 theorem RawNode.Advance.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
     RawNode.Advance.spec (GF := GF) (hG := hG) := by
-  intro cfg γ rn id ps ⟨s, rsoft, rhard, rsteps⟩ rd Hcfg Hin Hrel Hmono Hok
+  intro cfg γ rn id s ps rs rd Hcfg Hin Hrel Hmono Hok
   wp_start as H
   iNamed H
   iNamed Hrn
@@ -220,8 +220,8 @@ theorem RawNode.Advance.wp_proof
       "%Hsteps1" ∷ ⌜steps1.length = steps.length ∧
                     steps1.drop (sint.nat n) = steps.drop (sint.nat n)⌝ ∗
       "%Hrel1" ∷ ⌜NStateRel s1 ps1 ∧ ∃ recv, Step cfg id ps recv ps1⌝ ∗
-      "%Hok1" ∷ ⌜AdvanceOk s1 (rsteps.drop (sint.nat n))⌝ ∗
-      "Hpown" ∷ ([∗list] _k ↦ m;p ∈ steps.drop (sint.nat n);rsteps.drop (sint.nat n),
+      "%Hok1" ∷ ⌜AdvanceOk s1 (rs.steps.drop (sint.nat n))⌝ ∗
+      "Hpown" ∷ ([∗list] _k ↦ m;p ∈ steps.drop (sint.nat n);rs.steps.drop (sint.nat n),
                    pendingOwn m p))
     $$ [i m ib Hphys Hghost Hsteps Hpown]
   · iexists W64 0, s, ps, steps, zero_val raftpb.Message, zero_val w64
@@ -237,7 +237,7 @@ theorem RawNode.Advance.wp_proof
     clear Hif
     -- the next pending message
     list_elem steps (sint.nat n) as mm
-    list_elem rsteps (sint.nat n) as p
+    list_elem rs.steps (sint.nat n) as p
     have Hmm1 : steps1[sint.nat n]? = some mm := by
       have H := congrArg (fun l => l[0]?) Hsteps1.2
       simp only [List.getElem?_drop, Nat.add_zero] at H

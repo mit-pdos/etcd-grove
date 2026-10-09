@@ -384,7 +384,7 @@ theorem RawNode.Ready.wp_proof
     (wp_raftLog_acceptApplying : raftLog.acceptApplying.spec (GF := GF) (hG := hG))
     (wp_traceReady : traceReady.spec (GF := GF) (hG := hG)) :
     RawNode.Ready.spec (GF := GF) (hG := hG) := by
-  intro cfg γ rn id ps ⟨s, rsoft, rhard, rsteps⟩ Hcfg Hrel Hsteps0 Hunp Hsnap
+  intro cfg γ rn id s ps rs Hcfg Hrel Hsteps0 Hunp Hsnap
   wp_start as H
   iNamed H
   iNamed Hrn
@@ -420,7 +420,7 @@ theorem RawNode.Ready.wp_proof
   wp_apply wp_raftLog_nextCommittedEnts $$ [Hlog] as %sce %ce ⟨Hlog, #Hce, Hce_cap, %Hcepre, -⟩
   · iframe Hlog
   have Hsoft_iff : (s.lead = sv.Lead' ∧ stateW64 s.role = sv.RaftState') ↔
-      nodeSoftstate s = rsoft := by
+      nodeSoftstate s = rs.soft := by
     subst Hsoftv
     constructor
     · intro ⟨H1, H2⟩
@@ -428,8 +428,8 @@ theorem RawNode.Ready.wp_proof
       rw [H1, H2]; rfl
     · intro H
       rw [← H]; exact ⟨rfl, rfl⟩
-  have Hhs_iff : (s.term = (hardstateVal rhard).Term' ∧ s.vote = (hardstateVal rhard).Vote' ∧
-      s.logst.committed = (hardstateVal rhard).Commit') ↔ nodeHardstate s = rhard := by
+  have Hhs_iff : (s.term = (hardstateVal rs.hard).Term' ∧ s.vote = (hardstateVal rs.hard).Vote' ∧
+      s.logst.committed = (hardstateVal rs.hard).Commit') ↔ nodeHardstate s = rs.hard := by
     constructor
     · intro ⟨H1, H2, H3⟩
       show HardSt.mk _ _ _ = _
@@ -442,7 +442,7 @@ theorem RawNode.Ready.wp_proof
   wp_auto
   wp_apply wp_SoftState_equal $$ [$softSt $Hsoft] as ⟨softSt, -⟩
   wp_join iprop(∃ sp, rd_ptr ↦ readyVal sp (zero_val raftpb.HardState) sents sce sl1 false ∗
-      (if nodeSoftstate s = rsoft then iprop(⌜sp = null⌝)
+      (if nodeSoftstate s = rs.soft then iprop(⌜sp = null⌝)
        else sp ↦ softstateVal (nodeSoftstate s)))
     with [rd softSt] as ⟨%sp, rd, Hsoftp⟩
   · iexists null
@@ -465,7 +465,7 @@ theorem RawNode.Ready.wp_proof
   clear Hlv
   wp_apply wp_isHardStateEqual
   rw [Hhard]
-  wp_join iprop(rd_ptr ↦ readyVal sp (if nodeHardstate s = rhard then zero_val raftpb.HardState
+  wp_join iprop(rd_ptr ↦ readyVal sp (if nodeHardstate s = rs.hard then zero_val raftpb.HardState
       else hardstateVal (nodeHardstate s)) sents sce sl1 false) with [rd hardSt] as rd
   · rw [ite_pos' (Hhs_iff.1 Hif)]
     iexact rd
@@ -490,10 +490,10 @@ theorem RawNode.Ready.wp_proof
   wp_apply wp_MustSync
   rw [Hasync]
   wp_auto
-  generalize HHS : (if nodeHardstate s = rhard then zero_val raftpb.HardState
+  generalize HHS : (if nodeHardstate s = rs.hard then zero_val raftpb.HardState
       else hardstateVal (nodeHardstate s)) = HS
-  generalize HMS : decide (¬sents.len = W64 0 ∨ ¬s.vote = rhard.vote ∨
-      ¬s.term = rhard.term) = MS
+  generalize HMS : decide (¬sents.len = W64 0 ∨ ¬s.vote = rs.hard.vote ∨
+      ¬s.term = rs.hard.term) = MS
   -- `for _, m := range r.msgsAfterAppend { if m.To != r.id { rd.Messages =
   -- append(rd.Messages, m) } }`: in place, into `r.msgs`' capacity
   ihave IH : iprop(∃ (n : w64) (msl : GoSlice) (mv : raftpb.Message),
@@ -556,7 +556,7 @@ theorem RawNode.Ready.wp_proof
       ∃ psp, rn ↦ { rnv with prevSoftSt' := psp } ∗ psp ↦□ softstateVal (nodeSoftstate s))
     with [Hrn rn rd] as ⟨rn, rd, %psp, Hrn, #Hpsp⟩
   · -- `SoftState = nil`
-    by_cases hc : nodeSoftstate s = rsoft
+    by_cases hc : nodeSoftstate s = rs.soft
     · iframe rn rd
       iexists rnv.prevSoftSt'
       rw [hc, ← Hsoftv]
@@ -565,7 +565,7 @@ theorem RawNode.Ready.wp_proof
     · rw [ite_neg' hc]
       ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hsoftp
       exact absurd rfl Hnn
-  · by_cases hc : nodeSoftstate s = rsoft
+  · by_cases hc : nodeSoftstate s = rs.soft
     · rw [ite_pos' hc]
       icases Hsoftp with %Hsp
       exact absurd Hsp Hif
@@ -578,16 +578,16 @@ theorem RawNode.Ready.wp_proof
   wp_apply wp_IsEmptyHardState
   wp_join iprop(rn_ptr ↦ rn ∗ rd_ptr ↦ readyVal sp HS sents sce msl MS ∗
       rn ↦ { rnv with prevSoftSt' := psp,
-                      prevHardSt' := hardstateVal (if hsEmptyAbs (nodeHardstate s) then rhard
+                      prevHardSt' := hardstateVal (if hsEmptyAbs (nodeHardstate s) then rs.hard
                                                    else nodeHardstate s) })
     with [Hrn rn rd] as ⟨rn, rd, Hrn⟩
   · -- empty: `prevHardSt` unchanged
     iframe rn rd
-    have HPH : hardstateVal (if hsEmptyAbs (nodeHardstate s) then rhard else nodeHardstate s)
+    have HPH : hardstateVal (if hsEmptyAbs (nodeHardstate s) then rs.hard else nodeHardstate s)
         = rnv.prevHardSt' := by
       rw [Hhard]
       subst HHS
-      by_cases E : nodeHardstate s = rhard
+      by_cases E : nodeHardstate s = rs.hard
       · rw [E]; split <;> rfl
       · rw [ite_neg' E] at Hif
         have : hsEmptyAbs (nodeHardstate s) = true := by
@@ -597,10 +597,10 @@ theorem RawNode.Ready.wp_proof
     iexact Hrn
   · -- non-empty: `prevHardSt = rd.HardState`
     iframe rn rd
-    have HPH : hardstateVal (if hsEmptyAbs (nodeHardstate s) then rhard else nodeHardstate s)
+    have HPH : hardstateVal (if hsEmptyAbs (nodeHardstate s) then rs.hard else nodeHardstate s)
         = HS := by
       subst HHS
-      by_cases E : nodeHardstate s = rhard
+      by_cases E : nodeHardstate s = rs.hard
       · rw [ite_pos' E] at Hif
         exact absurd ⟨rfl, rfl, rfl⟩ Hif
       · rw [ite_neg' E] at Hif ⊢
@@ -617,7 +617,7 @@ theorem RawNode.Ready.wp_proof
   wp_auto
   rw [Hs0']
   wp_auto
-  generalize HPH : hardstateVal (if hsEmptyAbs (nodeHardstate s) then rhard
+  generalize HPH : hardstateVal (if hsEmptyAbs (nodeHardstate s) then rs.hard
       else nodeHardstate s) = PH
   -- `for _, m := range r.msgsAfterAppend { if m.To == r.id {
   -- rn.stepsOnAdvance = append(rn.stepsOnAdvance, m) } }`
@@ -834,7 +834,7 @@ theorem RawNode.Ready.wp_proof
     simp only [named]
     iframe Hrn Hsteps Hsteps_cap
     isplitl [Hphys]
-    · simp only [readyRnstate, readyNstate]
+    · unfold readyNstate
       iexact Hphys
     isplitr
     · ipureintro; exact Hasync
