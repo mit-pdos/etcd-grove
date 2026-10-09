@@ -31,7 +31,7 @@ theorem tracker.Progress.IsPaused.wp_proof :
   iNamed Hpr
   iNamed Hpr
   have Habs' := (progressAbs_Some _ _ _).1 Habs
-  obtain ⟨-, Hst, -, -, -, -, -, Hpa, -⟩ := Habs'
+  obtain ⟨-, Hst, -, -, -, -, Hpa, -⟩ := Habs'
   wp_auto
   unfold progressIsPaused
   cases h : p.state <;> rw [h] at Hst <;> simp only [prstateW64] at Hst <;>

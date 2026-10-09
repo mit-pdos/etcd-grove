@@ -39,20 +39,20 @@ is an entry of the suffix. `lo < hi` is required rather than `lo <= hi` so that 
 result is non-empty, which the ownership transfer needs (see `ownSlice_same_ptr_len`)
 and which `raftLog.scan` needs anyway. -/
 abbrev unstable.slice.spec : Prop :=
-  ∀ (u : Loc) (uv : unstable) (uents : List raftpb.Entry) (lo hi : w64),
-  uint.Z uv.offset' ≤ uint.Z lo ∧ uint.Z lo < uint.Z hi ∧
-    uint.Z hi ≤ uint.Z uv.offset' + (uents.length : Int) →
-  uint.Z uv.offset' + (uents.length : Int) < 2^64 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hun" ∷ ownUnstable u uv uents }}
+  ∀ (u : Loc) (us : UnstableSt) (lo hi : w64),
+  uint.Z us.offset ≤ uint.Z lo ∧ uint.Z lo < uint.Z hi ∧
+    uint.Z hi ≤ uint.Z us.offset + (us.ents.length : Int) →
+  uint.Z us.offset + (us.ents.length : Int) < 2^64 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hun" ∷ ownUnstable u us }}
     (App (App (Val (u @!! go.GoType.PointerType unstable.ty @!! go!"slice"))
       (Val #lo)) (Val #hi))
   {{ (s : GoSlice) (es : List raftpb.Entry), RET #s;
-      ownUnstable u uv uents ∗ s ↦*□ es ∗
+      ownUnstable u us ∗ s ↦*□ es ∗
       ⌜(es.length : Int) = uint.Z hi - uint.Z lo ∧
-        (∀ e, e ∈ es → e ∈ uents) ∧
+        (∀ e, e ∈ es → e ∈ us.ents) ∧
         s.cap = s.len ∧
-        es = subslice (uint.Z lo - uint.Z uv.offset').toNat
-               (uint.Z hi - uint.Z uv.offset').toNat uents⌝ }}
+        es = subslice (uint.Z lo - uint.Z us.offset).toNat
+               (uint.Z hi - uint.Z us.offset).toNat us.ents⌝ }}
 
 end spec
 

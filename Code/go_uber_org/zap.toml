@@ -1,7 +1,10 @@
-# Types and names only: the type of `clientv3.Client`'s field `lg`
-# (`atomic.Pointer[zap.Logger]`).
+# Types and names only: function and method bodies are axiomatized. (The cache needs the
+# type of `clientv3.Client`'s field `lg`, `atomic.Pointer[zap.Logger]`.)
 translate = ["!*"]
-imports = ["!*"]
+# zapcore so that the generic `anyFieldC[T]` (a function type returning `zapcore.Field`) is
+# translated: Goose emits an axiomatized generic type as `∀ (T : go.type), go.type`, which
+# does not elaborate (the Lean name is go.GoType).
+imports = ["!*", "go.uber.org/zap/zapcore"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

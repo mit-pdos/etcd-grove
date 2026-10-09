@@ -7,7 +7,9 @@ Trust base of the Raft proof.  Not part of the lakefile; run with
 declared in the given modules (default: `Proof.go_etcd_io.raft.v3.Link`, every function's linked
 result, `Proof.go_etcd_io.raft.v3.Results`, `Proof.go_etcd_io.etcd.cache.v3.Link`, the `cache` package's linked
 results, `Proof.go_etcd_io.etcd.cache.v3.Results`, its exported results restated, and the btree's
-`Link`).  For each root it computes what `#print axioms`
+`Link`; `etc/tcb-report.py` runs it again on `Proof.go_etcd_io.etcd.server.v3.etcdserver.Link`, the
+etcd server's, which cannot be imported with the Raft proof: both name `go_etcd_io.raft.v3`, of
+different raft versions).  For each root it computes what `#print axioms`
 computes -- the axioms its proof transitively depends on -- and, in addition, which
 declarations along the way contain a `sorry` themselves (`#print axioms` only says
 `sorryAx`).  One JSON object per line:
@@ -97,8 +99,10 @@ partial def closure (env : Environment) (roots : Array Name) :
   return memo
 
 def isProject (env : Environment) (n : Name) : Bool :=
-  let r := (modOf env n).getRoot
-  r == `Spec || r == `Proof
+  let m := modOf env n
+  let r := m.getRoot
+  -- `EtcdDeps.{Spec,Proof}.*`: the specs and proofs of etcd's own raft dependency
+  r == `Spec || r == `Proof || (`EtcdDeps.Spec).isPrefixOf m || (`EtcdDeps.Proof).isPrefixOf m
 
 def kindOf : ConstantInfo → String
   | .axiomInfo _ => "axiom" | .defnInfo _ => "def" | .thmInfo _ => "theorem"

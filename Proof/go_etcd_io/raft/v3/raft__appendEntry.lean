@@ -41,27 +41,23 @@ private theorem ownRaftLog_facts (l : Loc) (ls : LogState) :
           < 2^61 + 2^63⌝ ∗
       ownRaftLog l ls := by
   iintro H0
-  unfold ownRaftLog
-  icases H0 with ⟨%lv, H0⟩
   iNamed H0
-  unfold ownRaftLogCore
-  icases Hcore with ⟨%sprev, %stored, %ss, Hcore⟩
-  iNamed Hcore
   ihave #Hsto : isStorage (GF := GF) lv.storage' $$ []
   · iexact HisStorage
   iunfold isStorage at Hsto
   iunfold isStorageWith at Hsto
   icases Hsto with ⟨%isv, #Hs⟩
   iNamed Hs
-  icases Hbounded $$ %sprev %stored %ss HStorage with ⟨%Hstb, HStorage⟩
+  icases Hbounded $$ %σ HStorage with ⟨%Hstb, HStorage⟩
   ihave %Hul := ownSlice_len $$ Huents
   -- the stable part: below the storage's bound, or -- with a snapshot
   -- pending -- empty after a snapshot index below `2^61`
   have Hsb : uint.Z ls.prev.index' + (ls.sents.length : Int) < 2^61 := by
     unfold LogStoreOk at Hstore
     split at Hstore
-    · obtain ⟨rfl, Hstored, -⟩ := Hstore
+    · obtain ⟨Hsp, Hstored, -⟩ := Hstore
       have := Hstored.length_le
+      rw [Hsp] at Hstb
       omega
     · obtain ⟨rfl, Hs0, Hsid⟩ := Hstore
       rw [Hs0, List.length_nil]; omega
@@ -71,20 +67,10 @@ private theorem ownRaftLog_facts (l : Loc) (ls : LogState) :
     have : (ls.uents.length : Int) < 2^63 := by
       rw [Hul.1]; have := word.signed_range lv.unstable'.entries'.len; word
     omega
-  · iexists lv
-    simp only [named]
-    iframe Hl
-    isplitr; · ipureintro; exact Hcm
-    isplitr; · ipureintro; exact Hap
-    isplitr; · ipureintro; exact Hapg
-    isplitr; · ipureintro; exact Hip
-    isplitr; · ipureintro; exact Hasz
-    isplitr; · ipureintro; exact Hamx
-    iexists sprev, stored, ss
-    iframe HisStorage HStorage Husnap Huents Huents_cap Hl_logger Hu_logger
-    ipureintro
-    exact ⟨Hidx, Hnowrap, Hstore, Hoffset, HnoConfChange, Happlied, Hpapplied, Hcommitted,
-      Hssnap, Hipb, Hpersist, Happlying, Hpaused⟩
+  · iapply ownRaftLog_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
+      HnoConfChange Happlied Hpapplied Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying
+      Hpaused Hasz Hamx rfl rfl $$ Hl HisStorage HStorage Husnap Huents Huents_cap Hl_logger
+      Hu_logger
 
 /-! The batch, as `appendEntry` rewrites it: `stamp` (`Protocol/Model.lean`). -/
 

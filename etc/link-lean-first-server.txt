@@ -1,0 +1,57 @@
+# The etcd server's functions (all Lean-first: no Rocq counterpart), read by
+# `etc/gen-link.py --server`: `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
+# The trust boundary (`axiom … .wp_proof`): encoding/binary's BigEndian (Perennial translates
+# only LittleEndian) and etcd's verify.Verify (names-only: it reads ETCD_VERIFY).
+binary_bigEndian__Uint64:
+binary_bigEndian__PutUint64:
+verify_Verify:
+# schema's consistent-index reads and writes (server/storage/schema/cindex.go), see InvCindex.lean.
+schema_UnsafeReadConsistentIndex: binary_bigEndian__Uint64
+schema_ReadConsistentIndex: schema_UnsafeReadConsistentIndex
+schema_unsafeUpdateConsistentIndex: binary_bigEndian__PutUint64 verify_Verify schema_UnsafeReadConsistentIndex
+schema_UnsafeUpdateConsistentIndex: schema_unsafeUpdateConsistentIndex
+schema_UnsafeUpdateConsistentIndexForce: schema_unsafeUpdateConsistentIndex
+# The consistent index (server/etcdserver/cindex/cindex.go), see InvCindex.lean.
+NewConsistentIndex:
+consistentIndex__SetConsistentIndex:
+consistentIndex__ConsistentApplyingIndex:
+consistentIndex__SetConsistentApplyingIndex:
+consistentIndex__UnsafeSave: schema_UnsafeUpdateConsistentIndex
+consistentIndex__SetBackend: consistentIndex__SetConsistentIndex
+consistentIndex__ConsistentIndex: consistentIndex__SetConsistentIndex schema_ReadConsistentIndex
+consistentIndex__UnsafeConsistentIndex: consistentIndex__SetConsistentIndex schema_UnsafeReadConsistentIndex
+# raft v3.7's raftpb getters (etcd's own raft dependency), see InvRaftpb.lean.
+Entry__GetIndex:
+Entry__GetTerm:
+Entry__GetType:
+ConfChange__GetId:
+# The apply thread's trust boundary (`axiom … .wp_proof`), see InvApplier.lean: the applier
+# and the membership change's contracts, and names-only callees (zap, the alarm store, ...).
+apply_Apply:
+EtcdServer__applyConfChange:
+pbutil_MustUnmarshalMessage:
+EtcdServer__isLeader:
+EtcdServer__Logger:
+EtcdServer__GoAttach:
+EtcdServer__stopWithDelay:
+Notifier__Notify:
+ServerConfig__ElectionTimeout:
+AlarmStore__Get:
+RaftCluster__Members:
+errors_Is:
+go_humanize_Bytes:
+zap_Logger__Debug:
+zap_Logger__Warn:
+zap_Uint64:
+zap_Int:
+zap_Int64:
+zap_String:
+zap_Stringer:
+zap_Error:
+# The apply thread (server.go), see InvApply.lean (the protocol), InvServer.lean, InvApplier.lean.
+EtcdServer__getTxPostLockInsideApplyHook: consistentIndex__ConsistentApplyingIndex consistentIndex__UnsafeConsistentIndex consistentIndex__SetConsistentIndex
+EtcdServer__setAppliedIndex:
+EtcdServer__setTerm:
+EtcdServer__applyEntries: Entry__GetIndex EtcdServer__apply EtcdServer__stopWithDelay
+EtcdServer__applyEntryNormal: Entry__GetIndex Entry__GetTerm consistentIndex__ConsistentIndex consistentIndex__SetConsistentIndex Notifier__Notify EtcdServer__isLeader ServerConfig__ElectionTimeout apply_Apply errors_Is AlarmStore__Get EtcdServer__Logger zap_String zap_Int64 zap_Error go_humanize_Bytes zap_Logger__Warn EtcdServer__GoAttach
+EtcdServer__apply: zap_Logger__Debug zap_Int zap_Uint64 zap_Stringer consistentIndex__ConsistentIndex consistentIndex__SetConsistentApplyingIndex consistentIndex__SetConsistentIndex Entry__GetIndex Entry__GetTerm Entry__GetType EtcdServer__applyEntryNormal EtcdServer__setAppliedIndex EtcdServer__setTerm pbutil_MustUnmarshalMessage EtcdServer__applyConfChange ConfChange__GetId RaftCluster__Members

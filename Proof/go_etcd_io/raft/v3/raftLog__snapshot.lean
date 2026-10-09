@@ -25,21 +25,16 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 the storage's `ss` (`HSnapshot`), related to the log by `StoredSnapOk`. -/
 theorem raftLog.snapshot.wp_proof : raftLog.snapshot.spec (GF := GF) (hG := hG) := by
   intro l ls esu
-  obtain ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ := ls
   wp_start as H
   iNamed H
-  icases (ownRaftLog_unfold l prev sents uents lcm lap snap lip lapg lpend lasz lamx).1 $$ Hlog with ⟨%lv, Hl, %Hcm, %Hap, %Hapg, %Hip, %Hasz, %Hamx, Hcore⟩
-  unfold ownRaftLogCore
-  icases Hcore with ⟨%sprev, %stored, %ss, Hcore⟩
-  iNamed Hcore
+  iNamed Hlog
   ihave #Hsto : isStorageWith (ownStorage lv.storage') lv.storage' $$ [HisStorage]
   · unfold isStorage; iexact HisStorage
   unfold isStorageWith
   icases Hsto with ⟨%isv, #Hsto⟩
   iNamed Hsto
-  subst lcm
   wp_auto
-  cases snap with
+  cases Hsn : ls.snap with
   | some sid =>
     -- the pending snapshot, read through `l.unstable.snapshot`
     ihave Hus := (ownSnap_Some _ sid).1 $$ Husnap
@@ -54,11 +49,10 @@ theorem raftLog.snapshot.wp_proof : raftLog.snapshot.spec (GF := GF) (hG := hG) 
     isplitr
     · ipureintro
       obtain ⟨Hi, Ht⟩ := Hmeta
-      obtain ⟨Hp, -, Hsid⟩ := Hstore
+      obtain ⟨Hp, -, Hsid⟩ : LogStoreOk (some sid) σ ls.prev ls.sents ls.uents := Hsn ▸ Hstore
       subst Hp
-      simp only
       rw [Hi, Ht]
-      refine ⟨trivial, ?_, Happlied.1, plogTermAt_base _ _⟩
+      refine ⟨rfl, ?_, Happlied.1, plogTermAt_base _ _⟩
       intro Hz; rw [Hz] at Hsid; simp at Hsid
     · iexists voters; iexact Hvoters
   | none =>
@@ -79,7 +73,7 @@ theorem raftLog.snapshot.wp_proof : raftLog.snapshot.spec (GF := GF) (hG := hG) 
     iframe Hv
     ipureintro
     obtain ⟨rfl, Hid, Hnz⟩ := Herr
-    rcases Hssnap rfl with Hz | ⟨Hle, Ht⟩
+    rcases Hssnap Hsn with Hz | ⟨Hle, Ht⟩
     · exfalso; apply Hnz; rw [← Hid] at Hz; simp only [snapId] at Hz; word
     · rw [← Hid] at Hle Ht; simp only [snapId] at Hle Ht
       exact ⟨rfl, Hnz, Hle, Ht⟩

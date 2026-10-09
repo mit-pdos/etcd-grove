@@ -20,41 +20,70 @@ Spec/go_etcd_io/raft/v3/tracker/NewInflights.lean).
 
 usage: etc/gen-link.py ROCQ_PROOF_DIR > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --cache > Proof/go_etcd_io/etcd/cache/v3/Link.lean
+       etc/gen-link.py --server > Proof/go_etcd_io/etcd/server/v3/etcdserver/Link.lean
 
 `--cache` links the proofs of etcd's `cache` package (`Proof/go_etcd_io/etcd/cache/v3/` and
 the specs and proofs of its functions), which are all
 Lean-first: they are read from etc/link-lean-first-cache.txt alone, with no Rocq side.
+`--server` likewise links the proofs of etcd's server (the consistent index and the apply
+thread, `Proof/go_etcd_io/etcd/server/v3/etcdserver/`), from etc/link-lean-first-server.txt;
+its specs are also looked up in `EtcdDeps/Spec/` (etcd's own raft dependency, raft v3.7, whose
+Go path is the fork's).
 """
 import glob
 import os
 import re
 import sys
 
-cache = sys.argv[1] == "--cache"
+# The Lean-first links: (callee list, what the links open, the package assumptions they
+# are stated under, a description for the header, the module roots holding their specs).
+LEAN_FIRST = {
+    "--cache": ("link-lean-first-cache.txt", "go_etcd_io.etcd.cache.v3",
+                "go_etcd_io.etcd.cache.v3.Assumptions", "The `cache` package's proofs", [""]),
+    # etcdserver's assumptions include those of every package it imports (instances):
+    # cindex's, schema's, raft v3.7's raftpb's, zap's, ..., which the other specs use
+    "--server": ("link-lean-first-server.txt",
+                 "go_etcd_io.etcd.server.v3.etcdserver.cindex go_etcd_io.etcd.server.v3.storage "
+                 "go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3 "
+                 "go_etcd_io.etcd.pkg.v3 go_uber_org go_etcd_io.raft.v3",
+                 "go_etcd_io.etcd.server.v3.etcdserver.Assumptions",
+                 "The etcd server's proofs (the consistent index and the apply thread)",
+                 ["", "EtcdDeps"]),
+}
+mode = LEAN_FIRST.get(sys.argv[1])
+cache = mode is not None
 here = os.path.dirname(os.path.abspath(__file__))
 root = os.path.normpath(os.path.join(here, ".."))
 
 # function name -> the module path below Spec/ and Proof/ (`go_etcd_io.raft.v3.tracker.NewInflights`)
 # (a bare `<fn>` shared by two packages, as `Error` of `rpctypes` and `status`, is
 # ambiguous: such a function is named `<last component of pkg>_<fn>` only)
-where, ambiguous = {}, set()
-for dp, _, fs in os.walk(os.path.join(root, "Spec")):
-    for f in fs:
-        if f.endswith(".lean"):
-            rel = os.path.relpath(os.path.join(dp, f), os.path.join(root, "Spec"))[:-len(".lean")]
-            *pkg, stem = rel.split(os.sep)
-            qual = pkg[-1] + "_" + stem
-            assert qual not in where, f"two specs for {qual}"
-            where[qual] = ".".join(pkg + [stem])
-            if stem in where:
-                ambiguous.add(stem)
-            where[stem] = where[qual]
+# (`prefix`: the module root of a spec outside `Spec/`, as `EtcdDeps.`)
+where, prefix, ambiguous = {}, {}, set()
+for mroot in (mode[4] if cache else [""]):
+    spec_dir = os.path.join(root, mroot, "Spec")
+    for dp, _, fs in os.walk(spec_dir):
+        for f in fs:
+            if f.endswith(".lean"):
+                rel = os.path.relpath(os.path.join(dp, f), spec_dir)[:-len(".lean")]
+                *pkg, stem = rel.split(os.sep)
+                qual = pkg[-1] + "_" + stem
+                assert qual not in where, f"two specs for {qual}"
+                where[qual] = ".".join(pkg + [stem])
+                prefix[qual] = mroot + "." if mroot else ""
+                if stem in where:
+                    ambiguous.add(stem)
+                where[stem], prefix[stem] = where[qual], prefix[qual]
 for name in ambiguous:
     del where[name]
 
 
 def spec_file(fn):
-    return os.path.join(root, "Spec", *where[fn].split(".")) + ".lean"
+    return os.path.join(root, prefix[fn].rstrip("."), "Spec", *where[fn].split(".")) + ".lean"
+
+
+def proof_module(fn):
+    return f"{prefix[fn]}Proof.{where[fn]}"
 
 fns, callees, external = [], {}, set()
 if not cache:
@@ -70,7 +99,7 @@ if not cache:
 
 # Lean-first functions: no spec_/postulates_ files; `etc/link-lean-first.txt`
 # (`etc/link-lean-first-cache.txt` for the cache)
-with open(os.path.join(here, "link-lean-first-cache.txt" if cache else "link-lean-first.txt")) as f:
+with open(os.path.join(here, mode[0] if cache else "link-lean-first.txt")) as f:
     for line in f:
         line = line.split("#")[0].strip()
         if not line:
@@ -91,7 +120,7 @@ fns.sort()
 spec = {}
 for fn in fns:
     src = open(spec_file(fn)).read()
-    m = re.search(r"^abbrev ([\w.«»]+)\.spec\b", src, re.M)
+    m = re.search(r"^abbrev ([\w.«»']+)\.spec\b", src, re.M)
     # the namespaces below `EtcdGrove` the spec is declared in (`btree` for the btree's)
     nss = re.findall(r"^namespace (\S+)", src, re.M)
     inner = nss[nss.index("EtcdGrove") + 1:] if "EtcdGrove" in nss else []
@@ -125,18 +154,19 @@ for fn in fns:
     visit(fn)
 
 if cache:
-    out = ["""/-
-The `cache` package's proofs, every proof instantiated with its
+    listfile, opens, assumptions, what, _ = mode
+    out = [f"""/-
+{what}, every proof instantiated with its
 callees' results. All of them are Lean-first, listed with their callees in
-`etc/link-lean-first-cache.txt`. Generated by `etc/gen-link.py --cache` -- do not edit by
+`etc/{listfile}`. Generated by `etc/gen-link.py {sys.argv[1]}` -- do not edit by
 hand.
 
 `#print axioms` on a result is its trust base.
 -/""", "module", ""]
-    out.extend(f"public import Proof.{where[fn]}" for fn in fns if fn not in external)
+    out.extend(f"public import {proof_module(fn)}" for fn in fns if fn not in external)
     out.extend(sorted({"public import Proof." + ".".join(where[fn].split(".")[:-1] + ["Link"])
                        for fn in external}))
-    out.append("""
+    out.append(f"""
 @[expose] public section
 
 noncomputable section
@@ -144,14 +174,14 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI go_etcd_io.etcd.cache.v3
+open Iris Iris.BI {opens}
 """)
-    out.append("""section links
+    out.append(f"""section links
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {{hlc : HasLC}} {{GF : BundledGFunctors}} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+variable [package_sem : {assumptions}]
 """)
     def emit_cache(fn):
         args = " ".join(result(c) for c in callees[fn])
@@ -167,14 +197,14 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     out.extend(emit_cache(fn) for fn in generic)
     out.append("end links\n")
     if special:
-        out.append("""/-! The specs stated at `HeapGS HasLC.hasLC GF`: those using channels, `sync.Once` or
+        out.append(f"""/-! The specs stated at `HeapGS HasLC.hasLC GF`: those using channels, `sync.Once` or
 `context` (Perennial states them there: their invariants need later credits). -/
 section links_hasLC
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {{GF : BundledGFunctors}} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+variable [package_sem : {assumptions}]
 """)
         out.extend(emit_cache(fn) for fn in special)
         out.append("end links_hasLC\n")
@@ -194,7 +224,7 @@ Generated by `etc/gen-link.py` -- do not edit by hand.
 out.append("module")
 out.append("")
 for fn in fns:
-    out.append(f"public import Proof.{where[fn]}")
+    out.append(f"public import {proof_module(fn)}")
 out.append("""
 @[expose] public section
 

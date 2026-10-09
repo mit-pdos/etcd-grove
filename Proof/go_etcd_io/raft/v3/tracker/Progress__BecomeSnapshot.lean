@@ -40,9 +40,9 @@ theorem tracker.Progress.BecomeSnapshot.wp_proof
   ipureintro
   -- Rocq `progress_abs_from Habs`
   rw [progressAbs_Some] at Habs ⊢
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩ := Habs
+  obtain ⟨h1, h2, h3, h4, h5, h6, h8, h9⟩ := Habs
   simp only [progressResetState] at *
-  exact ⟨h1, h2, h3, trivial, trivial, trivial, h7, h8, h9⟩
+  exact ⟨h1, h2, h3, trivial, trivial, trivial, h8, h9⟩
 
 end proof
 

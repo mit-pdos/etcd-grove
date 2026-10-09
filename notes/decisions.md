@@ -1010,3 +1010,253 @@ it and what the proofs changed.
   slots, `2^30 - 2` notifier handles), and requires `CfgBounded` of an accepted configuration:
   finding 5's `PerWatcherBufferSize ≥ 0` and the overflow bounds `newRingBuffer` and the btree
   need.
+
+---
+
+## The consistent index and the apply thread: a protocol of indices, the applier as the trust boundary
+
+**2026-10-09 · accepted** (Lean-first; not yet reviewed with the user)
+
+Goal: rule out etcd's consistent-index bugs (manual-notes.txt, bullets 3-4: `applyAll`,
+server.go:978, and the post-lock hook, server.go:2448). What must hold: every backend commit
+persists a consistent index `ci` that matches the effects it persists. If an entry with
+writes in the buffer is above the saved `ci`, it is applied twice after a crash. If an entry
+at or below it has no writes in the buffer, it is lost (#13766, where `ci` was set before the
+entry's writes, outside the batch lock).
+
+**Decision: model the buffer by indices, not data.** The protocol (`InvApply.lean`) tracks
+`(k, p, eff, pending)`: `ci`, processed-through, the last entry with writes in the buffer, and
+whether an entry's writes are in flight. The invariant is `eff ≤ ci ≤ p` out of flight; a
+commit (holding the batch lock's token) saves `ci`, so `eff ≤ saved ≤ p` (`commit_save_au`).
+The protocol's steps are lemmas, and each is used at the one place in the code that justifies
+it: `hook_set_au` in the post-lock hook (under the lock, `ci := i` for `i = p + 1`),
+`writes_done` in the writes update passed to the applier, `skip_done` after a no-write
+outcome, `ci_advance_au` in `applyEntryNormal`'s deferred update. *Rejected:* an abstract
+state `F : index → S` of "the backend after the committed log through `i`". It needs the
+applier's semantics in the trusted contract, and says nothing more about the index
+bookkeeping, which is what these bugs are about.
+
+**Decision: the applier and the backend are the trust boundary, as contracts in the
+protocol's terms, with the hook's triple as a premise.** `apply.Apply` (and `applyConfChange`)
+either take the batch lock (`P`, whose invariant `applierFor ua P f` asserts), run the hook
+`f`, write (the caller's update `Q ={⊤}=∗ P ∗ Post`) and unlock, in one critical section, or
+write nothing. That is what etcd's design relies on, and the contracts state it; whether the
+applier keeps an entry's writes in one critical section is not verified here. The hook itself
+is verified (`getTxPostLockInsideApplyHook`). *Rejected:* axiomatizing "the applier advances
+`ci`", which would leave the hook unverified; an opaque `entryNoop` receipt for the no-write
+outcome (dropped: an entry without data skips the applier, and that path is justified by the
+code itself).
+
+**The read view.** `ci` is reloaded from the backend only while it is 0. That happens after
+`NewConsistentIndex`/`SetBackend`, or while the stored index is absent; meanwhile no commit
+writes the meta keys, which still hold the backend's initial `γ.m0`. The `ReadTx` contract is
+`metaReadTx rt E (readView γ)`: while `written` is false, a read returns `m0`. It holds for a
+real backend (reads see writes only after write-back), and is not satisfiable vacuously.
+
+**raft v3.7, not the fork.** etcd's `go.mod` has raft v3.7.0, whose raftpb is protobuf-go v2
+(`Index *uint64`, getters). The fork in `Code/go_etcd_io/raft/` is gogoproto. So etcd's
+project in `etc/goose.py` also translates v3.7's raft/raftpb (types, and the getters with
+bodies), as a `Part` with a module root of its own, `EtcdDeps/` (`EtcdDeps/Code/`, configured
+by `EtcdDeps/Code/**.toml`; the getters' specs and proofs in `EtcdDeps/{Spec,Proof}/`): the two
+have the same Go path, so they cannot share `Code/<pkg>`, and both define
+`Perennial.go_etcd_io.raft.v3.*`, so no module imports both. They are in the one library
+(`lakefile.toml`'s globs), which no module imports whole; `etc/tcb-report.py` runs Lean on the
+server's `Link` separately. *Rejected* (on the old layout, before the merge with `lean`): a
+library of its own for the server's proofs (`EtcdGroveServer`); in the layout by Go package
+path the module path itself clashes, so the root is what has to differ.
+
+**Findings (not bugs in the CI protocol, but worth recording):**
+- `SetConsistentIndex` stores the index, then the term, as two atomic steps.
+  `applyEntryNormal`'s deferred update and `applyConfChange`'s failure path store outside the
+  batch lock, so a concurrent commit can persist the new index with the previous entry's term.
+  For a term's first (empty) entry, that is the previous term. The persisted term is only read
+  for schema-version detection and `verify`, so the protocol says nothing about the term.
+- `UnsafeConsistentIndex` reads `ci.be` without the mutex `SetBackend` writes it under. It
+  runs on the apply thread (the hook), as does `SetBackend`, so there is no race. The spec asks
+  for the apply thread's half of `be` (`ciOwner`).
+- `unsafeUpdateConsistentIndex`'s `verify.Verify` ("update of consistent index not advancing")
+  is proved never to fire: `Verify`'s spec requires its closure to return `true`.
+
+---
+
+## Predicate indices: one record, as small as the specs allow
+
+**2026-10-08 · accepted**
+
+An Iris predicate's state is passed as **one record**, not as separate arguments, and
+the record holds **only what some spec stated on the predicate needs** -- pure Lean
+values, nothing of the Go struct beyond that (no slice headers, no addresses). Changing
+what a predicate tracks is then a field added to or dropped from the record, and specs
+that write a new state as an update (`{ r with f := v }`) survive it unchanged; a
+change of arity touches every spec and every proof that mentions the predicate.
+(`ownTracker`'s `votes`/`prs`/`peers`, three arguments until 2026-10-02, became `Trk`
+the same way.)
+
+**First application: `ownInflightsRaw`** (`InvTracker.lean`), the internal predicate
+of an `Inflights`, was `ownInflightsRaw l iv buf` -- the Goose value and the ring
+buffer's contents, as Rocq's `own_inflights`. It is now `ownInflightsRaw l r` with
+`r : InflightsRing := { win : Inflights, start : Int, buflen : Int }`, and the value
+and the contents are existential inside it (`r = inflightsRingOf iv buf`). The fields
+are what `grow`'s spec -- the only internal one -- needs: the length (its premise and
+its effect), the window (`size`, and that nothing else changes), and `start` (which
+`Add`, after a `grow`, needs unchanged). Not the contents: no spec states them
+(`FreeLE` reads them, but its spec is a relation on the window), so `grow`'s
+postcondition went from "some slice `sl` and contents `buf' = buf ++ zeroes`" to the
+deterministic `ownInflightsRaw l { r with buflen := max 1 (min (2 * r.buflen) r.win.size) }`.
+`InflightsOk` is stated on the record, which also discharges `grow`'s former
+`size < 2^62` premise.
+
+Proofs open the predicate by `iNamed`/`iunfold … at` (never `unfold` on the goal,
+which unfolds the postcondition too) and `subst Hring`, then work on the Goose value
+as before; they close it with `ownInflightsRaw_intro`/`ownInflights_reseal`, whose
+pure premise is last so that `iapply … $$ Hiv Hbuf Hbuf_cap` fixes the value.
+
+**`ownUnstable`** (`InvRaftlog.lean`) was `ownUnstable u uv uents`, the Goose value and
+the entries; it is now `ownUnstable u us` with
+`us : UnstableSt := { ents, offset, inprogress, snap }`. Its 13 specs read `offset`,
+`offsetInProgress`, the snapshot pointer -- always beside a separate premise
+`ownSnap uv.snapshot snap` -- and the logger, as `uv.logger = ok ulg ∗ isLogger ulg`.
+The predicate now holds the snapshot as `ownSnap` of `us.snap` and the logger as
+`isLoggerVal`, so those premises are gone, and so are the posts' "unchanged" facts
+about the value. New states are updates of `us` (`truncateAndAppend`'s is
+deterministic), or a new record (`restore`); `stableTo` and `acceptInProgress` keep a
+new state (resp. `offsetInProgress`) bound by the post, with its relation to `us`.
+The `unstable` proofs open the predicate with `open_unstable` (`ownUnstable_open`: the
+value built from the record's fields, so `us` stays a variable; "Records in proofs"
+below) and close it with `close_unstable`/`ownUnstable_intro`. The `raftLog` callers
+lend the field with `lend_unstable` (`raftLog_lend_unstable`, passing `unstableOf lv
+ls`) and take it back with `reopen_unstable`; the `AccessStrict` macro `split_unstable`
+is gone, since every `unstable` method hands back a value the caller has not seen.
+
+**Also applied (2026-10-08)**, one commit each:
+
+- `ownStorage` (the field of `StorageModel`), `isStorageWith`'s `P`, `memstorageFields`, `memstorageInv`'s ghost variable and
+  `ownMemoryStorage` take one `StorState := { prev, ents, ss }` (`InvStorage.lean`)
+  instead of three arguments; the persist lemmas return
+  `{ σ with ents := storApp … }`, `newRaft`'s `InitialState` clause `{ σ with ss := ss' }`.
+- `ownProgressMap m prs pvs` is `ownProgressMap m pvs`: the pointer map is existential
+  (`AckedIndex` only carried it; `Committed` recovers it with `progress_map_agree`).
+- Fields no spec reads are dropped: `Progress.recentActive` (checkQuorum, which reads
+  it, is out of scope) and `ReadOnly.safe` (the option is case-split on the Go value).
+  Both come back if a spec ever needs them.
+
+- `ownRaftLogCore lv snap prev sents uents pend` (five state arguments, the storage as
+  `∃ sprev stored ss`) is gone, inlined into `ownRaftLog l ls`, which holds
+  `∃ (lv : raftLog) (σ : StorState)` and states its facts on `ls`; `LogStoreOk`,
+  `LogPersistOk`, `StoredSnapOk`, `storApp` take `σ`. The `raftLog` proofs no longer
+  destructure `ls` (`ownRaftLog_unfold` is gone; `iNamed Hlog` opens it) and pass the
+  `unstable` methods `unstableOf lv ls` (`proj_simps`) instead of a literal record.
+  `newLogWithSize`, the one spec that named the core, returns the storage and a wand
+  `ownStorage st σ -∗ ownRaftLog l <initial state>`: `LogState` has no storage field,
+  and `newRaft` needs that storage for `InitialState` before the log is complete.
+  The `raftLog` proofs lost all 56 of their `dsimp only` steps (38 files, −289 lines).
+
+**Tried and reverted: `ownRawNode rn id s rs` as `ownRawNode rn id rs`** with the node's
+`NState` as `RNState.raft` (2026-10-08, reverted the same day). It removed nothing: every
+node fact in the `RawNode` specs became `rs.raft.*` (the comparisons `nodeHardstate s =
+rs.hard` became `nodeHardstate rs.raft = rs.hard`), the update `{ rs with raft := s' }`
+hid which layer changed, and the proofs destructured the record again. The rule is about
+loose state *arguments*; two cohesive records for two layers (the raft node's `NState`
+and the RawNode's own `RNState`) stay two indices. (Superseded on
+2026-10-09: `ownRawNode γ rn id rs` now hides the node state altogether, and `RNState` is
+what a client observes -- "RawNode: client-facing specs" below.)
+
+**Left as is**, deliberately: `visitClosure` (a closure
+contract, not an ownership predicate) and `ownConfig`'s `cfg` (a configuration
+parameter, which the rule exempts). The ghost predicates in `Protocol/` own no Go
+object and were not audited against the rule.
+
+---
+
+## Records in proofs: keep them variables; `word`, `simp`, `proj_simps`
+
+**2026-10-08 · accepted**
+
+The record refactors above added about fifty `dsimp only at …` steps to proofs, which an
+agent cannot guess: a projection of a **literal** record (`{ prev := p, … }.prev`, or
+`⟨ents, off, ip, snap⟩.offset` from instantiating a spec at a record built from fields)
+or of a **record-building function** (`(inflightsRingOf iv buf).buflen`) is an atom that
+`omega` and `rw` treat as unrelated to `p` or `buf.length` (checked:
+`omega` fails on the first and the third, `rw` on the first).
+
+**Decision**, three parts:
+
+1. **Records stay variables.** Predicates and specs quantify over the record, and proofs
+   do not destructure it (`intro ⟨a, b, c⟩` and then working on `a`), nor build a
+   literal where a variable will do; then every fact is about `σ.prev`, one atom
+   throughout.
+2. **`proj_simps f`** (`ProjSimps.lean`) generates, for a function whose body is a
+   constructor, `@[simp, word_unfold] theorem f.proj_<field> : (f xs).<field> = <value>`
+   by `rfl`. Applied to the 31 such functions in `Defs`, `Protocol/Model`, `InvTracker`,
+   `InvMisc`, `InvRawnode`, `InvReadylog`, `InvRaftlog` (`unstableOf`) and the `Ready` proof; eleven that branch
+   (`becomeLeader`, `progressMaybeUpdate`, …) have none. A literal record's projections
+   need no lemma: `simp` reduces them.
+3. **`word` rather than `omega`** where a goal mentions record fields: its preprocessing
+   runs `simp only [word_unfold, …] at *`, which does both. `simp only at h` before a
+   `rw` on such a hypothesis.
+
+`CLAUDE.md` ("Proof writing") states the three for agents. For a predicate that hides a
+Goose value behind a record, the open lemma gives the value *built from the record's
+fields* (`ownUnstable_open`: `u ↦ { uv with offset' := us.offset, … }`), so a load yields
+`us.offset`, the atom the spec's premises use, and closing is `rfl`. With (2) alone, 19 of the
+`dsimp only` steps went; the rest came from the `raftLog` layer, whose proofs destructured
+`ls : LogState` and called the record-indexed `unstable` specs with literal records. With
+(1) applied there and in the `unstable` and `Inflights` proofs, none is left that exists
+because of a record projection.
+
+**Cost**: `word_unfold` makes `word`'s simp set larger. One very large proof
+(`RawNode.Ready.wp_proof`) crossed the default 200000 heartbeats at the same wall time
+(46 s) and has `maxHeartbeats 400000`. `simp` normalizes hypotheses further than before,
+so six `simp … at H; exact H` became `simpa … using H`.
+
+**Not pursued -- `@[reducible]` abstraction functions or `abbrev`s**: structure
+projections are already reducible, and `omega` still fails on a literal record's
+projection, so it does not compare atoms up to reducible unfolding. **Rejected -- a new normalization tactic**: an agent
+would have to know to call it; `word` and `simp` are already what it reaches for.
+
+---
+
+## RawNode: client-facing specs that hide the protocol
+
+**2026-10-09 · accepted**
+
+The refinement of the protocol (`raft.wp_Step`, `ownRaftGhost`, `NStateRel`) exists to
+give `RawNode` simple specs for its clients -- the node specs, later. Until 2026-10-08
+the `RawNode` specs exposed it: `ownRawNode cfg rn id s rs` beside `ownRaftGhost γ id ps`,
+premises `NStateRel s ps`, `PstepCommitMono`, `AdvanceOk s rs.steps`, posts with `Step cfg
+id ps recv ps'`, and `Ready`'s committed entries witnessed through `s.logst.applying`.
+
+**Decision**: `ownRawNode γ rn id rs` holds the node state, the ghost state and
+`NStateRel` inside, indexed by one record of what a client observes:
+`RNState := { delivered, unpersisted, steps, advanceable }` -- the committed log handed
+out so far (`isCommitted γ rs.delivered` inside), the entries `Ready` handed out for the
+application to `Append`, the queued local steps (opaque), and the gap flag below. `Ready`
+returns `ce` with `isCommitted γ (rs.delivered ++ ce)`; messages carry the opaque
+`isRaftMsg γ m`; `HasReady` says nothing about its answer (liveness only); `Ready`'s soft
+state, hard state and `MustSync` facts are gone (no spec used them; there is no crash
+model), and so are `RNState.soft`/`hard`. `ownRawNode_persist` lends the storage for the
+application's `Append` and returns `{ rs with unpersisted := [] }`.
+
+To keep `delivered` across `Propose`/`Advance`, `raft.Step`'s postcondition gained
+`LocalStepOk` (for `MsgProp`, `MsgStorageAppendResp`, `MsgStorageApplyResp`: term,
+`inprogress`, `unpersisted`, `snap` framed, `applying` kept unless the apply ack moves it).
+`PstepCommitMono` is proved (`Step.commit_mono`, `Protocol/Facts.lean`), and Rocq's
+`ready_stable_ok` (the append ack is stable once the application appended) too.
+
+**The gap -- to be closed.** `Advance` steps `rn.stepsOnAdvance` through `raft.Step`, and
+`raft.Step`'s spec needs facts of each message that nothing records for the
+**self-addressed responses** `msgsAfterAppend` queues (a candidate's own vote, a leader's
+own `MsgAppResp`): `To = id`, `Term ≠ 0`, the `Entries`' capacity, a non-rejecting self
+`MsgAppResp`, and for a `MsgPreVoteResp` a term bound at the state the earlier steps
+left, which `Step`'s postcondition does not carry. So `Advance` is proved only for queues
+without them, and the specs say so without protocol terms: `Ready` returns
+`advanceable` (true exactly when no self response was queued, not stated in the spec),
+and `Advance` requires it (and `unpersisted = []`). Consequence: `Ready`'s spec returns `advanceable`
+existentially and does not say when it holds (that depends on protocol state), so **a
+client can never establish `rs.advanceable = true`**: after one `Ready` it can call
+neither `Advance` nor (with `steps` unknown) `Ready` again. The `Ready`/`Advance` loop is
+not verifiable through these specs until the gap is closed; `Propose`, `HasReady`, the
+first `Ready` (with its `isCommitted` witnesses) and `ownRawNode_persist` are. **Closing it**: record the per-message facts for the
+self responses (in `ownRaftPhys`'s description of `msgsAfterAppend`, or in `pendingRel`),
+and carry the term bound through `Step`'s postcondition (or step one's own responses with
+dedicated lemmas); then `advanceable` goes and `Advance` takes any queue `Ready` left.

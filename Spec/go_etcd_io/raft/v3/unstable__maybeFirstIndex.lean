@@ -22,23 +22,23 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- **The `unstable` suffix.**
 
 Three `maybe*` methods, all on a bare `*unstable` so they can be reused wherever the
-field is split out. Each takes the pending snapshot's pointer as
-`ownSnap uv.snapshot snap` (`InvRaftlog.lean`): `none` is `snapshot = nil`, `some sid` a
-pending snapshot whose metadata is `sid` (since 2026-10-02; until then
-`snapshot = nil` was a premise and the snapshot arms were dead).
+field is split out. Each reads the pending snapshot as `ownUnstable`'s `us.snap`
+(`ownSnap`, `InvRaftlog.lean`): `none` is `snapshot = nil`, `some sid` a pending
+snapshot whose metadata is `sid` (since 2026-10-02; until then `snapshot = nil` was a
+premise and the snapshot arms were dead; until 2026-10-08 `ownSnap uv.snapshot snap` was
+a separate premise).
 
 `u.maybeFirstIndex()`: `snapshot.Metadata.Index + 1` when a snapshot is pending, and
 `ok = false` otherwise. -/
 abbrev unstable.maybeFirstIndex.spec : Prop :=
-  ∀ (u : Loc) (uv : unstable) (uents : List raftpb.Entry) (snap : Option entryID),
+  ∀ (u : Loc) (us : UnstableSt),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hun" ∷ ownUnstable u uv uents ∗
-      "#Hsnap" ∷ ownSnap uv.snapshot' snap }}
+      "Hun" ∷ ownUnstable u us }}
     (App (Val (u @!! go.GoType.PointerType unstable.ty @!! go!"maybeFirstIndex")) (Val #()))
   {{ (i : w64) (ok : Bool), RET (PairV #i #ok);
-      ownUnstable u uv uents ∗
-      ⌜ok = decide (snap ≠ none) ∧
-        ∀ sid, snap = some sid → i = sid.index' + W64 1⌝ }}
+      ownUnstable u us ∗
+      ⌜ok = decide (us.snap ≠ none) ∧
+        ∀ sid, us.snap = some sid → i = sid.index' + W64 1⌝ }}
 
 end spec
 

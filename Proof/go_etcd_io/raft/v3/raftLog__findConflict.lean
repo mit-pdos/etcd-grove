@@ -43,7 +43,6 @@ theorem raftLog.findConflict.wp_proof
       raftLog.zeroTermOnOutOfBounds.spec (GF := GF) (hG := hG)) :
     raftLog.findConflict.spec (GF := GF) (hG := hG) := by
   intro l ls es dq ents Hge
-  obtain ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ := ls
   wp_start as ⟨Hlog, Hes⟩
   iNamed Hlog
   iNamed Hes
@@ -53,15 +52,14 @@ theorem raftLog.findConflict.wp_proof
   -- inaccessible one
   rename_i gi_ptr
   irename : (gi_ptr ↦ zero_val w64 : IProp GF) => Hgi
-  dsimp only at Hge ⊢
   ihave IH : iprop(∃ (n k : w64),
       "Hj" ∷ i_ptr ↦ n ∗
       "Hgi" ∷ gi_ptr ↦ k ∗
-      "Hlog" ∷ ownRaftLog l ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ ∗
+      "Hlog" ∷ ownRaftLog l ls ∗
       "Hes" ∷ es ↦*{dq} ents ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (ents.length : Int)⌝ ∗
-      "%Hfc" ∷ ⌜plogFindConflict prev (sents ++ uents) ents
-                 = plogFindConflict prev (sents ++ uents) (ents.drop (sint.nat n))⌝)
+      "%Hfc" ∷ ⌜plogFindConflict ls.prev (ls.sents ++ ls.uents) ents
+                 = plogFindConflict ls.prev (ls.sents ++ ls.uents) (ents.drop (sint.nat n))⌝)
       $$ [i Hgi Hlog Hes]
   · iexists W64 0, zero_val w64
     iframe
@@ -94,19 +92,18 @@ theorem raftLog.findConflict.wp_proof
       rw [List.getElem?_eq_getElem hlt] at He_lookup; exact Option.some.inj He_lookup
     cases b
     · -- the first conflict: return its index
-      have Hres : plogFindConflict prev (sents ++ uents) ents = e.Index' := by
+      have Hres : plogFindConflict ls.prev (ls.sents ++ ls.uents) ents = e.Index' := by
         rw [Hfc, Hdrop]
-        have hm : ¬ PlogMatches prev (sents ++ uents) (entId e) := by simpa using Hb.symm
+        have hm : ¬ PlogMatches ls.prev (ls.sents ++ ls.uents) (entId e) := by simpa using Hb.symm
         simp only [plogFindConflict, hm, ↓reduceIte]
-      have Hgee : uint.Z prev.index' ≤ uint.Z e.Index' :=
+      have Hgee : uint.Z ls.prev.index' ≤ uint.Z e.Index' :=
         Hge e (List.mem_of_getElem? He_lookup)
       wp_auto
       wp_apply wp_raftLog_lastIndex l _ $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
-      dsimp only at Hli
       wp_if_destruct
       · -- `id.index <= lastIndex()`: the `Infof`
         wp_apply wp_raftLog_term l _ e.Index' $$ [$Hlog] as %t %err ⟨Hlog, %Herr, -, -⟩
-        have Herr0 : err = interface.nil := Herr.2 (by dsimp only; exact ⟨Hgee, by omega⟩)
+        have Herr0 : err = interface.nil := Herr.2 ⟨Hgee, by omega⟩
         subst Herr0
         wp_apply wp_raftLog_zeroTermOnOutOfBounds l t interface.nil $$ [] as %t' -
         · ileft; ipureintro; rfl
@@ -115,13 +112,11 @@ theorem raftLog.findConflict.wp_proof
         try iintro %_ ⟨_, -⟩
         try wp_auto
         iNamed Hlog
-        iNamed Hcore
-        dsimp only at *
         icases isLoggerVal_open _ $$ Hl_logger with ⟨%lg, %Hlg, #Hlgr⟩
         wp_auto
         -- the logger is loaded: re-seal before `rw [Hlg]`, which would also rewrite the
         -- `Hl_logger` the re-seal needs
-        ihave Hlog : ownRaftLog l ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ $$
+        ihave Hlog : ownRaftLog l ls $$
           [Hl HStorage Huents Huents_cap]
         · reseal_raftLog
         rw [Hlg]
@@ -143,14 +138,14 @@ theorem raftLog.findConflict.wp_proof
       ipureintro
       refine ⟨by word, ?_⟩
       rw [Hfc, Hdrop]
-      have hm : PlogMatches prev (sents ++ uents) (entId e) := by simpa using Hb.symm
+      have hm : PlogMatches ls.prev (ls.sents ++ ls.uents) (entId e) := by simpa using Hb.symm
       simp only [plogFindConflict, hm, ↓reduceIte]
       congr 2
       word
   · -- the whole batch matched
     have Hnil : ents.drop (sint.nat n) = [] := List.drop_eq_nil_of_le (by word)
     rw [Hnil] at Hfc
-    rw [Hfc, show plogFindConflict prev (sents ++ uents) [] = W64 0 from rfl]
+    rw [Hfc, show plogFindConflict ls.prev (ls.sents ++ ls.uents) [] = W64 0 from rfl]
     iapply HΦ
     iframe
 

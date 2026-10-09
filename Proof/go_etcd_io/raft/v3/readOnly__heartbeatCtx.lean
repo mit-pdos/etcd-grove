@@ -43,7 +43,7 @@ theorem readOnly.heartbeatCtx.wp_proof :
     · unfold ownReadOnly
       iexists rov, ptrs
       iframe
-      ipureintro; exact ⟨Hro_safe, Hro_conf⟩
+      ipureintro; exact Hro_conf
     ileft
     ipureintro; exact ⟨Hnil, rfl⟩
   · have Hne : r.pending ≠ [] := by
@@ -68,7 +68,7 @@ theorem readOnly.heartbeatCtx.wp_proof :
     · unfold ownReadOnly
       iexists rov, ptrs
       iframe
-      ipureintro; exact ⟨Hro_safe, Hro_conf⟩
+      ipureintro; exact Hro_conf
     iright
     rw [List.append_nil] at *
     iframe

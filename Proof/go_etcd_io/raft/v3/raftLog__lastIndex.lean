@@ -29,58 +29,48 @@ theorem raftLog.lastIndex.wp_proof
     (wp_unstable_maybeLastIndex : unstable.maybeLastIndex.spec (GF := GF) (hG := hG)) :
     raftLog.lastIndex.spec (GF := GF) (hG := hG) := by
   intro l ls
-  obtain ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ := ls
   wp_start as H
   iNamed H
-  icases (ownRaftLog_unfold l prev sents uents lcm lap snap lip lapg lpend lasz lamx).1 $$ Hlog with ⟨%lv, Hl, %Hcm, %Hap, %Hapg, %Hip, %Hasz, %Hamx, Hcore⟩
-  unfold ownRaftLogCore
-  iNamed Hcore
+  iNamed Hlog
   wp_auto
-  have Hnw : uint.Z lv.unstable'.offset' + (uents.length : Int) < 2^64 := by omega
+  have Hnw : uint.Z lv.unstable'.offset' + (ls.uents.length : Int) < 2^64 := by omega
   ihave #Hsto : isStorageWith (ownStorage lv.storage') lv.storage' $$ [HisStorage]
   · unfold isStorage; iexact HisStorage
   unfold isStorageWith
   icases Hsto with ⟨%isv, #Hsto⟩
   iNamed Hsto
-  split_unstable l lv
-  wp_apply wp_unstable_maybeLastIndex _ _ uents snap Hnw $$ [Huf Huents Huents_cap]
+  lend_unstable
+  wp_apply wp_unstable_maybeLastIndex _ (unstableOf lv ls) Hnw $$ [$Hun]
     as %li %ok ⟨Hun, %Hok1, %Hok2⟩
-  · unfold ownUnstable
-    simp only [named]
-    iframe # ∗
-  unfold ownUnstable
-  icases Hun with ⟨Huf, Huents_cap, Huents⟩
-  ihave Hl := Hlback $$ Huf
-  by_cases He : uents = []
+  reopen_unstable
+  by_cases He : ls.uents = []
   · obtain ⟨rfl, Hli⟩ := Hok1 He
-    subst He
-    cases snap with
+    cases Hs : ls.snap with
     | some sid =>
       -- the pending snapshot's index
-      rw [decide_eq_true (by simp)]
+      rw [decide_eq_true (by simp [Hs])]
       wp_auto
       iapply HΦ
-      obtain ⟨Hsid, Hse, -⟩ := id Hstore
+      obtain ⟨Hsid, Hse, -⟩ : LogStoreOk (some sid) σ ls.prev ls.sents ls.uents := Hs ▸ Hstore
       isplitl
       · reseal_raftLog
       ipureintro
-      subst Hsid Hse
-      rw [Hli _ rfl]
+      rw [Hli _ Hs, Hsid, Hse, He]
       simp
     | none =>
-      rw [decide_eq_false (by simp)]
+      rw [decide_eq_false (by simp [Hs])]
       wp_auto
       rw [Hstok]
       wp_auto
-      obtain ⟨Hsp, -, Hstored_eq⟩ := id Hstore
+      obtain ⟨Hsp, -, Hstored_eq⟩ : LogStoreOk none σ ls.prev ls.sents ls.uents := Hs ▸ Hstore
       wp_apply HLastIndex $$ HStorage as %li2 ⟨%Hli2, HStorage⟩
       rw [← Hstok]
       iapply HΦ
       isplitl
       · reseal_raftLog
       ipureintro
-      rw [Hsp, ← Hstored_eq rfl] at Hli2
-      simp only [List.length_nil]
+      rw [Hsp, ← Hstored_eq He] at Hli2
+      rw [He, List.length_nil]
       omega
   · obtain ⟨rfl, Hli⟩ := Hok2 He
     wp_auto
@@ -88,8 +78,7 @@ theorem raftLog.lastIndex.wp_proof
     isplitl
     · reseal_raftLog
     ipureintro
-    dsimp only
-    omega
+    word
 
 end proof
 

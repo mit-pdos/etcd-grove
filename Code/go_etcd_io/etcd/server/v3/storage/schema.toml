@@ -1,0 +1,7 @@
+# The consistent index's reads and writes (cindex.go) and the names they use, with
+# bodies; the rest of the package is names only.
+translate = ["!*", "UnsafeReadConsistentIndex", "ReadConsistentIndex", "UnsafeUpdateConsistentIndex", "UnsafeUpdateConsistentIndexForce", "unsafeUpdateConsistentIndex", "Meta", "MetaConsistentIndexKeyName", "MetaTermKeyName"]
+imports = ["!*", "encoding/binary", "go.etcd.io/etcd/server/v3/storage/backend", "go.etcd.io/etcd/client/pkg/v3/verify"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

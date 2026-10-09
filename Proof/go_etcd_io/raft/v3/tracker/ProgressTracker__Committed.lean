@@ -40,7 +40,7 @@ theorem tracker.ProgressTracker.Committed.wp_proof
   wp_auto
   ihave #Hidx : isAckedIndexer
       (interface.mkOk tracker.matchAckIndexer.ty #tv.Progress')
-      (ownProgressMap tv.Progress' prs pvs) (pvsAcked pvs) $$ []
+      (ownProgressMap tv.Progress' pvs) (pvsAcked pvs) $$ []
   · unfold isAckedIndexer
     iexists _
     isplitr
@@ -51,8 +51,9 @@ theorem tracker.ProgressTracker.Committed.wp_proof
     iintro HP HΨ
     wp_apply wp_matchAckIndexer_AckedIndex $$ [$HP] as HP
     iapply HΨ $$ HP
-  ihave HP : ownProgressMap tv.Progress' prs pvs $$ [Hprogs]
+  ihave HP : ownProgressMap tv.Progress' pvs $$ [Hprogs]
   · unfold ownProgressMap
+    iexists prs
     iframe Hprs Hprogs
   -- the `Voters` field's location, out of `trk ↦ tv`
   icases (tracker.ProgressTracker.ProgressTracker_access_load_Config trk tv (DFrac.own 1)).access_strict
@@ -65,8 +66,11 @@ theorem tracker.ProgressTracker.Committed.wp_proof
     exact ⟨by rw [Hvoters_dom]; exact Hcfg_size, Hvoters_arr⟩
   ihave Hcfgf := Hback2 $$ Hvf
   ihave Htrk := Hback1 $$ Hcfgf
-  unfold ownProgressMap
-  iNamed HP
+  -- the map is the tracker's: its contents agree with `Hprs`
+  iunfold ownProgressMap at HP
+  icases HP with ⟨%prs', #Hprs', Hprogs⟩
+  ihave %Hprs_eq := progress_map_agree _ _ _ _ _ $$ Hprs Hprs'
+  subst Hprs_eq
   iapply HΦ
   iframe Htrk
   rw [Hvoters_dom] at Hemp Hq

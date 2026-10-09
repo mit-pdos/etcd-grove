@@ -66,7 +66,12 @@ PROJECTS = {p.name: p for p in goose.PROJECTS}
 LINKS = {
     "Proof.go_etcd_io.raft.v3.Link": "etcd-raft",
     "Proof.go_etcd_io.etcd.cache.v3.Link": "etcd",
+    "Proof.go_etcd_io.etcd.server.v3.etcdserver.Link": "etcd",
 }
+# etc/tcb-report.lean's runs, as in etc/tcb-report.py: its default modules, then the etcd
+# server's links, which cannot share an environment with the Raft proof (both name
+# `go_etcd_io.raft.v3`, of different raft versions).
+LEAN_RUNS = ([], ["Proof.go_etcd_io.etcd.server.v3.etcdserver.Link"])
 RAFT_MOD = "go.etcd.io/raft/v3"
 # The modules of the etcd repository that make up etcd (not its tests or tools).
 ETCD_MODS = [
@@ -174,7 +179,7 @@ def goose_functions(pkgs):
     bodies, names = set(), set()
     for n in PROJECTS:
         for pkg in pkgs[n]:
-            f = os.path.join(ROOT, "Code", pkg.replace(".", "_") + ".lean")
+            f = os.path.join(ROOT, "Code", pkg.replace(".", "_").replace("-", "_") + ".lean")
             if not os.path.exists(f):
                 sys.exit(f"verified-code: no translation of {pkg} at {f}")
             text = read(f)
@@ -195,14 +200,16 @@ def run_lean(json_path):
     env = dict(os.environ)
     env["PATH"] = os.path.expanduser("~/.elan/bin") + os.pathsep + env.get("PATH", "")
     with open(json_path, "w") as f:
-        r = subprocess.run(
-            ["lake", "env", "lean", "--run", "etc/tcb-report.lean"],
-            cwd=ROOT,
-            stdout=f,
-            env=env,
-        )
-    if r.returncode != 0:
-        sys.exit("verified-code: etc/tcb-report.lean failed; is the project built?")
+        for mods in LEAN_RUNS:
+            f.flush()
+            r = subprocess.run(
+                ["lake", "env", "lean", "--run", "etc/tcb-report.lean", *mods],
+                cwd=ROOT,
+                stdout=f,
+                env=env,
+            )
+            if r.returncode != 0:
+                sys.exit("verified-code: etc/tcb-report.lean failed; is the project built?")
 
 
 def local_proofs(json_path):

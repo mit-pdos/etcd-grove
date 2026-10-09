@@ -145,6 +145,13 @@ instance clientv3_resolver_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.client.v3.internal.resolver :=
   build_get_is_pkg_init_wf
 
+-- zap imports zapcore (translated since the merge with the server's names-only zap).
+instance zapcore_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.go_uber_org.zap.zapcore :=
+  define_is_pkg_init iprop(True)
+instance zapcore_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.go_uber_org.zap.zapcore :=
+  build_get_is_pkg_init_wf
+
 instance zap_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.go_uber_org.zap :=
   define_is_pkg_init iprop(True)
 instance zap_get_is_pkg_init_wf_inst :

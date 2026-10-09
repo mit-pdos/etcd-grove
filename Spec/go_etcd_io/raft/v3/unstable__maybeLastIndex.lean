@@ -27,21 +27,20 @@ one. With an empty suffix it is the pending snapshot's index if a snapshot is pe
 and `ok = false` otherwise.
 
 Stated on a bare `*unstable` rather than through `ownRaftLog`, so that `raftLog`'s own
-methods can split the field out and hand it over; the snapshot pointer is `ownSnap`
+methods can split the field out and hand it over; the snapshot is `us.snap`
 (see `Spec/unstable__maybeFirstIndex.lean`). -/
 abbrev unstable.maybeLastIndex.spec : Prop :=
-  ∀ (u : Loc) (uv : unstable) (uents : List raftpb.Entry) (snap : Option entryID),
-  uint.Z uv.offset' + (uents.length : Int) < 2^64 →
+  ∀ (u : Loc) (us : UnstableSt),
+  uint.Z us.offset + (us.ents.length : Int) < 2^64 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hun" ∷ ownUnstable u uv uents ∗
-      "#Hsnap" ∷ ownSnap uv.snapshot' snap }}
+      "Hun" ∷ ownUnstable u us }}
     (App (Val (u @!! go.GoType.PointerType unstable.ty @!! go!"maybeLastIndex")) (Val #()))
   {{ (i : w64) (ok : Bool), RET (PairV #i #ok);
-      ownUnstable u uv uents ∗
-      ⌜uents = [] → ok = decide (snap ≠ none) ∧
-                    ∀ sid, snap = some sid → i = sid.index'⌝ ∗
-      ⌜uents ≠ [] → ok = true ∧
-        uint.Z i = uint.Z uv.offset' + (uents.length : Int) - 1⌝ }}
+      ownUnstable u us ∗
+      ⌜us.ents = [] → ok = decide (us.snap ≠ none) ∧
+                    ∀ sid, us.snap = some sid → i = sid.index'⌝ ∗
+      ⌜us.ents ≠ [] → ok = true ∧
+        uint.Z i = uint.Z us.offset + (us.ents.length : Int) - 1⌝ }}
 
 end spec
 

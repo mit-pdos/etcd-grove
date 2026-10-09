@@ -46,15 +46,15 @@ structure ReadReq [FfiSyntax] where
   src : w64
   ents : List raftpb.Entry
 
-/-- The read-only object. `safe`: `option = ReadOnlySafe` (`0`; the only other option
-raft has, `ReadOnlyLeaseBased`, is `1`). `pending`: `unconfirmedReads`, oldest first.
+/-- The read-only object. `pending`: `unconfirmedReads`, oldest first.
 `acks`: each voter's acknowledged *position* -- the largest context (as a number) the
 voter echoed in a heartbeat response; the context of a heartbeat is
 `confirmed + length pending` at the time it was sent (`readonlyPosition`).
 `confirmed`: `confirmedReads`, the number of requests ever removed from the front of
-`pending`. -/
+`pending`. The `option` (`ReadOnlySafe` or `ReadOnlyLeaseBased`) is not in it: no spec
+states it (`stepLeader` reads the field and case-splits on the value; until
+2026-10-08 a `safe` field recorded it). -/
 structure ReadOnly [FfiSyntax] where
-  safe : Bool
   pending : List ReadReq
   acks : GMap w64 w64
   confirmed : w64
@@ -138,7 +138,6 @@ notes/false-statements.md. -/
 def ownReadOnly (ro : Loc) (r : ReadOnly) : IProp GF :=
   iprop(∃ (rov : readOnly) (ptrs : List Loc),
   "Hro" ∷ ro ↦ rov ∗
-  "%Hro_safe" ∷ ⌜r.safe = decide (rov.option' = W64 0)⌝ ∗
   "%Hro_conf" ∷ ⌜rov.confirmedReads' = r.confirmed⌝ ∗
   "Hacks" ∷ rov.acks' ↦$ r.acks ∗
   "Hucr" ∷ rov.unconfirmedReads' ↦*□ ptrs ∗
@@ -170,12 +169,11 @@ def ownRaftMisc (readStates : GoSlice) (ro : Loc) (pendingReadIndex : GoSlice) :
   "Hpri_cap" ∷ ownSliceCap raftpb.Message pendingReadIndex (DFrac.own 1))
 
 /-- `reset` replaces `r.readOnly` with `newReadOnly(r.readOnly.option)`, so it reads
-the old object's `option` field (`safe` says which it is); it reaches the object through
-`ownRaftPhys_readOnly` (`InvRaftPhys.lean`), which also installs the new one. -/
+the old object's `option` field; it reaches the object through `ownRaftPhys_readOnly`
+(`InvRaftPhys.lean`), which also installs the new one. -/
 theorem ownReadOnly_option (ro : Loc) (r : ReadOnly) :
     ⊢ ownReadOnly (GF := GF) ro r -∗
       ∃ (o : ReadOnlyOption),
-        ⌜r.safe = decide (o = W64 0)⌝ ∗
         ro.[readOnly, go!"option"] ↦ o ∗
         (ro.[readOnly, go!"option"] ↦ o -∗ ownReadOnly ro r) := by
   iintro Hro_obj
@@ -183,8 +181,6 @@ theorem ownReadOnly_option (ro : Loc) (r : ReadOnly) :
   icases Hro_obj with ⟨%rov, %ptrs, Hro_obj⟩
   iNamed Hro_obj
   iexists rov.option'
-  isplitr
-  · ipureintro; exact Hro_safe
   icases (go_etcd_io.raft.v3.readOnly.readOnly_access_load_option ro rov (DFrac.own 1)).access_strict
     $$ Hro with ⟨Hopt, Hback⟩
   iframe Hopt
@@ -193,9 +189,12 @@ theorem ownReadOnly_option (ro : Loc) (r : ReadOnly) :
   iexists rov, ptrs
   simp only [named]
   iframe Hro Hacks Hucr Hucr_cap Hreqs
-  ipureintro; exact ⟨Hro_safe, Hro_conf⟩
+  ipureintro; exact Hro_conf
 
 end proof
 
 end EtcdGrove
 end Perennial
+
+-- Projection lemmas, `@[simp, word_unfold]` (ProjSimps.lean).
+proj_simps Perennial.EtcdGrove.readonlyAdd

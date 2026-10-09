@@ -1,0 +1,6 @@
+# Types and names only: function and method bodies are axiomatized.
+translate = ["!*", "ShouldApplyV3", "ApplyBoth", "ApplyV2storeOnly"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true
