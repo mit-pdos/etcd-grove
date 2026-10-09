@@ -49,9 +49,10 @@ purpose, rerun with `--check --update`.
 `etc/verified-code.py` accounts for how much of raft's and etcd's Go code is verified
 (needs `lake build` and `go`): every Go function is verified, unfinished, assumed,
 translated or not translated, counted in functions and Go code lines, per package and
-per file. It reads the Go sources of the translated forks (cloned into
-`.lake/go-src` on first use), the translation in `EtcdRaft/`, and this repository's
-proofs from `.lake/tcb.json` (shared with `etc/tcb-report.py`; `--reuse` skips
+per file. It takes the projects from `etc/goose.py` and reads the Go sources of the
+translated forks (in `.lake/go-src/<project>`, cloned or fetched at the pinned
+revision), the translations in `EtcdRaft/` and `EtcdCache/`, and this repository's
+proofs (`EtcdGrove.Raft.Link`, `EtcdGrove.Cache.Link`) from `.lake/tcb.json` (shared with `etc/tcb-report.py`; `--reuse` skips
 re-running Lean). It prints plain text (`--markdown` for Markdown;
 `-o FILE` writes Markdown if FILE ends in `.md`). Like the TCB report, don't commit
 its output.
