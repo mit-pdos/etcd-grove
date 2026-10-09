@@ -59,7 +59,7 @@ theorem raft.becomeLeader.wp_proof
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
   wp_apply wp_raft_reset $$ [$Hphys] as %pvs ⟨Hphys, %Hmr⟩
   -- `r.tick`, `r.lead := r.id`, `r.state := StateLeader`
-  wp_apply raft.wp_store_tick $$ Hphys as Hphys
+  wp_apply raft.wp_store_tick (Hf := .inr rfl) $$ Hphys as Hphys
   wp_apply raft.wp_load_id $$ Hphys as Hphys
   wp_apply raft.wp_store_lead $$ Hphys as Hphys
   wp_apply wp_store_state_leader $$ Hphys as Hphys

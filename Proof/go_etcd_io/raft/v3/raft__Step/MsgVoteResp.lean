@@ -153,7 +153,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ
     iframe Hphys
     ipureintro
-    refine ⟨rfl, ⟨[absMsg .voteResp m ents], by simp, ?_⟩, rfl,
+    refine ⟨⟨rfl, rfl⟩, ⟨[absMsg .voteResp m ents], by simp, ?_⟩, rfl,
       stepdown_frame (by rw [Hty]; w32_ne) (Int.le_of_lt Hgt) rfl rfl rfl rfl rfl⟩
     rw [toPState_prvals_nl (becomeFollower s m.Term' (W64 0)) pvs (by simp [becomeFollower]),
       toPState_becomeFollower]
@@ -189,7 +189,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       have Hteq : m.Term' = s.term := by word
       repeat (rw [Hty]; wp_auto)
       wp_apply raft.wp_load_step $$ Hphys as Hphys
-      rw [show s.stepfn = stepFuncOf s.role from Hwf]
+      rw [show s.stepfn = stepFuncOf s.role from Hwf.1]
       cases Hrole : s.role
       · -- Follower: `stepFollower` has no `MsgVoteResp` arm.
         simp only [stepFuncOf]

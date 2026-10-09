@@ -110,7 +110,7 @@ theorem wp_Step_MsgApp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   obtain ⟨rfl, Happ⟩ := followerStepResult_app _ _ _ _ _ _ _ Hty Hres
   have Hwf1 : NStateWf
       { ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) with
-          lead := m.From' } := rfl
+          lead := m.From' } := ⟨rfl, rfl⟩
   simp only [Bool.false_eq_true, ↓reduceIte]
   icases Herrn with %Herrn
   subst Herrn

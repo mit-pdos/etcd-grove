@@ -47,7 +47,7 @@ it; `stepCandidate` ignores it at a candidate and tallies it at a pre-candidate
 local macro "prevote_resp_dispatch" : tactic =>
   `(tactic| (
     wp_apply Perennial.EtcdGrove.raft.wp_load_step $$ Hphys as Hphys
-    rw [show s.stepfn = stepFuncOf s.role from Hwf]
+    rw [show s.stepfn = stepFuncOf s.role from Hwf.1]
     cases Hrole : s.role
     · -- Follower: no arm
       simp only [stepFuncOf]

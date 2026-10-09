@@ -606,6 +606,10 @@ structure NState [FfiSyntax] where
   outbox : List Msg
   /-- `r.step` -/
   stepfn : GoFunc
+  /-- Whether `r.tick` has been set (2026-10-09): every `becomeX` sets it to
+  `r.tickElection` or `r.tickHeartbeat` (`ownRaftPhys`'s `Htick`); only `newRaft`'s
+  struct, before its `becomeFollower`, has it `nil`. `NStateWf` says it is set. -/
+  ticking : Bool
   /-- `r.trk.Progress`, as a map -/
   progress : GMap w64 Loc
   /-- `r.raftLog` -/
@@ -628,6 +632,13 @@ def stepFuncOf : PRole → GoFunc
   | .candidate | .preCandidate => functions stepCandidate []
   | .leader => functions stepLeader []
 
+/-- The two functions `r.tick` holds once set: the method values `r.tickElection` (a
+non-leader's) and `r.tickHeartbeat` (a leader's). Which one is not tied to the role:
+both are safe to run in any role (2026-10-09). -/
+def TickFnOk (r : Loc) (f : GoFunc) : Prop :=
+  f = methods (go.GoType.PointerType raft.ty) go!"tickElection" #r ∨
+  f = methods (go.GoType.PointerType raft.ty) go!"tickHeartbeat" #r
+
 /-! ### Transitions of the physical state
 
 Each mirrors a Go function exactly, `r.step` included, and leaves the fields the
@@ -643,18 +654,19 @@ def resetTo (s : NState) (term : w64) : NState :=
            votes := ∅ }
 
 def becomeFollower (s : NState) (term lead : w64) : NState :=
-  { resetTo s term with lead := lead, role := .follower, stepfn := stepFuncOf .follower }
+  { resetTo s term with lead := lead, role := .follower, stepfn := stepFuncOf .follower,
+                        ticking := true }
 
 def becomeCandidate (id : w64) (s : NState) : NState :=
   { resetTo s (s.term + W64 1) with vote := id, role := .candidate,
-                                    stepfn := stepFuncOf .candidate }
+                                    stepfn := stepFuncOf .candidate, ticking := true }
 
 /-- `becomePreCandidate` (raft.go:912): `r.step`, the tally (`ResetVotes`), `lead :=
 None` and the state. **Term and vote unchanged**, and no `reset`: the `Progress` values
 are left alone. -/
 def becomePrecandidate (s : NState) : NState :=
   { s with role := .preCandidate, lead := W64 0, votes := ∅,
-           stepfn := stepFuncOf .preCandidate }
+           stepfn := stepFuncOf .preCandidate, ticking := true }
 
 /-- `campaignPreElection`'s request to `dst` (`MsgPreVote` at the next term, with the
 last entry id), as `send` queues it. -/
@@ -681,7 +693,8 @@ def campaignState (id : w64) (s : NState) (pre : Bool) (peers : List w64) : NSta
 /-- `becomeLeader` up to its `appendEntry`: what `reset`, the `lead` and `state` writes
 and `r.step` leave. -/
 def becomeLeaderPre (id : w64) (s : NState) : NState :=
-  { resetTo s s.term with lead := id, role := .leader, stepfn := stepFuncOf .leader }
+  { resetTo s s.term with lead := id, role := .leader, stepfn := stepFuncOf .leader,
+                          ticking := true }
 
 /-- The empty entry a new leader appends (`pb.Entry{Data: nil}`, the zero `Entry`),
 stamped at the leader's term and the log's next index. -/
@@ -765,9 +778,10 @@ def toPState (s : NState) : PState where
   commit := s.logst.committed
   matched := if s.role = .leader then prvalsMatch s.prvals else ∅
 
-/-- A physical state that can take a protocol step: `r.step` agrees with the role.
+/-- A physical state that can take a protocol step: `r.step` agrees with the role, and
+`r.tick` is set (2026-10-09).
 Every `becomeX` establishes it. -/
-def NStateWf (s : NState) : Prop := s.stepfn = stepFuncOf s.role
+def NStateWf (s : NState) : Prop := s.stepfn = stepFuncOf s.role ∧ s.ticking = true
 
 /-- `s` refines the protocol state `ps`. -/
 def NStateRel (s : NState) (ps : PState) : Prop := toPState s = ps ∧ NStateWf s
@@ -856,14 +870,16 @@ theorem toPState_vote (s : NState) (v : w64) :
     toPState { s with vote := v } = { toPState s with vote := v } := rfl
 
 theorem nstateWf_becomeFollower (s : NState) (term lead : w64) :
-    NStateWf (becomeFollower s term lead) := rfl
+    NStateWf (becomeFollower s term lead) := ⟨rfl, rfl⟩
 
 theorem nstateWf_becomeCandidate (id : w64) (s : NState) :
-    NStateWf (becomeCandidate id s) := rfl
+    NStateWf (becomeCandidate id s) := ⟨rfl, rfl⟩
 
-theorem nstateWf_becomeLeader (id : w64) (s : NState) : NStateWf (becomeLeader id s) := rfl
+theorem nstateWf_becomeLeader (id : w64) (s : NState) : NStateWf (becomeLeader id s) :=
+  ⟨rfl, rfl⟩
 
-theorem nstateWf_becomePrecandidate (s : NState) : NStateWf (becomePrecandidate s) := rfl
+theorem nstateWf_becomePrecandidate (s : NState) : NStateWf (becomePrecandidate s) :=
+  ⟨rfl, rfl⟩
 
 /-- A state with new `Progress` values is as well-formed as before: `r.step` and the
 role are untouched. -/

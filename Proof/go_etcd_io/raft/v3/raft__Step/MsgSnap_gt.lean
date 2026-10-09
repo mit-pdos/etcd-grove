@@ -110,7 +110,7 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   iframe Hphys
   ipureintro
   refine ⟨nstateWf_handle_snap _ _ _ _ _ ?_ Hhs, ?_, rfl⟩
-  · rfl
+  · exact ⟨rfl, rfl⟩
   refine ⟨[absSnap m sv voters] ++ [absSnap m sv voters], ?_, ?_⟩
   · intro m' Hm'
     simp only [List.mem_append, List.mem_singleton, or_self] at Hm'

@@ -81,7 +81,7 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
   -- the type switch: none of its cases, so `r.step(m)`
   repeat (rw [Hty]; wp_auto)
   wp_apply raft.wp_load_step $$ Hphys as Hphys
-  rw [show s.stepfn = stepFuncOf s.role from Hwf]
+  rw [show s.stepfn = stepFuncOf s.role from Hwf.1]
   cases Hrole : s.role
   · -- Follower: `stepFollower`'s arm, with `r.lead = m.From`
     simp only [stepFuncOf]
@@ -128,7 +128,7 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     iapply HΦ $$ %interface.nil %_
     iframe Hphys
     ipureintro
-    refine ⟨nstateWf_heartbeatResult _ _ _ rfl, ⟨[absMsg .heartbeat m ents], ?_, ?_⟩, rfl,
+    refine ⟨nstateWf_heartbeatResult _ _ _ ⟨rfl, rfl⟩, ⟨[absMsg .heartbeat m ents], ?_, ?_⟩, rfl,
       keep_frame rfl rfl rfl rfl rfl⟩
     · intro m' Hm'
       exact List.mem_singleton.mp Hm'
@@ -178,7 +178,7 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     iapply HΦ $$ %interface.nil %_
     iframe Hphys
     ipureintro
-    refine ⟨nstateWf_heartbeatResult _ _ _ rfl, ⟨[absMsg .heartbeat m ents], ?_, ?_⟩, rfl,
+    refine ⟨nstateWf_heartbeatResult _ _ _ ⟨rfl, rfl⟩, ⟨[absMsg .heartbeat m ents], ?_, ?_⟩, rfl,
       keep_frame rfl rfl rfl rfl rfl⟩
     · intro m' Hm'
       exact List.mem_singleton.mp Hm'

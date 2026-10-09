@@ -107,7 +107,7 @@ theorem wp_Step_MsgHeartbeat_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
   ipureintro
   refine ⟨nstateWf_heartbeatResult _ _ _ ?_, ?_, rfl,
     stepdown_frame (by rw [Hty]; w32_ne) (Int.le_of_lt Hgt) rfl rfl rfl rfl rfl⟩
-  · rfl
+  · exact ⟨rfl, rfl⟩
   · refine ⟨[absMsg .heartbeat m ents] ++ [absMsg .heartbeat m ents], ?_, ?_⟩
     · intro m' Hm'
       simp only [List.mem_append, List.mem_singleton, or_self] at Hm'

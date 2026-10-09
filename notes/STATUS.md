@@ -34,7 +34,16 @@ differed from the checked-in file, e.g. `confchange.Restore`'s callees). `RNStat
   specified to return some `bool` (for a nonnegative type: `MessageType` is an `int32`, a
   negative one panics); `isInitialized` gained their tables and the two error globals.
 
-Next: `Tick` (`ownRaftPhys` must record `r.tick`), `NewRawNode`, the `Advance` gap.
+- `Tick` (proved and linked, `RawNode.wp_Tick`): for `rs.term + 1 < 2^64`, the term up by at
+  most one, the rest of `rs` kept (also between `Ready` and `Advance`). `ownRaftPhys` now
+  records `r.tick` (`Htick`: once `NState.ticking` is set, `TickFnOk r rv.tick'`: the method
+  value `r.tickElection` or `r.tickHeartbeat`, not tied to the role -- both are safe in any
+  role); every `becomeX` model sets `ticking`, and `NStateWf` says it is set (only
+  `newRaft`'s struct before its `becomeFollower` has `r.tick = nil`). `raft.tickElection`
+  and `raft.tickHeartbeat` are specified like `raft.Step` (`TickStep`: `NetFrame`, the term
+  up by at most one, `offsetInProgress` not back) and proved, with `pastElectionTimeout`.
+
+Next: `NewRawNode`, the `Advance` gap.
 
 ## `raft.Step` frames the log and bounds the term (2026-10-09)
 

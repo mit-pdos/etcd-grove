@@ -65,6 +65,10 @@ public import Proof.go_etcd_io.raft.v3.tracker.Progress__SentEntries
 public import Proof.go_etcd_io.raft.v3.RawNode__Advance
 public import Proof.go_etcd_io.raft.v3.RawNode__Campaign
 public import Proof.go_etcd_io.raft.v3.RawNode__Step
+public import Proof.go_etcd_io.raft.v3.RawNode__Tick
+public import Proof.go_etcd_io.raft.v3.raft__tickElection
+public import Proof.go_etcd_io.raft.v3.raft__tickHeartbeat
+public import Proof.go_etcd_io.raft.v3.raft__pastElectionTimeout
 public import Proof.go_etcd_io.raft.v3.RawNode__HasReady
 public import Proof.go_etcd_io.raft.v3.RawNode__Propose
 public import Proof.go_etcd_io.raft.v3.RawNode__Ready
@@ -971,6 +975,22 @@ theorem RawNode.wp_Campaign :
 theorem RawNode.wp_Step :
     RawNode.Step.spec (GF := GF) (hG := hG) :=
   RawNode.Step.wp_proof wp_IsResponseMsg wp_IsLocalMsg wp_IsLocalMsgTarget raft.wp_Step
+
+theorem raft.wp_pastElectionTimeout :
+    raft.pastElectionTimeout.spec (GF := GF) (hG := hG) :=
+  raft.pastElectionTimeout.wp_proof
+
+theorem raft.wp_tickElection :
+    raft.tickElection.spec (GF := GF) (hG := hG) :=
+  raft.tickElection.wp_proof raft.wp_promotable raft.wp_pastElectionTimeout raft.wp_Step
+
+theorem raft.wp_tickHeartbeat :
+    raft.tickHeartbeat.spec (GF := GF) (hG := hG) :=
+  raft.tickHeartbeat.wp_proof raft.wp_Step
+
+theorem RawNode.wp_Tick :
+    RawNode.Tick.spec (GF := GF) (hG := hG) :=
+  RawNode.Tick.wp_proof raft.wp_tickElection raft.wp_tickHeartbeat
 
 theorem RawNode.wp_HasReady :
     RawNode.HasReady.spec (GF := GF) (hG := hG) :=

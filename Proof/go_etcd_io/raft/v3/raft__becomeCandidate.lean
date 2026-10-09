@@ -44,7 +44,7 @@ theorem raft.becomeCandidate.wp_proof
   wp_apply wp_raft_reset $$ [$Hphys] as %pvs ⟨Hphys, -⟩
   -- `Match` is irrelevant for a non-leader (`toPState`)
   -- `r.tick`, `r.Vote := r.id`, `r.state := StateCandidate`
-  wp_apply raft.wp_store_tick $$ Hphys as Hphys
+  wp_apply raft.wp_store_tick (Hf := .inl rfl) $$ Hphys as Hphys
   wp_apply raft.wp_load_id $$ Hphys as Hphys
   wp_apply raft.wp_store_Vote $$ Hphys as Hphys
   rw [show (go_etcd_io.raft.v3.StateCandidate : val) = #(stateW64 .candidate) from rfl]

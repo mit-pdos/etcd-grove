@@ -65,7 +65,7 @@ theorem wp_Step_MsgBeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   wp_apply raft.wp_load_step $$ Hphys as Hphys
   have Hty3 : m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp :=
     .inl Hty
-  rw [show s.stepfn = stepFuncOf s.role from Hwf]
+  rw [show s.stepfn = stepFuncOf s.role from Hwf.1]
   have Hsnap0 : ∀ (P : IProp GF), ⊢ (⌜m.Type' = MsgSnap⌝ -∗ P : IProp GF) := fun P => by
     iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
   cases Hrole : s.role

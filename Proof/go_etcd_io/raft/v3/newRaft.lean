@@ -98,7 +98,7 @@ theorem newRaft.wp_proof
   -- empty.
   let ls0 : LogState := ⟨σ.prev, σ.ents, [], σ.prev.index', σ.prev.index', none, ip, σ.prev.index', [],
     W64 0, cv'.MaxCommittedSizePerReady'⟩
-  let s0 : NState := ⟨W64 0, W64 0, W64 0, .follower, ∅, [], func.nil, ∅, l, ls0, ∅,
+  let s0 : NState := ⟨W64 0, W64 0, W64 0, .follower, ∅, [], func.nil, false, ∅, l, ls0, ∅,
     cv.PreVote'⟩
   ihave Htrk0 := ownTracker_empty tv0 v0 Htv0arr Htv0l Htv0ln Htv0al Hmi $$ Hv0 Hvotes Hprs0
   ihave Hmisc : ownRaftMisc (GF := GF) slice.nil ro slice.nil $$ [Hro]
@@ -123,6 +123,7 @@ theorem newRaft.wp_proof
   ihave Hphys := ownRaftPhys_intro ∅ «$r0_ptr» cv.ID' s0 _ [] [] lok
     HpID rfl rfl rfl rfl rfl HpPV (by rw [HpDPF, Hdpf]) (by rw [HpCQ, Hcq]) rfl rfl HvID
     (by show 0 < sint.Z cv'.ElectionTick'; rw [HpET]; omega) (by rw [HpLg, Hlok]) rfl
+    (fun h => absurd h (by simp only [s0]; decide))
     $$ «$r0» Hlg0 Htrk0 HL Hnil1 Hcap1 Hnil2 Hcap2 Hmisc Hob
   -- the configuration `Restore` built, as `switchToConfig` installs it
   ipersist Hprsm
@@ -283,7 +284,7 @@ theorem newRaft.wp_proof
   -- `becomeFollower(r.Term, None)` keeps the term, so `reset` keeps the
   -- vote: the state is the persisted `HardState`'s
   ipureintro
-  refine ⟨rfl, rfl, ?_, rfl, rfl, rfl, rfl, rfl⟩
+  refine ⟨⟨rfl, rfl⟩, rfl, ?_, rfl, rfl, rfl, rfl, rfl⟩
   show (if s2.term = s2.term then s2.vote else W64 0) = hs.Vote'
   simp only [↓reduceIte]
   rfl

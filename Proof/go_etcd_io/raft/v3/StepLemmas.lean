@@ -99,7 +99,7 @@ theorem nstateWf_voteRespResult (id : w64) (s : NState) (src : w64) (reject won 
 
 theorem nstateWf_campaignState (id : w64) (s : NState) (pre : Bool) (peers : List w64) :
     NStateWf (campaignState id s pre peers) := by
-  unfold campaignState; cases pre <;> rfl
+  unfold campaignState; cases pre <;> exact ⟨rfl, rfl⟩
 
 theorem nstateWf_prevoteRespResult (id : w64) (s : NState) (src : w64)
     (reject won lost : Bool) (peers : List w64) (Hsf : NStateWf s) :

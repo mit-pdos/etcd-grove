@@ -44,7 +44,7 @@ theorem raft.becomePreCandidate.wp_proof
   ihave Hphys := Hback $$ Htrkf Htrk
   try wp_auto
   -- `r.tick`, `r.lead = None`, `r.state = StatePreCandidate`
-  wp_apply raft.wp_store_tick $$ Hphys as Hphys
+  wp_apply raft.wp_store_tick (Hf := .inl rfl) $$ Hphys as Hphys
   wp_apply raft.wp_store_lead $$ Hphys as Hphys
   rw [show go_etcd_io.raft.v3.StatePreCandidate = #(stateW64 .preCandidate) from rfl]
   wp_apply raft.wp_store_state _ _ _ _ .preCandidate $$ Hphys as Hphys

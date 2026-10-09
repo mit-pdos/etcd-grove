@@ -138,7 +138,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   rw [Hty]
   wp_auto
   wp_apply raft.wp_load_step $$ Hphys as Hphys
-  rw [show s.stepfn = stepFuncOf s.role from Hwf]
+  rw [show s.stepfn = stepFuncOf s.role from Hwf.1]
   have HnVR : m.Type' ≠ MsgVoteResp := by rw [Hty]; w32_ne
   cases Hrole : s.role
   · -- Follower: forward to the leader, or drop. `send` wants the entries read-only.

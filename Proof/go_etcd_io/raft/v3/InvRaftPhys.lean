@@ -175,6 +175,9 @@ private def ownRaftPhysDef (r : Loc) (id : w64) (s : NState) : IProp GF :=
   -- runs, and `newRaft` starts with it nil. That the two agree is `NStateWf`, which
   -- `Step` carries.
   "%Hstepfn" ∷ ⌜rv.step' = s.stepfn⌝ ∗
+  -- `r.tick`, once a `becomeX` set it (2026-10-09): one of the two tick functions
+  -- (`TickFnOk`), not tied to the role (`becomeFollower` assigns it after `reset`)
+  "%Htick" ∷ ⌜s.ticking = true → TickFnOk r rv.tick'⌝ ∗
 
   -- the vote tally, the progress map and the rest of the heap the tracker points at.
   -- The tracker's own bytes are covered by `Hr` above, since `trk` is embedded by
@@ -284,6 +287,7 @@ theorem ownRaftPhys_intro (r : Loc) (id : w64) (s : NState) (rv : raft)
     0 < sint.Z rv.electionTimeout' →
     rv.logger' = interface.ok lok →
     rv.raftLog' = s.log →
+    (s.ticking = true → TickFnOk r rv.tick') →
     ⊢ (r ↦ rv : IProp GF) -∗
       isLogger lok -∗
       ownTracker cfg rv.trk' ⟨s.votes, s.progress, s.prvals⟩ -∗
@@ -296,14 +300,14 @@ theorem ownRaftPhys_intro (r : Loc) (id : w64) (s : NState) (rv : raft)
       outboxRel s.outbox msgs msgsAA -∗
       ownRaftPhys cfg r id s := by
   intro Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCheckQuorum
-    HnoLearner HnoTransfer Hid_nz HelectionTimeout Hlok Hlogp
+    HnoLearner HnoTransfer Hid_nz HelectionTimeout Hlok Hlogp Htick
   iintro Hr #Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc #Houtbox
   rw [ownRaftPhys_unseal]; unfold ownRaftPhysDef
   iexists rv, msgs, msgsAA, lok
   simp only [named]
   iframe Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
   ipureintro
-  exact ⟨Hid, Hterm, Hvote, Hlead, Hstate, Hstepfn, Hlogp, Hprevote, HpropForward,
+  exact ⟨Hid, Hterm, Hvote, Hlead, Hstate, Hstepfn, Htick, Hlogp, Hprevote, HpropForward,
     HnoCheckQuorum, HnoLearner, HnoTransfer, Hid_nz, HelectionTimeout, Hlok⟩
 
 end proof
@@ -317,9 +321,10 @@ local macro "iNamed_phys " H:ident : tactic =>
              icases $H:ident with ⟨%rv, %msgs, %msgsAA, %lok, $H:ident⟩;
              iNamed $H:ident))
 
+set_option hygiene false in
 /-- The pure premises of `ownRaftPhys_intro` after a field access: each is a
 hypothesis of the opened predicate up to computation, or holds by computation. -/
-local macro "phys_pure" : tactic => `(tactic| first | assumption | rfl)
+local macro "phys_pure" : tactic => `(tactic| first | assumption | rfl | exact Htick)
 
 set_option hygiene false in
 /-- Rocq `reseal`: re-seal at the state `s'` the goal names, given explicitly because
@@ -330,6 +335,7 @@ local macro "reseal " s:term:max : tactic =>
                 (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
                 (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
                 (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
+                (by phys_pure)
                 $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox))
 
 section proof
@@ -364,7 +370,7 @@ theorem ownRaftPhys_outbox (r : Loc) (id : w64) (s : NState) (o : List Msg) :
   ihave #Houtbox' := outboxRel_perm _ o _ _ Ho $$ Houtbox
   iapply ownRaftPhys_intro _ _ _ { s with outbox := o } _ msgs msgsAA lok
     Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCheckQuorum HnoLearner
-    HnoTransfer Hid_nz HelectionTimeout Hlok Hlogp
+    HnoTransfer Hid_nz HelectionTimeout Hlok Hlogp Htick
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox'
 
 /-- Sending nothing, in both directions: an exit that sends nothing proves a
@@ -628,6 +634,15 @@ theorem raft.wp_load_electionElapsed (r : Loc) (id : w64) (s : NState) :
   wp_apply wp_load_access _ rv.electionElapsed' $$ Hr as Hr
   iapply HΦ; reseal s
 
+theorem raft.wp_load_heartbeatElapsed (r : Loc) (id : w64) (s : NState) :
+    {{ ownRaftPhys (GF := GF) cfg r id s }}
+      (App (Val (GoInstruction (GoLoad go.int))) (Val #(r.[raft, go!"heartbeatElapsed"])))
+    {{ (v : w64), RET #v; ownRaftPhys cfg r id s }} := by
+  iintro %Φ H HΦ
+  iNamed_phys H
+  wp_apply wp_load_access _ rv.heartbeatElapsed' $$ Hr as Hr
+  iapply HΦ; reseal s
+
 theorem raft.wp_load_heartbeatTimeout (r : Loc) (id : w64) (s : NState) :
     {{ ownRaftPhys (GF := GF) cfg r id s }}
       (App (Val (GoInstruction (GoLoad go.int))) (Val #(r.[raft, go!"heartbeatTimeout"])))
@@ -739,15 +754,37 @@ theorem raft.wp_store_step (r : Loc) (id : w64) (s : NState) (f : GoFunc) :
 
 /-! ### Stores to fields the abstraction does not track, and the pinned one -/
 
-theorem raft.wp_store_tick (r : Loc) (id : w64) (s : NState) (f : GoFunc) :
+/-- `r.tick = f`, for one of the two tick functions: `r.tick` is set from now on. -/
+theorem raft.wp_store_tick (r : Loc) (id : w64) (s : NState) (f : GoFunc)
+    (Hf : TickFnOk r f) :
     {{ ownRaftPhys (GF := GF) cfg r id s }}
       (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [] false [])))))
         (Val (PairV #(r.[raft, go!"tick"]) #f)))
-    {{ RET #(); ownRaftPhys cfg r id s }} := by
+    {{ RET #(); ownRaftPhys cfg r id { s with ticking := true } }} := by
   iintro %Φ H HΦ
   iNamed_phys H
   wp_apply wp_store_access _ rv.tick' f $$ Hr as Hr
-  iapply HΦ; reseal s
+  iapply HΦ
+  iapply ownRaftPhys_intro _ _ _ { s with ticking := true } _ msgs msgsAA lok
+    (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
+    (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
+    (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
+    (fun _ => Hf)
+    $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
+
+/-- `r.tick`, once set: one of the two tick functions. -/
+theorem raft.wp_load_tick (r : Loc) (id : w64) (s : NState) (Ht : s.ticking = true) :
+    {{ ownRaftPhys (GF := GF) cfg r id s }}
+      (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [] false [])))))
+        (Val #(r.[raft, go!"tick"])))
+    {{ (f : GoFunc), RET #f; ownRaftPhys cfg r id s ∗ ⌜TickFnOk r f⌝ }} := by
+  iintro %Φ H HΦ
+  iNamed_phys H
+  wp_apply wp_load_access _ rv.tick' $$ Hr as Hr
+  iapply HΦ
+  isplitl
+  · reseal s
+  ipureintro; exact Htick Ht
 
 theorem raft.wp_store_electionElapsed (r : Loc) (id : w64) (s : NState) (v : w64) :
     {{ ownRaftPhys (GF := GF) cfg r id s }}
@@ -1138,7 +1175,7 @@ theorem ownRaftPhys_msgs (r : Loc) (id : w64) (s : NState) :
   iapply ownRaftPhys_intro _ _ _ { s with outbox := s.outbox ++ absList [a] }
       { rv with msgs' := sl' } (msgs ++ [m']) msgsAA lok
     Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCheckQuorum HnoLearner
-    HnoTransfer Hid_nz HelectionTimeout Hlok Hlogp
+    HnoTransfer Hid_nz HelectionTimeout Hlok Hlogp Htick
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
 
 /-- `r.msgsAfterAppend`, likewise. -/
@@ -1174,7 +1211,7 @@ theorem ownRaftPhys_msgsAA (r : Loc) (id : w64) (s : NState) :
   iapply ownRaftPhys_intro _ _ _ { s with outbox := s.outbox ++ absList [a] }
       { rv with msgsAfterAppend' := sl' } msgs (msgsAA ++ [m']) lok
     Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCheckQuorum HnoLearner
-    HnoTransfer Hid_nz HelectionTimeout Hlok Hlogp
+    HnoTransfer Hid_nz HelectionTimeout Hlok Hlogp Htick
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
 
 /-- The `readOnly` object. Election never reads it; `reset` replaces it. The object
@@ -1306,7 +1343,7 @@ theorem ownRaftPhys_view (r : Loc) (id : w64) (s : NState) :
   iapply ownRaftPhys_intro _ _ _ { s with outbox := o, logst := ls' }
       { rv with msgs' := sl1', msgsAfterAppend' := sl2' } ms1' ms2' lok
     Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCheckQuorum HnoLearner
-    HnoTransfer Hid_nz HelectionTimeout Hlok Hlogp
+    HnoTransfer Hid_nz HelectionTimeout Hlok Hlogp Htick
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox'
 
 end proof
@@ -1342,7 +1379,7 @@ theorem ownRaftPhys_reconfig (cfg0 cfg : GSet w64) (r : Loc) (id : w64) (s : NSt
   iapply ownRaftPhys_intro cfg r id { s with progress := prs', prvals := pvs' }
       { rv with trk' := tv' } msgs msgsAA lok
     Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCheckQuorum HnoLearner
-    HnoTransfer Hid_nz HelectionTimeout Hlok Hlogp
+    HnoTransfer Hid_nz HelectionTimeout Hlok Hlogp Htick
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
 
 /-- The tracker replaced while the log is in use (2026-10-02): `restore` stores a fresh
@@ -1385,7 +1422,7 @@ theorem ownRaftPhys_retrack (cfg0 cfg : GSet w64) (r : Loc) (id : w64) (s : NSta
       { s with votes := votes', progress := prs', prvals := pvs', logst := ls' }
       { rv with trk' := tv' } msgs msgsAA lok
     Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCheckQuorum HnoLearner
-    HnoTransfer Hid_nz HelectionTimeout Hlok Hlogp
+    HnoTransfer Hid_nz HelectionTimeout Hlok Hlogp Htick
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
 
 end reconfig

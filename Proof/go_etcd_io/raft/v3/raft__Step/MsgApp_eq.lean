@@ -91,7 +91,7 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   wp_auto
   repeat (rw [Hty]; wp_auto)
   wp_apply raft.wp_load_step $$ Hphys as Hphys
-  rw [show s.stepfn = stepFuncOf s.role from Hwf]
+  rw [show s.stepfn = stepFuncOf s.role from Hwf.1]
   cases Hrole : s.role
   · -- Follower: `stepFollower`'s arm, with `r.lead = m.From`
     simp only [stepFuncOf]
@@ -130,7 +130,7 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       · iintro %_; iframe Hents Hcap
     obtain ⟨rfl, pvs, Happ⟩ := candidateStepResult_app _ _ _ _ _ _ _ _ Hty Hres
     have Hwf1 : NStateWf
-        ({ becomeFollower s s.term m.From' with prvals := pvs } : NState) := rfl
+        ({ becomeFollower s s.term m.From' with prvals := pvs } : NState) := ⟨rfl, rfl⟩
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn
     subst Herrn
@@ -179,7 +179,7 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       · iintro %_; iframe Hents Hcap
     obtain ⟨rfl, pvs, Happ⟩ := candidateStepResult_app _ _ _ _ _ _ _ _ Hty Hres
     have Hwf1 : NStateWf
-        ({ becomeFollower s s.term m.From' with prvals := pvs } : NState) := rfl
+        ({ becomeFollower s s.term m.From' with prvals := pvs } : NState) := ⟨rfl, rfl⟩
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn
     subst Herrn

@@ -47,7 +47,7 @@ it; `stepCandidate` ignores it at a candidate and tallies it at a pre-candidate
 local macro "prevote_resp_dispatch" : tactic =>
   `(tactic| (
     wp_apply Perennial.EtcdGrove.raft.wp_load_step $$ Hphys as Hphys
-    rw [show s.stepfn = stepFuncOf s.role from Hwf]
+    rw [show s.stepfn = stepFuncOf s.role from Hwf.1]
     cases Hrole : s.role
     · -- Follower: no arm
       simp only [stepFuncOf]
@@ -250,7 +250,7 @@ theorem wp_Step_MsgPreVoteResp_gt (_P : raft.Step.Postulates (GF := GF) (hG := h
   iapply HΦ $$ %interface.nil %_
   iframe Hphys
   ipureintro
-  refine ⟨rfl, ⟨[absMsg .preVoteResp m ents], fun _ h => List.mem_singleton.1 h, ?_⟩, rfl,
+  refine ⟨⟨rfl, rfl⟩, ⟨[absMsg .preVoteResp m ents], fun _ h => List.mem_singleton.1 h, ?_⟩, rfl,
     stepdown_frame (by rw [Hty]; w32_ne) (Int.le_of_lt Hgt) rfl rfl rfl rfl rfl⟩
   rw [toPState_prvals_nl (becomeFollower s m.Term' (W64 0)) pvs (by simp [becomeFollower])]
   exact Hsd

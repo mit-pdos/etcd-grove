@@ -134,7 +134,7 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     subst Hs1; simp [becomeFollower, resetTo, Hne]
   have Hl1 : s1.lead = W64 0 := by subst Hs1; rfl
   have Ht1 : s1.term = m.Term' := by subst Hs1; rfl
-  have Hwf1 : NStateWf s1 := by subst Hs1; rfl
+  have Hwf1 : NStateWf s1 := by subst Hs1; exact ⟨rfl, rfl⟩
   have Hps1 : toPState s1 = pbecomeFollower (toPState s) m.Term' (W64 0) := by
     subst Hs1
     exact (toPState_prvals_nl (becomeFollower s m.Term' (W64 0)) pvs
