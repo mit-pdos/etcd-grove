@@ -30,8 +30,7 @@ theorem tracker.Inflights.Full.wp_proof : tracker.Inflights.Full.spec (GF := GF)
   wp_auto
   subst Hring
   subst Hiabs
-  dsimp only [inflightsRingOf]
-  rw [inflightsFull_abs]
+  rw [inflightsRingOf.proj_win, inflightsFull_abs]
   wp_if_destruct
   · -- count = size: the answer is `true || _`
     iapply HΦ

@@ -34,11 +34,11 @@ local macro "freele_finish" : tactic => `(tactic| (
     isplitl [Hiv Hbuf Hbuf_cap]
     · iapply ownInflightsRaw_intro $$ Hiv Hbuf Hbuf_cap
       ipureintro
-      dsimp only [InflightsOk, inflightsRingOf, inflightsAbs]
-      omega
+      unfold InflightsOk
+      word
     · ipureintro
-      dsimp only [InflightsFreed, inflightsRingOf, inflightsAbs]
-      omega))
+      unfold InflightsFreed
+      word))
 
 set_option hygiene false in
 /-- An exit that leaves the window as it was. -/
@@ -66,7 +66,7 @@ private theorem wp_Inflights_FreeLE_internal (l : Loc) (r : InflightsRing) (to :
   subst Hring
   ihave %Hblen := ownSlice_len $$ Hbuf
   have Hok := Hinfl_ok
-  dsimp only [InflightsOk, inflightsRingOf, inflightsAbs] at Hinfl_ok
+  simp only [InflightsOk, word_unfold] at Hinfl_ok
   obtain ⟨Hs0, Hc, Hbl, Hsz, Hstart, Hring⟩ := Hinfl_ok
   have Hlenz : (buf.length : Int) = sint.Z iv.buffer'.len := by rw [Hblen.1]; word
   wp_auto
