@@ -179,7 +179,8 @@ theorem quorum.MajorityConfig.CommittedIndex.wp_proof
     rcases Nat.eq_zero_or_pos (GMap.size ids) with h | h
     · exact absurd ((GMap.dom_empty_iff_L ids).2 (GMap.map_size_empty_inv _ h)) Hemp
     · exact h
-  have Hsz' : (GMap.size ids : Int) < 2 ^ 63 := by rw [← GMap.size_dom]; exact Hsz
+  have Hsz62 : (GMap.size ids : Int) ≤ 2 ^ 62 := by rw [← GMap.size_dom]; exact Hsz
+  have Hsz' : (GMap.size ids : Int) < 2 ^ 63 := by omega
   rw [decide_eq_false (by word)]
   wp_auto
   iNamed Hl
@@ -321,6 +322,9 @@ theorem quorum.MajorityConfig.CommittedIndex.wp_proof
   rw [show ((GMap.size ids : Int)).toNat = keys.length by omega, List.take_length]
   wp_auto
   wp_apply wp_slices_Sort $$ [$Hsl] as %ys ⟨Hsl, %Hperm, %Hsorted⟩
+  · ipureintro; simp only [List.length_append, List.length_replicate, List.length_reverse]
+    have := List.length_filterMap_le acked keys
+    omega
   have Hperm' : ys ≡ₚ keys.map (fun v => (acked v).getD (W64 0)) := by
     have H := fill_perm acked keys
     rw [Hklen] at H

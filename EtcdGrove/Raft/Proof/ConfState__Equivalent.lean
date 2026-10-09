@@ -62,6 +62,7 @@ theorem wp_sortCopy_empty (wp_slices_Sort : slices.«Sort».spec (GF := GF) (hG 
   · iapply ownSlice_nil
   wp_apply wp_slice_append_nil_empty _ hlen
   wp_apply wp_slices_Sort $$ [$Hnil] as %vs' ⟨Hnil, %Hperm, -⟩
+  · ipureintro; simp
   rw [List.Perm.nil_eq Hperm]
   iapply HΦ
   iframe
@@ -71,7 +72,7 @@ omit package_sem in
 `nil` iff empty; the input comes back as it was. -/
 theorem wp_sortCopy_owned (wp_slices_Sort : slices.«Sort».spec (GF := GF) (hG := hG))
     (f : GoFunc) (hf : f = func.mk BAnon (BNamed "sl") sortCopyBody)
-    (slp : Loc) (sl : GoSlice) (vs : List w64) (dq : DFrac) :
+    (slp : Loc) (sl : GoSlice) (vs : List w64) (dq : DFrac) (Hvlen : (vs.length : Int) ≤ 2 ^ 62) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ slp ↦ sl ∗ sl ↦*{dq} vs }}
       (App (Val #f) (Val #slp))
     {{ (sl' : GoSlice) (vs' : List w64), RET #();
@@ -89,6 +90,7 @@ theorem wp_sortCopy_owned (wp_slices_Sort : slices.«Sort».spec (GF := GF) (hG 
     have Hlen0 : sl.len = W64 0 := by simp at Hlen; word
     wp_apply wp_slice_append_nil_empty _ Hlen0
     wp_apply wp_slices_Sort $$ [$Hnil] as %vs' ⟨Hnil, %Hperm, %Hsorted⟩
+    · ipureintro; simp
     iapply HΦ
     iframe Hslp Hnil Hsl
     isplitl []
@@ -101,6 +103,7 @@ theorem wp_sortCopy_owned (wp_slices_Sort : slices.«Sort».spec (GF := GF) (hG 
       as %s' ⟨Hs', Hcap', Hsl⟩
     simp only [List.nil_append]
     wp_apply wp_slices_Sort $$ [$Hs'] as %vs' ⟨Hs', %Hperm, %Hsorted⟩
+    · ipureintro; omega
     ihave %Hlen' := ownSlice_len $$ Hs'
     iapply HΦ
     iframe Hslp Hs' Hcap' Hsl
@@ -130,7 +133,7 @@ theorem raftpb.ConfState.Equivalent.wp_proof
     (wp_slices_Sort : slices.«Sort».spec (GF := GF) (hG := hG))
     (wp_reflect_DeepEqual : reflect.DeepEqual.spec (GF := GF) (hG := hG)) :
     raftpb.ConfState.Equivalent.spec (GF := GF) (hG := hG) := by
-  intro p cs1 cs2 v1 v2 dq1 dq2 Hperm H1 H2 H3 H4 H5 H6 Hal
+  intro p cs1 cs2 v1 v2 dq1 dq2 Hperm Hlen H1 H2 H3 H4 H5 H6 Hal
   wp_start as ⟨Hp, Hv1, Hv2⟩
   wp_auto
   wp_method_call
@@ -170,7 +173,7 @@ theorem raftpb.ConfState.Equivalent.wp_proof
       · iframe Hsl; ipureintro; rw [Hn]; rfl
       icases typedPointsto_not_null_dup _ _ _ $$ cs1 with ⟨cs1, %Hnn⟩
       iStructNamed cs1
-      wp_apply (wp_sortCopy_owned wp_slices_Sort f hf.symm) _ _ v1 dq1 $$ [$Hv1 $Voters]
+      wp_apply (wp_sortCopy_owned wp_slices_Sort f hf.symm) _ _ v1 dq1 Hlen $$ [$Hv1 $Voters]
         as %sv %v1' ⟨Voters, Hv1, Hsv, Hsvcap, %Hs1⟩
       wp_apply (wp_sortCopy_empty wp_slices_Sort f hf.symm) _ _ H2 $$ [$Learners]
         as ⟨Learners, -⟩
@@ -205,7 +208,7 @@ theorem raftpb.ConfState.Equivalent.wp_proof
       · iframe Hsl; ipureintro; rw [Hn]; rfl
       icases typedPointsto_not_null_dup _ _ _ $$ cs2 with ⟨cs2, %Hnn⟩
       iStructNamed cs2
-      wp_apply (wp_sortCopy_owned wp_slices_Sort f hf.symm) _ _ v2 dq2 $$ [$Hv2 $Voters]
+      wp_apply (wp_sortCopy_owned wp_slices_Sort f hf.symm) _ _ v2 dq2 (by rw [← Hperm.length_eq]; exact Hlen) $$ [$Hv2 $Voters]
         as %sv %v2' ⟨Voters, Hv2, Hsv, Hsvcap, %Hs1⟩
       wp_apply (wp_sortCopy_empty wp_slices_Sort f hf.symm) _ _ H5 $$ [$Learners]
         as ⟨Learners, -⟩

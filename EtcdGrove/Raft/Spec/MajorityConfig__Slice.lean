@@ -19,10 +19,11 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 (`InvTracker.lean`) so that it covers the `nil` sets a simple configuration carries
 (`Voters[1]`, `Learners`, `LearnersNext`), for which the result is the empty (nil)
 slice. Sortedness is not stated -- `slices.Sort`'s triple gives only a permutation, and
-nothing downstream needs more. -/
+nothing downstream needs more. At most `2^62` ids: `slices.Sort`'s bound. -/
 abbrev quorum.MajorityConfig.Slice.spec : Prop :=
   ∀ (m : Loc) (ids : GMap w64 Unit),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.quorum ∗ ownIdsetOpt m ids }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.quorum ∗ ownIdsetOpt m ids ∗
+      ⌜(GMap.size ids : Int) ≤ 2 ^ 62⌝ }}
     (App (Val (m @!! quorum.MajorityConfig.ty @!! go!"Slice")) (Val #()))
   {{ (sl : GoSlice) (xs : List w64), RET #sl;
       ownIdsetOpt m ids ∗ sl ↦* xs ∗ ownSliceCap w64 sl (DFrac.own 1) ∗

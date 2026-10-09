@@ -23,27 +23,20 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `campaign` calls `slices.Sort` to put the voter ids in a deterministic order. That
-function is **not translated**: `new/code/slices.v` (Lean: `Perennial/Code/slices.lean`)
-declares the name but there is no `slices.Sort.impl` and no `FuncUnfold` for it in
-`slices.Assumptions` -- only `SortFunc` is translated, and
-`Perennial.Proof.slices_proof.sort` proves `slices.wp_SortFunc` against that. So the
-call cannot be stepped, and this axiom is what stands in for it.
+/-- `slices.Sort` on a `[]uint64`: the slice is permuted **and sorted ascending**.
+`Perennial.Proof.slices_proof.sort` proves it (`slices.wp_Sort_uint64`), and
+`Proof/slices_Sort.lean` is that theorem.
 
-The postcondition is that the slice is permuted **and sorted ascending** --
-`wp_SortFunc`'s `Hperm` and `Hsorted` conjuncts at the order `<` on `uint.Z`, which is
-what Go's `slices.Sort` does on `uint64` (`cmp.Less`). Sortedness was not stated until
-2026-10-01: `campaign`, `Visit`, `VoterNodes` and `MajorityConfig.Slice` need only the
-permutation (`Step.campaign` accepts any order of vote requests).
-`MajorityConfig.CommittedIndex` needs the order -- it reads the quorum index off the
-sorted acknowledgements at a fixed position -- so the axiom was strengthened then, and
-only by that conjunct.
+The length bound is Perennial's: past `2^62` elements, the heapsort fallback's
+`2*root+1` overflows `int`, so the call can panic. The callers sort voter ids, and
+the configuration carries the bound (`ownTracker`'s `Hcfg_size`).
 
-To discharge it rather than assume it: add `slices.Sort` to the translated set in
-`new/etc/update-goose-new.py`, regenerate, and derive it from `wp_SortFunc`. -/
+`campaign`, `Visit`, `VoterNodes` and `MajorityConfig.Slice` need only the
+permutation. `MajorityConfig.CommittedIndex` needs the order: it reads the quorum
+index off the sorted acknowledgements at a fixed position. -/
 abbrev slices.«Sort».spec : Prop :=
   ∀ (data : GoSlice) (xs : List w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.slices ∗ data ↦* xs }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.slices ∗ data ↦* xs ∗ ⌜xs.length ≤ 2 ^ 62⌝ }}
     (App (Val #(functions _root_.Perennial.slices.«Sort»
         [go.GoType.SliceType go.uint64, go.uint64])) (Val #data))
   {{ (xs' : List w64), RET #();

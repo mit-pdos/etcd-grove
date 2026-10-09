@@ -45,7 +45,7 @@ abbrev quorum.JointConfig.CommittedIndex.spec : Prop :=
   ∀ (c : Loc) (a : quorum.JointConfig) (m0 : Loc) (ids : GMap w64 Unit)
     (l : GoInterface) (P : IProp GF) (acked : w64 → Option w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.quorum ∗
-      ⌜(GMap.size (domSet ids) : Int) < 2 ^ 63⌝ ∗
+      ⌜(GMap.size (domSet ids) : Int) ≤ 2 ^ 62⌝ ∗
       c ↦ a ∗ ⌜a.arr = [m0, map.nil]⌝ ∗ m0 ↦$ ids ∗
       isAckedIndexer l P acked ∗ P }}
     (App (Val (c @!! go.GoType.PointerType quorum.JointConfig.ty @!! go!"CommittedIndex"))

@@ -24,7 +24,7 @@ theorem quorum.MajorityConfig.Slice.wp_proof
     (wp_slices_Sort : slices.«Sort».spec (GF := GF) (hG := hG)) :
     quorum.MajorityConfig.Slice.spec (GF := GF) (hG := hG) := by
   intro m ids
-  wp_start as Hm
+  wp_start as ⟨Hm, %Hsz⟩
   wp_auto
   unfold ownIdsetOpt
   icases Hm with (%Hnil | Hm)
@@ -35,6 +35,7 @@ theorem quorum.MajorityConfig.Slice.wp_proof
     ihave Hsl0 : (slice.nil ↦* ([] : List w64)) $$ []
     · iapply ownSlice_nil
     wp_apply wp_slices_Sort $$ [$Hsl0] as %xs ⟨Hsl, %Hxs, -⟩
+    · ipureintro; simp
     iapply HΦ
     iframe Hsl
     isplitl []
@@ -94,6 +95,7 @@ theorem quorum.MajorityConfig.Slice.wp_proof
     rw [show (GMap.size ids : Int).toNat = keys.length by omega, List.take_length]
     wp_auto
     wp_apply wp_slices_Sort $$ [$Hsl] as %xs ⟨Hsl, %Hxs, -⟩
+    · ipureintro; omega
     iapply HΦ
     iframe Hsl Hsl_cap
     isplitl [Hm]

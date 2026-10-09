@@ -45,6 +45,8 @@ are, in order:
   (etcd's `StartNode` with no peers), which `ownTracker`'s `Hcfg_ne` excludes -- so
   **such a node is outside the development** until it receives a snapshot, which is out
   of scope too.
+- **at most `2^62` voters.** The tracker sorts the voter ids with `slices.Sort`, whose
+  heapsort fallback overflows `int` past `2^62` elements (`ownTracker`'s `Hcfg_size`).
 
 ## What it gives
 
@@ -124,7 +126,7 @@ abbrev newRaft.spec : Prop :=
    uint.Z prev.index' ≤ uint.Z cv.Applied' ∧
      uint.Z cv.Applied' ≤ uint.Z (committedAfter prev hs)) →
   -- the persisted ConfState: voters only
-  voters ≠ [] → voters.Nodup → W64 0 ∉ voters →
+  voters ≠ [] → voters.Nodup → W64 0 ∉ voters → (voters.length : Int) ≤ 2 ^ 62 →
   cs.VotersOutgoing'.len = W64 0 →
   cs.Learners'.len = W64 0 →
   cs.LearnersNext'.len = W64 0 →

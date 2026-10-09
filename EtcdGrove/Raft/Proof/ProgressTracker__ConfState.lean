@@ -48,7 +48,9 @@ theorem tracker.ProgressTracker.ConfState.wp_proof
   -- refute with the voter map's own points-to
   ihave %Hvoters_nn := ownMap_not_nil $$ Hvoters
   wp_apply wp_MajorityConfig_Slice _ voters $$ [Hvoters] as %sl0 %xs0 ⟨Hvoters, Hsl0, -, %Hxs0⟩
-  · unfold ownIdsetOpt; iright; iexact Hvoters
+  · isplitl
+    · unfold ownIdsetOpt; iright; iexact Hvoters
+    · ipureintro; rw [← GMap.size_dom, Hvoters_dom]; exact Hcfg_size
   ihave Hvf := Hcback $$ Hc0
   -- element 1, the nil outgoing config
   icases array_acc _ (sint.Z (W64 1)) _ _ _ map.nil (by decide) (by rw [Hvoters_arr]; rfl)
@@ -57,7 +59,9 @@ theorem tracker.ProgressTracker.ConfState.wp_proof
   wp_call
   wp_auto
   wp_apply wp_MajorityConfig_Slice map.nil ∅ $$ [] as %sl1 %xs1 ⟨-, Hsl1, -, %Hxs1⟩
-  · unfold ownIdsetOpt; ileft; ipureintro; exact ⟨rfl, rfl⟩
+  · isplitl
+    · unfold ownIdsetOpt; ileft; ipureintro; exact ⟨rfl, rfl⟩
+    · ipureintro; simp [GMap.size_empty]
   ihave Hvf := Hcback $$ Hc1
   have Harr : array.mk 2 ((tv.Config'.Voters'.arr.set (sint.Z (W64 0)).toNat voters_ref).set
       (sint.Z (W64 1)).toNat map.nil) = tv.Config'.Voters' := by
@@ -69,10 +73,12 @@ theorem tracker.ProgressTracker.ConfState.wp_proof
   rw [Harr]
   ihave Htrk := Htrkback $$ Hvf
   wp_auto
+  obtain ⟨rfl, rfl⟩ := Hno_learners
   wp_apply wp_MajorityConfig_Slice $$ [$Hlearners] as %sl2 %xs2 ⟨Hlearners, Hsl2, -, %Hxs2⟩
+  · ipureintro; simp [GMap.size_empty]
   wp_apply wp_MajorityConfig_Slice $$ [$HlearnersNext]
     as %sl3 %xs3 ⟨HlearnersNext, Hsl3, -, %Hxs3⟩
-  obtain ⟨rfl, rfl⟩ := Hno_learners
+  · ipureintro; simp [GMap.size_empty]
   obtain rfl := perm_elements_empty xs1 Hxs1
   obtain rfl := perm_elements_empty xs2 Hxs2
   obtain rfl := perm_elements_empty xs3 Hxs3

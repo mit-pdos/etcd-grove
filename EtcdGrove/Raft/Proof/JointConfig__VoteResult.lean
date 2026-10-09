@@ -64,7 +64,7 @@ theorem quorum.JointConfig.VoteResult.wp_proof
   wp_apply wp_MajorityConfig_VoteResult cfg $$ [$Hc0 $Hvotes Hvoters]
     as %r1 ⟨Hc0, Hvotes, Hv, %Hr1, -, %Hwon1, %Hlost1⟩
   · isplitr
-    · ipureintro; exact Hcfg_size
+    · ipureintro; omega
     iright
     iexists voters
     iframe

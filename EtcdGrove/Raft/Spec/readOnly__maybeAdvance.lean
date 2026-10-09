@@ -68,7 +68,7 @@ abbrev readOnly.maybeAdvance.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hown" ∷ ownReadOnly ro r ∗
       "%Hc" ∷ ⌜c.arr = [m0, map.nil]⌝ ∗
       "Hvoters" ∷ m0 ↦$ ids ∗
-      "%Hsz" ∷ ⌜(GMap.size (domSet ids) : Int) < 2 ^ 63⌝ ∗
+      "%Hsz" ∷ ⌜(GMap.size (domSet ids) : Int) ≤ 2 ^ 62⌝ ∗
       "%Hne" ∷ ⌜domSet ids ≠ ∅⌝ ∗
       "%Hbound" ∷ ⌜∀ v, v ∈ domSet ids →
           uint.Z ((r.acks !! v).getD (W64 0))

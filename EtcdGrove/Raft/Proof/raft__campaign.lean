@@ -106,9 +106,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `ownTracker` pins the voter set's cardinality (Rocq `own_tracker_cfg_size`):
 `campaign` runs `make([]uint64, 0, len(idMap))` and `wp_slice_make3` needs
-`0 ≤ sint.Z cap`. A pure consequence, so the tracker survives the read. -/
+`0 ≤ sint.Z cap`; `slices.Sort` needs at most `2^62` ids. A pure consequence, so the tracker survives the read. -/
 private theorem ownTracker_cfg_size (cfg : GSet w64) (tv : tracker.ProgressTracker) (t : Trk) :
-    ownTracker (GF := GF) cfg tv t ⊢ ⌜(GMap.size cfg : Int) < 2 ^ 63⌝ := by
+    ownTracker (GF := GF) cfg tv t ⊢ ⌜(GMap.size cfg : Int) ≤ 2 ^ 62⌝ := by
   iintro Hown
   unfold ownTracker
   iNamed Hown
@@ -239,6 +239,7 @@ theorem raft.campaign.wp_proof
   rw [← Hklen, Int.toNat_natCast, List.take_length]
   wp_auto
   wp_apply wp_slices_Sort $$ [$Hsl] as %xs ⟨Hsl, %Hxs, -⟩
+  · ipureintro; omega
   have Hkeys_perm : keys ≡ₚ elements cfg := by
     refine (List.perm_ext_iff_of_nodup Hknodup (GMap.NoDup_elements cfg)).2 ?_
     intro k

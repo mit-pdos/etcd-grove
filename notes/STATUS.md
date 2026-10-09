@@ -102,17 +102,30 @@ translation of etcd-raft is this repository's `EtcdRaft/`, generated and checked
   --check`: 5 axioms, 0 sorries; `RawNode.wp_Ready` and `wp_HasReady` now rest on none
   of this repository's axioms, `RawNode.wp_Propose` on `rand.Int`, `slices.Sort`,
   `reflect.DeepEqual`.
-- **What the five remaining axioms would take** (checked 2026-10-08, with "no
+- **`slices.Sort` is proved (2026-10-09)**, no longer an axiom: Perennial (pinned at
+  c061d3b22) translates `Sort` and the `*Ordered` pdqsort and proves
+  `slices.wp_Sort_uint64` (`Proof/slices_proof/sort.lean`), which
+  `Proof/slices_Sort.lean` is. Its spec gained the premise `len ≤ 2^62` (past it the
+  heapsort fallback's `2*root+1` overflows `int`, so the old spec was false in the
+  model), and the bound is carried as follows:
+  - `ownTracker`'s `Hcfg_size` and `ownConfig`'s `Hcsz` are tightened from
+    `size cfg < 2^63` to `≤ 2^62`. Nothing in the heap bounds a voter set, so this
+    is still a property of the configuration.
+  - The bound enters at `newRaft`, whose spec has a new premise that the storage's
+    initial `ConfState` has at most `2^62` voters. This is the only new assumption.
+  - `raft.restore` takes the bound from the old tracker (`ownTracker_size`): the
+    snapshot's voters are a permutation of the current configuration.
+  - The tighter premise replaces `< 2^63` on `MajorityConfig.CommittedIndex`,
+    `JointConfig.CommittedIndex` and `readOnly.maybeAdvance` (an exported result with
+    no callers).
+  - It is a new premise on `MajorityConfig.Slice`, `ConfState.Equivalent` and
+    `assertConfStatesEquivalent`, whose callers discharge it from the tracker or the
+    configuration.
+
+  `lake build` passes; `etc/tcb-baseline.txt` lost exactly `slices.Sort`: the Raft proof's own axioms are now
+  `reflect.DeepEqual`, `fmt.Sprintf`, `strings.Join` and `rand.Int`.
+- **What the four remaining axioms would take** (checked 2026-10-08, with "no
   higher-level spec changes" as the constraint):
-  - `slices.Sort`: translatable (Perennial's `slices.toml`; the `*Ordered` pdqsort is
-    the sibling of the proved `SortFunc`), but the proved spec needs
-    `length ≤ 2^62`, as `wp_SortFunc` does (heapsort's `2*root+1` overflows past
-    that, so the current spec is false in the model). No caller has it: `Visit`,
-    `VoterNodes`, `campaign` get only `size cfg < 2^63` (`ownTracker`'s
-    `Hcfg_size`), `MajorityConfig.CommittedIndex` and `MajorityConfig.Slice` have
-    `< 2^63` or nothing, `ConfState.Equivalent` nothing; only the empty-slice calls
-    (`Slice`'s nil branch, `sortCopy_empty`) are bounded. Needs `Hcfg_size ≤ 2^62` in
-    `ownTracker` plus premises on `CommittedIndex`, `Slice`, `Equivalent`.
   - `fmt.Sprintf`, `strings.Join`: not translatable (`fmt`'s printer reaches
     `reflect`; `strings.Builder.String` is `unsafe.String`), and `Join`'s no-panic claim
     needs a bound on the strings' total length that `Sprintf`'s "some string" cannot
