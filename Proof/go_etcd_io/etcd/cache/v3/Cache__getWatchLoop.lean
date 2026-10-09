@@ -40,7 +40,7 @@ theorem Cache.getWatchLoop.wp_proof
   ihave #Hc' := Hc
   iunfold isCacheFields at Hc'
   iNamed Hc'
-  icases HisICtx with ⟨%ics, #Hctxi⟩
+  icases HisICtx with ⟨%ics, #Hctxi, -⟩
   ihave #Hctxi' := Hctxi
   iNamed Hctxi'
   try wp_auto

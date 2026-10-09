@@ -350,7 +350,7 @@ theorem Cache.Watch.wp_proof
       unfold context.isContext context.isContextDef
       ihave #Hctx1 := Hctx
       icases Hctx1 with ⟨-, #HDone1, -, -⟩
-      icases HisICtx with ⟨%ics, #Hictx2⟩
+      icases HisICtx with ⟨%ics, #Hictx2, -⟩
       icases Hictx2 with ⟨-, #HDone2, -, -⟩
       ihave HI : iprop(∃ (rcv : List RespModel) (vs : List go_etcd_io.etcd.client.v3.WatchResponse),
           watcherConsumer γw rcv ∗ spscProducer γ.spsc vs ∗ ⌜vs.length = rcv.length⌝ ∗

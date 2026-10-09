@@ -29,11 +29,12 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 store's and the demux's writers) and the progress requestor's loop (`run`) on the wait group, and
 returns the cache with its handles (`newCacheResult`). A configuration it accepts must moreover be
 `CfgBounded` (finding 5: a negative `PerWatcherBufferSize` panics later; the capacity and the
-degree must not overflow). -/
+degree must not overflow). `context.isClosedchanInit` (`context`'s package-init fact about
+`closedchan`) is for `WithCancel(Background())`. -/
 abbrev newCache.spec : Prop :=
   ∀ (client : Loc) (pfx : GoString) (cfg : Config) (clk : GoInterfaceOk),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isEtcdClient client pfx ∗
-      isClock clk ∗ ⌜CfgValid cfg → CfgBounded cfg⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ context.isClosedchanInit ∗
+      isEtcdClient client pfx ∗ isClock clk ∗ ⌜CfgValid cfg → CfgBounded cfg⌝ }}
     (App (App (App (App (Val (@! newCache)) (Val #client)) (Val #pfx)) (Val #cfg))
       (Val #(GoInterface.ok clk)))
   {{ (c : Loc) (err : GoInterface), RET (PairV #c #err); newCacheResult pfx cfg c err }}

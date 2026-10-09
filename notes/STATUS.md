@@ -1,18 +1,57 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-09 (the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
+**Last updated:** 2026-10-09 (the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
 
 Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
 `worktree-raft-replication`'s `feb5c73d4` and adds Ready/Advance/HasReady; the files
 were first ported from `main`, then from `feb5c73d4`) to Lean on top of Perennial's Lean
-port (mit-pdos/perennial `lean`, pinned at 8c33774d0 (2026-10-09: upstream's `37416dd10` (Rocq code removed) and `cdf8c0f81` (Goose without `-lean` and the ⁱᵐᵖˡ encoding) merged, see below; on f8b35ddbf: `context.wp_Background`, `wp_WithCancel_Background`; on f35530719: Goose prints an axiomatized generic type in Lean; on 8c7000190: `time.NewTimer`, `Timer.Stop`/`Reset` axioms; on 96ec7016d: `fmt.wp_Printf`, `time.Minute`; on 099c2a08b: `fmt.wp_Errorf`'s `Error()`; on 640a605cc: a `select` case on a nil channel is never ready, `chan.wp_select_blocking_nil`; on 48e1192c7: rlocker, `Cond.wp_Wait_with`, `time.wp_Since`) on cbb85c041: upstream's `11fd2db` merged with
+port (mit-pdos/perennial `lean`, pinned at 3ae7dc6a4 (2026-10-09: on 68d220ac8: `fmt.wp_Errorf` proved, `map.forRange` with `wp_map_for_range_mut{,_keys}`, `context.wp_WithCancel` proved; on 3ae7dc6a4: `context.isClosedchanInit`, see "Sorry-free"; on 8c33774d0: upstream's `37416dd10` (Rocq code removed) and `cdf8c0f81` (Goose without `-lean` and the ⁱᵐᵖˡ encoding) merged, see below; on f8b35ddbf: `context.wp_Background`, `wp_WithCancel_Background`; on f35530719: Goose prints an axiomatized generic type in Lean; on 8c7000190: `time.NewTimer`, `Timer.Stop`/`Reset` axioms; on 96ec7016d: `fmt.wp_Printf`, `time.Minute`; on 099c2a08b: `fmt.wp_Errorf`'s `Error()`; on 640a605cc: a `select` case on a nil channel is never ready, `chan.wp_select_blocking_nil`; on 48e1192c7: rlocker, `Cond.wp_Wait_with`, `time.wp_Since`) on cbb85c041: upstream's `11fd2db` merged with
 `bytes.Compare`, on Lean's module system since 2026-10-09). The Goose translations of
 etcd-raft and etcd's `cache` package are this repository's `Code/` and `GeneratedProof/`,
 generated and checked by `etc/goose.py`. Files are laid out by kind and Go package path
 (`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
+
+## Sorry-free (2026-10-09)
+
+Every cache result is `sorry`-free: re-pinned to Perennial `3ae7dc6a4`, which closes the
+four Perennial `sorry`s the cache reached:
+- `fmt.wp_Errorf` (`4e1bfe544`: `fmt.Errorf` as a trusted model, `wp_Errorf` proved;
+  `errors.wp_New`'s `Error()` returns the message);
+- `wp_map_for_range_mut_keys` (`6519b44f5`: `map.forRange` no longer holds the map across the
+  body; `wp_map_for_range_mut{,_keys}` are now Perennial's, in `Perennial.Golang.Theory.Map`,
+  with the statements of our deleted `MapRangeMut.lean`);
+- `context.wp_WithCancel` and `context.wp_WithCancel_Background` (the `ctx-withcancel`
+  branch: `atomic.Value` trusted model, both proved; `wp_WithCancel` needs its parent to be a
+  `*cancelCtx` (`isCancelCtxCtx`), and the cancel function's postcondition gives
+  `ContextClosed`);
+- and `3ae7dc6a4` (ours): `context`'s `isInit` no longer holds ghost state, so its
+  `IsPkgInit` instance (and raft's, the cache's, the client's, the server's) needs no
+  `[AllG GF]`; `closedchan`'s closed state is the persistent package-init fact
+  `context.isClosedchanInit`, carried by every `*cancelCtx` (`isCancelCtxOf`).
+
+Proof-side changes: `InvCache`'s internal-context fact is `∃ ics, isContext cf.ictx ics ∗
+isCancelCtxCtx cf.ictx ics` (`watchEvents` passes it to `wp_WithCancel`); `newCache` gets it
+from `wp_WithCancel_Background` and keeps `"#HisStop"`'s old form through
+`context.cancel_spec_forget`; **`New` and `newCache` take `context.isClosedchanInit`** (a
+package-init fact of `context`, which a program's `main` establishes once `context` is
+initialized, as it does `isPkgInit`), for `WithCancel(Background())`; the five
+`wp_apply Hcancel` sites drop `ContextClosed` (`as -`). No other statement changed; raft,
+btree and server proofs unchanged.
+
+Gates: `lake build` passes (1655 jobs); `etc/goose.py --check` passes (no translation
+changed); `etc/tcb-report.py --check --update`: the baseline lost exactly the four sorries
+(`Perennial.context.wp_WithCancel`, `Perennial.context.wp_WithCancel_Background`,
+`Perennial.fmt.wp_Errorf`, `wp_map_for_range_mut_keys`), 38 entries, all axioms, 0 sorries;
+`etc/gen-link.py --cache`/`--server` and `etc/gen-btree-link.py` reproduce their `Link.lean`;
+`etc/verified-code.py --reuse`: cache 107 verified, 0 unfinished of 107, 1206 of 1206 lines
+(100%), all sorry-free; Raft 175 of 323 (2240 of 3641 lines, 61.5%); etcd 161 verified (all
+sorry-free), 13 assumed of 3599 (1560 of 45566 lines, 3.4%), `server/v3` 19 verified, 0
+unfinished, 9 assumed (215 lines). `Results.lean`'s `#print axioms` of `cache_New`,
+`cache_Get`, `cache_Watch`, `cache_Watch_delivery`: no `sorryAx`. Push Perennial
+(`3ae7dc6a4`) first.
 
 ## The cache: linearizability as a model fact, `etcdReached` (2026-10-09)
 
@@ -582,7 +621,7 @@ Design and rejected alternatives: `decisions.md`, "watcher, notifier, ready".
   (`Proof/watcher__Compact.lean`).
 
 
-### The demux (`cache/demux.go`): proved, modulo one Perennial gap (2026-10-09)
+### The demux (`cache/demux.go`): proved, modulo one Perennial gap (2026-10-09; gap closed, see "Sorry-free")
 
 `newDemux` and `demux`'s `Register`, `Unregister`, `Init`, `Broadcast`, `LatestRev`,
 `BroadcastProgress`, `BroadcastProgressTo`, `updateStoreLocked`, `broadcastLocked`,
@@ -622,7 +661,8 @@ lock".
   outside the lock: its postcondition `∃ c views views', ResyncStep c views views'` is proved
   with the lock's real views (the loop tracks `ResyncOutcome` per key) but is satisfiable
   trivially as a statement. No case where the delivery invariant breaks.
-- **`sorry`**: one, `wp_map_for_range_mut_keys` (`MapRangeMut.lean`), a **Perennial gap**:
+- **`sorry`** (closed 2026-10-09: Perennial's `6519b44f5` proves it, `MapRangeMut.lean` is
+  gone; see "Sorry-free"): one, `wp_map_for_range_mut_keys` (`MapRangeMut.lean`), a **Perennial gap**:
   `broadcastProgressLocked`, `broadcastEventsLocked` and `resyncLaggingWatchers` write the map
   they range over (current key only, which Go allows), and Perennial's `map.forRange` keeps the
   map `StartRead`-locked for the whole loop, so a write in the body is stuck: the lemma is what
@@ -992,7 +1032,8 @@ boundary".
   Iris pure hypothesis instead. `wp_for`'s `cleanup_bool_decide` (`try simp`) can silently
   fail on a large context (`Cache.Watch` after `isCacheFields` grew): clearing two unused
   hypotheses fixed it.
-- **What the cache's results rest on** (`Results.lean`'s `#print axioms`, by `etc/tcb-report.py`;
+- **What the cache's results rest on** (closed 2026-10-09: the four `sorry`s below are gone,
+  see "Sorry-free"; `Results.lean`'s `#print axioms`, by `etc/tcb-report.py`;
   besides Lean's `propext`, `Classical.choice`, `Quot.sound` and Perennial's names-only Go
   declarations, about 855 opaque types of the translation):
   - (since the `etcdReached` change, all of these also rest on `etcdReachedAt` and

@@ -28,11 +28,14 @@ the options applied in order (`cfgApply gs defaultConfigVal`); if it is rejected
 cache for the prefix and the configuration with its handles (`newCacheResult`: `isCacheFields`,
 the readers of `Get`, the slots of `Watch`, the handles of `WaitForNextResync`, the token of
 `Close`), its resync loop, watch loop and progress requestor running on the real clock
-(`realClock`). An accepted configuration must be `CfgBounded` (finding 5). -/
+(`realClock`). An accepted configuration must be `CfgBounded` (finding 5). It takes
+`context.isClosedchanInit`, `context`'s package-init fact about `closedchan` (persistent; a
+program's `main` has it once `context` is initialized), which the internal context's
+`WithCancel(Background())` needs. -/
 abbrev New.spec : Prop :=
   ∀ (client : Loc) (pfx : GoString) (sl : GoSlice) (gs : List (Config → Config)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isEtcdClient client pfx ∗
-      cfgOptsAt sl gs ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ context.isClosedchanInit ∗
+      isEtcdClient client pfx ∗ cfgOptsAt sl gs ∗
       ⌜CfgValid (cfgApply gs defaultConfigVal) → CfgBounded (cfgApply gs defaultConfigVal)⌝ }}
     (App (App (App (Val (@! New)) (Val #client)) (Val #pfx)) (Val #sl))
   {{ (c : Loc) (err : GoInterface), RET (PairV #c #err);

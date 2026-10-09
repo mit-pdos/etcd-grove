@@ -307,15 +307,15 @@ theorem Cache.watchEvents.wp_proof
   · iPkgInit
   unfold isCacheFields
   iNamed Hc
-  icases HisICtx with ⟨%ics, #Hctxi⟩
+  icases HisICtx with ⟨%ics, #Hctxi, #Hcci⟩
   ihave #Hctxi' := Hctxi
   iNamed Hctxi'
   imod monoNatLbOwn_0 (GF := GF) γr.epoch with #Hlb0
   ihave #Hlb0' : readyEpochLb γr 0 $$ []
   · iunfold readyEpochLb; iexact Hlb0
   wp_auto
-  wp_apply context.wp_WithCancel iprop(True) cf.ictx ics $$ [$Hctxp $Hctxi]
-    as %ctx' %γ' %cancel ⟨#Hcancel, #Hctx'⟩
+  wp_apply context.wp_WithCancel iprop(True) cf.ictx ics $$ [$Hctxp $Hctxi $Hcci]
+    as %ctx' %γ' %cancel ⟨#Hcancel, #Hctx', -⟩
   try wp_auto
   wp_apply wp_WithPrefix as %f1 #Hf1
   wp_apply wp_WithRev rev as %f2 #Hf2
@@ -392,7 +392,7 @@ theorem Cache.watchEvents.wp_proof
     ihave #HErrU := HErr $$ %Broadcast.Unknown
     wp_apply HErrU as %err -
     wp_for_post
-    wp_apply Hcancel
+    wp_apply Hcancel as -
     · itrivial
     iapply HΦ
     iexists cc
@@ -418,7 +418,7 @@ theorem Cache.watchEvents.wp_proof
       icases H with %Hv
       wp_auto
       wp_for_post
-      wp_apply Hcancel
+      wp_apply Hcancel as -
       · itrivial
       iapply HΦ
       iexists cc
@@ -442,7 +442,7 @@ theorem Cache.watchEvents.wp_proof
       wp_auto
       wp_apply wp_Reset cf.ready γr 0 $$ [$HisReady $Hlb0'] as -
       wp_for_post
-      wp_apply Hcancel
+      wp_apply Hcancel as -
       · itrivial
       iapply HΦ
       iexists cc
@@ -471,7 +471,7 @@ theorem Cache.watchEvents.wp_proof
       wp_auto
       wp_apply wp_Reset cf.ready γr 0 $$ [$HisReady $Hlb0'] as -
       wp_for_post
-      wp_apply Hcancel
+      wp_apply Hcancel as -
       · itrivial
       iapply HΦ
       iexists cc
@@ -517,7 +517,7 @@ theorem Cache.watchEvents.wp_proof
     wp_auto
     wp_apply wp_Reset cf.ready γr 0 $$ [$HisReady $Hlb0'] as -
     wp_for_post
-    wp_apply Hcancel
+    wp_apply Hcancel as -
     · itrivial
     iapply HΦ
     iexists cc

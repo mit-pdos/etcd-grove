@@ -528,7 +528,7 @@ theorem Cache.applyStorage.wp_proof
   ihave #Hc' := Hc
   iunfold isCacheFields at Hc'
   iNamed Hc'
-  icases HisICtx with ⟨%ics, #Hctx⟩
+  icases HisICtx with ⟨%ics, #Hctx, -⟩
   unfold context.isContext context.isContextDef
   iNamed Hctx
   ihave #Hw' := Hw

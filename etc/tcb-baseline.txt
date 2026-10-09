@@ -37,7 +37,3 @@ axiom zap.Logger.Warn.wp_proof
 axiom zap.String.wp_proof
 axiom zap.Stringer.wp_proof
 axiom zap.Uint64.wp_proof
-sorry Perennial.context.wp_WithCancel
-sorry Perennial.context.wp_WithCancel_Background
-sorry Perennial.fmt.wp_Errorf
-sorry wp_map_for_range_mut_keys

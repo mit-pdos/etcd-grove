@@ -42,7 +42,7 @@ module
 
 public import Proof.go_etcd_io.etcd.cache.v3.InvWatcher
 public import Proof.go_etcd_io.etcd.cache.v3.InvNotifier
-public import Proof.go_etcd_io.etcd.cache.v3.MapRangeMut
+public import Perennial.Golang.Theory.Map
 public import Spec.go_etcd_io.etcd.cache.v3.watcher__enqueueResponse
 public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.SavedProp

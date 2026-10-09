@@ -712,6 +712,21 @@ the oldest revision; the overflow premise on `Broadcast`.
   current key during `range`, Perennial's `map.forRange` keeps the map read-locked for the whole
   loop (a Perennial gap, documented in the file; the fix is a Go-faithful `forRange`). The
   invariant takes the key list, as `wp_map_for_range`'s does.
+  *Since 2026-10-09* the fix is in Perennial (`6519b44f5`): the lemma is Perennial's
+  `wp_map_for_range_mut_keys` (`Perennial.Golang.Theory.Map`, same statement), proved, and
+  `MapRangeMut.lean` is gone.
+- **`context`'s `closedchan` fact** (2026-10-09). Perennial's `context.isInit` held
+  `closedchan`'s channel ghost state, so `[AllG GF]` would have been needed by every
+  `IsPkgInit` instance of an importer of `context` and by about 640 raft, cache, client and
+  server spec and proof files. Instead (Perennial `3ae7dc6a4`) `isInit` keeps only the
+  points-to, and the ghost facts are the persistent `context.isClosedchanInit`, carried by
+  every `*cancelCtx` (`isCancelCtxOf`). So `wp_WithCancel` gets it from its parent's
+  `isCancelCtxCtx`, and only `WithCancel(Background())` takes it as a premise. On the cache's
+  side, `New` and `newCache` take it (a package-init fact of `context`, established by a
+  program's `main`). `isCacheFields` does not carry it: it carries `isCancelCtxCtx` of the
+  internal context, which contains it.
+  *Rejected:* adding `[AllG GF]` everywhere, which changes every raft and server spec for a
+  fact only the cache's `newCache` uses.
 - **`resyncLaggingWatchers`'s outcome** (`ResyncStep`) is stated existentially over the lock's
   views at acquire and release: it is invisible outside the lock, so the statement is weak.
   *Rejected (for now):* a ghost trace of the lock's states, which would anchor it but changes

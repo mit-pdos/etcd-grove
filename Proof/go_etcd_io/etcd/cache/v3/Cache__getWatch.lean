@@ -43,7 +43,7 @@ theorem Cache.getWatch.wp_proof
   ihave #Hc' := Hc
   iunfold isCacheFields at Hc'
   iNamed Hc'
-  icases HisICtx with ⟨%ics, #Hctxi⟩
+  icases HisICtx with ⟨%ics, #Hctxi, -⟩
   icases storeWriter_storeInv _ _ _ _ _ _ $$ Hwr with ⟨Hwr, %Hst⟩
   wp_auto
   wp_apply wp_get c cf γr γd cap cf.ictx ics st $$ [$Hpkg $Hc $Hctxi $Hwr] as %resp %err Hres

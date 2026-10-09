@@ -35,7 +35,7 @@ theorem newCache.wp_proof
     (wp_getWatchLoop : Cache.getWatchLoop.spec (GF := GF) (hG := hG))
     (wp_run : conditionalProgressRequestor.run.spec (GF := GF) (hG := hG)) :
     newCache.spec (GF := GF) (hG := hG) := fun client pfx cfg clk => by
-  wp_start as ⟨#Hcl, #Hclk, %Hcfg⟩
+  wp_start as ⟨#Hcci, #Hcl, #Hclk, %Hcfg⟩
   ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
   · iPkgInit
   ihave #Hctxp : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
@@ -85,8 +85,9 @@ theorem newCache.wp_proof
   · ipureintro; constructor <;> omega
   -- the internal context
   wp_apply context.wp_Background
-  wp_apply context.wp_WithCancel_Background iprop(True) $$ [$Hctxp]
-    as %ictx %γi %cancel ⟨#Hcancel, #Hictx⟩
+  wp_apply context.wp_WithCancel_Background iprop(True) $$ [$Hctxp $Hcci]
+    as %ictx %γi %cancel ⟨#Hcancel, #Hictx, #Hcc⟩
+  ihave #Hcancel := context.cancel_spec_forget _ _ _ $$ Hcancel
   -- the client's fields
   ihave #Hcl' := Hcl
   iunfold isEtcdClient at Hcl'
@@ -165,7 +166,10 @@ theorem newCache.wp_proof
     rw [hpfx, hcfg, hrd, hd, hst, hγs, hscap, hkv, hpr, hw, hictx, hclk, hγwg, hstop]
     iframe #
     isplitr
-    · iexists _; iexact Hictx
+    · iexists _
+      isplitl []
+      · iexact Hictx
+      · iexact Hcc
     ipureintro; exact hP
   ihave #HwgInv' : inv cacheWgN (cacheWgInv cf) $$ [HwgInv]
   · iexact HwgInv
