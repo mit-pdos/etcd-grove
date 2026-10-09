@@ -133,33 +133,31 @@ theorem wp_cacheWg_Add2 (c : Loc) (cf : CacheFields) (q : Qp) :
   iintro %Φ ⟨#Hsync, #Hwg, #Hinv, Hslot, Hopen⟩ HΦ
   iapply sync.WaitGroup.wp_Add (cacheWgAddr c) (W64 2) cf.γwg cacheWgWGN $$ [] [Hslot Hopen HΦ]
   · iframe #
-  iinv Hinv with Hi Hclose
-  iapply fupd_mask_intro cacheWg_mask
+  imod inv_acc (E := ⊤ \ ↑cacheWgWGN) cacheWgN_mask $$ Hinv with ⟨Hi, Hclose⟩
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
   inext
   iunfold cacheWgInv at Hi
-  icases Hi with ⟨%ctr, %wn, Hwgo, Hwt, Hrun, Hbud, Hbauth, %Hctr, Hwn⟩
+  icases Hi with ⟨%ctr, %wn, Hwgo, Hwt, Hrun, ⟨%k, Hbud⟩, Hbauth, %Hctr, Hwn⟩
   icases Hwn with (%Hw0 | ⟨-, Hop1⟩)
   rotate_left
   · iexfalso
     iapply cacheOpen_excl cf q $$ [$Hopen $Hop1]
   subst Hw0
-  ihave Hbud' := ownToks_add_2 2 (sint.nat ctr) cf.γwb $$ [Hbud Hslot]
+  ihave Hbud' := ownToks_add_2 2 k cf.γwb $$ [Hbud Hslot]
   · iframe
-  icombine Hbauth Hbud' gives %Hle
   iexists ctr
   iframe Hwgo
   have h1 : sint.Z (W32 (sint.Z (W64 2))) = 2 := by decide
-  have hc : ((sint.nat ctr : Nat) : Int) = sint.Z ctr := Int.toNat_of_nonneg Hctr
-  have hle : sint.Z ctr + 2 ≤ 2 ^ 31 - 1 := by
-    unfold cacheWgBudget at Hle; omega
-  have hn : sint.nat (ctr + W32 (sint.Z (W64 2))) = sint.nat ctr + 2 := by
-    rw [show W32 (sint.Z (W64 2)) = W32 2 from rfl]; word
   isplitr
   · ipureintro; rw [h1]; omega
   iright
   iframe Hwt
-  iintro Hwt Hwgo
+  iintro %Hno Hwt Hwgo
+  rw [h1] at Hno
+  have hc : ((sint.nat ctr : Nat) : Int) = sint.Z ctr := Int.toNat_of_nonneg Hctr
+  have hn : sint.nat (ctr + W32 (sint.Z (W64 2))) = sint.nat ctr + 2 := by
+    rw [show W32 (sint.Z (W64 2)) = W32 2 from rfl]; word
   imod Hmask with -
   imod ownTokAuth_add 2 cf.γwr (sint.nat ctr) $$ Hrun with ⟨Hrun, Hrtok⟩
   imod Hclose $$ [Hwgo Hwt Hrun Hbud' Hbauth] with -
