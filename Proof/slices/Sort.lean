@@ -1,9 +1,10 @@
 /-
-Port of `election_proof/proof_slices_Sort.v`.
+`slices.Sort` on `[]uint64`: Perennial's `slices.wp_Sort_uint64`.
 -/
 module
 
 public import Spec.slices.Sort
+public import Perennial.Proof.slices_proof.sort
 
 @[expose] public section
 
@@ -21,11 +22,15 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- Trust boundary: an `axiom` rather than a `sorry`d theorem, so that it still counts
-as an assumption under `#print axioms` and under the greps in notes/STATUS.md. See
-that file for why it may be assumed. -/
-axiom slices.«Sort».wp_proof : slices.«Sort».spec (GF := GF) (hG := hG)
-
+theorem slices.«Sort».wp_proof : slices.«Sort».spec (GF := GF) (hG := hG) := by
+  intro data xs
+  wp_start_folded as ⟨Hxs, %Hlen⟩
+  wp_apply _root_.Perennial.slices.wp_Sort_uint64 data xs $$ [$Hxs] as %xs' ⟨Hxs, %Hperm, %Hsorted⟩
+  · ipureintro; exact Hlen
+  iapply HΦ
+  iframe
+  ipureintro
+  exact ⟨Hperm, Hsorted⟩
 
 end proof
 

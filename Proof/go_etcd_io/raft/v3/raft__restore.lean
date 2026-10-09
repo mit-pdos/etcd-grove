@@ -203,6 +203,7 @@ theorem raft.restore.wp_proof
     ihave Hphys := Hlogback $$ %_ Hlog
     -- the tracker replaced by the empty one, the log used meanwhile
     icases ownRaftPhys_retrack _ ∅ $$ Hphys with ⟨%tv, Htrkf, Htrk, Hlf, Hlog, Hback⟩
+    icases ownTracker_size $$ Htrk with ⟨%Hcfg_size, Htrk⟩
     icases ownTracker_maxinflight $$ Htrk with ⟨%Hmi, -⟩
     wp_auto
     wp_apply wp_MakeProgressTracker as %tv0 %v0 ⟨%Htv0, Hv0, Hvotes0, Hprs0⟩
@@ -227,8 +228,7 @@ theorem raft.restore.wp_proof
     have Hcfgeq : GMap.listToSet voters = cfg := by
       apply GMap.set_eq; intro x
       rw [GMap.elem_of_list_to_set, Hperm.mem_iff, GMap.elem_of_elements]
-    have Hcsz : (GMap.size cfg : Int) < 2 ^ 63 := by
-      rw [← GMap.length_elements, ← Hperm.length_eq, Hvlen.1]; word
+    have Hcsz : (GMap.size cfg : Int) ≤ 2 ^ 62 := Hcfg_size
     ipersist Hprsm
     ihave Hcfg : ownConfig cfg cfgv prsm prs $$ [Hvref Hprogs]
     · unfold ownConfig
@@ -243,7 +243,7 @@ theorem raft.restore.wp_proof
     obtain ⟨Hc2a, Hc2b, Hc2c, Hc2al⟩ := Hcs2l
     have Hperm2 : voters ≡ₚ xs2 := Hperm.trans Hxs2.symm
     wp_apply wp_assertConfStatesEquivalent _ _ cs2 voters xs2 DFrac.discard (DFrac.own 1)
-        Hperm2 Hcvo Hcl Hcln Hc2a Hc2b Hc2c (by rw [Hcal, Hc2al]) $$ [$Hvoters $Hcs2v] as -
+        Hperm2 (by rw [Hperm.length_eq, GMap.length_elements]; exact Hcsz) Hcvo Hcl Hcln Hc2a Hc2b Hc2c (by rw [Hcal, Hc2al]) $$ [$Hvoters $Hcs2v] as -
     wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
     icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
     wp_apply wp_raftLog_lastEntryID $$ [$Hlog] as %last ⟨Hlog, -⟩

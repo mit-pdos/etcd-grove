@@ -71,8 +71,9 @@ theorem tracker.ProgressTracker.Visit.wp_proof
   wp_auto
   -- `n := len(p.Progress)`
   wp_apply wp_ProgressMap_len $$ Hprs as -
-  have Hsz : (GMap.size prs : Int) < 2 ^ 63 := by
+  have Hsz62 : (GMap.size prs : Int) ≤ 2 ^ 62 := by
     rw [← Hprs_dom, GMap.size_dom] at Hcfg_size; exact Hcfg_size
+  have Hsz : (GMap.size prs : Int) < 2 ^ 63 := by omega
   wp_join iprop(∃ (sl : GoSlice) (xs : List w64),
       "n" ∷ n_ptr ↦ W64 (GMap.size prs) ∗
       "ids" ∷ ids_ptr ↦ sl ∗
@@ -171,6 +172,7 @@ theorem tracker.ProgressTracker.Visit.wp_proof
   wp_auto
   -- `slices.Sort(ids)`: a permutation is all the postcondition needs
   wp_apply wp_slices_Sort $$ [$Hsl] as %ys ⟨Hsl, %Hperm, -⟩
+  · ipureintro; simp only [List.length_reverse]; omega
   -- every entry of `ids` is a key of `prs`
   have Hys_dom : ∀ y, y ∈ ys → (prs !! y).isSome := by
     intro y Hy

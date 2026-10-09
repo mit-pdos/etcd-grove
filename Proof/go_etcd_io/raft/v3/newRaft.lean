@@ -56,7 +56,7 @@ theorem newRaft.wp_proof
     (wp_strings_Join : strings.Join.spec (GF := GF) (hG := hG)) :
     newRaft.spec (GF := GF) (hG := hG) := by
   intro c cv lok si prev ents ss hs cs voters dqv
-    Hvalid Hlok Hsto HmaxInfl Hcq Hdpf Hmcs Hidx Hncc Hss Hhs Happ Hvne Hvnd Hv0 Hcs1 Hcs2 Hcs3 Hal
+    Hvalid Hlok Hsto HmaxInfl Hcq Hdpf Hmcs Hidx Hncc Hss Hhs Happ Hvne Hvnd Hv0 Hvlen62 Hcs1 Hcs2 Hcs3 Hal
   obtain ⟨HvID, HvID1, HvID2, Hticks, HvSt, HvInfl, HvIB, HvLog, HvRO⟩ := Hvalid
   wp_start as ⟨Hc, #Hlg0, #HisSto, HSto, #HInit⟩
   wp_auto
@@ -142,8 +142,8 @@ theorem newRaft.wp_proof
   -- the configuration `Restore` built, as `switchToConfig` installs it
   ipersist Hprsm
   ihave %Hvlen := ownSlice_len $$ Hvoters
-  have Hcsz : (GMap.size (GMap.listToSet voters) : Int) < 2 ^ 63 := by
-    rw [GMap.size_list_to_set _ Hvnd]; word
+  have Hcsz : (GMap.size (GMap.listToSet voters) : Int) ≤ 2 ^ 62 := by
+    rw [GMap.size_list_to_set _ Hvnd]; exact Hvlen62
   ihave Hcfg : ownConfig (GF := GF) (GMap.listToSet voters) cfgv prsm prs $$ [Hvref Hprogs]
   · unfold ownConfig
     iexists vref, vm
@@ -159,7 +159,7 @@ theorem newRaft.wp_proof
     refine (List.perm_ext_iff_of_nodup Hvnd (GMap.NoDup_elements _)).2 ?_
     intro k; rw [GMap.elem_of_elements, GMap.elem_of_list_to_set]
   wp_apply wp_assertConfStatesEquivalent _ cs cs2 voters xs2 dqv (DFrac.own 1)
-    Hperm Hcs1 Hcs2 Hcs3 Hc2a Hc2b Hc2c (by rw [Hal, Hc2al]) $$ [$Hvoters $Hcs2v]
+    Hperm Hvlen62 Hcs1 Hcs2 Hcs3 Hc2a Hc2b Hc2c (by rw [Hal, Hc2al]) $$ [$Hvoters $Hcs2v]
     as ⟨Hvoters, Hcs2v⟩
   -- `if !IsEmptyHardState(hs) { r.loadState(hs) }`: both arms end at the
   -- same struct state `s1` and log state `ls1`, so the rest of the proof

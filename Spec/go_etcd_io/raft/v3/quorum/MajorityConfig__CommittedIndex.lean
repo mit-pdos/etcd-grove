@@ -52,9 +52,10 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 neither can. `i` starts at `n-1` and is decremented only after a write, at most once
 per voter, so every write is at `n-1-j ≥ 0` with `j` the number of acknowledging voters
 seen so far (`j < n` while a voter is still to come). `pos ∈ [0, n)` for `n ≥ 1`. The
-`go.int` arithmetic does not wrap under `size s < 2^63`. Calls: `l.AckedIndex`
+`go.int` arithmetic does not wrap under `size s < 2^63`; `slices.Sort` needs the
+tighter `size s ≤ 2^62`, which is the premise. Calls: `l.AckedIndex`
 (dynamic, through the interface: the contract is `isAckedIndexer`, `InvTracker.lean`)
-and `slices.Sort` (axiom, `Spec/slices_Sort.lean` -- whose *sortedness* conjunct is
+and `slices.Sort` (`Spec/slices_Sort.lean` -- whose *sortedness* conjunct is
 what this function needs).
 
 The receiver is a `*MajorityConfig` at `cref`, exactly as for
@@ -71,7 +72,7 @@ abbrev quorum.MajorityConfig.CommittedIndex.spec : Prop :=
   ∀ (s : GSet w64) (cref mref : Loc) (l : GoInterface) (P : IProp GF)
     (acked : w64 → Option w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.quorum ∗
-      ⌜(GMap.size s : Int) < 2 ^ 63⌝ ∗
+      ⌜(GMap.size s : Int) ≤ 2 ^ 62⌝ ∗
       cref ↦ mref ∗
       (⌜mref = map.nil ∧ s = ∅⌝ ∨
        ∃ (ids : GMap w64 Unit), ⌜domSet ids = s⌝ ∗ mref ↦$ ids) ∗

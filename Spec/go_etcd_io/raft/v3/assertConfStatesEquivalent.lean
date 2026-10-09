@@ -25,7 +25,7 @@ and otherwise calls `l.Panic`. Stated for the voters-only case
 path is then unreachable, which is why the logger needs no contract here. -/
 abbrev assertConfStatesEquivalent.spec : Prop :=
   ∀ (l : Logger) (cs1 cs2 : raftpb.ConfState) (v1 v2 : List w64) (dq1 dq2 : DFrac),
-  v1 ≡ₚ v2 →
+  v1 ≡ₚ v2 → (v1.length : Int) ≤ 2 ^ 62 →
   cs1.VotersOutgoing'.len = W64 0 →
   cs1.Learners'.len = W64 0 →
   cs1.LearnersNext'.len = W64 0 →

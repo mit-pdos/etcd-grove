@@ -315,11 +315,14 @@ def ownTracker (tv : tracker.ProgressTracker) (t : Trk) : IProp GF :=
   "HlearnersNext" ∷ ownIdsetOpt tv.Config'.LearnersNext' learnersNext ∗
   "%Hno_learners" ∷ ⌜learners = ∅ ∧ learnersNext = ∅⌝ ∗
   -- `campaign` does `make([]uint64, 0, len(idMap))`, and `wp_slice_make3` needs
-  -- `0 ≤ sint.Z cap`. Nothing else bounds the voter set: no Iris ownership constrains
-  -- the cardinality of a `GSet w64`, so `size cfg = 2^64` is consistent with every
-  -- other conjunct here. This is a property of the configuration, so it belongs with
-  -- the configuration.
-  "%Hcfg_size" ∷ ⌜(GMap.size cfg : Int) < 2 ^ 63⌝ ∗
+  -- `0 ≤ sint.Z cap`; `campaign`, `Visit`, `VoterNodes` and `CommittedIndex` then
+  -- `slices.Sort` the voter ids, which needs at most `2^62` of them (past that its
+  -- heapsort fallback overflows `int`). Nothing else bounds the voter set: no Iris
+  -- ownership constrains the cardinality of a `GSet w64`, so `size cfg = 2^64` is
+  -- consistent with every other conjunct here. This is a property of the
+  -- configuration, so it belongs with the configuration (`newRaft` takes it as a
+  -- premise about the storage's initial `ConfState`).
+  "%Hcfg_size" ∷ ⌜(GMap.size cfg : Int) ≤ 2 ^ 62⌝ ∗
   -- **No non-emptiness conjunct.** From 2026-09-16 to 2026-09-29 this predicate
   -- required `cfg ≠ ∅`, because `MajorityConfig.VoteResult` returns `VoteWon` outright
   -- for an empty configuration while `IsQuorum ∅ q` is false. That made the *empty*
@@ -357,7 +360,7 @@ theorem ownTracker_intro (tv : tracker.ProgressTracker) (votes : GMap w64 Bool)
     (Hautoleave : tv.Config'.AutoLeave' = false)
     (Hvoters_dom : domSet voters = cfg)
     (Hno_learners : learners = ∅ ∧ learnersNext = ∅)
-    (Hcfg_size : (GMap.size cfg : Int) < 2 ^ 63)
+    (Hcfg_size : (GMap.size cfg : Int) ≤ 2 ^ 62)
     (HmaxInfl : 0 ≤ sint.Z tv.MaxInflight' ∧ sint.Z tv.MaxInflight' < 2 ^ 62) :
     ⊢ (tv.Votes' ↦$ votes : IProp GF) -∗
       tv.Progress' ↦$□ prs -∗
@@ -615,6 +618,20 @@ theorem ownTracker_maxinflight (tv : tracker.ProgressTracker) (t : Trk) :
     Hprs_dom Hvoters_arr Hautoleave Hvoters_dom Hno_learners Hcfg_size HmaxInfl
     $$ Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext
 
+/-- The configuration has at most `2^62` voters (`Hcfg_size`); the tracker survives. -/
+theorem ownTracker_size (tv : tracker.ProgressTracker) (t : Trk) :
+    ⊢ ownTracker (GF := GF) cfg tv t -∗
+      ⌜(GMap.size cfg : Int) ≤ 2 ^ 62⌝ ∗ ownTracker cfg tv t := by
+  iintro Hown
+  iunfold ownTracker at Hown
+  icases Hown with ⟨%voters_ref, %voters, %learners, %learnersNext, Hown⟩
+  iNamed Hown
+  isplitr
+  · ipureintro; exact Hcfg_size
+  iapply ownTracker_intro cfg tv t.votes t.prs t.peers voters_ref voters learners learnersNext
+    Hprs_dom Hvoters_arr Hautoleave Hvoters_dom Hno_learners Hcfg_size HmaxInfl
+    $$ Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext
+
 /-- Borrow one voter's `Progress` out of the tracker, by its key in the progress map
 the tracker is indexed by, at the record `t.peers` holds for it; give it back at any
 record, which the index then records. The caller can come back to the *same* pointer,
@@ -769,7 +786,7 @@ def ownConfig (cfg : GSet w64) (cfgv : tracker.Config) (prsm : Loc) (prs : GMap 
     "#Hprsm" ∷ prsm ↦$□ prs ∗
     "%Hprs" ∷ ⌜domSet prs = cfg⌝ ∗
     "Hprogs" ∷ ([∗map] _k ↦ pr ∈ prs, ∃ p, ownProgress pr p) ∗
-    "%Hcsz" ∷ ⌜(GMap.size cfg : Int) < 2 ^ 63⌝)
+    "%Hcsz" ∷ ⌜(GMap.size cfg : Int) ≤ 2 ^ 62⌝)
 
 /-- Name the values of a map's worth of objects: a `[∗map]` of existentials is a
 `[∗map]` over two maps against some map of witnesses. -/

@@ -24,7 +24,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `IDs()`, then `make([]uint64, 0, len(m))`, a `for range` appending each key, and
-`slices.Sort`. The tracker is opened only for `Hcfg_size` (the `make3` bound) and
+`slices.Sort`. The tracker is opened only for `Hcfg_size` (the `make3` and `Sort` bounds) and
 re-sealed at once. The loop invariant is that `nodes` holds the first `i` keys of the
 enumeration `wp_map_for_range` picks. -/
 theorem tracker.ProgressTracker.VoterNodes.wp_proof
@@ -89,6 +89,7 @@ theorem tracker.ProgressTracker.VoterNodes.wp_proof
   rw [← Hklen, Int.toNat_natCast, List.take_length]
   wp_auto
   wp_apply wp_slices_Sort $$ [$Hsl] as %xs ⟨Hsl, %Hxs, -⟩
+  · ipureintro; omega
   iapply HΦ
   iframe
   ipureintro
