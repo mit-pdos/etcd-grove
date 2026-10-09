@@ -15,15 +15,16 @@ ringBuffer__DescendLessOrEqual: ringBuffer__findLastIndexLessOrEqual ringBuffer_
 ringBuffer__PeekLatest:
 ringBuffer__PeekOldest:
 ringBuffer__RebaseHistory:
-# The btree (k8s.io/utils/third_party/forked/golang/btree, names-only): the trust boundary,
-# `axiom … .wp_proof` (see InvBtree.lean).
-btree_New:
-BTree__Clone:
-BTree__Get:
-BTree__ReplaceOrInsert:
-BTree__Delete:
-BTree__AscendGreaterOrEqual:
-BTree__AscendRange:
+# The btree (k8s.io/utils/third_party/forked/golang/btree): proved and linked in its own
+# package (`Proof/k8s_io/.../btree/Link.lean`, by `etc/gen-btree-link.py`); `@` marks a
+# function whose result comes from there.
+btree_New: @
+BTree__Clone: @
+BTree__Get: @
+BTree__ReplaceOrInsert: @
+BTree__Delete: @
+BTree__AscendGreaterOrEqual: @
+BTree__AscendRange: @
 # The two methods of other packages the store calls, translated for it.
 ResponseHeader__GetRevision:
 WatchResponse__IsProgressNotify: ResponseHeader__GetRevision

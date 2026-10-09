@@ -4,8 +4,8 @@ Trust base of the Raft proof.  Not part of the lakefile; run with
     lake env lean --run etc/tcb-report.lean [MODULE...]  > tcb.json
 
 (normally via `etc/tcb-report.py`, which renders the report).  The roots are the theorems
-declared in the given modules (default: `EtcdGrove.Raft.Link`, every function's linked
-result, `EtcdGrove.Raft.Results`, and `EtcdGrove.Cache.Link`, the `cache` package's linked
+declared in the given modules (default: `Proof.go_etcd_io.raft.v3.Link`, every function's linked
+result, `Proof.go_etcd_io.raft.v3.Results`, and `Proof.go_etcd_io.etcd.cache.v3.Link`, the `cache` package's linked
 results).  For each root it computes what `#print axioms`
 computes -- the axioms its proof transitively depends on -- and, in addition, which
 declarations along the way contain a `sorry` themselves (`#print axioms` only says
@@ -96,7 +96,8 @@ partial def closure (env : Environment) (roots : Array Name) :
   return memo
 
 def isProject (env : Environment) (n : Name) : Bool :=
-  (modOf env n).getRoot == `EtcdGrove
+  let r := (modOf env n).getRoot
+  r == `Spec || r == `Proof
 
 def kindOf : ConstantInfo → String
   | .axiomInfo _ => "axiom" | .defnInfo _ => "def" | .thmInfo _ => "theorem"
@@ -136,7 +137,8 @@ partial def statementDefs (env : Environment) (stmt : Expr) : NameSet := Id.run 
 def main (args : List String) : IO UInt32 := do
   initSearchPath (← findSysroot)
   let mods : Array Name :=
-    if args.isEmpty then #[`EtcdGrove.Raft.Link, `EtcdGrove.Raft.Results, `EtcdGrove.Cache.Link]
+    if args.isEmpty then #[`Proof.go_etcd_io.raft.v3.Link, `Proof.go_etcd_io.raft.v3.Results, `Proof.go_etcd_io.etcd.cache.v3.Link,
+      `Proof.k8s_io.utils.third_party.forked.golang.btree.Link]
     else args.toArray.map String.toName
   let env ← importModules (mods.map fun m => { module := m }) {}
   let mut roots : Array Name := #[]

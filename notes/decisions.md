@@ -62,6 +62,104 @@ work between compiles, or its start-up. Lean also elaborates a module's
 declarations in parallel, so the report charts cores busy (each compile's CPU
 spread over its run) next to compiles running.
 
+## Build speed: the Protocol umbrella imports only what `Defs` uses
+
+**2026-10-08 · accepted**
+
+`Defs` imported `Protocol`, which imported the whole protocol development, so
+`Defs` and everything after it waited for `StepGhost` … `Facts` (the theorems,
+`Refinement` alone 23s), which ran one at a time for the first 1m10s. Only
+`Model`, `Ghost` and `GhostState` are used by `Defs`/`Inv*` (checked on the
+elaborated environment: which modules' constants each module's constants use);
+the theorems are used by four proofs (`RawNode__Ready`, `raftLog__commitTo`,
+`raft__Step`, `raft__Step/Base`) and, through `Link`, by `Results`.
+
+**Decision:** `Protocol.lean` imports the three, those four proofs import
+`Protocol.Facts`. Full build on 24 cores: 3m40s → 3m01s. No definition, statement
+or axiom changed: a hash of every root statement, trusted definition (type and
+body, auxiliaries included) and axiom is the same before and after.
+
+What limits the build now, measured on that build:
+
+* **Queueing on the critical path (~50s).** Lake has no job limit or priority:
+  a compile occupies one of Lean's worker threads (one per core), and the pool
+  is FIFO. When `InvRaftPhys` finishes, ~150 specs become ready at once (started
+  in reverse order of registration, i.e. of the root's import list), and the
+  next module of a critical chain (`Spec.stepLeader`, `InvRawnode`, then their
+  proofs) queues behind them and the proofs they release: `Proof.stepLeader`
+  waited 36s. **Rejected — ordering `EtcdGrove.lean` by remaining chain
+  length:** it does reorder siblings (tried: `stepLeader`'s callee specs ran
+  first), but the FIFO wait comes back one step later; 3m06s.
+* **The tail (~30s with ≤3 compiles):** `Proof.stepLeader` (66s, 3m14s CPU) and
+  `Proof.RawNode__Ready` (52s), each bounded by its longest declaration
+  (`wp_stepLeader_noop`/`appresp`/`prop` ~45–50s each; `RawNode.Ready.wp_proof`
+  one theorem). Only splitting those proofs into lemmas Lean elaborates in
+  parallel would shorten it.
+* **CPU (~39 min; what a 4-core CI runner is bound by).** See the next two
+  sections: imports and interpreted tactics.
+
+## Build speed: importing (measured; acted on in "Lean's module system" below)
+
+**2026-10-08 · measured**
+
+Every module pays ~2s and ~2 GiB before elaborating anything (wall / user+sys,
+a file with only the import, 24-core machine otherwise idle):
+
+| imports | wall | CPU | peak memory |
+|---|---|---|---|
+| nothing (`Init`) | 0.46s | 0.78s | 469 MB |
+| `Batteries` | 0.99s | 1.32s | 979 MB |
+| `Lean` | 1.50s | 1.86s | 1568 MB |
+| `Iris` | 1.68s | 2.02s | 1599 MB |
+| `Perennial` | 1.92s | 2.22s | 1911 MB |
+| `Proof.go_etcd_io.raft.v3.InvRawnode` | 2.08s | 2.44s | 1990 MB |
+
+Most of it is Lean's own `Lean` package, which Iris's and Perennial's tactics
+import. The `.olean` files are `mmap`ed, not copied, but a non-`module` file
+(every file here and in Perennial) imports all three parts of each module built
+with Lean's module system: core Lean's public `.olean`s are 356 MB, its
+`.olean.private`s (proof bodies, private declarations) 1360 MB. A `module` file
+imports only the public part: `module` + `import Lean` takes 0.9s and 705 MB,
+`module` + `import Iris` (Iris is all `module`s) 1.22s and 861 MB. A `module`
+cannot import a non-`module` (`cannot import non-module Perennial.Proof.ProofPrelude
+from module`), so this needs Perennial on the module system first, then every
+file here (a `module` header and `public`/`@[expose]` where another file needs a
+declaration or a `def`'s body, the specs included).
+
+## Build speed: precompiled tactics (measured, needs Perennial)
+
+**2026-10-08 · measured**
+
+Perennial's and Iris's tactics run in Lean's interpreter (`interpretation` in
+`-Dprofiler`: 11.2s of `RawNode__Ready`'s ~50s). `precompileModules = true` in
+this repository's lakefile fails: Lake then loads each dependency as one shared
+library made of the library's roots and what they import, and Perennial's root
+does not reach the Goose code (`undefined symbol:
+initialize_perennial_Perennial_Code_go__etcd__io_raft_v3`).
+
+Experiment (a copy with edited dependency lakefiles): Perennial's library with
+`precompileModules = true` and globs covering the Perennial modules imported
+here. Lake then also builds and loads Iris, Batteries and Qq as shared
+libraries; precompiling those as well made no further difference (proofs 24m54s
+vs 25m06s of CPU). Clean rebuild of this repository's 402 modules, quiet machine:
+
+| | interpreted | precompiled |
+|---|---|---|
+| wall | 3m01s | 2m52s |
+| CPU | 39m01s | 34m48s (−11%) |
+| proofs / specs CPU | 28m19s / 6m45s | 24m54s / 6m20s |
+| `Proof.RawNode__Ready` | 52s | 43.5s |
+| `Proof.stepLeader` | 66s | 65s |
+
+Interpretation drops to ~0 (16ms in `RawNode__Ready`), but part of what the
+profiler had charged to it was nested work (IPM instance search went from 5.4s
+to 12.2s), so the gain is the 11% measured, not the ~20% `interpretation`
+suggested. The cost is native code for the dependencies: building them and this
+repository from scratch went from 10m44s to 13m56s; CI caches the dependencies
+per pin. To adopt it, Perennial's `lakefile.toml` needs `precompileModules = true`
+and a library whose modules include everything downstream imports (e.g. globs
+`["Perennial.+"]`: 481 modules, of which this repository builds 242).
+
 ---
 
 ## `confchange`: translated and proved, Lean-first
@@ -373,7 +471,179 @@ buffer's `iterSpec`), instantiated by `WaitReady` (`id`) and `WaitNotReady` (`no
 `rpctypes` is names-only and `ErrCompacted`'s dynamic type is unknown to the proof, so the
 fact belongs with the variable's other initialization facts.
 
+---
 
+## Lean's module system (all files, here and in Perennial)
+
+**2026-10-08 · accepted**
+
+Importing cost every module ~2s and ~2 GiB, mostly loading the private part
+(proof bodies, private declarations) of what it imports, which a non-`module` file
+loads in full ("Build speed: importing" above).
+
+**Decision:** every file is a `module`: `public import`s, then `@[expose] public
+section`, so every declaration stays public and every definition's body visible,
+as before; only what importers load changes. Perennial does the same (converted on
+branch `lean-modules` from `lean` at 584b17c54, merged into `lean` at 2b8cb96a0 on
+2026-10-09), and its Goose
+translator and proofgen emit generated files in that form, so `etc/goose.py
+--check` still holds. What the conversion needed besides the mechanical part:
+
+* code run during elaboration (elaborators, delaborators, unexpanders, helpers,
+  `initialize`d caches, `register_option`s read by tactics) is `meta`;
+* a core simproc cannot be added to a simp set from a module (the attribute wants a
+  `meta` declaration): `word` passes them at its `simp only` calls and
+  `goose_wp_simp_extra` gets a local `dsimproc` wrapping `Int.reduceToNat`;
+* imports a dependency makes privately are no longer visible (Perennial's
+  `GMap.lean` imports `Batteries.Data.List.Perm` itself);
+* a private declaration cannot appear in a public body: `private local instance`
+  became `local instance` (Perennial), and the sealed `ownRaftPhys`, whose body is
+  the private `ownRaftPhysDef`, is `@[no_expose]` (its body stays in its file, which
+  is what the sealing meant).
+
+Checked: every root statement, type, axiom and `sorry` of this repository and of
+the Perennial definitions its statements reach (6517 entries) hashes the same as
+on `lean`; 44 definition bodies (derived `DecidableEq`, `Countable`,
+`typed_pointsto` instances, ...) differ, and with their proof subterms erased all 44
+hash the same: the module system only compiles the proofs inside them differently.
+
+Measured (2026-10-08, the machine shared with other builds, so no whole-build
+times yet): a compile's peak memory 1.8 GiB instead of 2.8 GiB; a spec module
+(almost all import) 2.1s of CPU instead of 2.6s; `import Perennial.Proof.ProofPrelude`
+from a `module`, 1.3s and 0.97 GB instead of 1.75s and 1.84 GB.
+
+## Layout by kind and Go package path
+
+**2026-10-08 · accepted**
+
+`EtcdRaft/`, `EtcdCache/`, `EtcdGrove/Raft/` and `EtcdGrove/Cache/` were ad hoc. **Decision:** as in
+Perennial, by kind and then by Go package path, modules named after their paths:
+
+* `Code/<pkg>`, `GeneratedProof/<pkg>`: the Goose translations (goose's
+  `-lean-root PKG=`, the empty root, added to Perennial's translator for this:
+  modules `Code.go_etcd_io.raft.v3`, ...);
+* `Spec/<pkg>/<fn>`, `Proof/<pkg>/<fn>`: a Go function's spec and proof under its
+  package, read off the spec's name (`tracker.Progress.MaybeUpdate.spec`:
+  `go_etcd_io/raft/v3/tracker`; `big.NewInt.spec`: `math/big`), the file name without
+  a leading `<package>_` (`tracker_NewInflights` -> `.../tracker/NewInflights.lean`);
+  `etc/gen-link.py` finds a Rocq function's files by either name;
+* `Proof/go_etcd_io/raft/v3/`: the Raft proof's shared definitions (`Protocol`,
+  `Defs`, `Inv*`, `StepLemmas`, ...), `Link` and `Results`.
+* `Proof/go_etcd_io/etcd/cache/v3/`: the same for the `cache` package's proofs
+  (`Base`, `Inv*`, `OnceFrame`, `Link`); its functions' specs and proofs sit there
+  too, except the btree's (`{Spec,Proof}/k8s_io/utils/third_party/forked/golang/btree/`),
+  `ResponseHeader.GetRevision`'s (`.../etcd/api/v3/etcdserverpb/`) and
+  `WatchResponse.IsProgressNotify`'s, the `Op` getters', `getPrefix`'s and
+  `GetPrefixRangeEnd`'s (`.../etcd/client/v3/`).
+
+One Lake library `EtcdGrove` globs the four directories (no root module). Lean
+namespaces are unchanged (`Perennial.EtcdGrove.*`, `Perennial.go_etcd_io.raft.v3.*`),
+so only module names and paths moved; private names embed their module, so the
+check above compares them without it.
+
+**Rejected — package path first** (`go_etcd_io/raft/v3/{Code,Spec,Proof}`): it would
+need the translator to put the package before the kind, unlike Perennial.
+
+---
+
+## google/btree: a second proof tree, `EtcdGrove/Btree/`
+
+**2026-10-08 · accepted**
+
+etcd's watch cache (`etcd/cache`) keeps its snapshots in a B-tree, so the cache's proof
+needs one. The cache imports `k8s.io/utils/third_party/forked/golang/btree`, a fork of
+google/btree's generic `BTreeG`; this proof is of google/btree itself (`aeba20f`,
+`btree_generic.go`; `btree.go` is its pre-generics twin, excluded by its build tag), the
+upstream of that fork.
+
+**Decision:** translated into `GoogleBtree/` by `etc/goose.py` (now a list of
+translations), proved in `EtcdGrove/Btree/` with the Raft proof's discipline: one
+`Spec/<fn>.lean` and one `Proof/<fn>.lean` per Go function, a proof importing only its
+callees' specs. The predicates are in `Defs.lean`, the pure model in `Tree.lean` /
+`Model.lean`.
+
+**The top-level predicate** is `ownBTree o t dq s`: the tree at `t` holds the entries `s`
+at fraction `dq` (mutations and `Clone` need `DFrac.own 1`, reads any fraction).
+
+- **Keys, not items, are ordered.** `s : List (V × K)` pairs each Go item with a key,
+  keys strictly increasing under a strict total order `o.lt`, and `o.item v k` is a
+  persistent relation between an item and its key; `less` must decide `lt` on the keys
+  of the items it is called with (`isLess`). The cache's items are `*kvItem`s compared by
+  an immutable `key` field: there `item p k` is the persistent points-to of `p.key`, which
+  a pure order on `V` could not express (the keys are only known from the heap). For an
+  ordered type, `item v k := v = k` (`orderedOrder`). Requiring a strict *total* order
+  costs nothing: a strict weak order on items is a total one on its classes, which the
+  client takes as keys.
+- **Copy-on-write ownership.** A tree owns the nodes whose `cow` is its context and
+  mutates only those; `Clone` gives both trees fresh contexts, so every existing node
+  becomes shared and, since every write goes through `mutableFor`, read-only forever.
+  `ownNode` is per node either owned (fractional points-tos, children `ownNode` again) or
+  `frozen` (persistent, with every node below frozen too and known to have a different
+  context: `n.cow == cow` is a pointer comparison). `Clone` therefore needs the distinctness
+  of the fresh contexts from every node's context, from the points-to validity rule.
+- **The shape invariant** (`Tree.Shape`): uniform height, `len(children) = len(items) + 1`,
+  non-root nodes between `d - 1` and `2d - 1` items, an internal root with an item. The
+  code needs it for safety, not only for balance: a merge of children of different
+  heights, or a root left without items whose only child is minimal, makes `remove` index
+  out of range.
+
+**Rejected -- `node.print`'s spec.** It is unexported debug output (only the tests call
+it) through `fmt.Fprintf` and `strings.Repeat`, which Perennial has as names only; a spec
+would need new trusted axioms about `fmt`, for no client.
+
+---
+
+## Perennial's `copy` was not Go's: now a memmove
+
+**2026-10-08 · accepted (in Perennial's `lean` since 2026-10-09, `e9cba5d`)**
+
+Perennial modeled `copy(dst, src)` as a front-to-back loop in place. Go's `copy` allows
+overlapping slices; when `dst` starts past `src` in the same array the loop reads
+elements it has already overwritten. `items.insertAt` does exactly that
+(`copy(s[i+1:], s[i:])`), so under the old model insert provably corrupts the tree, and
+no correct spec of it can be proved. (Every existing proof used `wp_slice_copy`, whose
+separate ownership of the two slices excludes overlap, so none relied on the bad case.)
+
+**Decision:** in Perennial, `copy` runs the old loop (`slice.copyForward`) twice, through
+a fresh buffer holding all of `src`; `wp_slice_copy` keeps its statement, and
+`wp_slice_copy_within` specifies a copy between two parts of one slice (`insertAt`,
+`removeAt`). In Perennial's `lean` (and pinned here) since 2026-10-09.
+
+---
+
+## The btree proof is of the cache's fork; the cache's btree axioms are gone
+
+**2026-10-09 · accepted** (supersedes "store: btree as the trust boundary" for the btree)
+
+The btree proof (above) was of google/btree, while the cache uses the k8s fork
+(`k8s.io/utils/third_party/forked/golang/btree`), translated names-only with seven
+axiomatized specs over an axiomatized `ownBTree`.
+
+**Decision:** the fork is translated with bodies, in the `etcd` project, and the proof
+moves onto it (`Spec/`/`Proof/k8s_io/utils/third_party/forked/golang/btree/`, namespace
+`btree`, so that the spec names are those the cache already used: `btree.BTree.Get.spec`,
+`btree.New.spec`); google/btree's translation is dropped. One Hoare triple per Go
+function: the proved spec *is* the fork's spec, and the cache's former statements become
+model-level triples (`btree.<M>.modelSpec`, `InvBtree.lean`) that each store proof derives
+from it on its first line (`btree.<M>.modelSpec_of`). The cache's `ownBTree` is defined
+over the btree's: the store orders models (`KvEntry`, by key) by a strict *weak* order,
+the btree orders keys by a strict *total* one, so the keys are the classes of the weak
+order's incomparability (a quotient), and each entry is related to its model by
+`isItem`. Of the axiomatized `DFractional` the store used only persistence at
+`DFrac.discard` and `dq ==∗ discard`, which are proved instead.
+
+`etc/gen-link.py --cache` links the store against the btree's results, which
+`etc/gen-btree-link.py` links in the btree's own `Link.lean` (`fn: @` in
+`etc/link-lean-first-cache.txt`).
+
+**Found on the way:** the assumed `btree.New` spec asked only `1 < degree`; above `2^62`
+the btree's `maxItems()` overflows and the second insert panics. `btree.New`, `newStore`
+and `isStore` now require `degree <= 2^62`.
+
+**Rejected -- keeping the cache's statements as the btree's specs** (and the proved ones as
+a second triple per function): two specs per Go function, which the discipline forbids.
+**Rejected -- restating the store's proofs on the btree's interface**: the model-level
+triples are what the store reasons in; deriving them once keeps those proofs unchanged.
 
 ---
 
