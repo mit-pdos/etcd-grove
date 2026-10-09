@@ -70,7 +70,7 @@ theorem IsOptsWithFromKey.wp_proof (wp_NewOp : NewOp.spec (GF := GF) (hG := hG))
     rw [Hge, List.take_length] at *
     unfold opFullAt
     icases Hat with ⟨-, -, %Ht⟩
-    rw [Ht.2.2.2]
+    rw [Ht.2.2.2.1]
     iapply HΦ
     itrivial
 

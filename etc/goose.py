@@ -99,6 +99,9 @@ PROJECTS = [
             "go.etcd.io/etcd/api/v3/mvccpb",
             "go.etcd.io/etcd/api/v3/v3rpc/rpctypes",
             "k8s.io/utils/third_party/forked/golang/btree",
+            # names only: what `clientv3.WatchResponse.Err` calls
+            "google.golang.org/grpc/codes",
+            "google.golang.org/grpc/status",
             # the types of protobuf messages' fields (protoimpl.MessageState, ...)
             "google.golang.org/protobuf/runtime/protoimpl",
             "google.golang.org/protobuf/internal/impl",

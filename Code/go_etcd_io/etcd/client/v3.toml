@@ -4,7 +4,10 @@
 # the `Op` getters `Cache.validateGet`/`validateWatch` read (with `Rev`, `IsSerializable` and
 # `IsProgressNotify`, for `Cache.Get`/`Watch`), and what builds the `Op` of a `Get`
 # (`OpGet` with `NewOp`, `applyOpts`, `IsOptsWithPrefix`/`IsOptsWithFromKey`, and the
-# options `Cache.Get`'s callers and `Cache.serverRevision` pass).
+# options `Cache.Get`'s callers and `Cache.serverRevision` pass), and for `Cache.Watch`:
+# `OpWatch`, the watch options `WithProgressNotify`/`WithCreatedNotify`, and
+# `WatchResponse.Err` (which calls `rpctypes.Error` and grpc's `status.Error`: hence the
+# imports of `rpctypes` and grpc's `codes`/`status`, names only).
 translate = [
   "!*",
   "WatchResponse.IsProgressNotify",
@@ -42,8 +45,12 @@ translate = [
   "WithFromKey",
   "WithSerializable",
   "WithCountOnly",
+  "WithProgressNotify",
+  "WithCreatedNotify",
+  "OpWatch",
+  "WatchResponse.Err",
 ]
-imports = ["!*", "context", "sync", "time", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/mvccpb"]
+imports = ["!*", "context", "sync", "time", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "google.golang.org/grpc/codes", "google.golang.org/grpc/status"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

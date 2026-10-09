@@ -35,15 +35,22 @@ here = os.path.dirname(os.path.abspath(__file__))
 root = os.path.normpath(os.path.join(here, ".."))
 
 # function name -> the module path below Spec/ and Proof/ (`go_etcd_io.raft.v3.tracker.NewInflights`)
-where = {}
+# (a bare `<fn>` shared by two packages, as `Error` of `rpctypes` and `status`, is
+# ambiguous: such a function is named `<last component of pkg>_<fn>` only)
+where, ambiguous = {}, set()
 for dp, _, fs in os.walk(os.path.join(root, "Spec")):
     for f in fs:
         if f.endswith(".lean"):
             rel = os.path.relpath(os.path.join(dp, f), os.path.join(root, "Spec"))[:-len(".lean")]
             *pkg, stem = rel.split(os.sep)
-            for name in {stem, pkg[-1] + "_" + stem}:
-                assert name not in where, f"two specs for {name}"
-                where[name] = ".".join(pkg + [stem])
+            qual = pkg[-1] + "_" + stem
+            assert qual not in where, f"two specs for {qual}"
+            where[qual] = ".".join(pkg + [stem])
+            if stem in where:
+                ambiguous.add(stem)
+            where[stem] = where[qual]
+for name in ambiguous:
+    del where[name]
 
 
 def spec_file(fn):

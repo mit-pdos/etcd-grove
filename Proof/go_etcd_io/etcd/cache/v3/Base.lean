@@ -4,7 +4,7 @@ imports (the counterpart of `Proof/go_etcd_io/raft/v3/Base.lean` for the transla
 
 `isPkgInit` of a package includes `isPkgInit` of everything it imports, so every package
 reachable from the cache's imports needs an instance. The standard-library ones (`bytes`,
-`context`, `errors`, `fmt`, `sync`, `time`) are Perennial's; the etcd, k8s and protobuf
+`context`, `errors`, `fmt`, `sync`, `time`) are Perennial's; the etcd, k8s, protobuf and grpc
 packages are translated names-only or types-only (`Code/{go_etcd_io/etcd,k8s_io,google_golang_org}/**.toml`), and their
 package facts are `True` except where a proof reads a package-level variable: the
 cache's `ErrNotReady` (`fmt.Errorf` at init), `ErrUnsupportedRequest` and
@@ -105,6 +105,19 @@ instance rpctypes_is_pkg_init_inst :
   define_is_pkg_init rpctypesInit
 instance rpctypes_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes :=
+  build_get_is_pkg_init_wf
+
+instance grpc_codes_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.codes :=
+  define_is_pkg_init iprop(True)
+instance grpc_codes_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.codes :=
+  build_get_is_pkg_init_wf
+
+instance grpc_status_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.status :=
+  define_is_pkg_init iprop(True)
+instance grpc_status_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.status :=
   build_get_is_pkg_init_wf
 
 /-- `clientv3`'s package facts: `noPrefixEnd` (`[]byte{0}`, never written), which

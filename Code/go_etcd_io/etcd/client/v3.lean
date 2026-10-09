@@ -5,6 +5,9 @@ public import Perennial.Code.context
 public import Code.go_etcd_io.etcd.api.v3.etcdserverpb
 public import Perennial.Code.sync
 public import Perennial.Code.time
+public import Code.google_golang_org.grpc.codes
+public import Code.google_golang_org.grpc.status
+public import Code.go_etcd_io.etcd.api.v3.v3rpc.rpctypes
 public import Code.go_etcd_io.etcd.api.v3.mvccpb
 public import Perennial.Golang.Defn
 
@@ -1291,6 +1294,59 @@ noncomputable def OpGet.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))))
 
+/-- go: op.go:338:6 -/
+noncomputable def OpWatch.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "key"
+  (Lam "opts"
+  (App (Val exceptionDo)
+  (Let "opts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType OpOption.ty)))) (Var "opts"))
+  (Let "key" (App (Val (GoInstruction (GoAlloc go.string))) (Var "key"))
+  (Let "$r0" (Let "$v0" (Val tRange)
+  (Let "$v1" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoLoad go.string))) (Var "key")))
+  (App (Val (GoInstruction (CompositeLiteral Op.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"t")) (ElementExpression opType.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"key")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v1")))]))))
+  (Let "ret" (App (Val (GoInstruction (GoAlloc Op.ty))) (App (Val (GoInstruction (GoZeroVal Op.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad Op.ty))) (Var "ret")))))
+  (Let "$sw" (Val #true)
+  (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals LeaseID.ty))) (Pair (App (Val (GoInstruction (GoLoad LeaseID.ty))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"leaseID"))) (Var "ret"))) (Val #(W64 0)))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"unexpected lease in watch")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"limit"))) (Var "ret"))) (Val #(W64 0)))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"unexpected limit in watch")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType SortOption.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType SortOption.ty)))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"sort"))) (Var "ret"))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType SortOption.ty)))) (Val UntypedNil)))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"unexpected sort in watch")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"serializable"))) (Var "ret")))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"unexpected serializable in watch")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"countOnly"))) (Var "ret")))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"unexpected countOnly in watch")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (If (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"maxModRev"))) (Var "ret"))) (Val #(W64 0))))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"minModRev"))) (Var "ret"))) (Val #(W64 0))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"unexpected mod revision filter in watch")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (If (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"maxCreateRev"))) (Var "ret"))) (Val #(W64 0))))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"minCreateRev"))) (Var "ret"))) (Val #(W64 0))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"unexpected create revision filter in watch")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #())))))))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType OpOption.ty)))) (Var "opts"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Op.ty) go!"applyOpts"))) (Var "ret")) (Var "$a0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Op.ty))) (Pair (Var "ret") (Var "$r0"))))))))))))
+
 /-- go: op.go:360:15 -/
 noncomputable def Op.applyOpts.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "op"
@@ -1546,6 +1602,42 @@ noncomputable def WithCountOnly.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef Op.ty go!"countOnly"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Op.ty)))) (Var "op"))) (Var "$r0"))))))))))))
 
+/-- WithProgressNotify makes watch server send periodic progress updates
+    every 10 minutes when there is no incoming events.
+    Progress updates have zero events in WatchResponse.
+
+    go: op.go:517:6 -/
+noncomputable def WithProgressNotify.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (App (Val exceptionDo)
+  (App (Val doReturn)
+  (Lam "op"
+  (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Op.ty)))) (Var "op"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (Val #true)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef Op.ty go!"progressNotify"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Op.ty)))) (Var "op"))) (Var "$r0"))))))))))))
+
+/-- WithCreatedNotify makes watch server sends the created event.
+
+    go: op.go:524:6 -/
+noncomputable def WithCreatedNotify.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (App (Val exceptionDo)
+  (App (Val doReturn)
+  (Lam "op"
+  (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Op.ty)))) (Var "op"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (Val #true)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef Op.ty go!"createdNotify"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Op.ty)))) (Var "op"))) (Var "$r0"))))))))))))
+
 /-- IsOptsWithPrefix returns true if WithPrefix option is called in the given opts.
 
     go: op.go:611:6 -/
@@ -1606,6 +1698,41 @@ noncomputable def IsOptsWithFromKey.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Op.ty)))) (Pair (Var "ret") (Var "$r0"))))))))))
 
+/-- Err is the error value if this WatchResponse holds an error.
+
+    go: watch.go:123:26 -/
+noncomputable def WatchResponse.Err.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "wr"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "wr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType WatchResponse.ty)))) (Var "wr"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (Let "$sw" (Val #true)
+  (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (StructFieldRef WatchResponse.ty go!"closeErr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr")))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))))
+  (App (Val doReturn)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (StructFieldRef WatchResponse.ty go!"closeErr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr"))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Error []))) (Val #())) (Var "$a0"))))
+  (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef WatchResponse.ty go!"CompactRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr")))) (Val #(W64 0)))))))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrCompacted))) (Val #()))))
+  (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef WatchResponse.ty go!"Canceled"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr"))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrFutureRev))) (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef WatchResponse.ty go!"CancelReason"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 0))))))
+  (App (Val doReturn)
+  (Let "$a0" (Let "$a0" (Val _root_.Perennial.google_golang_org.grpc.codes.FailedPrecondition)
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef WatchResponse.ty go!"CancelReason"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr"))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Error []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))
+  (App (Val doExecute)
+  (Val #())))))))))))
+
 /-- IsProgressNotify returns true if the WatchResponse is progress notification.
 
     go: watch.go:139:26 -/
@@ -1619,7 +1746,7 @@ noncomputable def WatchResponse.IsProgressNotify.impl [FfiSyntax] [GoGlobalConte
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType Event.ty))]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef WatchResponse.ty go!"Canceled"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr"))))) (Val #false)) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef WatchResponse.ty go!"Created"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr"))))) (Val #false)) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef WatchResponse.ty go!"CompactRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr")))) (Val #(W64 0)))) (Val #false)) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty) go!"GetRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (App (Val (GoInstruction (StructFieldRef WatchResponse.ty go!"Header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr"))))) (Val #())) (Val #(W64 0))))) (Val #false)))))))
 
 instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.v3 where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.sync, pkg_id.time, pkg_id.go_etcd_io.etcd.api.v3.mvccpb]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.sync, pkg_id.time, pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.status, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes, pkg_id.go_etcd_io.etcd.api.v3.mvccpb]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
 
@@ -1627,6 +1754,9 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.client.v3)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1693,6 +1823,12 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.sync.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.time.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.google_golang_org.grpc.codes.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.google_golang_org.grpc.status.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -3821,6 +3957,7 @@ class WatchResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   set_closeErr : ∀ (x : WatchResponse) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet WatchResponse.underlying go!"closeErr") (PairV #x #y) (Val #(({ x with closeErr' := y } : WatchResponse)))
   get_CancelReason : ∀ (x : WatchResponse), go.IsGoStepPureDetTagged under (StructFieldGet WatchResponse.underlying go!"CancelReason") #x (Val #(x.CancelReason'))
   set_CancelReason : ∀ (x : WatchResponse) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet WatchResponse.underlying go!"CancelReason") (PairV #x #y) (Val #(({ x with CancelReason' := y } : WatchResponse)))
+  ptr_Err_unfold : MethodUnfold (go.GoType.PointerType WatchResponse.ty) go!"Err" WatchResponse.Err.impl
   ptr_IsProgressNotify_unfold : MethodUnfold (go.GoType.PointerType WatchResponse.ty) go!"IsProgressNotify" WatchResponse.IsProgressNotify.impl
 
 attribute [instance] WatchResponse.TypeAssumptions.type_repr
@@ -3839,6 +3976,7 @@ attribute [instance] WatchResponse.TypeAssumptions.type_repr
   WatchResponse.TypeAssumptions.set_closeErr
   WatchResponse.TypeAssumptions.get_CancelReason
   WatchResponse.TypeAssumptions.set_CancelReason
+  WatchResponse.TypeAssumptions.ptr_Err_unfold
   WatchResponse.TypeAssumptions.ptr_IsProgressNotify_unfold
 
 axiom watcher : Type
@@ -4213,6 +4351,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   valCtx_instance : valCtx.TypeAssumptions
   NewOp_unfold : FuncUnfold NewOp [] NewOp.impl
   OpGet_unfold : FuncUnfold OpGet [] OpGet.impl
+  OpWatch_unfold : FuncUnfold OpWatch [] OpWatch.impl
   WithLimit_unfold : FuncUnfold WithLimit [] WithLimit.impl
   WithRev_unfold : FuncUnfold WithRev [] WithRev.impl
   GetPrefixRangeEnd_unfold : FuncUnfold GetPrefixRangeEnd [] GetPrefixRangeEnd.impl
@@ -4222,12 +4361,17 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   WithFromKey_unfold : FuncUnfold WithFromKey [] WithFromKey.impl
   WithSerializable_unfold : FuncUnfold WithSerializable [] WithSerializable.impl
   WithCountOnly_unfold : FuncUnfold WithCountOnly [] WithCountOnly.impl
+  WithProgressNotify_unfold : FuncUnfold WithProgressNotify [] WithProgressNotify.impl
+  WithCreatedNotify_unfold : FuncUnfold WithCreatedNotify [] WithCreatedNotify.impl
   IsOptsWithPrefix_unfold : FuncUnfold IsOptsWithPrefix [] IsOptsWithPrefix.impl
   IsOptsWithFromKey_unfold : FuncUnfold IsOptsWithFromKey [] IsOptsWithFromKey.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_etcdserverpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
+  import_codes_Assumption : _root_.Perennial.google_golang_org.grpc.codes.Assumptions
+  import_status_Assumption : _root_.Perennial.google_golang_org.grpc.status.Assumptions
+  import_rpctypes_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions
   import_mvccpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
 
 attribute [instance] Assumptions.AuthEnableResponse_instance
@@ -4338,6 +4482,7 @@ attribute [instance] Assumptions.AuthEnableResponse_instance
   Assumptions.valCtx_instance
   Assumptions.NewOp_unfold
   Assumptions.OpGet_unfold
+  Assumptions.OpWatch_unfold
   Assumptions.WithLimit_unfold
   Assumptions.WithRev_unfold
   Assumptions.GetPrefixRangeEnd_unfold
@@ -4347,12 +4492,17 @@ attribute [instance] Assumptions.AuthEnableResponse_instance
   Assumptions.WithFromKey_unfold
   Assumptions.WithSerializable_unfold
   Assumptions.WithCountOnly_unfold
+  Assumptions.WithProgressNotify_unfold
+  Assumptions.WithCreatedNotify_unfold
   Assumptions.IsOptsWithPrefix_unfold
   Assumptions.IsOptsWithFromKey_unfold
   Assumptions.import_context_Assumption
   Assumptions.import_etcdserverpb_Assumption
   Assumptions.import_sync_Assumption
   Assumptions.import_time_Assumption
+  Assumptions.import_codes_Assumption
+  Assumptions.import_status_Assumption
+  Assumptions.import_rpctypes_Assumption
   Assumptions.import_mvccpb_Assumption
 
 end go_etcd_io.etcd.client.v3

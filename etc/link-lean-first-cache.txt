@@ -110,6 +110,15 @@ WithRange:
 WithFromKey:
 WithSerializable:
 WithCountOnly:
+# What builds a `Watch`'s `Op` and reads a watch response's error (client/v3/op.go, watch.go,
+# translated for `Cache.Watch`), see InvOp.lean; `rpctypes.Error` and grpc's `status.Error`
+# are axioms (not translated: grpc).
+WithProgressNotify:
+WithCreatedNotify:
+OpWatch: Op__applyOpts
+rpctypes_Error:
+status_Error:
+WatchResponse__Err: rpctypes_Error status_Error
 # Key predicates (cache/predicate.go) and the Cache's request validation and delegations
 # (cache/cache.go), see InvCache.lean.
 ExactKey:

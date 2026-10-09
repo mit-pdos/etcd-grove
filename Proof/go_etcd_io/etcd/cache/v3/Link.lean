@@ -25,6 +25,7 @@ public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithPrefix
 public import Proof.go_etcd_io.etcd.cache.v3.KeyPredForRange
 public import Proof.go_etcd_io.etcd.client.v3.NewOp
 public import Proof.go_etcd_io.etcd.client.v3.OpGet
+public import Proof.go_etcd_io.etcd.client.v3.OpWatch
 public import Proof.go_etcd_io.etcd.client.v3.Op__IsCountOnly
 public import Proof.go_etcd_io.etcd.client.v3.Op__IsCreatedNotify
 public import Proof.go_etcd_io.etcd.client.v3.Op__IsFilterDelete
@@ -44,11 +45,14 @@ public import Proof.go_etcd_io.etcd.client.v3.Op__Rev
 public import Proof.go_etcd_io.etcd.client.v3.Op__applyOpts
 public import Proof.go_etcd_io.etcd.cache.v3.Range
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader__GetRevision
+public import Proof.go_etcd_io.etcd.client.v3.WatchResponse__Err
 public import Proof.go_etcd_io.etcd.client.v3.WatchResponse__IsProgressNotify
 public import Proof.go_etcd_io.etcd.client.v3.WithCountOnly
+public import Proof.go_etcd_io.etcd.client.v3.WithCreatedNotify
 public import Proof.go_etcd_io.etcd.client.v3.WithFromKey
 public import Proof.go_etcd_io.etcd.client.v3.WithLimit
 public import Proof.go_etcd_io.etcd.client.v3.WithPrefix
+public import Proof.go_etcd_io.etcd.client.v3.WithProgressNotify
 public import Proof.go_etcd_io.etcd.client.v3.WithRange
 public import Proof.go_etcd_io.etcd.client.v3.WithRev
 public import Proof.go_etcd_io.etcd.client.v3.WithSerializable
@@ -102,7 +106,9 @@ public import Proof.go_etcd_io.etcd.cache.v3.ringBuffer__findFirstIndexGreaterOr
 public import Proof.go_etcd_io.etcd.cache.v3.ringBuffer__findLastIndexLessOrEqual
 public import Proof.go_etcd_io.etcd.cache.v3.ringBuffer__full
 public import Proof.go_etcd_io.etcd.cache.v3.ringBuffer__moduloIndex
+public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Error
 public import Proof.go_etcd_io.etcd.cache.v3.snapshot__Range
+public import Proof.google_golang_org.grpc.status.Error
 public import Proof.go_etcd_io.etcd.cache.v3.store__Apply
 public import Proof.go_etcd_io.etcd.cache.v3.store__Get
 public import Proof.go_etcd_io.etcd.cache.v3.store__LatestRev
@@ -276,9 +282,29 @@ theorem Op.wp_IsFilterDelete :
     Op.IsFilterDelete.spec (GF := GF) (hG := hG) :=
   Op.IsFilterDelete.wp_proof
 
+theorem wp_OpWatch :
+    OpWatch.spec (GF := GF) (hG := hG) :=
+  OpWatch.wp_proof Op.wp_applyOpts
+
 theorem Op.wp_IsProgressNotify :
     Op.IsProgressNotify.spec (GF := GF) (hG := hG) :=
   Op.IsProgressNotify.wp_proof
+
+theorem rpctypes.wp_Error :
+    rpctypes.Error.spec (GF := GF) (hG := hG) :=
+  rpctypes.Error.wp_proof
+
+theorem status.wp_Error :
+    status.Error.spec (GF := GF) (hG := hG) :=
+  status.Error.wp_proof
+
+theorem WatchResponse.wp_Err :
+    WatchResponse.Err.spec (GF := GF) (hG := hG) :=
+  WatchResponse.Err.wp_proof rpctypes.wp_Error status.wp_Error
+
+theorem wp_WithCreatedNotify :
+    WithCreatedNotify.spec (GF := GF) (hG := hG) :=
+  WithCreatedNotify.wp_proof
 
 theorem wp_WithFromKey :
     WithFromKey.spec (GF := GF) (hG := hG) :=
@@ -287,6 +313,10 @@ theorem wp_WithFromKey :
 theorem wp_WithPrefix :
     WithPrefix.spec (GF := GF) (hG := hG) :=
   WithPrefix.wp_proof wp_getPrefix
+
+theorem wp_WithProgressNotify :
+    WithProgressNotify.spec (GF := GF) (hG := hG) :=
+  WithProgressNotify.wp_proof
 
 theorem wp_WithRange :
     WithRange.spec (GF := GF) (hG := hG) :=

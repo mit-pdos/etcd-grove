@@ -55,7 +55,7 @@ theorem WithFromKey.wp_proof : WithFromKey.spec (GF := GF) (hG := hG) := by
       · rw [show ([W8 0] : List w8) = [0#8] from rfl]; iexact Hes
     isplitl []
     · rw [show ([W8 0] : List w8) = [0#8] from rfl]; iexact Hks
-    ipureintro; exact ⟨Ht.1, Ht.2.1, Ht.2.2.1, trivial⟩
+    ipureintro; exact ⟨Ht.1, Ht.2.1, Ht.2.2.1, trivial, Ht.2.2.2.2⟩
   · have Hk0 : o.key ≠ [] := by
       intro h; apply Hif; rw [h] at Hklen; simp at Hklen; word
     wp_apply wp_string_to_bytes _ as %esl ⟨Hes, -⟩
@@ -70,7 +70,7 @@ theorem WithFromKey.wp_proof : WithFromKey.spec (GF := GF) (hG := hG) := by
       · rw [show ([W8 0] : List w8) = [0#8] from rfl]; iexact Hes
     isplitl []
     · iexact Hk
-    ipureintro; exact ⟨Ht.1, Ht.2.1, Ht.2.2.1, trivial⟩
+    ipureintro; exact ⟨Ht.1, Ht.2.1, Ht.2.2.1, trivial, Ht.2.2.2.2⟩
 
 end proof
 

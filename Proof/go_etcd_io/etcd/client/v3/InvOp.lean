@@ -7,7 +7,7 @@ built from its options (`OpGet`, `NewOp`, `applyOpts`, `IsOptsWithPrefix`/`FromK
 **`Op` models.** `OpModel` is what the cache reads of an `Op` through its getters and `opAt op o`
 relates them (moved from `InvCache.lean`). `OpFull` adds the fields an option can change and
 etcd's `KV.Get` reads that the getters do not (the operation type `t`, the key, `keysOnly`, and
-the two flags `OpGet`'s check reads), so that `OpFull` covers every field `Op.toRangeRequest`
+the two flags `OpGet`'s check reads, and the lease `OpWatch`'s check reads), so that `OpFull` covers every field `Op.toRangeRequest`
 sends: `key`, `end`, `rev`, `limit`, `sort` (only whether it is set: the client's statement
 in `InvEtcd.lean` asks for none), `serializable`, `keysOnly`, `countOnly` and the four
 revision filters. `opFullAt op o` adds them to `opAt` (the key, like the range end, read-only).
@@ -19,7 +19,9 @@ gs` that the read-only slice `sl` holds closures with the transformers `gs`, in 
 checking (by applying them to `NewOp()` twice) that not both `WithPrefix` and `WithFromKey`
 were given, which panics (`opGetPanics`). The models of the `With*` options: `withLimitM`,
 `withRevM`, `withPrefixM`, `withRangeM`, `withFromKeyM`, `withSerializableM`,
-`withCountOnlyM`.
+`withCountOnlyM`, and of the watch options `withProgressNotifyM`, `withCreatedNotifyM`.
+`OpWatch(key, opts...)` applies them to the same start (`opWatchModel`) and panics if the
+result asks for something a watch cannot do (`OpFull.watchPanics`, `opWatchPanics`).
 -/
 module
 
@@ -153,7 +155,8 @@ end defs
 /-! ## `clientv3.Op`: what a `Get` sends -/
 
 /-- An `Op` as etcd's `KV.Get` reads it (`Op.toRangeRequest`), and as the options change it:
-the getters' `OpModel`, the operation type, the key, `keysOnly`, and `OpGet`'s two flags. -/
+the getters' `OpModel`, the operation type, the key, `keysOnly`, `OpGet`'s two flags, and the
+lease (`OpWatch` panics on one). -/
 structure OpFull where
   base : OpModel
   /-- `t` (`opType`: `tRange` is `1`) -/
@@ -165,6 +168,8 @@ structure OpFull where
   withPrefix : Bool
   /-- `isOptsWithFromKey` -/
   withFromKey : Bool
+  /-- `leaseID` (`WithLease`) -/
+  leaseID : w64
 
 /-- The zero `OpModel` (a zero `Op`). -/
 def OpModel.zero : OpModel :=
@@ -176,7 +181,7 @@ def OpModel.zero : OpModel :=
 /-- `NewOp()`: `&Op{key: []byte("")}`. -/
 def OpFull.newOp : OpFull :=
   { base := .zero, t := W64 0, key := [], keysOnly := false, withPrefix := false,
-    withFromKey := false }
+    withFromKey := false, leaseID := W64 0 }
 
 /-- What `OpGet(key, ...)` starts from: `Op{t: tRange, key: []byte(key)}`. -/
 def OpFull.getInit (key : GoString) : OpFull := { OpFull.newOp with t := W64 1, key := key }
@@ -193,6 +198,24 @@ def opGetModel (key : GoString) (gs : List (OpFull → OpFull)) : OpFull :=
 def opGetPanics (gs : List (OpFull → OpFull)) : Prop :=
   (opFold gs .newOp).withPrefix = true ∧ (opFold gs .newOp).withFromKey = true
 
+/-- The `Op` `OpWatch(key, opts...)` returns, for options with transformers `gs`: the same as
+`OpGet`'s (`Op{t: tRange, key: []byte(key)}` with the options applied). -/
+def opWatchModel (key : GoString) (gs : List (OpFull → OpFull)) : OpFull :=
+  opFold gs (OpFull.getInit key)
+
+/-- `OpWatch`'s `switch`: the `Op` has a lease, a limit, a sort order, is serializable or
+count-only, or has a revision filter. -/
+def OpFull.watchPanics (o : OpFull) : Prop :=
+  o.leaseID ≠ W64 0 ∨ o.base.limit ≠ W64 0 ∨ o.base.sortSet = true ∨
+    o.base.serializable = true ∨ o.base.countOnly = true ∨
+    o.base.minModRev ≠ W64 0 ∨ o.base.maxModRev ≠ W64 0 ∨
+    o.base.minCreateRev ≠ W64 0 ∨ o.base.maxCreateRev ≠ W64 0
+
+/-- `OpWatch(key, opts...)` panics: the options (applied to its start) set one of the fields
+its `switch` rules out. -/
+def opWatchPanics (key : GoString) (gs : List (OpFull → OpFull)) : Prop :=
+  (opWatchModel key gs).watchPanics
+
 /-- `WithLimit(n)` -/
 def withLimitM (n : w64) (o : OpFull) : OpFull := { o with base := { o.base with limit := n } }
 /-- `WithRev(rev)` -/
@@ -202,6 +225,12 @@ def withSerializableM (o : OpFull) : OpFull :=
   { o with base := { o.base with serializable := true } }
 /-- `WithCountOnly()` -/
 def withCountOnlyM (o : OpFull) : OpFull := { o with base := { o.base with countOnly := true } }
+/-- `WithProgressNotify()` -/
+def withProgressNotifyM (o : OpFull) : OpFull :=
+  { o with base := { o.base with progressNotify := true } }
+/-- `WithCreatedNotify()` -/
+def withCreatedNotifyM (o : OpFull) : OpFull :=
+  { o with base := { o.base with createdNotify := true } }
 /-- `WithRange(endKey)` -/
 def withRangeM (endKey : GoString) (o : OpFull) : OpFull :=
   { o with base := { o.base with rangeEnd := endKey } }
@@ -226,7 +255,7 @@ key is a read-only byte slice). -/
 def opFullAt (op : go_etcd_io.etcd.client.v3.Op) (o : OpFull) : IProp GF :=
   iprop(opAt op o.base ∗ op.key' ↦*□ o.key ∗
     ⌜op.t' = o.t ∧ op.keysOnly' = o.keysOnly ∧ op.isOptsWithPrefix' = o.withPrefix ∧
-      op.isOptsWithFromKey' = o.withFromKey⌝)
+      op.isOptsWithFromKey' = o.withFromKey ∧ op.leaseID' = o.leaseID⌝)
 
 instance opFullAt_persistent (op : go_etcd_io.etcd.client.v3.Op) (o : OpFull) :
     Persistent (opFullAt (GF := GF) op o) := by

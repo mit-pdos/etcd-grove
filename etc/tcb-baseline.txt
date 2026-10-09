@@ -3,6 +3,8 @@ axiom etcdState
 axiom fmt.Sprintf.wp_proof
 axiom rand.Int.wp_proof
 axiom reflect.DeepEqual.wp_proof
+axiom rpctypes.Error.wp_proof
+axiom status.Error.wp_proof
 axiom strings.Join.wp_proof
 sorry Perennial.fmt.wp_Errorf
 sorry wp_map_for_range_mut_keys

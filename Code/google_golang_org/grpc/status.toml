@@ -1,0 +1,4 @@
+# Names only: `status.Error` is called by `clientv3.WatchResponse.Err`; its body is not
+# translated (see `Spec/google_golang_org/grpc/status/Error.lean`).
+translate = ["!*"]
+imports = ["!*"]
