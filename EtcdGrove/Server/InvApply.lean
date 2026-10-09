@@ -30,9 +30,10 @@ other half. The steps (the lemmas below):
   (`pending`; the lock's token `pend` is deposited in the invariant: `hook_set_au`);
 - the entry's writes, still under the lock: `p, eff := i` (`writes_done`, which takes `pend`
   back);
-- an entry with no writes (the applier says so: `entryNoop i`, an opaque fact only its
-  contract provides): `p := i` (`noop_done`); then `ci := i` outside the lock
-  (`ci_advance_au`, the deferred update in `applyEntryNormal`).
+- an entry processed with no writes (the applier's contract says so of its outcome without
+  the lock; or the code applies nothing, as for an entry without data): `p := i`
+  (`skip_done`); then `ci := i` outside the lock (`ci_advance_au`, the deferred update in
+  `applyEntryNormal`).
 A commit, holding `pend`, finds the invariant out of the in-flight state, reads `ci` and saves
 it (`commit_save_au`).
 
@@ -55,10 +56,6 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.cindex
 
-/-- An entry with no writes: the applier's contract (`apply.Apply`, `applyConfChange`) says
-so when it returns without having taken the batch transaction's lock. Opaque: only those
-contracts provide it, so the protocol's `noop_done` cannot be used otherwise. -/
-axiom entryNoop : w64 → Prop
 
 /-- The protocol invariant's namespace. -/
 abbrev applyN : Namespace := nroot.@"apply"
@@ -374,10 +371,11 @@ theorem writes_done (γ : ApplyNames) (s : ApplyState) (hp : s.pending = true) :
   (try rw [hp])
   iexact Hst
 
-/-- An entry with no writes (`entryNoop`, from the applier's contract), the next to process:
-it is processed. -/
-theorem noop_done (γ : ApplyNames) (s : ApplyState) (i : w64) (hp : s.pending = false)
-    (_hi : i = s.p + 1) (hlt : uint.Z s.p < uint.Z i) (_hn : entryNoop i) :
+/-- The next entry to process, processed with no writes (the applier's outcome without the
+batch lock, or code that applies nothing): it is processed. Sound only where no write has
+happened, which is what the callers' contracts and code establish. -/
+theorem skip_done (γ : ApplyNames) (s : ApplyState) (i : w64) (hp : s.pending = false)
+    (_hi : i = s.p + 1) (hlt : uint.Z s.p < uint.Z i) :
     inv applyN (consInv γ) ⊢ applyThread γ s ={⊤}=∗ applyThread γ { s with p := i } := by
   iintro #Hinv Hst
   iinv Hinv with Hi Hclose
