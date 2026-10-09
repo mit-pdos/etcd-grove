@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-09 (Perennial `56b1b6651`: `fmt.Sprintf` and `strings.Join` proved from Perennial's models, `rand.Int` stays assumed; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
+**Last updated:** 2026-10-09 (`client/v3/concurrency`: the transaction and lease model, `Session` proved; Perennial `56b1b6651`: `fmt.Sprintf` and `strings.Join` proved from Perennial's models, `rand.Int` stays assumed; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
 
 Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
@@ -13,6 +13,72 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 (`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
+
+## client/v3/concurrency: the transaction and lease model, Session (2026-10-09)
+
+etcd's model now has transactions and leases, `go.etcd.io/etcd/client/v3/concurrency` is
+translated with bodies, and `Session` (`session.go`) is proved: 9 of its 10 functions
+verified, `Close` unfinished only through Perennial's `wp_WithDeadlineCause` `sorry`. Design:
+`decisions.md`, "The transaction model: sequential ops at one revision, per prefix; leases
+without liveness; the create-revision persistence law".
+
+- **Translation** (commit "Translate client/v3/concurrency ..."): `etc/goose.py` pins etcd at
+  `207c8f747` = `goose-lean` (`6ab61a1c7`) + one **Gooseable** commit (not pushed; push it to
+  `upamanyus/etcd`'s `goose-lean` first): concurrency calls the methods it uses of `*Client`'s
+  embedded interfaces through the field (`client.Lease.Grant(...)`, `client.KV.Txn(...)`, ...),
+  because Goose translates a promoted method as `MethodResolve (*Client) "Grant"` with no
+  unfolding for it; and binds `wr.Events` to a `[]*mvccpb.Event` (the alias issue of
+  `5ae038f0f`). `client/v3.toml` gained `Client.Ctx`, `Client.GetLogger`, the comparison
+  builders, `OpPut`, `OpDelete`, `WithLease`, `WithSort`, `WithFirstCreate`, `WithLastCreate`,
+  `withTop`, `WithMaxCreateRev` (and imports proto, fmt); `etcdserverpb.toml` `Compare` and its
+  oneof wrappers, `Compare.GetKey`, `TxnResponse`, `ResponseOp` and its wrappers, `PutResponse`,
+  `DeleteRangeResponse`, `LeaseRevokeResponse`; `zapcore.toml` imports `time` and `io` (so
+  `zap.Logger`'s field types are no longer axiomatized types with `sorry` instances).
+- **The model** (`cache/v3/InvEtcdTxn.lean`): `CmpModel` (`client/v3/InvCmp.lean`), `cmpHolds`
+  (etcd's `applyCompare`; a value comparison on a missing key **fails**, a correction of the
+  plan), `TxnOp` (get/put/delete), `TxnModel`, `applyTxnOp`/`runOps`/`runTxn` (ops in order, each
+  on the state the previous left, at one revision), `txnWrote`, `rangeKvsOk` (a get's response:
+  sorted, limited, as a relation since etcd's sort is unstable). The client's contracts, as
+  definitions: `isEtcdTxnKV kv pfx` (`kv.Txn(ctx)` returns a builder with an abstract state;
+  `If`/`Then`/`Else` append; `Commit` returns `txnCommitResult`: an error, or a response at
+  `r ≥ lo` reached, with a state `s` such that the response is `runTxn r s t`, and `s` at `r - 1`
+  and the result at `r` if it wrote, `s` at `r` otherwise) and `isEtcdLease l` (`Grant`: an ID
+  `≠ NoLease`; `KeepAlive`: a channel of which nothing is promised, `isChanAny`; `Revoke`).
+  `isEtcdClient` gained `isEtcdTxnKV` and `isEtcdLeaseClient`. `OpFull` gained `val`,
+  `rangeEndSet`, the sort option, `ignoreValue`/`ignoreLease` (`InvOp.lean`).
+- **New axioms** (`etc/tcb-baseline.txt` after `--update`: 37 axioms, 1 sorry):
+  `proto.Clone.wp_proof` (protobuf's deep copy of a `*pb.Compare`, the comparisons' trust
+  boundary) and Perennial's `sorry` `context.wp_WithDeadlineCause` (reached by `Session.Close`
+  through `WithTimeout`). The two history laws `etcdState_revs` and `etcdState_create_persist`
+  are axioms in `InvEtcdTxn.lean` but no result uses them yet (the recipes will), so the
+  baseline, which lists what results reach, does not show them.
+- **Proved**: the clientv3 builders (`Value`, `Version`, `CreateRevision`, `ModRevision`,
+  `LeaseValue`, `Compare`, `Cmp.WithRange`/`WithPrefix`/`Clone`/`ensureCompare`, `cloneCompare`,
+  `mustInt64`, `mustInt64orLeaseID`, `OpPut`, `OpDelete`, `WithLease`, `WithMaxCreateRev`,
+  `WithSort`, `withTop`, `WithFirstCreate`, `WithLastCreate`, `Client.Ctx`, `Client.GetLogger`,
+  `pb.Compare.GetKey`); `Session`: `NewSession`, `Client`, `Lease`, `Ctx`, `Done`, `Orphan`,
+  `Close`, `WithTTL`, `WithLease`, `WithContext` (`client/v3/concurrency/InvSession.lean`:
+  `isSession s γ client id`, persistent; `sessionDone s γ`, persistent once `donec` is closed).
+  `WithSort`/`withTop` take `¬ (target = SortByKey ∧ order = SortAscend)` (decisions.md: the
+  closure writes its captured `order` in that case, a race). `NewSession` takes the resulting
+  options' context to be a `*cancelCtx` (Perennial's `wp_WithCancel`).
+- **Linking**: `etc/gen-link.py --concurrency` writes
+  `Proof/go_etcd_io/etcd/client/v3/concurrency/Link.lean` from
+  `etc/link-lean-first-concurrency.txt` (results in the namespace `concurrency`, clientv3's with
+  `v3.`); `etc/tcb-report.lean`'s default roots, `etc/tcb-report.py` and `etc/verified-code.py`
+  include it. The clientv3 specs take clientv3's `Assumptions` (were the cache's), the zap specs
+  import the cache's `Base` (were the server's `InvApplier`), and the proto/protoreflect
+  package-init instances moved from the server's `BaseApply` to the cache's `Base`.
+- **Gates**: `lake build` passes (1740 jobs); `etc/goose.py --check` passes (with
+  `ETCD_SRC=/shared/etcd` until `207c8f747` is pushed); `etc/tcb-report.py --check` matches the
+  updated baseline; `etc/gen-link.py --cache`/`--server`/`--concurrency` reproduce their
+  `Link.lean`; `etc/verified-code.py --reuse` (with `207c8f747` fetched into `.lake/go-src/etcd`
+  from `/shared/etcd`): `client/v3/concurrency` 9 verified, 1 unfinished (`Session.Close`) of 62,
+  `session.go` 63 of 70 lines; `client/v3` 58 verified of 337; etcd 193 verified of 3599; cache
+  107/107 unchanged; Raft 175/323 unchanged.
+- **Next**: `Mutex` (`mutex.go`), then `Election`, `STM`, on `isSession` and the transaction
+  contract; they will need `etcdState_create_persist`. Push order: the etcd fork's `207c8f747`
+  (to `goose-lean`), then etcd-grove (Perennial is unchanged).
 
 ## Perennial `56b1b6651`: `fmt.Sprintf`, `strings.Join` proved (2026-10-09)
 

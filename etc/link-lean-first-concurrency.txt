@@ -1,0 +1,58 @@
+# The functions linked in `Proof/go_etcd_io/etcd/client/v3/concurrency/Link.lean` (all Lean-first:
+# no Rocq counterpart), read by `etc/gen-link.py --concurrency`:
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`. The results are in the namespace
+# `concurrency` (`concurrency.wp_NewSession`); a clientv3 function's has the prefix `v3.`
+# (`concurrency.v3.wp_OpPut`), so that it does not clash with the cache's Link, which links
+# some of the same functions under the cache's assumptions.
+#
+# clientv3 functions the cache's Link also links (here under concurrency's assumptions).
+NewOp:
+Op__applyOpts:
+IsOptsWithPrefix: NewOp
+IsOptsWithFromKey: NewOp
+getPrefix:
+WithPrefix: getPrefix
+WithLimit:
+# clientv3's operations and their options (client/v3/op.go), see InvOp.lean.
+v3_WithLease:
+WithMaxCreateRev:
+WithSort:
+withTop: WithPrefix WithSort WithLimit
+WithFirstCreate: withTop
+WithLastCreate: withTop
+OpPut: Op__applyOpts
+OpDelete: IsOptsWithPrefix IsOptsWithFromKey Op__applyOpts
+# clientv3's comparisons (client/v3/compare.go), see InvCmp.lean; protobuf's `proto.Clone` is
+# the trust boundary (an axiom).
+proto_Clone:
+cloneCompare: proto_Clone
+Cmp__ensureCompare:
+Cmp__Clone: cloneCompare
+mustInt64:
+mustInt64orLeaseID: mustInt64
+Value:
+Version:
+CreateRevision:
+ModRevision:
+LeaseValue:
+Compare: Cmp__Clone Cmp__ensureCompare mustInt64 mustInt64orLeaseID
+Cmp__WithRange: Cmp__Clone Cmp__ensureCompare
+Compare__GetKey:
+Cmp__WithPrefix: Cmp__Clone Cmp__ensureCompare Compare__GetKey getPrefix
+# The client's own methods (client/v3/client.go), see InvClient.lean.
+Client__Ctx:
+Client__GetLogger:
+# zap (names only): the trust boundary (axioms, shared with the server's Link).
+zap_Int64:
+Logger__Warn:
+# Session (client/v3/concurrency/session.go), see InvSession.lean.
+concurrency_WithTTL: zap_Int64 Logger__Warn
+concurrency_WithLease:
+WithContext:
+NewSession: Client__GetLogger Client__Ctx
+Session__Client:
+Session__Lease:
+Session__Ctx:
+Session__Done:
+Session__Orphan:
+Session__Close: Session__Orphan

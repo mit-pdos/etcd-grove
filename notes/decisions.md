@@ -1301,3 +1301,95 @@ first `Ready` (with its `isCommitted` witnesses) and `ownRawNode_persist` are. *
 self responses (in `ownRaftPhys`'s description of `msgsAfterAppend`, or in `pendingRel`),
 and carry the term bound through `Step`'s postcondition (or step one's own responses with
 dedicated lemmas); then `advanceable` goes and `Advance` takes any queue `Ready` left.
+
+---
+
+## The transaction model: sequential ops at one revision, per prefix; leases without liveness; the create-revision persistence law
+
+**2026-10-09 · accepted** (the design decided with the user; adjusted here where noted)
+
+`client/v3/concurrency` (sessions, then mutexes, elections, STM) is built on etcd's
+transactions and leases, which the cache's model (`etcdState`, `EtcdStep`, `etcdReached`) did
+not cover. `InvEtcdTxn.lean` (beside `InvEtcd.lean`), `client/v3/InvCmp.lean`, the `OpFull`
+extension in `client/v3/InvOp.lean`, `client/v3/InvClient.lean`,
+`client/v3/concurrency/InvSession.lean`.
+
+- **A transaction is pure and sequential.** `runTxn r s t` evaluates the comparisons on `s`
+  (`cmpHolds`, etcd's `applyCompare`) and runs the chosen branch's operations in order, each on
+  the state the previous one left, all at revision `r` (`runOps`, `applyTxnOp`: a put of a new
+  key creates it at `r` with version 1; of an existing key keeps the create revision, sets the
+  mod revision to `r`, increments the version, sets value and lease; a delete removes the keys
+  its range selects; a get reads the state at that point). etcd itself rejects a transaction
+  with two writes of one key; the model runs it anyway, which is harmless: the contract allows
+  any error. *Rejected:* every operation on the state before the transaction (false of etcd:
+  a get after a put in one transaction sees the put, the user confirmed).
+- **A missing key compares as zeros, but a value comparison fails** (`cmpHolds`). This
+  corrects the plan ("a missing key reading as ... empty value"): etcd's `applyCompare` returns
+  `false` for a value comparison on a range with no key ("no way to represent missing value"),
+  and compares the zero key-value otherwise. A comparison on a range holds if it holds of every
+  key in it.
+- **A get's response is a relation, not a function** (`rangeKvsOk`): a reordering of the
+  selected keys sorted as requested, then limited. etcd sorts with Go's unstable `sort.Sort`,
+  so ties (two keys created in one transaction, sorted by create revision) come in any order;
+  a function (a stable sort) would claim an order etcd does not promise. The count is the
+  number of keys in the range before the revision filters (etcd's `rr.Count`).
+- **The revision advances only for a write** (`txnWrote`: a put, or a delete of at least one
+  key). A read-only transaction is answered at the current revision `r`, the state is `s` at
+  `r` and stays so (`runOps_noWrite`); a writing one has `s` at `r - 1` and the new state at
+  `r`. Both are stated by `txnStates`. Linearizability is as for `Get`: `Commit` takes
+  `etcdReached lo` and answers at `r ≥ lo` with `etcdReached r`.
+- **Per prefix, as `isEtcdKV`.** The contract speaks of `etcdState r pfx`; `Commit`'s premise is
+  that every key the transaction compares or touches is under `pfx` (`TxnModel.Under`), so the
+  restricted state determines the comparisons and the writes. *Rejected:* a whole-keyspace
+  state (the cache's facts are per prefix; one model is simpler).
+- **The builder is the trust boundary** (`isEtcdTxnKV kv pfx`, a definition: `kv.Txn(ctx)`
+  returns a `Txn` with an abstract state `B : TxnBuild → IProp GF` and the triples of `If`,
+  `Then`, `Else`, `Commit`). *Rejected:* translating and proving the client's `txn` struct:
+  its methods clone every comparison with protobuf's `proto.Clone` and turn every `Op` into a
+  `pb.RequestOp` (`toRequestOp`, the protobuf messages of all four operation kinds), and
+  `Commit` is a gRPC call, which would be the boundary anyway; the abstract builder states the
+  same at the interface. The builders the caller runs (`Compare`, `Value`, ..., `OpPut`,
+  `OpDelete`, the options) are translated and proved; `proto.Clone` of a `*pb.Compare` is an
+  axiom (`proto.Clone.wp_proof`: a deep copy, owned).
+- **Two history laws, as axioms** (about `etcdState`, which is an axiom): `etcdState_revs`
+  (every key-value at `r` has `0 < createRev ≤ modRev ≤ r` and a positive version) and
+  `etcdState_create_persist` (a key present at `r` with create revision `c` is present with the
+  same create revision at every `a ∈ [c, r]`; stated between two known states). *Rejected:*
+  the revision bounds in `EtcdStateWf`: `isEtcdKvs` carries `EtcdStateWf` as a side condition
+  the cache proves for every snapshot it builds from watch events, and the watch contract says
+  nothing of the events' create revisions, so it would have had to grow too.
+- **Leases without liveness** (`isEtcdLease`, a definition): `Grant` returns an error or an ID
+  other than `NoLease` (with `etcdReached` of its header revision); `KeepAlive` an error, or a
+  channel (possibly nil) of which nothing is promised (`isChanAny`: a receive yields any value
+  or the close: the stream may end at any time); `Revoke` an error or a response whose revision
+  etcd has reached. A put's lease is recorded in the key-value; what expiry or revocation does
+  to keys is a step of etcd's history like any other (`EtcdStep`), stated nowhere else.
+  *Rejected:* modelling TTLs and expiry (a liveness/timing property; the recipes' safety does
+  not need it: a session that ends is observed through `Done`).
+- **`isEtcdClient` gains the transactions and the `Lease`** (`isEtcdTxnKV`,
+  `isEtcdLeaseClient`); the cache does not use them (its `newCache` drops them). `Session`
+  takes only what it uses (`isEtcdSessionClient`: the `ctx` field, the `Lease`, the logger).
+- **The session's context must be cancelable.** `NewSession` calls `WithCancel(ops.ctx)`;
+  Perennial's `wp_WithCancel` needs a `*cancelCtx` parent (`isCancelCtxCtx`), so `NewSession`'s
+  spec takes that of the resulting options' context (the client's, which `newClient` makes with
+  `WithCancel`, unless `WithContext` replaces it). `Close` uses `WithTimeout`, which rests on
+  Perennial's `wp_WithDeadlineCause` `sorry`: it enters the trust base (not worked around).
+- **`WithSort`'s by-key-ascending case.** `WithSort(target, order)`'s closure assigns the
+  captured `order` (`order = SortNone`) when `target == SortByKey && order == SortAscend`: a
+  write of a variable shared by every call of the closure, so concurrent calls race, and an
+  `optSpec` (persistent: any number of calls, from any thread) cannot be proved for it. The
+  specs of `WithSort` and `withTop` take `¬ (target = SortByKey ∧ order = SortAscend)`
+  (`WithFirstCreate`/`WithLastCreate` use create revisions). *Rejected:* a non-persistent
+  option spec (every other option is persistent); a "Gooseable" rewrite copying `order` into a
+  local (possible later, if a caller needs that case).
+- **zapcore's `time`/`io` imports.** `isClientLogger` (the client's `atomic.Pointer[zap.Logger]`)
+  needs `zap.Logger`'s typed points-to, whose fields `clock` (`zapcore.Clock`) and `errorOutput`
+  (`zapcore.WriteSyncer`) had axiomatized types (`sorry` instances), as zapcore imported nothing;
+  `zapcore.toml` now imports `time` and `io`, which makes them interfaces.
+- **Linking.** `client/v3/concurrency`'s results are in the namespace `concurrency`
+  (`Proof/go_etcd_io/etcd/client/v3/concurrency/Link.lean`, `etc/gen-link.py --concurrency`), a
+  clientv3 function's with the prefix `v3.`: the cache's Link links some of the same clientv3
+  functions under the cache's assumptions, which the concurrency package's do not imply, and
+  concurrency's `WithLease` shares its name with clientv3's. For the same reason the clientv3
+  specs now take clientv3's `Assumptions`, and the zap specs import the cache's `Base` rather
+  than the server's `InvApplier` (both Links use the same zap axioms).

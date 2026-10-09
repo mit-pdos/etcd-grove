@@ -23,8 +23,9 @@ environment instead of the source text, so nothing is a lower bound:
     function's spec instantiated with its callees' results; a spec some other proof
     uses is internal: were it wrong, that proof would fail), and the protocol lemmas
     of `Proof.go_etcd_io.raft.v3.Results`; likewise the `cache` package's `Proof.go_etcd_io.etcd.cache.v3.Link`
-    and its exported results restated in `Proof.go_etcd_io.etcd.cache.v3.Results`; and the
-    etcd server's `Proof.go_etcd_io.etcd.server.v3.etcdserver.Link`;
+    and its exported results restated in `Proof.go_etcd_io.etcd.cache.v3.Results`; the
+    etcd server's `Proof.go_etcd_io.etcd.server.v3.etcdserver.Link`; and `client/v3/concurrency`'s
+    `Proof.go_etcd_io.etcd.client.v3.concurrency.Link`;
   * definitions -- this repository's definitions those statements are written in
     terms of, transitively through their bodies.  A wrong definition makes a true
     theorem say nothing, so these are trusted exactly as the axioms are.
@@ -53,7 +54,8 @@ SPEC_DIR = "Spec"
 # the `cache` package's.
 LINKS = ("Proof.go_etcd_io.raft.v3.Link", "Proof.go_etcd_io.etcd.cache.v3.Link",
          "Proof.k8s_io.utils.third_party.forked.golang.btree.Link",
-         "Proof.go_etcd_io.etcd.server.v3.etcdserver.Link")
+         "Proof.go_etcd_io.etcd.server.v3.etcdserver.Link",
+         "Proof.go_etcd_io.etcd.client.v3.concurrency.Link")
 
 # This repository's specs and proofs: `Spec/`, `Proof/`, and those of etcd's own raft
 # dependency (raft v3.7, whose Go path is the fork's) in `EtcdDeps/`.
@@ -281,8 +283,9 @@ def main():
         f"Roots: the {len(roots)} theorems of `Proof/go_etcd_io/raft/v3/Link.lean` (every Go "
         "function's linked result), `Proof/go_etcd_io/raft/v3/Results.lean`, "
         "`Proof/go_etcd_io/etcd/cache/v3/Link.lean` (the `cache` package's linked results), "
-        "`Proof/go_etcd_io/etcd/cache/v3/Results.lean` (its exported results) and "
-        "`Proof/go_etcd_io/etcd/server/v3/etcdserver/Link.lean` (the etcd server's).\n"
+        "`Proof/go_etcd_io/etcd/cache/v3/Results.lean` (its exported results), "
+        "`Proof/go_etcd_io/etcd/server/v3/etcdserver/Link.lean` (the etcd server's) and "
+        "`Proof/go_etcd_io/etcd/client/v3/concurrency/Link.lean` (`client/v3/concurrency`'s).\n"
     )
 
     w("## Summary\n")

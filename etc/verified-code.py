@@ -34,8 +34,10 @@ translated; the tables count these as "names only".
 
 The projects (the Go repositories, their pinned revisions and the packages
 translated, into `Code/`) are `etc/goose.py`'s.  The specs are those of the linked
-results of `Proof.go_etcd_io.raft.v3.Link` (raft) and `Proof.go_etcd_io.etcd.cache.v3.Link`
-(etcd's `cache` package; the B-tree it uses is not etcd's code and not counted).
+results of `Proof.go_etcd_io.raft.v3.Link` (raft), `Proof.go_etcd_io.etcd.cache.v3.Link`
+(etcd's `cache` package; the B-tree it uses is not etcd's code and not counted), the etcd
+server's `Link` and `Proof.go_etcd_io.etcd.client.v3.concurrency.Link` (`client/v3/concurrency`
+and the clientv3 functions it uses).
 
 Code is measured in functions and in Go code lines: the lines from `func` to the
 closing brace that hold code (not blank, not only comments).  Type, constant and
@@ -67,7 +69,13 @@ LINKS = {
     "Proof.go_etcd_io.raft.v3.Link": "etcd-raft",
     "Proof.go_etcd_io.etcd.cache.v3.Link": "etcd",
     "Proof.go_etcd_io.etcd.server.v3.etcdserver.Link": "etcd",
+    "Proof.go_etcd_io.etcd.client.v3.concurrency.Link": "etcd",
 }
+# A Link whose results are in a namespace of their own (`etc/gen-link.py --concurrency`):
+# `concurrency.wp_NewSession` is concurrency's `NewSession`, `concurrency.v3.wp_OpPut` clientv3's
+# `OpPut` (`v3.OpPut`), `concurrency.zap.wp_Int64` zap's: the namespace is dropped before a
+# qualifier of another package.
+NAMESPACED = {"Proof.go_etcd_io.etcd.client.v3.concurrency.Link": ("concurrency", {"v3", "zap", "proto"})}
 # etc/tcb-report.lean's runs, as in etc/tcb-report.py: its default modules, then the etcd
 # server's links, which cannot share an environment with the Raft proof (both name
 # `go_etcd_io.raft.v3`, of different raft versions).
@@ -225,7 +233,13 @@ def local_proofs(json_path):
     out = {}
     for n, r in roots.items():
         # `T.wp_M : T.M.spec`
-        *pre, last = n.removeprefix(NS).split(".")
+        name = n.removeprefix(NS)
+        if r["module"] in NAMESPACED:
+            ns, others = NAMESPACED[r["module"]]
+            parts = name.split(".")
+            if parts[0] == ns and len(parts) > 2 and parts[1] in others:
+                name = ".".join(parts[1:])
+        *pre, last = name.split(".")
         fn = ".".join(pre + [last.removeprefix("wp_")])
         inherited = {s for u in r["uses"] if u in roots for s in roots[u]["sorries"]}
         own = set(r["sorries"]) - inherited

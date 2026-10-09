@@ -21,6 +21,7 @@ Spec/go_etcd_io/raft/v3/tracker/NewInflights.lean).
 usage: etc/gen-link.py ROCQ_PROOF_DIR > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --cache > Proof/go_etcd_io/etcd/cache/v3/Link.lean
        etc/gen-link.py --server > Proof/go_etcd_io/etcd/server/v3/etcdserver/Link.lean
+       etc/gen-link.py --concurrency > Proof/go_etcd_io/etcd/client/v3/concurrency/Link.lean
 
 `--cache` links the proofs of etcd's `cache` package (`Proof/go_etcd_io/etcd/cache/v3/` and
 the specs and proofs of its functions), which are all
@@ -29,6 +30,12 @@ Lean-first: they are read from etc/link-lean-first-cache.txt alone, with no Rocq
 thread, `Proof/go_etcd_io/etcd/server/v3/etcdserver/`), from etc/link-lean-first-server.txt;
 its specs are also looked up in `EtcdDeps/Spec/` (etcd's own raft dependency, raft v3.7, whose
 Go path is the fork's).
+`--concurrency` links the proofs of `client/v3/concurrency` (`Session`) and of the clientv3
+functions they and the next recipes use, from etc/link-lean-first-concurrency.txt, under the
+concurrency package's assumptions. Its results are in the namespace `concurrency`, a clientv3
+function's with the prefix `v3.` (`concurrency.v3.wp_OpPut`), and the specs are referred to by
+their full names below `EtcdGrove`: the cache's Link links some of the same clientv3 functions
+(under the cache's assumptions), and concurrency's `WithLease` shares its name with clientv3's.
 """
 import glob
 import os
@@ -49,7 +56,14 @@ LEAN_FIRST = {
                  "go_etcd_io.etcd.server.v3.etcdserver.Assumptions",
                  "The etcd server's proofs (the consistent index and the apply thread)",
                  ["", "EtcdDeps"]),
+    "--concurrency": ("link-lean-first-concurrency.txt",
+                      "go_etcd_io.etcd.client.v3.concurrency go_etcd_io.etcd.api.v3",
+                      "go_etcd_io.etcd.client.v3.concurrency.Assumptions",
+                      "The `client/v3/concurrency` package's proofs (`Session`) and the clientv3 "
+                      "functions they and the next recipes use", [""]),
 }
+# The mode whose results are put in a namespace of their own (see the docstring).
+NAMESPACED = {"--concurrency": "concurrency"}
 mode = LEAN_FIRST.get(sys.argv[1])
 cache = mode is not None
 here = os.path.dirname(os.path.abspath(__file__))
@@ -131,11 +145,25 @@ haslc = {fn for fn in fns
          if "HeapGS HasLC.hasLC" in open(spec_file(fn)).read()}
 
 
+nsd = NAMESPACED.get(sys.argv[1])
+
+
 def result(fn):
-    """`a.b.M` ↦ `a.b.wp_M`, `F` ↦ `wp_F`."""
+    """`a.b.M` ↦ `a.b.wp_M`, `F` ↦ `wp_F` (in a namespaced mode: relative to its namespace, a
+    clientv3 function's with the prefix `v3.`)."""
     parts = spec[fn].split(".")
     last = parts[-1].strip("«»")
+    if nsd:
+        if parts[0] == nsd:
+            parts = parts[1:]
+        elif where[fn].split(".")[:-1] == ["go_etcd_io", "etcd", "client", "v3"]:
+            parts = ["v3"] + parts
     return ".".join(parts[:-1] + [f"wp_{last}"])
+
+
+def specref(fn):
+    """The spec's name as the Link refers to it: in a namespaced mode, below `EtcdGrove`."""
+    return f"EtcdGrove.{spec[fn]}" if nsd else spec[fn]
 
 
 order, seen = [], set()
@@ -173,7 +201,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-
+""" + (f"namespace {nsd}\n" if nsd else "") + f"""
 open Iris Iris.BI {opens}
 """)
     out.append(f"""section links
@@ -185,10 +213,10 @@ variable [package_sem : {assumptions}]
 """)
     def emit_cache(fn):
         args = " ".join(result(c) for c in callees[fn])
-        body = f"{spec[fn]}.wp_proof" + (f" {args}" if args else "")
+        body = f"{specref(fn)}.wp_proof" + (f" {args}" if args else "")
         # the specs with ghost state (the store's) take `[AllG GF]`
         allg = " [AllG GF]" if "[AllG GF]" in open(spec_file(fn)).read() else ""
-        return (f"theorem {result(fn)}{allg} :\n    {spec[fn]}.spec (GF := GF) (hG := hG) :=\n"
+        return (f"theorem {result(fn)}{allg} :\n    {specref(fn)}.spec (GF := GF) (hG := hG) :=\n"
                 f"  {body}\n")
 
     generic = [fn for fn in order if fn not in haslc and fn not in external]
@@ -208,7 +236,7 @@ variable [package_sem : {assumptions}]
 """)
         out.extend(emit_cache(fn) for fn in special)
         out.append("end links_hasLC\n")
-    out.append("end EtcdGrove\nend Perennial")
+    out.append((f"end {nsd}\n" if nsd else "") + "end EtcdGrove\nend Perennial")
     print("\n".join(out))
     sys.exit(0)
 
