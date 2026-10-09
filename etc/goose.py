@@ -101,10 +101,9 @@ PROJECTS = [
     ),
     Project(
         name="etcd",
-        # Branch `goose-lean`: upstream main (2026-10) plus the commits that make it
-        # translatable. Branch `goose` (upstream main of 2026-03) stays as it is: the
-        # Rocq translations (etcd-grove `main`, Perennial `master`) are regenerated
-        # from it by name.
+        # Branch `goose-revert` (on `goose`): upstream main (2026-10), the commits that make
+        # it translatable, and the one bug fix of `cache-ready-after-retry` (64313a1f8); its
+        # two other commits are reverted (no code change unless it fixes a bug).
         repo="https://github.com/upamanyus/etcd",
         rev="ab1deb078c7665f4907b0a4297cbd990266ecfde",
         # go.etcd.io/raft/v3 is etcd's own raft dependency (etcd's go.mod), not the fork
