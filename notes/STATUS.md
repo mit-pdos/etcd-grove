@@ -24,6 +24,9 @@ What changed here:
 - One proof broke, from the `copy` remodel, not the module system:
   `wp_slice_append_nil_empty` (`InvRaftpb.lean`) stepped through `copy`'s loop; it now uses
   Perennial's `wp_slice_copy_of_len_zero`. `extend`'s `wp_slice_copy` uses were unaffected.
+- `newStore_RLocker`'s `sorry` is gone (upstream's pointer conversions):
+  `etc/tcb-report.py --check`: 14 axioms, 2 sorries (`fmt.wp_Errorf`,
+  `wp_map_for_range_mut_keys`).
 - `slices.Sort` stays an axiom: Perennial's `wp_Sort_uint64` needs `xs.length ≤ 2^62`,
   which `slices.Sort.spec` does not have (see "What the five remaining axioms would take").
 
@@ -311,11 +314,13 @@ it imports). No `sorry`, no axiom: `etc/tcb-report.py --check` now also takes
 - **Axioms (trust boundary)**: `ownBTree`, `ownBTree_dfractional` (`InvBtree.lean`) and the
   `.wp_proof` of `btree.New`, `BTree.Clone`, `Get`, `ReplaceOrInsert`, `Delete`,
   `AscendGreaterOrEqual`, `AscendRange` (the btree package is names-only).
-- **`sorry`**: one, `newStore_RLocker` (`Proof/newStore.lean`): `RWMutex.RLocker()` converts
-  `*RWMutex` to `*rlocker`, and Perennial's Go semantics has no step for a conversion between
-  two pointer types, so the call is stuck. `fmt.Errorf` (the error paths) is Perennial's own
+- **`sorry`**: none of its own since 2026-10-09: `newStore_RLocker` (`Proof/newStore.lean`,
+  `RWMutex.RLocker()` converts `*RWMutex` to `*rlocker`) was stuck on that pointer
+  conversion until Perennial `cbb85c041` gave the Go semantics a step for it; now proved
+  (`wp_auto`). `fmt.Errorf` (the error paths) is Perennial's own
   `sorry` (`Proof/fmt.lean`), now reached.
-- **Perennial gaps found**: the pointer-to-pointer conversion above; no `isLocker` for
+- **Perennial gaps found**: the pointer-to-pointer conversion above (closed in
+  `cbb85c041`); no `isLocker` for
   `rlocker` (the cache's `revCond.Wait` will need it); `wp_load` through a fractional or
   persistent struct points-to fails (the Access search takes the field-store instance, which
   needs `DFrac.own 1`, and does not backtrack), worked around per proof with

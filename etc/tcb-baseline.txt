@@ -14,5 +14,4 @@ axiom reflect.DeepEqual.wp_proof
 axiom slices.Sort.wp_proof
 axiom strings.Join.wp_proof
 sorry Perennial.fmt.wp_Errorf
-sorry newStore_RLocker
 sorry wp_map_for_range_mut_keys
