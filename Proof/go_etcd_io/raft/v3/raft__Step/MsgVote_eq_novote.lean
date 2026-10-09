@@ -100,7 +100,8 @@ local macro "vote_grant_tail" : tactic => `(tactic| (
   iapply HΦ $$ %interface.nil %_
   iframe Hphys
   ipureintro
-  refine ⟨Hwf, ⟨[absMsg .vote m ents], fun m' Hm' => by simpa using Hm', ?_⟩, rfl⟩
+  refine ⟨Hwf, ⟨[absMsg .vote m ents], fun m' Hm' => by simpa using Hm', ?_⟩, rfl,
+    keep_frame rfl rfl rfl rfl rfl⟩
   have H : Step cfg id (toPState s) [absMsg .vote m ents]
       (psendMsgs { toPState s with vote := m.From' }
         [Msg.plain .voteResp id m.From' s.term false]) :=
@@ -134,7 +135,8 @@ local macro "vote_reject_tail" : tactic => `(tactic| (
   iframe Hphys
   ipureintro
   exact ⟨Hwf, ⟨[absMsg .vote m ents], fun m' Hm' => by simpa using Hm',
-    Step.rejectVote (absMsg .vote m ents) (toPState s) rfl Hto⟩, rfl⟩))
+    Step.rejectVote (absMsg .vote m ents) (toPState s) rfl Hto⟩, rfl,
+    keep_frame rfl rfl rfl rfl rfl⟩))
 
 /-! `MsgVote`: step down if the term is higher, then grant or decline.
 
@@ -192,7 +194,9 @@ theorem wp_Step_MsgVote_eq_novote (_P : raft.Step.Postulates (GF := GF) (hG := h
         -- from the single fact it holds about `m`.
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .vote m ents) ∧
             Step cfg id (toPState s) recv (toPState s')⌝ ∗
-        "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
+        "%Herr" ∷ ⌜err = interface.nil⌝ ∗
+        "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
+        "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
   intro Hty Hto Hterm Hfnz Heq0 Hv00 Hwf
   wp_start as ⟨Hphys, #Hctx⟩
   wp_auto

@@ -100,7 +100,7 @@ theorem RawNode.Propose.wp_proof
       iintro %Hc
       simp [MsgSnap] at Hc
   simp only [MsgProp, ite_true]
-  iintro %err %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, %Hloc, Herr, Hprops⟩
+  iintro %err %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, %Hloc, %_, %_, Herr, Hprops⟩
   wp_auto
   -- what the `RawNode` tracks is kept: `LocalStepOk`, and the commit index does not move
   -- back (`Step.commit_mono`)
@@ -116,7 +116,7 @@ theorem RawNode.Propose.wp_proof
   isplitl [Hrn Hphys Hghost Hsteps Hsteps_cap Hpown]
   · iapply ownRawNode_intro γ rn id rs s' ps' rnv sv steps Hrel' Hin Hasync
       (by rw [Hap']; exact Hdlen) (by rw [Hfr.2.2.1]; exact Hunp) (by rw [Hfr.2.2.2]; exact Hsnap)
-      (fun h => stepsOk_mono s s' _ Hfr.1 Hfr.2.1 Hc Hap' (Hadv h))
+      (fun h => stepsOk_mono s s' _ Hfr.1 Hfr.2.1 Hc Hap' (Hadv h)) (by rw [Hfr.1]; exact Htrm)
       $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv
   icases Hprops with (⟨%Hok, Hout⟩ | Hau)
   · ileft

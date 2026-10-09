@@ -66,7 +66,9 @@ theorem wp_Step_MsgVote (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         -- from the single fact it holds about `m`.
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .vote m ents) ∧
             Step cfg id (toPState s) recv (toPState s')⌝ ∗
-        "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
+        "%Herr" ∷ ⌜err = interface.nil⌝ ∗
+        "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
+        "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
   intro Hty Hto Hterm Hfnz Hwf
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
   · exact wp_Step_MsgVote_gt _P cfg r id s m ents Hty Hto Hterm Hfnz Hgt Hwf

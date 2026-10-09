@@ -60,7 +60,8 @@ theorem leader_beat_step (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Me
     (ents : List raftpb.Entry) (dropped : Bool) (s' : NState)
     (Hr : s.role = .leader) (Hty : m.Type' = MsgBeat) (Hwf : NStateWf s)
     (H : LeaderStepResult cfg id s m ents dropped s') :
-    dropped = false ∧ NStateWf s' ∧ Step cfg id (toPState s) [] (toPState s') := by
+    dropped = false ∧ NStateWf s' ∧ Step cfg id (toPState s) [] (toPState s') ∧
+      s'.logst = s.logst ∧ s'.term = s.term := by
   have Hpr : (toPState s).role = .leader := by rw [toPState_role, Hr]; rfl
   unfold LeaderStepResult at H
   rw [ite_eq_right (by rw [Hty]; w32_ne)] at H
@@ -70,7 +71,7 @@ theorem leader_beat_step (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Me
   rcases Hres with ⟨Hc, -⟩ | ⟨-, ms, pvs, rfl, Hok, Hpm⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩
   · exfalso; rw [Hty] at Hc
     rcases Hc with Hc | Hc | Hc | Hc <;> exact absurd Hc (by w32_ne)
-  · refine ⟨Hwf, ?_⟩
+  · refine ⟨Hwf, ?_, rfl, rfl⟩
     rw [toPState_prvals (sendMsgs s ms) pvs (fun _ => Hpm), toPState_sendMsgs]
     exact .beat _ ms Hpr Hok
   · exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
@@ -82,7 +83,8 @@ theorem leader_hbresp_step (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.
     (ents : List raftpb.Entry) (dropped : Bool) (s' : NState)
     (Hr : s.role = .leader) (Hty : m.Type' = MsgHeartbeatResp) (Hwf : NStateWf s)
     (H : LeaderStepResult cfg id s m ents dropped s') :
-    dropped = false ∧ NStateWf s' ∧ Step cfg id (toPState s) [] (toPState s') := by
+    dropped = false ∧ NStateWf s' ∧ Step cfg id (toPState s) [] (toPState s') ∧
+      s'.logst = s.logst ∧ s'.term = s.term := by
   have Hpr : (toPState s).role = .leader := by rw [toPState_role, Hr]; rfl
   unfold LeaderStepResult at H
   rw [ite_eq_right (by rw [Hty]; w32_ne)] at H
@@ -93,7 +95,7 @@ theorem leader_hbresp_step (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.
   · exfalso; rw [Hty] at Hc
     rcases Hc with Hc | Hc | Hc | Hc <;> exact absurd Hc (by w32_ne)
   · exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
-  · refine ⟨Hwf, ?_⟩
+  · refine ⟨Hwf, ?_, rfl, rfl⟩
     rw [toPState_prvals (sendMsgs s ms) pvs (fun _ => Hpm), toPState_sendMsgs]
     exact .sendApps _ ms Hpr Hok
   · exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
@@ -128,8 +130,9 @@ theorem leader_appresp_step (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb
     (Hteq : m.Term' = s.term) (Hwf : NStateWf s)
     (H : LeaderStepResult cfg id s m ents0 dropped s') :
     dropped = false ∧ NStateWf s' ∧
-    ∃ recv, (∀ m' ∈ recv, m' = absMsg .appResp m ents) ∧
-      Step cfg id (toPState s) recv (toPState s') := by
+    (∃ recv, (∀ m' ∈ recv, m' = absMsg .appResp m ents) ∧
+      Step cfg id (toPState s) recv (toPState s')) ∧
+    NetFrame s s' ∧ TermStep m s s' := by
   have Hpr : (toPState s).role = .leader := by rw [toPState_role, Hr]; rfl
   unfold LeaderStepResult at H
   rw [ite_eq_right (by rw [Hty]; w32_ne)] at H
@@ -143,14 +146,16 @@ theorem leader_appresp_step (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb
   · exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
   rcases Hres with ⟨-, rfl⟩ | ⟨-, -, ms, pvs, rfl, Hok, Hpm⟩ | ⟨-, Hrej, Hacc⟩
   · -- no `Progress` for the sender
-    exact ⟨Hwf, [], fun _ Hin => absurd Hin (List.not_mem_nil), .refl _⟩
+    exact ⟨Hwf, ⟨[], fun _ Hin => absurd Hin (List.not_mem_nil), .refl _⟩,
+      keep_frame rfl rfl rfl rfl rfl⟩
   · -- rejected
-    refine ⟨Hwf, [], fun _ Hin => absurd Hin (List.not_mem_nil), ?_⟩
+    refine ⟨Hwf, ⟨[], fun _ Hin => absurd Hin (List.not_mem_nil), ?_⟩,
+      keep_frame rfl rfl rfl rfl rfl⟩
     rw [toPState_prvals (sendMsgs s ms) pvs (fun _ => Hpm), toPState_sendMsgs]
     exact .sendApps _ ms Hpr Hok
   · -- accepted
     obtain ⟨x, pvs, c, ms, Hx, Hpvs, Hc, Hms, rfl⟩ := Hacc
-    refine ⟨Hwf, ?_⟩
+    refine ⟨Hwf, ?_, keep_frame rfl rfl rfl rfl rfl⟩
     have Hpr1 : (toPState { s with prvals := pvs }).role = .leader := Hpr
     have H1 : Step cfg id (toPState s) [absMsg .appResp m ents]
         (toPState { s with prvals := pvs }) := by

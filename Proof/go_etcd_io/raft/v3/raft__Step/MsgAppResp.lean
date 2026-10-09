@@ -59,7 +59,9 @@ theorem wp_Step_MsgAppResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .appResp m ents) ∧
             Step cfg id (toPState s) recv (toPState s')⌝ ∗
-        "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
+        "%Herr" ∷ ⌜err = interface.nil⌝ ∗
+        "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
+        "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
   intro Hty Hto Hterm Hfnz Hrej Hcfg Hwf
   wp_start_folded as ⟨Hphys, -⟩
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'

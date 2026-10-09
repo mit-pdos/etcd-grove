@@ -24,3 +24,5 @@ ConfState__Equivalent: slices_Sort reflect_DeepEqual
 # an Axiom in the Rocq (spec_Entry__Size.v), with sovRaft its one callee.
 raftpb_sovRaft:
 Entry__Size: raftpb_sovRaft
+# RawNode.Campaign (rawnode.go), Lean-first (2026-10-09).
+RawNode__Campaign: raft__Step

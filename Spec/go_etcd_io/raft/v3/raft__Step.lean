@@ -83,6 +83,65 @@ def LocalStepOk [FfiSyntax] (m : raftpb.Message) (ents : List raftpb.Entry)
       ∀ e, ents.getLast? = some e → uint.Z e.Index' ≤ uint.Z s.logst.applying) →
    s'.logst.applying = s.logst.applying)
 
+/-- What every `Step` but a `MsgSnap`'s and a `MsgStorageApplyResp`'s leaves of the log's
+state beyond the protocol (2026-10-09): `applying` (only `appliedTo` moves it), the pending
+snapshot (only `restore` sets one) and the entries a `Ready` handed out that the
+application has not appended yet (only `ownRaftLog_persist` empties them). This is what
+the `RawNode` predicate needs to survive a `Step` of a message from the network
+(`RawNode.Step`, `Tick`, `Campaign`). Unlike `LocalFrame`, it says nothing of the term or
+of `offsetInProgress`, which a truncating `MsgApp` moves back. -/
+def NetFrame [FfiSyntax] (s s' : NState) : Prop :=
+  s'.logst.applying = s.logst.applying ∧
+  s'.logst.snap = s.logst.snap ∧
+  s'.logst.unpersisted = s.logst.unpersisted
+
+theorem NetFrame.refl [FfiSyntax] (s : NState) : NetFrame s s := ⟨rfl, rfl, rfl⟩
+
+theorem NetFrame.trans [FfiSyntax] {s1 s2 s3 : NState} (h1 : NetFrame s1 s2)
+    (h2 : NetFrame s2 s3) : NetFrame s1 s3 :=
+  ⟨h2.1.trans h1.1, h2.2.1.trans h1.2.1, h2.2.2.trans h1.2.2⟩
+
+/-- Two states with the same log state. -/
+theorem NetFrame.of_logst [FfiSyntax] {s s' : NState} (h : s'.logst = s.logst) :
+    NetFrame s s' := by
+  unfold NetFrame; rw [h]; exact ⟨rfl, rfl, rfl⟩
+
+/-- How a `Step` moves the term (2026-10-09): never back; by a local `MsgHup` at most one
+up (a campaign); by any other message (but a `MsgPreVoteResp`, which may also campaign)
+at most to the message's term. And `offsetInProgress` does not move back but by a
+`MsgApp`, whose append may truncate the in-progress entries. -/
+def TermStep [FfiSyntax] (m : raftpb.Message) (s s' : NState) : Prop :=
+  uint.Z s.term ≤ uint.Z s'.term ∧
+  (m.Type' = MsgHup → uint.Z s'.term ≤ uint.Z s.term + 1) ∧
+  (m.Type' ≠ MsgHup → m.Type' ≠ MsgPreVoteResp →
+     uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term')) ∧
+  (m.Type' ≠ MsgApp → uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress)
+
+/-- A step that keeps the term. -/
+theorem TermStep.of_term [FfiSyntax] {m : raftpb.Message} {s s' : NState}
+    (h : s'.term = s.term)
+    (hi : m.Type' ≠ MsgApp → uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress) :
+    TermStep m s s' := by
+  unfold TermStep; rw [h]
+  exact ⟨Int.le_refl _, fun _ => by omega, fun _ _ => Int.le_max_left _ _, hi⟩
+
+theorem TermStep.refl [FfiSyntax] (m : raftpb.Message) (s : NState) : TermStep m s s :=
+  TermStep.of_term rfl (fun _ => Int.le_refl _)
+
+/-- A step to a term between the start's and the message's, for a message other than
+`MsgHup` (a step-down to `m.Term`, then a handler that keeps it). -/
+theorem TermStep.of_le [FfiSyntax] {m : raftpb.Message} {s s' : NState}
+    (hup : m.Type' ≠ MsgHup) (h1 : uint.Z s.term ≤ uint.Z s'.term)
+    (h2 : uint.Z s'.term ≤ uint.Z m.Term')
+    (hi : m.Type' ≠ MsgApp → uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress) :
+    TermStep m s s' :=
+  ⟨h1, fun h => absurd h hup, fun _ _ => Int.le_trans h2 (Int.le_max_right _ _), hi⟩
+
+/-- A local step's frame keeps the term and does not move `offsetInProgress` back. -/
+theorem TermStep.of_local [FfiSyntax] {m : raftpb.Message} {s s' : NState}
+    (h : LocalFrame s s') : TermStep m s s' :=
+  TermStep.of_term h.1 (fun _ => h.2.1)
+
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -284,6 +343,10 @@ abbrev raft.Step.spec : Prop :=
       -- for the local messages `RawNode` steps, what is kept of the physical state
       -- (2026-10-09)
       "%Hlocal" ∷ ⌜LocalStepOk m ents s s'⌝ ∗
+      -- for every other message but a snapshot, what is kept of the log (2026-10-09)
+      "%Hframe" ∷ ⌜m.Type' ≠ MsgSnap → m.Type' ≠ MsgStorageApplyResp → NetFrame s s'⌝ ∗
+      -- and how the term moves (2026-10-09)
+      "%Hterm" ∷ ⌜m.Type' ≠ MsgSnap → TermStep m s s'⌝ ∗
       -- only a proposal can be dropped, with `ErrProposalDropped`
       "Herr" ∷ (⌜err = interface.nil⌝ ∨
                 (⌜m.Type' = MsgProp⌝ ∗

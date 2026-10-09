@@ -14,6 +14,20 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## `raft.Step` frames the log and bounds the term (2026-10-09)
+
+Towards `RawNode.Step`/`Tick`/`Campaign` (a network message, a tick): `raft.Step`'s
+postcondition gained, for every type but `MsgSnap`, `"%Hframe"` (`NetFrame s s'`:
+`applying`, the pending snapshot and `unpersisted` kept; not for a
+`MsgStorageApplyResp`) and `"%Hterm"` (`TermStep m s s'`: the term never moves back, a
+`MsgHup` raises it by at most one, any other message but a `MsgPreVoteResp` at most to the
+message's term, and `offsetInProgress` moves back only on a `MsgApp`). Every branch
+lemma under `Proof/go_etcd_io/raft/v3/raft__Step/` states both (`stepPost`,
+`finish_branch` carry them); `raft.hup`'s spec says the log is untouched and the term
+moves up by at most one; `raftLog.maybeAppend`'s and `handleAppendEntries`'
+(`HandleAppResult`) postconditions keep `applying`, `snap`, `unpersisted`. `lake build
+Proof.go_etcd_io.raft.v3.Link Proof.go_etcd_io.raft.v3.Results` passes; no `sorry` added.
+
 ## Perennial `f52ce33dc`; retargeting raft to upstream (2026-10-09)
 
 Re-pinned to Perennial `f52ce33dc` (`lean`: `79adaac01` below merged with the Goose

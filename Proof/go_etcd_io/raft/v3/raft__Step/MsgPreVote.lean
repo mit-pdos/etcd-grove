@@ -55,7 +55,9 @@ theorem wp_Step_MsgPreVote (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "Hphys" ∷ ownRaftPhys cfg r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜Step cfg id (toPState s) [] (toPState s')⌝ ∗
-        "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
+        "%Herr" ∷ ⌜err = interface.nil⌝ ∗
+        "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
+        "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
   intro Hty Hto Hterm Hfnz Hwf Hutd0
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
   · exact wp_Step_MsgPreVote_gt _P cfg r id s m Hty Hto Hterm Hfnz Hgt Hwf Hutd0

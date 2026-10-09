@@ -57,6 +57,19 @@ omit ext ffi [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
 private theorem ite_neg {α : Sort _} {c : Prop} [Decidable c] {a b : α} (h : ¬c) :
     (if c then a else b) = b := by simp [h]
 
+/-- A candidate's tally keeps the term and `NetFrame`'s fields: a win's `becomeLeader`
+appends to the unstable entries only. -/
+private theorem voteRespResult_frame (id : w64) (s : NState) (src : w64)
+    (reject won lost : Bool) (ms : List Msg) (pvs : GMap w64 Progress) (m : raftpb.Message) :
+    NetFrame s { voteRespResult id s src reject won lost ms with prvals := pvs } ∧
+    TermStep m s { voteRespResult id s src reject won lost ms with prvals := pvs } := by
+  unfold voteRespResult
+  split
+  · exact keep_frame rfl rfl rfl rfl rfl
+  · split
+    · exact keep_frame rfl rfl rfl rfl rfl
+    · exact keep_frame rfl rfl rfl rfl rfl
+
 /-- `MsgVoteResp`: the term preamble, then `r.step(m)`.
 
 The one branch where all three `stepX` can run, so it is also the one that needs the
@@ -93,7 +106,9 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .voteResp m ents) ∧
             Step cfg id (toPState s) recv (toPState s')⌝ ∗
-        "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
+        "%Herr" ∷ ⌜err = interface.nil⌝ ∗
+        "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
+        "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
   intro Hty Hto Hterm Hcfg Hwf
   wp_start as Hphys
   wp_auto
@@ -138,7 +153,8 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ
     iframe Hphys
     ipureintro
-    refine ⟨rfl, ⟨[absMsg .voteResp m ents], by simp, ?_⟩, rfl⟩
+    refine ⟨rfl, ⟨[absMsg .voteResp m ents], by simp, ?_⟩, rfl,
+      stepdown_frame (by rw [Hty]; w32_ne) (Int.le_of_lt Hgt) rfl rfl rfl rfl rfl⟩
     rw [toPState_prvals_nl (becomeFollower s m.Term' (W64 0)) pvs (by simp [becomeFollower]),
       toPState_becomeFollower]
     exact Step.higherTerm (cfg := cfg) (id := id) (absMsg .voteResp m ents) (toPState s)
@@ -164,7 +180,8 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         iapply HΦ $$ %interface.nil %s
         iframe Hphys
         ipureintro
-        exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, .refl _⟩, rfl⟩
+        exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, .refl _⟩, rfl,
+      keep_frame rfl rfl rfl rfl rfl⟩
     · -- m.Term = r.Term: the preamble does nothing and control reaches the type
       -- switch, whose default arm is `r.step(m)`.
       rw [decide_eq_false Hlt]
@@ -196,7 +213,8 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         iapply HΦ $$ %interface.nil %s
         iframe Hphys
         ipureintro
-        exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, .refl _⟩, rfl⟩
+        exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, .refl _⟩, rfl,
+      keep_frame rfl rfl rfl rfl rfl⟩
       · -- Candidate: `stepCandidate` records the vote and may win or lose in the same
         -- call.
         simp only [stepFuncOf]
@@ -233,7 +251,8 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         iapply HΦ
         iframe Hphys
         ipureintro
-        refine ⟨nstateWf_prvals _ _ (nstateWf_voteRespResult _ _ _ _ _ _ _ Hwf), ?_, rfl⟩
+        refine ⟨nstateWf_prvals _ _ (nstateWf_voteRespResult _ _ _ _ _ _ _ Hwf), ?_, rfl,
+          voteRespResult_frame _ _ _ _ _ _ _ _ _⟩
         refine ⟨[absMsg .voteResp m ents], by simp, ?_⟩
         rw [toPState_voteRespResult _ _ _ _ _ _ _ _ Hrole]
         have Hnp : s.role ≠ .preCandidate := by rw [Hrole]; decide
@@ -299,7 +318,8 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         iapply HΦ $$ %interface.nil %s
         iframe Hphys
         ipureintro
-        exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, .refl _⟩, rfl⟩
+        exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, .refl _⟩, rfl,
+      keep_frame rfl rfl rfl rfl rfl⟩
       · -- PreCandidate (2026-10-04): `stepCandidate`'s `myVoteRespType` is
         -- `MsgPreVoteResp`, so a vote response is ignored.
         simp only [stepFuncOf]
@@ -323,7 +343,8 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         iapply HΦ $$ %interface.nil %s
         iframe Hphys
         ipureintro
-        exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, .refl _⟩, rfl⟩
+        exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, .refl _⟩, rfl,
+      keep_frame rfl rfl rfl rfl rfl⟩
 
 end StepProof
 

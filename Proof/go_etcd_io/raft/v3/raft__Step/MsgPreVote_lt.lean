@@ -52,7 +52,9 @@ theorem wp_Step_MsgPreVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "Hphys" ∷ ownRaftPhys cfg r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜Step cfg id (toPState s) [] (toPState s')⌝ ∗
-        "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
+        "%Herr" ∷ ⌜err = interface.nil⌝ ∗
+        "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
+        "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
   intro Hty Hto Hterm Hfnz Hlt0 Hwf
   have Hn8 : decide (m.Type' = W32 8) = false := decide_eq_false (by rw [Hty]; w32_ne)
   have Hn3 : decide (m.Type' = W32 3) = false := decide_eq_false (by rw [Hty]; w32_ne)
@@ -102,7 +104,7 @@ theorem wp_Step_MsgPreVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %_
     iframe Hphys
     ipureintro
-    refine ⟨nstateWf_sendMsgs _ _ Hwf, ?_, rfl⟩
+    refine ⟨nstateWf_sendMsgs _ _ Hwf, ?_, rfl, keep_frame rfl rfl rfl rfl rfl⟩
     rw [toPState_sendMsgs]
     exact .sendFree _ _ (.inr rfl) rfl
 
