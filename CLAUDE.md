@@ -75,7 +75,7 @@ the `.lean` files by hand.
   side's), with bodies, and the types and names
   only of the packages it uses (`client/v3`, `api/v3/{mvccpb,etcdserverpb,
   v3rpc/rpctypes}`, `k8s.io/utils/third_party/forked/golang/btree`, protobuf's
-  `runtime/protoimpl` and `internal/impl`), as the
+  `runtime/protoimpl`, `internal/impl` and `internal/pragma`), as the
   `EtcdCache` library (modules `EtcdCache.Code.go_etcd_io.etcd.cache.v3`, ...).
   Types Goose cannot translate are axiomatized, and their generated instances are
   `sorry -- axiomatized type`; no proof uses them yet.

@@ -295,7 +295,9 @@ Lean-first like the ring buffer (`EtcdGrove/Cache/{Spec,Proof}/`, vocabulary in
   a message's `TypedPointsto`/`IntoValTyped` contains the opaque `state : impl.MessageState`,
   whose generated instances are `sorry` ("axiomatized type"). `InvStore.lean` also gives the
   three messages' `TypeRepr` directly (high priority), since instance search otherwise found it
-  through those `IntoValTyped` instances for every field access.
+  through those `IntoValTyped` instances for every field access. (Since 2026-10-09
+  `impl.MessageState` is translated as a struct and those instances are proved, so this
+  is no longer about the trust base; kept as it is.)
 
 
 ---

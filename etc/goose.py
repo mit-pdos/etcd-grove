@@ -106,6 +106,7 @@ PROJECTS = [
             # the types of protobuf messages' fields (protoimpl.MessageState, ...)
             "google.golang.org/protobuf/runtime/protoimpl",
             "google.golang.org/protobuf/internal/impl",
+            "google.golang.org/protobuf/internal/pragma",
         ],
         owned=[os.path.join("go_etcd_io", "etcd"), "k8s_io", "google_golang_org"],
     ),

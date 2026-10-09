@@ -181,18 +181,30 @@ target), generated and checked by `etc/goose.py` (now two projects, `etcd-raft` 
   `SizeCache`/`UnknownFields` translate to `int32`/`[]byte`; protoimpl's other aliases
   must not be left to `translate_types`, which axiomatizes an alias-of-an-alias as
   `axiom SizeCache`, not `SizeCache.ty`, a name the users do not find) and
-  `google.golang.org/protobuf/internal/impl` (names only, for `impl.MessageState`, whose
-  struct of `internal/pragma` types stays axiomatized: the `state` field is opaque).
+  `google.golang.org/protobuf/internal/impl` (names only, but for the struct
+  `impl.MessageState`, translated since 2026-10-09; its pointer field's `*MessageInfo`
+  stays axiomatized), and `google.golang.org/protobuf/internal/pragma` (types only, all
+  four translated: `NoUnkeyedLiterals`, `DoNotCompare` (`[0]func()`) and `DoNotCopy`
+  (`[0]sync.Mutex`, so `sync` is imported), which `MessageState` embeds, and
+  `DoNotImplement`).
   `clientv3.GetResponse` (`type GetResponse pb.RangeResponse`), `clientv3.WatchResponse`,
   `Op`, `OpOption`, `KV`, `Watcher`, `WatchChan` were already translated.
   `clientv3.Client` is still axiomatized (the cache reads its `KV` and `Watcher` fields
   in `newCache`): its other fields are grpc, grpc credentials, client's internal
   resolver and zap types, which would each need a names-only translation.
 - Nothing else (grpc, zap, ...) is reached; types that would need it are axiomatized
-  (203 `axiom X.underlying`), and their generated instances are `sorry -- axiomatized
-  type` (426, in `GeneratedProof/`: 152 in the two protobuf packages, 236 in
+  (212 `axiom X.underlying`, by `grep '^axiom .*\.underlying'` in `Code/`), and their
+  generated instances are `sorry -- axiomatized type` (424, in `GeneratedProof/`: 150
+  in the protobuf packages, 236 in
   `etcdserverpb`, 36 in `client/v3`, 2 in `rpctypes`; no proof uses them, and the raft
   trust base is unaffected). Standard-library packages are Perennial's.
+- **`impl.MessageState` is a real struct** (2026-10-09): its generated `TypedPointsto` and
+  `IntoValTyped` instances are proved (`solve_into_val_typed_struct`), so the two
+  `sorry -- axiomatized type` instances the cache proofs reached (allocating
+  `&pb.ResponseHeader{}`) are gone: `etc/tcb-report.py --check --update`, 14 axioms,
+  3 sorries. `Cache/Base.lean` gained a `True` package instance for `internal/pragma`. The
+  field-only message predicates and `InvStore.lean`'s high-priority `TypeRepr` instances
+  (`decisions.md`) were kept: they still work, and no longer guard against a `sorry`.
 - `-lean-root` maps `go.etcd.io/etcd`, `k8s.io` and `google.golang.org` to `EtcdCache`.
 - The two Goose bugs above belong fixed in Perennial's `goose/types.go`: `types.Unalias`
   in `getStructInfo` (tried: two lines, and the alias errors go away), the type arguments
@@ -339,7 +351,8 @@ Design and rejected alternatives: `decisions.md`, "watcher, notifier, ready".
   `enqueueResponse` (a nil header) and `Compact`: allocating a protobuf message needs the
   message's `IntoValTyped`, which contains its opaque `state` field. They go once
   `protobuf/internal/impl.MessageState` (and the `internal/pragma` types it embeds) are
-  translated rather than axiomatized. `Stop`, `newWatcher`, the consumer lemmas, the
+  translated rather than axiomatized (done 2026-10-09: both gone, see the `EtcdCache`
+  section). `Stop`, `newWatcher`, the consumer lemmas, the
   notifier and ready rest on no `sorry`; Perennial's `context` `sorry`s (`WithCancel`, ...)
   are not reached (only `isContext`'s `Done`/`Err` are used).
 - **Perennial gaps found**: `Once.wp_Do` takes a persistent closure triple, so a closure
@@ -400,7 +413,8 @@ lock".
   map `StartRead`-locked for the whole loop, so a write in the body is stuck: the lemma is what
   Go guarantees and is false in Perennial's present model. Fix in Perennial: read the domain
   once, then look each key up when it is visited (skipping deleted keys). Also reached: the two
-  known `impl.MessageState` sorries (`&ResponseHeader{}` in the progress responses).
+  known `impl.MessageState` sorries (`&ResponseHeader{}` in the progress responses; gone
+  2026-10-09, `MessageState` is now translated).
   `etc/tcb-report.py --check --update`: 14 axioms, 5 sorries (the baseline gained
   `wp_map_for_range_mut_keys`). `lake build` passes; `etc/gen-link.py --cache` reproduces
   `Cache/Link.lean`.
