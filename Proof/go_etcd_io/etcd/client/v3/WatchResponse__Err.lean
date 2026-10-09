@@ -22,7 +22,7 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 -- Loads from the fractional response: the field-store `AccessStrict` instances (which need
 -- `DFrac.own 1`) are found first and the search does not backtrack.

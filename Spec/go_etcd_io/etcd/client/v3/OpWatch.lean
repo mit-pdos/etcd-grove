@@ -20,7 +20,7 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `OpWatch(key, opts...)`: the `Op` modelled by `opWatchModel key gs`; it panics if the options set a lease, a limit, a sort order, `serializable`, `countOnly` or a revision filter (`opWatchPanics`), which the caller rules out. -/
 abbrev OpWatch.spec : Prop :=

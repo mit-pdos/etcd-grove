@@ -19,7 +19,7 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 theorem Op.MaxCreateRev.wp_proof : Op.MaxCreateRev.spec (GF := GF) (hG := hG) := by
   intro opp op o dq
