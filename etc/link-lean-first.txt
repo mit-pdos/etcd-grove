@@ -26,3 +26,7 @@ raftpb_sovRaft:
 Entry__Size: raftpb_sovRaft
 # RawNode.Campaign (rawnode.go), Lean-first (2026-10-09).
 RawNode__Campaign: raft__Step
+isMsgInArray:
+IsLocalMsg: isMsgInArray
+IsResponseMsg: isMsgInArray
+RawNode__Step: IsResponseMsg IsLocalMsg IsLocalMsgTarget raft__Step

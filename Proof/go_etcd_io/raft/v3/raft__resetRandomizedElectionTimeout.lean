@@ -34,7 +34,7 @@ theorem raft.resetRandomizedElectionTimeout.wp_proof
   wp_start as Hphys
   ihave #Hinit := isInitialized_access $$ Hpkg
   unfold isInitialized
-  icases Hinit with ⟨%e1, %e2, %e3, %e4, %e5, %gr, #Hinit⟩
+  icases Hinit with ⟨%e1, %e2, %e3, %e4, %e5, %gr, %_, %_, %_, %_, #Hinit⟩
   iNamed Hinit
   wp_auto
   -- `r.electionTimeout` is read twice, and `ownRaftPhys` does not track

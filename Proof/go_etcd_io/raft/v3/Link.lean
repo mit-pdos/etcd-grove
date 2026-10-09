@@ -27,6 +27,9 @@ public import Proof.go_etcd_io.raft.v3.tracker.Inflights__reset
 public import Proof.go_etcd_io.raft.v3.IsEmptyHardState
 public import Proof.go_etcd_io.raft.v3.IsEmptySnap
 public import Proof.go_etcd_io.raft.v3.IsLocalMsgTarget
+public import Proof.go_etcd_io.raft.v3.IsLocalMsg
+public import Proof.go_etcd_io.raft.v3.IsResponseMsg
+public import Proof.go_etcd_io.raft.v3.isMsgInArray
 public import Proof.go_etcd_io.raft.v3.quorum.JointConfig__CommittedIndex
 public import Proof.go_etcd_io.raft.v3.quorum.JointConfig__IDs
 public import Proof.go_etcd_io.raft.v3.quorum.JointConfig__VoteResult
@@ -61,6 +64,7 @@ public import Proof.go_etcd_io.raft.v3.tracker.Progress__SentCommit
 public import Proof.go_etcd_io.raft.v3.tracker.Progress__SentEntries
 public import Proof.go_etcd_io.raft.v3.RawNode__Advance
 public import Proof.go_etcd_io.raft.v3.RawNode__Campaign
+public import Proof.go_etcd_io.raft.v3.RawNode__Step
 public import Proof.go_etcd_io.raft.v3.RawNode__HasReady
 public import Proof.go_etcd_io.raft.v3.RawNode__Propose
 public import Proof.go_etcd_io.raft.v3.RawNode__Ready
@@ -215,6 +219,18 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem wp_IsLocalMsgTarget :
     IsLocalMsgTarget.spec (GF := GF) (hG := hG) :=
   IsLocalMsgTarget.wp_proof
+
+theorem wp_isMsgInArray :
+    isMsgInArray.spec (GF := GF) (hG := hG) :=
+  isMsgInArray.wp_proof
+
+theorem wp_IsLocalMsg :
+    IsLocalMsg.spec (GF := GF) (hG := hG) :=
+  IsLocalMsg.wp_proof wp_isMsgInArray
+
+theorem wp_IsResponseMsg :
+    IsResponseMsg.spec (GF := GF) (hG := hG) :=
+  IsResponseMsg.wp_proof wp_isMsgInArray
 
 theorem Config.wp_validate :
     Config.validate.spec (GF := GF) (hG := hG) :=
@@ -951,6 +967,10 @@ theorem RawNode.wp_Advance :
 theorem RawNode.wp_Campaign :
     RawNode.Campaign.spec (GF := GF) (hG := hG) :=
   RawNode.Campaign.wp_proof raft.wp_Step
+
+theorem RawNode.wp_Step :
+    RawNode.Step.spec (GF := GF) (hG := hG) :=
+  RawNode.Step.wp_proof wp_IsResponseMsg wp_IsLocalMsg wp_IsLocalMsgTarget raft.wp_Step
 
 theorem RawNode.wp_HasReady :
     RawNode.HasReady.spec (GF := GF) (hG := hG) :=

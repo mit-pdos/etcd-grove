@@ -14,6 +14,28 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## `RawNode.Campaign`, `RawNode.Step` (2026-10-09)
+
+Both proved and linked (`RawNode.wp_Campaign`, `RawNode.wp_Step`; Lean-first, in
+`etc/link-lean-first.txt`, added to `Link.lean` by hand: `etc/gen-link.py`'s output already
+differed from the checked-in file, e.g. `confchange.Restore`'s callees). `RNState` gained
+`term` (`ownRawNode`: `rs.term = s.term`).
+
+- `Campaign`: for `rs.term + 1 < 2^64` (Go panics when the campaign wraps the term), `nil`,
+  the term up by at most one; the rest of `rs` kept, also between `Ready` and `Advance`
+  (`stepsOk_mono_le`: the queue survives a higher term).
+- `Step`: for a message of replication or election (`NetMsgOk`: `MsgApp`, `MsgAppResp`,
+  `MsgVote`, `MsgVoteResp`, `MsgHeartbeat`, `MsgHeartbeatResp`, with `raft.Step`'s transport
+  premises; no pre-vote, snapshots, read-index or leader transfer), its `isMessage`, read-only
+  entries with the capacity owned, a `Context` that is not the transfer marker: the term
+  moves up to at most the message's, `err` unspecified (the guards' rejections change
+  nothing). A `MsgApp` only with no `Ready` outstanding (`rs.steps = []`: it may lower
+  `offsetInProgress`). The guards' `IsLocalMsg`/`IsResponseMsg` (`isMsgInArray`) are
+  specified to return some `bool` (for a nonnegative type: `MessageType` is an `int32`, a
+  negative one panics); `isInitialized` gained their tables and the two error globals.
+
+Next: `Tick` (`ownRaftPhys` must record `r.tick`), `NewRawNode`, the `Advance` gap.
+
 ## `raft.Step` frames the log and bounds the term (2026-10-09)
 
 Towards `RawNode.Step`/`Tick`/`Campaign` (a network message, a tick): `raft.Step`'s
