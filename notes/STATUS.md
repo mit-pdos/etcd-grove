@@ -722,7 +722,15 @@ proved: `Cache.watch`, `getWatch`, `getWatchLoop` (finding 1 below); out of scop
      iteration's client watch is never canceled (it runs on `internalCtx`), and the next
      iteration re-watches from the original `rev`, whose replayed events `Broadcast` rejects once
      the stream has events (another round of the retry loop). Liveness, not safety: the specs
-     are unaffected.
+     are unaffected. **Confirmed in Go (2026-10-09)**: `cache/ready_liveness_test.go` in the
+     fork's working tree (not committed; its own per-stream fake watcher, since the tests'
+     `mockWatcher` feeds every stream from one channel) drives exactly this: first `Get` at 9,
+     event at 10, stream canceled, retry `Get` at 12 → `watch(13)`, `Init(13)` purges (the
+     `141-143` branch), `ready` set then reset, a second upstream stream opens (the first is
+     never canceled), the event at 13 reaches the store, and `Ready()` stays false:
+     `WaitReady` and `Cache.Watch` time out (5 of 5 runs under `-race`, no data race). The
+     control with the retry `Get` at 10 (`Init(11)`, no purge) recovers. The retry backoff is
+     `defaultConfig().InitialBackoff`, real time, not the cache's clock or `Config`.
   3. *The store watcher starts lagging.* On a fresh demux (`maxRev = 0`), `Register(storeW,
      rev)` with `rev ≠ 0` makes it lagging (`demux.go:89-95`): it gets the stream only at the
      first resync, so the store, and linearizable `Get`s, lag by up to `ResyncInterval` at
