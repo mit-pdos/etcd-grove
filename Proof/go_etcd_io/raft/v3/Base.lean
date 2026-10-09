@@ -131,7 +131,8 @@ initializer; a proof that reads one needs the points-to, the load being through
 global RNG, and `emptyState`. -/
 def isInitialized : IProp GF :=
   iprop(∃ (errStopped errCompacted errUnavailable errSnapUnavail errPropDropped : GoInterface)
-      (globalRand' : Loc),
+      (globalRand' : Loc) (localMsgs responseMsgs : GoArray Bool 23)
+      (errStepLocal errStepPeer : GoInterface),
     "ErrStopped" ∷ (globalAddr ErrStopped ↦□ errStopped : IProp GF) ∗
     "%HErrStopped" ∷ ⌜errStopped ≠ interface.nil⌝ ∗
     -- `maybeSendSnapshot` compares `Storage.Snapshot`'s error against this one; it is
@@ -161,7 +162,15 @@ def isInitialized : IProp GF :=
     "#HglobalRand" ∷ isLockedRand globalRand' ∗
     -- `emptyState = pb.HardState{}` (`node.go`), which `IsEmptyHardState` compares
     -- against; nothing but the initializer writes it
-    "#emptyState" ∷ (globalAddr emptyState ↦□ (⟨W64 0, W64 0, W64 0⟩ : raftpb.HardState) : IProp GF))
+    "#emptyState" ∷ (globalAddr emptyState ↦□ (⟨W64 0, W64 0, W64 0⟩ : raftpb.HardState) : IProp GF) ∗
+    -- the tables behind `IsLocalMsg` and `IsResponseMsg` (`util.go`), read by
+    -- `RawNode.Step`; nothing but the initializer writes them, and their contents do
+    -- not matter to the specs (2026-10-09)
+    "#isLocalMsg" ∷ (globalAddr isLocalMsg ↦□ localMsgs : IProp GF) ∗
+    "#isResponseMsg" ∷ (globalAddr isResponseMsg ↦□ responseMsgs : IProp GF) ∗
+    -- the errors `RawNode.Step` returns for a message it does not step
+    "#ErrStepLocalMsg" ∷ (globalAddr ErrStepLocalMsg ↦□ errStepLocal : IProp GF) ∗
+    "#ErrStepPeerNotFound" ∷ (globalAddr ErrStepPeerNotFound ↦□ errStepPeer : IProp GF))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.raft.v3 :=
   define_is_pkg_init isInitialized
@@ -171,6 +180,20 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.raf
 theorem isInitialized_access :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ⊢ isInitialized :=
   isPkgInit_access (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3
+
+/-- `isLocalMsg[:]`, `isResponseMsg[:]`: the whole of a `[23]bool` as a slice, at any
+fraction (Perennial's `slice_array` is for an owned array). -/
+theorem array_slice_bool (l : Loc) (a : GoArray Bool 23) (dq : DFrac) :
+    (typedPointsto l a dq : IProp GF) ⊢ slice.mk l (W64 23) (W64 23) ↦*{dq} a.arr := by
+  obtain ⟨arr⟩ := a
+  iintro H
+  icases array_len _ _ _ _ $$ H with %Hn
+  rw [ownSlice_unseal]; unfold ownSliceDef
+  iright
+  simp only
+  rw [show sint.Z (W64 23) = (23 : Int) from rfl]
+  iframe H
+  ipureintro; omega
 
 end init
 

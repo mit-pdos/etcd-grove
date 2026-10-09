@@ -53,7 +53,7 @@ theorem stepFollower.wp_proof
   iNamed H
   ihave #Hinit := isInitialized_access $$ Hpkg
   unfold isInitialized
-  icases Hinit with ⟨%e1, %e2, %e3, %e4, %errPropDropped, %gr, #Hinit⟩
+  icases Hinit with ⟨%e1, %e2, %e3, %e4, %errPropDropped, %gr, %_, %_, %_, %_, #Hinit⟩
   iNamed Hinit
   wp_auto
   rcases Hty with Hty | Hty | Hty | Hty | Hty | Hty | Hty
