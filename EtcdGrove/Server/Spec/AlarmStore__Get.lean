@@ -19,9 +19,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- `a.Get(aty)` returns some slice of the alarms of type `aty`. -/
 abbrev v3alarm.AlarmStore.Get.spec : Prop :=
-  ∀ (a : Loc) (aty : w32),
+  ∀ (a : Loc) (aty : val),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm }}
-    (App (Val (a @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore.ty @!! go!"Get")) (Val #aty))
+    (App (Val (a @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore.ty @!! go!"Get")) (Val aty))
   {{ (sl : GoSlice), RET #sl; True }}
 
 end spec
