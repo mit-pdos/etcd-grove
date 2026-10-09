@@ -213,9 +213,8 @@ generated and checked by `etc/goose.py` (now two projects, `etcd-raft` and `etcd
   Pushed 2026-10-08, so `etc/goose.py` fetches it from GitHub (`--src etcd=<checkout>` or
   `$ETCD_SRC` only for an unpushed revision). CI's Go is now 1.27 (etcd's `go.mod`).
   **Since 2026-10-09 pinned at `6ab61a1c7`**: `48fd5a507` merged with the fork's branch
-  `cache-ready-after-retry` (three fixes of `cache.go`, see "The watch loop and Cache.Watch");
-  until the user pushes it (`git push origin goose:goose-lean`), regenerate and check with
-  `ETCD_SRC=/shared/etcd ./etc/goose.py [--check]`.
+  `cache-ready-after-retry` (three fixes of `cache.go`, see "The watch loop and Cache.Watch"),
+  pushed as `goose-lean` the same day (`etc/goose.py --check` fetches it from GitHub).
 - **With bodies**: all of `cache/v3` (every function and method, non-test files;
   `cache/v3.toml`: `translate = ["*"]`).
 - **Types and names only** (`translate = ["!*"]`, `translate_types = true`, a few
@@ -644,7 +643,7 @@ model".
 `EtcdStep`, certificates through the demux".
 
 - **Verified against the fixed code (2026-10-09).** The verified code is `goose-lean` at
-  `6ab61a1c7` (not pushed yet: `ETCD_SRC=/shared/etcd`, see the EtcdCache section): `48fd5a507`
+  `6ab61a1c7` (pushed; see the EtcdCache section): `48fd5a507`
   merged with the fork's branch `cache-ready-after-retry` (for an upstream PR), whose three
   commits fix findings 1 and 2: `64313a1f8` `Init(rev)` once before the loop, the `Once` only
   setting `ready` (finding 2; `watch_retry_test.go`); `21ac13e0d` each upstream watch in a child
@@ -674,7 +673,7 @@ model".
     translated (were axioms). Trust base: `context.wp_WithCancel` (a Perennial `sorry`) is now
     reached (`watchEvents`); `etc/tcb-baseline.txt` updated: 10 axioms, 3 sorries.
   - Gates: `lake build` passes (1406 jobs); `etc/tcb-report.py --check` passes (after
-    `--update`, above); `ETCD_SRC=/shared/etcd ./etc/goose.py --check` passes; `etc/gen-link.py
+    `--update`, above); `etc/goose.py --check` passes (fetching the fork); `etc/gen-link.py
     --cache` reproduces `Link.lean`; `etc/verified-code.py --reuse` (with `6ab61a1c7` fetched
     into `.lake/go-src/etcd` from `/shared/etcd`, until pushed): the cache package 74 of 107
     functions verified, 9 unfinished (`watchEvents` now among them: it uses the
