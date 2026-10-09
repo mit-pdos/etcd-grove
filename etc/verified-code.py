@@ -45,7 +45,7 @@ import sys
 import textwrap
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-CODE = os.path.join(ROOT, "EtcdRaft", "Code", "go_etcd_io")
+CODE = os.path.join(ROOT, "Code", "go_etcd_io")
 NS = "Perennial.EtcdGrove."
 
 FORKS = {"etcd-raft": "upamanyus/etcd-raft", "etcd": "upamanyus/etcd"}
@@ -155,11 +155,11 @@ def run_lean(json_path):
 
 def local_proofs(json_path):
     """This repository's specs: the Lean name of the function (`raftLog.slice`) ->
-    (state, sorry-free), from the linked results of `EtcdGrove.Raft.Link`."""
+    (state, sorry-free), from the linked results of `Proof.go_etcd_io.raft.v3.Link`."""
     roots, axioms = {}, set()
     for line in read(json_path).splitlines():
         o = json.loads(line)
-        if o["t"] == "root" and o["module"] == "EtcdGrove.Raft.Link":
+        if o["t"] == "root" and o["module"] == "Proof.go_etcd_io.raft.v3.Link":
             roots[o["name"]] = o
         elif o["t"] == "axiom":
             axioms.add(o["name"])

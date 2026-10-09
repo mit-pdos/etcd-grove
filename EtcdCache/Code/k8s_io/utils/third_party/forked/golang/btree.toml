@@ -1,9 +1,0 @@
-# Types and names only: function and method bodies are axiomatized.
-translate = ["!*"]
-# `sync` so that the generic struct FreeList[T] (it has a sync.Mutex) is translated:
-# Goose emits an axiomatized generic type as `∀ (T : go.type), go.type`, which does
-# not elaborate (the Lean name is go.GoType).
-imports = ["!*", "sync"]
-
-# translate the definitions of all type declarations goose supports
-translate_types = true

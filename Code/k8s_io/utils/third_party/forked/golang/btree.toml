@@ -1,0 +1,5 @@
+# The fork of google/btree etcd's cache uses: translated in full (the default), with
+# bodies, and proved (`Proof/k8s_io/utils/third_party/forked/golang/btree/`).
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

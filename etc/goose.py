@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""Regenerate, or check, the Goose translations of etcd-raft (`EtcdRaft/`), etcd
-(`EtcdCache/`) and google/btree (`GoogleBtree/`).
+"""Regenerate, or check, the Goose translations of etcd-raft and etcd (in `Code/`, `GeneratedProof/`).
 
 usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perennial DIR]
 
@@ -8,7 +7,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                files; exit 1 (printing a diff) if they differ.  A gate for CI: the
                checked-in translation must be exactly what the pinned translator
                produces from the pinned Go source.
-  --project    only this project (etcd-raft, etcd or btree; repeatable; default: all).
+  --project    only this project (etcd-raft or etcd; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
                $ETCD_RAFT_SRC).  For a pinned revision not yet pushed, or for trying
@@ -18,11 +17,12 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                one (default: $PERENNIAL_DIR, else the revision pinned in
                lake-manifest.json); for trying a translator change locally.
 
-Each project is a Go repository at a pinned revision, translated into one Lake
-library (a directory of this repository): the packages in its list, with goose's
-`-lean-root` mapping every non-standard-library Go path the translation reaches to
-that library (standard-library packages stay `Perennial.*`, Perennial's).
-Without --check, the generated `.lean` files under `<lib>/{Code,GeneratedProof}/`
+Each project is a Go repository at a pinned revision, translated into `Code/` and
+`GeneratedProof/`: the packages in its list, with goose's `-lean-root PKG=` mapping
+every non-standard-library Go path the translation reaches to the empty root
+(modules `Code.<pkg>`, `GeneratedProof.<pkg>`; standard-library packages stay
+`Perennial.*`, Perennial's).
+Without --check, the generated `.lean` files under `{Code,GeneratedProof}/`
 (in the subdirectories the project owns) are replaced by fresh output.  The Goose
 configuration (`*.toml`, next to the code) is input and is never touched.
 
@@ -53,8 +53,6 @@ class Project:
     # here and rerun etc/goose.py.
     repo: str
     rev: str
-    # The Lake library (and directory) the translation goes to.
-    lib: str
     # goose's -lean-root PKG=ROOT arguments: Go path prefixes -> Lean module root.
     lean_roots: list
     # Go packages to translate (resolved in the checkout's root module/workspace).
@@ -72,9 +70,8 @@ PROJECTS = [
         name="etcd-raft",
         repo="https://github.com/upamanyus/etcd-raft",
         rev="531b20c6251eb54f79ed1ca242430a20aaaae0c3",
-        # Modules EtcdRaft.Code.*, EtcdRaft.GeneratedProof.*: the library EtcdRaft.
-        lean_roots=["go.etcd.io/raft/v3=EtcdRaft"],
-        lib="EtcdRaft",
+        # Modules Code.go_etcd_io.raft.v3*, GeneratedProof.go_etcd_io.raft.v3*.
+        lean_roots=["go.etcd.io/raft/v3="],
         packages=[
             ".",
             "go.etcd.io/raft/v3/confchange",
@@ -92,9 +89,7 @@ PROJECTS = [
         # from it by name.
         repo="https://github.com/upamanyus/etcd",
         rev="48fd5a5071608e5c075b588c50e4efbfe300b00a",
-        lib="EtcdCache",
-        lean_roots=["go.etcd.io/etcd=EtcdCache", "k8s.io=EtcdCache",
-                    "google.golang.org=EtcdCache"],
+        lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org="],
         packages=[
             # with bodies (cache/v3.toml)
             "go.etcd.io/etcd/cache/v3",
@@ -109,18 +104,6 @@ PROJECTS = [
             "google.golang.org/protobuf/internal/impl",
         ],
         owned=[os.path.join("go_etcd_io", "etcd"), "k8s_io", "google_golang_org"],
-    ),
-    Project(
-        name="btree",
-        # google/btree itself (master, after v1.1.3): `btree_generic.go` (Go >= 1.18;
-        # `btree.go` is its pre-generics twin, excluded by its build tag). The cache uses
-        # `k8s.io/utils/third_party/forked/golang/btree`, a fork of this `BTreeG`.
-        repo="https://github.com/google/btree",
-        rev="aeba20f7a1e1315badec4eca4fdc9f754f5f880a",
-        lib="GoogleBtree",
-        lean_roots=["github.com/google/btree=GoogleBtree"],
-        packages=["."],
-        owned=[os.path.join("github_com", "google")],
     ),
 ]
 
@@ -203,7 +186,7 @@ def source(proj, local, check):
 
 def translate(proj, src, bindir, perennial_rev, desc, check):
     """Translate `proj`; return True if the checked-in translation is (now) up to date."""
-    lib_dir = os.path.join(ROOT, proj.lib)
+    lib_dir = ROOT
     out = tempfile.mkdtemp(prefix="goose-", dir=WORK)
     try:
         config = os.path.join(lib_dir, "Code")
@@ -216,14 +199,14 @@ def translate(proj, src, bindir, perennial_rev, desc, check):
         changed = sorted(f for f in new.keys() | old.keys() if new.get(f) != old.get(f))
         if check:
             if not changed:
-                print(f"goose.py: the translation in {proj.lib}/ is up to date (Perennial "
+                print(f"goose.py: the translation of {proj.name} is up to date (Perennial "
                       f"{perennial_rev}, {proj.name} {desc})")
                 return True
             for f in changed:
                 sys.stdout.writelines(difflib.unified_diff(
                     old.get(f, "").splitlines(keepends=True), new.get(f, "").splitlines(keepends=True),
                     "checked-in/" + f, "translator/" + f))
-            print(f"goose.py: {len(changed)} file(s) of {proj.lib}/ differ from what Perennial "
+            print(f"goose.py: {len(changed)} file(s) of the translation of {proj.name} differ from what Perennial "
                   f"{perennial_rev} produces from {proj.name} {desc}; run etc/goose.py",
                   file=sys.stderr)
             return False
@@ -234,7 +217,7 @@ def translate(proj, src, bindir, perennial_rev, desc, check):
                 shutil.copyfile(os.path.join(out, f), dst)
             else:
                 os.remove(dst)
-        print(f"goose.py: {proj.lib}/: {len(changed)} file(s) updated (Perennial {perennial_rev}, "
+        print(f"goose.py: {proj.name}: {len(changed)} file(s) updated (Perennial {perennial_rev}, "
               f"{proj.name} {desc})")
         return True
     finally:
