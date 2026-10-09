@@ -41,7 +41,10 @@ abbrev raft.hup.spec : Prop :=
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"hup")) (Val #t))
   {{ (s' : NState), RET #();
       ownRaftPhys cfg r id s' ∗ ⌜NStateWf s'⌝ ∗
-      ⌜Step cfg id (toPState s) [] (toPState s')⌝ }}
+      ⌜Step cfg id (toPState s) [] (toPState s')⌝ ∗
+      -- the log is untouched and the term moves up by at most one (2026-10-09)
+      ⌜s'.logst = s.logst ∧ uint.Z s.term ≤ uint.Z s'.term ∧
+       uint.Z s'.term ≤ uint.Z s.term + 1⌝ }}
 
 end spec
 

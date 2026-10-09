@@ -73,6 +73,32 @@ theorem leaderStepResult_prevoteresp (cfg : GSet w64) (id : w64) (s : NState)
   · exact Hres
   all_goals exact absurd Hc (by w32_ne)
 
+/-- A pre-candidate's tally keeps the log, and the term or moves it one up (a win's
+`campaign`). -/
+theorem prevoteRespResult_frame (id : w64) (s : NState) (src : w64) (reject won lost : Bool)
+    (peers : List w64) (pvs : GMap w64 Progress) (m : raftpb.Message)
+    (Hty : m.Type' = MsgPreVoteResp) (Hnw : uint.Z s.term + 1 < 2 ^ 64) :
+    NetFrame s { prevoteRespResult id s src reject won lost peers with prvals := pvs } ∧
+    TermStep m s { prevoteRespResult id s src reject won lost peers with prvals := pvs } := by
+  have H : ({ prevoteRespResult id s src reject won lost peers with prvals := pvs } :
+        NState).logst = s.logst ∧
+      uint.Z s.term ≤
+        uint.Z ({ prevoteRespResult id s src reject won lost peers with prvals := pvs } :
+          NState).term := by
+    unfold prevoteRespResult
+    split
+    · refine ⟨rfl, ?_⟩
+      simp only [campaignState, sendMsgs, becomeCandidate, resetTo, Bool.false_eq_true,
+        ↓reduceIte]
+      word
+    · split
+      · exact ⟨rfl, Int.le_refl _⟩
+      · exact ⟨rfl, Int.le_refl _⟩
+  obtain ⟨Hl, Ht⟩ := H
+  refine ⟨NetFrame.of_logst Hl, Ht, fun h => ?_, fun _ h => absurd Hty h,
+    fun _ => by rw [Hl]; exact Int.le_refl _⟩
+  rw [Hty] at h; exact absurd h (by w32_ne)
+
 /-- `stepCandidate` on a `MsgPreVoteResp`: nothing at a candidate; at a pre-candidate,
 the tally and then win / lose / wait, which is `step_prevoteRespResult`. -/
 theorem candidateStepResult_prevoteresp (cfg : GSet w64) (id : w64) (s : NState)
@@ -84,7 +110,8 @@ theorem candidateStepResult_prevoteresp (cfg : GSet w64) (id : w64) (s : NState)
     uint.Z s.term + 1 < 2 ^ 64 →
     NStateWf s →
     CandidateStepResult cfg id s m ents sv dropped s' →
-    dropped = false ∧ NStateWf s' ∧ Step cfg id (toPState s) [] (toPState s') := by
+    dropped = false ∧ NStateWf s' ∧ Step cfg id (toPState s) [] (toPState s') ∧
+      NetFrame s s' ∧ TermStep m s s' := by
   intro Hty Hrole Hin Hnw Hwf H
   unfold CandidateStepResult at H
   rw [Hty] at H
@@ -94,12 +121,13 @@ theorem candidateStepResult_prevoteresp (cfg : GSet w64) (id : w64) (s : NState)
   by_cases Hp : s.role = .preCandidate
   · simp only [Hp, ↓reduceIte] at Hres
     obtain ⟨won, lost, peers, pvs, Hw, -, rfl⟩ := Hres
-    refine ⟨nstateWf_prvals _ _ (nstateWf_prevoteRespResult _ _ _ _ _ _ _ Hwf), ?_⟩
+    refine ⟨nstateWf_prvals _ _ (nstateWf_prevoteRespResult _ _ _ _ _ _ _ Hwf), ?_,
+      prevoteRespResult_frame id s _ _ won lost peers pvs m Hty Hnw⟩
     exact step_prevoteRespResult cfg id s _ _ won lost peers pvs Hp Hin Hnw
       (fun Hwon => (Hw Hwon).2)
   · simp only [Hp, ↓reduceIte] at Hres
     subst Hres
-    exact ⟨Hwf, .refl _⟩
+    exact ⟨Hwf, .refl _, keep_frame rfl rfl rfl rfl rfl⟩
 
 end StepProof
 

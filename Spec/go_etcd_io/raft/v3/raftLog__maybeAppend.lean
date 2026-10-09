@@ -53,7 +53,9 @@ The body (`raftLog.maybeAppend.impl`, `Code/go_etcd_io/raft/v3.lean`):
 
 Postcondition: when `a.prev` does not match, `(0, false)` and the log unchanged;
 otherwise `(lastnewi, true)`, the entries are `plogMaybeAppend`'s, and `committed` is
-raised to `min(committed, lastnewi)` (`plogCommitTo`).
+raised to `min(committed, lastnewi)` (`plogCommitTo`), and `applying`, the pending
+snapshot and `unpersisted` are kept (2026-10-09; `inprogress` is not: a truncation
+moves it back).
 
 Premises, one per way the body could go wrong:
 - the batch is a well-formed log slice after `a.prev` (`PlogWf a.prev ents`) and
@@ -97,7 +99,9 @@ abbrev raftLog.maybeAppend.spec : Prop :=
             ls'.applied = ls.applied ∧
             ls'.committed =
               plogCommitTo ls.committed
-                (if uint.Z committed < uint.Z lni then committed else lni)⌝ }}
+                (if uint.Z committed < uint.Z lni then committed else lni) ∧
+            ls'.applying = ls.applying ∧ ls'.snap = ls.snap ∧
+            ls'.unpersisted = ls.unpersisted⌝ }}
 
 end spec
 

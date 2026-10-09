@@ -64,7 +64,8 @@ the second and third on whether `(m.LogTerm, m.Index)` matches the log
 - stale: the reply carries `committed`;
 - accept: the log is `maybeAppend`'s new log -- `prev` and `applied` unchanged, the
   entries `plogMaybeAppend`'s, `committed` raised to `min(m.Commit, lastnewi)`
-  (`plogCommitTo`) -- and the reply carries `lastnewi`. `ls'` is existential because
+  (`plogCommitTo`), `applying`, the pending snapshot and `unpersisted` unchanged
+  (2026-10-09) -- and the reply carries `lastnewi`. `ls'` is existential because
   `maybeAppend`'s spec says no more about the `sents`/`uents` split;
 - reject: state unchanged but for the reply; the hint is *some* `(hint, hintterm)`
   (`findConflictByTerm`'s spec pins only `hint ≤ min(m.Index, lastIndex())`, and the
@@ -87,6 +88,7 @@ def HandleAppResult (id : w64) (s : NState) (m : raftpb.Message)
      ls'.committed =
        plogCommitTo ls.committed
          (if uint.Z m.Commit' < uint.Z lastnewi then m.Commit' else lastnewi) ∧
+     (ls'.applying = ls.applying ∧ ls'.snap = ls.snap ∧ ls'.unpersisted = ls.unpersisted) ∧
      s' = sendMsgs { s with logst := ls' }
             [appResp id s dst false lastnewi (W64 0) (W64 0)])
   ∨

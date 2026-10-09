@@ -54,8 +54,11 @@ private theorem find_conflict_cases (b : entryID) (es ents : List raftpb.Entry) 
 private theorem logTruncateAppend_fields (ls : LogState) (ents : List raftpb.Entry) :
     (logTruncateAppend ls ents).prev = ls.prev ∧
     (logTruncateAppend ls ents).committed = ls.committed ∧
-    (logTruncateAppend ls ents).applied = ls.applied := by
-  cases ents <;> exact ⟨rfl, rfl, rfl⟩
+    (logTruncateAppend ls ents).applied = ls.applied ∧
+    (logTruncateAppend ls ents).applying = ls.applying ∧
+    (logTruncateAppend ls ents).snap = ls.snap ∧
+    (logTruncateAppend ls ents).unpersisted = ls.unpersisted := by
+  cases ents <;> exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 /-- A matched entry is inside the log. -/
 private theorem matches_le_last (b : entryID) (es : List raftpb.Entry) (id : entryID) :
@@ -245,10 +248,10 @@ theorem raftLog.maybeAppend.wp_proof
       wp_apply wp_raftLog_append _ ls (ents.drop k) _ _
           Happ_pre (fun x Hx => Hnorm x (List.mem_of_mem_drop Hx)) $$ [$Hlog $Hdrop $Hadopt]
         as %li ⟨Hlog, -, %Hsplit, %Hli⟩
-      obtain ⟨Hp1, Hc1, Ha1⟩ := logTruncateAppend_fields ls
+      obtain ⟨Hp1, Hc1, Ha1, Hag1, Hsn1, Hun1⟩ := logTruncateAppend_fields ls
         (ents.drop k)
       generalize Hls1 : logTruncateAppend ls (ents.drop k) = ls1
-        at Hsplit Hli Hp1 Hc1 Ha1 ⊢
+        at Hsplit Hli Hp1 Hc1 Ha1 Hag1 Hsn1 Hun1 ⊢
       -- the new log reaches exactly `lastnewi`
       have Hdk : ents.drop k = e :: ents.drop (k + 1) := by
         rw [List.drop_eq_getElem_cons Hklt]
@@ -273,7 +276,7 @@ theorem raftLog.maybeAppend.wp_proof
       have Hkd : (uint.Z e.Index' - uint.Z a.prev'.index' - 1).toNat = k := by
         push_cast at Hke; omega
       simp only [Hkd, if_false, w64Min, true_and]
-      exact ⟨Hp1, Hsplit, Ha1, by rw [Hc1]⟩
+      exact ⟨Hp1, Hsplit, Ha1, by rw [Hc1], Hag1, Hsn1, Hun1⟩
 
 end proof
 

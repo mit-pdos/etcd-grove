@@ -66,7 +66,9 @@ theorem wp_Step_MsgVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         -- from the single fact it holds about `m`.
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .vote m ents) ∧
             Step cfg id (toPState s) recv (toPState s')⌝ ∗
-        "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
+        "%Herr" ∷ ⌜err = interface.nil⌝ ∗
+        "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
+        "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
   intro Hty Hto Hterm Hfnz Hlt0 Hwf
   wp_start as ⟨Hphys, #Hctx⟩
   wp_auto
@@ -105,7 +107,8 @@ theorem wp_Step_MsgVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %s
     iframe Hphys
     ipureintro
-    exact ⟨Hwf, ⟨[], fun _ H => absurd H List.not_mem_nil, step_drop cfg id _⟩, rfl⟩
+    exact ⟨Hwf, ⟨[], fun _ H => absurd H List.not_mem_nil, step_drop cfg id _⟩, rfl,
+      keep_frame rfl rfl rfl rfl rfl⟩
 
 end StepProof
 

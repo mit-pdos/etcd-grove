@@ -63,7 +63,9 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .heartbeat m ents) ∧
             Step cfg id (toPState s) recv (toPState s')⌝ ∗
-        "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
+        "%Herr" ∷ ⌜err = interface.nil⌝ ∗
+        "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
+        "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
   intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hcommit Hteq Hvotes
   wp_start as ⟨Hphys, #Hents⟩
   wp_auto
@@ -101,7 +103,8 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     iapply HΦ $$ %interface.nil %_
     iframe Hphys
     ipureintro
-    refine ⟨nstateWf_heartbeatResult _ _ _ Hwf, ⟨[absMsg .heartbeat m ents], ?_, ?_⟩, rfl⟩
+    refine ⟨nstateWf_heartbeatResult _ _ _ Hwf, ⟨[absMsg .heartbeat m ents], ?_, ?_⟩, rfl,
+      keep_frame rfl rfl rfl rfl rfl⟩
     · intro m' Hm'
       exact List.mem_singleton.mp Hm'
     · exact step_handle_heartbeat cfg id _ _ m ents (adopt_follower s m.From' Hrole Hvs) Hto Hteq
@@ -125,7 +128,8 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     iapply HΦ $$ %interface.nil %_
     iframe Hphys
     ipureintro
-    refine ⟨nstateWf_heartbeatResult _ _ _ rfl, ⟨[absMsg .heartbeat m ents], ?_, ?_⟩, rfl⟩
+    refine ⟨nstateWf_heartbeatResult _ _ _ rfl, ⟨[absMsg .heartbeat m ents], ?_, ?_⟩, rfl,
+      keep_frame rfl rfl rfl rfl rfl⟩
     · intro m' Hm'
       exact List.mem_singleton.mp Hm'
     · exact step_handle_heartbeat cfg id _ _ m ents (adopt_candidate s m.From' pvs) Hto Hteq
@@ -152,7 +156,8 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     iframe Hphys
     ipureintro
     rw [Hs']
-    exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, .refl _⟩, rfl⟩
+    exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, .refl _⟩, rfl,
+      keep_frame rfl rfl rfl rfl rfl⟩
   · -- PreCandidate (2026-10-04), as a candidate: `becomeFollower(r.Term, m.From)`, then
     -- the handler
     simp only [stepFuncOf]
@@ -173,7 +178,8 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     iapply HΦ $$ %interface.nil %_
     iframe Hphys
     ipureintro
-    refine ⟨nstateWf_heartbeatResult _ _ _ rfl, ⟨[absMsg .heartbeat m ents], ?_, ?_⟩, rfl⟩
+    refine ⟨nstateWf_heartbeatResult _ _ _ rfl, ⟨[absMsg .heartbeat m ents], ?_, ?_⟩, rfl,
+      keep_frame rfl rfl rfl rfl rfl⟩
     · intro m' Hm'
       exact List.mem_singleton.mp Hm'
     · exact step_handle_heartbeat cfg id _ _ m ents (adopt_candidate s m.From' pvs) Hto Hteq

@@ -89,18 +89,57 @@ structure raft.Step.Postulates : Prop where
   payloadsSize : payloadsSize.spec (GF := GF) (hG := hG)
 
 /-- What `raft.Step.spec`'s postcondition hands to `Φ`: the continuation every dispatch
-lemma below ends in. -/
-def stepPost (γ : RaftNames) (cfg : GSet w64) (r : Loc) (id : w64) (ps : PState)
+lemma below ends in. `s` is the state the step starts from. -/
+def stepPost (γ : RaftNames) (cfg : GSet w64) (r : Loc) (id : w64) (s : NState)
     (m : raftpb.Message) (Φ : val → IProp GF) : IProp GF :=
   iprop(∀ (err : GoInterface) (s' : NState) (ps' : PState),
     ("Hphys" ∷ ownRaftPhys cfg r id s' ∗
      "Hghost" ∷ ownRaftGhost γ id ps' ∗
      "%Hrel" ∷ ⌜NStateRel s' ps'⌝ ∗
-     "%Hrefines" ∷ ⌜∃ recv, Step cfg id ps recv ps'⌝ ∗
+     "%Hrefines" ∷ ⌜∃ recv, Step cfg id (toPState s) recv ps'⌝ ∗
+     "%Hframe" ∷ ⌜m.Type' ≠ MsgSnap → NetFrame s s'⌝ ∗
+     "%Hterm" ∷ ⌜m.Type' ≠ MsgSnap → TermStep m s s'⌝ ∗
      "Herr" ∷ (⌜err = interface.nil⌝ ∨
                (⌜m.Type' = MsgProp⌝ ∗ globalAddr ErrProposalDropped ↦□ err))) -∗ Φ #err)
 
 namespace StepProof
+
+/-- The frame and the term step of a branch that keeps the term and the log's fields
+`NetFrame` and `TermStep` are about (each `rfl` for a state built by record updates
+that do not touch them). -/
+theorem keep_frame {m : raftpb.Message} {s s' : NState} (ht : s'.term = s.term)
+    (ha : s'.logst.applying = s.logst.applying) (hs : s'.logst.snap = s.logst.snap)
+    (hu : s'.logst.unpersisted = s.logst.unpersisted)
+    (hi : s'.logst.inprogress = s.logst.inprogress) :
+    NetFrame s s' ∧ TermStep m s s' :=
+  ⟨⟨ha, hs, hu⟩, TermStep.of_term ht (fun _ => by rw [hi]; exact Int.le_refl _)⟩
+
+/-- The same, for a branch that keeps the whole log. -/
+theorem keep_frame_logst {m : raftpb.Message} {s s' : NState} (ht : s'.term = s.term)
+    (hl : s'.logst = s.logst) : NetFrame s s' ∧ TermStep m s s' := by
+  exact keep_frame ht (by rw [hl]) (by rw [hl]) (by rw [hl]) (by rw [hl])
+
+/-- The same, for a branch that steps down to the message's term (`becomeFollower`) and
+keeps the rest. -/
+theorem stepdown_frame {m : raftpb.Message} {s s' : NState} (hup : m.Type' ≠ MsgHup)
+    (Hle : uint.Z s.term ≤ uint.Z s'.term) (ht : s'.term = m.Term')
+    (ha : s'.logst.applying = s.logst.applying) (hs : s'.logst.snap = s.logst.snap)
+    (hu : s'.logst.unpersisted = s.logst.unpersisted)
+    (hi : s'.logst.inprogress = s.logst.inprogress) :
+    NetFrame s s' ∧ TermStep m s s' :=
+  ⟨⟨ha, hs, hu⟩, TermStep.of_le hup Hle (by rw [ht]; exact Int.le_refl _)
+    (fun _ => by rw [hi]; exact Int.le_refl _)⟩
+
+/-- The same, with the stepped-down state named (`s1`) and the branch's end state built
+from it without touching its term or log. -/
+theorem stepdown_frame' {m : raftpb.Message} {s s1 s' : NState} {l : w64}
+    {pvs : GMap w64 Progress} (hup : m.Type' ≠ MsgHup) (Hgt : uint.Z s.term < uint.Z m.Term')
+    (Hs1 : s1 = { becomeFollower s m.Term' l with prvals := pvs })
+    (ht : s'.term = s1.term) (hl : s'.logst = s1.logst) :
+    NetFrame s s' ∧ TermStep m s s' := by
+  subst Hs1
+  exact stepdown_frame hup (by rw [ht]; exact Int.le_of_lt Hgt) (ht.trans rfl)
+    (by rw [hl]; rfl) (by rw [hl]; rfl) (by rw [hl]; rfl) (by rw [hl]; rfl)
 
 /-- The one ghost update of a branch: `recv` is the incoming message, some number of
 times, and that message is `isMessage`. -/
@@ -123,13 +162,14 @@ theorem finish_branch (γ : RaftNames) (cfg : GSet w64) (r : Loc) (id : w64)
     (s s' : NState) (m : raftpb.Message) (a : Msg) (recv : List Msg) (err : GoInterface)
     (Φ : val → IProp GF)
     (Hcfg : γ.reCfg = cfg) (Hwf' : NStateWf s') (Hrecv : ∀ m' ∈ recv, m' = a)
-    (Hstep : Step cfg id (toPState s) recv (toPState s')) :
+    (Hstep : Step cfg id (toPState s) recv (toPState s'))
+    (Hfr : m.Type' ≠ MsgSnap → NetFrame s s') (Htm : m.Type' ≠ MsgSnap → TermStep m s s') :
     ⊢ isMessage γ a -∗
       ownRaftGhost γ id (toPState s) -∗
       ownRaftPhys cfg r id s' -∗
       (⌜err = interface.nil⌝ ∨
         (⌜m.Type' = MsgProp⌝ ∗ globalAddr ErrProposalDropped ↦□ err)) -∗
-      stepPost γ cfg r id (toPState s) m Φ -∗
+      stepPost γ cfg r id s m Φ -∗
       |={⊤}=> Φ #err := by
   iintro #Hm Hghost Hphys Herr HΦ
   imod ghost_step_recv γ cfg id _ _ a recv Hcfg Hrecv Hstep $$ Hm Hghost with Hghost
@@ -138,18 +178,19 @@ theorem finish_branch (γ : RaftNames) (cfg : GSet w64) (r : Loc) (id : w64)
   iapply HΦ $$ %err %s' %(toPState s')
   iframe Hphys Hghost Herr
   ipureintro
-  exact ⟨⟨rfl, Hwf'⟩, ⟨recv, Hstep⟩⟩
+  exact ⟨⟨rfl, Hwf'⟩, ⟨recv, Hstep⟩, Hfr, Htm⟩
 
 /-- The same, for a branch that consumed nothing. -/
 theorem finish_branch0 (γ : RaftNames) (cfg : GSet w64) (r : Loc) (id : w64)
     (s s' : NState) (m : raftpb.Message) (err : GoInterface) (Φ : val → IProp GF)
     (Hcfg : γ.reCfg = cfg) (Hwf' : NStateWf s')
-    (Hstep : Step cfg id (toPState s) [] (toPState s')) :
+    (Hstep : Step cfg id (toPState s) [] (toPState s'))
+    (Hfr : m.Type' ≠ MsgSnap → NetFrame s s') (Htm : m.Type' ≠ MsgSnap → TermStep m s s') :
     ⊢ ownRaftGhost γ id (toPState s) -∗
       ownRaftPhys cfg r id s' -∗
       (⌜err = interface.nil⌝ ∨
         (⌜m.Type' = MsgProp⌝ ∗ globalAddr ErrProposalDropped ↦□ err)) -∗
-      stepPost γ cfg r id (toPState s) m Φ -∗
+      stepPost γ cfg r id s m Φ -∗
       |={⊤}=> Φ #err := by
   iintro Hghost Hphys Herr HΦ
   have Hst' : Step γ.reCfg id (toPState s) [] (toPState s') := by rw [Hcfg]; exact Hstep
@@ -159,7 +200,7 @@ theorem finish_branch0 (γ : RaftNames) (cfg : GSet w64) (r : Loc) (id : w64)
   iapply HΦ $$ %err %s' %(toPState s')
   iframe Hphys Hghost Herr
   ipureintro
-  exact ⟨⟨rfl, Hwf'⟩, ⟨[], Hstep⟩⟩
+  exact ⟨⟨rfl, Hwf'⟩, ⟨[], Hstep⟩, Hfr, Htm⟩
 
 end StepProof
 
