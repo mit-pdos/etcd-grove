@@ -97,6 +97,19 @@ Op__IsSerializable:
 Op__IsProgressNotify:
 getPrefix:
 GetPrefixRangeEnd: getPrefix
+# What builds a `Get`'s `Op` (client/v3/op.go, translated for `Cache.Get`), see InvOp.lean.
+NewOp:
+Op__applyOpts:
+IsOptsWithPrefix: NewOp
+IsOptsWithFromKey: NewOp
+OpGet: IsOptsWithPrefix IsOptsWithFromKey Op__applyOpts
+WithLimit:
+WithRev:
+WithPrefix: getPrefix
+WithRange:
+WithFromKey:
+WithSerializable:
+WithCountOnly:
 # Key predicates (cache/predicate.go) and the Cache's request validation and delegations
 # (cache/cache.go), see InvCache.lean.
 ExactKey:
@@ -109,3 +122,10 @@ Cache__validateWatch: Op__IsPrevKV Op__IsFragment Op__IsCreatedNotify Op__IsFilt
 Cache__Ready: ready__Ready
 Cache__WaitReady: ready__WaitReady
 Cache__RequestProgress: demux__BroadcastProgress
+# Cache.Get with the etcd model (cache/cache.go, cache/progress_requestor.go), see InvEtcd.lean
+# and InvCache.lean.
+conditionalProgressRequestor__add:
+conditionalProgressRequestor__remove:
+Cache__serverRevision: WithLimit WithCountOnly
+Cache__waitTillRevision: store__LatestRev conditionalProgressRequestor__add conditionalProgressRequestor__remove
+Cache__Get: store__LatestRev Cache__WaitReady OpGet Cache__validateGet Op__RangeBytes Op__Rev Op__IsSerializable Cache__serverRevision Cache__waitTillRevision store__Get

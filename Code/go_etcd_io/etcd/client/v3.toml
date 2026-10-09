@@ -2,7 +2,9 @@
 # cache's proofs call: `WatchResponse.IsProgressNotify` and the event-type constants (the
 # store), `GetPrefixRangeEnd` with `getPrefix` and `noPrefixEnd` (`Cache.validateRange`), and
 # the `Op` getters `Cache.validateGet`/`validateWatch` read (with `Rev`, `IsSerializable` and
-# `IsProgressNotify`, for `Cache.Get`/`Watch`).
+# `IsProgressNotify`, for `Cache.Get`/`Watch`), and what builds the `Op` of a `Get`
+# (`OpGet` with `NewOp`, `applyOpts`, `IsOptsWithPrefix`/`IsOptsWithFromKey`, and the
+# options `Cache.Get`'s callers and `Cache.serverRevision` pass).
 translate = [
   "!*",
   "WatchResponse.IsProgressNotify",
@@ -27,6 +29,19 @@ translate = [
   "Op.Rev",
   "Op.IsSerializable",
   "Op.IsProgressNotify",
+  "tRange",
+  "NewOp",
+  "OpGet",
+  "Op.applyOpts",
+  "IsOptsWithPrefix",
+  "IsOptsWithFromKey",
+  "WithLimit",
+  "WithRev",
+  "WithPrefix",
+  "WithRange",
+  "WithFromKey",
+  "WithSerializable",
+  "WithCountOnly",
 ]
 imports = ["!*", "context", "sync", "time", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/mvccpb"]
 

@@ -45,7 +45,7 @@ theorem Cache.validateWatch.wp_proof
   wp_start as ⟨#Hc, #Ho⟩
   ihave Hci : (cacheInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hci with ⟨-, ⟨%eUR, #HeUR⟩, ⟨%eKR, #HeKR⟩⟩
+  icases Hci with ⟨-, ⟨%eUR, #HeUR⟩, ⟨%eKR, #HeKR⟩, -⟩
   ihave #Hcl : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
   wp_auto

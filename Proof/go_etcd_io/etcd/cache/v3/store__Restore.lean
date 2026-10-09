@@ -73,8 +73,8 @@ theorem store.Restore.wp_proof
     store.Restore.spec (GF := GF) (hG := hG) := by
   have wp_btree_New : btree.New.modelSpec (GF := GF) (hG := hG) := btree.New.modelSpec_of wp_btree_New
   have wp_ReplaceOrInsert : btree.BTree.ReplaceOrInsert.modelSpec (GF := GF) (hG := hG) := btree.BTree.ReplaceOrInsert.modelSpec_of wp_ReplaceOrInsert
-  intro s γ cap st kvsSl kvs dq rev
-  wp_start as ⟨#His, Hw, Hkvs, #HkvsAt, %Hrev⟩
+  intro s γ cap E st kvsSl kvs dq rev
+  wp_start as ⟨#His, Hw, Hkvs, #HkvsAt, %Hrev, #HE⟩
   wp_apply wp_with_defer as %defer defer
   unfold storeWriter
   icases Hw with ⟨Hgw, Hmu, Htree, -, %Hinv⟩
@@ -148,7 +148,11 @@ theorem store.Restore.wp_proof
       ipureintro; exact Restore_restoreMap_mem kvs x Hx
     wp_apply wp_newClonedSnapshot rev t (restoreMap kvs) $$ [$Ht $HkvsR] as %p ⟨Ht, #Hp⟩
     · ipureintro; exact Restore_restoreMap_sorted kvs
-    wp_apply wp_Append $$ [$Hhist $Hp] as Hhist
+    ihave #Hpc : snapCert E p (rev, restoreMap kvs) $$ []
+    · iunfold snapCert; isplitl []
+      · iexact Hp
+      · iexact HE
+    wp_apply wp_Append $$ [$Hhist $Hpc] as Hhist
     · ipureintro; intro last h; simp at h
     wp_apply sync.Cond.wp_Broadcast $$ [$Hcond]
     have Hcap' := Hinv.cap_pos

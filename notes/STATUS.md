@@ -6,7 +6,7 @@ Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
 `worktree-raft-replication`'s `feb5c73d4` and adds Ready/Advance/HasReady; the files
 were first ported from `main`, then from `feb5c73d4`) to Lean on top of Perennial's Lean
-port (mit-pdos/perennial `lean`, pinned at cbb85c041: upstream's `11fd2db` merged with
+port (mit-pdos/perennial `lean`, pinned at 48e1192c7 (2026-10-09: rlocker, `Cond.wp_Wait_with`, `time.wp_Since`) on cbb85c041: upstream's `11fd2db` merged with
 `bytes.Compare`, on Lean's module system since 2026-10-09). The Goose translations of
 etcd-raft and etcd's `cache` package are this repository's `Code/` and `GeneratedProof/`,
 generated and checked by `etc/goose.py`. Files are laid out by kind and Go package path
@@ -555,3 +555,76 @@ reach Perennial's `fmt.wp_Errorf` `sorry`, already in the baseline).
   `Ready`/`WaitReady`/`RequestProgress` are the `ready`/`demux` specs through it.
 - `lake build` passes; `etc/goose.py --check` passes; `etc/gen-link.py --cache` reproduces
   `Proof/go_etcd_io/etcd/cache/v3/Link.lean`.
+
+### Cache.Get and the etcd model (2026-10-09)
+
+`Cache.Get` is proved end to end, with `Cache.serverRevision`, `Cache.waitTillRevision`,
+`conditionalProgressRequestor.add`/`remove`, and the `clientv3` functions that build a `Get`'s
+`Op` (`OpGet`, `NewOp`, `Op.applyOpts`, `IsOptsWithPrefix`, `IsOptsWithFromKey`, `WithLimit`,
+`WithRev`, `WithPrefix`, `WithRange`, `WithFromKey`, `WithSerializable`, `WithCountOnly`,
+translated with bodies in `client/v3.toml`): one `Spec`/`Proof` pair each, linked in
+`Proof/go_etcd_io/etcd/cache/v3/Link.lean`. No `sorry`. Design: `decisions.md`, "The etcd
+model".
+
+- **The model** (`InvEtcd.lean`): `axiom etcdState rev pfx s` (etcd's state at `rev`, keys with
+  prefix `pfx`, as `EtcdKv` contents) and `axiom etcdState_agree` (one state per revision).
+  `isEtcdKvs rev pfx m` (a definition, persistent): the map `m`'s `*KeyValue`s hold, in order,
+  such a state (`kvValAt`, read-only fields), keys sorted with prefix `pfx`;
+  `isEtcdKvs_agree`: same revision, same keys and contents. Contents rather than pointers,
+  because each response allocates fresh `KeyValue`s (pointer agreement would be false of the
+  real client).
+- **The client**: `isEtcdKV kv pfx` is a definition, the triple of `kv.Get(ctx, key, opts...)`
+  for options with model transformers `gs` (`optsAt`, `optSpec`, `OpFull` in
+  `client/v3/InvOp.lean`, covering every field `toRangeRequest` sends): any error; or a header
+  revision `r` with `isEtcdKvs r pfx m` for some `m`, and, for a prefix get
+  (`OpFull.isPrefixGet`), `resp.Kvs` lists exactly `m`. It is a premise (`isCacheFields`), not
+  an axiom: the Cache stage will assume it of `client.KV` (the axiom about the client).
+- **The Get theorem in words** (`Spec/go_etcd_io/etcd/cache/v3/Cache__Get.lean`,
+  `cacheGetResult`): for a reader of the store (with a lower bound `r0`), options that do not
+  make `OpGet` panic, and `o` the request's `Op`, `c.Get(ctx, key, opts...)` returns either
+  `nil` and an error — the context done, an unsupported option, a range outside the prefix
+  (`ErrKeyRangeInvalid`), and for a linearizable request the client's error, a revision above
+  etcd's (`ErrFutureRev`, with the etcd revision it saw), or `ErrCacheTimeout`; or the store's
+  `getSnapshot` error — or a fresh response, owned by the caller, whose header revision is the
+  store's latest revision in some state `st` (at least `r0`) and whose `Kvs`/`Count` are the
+  key-values in `[key, o.rangeEnd)` of the snapshot `(r, m)` that `snapModel st o.rev` picks
+  (the greatest cached revision at most `o.rev`, or at most the latest for `0`;
+  `snapModel_ok_spec`: `r ≤` the latest revision), where **`m` is etcd's state at `r`**
+  (`isEtcdKvs r prefix m`); and, unless the request is serializable, etcd had a state at a
+  revision `serverRev` with `o.rev ≤ serverRev ≤` the latest revision of `st` (the answer is at
+  least as fresh as etcd when the call started). Note: for `rev = 0`, `r` need not be the latest
+  revision (a progress notification moves it without a snapshot); the header still reports it.
+- **Store generalization**: the store's lock-protected predicates take a certificate
+  `E : w64 → KvMap → IProp GF` (`storeLockInv`, `storeReader`, `storeWriter`,
+  `storeLockedPhys`); every history snapshot carries `□ E r m` (ring item `snapCert E`);
+  `newStore` takes `E`; `Restore` asks for `□ E rev (restoreMap kvs)`; `Apply`/
+  `applyEventsLocked` ask for `snapCerts E` of every snapshot they append (`applyRespSnaps`,
+  `applyEventsSnaps`); `getSnapshot` returns `snapCert E p (r, m)`, `Get` `□ E r m`. Other store
+  statements unchanged; `isStore` now fixes `revCond`'s locker to `sync.rlockerOf (s.mu)`. The
+  cache's `E` is `etcdCert prefix`.
+- **`isCacheFields`** gained `store` (`isStore`, with `cf.γs`, `cf.scap`), `kv` (`isEtcdKV`),
+  `progressRequestor` (an interface holding `*conditionalProgressRequestor`,
+  `isProgressRequestor`: `mux` guards the waiter count, `cond` a `Cond`). Readers of the
+  store use `cacheReader cf` (a store reader token): `Get` and `waitTillRevision` take it and
+  give it back; where clients get them from is the Cache stage's.
+- **`waitTillRevision`**: `nil` only with `storeRevLb γs rev`, else `ErrCacheTimeout` or the
+  context's error (`waitResult`). Proved, including the goroutine (`select` on the
+  `time.After` channel and `ctx.Done()`, then `revCond.Broadcast()`) and `revCond.Wait()` under
+  the read lock.
+- **Perennial (`48e1192c7`, pinned)**: `sync.toml` translates `rlocker.*`;
+  `sync_proof/rlocker.lean` proves `RWMutex.wp_RLocker`, `rlocker.wp_Lock`/`wp_Unlock`,
+  `rlocker_isLockerWith`; `isLockerWith` (a locker whose `Lock` needs a resource that `Unlock`
+  gives back) and `Cond.wp_Wait_with`; `time.wp_Since` is a new Perennial axiom (like
+  `wp_Now`/`wp_Until`: `time.Since` is not translated). Push Perennial first.
+- **Trust base**: new axioms of this repository `etcdState`, `etcdState_agree` (see the
+  `tcb-baseline.txt` diff in the commit); `isEtcdKV` is a premise, to become the client axiom
+  at the Cache stage.
+- **Remaining gaps**: the client axiom itself (where `client.KV` enters, `New`); the `Watch`
+  side of the model (the watch loop must produce `isEtcdKvs` for every snapshot it appends,
+  `applyEventsSnaps`); `conditionalProgressRequestor.run`; `WaitForRevision`.
+- **Gates** (2026-10-09, Perennial `48e1192c7`): `lake build` passes (1370 jobs);
+  `etc/tcb-report.py --check`: 5 axioms (`etcdState` new; `etcdState_agree` is not reached by
+  any linked result, only by the lemma `isEtcdKvs_agree`), 2 sorries (unchanged);
+  `etc/goose.py --check` passes; `etc/gen-link.py --cache` reproduces `Link.lean`;
+  `etc/verified-code.py --reuse`: the cache package 66 of 107 functions verified (636 of 1204
+  lines), `clientv3` 31 functions.

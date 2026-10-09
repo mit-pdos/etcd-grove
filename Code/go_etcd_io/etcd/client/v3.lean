@@ -621,7 +621,8 @@ axiom DowngradeEnable [FfiSyntax] [GoGlobalContext] : val
 
 axiom DowngradeCancel [FfiSyntax] [GoGlobalContext] : val
 
-axiom tRange [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def tRange [FfiSyntax] [GoGlobalContext] : val :=
+  #(W64 1)
 
 axiom tPut [FfiSyntax] [GoGlobalContext] : val
 
@@ -1250,6 +1251,109 @@ noncomputable def Op.MaxCreateRev.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"maxCreateRev"))) (Var "op"))))))))
 
+/-- go: op.go:252:6 -/
+noncomputable def NewOp.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (App (Val exceptionDo)
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoAlloc Op.ty))) (Let "$v0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (Val #(go!"")))
+  (App (Val (GoInstruction (CompositeLiteral Op.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"key")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v0")))])))))))
+
+/-- OpGet returns "get" operation based on given key and operation options.
+
+    go: op.go:257:6 -/
+noncomputable def OpGet.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "key"
+  (Lam "opts"
+  (App (Val exceptionDo)
+  (Let "opts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType OpOption.ty)))) (Var "opts"))
+  (Let "key" (App (Val (GoInstruction (GoAlloc go.string))) (Var "key"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (Val tRange)
+  (Let "$v1" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoLoad go.string))) (Var "key")))
+  (App (Val (GoInstruction (CompositeLiteral Op.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"t")) (ElementExpression opType.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"key")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v1")))]))))
+  (Let "ret" (App (Val (GoInstruction (GoAlloc Op.ty))) (App (Val (GoInstruction (GoZeroVal Op.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad Op.ty))) (Var "ret")))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType OpOption.ty)))) (Var "opts"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Op.ty) go!"applyOpts"))) (Var "ret")) (Var "$a0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Op.ty))) (Pair (Var "ret") (Var "$r0")))))))))
+  (If (If (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType OpOption.ty)))) (Var "opts"))
+  (App (App (Val (GoInstruction (FuncResolve IsOptsWithPrefix []))) (Val #())) (Var "$a0"))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType OpOption.ty)))) (Var "opts"))
+  (App (App (Val (GoInstruction (FuncResolve IsOptsWithFromKey []))) (Val #())) (Var "$a0"))) (Val #false))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"`WithPrefix` and `WithFromKey` cannot be set at the same time, choose one")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #())))))))))
+
+/-- go: op.go:360:15 -/
+noncomputable def Op.applyOpts.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "op"
+  (Lam "opts"
+  (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Op.ty)))) (Var "op"))
+  (Let "opts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType OpOption.ty)))) (Var "opts"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType OpOption.ty)))) (Var "opts"))
+  (Let "opt" (App (Val (GoInstruction (GoAlloc OpOption.ty))) (App (Val (GoInstruction (GoZeroVal OpOption.ty))) (Val #())))
+  (App (App (Val (slice.forRange OpOption.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Op.ty)))) (Var "op"))
+  (App (App (Val (GoInstruction (GoLoad OpOption.ty))) (Var "opt")) (Var "$a0"))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore OpOption.ty))) (Pair (Var "opt") (Var "$value"))))))))))))))))
+
+/-- WithLimit limits the number of results to return from 'Get' request.
+    If WithLimit is given a 0 limit, it is treated as no limit.
+
+    go: op.go:376:6 -/
+noncomputable def WithLimit.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "n"
+  (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "n"))
+  (App (Val doReturn)
+  (Lam "op"
+  (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Op.ty)))) (Var "op"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "n"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef Op.ty go!"limit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Op.ty)))) (Var "op"))) (Var "$r0")))))))))))))
+
+/-- WithRev specifies the store revision for 'Get' request.
+    Or the start revision of 'Watch' request.
+
+    go: op.go:380:6 -/
+noncomputable def WithRev.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "rev"
+  (App (Val exceptionDo)
+  (Let "rev" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "rev"))
+  (App (Val doReturn)
+  (Lam "op"
+  (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Op.ty)))) (Var "op"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "rev"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef Op.ty go!"rev"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Op.ty)))) (Var "op"))) (Var "$r0")))))))))))))
+
 /-- GetPrefixRangeEnd gets the range end of the prefix.
     'Get(foo, WithPrefix())' is equal to 'Get(foo, WithRange(GetPrefixRangeEnd(foo))'.
 
@@ -1306,6 +1410,201 @@ noncomputable def getPrefix.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (FuncResolve go.copy [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "end") (Var "$r0"))))))))))
+
+/-- WithPrefix enables 'Get', 'Delete', or 'Watch' requests to operate
+    on the keys with matching prefix. For example, 'Get(foo, WithPrefix())'
+    can return 'foo1', 'foo2', and so on.
+
+    go: op.go:424:6 -/
+noncomputable def WithPrefix.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (App (Val exceptionDo)
+  (App (Val doReturn)
+  (Lam "op"
+  (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Op.ty)))) (Var "op"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Op.ty)))) (Var "op"))))
+  (App (App (Val (GoInstruction (FuncResolve getPrefix []))) (Val #())) (Var "$a0")))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (StructFieldRef Op.ty go!"end"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Op.ty)))) (Var "op"))) (Var "$r0")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Op.ty)))) (Var "op"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (Let "$v0" (Val #(W8 0))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.byte)))) (LiteralValue [(KeyedElement none (ElementExpression go.byte (Var "$v0")))])))
+  (Let "$r1" (Let "$v0" (Val #(W8 0))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.byte)))) (LiteralValue [(KeyedElement none (ElementExpression go.byte (Var "$v0")))])))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (StructFieldRef Op.ty go!"end"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Op.ty)))) (Var "op"))) (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (StructFieldRef Op.ty go!"key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Op.ty)))) (Var "op"))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef Op.ty go!"isOptsWithPrefix"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Op.ty)))) (Var "op"))) (Var "$r0")))))))))))))
+
+/-- WithRange specifies the range of 'Get', 'Delete', 'Watch' requests.
+    For example, 'Get' requests with 'WithRange(end)' returns
+    the keys in the range [key, end).
+    endKey must be lexicographically greater than start key.
+
+    go: op.go:439:6 -/
+noncomputable def WithRange.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "endKey"
+  (App (Val exceptionDo)
+  (Let "endKey" (App (Val (GoInstruction (GoAlloc go.string))) (Var "endKey"))
+  (App (Val doReturn)
+  (Lam "op"
+  (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Op.ty)))) (Var "op"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoLoad go.string))) (Var "endKey")))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (StructFieldRef Op.ty go!"end"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Op.ty)))) (Var "op"))) (Var "$r0")))))))))))))
+
+/-- WithFromKey specifies the range of 'Get', 'Delete', 'Watch' requests
+    to be equal or greater than the key in the argument.
+
+    go: op.go:445:6 -/
+noncomputable def WithFromKey.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (App (Val exceptionDo)
+  (App (Val doReturn)
+  (Lam "op"
+  (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Op.ty)))) (Var "op"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (Val #(go!"\x00")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef Op.ty go!"isOptsWithFromKey"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Op.ty)))) (Var "op"))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (StructFieldRef Op.ty go!"end"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Op.ty)))) (Var "op"))) (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Op.ty)))) (Var "op"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (Let "$v0" (Val #(W8 0))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.byte)))) (LiteralValue [(KeyedElement none (ElementExpression go.byte (Var "$v0")))])))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (StructFieldRef Op.ty go!"key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Op.ty)))) (Var "op"))) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))))))))
+
+/-- WithSerializable makes `Get` and `MemberList` requests serializable.
+    By default, they are linearizable. Serializable requests are better
+    for lower latency requirement, but users should be aware that they
+    could get stale data with serializable requests.
+
+    In some situations users may want to use serializable requests. For
+    example, when adding a new member to a one-node cluster, it's reasonable
+    and safe to use serializable request before the new added member gets
+    started.
+
+    go: op.go:464:6 -/
+noncomputable def WithSerializable.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (App (Val exceptionDo)
+  (App (Val doReturn)
+  (Lam "op"
+  (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Op.ty)))) (Var "op"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (Val #true)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef Op.ty go!"serializable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Op.ty)))) (Var "op"))) (Var "$r0"))))))))))))
+
+/-- WithCountOnly makes the 'Get' request return only the count of keys.
+
+    go: op.go:475:6 -/
+noncomputable def WithCountOnly.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (App (Val exceptionDo)
+  (App (Val doReturn)
+  (Lam "op"
+  (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Op.ty)))) (Var "op"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (Val #true)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef Op.ty go!"countOnly"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Op.ty)))) (Var "op"))) (Var "$r0"))))))))))))
+
+/-- IsOptsWithPrefix returns true if WithPrefix option is called in the given opts.
+
+    go: op.go:611:6 -/
+noncomputable def IsOptsWithPrefix.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "opts"
+  (App (Val exceptionDo)
+  (Let "opts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType OpOption.ty)))) (Var "opts"))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve NewOp []))) (Val #())) (Val #()))
+  (Let "ret" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Op.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Op.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"isOptsWithPrefix"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Op.ty)))) (Var "ret")))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType OpOption.ty)))) (Var "opts"))
+  (Let "opt" (App (Val (GoInstruction (GoAlloc OpOption.ty))) (App (Val (GoInstruction (GoZeroVal OpOption.ty))) (Val #())))
+  (App (App (Val (slice.forRange OpOption.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Op.ty)))) (Var "ret"))
+  (App (App (Val (GoInstruction (GoLoad OpOption.ty))) (Var "opt")) (Var "$a0"))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore OpOption.ty))) (Pair (Var "opt") (Var "$value")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Op.ty)))) (Pair (Var "ret") (Var "$r0"))))))))))
+
+/-- IsOptsWithFromKey returns true if WithFromKey option is called in the given opts.
+
+    go: op.go:621:6 -/
+noncomputable def IsOptsWithFromKey.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "opts"
+  (App (Val exceptionDo)
+  (Let "opts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType OpOption.ty)))) (Var "opts"))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve NewOp []))) (Val #())) (Val #()))
+  (Let "ret" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Op.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Op.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"isOptsWithFromKey"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Op.ty)))) (Var "ret")))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType OpOption.ty)))) (Var "opts"))
+  (Let "opt" (App (Val (GoInstruction (GoAlloc OpOption.ty))) (App (Val (GoInstruction (GoZeroVal OpOption.ty))) (Val #())))
+  (App (App (Val (slice.forRange OpOption.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Op.ty)))) (Var "ret"))
+  (App (App (Val (GoInstruction (GoLoad OpOption.ty))) (Var "opt")) (Var "$a0"))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore OpOption.ty))) (Pair (Var "opt") (Var "$value")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Op.ty)))) (Pair (Var "ret") (Var "$r0"))))))))))
 
 /-- IsProgressNotify returns true if the WatchResponse is progress notification.
 
@@ -2970,6 +3269,7 @@ class Op.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSeman
 (App (Val (GoInstruction (MethodResolve Op.ty go!"RangeBytes"))) (App (Val (GoInstruction (GoLoad Op.ty))) (Var "$r"))))
   ptr_Rev_unfold : MethodUnfold (go.GoType.PointerType Op.ty) go!"Rev" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Op.ty go!"Rev"))) (App (Val (GoInstruction (GoLoad Op.ty))) (Var "$r"))))
+  ptr_applyOpts_unfold : MethodUnfold (go.GoType.PointerType Op.ty) go!"applyOpts" Op.applyOpts.impl
 
 attribute [instance] Op.TypeAssumptions.type_repr
   Op.TypeAssumptions.underlying
@@ -3063,6 +3363,7 @@ attribute [instance] Op.TypeAssumptions.type_repr
   Op.TypeAssumptions.ptr_MinModRev_unfold
   Op.TypeAssumptions.ptr_RangeBytes_unfold
   Op.TypeAssumptions.ptr_Rev_unfold
+  Op.TypeAssumptions.ptr_applyOpts_unfold
 
 abbrev OpOption [FfiSyntax] : Type := GoFunc
 
@@ -3910,8 +4211,19 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   progressRequest_instance : progressRequest.TypeAssumptions
   watcherStream_instance : watcherStream.TypeAssumptions
   valCtx_instance : valCtx.TypeAssumptions
+  NewOp_unfold : FuncUnfold NewOp [] NewOp.impl
+  OpGet_unfold : FuncUnfold OpGet [] OpGet.impl
+  WithLimit_unfold : FuncUnfold WithLimit [] WithLimit.impl
+  WithRev_unfold : FuncUnfold WithRev [] WithRev.impl
   GetPrefixRangeEnd_unfold : FuncUnfold GetPrefixRangeEnd [] GetPrefixRangeEnd.impl
   getPrefix_unfold : FuncUnfold getPrefix [] getPrefix.impl
+  WithPrefix_unfold : FuncUnfold WithPrefix [] WithPrefix.impl
+  WithRange_unfold : FuncUnfold WithRange [] WithRange.impl
+  WithFromKey_unfold : FuncUnfold WithFromKey [] WithFromKey.impl
+  WithSerializable_unfold : FuncUnfold WithSerializable [] WithSerializable.impl
+  WithCountOnly_unfold : FuncUnfold WithCountOnly [] WithCountOnly.impl
+  IsOptsWithPrefix_unfold : FuncUnfold IsOptsWithPrefix [] IsOptsWithPrefix.impl
+  IsOptsWithFromKey_unfold : FuncUnfold IsOptsWithFromKey [] IsOptsWithFromKey.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_etcdserverpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
@@ -4024,8 +4336,19 @@ attribute [instance] Assumptions.AuthEnableResponse_instance
   Assumptions.progressRequest_instance
   Assumptions.watcherStream_instance
   Assumptions.valCtx_instance
+  Assumptions.NewOp_unfold
+  Assumptions.OpGet_unfold
+  Assumptions.WithLimit_unfold
+  Assumptions.WithRev_unfold
   Assumptions.GetPrefixRangeEnd_unfold
   Assumptions.getPrefix_unfold
+  Assumptions.WithPrefix_unfold
+  Assumptions.WithRange_unfold
+  Assumptions.WithFromKey_unfold
+  Assumptions.WithSerializable_unfold
+  Assumptions.WithCountOnly_unfold
+  Assumptions.IsOptsWithPrefix_unfold
+  Assumptions.IsOptsWithFromKey_unfold
   Assumptions.import_context_Assumption
   Assumptions.import_etcdserverpb_Assumption
   Assumptions.import_sync_Assumption

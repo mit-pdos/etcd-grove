@@ -24,16 +24,18 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 /-- `s.applyEventsLocked(events)`, under the write lock: the physical state becomes
 `(applyEvents cap st evs).1`, and the error is `nil` iff `(applyEvents cap st evs).2`. The
 events must be in revision order and above the latest revision (what `Apply`'s
-`validateRevisions` checks), so that the history's revisions increase. -/
+`validateRevisions` checks), so that the history's revisions increase, and certified
+(`snapCerts E (applyEventsSnaps st.latest evs)`: every snapshot it appends). -/
 abbrev store.applyEventsLocked.spec : Prop :=
-  ∀ (s : Loc) (γ : StoreNames) (cap : Nat) (st : StoreState) (evSl : GoSlice)
+  ∀ (s : Loc) (γ : StoreNames) (cap : Nat) (E : w64 → KvMap → IProp GF) (st : StoreState) (evSl : GoSlice)
     (evs : List EvModel),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
-      isStore s γ cap ∗ storeLockedPhys s cap st ∗ ⌜StoreInv cap st⌝ ∗ eventsAt evSl evs ∗
-      ⌜EvRevSorted evs ∧ ∀ e ∈ evs, sint.Z st.latestRev < sint.Z e.rev⌝ }}
+      isStore s γ cap ∗ storeLockedPhys s cap E st ∗ ⌜StoreInv cap st⌝ ∗ eventsAt evSl evs ∗
+      ⌜EvRevSorted evs ∧ ∀ e ∈ evs, sint.Z st.latestRev < sint.Z e.rev⌝ ∗
+      snapCerts E (applyEventsSnaps st.latest evs) }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"applyEventsLocked")) (Val #evSl))
   {{ (err : GoInterface), RET #err;
-      storeLockedPhys s cap (applyEvents cap st evs).1 ∗
+      storeLockedPhys s cap E (applyEvents cap st evs).1 ∗
       ⌜StoreInv cap (applyEvents cap st evs).1 ∧
         sint.Z st.latestRev ≤ sint.Z (applyEvents cap st evs).1.latestRev⌝ ∗
       ⌜if (applyEvents cap st evs).2 then err = GoInterface.nil

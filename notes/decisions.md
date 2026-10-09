@@ -749,3 +749,68 @@ the oldest revision; the overflow premise on `Broadcast`.
   holds what the cache reads, not the whole `Op` (`cmps`, `thenOps`, `val`, … are unused).
 - **Unsupported options give "some non-nil error"**, not `ErrUnsupportedRequest` wrapped
   (`fmt.Errorf`'s spec is Perennial's `sorry` and says only that).
+
+
+---
+
+## The etcd model: `isEtcdKvs` and the client's `Get`/`Watch` as the trust boundary
+
+**2026-10-09 · accepted**
+
+`Cache.Get`'s point is that its answer is etcd's: the key-values it returns are etcd's state
+at some revision. Nothing in the cache's code can establish that (the cache only copies what
+the client hands it), so the statement needs a model of etcd and a statement of what the client
+promises about it (`InvEtcd.lean`). The design (decided with the user; adjusted here where
+noted):
+
+- **Why a model at all.** Without one, `Get`'s specification can only say "the snapshot the
+  store holds", which is circular: a cache that returns garbage satisfies it as long as it
+  returns its own garbage faithfully. The Rocq development's `is_etcd_kvs` (an axiomatized
+  predicate on etcd's state) is the precedent; this is its Lean counterpart.
+  *Rejected:* no link to etcd (the specs stop at the store's state).
+- **`etcdState rev pfx s` is an axiom, persistent by construction, with agreement.** It says
+  that etcd's state at revision `rev`, restricted to the keys with prefix `pfx`, is `s`. etcd's
+  revisions are immutable, so the fact is persistent (`isEtcdKvs` uses it under `□`, so no
+  persistence axiom is needed), and there is one state per revision (`etcdState_agree`, the
+  only property axiom). Nothing else about etcd is assumed: the facts are produced by the
+  client's statements.
+- **Contents, not pointers (a change from the plan).** The plan stated the axiom on the store's
+  `KvMap` (entries `(key, *KeyValue)`) with agreement `m = m'`. But every response allocates
+  fresh `KeyValue`s, so two `Get`s at the same revision (or a `Get` and the watch stream)
+  return equal contents at different pointers, and agreement on pointers would be false of
+  the real client: the axioms would be unsatisfiable by the code they describe. So
+  `etcdState` is about `EtcdKv` values (key, value, create/mod revision, version, lease), and
+  `isEtcdKvs rev pfx m` (a definition) says that `m`'s `*KeyValue`s hold, in order, the contents
+  of such a state (`kvValAt`, read-only field points-tos, as the store's `kvAt`), keys strictly
+  increasing with prefix `pfx` (a pure side condition, not an axiom). Agreement becomes
+  `isEtcdKvs_agree`: same keys, same contents.
+- **The client's `KV.Get` is a definition, not an axiom (a change from the plan).**
+  `isEtcdKV kv pfx` is the triple of `kv.Get(ctx, key, opts...)` (as Perennial's `isLocker` is
+  the triple of `Lock`/`Unlock`), at the strength of etcd's documented API: any error; on
+  success, a response header revision at which etcd had a state, and for a prefix get
+  (`OpFull.isPrefixGet`) the response's `Kvs` are exactly that state. Defining it rather than
+  axiomatizing it moves the assumption to where a `KV` comes from: the cache's specs take
+  `isEtcdKV c.kv prefix` as a premise (in `isCacheFields`), and the Cache stage (`New`, which
+  takes `client.KV`) will have to assume it of the client, as the one axiom about
+  `clientv3.Client`. The options are modelled through their closures' triples (`optSpec`), and
+  `OpFull` covers every field `Op.toRangeRequest` sends, so the triple cannot be fooled by an
+  option the model does not see.
+- **The store takes a certificate parameter `E`.** The store's lock-protected predicates
+  (`storeLockInv`, `storeReader`, `storeWriter`, `storeLockedPhys`) take
+  `E : w64 → KvMap → IProp GF`; each history snapshot carries `□ E r m` (the ring's item
+  predicate is `snapCert E`, so no separate list in the lock invariant), `Restore`/`Apply` ask
+  for it of what they append (`applyEventsSnaps`, `applyRespSnaps`: every snapshot appended,
+  also those a full ring evicts again within the same `Apply`), `getSnapshot`/`Get` return it.
+  The cache instantiates `E := etcdCert prefix` (`isEtcdKvs r prefix m`). The store stays
+  generic: it neither knows nor needs what `E` means, and `isStore`, `storeSeen`,
+  `storeRevLb` do not take it. *Rejected:* `E` persistent by a typeclass premise (the `□`
+  does the same with no instance plumbing); `E` in the store's predicates fixed to
+  `isEtcdKvs` (would make the store depend on the etcd model); certifying only the snapshots
+  that survive in the ring (the ring's invariant needs every item certified when it is
+  appended).
+- **`revCond`'s locker.** `isStore` now fixes `revCond`'s locker to `s.mu.RLocker()`
+  (`sync.rlockerOf`), and Perennial (`sync_proof/rlocker.lean`) translates and proves
+  `rlocker`'s `Lock`/`Unlock` (the guarded `RLock`/`RUnlock`). Perennial's `isLocker`'s `Lock`
+  takes nothing, but `RLock` needs a reader token, so Perennial gained `isLockerWith i Pre P`
+  (`Lock : Pre → P`, `Unlock : P → Pre`) and `Cond.wp_Wait_with`; the waiter's reader token is
+  the one it `RLock`ed with. No gap remained.

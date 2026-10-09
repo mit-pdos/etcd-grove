@@ -8,7 +8,7 @@ reachable from the cache's imports needs an instance. The standard-library ones 
 packages are translated names-only or types-only (`Code/{go_etcd_io/etcd,k8s_io,google_golang_org}/**.toml`), and their
 package facts are `True` except where a proof reads a package-level variable: the
 cache's `ErrNotReady` (`fmt.Errorf` at init), `ErrUnsupportedRequest` and
-`ErrKeyRangeInvalid` (`errors.New`), and `rpctypes`' `ErrFutureRev` and
+`ErrKeyRangeInvalid`, `ErrCacheTimeout` (`errors.New`), and `rpctypes`' `ErrFutureRev` and
 `ErrCompacted` each hold a fixed non-nil error (`globalAddr X ↦□ interface.ok e`, as
 Perennial's own packages state their globals), and `ErrCompacted.Error()` returns some string
 (`errorStringSpec`: it is an `EtcdError`, whose `Error` returns its description);
@@ -122,12 +122,13 @@ instance clientv3_get_is_pkg_init_wf_inst :
 -- `k8s.io/utils/third_party/forked/golang/btree`: `Proof/k8s_io/.../btree/Init.lean`.
 
 /-- The cache's package facts: the error variables `ErrNotReady` (the store returns it),
-`ErrUnsupportedRequest` (wrapped by `validateGet`/`validateWatch`) and `ErrKeyRangeInvalid`
-(`validateRange`), each a fixed non-nil error. -/
+`ErrUnsupportedRequest` (wrapped by `validateGet`/`validateWatch`), `ErrKeyRangeInvalid`
+(`validateRange`) and `ErrCacheTimeout` (`waitTillRevision`), each a fixed non-nil error. -/
 abbrev cacheInit : IProp GF :=
   iprop((∃ e : GoInterfaceOk, globalAddr ErrNotReady ↦□ GoInterface.ok e) ∗
     (∃ e : GoInterfaceOk, globalAddr ErrUnsupportedRequest ↦□ GoInterface.ok e) ∗
-    (∃ e : GoInterfaceOk, globalAddr ErrKeyRangeInvalid ↦□ GoInterface.ok e))
+    (∃ e : GoInterfaceOk, globalAddr ErrKeyRangeInvalid ↦□ GoInterface.ok e) ∗
+    (∃ e : GoInterfaceOk, globalAddr ErrCacheTimeout ↦□ GoInterface.ok e))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 :=
   define_is_pkg_init cacheInit

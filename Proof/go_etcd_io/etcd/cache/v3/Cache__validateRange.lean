@@ -32,7 +32,7 @@ theorem Cache.validateRange.wp_proof
   iNamed Hc
   ihave Hci : (cacheInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hci with ⟨-, -, ⟨%eKR, #HeKR⟩⟩
+  icases Hci with ⟨-, -, ⟨%eKR, #HeKR⟩, -⟩
   ihave %Hlen := ownSlice_len _ _ _ $$ He
   wp_auto
   wp_apply wp_string_to_bytes cf.pfx as %ps ⟨Hps, -⟩

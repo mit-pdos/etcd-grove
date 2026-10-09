@@ -24,7 +24,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 theorem store.LatestRev.wp_proof : store.LatestRev.spec (GF := GF) (hG := hG) := by
-  intro s γ cap r0
+  intro s γ cap E r0
   wp_start as ⟨#Hs, Hrd, #Hlb⟩
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []

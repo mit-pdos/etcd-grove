@@ -270,6 +270,53 @@ theorem applyEventsLocked_batch_done {cap : Nat} {st stc : StoreState} {evs : Li
       apply BitVec.eq_of_toInt_eq; exact h)
     omega
 
+/-- `applyEventsSnaps` on a whole batch followed by the rest (as `applyEventsLocked_step`). -/
+theorem applyEventsSnaps_step (m0 : KvMap) (bt r : List EvModel) (e : EvModel)
+    (hbt : bt.head? = some e) (he : ∀ x ∈ bt, x.rev = e.rev)
+    (hr : ∀ y, r.head? = some y → y.rev ≠ e.rev) (m : KvMap)
+    (hm : applyBatch m0 bt = (m, true)) :
+    applyEventsSnaps m0 (bt ++ r) = (e.rev, m) :: applyEventsSnaps m r := by
+  cases bt with
+  | nil => simp at hbt
+  | cons e' bs =>
+    simp only [List.head?_cons, Option.some.injEq] at hbt
+    subst hbt
+    have hpos : ∀ a ∈ e' :: bs, decide (a.rev = e'.rev) = true := fun a ha => by simp [he a ha]
+    have htw : (e' :: (bs ++ r)).takeWhile (fun x => decide (x.rev = e'.rev)) = e' :: bs := by
+      rw [← List.cons_append, List.takeWhile_append_of_pos hpos]
+      cases r with
+      | nil => simp
+      | cons y ys =>
+        rw [List.takeWhile_cons_of_neg (by simpa using hr y rfl)]; simp
+    have hdw : (e' :: (bs ++ r)).dropWhile (fun x => decide (x.rev = e'.rev)) = r := by
+      rw [← List.cons_append, List.dropWhile_append_of_pos hpos]
+      cases r with
+      | nil => simp
+      | cons y ys => rw [List.dropWhile_cons_of_neg (by simpa using hr y rfl)]
+    rw [List.cons_append, applyEventsSnaps.eq_2, htw, hm]
+    simp only
+    rw [hdw]
+
+/-- A batch `[j, k)` done: it is the next snapshot `applyEventsSnaps` lists. -/
+theorem applyEventsLocked_snaps_done {stc : StoreState} {evs : List EvModel} {j k : Nat}
+    {m : KvMap} {e0 : EvModel} (he0 : evs[j]? = some e0) (hjk : j < k)
+    (hm : applyBatch stc.latest ((evs.drop j).take (k - j)) = (m, true) ∧
+      (∀ (n : Nat) (e : EvModel), j ≤ n → n < k → evs[n]? = some e → e.rev = e0.rev) ∧
+      m.Pairwise kvLess)
+    (hexit : ∀ y, evs[k]? = some y → y.rev ≠ e0.rev) :
+    applyEventsSnaps stc.latest (evs.drop j) = (e0.rev, m) :: applyEventsSnaps m (evs.drop k) := by
+  have hdj := applyEventsLocked_drop_cons he0
+  rw [applyEventsLocked_split evs (Nat.le_of_lt hjk)]
+  apply applyEventsSnaps_step stc.latest _ _ e0
+  · rw [hdj, show k - j = (k - j - 1) + 1 by omega, List.take_succ_cons]; rfl
+  · intro x hx
+    obtain ⟨n, h1, h2, h3⟩ := applyEventsLocked_mem_take hx
+    exact hm.2.1 n x h1 h2 h3
+  · intro y hy
+    rw [List.head?_drop] at hy
+    exact hexit y hy
+  · exact hm.1
+
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -305,8 +352,8 @@ theorem store.applyEventsLocked.wp_proof
     store.applyEventsLocked.spec (GF := GF) (hG := hG) := by
   have wp_Delete : btree.BTree.Delete.modelSpec (GF := GF) (hG := hG) := btree.BTree.Delete.modelSpec_of wp_Delete
   have wp_ReplaceOrInsert : btree.BTree.ReplaceOrInsert.modelSpec (GF := GF) (hG := hG) := btree.BTree.ReplaceOrInsert.modelSpec_of wp_ReplaceOrInsert
-  intro s γ cap st evSl evs
-  wp_start as ⟨#Hs, Hphys, %Hinv, #Hevs, % ⟨Hsorted, Habove⟩⟩
+  intro s γ cap E st evSl evs
+  wp_start as ⟨#Hs, Hphys, %Hinv, #Hevs, % ⟨Hsorted, Habove⟩, #Hcerts⟩
   iNamed Hs
   wp_auto
   iunfold eventsAt at Hevs
@@ -319,9 +366,10 @@ theorem store.applyEventsLocked.wp_proof
   ihave HI : iprop(∃ (j : w64) (stc : StoreState),
       "i" ∷ i_ptr ↦ j ∗
       "HlatestRev" ∷ storeLatestRevAddr s ↦ stc.latestRev ∗
-      "Hhist" ∷ ownRingBuffer (storeHistAddr s) cap (snapIs (hG := hG)) Prod.fst stc.history ∗
+      "Hhist" ∷ ownRingBuffer (storeHistAddr s) cap (snapCert E) Prod.fst stc.history ∗
       "Hbt" ∷ ownBTree kvItemPtrT t (kvItemIs (hG := hG)) kvLess stc.latest (DFrac.own 1) ∗
       "#HkvsAt" ∷ kvsAt stc.latest ∗
+      "#Hcerts" ∷ snapCerts E (applyEventsSnaps stc.latest (evs.drop (sint.nat j))) ∗
       "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.nat j ≤ evs.length⌝ ∗
       "%Hstc" ∷ ⌜StoreInv cap stc ∧
         applyEvents cap st evs = applyEvents cap stc (evs.drop (sint.nat j)) ∧
@@ -332,6 +380,8 @@ theorem store.applyEventsLocked.wp_proof
     iframe
     isplitl []
     · iexact HkvsAt
+    isplitl []
+    · rw [show sint.nat (W64 0) = 0 by word, List.drop_zero]; iexact Hcerts
     ipureintro
     have H0 : sint.nat (W64 0) = 0 := by word
     rw [H0, List.drop_zero]
@@ -520,10 +570,17 @@ theorem store.applyEventsLocked.wp_proof
           applyEventsLocked_batch_done Hsorted He0_lookup Hjk Hk.2.1 Hm hexit Hstc
         wp_apply wp_newClonedSnapshot e0.rev t m $$ [Hbt] as %p ⟨Hbt, #Hsnap⟩
         · iframe Hbt; iframe HkvsAtm; ipureintro; exact Hm.2.2
+        ihave #Hc2 : snapCerts E ((e0.rev, m) :: applyEventsSnaps m (evs.drop (sint.nat k))) $$ []
+        · rw [← applyEventsLocked_snaps_done He0_lookup Hjk Hm hexit]; iexact Hcerts
+        icases snapCerts_cons E _ _ $$ Hc2 with ⟨#HE0, #Hcerts'⟩
+        ihave #Hpc : snapCert E p (e0.rev, m) $$ []
+        · iunfold snapCert; isplitl []
+          · iexact Hsnap
+          · iexact HE0
         wp_apply wp_Append (go.GoType.PointerType snapshot.ty) (storeHistAddr s) cap
-          (snapIs (hG := hG)) Prod.fst stc.history p (e0.rev, m) $$ [Hhist] as Hhist
-        · iframe Hhist Hsnap; ipureintro; exact Habove'
-        wp_apply sync.Cond.wp_Broadcast c lk $$ []
+          (snapCert E) Prod.fst stc.history p (e0.rev, m) $$ [Hhist] as Hhist
+        · iframe Hhist Hpc; ipureintro; exact Habove'
+        wp_apply sync.Cond.wp_Broadcast c _ $$ []
         · iexact Hcond
         wp_for_post
         iframe
@@ -532,6 +589,8 @@ theorem store.applyEventsLocked.wp_proof
         iframe
         isplitl []
         · iexact HkvsAtm
+        isplitl []
+        · iexact Hcerts'
         ipureintro
         exact ⟨⟨Hk.2.2, Hk.2.1⟩, Hinv', Happ', Hgt', Hmono'⟩
     · -- `k = len(events)`: the batch is done
@@ -546,10 +605,17 @@ theorem store.applyEventsLocked.wp_proof
         applyEventsLocked_batch_done Hsorted He0_lookup Hjk Hk.2.1 Hm hexit Hstc
       wp_apply wp_newClonedSnapshot e0.rev t m $$ [Hbt] as %p ⟨Hbt, #Hsnap⟩
       · iframe Hbt; iframe HkvsAtm; ipureintro; exact Hm.2.2
+      ihave #Hc2 : snapCerts E ((e0.rev, m) :: applyEventsSnaps m (evs.drop (sint.nat k))) $$ []
+      · rw [← applyEventsLocked_snaps_done He0_lookup Hjk Hm hexit]; iexact Hcerts
+      icases snapCerts_cons E _ _ $$ Hc2 with ⟨#HE0, #Hcerts'⟩
+      ihave #Hpc : snapCert E p (e0.rev, m) $$ []
+      · iunfold snapCert; isplitl []
+        · iexact Hsnap
+        · iexact HE0
       wp_apply wp_Append (go.GoType.PointerType snapshot.ty) (storeHistAddr s) cap
-        (snapIs (hG := hG)) Prod.fst stc.history p (e0.rev, m) $$ [Hhist] as Hhist
-      · iframe Hhist Hsnap; ipureintro; exact Habove'
-      wp_apply sync.Cond.wp_Broadcast c lk $$ []
+        (snapCert E) Prod.fst stc.history p (e0.rev, m) $$ [Hhist] as Hhist
+      · iframe Hhist Hpc; ipureintro; exact Habove'
+      wp_apply sync.Cond.wp_Broadcast c _ $$ []
       · iexact Hcond
       wp_for_post
       iframe
@@ -558,6 +624,8 @@ theorem store.applyEventsLocked.wp_proof
       iframe
       isplitl []
       · iexact HkvsAtm
+      isplitl []
+      · iexact Hcerts'
       ipureintro
       exact ⟨⟨Hk.2.2, Hk.2.1⟩, Hinv', Happ', Hgt', Hmono'⟩
   · -- all events applied

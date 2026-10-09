@@ -29,7 +29,7 @@ theorem store.Get.wp_proof
     (wp_getSnapshot : store.getSnapshot.spec (GF := GF) (hG := hG))
     (wp_Range : snapshot.Range.spec (GF := GF) (hG := hG)) :
     store.Get.spec (GF := GF) (hG := hG) := by
-  intro s γ cap r0 startSl endSl startKey endKey d1 d2 rev
+  intro s γ cap E r0 startSl endSl startKey endKey d1 d2 rev
   wp_start as ⟨#HS, Hrd, #Hlb, Hs, He⟩
   ihave Hci : (cacheInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -37,7 +37,7 @@ theorem store.Get.wp_proof
   · iPkgInit
   ihave Hri : (rpctypesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hrpc
-  icases Hci with ⟨⟨%eNR, #HeNR⟩, -, -⟩
+  icases Hci with ⟨⟨%eNR, #HeNR⟩, -, -, -⟩
   icases Hri with ⟨⟨%eFR, #HeFR⟩, ⟨%eCP, #HeCP, -⟩⟩
   wp_auto
   wp_apply wp_getSnapshot $$ [$HS $Hrd $Hlb] as %p %lrev %err ⟨Hrd, %st, Hseen, #Herr, Hres⟩
@@ -47,6 +47,8 @@ theorem store.Get.wp_proof
     simp only [snapErr]
     icases Herr with %Herr
     icases Hres with ⟨%Hlrev, #Hp⟩
+    iunfold snapCert at Hp
+    icases Hp with ⟨#Hp, #HE⟩
     subst Herr
     wp_auto
     wp_apply wp_Range $$ [$Hp $Hs $He] as %out ⟨Hs, He, Hout, Hcap, #Hkvs⟩
@@ -55,7 +57,7 @@ theorem store.Get.wp_proof
     iexists st
     rw [Hm]
     dsimp only
-    iframe Hseen Hout Hcap Hkvs
+    iframe Hseen Hout Hcap Hkvs HE
     ipureintro; exact ⟨rfl, Hlrev⟩
   | notReady =>
     simp only [snapErr]
