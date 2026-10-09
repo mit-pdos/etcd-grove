@@ -654,9 +654,14 @@ or of a **record-building function** (`(inflightsRingOf iv buf).buflen`) is an a
    runs `simp only [word_unfold, …] at *`, which does both. `simp only at h` before a
    `rw` on such a hypothesis.
 
-`CLAUDE.md` ("Proof writing") states the three for agents. With (2) alone, 19 of the
+`CLAUDE.md` ("Proof writing") states the three for agents. For a predicate that hides a
+Goose value behind a record, the open lemma gives the value *built from the record's
+fields* (`ownUnstable_open`: `u ↦ { uv with offset' := us.offset, … }`), so a load yields
+`us.offset`, the atom the spec's premises use, and closing is `rfl`. With (2) alone, 19 of the
 `dsimp only` steps went; the rest came from the `raftLog` layer, whose proofs destructured
-`ls : LogState` and called the record-indexed `unstable` specs with literal records.
+`ls : LogState` and called the record-indexed `unstable` specs with literal records. With
+(1) applied there and in the `unstable` and `Inflights` proofs, none is left that exists
+because of a record projection.
 
 **Cost**: `word_unfold` makes `word`'s simp set larger. One very large proof
 (`RawNode.Ready.wp_proof`) crossed the default 200000 heartbeats at the same wall time
