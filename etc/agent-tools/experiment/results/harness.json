@@ -1,0 +1,22 @@
+{
+ "base-items__insertAt-1": {"subagent_tokens": 78407, "tool_uses": 24, "duration_ms": 159985, "self_report": "done"},
+ "treat-items__find-2": {"subagent_tokens": 87925, "tool_uses": 26, "duration_ms": 157118, "self_report": "done"},
+ "treat-items__insertAt-1": {"subagent_tokens": 66224, "tool_uses": 22, "duration_ms": 182967, "self_report": "done"},
+ "treat-items__find-1": {"subagent_tokens": 88490, "tool_uses": 26, "duration_ms": 189774, "self_report": "done"},
+ "base-node__split-1": {"subagent_tokens": 106843, "tool_uses": 24, "duration_ms": 197960, "self_report": "done"},
+ "treat-node__split-2": {"subagent_tokens": 94872, "tool_uses": 47, "duration_ms": 199849, "self_report": "done"},
+ "base-node__split-2": {"subagent_tokens": 98366, "tool_uses": 29, "duration_ms": 210885, "self_report": "done"},
+ "treat-items__insertAt-2": {"subagent_tokens": 77752, "tool_uses": 28, "duration_ms": 213420, "self_report": "done; kernel rejected some word/wp_bounds/list_seg proofs (aux _proof_ terms with ZeroVal)"},
+ "base-items__find-2": {"subagent_tokens": 93907, "tool_uses": 28, "duration_ms": 221491, "self_report": "done"},
+ "base-items__find-1": {"subagent_tokens": 95221, "tool_uses": 31, "duration_ms": 236798, "self_report": "done (wrote a backup of its own stub to /tmp, deleted)"},
+ "treat-node__split-1": {"subagent_tokens": 96807, "tool_uses": 38, "duration_ms": 241147, "self_report": "done; one kernel rejection (subst then word)"},
+ "treat-node__get-2": {"subagent_tokens": 89888, "tool_uses": 32, "duration_ms": 169818, "self_report": "done"},
+ "treat-node__get-1": {"subagent_tokens": 95758, "tool_uses": 32, "duration_ms": 176788, "self_report": "done"},
+ "base-node__get-1": {"subagent_tokens": 105601, "tool_uses": 26, "duration_ms": 200651, "self_report": "done"},
+ "base-node__get-2": {"subagent_tokens": 96274, "tool_uses": 34, "duration_ms": 250561, "self_report": "done"},
+ "treat-node__insert-1": {"subagent_tokens": 189055, "tool_uses": 82, "duration_ms": 759290, "self_report": "done (stub kept the original file's insert_tail macro)"},
+ "base-node__insert-2": {"subagent_tokens": 203978, "tool_uses": 48, "duration_ms": 914350, "self_report": "done (used insert_tail macro from stub)"},
+ "treat-node__insert-2": {"subagent_tokens": 185666, "tool_uses": 75, "duration_ms": 927232, "self_report": "done (used insert_tail macro from stub)"},
+ "base-node__insert-1": {"subagent_tokens": 206833, "tool_uses": 62, "duration_ms": 1115786, "self_report": "done (used insert_tail macro from stub)"},
+ "base-items__insertAt-2": {"subagent_tokens": 67651, "tool_uses": 18, "duration_ms": 133036, "self_report": "done"}
+}

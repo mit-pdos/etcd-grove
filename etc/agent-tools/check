@@ -1,0 +1,18 @@
+#!/bin/bash
+# usage: ./check FILE.lean
+# Compile FILE (the whole file) and print Lean's messages, as `lake env lean FILE` would.
+# The proof tools (`import GroveTools`, or its parts) are on LEAN_PATH (shared, precompiled).
+# Every call is logged (time, file, seconds, exit status) in .tool-log.
+here="$(cd "$(dirname "$0")" && pwd)"
+SNAP=/home/ubuntu/.claude/jobs/f5d25fd8/tmp/exp/snap
+TOOLS=/home/ubuntu/.claude/jobs/f5d25fd8/tmp/exp/toolsbuild
+export LEAN_PATH=$SNAP/perennial:$SNAP/iris:$SNAP/qq:$SNAP/batteries:$SNAP/btree:$TOOLS
+export PATH=$HOME/.elan/bin:$PATH
+f="$1"
+[ -n "$f" ] || { echo "usage: ./check FILE.lean"; exit 2; }
+start=$(date +%s.%N)
+(cd "$here" && lean "$f")
+status=$?
+end=$(date +%s.%N)
+echo "$(date -u +%FT%TZ) check $f $(echo "$end - $start" | bc) $status" >> "$here/.tool-log"
+exit $status

@@ -1,0 +1,1018 @@
+#!/usr/bin/env python3
+"""Interactive, incremental Lean checking through a persistent Lean language server.
+
+  ./ide upto FILE LINE [--full] [--diff]
+                                      check FILE only up to the tactic on LINE (the rest of that
+                                      proof is cut and closed by `sorry`, later declarations are
+                                      dropped), then print the errors and the goal after LINE.
+                                      Cost: what changed since the last `upto` of this FILE, up to
+                                      LINE -- not the whole proof.  The main command while writing.
+  ./ide steps FILE FROM [TO] [--full] per-tactic feedback for the tactics on lines FROM..TO
+                                      (default: FROM): the state before FROM, then what each tactic
+                                      changed (hypotheses added/removed/changed, new goal), stopping
+                                      at the first error.  Checks up to TO only, like `upto`.
+  ./ide check FILE [--full]           errors/warnings of the whole FILE (incremental: an edit
+                                      re-elaborates from the edited tactic on)
+  ./ide goal FILE LINE [COL] [--after] [--full] [--diff]
+                                      the proof state before (after) the tactic on LINE, in the
+                                      whole file (as `check`)
+  ./ide restart [FILE]                forget FILE (or everything; restarts the server); needed
+                                      after recompiling a module FILE imports (done automatically
+                                      for modules in ./build)
+  ./ide stop                          stop the server
+  ./check FILE | ./ide compact [--full]   the same compact printing for any Lean output
+
+Lines are 1-based.  Output is compact by default: the text sent to Lean gets
+`import Tools.CompactGoals` (on the first import line; the file on disk is unchanged), so a `WP`
+shows only the next few statements of the program (`…` = the rest) and Go names print as
+go!"name"; section variables are elided; long IH/HΦ (wand/spec) hypotheses are cut to their first
+lines; long messages are cut.  `--full` prints the text uncut (for the whole program, write
+`set_option goose.pp.compactWP false in <tactic>`).  `--diff` (goal, upto): hypotheses unchanged
+since the previous `goal`/`upto` on FILE are listed by name only.  Options: --timeout S (default
+900): give up waiting after S seconds and report how far elaboration got.
+The server starts on first use and stops after 3 hours idle.  Every call is logged in .tool-log.
+"""
+import glob, json, os, re, socket, subprocess, sys, threading, time
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+SOCK = os.path.join(HERE, '.ide.sock')
+SNAP = '/home/ubuntu/.claude/jobs/f5d25fd8/tmp/exp/snap'
+TOOLS = '/home/ubuntu/.claude/jobs/f5d25fd8/tmp/exp/toolsbuild'   # GroveTools & co., precompiled
+LEAN_PATH = ':'.join([f'{SNAP}/{d}' for d in ['perennial', 'iris', 'qq', 'batteries', 'btree']]
+                     + [TOOLS, os.path.join(HERE, 'build')])
+KEEP_WP_LINES = 14
+HYP_LINES = 6        # a wand/spec hypothesis (IH, HΦ, closing wands) longer than this is cut to its
+HYP_MIN_CUT = 4      # first HYP_LINES lines (binders, shape), if that hides at least HYP_MIN_CUT lines;
+                     # pure facts and resources are never cut
+MAX_MSG_LINES = 160
+IDLE_EXIT = 3 * 3600
+SHADOW_SUFFIX = '.upto.lean'
+SKIP_KERNEL = os.environ.get('IDE_SKIP_KERNEL', '1') == '1'   # the URI of the cut copy of FILE (never written to disk)
+
+
+# ---------- compact printing ----------
+BOILERPLATE = ('ext : FfiSyntax', 'ffi : FfiModel', 'go_gctx : GoGlobalContext', 'hlc : HasLC',
+               'GF : BundledGFunctors', 'hG : HeapGS hlc GF', 'sem : go.Semantics',
+               'package_sem : Assumptions')
+
+
+def elide_wp(lines, keep=KEEP_WP_LINES):
+    out = []
+    i = 0
+    while i < len(lines):
+        l = lines[i]
+        s = l.lstrip()
+        if s.startswith('WP') and (s == 'WP' or s.startswith('WP ') or s.startswith('WP(')):
+            base = len(l) - len(s)
+            out.append(l)
+            j = i + 1
+            kept = elided = 0
+            # a program already cut by Tools.CompactGoals (it prints `…`) is kept as it is
+            end = j
+            while end < len(lines) and not (lines[end].lstrip().startswith('{{') or (
+                    lines[end].strip() and len(lines[end]) - len(lines[end].lstrip()) <= base)):
+                end += 1
+            limit = keep if not any('…' in x for x in lines[j:end]) else len(lines)
+            while j < len(lines):
+                lj = lines[j]
+                sj = lj.lstrip()
+                ind = len(lj) - len(sj)
+                if sj.startswith('{{') or (sj and ind <= base):
+                    break
+                if kept < limit:
+                    out.append(lj)
+                    kept += 1
+                else:
+                    elided += 1
+                j += 1
+            if elided:
+                out.append(' ' * (base + 4) + f'⋯ ({elided} more lines of the program; --full shows them)')
+            i = j
+            continue
+        out.append(l)
+        i += 1
+    return out
+
+
+def drop_boilerplate(lines):
+    kept = [l for l in lines if l.strip() not in BOILERPLATE and not (
+        l.startswith('inst✝') and (': FfiInterp' in l or ': FfiSemantics' in l))]
+    if len(kept) < len(lines):
+        kept = ['(section variables ext ffi go_gctx hlc GF hG sem package_sem elided)'] + kept
+    return kept
+
+
+def cut(out, limit=MAX_MSG_LINES):
+    if len(out) > limit:
+        n = len(out) - limit
+        out = out[:limit // 2] + [f'⋯ ({n} lines cut; --full shows them)'] + out[-limit // 2:]
+    return out
+
+
+LEAN_HYP = re.compile(r'^[^\s⊢].* :( |$)')        # `x y : T` in the Lean context
+IRIS_HYP = re.compile(r'^  [∗□]\S+ :( |$)')       # `  ∗H : P` / `  □H : P` in an Iris goal
+
+
+def cut_long_hyps(lines):
+    """Cut a long wand/spec hypothesis (one mentioning -∗ or WP: the induction hypothesis,
+    the continuation HΦ, closing wands) to its first HYP_LINES lines. Pure facts and
+    resources (points-to's, ownership predicates) are always kept whole."""
+    out = []
+    i = 0
+    while i < len(lines):
+        l = lines[i]
+        m = LEAN_HYP.match(l) or IRIS_HYP.match(l)
+        if not m or l.startswith('⊢'):
+            out.append(l)
+            i += 1
+            continue
+        j = i + 1
+        while j < len(lines) and not (LEAN_HYP.match(lines[j]) or IRIS_HYP.match(lines[j])
+                                      or lines[j].startswith('⊢') or lines[j].rstrip() == '  ⊢'
+                                      or lines[j].startswith('---')):
+            j += 1
+        entry = lines[i:j]
+        if len(entry) > HYP_LINES + HYP_MIN_CUT and any(("-∗" in x or "WP" in x) for x in entry):
+            name = l.strip().split(' :')[0]
+            ind_ = len(entry[1]) - len(entry[1].lstrip()) if len(entry) > 1 else 2
+            out += entry[:HYP_LINES] + [' ' * ind_ + f'⋯ ({len(entry) - HYP_LINES} more lines of {name}; --full shows them)']
+        else:
+            out += entry
+        i = j
+    return out
+
+
+def hyp_entries(lines):
+    """Split a goal into (key, lines) entries: Lean hypotheses, Iris hypotheses, other lines."""
+    out = []
+    i = 0
+    while i < len(lines):
+        l = lines[i]
+        if (LEAN_HYP.match(l) or IRIS_HYP.match(l)) and not l.startswith('⊢'):
+            j = i + 1
+            while j < len(lines) and not (LEAN_HYP.match(lines[j]) or IRIS_HYP.match(lines[j])
+                                          or lines[j].startswith('⊢') or lines[j].rstrip() == '  ⊢'):
+                j += 1
+            out.append((l.strip().split(' :')[0], lines[i:j]))
+            i = j
+        else:
+            out.append((None, [l]))
+            i += 1
+    return out
+
+
+def diff_goal(prev, cur):
+    """`cur` with the hypotheses that are the same as in `prev` replaced by one line naming
+    them (and one naming those that are gone). The goal itself is always printed."""
+    old = {k: v for k, v in hyp_entries(prev.split('\n')) if k is not None}
+    entries = hyp_entries(cur.split('\n'))
+    names = {k for k, _ in entries if k is not None}
+    same, out = [], []
+    for k, v in entries:
+        if k is not None and old.get(k) == v:
+            same.append(k.lstrip('∗□'))
+        else:
+            out += v
+    gone = [k.lstrip('∗□') for k in old if k not in names]
+    note = [f'(unchanged since the last ./ide goal/upto: {" ".join(same)})'] if same else []
+    if gone:
+        note.append(f'(gone: {" ".join(gone)})')
+    return '\n'.join(note + out)
+
+
+def compact(text, full=False):
+    if full:
+        return text
+    return '\n'.join(cut(elide_wp(cut_long_hyps(drop_boilerplate(text.split('\n'))))))
+
+
+# Lean-side compact printing (tools-src/Tools/CompactGoals.lean, precompiled in TOOLS): the text
+# sent to the server gets `import Tools.CompactGoals ` in front of the file's first `import`, on
+# the same line (line numbers are unchanged; the file on disk is not touched).  Not added when
+# the file already imports it or GroveTools.  IDE_LEAN_COMPACT=0 in the environment of the first
+# ./ide call (which starts the server) turns it off.
+LEAN_COMPACT = os.environ.get('IDE_LEAN_COMPACT', '1') != '0' and any(
+    os.path.exists(os.path.join(p, 'Tools/CompactGoals.olean')) for p in LEAN_PATH.split(':'))
+HAS_COMPACT_RE = re.compile(r'^import\b.*\b(Tools\.CompactGoals|GroveTools)\b', re.M)
+
+
+def with_compact_import(text):
+    if not LEAN_COMPACT or HAS_COMPACT_RE.search(text):
+        return text
+    m = re.search(r'^import ', text, re.M)
+    return text if m is None else text[:m.start()] + 'import Tools.CompactGoals ' + text[m.start():]
+
+
+# ---------- goal states: parse into entries, diff ----------
+IRIS_HYP_RE = re.compile(r'^\s*[∗□]\S* :')
+
+
+def _ind(l):
+    return len(l) - len(l.lstrip())
+
+
+def lean_hyps(lines):
+    """Lean hypotheses: an entry starts at a non-indented line; `a b : T` is split into a and b."""
+    ents = []
+    for l in lines:
+        if ents and (l.startswith(' ') or not l.strip()):
+            ents[-1].append(l)
+        else:
+            ents.append([l])
+    out = []
+    for e in ents:
+        head = e[0]
+        if ' : ' in head or head.rstrip().endswith(' :'):
+            names, _, ty = head.partition(' :')
+            ty = '\n'.join([ty] + e[1:])
+            for nm in names.split():
+                out.append((nm, f'{nm} :{ty}'))
+        else:
+            out.append((head, '\n'.join(e)))
+    return out
+
+
+def iris_hyps(lines):
+    ents = []
+    for l in lines:
+        if IRIS_HYP_RE.match(l) or not ents:
+            ents.append([l])
+        else:
+            ents[-1].append(l)
+    return [(e[0].strip().split(' :')[0], '\n'.join(e)) for e in ents]
+
+
+def parse_goal(g):
+    """One goal -> (case, [(name, text)] Lean hyps, [(name, text)] Iris hyps, conclusion text)."""
+    lines = g.split('\n')
+    case = None
+    if lines and lines[0].startswith('case '):
+        case, lines = lines[0], lines[1:]
+    k = next((i for i, l in enumerate(lines) if l.startswith('⊢')), None)
+    if k is None:
+        return case, [], [], '\n'.join(lines)
+    hyps = lean_hyps(lines[:k])
+    first = lines[k][1:].strip()
+    body = lines[k + 1:]
+    # Iris proof mode: `⊢` alone, then hypotheses (`  ∗H : P` / `  □H : P`), `  ⊢`, the conclusion
+    j = next((i for i, l in enumerate(body) if l.strip() == '⊢' or l.strip().startswith('⊢ ')), None)
+    if first or j is None:
+        return case, hyps, [], '\n'.join(([first] if first else []) + body)
+    concl = body[j].strip()[1:].strip()
+    return case, hyps, iris_hyps(body[:j]), '\n'.join(([concl] if concl else []) + body[j + 1:])
+
+
+def similarity(a, b):
+    sa = set(t for _, t in a[1]) | set(t for _, t in a[2])
+    sb = set(t for _, t in b[1]) | set(t for _, t in b[2])
+    return len(sa & sb) + (5 if a[3] == b[3] else 0) + (3 if a[0] and a[0] == b[0] else 0)
+
+
+def short(text, full, keep_lines=10):
+    tl = text.rstrip().split('\n')
+    if full:
+        return tl
+    tl = elide_wp(tl, keep=6)
+    if len(tl) > keep_lines:
+        tl = tl[:keep_lines] + [f'    ⋯ ({len(tl) - keep_lines} more lines; --full shows them)']
+    return tl
+
+
+def goal_diff(history, after, full):
+    """Describe the state `after` (list of goal strings) relative to the most similar goal seen so
+    far (`history`: parsed goals, most recent first)."""
+    out = []
+    if not after:
+        return ['  no goals left (here)']
+    a = parse_goal(after[0])
+    b = max(history, key=lambda h: similarity(a, h)) if history else (None, [], [], '')
+    if a == b:
+        out.append('  (no change)')
+    if a[0] and a[0] != b[0]:
+        out.append(f'  {a[0]}')
+    for kind, ha, hb in (('', a[1], b[1]), ('iris ', a[2], b[2])):
+        da, db = dict(ha), dict(hb)
+        gone = [n for n, _ in hb if n not in da]
+        if gone:
+            out.append(f'  - {kind}hyps: ' + ', '.join(gone))
+        for n, t in ha:
+            if db.get(n) != t:
+                tl = short(t, full)
+                out.append(f'  {"~" if n in db else "+"} ' + tl[0].strip())
+                out += ['    ' + x for x in tl[1:]]
+    if a[3] != b[3]:
+        out.append('  ⊢ (new conclusion)')
+        out += ['    ' + x for x in short(a[3], full, 16)]
+    elif a != b:
+        out.append('  ⊢ (conclusion unchanged)')
+    if len(after) > 1:
+        out.append(f'  (+{len(after) - 1} more goal(s))')
+    return out
+
+
+# ---------- source structure (indentation heuristics) ----------
+DECL_RE = re.compile(r'^(set_option\s+\S+\s+\S+\s+in\s+)*(@\[.*\]\s*)?((private|protected|noncomputable|nonrec|partial|unsafe)\s+)*'
+                     r'(theorem|lemma|def|example|instance|abbrev|opaque)\b')
+OPENER_RE = re.compile(r'^(focus|next|case|case\'|all_goals|any_goals|classical|on_goal|repeat|try|'
+                       r'first|iassert)\b')
+
+
+def ind(l):
+    return len(l) - len(l.lstrip())
+
+
+def blank(l):
+    s = l.strip()
+    return not s or s.startswith('--')
+
+
+def code(l):
+    """The line without a trailing comment."""
+    return re.sub(r'\s+--.*$', '', l.strip())
+
+
+def bullet(l):
+    s = l.lstrip()
+    return s.startswith('· ') or s.startswith('. ') or s in ('·', '.')
+
+
+def opens_block(l):
+    """Does line l open a nested tactic block (so deeper lines after it are tactics, not its
+    continuation)?"""
+    s = code(l)
+    if bullet(l):
+        return True
+    if re.search(r'(\bby|=>|\bwith|\bdo)$', s):
+        return True
+    return bool(OPENER_RE.match(s))
+
+
+def decl_start(lines, i):
+    """0-based index of the declaration containing line i (0-based)."""
+    for j in range(i, -1, -1):
+        if DECL_RE.match(lines[j]):
+            return j
+    return None
+
+
+def prev_shallower(lines, i, d0):
+    c = ind(lines[i])
+    for j in range(i - 1, d0, -1):
+        if not blank(lines[j]) and ind(lines[j]) < c:
+            return j
+    return d0
+
+
+def tactic_start(lines, i, d0):
+    """The line where the tactic containing line i starts: a deeper line after a line that does
+    not open a block is a continuation of that line."""
+    while True:
+        q = prev_shallower(lines, i, d0)
+        if q <= d0 or opens_block(lines[q]):
+            return i
+        i = q
+
+
+def tactic_col(l):
+    return ind(l) + (2 if bullet(l) and l.strip() not in ('·', '.') else 0)
+
+
+def own_extent(lines, s, n):
+    """Last line of the tactic text starting at s: its continuation lines, not a nested block.
+    A `with` line (alternatives follow) takes its whole block."""
+    l = lines[s]
+    inner = l.lstrip()[2:] if bullet(l) else l.strip()
+    c = tactic_col(l)
+    if re.search(r'\bwith$', code(l)) and not bullet(l):
+        c = ind(l)
+    elif opens_block(inner) if bullet(l) else opens_block(l):
+        return s
+    e = s
+    for j in range(s + 1, n):
+        if blank(lines[j]):
+            continue
+        if ind(lines[j]) > c:
+            e = j
+        else:
+            break
+    return e
+
+
+def inner_level(lines, s, e, n):
+    """The indentation of the block in which the tactic after line e would be."""
+    l = lines[e] if e > s else lines[s]
+    nxt = next((j for j in range(e + 1, n) if not blank(lines[j])), None)
+    if e == s and opens_block(l if not bullet(l) else l.lstrip()[2:]) and not \
+            (re.search(r'\bwith$', code(l)) and not bullet(l)):
+        if nxt is not None and (ind(lines[nxt]) > ind(l) or
+                                (code(l).endswith('=>') and ind(lines[nxt]) == ind(l))):
+            return ind(lines[nxt])
+        return tactic_col(l) + 2
+    return tactic_col(lines[s])
+
+
+def make_upto(text, line):
+    """The text of FILE checked only up to the tactic on `line` (1-based): the tactic's lines are
+    kept, the rest of the proof is replaced by `all_goals sorry` at every enclosing block level.
+    Returns (text, first, last, goal_pos) where first..last (1-based) are the lines of that tactic
+    and goal_pos = (line0, col) is where the state after it can be read."""
+    lines = text.split('\n')
+    n = len(lines)
+    i = min(line - 1, n - 1)
+    while i > 0 and blank(lines[i]):
+        i -= 1
+    d0 = decl_start(lines, i)
+    if d0 is None or i == d0:
+        raise ValueError(f'line {line} is not inside a proof')
+    s = tactic_start(lines, i, d0)
+    e = own_extent(lines, s, n)
+    lev = inner_level(lines, s, e, n)
+    if lev == 0:
+        raise ValueError(f'line {line} is not inside a proof')
+    levels = [lev]
+    cur = lev
+    for j in range(e, d0, -1):
+        if blank(lines[j]):
+            continue
+        k = ind(lines[j])
+        if 0 < k < cur and j <= s:
+            cur = k
+            levels.append(k)
+    closers = [' ' * k + 'all_goals sorry' for k in levels]
+    kept = lines[:e + 1]
+    if SKIP_KERNEL:
+        kept[d0] = 'set_option debug.skipKernelTC true in ' + kept[d0]
+    return '\n'.join(kept + closers) + '\n', s + 1, e + 1, (e + 1, lev)
+
+
+def wildcard_alts(lines, last):
+    """0-based lines (before `last`, 1-based) of `| _ ... =>` alternatives that are the only
+    alternative of an `induction`/`cases ... with`."""
+    out = []
+    for j in range(min(last, len(lines))):
+        if not re.match(r'^\s*\| _\s.*=>', lines[j]):
+            continue
+        p = next((k for k in range(j - 1, -1, -1) if not blank(lines[k])), None)
+        if p is None or not re.search(r'\b(induction|cases|rcases|fun_induction)\b.*\bwith$', code(lines[p])):
+            continue
+        c = ind(lines[j])
+        others = [k for k in range(j + 1, len(lines)) if lines[k].strip().startswith('|') and ind(lines[k]) == c
+                  and all(not (not blank(lines[m]) and ind(lines[m]) < c) for m in range(j + 1, k))]
+        if not others:
+            out.append(j)
+    return out
+
+
+def tactics_in(lines, a, b):
+    """The tactics (start, end, col) whose start is in lines a..b (1-based)."""
+    d0 = decl_start(lines, a - 1)
+    n = len(lines)
+    out = []
+    i = a - 1
+    while i <= b - 1:
+        if blank(lines[i]):
+            i += 1
+            continue
+        s = tactic_start(lines, i, d0)
+        if s < i:          # the middle of a multi-line tactic: skip to its end
+            i = own_extent(lines, s, n) + 1
+            continue
+        e = own_extent(lines, s, n)
+        out.append((s, e, tactic_col(lines[s])))
+        i = s + 1 if e == s else e + 1
+        # nested lines (a block opened by s) are visited as tactics of their own
+        if e > s and re.search(r'\bwith$', code(lines[s])):
+            pass
+    return out
+
+
+# ---------- the daemon ----------
+class Died(Exception):
+    pass
+
+
+class Server:
+    def __init__(self):
+        env = dict(os.environ, LEAN_PATH=LEAN_PATH,
+                   PATH=os.path.expanduser('~/.elan/bin') + ':' + os.environ.get('PATH', ''))
+        self.p = subprocess.Popen(['lean', '--server'], cwd=HERE, env=env,
+                                  stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        self.lock = threading.Condition()
+        self.next_id = 1
+        self.responses = {}
+        self.diags = {}      # uri -> (version, diagnostics)
+        self.progress = {}   # uri -> (version, processing list)
+        self.docs = {}       # uri -> (version, text, opened_at)
+        self.dead = False
+        threading.Thread(target=self.reader, daemon=True).start()
+        self.request('initialize', {'processId': os.getpid(), 'rootUri': 'file://' + HERE,
+                                    'capabilities': {}}, timeout=120)
+        self.notify('initialized', {})
+
+    def send(self, msg):
+        if self.p.poll() is not None:
+            raise Died('the Lean server exited')
+        b = json.dumps(msg).encode()
+        try:
+            self.p.stdin.write(b'Content-Length: %d\r\n\r\n' % len(b) + b)
+            self.p.stdin.flush()
+        except (BrokenPipeError, OSError):
+            raise Died('the Lean server exited')
+
+    def notify(self, method, params):
+        self.send({'jsonrpc': '2.0', 'method': method, 'params': params})
+
+    def request(self, method, params, timeout=120):
+        with self.lock:
+            rid = self.next_id
+            self.next_id += 1
+        self.send({'jsonrpc': '2.0', 'id': rid, 'method': method, 'params': params})
+        deadline = time.time() + timeout
+        with self.lock:
+            while rid not in self.responses:
+                if self.dead:
+                    raise Died('the Lean server exited')
+                if time.time() > deadline:
+                    raise TimeoutError(method)
+                self.lock.wait(timeout=0.5)
+            return self.responses.pop(rid)
+
+    def reader(self):
+        f = self.p.stdout
+        try:
+            while True:
+                headers = {}
+                while True:
+                    line = f.readline()
+                    if not line:
+                        raise EOFError
+                    line = line.decode().strip()
+                    if not line:
+                        break
+                    k, v = line.split(':', 1)
+                    headers[k.lower()] = v.strip()
+                body = f.read(int(headers['content-length']))
+                msg = json.loads(body)
+                with self.lock:
+                    if 'id' in msg and ('result' in msg or 'error' in msg):
+                        self.responses[msg['id']] = msg
+                    elif msg.get('method') == 'textDocument/publishDiagnostics':
+                        p = msg['params']
+                        self.diags[p['uri']] = (p.get('version'), p['diagnostics'])
+                    elif msg.get('method') == '$/lean/fileProgress':
+                        p = msg['params']
+                        self.progress[p['textDocument']['uri']] = (p['textDocument'].get('version'),
+                                                                   p['processing'])
+                    elif 'id' in msg and 'method' in msg:
+                        self.send({'jsonrpc': '2.0', 'id': msg['id'], 'result': None})
+                    self.lock.notify_all()
+        except Exception:
+            with self.lock:
+                self.dead = True
+                self.lock.notify_all()
+
+    def close(self, uri):
+        if uri in self.docs:
+            self.notify('textDocument/didClose', {'textDocument': {'uri': uri}})
+            with self.lock:
+                self.docs.pop(uri, None)
+                self.diags.pop(uri, None)
+                self.progress.pop(uri, None)
+
+    def sync_text(self, uri, text, timeout, header_line=None):
+        """Open/update the document and wait until it is elaborated. Returns (diags, done, where)."""
+        with self.lock:
+            cur = self.docs.get(uri)
+        if cur is not None and cur[2] < build_mtime():
+            self.close(uri)        # a module in ./build was recompiled: reload the imports
+            cur = None
+        if cur is None:
+            version = 1
+            self.notify('textDocument/didOpen', {'textDocument': {'uri': uri, 'languageId': 'lean4',
+                                                                   'version': version, 'text': text}})
+            opened = time.time()
+        elif cur[1] != text:
+            version = cur[0] + 1
+            self.notify('textDocument/didChange', {'textDocument': {'uri': uri, 'version': version},
+                                                   'contentChanges': [{'text': text}]})
+            opened = cur[2]
+        else:
+            version, opened = cur[0], cur[2]
+        with self.lock:
+            self.docs[uri] = (version, text, opened)
+            deadline = time.time() + timeout
+            done = False
+            while True:
+                if self.dead:
+                    raise Died('the Lean server exited')
+                pr = self.progress.get(uri)
+                if pr and pr[0] == version and (not pr[1] or header_line is not None and all(
+                        r['range']['end']['line'] + 1 <= header_line for r in pr[1])):
+                    # done; or (cut copies) only the declaration's final phase is left (adding the
+                    # proof term to the environment), which cannot report errors about the tactics
+                    done = True
+                    break
+                d = self.diags.get(uri)
+                if d and any('Server process for' in x['message'] and 'crashed' in x['message']
+                             for x in d[1]):
+                    self.docs.pop(uri, None)   # reopen next time
+                    break
+                if time.time() > deadline:
+                    break
+                self.lock.wait(timeout=0.5)
+            if done:
+                end = time.time() + 1.5
+                while time.time() < end:
+                    d = self.diags.get(uri)
+                    if d and d[0] == version:
+                        break
+                    self.lock.wait(timeout=0.2)
+            d = self.diags.get(uri)
+            diags = d[1] if d else []
+            pr = self.progress.get(uri)
+            where = None
+            if not done and pr and pr[1]:
+                where = max(r['range']['start']['line'] for r in pr[1]) + 1
+            return diags, done, where
+
+    def plain_goal(self, uri, line0, col):
+        r = self.request('$/lean/plainGoal', {'textDocument': {'uri': uri},
+                                              'position': {'line': line0, 'character': col}})
+        res = r.get('result')
+        return (res or {}).get('goals') or []
+
+
+def build_mtime():
+    ts = [os.path.getmtime(p) for p in glob.glob(os.path.join(HERE, 'build', '**', '*.olean'), recursive=True)]
+    return max(ts, default=0)
+
+
+SEV = {1: 'error', 2: 'warning', 3: 'info', 4: 'hint'}
+
+
+def fmt_diags(diags, rel, full, upto_line=None, shadow=False):
+    out, nerr = [], 0
+    for d in sorted(diags, key=lambda d: (d['range']['start']['line'], d['range']['start']['character'])):
+        s = d.get('severity', 1)
+        st = d['range']['start']
+        msg = d['message']
+        if upto_line is not None and st['line'] + 1 > upto_line:
+            continue    # a message about the cut-off part (e.g. at the closing `all_goals sorry`)
+        if shadow and re.search(r"declaration uses ['`]sorry", msg):
+            continue
+        if s == 2 and 'linter' in msg and 'sorry' not in msg:
+            continue   # unused-variable/section-variable lints: noise
+        if s == 1:
+            nerr += 1
+        out.append(f"{rel}:{st['line'] + 1}:{st['character']}: {SEV.get(s, s)}: {compact(msg, full)}")
+    return out, nerr
+
+
+def status_line(done, where, t0, timeout):
+    if done:
+        return f'-- elaborated in {time.time() - t0:.1f}s'
+    if where:
+        return (f'-- NOT finished after {timeout}s: elaboration is around line {where}; '
+                f'messages above are partial (rerun to keep waiting; the server keeps working)')
+    return '-- NOT finished (the file worker crashed; rerun to restart it)'
+
+
+class Daemon:
+    def __init__(self):
+        self.srv = Server()
+        self.alt_names = {}
+        self.hints = {}
+        self.last_goal = {}  # path -> first goal last printed by `goal`/`upto` (for --diff)
+
+    def render_goals(self, path, gs, full, diff):
+        prev = self.last_goal.get(path)
+        self.last_goal[path] = gs[0]
+        out = []
+        for k, g in enumerate(gs):
+            out.append(f'--- goal {k + 1} ---')
+            if diff and k == 0 and prev is not None and not full:
+                g = diff_goal(prev, g)
+            out.append(compact(g, full))
+        return out
+
+    def with_server(self, f):
+        try:
+            return f()
+        except Died:
+            try:
+                self.srv.p.kill()
+            except Exception:
+                pass
+            self.srv = Server()          # crash recovery: new server, documents reopened on use
+            out, st = f()
+            return '-- (the Lean server had exited; restarted it)\n' + out, st
+
+    def check(self, path, full, timeout):
+        t0 = time.time()
+        uri = 'file://' + path
+        diags, done, where = self.srv.sync_text(uri, with_compact_import(open(path).read()), timeout)
+        out, nerr = fmt_diags(diags, os.path.relpath(path, HERE), full)
+        out.append(f'-- {nerr} error(s)')
+        lines = open(path).read().split('\n')
+        for j in wildcard_alts(lines, len(lines)):
+            name = next((v for (u, _, jj), v in self.alt_names.items() if jj == j and v and
+                         u == 'file://' + path[:-5] + SHADOW_SUFFIX), None)
+            out.append(f'-- hint: line {j + 1}: an `| _ ... =>` alternative makes Lean re-check all of it '
+                       f'after any edit inside; name it' + (f' (`| {name} ...`)' if name else '') +
+                       ' (`ide upto` does this itself)')
+        out.append(status_line(done, where, t0, timeout))
+        return '\n'.join(out), (1 if nerr else 0) if done else 4
+
+    def goal(self, path, line, col, after, full, timeout, diff=False):
+        uri = 'file://' + path
+        t0 = time.time()
+        diags, done, where = self.srv.sync_text(uri, with_compact_import(open(path).read()), timeout)
+        lines = open(path).read().split('\n')
+        return self._goal_report(path, uri, lines, diags, line, col, after, full,
+                                 status_line(done, where, t0, timeout), done, diff)
+
+    def _goal_report(self, path, uri, lines, diags, line, col, after, full, status, done, diff):
+        if not (1 <= line <= len(lines)):
+            return f'line {line} out of range (1..{len(lines)})', 2
+        text = lines[line - 1]
+        if col is None:
+            col = len(text.rstrip()) if after else ind(text)
+            if not after and text.lstrip().startswith('·'):
+                col += 2
+        gs = self.srv.plain_goal(uri, line - 1, col)
+        errs = [d for d in diags if d.get('severity', 1) == 1 and d['range']['start']['line'] < line - 1]
+        head = f'-- {len(errs)} error(s) above line {line}' + (' (the state may be affected)' if errs else '')
+        out = [head]
+        if not gs:
+            out.append('(no goals here; at a `by` block, put the position on a tactic)')
+        else:
+            out.append(f'{len(gs)} goal(s)' + (' after' if after else ' before') + f' line {line}:')
+            out += self.render_goals(path, gs, full, diff)
+        out.append(status)
+        return '\n'.join(out), 0 if done else 4
+
+    def shadow(self, path, line, timeout):
+        """Elaborate the cut copy of FILE up to `line`; returns everything the reports need."""
+        text = open(path).read()
+        stext, first, last, gpos = make_upto(with_compact_import(text), line)
+        uri = 'file://' + path[:-5] + SHADOW_SUFFIX
+        stext = self.name_wildcards(uri, stext, last, timeout)
+        d0 = decl_start(stext.split('\n'), last - 1)
+        diags, done, where = self.srv.sync_text(uri, stext, timeout, header_line=d0 + 1)
+        return text.split('\n'), uri, diags, done, where, first, last, gpos
+
+    def name_wildcards(self, uri, stext, last, timeout):
+        """`induction x with | _ a b => ...` disables Lean's incremental reuse inside the
+        alternative (Lean cannot know the wildcard matches one goal only).  In the cut copy, replace
+        `_` by the alternative's name, found once by probing with a wrong name."""
+        lines = stext.split('\n')
+        for j in wildcard_alts(lines, last):
+            key = lines[j - 1].strip() if j > 0 else ''
+            key = (uri, key, j)
+            if key not in self.alt_names:
+                probe = lines[:]
+                probe[j] = probe[j].replace('| _', '| ide_probe', 1)
+                diags, done, _ = self.srv.sync_text(uri, '\n'.join(probe), timeout)
+                name = None
+                for d in diags:
+                    m = re.search(r"alternative name `ide_probe`: Expected `([^`]+)`$", d['message'])
+                    if m and d['range']['start']['line'] == j:
+                        name = m.group(1)
+                self.alt_names[key] = name
+            name = self.alt_names[key]
+            if name:
+                lines[j] = lines[j].replace('| _', '| ' + name, 1)
+                self.hints[uri] = (j + 1, name)
+        return '\n'.join(lines)
+
+    def upto(self, path, line, full, timeout, diff=False):
+        t0 = time.time()
+        lines, uri, diags, done, where, first, last, gpos = self.shadow(path, line, timeout)
+        rel = os.path.relpath(path, HERE)
+        out, nerr = fmt_diags(diags, rel, full, upto_line=last, shadow=True)
+        span = f' (the tactic on line {line} spans lines {first}-{last})' if (first, last) != (line, line) else ''
+        out.append(f'-- {nerr} error(s) in lines 1-{last}{span}')
+        if done:
+            gs = self.srv.plain_goal(uri, gpos[0], gpos[1])
+            if not gs:
+                out.append(f'no goals after line {last} (this branch is closed)')
+            else:
+                out.append(f'{len(gs)} goal(s) after line {last}:')
+                out += self.render_goals(path, gs, full, diff)
+        out.append(status_line(done, where, t0, timeout))
+        return '\n'.join(out), ((1 if nerr else 0) if done else 4)
+
+    def steps(self, path, a, b, full, timeout):
+        t0 = time.time()
+        lines, uri, diags, done, where, first, last, gpos = self.shadow(path, b, timeout)
+        rel = os.path.relpath(path, HERE)
+        if not done:
+            return status_line(done, where, t0, timeout), 4
+        tacs = [t for t in tactics_in(lines, a, last) if t[0] <= last - 1]
+        if not tacs:
+            return f'no tactic starts in lines {a}-{b}', 2
+        errs = [d for d in diags if d.get('severity', 1) == 1 and d['range']['start']['line'] <= last - 1]
+        # the positions: before each tactic, and after the last one
+        pos = [(s, col) for (s, e, col) in tacs] + [gpos]
+        states = [self.srv.plain_goal(uri, l0, c) for (l0, c) in pos]
+        out = [f'== state before line {tacs[0][0] + 1} ({len(states[0])} goal(s)):']
+        if states[0]:
+            out.append(compact(states[0][0], full))
+            if len(states[0]) > 1:
+                out.append(f'(+{len(states[0]) - 1} other goal(s))')
+        nerr = 0
+        for k, (s, e, col) in enumerate(tacs):
+            nxt = tacs[k + 1][0] if k + 1 < len(tacs) else last
+            src = ' '.join(l.strip() for l in lines[s:e + 1])
+            if len(src) > 110 and not full:
+                src = src[:107] + '...'
+            out.append(f'== line {s + 1}' + (f'-{e + 1}' if e > s else '') + f': {src}')
+            eh = [d for d in errs if s <= d['range']['start']['line'] < max(nxt, e + 1)]
+            if eh:
+                nerr = len(eh)
+                for d in eh:
+                    st = d['range']['start']
+                    out.append(f"{rel}:{st['line'] + 1}:{st['character']}: error: {compact(d['message'], full)}")
+                out.append('-- stopped at the first failing tactic')
+                break
+            if len(states[k + 1]) != len(states[k]):
+                out.append(f'  goals: {len(states[k])} -> {len(states[k + 1])}')
+            hist = [parse_goal(g) for st_ in reversed(states[:k + 1]) for g in st_]
+            out += goal_diff(hist, states[k + 1], full)
+        other = [d for d in errs if d['range']['start']['line'] < tacs[0][0]]
+        if other:
+            out.append(f'-- {len(other)} error(s) before line {tacs[0][0] + 1} (the states may be affected); '
+                       f'first at line {other[0]["range"]["start"]["line"] + 1}')
+        out.append(status_line(done, where, t0, timeout))
+        return '\n'.join(out), 1 if (nerr or other) else 0
+
+    def restart(self, path):
+        if path is None:
+            self.srv.p.kill()
+            self.srv = Server()
+            return 'restarted the server', 0
+        for uri in ['file://' + path, 'file://' + path[:-5] + SHADOW_SUFFIX]:
+            self.srv.close(uri)
+        return f'forgot {os.path.relpath(path, HERE)} (reloaded on next use)', 0
+
+
+def daemon():
+    try:
+        os.unlink(SOCK)
+    except FileNotFoundError:
+        pass
+    dm = Daemon()
+    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    s.bind(SOCK)
+    s.listen(8)
+    s.settimeout(IDLE_EXIT)
+    while True:
+        try:
+            c, _ = s.accept()
+        except socket.timeout:
+            break
+        data = b''
+        while not data.endswith(b'\n'):
+            chunk = c.recv(65536)
+            if not chunk:
+                break
+            data += chunk
+        try:
+            req = json.loads(data)
+        except ValueError:
+            c.close()
+            continue
+        cmd = req['cmd']
+        try:
+            if cmd == 'stop':
+                c.sendall(json.dumps({'out': 'stopped', 'status': 0}).encode())
+                c.close()
+                break
+            to = req.get('timeout', 900)
+            if cmd == 'check':
+                out, st = dm.with_server(lambda: dm.check(req['file'], req['full'], to))
+            elif cmd == 'goal':
+                out, st = dm.with_server(lambda: dm.goal(req['file'], req['line'], req['col'],
+                                                         req['after'], req['full'], to,
+                                                         req.get('diff', False)))
+            elif cmd == 'upto':
+                out, st = dm.with_server(lambda: dm.upto(req['file'], req['line'], req['full'], to,
+                                                         req.get('diff', False)))
+            elif cmd == 'steps':
+                out, st = dm.with_server(lambda: dm.steps(req['file'], req['from'], req['to'],
+                                                          req['full'], to))
+            elif cmd == 'restart':
+                out, st = dm.restart(req.get('file'))
+            else:
+                out, st = f'unknown command {cmd}', 2
+        except Exception as e:  # report, keep serving
+            out, st = f'ide: {type(e).__name__}: {e}', 3
+        try:
+            c.sendall(json.dumps({'out': out, 'status': st}).encode())
+            c.close()
+        except OSError:
+            pass   # the client went away (e.g. killed by a timeout)
+    dm.srv.p.kill()
+    try:
+        os.unlink(SOCK)
+    except FileNotFoundError:
+        pass
+
+
+def call(req):
+    for attempt in range(2):
+        try:
+            c = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            c.connect(SOCK)
+            break
+        except (FileNotFoundError, ConnectionRefusedError):
+            if req['cmd'] == 'stop':
+                return {'out': 'not running', 'status': 0}
+            try:
+                os.unlink(SOCK)    # a stale socket of a dead daemon
+            except FileNotFoundError:
+                pass
+            subprocess.Popen([sys.executable, os.path.abspath(__file__), '--daemon'], cwd=HERE,
+                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                             stderr=open(os.path.join(HERE, '.ide.err'), 'a'), start_new_session=True)
+            for _ in range(600):
+                time.sleep(0.1)
+                if os.path.exists(SOCK):
+                    break
+    else:
+        return {'out': 'ide: cannot reach the server', 'status': 3}
+    c.sendall((json.dumps(req) + '\n').encode())
+    data = b''
+    while True:
+        chunk = c.recv(1 << 20)
+        if not chunk:
+            break
+        data += chunk
+    if not data:
+        return {'out': 'ide: the server closed the connection (it may have crashed; rerun)', 'status': 3}
+    return json.loads(data)
+
+
+def main():
+    a = sys.argv[1:]
+    if a[:1] == ['--daemon']:
+        return daemon()
+    if a[:1] == ['compact']:   # filter: ./check FILE | ./ide compact [--full]
+        t0 = time.time()
+        sys.stdout.write(compact(sys.stdin.read(), '--full' in a))
+        log(a, t0, 0)
+        return 0
+    full = '--full' in a
+    after = '--after' in a
+    diff = '--diff' in a
+    timeout = 900
+    if '--timeout' in a:
+        k = a.index('--timeout')
+        timeout = float(a[k + 1])
+        del a[k:k + 2]
+    a = [x for x in a if x not in ('--full', '--after', '--diff')]
+    usage = not a or a[0] not in ('check', 'goal', 'upto', 'steps', 'restart', 'stop')
+    t0 = time.time()
+    try:
+        if usage:
+            pass
+        elif a[0] == 'stop':
+            r = call({'cmd': 'stop'})
+        elif a[0] == 'restart' and len(a) <= 2:
+            r = call({'cmd': 'restart', 'file': os.path.abspath(a[1]) if len(a) == 2 else None})
+        elif a[0] == 'check' and len(a) == 2:
+            r = call({'cmd': 'check', 'file': os.path.abspath(a[1]), 'full': full, 'timeout': timeout})
+        elif a[0] == 'goal' and len(a) in (3, 4):
+            r = call({'cmd': 'goal', 'file': os.path.abspath(a[1]), 'line': int(a[2]),
+                      'col': int(a[3]) if len(a) == 4 else None, 'after': after, 'full': full,
+                      'diff': diff, 'timeout': timeout})
+        elif a[0] == 'upto' and len(a) == 3:
+            r = call({'cmd': 'upto', 'file': os.path.abspath(a[1]), 'line': int(a[2]), 'full': full,
+                      'diff': diff, 'timeout': timeout})
+        elif a[0] == 'steps' and len(a) in (3, 4):
+            r = call({'cmd': 'steps', 'file': os.path.abspath(a[1]), 'from': int(a[2]),
+                      'to': int(a[3] if len(a) == 4 else a[2]), 'full': full, 'timeout': timeout})
+        else:
+            usage = True
+    except ValueError:
+        usage = True
+    if usage:
+        print(__doc__)
+        log(a or ['usage'], t0, 2)
+        return 2
+    print(r['out'])
+    log(a, t0, r['status'])
+    return r['status']
+
+
+def log(a, t0, status):
+    try:
+        with open(os.path.join(HERE, '.tool-log'), 'a') as f:
+            f.write(f"{time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())} ide-{a[0]} {' '.join(a[1:])} "
+                    f"{time.time() - t0:.2f} {status}\n")
+    except OSError:
+        pass
+
+
+if __name__ == '__main__':
+    sys.exit(main())
