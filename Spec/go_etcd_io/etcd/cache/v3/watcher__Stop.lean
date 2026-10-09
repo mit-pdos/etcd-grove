@@ -21,13 +21,13 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `w.Stop()`: closed afterwards; with cancel `none` if this call closed it (it was open),
-the earlier one otherwise. -/
+/-- `w.Stop()`: closed afterwards; with cancel `none` if this call closed it (it was open; the
+caller publishes the closed log, `watcherClosePub`), the earlier one otherwise. -/
 abbrev watcher.Stop.spec : Prop :=
-  ∀ (w : Loc) (γ : WatcherNames) (pred : Option (GoString → Bool)) (sent : List RespModel)
-    (ph : WatcherPhase),
+  ∀ (w : Loc) (γ : WatcherNames) (pred : Option (GoString → Bool)) (Pb : WatcherPub GF)
+    (sent : List RespModel) (ph : WatcherPhase),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
-      isWatcher w γ pred ∗ watcherAt γ sent ph }}
+      isWatcher w γ pred Pb ∗ watcherAt γ sent ph ∗ watcherClosePub Pb sent none ph }}
     (App (Val (w @!! go.GoType.PointerType watcher.ty @!! go!"Stop")) (Val #()))
   {{ RET #(); watcherClosed γ sent (ph.cancelAfter none) }}
 

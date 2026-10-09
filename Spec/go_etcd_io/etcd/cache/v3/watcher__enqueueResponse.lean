@@ -32,13 +32,15 @@ def enqueueResult (pred : Option (GoString → Bool)) (r : RespModel) (sent : Li
 
 /-- `w.enqueueResponse(resp)` by the producer (`watcherOpen`, so the channel is open and the
 send cannot panic): see `enqueueResult`. The response sent has a non-nil `Header`
-(`respSent`). Not stated: that `ok = false` only when the buffer is full, which needs the
+(`respSent`). The caller publishes the log the send would make (`Pb.pub none`, for the
+filtered response). Not stated: that `ok = false` only when the buffer is full, which needs the
 consumer's view. -/
 abbrev watcher.enqueueResponse.spec : Prop :=
-  ∀ (w : Loc) (γ : WatcherNames) (pred : Option (GoString → Bool)) (sent : List RespModel)
-    (resp : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel),
+  ∀ (w : Loc) (γ : WatcherNames) (pred : Option (GoString → Bool)) (Pb : WatcherPub GF)
+    (sent : List RespModel) (resp : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
-      isWatcher w γ pred ∗ watcherOpen γ sent ∗ respAt resp r }}
+      isWatcher w γ pred Pb ∗ watcherOpen γ sent ∗ respAt resp r ∗
+      □ (∀ r', ⌜filterResp pred r = some r'⌝ -∗ Pb.pub none (sent ++ [r'])) }}
     (App (Val (w @!! go.GoType.PointerType watcher.ty @!! go!"enqueueResponse")) (Val #resp))
   {{ (ok : Bool), RET #ok; ∃ sent', watcherOpen γ sent' ∗ ⌜enqueueResult pred r sent ok sent'⌝ }}
 

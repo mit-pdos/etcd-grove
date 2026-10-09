@@ -28,27 +28,13 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 -- (which need `DFrac.own 1`) are found first and the search does not backtrack.
 attribute [-instance] snapshot.snapshot_access_store_rev snapshot.snapshot_access_store_tree
 
-/-- `rw.RLocker()` returns a (non-nil) `Locker` interface value.
-
-**Perennial gap** (the one `sorry` of the store): `RWMutex.RLocker` is
-`Locker((*rlocker)(rw))`, and Perennial's Go semantics has no rule for the conversion
-`(*RWMutex) → (*rlocker)` (a conversion between pointer types with identical underlying
-base types; `Golang/Defn` only converts pointers to and from `unsafe.Pointer`), so the
-body is stuck after unfolding. `isStore` needs only `isCond c lk` for the result (the
-`Cond`'s `Broadcast`); the `rlocker`'s `Lock`/`Unlock` (`isLocker`, for `Cond.Wait`) have
-no spec either. -/
-theorem newStore_RLocker [sync.Assumptions] (rw : Loc) :
-    {{ (True : IProp GF) }}
-      (App (Val (rw @!! go.GoType.PointerType sync.RWMutex.ty @!! go!"RLocker")) (Val #()))
-    {{ (lk : GoInterfaceOk), RET #(GoInterface.ok lk); True }} := by
-  sorry
-
 theorem newStore.wp_proof
     (wp_btree_New : btree.New.spec (GF := GF) (hG := hG))
     (wp_kvItemLess : kvItemLess.spec (GF := GF) (hG := hG))
     (wp_newRingBuffer : newRingBuffer.spec (GF := GF) (hG := hG)) :
     newStore.spec (GF := GF) (hG := hG) := by
-  intro degree cap
+  have wp_btree_New : btree.New.modelSpec (GF := GF) (hG := hG) := btree.New.modelSpec_of wp_btree_New
+  intro E degree cap
   wp_start as ⟨%Hdeg, %Hcap⟩
   wp_auto
   ihave Hless : btLessSpec (functions kvItemLess []) (kvItemIs (hG := hG)) kvLess $$ []
@@ -62,7 +48,7 @@ theorem newStore.wp_proof
   wp_apply wp_btree_New kvItemPtrT degree (functions kvItemLess []) (kvItemIs (hG := hG)) kvLess
     $$ [Hless] as %t Ht
   · iframe; ipureintro; exact ⟨Hdeg, kvLess_swo⟩
-  wp_apply wp_newRingBuffer (snapshot.ty.PointerType) cap _ (snapIs (hG := hG)) Prod.fst $$ []
+  wp_apply wp_newRingBuffer (snapshot.ty.PointerType) cap _ (snapCert (hG := hG) E) Prod.fst $$ []
     as %r Hr
   · isplitr
     · ipureintro; exact Hcap
@@ -70,8 +56,8 @@ theorem newStore.wp_proof
     iintro %p %h
     imodintro
     iintro %Φ' #Hp HΦ'
-    unfold snapIs
-    icases Hp with ⟨%t', #Hpt, -⟩
+    unfold snapCert snapIs
+    icases Hp with ⟨⟨%t', #Hpt, -⟩, -⟩
     wp_auto
     iapply HΦ'
     itrivial
@@ -81,7 +67,7 @@ theorem newStore.wp_proof
   iStructNamedPrefix latest "L"
   ipersist degree
   have Hok' : RingOk rb (sint.nat cap) ([] : List (w64 × KvMap)).length := Hok
-  ihave Hhist := ownRingBuffer_intro (storeHistAddr «$r0_ptr») (sint.nat cap) (snapIs (hG := hG))
+  ihave Hhist := ownRingBuffer_intro (storeHistAddr «$r0_ptr») (sint.nat cap) (snapCert (hG := hG) E)
     Prod.fst [] rb ents Hok' Hrev Hsorted $$ history Hbuf Hitems HrevOf
   iclear Hr
   imod ghostVar_alloc (GF := GF) StoreState.init with ⟨%γs, Hgs⟩
@@ -90,7 +76,7 @@ theorem newStore.wp_proof
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γr, Hauth, #Hlb⟩
   have Hinv0 : StoreInv (sint.nat cap) StoreState.init := by
     constructor <;> simp [StoreState.init, RevSorted] <;> first | word | skip
-  imod sync.init_RWMutex (storeLockInv (hG := hG) «$r0_ptr» ⟨γs, γr⟩ (sint.nat cap))
+  imod sync.init_RWMutex (storeLockInv (hG := hG) «$r0_ptr» ⟨γs, γr⟩ (sint.nat cap) E)
     (storeMuAddr «$r0_ptr») $$ [Hgs1 Hauth Lrev Hhist] mu with Htoks
   · inext
     unfold storeLockInv
@@ -99,7 +85,7 @@ theorem newStore.wp_proof
     iframe
     ipureintro; exact Hinv0
   iapply wp_fupd
-  wp_apply newStore_RLocker as %lk _
+  wp_apply sync.RWMutex.wp_RLocker
   wp_apply sync.wp_NewCond as %c #Hcond
   ipersist revCond
   obtain ⟨n, hn⟩ : ∃ n, sync.rwmutex.actualMaxReaders.toNat = n + 1 :=
@@ -110,7 +96,7 @@ theorem newStore.wp_proof
   iapply HΦ $$ %«$r0_ptr» %(StoreNames.mk γs γr)
   isplitr
   · unfold isStore
-    iexists c, lk, degree
+    iexists c, degree
     simp only [named]
     iframe #
     ipureintro

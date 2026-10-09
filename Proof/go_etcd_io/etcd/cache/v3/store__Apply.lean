@@ -76,8 +76,8 @@ theorem store.Apply.wp_proof
     (wp_applyProgressNotifyLocked : store.applyProgressNotifyLocked.spec (GF := GF) (hG := hG))
     (wp_applyEventsLocked : store.applyEventsLocked.spec (GF := GF) (hG := hG)) :
     store.Apply.spec (GF := GF) (hG := hG) := by
-  intro s γ cap st resp r
-  wp_start as ⟨#Hs, Hw, #Hresp, %Hsorted⟩
+  intro s γ cap E st resp r
+  wp_start as ⟨#Hs, Hw, #Hresp, %Hsorted, #Hcerts⟩
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -156,9 +156,12 @@ theorem store.Apply.wp_proof
           simp only [Hlen0, _root_.decide_false, Bool.not_false, _root_.decide_true]
           wp_auto
           obtain ⟨Happ, Habove⟩ := Apply_events (cap := cap) hc hv hpn he
-          wp_apply wp_applyEventsLocked s γ cap st resp.Events' r.events
+          have Hsnaps : applyRespSnaps st r = applyEventsSnaps st.latest r.events := by
+            simp [applyRespSnaps, hc, hv, hpn, he]
+          rw [Hsnaps] at *
+          wp_apply wp_applyEventsLocked s γ cap E st resp.Events' r.events
             $$ [HlatestRev Hhist Htr] as %err ⟨Hphys, % ⟨Hinv', Hmono'⟩, %Herr⟩
-          · iunfold storeLockedPhys; iframe; iframe Hs HevsAt; ipureintro
+          · iunfold storeLockedPhys; iframe; iframe Hs HevsAt Hcerts; ipureintro
             exact ⟨Hinv, Hsorted, Habove⟩
           generalize applyEvents cap st r.events = res at Happ Hinv' Hmono' Herr ⊢
           obtain ⟨st', ok⟩ := res

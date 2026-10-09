@@ -1,9 +1,7 @@
-/-
-`btree.New[T](degree, less)`: a method of the names-only btree package; see the spec.
--/
 module
-
 public import Spec.k8s_io.utils.third_party.forked.golang.btree.New
+public import Spec.k8s_io.utils.third_party.forked.golang.btree.NewFreeList
+public import Spec.k8s_io.utils.third_party.forked.golang.btree.NewWithFreeList
 
 @[expose] public section
 
@@ -11,22 +9,31 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
+namespace btree
 
-open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.cache.v3
+open Iris Iris.BI Iris.ProofMode k8s_io.utils.third_party.forked.golang.btree
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+variable [package_sem : k8s_io.utils.third_party.forked.golang.btree.Assumptions]
 
-/-- **Trust boundary**: an `axiom` rather than a `sorry`, so that it counts as an
-assumption under `#print axioms`. `k8s.io/utils/third_party/forked/golang/btree` is
-translated names-only (no bodies); the spec states what its documentation says. -/
-axiom btree.New.wp_proof : btree.New.spec (GF := GF) (hG := hG)
+theorem New.wp_proof
+    (wp_NewFreeListG : NewFreeList.spec (GF := GF) (hG := hG))
+    (wp_NewWithFreeListG : NewWithFreeList.spec (GF := GF) (hG := hG)) :
+    New.spec (GF := GF) (hG := hG) := by
+  intro V _ _ T _ K o degree less Hd1 Hd2
+  wp_start as #Hless
+  wp_auto
+  wp_apply (wp_NewFreeListG (V := V) (T := T) (W64 32) (by decide)) as %f #Hf
+  wp_apply (wp_NewWithFreeListG (V := V) (T := T) o degree less f Hd1 Hd2) $$ [$Hless $Hf]
+    as %t Ht
+  wp_end
 
 end proof
 
+end btree
 end EtcdGrove
 end Perennial

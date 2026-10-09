@@ -25,8 +25,8 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 theorem watcher.enqueueResponse.wp_proof
     (wp_IsProgressNotify : WatchResponse.IsProgressNotify.spec (GF := GF) (hG := hG)) :
     watcher.enqueueResponse.spec (GF := GF) (hG := hG) := by
-  intro w γ pred sent resp r
-  wp_start as ⟨#Hw, Hopen, #Hresp⟩
+  intro w γ pred Pb sent resp r
+  wp_start as ⟨#Hw, Hopen, #Hresp, #HPub⟩
   ihave #Hw0 := Hw
   iNamed Hw
   wp_auto
@@ -225,7 +225,8 @@ theorem watcher.enqueueResponse.wp_proof
   subst Hv
   wp_auto
   wp_bind (App (Val (GoInstruction SelectStmt)) _)
-  iapply wp_watcher_send w ch γ pred sent resp'' r' _ _ _ $$ Hw0 HrespCh Hopen Hsent
+  iapply wp_watcher_send w ch γ pred Pb sent resp'' r' _ _ _ $$ Hw0 HrespCh Hopen Hsent []
+  · imodintro; iapply HPub $$ %r' %Hfr
   isplit
   · iintro Hopen
     wp_auto

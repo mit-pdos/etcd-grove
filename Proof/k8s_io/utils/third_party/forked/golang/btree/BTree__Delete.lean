@@ -1,9 +1,6 @@
-/-
-`(*BTree[T]).Delete(key)`: a method of the names-only btree package; see the spec.
--/
 module
-
 public import Spec.k8s_io.utils.third_party.forked.golang.btree.BTree__Delete
+public import Spec.k8s_io.utils.third_party.forked.golang.btree.BTree__deleteItem
 
 @[expose] public section
 
@@ -11,22 +8,29 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
+namespace btree
 
-open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.cache.v3
+open Iris Iris.BI Iris.ProofMode k8s_io.utils.third_party.forked.golang.btree
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+variable [package_sem : k8s_io.utils.third_party.forked.golang.btree.Assumptions]
 
-/-- **Trust boundary**: an `axiom` rather than a `sorry`, so that it counts as an
-assumption under `#print axioms`. `k8s.io/utils/third_party/forked/golang/btree` is
-translated names-only (no bodies); the spec states what its documentation says. -/
-axiom btree.BTree.Delete.wp_proof : btree.BTree.Delete.spec (GF := GF) (hG := hG)
+theorem BTree.Delete.wp_proof (wp_deleteItem : BTree.deleteItem.spec (GF := GF) (hG := hG)) :
+    BTree.Delete.spec (GF := GF) (hG := hG) := by
+  intro V _ _ T _ K o t s item k
+  wp_start as ⟨Ht, #Hk⟩
+  wp_auto
+  wp_apply wp_deleteItem o t s item (.key k) (W64 0) rfl $$ [$Ht] as Ht
+  · simp only [targetItem]; iexact Hk
+  simp only [removeOp]
+  iapply HΦ $$ Ht
 
 end proof
 
+end btree
 end EtcdGrove
 end Perennial

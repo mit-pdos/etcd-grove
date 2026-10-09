@@ -5,6 +5,9 @@ public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.context
 public import GeneratedProof.go_etcd_io.etcd.api.v3.etcdserverpb
 public import GeneratedProof.go_etcd_io.etcd.api.v3.mvccpb
+public import GeneratedProof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes
+public import GeneratedProof.google_golang_org.grpc.codes
+public import GeneratedProof.google_golang_org.grpc.status
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory

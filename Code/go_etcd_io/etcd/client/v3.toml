@@ -1,6 +1,56 @@
-# Types and names only: function and method bodies are axiomatized.
-translate = ["!*", "WatchResponse.IsProgressNotify", "EventTypeDelete", "EventTypePut"]
-imports = ["!*", "context", "sync", "time", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/mvccpb"]
+# Types and names only: function and method bodies are axiomatized, except for what the
+# cache's proofs call: `WatchResponse.IsProgressNotify` and the event-type constants (the
+# store), `GetPrefixRangeEnd` with `getPrefix` and `noPrefixEnd` (`Cache.validateRange`), and
+# the `Op` getters `Cache.validateGet`/`validateWatch` read (with `Rev`, `IsSerializable` and
+# `IsProgressNotify`, for `Cache.Get`/`Watch`), and what builds the `Op` of a `Get`
+# (`OpGet` with `NewOp`, `applyOpts`, `IsOptsWithPrefix`/`IsOptsWithFromKey`, and the
+# options `Cache.Get`'s callers and `Cache.serverRevision` pass), and for `Cache.Watch`:
+# `OpWatch`, the watch options `WithProgressNotify`/`WithCreatedNotify`, and
+# `WatchResponse.Err` (which calls `rpctypes.Error` and grpc's `status.Error`: hence the
+# imports of `rpctypes` and grpc's `codes`/`status`, names only).
+translate = [
+  "!*",
+  "WatchResponse.IsProgressNotify",
+  "EventTypeDelete",
+  "EventTypePut",
+  "GetPrefixRangeEnd",
+  "getPrefix",
+  "noPrefixEnd",
+  "Op.IsCountOnly",
+  "Op.IsPrevKV",
+  "Op.IsSortSet",
+  "Op.Limit",
+  "Op.MinModRev",
+  "Op.MaxModRev",
+  "Op.MinCreateRev",
+  "Op.MaxCreateRev",
+  "Op.IsFragment",
+  "Op.IsCreatedNotify",
+  "Op.IsFilterPut",
+  "Op.IsFilterDelete",
+  "Op.RangeBytes",
+  "Op.Rev",
+  "Op.IsSerializable",
+  "Op.IsProgressNotify",
+  "tRange",
+  "NewOp",
+  "OpGet",
+  "Op.applyOpts",
+  "IsOptsWithPrefix",
+  "IsOptsWithFromKey",
+  "WithLimit",
+  "WithRev",
+  "WithPrefix",
+  "WithRange",
+  "WithFromKey",
+  "WithSerializable",
+  "WithCountOnly",
+  "WithProgressNotify",
+  "WithCreatedNotify",
+  "OpWatch",
+  "WatchResponse.Err",
+]
+imports = ["!*", "context", "sync", "time", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "google.golang.org/grpc/codes", "google.golang.org/grpc/status"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

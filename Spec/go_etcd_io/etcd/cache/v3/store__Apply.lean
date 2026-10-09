@@ -24,15 +24,17 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 /-- `s.Apply(resp)`, by the writer: the store's state becomes `(applyResp cap st r).1`, and
 the error is `nil` iff `(applyResp cap st r).2` (see `applyResp` for the cases, and
 `applyEvents` for what a failed delete leaves). The events must be in revision order
-(`EvRevSorted`, as etcd sends them). -/
+(`EvRevSorted`, as etcd sends them), and the caller certifies every snapshot `Apply` appends
+(`snapCerts E (applyRespSnaps st r)`). -/
 abbrev store.Apply.spec : Prop :=
-  ∀ (s : Loc) (γ : StoreNames) (cap : Nat) (st : StoreState)
+  ∀ (s : Loc) (γ : StoreNames) (cap : Nat) (E : w64 → KvMap → IProp GF) (st : StoreState)
     (resp : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
-      isStore s γ cap ∗ storeWriter s γ cap st ∗ respAt resp r ∗ ⌜EvRevSorted r.events⌝ }}
+      isStore s γ cap ∗ storeWriter s γ cap E st ∗ respAt resp r ∗ ⌜EvRevSorted r.events⌝ ∗
+      snapCerts E (applyRespSnaps st r) }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Apply")) (Val #resp))
   {{ (err : GoInterface), RET #err;
-      storeWriter s γ cap (applyResp cap st r).1 ∗
+      storeWriter s γ cap E (applyResp cap st r).1 ∗
       storeRevLb γ (applyResp cap st r).1.latestRev ∗
       ⌜if (applyResp cap st r).2 then err = GoInterface.nil else ∃ e, err = GoInterface.ok e⌝ }}
 

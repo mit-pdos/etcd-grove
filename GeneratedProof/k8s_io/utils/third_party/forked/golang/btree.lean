@@ -2,6 +2,8 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.cmp
+public import Perennial.GeneratedProof.sort
 public import Perennial.GeneratedProof.sync
 public import Perennial.Golang.Theory
 public import Code.k8s_io.utils.third_party.forked.golang.btree

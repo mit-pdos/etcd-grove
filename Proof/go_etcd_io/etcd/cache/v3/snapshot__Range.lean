@@ -85,6 +85,9 @@ theorem snapshot.Range.wp_proof
     (wp_AscendGreaterOrEqual : btree.BTree.AscendGreaterOrEqual.spec (GF := GF) (hG := hG))
     (wp_AscendRange : btree.BTree.AscendRange.spec (GF := GF) (hG := hG)) :
     snapshot.Range.spec (GF := GF) (hG := hG) := by
+  have wp_Get : btree.BTree.Get.modelSpec (GF := GF) (hG := hG) := btree.BTree.Get.modelSpec_of wp_Get
+  have wp_AscendGreaterOrEqual : btree.BTree.AscendGreaterOrEqual.modelSpec (GF := GF) (hG := hG) := btree.BTree.AscendGreaterOrEqual.modelSpec_of wp_AscendGreaterOrEqual
+  have wp_AscendRange : btree.BTree.AscendRange.modelSpec (GF := GF) (hG := hG) := btree.BTree.AscendRange.modelSpec_of wp_AscendRange
   intro p h startSl endSl startKey endKey d1 d2
   wp_start as ⟨#Hsnap, Hs, He⟩
   iunfold snapIs at Hsnap

@@ -27,6 +27,7 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 theorem newClonedSnapshot.wp_proof
     (wp_Clone : btree.BTree.Clone.spec (GF := GF) (hG := hG)) :
     newClonedSnapshot.spec (GF := GF) (hG := hG) := by
+  have wp_Clone : btree.BTree.Clone.modelSpec (GF := GF) (hG := hG) := btree.BTree.Clone.modelSpec_of wp_Clone
   intro rev t m
   wp_start as ⟨Ht, #Hkvs, %Hsorted⟩
   wp_auto

@@ -1,9 +1,7 @@
-/-
-`(*BTree[T]).Get(key)`: a method of the names-only btree package; see the spec.
--/
 module
-
 public import Spec.k8s_io.utils.third_party.forked.golang.btree.BTree__Get
+public import Spec.k8s_io.utils.third_party.forked.golang.btree.node__get
+public import Proof.k8s_io.utils.third_party.forked.golang.btree.Lemmas.Read
 
 @[expose] public section
 
@@ -11,22 +9,57 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
+namespace btree
 
-open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.cache.v3
+open Iris Iris.BI Iris.ProofMode k8s_io.utils.third_party.forked.golang.btree
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+variable [package_sem : k8s_io.utils.third_party.forked.golang.btree.Assumptions]
 
-/-- **Trust boundary**: an `axiom` rather than a `sorry`, so that it counts as an
-assumption under `#print axioms`. `k8s.io/utils/third_party/forked/golang/btree` is
-translated names-only (no bodies); the spec states what its documentation says. -/
-axiom btree.BTree.Get.wp_proof : btree.BTree.Get.spec (GF := GF) (hG := hG)
+theorem BTree.Get.wp_proof (wp_get : node.get.spec (GF := GF) (hG := hG)) :
+    BTree.Get.spec (GF := GF) (hG := hG) := by
+  intro V _ _ T _ K o t dq s key k
+  wp_start as ⟨Ht, #Hk⟩
+  unfold ownBTree
+  icases Ht with ⟨%tv, %f, %less, %d, Ht, #Hcow, %Hdeg, %Hlen, %Hsorted, #Hitems, Hroot⟩
+  icases btree_fields $$ Ht with ⟨Hdg, Hln, Hrt, Hcw, Hback⟩
+  wp_alloc_anon
+  wp_pures
+  wp_alloc_anon
+  wp_auto
+  unfold ownRoot
+  icases Hroot with (%Hnil | ⟨%h, %tr, ⟨%Hsh, %Hrb, %Hel⟩, Hn⟩)
+  · obtain ⟨Hr, rfl⟩ := Hnil
+    rw [Hr]
+    wp_auto
+    simp only [lookup, List.find?_nil, Option.map_none, Option.getD_none, Option.isSome_none]
+    iapply HΦ
+    iexists tv, f, less, d
+    iframe Hcow Hitems
+    isplitl [Hback Hdg Hln Hrt Hcw]
+    · iapply Hback; iframe
+    iframe %Hdeg %Hlen %Hsorted
+    ileft; ipureintro; exact ⟨Hr, trivial⟩
+  · ihave %Hnn := ownNode_not_null $$ Hn
+    wp_if_destruct
+    · exact absurd Hif Hnn
+    · subst Hel
+      wp_apply wp_get o tv.cow' f less dq tv.root' tr key k d h Hsh Hsorted $$ [Hn] as Hn
+      · iframe # ∗
+      iapply HΦ
+      iexists tv, f, less, d
+      iframe Hcow Hitems
+      isplitl [Hback Hdg Hln Hrt Hcw]
+      · iapply Hback; iframe
+      iframe %Hdeg %Hlen %Hsorted
+      iright; iexists h, tr; iframe; ipureintro; exact ⟨Hsh, Hrb, rfl⟩
 
 end proof
 
+end btree
 end EtcdGrove
 end Perennial

@@ -1,9 +1,8 @@
-/-
-`(*BTree[T]).AscendRange(greaterOrEqual, lessThan, iter)`: a method of the names-only btree package; see the spec.
--/
 module
-
 public import Spec.k8s_io.utils.third_party.forked.golang.btree.BTree__AscendRange
+public import Spec.k8s_io.utils.third_party.forked.golang.btree.optional
+public import Spec.k8s_io.utils.third_party.forked.golang.btree.node__iterate
+public import Proof.k8s_io.utils.third_party.forked.golang.btree.Lemmas.Read
 
 @[expose] public section
 
@@ -11,22 +10,66 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
+namespace btree
 
-open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.cache.v3
+open Iris Iris.BI Iris.ProofMode k8s_io.utils.third_party.forked.golang.btree
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+variable [package_sem : k8s_io.utils.third_party.forked.golang.btree.Assumptions]
 
-/-- **Trust boundary**: an `axiom` rather than a `sorry`, so that it counts as an
-assumption under `#print axioms`. `k8s.io/utils/third_party/forked/golang/btree` is
-translated names-only (no bodies); the spec states what its documentation says. -/
-axiom btree.BTree.AscendRange.wp_proof : btree.BTree.AscendRange.spec (GF := GF) (hG := hG)
+theorem BTree.AscendRange.wp_proof (wp_optional : optional.spec (GF := GF) (hG := hG))
+    (wp_iterate : node.iterate.spec (GF := GF) (hG := hG)) :
+    BTree.AscendRange.spec (GF := GF) (hG := hG) := by
+  intro V _ _ T _ K o t dq s greaterOrEqual kge lessThan klt iterator I
+  wp_start as ⟨Ht, #Hk1, #Hk2, #Hiter, HI⟩
+  unfold ownBTree
+  icases Ht with ⟨%tv, %f, %less, %d, Ht, #Hcow, %Hdeg, %Hlen, %Hsorted, #Hitems, Hroot⟩
+  icases btree_fields $$ Ht with ⟨Hdg, Hln, Hrt, Hcw, Hback⟩
+  wp_auto
+  unfold ownRoot
+  icases Hroot with (%Hnil | ⟨%h, %tr, ⟨%Hsh, %Hrb, %Hel⟩, Hn⟩)
+  · obtain ⟨Hr, rfl⟩ := Hnil
+    rw [Hr]
+    wp_auto
+    iapply HΦ
+    isplitr [HI]
+    · iexists tv, f, less, d
+      iframe Hcow Hitems
+      isplitl [Hback Hdg Hln Hrt Hcw]
+      · iapply Hback; iframe
+      iframe %Hdeg %Hlen %Hsorted
+      ileft; ipureintro; exact ⟨Hr, rfl⟩
+    rw [show ascRange o.lt ([] : List (V × K)) (some kge) (some klt) = [] from rfl]
+    iapply iterDone_nil $$ HI
+  · ihave %Hnn := ownNode_not_null $$ Hn
+    wp_if_destruct
+    · exact absurd Hif Hnn
+    subst Hel
+    wp_apply wp_optional greaterOrEqual
+    wp_apply wp_optional lessThan
+    ihave #Hks := optKey_optional o greaterOrEqual kge $$ Hk1
+    ihave #Hku := optKey_optional o lessThan klt $$ Hk2
+    wp_apply (wp_iterate o tv.cow' f less dq tv.root' tr (W64 1) _ _ (some kge) (some klt) true false
+      iterator (ascRange o.lt tr.elems (some kge) (some klt)) [] I d h Hsh Hsorted (Or.inl rfl)
+      (fun _ => rfl) (fun _ h => absurd h (by simp))
+      (by simp)) $$ [Hn HI] as %hit' %ok ⟨Hn, Hpost⟩
+    · iframe # ∗
+    iapply HΦ
+    isplitr [Hpost]
+    · iexists tv, f, less, d
+      iframe Hcow Hitems
+      isplitl [Hback Hdg Hln Hrt Hcw]
+      · iapply Hback; iframe
+      iframe %Hdeg %Hlen %Hsorted
+      iright; iexists h, tr; iframe; ipureintro; exact ⟨Hsh, Hrb, rfl⟩
+    iapply iterDone_of_iterate _ _ (by simp) $$ Hpost
 
 end proof
 
+end btree
 end EtcdGrove
 end Perennial

@@ -49,7 +49,8 @@ SPEC_DIR = "Spec"
 
 # The modules of linked results (each states `T.wp_M : T.M.spec`): the Raft proof's and
 # the `cache` package's.
-LINKS = ("Proof.go_etcd_io.raft.v3.Link", "Proof.go_etcd_io.etcd.cache.v3.Link")
+LINKS = ("Proof.go_etcd_io.raft.v3.Link", "Proof.go_etcd_io.etcd.cache.v3.Link",
+         "Proof.k8s_io.utils.third_party.forked.golang.btree.Link")
 
 # Source constructs that weaken what the kernel checks.
 RISKY = [

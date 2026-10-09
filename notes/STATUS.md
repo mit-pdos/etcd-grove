@@ -1,18 +1,36 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-09
+**Last updated:** 2026-10-09 (the watch loop verified against the fixed code)
 
 Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
 `worktree-raft-replication`'s `feb5c73d4` and adds Ready/Advance/HasReady; the files
 were first ported from `main`, then from `feb5c73d4`) to Lean on top of Perennial's Lean
-port (mit-pdos/perennial `lean`, pinned at 2b8cb96a0, on Lean's module system since
-2026-10-09: branch `lean-modules`, merged into `lean`). The Goose translations of etcd-raft and etcd's
-`cache` package are this repository's `Code/` and `GeneratedProof/`, generated and
-checked by `etc/goose.py`. Files are laid out by kind and Go package path
+port (mit-pdos/perennial `lean`, pinned at 96ec7016d (2026-10-09: `fmt.wp_Printf`, `time.Minute`; on 099c2a08b: `fmt.wp_Errorf`'s `Error()`; on 640a605cc: a `select` case on a nil channel is never ready, `chan.wp_select_blocking_nil`; on 48e1192c7: rlocker, `Cond.wp_Wait_with`, `time.wp_Since`) on cbb85c041: upstream's `11fd2db` merged with
+`bytes.Compare`, on Lean's module system since 2026-10-09). The Goose translations of
+etcd-raft and etcd's `cache` package are this repository's `Code/` and `GeneratedProof/`,
+generated and checked by `etc/goose.py`. Files are laid out by kind and Go package path
 (`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
+
+## Merged with upstream's layout (2026-10-09)
+
+The demux, the `MessageState` translation, the key predicates and request validation and
+`verified-code.py`'s cache count (done on the old layout, `EtcdGrove/Cache/`,
+`EtcdCache/`) were merged into the layout by kind and Go package path: specs and proofs
+under `{Spec,Proof}/go_etcd_io/etcd/cache/v3/`, but the `clientv3` functions translated
+for the validation (the 16 `Op` getters, `getPrefix`, `GetPrefixRangeEnd`) under
+`{Spec,Proof}/go_etcd_io/etcd/client/v3/` (next to `WatchResponse__IsProgressNotify`);
+`InvDemux`, `InvCache` and `MapRangeMut` under `Proof/go_etcd_io/etcd/cache/v3/`; every
+file a module (`module`, `public import`, `@[expose] public section`). Perennial is
+pinned at `cbb85c041` (upstream's `11fd2db` merged with `bytes.Compare`, which the key
+predicates need). `etc/tcb-report.py --check`: 4 axioms (`fmt.Sprintf`,
+`rand.Int`, `reflect.DeepEqual`, `strings.Join`) and 2 sorries (Perennial's
+`fmt.wp_Errorf`; `wp_map_for_range_mut_keys`, the demux's documented Perennial gap): no
+btree, `slices.Sort` or `MessageState` entries, no `newStore_RLocker`. `lake build`
+passes (1333 jobs), `etc/goose.py --check` passes, `etc/gen-link.py --cache` reproduces
+`Proof/go_etcd_io/etcd/cache/v3/Link.lean`.
 
 ## Done (at `857d09190`)
 
@@ -188,10 +206,17 @@ module system").
   compile's peak memory is 1.8 GiB instead of 2.8 GiB and a spec module (almost all
   import) takes 2.1s of CPU instead of 2.6s; whole-build times on a quiet machine
   are still to be measured (the 2026-10-08 runs shared the machine).
-- Verified code: `etc/verified-code.py`. On 2026-10-08 (forks `upamanyus/etcd-raft`
-  `24643b3`, `upamanyus/etcd` `3efe157`): raft 161 of 323 functions verified, 1962 of
-  3646 Go code lines (53.8%; 143 functions sorry-free); etcd 16 of 3579 functions, 174
-  of 45359 lines (0.4%, all from Perennial's public proofs).
+- Verified code: `etc/verified-code.py` (since 2026-10-09 it takes the forks and pins
+  from `etc/goose.py`, reads the translations in `Code/` and counts the linked results of
+  both `Link.lean`s, raft's and the cache's). After the merge (2026-10-09; `upamanyus/etcd-raft`
+  `531b20c`, `upamanyus/etcd` `48fd5a5`): raft 175 of 323 functions verified, 2240 of
+  3641 Go code lines (61.5%, all sorry-free); etcd 80 of 3599 functions (76 sorry-free),
+  584 of 45564 lines (1.3%): the cache package 61 of 107 functions verified, 8 unfinished
+  (their proofs use a `sorry`: the demux's three loops over a map they write,
+  `wp_map_for_range_mut_keys`, and five error paths through Perennial's `fmt.wp_Errorf`), 550 of 1204
+  lines (45.7%), and 19 `clientv3` functions (the `Op` getters, `getPrefix`,
+  `GetPrefixRangeEnd`, `WatchResponse.IsProgressNotify`). The btree (not etcd's code) is
+  not counted.
 
 ## etcd `cache`: the `EtcdCache` library (2026-10-08; translation only, no proofs)
 
@@ -213,6 +238,9 @@ generated and checked by `etc/goose.py` (now two projects, `etcd-raft` and `etcd
   regenerated from branch `goose` by name, so `goose` must stay at the March upstream.
   Pushed 2026-10-08, so `etc/goose.py` fetches it from GitHub (`--src etcd=<checkout>` or
   `$ETCD_SRC` only for an unpushed revision). CI's Go is now 1.27 (etcd's `go.mod`).
+  **Since 2026-10-09 pinned at `6ab61a1c7`**: `48fd5a507` merged with the fork's branch
+  `cache-ready-after-retry` (three fixes of `cache.go`, see "The watch loop and Cache.Watch"),
+  pushed as `goose-lean` the same day (`etc/goose.py --check` fetches it from GitHub).
 - **With bodies**: all of `cache/v3` (every function and method, non-test files;
   `cache/v3.toml`: `translate = ["*"]`).
 - **Types and names only** (`translate = ["!*"]`, `translate_types = true`, a few
@@ -231,24 +259,85 @@ generated and checked by `etc/goose.py` (now two projects, `etcd-raft` and `etcd
   `SizeCache`/`UnknownFields` translate to `int32`/`[]byte`; protoimpl's other aliases
   must not be left to `translate_types`, which axiomatizes an alias-of-an-alias as
   `axiom SizeCache`, not `SizeCache.ty`, a name the users do not find) and
-  `google.golang.org/protobuf/internal/impl` (names only, for `impl.MessageState`, whose
-  struct of `internal/pragma` types stays axiomatized: the `state` field is opaque).
+  `google.golang.org/protobuf/internal/impl` (names only, but for the struct
+  `impl.MessageState`, translated since 2026-10-09; its pointer field's `*MessageInfo`
+  stays axiomatized), and `google.golang.org/protobuf/internal/pragma` (types only, all
+  four translated: `NoUnkeyedLiterals`, `DoNotCompare` (`[0]func()`) and `DoNotCopy`
+  (`[0]sync.Mutex`, so `sync` is imported), which `MessageState` embeds, and
+  `DoNotImplement`).
   `clientv3.GetResponse` (`type GetResponse pb.RangeResponse`), `clientv3.WatchResponse`,
   `Op`, `OpOption`, `KV`, `Watcher`, `WatchChan` were already translated.
   `clientv3.Client` is still axiomatized (the cache reads its `KV` and `Watcher` fields
   in `newCache`): its other fields are grpc, grpc credentials, client's internal
   resolver and zap types, which would each need a names-only translation.
 - Nothing else (grpc, zap, ...) is reached; types that would need it are axiomatized
-  (203 `axiom X.underlying`), and their generated instances are `sorry -- axiomatized
-  type` (426, in `GeneratedProof/`: 152 in the two protobuf packages, 236 in
+  (212 `axiom X.underlying`, by `grep '^axiom .*\.underlying'` in `Code/`), and their
+  generated instances are `sorry -- axiomatized type` (424, in `GeneratedProof/`: 150
+  in the protobuf packages, 236 in
   `etcdserverpb`, 36 in `client/v3`, 2 in `rpctypes`; no proof uses them, and the raft
   trust base is unaffected). Standard-library packages are Perennial's.
+- **`impl.MessageState` is a real struct** (2026-10-09): its generated `TypedPointsto` and
+  `IntoValTyped` instances are proved (`solve_into_val_typed_struct`), so the two
+  `sorry -- axiomatized type` instances the cache proofs reached (allocating
+  `&pb.ResponseHeader{}`) are gone from the trust base. `Proof/go_etcd_io/etcd/cache/v3/Base.lean`
+  gained a `True` package instance for `internal/pragma` (translated names-only,
+  `Code/google_golang_org/protobuf/internal/pragma.toml`). The field-only message
+  predicates and `InvStore.lean`'s high-priority `TypeRepr` instances (`decisions.md`) were
+  kept: they still work, and no longer guard against a `sorry`.
 - `-lean-root` maps `go.etcd.io/etcd`, `k8s.io` and `google.golang.org` to the empty root
   (modules `Code.go_etcd_io.etcd.cache.v3`, ...).
 - The two Goose bugs above belong fixed in Perennial's `goose/types.go`: `types.Unalias`
   in `getStructInfo` (tried: two lines, and the alias errors go away), the type arguments
   in `structInfoToGlangType` (not tried); with them the two fork commits could be dropped.
   The `go.type` in axiomatized generic types is a third (Lean backend).
+
+## The cache's btree: verified (`Proof/k8s_io/utils/third_party/forked/golang/btree/`)
+
+The B-tree etcd's cache uses, `k8s.io/utils/third_party/forked/golang/btree` (the fork
+of google/btree's generic `BTreeG`, renamed, without the non-generic `Item` API), is
+translated with bodies (part of the `etcd` project of `etc/goose.py`; its `.toml` no
+longer restricts it) and proved. The proof was first done on google/btree `aeba20f`
+(2026-10-08) and moved onto the fork with the layout by package path (2026-10-09):
+every proof carried over unchanged but for the renames (the fork's `freeNode` and
+`ReplaceOrInsert` are restructured but equivalent). Design in `decisions.md`
+("google/btree: a second proof tree").
+
+- **Every function is proved**: 51 specs, 51 linked results (`Link.lean`, generated by
+  `etc/gen-btree-link.py`), no `sorry` and no axiom of this repository; `Results.lean`
+  prints every result's axioms: `propext`, `Classical.choice`, `Quot.sound` and
+  Perennial's names-only Go declarations (no `sorryAx`). The API (`New`,
+  `NewWithFreeList`, `NewOrdered`, `Less`, `NewFreeList`; `BTree`'s `Clone`,
+  `ReplaceOrInsert`, `Delete`/`DeleteMin`/`DeleteMax`, `Get`, `Has`, `Min`, `Max`,
+  `Len`, `Clear`, the eight `Ascend*`/`Descend*`), its internals (the `items` methods,
+  the free list under its mutex, copy-on-write contexts, `mutableFor`/`mutableChild`,
+  `split`/`maybeSplitChild`, `insert`, `get`, `min`/`max`,
+  `remove`/`growChildAndRemove` (one joint Löb induction), `iterate`, `reset`), and
+  package initialization.
+- The top-level predicate `ownBTree o t dq s` (`Defs.lean`): the tree at `t` holds the
+  entries `s` (Go item, key), keys strictly increasing under `o`; `ownBTree_split`
+  (`Fractional.lean`) divides it between readers.
+- **No bug found.** Restrictions the specs carry: `1 < degree <= 2^62` (`New` panics
+  below; above, `maxItems()` overflows and the second insert panics), `less` deciding
+  a strict total order on keys, `Len()` modulo `2^64`. `iterate`'s
+  `includeStart`/`hit` skip branches are dead for every caller.
+- **The cache uses it** (`InvBtree.lean`): the cache's seven btree specs (its trust
+  boundary until now) are the proved ones; its `ownBTree` (models under a strict weak
+  order) is defined over the btree's, with the classes of the order as keys, and the
+  store's proofs derive their model-level triples from the proved specs
+  (`*.modelSpec_of`, all proved; the cache's `ownBTree` keeps the list of (Go item,
+  model) pairs, and `ownBTree_persist` rests on `btree.ownBTree_persist`,
+  `Fractional.lean`). `btree.New` and `newStore` (and `isStore`) now require
+  `degree <= 2^62`.
+- **Needs Perennial `11fd2db`** (its `lean` since 2026-10-09, pinned here): three
+  commits on top of `2b8cb96`: (1) `copy` as a memmove -- the old model copied in place
+  front to back, which is not Go's `copy` for overlapping slices and made `insertAt`'s
+  `copy(s[i+1:], s[i:])` corrupt the tree (`decisions.md`); (2) a step rule for
+  converting between pointer types with the same underlying type; (3)
+  `sort.wp_initialize'`. Raft needed one change for (1)
+  (`Proof/go_etcd_io/raft/v3/InvRaftpb.lean`).
+- Regenerating the `etcd` project needs Go 1.27 for goose (the fork requires it):
+  `GOTOOLCHAIN=go1.27.1 etc/goose.py --project etcd`.
+- Cost of the proof (time, tokens, build time, size): `COST.md` in the proof directory.
 
 ## Next
 
@@ -308,7 +397,7 @@ it imports). No `sorry`, no axiom: `etc/tcb-report.py --check` now also takes
 `probeItemFromKey`, and two methods of other packages translated for the store
 (`clientv3.WatchResponse.IsProgressNotify`, `etcdserverpb.ResponseHeader.GetRevision`;
 `client/v3.toml` also translates the constants `EventTypeDelete`/`EventTypePut`): one
-`Spec`/`Proof` pair each, linked in `Cache/Link.lean`. Design and rejected alternatives:
+`Spec`/`Proof` pair each, linked in `Proof/go_etcd_io/etcd/cache/v3/Link.lean`. Design and rejected alternatives:
 `decisions.md`, "store: btree as the trust boundary, ghost state under the RWMutex".
 
 - **State model** (`InvStore.lean`): `StoreState` = latest revision, latest map, history of
@@ -331,28 +420,27 @@ it imports). No `sorry`, no axiom: `etc/tcb-report.py --check` now also takes
 - **Errors** are package variables (`Base.lean`: the cache's `ErrNotReady`, `rpctypes`'
   `ErrFutureRev`/`ErrCompacted` point to fixed non-nil errors); specs return "the value of
   that variable" (`snapErr`).
-- **Axioms (trust boundary)**: `ownBTree`, `ownBTree_dfractional` (`InvBtree.lean`) and the
-  `.wp_proof` of `btree.New`, `BTree.Clone`, `Get`, `ReplaceOrInsert`, `Delete`,
-  `AscendGreaterOrEqual`, `AscendRange` (the btree package is names-only).
-- **`sorry`**: one, `newStore_RLocker` (`Proof/newStore.lean`): `RWMutex.RLocker()` converts
-  `*RWMutex` to `*rlocker`, and Perennial's Go semantics has no step for a conversion between
-  two pointer types, so the call is stuck. `fmt.Errorf` (the error paths) is Perennial's own
-  `sorry` (`Proof/fmt.lean`), now reached.
-- **Perennial gaps found**: the pointer-to-pointer conversion above; no `isLocker` for
+- **Axioms (trust boundary)**: none of the store's own since 2026-10-09: the btree is
+  proved (`Proof/k8s_io/.../btree/`, see above), and its seven specs and `ownBTree` are
+  the proved ones (`InvBtree.lean`).
+- **`sorry`**: none of the store's own since 2026-10-09: `newStore_RLocker`
+  (`RWMutex.RLocker()`'s conversion `*RWMutex → *rlocker`) steps by Perennial's new
+  `convert_pointer_same_underlying` (Perennial `11fd2db`). `fmt.Errorf` (the error paths)
+  is Perennial's own `sorry` (`Proof/fmt.lean`), reached.
+- **Perennial gaps found**: the pointer-to-pointer conversion above (closed in
+  `11fd2db`); no `isLocker` for
   `rlocker` (the cache's `revCond.Wait` will need it); `wp_load` through a fractional or
   persistent struct points-to fails (the Access search takes the field-store instance, which
   needs `DFrac.own 1`, and does not backtrack), worked around per proof with
   `attribute [-instance] …_access_store_…`; a struct field access finds `TypeRepr` through
-  the struct's `IntoValTyped` (for protobuf messages a `sorry`), worked around with direct
-  `TypeRepr` instances in `InvStore.lean`.
-- `etc/tcb-report.py --check`: 14 axioms, 2 sorries (the baseline gained the nine btree
-  axioms, `newStore_RLocker` and Perennial's `fmt.wp_Errorf`). `etc/goose.py --check` passes
-  (fetching the fork from GitHub).
+  the struct's `IntoValTyped` (for protobuf messages a `sorry` until `MessageState` was
+  translated), worked around with direct `TypeRepr` instances in `InvStore.lean`.
+- `etc/tcb-report.py --check` (2026-10-09, roots now including the btree's `Link`): 4 axioms (`fmt.Sprintf`, `rand.Int`, `reflect.DeepEqual`, `strings.Join`) and 3 sorries, all outside this repository's proofs (Perennial's `fmt.wp_Errorf`, two generated protobuf instances); the nine btree axioms and `newStore_RLocker` are gone. `etc/goose.py --check` passes (fetching the fork from GitHub; Go 1.27 for the etcd fork). Since the merge with the demux and `MessageState` work: 4 axioms, 2 sorries ("Merged with upstream's layout" above).
 
 ### watcher, notifier, ready (`cache/watcher.go`, `cache/demux.go`, `cache/ready.go`): proved (2026-10-09)
 
 Three small concurrent components, Lean-first like the store, one `Spec`/`Proof` pair per
-Go function, linked in `Cache/Link.lean` (the 15 new specs are stated at
+Go function, linked in `Proof/go_etcd_io/etcd/cache/v3/Link.lean` (the 15 new specs are stated at
 `HeapGS HasLC.hasLC GF`, as Perennial's channel, `Once` and `context` specs are;
 `etc/gen-link.py --cache` now emits them in a second section, as the raft side does).
 Design and rejected alternatives: `decisions.md`, "watcher, notifier, ready".
@@ -393,7 +481,8 @@ Design and rejected alternatives: `decisions.md`, "watcher, notifier, ready".
   `enqueueResponse` (a nil header) and `Compact`: allocating a protobuf message needs the
   message's `IntoValTyped`, which contains its opaque `state` field. They go once
   `protobuf/internal/impl.MessageState` (and the `internal/pragma` types it embeds) are
-  translated rather than axiomatized. `Stop`, `newWatcher`, the consumer lemmas, the
+  translated rather than axiomatized (done 2026-10-09: both gone, see the `EtcdCache`
+  section). `Stop`, `newWatcher`, the consumer lemmas, the
   notifier and ready rest on no `sorry`; Perennial's `context` `sorry`s (`WithCancel`, ...)
   are not reached (only `isContext`'s `Done`/`Err` are used).
 - **Perennial gaps found**: `Once.wp_Do` takes a persistent closure triple, so a closure
@@ -407,3 +496,333 @@ Design and rejected alternatives: `decisions.md`, "watcher, notifier, ready".
   persistent hypothesis (`errorStringSpec`) still in context; clearing it fixed that
   (`Proof/watcher__Compact.lean`).
 
+
+### The demux (`cache/demux.go`): proved, modulo one Perennial gap (2026-10-09)
+
+`newDemux` and `demux`'s `Register`, `Unregister`, `Init`, `Broadcast`, `LatestRev`,
+`BroadcastProgress`, `BroadcastProgressTo`, `updateStoreLocked`, `broadcastLocked`,
+`broadcastProgressLocked`, `broadcastEventsLocked`, `Purge`, `purge`, `Compact`,
+`resyncLaggingWatchers`: one `Spec`/`Proof` pair each, linked in `Proof/go_etcd_io/etcd/cache/v3/Link.lean` (all at
+`HeapGS HasLC.hasLC`). Out of scope (the Cache stage): `NewDemux`, `resyncLoop`,
+`WaitForNextResync`. Vocabulary and every shared lemma in `InvDemux.lean` (no `sorry`);
+design and rejected alternatives: `decisions.md`, "demux: the delivery invariant under the
+lock".
+
+- **State.** The writer's `DemuxCore` (`minRev`, `maxRev`, the history's batches, the ghost
+  `stream` of every batch since the last purge; a `Batch` is the events of one revision,
+  `batchRev` the ring's `revOf`), invariant `DemuxInv`; the watcher maps, the registrations
+  (ghost map `w ↦ RegInfo`: names, resolved start `s`, filter agreement) and their `View`s
+  (stream, `maxRev`, next revision `n`, phase active/lagging/closed) live in the lock
+  (`RegsOk`; the Go maps are `actOf views`/`lagOf views`).
+- **The delivery theorem** (`Unregister`'s postcondition, `DeliveredLog`): when a registrant
+  unregisters its watcher, the watcher is closed after a log `sent` such that the events sent
+  are exactly the events of the stream batches with `s ≤ revision < n` (for the watcher's
+  last `n`), filtered by its key predicate, in stream order (so no gap and no duplicate); the
+  log is in order (responses' events strictly increasing from one response to the next, and a
+  progress notification at `p` is at or above every earlier event and below every later one);
+  and a compaction cancel is at `n`. `demux_watcher_delivered` gives the same at any time under
+  a read lock, combined with the consumer: what it received is a prefix of such a log.
+- **Overflow premise.** `DemuxInv` has `maxRev < 2^63 - 1` (so `maxRev + 1`, `lastRev + 1`,
+  `PeekOldest() + 1` do not wrap); `Broadcast` takes it of the response
+  (`RespRevsBounded`: header and event revisions below `2^63 - 1`). Also: events sorted
+  (`EvRevSorted`, as for the store), `newDemux`'s capacity in `(0, 2^61]`.
+- **`Register`'s premise `watcherUnique w γ`** (`w` has no other ghost name): needed to know
+  `w` is not registered yet; not derivable from `isWatcher`. The Cache stage has to get it
+  from `newWatcher` (e.g. a registry of `respCh` points-tos), which today does not provide it.
+- **Findings against the design:** (1) `minRev` is not a lower bound of the history's
+  revisions: `Broadcast` checks events against `maxRev` only, so `Init(100)` then an event at
+  5 keeps a batch below `minRev` (etcd's watch from 100 never sends it). `DemuxInv` keeps only
+  "every stream batch at or above `minRev` is in the history", which is what resync needs; the
+  delivery invariant is unaffected. (2) `resyncLaggingWatchers`'s outcome is not observable
+  outside the lock: its postcondition `∃ c views views', ResyncStep c views views'` is proved
+  with the lock's real views (the loop tracks `ResyncOutcome` per key) but is satisfiable
+  trivially as a statement. No case where the delivery invariant breaks.
+- **`sorry`**: one, `wp_map_for_range_mut_keys` (`MapRangeMut.lean`), a **Perennial gap**:
+  `broadcastProgressLocked`, `broadcastEventsLocked` and `resyncLaggingWatchers` write the map
+  they range over (current key only, which Go allows), and Perennial's `map.forRange` keeps the
+  map `StartRead`-locked for the whole loop, so a write in the body is stuck: the lemma is what
+  Go guarantees and is false in Perennial's present model. Fix in Perennial: read the domain
+  once, then look each key up when it is visited (skipping deleted keys). Also reached: the two
+  known `impl.MessageState` sorries (`&ResponseHeader{}` in the progress responses; gone
+  2026-10-09, `MessageState` is now translated).
+  `etc/tcb-report.py --check --update`: 14 axioms, 5 sorries (the baseline gained
+  `wp_map_for_range_mut_keys`). `lake build` passes; `etc/gen-link.py --cache` reproduces
+  `Proof/go_etcd_io/etcd/cache/v3/Link.lean`.
+
+### Key predicates and request validation (`cache/predicate.go`, `cache/cache.go`): proved (2026-10-09)
+
+`ExactKey`, `FromKey`, `Range`, `KeyPredForRange`, and `Cache`'s `validateRange`,
+`validateGet`, `validateWatch`, `Ready`, `WaitReady`, `RequestProgress`: one `Spec`/`Proof`
+pair each, linked in `Proof/go_etcd_io/etcd/cache/v3/Link.lean`; vocabulary in `InvCache.lean`. No `sorry`, no axiom
+(`etc/tcb-report.py --check` unchanged: 14 axioms, 3 sorries; the unsupported-option errors
+reach Perennial's `fmt.wp_Errorf` `sorry`, already in the baseline).
+
+- **Newly translated** (`client/v3.toml`, with bodies): the 16 `Op` getters the cache reads
+  (`IsCountOnly`, `IsPrevKV`, `IsSortSet`, `Limit`, `Min/MaxModRev`, `Min/MaxCreateRev`,
+  `IsFragment`, `IsCreatedNotify`, `IsFilterPut`, `IsFilterDelete`, `RangeBytes`, `Rev`,
+  `IsSerializable`, `IsProgressNotify`), `GetPrefixRangeEnd`, `getPrefix` and the variable
+  `noPrefixEnd`; each proved (`Spec/go_etcd_io/etcd/client/v3/Op__*.lean`, `getPrefix`, `GetPrefixRangeEnd`).
+  `OpOption`s, `OpGet`/`OpWatch` are not (the `Get`/`Watch` stage decides how to model them).
+- **`bytes.Compare` is now in Perennial** (Perennial `d292dc284`, pinned here): it calls
+  `internal/bytealg` (assembly), so `bytes.toml` marks it trusted, with a model in
+  `TrustedCode/bytes.lean` (compare the contents as strings) and `bytes.wp_Compare` proved
+  from it (`compareResult`). Push Perennial before this repository.
+- **Keys** are `GoString`s (a `[]byte`'s contents); the predicates are `exactKeyPred`,
+  `fromKeyPred`, `rangePred` and `keyPredForRange start end` (`GoString → Bool`, in
+  `go.GoStringLt`), and `mem_kvRange` says `kvRange`'s entries are exactly the map's entries
+  whose key satisfies `keyPredForRange` (for `Get`/`Watch` to agree). The closures keep the
+  key slices: the specs take them read-only (`↦*□`) and return `keyPredSpec f p`
+  (`InvWatcher.lean`) with `f ≠ nil`, i.e. `keyPredOk f (some p)` for `newWatcher`.
+- **`validateRange`** returns `rangeErr`: `nil` iff `validRange prefix start end`, else the
+  value of `ErrKeyRangeInvalid`; `prefixRangeEnd` is `GetPrefixRangeEnd` as a function.
+  **`validateGet`/`validateWatch`** return `validateResult`: some non-nil error (the
+  `fmt.Errorf` wrapping of `ErrUnsupportedRequest` is not modelled) if the `Op` asks for an
+  unsupported option (`OpModel.getUnsupported`/`watchUnsupported`), else `rangeErr`'s
+  outcome with a nil predicate, else `nil` and the `KeyPredForRange` closure for
+  `[key, op.RangeBytes())`. `Base.lean`'s package facts gained `ErrUnsupportedRequest`,
+  `ErrKeyRangeInvalid` (cache) and `noPrefixEnd` (`clientv3`).
+- **`isCacheFields c cf γr γd cap`** is a partial, persistent `Cache` predicate (fields
+  `prefix`, `cfg`, `ready`, `demux`, with `isReady`/`isDemux`); the `Cache` stage extends it.
+  `Ready`/`WaitReady`/`RequestProgress` are the `ready`/`demux` specs through it.
+- `lake build` passes; `etc/goose.py --check` passes; `etc/gen-link.py --cache` reproduces
+  `Proof/go_etcd_io/etcd/cache/v3/Link.lean`.
+
+### Cache.Get and the etcd model (2026-10-09)
+
+`Cache.Get` is proved end to end, with `Cache.serverRevision`, `Cache.waitTillRevision`,
+`conditionalProgressRequestor.add`/`remove`, and the `clientv3` functions that build a `Get`'s
+`Op` (`OpGet`, `NewOp`, `Op.applyOpts`, `IsOptsWithPrefix`, `IsOptsWithFromKey`, `WithLimit`,
+`WithRev`, `WithPrefix`, `WithRange`, `WithFromKey`, `WithSerializable`, `WithCountOnly`,
+translated with bodies in `client/v3.toml`): one `Spec`/`Proof` pair each, linked in
+`Proof/go_etcd_io/etcd/cache/v3/Link.lean`. No `sorry`. Design: `decisions.md`, "The etcd
+model".
+
+- **The model** (`InvEtcd.lean`): `axiom etcdState rev pfx s` (etcd's state at `rev`, keys with
+  prefix `pfx`, as `EtcdKv` contents) and `axiom etcdState_agree` (one state per revision).
+  `isEtcdKvs rev pfx m` (a definition, persistent): the map `m`'s `*KeyValue`s hold, in order,
+  such a state (`kvValAt`, read-only fields), keys sorted with prefix `pfx`;
+  `isEtcdKvs_agree`: same revision, same keys and contents. Contents rather than pointers,
+  because each response allocates fresh `KeyValue`s (pointer agreement would be false of the
+  real client).
+- **The client**: `isEtcdKV kv pfx` is a definition, the triple of `kv.Get(ctx, key, opts...)`
+  for options with model transformers `gs` (`optsAt`, `optSpec`, `OpFull` in
+  `client/v3/InvOp.lean`, covering every field `toRangeRequest` sends): any error; or a header
+  revision `r` with `isEtcdKvs r pfx m` for some `m`, and, for a prefix get
+  (`OpFull.isPrefixGet`), `resp.Kvs` lists exactly `m`. It is a premise (`isCacheFields`), not
+  an axiom: the Cache stage will assume it of `client.KV` (the axiom about the client).
+- **The Get theorem in words** (`Spec/go_etcd_io/etcd/cache/v3/Cache__Get.lean`,
+  `cacheGetResult`): for a reader of the store (with a lower bound `r0`), options that do not
+  make `OpGet` panic, and `o` the request's `Op`, `c.Get(ctx, key, opts...)` returns either
+  `nil` and an error — the context done, an unsupported option, a range outside the prefix
+  (`ErrKeyRangeInvalid`), and for a linearizable request the client's error, a revision above
+  etcd's (`ErrFutureRev`, with the etcd revision it saw), or `ErrCacheTimeout`; or the store's
+  `getSnapshot` error — or a fresh response, owned by the caller, whose header revision is the
+  store's latest revision in some state `st` (at least `r0`) and whose `Kvs`/`Count` are the
+  key-values in `[key, o.rangeEnd)` of the snapshot `(r, m)` that `snapModel st o.rev` picks
+  (the greatest cached revision at most `o.rev`, or at most the latest for `0`;
+  `snapModel_ok_spec`: `r ≤` the latest revision), where **`m` is etcd's state at `r`**
+  (`isEtcdKvs r prefix m`); and, unless the request is serializable, etcd had a state at a
+  revision `serverRev` with `o.rev ≤ serverRev ≤` the latest revision of `st` (the answer is at
+  least as fresh as etcd when the call started). Note: for `rev = 0`, `r` need not be the latest
+  revision (a progress notification moves it without a snapshot); the header still reports it.
+- **Store generalization**: the store's lock-protected predicates take a certificate
+  `E : w64 → KvMap → IProp GF` (`storeLockInv`, `storeReader`, `storeWriter`,
+  `storeLockedPhys`); every history snapshot carries `□ E r m` (ring item `snapCert E`);
+  `newStore` takes `E`; `Restore` asks for `□ E rev (restoreMap kvs)`; `Apply`/
+  `applyEventsLocked` ask for `snapCerts E` of every snapshot they append (`applyRespSnaps`,
+  `applyEventsSnaps`); `getSnapshot` returns `snapCert E p (r, m)`, `Get` `□ E r m`. Other store
+  statements unchanged; `isStore` now fixes `revCond`'s locker to `sync.rlockerOf (s.mu)`. The
+  cache's `E` is `etcdCert prefix`.
+- **`isCacheFields`** gained `store` (`isStore`, with `cf.γs`, `cf.scap`), `kv` (`isEtcdKV`),
+  `progressRequestor` (an interface holding `*conditionalProgressRequestor`,
+  `isProgressRequestor`: `mux` guards the waiter count, `cond` a `Cond`). Readers of the
+  store use `cacheReader cf` (a store reader token): `Get` and `waitTillRevision` take it and
+  give it back; where clients get them from is the Cache stage's.
+- **`waitTillRevision`**: `nil` only with `storeRevLb γs rev`, else `ErrCacheTimeout` or the
+  context's error (`waitResult`). Proved, including the goroutine (`select` on the
+  `time.After` channel and `ctx.Done()`, then `revCond.Broadcast()`) and `revCond.Wait()` under
+  the read lock.
+- **Perennial (`48e1192c7`, pinned)**: `sync.toml` translates `rlocker.*`;
+  `sync_proof/rlocker.lean` proves `RWMutex.wp_RLocker`, `rlocker.wp_Lock`/`wp_Unlock`,
+  `rlocker_isLockerWith`; `isLockerWith` (a locker whose `Lock` needs a resource that `Unlock`
+  gives back) and `Cond.wp_Wait_with`; `time.wp_Since` is a new Perennial axiom (like
+  `wp_Now`/`wp_Until`: `time.Since` is not translated). Push Perennial first.
+- **Trust base**: new axioms of this repository `etcdState`, `etcdState_agree` (see the
+  `tcb-baseline.txt` diff in the commit); `isEtcdKV` is a premise, to become the client axiom
+  at the Cache stage.
+- **Remaining gaps**: the client axiom itself (where `client.KV` enters, `New`); the `Watch`
+  side of the model (the watch loop must produce `isEtcdKvs` for every snapshot it appends,
+  `applyEventsSnaps`); `conditionalProgressRequestor.run`; `WaitForRevision`.
+- **Gates** (2026-10-09, Perennial `48e1192c7`): `lake build` passes (1370 jobs);
+  `etc/tcb-report.py --check`: 5 axioms (`etcdState` new; `etcdState_agree` is not reached by
+  any linked result, only by the lemma `isEtcdKvs_agree`), 2 sorries (unchanged);
+  `etc/goose.py --check` passes; `etc/gen-link.py --cache` reproduces `Link.lean`;
+  `etc/verified-code.py --reuse`: the cache package 66 of 107 functions verified (636 of 1204
+  lines), `clientv3` 31 functions.
+
+### The watch loop and Cache.Watch (2026-10-09)
+
+`Cache.Watch` is proved end to end, with `Cache.watchEvents`, `Cache.applyStorage`,
+`Cache.get`, `Cache.WaitForRevision`, and the `clientv3` functions `OpWatch`,
+`WithProgressNotify`, `WithCreatedNotify`, `WatchResponse.Err` (translated with bodies), and
+(since the fixes below) `Cache.watch`, `getWatch`, `getWatchLoop`; out of scope as planned:
+`New`/`newCache`, `Close`, `NewDemux`/`resyncLoop`/`WaitForNextResync`,
+`progressRequestor.run`, `realClock`/`realTimer`. Design: `decisions.md`, "The stream model:
+`EtcdStep`, certificates through the demux".
+
+- **Verified against the fixed code (2026-10-09).** The verified code is `goose-lean` at
+  `6ab61a1c7` (pushed; see the EtcdCache section): `48fd5a507`
+  merged with the fork's branch `cache-ready-after-retry` (for an upstream PR), whose three
+  commits fix findings 1 and 2: `64313a1f8` `Init(rev)` once before the loop, the `Once` only
+  setting `ready` (finding 2; `watch_retry_test.go`); `21ac13e0d` each upstream watch in a child
+  context canceled when `watchEvents` returns; `a7de41a72` `watch` waits for `applyStorage` after
+  `Unregister` (a receive from `applyErr`), returns its error if `watchEvents` did not, and the
+  goroutine leaves `c.waitGroup` (finding 1; `TestCacheWatchWaitsForStoreWriter`). Design:
+  `decisions.md`, "The watch loop is verified against the fixed code".
+  - `Cache.watch` (`Spec/.../Cache__watch.lean`): with the demux's writer and the store's writer
+    (synced, latest map etcd's state at `R ≤` latest revision, `0 < rev ≤ R + 1`), returns a
+    non-nil error and both writers. `applyErr` is a **handoff** channel (`Handoff.lean`, a new
+    generic idiom): the goroutine hands the store's writer back with its error or, with the close,
+    the writer and its certificate; the loop takes it at its first receive (in `watchEvents` or
+    in the wait), so `Restore`/`Register` of the next round never run beside an old `Apply`.
+  - `Cache.getWatch`: `get` then `watch(R + 1)`; returns a non-nil error and both writers.
+  - `Cache.getWatchLoop`: with both writers and `isEtcdKVLin cf` (etcd's linearizability: a
+    prefix get returns at least any revision the store has reached), returns `()` once the
+    internal context is done, **with both writers** (returned, not dropped). `defaultConfig` is
+    proved (needs Perennial's `time.Minute`).
+  - Changed statements: `applyStorage` takes a store watcher from any `0 < s ≤ R + 1` (it was
+    `s = R + 1`) when `R` is at most the latest revision, and on `nil` returns the store's
+    certificate; `watchEvents` takes the demux initialized at `rev` (`CursorOk`), a `Once` with
+    trivial resources, and returns what it took from `applyErr`; `isEtcdKVFrom` (so `get`) also
+    bounds the revision below `2 ^ 63 - 1`. `initCore_ok`, `demuxWriter_inv` moved to
+    `InvCache.lean`.
+  - Perennial (`96ec7016d`, on `099c2a08b`; push Perennial first): `fmt.Printf`'s trusted model
+    (it panicked) returns `(0, nil)`, `fmt.wp_Printf` proved; `time.Minute`/`time.Hour`
+    translated (were axioms). Trust base: `context.wp_WithCancel` (a Perennial `sorry`) is now
+    reached (`watchEvents`); `etc/tcb-baseline.txt` updated: 10 axioms, 3 sorries.
+  - Gates: `lake build` passes (1406 jobs); `etc/tcb-report.py --check` passes (after
+    `--update`, above); `etc/goose.py --check` passes (fetching the fork); `etc/gen-link.py
+    --cache` reproduces `Link.lean`; `etc/verified-code.py --reuse` (with `6ab61a1c7` fetched
+    into `.lake/go-src/etcd` from `/shared/etcd`, until pushed): the cache package 74 of 107
+    functions verified, 9 unfinished (`watchEvents` now among them: it uses the
+    `wp_WithCancel` sorry), 803 of 1206 lines (66.6%); `cache.go` 14 of 21.
+- **The stream model** (`InvEtcd.lean`). One new axiomatized proposition, `EtcdStep r0 r1 pfx
+  evs`: etcd had no event under `pfx` strictly between `r0` and `r1`, and its events at `r1` are
+  `evs` (etcd's contents, `EtcdEv`); `r0 ≤ r1`, `r0 < r1` for events. Two property axioms:
+  `etcdStep_transfer` (`etcdState a pfx s` for `r0 ≤ a < r1` gives `etcdState r1 pfx
+  (applyEvsState s evs)`) and `etcdStep_compose` (a step without events then a step is a step).
+  The bridge `isEtcdKvs_step` (proved) turns a map that is etcd's state at `Y` and a step from
+  `p ≤ Y` whose events the store's batch matches (`evsMatch`) into etcd's state at the batch's
+  revision: what certifies the store's snapshots from the watch stream.
+- **The client's watch** (`isEtcdWatcher`, a definition like `isEtcdKV`): a prefix watch from
+  `rev > 0` returns an SPSC channel whose responses satisfy etcd's watch contract from the
+  position before to the one after (`watchRespOk`: an error, the created notification, a progress
+  notification with its step, or sorted events above the position, below `2^63 - 1`, in batches
+  each the step after the previous one); `etcdWatch_recv_au` is the receive.
+- **Certificates through the demux**: `isDemux d γd cap C`, `demuxWriter … C`, …, for a
+  certificate `C : DemuxCert GF` (the cache's: `etcdStepCert pfx`). The lock holds the stream's
+  certificate chain from `DemuxCore.base` (the revision before `Init`'s); `Broadcast` takes, for
+  an accepted response, `respCert` (its batches chained from the stream's last batch; a progress
+  notification at or above `base`). A watcher publishes, for each log its producer had, the
+  delivery facts and the delivered batches' chain (`demuxPub`, `WatcherPub`; the consumer learns
+  it at each receive, `watcher_recv_au`), from a revision below its start (`RegsStart`). The
+  demux's other statements are unchanged but for the `C` argument; `Register` takes the
+  watcher's publication and `watcherUnique w` (now an exclusive half of `w.keyPred`'s points-to,
+  produced by `newWatcher`).
+- **The Watch theorem in words** (`Spec/go_etcd_io/etcd/cache/v3/Cache__Watch.lean`,
+  `cacheWatch_delivery`): for a context, options (`OpWatch` must not panic) and a demux token
+  and wait-group slot (`cacheWatchSlot`), `c.Watch(ctx, key, opts...)` returns a channel; if
+  `WaitReady` fails it is closed and empty; if the request is rejected (`validateWatch`) it holds
+  one canceled response and is closed; otherwise, with `o` the request's `Op`, the responses the
+  caller receives, in order, are a prefix of the responses the demux sent the watch's watcher,
+  possibly followed by the compaction's cancel response, and for every prefix received:
+  the events received are exactly the events of a list of etcd's batches `b_1 … b_k` (each the
+  events of one revision, increasing) whose keys are in `[key, o.rangeEnd)`, in order, with no gap
+  and no duplicate; each `b_i` is certified by etcd's step from at most `b_{i-1}`'s revision
+  (`EtcdStep`: its events are etcd's events at that revision, and nothing under the prefix
+  changed in between), `b_1` from a revision `p₀` below the start revision `o.rev` when it is not
+  `0`, and every `b_i` is at or above it: nothing etcd did under the prefix from `o.rev` on is
+  missing; the responses are in order (`SentOrdered`: events increase from response to response,
+  and a progress notification is at or above every earlier event and below every later one); a
+  compaction cancel at `n` comes after every batch below `n` was sent.
+- **The loop's pieces**: `watchEvents` (the demux's writer, `cacheWriter`: certifies every batch
+  it broadcasts from the watch's steps, through its knowledge `TailOk`/`CursorOk` of where the
+  stream is; `readyOnce.Do(Init; Set)` with the framed `Once`), `applyStorage` (the store's writer:
+  every snapshot `Apply` appends is etcd's state at its revision, from the store watcher's
+  publication and the bridge), `get` (`Restore` of etcd's state at the response's revision; it
+  needs etcd's linearizability, `isEtcdKVFrom`, as a premise: finding 4), `WaitForRevision`.
+- **`Cache.Watch`'s premises and costs**: `cacheWatchSlot` (a demux token and a wait-group
+  budget token, both kept by the goroutine: each `Watch` spends one of the `2^31 - 1` slots of
+  `cacheWgInv`, which keeps the `int32` counter from overflowing); `isCacheFields` gained the
+  watcher, internal context, clock (`isClock`/`isTimer`, definitions: the clock's trust boundary,
+  to be met by `realClock`), the wait group (Perennial's `isWaitGroup`, no waiters: `Close` is out
+  of scope) and `0 ≤ PerWatcherBufferSize` (finding 5). The rejected request's cancel reason is
+  `err.Error()`: Perennial's `fmt.wp_Errorf` (still a `sorry`) now says `Error()` returns some
+  string (Perennial `099c2a08b`), and the package facts say so of `ErrKeyRangeInvalid`.
+- **Perennial** (pinned at `099c2a08b`, on `640a605cc`, on `48e1192c7`; push Perennial first):
+  `640a605cc`: the channel model's `TrySend`/`TryReceive` return "not ready" on a nil channel
+  (they dereferenced it, so a `select` with a nil-channel case was stuck: `Watch`'s
+  `case <-progressChan` without `WithProgressNotify`), with `wp_TryReceive_nil`,
+  `wp_TrySend_nil`, `nilClausePre`, `chan.wp_select_blocking_nil`/`_nonblocking_nil`;
+  `099c2a08b`: `fmt.wp_Errorf`'s error has an `Error()` spec.
+- **Findings** (about etcd's cache, `upamanyus/etcd` `48fd5a507`, `cache/cache.go` unless noted;
+  1 and 2 are fixed on the fork, `6ab61a1c7`, and the verified code has the fixes):
+  1. *Two writers of the store.* `watch` (348-370) does not wait for an iteration's
+     `applyStorage` goroutine (355-361) before the next iteration, when `watchEvents` returns
+     `nil` (the watch channel closed, 402-403, or `applyErr` closed, 418-420), nor does
+     `getWatchLoop` (316-328) before the next `get`'s `store.Restore` (344): after `Unregister`
+     closes the store watcher, the old goroutine keeps draining its buffered responses into
+     `store.Apply` (377-382). The two writers serialize on `store.mu`; the result is right only
+     because `validateRevisions` (`store.go:126`) rejects the stale events, which needs etcd's
+     linearizable `Get` to return a revision at least the old stream's. So `applyStorage`'s spec
+     (one writer, `storeWriter`) is true, but `watch`, `getWatch`, `getWatchLoop` cannot be
+     proved against the store's single-writer specs: that needs a multi-writer store (the
+     writer's state and latest tree inside `store.mu`'s invariant, `Apply`/`Restore` specified
+     for the current state, with a cache-level invariant on it) and etcd's linearizability in the
+     client model. Not done: fixed instead (`a7de41a72`), and the three functions are proved
+     against the fixed code with the single-writer specs.
+  2. *The cache can stay not ready after a retry.* `watch` registers the store watcher (352)
+     before `Init` (406); on a retry whose `Get` revision `R'` differs from the demux's `maxRev`
+     (or with `maxRev = 0`), `Init(R'+1)` purges (`demux.go:131-135`, `141-143`), stopping the
+     store watcher; `applyStorage` returns `nil` (378-379) and closes `applyErr` (360);
+     `watchEvents` receives `nil`, resets `ready` (418-420) and returns `nil`; `watch` loops
+     (366-369) with the same `readyOnce` (349), so `Init`/`ready.Set` (405-408, the only `Set`)
+     never run again: `Get`/`Watch` block in `WaitReady` until `watch` fails. The first
+     iteration's client watch is never canceled (it runs on `internalCtx`), and the next
+     iteration re-watches from the original `rev`, whose replayed events `Broadcast` rejects once
+     the stream has events (another round of the retry loop). Liveness, not safety: the specs
+     are unaffected. **Confirmed in Go (2026-10-09)**: `cache/ready_liveness_test.go` in the
+     fork's working tree (not committed; its own per-stream fake watcher, since the tests'
+     `mockWatcher` feeds every stream from one channel) drives exactly this: first `Get` at 9,
+     event at 10, stream canceled, retry `Get` at 12 → `watch(13)`, `Init(13)` purges (the
+     `141-143` branch), `ready` set then reset, a second upstream stream opens (the first is
+     never canceled), the event at 13 reaches the store, and `Ready()` stays false:
+     `WaitReady` and `Cache.Watch` time out (5 of 5 runs under `-race`, no data race). The
+     control with the retry `Get` at 10 (`Init(11)`, no purge) recovers. The retry backoff is
+     `defaultConfig().InitialBackoff`, real time, not the cache's clock or `Config`.
+  3. *The store watcher starts lagging.* On a fresh demux (`maxRev = 0`), `Register(storeW,
+     rev)` with `rev ≠ 0` makes it lagging (`demux.go:89-95`): it gets the stream only at the
+     first resync, so the store, and linearizable `Get`s, lag by up to `ResyncInterval` at
+     start. Performance only.
+  4. *`get` needs linearizability.* `store.Restore` (`store.go:105-117`) does not check that the
+     revision does not go back, and the store's readers' lower bounds (`storeRevLb`) need it;
+     `isEtcdKV` relates no two calls, so `Cache.get`'s spec takes `isEtcdKVFrom kv pfx
+     st.latestRev` (a prefix get returns at least the store's revision) as a premise.
+  5. *`PerWatcherBufferSize` is not validated.* `newCache` (72-77) checks `HistoryWindowSize`
+     and `BTreeDegree` only; `WithPerWatcherBufferSize(-1)` makes `newWatcher`'s
+     `make(chan, -1)` panic in `Watch` (138) and in the watch loop's goroutine (351), which
+     crashes the process. The proofs take `0 ≤ PerWatcherBufferSize` (`isCacheFields`).
+  6. The demux's earlier finding, that `validateRevisions` alone accepts after `Init(m)` events
+     below `m - 1` when `maxRev = 0`, is now excluded by the certificates (`respCert`): an
+     accepted batch is above the stream's last batch, hence above `base`.
+- **Not reached**: no `sorry` of this work; the observed flakiness: `Proof/go_etcd_io/raft/
+  v3/stepLeader.lean` failed twice in full rebuilds after a Perennial re-pin ("not pure" at
+  239, "ambiguous `decide_true`" at 277) and built alone, unchanged, right after; not
+  investigated.
+- **Gates** (2026-10-09, Perennial `099c2a08b`): `lake build` passes (1397 jobs);
+  `etc/tcb-report.py --check` (after `--update`): 10 axioms, 2 sorries — new `EtcdStep`,
+  `etcdStep_transfer`, `etcdStep_compose`, and (the `clientv3` commit) `rpctypes.Error.wp_proof`,
+  `status.Error.wp_proof` (grpc is not translated); `etc/goose.py --check` passes;
+  `etc/gen-link.py --cache` reproduces `Link.lean`; `etc/verified-code.py --reuse`: the cache
+  package 71 of 107 functions verified (8 unfinished: the documented `sorry`s), 776 of 1204
+  lines (64.5%); `clientv3` 35 functions.

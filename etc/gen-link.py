@@ -35,21 +35,28 @@ here = os.path.dirname(os.path.abspath(__file__))
 root = os.path.normpath(os.path.join(here, ".."))
 
 # function name -> the module path below Spec/ and Proof/ (`go_etcd_io.raft.v3.tracker.NewInflights`)
-where = {}
+# (a bare `<fn>` shared by two packages, as `Error` of `rpctypes` and `status`, is
+# ambiguous: such a function is named `<last component of pkg>_<fn>` only)
+where, ambiguous = {}, set()
 for dp, _, fs in os.walk(os.path.join(root, "Spec")):
     for f in fs:
         if f.endswith(".lean"):
             rel = os.path.relpath(os.path.join(dp, f), os.path.join(root, "Spec"))[:-len(".lean")]
             *pkg, stem = rel.split(os.sep)
-            for name in {stem, pkg[-1] + "_" + stem}:
-                assert name not in where, f"two specs for {name}"
-                where[name] = ".".join(pkg + [stem])
+            qual = pkg[-1] + "_" + stem
+            assert qual not in where, f"two specs for {qual}"
+            where[qual] = ".".join(pkg + [stem])
+            if stem in where:
+                ambiguous.add(stem)
+            where[stem] = where[qual]
+for name in ambiguous:
+    del where[name]
 
 
 def spec_file(fn):
     return os.path.join(root, "Spec", *where[fn].split(".")) + ".lean"
 
-fns, callees = [], {}
+fns, callees, external = [], {}, set()
 if not cache:
     rocq = sys.argv[1]
     fns = sorted(os.path.basename(f)[5:-2] for f in glob.glob(os.path.join(rocq, "spec_*.v")))
@@ -74,13 +81,21 @@ with open(os.path.join(here, "link-lean-first-cache.txt" if cache else "link-lea
         # `Axiom` proved here from callees the Rocq does not have)
         if fn not in callees:
             fns.append(fn)
+        if cs.strip() == "@":
+            # linked in its own package's `Link.lean` (the btree): imported, not emitted
+            external.add(fn)
+            cs = ""
         callees[fn] = cs.split()
 fns.sort()
 
 spec = {}
 for fn in fns:
-    m = re.search(r"^abbrev ([\w.«»]+)\.spec\b", open(spec_file(fn)).read(), re.M)
-    spec[fn] = m.group(1)
+    src = open(spec_file(fn)).read()
+    m = re.search(r"^abbrev ([\w.«»]+)\.spec\b", src, re.M)
+    # the namespaces below `EtcdGrove` the spec is declared in (`btree` for the btree's)
+    nss = re.findall(r"^namespace (\S+)", src, re.M)
+    inner = nss[nss.index("EtcdGrove") + 1:] if "EtcdGrove" in nss else []
+    spec[fn] = ".".join(inner + [m.group(1)])
 
 # The specs stated at `HeapGS HasLC.hasLC GF` (the ghost state holds an invariant).
 haslc = {fn for fn in fns
@@ -118,7 +133,9 @@ hand.
 
 `#print axioms` on a result is its trust base.
 -/""", "module", ""]
-    out.extend(f"public import Proof.{where[fn]}" for fn in fns)
+    out.extend(f"public import Proof.{where[fn]}" for fn in fns if fn not in external)
+    out.extend(sorted({"public import Proof." + ".".join(where[fn].split(".")[:-1] + ["Link"])
+                       for fn in external}))
     out.append("""
 @[expose] public section
 
@@ -144,8 +161,8 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
         return (f"theorem {result(fn)}{allg} :\n    {spec[fn]}.spec (GF := GF) (hG := hG) :=\n"
                 f"  {body}\n")
 
-    generic = [fn for fn in order if fn not in haslc]
-    special = [fn for fn in order if fn in haslc]
+    generic = [fn for fn in order if fn not in haslc and fn not in external]
+    special = [fn for fn in order if fn in haslc and fn not in external]
     assert all(c not in haslc for fn in generic for c in callees[fn])
     out.extend(emit_cache(fn) for fn in generic)
     out.append("end links\n")

@@ -4,14 +4,16 @@ imports (the counterpart of `Proof/go_etcd_io/raft/v3/Base.lean` for the transla
 
 `isPkgInit` of a package includes `isPkgInit` of everything it imports, so every package
 reachable from the cache's imports needs an instance. The standard-library ones (`bytes`,
-`context`, `errors`, `fmt`, `sync`, `time`) are Perennial's; the etcd, k8s and protobuf
+`context`, `errors`, `fmt`, `sync`, `time`) are Perennial's; the etcd, k8s, protobuf and grpc
 packages are translated names-only or types-only (`Code/{go_etcd_io/etcd,k8s_io,google_golang_org}/**.toml`), and their
-package facts are `True` except where the store reads a package-level variable: the
-cache's `ErrNotReady` (`fmt.Errorf` at init) and `rpctypes`' `ErrFutureRev` and
+package facts are `True` except where a proof reads a package-level variable: the
+cache's `ErrNotReady` (`fmt.Errorf` at init), `ErrUnsupportedRequest` and
+`ErrKeyRangeInvalid`, `ErrCacheTimeout` (`errors.New`), and `rpctypes`' `ErrFutureRev` and
 `ErrCompacted` each hold a fixed non-nil error (`globalAddr X ↦□ interface.ok e`, as
 Perennial's own packages state their globals), and `ErrCompacted.Error()` returns some string
-(`errorStringSpec`: it is an `EtcdError`, whose `Error` returns its description). Everything here is an assumption about
-package initialization, as in `Raft/Base.lean`: nothing proves it from `initialize'`.
+(`errorStringSpec`: it is an `EtcdError`, whose `Error` returns its description);
+`clientv3`'s `noPrefixEnd` points for good to a slice holding the byte `0`. Everything here is an assumption about
+package initialization, as in `Proof/go_etcd_io/raft/v3/Base.lean`: nothing proves it from `initialize'`.
 -/
 module
 
@@ -24,6 +26,7 @@ public import Perennial.Proof.errors
 public import Perennial.Proof.fmt
 public import Perennial.Proof.sync
 public import Perennial.Proof.time
+public import Proof.k8s_io.utils.third_party.forked.golang.btree.Init
 
 @[expose] public section
 
@@ -44,6 +47,13 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+
+instance protobuf_pragma_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.google_golang_org.protobuf.internal.pragma :=
+  define_is_pkg_init iprop(True)
+instance protobuf_pragma_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.protobuf.internal.pragma :=
+  build_get_is_pkg_init_wf
 
 instance protobuf_impl_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.google_golang_org.protobuf.internal.impl :=
@@ -97,22 +107,44 @@ instance rpctypes_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes :=
   build_get_is_pkg_init_wf
 
-instance clientv3_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.client.v3 :=
+instance grpc_codes_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.codes :=
   define_is_pkg_init iprop(True)
+instance grpc_codes_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.codes :=
+  build_get_is_pkg_init_wf
+
+instance grpc_status_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.status :=
+  define_is_pkg_init iprop(True)
+instance grpc_status_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.status :=
+  build_get_is_pkg_init_wf
+
+/-- `clientv3`'s package facts: `noPrefixEnd` (`[]byte{0}`, never written), which
+`getPrefix` returns for a prefix with no successor. -/
+abbrev clientv3Init : IProp GF :=
+  iprop(∃ sl : GoSlice, globalAddr go_etcd_io.etcd.client.v3.noPrefixEnd ↦□ sl ∗
+    sl ↦*□ [W8 0])
+
+instance clientv3_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.client.v3 :=
+  define_is_pkg_init clientv3Init
 instance clientv3_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.client.v3 :=
   build_get_is_pkg_init_wf
 
-instance btree_is_pkg_init_inst :
-    IsPkgInit (IProp GF) pkg_id.k8s_io.utils.third_party.forked.golang.btree :=
-  define_is_pkg_init iprop(True)
-instance btree_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.utils.third_party.forked.golang.btree :=
-  build_get_is_pkg_init_wf
+-- `k8s.io/utils/third_party/forked/golang/btree`: `Proof/k8s_io/.../btree/Init.lean`.
 
-/-- The cache's package facts: `ErrNotReady`, which the store returns. -/
+/-- The cache's package facts: the error variables `ErrNotReady` (the store returns it),
+`ErrUnsupportedRequest` (wrapped by `validateGet`/`validateWatch`), `ErrKeyRangeInvalid`
+(`validateRange`) and `ErrCacheTimeout` (`waitTillRevision`), each a fixed non-nil error;
+`ErrKeyRangeInvalid.Error()` returns some string (`errors.New`'s `*errorString`; `Cache.Watch`
+puts it in a cancel response). -/
 abbrev cacheInit : IProp GF :=
-  iprop(∃ e : GoInterfaceOk, globalAddr ErrNotReady ↦□ GoInterface.ok e)
+  iprop((∃ e : GoInterfaceOk, globalAddr ErrNotReady ↦□ GoInterface.ok e) ∗
+    (∃ e : GoInterfaceOk, globalAddr ErrUnsupportedRequest ↦□ GoInterface.ok e) ∗
+    (∃ e : GoInterfaceOk, globalAddr ErrKeyRangeInvalid ↦□ GoInterface.ok e) ∗
+    (∃ e : GoInterfaceOk, globalAddr ErrCacheTimeout ↦□ GoInterface.ok e) ∗
+    □ (∀ e : GoInterfaceOk, globalAddr ErrKeyRangeInvalid ↦□ GoInterface.ok e -∗ errorStringSpec e))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 :=
   define_is_pkg_init cacheInit

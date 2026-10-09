@@ -59,7 +59,7 @@ theorem store_getSnapshot_first (rev : w64) (h : List (w64 × KvMap)) (hs : RevS
 theorem store.getSnapshot.wp_proof
     (wp_DescendLessOrEqual : ringBuffer.DescendLessOrEqual.spec (GF := GF) (hG := hG)) :
     store.getSnapshot.spec (GF := GF) (hG := hG) := by
-  intro s γ cap r0 rev
+  intro s γ cap E r0 rev
   wp_start as ⟨#HS, Hrd, #Hlb⟩
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -79,7 +79,7 @@ theorem store.getSnapshot.wp_proof
   · iPkgInit
   ihave Hri : (rpctypesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hrpc
-  icases Hci with ⟨%eNR, #HeNR⟩
+  icases Hci with ⟨⟨%eNR, #HeNR⟩, -, -, -⟩
   icases Hri with ⟨⟨%eFR, #HeFR⟩, ⟨%eCP, #HeCP, -⟩⟩
   wp_auto
   wp_if_destruct
@@ -141,10 +141,10 @@ theorem store.getSnapshot.wp_proof
     ipureintro; exact ⟨⟨Hinv, Hr0⟩, by simp⟩
   have Hfut := Hif
   have Hsorted := Hinv.hist_sorted
-  wp_apply (wp_DescendLessOrEqual (go.GoType.PointerType snapshot.ty) (storeHistAddr s) cap snapIs
+  wp_apply (wp_DescendLessOrEqual (go.GoType.PointerType snapshot.ty) (storeHistAddr s) cap (snapCert E)
     Prod.fst st.history (DFrac.own sync.rfrac) rev' _
     (fun i => iprop(targetSnapshot_ptr ↦ (null : Loc) ∗ ⌜i = 0⌝))
-    iprop(∃ (p : Loc) (v : w64 × KvMap), targetSnapshot_ptr ↦ p ∗ snapIs p v ∗
+    iprop(∃ (p : Loc) (v : w64 × KvMap), targetSnapshot_ptr ↦ p ∗ snapCert E p v ∗
       ⌜(descendLeVisited Prod.fst rev' st.history)[0]? = some v⌝))
     $$ [Hhist targetSnapshot] as ⟨Hhist, Hpost⟩
   · iframe Hhist
@@ -174,7 +174,7 @@ theorem store.getSnapshot.wp_proof
   · -- found
     have Hm : snapModel st rev = .ok v.1 v.2 := by rw [Hbase, ← Hfirst, Hv]
     ihave %Hpnn : ⌜p ≠ null⌝ $$ [Hp]
-    · unfold snapIs; icases Hp with ⟨%t, #Hpt, -⟩
+    · unfold snapCert snapIs; icases Hp with ⟨⟨%t, #Hpt, -⟩, -⟩
       iapply typedPointsto_not_null $$ Hpt
     wp_auto
     rw [decide_eq_false Hpnn]
