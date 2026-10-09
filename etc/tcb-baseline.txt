@@ -17,3 +17,4 @@ sorry Perennial.fmt.wp_Errorf
 sorry Perennial.google_golang_org.protobuf.internal.impl.MessageState.MessageState_into_val_typed
 sorry Perennial.google_golang_org.protobuf.internal.impl.MessageState.MessageState_typed_pointsto
 sorry newStore_RLocker
+sorry wp_map_for_range_mut_keys

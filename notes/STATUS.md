@@ -353,3 +353,54 @@ Design and rejected alternatives: `decisions.md`, "watcher, notifier, ready".
   persistent hypothesis (`errorStringSpec`) still in context; clearing it fixed that
   (`Proof/watcher__Compact.lean`).
 
+
+### The demux (`cache/demux.go`): proved, modulo one Perennial gap (2026-10-09)
+
+`newDemux` and `demux`'s `Register`, `Unregister`, `Init`, `Broadcast`, `LatestRev`,
+`BroadcastProgress`, `BroadcastProgressTo`, `updateStoreLocked`, `broadcastLocked`,
+`broadcastProgressLocked`, `broadcastEventsLocked`, `Purge`, `purge`, `Compact`,
+`resyncLaggingWatchers`: one `Spec`/`Proof` pair each, linked in `Cache/Link.lean` (all at
+`HeapGS HasLC.hasLC`). Out of scope (the Cache stage): `NewDemux`, `resyncLoop`,
+`WaitForNextResync`. Vocabulary and every shared lemma in `InvDemux.lean` (no `sorry`);
+design and rejected alternatives: `decisions.md`, "demux: the delivery invariant under the
+lock".
+
+- **State.** The writer's `DemuxCore` (`minRev`, `maxRev`, the history's batches, the ghost
+  `stream` of every batch since the last purge; a `Batch` is the events of one revision,
+  `batchRev` the ring's `revOf`), invariant `DemuxInv`; the watcher maps, the registrations
+  (ghost map `w ↦ RegInfo`: names, resolved start `s`, filter agreement) and their `View`s
+  (stream, `maxRev`, next revision `n`, phase active/lagging/closed) live in the lock
+  (`RegsOk`; the Go maps are `actOf views`/`lagOf views`).
+- **The delivery theorem** (`Unregister`'s postcondition, `DeliveredLog`): when a registrant
+  unregisters its watcher, the watcher is closed after a log `sent` such that the events sent
+  are exactly the events of the stream batches with `s ≤ revision < n` (for the watcher's
+  last `n`), filtered by its key predicate, in stream order (so no gap and no duplicate); the
+  log is in order (responses' events strictly increasing from one response to the next, and a
+  progress notification at `p` is at or above every earlier event and below every later one);
+  and a compaction cancel is at `n`. `demux_watcher_delivered` gives the same at any time under
+  a read lock, combined with the consumer: what it received is a prefix of such a log.
+- **Overflow premise.** `DemuxInv` has `maxRev < 2^63 - 1` (so `maxRev + 1`, `lastRev + 1`,
+  `PeekOldest() + 1` do not wrap); `Broadcast` takes it of the response
+  (`RespRevsBounded`: header and event revisions below `2^63 - 1`). Also: events sorted
+  (`EvRevSorted`, as for the store), `newDemux`'s capacity in `(0, 2^61]`.
+- **`Register`'s premise `watcherUnique w γ`** (`w` has no other ghost name): needed to know
+  `w` is not registered yet; not derivable from `isWatcher`. The Cache stage has to get it
+  from `newWatcher` (e.g. a registry of `respCh` points-tos), which today does not provide it.
+- **Findings against the design:** (1) `minRev` is not a lower bound of the history's
+  revisions: `Broadcast` checks events against `maxRev` only, so `Init(100)` then an event at
+  5 keeps a batch below `minRev` (etcd's watch from 100 never sends it). `DemuxInv` keeps only
+  "every stream batch at or above `minRev` is in the history", which is what resync needs; the
+  delivery invariant is unaffected. (2) `resyncLaggingWatchers`'s outcome is not observable
+  outside the lock: its postcondition `∃ c views views', ResyncStep c views views'` is proved
+  with the lock's real views (the loop tracks `ResyncOutcome` per key) but is satisfiable
+  trivially as a statement. No case where the delivery invariant breaks.
+- **`sorry`**: one, `wp_map_for_range_mut_keys` (`MapRangeMut.lean`), a **Perennial gap**:
+  `broadcastProgressLocked`, `broadcastEventsLocked` and `resyncLaggingWatchers` write the map
+  they range over (current key only, which Go allows), and Perennial's `map.forRange` keeps the
+  map `StartRead`-locked for the whole loop, so a write in the body is stuck: the lemma is what
+  Go guarantees and is false in Perennial's present model. Fix in Perennial: read the domain
+  once, then look each key up when it is visited (skipping deleted keys). Also reached: the two
+  known `impl.MessageState` sorries (`&ResponseHeader{}` in the progress responses).
+  `etc/tcb-report.py --check --update`: 14 axioms, 5 sorries (the baseline gained
+  `wp_map_for_range_mut_keys`). `lake build` passes; `etc/gen-link.py --cache` reproduces
+  `Cache/Link.lean`.

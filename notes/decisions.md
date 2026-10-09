@@ -371,3 +371,77 @@ buffer's `iterSpec`), instantiated by `WaitReady` (`id`) and `WaitNotReady` (`no
 `rpctypes` is names-only and `ErrCompacted`'s dynamic type is unknown to the proof, so the
 fact belongs with the variable's other initialization facts.
 
+
+
+---
+
+## demux: the delivery invariant under the lock
+
+**2026-10-09 · accepted**
+
+etcd's cache `demux` (`cache/demux.go`), Lean-first, one `Spec`/`Proof` pair per Go function,
+vocabulary in `InvDemux.lean`. The design (decided with the user): the point of the spec is a
+per-watcher delivery guarantee, an invariant of the demux's lock that every method keeps; the
+methods' functional behavior is stated on an abstract state.
+
+**Decided with the user:** the writer's state `DemuxCore` (with the ghost `stream`) and its
+transitions (`initCore`, `broadcastCore`/`updResp`/`updCore`, `DemuxCore.init`), taken and
+returned by `Init`/`Broadcast`/`Purge`/`Compact` with `demuxWriter`; the other goroutines
+(`Register`, `Unregister`, `BroadcastProgress(To)`, `LatestRev`, resync) work from `isDemux`
+and a handle; the delivery facts (`Delivered`: the events sent are the stream's from `s` to
+`n`, filtered; the log ordered; progress notifications trustworthy); the registration token
+with two outcomes (in a map, or closed by purge/compaction); `minRev` stated as a bound, not
+the oldest revision; the overflow premise on `Broadcast`.
+
+**Decided here:**
+- **Maps.** The Go maps are Perennial `GMap Loc w64` (`ownMap`), and are *functions of the
+  views*: `actOf views`/`lagOf views` (the active/lagging views' `n`). The lock's pure facts
+  (`RegsOk`) are then about the views only, and an update is one ghost-map write plus the
+  matching `insert`/`delete` (`actOf_insert`, ...). *Rejected:* separate maps with a relation to
+  the views (every step re-proves the relation).
+- **The ghost split.** The writer holds half of `γd.core`; the lock the other half. The
+  registrations (`γd.reg`, keyed by the watcher's address: the token is the entry) and the
+  views (`γd.views`, an entry in each registration's `regRes`) are internal to the lock.
+- **Per-registration resources outside the fractional lock invariant.** `BroadcastProgressTo`
+  sends to `w` under `RLock`, which gives only a fraction of the lock invariant, but the send
+  needs the exclusive `watcherOpen`. So each registration's `regRes` is in a slot of a
+  separate invariant `demuxSlots`: `Lock` takes all slots (`demux_lock_acquire`, leaving the
+  whole writer token `wtok 1`, which no reader can hold), `Unlock` puts them back; `w`'s
+  registrant borrows its own slot under `RLock` (`demux_slot_borrow`/`return`, leaving half of
+  its `wtok` fraction and half of its entry). *Rejected:* the resources in the lock invariant
+  (not fractional); per-registration invariants (`Lock` would open one per watcher).
+- **Mapped views are current.** A mapped watcher's view is the current stream and `maxRev`
+  (`RegsOk.mapped`), so `Broadcast` refreshes them all at once (`regRes_refresh`, the facts
+  survive an extension above `maxRev` because `n ≤ maxRev + 1 ∨ n = s`); a closed watcher's view
+  is frozen. *Rejected:* lazily refreshed views (a reader's progress at the current `maxRev`
+  would need the view updated, and readers cannot write the views' auth).
+- **The token's two outcomes** are the view's phase (`RegPhase.mapped`/`closed c`), with the
+  producer view `watcherAt γ sent phase.toWatcher`; `Unregister` returns the closed one after
+  `Stop`. The key filter is pinned by a saved predicate (`predIs`), as functions are not
+  countable.
+- **Freshness.** `Register` needs `w` not registered; from `watcherOpen γ []` and the lock's
+  `watcherOpen`/`watcherClosed` for `w` this follows only if `w` has one ghost name, so
+  `Register` takes `watcherUnique w γ` (`watcherOpen_excl`, added to `InvWatcher.lean`, rules
+  out the same name). A second registration of the same `w` would break delivery (the code
+  overwrites one map entry and may leave `w` in both maps). *Rejected:* keying registrations by
+  a fresh id (the double registration is unsafe anyway).
+- **`minRev`.** `DemuxInv.hist_complete` (every stream batch at or above `minRev` is in the
+  history) is what resync uses. The planned "`minRev` ≤ every history revision" is false
+  against the code (`Init(100)` then an event at 5: `validateRevisions` checks `maxRev` only),
+  so it was dropped rather than made a premise of `Broadcast`; nothing needs it.
+  `updCore` states `minRev` in closed form (bumped iff the *last* append evicted), which the
+  code's extra bump before the second-to-last append does not change.
+- **The resync closure's invariant** (`iterSpec`): `P i` = the watcher's `watcherOpen`, the
+  `nextRev` cell at `resyncNext n vis i` and `resyncSuccess` true, with the delivery facts at
+  that `n`; `Q` = the same at the batch a send failed on with `resyncSuccess` false. Since
+  `n ≥ minRev`, the batches `AscendGreaterOrEqual(n)` visits are exactly the stream's from `n`.
+- **The map loops that write the map** (`broadcast*Locked`, resync) use
+  `wp_map_for_range_mut_keys` (`MapRangeMut.lean`), the one `sorry`: Go allows changing the
+  current key during `range`, Perennial's `map.forRange` keeps the map read-locked for the whole
+  loop (a Perennial gap, documented in the file; the fix is a Go-faithful `forRange`). The
+  invariant takes the key list, as `wp_map_for_range`'s does.
+- **`resyncLaggingWatchers`'s outcome** (`ResyncStep`) is stated existentially over the lock's
+  views at acquire and release: it is invisible outside the lock, so the statement is weak.
+  *Rejected (for now):* a ghost trace of the lock's states, which would anchor it but changes
+  every lock-taking proof.
+- `LatestRev` gives no lower bound (purge resets `maxRev`).

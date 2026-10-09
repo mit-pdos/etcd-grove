@@ -60,3 +60,20 @@ newWatcher:
 watcher__enqueueResponse: WatchResponse__IsProgressNotify
 watcher__Stop:
 watcher__Compact:
+# The demux (cache/demux.go), see InvDemux.lean.
+newDemux: newRingBuffer newNotifier
+demux__Register:
+demux__Unregister: watcher__Stop
+demux__LatestRev:
+demux__BroadcastProgress: watcher__enqueueResponse
+demux__BroadcastProgressTo: watcher__enqueueResponse
+demux__updateStoreLocked: WatchResponse__IsProgressNotify ringBuffer__full ringBuffer__PeekOldest ringBuffer__Append
+demux__broadcastProgressLocked: watcher__enqueueResponse
+demux__broadcastEventsLocked: watcher__enqueueResponse
+demux__broadcastLocked: WatchResponse__IsProgressNotify demux__broadcastProgressLocked demux__broadcastEventsLocked
+demux__purge: ringBuffer__RebaseHistory watcher__Stop
+demux__Purge: demux__purge
+demux__Compact: demux__purge
+demux__Init: demux__purge
+demux__Broadcast: validateRevisions demux__updateStoreLocked demux__broadcastLocked
+demux__resyncLaggingWatchers: watcher__Compact ringBuffer__AscendGreaterOrEqual watcher__enqueueResponse
