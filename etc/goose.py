@@ -202,7 +202,7 @@ def translate(proj, src, bindir, perennial_rev, desc, check):
         config = os.path.join(lib_dir, "Code")
         roots = [a for r in proj.lean_roots for a in ("-lean-root", r)]
         for tool, sub in (("goose", "Code"), ("proofgen", "GeneratedProof")):
-            run([os.path.join(bindir, tool), "-lean"] + roots +
+            run([os.path.join(bindir, tool)] + roots +
                 ["-out", os.path.join(out, sub), "-configdir", config, "-dir", src]
                 + proj.packages)
         new, old = lean_files(out, proj), lean_files(lib_dir, proj)

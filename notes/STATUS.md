@@ -1,18 +1,36 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-09 (the whole cache package specified and proved: `New`, `Close`, the loops)
+**Last updated:** 2026-10-09 (Perennial `8c33774d0`: Goose without `-lean`; before that, the whole cache package specified and proved)
 
 Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
 `worktree-raft-replication`'s `feb5c73d4` and adds Ready/Advance/HasReady; the files
 were first ported from `main`, then from `feb5c73d4`) to Lean on top of Perennial's Lean
-port (mit-pdos/perennial `lean`, pinned at f8b35ddbf (2026-10-09: `context.wp_Background`, `wp_WithCancel_Background`; on f35530719: Goose prints an axiomatized generic type in Lean; on 8c7000190: `time.NewTimer`, `Timer.Stop`/`Reset` axioms; on 96ec7016d: `fmt.wp_Printf`, `time.Minute`; on 099c2a08b: `fmt.wp_Errorf`'s `Error()`; on 640a605cc: a `select` case on a nil channel is never ready, `chan.wp_select_blocking_nil`; on 48e1192c7: rlocker, `Cond.wp_Wait_with`, `time.wp_Since`) on cbb85c041: upstream's `11fd2db` merged with
+port (mit-pdos/perennial `lean`, pinned at 8c33774d0 (2026-10-09: upstream's `37416dd10` (Rocq code removed) and `cdf8c0f81` (Goose without `-lean` and the ⁱᵐᵖˡ encoding) merged, see below; on f8b35ddbf: `context.wp_Background`, `wp_WithCancel_Background`; on f35530719: Goose prints an axiomatized generic type in Lean; on 8c7000190: `time.NewTimer`, `Timer.Stop`/`Reset` axioms; on 96ec7016d: `fmt.wp_Printf`, `time.Minute`; on 099c2a08b: `fmt.wp_Errorf`'s `Error()`; on 640a605cc: a `select` case on a nil channel is never ready, `chan.wp_select_blocking_nil`; on 48e1192c7: rlocker, `Cond.wp_Wait_with`, `time.wp_Since`) on cbb85c041: upstream's `11fd2db` merged with
 `bytes.Compare`, on Lean's module system since 2026-10-09). The Goose translations of
 etcd-raft and etcd's `cache` package are this repository's `Code/` and `GeneratedProof/`,
 generated and checked by `etc/goose.py`. Files are laid out by kind and Go package path
 (`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
+
+## Perennial `8c33774d0`: Goose without `-lean` (2026-10-09)
+
+Perennial's `6fa346618` merges our `f35530719`/`8c7000190`/`f8b35ddbf` with upstream's
+`37416dd10` (Rocq code, tooling and prose removed from the `lean` branch) and `cdf8c0f81`:
+`goose` and `proofgen` no longer take `-lean` (the output is always Lean), and the names
+`Foo.impl`, `T.M.impl` are produced directly instead of through an internal `ⁱᵐᵖˡ` suffix
+that the Lean printer decoded. The generated names are the same: regenerating both
+translations changed no file. `etc/goose.py` no longer passes `-lean` (it keeps
+`-lean-root`). The merge resolved the `goose/glang/coq.go` conflict by deleting the file,
+which also deleted the `GenericTypeExpr` type of our `f35530719` (goose did not build);
+`8c33774d0` restores it in `goose/glang/syntax.go` (one implementation; its Lean printer is
+unchanged). The std-lib translations regenerate byte for byte (Go 1.26.0, no `--lean` flag
+now). Gates: Perennial's `lake build` passes; here `lake build` passes (1472 jobs),
+`etc/goose.py --check` passes, `etc/tcb-report.py --check` matches the baseline (10 axioms,
+4 sorries, unchanged), `etc/gen-link.py --cache` and `etc/gen-btree-link.py` reproduce their
+`Link.lean`, `etc/verified-code.py`: Raft 175/323, cache 97 verified and 10 unfinished of 107.
+Push Perennial (`8c33774d0`) first.
 
 ## Merged with upstream's layout (2026-10-09)
 
