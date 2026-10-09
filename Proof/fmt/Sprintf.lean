@@ -4,6 +4,7 @@ Port of election_proof/proof_fmt_Sprintf.v.
 module
 
 public import Spec.fmt.Sprintf
+public import Perennial.Proof.fmt
 
 @[expose] public section
 
@@ -21,10 +22,18 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- Not translated; see the comment at the spec. -/
-axiom fmt.Sprintf.wp_proof : fmt.Sprintf.spec (GF := GF) (hG := hG)
-
-#check @fmt.Sprintf.wp_proof
+/-- Proved in Perennial (`Perennial.Proof.fmt`, `wp_Sprintf`, against the trusted model of
+`Sprintf`); the slice points-to is framed. -/
+theorem fmt.Sprintf.wp_proof : fmt.Sprintf.spec (GF := GF) (hG := hG) := by
+  intro format args xs dq
+  iintro %Φ ⟨#Hinit, Hargs⟩ HΦ
+  iapply _root_.Perennial.fmt.wp_Sprintf format args $$ [Hinit]
+  · iexact Hinit
+  iintro %s
+  inext
+  iintro -
+  iapply HΦ
+  iexact Hargs
 
 end proof
 

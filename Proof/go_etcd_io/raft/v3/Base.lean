@@ -4,7 +4,7 @@ initialization instances for `go.etcd.io/raft/v3` and the packages it imports.
 
 This replaces Perennial's `Perennial.Proof.go_etcd_io.raft.v3_proof.base` (the port of
 upstream's `base.v`), which must not be imported alongside it: `IsPkgInit` has one
-instance per package, and etcd-grove's raft and `crypto/rand` instances are stronger.
+instance per package, and etcd-grove's raft instance is stronger.
 Everything here is an assumption about package initialization: nothing proves it from
 the packages' `initialize'` functions.
 
@@ -27,6 +27,7 @@ public import Perennial.Proof.encoding.binary
 public import Perennial.Proof.strings
 public import Perennial.Proof.math
 public import Perennial.Proof.math.bits
+public import Perennial.Proof.crypto.rand
 public import Perennial.Proof.bytes
 public import Perennial.Proof.log
 public import Perennial.Proof.io
@@ -90,23 +91,16 @@ instance confchange_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.raft.v3.confchange :=
   build_get_is_pkg_init_wf
 
-instance big_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.math.big :=
-  define_is_pkg_init iprop(True)
-instance big_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.math.big :=
-  build_get_is_pkg_init_wf
-
 /-- `crypto/rand`'s package-level `Reader` (an `io.Reader`). `lockedRand.Intn` reads it
 through `GlobalVarAddr` to pass it to `rand.Int`, so a proof of that method needs the
 points-to. Its value is opaque: nothing is known about it beyond being the reader the
-package installed, and the `rand.Int` triple is stated for exactly that reader. -/
+package installed, and the `rand.Int` triple is stated for exactly that reader.
+`crypto/rand`'s and `math/big`'s `IsPkgInit` instances are Perennial's
+(`Perennial.Proof.crypto.rand`, `Perennial.Proof.math.big`, since Perennial `00b3c10ea`);
+this is the body of Perennial's `crypto.rand.isInitialized`. -/
 def isRandInitialized : IProp GF :=
   iprop(∃ rdr : GoInterface,
     "#Reader" ∷ (globalAddr crypto.rand.Reader ↦□ rdr : IProp GF))
-
-instance rand_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.crypto.rand :=
-  define_is_pkg_init isRandInitialized
-instance rand_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.crypto.rand :=
-  build_get_is_pkg_init_wf
 
 instance os_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.os :=
   define_is_pkg_init iprop(True)
@@ -187,7 +181,7 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.raf
 
 theorem isRandInitialized_access :
     isPkgInit (PROP := IProp GF) pkg_id.crypto.rand ⊢ isRandInitialized :=
-  isPkgInit_access (PROP := IProp GF) pkg_id.crypto.rand
+  _root_.Perennial.crypto.rand.isInitialized_access
 
 theorem isInitialized_access :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ⊢ isInitialized :=
