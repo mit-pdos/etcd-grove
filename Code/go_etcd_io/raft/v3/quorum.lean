@@ -106,10 +106,16 @@ noncomputable def JointConfig.IDs.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Var "m")))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad MajorityConfig.ty))) (App (Val (GoInstruction (IndexRef JointConfig.ty))) (Pair (Var "c") (Val #(W64 1)))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad JointConfig.ty))) (Var "c"))
+  (Let "cc" (App (Val (GoInstruction (GoAlloc MajorityConfig.ty))) (App (Val (GoInstruction (GoZeroVal MajorityConfig.ty))) (Val #())))
+  (App (App (Val (array.forRange 2 MajorityConfig.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$range" (App (Val (GoInstruction (GoLoad MajorityConfig.ty))) (Var "cc"))
   (Let "id" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val (map.forRange go.uint64 (go.GoType.StructType []))) (Var "$range"))
   (Lam "$key"
@@ -119,25 +125,18 @@ noncomputable def JointConfig.IDs.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (App (Val (map.insert go.uint64)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Var "m"))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))) (Var "$r0"))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "id") (Var "$key")))))))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad MajorityConfig.ty))) (App (Val (GoInstruction (IndexRef JointConfig.ty))) (Pair (Var "c") (Val #(W64 0)))))
-  (Let "id" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
-  (App (App (Val (map.forRange go.uint64 (go.GoType.StructType []))) (Var "$range"))
-  (Lam "$key"
-  (Lam "$value"
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.StructType [])))) (LiteralValue []))
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "id") (Var "$key"))))))))))))
   (App (Val doExecute)
-  (App (App (App (Val (map.insert go.uint64)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Var "m"))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))) (Var "$r0"))))))
+  (Var "$key")))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "id") (Var "$key")))))))))))))
+  (App (Val (GoInstruction (GoStore MajorityConfig.ty))) (Pair (Var "cc") (Var "$value")))))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Pair (Var "m") (Var "$r0")))))))))))
 
 /-- Describe returns a (multi-line) representation of the commit indexes for the
     given lookuper.
 
-    go: joint.go:43:22 -/
+    go: joint.go:42:22 -/
 noncomputable def JointConfig.Describe.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "l"
@@ -152,7 +151,7 @@ noncomputable def JointConfig.Describe.impl [FfiSyntax] [GoGlobalContext] : val 
     quorum. An index is jointly committed if it is committed in both constituent
     majorities.
 
-    go: joint.go:50:22 -/
+    go: joint.go:49:22 -/
 noncomputable def JointConfig.CommittedIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "l"
@@ -184,7 +183,7 @@ noncomputable def JointConfig.CommittedIndex.impl [FfiSyntax] [GoGlobalContext] 
     a result indicating whether the vote is pending, lost, or won. A joint quorum
     requires both majority quorums to vote in favor.
 
-    go: joint.go:62:22 -/
+    go: joint.go:61:22 -/
 noncomputable def JointConfig.VoteResult.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "votes"
@@ -248,9 +247,10 @@ noncomputable def MajorityConfig.String.impl [FfiSyntax] [GoGlobalContext] : val
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.strings.Builder.ty) _root_.Perennial.io.Writer.ty))) (Var "buf"))
-  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 go.any))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.uint64)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (Var "sl")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))))
+  (Let "$a1" (Val #(go!"%x"))
+  (Let "$a2" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 go.any))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.uint64)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (Var "sl")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Fprint []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Fprintf []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 0)))))
   (App (Val doExecute)
   (Let "$a0" (Val #(W8 32))
@@ -285,7 +285,7 @@ noncomputable def MajorityConfig.String.impl [FfiSyntax] [GoGlobalContext] : val
 /-- Describe returns a (multi-line) representation of the commit indexes for the
     given lookuper.
 
-    go: majority.go:55:25 -/
+    go: majority.go:48:25 -/
 noncomputable def MajorityConfig.Describe.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "l"
@@ -321,7 +321,7 @@ noncomputable def MajorityConfig.Describe.impl [FfiSyntax] [GoGlobalContext] : v
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.strings.Builder.ty) _root_.Perennial.io.Writer.ty))) (Var "buf"))
-  (Let "$a1" (Val #(go!" %5d    (id=%d)\n"))
+  (Let "$a1" (Val #(go!" %5d    (id=%x)\n"))
   (Let "$a2" (Let "$sl0" (App (Val (GoInstruction (Convert Index'.ty go.any))) (App (Val (GoInstruction (GoLoad Index'.ty))) (App (Val (GoInstruction (StructFieldRef tup.ty go!"idx"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType tup.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType tup.ty)))) (Var "info")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))))
   (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 go.any))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef tup.ty go!"id"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType tup.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType tup.ty)))) (Var "info")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
@@ -453,7 +453,7 @@ noncomputable def MajorityConfig.Describe.impl [FfiSyntax] [GoGlobalContext] : v
 
 /-- Slice returns the MajorityConfig as a sorted slice.
 
-    go: majority.go:110:25 -/
+    go: majority.go:109:25 -/
 noncomputable def MajorityConfig.Slice.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -485,7 +485,7 @@ noncomputable def MajorityConfig.Slice.impl [FfiSyntax] [GoGlobalContext] : val 
 /-- CommittedIndex computes the committed index from those supplied via the
     provided AckedIndexer (for the active config).
 
-    go: majority.go:121:25 -/
+    go: majority.go:120:25 -/
 noncomputable def MajorityConfig.CommittedIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "l"
@@ -569,7 +569,7 @@ noncomputable def MajorityConfig.CommittedIndex.impl [FfiSyntax] [GoGlobalContex
     yes/no has been reached), won (a quorum of yes has been reached), or lost (a
     quorum of no has been reached).
 
-    go: majority.go:170:25 -/
+    go: majority.go:169:25 -/
 noncomputable def MajorityConfig.VoteResult.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "votes"

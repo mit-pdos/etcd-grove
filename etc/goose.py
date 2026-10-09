@@ -86,10 +86,12 @@ class Project:
 PROJECTS = [
     Project(
         name="etcd-raft",
-        repo="https://github.com/upamanyus/etcd-raft",
-        rev="531b20c6251eb54f79ed1ca242430a20aaaae0c3",
-        # Modules Code.go_etcd_io.raft.v3*, GeneratedProof.go_etcd_io.raft.v3*.
-        lean_roots=["go.etcd.io/raft/v3="],
+        repo="https://github.com/etcd-io/raft",
+        rev="1c0011d2c6b7a0230f87bad38ad4c6e70d810f9e",
+        # Modules Code.go_etcd_io.raft.v3*, GeneratedProof.go_etcd_io.raft.v3*. raftpb is
+        # protobuf-go v2, so raft imports google.golang.org/protobuf/proto, translated (names
+        # only) with the etcd project below (Code/google_golang_org/protobuf/).
+        lean_roots=["go.etcd.io/raft/v3=", "google.golang.org="],
         packages=[
             ".",
             "go.etcd.io/raft/v3/confchange",
