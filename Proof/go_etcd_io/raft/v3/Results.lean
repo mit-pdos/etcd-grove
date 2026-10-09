@@ -17,6 +17,9 @@ one refining `s'`, and the ghost protocol state can be moved from `s` to `s'` at
 time -- i.e. the implementation refines the protocol of `Raft/Protocol/`. Beside
 it: `RawNode.wp_Propose`, the client's entry point (one `Step` of a `MsgProp`), and
 `wp_newRaft`, the constructor, which establishes `ownRaftPhys` (`Spec/newRaft.lean`).
+The `RawNode` results (`wp_Propose`, `wp_Ready`, `wp_Advance`, `wp_HasReady`) are
+client-facing since 2026-10-09: stated on `ownRawNode γ rn id rs` (`InvRawnode.lean`),
+with no protocol state in them; the refinement above is how they are proved.
 
 Scope, matching `Raft/Protocol/`:
   - no pre-vote, no check-quorum,

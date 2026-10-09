@@ -121,6 +121,33 @@ def StableOk (ls : LogState) (id : entryID) : Prop :=
   uint.Z id.index' < uint.Z ls.inprogress ∧
   ls.unpersisted = []
 
+/-! What `acceptApplying` and `stableTo` leave alone (2026-10-09): the fields the
+`RawNode` predicate (`InvRawnode.lean`) states its facts on. Both functions branch, so
+`proj_simps` does not apply. -/
+
+theorem logAcceptApplying_fields (ls : LogState) (ce : List raftpb.Entry) (sz : w64) :
+    (logAcceptApplying ls ce sz).committed = ls.committed ∧
+    (logAcceptApplying ls ce sz).inprogress = ls.inprogress ∧
+    (logAcceptApplying ls ce sz).unpersisted = ls.unpersisted ∧
+    (logAcceptApplying ls ce sz).snap = ls.snap := by
+  unfold logAcceptApplying; split <;> exact ⟨rfl, rfl, rfl, rfl⟩
+
+theorem logAcceptApplying_applying (ls : LogState) (ce : List raftpb.Entry) (sz : w64)
+    (e : raftpb.Entry) (He : ce.getLast? = some e) :
+    (logAcceptApplying ls ce sz).applying = e.Index' := by
+  unfold logAcceptApplying; rw [He]
+
+theorem logStableTo_fields (ls : LogState) (id : entryID) :
+    (logStableTo ls id).applying = ls.applying ∧
+    (logStableTo ls id).unpersisted = ls.unpersisted ∧
+    (logStableTo ls id).snap = ls.snap ∧
+    uint.Z ls.inprogress ≤ uint.Z (logStableTo ls id).inprogress := by
+  unfold logStableTo
+  split
+  · refine ⟨rfl, rfl, rfl, ?_⟩
+    simp only [w64Max_spec]; omega
+  · exact ⟨rfl, rfl, rfl, Int.le_refl _⟩
+
 /-- The persistence invariant (`LogPersistOk`, `InvRaftlog.lean`) across
 `acceptUnstable`: with nothing unpersisted, handing out the rest of the unstable suffix
 makes all of it in progress, and once the application appends what was handed out the

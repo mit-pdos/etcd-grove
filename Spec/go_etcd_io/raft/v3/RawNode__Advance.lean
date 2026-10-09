@@ -1,14 +1,19 @@
 /-
-Port of `election_proof/spec_RawNode__Advance.v` (857d09190).
+Port of `election_proof/spec_RawNode__Advance.v` (857d09190), made client-facing on
+2026-10-09.
+
+Until 2026-10-08 the spec was stated on the node's states (`ownRawNode cfg rn id s rs`
+at the `NState` `s`, `ownRaftGhost`, `NStateRel`, the `Step` it refines) and had two
+protocol premises: `PstepCommitMono` (the protocol's commit index never moves back,
+now the lemma `Step.commit_mono`, `Protocol/Facts.lean`) and `AdvanceOk s rs.steps` on
+the queue at the current state (now `StepsOk`, part of `ownRawNode` for an
+`advanceable` queue, `InvRawnode.lean`).
 
 Lean notes: As for `raft.Step.spec`, the section fixes `hlc := HasLC.hasLC` and has
-`[AllG GF]`. `pstep_commit_mono`, `apply_ack_ok`, `advance_ok` are `PstepCommitMono`,
-`ApplyAckOk`, `AdvanceOk`; Rocq's `Forall P l` is `∀ p ∈ l, P p` and stdpp's
-`list.last` is `List.getLast?`.
+`[AllG GF]`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__Step
 public import Proof.go_etcd_io.raft.v3.InvRawnode
 
 @[expose] public section
@@ -19,43 +24,6 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI go_etcd_io.raft.v3
-
-/-- The protocol's commit index never moves back across a `Step`: a fact about the
-protocol's relation (`Protocol/Model.lean`), stated here as a premise of `Advance`
-rather than proved (another agent is reworking the protocol's commit ghost state; every
-rule either keeps `commit` or raises it). -/
-def PstepCommitMono [FfiSyntax] (cfg : GSet w64) (id : w64) : Prop :=
-  ∀ ps recv ps', Step cfg id ps recv ps' → uint.Z ps.commit ≤ uint.Z ps'.commit
-
-/-- What `Advance` needs of the local messages it steps, at the state `s` it is called
-in.
-
-- **No self-addressed responses** (`Pending.self`). They are stepped first (they come
-  from `msgsAfterAppend`) and `Step`'s spec asks of each message facts `ownRaftPhys`
-  does not record for the queue -- its `Entries`' capacity, `Term ≠ 0`, a
-  non-rejecting self `MsgAppResp` -- and, for a `MsgPreVoteResp`, a term bound at the
-  state the earlier steps left, which `Step`'s postcondition does not describe beyond
-  `NStateRel`. A candidate's own vote and a leader's own `MsgAppResp` are such
-  messages, so this restricts `Advance` to Readys that queued none (see
-  notes/raft-replication-model.md, "Phase 4", for the fix).
-- The `MsgStorageAppendResp`, if any, comes first (as `acceptReady` queues it), is not
-  from a later term, and if its `stableTo` runs it acknowledges persisted entries
-  (`StableOk`) -- true right after `Ready` and the application's append
-  (`ready_stable_ok`, `inv_rawnode.v`); a `Step` in between may truncate the log, and
-  then it is the protocol's Log Matching that makes it true, not stated here.
-- The `MsgStorageApplyResp`'s entries end at or below `committed`. -/
-def ApplyAckOk [FfiSyntax] (s : NState) (p : Pending) : Prop :=
-  match p with
-  | .applyAck ce => ∀ e, ce.getLast? = some e → uint.Z e.Index' ≤ uint.Z s.logst.committed
-  | _ => False
-
-def AdvanceOk [FfiSyntax] (s : NState) (steps : List Pending) : Prop :=
-  match steps with
-  | .appendAck t e :: rest =>
-      (uint.Z t ≤ uint.Z s.term ∧
-       (t = W64 0 ∨ t = s.term → e.index' ≠ W64 0 → StableOk s.logst e)) ∧
-      ∀ p ∈ rest, ApplyAckOk s p
-  | _ => ∀ p ∈ steps, ApplyAckOk s p
 
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -75,24 +43,36 @@ variable [AllG GF]
     }
     rn.stepsOnAdvance = rn.stepsOnAdvance[:0]
 
-Steps the queued local messages through `Step` -- whose spec this proof uses, so the
-ghost state moves by `Step`'s protocol steps -- and empties the queue. Like `Step` it is
-a top-level entry point and mentions `ownRaftGhost`. The `Ready` argument is unused. -/
+Steps the local messages the last `Ready` queued -- the acknowledgement that the
+application appended its entries (`MsgStorageAppendResp`, whose `stableTo` moves them
+stable) and that it applied its committed entries (`MsgStorageApplyResp`,
+`appliedTo`) -- through `Step`, and empties the queue. The client-facing state is
+otherwise unchanged. The `Ready` argument is unused.
+
+Premises:
+- the application appended the last `Ready`'s entries (`rs.unpersisted = []`, after
+  `ownRawNode_persist`): the `MsgStorageAppendResp` then acknowledges persisted entries
+  only (`StableOk`, `Step`'s premise; Rocq's `ready_stable_ok`);
+- **`rs.advanceable`: a gap, to be closed.** The proof covers only a queue without
+  self-addressed responses (`Pending.self`: a candidate's own vote, a leader's own
+  `MsgAppResp`, which `readyWithoutAccept` keeps from `msgsAfterAppend` for `Advance`
+  to step). `Step`'s spec asks of each message facts the raft struct does not record for
+  the queue -- its `Entries`' capacity, `Term ≠ 0`, a non-rejecting self `MsgAppResp`
+  -- and, for a `MsgPreVoteResp`, a term bound at the state the earlier steps left,
+  which `Step`'s postcondition does not describe beyond the protocol state (see
+  notes/raft-replication-model.md, "Phase 4", for the fix). `Ready` returns
+  `advanceable` (`true` exactly when it queued no such message, which its
+  postcondition does not state: whether `msgsAfterAppend` holds one is protocol
+  state -- a candidate's, or a leader's with new entries); without it the client can
+  call neither `Advance` (unproved) nor `Ready` (which needs an empty queue). -/
 abbrev RawNode.Advance.spec : Prop :=
-  ∀ (cfg : GSet w64) (γ : RaftNames) (rn : Loc) (id : w64)
-    (s : NState) (ps : PState) (rs : RNState) (rd : Ready),
-  γ.reCfg = cfg →
-  id ∈ cfg →
-  NStateRel s ps →
-  PstepCommitMono cfg id →
-  AdvanceOk s rs.steps →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hrn" ∷ ownRawNode cfg rn id s rs ∗
-      "Hghost" ∷ ownRaftGhost γ id ps }}
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : Ready),
+  rs.advanceable = true →
+  rs.unpersisted = [] →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hrn" ∷ ownRawNode γ rn id rs }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Advance")) (Val #rd))
-  {{ (s' : NState) (ps' : PState), RET #();
-      ownRawNode cfg rn id s' { rs with steps := [] } ∗
-      ownRaftGhost γ id ps' ∗
-      ⌜NStateRel s' ps' ∧ ∃ recv, Step cfg id ps recv ps'⌝ }}
+  {{ RET #(); ownRawNode γ rn id { rs with steps := [] } }}
 
 end spec
 

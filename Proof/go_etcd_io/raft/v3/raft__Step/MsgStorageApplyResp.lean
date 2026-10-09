@@ -59,6 +59,9 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhys cfg r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
+        "%Hframe" ∷ ⌜LocalFrame s s' ∧
+                     ((∀ e, ents.getLast? = some e → uint.Z e.Index' ≤ uint.Z s.logst.applying) →
+                      s'.logst.applying = s.logst.applying)⌝ ∗
         "%Hrefines" ∷ ⌜Step cfg id (toPState s) [] (toPState s')⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
   intro Hty Hterm Hlast Hwf
@@ -83,7 +86,7 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     iapply HΦ $$ %interface.nil %s
     iframe Hphys
     ipureintro
-    exact ⟨Hwf, .refl _, rfl⟩
+    exact ⟨Hwf, ⟨⟨rfl, Int.le_refl _, rfl, rfl⟩, fun _ => rfl⟩, .refl _, rfl⟩
   | some e =>
     obtain ⟨es, rfl⟩ := List.getLast?_eq_some_iff.1 He
     simp only [List.length_append, List.length_singleton] at Hlen
@@ -97,13 +100,21 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     iStructNamed He
     wp_auto
     wp_apply _P.entsSize $$ [$Hents] as %sz -
+    -- `applied ≤ applying`: `applying` stays put when the entries end at or below it
+    icases ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hback⟩
+    icases ownRaftLog_ready_wf _ _ $$ Hlog with ⟨%Hrw, Hlog⟩
+    ihave Hphys := Hback $$ Hlog
     wp_apply _P.appliedTo cfg r id s e.Index' sz (Hlast e He) $$ [$Hphys] as Hphys
     wp_apply _P.payloadsSize $$ [$Hents] as %psz -
     wp_apply _P.reduceUncommittedSize $$ [$Hphys] as Hphys
     iapply HΦ $$ %interface.nil %_
     iframe Hphys
     ipureintro
-    refine ⟨Hwf, ?_, rfl⟩
+    refine ⟨Hwf, ⟨⟨rfl, Int.le_refl _, rfl, rfl⟩, fun Hle => ?_⟩, ?_, rfl⟩
+    · have H1 := Hle e (by simp)
+      show w64Max s.logst.applying (w64Max e.Index' s.logst.applied) = s.logst.applying
+      unfold w64Max
+      split <;> split <;> word
     rw [toPState_logAppliedTo]
     exact .refl _
 

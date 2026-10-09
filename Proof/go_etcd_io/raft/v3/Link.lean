@@ -855,10 +855,6 @@ theorem raftLog.wp_hasNextCommittedEnts :
     raftLog.hasNextCommittedEnts.spec (GF := GF) (hG := hG) :=
   raftLog.hasNextCommittedEnts.wp_proof raftLog.wp_hasNextOrInProgressSnapshot raftLog.wp_maxAppliableIndex
 
-theorem RawNode.wp_HasReady :
-    RawNode.HasReady.spec (GF := GF) (hG := hG) :=
-  RawNode.HasReady.wp_proof SoftState.wp_equal wp_IsEmptyHardState wp_isHardStateEqual raftLog.wp_hasNextUnstableSnapshot raftLog.wp_hasNextUnstableEnts raftLog.wp_hasNextCommittedEnts
-
 theorem raftLog.wp_nextCommittedEnts :
     raftLog.nextCommittedEnts.spec (GF := GF) (hG := hG) :=
   raftLog.nextCommittedEnts.wp_proof raftLog.wp_hasNextOrInProgressSnapshot raftLog.wp_maxAppliableIndex raftLog.wp_slice
@@ -950,6 +946,10 @@ theorem raft.wp_Step :
 theorem RawNode.wp_Advance :
     RawNode.Advance.spec (GF := GF) (hG := hG) :=
   RawNode.Advance.wp_proof raft.wp_Step
+
+theorem RawNode.wp_HasReady :
+    RawNode.HasReady.spec (GF := GF) (hG := hG) :=
+  RawNode.HasReady.wp_proof SoftState.wp_equal wp_IsEmptyHardState wp_isHardStateEqual raftLog.wp_hasNextUnstableSnapshot raftLog.wp_hasNextUnstableEnts raftLog.wp_hasNextCommittedEnts
 
 theorem RawNode.wp_Propose :
     RawNode.Propose.spec (GF := GF) (hG := hG) :=

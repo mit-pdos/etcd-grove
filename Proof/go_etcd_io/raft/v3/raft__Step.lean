@@ -355,7 +355,7 @@ theorem raft.Step.wp_proof
     ihave %HlenQ := BigSepL2.bigSepL2_length $$ Hprops
     -- `Hents` is owned: the `by_cases` above reduced its `if m.Type' = MsgProp`
     wp_apply (wp_Step_MsgProp P cfg r id s m ents Hty Hterm Hfrom Hne Hnorm Hlen Hlok Hin Hwf)
-      $$ [$Hphys $Hents $Hcap] as %err %s' ⟨Hphys, %Hwf', %Hst, Herr⟩
+      $$ [$Hphys $Hents $Hcap] as %err %s' ⟨Hphys, %Hwf', %Hfr, %Hst, Herr⟩
     rcases Hst with ⟨recv, Hrecv, Hstep⟩ | ⟨rfl, Hrl, Hnorm0, Hnw, Hstep⟩
     · -- forwarded or dropped: one uniform ghost step, the updates back
       imod ghost_step_recv γ cfg id _ _ _ recv Hcfg Hrecv Hstep $$ Hm' Hghost with Hghost
@@ -366,6 +366,8 @@ theorem raft.Step.wp_proof
       · ipureintro; exact ⟨rfl, Hwf'⟩
       isplitr
       · ipureintro; exact ⟨recv, Hstep⟩
+      isplitr
+      · ipureintro; exact fun _ => ⟨Hfr.1, fun _ => Hfr.2⟩
       isplitl [Herr]
       · icases Herr with (%Herr | #Hd)
         · ileft; ipureintro; exact Herr
@@ -394,6 +396,8 @@ theorem raft.Step.wp_proof
       · ipureintro
         exact ⟨[] ++ [], .trans _ _ _ _ _ (.propose _ _ Hrl Hnorm0 Hnw) Hstep⟩
       isplitr
+      · ipureintro; exact fun _ => ⟨Hfr.1, fun _ => Hfr.2⟩
+      isplitr
       · ileft; ipureintro; rfl
       ileft
       iframe Hout
@@ -406,6 +410,47 @@ theorem raft.Step.wp_proof
   -- and the entries are read-only: the `by_cases` reduced `"Hents"`'s
   -- `if m.Type' = MsgProp`
   icases Hents with #Hents
+  -- the two storage acknowledgements (2026-10-05), before the conversion to `stepPost`
+  -- below: their postcondition also says what is kept of the physical state
+  -- (`LocalStepOk`, 2026-10-09)
+  by_cases HtyA : m.Type' = MsgStorageAppendResp
+  · -- MsgStorageAppendResp: `stableTo`, invisible to the protocol.
+    obtain ⟨Hsn, Hle, Hstok⟩ := Hsar HtyA
+    wp_apply (wp_Step_MsgStorageAppendResp P cfg r id s m HtyA Hsn Hle Hstok Hwf) $$ [$Hphys]
+      as %err %s' ⟨Hphys, %Hwf', %Hfr, %Hst, %Herr⟩
+    have Hst' : Step γ.reCfg id (toPState s) [] (toPState s') := by rw [Hcfg]; exact Hst
+    imod ownRaftGhost_step_0 γ id _ _ Hst' $$ Hghost with Hghost
+    imodintro
+    iapply HΦ $$ %err %s' %(toPState s')
+    iframe Hphys Hghost
+    isplitr
+    · ipureintro; exact ⟨rfl, Hwf'⟩
+    isplitr
+    · ipureintro; exact ⟨[], Hst⟩
+    isplitr
+    · ipureintro; exact fun _ => ⟨Hfr.1, fun _ => Hfr.2⟩
+    isplitr
+    · ileft; ipureintro; exact Herr
+    itrivial
+  by_cases HtyB : m.Type' = MsgStorageApplyResp
+  · -- MsgStorageApplyResp: `appliedTo`, invisible to the protocol.
+    -- `Hents` is already read-only: the `MsgProp` case split reduced its `if`
+    wp_apply (wp_Step_MsgStorageApplyResp P cfg r id s m ents HtyB (Hsapr HtyB) (Happly HtyB)
+        Hwf) $$ [$Hphys $Hents] as %err %s' ⟨Hphys, %Hwf', %Hfr, %Hst, %Herr⟩
+    have Hst' : Step γ.reCfg id (toPState s) [] (toPState s') := by rw [Hcfg]; exact Hst
+    imod ownRaftGhost_step_0 γ id _ _ Hst' $$ Hghost with Hghost
+    imodintro
+    iapply HΦ $$ %err %s' %(toPState s')
+    iframe Hphys Hghost
+    isplitr
+    · ipureintro; exact ⟨rfl, Hwf'⟩
+    isplitr
+    · ipureintro; exact ⟨[], Hst⟩
+    isplitr
+    · ipureintro; exact fun _ => ⟨Hfr.1, fun H => Hfr.2 (H HtyB)⟩
+    isplitr
+    · ileft; ipureintro; exact Herr
+    itrivial
   ihave HΦ : ▷ stepPost γ cfg r id (toPState s) m Φ $$ [HΦ]
   · inext
     unfold stepPost
@@ -413,7 +458,8 @@ theorem raft.Step.wp_proof
     iapply HΦ $$ %err %s' %ps'
     iframe Hphys Hghost Herr
     ipureintro
-    exact ⟨Hrel', Href⟩
+    -- `LocalStepOk` is about the three types handled above
+    exact ⟨Hrel', Href, fun Hl => by rcases Hl with h | h | h <;> contradiction⟩
   by_cases Hns : m.Type' = MsgSnap
   · -- MsgSnap: `dispatch_Snap`, with the snapshot from `"Hsnap"`.
     icases Hsnap $$ %Hns with ⟨%sv, %voters, #Hsv, #Hvs, %Hscope, #Hm'⟩
@@ -508,21 +554,7 @@ theorem raft.Step.wp_proof
   · -- MsgBeat: `dispatch_Beat`.
     iapply dispatch_Beat P γ cfg r id s m Φ Hcfg Hin Hwf Hty (Hbeat Hty)
       $$ Hinit Hphys Hghost HΦ
-  by_cases Hty : m.Type' = MsgStorageAppendResp
-  · -- MsgStorageAppendResp (2026-10-05): `stableTo`, invisible to the protocol.
-    obtain ⟨Hsn, Hle, Hstok⟩ := Hsar Hty
-    wp_apply (wp_Step_MsgStorageAppendResp P cfg r id s m Hty Hsn Hle Hstok Hwf) $$ [$Hphys]
-      as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr⟩
-    iapply finish_branch0 γ cfg r id s s' m err Φ Hcfg Hwf' Hst $$ Hghost Hphys [] HΦ
-    ileft; ipureintro; exact Herr
-  by_cases Hty : m.Type' = MsgStorageApplyResp
-  · -- MsgStorageApplyResp (2026-10-05): `appliedTo`, invisible to the protocol.
-    -- `Hents` is already read-only: the `MsgProp` case split reduced its `if`
-    wp_apply (wp_Step_MsgStorageApplyResp P cfg r id s m ents Hty (Hsapr Hty) (Happly Hty)
-        Hwf) $$ [$Hphys $Hents] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr⟩
-    iapply finish_branch0 γ cfg r id s s' m err Φ Hcfg Hwf' Hst $$ Hghost Hphys [] HΦ
-    ileft; ipureintro; exact Herr
-  -- none of the fourteen
+  -- none of the fourteen (the two storage acknowledgements were handled above)
   exfalso
   simp only [StepMsg, stepMsgTypes, List.mem_cons, List.not_mem_nil, _root_.or_false] at Hsm
   rcases Hsm with h | h | h | h | h | h | h | h | h | h | h | h | h | h <;> contradiction

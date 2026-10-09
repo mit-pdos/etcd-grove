@@ -109,6 +109,8 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhys cfg r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
+        -- what `RawNode` keeps track of is untouched (2026-10-09)
+        "%Hframe" ∷ ⌜LocalFrame s s' ∧ s'.logst.applying = s.logst.applying⌝ ∗
         -- Either one step from `s` consuming at most the proposal (forwarded or
         -- dropped), or -- appended at the leader -- the `Step.propose` state's premises
         -- and one step from that state on (the broadcast), so that `Step` can take
@@ -167,6 +169,8 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         isplitr
         · ipureintro; exact Hwf
         isplitr
+        · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl⟩, rfl⟩
+        isplitr
         · ipureintro; left; exact ⟨[], by simp, .refl _⟩
         iright; iexact Herrn
     · -- forwarded: `Step.propForward`
@@ -180,6 +184,8 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       iframe Hphys
       isplitr
       · ipureintro; exact nstateWf_sendMsgs _ _ Hwf
+      isplitr
+      · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl⟩, rfl⟩
       isplitr
       · ipureintro; left
         refine ⟨[absMsg .propose m ents], by simp, ?_⟩
@@ -218,6 +224,8 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       isplitr
       · ipureintro; exact Hwf
       isplitr
+      · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl⟩, rfl⟩
+      isplitr
       · ipureintro; left; exact ⟨[], by simp, .refl _⟩
       iright; iexact Herrn
   · -- Leader: append and broadcast, or drop
@@ -251,6 +259,8 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       isplitr
       · ipureintro; exact nstateWf_prvals _ _ (nstateWf_sendMsgs _ _ Hwf)
       isplitr
+      · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl⟩, rfl⟩
+      isplitr
       · ipureintro; right
         refine ⟨rfl, by rw [toPState_role, Hrole]; rfl, Hnorm, ?_, ?_⟩
         · simp only [proposed, sendMsgs, logAppend, List.length_append, List.length_mapIdx] at Hnw
@@ -272,6 +282,8 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         iframe Hphys
         isplitr
         · ipureintro; exact Hwf
+        isplitr
+        · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl⟩, rfl⟩
         isplitr
         · ipureintro; left; exact ⟨[], by simp, .refl _⟩
         iright; iexact Herrn
@@ -301,6 +313,8 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       iframe Hphys
       isplitr
       · ipureintro; exact Hwf
+      isplitr
+      · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl⟩, rfl⟩
       isplitr
       · ipureintro; left; exact ⟨[], by simp, .refl _⟩
       iright; iexact Herrn
