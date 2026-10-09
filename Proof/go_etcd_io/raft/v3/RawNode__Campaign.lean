@@ -76,10 +76,10 @@ theorem RawNode.Campaign.wp_proof
   simp only [hP, ↓reduceIte]
   iintro %err %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, -, %Hfr, %Htm, -, Herr, -⟩
   wp_auto
-  obtain ⟨Ha, Hsn, Hu⟩ := Hfr (by msg_ne) (by msg_ne)
-  obtain ⟨Ht1, Ht2, -, Hi⟩ := Htm (by msg_ne)
+  obtain ⟨Ha, Hsn, Hu, Hpv, Hsd⟩ := Hfr (by msg_ne) (by msg_ne)
+  obtain ⟨Ht1, Ht2, -, -⟩ := Htm (by msg_ne)
   have Ht2 := Ht2 rfl
-  have Hi := Hi (by msg_ne)
+  ihave #Hstr' := storedRecs_eq γ _ s'.logst.prev _ s'.logst.stored Hpv Hsd $$ Hstrecs
   have Hc : uint.Z s.logst.committed ≤ uint.Z s'.logst.committed := by
     obtain ⟨recv, Hst⟩ := Href
     have H := Step.commit_mono Hst
@@ -91,8 +91,8 @@ theorem RawNode.Campaign.wp_proof
     isplitl [Hrn Hphys Hghost Hsteps Hsteps_cap Hpown]
     · iapply ownRawNode_intro γ rn id { rs with term := s'.term } s' ps' rnv sv steps Hrel' Hin
         Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
-        (stepsOk_mono_le s s' _ Ht1 Hi Hc Ha Hstok) rfl
-        $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv
+        (stepsOk_mono_le s s' _ Ht1 ⟨Hpv, Hsd⟩ Hc Ha Hstok) rfl
+        $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstr'
     ipureintro
     rw [Htrm]
     exact ⟨⟨Ht1, Ht2⟩, Herr⟩

@@ -77,7 +77,7 @@ abbrev newLogWithSize.spec : Prop :=
        ownRaftLog l
          { prev := σ.prev, sents := σ.ents, uents := [], committed := σ.prev.index',
            applied := σ.prev.index', snap := none, inprogress := ip,
-           applying := σ.prev.index', unpersisted := [], apsize := W64 0,
+           applying := σ.prev.index', unpersisted := [], stored := σ.ents, apsize := W64 0,
            apmax := maxSize }) }}
 
 end spec

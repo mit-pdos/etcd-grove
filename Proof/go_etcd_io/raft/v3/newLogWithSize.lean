@@ -91,7 +91,7 @@ theorem newLogWithSize.wp_proof : newLogWithSize.spec (GF := GF) (hG := hG) := b
     · ipureintro; simp only [List.length_nil]; word
     isplitr
     · ipureintro; intro _
-      refine ⟨?_, ?_, fun _ => rfl⟩
+      refine ⟨?_, ?_, fun _ => rfl, rfl⟩
       · simp [storApp]
       · intro _; simp [storApp]
     isplitr

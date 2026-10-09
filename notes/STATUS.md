@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-10 (the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
+**Last updated:** 2026-10-10 (`RawNode.Step` takes a `MsgApp` between `Ready` and `Advance`; the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
 
 Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
@@ -13,6 +13,40 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 (`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
+
+## `RawNode.Step`: a `MsgApp` between `Ready` and `Advance` (2026-10-10)
+
+`RawNode.Step.spec` lost its premise `m.Type' = MsgApp → rs.steps = []`: every message type
+may be stepped with a `Ready` outstanding, as the concurrent `node.go` does (decisions.md,
+"RawNode: the acknowledgement across a truncation"). The premise was there because the
+queued `MsgStorageAppendResp` asked `e.index < offsetInProgress` (`PendingOk`), which a
+truncating `MsgApp` breaks. A single-step argument does not repair it: a first `MsgApp`
+may truncate the log below `e`, and a second, from a leader of a higher term that has
+`e`, put it back, so the acknowledgement hits with `e.index ≥ offsetInProgress` (reachable,
+Figure 8 of the Raft paper). It is still right because the storage holds the log of the
+`Ready` up to `e`, which agrees with the log up to `e` by Log Matching. So:
+
+- `LogState` gained the ghost field `stored` (what the storage holds once `unpersisted` is
+  appended; `LogPersistOk`'s new last conjunct `storApp σ pend = stored`); only `Ready`
+  changes it (`logAcceptUnstable`: the whole log); `newLogWithSize`/`newRaft` start it at
+  the storage's entries.
+- `StableOk` (`raft.Step`'s `MsgStorageAppendResp` premise, `raftLog.stableTo`'s) asks
+  `stored = (sents ++ uents).take (id.index - prev.index)` instead of
+  `id.index < offsetInProgress`; `persist_stable` covers both cases.
+- `NetFrame` and `LocalFrame` (`raft.Step`'s postconditions) also keep `prev` and `stored`
+  (`HandleAppResult`, `raftLog.maybeAppend`'s spec, `logStableTo_fields`,
+  `logAcceptApplying_fields` say so; `keep_frame`/`stepdown_frame` take them as
+  auto-params, `rfl`).
+- `PendingOk (.appendAck t e)` is `t ≤ term ∧ plogLast prev stored = e`; `stepsOk_mono_le`
+  takes `prev`/`stored` kept instead of `offsetInProgress` not moving back.
+- `ownRawNode` keeps `storedRecs γ prev stored` (`PlogWf` and `logRecs` of `stored`,
+  `Hstrecs`; `ownRawNode_intro` takes it); `Ready` takes it from the ghost state
+  (`ownRaftGhost_storedRecs_keep`), `NewRawNode` has `stored = []`. `Advance` derives
+  `StableOk` with `stableOk_of_stored` (`stored_agree`: Log Matching via `logRecs_agree`
+  and `plog_match_down`).
+
+`lake build Proof.go_etcd_io.raft.v3.Link Proof.go_etcd_io.raft.v3.Results` passes; no new
+`sorry` or axiom.
 
 ## The `Advance` gap closed (2026-10-10)
 
@@ -46,7 +80,7 @@ differed from the checked-in file, e.g. `confchange.Restore`'s callees). `RNStat
   entries with the capacity owned, a `Context` that is not the transfer marker: the term
   moves up to at most the message's, `err` unspecified (the guards' rejections change
   nothing). A `MsgApp` only with no `Ready` outstanding (`rs.steps = []`: it may lower
-  `offsetInProgress`). The guards' `IsLocalMsg`/`IsResponseMsg` (`isMsgInArray`) are
+  `offsetInProgress`; premise gone 2026-10-10, see above). The guards' `IsLocalMsg`/`IsResponseMsg` (`isMsgInArray`) are
   specified to return some `bool` (for a nonnegative type: `MessageType` is an `int32`, a
   negative one panics); `isInitialized` gained their tables and the two error globals.
 

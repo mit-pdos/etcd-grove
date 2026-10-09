@@ -81,7 +81,7 @@ theorem raftLog.stableTo.wp_proof
   · -- the hit: the persisted prefix moves stable
     rw [if_pos Hh]
     obtain rfl := Hhit (Hiff.1 Hh)
-    obtain ⟨Hsn, Hidip, Hup⟩ := Hok Hh
+    obtain ⟨Hsn, Hup, Hsto⟩ := Hok Hh
     obtain ⟨Hr, -⟩ := Hh
     obtain ⟨Hsp, Hsl, Hsu⟩ : LogStoreOk none σ ls.prev ls.sents ls.uents := Hsn ▸ Hstore
     have Hp := Hpersist Hsn
@@ -92,22 +92,26 @@ theorem raftLog.stableTo.wp_proof
       omega
     generalize Hkdef : (uint.Z id.index' + 1
       - (uint.Z ls.prev.index' + (ls.sents.length : Int) + 1)).toNat = k at Hk ⊢
-    have Hkb : 0 ≤ (k : Int) ∧ (k : Int) ≤ uint.Z ls.inprogress - uint.Z lv.unstable'.offset' ∧
+    have Hkb : 0 ≤ (k : Int) ∧ (k : Int) ≤ (ls.uents.length : Int) ∧
+        0 ≤ uint.Z ls.inprogress - uint.Z lv.unstable'.offset' ∧
         uint.Z ls.inprogress - uint.Z lv.unstable'.offset' ≤ (ls.uents.length : Int) := by
       omega
-    have Hps := persist_stable σ ls.sents ls.uents
+    -- the storage holds the log up to `id`: the stable part and `k` unstable entries
+    have Hst' : ls.stored = ls.sents ++ ls.uents.take k := by
+      have Hn : (uint.Z id.index' - uint.Z ls.prev.index').toNat = ls.sents.length + k := by
+        omega
+      rw [Hsto, Hn, List.take_append, List.take_of_length_le (by omega),
+        Nat.add_sub_cancel_left]
+    have Hps := persist_stable σ ls.sents ls.uents ls.stored
       (uint.Z ls.inprogress - uint.Z lv.unstable'.offset') (k : Int) Hkb Hp
+      (fun _ => by rw [Int.toNat_natCast]; exact Hst')
     rw [Int.toNat_natCast] at Hps
     reseal_raftLog
     · rw [List.append_assoc, List.take_append_drop]; exact Hidx
     · simp only [List.length_append, List.length_take, List.length_drop]; omega
     · -- the storage relation
       simp only [Hsn]
-      refine ⟨Hsp, (List.prefix_append _ _).trans Hps.1, ?_⟩
-      intro Hnil
-      have Hk' : ls.uents.length ≤ k := List.drop_eq_nil_iff.mp Hnil
-      rw [List.take_of_length_le Hk']
-      exact Hp.2.1 (by omega)
+      exact ⟨Hsp, (List.prefix_append _ _).trans Hps.1.1, Hps.2⟩
     · simp only [Huoff, List.length_append, List.length_take]
       word
     · rw [List.append_assoc, List.take_append_drop]; exact HnoConfChange
@@ -120,10 +124,10 @@ theorem raftLog.stableTo.wp_proof
       word
     · intro _
       have Hipo : uint.Z (w64Max ls.inprogress (id.index' + W64 1)) - uint.Z (id.index' + W64 1)
-          = uint.Z ls.inprogress - uint.Z lv.unstable'.offset' - (k : Int) := by
+          = max (uint.Z ls.inprogress - uint.Z lv.unstable'.offset') (k : Int) - (k : Int) := by
         rw [w64Max_spec]; word
       simp only [Huoff, Hipo, Hup]
-      exact Hps
+      exact Hps.1
     · simp only [unstableOf, Hk]
   · -- a miss: nothing changes
     rw [if_neg Hh]

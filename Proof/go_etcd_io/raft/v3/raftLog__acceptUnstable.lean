@@ -65,7 +65,7 @@ theorem raftLog.acceptUnstable.wp_proof
     have Hipo : uint.Z (logEnd ls) - uint.Z uv'.offset' = (ls.uents.length : Int) := by
       simp only [logEnd, logLast]; word
     simp only [Hipo, nextUnstable, logOffset, ← Hoffset]
-    exact persist_accept ls.prev σ ls.sents ls.uents _ Hidx Hsp (by omega) (Hpend ▸ Hp)
+    exact persist_accept ls.prev σ ls.sents ls.uents _ Hidx Hsp (by omega) ls.stored (Hpend ▸ Hp)
 
 end proof
 

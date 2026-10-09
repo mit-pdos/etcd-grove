@@ -35,7 +35,7 @@ local macro "early_return" e:term : tactic => `(tactic| (
   isplitl
   · iapply ownRawNode_intro γ rn id { rs with term := rs.term } s ps rnv sv steps Hrel Hin
       Hasync Hdlen Hunp Hsnap Hstok Htrm
-      $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv
+      $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs
   ipureintro; constructor <;> omega))
 
 set_option hygiene false in
@@ -54,7 +54,7 @@ theorem RawNode.Step.wp_proof
     (wp_IsLocalMsgTarget : IsLocalMsgTarget.spec (GF := GF) (hG := hG))
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
     RawNode.Step.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs m ents ctx Hok Happ
+  intro γ rn id rs m ents ctx Hok
   obtain ⟨Hty, Hto, Hterm, Hfrom, Hself, Hrej⟩ := Hok
   have Hty0 : 0 ≤ sint.Z m.Type' := by
     simp only [netStepTypes, List.mem_cons, List.not_mem_nil, or_false] at Hty
@@ -141,25 +141,25 @@ theorem RawNode.Step.wp_proof
         not_net
       simp only [HnP, ↓reduceIte]
       iintro %err %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, -, %Hfr, %Htm, -, -, -⟩
-      obtain ⟨Ha, Hsn, Hu⟩ := Hfr (by not_net) (by not_net)
-      obtain ⟨Ht1, -, Ht3, Hi⟩ := Htm (by not_net)
+      obtain ⟨Ha, Hsn, Hu, Hpv, Hsd⟩ := Hfr (by not_net) (by not_net)
+      obtain ⟨Ht1, -, Ht3, -⟩ := Htm (by not_net)
       have Ht3 := Ht3 (by not_net) (by not_net)
       have Hc : uint.Z s.logst.committed ≤ uint.Z s'.logst.committed := by
         obtain ⟨recv, Hst⟩ := Href
         have H := Step.commit_mono Hst
         rw [← Hrel.1, ← Hrel'.1] at H
         exact H
-      have Hstok' : StepsOk s' rs.steps := by
-        by_cases hA : m.Type' = MsgApp
-        · rw [Happ hA]; simp [StepsOk]
-        · exact stepsOk_mono_le s s' _ Ht1 (Hi hA) Hc Ha Hstok
+      -- the queue survives any step, a truncating `MsgApp`'s too: what it needs of the log
+      -- is `prev` and `stored`, which no network step changes (`NetFrame`)
+      have Hstok' : StepsOk s' rs.steps := stepsOk_mono_le s s' _ Ht1 ⟨Hpv, Hsd⟩ Hc Ha Hstok
+      ihave #Hstr' := storedRecs_eq γ _ s'.logst.prev _ s'.logst.stored Hpv Hsd $$ Hstrecs
       wp_auto
       iapply HΦ $$ %err %s'.term
       isplitl
       · iapply ownRawNode_intro γ rn id { rs with term := s'.term } s' ps' rnv sv steps Hrel' Hin
           Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
           Hstok' rfl
-          $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv
+          $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstr'
       ipureintro
       rw [Htrm]
       exact ⟨Ht1, Ht3⟩)

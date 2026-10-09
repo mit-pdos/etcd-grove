@@ -254,6 +254,15 @@ structure LogState [FfiSyntax] where
   (`InvRaftlog.lean`, `Hpersist`, `StorApp`). The application appends them through
   `ownRaftLog_persist`, which empties the field; `Advance` requires it empty. -/
   unpersisted : List raftpb.Entry
+  /-- What the `Storage` holds (its entries after `prev`) once the application has
+  appended `unpersisted` (2026-10-10), while no snapshot is pending (`InvRaftlog.lean`,
+  `Hstored`): ghost, not a Go field. Only a `Ready` changes it (`logAcceptUnstable`: the
+  whole log, which the storage holds once the entries handed out are appended); a
+  truncating `MsgApp` leaves it, so after one the storage may hold entries the log no
+  longer has. `stableTo` needs it (`StableOk`, `InvReadylog.lean`): an acknowledgement
+  `Advance` steps after a truncation is right only because the storage still agrees
+  with the log up to the acknowledged entry. -/
+  stored : List raftpb.Entry
   /-- `l.applyingEntsSize` and `l.maxApplyingEntsSize` (2026-10-05): the flow control
   on handing out committed entries. In the state because `acceptApplying` calls
   `maxAppliableIndex` between updating the size and the paused flag, and only what the
@@ -538,7 +547,7 @@ snapshot pending. `unstable.restore` sets `offsetInProgress` to the new offset;
 `applying` and the unpersisted entries are untouched. -/
 def logRestore (ls : LogState) (sid : entryID) : LogState :=
   ⟨sid, [], [], sid.index', ls.applied, some sid, sid.index' + W64 1, ls.applying,
-   ls.unpersisted, ls.apsize, ls.apmax⟩
+   ls.unpersisted, ls.stored, ls.apsize, ls.apmax⟩
 
 /-! `stamp`, `appendEntry`'s stamping loop, is in `Protocol/Model.lean` (since
 2026-10-01: the model's `Step.win` and `Step.propose` stamp too). -/

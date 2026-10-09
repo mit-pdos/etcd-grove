@@ -54,7 +54,9 @@ stable) and that it applied its committed entries (`MsgStorageApplyResp`,
 Premises:
 - the application appended the last `Ready`'s entries (`rs.unpersisted = []`, after
   `ownRawNode_persist`): the `MsgStorageAppendResp` then acknowledges persisted entries
-  only (`StableOk`, `Step`'s premise; Rocq's `ready_stable_ok`);
+  only (`StableOk`, `Step`'s premise; Rocq's `ready_stable_ok`) -- also after `MsgApp`s
+  stepped since the `Ready` truncated the log below the acknowledged entry (2026-10-10:
+  the storage agrees with the log up to it by Log Matching, `stableOk_of_stored`);
 - the term does not wrap if it is raised (2026-10-10): stepping the node's own
   pre-vote response may win a pre-election, whose `campaign` increments the term
   (`Step`'s premise for a pre-candidate's `MsgPreVoteResp`).

@@ -143,29 +143,6 @@ theorem ready_ce_last (es ce : List raftpb.Entry) (prev : entryID) (cm apg : w64
   simp only [List.length_append, List.length_singleton]
   omega
 
-/-- The last entry of a log with unstable entries is in progress once `acceptUnstable`
-moved `offsetInProgress` to the end (`logEnd`): what makes the queued
-`MsgStorageAppendResp` acknowledge only entries handed out (Rocq's `ready_stable_ok`). -/
-theorem plogLast_lt_logEnd (ls : LogState) (Hidx : LogIndicesOk ls.prev (ls.sents ++ ls.uents))
-    (Hnw : uint.Z ls.prev.index' + (ls.sents.length : Int) + (ls.uents.length : Int) + 1 < 2^64)
-    (Hu : ls.uents ≠ []) :
-    uint.Z (plogLast ls.prev (ls.sents ++ ls.uents)).index' < uint.Z (logEnd ls) := by
-  have Hsplit : ls.sents ++ ls.uents = (ls.sents ++ ls.uents.dropLast) ++ [ls.uents.getLast Hu] := by
-    rw [List.append_assoc, List.dropLast_concat_getLast Hu]
-  have Hlast : (ls.sents ++ ls.uents).getLast? = some (ls.uents.getLast Hu) := by
-    rw [Hsplit]; simp
-  have Hlk : (ls.sents ++ ls.uents)[(ls.sents ++ ls.uents.dropLast).length]? =
-      some (ls.uents.getLast Hu) := by
-    rw [Hsplit]; exact List.getElem?_concat_length
-  have He := Hidx _ _ Hlk
-  have Hlen : ls.uents.dropLast.length + 1 = ls.uents.length := by
-    rw [List.length_dropLast]; have := List.length_pos_iff.2 Hu; omega
-  unfold plogLast
-  rw [Hlast]
-  simp only [entId, logEnd, logLast]
-  simp only [List.length_append] at He
-  word
-
 /-- `delivered` is the committed log's prefix up to `applying`: of the same length as
 `pre` and comparable with `pre ++ ce` (`isCommitted_agree`), it is `pre`. -/
 theorem eq_of_prefix_or {α : Type _} (l pre ce : List α) (H : l <+: pre ++ ce ∨ pre ++ ce <+: l)
@@ -184,7 +161,7 @@ responses. -/
 theorem ready_stepsOk (s' : NState) (t : w64) (last : entryID) (ce : List raftpb.Entry)
     (u : Prop) [Decidable u]
     (Ht : uint.Z t ≤ uint.Z s'.term)
-    (Hl : ¬ u → uint.Z last.index' < uint.Z s'.logst.inprogress)
+    (Hl : ¬ u → plogLast s'.logst.prev s'.logst.stored = last)
     (Hce : ∀ e, ce.getLast? = some e →
       uint.Z e.Index' ≤ uint.Z s'.logst.committed ∧ uint.Z e.Index' ≤ uint.Z s'.logst.applying) :
     StepsOk s' ((if u then [] else [Pending.appendAck t last]) ++
@@ -517,6 +494,7 @@ theorem RawNode.Ready.wp_proof
   -- ghost facts, read before anything moves
   ihave #Hout := ownRaftGhost_outbox _ _ _ $$ Hghost
   icases ownRaftGhost_committed _ _ _ $$ Hghost with ⟨%fp, %Hfp, #Hcm⟩
+  icases ownRaftGhost_storedRecs_keep _ _ _ $$ Hghost with ⟨Hghost, #Hlr⟩
   icases ownRaftPhys_view γ.reCfg rnv.raft' id s $$ Hphys with ⟨%rss, %sl1, %sl2, %ms1, %ms2, Hv⟩
   iNamed Hv
   icases ownRaftLog_ready_wf _ _ $$ Hlog with ⟨%Hwf1, Hlog⟩
@@ -1002,15 +980,20 @@ theorem RawNode.Ready.wp_proof
       simp only [PendingOk, selfPending, decide_eq_true_eq]
       exact Hb
     apply ready_stepsOk _ _ _ ce _ (Int.le_refl _)
-    · intro hu
-      rw [Hlogst, Hlf.2.1]
-      exact plogLast_lt_logEnd s.logst Hidx Hwf3 hu
+    · -- the acknowledgement is of the last entry of the log, which the storage holds
+      -- once the entries handed out are appended (`logAcceptUnstable`)
+      intro _
+      rw [Hlogst, Hlf.2.2.2.2.1, Hlf.2.2.2.2.2]
+      rfl
     · intro e He
       obtain ⟨H1, H2, -, -⟩ := Hce_ok e He
       exact ⟨H1, H2⟩
   ihave Hphys : ownRaftPhys γ.reCfg rnv.raft' id (readyNstate s ce sz) $$ [Hphys]
   · unfold readyNstate
     iexact Hphys
+  ihave #Hstrecs' := storedRecs_eq γ _ (readyNstate s ce sz).logst.prev _
+    (readyNstate s ce sz).logst.stored (by rw [Hlogst, Hlf.2.2.2.2.1]; rfl)
+    (by rw [Hlogst, Hlf.2.2.2.2.2]; rfl) $$ Hlr
   ispecialize HΦ $$ %(readyVal sp HS sents sce msl MS) %ce %(nextUnstable s.logst)
     %(ms1 ++ nonself id ms2) %(readySteps s ((selfmsgs id ms2).map selfPending) ce)
   iapply HΦ
@@ -1023,8 +1006,8 @@ theorem RawNode.Ready.wp_proof
       { rnv with prevSoftSt' := psp, prevHardSt' := PH, stepsOnAdvance' := stl4 }
       (softstateVal (nodeSoftstate s)) _
       (nstateRel_ready s _ ce sz ⟨rfl, Hwfs⟩) Hin Hasync Hdlen'
-      (by rw [Hlogst, Hlf.2.2.1]; rfl) (by rw [Hlogst, Hlf.2.2.2]; exact Hsnap) Hstok' Htrm
-      $$ Hrn Hphys Hghost Hpsp Hsteps Hsteps_cap [] [Hcecap] Hdeliv'
+      (by rw [Hlogst, Hlf.2.2.1]; rfl) (by rw [Hlogst, Hlf.2.2.2.1]; exact Hsnap) Hstok' Htrm
+      $$ Hrn Hphys Hghost Hpsp Hsteps Hsteps_cap [] [Hcecap] Hdeliv' Hstrecs'
     · -- the pending steps' messages
       simp only [readySteps]
       iapply BigSepL2.bigSepL2_app_wand $$ [] []

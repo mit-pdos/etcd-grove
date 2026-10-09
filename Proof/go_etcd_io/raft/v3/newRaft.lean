@@ -96,7 +96,7 @@ theorem newRaft.wp_proof
   -- one `MakeProgressTracker` built, and its log is at the state
   -- `newLogWithSize` built. It holds no `Progress` yet, so `prvals` is
   -- empty.
-  let ls0 : LogState := ⟨σ.prev, σ.ents, [], σ.prev.index', σ.prev.index', none, ip, σ.prev.index', [],
+  let ls0 : LogState := ⟨σ.prev, σ.ents, [], σ.prev.index', σ.prev.index', none, ip, σ.prev.index', [], σ.ents,
     W64 0, cv'.MaxCommittedSizePerReady'⟩
   let s0 : NState := ⟨W64 0, W64 0, W64 0, .follower, ∅, [], func.nil, false, ∅, l, ls0, ∅,
     cv.PreVote'⟩
@@ -151,7 +151,7 @@ theorem newRaft.wp_proof
   -- same struct state `s1` and log state `ls1`, so the rest of the proof
   -- is done once, for both.
   let ls1 : LogState := ⟨σ.prev, σ.ents, [], committedAfter σ.prev hs, σ.prev.index', none, ip,
-    σ.prev.index', [], W64 0, cv'.MaxCommittedSizePerReady'⟩
+    σ.prev.index', [], σ.ents, W64 0, cv'.MaxCommittedSizePerReady'⟩
   let s1 : NState :=
     { s0 with progress := prs, prvals := pvs1, term := hs.Term', vote := hs.Vote', logst := ls1 }
   wp_join iprop(ownRaftPhys (listToSet voters) «$r0_ptr» cv.ID' s1 ∗ hs_ptr ↦ hs ∗
@@ -193,7 +193,7 @@ theorem newRaft.wp_proof
   -- `if c.Applied > 0 { raftlog.appliedTo(c.Applied, 0) }`, likewise
   let ap : w64 := if cv.Applied' = W64 0 then σ.prev.index' else cv.Applied'
   let ls2 : LogState := ⟨σ.prev, σ.ents, [], committedAfter σ.prev hs, ap, none, ip,
-    w64Max σ.prev.index' ap, [], W64 0, cv'.MaxCommittedSizePerReady'⟩
+    w64Max σ.prev.index' ap, [], σ.ents, W64 0, cv'.MaxCommittedSizePerReady'⟩
   let s2 : NState := { s1 with logst := ls2 }
   rw [HpAp]
   wp_join iprop(ownRaftPhys (listToSet voters) «$r0_ptr» cv.ID' s2 ∗ c_ptr ↦ c ∗ c ↦ cv' ∗
@@ -288,7 +288,7 @@ theorem newRaft.wp_proof
   -- `becomeFollower(r.Term, None)` keeps the term, so `reset` keeps the
   -- vote: the state is the persisted `HardState`'s
   ipureintro
-  refine ⟨⟨rfl, rfl⟩, rfl, ?_, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+  refine ⟨⟨rfl, rfl⟩, rfl, ?_, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
   show (if s2.term = s2.term then s2.vote else W64 0) = hs.Vote'
   simp only [↓reduceIte]
   rfl

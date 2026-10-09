@@ -28,7 +28,21 @@ into `stepsOnAdvance`, and `Advance` steps them. Until 2026-10-10 `Advance` was 
 only for a queue without self-addressed responses (the flag `RNState.advanceable`, which
 no client could establish); now `pendingRel` records of each self-addressed response
 what `Step`'s spec asks of it, as `ownRaftPhys` keeps it for `msgsAfterAppend`
-(`AAMsgOk`, `InvRaftPhys.lean`), and `StepsOk` its term. The log-side notions
+(`AAMsgOk`, `InvRaftPhys.lean`), and `StepsOk` its term.
+
+**The acknowledgement across a truncation (2026-10-10).** The queued
+`MsgStorageAppendResp` acknowledges the last entry `e` of the log of the `Ready`, which
+the storage holds once the application appended (`LogState.stored`). Any `Step` may come
+between `Ready` and `Advance`; a `MsgApp` may truncate the log below `e` (lowering
+`offsetInProgress`), and a later one, from a leader of a higher term that has `e`, may put
+`e` back. The acknowledgement then hits, and is right: the log and `stored` both have
+`e`, both have records (`logRecs`: `ownRaftGhost` keeps the log's, `ownRawNode` keeps
+`stored`'s, `Hstrecs`), so by Log Matching `stored` is the log up to `e`
+(`stored_agree`, `stableOk_of_stored`). So `StepsOk` asks only that `e` be the last
+entry of `stored` (`PendingOk`), which no network step changes (`NetFrame` keeps `prev`
+and `stored`), and `RawNode.Step` takes a `MsgApp` with a `Ready` outstanding. Until then
+`PendingOk` asked `e.index < offsetInProgress`, which only the first truncation already
+breaks. The log-side notions
 `Ready`/`Advance` are proved with -- the next unstable entries, the committed entries to
 apply, `acceptUnstable`, `stableTo` -- are pure functions of `LogState` in
 `InvReadylog.lean`.
@@ -169,19 +183,26 @@ def ApplyAckOk (s : NState) (p : Pending) : Prop :=
 /-- One queued message, steppable at `s`: a self-addressed response not from a later
 term than `s`'s -- one later for a pre-vote response, which a pre-campaign sends at the
 next term -- (2026-10-10; what else `Step` asks of it is `pendingRel`'s); a
-`MsgStorageAppendResp` not from a later term whose index is in progress (with nothing
-unpersisted and no snapshot pending, that is `StableOk`: `Ready`'s `ready_stable_ok`);
-or an `ApplyAckOk` `MsgStorageApplyResp`. -/
+`MsgStorageAppendResp` not from a later term that acknowledges the last entry of what
+the storage holds (`stored`, 2026-10-10: the log of the `Ready` that queued it); or an
+`ApplyAckOk` `MsgStorageApplyResp`. The acknowledgement's `StableOk` is not a fact of
+`s` alone: with the records of `stored` (`ownRawNode`'s `Hstrecs`) and of the log
+(`ownRaftGhost`), Log Matching gives it whenever the acknowledgement hits
+(`stableOk_of_stored`). Until 2026-10-10 the second fact was `e.index < offsetInProgress`
+(with nothing unpersisted and no snapshot pending, `StableOk` outright), which a
+truncating `MsgApp` breaks, so `RawNode.Step` took a `MsgApp` only with an empty queue. -/
 def PendingOk (s : NState) (p : Pending) : Prop :=
   match p with
   | .self pv t => uint.Z t ≤ uint.Z s.term + (if pv then 1 else 0)
-  | .appendAck t e => uint.Z t ≤ uint.Z s.term ∧ uint.Z e.index' < uint.Z s.logst.inprogress
+  | .appendAck t e => uint.Z t ≤ uint.Z s.term ∧ plogLast s.logst.prev s.logst.stored = e
   | .applyAck _ => ApplyAckOk s p
 
 /-- The queue, in `acceptReady`'s order: the self-addressed responses (2026-10-10), then
 the `MsgStorageAppendResp`, if any, then `ApplyAckOk` ones. Until 2026-10-09
 `AdvanceOk`, a premise of `Advance`'s spec; until 2026-10-10 without self-addressed
-responses (`RNState.advanceable`). -/
+responses (`RNState.advanceable`). It is stated on `s`'s term, `committed`, `applying`,
+`prev` and `stored` only (`stepsOk_mono_le`), so that any step keeps it -- since
+2026-10-10 a truncating `MsgApp`'s too (`PendingOk`). -/
 def StepsOk (s : NState) : List Pending → Prop
   | [] => True
   | .self pv t :: rest => PendingOk s (.self pv t) ∧ StepsOk s rest
@@ -210,12 +231,13 @@ theorem stepsOk_of_applyAcks (s : NState) (l : List Pending)
   | .applyAck _ :: _, H => exact H
 
 /-- `StepsOk` survives a step that moves the term up (a campaign, a message of a higher
-term: `TermStep`), keeps `applying`, and moves neither `offsetInProgress` nor `committed`
-back: a queued `MsgStorageAppendResp` of an older term is still not from a later one, and
-a queued self-addressed response neither. -/
+term: `TermStep`), keeps `applying`, `prev` and `stored` (`NetFrame`, `LocalFrame`) and
+does not move `committed` back: a queued `MsgStorageAppendResp` of an older term is still
+not from a later one, and a queued self-addressed response neither. (Until 2026-10-10 it
+also asked that `offsetInProgress` not move back, which a truncating `MsgApp` does.) -/
 theorem stepsOk_mono_le (s s' : NState) (steps : List Pending)
     (Ht : uint.Z s.term ≤ uint.Z s'.term)
-    (Hi : uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress)
+    (Hst : s'.logst.prev = s.logst.prev ∧ s'.logst.stored = s.logst.stored)
     (Hc : uint.Z s.logst.committed ≤ uint.Z s'.logst.committed)
     (Ha : s'.logst.applying = s.logst.applying) :
     StepsOk s steps → StepsOk s' steps := by
@@ -230,20 +252,73 @@ theorem stepsOk_mono_le (s s' : NState) (steps : List Pending)
       exact ⟨by simp only [PendingOk] at H1 ⊢; omega, IH H2⟩
     | appendAck t e =>
       intro ⟨⟨H1, H2⟩, Hr⟩
-      exact ⟨⟨by omega, by omega⟩, Hall rest Hr⟩
+      refine ⟨⟨by omega, ?_⟩, Hall rest Hr⟩
+      rw [Hst.1, Hst.2]; exact H2
     | applyAck ce =>
       intro H; exact Hall _ H
 
-/-- `StepsOk` survives a step that keeps the term and `applying` and moves neither
-`offsetInProgress` nor `committed` back -- a `Propose`'s (`LocalStepOk`,
-`Step.commit_mono`), or the application's append (`ownRawNode_persist`). -/
+/-- `StepsOk` survives a step that keeps the term, `applying`, `prev` and `stored` and
+does not move `committed` back -- a `Propose`'s (`LocalStepOk`, `Step.commit_mono`), or
+the application's append (`ownRawNode_persist`). -/
 theorem stepsOk_mono (s s' : NState) (steps : List Pending)
     (Ht : s'.term = s.term)
-    (Hi : uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress)
+    (Hst : s'.logst.prev = s.logst.prev ∧ s'.logst.stored = s.logst.stored)
     (Hc : uint.Z s.logst.committed ≤ uint.Z s'.logst.committed)
     (Ha : s'.logst.applying = s.logst.applying) :
     StepsOk s steps → StepsOk s' steps :=
-  stepsOk_mono_le s s' steps (by rw [Ht]; exact Int.le_refl _) Hi Hc Ha
+  stepsOk_mono_le s s' steps (by rw [Ht]; exact Int.le_refl _) Hst Hc Ha
+
+/-- What the storage holds agrees with the log up to an entry both have (2026-10-10):
+Log Matching between two logs with records (`RecsAgree`, `logRecs_agree`), one of
+which -- `L`, the log of the last `Ready`, which the storage holds -- ends at `e`. This
+is why an acknowledgement of `e` that hits (`StableHit`: the log has `e.term` at
+`e.index`) moves stable only entries the storage has, even after `MsgApp`s truncated
+the log below `e` and put `e` back. -/
+theorem stored_agree (b : entryID) (L F : List raftpb.Entry) (e : entryID)
+    (HL : PlogWf b L) (HF : PlogWf b F) (HRA : RecsAgree b L b F)
+    (Hlast : plogLast b L = e) (Ht : plogTermAt b F e.index' = some e.term') :
+    L = F.take (uint.Z e.index' - uint.Z b.index').toNat := by
+  have Hli := plogLast_index b L HL
+  rw [Hlast] at Hli
+  unfold plogLastIndexZ at Hli
+  have Hn : (uint.Z e.index' - uint.Z b.index').toNat = L.length := by omega
+  rw [Hn]
+  have HtL : plogTermAt b L e.index' = some e.term' := by
+    cases Hl : L.getLast? with
+    | none =>
+      have HL0 : L = [] := List.getLast?_eq_none_iff.mp Hl
+      subst HL0
+      simp only [plogLast, List.getLast?_nil] at Hlast
+      subst Hlast
+      exact plogTermAt_base _ _
+    | some x =>
+      have Hk := getLast?_some_getElem? L x Hl
+      have He : e = entId x := by rw [← Hlast]; simp [plogLast, Hl]
+      subst He
+      have Hx := HL _ _ Hk
+      have Hpos : 0 < L.length := by
+        cases L with
+        | nil => simp at Hl
+        | cons _ _ => simp
+      exact plogTermAt_lookup b L _ _ x Hk (by simp only [entId]; push_cast at Hx ⊢; omega)
+  have Hm := plog_match_down b L b F e.index' (PlogWf_wfR _ _ HL) (PlogWf_wfR _ _ HF) HRA
+    (by rw [HtL]; rfl) (by rw [HtL, Ht])
+  apply List.ext_getElem?
+  intro k
+  by_cases hk : k < L.length
+  · obtain ⟨y, Hy⟩ : ∃ y, L[k]? = some y := ⟨_, List.getElem?_eq_getElem hk⟩
+    have Hyi := HL k y Hy
+    push_cast at Hyi
+    have := uint_Z_lt e.index'
+    have Hj := Hm y.Index' (by omega) (by omega) (by omega)
+    rw [plogTermAt_lookup b L _ k y Hy (by push_cast; omega)] at Hj
+    obtain ⟨z, Hz, Hzi, Hzt⟩ := plogTermAt_some_entry b F _ _ (PlogWf_wfR _ _ HF) Hj.symm
+      (by omega)
+    have Hkz : (uint.Z y.Index' - uint.Z b.index' - 1).toNat = k := by omega
+    rw [Hkz] at Hz
+    obtain ⟨Hyz, -⟩ := HRA k k y z Hy Hz (by omega) (by omega) Hzt.symm Hzi.symm
+    rw [Hy, List.getElem?_take_of_lt hk, Hz, Hyz]
+  · rw [List.getElem?_eq_none (by omega), List.getElem?_eq_none (by simp; omega)]
 
 /-- The head of a `StepsOk` queue is steppable now, and the rest is `StepsOk`. -/
 theorem stepsOk_cons (s : NState) (p : Pending) (rest : List Pending) :
@@ -327,6 +402,74 @@ instance isRaftMsg_pers (γ : RaftNames) (m : raftpb.Message) :
     Persistent (isRaftMsg (GF := GF) γ m) := by
   unfold isRaftMsg; infer_instance
 
+/-- The records of what the storage holds (2026-10-10): `L` (after `b`) is a log with
+records (`logRecs`), as `ownLogGhost` keeps of the node's log; `ownRawNode` keeps it of
+`stored`, which a `Ready` sets to the log (`ownRaftGhost_storedRecs`), so that a later
+log with records can be matched against it (`stableOk_of_stored`). -/
+def storedRecs (γ : RaftNames) (b : entryID) (L : List raftpb.Entry) : IProp GF :=
+  iprop(⌜PlogWf b L⌝ ∗ logRecs γ b L)
+
+instance storedRecs_pers (γ : RaftNames) (b : entryID) (L : List raftpb.Entry) :
+    Persistent (storedRecs (GF := GF) γ b L) := by
+  unfold storedRecs; infer_instance
+
+/-- The node's own log has records. -/
+theorem ownRaftGhost_storedRecs (γ : RaftNames) (id : w64) (ps : PState) :
+    ownRaftGhost (GF := GF) γ id ps ⊢ storedRecs γ ps.base ps.log := by
+  iintro H
+  unfold ownRaftGhost
+  icases H with ⟨%γv, %voted, %kl, H⟩
+  iNamed H
+  unfold ownLogGhost
+  icases Hlg with ⟨%γm, %terms, %γa, %acks, %fp, %γc, %camps, %γl, %vlogs, %γw, %wins, Hlg⟩
+  iNamed Hlg
+  unfold storedRecs
+  isplitr
+  · ipureintro; exact Hfull.2.1
+  iexact Hrecs
+
+/-- ... read out without consuming the ghost state. -/
+theorem ownRaftGhost_storedRecs_keep (γ : RaftNames) (id : w64) (ps : PState) :
+    ⊢ ownRaftGhost (GF := GF) γ id ps -∗ ownRaftGhost γ id ps ∗ storedRecs γ ps.base ps.log :=
+  entails_wand (persistent_entails_left (ownRaftGhost_storedRecs γ id ps))
+
+/-- A queued acknowledgement of the last entry `e` of what the storage holds is
+`StableOk` (2026-10-10), once nothing is unpersisted and with no snapshot pending: if
+it hits, the log has `e`'s term at `e`'s index, and Log Matching between the records of
+`stored` and of the log (`stored_agree`) makes `stored` the log up to `e`. -/
+theorem stableOk_of_stored (γ : RaftNames) (id : w64) (s : NState) (ps : PState)
+    (e : entryID) (Hrel : NStateRel s ps)
+    (He : plogLast s.logst.prev s.logst.stored = e)
+    (Hsn : s.logst.snap = none) (Hun : s.logst.unpersisted = []) :
+    ⊢ storedRecs γ s.logst.prev s.logst.stored -∗ ownRaftGhost (GF := GF) γ id ps -∗
+      ⌜StableOk s.logst e⌝ ∗ ownRaftGhost γ id ps := by
+  iintro #Hst Hg
+  icases ownRaftGhost_storedRecs_keep γ id ps $$ Hg with ⟨Hg, #Hlr⟩
+  obtain ⟨Hps, -⟩ := Hrel
+  subst Hps
+  unfold storedRecs
+  icases Hst with ⟨%HwL, #HrL⟩
+  icases Hlr with ⟨%HwF, #HrF⟩
+  icases logRecs_agree γ _ _ _ _ $$ HrL HrF with %HRA
+  isplitr
+  · ipureintro
+    intro Hhit
+    exact ⟨Hsn, Hun, stored_agree _ _ _ _ HwL HwF HRA He Hhit.2⟩
+  iexact Hg
+
+/-- Nothing stored has records. -/
+theorem storedRecs_nil (γ : RaftNames) (b : entryID) : ⊢ storedRecs (GF := GF) γ b [] := by
+  unfold storedRecs logRecs
+  isplitr
+  · ipureintro; intro k e h; simp at h
+  · iapply (BigSepL.bigSepL_nil).2; iempintro
+
+/-- The records of `stored`, at a state with the same `prev` and `stored`. -/
+theorem storedRecs_eq (γ : RaftNames) (b b' : entryID) (L L' : List raftpb.Entry)
+    (Hb : b' = b) (HL : L' = L) :
+    ⊢ storedRecs (GF := GF) γ b L -∗ storedRecs γ b' L' := by
+  subst Hb HL; iintro H; iexact H
+
 /-! ## The one predicate for a `RawNode` -/
 
 /-- See the file header. `s` and `ps` are the node's physical and protocol states;
@@ -352,6 +495,9 @@ def ownRawNode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp GF 
   "#Hpend" ∷ ([∗list] _k ↦ m;p ∈ steps;rs.steps, pendingRel γ id m p) ∗
   "Hpown" ∷ ([∗list] _k ↦ m;p ∈ steps;rs.steps, pendingOwn m p) ∗
   "#Hdeliv" ∷ isCommitted γ rs.delivered ∗
+  -- the records of what the storage holds (2026-10-10), for the acknowledgement
+  -- `Advance` steps (`PendingOk`, `stableOk_of_stored`)
+  "#Hstrecs" ∷ storedRecs γ s.logst.prev s.logst.stored ∗
   "%Hdlen" ∷ ⌜rs.delivered.length = (uint.Z s.logst.applying).toNat⌝ ∗
   "%Hunp" ∷ ⌜rs.unpersisted = s.logst.unpersisted⌝ ∗
   -- scope: no snapshot pending (handing one out and `appliedSnap` are phase 2)
@@ -376,12 +522,13 @@ theorem ownRawNode_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
       ([∗list] _k ↦ m;p ∈ steps;rs.steps, pendingRel γ id m p) -∗
       ([∗list] _k ↦ m;p ∈ steps;rs.steps, pendingOwn m p) -∗
       isCommitted γ rs.delivered -∗
+      storedRecs γ s.logst.prev s.logst.stored -∗
       ownRawNode γ rn id rs := by
-  iintro Hrn Hphys Hghost #Hsoft Hsteps Hcap #Hpend Hpown #Hdeliv
+  iintro Hrn Hphys Hghost #Hsoft Hsteps Hcap #Hpend Hpown #Hdeliv #Hstrecs
   unfold ownRawNode
   iexists s, ps, rnv, sv, steps
   simp only [named]
-  iframe Hrn Hphys Hghost Hsoft Hsteps Hcap Hpend Hpown Hdeliv
+  iframe Hrn Hphys Hghost Hsoft Hsteps Hcap Hpend Hpown Hdeliv Hstrecs
   ipureintro
   exact ⟨Hrel, Hin, Hasync, Hdlen, Hunp, Hsnap, Hstok, Htrm⟩
 
@@ -408,8 +555,8 @@ theorem ownRawNode_persist (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
   iapply ownRawNode_intro γ rn id { rs with unpersisted := [] }
     { s with logst := { s.logst with unpersisted := [] } } ps rnv sv steps Hrel Hin Hasync
     Hdlen rfl Hsnap
-    (stepsOk_mono s _ rs.steps rfl (Int.le_refl _) (Int.le_refl _) rfl Hstok)
-    Htrm $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv
+    (stepsOk_mono s _ rs.steps rfl ⟨rfl, rfl⟩ (Int.le_refl _) rfl Hstok)
+    Htrm $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs
 
 end rawnode
 

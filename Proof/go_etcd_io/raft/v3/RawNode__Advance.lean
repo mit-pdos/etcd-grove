@@ -2,8 +2,10 @@
 
 Each queued message goes through `Step`'s spec; `StepsOk` (`InvRawnode.lean`) is the loop
 invariant on the rest of the queue, carried across each step by `Step`'s `NetFrame`,
-`LocalStepOk` and `TermStep` (`applying` kept, `offsetInProgress` and the term not moving
-back) and `Step.commit_mono` (`committed` not moving back).
+`LocalStepOk` and `TermStep` (`applying`, `prev` and `stored` kept, the term not moving
+back) and `Step.commit_mono` (`committed` not moving back). The acknowledgement's
+`StableOk` comes from the records of `stored` that `ownRawNode` keeps and the ghost
+state's of the log, by Log Matching (`stableOk_of_stored`, 2026-10-10).
 
 **The node's own responses (2026-10-10).** The queue starts with the self-addressed
 responses `Ready` took from `msgsAfterAppend` (`Pending.self`); `pendingRel` has what
@@ -172,10 +174,11 @@ private theorem ghost_id_nz (γ : RaftNames) (id : w64) (ps : PState) :
   ipureintro; exact Hidnz
 
 /-- One pending message through `Step`'s spec: the `MsgStorageAppendResp` acknowledges
-persisted entries (`StableOk`) because its index is in progress, nothing is unpersisted
-and no snapshot is pending -- Rocq's `ready_stable_ok`; a self-addressed response
-(2026-10-10) is what `pendingRel` says, and a pre-candidate's term does not wrap
-(`Hnw`, for a pre-vote response). -/
+persisted entries (`StableOk`) because it acknowledges the last entry of what the storage
+holds, whose records `ownRawNode` keeps, nothing is unpersisted and no snapshot is pending
+(`stableOk_of_stored`, 2026-10-10; until then because its index was in progress -- Rocq's
+`ready_stable_ok`); a self-addressed response (2026-10-10) is what `pendingRel` says, and
+a pre-candidate's term does not wrap (`Hnw`, for a pre-vote response). -/
 private theorem wp_step_pending
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
     (γ : RaftNames) (r : Loc) (id : w64) (s : NState)
@@ -184,7 +187,8 @@ private theorem wp_step_pending
     (Hsnap : s.logst.snap = none) (Hunp : s.logst.unpersisted = [])
     (Hnw : ∀ pv t, p = .self pv t → s.role = .preCandidate → uint.Z s.term + 1 < 2 ^ 64) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys γ.reCfg r id s ∗
-        ownRaftGhost γ id ps ∗ pendingRel γ id m p ∗ pendingOwn m p }}
+        ownRaftGhost γ id ps ∗ pendingRel γ id m p ∗ pendingOwn m p ∗
+        storedRecs γ s.logst.prev s.logst.stored }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
     {{ (err : GoInterface) (s' : NState) (ps' : PState), RET #err;
         ownRaftPhys γ.reCfg r id s' ∗ ownRaftGhost γ id ps' ∗
@@ -192,9 +196,9 @@ private theorem wp_step_pending
          s'.logst.applying = s.logst.applying ∧
          s'.logst.unpersisted = s.logst.unpersisted ∧ s'.logst.snap = s.logst.snap ∧
          uint.Z s.term ≤ uint.Z s'.term ∧
-         uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress ∧
-         PendStep p s s'⌝ }} := by
-  iintro %Φ ⟨#Hinit, Hphys, Hghost, #Hp, Hown⟩ HΦ
+         PendStep p s s' ∧
+         s'.logst.prev = s.logst.prev ∧ s'.logst.stored = s.logst.stored⌝ }} := by
+  iintro %Φ ⟨#Hinit, Hphys, Hghost, #Hp, Hown, #Hstr⟩ HΦ
   cases p with
   | self pv t =>
     unfold pendingRel
@@ -245,7 +249,8 @@ private theorem wp_step_pending
       iapply HΦ $$ %err %s' %ps'
       iframe Hphys Hghost
       ipureintro
-      refine ⟨Hrel', Hstp, Hfr'.1, Hfr'.2.2, Hfr'.2.1, Htm.1, Htm.2.2.2 (by not_self), ?_⟩
+      refine ⟨Hrel', Hstp, Hfr'.1, Hfr'.2.2.1, Hfr'.2.1, Htm.1, ?_, Hfr'.2.2.2.1,
+        Hfr'.2.2.2.2⟩
       show SelfStep _ _ s s'
       refine ⟨fun hpv => ?_, fun hpv => ?_⟩
       · -- a vote or append response
@@ -262,12 +267,14 @@ private theorem wp_step_pending
     unfold pendingRel
     icases Hp with %Hm
     subst Hm
-    obtain ⟨Hle, Hlt⟩ := Hok
+    obtain ⟨Hle, Hlast⟩ := Hok
+    icases stableOk_of_stored γ id s ps e Hrel Hlast Hsnap Hunp $$ Hstr Hghost
+      with ⟨%Hsok, Hghost⟩
     iapply wp_raft_Step γ.reCfg γ r id s ps (appendAckMsg id t e) [] [] rfl
       (by simp [StepMsg, stepMsgTypes, appendAckMsg]) Hin
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
-      (fun _ => ⟨rfl, Hle, fun _ _ _ => ⟨Hsnap, Hlt, Hunp⟩⟩) (by msg_ne) Hrel
+      (fun _ => ⟨rfl, Hle, fun _ _ => Hsok⟩) (by msg_ne) Hrel
       $$ [$Hinit $Hphys $Hghost]
     · have hP : (appendAckMsg id t e).Type' ≠ MsgProp := by msg_ne
       simp only [hP, ↓reduceIte, named]
@@ -305,8 +312,8 @@ private theorem wp_step_pending
       iapply HΦ $$ %err %s' %ps'
       iframe Hphys Hghost
       ipureintro
-      exact ⟨Hrel', Hstp, Hap (fun Hc => absurd Hc (by msg_ne)), Hfr.2.2.1, Hfr.2.2.2,
-        by rw [Hfr.1]; exact Int.le_refl _, Hfr.2.1, Hfr.1⟩
+      exact ⟨Hrel', Hstp, Hap (fun Hc => absurd Hc (by msg_ne)), Hfr.2.2.1, Hfr.2.2.2.1,
+        by rw [Hfr.1]; exact Int.le_refl _, Hfr.1, Hfr.2.2.2.2.1, Hfr.2.2.2.2.2⟩
   | applyAck ce =>
     unfold pendingRel
     icases Hp with ⟨%sl, %Hm, #Hsl⟩
@@ -353,8 +360,8 @@ private theorem wp_step_pending
       iapply HΦ $$ %err %s' %ps'
       iframe Hphys Hghost
       ipureintro
-      exact ⟨Hrel', Hstp, Hap (fun _ e He => (Hok e He).2), Hfr.2.2.1, Hfr.2.2.2,
-        by rw [Hfr.1]; exact Int.le_refl _, Hfr.2.1, Hfr.1⟩
+      exact ⟨Hrel', Hstp, Hap (fun _ e He => (Hok e He).2), Hfr.2.2.1, Hfr.2.2.2.1,
+        by rw [Hfr.1]; exact Int.le_refl _, Hfr.1, Hfr.2.2.2.2.1, Hfr.2.2.2.2.2⟩
 
 theorem RawNode.Advance.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
@@ -384,7 +391,8 @@ theorem RawNode.Advance.wp_proof
                     steps1.drop (sint.nat n) = steps.drop (sint.nat n)⌝ ∗
       "%Hrel1" ∷ ⌜NStateRel s1 ps1⌝ ∗
       "%Hs1" ∷ ⌜s1.logst.applying = s.logst.applying ∧
-                s1.logst.unpersisted = s.logst.unpersisted ∧ s1.logst.snap = s.logst.snap⌝ ∗
+                s1.logst.unpersisted = s.logst.unpersisted ∧ s1.logst.snap = s.logst.snap ∧
+                s1.logst.prev = s.logst.prev ∧ s1.logst.stored = s.logst.stored⌝ ∗
       "%Hok1" ∷ ⌜StepsOk s1 (rs.steps.drop (sint.nat n))⌝ ∗
       "%Hsb1" ∷ ⌜SelfBound s (rs.steps.drop (sint.nat n))⌝ ∗
       "%Hti1" ∷ ⌜TermInv s s1 (rs.steps.drop (sint.nat n))⌝ ∗
@@ -430,10 +438,12 @@ theorem RawNode.Advance.wp_proof
       intro pv t hp hr
       have := Hti1.2.2 ⟨pv, t, by rw [hp]; exact List.mem_cons_self⟩ hr
       omega
+    ihave #Hstr1 := storedRecs_eq γ _ s1.logst.prev _ s1.logst.stored Hs1.2.2.2.1 Hs1.2.2.2.2
+      $$ Hstrecs
     wp_apply wp_step_pending wp_raft_Step γ rnv.raft' id s1 ps1 mm p Hin
-      Hrel1 Hpok (Hs1.2.2.trans Hsnap) (Hs1.2.1.trans Hunp') Hnw1
-      $$ [$Hphys $Hghost $Hpm $Hpo] as %err %s2 %ps2 ⟨Hphys, Hghost, %Hst2⟩
-    obtain ⟨Hrel2, ⟨recv2, Hst2⟩, Ha2, Hu2, Hsn2, Ht2, Hi2, Hps2⟩ := Hst2
+      Hrel1 Hpok (Hs1.2.2.1.trans Hsnap) (Hs1.2.1.trans Hunp') Hnw1
+      $$ [$Hphys $Hghost $Hpm $Hpo $Hstr1] as %err %s2 %ps2 ⟨Hphys, Hghost, %Hst2⟩
+    obtain ⟨Hrel2, ⟨recv2, Hst2⟩, Ha2, Hu2, Hsn2, Ht2, Hps2, Hpv2, Hsd2⟩ := Hst2
     -- `stepsOnAdvance[i] = pb.Message{}`
     rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨Hn.1, Hlt⟩)]
     wp_apply wp_store_slice_index rnv.stepsOnAdvance' (sint.Z n) steps1 (zero_val raftpb.Message)
@@ -451,8 +461,9 @@ theorem RawNode.Advance.wp_proof
     iframe
     ipureintro
     refine ⟨by word, ⟨by rw [List.length_set]; exact Hsteps1.1, ?_⟩, Hrel2,
-      ⟨Ha2.trans Hs1.1, Hu2.trans Hs1.2.1, Hsn2.trans Hs1.2.2⟩,
-      stepsOk_mono_le s1 s2 _ Ht2 Hi2 Hc12 Ha2 Hrest,
+      ⟨Ha2.trans Hs1.1, Hu2.trans Hs1.2.1, Hsn2.trans Hs1.2.2.1, Hpv2.trans Hs1.2.2.2.1,
+        Hsd2.trans Hs1.2.2.2.2⟩,
+      stepsOk_mono_le s1 s2 _ Ht2 ⟨Hpv2, Hsd2⟩ Hc12 Ha2 Hrest,
       fun pv t h => Hsb1 pv t (List.mem_cons_of_mem _ h),
       termInv_step s s1 s2 p _ Hok1 Hsb1 Hti1 Ht2 Hps2⟩
     rw [← HnS, List.drop_set_of_lt (by simp [sint.nat]), ← List.drop_drop, ← List.drop_drop,
@@ -467,14 +478,16 @@ theorem RawNode.Advance.wp_proof
     have Hsub : subslice (sint.nat (W64 0)) (sint.nat (W64 0)) steps1 = [] := by
       simp [subslice]
     rw [Hsub]
+    ihave #Hstr1 := storedRecs_eq γ _ s1.logst.prev _ s1.logst.stored Hs1.2.2.2.1 Hs1.2.2.2.2
+      $$ Hstrecs
     iapply HΦ $$ %s1.term
     isplitl
     · iapply ownRawNode_intro γ rn id { rs with steps := [], term := s1.term } s1 ps1
         { rnv with stepsOnAdvance' :=
             slice.slice rnv.stepsOnAdvance' raftpb.Message (W64 0) (W64 0) }
         sv [] Hrel1 Hin Hasync (by rw [Hs1.1]; exact Hdlen) (by rw [Hs1.2.1]; exact Hunp)
-        (by rw [Hs1.2.2]; exact Hsnap) trivial rfl
-        $$ Hrn Hphys Hghost Hsoft Hsl0 Hcap0 [] [] Hdeliv
+        (by rw [Hs1.2.2.1]; exact Hsnap) trivial rfl
+        $$ Hrn Hphys Hghost Hsoft Hsl0 Hcap0 [] [] Hdeliv Hstr1
       · iempintro
       · iempintro
     ipureintro

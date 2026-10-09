@@ -88,7 +88,8 @@ def HandleAppResult (id : w64) (s : NState) (m : raftpb.Message)
      ls'.committed =
        plogCommitTo ls.committed
          (if uint.Z m.Commit' < uint.Z lastnewi then m.Commit' else lastnewi) ∧
-     (ls'.applying = ls.applying ∧ ls'.snap = ls.snap ∧ ls'.unpersisted = ls.unpersisted) ∧
+     (ls'.applying = ls.applying ∧ ls'.snap = ls.snap ∧ ls'.unpersisted = ls.unpersisted ∧
+      ls'.prev = ls.prev ∧ ls'.stored = ls.stored) ∧
      s' = sendMsgs { s with logst := ls' }
             [appResp id s dst false lastnewi (W64 0) (W64 0)])
   ∨

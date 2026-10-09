@@ -128,13 +128,14 @@ theorem raft.handleAppendEntries.wp_proof
       -- accepted
       obtain ⟨lni, es'⟩ := res
       rw [Hpm] at Hma
-      obtain ⟨rfl, rfl, Hprev, Hes, Happ, Hcm', Hfr'⟩ := Hma
+      obtain ⟨rfl, rfl, Hprev, Hes, Happ, Hcm', Ha', Hsn', Hu', Hst'⟩ := Hma
       wp_auto
       wp_apply wp_send_appResp wp_raft_send (Hdst := Hfid) $$ [$Hphys] as Hphys
       iapply HΦ
       iframe
       ipureintro
-      exact .inr (.inl ⟨by omega, _, es', ls', Hpm, Hprev, Hes, Happ, Hcm', Hfr', rfl⟩)
+      exact .inr (.inl ⟨by omega, _, es', ls', Hpm, Hprev, Hes, Happ, Hcm',
+        ⟨Ha', Hsn', Hu', Hprev, Hst'⟩, rfl⟩)
     | none =>
       -- rejected: `a.prev` does not match
       rw [Hpm] at Hma

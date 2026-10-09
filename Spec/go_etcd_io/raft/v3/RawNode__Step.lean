@@ -18,10 +18,13 @@ but for the slice's capacity, owned: `raftLog.maybeAppend` may adopt the slice. 
 message the transport delivers, it is the receiver's own copy.
 
 The client sees only the term, which moves up to at most the message's (`TermStep`).
-A `MsgApp` may truncate the unstable entries a `Ready` handed out (`offsetInProgress`
-moves back), which `Advance`'s queue does not survive (`StepsOk`), so it is stepped only
-with no `Ready` outstanding (`rs.steps = []`); every other type may come between `Ready`
-and `Advance`.
+Every type may come between `Ready` and `Advance`, as in the concurrent `node.go`. A
+`MsgApp` may truncate the unstable entries a `Ready` handed out (`offsetInProgress`
+moves back below the entry the queued `MsgStorageAppendResp` acknowledges), and a later
+one may put that very entry back; the acknowledgement is then still right, because the
+storage agrees with the log up to it by Log Matching (`StepsOk`, `stableOk_of_stored`,
+`InvRawnode.lean`). Until 2026-10-10 the spec took a `MsgApp` only with no `Ready`
+outstanding (`m.Type' = MsgApp → rs.steps = []`).
 
 Lean notes: like `RawNode.Propose.spec`, the section fixes `hlc := HasLC.hasLC` and has
 `[AllG GF]`.
@@ -64,7 +67,6 @@ abbrev RawNode.Step.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (m : raftpb.Message)
     (ents : List raftpb.Entry) (ctx : List w8),
   NetMsgOk id m →
-  (m.Type' = MsgApp → rs.steps = []) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs ∗
       "#Hents" ∷ m.Entries' ↦*□ ents ∗

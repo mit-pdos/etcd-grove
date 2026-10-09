@@ -119,7 +119,7 @@ theorem wp_Step_MsgApp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   iframe Hphys
   ipureintro
   refine ⟨nstateWf_handle_app _ _ _ _ _ Hwf1 Happ, ?_, rfl,
-    app_frame Hty Happ ⟨rfl, rfl, rfl⟩ (Int.le_of_lt Hgt) (Int.le_max_right _ _)⟩
+    app_frame Hty Happ (NetFrame.refl _) (Int.le_of_lt Hgt) (Int.le_max_right _ _)⟩
   refine ⟨[absMsg .app m ents] ++ [absMsg .app m ents], ?_, ?_⟩
   · intro m' Hm'; simpa using Hm'
   · refine Step.trans _ _ _ _ _

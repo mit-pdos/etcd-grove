@@ -157,6 +157,7 @@ abbrev newRaft.spec : Prop :=
         -- `NewRawNode`): the stored entries, nothing unstable, the commit index the
         -- `HardState` restores, applying from `Config.Applied`, nothing handed out
         s.logst.prev = σ.prev ∧ s.logst.sents = σ.ents ∧ s.logst.uents = [] ∧
+        s.logst.stored = σ.ents ∧
         s.logst.committed = committedAfter σ.prev hs ∧
         s.logst.applying = w64Max σ.prev.index'
           (if cv.Applied' = W64 0 then σ.prev.index' else cv.Applied') ∧

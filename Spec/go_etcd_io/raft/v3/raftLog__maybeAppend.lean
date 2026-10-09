@@ -101,7 +101,7 @@ abbrev raftLog.maybeAppend.spec : Prop :=
               plogCommitTo ls.committed
                 (if uint.Z committed < uint.Z lni then committed else lni) ∧
             ls'.applying = ls.applying ∧ ls'.snap = ls.snap ∧
-            ls'.unpersisted = ls.unpersisted⌝ }}
+            ls'.unpersisted = ls.unpersisted ∧ ls'.stored = ls.stored⌝ }}
 
 end spec
 

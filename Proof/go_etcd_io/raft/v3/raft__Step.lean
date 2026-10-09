@@ -394,7 +394,7 @@ theorem raft.Step.wp_proof
       isplitr
       · ipureintro; exact fun _ => ⟨Hfr.1, fun _ => Hfr.2⟩
       isplitr
-      · ipureintro; exact fun _ _ => ⟨Hfr.2, Hfr.1.2.2.2, Hfr.1.2.2.1⟩
+      · ipureintro; exact fun _ _ => ⟨Hfr.2, Hfr.1.2.2.2.1, Hfr.1.2.2.1, Hfr.1.2.2.2.2.1, Hfr.1.2.2.2.2.2⟩
       isplitr
       · ipureintro; exact fun _ => TermStep.of_local Hfr.1
       isplitr
@@ -429,7 +429,7 @@ theorem raft.Step.wp_proof
       isplitr
       · ipureintro; exact fun _ => ⟨Hfr.1, fun _ => Hfr.2⟩
       isplitr
-      · ipureintro; exact fun _ _ => ⟨Hfr.2, Hfr.1.2.2.2, Hfr.1.2.2.1⟩
+      · ipureintro; exact fun _ _ => ⟨Hfr.2, Hfr.1.2.2.2.1, Hfr.1.2.2.1, Hfr.1.2.2.2.2.1, Hfr.1.2.2.2.2.2⟩
       isplitr
       · ipureintro; exact fun _ => TermStep.of_local Hfr.1
       isplitr
@@ -467,7 +467,7 @@ theorem raft.Step.wp_proof
     isplitr
     · ipureintro; exact fun _ => ⟨Hfr.1, fun _ => Hfr.2⟩
     isplitr
-    · ipureintro; exact fun _ _ => ⟨Hfr.2, Hfr.1.2.2.2, Hfr.1.2.2.1⟩
+    · ipureintro; exact fun _ _ => ⟨Hfr.2, Hfr.1.2.2.2.1, Hfr.1.2.2.1, Hfr.1.2.2.2.2.1, Hfr.1.2.2.2.2.2⟩
     isplitr
     · ipureintro; exact fun _ => TermStep.of_local Hfr.1
     isplitr

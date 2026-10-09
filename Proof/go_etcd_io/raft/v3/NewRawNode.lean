@@ -43,7 +43,7 @@ theorem NewRawNode.wp_proof
   -- `prevSoftSt` points to a `SoftState` nobody writes again
   ipersist ss
   wp_apply wp_hardState _ r cv.ID' s $$ Hphys as Hphys
-  obtain ⟨Hwf, Ht, Hv, Hl, Hr, Hvs, Ho, -, Hp, Hse, Hue, Hcm, Hap, Hun, Hsn⟩ := Hpost
+  obtain ⟨Hwf, Ht, Hv, Hl, Hr, Hvs, Ho, -, Hp, Hse, Hue, Hsd, Hcm, Hap, Hun, Hsn⟩ := Hpost
   have HT : hs.Term' = W64 0 := Hhs.1
   have Hrel : NStateRel s initPState :=
     newRaft_post_init hs s Hhs ⟨Hwf, Ht, Hv, Hl, Hr, Hvs, Ho⟩ (by rw [Hp, Hprev])
@@ -59,8 +59,9 @@ theorem NewRawNode.wp_proof
       (by rw [Hcfg]; exact (GMap.elem_of_list_to_set _ _).2 Hid) ?_
       (by rw [Hap, Hprev, Happ]; rfl) (by rw [Hun]) Hsn trivial
       (by rw [Ht, HT])
-      $$ «$r0» Hphys Hghost ss [] [] [] [] Hcomm
+      $$ «$r0» Hphys Hghost ss [] [] [] [] Hcomm []
     all_goals first
+      | (rw [Hsd, Hents]; iapply storedRecs_nil)
       | iapply ownSlice_nil
       | iapply ownSliceCap_nil
       | iempintro

@@ -1329,3 +1329,40 @@ facts of each that nothing recorded (`Term ≠ 0`, no entries, a non-rejecting
 `advanceable` is gone: `ownRawNode` carries `StepsOk s rs.steps` unconditionally,
 `Ready` does not return a flag, `Advance` takes any queue `Ready` left. The
 `Ready`/`Advance` loop is verifiable through the specs.
+
+## RawNode: the acknowledgement across a truncation
+
+**2026-10-10 · accepted**
+
+`RawNode.Step` took a `MsgApp` only with no `Ready` outstanding (`rs.steps = []`): the
+queued `MsgStorageAppendResp` of the last entry `e` asked `e.index < offsetInProgress`
+(`PendingOk`), which is `StableOk` once the application appended, and a truncating
+`MsgApp` lowers `offsetInProgress`. `node.go` steps network messages between `Ready` and
+`Advance`, so the premise had to go.
+
+*Not true*: "either the acknowledgement misses or `e.index` stays below
+`offsetInProgress`". A first `MsgApp` truncates below `e` (`offsetInProgress` drops to the
+truncation), a second, from a leader of a higher term whose log has `e` (Figure 8 of the
+Raft paper), truncates there again and puts `e` back: the acknowledgement hits with
+`e.index ≥ offsetInProgress`. Go's `stableTo` is still right, because what it moves
+stable is in the storage: the storage holds the `Ready`'s log up to `e`, and two logs
+with `e` agree up to it.
+
+**Decision**: say that, with the storage's contents as ghost state.
+
+- `LogState.stored` (ghost): what the storage holds once `unpersisted` is appended
+  (`LogPersistOk`: `storApp σ pend = stored`). Only `Ready` changes it (to the log).
+- `StableOk` asks `stored` to be the log up to `id` (and nothing unpersisted, no
+  snapshot). `persist_stable` handles both an in-progress `id` and one past
+  `offsetInProgress`.
+- `NetFrame`/`LocalFrame` keep `prev` and `stored`; `PendingOk` asks of the
+  acknowledgement only `plogLast prev stored = e`, which every step then keeps.
+- `ownRawNode` keeps the records of `stored` (`storedRecs`: `PlogWf`, `logRecs`), taken
+  from the ghost state when `Ready` sets `stored` to the log. At `Advance`, Log Matching
+  between them and the log's records (`stored_agree`) gives `StableOk` on a hit
+  (`stableOk_of_stored`).
+
+*Rejected*: keeping `offsetInProgress` in `PendingOk` with a disjunction ("or the
+acknowledgement misses"), or reporting the truncation point in `raft.Step`'s `MsgApp`
+postcondition -- both false or too weak after two `MsgApp`s, as above: what makes the
+hit right is what the storage holds, which no fact about the current log records.
