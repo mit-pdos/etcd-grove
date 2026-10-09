@@ -1,7 +1,9 @@
 # Types and names only: function and method bodies are axiomatized.
-# Result is a struct (the apply thread reads its Err field).
-translate = ["!*", "Result"]
-imports = ["!*", "go.etcd.io/etcd/pkg/v3/traceutil", "google.golang.org/protobuf/proto"]
+# Result is a struct (the apply thread reads its Err field), UberApplier an interface (the
+# apply thread hands it to Apply), so the packages their fields and methods name are imported.
+translate = ["!*", "Result", "UberApplier"]
+imports = ["!*", "go.etcd.io/etcd/pkg/v3/traceutil", "google.golang.org/protobuf/proto",
+  "go.etcd.io/etcd/server/v3/etcdserver/api/membership"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

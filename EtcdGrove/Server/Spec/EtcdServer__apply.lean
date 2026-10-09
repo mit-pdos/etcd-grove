@@ -35,7 +35,7 @@ abbrev EtcdServer.apply.spec : Prop :=
     (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"apply"))
       (Val #es)) (Val #ep)) (Val #rac))
   {{ (appliedt appliedi : w64) (shouldStop : Bool),
-      RET (PairV #appliedt (PairV #appliedi #shouldStop));
+      RET (PairV (PairV #appliedt #appliedi) #shouldStop);
       ∃ (st' : ApplyState) (a' at' : w64) (csl : Loc),
         applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a' at' ∗
         epConfStateAddr ep ↦ csl ∗
