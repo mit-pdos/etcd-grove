@@ -22,9 +22,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem unstable.nextEntries.wp_proof : unstable.nextEntries.spec (GF := GF) (hG := hG) := by
-  intro u us
-  obtain ⟨uents, off, ip, snap⟩ := us
-  intro Hip
+  intro u us Hip
   wp_start as H
   iNamed H
   open_unstable
@@ -32,8 +30,8 @@ theorem unstable.nextEntries.wp_proof : unstable.nextEntries.spec (GF := GF) (hG
   ihave %Hlen := ownSlice_len $$ Hents
   ihave %Hwf := ownSlice_wf $$ Hents
   wp_auto
-  have Hk : sint.Z (uv.offsetInProgress' - uv.offset') =
-      uint.Z uv.offsetInProgress' - uint.Z uv.offset' := by word
+  have Hk : sint.Z (us.inprogress - us.offset) =
+      uint.Z us.inprogress - uint.Z us.offset := by word
   wp_if_destruct
   · -- everything is in progress: `nil`
     iapply HΦ
@@ -43,13 +41,13 @@ theorem unstable.nextEntries.wp_proof : unstable.nextEntries.spec (GF := GF) (hG
     iapply ownSlice_nil
   · rw [ite_eq_left ⟨by word, by word, by word⟩]
     wp_auto
-    icases (ownSlice_slice (uv.offsetInProgress' - uv.offset') uv.entries'.len uv.entries'
-      DFrac.discard uents ⟨by word, by word, by word⟩).1 $$ Hents with ⟨-, #H2, -⟩
+    icases (ownSlice_slice (us.inprogress - us.offset) uv.entries'.len uv.entries'
+      DFrac.discard us.ents ⟨by word, by word, by word⟩).1 $$ Hents with ⟨-, #H2, -⟩
     iapply HΦ
     isplitl [Hu Hents_cap]
     · close_unstable
-    have Hsub : subslice (sint.nat (uv.offsetInProgress' - uv.offset')) (sint.nat uv.entries'.len)
-        uents = uents.drop (uint.Z uv.offsetInProgress' - uint.Z uv.offset').toNat := by
+    have Hsub : subslice (sint.nat (us.inprogress - us.offset)) (sint.nat uv.entries'.len)
+        us.ents = us.ents.drop (uint.Z us.inprogress - uint.Z us.offset).toNat := by
       rw [subslice_def, List.take_of_length_le (by word)]
       congr 1
       word

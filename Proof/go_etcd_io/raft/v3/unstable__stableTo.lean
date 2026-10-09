@@ -37,8 +37,7 @@ local macro "no_hit" : tactic => `(tactic| (
   isplitl
   · close_unstable
   ipureintro
-  refine ⟨fun Hh => ?_, fun _ => rfl⟩
-  dsimp only [UnstableHit] at Hh))
+  refine ⟨fun Hh => ?_, fun _ => rfl⟩))
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -64,18 +63,14 @@ theorem unstable.stableTo.wp_proof
     (wp_unstable_maybeTerm : unstable.maybeTerm.spec (GF := GF) (hG := hG))
     (wp_unstable_shrinkEntriesArray : unstable.shrinkEntriesArray.spec (GF := GF) (hG := hG)) :
     unstable.stableTo.spec (GF := GF) (hG := hG) := by
-  intro u us
-  obtain ⟨uents, off, ip, snap⟩ := us
-  intro id Hsoff Hnw
-  dsimp only at Hsoff Hnw
+  intro u us id Hsoff Hnw
   wp_start as H
   iNamed H
   open_unstable
   wp_auto
-  wp_apply wp_unstable_maybeTerm u ⟨uents, uv.offset', uv.offsetInProgress', snap⟩ id.index'
-      Hsoff Hnw $$ [Hu Hents Hents_cap] as %gt %ok ⟨Hun, %Hok1, %Hok2⟩
+  wp_apply wp_unstable_maybeTerm u us id.index' Hsoff Hnw $$ [Hu Hents Hents_cap]
+    as %gt %ok ⟨Hun, %Hok1, %Hok2⟩
   · close_unstable
-  dsimp only at Hok1 Hok2
   open_unstable_again
   icases Hents with #Hents
   ihave %Hlen := ownSlice_len $$ Hents
@@ -90,7 +85,7 @@ theorem unstable.stableTo.wp_proof
     no_hit
     exact absurd (Hok1.2 (Or.inl Hh.1)) Bool.false_ne_true
   wp_auto
-  by_cases Hlt : uint.Z id.index' < uint.Z uv.offset'
+  by_cases Hlt : uint.Z id.index' < uint.Z us.offset
   · -- the snapshot's index: no hit
     rw [decide_eq_true (by word)]
     wp_auto
@@ -114,25 +109,26 @@ theorem unstable.stableTo.wp_proof
   rw [decide_eq_true Ht]
   wp_auto
   -- the hit: drop the persisted prefix
-  have Hnum : sint.Z (id.index' + W64 1 - uv.offset') =
-      uint.Z id.index' + 1 - uint.Z uv.offset' := by word
+  have Hnum : sint.Z (id.index' + W64 1 - us.offset) =
+      uint.Z id.index' + 1 - uint.Z us.offset := by word
   ihave %Hwf := ownSlice_wf $$ Hents
   rw [ite_eq_left ⟨by word, by word, Hwf.2⟩]
-  icases (ownSlice_slice (id.index' + W64 1 - uv.offset') uv.entries'.len uv.entries'
-      DFrac.discard uents ⟨by word, by word, by word⟩).1 $$ Hents with ⟨-, #Hents2, -⟩
-  ihave Hents_cap := (ownSliceCap_slice uv.entries' (id.index' + W64 1 - uv.offset') _
+  icases (ownSlice_slice (id.index' + W64 1 - us.offset) uv.entries'.len uv.entries'
+      DFrac.discard us.ents ⟨by word, by word, by word⟩).1 $$ Hents with ⟨-, #Hents2, -⟩
+  ihave Hents_cap := (ownSliceCap_slice uv.entries' (id.index' + W64 1 - us.offset) _
       ⟨by word, by word, Hwf.2⟩).1 $$ Hents_cap
   wp_auto
   wp_apply wp_max2_uint64
-  have Hsub : subslice (sint.nat (id.index' + W64 1 - uv.offset')) (sint.nat uv.entries'.len)
-      uents = uents.drop (uint.Z id.index' + 1 - uint.Z uv.offset').toNat := by
+  have Hsub : subslice (sint.nat (id.index' + W64 1 - us.offset)) (sint.nat uv.entries'.len)
+      us.ents = us.ents.drop (uint.Z id.index' + 1 - uint.Z us.offset).toNat := by
     rw [subslice_def, List.take_of_length_le (by word)]
     congr 1
     word
   rw [Hsub]
   wp_apply wp_unstable_shrinkEntriesArray u
-      ⟨uents.drop (uint.Z id.index' + 1 - uint.Z uv.offset').toNat, id.index' + W64 1,
-        w64Max uv.offsetInProgress' (id.index' + W64 1), snap⟩ $$ [Hu Hents_cap] as Hun
+      { us with ents := us.ents.drop (uint.Z id.index' + 1 - uint.Z us.offset).toNat,
+                offset := id.index' + W64 1,
+                inprogress := w64Max us.inprogress (id.index' + W64 1) } $$ [Hu Hents_cap] as Hun
   · iapply ownUnstable_intro $$ Hu Hents_cap Hents2 Hsnap Hlogger
     ipureintro; exact ⟨rfl, rfl⟩
   iapply HΦ
@@ -140,7 +136,6 @@ theorem unstable.stableTo.wp_proof
   · iexact Hun
   ipureintro
   refine ⟨fun _ => rfl, fun Hn => absurd ?_ Hn⟩
-  dsimp only [UnstableHit]
   exact ⟨⟨by omega, by omega⟩, e, He, Ht⟩
 
 end proof

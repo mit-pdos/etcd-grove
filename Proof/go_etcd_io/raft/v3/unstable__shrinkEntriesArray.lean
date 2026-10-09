@@ -24,25 +24,23 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem unstable.shrinkEntriesArray.wp_proof :
     unstable.shrinkEntriesArray.spec (GF := GF) (hG := hG) := by
   intro u us
-  obtain ⟨uents, off, ip, snap⟩ := us
   wp_start as H
   iNamed H
   open_unstable
   icases Hents with #Hents
   ihave %Hlen := ownSlice_len $$ Hents
   wp_auto
-  by_cases He : uents = []
+  by_cases He : us.ents = []
   · -- empty: `nil`
-    subst He
     wp_if_destruct
     · iapply HΦ
       iapply ownUnstable_intro $$ Hu
       · iapply ownSliceCap_nil
-      · iapply ownSlice_nil
+      · rw [He]; iapply ownSlice_nil
       · iexact Hsnap
       · iexact Hlogger
       · ipureintro; exact ⟨rfl, rfl⟩
-    · exfalso; simp at Hlen; word
+    · exfalso; simp [He] at Hlen; word
   · wp_if_destruct
     · exfalso; apply He; apply List.eq_nil_of_length_eq_zero; word
     wp_if_destruct
@@ -50,10 +48,10 @@ theorem unstable.shrinkEntriesArray.wp_proof :
       wp_apply wp_slice_make2 (V := raftpb.Entry) as %sl ⟨Hsl, Hsl_cap⟩
       · ipureintro; word
       wp_apply +noauto wp_slice_copy $$ [$Hsl $Hents] as %n ⟨%Hn, Hsl, -⟩
-      have Hcp : (uents.take (List.replicate (sint.nat uv.entries'.len)
+      have Hcp : (us.ents.take (List.replicate (sint.nat uv.entries'.len)
             (zero_val raftpb.Entry)).length ++
-          (List.replicate (sint.nat uv.entries'.len) (zero_val raftpb.Entry)).drop uents.length) =
-          uents := by
+          (List.replicate (sint.nat uv.entries'.len) (zero_val raftpb.Entry)).drop us.ents.length) =
+          us.ents := by
         rw [List.length_replicate, List.take_of_length_le (by rw [Hlen.1]; exact Nat.le_refl _),
           List.drop_of_length_le (by rw [List.length_replicate, Hlen.1]; exact Nat.le_refl _), List.append_nil]
       rw [Hcp]

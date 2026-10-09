@@ -24,15 +24,13 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem unstable.maybeFirstIndex.wp_proof :
     unstable.maybeFirstIndex.spec (GF := GF) (hG := hG) := by
   intro u us
-  obtain ⟨uents, off, ip, snap⟩ := us
   wp_start as Hpre
   iNamed Hpre
   open_unstable
   wp_auto
-  cases snap with
-  | some sid =>
-    -- a pending snapshot: `snapshot.Metadata.Index + 1`
-    icases (ownSnap_Some _ _).1 $$ Hsnap with ⟨%sv, #Hsv, %Hmeta, -⟩
+  rcases snap_some_or_none us.snap with ⟨sid, Hs⟩ | Hs
+  · -- a pending snapshot: `snapshot.Metadata.Index + 1`
+    icases ownSnap_of_eq_some Hs $$ Hsnap with ⟨%sv, #Hsv, %Hmeta, -⟩
     ihave %Hnn := typedPointsto_not_null $$ Hsv
     wp_if_destruct
     · exact absurd Hif Hnn
@@ -43,17 +41,17 @@ theorem unstable.maybeFirstIndex.wp_proof :
     isplitl
     · close_unstable
     ipureintro
+    rw [Hs]
     refine ⟨by simp, ?_⟩
     rintro _ ⟨⟩
     rw [Hmeta.1]
-  | none =>
-    ihave %Hns := (ownSnap_None _).1 $$ Hsnap
+  · ihave %Hns := ownSnap_of_eq_none Hs $$ Hsnap
     wp_if_destruct
     · iapply HΦ
       isplitl
       · close_unstable
       ipureintro
-      simp
+      simp [Hs]
     · exact absurd Hns Hif
 
 end proof

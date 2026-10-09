@@ -237,6 +237,25 @@ theorem ownSnap_Some (p : Loc) (sid : entryID) :
       ∃ (voters : List w64), sv.Metadata'.ConfState'.Voters' ↦*□ voters := by
   rw [ownSnap_unseal]; exact .rfl
 
+/-- The case split on a record's `snap` field that leaves the goal alone (`cases Hs :
+us.snap` would rewrite `us.snap` in it, and the `ownSnap` re-sealing `ownUnstable u us`
+then no longer matches); `ownSnap_of_eq_none`/`ownSnap_of_eq_some` open `ownSnap` at the
+equation. So the record `us` stays a variable. -/
+theorem snap_some_or_none (snap : Option entryID) : (∃ sid, snap = some sid) ∨ snap = none := by
+  cases snap <;> simp
+
+theorem ownSnap_of_eq_none {p : Loc} {snap : Option entryID} (Hs : snap = none) :
+    ownSnap (GF := GF) p snap ⊢ ⌜p = null⌝ := by
+  subst Hs; exact (ownSnap_None p).1
+
+theorem ownSnap_of_eq_some {p : Loc} {snap : Option entryID} {sid : entryID}
+    (Hs : snap = some sid) :
+    ownSnap (GF := GF) p snap ⊢
+    ∃ (sv : raftpb.Snapshot), p ↦□ sv ∗
+      ⌜sv.Metadata'.Index' = sid.index' ∧ sv.Metadata'.Term' = sid.term'⌝ ∗
+      ∃ (voters : List w64), sv.Metadata'.ConfState'.Voters' ↦*□ voters := by
+  subst Hs; exact (ownSnap_Some p sid).1
+
 instance ownSnap_pers (p : Loc) (snap : Option entryID) :
     Persistent (ownSnap (GF := GF) p snap) := by
   rw [ownSnap_unseal]; cases snap <;> unfold ownSnapDef <;> infer_instance
@@ -292,6 +311,23 @@ theorem ownUnstable_intro (u : Loc) (uv : unstable) (ents : List raftpb.Entry)
   iframe Hu Hents_cap Hents Hsnap Hlogger
   ipureintro
   exact H
+
+/-- Open `ownUnstable u us` in the proof of an `unstable` method with the value's
+`offset` and `offsetInProgress` replaced by the record's: the struct is at
+`{ uv with offset' := us.offset, offsetInProgress' := us.inprogress }`, so a load of
+either field gives `us.offset`/`us.inprogress`, the atoms the spec's premises are
+stated in, and `us` stays a variable (CLAUDE.md, "Records"). -/
+theorem ownUnstable_open (u : Loc) (us : UnstableSt) :
+    ⊢ ownUnstable u us -∗ ∃ (uv : unstable),
+      (u ↦ { uv with offset' := us.offset, offsetInProgress' := us.inprogress } : IProp GF) ∗
+      ownSliceCap raftpb.Entry uv.entries' (DFrac.own 1) ∗ uv.entries' ↦*□ us.ents ∗
+      ownSnap uv.snapshot' us.snap ∗ isLoggerVal uv.logger' := by
+  iintro Hun
+  iunfold ownUnstable at Hun
+  iNamed Hun
+  iexists uv
+  rw [← Hoff, ← Hoip]
+  iframe Hu Hents_cap Hents Hsnap Hlogger
 
 /-- How the visible log relates to what `Storage` holds, by whether a snapshot is
 pending. The storage holds `σ.ents` after `σ.prev` (`ownStorage`).
@@ -909,34 +945,30 @@ macro "reseal_raftLog" : tactic =>
                | ((rewrite [Huoff]); with_reducible assumption)))
 
 set_option hygiene false in
-/-- Open `Hun : ownUnstable u ⟨uents, off, ip, snap⟩` in the proof of an `unstable`
-method (after `obtain ⟨uents, off, ip, snap⟩ := us`): the Goose value `uv` and the
-pieces `Hu`, `Hents_cap`, `Hents`, `Hsnap`, `Hlogger`, with `off` and `ip` replaced by
-`uv.offset'` and `uv.offsetInProgress'`, so that the proof works on the value. -/
+/-- Open `Hun : ownUnstable u us` in the proof of an `unstable` method
+(`ownUnstable_open`): the Goose value `uv`, with the struct at
+`{ uv with offset' := us.offset, offsetInProgress' := us.inprogress }`, and the pieces
+`Hu`, `Hents_cap`, `Hents`, `Hsnap`, `Hlogger`. `us` stays a variable: the proof works
+on `us.offset` and `us.inprogress` throughout. (Until 2026-10-09 it destructured `us`
+and substituted the value's fields for the record's.) -/
 macro "open_unstable" : tactic =>
   `(tactic| (
-    iunfold Perennial.EtcdGrove.ownUnstable at Hun
-    iNamed Hun
-    dsimp only at Hoff Hoip
-    subst Hoff Hoip))
+    icases Perennial.EtcdGrove.ownUnstable_open _ _ $$ Hun
+      with ⟨%uv, Hu, Hents_cap, Hents, #Hsnap, #Hlogger⟩))
 
 set_option hygiene false in
 /-- Reopen `Hun` after the proof of an `unstable` method handed it, closed by
-`close_unstable`, to another `unstable` method that keeps the state: the new value is
-`uv` again (the old one becomes inaccessible), with the pieces renamed as
-`open_unstable` names them, and the old value's `offset` and `offsetInProgress`
-rewritten to the new one's everywhere. -/
+`close_unstable`, to another `unstable` method: as `open_unstable`, at the new value
+`uv` (the old one becomes inaccessible). -/
 macro "open_unstable_again" : tactic =>
   `(tactic| (
     iclear Hsnap Hlogger
-    iunfold Perennial.EtcdGrove.ownUnstable at Hun
-    icases Hun with ⟨%uv, Hu, Hents_cap, Hents, #Hsnap, #Hlogger, %Hoff, %Hoip⟩
-    dsimp only at Hoff Hoip
-    (try simp only [← Hoff, ← Hoip] at *)))
+    open_unstable))
 
 set_option hygiene false in
-/-- Close `ownUnstable u ⟨uents, uv.offset', uv.offsetInProgress', snap⟩` from the pieces
-`open_unstable` named (`ownUnstable_intro`). -/
+/-- Close `ownUnstable u us'` from the pieces `open_unstable` named
+(`ownUnstable_intro`): the value's `offset` and `offsetInProgress` are `us'`'s by
+construction. -/
 macro "close_unstable" : tactic =>
   `(tactic| (
     iapply Perennial.EtcdGrove.ownUnstable_intro $$ Hu Hents_cap Hents Hsnap Hlogger

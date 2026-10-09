@@ -23,29 +23,26 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem unstable.acceptInProgress.wp_proof :
     unstable.acceptInProgress.spec (GF := GF) (hG := hG) := by
-  intro u us
-  obtain ⟨uents, off, ip, snap⟩ := us
-  intro Hidx Hnw
+  intro u us Hidx Hnw
   wp_start as H
   iNamed H
   open_unstable
   icases Hents with #Hents
   ihave %Hlen := ownSlice_len $$ Hents
   wp_auto
-  by_cases He : uents = []
+  by_cases He : us.ents = []
   · -- no entries: only the snapshot flag
-    subst He
     wp_if_destruct
-    · exfalso; simp at Hlen; word
+    · exfalso; simp [He] at Hlen; word
     wp_if_destruct <;>
     · iapply HΦ
       isplitl
       · close_unstable
       ipureintro
-      simp
-  · obtain ⟨es, e, Hes⟩ := List.eq_nil_or_concat uents |>.resolve_left He
-    have Hl : uents.length = es.length + 1 := by simp [Hes]
-    have Hle : uents[uents.length - 1]? = some e := by
+      simp [He]
+  · obtain ⟨es, e, Hes⟩ := List.eq_nil_or_concat us.ents |>.resolve_left He
+    have Hl : us.ents.length = es.length + 1 := by simp [Hes]
+    have Hle : us.ents[us.ents.length - 1]? = some e := by
       rw [Hes]; simp
     have Heidx := Hidx _ _ Hle
     wp_if_destruct
@@ -55,9 +52,9 @@ theorem unstable.acceptInProgress.wp_proof :
         sint.Z (uv.entries'.len - W64 1) < sint.Z uv.entries'.len := by
       constructor <;> word
     rw [ite_eq_left Hbnd]
-    have Hk : (sint.Z (uv.entries'.len - W64 1)).toNat = uents.length - 1 := by word
-    have Hle' : uents[(sint.Z (uv.entries'.len - W64 1)).toNat]? = some e := by rw [Hk]; exact Hle
-    icases ownSlice_elem_acc (sint.Z (uv.entries'.len - W64 1)) e uv.entries' _ uents Hbnd.1 Hle'
+    have Hk : (sint.Z (uv.entries'.len - W64 1)).toNat = us.ents.length - 1 := by word
+    have Hle' : us.ents[(sint.Z (uv.entries'.len - W64 1)).toNat]? = some e := by rw [Hk]; exact Hle
+    icases ownSlice_elem_acc (sint.Z (uv.entries'.len - W64 1)) e uv.entries' _ us.ents Hbnd.1 Hle'
       $$ Hents with ⟨#He, -⟩
     iStructNamedSuffix He "_e"
     wp_auto

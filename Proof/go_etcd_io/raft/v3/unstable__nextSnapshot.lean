@@ -23,14 +23,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem unstable.nextSnapshot.wp_proof : unstable.nextSnapshot.spec (GF := GF) (hG := hG) := by
   intro u us
-  obtain ⟨uents, off, ip, snap⟩ := us
   wp_start as H
   iNamed H
   open_unstable
   wp_auto
-  cases snap with
-  | some sid =>
-    icases (ownSnap_Some _ _).1 $$ Hsnap with ⟨%sv, #Hsv, -⟩
+  rcases snap_some_or_none us.snap with ⟨sid, Hs⟩ | Hs
+  · icases ownSnap_of_eq_some Hs $$ Hsnap with ⟨%sv, #Hsv, -⟩
     ihave %Hnn := typedPointsto_not_null $$ Hsv
     simp only [Hnn, _root_.decide_false]
     wp_auto
@@ -39,10 +37,10 @@ theorem unstable.nextSnapshot.wp_proof : unstable.nextSnapshot.spec (GF := GF) (
       isplitl
       · close_unstable
       ipureintro
+      rw [Hs]
       intro h
       cases h
-  | none =>
-    ihave %Hn := (ownSnap_None _).1 $$ Hsnap
+  · ihave %Hn := ownSnap_of_eq_none Hs $$ Hsnap
     simp only [decide_eq_true Hn]
     wp_auto
     iapply HΦ

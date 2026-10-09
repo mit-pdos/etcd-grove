@@ -38,14 +38,10 @@ and the `append` reallocates; arm 3's `min` needs the `go.min` unfolding. -/
 theorem unstable.truncateAndAppend.wp_proof
     (wp_unstable_slice : unstable.slice.spec (GF := GF) (hG := hG)) :
     unstable.truncateAndAppend.spec (GF := GF) (hG := hG) := by
-  intro u us
-  obtain ⟨uents, off, ip, snap⟩ := us
-  intro ents e0 es dq Hfirst Hle Hnw
-  dsimp only at Hle Hnw
+  intro u us ents e0 es dq Hfirst Hle Hnw
   wp_start as H
   iNamed H
   open_unstable
-  dsimp only
   ihave #Hulgv : isLoggerVal uv.logger' $$ [Hlogger]
   · iexact Hlogger
   iunfold isLoggerVal at Hulgv
@@ -56,7 +52,7 @@ theorem unstable.truncateAndAppend.wp_proof
   obtain ⟨Hlen1, Hlen2⟩ := Hlen
   obtain ⟨Hulen1, Hulen2⟩ := Hulen
   have Hlenz : (ents.length : Int) = sint.Z es.len := by rw [Hlen1]; word
-  have Hulenz : (uents.length : Int) = sint.Z uv.entries'.len := by rw [Hulen1]; word
+  have Hulenz : (us.ents.length : Int) = sint.Z uv.entries'.len := by rw [Hulen1]; word
   -- `ents[0].Index`: hand the element out of the slice for the field load
   have Hne : 0 < ents.length := (List.getElem?_eq_some_iff.1 Hfirst).1
   simp only [show (0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z es.len) = True from
@@ -75,11 +71,11 @@ theorem unstable.truncateAndAppend.wp_proof
   ihave He0 := Hclose $$ He0
   ihave Hes := Hesback $$ He0
   rw [list_insert_id (by simpa using Hfirst)]
-  by_cases Hcont : uint.Z e0.Index' = uint.Z uv.offset' + (uents.length : Int)
+  by_cases Hcont : uint.Z e0.Index' = uint.Z us.offset + (us.ents.length : Int)
   · -- arm 1: the batch continues the suffix
-    have Hguard : e0.Index' = uv.offset' + uv.entries'.len := by word
-    have Had : ¬(uint.Z e0.Index' ≤ uint.Z uv.offset' ∧
-        uint.Z e0.Index' ≠ uint.Z uv.offset' + (uents.length : Int)) := fun H => H.2 Hcont
+    have Hguard : e0.Index' = us.offset + uv.entries'.len := by word
+    have Had : ¬(uint.Z e0.Index' ≤ uint.Z us.offset ∧
+        uint.Z e0.Index' ≠ uint.Z us.offset + (us.ents.length : Int)) := fun H => H.2 Hcont
     simp only [Had, ↓reduceIte, decide_eq_true Hguard]
     wp_auto
     wp_apply wp_slice_append_persistent (V := raftpb.Entry) _ _ _ _ _
@@ -93,14 +89,14 @@ theorem unstable.truncateAndAppend.wp_proof
       · unfold w64Min; rw [if_neg (by omega)]
       · simp only [truncOffsetInProgress, if_pos Hcont]
     iexact Hes
-  have Hguard : ¬e0.Index' = uv.offset' + uv.entries'.len := fun Heq => Hcont (by
+  have Hguard : ¬e0.Index' = us.offset + uv.entries'.len := fun Heq => Hcont (by
     rw [Heq]; word)
   simp only [decide_eq_false Hguard]
   wp_auto
-  by_cases Hrep : uint.Z e0.Index' ≤ uint.Z uv.offset'
+  by_cases Hrep : uint.Z e0.Index' ≤ uint.Z us.offset
   · -- arm 2: replace the suffix, adopting the caller's slice
-    have Had : uint.Z e0.Index' ≤ uint.Z uv.offset' ∧
-        uint.Z e0.Index' ≠ uint.Z uv.offset' + (uents.length : Int) := ⟨Hrep, Hcont⟩
+    have Had : uint.Z e0.Index' ≤ uint.Z us.offset ∧
+        uint.Z e0.Index' ≠ uint.Z us.offset + (us.ents.length : Int) := ⟨Hrep, Hcont⟩
     rw [ite_true_of Had, ite_true_of Had, decide_eq_true Hrep]
     icases Hadopt with ⟨%Hdq, Hcap⟩
     subst Hdq
@@ -115,7 +111,7 @@ theorem unstable.truncateAndAppend.wp_proof
     wp_apply Logger.wp_logf ulg _ _ _ (by simp [logMethods]) $$ Hlg
     rw [← Hulg]
     iapply HΦ
-    rw [show (uint.Z e0.Index' - uint.Z uv.offset').toNat = 0 by omega, List.take_zero,
+    rw [show (uint.Z e0.Index' - uint.Z us.offset).toNat = 0 by omega, List.take_zero,
       List.nil_append]
     isplitl
     · iapply ownUnstable_intro $$ Hu Hcap Hes Hsnap Hlogger
@@ -128,8 +124,8 @@ theorem unstable.truncateAndAppend.wp_proof
       · simp only [truncOffsetInProgress, if_neg Hcont, if_pos Hrep]
     itrivial
   -- arm 3: keep the suffix below `fromIndex`, then append
-  have Had : ¬(uint.Z e0.Index' ≤ uint.Z uv.offset' ∧
-      uint.Z e0.Index' ≠ uint.Z uv.offset' + (uents.length : Int)) := fun H => Hrep H.1
+  have Had : ¬(uint.Z e0.Index' ≤ uint.Z us.offset ∧
+      uint.Z e0.Index' ≠ uint.Z us.offset + (us.ents.length : Int)) := fun H => Hrep H.1
   rw [ite_false_of Had, ite_false_of Had, decide_eq_false Hrep]
   wp_auto
   wp_apply wp_slice_literal
@@ -141,12 +137,11 @@ theorem unstable.truncateAndAppend.wp_proof
   wp_auto
   wp_apply Logger.wp_logf ulg _ _ _ (by simp [logMethods]) $$ Hlg
   rw [← Hulg]
-  have Hus : uint.Z uv.offset' ≤ uint.Z uv.offset' ∧ uint.Z uv.offset' < uint.Z e0.Index' ∧
-      uint.Z e0.Index' ≤ uint.Z uv.offset' + (uents.length : Int) := ⟨Int.le_refl _, by omega, Hle⟩
-  wp_apply wp_unstable_slice u ⟨uents, uv.offset', uv.offsetInProgress', snap⟩ _ _ Hus Hnw
+  have Hus : uint.Z us.offset ≤ uint.Z us.offset ∧ uint.Z us.offset < uint.Z e0.Index' ∧
+      uint.Z e0.Index' ≤ uint.Z us.offset + (us.ents.length : Int) := ⟨Int.le_refl _, by omega, Hle⟩
+  wp_apply wp_unstable_slice u us _ _ Hus Hnw
       $$ [Hu Hents Hents_cap] as %s0 %es0 ⟨Hun, #Hs0, %Hlen0, %Hin0, %Hcap0, %Hes0⟩
   · close_unstable
-  dsimp only at Hes0
   open_unstable_again
   rw [Int.sub_self, Int.toNat_zero, subslice, List.drop_zero] at Hes0
   subst Hes0
