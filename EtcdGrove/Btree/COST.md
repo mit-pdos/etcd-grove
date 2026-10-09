@@ -19,7 +19,8 @@ Two modules dominate: `Proof/node__iterate` (1m03s, on the critical path) and
 (16s). By CPU: proofs 58%, specs 29%, lemmas 6%, the translation 3%.
 
 A build that also rebuilds Perennial (needed once after a change to its pin, e.g. the
-`copy-memmove` branch) adds Perennial's own build, about 10 minutes wall on 24 cores.
+`copy-memmove` branch) adds Perennial's own build, not measured here (several minutes
+on 24 cores).
 
 ## Writing it
 
