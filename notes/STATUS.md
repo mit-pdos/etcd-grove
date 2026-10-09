@@ -1,12 +1,12 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-09 (the watch loop and `Cache.Watch`)
+**Last updated:** 2026-10-09 (the watch loop verified against the fixed code)
 
 Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
 `worktree-raft-replication`'s `feb5c73d4` and adds Ready/Advance/HasReady; the files
 were first ported from `main`, then from `feb5c73d4`) to Lean on top of Perennial's Lean
-port (mit-pdos/perennial `lean`, pinned at 640a605cc (2026-10-09: a `select` case on a nil channel is never ready, `chan.wp_select_blocking_nil`; on 48e1192c7: rlocker, `Cond.wp_Wait_with`, `time.wp_Since`) on cbb85c041: upstream's `11fd2db` merged with
+port (mit-pdos/perennial `lean`, pinned at 96ec7016d (2026-10-09: `fmt.wp_Printf`, `time.Minute`; on 099c2a08b: `fmt.wp_Errorf`'s `Error()`; on 640a605cc: a `select` case on a nil channel is never ready, `chan.wp_select_blocking_nil`; on 48e1192c7: rlocker, `Cond.wp_Wait_with`, `time.wp_Since`) on cbb85c041: upstream's `11fd2db` merged with
 `bytes.Compare`, on Lean's module system since 2026-10-09). The Goose translations of
 etcd-raft and etcd's `cache` package are this repository's `Code/` and `GeneratedProof/`,
 generated and checked by `etc/goose.py`. Files are laid out by kind and Go package path
@@ -212,6 +212,10 @@ generated and checked by `etc/goose.py` (now two projects, `etcd-raft` and `etcd
   regenerated from branch `goose` by name, so `goose` must stay at the March upstream.
   Pushed 2026-10-08, so `etc/goose.py` fetches it from GitHub (`--src etcd=<checkout>` or
   `$ETCD_SRC` only for an unpushed revision). CI's Go is now 1.27 (etcd's `go.mod`).
+  **Since 2026-10-09 pinned at `6ab61a1c7`**: `48fd5a507` merged with the fork's branch
+  `cache-ready-after-retry` (three fixes of `cache.go`, see "The watch loop and Cache.Watch");
+  until the user pushes it (`git push origin goose:goose-lean`), regenerate and check with
+  `ETCD_SRC=/shared/etcd ./etc/goose.py [--check]`.
 - **With bodies**: all of `cache/v3` (every function and method, non-test files;
   `cache/v3.toml`: `translate = ["*"]`).
 - **Types and names only** (`translate = ["!*"]`, `translate_types = true`, a few
@@ -633,12 +637,48 @@ model".
 
 `Cache.Watch` is proved end to end, with `Cache.watchEvents`, `Cache.applyStorage`,
 `Cache.get`, `Cache.WaitForRevision`, and the `clientv3` functions `OpWatch`,
-`WithProgressNotify`, `WithCreatedNotify`, `WatchResponse.Err` (translated with bodies). Not
-proved: `Cache.watch`, `getWatch`, `getWatchLoop` (finding 1 below); out of scope as planned:
+`WithProgressNotify`, `WithCreatedNotify`, `WatchResponse.Err` (translated with bodies), and
+(since the fixes below) `Cache.watch`, `getWatch`, `getWatchLoop`; out of scope as planned:
 `New`/`newCache`, `Close`, `NewDemux`/`resyncLoop`/`WaitForNextResync`,
 `progressRequestor.run`, `realClock`/`realTimer`. Design: `decisions.md`, "The stream model:
 `EtcdStep`, certificates through the demux".
 
+- **Verified against the fixed code (2026-10-09).** The verified code is `goose-lean` at
+  `6ab61a1c7` (not pushed yet: `ETCD_SRC=/shared/etcd`, see the EtcdCache section): `48fd5a507`
+  merged with the fork's branch `cache-ready-after-retry` (for an upstream PR), whose three
+  commits fix findings 1 and 2: `64313a1f8` `Init(rev)` once before the loop, the `Once` only
+  setting `ready` (finding 2; `watch_retry_test.go`); `21ac13e0d` each upstream watch in a child
+  context canceled when `watchEvents` returns; `a7de41a72` `watch` waits for `applyStorage` after
+  `Unregister` (a receive from `applyErr`), returns its error if `watchEvents` did not, and the
+  goroutine leaves `c.waitGroup` (finding 1; `TestCacheWatchWaitsForStoreWriter`). Design:
+  `decisions.md`, "The watch loop is verified against the fixed code".
+  - `Cache.watch` (`Spec/.../Cache__watch.lean`): with the demux's writer and the store's writer
+    (synced, latest map etcd's state at `R ≤` latest revision, `0 < rev ≤ R + 1`), returns a
+    non-nil error and both writers. `applyErr` is a **handoff** channel (`Handoff.lean`, a new
+    generic idiom): the goroutine hands the store's writer back with its error or, with the close,
+    the writer and its certificate; the loop takes it at its first receive (in `watchEvents` or
+    in the wait), so `Restore`/`Register` of the next round never run beside an old `Apply`.
+  - `Cache.getWatch`: `get` then `watch(R + 1)`; returns a non-nil error and both writers.
+  - `Cache.getWatchLoop`: with both writers and `isEtcdKVLin cf` (etcd's linearizability: a
+    prefix get returns at least any revision the store has reached), returns `()` once the
+    internal context is done, **with both writers** (returned, not dropped). `defaultConfig` is
+    proved (needs Perennial's `time.Minute`).
+  - Changed statements: `applyStorage` takes a store watcher from any `0 < s ≤ R + 1` (it was
+    `s = R + 1`) when `R` is at most the latest revision, and on `nil` returns the store's
+    certificate; `watchEvents` takes the demux initialized at `rev` (`CursorOk`), a `Once` with
+    trivial resources, and returns what it took from `applyErr`; `isEtcdKVFrom` (so `get`) also
+    bounds the revision below `2 ^ 63 - 1`. `initCore_ok`, `demuxWriter_inv` moved to
+    `InvCache.lean`.
+  - Perennial (`96ec7016d`, on `099c2a08b`; push Perennial first): `fmt.Printf`'s trusted model
+    (it panicked) returns `(0, nil)`, `fmt.wp_Printf` proved; `time.Minute`/`time.Hour`
+    translated (were axioms). Trust base: `context.wp_WithCancel` (a Perennial `sorry`) is now
+    reached (`watchEvents`); `etc/tcb-baseline.txt` updated: 10 axioms, 3 sorries.
+  - Gates: `lake build` passes (1406 jobs); `etc/tcb-report.py --check` passes (after
+    `--update`, above); `ETCD_SRC=/shared/etcd ./etc/goose.py --check` passes; `etc/gen-link.py
+    --cache` reproduces `Link.lean`; `etc/verified-code.py --reuse` (with `6ab61a1c7` fetched
+    into `.lake/go-src/etcd` from `/shared/etcd`, until pushed): the cache package 74 of 107
+    functions verified, 9 unfinished (`watchEvents` now among them: it uses the
+    `wp_WithCancel` sorry), 803 of 1206 lines (66.6%); `cache.go` 14 of 21.
 - **The stream model** (`InvEtcd.lean`). One new axiomatized proposition, `EtcdStep r0 r1 pfx
   evs`: etcd had no event under `pfx` strictly between `r0` and `r1`, and its events at `r1` are
   `evs` (etcd's contents, `EtcdEv`); `r0 ≤ r1`, `r0 < r1` for events. Two property axioms:
@@ -698,7 +738,8 @@ proved: `Cache.watch`, `getWatch`, `getWatchLoop` (finding 1 below); out of scop
   `case <-progressChan` without `WithProgressNotify`), with `wp_TryReceive_nil`,
   `wp_TrySend_nil`, `nilClausePre`, `chan.wp_select_blocking_nil`/`_nonblocking_nil`;
   `099c2a08b`: `fmt.wp_Errorf`'s error has an `Error()` spec.
-- **Findings** (about etcd's cache, `upamanyus/etcd` `48fd5a507`, `cache/cache.go` unless noted):
+- **Findings** (about etcd's cache, `upamanyus/etcd` `48fd5a507`, `cache/cache.go` unless noted;
+  1 and 2 are fixed on the fork, `6ab61a1c7`, and the verified code has the fixes):
   1. *Two writers of the store.* `watch` (348-370) does not wait for an iteration's
      `applyStorage` goroutine (355-361) before the next iteration, when `watchEvents` returns
      `nil` (the watch channel closed, 402-403, or `applyErr` closed, 418-420), nor does
@@ -711,7 +752,8 @@ proved: `Cache.watch`, `getWatch`, `getWatchLoop` (finding 1 below); out of scop
      proved against the store's single-writer specs: that needs a multi-writer store (the
      writer's state and latest tree inside `store.mu`'s invariant, `Apply`/`Restore` specified
      for the current state, with a cache-level invariant on it) and etcd's linearizability in the
-     client model. Not done; the three functions are unproved.
+     client model. Not done: fixed instead (`a7de41a72`), and the three functions are proved
+     against the fixed code with the single-writer specs.
   2. *The cache can stay not ready after a retry.* `watch` registers the store watcher (352)
      before `Init` (406); on a retry whose `Get` revision `R'` differs from the demux's `maxRev`
      (or with `maxRev = 0`), `Init(R'+1)` purges (`demux.go:131-135`, `141-143`), stopping the

@@ -31,7 +31,7 @@ the prefix is the map `m` the store now holds (`restoreState R m`, synced).
 says nothing relating two calls): the premise `isEtcdKVFrom cf.kv cf.pfx st.latestRev` is etcd's
 linearizability for this call (a prefix get returns a revision at least any revision the store
 has already seen), stated as a premise rather than assumed of the client (see STATUS, "The watch
-loop and Cache.Watch", findings). -/
+loop and Cache.Watch", findings); it also bounds `R` below `2 ^ 63 - 1`. -/
 abbrev Cache.get.spec : Prop :=
   ∀ (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNames) (cap : Nat)
     (ctx : GoInterfaceOk) (s : context.ContextDesc (IProp GF)) (st : StoreState),
@@ -45,7 +45,7 @@ abbrev Cache.get.spec : Prop :=
       (⌜err = GoInterface.nil⌝ ∗ ∃ (R : w64) (m : KvMap), getRespRev resp R ∗
         storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) (restoreState R m) ∗
         isEtcdKvs R cf.pfx (restoreState R m).latest ∗ storeRevLb cf.γs R ∗
-        ⌜sint.Z st.latestRev ≤ sint.Z R⌝) }}
+        ⌜sint.Z st.latestRev ≤ sint.Z R ∧ sint.Z R < 2 ^ 63 - 1⌝) }}
 
 end spec
 

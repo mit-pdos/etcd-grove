@@ -165,7 +165,7 @@ theorem Cache.get.wp_proof
     wp_apply wp_Restore cf.store cf.γs cf.scap (etcdCert cf.pfx) st kvsSl m DFrac.discard r
       $$ [$HisStore $Hw $HKsl $HkvsAt] as ⟨-, Hw, #Hlb⟩
     · isplitr
-      · ipureintro; exact Hle
+      · ipureintro; exact Hle.1
       imodintro
       unfold etcdCert
       rw [restoreMap_sorted m Hsorted]

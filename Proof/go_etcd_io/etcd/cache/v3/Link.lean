@@ -16,11 +16,14 @@ public import Proof.go_etcd_io.etcd.cache.v3.Cache__WaitReady
 public import Proof.go_etcd_io.etcd.cache.v3.Cache__Watch
 public import Proof.go_etcd_io.etcd.cache.v3.Cache__applyStorage
 public import Proof.go_etcd_io.etcd.cache.v3.Cache__get
+public import Proof.go_etcd_io.etcd.cache.v3.Cache__getWatch
+public import Proof.go_etcd_io.etcd.cache.v3.Cache__getWatchLoop
 public import Proof.go_etcd_io.etcd.cache.v3.Cache__serverRevision
 public import Proof.go_etcd_io.etcd.cache.v3.Cache__validateGet
 public import Proof.go_etcd_io.etcd.cache.v3.Cache__validateRange
 public import Proof.go_etcd_io.etcd.cache.v3.Cache__validateWatch
 public import Proof.go_etcd_io.etcd.cache.v3.Cache__waitTillRevision
+public import Proof.go_etcd_io.etcd.cache.v3.Cache__watch
 public import Proof.go_etcd_io.etcd.cache.v3.Cache__watchEvents
 public import Proof.go_etcd_io.etcd.cache.v3.ExactKey
 public import Proof.go_etcd_io.etcd.cache.v3.FromKey
@@ -63,6 +66,7 @@ public import Proof.go_etcd_io.etcd.client.v3.WithRev
 public import Proof.go_etcd_io.etcd.client.v3.WithSerializable
 public import Proof.go_etcd_io.etcd.cache.v3.conditionalProgressRequestor__add
 public import Proof.go_etcd_io.etcd.cache.v3.conditionalProgressRequestor__remove
+public import Proof.go_etcd_io.etcd.cache.v3.defaultConfig
 public import Proof.go_etcd_io.etcd.cache.v3.demux__Broadcast
 public import Proof.go_etcd_io.etcd.cache.v3.demux__BroadcastProgress
 public import Proof.go_etcd_io.etcd.cache.v3.demux__BroadcastProgressTo
@@ -576,7 +580,23 @@ theorem demux.wp_Broadcast [AllG GF] :
 
 theorem Cache.wp_watchEvents [AllG GF] :
     Cache.watchEvents.spec (GF := GF) (hG := hG) :=
-  Cache.watchEvents.wp_proof wp_WithPrefix wp_WithRev wp_WithProgressNotify wp_WithCreatedNotify demux.wp_Init ready.wp_Set WatchResponse.wp_Err ready.wp_Reset demux.wp_Broadcast
+  Cache.watchEvents.wp_proof wp_WithPrefix wp_WithRev wp_WithProgressNotify wp_WithCreatedNotify ready.wp_Set WatchResponse.wp_Err ready.wp_Reset demux.wp_Broadcast
+
+theorem Cache.wp_watch [AllG GF] :
+    Cache.watch.spec (GF := GF) (hG := hG) :=
+  Cache.watch.wp_proof demux.wp_Init wp_newWatcher demux.wp_Register Cache.wp_applyStorage Cache.wp_watchEvents demux.wp_Unregister
+
+theorem Cache.wp_getWatch [AllG GF] :
+    Cache.getWatch.spec (GF := GF) (hG := hG) :=
+  Cache.getWatch.wp_proof Cache.wp_get Cache.wp_watch
+
+theorem wp_defaultConfig [AllG GF] :
+    defaultConfig.spec (GF := GF) (hG := hG) :=
+  defaultConfig.wp_proof
+
+theorem Cache.wp_getWatchLoop [AllG GF] :
+    Cache.getWatchLoop.spec (GF := GF) (hG := hG) :=
+  Cache.getWatchLoop.wp_proof wp_defaultConfig Cache.wp_getWatch
 
 theorem demux.wp_Compact [AllG GF] :
     demux.Compact.spec (GF := GF) (hG := hG) :=

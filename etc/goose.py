@@ -88,7 +88,7 @@ PROJECTS = [
         # Rocq translations (etcd-grove `main`, Perennial `master`) are regenerated
         # from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="48fd5a5071608e5c075b588c50e4efbfe300b00a",
+        rev="6ab61a1c7edd7ebc6a0bff6f53bd5ffa719b6b87",
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org="],
         packages=[
             # with bodies (cache/v3.toml)

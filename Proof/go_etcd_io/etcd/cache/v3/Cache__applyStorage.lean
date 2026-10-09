@@ -187,6 +187,105 @@ theorem applyResp_latest (cap : Nat) (st : StoreState) (r : RespModel)
     simp at h4
     exact ⟨h4, rfl⟩
 
+theorem lastRevW_ne_nil (evs : List EvModel) (d d' : w64) (h : evs ≠ []) :
+    lastRevW evs d = lastRevW evs d' := by
+  unfold lastRevW
+  cases hl : evs.getLast? with
+  | none => exact absurd (List.getLast?_eq_none_iff.1 hl) h
+  | some e => rfl
+
+/-- After a successful `applyEvents`, the latest revision is the last event's. -/
+theorem applyEvents_latestRev (cap : Nat) :
+    ∀ (evs : List EvModel) (st : StoreState), (applyEvents cap st evs).2 = true →
+      (applyEvents cap st evs).1.latestRev = lastRevW evs st.latestRev := by
+  intro evs
+  induction h : evs.length using Nat.strongRecOn generalizing evs with
+  | ind n ih =>
+    intro st hok
+    match evs with
+    | [] => rw [applyEvents] at hok ⊢; rfl
+    | e :: es =>
+      rw [applyEvents] at hok ⊢
+      rw [lastRevW_cons]
+      cases hb : applyBatch st.latest ((e :: es).takeWhile (fun x => decide (x.rev = e.rev))) with
+      | mk m ok =>
+        rw [hb] at hok
+        cases ok with
+        | false => simp at hok
+        | true =>
+          simp only at hok ⊢
+          have hlen : ((e :: es).dropWhile (fun x => decide (x.rev = e.rev))).length < n := by
+            rw [← h]; exact dropWhile_length_lt e es
+          exact ih _ hlen _ rfl _ hok
+
+/-- A successful `Apply` does not lower the latest revision, and after events it is the last
+event's. -/
+theorem applyResp_rev (cap : Nat) (st : StoreState) (r : RespModel)
+    (hok : (applyResp cap st r).2 = true) :
+    sint.Z st.latestRev ≤ sint.Z (applyResp cap st r).1.latestRev ∧
+      (r.events ≠ [] → (applyResp cap st r).1.latestRev = lastRevW r.events st.latestRev) := by
+  unfold applyResp at hok ⊢
+  by_cases h1 : r.canceled = true
+  · rw [ite_eq_left_of_eq_true _ _ (eq_true h1)] at hok; simp at hok
+  rw [ite_eq_right_of_eq_false _ _ (eq_false h1)] at hok ⊢
+  by_cases h2 : (!validRevisions r st.latestRev) = true
+  · rw [ite_eq_left_of_eq_true _ _ (eq_true h2)] at hok; simp at hok
+  rw [ite_eq_right_of_eq_false _ _ (eq_false h2)] at hok ⊢
+  have hv : validRevisions r st.latestRev = true := by simpa using h2
+  by_cases h3 : r.isProgressNotify = true
+  · rw [ite_eq_left_of_eq_true _ _ (eq_true h3)]
+    have he : r.events = [] := by
+      unfold RespModel.isProgressNotify at h3
+      simp only [Bool.and_eq_true] at h3
+      exact List.isEmpty_iff.1 h3.1.1.1.1
+    refine ⟨?_, fun h => absurd he h⟩
+    unfold validRevisions at hv
+    rw [ite_eq_left_of_eq_true _ _ (eq_true h3)] at hv
+    simp only [Bool.not_eq_eq_eq_not, Bool.not_true, decide_eq_false_iff_not, Int.not_lt] at hv
+    split
+    · exact Int.le_refl _
+    · exact hv
+  rw [ite_eq_right_of_eq_false _ _ (eq_false h3)] at hok ⊢
+  by_cases h4 : (!r.events.isEmpty) = true
+  · rw [ite_eq_left_of_eq_true _ _ (eq_true h4)] at hok ⊢
+    have hl := applyEvents_latestRev cap r.events st hok
+    refine ⟨?_, fun _ => hl⟩
+    rw [hl]
+    have hne : r.events ≠ [] := by simpa using h4
+    unfold validRevisions at hv
+    rw [ite_eq_right_of_eq_false _ _ (eq_false h3)] at hv
+    simp only [List.all_eq_true, decide_eq_true_eq] at hv
+    unfold lastRevW
+    cases hlast : r.events.getLast? with
+    | none => exact absurd (List.getLast?_eq_none_iff.1 hlast) hne
+    | some e => exact Int.le_of_lt (hv e (List.mem_of_getLast? hlast))
+  · rw [ite_eq_right_of_eq_false _ _ (eq_false h4)]
+    have he : r.events = [] := by simpa using h4
+    exact ⟨Int.le_refl _, fun h => absurd he h⟩
+
+/-- A response with an event at or below `Y`, when `Y` is at most the latest revision, is not
+applied: `validateRevisions` rejects it (or it is canceled), and nothing is appended. -/
+theorem applyResp_stale (cap : Nat) (st : StoreState) (r : RespModel) (Y : w64)
+    (hstale : ∃ e ∈ r.events, sint.Z e.rev ≤ sint.Z Y) (hY : sint.Z Y ≤ sint.Z st.latestRev) :
+    applyRespSnaps st r = [] ∧ (applyResp cap st r).2 = false := by
+  obtain ⟨e, he, hle⟩ := hstale
+  unfold applyRespSnaps applyResp
+  by_cases h1 : r.canceled = true
+  · simp [h1]
+  simp only [h1, Bool.false_eq_true, ↓reduceIte]
+  have hnp : r.isProgressNotify = false := by
+    cases hp : r.isProgressNotify
+    · rfl
+    · unfold RespModel.isProgressNotify at hp
+      simp only [Bool.and_eq_true] at hp
+      rw [List.isEmpty_iff.1 hp.1.1.1.1] at he; cases he
+  have hv : validRevisions r st.latestRev = false := by
+    unfold validRevisions
+    rw [hnp]
+    simp only [Bool.false_eq_true, ↓reduceIte, List.all_eq_false, decide_eq_true_eq, Int.not_lt]
+    exact ⟨e, he, by omega⟩
+  simp [hv]
+
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -285,33 +384,35 @@ theorem applyResp_certs (pfx : GoString) (cap : Nat) (st : StoreState) (r : Resp
     iapply Hl
     ipureintro; exact hok
 
-/-- **The store watcher's next response** `r` after `rcv`: its events are sorted, and its batches
-are chained from `Y`, the revision of the last event of `rcv` (`R` if none), by the certificates
-of the watcher's publication (`demuxPub`, start `R + 1`, no filter). -/
-theorem storeW_chain (pfx : GoString) (R Y : w64) (rcv : List RespModel) (r : RespModel)
-    (hR : 0 ≤ sint.Z R ∧ sint.Z R < 2 ^ 63 - 1) (hY : sint.Z Y = lastEvRevOr rcv (sint.Z R)) :
-    demuxPubBody (GF := GF) (etcdStepCert pfx) none (R + W64 1) none (rcv ++ [r]) ⊢
-      ⌜EvRevSorted r.events⌝ ∗ certChain (etcdStepCert pfx) (sint.Z Y) (splitBatches r.events) := by
+/-- **The store watcher's next response** `r` after `rcv`: its events are sorted; they are above
+`Y`, the revision of the last event of `rcv` (`R` if none), when `rcv` has events or the watcher
+started right after `R`; and when they are above `Y`, its batches are chained from `Y` by the
+certificates of the watcher's publication (`demuxPub`, start `s ≤ R + 1`, no filter). -/
+theorem storeW_chain (pfx : GoString) (s R Y : w64) (rcv : List RespModel) (r : RespModel)
+    (hs0 : 0 < sint.Z s) (hsR : sint.Z s ≤ sint.Z R + 1)
+    (hY : sint.Z Y = lastEvRevOr rcv (sint.Z R)) :
+    demuxPubBody (GF := GF) (etcdStepCert pfx) none s none (rcv ++ [r]) ⊢
+      ⌜EvRevSorted r.events ∧ ((eventsOf rcv ≠ [] ∨ sint.Z s = sint.Z R + 1) →
+          ∀ e ∈ r.events, sint.Z Y < sint.Z e.rev)⌝ ∗
+        (⌜∀ e ∈ r.events, sint.Z Y < sint.Z e.rev⌝ -∗
+          certChain (etcdStepCert pfx) (sint.Z Y) (splitBatches r.events)) := by
   iintro H
   iunfold demuxPubBody at H
-  icases H with ⟨%s, %v, %p₀, %Hpure, #Hch⟩
+  icases H with ⟨%s', %v, %p₀, %Hpure, #Hch⟩
   obtain ⟨hs, hD, hp, -⟩ := Hpure
-  have hR1 : sint.Z (R + W64 1) = sint.Z R + 1 := by word
-  have hsR : s = R + W64 1 := by
+  have hs' : s' = s := by
     rcases hs with hs | hs
-    · exfalso; rw [hs] at hR1; have : sint.Z (W64 0) = 0 := rfl; omega
+    · exfalso; rw [hs] at hs0; exact absurd hs0 (by decide)
     · exact hs
-  subst hsR
-  have hp0 : p₀ < sint.Z R + 1 := by
+  subst hs'
+  have hp0 : p₀ < sint.Z s' := by
     rcases hp with hp | hp
-    · exfalso; rw [hp] at hR1; have : sint.Z (W64 0) = 0 := rfl; omega
-    · omega
-  isplitr
-  · ipureintro; exact hD.ordered.2 r (by simp)
+    · exfalso; rw [hp] at hs0; exact absurd hs0 (by decide)
+    · exact hp
   -- the segment
-  have hsub : List.Sublist (streamRange (R + W64 1) v.n v.stream) v.stream := List.filter_sublist
+  have hsub : List.Sublist (streamRange s' v.n v.stream) v.stream := List.filter_sublist
   have hsegok := hD.stream_ok.sublist hsub
-  have hev : (streamRange (R + W64 1) v.n v.stream).flatten = eventsOf rcv ++ r.events := by
+  have hev : (streamRange s' v.n v.stream).flatten = eventsOf rcv ++ r.events := by
     have := hD.events
     rw [eventsOf_append] at this
     rw [this]
@@ -335,6 +436,29 @@ theorem storeW_chain (pfx : GoString) (R Y : w64) (rcv : List RespModel) (r : Re
     exact this.sublist (List.sublist_append_right _ _)
   have hseg2 : splitBatches r.events = seg2 := by
     rw [← h2]; exact splitBatches_of_ok seg2 hok2 hsorted2
+  -- every event of `r` is at or above the start
+  have hge : ∀ y ∈ r.events, sint.Z s' ≤ sint.Z y.rev := by
+    intro y hy
+    rw [← h2] at hy
+    obtain ⟨b, hbm, hyb⟩ := List.mem_flatten.1 hy
+    rw [(hok2 b hbm).2 y hyb]
+    exact (streamRange_mem (show b ∈ streamRange s' v.n v.stream by
+      rw [hseg]; exact List.mem_append_right _ hbm)).2.1
+  isplitr
+  · ipureintro
+    refine ⟨hD.ordered.2 r (by simp), fun hc y hy => ?_⟩
+    rw [hY]
+    unfold lastEvRevOr
+    cases hl : (eventsOf rcv).getLast? with
+    | none =>
+      simp only
+      rcases hc with hc | hc
+      · exact absurd (List.getLast?_eq_none_iff.1 hl) hc
+      · have := hge y hy; omega
+    | some x =>
+      simp only
+      exact hord x (List.mem_of_getLast? hl) y hy
+  iintro %habove
   rw [hseg2]
   rw [hseg]
   icases (certChain_append (C := etcdStepCert pfx) p₀ seg1 seg2).1 $$ Hch with ⟨-, #Hch2⟩
@@ -364,23 +488,15 @@ theorem storeW_chain (pfx : GoString) (R Y : w64) (rcv : List RespModel) (r : Re
     have hy : y ∈ r.events := by
       rw [← h2]; exact List.mem_flatten.2 ⟨b, hbm, by rw [hyb]; exact List.mem_cons_self⟩
     have hyr : batchRev b = y.rev := by rw [hyb]; rfl
-    obtain ⟨-, hge, -⟩ := streamRange_mem (show b ∈ streamRange (R + W64 1) v.n v.stream by
-      rw [hseg]; exact List.mem_append_right _ hbm)
-    rw [hY]
-    unfold lastEvRevOr
-    cases hl : (eventsOf rcv).getLast? with
-    | none => simp only; omega
-    | some x =>
-      simp only
-      rw [hyr]
-      exact hord x (List.mem_of_getLast? hl) y hy
+    rw [hyr]
+    exact habove y hy
 
 theorem Cache.applyStorage.wp_proof
     (wp_Apply : store.Apply.spec (GF := GF) (hG := hG)) :
     Cache.applyStorage.spec (GF := GF) (hG := hG) := by
-  intro c cf γr γd cap w γw R st
+  intro c cf γr γd cap w γw sw R st0
   wp_start as ⟨#Hc, #Hw, Hcons, Hwr, #HY, %Hpure⟩
-  obtain ⟨hsync, hR0, hR1⟩ := Hpure
+  obtain ⟨hsync, hs0, hsR, hsR'⟩ := Hpure
   ihave #Hc' := Hc
   iunfold isCacheFields at Hc'
   iNamed Hc'
@@ -393,15 +509,22 @@ theorem Cache.applyStorage.wp_proof
   wp_auto
   ihave HI : (∃ (st : StoreState) (rcv : List RespModel) (Y : w64),
       storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) st ∗ watcherConsumer γw rcv ∗
-      isEtcdKvs Y cf.pfx st.latest ∗ ⌜st.Synced ∧ sint.Z Y = lastEvRevOr rcv (sint.Z R)⌝ :
+      isEtcdKvs Y cf.pfx st.latest ∗
+      ⌜st.Synced ∧ sint.Z Y = lastEvRevOr rcv (sint.Z R) ∧ sint.Z R ≤ sint.Z Y ∧
+        (eventsOf rcv ≠ [] ∨ sint.Z sw = sint.Z R + 1 ∨ sint.Z Y ≤ sint.Z st.latestRev) ∧
+        (sint.Z R ≤ sint.Z st0.latestRev → sint.Z Y ≤ sint.Z st.latestRev)⌝ :
       IProp GF) $$ [Hcons Hwr]
-  · iexists st, [], R
+  · iexists st0, [], R
     iframe
     iframe #
-    ipureintro; exact ⟨hsync, rfl⟩
+    ipureintro
+    refine ⟨hsync, rfl, Int.le_refl _, ?_, id⟩
+    rcases hsR' with h | h
+    · exact Or.inr (Or.inl h)
+    · exact Or.inr (Or.inr h)
   wp_for HI
   icases HI with ⟨Hwr, Hcons, #HYc, %Hinv⟩
-  obtain ⟨hsyncc, hYc⟩ := Hinv
+  obtain ⟨hsyncc, hYc, hRY, hcase, hlat⟩ := Hinv
   wp_apply HDone as %ch1 %γ1 #Hdone
   wp_apply_core chan.wp_select_blocking
   iapply BigAndL.bigAndL_cons.2
@@ -419,7 +542,11 @@ theorem Cache.applyStorage.wp_proof
     wp_for_post
     iapply HΦ
     iexists st
-    iexact Hwr
+    iframe Hwr
+    iintro -
+    iexists Y
+    iframe HYc
+    ipureintro; exact ⟨hsyncc, hRY, hlat⟩
   iapply BigAndL.bigAndL_cons.2
   isplit
   · -- `resp, ok := <-storeW.respCh`
@@ -440,21 +567,54 @@ theorem Cache.applyStorage.wp_proof
       wp_for_post
       iapply HΦ
       iexists st
-      iexact Hwr
+      iframe Hwr
+      iintro -
+      iexists Y
+      iframe HYc
+      ipureintro; exact ⟨hsyncc, hRY, hlat⟩
     | true =>
       simp only [↓reduceIte]
       icases Hres with ⟨%r, #Hsent, Hcons, #Hpub⟩
-      have hpub : (demuxPub (etcdStepCert (GF := GF) cf.pfx) none (R + W64 1)).pub =
-          demuxPubBody (etcdStepCert cf.pfx) none (R + W64 1) := rfl
+      have hpub : (demuxPub (etcdStepCert (GF := GF) cf.pfx) none sw).pub =
+          demuxPubBody (etcdStepCert cf.pfx) none sw := rfl
       simp only [hpub]
-      icases storeW_chain cf.pfx R Y rcv r ⟨hR0, hR1⟩ hYc $$ Hpub with ⟨%Hsorted, #Hchain⟩
-      icases applyResp_certs cf.pfx cf.scap st r Y $$ [$HYc $Hchain] with ⟨#Hsnaps, Hlat⟩
+      icases storeW_chain cf.pfx sw R Y rcv r hs0 hsR hYc $$ Hpub with ⟨%Hsorted, Hchain⟩
+      obtain ⟨hsorted, habove0⟩ := Hsorted
       iunfold respSent at Hsent
       icases Hsent with ⟨#Hresp, -⟩
+      by_cases habove : ∀ e ∈ r.events, sint.Z Y < sint.Z e.rev
+      rotate_left
+      · -- an event at or below `Y`: `Apply` rejects the response
+        have hYl : sint.Z Y ≤ sint.Z st.latestRev := by
+          rcases hcase with h | h | h
+          · exact absurd (habove0 (Or.inl h)) habove
+          · exact absurd (habove0 (Or.inr h)) habove
+          · exact h
+        have hstale : ∃ e ∈ r.events, sint.Z e.rev ≤ sint.Z Y := by
+          refine Classical.byContradiction fun hn => habove fun e he => ?_
+          exact Classical.byContradiction fun h' => hn ⟨e, he, by omega⟩
+        obtain ⟨hsn, hfail⟩ := applyResp_stale cf.scap st r Y hstale hYl
+        wp_auto
+        wp_apply wp_Apply cf.store cf.γs cf.scap (etcdCert cf.pfx) st resp r
+          $$ [$HisStore $Hwr $Hresp] as %err ⟨Hwr, -, %Herr⟩
+        · isplitr
+          · ipureintro; exact hsorted
+          rw [hsn]
+          unfold snapCerts; imodintro; iintro %x %hx; simp at hx
+        rw [hfail] at Herr
+        obtain ⟨e, rfl⟩ := Herr
+        wp_auto
+        wp_for_post
+        iapply HΦ
+        iexists _
+        iframe Hwr
+        iintro %h; cases h
+      ihave #Hch := Hchain $$ %habove
+      icases applyResp_certs cf.pfx cf.scap st r Y $$ [$HYc $Hch] with ⟨#Hsnaps, Hlat⟩
       wp_auto
       wp_apply wp_Apply cf.store cf.γs cf.scap (etcdCert cf.pfx) st resp r
         $$ [$HisStore $Hwr $Hresp $Hsnaps] as %err ⟨Hwr, -, %Herr⟩
-      · ipureintro; exact Hsorted
+      · ipureintro; exact hsorted
       cases hok : (applyResp cf.scap st r).2 with
       | false =>
         rw [hok] at Herr
@@ -463,12 +623,14 @@ theorem Cache.applyStorage.wp_proof
         wp_for_post
         iapply HΦ
         iexists _
-        iexact Hwr
+        iframe Hwr
+        iintro %h; cases h
       | true =>
         rw [hok] at Herr
         subst Herr
         ihave #HY' := Hlat $$ []
         · ipureintro; rfl
+        obtain ⟨hmono, hlast⟩ := applyResp_rev cf.scap st r hok
         wp_auto
         wp_for_post
         iframe
@@ -476,7 +638,24 @@ theorem Cache.applyStorage.wp_proof
         iframe
         iframe #
         ipureintro
-        exact ⟨applyResp_synced _ _ _ hsyncc hok, (lastEvRevOr_snoc rcv r _ Y hYc).symm⟩
+        refine ⟨applyResp_synced _ _ _ hsyncc hok, (lastEvRevOr_snoc rcv r _ Y hYc).symm, ?_, ?_, ?_⟩
+        · by_cases he : r.events = []
+          · rw [he]; exact hRY
+          · unfold lastRevW
+            cases hl : r.events.getLast? with
+            | none => exact absurd (List.getLast?_eq_none_iff.1 hl) he
+            | some e => have := habove e (List.mem_of_getLast? hl); simp only; omega
+        · by_cases he : r.events = []
+          · rw [he]
+            rcases hcase with h | h | h
+            · left; rw [eventsOf_append]; simpa [he] using h
+            · right; left; exact h
+            · right; right; simp only [lastRevW, List.getLast?_nil]; omega
+          · left; rw [eventsOf_append]; simp [he]
+        · intro h0
+          by_cases he : r.events = []
+          · rw [he]; simp only [lastRevW, List.getLast?_nil]; have := hlat h0; omega
+          · rw [hlast he, lastRevW_ne_nil r.events Y st.latestRev he]; exact Int.le_refl _
   iapply BigAndL.bigAndL_nil.2
   itrivial
 

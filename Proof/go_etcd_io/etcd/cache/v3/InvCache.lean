@@ -255,6 +255,37 @@ def WriterOk (pfx : GoString) (c : DemuxCore) : Prop :=
 def CursorOk (pfx : GoString) (c : DemuxCore) (cursor : w64) : Prop :=
   c.minRev ≠ W64 0 ∧ c.base ≤ sint.Z cursor ∧ TailOk pfx c.lastRev cursor
 
+/-- After `Init(rev)` the stream continues a watch at `rev - 1`, and the writer's invariant
+holds. -/
+theorem initCore_ok (pfx : GoString) (cap : Nat) (c : DemuxCore) (rev : w64)
+    (hinv : DemuxInv cap c) (hw : WriterOk pfx c) (hrev : 0 < sint.Z rev) :
+    CursorOk pfx (initCore c rev).1 (rev - W64 1) ∧ WriterOk pfx (initCore c rev).1 := by
+  have hr1 : sint.Z (rev - W64 1) = sint.Z rev - 1 := by word
+  have hne : rev ≠ W64 0 := by intro h; subst h; simp at hrev
+  unfold initCore
+  rw [ite_eq_right hne]
+  by_cases h0 : c.minRev = W64 0
+  · rw [ite_eq_left h0]
+    obtain ⟨hs, hm⟩ := hinv.uninit h0
+    refine ⟨⟨hne, ?_, Or.inl ?_⟩, fun h => absurd hm h⟩
+    · show sint.Z rev - 1 ≤ sint.Z (rev - W64 1); omega
+    · unfold DemuxCore.lastRev; rw [hs]; show sint.Z (rev - W64 1) ≤ sint.Z rev - 1; omega
+  rw [ite_eq_right h0]
+  have hinit : CursorOk pfx { DemuxCore.init with minRev := rev, base := sint.Z rev - 1 }
+      (rev - W64 1) ∧ WriterOk pfx { DemuxCore.init with minRev := rev, base := sint.Z rev - 1 } := by
+    refine ⟨⟨hne, ?_, Or.inl ?_⟩, fun h => absurd rfl h⟩
+    · show sint.Z rev - 1 ≤ sint.Z (rev - W64 1); omega
+    · show sint.Z (rev - W64 1) ≤ sint.Z rev - 1; omega
+  by_cases h2 : c.maxRev = W64 0
+  · rw [ite_eq_left h2]; exact hinit
+  rw [ite_eq_right h2]
+  by_cases h3 : rev = c.maxRev + W64 1
+  · rw [ite_eq_left h3]
+    have hk : rev - W64 1 = c.maxRev := by rw [h3]; bv_omega
+    rw [hk]
+    exact ⟨⟨h0, hinv.base_maxRev h2, hw h2⟩, hw⟩
+  · rw [ite_eq_right h3]; exact hinit
+
 /-- The revision of the last event of a log of responses, `dflt` if it has none: where the store
 watcher's consumer is in the stream. -/
 def lastEvRevOr (L : List RespModel) (dflt : Int) : Int :=
@@ -497,6 +528,15 @@ theorem cacheWatch_delivery_compacted (pfx key rangeEnd : GoString) (sr n : w64)
   refine ⟨by rcases hp₀ with h0 | h0; exact absurd h0 h; exact h0, fun b hb => ?_⟩
   exact (streamRange_mem hb).2.1
 
+/-- The demux writer's state satisfies the demux's invariant. -/
+theorem demuxWriter_inv (d : Loc) (γd : DemuxNames) (cap : Nat) (C : DemuxCert GF)
+    (c : DemuxCore) :
+    demuxWriter d γd cap C c ⊢ demuxWriter d γd cap C c ∗ ⌜DemuxInv cap c⌝ := by
+  unfold demuxWriter
+  iintro ⟨Hg, Hh, %Hi⟩
+  iframe
+  ipureintro; exact ⟨Hi, Hi⟩
+
 end watchdefs
 
 section cache
@@ -574,6 +614,15 @@ instance validateResult_persistent (u : Bool) (pfx key rangeEnd : GoString) (f :
 /-- A reader's token of the cache's store, with the cache's certificate (`etcdCert`). -/
 def cacheReader (cf : CacheFields) : IProp GF :=
   storeReader cf.store cf.γs cf.scap (etcdCert cf.pfx)
+
+/-- etcd's **linearizability** for the cache's prefix gets (the watch loop's premise): once the
+store has reached revision `lo` (its revisions come from etcd: a get's, or the watch stream's), a
+prefix get returns at least `lo` (`isEtcdKVFrom`), for every `lo` the store reaches. -/
+def isEtcdKVLin (cf : CacheFields) : IProp GF :=
+  iprop(□ ∀ lo : w64, storeRevLb cf.γs lo -∗ isEtcdKVFrom cf.kv cf.pfx lo)
+
+instance isEtcdKVLin_persistent (cf : CacheFields) : Persistent (isEtcdKVLin (GF := GF) cf) := by
+  unfold isEtcdKVLin; infer_instance
 
 /-- What `waitTillRevision(ctx, rev)` returns: `nil` once the store's latest revision is at
 least `rev`; the value of `ErrCacheTimeout`; or the context's (non-nil) error once it is

@@ -898,3 +898,51 @@ against etcd. `InvEtcd.lean`, `InvDemux.lean`, `InvWatcher.lean`, `InvCache.lean
   the watcher, or one closed by a compaction followed by its cancel response, or the single
   cancel of a rejected request. `cacheWatch_delivery` turns a published log into the statement
   about etcd.
+
+## The watch loop is verified against the fixed code
+
+**2026-10-09 · accepted**
+
+`Cache.watch`, `getWatch` and `getWatchLoop` are proved against etcd's cache with three fixes
+(fork branch `cache-ready-after-retry`, merged into `goose-lean` at `6ab61a1c7`), not against
+upstream's code, which has two findings (STATUS, "The watch loop and Cache.Watch"): (1) two
+writers of the store (an iteration's `applyStorage` goroutine was not waited for, so it could
+`Apply` concurrently with the next iteration's or the next `get`'s `Restore`; harmless only by
+`validateRevisions` and etcd's linearizability), and (2) the cache could stay not ready after a
+retry (`Init` purged the demux after the store watcher was registered, under a `Once` that never
+ran again). The fixes: `Init(rev)` once, before the loop, with the `Once` only setting `ready`
+(`64313a1f8`); the upstream watch in a child context canceled when `watchEvents` returns
+(`21ac13e0d`); `watch` waits for `applyStorage` after `Unregister` by receiving from `applyErr`,
+returns its error if `watchEvents` did not, and the goroutine no longer joins `c.waitGroup`
+(`a7de41a72`; the wait makes it redundant, and an `Add` per retry whose `Done` is not awaited
+would leave the wait group's `int32` counter unbounded, so the loop could not be proved with
+`cacheWgInv`'s finite budget).
+
+- **One writer, a token.** The store's writer (`storeWriter`) threads through `getWatchLoop`,
+  `get`'s `Restore` and `watch`; each iteration hands it to its `applyStorage` goroutine and gets
+  it back through `applyErr`, modelled as a **handoff** channel (`Handoff.lean`, a generic idiom:
+  the producer sends at most one value then closes, handing over `P v ∗ Ws` with the value or
+  `Wc` with a close that follows none; the consumer takes it at its first receive, which may be
+  `watchEvents`'s `select` or the wait, and may receive the close again). With the error the
+  goroutine hands over just the writer; with the close, the writer at a synced state whose
+  latest map is etcd's state at some revision (`watchWc`), which the next iteration's
+  `applyStorage` needs. *Rejected:* Perennial's SPSC idiom (its consumer token is consumed by the
+  receive of the close, but `watch` receives the close a second time after `watchEvents` did; and
+  its close resource is separate from a value's, so receiving the value would not give the
+  writer); a multi-writer store spec (the writer's state and latest tree in `store.mu`'s
+  invariant, `Apply`/`Restore` for any state, a cache-level invariant tying revisions to etcd's
+  linearizability): what the unfixed code would have needed, and a weaker statement of the
+  store than the single writer the fixed code has.
+- **`applyStorage`'s spec is generalized** to a store watcher starting at `s ≤ R + 1` (it was
+  `s = R + 1`) when `R` is at most the store's latest revision: every iteration registers its
+  watcher at the loop's first revision, so after the first the demux replays batches at or below
+  `R`, which `Apply` rejects (`applyResp_stale`); on `nil` it now returns the store's
+  certificate (`isEtcdKvs R'` of the latest map, `R ≤ R'`). The old statement is the case
+  `s = R + 1`.
+- **`watchEvents`'s spec** takes the demux initialized by the caller (`CursorOk` at `rev - 1`),
+  a `Once` with trivial resources (Perennial's `Once.wp_Do`; `OnceFrame` is no longer needed
+  here), and returns what it took from `applyErr`.
+- **etcd's linearizability** for `get`, a premise of `getWatchLoop`: `isEtcdKVLin cf` (for every
+  revision the store has reached, `storeRevLb`, a prefix get returns at least it). `isEtcdKVFrom`
+  also bounds the revision below `2 ^ 63 - 1`, as the watch contract does, so that `getWatch`'s
+  `rev + 1` does not overflow.

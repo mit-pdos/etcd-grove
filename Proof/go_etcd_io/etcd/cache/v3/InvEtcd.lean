@@ -538,7 +538,9 @@ instance isEtcdKV_persistent (kv : GoInterfaceOk) (pfx : GoString) :
 (`OpFull.isPrefixGet`), with moreover a header revision at least `lo`. etcd's `Get` is
 linearizable by default, so a get that starts after revision `lo` was observed returns at least
 `lo`; `isEtcdKV` relates no two calls, so this is not derivable from it. `Cache.get` takes it as a
-premise for the store's revision (`Restore` must not go back). -/
+premise for the store's revision (`Restore` must not go back). The revision is also below
+`2 ^ 63 - 1`, as in etcd's watch contract (`watchRespOk`): `getWatch` watches from the next
+revision, `r + 1`, which must not overflow. -/
 def isEtcdKVFrom (kv : GoInterfaceOk) (pfx : GoString) (lo : w64) : IProp GF :=
   iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (key : GoString)
       (sl : GoSlice) (gs : List (OpFull → OpFull)),
@@ -549,7 +551,8 @@ def isEtcdKVFrom (kv : GoInterfaceOk) (pfx : GoString) (lo : w64) : IProp GF :=
         (Val #key)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         kvGetResult pfx (opGetModel key gs) resp err ∗
-        (⌜err = GoInterface.nil⌝ -∗ ∃ r : w64, getRespRev resp r ∗ ⌜sint.Z lo ≤ sint.Z r⌝) }})
+        (⌜err = GoInterface.nil⌝ -∗ ∃ r : w64, getRespRev resp r ∗
+          ⌜sint.Z lo ≤ sint.Z r ∧ sint.Z r < 2 ^ 63 - 1⌝) }})
 
 instance isEtcdKVFrom_persistent (kv : GoInterfaceOk) (pfx : GoString) (lo : w64) :
     Persistent (isEtcdKVFrom (GF := GF) kv pfx lo) := by
