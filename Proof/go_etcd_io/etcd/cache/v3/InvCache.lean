@@ -20,9 +20,9 @@ above every key with the prefix; `[0]` if there is none).
 **`clientv3.Op`.** An `Op` is a struct value; `OpModel` is what the cache's helpers read of
 it through its getters, `opAt op o` relates them (the range end is a read-only byte slice).
 
-**The `Cache`'s fields.** `isCacheFields c cf γr γd cap` is a *partial* predicate: the
-fields `prefix`, `cfg`, `ready` and `demux`, read-only, with `ready`'s and `demux`'s
-persistent predicates. The `Cache` stage extends it (store, watcher, wait group, ...).
+**The `Cache`'s fields.** `isCacheFields c cf γr γd cap` is the `Cache` predicate: every
+field (but the wait group's state, under `cacheWgInv`), read-only, with the persistent
+predicates of the components (`newCache` establishes it, `InvNew.lean`).
 -/
 module
 
@@ -176,6 +176,10 @@ structure CacheFields [FfiSyntax] where
   γwb : GName
   /-- the wait group's running tokens (`cacheWgInv`) -/
   γwr : GName
+  /-- the cancel function of the internal context (`stop`) -/
+  stop : GoFunc
+  /-- the "open" token (`cacheOpen`): `Watch` needs a fraction, `Close` all of it -/
+  γop : GName
 
 /-! ## The watch loop and `Cache.Watch`: the cache's other fields -/
 
@@ -190,6 +194,10 @@ abbrev cacheICtxAddr (c : Loc) : Loc := structFieldRef Cache go!"internalCtx" c
 abbrev cacheClockAddr (c : Loc) : Loc := structFieldRef Cache go!"clock" c
 /-- `&c.waitGroup` -/
 abbrev cacheWgAddr (c : Loc) : Loc := structFieldRef Cache go!"waitGroup" c
+/-- `&c.stop` -/
+abbrev cacheStopAddr (c : Loc) : Loc := structFieldRef Cache go!"stop" c
+/-- `&r.timer` of a `*realTimer`. -/
+abbrev realTimerTimerAddr (r : Loc) : Loc := structFieldRef realTimer go!"timer" r
 
 end addrs2
 
@@ -211,7 +219,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- `t` is a `Timer` (`cache/clock.go`; the trust boundary for the clock, a definition like
-`isLocker`, to be instantiated by `realTimer` at the final stage): `Chan()` returns a channel from
+`isLocker`, instantiated by `realTimer`: `realClock.NewTimer`'s spec): `Chan()` returns a channel from
 which a receive yields some time (a bag of times, `isChanBag`); `Reset(d)` and `Stop()` return a
 bool, with no logical effect. -/
 def isTimer (t : GoInterfaceOk) : IProp GF :=
@@ -233,6 +241,14 @@ def isClock (clk : GoInterfaceOk) : IProp GF :=
 
 instance isClock_persistent (clk : GoInterfaceOk) : Persistent (isClock (GF := GF) clk) := by
   unfold isClock; infer_instance
+
+/-- `r` is a `*realTimer` (`cache/clock.go`, persistent): its `timer` is, for good, a `*time.Timer`
+made by `time.NewTimer` (Perennial's `time.isTimer`, the trust boundary of the timers). -/
+def isRealTimer (r : Loc) : IProp GF :=
+  iprop(∃ (t ch : Loc) (γ : ChanNames), realTimerTimerAddr r ↦□ t ∗ time.isTimer t ch γ)
+
+instance isRealTimer_persistent (r : Loc) : Persistent (isRealTimer (GF := GF) r) := by
+  unfold isRealTimer; infer_instance
 
 end clock
 
@@ -308,22 +324,36 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- The lock invariant of a `conditionalProgressRequestor`'s `mux`: the waiter count and the
-stopped flag (`run`'s loop, out of scope here, reads both under the lock). -/
+stopped flag (`run`'s loop reads both under the lock, its goroutine sets `stopped`). -/
 def prLockInv (p : Loc) : IProp GF :=
   iprop(∃ (w : w32) (b : Bool),
     structFieldRef conditionalProgressRequestor go!"waiting" p ↦ w ∗
     structFieldRef conditionalProgressRequestor go!"stopped" p ↦ b)
 
 /-- `p` is a `*conditionalProgressRequestor` (persistent): its `mux` guards `prLockInv`, its
-`cond` is a condition variable. `add`/`remove` change the waiter count under the lock. -/
+`cond` is a condition variable on `&p.mux` (`sync.NewCond(&p.mux)`). `add`/`remove` change the
+waiter count under the lock. -/
 def isProgressRequestor (p : Loc) : IProp GF :=
-  iprop(∃ (cp : Loc) (lk : GoInterfaceOk),
-    structFieldRef conditionalProgressRequestor go!"cond" p ↦□ cp ∗ sync.isCond cp lk ∗
+  iprop(∃ cp : Loc,
+    structFieldRef conditionalProgressRequestor go!"cond" p ↦□ cp ∗
+    sync.isCond cp (interface.mk (go.GoType.PointerType sync.Mutex.ty) #(prMuxAddr p)) ∗
     sync.isMutex (prMuxAddr p) (prLockInv p))
 
 instance isProgressRequestor_persistent (p : Loc) :
     Persistent (isProgressRequestor (GF := GF) p) := by
   unfold isProgressRequestor; infer_instance
+
+/-- The fields of a `*conditionalProgressRequestor` that only `run` reads (persistent): the
+`notifier` (`n`), `requestInterval` (`ri`) and `clock` (`clk`), fixed by
+`newConditionalProgressRequestor`. -/
+def isPrRun (p : Loc) (n clk : GoInterface) (ri : time.Duration) : IProp GF :=
+  iprop(structFieldRef conditionalProgressRequestor go!"notifier" p ↦□ n ∗
+    structFieldRef conditionalProgressRequestor go!"requestInterval" p ↦□ ri ∗
+    structFieldRef conditionalProgressRequestor go!"clock" p ↦□ clk)
+
+instance isPrRun_persistent (p : Loc) (n clk : GoInterface) (ri : time.Duration) :
+    Persistent (isPrRun (GF := GF) p n clk ri) := by
+  unfold isPrRun; infer_instance
 
 end prdefs
 
@@ -336,20 +366,145 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- The `Cache`'s wait group's counter (an invariant; `Wait` is `Close`'s, out of scope, so there
-are no waiters): `ctr` goroutines running, each with a running token (`γwr`, for its `Done`) and
-each having spent a budget token (`γwb`, of which there are `cacheWgBudget` in all: the counter
-cannot overflow). -/
+/-- The "open" token of the cache, a fraction `q` of it: `Watch` (which may `Add(1)` to the wait
+group from zero) needs a fraction, `Close` (which waits on it) all of it, so the two never run at
+once (Perennial's `WaitGroup` spec forbids an `Add` from zero while a waiter is registered). -/
+def cacheOpen (cf : CacheFields) (q : Qp) : IProp GF := ghostVar cf.γop q ()
+
+/-- The `Cache`'s wait group's counter (an invariant): `ctr` goroutines running, each with a
+running token (`γwr`, for its `Done`) and each having spent a budget token (`γwb`, of which there
+are `cacheWgBudget` in all: the counter cannot overflow); and at most one waiter (`Close`), which
+while registered has deposited the whole "open" token (`cacheOpen`), so that no `Watch` adds to
+the wait group meanwhile. -/
 def cacheWgInv (cf : CacheFields) : IProp GF :=
-  iprop(∃ ctr : w32, sync.ownWaitGroup cf.γwg ctr ∗ sync.ownWaitGroupWaiters cf.γwg 0 ∗
+  iprop(∃ (ctr : w32) (w : Nat), sync.ownWaitGroup cf.γwg ctr ∗ sync.ownWaitGroupWaiters cf.γwg w ∗
     ownTokAuth cf.γwr (sint.nat ctr) ∗ ownToks cf.γwb (sint.nat ctr) ∗
-    ownTokAuth cf.γwb cacheWgBudget ∗ ⌜0 ≤ sint.Z ctr⌝)
+    ownTokAuth cf.γwb cacheWgBudget ∗ ⌜0 ≤ sint.Z ctr⌝ ∗
+    (⌜w = 0⌝ ∨ (⌜w = 1⌝ ∗ cacheOpen cf 1)))
+
+instance cacheWgInv_timeless (cf : CacheFields) : Timeless (cacheWgInv (GF := GF) cf) := by
+  unfold cacheWgInv cacheOpen; infer_instance
 
 /-- The right to start one goroutine on the cache's wait group (`Add(1)`): a budget token. -/
 def cacheWgSlot (cf : CacheFields) : IProp GF := ownToks cf.γwb 1
 
 /-- A goroutine started on the cache's wait group, before its `Done()`. -/
 def cacheWgRunning (cf : CacheFields) : IProp GF := ownToks cf.γwr 1
+
+theorem cacheWg_mask : (↑cacheWgWGN : CoPset) ⊆ ⊤ \ ↑cacheWgN :=
+  sync.wg_mask_ndot_ne nroot "cacheWaitGroup" "cacheWgCounter" (by decide)
+
+/-- The "open" token's fractions add up to at most `1`. -/
+theorem cacheOpen_excl (cf : CacheFields) (q : Qp) :
+    cacheOpen (GF := GF) cf q ∗ cacheOpen cf 1 ⊢ False := by
+  unfold cacheOpen
+  iintro ⟨H1, H2⟩
+  icombine H1 H2 gives % ⟨Hv, -⟩
+  exfalso
+  have h1 := Qp.le_iff.1 Hv
+  have h2 := q.2
+  simp only [Qp.val_add, Qp.val_one] at h1
+  grind
+
+/-- `c.waitGroup.Add(1)`, spending a goroutine slot (`cacheWgSlot`) for a running token, with a
+fraction of the "open" token (no `Close` waits meanwhile). -/
+theorem wp_cacheWg_Add (c : Loc) (cf : CacheFields) (q : Qp) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ sync.isWaitGroup (cacheWgAddr c) cf.γwg cacheWgWGN ∗
+        inv cacheWgN (cacheWgInv cf) ∗ cacheWgSlot cf ∗ cacheOpen cf q }}
+      (App (Val (cacheWgAddr c @!! go.GoType.PointerType sync.WaitGroup.ty @!! go!"Add")) (Val #(W64 1)))
+    {{ RET #(); cacheWgRunning cf ∗ cacheOpen cf q }} := by
+  iintro %Φ ⟨#Hsync, #Hwg, #Hinv, Hslot, Hopen⟩ HΦ
+  iapply sync.WaitGroup.wp_Add (cacheWgAddr c) (W64 1) cf.γwg cacheWgWGN $$ [] [Hslot Hopen HΦ]
+  · iframe #
+  iinv Hinv with Hi Hclose
+  iapply fupd_mask_intro cacheWg_mask
+  iintro Hmask
+  inext
+  iunfold cacheWgInv at Hi
+  icases Hi with ⟨%ctr, %wn, Hwgo, Hwt, Hrun, Hbud, Hbauth, %Hctr, Hwn⟩
+  icases Hwn with (%Hw0 | ⟨-, Hop1⟩)
+  rotate_left
+  · iexfalso
+    iapply cacheOpen_excl cf q $$ [$Hopen $Hop1]
+  subst Hw0
+  unfold cacheWgSlot
+  ihave Hbud' := ownToks_add_2 1 (sint.nat ctr) cf.γwb $$ [Hbud Hslot]
+  · iframe
+  icombine Hbauth Hbud' gives %Hle
+  iexists ctr
+  iframe Hwgo
+  have h1 : sint.Z (W32 (sint.Z (W64 1))) = 1 := by decide
+  have hc : ((sint.nat ctr : Nat) : Int) = sint.Z ctr := Int.toNat_of_nonneg Hctr
+  have hle : sint.Z ctr + 1 ≤ 2 ^ 31 - 1 := by
+    unfold cacheWgBudget at Hle; omega
+  have hn : sint.nat (ctr + W32 (sint.Z (W64 1))) = sint.nat ctr + 1 := by
+    rw [show W32 (sint.Z (W64 1)) = W32 1 from rfl]; word
+  isplitr
+  · ipureintro; rw [h1]; omega
+  iright
+  iframe Hwt
+  iintro Hwt Hwgo
+  imod Hmask with -
+  imod ownTokAuth_S cf.γwr (sint.nat ctr) $$ Hrun with ⟨Hrun, Hrtok⟩
+  imod Hclose $$ [Hwgo Hwt Hrun Hbud' Hbauth] with -
+  · inext
+    unfold cacheWgInv
+    iexists ctr + W32 (sint.Z (W64 1)), 0
+    rw [hn]
+    iframe
+    isplitr
+    · ipureintro
+      have : sint.Z (ctr + W32 (sint.Z (W64 1))) = sint.Z ctr + 1 := by
+        rw [show W32 (sint.Z (W64 1)) = W32 1 from rfl]; word
+      omega
+    ileft; ipureintro; rfl
+  imodintro
+  iapply HΦ
+  unfold cacheWgRunning
+  iframe
+
+/-- `c.waitGroup.Done()`, with a running token. -/
+theorem wp_cacheWg_Done (c : Loc) (cf : CacheFields) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ sync.isWaitGroup (cacheWgAddr c) cf.γwg cacheWgWGN ∗
+        inv cacheWgN (cacheWgInv cf) ∗ cacheWgRunning cf }}
+      (App (Val (cacheWgAddr c @!! go.GoType.PointerType sync.WaitGroup.ty @!! go!"Done")) (Val #()))
+    {{ RET #(); True }} := by
+  iintro %Φ ⟨#Hsync, #Hwg, #Hinv, Hrtok⟩ HΦ
+  iapply sync.WaitGroup.wp_Done (cacheWgAddr c) cf.γwg cacheWgWGN $$ [] [Hrtok HΦ]
+  · iframe #
+  iinv Hinv with Hi Hclose
+  iapply fupd_mask_intro cacheWg_mask
+  iintro Hmask
+  inext
+  iunfold cacheWgInv at Hi
+  icases Hi with ⟨%ctr, %wn, Hwgo, Hwt, Hrun, Hbud, Hbauth, %Hctr, Hwn⟩
+  unfold cacheWgRunning
+  icombine Hrun Hrtok gives %Hle
+  have hc : ((sint.nat ctr : Nat) : Int) = sint.Z ctr := Int.toNat_of_nonneg Hctr
+  have h1 : 1 ≤ sint.Z ctr := by omega
+  have hn : sint.nat (ctr - W32 1) = sint.nat ctr - 1 := by word
+  have hz : sint.Z (ctr - W32 1) = sint.Z ctr - 1 := by word
+  have hb : sint.Z ctr < 2 ^ 31 := by word
+  iexists ctr
+  iframe Hwgo
+  isplitr
+  · ipureintro; omega
+  iintro Hwgo
+  imod Hmask with -
+  rw [show sint.nat ctr = (sint.nat ctr - 1) + 1 by omega]
+  imod ownTokAuth_delete_S cf.γwr (sint.nat ctr - 1) $$ Hrun Hrtok with Hrun
+  icases ownToks_add_1 1 (sint.nat ctr - 1) cf.γwb $$ Hbud with ⟨Hbud, -⟩
+  imod Hclose $$ [Hwgo Hwt Hrun Hbud Hbauth Hwn] with -
+  · inext
+    unfold cacheWgInv
+    iexists ctr - W32 1, wn
+    rw [hn]
+    iframe
+    ipureintro
+    omega
+  imodintro
+  iapply HΦ
+  itrivial
 
 /-- The demux's writer for the cache (`etcdStepCert`), with its invariant across watches. -/
 def cacheWriter (cf : CacheFields) (γd : DemuxNames) (cap : Nat) (c : DemuxCore) : IProp GF :=
@@ -546,12 +701,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- Part of the `Cache` predicate (persistent): `prefix`, `cfg`, `ready`, `demux`, `store`, `kv`
-and `progressRequestor` point for good to `cf`'s values, `cf.ready` is a `ready` (ghost names
-`γr`), `cf.demux` a demux (ghost names `γd`, history capacity `cap`), `cf.store` a store (ghost
-names `cf.γs`, history capacity `cf.scap`), `cf.kv` a client of etcd for the prefix
-(`isEtcdKV`), and the progress requestor a `*conditionalProgressRequestor`. The `Cache` stage
-extends it with the other fields (`watcher`, `waitGroup`, ...). -/
+/-- The `Cache` predicate (persistent): every field of the `Cache` but the wait group's state
+points for good to `cf`'s values; `cf.ready` is a `ready` (ghost names `γr`), `cf.demux` a demux
+(ghost names `γd`, history capacity `cap`), `cf.store` a store (ghost names `cf.γs`, history
+capacity `cf.scap`), `cf.kv` a client of etcd for the prefix (`isEtcdKV`), `cf.watcher` its
+watcher (`isEtcdWatcher`), the progress requestor a `*conditionalProgressRequestor`, the internal
+context a context, `cf.clock` a clock, `cf.stop` the internal context's cancel function; the wait
+group is a `WaitGroup` with the counter invariant `cacheWgInv`; and the configuration's
+`PerWatcherBufferSize` is not negative (finding 5). -/
 def isCacheFields (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNames)
     (cap : Nat) : IProp GF :=
   iprop("#Hprefix" ∷ cachePrefixAddr c ↦□ cf.pfx ∗
@@ -575,6 +732,9 @@ def isCacheFields (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNa
     "#HisClock" ∷ isClock cf.clock ∗
     "#HisWg" ∷ sync.isWaitGroup (cacheWgAddr c) cf.γwg cacheWgWGN ∗
     "#HwgInv" ∷ inv cacheWgN (cacheWgInv cf) ∗
+    "#Hstop" ∷ cacheStopAddr c ↦□ cf.stop ∗
+    "#HisStop" ∷ □ (∀ Φ : val → IProp GF, □ (True : IProp GF) -∗ ▷ (True -∗ Φ #()) -∗
+      WP (App (Val #cf.stop) (Val #())) {{ Φ }}) ∗
     "%Hbuf" ∷ ⌜0 ≤ sint.Z cf.cfg.PerWatcherBufferSize'⌝)
 
 instance isCacheFields_persistent (c : Loc) (cf : CacheFields) (γr : ReadyNames)

@@ -657,6 +657,42 @@ instance isDemux_persistent (d : Loc) (γd : DemuxNames) (cap : Nat) (C : DemuxC
     Persistent (isDemux (GF := GF) d γd cap C) := by
   unfold isDemux; infer_instance
 
+/-- The caller's `sync.WaitGroup` at `wg`, as `NewDemux` uses it (persistent): `wg.Add(1)` turns
+a slot `Pslot` into a running token `Prun` (and gives back `Pret`), and `wg.Done()` consumes
+`Prun`. -/
+def wgSlotProtocol (wg : Loc) (Pslot Prun Pret : IProp GF) : IProp GF :=
+  iprop(□ ({{ Pslot }} (App (Val (wg @!! go.GoType.PointerType sync.WaitGroup.ty @!! go!"Add"))
+      (Val #(W64 1))) {{ RET #(); Prun ∗ Pret }}) ∗
+    □ ({{ Prun }} (App (Val (wg @!! go.GoType.PointerType sync.WaitGroup.ty @!! go!"Done"))
+      (Val #())) {{ RET #(); True }}))
+
+instance wgSlotProtocol_persistent (wg : Loc) (Pslot Prun Pret : IProp GF) :
+    Persistent (wgSlotProtocol wg Pslot Prun Pret) := by
+  unfold wgSlotProtocol; infer_instance
+
+theorem wp_wgSlot_Add (wg : Loc) (Pslot Prun Pret : IProp GF) :
+    {{ wgSlotProtocol wg Pslot Prun Pret ∗ Pslot }}
+      (App (Val (wg @!! go.GoType.PointerType sync.WaitGroup.ty @!! go!"Add")) (Val #(W64 1)))
+    {{ RET #(); Prun ∗ Pret }} := by
+  iintro %Φ ⟨#Hp, Hs⟩ HΦ
+  iunfold wgSlotProtocol at Hp
+  icases Hp with ⟨#HAdd, -⟩
+  iapply HAdd $$ Hs HΦ
+
+theorem wp_wgSlot_Done (wg : Loc) (Pslot Prun Pret : IProp GF) :
+    {{ wgSlotProtocol wg Pslot Prun Pret ∗ Prun }}
+      (App (Val (wg @!! go.GoType.PointerType sync.WaitGroup.ty @!! go!"Done")) (Val #()))
+    {{ RET #(); True }} := by
+  iintro %Φ ⟨#Hp, Hs⟩ HΦ
+  iunfold wgSlotProtocol at Hp
+  icases Hp with ⟨-, #HDone⟩
+  iapply HDone $$ Hs HΦ
+
+/-- A handle on the demux's notifier `d.resynced` (ghost names `γn`): one of the notifier's
+`RWMutex` tokens, which `resyncLoop` (`notify`) and `WaitForNextResync` (`wait`) need. -/
+def demuxResyncHandle (d : Loc) (γn : NotifierNames) : IProp GF :=
+  iprop(∃ n : Loc, demuxResyncedAddr d ↦□ n ∗ notifierHandle n γn)
+
 /-- One of the `RWMutex`'s tokens (`RLock` and `Lock` need one): every goroutine that calls
 the demux holds one. -/
 def demuxHandle (d : Loc) (γd : DemuxNames) (cap : Nat) (C : DemuxCert GF) : IProp GF :=

@@ -29,7 +29,7 @@ theorem conditionalProgressRequestor.add.wp_proof :
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   unfold isProgressRequestor
-  icases Hp with ⟨%cp, %lk, #Hcp, #Hcond, #Hmu⟩
+  icases Hp with ⟨%cp, #Hcp, #Hcond, #Hmu⟩
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
   unfold prLockInv
   icases Hinv with ⟨%w, %b, Hw, Hb⟩

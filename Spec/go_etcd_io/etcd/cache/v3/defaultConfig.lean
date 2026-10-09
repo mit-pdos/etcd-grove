@@ -3,7 +3,7 @@
 -/
 module
 
-public import Proof.go_etcd_io.etcd.cache.v3.InvCache
+public import Proof.go_etcd_io.etcd.cache.v3.InvConfig
 
 @[expose] public section
 
@@ -21,11 +21,11 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `defaultConfig()`: a `Config` (its values are not needed by its callers' specs). -/
+/-- `defaultConfig()`: the default configuration, `defaultConfigVal`. -/
 abbrev defaultConfig.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 }}
     (App (Val (@! defaultConfig)) (Val #()))
-  {{ (cfg : Config), RET #cfg; True }}
+  {{ RET #defaultConfigVal; True }}
 
 end spec
 

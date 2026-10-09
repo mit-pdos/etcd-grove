@@ -672,6 +672,20 @@ instance isEtcdWatcher_persistent (w : GoInterfaceOk) (pfx : GoString) :
     Persistent (isEtcdWatcher (GF := GF) w pfx) := by
   unfold isEtcdWatcher; infer_instance
 
+/-- **The client's `RequestProgress`** (`clientv3.Watcher`'s, through the cache's
+`progressNotifier` interface): `w.RequestProgress(ctx)` returns some error, with no logical effect.
+etcd's progress notification shows up on the watch streams, where it is already modelled (a
+progress response of `watchRespOk`). A definition, like `isEtcdWatcher`. -/
+def isEtcdProgressNotifier (w : GoInterfaceOk) : IProp GF :=
+  iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)),
+    {{ context.isContext ctx cs }}
+      (App (Val #(methods w.ty go!"RequestProgress" w.v)) (Val #(GoInterface.ok ctx)))
+    {{ (err : GoInterface), RET #err; True }})
+
+instance isEtcdProgressNotifier_persistent (w : GoInterfaceOk) :
+    Persistent (isEtcdProgressNotifier (GF := GF) w) := by
+  unfold isEtcdProgressNotifier; infer_instance
+
 /-- **Receiving** from a client watch channel (the atomic update of Perennial's channel specs,
 for a `select` case): with `ok`, a response `v` modelled by `r` satisfying etcd's watch contract
 from the consumer's position `cursor` to a new one `c'`; without, the channel was closed (and the

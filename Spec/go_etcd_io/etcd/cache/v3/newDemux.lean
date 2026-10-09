@@ -25,17 +25,21 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 registrations) with a history of capacity `historyWindowSize`, which must be in
 `(0, 2^61]` (`newRingBuffer`'s bound; Go's caller validates it). Returns the persistent
 `isDemux` (for any certificate `C` of the caller's choice: the stream starts empty), the
-writer's view, and the `RWMutex`'s other tokens. -/
+writer's view, the `RWMutex`'s other tokens, and the handles on its notifier `resynced` (ghost
+names `γn`, no notification yet). -/
 abbrev newDemux.spec : Prop :=
   ∀ (C : DemuxCert GF) (historyWindowSize : w64) (resyncInterval : time.Duration),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
       ⌜0 < sint.Z historyWindowSize ∧ sint.Z historyWindowSize ≤ 2 ^ 61⌝ }}
     (App (App (Val (@! newDemux)) (Val #historyWindowSize)) (Val #resyncInterval))
-  {{ (d : Loc) (γd : DemuxNames), RET #d;
+  {{ (d : Loc) (γd : DemuxNames) (γn : NotifierNames), RET #d;
       isDemux d γd (sint.nat historyWindowSize) C ∗
       demuxWriter d γd (sint.nat historyWindowSize) C DemuxCore.init ∗
-      [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 1) (),
-        demuxHandle d γd (sint.nat historyWindowSize) C }}
+      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 1) (),
+        demuxHandle d γd (sint.nat historyWindowSize) C) ∗
+      notifierLb γn 0 ∗
+      [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+        demuxResyncHandle d γn }}
 
 end spec
 

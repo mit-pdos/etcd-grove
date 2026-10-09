@@ -107,101 +107,6 @@ theorem validateErrorString_holds : validateErrorString (GF := GF) (hG := hG) :=
     · icases Hval with ⟨-, #Hp⟩
       iapply HKR $$ Hp
 
-theorem cacheWg_mask : (↑cacheWgWGN : CoPset) ⊆ ⊤ \ ↑cacheWgN :=
-  sync.wg_mask_ndot_ne nroot "cacheWaitGroup" "cacheWgCounter" (by decide)
-
-/-- `c.waitGroup.Add(1)`, spending a goroutine slot (`cacheWgSlot`) for a running token. -/
-theorem wp_cacheWg_Add (c : Loc) (cf : CacheFields) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ sync.isWaitGroup (cacheWgAddr c) cf.γwg cacheWgWGN ∗
-        inv cacheWgN (cacheWgInv cf) ∗ cacheWgSlot cf }}
-      (App (Val (cacheWgAddr c @!! go.GoType.PointerType sync.WaitGroup.ty @!! go!"Add")) (Val #(W64 1)))
-    {{ RET #(); cacheWgRunning cf }} := by
-  iintro %Φ ⟨#Hsync, #Hwg, #Hinv, Hslot⟩ HΦ
-  iapply sync.WaitGroup.wp_Add (cacheWgAddr c) (W64 1) cf.γwg cacheWgWGN $$ [] [Hslot HΦ]
-  · iframe #
-  iinv Hinv with Hi Hclose
-  iapply fupd_mask_intro cacheWg_mask
-  iintro Hmask
-  inext
-  iunfold cacheWgInv at Hi
-  icases Hi with ⟨%ctr, Hwgo, Hwt, Hrun, Hbud, Hbauth, %Hctr⟩
-  unfold cacheWgSlot
-  ihave Hbud' := ownToks_add_2 1 (sint.nat ctr) cf.γwb $$ [Hbud Hslot]
-  · iframe
-  icombine Hbauth Hbud' gives %Hle
-  iexists ctr
-  iframe Hwgo
-  have h1 : sint.Z (W32 (sint.Z (W64 1))) = 1 := by decide
-  have hc : ((sint.nat ctr : Nat) : Int) = sint.Z ctr := Int.toNat_of_nonneg Hctr
-  have hle : sint.Z ctr + 1 ≤ 2 ^ 31 - 1 := by
-    unfold cacheWgBudget at Hle; omega
-  have hn : sint.nat (ctr + W32 (sint.Z (W64 1))) = sint.nat ctr + 1 := by
-    rw [show W32 (sint.Z (W64 1)) = W32 1 from rfl]; word
-  isplitr
-  · ipureintro; rw [h1]; omega
-  iright
-  iframe Hwt
-  iintro Hwt Hwgo
-  imod Hmask with -
-  imod ownTokAuth_S cf.γwr (sint.nat ctr) $$ Hrun with ⟨Hrun, Hrtok⟩
-  imod Hclose $$ [Hwgo Hwt Hrun Hbud' Hbauth] with -
-  · inext
-    unfold cacheWgInv
-    iexists ctr + W32 (sint.Z (W64 1))
-    rw [hn]
-    iframe
-    ipureintro
-    have : sint.Z (ctr + W32 (sint.Z (W64 1))) = sint.Z ctr + 1 := by
-      rw [show W32 (sint.Z (W64 1)) = W32 1 from rfl]; word
-    omega
-  imodintro
-  iapply HΦ
-  unfold cacheWgRunning
-  iexact Hrtok
-
-/-- `c.waitGroup.Done()`, with a running token. -/
-theorem wp_cacheWg_Done (c : Loc) (cf : CacheFields) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ sync.isWaitGroup (cacheWgAddr c) cf.γwg cacheWgWGN ∗
-        inv cacheWgN (cacheWgInv cf) ∗ cacheWgRunning cf }}
-      (App (Val (cacheWgAddr c @!! go.GoType.PointerType sync.WaitGroup.ty @!! go!"Done")) (Val #()))
-    {{ RET #(); True }} := by
-  iintro %Φ ⟨#Hsync, #Hwg, #Hinv, Hrtok⟩ HΦ
-  iapply sync.WaitGroup.wp_Done (cacheWgAddr c) cf.γwg cacheWgWGN $$ [] [Hrtok HΦ]
-  · iframe #
-  iinv Hinv with Hi Hclose
-  iapply fupd_mask_intro cacheWg_mask
-  iintro Hmask
-  inext
-  iunfold cacheWgInv at Hi
-  icases Hi with ⟨%ctr, Hwgo, Hwt, Hrun, Hbud, Hbauth, %Hctr⟩
-  unfold cacheWgRunning
-  icombine Hrun Hrtok gives %Hle
-  have hc : ((sint.nat ctr : Nat) : Int) = sint.Z ctr := Int.toNat_of_nonneg Hctr
-  have h1 : 1 ≤ sint.Z ctr := by omega
-  have hn : sint.nat (ctr - W32 1) = sint.nat ctr - 1 := by word
-  have hz : sint.Z (ctr - W32 1) = sint.Z ctr - 1 := by word
-  have hb : sint.Z ctr < 2 ^ 31 := by word
-  iexists ctr
-  iframe Hwgo
-  isplitr
-  · ipureintro; omega
-  iintro Hwgo
-  imod Hmask with -
-  rw [show sint.nat ctr = (sint.nat ctr - 1) + 1 by omega]
-  imod ownTokAuth_delete_S cf.γwr (sint.nat ctr - 1) $$ Hrun Hrtok with Hrun
-  icases ownToks_add_1 1 (sint.nat ctr - 1) cf.γwb $$ Hbud with ⟨Hbud, -⟩
-  imod Hclose $$ [Hwgo Hwt Hrun Hbud Hbauth] with -
-  · inext
-    unfold cacheWgInv
-    iexists ctr - W32 1
-    rw [hn]
-    iframe
-    ipureintro
-    omega
-  imodintro
-  iapply HΦ
-  itrivial
-
 /-- The deferred calls of `Watch`'s goroutine (`c.demux.Unregister(w)`, `close(responseChan)`,
 `c.waitGroup.Done()`, and `progressTimer.Stop()` if there is a timer): run with the goroutine's
 running token, its demux token and registration, and the channel's producer. -/
@@ -259,8 +164,8 @@ theorem Cache.Watch.wp_proof
     (wp_BroadcastProgressTo : demux.BroadcastProgressTo.spec (GF := GF) (hG := hG))
     (wp_Unregister : demux.Unregister.spec (GF := GF) (hG := hG)) :
     Cache.Watch.spec (GF := GF) (hG := hG) := by
-  intro c cf γr γd cap ctx s key sl gs
-  wp_start as ⟨#Hc, #Hctx, #Hopts, %Hnp, Hslot⟩
+  intro c cf γr γd cap ctx s key sl gs q
+  wp_start as ⟨#Hc, #Hctx, #Hopts, %Hnp, Hslot, Hopen⟩
   ihave #Hcl : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -268,6 +173,7 @@ theorem Cache.Watch.wp_proof
   ihave #Hc' := Hc
   iunfold isCacheFields at Hc'
   iNamed Hc'
+  iclear Hstop HisStop
   imod monoNatLbOwn_0 (GF := GF) γr.epoch with #Hep0
   wp_auto
   wp_apply wp_WaitReady c cf γr γd cap 0 ctx s $$ [$Hc $Hctx] as %err Herr
@@ -293,6 +199,7 @@ theorem Cache.Watch.wp_proof
       iframe Hrc Hprod
     try wp_auto
     iapply HΦ
+    iframe Hopen
     iexists γ
     iframe Hrc Hcons
   subst Hnil
@@ -353,7 +260,7 @@ theorem Cache.Watch.wp_proof
       (some (keyPredForRange key of.base.rangeEnd)) of.base.rev
       $$ Hch [Hoc] with ⟨%γ, #Hrc, Hprod, Hauth, Hcons⟩
     · ileft; iexact Hoc
-    wp_apply wp_cacheWg_Add c cf $$ [$Hsync $HisWg $HwgInv $Hwgslot] as Hrtok
+    wp_apply wp_cacheWg_Add c cf q $$ [$Hsync $HisWg $HwgInv $Hwgslot $Hopen] as ⟨Hrtok, Hopen⟩
     ipersist c
     ipersist ctx
     ipersist op
@@ -715,6 +622,7 @@ theorem Cache.Watch.wp_proof
       iapply BigAndL.bigAndL_nil.2
       itrivial
     iapply HΦ
+    iframe Hopen
     iexists γ
     iframe Hrc Hcons
   obtain ⟨e, rfl⟩ : ∃ e, verr = GoInterface.ok e := by
@@ -773,6 +681,7 @@ theorem Cache.Watch.wp_proof
   · iunfold isCacheWatchChan at Hrc
     iframe Hrc Hprod
   iapply HΦ
+  iframe Hopen
   iexists γ
   iframe Hrc Hcons
 

@@ -71,7 +71,7 @@ theorem newDemux.wp_proof
     itrivial
   iNamed Hr
   wp_auto
-  wp_apply wp_newNotifier as %n %γn ⟨-, -⟩
+  wp_apply wp_newNotifier as %n %γn ⟨#Hlb0, Hnh⟩
   wp_alloc d as Hd
   iStructNamed Hd
   ipersist resyncInterval
@@ -119,7 +119,7 @@ theorem newDemux.wp_proof
     ⟨_, (Nat.succ_pred_eq_of_pos (by have := sync.actualMaxReaders_pos; omega)).symm⟩
   rw [hm, List.replicate_succ, Nat.add_sub_cancel]
   icases BigSepL.bigSepL_cons.1 $$ Htoks with ⟨Hw, Hrd⟩
-  iapply HΦ $$ %d %(DemuxNames.mk γc γw γr γv)
+  iapply HΦ $$ %d %(DemuxNames.mk γc γw γr γv) %γn
   isplitr
   · unfold isDemux
     iexists ri, n
@@ -131,8 +131,17 @@ theorem newDemux.wp_proof
   · unfold demuxWriter demuxHandle
     iframe
     ipureintro; exact Hinv0
-  unfold demuxHandle
-  iexact Hrd
+  isplitl [Hrd]
+  · unfold demuxHandle
+    iexact Hrd
+  iframe Hlb0
+  iapply BigSepL.bigSepL_impl $$ Hnh
+  imodintro
+  iintro %k %x %_ H
+  unfold demuxResyncHandle
+  iexists n
+  iframe
+  iframe #
 
 end proof
 

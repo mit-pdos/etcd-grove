@@ -53,7 +53,7 @@ theorem Cache.getWatchLoop.wp_proof
   ihave #Hctxi' := Hctxi
   iNamed Hctxi'
   try wp_auto
-  wp_apply wp_defaultConfig as %cfg -
+  wp_apply wp_defaultConfig
   try ipersist c
   try ipersist ctx
   try ipersist backoff

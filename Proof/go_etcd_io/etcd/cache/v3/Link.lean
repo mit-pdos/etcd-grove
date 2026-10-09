@@ -8,9 +8,11 @@ hand.
 -/
 module
 
+public import Proof.go_etcd_io.etcd.cache.v3.Cache__Close
 public import Proof.go_etcd_io.etcd.cache.v3.Cache__Get
 public import Proof.go_etcd_io.etcd.cache.v3.Cache__Ready
 public import Proof.go_etcd_io.etcd.cache.v3.Cache__RequestProgress
+public import Proof.go_etcd_io.etcd.cache.v3.Cache__WaitForNextResync
 public import Proof.go_etcd_io.etcd.cache.v3.Cache__WaitForRevision
 public import Proof.go_etcd_io.etcd.cache.v3.Cache__WaitReady
 public import Proof.go_etcd_io.etcd.cache.v3.Cache__Watch
@@ -31,6 +33,7 @@ public import Proof.go_etcd_io.etcd.client.v3.GetPrefixRangeEnd
 public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithFromKey
 public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithPrefix
 public import Proof.go_etcd_io.etcd.cache.v3.KeyPredForRange
+public import Proof.go_etcd_io.etcd.cache.v3.NewDemux
 public import Proof.go_etcd_io.etcd.client.v3.NewOp
 public import Proof.go_etcd_io.etcd.client.v3.OpGet
 public import Proof.go_etcd_io.etcd.client.v3.OpWatch
@@ -51,21 +54,33 @@ public import Proof.go_etcd_io.etcd.client.v3.Op__MinModRev
 public import Proof.go_etcd_io.etcd.client.v3.Op__RangeBytes
 public import Proof.go_etcd_io.etcd.client.v3.Op__Rev
 public import Proof.go_etcd_io.etcd.client.v3.Op__applyOpts
+public import Proof.go_etcd_io.etcd.cache.v3.Prefix__Match
 public import Proof.go_etcd_io.etcd.cache.v3.Range
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader__GetRevision
 public import Proof.go_etcd_io.etcd.client.v3.WatchResponse__Err
 public import Proof.go_etcd_io.etcd.client.v3.WatchResponse__IsProgressNotify
+public import Proof.go_etcd_io.etcd.cache.v3.WithBTreeDegree
 public import Proof.go_etcd_io.etcd.client.v3.WithCountOnly
 public import Proof.go_etcd_io.etcd.client.v3.WithCreatedNotify
 public import Proof.go_etcd_io.etcd.client.v3.WithFromKey
+public import Proof.go_etcd_io.etcd.cache.v3.WithGetTimeout
+public import Proof.go_etcd_io.etcd.cache.v3.WithHistoryWindowSize
+public import Proof.go_etcd_io.etcd.cache.v3.WithInitialBackoff
 public import Proof.go_etcd_io.etcd.client.v3.WithLimit
+public import Proof.go_etcd_io.etcd.cache.v3.WithMaxBackoff
+public import Proof.go_etcd_io.etcd.cache.v3.WithPerWatcherBufferSize
 public import Proof.go_etcd_io.etcd.client.v3.WithPrefix
 public import Proof.go_etcd_io.etcd.client.v3.WithProgressNotify
+public import Proof.go_etcd_io.etcd.cache.v3.WithProgressNotifyInterval
+public import Proof.go_etcd_io.etcd.cache.v3.WithProgressRequestInterval
 public import Proof.go_etcd_io.etcd.client.v3.WithRange
+public import Proof.go_etcd_io.etcd.cache.v3.WithResyncInterval
 public import Proof.go_etcd_io.etcd.client.v3.WithRev
 public import Proof.go_etcd_io.etcd.client.v3.WithSerializable
+public import Proof.go_etcd_io.etcd.cache.v3.WithWaitTimeout
 public import Proof.go_etcd_io.etcd.cache.v3.conditionalProgressRequestor__add
 public import Proof.go_etcd_io.etcd.cache.v3.conditionalProgressRequestor__remove
+public import Proof.go_etcd_io.etcd.cache.v3.conditionalProgressRequestor__run
 public import Proof.go_etcd_io.etcd.cache.v3.defaultConfig
 public import Proof.go_etcd_io.etcd.cache.v3.demux__Broadcast
 public import Proof.go_etcd_io.etcd.cache.v3.demux__BroadcastProgress
@@ -76,16 +91,20 @@ public import Proof.go_etcd_io.etcd.cache.v3.demux__LatestRev
 public import Proof.go_etcd_io.etcd.cache.v3.demux__Purge
 public import Proof.go_etcd_io.etcd.cache.v3.demux__Register
 public import Proof.go_etcd_io.etcd.cache.v3.demux__Unregister
+public import Proof.go_etcd_io.etcd.cache.v3.demux__WaitForNextResync
 public import Proof.go_etcd_io.etcd.cache.v3.demux__broadcastEventsLocked
 public import Proof.go_etcd_io.etcd.cache.v3.demux__broadcastLocked
 public import Proof.go_etcd_io.etcd.cache.v3.demux__broadcastProgressLocked
 public import Proof.go_etcd_io.etcd.cache.v3.demux__purge
 public import Proof.go_etcd_io.etcd.cache.v3.demux__resyncLaggingWatchers
+public import Proof.go_etcd_io.etcd.cache.v3.demux__resyncLoop
 public import Proof.go_etcd_io.etcd.cache.v3.demux__updateStoreLocked
 public import Proof.go_etcd_io.etcd.client.v3.getPrefix
 public import Proof.go_etcd_io.etcd.cache.v3.isPrefixScan
 public import Proof.go_etcd_io.etcd.cache.v3.kvItemLess
+public import Proof.go_etcd_io.etcd.cache.v3.newCache
 public import Proof.go_etcd_io.etcd.cache.v3.newClonedSnapshot
+public import Proof.go_etcd_io.etcd.cache.v3.newConditionalProgressRequestor
 public import Proof.go_etcd_io.etcd.cache.v3.newDemux
 public import Proof.go_etcd_io.etcd.cache.v3.newKVItem
 public import Proof.go_etcd_io.etcd.cache.v3.newNotifier
@@ -102,6 +121,10 @@ public import Proof.go_etcd_io.etcd.cache.v3.ready__Set
 public import Proof.go_etcd_io.etcd.cache.v3.ready__WaitNotReady
 public import Proof.go_etcd_io.etcd.cache.v3.ready__WaitReady
 public import Proof.go_etcd_io.etcd.cache.v3.ready__waitForState
+public import Proof.go_etcd_io.etcd.cache.v3.realClock__NewTimer
+public import Proof.go_etcd_io.etcd.cache.v3.realTimer__Chan
+public import Proof.go_etcd_io.etcd.cache.v3.realTimer__Reset
+public import Proof.go_etcd_io.etcd.cache.v3.realTimer__Stop
 public import Proof.go_etcd_io.etcd.cache.v3.ringBuffer__Append
 public import Proof.go_etcd_io.etcd.cache.v3.ringBuffer__AscendGreaterOrEqual
 public import Proof.go_etcd_io.etcd.cache.v3.ringBuffer__AscendLessThan
@@ -125,6 +148,7 @@ public import Proof.go_etcd_io.etcd.cache.v3.store__Restore
 public import Proof.go_etcd_io.etcd.cache.v3.store__applyEventsLocked
 public import Proof.go_etcd_io.etcd.cache.v3.store__applyProgressNotifyLocked
 public import Proof.go_etcd_io.etcd.cache.v3.store__getSnapshot
+public import Proof.go_etcd_io.etcd.cache.v3.New
 public import Proof.go_etcd_io.etcd.cache.v3.validateRevisions
 public import Proof.go_etcd_io.etcd.cache.v3.watcher__Compact
 public import Proof.go_etcd_io.etcd.cache.v3.watcher__Stop
@@ -375,17 +399,9 @@ theorem ringBuffer.wp_PeekOldest :
     ringBuffer.PeekOldest.spec (GF := GF) (hG := hG) :=
   ringBuffer.PeekOldest.wp_proof
 
-theorem wp_WithFromKey :
-    WithFromKey.spec (GF := GF) (hG := hG) :=
-  WithFromKey.wp_proof
-
-theorem wp_WithRange :
-    WithRange.spec (GF := GF) (hG := hG) :=
-  WithRange.wp_proof
-
-theorem wp_WithSerializable :
-    WithSerializable.spec (GF := GF) (hG := hG) :=
-  WithSerializable.wp_proof
+theorem wp_newRingBuffer :
+    newRingBuffer.spec (GF := GF) (hG := hG) :=
+  newRingBuffer.wp_proof
 
 theorem ringBuffer.wp_findFirstIndexGreaterOrEqual :
     ringBuffer.findFirstIndexGreaterOrEqual.spec (GF := GF) (hG := hG) :=
@@ -395,9 +411,57 @@ theorem ringBuffer.wp_AscendGreaterOrEqual :
     ringBuffer.AscendGreaterOrEqual.spec (GF := GF) (hG := hG) :=
   ringBuffer.AscendGreaterOrEqual.wp_proof ringBuffer.wp_findFirstIndexGreaterOrEqual ringBuffer.wp_at
 
-theorem wp_newRingBuffer :
-    newRingBuffer.spec (GF := GF) (hG := hG) :=
-  newRingBuffer.wp_proof
+theorem wp_WithBTreeDegree :
+    WithBTreeDegree.spec (GF := GF) (hG := hG) :=
+  WithBTreeDegree.wp_proof
+
+theorem wp_WithFromKey :
+    WithFromKey.spec (GF := GF) (hG := hG) :=
+  WithFromKey.wp_proof
+
+theorem wp_WithGetTimeout :
+    WithGetTimeout.spec (GF := GF) (hG := hG) :=
+  WithGetTimeout.wp_proof
+
+theorem wp_WithHistoryWindowSize :
+    WithHistoryWindowSize.spec (GF := GF) (hG := hG) :=
+  WithHistoryWindowSize.wp_proof
+
+theorem wp_WithInitialBackoff :
+    WithInitialBackoff.spec (GF := GF) (hG := hG) :=
+  WithInitialBackoff.wp_proof
+
+theorem wp_WithMaxBackoff :
+    WithMaxBackoff.spec (GF := GF) (hG := hG) :=
+  WithMaxBackoff.wp_proof
+
+theorem wp_WithPerWatcherBufferSize :
+    WithPerWatcherBufferSize.spec (GF := GF) (hG := hG) :=
+  WithPerWatcherBufferSize.wp_proof
+
+theorem wp_WithProgressNotifyInterval :
+    WithProgressNotifyInterval.spec (GF := GF) (hG := hG) :=
+  WithProgressNotifyInterval.wp_proof
+
+theorem wp_WithProgressRequestInterval :
+    WithProgressRequestInterval.spec (GF := GF) (hG := hG) :=
+  WithProgressRequestInterval.wp_proof
+
+theorem wp_WithRange :
+    WithRange.spec (GF := GF) (hG := hG) :=
+  WithRange.wp_proof
+
+theorem wp_WithResyncInterval :
+    WithResyncInterval.spec (GF := GF) (hG := hG) :=
+  WithResyncInterval.wp_proof
+
+theorem wp_WithSerializable :
+    WithSerializable.spec (GF := GF) (hG := hG) :=
+  WithSerializable.wp_proof
+
+theorem wp_WithWaitTimeout :
+    WithWaitTimeout.spec (GF := GF) (hG := hG) :=
+  WithWaitTimeout.wp_proof
 
 theorem wp_newStore [AllG GF] :
     newStore.spec (GF := GF) (hG := hG) :=
@@ -425,6 +489,10 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+
+theorem Cache.wp_Close [AllG GF] :
+    Cache.Close.spec (GF := GF) (hG := hG) :=
+  Cache.Close.wp_proof
 
 theorem ready.wp_waitForState [AllG GF] :
     ready.waitForState.spec (GF := GF) (hG := hG) :=
@@ -501,6 +569,18 @@ theorem demux.wp_BroadcastProgress [AllG GF] :
 theorem Cache.wp_RequestProgress [AllG GF] :
     Cache.RequestProgress.spec (GF := GF) (hG := hG) :=
   Cache.RequestProgress.wp_proof demux.wp_BroadcastProgress
+
+theorem notifier.wp_wait [AllG GF] :
+    notifier.wait.spec (GF := GF) (hG := hG) :=
+  notifier.wait.wp_proof
+
+theorem demux.wp_WaitForNextResync [AllG GF] :
+    demux.WaitForNextResync.spec (GF := GF) (hG := hG) :=
+  demux.WaitForNextResync.wp_proof notifier.wp_wait
+
+theorem Cache.wp_WaitForNextResync [AllG GF] :
+    Cache.WaitForNextResync.spec (GF := GF) (hG := hG) :=
+  Cache.WaitForNextResync.wp_proof demux.wp_WaitForNextResync
 
 theorem Cache.wp_WaitForRevision [AllG GF] :
     Cache.WaitForRevision.spec (GF := GF) (hG := hG) :=
@@ -598,6 +678,42 @@ theorem Cache.wp_getWatchLoop [AllG GF] :
     Cache.getWatchLoop.spec (GF := GF) (hG := hG) :=
   Cache.getWatchLoop.wp_proof wp_defaultConfig Cache.wp_getWatch
 
+theorem wp_newNotifier [AllG GF] :
+    newNotifier.spec (GF := GF) (hG := hG) :=
+  newNotifier.wp_proof
+
+theorem wp_newDemux [AllG GF] :
+    newDemux.spec (GF := GF) (hG := hG) :=
+  newDemux.wp_proof wp_newRingBuffer wp_newNotifier
+
+theorem watcher.wp_Compact [AllG GF] :
+    watcher.Compact.spec (GF := GF) (hG := hG) :=
+  watcher.Compact.wp_proof
+
+theorem demux.wp_resyncLaggingWatchers [AllG GF] :
+    demux.resyncLaggingWatchers.spec (GF := GF) (hG := hG) :=
+  demux.resyncLaggingWatchers.wp_proof watcher.wp_Compact ringBuffer.wp_AscendGreaterOrEqual watcher.wp_enqueueResponse
+
+theorem notifier.wp_notify [AllG GF] :
+    notifier.notify.spec (GF := GF) (hG := hG) :=
+  notifier.notify.wp_proof
+
+theorem demux.wp_resyncLoop [AllG GF] :
+    demux.resyncLoop.spec (GF := GF) (hG := hG) :=
+  demux.resyncLoop.wp_proof demux.wp_resyncLaggingWatchers notifier.wp_notify
+
+theorem wp_NewDemux [AllG GF] :
+    NewDemux.spec (GF := GF) (hG := hG) :=
+  NewDemux.wp_proof wp_newDemux demux.wp_resyncLoop
+
+theorem Prefix.wp_Match [AllG GF] :
+    Prefix.Match.spec (GF := GF) (hG := hG) :=
+  Prefix.Match.wp_proof
+
+theorem conditionalProgressRequestor.wp_run [AllG GF] :
+    conditionalProgressRequestor.run.spec (GF := GF) (hG := hG) :=
+  conditionalProgressRequestor.run.wp_proof
+
 theorem demux.wp_Compact [AllG GF] :
     demux.Compact.spec (GF := GF) (hG := hG) :=
   demux.Compact.wp_proof demux.wp_purge
@@ -610,37 +726,41 @@ theorem demux.wp_Purge [AllG GF] :
     demux.Purge.spec (GF := GF) (hG := hG) :=
   demux.Purge.wp_proof demux.wp_purge
 
-theorem watcher.wp_Compact [AllG GF] :
-    watcher.Compact.spec (GF := GF) (hG := hG) :=
-  watcher.Compact.wp_proof
-
-theorem demux.wp_resyncLaggingWatchers [AllG GF] :
-    demux.resyncLaggingWatchers.spec (GF := GF) (hG := hG) :=
-  demux.resyncLaggingWatchers.wp_proof watcher.wp_Compact ringBuffer.wp_AscendGreaterOrEqual watcher.wp_enqueueResponse
-
-theorem wp_newNotifier [AllG GF] :
-    newNotifier.spec (GF := GF) (hG := hG) :=
-  newNotifier.wp_proof
-
-theorem wp_newDemux [AllG GF] :
-    newDemux.spec (GF := GF) (hG := hG) :=
-  newDemux.wp_proof wp_newRingBuffer wp_newNotifier
-
 theorem wp_newReady [AllG GF] :
     newReady.spec (GF := GF) (hG := hG) :=
   newReady.wp_proof
 
-theorem notifier.wp_notify [AllG GF] :
-    notifier.notify.spec (GF := GF) (hG := hG) :=
-  notifier.notify.wp_proof
+theorem wp_newConditionalProgressRequestor [AllG GF] :
+    newConditionalProgressRequestor.spec (GF := GF) (hG := hG) :=
+  newConditionalProgressRequestor.wp_proof
 
-theorem notifier.wp_wait [AllG GF] :
-    notifier.wait.spec (GF := GF) (hG := hG) :=
-  notifier.wait.wp_proof
+theorem wp_newCache [AllG GF] :
+    newCache.spec (GF := GF) (hG := hG) :=
+  newCache.wp_proof wp_newStore wp_newReady wp_newConditionalProgressRequestor wp_NewDemux Cache.wp_getWatchLoop conditionalProgressRequestor.wp_run
 
 theorem ready.wp_WaitNotReady [AllG GF] :
     ready.WaitNotReady.spec (GF := GF) (hG := hG) :=
   ready.WaitNotReady.wp_proof ready.wp_waitForState
+
+theorem realTimer.wp_Chan [AllG GF] :
+    realTimer.Chan.spec (GF := GF) (hG := hG) :=
+  realTimer.Chan.wp_proof
+
+theorem realTimer.wp_Stop [AllG GF] :
+    realTimer.Stop.spec (GF := GF) (hG := hG) :=
+  realTimer.Stop.wp_proof
+
+theorem realTimer.wp_Reset [AllG GF] :
+    realTimer.Reset.spec (GF := GF) (hG := hG) :=
+  realTimer.Reset.wp_proof
+
+theorem realClock.wp_NewTimer [AllG GF] :
+    realClock.NewTimer.spec (GF := GF) (hG := hG) :=
+  realClock.NewTimer.wp_proof realTimer.wp_Chan realTimer.wp_Stop realTimer.wp_Reset
+
+theorem wp_New [AllG GF] :
+    New.spec (GF := GF) (hG := hG) :=
+  New.wp_proof wp_defaultConfig wp_newCache realClock.wp_NewTimer
 
 end links_hasLC
 
