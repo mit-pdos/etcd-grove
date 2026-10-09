@@ -34,11 +34,13 @@ LEAN_FIRST = {
     "--cache": ("Cache", "link-lean-first-cache.txt", "go_etcd_io.etcd.cache.v3",
                 "go_etcd_io.etcd.cache.v3.Assumptions",
                 "The `cache` package's proofs (`EtcdGrove/Cache/`)"),
-    # cindex's assumptions include schema's, and through it backend's, verify's and
-    # encoding/binary's (instances), which the schema and trust-boundary specs use
+    # etcdserver's assumptions include those of every package it imports (instances):
+    # cindex's, schema's, raft v3.7's raftpb's, zap's, ..., which the other specs use
     "--server": ("Server", "link-lean-first-server.txt",
-                 "go_etcd_io.etcd.server.v3.etcdserver.cindex go_etcd_io.etcd.server.v3.storage",
-                 "go_etcd_io.etcd.server.v3.etcdserver.cindex.Assumptions",
+                 "go_etcd_io.etcd.server.v3.etcdserver.cindex go_etcd_io.etcd.server.v3.storage "
+                 "go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3 "
+                 "go_etcd_io.etcd.pkg.v3 go_uber_org go_etcd_io.raft.v3",
+                 "go_etcd_io.etcd.server.v3.etcdserver.Assumptions",
                  "The etcd server's proofs (`EtcdGrove/Server/`: the consistent index and the\n"
                  "apply thread)"),
 }

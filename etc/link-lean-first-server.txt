@@ -20,3 +20,36 @@ consistentIndex__UnsafeSave: schema_UnsafeUpdateConsistentIndex
 consistentIndex__SetBackend: consistentIndex__SetConsistentIndex
 consistentIndex__ConsistentIndex: consistentIndex__SetConsistentIndex schema_ReadConsistentIndex
 consistentIndex__UnsafeConsistentIndex: consistentIndex__SetConsistentIndex schema_UnsafeReadConsistentIndex
+# raft v3.7's raftpb getters (etcd's own raft dependency), see InvRaftpb.lean.
+Entry__GetIndex:
+Entry__GetTerm:
+Entry__GetType:
+ConfChange__GetId:
+# The apply thread's trust boundary (`axiom … .wp_proof`), see InvApplier.lean: the applier
+# and the membership change's contracts, and names-only callees (zap, the alarm store, ...).
+apply_Apply:
+EtcdServer__applyConfChange:
+pbutil_MustUnmarshalMessage:
+EtcdServer__isLeader:
+EtcdServer__Logger:
+EtcdServer__GoAttach:
+EtcdServer__stopWithDelay:
+Notifier__Notify:
+ServerConfig__ElectionTimeout:
+AlarmStore__Get:
+RaftCluster__Members:
+errors_Is:
+humanize_Bytes:
+zap_Logger__Debug:
+zap_Logger__Warn:
+zap_Uint64:
+zap_Int:
+zap_Int64:
+zap_String:
+zap_Stringer:
+zap_Error:
+# The apply thread (server.go), see InvApply.lean (the protocol), InvServer.lean, InvApplier.lean.
+EtcdServer__getTxPostLockInsideApplyHook: consistentIndex__ConsistentApplyingIndex consistentIndex__UnsafeConsistentIndex consistentIndex__SetConsistentIndex
+EtcdServer__setAppliedIndex:
+EtcdServer__setTerm:
+EtcdServer__applyEntries: Entry__GetIndex EtcdServer__apply EtcdServer__stopWithDelay
