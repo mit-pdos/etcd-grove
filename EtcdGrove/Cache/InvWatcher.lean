@@ -968,6 +968,27 @@ theorem watcher_received_prefix_closed (w : Loc) (γ : WatcherNames)
   iframe
   ipureintro; exact Hpre
 
+/-- The producer's view is exclusive (the invariant holds the other half of the log): two
+`watcherOpen γ` cannot both exist. (For the demux's `Register`: a watcher registered twice.) -/
+theorem watcherOpen_excl (w : Loc) (γ : WatcherNames) (pred : Option (GoString → Bool))
+    (sent1 sent2 : List RespModel) :
+    isWatcher (GF := GF) w γ pred ∗ watcherOpen γ sent1 ∗ watcherOpen γ sent2 ⊢ |={⊤}=> False := by
+  iintro ⟨#Hw, Ho1, Ho2⟩
+  unfold isWatcher
+  iNamed Hw
+  iinv Hinv with >Hi Hclose
+  iNamed Hi
+  unfold watcherOpen
+  icases Ho1 with ⟨Hs1, -⟩
+  icases Ho2 with ⟨Hs2, -⟩
+  icombine Hs1 Hs2 as Hs12
+  ihave %Hv := ghostVar_valid_2 _ _ _ _ _ $$ Hs12 Hsent
+  exfalso
+  obtain ⟨Hq, -⟩ := Hv
+  have h' : ((1 : Qp) + (1 : Qp).half).val ≤ (1 : Qp).val := Hq
+  simp at h'
+  grind
+
 end lemmas
 
 end EtcdGrove
