@@ -274,6 +274,201 @@ Perennial's Go semantics already were ("Not checked by Lean").
 constant bound survives `appendEntry`'s `append`, for the same reason -- which is why
 the model assumes it there too.
 
+---
+
+## ringBuffer: a persistent-item, sorted ring
+
+**2026-10-08 · accepted**
+
+etcd's `cache.ringBuffer[T]` (`cache/ringbuffer.go`) is the first proof about the
+`EtcdCache` translation: Lean-first, generic in `T`, in the raft discipline
+(`EtcdGrove/Cache/{Spec,Proof}/`, `Cache/Link.lean`, vocabulary in
+`Cache/InvRingBuffer.lean`).
+
+**Decision 1: sortedness is part of the predicate.** `ownRingBuffer` includes `RevSorted
+revOf items` (revisions strictly increasing as `sint.Z`), and `Append`'s precondition is
+`RevAbove` (the new revision above the newest). `Append` is the only writer, so this is
+where the invariant is enforced, and the searches and iterations can then be stated
+exactly: `findFirstIndexGreaterOrEqual` returns `ltCount` (the number of items `< pivot`),
+the first index `≥ pivot` only because the revisions are sorted.
+*Rejected:* sortedness as a premise of the searches (each caller would re-prove a fact
+of the ring's history).
+
+**Decision 2: `isItem` is persistent.** The predicate keeps `□ (… isItem e.item' v)`, and
+`Append` takes `[∀ p v, Persistent (isItem p v)]`, so the ring and the caller both keep
+`isItem item v` and the iteration hands it to `iter` without taking it back. The demux's
+items are `*mvccpb.Event` pointers read, never written, so `p ↦□ ev` fits.
+*Rejected:* owned items (`Append` would have to return the overwritten oldest item's
+ownership, and the iterations would lend and reclaim each item).
+
+**Also decided:**
+- **`cap` is a parameter** of `ownRingBuffer`, not an existential: it is fixed at
+  `newRingBuffer`, and `full`'s result and `Append`'s postcondition (`ringAppend cap`)
+  mention it. *Rejected:* existential `cap` (then exposed by every spec anyway).
+- **`cap ≤ 2^61`** is in the predicate and `newRingBuffer`'s precondition: `at` computes
+  `tail + i` and `moduloIndex` adds `len(buffer)`, up to `3·cap`; past `2^63/3` that
+  wraps and `at` reads the wrong slot, and Goose's `make` does not bound the length (Go's
+  allocator would). *Rejected:* only the slice's `< 2^63` (the spec would be false).
+- **Closure triples as `IProp`s**, like `opSpec`: `revisionOfSpec f isItem revOf` (on any
+  `p` with `isItem p v`, `f p` returns `revOf v`) is stored in the predicate;
+  `iterSpec iter isItem revOf vis P Q` is the loop-invariant triple of `iter` on the
+  `i`-th visited item (`P i ∗ isItem p v` to `P (i+1)` on `true`, `Q` on `false`), and
+  the methods end with `ownRingBuffer … ∗ (Q ∨ P vis.length)`. The closure does not get
+  the ring (the method holds it while iterating). *Rejected:* the Rocq scaffolding's
+  continuation form (`own_ringBuffer -∗ Φ #()` in the closure's postcondition), which
+  ties the closure's triple to the caller's `Φ`.
+- **The visited lists are exact sublists**: `items.drop (ltCount …)` (ascending `≥`),
+  `items.take (ltCount …)` (ascending `<`), and the reverses of `items.drop/take
+  (leCount …)` for the descents.
+- **`moduloIndex` is specified on the struct** (`r ↦ rb`, returning `(index + len) %
+  len`), not on `ownRingBuffer`: `at` has already loaded `r.buffer` when it calls it and
+  needs the same struct back. `at` is specified for in-range logical indices only (Go's
+  wraps others; no caller passes one).
+- **Generic specs quantify `T'`/`T` inside the `∀`** (`{T'} [ZeroVal T'] [TypedPointsto
+  T'] (T) [IntoValTyped T' T]`), so each `spec` is a `Prop` and `Link.lean` has the raft
+  shape; `etc/gen-link.py --cache` generates it from `etc/link-lean-first-cache.txt`.
+
+
+---
+
+## store: btree as the trust boundary, ghost state under the RWMutex
+
+**2026-10-08 · accepted**
+
+etcd's cache `store` (`cache/store.go`, `cache/snapshot.go`) is specified and proved
+Lean-first like the ring buffer (`EtcdGrove/Cache/{Spec,Proof}/`, vocabulary in
+`InvStore.lean`, the btree abstraction in `InvBtree.lean`).
+
+**Decided with the user:**
+- **The btree is the trust boundary.** `k8s.io/utils/third_party/forked/golang/btree` stays
+  names-only; `ownBTree T t isItem less items dq` is an `axiom` (with `ownBTree_dfractional`:
+  Perennial's `DFractional`, as `typedPointsto` is), and the seven methods the store calls
+  (`New`, `Clone`, `Get`, `ReplaceOrInsert`, `Delete`, `AscendGreaterOrEqual`, `AscendRange`)
+  are `axiom … .wp_proof`, stated from the Go documentation over the sorted item list
+  (`btFind`/`btInsert`/`btDelete`/filters), every one assuming `StrictWeakOrder less` and a
+  persistent `isItem`. *Rejected:* translating the btree (copy-on-write nodes, free lists:
+  a large proof for a dependency).
+- **Ghost state under the RWMutex.** The lock invariant `storeLockInv s γ cap q` (Perennial's
+  guarded `ownRWMutex rw P`, `P` fractional) holds a `q`-fraction of `latest.rev` and the history
+  ring, of a `monoNat` on `latest.rev`, and `q/2` of a ghost variable with the abstract
+  `StoreState`; the writer (`storeWriter`) holds the other half and the latest tree; readers get
+  facts about *some* state with a lower bound (`storeRevLb`).
+- **Errors are package variables**: `ErrNotReady` (cache) and `rpctypes.ErrFutureRev`/
+  `ErrCompacted` are `globalAddr X ↦□ interface.ok e` in the packages' `IsPkgInit` facts
+  (`Base.lean`), and the specs say "the returned error is the value of that variable"
+  (`globalAddr X ↦□ err`, `snapErr`), not its message.
+
+**Decided here:**
+- **The map is a sorted list of `(key, *KeyValue)`** (`KvMap`), the btree's own item list:
+  `kvItemIs p (k, l)` is `p ↦□ kvItem{k, l}`, so a search probe (`kv = nil`) is an item too
+  (the btree's `less` closure compares probes with items), and the `KeyValue` contents are a
+  separate persistent `kvAt`. *Rejected:* `(key, KeyValue value)` entries (no `isItem` for a
+  probe) and a finite map (the btree's order is the list's).
+- **Readers hold a token.** `RWMutex` admits at most `actualMaxReaders` readers at once, and
+  Perennial's `ownRWMutex` counts them; so `Get`/`LatestRev` take `storeReader s γ cap` (one
+  `ownRWMutex`) besides the persistent `isStore`, and `newStore` returns `actualMaxReaders - 1`
+  of them (the writer has one). *Rejected:* a persistent `isStore` alone (it cannot pay for
+  `RLock`).
+- **The ring buffer is fractional.** Readers hold `P rfrac`, so `ownRingBuffer` gained a
+  fraction (`dq`, default `DFrac.own 1`, `ownRingBuffer_fractional`) and its read-only
+  `at`/`moduloIndex`/`findLastIndexLessOrEqual`/`DescendLessOrEqual` specs take any fraction;
+  the writing specs are unchanged.
+- **`Apply`'s failure path**: `applyEvents` is the code's loop as a function: batches of equal
+  revision; a failed delete (missing key) stops it with the earlier batches applied (their
+  snapshots appended, the revision the last one's) and the failing batch's earlier events
+  applied to the latest map, with no snapshot. So "the newest snapshot is the latest map"
+  (`StoreState.Synced`) is not in `StoreInv`: it holds after `Restore` and after a successful
+  `Apply` (`applyResp_synced`), not after a failed one.
+- **Preconditions the code relies on**: `Apply` takes events in revision order (`EvRevSorted`;
+  etcd's watch guarantees it, the store does not check, and without it the ring's revisions
+  would not increase); `Restore` takes `rev ≥ latest.rev` (the readers' lower bounds stay true;
+  `latest.rev ≥ 0` follows); `newStore` takes `degree > 1` (`btree.New` panics) and
+  `historyCapacity ≤ 2^61` (`newRingBuffer`).
+- **`IsProgressNotify` and the event-type constants are translated**, not assumed:
+  `client/v3.toml` translates `WatchResponse.IsProgressNotify`, `EventTypeDelete`,
+  `EventTypePut`, and `etcdserverpb.toml` `ResponseHeader.GetRevision` (two more spec/proof
+  pairs). *Rejected:* axioms for them (the bodies are three lines).
+- **Protobuf messages through their fields only.** `kvAt`, `eventAt`, `hdrAt` are field
+  points-tos (`Key`, `ModRevision`, `Type`, `Kv`, `Revision`), never a whole-message points-to:
+  a message's `TypedPointsto`/`IntoValTyped` contains the opaque `state : impl.MessageState`,
+  whose generated instances are `sorry` ("axiomatized type"). `InvStore.lean` also gives the
+  three messages' `TypeRepr` directly (high priority), since instance search otherwise found it
+  through those `IntoValTyped` instances for every field access.
+
+
+---
+
+## watcher, notifier, ready: logs, epochs and a framed `Once`
+
+**2026-10-09 · accepted**
+
+Three small concurrent components of etcd's cache, specified and proved Lean-first
+(`EtcdGrove/Cache/{InvWatcher,InvNotifier,InvReady,OnceFrame}.lean`, a `Spec`/`Proof` pair
+per Go function). The design was decided with the user; what follows records it and what
+the proofs added.
+
+**watcher: four predicates.** `isWatcher w γ pred` (persistent: channel, `keyPred` closure,
+`Once`, invariant), `watcherOpen γ sent` (exclusive, the producer's), `watcherClosed γ sent c`
+(persistent), `watcherConsumer γ received` (exclusive, the consumer's). The producer (the
+demux, under its lock) and the consumer (`Cache.Watch`'s goroutine) run concurrently, so
+neither can know the other's progress: each holds half of its own ghost log (`γ.sent`,
+`γ.recv`), the invariant the other halves, `received <+: sent`, and the values in flight
+(`chanInflight`: the buffer, or the value an unbuffered send committed) are exactly the
+responses `sent.drop received.length`. The receive is the atomic update `watcher_recv_au`
+(what `Cache.Watch`'s `select` needs), with `wp_watcher_receive` derived from it.
+- *Rejected:* Perennial's `Spsc` idiom (the same two-log shape, but only a blocking
+  `spsc_send_au`, logs of channel values rather than of `RespModel`s, and a close that parks
+  the producer's permission with no persistent "closed after `sent`, cancel `c`" fact: its
+  AU lemmas would have had to be redone anyway); requiring `bufSize > 0` (the unbuffered
+  states cost three more cases in the invariant).
+
+**The non-blocking send's outcome.** `enqueueResponse` returns `ok` with
+`enqueueResult pred r sent ok sent'`: a response the filter drops (`filterResp = none`) is
+reported delivered with nothing sent; otherwise `ok → sent' = sent ++ [r']` and
+`!ok → sent' = sent`. That `!ok` happens only when the buffer is full is not stated: it is
+a fact about the consumer's progress, which the producer's view cannot name.
+- *Rejected:* `nonblockingSendAuAlt` with a "buffer full" `Φnotready` and a persistent lower
+  bound on the consumer's count (a weak fact: "full at some point"; no caller needs it yet).
+
+**The key filter is `GoString → Bool`**, not `→ Prop`: the closure returns a Go `bool`,
+and `List.filter` needs a `Bool`; a `Prop` would need classical `decide` in every statement.
+
+**Closing through the `Once` with a frame.** Perennial's `Once.wp_Do` takes a persistent
+closure triple `{P} f {Q}` with `P`, `Q` fixed at `init_Once`, so the closure cannot use the
+caller's `watcherOpen`, and the caller cannot learn that *its* closure ran (and thus which
+cancel response was recorded). `Once.wp_Do_frame` (`OnceFrame.lean`, proved from `isOnce`'s
+definition like `wp_Do`) lends the caller's `R` to a one-shot closure spec and returns `R'`
+or `R`. The `Once`'s `P` is `cancelResp ↦ nil ∗ token γ.tok`; the closing closure leaves
+`cancelResp` read-only and the token in the invariant, so a second closure (after
+`watcherClosed`) is refuted by the token. `Q` is "closed after some log", and `R` coming back
+with `Q` contradicts `watcherOpen`.
+- *Rejected:* a persistent "intent" ghost value set by the caller before `Do` (works with the
+  stock `wp_Do`, but needs a third phase in the invariant); a points-to fraction instead of
+  the token (Perennial has no typed points-to validity lemma for `own 1` against `□`).
+
+**notifier and ready: epochs on broadcast channels.** Both replace a channel on every change
+and close the old one, so each channel is an `ownBroadcastChan` whose broadcast proposition
+is the lower bound of the *next* epoch: the notifier's `notifierLb γ (k + 1)` for the channel
+installed at count `k`, ready's `readyEpochLb γ (e + 1)` for the channel of epoch `e`. A
+`wait` that reads the channel at `k ≥ k0` and receives learns `k0 + 1`. `ready`'s state is
+not ghost: it flips exactly when the epoch increments, so in epoch `e` it is
+`readyParity e` (`e` odd), and the readers report `readySeen γ e0 b`.
+- *Rejected:* a ghost history of ready states (`monoList`; the parity says the same).
+
+**notifier's lock: tokens, not a persistent `isNotifier`.** Perennial's `RWMutex` (both its
+specs) needs a token for `RLock`, so `wait` and `notify` take a `notifierHandle` (as the
+store's readers do); the fractional lock invariant holds `q/2` of the current broadcast
+channel's pending token, so that `notify` (with `P 1`) can close it.
+- *Rejected:* the pending token in a separate invariant (closing would need it inside the
+  channel's `closeAu`).
+
+**`waitForState` is higher-order** (`readyPredSpec r pred P`, `P : Bool → Bool`, as the ring
+buffer's `iterSpec`), instantiated by `WaitReady` (`id`) and `WaitNotReady` (`not`).
+
+**`ErrCompacted.Error()`** is a package fact (`errorStringSpec`, `Base.lean`), not an axiom:
+`rpctypes` is names-only and `ErrCompacted`'s dynamic type is unknown to the proof, so the
+fact belongs with the variable's other initialization facts.
+
 ## Lean's module system (all files, here and in Perennial)
 
 **2026-10-08 · accepted**
@@ -316,7 +511,7 @@ from a `module`, 1.3s and 0.97 GB instead of 1.75s and 1.84 GB.
 
 **2026-10-08 · accepted**
 
-`EtcdRaft/`, `EtcdCache/` and `EtcdGrove/Raft/` were ad hoc. **Decision:** as in
+`EtcdRaft/`, `EtcdCache/`, `EtcdGrove/Raft/` and `EtcdGrove/Cache/` were ad hoc. **Decision:** as in
 Perennial, by kind and then by Go package path, modules named after their paths:
 
 * `Code/<pkg>`, `GeneratedProof/<pkg>`: the Goose translations (goose's
@@ -329,6 +524,11 @@ Perennial, by kind and then by Go package path, modules named after their paths:
   `etc/gen-link.py` finds a Rocq function's files by either name;
 * `Proof/go_etcd_io/raft/v3/`: the Raft proof's shared definitions (`Protocol`,
   `Defs`, `Inv*`, `StepLemmas`, ...), `Link` and `Results`.
+* `Proof/go_etcd_io/etcd/cache/v3/`: the same for the `cache` package's proofs
+  (`Base`, `Inv*`, `OnceFrame`, `Link`); its functions' specs and proofs sit there
+  too, except the btree's (`{Spec,Proof}/k8s_io/utils/third_party/forked/golang/btree/`),
+  `ResponseHeader.GetRevision`'s (`.../etcd/api/v3/etcdserverpb/`) and
+  `WatchResponse.IsProgressNotify`'s (`.../etcd/client/v3/`).
 
 One Lake library `EtcdGrove` globs the four directories (no root module). Lean
 namespaces are unchanged (`Perennial.EtcdGrove.*`, `Perennial.go_etcd_io.raft.v3.*`),

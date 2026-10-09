@@ -31,7 +31,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- The body of `Equivalent`'s closure `s := func(sl *[]uint64) { *sl = append([]uint64(nil),
 *sl...); slices.Sort(*sl) }`, copied from the translation (`ConfState.Equivalent.impl`,
-`EtcdGrove/Code/go_etcd_io/raft/v3/raftpb.lean`) so that its triple can be stated once. -/
+`Code/go_etcd_io/raft/v3/raftpb.lean`) so that its triple can be stated once. -/
 noncomputable abbrev sortCopyBody [FfiSyntax] [GoGlobalContext] : Expr :=
   (App (Val exceptionDo)
     (Let "sl" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (go.GoType.SliceType go.uint64))))) (Var "sl"))

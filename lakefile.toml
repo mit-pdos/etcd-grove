@@ -15,7 +15,8 @@ rev = "16086a575b95f38b08f9e9e0c25e7dd41af1a871"
 #                                     not edit by hand
 #   Spec/<pkg>/<fn>                   the Hoare triple of a Go function of package <pkg>
 #   Proof/<pkg>/<fn>                  its proof; Proof/go_etcd_io/raft/v3/ also holds
-#                                     the Raft proof's shared definitions, Link, Results
+#                                     the Raft proof's shared definitions, Link, Results,
+#                                     and Proof/go_etcd_io/etcd/cache/v3/ the cache's
 [[lean_lib]]
 name = "EtcdGrove"
 globs = ["Code.+", "GeneratedProof.+", "Spec.+", "Proof.+"]

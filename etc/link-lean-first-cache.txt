@@ -1,0 +1,62 @@
+# The cache package's functions (all Lean-first: no Rocq counterpart), read by
+# `etc/gen-link.py --cache`: `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
+# The ring buffer (cache/ringbuffer.go), proved 2026-10-08 (see InvRingBuffer.lean).
+newRingBuffer:
+ringBuffer__full:
+ringBuffer__Append: ringBuffer__full
+ringBuffer__moduloIndex:
+ringBuffer__at: ringBuffer__moduloIndex
+ringBuffer__findFirstIndexGreaterOrEqual: ringBuffer__at
+ringBuffer__findLastIndexLessOrEqual: ringBuffer__at
+ringBuffer__AscendGreaterOrEqual: ringBuffer__findFirstIndexGreaterOrEqual ringBuffer__at
+ringBuffer__AscendLessThan: ringBuffer__findFirstIndexGreaterOrEqual ringBuffer__at
+ringBuffer__DescendGreaterThan: ringBuffer__findLastIndexLessOrEqual ringBuffer__at
+ringBuffer__DescendLessOrEqual: ringBuffer__findLastIndexLessOrEqual ringBuffer__at
+ringBuffer__PeekLatest:
+ringBuffer__PeekOldest:
+ringBuffer__RebaseHistory:
+# The btree (k8s.io/utils/third_party/forked/golang/btree, names-only): the trust boundary,
+# `axiom … .wp_proof` (see InvBtree.lean).
+btree_New:
+BTree__Clone:
+BTree__Get:
+BTree__ReplaceOrInsert:
+BTree__Delete:
+BTree__AscendGreaterOrEqual:
+BTree__AscendRange:
+# The two methods of other packages the store calls, translated for it.
+ResponseHeader__GetRevision:
+WatchResponse__IsProgressNotify: ResponseHeader__GetRevision
+# The store (cache/store.go, cache/snapshot.go), see InvStore.lean.
+newKVItem:
+kvItemLess:
+probeItemFromKey:
+isPrefixScan:
+validateRevisions: WatchResponse__IsProgressNotify
+newClonedSnapshot: BTree__Clone
+snapshot__Range: probeItemFromKey isPrefixScan BTree__Get BTree__AscendGreaterOrEqual BTree__AscendRange
+store__LatestRev:
+store__getSnapshot: ringBuffer__DescendLessOrEqual
+store__Get: store__getSnapshot snapshot__Range
+store__applyProgressNotifyLocked:
+store__applyEventsLocked: BTree__Delete BTree__ReplaceOrInsert newKVItem newClonedSnapshot ringBuffer__Append
+store__Apply: validateRevisions WatchResponse__IsProgressNotify store__applyProgressNotifyLocked store__applyEventsLocked
+store__Restore: btree_New kvItemLess newKVItem BTree__ReplaceOrInsert ringBuffer__RebaseHistory newClonedSnapshot ringBuffer__Append
+newStore: btree_New kvItemLess newRingBuffer
+# `ready` (cache/ready.go), see InvReady.lean.
+newReady:
+ready__Ready:
+ready__Set:
+ready__Reset:
+ready__waitForState:
+ready__WaitReady: ready__waitForState
+ready__WaitNotReady: ready__waitForState
+# `notifier` (the end of cache/demux.go), see InvNotifier.lean.
+newNotifier:
+notifier__notify:
+notifier__wait:
+# `watcher` (cache/watcher.go), see InvWatcher.lean (and OnceFrame.lean).
+newWatcher:
+watcher__enqueueResponse: WatchResponse__IsProgressNotify
+watcher__Stop:
+watcher__Compact:
