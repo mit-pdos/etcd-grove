@@ -25,7 +25,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem MemoryStorage.LastIndex.wp_proof
     (wp_MemoryStorage_lastIndex : MemoryStorage.lastIndex.spec (GF := GF) (hG := hG)) :
     MemoryStorage.LastIndex.spec (GF := GF) (hG := hG) := by
-  intro ms ⟨prev, ents, ss⟩
+  intro ms σ
   wp_start as Hms
   iNamed Hms
   iunfold ownMemoryStorage at Hms
@@ -47,7 +47,7 @@ theorem MemoryStorage.LastIndex.wp_proof
   obtain ⟨_, Heq⟩ := Heq
   subst Heq
   wp_auto
-  ihave Hf : memstorageFields ms { prev := prev, ents := ents, ss := ss } $$ [HhardState Hsnapshot Hvoters Hents_f Hents HcallStats]
+  ihave Hf : memstorageFields ms σ $$ [HhardState Hsnapshot Hvoters Hents_f Hents HcallStats]
   · unfold memstorageFields
     iexists hs, snap, es, dummy, _, voters
     simp only [named]
@@ -58,7 +58,7 @@ theorem MemoryStorage.LastIndex.wp_proof
   wp_call
   wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hgs_inv Hf]
   · unfold memstorageInv
-    iexists { prev := prev, ents := ents, ss := ss }
+    iexists σ
     simp only [named]
     iframe
   iapply HΦ

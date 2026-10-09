@@ -24,65 +24,48 @@ theorem raftLog.acceptUnstable.wp_proof
     (wp_unstable_acceptInProgress : unstable.acceptInProgress.spec (GF := GF) (hG := hG)) :
     raftLog.acceptUnstable.spec (GF := GF) (hG := hG) := by
   intro l ls Hpend
-  obtain ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ := ls
-  simp only at Hpend
-  subst lpend
   wp_start as H
   iNamed H
-  icases (ownRaftLog_unfold l prev sents uents lcm lap snap lip lapg [] lasz lamx).1 $$ Hlog
-    with ⟨%lv, Hl, %Hcm, %Hap, %Hapg, %Hip, %Hasz, %Hamx, Hcore⟩
-  unfold ownRaftLogCore
-  icases Hcore with ⟨%sprev, %stored, %ss, Hcore⟩
-  iNamed Hcore
+  iNamed Hlog
   wp_auto
-  icases raftLog_split_unstable l lv $$ Hl with ⟨Huf, Hlback⟩
-  have Hcontig : ∀ (k : Nat) (e : raftpb.Entry), uents[k]? = some e →
+  have Hcontig : ∀ (k : Nat) (e : raftpb.Entry), ls.uents[k]? = some e →
       uint.Z e.Index' = uint.Z lv.unstable'.offset' + (k : Int) := by
     intro k e Hk
-    have Hk' : (sents ++ uents)[sents.length + k]? = some e := by
+    have Hk' : (ls.sents ++ ls.uents)[ls.sents.length + k]? = some e := by
       rw [List.getElem?_append_right (by omega)]
       simpa using Hk
     have := Hidx _ _ Hk'
     push_cast at this
     omega
-  have Hnw' : uint.Z lv.unstable'.offset' + (uents.length : Int) < 2^64 := by omega
-  wp_apply wp_unstable_acceptInProgress _
-      ⟨uents, lv.unstable'.offset', lv.unstable'.offsetInProgress', snap⟩ Hcontig Hnw'
-      $$ [Huf Huents Huents_cap] as %nip ⟨Hun, %Hnip⟩
-  · close_unstable_log
-  dsimp only at Hnip
+  have Hnw' : uint.Z lv.unstable'.offset' + (ls.uents.length : Int) < 2^64 := by omega
+  lend_unstable
+  wp_apply wp_unstable_acceptInProgress _ (unstableOf lv ls) Hcontig Hnw' $$ [$Hun]
+    as %nip ⟨Hun, %Hnip⟩
   obtain ⟨Hip0, Hip1⟩ := Hnip
   iclear Husnap Hu_logger
   icases ownUnstable_reopen _ _ _ $$ Hlback Hun
-    with ⟨%uv', Hl, Huents_cap, Huents, #Husnap, #Hu_logger, %Huv'⟩
-  dsimp only at Huv' ⊢
-  obtain ⟨Hoff', Hipv⟩ := Huv'
+    with ⟨%uv', Hl, Huents_cap, Huents, #Husnap, #Hu_logger, %Huoff, %Hipv⟩
   iapply HΦ
   -- the new `offsetInProgress` is the end of the log
   have Hend : uint.Z uv'.offsetInProgress'
-      = uint.Z lv.unstable'.offset' + (uents.length : Int) := by
-    rw [Hipv]
-    by_cases He : uents = []
-    · rw [Hip0 He]; subst uents; simp only [List.length_nil] at Hipb ⊢; omega
-    · exact Hip1 He
-  simp only [logAcceptUnstable]
+      = uint.Z lv.unstable'.offset' + (ls.uents.length : Int) := by
+    by_cases He : ls.uents = []
+    · have H0 := Hip0 He
+      simp only [He, List.length_nil] at Hipb ⊢
+      word
+    · have H1 := Hip1 He
+      word
+  unfold logAcceptUnstable
   reseal_raftLog
-  · dsimp only; rw [Hoff']; exact Hoffset
-  · dsimp only
-    simp only [logEnd, logLast]
-    word
-  · dsimp only; rw [Hoff']; omega
-  · dsimp only
-    rw [Hoff']
-    intro Hs
-    subst Hs
-    obtain ⟨Hsp, -, -⟩ := Hstore
-    have Hp := Hpersist rfl
-    rw [show uint.Z uv'.offsetInProgress' - uint.Z lv.unstable'.offset' = (uents.length : Int)
-      by omega]
-    simp only [nextUnstable, logOffset]
-    rw [← Hip, ← Hoffset]
-    exact persist_accept prev sprev stored sents uents _ Hidx Hsp (by omega) Hp
+  · simp only [logEnd, logLast]; word
+  · simp only [logEnd, logLast]; word
+  · intro Hs
+    obtain ⟨Hsp, -, -⟩ : LogStoreOk none σ ls.prev ls.sents ls.uents := Hs ▸ Hstore
+    have Hp := Hpersist Hs
+    have Hipo : uint.Z (logEnd ls) - uint.Z uv'.offset' = (ls.uents.length : Int) := by
+      simp only [logEnd, logLast]; word
+    simp only [Hipo, nextUnstable, logOffset, ← Hoffset]
+    exact persist_accept ls.prev σ ls.sents ls.uents _ Hidx Hsp (by omega) (Hpend ▸ Hp)
 
 end proof
 

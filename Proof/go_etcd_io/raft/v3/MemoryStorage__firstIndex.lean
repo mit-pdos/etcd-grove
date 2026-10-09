@@ -24,7 +24,7 @@ so the element access is the one `limitSize` uses (`ownSlice_elem_acc`) and the 
 is handed back at once. The sum does not wrap: `Hb`. -/
 theorem MemoryStorage.firstIndex.wp_proof :
     MemoryStorage.firstIndex.spec (GF := GF) (hG := hG) := by
-  intro ms ⟨prev, ents, ss⟩ Hb
+  intro ms σ Hb
   wp_start as H
   iNamed H
   unfold memstorageFields
@@ -36,7 +36,7 @@ theorem MemoryStorage.firstIndex.wp_proof :
     eq_true (by word), ↓reduceIte]
   icases ownSlice_elem_acc (sint.Z (W64 0)) dummy _ _ _ (by word) (by simp) $$ Hents with ⟨#He, Hback⟩
   ihave Hents := Hback $$ %dummy He
-  rw [show (dummy :: ents).set (sint.Z (W64 0)).toNat dummy = dummy :: ents by simp]
+  rw [show (dummy :: σ.ents).set (sint.Z (W64 0)).toNat dummy = dummy :: σ.ents by simp]
   iStructNamed He
   wp_auto
   iapply HΦ

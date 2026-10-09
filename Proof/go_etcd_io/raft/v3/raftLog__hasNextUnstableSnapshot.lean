@@ -24,20 +24,12 @@ theorem raftLog.hasNextUnstableSnapshot.wp_proof
     (wp_unstable_nextSnapshot : unstable.nextSnapshot.spec (GF := GF) (hG := hG)) :
     raftLog.hasNextUnstableSnapshot.spec (GF := GF) (hG := hG) := by
   intro l ls
-  obtain ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ := ls
   wp_start as H
   iNamed H
-  icases (ownRaftLog_unfold l prev sents uents lcm lap snap lip lapg lpend lasz lamx).1 $$ Hlog
-    with ⟨%lv, Hl, %Hcm, %Hap, %Hapg, %Hip, %Hasz, %Hamx, Hcore⟩
-  unfold ownRaftLogCore
-  icases Hcore with ⟨%sprev, %stored, %ss, Hcore⟩
-  iNamed Hcore
+  iNamed Hlog
   wp_auto
-  icases raftLog_split_unstable l lv $$ Hl with ⟨Huf, Hlback⟩
-  wp_apply wp_unstable_nextSnapshot _
-      ⟨uents, lv.unstable'.offset', lv.unstable'.offsetInProgress', snap⟩
-      $$ [Huf Huents Huents_cap] as %p ⟨Hun, %Hp⟩
-  · close_unstable_log
+  lend_unstable
+  wp_apply wp_unstable_nextSnapshot _ (unstableOf lv ls) $$ [$Hun] as %p ⟨Hun, %Hp⟩
   reopen_unstable
   iapply HΦ
   isplitl

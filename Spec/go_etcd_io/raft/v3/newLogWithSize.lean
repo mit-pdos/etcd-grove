@@ -20,8 +20,9 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `newLogWithSize` builds the log over a `Storage`: everything is stable, the
-unstable suffix is empty and starts at `LastIndex()+1`, and
-`committed = applied = FirstIndex()-1`, the compaction boundary.
+unstable suffix is empty and starts at `LastIndex()+1` (where `offsetInProgress` starts
+too: `ip` below), and `committed = applied = applying = FirstIndex()-1`, the compaction
+boundary.
 
 Two premises are about the storage's *contents* and are not in `isStorage`: that the
 stored entries carry contiguous indices after `prev` (`LogIndicesOk`), and that none is
@@ -40,21 +41,20 @@ it excludes restarting on a storage whose snapshot lies above its first index, w
 index raft would only learn is committed from the `HardState` `loadState` reads after
 this call.
 
-**The postcondition is `ownRaftLog_unfold`'s right-hand side, not `ownRaftLog`**, plus
-`lv.storage' = st`. `ownRaftLog l ls` forgets which `Storage` interface value the log
-holds: `LogState` has no storage field, so `ownStorage` sits inside it at
-`lv.storage'` for an `lv` nobody outside can name. `newRaft` calls
+**The postcondition lends the storage back.** `newRaft` calls
 `c.Storage.InitialState()` *after* building the log -- through the `Config`'s copy of
-the same interface value -- and needs the log's `ownStorage` for that call; without
-`lv.storage' = st` the two are unrelated and the call cannot be proved. The caller
-folds the result into
-`ownRaftLog l ⟨prev, ents, [], prev.index', prev.index', none, ip, prev.index', [], …⟩`
-with `ownRaftLog_unfold`. The principled fix is a `storage` field in `LogState`
-(notes/STATUS.md).
+the same interface value `st` -- and needs the storage's `ownStorage` for that call.
+`ownRaftLog l ls` cannot provide it: `LogState` has no storage field, so the log's
+`ownStorage` sits inside it at the struct's `storage` field, a value nobody outside can
+relate to `st`. So the post hands out `ownStorage st σ` together with the wand that
+completes the log at the initial state once it is given back. (Until 2026-10-09 the post
+was `l ↦ lv`, the facts about `lv`'s fields with `lv.storage' = st`, and the internal
+`ownRaftLogCore lv none σ.prev σ.ents [] []`, which `newRaft` folded into `ownRaftLog`;
+the principled fix would be a `storage` field in `LogState`, notes/STATUS.md.)
 
-The `Logger` is a non-nil one with `isLogger` (since 2026-10-01): `ownRaftLogCore`
-carries it, for the `Infof`s of `findConflict` and `unstable.truncateAndAppend`, and the
-struct literal installs it as both `l.logger` and `l.unstable.logger`. -/
+The `Logger` is a non-nil one with `isLogger` (since 2026-10-01): `ownRaftLog` carries
+it, for the `Infof`s of `findConflict` and `unstable.truncateAndAppend`, and the struct
+literal installs it as both `l.logger` and `l.unstable.logger`. -/
 abbrev newLogWithSize.spec : Prop :=
   ∀ (st : Storage) (lg : Logger) (maxSize : w64)
     (σ : StorState) (lok : GoInterfaceOk),
@@ -70,17 +70,15 @@ abbrev newLogWithSize.spec : Prop :=
       ownStorage st σ ∗ isLogger lok }}
     (App (App (App (Val #(functions newLogWithSize [])) (Val #st)) (Val #lg))
       (Val #maxSize))
-  {{ (l : Loc) (lv : raftLog), RET #l;
-      l ↦ lv ∗
-      ⌜lv.storage' = st ∧
-        lv.committed' = σ.prev.index' ∧
-        lv.applied' = σ.prev.index' ∧
-        lv.applying' = σ.prev.index' ∧
-        uint.Z lv.unstable'.offsetInProgress'
-          = uint.Z σ.prev.index' + (σ.ents.length : Int) + 1 ∧
-        lv.applyingEntsSize' = W64 0 ∧
-        lv.maxApplyingEntsSize' = maxSize⌝ ∗
-      ownRaftLogCore lv none σ.prev σ.ents [] [] }}
+  {{ (l : Loc) (ip : w64), RET #l;
+      ⌜uint.Z ip = uint.Z σ.prev.index' + (σ.ents.length : Int) + 1⌝ ∗
+      ownStorage st σ ∗
+      (ownStorage st σ -∗
+       ownRaftLog l
+         { prev := σ.prev, sents := σ.ents, uents := [], committed := σ.prev.index',
+           applied := σ.prev.index', snap := none, inprogress := ip,
+           applying := σ.prev.index', unpersisted := [], apsize := W64 0,
+           apmax := maxSize }) }}
 
 end spec
 

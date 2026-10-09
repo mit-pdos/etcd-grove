@@ -26,7 +26,7 @@ read-only (`↦*□`), so the element access is the one `limitSize` uses
 (`ownSlice_elem_acc`) and the entry is handed back at once. The sum does not wrap:
 `Hb`. -/
 theorem MemoryStorage.lastIndex.wp_proof : MemoryStorage.lastIndex.spec (GF := GF) (hG := hG) := by
-  intro ms ⟨prev, ents, ss⟩ Hb
+  intro ms σ Hb
   wp_start as Hf
   iNamed Hf
   iNamed Hf
@@ -38,7 +38,7 @@ theorem MemoryStorage.lastIndex.wp_proof : MemoryStorage.lastIndex.spec (GF := G
   icases ownSlice_elem_acc (sint.Z (W64 0)) dummy es _ _ (by word) rfl $$ Hents
     with ⟨#He, Hback⟩
   ihave Hents := Hback $$ %dummy He
-  rw [show (dummy :: ents).set (sint.Z (W64 0)).toNat dummy = dummy :: ents by simp]
+  rw [show (dummy :: σ.ents).set (sint.Z (W64 0)).toNat dummy = dummy :: σ.ents by simp]
   -- Lean: `wp_load` does not find the field `Access` instance of a struct points-to at
   -- `DFrac.discard`, so split the (persistent) entry into its fields.
   iStructNamed He

@@ -105,11 +105,9 @@ theorem raftLog.slice.wp_proof
     (wp_extend : extend.spec (GF := GF) (hG := hG)) :
     raftLog.slice.spec (GF := GF) (hG := hG) := by
   intro l ls lo hi maxSize Hrange
-  obtain ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ := ls
   obtain ⟨Hr1, Hr2, Hr3⟩ := Hrange
-  dsimp only at Hr1 Hr3
-  have Hmc : uint.Z prev.index' + 1 ≤ uint.Z lo ∧ uint.Z lo ≤ uint.Z hi ∧
-      uint.Z hi ≤ uint.Z prev.index' + (sents.length : Int) + (uents.length : Int) + 1 :=
+  have Hmc : uint.Z ls.prev.index' + 1 ≤ uint.Z lo ∧ uint.Z lo ≤ uint.Z hi ∧
+      uint.Z hi ≤ uint.Z ls.prev.index' + (ls.sents.length : Int) + (ls.uents.length : Int) + 1 :=
     ⟨Hr1, by omega, Hr3⟩
   wp_start as H
   iNamed H
@@ -125,27 +123,21 @@ theorem raftLog.slice.wp_proof
   | nil => exact absurd rfl HErrUnavailable
   | ok eu =>
   wp_auto
-  wp_apply wp_raftLog_mustCheckOutOfBounds l ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ lo hi Hmc
+  wp_apply wp_raftLog_mustCheckOutOfBounds l ls lo hi Hmc
     $$ [$Hlog] as Hlog
   rw [decide_eq_false (by rintro rfl; omega)]
   wp_auto
   iNamed Hlog
-  iNamed Hcore
-  dsimp only at *
   ihave %Hulen := ownSlice_len $$ Huents
   wp_auto
   wp_if_destruct
   · -- the result lies entirely in the unstable suffix
-    icases raftLog_split_unstable l lv $$ Hl with ⟨Huf, Hlback⟩
     have Hus : uint.Z lv.unstable'.offset' ≤ uint.Z lo ∧ uint.Z lo < uint.Z hi ∧
-        uint.Z hi ≤ uint.Z lv.unstable'.offset' + (uents.length : Int) := by omega
-    have Hnwu : uint.Z lv.unstable'.offset' + (uents.length : Int) < 2 ^ 64 := by omega
-    wp_apply wp_unstable_slice _
-        ⟨uents, lv.unstable'.offset', lv.unstable'.offsetInProgress', snap⟩ _ _ Hus Hnwu
-        $$ [Huf Huents Huents_cap]
+        uint.Z hi ≤ uint.Z lv.unstable'.offset' + (ls.uents.length : Int) := by omega
+    have Hnwu : uint.Z lv.unstable'.offset' + (ls.uents.length : Int) < 2 ^ 64 := by omega
+    lend_unstable
+    wp_apply wp_unstable_slice _ (unstableOf lv ls) _ _ Hus Hnwu $$ [$Hun]
       as %s0 %es0 ⟨Hun, #Hs0, %Hes0p⟩
-    · close_unstable_log
-    dsimp only at Hes0p
     obtain ⟨Hlen0, Hin0, Hcap0, Hes0⟩ := Hes0p
     wp_apply wp_limitSize $$ [$Hs0] as %s1 %nlim ⟨%Hn1, #Hs1, -⟩
     ihave %Hs1len := ownSlice_len $$ Hs1
@@ -181,23 +173,20 @@ theorem raftLog.slice.wp_proof
       exact List.mem_append_right _ (Hin0 e (List.mem_of_mem_take He))
     · rw [Hes0]
       simp only [plogFrom, subslice]
-      have Hk : (uint.Z lo - uint.Z prev.index' - 1).toNat =
-          sents.length + (uint.Z lo - uint.Z lv.unstable'.offset').toNat := by omega
+      have Hk : (uint.Z lo - uint.Z ls.prev.index' - 1).toNat =
+          ls.sents.length + (uint.Z lo - uint.Z lv.unstable'.offset').toNat := by omega
       rw [Hk]
       exact slice_unstable_prefix _ _ _ _ _
   · -- the result starts in the stable prefix: `lo < unstable.offset`. With a snapshot
-    -- pending there is no stable prefix -- `offset` is `prev.index + 1 <= lo` -- so this
+    -- pending there is no stable prefix -- `offset` is `ls.prev.index + 1 <= lo` -- so this
     -- branch is dead, and `Storage` is never asked about the shadowed entries.
-    cases snap with
-    | some sid =>
-      exfalso
-      obtain ⟨-, Hs, -⟩ := Hstore
-      subst Hs
-      simp only [List.length_nil, Int.natCast_zero, Int.add_zero] at Hoffset
+    rcases Option.eq_none_or_eq_some ls.snap with Hsn | ⟨sid, Hsn⟩
+    rotate_left
+    · exfalso
+      obtain ⟨-, Hs, -⟩ : LogStoreOk (some sid) σ ls.prev ls.sents ls.uents := Hsn ▸ Hstore
+      simp only [Hs, List.length_nil, Int.natCast_zero, Int.add_zero] at Hoffset
       omega
-    | none =>
-    obtain ⟨Hsp, Hstored, -⟩ := id Hstore
-    subst sprev
+    obtain ⟨Hsp, Hstored, -⟩ : LogStoreOk none σ ls.prev ls.sents ls.uents := Hsn ▸ Hstore
     have Hstlen := Hstored.length_le
     ihave #Hsto : isStorageWith (ownStorage lv.storage') lv.storage' $$ [HisStorage]
     · unfold isStorage; iexact HisStorage
@@ -211,26 +200,26 @@ theorem raftLog.slice.wp_proof
     have Hfin : ∀ (c : w64) (ese : List raftpb.Entry),
         uint.Z c ≤ uint.Z lv.unstable'.offset' → uint.Z c ≤ uint.Z hi →
         ese ≠ [] → (ese.length : Int) ≤ uint.Z c - uint.Z lo →
-        (∀ e, e ∈ ese → e ∈ stored.take (uint.Z c - uint.Z prev.index' - 1).toNat) →
-        ese <+: (stored.take (uint.Z c - uint.Z prev.index' - 1).toNat).drop
-                  (uint.Z lo - uint.Z prev.index' - 1).toNat →
+        (∀ e, e ∈ ese → e ∈ σ.ents.take (uint.Z c - uint.Z ls.prev.index' - 1).toNat) →
+        ese <+: (σ.ents.take (uint.Z c - uint.Z ls.prev.index' - 1).toNat).drop
+                  (uint.Z lo - uint.Z ls.prev.index' - 1).toNat →
         ese ≠ [] ∧ (ese.length : Int) ≤ uint.Z hi - uint.Z lo ∧
-          (∀ e, e ∈ ese → e ∈ sents ++ uents) ∧
-          ese <+: plogFrom prev (sents ++ uents) lo := by
+          (∀ e, e ∈ ese → e ∈ ls.sents ++ ls.uents) ∧
+          ese <+: plogFrom ls.prev (ls.sents ++ ls.uents) lo := by
       intro c ese Hc1 Hc2 Hne Hlen Hin Hpre
       refine ⟨Hne, by omega, fun e He => List.mem_append_left _
-        (stored_take_visible prev sents stored c e Hstored (by omega) (Hin e He)), ?_⟩
+        (stored_take_visible ls.prev ls.sents σ.ents c e Hstored (by omega) (Hin e He)), ?_⟩
       simp only [plogFrom]
-      exact slice_stable_prefix sents stored uents ese _ _ Hstored (by omega) (by omega) Hpre
+      exact slice_stable_prefix ls.sents σ.ents ls.uents ese _ _ Hstored (by omega) (by omega) Hpre
     by_cases Hcut : uint.Z hi < uint.Z lv.unstable'.offset'
     · -- cut = hi: the whole range is in storage
       rw [decide_eq_true Hcut]
       wp_auto
       rw [Hstok]
-      wp_apply HEntries $$ %({ prev := prev, ents := stored, ss := ss } : StorState) %lo %hi %maxSize [$HStorage]
+      wp_apply HEntries $$ %σ %lo %hi %maxSize [$HStorage]
         as %se %ese ⟨#Hse, %Hpost, HStorage⟩
-      · ipureintro; dsimp only; omega
-      dsimp only at Hpost
+      · ipureintro; rw [Hsp]; omega
+      rw [Hsp] at Hpost
       rw [← Hstok]
       obtain ⟨Hnee, Hlene, Hine, Hcape, Hpre⟩ := Hpost
       rw [decide_eq_true (by omega)]
@@ -248,10 +237,10 @@ theorem raftLog.slice.wp_proof
       rw [decide_eq_false Hcut]
       wp_auto
       rw [Hstok]
-      wp_apply HEntries $$ %({ prev := prev, ents := stored, ss := ss } : StorState) %lo %lv.unstable'.offset' %maxSize [$HStorage]
+      wp_apply HEntries $$ %σ %lo %lv.unstable'.offset' %maxSize [$HStorage]
         as %se %ese ⟨#Hse, %Hpost, HStorage⟩
-      · ipureintro; dsimp only; omega
-      dsimp only at Hpost
+      · ipureintro; rw [Hsp]; omega
+      rw [Hsp] at Hpost
       rw [← Hstok]
       obtain ⟨Hnee, Hlene, Hine, Hcape, Hpre⟩ := Hpost
       ihave %Hselen := ownSlice_len $$ Hse
@@ -284,17 +273,13 @@ theorem raftLog.slice.wp_proof
         · reseal_raftLog
         ipureintro
         exact Hfin _ ese (by omega) (by omega) Hnee Hlene Hine Hpre
-      icases raftLog_split_unstable l lv $$ Hl with ⟨Huf, Hlback⟩
       have Hus : uint.Z lv.unstable'.offset' ≤ uint.Z lv.unstable'.offset' ∧
           uint.Z lv.unstable'.offset' < uint.Z hi ∧
-          uint.Z hi ≤ uint.Z lv.unstable'.offset' + (uents.length : Int) := by omega
-      have Hnwu : uint.Z lv.unstable'.offset' + (uents.length : Int) < 2 ^ 64 := by omega
-      wp_apply wp_unstable_slice _
-          ⟨uents, lv.unstable'.offset', lv.unstable'.offsetInProgress', none⟩ _ _ Hus Hnwu
-        $$ [Huf Huents Huents_cap]
+          uint.Z hi ≤ uint.Z lv.unstable'.offset' + (ls.uents.length : Int) := by omega
+      have Hnwu : uint.Z lv.unstable'.offset' + (ls.uents.length : Int) < 2 ^ 64 := by omega
+      lend_unstable
+      wp_apply wp_unstable_slice _ (unstableOf lv ls) _ _ Hus Hnwu $$ [$Hun]
         as %s0 %es0 ⟨Hun, #Hs0, %Hes0p⟩
-      · close_unstable_log
-      dsimp only at Hes0p
       obtain ⟨Hlen0, Hin0, Hcap0, Hes0⟩ := Hes0p
       wp_apply wp_limitSize $$ [$Hs0] as %s1 %nlim ⟨%Hn1, #Hs1, -⟩
       reopen_unstable
@@ -302,32 +287,32 @@ theorem raftLog.slice.wp_proof
         intro h; rw [h] at Hlen0; simp at Hlen0; omega
       have Hn1b := Hn1.2 Hne0
       have Hlentake : (es0.take nlim).length = nlim := by rw [List.length_take]; omega
-      have Hintake : ∀ e, e ∈ es0.take nlim → e ∈ uents :=
+      have Hintake : ∀ e, e ∈ es0.take nlim → e ∈ ls.uents :=
         fun e He => Hin0 e (List.mem_of_mem_take He)
       have Hcapx : sint.Z se.cap < (ese.length : Int) + ((es0.take nlim).length : Int) := by
         have : ((sint.nat se.len : Nat) : Int) = sint.Z se.len := by word
         rw [Hcape, Hselen.1]; omega
       -- `Storage.Entries` returned the whole range `[lo, offset)`: the
       -- `len(ents) < cut-lo` fast path was not taken
-      have Hese : ese = sents.drop (uint.Z lo - uint.Z prev.index' - 1).toNat := by
-        apply slice_stable_full sents stored ese _ Hstored (by omega)
-        · rw [show sents.length = (uint.Z lv.unstable'.offset' - uint.Z prev.index' - 1).toNat
+      have Hese : ese = ls.sents.drop (uint.Z lo - uint.Z ls.prev.index' - 1).toNat := by
+        apply slice_stable_full ls.sents σ.ents ese _ Hstored (by omega)
+        · rw [show ls.sents.length = (uint.Z lv.unstable'.offset' - uint.Z ls.prev.index' - 1).toNat
             by omega]
           exact Hpre
         · word
       have Hext : ese ++ es0.take nlim ≠ [] ∧
           ((ese ++ es0.take nlim).length : Int) ≤ uint.Z hi - uint.Z lo ∧
-          (∀ e, e ∈ ese ++ es0.take nlim → e ∈ sents ++ uents) ∧
-          ese ++ es0.take nlim <+: plogFrom prev (sents ++ uents) lo := by
+          (∀ e, e ∈ ese ++ es0.take nlim → e ∈ ls.sents ++ ls.uents) ∧
+          ese ++ es0.take nlim <+: plogFrom ls.prev (ls.sents ++ ls.uents) lo := by
         refine ⟨by simp [Hnee], by rw [List.length_append]; omega, ?_, ?_⟩
         · intro e He
           rcases List.mem_append.1 He with He | He
           · exact List.mem_append_left _
-              (stored_take_visible prev sents stored _ e Hstored (by omega) (Hine e He))
+              (stored_take_visible ls.prev ls.sents σ.ents _ e Hstored (by omega) (Hine e He))
           · exact List.mem_append_right _ (Hintake e He)
         · rw [Hese, Hes0]
           simp only [plogFrom, subslice, Int.sub_self, Int.toNat_zero]
-          exact slice_both_prefix sents uents _ _ _ (by omega)
+          exact slice_both_prefix ls.sents ls.uents _ _ _ (by omega)
       wp_if_destruct
       · -- `len(unstable) == 1`: one more size check before giving up
         wp_apply wp_entsSize $$ [$Hs1] as %sz2 -

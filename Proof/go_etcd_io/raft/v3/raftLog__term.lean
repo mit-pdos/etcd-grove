@@ -74,36 +74,28 @@ theorem raftLog.term.wp_proof
     (wp_raftLog_lastIndex : raftLog.lastIndex.spec (GF := GF) (hG := hG)) :
     raftLog.term.spec (GF := GF) (hG := hG) := by
   intro l ls i
-  obtain ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ := ls
   wp_start as H
   iNamed H
   ihave #Hinit := isInitialized_access $$ Hpkg
   iNamed Hinit
-  icases (ownRaftLog_unfold l prev sents uents lcm lap snap lip lapg lpend lasz lamx).1 $$ Hlog with ⟨%lv, Hl, %Hcm, %Hap, %Hapg, %Hip, %Hasz, %Hamx, Hcore⟩
-  unfold ownRaftLogCore
-  icases Hcore with ⟨%sprev, %stored, %ss, Hcore⟩
-  iNamed Hcore
+  iNamed Hlog
   wp_auto
-  have Hnw : uint.Z lv.unstable'.offset' + (uents.length : Int) < 2 ^ 64 := by omega
+  have Hnw : uint.Z lv.unstable'.offset' + (ls.uents.length : Int) < 2 ^ 64 := by omega
   -- a pending snapshot is `prev`, with nothing stable after it
-  have Hsoff : ∀ sid, snap = some sid →
+  have Hsoff : ∀ sid, ls.snap = some sid →
       uint.Z lv.unstable'.offset' = uint.Z sid.index' + 1 := by
-    intro sid Hs; subst Hs
-    obtain ⟨rfl, rfl, -⟩ := Hstore
-    simp only [List.length_nil, Int.natCast_zero, Int.add_zero] at Hoffset
+    intro sid Hs
+    obtain ⟨rfl, Hse, -⟩ : LogStoreOk (some sid) σ ls.prev ls.sents ls.uents := Hs ▸ Hstore
+    rw [Hse, List.length_nil, Int.natCast_zero, Int.add_zero] at Hoffset
     exact Hoffset
   ihave #Hsto : isStorageWith (ownStorage lv.storage') lv.storage' $$ [HisStorage]
   · unfold isStorage; iexact HisStorage
   unfold isStorageWith
   icases Hsto with ⟨%isv, #Hsto⟩
   iNamed Hsto
-  icases raftLog_split_unstable l lv $$ Hl with ⟨Huf, Hlback⟩
-  wp_apply wp_unstable_maybeTerm _
-      ⟨uents, lv.unstable'.offset', lv.unstable'.offsetInProgress', snap⟩ _ Hsoff Hnw
-      $$ [Huf Huents Huents_cap]
+  lend_unstable
+  wp_apply wp_unstable_maybeTerm _ (unstableOf lv ls) _ Hsoff Hnw $$ [$Hun]
     as %t %ok ⟨Hun, %Hok, %Hokt⟩
-  · close_unstable_log
-  dsimp only at Hok Hokt
   reopen_unstable
   cases ok with
   | true =>
@@ -112,46 +104,44 @@ theorem raftLog.term.wp_proof
     iapply HΦ $$ %t %interface.nil
     isplitl [Hl HStorage Huents Huents_cap]
     · reseal_raftLog
-    dsimp only
-    rcases Hokt rfl with ⟨⟨Hlo, Hhi⟩, e, He, rfl⟩ | ⟨sid, rfl, rfl, rfl⟩
+    simp only [unstableOf, true_implies] at Hokt
+    rcases Hokt with ⟨⟨Hlo, Hhi⟩, e, He, rfl⟩ | ⟨sid, Hs, rfl, rfl⟩
     · isplitr
       · ipureintro; exact ⟨fun _ => ⟨by omega, by omega⟩, fun _ => rfl⟩
       isplitr
       · ipureintro
         intro _
         apply plogTermAt_lookup _ _ _
-          (sents.length + (uint.Z i - uint.Z lv.unstable'.offset').toNat)
+          (ls.sents.length + (uint.Z i - uint.Z lv.unstable'.offset').toNat)
         · rw [List.getElem?_append_right (by omega)]
           rw [← He]
           congr 1
           omega
         · omega
       ileft; ipureintro; rfl
-    · obtain ⟨rfl, rfl, -⟩ := Hstore
+    · obtain ⟨Hsid, -, -⟩ : LogStoreOk (some sid) σ ls.prev ls.sents ls.uents := Hs ▸ Hstore
+      subst Hsid
       isplitr
-      · ipureintro; exact ⟨fun _ => ⟨by omega, by simp only [List.length_nil, Int.natCast_zero, Int.add_zero]; omega⟩, fun _ => rfl⟩
+      · ipureintro; exact ⟨fun _ => ⟨by omega, by omega⟩, fun _ => rfl⟩
       isplitr
       · ipureintro; exact fun _ => plogTermAt_base _ _
       ileft; ipureintro; rfl
   | false =>
     have Hnotin : ¬ (uint.Z lv.unstable'.offset' ≤ uint.Z i ∧
-        uint.Z i < uint.Z lv.unstable'.offset' + (uents.length : Int)) := by
+        uint.Z i < uint.Z lv.unstable'.offset' + (ls.uents.length : Int)) := by
       intro Hc; exact absurd (Hok.2 (Or.inl Hc)) (by simp)
-    have Hnotsnap : ∀ sid, snap = some sid → i ≠ sid.index' := by
+    have Hnotsnap : ∀ sid, ls.snap = some sid → i ≠ sid.index' := by
       intro sid Hs Hi; exact absurd (Hok.2 (Or.inr ⟨sid, Hs, Hi⟩)) (by simp)
     wp_auto
-    ihave Hlog : ownRaftLog l ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ $$ [Hl HStorage Huents Huents_cap]
+    ihave Hlog : ownRaftLog l ls $$ [Hl HStorage Huents Huents_cap]
     · reseal_raftLog
-    wp_apply wp_raftLog_firstIndex _ ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ $$ [$Hlog]
-      as %fi ⟨Hlog, %Hfi⟩
-    dsimp only at Hfi
+    wp_apply wp_raftLog_firstIndex _ ls $$ [$Hlog] as %fi ⟨Hlog, %Hfi⟩
     by_cases Hb1 : uint.Z (i + W64 1) < uint.Z fi
     · -- below the compaction boundary: `ErrCompacted`
       rw [decide_eq_true Hb1]
       wp_auto
       iapply HΦ $$ %(W64 0) %errCompacted
       iframe Hlog
-      dsimp only
       isplitr
       · ipureintro
         exact ⟨fun Hc => absurd Hc HErrCompacted, fun _ => by exfalso; word⟩
@@ -160,16 +150,13 @@ theorem raftLog.term.wp_proof
       iright; ileft; iexact ErrCompacted
     rw [decide_eq_false Hb1]
     wp_auto
-    wp_apply wp_raftLog_lastIndex _ ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ $$ [$Hlog]
-      as %li ⟨Hlog, %Hli⟩
-    dsimp only at Hli
+    wp_apply wp_raftLog_lastIndex _ ls $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
     by_cases Hb2 : uint.Z li < uint.Z i
     · -- past the last entry: `ErrUnavailable`
       rw [decide_eq_true Hb2]
       wp_auto
       iapply HΦ $$ %(W64 0) %errUnavailable
       iframe Hlog
-      dsimp only
       isplitr
       · ipureintro
         exact ⟨fun Hc => absurd Hc HErrUnavailable, fun _ => by exfalso; omega⟩
@@ -179,32 +166,29 @@ theorem raftLog.term.wp_proof
     -- in range, and not in the unstable window: ask the `Storage`
     rw [decide_eq_false Hb2]
     wp_auto
-    have Hrange : uint.Z prev.index' ≤ uint.Z i ∧
-        uint.Z i ≤ uint.Z prev.index' + (sents.length : Int) := by
+    have Hrange : uint.Z ls.prev.index' ≤ uint.Z i ∧
+        uint.Z i ≤ uint.Z ls.prev.index' + (ls.sents.length : Int) := by
       constructor
       · word
       · omega
     -- with a snapshot pending the range is the snapshot's index alone, which
     -- `maybeTerm` answered
-    cases snap with
+    cases Hs : ls.snap with
     | some sid =>
       exfalso
-      obtain ⟨rfl, rfl, -⟩ := Hstore
-      apply Hnotsnap prev rfl
+      obtain ⟨Hsid, Hse, -⟩ : LogStoreOk (some sid) σ ls.prev ls.sents ls.uents := Hs ▸ Hstore
+      apply Hnotsnap sid Hs
       apply uint_Z_inj.1
-      simp only [List.length_nil, Int.natCast_zero, Int.add_zero] at Hrange
+      rw [Hse, List.length_nil, Int.natCast_zero, Int.add_zero, Hsid] at Hrange
       omega
     | none =>
     clear Hnotin Hnotsnap Hsoff Hnw Hok Hokt Hoffset Hstok Happlied Hpapplied Hcommitted
       Hidx Hnowrap HnoConfChange Hb1 Hb2 Hfi Hli Hcm Hap Hstore Hssnap
-      Hapg Hip Hasz Hamx Hipb Hpersist Happlying Hpaused Huoff Huoip
+      Hapg Hip Hasz Hamx Hipb Hpersist Happlying Hpaused Huoff
     iclear HisStorage HLastIndex HFirstIndex HTerm HEntries Hbounded HSnapshot Hl_logger
       Hu_logger Husnap
-    clear lv uv' isv fi li sprev stored ss
-    icases (ownRaftLog_unfold l prev sents uents lcm lap none lip lapg lpend lasz lamx).1 $$ Hlog with ⟨%lv, Hl, %Hcm, %Hap, %Hapg, %Hip, %Hasz, %Hamx, Hcore⟩
-    unfold ownRaftLogCore
-    icases Hcore with ⟨%sprev, %stored, %ss, Hcore⟩
-    iNamed Hcore
+    clear lv uv' isv fi li σ
+    iNamed Hlog
     wp_auto
     ihave #Hsto : isStorageWith (ownStorage lv.storage') lv.storage' $$ [HisStorage]
     · unfold isStorage; iexact HisStorage
@@ -212,17 +196,15 @@ theorem raftLog.term.wp_proof
     icases Hsto with ⟨%isv, #Hsto⟩
     iNamed Hsto
     rw [Hstok]
-    obtain ⟨Hsp, Hstored, -⟩ := id Hstore
-    subst Hsp
+    obtain ⟨Hsp, Hstored, -⟩ : LogStoreOk none σ ls.prev ls.sents ls.uents := Hs ▸ Hstore
     have Hstlen := Hstored.length_le
-    wp_apply HTerm $$ %({ prev := sprev, ents := stored, ss := ss } : StorState) %i [$HStorage] as %t2 ⟨%Ht2, HStorage⟩
-    · ipureintro; dsimp only; omega
-    dsimp only at Ht2
+    wp_apply HTerm $$ %σ %i [$HStorage] as %t2 ⟨%Ht2, HStorage⟩
+    · ipureintro; rw [Hsp]; omega
+    rw [Hsp] at Ht2
     rw [← Hstok]
     iapply HΦ $$ %t2 %interface.nil
     isplitl [Hl HStorage Huents Huents_cap]
     · reseal_raftLog
-    dsimp only
     isplitr
     · ipureintro; exact ⟨fun _ => ⟨Hrange.1, by omega⟩, fun _ => rfl⟩
     isplitr

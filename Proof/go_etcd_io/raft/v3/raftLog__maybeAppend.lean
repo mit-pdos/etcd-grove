@@ -99,9 +99,6 @@ theorem raftLog.maybeAppend.wp_proof
     (wp_raftLog_commitTo : raftLog.commitTo.spec (GF := GF) (hG := hG)) :
     raftLog.maybeAppend.spec (GF := GF) (hG := hG) := by
   intro l ls a ents committed Hwf Hnw Hnorm Hci
-  obtain ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ := ls
-  obtain ⟨aterm, aprev, aents⟩ := a
-  dsimp only at Hwf Hnw Hci ⊢
   wp_start as H
   iNamed H
   wp_auto
@@ -109,45 +106,43 @@ theorem raftLog.maybeAppend.wp_proof
   icases ownRaftLog_wf _ _ $$ Hlog with ⟨%Hidx, Hlog⟩
   icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hcmb, Hlog⟩
   icases ownRaftLog_nowrap _ _ $$ Hlog with ⟨%Hnwl, Hlog⟩
-  dsimp only at Hidx Hcmb Hnwl
-  wp_apply wp_raftLog_matchTerm _ ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ aprev $$ [$Hlog]
+  wp_apply wp_raftLog_matchTerm _ ls a.prev' $$ [$Hlog]
     as %b ⟨Hlog, %Hb⟩
-  dsimp only at Hb
   cases b with
   | false =>
     -- `a.prev` does not match: `(0, false)`
-    have Hnm : ¬ PlogMatches prev (sents ++ uents) aprev := of_decide_eq_false Hb.symm
+    have Hnm : ¬ PlogMatches ls.prev (ls.sents ++ ls.uents) a.prev' := of_decide_eq_false Hb.symm
     wp_auto
     iapply HΦ
     iframe
     ipureintro
     simp [plogMaybeAppend, Hnm]
   | true =>
-    have Hm : PlogMatches prev (sents ++ uents) aprev := of_decide_eq_true Hb.symm
+    have Hm : PlogMatches ls.prev (ls.sents ++ ls.uents) a.prev' := of_decide_eq_true Hb.symm
     simp only [plogMaybeAppend, if_pos Hm]
     have Hci := Hci Hm
     have Hprange := matches_le_last _ _ _ Hm
     simp only [plogLastIndexZ, List.length_append] at Hprange
     wp_auto
-    -- `findConflict`: every entry is above `a.prev`, hence above `prev`
-    have Hge : ∀ e ∈ ents, uint.Z prev.index' ≤ uint.Z e.Index' := by
+    -- `findConflict`: every entry is above `a.prev`, hence above `ls.prev`
+    have Hge : ∀ e ∈ ents, uint.Z ls.prev.index' ≤ uint.Z e.Index' := by
       intro e He
       obtain ⟨k, Hk⟩ := List.getElem?_of_mem He
       have := Hwf k e Hk
       omega
-    wp_apply wp_raftLog_findConflict _ ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ _ _ ents Hge
+    wp_apply wp_raftLog_findConflict _ ls _ _ ents Hge
       $$ [$Hlog $Hents] as ⟨Hlog, -⟩
-    have Hlni : aprev.index' + aents.len = W64 (uint.Z aprev.index' + (ents.length : Int)) := by
+    have Hlni : a.prev'.index' + a.entries'.len = W64 (uint.Z a.prev'.index' + (ents.length : Int)) := by
       word
     rw [Hlni]
-    rcases find_conflict_cases prev (sents ++ uents) ents with
+    rcases find_conflict_cases ls.prev (ls.sents ++ ls.uents) ents with
       ⟨Hci0, Hall⟩ | ⟨k, e, Hk, Hcie, Hnm, Hbefore⟩
     · -- no conflict: the log already has every entry
       rw [Hci0]
       wp_auto
       -- the log reaches `lastnewi`
-      have Hreach : uint.Z aprev.index' + (ents.length : Int)
-          ≤ uint.Z prev.index' + (sents.length : Int) + (uents.length : Int) := by
+      have Hreach : uint.Z a.prev'.index' + (ents.length : Int)
+          ≤ uint.Z ls.prev.index' + (ls.sents.length : Int) + (ls.uents.length : Int) := by
         cases Hl : ents.getLast? with
         | none =>
           rw [List.getLast?_eq_none_iff] at Hl
@@ -164,7 +159,7 @@ theorem raftLog.maybeAppend.wp_proof
           rw [show ents.length - 1 + 1 = ents.length by omega] at *
           omega
       wp_apply wp_min_u64
-      wp_apply wp_raftLog_commitTo _ ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ _ ?_ $$ [$Hlog] as Hlog
+      wp_apply wp_raftLog_commitTo _ ls _ ?_ $$ [$Hlog] as Hlog
       · simp only [plogLastIndexZ, List.length_append, w64Min]
         split <;> word
       iapply HΦ
@@ -174,7 +169,7 @@ theorem raftLog.maybeAppend.wp_proof
     · -- a conflict at `ci = ents[k].Index = a.prev.index + 1 + k`
       have Hke := Hwf k e Hk
       have Hcine : e.Index' ≠ W64 0 := by intro Hc; rw [Hc] at Hke; word
-      have Hcgt : uint.Z lcm < uint.Z e.Index' := by
+      have Hcgt : uint.Z ls.committed < uint.Z e.Index' := by
         rcases Hci with Hc | Hc
         · exact absurd (Hcie ▸ Hc) Hcine
         · rwa [Hcie] at Hc
@@ -184,42 +179,41 @@ theorem raftLog.maybeAppend.wp_proof
       wp_auto
       icases ownRaftLog_struct _ _ $$ Hlog with ⟨%lv, Hl, %Hlv, Hback⟩
       obtain ⟨Hcm, -⟩ := Hlv
-      dsimp only at Hcm
       wp_auto
       have Hnle : ¬ uint.Z e.Index' ≤ uint.Z lv.committed' := by rw [Hcm]; omega
       simp only [Hnle, decide_false]
       ihave Hlog := Hback $$ Hl
       wp_auto
-      have Hsub : e.Index' - (aprev.index' + W64 1) = W64 (k : Int) := by word
+      have Hsub : e.Index' - (a.prev'.index' + W64 1) = W64 (k : Int) := by word
       rw [Hsub]
       rw [decide_eq_false (by word)]
       wp_auto
       -- the batch from the conflict on: `a.entries[k:]`
-      icases (ownSlice_split_all (W64 (k : Int)) aents DFrac.discard ents (by word)).1 $$ Hents
+      icases (ownSlice_split_all (W64 (k : Int)) a.entries' DFrac.discard ents (by word)).1 $$ Hents
         with ⟨-, #Hdrop⟩
       ihave %Hcapwf := ownSliceCap_wf _ _ $$ Hcap
-      icases (ownSliceCap_slice aents (W64 (k : Int)) (DFrac.own 1) (by word)).1 $$ Hcap
+      icases (ownSliceCap_slice a.entries' (W64 (k : Int)) (DFrac.own 1) (by word)).1 $$ Hcap
         with Hcap'
       have Hkn : sint.nat (W64 (k : Int)) = k := by word
       rw [Hkn]
       have He2 : (ents.drop k)[0]? = some e := by simpa using Hk
-      ihave Hadopt : (if logAdopts ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ (ents.drop k)
+      ihave Hadopt : (if logAdopts ls (ents.drop k)
           then iprop(⌜DFrac.discard = DFrac.discard⌝ ∗
-            ownSliceCap raftpb.Entry (slice.slice aents raftpb.Entry (W64 (k : Int)) aents.len)
+            ownSliceCap raftpb.Entry (slice.slice a.entries' raftpb.Entry (W64 (k : Int)) a.entries'.len)
               (DFrac.own 1))
           else iprop(True)) $$ [Hcap']
       · split
         · iframe; ipureintro; rfl
         · itrivial
       rw [Hsub]
-      have Hbnd : 0 ≤ sint.Z (W64 (k : Int)) ∧ sint.Z (W64 (k : Int)) ≤ sint.Z aents.len ∧
-          sint.Z aents.len ≤ sint.Z aents.cap := by
+      have Hbnd : 0 ≤ sint.Z (W64 (k : Int)) ∧ sint.Z (W64 (k : Int)) ≤ sint.Z a.entries'.len ∧
+          sint.Z a.entries'.len ≤ sint.Z a.entries'.cap := by
         word
       rw [ite_eq_left_of_eq_true _ _ (eq_true Hbnd)]
       wp_auto
       -- `ci <= lastIndex() + 1`: `ents[k-1]` (or `a.prev`) matched
-      have Hcile : uint.Z e.Index' ≤ uint.Z prev.index' + (sents.length : Int)
-          + (uents.length : Int) + 1 := by
+      have Hcile : uint.Z e.Index' ≤ uint.Z ls.prev.index' + (ls.sents.length : Int)
+          + (ls.uents.length : Int) + 1 := by
         cases k with
         | zero => omega
         | succ k' =>
@@ -231,9 +225,9 @@ theorem raftLog.maybeAppend.wp_proof
           push_cast at *
           omega
       have Happ_pre : ∀ e0, (ents.drop k)[0]? = some e0 →
-          (uint.Z lcm < uint.Z e0.Index' ∧
-            uint.Z e0.Index' ≤ uint.Z prev.index' + (sents.length : Int)
-              + (uents.length : Int) + 1) ∧
+          (uint.Z ls.committed < uint.Z e0.Index' ∧
+            uint.Z e0.Index' ≤ uint.Z ls.prev.index' + (ls.sents.length : Int)
+              + (ls.uents.length : Int) + 1) ∧
           (∀ (j : Nat) e', (ents.drop k)[j]? = some e' →
             uint.Z e'.Index' = uint.Z e0.Index' + (j : Int)) ∧
           uint.Z e0.Index' + ((ents.drop k).length : Int) < 2^64 := by
@@ -248,20 +242,19 @@ theorem raftLog.maybeAppend.wp_proof
           omega
         · rw [List.length_drop]
           omega
-      wp_apply wp_raftLog_append _ ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ (ents.drop k) _ _
+      wp_apply wp_raftLog_append _ ls (ents.drop k) _ _
           Happ_pre (fun x Hx => Hnorm x (List.mem_of_mem_drop Hx)) $$ [$Hlog $Hdrop $Hadopt]
         as %li ⟨Hlog, -, %Hsplit, %Hli⟩
-      obtain ⟨Hp1, Hc1, Ha1⟩ := logTruncateAppend_fields ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩
+      obtain ⟨Hp1, Hc1, Ha1⟩ := logTruncateAppend_fields ls
         (ents.drop k)
-      dsimp only at Hp1 Hc1 Ha1
-      generalize Hls1 : logTruncateAppend ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ (ents.drop k) = ls1
+      generalize Hls1 : logTruncateAppend ls (ents.drop k) = ls1
         at Hsplit Hli Hp1 Hc1 Ha1 ⊢
       -- the new log reaches exactly `lastnewi`
       have Hdk : ents.drop k = e :: ents.drop (k + 1) := by
         rw [List.drop_eq_getElem_cons Hklt]
         rw [(List.getElem?_eq_some_iff.1 Hk).2]
-      have Hlast1 : uint.Z prev.index' + (ls1.sents.length : Int) + (ls1.uents.length : Int)
-          = uint.Z aprev.index' + (ents.length : Int) := by
+      have Hlast1 : uint.Z ls.prev.index' + (ls1.sents.length : Int) + (ls1.uents.length : Int)
+          = uint.Z a.prev'.index' + (ents.length : Int) := by
         have HL := congrArg List.length Hsplit
         rw [Hdk] at HL
         simp only [plogTruncateAppend, List.length_append, List.length_take,
@@ -277,7 +270,7 @@ theorem raftLog.maybeAppend.wp_proof
       iapply HΦ
       iframe
       ipureintro
-      have Hkd : (uint.Z e.Index' - uint.Z aprev.index' - 1).toNat = k := by
+      have Hkd : (uint.Z e.Index' - uint.Z a.prev'.index' - 1).toNat = k := by
         push_cast at Hke; omega
       simp only [Hkd, if_false, w64Min, true_and]
       exact ⟨Hp1, Hsplit, Ha1, by rw [Hc1]⟩

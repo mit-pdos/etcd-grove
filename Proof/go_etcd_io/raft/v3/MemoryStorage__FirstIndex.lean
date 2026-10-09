@@ -26,7 +26,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem MemoryStorage.FirstIndex.wp_proof
     (wp_MemoryStorage_firstIndex : MemoryStorage.firstIndex.spec (GF := GF) (hG := hG)) :
     MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG) := by
-  intro ms ⟨prev, ents, ss⟩
+  intro ms σ
   wp_start as Hpre
   iNamed Hpre
   iunfold ownMemoryStorage at Hms
@@ -44,7 +44,7 @@ theorem MemoryStorage.FirstIndex.wp_proof
   icases typedPointsto_not_null_dup _ _ _ $$ HcallStats with ⟨HcallStats, %Hcs_nn⟩
   iStructNamed HcallStats
   wp_auto
-  ihave Hf : memstorageFields ms { prev := prev, ents := ents, ss := ss } $$ [HhardState Hsnapshot Hvoters Hents_f Hents firstIndex lastIndex term entries snapshot initialState]
+  ihave Hf : memstorageFields ms σ $$ [HhardState Hsnapshot Hvoters Hents_f Hents firstIndex lastIndex term entries snapshot initialState]
   · unfold memstorageFields
     iexists hs, snap, es, dummy, { cs with firstIndex' := cs.firstIndex' + W64 1 }, voters
     iframe
@@ -55,13 +55,13 @@ theorem MemoryStorage.FirstIndex.wp_proof
     iapply typedPointsto_combine _ _ _ Hcs_nn
     simp only [TypedPointsto.typedPointstoDef]
     iframe
-  wp_apply wp_MemoryStorage_firstIndex ms { prev := prev, ents := ents, ss := ss } Hbounded $$ [$Hf] as %fi ⟨%Hfi, Hf⟩
+  wp_apply wp_MemoryStorage_firstIndex ms σ Hbounded $$ [$Hf] as %fi ⟨%Hfi, Hf⟩
   -- the deferred `ms.Unlock()`
   wp_method_call
   wp_call
   wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hgs_inv Hf]
   · unfold memstorageInv
-    iexists { prev := prev, ents := ents, ss := ss }
+    iexists σ
     iframe
   iapply HΦ
   isplitr

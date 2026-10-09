@@ -126,14 +126,14 @@ def StableOk (ls : LogState) (id : entryID) : Prop :=
 makes all of it in progress, and once the application appends what was handed out the
 storage holds exactly the log (`storApp` cuts the storage at the first handed-out
 index, which the indices put right after the in-progress prefix). -/
-theorem persist_accept (prev sprev : entryID) (stored sents uents : List raftpb.Entry)
+theorem persist_accept (prev : entryID) (σ : StorState) (sents uents : List raftpb.Entry)
     (ipo : Int)
     (Hidx : LogIndicesOk prev (sents ++ uents))
-    (Hsp : sprev = prev)
+    (Hsp : σ.prev = prev)
     (Hipo : 0 ≤ ipo ∧ ipo ≤ (uents.length : Int))
-    (H : LogPersistOk sprev stored sents uents ipo []) :
-    LogPersistOk sprev stored sents uents (uents.length : Int) (uents.drop ipo.toNat) := by
-  subst sprev
+    (H : LogPersistOk σ sents uents ipo []) :
+    LogPersistOk σ sents uents (uents.length : Int) (uents.drop ipo.toNat) := by
+  subst prev
   obtain ⟨Hpre, Heq, _⟩ := H
   simp only [storApp] at Hpre Heq
   unfold LogPersistOk
@@ -157,10 +157,10 @@ theorem persist_accept (prev sprev : entryID) (stored sents uents : List raftpb.
     have He0 := Hidx _ _ Hlk'
     have Hlen : ipo.toNat ≤ uents.length := by omega
     obtain ⟨k, Hk⟩ := Hpre
-    have Hst : storApp prev stored (e0 :: rest) = sents ++ uents := by
+    have Hst : storApp σ (e0 :: rest) = sents ++ uents := by
       simp only [storApp]
       rw [← Hk,
-        show (uint.Z e0.Index' - uint.Z prev.index' - 1).toNat
+        show (uint.Z e0.Index' - uint.Z σ.prev.index' - 1).toNat
           = (sents ++ uents.take ipo.toNat).length by
           simp only [List.length_append, List.length_take]; omega,
         List.take_left, ← Hdrop, List.append_assoc, List.take_append_drop]
@@ -173,11 +173,11 @@ theorem persist_accept (prev sprev : entryID) (stored sents uents : List raftpb.
 /-- ... and across `stableTo` of `k` entries that are in progress: the stable part
 grows by them, the in-progress part of the suffix shrinks by them, the storage is
 unchanged. -/
-theorem persist_stable (sprev : entryID) (stored sents uents : List raftpb.Entry)
+theorem persist_stable (σ : StorState) (sents uents : List raftpb.Entry)
     (ipo k : Int)
     (Hk : 0 ≤ k ∧ k ≤ ipo ∧ ipo ≤ (uents.length : Int))
-    (H : LogPersistOk sprev stored sents uents ipo []) :
-    LogPersistOk sprev stored (sents ++ uents.take k.toNat) (uents.drop k.toNat)
+    (H : LogPersistOk σ sents uents ipo []) :
+    LogPersistOk σ (sents ++ uents.take k.toNat) (uents.drop k.toNat)
       (ipo - k) [] := by
   obtain ⟨Hpre, Heq, _⟩ := H
   simp only [LogPersistOk, storApp] at Hpre Heq ⊢

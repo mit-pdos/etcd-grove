@@ -26,8 +26,7 @@ theorem MemoryStorage.Entries.wp_proof
     (wp_MemoryStorage_lastIndex : MemoryStorage.lastIndex.spec (GF := GF) (hG := hG))
     (wp_limitSize : limitSize.spec (GF := GF) (hG := hG)) :
     MemoryStorage.Entries.spec (GF := GF) (hG := hG) := by
-  intro ms ⟨prev, ents, ss⟩ lo hi maxSize
-  dsimp only at *
+  intro ms σ lo hi maxSize
   wp_start as ⟨Hms, %Hrange⟩
   iunfold ownMemoryStorage at Hms
   icases Hms with ⟨%γ, Hms⟩
@@ -45,22 +44,21 @@ theorem MemoryStorage.Entries.wp_proof
   wp_auto
   ihave %Hlen := ownSlice_len _ _ _ $$ Hents
   simp only [List.length_cons] at Hlen
-  icases ownSlice_elem_acc (sint.Z (W64 0)) dummy es DFrac.discard (dummy :: ents) (by word) rfl
+  icases ownSlice_elem_acc (sint.Z (W64 0)) dummy es DFrac.discard (dummy :: σ.ents) (by word) rfl
     $$ Hents with ⟨#He, -⟩
   rw [ite_eq_left ⟨by word, by word⟩]
   iStructNamed He
   wp_auto
-  dsimp only at Hdummy
   obtain ⟨Hd0, Hd1⟩ := Hdummy
   wp_if_destruct
   · exfalso; rw [Hd0] at Hif; omega
-  ihave Hf : memstorageFields ms { prev := prev, ents := ents, ss := ss } $$ [HhardState Hsnapshot Hvoters Hents_f HcallStats]
+  ihave Hf : memstorageFields ms σ $$ [HhardState Hsnapshot Hvoters Hents_f HcallStats]
   · unfold memstorageFields
     iexists _, _, _, _, _, _
     iframe HhardState Hsnapshot Hvoters Hents_f HcallStats Hents
     ipureintro
     exact ⟨Hsnap_id, Hd0, Hd1⟩
-  wp_apply wp_MemoryStorage_lastIndex ms { prev := prev, ents := ents, ss := ss } Hbounded $$ [$Hf] as %li ⟨%Hli, Hf⟩
+  wp_apply wp_MemoryStorage_lastIndex ms σ Hbounded $$ [$Hf] as %li ⟨%Hli, Hf⟩
   iclear Hents He Term Index Type' Data
   rw [Hd0]
   unfold memstorageFields
@@ -74,35 +72,35 @@ theorem MemoryStorage.Entries.wp_proof
   · exfalso; word
   wp_if_destruct
   · exfalso; word
-  have Hlo' : sint.Z (lo - prev.index') = uint.Z lo - uint.Z prev.index' := by word
-  have Hhi' : sint.Z (hi - prev.index') = uint.Z hi - uint.Z prev.index' := by word
+  have Hlo' : sint.Z (lo - σ.prev.index') = uint.Z lo - uint.Z σ.prev.index' := by word
+  have Hhi' : sint.Z (hi - σ.prev.index') = uint.Z hi - uint.Z σ.prev.index' := by word
   rw [ite_eq_left ⟨by word, by word, by word⟩]
   wp_auto
-  -- the sub-slice `ents[lo-offset:hi-offset]` is `E0`
-  have Hlon : sint.nat (lo - prev.index') = (uint.Z lo - uint.Z prev.index' - 1).toNat + 1 := by
+  -- the sub-slice `σ.ents[lo-offset:hi-offset]` is `E0`
+  have Hlon : sint.nat (lo - σ.prev.index') = (uint.Z lo - uint.Z σ.prev.index' - 1).toNat + 1 := by
     word
-  have Hhin : sint.nat (hi - prev.index') = (uint.Z hi - uint.Z prev.index' - 1).toNat + 1 := by
+  have Hhin : sint.nat (hi - σ.prev.index') = (uint.Z hi - uint.Z σ.prev.index' - 1).toNat + 1 := by
     word
-  have HE0 : subslice (sint.nat (lo - prev.index')) (sint.nat (hi - prev.index')) (dummy :: ents) =
-      (ents.take (uint.Z hi - uint.Z prev.index' - 1).toNat).drop
-        (uint.Z lo - uint.Z prev.index' - 1).toNat := by
+  have HE0 : subslice (sint.nat (lo - σ.prev.index')) (sint.nat (hi - σ.prev.index')) (dummy :: σ.ents) =
+      (σ.ents.take (uint.Z hi - uint.Z σ.prev.index' - 1).toNat).drop
+        (uint.Z lo - uint.Z σ.prev.index' - 1).toNat := by
     rw [Hlon, Hhin]; simp [subslice]
-  have HE0len : ((ents.take (uint.Z hi - uint.Z prev.index' - 1).toNat).drop
-      (uint.Z lo - uint.Z prev.index' - 1).toNat).length =
+  have HE0len : ((σ.ents.take (uint.Z hi - uint.Z σ.prev.index' - 1).toNat).drop
+      (uint.Z lo - uint.Z σ.prev.index' - 1).toNat).length =
       (uint.Z hi - uint.Z lo).toNat := by
     simp only [List.length_drop, List.length_take]; omega
-  icases (ownSlice_slice (lo - prev.index') (hi - prev.index') es DFrac.discard (dummy :: ents)
+  icases (ownSlice_slice (lo - σ.prev.index') (hi - σ.prev.index') es DFrac.discard (dummy :: σ.ents)
       ⟨by word, by word, by word⟩).1 $$ Hents with ⟨-, #Hsub, -⟩
   rw [HE0] at *
   wp_apply wp_limitSize $$ [$Hsub] as %s1 %nlim ⟨%Hn, #Hs1, -⟩
   ihave %Hs1len := ownSlice_len _ _ _ $$ Hs1
   ihave %Hs1wf := ownSlice_wf _ _ _ $$ Hs1
-  have HE0ne : (ents.take (uint.Z hi - uint.Z prev.index' - 1).toNat).drop
-      (uint.Z lo - uint.Z prev.index' - 1).toNat ≠ [] := by
+  have HE0ne : (σ.ents.take (uint.Z hi - uint.Z σ.prev.index' - 1).toNat).drop
+      (uint.Z lo - uint.Z σ.prev.index' - 1).toNat ≠ [] := by
     intro Hc; rw [Hc, List.length_nil] at HE0len; omega
   have Hn1 := Hn.2 HE0ne
-  have Hnetake : ((ents.take (uint.Z hi - uint.Z prev.index' - 1).toNat).drop
-      (uint.Z lo - uint.Z prev.index' - 1).toNat).take nlim ≠ [] := by
+  have Hnetake : ((σ.ents.take (uint.Z hi - uint.Z σ.prev.index' - 1).toNat).drop
+      (uint.Z lo - uint.Z σ.prev.index' - 1).toNat).take nlim ≠ [] := by
     intro Hc
     have := congrArg List.length Hc
     rw [List.length_take, List.length_nil] at this
@@ -114,7 +112,7 @@ theorem MemoryStorage.Entries.wp_proof
           go.arrayIndexRef_0])
     (by simp only [slice.fullSlice]; word)
     (by simp only [slice.fullSlice]; word) $$ Hs1
-  ihave Hf : memstorageFields ms { prev := prev, ents := ents, ss := ss } $$ [HhardState Hsnapshot Hvoters Hents_f HcallStats]
+  ihave Hf : memstorageFields ms σ $$ [HhardState Hsnapshot Hvoters Hents_f HcallStats]
   · unfold memstorageFields
     iexists _, _, _, _, _, _
     iframe HhardState Hsnapshot Hvoters Hents_f HcallStats Hents
@@ -126,7 +124,7 @@ theorem MemoryStorage.Entries.wp_proof
   wp_call
   wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hgs_inv Hf]
   · unfold memstorageInv
-    iexists { prev := prev, ents := ents, ss := ss }
+    iexists σ
     iframe
   iapply HΦ
   iframe Hs2

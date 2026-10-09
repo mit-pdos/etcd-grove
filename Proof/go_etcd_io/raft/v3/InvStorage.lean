@@ -220,7 +220,7 @@ def isStorageWith (P : StorState → IProp GF) (st : Storage) :
   /- The stable log's last index is far below `2^64`.
 
      This is the one *pure* clause of the contract, and it is what makes appending to
-     the log possible at all. `ownRaftLogCore`'s `Hnowrap` says the whole log's last
+     the log possible at all. `ownRaftLog`'s `Hnowrap` says the whole log's last
      index leaves room for one more entry, and that bound is **not inductive**: after
      an append the log is one longer and the same bound is needed at the new length, so
      no invariant of the log alone can supply it (any invariant preserved by `append`

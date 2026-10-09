@@ -24,7 +24,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem MemoryStorage.Snapshot.wp_proof :
     MemoryStorage.Snapshot.spec (GF := GF) (hG := hG) := by
-  intro ms ⟨prev, ents, ss⟩ esu
+  intro ms σ esu
   wp_start as ⟨Hms, #Hesu⟩
   iunfold ownMemoryStorage at Hms
   icases Hms with ⟨%γ, Hms⟩
@@ -50,7 +50,7 @@ theorem MemoryStorage.Snapshot.wp_proof :
   wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hgs_inv HhardState Hsnapshot Hents_f Hents HcallStats]
   · inext
     unfold memstorageInv memstorageFields
-    iexists { prev := prev, ents := ents, ss := ss }
+    iexists σ
     iframe Hgs_inv
     iexists hs, snap, es, dummy, _, voters
     iframe # ∗

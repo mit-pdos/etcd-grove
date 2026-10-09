@@ -98,9 +98,7 @@ theorem raft.hasUnappliedConfChanges.wp_proof
        uint.Z s.logst.prev.index' + (s.logst.sents.length : Int)
          + (s.logst.uents.length : Int) + 1 < 2^64 ∧
        ∀ e ∈ s.logst.sents ++ s.logst.uents, e.Type' = EntryNormal)
-      (fun lv _ _ _ Hcm Hap _ Hnw _ Hnc Happ Hpap Hcom => by
-        rw [← Hcm, ← Hap]
-        exact ⟨Hpap Hsn, Happ.2, Hcom, Hnw, Hnc⟩) $$ Hlog
+      (fun _ _ _ Hnw _ _ Hnc Happ Hpap Hcom _ _ => ⟨Hpap Hsn, Happ.2, Hcom, Hnw, Hnc⟩) $$ Hlog
     with ⟨%Hfacts, Hlog⟩
   obtain ⟨Hpa, Hac, Hcl, Hnw, Hnc⟩ := Hfacts
   ihave Hphys := Hback $$ Hlog

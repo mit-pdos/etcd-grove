@@ -30,46 +30,31 @@ theorem raftLog.acceptApplying.wp_proof
     (wp_raftLog_maxAppliableIndex : raftLog.maxAppliableIndex.spec (GF := GF) (hG := hG)) :
     raftLog.acceptApplying.spec (GF := GF) (hG := hG) := by
   intro l ls i size au Hi
-  obtain ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ := ls
-  simp only at Hi
   wp_start as H
   iNamed H
-  icases (ownRaftLog_unfold l prev sents uents lcm lap snap lip lapg lpend lasz lamx).1 $$ Hlog
-    with ⟨%lv, Hl, %Hcm, %Hap, %Hapg, %Hip, %Hasz, %Hamx, Hcore⟩
-  unfold ownRaftLogCore
-  icases Hcore with ⟨%sprev, %stored, %ss, Hcore⟩
-  iNamed Hcore
+  iNamed Hlog
   wp_auto
-  rw [decide_eq_false (by subst lcm; omega)]
+  rw [decide_eq_false (by rw [Hcm]; omega)]
   wp_auto
   wp_if_destruct
   · -- over the limit: paused, no `maxAppliableIndex`
     iapply HΦ
     reseal_raftLog
-    all_goals (dsimp only; subst_vars; try omega)
+    all_goals (simp only [Hasz] at *; try omega)
     · intro h; cases h
-    · rfl
   · -- under the limit: the log is re-sealed for `maxAppliableIndex`
-    ihave Hlog : ownRaftLog l ⟨prev, sents, uents, lcm, lap, snap, lip, i, lpend, lasz + size, lamx⟩
+    ihave Hlog : ownRaftLog l { ls with applying := i, apsize := ls.apsize + size }
       $$ [Hl HStorage Huents Huents_cap]
     · reseal_raftLog
-      all_goals (dsimp only; subst_vars; try omega)
-      rfl
-    have Hb' : ¬ uint.Z lamx ≤ uint.Z (lasz + size) := by subst lamx lasz; exact Hif
+      all_goals (simp only [Hasz, Hamx] at *; try omega)
+    have Hb' : ¬ uint.Z ls.apmax ≤ uint.Z (ls.apsize + size) := by rw [← Hamx, ← Hasz]; exact Hif
     wp_apply wp_raftLog_maxAppliableIndex l _ au $$ [Hlog] as %hi ⟨Hlog, -⟩
     · iexact Hlog
-    icases (ownRaftLog_unfold l prev sents uents lcm lap snap lip i lpend (lasz + size) lamx).1 $$ Hlog
-      with ⟨%lv, Hl, %Hcm, %Hap, %Hapg, %Hip, %Hasz, %Hamx, Hcore⟩
-    unfold ownRaftLogCore
-    icases Hcore with ⟨%sprev, %stored, %ss, Hcore⟩
-    iNamed Hcore
+    iNamed Hlog
     wp_auto
     iapply HΦ
     reseal_raftLog
-    all_goals (dsimp only; subst_vars; try omega)
-    · intro _
-      rw [Hasz, Hamx]
-      omega
+    all_goals (simp only [Hasz, Hamx] at *; try omega)
 
 end proof
 

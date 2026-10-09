@@ -185,7 +185,7 @@ theorem ownRawNode_persist (rn : Loc) (id : w64) (s : NState) (rs : RNState) :
     ⊢ ownRawNode (GF := GF) cfg rn id s rs -∗
       ∃ (st : Storage) (σ : StorState),
         isStorage st ∗ ownStorage st σ ∗
-        (ownStorage st { σ with ents := storApp σ.prev σ.ents s.logst.unpersisted } -∗
+        (ownStorage st { σ with ents := storApp σ s.logst.unpersisted } -∗
          ownRawNode cfg rn id
            { s with logst := { s.logst with unpersisted := [] } } rs) := by
   iintro H

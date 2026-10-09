@@ -29,44 +29,37 @@ theorem raftLog.firstIndex.wp_proof
     (wp_unstable_maybeFirstIndex : unstable.maybeFirstIndex.spec (GF := GF) (hG := hG)) :
     raftLog.firstIndex.spec (GF := GF) (hG := hG) := by
   intro l ls
-  obtain ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ := ls
   wp_start as H
   iNamed H
-  icases (ownRaftLog_unfold l prev sents uents lcm lap snap lip lapg lpend lasz lamx).1 $$ Hlog with ⟨%lv, Hl, %Hcm, %Hap, %Hapg, %Hip, %Hasz, %Hamx, Hcore⟩
-  unfold ownRaftLogCore
-  iNamed Hcore
+  iNamed Hlog
   wp_auto
   ihave #Hsto : isStorageWith (ownStorage lv.storage') lv.storage' $$ [HisStorage]
   · unfold isStorage; iexact HisStorage
   unfold isStorageWith
   icases Hsto with ⟨%isv, #Hsto⟩
   iNamed Hsto
-  icases raftLog_split_unstable l lv $$ Hl with ⟨Huf, Hlback⟩
-  wp_apply wp_unstable_maybeFirstIndex _
-      ⟨uents, lv.unstable'.offset', lv.unstable'.offsetInProgress', snap⟩
-      $$ [Huf Huents Huents_cap] as %fi %ok ⟨Hun, %Hok⟩
-  · close_unstable_log
+  lend_unstable
+  wp_apply wp_unstable_maybeFirstIndex _ (unstableOf lv ls) $$ [$Hun] as %fi %ok ⟨Hun, %Hok⟩
   reopen_unstable
   obtain ⟨rfl, Hfi⟩ := Hok
-  cases snap with
+  cases Hs : ls.snap with
   | some sid =>
-    rw [decide_eq_true (by simp)]
+    rw [decide_eq_true (by simp [Hs])]
     wp_auto
     iapply HΦ
-    have Hsid : prev = sid := Hstore.1
+    obtain ⟨Hsid, -, -, Hlt⟩ : LogStoreOk (some sid) σ ls.prev ls.sents ls.uents := Hs ▸ Hstore
     isplitl
     · reseal_raftLog
     ipureintro
-    obtain ⟨-, -, -, Hlt⟩ := Hstore
-    rw [Hfi sid rfl, Hsid]
+    rw [Hfi sid Hs, Hsid]
     have := word.unsigned_range sid.index'
     word
   | none =>
-    rw [decide_eq_false (by simp)]
+    rw [decide_eq_false (by simp [Hs])]
     wp_auto
     rw [Hstok]
     wp_auto
-    have Hsp : sprev = prev := Hstore.1
+    obtain ⟨Hsp, -, -⟩ : LogStoreOk none σ ls.prev ls.sents ls.uents := Hs ▸ Hstore
     wp_apply HFirstIndex $$ HStorage as %fi2 ⟨%Hfi2, HStorage⟩
     rw [← Hstok]
     iapply HΦ
