@@ -7,7 +7,11 @@
 # options `Cache.Get`'s callers and `Cache.serverRevision` pass), and for `Cache.Watch`:
 # `OpWatch`, the watch options `WithProgressNotify`/`WithCreatedNotify`, and
 # `WatchResponse.Err` (which calls `rpctypes.Error` and grpc's `status.Error`: hence the
-# imports of `rpctypes` and grpc's `codes`/`status`, names only).
+# imports of `rpctypes` and grpc's `codes`/`status`, names only); and the `Client` struct
+# (`cache.newCache` reads its `KV` and `Watcher` fields), whose other fields need the types
+# of grpc, grpc's `credentials`, zap, `sync/atomic` and the client's `credentials` and
+# `internal/resolver` (names only, their `.toml`s; translating `Client` also translates the
+# client's structs whose field types these provide: `authClient`, `kv`, `watcher`, ...).
 translate = [
   "!*",
   "WatchResponse.IsProgressNotify",
@@ -49,8 +53,9 @@ translate = [
   "WithCreatedNotify",
   "OpWatch",
   "WatchResponse.Err",
+  "Client",
 ]
-imports = ["!*", "context", "sync", "time", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "google.golang.org/grpc/codes", "google.golang.org/grpc/status"]
+imports = ["!*", "context", "sync", "time", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "google.golang.org/grpc/codes", "google.golang.org/grpc/status", "google.golang.org/grpc", "google.golang.org/grpc/credentials", "go.etcd.io/etcd/client/v3/internal/resolver", "go.etcd.io/etcd/client/v3/credentials", "go.uber.org/zap", "sync/atomic"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

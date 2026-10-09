@@ -6,15 +6,23 @@ public import Perennial.GeneratedProof.context
 public import GeneratedProof.go_etcd_io.etcd.api.v3.etcdserverpb
 public import GeneratedProof.go_etcd_io.etcd.api.v3.mvccpb
 public import GeneratedProof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes
+public import GeneratedProof.go_etcd_io.etcd.client.v3.credentials
+public import GeneratedProof.go_etcd_io.etcd.client.v3.internal.resolver
+public import GeneratedProof.go_uber_org.zap
+public import GeneratedProof.google_golang_org.grpc
 public import GeneratedProof.google_golang_org.grpc.codes
+public import GeneratedProof.google_golang_org.grpc.credentials
 public import GeneratedProof.google_golang_org.grpc.status
 public import Perennial.GeneratedProof.sync
+public import Perennial.GeneratedProof.sync.atomic
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.client.v3
 public import GeneratedProof.go_etcd_io.etcd.client.v3.chunk1
 public import GeneratedProof.go_etcd_io.etcd.client.v3.chunk2
 public import GeneratedProof.go_etcd_io.etcd.client.v3.chunk3
+public import GeneratedProof.go_etcd_io.etcd.client.v3.chunk4
+public import GeneratedProof.go_etcd_io.etcd.client.v3.chunk5
 
 @[expose] public section
 

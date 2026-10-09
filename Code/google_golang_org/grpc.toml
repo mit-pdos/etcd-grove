@@ -1,0 +1,7 @@
+# Types and names only: the types of `clientv3.Client`'s fields `conn` (`*ClientConn`) and
+# `callOpts` (`[]CallOption`), and of `clientv3.Config.DialOptions`.
+translate = ["!*"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

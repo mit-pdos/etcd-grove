@@ -89,7 +89,7 @@ PROJECTS = [
         # from it by name.
         repo="https://github.com/upamanyus/etcd",
         rev="6ab61a1c7edd7ebc6a0bff6f53bd5ffa719b6b87",
-        lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org="],
+        lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org="],
         packages=[
             # with bodies (cache/v3.toml)
             "go.etcd.io/etcd/cache/v3",
@@ -106,8 +106,14 @@ PROJECTS = [
             "google.golang.org/protobuf/runtime/protoimpl",
             "google.golang.org/protobuf/internal/impl",
             "google.golang.org/protobuf/internal/pragma",
+            # names only: the types of clientv3.Client's fields
+            "google.golang.org/grpc",
+            "google.golang.org/grpc/credentials",
+            "go.etcd.io/etcd/client/v3/credentials",
+            "go.etcd.io/etcd/client/v3/internal/resolver",
+            "go.uber.org/zap",
         ],
-        owned=[os.path.join("go_etcd_io", "etcd"), "k8s_io", "google_golang_org"],
+        owned=[os.path.join("go_etcd_io", "etcd"), "k8s_io", "google_golang_org", "go_uber_org"],
     ),
 ]
 

@@ -4,8 +4,8 @@ imports (the counterpart of `Proof/go_etcd_io/raft/v3/Base.lean` for the transla
 
 `isPkgInit` of a package includes `isPkgInit` of everything it imports, so every package
 reachable from the cache's imports needs an instance. The standard-library ones (`bytes`,
-`context`, `errors`, `fmt`, `sync`, `time`) are Perennial's; the etcd, k8s, protobuf and grpc
-packages are translated names-only or types-only (`Code/{go_etcd_io/etcd,k8s_io,google_golang_org}/**.toml`), and their
+`context`, `errors`, `fmt`, `sync`, `time`) are Perennial's; the etcd, k8s, protobuf, grpc and zap
+packages are translated names-only or types-only (`Code/{go_etcd_io/etcd,k8s_io,google_golang_org,go_uber_org}/**.toml`), and their
 package facts are `True` except where a proof reads a package-level variable: the
 cache's `ErrNotReady` (`fmt.Errorf` at init), `ErrUnsupportedRequest` and
 `ErrKeyRangeInvalid`, `ErrCacheTimeout` (`errors.New`), and `rpctypes`' `ErrFutureRev` and
@@ -118,6 +118,37 @@ instance grpc_status_is_pkg_init_inst :
   define_is_pkg_init iprop(True)
 instance grpc_status_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.status :=
+  build_get_is_pkg_init_wf
+
+-- The names-only packages of `clientv3.Client`'s field types.
+instance grpc_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc :=
+  define_is_pkg_init iprop(True)
+instance grpc_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc :=
+  build_get_is_pkg_init_wf
+
+instance grpc_credentials_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.credentials :=
+  define_is_pkg_init iprop(True)
+instance grpc_credentials_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.credentials :=
+  build_get_is_pkg_init_wf
+
+instance clientv3_credentials_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.client.v3.credentials :=
+  define_is_pkg_init iprop(True)
+instance clientv3_credentials_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.client.v3.credentials :=
+  build_get_is_pkg_init_wf
+
+instance clientv3_resolver_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.client.v3.internal.resolver :=
+  define_is_pkg_init iprop(True)
+instance clientv3_resolver_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.client.v3.internal.resolver :=
+  build_get_is_pkg_init_wf
+
+instance zap_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.go_uber_org.zap :=
+  define_is_pkg_init iprop(True)
+instance zap_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.go_uber_org.zap :=
   build_get_is_pkg_init_wf
 
 /-- `clientv3`'s package facts: `noPrefixEnd` (`[]byte{0}`, never written), which
