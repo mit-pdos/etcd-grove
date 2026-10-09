@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regenerate, or check, the Goose translations of etcd-raft (`EtcdRaft/`) and etcd (`EtcdCache/`).
+"""Regenerate, or check, the Goose translations of etcd-raft and etcd (in `Code/`, `GeneratedProof/`).
 
 usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perennial DIR]
 
@@ -17,11 +17,14 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                one (default: $PERENNIAL_DIR, else the revision pinned in
                lake-manifest.json); for trying a translator change locally.
 
-Each project is a Go repository at a pinned revision, translated into one Lake
-library (a directory of this repository): the packages in its list, with goose's
-`-lean-root` mapping every non-standard-library Go path the translation reaches to
-that library (standard-library packages stay `Perennial.*`, Perennial's).
-Without --check, the generated `.lean` files under `<lib>/{Code,GeneratedProof}/`
+Each project is a Go repository at a pinned revision, translated into `Code/` and
+`GeneratedProof/`: the packages in its list, with goose's `-lean-root PKG=` mapping
+every non-standard-library Go path the translation reaches to the empty root
+(modules `Code.<pkg>`, `GeneratedProof.<pkg>`; standard-library packages stay
+`Perennial.*`, Perennial's).  A project's `parts` translate more of its packages into a
+module root of their own (`<root>/Code/`, configured by `<root>/Code/**.toml`): etcd's raft
+dependency, in `EtcdDeps/`, whose Go path is that of the etcd-raft fork.
+Without --check, the generated `.lean` files under `{Code,GeneratedProof}/`
 (in the subdirectories the project owns) are replaced by fresh output.  The Goose
 configuration (`*.toml`, next to the code) is input and is never touched.
 
@@ -39,10 +42,21 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 WORK = os.path.join(ROOT, ".lake", "goose")
+
+
+@dataclass
+class Part:
+    """A translation of some of a project's packages into the module root `root`: for a Go
+    path that is also translated from another source (etcd's own raft dependency, whose
+    path is the fork's), so that the two have different modules."""
+    root: str
+    lean_roots: list
+    packages: list
+    owned: list
 
 
 @dataclass
@@ -52,14 +66,17 @@ class Project:
     # here and rerun etc/goose.py.
     repo: str
     rev: str
-    # The Lake library (and directory) the translation goes to.
-    lib: str
     # goose's -lean-root PKG=ROOT arguments: Go path prefixes -> Lean module root.
     lean_roots: list
     # Go packages to translate (resolved in the checkout's root module/workspace).
     packages: list
-    # Output subdirectories owned by this project, relative to Code/ and GeneratedProof/.
+    # Output paths owned by this project, relative to Code/ and GeneratedProof/: a
+    # directory, and the `.lean` file of the same name beside it (`go_etcd_io/bbolt`:
+    # `bbolt.lean` and `bbolt/`).
     owned: list
+    # More translations of packages of the same checkout, each into a module root of
+    # its own (`<root>/Code/`, `<root>/GeneratedProof/`, configured by `<root>/Code/**.toml`).
+    parts: list = field(default_factory=list)
 
     @property
     def env(self):
@@ -71,9 +88,8 @@ PROJECTS = [
         name="etcd-raft",
         repo="https://github.com/upamanyus/etcd-raft",
         rev="531b20c6251eb54f79ed1ca242430a20aaaae0c3",
-        # Modules EtcdRaft.Code.*, EtcdRaft.GeneratedProof.*: the library EtcdRaft.
-        lean_roots=["go.etcd.io/raft/v3=EtcdRaft"],
-        lib="EtcdRaft",
+        # Modules Code.go_etcd_io.raft.v3*, GeneratedProof.go_etcd_io.raft.v3*.
+        lean_roots=["go.etcd.io/raft/v3="],
         packages=[
             ".",
             "go.etcd.io/raft/v3/confchange",
@@ -90,18 +106,13 @@ PROJECTS = [
         # Rocq translations (etcd-grove `main`, Perennial `master`) are regenerated
         # from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="48fd5a5071608e5c075b588c50e4efbfe300b00a",
-        lib="EtcdCache",
-        # go.etcd.io/raft/v3 is etcd's own raft dependency (v3.7.0 in etcd's go.mod), whose
-        # raftpb is protobuf-go v2: not the gogoproto fork EtcdRaft/ translates, so it is
-        # translated here too (both define `Perennial.go_etcd_io.raft.v3.*`, so no module
-        # may import both). net/http is a standard-library package Perennial does not
-        # translate, so its names are here.
-        lean_roots=["go.etcd.io/etcd=EtcdCache", "k8s.io=EtcdCache",
-                    "google.golang.org=EtcdCache", "go.uber.org=EtcdCache",
-                    "go.etcd.io/bbolt=EtcdCache", "go.opentelemetry.io=EtcdCache",
-                    "github.com/dustin/go-humanize=EtcdCache",
-                    "net/http=EtcdCache", "go.etcd.io/raft/v3=EtcdCache"],
+        rev="6ab61a1c7edd7ebc6a0bff6f53bd5ffa719b6b87",
+        # go.etcd.io/raft/v3 is etcd's own raft dependency (etcd's go.mod), not the fork
+        # above: its modules are EtcdDeps.Code.go_etcd_io.raft.v3* (the part below).
+        lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
+                    "go.etcd.io/bbolt=", "go.opentelemetry.io=",
+                    "github.com/dustin/go-humanize=", "net/http=",
+                    "go.etcd.io/raft/v3=EtcdDeps"],
         packages=[
             # with bodies (cache/v3.toml)
             "go.etcd.io/etcd/cache/v3",
@@ -141,11 +152,10 @@ PROJECTS = [
             "go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc",
             "google.golang.org/protobuf/proto",
             "google.golang.org/protobuf/reflect/protoreflect",
-            "go.etcd.io/raft/v3",
-            "go.etcd.io/raft/v3/raftpb",
             "go.uber.org/zap",
             "go.uber.org/zap/zapcore",
             "github.com/dustin/go-humanize",
+            # a standard-library package Perennial does not translate: its names are here
             "net/http",
             # types and names only (their .toml)
             "go.etcd.io/etcd/client/v3",
@@ -153,14 +163,29 @@ PROJECTS = [
             "go.etcd.io/etcd/api/v3/mvccpb",
             "go.etcd.io/etcd/api/v3/v3rpc/rpctypes",
             "k8s.io/utils/third_party/forked/golang/btree",
+            # names only: what `clientv3.WatchResponse.Err` calls
+            "google.golang.org/grpc/codes",
+            "google.golang.org/grpc/status",
             # the types of protobuf messages' fields (protoimpl.MessageState, ...)
             "google.golang.org/protobuf/runtime/protoimpl",
             "google.golang.org/protobuf/internal/impl",
+            "google.golang.org/protobuf/internal/pragma",
         ],
-        # (all of go_etcd_io/ here: EtcdRaft's go_etcd_io/raft is in EtcdRaft/)
-        owned=["go_etcd_io", "k8s_io", "google_golang_org", "go_uber_org",
-               "go_opentelemetry_io", "net",
-               os.path.join("github_com", "dustin")],
+        owned=[os.path.join("go_etcd_io", "etcd"), os.path.join("go_etcd_io", "bbolt"),
+               "k8s_io", "google_golang_org", "go_uber_org", "go_opentelemetry_io",
+               os.path.join("net", "http"), os.path.join("github_com", "dustin")],
+        parts=[
+            # etcd's own raft dependency (go.etcd.io/raft/v3 in etcd's go.mod), whose
+            # raftpb is protobuf-go v2: not the gogoproto fork etcd-raft above, but the same
+            # Go path, so into a root of its own (modules EtcdDeps.Code.go_etcd_io.raft.v3*;
+            # both define `Perennial.go_etcd_io.raft.v3.*`, so no module imports both).
+            Part(
+                root="EtcdDeps",
+                lean_roots=["go.etcd.io/raft/v3=EtcdDeps", "google.golang.org="],
+                packages=["go.etcd.io/raft/v3", "go.etcd.io/raft/v3/raftpb"],
+                owned=[os.path.join("go_etcd_io", "raft")],
+            ),
+        ],
     ),
 ]
 
@@ -210,17 +235,24 @@ def pinned_perennial():
     return checkout(p["url"], p["rev"], os.path.join(WORK, "perennial")), p["rev"]
 
 
-def lean_files(d, proj):
+def lean_files(d, owned):
+    """The `.lean` files under `d/{Code,GeneratedProof}/` at the paths `owned`."""
     out = {}
     for sub in ("Code", "GeneratedProof"):
-        for owned in proj.owned:
-            base = os.path.join(d, sub, owned)
+        for o in owned:
+            base = os.path.join(d, sub, o)
+            paths = [base + ".lean"] if os.path.isfile(base + ".lean") else []
             for dp, _, fs in os.walk(base):
-                for f in fs:
-                    if f.endswith(".lean"):
-                        rel = os.path.relpath(os.path.join(dp, f), d)
-                        out[rel] = open(os.path.join(dp, f), encoding="utf-8").read()
+                paths.extend(os.path.join(dp, f) for f in fs if f.endswith(".lean"))
+            for path in paths:
+                out[os.path.relpath(path, d)] = open(path, encoding="utf-8").read()
     return out
+
+
+def pieces(proj):
+    """The translations of `proj`: (module root, -lean-root arguments, packages, owned)."""
+    return [("", proj.lean_roots, proj.packages, proj.owned)] + [
+        (p.root, p.lean_roots, p.packages, p.owned) for p in proj.parts]
 
 
 def source(proj, local, check):
@@ -243,38 +275,46 @@ def source(proj, local, check):
 
 def translate(proj, src, bindir, perennial_rev, desc, check):
     """Translate `proj`; return True if the checked-in translation is (now) up to date."""
-    lib_dir = os.path.join(ROOT, proj.lib)
     out = tempfile.mkdtemp(prefix="goose-", dir=WORK)
     try:
-        config = os.path.join(lib_dir, "Code")
-        roots = [a for r in proj.lean_roots for a in ("-lean-root", r)]
-        for tool, sub in (("goose", "Code"), ("proofgen", "GeneratedProof")):
-            run([os.path.join(bindir, tool), "-lean"] + roots +
-                ["-out", os.path.join(out, sub), "-configdir", config, "-dir", src]
-                + proj.packages)
-        new, old = lean_files(out, proj), lean_files(lib_dir, proj)
-        changed = sorted(f for f in new.keys() | old.keys() if new.get(f) != old.get(f))
+        # path relative to ROOT -> (new content or None, old content or None)
+        new, old = {}, {}
+        for i, (root, lean_roots, packages, owned) in enumerate(pieces(proj)):
+            lib_dir = os.path.join(ROOT, root)
+            piece_out = os.path.join(out, str(i))
+            config = os.path.join(lib_dir, "Code")
+            roots = [a for r in lean_roots for a in ("-lean-root", r)]
+            for tool, sub in (("goose", "Code"), ("proofgen", "GeneratedProof")):
+                run([os.path.join(bindir, tool), "-lean"] + roots +
+                    ["-out", os.path.join(piece_out, sub), "-configdir", config, "-dir", src]
+                    + packages)
+            for f, c in lean_files(piece_out, owned).items():
+                new[os.path.join(root, f)] = (c, os.path.join(piece_out, f))
+            for f, c in lean_files(lib_dir, owned).items():
+                old[os.path.join(root, f)] = c
+        newc = {f: c for f, (c, _) in new.items()}
+        changed = sorted(f for f in newc.keys() | old.keys() if newc.get(f) != old.get(f))
         if check:
             if not changed:
-                print(f"goose.py: the translation in {proj.lib}/ is up to date (Perennial "
+                print(f"goose.py: the translation of {proj.name} is up to date (Perennial "
                       f"{perennial_rev}, {proj.name} {desc})")
                 return True
             for f in changed:
                 sys.stdout.writelines(difflib.unified_diff(
-                    old.get(f, "").splitlines(keepends=True), new.get(f, "").splitlines(keepends=True),
+                    old.get(f, "").splitlines(keepends=True), newc.get(f, "").splitlines(keepends=True),
                     "checked-in/" + f, "translator/" + f))
-            print(f"goose.py: {len(changed)} file(s) of {proj.lib}/ differ from what Perennial "
+            print(f"goose.py: {len(changed)} file(s) of the translation of {proj.name} differ from what Perennial "
                   f"{perennial_rev} produces from {proj.name} {desc}; run etc/goose.py",
                   file=sys.stderr)
             return False
         for f in changed:
-            dst = os.path.join(lib_dir, f)
+            dst = os.path.join(ROOT, f)
             if f in new:
                 os.makedirs(os.path.dirname(dst), exist_ok=True)
-                shutil.copyfile(os.path.join(out, f), dst)
+                shutil.copyfile(new[f][1], dst)
             else:
                 os.remove(dst)
-        print(f"goose.py: {proj.lib}/: {len(changed)} file(s) updated (Perennial {perennial_rev}, "
+        print(f"goose.py: {proj.name}: {len(changed)} file(s) updated (Perennial {perennial_rev}, "
               f"{proj.name} {desc})")
         return True
     finally:

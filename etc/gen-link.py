@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate EtcdGrove/Raft/Link.lean from the Rocq link structure.
+"""Generate Proof/go_etcd_io/raft/v3/Link.lean from the Rocq link structure.
 
 Each Rocq collection <fn> has spec_<fn>.v (`Module Type NAME.`), postulates_<fn>.v
 (`Include CALLEE.` for each callee, in order) and link_<fn>.v (the functor applied to
@@ -14,43 +14,78 @@ and proved here on 2026-10-08) are listed in etc/link-lean-first.txt, one per li
 hypotheses), and linked the same way; a Rocq-side function listed there has its
 callees overridden (a Rocq `Axiom` proved here).
 
-usage: etc/gen-link.py ROCQ_PROOF_DIR > EtcdGrove/Raft/Link.lean
-       etc/gen-link.py --cache > EtcdGrove/Cache/Link.lean
-       etc/gen-link.py --server > EtcdGrove/Server/Link.lean
+The Spec/Proof files of a function are found by its name: `Spec/<pkg>/<fn>.lean`, or
+`Spec/<pkg>/<f>.lean` for a name `<last component of pkg>_<f>` (tracker_NewInflights:
+Spec/go_etcd_io/raft/v3/tracker/NewInflights.lean).
 
-`--cache` links the proofs of etcd's `cache` package (`EtcdGrove/Cache/`), which are all
+usage: etc/gen-link.py ROCQ_PROOF_DIR > Proof/go_etcd_io/raft/v3/Link.lean
+       etc/gen-link.py --cache > Proof/go_etcd_io/etcd/cache/v3/Link.lean
+       etc/gen-link.py --server > Proof/go_etcd_io/etcd/server/v3/etcdserver/Link.lean
+
+`--cache` links the proofs of etcd's `cache` package (`Proof/go_etcd_io/etcd/cache/v3/` and
+the specs and proofs of its functions), which are all
 Lean-first: they are read from etc/link-lean-first-cache.txt alone, with no Rocq side.
-`--server` likewise links the proofs of etcd's server (`EtcdGrove/Server/`: the consistent
-index and the apply thread), from etc/link-lean-first-server.txt.
+`--server` likewise links the proofs of etcd's server (the consistent index and the apply
+thread, `Proof/go_etcd_io/etcd/server/v3/etcdserver/`), from etc/link-lean-first-server.txt;
+its specs are also looked up in `EtcdDeps/Spec/` (etcd's own raft dependency, raft v3.7, whose
+Go path is the fork's).
 """
 import glob
 import os
 import re
 import sys
 
-# The Lean-first trees: (directory, callee list, what the links open, the package
-# assumptions they are stated under, a description for the header).
+# The Lean-first links: (callee list, what the links open, the package assumptions they
+# are stated under, a description for the header, the module roots holding their specs).
 LEAN_FIRST = {
-    "--cache": ("Cache", "link-lean-first-cache.txt", "go_etcd_io.etcd.cache.v3",
-                "go_etcd_io.etcd.cache.v3.Assumptions",
-                "The `cache` package's proofs (`EtcdGrove/Cache/`)"),
+    "--cache": ("link-lean-first-cache.txt", "go_etcd_io.etcd.cache.v3",
+                "go_etcd_io.etcd.cache.v3.Assumptions", "The `cache` package's proofs", [""]),
     # etcdserver's assumptions include those of every package it imports (instances):
     # cindex's, schema's, raft v3.7's raftpb's, zap's, ..., which the other specs use
-    "--server": ("Server", "link-lean-first-server.txt",
+    "--server": ("link-lean-first-server.txt",
                  "go_etcd_io.etcd.server.v3.etcdserver.cindex go_etcd_io.etcd.server.v3.storage "
                  "go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3 "
                  "go_etcd_io.etcd.pkg.v3 go_uber_org go_etcd_io.raft.v3",
                  "go_etcd_io.etcd.server.v3.etcdserver.Assumptions",
-                 "The etcd server's proofs (`EtcdGrove/Server/`: the consistent index and the\n"
-                 "apply thread)"),
+                 "The etcd server's proofs (the consistent index and the apply thread)",
+                 ["", "EtcdDeps"]),
 }
 mode = LEAN_FIRST.get(sys.argv[1])
 cache = mode is not None
 here = os.path.dirname(os.path.abspath(__file__))
-tree = mode[0] if cache else "Raft"
-lean = os.path.join(here, "..", "EtcdGrove", tree)
+root = os.path.normpath(os.path.join(here, ".."))
 
-fns, callees = [], {}
+# function name -> the module path below Spec/ and Proof/ (`go_etcd_io.raft.v3.tracker.NewInflights`)
+# (a bare `<fn>` shared by two packages, as `Error` of `rpctypes` and `status`, is
+# ambiguous: such a function is named `<last component of pkg>_<fn>` only)
+# (`prefix`: the module root of a spec outside `Spec/`, as `EtcdDeps.`)
+where, prefix, ambiguous = {}, {}, set()
+for mroot in (mode[4] if cache else [""]):
+    spec_dir = os.path.join(root, mroot, "Spec")
+    for dp, _, fs in os.walk(spec_dir):
+        for f in fs:
+            if f.endswith(".lean"):
+                rel = os.path.relpath(os.path.join(dp, f), spec_dir)[:-len(".lean")]
+                *pkg, stem = rel.split(os.sep)
+                qual = pkg[-1] + "_" + stem
+                assert qual not in where, f"two specs for {qual}"
+                where[qual] = ".".join(pkg + [stem])
+                prefix[qual] = mroot + "." if mroot else ""
+                if stem in where:
+                    ambiguous.add(stem)
+                where[stem], prefix[stem] = where[qual], prefix[qual]
+for name in ambiguous:
+    del where[name]
+
+
+def spec_file(fn):
+    return os.path.join(root, prefix[fn].rstrip("."), "Spec", *where[fn].split(".")) + ".lean"
+
+
+def proof_module(fn):
+    return f"{prefix[fn]}Proof.{where[fn]}"
+
+fns, callees, external = [], {}, set()
 if not cache:
     rocq = sys.argv[1]
     fns = sorted(os.path.basename(f)[5:-2] for f in glob.glob(os.path.join(rocq, "spec_*.v")))
@@ -64,7 +99,7 @@ if not cache:
 
 # Lean-first functions: no spec_/postulates_ files; `etc/link-lean-first.txt`
 # (`etc/link-lean-first-cache.txt` for the cache)
-with open(os.path.join(here, mode[1] if cache else "link-lean-first.txt")) as f:
+with open(os.path.join(here, mode[0] if cache else "link-lean-first.txt")) as f:
     for line in f:
         line = line.split("#")[0].strip()
         if not line:
@@ -75,17 +110,25 @@ with open(os.path.join(here, mode[1] if cache else "link-lean-first.txt")) as f:
         # `Axiom` proved here from callees the Rocq does not have)
         if fn not in callees:
             fns.append(fn)
+        if cs.strip() == "@":
+            # linked in its own package's `Link.lean` (the btree): imported, not emitted
+            external.add(fn)
+            cs = ""
         callees[fn] = cs.split()
 fns.sort()
 
 spec = {}
 for fn in fns:
-    m = re.search(r"^abbrev ([\w.«»']+)\.spec\b", open(os.path.join(lean, "Spec", f"{fn}.lean")).read(), re.M)
-    spec[fn] = m.group(1)
+    src = open(spec_file(fn)).read()
+    m = re.search(r"^abbrev ([\w.«»']+)\.spec\b", src, re.M)
+    # the namespaces below `EtcdGrove` the spec is declared in (`btree` for the btree's)
+    nss = re.findall(r"^namespace (\S+)", src, re.M)
+    inner = nss[nss.index("EtcdGrove") + 1:] if "EtcdGrove" in nss else []
+    spec[fn] = ".".join(inner + [m.group(1)])
 
 # The specs stated at `HeapGS HasLC.hasLC GF` (the ghost state holds an invariant).
 haslc = {fn for fn in fns
-         if "HeapGS HasLC.hasLC" in open(os.path.join(lean, "Spec", f"{fn}.lean")).read()}
+         if "HeapGS HasLC.hasLC" in open(spec_file(fn)).read()}
 
 
 def result(fn):
@@ -111,7 +154,7 @@ for fn in fns:
     visit(fn)
 
 if cache:
-    _, listfile, opens, assumptions, what = mode
+    listfile, opens, assumptions, what, _ = mode
     out = [f"""/-
 {what}, every proof instantiated with its
 callees' results. All of them are Lean-first, listed with their callees in
@@ -119,9 +162,13 @@ callees' results. All of them are Lean-first, listed with their callees in
 hand.
 
 `#print axioms` on a result is its trust base.
--/"""]
-    out.extend(f"import EtcdGrove.{tree}.Proof.{fn}" for fn in fns)
+-/""", "module", ""]
+    out.extend(f"public import {proof_module(fn)}" for fn in fns if fn not in external)
+    out.extend(sorted({"public import Proof." + ".".join(where[fn].split(".")[:-1] + ["Link"])
+                       for fn in external}))
     out.append(f"""
+@[expose] public section
+
 noncomputable section
 
 namespace Perennial
@@ -140,12 +187,12 @@ variable [package_sem : {assumptions}]
         args = " ".join(result(c) for c in callees[fn])
         body = f"{spec[fn]}.wp_proof" + (f" {args}" if args else "")
         # the specs with ghost state (the store's) take `[AllG GF]`
-        allg = " [AllG GF]" if "[AllG GF]" in open(os.path.join(lean, "Spec", f"{fn}.lean")).read() else ""
+        allg = " [AllG GF]" if "[AllG GF]" in open(spec_file(fn)).read() else ""
         return (f"theorem {result(fn)}{allg} :\n    {spec[fn]}.spec (GF := GF) (hG := hG) :=\n"
                 f"  {body}\n")
 
-    generic = [fn for fn in order if fn not in haslc]
-    special = [fn for fn in order if fn in haslc]
+    generic = [fn for fn in order if fn not in haslc and fn not in external]
+    special = [fn for fn in order if fn in haslc and fn not in external]
     assert all(c not in haslc for fn in generic for c in callees[fn])
     out.extend(emit_cache(fn) for fn in generic)
     out.append("end links\n")
@@ -174,9 +221,13 @@ Generated by `etc/gen-link.py` -- do not edit by hand.
 `#print axioms` on a result is its trust base: an `axiom` is the trust boundary (the
 `Proof/<fn>.lean` of a function outside the scope), `sorryAx` is unfinished work.
 -/""")
+out.append("module")
+out.append("")
 for fn in fns:
-    out.append(f"import EtcdGrove.Raft.Proof.{fn}")
+    out.append(f"public import {proof_module(fn)}")
 out.append("""
+@[expose] public section
+
 noncomputable section
 
 namespace Perennial

@@ -15,15 +15,16 @@ ringBuffer__DescendLessOrEqual: ringBuffer__findLastIndexLessOrEqual ringBuffer_
 ringBuffer__PeekLatest:
 ringBuffer__PeekOldest:
 ringBuffer__RebaseHistory:
-# The btree (k8s.io/utils/third_party/forked/golang/btree, names-only): the trust boundary,
-# `axiom … .wp_proof` (see InvBtree.lean).
-btree_New:
-BTree__Clone:
-BTree__Get:
-BTree__ReplaceOrInsert:
-BTree__Delete:
-BTree__AscendGreaterOrEqual:
-BTree__AscendRange:
+# The btree (k8s.io/utils/third_party/forked/golang/btree): proved and linked in its own
+# package (`Proof/k8s_io/.../btree/Link.lean`, by `etc/gen-btree-link.py`); `@` marks a
+# function whose result comes from there.
+btree_New: @
+BTree__Clone: @
+BTree__Get: @
+BTree__ReplaceOrInsert: @
+BTree__Delete: @
+BTree__AscendGreaterOrEqual: @
+BTree__AscendRange: @
 # The two methods of other packages the store calls, translated for it.
 ResponseHeader__GetRevision:
 WatchResponse__IsProgressNotify: ResponseHeader__GetRevision
@@ -60,3 +61,92 @@ newWatcher:
 watcher__enqueueResponse: WatchResponse__IsProgressNotify
 watcher__Stop:
 watcher__Compact:
+# The demux (cache/demux.go), see InvDemux.lean.
+newDemux: newRingBuffer newNotifier
+demux__Register:
+demux__Unregister: watcher__Stop
+demux__LatestRev:
+demux__BroadcastProgress: watcher__enqueueResponse
+demux__BroadcastProgressTo: watcher__enqueueResponse
+demux__updateStoreLocked: WatchResponse__IsProgressNotify ringBuffer__full ringBuffer__PeekOldest ringBuffer__Append
+demux__broadcastProgressLocked: watcher__enqueueResponse
+demux__broadcastEventsLocked: watcher__enqueueResponse
+demux__broadcastLocked: WatchResponse__IsProgressNotify demux__broadcastProgressLocked demux__broadcastEventsLocked
+demux__purge: ringBuffer__RebaseHistory watcher__Stop
+demux__Purge: demux__purge
+demux__Compact: demux__purge
+demux__Init: demux__purge
+demux__Broadcast: validateRevisions demux__updateStoreLocked demux__broadcastLocked
+demux__resyncLaggingWatchers: watcher__Compact ringBuffer__AscendGreaterOrEqual watcher__enqueueResponse
+# The clientv3 functions the request validation calls (client/v3/op.go, translated for it).
+Op__IsCountOnly:
+Op__IsPrevKV:
+Op__IsSortSet:
+Op__Limit:
+Op__MinModRev:
+Op__MaxModRev:
+Op__MinCreateRev:
+Op__MaxCreateRev:
+Op__IsFragment:
+Op__IsCreatedNotify:
+Op__IsFilterPut:
+Op__IsFilterDelete:
+Op__RangeBytes:
+Op__Rev:
+Op__IsSerializable:
+Op__IsProgressNotify:
+getPrefix:
+GetPrefixRangeEnd: getPrefix
+# What builds a `Get`'s `Op` (client/v3/op.go, translated for `Cache.Get`), see InvOp.lean.
+NewOp:
+Op__applyOpts:
+IsOptsWithPrefix: NewOp
+IsOptsWithFromKey: NewOp
+OpGet: IsOptsWithPrefix IsOptsWithFromKey Op__applyOpts
+WithLimit:
+WithRev:
+WithPrefix: getPrefix
+WithRange:
+WithFromKey:
+WithSerializable:
+WithCountOnly:
+# What builds a `Watch`'s `Op` and reads a watch response's error (client/v3/op.go, watch.go,
+# translated for `Cache.Watch`), see InvOp.lean; `rpctypes.Error` and grpc's `status.Error`
+# are axioms (not translated: grpc).
+WithProgressNotify:
+WithCreatedNotify:
+OpWatch: Op__applyOpts
+rpctypes_Error:
+status_Error:
+WatchResponse__Err: rpctypes_Error status_Error
+# Key predicates (cache/predicate.go) and the Cache's request validation and delegations
+# (cache/cache.go), see InvCache.lean.
+ExactKey:
+FromKey:
+Range:
+KeyPredForRange: ExactKey FromKey Range
+Cache__validateRange: GetPrefixRangeEnd
+Cache__validateGet: Op__IsCountOnly Op__IsPrevKV Op__IsSortSet Op__Limit Op__MinModRev Op__MaxModRev Op__MinCreateRev Op__MaxCreateRev Op__RangeBytes Cache__validateRange KeyPredForRange
+Cache__validateWatch: Op__IsPrevKV Op__IsFragment Op__IsCreatedNotify Op__IsFilterPut Op__IsFilterDelete Op__RangeBytes Cache__validateRange KeyPredForRange
+Cache__Ready: ready__Ready
+Cache__WaitReady: ready__WaitReady
+Cache__RequestProgress: demux__BroadcastProgress
+# Cache.Get with the etcd model (cache/cache.go, cache/progress_requestor.go), see InvEtcd.lean
+# and InvCache.lean.
+conditionalProgressRequestor__add:
+conditionalProgressRequestor__remove:
+Cache__serverRevision: WithLimit WithCountOnly
+Cache__waitTillRevision: store__LatestRev conditionalProgressRequestor__add conditionalProgressRequestor__remove
+Cache__Get: store__LatestRev Cache__WaitReady OpGet Cache__validateGet Op__RangeBytes Op__Rev Op__IsSerializable Cache__serverRevision Cache__waitTillRevision store__Get
+# The watch loop and Cache.Watch (cache/cache.go), see InvEtcd.lean (the stream model, the
+# client's watch) and InvCache.lean; `newCache`, `getWatchLoop`, `getWatch`, `watch` are not
+# proved (STATUS, "The watch loop and Cache.Watch").
+Cache__WaitForRevision: store__LatestRev
+Cache__get: WithPrefix store__Restore
+Cache__applyStorage: store__Apply
+Cache__watchEvents: WithPrefix WithRev WithProgressNotify WithCreatedNotify ready__Set WatchResponse__Err ready__Reset demux__Broadcast
+Cache__watch: demux__Init newWatcher demux__Register Cache__applyStorage Cache__watchEvents demux__Unregister
+Cache__getWatch: Cache__get Cache__watch
+defaultConfig:
+Cache__getWatchLoop: defaultConfig Cache__getWatch
+Cache__Watch: Cache__WaitReady OpWatch Op__Rev Cache__validateWatch newWatcher demux__Register Op__IsProgressNotify demux__BroadcastProgressTo demux__Unregister

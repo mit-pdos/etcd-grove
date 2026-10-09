@@ -1,0 +1,7 @@
+# Types and names only, with the constants `OK` and `FailedPrecondition`
+# (`clientv3.WatchResponse.Err` passes `FailedPrecondition`, `status.Error`'s spec rules out `OK`).
+translate = ["!*", "OK", "FailedPrecondition"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

@@ -1,0 +1,5 @@
+# Names only, but for the struct MessageState (the target of protoimpl.MessageState,
+# the `state` field of every protobuf message), whose fields are of internal/pragma
+# types and a pointer to the (axiomatized) MessageInfo.
+translate = ["!*", "MessageState"]
+imports = ["!*", "google.golang.org/protobuf/internal/pragma"]

@@ -19,11 +19,11 @@ environment instead of the source text, so nothing is a lower bound:
   * assumed -- the axioms the results' proofs depend on and the declarations
     containing a `sorry` (what `#print axioms` shows, with the `sorry`s located);
   * results -- the statements of what the proof exports: the linked result of a Go
-    function that no other proof uses (every theorem of `EtcdGrove.Raft.Link` is one
+    function that no other proof uses (every theorem of `Proof.go_etcd_io.raft.v3.Link` is one
     function's spec instantiated with its callees' results; a spec some other proof
     uses is internal: were it wrong, that proof would fail), and the protocol lemmas
-    of `EtcdGrove.Raft.Results`; likewise the `cache` package's `EtcdGrove.Cache.Link`
-    and the etcd server's `EtcdGrove.Server.Link`;
+    of `Proof.go_etcd_io.raft.v3.Results`; likewise the `cache` package's `Proof.go_etcd_io.etcd.cache.v3.Link`
+    and the etcd server's `Proof.go_etcd_io.etcd.server.v3.etcdserver.Link`;
   * definitions -- this repository's definitions those statements are written in
     terms of, transitively through their bodies.  A wrong definition makes a true
     theorem say nothing, so these are trusted exactly as the axioms are.
@@ -46,11 +46,23 @@ NS = "Perennial.EtcdGrove."
 BASELINE = os.path.join(ROOT, "etc", "tcb-baseline.txt")
 
 # Where a linked result's statement lives: `Link.lean` states `T.wp_M : T.M.spec`.
-SPEC_DIR = "EtcdGrove/Raft/Spec"
+SPEC_DIR = "Spec"
 
-# The modules of linked results (each states `T.wp_M : T.M.spec`): the Raft proof's, the
-# `cache` package's and the etcd server's.
-LINKS = ("EtcdGrove.Raft.Link", "EtcdGrove.Cache.Link", "EtcdGrove.Server.Link")
+# The modules of linked results (each states `T.wp_M : T.M.spec`): the Raft proof's and
+# the `cache` package's.
+LINKS = ("Proof.go_etcd_io.raft.v3.Link", "Proof.go_etcd_io.etcd.cache.v3.Link",
+         "Proof.k8s_io.utils.third_party.forked.golang.btree.Link",
+         "Proof.go_etcd_io.etcd.server.v3.etcdserver.Link")
+
+# This repository's specs and proofs: `Spec/`, `Proof/`, and those of etcd's own raft
+# dependency (raft v3.7, whose Go path is the fork's) in `EtcdDeps/`.
+PROJECT_DIRS = ("Spec", "Proof", "EtcdDeps/Spec", "EtcdDeps/Proof")
+PROJECT_MODS = ("Spec.", "Proof.", "EtcdDeps.Spec.", "EtcdDeps.Proof.")
+
+# etc/tcb-report.lean's runs: its default modules, then the etcd server's links, which
+# cannot share an environment with the Raft proof (both name `go_etcd_io.raft.v3`: the
+# fork's, in `Code/`, and etcd's own raft v3.7, in `EtcdDeps/Code/`).
+LEAN_RUNS = ([], ["Proof.go_etcd_io.etcd.server.v3.etcdserver.Link"])
 
 # Source constructs that weaken what the kernel checks.
 RISKY = [
@@ -101,12 +113,6 @@ def spec_file(root, defs):
     return mod_path(root["module"])
 
 
-# etc/tcb-report.lean's runs: its default modules, then the etcd server's links, which
-# cannot share an environment with the Raft proof (both name `go_etcd_io.raft.v3`: the
-# fork EtcdRaft/ translates, and etcd's own raft v3.7 in EtcdCache/).
-LEAN_RUNS = ([], ["EtcdGrove.Server.Link"])
-
-
 def run_lean(json_path):
     env = dict(os.environ)
     env["PATH"] = os.path.expanduser("~/.elan/bin") + os.pathsep + env.get("PATH", "")
@@ -138,7 +144,7 @@ def git(*args):
 
 def scan_sources():
     hits = []
-    for dp, _, fs in os.walk(os.path.join(ROOT, "EtcdGrove")):
+    for dp, _, fs in (w for d in PROJECT_DIRS for w in os.walk(os.path.join(ROOT, d))):
         for f in fs:
             if not f.endswith(".lean"):
                 continue
@@ -200,7 +206,7 @@ def main():
         return defs[d]["endLine"] - defs[d]["line"] + 1
 
     def is_project(n):
-        return n in axioms and axioms[n]["module"].startswith("EtcdGrove")
+        return n in axioms and axioms[n]["module"].startswith(PROJECT_MODS)
 
     proj_ax = sorted(n for n in axioms if is_project(n))
     lean_ax = [n for n in LEAN_AX if n in axioms]
@@ -258,7 +264,7 @@ def main():
     head = git("rev-parse", "--short", "HEAD")
     dirty = (
         " (with uncommitted changes)"
-        if git("status", "--porcelain", "--", "EtcdGrove")
+        if git("status", "--porcelain", "--", *PROJECT_DIRS)
         else ""
     )
     man = json.loads(read(os.path.join(ROOT, "lake-manifest.json")))
@@ -271,10 +277,10 @@ def main():
         "Do not edit by hand.\n"
     )
     w(
-        f"Roots: the {len(roots)} theorems of `EtcdGrove/Raft/Link.lean` (every Go "
-        "function's linked result), `EtcdGrove/Raft/Results.lean`, "
-        "`EtcdGrove/Cache/Link.lean` (the `cache` package's linked results) and "
-        "`EtcdGrove/Server/Link.lean` (the etcd server's).\n"
+        f"Roots: the {len(roots)} theorems of `Proof/go_etcd_io/raft/v3/Link.lean` (every Go "
+        "function's linked result), `Proof/go_etcd_io/raft/v3/Results.lean`, "
+        "`Proof/go_etcd_io/etcd/cache/v3/Link.lean` (the `cache` package's linked results) and "
+        "`Proof/go_etcd_io/etcd/server/v3/etcdserver/Link.lean` (the etcd server's).\n"
     )
 
     w("## Summary\n")
@@ -294,7 +300,7 @@ def main():
     )
     risky = scan_sources()
     w(
-        f"- Constructs that bypass or weaken kernel checking in `EtcdGrove/`: "
+        f"- Constructs that bypass or weaken kernel checking in `Spec/` and `Proof/`: "
         f"{len(risky) if risky else 'none'}.\n"
     )
 
@@ -401,7 +407,7 @@ def main():
     )
     w(
         f"- **Perennial** (`{pin}`): the Goose translation of etcd raft "
-        "(`EtcdRaft/Code/go_etcd_io/raft/v3.lean`) is trusted to mean what the Go code "
+        "(`Code/go_etcd_io/raft/v3.lean`) is trusted to mean what the Go code "
         "means, and Perennial's Go semantics to be Go's."
     )
     w(
@@ -409,7 +415,7 @@ def main():
         "results and the definitions they rest on, listed above, are what must be read."
     )
     if risky:
-        w("- **Constructs that weaken kernel checking** in `EtcdGrove/`:")
+        w("- **Constructs that weaken kernel checking** in `Spec/` and `Proof/`:")
         for what, p, i in risky:
             w(f"  - {what} at `{p}:{i}`")
     w("")
