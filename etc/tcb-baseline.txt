@@ -16,6 +16,7 @@ axiom etcdReachedAt
 axiom etcdReachedAt_timeless
 axiom etcdState
 axiom etcdStep_compose
+axiom etcdStep_delete_present
 axiom etcdStep_transfer
 axiom go_humanize.Bytes.wp_proof
 axiom membership.RaftCluster.Members.wp_proof

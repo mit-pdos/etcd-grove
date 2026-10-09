@@ -912,6 +912,12 @@ instance storeSnapLb_persistent (γ : StoreNames) (r : w64) :
     Persistent (storeSnapLb (GF := GF) γ r) := by
   unfold storeSnapLb; infer_instance
 
+theorem storeSnapLb_mono (γ : StoreNames) (r r' : w64) (h : sint.Z r' ≤ sint.Z r) :
+    storeSnapLb (GF := GF) γ r ⊢ storeSnapLb γ r' := by
+  unfold storeSnapLb
+  iintro H
+  iapply monoNatLbOwn_le _ (Nat.add_le_add_right (Int.toNat_le_toNat h) 1) $$ H
+
 /-- **What `Apply(r)`'s caller certifies** (persistent), for every state `st` the store may be in
 whose newest snapshot `(Y, st.latest)` is at or above the caller's lower bound `lo` (the caller
 holds `storeSnapLb γ lo`), with that snapshot's certificate `□ E Y st.latest`: `Apply` either
