@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-08
+**Last updated:** 2026-10-09
 
 Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
@@ -294,3 +294,62 @@ it imports). No `sorry`, no axiom: `etc/tcb-report.py --check` now also takes
 - `etc/tcb-report.py --check`: 14 axioms, 2 sorries (the baseline gained the nine btree
   axioms, `newStore_RLocker` and Perennial's `fmt.wp_Errorf`). `etc/goose.py --check` passes
   (fetching the fork from GitHub).
+
+### watcher, notifier, ready (`cache/watcher.go`, `cache/demux.go`, `cache/ready.go`): proved (2026-10-09)
+
+Three small concurrent components, Lean-first like the store, one `Spec`/`Proof` pair per
+Go function, linked in `Cache/Link.lean` (the 15 new specs are stated at
+`HeapGS HasLC.hasLC GF`, as Perennial's channel, `Once` and `context` specs are;
+`etc/gen-link.py --cache` now emits them in a second section, as the raft side does).
+Design and rejected alternatives: `decisions.md`, "watcher, notifier, ready".
+
+- **watcher** (`InvWatcher.lean`, `OnceFrame.lean`): `newWatcher`, `enqueueResponse`,
+  `Compact`, `Stop`. Predicates `isWatcher w γ pred` (persistent; `pred :
+  Option (GoString → Bool)`, the `keyPred` closure's triple `keyPredSpec`, nil iff `none`),
+  `watcherOpen γ sent` (the producer's), `watcherClosed γ sent c` (persistent; `c = none`
+  from `Stop`, `some rev` from `Compact rev`), `watcherConsumer γ received` (the
+  consumer's); the invariant `watcherInv` ties the two logs to the channel state (any
+  capacity `≥ 0`, unbuffered included). `enqueueResponse` returns `ok` with
+  `enqueueResult pred r sent ok sent'` (the pure model `filterResp`: dropped responses are
+  reported delivered; otherwise `ok → sent' = sent ++ [r']`, `!ok → sent' = sent`); the sent
+  values are `respSent` (`respAt` and a non-nil `Header`). `Stop`/`Compact` take
+  `watcherAt γ sent ph` (open or already closed) and give `watcherClosed γ sent
+  (ph.cancelAfter c)`. Consumer side, as lemmas: `watcher_recv_au` (the `recvAu` of
+  `<-w.respCh`, for `Cache.Watch`'s `select`), `wp_watcher_receive`, `isWatcher_isChan`,
+  `wp_watcher_cancelResp` (`w.cancelResp` after `watcherClosed`: `cancelAt p c`),
+  `watcher_received_prefix(_closed)`.
+- **notifier** (`InvNotifier.lean`): `newNotifier`, `notify`, `wait`. A notification counter
+  (`notifierLb γ k`); `notify` takes a `notifierHandle` (an `RWMutex` token; `newNotifier`
+  returns `actualMaxReaders` of them) and gives `notifierLb γ (k0 + 1)`; `wait ctx` returns
+  `nil` with `notifierLb γ (k0 + 1)` (a `notify` after the read) or a non-nil error with the
+  context done (`notifierWaitResult`).
+- **ready** (`InvReady.lean`): `newReady`, `Ready`, `Set`, `Reset`, `waitForState`,
+  `WaitReady`, `WaitNotReady`. An epoch counter (`readyEpochLb γ e`), the state in epoch `e`
+  being `readyParity e`; `Ready`/`Set`/`Reset` return `readySeen γ e0 b` (state `b` in an
+  epoch `≥ e0`; `true` after `Set`, `false` after `Reset`); `waitForState ctx pred` is
+  higher-order (`readyPredSpec r pred P`, `P : Bool → Bool`), instantiated with `id` and
+  `not`, returning `readyWaitResult` (`nil` with a seen state satisfying `P`, or a non-nil
+  error with the context done).
+- **`Base.lean`**: `rpctypes`' package facts gained `errorStringSpec` for `ErrCompacted`
+  (its `Error()` returns some string), which `Compact` calls; the two store proofs that
+  destructure `rpctypesInit` were adjusted (patterns only).
+- **New `sorry`s in the trust base** (`etc/tcb-report.py --check --update`: 14 axioms, 4
+  sorries): `impl.MessageState`'s generated `MessageState_typed_pointsto` and
+  `MessageState_into_val_typed` ("axiomatized type"), reached by `&pb.ResponseHeader{}` in
+  `enqueueResponse` (a nil header) and `Compact`: allocating a protobuf message needs the
+  message's `IntoValTyped`, which contains its opaque `state` field. They go once
+  `protobuf/internal/impl.MessageState` (and the `internal/pragma` types it embeds) are
+  translated rather than axiomatized. `Stop`, `newWatcher`, the consumer lemmas, the
+  notifier and ready rest on no `sorry`; Perennial's `context` `sorry`s (`WithCancel`, ...)
+  are not reached (only `isContext`'s `Done`/`Err` are used).
+- **Perennial gaps found**: `Once.wp_Do` takes a persistent closure triple, so a closure
+  cannot use the caller's resources; `OnceFrame.lean` proves `Once.wp_Do_frame` (the caller
+  lends `R`, gets `R'` back if its closure ran, `R` otherwise) from `isOnce`'s definition.
+  `RWMutex` (both specs) needs a token for `RLock`, so there is no persistent `isNotifier`.
+  `init_RWMutex`'s `List.replicate (Int.toNat actualMaxReaders)` is unfolded by the kernel
+  (deep recursion) unless the count is first abstracted with an equation and `rw`
+  (`generalize` is not enough; `Proof/newNotifier.lean`). `wp_start` on the closure's triple
+  in `Compact` failed looking for a `MethodUnfold` of the `Error` method named by a
+  persistent hypothesis (`errorStringSpec`) still in context; clearing it fixed that
+  (`Proof/watcher__Compact.lean`).
+

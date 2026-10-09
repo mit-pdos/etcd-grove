@@ -115,14 +115,32 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 """)
-    for fn in order:
+    def emit_cache(fn):
         args = " ".join(result(c) for c in callees[fn])
         body = f"{spec[fn]}.wp_proof" + (f" {args}" if args else "")
         # the specs with ghost state (the store's) take `[AllG GF]`
         allg = " [AllG GF]" if "[AllG GF]" in open(os.path.join(lean, "Spec", f"{fn}.lean")).read() else ""
-        out.append(f"theorem {result(fn)}{allg} :\n    {spec[fn]}.spec (GF := GF) (hG := hG) :=\n"
-                   f"  {body}\n")
-    out.append("end links\n\nend EtcdGrove\nend Perennial")
+        return (f"theorem {result(fn)}{allg} :\n    {spec[fn]}.spec (GF := GF) (hG := hG) :=\n"
+                f"  {body}\n")
+
+    generic = [fn for fn in order if fn not in haslc]
+    special = [fn for fn in order if fn in haslc]
+    assert all(c not in haslc for fn in generic for c in callees[fn])
+    out.extend(emit_cache(fn) for fn in generic)
+    out.append("end links\n")
+    if special:
+        out.append("""/-! The specs stated at `HeapGS HasLC.hasLC GF`: those using channels, `sync.Once` or
+`context` (Perennial states them there: their invariants need later credits). -/
+section links_hasLC
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+""")
+        out.extend(emit_cache(fn) for fn in special)
+        out.append("end links_hasLC\n")
+    out.append("end EtcdGrove\nend Perennial")
     print("\n".join(out))
     sys.exit(0)
 

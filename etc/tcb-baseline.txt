@@ -14,4 +14,6 @@ axiom reflect.DeepEqual.wp_proof
 axiom slices.Sort.wp_proof
 axiom strings.Join.wp_proof
 sorry Perennial.fmt.wp_Errorf
+sorry Perennial.google_golang_org.protobuf.internal.impl.MessageState.MessageState_into_val_typed
+sorry Perennial.google_golang_org.protobuf.internal.impl.MessageState.MessageState_typed_pointsto
 sorry newStore_RLocker

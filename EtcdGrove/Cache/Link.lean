@@ -19,9 +19,20 @@ import EtcdGrove.Cache.Proof.isPrefixScan
 import EtcdGrove.Cache.Proof.kvItemLess
 import EtcdGrove.Cache.Proof.newClonedSnapshot
 import EtcdGrove.Cache.Proof.newKVItem
+import EtcdGrove.Cache.Proof.newNotifier
+import EtcdGrove.Cache.Proof.newReady
 import EtcdGrove.Cache.Proof.newRingBuffer
 import EtcdGrove.Cache.Proof.newStore
+import EtcdGrove.Cache.Proof.newWatcher
+import EtcdGrove.Cache.Proof.notifier__notify
+import EtcdGrove.Cache.Proof.notifier__wait
 import EtcdGrove.Cache.Proof.probeItemFromKey
+import EtcdGrove.Cache.Proof.ready__Ready
+import EtcdGrove.Cache.Proof.ready__Reset
+import EtcdGrove.Cache.Proof.ready__Set
+import EtcdGrove.Cache.Proof.ready__WaitNotReady
+import EtcdGrove.Cache.Proof.ready__WaitReady
+import EtcdGrove.Cache.Proof.ready__waitForState
 import EtcdGrove.Cache.Proof.ringBuffer__Append
 import EtcdGrove.Cache.Proof.ringBuffer__AscendGreaterOrEqual
 import EtcdGrove.Cache.Proof.ringBuffer__AscendLessThan
@@ -44,6 +55,9 @@ import EtcdGrove.Cache.Proof.store__applyEventsLocked
 import EtcdGrove.Cache.Proof.store__applyProgressNotifyLocked
 import EtcdGrove.Cache.Proof.store__getSnapshot
 import EtcdGrove.Cache.Proof.validateRevisions
+import EtcdGrove.Cache.Proof.watcher__Compact
+import EtcdGrove.Cache.Proof.watcher__Stop
+import EtcdGrove.Cache.Proof.watcher__enqueueResponse
 
 noncomputable section
 
@@ -212,6 +226,73 @@ theorem store.wp_Restore [AllG GF] :
   store.Restore.wp_proof btree.wp_New wp_kvItemLess wp_newKVItem btree.BTree.wp_ReplaceOrInsert ringBuffer.wp_RebaseHistory wp_newClonedSnapshot ringBuffer.wp_Append
 
 end links
+
+/-! The specs stated at `HeapGS HasLC.hasLC GF`: those using channels, `sync.Once` or
+`context` (Perennial states them there: their invariants need later credits). -/
+section links_hasLC
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+
+theorem wp_newNotifier [AllG GF] :
+    newNotifier.spec (GF := GF) (hG := hG) :=
+  newNotifier.wp_proof
+
+theorem wp_newReady [AllG GF] :
+    newReady.spec (GF := GF) (hG := hG) :=
+  newReady.wp_proof
+
+theorem wp_newWatcher [AllG GF] :
+    newWatcher.spec (GF := GF) (hG := hG) :=
+  newWatcher.wp_proof
+
+theorem notifier.wp_notify [AllG GF] :
+    notifier.notify.spec (GF := GF) (hG := hG) :=
+  notifier.notify.wp_proof
+
+theorem notifier.wp_wait [AllG GF] :
+    notifier.wait.spec (GF := GF) (hG := hG) :=
+  notifier.wait.wp_proof
+
+theorem ready.wp_Ready [AllG GF] :
+    ready.Ready.spec (GF := GF) (hG := hG) :=
+  ready.Ready.wp_proof
+
+theorem ready.wp_Reset [AllG GF] :
+    ready.Reset.spec (GF := GF) (hG := hG) :=
+  ready.Reset.wp_proof
+
+theorem ready.wp_Set [AllG GF] :
+    ready.Set.spec (GF := GF) (hG := hG) :=
+  ready.Set.wp_proof
+
+theorem ready.wp_waitForState [AllG GF] :
+    ready.waitForState.spec (GF := GF) (hG := hG) :=
+  ready.waitForState.wp_proof
+
+theorem ready.wp_WaitNotReady [AllG GF] :
+    ready.WaitNotReady.spec (GF := GF) (hG := hG) :=
+  ready.WaitNotReady.wp_proof ready.wp_waitForState
+
+theorem ready.wp_WaitReady [AllG GF] :
+    ready.WaitReady.spec (GF := GF) (hG := hG) :=
+  ready.WaitReady.wp_proof ready.wp_waitForState
+
+theorem watcher.wp_Compact [AllG GF] :
+    watcher.Compact.spec (GF := GF) (hG := hG) :=
+  watcher.Compact.wp_proof
+
+theorem watcher.wp_Stop [AllG GF] :
+    watcher.Stop.spec (GF := GF) (hG := hG) :=
+  watcher.Stop.wp_proof
+
+theorem watcher.wp_enqueueResponse [AllG GF] :
+    watcher.enqueueResponse.spec (GF := GF) (hG := hG) :=
+  watcher.enqueueResponse.wp_proof WatchResponse.wp_IsProgressNotify
+
+end links_hasLC
 
 end EtcdGrove
 end Perennial

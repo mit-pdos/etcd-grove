@@ -296,3 +296,78 @@ Lean-first like the ring buffer (`EtcdGrove/Cache/{Spec,Proof}/`, vocabulary in
   whose generated instances are `sorry` ("axiomatized type"). `InvStore.lean` also gives the
   three messages' `TypeRepr` directly (high priority), since instance search otherwise found it
   through those `IntoValTyped` instances for every field access.
+
+
+---
+
+## watcher, notifier, ready: logs, epochs and a framed `Once`
+
+**2026-10-09 · accepted**
+
+Three small concurrent components of etcd's cache, specified and proved Lean-first
+(`EtcdGrove/Cache/{InvWatcher,InvNotifier,InvReady,OnceFrame}.lean`, a `Spec`/`Proof` pair
+per Go function). The design was decided with the user; what follows records it and what
+the proofs added.
+
+**watcher: four predicates.** `isWatcher w γ pred` (persistent: channel, `keyPred` closure,
+`Once`, invariant), `watcherOpen γ sent` (exclusive, the producer's), `watcherClosed γ sent c`
+(persistent), `watcherConsumer γ received` (exclusive, the consumer's). The producer (the
+demux, under its lock) and the consumer (`Cache.Watch`'s goroutine) run concurrently, so
+neither can know the other's progress: each holds half of its own ghost log (`γ.sent`,
+`γ.recv`), the invariant the other halves, `received <+: sent`, and the values in flight
+(`chanInflight`: the buffer, or the value an unbuffered send committed) are exactly the
+responses `sent.drop received.length`. The receive is the atomic update `watcher_recv_au`
+(what `Cache.Watch`'s `select` needs), with `wp_watcher_receive` derived from it.
+- *Rejected:* Perennial's `Spsc` idiom (the same two-log shape, but only a blocking
+  `spsc_send_au`, logs of channel values rather than of `RespModel`s, and a close that parks
+  the producer's permission with no persistent "closed after `sent`, cancel `c`" fact: its
+  AU lemmas would have had to be redone anyway); requiring `bufSize > 0` (the unbuffered
+  states cost three more cases in the invariant).
+
+**The non-blocking send's outcome.** `enqueueResponse` returns `ok` with
+`enqueueResult pred r sent ok sent'`: a response the filter drops (`filterResp = none`) is
+reported delivered with nothing sent; otherwise `ok → sent' = sent ++ [r']` and
+`!ok → sent' = sent`. That `!ok` happens only when the buffer is full is not stated: it is
+a fact about the consumer's progress, which the producer's view cannot name.
+- *Rejected:* `nonblockingSendAuAlt` with a "buffer full" `Φnotready` and a persistent lower
+  bound on the consumer's count (a weak fact: "full at some point"; no caller needs it yet).
+
+**The key filter is `GoString → Bool`**, not `→ Prop`: the closure returns a Go `bool`,
+and `List.filter` needs a `Bool`; a `Prop` would need classical `decide` in every statement.
+
+**Closing through the `Once` with a frame.** Perennial's `Once.wp_Do` takes a persistent
+closure triple `{P} f {Q}` with `P`, `Q` fixed at `init_Once`, so the closure cannot use the
+caller's `watcherOpen`, and the caller cannot learn that *its* closure ran (and thus which
+cancel response was recorded). `Once.wp_Do_frame` (`OnceFrame.lean`, proved from `isOnce`'s
+definition like `wp_Do`) lends the caller's `R` to a one-shot closure spec and returns `R'`
+or `R`. The `Once`'s `P` is `cancelResp ↦ nil ∗ token γ.tok`; the closing closure leaves
+`cancelResp` read-only and the token in the invariant, so a second closure (after
+`watcherClosed`) is refuted by the token. `Q` is "closed after some log", and `R` coming back
+with `Q` contradicts `watcherOpen`.
+- *Rejected:* a persistent "intent" ghost value set by the caller before `Do` (works with the
+  stock `wp_Do`, but needs a third phase in the invariant); a points-to fraction instead of
+  the token (Perennial has no typed points-to validity lemma for `own 1` against `□`).
+
+**notifier and ready: epochs on broadcast channels.** Both replace a channel on every change
+and close the old one, so each channel is an `ownBroadcastChan` whose broadcast proposition
+is the lower bound of the *next* epoch: the notifier's `notifierLb γ (k + 1)` for the channel
+installed at count `k`, ready's `readyEpochLb γ (e + 1)` for the channel of epoch `e`. A
+`wait` that reads the channel at `k ≥ k0` and receives learns `k0 + 1`. `ready`'s state is
+not ghost: it flips exactly when the epoch increments, so in epoch `e` it is
+`readyParity e` (`e` odd), and the readers report `readySeen γ e0 b`.
+- *Rejected:* a ghost history of ready states (`monoList`; the parity says the same).
+
+**notifier's lock: tokens, not a persistent `isNotifier`.** Perennial's `RWMutex` (both its
+specs) needs a token for `RLock`, so `wait` and `notify` take a `notifierHandle` (as the
+store's readers do); the fractional lock invariant holds `q/2` of the current broadcast
+channel's pending token, so that `notify` (with `P 1`) can close it.
+- *Rejected:* the pending token in a separate invariant (closing would need it inside the
+  channel's `closeAu`).
+
+**`waitForState` is higher-order** (`readyPredSpec r pred P`, `P : Bool → Bool`, as the ring
+buffer's `iterSpec`), instantiated by `WaitReady` (`id`) and `WaitNotReady` (`not`).
+
+**`ErrCompacted.Error()`** is a package fact (`errorStringSpec`, `Base.lean`), not an axiom:
+`rpctypes` is names-only and `ErrCompacted`'s dynamic type is unknown to the proof, so the
+fact belongs with the variable's other initialization facts.
+

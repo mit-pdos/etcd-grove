@@ -9,7 +9,8 @@ packages are translated names-only or types-only (`EtcdCache/Code/**.toml`), and
 package facts are `True` except where the store reads a package-level variable: the
 cache's `ErrNotReady` (`fmt.Errorf` at init) and `rpctypes`' `ErrFutureRev` and
 `ErrCompacted` each hold a fixed non-nil error (`globalAddr X ↦□ interface.ok e`, as
-Perennial's own packages state their globals). Everything here is an assumption about
+Perennial's own packages state their globals), and `ErrCompacted.Error()` returns some string
+(`errorStringSpec`: it is an `EtcdError`, whose `Error` returns its description). Everything here is an assumption about
 package initialization, as in `Raft/Base.lean`: nothing proves it from `initialize'`.
 -/
 import EtcdCache.Code.go_etcd_io.etcd.cache.v3
@@ -67,12 +68,23 @@ instance etcdserverpb_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb :=
   build_get_is_pkg_init_wf
 
-/-- `rpctypes`' package facts: the two errors the store returns. -/
+/-- The error value `e`'s `Error()` returns some string (and does not panic). -/
+def errorStringSpec (e : GoInterfaceOk) : IProp GF :=
+  iprop(□ ∀ Φ : val → IProp GF, ▷ (∀ str : GoString, Φ #str) -∗
+    WP (App (Val #(methods e.ty go!"Error" e.v)) (Val #())) {{ Φ }})
+
+instance errorStringSpec_persistent (e : GoInterfaceOk) :
+    Persistent (errorStringSpec (GF := GF) e) := by
+  unfold errorStringSpec; infer_instance
+
+/-- `rpctypes`' package facts: the two errors the store returns; `ErrCompacted.Error()`
+(the watcher's `Compact` puts it in the cancel response) returns some string. -/
 abbrev rpctypesInit : IProp GF :=
   iprop((∃ e : GoInterfaceOk,
       globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrFutureRev ↦□ GoInterface.ok e) ∗
     (∃ e : GoInterfaceOk,
-      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrCompacted ↦□ GoInterface.ok e))
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrCompacted ↦□ GoInterface.ok e ∗
+      errorStringSpec e))
 
 instance rpctypes_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes :=

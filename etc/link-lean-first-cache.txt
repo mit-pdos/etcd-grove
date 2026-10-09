@@ -43,3 +43,20 @@ store__applyEventsLocked: BTree__Delete BTree__ReplaceOrInsert newKVItem newClon
 store__Apply: validateRevisions WatchResponse__IsProgressNotify store__applyProgressNotifyLocked store__applyEventsLocked
 store__Restore: btree_New kvItemLess newKVItem BTree__ReplaceOrInsert ringBuffer__RebaseHistory newClonedSnapshot ringBuffer__Append
 newStore: btree_New kvItemLess newRingBuffer
+# `ready` (cache/ready.go), see InvReady.lean.
+newReady:
+ready__Ready:
+ready__Set:
+ready__Reset:
+ready__waitForState:
+ready__WaitReady: ready__waitForState
+ready__WaitNotReady: ready__waitForState
+# `notifier` (the end of cache/demux.go), see InvNotifier.lean.
+newNotifier:
+notifier__notify:
+notifier__wait:
+# `watcher` (cache/watcher.go), see InvWatcher.lean (and OnceFrame.lean).
+newWatcher:
+watcher__enqueueResponse: WatchResponse__IsProgressNotify
+watcher__Stop:
+watcher__Compact:
