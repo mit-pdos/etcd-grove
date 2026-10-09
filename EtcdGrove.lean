@@ -1,6 +1,9 @@
--- The root module: everything `lake build` checks. The proofs are reached through
--- `EtcdGrove.Raft.Link`, `EtcdGrove.Cache.Link` and `EtcdGrove.Server.Link`, which link each of them to its
--- callees' results.
+-- The root module: everything `lake build` checks but the etcd server's proofs. The proofs are
+-- reached through `EtcdGrove.Raft.Link` and `EtcdGrove.Cache.Link`, which link each of them to
+-- its callees' results. The server's (`EtcdGrove/Server/`, linked in `EtcdGrove.Server.Link`)
+-- are the library `EtcdGroveServer` (lakefile.toml): they name etcd's raft dependency (raft
+-- v3.7, in `EtcdCache`), whose Lean names are those of the fork `EtcdRaft`, so no module can
+-- import both.
 import EtcdGrove.Raft.Base
 import EtcdGrove.Raft.Plog
 import EtcdGrove.Raft.Protocol
@@ -451,41 +454,3 @@ import EtcdGrove.Cache.Proof.store__applyProgressNotifyLocked
 import EtcdGrove.Cache.Proof.store__getSnapshot
 import EtcdGrove.Cache.Proof.validateRevisions
 import EtcdGrove.Cache.Link
-
--- etcd's server (`EtcdGrove/Server/`: the consistent index and the apply thread), linked
--- in `EtcdGrove.Server.Link`.
-import EtcdGrove.Server.Base
-import EtcdGrove.Server.InvCindex
-import EtcdGrove.Server.Spec.NewConsistentIndex
-import EtcdGrove.Server.Spec.binary_bigEndian__PutUint64
-import EtcdGrove.Server.Spec.binary_bigEndian__Uint64
-import EtcdGrove.Server.Spec.consistentIndex__ConsistentApplyingIndex
-import EtcdGrove.Server.Spec.consistentIndex__ConsistentIndex
-import EtcdGrove.Server.Spec.consistentIndex__SetBackend
-import EtcdGrove.Server.Spec.consistentIndex__SetConsistentApplyingIndex
-import EtcdGrove.Server.Spec.consistentIndex__SetConsistentIndex
-import EtcdGrove.Server.Spec.consistentIndex__UnsafeConsistentIndex
-import EtcdGrove.Server.Spec.consistentIndex__UnsafeSave
-import EtcdGrove.Server.Spec.schema_ReadConsistentIndex
-import EtcdGrove.Server.Spec.schema_UnsafeReadConsistentIndex
-import EtcdGrove.Server.Spec.schema_UnsafeUpdateConsistentIndex
-import EtcdGrove.Server.Spec.schema_UnsafeUpdateConsistentIndexForce
-import EtcdGrove.Server.Spec.schema_unsafeUpdateConsistentIndex
-import EtcdGrove.Server.Spec.verify_Verify
-import EtcdGrove.Server.Proof.NewConsistentIndex
-import EtcdGrove.Server.Proof.binary_bigEndian__PutUint64
-import EtcdGrove.Server.Proof.binary_bigEndian__Uint64
-import EtcdGrove.Server.Proof.consistentIndex__ConsistentApplyingIndex
-import EtcdGrove.Server.Proof.consistentIndex__ConsistentIndex
-import EtcdGrove.Server.Proof.consistentIndex__SetBackend
-import EtcdGrove.Server.Proof.consistentIndex__SetConsistentApplyingIndex
-import EtcdGrove.Server.Proof.consistentIndex__SetConsistentIndex
-import EtcdGrove.Server.Proof.consistentIndex__UnsafeConsistentIndex
-import EtcdGrove.Server.Proof.consistentIndex__UnsafeSave
-import EtcdGrove.Server.Proof.schema_ReadConsistentIndex
-import EtcdGrove.Server.Proof.schema_UnsafeReadConsistentIndex
-import EtcdGrove.Server.Proof.schema_UnsafeUpdateConsistentIndex
-import EtcdGrove.Server.Proof.schema_UnsafeUpdateConsistentIndexForce
-import EtcdGrove.Server.Proof.schema_unsafeUpdateConsistentIndex
-import EtcdGrove.Server.Proof.verify_Verify
-import EtcdGrove.Server.Link

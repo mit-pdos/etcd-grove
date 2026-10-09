@@ -1,5 +1,5 @@
 name = "etcdGrove"
-defaultTargets = ["EtcdGrove", "EtcdRaft", "EtcdCache"]
+defaultTargets = ["EtcdGrove", "EtcdGroveServer", "EtcdRaft", "EtcdCache"]
 
 # The Perennial framework (branch `lean` of mit-pdos/perennial), including the
 # Goose translator that produced `EtcdRaft/` and `EtcdCache/` (checked by
@@ -28,6 +28,15 @@ globs = ["EtcdCache.+"]
 # Proofs about etcd (starting with its Raft implementation).
 [[lean_lib]]
 name = "EtcdGrove"
+
+# Proofs about etcd's server (`EtcdGrove/Server/`: the consistent index and the apply
+# thread), a library of its own: the server's translation names etcd's raft dependency
+# (`EtcdCache`'s `go_etcd_io.raft.v3`, raft v3.7), which has the same Lean names as the
+# fork `EtcdRaft` translates, so no module can import both, and the root `EtcdGrove`
+# (which imports the Raft proofs) does not import these.
+[[lean_lib]]
+name = "EtcdGroveServer"
+globs = ["EtcdGrove.Server.+"]
 
 [leanOptions]
 linter.unusedSectionVars = false

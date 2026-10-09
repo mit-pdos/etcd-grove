@@ -101,21 +101,30 @@ def spec_file(root, defs):
     return mod_path(root["module"])
 
 
+# etc/tcb-report.lean's runs: its default modules, then the etcd server's links, which
+# cannot share an environment with the Raft proof (both name `go_etcd_io.raft.v3`: the
+# fork EtcdRaft/ translates, and etcd's own raft v3.7 in EtcdCache/).
+LEAN_RUNS = ([], ["EtcdGrove.Server.Link"])
+
+
 def run_lean(json_path):
     env = dict(os.environ)
     env["PATH"] = os.path.expanduser("~/.elan/bin") + os.pathsep + env.get("PATH", "")
     with open(json_path, "w") as f:
-        r = subprocess.run(
-            ["lake", "env", "lean", "--run", "etc/tcb-report.lean"],
-            cwd=ROOT,
-            stdout=f,
-            env=env,
-            check=False,
-        )
-    if r.returncode != 0:
-        sys.exit(
-            f"tcb: etc/tcb-report.lean failed (exit {r.returncode}); is the project built?"
-        )
+        for mods in LEAN_RUNS:
+            f.flush()
+            r = subprocess.run(
+                ["lake", "env", "lean", "--run", "etc/tcb-report.lean", *mods],
+                cwd=ROOT,
+                stdout=f,
+                env=env,
+                check=False,
+            )
+            if r.returncode != 0:
+                sys.exit(
+                    f"tcb: etc/tcb-report.lean {' '.join(mods)} failed (exit {r.returncode}); "
+                    "is the project built?"
+                )
 
 
 def git(*args):

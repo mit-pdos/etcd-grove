@@ -27,8 +27,8 @@ import EtcdCache.GeneratedProof.go_etcd_io.etcd.server.v3.lease
 import EtcdCache.GeneratedProof.go_etcd_io.etcd.server.v3.storage
 import EtcdCache.GeneratedProof.go_etcd_io.etcd.server.v3.storage.backend
 import EtcdCache.GeneratedProof.go_etcd_io.etcd.server.v3.storage.mvcc
-import EtcdRaft.GeneratedProof.go_etcd_io.raft.v3
-import EtcdRaft.GeneratedProof.go_etcd_io.raft.v3.raftpb
+import EtcdCache.GeneratedProof.go_etcd_io.raft.v3
+import EtcdCache.GeneratedProof.go_etcd_io.raft.v3.raftpb
 import EtcdCache.GeneratedProof.go_uber_org.zap
 import EtcdCache.GeneratedProof.google_golang_org.protobuf.proto
 import EtcdCache.GeneratedProof.net.http

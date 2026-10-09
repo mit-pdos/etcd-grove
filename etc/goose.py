@@ -92,13 +92,16 @@ PROJECTS = [
         repo="https://github.com/upamanyus/etcd",
         rev="48fd5a5071608e5c075b588c50e4efbfe300b00a",
         lib="EtcdCache",
-        # go.etcd.io/raft/v3 is EtcdRaft's (the server names raft's types); net/http is a
-        # standard-library package Perennial does not translate, so its names are here.
+        # go.etcd.io/raft/v3 is etcd's own raft dependency (v3.7.0 in etcd's go.mod), whose
+        # raftpb is protobuf-go v2: not the gogoproto fork EtcdRaft/ translates, so it is
+        # translated here too (both define `Perennial.go_etcd_io.raft.v3.*`, so no module
+        # may import both). net/http is a standard-library package Perennial does not
+        # translate, so its names are here.
         lean_roots=["go.etcd.io/etcd=EtcdCache", "k8s.io=EtcdCache",
                     "google.golang.org=EtcdCache", "go.uber.org=EtcdCache",
                     "go.etcd.io/bbolt=EtcdCache", "go.opentelemetry.io=EtcdCache",
                     "github.com/dustin/go-humanize=EtcdCache",
-                    "net/http=EtcdCache", "go.etcd.io/raft/v3=EtcdRaft"],
+                    "net/http=EtcdCache", "go.etcd.io/raft/v3=EtcdCache"],
         packages=[
             # with bodies (cache/v3.toml)
             "go.etcd.io/etcd/cache/v3",
@@ -138,6 +141,8 @@ PROJECTS = [
             "go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc",
             "google.golang.org/protobuf/proto",
             "google.golang.org/protobuf/reflect/protoreflect",
+            "go.etcd.io/raft/v3",
+            "go.etcd.io/raft/v3/raftpb",
             "go.uber.org/zap",
             "go.uber.org/zap/zapcore",
             "github.com/dustin/go-humanize",

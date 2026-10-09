@@ -18,8 +18,8 @@ import EtcdCache.Code.go_etcd_io.etcd.server.v3.etcdserver.cindex
 import EtcdCache.Code.go_etcd_io.etcd.server.v3.etcdserver.errors
 import EtcdCache.Code.go_etcd_io.etcd.server.v3.storage
 import EtcdCache.Code.go_etcd_io.etcd.server.v3.storage.backend
-import EtcdRaft.Code.go_etcd_io.raft.v3
-import EtcdRaft.Code.go_etcd_io.raft.v3.raftpb
+import EtcdCache.Code.go_etcd_io.raft.v3
+import EtcdCache.Code.go_etcd_io.raft.v3.raftpb
 import Perennial.Code.sync
 import EtcdCache.Code.go_etcd_io.etcd.server.v3.storage.mvcc
 import EtcdCache.Code.go_etcd_io.etcd.pkg.v3.contention
