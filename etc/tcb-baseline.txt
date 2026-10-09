@@ -1,4 +1,4 @@
-# The project's part of the Raft proof's trust base (etc/tcb-report.py --check --update).
+# This repository's part of the proofs' trust base (etc/tcb-report.py --check --update).
 axiom EtcdServer.GoAttach.wp_proof
 axiom EtcdServer.Logger.wp_proof
 axiom EtcdServer.applyConfChange.wp_proof

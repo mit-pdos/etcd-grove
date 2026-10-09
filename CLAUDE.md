@@ -81,19 +81,35 @@ stale as the proof changes. `etc/tcb-report.py --check` exits 1 if this reposito
 axioms or `sorry`s differ from `etc/tcb-baseline.txt`; when you add or remove one on
 purpose, rerun with `--check --update`.
 
+For some of the results only: `--roots PATTERN...` (regular expressions searched in a
+root's name, its module's file and its spec's file: `'raft__Step'`,
+`'^Spec/go_etcd_io/raft/'`) prints the axioms and `sorry`s those roots rest on and
+which roots reach a `sorry` (`--per-root`: every root). A collection
+(`etc/tcb-collections/*.txt`) keeps the patterns (`roots` lines) with their baseline
+(`axiom`/`sorry` lines): `--collection etc/tcb-collections/raft.txt` reports on it,
+`--check` compares, `--check --update` rewrites the baseline. Track a proof's progress
+by adding a collection for it.
+
 ## How much is verified
 
-`etc/verified-code.py` accounts for how much of raft's and etcd's Go code is verified
+`etc/verified-code.py` accounts for how much of the translated Go code is verified
 (needs `lake build` and `go`): every Go function is verified, unfinished, assumed,
-translated or not translated, counted in functions and Go code lines, per package and
-per file. It takes the projects from `etc/goose.py` and reads the Go sources of the
-translated forks (in `.lake/go-src/<project>`, cloned or fetched at the pinned
-revision), the translations in `Code/`, and this repository's proofs (the linked
-results of `Proof.go_etcd_io.raft.v3.Link` and `Proof.go_etcd_io.etcd.cache.v3.Link`)
-from `.lake/tcb.json` (shared with `etc/tcb-report.py`; `--reuse` skips
-re-running Lean). It prints plain text (`--markdown` for Markdown;
-`-o FILE` writes Markdown if FILE ends in `.md`). Like the TCB report, don't commit
-its output.
+translated or not translated, counted in functions and Go code lines, per project, per
+module, per package and per file. It takes the projects from `etc/goose.py` (with the
+Go modules counted, `counted_modules`) and reads the Go sources of the translated
+forks (in `.lake/go-src/<project>`, cloned or fetched at the pinned revision), the
+translations in `Code/`, and this repository's proofs (the linked results of every
+`Link.lean`) from `.lake/tcb.json` (shared with `etc/tcb-report.py`; `--reuse` skips
+re-running Lean). `--package PREFIX` adds a summary row for the packages below PREFIX
+and narrows the by-file tables (and `--functions`, every function) to them. It prints
+plain text (`--markdown` for Markdown; `-o FILE` writes Markdown if FILE ends in `.md`).
+Like the TCB report, don't commit its output.
+
+Both scripts are generic for a Goose project with this layout: they name no project.
+Their roots are found by `etc/proof_roots.py` (every `Link.lean`/`Results.lean` under
+`Proof/` and a part's `<root>/Proof/`; Lean runs grouped by the part roots a module
+reaches; the namespace from the `Link.lean` files), and a `.lake/tcb.json` that is
+not of the current roots (an interrupted run, a new package) is refused with `--reuse`.
 
 ## Proof writing
 
