@@ -1,5 +1,9 @@
 # What the btree proof cost
 
+Measured on the proof of google/btree (`EtcdGrove/Btree/`, 2026-10-08/09), before it
+moved onto the cache's fork (the same code, renamed: the proofs carried over unchanged,
+so the numbers stand, but for the non-generic API the fork lacks).
+
 ## Building it
 
 A clean build of the btree proof and its translation, with Perennial (and Iris)

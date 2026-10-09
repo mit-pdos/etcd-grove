@@ -58,5 +58,6 @@ public import Proof.k8s_io.utils.third_party.forked.golang.btree.Fractional
 #print axioms Perennial.EtcdGrove.btree.wp_NewWithFreeList
 #print axioms Perennial.EtcdGrove.btree.wp_New
 #print axioms Perennial.EtcdGrove.btree.wp_NewOrdered
+#print axioms Perennial.EtcdGrove.btree.wp_initialize
 #print axioms Perennial.EtcdGrove.btree.node.wp_growChildAndRemove
 #print axioms Perennial.EtcdGrove.btree.ownBTree_split

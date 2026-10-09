@@ -604,3 +604,39 @@ a fresh buffer holding all of `src`; `wp_slice_copy` keeps its statement, and
 `wp_slice_copy_within` specifies a copy between two parts of one slice (`insertAt`,
 `removeAt`). Until Perennial's `lean` has it and is re-pinned here, the btree proofs build
 against a checkout of the branch (`lake build --packages=<override>`).
+
+---
+
+## The btree proof is of the cache's fork; the cache's btree axioms are gone
+
+**2026-10-09 · accepted** (supersedes "store: btree as the trust boundary" for the btree)
+
+The btree proof (above) was of google/btree, while the cache uses the k8s fork
+(`k8s.io/utils/third_party/forked/golang/btree`), translated names-only with seven
+axiomatized specs over an axiomatized `ownBTree`.
+
+**Decision:** the fork is translated with bodies, in the `etcd` project, and the proof
+moves onto it (`Spec/`/`Proof/k8s_io/utils/third_party/forked/golang/btree/`, namespace
+`btree`, so that the spec names are those the cache already used: `btree.BTree.Get.spec`,
+`btree.New.spec`); google/btree's translation is dropped. One Hoare triple per Go
+function: the proved spec *is* the fork's spec, and the cache's former statements become
+model-level triples (`btree.<M>.modelSpec`, `InvBtree.lean`) that each store proof derives
+from it on its first line (`btree.<M>.modelSpec_of`). The cache's `ownBTree` is defined
+over the btree's: the store orders models (`KvEntry`, by key) by a strict *weak* order,
+the btree orders keys by a strict *total* one, so the keys are the classes of the weak
+order's incomparability (a quotient), and each entry is related to its model by
+`isItem`. Of the axiomatized `DFractional` the store used only persistence at
+`DFrac.discard` and `dq ==∗ discard`, which are proved instead.
+
+`etc/gen-link.py --cache` links the store against the btree's results, which
+`etc/gen-btree-link.py` links in the btree's own `Link.lean` (`fn: @` in
+`etc/link-lean-first-cache.txt`).
+
+**Found on the way:** the assumed `btree.New` spec asked only `1 < degree`; above `2^62`
+the btree's `maxItems()` overflows and the second insert panics. `btree.New`, `newStore`
+and `isStore` now require `degree <= 2^62`.
+
+**Rejected -- keeping the cache's statements as the btree's specs** (and the proved ones as
+a second triple per function): two specs per Go function, which the discipline forbids.
+**Rejected -- restating the store's proofs on the btree's interface**: the model-level
+triples are what the store reasons in; deriving them once keeps those proofs unchanged.

@@ -38,6 +38,7 @@ public import Proof.k8s_io.utils.third_party.forked.golang.btree.NewWithFreeList
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.copyOnWriteContext__freeNode
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.copyOnWriteContext__newNode
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.empty
+public import Proof.k8s_io.utils.third_party.forked.golang.btree.initialize
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.items__find
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.items__insertAt
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.items__pop
@@ -268,6 +269,10 @@ theorem wp_New :
 theorem wp_NewOrdered :
     NewOrdered.spec (GF := GF) (hG := hG) :=
   NewOrdered.wp_proof wp_Less wp_New
+
+theorem wp_initialize :
+    initialize.spec (GF := GF) (hG := hG) :=
+  initialize.wp_proof
 
 theorem node.wp_growChildAndRemove :
     node.growChildAndRemove.spec (GF := GF) (hG := hG) :=
