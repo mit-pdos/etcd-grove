@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-09 (the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
+**Last updated:** 2026-10-09 (Perennial `d57475ff3`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
 
 Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
@@ -13,6 +13,50 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 (`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
+
+## Perennial `d57475ff3`; retargeting raft to upstream (2026-10-09)
+
+Re-pinned to Perennial `d57475ff3` (`lean`, the merge of `origin/lean` with the Goose
+work for upstream raft: each loop iteration has its own iteration variables where that
+is observable, range loops over arrays, `fallthrough`, a `break` in a `switch`/`select`
+case ends that statement, function-local types, an empty void function body is
+`return: #()`). Regenerated: `Code/go_etcd_io/raft/v3.lean` (the `trace*` stubs; `node.run`'s
+`select` is wrapped in `catchBreak`; `entsSize`'s range variable `ent`, whose address
+`ent.Size()` takes, is allocated in the body), `Code/go_etcd_io/etcd/cache/v3.lean`
+(`demux.resyncLaggingWatchers`'s `w, nextRev`, captured by the `AscendGreaterOrEqual`
+callback, allocated in the body) and `cindex.lean` (empty bodies). Proofs: `entsSize` and
+`demux.resyncLaggingWatchers` drop the per-iteration variables from their loop invariants
+(each iteration allocates them afresh); nothing else changed.
+
+**Retargeting raft to upstream `etcd-io/raft` (parked).** The goal is to goose raft from
+upstream `1c0011d2` (2026-09-22) instead of the fork `upamanyus/etcd-raft` at `531b20c`
+(upstream `24643b3` of 2026-03-10 plus two edits in `quorum/`: `JointConfig.IDs` ranging
+over the two configs by index, and `MajorityConfig.Describe`'s local type `tup` hoisted;
+the new Goose translates both as written). Between those two upstream commits raft moved
+raftpb from gogoproto to protobuf-go v2 (March to May 2026: `Entry`, `Message`, `Snapshot`,
+`HardState`, `ConfState`, `ConfChange*` are passed as pointers, their fields are pointers read
+through `GetXXX` getters, `[]pb.Entry` is `[]*pb.Entry`, `proto.Clone`/`Marshal`/`Unmarshal`/
+`Size` replace the generated methods). The mechanics work: branch
+`raft-upstream-1c0011d2-wip` has `etc/goose.py` pointed at upstream `1c0011d2` (with
+`google.golang.org=` as a Lean root, so raft's `proto` import is the names-only
+`Code.google_golang_org.protobuf.proto` of the etcd project) and a new
+`Code/go_etcd_io/raft/v3/raftpb.toml` (everything but the protobuf runtime plumbing), and
+the regenerated `Code/` and `GeneratedProof/` build against Perennial `d57475ff3`. The proofs
+do not: 154 Spec/Proof files (36k lines) mention the raftpb types as values (`List
+raftpb.Entry` in `LogState`, `absMsg`, ...), so the retarget is a redesign of the raft proof's
+entry/message/snapshot ownership (heap entries shared between the log, messages and
+`Ready`), not an adaptation. The last upstream commit before the migration, `40f8be7`
+(2026-04-15), translates unmodified with the new Goose and differs from the fork's
+translation only by the gogoproto option cleanups (`NodeID` to `NodeId` in `ConfChange*`,
+the `MessageType_*`/`EntryType_*` enum constants with `MsgHup`-style aliases) and the
+Goose changes above: that is the cheap retarget. Decision pending.
+
+Gates (2026-10-09): `lake build` passes (1659 jobs); `etc/goose.py --check` passes;
+`etc/tcb-report.py --check` matches the baseline. Building against a Perennial checkout
+other than `.lake/packages/perennial` (other worktrees share it): `lake build
+--packages=<override manifest>`, and `LAKE_OPTS=--packages=<file> etc/tcb-report.py`.
+`etc/goose.py` needs a Go toolchain that can load etcd (`go 1.27`): with an older default
+`go`, `GOTOOLCHAIN=go1.27.1 etc/goose.py ...`.
 
 ## Sorry-free (2026-10-09)
 

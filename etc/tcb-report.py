@@ -12,7 +12,8 @@ usage: etc/tcb-report.py [-o REPORT.md] [--defs] [--json TCB.json] [--reuse]
            exit 1 if they differ (`--check --update` rewrites the baseline): a gate
            for CI, where the report is a viewer
 
-Needs a built project (`lake build`).  The Lean counterpart of the Rocq branches'
+Needs a built project (`lake build`; `$LAKE_OPTS` is passed to lake, e.g.
+`--packages=<file>` when the build used it).  The Lean counterpart of the Rocq branches'
 `etc/tcb-report.py`, with the same notion of the TCB, but read off the elaborated
 environment instead of the source text, so nothing is a lower bound:
 
@@ -121,7 +122,8 @@ def run_lean(json_path):
         for mods in LEAN_RUNS:
             f.flush()
             r = subprocess.run(
-                ["lake", "env", "lean", "--run", "etc/tcb-report.lean", *mods],
+                ["lake", *os.environ.get("LAKE_OPTS", "").split(), "env", "lean", "--run",
+                 "etc/tcb-report.lean", *mods],
                 cwd=ROOT,
                 stdout=f,
                 env=env,

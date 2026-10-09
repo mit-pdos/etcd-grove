@@ -156,12 +156,14 @@ editing the Goose configuration `Code/**/*.toml`; `--project NAME` for one);
 produces, and CI runs that check before the build. `--src NAME=DIR` (or
 `$ETCD_SRC`, `$ETCD_RAFT_SRC`) translates from a local checkout of the fork instead
 of cloning the pin, e.g. for a pinned revision not yet pushed; the output says so,
-and `--check` then requires the checkout to be at the pinned revision. To try a
-translator change before it is in Perennial, `etc/goose.py --perennial ../perennial`
-regenerates with that checkout's translator, and
-`lake build --packages=<file>` (a JSON list with
-`{"type": "path", "name": "perennial", "dir": "../perennial", ...}`) builds against
-it.
+and `--check` then requires the checkout to be at the pinned revision. It needs a Go
+toolchain that can load etcd (`go 1.27`): `GOTOOLCHAIN=go1.27.1 etc/goose.py ...` if the
+default `go` is older. To try a translator change before it is in Perennial,
+`etc/goose.py --perennial ../perennial` regenerates with that checkout's translator, and
+`lake build --packages=<file>` (a copy of `lake-manifest.json` whose `perennial` entry is
+`{"type": "path", "name": "perennial", "dir": "../perennial", ...}`) builds against it
+without touching `.lake/packages/perennial`, which other worktrees share;
+`LAKE_OPTS=--packages=<file> etc/tcb-report.py` runs the TCB report the same way.
 
 ## Building
 

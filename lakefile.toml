@@ -7,7 +7,7 @@ defaultTargets = ["EtcdGrove"]
 [[require]]
 name = "perennial"
 git = "https://github.com/mit-pdos/perennial"
-rev = "3ae7dc6a4ac6c66ea3ba972d0903556b959f76bd"
+rev = "d57475ff3bc03be8ccb9e27505ad3dd6d39bac09"
 
 # Everything here, laid out by kind and then by Go package path:
 #   Code/<pkg>, GeneratedProof/<pkg>  the Goose translations of etcd-raft and of etcd's

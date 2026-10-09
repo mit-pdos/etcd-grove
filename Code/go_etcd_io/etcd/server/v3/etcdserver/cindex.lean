@@ -360,7 +360,7 @@ noncomputable def fakeConsistentIndex.UnsafeSave.impl [FfiSyntax] [GoGlobalConte
   (Lam BAnon
   (App (Val exceptionDo)
   (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType fakeConsistentIndex.ty)))) (Var "f"))
-  (App (Val doExecute)
+  (App (Val doReturn)
   (Val #()))))))
 
 /-- go: cindex.go:172:31 -/
@@ -369,7 +369,7 @@ noncomputable def fakeConsistentIndex.SetBackend.impl [FfiSyntax] [GoGlobalConte
   (Lam BAnon
   (App (Val exceptionDo)
   (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType fakeConsistentIndex.ty)))) (Var "f"))
-  (App (Val doExecute)
+  (App (Val doReturn)
   (Val #()))))))
 
 /-- go: cindex.go:174:6 -/
