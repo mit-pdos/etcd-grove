@@ -25,14 +25,15 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 becomes `nil`; when most of the backing array is unused the entries are copied into a
 fresh array of exactly their length; otherwise nothing changes. Only `u.entries` is
 written, and it holds the same entries (read-only, as always: the copy is
-persisted). -/
+persisted), so the state is unchanged (until 2026-10-08 the post named the new slice,
+`ownUnstable u { uv with entries' := sl } uents`). -/
 abbrev unstable.shrinkEntriesArray.spec : Prop :=
-  ∀ (u : Loc) (uv : unstable) (uents : List raftpb.Entry),
+  ∀ (u : Loc) (us : UnstableSt),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hun" ∷ ownUnstable u uv uents }}
+      "Hun" ∷ ownUnstable u us }}
     (App (Val (u @!! go.GoType.PointerType unstable.ty @!! go!"shrinkEntriesArray"))
       (Val #()))
-  {{ (sl : GoSlice), RET #(); ownUnstable u { uv with entries' := sl } uents }}
+  {{ RET #(); ownUnstable u us }}
 
 end spec
 

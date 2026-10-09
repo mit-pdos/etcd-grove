@@ -22,11 +22,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem raftLog.appliedTo.wp_proof : raftLog.appliedTo.spec (GF := GF) (hG := hG) := by
   intro l ls i size Hi
-  obtain ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ := ls
-  simp only at Hi ⊢
   wp_start as Hlog
-  icases (ownRaftLog_unfold l prev sents uents lcm lap snap lip lapg lpend lasz lamx).1 $$ Hlog
-    with ⟨%lv, Hl, %Hcm, %Hap, %Hapg, %Hip, %Hasz, %Hamx, Hcore⟩
+  iNamed Hlog
   wp_auto
   rw [decide_eq_false (by rw [Hcm]; omega)]
   wp_auto
@@ -38,20 +35,16 @@ theorem raftLog.appliedTo.wp_proof : raftLog.appliedTo.spec (GF := GF) (hG := hG
   wp_if_destruct <;> wp_if_destruct
   all_goals
     iapply HΦ
-    iunfold ownRaftLogCore at Hcore
-    icases Hcore with ⟨%sprev, %stored, %ss, Hcore⟩
-    iNamed Hcore
     reseal_raftLog
   all_goals
-    simp only
-    subst Hcm Hap Hapg Hasz
+    simp only [Hcm, Hap, Hapg, Hasz, Hamx] at *
     first
       | rfl
       | omega
       | (intro Hn; have := Hpapplied Hn; omega)
       | (unfold w64Max; split <;> first | rfl | omega)
       | (split <;> first | rfl | omega)
-      | (intro Hpz; simp only [decide_eq_false_iff_not] at Hpz; word)
+      | (intro Hpz; simp only [decide_eq_false_iff_not] at Hpz; split <;> word)
 
 end proof
 

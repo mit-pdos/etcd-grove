@@ -22,32 +22,30 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem unstable.nextSnapshot.wp_proof : unstable.nextSnapshot.spec (GF := GF) (hG := hG) := by
-  intro u uv uents snap
+  intro u us
   wp_start as H
   iNamed H
-  iunfold ownUnstable at Hun
-  iNamed Hun
+  open_unstable
   wp_auto
-  cases snap with
-  | some sid =>
-    icases (ownSnap_Some _ _).1 $$ Hsnap with ⟨%sv, #Hsv, -⟩
+  rcases snap_some_or_none us.snap with ⟨sid, Hs⟩ | Hs
+  · icases ownSnap_of_eq_some Hs $$ Hsnap with ⟨%sv, #Hsv, -⟩
     ihave %Hnn := typedPointsto_not_null $$ Hsv
     simp only [Hnn, _root_.decide_false]
     wp_auto
     rcases Hsip : uv.snapshotInProgress' <;> wp_auto <;>
     · iapply HΦ
-      unfold ownUnstable
-      iframe
+      isplitl
+      · close_unstable
       ipureintro
+      rw [Hs]
       intro h
       cases h
-  | none =>
-    icases (ownSnap_None _).1 $$ Hsnap with %Hn
-    simp only [Hn, _root_.decide_true]
+  · ihave %Hn := ownSnap_of_eq_none Hs $$ Hsnap
+    simp only [decide_eq_true Hn]
     wp_auto
     iapply HΦ
-    unfold ownUnstable
-    iframe
+    isplitl
+    · close_unstable
     ipureintro
     intro _
     rfl

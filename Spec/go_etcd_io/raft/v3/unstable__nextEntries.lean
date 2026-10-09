@@ -32,15 +32,15 @@ The entries not yet in progress, **read-only and uncapped**: the result shares
 its elements are handed out. The premise is `ownRaftLog`'s `Hipb`: below `offset` the
 `int` conversion would go negative, past the end the re-slice would panic. -/
 abbrev unstable.nextEntries.spec : Prop :=
-  ∀ (u : Loc) (uv : unstable) (uents : List raftpb.Entry),
-  uint.Z uv.offset' ≤ uint.Z uv.offsetInProgress' ∧
-    uint.Z uv.offsetInProgress' ≤ uint.Z uv.offset' + (uents.length : Int) →
+  ∀ (u : Loc) (us : UnstableSt),
+  uint.Z us.offset ≤ uint.Z us.inprogress ∧
+    uint.Z us.inprogress ≤ uint.Z us.offset + (us.ents.length : Int) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hun" ∷ ownUnstable u uv uents }}
+      "Hun" ∷ ownUnstable u us }}
     (App (Val (u @!! go.GoType.PointerType unstable.ty @!! go!"nextEntries")) (Val #()))
   {{ (s : GoSlice), RET #s;
-      ownUnstable u uv uents ∗
-      s ↦*□ uents.drop (uint.Z uv.offsetInProgress' - uint.Z uv.offset').toNat }}
+      ownUnstable u us ∗
+      s ↦*□ us.ents.drop (uint.Z us.inprogress - uint.Z us.offset).toNat }}
 
 end spec
 

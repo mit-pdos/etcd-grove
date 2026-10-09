@@ -22,26 +22,21 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem raftLog.hasNextOrInProgressUnstableEnts.wp_proof :
     raftLog.hasNextOrInProgressUnstableEnts.spec (GF := GF) (hG := hG) := by
   intro l ls
-  obtain ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ := ls
   wp_start as H
   iNamed H
-  icases (ownRaftLog_unfold l prev sents uents lcm lap snap lip lapg lpend lasz lamx).1 $$ Hlog
-    with ⟨%lv, Hl, %Hcm, %Hap, %Hapg, %Hip, %Hasz, %Hamx, Hcore⟩
-  unfold ownRaftLogCore
-  icases Hcore with ⟨%sprev, %stored, %ss, Hcore⟩
-  iNamed Hcore
+  iNamed Hlog
   ihave %Hlen := ownSlice_len $$ Huents
   wp_auto
   iapply HΦ
   isplitl
   · reseal_raftLog
   ipureintro
-  cases uents with
+  cases Hu : ls.uents with
   | nil =>
-    simp only [List.length_nil] at Hlen
+    rw [Hu, List.length_nil] at Hlen
     rw [decide_eq_false (by word), decide_eq_false (by simp)]
   | cons e es =>
-    simp only [List.length_cons] at Hlen
+    rw [Hu, List.length_cons] at Hlen
     rw [decide_eq_true (by word), decide_eq_true (by simp)]
 
 end proof

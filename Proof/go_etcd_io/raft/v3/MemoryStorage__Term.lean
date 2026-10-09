@@ -24,7 +24,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem MemoryStorage.Term.wp_proof :
     MemoryStorage.Term.spec (GF := GF) (hG := hG) := by
-  intro ms prev ents ss i0
+  intro ms σ i0
   wp_start as ⟨Hms, %Hrange⟩
   iunfold ownMemoryStorage at Hms
   icases Hms with ⟨%γ, Hms⟩
@@ -36,18 +36,17 @@ theorem MemoryStorage.Term.wp_proof :
   wp_call
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
   iunfold memstorageInv at Hinv
-  icases Hinv with ⟨%prev0, %ents0, %ss0, Hinv⟩
+  icases Hinv with ⟨%σ0, Hinv⟩
   iNamedSuffix Hinv "_inv"
   iunfold memstorageFields at Hfields_inv
   icases Hfields_inv with ⟨%hs, %snap, %es, %dummy, %cs, %voters, Hfields_inv⟩
   iNamed Hfields_inv
   icombine Hgs Hgs_inv gives % ⟨_, Heq⟩
-  simp only [Prod.mk.injEq] at Heq
-  obtain ⟨⟨rfl, rfl⟩, rfl⟩ := Heq
+  subst Heq
   wp_auto
   icases Hents with #Hents
   ihave %Hlen := ownSlice_len $$ Hents
-  icases ownSlice_elem_acc 0 dummy es _ (dummy :: ents) (by omega) rfl $$ Hents with ⟨#He, -⟩
+  icases ownSlice_elem_acc 0 dummy es _ (dummy :: σ.ents) (by omega) rfl $$ Hents with ⟨#He, -⟩
   obtain ⟨Hlen1, Hlen2⟩ := Hlen
   simp only [List.length_cons] at Hlen1
   have H0 : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z es.len := by
@@ -63,33 +62,33 @@ theorem MemoryStorage.Term.wp_proof :
   · exfalso; rw [Hd0] at Hif; word
   wp_if_destruct
   · exfalso; rw [Hd0] at Hif; word
-  have Hn : sint.Z (i0 - dummy.Index') = uint.Z i0 - uint.Z prev.index' := by
+  have Hn : sint.Z (i0 - dummy.Index') = uint.Z i0 - uint.Z σ.prev.index' := by
     rw [Hd0]; word
   rw [Hn]
-  have Hlt : (uint.Z i0 - uint.Z prev.index').toNat < (dummy :: ents).length := by
+  have Hlt : (uint.Z i0 - uint.Z σ.prev.index').toNat < (dummy :: σ.ents).length := by
     simp only [List.length_cons]; omega
-  obtain ⟨e, He⟩ : ∃ e, (dummy :: ents)[(uint.Z i0 - uint.Z prev.index').toNat]? = some e :=
+  obtain ⟨e, He⟩ : ∃ e, (dummy :: σ.ents)[(uint.Z i0 - uint.Z σ.prev.index').toNat]? = some e :=
     ⟨_, List.getElem?_eq_getElem Hlt⟩
-  icases ownSlice_elem_acc (uint.Z i0 - uint.Z prev.index') e es _ (dummy :: ents)
+  icases ownSlice_elem_acc (uint.Z i0 - uint.Z σ.prev.index') e es _ (dummy :: σ.ents)
     (by omega) He $$ Hents with ⟨#He1, -⟩
-  have H1 : 0 ≤ uint.Z i0 - uint.Z prev.index' ∧
-      uint.Z i0 - uint.Z prev.index' < sint.Z es.len := by
+  have H1 : 0 ≤ uint.Z i0 - uint.Z σ.prev.index' ∧
+      uint.Z i0 - uint.Z σ.prev.index' < sint.Z es.len := by
     constructor <;> word
   simp only [H1, and_self, ↓reduceIte]
   iStructNamedSuffix He1 "_1"
   wp_auto
-  have Hterm : termAt prev ents i0 = some e.Term' := by
+  have Hterm : termAt σ.prev σ.ents i0 = some e.Term' := by
     unfold termAt
-    by_cases Hi : uint.Z i0 = uint.Z prev.index'
+    by_cases Hi : uint.Z i0 = uint.Z σ.prev.index'
     · simp only [Hi, ↓reduceIte]
-      have H0 : (uint.Z i0 - uint.Z prev.index').toNat = 0 := by omega
+      have H0 : (uint.Z i0 - uint.Z σ.prev.index').toNat = 0 := by omega
       rw [H0] at He
       simp only [List.getElem?_cons_zero, Option.some.injEq] at He
       subst He
       rw [Hd1]
     · simp only [Hi, ↓reduceIte]
-      have HS : (uint.Z i0 - uint.Z prev.index').toNat =
-          (uint.Z i0 - uint.Z prev.index' - 1).toNat + 1 := by omega
+      have HS : (uint.Z i0 - uint.Z σ.prev.index').toNat =
+          (uint.Z i0 - uint.Z σ.prev.index' - 1).toNat + 1 := by omega
       rw [HS] at He
       simp only [List.getElem?_cons_succ] at He
       rw [He]
@@ -99,7 +98,7 @@ theorem MemoryStorage.Term.wp_proof :
   wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hgs_inv HhardState Hsnapshot Hvoters Hents_f HcallStats]
   · inext
     unfold memstorageInv memstorageFields
-    iexists prev, ents, ss
+    iexists σ
     iframe Hgs_inv
     iexists hs, snap, es, dummy, _, voters
     iframe # ∗

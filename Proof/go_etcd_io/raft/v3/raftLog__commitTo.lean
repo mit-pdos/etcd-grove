@@ -25,38 +25,27 @@ theorem raftLog.commitTo.wp_proof
     (wp_raftLog_lastIndex : raftLog.lastIndex.spec (GF := GF) (hG := hG)) :
     raftLog.commitTo.spec (GF := GF) (hG := hG) := by
   intro l ls tocommit Hle
-  obtain ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ := ls
-  simp only [plogLastIndexZ, List.length_append] at Hle ⊢
+  simp only [plogLastIndexZ, List.length_append] at Hle
   wp_start as H
   iNamed H
   icases ownRaftLog_struct _ _ $$ Hlog with ⟨%lv0, Hl, %Hcmap, Hback⟩
   obtain ⟨Hcm, Hap⟩ := Hcmap
-  simp only at Hcm Hap
   wp_auto
   wp_if_destruct
-  · have Hlt : uint.Z lcm < uint.Z tocommit := Hcm ▸ Hif
+  · have Hlt : uint.Z ls.committed < uint.Z tocommit := Hcm ▸ Hif
     clear Hif Hcm Hap
     ihave Hlog := Hback $$ Hl
-    wp_apply wp_raftLog_lastIndex _ ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ $$ [$Hlog]
-      as %li ⟨Hlog, %Hli⟩
-    simp only at Hli
+    wp_apply wp_raftLog_lastIndex _ ls $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
     wp_if_destruct
     · exfalso; word
-    icases (ownRaftLog_unfold l prev sents uents lcm lap snap lip lapg lpend lasz lamx).1 $$ Hlog
-      with ⟨%lv, Hl, %Hcm', %Hap', %Hapg, %Hip, %Hasz, %Hamx, Hcore⟩
-    iunfold ownRaftLogCore at Hcore
-    icases Hcore with ⟨%sprev, %stored, %ss, Hcore⟩
-    iNamed Hcore
+    iNamed Hlog
     wp_auto
     iapply HΦ
     rw [plogCommitTo, ite_eq_left Hlt]
     reseal_raftLog
-    all_goals
-      simp only
-      subst Hcm' Hap'
-      first
-        | omega
-        | (intro Hs; exact StoredSnapOk_commit _ _ _ _ _ (by omega) (Hssnap Hs))
+    all_goals first
+      | word
+      | (intro Hs; exact StoredSnapOk_commit _ _ _ _ _ (by word) (Hssnap Hs))
   · iapply HΦ
     rw [plogCommitTo, ite_eq_right (by rw [← Hcm]; exact Hif)]
     iapply Hback $$ Hl

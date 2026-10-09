@@ -6,6 +6,8 @@ module
 
 public import Spec.go_etcd_io.raft.v3.RawNode__Propose
 public import Spec.go_etcd_io.raft.v3.raft__Step
+-- `Step.commit_mono`
+public import Proof.go_etcd_io.raft.v3.Protocol.Facts
 
 @[expose] public section
 
@@ -31,15 +33,13 @@ local macro "msg_ne" : tactic => `(tactic| (intro Hc; simp [MsgHup, MsgVote, Msg
 
 /-- `Step` on the literal message: `Type: MsgProp`, `From: r.id`, the one-entry batch;
 every other field zero. Its `MsgProp` arm, at the singleton batch, is the
-postcondition. -/
+postcondition; `LocalStepOk` and `Step.commit_mono` keep `ownRawNode` at `rs`. -/
 theorem RawNode.Propose.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
     RawNode.Propose.spec (GF := GF) (hG := hG) := by
-  intro cfg γ rn id s ps rs data_sl data Q Hcfg Hin Hrel
+  intro γ rn id rs data_sl data Q
   wp_start as H
   iNamed H
-  unfold ownRawNode
-  icases Hrn with ⟨%rnv, %sv, %steps, Hrn⟩
   iNamed Hrn
   wp_auto
   wp_apply raft.wp_load_id $$ Hphys as Hphys
@@ -48,7 +48,7 @@ theorem RawNode.Propose.wp_proof
   · ipureintro; rfl
   iintro %sl_ptr ⟨Hes, Hcap⟩
   wp_auto
-  wp_apply wp_raft_Step cfg γ _ id s ps _ [propEntry data_sl] [Q] Hcfg
+  wp_apply wp_raft_Step γ.reCfg γ _ id s ps _ [propEntry data_sl] [Q] rfl
     (by simp [StepMsg, stepMsgTypes, MsgProp]) Hin
     (by msg_ne) (by msg_ne)
     (by msg_ne) (by msg_ne)
@@ -100,32 +100,33 @@ theorem RawNode.Propose.wp_proof
       iintro %Hc
       simp [MsgSnap] at Hc
   simp only [MsgProp, ite_true]
-  iintro %err %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, Herr, Hprops⟩
+  iintro %err %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, %Hloc, Herr, Hprops⟩
   wp_auto
+  -- what the `RawNode` tracks is kept: `LocalStepOk`, and the commit index does not move
+  -- back (`Step.commit_mono`)
+  obtain ⟨Hfr, Hap⟩ := Hloc (.inl rfl)
+  have Hap' := Hap (fun Hc => absurd Hc (by msg_ne))
+  have Hc : uint.Z s.logst.committed ≤ uint.Z s'.logst.committed := by
+    obtain ⟨recv, Hst⟩ := Href
+    have H := Step.commit_mono Hst
+    rw [← Hrel.1, ← Hrel'.1] at H
+    exact H
   iapply HΦ
   simp only [named]
-  iframe Hghost
-  isplitl [Hrn Hphys Hsteps Hsteps_cap Hpown]
-  · iexists rnv, sv, steps
-    iframe Hrn Hphys Hsoft Hsteps Hsteps_cap Hpend Hpown
-    ipureintro
-    exact ⟨Hasync, Hsoftv, Hhard⟩
-  isplitr
-  · ipureintro; exact Hrel'
-  isplitr
-  · ipureintro; exact Href
+  isplitl [Hrn Hphys Hghost Hsteps Hsteps_cap Hpown]
+  · iapply ownRawNode_intro γ rn id rs s' ps' rnv sv steps Hrel' Hin Hasync
+      (by rw [Hap']; exact Hdlen) (by rw [Hfr.2.2.1]; exact Hunp) (by rw [Hfr.2.2.2]; exact Hsnap)
+      (fun h => stepsOk_mono s s' _ Hfr.1 Hfr.2.1 Hc Hap' (Hadv h))
+      $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv
   icases Hprops with (⟨%Hok, Hout⟩ | Hau)
   · ileft
     isplitr
-    · ipureintro; exact Hok
+    · ipureintro; exact Hok.1
     icases (BigSepL.bigSepL_singleton (Φ := fun k Q' => iprop(∃ γp,
         isProp γ ps.term (plastIndex ps + W64 1 + W64 (k : Int)) γp Q' ∗ propTok γp))).1 $$ Hout
       with ⟨%γp, Hp, Ht⟩
-    iexists γp
-    iframe Ht
-    -- the index `last + 1 + 0`
-    rw [show plastIndex ps + W64 1 + W64 ((0 : Nat) : Int) = plastIndex ps + W64 1 by word] at *
-    iexact Hp
+    iexists ps.term, plastIndex ps + W64 1 + W64 ((0 : Nat) : Int), γp
+    iframe Hp Ht
   · iright
     icases (BigSepL2.bigSepL2_singleton (Φ := fun _ e Q' => propAu γ e Q')).1 $$ Hau with Hau
     iframe Hau

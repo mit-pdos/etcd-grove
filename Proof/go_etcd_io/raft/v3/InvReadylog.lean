@@ -121,19 +121,46 @@ def StableOk (ls : LogState) (id : entryID) : Prop :=
   uint.Z id.index' < uint.Z ls.inprogress ∧
   ls.unpersisted = []
 
+/-! What `acceptApplying` and `stableTo` leave alone (2026-10-09): the fields the
+`RawNode` predicate (`InvRawnode.lean`) states its facts on. Both functions branch, so
+`proj_simps` does not apply. -/
+
+theorem logAcceptApplying_fields (ls : LogState) (ce : List raftpb.Entry) (sz : w64) :
+    (logAcceptApplying ls ce sz).committed = ls.committed ∧
+    (logAcceptApplying ls ce sz).inprogress = ls.inprogress ∧
+    (logAcceptApplying ls ce sz).unpersisted = ls.unpersisted ∧
+    (logAcceptApplying ls ce sz).snap = ls.snap := by
+  unfold logAcceptApplying; split <;> exact ⟨rfl, rfl, rfl, rfl⟩
+
+theorem logAcceptApplying_applying (ls : LogState) (ce : List raftpb.Entry) (sz : w64)
+    (e : raftpb.Entry) (He : ce.getLast? = some e) :
+    (logAcceptApplying ls ce sz).applying = e.Index' := by
+  unfold logAcceptApplying; rw [He]
+
+theorem logStableTo_fields (ls : LogState) (id : entryID) :
+    (logStableTo ls id).applying = ls.applying ∧
+    (logStableTo ls id).unpersisted = ls.unpersisted ∧
+    (logStableTo ls id).snap = ls.snap ∧
+    uint.Z ls.inprogress ≤ uint.Z (logStableTo ls id).inprogress := by
+  unfold logStableTo
+  split
+  · refine ⟨rfl, rfl, rfl, ?_⟩
+    simp only [w64Max_spec]; omega
+  · exact ⟨rfl, rfl, rfl, Int.le_refl _⟩
+
 /-- The persistence invariant (`LogPersistOk`, `InvRaftlog.lean`) across
 `acceptUnstable`: with nothing unpersisted, handing out the rest of the unstable suffix
 makes all of it in progress, and once the application appends what was handed out the
 storage holds exactly the log (`storApp` cuts the storage at the first handed-out
 index, which the indices put right after the in-progress prefix). -/
-theorem persist_accept (prev sprev : entryID) (stored sents uents : List raftpb.Entry)
+theorem persist_accept (prev : entryID) (σ : StorState) (sents uents : List raftpb.Entry)
     (ipo : Int)
     (Hidx : LogIndicesOk prev (sents ++ uents))
-    (Hsp : sprev = prev)
+    (Hsp : σ.prev = prev)
     (Hipo : 0 ≤ ipo ∧ ipo ≤ (uents.length : Int))
-    (H : LogPersistOk sprev stored sents uents ipo []) :
-    LogPersistOk sprev stored sents uents (uents.length : Int) (uents.drop ipo.toNat) := by
-  subst sprev
+    (H : LogPersistOk σ sents uents ipo []) :
+    LogPersistOk σ sents uents (uents.length : Int) (uents.drop ipo.toNat) := by
+  subst prev
   obtain ⟨Hpre, Heq, _⟩ := H
   simp only [storApp] at Hpre Heq
   unfold LogPersistOk
@@ -157,10 +184,10 @@ theorem persist_accept (prev sprev : entryID) (stored sents uents : List raftpb.
     have He0 := Hidx _ _ Hlk'
     have Hlen : ipo.toNat ≤ uents.length := by omega
     obtain ⟨k, Hk⟩ := Hpre
-    have Hst : storApp prev stored (e0 :: rest) = sents ++ uents := by
+    have Hst : storApp σ (e0 :: rest) = sents ++ uents := by
       simp only [storApp]
       rw [← Hk,
-        show (uint.Z e0.Index' - uint.Z prev.index' - 1).toNat
+        show (uint.Z e0.Index' - uint.Z σ.prev.index' - 1).toNat
           = (sents ++ uents.take ipo.toNat).length by
           simp only [List.length_append, List.length_take]; omega,
         List.take_left, ← Hdrop, List.append_assoc, List.take_append_drop]
@@ -173,11 +200,11 @@ theorem persist_accept (prev sprev : entryID) (stored sents uents : List raftpb.
 /-- ... and across `stableTo` of `k` entries that are in progress: the stable part
 grows by them, the in-progress part of the suffix shrinks by them, the storage is
 unchanged. -/
-theorem persist_stable (sprev : entryID) (stored sents uents : List raftpb.Entry)
+theorem persist_stable (σ : StorState) (sents uents : List raftpb.Entry)
     (ipo k : Int)
     (Hk : 0 ≤ k ∧ k ≤ ipo ∧ ipo ≤ (uents.length : Int))
-    (H : LogPersistOk sprev stored sents uents ipo []) :
-    LogPersistOk sprev stored (sents ++ uents.take k.toNat) (uents.drop k.toNat)
+    (H : LogPersistOk σ sents uents ipo []) :
+    LogPersistOk σ (sents ++ uents.take k.toNat) (uents.drop k.toNat)
       (ipo - k) [] := by
   obtain ⟨Hpre, Heq, _⟩ := H
   simp only [LogPersistOk, storApp] at Hpre Heq ⊢
@@ -235,3 +262,6 @@ end tracker
 
 end EtcdGrove
 end Perennial
+
+-- Projection lemmas, `@[simp, word_unfold]` (ProjSimps.lean).
+proj_simps Perennial.EtcdGrove.logAcceptUnstable Perennial.EtcdGrove.logAppliedTo

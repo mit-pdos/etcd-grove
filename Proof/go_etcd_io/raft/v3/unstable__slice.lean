@@ -34,51 +34,50 @@ theorem unstable.slice.wp_proof
     (wp_unstable_mustCheckOutOfBounds :
       unstable.mustCheckOutOfBounds.spec (GF := GF) (hG := hG)) :
     unstable.slice.spec (GF := GF) (hG := hG) := by
-  intro u uv uents lo hi Hrange Hnw
+  intro u us lo hi Hrange Hnw
   obtain ⟨Hr1, Hr2, Hr3⟩ := Hrange
-  have Hrange' : uint.Z uv.offset' ≤ uint.Z lo ∧ uint.Z lo ≤ uint.Z hi ∧
-      uint.Z hi ≤ uint.Z uv.offset' + (uents.length : Int) := ⟨Hr1, by omega, Hr3⟩
+  have Hrange' : uint.Z us.offset ≤ uint.Z lo ∧ uint.Z lo ≤ uint.Z hi ∧
+      uint.Z hi ≤ uint.Z us.offset + (us.ents.length : Int) := ⟨Hr1, by omega, Hr3⟩
   wp_start as H
   iNamed H
   wp_auto
-  wp_apply wp_unstable_mustCheckOutOfBounds _ _ _ _ _ Hrange' Hnw $$ [$Hun] as Hun
-  unfold ownUnstable
-  iNamed Hun
+  wp_apply wp_unstable_mustCheckOutOfBounds u us lo hi Hrange' Hnw
+    $$ [$Hun] as Hun
+  open_unstable
   ihave #Hents := Hents
   ihave %Hlen := ownSlice_len $$ Hents
   ihave %Hwf := ownSlice_wf $$ Hents
   wp_auto
   obtain ⟨Hlen1, Hlen2⟩ := Hlen
   obtain ⟨-, Hwf⟩ := Hwf
-  have Hlenz : (uents.length : Int) = sint.Z uv.entries'.len := by
+  have Hlenz : (us.ents.length : Int) = sint.Z uv.entries'.len := by
     rw [Hlen1]; word
-  have Hlo' : sint.Z (lo - uv.offset') = uint.Z lo - uint.Z uv.offset' := by word
-  have Hhi' : sint.Z (hi - uv.offset') = uint.Z hi - uint.Z uv.offset' := by word
-  simp only [show (0 ≤ sint.Z (lo - uv.offset') ∧
-      sint.Z (lo - uv.offset') ≤ sint.Z (hi - uv.offset') ∧
-      sint.Z (hi - uv.offset') ≤ sint.Z (hi - uv.offset') ∧
-      sint.Z (hi - uv.offset') ≤ sint.Z uv.entries'.cap) = True from eq_true (by omega),
+  have Hlo' : sint.Z (lo - us.offset) = uint.Z lo - uint.Z us.offset := by word
+  have Hhi' : sint.Z (hi - us.offset) = uint.Z hi - uint.Z us.offset := by word
+  simp only [show (0 ≤ sint.Z (lo - us.offset) ∧
+      sint.Z (lo - us.offset) ≤ sint.Z (hi - us.offset) ∧
+      sint.Z (hi - us.offset) ≤ sint.Z (hi - us.offset) ∧
+      sint.Z (hi - us.offset) ≤ sint.Z uv.entries'.cap) = True from eq_true (by omega),
     ↓reduceIte]
   wp_auto
-  have Hsublen : (subslice (sint.nat (lo - uv.offset')) (sint.nat (hi - uv.offset')) uents).length
-      = sint.nat (hi - uv.offset') - sint.nat (lo - uv.offset') :=
+  have Hsublen : (subslice (sint.nat (lo - us.offset)) (sint.nat (hi - us.offset)) us.ents).length
+      = sint.nat (hi - us.offset) - sint.nat (lo - us.offset) :=
     subslice_length _ _ _ (by word)
-  have Hne : subslice (sint.nat (lo - uv.offset')) (sint.nat (hi - uv.offset')) uents ≠ [] := by
+  have Hne : subslice (sint.nat (lo - us.offset)) (sint.nat (hi - us.offset)) us.ents ≠ [] := by
     intro Hc; rw [Hc] at Hsublen; simp only [List.length_nil] at Hsublen; word
-  have Hcap : sint.Z (slice.fullSlice uv.entries' raftpb.Entry (lo - uv.offset') (hi - uv.offset')
-      (hi - uv.offset')).len ≤ sint.Z (slice.fullSlice uv.entries' raftpb.Entry (lo - uv.offset')
-      (hi - uv.offset') (hi - uv.offset')).cap := by
+  have Hcap : sint.Z (slice.fullSlice uv.entries' raftpb.Entry (lo - us.offset) (hi - us.offset)
+      (hi - us.offset)).len ≤ sint.Z (slice.fullSlice uv.entries' raftpb.Entry (lo - us.offset)
+      (hi - us.offset) (hi - us.offset)).cap := by
     simp only [slice.fullSlice]; omega
-  ihave ⟨-, #H2, -⟩ := (ownSlice_slice (lo - uv.offset') (hi - uv.offset') _ _ _
+  ihave ⟨-, #H2, -⟩ := (ownSlice_slice (lo - us.offset) (hi - us.offset) _ _ _
     ⟨by omega, by omega, by omega⟩).1 $$ Hents
   ihave Hs := ownSlice_same_ptr_len
-    (slice.slice uv.entries' raftpb.Entry (lo - uv.offset') (hi - uv.offset'))
-    (slice.fullSlice uv.entries' raftpb.Entry (lo - uv.offset') (hi - uv.offset') (hi - uv.offset'))
+    (slice.slice uv.entries' raftpb.Entry (lo - us.offset) (hi - us.offset))
+    (slice.fullSlice uv.entries' raftpb.Entry (lo - us.offset) (hi - us.offset) (hi - us.offset))
     _ _ Hne rfl rfl Hcap $$ H2
   iapply HΦ
-  iframe
-  isplitr
-  · iexact Hents
+  isplitl [Hu Hents_cap]
+  · close_unstable
   isplitr
   · iexact Hs
   ipureintro
