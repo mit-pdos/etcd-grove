@@ -105,6 +105,10 @@ structure RNState [FfiSyntax] where
   then neither `Advance` (unproved) nor `Ready` (which needs `steps` empty). See
   `RawNode.Advance.spec`. -/
   advanceable : Bool
+  /-- The node's current term (2026-10-09). A client sees it (`Status`, `Ready`'s
+  `HardState`); the specs need it because Go panics when a campaign wraps it
+  (`Campaign`, `Tick`), and say how a step moves it. -/
+  term : w64
 
 section defs
 variable [FfiSyntax]
@@ -195,6 +199,25 @@ theorem stepsOk_mono (s s' : NState) (steps : List Pending)
   | .appendAck t e :: rest =>
     intro ⟨⟨H1, H2⟩, Hr⟩
     exact ⟨⟨by rw [Ht]; exact H1, by omega⟩, Hall rest Hr⟩
+  | [] => intro H; exact Hall [] H
+  | .self a :: rest => intro H; exact Hall _ H
+  | .applyAck ce :: rest => intro H; exact Hall _ H
+
+/-- `StepsOk` survives a step that moves the term up (a campaign, a message of a higher
+term: `TermStep`), keeps `applying`, and moves neither `offsetInProgress` nor `committed`
+back: a queued `MsgStorageAppendResp` of an older term is still not from a later one. -/
+theorem stepsOk_mono_le (s s' : NState) (steps : List Pending)
+    (Ht : uint.Z s.term ≤ uint.Z s'.term)
+    (Hi : uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress)
+    (Hc : uint.Z s.logst.committed ≤ uint.Z s'.logst.committed)
+    (Ha : s'.logst.applying = s.logst.applying) :
+    StepsOk s steps → StepsOk s' steps := by
+  have Hall : ∀ l : List Pending, (∀ p ∈ l, ApplyAckOk s p) → ∀ p ∈ l, ApplyAckOk s' p :=
+    fun l H p Hp => applyAckOk_mono s s' p Hc Ha (H p Hp)
+  match steps with
+  | .appendAck t e :: rest =>
+    intro ⟨⟨H1, H2⟩, Hr⟩
+    exact ⟨⟨by omega, by omega⟩, Hall rest Hr⟩
   | [] => intro H; exact Hall [] H
   | .self a :: rest => intro H; exact Hall _ H
   | .applyAck ce :: rest => intro H; exact Hall _ H
@@ -308,7 +331,8 @@ def ownRawNode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp GF 
   "%Hunp" ∷ ⌜rs.unpersisted = s.logst.unpersisted⌝ ∗
   -- scope: no snapshot pending (handing one out and `appliedSnap` are phase 2)
   "%Hsnap" ∷ ⌜s.logst.snap = none⌝ ∗
-  "%Hadv" ∷ ⌜rs.advanceable = true → StepsOk s rs.steps⌝)
+  "%Hadv" ∷ ⌜rs.advanceable = true → StepsOk s rs.steps⌝ ∗
+  "%Htrm" ∷ ⌜rs.term = s.term⌝)
 
 /-- Closing the predicate; the pure premises are first, the resources in the order of
 the definition. -/
@@ -317,7 +341,8 @@ theorem ownRawNode_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     (Hrel : NStateRel s ps) (Hin : id ∈ γ.reCfg) (Hasync : rnv.asyncStorageWrites' = false)
     (Hdlen : rs.delivered.length = (uint.Z s.logst.applying).toNat)
     (Hunp : rs.unpersisted = s.logst.unpersisted) (Hsnap : s.logst.snap = none)
-    (Hadv : rs.advanceable = true → StepsOk s rs.steps) :
+    (Hadv : rs.advanceable = true → StepsOk s rs.steps)
+    (Htrm : rs.term = s.term) :
     ⊢ rn ↦ rnv -∗ ownRaftPhys γ.reCfg rnv.raft' id s -∗ ownRaftGhost (GF := GF) γ id ps -∗
       rnv.prevSoftSt' ↦□ sv -∗ rnv.stepsOnAdvance' ↦* steps -∗
       ownSliceCap raftpb.Message rnv.stepsOnAdvance' (DFrac.own 1) -∗
@@ -331,7 +356,7 @@ theorem ownRawNode_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
   simp only [named]
   iframe Hrn Hphys Hghost Hsoft Hsteps Hcap Hpend Hpown Hdeliv
   ipureintro
-  exact ⟨Hrel, Hin, Hasync, Hdlen, Hunp, Hsnap, Hadv⟩
+  exact ⟨Hrel, Hin, Hasync, Hdlen, Hunp, Hsnap, Hadv, Htrm⟩
 
 /-- The storage handshake, at the RawNode: the `Storage` the log owns, for the
 application to append the entries the last `Ready` handed out (`ownRaftLog_persist`,
@@ -357,7 +382,7 @@ theorem ownRawNode_persist (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     { s with logst := { s.logst with unpersisted := [] } } ps rnv sv steps Hrel Hin Hasync
     Hdlen rfl Hsnap
     (fun h => stepsOk_mono s _ rs.steps rfl (Int.le_refl _) (Int.le_refl _) rfl (Hadv h))
-    $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv
+    Htrm $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv
 
 end rawnode
 

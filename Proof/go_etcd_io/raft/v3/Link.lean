@@ -60,6 +60,7 @@ public import Proof.go_etcd_io.raft.v3.tracker.Progress__ResetState
 public import Proof.go_etcd_io.raft.v3.tracker.Progress__SentCommit
 public import Proof.go_etcd_io.raft.v3.tracker.Progress__SentEntries
 public import Proof.go_etcd_io.raft.v3.RawNode__Advance
+public import Proof.go_etcd_io.raft.v3.RawNode__Campaign
 public import Proof.go_etcd_io.raft.v3.RawNode__HasReady
 public import Proof.go_etcd_io.raft.v3.RawNode__Propose
 public import Proof.go_etcd_io.raft.v3.RawNode__Ready
@@ -946,6 +947,10 @@ theorem raft.wp_Step :
 theorem RawNode.wp_Advance :
     RawNode.Advance.spec (GF := GF) (hG := hG) :=
   RawNode.Advance.wp_proof raft.wp_Step
+
+theorem RawNode.wp_Campaign :
+    RawNode.Campaign.spec (GF := GF) (hG := hG) :=
+  RawNode.Campaign.wp_proof raft.wp_Step
 
 theorem RawNode.wp_HasReady :
     RawNode.HasReady.spec (GF := GF) (hG := hG) :=

@@ -993,7 +993,7 @@ theorem RawNode.Ready.wp_proof
       { rnv with prevSoftSt' := psp, prevHardSt' := PH, stepsOnAdvance' := stl4 }
       (softstateVal (nodeSoftstate s)) _
       (nstateRel_ready s _ ce sz ⟨rfl, Hwfs⟩) Hin Hasync Hdlen'
-      (by rw [Hlogst, Hlf.2.2.1]; rfl) (by rw [Hlogst, Hlf.2.2.2]; exact Hsnap) Hadv'
+      (by rw [Hlogst, Hlf.2.2.1]; rfl) (by rw [Hlogst, Hlf.2.2.2]; exact Hsnap) Hadv' Htrm
       $$ Hrn Hphys Hghost Hpsp Hsteps Hsteps_cap [] [Hcecap] Hdeliv'
     · -- the pending steps' messages
       simp only [readySteps]

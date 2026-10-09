@@ -60,7 +60,8 @@ private theorem wp_step_pending
         ownRaftPhys γ.reCfg r id s' ∗ ownRaftGhost γ id ps' ∗
         ⌜NStateRel s' ps' ∧ (∃ recv, Step γ.reCfg id ps recv ps') ∧
          s'.logst.applying = s.logst.applying ∧
-         s'.logst.unpersisted = s.logst.unpersisted ∧ s'.logst.snap = s.logst.snap⌝ }} := by
+         s'.logst.unpersisted = s.logst.unpersisted ∧ s'.logst.snap = s.logst.snap ∧
+         s'.term = s.term⌝ }} := by
   iintro %Φ ⟨#Hinit, Hphys, Hghost, #Hp, Hown⟩ HΦ
   cases p with
   | self a => exact Hok.elim
@@ -111,7 +112,7 @@ private theorem wp_step_pending
       iapply HΦ $$ %err %s' %ps'
       iframe Hphys Hghost
       ipureintro
-      exact ⟨Hrel', Hstp, Hap (fun Hc => absurd Hc (by msg_ne)), Hfr.2.2.1, Hfr.2.2.2⟩
+      exact ⟨Hrel', Hstp, Hap (fun Hc => absurd Hc (by msg_ne)), Hfr.2.2.1, Hfr.2.2.2, Hfr.1⟩
   | applyAck ce =>
     unfold pendingRel
     icases Hp with ⟨%sl, %Hm, #Hsl⟩
@@ -158,7 +159,7 @@ private theorem wp_step_pending
       iapply HΦ $$ %err %s' %ps'
       iframe Hphys Hghost
       ipureintro
-      exact ⟨Hrel', Hstp, Hap (fun _ e He => (Hok e He).2), Hfr.2.2.1, Hfr.2.2.2⟩
+      exact ⟨Hrel', Hstp, Hap (fun _ e He => (Hok e He).2), Hfr.2.2.1, Hfr.2.2.2, Hfr.1⟩
 
 theorem RawNode.Advance.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
@@ -188,7 +189,8 @@ theorem RawNode.Advance.wp_proof
                     steps1.drop (sint.nat n) = steps.drop (sint.nat n)⌝ ∗
       "%Hrel1" ∷ ⌜NStateRel s1 ps1⌝ ∗
       "%Hs1" ∷ ⌜s1.logst.applying = s.logst.applying ∧
-                s1.logst.unpersisted = s.logst.unpersisted ∧ s1.logst.snap = s.logst.snap⌝ ∗
+                s1.logst.unpersisted = s.logst.unpersisted ∧ s1.logst.snap = s.logst.snap ∧
+                s1.term = s.term⌝ ∗
       "%Hok1" ∷ ⌜StepsOk s1 (rs.steps.drop (sint.nat n))⌝ ∗
       "Hpown" ∷ ([∗list] _k ↦ m;p ∈ steps.drop (sint.nat n);rs.steps.drop (sint.nat n),
                    pendingOwn m p))
@@ -226,9 +228,9 @@ theorem RawNode.Advance.wp_proof
     rw [HnS] at Hok1 ⊢
     obtain ⟨Hpok, Hrest⟩ := stepsOk_cons _ _ _ Hok1
     wp_apply wp_step_pending wp_raft_Step γ rnv.raft' id s1 ps1 mm p Hin
-      Hrel1 Hpok (Hs1.2.2.trans Hsnap) (Hs1.2.1.trans Hunp')
+      Hrel1 Hpok (Hs1.2.2.1.trans Hsnap) (Hs1.2.1.trans Hunp')
       $$ [$Hphys $Hghost $Hpm $Hpo] as %err %s2 %ps2 ⟨Hphys, Hghost, %Hst2⟩
-    obtain ⟨Hrel2, ⟨recv2, Hst2⟩, Ha2, Hu2, Hsn2⟩ := Hst2
+    obtain ⟨Hrel2, ⟨recv2, Hst2⟩, Ha2, Hu2, Hsn2, Ht2⟩ := Hst2
     -- `stepsOnAdvance[i] = pb.Message{}`
     rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨Hn.1, Hlt⟩)]
     wp_apply wp_store_slice_index rnv.stepsOnAdvance' (sint.Z n) steps1 (zero_val raftpb.Message)
@@ -246,7 +248,8 @@ theorem RawNode.Advance.wp_proof
     iframe
     ipureintro
     refine ⟨by word, ⟨by rw [List.length_set]; exact Hsteps1.1, ?_⟩, Hrel2,
-      ⟨Ha2.trans Hs1.1, Hu2.trans Hs1.2.1, Hsn2.trans Hs1.2.2⟩, Hrest s2 Hc12 Ha2⟩
+      ⟨Ha2.trans Hs1.1, Hu2.trans Hs1.2.1, Hsn2.trans Hs1.2.2.1, Ht2.trans Hs1.2.2.2⟩,
+      Hrest s2 Hc12 Ha2⟩
     rw [← HnS, List.drop_set_of_lt (by simp [sint.nat]), ← List.drop_drop, ← List.drop_drop,
       Hsteps1.2]
   · -- the loop is done: `stepsOnAdvance = stepsOnAdvance[:0]`
@@ -263,7 +266,8 @@ theorem RawNode.Advance.wp_proof
     iapply ownRawNode_intro γ rn id { rs with steps := [] } s1 ps1
       { rnv with stepsOnAdvance' := slice.slice rnv.stepsOnAdvance' raftpb.Message (W64 0) (W64 0) }
       sv [] Hrel1 Hin Hasync (by rw [Hs1.1]; exact Hdlen) (by rw [Hs1.2.1]; exact Hunp)
-      (by rw [Hs1.2.2]; exact Hsnap) (fun _ => by simp [StepsOk])
+      (by rw [Hs1.2.2.1]; exact Hsnap) (fun _ => by simp [StepsOk])
+      (by rw [Hs1.2.2.2]; exact Htrm)
       $$ Hrn Hphys Hghost Hsoft Hsl0 Hcap0 [] [] Hdeliv
     · iempintro
     · iempintro
