@@ -1,7 +1,7 @@
 # Porting a Rocq file of `election_proof/` to Lean
 
 How the files already ported (`EtcdGrove/Raft/{Protocol,Defs,InvBig,
-InvLogger,StepLemmas}.lean`, `EtcdGrove/Raft/Base.lean`) translate Rocq. Read one of
+InvLogger,StepLemmas}.lean`, `Proof/go_etcd_io/raft/v3/Base.lean`) translate Rocq. Read one of
 them before starting; Perennial's own ports of the raft proofs
 (`.lake/packages/perennial/Perennial/Proof/go_etcd_io/raft/v3_proof/{readonly,
 protocol}.lean`) show WP proofs in the same setting.
@@ -13,8 +13,8 @@ branch head or `main`). Its design notes are `notes/*.md` at the same commit.
 
 ## Files and modules
 
-* `inv_tracker.v` → `EtcdGrove/Raft/InvTracker.lean`, module
-  `EtcdGrove.Raft.InvTracker` (UpperCamel of the Rocq file name).
+* `inv_tracker.v` → `Proof/go_etcd_io/raft/v3/InvTracker.lean`, module
+  `Proof.go_etcd_io.raft.v3.InvTracker` (UpperCamel of the Rocq file name).
 * `Require Export …election_proof.X` → `import EtcdGrove.Raft.X`.
 * Everything is in `namespace Perennial` / `namespace EtcdGrove`; `open Iris Iris.BI
   go_etcd_io.raft.v3` (plus `Iris.ProofMode` for proofs).
@@ -22,7 +22,7 @@ branch head or `main`). Its design notes are `notes/*.md` at the same commit.
   comment (it is the design documentation), with a `Lean notes:` paragraph for anything
   that differs.
 * Never import Perennial's `Perennial.Proof.go_etcd_io.raft.v3_proof.base`: this
-  repository's `EtcdGrove.Raft.Base` replaces it (stronger package-init instances).
+  repository's `Proof.go_etcd_io.raft.v3.Base` replaces it (stronger package-init instances).
 
 ## Section variables (Rocq `Context `{hG: heapGS Σ, …}`)
 
@@ -42,7 +42,10 @@ Pure definitions need only `[FfiSyntax]` (and `[GoGlobalContext]
 A Rocq `Axiom` (an abstract predicate, a trust-boundary triple) is a Lean `axiom`
 whose binders are written out (an `axiom` does not pick up the instance section
 variables it does not mention: Perennial's `etc/fidelity-review.md`, H1), e.g.
-`axiom isLogger {GF : BundledGFunctors} : …` (`InvLogger.lean`). For a triple axiom
+`axiom slices.«Sort».wp_proof` (`Proof/slices_Sort.lean`). An abstract *predicate* is
+better not an axiom at all: a definition bundling the triples a client supplies
+(`isLogger`, `InvLogger.lean`) or a typeclass parameter (`StorageModel`,
+`InvStorage.lean`). For a triple axiom
 inside the section above, check with `#check @name` that the instance binders are
 there.
 
@@ -123,7 +126,7 @@ Rocq `Ltac` go here as a lemma or a small macro.
 ## Checking a file
 
     export PATH=$HOME/.elan/bin:$PATH
-    lake build EtcdGrove.Raft.Defs        # dependencies, once
+    lake build Proof.go_etcd_io.raft.v3.Defs        # dependencies, once
     lake env lean EtcdGrove/Raft/X.lean    # the file itself
 
 (`lake env lean` ignores the lakefile's `linter.unusedSectionVars false`, so it warns

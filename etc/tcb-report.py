@@ -19,10 +19,10 @@ environment instead of the source text, so nothing is a lower bound:
   * assumed -- the axioms the results' proofs depend on and the declarations
     containing a `sorry` (what `#print axioms` shows, with the `sorry`s located);
   * results -- the statements of what the proof exports: the linked result of a Go
-    function that no other proof uses (every theorem of `EtcdGrove.Raft.Link` is one
+    function that no other proof uses (every theorem of `Proof.go_etcd_io.raft.v3.Link` is one
     function's spec instantiated with its callees' results; a spec some other proof
     uses is internal: were it wrong, that proof would fail), and the protocol lemmas
-    of `EtcdGrove.Raft.Results`;
+    of `Proof.go_etcd_io.raft.v3.Results`; likewise the `cache` package's `Proof.go_etcd_io.etcd.cache.v3.Link`;
   * definitions -- this repository's definitions those statements are written in
     terms of, transitively through their bodies.  A wrong definition makes a true
     theorem say nothing, so these are trusted exactly as the axioms are.
@@ -45,7 +45,11 @@ NS = "Perennial.EtcdGrove."
 BASELINE = os.path.join(ROOT, "etc", "tcb-baseline.txt")
 
 # Where a linked result's statement lives: `Link.lean` states `T.wp_M : T.M.spec`.
-SPEC_DIR = "EtcdGrove/Raft/Spec"
+SPEC_DIR = "Spec"
+
+# The modules of linked results (each states `T.wp_M : T.M.spec`): the Raft proof's and
+# the `cache` package's.
+LINKS = ("Proof.go_etcd_io.raft.v3.Link", "Proof.go_etcd_io.etcd.cache.v3.Link")
 
 # Source constructs that weaken what the kernel checks.
 RISKY = [
@@ -124,7 +128,7 @@ def git(*args):
 
 def scan_sources():
     hits = []
-    for dp, _, fs in os.walk(os.path.join(ROOT, "EtcdGrove")):
+    for dp, _, fs in (w for d in ("Spec", "Proof") for w in os.walk(os.path.join(ROOT, d))):
         for f in fs:
             if not f.endswith(".lean"):
                 continue
@@ -178,7 +182,7 @@ def main():
     used = {u for r in roots.values() for u in r["uses"]}
     exported = sorted(
         (r for n, r in roots.items() if n not in used),
-        key=lambda r: (r["module"] != "EtcdGrove.Raft.Link", short(r["name"])),
+        key=lambda r: (r["module"] not in LINKS, r["module"] != LINKS[0], short(r["name"])),
     )
     trusted_defs = sorted({d for r in exported for d in r["defs"] if d in defs})
 
@@ -186,7 +190,7 @@ def main():
         return defs[d]["endLine"] - defs[d]["line"] + 1
 
     def is_project(n):
-        return n in axioms and axioms[n]["module"].startswith("EtcdGrove")
+        return n in axioms and axioms[n]["module"].startswith(("Spec.", "Proof."))
 
     proj_ax = sorted(n for n in axioms if is_project(n))
     lean_ax = [n for n in LEAN_AX if n in axioms]
@@ -244,7 +248,7 @@ def main():
     head = git("rev-parse", "--short", "HEAD")
     dirty = (
         " (with uncommitted changes)"
-        if git("status", "--porcelain", "--", "EtcdGrove")
+        if git("status", "--porcelain", "--", "Spec", "Proof")
         else ""
     )
     man = json.loads(read(os.path.join(ROOT, "lake-manifest.json")))
@@ -257,8 +261,9 @@ def main():
         "Do not edit by hand.\n"
     )
     w(
-        f"Roots: the {len(roots)} theorems of `EtcdGrove/Raft/Link.lean` (every Go "
-        "function's linked result) and `EtcdGrove/Raft/Results.lean`.\n"
+        f"Roots: the {len(roots)} theorems of `Proof/go_etcd_io/raft/v3/Link.lean` (every Go "
+        "function's linked result), `Proof/go_etcd_io/raft/v3/Results.lean` and "
+        "`Proof/go_etcd_io/etcd/cache/v3/Link.lean` (the `cache` package's linked results).\n"
     )
 
     w("## Summary\n")
@@ -278,7 +283,7 @@ def main():
     )
     risky = scan_sources()
     w(
-        f"- Constructs that bypass or weaken kernel checking in `EtcdGrove/`: "
+        f"- Constructs that bypass or weaken kernel checking in `Spec/` and `Proof/`: "
         f"{len(risky) if risky else 'none'}.\n"
     )
 
@@ -298,7 +303,7 @@ def main():
         fa = sum(1 for a in r["axioms"] if a in fw_ax)
         where = (
             f"`{spec_file(r, defs)}`"
-            if r["module"] == "EtcdGrove.Raft.Link"
+            if r["module"] in LINKS
             else f"`{mod_path(r['module'])}:{r['line']}`"
         )
         w(f"| `{short(r['name'])}` | {where} | {sr} | {pa} | {fa} | {len(r['defs'])} |")
@@ -385,7 +390,7 @@ def main():
     )
     w(
         f"- **Perennial** (`{pin}`): the Goose translation of etcd raft "
-        "(`EtcdRaft/Code/go_etcd_io/raft/v3.lean`) is trusted to mean what the Go code "
+        "(`Code/go_etcd_io/raft/v3.lean`) is trusted to mean what the Go code "
         "means, and Perennial's Go semantics to be Go's."
     )
     w(
@@ -393,7 +398,7 @@ def main():
         "results and the definitions they rest on, listed above, are what must be read."
     )
     if risky:
-        w("- **Constructs that weaken kernel checking** in `EtcdGrove/`:")
+        w("- **Constructs that weaken kernel checking** in `Spec/` and `Proof/`:")
         for what, p, i in risky:
             w(f"  - {what} at `{p}:{i}`")
     w("")

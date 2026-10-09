@@ -1,0 +1,63 @@
+translate = [
+  "HardState",
+  "Entry",
+  "ConfState",
+  "ConfState.Equivalent",
+  "Entry.Size",
+  "sovRaft",
+  "ConfChangeTransition",
+  "ConfChange",
+  "ConfChangeV2",
+  "ConfChangeType",
+  "ConfChangeAddNode",
+  "Snapshot",
+  "EntryType",
+  "SnapshotMetadata",
+
+  "MessageType",
+  "MsgHup",
+  "MsgBeat",
+  "MsgProp",
+  "MsgApp",
+  "MsgAppResp",
+  "MsgVote",
+  "MsgVoteResp",
+  "MsgSnap",
+  "MsgHeartbeat",
+  "MsgHeartbeatResp",
+  "MsgUnreachable",
+  "MsgSnapStatus",
+  "MsgCheckQuorum",
+  "MsgTransferLeader",
+  "MsgTimeoutNow",
+  "MsgReadIndex",
+  "MsgReadIndexResp",
+  "MsgPreVote",
+  "MsgPreVoteResp",
+  "MsgStorageAppend",
+  "MsgStorageAppendResp",
+  "MsgStorageApply",
+  "MsgStorageApplyResp",
+  "MsgForgetLeader",
+
+  "ConfChangeI",
+
+  "EntryNormal",
+  "EntryConfChangeV2",
+  "EntryConfChange",
+
+  "ConfChangeAddNode",
+  "ConfChangeRemoveNode",
+  "ConfChangeUpdateNode",
+  "ConfChangeAddLearnerNode",
+  "Message",
+]
+
+# `ConfState.Equivalent` (confstate.go, hand-written) calls into fmt, reflect and slices;
+# `Entry.Size` (raft.pb.go, gogoproto) calls `sovRaft`, which calls `math/bits.Len64`
+imports = ["fmt", "reflect", "slices", "math/bits"]
+
+trust_proofgen = true
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

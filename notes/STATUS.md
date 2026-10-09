@@ -1,14 +1,18 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-08
+**Last updated:** 2026-10-09
 
 Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
 `worktree-raft-replication`'s `feb5c73d4` and adds Ready/Advance/HasReady; the files
 were first ported from `main`, then from `feb5c73d4`) to Lean on top of Perennial's Lean
-port (mit-pdos/perennial `lean`, pinned at c35b7710d). The Goose
-translation of etcd-raft is this repository's `EtcdRaft/`, generated and checked by
-`etc/goose.py`.
+port (mit-pdos/perennial `lean`, pinned at 2b8cb96a0, on Lean's module system since
+2026-10-09: branch `lean-modules`, merged into `lean`). The Goose translations of etcd-raft and etcd's
+`cache` package are this repository's `Code/` and `GeneratedProof/`, generated and
+checked by `etc/goose.py`. Files are laid out by kind and Go package path
+(`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
+system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
+module system").
 
 ## Done (at `857d09190`)
 
@@ -21,8 +25,9 @@ translation of etcd-raft is this repository's `EtcdRaft/`, generated and checked
   `inv_rawnode.v`): no `sorry`.
 - The 167 specs and the 167 proofs (`raft.Step`'s branches in `Proof/raft__Step/`,
   one module per Rocq helper file, incl. `MsgStorageAppendResp`/`MsgStorageApplyResp`).
-  Trust boundary as in the Rocq: the state/logger axioms and nine `axiom … .wp_proof`
-  for code outside the scope.
+  Trust boundary as in the Rocq at first: the state/logger axioms and nine
+  `axiom … .wp_proof` for code outside the scope (since 2026-10-08 only `.wp_proof`
+  axioms remain; see below).
 - **`RawNode.Ready` is proved here although it is `Admitted` in the Rocq**: the Rocq
   script stops (`Show. Admitted.`) after stepping all the code and closing the struct,
   before the postcondition; `Proof/RawNode__Ready.lean` ports that script and proves the
@@ -47,7 +52,7 @@ translation of etcd-raft is this repository's `EtcdRaft/`, generated and checked
   `len == 0` test is a 64-bit comparison). The translation needed a Goose fix: `cc := cc`
   (the loop-local-copy idiom in `Restore`) read the *new* cell; see notes/decisions.md.
 - **`raftpb.ConfState.Equivalent` is proved (2026-10-08)**, no longer an axiom: `raftpb`'s
-  translation includes it (`EtcdRaft/.../raftpb.toml`: `ConfState.Equivalent`, imports
+  translation includes it (`Code/go_etcd_io/raft/v3/raftpb.toml`: `ConfState.Equivalent`, imports
   `fmt`/`reflect`/`slices`). What it calls that Goose cannot model is
   `reflect.DeepEqual`; that is the new axiom, stated on two `ConfState` values as Go's
   `DeepEqual` reads on this struct (`Spec/reflect_DeepEqual.lean`, `confStateDeepEq` in
@@ -86,11 +91,68 @@ translation of etcd-raft is this repository's `EtcdRaft/`, generated and checked
   entries; the predicate carries the snapshot's `ownSnap` and the logger, so the
   `unstable` specs lost those premises and their "unchanged" facts.
 - **The same rule, applied to the rest (2026-10-08)**: the storage's `prev`/`ents`/`ss`
-  are one `StorState` (`ownStorage`, still an axiom, changed statement, same name;
-  `isStorageWith`, the `MemoryStorage` predicates); `ownRawNode`'s raft state is
+  are one `StorState` (`StorageModel.ownStorage`, `isStorageWith`, the
+  `MemoryStorage` predicates); `ownRawNode`'s raft state is
   `RNState.raft`; `ownProgressMap`'s pointer map is existential; `Progress.recentActive`
-  and `ReadOnly.safe`, which no spec reads, are gone. `lake build` passes and
-  `etc/tcb-report.py --check` matches the baseline (10 axioms, 0 sorries).
+  and `ReadOnly.safe`, which no spec reads, are gone.
+- **The `Logger` and `Storage` interfaces assume nothing (2026-10-08).** `isLogger`
+  (`InvLogger.lean`) is a definition, the formatting methods' triples bundled as
+  `isStorageWith` bundles `Storage`'s, so `isLogger_persistent` is an instance and
+  `Logger.wp_logf` a theorem: a client supplies the triples with its `Logger`.
+  `ownStorage` (`InvStorage.lean`) is the field of `class StorageModel GF`, a
+  parameter every section that reaches it carries (`[StorageModel GF]`, also in
+  `etc/gen-link.py`'s template), with deliberately no global instance; it stays
+  abstract (not specialised to `ownMemoryStorage`), but the results now hold for
+  *every* storage predicate instead of one unknown one, which no client could have
+  established (`newRaft`'s precondition asks for it, and `ownRawNode_persist` hands it
+  to the application to `Append`). Four axioms gone (`isLogger`,
+  `isLogger_persistent`, `Logger.wp_logf`, `ownStorage`); `etc/tcb-report.py
+  --check`: 6 axioms (`reflect.DeepEqual`, `fmt.Sprintf`, `strings.Join`,
+  `slices.Sort`, `rand.Int`, `raftpb.Entry.Size`), 0 sorries. `RawNode.wp_Ready` rests
+  on `Entry.Size` alone, `RawNode.wp_Propose` on `Entry.Size`, `rand.Int`,
+  `slices.Sort` and `reflect.DeepEqual`.
+- **`raftpb.Entry.Size` is proved (2026-10-08)**, no longer an axiom: `raftpb.toml`
+  translates `Entry.Size` and `sovRaft` (gogoproto, `raft.pb.go`) and imports
+  `math/bits`; `Proof/Entry__Size.lean` proves the triple from the body, with
+  `sovRaft` a Lean-first spec/proof pair (`etc/link-lean-first.txt`). The triple gained
+  only an `isPkgInit raftpb` conjunct (for `bits.Len64`), which `limitSize`/`entsSize`
+  discharge from `isPkgInit raft.v3`; no caller's spec changed. `etc/tcb-report.py
+  --check`: 5 axioms, 0 sorries; `RawNode.wp_Ready` and `wp_HasReady` now rest on none
+  of this repository's axioms, `RawNode.wp_Propose` on `rand.Int`, `slices.Sort`,
+  `reflect.DeepEqual`.
+- **`slices.Sort` is proved (2026-10-09)**, no longer an axiom: Perennial (pinned at
+  c061d3b22) translates `Sort` and the `*Ordered` pdqsort and proves
+  `slices.wp_Sort_uint64` (`Proof/slices_proof/sort.lean`), which
+  `Proof/slices/Sort.lean` is. Its spec gained the premise `len ≤ 2^62` (past it the
+  heapsort fallback's `2*root+1` overflows `int`, so the old spec was false in the
+  model), and the bound is carried as follows:
+  - `ownTracker`'s `Hcfg_size` and `ownConfig`'s `Hcsz` are tightened from
+    `size cfg < 2^63` to `≤ 2^62`. Nothing in the heap bounds a voter set, so this
+    is still a property of the configuration.
+  - The bound enters at `newRaft`, whose spec has a new premise that the storage's
+    initial `ConfState` has at most `2^62` voters. This is the only new assumption.
+  - `raft.restore` takes the bound from the old tracker (`ownTracker_size`): the
+    snapshot's voters are a permutation of the current configuration.
+  - The tighter premise replaces `< 2^63` on `MajorityConfig.CommittedIndex`,
+    `JointConfig.CommittedIndex` and `readOnly.maybeAdvance` (an exported result with
+    no callers).
+  - It is a new premise on `MajorityConfig.Slice`, `ConfState.Equivalent` and
+    `assertConfStatesEquivalent`, whose callers discharge it from the tracker or the
+    configuration.
+
+  `lake build` passes; `etc/tcb-baseline.txt` lost exactly `slices.Sort`: the Raft proof's own axioms are now
+  `reflect.DeepEqual`, `fmt.Sprintf`, `strings.Join` and `rand.Int`.
+- **What the four remaining axioms would take** (checked 2026-10-08, with "no
+  higher-level spec changes" as the constraint):
+  - `fmt.Sprintf`, `strings.Join`: not translatable (`fmt`'s printer reaches
+    `reflect`; `strings.Builder.String` is `unsafe.String`), and `Join`'s no-panic claim
+    needs a bound on the strings' total length that `Sprintf`'s "some string" cannot
+    give.
+  - `reflect.DeepEqual`: reflection, outside Goose.
+  - `rand.Int`: `crypto/rand.Reader` reads the OS RNG (a syscall), outside GooseLang.
+  The last four can only go by changing the Go code (the `upamanyus/etcd-raft`
+  `goose` fork) or by trusted models (`Perennial/TrustedCode`), which move the
+  trust rather than remove it.
 - Trust base: `etc/tcb-report.py` (gate: `--check` against `etc/tcb-baseline.txt`).
 - **Build checked 2026-10-08** at Perennial c35b7710d (a `--packages` override pointing
   at a checkout of the pinned commit): `lake build` completes (977 jobs, 0 errors); `etc/tcb-report.py --check`
@@ -105,12 +167,76 @@ translation of etcd-raft is this repository's `EtcdRaft/`, generated and checked
   repository's modules (dependencies built, 24 cores, 2026-10-08): 402 modules,
   3m48s wall, 40m35s CPU; the import chain bounds it at 3m02s, of which
   `Proof/stepLeader.lean` is 1m08s (the slowest module, and last on the path before
-  `Link`); the Protocol chain (`Plog` … `Facts`) runs one compile at a time for the
-  first 1m10s.
+  `Link`); the Protocol chain (`Plog` … `Facts`) ran one compile at a time for the
+  first 1m10s. Since `Protocol.lean` imports only `Model`/`Ghost`/`GhostState` (what
+  `Defs` and `Inv*` use), `Defs` starts at 0:29 and the build takes 3m01s (bound
+  2m19s); what limits it now, and two measured upstream options (precompiled
+  Perennial: −11% CPU; the module system for faster imports), are in
+  `decisions.md` ("Build speed"). With every file (here and in Perennial) a module, a
+  compile's peak memory is 1.8 GiB instead of 2.8 GiB and a spec module (almost all
+  import) takes 2.1s of CPU instead of 2.6s; whole-build times on a quiet machine
+  are still to be measured (the 2026-10-08 runs shared the machine).
 - Verified code: `etc/verified-code.py`. On 2026-10-08 (forks `upamanyus/etcd-raft`
   `24643b3`, `upamanyus/etcd` `3efe157`): raft 161 of 323 functions verified, 1962 of
   3646 Go code lines (53.8%; 143 functions sorry-free); etcd 16 of 3579 functions, 174
   of 45359 lines (0.4%, all from Perennial's public proofs).
+
+## etcd `cache`: the `EtcdCache` library (2026-10-08; translation only, no proofs)
+
+Preparation for verifying etcd's `cache` package (`go.etcd.io/etcd/cache/v3`) here, set
+up like the raft translation (in `{Code,GeneratedProof}/{go_etcd_io/etcd,k8s_io,
+google_golang_org}/` since the layout by Go package path; it was the library `EtcdCache`),
+generated and checked by `etc/goose.py` (now two projects, `etcd-raft` and `etcd`).
+
+- **Source**: fork `upamanyus/etcd`, branch `goose-lean`, pinned at `48fd5a507`: branch
+  `goose` rebased onto upstream `main` (`f061acd09`; it was on `3efe157f6`, 2026-03-29) without
+  conflicts ("Avoid fallthrough", in `client/v3/leasing`, is now `b6b069ede`), plus two
+  new commits that change `cache/` only, both behavior-preserving workarounds for Goose
+  bugs: `5ae038f0f` names `mvccpb.Event` instead of its alias `clientv3.Event`
+  (Goose's `getStructInfo` does not `Unalias`, so `ev.Kv` on an alias-typed pointer is
+  rejected), `48fd5a507` selects `entry[T].revision` from a variable instead of from
+  `r.at(mid)` (Goose's `StructFieldGet` on a generic struct value omits the type
+  argument: `entry.ty`, not `entry.ty T`). It is a *new* branch because the Rocq
+  translations (etcd-grove `main`, Perennial `master`: `etc/ci-goose-check.py`) are
+  regenerated from branch `goose` by name, so `goose` must stay at the March upstream.
+  Pushed 2026-10-08, so `etc/goose.py` fetches it from GitHub (`--src etcd=<checkout>` or
+  `$ETCD_SRC` only for an unpushed revision). CI's Go is now 1.27 (etcd's `go.mod`).
+- **With bodies**: all of `cache/v3` (every function and method, non-test files;
+  `cache/v3.toml`: `translate = ["*"]`).
+- **Types and names only** (`translate = ["!*"]`, `translate_types = true`, a few
+  imports kept so their types translate): `client/v3`, `api/v3/etcdserverpb`,
+  `api/v3/mvccpb`, `api/v3/v3rpc/rpctypes`, `k8s.io/utils/third_party/forked/golang/btree`
+  (with `sync` imported so that the generic `FreeList[T]` is translated: an
+  axiomatized generic type comes out as `∀ (T : go.type), go.type`, which is not Lean).
+- **The protobuf messages the cache reads are real structs** (2026-10-08, second
+  commit): `mvccpb.KeyValue`, `mvccpb.Event`, `etcdserverpb.{ResponseHeader,
+  RangeResponse,WatchResponse}` are listed in their package's `translate` (type only,
+  no methods). `translate_types` alone never translates them: every protobuf-go v2
+  message has `state protoimpl.MessageState`, `unknownFields protoimpl.UnknownFields`,
+  `sizeCache protoimpl.SizeCache`, and Goose's `translate_types` refuses any type
+  mentioning another package's alias. Those three aliases come from two more
+  packages: `google.golang.org/protobuf/runtime/protoimpl` (just the three aliases;
+  `SizeCache`/`UnknownFields` translate to `int32`/`[]byte`; protoimpl's other aliases
+  must not be left to `translate_types`, which axiomatizes an alias-of-an-alias as
+  `axiom SizeCache`, not `SizeCache.ty`, a name the users do not find) and
+  `google.golang.org/protobuf/internal/impl` (names only, for `impl.MessageState`, whose
+  struct of `internal/pragma` types stays axiomatized: the `state` field is opaque).
+  `clientv3.GetResponse` (`type GetResponse pb.RangeResponse`), `clientv3.WatchResponse`,
+  `Op`, `OpOption`, `KV`, `Watcher`, `WatchChan` were already translated.
+  `clientv3.Client` is still axiomatized (the cache reads its `KV` and `Watcher` fields
+  in `newCache`): its other fields are grpc, grpc credentials, client's internal
+  resolver and zap types, which would each need a names-only translation.
+- Nothing else (grpc, zap, ...) is reached; types that would need it are axiomatized
+  (203 `axiom X.underlying`), and their generated instances are `sorry -- axiomatized
+  type` (426, in `GeneratedProof/`: 152 in the two protobuf packages, 236 in
+  `etcdserverpb`, 36 in `client/v3`, 2 in `rpctypes`; no proof uses them, and the raft
+  trust base is unaffected). Standard-library packages are Perennial's.
+- `-lean-root` maps `go.etcd.io/etcd`, `k8s.io` and `google.golang.org` to the empty root
+  (modules `Code.go_etcd_io.etcd.cache.v3`, ...).
+- The two Goose bugs above belong fixed in Perennial's `goose/types.go`: `types.Unalias`
+  in `getStructInfo` (tried: two lines, and the alias errors go away), the type arguments
+  in `structInfoToGlangType` (not tried); with them the two fork commits could be dropped.
+  The `go.type` in axiomatized generic types is a third (Lean backend).
 
 ## Next
 
@@ -119,9 +245,150 @@ translation of etcd-raft is this repository's `EtcdRaft/`, generated and checked
 
 ## Differences from the Rocq besides the language
 
+- No axiom for the `Logger` and `Storage` interfaces (Rocq: `is_Logger` and
+  `own_Storage` are `Axiom`s, with `wp_logf` a third): `isLogger` is a definition and
+  `ownStorage` a typeclass parameter (`StorageModel`), see "Done".
 - Names follow Perennial's Lean conventions (`raft.wp_Step`, `own_raft_phys` →
   `ownRaftPhys`, …); see Perennial's `etc/lean-rename/renames.tsv` for the
   framework's Rocq → Lean names.
 - The framework changes `main` made to Perennial's Rocq framework
   (`new/golang/theory/*.v`) are ported to Perennial's Lean framework where a proof
   here needs them, not to this repository.
+
+### The ring buffer (`cache/ringbuffer.go`): proved (2026-10-08)
+
+`ringBuffer[T]` is specified and proved in full, Lean-first, for any Go type argument `T`
+with Lean representation `T'` (Perennial's `atomic.Pointer[T]` instance assumptions):
+`newRingBuffer` and the 13 methods (`Append`, `full`, the four iterations, `PeekLatest`,
+`PeekOldest`, `RebaseHistory`, `moduloIndex`, `at`, the two binary searches), one
+`{Spec,Proof}/go_etcd_io/etcd/cache/v3/<fn>.lean` pair each, linked in `Proof/go_etcd_io/etcd/cache/v3/Link.lean`
+(generated: `etc/gen-link.py --cache`, from `etc/link-lean-first-cache.txt`). Package
+instances in `Proof/go_etcd_io/etcd/cache/v3/Base.lean` (`True` for the cache and the etcd, k8s and protobuf packages
+it imports). No `sorry`, no axiom: `etc/tcb-report.py --check` now also takes
+`Proof.go_etcd_io.etcd.cache.v3.Link`'s 14 results as roots (200 roots) and the baseline is unchanged.
+
+- **The predicate** (`InvRingBuffer.lean`): `ownRingBuffer r cap isItem revOf items`, the
+  model a list of abstract values `items : List V`, oldest first. `r ↦ rb`, `rb.buffer' ↦*
+  ents`, `RingOk` (`0 < cap ≤ 2^61`, `len(buffer) = cap`, `size = |items|`, `tail < cap`,
+  `head = (tail + size) % cap`), item `i` in slot `(tail + i) % cap` with `revision =
+  revOf items[i]` (pure) and `isItem item items[i]` (under `□`), revisions strictly
+  increasing (`RevSorted`), and the stored `revisionOf` closure's triple
+  (`revisionOfSpec`). `cap` is a parameter.
+- **Specs**: `Append` takes `isItem item v` (persistent) and `RevAbove` (revision above the
+  newest), and leaves `ringAppend cap items v`; the searches return `ltCount` /
+  `leCount - 1`; the iterations are loop-invariant style (`iterSpec`, `P : Nat → IProp`,
+  `Q` on early stop) over the exact visited sublists (`ascendGeVisited`, ...).
+- `newRingBuffer` asks for `capacity ≤ 2^61`: `at` computes `tail + i + len(buffer)`, up
+  to `3·cap`, which overflows a Go `int` past that, and Goose's `make` does not bound the
+  length. The demux's caller (`historyWindowSize`, unbounded in `Config`) will have to
+  supply it. See `decisions.md`.
+- No Goose or proofgen problem with the generic structs: `ringBuffer T'`/`entry T'`
+  points-tos, field access and the `[]entry[T]` slice all worked as generated.
+
+### The store (`cache/store.go`, `cache/snapshot.go`): proved (2026-10-08)
+
+`newStore` and `store`'s `Get`, `getSnapshot`, `Restore`, `Apply`,
+`applyProgressNotifyLocked`, `applyEventsLocked`, `LatestRev`, with `validateRevisions`,
+`newKVItem`, `kvItemLess`, `newClonedSnapshot`, `snapshot.Range`, `isPrefixScan`,
+`probeItemFromKey`, and two methods of other packages translated for the store
+(`clientv3.WatchResponse.IsProgressNotify`, `etcdserverpb.ResponseHeader.GetRevision`;
+`client/v3.toml` also translates the constants `EventTypeDelete`/`EventTypePut`): one
+`Spec`/`Proof` pair each, linked in `Cache/Link.lean`. Design and rejected alternatives:
+`decisions.md`, "store: btree as the trust boundary, ghost state under the RWMutex".
+
+- **State model** (`InvStore.lean`): `StoreState` = latest revision, latest map, history of
+  `(rev, map)` snapshots, oldest first; a map (`KvMap`) is the btree's item list, entries
+  `(key, *KeyValue)` strictly sorted by Go's `<` on strings (`kvLess`, `go.GoStringLt`).
+  `StoreInv cap st`: `latest.rev ≥ 0`, maps sorted, at most `cap` snapshots with strictly
+  increasing revisions none above `latest.rev`. `StoreState.Synced` (newest snapshot =
+  latest map) holds after `Restore` and a successful `Apply` (`applyResp_synced`), not after a
+  failed one. Models: `snapModel` (`getSnapshot`), `kvRange` (`Range`), `applyEvents`/`applyResp`
+  (`Apply`, with the exact partial state of a failed delete), `restoreState` (`Restore`).
+- **Ghost shape**: `storeLockInv s γ cap q` is the `RWMutex`'s fractional `P q` (Perennial's
+  `ownRWMutex`): `q` of `latest.rev`, of the history ring (`ownRingBuffer` is now fractional) and
+  of a `monoNat` on `latest.rev`, and `q/2` of a `ghostVar` with the `StoreState`.
+  `storeWriter s γ cap st` (the other half, a mutex token, the latest tree, a lower bound);
+  `storeReader s γ cap` (a reader token: `RWMutex` bounds the readers; `newStore` returns
+  `actualMaxReaders - 1`); `storeRevLb γ r` (persistent); `isStore s γ cap` (persistent:
+  `revCond`'s `isCond`, `degree > 1`, `0 < cap ≤ 2^61`). Readers (`Get`, `getSnapshot`,
+  `LatestRev`) return facts about *some* state at least their lower bound (`storeSeen`);
+  `Apply`/`Restore` take and return `storeWriter` with the exact transition.
+- **Errors** are package variables (`Base.lean`: the cache's `ErrNotReady`, `rpctypes`'
+  `ErrFutureRev`/`ErrCompacted` point to fixed non-nil errors); specs return "the value of
+  that variable" (`snapErr`).
+- **Axioms (trust boundary)**: `ownBTree`, `ownBTree_dfractional` (`InvBtree.lean`) and the
+  `.wp_proof` of `btree.New`, `BTree.Clone`, `Get`, `ReplaceOrInsert`, `Delete`,
+  `AscendGreaterOrEqual`, `AscendRange` (the btree package is names-only).
+- **`sorry`**: one, `newStore_RLocker` (`Proof/newStore.lean`): `RWMutex.RLocker()` converts
+  `*RWMutex` to `*rlocker`, and Perennial's Go semantics has no step for a conversion between
+  two pointer types, so the call is stuck. `fmt.Errorf` (the error paths) is Perennial's own
+  `sorry` (`Proof/fmt.lean`), now reached.
+- **Perennial gaps found**: the pointer-to-pointer conversion above; no `isLocker` for
+  `rlocker` (the cache's `revCond.Wait` will need it); `wp_load` through a fractional or
+  persistent struct points-to fails (the Access search takes the field-store instance, which
+  needs `DFrac.own 1`, and does not backtrack), worked around per proof with
+  `attribute [-instance] …_access_store_…`; a struct field access finds `TypeRepr` through
+  the struct's `IntoValTyped` (for protobuf messages a `sorry`), worked around with direct
+  `TypeRepr` instances in `InvStore.lean`.
+- `etc/tcb-report.py --check`: 14 axioms, 2 sorries (the baseline gained the nine btree
+  axioms, `newStore_RLocker` and Perennial's `fmt.wp_Errorf`). `etc/goose.py --check` passes
+  (fetching the fork from GitHub).
+
+### watcher, notifier, ready (`cache/watcher.go`, `cache/demux.go`, `cache/ready.go`): proved (2026-10-09)
+
+Three small concurrent components, Lean-first like the store, one `Spec`/`Proof` pair per
+Go function, linked in `Cache/Link.lean` (the 15 new specs are stated at
+`HeapGS HasLC.hasLC GF`, as Perennial's channel, `Once` and `context` specs are;
+`etc/gen-link.py --cache` now emits them in a second section, as the raft side does).
+Design and rejected alternatives: `decisions.md`, "watcher, notifier, ready".
+
+- **watcher** (`InvWatcher.lean`, `OnceFrame.lean`): `newWatcher`, `enqueueResponse`,
+  `Compact`, `Stop`. Predicates `isWatcher w γ pred` (persistent; `pred :
+  Option (GoString → Bool)`, the `keyPred` closure's triple `keyPredSpec`, nil iff `none`),
+  `watcherOpen γ sent` (the producer's), `watcherClosed γ sent c` (persistent; `c = none`
+  from `Stop`, `some rev` from `Compact rev`), `watcherConsumer γ received` (the
+  consumer's); the invariant `watcherInv` ties the two logs to the channel state (any
+  capacity `≥ 0`, unbuffered included). `enqueueResponse` returns `ok` with
+  `enqueueResult pred r sent ok sent'` (the pure model `filterResp`: dropped responses are
+  reported delivered; otherwise `ok → sent' = sent ++ [r']`, `!ok → sent' = sent`); the sent
+  values are `respSent` (`respAt` and a non-nil `Header`). `Stop`/`Compact` take
+  `watcherAt γ sent ph` (open or already closed) and give `watcherClosed γ sent
+  (ph.cancelAfter c)`. Consumer side, as lemmas: `watcher_recv_au` (the `recvAu` of
+  `<-w.respCh`, for `Cache.Watch`'s `select`), `wp_watcher_receive`, `isWatcher_isChan`,
+  `wp_watcher_cancelResp` (`w.cancelResp` after `watcherClosed`: `cancelAt p c`),
+  `watcher_received_prefix(_closed)`.
+- **notifier** (`InvNotifier.lean`): `newNotifier`, `notify`, `wait`. A notification counter
+  (`notifierLb γ k`); `notify` takes a `notifierHandle` (an `RWMutex` token; `newNotifier`
+  returns `actualMaxReaders` of them) and gives `notifierLb γ (k0 + 1)`; `wait ctx` returns
+  `nil` with `notifierLb γ (k0 + 1)` (a `notify` after the read) or a non-nil error with the
+  context done (`notifierWaitResult`).
+- **ready** (`InvReady.lean`): `newReady`, `Ready`, `Set`, `Reset`, `waitForState`,
+  `WaitReady`, `WaitNotReady`. An epoch counter (`readyEpochLb γ e`), the state in epoch `e`
+  being `readyParity e`; `Ready`/`Set`/`Reset` return `readySeen γ e0 b` (state `b` in an
+  epoch `≥ e0`; `true` after `Set`, `false` after `Reset`); `waitForState ctx pred` is
+  higher-order (`readyPredSpec r pred P`, `P : Bool → Bool`), instantiated with `id` and
+  `not`, returning `readyWaitResult` (`nil` with a seen state satisfying `P`, or a non-nil
+  error with the context done).
+- **`Base.lean`**: `rpctypes`' package facts gained `errorStringSpec` for `ErrCompacted`
+  (its `Error()` returns some string), which `Compact` calls; the two store proofs that
+  destructure `rpctypesInit` were adjusted (patterns only).
+- **New `sorry`s in the trust base** (`etc/tcb-report.py --check --update`: 14 axioms, 4
+  sorries): `impl.MessageState`'s generated `MessageState_typed_pointsto` and
+  `MessageState_into_val_typed` ("axiomatized type"), reached by `&pb.ResponseHeader{}` in
+  `enqueueResponse` (a nil header) and `Compact`: allocating a protobuf message needs the
+  message's `IntoValTyped`, which contains its opaque `state` field. They go once
+  `protobuf/internal/impl.MessageState` (and the `internal/pragma` types it embeds) are
+  translated rather than axiomatized. `Stop`, `newWatcher`, the consumer lemmas, the
+  notifier and ready rest on no `sorry`; Perennial's `context` `sorry`s (`WithCancel`, ...)
+  are not reached (only `isContext`'s `Done`/`Err` are used).
+- **Perennial gaps found**: `Once.wp_Do` takes a persistent closure triple, so a closure
+  cannot use the caller's resources; `OnceFrame.lean` proves `Once.wp_Do_frame` (the caller
+  lends `R`, gets `R'` back if its closure ran, `R` otherwise) from `isOnce`'s definition.
+  `RWMutex` (both specs) needs a token for `RLock`, so there is no persistent `isNotifier`.
+  `init_RWMutex`'s `List.replicate (Int.toNat actualMaxReaders)` is unfolded by the kernel
+  (deep recursion) unless the count is first abstracted with an equation and `rw`
+  (`generalize` is not enough; `Proof/newNotifier.lean`). `wp_start` on the closure's triple
+  in `Compact` failed looking for a `MethodUnfold` of the `Error` method named by a
+  persistent hypothesis (`errorStringSpec`) still in context; clearing it fixed that
+  (`Proof/watcher__Compact.lean`).
+
