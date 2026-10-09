@@ -76,44 +76,71 @@ theorem store.Apply.wp_proof
     (wp_applyProgressNotifyLocked : store.applyProgressNotifyLocked.spec (GF := GF) (hG := hG))
     (wp_applyEventsLocked : store.applyEventsLocked.spec (GF := GF) (hG := hG)) :
     store.Apply.spec (GF := GF) (hG := hG) := by
-  intro s γ cap E R st resp r
-  wp_start as ⟨#Hs, Hw, #Hresp, %Hsorted, #Hcerts, #Hrevs⟩
+  intro s γ cap E R lo resp r
+  wp_start as ⟨#Hs, #Hguard, #Hresp, %Hsorted, #Hlo, %Hlo0, #Hcert⟩
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Hresp' := Hresp
   iunfold respAt at Hresp'
   icases Hresp' with ⟨#HevsAt, #Hhdr, % ⟨Hcomp, Hcanc, Hcre⟩⟩
-  unfold storeWriter
-  icases Hw with ⟨Hgw, Hmu, Htr, #Hlbw, #HRw, %Hinv⟩
-  iunfold storeRevLb at Hlbw
+  ihave #Hs' := Hs
+  iunfold isStore at Hs'
+  iNamed Hs'
   rw [Hcanc]
   cases hc : r.canceled
   · wp_auto
-    wp_apply sync.RWMutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, HP⟩
+    unfold isStoreWriter
+    wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hguard] as ⟨Hlocked, HP⟩
     iunfold storeLockInv at HP
     iNamed HP
-    icombine Hst Hgw gives % ⟨_, Heq⟩
-    subst Heq
+    unfold storeLockRest
+    icases Hrest with ⟨Hgt, Hsnap, %Hsynced⟩
+    -- the newest snapshot, the latest map, at or above `lo`, with its certificate
+    iunfold storeSnapLb at Hlo
+    ihave %Hk := monoNatLbOwn_valid $$ Hsnap Hlo
+    obtain ⟨Y, hY, hloY⟩ := storeSnapKey_last st lo Hsynced Hlo0 Hk.2
+    icases ownRingBuffer_items _ _ _ _ _ _ $$ Hhist with ⟨Hhist, #Hitems⟩
+    ihave #HEY : □ E Y st.latest $$ []
+    · icases Hitems $$ %(Y, st.latest) %(List.mem_of_getLast? hY) with ⟨%x, #Hx⟩
+      iunfold snapCert at Hx
+      icases Hx with ⟨-, #H⟩
+      iexact H
+    -- the caller's certificates for this state
+    iunfold storeApplyCert at Hcert
+    have hpre : StoreInv cap st ∧ st.history.getLast? = some (Y, st.latest) ∧
+        sint.Z lo ≤ sint.Z Y := ⟨Hinv, hY, hloY⟩
+    icases Hcert $$ %st %Y %hpre HEY with ⟨%Hok, #Hcerts, #Hrevs⟩
+    have Hsync' : (applyResp cap st r).1.Synced := by
+      rcases Hok with h | h
+      · exact applyResp_synced cap st r Hsynced h
+      · rw [h]; exact Hsynced
+    have Hkey := applyResp_snapKey cap st r Hinv Hsorted
+    have Hpost : StoreInv cap st ∧ st.Synced ∧
+        ∃ Y : w64, st.history.getLast? = some (Y, st.latest) ∧ sint.Z lo ≤ sint.Z Y :=
+      ⟨Hinv, Hsynced, Y, hY, hloY⟩
     wp_auto
     wp_apply wp_validateRevisions resp r st.latestRev $$ [] as %verr %Hval
     · iexact Hresp
     ihave #Hlb0 := monoNatLbOwn_get $$ Hrev
+    ihave #Hslb0 := monoNatLbOwn_get $$ Hsnap
     cases hv : validRevisions r st.latestRev
     · -- `validateRevisions` failed: nothing changes
       simp only [hv, Bool.false_eq_true, ↓reduceIte] at Hval
       obtain ⟨e, rfl⟩ := Hval
       wp_auto
-      wp_apply sync.RWMutex.wp_Unlock $$ [$Hlocked Hst Hrev HlatestRev Hhist] as Hmu
-      · iunfold storeLockInv; iexists st; simp only [named]; iframe; iframe #; ipureintro; exact Hinv
+      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlocked Hst Hrev HlatestRev Hhist Hgt Hsnap]
+      · iunfold storeLockInv; inext; iexists st; simp only [named]; unfold storeLockRest
+        iframe; iframe #; ipureintro; exact ⟨Hsynced, Hinv⟩
       have Happ : applyResp cap st r = (st, false) := by simp [applyResp, hc, hv]
       iapply HΦ
+      iright
+      iexists st
       rw [Happ]
       dsimp only
       iunfold storeRevLb
-      iframe
-      iframe Hlb0 HRw
-      ipureintro; exact ⟨Hinv, ⟨e, rfl⟩⟩
+      iframe Hlb0 Hslb0
+      ipureintro; exact ⟨Hpost, ⟨e, rfl⟩⟩
     · simp only [hv, ↓reduceIte] at Hval
       subst Hval
       wp_auto
@@ -134,18 +161,19 @@ theorem store.Apply.wp_proof
             word
           simp only [Hlen0, _root_.decide_true, Bool.not_true, Bool.true_eq_false, _root_.decide_false]
           wp_auto
-          wp_apply sync.RWMutex.wp_Unlock $$ [$Hlocked Hst Hrev HlatestRev Hhist] as Hmu
-          · iunfold storeLockInv; iexists st; simp only [named]; iframe; iframe #; ipureintro; exact Hinv
+          wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlocked Hst Hrev HlatestRev Hhist Hgt Hsnap]
+          · iunfold storeLockInv; inext; iexists st; simp only [named]; unfold storeLockRest
+            iframe; iframe #; ipureintro; exact ⟨Hsynced, Hinv⟩
           have Happ := Apply_empty (cap := cap) hc hv hpn he
           iapply HΦ
+          iright
+          iexists st
           rw [Happ]
           dsimp only
-          isplitl [Hgw Hmu Htr]
-          · iunfold storeRevLb; iframe; iframe #; ipureintro; exact Hinv
           iunfold storeRevLb
-          iframe Hlb0
-          ipureintro; rfl
-        · -- events: `applyEventsLocked`
+          iframe Hlb0 Hslb0
+          ipureintro; exact ⟨Hpost, rfl⟩
+        · -- events: `applyEventsLocked`, on the borrowed latest tree
           have Hlen0 : resp.Events'.len ≠ W64 0 := by
             intro h; apply he
             apply List.eq_nil_of_length_eq_zero
@@ -154,6 +182,7 @@ theorem store.Apply.wp_proof
             have : sint.nat (W64 0) = 0 := by word
             omega
           simp only [Hlen0, _root_.decide_false, Bool.not_false, _root_.decide_true]
+          imod storeTree_borrow s γ st.latest $$ [$Htree $Hgt] with ⟨Htr, Hgt⟩
           wp_auto
           obtain ⟨Happ, Habove⟩ := Apply_events (cap := cap) hc hv hpn he
           have Hsnaps : applyRespSnaps st r = applyEventsSnaps st.latest r.events := by
@@ -162,32 +191,37 @@ theorem store.Apply.wp_proof
             simp [applyRespRevs, hc, hv, hpn, he]
           ihave #HRn : □ R (applyEvents cap st r.events).1.latestRev $$ []
           · rcases applyEvents_latestRev_mem cap r.events st with h | h
-            · rw [h]; iexact HRw
+            · rw [h]; iexact HR
             · iunfold revCerts at Hrevs; imodintro; iapply Hrevs; ipureintro; rw [Hrevs']; exact h
-          rw [Hsnaps] at *
+          ihave #Hcerts' : snapCerts E (applyEventsSnaps st.latest r.events) $$ []
+          · rw [← Hsnaps]; iexact Hcerts
+          rw [Happ] at Hsync' Hkey
           wp_apply wp_applyEventsLocked s γ cap E st resp.Events' r.events
             $$ [HlatestRev Hhist Htr] as %err ⟨Hphys, % ⟨Hinv', Hmono'⟩, %Herr⟩
-          · iunfold storeLockedPhys; iframe; iframe Hs HevsAt Hcerts; ipureintro
+          · iunfold storeLockedPhys; iframe; iframe Hs HevsAt Hcerts'; ipureintro
             exact ⟨Hinv, Hsorted, Habove⟩
-          generalize applyEvents cap st r.events = res at Happ Hinv' Hmono' Herr ⊢
+          generalize applyEvents cap st r.events = res at Happ Hinv' Hmono' Herr Hsync' Hkey ⊢
           obtain ⟨st', ok⟩ := res
-          dsimp only at Hinv' Hmono' Herr
+          dsimp only at Hinv' Hmono' Herr Hsync' Hkey
           iunfold storeLockedPhys at Hphys
           icases Hphys with ⟨HlatestRev, Hhist, Htr⟩
           have Hle : sint.nat st.latestRev ≤ sint.nat st'.latestRev := by
             first | exact Int.toNat_le_toNat Hmono' | word
-          imod ghostVar_update_halves st' γ.state st st $$ Hst Hgw with ⟨Hst, Hgw⟩
+          imod ghostVar_update st' γ.state st $$ Hst with Hst
           imod mono_nat_own_update (sint.nat st'.latestRev) Hle $$ Hrev with ⟨Hrev, #Hlb⟩
-          wp_apply sync.RWMutex.wp_Unlock $$ [$Hlocked Hst Hrev HlatestRev Hhist] as Hmu
-          · iunfold storeLockInv; iexists st'; simp only [named]; iframe; iframe #; ipureintro; exact Hinv'
+          imod mono_nat_own_update (storeSnapKey st') Hkey $$ Hsnap with ⟨Hsnap, #Hslb⟩
+          imod storeTree_return s γ st'.latest $$ [$Htree $Hgt $Htr] with Hgt
+          wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlocked Hst Hrev HlatestRev Hhist Hgt Hsnap]
+          · iunfold storeLockInv; inext; iexists st'; simp only [named]; unfold storeLockRest
+            iframe; iframe #; ipureintro; exact ⟨Hsync', Hinv'⟩
           iapply HΦ
+          iright
+          iexists st
           rw [Happ]
           dsimp only
-          isplitl [Hgw Hmu Htr]
-          · iunfold storeRevLb; iframe; iframe #; ipureintro; exact Hinv'
           iunfold storeRevLb
-          iframe Hlb
-          ipureintro; exact Herr
+          iframe Hlb Hslb
+          ipureintro; exact ⟨Hpost, Herr⟩
       · -- a progress notification
         simp only [_root_.decide_true]
         have hhr : r.hdrRev ≠ W64 0 := by
@@ -213,40 +247,39 @@ theorem store.Apply.wp_proof
         ihave #HRn : □ R (if st.latestRev = W64 0 then st
             else { st with latestRev := r.hdrRev }).latestRev $$ []
         · split
-          · iexact HRw
+          · iexact HR
           · iunfold revCerts at Hrevs; imodintro; iapply Hrevs; ipureintro
             simp [applyRespRevs, hc, hv, hpn]
         rw [Hlr]
+        rw [Happ] at Hsync' Hkey
         generalize (if st.latestRev = W64 0 then st else { st with latestRev := r.hdrRev }) = st'
-          at Happ Hinv' Hmono' Hhs Hlt
+          at Happ Hinv' Hmono' Hhs Hlt Hsync' Hkey
+        have Hkeq : storeSnapKey st' = storeSnapKey st := by simp [storeSnapKey, Hhs]
         rw [← Hhs]
+        rw [← Hkeq]
         have Hle : sint.nat st.latestRev ≤ sint.nat st'.latestRev := by
           first | exact Int.toNat_le_toNat Hmono' | word
-        imod ghostVar_update_halves st' γ.state st st $$ Hst Hgw with ⟨Hst, Hgw⟩
+        imod ghostVar_update st' γ.state st $$ Hst with Hst
         imod mono_nat_own_update (sint.nat st'.latestRev) Hle $$ Hrev with ⟨Hrev, #Hlb⟩
-        wp_apply sync.RWMutex.wp_Unlock $$ [$Hlocked Hst Hrev HlatestRev Hhist] as Hmu
-        · iunfold storeLockInv; iexists st'; simp only [named]; iframe; iframe #; ipureintro; exact Hinv'
+        rw [← Hlt]
+        wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlocked Hst Hrev HlatestRev Hhist Hgt Hsnap]
+        · iunfold storeLockInv; inext; iexists st'; simp only [named]; unfold storeLockRest
+          iframe; iframe #; ipureintro; exact ⟨Hsync', Hinv'⟩
         iapply HΦ
+        iright
+        iexists st
         rw [Happ]
         dsimp only
-        rw [Hlt]
-        isplitl [Hgw Hmu Htr]
-        · iunfold storeRevLb; iframe; iframe #; ipureintro; exact Hinv'
         iunfold storeRevLb
-        iframe Hlb
-        ipureintro; rfl
+        rw [Hkeq]
+        iframe Hlb Hslb0
+        ipureintro; exact ⟨Hpost, rfl⟩
   · -- canceled: `errors.New("canceled")`, nothing changes
     wp_auto
     wp_apply errors.wp_New as %e -
-    have Happ : applyResp cap st r = (st, false) := by simp [applyResp, hc]
     iapply HΦ
-    rw [Happ]
-    dsimp only
-    isplitl [Hgw Hmu Htr]
-    · iunfold storeRevLb; iframe; iframe #; ipureintro; exact Hinv
-    isplitl []
-    · iunfold storeRevLb; iexact Hlbw
-    ipureintro; exact ⟨e, rfl⟩
+    ileft
+    ipureintro; exact ⟨rfl, e, rfl⟩
 
 end proof
 

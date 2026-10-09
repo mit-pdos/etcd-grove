@@ -169,6 +169,21 @@ event in `(a, b]`, and none in `(b, c)` but `evs` at `c`, is no event in `(a, c)
 axiom etcdStep_compose (a b c : w64) (pfx : GoString) (evs : List EtcdEv)
     (h1 : EtcdStep a b pfx []) (h2 : EtcdStep b c pfx evs) : EtcdStep a c pfx evs
 
+/-- **A delete removes a present key** (an axiom: a fact about the server). In a step
+`r0 → r1` with events `cs`, each delete event removes a key that is there when it is applied: in
+etcd's state at any `a` with `r0 ≤ a < r1` (its state before `r1`), with the step's earlier events
+applied. etcd emits a delete event only for a key a `DeleteRange` (or a lease's expiry) actually
+removes, and a transaction cannot put and delete the same key. The store's `Apply` fails on a
+delete of a missing key (`applyEv`): with this, a batch etcd certifies applies, without failing,
+to a map that is etcd's state before it (`isEtcdKvs_applyBatch_ok`), which is what lets several
+goroutines apply the watch stream to the same store (`Cache.watch`, shared writers). -/
+axiom etcdStep_delete_present {GF : BundledGFunctors} (r0 a r1 : w64) (pfx : GoString)
+    (s : List EtcdKv) (cs : List EtcdEv) (h : sint.Z r0 ≤ sint.Z a ∧ sint.Z a < sint.Z r1)
+    (hstep : EtcdStep r0 r1 pfx cs) :
+  etcdState (GF := GF) a pfx s ⊢
+    ⌜∀ (i : Nat) (c : EtcdEv), cs[i]? = some c → c.typ = W32 1 →
+      ∃ v ∈ applyEvsState s (cs.take i), v.key = c.kv.key⌝
+
 /-! ### `btInsert`/`btDelete` through a projection -/
 
 section btmap
@@ -487,6 +502,103 @@ theorem isEtcdKvs_step (Y p r : w64) (pfx : GoString) (m m' : KvMap) (evs : List
       rw [List.getElem?_zip_eq_some] at hj
       iapply Hv $$ %j %z.1 %z.2 %hj.1 %hj.2
     · iapply Hkv $$ %k %e' %c %he' %hc
+
+/-- A sorted map with an entry of key `k` finds it. -/
+theorem btFind_isSome_of_key (k : GoString) : ∀ (m : KvMap), m.Pairwise kvLess →
+    (∃ x ∈ m, x.1 = k) → (btFind kvLess (k, null) m).isSome
+  | [], _, ⟨x, hx, _⟩ => absurd hx List.not_mem_nil
+  | w :: ws, hs, ⟨x, hx, hxk⟩ => by
+    rw [List.pairwise_cons] at hs
+    simp only [btFind]
+    by_cases h1 : kvLess w (k, null)
+    · rw [if_pos h1]
+      rcases List.mem_cons.1 hx with rfl | hx
+      · exfalso; unfold kvLess at h1; rw [hxk] at h1; exact goStringLt_irrefl _ h1
+      · exact btFind_isSome_of_key k ws hs.2 ⟨x, hx, hxk⟩
+    · rw [if_neg h1]
+      by_cases h2 : kvLess (k, null) w
+      · exfalso
+        rcases List.mem_cons.1 hx with rfl | hx
+        · unfold kvLess at h2; rw [hxk] at h2; exact goStringLt_irrefl _ h2
+        · have h3 := hs.1 x hx
+          unfold kvLess at h2 h3
+          rw [hxk] at h3
+          exact goStringLt_irrefl _ (goStringLt_trans h2 h3)
+      · rw [if_neg h2]; rfl
+
+/-- A batch whose deletes are of keys present (on etcd's side) applies, on the store's side,
+without failing. -/
+theorem pairs_applyBatch_ok : ∀ (Z : List (KvEntry × EtcdKv)) (evs : List EvModel)
+    (cs : List EtcdEv), PairsOk Z → (Z.map Prod.fst).Pairwise kvLess → evs.length = cs.length →
+    (∀ (i : Nat) (e : EvModel) (c : EtcdEv), evs[i]? = some e → cs[i]? = some c →
+      e.typ = c.typ ∧ e.key = c.kv.key) →
+    (∀ (i : Nat) (c : EtcdEv), cs[i]? = some c → c.typ = W32 1 →
+      ∃ v ∈ applyEvsState (Z.map Prod.snd) (cs.take i), v.key = c.kv.key) →
+    (applyBatch (Z.map Prod.fst) evs).2 = true
+  | _, [], [], _, _, _, _, _ => by simp [applyBatch]
+  | Z, e :: es, c :: cs, hZ, hsorted, hlen, hmatch, hdel => by
+    have ⟨htyp, hkey⟩ := hmatch 0 e c rfl rfl
+    have hsome : ∃ m1, applyEv (Z.map Prod.fst) e = some m1 := by
+      unfold applyEv
+      by_cases h1 : e.typ = W32 1
+      · rw [if_pos h1]
+        obtain ⟨v, hv, hvk⟩ := hdel 0 c rfl (htyp ▸ h1)
+        simp only [List.take_zero, applyEvsState, List.foldl_nil] at hv
+        obtain ⟨z, hz, rfl⟩ := List.mem_map.1 hv
+        have hfind : (btFind kvLess (e.key, null) (Z.map Prod.fst)).isSome :=
+          btFind_isSome_of_key e.key _ hsorted
+            ⟨z.1, List.mem_map_of_mem hz, by rw [hZ z hz, hvk, hkey]⟩
+        rw [if_pos hfind]
+        exact ⟨_, rfl⟩
+      · rw [if_neg h1]
+        split
+        · exact ⟨_, rfl⟩
+        · exact ⟨_, rfl⟩
+    obtain ⟨m1, hm1⟩ := hsome
+    obtain ⟨Z1, h1f, h1s, hZ1, -⟩ := pairs_applyEv Z e c m1 hZ htyp hkey hm1
+    have hsorted1 : m1.Pairwise kvLess := by
+      unfold applyEv at hm1
+      split at hm1
+      · split at hm1
+        · cases hm1; exact btDelete_sorted hsorted
+        · cases hm1
+      · split at hm1
+        · cases hm1; exact btInsert_sorted kvLess_swo hsorted
+        · cases hm1; exact hsorted
+    simp only [applyBatch, hm1]
+    rw [← h1f]
+    refine pairs_applyBatch_ok Z1 es cs hZ1 (by rw [h1f]; exact hsorted1) (by simpa using hlen)
+      (fun i e' c' he hc => hmatch (i + 1) e' c' he hc) ?_
+    intro i c' hc' ht
+    obtain ⟨v, hv, hvk⟩ := hdel (i + 1) c' (by simpa using hc') ht
+    refine ⟨v, ?_, hvk⟩
+    rw [h1s]
+    simpa [applyEvsState, List.take_succ_cons, List.foldl_cons] using hv
+  | _, [], _ :: _, _, _, hlen, _, _ => by simp at hlen
+  | _, _ :: _, [], _, _, hlen, _, _ => by simp at hlen
+
+/-- **A certified batch applies**: on a map that is etcd's state at `Y`, a batch matching etcd's
+events of a step `p → r` with `p ≤ Y < r` does not fail (`etcdStep_delete_present`). -/
+theorem isEtcdKvs_applyBatch_ok (Y p r : w64) (pfx : GoString) (m : KvMap) (evs : List EvModel)
+    (cs : List EtcdEv) (hY : sint.Z p ≤ sint.Z Y ∧ sint.Z Y < sint.Z r)
+    (hstep : EtcdStep p r pfx cs) :
+    isEtcdKvs (GF := GF) Y pfx m ∗ evsMatch evs cs ⊢ ⌜(applyBatch m evs).2 = true⌝ := by
+  unfold isEtcdKvs evsMatch
+  iintro ⟨⟨%s, #Hs, %Hk, %Hwf, -⟩, ⟨%Hm, -⟩⟩
+  ihave %Hdel := etcdStep_delete_present p Y r pfx s cs hY hstep $$ Hs
+  ipureintro
+  have hlen : m.length = s.length := by
+    have := congrArg List.length Hk; simpa using this
+  have hm : (m.zip s).map Prod.fst = m := List.map_fst_zip (by omega)
+  have hs : (m.zip s).map Prod.snd = s := List.map_snd_zip (by omega)
+  have hsorted : m.Pairwise kvLess := by
+    have h1 : (s.map EtcdKv.key).Pairwise go.GoStringLt := Hwf.1
+    rw [← Hk] at h1
+    exact (List.pairwise_map (f := Prod.fst) (R := go.GoStringLt)).1 h1
+  rw [← hm]
+  exact pairs_applyBatch_ok (m.zip s) evs cs (pairsOk_zip m s Hk) (by rw [hm]; exact hsorted)
+    Hm.1 (fun i e c he hc => ⟨(Hm.2 i e c he hc).1, (Hm.2 i e c he hc).2.1⟩)
+    (by rw [hs]; exact Hdel)
 
 instance evsMatch_timeless (evs : List EvModel) (cs : List EtcdEv) :
     Timeless (evsMatch (GF := GF) evs cs) := by

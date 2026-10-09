@@ -22,27 +22,24 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `c.getWatchLoop()`, with the demux's writer and the store's writer (any states): until the
-internal context is done, it runs `getWatch` (a `get` and a `watch`), prints its error
-(`fmt.Printf`), and waits for the backoff (`time.After`) or the internal context. It returns once
-the internal context is done, with both writers, in some states.
+/-- `c.getWatchLoop()`, by the demux's writer (`cacheWriter`, any state, with the revision bound)
+in a goroutine of the cache's wait group: until the internal context is done, it runs `getWatch`
+(a `get` and a `watch`), prints its error (`fmt.Printf`), and waits for the backoff (`time.After`)
+or the internal context. It returns once the internal context is done, with the wait-group token
+and the demux's writer, in some state.
 
-This is the proof that the store has one writer: the writer's token (`storeWriter`) threads
-through the loop, `get`'s `Restore`, `watch`, and each iteration's `applyStorage` goroutine, which
-hands it back through `applyErr` before the loop goes on (`Cache.watch`'s spec).
-
-Every `get` needs etcd's linearizability for the store's latest revision: the writer knows etcd
-has reached it (`etcdReached`, the store's revision certificate), and the client's get is
-linearizable (`isEtcdKV`). -/
+The store has several writers: each `watch` iteration's `applyStorage` goroutine may outlive its
+iteration and its `watch`, draining its stopped watcher's buffered responses; the store's lock
+invariant keeps it certified (`isStoreWriter`, `storeApplyCert`), and every `get`'s `Restore` is
+at or above every revision the store can be at: the revision bound (`cacheBound`), which etcd has
+reached, so that the client's linearizable get (`isEtcdKV`) returns at least it. -/
 abbrev Cache.getWatchLoop.spec : Prop :=
   ∀ (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNames) (cap : Nat)
-    (c0 : DemuxCore) (st : StoreState),
+    (c0 : DemuxCore),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
-      isCacheFields c cf γr γd cap ∗ cacheWriter cf γd cap c0 ∗
-      storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) etcdReached st }}
+      isCacheFields c cf γr γd cap ∗ cacheWriter cf γd cap c0 ∗ cacheWgRunning cf }}
     (App (Val (c @!! go.GoType.PointerType Cache.ty @!! go!"getWatchLoop")) (Val #()))
-  {{ RET #(); ∃ (c1 : DemuxCore) (st' : StoreState), cacheWriter cf γd cap c1 ∗
-      storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) etcdReached st' }}
+  {{ RET #(); cacheWgRunning cf ∗ ∃ c1 : DemuxCore, cacheWriter cf γd cap c1 }}
 
 end spec
 

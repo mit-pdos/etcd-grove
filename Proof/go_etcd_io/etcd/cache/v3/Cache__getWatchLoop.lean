@@ -1,9 +1,9 @@
 /-
 Proof of `Spec/Cache__getWatchLoop.lean`. Lean-first (no Rocq counterpart).
 
-The loop's invariant: the two writers, in any states. Each `get` gets etcd's linearizability for
-the store's latest revision from the client (`isEtcdKV`) and the writer's certificate that etcd
-has reached it (`etcdReached`, `storeWriter`).
+The loop's invariant: the demux's writer, in any state, with the revision bound's authority, and
+the wait-group token. Each `get` gets etcd's linearizability for the revision bound from the
+client (`isEtcdKV`), knowing etcd has reached it (`cacheBound`).
 -/
 module
 
@@ -33,8 +33,8 @@ theorem Cache.getWatchLoop.wp_proof
     (wp_defaultConfig : defaultConfig.spec (GF := GF) (hG := hG))
     (wp_getWatch : Cache.getWatch.spec (GF := GF) (hG := hG)) :
     Cache.getWatchLoop.spec (GF := GF) (hG := hG) := by
-  intro c cf γr γd cap c0 st0
-  wp_start as ⟨#Hc, Hw, Hwr⟩
+  intro c cf γr γd cap c0
+  wp_start as ⟨#Hc, Hw, Hrun⟩
   ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
   · iPkgInit
   ihave #Hc' := Hc
@@ -48,9 +48,9 @@ theorem Cache.getWatchLoop.wp_proof
   try ipersist c
   try ipersist ctx
   try ipersist backoff
-  ihave HI : (∃ (c1 : DemuxCore) (st : StoreState), "Hw" ∷ cacheWriter cf γd cap c1 ∗
-      "Hwr" ∷ storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) etcdReached st : IProp GF) $$ [Hw Hwr]
-  · iexists c0, st0; simp only [named]; iframe
+  ihave HI : (∃ (c1 : DemuxCore), "Hw" ∷ cacheWriter cf γd cap c1 ∗
+      "Hrun" ∷ cacheWgRunning cf : IProp GF) $$ [Hw Hrun]
+  · iexists c0; simp only [named]; iframe
   wp_for HI
   -- `ctx.Err()`
   ihave #HErrU := HErr $$ %Broadcast.Unknown
@@ -60,13 +60,14 @@ theorem Cache.getWatchLoop.wp_proof
     wp_auto
     wp_for_post
     iapply HΦ
-    iexists c1, st
+    iframe Hrun
+    iexists c1
     iframe
   | nil =>
   wp_auto
   -- `c.getWatch()`
-  wp_apply wp_getWatch c cf γr γd cap c1 st $$ [$Hpkg $Hc $Hw $Hwr]
-    as %err ⟨%Hne, %c2, %st', Hw, Hwr⟩
+  wp_apply wp_getWatch c cf γr γd cap c1 $$ [$Hpkg $Hc $Hw $Hrun]
+    as %err ⟨%Hne, Hrun, %c2, Hw⟩
   obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by
     cases err with
     | nil => exact absurd rfl Hne
@@ -98,7 +99,8 @@ theorem Cache.getWatchLoop.wp_proof
     wp_auto
     wp_for_post
     iapply HΦ
-    iexists c2, st'
+    iframe Hrun
+    iexists c2
     iframe
   iapply BigAndL.bigAndL_cons.2
   isplit
@@ -115,7 +117,7 @@ theorem Cache.getWatchLoop.wp_proof
     wp_auto
     wp_for_post
     iframe HΦ
-    iexists c2, st'
+    iexists c2
     simp only [named]
     iframe
   iapply BigAndL.bigAndL_nil.2

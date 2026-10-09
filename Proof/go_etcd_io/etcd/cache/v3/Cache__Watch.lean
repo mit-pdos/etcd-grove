@@ -112,7 +112,7 @@ theorem validateErrorString_holds : validateErrorString (GF := GF) (hG := hG) :=
 running token, its demux token and registration, and the channel's producer. -/
 def watchDeferOk (cf : CacheFields) (γd : DemuxNames) (cap : Nat) (w : Loc) (γw : WatcherNames)
     (pred : Option (GoString → Bool)) (sR : w64) (γs : SpscNames) (d : GoFunc) : IProp GF :=
-  iprop({{ cacheWgRunning cf ∗ demuxHandle cf.demux γd cap (etcdStepCert cf.pfx) ∗
+  iprop({{ cacheWgRunning cf ∗ demuxHandle cf.demux γd cap (cacheCert cf) ∗
       demuxRegistered γd w γw pred sR ∗
       (∃ sent : List go_etcd_io.etcd.client.v3.WatchResponse, spscProducer γs sent) }}
     (App (Val #d) (Val #()))
@@ -238,7 +238,7 @@ theorem Cache.Watch.wp_proof
     iStructNamedPrefix Hcfg' "Cfg"
     wp_auto
     wp_apply wp_newWatcher cf.cfg.PerWatcherBufferSize' f (some (keyPredForRange key of.base.rangeEnd))
-      (demuxPub (etcdStepCert cf.pfx) (some (keyPredForRange key of.base.rangeEnd)) of.base.rev)
+      (demuxPub (cacheCert cf) (some (keyPredForRange key of.base.rangeEnd)) of.base.rev)
       as %w %γw ⟨#Hw, Hwopen, Hwcons, Hwuniq⟩
     · isplitr
       · ipureintro; exact Hbuf
@@ -252,7 +252,7 @@ theorem Cache.Watch.wp_proof
       iapply demuxPubBody_nil
     unfold cacheWatchSlot
     icases Hslot with ⟨Hh, Hwgslot⟩
-    wp_apply wp_Register cf.demux γd cap (etcdStepCert cf.pfx) w γw
+    wp_apply wp_Register cf.demux γd cap (cacheCert cf) w γw
       (some (keyPredForRange key of.base.rangeEnd)) of.base.rev
       $$ [$Hpkg $HisDemux $Hh $Hw $Hwopen $Hwuniq] as ⟨Hh, %sR, %M, Hreg, %HsR⟩
     wp_apply chan.wp_make1 (V := go_etcd_io.etcd.client.v3.WatchResponse) as %ch %γch ⟨#Hch, %_, Hoc⟩
@@ -277,7 +277,7 @@ theorem Cache.Watch.wp_proof
         imodintro
         iintro %Ψ ⟨Hrtok, Hh, Hreg, %sent, Hprod⟩ HΨ
         wp_auto
-        wp_apply wp_Unregister cf.demux γd cap (etcdStepCert cf.pfx) w γw
+        wp_apply wp_Unregister cf.demux γd cap (cacheCert cf) w γw
           (some (keyPredForRange key of.base.rangeEnd)) sR $$ [$Hpkg $HisDemux $Hh $Hreg] as ⟨Hh, -⟩
         wp_apply wp_spsc_close γ.spsc ch (cacheWatchElem γ (etcdStepCert cf.pfx)
             (some (keyPredForRange key of.base.rangeEnd)) of.base.rev) (fun _ => iprop(True)) sent
@@ -354,7 +354,7 @@ theorem Cache.Watch.wp_proof
       icases Hictx2 with ⟨-, #HDone2, -, -⟩
       ihave HI : iprop(∃ (rcv : List RespModel) (vs : List go_etcd_io.etcd.client.v3.WatchResponse),
           watcherConsumer γw rcv ∗ spscProducer γ.spsc vs ∗ ⌜vs.length = rcv.length⌝ ∗
-          monoListAuthOwn γ.fwd 1 rcv ∗ demuxHandle cf.demux γd cap (etcdStepCert cf.pfx) ∗
+          monoListAuthOwn γ.fwd 1 rcv ∗ demuxHandle cf.demux γd cap (cacheCert cf) ∗
           demuxRegistered γd w γw (some (keyPredForRange key of.base.rangeEnd)) sR ∗ cacheWgRunning cf)
         $$ [Hwcons Hprod Hauth Hh Hreg Hrtok]
       · iexists [], []
@@ -417,7 +417,7 @@ theorem Cache.Watch.wp_proof
         inext
         iintro %tm -
         wp_auto
-        wp_apply wp_BroadcastProgressTo cf.demux γd cap (etcdStepCert cf.pfx) w γw
+        wp_apply wp_BroadcastProgressTo cf.demux γd cap (cacheCert cf) w γw
           (some (keyPredForRange key of.base.rangeEnd)) sR $$ [$Hpkg $HisDemux $Hh $Hreg] as ⟨Hh, Hreg⟩
         subst Hpt
         ihave #Ht' := Ht
@@ -524,6 +524,7 @@ theorem Cache.Watch.wp_proof
               iexists rcv, n
               isplitr
               · ipureintro; rfl
+              iapply demuxPubBody_cacheCert cf
               rw [← demuxPub_pub]
               iexact Hpubc
             inext
@@ -594,6 +595,7 @@ theorem Cache.Watch.wp_proof
               iframe Hr' Hlb
               unfold cacheWatchLog
               ileft
+              iapply demuxPubBody_cacheCert cf
               rw [← demuxPub_pub]
               iexact Hpub
             inext

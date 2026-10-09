@@ -180,6 +180,9 @@ structure CacheFields [FfiSyntax] where
   stop : GoFunc
   /-- the "open" token (`cacheOpen`): `Watch` needs a fraction, `Close` all of it -/
   γop : GName
+  /-- the cache's revision bound (`cacheBound`, a `monoNat`): every revision the store's latest
+  revision can reach is at most it -/
+  γb : GName
 
 /-! ## The watch loop and `Cache.Watch`: the cache's other fields -/
 
@@ -372,13 +375,15 @@ once (Perennial's `WaitGroup` spec forbids an `Add` from zero while a waiter is 
 def cacheOpen (cf : CacheFields) (q : Qp) : IProp GF := ghostVar cf.γop q ()
 
 /-- The `Cache`'s wait group's counter (an invariant): `ctr` goroutines running, each with a
-running token (`γwr`, for its `Done`) and each having spent a budget token (`γwb`, of which there
-are `cacheWgBudget` in all: the counter cannot overflow); and at most one waiter (`Close`), which
-while registered has deposited the whole "open" token (`cacheOpen`), so that no `Watch` adds to
-the wait group meanwhile. -/
+running token (`γwr`, for its `Done`); the budget tokens (`γwb`, `cacheWgBudget` in all) spent so
+far; and at most one waiter (`Close`), which while registered has deposited the whole "open" token
+(`cacheOpen`), so that no `Watch` adds to the wait group meanwhile. The counter's `int32` overflow
+is excluded by the model (Perennial's `WaitGroup.Add` assumes it away, as `append` does its
+length's), not by the budget: the watch loop adds a goroutine per iteration with no budget
+(`wp_cacheWg_AddRunning`), each `Watch` still spends one of its slots (`wp_cacheWg_Add`). -/
 def cacheWgInv (cf : CacheFields) : IProp GF :=
   iprop(∃ (ctr : w32) (w : Nat), sync.ownWaitGroup cf.γwg ctr ∗ sync.ownWaitGroupWaiters cf.γwg w ∗
-    ownTokAuth cf.γwr (sint.nat ctr) ∗ ownToks cf.γwb (sint.nat ctr) ∗
+    ownTokAuth cf.γwr (sint.nat ctr) ∗ (∃ k : Nat, ownToks cf.γwb k) ∗
     ownTokAuth cf.γwb cacheWgBudget ∗ ⌜0 ≤ sint.Z ctr⌝ ∗
     (⌜w = 0⌝ ∨ (⌜w = 1⌝ ∗ cacheOpen cf 1)))
 
@@ -393,6 +398,9 @@ def cacheWgRunning (cf : CacheFields) : IProp GF := ownToks cf.γwr 1
 
 theorem cacheWg_mask : (↑cacheWgWGN : CoPset) ⊆ ⊤ \ ↑cacheWgN :=
   sync.wg_mask_ndot_ne nroot "cacheWaitGroup" "cacheWgCounter" (by decide)
+
+theorem cacheWgN_mask : (↑cacheWgN : CoPset) ⊆ ⊤ \ ↑cacheWgWGN :=
+  sync.wg_mask_ndot_ne nroot "cacheWgCounter" "cacheWaitGroup" (by decide)
 
 /-- The "open" token's fractions add up to at most `1`. -/
 theorem cacheOpen_excl (cf : CacheFields) (q : Qp) :
@@ -416,34 +424,32 @@ theorem wp_cacheWg_Add (c : Loc) (cf : CacheFields) (q : Qp) :
   iintro %Φ ⟨#Hsync, #Hwg, #Hinv, Hslot, Hopen⟩ HΦ
   iapply sync.WaitGroup.wp_Add (cacheWgAddr c) (W64 1) cf.γwg cacheWgWGN $$ [] [Hslot Hopen HΦ]
   · iframe #
-  iinv Hinv with Hi Hclose
-  iapply fupd_mask_intro cacheWg_mask
+  imod inv_acc (E := ⊤ \ ↑cacheWgWGN) cacheWgN_mask $$ Hinv with ⟨Hi, Hclose⟩
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
   inext
   iunfold cacheWgInv at Hi
-  icases Hi with ⟨%ctr, %wn, Hwgo, Hwt, Hrun, Hbud, Hbauth, %Hctr, Hwn⟩
+  icases Hi with ⟨%ctr, %wn, Hwgo, Hwt, Hrun, ⟨%k, Hbud⟩, Hbauth, %Hctr, Hwn⟩
   icases Hwn with (%Hw0 | ⟨-, Hop1⟩)
   rotate_left
   · iexfalso
     iapply cacheOpen_excl cf q $$ [$Hopen $Hop1]
   subst Hw0
   unfold cacheWgSlot
-  ihave Hbud' := ownToks_add_2 1 (sint.nat ctr) cf.γwb $$ [Hbud Hslot]
+  ihave Hbud' := ownToks_add_2 1 k cf.γwb $$ [Hbud Hslot]
   · iframe
-  icombine Hbauth Hbud' gives %Hle
   iexists ctr
   iframe Hwgo
   have h1 : sint.Z (W32 (sint.Z (W64 1))) = 1 := by decide
-  have hc : ((sint.nat ctr : Nat) : Int) = sint.Z ctr := Int.toNat_of_nonneg Hctr
-  have hle : sint.Z ctr + 1 ≤ 2 ^ 31 - 1 := by
-    unfold cacheWgBudget at Hle; omega
-  have hn : sint.nat (ctr + W32 (sint.Z (W64 1))) = sint.nat ctr + 1 := by
-    rw [show W32 (sint.Z (W64 1)) = W32 1 from rfl]; word
   isplitr
   · ipureintro; rw [h1]; omega
   iright
   iframe Hwt
-  iintro Hwt Hwgo
+  iintro %Hno Hwt Hwgo
+  rw [h1] at Hno
+  have hc : ((sint.nat ctr : Nat) : Int) = sint.Z ctr := Int.toNat_of_nonneg Hctr
+  have hn : sint.nat (ctr + W32 (sint.Z (W64 1))) = sint.nat ctr + 1 := by
+    rw [show W32 (sint.Z (W64 1)) = W32 1 from rfl]; word
   imod Hmask with -
   imod ownTokAuth_S cf.γwr (sint.nat ctr) $$ Hrun with ⟨Hrun, Hrtok⟩
   imod Hclose $$ [Hwgo Hwt Hrun Hbud' Hbauth] with -
@@ -463,6 +469,59 @@ theorem wp_cacheWg_Add (c : Loc) (cf : CacheFields) (q : Qp) :
   unfold cacheWgRunning
   iframe
 
+/-- `c.waitGroup.Add(1)` by a running goroutine (with its running token, which shows the counter
+is not zero, so no `Close` needs excluding), for another running token: no slot is spent. The watch
+loop's per-iteration `Add`: the model assumes the counter does not overflow (Perennial's
+`WaitGroup.Add`), so the loop needs no budget. -/
+theorem wp_cacheWg_AddRunning (c : Loc) (cf : CacheFields) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ sync.isWaitGroup (cacheWgAddr c) cf.γwg cacheWgWGN ∗
+        inv cacheWgN (cacheWgInv cf) ∗ cacheWgRunning cf }}
+      (App (Val (cacheWgAddr c @!! go.GoType.PointerType sync.WaitGroup.ty @!! go!"Add")) (Val #(W64 1)))
+    {{ RET #(); cacheWgRunning cf ∗ cacheWgRunning cf }} := by
+  iintro %Φ ⟨#Hsync, #Hwg, #Hinv, Hrtok0⟩ HΦ
+  iapply sync.WaitGroup.wp_Add (cacheWgAddr c) (W64 1) cf.γwg cacheWgWGN $$ [] [Hrtok0 HΦ]
+  · iframe #
+  imod inv_acc (E := ⊤ \ ↑cacheWgWGN) cacheWgN_mask $$ Hinv with ⟨Hi, Hclose⟩
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  inext
+  iunfold cacheWgInv at Hi
+  icases Hi with ⟨%ctr, %wn, Hwgo, Hwt, Hrun, Hbud, Hbauth, %Hctr, Hwn⟩
+  unfold cacheWgRunning
+  icombine Hrun Hrtok0 gives %Hle
+  have hc : ((sint.nat ctr : Nat) : Int) = sint.Z ctr := Int.toNat_of_nonneg Hctr
+  have h1 : sint.Z (W32 (sint.Z (W64 1))) = 1 := by decide
+  have hne : ctr ≠ W32 0 := by
+    intro h; subst h
+    have : sint.nat (W32 0) = 0 := rfl
+    omega
+  iexists ctr
+  iframe Hwgo
+  isplitr
+  · ipureintro; rw [h1]; omega
+  ileft
+  isplitr
+  · ipureintro; exact hne
+  iintro %Hno Hwgo
+  rw [h1] at Hno
+  have hn : sint.nat (ctr + W32 (sint.Z (W64 1))) = sint.nat ctr + 1 := by
+    rw [show W32 (sint.Z (W64 1)) = W32 1 from rfl]; word
+  imod Hmask with -
+  imod ownTokAuth_S cf.γwr (sint.nat ctr) $$ Hrun with ⟨Hrun, Hrtok⟩
+  imod Hclose $$ [Hwgo Hwt Hrun Hbud Hbauth Hwn] with -
+  · inext
+    unfold cacheWgInv
+    iexists ctr + W32 (sint.Z (W64 1)), wn
+    rw [hn]
+    iframe
+    ipureintro
+    have : sint.Z (ctr + W32 (sint.Z (W64 1))) = sint.Z ctr + 1 := by
+      rw [show W32 (sint.Z (W64 1)) = W32 1 from rfl]; word
+    omega
+  imodintro
+  iapply HΦ
+  iframe
+
 /-- `c.waitGroup.Done()`, with a running token. -/
 theorem wp_cacheWg_Done (c : Loc) (cf : CacheFields) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ sync.isWaitGroup (cacheWgAddr c) cf.γwg cacheWgWGN ∗
@@ -472,8 +531,8 @@ theorem wp_cacheWg_Done (c : Loc) (cf : CacheFields) :
   iintro %Φ ⟨#Hsync, #Hwg, #Hinv, Hrtok⟩ HΦ
   iapply sync.WaitGroup.wp_Done (cacheWgAddr c) cf.γwg cacheWgWGN $$ [] [Hrtok HΦ]
   · iframe #
-  iinv Hinv with Hi Hclose
-  iapply fupd_mask_intro cacheWg_mask
+  imod inv_acc (E := ⊤ \ ↑cacheWgWGN) cacheWgN_mask $$ Hinv with ⟨Hi, Hclose⟩
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
   inext
   iunfold cacheWgInv at Hi
@@ -484,7 +543,6 @@ theorem wp_cacheWg_Done (c : Loc) (cf : CacheFields) :
   have h1 : 1 ≤ sint.Z ctr := by omega
   have hn : sint.nat (ctr - W32 1) = sint.nat ctr - 1 := by word
   have hz : sint.Z (ctr - W32 1) = sint.Z ctr - 1 := by word
-  have hb : sint.Z ctr < 2 ^ 31 := by word
   iexists ctr
   iframe Hwgo
   isplitr
@@ -493,7 +551,6 @@ theorem wp_cacheWg_Done (c : Loc) (cf : CacheFields) :
   imod Hmask with -
   rw [show sint.nat ctr = (sint.nat ctr - 1) + 1 by omega]
   imod ownTokAuth_delete_S cf.γwr (sint.nat ctr - 1) $$ Hrun Hrtok with Hrun
-  icases ownToks_add_1 1 (sint.nat ctr - 1) cf.γwb $$ Hbud with ⟨Hbud, -⟩
   imod Hclose $$ [Hwgo Hwt Hrun Hbud Hbauth Hwn] with -
   · inext
     unfold cacheWgInv
@@ -506,9 +563,275 @@ theorem wp_cacheWg_Done (c : Loc) (cf : CacheFields) :
   iapply HΦ
   itrivial
 
-/-- The demux's writer for the cache (`etcdStepCert`), with its invariant across watches. -/
+/-! ### The revision bound
+
+The store has several writers (the watch loop's `Restore`, every iteration's `applyStorage`
+goroutine, which may still drain its stopped watcher's buffered responses while later iterations
+run), so `Restore`'s premise, that its revision is not below the store's latest, is about every
+revision any of them can move the store to. The cache keeps a ghost **revision bound** (`γb`, a
+`monoNat`) that the watch loop alone advances (`cacheBound`, its authority): before each
+`Broadcast`, to the revisions of the response (`cacheCert`: every batch the demux holds, and every
+progress notification, is at most the bound), and before each `Restore`, to the `Get`'s revision.
+The store's revision certificate (`cacheRev`, its `R`) says the revision is at most the bound, so
+the store's latest revision always is; and the loop knows etcd has reached the bound
+(`etcdReached`), so its linearizable `Get` returns at least the bound: at least every revision
+the store can be at, now or after any pending drain. -/
+
+/-- A lower bound on the cache's revision bound (persistent, downward closed, free at `≤ 0`). -/
+def cacheBoundLb (cf : CacheFields) (r : w64) : IProp GF :=
+  iprop(⌜sint.Z r ≤ 0⌝ ∨ monoNatLbOwn cf.γb (sint.nat r))
+
+instance cacheBoundLb_persistent (cf : CacheFields) (r : w64) :
+    Persistent (cacheBoundLb (GF := GF) cf r) := by
+  unfold cacheBoundLb; infer_instance
+
+instance cacheBoundLb_timeless (cf : CacheFields) (r : w64) :
+    Timeless (cacheBoundLb (GF := GF) cf r) := by
+  unfold cacheBoundLb monoNatLbOwn; infer_instance
+
+theorem cacheBoundLb_mono (cf : CacheFields) (r r' : w64) (h : sint.Z r' ≤ sint.Z r) :
+    cacheBoundLb (GF := GF) cf r ⊢ cacheBoundLb cf r' := by
+  unfold cacheBoundLb
+  iintro (%H | #H)
+  · ileft; ipureintro; omega
+  · by_cases h0 : sint.Z r' ≤ 0
+    · ileft; ipureintro; exact h0
+    · iright
+      iapply monoNatLbOwn_le (sint.nat r') (Int.toNat_le_toNat h) $$ H
+
+/-- **The store's revision certificate** in the cache (its `R`): etcd has reached `r`, and `r` is
+at most the cache's revision bound. -/
+def cacheRev (cf : CacheFields) (r : w64) : IProp GF :=
+  iprop(etcdReached r ∗ cacheBoundLb cf r)
+
+instance cacheRev_persistent (cf : CacheFields) (r : w64) :
+    Persistent (cacheRev (GF := GF) cf r) := by
+  unfold cacheRev; infer_instance
+
+instance cacheRev_timeless (cf : CacheFields) (r : w64) :
+    Timeless (cacheRev (GF := GF) cf r) := by
+  unfold cacheRev; infer_instance
+
+/-- **The demux's certificate** in the cache: etcd's step (`etcdStepCertBody`, as
+`etcdStepCert`), and the batch's revision at most the revision bound; a progress notification's
+revision, `cacheRev`. -/
+def cacheCert (cf : CacheFields) : DemuxCert GF where
+  cert p b := iprop(etcdStepCertBody cf.pfx p b ∗ cacheBoundLb cf (batchRev b))
+  timeless := fun _ _ => by infer_instance
+  prog := cacheRev cf
+  prog_timeless := fun _ => inferInstance
+  prog_mono := fun r r' h => by
+    unfold cacheRev
+    iintro ⟨H1, H2⟩
+    isplitl [H1]
+    · iapply etcdReached_mono r r' h $$ H1
+    · iapply cacheBoundLb_mono cf r r' h $$ H2
+  prog_zero := by
+    unfold cacheRev cacheBoundLb
+    isplitl
+    · iapply etcdReached_zero
+    · ileft; ipureintro; decide
+  cert_prog := fun p b => by
+    unfold cacheRev etcdStepCertBody
+    iintro ⟨⟨%cs, -, -, H1⟩, H2⟩
+    iframe H1 H2
+
+/-- The cache's demux certificate is stronger than etcd's (`etcdStepCert`), the one `Watch`'s
+statement and the delivery theorem are about. -/
+theorem cacheCert_cert (cf : CacheFields) (p : w64) (b : Batch) :
+    (cacheCert (GF := GF) cf).cert p b ⊢ (etcdStepCert cf.pfx).cert p b := by
+  show iprop(etcdStepCertBody cf.pfx p b ∗ cacheBoundLb cf (batchRev b)) ⊢ etcdStepCertBody cf.pfx p b
+  iintro ⟨H, -⟩; iexact H
+
+theorem cacheCert_prog (cf : CacheFields) (r : w64) :
+    (cacheCert (GF := GF) cf).prog r ⊢ (etcdStepCert cf.pfx).prog r := by
+  show cacheRev cf r ⊢ etcdReached r
+  unfold cacheRev
+  iintro ⟨H, -⟩; iexact H
+
+/-- **The revision bound's authority**, the watch loop's: the bound is `B`, which etcd has
+reached. -/
+def cacheBound (cf : CacheFields) (B : w64) : IProp GF :=
+  iprop(monoNatAuthOwn cf.γb 1 (sint.nat B) ∗ etcdReached B ∗ ⌜0 ≤ sint.Z B⌝)
+
+/-- Under the authority `B`, every revision with a lower bound is at most `B`. -/
+theorem cacheBound_le (cf : CacheFields) (B r : w64) :
+    cacheBound (GF := GF) cf B ∗ cacheRev cf r ⊢ ⌜sint.Z r ≤ sint.Z B⌝ := by
+  unfold cacheBound cacheRev cacheBoundLb
+  iintro ⟨⟨Ha, -, %HB⟩, -, (%H | #H)⟩
+  · ipureintro; omega
+  · ihave %Hv := monoNatLbOwn_valid $$ Ha H
+    ipureintro
+    have h2 := Hv.2
+    by_cases h0 : 0 ≤ sint.Z r
+    · have e1 : ((sint.nat r : Nat) : Int) = sint.Z r := Int.toNat_of_nonneg h0
+      have e2 : ((sint.nat B : Nat) : Int) = sint.Z B := Int.toNat_of_nonneg HB
+      omega
+    · omega
+
+/-- Raise the revision bound to a revision `r` etcd has reached (or keep it), for a lower bound. -/
+theorem cacheBound_raise (cf : CacheFields) (B r : w64) :
+    cacheBound (GF := GF) cf B ∗ etcdReached r ⊢
+      |==> ∃ B', cacheBound cf B' ∗ cacheBoundLb cf r ∗ ⌜sint.Z B ≤ sint.Z B'⌝ := by
+  unfold cacheBound cacheBoundLb
+  iintro ⟨⟨Ha, #HB, %HB0⟩, #Hr⟩
+  by_cases h : sint.Z r ≤ sint.Z B
+  · ihave #Hlb := monoNatLbOwn_get $$ Ha
+    imodintro
+    iexists B
+    iframe Ha HB
+    isplitr
+    · ipureintro; exact HB0
+    isplitl
+    · by_cases h0 : sint.Z r ≤ 0
+      · ileft; ipureintro; exact h0
+      · iright; iapply monoNatLbOwn_le (sint.nat r) (Int.toNat_le_toNat h) $$ Hlb
+    · ipureintro; exact Int.le_refl _
+  · imod mono_nat_own_update (sint.nat r) (Int.toNat_le_toNat (Int.le_of_lt (Int.not_le.1 h))) $$ Ha
+      with ⟨Ha, #Hlb⟩
+    imodintro
+    iexists r
+    iframe Ha Hr
+    isplitr
+    · ipureintro; omega
+    isplitl
+    · iright; iexact Hlb
+    · ipureintro; omega
+
+/-- Raise the revision bound over a list of revisions etcd has reached. -/
+theorem cacheBound_raise_list (cf : CacheFields) :
+    ∀ (B : w64) (xs : List w64), cacheBound (GF := GF) cf B ∗ (□ ∀ x, ⌜x ∈ xs⌝ -∗ etcdReached x) ⊢
+      |==> ∃ B', cacheBound cf B' ∗ (□ ∀ x, ⌜x ∈ xs⌝ -∗ cacheBoundLb cf x)
+  | B, [] => by
+    iintro ⟨Hb, -⟩
+    imodintro
+    iexists B
+    iframe Hb
+    imodintro
+    iintro %x %Hx
+    simp at Hx
+  | B, x :: xs => by
+    iintro ⟨Hb, #Hall⟩
+    ihave #Hx : etcdReached x $$ []
+    · iapply Hall; ipureintro; exact List.mem_cons_self
+    imod cacheBound_raise cf B x $$ [$Hb $Hx] with ⟨%B1, Hb, #Hlbx, -⟩
+    imod cacheBound_raise_list cf B1 xs $$ [Hb] with ⟨%B2, Hb, #Hlbs⟩
+    · iframe Hb
+      imodintro
+      iintro %y %Hy
+      iapply Hall; ipureintro; exact List.mem_cons_of_mem _ Hy
+    imodintro
+    iexists B2
+    iframe Hb
+    imodintro
+    iintro %y %Hy
+    rcases List.mem_cons.1 Hy with rfl | Hy
+    · iexact Hlbx
+    · iapply Hlbs; ipureintro; exact Hy
+
+/-- A certificate chain of etcd's steps whose batches are all at most the bound is one of the
+cache's. -/
+theorem certChain_cacheCert (cf : CacheFields) :
+    ∀ (last : Int) (bs : List Batch),
+    certChain (GF := GF) (etcdStepCert cf.pfx) last bs ∗
+      (□ ∀ b, ⌜b ∈ bs⌝ -∗ cacheBoundLb cf (batchRev b)) ⊢
+    certChain (cacheCert cf) last bs
+  | _, [] => by iintro -; iapply certChain_nil
+  | last, b :: bs => by
+    rw [certChain_cons, certChain_cons]
+    have hcert : ∀ p b, (etcdStepCert (GF := GF) cf.pfx).cert p b = etcdStepCertBody cf.pfx p b :=
+      fun _ _ => rfl
+    simp only [hcert]
+    iintro ⟨⟨⟨%p, %Hp, #Hc⟩, Hch⟩, #Hlb⟩
+    isplitl []
+    · iexists p
+      isplitr
+      · ipureintro; exact Hp
+      imodintro
+      simp only [cacheCert]
+      isplitl
+      · iexact Hc
+      · iapply Hlb; ipureintro; exact List.mem_cons_self
+    · iapply certChain_cacheCert cf (sint.Z (batchRev b)) bs $$ [$Hch]
+      imodintro
+      iintro %b' %Hb'
+      iapply Hlb; ipureintro; exact List.mem_cons_of_mem _ Hb'
+
+/-- **Certifying a response for the cache's demux**: etcd's certificates of the response (what the
+watch gives, `respCert (etcdStepCert pfx)`), and the revision bound raised to the response's
+revisions (each of which etcd has reached). -/
+theorem respCert_cacheCert (cf : CacheFields) (c : DemuxCore) (r : RespModel) (B : w64) :
+    respCert (GF := GF) (etcdStepCert cf.pfx) c r ∗ cacheBound cf B ⊢
+      |==> ∃ B', respCert (cacheCert cf) c r ∗ cacheBound cf B' := by
+  unfold respCert
+  split
+  · iintro ⟨⟨%Hb, #Hp⟩, Hbd⟩
+    have hp : (etcdStepCert (GF := GF) cf.pfx).prog r.hdrRev = etcdReached r.hdrRev := rfl
+    rw [hp]
+    imod cacheBound_raise cf B r.hdrRev $$ [$Hbd $Hp] with ⟨%B', Hbd, #Hlb, -⟩
+    imodintro
+    iexists B'
+    iframe Hbd
+    isplitr
+    · ipureintro; exact Hb
+    imodintro
+    have hc : (cacheCert (GF := GF) cf).prog r.hdrRev = cacheRev cf r.hdrRev := rfl
+    rw [hc]
+    unfold cacheRev
+    iframe Hp Hlb
+  · split
+    · iintro ⟨-, Hbd⟩
+      imodintro
+      iexists B
+      iframe Hbd
+    · iintro ⟨#Hch, Hbd⟩
+      ihave #Hprog := certChain_prog (C := etcdStepCert cf.pfx) _ _ $$ Hch
+      have hp : ∀ x, (etcdStepCert (GF := GF) cf.pfx).prog x = etcdReached x := fun _ => rfl
+      simp only [hp]
+      imod cacheBound_raise_list cf B ((splitBatches r.events).map batchRev) $$ [Hbd] with
+        ⟨%B', Hbd, #Hlbs⟩
+      · iframe Hbd
+        imodintro
+        iintro %x %Hx
+        obtain ⟨b, hb, rfl⟩ := List.mem_map.1 Hx
+        iapply Hprog; ipureintro; exact hb
+      imodintro
+      iexists B'
+      iframe Hbd
+      iapply certChain_cacheCert cf _ _ $$ [$Hch]
+      imodintro
+      iintro %b %Hb
+      iapply Hlbs; ipureintro; exact List.mem_map_of_mem Hb
+
+/-- `respCert_cacheCert` for a certificate needed only under a condition (`Broadcast`'s, for a
+response it accepts). -/
+theorem respCert_cacheCert_cond (cf : CacheFields) (c : DemuxCore) (r : RespModel) (B : w64)
+    (φ : Prop) :
+    (□ (⌜φ⌝ -∗ respCert (GF := GF) (etcdStepCert cf.pfx) c r)) ∗ cacheBound cf B ⊢
+      |==> ∃ B', (□ (⌜φ⌝ -∗ respCert (cacheCert cf) c r)) ∗ cacheBound cf B' := by
+  by_cases h : φ
+  · iintro ⟨#Hc, Hbd⟩
+    ihave #Hc1 := Hc $$ %h
+    imod respCert_cacheCert cf c r B $$ [$Hc1 $Hbd] with ⟨%B', #Hc2, Hbd⟩
+    imodintro
+    iexists B'
+    iframe Hbd
+    imodintro
+    iintro -
+    iexact Hc2
+  · iintro ⟨-, Hbd⟩
+    imodintro
+    iexists B
+    iframe Hbd
+    imodintro
+    iintro %h'
+    exact absurd h' h
+
+/-- The demux's writer for the cache (`cacheCert`), with its invariant across watches, and the
+revision bound's authority. -/
 def cacheWriter (cf : CacheFields) (γd : DemuxNames) (cap : Nat) (c : DemuxCore) : IProp GF :=
-  iprop(demuxWriter cf.demux γd cap (etcdStepCert cf.pfx) c ∗ ⌜WriterOk cf.pfx c⌝)
+  iprop(demuxWriter cf.demux γd cap (cacheCert cf) c ∗ ⌜WriterOk cf.pfx c⌝ ∗
+    ∃ B : w64, cacheBound cf B)
 
 /-- What a log `L` of responses on `Cache.Watch`'s channel is: a log the watcher's producer had,
 with its delivery facts and certificates (`demuxPubBody … none`); or such a log closed by a
@@ -524,6 +847,41 @@ def cacheWatchLog (C : DemuxCert GF) (pred : Option (GoString → Bool)) (sr : w
 instance cacheWatchLog_persistent (C : DemuxCert GF) (pred : Option (GoString → Bool)) (sr : w64)
     (L : List RespModel) : Persistent (cacheWatchLog C pred sr L) := by
   unfold cacheWatchLog; infer_instance
+
+/-- Certificate chains are monotone in the certificate. -/
+theorem certChain_mono (C C' : DemuxCert GF) (h : ∀ p b, C.cert p b ⊢ C'.cert p b) :
+    ∀ (last : Int) (bs : List Batch), certChain C last bs ⊢ certChain C' last bs
+  | _, [] => by iintro -; iapply certChain_nil
+  | last, b :: bs => by
+    rw [certChain_cons, certChain_cons]
+    iintro ⟨⟨%p, %Hp, #Hc⟩, Hch⟩
+    isplitl []
+    · iexists p
+      isplitr
+      · ipureintro; exact Hp
+      imodintro
+      iapply h $$ Hc
+    · iapply certChain_mono C C' h _ bs $$ Hch
+
+/-- A watcher's publication is monotone in the certificate. -/
+theorem demuxPubBody_mono (C C' : DemuxCert GF) (hc : ∀ p b, C.cert p b ⊢ C'.cert p b)
+    (hp : ∀ r, C.prog r ⊢ C'.prog r) (pred : Option (GoString → Bool)) (sr : w64)
+    (oc : Option (Option w64)) (L : List RespModel) :
+    demuxPubBody C pred sr oc L ⊢ demuxPubBody C' pred sr oc L := by
+  unfold demuxPubBody
+  iintro ⟨%s, %v, %p₀, %Hpure, Hch, #Hprog⟩
+  iexists s, v, p₀
+  isplitr
+  · ipureintro; exact Hpure
+  isplitl [Hch]
+  · iapply certChain_mono C C' hc $$ Hch
+  · imodintro; iapply hp $$ Hprog
+
+/-- The cache's demux publications give etcd's (`etcdStepCert`). -/
+theorem demuxPubBody_cacheCert (cf : CacheFields) (pred : Option (GoString → Bool)) (sr : w64)
+    (oc : Option (Option w64)) (L : List RespModel) :
+    demuxPubBody (cacheCert cf) pred sr oc L ⊢ demuxPubBody (etcdStepCert (GF := GF) cf.pfx) pred sr oc L :=
+  demuxPubBody_mono _ _ (cacheCert_cert cf) (cacheCert_prog cf) pred sr oc L
 
 /-- The `i`-th response `v` on `Cache.Watch`'s channel: modelled by `r`, the `i`-th of a log `L`
 (of the monotone log `fwd`) that is a `cacheWatchLog`. -/
@@ -555,7 +913,7 @@ def cacheWatchConsumer (γ : CacheWatchNames) (C : DemuxCert GF) (pred : Option 
 sends progress notifications and unregisters with it) and a goroutine slot of the cache's wait
 group (both kept by the goroutine). -/
 def cacheWatchSlot (cf : CacheFields) (γd : DemuxNames) (cap : Nat) : IProp GF :=
-  iprop(demuxHandle cf.demux γd cap (etcdStepCert cf.pfx) ∗ cacheWgSlot cf)
+  iprop(demuxHandle cf.demux γd cap (cacheCert cf) ∗ cacheWgSlot cf)
 
 /-- A log published by the demux with nothing in it (`newWatcher`'s premise, for the watcher
 `Watch` registers with start `sr`). -/
@@ -718,9 +1076,10 @@ def isCacheFields (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNa
     "#Hready" ∷ cacheReadyAddr c ↦□ cf.ready ∗
     "#Hdemux" ∷ cacheDemuxAddr c ↦□ cf.demux ∗
     "#HisReady" ∷ isReady cf.ready γr ∗
-    "#HisDemux" ∷ isDemux cf.demux γd cap (etcdStepCert cf.pfx) ∗
+    "#HisDemux" ∷ isDemux cf.demux γd cap (cacheCert cf) ∗
     "#Hstore" ∷ cacheStoreAddr c ↦□ cf.store ∗
     "#HisStore" ∷ isStore cf.store cf.γs cf.scap ∗
+    "#HisStoreW" ∷ isStoreWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) (cacheRev cf) ∗
     "#Hkv" ∷ cacheKvAddr c ↦□ GoInterface.ok cf.kv ∗
     "#HisKV" ∷ isEtcdKV cf.kv cf.pfx ∗
     "#Hpr" ∷ cachePrAddr c ↦□
@@ -775,9 +1134,9 @@ instance validateResult_persistent (u : Bool) (pfx key rangeEnd : GoString) (f :
 /-! ## `Cache.Get` -/
 
 /-- A reader's token of the cache's store, with the cache's certificates (`etcdCert`,
-`etcdReached`). -/
+`cacheRev`). -/
 def cacheReader (cf : CacheFields) : IProp GF :=
-  storeReader cf.store cf.γs cf.scap (etcdCert cf.pfx) etcdReached
+  storeReader cf.store cf.γs cf.scap (etcdCert cf.pfx) (cacheRev cf)
 
 /-- What `waitTillRevision(ctx, rev)` returns: `nil` once the store's latest revision is at
 least `rev`; the value of `ErrCacheTimeout`; or the context's (non-nil) error once it is

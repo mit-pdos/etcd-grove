@@ -916,7 +916,8 @@ against etcd. `InvEtcd.lean`, `InvDemux.lean`, `InvWatcher.lean`, `InvCache.lean
 
 ## The watch loop is verified against the fixed code
 
-**2026-10-09 · accepted**
+**2026-10-09 · superseded the same day** by "No code changes unless a bug" (below): the verified
+code is now upstream main plus the readiness fix only; the other two fixes are reverted.
 
 `Cache.watch`, `getWatch` and `getWatchLoop` are proved against etcd's cache with three fixes
 (fork branch `cache-ready-after-retry`, merged into `goose-lean` at `6ab61a1c7`), not against
@@ -962,6 +963,59 @@ would leave the wait group's `int32` counter unbounded, so the loop could not be
   also bounds the revision below `2 ^ 63 - 1`, as the watch contract does, so that `getWatch`'s
   `rev + 1` does not overflow. (Superseded 2026-10-09 by `etcdReached`, "`New` and the client":
   no premise; the bound is in `isEtcdKV`'s result.)
+
+## No code changes unless a bug: the shared-writer store and the WaitGroup assumption
+
+**2026-10-09 · accepted**
+
+The user's rule: no change to etcd's code unless it fixes a bug. Of the fix branch's three
+commits only `64313a1f8` (the cache could stay not ready after a retry) fixes one; `a7de41a72`
+(`watch` waits for `applyStorage`) and `21ac13e0d` (cancel the upstream watch) do not, and are
+reverted (`goose-revert`, `ab1deb078`). The proofs fit the code as shipped.
+
+- **Why the two are not bugs.** The drain (an old iteration's `applyStorage` still applying its
+  stopped watcher's buffered responses beside the next iteration or the next `Restore`) is
+  harmless: the store serializes its writers on `mu`, `validateRevisions` rejects whatever does
+  not follow the store's latest revision, and the next `Get`, being linearizable, returns at
+  least every revision a drain can apply. The open upstream watch is a resource leak, not a
+  correctness issue (a finding for the maintainers).
+- **The store has shared writers.** No exclusive `storeWriter`: the lock invariant alone keeps
+  `StoreInv`, the certified history and `Synced`; writers hold the persistent `isStoreWriter`
+  (Perennial's new `isRWMutexGuard`: a writer needs none of `RWMutex`'s bounded reader slots, and
+  the loop starts unboundedly many goroutines); the latest tree, not fractional, lives in an
+  invariant of its own, lent to the write lock's holder. `Restore` and `Apply` are specified for
+  the state they find: `Restore` with a dominance premise (`P` with which no revision the store
+  can be at is above `rev`), `Apply` with the caller's certificate for any state at or above its
+  lower bound on the newest snapshot (`storeApplyCert`: the response changes nothing, or applies
+  with its snapshots and revisions certified). Postconditions are existential, as readers' are.
+- **The revision bound.** `Restore`'s dominance needs an upper bound on every revision the store
+  can reach, including a pending drain's: a cache-level `monoNat` (`γb`) the loop alone advances,
+  before each `Broadcast` and each `Restore`; the store's revision certificate and the demux's
+  certificate say "at most the bound" (`cacheRev`, `cacheCert`), the loop knows etcd has reached
+  the bound, so its linearizable `Get` returns at least it. *Rejected:* the demux's `maxRev` (not
+  monotone: `Init` purges it to `0`); `etcdReached` alone (a lower bound: it cannot dominate).
+  `Watch`'s statement keeps `etcdStepCert` (its channel's publications are weakened).
+- **A model axiom: deletes are of present keys** (`etcdStep_delete_present`). With one writer a
+  failed `Apply` (a delete of a missing key, which the store's model allows) was followed by a
+  `Restore` before anything else wrote; with shared writers another writer could build on the
+  half-applied map and append a snapshot that is not etcd's state. With the axiom (true of etcd:
+  it emits a delete event only for a key it removes) a batch etcd certifies applies to a map that
+  is etcd's state before it, so `Apply` never fails on a response it accepts. *Rejected:* proving
+  from the demux's log that after a failure only the failing batch can be accepted again, and
+  that it fails again (the steps are opaque to the model: no "nothing between" is derivable);
+  a "poisoned" store state (readers' certificates would weaken).
+- **`WaitGroup.Add`'s overflow is a model assumption** (Perennial `614fa61d3`). The loop
+  `Add(1)`s per iteration and each `Done` runs in a goroutine the demonic scheduler may delay for
+  ever, so the `int32` counter is unbounded and Go's panic on its overflow unprovable. As
+  `append`'s length overflow, it is assumed: `WaitGroup.Add` is a trusted model, Goose's
+  translation verbatim but for the atomic add, a compare-and-swap loop that assumes the sum fits.
+  The assumption must be atomic with the add (an `assume` after Go's atomic add would be too late:
+  the wrapped counter would be visible to other goroutines, whose `Done` would panic), hence the
+  compare-and-swap, and `Add`'s atomic update opens at `⊤ \ ↑N` (the proof reads the state in the
+  wait group's invariant before deciding to commit). *Rejected:* time receipts (bounding the
+  execution to `2^31` steps, an assumption about every result); a fork change (not a bug).
+- *Rejected: the exclusive writer* (the previous design): it needs the loop to wait for each
+  iteration's goroutine, a code change that fixes no bug.
 
 ## `New` and the client: translating `Client`, timers as the trust boundary
 

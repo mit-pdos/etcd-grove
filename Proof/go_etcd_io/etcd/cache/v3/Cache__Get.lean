@@ -53,7 +53,7 @@ theorem Cache.Get.wp_proof
   iNamed Hc'
   wp_auto
   unfold cacheReader
-  wp_apply wp_LatestRev cf.store cf.γs cf.scap (etcdCert cf.pfx) etcdReached r0 $$ [$HisStore $Hrd $Hlb]
+  wp_apply wp_LatestRev cf.store cf.γs cf.scap (etcdCert cf.pfx) (cacheRev cf) r0 $$ [$HisStore $Hrd $Hlb]
     as %lr ⟨Hrd, %st0, #Hseen0, #-, %Hlr⟩
   ihave Hci : (cacheInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -245,7 +245,7 @@ theorem Cache.Get.wp_proof
           itrivial
       all_goals
         icases Hfresh with ⟨%r0', #Hlb', %Hr0', Hfr⟩
-        wp_apply wp_store_Get cf.store cf.γs cf.scap (etcdCert cf.pfx) etcdReached r0' ssl esl key
+        wp_apply wp_store_Get cf.store cf.γs cf.scap (etcdCert cf.pfx) (cacheRev cf) r0' ssl esl key
           of.base.rangeEnd (DFrac.own 1) DFrac.discard of.base.rev $$ [$HisStore $Hrd $Hlb' $Hssl $Hesl]
           as %kvs %lrev %gerr ⟨Hrd, Hssl, -, %st, #Hseen, #-, #Herr, Hres⟩
         iunfold storeSeen at Hseen
