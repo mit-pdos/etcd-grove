@@ -4,7 +4,7 @@ initialization instances for `go.etcd.io/raft/v3` and the packages it imports.
 
 This replaces Perennial's `Perennial.Proof.go_etcd_io.raft.v3_proof.base` (the port of
 upstream's `base.v`), which must not be imported alongside it: `IsPkgInit` has one
-instance per package, and etcd-grove's raft instance is stronger.
+instance per package, and etcd-grove's raft and `crypto/rand` instances are stronger.
 Everything here is an assumption about package initialization: nothing proves it from
 the packages' `initialize'` functions.
 
@@ -91,17 +91,6 @@ instance confchange_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.raft.v3.confchange :=
   build_get_is_pkg_init_wf
 
-/-- `crypto/rand`'s package-level `Reader` (an `io.Reader`). `lockedRand.Intn` reads it
-through `GlobalVarAddr` to pass it to `rand.Int`, so a proof of that method needs the
-points-to. Its value is opaque: nothing is known about it beyond being the reader the
-package installed, and the `rand.Int` triple is stated for exactly that reader.
-`crypto/rand`'s and `math/big`'s `IsPkgInit` instances are Perennial's
-(`Perennial.Proof.crypto.rand`, `Perennial.Proof.math.big`, since Perennial `00b3c10ea`);
-this is the body of Perennial's `crypto.rand.isInitialized`. -/
-def isRandInitialized : IProp GF :=
-  iprop(∃ rdr : GoInterface,
-    "#Reader" ∷ (globalAddr crypto.rand.Reader ↦□ rdr : IProp GF))
-
 instance os_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.os :=
   define_is_pkg_init iprop(True)
 instance os_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.os :=
@@ -178,10 +167,6 @@ instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.raft.v3 :=
   define_is_pkg_init isInitialized
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.raft.v3 :=
   build_get_is_pkg_init_wf
-
-theorem isRandInitialized_access :
-    isPkgInit (PROP := IProp GF) pkg_id.crypto.rand ⊢ isRandInitialized :=
-  _root_.Perennial.crypto.rand.isInitialized_access
 
 theorem isInitialized_access :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ⊢ isInitialized :=

@@ -1,12 +1,12 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-09 (Perennial `56b1b6651`: `fmt.Sprintf` and `strings.Join` proved from Perennial's models, `rand.Int` stays assumed; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
+**Last updated:** 2026-10-09 (Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
 
 Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
 `worktree-raft-replication`'s `feb5c73d4` and adds Ready/Advance/HasReady; the files
 were first ported from `main`, then from `feb5c73d4`) to Lean on top of Perennial's Lean
-port (mit-pdos/perennial `lean`, pinned at 56b1b6651 (2026-10-09: on 56b1b6651: our 3ae7dc6a4 merged with upstream's `00b3c10ea` (trusted models and proved specs of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`; `math/big`'s `ownInt` normalized, its and `crypto/rand`'s `IsPkgInit` instances now Perennial's), see "Perennial `56b1b6651`"; on 68d220ac8: `fmt.wp_Errorf` proved, `map.forRange` with `wp_map_for_range_mut{,_keys}`, `context.wp_WithCancel` proved; on 3ae7dc6a4: `context.isClosedchanInit`, see "Sorry-free"; on 8c33774d0: upstream's `37416dd10` (Rocq code removed) and `cdf8c0f81` (Goose without `-lean` and the ⁱᵐᵖˡ encoding) merged, see below; on f8b35ddbf: `context.wp_Background`, `wp_WithCancel_Background`; on f35530719: Goose prints an axiomatized generic type in Lean; on 8c7000190: `time.NewTimer`, `Timer.Stop`/`Reset` axioms; on 96ec7016d: `fmt.wp_Printf`, `time.Minute`; on 099c2a08b: `fmt.wp_Errorf`'s `Error()`; on 640a605cc: a `select` case on a nil channel is never ready, `chan.wp_select_blocking_nil`; on 48e1192c7: rlocker, `Cond.wp_Wait_with`, `time.wp_Since`) on cbb85c041: upstream's `11fd2db` merged with
+port (mit-pdos/perennial `lean`, pinned at 79adaac01 (2026-10-09: on 79adaac01: `context.wp_withCancel` builds again (it does not at 3ae7dc6a4); on 56b1b6651: `00b3c10ea` merged, models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`; on 68d220ac8: `fmt.wp_Errorf` proved, `map.forRange` with `wp_map_for_range_mut{,_keys}`, `context.wp_WithCancel` proved; on 3ae7dc6a4: `context.isClosedchanInit`, see "Sorry-free"; on 8c33774d0: upstream's `37416dd10` (Rocq code removed) and `cdf8c0f81` (Goose without `-lean` and the ⁱᵐᵖˡ encoding) merged, see below; on f8b35ddbf: `context.wp_Background`, `wp_WithCancel_Background`; on f35530719: Goose prints an axiomatized generic type in Lean; on 8c7000190: `time.NewTimer`, `Timer.Stop`/`Reset` axioms; on 96ec7016d: `fmt.wp_Printf`, `time.Minute`; on 099c2a08b: `fmt.wp_Errorf`'s `Error()`; on 640a605cc: a `select` case on a nil channel is never ready, `chan.wp_select_blocking_nil`; on 48e1192c7: rlocker, `Cond.wp_Wait_with`, `time.wp_Since`) on cbb85c041: upstream's `11fd2db` merged with
 `bytes.Compare`, on Lean's module system since 2026-10-09). The Goose translations of
 etcd-raft and etcd's `cache` package are this repository's `Code/` and `GeneratedProof/`,
 generated and checked by `etc/goose.py`. Files are laid out by kind and Go package path
@@ -14,29 +14,37 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
-## Perennial `56b1b6651`: `fmt.Sprintf`, `strings.Join` proved (2026-10-09)
+## Perennial models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int` (2026-10-09)
 
-Perennial's `00b3c10ea` (merged into ours as `56b1b6651`) gives `fmt.Sprintf`,
-`strings.Join` and `crypto/rand.Int` trusted models (`Perennial/TrustedCode`) and proved
-specs. Two of the raft trust-boundary axioms are now theorems, with their `.spec`s
-unchanged (only docstrings), so `Link.lean` is untouched:
-- `fmt.Sprintf.wp_proof` from `fmt.wp_Sprintf` (needs only `isPkgInit`; the args slice is framed);
-- `strings.Join.wp_proof` from `strings.wp_Join` (stronger: the result is `sep.intercalate xs`;
-  Go's panic on a length overflow is not in the model, so the no-panic claim now rests on it).
-- `rand.Int.wp_proof` **stays an axiom**: `crypto.rand.wp_Int` has the same pre/postcondition
-  (same reader, `math.big.ownInt` = our `ownBigInt`) but needs `mz < 2^63` (the model reads one
-  magnitude word and panics beyond); our spec claims every `0 < mz`.
+The three standard-library axioms of the Raft proof are theorems now, from trusted models
+in Perennial (`Perennial/TrustedCode/{fmt,strings,crypto/rand}.lean`, wired through
+`trusted` in the packages' `.toml`; Perennial `00b3c10ea`, merged with upstream's
+`3ae7dc6a4` as `56b1b6651`; pinned at `79adaac01`, which also fixes `context.lean`'s
+`wp_withCancel`: at `3ae7dc6a4` `Perennial.Proof.context` does not build, so neither does
+`lean` at `55d80f991`):
 
-`Proof/go_etcd_io/raft/v3/Base.lean` lost its `math/big` and `crypto/rand` `IsPkgInit`
-instances (Perennial now has them; `isRandInitialized` keeps the same body, its
-`_access` goes through Perennial's `crypto.rand.isInitialized_access`). Perennial's
-`etc/lean-ci.sh`: 369/369 modules ok. Gates: `lake build` passes (1660 jobs);
-`etc/goose.py --check` passes (no translation changed); `etc/tcb-report.py --check --update`:
-the baseline lost exactly `fmt.Sprintf.wp_proof` and `strings.Join.wp_proof` (36 entries, all
-axioms, 0 sorries); `etc/gen-link.py --cache`/`--server` and `etc/gen-btree-link.py`
-reproduce their `Link.lean`; `etc/verified-code.py --reuse`: totals unchanged (Raft 175/323,
-0 assumed: these are standard-library specs, outside the totals, where `fmt.Sprintf` and
-`strings.Join` are now "verified"); cache 107/107 sorry-free. Push Perennial (`56b1b6651`) first.
+- `fmt.Sprintf`: returns its format string (as `Errorf`'s model does); `fmt.wp_Sprintf`
+  promises some string, which is all `Spec/fmt/Sprintf.lean` says.
+- `strings.Join`: goose's translation of a `+` loop; `strings.wp_Join` returns
+  `sep.intercalate xs`. Go's panic when the length overflows `int` is not modelled (as
+  for `append` and string `+`), which is the overflow the old axiom's no-panic claim
+  glossed over.
+- `crypto/rand.Int`: an arbitrary value in `[0, max)` and no error for `0 < max < 2^63`,
+  read from `max`'s sign and one magnitude word; a panic otherwise; the reader is not
+  read. `crypto.rand.wp_Int` is for the package's own `Reader` (which never returns an
+  error), so `Spec/crypto/rand/Int.lean` gained `mz < 2^63` (`lockedRand.Intn` passes an
+  `int64`). Perennial's `math.big.ownInt` now records a normalized magnitude (Go's
+  invariant), which reading a value below `2^63` as one word needs, and Perennial owns
+  `math/big`'s and `crypto/rand`'s `isPkgInit` (the `Reader` points-to, formerly
+  `isRandInitialized` in `Base.lean`).
+
+(`d45daf8ab`, from a parallel session, had proved `Sprintf` and `Join` from the same
+models, kept `rand.Int` an axiom and pinned `56b1b6651`; this supersedes it.)
+`etc/tcb-report.py --check` (after `--update`): 35 axioms, no `sorry`. The Raft proof's one
+remaining axiom is `reflect.DeepEqual`, which `RawNode.wp_Propose`, `wp_Advance`,
+`wp_newRaft` and `raft.wp_Step` reach (through `assertConfStatesEquivalent` in `newRaft`
+and `raft.restore`); `RawNode.wp_Ready` and `wp_HasReady` rest on none of this
+repository's axioms.
 
 ## Sorry-free (2026-10-09)
 
@@ -76,7 +84,6 @@ sorry-free), 13 assumed of 3599 (1560 of 45566 lines, 3.4%), `server/v3` 19 veri
 unfinished, 9 assumed (215 lines). `Results.lean`'s `#print axioms` of `cache_New`,
 `cache_Get`, `cache_Watch`, `cache_Watch_delivery`: no `sorryAx`. Push Perennial
 (`3ae7dc6a4`) first.
-
 ## The cache: linearizability as a model fact, `etcdReached` (2026-10-09)
 
 The client assumption no longer mentions caches. "etcd has reached revision `r`"
@@ -315,7 +322,8 @@ passes (1333 jobs), `etc/goose.py --check` passes, `etc/gen-link.py --cache` rep
   from Perennial's trusted models; the Raft proof's own axioms are `reflect.DeepEqual` and
   `rand.Int` (Perennial's `wp_Int` covers only `mz < 2^63`).
 - **What the four remaining axioms would take** (checked 2026-10-08, with "no
-  higher-level spec changes" as the constraint):
+  higher-level spec changes" as the constraint; since 2026-10-09 only `reflect.DeepEqual`
+  remains, the other three are Perennial models, see the section at the top):
   - `fmt.Sprintf`, `strings.Join`: not translatable (`fmt`'s printer reaches
     `reflect`; `strings.Builder.String` is `unsafe.String`), and `Join`'s no-panic claim
     needs a bound on the strings' total length that `Sprintf`'s "some string" cannot

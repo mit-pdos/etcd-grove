@@ -4,7 +4,6 @@ Port of `election_proof/proof_strings_Join.v`.
 module
 
 public import Spec.strings.Join
-public import Perennial.Proof.strings
 
 @[expose] public section
 
@@ -22,16 +21,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- Proved in Perennial (`Perennial.Proof.strings`, `wp_Join`, against the trusted model
-of `Join`), which also says the result is `sep.intercalate xs`. -/
+/-- From Perennial's `strings.wp_Join`, proved from its model of `Join`
+(`Perennial/TrustedCode/strings.lean`). -/
 theorem strings.Join.wp_proof : strings.Join.spec (GF := GF) (hG := hG) := by
   intro elems xs dq sep
-  iintro %Φ Hpre HΦ
-  iapply _root_.Perennial.strings.wp_Join elems xs dq sep $$ Hpre
-  inext
-  iintro Helems
-  iapply HΦ
-  iexact Helems
+  iintro %Φ ⟨#Hpkg, Hs⟩ HΦ
+  wp_apply _root_.Perennial.strings.wp_Join elems xs dq sep $$ [$Hs] as Hs
+  iapply HΦ $$ Hs
 
 
 end proof
