@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-09 (Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
+**Last updated:** 2026-10-10 (the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
 
 Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
@@ -13,6 +13,22 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 (`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
+
+## The `Advance` gap closed (2026-10-10)
+
+`RawNode.Advance` steps any queue `Ready` left, the node's own responses included;
+`RNState.advanceable` is gone (decisions.md, "RawNode: client-facing specs", "The gap --
+closed"). `Advance` now takes `rs.term + 1 < 2^64` and returns the term up by at most one
+(`∃ t, ownRawNode … { rs with steps := [], term := t } ∗ ⌜rs.term ≤ t ≤ rs.term + 1⌝`);
+`Ready` returns no flag. Underneath: `ownRaftPhys` records `msgsAfterAppend`'s messages
+(`AAMsgOk`) and the term never moves back (`raft.wp_store_Term`'s premise, threaded through
+`reset`/`becomeX`/`loadState`); `SendOk`'s response clauses, `appendEntry`/`becomeLeader`
+(`s.term ≠ 0`), `handleAppendEntries`/`handleSnapshot` (`m.From ≠ id`),
+`stepFollower`/`stepCandidate`/`stepLeader` gained premises; `raft.Step`'s spec gained
+`RespStep` in its postcondition and its `MsgPreVoteResp` no-wrap premise is only for a
+pre-candidate; `ownRaftGhost_term_nz` (`Protocol/Facts.lean`). `lake build
+Proof.go_etcd_io.raft.v3.Link Proof.go_etcd_io.raft.v3.Results` passes; no new `sorry`
+or axiom.
 
 ## `RawNode.Campaign`, `RawNode.Step` (2026-10-09)
 
@@ -468,11 +484,11 @@ passes (1333 jobs), `etc/goose.py --check` passes, `etc/gen-link.py --cache` rep
   trust rather than remove it.
 - **`RawNode` specs are client-facing (2026-10-09)**: `ownRawNode γ rn id rs` hides the
   node state, the ghost state and `NStateRel`; `RNState` is what a client observes
-  (delivered committed log, entries to persist, queued steps, `advanceable`); `Ready`'s
+  (delivered committed log, entries to persist, queued steps, term); `Ready`'s
   committed entries come with `isCommitted γ (rs.delivered ++ ce)`, no `applying`.
   `PstepCommitMono` and `ready_stable_ok` are proved; `raft.Step`'s spec gained a frame
-  for local messages. Known gap: `advanceable` -- a client can call `Ready` once, then
-  neither `Advance` nor `Ready` (see Next).
+  for local messages. The `Advance` gap (`advanceable`) is closed since 2026-10-10 (see
+  the section of that date).
 - Trust base: `etc/tcb-report.py` (gate: `--check` against `etc/tcb-baseline.txt`).
 - **Build checked 2026-10-08** at Perennial c35b7710d (a `--packages` override pointing
   at a checkout of the pinned commit): `lake build` completes (977 jobs, 0 errors); `etc/tcb-report.py --check`
@@ -632,10 +648,6 @@ every proof carried over unchanged but for the renames (the fork's `freeNode` an
 
 ## Next
 
-- **Close the `Advance` gap** (decisions.md, "RawNode: client-facing specs"): `Advance`
-  is proved only when `Ready` queued no self-addressed response, which the specs expose
-  as `RNState.advanceable`; since `Ready` does not say when that holds, no client can call
-  `Advance` (nor a second `Ready`) yet.
 - Follow the Rocq RawNode branch past 857d09190 (its worktree has an uncommitted
   edit to `proof_RawNode__Ready.v`, not ported).
 

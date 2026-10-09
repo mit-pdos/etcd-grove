@@ -99,6 +99,7 @@ def stepPost (γ : RaftNames) (cfg : GSet w64) (r : Loc) (id : w64) (s : NState)
      "%Hrefines" ∷ ⌜∃ recv, Step cfg id (toPState s) recv ps'⌝ ∗
      "%Hframe" ∷ ⌜m.Type' ≠ MsgSnap → NetFrame s s'⌝ ∗
      "%Hterm" ∷ ⌜m.Type' ≠ MsgSnap → TermStep m s s'⌝ ∗
+     "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
      "Herr" ∷ (⌜err = interface.nil⌝ ∨
                (⌜m.Type' = MsgProp⌝ ∗ globalAddr ErrProposalDropped ↦□ err))) -∗ Φ #err)
 
@@ -163,7 +164,8 @@ theorem finish_branch (γ : RaftNames) (cfg : GSet w64) (r : Loc) (id : w64)
     (Φ : val → IProp GF)
     (Hcfg : γ.reCfg = cfg) (Hwf' : NStateWf s') (Hrecv : ∀ m' ∈ recv, m' = a)
     (Hstep : Step cfg id (toPState s) recv (toPState s'))
-    (Hfr : m.Type' ≠ MsgSnap → NetFrame s s') (Htm : m.Type' ≠ MsgSnap → TermStep m s s') :
+    (Hfr : m.Type' ≠ MsgSnap → NetFrame s s') (Htm : m.Type' ≠ MsgSnap → TermStep m s s')
+    (Hresp : RespStep m s s') :
     ⊢ isMessage γ a -∗
       ownRaftGhost γ id (toPState s) -∗
       ownRaftPhys cfg r id s' -∗
@@ -178,14 +180,15 @@ theorem finish_branch (γ : RaftNames) (cfg : GSet w64) (r : Loc) (id : w64)
   iapply HΦ $$ %err %s' %(toPState s')
   iframe Hphys Hghost Herr
   ipureintro
-  exact ⟨⟨rfl, Hwf'⟩, ⟨recv, Hstep⟩, Hfr, Htm⟩
+  exact ⟨⟨rfl, Hwf'⟩, ⟨recv, Hstep⟩, Hfr, Htm, Hresp⟩
 
 /-- The same, for a branch that consumed nothing. -/
 theorem finish_branch0 (γ : RaftNames) (cfg : GSet w64) (r : Loc) (id : w64)
     (s s' : NState) (m : raftpb.Message) (err : GoInterface) (Φ : val → IProp GF)
     (Hcfg : γ.reCfg = cfg) (Hwf' : NStateWf s')
     (Hstep : Step cfg id (toPState s) [] (toPState s'))
-    (Hfr : m.Type' ≠ MsgSnap → NetFrame s s') (Htm : m.Type' ≠ MsgSnap → TermStep m s s') :
+    (Hfr : m.Type' ≠ MsgSnap → NetFrame s s') (Htm : m.Type' ≠ MsgSnap → TermStep m s s')
+    (Hresp : RespStep m s s') :
     ⊢ ownRaftGhost γ id (toPState s) -∗
       ownRaftPhys cfg r id s' -∗
       (⌜err = interface.nil⌝ ∨
@@ -200,7 +203,7 @@ theorem finish_branch0 (γ : RaftNames) (cfg : GSet w64) (r : Loc) (id : w64)
   iapply HΦ $$ %err %s' %(toPState s')
   iframe Hphys Hghost Herr
   ipureintro
-  exact ⟨⟨rfl, Hwf'⟩, ⟨[], Hstep⟩, Hfr, Htm⟩
+  exact ⟨⟨rfl, Hwf'⟩, ⟨[], Hstep⟩, Hfr, Htm, Hresp⟩
 
 end StepProof
 

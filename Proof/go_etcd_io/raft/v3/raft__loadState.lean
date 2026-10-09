@@ -25,7 +25,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem raft.loadState.wp_proof
     (wp_raftLog_lastIndex : raftLog.lastIndex.spec (GF := GF) (hG := hG)) :
     raft.loadState.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s hs Hc
+  intro cfg r id s hs Hc Hle
   wp_start as Hphys
   wp_auto
   -- Each `r.raftLog.f` loads the pointer through the struct first, so the log is taken
@@ -63,7 +63,8 @@ theorem raft.loadState.wp_proof
       | (intro Hs; exact StoredSnapOk_commit _ _ _ _ _ Hc.1 (Hssnap Hs))
       | word
   ihave Hphys := Hlogback $$ %_ HL
-  wp_apply raft.wp_store_Term $$ Hphys as Hphys
+  wp_apply raft.wp_store_Term cfg r id { s with logst := { s.logst with committed := hs.Commit' } }
+    hs.Term' Hle $$ Hphys as Hphys
   wp_apply raft.wp_store_Vote $$ Hphys as Hphys
   iapply HΦ
   iexact Hphys

@@ -39,14 +39,14 @@ set_option hygiene false in
 /-- Rocq's local `close_view`: close the raft struct unchanged (`Hphys`). -/
 local macro "close_view" : tactic => `(tactic| (
   ihave Hphys := Hclose $$ Hf_id Hf_Term Hf_Vote Hf_readStates Hf_raftLog Hf_state Hf_lead
-    Hf_msgs Hmsgs Hmsgs_cap Hf_msgsAA HmsgsAA HmsgsAA_cap Houtbox Hlog))
+    Hf_msgs Hmsgs Hmsgs_cap Hf_msgsAA HmsgsAA HmsgsAA_cap Houtbox %HmsgsAA_ok Hlog))
 
 set_option hygiene false in
 /-- Close the view, refold `ownRawNode` unchanged, return. -/
 local macro "finish" : tactic => `(tactic| (
   close_view
   iapply HΦ
-  iapply ownRawNode_intro γ rn id rs s ps rnv sv steps Hrel Hin Hasync Hdlen Hunp Hsnap Hadv Htrm
+  iapply ownRawNode_intro γ rn id rs s ps rnv sv steps Hrel Hin Hasync Hdlen Hunp Hsnap Hstok Htrm
     $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv))
 
 set_option hygiene false in

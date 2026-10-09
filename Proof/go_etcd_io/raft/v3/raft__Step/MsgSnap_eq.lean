@@ -96,7 +96,7 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       · iintro %_
         isplitr
         · ipureintro
-          exact ⟨Hscope, Hrole, Hvs, Hcfg⟩
+          exact ⟨Hscope, Hrole, Hvs, Hcfg, Hfid⟩
         · iframe Hsv Hvs
       · iintro %Hc; exfalso; rw [Hty] at Hc
         rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
@@ -117,7 +117,7 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   · -- Candidate: `becomeFollower(r.Term, m.From)`, then `handleSnapshot`
     simp only [stepFuncOf]
     wp_apply _P.stepCandidate cfg r id s m [] sv voters
-        (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))) (fun _ => Hteq) (.inl Hrole) Hcfg
+        (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))) (fun _ => ⟨Hteq, Hterm⟩) (.inl Hrole) Hcfg
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -126,7 +126,7 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       · iintro %_
         isplitr
         · ipureintro
-          exact Hscope
+          exact ⟨Hscope, Hfid⟩
         · iframe Hsv Hvs
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
     obtain ⟨rfl, pvs, Hhs⟩ := candidateStepResult_snap _ _ _ _ _ _ _ _ Hty Hres
@@ -149,7 +149,7 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     -- `handleSnapshot`
     simp only [stepFuncOf]
     wp_apply _P.stepCandidate cfg r id s m [] sv voters
-        (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))) (fun _ => Hteq) (.inr Hrole) Hcfg
+        (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))) (fun _ => ⟨Hteq, Hterm⟩) (.inr Hrole) Hcfg
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -158,7 +158,7 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       · iintro %_
         isplitr
         · ipureintro
-          exact Hscope
+          exact ⟨Hscope, Hfid⟩
         · iframe Hsv Hvs
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
     obtain ⟨rfl, pvs, Hhs⟩ := candidateStepResult_snap _ _ _ _ _ _ _ _ Hty Hres

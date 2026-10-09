@@ -84,7 +84,7 @@ theorem wp_Step_Resp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     wp_apply raft.wp_load_Term $$ Hphys as Hphys
     wp_raft_log
     iterate 6 (try (rw [Hty]; wp_auto))
-    wp_apply _P.becomeFollower $$ [$Hphys] as %pvs Hphys
+    wp_apply _P.becomeFollower _ _ _ _ _ _ (by exact Int.le_of_lt Hgt) $$ [$Hphys] as %pvs Hphys
     iterate 6 (try (rw [Hty]; wp_auto))
     wp_apply raft.wp_load_step $$ Hphys as Hphys
     rw [show ({ becomeFollower s m.Term' (W64 0) with prvals := pvs } : NState).stepfn =

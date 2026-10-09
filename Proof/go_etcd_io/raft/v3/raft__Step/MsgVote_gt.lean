@@ -119,7 +119,7 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   try wp_auto
   ty_ne 7
   try wp_auto
-  wp_apply _P.becomeFollower cfg r id s m.Term' (W64 0) $$ [$Hphys] as %pvs Hphys
+  wp_apply _P.becomeFollower cfg r id s m.Term' (W64 0) (Int.le_of_lt Hgt0) $$ [$Hphys] as %pvs Hphys
   -- the type switch: not MsgHup / MsgStorageAppendResp / MsgStorageApplyResp, not
   -- MsgPreVote, but MsgVote
   rw [Hty]
@@ -177,7 +177,8 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       Or.inl ⟨.voteResp, Or.inr (Or.inl rfl), rfl, by show s1.term ≠ W64 0; rw [Ht1]; exact Hterm,
         fun Hc => by
           exfalso; change MsgVoteResp = _ ∨ MsgVoteResp = _ at Hc
-          rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne), rfl⟩
+          rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne),
+        fun _ => ⟨rfl, rfl, by show uint.Z s1.term ≤ _; split <;> omega⟩, rfl⟩
     wp_apply _P.send cfg r id s1 resp [] _ (.inl rfl) Hok $$ [$Hphys] as Hphys
     · isplitr
       · iapply ownSlice_nil
@@ -202,7 +203,8 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       Or.inl ⟨.voteResp, Or.inr (Or.inl rfl), rfl, Hterm,
         fun Hc => by
           exfalso; change MsgVoteResp = _ ∨ MsgVoteResp = _ at Hc
-          rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne), rfl⟩
+          rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne),
+        fun _ => ⟨rfl, rfl, by show uint.Z m.Term' ≤ _; rw [Ht1]; split <;> omega⟩, rfl⟩
     -- `send` the granted vote response, then record the vote
     wp_apply _P.send cfg r id s1 resp [] _ (.inl rfl) Hok $$ [$Hphys] as Hphys
     · isplitr

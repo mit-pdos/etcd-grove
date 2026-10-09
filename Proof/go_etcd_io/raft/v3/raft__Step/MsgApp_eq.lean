@@ -98,7 +98,7 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     have Hvs := Hvotes Hrole
     wp_apply _P.stepFollower cfg r id s m ents (zero_val _) [] (.inr (.inr (.inl Hty)))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-        (fun _ => ⟨Hpwf, Hnw, Hnorm, Hconf⟩)
+        (fun _ => ⟨Hpwf, Hnw, Hnorm, Hconf, Hfid⟩)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       $$ [$Hphys Hcap] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
     · isplitl []
@@ -121,7 +121,7 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   · -- Candidate: `becomeFollower(r.Term, m.From)`, then the handler
     simp only [stepFuncOf]
     wp_apply _P.stepCandidate cfg r id s m ents (zero_val _) [] (.inr (.inr (.inl Hty)))
-        (fun _ => Hteq) (.inl Hrole) Hcfg (fun _ => ⟨Hpwf, Hnw, Hnorm, Hconf⟩)
+        (fun _ => ⟨Hteq, Hterm⟩) (.inl Hrole) Hcfg (fun _ => ⟨Hpwf, Hnw, Hnorm, Hconf, Hfid⟩)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       $$ [$Hphys Hcap] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
@@ -170,7 +170,7 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     -- the handler
     simp only [stepFuncOf]
     wp_apply _P.stepCandidate cfg r id s m ents (zero_val _) [] (.inr (.inr (.inl Hty)))
-        (fun _ => Hteq) (.inr Hrole) Hcfg (fun _ => ⟨Hpwf, Hnw, Hnorm, Hconf⟩)
+        (fun _ => ⟨Hteq, Hterm⟩) (.inr Hrole) Hcfg (fun _ => ⟨Hpwf, Hnw, Hnorm, Hconf, Hfid⟩)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       $$ [$Hphys Hcap] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩

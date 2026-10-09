@@ -22,9 +22,11 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `becomeFollower` is `r.step := stepFollower`, `reset`, and assignments to `lead`
 and `state`; `becomeFollower` (`Defs.lean`) is exactly that, `r.step` included. The
 precondition says nothing about `r.step`: the function overwrites it first, which is
-why `newRaft` can call this on a struct whose `step` is still nil. -/
+why `newRaft` can call this on a struct whose `step` is still nil. The term does not
+move back (`raft.reset.spec`, 2026-10-10). -/
 abbrev raft.becomeFollower.spec : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (term lead : w64),
+  uint.Z s.term ≤ uint.Z term →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s }}
     (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"becomeFollower"))
       (Val #term)) (Val #lead))

@@ -53,7 +53,7 @@ theorem RawNode.Tick.wp_proof
     isplitl
     · iapply ownRawNode_intro γ rn id { rs with term := s'.term } s' ps' rnv sv steps Hrel' Hin
         Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
-        (fun h => stepsOk_mono_le s s' _ Ht1 Hi Hc Ha (Hadv h)) rfl
+        (stepsOk_mono_le s s' _ Ht1 Hi Hc Ha Hstok) rfl
         $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv
     ipureintro
     rw [Htrm]

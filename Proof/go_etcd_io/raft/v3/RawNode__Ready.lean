@@ -14,11 +14,13 @@ previous `SoftState`/`HardState` are no longer in `RNState`), `readyNstate`; Roc
 tracked as `readyVal` (one field per argument); `needStorageAppendRespMsg`, `newStorageAppendRespMsg` and
 `newStorageApplyRespMsg`, stepped through inline in Rocq, get local specs
 (`wp_*_inline`); the Rocq `wp_if_join`s are `wp_join`s. `to_pstate_ready`, `nstate_rel_ready`, `ready_committed_prefix`,
-`ready_ce_last`, `nonself`, `selfmsgs`, `nonself_take_S`, `selfmsgs_take_S`, `selfabs`,
-`self_pending`, `self_pending_own`, `selfabs_in`, `msgs_abs_list`, `nonself_sepL` are
+`ready_ce_last`, `nonself`, `selfmsgs`, `nonself_take_S`, `selfmsgs_take_S`,
+`self_pending`, `self_pending_own`, `msgs_abs_list`, `nonself_sepL` are
 `toPState_ready`, `nstateRel_ready`, `ready_committed_prefix`, `ready_ce_last`,
-`nonself`, `selfmsgs`, `nonself_take_succ`, `selfmsgs_take_succ`, `selfabs`,
-`self_pending`, `self_pending_own`, `selfabs_in`, `msgs_abs_list`, `nonself_sepL`.
+`nonself`, `selfmsgs`, `nonself_take_succ`, `selfmsgs_take_succ`,
+`self_pending`, `self_pending_own`, `msgs_abs_list`, `nonself_sepL` (Rocq's `selfabs`,
+the self-addressed messages' abstractions, went on 2026-10-10: the queue records the
+messages' terms, `selfPending`).
 -/
 module
 
@@ -68,12 +70,12 @@ def readyNstate (s : NState) (ce : List raftpb.Entry) (sz : w64) : NState :=
            logst := logAcceptApplying (logAcceptUnstable s.logst) ce sz }
 
 /-- The local messages `acceptReady` queues for `Advance`: the self-addressed responses
-from `msgsAfterAppend`, an acknowledgement of the log up to its last entry if there
-were unstable entries, and an acknowledgement of the committed entries handed out, if
-any. -/
-def readySteps (s : NState) (selfs : List (Option Msg)) (ce : List raftpb.Entry) :
+from `msgsAfterAppend` (`selfs`, each `selfPending`), an acknowledgement of the log up to
+its last entry if there were unstable entries, and an acknowledgement of the committed
+entries handed out, if any. -/
+def readySteps (s : NState) (selfs : List Pending) (ce : List raftpb.Entry) :
     List Pending :=
-  selfs.map Pending.self ++
+  selfs ++
   (if s.logst.uents = [] then []
    else [Pending.appendAck s.term (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents))]) ++
   (if ce = [] then [] else [Pending.applyAck ce])
@@ -177,7 +179,8 @@ theorem eq_of_prefix_or {α : Type _} (l pre ce : List α) (H : l <+: pre ++ ce 
     rw [List.append_nil] at H
     exact (H.eq_of_length Hl.symm).symm
 
-/-- `StepsOk` of the queue `Ready` leaves, without self-addressed responses. -/
+/-- `StepsOk` of the acknowledgements `Ready` queues after the self-addressed
+responses. -/
 theorem ready_stepsOk (s' : NState) (t : w64) (last : entryID) (ce : List raftpb.Entry)
     (u : Prop) [Decidable u]
     (Ht : uint.Z t ≤ uint.Z s'.term)
@@ -188,7 +191,7 @@ theorem ready_stepsOk (s' : NState) (t : w64) (last : entryID) (ce : List raftpb
                 (if ce = [] then [] else [Pending.applyAck ce])) := by
   by_cases hu : u <;> by_cases hc : ce = [] <;>
     simp only [hu, hc, ↓reduceIte, List.nil_append, List.singleton_append]
-  · intro p Hp; cases Hp
+  · trivial
   · intro p Hp
     rw [List.mem_singleton] at Hp
     subst Hp
@@ -198,6 +201,16 @@ theorem ready_stepsOk (s' : NState) (t : w64) (last : entryID) (ce : List raftpb
     rw [List.mem_singleton] at Hp
     subst Hp
     exact Hce
+
+/-- `StepsOk` of self-addressed responses in front of a `StepsOk` queue. -/
+theorem stepsOk_selfs (s : NState) (selfs rest : List Pending)
+    (Hs : ∀ p ∈ selfs, (∃ pv t, p = .self pv t) ∧ PendingOk s p) (Hr : StepsOk s rest) :
+    StepsOk s (selfs ++ rest) := by
+  induction selfs with
+  | nil => exact Hr
+  | cons p ps IH =>
+    obtain ⟨⟨pv, t, rfl⟩, Hp⟩ := Hs p List.mem_cons_self
+    exact ⟨Hp, IH (fun q Hq => Hs q (List.mem_cons_of_mem _ Hq))⟩
 
 /-- The messages of `msgsAfterAppend` that `readyWithoutAccept` hands out (`To ≠ id`)
 and those `acceptReady` keeps to step (`To = id`). -/
@@ -222,17 +235,6 @@ theorem selfmsgs_take_succ (id : w64) (ms : List raftpb.Message) (n : Nat)
   rw [List.take_add_one, Hl]
   by_cases h : mm.To' = id <;> simp [List.filter_append, h]
 
-def selfabs (id : w64) (ms : List raftpb.Message) (as_ : List (Option Msg)) :
-    List (Option Msg) :=
-  ((ms.zip as_).filter (fun p => decide (p.1.To' = id))).map Prod.snd
-
-theorem selfabs_in (id : w64) (ms : List raftpb.Message) (as_ : List (Option Msg)) (x : Msg) :
-    some x ∈ selfabs id ms as_ → some x ∈ as_ := by
-  unfold selfabs
-  intro Hx
-  obtain ⟨⟨m, a⟩, Hp, rfl⟩ := List.mem_map.1 Hx
-  exact List.of_mem_zip (List.mem_filter.1 Hp).1 |>.2
-
 theorem selfmsgs_cons (id : w64) (m : raftpb.Message) (ms : List raftpb.Message) :
     selfmsgs id (m :: ms) = if m.To' = id then m :: selfmsgs id ms else selfmsgs id ms := by
   by_cases h : m.To' = id <;> simp [selfmsgs, h]
@@ -240,12 +242,6 @@ theorem selfmsgs_cons (id : w64) (m : raftpb.Message) (ms : List raftpb.Message)
 theorem nonself_cons (id : w64) (m : raftpb.Message) (ms : List raftpb.Message) :
     nonself id (m :: ms) = if m.To' = id then nonself id ms else m :: nonself id ms := by
   by_cases h : m.To' = id <;> simp [nonself, h]
-
-theorem selfabs_cons (id : w64) (m : raftpb.Message) (ms : List raftpb.Message)
-    (a : Option Msg) (as_ : List (Option Msg)) :
-    selfabs id (m :: ms) (a :: as_) =
-      if m.To' = id then a :: selfabs id ms as_ else selfabs id ms as_ := by
-  by_cases h : m.To' = id <;> simp [selfabs, h]
 
 /-- The `Ready` `readyWithoutAccept` builds, field by field (`Snapshot` stays zero and
 `ReadStates` nil: no snapshot is pending, no read state is queued). -/
@@ -270,54 +266,81 @@ theorem nstateRel_ready (s : NState) (ps : PState) (ce : List raftpb.Entry) (sz 
   exact ⟨toPState_ready s ce sz, Hwf⟩
 
 
-/-- The self-addressed messages `acceptReady` queues, as pending steps. -/
-theorem self_pending (id : w64) (ms : List raftpb.Message) (as_ : List (Option Msg)) :
-    ⊢ ([∗list] _k ↦ m;a ∈ ms;as_, msgAbs (GF := GF) m a) -∗
-      [∗list] _k ↦ m;p ∈ selfmsgs id ms;(selfabs id ms as_).map Pending.self,
-        pendingRel (GF := GF) id m p := by
+/-- A response type is not a snapshot's. -/
+theorem mtypeOf_resp_ne_snap (m : raftpb.Message)
+    (H : m.Type' = MsgAppResp ∨ m.Type' = MsgVoteResp ∨ m.Type' = MsgPreVoteResp) :
+    mtypeOf m.Type' ≠ some .snap := by
+  rcases H with H | H | H <;> rw [H] <;> decide
+
+/-- The self-addressed messages `acceptReady` queues, as pending steps (2026-10-10): each
+is `AAMsgOk` (`ownRaftPhys`'s `msgsAfterAppend`), and its abstraction, at its entries
+-- none: `Entries` is `nil` -- was in the outbox, whose messages are all `isMessage`
+(`ownRaftGhost_outbox`). -/
+theorem self_pending (γ : RaftNames) (id t : w64) (o : List Msg) (ms : List raftpb.Message)
+    (as_ : List (Option Msg)) (HP : ∀ a ∈ as_, ∀ x, a = some x → x ∈ o)
+    (Hok : ∀ m ∈ ms, AAMsgOk id t m) :
+    ⊢ ([∗list] x ∈ o, isMessage (GF := GF) γ x) -∗
+      ([∗list] _k ↦ m;a ∈ ms;as_, msgAbs (GF := GF) m a) -∗
+      [∗list] _k ↦ m;p ∈ selfmsgs id ms;(selfmsgs id ms).map selfPending,
+        pendingRel (GF := GF) γ id m p := by
   induction ms generalizing as_ with
   | nil =>
-    iintro H
-    ihave %Has := BigSepL2.bigSepL2_nil_inv_left $$ H
-    subst Has
-    simp only [selfmsgs, selfabs, List.filter_nil, List.zip_nil_left, List.map_nil]
+    iintro _ _
+    simp only [selfmsgs, List.filter_nil, List.map_nil]
     iempintro
   | cons m ms IH =>
-    iintro H
+    iintro #Ho H
     icases (BigSepL2.bigSepL2_cons_inv_left).1 $$ H with ⟨%a, %as', %Has, #Hm, H⟩
     subst Has
-    rw [selfmsgs_cons, selfabs_cons]
+    rw [selfmsgs_cons]
+    have HP' : ∀ b ∈ as', ∀ x, b = some x → x ∈ o :=
+      fun b Hb => HP b (List.mem_cons_of_mem _ Hb)
+    have Hok' : ∀ m' ∈ ms, AAMsgOk id t m' := fun m' Hm' => Hok m' (List.mem_cons_of_mem _ Hm')
+    by_cases h : m.To' = id
+    · simp only [h, ↓reduceIte, List.map_cons]
+      obtain ⟨Hty, Hfr, Hself⟩ := Hok m List.mem_cons_self
+      obtain ⟨Hnz, Hen, Hcn, Hrj, -⟩ := Hself h
+      isplitr
+      · simp only [pendingRel, selfPending]
+        isplitr
+        · ipureintro
+          refine ⟨⟨Hty, Hfr, h, Hnz, Hen, Hcn, Hrj⟩, ?_⟩
+          simp
+        imodintro
+        iintro %ty %Hty'
+        unfold msgAbs
+        icases Hm with (%Hn | ⟨%ty0, %ents, %Hs, #Hents⟩ | ⟨%sv, %voters, %Hs, -, -⟩)
+        · rw [Hn.1] at Hty'; cases Hty'
+        · obtain ⟨Hty0, -, rfl⟩ := Hs
+          rw [Hty0] at Hty'
+          cases Hty'
+          ihave %Hl := ownSlice_len _ _ _ $$ Hents
+          have He : ents = [] := by
+            rw [Hen] at Hl
+            exact List.eq_nil_of_length_eq_zero Hl.1
+          subst He
+          iapply BigSepL.bigSepL_mem (Φ := fun x => isMessage (GF := GF) γ x)
+            (HP _ List.mem_cons_self _ rfl) $$ Ho
+        · exact absurd Hs.1 (mtypeOf_resp_ne_snap m Hty)
+      · iapply IH as' HP' Hok' $$ Ho H
+    · simp only [h, ↓reduceIte]
+      iapply IH as' HP' Hok' $$ Ho H
+
+theorem self_pending_own (id : w64) (ms : List raftpb.Message) :
+    ⊢ [∗list] _k ↦ m;p ∈ selfmsgs id ms;(selfmsgs id ms).map selfPending,
+        pendingOwn (GF := GF) m p := by
+  induction ms with
+  | nil => simp only [selfmsgs, List.filter_nil, List.map_nil]; iempintro
+  | cons m ms IH =>
+    rw [selfmsgs_cons]
     by_cases h : m.To' = id
     · simp only [h, ↓reduceIte, List.map_cons]
       isplitr
-      · simp only [pendingRel]
-        isplitr
-        · iexact Hm
-        · ipureintro; exact h
-      · iapply IH as' $$ H
+      · simp only [pendingOwn, selfPending]
+        itrivial
+      · iapply IH
     · simp only [h, ↓reduceIte]
-      iapply IH as' $$ H
-
-theorem self_pending_own (id : w64) (ms : List raftpb.Message) (as_ : List (Option Msg))
-    (Hl : ms.length = as_.length) :
-    ⊢ [∗list] _k ↦ m;p ∈ selfmsgs id ms;(selfabs id ms as_).map Pending.self,
-        pendingOwn (GF := GF) m p := by
-  induction ms generalizing as_ with
-  | nil => simp only [selfmsgs, selfabs, List.filter_nil, List.zip_nil_left, List.map_nil]; iempintro
-  | cons m ms IH =>
-    cases as_ with
-    | nil => cases Hl
-    | cons a as' =>
-      simp only [List.length_cons, Nat.add_right_cancel_iff] at Hl
-      rw [selfmsgs_cons, selfabs_cons]
-      by_cases h : m.To' = id
-      · simp only [h, ↓reduceIte, List.map_cons]
-        isplitr
-        · simp only [pendingOwn]
-          itrivial
-        · iapply IH as' Hl
-      · simp only [h, ↓reduceIte]
-        iapply IH as' Hl
+      iapply IH
 
 /-- The messages handed out: each one's abstraction was in the outbox, whose messages
 are all `isMessage` (`ownRaftGhost_outbox`). -/
@@ -902,12 +925,13 @@ theorem RawNode.Ready.wp_proof
     %([] : List raftpb.Message) %([] : List Msg)
     %(logAcceptApplying (logAcceptUnstable s.logst) ce sz)
     Hf_id Hf_Term Hf_Vote Hf_readStates Hf_raftLog Hf_state Hf_lead Hf_msgs [] [] Hf_msgsAA [] []
-    [] Hlog
+    [] [] Hlog
   · iapply ownSlice_nil
   · iapply ownSliceCap_nil
   · iapply ownSlice_nil
   · iapply ownSliceCap_nil
   · iapply outboxRel_nil
+  · ipureintro; intro _ h; cases h
   -- Rocq stops here (`Show. Admitted.`); the rest is new in the Lean port.
   iunfold outboxRel at Houtbox
   icases Houtbox with ⟨%as1, %as2, %Hperm, #Hb1, #Hb2⟩
@@ -964,11 +988,19 @@ theorem RawNode.Ready.wp_proof
       obtain ⟨-, -, Ha, Hi⟩ := Hce_ok e He
       rw [Ha, List.length_append, Hdlen]
       word
-  have Hadv' : decide (selfabs id ms2 as2 = []) = true →
-      StepsOk (readyNstate s ce sz) (readySteps s (selfabs id ms2 as2) ce) := by
-    intro Hsel
+  have Hstok' :
+      StepsOk (readyNstate s ce sz) (readySteps s ((selfmsgs id ms2).map selfPending) ce) := by
     unfold readySteps
-    rw [of_decide_eq_true Hsel, List.map_nil, List.nil_append]
+    rw [List.append_assoc]
+    refine stepsOk_selfs _ _ _ (fun p Hp => ?_) ?_
+    · -- each self-addressed response's term, as `ownRaftPhys` bounds it (`AAMsgOk`)
+      obtain ⟨m, Hm, rfl⟩ := List.mem_map.1 Hp
+      have Hm' := List.mem_filter.1 Hm
+      obtain ⟨-, -, Hself⟩ := HmsgsAA_ok m Hm'.1
+      have Hb := (Hself (of_decide_eq_true Hm'.2)).2.2.2.2
+      refine ⟨⟨_, _, rfl⟩, ?_⟩
+      simp only [PendingOk, selfPending, decide_eq_true_eq]
+      exact Hb
     apply ready_stepsOk _ _ _ ce _ (Int.le_refl _)
     · intro hu
       rw [Hlogst, Hlf.2.1]
@@ -980,36 +1012,35 @@ theorem RawNode.Ready.wp_proof
   · unfold readyNstate
     iexact Hphys
   ispecialize HΦ $$ %(readyVal sp HS sents sce msl MS) %ce %(nextUnstable s.logst)
-    %(ms1 ++ nonself id ms2) %(readySteps s (selfabs id ms2 as2) ce)
-    %(decide (selfabs id ms2 as2 = []))
+    %(ms1 ++ nonself id ms2) %(readySteps s ((selfmsgs id ms2).map selfPending) ce)
   iapply HΦ
   simp only [named]
   isplitl [Hrn Hphys Hghost Hsteps Hsteps_cap Hcecap]
   · iapply ownRawNode_intro γ rn id
       { rs with delivered := rs.delivered ++ ce, unpersisted := nextUnstable s.logst,
-                steps := readySteps s (selfabs id ms2 as2) ce,
-                advanceable := decide (selfabs id ms2 as2 = []) }
+                steps := readySteps s ((selfmsgs id ms2).map selfPending) ce }
       (readyNstate s ce sz) { toPState s with outbox := [] }
       { rnv with prevSoftSt' := psp, prevHardSt' := PH, stepsOnAdvance' := stl4 }
       (softstateVal (nodeSoftstate s)) _
       (nstateRel_ready s _ ce sz ⟨rfl, Hwfs⟩) Hin Hasync Hdlen'
-      (by rw [Hlogst, Hlf.2.2.1]; rfl) (by rw [Hlogst, Hlf.2.2.2]; exact Hsnap) Hadv' Htrm
+      (by rw [Hlogst, Hlf.2.2.1]; rfl) (by rw [Hlogst, Hlf.2.2.2]; exact Hsnap) Hstok' Htrm
       $$ Hrn Hphys Hghost Hpsp Hsteps Hsteps_cap [] [Hcecap] Hdeliv'
     · -- the pending steps' messages
       simp only [readySteps]
       iapply BigSepL2.bigSepL2_app_wand $$ [] []
       · iapply BigSepL2.bigSepL2_app_wand $$ [] []
-        · iapply self_pending id ms2 as2 $$ Hb2
+        · iapply self_pending γ id s.term (toPState s).outbox ms2 as2
+            (fun a Ha => Hin_out a (List.mem_append_right _ Ha)) HmsgsAA_ok $$ Hout Hb2
         · by_cases hu : s.logst.uents = []
           · rw [ite_pos' hu, ite_pos' hu]; iempintro
           · rw [ite_neg' hu, ite_neg' hu]
-            iapply (BigSepL2.bigSepL2_singleton (Φ := fun _ m p => pendingRel (GF := GF) id m p)).2
+            iapply (BigSepL2.bigSepL2_singleton (Φ := fun _ m p => pendingRel (GF := GF) γ id m p)).2
             simp only [pendingRel]
             ipureintro; trivial
       · by_cases hc : ce = []
         · rw [ite_pos' hc, ite_pos' hc]; iempintro
         · rw [ite_neg' hc, ite_neg' hc]
-          iapply (BigSepL2.bigSepL2_singleton (Φ := fun _ m p => pendingRel (GF := GF) id m p)).2
+          iapply (BigSepL2.bigSepL2_singleton (Φ := fun _ m p => pendingRel (GF := GF) γ id m p)).2
           simp only [pendingRel]
           iexists sce
           isplitr
@@ -1019,7 +1050,7 @@ theorem RawNode.Ready.wp_proof
       simp only [readySteps]
       iapply BigSepL2.bigSepL2_app_wand $$ [] [Hcecap]
       · iapply BigSepL2.bigSepL2_app_wand $$ [] []
-        · iapply self_pending_own id ms2 as2 Hla2
+        · iapply self_pending_own id ms2
         · by_cases hu : s.logst.uents = []
           · rw [ite_pos' hu, ite_pos' hu]; iempintro
           · rw [ite_neg' hu, ite_neg' hu]

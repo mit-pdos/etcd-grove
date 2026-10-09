@@ -24,13 +24,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- The reply of every exit: `SendOk`'s `MsgAppResp` clause, with no entries. -/
-private theorem appResp_sendOk (id : w64) (s : NState) (dst idx : w64) :
+private theorem appResp_sendOk (id : w64) (s : NState) (dst idx : w64) (Hdst : dst ≠ id) :
     SendOk id s
       { Type' := W32 4, To' := dst, From' := 0, Term' := 0, LogTerm' := 0, Index' := idx,
         Entries' := slice.nil, Commit' := 0, Vote' := 0, Snapshot' := null, Reject' := false,
         RejectHint' := 0, Context' := slice.nil, Responses' := slice.nil }
       [] [appResp id s dst false idx (W64 0) (W64 0)] :=
-  Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, rfl⟩)))
+  Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, fun h => absurd h Hdst, rfl⟩)))
 
 /-- `m.Snapshot` points to `sv`, so the copy `s = *m.Snapshot` is taken and the `nil`
 arm is dead. Then `restore`'s three exits: on `true` (a restore) the reply carries
@@ -42,7 +42,7 @@ theorem raft.handleSnapshot.wp_proof
     (wp_raftLog_lastIndex : raftLog.lastIndex.spec (GF := GF) (hG := hG))
     (wp_raft_send : raft.send.spec (GF := GF) (hG := hG)) :
     raft.handleSnapshot.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s m sv voters Hrole Hvotes Hin Hscope
+  intro cfg r id s m sv voters Hrole Hvotes Hin Hscope Hfid
   wp_start as H
   iNamed H
   wp_auto
@@ -70,7 +70,7 @@ theorem raft.handleSnapshot.wp_proof
     ihave Hphys := Hlogback $$ Hlog
     rw [Hlv2.1]
     wp_apply wp_raft_send _ _ _ _ _ [] _ (Or.inl rfl)
-      (appResp_sendOk id s1 m.From' s1.logst.committed) $$ [$Hphys] as Hphys
+      (appResp_sendOk id s1 m.From' s1.logst.committed Hfid) $$ [$Hphys] as Hphys
     · isplitr
       · iapply ownSlice_nil
       · iapply send_no_snap
@@ -97,7 +97,7 @@ theorem raft.handleSnapshot.wp_proof
     ihave Hphys := Hlogback $$ Hlog
     rw [Hlv2.1]
     wp_apply wp_raft_send _ _ _ _ _ [] _ (Or.inl rfl)
-      (appResp_sendOk id _ m.From' sv.Metadata'.Index') $$ [$Hphys] as Hphys
+      (appResp_sendOk id _ m.From' sv.Metadata'.Index' Hfid) $$ [$Hphys] as Hphys
     · isplitr
       · iapply ownSlice_nil
       · iapply send_no_snap
@@ -126,7 +126,7 @@ theorem raft.handleSnapshot.wp_proof
       exact Hli
     subst Hli'
     wp_apply wp_raft_send _ _ _ _ _ [] _ (Or.inl rfl)
-      (appResp_sendOk id _ m.From' sv.Metadata'.Index') $$ [$Hphys] as Hphys
+      (appResp_sendOk id _ m.From' sv.Metadata'.Index' Hfid) $$ [$Hphys] as Hphys
     · isplitr
       · iapply ownSlice_nil
       · iapply send_no_snap

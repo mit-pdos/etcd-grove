@@ -105,8 +105,7 @@ abbrev NewRawNode.spec : Prop :=
     (App (Val #(functions NewRawNode [])) (Val #c))
   {{ (rn : Loc) (err : GoInterface), RET (PairV #rn #err);
       "Hrn" ∷ ownRawNode γ rn cv.ID'
-        { delivered := [], unpersisted := [], steps := [], advanceable := true,
-          term := W64 0 } ∗
+        { delivered := [], unpersisted := [], steps := [], term := W64 0 } ∗
       "%Herr" ∷ ⌜err = interface.nil⌝ }}
 
 end spec

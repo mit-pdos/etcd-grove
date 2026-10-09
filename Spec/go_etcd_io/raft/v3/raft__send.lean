@@ -54,7 +54,11 @@ clause per shape a caller builds:
 
 (a) a vote request/response (`MsgVote`, `MsgVoteResp`, and since 2026-10-04
     `MsgPreVote`, `MsgPreVoteResp`). `Term` is the caller's and is kept. A request goes
-    onto `r.msgs` and must not be self-addressed; a response may be.
+    onto `r.msgs` and must not be self-addressed; a response may be, and then (since
+    2026-10-10) carries no `Entries` and no `Context` and is not from a later term than
+    the node's -- one later for a `MsgPreVoteResp`, a pre-campaign's own -- which is what
+    `ownRaftPhys` records of a self-addressed response (`AAMsgOk`, `InvRaftPhys.lean`)
+    for `RawNode.Advance` to step it.
 (b) a message stamped with the current term and queued on `r.msgs`: `MsgApp`,
     `MsgHeartbeat`, `MsgReadIndexResp`, `MsgHeartbeatResp`. `Term` must be unset; the
     abstract message carries `s.term`, which is what `send` stamps in
@@ -74,7 +78,8 @@ clause per shape a caller builds:
     caller's clause selection moved.)
 (d) `MsgAppResp`: stamped like (b), but a response, so it goes onto
     `r.msgsAfterAppend` and may be self-addressed (`appendEntry`'s self-acknowledgement
-    is).
+    is) -- and then (since 2026-10-10) carries no `Entries` and no `Context`, does not
+    reject, and the node's term is nonzero (`AAMsgOk`, as for (a)).
 (e) `MsgProp`, forwarded to the leader: `Term` must be unset and stays `0` (the body's
     `MsgProp`/`MsgReadIndex` exception); onto `r.msgs`, not self-addressed.
 
@@ -89,6 +94,9 @@ def SendOk (id : w64) (s : NState) (m : raftpb.Message) (ents : List raftpb.Entr
      mtypeOf m.Type' = some ty ∧
      m.Term' ≠ W64 0 ∧
      (m.Type' = MsgVote ∨ m.Type' = MsgPreVote → m.To' ≠ id) ∧
+     (m.To' = id →
+        m.Entries' = slice.nil ∧ m.Context' = slice.nil ∧
+        uint.Z m.Term' ≤ uint.Z s.term + (if m.Type' = MsgPreVoteResp then 1 else 0)) ∧
      out = [absMsgFrom ty m id m.Term' ents])
   ∨
   (∃ ty,
@@ -111,6 +119,9 @@ def SendOk (id : w64) (s : NState) (m : raftpb.Message) (ents : List raftpb.Entr
   ∨
   (m.Type' = MsgAppResp ∧
    m.Term' = W64 0 ∧
+   (m.To' = id →
+      m.Entries' = slice.nil ∧ m.Context' = slice.nil ∧ s.term ≠ W64 0 ∧
+      m.Reject' = false) ∧
    out = [absMsgFrom .appResp m id s.term ents])
   ∨
   (m.Type' = MsgProp ∧
@@ -123,13 +134,14 @@ message with `ty` the abstract type, in Rocq,
 
     left; exists ty; split_and!;
       [by right; left | apply mtype_of_MsgVoteResp | <Term ≠ 0>
-       | intros [Hc|Hc]; revert Hc; w32_ne | done]
+       | intros [Hc|Hc]; revert Hc; w32_ne | <self> | done]
 
-(the fourth discharges the request clause for a response type)
+(the fourth discharges the request clause for a response type; `<self>` is the
+self-addressed response's clause, vacuous for a request, `To ≠ id`)
 
 (the last `done` fixes `out`); for a `MsgApp`, `right; left; exists mtype.App;
 split_and!; [by left | .. | done | <To ≠ id> | done]`; for `MsgAppResp`,
-`right; right; right; left; split_and!; [done | done | done]`; for `MsgSnap`,
+`right; right; right; left; split_and!; [done | done | <self> | done]`; for `MsgSnap`,
 `right; right; left; left; split_and!; [done | done | <To ≠ id>]`. These are not lemmas
 here because a spec file states and does not prove (etc/check-module-discipline.py,
 F3).

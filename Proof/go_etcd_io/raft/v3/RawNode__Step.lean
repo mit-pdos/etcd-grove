@@ -34,7 +34,7 @@ local macro "early_return" e:term : tactic => `(tactic| (
   iapply HΦ $$ %$e %rs.term
   isplitl
   · iapply ownRawNode_intro γ rn id { rs with term := rs.term } s ps rnv sv steps Hrel Hin
-      Hasync Hdlen Hunp Hsnap Hadv Htrm
+      Hasync Hdlen Hunp Hsnap Hstok Htrm
       $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv
   ipureintro; constructor <;> omega))
 
@@ -96,7 +96,7 @@ theorem RawNode.Step.wp_proof
             (s.logst.sents ++ s.logst.uents) (entryID.mk m.LogTerm' m.Index') = true) := by
         not_net
       have P3 : m.Type' = MsgPreVoteResp → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧
-          uint.Z s.term + 1 < 2 ^ 64 := by not_net
+          (s.role = .preCandidate → uint.Z s.term + 1 < 2 ^ 64) := by not_net
       have P4 : m.Type' = MsgSnap → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧
           m.From' ≠ id := by not_net
       have P5 : m.Type' = MsgBeat → m.Term' = W64 0 := by not_net
@@ -140,7 +140,7 @@ theorem RawNode.Step.wp_proof
         revert h
         not_net
       simp only [HnP, ↓reduceIte]
-      iintro %err %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, -, %Hfr, %Htm, -, -⟩
+      iintro %err %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, -, %Hfr, %Htm, -, -, -⟩
       obtain ⟨Ha, Hsn, Hu⟩ := Hfr (by not_net) (by not_net)
       obtain ⟨Ht1, -, Ht3, Hi⟩ := Htm (by not_net)
       have Ht3 := Ht3 (by not_net) (by not_net)
@@ -149,17 +149,16 @@ theorem RawNode.Step.wp_proof
         have H := Step.commit_mono Hst
         rw [← Hrel.1, ← Hrel'.1] at H
         exact H
-      have Hadv' : rs.advanceable = true → StepsOk s' rs.steps := by
-        intro h
+      have Hstok' : StepsOk s' rs.steps := by
         by_cases hA : m.Type' = MsgApp
         · rw [Happ hA]; simp [StepsOk]
-        · exact stepsOk_mono_le s s' _ Ht1 (Hi hA) Hc Ha (Hadv h)
+        · exact stepsOk_mono_le s s' _ Ht1 (Hi hA) Hc Ha Hstok
       wp_auto
       iapply HΦ $$ %err %s'.term
       isplitl
       · iapply ownRawNode_intro γ rn id { rs with term := s'.term } s' ps' rnv sv steps Hrel' Hin
           Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
-          Hadv' rfl
+          Hstok' rfl
           $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv
       ipureintro
       rw [Htrm]

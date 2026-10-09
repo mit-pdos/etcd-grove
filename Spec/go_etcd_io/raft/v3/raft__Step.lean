@@ -142,6 +142,37 @@ theorem TermStep.of_local [FfiSyntax] {m : raftpb.Message} {s s' : NState}
     (h : LocalFrame s s') : TermStep m s s' :=
   TermStep.of_term h.1 (fun _ => h.2.1)
 
+/-- What a response does to the role and the term (2026-10-10), beyond `TermStep`: a
+stale `MsgVoteResp` or `MsgAppResp` (from a term below the node's) leaves the role; a
+`MsgPreVoteResp` moves the term at most to the message's, or one up from a
+pre-candidate (a won pre-vote's `campaign`), and never makes the node a pre-candidate
+(nor changes the term of one). `RawNode.Advance` steps the node's own responses, queued
+by `Ready`: with this, stepping them all moves the term up by at most one -- once a
+pre-vote is won the node is a candidate, and stays one through the rest of the queue,
+whose responses are then all stale or a candidate's to ignore. -/
+def RespStep [FfiSyntax] (m : raftpb.Message) (s s' : NState) : Prop :=
+  ((m.Type' = MsgVoteResp ∨ m.Type' = MsgAppResp) →
+     uint.Z m.Term' < uint.Z s.term → s'.role = s.role) ∧
+  (m.Type' = MsgPreVoteResp →
+     (uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term') ∨
+      (s.role = .preCandidate ∧ uint.Z s'.term = uint.Z s.term + 1)) ∧
+     (s'.role = .preCandidate → s.role = .preCandidate ∧ s'.term = s.term))
+
+theorem RespStep.refl [FfiSyntax] (m : raftpb.Message) (s : NState) : RespStep m s s :=
+  ⟨fun _ _ => rfl, fun _ => ⟨.inl (Int.le_max_left _ _), fun h => ⟨h, rfl⟩⟩⟩
+
+/-- Any step of a message that is none of the three responses. -/
+theorem RespStep.of_type [FfiSyntax] {m : raftpb.Message} {s s' : NState}
+    (h1 : m.Type' ≠ MsgVoteResp) (h2 : m.Type' ≠ MsgAppResp)
+    (h3 : m.Type' ≠ MsgPreVoteResp) : RespStep m s s' :=
+  ⟨fun h => by rcases h with h | h <;> contradiction, fun h => absurd h h3⟩
+
+/-- Any step of a `MsgVoteResp` or `MsgAppResp` that is not stale. -/
+theorem RespStep.of_fresh [FfiSyntax] {m : raftpb.Message} {s s' : NState}
+    (h3 : m.Type' ≠ MsgPreVoteResp) (hge : uint.Z s.term ≤ uint.Z m.Term') :
+    RespStep m s s' :=
+  ⟨fun _ hlt => absurd hlt (Int.not_lt.2 hge), fun h => absurd h h3⟩
+
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -212,7 +243,9 @@ abbrev raft.Step.spec : Prop :=
   --   least the log's), but not implied by `ownRaftPhys`, which admits a persisted
   --   log ahead of the persisted term;
   -- - a `MsgPreVoteResp` at a pre-candidate may win, which runs the real `campaign`
-  --   and increments the term: it must not wrap (as for `MsgHup`).
+  --   and increments the term: it must not wrap (as for `MsgHup`). Only at a
+  --   pre-candidate (2026-10-10: `RawNode.Advance` may step its own pre-vote response
+  --   after a won pre-vote raised the term, at a candidate, which ignores it).
   (m.Type' = MsgPreVote →
      m.To' = id ∧ m.Term' ≠ W64 0 ∧
      m.From' ≠ W64 0 ∧ m.From' ≠ id ∧
@@ -222,7 +255,7 @@ abbrev raft.Step.spec : Prop :=
   (m.Type' = MsgPreVoteResp →
      m.To' = id ∧ m.Term' ≠ W64 0 ∧
      m.From' ≠ W64 0 ∧
-     uint.Z s.term + 1 < 2 ^ 64) →
+     (s.role = .preCandidate → uint.Z s.term + 1 < 2 ^ 64)) →
   -- The replication types, by what the transport and the peers guarantee (Go checks
   -- none of it). A leader's `MsgApp`/`MsgHeartbeat`, and a `MsgHeartbeatResp`, come
   -- from another node: `send` never queues them to oneself. An accepting
@@ -347,6 +380,8 @@ abbrev raft.Step.spec : Prop :=
       "%Hframe" ∷ ⌜m.Type' ≠ MsgSnap → m.Type' ≠ MsgStorageApplyResp → NetFrame s s'⌝ ∗
       -- and how the term moves (2026-10-09)
       "%Hterm" ∷ ⌜m.Type' ≠ MsgSnap → TermStep m s s'⌝ ∗
+      -- and what a response does to the role and the term (2026-10-10)
+      "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
       -- only a proposal can be dropped, with `ErrProposalDropped`
       "Herr" ∷ (⌜err = interface.nil⌝ ∨
                 (⌜m.Type' = MsgProp⌝ ∗

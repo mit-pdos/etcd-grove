@@ -54,10 +54,10 @@ theorem NewRawNode.wp_proof
   iapply HΦ $$ %«$r0_ptr» %interface.nil
   isplitl
   · iapply ownRawNode_intro γ «$r0_ptr» cv.ID'
-      { delivered := [], unpersisted := [], steps := [], advanceable := true, term := W64 0 }
+      { delivered := [], unpersisted := [], steps := [], term := W64 0 }
       s initPState _ _ [] Hrel
       (by rw [Hcfg]; exact (GMap.elem_of_list_to_set _ _).2 Hid) ?_
-      (by rw [Hap, Hprev, Happ]; rfl) (by rw [Hun]) Hsn (fun _ => by simp [StepsOk])
+      (by rw [Hap, Hprev, Happ]; rfl) (by rw [Hun]) Hsn trivial
       (by rw [Ht, HT])
       $$ «$r0» Hphys Hghost ss [] [] [] [] Hcomm
     all_goals first

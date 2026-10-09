@@ -60,19 +60,30 @@ theorem wp_Step_MsgAppResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .appResp m ents) ∧
             Step cfg id (toPState s) recv (toPState s')⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
+        "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
   intro Hty Hto Hterm Hfnz Hrej Hcfg Hwf
   wp_start_folded as ⟨Hphys, -⟩
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
-  · iapply wp_Step_Resp_gt _P cfg r id s m ents .appResp (.inl ⟨Hty, rfl⟩) Hto Hterm Hgt Hwf
-      $$ [$Hpkg $Hphys] HΦ
+  · wp_apply (wp_Step_Resp_gt _P cfg r id s m ents .appResp (.inl ⟨Hty, rfl⟩) Hto Hterm Hgt Hwf)
+      $$ [$Hpkg $Hphys] as %err %s' ⟨Hphys, %Hwf', %Href, %Herr, %Hfr, %Htm⟩
+    iapply HΦ $$ %err %s'
+    iframe Hphys
+    ipureintro
+    exact ⟨Hwf', Href, Herr, RespStep.of_fresh (by rw [Hty]; w32_ne) (Int.le_of_lt Hgt), Hfr,
+      Htm⟩
   · by_cases Hlt : uint.Z m.Term' < uint.Z s.term
     · iapply wp_Step_Resp_lt _P cfg r id s m ents .appResp (.inl Hty) Hterm Hlt Hwf
         $$ [$Hpkg $Hphys] HΦ
     · have Hteq : m.Term' = s.term := by word
-      iapply wp_Step_MsgAppResp_eq _P cfg r id s m ents Hty Hto Hterm Hteq Hfnz Hrej Hcfg Hwf
-        $$ [$Hpkg $Hphys] HΦ
+      wp_apply (wp_Step_MsgAppResp_eq _P cfg r id s m ents Hty Hto Hterm Hteq Hfnz Hrej Hcfg Hwf)
+        $$ [$Hpkg $Hphys] as %err %s' ⟨Hphys, %Hwf', %Href, %Herr, %Hfr, %Htm⟩
+      iapply HΦ $$ %err %s'
+      iframe Hphys
+      ipureintro
+      exact ⟨Hwf', Href, Herr, RespStep.of_fresh (by rw [Hty]; w32_ne)
+        (Int.le_of_eq (congrArg (fun x : w64 => uint.Z x) Hteq.symm)), Hfr, Htm⟩
 
 end StepProof
 

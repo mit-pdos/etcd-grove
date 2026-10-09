@@ -53,6 +53,12 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 open StepProof
 
+set_option hygiene false in
+/-- `RespStep` for a type that is none of the three responses (2026-10-10): by `Hty`. -/
+local macro "resp_other" : tactic =>
+  `(tactic| exact RespStep.of_type (by rw [Hty]; w32_ne) (by rw [Hty]; w32_ne)
+    (by rw [Hty]; w32_ne))
+
 section dispatch
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -119,7 +125,7 @@ private theorem dispatch_App (P : raft.Step.Postulates (GF := GF) (hG := hG))
       Hconf Hfv) $$ [$Hphys $Hents $Hcap] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
   obtain ⟨recv, Hrecv, Hstep⟩ := Hst
   iapply finish_branch γ cfg r id s s' m _ recv err Φ Hcfg Hwf' Hrecv Hstep
-    (fun _ => Hfr) (fun _ => Htm) $$ Hm Hghost Hphys
+    (fun _ => Hfr) (fun _ => Htm) (by resp_other) $$ Hm Hghost Hphys
     [] HΦ
   ileft; ipureintro; exact Herr
 
@@ -195,7 +201,7 @@ private theorem dispatch_Heartbeat (P : raft.Step.Postulates (GF := GF) (hG := h
     $$ [$Hphys $Hents] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
   obtain ⟨recv, Hrecv, Hstep⟩ := Hst
   iapply finish_branch γ cfg r id s s' m _ recv err Φ Hcfg Hwf' Hrecv Hstep
-    (fun _ => Hfr) (fun _ => Htm) $$ Hm Hghost Hphys
+    (fun _ => Hfr) (fun _ => Htm) (by resp_other) $$ Hm Hghost Hphys
     [] HΦ
   ileft; ipureintro; exact Herr
 
@@ -216,10 +222,10 @@ private theorem dispatch_AppResp (P : raft.Step.Postulates (GF := GF) (hG := hG)
   obtain ⟨Hto, Hterm, Hfnz, Hrej⟩ := Hm
   iintro #Hinit Hphys Hghost #Hents #Hm HΦ
   wp_apply (wp_Step_MsgAppResp P cfg r id s m ents Hty Hto Hterm Hfnz Hrej Hin Hwf)
-    $$ [$Hphys $Hents] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
+    $$ [$Hphys $Hents] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hresp, %Hfr, %Htm⟩
   obtain ⟨recv, Hrecv, Hstep⟩ := Hst
   iapply finish_branch γ cfg r id s s' m _ recv err Φ Hcfg Hwf' Hrecv Hstep
-    (fun _ => Hfr) (fun _ => Htm) $$ Hm Hghost Hphys
+    (fun _ => Hfr) (fun _ => Htm) Hresp $$ Hm Hghost Hphys
     [] HΦ
   ileft; ipureintro; exact Herr
 
@@ -244,7 +250,7 @@ private theorem dispatch_HeartbeatResp (P : raft.Step.Postulates (GF := GF) (hG 
     $$ [$Hphys $Hents $Hctx0] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
   obtain ⟨recv, Hrecv, Hstep⟩ := Hst
   iapply finish_branch γ cfg r id s s' m _ recv err Φ Hcfg Hwf' Hrecv Hstep
-    (fun _ => Hfr) (fun _ => Htm) $$ Hm Hghost Hphys
+    (fun _ => Hfr) (fun _ => Htm) (by resp_other) $$ Hm Hghost Hphys
     [] HΦ
   ileft; ipureintro; exact Herr
 
@@ -263,7 +269,7 @@ private theorem dispatch_Beat (P : raft.Step.Postulates (GF := GF) (hG := hG))
   wp_apply (wp_Step_MsgBeat P cfg r id s m Hty Hterm Hin Hwf)
     $$ [$Hphys] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
   iapply finish_branch0 γ cfg r id s s' m err Φ Hcfg Hwf' Hst (fun _ => Hfr) (fun _ => Htm)
-      $$ Hghost Hphys [] HΦ
+      (by resp_other) $$ Hghost Hphys [] HΦ
   ileft; ipureintro; exact Herr
 
 /-- `MsgSnap` (2026-10-02): the snapshot and its voters come from `"Hsnap"`. At the
@@ -299,7 +305,7 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
   obtain ⟨recv, Hrecv, Hstep⟩ := Hst
   -- the frame and the term step are not claimed for a snapshot
   iapply finish_branch γ cfg r id s s' m _ recv err Φ Hcfg Hwf' Hrecv Hstep
-    (fun h => absurd Hty h) (fun h => absurd Hty h) $$ Hm Hghost Hphys
+    (fun h => absurd Hty h) (fun h => absurd Hty h) (by resp_other) $$ Hm Hghost Hphys
     [] HΦ
   ileft; ipureintro; exact Herr
 
@@ -360,8 +366,20 @@ theorem raft.Step.wp_proof
       rw [toPState_role, Hf]; decide
     ihave #Hm' := Hmsg0 $$ %MsgType.propose %(by rw [Hty]; exact mtypeOf_MsgProp) %(by decide)
     ihave %HlenQ := BigSepL2.bigSepL2_length $$ Hprops
+    -- a leader's term is nonzero (2026-10-10): `appendEntry` stamps its
+    -- self-acknowledgement with it
+    have Hlnz_lem : ⊢ ownRaftGhost (GF := GF) γ id (toPState s) -∗
+        ⌜s.role = .leader → s.term ≠ W64 0⌝ := by
+      iintro Hg
+      by_cases hl : s.role = .leader
+      · ihave %H := ownRaftGhost_term_nz γ id (toPState s)
+          (by rw [toPState_role, hl]; decide) $$ Hg
+        ipureintro; exact fun _ => H
+      · ipureintro; exact fun h => absurd h hl
+    ihave %Hlnz := Hlnz_lem $$ Hghost
     -- `Hents` is owned: the `by_cases` above reduced its `if m.Type' = MsgProp`
-    wp_apply (wp_Step_MsgProp P cfg r id s m ents Hty Hterm Hfrom Hne Hnorm Hlen Hlok Hin Hwf)
+    wp_apply (wp_Step_MsgProp P cfg r id s m ents Hty Hterm Hfrom Hne Hnorm Hlen Hlok Hlnz Hin
+      Hwf)
       $$ [$Hphys $Hents $Hcap] as %err %s' ⟨Hphys, %Hwf', %Hfr, %Hst, Herr⟩
     rcases Hst with ⟨recv, Hrecv, Hstep⟩ | ⟨rfl, Hrl, Hnorm0, Hnw, Hstep⟩
     · -- forwarded or dropped: one uniform ghost step, the updates back
@@ -379,6 +397,8 @@ theorem raft.Step.wp_proof
       · ipureintro; exact fun _ _ => ⟨Hfr.2, Hfr.1.2.2.2, Hfr.1.2.2.1⟩
       isplitr
       · ipureintro; exact fun _ => TermStep.of_local Hfr.1
+      isplitr
+      · ipureintro; resp_other
       isplitl [Herr]
       · icases Herr with (%Herr | #Hd)
         · ileft; ipureintro; exact Herr
@@ -412,6 +432,8 @@ theorem raft.Step.wp_proof
       · ipureintro; exact fun _ _ => ⟨Hfr.2, Hfr.1.2.2.2, Hfr.1.2.2.1⟩
       isplitr
       · ipureintro; exact fun _ => TermStep.of_local Hfr.1
+      isplitr
+      · ipureintro; resp_other
       isplitr
       · ileft; ipureintro; rfl
       ileft
@@ -449,6 +471,9 @@ theorem raft.Step.wp_proof
     isplitr
     · ipureintro; exact fun _ => TermStep.of_local Hfr.1
     isplitr
+    · ipureintro; exact RespStep.of_type (by rw [HtyA]; w32_ne) (by rw [HtyA]; w32_ne)
+        (by rw [HtyA]; w32_ne)
+    isplitr
     · ileft; ipureintro; exact Herr
     itrivial
   by_cases HtyB : m.Type' = MsgStorageApplyResp
@@ -472,18 +497,21 @@ theorem raft.Step.wp_proof
     isplitr
     · ipureintro; exact fun _ => TermStep.of_local Hfr.1
     isplitr
+    · ipureintro; exact RespStep.of_type (by rw [HtyB]; w32_ne) (by rw [HtyB]; w32_ne)
+        (by rw [HtyB]; w32_ne)
+    isplitr
     · ileft; ipureintro; exact Herr
     itrivial
   ihave HΦ : ▷ stepPost γ cfg r id s m Φ $$ [HΦ]
   · inext
     unfold stepPost
-    iintro %err %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, %Hfr', %Htm', Herr⟩
+    iintro %err %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, %Hfr', %Htm', %Hresp', Herr⟩
     iapply HΦ $$ %err %s' %ps'
     iframe Hphys Hghost Herr
     ipureintro
     -- `LocalStepOk` is about the three types handled above
     exact ⟨Hrel', Href, fun Hl => by rcases Hl with h | h | h <;> contradiction,
-      fun h _ => Hfr' h, Htm'⟩
+      fun h _ => Hfr' h, Htm', Hresp'⟩
   by_cases Hns : m.Type' = MsgSnap
   · -- MsgSnap: `dispatch_Snap`, with the snapshot from `"Hsnap"`.
     icases Hsnap $$ %Hns with ⟨%sv, %voters, #Hsv, #Hvs, %Hscope, #Hm'⟩
@@ -501,7 +529,7 @@ theorem raft.Step.wp_proof
     wp_apply (wp_Step_MsgHup P cfg r id s m Hty Hmterm Hnowrap Hwf) $$ [$Hphys]
       as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
     iapply finish_branch0 γ cfg r id s s' m err Φ Hcfg Hwf' Hst (fun _ => Hfr) (fun _ => Htm)
-      $$ Hghost Hphys [] HΦ
+      (by resp_other) $$ Hghost Hphys [] HΦ
     ileft; ipureintro; exact Herr
   by_cases Hty : m.Type' = MsgVote
   · -- MsgVote: answer the vote request, stepping down first if needed.
@@ -516,31 +544,31 @@ theorem raft.Step.wp_proof
       as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
     obtain ⟨recv, Hrecv, Hstep⟩ := Hst
     iapply finish_branch γ cfg r id s s' m _ recv err Φ Hcfg Hwf' Hrecv Hstep
-      (fun _ => Hfr) (fun _ => Htm) $$ Hm' Hghost Hphys [] HΦ
+      (fun _ => Hfr) (fun _ => Htm) (by resp_other) $$ Hm' Hghost Hphys [] HΦ
     ileft; ipureintro; exact Herr
   by_cases Hty : m.Type' = MsgVoteResp
   · -- MsgVoteResp: tally the vote, possibly winning or losing.
     obtain ⟨Hto, Hterm⟩ := Hvoteresp Hty
     ihave #Hm' := Hmsg $$ %MsgType.voteResp %(by rw [Hty]; exact mtypeOf_MsgVoteResp)
     wp_apply (wp_Step_MsgVoteResp P cfg r id s m ents Hty Hto Hterm Hin Hwf) $$ [$Hphys]
-      as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
+      as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hresp, %Hfr, %Htm⟩
     obtain ⟨recv, Hrecv, Hstep⟩ := Hst
     iapply finish_branch γ cfg r id s s' m _ recv err Φ Hcfg Hwf' Hrecv Hstep
-      (fun _ => Hfr) (fun _ => Htm) $$ Hm' Hghost Hphys [] HΦ
+      (fun _ => Hfr) (fun _ => Htm) Hresp $$ Hm' Hghost Hphys [] HΦ
     ileft; ipureintro; exact Herr
   by_cases Hty : m.Type' = MsgPreVote
   · -- MsgPreVote (2026-10-04): answered with a free `MsgPreVoteResp`; nothing
     -- received, nothing recorded.
-    obtain ⟨Hto, Hterm, Hfnz, -, Hutd0⟩ := Hprevote Hty
+    obtain ⟨Hto, Hterm, Hfnz, Hfid, Hutd0⟩ := Hprevote Hty
     ihave #Hctx' : (∃ (ctx : List w8), m.Context' ↦*□ ctx ∗ ⌜ctx ≠ campaignTransfer⌝) $$ []
     · icases Hctx with ⟨%ctx, #Hc, %Hc2, -⟩
       iexists ctx
       iframe Hc
       ipureintro; exact Hc2
-    wp_apply (wp_Step_MsgPreVote P cfg r id s m Hty Hto Hterm Hfnz Hwf Hutd0)
+    wp_apply (wp_Step_MsgPreVote P cfg r id s m Hty Hto Hterm Hfnz Hfid Hwf Hutd0)
       $$ [$Hphys $Hctx'] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
     iapply finish_branch0 γ cfg r id s s' m err Φ Hcfg Hwf' Hst (fun _ => Hfr) (fun _ => Htm)
-      $$ Hghost Hphys [] HΦ
+      (by resp_other) $$ Hghost Hphys [] HΦ
     ileft; ipureintro; exact Herr
   by_cases Hty : m.Type' = MsgPreVoteResp
   · -- MsgPreVoteResp (2026-10-04): a pre-candidate's tally, or a step-down on a
@@ -548,10 +576,10 @@ theorem raft.Step.wp_proof
     obtain ⟨Hto, Hterm, -, Hnw⟩ := Hprevoteresp Hty
     ihave #Hm' := Hmsg $$ %MsgType.preVoteResp %(by rw [Hty]; exact mtypeOf_MsgPreVoteResp)
     wp_apply (wp_Step_MsgPreVoteResp P cfg r id s m ents Hty Hto Hterm Hnw Hin Hwf)
-      $$ [$Hphys] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
+      $$ [$Hphys] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hresp, %Hfr, %Htm⟩
     obtain ⟨recv, Hrecv, Hstep⟩ := Hst
     iapply finish_branch γ cfg r id s s' m _ recv err Φ Hcfg Hwf' Hrecv Hstep
-      (fun _ => Hfr) (fun _ => Htm) $$ Hm' Hghost Hphys [] HΦ
+      (fun _ => Hfr) (fun _ => Htm) Hresp $$ Hm' Hghost Hphys [] HΦ
     ileft; ipureintro; exact Herr
   by_cases Hty : m.Type' = MsgApp
   · -- MsgApp: `dispatch_App`.

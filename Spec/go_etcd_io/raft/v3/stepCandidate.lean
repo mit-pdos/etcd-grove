@@ -135,12 +135,13 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
   (`NStateWf`); it picks `myVoteRespType`;
 - `m.Term = r.Term` for `MsgVoteResp`, `MsgApp` and `MsgHeartbeat` (`Step`'s term
   preamble has run; for the last two it is the Go comment's "always `m.Term ==
-  r.Term`");
+  r.Term`"), and it is nonzero (2026-10-10: a win's `becomeLeader` stamps its
+  self-acknowledgement with it);
 - `id ∈ cfg`: a candidate that can win is a voter; `poll` needs `cfg` non-empty and
   `becomeLeader` needs this outright, and neither is available from `ownRaftPhys`, so
   it is threaded in from the caller;
 - `MsgApp`: `handleAppendEntries`'s premises, at `s` (`becomeFollower` leaves the log
-  alone);
+  alone); a `MsgSnap`, likewise, from another node;
 - `MsgHeartbeat`: `handleHeartbeat`'s premises, at `s` (likewise): `m.Commit` within
   the log and `m.From ≠ id`;
 - `Hents`: the `Entries` slice and its capacity, for `MsgApp` only;
@@ -155,7 +156,7 @@ abbrev stepCandidate.spec : Prop :=
    m.Type' = MsgSnap ∨ m.Type' = MsgPreVoteResp) →
   (m.Type' = MsgVoteResp ∨ m.Type' = MsgApp ∨
    m.Type' = MsgHeartbeat ∨ m.Type' = MsgSnap →
-   m.Term' = s.term) →
+   m.Term' = s.term ∧ m.Term' ≠ W64 0) →
   s.role = .candidate ∨ s.role = .preCandidate →
   id ∈ cfg →
   (m.Type' = MsgApp →
@@ -167,7 +168,9 @@ abbrev stepCandidate.spec : Prop :=
       uint.Z ls.committed ≤ uint.Z m.Index' →
       PlogMatches ls.prev es (entryID.mk m.LogTerm' m.Index') →
       plogFindConflict ls.prev es ents = W64 0 ∨
-      uint.Z ls.committed < uint.Z (plogFindConflict ls.prev es ents))) →
+      uint.Z ls.committed < uint.Z (plogFindConflict ls.prev es ents)) ∧
+     -- from another node (2026-10-10, `handleAppendEntries`'s premise)
+     m.From' ≠ id) →
   (m.Type' = MsgHeartbeat →
      uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) ∧
      m.From' ≠ id) →
@@ -176,7 +179,7 @@ abbrev stepCandidate.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s ∗
       "Hsnap" ∷ (⌜m.Type' = MsgSnap⌝ -∗
-                 ⌜SnapScope cfg sv voters⌝ ∗
+                 ⌜SnapScope cfg sv voters ∧ m.From' ≠ id⌝ ∗
                  m.Snapshot' ↦□ sv ∗
                  sv.Metadata'.ConfState'.Voters' ↦*□ voters) ∗
       "Hents" ∷ (⌜m.Type' = MsgApp⌝ -∗

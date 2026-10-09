@@ -164,7 +164,7 @@ theorem raft.campaign.wp_proof
     iexists s.prvals
     simp only [campaignPreElection, decide_true, campRoleState, vreqW32, ↓reduceIte]
     iframe
-  · wp_apply wp_raft_becomeCandidate _ _ _ _ Hrole $$ [$Hphys] as %pvs Hphys
+  · wp_apply wp_raft_becomeCandidate _ _ _ _ Hrole Hnowrap $$ [$Hphys] as %pvs Hphys
     rw [show raftpb.MsgVote = #MsgVote from rfl]
     wp_auto
     wp_apply raft.wp_load_Term $$ Hphys as Hphys
@@ -303,6 +303,11 @@ theorem raft.campaign.wp_proof
             by cases pre <;> rfl,
             Hno_wrap,
             by cases pre <;> simp [vrespW32, MsgVote, MsgPreVote, MsgVoteResp, MsgPreVoteResp],
+            -- self-addressed: no entries, no context, and at the node's term (an
+            -- election's, raised by `becomeCandidate`) or one later (a pre-election's)
+            fun _ => ⟨rfl, rfl, by
+              cases pre <;> simp [campRoleState, becomeCandidate, becomePrecandidate, resetTo,
+                sendMsgs, vrespW32, MsgPreVoteResp, MsgVoteResp] <;> word⟩,
             by cases pre <;> rfl⟩)
         $$ [$Hphys]
       · isplitr
@@ -350,6 +355,7 @@ theorem raft.campaign.wp_proof
             by cases pre <;> rfl,
             Hno_wrap,
             fun _ => Hyid,
+            fun h => absurd h Hyid,
             by cases pre <;> rfl⟩)
         $$ [$Hphys]
       · isplitr

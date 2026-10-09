@@ -82,7 +82,7 @@ theorem wp_Step_MsgHeartbeat_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
   -- MsgApp || MsgHeartbeat || MsgSnap: the second holds
   repeat (rw [Hty]; wp_auto)
   -- becomeFollower(m.Term, m.From): a leader's message
-  wp_apply _P.becomeFollower cfg r id s m.Term' m.From' $$ [$Hphys] as %pvs Hphys
+  wp_apply _P.becomeFollower cfg r id s m.Term' m.From' (Int.le_of_lt Hgt) $$ [$Hphys] as %pvs Hphys
   repeat (rw [Hty]; wp_auto)
   wp_apply raft.wp_load_step $$ Hphys as Hphys
   rw [show ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).stepfn

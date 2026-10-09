@@ -135,7 +135,8 @@ spec is unchanged.
 
 `increaseUncommittedSize` writes `r.uncommittedSize`, a field `ownRaftPhys` does not
 mention; `traceReplicate` is a literal no-op; and the `MsgAppResp` is `SendOk`'s
-`MsgAppResp` clause, which allows it to be self-addressed.
+`MsgAppResp` clause, which allows it to be self-addressed at a nonzero term (since
+2026-10-10, the premise `s.term ≠ 0`: a leader's term, `ownRaftGhost_term_nz`).
 
 ### The log in the postcondition
 
@@ -151,6 +152,9 @@ abbrev raft.appendEntry.spec : Prop :=
   (∀ e ∈ ents, e.Type' = EntryNormal) →
   -- a batch small enough that `lastIndex()+1+k` does not wrap
   (ents.length : Int) < 2^61 →
+  -- a leader's term (2026-10-10): the self-acknowledgement is stamped with it, and
+  -- `RawNode.Advance` steps it, which needs a nonzero term (`AAMsgOk`)
+  s.term ≠ W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s ∗
       es ↦* ents }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"appendEntry")) (Val #es))

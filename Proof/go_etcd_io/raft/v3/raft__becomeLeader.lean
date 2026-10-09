@@ -45,7 +45,7 @@ theorem raft.becomeLeader.wp_proof
     (wp_raft_appendEntry : raft.appendEntry.spec (GF := GF) (hG := hG))
     (wp_Progress_BecomeReplicate : tracker.Progress.BecomeReplicate.spec (GF := GF) (hG := hG)) :
     raft.becomeLeader.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s Hrole Hcfg
+  intro cfg r id s Hrole Hcfg Hnz
   wp_start as Hphys
   wp_auto
   -- `becomeLeader` panics on a follower; by assumption we are not one.
@@ -57,7 +57,8 @@ theorem raft.becomeLeader.wp_proof
   -- `r.step := stepLeader`, then `reset` at the unchanged term, so the vote survives
   wp_apply raft.wp_store_step $$ Hphys as Hphys
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
-  wp_apply wp_raft_reset $$ [$Hphys] as %pvs ⟨Hphys, %Hmr⟩
+  wp_apply wp_raft_reset cfg r id { s with stepfn := functions stepLeader [] } s.term
+    (Int.le_refl _) $$ [$Hphys] as %pvs ⟨Hphys, %Hmr⟩
   -- `r.tick`, `r.lead := r.id`, `r.state := StateLeader`
   wp_apply raft.wp_store_tick (Hf := .inr rfl) $$ Hphys as Hphys
   wp_apply raft.wp_load_id $$ Hphys as Hphys
@@ -109,7 +110,8 @@ theorem raft.becomeLeader.wp_proof
   -- `EntryNormal`, which is what keeps the log's `HnoConfChange` true; and one entry is
   -- not `2^61`.
   wp_apply wp_raft_appendEntry cfg r id _ _ [zero_val raftpb.Entry]
-      (by intro e He; simp at He; subst He; rfl) (by simp) $$ [$Hphys $Hes]
+      (by intro e He; simp at He; subst He; rfl) (by simp) (by subst hs1; exact Hnz)
+      $$ [$Hphys $Hes]
     as %accepted ⟨%Hacc, Hes, Hphys⟩
   -- empty payload, so accepted; the `false` branch is gone before any `WP` is stepped on it
   have Hacc' : accepted = true := Hacc (by intro e He; simp at He; subst He; rfl)

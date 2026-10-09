@@ -74,7 +74,7 @@ theorem RawNode.Campaign.wp_proof
     simp [MsgSnap] at Hc
   have hP : (W32 0 : w32) ≠ MsgProp := by simp [MsgProp]
   simp only [hP, ↓reduceIte]
-  iintro %err %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, -, %Hfr, %Htm, Herr, -⟩
+  iintro %err %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, -, %Hfr, %Htm, -, Herr, -⟩
   wp_auto
   obtain ⟨Ha, Hsn, Hu⟩ := Hfr (by msg_ne) (by msg_ne)
   obtain ⟨Ht1, Ht2, -, Hi⟩ := Htm (by msg_ne)
@@ -91,7 +91,7 @@ theorem RawNode.Campaign.wp_proof
     isplitl [Hrn Hphys Hghost Hsteps Hsteps_cap Hpown]
     · iapply ownRawNode_intro γ rn id { rs with term := s'.term } s' ps' rnv sv steps Hrel' Hin
         Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
-        (fun h => stepsOk_mono_le s s' _ Ht1 Hi Hc Ha (Hadv h)) rfl
+        (stepsOk_mono_le s s' _ Ht1 Hi Hc Ha Hstok) rfl
         $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv
     ipureintro
     rw [Htrm]

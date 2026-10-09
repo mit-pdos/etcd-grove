@@ -99,6 +99,8 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (∀ e ∈ ents, e.Type' = EntryNormal) →
     (ents.length : Int) < 2^61 →
     (s.role = .follower → s.lead ≠ id) →
+    -- a leader's term is nonzero (2026-10-10, `ownRaftGhost_term_nz`)
+    (s.role = .leader → s.term ≠ W64 0) →
     id ∈ cfg →
     NStateWf s →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
@@ -129,7 +131,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
                    (ents.mapIdx (stamp (toPState s).term (plastIndex (toPState s)))))])
                [] (toPState s'))⌝ ∗
         "Herr" ∷ (⌜err = interface.nil⌝ ∨ globalAddr ErrProposalDropped ↦□ err) }} := by
-  intro Hty Hterm Hfrom Hne Hnorm Hlen Hlok Hcfg Hwf
+  intro Hty Hterm Hfrom Hne Hnorm Hlen Hlok Hlnz Hcfg Hwf
   wp_start as ⟨Hphys, Hents, Hcap⟩
   wp_auto
   wp_apply _P.traceReceiveMessage
@@ -235,7 +237,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun Hc => by
           exfalso; rw [Hty] at Hc
           rcases Hc with Hc | ⟨Hc, -⟩ <;> exact absurd Hc (by w32_ne))
-        (fun _ => ⟨Hne, Hnorm, Hlen⟩)
+        (fun _ => ⟨Hne, Hnorm, Hlen, Hlnz Hrole⟩)
       $$ [$Hphys Hents] as %err %s' %dropped ⟨Hphys, %Hres, Herrn, -⟩
     · isplitl []
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)

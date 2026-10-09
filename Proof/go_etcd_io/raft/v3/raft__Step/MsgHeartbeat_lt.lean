@@ -102,7 +102,7 @@ theorem wp_Step_MsgHeartbeat_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
         Entries' := slice.nil, Commit' := 0, Vote' := 0, Snapshot' := null, Reject' := false,
         RejectHint' := 0, Context' := slice.nil, Responses' := slice.nil }
     have Hok : SendOk id s ack [] [absMsgFrom .appResp ack id s.term []] :=
-      Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, rfl⟩)))
+      Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, fun h => absurd h Hfid, rfl⟩)))
     wp_apply _P.send cfg r id s ack [] _ (Or.inl rfl) Hok $$ [$Hphys] as Hphys
     · isplitr
       · iapply ownSlice_nil

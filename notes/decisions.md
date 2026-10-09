@@ -1269,9 +1269,10 @@ id ps recv ps'`, and `Ready`'s committed entries witnessed through `s.logst.appl
 
 **Decision**: `ownRawNode γ rn id rs` holds the node state, the ghost state and
 `NStateRel` inside, indexed by one record of what a client observes:
-`RNState := { delivered, unpersisted, steps, advanceable }` -- the committed log handed
+`RNState := { delivered, unpersisted, steps, term }` -- the committed log handed
 out so far (`isCommitted γ rs.delivered` inside), the entries `Ready` handed out for the
-application to `Append`, the queued local steps (opaque), and the gap flag below. `Ready`
+application to `Append`, the queued local steps (opaque), and the term (until 2026-10-10
+also the gap flag `advanceable`, below). `Ready`
 returns `ce` with `isCommitted γ (rs.delivered ++ ce)`; messages carry the opaque
 `isRaftMsg γ m`; `HasReady` says nothing about its answer (liveness only); `Ready`'s soft
 state, hard state and `MustSync` facts are gone (no spec used them; there is no crash
@@ -1284,20 +1285,47 @@ To keep `delivered` across `Propose`/`Advance`, `raft.Step`'s postcondition gain
 `PstepCommitMono` is proved (`Step.commit_mono`, `Protocol/Facts.lean`), and Rocq's
 `ready_stable_ok` (the append ack is stable once the application appended) too.
 
-**The gap -- to be closed.** `Advance` steps `rn.stepsOnAdvance` through `raft.Step`, and
-`raft.Step`'s spec needs facts of each message that nothing records for the
-**self-addressed responses** `msgsAfterAppend` queues (a candidate's own vote, a leader's
-own `MsgAppResp`): `To = id`, `Term ≠ 0`, the `Entries`' capacity, a non-rejecting self
-`MsgAppResp`, and for a `MsgPreVoteResp` a term bound at the state the earlier steps
-left, which `Step`'s postcondition does not carry. So `Advance` is proved only for queues
-without them, and the specs say so without protocol terms: `Ready` returns
-`advanceable` (true exactly when no self response was queued, not stated in the spec),
-and `Advance` requires it (and `unpersisted = []`). Consequence: `Ready`'s spec returns `advanceable`
-existentially and does not say when it holds (that depends on protocol state), so **a
-client can never establish `rs.advanceable = true`**: after one `Ready` it can call
-neither `Advance` nor (with `steps` unknown) `Ready` again. The `Ready`/`Advance` loop is
-not verifiable through these specs until the gap is closed; `Propose`, `HasReady`, the
-first `Ready` (with its `isCommitted` witnesses) and `ownRawNode_persist` are. **Closing it**: record the per-message facts for the
-self responses (in `ownRaftPhys`'s description of `msgsAfterAppend`, or in `pendingRel`),
-and carry the term bound through `Step`'s postcondition (or step one's own responses with
-dedicated lemmas); then `advanceable` goes and `Advance` takes any queue `Ready` left.
+**The gap -- closed 2026-10-10.** Until then `Advance` was proved only for a queue without
+the **self-addressed responses** `msgsAfterAppend` queues (a candidate's own vote, a
+pre-candidate's own pre-vote, a leader's own `MsgAppResp`): `raft.Step`'s spec needs
+facts of each that nothing recorded (`Term ≠ 0`, no entries, a non-rejecting
+`MsgAppResp`, and a term bound for a `MsgPreVoteResp`), so `Ready` returned a flag
+`RNState.advanceable` that `Advance` required and no client could establish. Now:
+
+- `ownRaftPhys` records what `send` puts in `msgsAfterAppend` (`AAMsgOk`): responses from
+  the node; a self-addressed one has a nonzero term, `Entries = Context = nil`, does not
+  reject (an `appResp`), and a term no later than the node's (one later for a
+  `MsgPreVoteResp`, a pre-campaign's own). `SendOk`'s response clauses ask the caller for
+  these when `To = id`; the callers that answer `m.From` now know `m.From ≠ id`
+  (`handleAppendEntries`, `handleSnapshot`, `stepFollower`/`stepCandidate` for
+  `MsgApp`/`MsgSnap`, the `MsgPreVote` branches: `Step`'s transport premises). The term
+  bound needs the term never to move back: `raft.wp_store_Term` takes `s.term ≤ v`, and
+  `reset`, `becomeFollower`, `becomeCandidate` (no wrap), `loadState` take it as a premise.
+- **A leader's term is nonzero** (`appendEntry` stamps its self-acknowledgement with it):
+  `appendEntry` and `becomeLeader` take `s.term ≠ 0`. A candidate's comes from the winning
+  `MsgVoteResp` (`stepCandidate`'s premise `m.Term = s.term` now also `m.Term ≠ 0`); a
+  leader's proposal gets it from the ghost state: `ownRaftGhost_term_nz` -- a candidate or
+  leader holds the campaign record of its term (`campOwn`), whose `CampOk` puts the
+  boundary's term `0` below it. *Rejected*: an `ownRaftPhys` invariant `role = leader →
+  term ≠ 0` (the field stores of `Term` and `state` would each need a premise, threaded
+  through every `becomeX`), and a conjunct of `RoleOk` (reproving every refinement rule).
+- `Ready` puts each self-addressed response in the queue as `Pending.self pv t`
+  (`selfPending`: whether it is a pre-vote response, its term), with `pendingRel` holding
+  `SelfMsgOk` and its `isMessage` (from the drained outbox), and `StepsOk` the term bound
+  (self responses first, then the storage acknowledgements, as `acceptReady` queues them).
+- **The term across `Advance`**: `raft.Step`'s postcondition gained `RespStep` -- a stale
+  `MsgVoteResp`/`MsgAppResp` keeps the role; a `MsgPreVoteResp` moves the term at most to
+  its own or one up from a pre-candidate, and never makes a pre-candidate -- and its
+  `MsgPreVoteResp` no-wrap premise is now only for a pre-candidate. With the queue's term
+  bounds, `Advance`'s loop keeps `TermInv`: the term is the start's or one more, and while
+  self responses remain a pre-candidate is at the start's term (a won pre-vote leaves a
+  candidate, which ignores the later pre-vote responses, and the other responses are
+  then stale). So `Advance` takes `rs.term + 1 < 2^64` and returns the term up by at most
+  one. *Rejected*: assuming at most one self pre-vote response per queue (false: two
+  pre-campaigns before a `Ready` queue two), a premise counting the queue's pre-vote
+  responses (opaque to clients), and `TermStep` alone (it lets each pre-vote response add
+  one).
+
+`advanceable` is gone: `ownRawNode` carries `StepsOk s rs.steps` unconditionally,
+`Ready` does not return a flag, `Advance` takes any queue `Ready` left. The
+`Ready`/`Advance` loop is verifiable through the specs.

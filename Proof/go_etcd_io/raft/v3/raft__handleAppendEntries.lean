@@ -44,7 +44,7 @@ private theorem wp_min_u64 (a b : w64) :
 `MsgAppResp` clause (d) with no entries. -/
 private theorem wp_send_appResp (wp_raft_send : raft.send.spec (GF := GF) (hG := hG))
     (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (dst idx hintterm hint : w64)
-    (rej : Bool) :
+    (rej : Bool) (Hdst : dst ≠ id) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"send"))
         (Val #({ Type' := W32 4, To' := dst, From' := 0, Term' := 0,
@@ -55,7 +55,8 @@ private theorem wp_send_appResp (wp_raft_send : raft.send.spec (GF := GF) (hG :=
     {{ RET #(); ownRaftPhys cfg r id (sendMsgs s [appResp id s dst rej idx hintterm hint]) }} := by
   iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
   wp_apply wp_raft_send cfg r id s _ [] [appResp id s dst rej idx hintterm hint] (Or.inl rfl)
-      (Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, rfl⟩)))) $$ [$Hphys] as Hphys
+      (Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, fun h => absurd h Hdst, rfl⟩)))) $$ [$Hphys]
+      as Hphys
   · isplitr
     · iapply ownSlice_nil
     · iapply send_no_snap
@@ -84,7 +85,7 @@ theorem raft.handleAppendEntries.wp_proof
     (wp_raftLog_findConflictByTerm : raftLog.findConflictByTerm.spec (GF := GF) (hG := hG))
     (wp_raft_send : raft.send.spec (GF := GF) (hG := hG)) :
     raft.handleAppendEntries.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s m ents Hwf Hnw Hnorm Hconf
+  intro cfg r id s m ents Hwf Hnw Hnorm Hconf Hfid
   wp_start as Hpre
   iNamed Hpre
   wp_auto
@@ -108,7 +109,7 @@ theorem raft.handleAppendEntries.wp_proof
     ihave Hphys := Hlogback $$ Hlog
     obtain ⟨Hcm2, -⟩ := Hlv2
     rw [Hcm2]
-    wp_apply wp_send_appResp wp_raft_send $$ [$Hphys] as Hphys
+    wp_apply wp_send_appResp wp_raft_send (Hdst := Hfid) $$ [$Hphys] as Hphys
     iapply HΦ
     iframe
     ipureintro
@@ -129,7 +130,7 @@ theorem raft.handleAppendEntries.wp_proof
       rw [Hpm] at Hma
       obtain ⟨rfl, rfl, Hprev, Hes, Happ, Hcm', Hfr'⟩ := Hma
       wp_auto
-      wp_apply wp_send_appResp wp_raft_send $$ [$Hphys] as Hphys
+      wp_apply wp_send_appResp wp_raft_send (Hdst := Hfid) $$ [$Hphys] as Hphys
       iapply HΦ
       iframe
       ipureintro
@@ -166,7 +167,7 @@ theorem raft.handleAppendEntries.wp_proof
       icases ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hlogback⟩
       wp_apply wp_raftLog_findConflictByTerm $$ [$Hlog] as %hint %hintterm ⟨Hlog, -⟩
       ihave Hphys := Hlogback $$ Hlog
-      wp_apply wp_send_appResp wp_raft_send $$ [$Hphys] as Hphys
+      wp_apply wp_send_appResp wp_raft_send (Hdst := Hfid) $$ [$Hphys] as Hphys
       iapply HΦ
       iframe
       ipureintro

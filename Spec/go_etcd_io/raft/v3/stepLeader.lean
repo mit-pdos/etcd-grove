@@ -198,7 +198,10 @@ abbrev stepLeader.spec : Prop :=
    m.From' ≠ id) →
   (m.Type' = MsgProp →
    ents ≠ [] ∧ (∀ e ∈ ents, e.Type' = EntryNormal) ∧
-   (ents.length : Int) < 2^61) →
+   (ents.length : Int) < 2^61 ∧
+   -- the leader's term is nonzero (2026-10-10; `appendEntry`'s premise, from the
+   -- ghost state: `ownRaftGhost_term_nz`)
+   s.term ≠ W64 0) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s ∗
       "Hctx" ∷ (⌜m.Type' = MsgHeartbeatResp⌝ -∗

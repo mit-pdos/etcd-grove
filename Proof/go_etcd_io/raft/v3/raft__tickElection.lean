@@ -85,7 +85,7 @@ theorem raft.tickElection.wp_proof
       iintro %Hc
       simp [MsgSnap] at Hc
     simp only [hP, ↓reduceIte]
-    iintro %err %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, -, %Hfr, %Htm, Herr, -⟩
+    iintro %err %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, -, %Hfr, %Htm, -, Herr, -⟩
     icases Herr with (%Herr | ⟨%Hc', -⟩)
     · subst Herr
       wp_auto

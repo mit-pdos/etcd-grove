@@ -69,8 +69,12 @@ theorem wp_Step_MsgHeartbeatResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
   · iapply wp_Step_Resp_gt _P cfg r id s m ents .heartbeatResp (.inr ⟨Hty, rfl⟩) Hto Hterm Hgt
       Hwf $$ [$Hpkg $Hphys] HΦ
   · by_cases Hlt : uint.Z m.Term' < uint.Z s.term
-    · iapply wp_Step_Resp_lt _P cfg r id s m ents .heartbeatResp (.inr Hty) Hterm Hlt Hwf
-        $$ [$Hpkg $Hphys] HΦ
+    · wp_apply (wp_Step_Resp_lt _P cfg r id s m ents .heartbeatResp (.inr Hty) Hterm Hlt Hwf)
+        $$ [$Hpkg $Hphys] as %err %s' ⟨Hphys, %Hwf', %Href, %Herr, -, %Hfr, %Htm⟩
+      iapply HΦ $$ %err %s'
+      iframe Hphys
+      ipureintro
+      exact ⟨Hwf', Href, Herr, Hfr, Htm⟩
     · have Hteq : m.Term' = s.term := by word
       iapply wp_Step_MsgHeartbeatResp_eq _P cfg r id s m ents Hty Hto Hterm Hteq Hfnz Hfid Hcfg
         Hwf $$ [$Hpkg $Hphys $Hctx0] HΦ

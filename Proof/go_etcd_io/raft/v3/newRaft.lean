@@ -123,7 +123,7 @@ theorem newRaft.wp_proof
   ihave Hphys := ownRaftPhys_intro ∅ «$r0_ptr» cv.ID' s0 _ [] [] lok
     HpID rfl rfl rfl rfl rfl HpPV (by rw [HpDPF, Hdpf]) (by rw [HpCQ, Hcq]) rfl rfl HvID
     (by show 0 < sint.Z cv'.ElectionTick'; rw [HpET]; omega) (by rw [HpLg, Hlok]) rfl
-    (fun h => absurd h (by simp only [s0]; decide))
+    (fun h => absurd h (by simp only [s0]; decide)) (fun _ h => absurd h List.not_mem_nil)
     $$ «$r0» Hlg0 Htrk0 HL Hnil1 Hcap1 Hnil2 Hcap2 Hmisc Hob
   -- the configuration `Restore` built, as `switchToConfig` installs it
   ipersist Hprsm
@@ -183,7 +183,8 @@ theorem newRaft.wp_proof
         show uint.Z σ.prev.index' ≤ _ ∧ _ ≤ uint.Z (logLast ls0)
         rw [Hll]; exact this
       wp_apply wp_raft_loadState _ _ _
-        { s0 with progress := prs, prvals := pvs1 } hs Hpre $$ [$Hphys] as Hphys
+        { s0 with progress := prs, prvals := pvs1 } hs Hpre
+        (by show uint.Z (W64 0) ≤ uint.Z hs.Term'; word) $$ [$Hphys] as Hphys
       isplitr
       · ipureintro; rfl
       iframe hs r
@@ -218,7 +219,8 @@ theorem newRaft.wp_proof
     simp only [s2, ls2, ap, ls1, s1, Ha0, ↓reduceIte, w64Max, Int.lt_irrefl]
   -- `r.becomeFollower(r.Term, None)`
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
-  wp_apply wp_raft_becomeFollower _ _ _ s2 s2.term (W64 0) $$ [$Hphys] as %pvs3 Hphys
+  wp_apply wp_raft_becomeFollower _ _ _ s2 s2.term (W64 0) (Int.le_refl _) $$ [$Hphys]
+    as %pvs3 Hphys
   let s3 : NState := { becomeFollower s2 s2.term (W64 0) with prvals := pvs3 }
   -- `r.trk.VoterNodes()`
   icases ownRaftPhys_tracker_same _ _ _ s3 $$ Hphys with ⟨%tv3, Htrkf, Htrk3, Htrkback⟩

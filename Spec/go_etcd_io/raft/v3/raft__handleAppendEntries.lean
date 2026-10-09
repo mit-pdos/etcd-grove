@@ -135,6 +135,9 @@ abbrev raft.handleAppendEntries.spec : Prop :=
    PlogMatches ls.prev es (entryID.mk m.LogTerm' m.Index') →
    plogFindConflict ls.prev es ents = W64 0 ∨
    uint.Z ls.committed < uint.Z (plogFindConflict ls.prev es ents)) →
+  -- from another node (2026-10-10; `Step`'s premise): every reply goes to `m.From`, and
+  -- a self-addressed rejection would not be steppable (`AAMsgOk`)
+  m.From' ≠ id →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s ∗
       "#Hents" ∷ m.Entries' ↦*□ ents ∗

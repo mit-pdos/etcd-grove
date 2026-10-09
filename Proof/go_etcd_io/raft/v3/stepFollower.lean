@@ -108,7 +108,7 @@ theorem stepFollower.wp_proof
       simp [FollowerStepResult, Hty, MsgVoteResp, MsgProp]
       exact Hlead
   · -- `MsgApp`: adopt the sender as leader, then `handleAppendEntries`
-    obtain ⟨Hwf, Hnw, Hnorm, Hconf⟩ := Happ Hty
+    obtain ⟨Hwf, Hnw, Hnorm, Hconf, Hfid⟩ := Happ Hty
     rw [Hty]
     simp only [MsgApp]
     wp_auto
@@ -116,7 +116,8 @@ theorem stepFollower.wp_proof
     wp_apply raft.wp_store_lead $$ Hphys as Hphys
     ihave Hes := Hents $$ %(Or.inl trivial)
     icases Hes with ⟨#Hes, Hcap⟩
-    wp_apply wp_raft_handleAppendEntries _ _ _ { s with lead := m.From' } _ _ Hwf Hnw Hnorm Hconf $$ [$Hphys $Hes $Hcap]
+    wp_apply wp_raft_handleAppendEntries _ _ _ { s with lead := m.From' } _ _ Hwf Hnw Hnorm Hconf Hfid
+      $$ [$Hphys $Hes $Hcap]
       as %s' ⟨Hphys, %Hres⟩
     iapply HΦ $$ %GoInterface.nil %s' %false
     iframe
@@ -154,13 +155,14 @@ theorem stepFollower.wp_proof
   · -- `MsgSnap`: adopt the sender as leader, then `handleSnapshot`
     ihave Hs := Hsnap $$ %Hty
     icases Hs with ⟨%Hsc, #Hsv, #Hvs⟩
-    obtain ⟨Hscope, Hrole, Hvotes, Hcfg⟩ := Hsc
+    obtain ⟨Hscope, Hrole, Hvotes, Hcfg, Hfid⟩ := Hsc
     rw [Hty]
     simp only [MsgSnap]
     wp_auto
     wp_apply raft.wp_store_electionElapsed $$ Hphys as Hphys
     wp_apply raft.wp_store_lead $$ Hphys as Hphys
-    wp_apply wp_raft_handleSnapshot _ _ _ { s with lead := m.From' } _ sv voters Hrole Hvotes Hcfg Hscope $$ [$Hphys $Hsv $Hvs]
+    wp_apply wp_raft_handleSnapshot _ _ _ { s with lead := m.From' } _ sv voters Hrole Hvotes Hcfg Hscope
+      Hfid $$ [$Hphys $Hsv $Hvs]
       as %s' ⟨Hphys, %Hres⟩
     iapply HΦ $$ %GoInterface.nil %s' %false
     iframe

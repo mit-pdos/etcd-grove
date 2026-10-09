@@ -42,6 +42,8 @@ theorem wp_Step_MsgPreVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     m.To' = id →
     m.Term' ≠ W64 0 →
     m.From' ≠ W64 0 →
+    -- from another node (2026-10-10): the answer goes to `m.From`
+    m.From' ≠ id →
     -- this file: the incoming term is stale
     uint.Z m.Term' < uint.Z s.term →
     NStateWf s →
@@ -55,7 +57,7 @@ theorem wp_Step_MsgPreVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hlt0 Hwf
+  intro Hty Hto Hterm Hfnz Hfid Hlt0 Hwf
   have Hn8 : decide (m.Type' = W32 8) = false := decide_eq_false (by rw [Hty]; w32_ne)
   have Hn3 : decide (m.Type' = W32 3) = false := decide_eq_false (by rw [Hty]; w32_ne)
   have Hy17 : decide (m.Type' = W32 17) = true := decide_eq_true Hty
@@ -93,7 +95,8 @@ theorem wp_Step_MsgPreVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     wp_apply raft.wp_load_Term $$ Hphys as Hphys
     wp_apply _P.send cfg r id s _ [] _ (Or.inl rfl)
         (Or.inl ⟨.preVoteResp, Or.inr (Or.inr (Or.inr rfl)), mtypeOf_MsgPreVoteResp, Hs0,
-          fun Hc => by rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne), rfl⟩)
+          fun Hc => by rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne),
+          fun h => absurd h Hfid, rfl⟩)
       $$ [$Hphys]
     · isplitr
       · iapply ownSlice_nil

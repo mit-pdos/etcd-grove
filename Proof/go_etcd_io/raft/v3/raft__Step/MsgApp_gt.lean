@@ -92,7 +92,7 @@ theorem wp_Step_MsgApp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   wp_raft_log
   repeat (rw [Hty]; wp_auto)
   -- `becomeFollower(m.Term, m.From)`: a leader's message
-  wp_apply _P.becomeFollower $$ [$Hphys] as %pvs Hphys
+  wp_apply _P.becomeFollower _ _ _ _ _ _ (by exact Int.le_of_lt Hgt) $$ [$Hphys] as %pvs Hphys
   repeat (rw [Hty]; wp_auto)
   wp_apply raft.wp_load_step $$ Hphys as Hphys
   have Hsf : ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).stepfn =
@@ -101,7 +101,7 @@ theorem wp_Step_MsgApp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   wp_apply _P.stepFollower cfg r id { becomeFollower s m.Term' m.From' with prvals := pvs } m
       ents (zero_val _) [] (.inr (.inr (.inl Hty)))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-      (fun _ => ⟨Hpwf, Hnw, Hnorm, Hconf⟩)
+      (fun _ => ⟨Hpwf, Hnw, Hnorm, Hconf, Hfid⟩)
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
     $$ [$Hphys Hcap] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
   · isplitl []
