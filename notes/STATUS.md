@@ -92,9 +92,15 @@ module system").
   `unstable` specs lost those premises and their "unchanged" facts.
 - **The same rule, applied to the rest (2026-10-08)**: the storage's `prev`/`ents`/`ss`
   are one `StorState` (`StorageModel.ownStorage`, `isStorageWith`, the
-  `MemoryStorage` predicates); `ownRawNode`'s raft state is
-  `RNState.raft`; `ownProgressMap`'s pointer map is existential; `Progress.recentActive`
+  `MemoryStorage` predicates); `ownProgressMap`'s pointer map is existential; `Progress.recentActive`
   and `ReadOnly.safe`, which no spec reads, are gone.
+- **The `raftLog` layer follows it too (2026-10-08)**: `ownRaftLogCore` is inlined into
+  `ownRaftLog l ls` (storage `∃ σ : StorState`), the proofs keep `ls` a variable, and
+  `newLogWithSize` lends the storage with a wand back to `ownRaftLog`. `proj_simps`
+  (`ProjSimps.lean`) generates `@[simp, word_unfold]` projection lemmas for 31
+  record-building functions; `CLAUDE.md` ("Proof writing", "Records") says how proofs
+  handle records (keep them variables, `word` over `omega`). The `ownRawNode` fold was
+  reverted (decisions.md, "Predicate indices").
 - **The `Logger` and `Storage` interfaces assume nothing (2026-10-08).** `isLogger`
   (`InvLogger.lean`) is a definition, the formatting methods' triples bundled as
   `isStorageWith` bundles `Storage`'s, so `isLogger_persistent` is an instance and

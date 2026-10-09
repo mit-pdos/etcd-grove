@@ -595,18 +595,75 @@ rebuild `ownRaftLogCore` at `{ lv with unstable' := uv' }` (`close_unstable_log`
   `ownMemoryStorage` take one `StorState := { prev, ents, ss }` (`InvStorage.lean`)
   instead of three arguments; the persist lemmas return
   `{ σ with ents := storApp … }`, `newRaft`'s `InitialState` clause `{ σ with ss := ss' }`.
-- `ownRawNode rn id s rs` is `ownRawNode rn id rs`: `RNState` has the node's `NState`
-  as `raft`; `Propose`/`Advance` return `{ rs with raft := s', … }`.
 - `ownProgressMap m prs pvs` is `ownProgressMap m pvs`: the pointer map is existential
   (`AckedIndex` only carried it; `Committed` recovers it with `progress_map_agree`).
 - Fields no spec reads are dropped: `Progress.recentActive` (checkQuorum, which reads
   it, is out of scope) and `ReadOnly.safe` (the option is case-split on the Go value).
   Both come back if a spec ever needs them.
 
-**Left as is**, deliberately: `ownRaftLogCore` -- not specified on (only
-`newLogWithSize`'s spec names it), and its proofs work at the `LogState` fields as
-variables after `cases ls` by design (`ownRaftLog_unfold`); it names its storage record
-by fields (`{ prev := sprev, ents := stored, ss := ss }`). `visitClosure` (a closure
+**Tried and reverted: `ownRawNode rn id s rs` as `ownRawNode rn id rs`** with the node's
+`NState` as `RNState.raft` (2026-10-08, reverted the same day). It removed nothing: every
+node fact in the `RawNode` specs became `rs.raft.*` (the comparisons `nodeHardstate s =
+rs.hard` became `nodeHardstate rs.raft = rs.hard`), the update `{ rs with raft := s' }`
+hid which layer changed, and the proofs destructured the record again. The rule is about
+loose state *arguments*; two cohesive records for two layers (the raft node's `NState`
+and the RawNode's own `RNState`) stay two indices.
+
+- `ownRaftLogCore lv snap prev sents uents pend` (five state arguments, the storage as
+  `∃ sprev stored ss`) is gone, inlined into `ownRaftLog l ls`, which holds
+  `∃ (lv : raftLog) (σ : StorState)` and states its facts on `ls`; `LogStoreOk`,
+  `LogPersistOk`, `StoredSnapOk`, `storApp` take `σ`. The `raftLog` proofs no longer
+  destructure `ls` (`ownRaftLog_unfold` is gone; `iNamed Hlog` opens it) and pass the
+  `unstable` methods `unstableOf lv ls` (`proj_simps`) instead of a literal record.
+  `newLogWithSize`, the one spec that named the core, returns the storage and a wand
+  `ownStorage st σ -∗ ownRaftLog l <initial state>`: `LogState` has no storage field,
+  and `newRaft` needs that storage for `InitialState` before the log is complete.
+  The `raftLog` proofs lost all 56 of their `dsimp only` steps (38 files, −289 lines).
+
+**Left as is**, deliberately: `visitClosure` (a closure
 contract, not an ownership predicate) and `ownConfig`'s `cfg` (a configuration
 parameter, which the rule exempts). The ghost predicates in `Protocol/` own no Go
 object and were not audited against the rule.
+
+---
+
+## Records in proofs: keep them variables; `word`, `simp`, `proj_simps`
+
+**2026-10-08 · accepted**
+
+The record refactors above added about fifty `dsimp only at …` steps to proofs, which an
+agent cannot guess: a projection of a **literal** record (`{ prev := p, … }.prev`, or
+`⟨ents, off, ip, snap⟩.offset` from instantiating a spec at a record built from fields)
+or of a **record-building function** (`(inflightsRingOf iv buf).buflen`) is an atom that
+`omega` and `rw` treat as unrelated to `p` or `buf.length` (checked:
+`omega` fails on the first and the third, `rw` on the first).
+
+**Decision**, three parts:
+
+1. **Records stay variables.** Predicates and specs quantify over the record, and proofs
+   do not destructure it (`intro ⟨a, b, c⟩` and then working on `a`), nor build a
+   literal where a variable will do; then every fact is about `σ.prev`, one atom
+   throughout.
+2. **`proj_simps f`** (`ProjSimps.lean`) generates, for a function whose body is a
+   constructor, `@[simp, word_unfold] theorem f.proj_<field> : (f xs).<field> = <value>`
+   by `rfl`. Applied to the 31 such functions in `Defs`, `Protocol/Model`, `InvTracker`,
+   `InvMisc`, `InvRawnode`, `InvReadylog` and `RawNode.Ready`'s spec; eleven that branch
+   (`becomeLeader`, `progressMaybeUpdate`, …) have none. A literal record's projections
+   need no lemma: `simp` reduces them.
+3. **`word` rather than `omega`** where a goal mentions record fields: its preprocessing
+   runs `simp only [word_unfold, …] at *`, which does both. `simp only at h` before a
+   `rw` on such a hypothesis.
+
+`CLAUDE.md` ("Proof writing") states the three for agents. With (2) alone, 19 of the
+`dsimp only` steps went; the rest came from the `raftLog` layer, whose proofs destructured
+`ls : LogState` and called the record-indexed `unstable` specs with literal records.
+
+**Cost**: `word_unfold` makes `word`'s simp set larger. One very large proof
+(`RawNode.Ready.wp_proof`) crossed the default 200000 heartbeats at the same wall time
+(46 s) and has `maxHeartbeats 400000`. `simp` normalizes hypotheses further than before,
+so six `simp … at H; exact H` became `simpa … using H`.
+
+**Not pursued -- `@[reducible]` abstraction functions or `abbrev`s**: structure
+projections are already reducible, and `omega` still fails on a literal record's
+projection, so it does not compare atoms up to reducible unfolding. **Rejected -- a new normalization tactic**: an agent
+would have to know to call it; `word` and `simp` are already what it reaches for.
