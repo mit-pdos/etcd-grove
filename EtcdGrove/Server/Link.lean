@@ -7,7 +7,27 @@ hand.
 
 `#print axioms` on a result is its trust base.
 -/
+import EtcdGrove.Server.Proof.AlarmStore__Get
+import EtcdGrove.Server.Proof.ConfChange__GetId
+import EtcdGrove.Server.Proof.Entry__GetIndex
+import EtcdGrove.Server.Proof.Entry__GetTerm
+import EtcdGrove.Server.Proof.Entry__GetType
+import EtcdGrove.Server.Proof.EtcdServer__GoAttach
+import EtcdGrove.Server.Proof.EtcdServer__Logger
+import EtcdGrove.Server.Proof.EtcdServer__apply
+import EtcdGrove.Server.Proof.EtcdServer__applyConfChange
+import EtcdGrove.Server.Proof.EtcdServer__applyEntries
+import EtcdGrove.Server.Proof.EtcdServer__applyEntryNormal
+import EtcdGrove.Server.Proof.EtcdServer__getTxPostLockInsideApplyHook
+import EtcdGrove.Server.Proof.EtcdServer__isLeader
+import EtcdGrove.Server.Proof.EtcdServer__setAppliedIndex
+import EtcdGrove.Server.Proof.EtcdServer__setTerm
+import EtcdGrove.Server.Proof.EtcdServer__stopWithDelay
 import EtcdGrove.Server.Proof.NewConsistentIndex
+import EtcdGrove.Server.Proof.Notifier__Notify
+import EtcdGrove.Server.Proof.RaftCluster__Members
+import EtcdGrove.Server.Proof.ServerConfig__ElectionTimeout
+import EtcdGrove.Server.Proof.apply_Apply
 import EtcdGrove.Server.Proof.binary_bigEndian__PutUint64
 import EtcdGrove.Server.Proof.binary_bigEndian__Uint64
 import EtcdGrove.Server.Proof.consistentIndex__ConsistentApplyingIndex
@@ -17,46 +37,89 @@ import EtcdGrove.Server.Proof.consistentIndex__SetConsistentApplyingIndex
 import EtcdGrove.Server.Proof.consistentIndex__SetConsistentIndex
 import EtcdGrove.Server.Proof.consistentIndex__UnsafeConsistentIndex
 import EtcdGrove.Server.Proof.consistentIndex__UnsafeSave
+import EtcdGrove.Server.Proof.errors_Is
+import EtcdGrove.Server.Proof.humanize_Bytes
+import EtcdGrove.Server.Proof.pbutil_MustUnmarshalMessage
 import EtcdGrove.Server.Proof.schema_ReadConsistentIndex
 import EtcdGrove.Server.Proof.schema_UnsafeReadConsistentIndex
 import EtcdGrove.Server.Proof.schema_UnsafeUpdateConsistentIndex
 import EtcdGrove.Server.Proof.schema_UnsafeUpdateConsistentIndexForce
 import EtcdGrove.Server.Proof.schema_unsafeUpdateConsistentIndex
 import EtcdGrove.Server.Proof.verify_Verify
+import EtcdGrove.Server.Proof.zap_Error
+import EtcdGrove.Server.Proof.zap_Int
+import EtcdGrove.Server.Proof.zap_Int64
+import EtcdGrove.Server.Proof.zap_Logger__Debug
+import EtcdGrove.Server.Proof.zap_Logger__Warn
+import EtcdGrove.Server.Proof.zap_String
+import EtcdGrove.Server.Proof.zap_Stringer
+import EtcdGrove.Server.Proof.zap_Uint64
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.cindex go_etcd_io.etcd.server.v3.storage
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.cindex go_etcd_io.etcd.server.v3.storage go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3 go_etcd_io.etcd.pkg.v3 go_uber_org go_etcd_io.raft.v3
 
 section links
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.cindex.Assumptions]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-theorem wp_NewConsistentIndex [AllG GF] :
-    NewConsistentIndex.spec (GF := GF) (hG := hG) :=
-  NewConsistentIndex.wp_proof
+theorem v3alarm.AlarmStore.wp_Get :
+    v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG) :=
+  v3alarm.AlarmStore.Get.wp_proof
 
-theorem binary.bigEndian.wp_PutUint64 :
-    binary.bigEndian.PutUint64.spec (GF := GF) (hG := hG) :=
-  binary.bigEndian.PutUint64.wp_proof
+theorem raftpb.ConfChange.wp_GetId :
+    raftpb.ConfChange.GetId.spec (GF := GF) (hG := hG) :=
+  raftpb.ConfChange.GetId.wp_proof
 
-theorem binary.bigEndian.wp_Uint64 :
-    binary.bigEndian.Uint64.spec (GF := GF) (hG := hG) :=
-  binary.bigEndian.Uint64.wp_proof
+theorem raftpb.Entry.wp_GetIndex :
+    raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG) :=
+  raftpb.Entry.GetIndex.wp_proof
 
-theorem consistentIndex.wp_ConsistentApplyingIndex [AllG GF] :
-    consistentIndex.ConsistentApplyingIndex.spec (GF := GF) (hG := hG) :=
-  consistentIndex.ConsistentApplyingIndex.wp_proof
+theorem raftpb.Entry.wp_GetTerm :
+    raftpb.Entry.GetTerm.spec (GF := GF) (hG := hG) :=
+  raftpb.Entry.GetTerm.wp_proof
+
+theorem raftpb.Entry.wp_GetType :
+    raftpb.Entry.GetType.spec (GF := GF) (hG := hG) :=
+  raftpb.Entry.GetType.wp_proof
+
+theorem EtcdServer.wp_GoAttach :
+    EtcdServer.GoAttach.spec (GF := GF) (hG := hG) :=
+  EtcdServer.GoAttach.wp_proof
+
+theorem EtcdServer.wp_Logger :
+    EtcdServer.Logger.spec (GF := GF) (hG := hG) :=
+  EtcdServer.Logger.wp_proof
+
+theorem zap.Logger.wp_Debug :
+    zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
+  zap.Logger.Debug.wp_proof
+
+theorem zap.wp_Int' :
+    zap.Int'.spec (GF := GF) (hG := hG) :=
+  zap.Int'.wp_proof
+
+theorem zap.wp_Uint64 :
+    zap.Uint64.spec (GF := GF) (hG := hG) :=
+  zap.Uint64.wp_proof
+
+theorem zap.wp_Stringer :
+    zap.Stringer.spec (GF := GF) (hG := hG) :=
+  zap.Stringer.wp_proof
 
 theorem consistentIndex.wp_SetConsistentIndex [AllG GF] :
     consistentIndex.SetConsistentIndex.spec (GF := GF) (hG := hG) :=
   consistentIndex.SetConsistentIndex.wp_proof
+
+theorem binary.bigEndian.wp_Uint64 :
+    binary.bigEndian.Uint64.spec (GF := GF) (hG := hG) :=
+  binary.bigEndian.Uint64.wp_proof
 
 theorem schema.wp_UnsafeReadConsistentIndex [AllG GF] :
     schema.UnsafeReadConsistentIndex.spec (GF := GF) (hG := hG) :=
@@ -70,17 +133,109 @@ theorem consistentIndex.wp_ConsistentIndex [AllG GF] :
     consistentIndex.ConsistentIndex.spec (GF := GF) (hG := hG) :=
   consistentIndex.ConsistentIndex.wp_proof consistentIndex.wp_SetConsistentIndex schema.wp_ReadConsistentIndex
 
-theorem consistentIndex.wp_SetBackend [AllG GF] :
-    consistentIndex.SetBackend.spec (GF := GF) (hG := hG) :=
-  consistentIndex.SetBackend.wp_proof consistentIndex.wp_SetConsistentIndex
-
 theorem consistentIndex.wp_SetConsistentApplyingIndex [AllG GF] :
     consistentIndex.SetConsistentApplyingIndex.spec (GF := GF) (hG := hG) :=
   consistentIndex.SetConsistentApplyingIndex.wp_proof
 
+theorem notify.Notifier.wp_Notify :
+    notify.Notifier.Notify.spec (GF := GF) (hG := hG) :=
+  notify.Notifier.Notify.wp_proof
+
+theorem EtcdServer.wp_isLeader :
+    EtcdServer.isLeader.spec (GF := GF) (hG := hG) :=
+  EtcdServer.isLeader.wp_proof
+
+theorem config.ServerConfig.wp_ElectionTimeout :
+    config.ServerConfig.ElectionTimeout.spec (GF := GF) (hG := hG) :=
+  config.ServerConfig.ElectionTimeout.wp_proof
+
+theorem apply.wp_Apply :
+    apply.Apply.spec (GF := GF) (hG := hG) :=
+  apply.Apply.wp_proof
+
+theorem errors.wp_Is :
+    errors.Is.spec (GF := GF) (hG := hG) :=
+  errors.Is.wp_proof
+
+theorem zap.wp_String :
+    zap.String.spec (GF := GF) (hG := hG) :=
+  zap.String.wp_proof
+
+theorem zap.wp_Int64 :
+    zap.Int64.spec (GF := GF) (hG := hG) :=
+  zap.Int64.wp_proof
+
+theorem zap.wp_Error :
+    zap.Error.spec (GF := GF) (hG := hG) :=
+  zap.Error.wp_proof
+
+theorem go_humanize.wp_Bytes :
+    go_humanize.Bytes.spec (GF := GF) (hG := hG) :=
+  go_humanize.Bytes.wp_proof
+
+theorem zap.Logger.wp_Warn :
+    zap.Logger.Warn.spec (GF := GF) (hG := hG) :=
+  zap.Logger.Warn.wp_proof
+
+theorem EtcdServer.wp_applyEntryNormal [AllG GF] :
+    EtcdServer.applyEntryNormal.spec (GF := GF) (hG := hG) :=
+  EtcdServer.applyEntryNormal.wp_proof raftpb.Entry.wp_GetIndex raftpb.Entry.wp_GetTerm consistentIndex.wp_ConsistentIndex consistentIndex.wp_SetConsistentIndex notify.Notifier.wp_Notify EtcdServer.wp_isLeader config.ServerConfig.wp_ElectionTimeout apply.wp_Apply errors.wp_Is v3alarm.AlarmStore.wp_Get EtcdServer.wp_Logger zap.wp_String zap.wp_Int64 zap.wp_Error go_humanize.wp_Bytes zap.Logger.wp_Warn EtcdServer.wp_GoAttach
+
+theorem EtcdServer.wp_setAppliedIndex [AllG GF] :
+    EtcdServer.setAppliedIndex.spec (GF := GF) (hG := hG) :=
+  EtcdServer.setAppliedIndex.wp_proof
+
+theorem EtcdServer.wp_setTerm [AllG GF] :
+    EtcdServer.setTerm.spec (GF := GF) (hG := hG) :=
+  EtcdServer.setTerm.wp_proof
+
+theorem pbutil.wp_MustUnmarshalMessage :
+    pbutil.MustUnmarshalMessage.spec (GF := GF) (hG := hG) :=
+  pbutil.MustUnmarshalMessage.wp_proof
+
+theorem EtcdServer.wp_applyConfChange :
+    EtcdServer.applyConfChange.spec (GF := GF) (hG := hG) :=
+  EtcdServer.applyConfChange.wp_proof
+
+theorem membership.RaftCluster.wp_Members :
+    membership.RaftCluster.Members.spec (GF := GF) (hG := hG) :=
+  membership.RaftCluster.Members.wp_proof
+
+theorem EtcdServer.wp_apply [AllG GF] :
+    EtcdServer.apply.spec (GF := GF) (hG := hG) :=
+  EtcdServer.apply.wp_proof zap.Logger.wp_Debug zap.wp_Int' zap.wp_Uint64 zap.wp_Stringer consistentIndex.wp_ConsistentIndex consistentIndex.wp_SetConsistentApplyingIndex consistentIndex.wp_SetConsistentIndex raftpb.Entry.wp_GetIndex raftpb.Entry.wp_GetTerm raftpb.Entry.wp_GetType EtcdServer.wp_applyEntryNormal EtcdServer.wp_setAppliedIndex EtcdServer.wp_setTerm pbutil.wp_MustUnmarshalMessage EtcdServer.wp_applyConfChange raftpb.ConfChange.wp_GetId membership.RaftCluster.wp_Members
+
+theorem EtcdServer.wp_stopWithDelay :
+    EtcdServer.stopWithDelay.spec (GF := GF) (hG := hG) :=
+  EtcdServer.stopWithDelay.wp_proof
+
+theorem EtcdServer.wp_applyEntries [AllG GF] :
+    EtcdServer.applyEntries.spec (GF := GF) (hG := hG) :=
+  EtcdServer.applyEntries.wp_proof raftpb.Entry.wp_GetIndex EtcdServer.wp_apply EtcdServer.wp_stopWithDelay
+
+theorem consistentIndex.wp_ConsistentApplyingIndex [AllG GF] :
+    consistentIndex.ConsistentApplyingIndex.spec (GF := GF) (hG := hG) :=
+  consistentIndex.ConsistentApplyingIndex.wp_proof
+
 theorem consistentIndex.wp_UnsafeConsistentIndex [AllG GF] :
     consistentIndex.UnsafeConsistentIndex.spec (GF := GF) (hG := hG) :=
   consistentIndex.UnsafeConsistentIndex.wp_proof consistentIndex.wp_SetConsistentIndex schema.wp_UnsafeReadConsistentIndex
+
+theorem EtcdServer.wp_getTxPostLockInsideApplyHook [AllG GF] :
+    EtcdServer.getTxPostLockInsideApplyHook.spec (GF := GF) (hG := hG) :=
+  EtcdServer.getTxPostLockInsideApplyHook.wp_proof consistentIndex.wp_ConsistentApplyingIndex consistentIndex.wp_UnsafeConsistentIndex consistentIndex.wp_SetConsistentIndex
+
+theorem wp_NewConsistentIndex [AllG GF] :
+    NewConsistentIndex.spec (GF := GF) (hG := hG) :=
+  NewConsistentIndex.wp_proof
+
+theorem binary.bigEndian.wp_PutUint64 :
+    binary.bigEndian.PutUint64.spec (GF := GF) (hG := hG) :=
+  binary.bigEndian.PutUint64.wp_proof
+
+theorem consistentIndex.wp_SetBackend [AllG GF] :
+    consistentIndex.SetBackend.spec (GF := GF) (hG := hG) :=
+  consistentIndex.SetBackend.wp_proof consistentIndex.wp_SetConsistentIndex
 
 theorem verify.wp_Verify :
     verify.Verify.spec (GF := GF) (hG := hG) :=

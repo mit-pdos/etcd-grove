@@ -80,7 +80,7 @@ fns.sort()
 
 spec = {}
 for fn in fns:
-    m = re.search(r"^abbrev ([\w.«»]+)\.spec\b", open(os.path.join(lean, "Spec", f"{fn}.lean")).read(), re.M)
+    m = re.search(r"^abbrev ([\w.«»']+)\.spec\b", open(os.path.join(lean, "Spec", f"{fn}.lean")).read(), re.M)
     spec[fn] = m.group(1)
 
 # The specs stated at `HeapGS HasLC.hasLC GF` (the ghost state holds an invariant).

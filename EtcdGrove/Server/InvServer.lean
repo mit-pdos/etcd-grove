@@ -37,6 +37,41 @@ abbrev srvCIAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"consistIndex" 
 
 end addrs
 
+section typeRepr
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- `TypeRepr` of the structs the apply thread reads fields of (named and underlying types),
+straight from their `TypeAssumptions` (as `Cache/InvStore.lean` does for the cache's
+messages). Without these, the `StructFieldRef` step finds `TypeRepr` through the struct's
+`IntoValTyped` instance, which is built from those of every field, and the server's fields of
+axiomatized types (`raft.Node`, `auth.AuthStore`, ...) have `sorry` instances. -/
+instance (priority := high) etcdServer_typeRepr : TypeRepr EtcdServer.ty EtcdServer :=
+  go.type_repr_underlying (u := EtcdServer.underlying)
+instance (priority := high) etcdServer_typeRepr_u : TypeRepr EtcdServer.underlying EtcdServer :=
+  go.type_repr_underlying (u := EtcdServer.underlying)
+instance (priority := high) serverConfig_typeRepr :
+    TypeRepr go_etcd_io.etcd.server.v3.config.ServerConfig.ty
+      go_etcd_io.etcd.server.v3.config.ServerConfig :=
+  go.type_repr_underlying (u := go_etcd_io.etcd.server.v3.config.ServerConfig.underlying)
+instance (priority := high) serverConfig_typeRepr_u :
+    TypeRepr go_etcd_io.etcd.server.v3.config.ServerConfig.underlying
+      go_etcd_io.etcd.server.v3.config.ServerConfig :=
+  go.type_repr_underlying (u := go_etcd_io.etcd.server.v3.config.ServerConfig.underlying)
+instance (priority := high) etcdProgress_typeRepr : TypeRepr etcdProgress.ty etcdProgress :=
+  go.type_repr_underlying (u := etcdProgress.underlying)
+instance (priority := high) etcdProgress_typeRepr_u : TypeRepr etcdProgress.underlying etcdProgress :=
+  go.type_repr_underlying (u := etcdProgress.underlying)
+instance (priority := high) toApply_typeRepr : TypeRepr toApply.ty toApply :=
+  go.type_repr_underlying (u := toApply.underlying)
+instance (priority := high) toApply_typeRepr_u : TypeRepr toApply.underlying toApply :=
+  go.type_repr_underlying (u := toApply.underlying)
+
+end typeRepr
+
 /-- The interface value of a `*consistentIndex`. -/
 abbrev ciIface [FfiSyntax] [GoGlobalContext] (ci : Loc) : GoInterface :=
   interface.mkOk (go.GoType.PointerType consistentIndex.ty) #ci
