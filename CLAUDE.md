@@ -34,6 +34,12 @@ Before you finish, update `notes/STATUS.md` if anything moved.
   proofs (`theorem <T>.wp_<M> : <fn>.spec`); `Results.lean` states the protocol-level
   results.
 
+`EtcdGrove/Cache/` (etcd's cache) and `EtcdGrove/Server/` (etcd's consistent index and apply
+thread) follow the same discipline, Lean-first (`etc/gen-link.py --cache`/`--server`). The
+server's proofs are the library `EtcdGroveServer`: they name etcd's raft dependency (v3.7, in
+`EtcdCache`), whose Lean names clash with the fork `EtcdRaft`, so the root `EtcdGrove` does not
+import them.
+
 ## Trust base
 
 `etc/tcb-report.py` reports what the proof rests on (needs `lake build`): the

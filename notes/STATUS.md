@@ -353,3 +353,61 @@ Design and rejected alternatives: `decisions.md`, "watcher, notifier, ready".
   persistent hypothesis (`errorStringSpec`) still in context; clearing it fixed that
   (`Proof/watcher__Compact.lean`).
 
+
+### The consistent index and the apply thread (`server/v3/etcdserver`): proved (2026-10-09)
+
+Toward ruling out etcd's consistent-index bugs (manual-notes.txt bullets 3-4). Lean-first, in
+`EtcdGrove/Server/`, a library of its own (`EtcdGroveServer`, see below); linked in
+`EtcdGrove/Server/Link.lean` (`etc/gen-link.py --server`, `etc/link-lean-first-server.txt`,
+47 results). Design and rejected alternatives: `decisions.md`, "The consistent index and the
+apply thread". Branch `apply-thread`.
+
+- **Translation** (`etc/goose.py`'s etcd project): `etcdserver/cindex` in full;
+  `storage/schema`'s `cindex.go`; in `etcdserver` the post-lock hook, `apply`,
+  `applyEntryNormal`, `applyEntries`, `setAppliedIndex`, `setTerm` and the types they use
+  (`EtcdServer`, `raftNode`, `etcdProgress`, `toApply`). The packages their types name are
+  translated names-only or types-only (zap, `net/http`, bbolt, config, membership, apply,
+  lease, ...). **etcd's own raft dependency, v3.7** (protobuf-go v2 raftpb: pointer fields,
+  getters with bodies) is translated into `EtcdCache` too. It is not the gogoproto fork that
+  `EtcdRaft/` translates, and both define `Perennial.go_etcd_io.raft.v3.*`, so no module may
+  import both: the server proofs are `EtcdGroveServer` (not imported by the root
+  `EtcdGrove`), and `etc/tcb-report.py` runs `tcb-report.lean` twice.
+- **cindex** (`InvCindex.lean`): `NewConsistentIndex` and the 7 methods of
+  `*consistentIndex`, plus schema's `UnsafeReadConsistentIndex`, `ReadConsistentIndex`,
+  `unsafeUpdateConsistentIndex` and its two wrappers. The index is mirrored by a ghost
+  variable; the specs that read or store it are logically atomic, and the backend's meta keys
+  are a client-chosen view, read and written through client-supplied triples.
+  `unsafeUpdateConsistentIndex`'s `verify.Verify` assertion is proved never to fire.
+- **The protocol** (`InvApply.lean`): ghost `(ci, processed-through p, last entry with writes
+  eff, pending)`, with `eff ≤ ci ≤ p` out of flight; a commit saves `ci`, so it persists no
+  effects above the saved index and no unprocessed entry at or below it (`commit_save_au`).
+- **The apply thread** (`InvServer.lean`, `InvApplier.lean`), proved:
+  - the post-lock hook (`getTxPostLockInsideApplyHook`, server.go:2448): under the batch lock,
+    `ci := i` for the entry `i = p + 1`;
+  - `applyEntryNormal`: the applier's contract with the hook, the writes update; a no-write
+    entry gets the deferred `ci` update;
+  - `apply`: the loop; entries at or below `ci` are replayed with no backend writes, those above
+    are applied in order;
+  - `applyEntries`: keeps `loopOk` (processed through the larger of `ci` and `ep.appliedi`)
+    and advances `appliedi`; the "unexpected committed entry index" panic is ruled out.
+- **Trust boundary** (`etc/tcb-report.py --check`: 40 axioms, 4 sorries, none of the sorries
+  new):
+  - the applier's contracts `apply.Apply` and `applyConfChange`, with `applierFor`: one locked
+    critical section with the hook first, or no writes;
+  - `pbutil.MustUnmarshalMessage`;
+  - names-only callees: zap, `isLeader`, `Logger`, `GoAttach`, `stopWithDelay`, `Notify`,
+    `ElectionTimeout`, `AlarmStore.Get`, `Members`, `errors.Is`, `humanize.Bytes`;
+  - `BigEndian.Uint64`/`PutUint64` (Perennial translates only `LittleEndian`) and
+    `verify.Verify`.
+
+  `apply`, `applyEntries`, `applyConfChange` and `GetId` reach the existing
+  `impl.MessageState` sorries (`var cc raftpb.ConfChange`), and `applyEntries` reaches
+  Perennial's `fmt.wp_Errorf`.
+- **Findings**: `SetConsistentIndex` stores index then term, so a commit concurrent with
+  `applyEntryNormal`'s deferred update (outside the lock) can persist the new index with the
+  previous entry's term. That entry is a term's first, empty entry, so it is the previous term.
+  The term is only read for schema detection and `verify`. Details in `decisions.md`.
+- **Not done**: `applyAll`/`applySnapshot` (the snapshot path: `SetBackend` before the lessor's
+  `Recover`, the comment at server.go:1055) and the backend side (`BackendHooks.
+  OnPreCommitUnsafe`, the commit that calls `UnsafeSave`), whose specs would close the loop
+  from the commit's side; establishing the protocol at bootstrap; `applyConfChange` itself.
