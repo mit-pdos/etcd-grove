@@ -1,0 +1,22 @@
+# The etcd server's functions (all Lean-first: no Rocq counterpart), read by
+# `etc/gen-link.py --server`: `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
+# The trust boundary (`axiom … .wp_proof`): encoding/binary's BigEndian (Perennial translates
+# only LittleEndian) and etcd's verify.Verify (names-only: it reads ETCD_VERIFY).
+binary_bigEndian__Uint64:
+binary_bigEndian__PutUint64:
+verify_Verify:
+# schema's consistent-index reads and writes (server/storage/schema/cindex.go), see InvCindex.lean.
+schema_UnsafeReadConsistentIndex: binary_bigEndian__Uint64
+schema_ReadConsistentIndex: schema_UnsafeReadConsistentIndex
+schema_unsafeUpdateConsistentIndex: binary_bigEndian__PutUint64 verify_Verify schema_UnsafeReadConsistentIndex
+schema_UnsafeUpdateConsistentIndex: schema_unsafeUpdateConsistentIndex
+schema_UnsafeUpdateConsistentIndexForce: schema_unsafeUpdateConsistentIndex
+# The consistent index (server/etcdserver/cindex/cindex.go), see InvCindex.lean.
+NewConsistentIndex:
+consistentIndex__SetConsistentIndex:
+consistentIndex__ConsistentApplyingIndex:
+consistentIndex__SetConsistentApplyingIndex:
+consistentIndex__UnsafeSave: schema_UnsafeUpdateConsistentIndex
+consistentIndex__SetBackend: consistentIndex__SetConsistentIndex
+consistentIndex__ConsistentIndex: consistentIndex__SetConsistentIndex schema_ReadConsistentIndex
+consistentIndex__UnsafeConsistentIndex: consistentIndex__SetConsistentIndex schema_UnsafeReadConsistentIndex

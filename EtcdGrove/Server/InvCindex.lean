@@ -109,6 +109,22 @@ def ciIdx (γ : CINames) (k : w64) : IProp GF := ghostVar γ.idx (1 : Qp).half k
 instance ciIdx_timeless (γ : CINames) (k : w64) : Timeless (ciIdx (GF := GF) γ k) := by
   unfold ciIdx; infer_instance
 
+/-- The client's view agrees with the invariant's half. -/
+theorem ciIdx_agree (γ : CINames) (k k0 : w64) :
+    ciIdx (GF := GF) γ k ⊢ ghostVar γ.idx (1 : Qp).half k0 -∗ ⌜k = k0⌝ := by
+  unfold ciIdx
+  iintro H1 H2
+  icombine H1 H2 gives %Heq
+  ipureintro; exact Heq.2
+
+/-- The client's view and the invariant's half, updated together. -/
+theorem ciIdx_update (γ : CINames) (k k0 v : w64) :
+    ciIdx (GF := GF) γ k ⊢ ghostVar γ.idx (1 : Qp).half k0 ==∗
+      ciIdx γ v ∗ ghostVar γ.idx (1 : Qp).half v := by
+  unfold ciIdx
+  iintro H1 H2
+  iapply ghostVar_update_halves v $$ H1 H2
+
 /-- The index and term fields, with the invariant's half of the index's mirror. -/
 def ciInv (ci : Loc) (γ : CINames) : IProp GF :=
   iprop(∃ (k t : w64), ciIdxAddr ci ↦ k ∗ ghostVar γ.idx (1 : Qp).half k ∗ ciTermAddr ci ↦ t)
@@ -127,6 +143,16 @@ instance isCI_persistent (ci : Loc) (γ : CINames) : Persistent (isCI (GF := GF)
 /-- The owner's half of the backend field: the backend is `b`. -/
 def ciOwner (ci : Loc) (b : GoInterface) : IProp GF :=
   typedPointsto (ciBeAddr ci) b (DFrac.own (1 : Qp).half)
+
+/-- The two halves of the backend field make the whole. -/
+theorem ciBe_halves (ci : Loc) (b : GoInterface) :
+    typedPointsto (GF := GF) (ciBeAddr ci) b (DFrac.own (1 : Qp).half) ∗
+      typedPointsto (ciBeAddr ci) b (DFrac.own (1 : Qp).half) ⊣⊢
+    typedPointsto (ciBeAddr ci) b (DFrac.own 1) := by
+  have h := (typedPointsto_dfractional (GF := GF) (ciBeAddr ci) b).dfractional
+    (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half)
+  rw [DFrac.op_own, Qp.half_add_half] at h
+  exact h.symm
 
 /-- The applying index and term, owned by the apply thread. -/
 def ciApplying (ci : Loc) (a t : w64) : IProp GF :=

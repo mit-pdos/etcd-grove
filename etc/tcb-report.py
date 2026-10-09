@@ -22,7 +22,8 @@ environment instead of the source text, so nothing is a lower bound:
     function that no other proof uses (every theorem of `EtcdGrove.Raft.Link` is one
     function's spec instantiated with its callees' results; a spec some other proof
     uses is internal: were it wrong, that proof would fail), and the protocol lemmas
-    of `EtcdGrove.Raft.Results`; likewise the `cache` package's `EtcdGrove.Cache.Link`;
+    of `EtcdGrove.Raft.Results`; likewise the `cache` package's `EtcdGrove.Cache.Link`
+    and the etcd server's `EtcdGrove.Server.Link`;
   * definitions -- this repository's definitions those statements are written in
     terms of, transitively through their bodies.  A wrong definition makes a true
     theorem say nothing, so these are trusted exactly as the axioms are.
@@ -47,9 +48,9 @@ BASELINE = os.path.join(ROOT, "etc", "tcb-baseline.txt")
 # Where a linked result's statement lives: `Link.lean` states `T.wp_M : T.M.spec`.
 SPEC_DIR = "EtcdGrove/Raft/Spec"
 
-# The modules of linked results (each states `T.wp_M : T.M.spec`): the Raft proof's and
-# the `cache` package's.
-LINKS = ("EtcdGrove.Raft.Link", "EtcdGrove.Cache.Link")
+# The modules of linked results (each states `T.wp_M : T.M.spec`): the Raft proof's, the
+# `cache` package's and the etcd server's.
+LINKS = ("EtcdGrove.Raft.Link", "EtcdGrove.Cache.Link", "EtcdGrove.Server.Link")
 
 # Source constructs that weaken what the kernel checks.
 RISKY = [
@@ -262,8 +263,9 @@ def main():
     )
     w(
         f"Roots: the {len(roots)} theorems of `EtcdGrove/Raft/Link.lean` (every Go "
-        "function's linked result), `EtcdGrove/Raft/Results.lean` and "
-        "`EtcdGrove/Cache/Link.lean` (the `cache` package's linked results).\n"
+        "function's linked result), `EtcdGrove/Raft/Results.lean`, "
+        "`EtcdGrove/Cache/Link.lean` (the `cache` package's linked results) and "
+        "`EtcdGrove/Server/Link.lean` (the etcd server's).\n"
     )
 
     w("## Summary\n")
