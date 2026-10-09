@@ -1,0 +1,4 @@
+# go.etcd.io/etcd/client/v3/concurrency: translated in full (every declaration, with bodies):
+# Session (proved), Mutex, Election and STM (translated, to be proved).
+translate = ["*"]
+imports = ["*"]

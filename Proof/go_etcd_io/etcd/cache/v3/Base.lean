@@ -158,6 +158,21 @@ instance zap_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_uber_org.zap :=
   build_get_is_pkg_init_wf
 
+-- protobuf's `proto` (`clientv3.cloneCompare` calls `proto.Clone`) and `protoreflect`, which
+-- it imports (names only).
+instance protoreflect_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.google_golang_org.protobuf.reflect.protoreflect :=
+  define_is_pkg_init iprop(True)
+instance protoreflect_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.protobuf.reflect.protoreflect :=
+  build_get_is_pkg_init_wf
+
+instance proto_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.protobuf.proto :=
+  define_is_pkg_init iprop(True)
+instance proto_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.protobuf.proto :=
+  build_get_is_pkg_init_wf
+
 /-- `clientv3`'s package facts: `noPrefixEnd` (`[]byte{0}`, never written), which
 `getPrefix` returns for a prefix with no successor. -/
 abbrev clientv3Init : IProp GF :=

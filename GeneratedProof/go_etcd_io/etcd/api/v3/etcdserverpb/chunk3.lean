@@ -19,6 +19,348 @@ open Iris Iris.BI
 noncomputable section
 namespace go_etcd_io.etcd.api.v3.etcdserverpb
 
+namespace AlarmResponse
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
+
+instance AlarmResponse_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse :=
+  sorry -- axiomatized type
+
+instance AlarmResponse_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end AlarmResponse
+
+namespace DowngradeRequest
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
+
+instance DowngradeRequest_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeRequest :=
+  sorry -- axiomatized type
+
+instance DowngradeRequest_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeRequest go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeRequest.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end DowngradeRequest
+
+namespace DowngradeResponse
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
+
+instance DowngradeResponse_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse :=
+  sorry -- axiomatized type
+
+instance DowngradeResponse_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end DowngradeResponse
+
+namespace DowngradeVersionTestRequest
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
+
+instance DowngradeVersionTestRequest_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeVersionTestRequest :=
+  sorry -- axiomatized type
+
+instance DowngradeVersionTestRequest_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeVersionTestRequest go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeVersionTestRequest.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end DowngradeVersionTestRequest
+
+namespace StatusRequest
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
+
+instance StatusRequest_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.StatusRequest :=
+  sorry -- axiomatized type
+
+instance StatusRequest_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.StatusRequest go_etcd_io.etcd.api.v3.etcdserverpb.StatusRequest.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end StatusRequest
+
+namespace StatusResponse
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
+
+instance StatusResponse_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.StatusResponse :=
+  sorry -- axiomatized type
+
+instance StatusResponse_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.StatusResponse go_etcd_io.etcd.api.v3.etcdserverpb.StatusResponse.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end StatusResponse
+
+namespace DowngradeInfo
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
+
+instance DowngradeInfo_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeInfo :=
+  sorry -- axiomatized type
+
+instance DowngradeInfo_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeInfo go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeInfo.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end DowngradeInfo
+
+namespace AuthEnableRequest
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
+
+instance AuthEnableRequest_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableRequest :=
+  sorry -- axiomatized type
+
+instance AuthEnableRequest_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableRequest go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableRequest.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end AuthEnableRequest
+
+namespace AuthDisableRequest
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
+
+instance AuthDisableRequest_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableRequest :=
+  sorry -- axiomatized type
+
+instance AuthDisableRequest_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableRequest go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableRequest.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end AuthDisableRequest
+
+namespace AuthStatusRequest
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
+
+instance AuthStatusRequest_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusRequest :=
+  sorry -- axiomatized type
+
+instance AuthStatusRequest_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusRequest go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusRequest.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end AuthStatusRequest
+
+namespace AuthenticateRequest
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
+
+instance AuthenticateRequest_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateRequest :=
+  sorry -- axiomatized type
+
+instance AuthenticateRequest_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateRequest go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateRequest.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end AuthenticateRequest
+
+namespace AuthUserAddRequest
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
+
+instance AuthUserAddRequest_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest :=
+  sorry -- axiomatized type
+
+instance AuthUserAddRequest_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end AuthUserAddRequest
+
+namespace AuthUserGetRequest
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
+
+instance AuthUserGetRequest_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest :=
+  sorry -- axiomatized type
+
+instance AuthUserGetRequest_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end AuthUserGetRequest
+
+namespace AuthUserDeleteRequest
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
+
+instance AuthUserDeleteRequest_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest :=
+  sorry -- axiomatized type
+
+instance AuthUserDeleteRequest_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end AuthUserDeleteRequest
+
+namespace AuthUserChangePasswordRequest
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
+
+instance AuthUserChangePasswordRequest_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest :=
+  sorry -- axiomatized type
+
+instance AuthUserChangePasswordRequest_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end AuthUserChangePasswordRequest
+
+namespace AuthUserGrantRoleRequest
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
+
+instance AuthUserGrantRoleRequest_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest :=
+  sorry -- axiomatized type
+
+instance AuthUserGrantRoleRequest_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end AuthUserGrantRoleRequest
+
+namespace AuthUserRevokeRoleRequest
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
+
+instance AuthUserRevokeRoleRequest_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest :=
+  sorry -- axiomatized type
+
+instance AuthUserRevokeRoleRequest_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end AuthUserRevokeRoleRequest
+
+namespace AuthRoleAddRequest
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
+
+instance AuthRoleAddRequest_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest :=
+  sorry -- axiomatized type
+
+instance AuthRoleAddRequest_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end AuthRoleAddRequest
+
 namespace AuthRoleGetRequest
 section def_
 

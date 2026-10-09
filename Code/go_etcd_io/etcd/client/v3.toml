@@ -54,8 +54,42 @@ translate = [
   "OpWatch",
   "WatchResponse.Err",
   "Client",
+  # client/v3/concurrency's Session: the client's context and logger
+  "Client.Ctx",
+  "Client.GetLogger",
+  "NoLease",
+  # the transaction model: comparisons
+  "Compare",
+  "Value",
+  "Version",
+  "CreateRevision",
+  "ModRevision",
+  "LeaseValue",
+  "Cmp.WithRange",
+  "Cmp.WithPrefix",
+  "Cmp.Clone",
+  "Cmp.ensureCompare",
+  "cloneCompare",
+  "mustInt64",
+  "mustInt64orLeaseID",
+  # the transaction model: operations and their options
+  "OpPut",
+  "OpDelete",
+  "tPut",
+  "tDeleteRange",
+  "WithLease",
+  "WithSort",
+  "WithFirstCreate",
+  "WithLastCreate",
+  "withTop",
+  "WithMaxCreateRev",
+  "SortByCreateRevision",
+  "SortByKey",
+  "SortAscend",
+  "SortDescend",
+  "SortNone",
 ]
-imports = ["!*", "context", "sync", "time", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "google.golang.org/grpc/codes", "google.golang.org/grpc/status", "google.golang.org/grpc", "google.golang.org/grpc/credentials", "go.etcd.io/etcd/client/v3/internal/resolver", "go.etcd.io/etcd/client/v3/credentials", "go.uber.org/zap", "sync/atomic"]
+imports = ["!*", "context", "sync", "time", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "google.golang.org/grpc/codes", "google.golang.org/grpc/status", "google.golang.org/grpc", "google.golang.org/grpc/credentials", "go.etcd.io/etcd/client/v3/internal/resolver", "go.etcd.io/etcd/client/v3/credentials", "go.uber.org/zap", "sync/atomic", "google.golang.org/protobuf/proto", "fmt"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

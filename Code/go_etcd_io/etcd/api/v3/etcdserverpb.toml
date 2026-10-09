@@ -2,7 +2,16 @@
 # The messages the cache reads are listed explicitly: translate_types never translates
 # a struct with a field of another package's alias type, as every protobuf message
 # has (`state protoimpl.MessageState`, ...).
-translate = ["!*", "ResponseHeader", "ResponseHeader.GetRevision", "RangeResponse", "WatchResponse"]
+# For client/v3/concurrency (the transaction and lease model): the comparisons (`Compare` and its
+# oneof wrappers), the transaction's response (`TxnResponse`, `ResponseOp` and its oneof wrappers,
+# `PutResponse`, `DeleteRangeResponse`) and `LeaseRevokeResponse`.
+translate = ["!*", "ResponseHeader", "ResponseHeader.GetRevision", "RangeResponse", "WatchResponse",
+  "Compare", "Compare_Version", "Compare_CreateRevision", "Compare_ModRevision", "Compare_Value",
+  "Compare_Lease", "Compare_EQUAL", "Compare_GREATER", "Compare_LESS", "Compare_NOT_EQUAL",
+  "Compare_VERSION", "Compare_CREATE", "Compare_MOD", "Compare_VALUE", "Compare_LEASE",
+  "TxnResponse", "ResponseOp", "ResponseOp_ResponseRange", "ResponseOp_ResponsePut",
+  "ResponseOp_ResponseDeleteRange", "ResponseOp_ResponseTxn", "PutResponse", "DeleteRangeResponse",
+  "LeaseRevokeResponse"]
 imports = ["!*", "go.etcd.io/etcd/api/v3/mvccpb", "google.golang.org/protobuf/runtime/protoimpl"]
 
 # translate the definitions of all type declarations goose supports

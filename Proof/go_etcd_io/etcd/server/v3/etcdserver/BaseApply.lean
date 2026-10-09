@@ -52,41 +52,8 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.github_com.dus
 
 end github_com.dustin.go_humanize
 
-namespace go_uber_org.zap.zapcore
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_uber_org.zap.zapcore :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_uber_org.zap.zapcore :=
-  build_get_is_pkg_init_wf
-
-end go_uber_org.zap.zapcore
-
-namespace go_uber_org.zap
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_uber_org.zap :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_uber_org.zap :=
-  build_get_is_pkg_init_wf
-
-end go_uber_org.zap
-
-namespace google_golang_org.protobuf.reflect.protoreflect
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.protobuf.reflect.protoreflect :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.protobuf.reflect.protoreflect :=
-  build_get_is_pkg_init_wf
-
-end google_golang_org.protobuf.reflect.protoreflect
-
-namespace google_golang_org.protobuf.proto
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.protobuf.proto :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.protobuf.proto :=
-  build_get_is_pkg_init_wf
-
-end google_golang_org.protobuf.proto
+-- zap, zapcore, protoreflect and proto: `Proof/go_etcd_io/etcd/cache/v3/Base.lean` (clientv3
+-- imports them too).
 
 namespace go_etcd_io.etcd.client.pkg.v3.types
 
