@@ -77,3 +77,34 @@ demux__Compact: demux__purge
 demux__Init: demux__purge
 demux__Broadcast: validateRevisions demux__updateStoreLocked demux__broadcastLocked
 demux__resyncLaggingWatchers: watcher__Compact ringBuffer__AscendGreaterOrEqual watcher__enqueueResponse
+# The clientv3 functions the request validation calls (client/v3/op.go, translated for it).
+Op__IsCountOnly:
+Op__IsPrevKV:
+Op__IsSortSet:
+Op__Limit:
+Op__MinModRev:
+Op__MaxModRev:
+Op__MinCreateRev:
+Op__MaxCreateRev:
+Op__IsFragment:
+Op__IsCreatedNotify:
+Op__IsFilterPut:
+Op__IsFilterDelete:
+Op__RangeBytes:
+Op__Rev:
+Op__IsSerializable:
+Op__IsProgressNotify:
+getPrefix:
+GetPrefixRangeEnd: getPrefix
+# Key predicates (cache/predicate.go) and the Cache's request validation and delegations
+# (cache/cache.go), see InvCache.lean.
+ExactKey:
+FromKey:
+Range:
+KeyPredForRange: ExactKey FromKey Range
+Cache__validateRange: GetPrefixRangeEnd
+Cache__validateGet: Op__IsCountOnly Op__IsPrevKV Op__IsSortSet Op__Limit Op__MinModRev Op__MaxModRev Op__MinCreateRev Op__MaxCreateRev Op__RangeBytes Cache__validateRange KeyPredForRange
+Cache__validateWatch: Op__IsPrevKV Op__IsFragment Op__IsCreatedNotify Op__IsFilterPut Op__IsFilterDelete Op__RangeBytes Cache__validateRange KeyPredForRange
+Cache__Ready: ready__Ready
+Cache__WaitReady: ready__WaitReady
+Cache__RequestProgress: demux__BroadcastProgress

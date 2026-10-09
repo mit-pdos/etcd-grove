@@ -75,7 +75,7 @@ theorem store.getSnapshot.wp_proof
   · iPkgInit
   ihave Hri : (rpctypesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hrpc
-  icases Hci with ⟨%eNR, #HeNR⟩
+  icases Hci with ⟨⟨%eNR, #HeNR⟩, -, -⟩
   icases Hri with ⟨⟨%eFR, #HeFR⟩, ⟨%eCP, #HeCP, -⟩⟩
   wp_auto
   wp_if_destruct

@@ -1,5 +1,33 @@
-# Types and names only: function and method bodies are axiomatized.
-translate = ["!*", "WatchResponse.IsProgressNotify", "EventTypeDelete", "EventTypePut"]
+# Types and names only: function and method bodies are axiomatized, except for what the
+# cache's proofs call: `WatchResponse.IsProgressNotify` and the event-type constants (the
+# store), `GetPrefixRangeEnd` with `getPrefix` and `noPrefixEnd` (`Cache.validateRange`), and
+# the `Op` getters `Cache.validateGet`/`validateWatch` read (with `Rev`, `IsSerializable` and
+# `IsProgressNotify`, for `Cache.Get`/`Watch`).
+translate = [
+  "!*",
+  "WatchResponse.IsProgressNotify",
+  "EventTypeDelete",
+  "EventTypePut",
+  "GetPrefixRangeEnd",
+  "getPrefix",
+  "noPrefixEnd",
+  "Op.IsCountOnly",
+  "Op.IsPrevKV",
+  "Op.IsSortSet",
+  "Op.Limit",
+  "Op.MinModRev",
+  "Op.MaxModRev",
+  "Op.MinCreateRev",
+  "Op.MaxCreateRev",
+  "Op.IsFragment",
+  "Op.IsCreatedNotify",
+  "Op.IsFilterPut",
+  "Op.IsFilterDelete",
+  "Op.RangeBytes",
+  "Op.Rev",
+  "Op.IsSerializable",
+  "Op.IsProgressNotify",
+]
 imports = ["!*", "context", "sync", "time", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/mvccpb"]
 
 # translate the definitions of all type declarations goose supports

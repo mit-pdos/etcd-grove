@@ -447,3 +447,35 @@ the oldest revision; the overflow premise on `Broadcast`.
   *Rejected (for now):* a ghost trace of the lock's states, which would anchor it but changes
   every lock-taking proof.
 - `LatestRev` gives no lower bound (purge resets `maxRev`).
+
+
+---
+
+## Key predicates and request validation: keys as strings, a partial `Cache` predicate
+
+**2026-10-09 · accepted**
+
+`cache/predicate.go` and the request-side helpers of `cache/cache.go`, Lean-first
+(`InvCache.lean`, a `Spec`/`Proof` pair per Go function).
+
+- **`bytes.Compare` is a trusted model in Perennial**, not an axiom here. Go implements it in
+  assembly (`internal/bytealg`); Perennial's `TrustedCode/bytes.lean` models it as a string
+  comparison and proves `bytes.wp_Compare`, so the trust is the model's (as for `sync.Mutex`)
+  and the TCB report is unchanged. *Rejected:* `axiom bytes.wp_Compare` here (a new axiom for
+  a standard-library function); rewriting the fork to compare `string(k)` (changes the
+  verified code).
+- **A `[]byte` key is its contents, a `GoString`**, and the predicates are `GoString → Bool`
+  in `go.GoStringLt`, the store's order, so `keyPredForRange` is literally `kvRange`'s test
+  (`kvRange_eq_filter`). The closures capture the slices, so `ExactKey`/.../`KeyPredForRange`
+  take them `↦*□` (the persistent `keyPredSpec` cannot own them); `validateGet`/`Watch`
+  persist the fresh `[]byte(key)` and use the `Op`'s range end read-only (`opAt`), and
+  `getPrefix` returns its slice `↦*□` (it may be the shared `noPrefixEnd`).
+- **`isCacheFields` is partial and parameterized by `CacheFields`** (the four field values),
+  `γr`, `γd`, `cap`: the request-side specs need only those fields, and the `Cache` stage
+  will define its predicate as `isCacheFields ∗ …` rather than change these specs.
+  *Rejected:* the full `Cache` invariant now (it depends on the `Get`/`Watch` design).
+- **`Op` getters are specified through a pointer** (`opp ↦{dq} op ∗ opAt op o`), as the
+  cache calls them (`op` is a local variable), like the store's `IsProgressNotify`; `OpModel`
+  holds what the cache reads, not the whole `Op` (`cmps`, `thenOps`, `val`, … are unused).
+- **Unsupported options give "some non-nil error"**, not `ErrUnsupportedRequest` wrapped
+  (`fmt.Errorf`'s spec is Perennial's `sorry` and says only that).

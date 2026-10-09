@@ -604,7 +604,9 @@ theorem errNotReady_init :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ⊢
       ∃ e : GoInterfaceOk, globalAddr ErrNotReady ↦□ GoInterface.ok e := by
   iintro #H
-  ihave H := isPkgInit_access $$ H
+  ihave Hci : (cacheInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ H
+  icases Hci with ⟨H, -, -⟩
   iexact H
 
 end defs

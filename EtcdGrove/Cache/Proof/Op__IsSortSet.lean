@@ -1,0 +1,39 @@
+/-
+Proof of `Spec/Op__IsSortSet.lean`. Lean-first (no Rocq counterpart).
+-/
+import EtcdGrove.Cache.Spec.Op__IsSortSet
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.cache.v3
+
+section proof
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+
+theorem Op.IsSortSet.wp_proof : Op.IsSortSet.spec (GF := GF) (hG := hG) := by
+  intro opp op o dq
+  simp only [opAt]
+  wp_start as ⟨Hop, ⟨%Hf, -⟩⟩
+  obtain ⟨-, -, Hs, -⟩ := Hf
+  wp_auto
+  wp_method_call
+  wp_auto
+  cases h : o.sortSet
+  · have : op.sort' = null := Classical.byContradiction fun hne => by simp [Hs.1 hne] at h
+    simp only [this, decide_true, Bool.not_true]
+    wp_end
+  · have : op.sort' ≠ null := Hs.2 h
+    simp only [this, decide_false, Bool.not_false]
+    wp_end
+
+end proof
+
+end EtcdGrove
+end Perennial

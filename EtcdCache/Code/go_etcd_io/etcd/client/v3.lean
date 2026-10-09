@@ -686,8 +686,6 @@ axiom LeaseResponseChSize.init [FfiSyntax] [GoGlobalContext] : val
 noncomputable def noPrefixEnd [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.noPrefixEnd"
 
-axiom noPrefixEnd.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def defaultWaitForReady [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.defaultWaitForReady"
 
@@ -1072,6 +1070,239 @@ noncomputable def NewWatchFromWatchClient [FfiSyntax] [GoGlobalContext] : GoStri
 noncomputable def streamKeyFromCtx [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.streamKeyFromCtx"
 
+/-- RangeBytes returns the byte slice holding with the Op's range end, if any.
+
+    go: op.go:105:14 -/
+noncomputable def Op.RangeBytes.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "op"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc Op.ty))) (Var "op"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"end"))) (Var "op"))))))))
+
+/-- Rev returns the requested revision, if any.
+
+    go: op.go:108:14 -/
+noncomputable def Op.Rev.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "op"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc Op.ty))) (Var "op"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"rev"))) (Var "op"))))))))
+
+/-- Limit returns limit of the result, if any.
+
+    go: op.go:111:14 -/
+noncomputable def Op.Limit.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "op"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc Op.ty))) (Var "op"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"limit"))) (Var "op"))))))))
+
+/-- IsSerializable returns true if the serializable field is true.
+
+    go: op.go:123:14 -/
+noncomputable def Op.IsSerializable.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "op"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc Op.ty))) (Var "op"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"serializable"))) (Var "op"))))))))
+
+/-- IsCountOnly returns whether countOnly is set.
+
+    go: op.go:129:14 -/
+noncomputable def Op.IsCountOnly.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "op"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc Op.ty))) (Var "op"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"countOnly"))) (Var "op"))))))))
+
+/-- IsSortSet returns true if WithSort is set.
+
+    go: op.go:132:14 -/
+noncomputable def Op.IsSortSet.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "op"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc Op.ty))) (Var "op"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType SortOption.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType SortOption.ty)))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"sort"))) (Var "op"))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType SortOption.ty)))) (Val UntypedNil))))))))))
+
+/-- IsPrevKV returns whether WithPrevKV() is set.
+
+    go: op.go:139:14 -/
+noncomputable def Op.IsPrevKV.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "op"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc Op.ty))) (Var "op"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"prevKV"))) (Var "op"))))))))
+
+/-- IsFragment returns whether WithFragment() is set.
+
+    go: op.go:142:14 -/
+noncomputable def Op.IsFragment.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "op"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc Op.ty))) (Var "op"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"fragment"))) (Var "op"))))))))
+
+/-- IsProgressNotify returns whether WithProgressNotify() is set.
+
+    go: op.go:145:14 -/
+noncomputable def Op.IsProgressNotify.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "op"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc Op.ty))) (Var "op"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"progressNotify"))) (Var "op"))))))))
+
+/-- IsCreatedNotify returns whether WithCreatedNotify() is set.
+
+    go: op.go:148:14 -/
+noncomputable def Op.IsCreatedNotify.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "op"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc Op.ty))) (Var "op"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"createdNotify"))) (Var "op"))))))))
+
+/-- IsFilterPut returns whether WithFilterPut() is set.
+
+    go: op.go:151:14 -/
+noncomputable def Op.IsFilterPut.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "op"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc Op.ty))) (Var "op"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"filterPut"))) (Var "op"))))))))
+
+/-- IsFilterDelete returns whether WithFilterDelete() is set.
+
+    go: op.go:154:14 -/
+noncomputable def Op.IsFilterDelete.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "op"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc Op.ty))) (Var "op"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"filterDelete"))) (Var "op"))))))))
+
+/-- MinModRev returns the operation's minimum modify revision.
+
+    go: op.go:157:14 -/
+noncomputable def Op.MinModRev.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "op"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc Op.ty))) (Var "op"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"minModRev"))) (Var "op"))))))))
+
+/-- MaxModRev returns the operation's maximum modify revision.
+
+    go: op.go:160:14 -/
+noncomputable def Op.MaxModRev.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "op"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc Op.ty))) (Var "op"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"maxModRev"))) (Var "op"))))))))
+
+/-- MinCreateRev returns the operation's minimum create revision.
+
+    go: op.go:163:14 -/
+noncomputable def Op.MinCreateRev.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "op"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc Op.ty))) (Var "op"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"minCreateRev"))) (Var "op"))))))))
+
+/-- MaxCreateRev returns the operation's maximum create revision.
+
+    go: op.go:166:14 -/
+noncomputable def Op.MaxCreateRev.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "op"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc Op.ty))) (Var "op"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"maxCreateRev"))) (Var "op"))))))))
+
+/-- GetPrefixRangeEnd gets the range end of the prefix.
+    'Get(foo, WithPrefix())' is equal to 'Get(foo, WithRange(GetPrefixRangeEnd(foo))'.
+
+    go: op.go:402:6 -/
+noncomputable def GetPrefixRangeEnd.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "prefix"
+  (App (Val exceptionDo)
+  (Let "prefix" (App (Val (GoInstruction (GoAlloc go.string))) (Var "prefix"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoLoad go.string))) (Var "prefix")))
+  (App (App (Val (GoInstruction (FuncResolve getPrefix []))) (Val #())) (Var "$a0"))))))))
+
+/-- go: op.go:406:6 -/
+noncomputable def getPrefix.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "key"
+  (App (Val exceptionDo)
+  (Let "key" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "key"))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType go.byte)]))) (Val #())) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "key"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))))
+  (Let "end" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GlobalVarAddr noPrefixEnd))) (Val #()))))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "end"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))) (Val #(W64 1))))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 0)))))) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "end")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))) (Val #(W8 255)))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "end")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))) (Val #(W8 1))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "end"))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.byte)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "end")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "end") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.byte))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "end")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "end"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "key"))
+  (App (App (App (Val (GoInstruction (FuncResolve go.copy [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "end") (Var "$r0"))))))))))
+
 /-- IsProgressNotify returns true if the WatchResponse is progress notification.
 
     go: watch.go:139:26 -/
@@ -1102,6 +1333,9 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (Val #(W8 0))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.byte)))) (LiteralValue [(KeyedElement none (ElementExpression go.byte (Var "$v0")))])))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1139,7 +1373,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val defaultWaitForReady.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val noPrefixEnd.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GlobalVarAddr noPrefixEnd))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val LeaseResponseChSize.init) (Val #()))))))
   (App (Val doExecute)
@@ -1157,7 +1391,9 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.time.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc noPrefixEnd (go.GoType.SliceType go.byte))) (Val #()))))))))
 
 abbrev AuthEnableResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse
 
@@ -2682,6 +2918,54 @@ class Op.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSeman
   set_isOptsWithFromKey : ∀ (x : Op) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Op.underlying go!"isOptsWithFromKey") (PairV #x #y) (Val #(({ x with isOptsWithFromKey' := y } : Op)))
   get_isOptsWithPrefix : ∀ (x : Op), go.IsGoStepPureDetTagged under (StructFieldGet Op.underlying go!"isOptsWithPrefix") #x (Val #(x.isOptsWithPrefix'))
   set_isOptsWithPrefix : ∀ (x : Op) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Op.underlying go!"isOptsWithPrefix") (PairV #x #y) (Val #(({ x with isOptsWithPrefix' := y } : Op)))
+  IsCountOnly_unfold : MethodUnfold Op.ty go!"IsCountOnly" Op.IsCountOnly.impl
+  IsCreatedNotify_unfold : MethodUnfold Op.ty go!"IsCreatedNotify" Op.IsCreatedNotify.impl
+  IsFilterDelete_unfold : MethodUnfold Op.ty go!"IsFilterDelete" Op.IsFilterDelete.impl
+  IsFilterPut_unfold : MethodUnfold Op.ty go!"IsFilterPut" Op.IsFilterPut.impl
+  IsFragment_unfold : MethodUnfold Op.ty go!"IsFragment" Op.IsFragment.impl
+  IsPrevKV_unfold : MethodUnfold Op.ty go!"IsPrevKV" Op.IsPrevKV.impl
+  IsProgressNotify_unfold : MethodUnfold Op.ty go!"IsProgressNotify" Op.IsProgressNotify.impl
+  IsSerializable_unfold : MethodUnfold Op.ty go!"IsSerializable" Op.IsSerializable.impl
+  IsSortSet_unfold : MethodUnfold Op.ty go!"IsSortSet" Op.IsSortSet.impl
+  Limit_unfold : MethodUnfold Op.ty go!"Limit" Op.Limit.impl
+  MaxCreateRev_unfold : MethodUnfold Op.ty go!"MaxCreateRev" Op.MaxCreateRev.impl
+  MaxModRev_unfold : MethodUnfold Op.ty go!"MaxModRev" Op.MaxModRev.impl
+  MinCreateRev_unfold : MethodUnfold Op.ty go!"MinCreateRev" Op.MinCreateRev.impl
+  MinModRev_unfold : MethodUnfold Op.ty go!"MinModRev" Op.MinModRev.impl
+  RangeBytes_unfold : MethodUnfold Op.ty go!"RangeBytes" Op.RangeBytes.impl
+  Rev_unfold : MethodUnfold Op.ty go!"Rev" Op.Rev.impl
+  ptr_IsCountOnly_unfold : MethodUnfold (go.GoType.PointerType Op.ty) go!"IsCountOnly" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Op.ty go!"IsCountOnly"))) (App (Val (GoInstruction (GoLoad Op.ty))) (Var "$r"))))
+  ptr_IsCreatedNotify_unfold : MethodUnfold (go.GoType.PointerType Op.ty) go!"IsCreatedNotify" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Op.ty go!"IsCreatedNotify"))) (App (Val (GoInstruction (GoLoad Op.ty))) (Var "$r"))))
+  ptr_IsFilterDelete_unfold : MethodUnfold (go.GoType.PointerType Op.ty) go!"IsFilterDelete" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Op.ty go!"IsFilterDelete"))) (App (Val (GoInstruction (GoLoad Op.ty))) (Var "$r"))))
+  ptr_IsFilterPut_unfold : MethodUnfold (go.GoType.PointerType Op.ty) go!"IsFilterPut" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Op.ty go!"IsFilterPut"))) (App (Val (GoInstruction (GoLoad Op.ty))) (Var "$r"))))
+  ptr_IsFragment_unfold : MethodUnfold (go.GoType.PointerType Op.ty) go!"IsFragment" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Op.ty go!"IsFragment"))) (App (Val (GoInstruction (GoLoad Op.ty))) (Var "$r"))))
+  ptr_IsPrevKV_unfold : MethodUnfold (go.GoType.PointerType Op.ty) go!"IsPrevKV" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Op.ty go!"IsPrevKV"))) (App (Val (GoInstruction (GoLoad Op.ty))) (Var "$r"))))
+  ptr_IsProgressNotify_unfold : MethodUnfold (go.GoType.PointerType Op.ty) go!"IsProgressNotify" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Op.ty go!"IsProgressNotify"))) (App (Val (GoInstruction (GoLoad Op.ty))) (Var "$r"))))
+  ptr_IsSerializable_unfold : MethodUnfold (go.GoType.PointerType Op.ty) go!"IsSerializable" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Op.ty go!"IsSerializable"))) (App (Val (GoInstruction (GoLoad Op.ty))) (Var "$r"))))
+  ptr_IsSortSet_unfold : MethodUnfold (go.GoType.PointerType Op.ty) go!"IsSortSet" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Op.ty go!"IsSortSet"))) (App (Val (GoInstruction (GoLoad Op.ty))) (Var "$r"))))
+  ptr_Limit_unfold : MethodUnfold (go.GoType.PointerType Op.ty) go!"Limit" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Op.ty go!"Limit"))) (App (Val (GoInstruction (GoLoad Op.ty))) (Var "$r"))))
+  ptr_MaxCreateRev_unfold : MethodUnfold (go.GoType.PointerType Op.ty) go!"MaxCreateRev" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Op.ty go!"MaxCreateRev"))) (App (Val (GoInstruction (GoLoad Op.ty))) (Var "$r"))))
+  ptr_MaxModRev_unfold : MethodUnfold (go.GoType.PointerType Op.ty) go!"MaxModRev" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Op.ty go!"MaxModRev"))) (App (Val (GoInstruction (GoLoad Op.ty))) (Var "$r"))))
+  ptr_MinCreateRev_unfold : MethodUnfold (go.GoType.PointerType Op.ty) go!"MinCreateRev" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Op.ty go!"MinCreateRev"))) (App (Val (GoInstruction (GoLoad Op.ty))) (Var "$r"))))
+  ptr_MinModRev_unfold : MethodUnfold (go.GoType.PointerType Op.ty) go!"MinModRev" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Op.ty go!"MinModRev"))) (App (Val (GoInstruction (GoLoad Op.ty))) (Var "$r"))))
+  ptr_RangeBytes_unfold : MethodUnfold (go.GoType.PointerType Op.ty) go!"RangeBytes" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Op.ty go!"RangeBytes"))) (App (Val (GoInstruction (GoLoad Op.ty))) (Var "$r"))))
+  ptr_Rev_unfold : MethodUnfold (go.GoType.PointerType Op.ty) go!"Rev" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Op.ty go!"Rev"))) (App (Val (GoInstruction (GoLoad Op.ty))) (Var "$r"))))
 
 attribute [instance] Op.TypeAssumptions.type_repr
   Op.TypeAssumptions.underlying
@@ -2743,6 +3027,38 @@ attribute [instance] Op.TypeAssumptions.type_repr
   Op.TypeAssumptions.set_isOptsWithFromKey
   Op.TypeAssumptions.get_isOptsWithPrefix
   Op.TypeAssumptions.set_isOptsWithPrefix
+  Op.TypeAssumptions.IsCountOnly_unfold
+  Op.TypeAssumptions.IsCreatedNotify_unfold
+  Op.TypeAssumptions.IsFilterDelete_unfold
+  Op.TypeAssumptions.IsFilterPut_unfold
+  Op.TypeAssumptions.IsFragment_unfold
+  Op.TypeAssumptions.IsPrevKV_unfold
+  Op.TypeAssumptions.IsProgressNotify_unfold
+  Op.TypeAssumptions.IsSerializable_unfold
+  Op.TypeAssumptions.IsSortSet_unfold
+  Op.TypeAssumptions.Limit_unfold
+  Op.TypeAssumptions.MaxCreateRev_unfold
+  Op.TypeAssumptions.MaxModRev_unfold
+  Op.TypeAssumptions.MinCreateRev_unfold
+  Op.TypeAssumptions.MinModRev_unfold
+  Op.TypeAssumptions.RangeBytes_unfold
+  Op.TypeAssumptions.Rev_unfold
+  Op.TypeAssumptions.ptr_IsCountOnly_unfold
+  Op.TypeAssumptions.ptr_IsCreatedNotify_unfold
+  Op.TypeAssumptions.ptr_IsFilterDelete_unfold
+  Op.TypeAssumptions.ptr_IsFilterPut_unfold
+  Op.TypeAssumptions.ptr_IsFragment_unfold
+  Op.TypeAssumptions.ptr_IsPrevKV_unfold
+  Op.TypeAssumptions.ptr_IsProgressNotify_unfold
+  Op.TypeAssumptions.ptr_IsSerializable_unfold
+  Op.TypeAssumptions.ptr_IsSortSet_unfold
+  Op.TypeAssumptions.ptr_Limit_unfold
+  Op.TypeAssumptions.ptr_MaxCreateRev_unfold
+  Op.TypeAssumptions.ptr_MaxModRev_unfold
+  Op.TypeAssumptions.ptr_MinCreateRev_unfold
+  Op.TypeAssumptions.ptr_MinModRev_unfold
+  Op.TypeAssumptions.ptr_RangeBytes_unfold
+  Op.TypeAssumptions.ptr_Rev_unfold
 
 abbrev OpOption [FfiSyntax] : Type := GoFunc
 
@@ -3590,6 +3906,8 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   progressRequest_instance : progressRequest.TypeAssumptions
   watcherStream_instance : watcherStream.TypeAssumptions
   valCtx_instance : valCtx.TypeAssumptions
+  GetPrefixRangeEnd_unfold : FuncUnfold GetPrefixRangeEnd [] GetPrefixRangeEnd.impl
+  getPrefix_unfold : FuncUnfold getPrefix [] getPrefix.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_etcdserverpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
@@ -3702,6 +4020,8 @@ attribute [instance] Assumptions.AuthEnableResponse_instance
   Assumptions.progressRequest_instance
   Assumptions.watcherStream_instance
   Assumptions.valCtx_instance
+  Assumptions.GetPrefixRangeEnd_unfold
+  Assumptions.getPrefix_unfold
   Assumptions.import_context_Assumption
   Assumptions.import_etcdserverpb_Assumption
   Assumptions.import_sync_Assumption

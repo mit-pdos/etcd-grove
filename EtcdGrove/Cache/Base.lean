@@ -6,11 +6,13 @@ imports (the counterpart of `EtcdGrove/Raft/Base.lean` for the `EtcdCache` libra
 reachable from the cache's imports needs an instance. The standard-library ones (`bytes`,
 `context`, `errors`, `fmt`, `sync`, `time`) are Perennial's; the etcd, k8s and protobuf
 packages are translated names-only or types-only (`EtcdCache/Code/**.toml`), and their
-package facts are `True` except where the store reads a package-level variable: the
-cache's `ErrNotReady` (`fmt.Errorf` at init) and `rpctypes`' `ErrFutureRev` and
+package facts are `True` except where a proof reads a package-level variable: the
+cache's `ErrNotReady` (`fmt.Errorf` at init), `ErrUnsupportedRequest` and
+`ErrKeyRangeInvalid` (`errors.New`), and `rpctypes`' `ErrFutureRev` and
 `ErrCompacted` each hold a fixed non-nil error (`globalAddr X ↦□ interface.ok e`, as
 Perennial's own packages state their globals), and `ErrCompacted.Error()` returns some string
-(`errorStringSpec`: it is an `EtcdError`, whose `Error` returns its description). Everything here is an assumption about
+(`errorStringSpec`: it is an `EtcdError`, whose `Error` returns its description);
+`clientv3`'s `noPrefixEnd` points for good to a slice holding the byte `0`. Everything here is an assumption about
 package initialization, as in `Raft/Base.lean`: nothing proves it from `initialize'`.
 -/
 import EtcdCache.Code.go_etcd_io.etcd.cache.v3
@@ -100,8 +102,14 @@ instance rpctypes_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes :=
   build_get_is_pkg_init_wf
 
+/-- `clientv3`'s package facts: `noPrefixEnd` (`[]byte{0}`, never written), which
+`getPrefix` returns for a prefix with no successor. -/
+abbrev clientv3Init : IProp GF :=
+  iprop(∃ sl : GoSlice, globalAddr go_etcd_io.etcd.client.v3.noPrefixEnd ↦□ sl ∗
+    sl ↦*□ [W8 0])
+
 instance clientv3_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.client.v3 :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init clientv3Init
 instance clientv3_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.client.v3 :=
   build_get_is_pkg_init_wf
@@ -113,9 +121,13 @@ instance btree_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.utils.third_party.forked.golang.btree :=
   build_get_is_pkg_init_wf
 
-/-- The cache's package facts: `ErrNotReady`, which the store returns. -/
+/-- The cache's package facts: the error variables `ErrNotReady` (the store returns it),
+`ErrUnsupportedRequest` (wrapped by `validateGet`/`validateWatch`) and `ErrKeyRangeInvalid`
+(`validateRange`), each a fixed non-nil error. -/
 abbrev cacheInit : IProp GF :=
-  iprop(∃ e : GoInterfaceOk, globalAddr ErrNotReady ↦□ GoInterface.ok e)
+  iprop((∃ e : GoInterfaceOk, globalAddr ErrNotReady ↦□ GoInterface.ok e) ∗
+    (∃ e : GoInterfaceOk, globalAddr ErrUnsupportedRequest ↦□ GoInterface.ok e) ∗
+    (∃ e : GoInterfaceOk, globalAddr ErrKeyRangeInvalid ↦□ GoInterface.ok e))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 :=
   define_is_pkg_init cacheInit

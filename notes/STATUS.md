@@ -418,3 +418,41 @@ lock".
   `etc/tcb-report.py --check --update`: 14 axioms, 5 sorries (the baseline gained
   `wp_map_for_range_mut_keys`). `lake build` passes; `etc/gen-link.py --cache` reproduces
   `Cache/Link.lean`.
+
+### Key predicates and request validation (`cache/predicate.go`, `cache/cache.go`): proved (2026-10-09)
+
+`ExactKey`, `FromKey`, `Range`, `KeyPredForRange`, and `Cache`'s `validateRange`,
+`validateGet`, `validateWatch`, `Ready`, `WaitReady`, `RequestProgress`: one `Spec`/`Proof`
+pair each, linked in `Cache/Link.lean`; vocabulary in `InvCache.lean`. No `sorry`, no axiom
+(`etc/tcb-report.py --check` unchanged: 14 axioms, 3 sorries; the unsupported-option errors
+reach Perennial's `fmt.wp_Errorf` `sorry`, already in the baseline).
+
+- **Newly translated** (`client/v3.toml`, with bodies): the 16 `Op` getters the cache reads
+  (`IsCountOnly`, `IsPrevKV`, `IsSortSet`, `Limit`, `Min/MaxModRev`, `Min/MaxCreateRev`,
+  `IsFragment`, `IsCreatedNotify`, `IsFilterPut`, `IsFilterDelete`, `RangeBytes`, `Rev`,
+  `IsSerializable`, `IsProgressNotify`), `GetPrefixRangeEnd`, `getPrefix` and the variable
+  `noPrefixEnd`; each proved (`Spec/Op__*.lean`, `getPrefix`, `GetPrefixRangeEnd`).
+  `OpOption`s, `OpGet`/`OpWatch` are not (the `Get`/`Watch` stage decides how to model them).
+- **`bytes.Compare` is now in Perennial** (Perennial `d292dc284`, pinned here): it calls
+  `internal/bytealg` (assembly), so `bytes.toml` marks it trusted, with a model in
+  `TrustedCode/bytes.lean` (compare the contents as strings) and `bytes.wp_Compare` proved
+  from it (`compareResult`). Push Perennial before this repository.
+- **Keys** are `GoString`s (a `[]byte`'s contents); the predicates are `exactKeyPred`,
+  `fromKeyPred`, `rangePred` and `keyPredForRange start end` (`GoString → Bool`, in
+  `go.GoStringLt`), and `mem_kvRange` says `kvRange`'s entries are exactly the map's entries
+  whose key satisfies `keyPredForRange` (for `Get`/`Watch` to agree). The closures keep the
+  key slices: the specs take them read-only (`↦*□`) and return `keyPredSpec f p`
+  (`InvWatcher.lean`) with `f ≠ nil`, i.e. `keyPredOk f (some p)` for `newWatcher`.
+- **`validateRange`** returns `rangeErr`: `nil` iff `validRange prefix start end`, else the
+  value of `ErrKeyRangeInvalid`; `prefixRangeEnd` is `GetPrefixRangeEnd` as a function.
+  **`validateGet`/`validateWatch`** return `validateResult`: some non-nil error (the
+  `fmt.Errorf` wrapping of `ErrUnsupportedRequest` is not modelled) if the `Op` asks for an
+  unsupported option (`OpModel.getUnsupported`/`watchUnsupported`), else `rangeErr`'s
+  outcome with a nil predicate, else `nil` and the `KeyPredForRange` closure for
+  `[key, op.RangeBytes())`. `Base.lean`'s package facts gained `ErrUnsupportedRequest`,
+  `ErrKeyRangeInvalid` (cache) and `noPrefixEnd` (`clientv3`).
+- **`isCacheFields c cf γr γd cap`** is a partial, persistent `Cache` predicate (fields
+  `prefix`, `cfg`, `ready`, `demux`, with `isReady`/`isDemux`); the `Cache` stage extends it.
+  `Ready`/`WaitReady`/`RequestProgress` are the `ready`/`demux` specs through it.
+- `lake build` passes; `etc/goose.py --check` passes; `etc/gen-link.py --cache` reproduces
+  `Cache/Link.lean`.
