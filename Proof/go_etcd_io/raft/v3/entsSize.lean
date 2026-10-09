@@ -38,10 +38,10 @@ theorem entsSize.wp_proof
   iNamed Hs
   wp_auto
   ihave %Hlen := ownSlice_len _ _ _ $$ Hs
-  ihave IH : iprop(∃ (n sz : w64) (ev : raftpb.Entry),
-      "i" ∷ i_ptr ↦ n ∗ "size" ∷ size_ptr ↦ sz ∗ "ent" ∷ ent_ptr ↦ ev ∗
-      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (es.length : Int)⌝) $$ [i size ent]
-  · iexists W64 0, zero_val w64, zero_val raftpb.Entry
+  ihave IH : iprop(∃ (n sz : w64),
+      "i" ∷ i_ptr ↦ n ∗ "size" ∷ size_ptr ↦ sz ∗
+      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (es.length : Int)⌝) $$ [i size]
+  · iexists W64 0, zero_val w64
     iframe
     ipureintro
     word
@@ -56,7 +56,7 @@ theorem entsSize.wp_proof
     wp_apply wp_Entry_Size $$ [$ent] as %sz2 ent
     wp_for_post
     iframe
-    iexists n + W64 1, sz + sz2, e
+    iexists n + W64 1, sz + sz2
     iframe
     ipureintro
     word

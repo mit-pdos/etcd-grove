@@ -3114,7 +3114,7 @@ noncomputable def node.run.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #true))) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$ch0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv msgWithResult.ty)))) (Var "propc"))
+  (App (Val catchBreak) (Let "$ch0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv msgWithResult.ty)))) (Var "propc"))
   (Let "$ch1" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (App (Val (GoInstruction (StructFieldRef node.ty go!"recvc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))))
   (Let "$ch2" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeV2.ty)))) (App (Val (GoInstruction (StructFieldRef node.ty go!"confc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))))
   (Let "$ch3" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef node.ty go!"tickc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))))
@@ -3311,7 +3311,7 @@ noncomputable def node.run.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef node.ty go!"done"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))))
-  (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Var "$a0")))))))])))))))))))))
+  (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Var "$a0")))))))]))))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "lead")) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"lead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"lead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))
@@ -8844,21 +8844,21 @@ noncomputable def readOnly.heartbeatCtx.impl [FfiSyntax] [GoGlobalContext] : val
 noncomputable def traceInitState.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
-  (App (Val doExecute)
+  (App (Val doReturn)
   (Val #()))))
 
 /-- go: state_trace_nop.go:32:6 -/
 noncomputable def traceReady.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
-  (App (Val doExecute)
+  (App (Val doReturn)
   (Val #()))))
 
 /-- go: state_trace_nop.go:34:6 -/
 noncomputable def traceCommit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
-  (App (Val doExecute)
+  (App (Val doReturn)
   (Val #()))))
 
 /-- go: state_trace_nop.go:36:6 -/
@@ -8866,28 +8866,28 @@ noncomputable def traceReplicate.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
   (App (Val exceptionDo)
-  (App (Val doExecute)
+  (App (Val doReturn)
   (Val #())))))
 
 /-- go: state_trace_nop.go:38:6 -/
 noncomputable def traceBecomeFollower.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
-  (App (Val doExecute)
+  (App (Val doReturn)
   (Val #()))))
 
 /-- go: state_trace_nop.go:40:6 -/
 noncomputable def traceBecomeCandidate.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
-  (App (Val doExecute)
+  (App (Val doReturn)
   (Val #()))))
 
 /-- go: state_trace_nop.go:42:6 -/
 noncomputable def traceBecomeLeader.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
-  (App (Val doExecute)
+  (App (Val doReturn)
   (Val #()))))
 
 /-- go: state_trace_nop.go:44:6 -/
@@ -8895,7 +8895,7 @@ noncomputable def traceChangeConfEvent.impl [FfiSyntax] [GoGlobalContext] : val 
   (LamV BAnon
   (Lam BAnon
   (App (Val exceptionDo)
-  (App (Val doExecute)
+  (App (Val doReturn)
   (Val #())))))
 
 /-- go: state_trace_nop.go:46:6 -/
@@ -8903,7 +8903,7 @@ noncomputable def traceConfChangeEvent.impl [FfiSyntax] [GoGlobalContext] : val 
   (LamV BAnon
   (Lam BAnon
   (App (Val exceptionDo)
-  (App (Val doExecute)
+  (App (Val doReturn)
   (Val #())))))
 
 /-- go: state_trace_nop.go:48:6 -/
@@ -8911,7 +8911,7 @@ noncomputable def traceSendMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
   (App (Val exceptionDo)
-  (App (Val doExecute)
+  (App (Val doReturn)
   (Val #())))))
 
 /-- go: state_trace_nop.go:50:6 -/
@@ -8919,7 +8919,7 @@ noncomputable def traceReceiveMessage.impl [FfiSyntax] [GoGlobalContext] : val :
   (LamV BAnon
   (Lam BAnon
   (App (Val exceptionDo)
-  (App (Val doExecute)
+  (App (Val doReturn)
   (Val #())))))
 
 /-- go: status.go:44:6 -/
@@ -10404,18 +10404,15 @@ noncomputable def entsSize.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (App (Val (GoInstruction (GoLoad entryEncodingSize.ty))) (Var "size")))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (Var "ents"))
-  (Let "ent" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))) (Val #())))
   (App (App (Val (slice.forRange _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)) (Var "$range"))
   (Lam "$key"
   (Lam "$value"
-  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "ent" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))) (Var "$value"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore entryEncodingSize.ty))) (Pair (Var "size") (App (Val (GoInstruction (GoOp GoPlus entryEncodingSize.ty))) (Pair (App (Val (GoInstruction (GoLoad entryEncodingSize.ty))) (Var "size")) (App (Val (GoInstruction (Convert go.int entryEncodingSize.ty))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty) go!"Size"))) (Var "ent")) (Val #()))))))))))
   (App (Val doExecute)
-  (Var "$key")))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))) (Pair (Var "ent") (Var "$value")))))))))))))))
+  (Var "$key")))))))))))))
 
 /-- limitSize returns the longest prefix of the given entries slice, such that
     its total byte size does not exceed maxSize. Always returns a non-empty slice

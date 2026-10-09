@@ -1,18 +1,62 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-09 (merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; Perennial `56b1b6651`: `fmt.Sprintf` and `strings.Join` proved from Perennial's models, `rand.Int` stays assumed; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
+**Last updated:** 2026-10-09 (Perennial `7d0b56b07`: Goose with per-iteration loop variables, `break` out of `select`, see "Perennial `7d0b56b07`"; merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; Perennial `56b1b6651`: `fmt.Sprintf` and `strings.Join` proved from Perennial's models, `rand.Int` stays assumed; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
 
 Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
 `worktree-raft-replication`'s `feb5c73d4` and adds Ready/Advance/HasReady; the files
 were first ported from `main`, then from `feb5c73d4`) to Lean on top of Perennial's Lean
-port (mit-pdos/perennial `lean`, pinned at 56b1b6651 (2026-10-09: on 56b1b6651: our 3ae7dc6a4 merged with upstream's `00b3c10ea` (trusted models and proved specs of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`; `math/big`'s `ownInt` normalized, its and `crypto/rand`'s `IsPkgInit` instances now Perennial's), see "Perennial `56b1b6651`"; on 68d220ac8: `fmt.wp_Errorf` proved, `map.forRange` with `wp_map_for_range_mut{,_keys}`, `context.wp_WithCancel` proved; on 3ae7dc6a4: `context.isClosedchanInit`, see "Sorry-free"; on 8c33774d0: upstream's `37416dd10` (Rocq code removed) and `cdf8c0f81` (Goose without `-lean` and the ⁱᵐᵖˡ encoding) merged, see below; on f8b35ddbf: `context.wp_Background`, `wp_WithCancel_Background`; on f35530719: Goose prints an axiomatized generic type in Lean; on 8c7000190: `time.NewTimer`, `Timer.Stop`/`Reset` axioms; on 96ec7016d: `fmt.wp_Printf`, `time.Minute`; on 099c2a08b: `fmt.wp_Errorf`'s `Error()`; on 640a605cc: a `select` case on a nil channel is never ready, `chan.wp_select_blocking_nil`; on 48e1192c7: rlocker, `Cond.wp_Wait_with`, `time.wp_Since`) on cbb85c041: upstream's `11fd2db` merged with
+port (mit-pdos/perennial `lean`, pinned at 7d0b56b07 (2026-10-09: on 7d0b56b07: our `9092f8eaa` merged with upstream's Goose changes (per-iteration loop variables, array ranges, `fallthrough`, `break` out of `switch`/`select`, local types) and `context.wp_WithCancel` building again, see "Perennial `7d0b56b07`"; on 9092f8eaa: `WaitGroup.Add`'s overflow a model assumption, the `RWMutex` writer guard, see "The cache as shipped"; on 56b1b6651: our 3ae7dc6a4 merged with upstream's `00b3c10ea` (trusted models and proved specs of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`; `math/big`'s `ownInt` normalized, its and `crypto/rand`'s `IsPkgInit` instances now Perennial's), see "Perennial `56b1b6651`"; on 68d220ac8: `fmt.wp_Errorf` proved, `map.forRange` with `wp_map_for_range_mut{,_keys}`, `context.wp_WithCancel` proved; on 3ae7dc6a4: `context.isClosedchanInit`, see "Sorry-free"; on 8c33774d0: upstream's `37416dd10` (Rocq code removed) and `cdf8c0f81` (Goose without `-lean` and the ⁱᵐᵖˡ encoding) merged, see below; on f8b35ddbf: `context.wp_Background`, `wp_WithCancel_Background`; on f35530719: Goose prints an axiomatized generic type in Lean; on 8c7000190: `time.NewTimer`, `Timer.Stop`/`Reset` axioms; on 96ec7016d: `fmt.wp_Printf`, `time.Minute`; on 099c2a08b: `fmt.wp_Errorf`'s `Error()`; on 640a605cc: a `select` case on a nil channel is never ready, `chan.wp_select_blocking_nil`; on 48e1192c7: rlocker, `Cond.wp_Wait_with`, `time.wp_Since`) on cbb85c041: upstream's `11fd2db` merged with
 `bytes.Compare`, on Lean's module system since 2026-10-09). The Goose translations of
 etcd-raft and etcd's `cache` package are this repository's `Code/` and `GeneratedProof/`,
 generated and checked by `etc/goose.py`. Files are laid out by kind and Go package path
 (`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
+
+## Perennial `7d0b56b07`: Goose with per-iteration loop variables (2026-10-09)
+
+Perennial `lean` at **`7d0b56b07`**: our `9092f8eaa` merged (cleanly) with upstream's
+`724880f7b` (Goose: range over arrays, `fallthrough`, `break` out of `switch`/`select`, local
+types), `a938c20b1` and `3a79c5282` (each loop iteration has its own iteration variables),
+`79adaac01` (`context.wp_WithCancel` builds again) and `d57475ff3` (only the local types of
+translated functions). In Perennial: `etc/lean-ci.sh` 372/372; the std-lib regeneration
+(`GOTOOLCHAIN=go1.26.0 etc/update-goose-new.py --compile --std-lib`) changes nothing; `go test
+./...` in `goose/` passes. No Perennial follow-up commit.
+
+- **The generated code** (`etc/goose.py`; `ab1deb078` from `--src etcd=/shared/etcd`, not yet
+  on `goose-lean`): 3 files (`Code/`; `GeneratedProof/` and `EtcdDeps/` unchanged), +20/−29.
+  - *Per-iteration loop variables*: Goose allocates a loop variable per iteration only where
+    sharing it would be observable (captured by a function literal, or its address taken,
+    including a pointer-receiver call); every other loop keeps one shared cell, unchanged. Two
+    loops here: raft's `entsSize` (`ent.Size()` has a pointer receiver: `ent` is now allocated
+    in the body from `$value`) and the cache's `demux.resyncLaggingWatchers` (`w` and
+    `nextRev`, captured by the `AscendGreaterOrEqual` callback, now allocated in the body from
+    `$key`/`$value`, no longer stored at the end of each iteration).
+  - *`break` out of `select`*: `node.run`'s `select` is wrapped in `catchBreak`. Its
+    `case m := <-n.recvc` filters a response from an unknown peer with `break`, which the old
+    translation took as breaking out of the `for` loop (ending `run`): a mistranslation, now
+    fixed. `node.run` has no spec here, so nothing depended on it.
+  - *Empty function bodies* end in `doReturn #()` instead of `doExecute #()`: raft's 11 `trace*`
+    no-ops (`state_trace_nop.go`), `cindex`'s `fakeConsistentIndex.UnsafeSave`/`SetBackend`.
+    `wp_start` handles both; no proof changed.
+  - Nothing translated here uses `fallthrough`, array ranges or local types. The fork's "Avoid
+    fallthrough" commit (`client/v3/leasing/kv.go`) is in a package not translated here: it
+    does not matter for this repository (it could be reverted now that Goose translates
+    `fallthrough`).
+- **Proofs**: 2 fixed, both loop invariants that named the shared cell: `entsSize.wp_proof`
+  (drop `ent` from the `wp_for` invariant; each iteration's fresh cell is passed to
+  `Entry.Size`) and `demux.resyncLaggingWatchers.wp_proof` (drop `nextRev`, `w` from the
+  `wp_map_for_range_mut_keys` invariant and from its three re-establishments). No spec, no
+  `Link.lean` changed.
+- **Gates**: `lake build` passes (1740 jobs); `etc/goose.py --check --src etcd=/shared/etcd
+  --perennial .lake/packages/perennial` passes; `etc/tcb-report.py --check` matches without
+  `--update` (38 axioms, 1 sorry); `etc/gen-link.py --cache`/`--concurrency`/`--server` and
+  `etc/gen-btree-link.py` reproduce; `etc/verified-code.py --reuse` unchanged: Raft 175/323,
+  cache 107/107 sorry-free, `client/v3/concurrency` 9 verified + 1 unfinished, server 19, etcd
+  193 verified, 1 unfinished, 13 assumed of 3599.
+- **Push order**: Perennial `lean` (`7d0b56b07`) first; the etcd fork's `ab1deb078` to
+  `goose-lean` (if not pushed yet); then etcd-grove `lean`.
 
 ## Merge: the cache as shipped and client/v3/concurrency (2026-10-09)
 

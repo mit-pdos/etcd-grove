@@ -346,8 +346,8 @@ theorem demux.resyncLaggingWatchers.wp_proof
   wp_func_lits
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
   iapply (wp_map_for_range_mut_keys (fun (keys : List Loc) (i : Nat) (m' : GMap Loc w64) =>
-      iprop(∃ (views_i : GMap Loc View) (x : w64) (y : Loc),
-        "d" ∷ d_ptr ↦ d ∗ "nextRev" ∷ nextRev_ptr ↦ x ∗ "w" ∷ w_ptr ↦ y ∗
+      iprop(∃ (views_i : GMap Loc View),
+        "d" ∷ d_ptr ↦ d ∗
         "Hviews" ∷ ghostMapAuth γd.views 1 views_i ∗
         "Hact" ∷ actP ↦$ actOf views_i ∗
         "Hres" ∷ ([∗map] w ↦ ri ∈ regs, regRes C γd w ri) ∗
@@ -361,8 +361,8 @@ theorem demux.resyncLaggingWatchers.wp_proof
         "%Hrs" ∷ ⌜RegsStart c regs views_i⌝ ∗
         "%Hdone" ∷ ⌜demuxRLW_done c views keys i views_i⌝))) $$ Hlag
   iintro %keys ⟨%Hkeys, %Hklen, %Hnodup⟩
-  isplitl [d nextRev w Hviews Hact Hres HminRev HmaxRev HactF HlagF Hhist]
-  · iexists views, _, _; simp only [named]; iframe; ipureintro
+  isplitl [d Hviews Hact Hres HminRev HmaxRev HactF HlagF Hhist]
+  · iexists views; simp only [named]; iframe; ipureintro
     exact ⟨trivial, Hok, Hstart, fun w v hv => by simp [hv]⟩
   isplitr
   · imodintro
@@ -430,7 +430,7 @@ theorem demux.resyncLaggingWatchers.wp_proof
       have Hact' : actOf (GMap.insert key v' views_i) = actOf views_i := by
         rw [actOf_insert]; simp [v', GMap.delete_notin _ _ Hnot_act]
       isplitl
-      · iexists GMap.insert key v' views_i, nv, key
+      · iexists GMap.insert key v' views_i
         simp only [named]
         rw [Hact']
         iframe
@@ -570,7 +570,7 @@ theorem demux.resyncLaggingWatchers.wp_proof
       have Hact' : actOf (GMap.insert key v' views_i) = actOf views_i := by
         rw [actOf_insert]; simp [v', Hph, GMap.delete_notin _ _ Hnot_act]
       isplitl
-      · iexists GMap.insert key v' views_i, resyncNext nv vis j, key
+      · iexists GMap.insert key v' views_i
         simp only [named]
         rw [Hact']
         iframe
@@ -696,7 +696,7 @@ theorem demux.resyncLaggingWatchers.wp_proof
         have : sint.Z (c.maxRev + W64 1) = sint.Z c.maxRev + 1 := by word
         omega
     isplitl
-    · iexists GMap.insert key v' views_i, nf, key
+    · iexists GMap.insert key v' views_i
       simp only [named]
       rw [Hact']
       iframe

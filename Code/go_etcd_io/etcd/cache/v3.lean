@@ -2687,13 +2687,11 @@ noncomputable def demux.resyncLaggingWatchers.impl [FfiSyntax] [GoGlobalContext]
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType (go.GoType.PointerType watcher.ty) go.int64)))) (App (Val (GoInstruction (StructFieldRef demux.ty go!"laggingWatchers"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType demux.ty)))) (Var "d"))))
-  (Let "nextRev" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
-  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watcher.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType watcher.ty)))) (Val #())))
   (App (App (Val (map.forRange (go.GoType.PointerType watcher.ty) go.int64)) (Var "$range"))
   (Lam "$key"
   (Lam "$value"
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "nextRev" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "$value"))
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watcher.ty)))) (Var "$key"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #true)
   (Let "resyncSuccess" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -2771,11 +2769,7 @@ noncomputable def demux.resyncLaggingWatchers.impl [FfiSyntax] [GoGlobalContext]
   (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "nextRev"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watcher.ty) go!"Compact"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w"))) (Var "$a0")))))
   (App (Val doExecute)
-  (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType watcher.ty)))) (Pair (Var "w") (Var "$key")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "nextRev") (Var "$value")))))))))))))
+  (Val #()))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef demux.ty go!"minRev"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType demux.ty)))) (Var "d")))) (Val #(W64 0)))))
   (App (Val doReturn)
   (Val #()))
