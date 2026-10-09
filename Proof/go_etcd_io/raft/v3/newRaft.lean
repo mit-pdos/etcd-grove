@@ -62,7 +62,7 @@ theorem newRaft.wp_proof
   wp_auto
   wp_apply wp_Config_validate _ _ ⟨HvID, HvID1, HvID2, Hticks, HvSt, HvInfl, HvIB, HvLog, HvRO⟩
     $$ [$Hc] as %cv' ⟨Hc, %Hpres⟩
-  obtain ⟨HpID, HpET, HpHT, HpSt, HpAp, HpMI, HpCQ, HpPV, HpDPF, HpLg, HpMC⟩ := Hpres
+  obtain ⟨HpID, HpET, HpHT, HpSt, HpAp, HpMI, HpCQ, HpPV, HpDPF, HpLg, HpMC, HpAW⟩ := Hpres
   rw [HpSt, Hsto, HpLg, Hlok]
   have Hmcs' : 0 < uint.Z cv'.MaxCommittedSizePerReady' := by
     rw [HpMC]
@@ -279,12 +279,14 @@ theorem newRaft.wp_proof
   ihave Hlog3 := Hl3back $$ Hl3
   ihave Hphys := Hlogback $$ Hlog3
   wp_raft_log
-  iapply HΦ $$ %«$r0_ptr» %s3
-  iframe Hphys
+  iapply HΦ $$ %«$r0_ptr» %s3 %cv'
+  iframe Hphys Hc
+  isplitr
+  · ipureintro; exact HpAW
   -- `becomeFollower(r.Term, None)` keeps the term, so `reset` keeps the
   -- vote: the state is the persisted `HardState`'s
   ipureintro
-  refine ⟨⟨rfl, rfl⟩, rfl, ?_, rfl, rfl, rfl, rfl, rfl⟩
+  refine ⟨⟨rfl, rfl⟩, rfl, ?_, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
   show (if s2.term = s2.term then s2.vote else W64 0) = hs.Vote'
   simp only [↓reduceIte]
   rfl

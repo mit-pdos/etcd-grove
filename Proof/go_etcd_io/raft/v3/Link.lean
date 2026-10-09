@@ -66,6 +66,9 @@ public import Proof.go_etcd_io.raft.v3.RawNode__Advance
 public import Proof.go_etcd_io.raft.v3.RawNode__Campaign
 public import Proof.go_etcd_io.raft.v3.RawNode__Step
 public import Proof.go_etcd_io.raft.v3.RawNode__Tick
+public import Proof.go_etcd_io.raft.v3.NewRawNode
+public import Proof.go_etcd_io.raft.v3.raft__softState
+public import Proof.go_etcd_io.raft.v3.raft__hardState
 public import Proof.go_etcd_io.raft.v3.raft__tickElection
 public import Proof.go_etcd_io.raft.v3.raft__tickHeartbeat
 public import Proof.go_etcd_io.raft.v3.raft__pastElectionTimeout
@@ -991,6 +994,18 @@ theorem raft.wp_tickHeartbeat :
 theorem RawNode.wp_Tick :
     RawNode.Tick.spec (GF := GF) (hG := hG) :=
   RawNode.Tick.wp_proof raft.wp_tickElection raft.wp_tickHeartbeat
+
+theorem raft.wp_softState :
+    raft.softState.spec (GF := GF) (hG := hG) :=
+  raft.softState.wp_proof
+
+theorem raft.wp_hardState :
+    raft.hardState.spec (GF := GF) (hG := hG) :=
+  raft.hardState.wp_proof
+
+theorem wp_NewRawNode :
+    NewRawNode.spec (GF := GF) (hG := hG) :=
+  NewRawNode.wp_proof wp_newRaft raft.wp_softState raft.wp_hardState
 
 theorem RawNode.wp_HasReady :
     RawNode.HasReady.spec (GF := GF) (hG := hG) :=

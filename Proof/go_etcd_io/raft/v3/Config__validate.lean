@@ -63,7 +63,7 @@ theorem Config.validate.wp_proof
   all_goals iframe Hc
   all_goals ipureintro
   all_goals
-    refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, ?_, rfl, rfl, ?_, ?_⟩ <;>
+    refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, ?_, rfl, rfl, ?_, ?_, rfl⟩ <;>
       first | rfl | exact Hlv.symm | exact (Hcq Hif).symm | (split <;> simp_all)
 
 end proof

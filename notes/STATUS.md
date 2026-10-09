@@ -43,7 +43,16 @@ differed from the checked-in file, e.g. `confchange.Restore`'s callees). `RNStat
   and `raft.tickHeartbeat` are specified like `raft.Step` (`TickStep`: `NetFrame`, the term
   up by at most one, `offsetInProgress` not back) and proved, with `pastElectionTimeout`.
 
-Next: `NewRawNode`, the `Advance` gap.
+- `NewRawNode` (proved and linked, `wp_NewRawNode`): a node of a new cluster -- an empty
+  storage, no `HardState`, nothing applied, synchronous writes, and `ownRaftGhost γ id
+  initPState` with `isCommitted γ []` (what `ownRaftGhost_alloc` hands out) -- comes out as
+  `ownRawNode` with nothing delivered, to persist or to step, at term `0`. `newRaft`'s
+  postcondition gained the initial log (`prev`, `sents`, `uents`, `committed`, `applying`,
+  `unpersisted`, `snap`) and gives the `validate`d `Config` back (`ConfigPreserved` gained
+  `AsyncStorageWrites`); `raft.softState`/`raft.hardState` are specified and proved;
+  `newRaft_post_init` moved from `Results.lean` to `Spec/NewRawNode.lean`.
+
+Next: the `Advance` gap.
 
 ## `raft.Step` frames the log and bounds the term (2026-10-09)
 
