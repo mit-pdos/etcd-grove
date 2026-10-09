@@ -918,3 +918,6 @@ end phys_state
 
 end EtcdGrove
 end Perennial
+
+-- Projection lemmas, `@[simp, word_unfold]` (ProjSimps.lean).
+proj_simps Perennial.EtcdGrove.inflightsAbs Perennial.EtcdGrove.inflightsReset Perennial.EtcdGrove.inflightsAdd Perennial.EtcdGrove.inflightsNew Perennial.EtcdGrove.progressResetState Perennial.EtcdGrove.progressBecomeProbe Perennial.EtcdGrove.progressBecomeReplicate Perennial.EtcdGrove.progressBecomeSnapshot Perennial.EtcdGrove.progressSentCommit Perennial.EtcdGrove.logAppend Perennial.EtcdGrove.logRestore Perennial.EtcdGrove.sendMsgs Perennial.EtcdGrove.resetTo Perennial.EtcdGrove.becomeFollower Perennial.EtcdGrove.becomeCandidate Perennial.EtcdGrove.becomePrecandidate Perennial.EtcdGrove.becomeLeaderPre Perennial.EtcdGrove.becomeLeaderLog

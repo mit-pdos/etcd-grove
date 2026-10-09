@@ -235,3 +235,6 @@ end tracker
 
 end EtcdGrove
 end Perennial
+
+-- Projection lemmas, `@[simp, word_unfold]` (ProjSimps.lean).
+proj_simps Perennial.EtcdGrove.logAcceptUnstable Perennial.EtcdGrove.logAppliedTo

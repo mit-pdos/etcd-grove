@@ -57,7 +57,6 @@ theorem newRaft.wp_proof
     newRaft.spec (GF := GF) (hG := hG) := by
   intro c cv lok si ⟨prev, ents, ss⟩ hs cs voters dqv
     Hvalid Hlok Hsto HmaxInfl Hcq Hdpf Hmcs Hidx Hncc Hss Hhs Happ Hvne Hvnd Hv0 Hvlen62 Hcs1 Hcs2 Hcs3 Hal
-  dsimp only at Hidx Hncc Hss Hhs Happ ⊢
   obtain ⟨HvID, HvID1, HvID2, Hticks, HvSt, HvInfl, HvIB, HvLog, HvRO⟩ := Hvalid
   wp_start as ⟨Hc, #Hlg0, #HisSto, HSto, #HInit⟩
   wp_auto

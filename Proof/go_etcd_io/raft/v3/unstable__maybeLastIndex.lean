@@ -27,7 +27,6 @@ theorem unstable.maybeLastIndex.wp_proof :
   wp_start as H
   iNamed H
   open_unstable
-  dsimp only at Hnw
   wp_auto
   ihave %Hlen := ownSlice_len $$ Hents
   by_cases He : uents = []

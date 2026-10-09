@@ -26,7 +26,6 @@ theorem unstable.acceptInProgress.wp_proof :
   intro u us
   obtain ⟨uents, off, ip, snap⟩ := us
   intro Hidx Hnw
-  dsimp only at Hidx Hnw
   wp_start as H
   iNamed H
   open_unstable

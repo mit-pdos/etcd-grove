@@ -63,6 +63,7 @@ Lean notes:
 module
 
 public import Proof.go_etcd_io.raft.v3.Plog
+public import Proof.go_etcd_io.raft.v3.ProjSimps
 
 @[expose] public section
 
@@ -1516,3 +1517,6 @@ end model
 
 end EtcdGrove
 end Perennial
+
+-- Projection lemmas, `@[simp, word_unfold]` (ProjSimps.lean).
+proj_simps Perennial.EtcdGrove.psendMsgs Perennial.EtcdGrove.pappend Perennial.EtcdGrove.padoptLeader

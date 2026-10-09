@@ -94,7 +94,6 @@ theorem raftLog.stableTo.wp_proof
   · -- the hit: the persisted prefix moves stable
     rw [if_pos Hh]
     obtain rfl := Hhit (Hiff.1 Hh)
-    dsimp only at Huoff Huoip ⊢
     have Hoff' := Huoff
     have Hip' := Huoip
     obtain ⟨Hsn, Hidip, Hup⟩ := Hok Hh
@@ -151,7 +150,6 @@ theorem raftLog.stableTo.wp_proof
   · -- a miss: nothing changes
     rw [if_neg Hh]
     obtain rfl := Hmiss (fun H => Hh (Hiff.2 H))
-    dsimp only at Huoff Huoip ⊢
     reseal_raftLog
 
 end proof

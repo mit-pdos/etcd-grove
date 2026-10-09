@@ -362,6 +362,9 @@ private theorem wp_newStorageApplyRespMsg_inline (r : Loc) (id : w64) (sl : GoSl
   iExactEq HΦ
   rfl
 
+-- One large proof: the projection lemmas `word` now also rewrites with (`ProjSimps.lean`)
+-- took it past the default 200000 heartbeats, at the same wall time (46s).
+set_option maxHeartbeats 400000 in
 theorem RawNode.Ready.wp_proof
     (wp_raftLog_nextUnstableEnts : raftLog.nextUnstableEnts.spec (GF := GF) (hG := hG))
     (wp_raftLog_nextCommittedEnts : raftLog.nextCommittedEnts.spec (GF := GF) (hG := hG))
@@ -382,7 +385,6 @@ theorem RawNode.Ready.wp_proof
     (wp_traceReady : traceReady.spec (GF := GF) (hG := hG)) :
     RawNode.Ready.spec (GF := GF) (hG := hG) := by
   intro cfg γ rn id ps ⟨s, rsoft, rhard, rsteps⟩ Hcfg Hrel Hsteps0 Hunp Hsnap
-  dsimp only at Hrel Hsteps0 Hunp Hsnap ⊢
   wp_start as H
   iNamed H
   iNamed Hrn

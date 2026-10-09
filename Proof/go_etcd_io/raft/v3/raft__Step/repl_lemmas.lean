@@ -188,9 +188,8 @@ theorem followerStepResult_app (id : w64) (s : NState) (m : raftpb.Message)
     dropped = false ∧ HandleAppResult id { s with lead := m.From' } m ents s' := by
   intro Hty H
   unfold FollowerStepResult at H
-  simp [Hty, MsgBeat, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgAppResp,
-    MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, W32] at H
-  exact H
+  simpa [Hty, MsgBeat, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgAppResp,
+    MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, W32] using H
 
 theorem followerStepResult_heartbeat (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState) :
@@ -199,9 +198,8 @@ theorem followerStepResult_heartbeat (id : w64) (s : NState) (m : raftpb.Message
     dropped = false ∧ s' = heartbeatResult id { s with lead := m.From' } m := by
   intro Hty H
   unfold FollowerStepResult at H
-  simp [Hty, MsgBeat, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgAppResp,
-    MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, W32] at H
-  exact H
+  simpa [Hty, MsgBeat, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgAppResp,
+    MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, W32] using H
 
 theorem candidateStepResult_app (cfg : GSet w64) (id : w64) (s : NState)
     (m : raftpb.Message) (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool)
@@ -213,9 +211,8 @@ theorem candidateStepResult_app (cfg : GSet w64) (id : w64) (s : NState)
       m ents s' := by
   intro Hty H
   unfold CandidateStepResult at H
-  simp [Hty, MsgBeat, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgAppResp,
-    MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, W32] at H
-  exact H
+  simpa [Hty, MsgBeat, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgAppResp,
+    MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, W32] using H
 
 theorem candidateStepResult_heartbeat (cfg : GSet w64) (id : w64) (s : NState)
     (m : raftpb.Message) (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool)
@@ -226,9 +223,8 @@ theorem candidateStepResult_heartbeat (cfg : GSet w64) (id : w64) (s : NState)
     ∃ pvs, s' = heartbeatResult id { becomeFollower s s.term m.From' with prvals := pvs } m := by
   intro Hty H
   unfold CandidateStepResult at H
-  simp [Hty, MsgBeat, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgAppResp,
-    MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, W32] at H
-  exact H
+  simpa [Hty, MsgBeat, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgAppResp,
+    MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, W32] using H
 
 /-- A leader ignores a `MsgApp` or `MsgHeartbeat` of its own term. -/
 theorem leaderStepResult_app_hb (cfg : GSet w64) (id : w64) (s : NState)
@@ -331,9 +327,8 @@ theorem followerStepResult_snap (id : w64) (s : NState) (m : raftpb.Message)
     dropped = false ∧ HandleSnapResult id { s with lead := m.From' } m sv s' := by
   intro Hty H
   unfold FollowerStepResult at H
-  simp [Hty, MsgBeat, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgAppResp,
-    MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, W32] at H
-  exact H
+  simpa [Hty, MsgBeat, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgAppResp,
+    MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, W32] using H
 
 theorem candidateStepResult_snap (cfg : GSet w64) (id : w64) (s : NState)
     (m : raftpb.Message) (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool)
@@ -345,9 +340,8 @@ theorem candidateStepResult_snap (cfg : GSet w64) (id : w64) (s : NState)
       m sv s' := by
   intro Hty H
   unfold CandidateStepResult at H
-  simp [Hty, MsgBeat, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgAppResp,
-    MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, W32] at H
-  exact H
+  simpa [Hty, MsgBeat, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgAppResp,
+    MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, W32] using H
 
 end StepProof
 

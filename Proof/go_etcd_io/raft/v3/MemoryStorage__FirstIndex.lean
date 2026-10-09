@@ -27,7 +27,6 @@ theorem MemoryStorage.FirstIndex.wp_proof
     (wp_MemoryStorage_firstIndex : MemoryStorage.firstIndex.spec (GF := GF) (hG := hG)) :
     MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG) := by
   intro ms ⟨prev, ents, ss⟩
-  dsimp only at *
   wp_start as Hpre
   iNamed Hpre
   iunfold ownMemoryStorage at Hms

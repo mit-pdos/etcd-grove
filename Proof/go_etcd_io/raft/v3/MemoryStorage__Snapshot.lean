@@ -25,7 +25,6 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem MemoryStorage.Snapshot.wp_proof :
     MemoryStorage.Snapshot.spec (GF := GF) (hG := hG) := by
   intro ms ⟨prev, ents, ss⟩ esu
-  dsimp only at *
   wp_start as ⟨Hms, #Hesu⟩
   iunfold ownMemoryStorage at Hms
   icases Hms with ⟨%γ, Hms⟩

@@ -25,7 +25,6 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem MemoryStorage.Term.wp_proof :
     MemoryStorage.Term.spec (GF := GF) (hG := hG) := by
   intro ms ⟨prev, ents, ss⟩ i0
-  dsimp only at *
   wp_start as ⟨Hms, %Hrange⟩
   iunfold ownMemoryStorage at Hms
   icases Hms with ⟨%γ, Hms⟩

@@ -161,7 +161,6 @@ theorem raftLog.append.wp_proof
     iclear Husnap Hu_logger
     icases ownUnstable_reopen _ _ _ $$ Hlback Hun
       with ⟨%uv', Hl, Hents_cap, Hents, #Husnap, #Hu_logger, %Huv'⟩
-    dsimp only at Huv' ⊢
     obtain ⟨Hoffm, Hoip'⟩ := Huv'
     have Hoff' : uint.Z uv'.offset' = min (uint.Z e0.Index') (uint.Z lv.unstable'.offset') := by
       rw [Hoffm, w64Min_spec]

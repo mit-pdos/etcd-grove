@@ -199,7 +199,6 @@ theorem RawNode.Advance.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
     RawNode.Advance.spec (GF := GF) (hG := hG) := by
   intro cfg γ rn id ps ⟨s, rsoft, rhard, rsteps⟩ rd Hcfg Hin Hrel Hmono Hok
-  dsimp only at Hrel Hok ⊢
   wp_start as H
   iNamed H
   iNamed Hrn

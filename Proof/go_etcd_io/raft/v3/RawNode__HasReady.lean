@@ -134,7 +134,6 @@ theorem RawNode.HasReady.wp_proof
       raftLog.hasNextCommittedEnts.spec (GF := GF) (hG := hG)) :
     RawNode.HasReady.spec (GF := GF) (hG := hG) := by
   intro cfg rn id ⟨s, rsoft, rhard, rsteps⟩
-  dsimp only
   wp_start as H
   iNamed H
   iNamed Hrn

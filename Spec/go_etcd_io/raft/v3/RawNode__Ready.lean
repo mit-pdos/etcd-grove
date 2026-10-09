@@ -128,3 +128,6 @@ end spec
 
 end EtcdGrove
 end Perennial
+
+-- Projection lemmas, `@[simp, word_unfold]` (ProjSimps.lean).
+proj_simps Perennial.EtcdGrove.readyNstate Perennial.EtcdGrove.readyRnstate

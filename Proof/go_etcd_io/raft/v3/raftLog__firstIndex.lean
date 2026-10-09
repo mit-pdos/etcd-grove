@@ -46,7 +46,6 @@ theorem raftLog.firstIndex.wp_proof
       ⟨uents, lv.unstable'.offset', lv.unstable'.offsetInProgress', snap⟩
       $$ [Huf Huents Huents_cap] as %fi %ok ⟨Hun, %Hok⟩
   · close_unstable_log
-  dsimp only at Hok
   reopen_unstable
   obtain ⟨rfl, Hfi⟩ := Hok
   cases snap with

@@ -26,7 +26,6 @@ theorem MemoryStorage.LastIndex.wp_proof
     (wp_MemoryStorage_lastIndex : MemoryStorage.lastIndex.spec (GF := GF) (hG := hG)) :
     MemoryStorage.LastIndex.spec (GF := GF) (hG := hG) := by
   intro ms ⟨prev, ents, ss⟩
-  dsimp only at *
   wp_start as Hms
   iNamed Hms
   iunfold ownMemoryStorage at Hms

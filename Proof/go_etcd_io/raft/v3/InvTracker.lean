@@ -1019,3 +1019,6 @@ end replication
 
 end EtcdGrove
 end Perennial
+
+-- Projection lemmas, `@[simp, word_unfold]` (ProjSimps.lean).
+proj_simps Perennial.EtcdGrove.inflightsRingOf Perennial.EtcdGrove.progressOf

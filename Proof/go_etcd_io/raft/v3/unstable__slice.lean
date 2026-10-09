@@ -37,7 +37,6 @@ theorem unstable.slice.wp_proof
   intro u us
   obtain ⟨uents, off, ip, snap⟩ := us
   intro lo hi Hrange Hnw
-  dsimp only at Hrange Hnw
   obtain ⟨Hr1, Hr2, Hr3⟩ := Hrange
   have Hrange' : uint.Z off ≤ uint.Z lo ∧ uint.Z lo ≤ uint.Z hi ∧
       uint.Z hi ≤ uint.Z off + (uents.length : Int) := ⟨Hr1, by omega, Hr3⟩

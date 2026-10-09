@@ -28,7 +28,6 @@ theorem unstable.nextEntries.wp_proof : unstable.nextEntries.spec (GF := GF) (hG
   wp_start as H
   iNamed H
   open_unstable
-  dsimp only at Hip
   icases Hents with #Hents
   ihave %Hlen := ownSlice_len $$ Hents
   ihave %Hwf := ownSlice_wf $$ Hents

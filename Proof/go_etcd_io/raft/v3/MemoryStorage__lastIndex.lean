@@ -27,7 +27,6 @@ read-only (`↦*□`), so the element access is the one `limitSize` uses
 `Hb`. -/
 theorem MemoryStorage.lastIndex.wp_proof : MemoryStorage.lastIndex.spec (GF := GF) (hG := hG) := by
   intro ms ⟨prev, ents, ss⟩ Hb
-  dsimp only at *
   wp_start as Hf
   iNamed Hf
   iNamed Hf
