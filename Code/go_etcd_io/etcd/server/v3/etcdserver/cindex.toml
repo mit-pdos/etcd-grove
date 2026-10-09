@@ -1,0 +1,4 @@
+# go.etcd.io/etcd/server/v3/etcdserver/cindex: translated in full (every declaration,
+# with bodies).
+translate = ["*"]
+imports = ["*"]

@@ -947,6 +947,73 @@ would leave the wait group's `int32` counter unbounded, so the loop could not be
   also bounds the revision below `2 ^ 63 - 1`, as the watch contract does, so that `getWatch`'s
   `rev + 1` does not overflow.
 
+
+---
+
+## The consistent index and the apply thread: a protocol of indices, the applier as the trust boundary
+
+**2026-10-09 · accepted** (Lean-first; not yet reviewed with the user)
+
+Goal: rule out etcd's consistent-index bugs (manual-notes.txt, bullets 3-4: `applyAll`,
+server.go:978, and the post-lock hook, server.go:2448). What must hold: every backend commit
+persists a consistent index `ci` that matches the effects it persists. If an entry with
+writes in the buffer is above the saved `ci`, it is applied twice after a crash. If an entry
+at or below it has no writes in the buffer, it is lost (#13766, where `ci` was set before the
+entry's writes, outside the batch lock).
+
+**Decision: model the buffer by indices, not data.** The protocol (`InvApply.lean`) tracks
+`(k, p, eff, pending)`: `ci`, processed-through, the last entry with writes in the buffer, and
+whether an entry's writes are in flight. The invariant is `eff ≤ ci ≤ p` out of flight; a
+commit (holding the batch lock's token) saves `ci`, so `eff ≤ saved ≤ p` (`commit_save_au`).
+The protocol's steps are lemmas, and each is used at the one place in the code that justifies
+it: `hook_set_au` in the post-lock hook (under the lock, `ci := i` for `i = p + 1`),
+`writes_done` in the writes update passed to the applier, `skip_done` after a no-write
+outcome, `ci_advance_au` in `applyEntryNormal`'s deferred update. *Rejected:* an abstract
+state `F : index → S` of "the backend after the committed log through `i`". It needs the
+applier's semantics in the trusted contract, and says nothing more about the index
+bookkeeping, which is what these bugs are about.
+
+**Decision: the applier and the backend are the trust boundary, as contracts in the
+protocol's terms, with the hook's triple as a premise.** `apply.Apply` (and `applyConfChange`)
+either take the batch lock (`P`, whose invariant `applierFor ua P f` asserts), run the hook
+`f`, write (the caller's update `Q ={⊤}=∗ P ∗ Post`) and unlock, in one critical section, or
+write nothing. That is what etcd's design relies on, and the contracts state it; whether the
+applier keeps an entry's writes in one critical section is not verified here. The hook itself
+is verified (`getTxPostLockInsideApplyHook`). *Rejected:* axiomatizing "the applier advances
+`ci`", which would leave the hook unverified; an opaque `entryNoop` receipt for the no-write
+outcome (dropped: an entry without data skips the applier, and that path is justified by the
+code itself).
+
+**The read view.** `ci` is reloaded from the backend only while it is 0. That happens after
+`NewConsistentIndex`/`SetBackend`, or while the stored index is absent; meanwhile no commit
+writes the meta keys, which still hold the backend's initial `γ.m0`. The `ReadTx` contract is
+`metaReadTx rt E (readView γ)`: while `written` is false, a read returns `m0`. It holds for a
+real backend (reads see writes only after write-back), and is not satisfiable vacuously.
+
+**raft v3.7, not the fork.** etcd's `go.mod` has raft v3.7.0, whose raftpb is protobuf-go v2
+(`Index *uint64`, getters). The fork in `Code/go_etcd_io/raft/` is gogoproto. So etcd's
+project in `etc/goose.py` also translates v3.7's raft/raftpb (types, and the getters with
+bodies), as a `Part` with a module root of its own, `EtcdDeps/` (`EtcdDeps/Code/`, configured
+by `EtcdDeps/Code/**.toml`; the getters' specs and proofs in `EtcdDeps/{Spec,Proof}/`): the two
+have the same Go path, so they cannot share `Code/<pkg>`, and both define
+`Perennial.go_etcd_io.raft.v3.*`, so no module imports both. They are in the one library
+(`lakefile.toml`'s globs), which no module imports whole; `etc/tcb-report.py` runs Lean on the
+server's `Link` separately. *Rejected* (on the old layout, before the merge with `lean`): a
+library of its own for the server's proofs (`EtcdGroveServer`); in the layout by Go package
+path the module path itself clashes, so the root is what has to differ.
+
+**Findings (not bugs in the CI protocol, but worth recording):**
+- `SetConsistentIndex` stores the index, then the term, as two atomic steps.
+  `applyEntryNormal`'s deferred update and `applyConfChange`'s failure path store outside the
+  batch lock, so a concurrent commit can persist the new index with the previous entry's term.
+  For a term's first (empty) entry, that is the previous term. The persisted term is only read
+  for schema-version detection and `verify`, so the protocol says nothing about the term.
+- `UnsafeConsistentIndex` reads `ci.be` without the mutex `SetBackend` writes it under. It
+  runs on the apply thread (the hook), as does `SetBackend`, so there is no race. The spec asks
+  for the apply thread's half of `be` (`ciOwner`).
+- `unsafeUpdateConsistentIndex`'s `verify.Verify` ("update of consistent index not advancing")
+  is proved never to fire: `Verify`'s spec requires its closure to return `true`.
+
 ---
 
 ## Predicate indices: one record, as small as the specs allow

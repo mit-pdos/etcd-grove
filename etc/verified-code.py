@@ -174,7 +174,7 @@ def goose_functions(pkgs):
     bodies, names = set(), set()
     for n in PROJECTS:
         for pkg in pkgs[n]:
-            f = os.path.join(ROOT, "Code", pkg.replace(".", "_") + ".lean")
+            f = os.path.join(ROOT, "Code", pkg.replace(".", "_").replace("-", "_") + ".lean")
             if not os.path.exists(f):
                 sys.exit(f"verified-code: no translation of {pkg} at {f}")
             text = read(f)
