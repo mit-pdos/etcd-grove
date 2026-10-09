@@ -5,14 +5,15 @@
 // One JSON object per line for each function or method declared outside a
 // `_test.go` file:
 //
-//	{"pkg": import path, "file": path relative to DIR, "recv": receiver type ("" for a
+//	{"src": DIR, "module": the module path of the nearest `go.mod`, "pkg": import
+//	 path, "file": path relative to DIR, "recv": receiver type ("" for a
 //	 function), "name", "line", "end": the lines of `func` and the closing brace,
 //	 "sloc": the lines in that range holding code (not blank, not only comments),
 //	 "generated": the file says it is generated ("Code generated ... DO NOT EDIT.")}
 //
 // The import path is the module path of the nearest `go.mod` plus the directory.
 // `testdata` and `vendor` directories, hidden directories, and files the default
-// build excludes (build constraints, such as raft's `with_tla`) are skipped.
+// build excludes (build constraints) are skipped.
 package main
 
 import (
@@ -30,6 +31,8 @@ import (
 )
 
 type fn struct {
+	Src       string `json:"src"`
+	Module    string `json:"module"`
 	Pkg       string `json:"pkg"`
 	File      string `json:"file"`
 	Recv      string `json:"recv"`
@@ -158,7 +161,7 @@ func walk(root string, out *json.Encoder) error {
 					n++
 				}
 			}
-			if err := out.Encode(fn{pkg, filepath.ToSlash(rel), r, fd.Name.Name, l0, l1, n, gen}); err != nil {
+			if err := out.Encode(fn{root, m.path, pkg, filepath.ToSlash(rel), r, fd.Name.Name, l0, l1, n, gen}); err != nil {
 				return err
 			}
 		}

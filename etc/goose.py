@@ -77,6 +77,9 @@ class Project:
     # More translations of packages of the same checkout, each into a module root of
     # its own (`<root>/Code/`, `<root>/GeneratedProof/`, configured by `<root>/Code/**.toml`).
     parts: list = field(default_factory=list)
+    # The Go modules of the checkout whose code etc/verified-code.py counts (not its
+    # tests or tools); None: every module of the checkout.
+    counted_modules: list = None
 
     @property
     def env(self):
@@ -98,6 +101,7 @@ PROJECTS = [
             "go.etcd.io/raft/v3/tracker",
         ],
         owned=[os.path.join("go_etcd_io", "raft")],
+        counted_modules=["go.etcd.io/raft/v3"],
     ),
     Project(
         name="etcd",
@@ -191,6 +195,17 @@ PROJECTS = [
                 packages=["go.etcd.io/raft/v3", "go.etcd.io/raft/v3/raftpb"],
                 owned=[os.path.join("go_etcd_io", "raft")],
             ),
+        ],
+        # etcd itself: not its tests, tools or root module
+        counted_modules=[
+            "go.etcd.io/etcd/api/v3",
+            "go.etcd.io/etcd/cache/v3",
+            "go.etcd.io/etcd/client/pkg/v3",
+            "go.etcd.io/etcd/client/v3",
+            "go.etcd.io/etcd/etcdctl/v3",
+            "go.etcd.io/etcd/etcdutl/v3",
+            "go.etcd.io/etcd/pkg/v3",
+            "go.etcd.io/etcd/server/v3",
         ],
     ),
 ]

@@ -21,8 +21,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- Not translated; see the comment at the spec. -/
-axiom fmt.Sprintf.wp_proof : fmt.Sprintf.spec (GF := GF) (hG := hG)
+/-- From Perennial's `fmt.wp_Sprintf`, proved from its model of `Sprintf`
+(`Perennial/TrustedCode/fmt.lean`). -/
+theorem fmt.Sprintf.wp_proof : fmt.Sprintf.spec (GF := GF) (hG := hG) := by
+  intro format args xs dq
+  iintro %Φ ⟨#Hpkg, Hargs⟩ HΦ
+  wp_apply _root_.Perennial.fmt.wp_Sprintf format args as %s _
+  iapply HΦ $$ Hargs
 
 #check @fmt.Sprintf.wp_proof
 

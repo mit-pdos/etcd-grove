@@ -19,9 +19,9 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `fmt.Sprintf` is not translated (`Perennial/Code/fmt.lean` declares only the
-name), so this is an `axiom`: Go's standard library, outside raft. `newRaft` uses it
-only to build a log line. The postcondition is *some* string: nothing reads what it
+/-- `fmt.Sprintf` is not translated (`fmt`'s printer reaches `reflect`); Perennial
+models it (`Perennial/TrustedCode/fmt.lean`) and proves `fmt.wp_Sprintf`. `newRaft` uses
+it only to build a log line. The postcondition is *some* string: nothing reads what it
 says.
 
 Like `fmt.Errorf`'s triple (`Perennial/Proof/fmt.lean`) it does not ask that each
