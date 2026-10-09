@@ -29,7 +29,7 @@ theorem newDemux.wp_proof
     (wp_newRingBuffer : newRingBuffer.spec (GF := GF) (hG := hG))
     (wp_newNotifier : newNotifier.spec (GF := GF) (hG := hG)) :
     newDemux.spec (GF := GF) (hG := hG) := by
-  intro h ri
+  intro C h ri
   wp_start as %Hh
   wp_auto
   wp_apply (wp_map_make1 (K := Loc) (V := w64) (go.GoType.PointerType watcher.ty) go.int64)
@@ -89,7 +89,7 @@ theorem newDemux.wp_proof
     (1 : Qp).half (1 : Qp).half).1 $$ [Hra] with ⟨Hra1, Hra2⟩
   · rw [Qp.half_add_half]; iexact Hra
   imod ghost_map_alloc (GF := GF) (K := Loc) (V := View) ∅ with ⟨%γv, Hva, -⟩
-  imod inv_alloc demuxN ⊤ (demuxSlots (hG := hG) ⟨γc, γw, γr, γv⟩) $$ [Hra2] with #Hslots
+  imod inv_alloc demuxN ⊤ (demuxSlots (hG := hG) C ⟨γc, γw, γr, γv⟩) $$ [Hra2] with #Hslots
   · inext
     unfold demuxSlots
     iright
@@ -100,7 +100,7 @@ theorem newDemux.wp_proof
     constructor <;> (try simp [DemuxCore.init]) <;>
       first | word | exact ⟨by simp, by simp [RevSorted], by simp⟩
   have Hun := actOf_lagOf_unmapped (∅ : GMap Loc View) (fun w v hv => by simp at hv)
-  imod sync.init_RWMutex (demuxLockInv (hG := hG) d ⟨γc, γw, γr, γv⟩ (sint.nat h)) (demuxMuAddr d)
+  imod sync.init_RWMutex (demuxLockInv (hG := hG) d ⟨γc, γw, γr, γv⟩ (sint.nat h) C) (demuxMuAddr d)
     $$ [Hwt Hc1 Hra1 Hva minRev maxRev activeWatchers laggingWatchers Ha Hl Hhist] mu with Htoks
   · inext
     unfold demuxLockInv demuxLockRest
@@ -109,8 +109,11 @@ theorem newDemux.wp_proof
     simp only [named]
     rw [Hun.1, Hun.2]
     iframe
+    isplitr
+    · simp only [DemuxCore.init]; iapply certChain_nil
     ipureintro
-    refine ⟨Hinv0, fun w => by simp, fun w v hv => by simp at hv, fun w v hv => by simp at hv⟩
+    refine ⟨Hinv0, ⟨fun w => by simp, fun w v hv => by simp at hv, fun w v hv => by simp at hv⟩,
+      RegsStart.unmapped (fun w ri hr => by simp at hr) (fun w v hv => by simp at hv)⟩
   wp_auto
   obtain ⟨m, hm⟩ : ∃ m, Int.toNat sync.rwmutex.actualMaxReaders = m + 1 :=
     ⟨_, (Nat.succ_pred_eq_of_pos (by have := sync.actualMaxReaders_pos; omega)).symm⟩

@@ -164,6 +164,110 @@ structure CacheFields [FfiSyntax] where
   kv : GoInterfaceOk
   /-- the `*conditionalProgressRequestor` in the `progressRequestor` interface -/
   pr : Loc
+  /-- the `clientv3.Watcher` interface value -/
+  watcher : GoInterfaceOk
+  /-- the internal context (`internalCtx`) -/
+  ictx : GoInterfaceOk
+  /-- the `Clock` interface value -/
+  clock : GoInterfaceOk
+  /-- the wait group's ghost names (Perennial's `isWaitGroup`) -/
+  γwg : sync.WaitGroupNames
+  /-- the wait group's budget tokens (`cacheWgInv`) -/
+  γwb : GName
+  /-- the wait group's running tokens (`cacheWgInv`) -/
+  γwr : GName
+
+/-! ## The watch loop and `Cache.Watch`: the cache's other fields -/
+
+section addrs2
+variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+
+/-- `&c.watcher` -/
+abbrev cacheWatcherAddr (c : Loc) : Loc := structFieldRef Cache go!"watcher" c
+/-- `&c.internalCtx` -/
+abbrev cacheICtxAddr (c : Loc) : Loc := structFieldRef Cache go!"internalCtx" c
+/-- `&c.clock` -/
+abbrev cacheClockAddr (c : Loc) : Loc := structFieldRef Cache go!"clock" c
+/-- `&c.waitGroup` -/
+abbrev cacheWgAddr (c : Loc) : Loc := structFieldRef Cache go!"waitGroup" c
+
+end addrs2
+
+/-- The namespace of the `Cache`'s wait group (Perennial's `isWaitGroup`). -/
+def cacheWgWGN : Namespace := nroot.@"cacheWaitGroup"
+
+/-- The namespace of the `Cache`'s wait-group counter invariant (`cacheWgInv`). -/
+def cacheWgN : Namespace := nroot.@"cacheWgCounter"
+
+/-- The goroutines the cache may have running at once (the wait group's counter is an `int32`
+that must not overflow). -/
+def cacheWgBudget : Nat := 2 ^ 31 - 1
+
+section clock
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+
+/-- `t` is a `Timer` (`cache/clock.go`; the trust boundary for the clock, a definition like
+`isLocker`, to be instantiated by `realTimer` at the final stage): `Chan()` returns a channel from
+which a receive yields some time (a bag of times, `isChanBag`); `Reset(d)` and `Stop()` return a
+bool, with no logical effect. -/
+def isTimer (t : GoInterfaceOk) : IProp GF :=
+  iprop({{ True }} (App (Val #(methods t.ty go!"Chan" t.v)) (Val #()))
+      {{ (ch : Loc) (γ : ChanNames), RET #ch;
+          isChanBag γ ch (V := time.Time) (fun _ => iprop(True)) }} ∗
+    (∀ d : time.Duration, {{ True }} (App (Val #(methods t.ty go!"Reset" t.v)) (Val #d))
+      {{ (b : Bool), RET #b; True }}) ∗
+    {{ True }} (App (Val #(methods t.ty go!"Stop" t.v)) (Val #()))
+      {{ (b : Bool), RET #b; True }})
+
+instance isTimer_persistent (t : GoInterfaceOk) : Persistent (isTimer (GF := GF) t) := by
+  unfold isTimer; infer_instance
+
+/-- `clk` is a `Clock`: `NewTimer(d)` returns a timer (`isTimer`). -/
+def isClock (clk : GoInterfaceOk) : IProp GF :=
+  iprop(∀ d : time.Duration, {{ True }} (App (Val #(methods clk.ty go!"NewTimer" clk.v)) (Val #d))
+    {{ (t : GoInterfaceOk), RET #(GoInterface.ok t); isTimer t }})
+
+instance isClock_persistent (clk : GoInterfaceOk) : Persistent (isClock (GF := GF) clk) := by
+  unfold isClock; infer_instance
+
+end clock
+
+/-! ## The watch loop: the writer's position and the store watcher's -/
+
+/-- Nothing under the prefix changed between the stream's last batch (`last`; `base` for an
+empty stream) and `cursor`, or `cursor` is not past it: a progress step from at most `last` to
+`cursor`. What lets the writer certify the next batch of its watch, which starts at `cursor`,
+from the stream's last batch (`respCert`). -/
+def TailOk (pfx : GoString) (last : Int) (cursor : w64) : Prop :=
+  sint.Z cursor ≤ last ∨ ∃ q : w64, sint.Z q ≤ last ∧ EtcdStep q cursor pfx []
+
+/-- The writer's invariant across watches: once `maxRev` is set, nothing changed between the last
+batch and `maxRev` (`Init` continues a stream at `maxRev + 1`). -/
+def WriterOk (pfx : GoString) (c : DemuxCore) : Prop :=
+  c.maxRev ≠ W64 0 → TailOk pfx c.lastRev c.maxRev
+
+/-- A watch at `cursor` continues the demux's stream: initialized, its base at or below
+`cursor`, and nothing changed between the last batch and `cursor`. -/
+def CursorOk (pfx : GoString) (c : DemuxCore) (cursor : w64) : Prop :=
+  c.minRev ≠ W64 0 ∧ c.base ≤ sint.Z cursor ∧ TailOk pfx c.lastRev cursor
+
+/-- The revision of the last event of a log of responses, `dflt` if it has none: where the store
+watcher's consumer is in the stream. -/
+def lastEvRevOr (L : List RespModel) (dflt : Int) : Int :=
+  match (eventsOf L).getLast? with
+  | some e => sint.Z e.rev
+  | none => dflt
+
+/-- The ghost names of the channel `Cache.Watch` returns: the channel's (an SPSC channel:
+`Watch`'s goroutine produces, the caller consumes) and the log of the responses sent on it
+(`fwd`, a monotone list). -/
+structure CacheWatchNames where
+  spsc : SpscNames
+  fwd : GName
 
 section prdefs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -192,6 +296,209 @@ instance isProgressRequestor_persistent (p : Loc) :
 
 end prdefs
 
+/-! ## The watch loop and `Cache.Watch`: the cache's predicates -/
+
+section watchdefs
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+
+/-- The `Cache`'s wait group's counter (an invariant; `Wait` is `Close`'s, out of scope, so there
+are no waiters): `ctr` goroutines running, each with a running token (`γwr`, for its `Done`) and
+each having spent a budget token (`γwb`, of which there are `cacheWgBudget` in all: the counter
+cannot overflow). -/
+def cacheWgInv (cf : CacheFields) : IProp GF :=
+  iprop(∃ ctr : w32, sync.ownWaitGroup cf.γwg ctr ∗ sync.ownWaitGroupWaiters cf.γwg 0 ∗
+    ownTokAuth cf.γwr (sint.nat ctr) ∗ ownToks cf.γwb (sint.nat ctr) ∗
+    ownTokAuth cf.γwb cacheWgBudget ∗ ⌜0 ≤ sint.Z ctr⌝)
+
+/-- The right to start one goroutine on the cache's wait group (`Add(1)`): a budget token. -/
+def cacheWgSlot (cf : CacheFields) : IProp GF := ownToks cf.γwb 1
+
+/-- A goroutine started on the cache's wait group, before its `Done()`. -/
+def cacheWgRunning (cf : CacheFields) : IProp GF := ownToks cf.γwr 1
+
+/-- The demux's writer for the cache (`etcdStepCert`), with its invariant across watches. -/
+def cacheWriter (cf : CacheFields) (γd : DemuxNames) (cap : Nat) (c : DemuxCore) : IProp GF :=
+  iprop(demuxWriter cf.demux γd cap (etcdStepCert cf.pfx) c ∗ ⌜WriterOk cf.pfx c⌝)
+
+/-- What a log `L` of responses on `Cache.Watch`'s channel is: a log the watcher's producer had,
+with its delivery facts and certificates (`demuxPubBody … none`); or such a log closed by a
+compaction at `n` followed by the compaction's cancel response; or the single cancel response of
+a request `validateWatch` rejected. -/
+def cacheWatchLog (C : DemuxCert GF) (pred : Option (GoString → Bool)) (sr : w64)
+    (L : List RespModel) : IProp GF :=
+  iprop(demuxPubBody C pred sr none L ∨
+    (∃ (L0 : List RespModel) (n : w64), ⌜L = L0 ++ [cancelModel n]⌝ ∗
+      demuxPubBody C pred sr (some (some n)) L0) ∨
+    ⌜∃ r, L = [r] ∧ r.canceled = true ∧ r.events = []⌝)
+
+instance cacheWatchLog_persistent (C : DemuxCert GF) (pred : Option (GoString → Bool)) (sr : w64)
+    (L : List RespModel) : Persistent (cacheWatchLog C pred sr L) := by
+  unfold cacheWatchLog; infer_instance
+
+/-- The `i`-th response `v` on `Cache.Watch`'s channel: modelled by `r`, the `i`-th of a log `L`
+(of the monotone log `fwd`) that is a `cacheWatchLog`. -/
+def cacheWatchElem (γ : CacheWatchNames) (C : DemuxCert GF) (pred : Option (GoString → Bool))
+    (sr : w64) (i : Int) (v : go_etcd_io.etcd.client.v3.WatchResponse) : IProp GF :=
+  iprop(∃ (L : List RespModel) (r : RespModel), respAt v r ∗
+    ⌜L.length = i.toNat + 1 ∧ L[i.toNat]? = some r⌝ ∗ monoListLbOwn γ.fwd L ∗
+    cacheWatchLog C pred sr L)
+
+/-- `rc` is a channel `Cache.Watch` returned (persistent), for certificates `C`, key filter
+`pred` and start revision `sr`. -/
+def isCacheWatchChan (rc : Loc) (γ : CacheWatchNames) (C : DemuxCert GF)
+    (pred : Option (GoString → Bool)) (sr : w64) : IProp GF :=
+  isSpsc γ.spsc rc (cacheWatchElem γ C pred sr) (fun _ => iprop(True))
+
+instance isCacheWatchChan_persistent (rc : Loc) (γ : CacheWatchNames) (C : DemuxCert GF)
+    (pred : Option (GoString → Bool)) (sr : w64) :
+    Persistent (isCacheWatchChan (GF := GF) rc γ C pred sr) := by
+  unfold isCacheWatchChan; infer_instance
+
+/-- The consumer of `Cache.Watch`'s channel: it has received the responses `rs`, a
+`cacheWatchLog` (when not empty). -/
+def cacheWatchConsumer (γ : CacheWatchNames) (C : DemuxCert GF) (pred : Option (GoString → Bool))
+    (sr : w64) (rs : List RespModel) : IProp GF :=
+  iprop(∃ vs : List go_etcd_io.etcd.client.v3.WatchResponse, spscConsumer γ.spsc vs ∗
+    ⌜vs.length = rs.length⌝ ∗ monoListLbOwn γ.fwd rs ∗ (⌜rs = []⌝ ∨ cacheWatchLog C pred sr rs))
+
+/-- What `Cache.Watch`'s caller needs: one of the demux's tokens (the watch's goroutine registers,
+sends progress notifications and unregisters with it) and a goroutine slot of the cache's wait
+group (both kept by the goroutine). -/
+def cacheWatchSlot (cf : CacheFields) (γd : DemuxNames) (cap : Nat) : IProp GF :=
+  iprop(demuxHandle cf.demux γd cap (etcdStepCert cf.pfx) ∗ cacheWgSlot cf)
+
+/-- A log published by the demux with nothing in it (`newWatcher`'s premise, for the watcher
+`Watch` registers with start `sr`). -/
+theorem demuxPubBody_nil (C : DemuxCert GF) (pred : Option (GoString → Bool)) (sr : w64) :
+    ⊢ demuxPubBody C pred sr none [] := by
+  unfold demuxPubBody
+  iexists sr, View.mk [] (W64 0) sr .active, sint.Z sr - 1
+  isplitr
+  · ipureintro
+    refine ⟨Or.inr rfl, ?_, Or.inr (by omega), fun m h => by cases h⟩
+    exact Delivered.init pred sr _ ⟨(fun _ h => by cases h), List.Pairwise.nil,
+      (fun _ h => by cases h)⟩ (fun _ h => by cases h) rfl (fun m h => by cases h)
+  have h0 : streamRange sr (View.mk [] (W64 0) sr .active).n
+      (View.mk [] (W64 0) sr .active).stream = [] := rfl
+  rw [h0]
+  iapply certChain_nil
+
+/-- **Receiving** on `Cache.Watch`'s channel: with `ok`, the next response, the received log
+(`rs ++ [r]`) still a `cacheWatchLog`; without, the channel was closed. -/
+theorem wp_cacheWatch_receive (rc : Loc) (γ : CacheWatchNames) (C : DemuxCert GF)
+    (pred : Option (GoString → Bool)) (sr : w64) (rs : List RespModel) :
+    {{ isCacheWatchChan rc γ C pred sr ∗ cacheWatchConsumer γ C pred sr rs }}
+      (App (Val (chan.receive go_etcd_io.etcd.client.v3.WatchResponse.ty)) (Val #rc))
+    {{ (v : go_etcd_io.etcd.client.v3.WatchResponse) (ok : Bool), RET (PairV #v #ok);
+        if ok then iprop(∃ r : RespModel, respAt v r ∗ cacheWatchConsumer γ C pred sr (rs ++ [r]))
+        else iprop(⌜v = zero_val go_etcd_io.etcd.client.v3.WatchResponse⌝) }} := by
+  iintro %Φ ⟨#Hch, Hcons⟩ HΦ
+  unfold cacheWatchConsumer
+  icases Hcons with ⟨%vs, Hcons, %Hlen, #Hlb, #Hlog⟩
+  unfold isCacheWatchChan
+  iapply wp_spsc_receive γ.spsc rc (cacheWatchElem γ C pred sr) (fun _ => iprop(True)) vs
+    $$ [$Hch $Hcons]
+  inext
+  iintro %v %ok H
+  cases ok
+  · simp only [Bool.false_eq_true, ↓reduceIte]
+    icases H with ⟨-, %Hv⟩
+    iapply HΦ
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    ipureintro; exact Hv
+  · simp only [↓reduceIte]
+    icases H with ⟨HP, Hcons⟩
+    unfold cacheWatchElem
+    icases HP with ⟨%L, %r, #Hr, %HL, #HlbL, #HlogL⟩
+    have hi : ((vs.length : Int)).toNat = rs.length := by rw [Hlen]; simp
+    rw [hi] at HL
+    ihave %Hpre := mono_list_lb_valid γ.fwd rs L $$ Hlb HlbL
+    have hL : L = rs ++ [r] := by
+      rcases Hpre with ⟨t, ht⟩ | hp
+      · subst ht
+        have ht1 : t.length = 1 := by simp at HL; omega
+        obtain ⟨x, rfl⟩ : ∃ x, t = [x] := by
+          cases t with
+          | nil => simp at ht1
+          | cons x t' => cases t' with
+            | nil => exact ⟨x, rfl⟩
+            | cons _ _ => simp at ht1
+        have : (rs ++ [x])[rs.length]? = some x := by simp
+        rw [HL.2] at this
+        cases this; rfl
+      · have := hp.length_le; omega
+    subst hL
+    iapply HΦ
+    simp only [↓reduceIte]
+    iexists r
+    iframe Hr
+    iexists vs ++ [v]
+    iframe Hcons
+    iframe HlbL
+    isplitr
+    · ipureintro; simp [Hlen]
+    iright; iexact HlogL
+
+/-- **The `Watch` delivery theorem** (for one log, `Cache.Watch`'s certificates and key filter): the
+events of a log the demux delivered to a watch on `[key, rangeEnd)` from `sr` are exactly the events
+of etcd's batches `bs` whose keys the filter accepts, in order (no gap, no duplicate); the log is
+in order (`SentOrdered`: events increasing from response to response, progress notifications at or
+above everything before and below everything after); `bs` are batches of one revision each,
+increasing; each batch is certified by etcd's step from at most the previous batch's revision
+(`certChain (etcdStepCert pfx) p₀ bs`: its events are etcd's, and nothing under the prefix
+changed in between), the first one from `p₀`; and for a start `sr ≠ 0`, `p₀ < sr ≤` every batch's
+revision: nothing etcd did under the prefix from `sr` on was missed. -/
+theorem cacheWatch_delivery (pfx key rangeEnd : GoString) (sr : w64) (L : List RespModel) :
+    demuxPubBody (GF := GF) (etcdStepCert pfx) (some (keyPredForRange key rangeEnd)) sr none L ⊢
+      ∃ (bs : List Batch) (p₀ : Int),
+        ⌜eventsOf L = bs.flatten.filter (fun e => keyPredForRange key rangeEnd e.key) ∧
+          SentOrdered L ∧ StreamOk bs ∧
+          (sr ≠ W64 0 → p₀ < sint.Z sr ∧ ∀ b ∈ bs, sint.Z sr ≤ sint.Z (batchRev b))⌝ ∗
+        certChain (etcdStepCert pfx) p₀ bs := by
+  unfold demuxPubBody
+  iintro ⟨%s, %v, %p₀, %Hf, #Hc⟩
+  obtain ⟨hsr, hD, hp₀, -⟩ := Hf
+  iexists streamRange s v.n v.stream, p₀
+  iframe Hc
+  ipureintro
+  refine ⟨hD.events, hD.ordered, hD.stream_ok.sublist (List.filter_sublist ..), fun h => ?_⟩
+  have hs : s = sr := by rcases hsr with h0 | h0; exact absurd h0 h; exact h0
+  subst hs
+  refine ⟨by rcases hp₀ with h0 | h0; exact absurd h0 h; exact h0, fun b hb => ?_⟩
+  exact (streamRange_mem hb).2.1
+
+/-- The same after a compaction at `n`: the log before the cancel response is complete up to `n`
+(its batches are below `n`). -/
+theorem cacheWatch_delivery_compacted (pfx key rangeEnd : GoString) (sr n : w64)
+    (L : List RespModel) :
+    demuxPubBody (GF := GF) (etcdStepCert pfx) (some (keyPredForRange key rangeEnd)) sr
+        (some (some n)) L ⊢
+      ∃ (bs : List Batch) (p₀ : Int),
+        ⌜eventsOf L = bs.flatten.filter (fun e => keyPredForRange key rangeEnd e.key) ∧
+          SentOrdered L ∧ StreamOk bs ∧ (∀ b ∈ bs, sint.Z (batchRev b) < sint.Z n) ∧
+          (sr ≠ W64 0 → p₀ < sint.Z sr ∧ ∀ b ∈ bs, sint.Z sr ≤ sint.Z (batchRev b))⌝ ∗
+        certChain (etcdStepCert pfx) p₀ bs := by
+  unfold demuxPubBody
+  iintro ⟨%s, %v, %p₀, %Hf, #Hc⟩
+  obtain ⟨hsr, hD, hp₀, hn⟩ := Hf
+  have hn' : n = v.n := hn n rfl
+  subst hn'
+  iexists streamRange s v.n v.stream, p₀
+  iframe Hc
+  ipureintro
+  refine ⟨hD.events, hD.ordered, hD.stream_ok.sublist (List.filter_sublist ..),
+    fun b hb => (streamRange_mem hb).2.2, fun h => ?_⟩
+  have hs : s = sr := by rcases hsr with h0 | h0; exact absurd h0 h; exact h0
+  subst hs
+  refine ⟨by rcases hp₀ with h0 | h0; exact absurd h0 h; exact h0, fun b hb => ?_⟩
+  exact (streamRange_mem hb).2.1
+
+end watchdefs
+
 section cache
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -212,14 +519,23 @@ def isCacheFields (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNa
     "#Hready" ∷ cacheReadyAddr c ↦□ cf.ready ∗
     "#Hdemux" ∷ cacheDemuxAddr c ↦□ cf.demux ∗
     "#HisReady" ∷ isReady cf.ready γr ∗
-    "#HisDemux" ∷ isDemux cf.demux γd cap ∗
+    "#HisDemux" ∷ isDemux cf.demux γd cap (etcdStepCert cf.pfx) ∗
     "#Hstore" ∷ cacheStoreAddr c ↦□ cf.store ∗
     "#HisStore" ∷ isStore cf.store cf.γs cf.scap ∗
     "#Hkv" ∷ cacheKvAddr c ↦□ GoInterface.ok cf.kv ∗
     "#HisKV" ∷ isEtcdKV cf.kv cf.pfx ∗
     "#Hpr" ∷ cachePrAddr c ↦□
       GoInterface.ok (interface.mk (go.GoType.PointerType conditionalProgressRequestor.ty) #cf.pr) ∗
-    "#HisPR" ∷ isProgressRequestor cf.pr)
+    "#HisPR" ∷ isProgressRequestor cf.pr ∗
+    "#Hwatcher" ∷ cacheWatcherAddr c ↦□ GoInterface.ok cf.watcher ∗
+    "#HisWatcher" ∷ isEtcdWatcher cf.watcher cf.pfx ∗
+    "#Hictx" ∷ cacheICtxAddr c ↦□ GoInterface.ok cf.ictx ∗
+    "#HisICtx" ∷ (∃ ics : context.ContextDesc (IProp GF), context.isContext cf.ictx ics) ∗
+    "#Hclock" ∷ cacheClockAddr c ↦□ GoInterface.ok cf.clock ∗
+    "#HisClock" ∷ isClock cf.clock ∗
+    "#HisWg" ∷ sync.isWaitGroup (cacheWgAddr c) cf.γwg cacheWgWGN ∗
+    "#HwgInv" ∷ inv cacheWgN (cacheWgInv cf) ∗
+    "%Hbuf" ∷ ⌜0 ≤ sint.Z cf.cfg.PerWatcherBufferSize'⌝)
 
 instance isCacheFields_persistent (c : Loc) (cf : CacheFields) (γr : ReadyNames)
     (γd : DemuxNames) (cap : Nat) : Persistent (isCacheFields (GF := GF) c cf γr γd cap) := by
@@ -242,7 +558,7 @@ otherwise the value of `ErrKeyRangeInvalid` and no predicate if the range is not
 `validRange`; otherwise `nil` and the `KeyPredForRange` closure. -/
 def validateResult (unsupported : Bool) (pfx key rangeEnd : GoString) (f : GoFunc)
     (err : GoInterface) : IProp GF :=
-  if unsupported then iprop(⌜f = func.nil ∧ ∃ e, err = GoInterface.ok e⌝)
+  if unsupported then iprop(⌜f = func.nil⌝ ∗ ∃ e, ⌜err = GoInterface.ok e⌝ ∗ errorStringSpec e)
   else if validRange pfx key rangeEnd then
     iprop(⌜err = GoInterface.nil ∧ f ≠ func.nil⌝ ∗ keyPredSpec f (keyPredForRange key rangeEnd))
   else iprop(⌜f = func.nil⌝ ∗ globalAddr ErrKeyRangeInvalid ↦□ err)

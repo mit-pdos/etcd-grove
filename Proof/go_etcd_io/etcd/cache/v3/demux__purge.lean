@@ -97,11 +97,28 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
+/-- `Stop`'s publication for a mapped watcher (its view's stream is the current one). -/
+theorem demuxPurge_closePub (C : DemuxCert GF) (pred : Option (GoString → Bool)) (c : DemuxCore)
+    (ri : RegInfo) (v : View) (sent : List RespModel) (hD : Delivered pred ri.s v sent)
+    (hst : StartOk c ri v) (hsr : ri.sr = W64 0 ∨ ri.s = ri.sr) (hstream : v.stream = c.stream) :
+    certChain (GF := GF) C c.base c.stream ⊢
+      watcherClosePub (demuxPub C pred ri.sr) sent none v.phase.toWatcher := by
+  iintro #H
+  cases hph : v.phase.toWatcher with
+  | opened =>
+    dsimp only [watcherClosePub, demuxPub]
+    rw [← hstream]
+    iapply pub_close pred ri.sr ri.s v sent none c.base hsr hD hst.cond (fun m h => by cases h)
+    iexact H
+  | closed _ =>
+    unfold watcherClosePub
+    ipureintro; trivial
+
 theorem demux.purge.wp_proof
     (wp_RebaseHistory : ringBuffer.RebaseHistory.spec (GF := GF) (hG := hG))
     (wp_Stop : watcher.Stop.spec (GF := GF) (hG := hG)) :
     demux.purge.spec (GF := GF) (hG := hG) := by
-  intro d γd cap c regs views
+  intro d γd cap C c regs views
   wp_start as ⟨Hl, %Hinv⟩
   iNamed Hl
   wp_auto
@@ -113,7 +130,7 @@ theorem demux.purge.wp_proof
   iapply wp_map_for_range (fun (keys : List Loc) (i : Int) => iprop(∃ (x : Loc) (vs : GMap Loc View),
       "w" ∷ w_ptr ↦ x ∗
       "Hviews" ∷ ghostMapAuth γd.views 1 vs ∗
-      "Hres" ∷ ([∗map] w ↦ ri ∈ regs, regRes γd w ri) ∗
+      "Hres" ∷ ([∗map] w ↦ ri ∈ regs, regRes C γd w ri) ∗
       "%Hi" ∷ ⌜0 ≤ i⌝ ∗
       "%Hvs" ∷ ⌜demuxPurge_closed views vs (keys.take i.toNat)⌝)) $$ Hact
   iintro %keys1 ⟨%Hkset, %Hklen, %Hknodup⟩
@@ -145,8 +162,12 @@ theorem demux.purge.wp_proof
     cases Hlk
     wp_auto
     imod ghost_map_update { v with phase := .closed none } $$ Hviews Hview with ⟨Hviews, Hview⟩
-    wp_apply wp_Stop key ri.γ pred sent v.phase.toWatcher $$ [Hwat] as Hcl
-    · iframe Hw; iexact Hwat
+    wp_apply wp_Stop key ri.γ pred (demuxPub C pred ri.sr) sent v.phase.toWatcher $$ [Hwat] as Hcl
+    · iframe Hw; iframe Hwat
+      iapply demuxPurge_closePub C pred c ri v sent Hdel
+        (Hstart.get Hri hv (by rw [hvn.1]; rfl)) (Hstart.sr_ok key ri Hri)
+        (Hok.mapped key v hv (by rw [hvn.1]; rfl)).1
+      iexact Hcerts
     unfold forMapPostcondition
     iright; ileft
     isplitr
@@ -154,13 +175,13 @@ theorem demux.purge.wp_proof
     iexists key, _
     simp only [named]
     iframe w Hviews
-    isplitl [Hres Hcl Hview]
+    isplitl [Hres Hcl Hview Huniq]
     · iapply (BigSepM.bigSepM_delete (m := regs) Hri).2
       iframe Hres
       unfold regRes
       iexists sent, { v with phase := .closed none }, pred
       simp only [named]
-      iframe Hw Hpred Hview
+      iframe Hw Hpred Hview Huniq
       isplitl [Hcl]
       · iExactEq Hcl
         rw [hvn.1]; rfl
@@ -189,7 +210,7 @@ theorem demux.purge.wp_proof
   iapply wp_map_for_range (fun (keys : List Loc) (i : Int) => iprop(∃ (x : Loc) (vs : GMap Loc View),
       "w" ∷ w_ptr ↦ x ∗
       "Hviews" ∷ ghostMapAuth γd.views 1 vs ∗
-      "Hres" ∷ ([∗map] w ↦ ri ∈ regs, regRes γd w ri) ∗
+      "Hres" ∷ ([∗map] w ↦ ri ∈ regs, regRes C γd w ri) ∗
       "%Hi" ∷ ⌜0 ≤ i⌝ ∗
       "%Hvs" ∷ ⌜demuxPurge_closed vs1 vs (keys.take i.toNat)⌝)) $$ Hlag
   iintro %keys2 ⟨%Hkset, %Hklen, %Hknodup⟩
@@ -228,8 +249,12 @@ theorem demux.purge.wp_proof
     cases Hlk
     wp_auto
     imod ghost_map_update { v with phase := .closed none } $$ Hviews Hview with ⟨Hviews, Hview⟩
-    wp_apply wp_Stop key ri.γ pred sent v.phase.toWatcher $$ [Hwat] as Hcl
-    · iframe Hw; iexact Hwat
+    wp_apply wp_Stop key ri.γ pred (demuxPub C pred ri.sr) sent v.phase.toWatcher $$ [Hwat] as Hcl
+    · iframe Hw; iframe Hwat
+      iapply demuxPurge_closePub C pred c ri v sent Hdel
+        (Hstart.get Hri hv0 (by rw [hvn.1]; rfl)) (Hstart.sr_ok key ri Hri)
+        (Hok.mapped key v hv0 (by rw [hvn.1]; rfl)).1
+      iexact Hcerts
     unfold forMapPostcondition
     iright; ileft
     isplitr
@@ -237,13 +262,13 @@ theorem demux.purge.wp_proof
     iexists key, _
     simp only [named]
     iframe w Hviews
-    isplitl [Hres Hcl Hview]
+    isplitl [Hres Hcl Hview Huniq]
     · iapply (BigSepM.bigSepM_delete (m := regs) Hri).2
       iframe Hres
       unfold regRes
       iexists sent, { v with phase := .closed none }, pred
       simp only [named]
-      iframe Hw Hpred Hview
+      iframe Hw Hpred Hview Huniq
       isplitl [Hcl]
       · iExactEq Hcl
         rw [hvn.1]; rfl
@@ -272,8 +297,11 @@ theorem demux.purge.wp_proof
   simp only [named]
   rw [Ha0, Hl0]
   iframe
+  isplitr
+  · dsimp only [DemuxCore.init]
+    iapply (certChain_nil (GF := GF) (C := C) 0)
   ipureintro
-  refine ⟨fun w => (Hok.dom w).trans (Hdom w).symm, ?_, ?_⟩
+  refine ⟨⟨fun w => (Hok.dom w).trans (Hdom w).symm, ?_, ?_⟩, RegsStart.unmapped Hstart.sr_ok Hunm⟩
   · intro w v hv hm; rw [Hunm w v hv] at hm; cases hm
   · intro w v hv hph; have := Hunm w v hv; rw [hph] at this; cases this
 

@@ -24,7 +24,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 theorem demux.LatestRev.wp_proof : demux.LatestRev.spec (GF := GF) (hG := hG) := by
-  intro d γd cap
+  intro d γd cap C
   wp_start as ⟨#Hd, Hh⟩
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -36,7 +36,7 @@ theorem demux.LatestRev.wp_proof : demux.LatestRev.spec (GF := GF) (hG := hG) :=
   iNamed HP
   wp_auto
   wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hwtok Hcore Hregs Hviews HminRev HmaxRev HactF HlagF Hact Hlag Hhist]
-  · inext; iframe; ipureintro; exact ⟨Hinv, Hok⟩
+  · inext; iframe; iframe #; ipureintro; exact ⟨Hinv, Hok, Hstart⟩
   iintro Hh
   wp_auto
   iapply HΦ

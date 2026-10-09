@@ -154,6 +154,14 @@ theorem demuxBEL_regsOk_full {c : DemuxCore} {k : Nat} {regs : GMap Loc RegInfo}
   mapped := h.mapped
   active_up w v hv ha b hb := hf w v hv ha b (by rw [List.take_length] at hb; exact hb)
 
+/-- An active watcher's start condition does not depend on its view. -/
+theorem demuxBEL_startOk_active {c : DemuxCore} {ri : RegInfo} {v : View} (h : StartOk c ri v)
+    (hph : v.phase = .active) (v' : View) : StartOk c ri v' := by
+  rcases h with h1 | h2 | ⟨h4, -⟩
+  · exact Or.inl h1
+  · exact Or.inr (Or.inl h2)
+  · rw [hph] at h4; cases h4
+
 /-- The "processed" fact after one more key. -/
 theorem demuxBEL_processed_step {keys : List Loc} {i : Nat} {key : Loc} (hkey : keys[i]? = some key)
     {views views' : GMap Loc View} {P : View → Prop}
@@ -208,7 +216,7 @@ theorem demuxBEL_delete_none {V : Type} (m : GMap Loc V) (k : Loc) (h : m !! k =
 theorem demux.broadcastEventsLocked.wp_proof
     (wp_enqueueResponse : watcher.enqueueResponse.spec (GF := GF) (hG := hG)) :
     demux.broadcastEventsLocked.spec (GF := GF) (hG := hG) := by
-  intro d γd cap c k regs views evSl evs
+  intro d γd cap C c k regs views evSl evs
   wp_start as ⟨Hl, #Hevs, % ⟨Hinv, Hne, Hsorted, Hst⟩⟩
   iunfold demuxLocked at Hl
   iNamed Hl
@@ -272,10 +280,11 @@ theorem demux.broadcastEventsLocked.wp_proof
       "HactF" ∷ demuxActAddr d ↦ actP ∗
       "HlagF" ∷ demuxLagAddr d ↦ lagP ∗
       "Hviews" ∷ ghostMapAuth γd.views 1 views' ∗
-      "Hres" ∷ ([∗map] w ↦ ri ∈ regs, regRes γd w ri) ∗
+      "Hres" ∷ ([∗map] w ↦ ri ∈ regs, regRes C γd w ri) ∗
       "Hlag" ∷ lagP ↦$ lagOf views' ∗
       "%Hm" ∷ ⌜m' = actOf views'⌝ ∗
       "%Hok" ∷ ⌜RegsOk c k regs views'⌝ ∗
+      "%Hrs" ∷ ⌜RegsStart c regs views'⌝ ∗
       "%Hdone" ∷ ⌜∀ w v, views' !! w = some v → v.phase = .active → w ∉ keys.drop i →
         ∀ b ∈ c.stream, sint.Z (batchRev b) < sint.Z v.n⌝)) $$ Hact
   iintro %keys ⟨%Hkset, %Hklen, %Hknodup⟩
@@ -284,7 +293,7 @@ theorem demux.broadcastEventsLocked.wp_proof
     simp only [named]
     iframe
     ipureintro
-    refine ⟨trivial, Hok, ?_⟩
+    refine ⟨trivial, Hok, Hstart, ?_⟩
     intro w v hv ha hn
     exfalso; apply hn
     rw [List.drop_zero, Hkset, actOf_lookup, hv]; simp [ha]
@@ -315,6 +324,7 @@ theorem demux.broadcastEventsLocked.wp_proof
       rw [← Hvn]; exact Hok.active_up key v Hvw Hvact
     subst Hvn
     have Hmapped : v.phase.mapped = true := by rw [Hvact]; rfl
+    have HSO := Hrs.get Hri Hvw Hmapped
     wp_auto
     wp_if_destruct
     rotate_left
@@ -338,13 +348,13 @@ theorem demux.broadcastEventsLocked.wp_proof
       · iexists _, _, GMap.insert key { v with phase := .lagging } views'
         simp only [named]
         iframe
-        isplitl [Hres Hview Hwat]
+        isplitl [Hres Hview Hwat Huniq]
         · iapply (BigSepM.bigSepM_delete (m := regs) Hri).2
           iframe Hres
           iunfold regRes
           iexists sent, { v with phase := .lagging }, pred
           simp only [named]
-          iframe Hw Hpred Hview
+          iframe Hw Hpred Hview Huniq
           isplitl
           · simp only [Hvact, RegPhase.toWatcher]; iexact Hwat
           ipureintro
@@ -352,11 +362,12 @@ theorem demux.broadcastEventsLocked.wp_proof
         isplitl
         · rw [lagOf_insert]; simp only [↓reduceIte]; iexact Hlag
         ipureintro
-        refine ⟨?_, ?_, ?_⟩
+        refine ⟨?_, ?_, ?_, ?_⟩
         · rw [actOf_insert]; simp
         · apply Hok.insert (by rw [Hri]; rfl)
           · intro _; exact Hmv
           · intro h; cases h
+        · exact Hrs.insert Hri _ (fun _ => demuxBEL_startOk_active HSO Hvact _)
         · apply demuxBEL_processed_step Hkey Hdone
           · intro w hw; exact GMap.lookup_insert_ne _ _ (Ne.symm hw)
           · intro v' hv' ha
@@ -425,9 +436,6 @@ theorem demux.broadcastEventsLocked.wp_proof
             isplitl
             · unfold hdrAt; ileft; ipureintro; exact ⟨rfl, rfl⟩
             ipureintro; exact ⟨rfl, rfl, rfl⟩
-          wp_apply wp_enqueueResponse key ri.γ pred sent _ (eventsResp (evs.drop (sint.nat j)))
-            $$ [Hwat] as %ok ⟨%sent', Hwat, %Henq⟩
-          · iframe Hwat Hw Hresp
           -- the facts
           have Hejle := demuxBEL_le_last Hsorted HeL_lookup (List.mem_of_getElem? Hej_lookup)
           have Hdrop : evs.drop (sint.nat j) = (streamRange v.n (eL.rev + W64 1) v.stream).flatten := by
@@ -436,10 +444,24 @@ theorem demux.broadcastEventsLocked.wp_proof
               (sint.nat j) Hjl ?_ ?_).symm
             · intro t e ht he; exact Hj.2.2 t e ht he
             · intro e he; rw [Hej_lookup] at he; cases he; exact Hif
-          rw [Hdrop] at Henq
           have Hnemp : (streamRange v.n (eL.rev + W64 1) v.stream).flatten ≠ [] := by
             rw [← Hdrop]; intro h
             have := List.drop_eq_nil_iff.1 h; omega
+          have Hnext : ∀ r', filterResp pred (eventsResp (evs.drop (sint.nat j))) = some r' →
+              ∃ n' : w64, Delivered pred ri.s { v with n := n' } (sent ++ [r']) := by
+            intro r' hr'
+            rw [Hdrop] at hr'
+            exact ⟨eL.rev + W64 1, (Delivered.enqueue_events (n' := eL.rev + W64 1) Hdel Hmapped
+              (by rw [HeL1]; omega) (by rw [HeL1, Hmv.2]; omega) Hnemp
+              (enqueueResult_some sent hr')).1 rfl⟩
+          ihave #Hpub := pub_send (C := C) pred ri.sr ri.s v sent (eventsResp (evs.drop (sint.nat j)))
+            c.base (Hrs.sr_ok key ri Hri) (HSO.active Hvact) Hnext $$ [Hcerts]
+          · rw [Hmv.1]; iexact Hcerts
+          wp_apply wp_enqueueResponse key ri.γ pred (demuxPub C pred ri.sr) sent _
+            (eventsResp (evs.drop (sint.nat j))) $$ [Hwat] as %ok ⟨%sent', Hwat, %Henq⟩
+          · iframe Hwat Hw Hresp
+            simp only [demuxPub]; iexact Hpub
+          rw [Hdrop] at Henq
           obtain ⟨HD1, HD2⟩ := Delivered.enqueue_events (n' := eL.rev + W64 1) Hdel Hmapped
             (by rw [HeL1]; omega) (by rw [HeL1, Hmv.2]; omega) Hnemp Henq
           cases ok
@@ -460,13 +482,13 @@ theorem demux.broadcastEventsLocked.wp_proof
             · iexists _, _, GMap.insert key { v with phase := .lagging } views'
               simp only [named]
               iframe
-              isplitl [Hres Hview Hwat]
+              isplitl [Hres Hview Hwat Huniq]
               · iapply (BigSepM.bigSepM_delete (m := regs) Hri).2
                 iframe Hres
                 iunfold regRes
                 iexists _, { v with phase := .lagging }, pred
                 simp only [named]
-                iframe Hw Hpred Hview
+                iframe Hw Hpred Hview Huniq
                 isplitl
                 · simp only [RegPhase.toWatcher, watcherAt]; iexact Hwat
                 ipureintro
@@ -474,11 +496,12 @@ theorem demux.broadcastEventsLocked.wp_proof
               isplitl
               · rw [lagOf_insert]; simp only [↓reduceIte]; iexact Hlag
               ipureintro
-              refine ⟨?_, ?_, ?_⟩
+              refine ⟨?_, ?_, ?_, ?_⟩
               · rw [actOf_insert]; simp
               · apply Hok.insert (by rw [Hri]; rfl)
                 · intro _; exact Hmv
                 · intro h; cases h
+              · exact Hrs.insert Hri _ (fun _ => demuxBEL_startOk_active HSO Hvact _)
               · apply demuxBEL_processed_step Hkey Hdone
                 · intro w hw; exact GMap.lookup_insert_ne _ _ (Ne.symm hw)
                 · intro v' hv' ha
@@ -499,13 +522,13 @@ theorem demux.broadcastEventsLocked.wp_proof
             · iexists _, _, GMap.insert key { v with n := eL.rev + W64 1 } views'
               simp only [named]
               iframe
-              isplitl [Hres Hview Hwat]
+              isplitl [Hres Hview Hwat Huniq]
               · iapply (BigSepM.bigSepM_delete (m := regs) Hri).2
                 iframe Hres
                 iunfold regRes
                 iexists sent', { v with n := eL.rev + W64 1 }, pred
                 simp only [named]
-                iframe Hw Hpred Hview
+                iframe Hw Hpred Hview Huniq
                 isplitl
                 · simp only [Hvact, RegPhase.toWatcher, watcherAt]; iexact Hwat
                 ipureintro; exact HD1 rfl
@@ -516,13 +539,14 @@ theorem demux.broadcastEventsLocked.wp_proof
                 · iexact Hlag
                 rw [lagOf_lookup, Hvw]; simp [Hvact]
               ipureintro
-              refine ⟨?_, ?_, ?_⟩
+              refine ⟨?_, ?_, ?_, ?_⟩
               · rw [actOf_insert]; simp [Hvact]
               · apply Hok.insert (by rw [Hri]; rfl)
                 · intro _; exact Hmv
                 · intro _ b hb
                   have := Hall b (List.mem_of_mem_take hb)
                   simp only; rw [HeL1]; omega
+              · exact Hrs.insert Hri _ (fun _ => demuxBEL_startOk_active HSO Hvact _)
               · apply demuxBEL_processed_step Hkey Hdone
                 · intro w hw; exact GMap.lookup_insert_ne _ _ (Ne.symm hw)
                 · intro v' hv' _ b hb
@@ -570,7 +594,7 @@ theorem demux.broadcastEventsLocked.wp_proof
           simp only [named]
           iframe
           ipureintro
-          refine ⟨trivial, Hok, ?_⟩
+          refine ⟨trivial, Hok, Hrs, ?_⟩
           apply demuxBEL_processed_step Hkey Hdone (fun w _ => rfl)
           intro v' hv' _
           rw [Hvw] at hv'; cases hv'; exact Hfull
@@ -585,8 +609,10 @@ theorem demux.broadcastEventsLocked.wp_proof
   iexists actP, lagP
   simp only [named]
   iframe
+  isplitr
+  · iexact Hcerts
   ipureintro
-  apply demuxBEL_regsOk_full Hok
+  refine ⟨demuxBEL_regsOk_full Hok ?_, Hrs⟩
   intro w v hv ha
   exact Hdone w v hv ha (by simp)
 

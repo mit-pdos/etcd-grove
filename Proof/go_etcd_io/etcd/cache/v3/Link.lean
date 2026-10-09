@@ -11,12 +11,17 @@ module
 public import Proof.go_etcd_io.etcd.cache.v3.Cache__Get
 public import Proof.go_etcd_io.etcd.cache.v3.Cache__Ready
 public import Proof.go_etcd_io.etcd.cache.v3.Cache__RequestProgress
+public import Proof.go_etcd_io.etcd.cache.v3.Cache__WaitForRevision
 public import Proof.go_etcd_io.etcd.cache.v3.Cache__WaitReady
+public import Proof.go_etcd_io.etcd.cache.v3.Cache__Watch
+public import Proof.go_etcd_io.etcd.cache.v3.Cache__applyStorage
+public import Proof.go_etcd_io.etcd.cache.v3.Cache__get
 public import Proof.go_etcd_io.etcd.cache.v3.Cache__serverRevision
 public import Proof.go_etcd_io.etcd.cache.v3.Cache__validateGet
 public import Proof.go_etcd_io.etcd.cache.v3.Cache__validateRange
 public import Proof.go_etcd_io.etcd.cache.v3.Cache__validateWatch
 public import Proof.go_etcd_io.etcd.cache.v3.Cache__waitTillRevision
+public import Proof.go_etcd_io.etcd.cache.v3.Cache__watchEvents
 public import Proof.go_etcd_io.etcd.cache.v3.ExactKey
 public import Proof.go_etcd_io.etcd.cache.v3.FromKey
 public import Proof.go_etcd_io.etcd.client.v3.GetPrefixRangeEnd
@@ -266,6 +271,10 @@ theorem WatchResponse.wp_IsProgressNotify [AllG GF] :
     WatchResponse.IsProgressNotify.spec (GF := GF) (hG := hG) :=
   WatchResponse.IsProgressNotify.wp_proof ResponseHeader.wp_GetRevision
 
+theorem wp_OpWatch :
+    OpWatch.spec (GF := GF) (hG := hG) :=
+  OpWatch.wp_proof Op.wp_applyOpts
+
 theorem Op.wp_IsFragment :
     Op.IsFragment.spec (GF := GF) (hG := hG) :=
   Op.IsFragment.wp_proof
@@ -282,13 +291,69 @@ theorem Op.wp_IsFilterDelete :
     Op.IsFilterDelete.spec (GF := GF) (hG := hG) :=
   Op.IsFilterDelete.wp_proof
 
-theorem wp_OpWatch :
-    OpWatch.spec (GF := GF) (hG := hG) :=
-  OpWatch.wp_proof Op.wp_applyOpts
-
 theorem Op.wp_IsProgressNotify :
     Op.IsProgressNotify.spec (GF := GF) (hG := hG) :=
   Op.IsProgressNotify.wp_proof
+
+theorem wp_validateRevisions [AllG GF] :
+    validateRevisions.spec (GF := GF) (hG := hG) :=
+  validateRevisions.wp_proof WatchResponse.wp_IsProgressNotify
+
+theorem store.wp_applyProgressNotifyLocked [AllG GF] :
+    store.applyProgressNotifyLocked.spec (GF := GF) (hG := hG) :=
+  store.applyProgressNotifyLocked.wp_proof
+
+theorem wp_newKVItem [AllG GF] :
+    newKVItem.spec (GF := GF) (hG := hG) :=
+  newKVItem.wp_proof
+
+theorem wp_newClonedSnapshot [AllG GF] :
+    newClonedSnapshot.spec (GF := GF) (hG := hG) :=
+  newClonedSnapshot.wp_proof btree.BTree.wp_Clone
+
+theorem ringBuffer.wp_full :
+    ringBuffer.full.spec (GF := GF) (hG := hG) :=
+  ringBuffer.full.wp_proof
+
+theorem ringBuffer.wp_Append :
+    ringBuffer.Append.spec (GF := GF) (hG := hG) :=
+  ringBuffer.Append.wp_proof ringBuffer.wp_full
+
+theorem store.wp_applyEventsLocked [AllG GF] :
+    store.applyEventsLocked.spec (GF := GF) (hG := hG) :=
+  store.applyEventsLocked.wp_proof btree.BTree.wp_Delete btree.BTree.wp_ReplaceOrInsert wp_newKVItem wp_newClonedSnapshot ringBuffer.wp_Append
+
+theorem store.wp_Apply [AllG GF] :
+    store.Apply.spec (GF := GF) (hG := hG) :=
+  store.Apply.wp_proof wp_validateRevisions WatchResponse.wp_IsProgressNotify store.wp_applyProgressNotifyLocked store.wp_applyEventsLocked
+
+theorem wp_WithPrefix :
+    WithPrefix.spec (GF := GF) (hG := hG) :=
+  WithPrefix.wp_proof wp_getPrefix
+
+theorem wp_kvItemLess [AllG GF] :
+    kvItemLess.spec (GF := GF) (hG := hG) :=
+  kvItemLess.wp_proof
+
+theorem ringBuffer.wp_RebaseHistory :
+    ringBuffer.RebaseHistory.spec (GF := GF) (hG := hG) :=
+  ringBuffer.RebaseHistory.wp_proof
+
+theorem store.wp_Restore [AllG GF] :
+    store.Restore.spec (GF := GF) (hG := hG) :=
+  store.Restore.wp_proof btree.wp_New wp_kvItemLess wp_newKVItem btree.BTree.wp_ReplaceOrInsert ringBuffer.wp_RebaseHistory wp_newClonedSnapshot ringBuffer.wp_Append
+
+theorem wp_WithRev :
+    WithRev.spec (GF := GF) (hG := hG) :=
+  WithRev.wp_proof
+
+theorem wp_WithProgressNotify :
+    WithProgressNotify.spec (GF := GF) (hG := hG) :=
+  WithProgressNotify.wp_proof
+
+theorem wp_WithCreatedNotify :
+    WithCreatedNotify.spec (GF := GF) (hG := hG) :=
+  WithCreatedNotify.wp_proof
 
 theorem rpctypes.wp_Error :
     rpctypes.Error.spec (GF := GF) (hG := hG) :=
@@ -302,53 +367,21 @@ theorem WatchResponse.wp_Err :
     WatchResponse.Err.spec (GF := GF) (hG := hG) :=
   WatchResponse.Err.wp_proof rpctypes.wp_Error status.wp_Error
 
-theorem wp_WithCreatedNotify :
-    WithCreatedNotify.spec (GF := GF) (hG := hG) :=
-  WithCreatedNotify.wp_proof
+theorem ringBuffer.wp_PeekOldest :
+    ringBuffer.PeekOldest.spec (GF := GF) (hG := hG) :=
+  ringBuffer.PeekOldest.wp_proof
 
 theorem wp_WithFromKey :
     WithFromKey.spec (GF := GF) (hG := hG) :=
   WithFromKey.wp_proof
 
-theorem wp_WithPrefix :
-    WithPrefix.spec (GF := GF) (hG := hG) :=
-  WithPrefix.wp_proof wp_getPrefix
-
-theorem wp_WithProgressNotify :
-    WithProgressNotify.spec (GF := GF) (hG := hG) :=
-  WithProgressNotify.wp_proof
-
 theorem wp_WithRange :
     WithRange.spec (GF := GF) (hG := hG) :=
   WithRange.wp_proof
 
-theorem wp_WithRev :
-    WithRev.spec (GF := GF) (hG := hG) :=
-  WithRev.wp_proof
-
 theorem wp_WithSerializable :
     WithSerializable.spec (GF := GF) (hG := hG) :=
   WithSerializable.wp_proof
-
-theorem wp_validateRevisions [AllG GF] :
-    validateRevisions.spec (GF := GF) (hG := hG) :=
-  validateRevisions.wp_proof WatchResponse.wp_IsProgressNotify
-
-theorem ringBuffer.wp_full :
-    ringBuffer.full.spec (GF := GF) (hG := hG) :=
-  ringBuffer.full.wp_proof
-
-theorem ringBuffer.wp_PeekOldest :
-    ringBuffer.PeekOldest.spec (GF := GF) (hG := hG) :=
-  ringBuffer.PeekOldest.wp_proof
-
-theorem ringBuffer.wp_Append :
-    ringBuffer.Append.spec (GF := GF) (hG := hG) :=
-  ringBuffer.Append.wp_proof ringBuffer.wp_full
-
-theorem ringBuffer.wp_RebaseHistory :
-    ringBuffer.RebaseHistory.spec (GF := GF) (hG := hG) :=
-  ringBuffer.RebaseHistory.wp_proof
 
 theorem ringBuffer.wp_findFirstIndexGreaterOrEqual :
     ringBuffer.findFirstIndexGreaterOrEqual.spec (GF := GF) (hG := hG) :=
@@ -358,21 +391,9 @@ theorem ringBuffer.wp_AscendGreaterOrEqual :
     ringBuffer.AscendGreaterOrEqual.spec (GF := GF) (hG := hG) :=
   ringBuffer.AscendGreaterOrEqual.wp_proof ringBuffer.wp_findFirstIndexGreaterOrEqual ringBuffer.wp_at
 
-theorem wp_kvItemLess [AllG GF] :
-    kvItemLess.spec (GF := GF) (hG := hG) :=
-  kvItemLess.wp_proof
-
-theorem wp_newClonedSnapshot [AllG GF] :
-    newClonedSnapshot.spec (GF := GF) (hG := hG) :=
-  newClonedSnapshot.wp_proof btree.BTree.wp_Clone
-
 theorem wp_newRingBuffer :
     newRingBuffer.spec (GF := GF) (hG := hG) :=
   newRingBuffer.wp_proof
-
-theorem wp_newKVItem [AllG GF] :
-    newKVItem.spec (GF := GF) (hG := hG) :=
-  newKVItem.wp_proof
 
 theorem wp_newStore [AllG GF] :
     newStore.spec (GF := GF) (hG := hG) :=
@@ -389,22 +410,6 @@ theorem ringBuffer.wp_DescendGreaterThan :
 theorem ringBuffer.wp_PeekLatest :
     ringBuffer.PeekLatest.spec (GF := GF) (hG := hG) :=
   ringBuffer.PeekLatest.wp_proof
-
-theorem store.wp_applyProgressNotifyLocked [AllG GF] :
-    store.applyProgressNotifyLocked.spec (GF := GF) (hG := hG) :=
-  store.applyProgressNotifyLocked.wp_proof
-
-theorem store.wp_applyEventsLocked [AllG GF] :
-    store.applyEventsLocked.spec (GF := GF) (hG := hG) :=
-  store.applyEventsLocked.wp_proof btree.BTree.wp_Delete btree.BTree.wp_ReplaceOrInsert wp_newKVItem wp_newClonedSnapshot ringBuffer.wp_Append
-
-theorem store.wp_Apply [AllG GF] :
-    store.Apply.spec (GF := GF) (hG := hG) :=
-  store.Apply.wp_proof wp_validateRevisions WatchResponse.wp_IsProgressNotify store.wp_applyProgressNotifyLocked store.wp_applyEventsLocked
-
-theorem store.wp_Restore [AllG GF] :
-    store.Restore.spec (GF := GF) (hG := hG) :=
-  store.Restore.wp_proof btree.wp_New wp_kvItemLess wp_newKVItem btree.BTree.wp_ReplaceOrInsert ringBuffer.wp_RebaseHistory wp_newClonedSnapshot ringBuffer.wp_Append
 
 end links
 
@@ -493,9 +498,61 @@ theorem Cache.wp_RequestProgress [AllG GF] :
     Cache.RequestProgress.spec (GF := GF) (hG := hG) :=
   Cache.RequestProgress.wp_proof demux.wp_BroadcastProgress
 
+theorem Cache.wp_WaitForRevision [AllG GF] :
+    Cache.WaitForRevision.spec (GF := GF) (hG := hG) :=
+  Cache.WaitForRevision.wp_proof store.wp_LatestRev
+
 theorem Cache.wp_validateWatch [AllG GF] :
     Cache.validateWatch.spec (GF := GF) (hG := hG) :=
   Cache.validateWatch.wp_proof Op.wp_IsPrevKV Op.wp_IsFragment Op.wp_IsCreatedNotify Op.wp_IsFilterPut Op.wp_IsFilterDelete Op.wp_RangeBytes Cache.wp_validateRange wp_KeyPredForRange
+
+theorem wp_newWatcher [AllG GF] :
+    newWatcher.spec (GF := GF) (hG := hG) :=
+  newWatcher.wp_proof
+
+theorem demux.wp_Register [AllG GF] :
+    demux.Register.spec (GF := GF) (hG := hG) :=
+  demux.Register.wp_proof
+
+theorem demux.wp_BroadcastProgressTo [AllG GF] :
+    demux.BroadcastProgressTo.spec (GF := GF) (hG := hG) :=
+  demux.BroadcastProgressTo.wp_proof watcher.wp_enqueueResponse
+
+theorem watcher.wp_Stop [AllG GF] :
+    watcher.Stop.spec (GF := GF) (hG := hG) :=
+  watcher.Stop.wp_proof
+
+theorem demux.wp_Unregister [AllG GF] :
+    demux.Unregister.spec (GF := GF) (hG := hG) :=
+  demux.Unregister.wp_proof watcher.wp_Stop
+
+theorem Cache.wp_Watch [AllG GF] :
+    Cache.Watch.spec (GF := GF) (hG := hG) :=
+  Cache.Watch.wp_proof Cache.wp_WaitReady wp_OpWatch Op.wp_Rev Cache.wp_validateWatch wp_newWatcher demux.wp_Register Op.wp_IsProgressNotify demux.wp_BroadcastProgressTo demux.wp_Unregister
+
+theorem Cache.wp_applyStorage [AllG GF] :
+    Cache.applyStorage.spec (GF := GF) (hG := hG) :=
+  Cache.applyStorage.wp_proof store.wp_Apply
+
+theorem Cache.wp_get [AllG GF] :
+    Cache.get.spec (GF := GF) (hG := hG) :=
+  Cache.get.wp_proof wp_WithPrefix store.wp_Restore
+
+theorem demux.wp_purge [AllG GF] :
+    demux.purge.spec (GF := GF) (hG := hG) :=
+  demux.purge.wp_proof ringBuffer.wp_RebaseHistory watcher.wp_Stop
+
+theorem demux.wp_Init [AllG GF] :
+    demux.Init.spec (GF := GF) (hG := hG) :=
+  demux.Init.wp_proof demux.wp_purge
+
+theorem ready.wp_Set [AllG GF] :
+    ready.Set.spec (GF := GF) (hG := hG) :=
+  ready.Set.wp_proof
+
+theorem ready.wp_Reset [AllG GF] :
+    ready.Reset.spec (GF := GF) (hG := hG) :=
+  ready.Reset.wp_proof
 
 theorem demux.wp_updateStoreLocked [AllG GF] :
     demux.updateStoreLocked.spec (GF := GF) (hG := hG) :=
@@ -517,25 +574,13 @@ theorem demux.wp_Broadcast [AllG GF] :
     demux.Broadcast.spec (GF := GF) (hG := hG) :=
   demux.Broadcast.wp_proof wp_validateRevisions demux.wp_updateStoreLocked demux.wp_broadcastLocked
 
-theorem demux.wp_BroadcastProgressTo [AllG GF] :
-    demux.BroadcastProgressTo.spec (GF := GF) (hG := hG) :=
-  demux.BroadcastProgressTo.wp_proof watcher.wp_enqueueResponse
-
-theorem watcher.wp_Stop [AllG GF] :
-    watcher.Stop.spec (GF := GF) (hG := hG) :=
-  watcher.Stop.wp_proof
-
-theorem demux.wp_purge [AllG GF] :
-    demux.purge.spec (GF := GF) (hG := hG) :=
-  demux.purge.wp_proof ringBuffer.wp_RebaseHistory watcher.wp_Stop
+theorem Cache.wp_watchEvents [AllG GF] :
+    Cache.watchEvents.spec (GF := GF) (hG := hG) :=
+  Cache.watchEvents.wp_proof wp_WithPrefix wp_WithRev wp_WithProgressNotify wp_WithCreatedNotify demux.wp_Init ready.wp_Set WatchResponse.wp_Err ready.wp_Reset demux.wp_Broadcast
 
 theorem demux.wp_Compact [AllG GF] :
     demux.Compact.spec (GF := GF) (hG := hG) :=
   demux.Compact.wp_proof demux.wp_purge
-
-theorem demux.wp_Init [AllG GF] :
-    demux.Init.spec (GF := GF) (hG := hG) :=
-  demux.Init.wp_proof demux.wp_purge
 
 theorem demux.wp_LatestRev [AllG GF] :
     demux.LatestRev.spec (GF := GF) (hG := hG) :=
@@ -544,14 +589,6 @@ theorem demux.wp_LatestRev [AllG GF] :
 theorem demux.wp_Purge [AllG GF] :
     demux.Purge.spec (GF := GF) (hG := hG) :=
   demux.Purge.wp_proof demux.wp_purge
-
-theorem demux.wp_Register [AllG GF] :
-    demux.Register.spec (GF := GF) (hG := hG) :=
-  demux.Register.wp_proof
-
-theorem demux.wp_Unregister [AllG GF] :
-    demux.Unregister.spec (GF := GF) (hG := hG) :=
-  demux.Unregister.wp_proof watcher.wp_Stop
 
 theorem watcher.wp_Compact [AllG GF] :
     watcher.Compact.spec (GF := GF) (hG := hG) :=
@@ -573,10 +610,6 @@ theorem wp_newReady [AllG GF] :
     newReady.spec (GF := GF) (hG := hG) :=
   newReady.wp_proof
 
-theorem wp_newWatcher [AllG GF] :
-    newWatcher.spec (GF := GF) (hG := hG) :=
-  newWatcher.wp_proof
-
 theorem notifier.wp_notify [AllG GF] :
     notifier.notify.spec (GF := GF) (hG := hG) :=
   notifier.notify.wp_proof
@@ -584,14 +617,6 @@ theorem notifier.wp_notify [AllG GF] :
 theorem notifier.wp_wait [AllG GF] :
     notifier.wait.spec (GF := GF) (hG := hG) :=
   notifier.wait.wp_proof
-
-theorem ready.wp_Reset [AllG GF] :
-    ready.Reset.spec (GF := GF) (hG := hG) :=
-  ready.Reset.wp_proof
-
-theorem ready.wp_Set [AllG GF] :
-    ready.Set.spec (GF := GF) (hG := hG) :=
-  ready.Set.wp_proof
 
 theorem ready.wp_WaitNotReady [AllG GF] :
     ready.WaitNotReady.spec (GF := GF) (hG := hG) :=

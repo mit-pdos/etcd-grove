@@ -31,7 +31,7 @@ theorem demux.broadcastLocked.wp_proof
     (wp_broadcastProgressLocked : demux.broadcastProgressLocked.spec (GF := GF) (hG := hG))
     (wp_broadcastEventsLocked : demux.broadcastEventsLocked.spec (GF := GF) (hG := hG)) :
     demux.broadcastLocked.spec (GF := GF) (hG := hG) := by
-  intro d γd cap c k regs views resp r
+  intro d γd cap C c k regs views resp r
   wp_start as ⟨Hl, #Hresp, % ⟨Hinv, Hpre⟩⟩
   ihave #Hresp' := Hresp
   iunfold respAt at Hresp'
@@ -69,7 +69,7 @@ theorem demux.broadcastLocked.wp_proof
       simp only [he, ↓reduceIte] at Hpre
       simp only [Hlen0, _root_.decide_false, Bool.not_false, _root_.decide_true]
       wp_auto
-      wp_apply wp_broadcastEventsLocked d γd cap c k regs views resp.Events' r.events $$ [Hl]
+      wp_apply wp_broadcastEventsLocked d γd cap C c k regs views resp.Events' r.events $$ [Hl]
         as ⟨%views', Hl⟩
       · iframe Hl; iframe HevsAt; ipureintro; exact ⟨Hinv, he, Hpre.1, Hpre.2⟩
       iapply HΦ
@@ -86,7 +86,7 @@ theorem demux.broadcastLocked.wp_proof
     icases Hhdr with (%Hnil | ⟨%Hnn, #Hh⟩)
     · exact absurd Hnil.2 hhr
     wp_auto
-    wp_apply wp_broadcastProgressLocked d γd cap c regs views r.hdrRev $$ [Hl] as ⟨%views', Hl⟩
+    wp_apply wp_broadcastProgressLocked d γd cap C c regs views r.hdrRev $$ [Hl] as ⟨%views', Hl⟩
     · iframe Hl; ipureintro; exact ⟨Hinv, Hrev, hhr⟩
     iapply HΦ
     iexists views'

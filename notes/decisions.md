@@ -814,3 +814,87 @@ noted):
   takes nothing, but `RLock` needs a reader token, so Perennial gained `isLockerWith i Pre P`
   (`Lock : Pre → P`, `Unlock : P → Pre`) and `Cond.wp_Wait_with`; the waiter's reader token is
   the one it `RLock`ed with. No gap remained.
+
+---
+
+## The stream model: `EtcdStep`, certificates through the demux
+
+**2026-10-09 · accepted** (the design decided with the user, adjusted here where noted)
+
+`Cache.Get`'s etcd model (`etcdState`, `isEtcdKvs`) says what a snapshot *is*; the watch side
+needs what etcd *did* between two revisions, so that the store's snapshots appended from the
+watch stream are certified (`snapCerts (etcdCert pfx)`) and `Cache.Watch`'s answer can be stated
+against etcd. `InvEtcd.lean`, `InvDemux.lean`, `InvWatcher.lean`, `InvCache.lean`.
+
+- **One new axiomatized predicate, `EtcdStep r0 r1 pfx evs`** ("no event under `pfx` strictly
+  between `r0` and `r1`; the events at `r1` are `evs`; `r0 ≤ r1`, `r0 < r1` if `evs ≠ []`"),
+  over etcd's events as etcd stores them (`EtcdEv`: type and `EtcdKv` contents, not the
+  store's `EvModel` with its `*KeyValue` pointer: contents, not pointers, as for `etcdState`),
+  with two property axioms: **transfer** (`etcdState a pfx s` for any `a` with `r0 ≤ a < r1`
+  gives `etcdState r1 pfx (applyEvsState s evs)`) and **composition** (a step with no events,
+  then a step, is a step). *Changes from the plan:* (1) a `Prop`, not an `IProp`: etcd's history
+  is immutable and resource-free, so the fact is persistent and timeless without the plan's
+  persistence axiom, and it can sit in the watcher's invariant (opened without later credits)
+  — an `IProp` axiom would have needed a persistence and a timelessness axiom; (2) transfer from
+  any `a ∈ [r0, r1)`, not only from `r0` (same meaning: nothing changed in between): the
+  certificates the demux hands a watcher chain from *some* revision at most the previous batch's
+  (below the watcher's start), and the store's map is etcd's state at its own revision, which
+  can lie anywhere in that interval; the plan's exact transfer would have needed a fourth
+  "splitting" axiom. *Rejected:* `EtcdStep` over `EvModel` (pointers; the bridge needs the
+  contents); a splitting axiom; exact chains in the demux (the writer cannot always produce
+  them: after a re-watch at an earlier cursor, see below).
+- **The bridge** `isEtcdKvs_step` (proved): a map that is etcd's state at `Y`, a step `p → r`
+  with `p ≤ Y < r`, and a batch the store applies without failure (`applyBatch`) whose events
+  match the step's (`evsMatch`: type, key, revision, and each `*KeyValue` holds the contents),
+  give etcd's state at `r` (the store's `btInsert`/`btDelete` act on the same positions as
+  `applyEvsState`'s, `btInsert_map`/`btDelete_map` through the pair list `PairsOk`).
+- **The client's watch** `isEtcdWatcher w pfx` is a definition (like `isEtcdKV`): `Watch` with
+  a prefix watch's options from `rev > 0` returns an SPSC channel (Perennial's `Spsc` idiom)
+  whose `i`-th response satisfies `watchRespOk` from the watch's position before it to the one
+  after (a monotone list `γ.cur` of positions, the consumer holding its current one): an error
+  (`resp.Err() ≠ nil`), the created notification, a progress notification `p ≥ cursor` with
+  `EtcdStep cursor p pfx []`, or sorted events above the cursor, below `2^63 - 1` (etcd's
+  revisions; the demux's `RespRevsBounded` premise), whose batches chain exactly
+  (`watchChain`). The receive is the atomic update `etcdWatch_recv_au` (for `select`).
+  *Rejected:* a bespoke channel invariant (the `Spsc` idiom already has a per-position resource,
+  and the positions' monotone list gives the chaining between responses).
+- **The demux is parameterized by a certificate** `C : DemuxCert GF` (`cert p b`, timeless):
+  the lock holds the stream's chain `certChain C base stream` (each batch above the previous
+  one's revision, certified from *some* `p` at most it: a loose chain), with `DemuxCore.base`
+  the revision the stream starts after (`Init(m)` sets it to `m - 1`). `Broadcast` takes, for an
+  accepted response, `respCert C c r` (its batches chained from the stream's last batch, or a
+  progress notification at or above `base`). The cache's `C` is `etcdStepCert pfx` (the batch's
+  events are etcd's, with a step from `p`). *Decided here:* indexed by the *previous batch*
+  (not by `maxRev`): progress notifications are not in the stream; the writer composes them
+  into its own knowledge (`TailOk`: nothing changed between the last batch and its cursor) and
+  certifies the next batch from at most the last batch (`etcdStep_compose`), or from its cursor
+  when the cursor is behind the last batch (a re-watch from the original `rev`): that is why the
+  chain is loose. *Rejected:* exact chains (above); certificates indexed by `maxRev` (the
+  chain would then need the progress steps in the stream, changing every demux statement).
+- **Delivering the certificates to the consumers: the watcher publishes.** The demux's facts are
+  under its lock; the consumers (`applyStorage`, `Cache.Watch`'s goroutine) never take it. So
+  the watcher gained a publication parameter `Pb : WatcherPub GF` (timeless): its invariant
+  holds `Pb.pub none L` for every log `L` the producer had (every prefix of `sent`) and
+  `Pb.pub (some c) sent` once closed; `enqueueResponse` takes the publication of the log the send
+  would make, `Stop`/`Compact` that of the closed log (`watcherClosePub`); the consumer learns it
+  at each receive (`watcher_recv_au`). The demux's publication `demuxPub C pred sr` is the
+  delivery facts (`Delivered`, for the start `s` — the one `Register` was given, `sr`, unless `0`)
+  and the delivered segment's certificate chain from a `p₀ < s`. For that the lock keeps
+  `RegsStart` (each mapped registration started from `0`, after `base`, or is lagging at its
+  start: a watcher whose start is at or below `base` is compacted before it is sent anything,
+  since `base < minRev`), with three new `DemuxInv` fields relating `base` to the stream,
+  `minRev` and `maxRev`. `demux_watcher_delivered`/`Unregister` are unchanged.
+  *Rejected:* the facts only under the read lock (`demux_watcher_delivered`: the consumers do
+  not take it); a per-response attachment (the consumer needs the whole prefix's facts, and the
+  log-indexed publication gives them with one invariant field).
+- **`watcherUnique w`**: half of `w.keyPred`'s points-to, the other half read-only in
+  `isWatcher` (`newWatcher` splits it); two of them for one `w` contradict (own ½ + own ½ +
+  discarded is invalid, `watcherUnique_excl`). Each registration keeps its own, so `Register`
+  knows `w` is new. *Rejected:* the old persistent "one ghost name per address" (not
+  derivable: Perennial has no meta tokens and `isChan` has no name agreement); a ghost token
+  (it would not be tied to `w`).
+- **The SPSC channels of `Cache.Watch`**: `rc`'s `i`-th response comes with a log `L` of length
+  `i + 1` (an element of the monotone list `γ.fwd`) that is a `cacheWatchLog`: a published log of
+  the watcher, or one closed by a compaction followed by its cancel response, or the single
+  cancel of a rejected request. `cacheWatch_delivery` turns a published log into the statement
+  about etcd.

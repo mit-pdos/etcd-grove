@@ -25,10 +25,11 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 the compaction response, `cancelModel`) if this call closed it (it was open), the earlier one
 otherwise. -/
 abbrev watcher.Compact.spec : Prop :=
-  ∀ (w : Loc) (γ : WatcherNames) (pred : Option (GoString → Bool)) (sent : List RespModel)
-    (ph : WatcherPhase) (compactRev : w64),
+  ∀ (w : Loc) (γ : WatcherNames) (pred : Option (GoString → Bool)) (Pb : WatcherPub GF)
+    (sent : List RespModel) (ph : WatcherPhase) (compactRev : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
-      isWatcher w γ pred ∗ watcherAt γ sent ph }}
+      isWatcher w γ pred Pb ∗ watcherAt γ sent ph ∗
+      watcherClosePub Pb sent (some compactRev) ph }}
     (App (Val (w @!! go.GoType.PointerType watcher.ty @!! go!"Compact")) (Val #compactRev))
   {{ RET #(); watcherClosed γ sent (ph.cancelAfter (some compactRev)) }}
 

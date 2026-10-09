@@ -136,12 +136,15 @@ instance clientv3_get_is_pkg_init_wf_inst :
 
 /-- The cache's package facts: the error variables `ErrNotReady` (the store returns it),
 `ErrUnsupportedRequest` (wrapped by `validateGet`/`validateWatch`), `ErrKeyRangeInvalid`
-(`validateRange`) and `ErrCacheTimeout` (`waitTillRevision`), each a fixed non-nil error. -/
+(`validateRange`) and `ErrCacheTimeout` (`waitTillRevision`), each a fixed non-nil error;
+`ErrKeyRangeInvalid.Error()` returns some string (`errors.New`'s `*errorString`; `Cache.Watch`
+puts it in a cancel response). -/
 abbrev cacheInit : IProp GF :=
   iprop((∃ e : GoInterfaceOk, globalAddr ErrNotReady ↦□ GoInterface.ok e) ∗
     (∃ e : GoInterfaceOk, globalAddr ErrUnsupportedRequest ↦□ GoInterface.ok e) ∗
     (∃ e : GoInterfaceOk, globalAddr ErrKeyRangeInvalid ↦□ GoInterface.ok e) ∗
-    (∃ e : GoInterfaceOk, globalAddr ErrCacheTimeout ↦□ GoInterface.ok e))
+    (∃ e : GoInterfaceOk, globalAddr ErrCacheTimeout ↦□ GoInterface.ok e) ∗
+    □ (∀ e : GoInterfaceOk, globalAddr ErrKeyRangeInvalid ↦□ GoInterface.ok e -∗ errorStringSpec e))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 :=
   define_is_pkg_init cacheInit

@@ -23,10 +23,10 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- `d.Purge()`, by the writer: every watcher stopped, the state reset (`DemuxCore.init`). -/
 abbrev demux.Purge.spec : Prop :=
-  ∀ (d : Loc) (γd : DemuxNames) (cap : Nat) (c : DemuxCore),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isDemux d γd cap ∗ demuxWriter d γd cap c }}
+  ∀ (d : Loc) (γd : DemuxNames) (cap : Nat) (C : DemuxCert GF) (c : DemuxCore),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isDemux d γd cap C ∗ demuxWriter d γd cap C c }}
     (App (Val (d @!! go.GoType.PointerType demux.ty @!! go!"Purge")) (Val #()))
-  {{ RET #(); demuxWriter d γd cap DemuxCore.init }}
+  {{ RET #(); demuxWriter d γd cap C DemuxCore.init }}
 
 end spec
 

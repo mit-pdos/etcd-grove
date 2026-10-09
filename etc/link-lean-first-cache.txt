@@ -138,3 +138,11 @@ conditionalProgressRequestor__remove:
 Cache__serverRevision: WithLimit WithCountOnly
 Cache__waitTillRevision: store__LatestRev conditionalProgressRequestor__add conditionalProgressRequestor__remove
 Cache__Get: store__LatestRev Cache__WaitReady OpGet Cache__validateGet Op__RangeBytes Op__Rev Op__IsSerializable Cache__serverRevision Cache__waitTillRevision store__Get
+# The watch loop and Cache.Watch (cache/cache.go), see InvEtcd.lean (the stream model, the
+# client's watch) and InvCache.lean; `newCache`, `getWatchLoop`, `getWatch`, `watch` are not
+# proved (STATUS, "The watch loop and Cache.Watch").
+Cache__WaitForRevision: store__LatestRev
+Cache__get: WithPrefix store__Restore
+Cache__applyStorage: store__Apply
+Cache__watchEvents: WithPrefix WithRev WithProgressNotify WithCreatedNotify demux__Init ready__Set WatchResponse__Err ready__Reset demux__Broadcast
+Cache__Watch: Cache__WaitReady OpWatch Op__Rev Cache__validateWatch newWatcher demux__Register Op__IsProgressNotify demux__BroadcastProgressTo demux__Unregister

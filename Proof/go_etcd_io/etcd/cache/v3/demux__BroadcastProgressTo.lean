@@ -80,7 +80,7 @@ theorem demuxBPT_progress {pred : Option (GoString → Bool)} {s : w64} {v : Vie
 theorem demux.BroadcastProgressTo.wp_proof
     (wp_enqueueResponse : watcher.enqueueResponse.spec (GF := GF) (hG := hG)) :
     demux.BroadcastProgressTo.spec (GF := GF) (hG := hG) := by
-  intro d γd cap w γ predT s
+  intro d γd cap C w γ predT s
   wp_start as ⟨#Hd, Hh, Htok⟩
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -88,7 +88,7 @@ theorem demux.BroadcastProgressTo.wp_proof
   unfold demuxHandle
   wp_apply (lc := 3) sync.RWMutex.wp_RLock $$ [$Hh] as ⟨Hrl, HP⟩
   icombine Hlc1 Hlc2 as Hlc
-  imod demux_slot_borrow d γd cap w γ predT s $$ [Hd Htok HP Hlc] with ⟨%pn, #HpredT, Hr, Hloan⟩
+  imod demux_slot_borrow d γd cap w γ predT s $$ [Hd Htok HP Hlc] with ⟨%pn, %sr, #HpredT, Hr, Hloan⟩
   · iframe; iframe #
   iunfold demuxLoan at Hloan
   icases Hloan with ⟨Hwt, Hel, HR⟩
@@ -97,12 +97,12 @@ theorem demux.BroadcastProgressTo.wp_proof
   wp_auto
   wp_if_destruct
   · -- maxRev = 0
-    ihave Hr : regRes γd w (RegInfo.mk γ s pn) $$ [Hview Hwat]
+    ihave Hr : regRes C γd w (RegInfo.mk γ s pn sr) $$ [Hview Hwat Huniq]
     · iunfold regRes; iexists sent, v, pred; simp only [named]; iframe; iframe #; ipureintro; exact Hdel
-    ihave Hloan : demuxLoan d γd cap w (RegInfo.mk γ s pn)
+    ihave Hloan : demuxLoan d γd cap C w (RegInfo.mk γ s pn sr)
       $$ [Hwt Hel Hcore Hregs Hviews HminRev HmaxRev HactF HlagF Hact Hlag Hhist]
-    · iunfold demuxLoan; iframe; iunfold demuxLockRest; iframe; ipureintro; exact ⟨Hinv, Hok⟩
-    imod demux_slot_return d γd cap w γ predT s pn $$ [Hd HpredT Hr Hloan Hlc3] with ⟨Htok, HP⟩
+    · iunfold demuxLoan; iframe; iunfold demuxLockRest; iframe; iframe #; ipureintro; exact ⟨Hinv, Hok, Hstart⟩
+    imod demux_slot_return d γd cap w γ predT s pn sr $$ [Hd HpredT Hr Hloan Hlc3] with ⟨Htok, HP⟩
     · iframe; iframe #
     wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HP] as Hh
     · inext; iexact HP
@@ -126,9 +126,24 @@ theorem demux.BroadcastProgressTo.wp_proof
       have Hwo : v.phase.toWatcher = .opened := by rw [hact]; rfl
       iunfold RegPhase.toWatcher at Hwat
       iunfold watcherAt at Hwat
-      wp_apply (lc := 1) wp_enqueueResponse w γ pred sent _ (progressResp c.maxRev) $$ [Hwat]
+      icombine Hregs Hel gives %Hrw
+      have Hst0 := Hstart.get Hrw Hvw Hmp
+      have hnext : ∀ r', filterResp pred (progressResp c.maxRev) = some r' →
+          ∃ n', Delivered pred s { v with n := n' } (sent ++ [r']) := by
+        intro r' h
+        refine ⟨v.n, ?_⟩
+        exact Delivered.enqueue_progress_same Hdel Hup (by rw [Hmx]; exact enqueueResult_some sent h)
+      ihave #Hcv : certChain C c.base v.stream $$ []
+      · rw [Hst]; iexact Hcerts
+      ihave #Hpub := pub_send pred sr s v sent (progressResp c.maxRev) c.base
+        (Hstart.sr_ok w _ Hrw) (Hst0.active hact) hnext $$ Hcv
+      ihave #Hpub' : iprop(□ (∀ r', ⌜filterResp pred (progressResp c.maxRev) = some r'⌝ -∗
+          (demuxPub C pred sr).pub none (sent ++ [r']))) $$ []
+      · rw [show (demuxPub C pred sr).pub = demuxPubBody C pred sr from rfl]
+        imodintro; iexact Hpub
+      wp_apply (lc := 1) wp_enqueueResponse w γ pred _ sent _ (progressResp c.maxRev) $$ [Hwat]
         as %ok ⟨%sent', Hwat, %Henq⟩
-      · iframe Hw Hwat
+      · iframe Hw Hwat Hpub'
         unfold respAt eventsAt hdrAt
         isplitl
         · iexists []
@@ -149,24 +164,24 @@ theorem demux.BroadcastProgressTo.wp_proof
       have Hdel' := demuxBPT_progress Hdel Hup (by rw [← Hmx] at Henq; exact Henq)
       ihave Hwat : watcherAt γ sent' v.phase.toWatcher $$ [Hwat]
       · rw [Hwo]; iunfold watcherAt; iexact Hwat
-      ihave Hr : regRes γd w (RegInfo.mk γ s pn) $$ [Hview Hwat]
+      ihave Hr : regRes C γd w (RegInfo.mk γ s pn sr) $$ [Hview Hwat Huniq]
       · iunfold regRes; iexists sent', v, pred; simp only [named]; iframe; iframe #; ipureintro; exact Hdel'
-      ihave Hloan : demuxLoan d γd cap w (RegInfo.mk γ s pn)
+      ihave Hloan : demuxLoan d γd cap C w (RegInfo.mk γ s pn sr)
         $$ [Hwt Hel Hcore Hregs Hviews HminRev HmaxRev HactF HlagF Hact Hlag Hhist]
-      · iunfold demuxLoan; iframe; iunfold demuxLockRest; iframe; ipureintro; exact ⟨Hinv, Hok⟩
-      imod demux_slot_return d γd cap w γ predT s pn $$ [Hd HpredT Hr Hloan Hlc3] with ⟨Htok, HP⟩
+      · iunfold demuxLoan; iframe; iunfold demuxLockRest; iframe; iframe #; ipureintro; exact ⟨Hinv, Hok, Hstart⟩
+      imod demux_slot_return d γd cap w γ predT s pn sr $$ [Hd HpredT Hr Hloan Hlc3] with ⟨Htok, HP⟩
       · iframe; iframe #
       wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HP] as Hh
       · inext; iexact HP
       iapply HΦ; iframe
     · simp only [hact, Option.filter, decide_false]
       wp_auto
-      ihave Hr : regRes γd w (RegInfo.mk γ s pn) $$ [Hview Hwat]
+      ihave Hr : regRes C γd w (RegInfo.mk γ s pn sr) $$ [Hview Hwat Huniq]
       · iunfold regRes; iexists sent, v, pred; simp only [named]; iframe; iframe #; ipureintro; exact Hdel
-      ihave Hloan : demuxLoan d γd cap w (RegInfo.mk γ s pn)
+      ihave Hloan : demuxLoan d γd cap C w (RegInfo.mk γ s pn sr)
         $$ [Hwt Hel Hcore Hregs Hviews HminRev HmaxRev HactF HlagF Hact Hlag Hhist]
-      · iunfold demuxLoan; iframe; iunfold demuxLockRest; iframe; ipureintro; exact ⟨Hinv, Hok⟩
-      imod demux_slot_return d γd cap w γ predT s pn $$ [Hd HpredT Hr Hloan Hlc3] with ⟨Htok, HP⟩
+      · iunfold demuxLoan; iframe; iunfold demuxLockRest; iframe; iframe #; ipureintro; exact ⟨Hinv, Hok, Hstart⟩
+      imod demux_slot_return d γd cap w γ predT s pn sr $$ [Hd HpredT Hr Hloan Hlc3] with ⟨Htok, HP⟩
       · iframe; iframe #
       wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HP] as Hh
       · inext; iexact HP

@@ -24,10 +24,10 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 /-- `d.LatestRev()` (under a read lock): the `maxRev` of some state of the demux. (No lower
 bound: `purge` resets `maxRev` to `0`.) -/
 abbrev demux.LatestRev.spec : Prop :=
-  ∀ (d : Loc) (γd : DemuxNames) (cap : Nat),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isDemux d γd cap ∗ demuxHandle d γd cap }}
+  ∀ (d : Loc) (γd : DemuxNames) (cap : Nat) (C : DemuxCert GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isDemux d γd cap C ∗ demuxHandle d γd cap C }}
     (App (Val (d @!! go.GoType.PointerType demux.ty @!! go!"LatestRev")) (Val #()))
-  {{ (r : w64), RET #r; demuxHandle d γd cap ∗ ⌜∃ c, DemuxInv cap c ∧ r = c.maxRev⌝ }}
+  {{ (r : w64), RET #r; demuxHandle d γd cap C ∗ ⌜∃ c, DemuxInv cap c ∧ r = c.maxRev⌝ }}
 
 end spec
 

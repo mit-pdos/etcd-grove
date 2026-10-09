@@ -29,12 +29,12 @@ filtered by `pred`, in order, with no gap and no duplicate, and progress notific
 trustworthy. With `watcher_received_prefix_closed`, so is every prefix the consumer
 received. -/
 abbrev demux.Unregister.spec : Prop :=
-  ∀ (d : Loc) (γd : DemuxNames) (cap : Nat) (w : Loc) (γ : WatcherNames)
+  ∀ (d : Loc) (γd : DemuxNames) (cap : Nat) (C : DemuxCert GF) (w : Loc) (γ : WatcherNames)
     (pred : Option (GoString → Bool)) (s : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
-      isDemux d γd cap ∗ demuxHandle d γd cap ∗ demuxRegistered γd w γ pred s }}
+      isDemux d γd cap C ∗ demuxHandle d γd cap C ∗ demuxRegistered γd w γ pred s }}
     (App (Val (d @!! go.GoType.PointerType demux.ty @!! go!"Unregister")) (Val #w))
-  {{ RET #(); demuxHandle d γd cap ∗
+  {{ RET #(); demuxHandle d γd cap C ∗
       ∃ (sent : List RespModel) (c : Option w64),
         watcherClosed γ sent c ∗ ⌜DeliveredLog pred s sent c⌝ }}
 

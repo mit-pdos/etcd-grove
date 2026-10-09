@@ -26,7 +26,7 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 theorem demux.Purge.wp_proof (wp_purge : demux.purge.spec (GF := GF) (hG := hG)) :
     demux.Purge.spec (GF := GF) (hG := hG) := by
-  intro d γd cap c
+  intro d γd cap C c
   wp_start as ⟨#Hd, Hw⟩
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -45,7 +45,7 @@ theorem demux.Purge.wp_proof (wp_purge : demux.purge.spec (GF := GF) (hG := hG))
   have Hinit : DemuxInv cap DemuxCore.init := by
     constructor <;> (try simp [DemuxCore.init]) <;>
       first | exact Hinv.cap_pos | exact Hinv.cap_le | exact ⟨by simp, by simp [RevSorted], by simp⟩ | word
-  have hrel := demux_lock_release (hG := hG) d γd cap DemuxCore.init regs views'
+  have hrel := demux_lock_release (hG := hG) (C := C) d γd cap DemuxCore.init regs views'
   rw [show DemuxCore.init.stream.length = 0 from rfl] at hrel
   imod hrel $$ [$Hd $Hcore $Hl $Hlc3] with HP
   · ipureintro; exact Hinit

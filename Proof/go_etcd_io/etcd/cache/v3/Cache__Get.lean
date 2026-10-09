@@ -57,7 +57,7 @@ theorem Cache.Get.wp_proof
     as %lr ⟨Hrd, %st0, #Hseen0, %Hlr⟩
   ihave Hci : (cacheInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hci with ⟨⟨%eNR, #HeNR⟩, -, ⟨%eKR, #HeKR⟩, ⟨%eCT, #HeCT⟩⟩
+  icases Hci with ⟨⟨%eNR, #HeNR⟩, -, ⟨%eKR, #HeKR⟩, ⟨%eCT, #HeCT⟩, -⟩
   ihave #Hrpc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes $$ []
   · iPkgInit
   ihave Hri : (rpctypesInit : IProp GF) $$ []
@@ -382,8 +382,8 @@ theorem Cache.Get.wp_proof
           exact ⟨⟨Hst.1, by omega⟩, by intro r m h; cases h⟩
     · -- an unsupported option
       rw [ite_eq_left rfl] at *
-      icases Hval with %Hvf
-      obtain ⟨-, e, rfl⟩ := Hvf
+      icases Hval with ⟨-, %e, %He, -⟩
+      subst He
       wp_auto
       iapply HΦ
       iframe Hrd

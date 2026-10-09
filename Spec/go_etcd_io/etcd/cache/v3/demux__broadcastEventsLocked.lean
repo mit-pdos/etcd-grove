@@ -29,14 +29,14 @@ them if `n = 0`) unless that is empty, and then becomes lagging if the send fail
 next revision `lastRev + 1`. Afterwards every active watcher is up to date with the whole
 stream. -/
 abbrev demux.broadcastEventsLocked.spec : Prop :=
-  ∀ (d : Loc) (γd : DemuxNames) (cap : Nat) (c : DemuxCore) (k : Nat)
+  ∀ (d : Loc) (γd : DemuxNames) (cap : Nat) (C : DemuxCert GF) (c : DemuxCore) (k : Nat)
     (regs : GMap Loc RegInfo) (views : GMap Loc View) (evSl : GoSlice) (evs : List EvModel),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
-      demuxLocked d γd cap c k regs views ∗ eventsAt evSl evs ∗
+      demuxLocked d γd cap C c k regs views ∗ eventsAt evSl evs ∗
       ⌜DemuxInv cap c ∧ evs ≠ [] ∧ EvRevSorted evs ∧
         c.stream = c.stream.take k ++ splitBatches evs⌝ }}
     (App (Val (d @!! go.GoType.PointerType demux.ty @!! go!"broadcastEventsLocked")) (Val #evSl))
-  {{ RET #(); ∃ views', demuxLocked d γd cap c c.stream.length regs views' }}
+  {{ RET #(); ∃ views', demuxLocked d γd cap C c c.stream.length regs views' }}
 
 end spec
 

@@ -55,11 +55,16 @@ theorem Cache.validateWatch.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply fmt.wp_Errorf $$ [$Hsl] as %e _
+    wp_apply fmt.wp_Errorf $$ [$Hsl] as %e #HeS
     iapply HΦ
     have hu : o.watchUnsupported = true := by simp [OpModel.watchUnsupported, ← Hif]
     simp only [validateResult, hu, ↓reduceIte]
-    ipureintro; simp
+    isplitr
+    · ipureintro; simp
+    iexists e
+    isplitr
+    · ipureintro; simp
+    unfold errorStringSpec; iexact HeS
   have HprevKV : o.prevKV = false := by simpa using Hif
   wp_apply wp_IsFragment $$ [$op $Ho] as op
   wp_if_destruct
@@ -67,11 +72,16 @@ theorem Cache.validateWatch.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply fmt.wp_Errorf $$ [$Hsl] as %e _
+    wp_apply fmt.wp_Errorf $$ [$Hsl] as %e #HeS
     iapply HΦ
     have hu : o.watchUnsupported = true := by simp [OpModel.watchUnsupported, ← Hif]
     simp only [validateResult, hu, ↓reduceIte]
-    ipureintro; simp
+    isplitr
+    · ipureintro; simp
+    iexists e
+    isplitr
+    · ipureintro; simp
+    unfold errorStringSpec; iexact HeS
   have Hfragment : o.fragment = false := by simpa using Hif
   wp_apply wp_IsCreatedNotify $$ [$op $Ho] as op
   wp_if_destruct
@@ -79,11 +89,16 @@ theorem Cache.validateWatch.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply fmt.wp_Errorf $$ [$Hsl] as %e _
+    wp_apply fmt.wp_Errorf $$ [$Hsl] as %e #HeS
     iapply HΦ
     have hu : o.watchUnsupported = true := by simp [OpModel.watchUnsupported, ← Hif]
     simp only [validateResult, hu, ↓reduceIte]
-    ipureintro; simp
+    isplitr
+    · ipureintro; simp
+    iexists e
+    isplitr
+    · ipureintro; simp
+    unfold errorStringSpec; iexact HeS
   have HcreatedNotify : o.createdNotify = false := by simpa using Hif
   wp_apply wp_IsFilterPut $$ [$op $Ho] as op
   wp_if_destruct
@@ -91,11 +106,16 @@ theorem Cache.validateWatch.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply fmt.wp_Errorf $$ [$Hsl] as %e _
+    wp_apply fmt.wp_Errorf $$ [$Hsl] as %e #HeS
     iapply HΦ
     have hu : o.watchUnsupported = true := by simp [OpModel.watchUnsupported, ← Hif]
     simp only [validateResult, hu, ↓reduceIte]
-    ipureintro; simp
+    isplitr
+    · ipureintro; simp
+    iexists e
+    isplitr
+    · ipureintro; simp
+    unfold errorStringSpec; iexact HeS
   have HfilterPut : o.filterPut = false := by simpa using Hif
   wp_apply wp_IsFilterDelete $$ [$op $Ho] as op
   wp_if_destruct
@@ -103,11 +123,16 @@ theorem Cache.validateWatch.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply fmt.wp_Errorf $$ [$Hsl] as %e _
+    wp_apply fmt.wp_Errorf $$ [$Hsl] as %e #HeS
     iapply HΦ
     have hu : o.watchUnsupported = true := by simp [OpModel.watchUnsupported, ← Hif]
     simp only [validateResult, hu, ↓reduceIte]
-    ipureintro; simp
+    isplitr
+    · ipureintro; simp
+    iexists e
+    isplitr
+    · ipureintro; simp
+    unfold errorStringSpec; iexact HeS
   have HfilterDelete : o.filterDelete = false := by simpa using Hif
   have hu : o.watchUnsupported = false := by simp [OpModel.watchUnsupported, HprevKV, Hfragment, HcreatedNotify, HfilterPut, HfilterDelete]
   wp_apply wp_string_to_bytes key as %ssl ⟨Hssl, -⟩

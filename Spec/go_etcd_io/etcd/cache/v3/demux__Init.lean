@@ -24,10 +24,10 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 /-- `d.Init(minRev)`, by the writer: the state becomes `(initCore c minRev).1` (the code's four
 cases; a purge stops every watcher, whose registrants then find it closed). -/
 abbrev demux.Init.spec : Prop :=
-  ∀ (d : Loc) (γd : DemuxNames) (cap : Nat) (c : DemuxCore) (minRev : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isDemux d γd cap ∗ demuxWriter d γd cap c }}
+  ∀ (d : Loc) (γd : DemuxNames) (cap : Nat) (C : DemuxCert GF) (c : DemuxCore) (minRev : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isDemux d γd cap C ∗ demuxWriter d γd cap C c }}
     (App (Val (d @!! go.GoType.PointerType demux.ty @!! go!"Init")) (Val #minRev))
-  {{ RET #(); demuxWriter d γd cap (initCore c minRev).1 }}
+  {{ RET #(); demuxWriter d γd cap C (initCore c minRev).1 }}
 
 end spec
 

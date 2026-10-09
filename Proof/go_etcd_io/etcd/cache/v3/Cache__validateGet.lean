@@ -61,11 +61,16 @@ theorem Cache.validateGet.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply fmt.wp_Errorf $$ [$Hsl] as %e _
+    wp_apply fmt.wp_Errorf $$ [$Hsl] as %e #HeS
     iapply HΦ
     have hu : o.getUnsupported = true := by simp [OpModel.getUnsupported, ← Hif]
     simp only [validateResult, hu, ↓reduceIte]
-    ipureintro; simp
+    isplitr
+    · ipureintro; simp
+    iexists e
+    isplitr
+    · ipureintro; simp
+    unfold errorStringSpec; iexact HeS
   have HcountOnly : o.countOnly = false := by simpa using Hif
   wp_apply wp_IsPrevKV $$ [$op $Ho] as op
   wp_if_destruct
@@ -73,11 +78,16 @@ theorem Cache.validateGet.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply fmt.wp_Errorf $$ [$Hsl] as %e _
+    wp_apply fmt.wp_Errorf $$ [$Hsl] as %e #HeS
     iapply HΦ
     have hu : o.getUnsupported = true := by simp [OpModel.getUnsupported, ← Hif]
     simp only [validateResult, hu, ↓reduceIte]
-    ipureintro; simp
+    isplitr
+    · ipureintro; simp
+    iexists e
+    isplitr
+    · ipureintro; simp
+    unfold errorStringSpec; iexact HeS
   have HprevKV : o.prevKV = false := by simpa using Hif
   wp_apply wp_IsSortSet $$ [$op $Ho] as op
   wp_if_destruct
@@ -85,11 +95,16 @@ theorem Cache.validateGet.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply fmt.wp_Errorf $$ [$Hsl] as %e _
+    wp_apply fmt.wp_Errorf $$ [$Hsl] as %e #HeS
     iapply HΦ
     have hu : o.getUnsupported = true := by simp [OpModel.getUnsupported, ← Hif]
     simp only [validateResult, hu, ↓reduceIte]
-    ipureintro; simp
+    isplitr
+    · ipureintro; simp
+    iexists e
+    isplitr
+    · ipureintro; simp
+    unfold errorStringSpec; iexact HeS
   have HsortSet : o.sortSet = false := by simpa using Hif
   wp_apply wp_Limit $$ [$op $Ho] as op
   wp_if_destruct
@@ -98,13 +113,18 @@ theorem Cache.validateGet.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply fmt.wp_Errorf $$ [$Hsl] as %e _
+    wp_apply fmt.wp_Errorf $$ [$Hsl] as %e #HeS
     iapply HΦ
     have hne : o.limit ≠ W64 0 := by intro h; rw [h] at Hif; exact absurd Hif (by decide)
     have hu : o.getUnsupported = true := by
       rw [OpModel.getUnsupported, decide_eq_true_eq]; right; right; right; left; exact hne
     simp only [validateResult, hu, ↓reduceIte]
-    ipureintro; simp
+    isplitr
+    · ipureintro; simp
+    iexists e
+    isplitr
+    · ipureintro; simp
+    unfold errorStringSpec; iexact HeS
   have Hlimit : o.limit = W64 0 := Classical.byContradiction fun hne => Hif (by rw [decide_eq_false hne]; rfl)
   wp_apply wp_MinModRev $$ [$op $Ho] as op
   wp_if_destruct
@@ -113,13 +133,18 @@ theorem Cache.validateGet.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply fmt.wp_Errorf $$ [$Hsl] as %e _
+    wp_apply fmt.wp_Errorf $$ [$Hsl] as %e #HeS
     iapply HΦ
     have hne : o.minModRev ≠ W64 0 := by intro h; rw [h] at Hif; exact absurd Hif (by decide)
     have hu : o.getUnsupported = true := by
       rw [OpModel.getUnsupported, decide_eq_true_eq]; right; right; right; right; left; exact hne
     simp only [validateResult, hu, ↓reduceIte]
-    ipureintro; simp
+    isplitr
+    · ipureintro; simp
+    iexists e
+    isplitr
+    · ipureintro; simp
+    unfold errorStringSpec; iexact HeS
   have HminModRev : o.minModRev = W64 0 := Classical.byContradiction fun hne => Hif (by rw [decide_eq_false hne]; rfl)
   wp_apply wp_MaxModRev $$ [$op $Ho] as op
   wp_if_destruct
@@ -128,13 +153,18 @@ theorem Cache.validateGet.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply fmt.wp_Errorf $$ [$Hsl] as %e _
+    wp_apply fmt.wp_Errorf $$ [$Hsl] as %e #HeS
     iapply HΦ
     have hne : o.maxModRev ≠ W64 0 := by intro h; rw [h] at Hif; exact absurd Hif (by decide)
     have hu : o.getUnsupported = true := by
       rw [OpModel.getUnsupported, decide_eq_true_eq]; right; right; right; right; right; left; exact hne
     simp only [validateResult, hu, ↓reduceIte]
-    ipureintro; simp
+    isplitr
+    · ipureintro; simp
+    iexists e
+    isplitr
+    · ipureintro; simp
+    unfold errorStringSpec; iexact HeS
   have HmaxModRev : o.maxModRev = W64 0 := Classical.byContradiction fun hne => Hif (by rw [decide_eq_false hne]; rfl)
   wp_apply wp_MinCreateRev $$ [$op $Ho] as op
   wp_if_destruct
@@ -143,13 +173,18 @@ theorem Cache.validateGet.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply fmt.wp_Errorf $$ [$Hsl] as %e _
+    wp_apply fmt.wp_Errorf $$ [$Hsl] as %e #HeS
     iapply HΦ
     have hne : o.minCreateRev ≠ W64 0 := by intro h; rw [h] at Hif; exact absurd Hif (by decide)
     have hu : o.getUnsupported = true := by
       rw [OpModel.getUnsupported, decide_eq_true_eq]; right; right; right; right; right; right; left; exact hne
     simp only [validateResult, hu, ↓reduceIte]
-    ipureintro; simp
+    isplitr
+    · ipureintro; simp
+    iexists e
+    isplitr
+    · ipureintro; simp
+    unfold errorStringSpec; iexact HeS
   have HminCreateRev : o.minCreateRev = W64 0 := Classical.byContradiction fun hne => Hif (by rw [decide_eq_false hne]; rfl)
   wp_apply wp_MaxCreateRev $$ [$op $Ho] as op
   wp_if_destruct
@@ -158,13 +193,18 @@ theorem Cache.validateGet.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply fmt.wp_Errorf $$ [$Hsl] as %e _
+    wp_apply fmt.wp_Errorf $$ [$Hsl] as %e #HeS
     iapply HΦ
     have hne : o.maxCreateRev ≠ W64 0 := by intro h; rw [h] at Hif; exact absurd Hif (by decide)
     have hu : o.getUnsupported = true := by
       rw [OpModel.getUnsupported, decide_eq_true_eq]; right; right; right; right; right; right; right; exact hne
     simp only [validateResult, hu, ↓reduceIte]
-    ipureintro; simp
+    isplitr
+    · ipureintro; simp
+    iexists e
+    isplitr
+    · ipureintro; simp
+    unfold errorStringSpec; iexact HeS
   have HmaxCreateRev : o.maxCreateRev = W64 0 := Classical.byContradiction fun hne => Hif (by rw [decide_eq_false hne]; rfl)
   have hu : o.getUnsupported = false := by simp [OpModel.getUnsupported, HcountOnly, HprevKV, HsortSet, Hlimit, HminModRev, HmaxModRev, HminCreateRev, HmaxCreateRev]
   wp_apply wp_string_to_bytes key as %ssl ⟨Hssl, -⟩

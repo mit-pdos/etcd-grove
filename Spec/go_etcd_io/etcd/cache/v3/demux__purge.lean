@@ -24,12 +24,12 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 /-- `d.purge()`, under the write lock: the state reset (`DemuxCore.init`), the history emptied,
 every mapped watcher stopped (its view closed, frozen) and both maps replaced by empty ones. -/
 abbrev demux.purge.spec : Prop :=
-  ∀ (d : Loc) (γd : DemuxNames) (cap : Nat) (c : DemuxCore)
+  ∀ (d : Loc) (γd : DemuxNames) (cap : Nat) (C : DemuxCert GF) (c : DemuxCore)
     (regs : GMap Loc RegInfo) (views : GMap Loc View),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
-      demuxLocked d γd cap c c.stream.length regs views ∗ ⌜DemuxInv cap c⌝ }}
+      demuxLocked d γd cap C c c.stream.length regs views ∗ ⌜DemuxInv cap c⌝ }}
     (App (Val (d @!! go.GoType.PointerType demux.ty @!! go!"purge")) (Val #()))
-  {{ RET #(); ∃ views', demuxLocked d γd cap DemuxCore.init 0 regs views' }}
+  {{ RET #(); ∃ views', demuxLocked d γd cap C DemuxCore.init 0 regs views' }}
 
 end spec
 

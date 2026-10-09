@@ -80,7 +80,7 @@ theorem demuxBP_progress {pred : Option (GoString → Bool)} {s : w64} {v : View
 theorem demux.BroadcastProgress.wp_proof
     (wp_enqueueResponse : watcher.enqueueResponse.spec (GF := GF) (hG := hG)) :
     demux.BroadcastProgress.spec (GF := GF) (hG := hG) := by
-  intro d γd cap
+  intro d γd cap C
   wp_start as ⟨#Hd, Hh⟩
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -94,9 +94,9 @@ theorem demux.BroadcastProgress.wp_proof
   wp_auto
   wp_if_destruct
   · -- maxRev = 0
-    ihave Hl : demuxLocked d γd cap c c.stream.length regs views
+    ihave Hl : demuxLocked d γd cap C c c.stream.length regs views
       $$ [Hregs Hviews HminRev HmaxRev HactF HlagF Hact Hlag Hhist Hres]
-    · iunfold demuxLocked; iexists actP, lagP; simp only [named]; iframe; ipureintro; exact Hok
+    · iunfold demuxLocked; iexists actP, lagP; simp only [named]; iframe; iframe #; ipureintro; exact ⟨Hok, Hstart⟩
     imod demux_lock_release d γd cap c _ _ $$ [Hd Hcore Hl Hlc3] with HP
     · iframe; iframe #; ipureintro; exact Hinv
     wp_apply sync.RWMutex.wp_Unlock $$ [$Hlk HP] as Hh
@@ -130,7 +130,7 @@ theorem demux.BroadcastProgress.wp_proof
     iapply wp_map_for_range (fun (_ : List Loc) (_ : Int) => iprop(∃ x : Loc,
         "w" ∷ w_ptr ↦ x ∗
         "Hviews" ∷ ghostMapAuth γd.views 1 views ∗
-        "Hres" ∷ ([∗map] w ↦ ri ∈ regs, regRes γd w ri))) $$ Hact
+        "Hres" ∷ ([∗map] w ↦ ri ∈ regs, regRes C γd w ri))) $$ Hact
     iintro %keys ⟨%Hkset, %Hklen, %Hknodup⟩
     isplitl [w Hviews Hres]
     · iexists _; iframe
@@ -169,9 +169,23 @@ theorem demux.BroadcastProgress.wp_proof
       ihave Hwat' : watcherAt ri.γ sent .opened $$ [Hwat]
       · rw [← Hwo]; iexact Hwat
       iunfold watcherAt at Hwat'
-      wp_apply wp_enqueueResponse key ri.γ pred sent _ (progressResp c.maxRev) $$ [Hwat']
+      have Hst0 := Hstart.get Hri Hv0 Hmp
+      have hnext : ∀ r', filterResp pred (progressResp c.maxRev) = some r' →
+          ∃ n', Delivered pred ri.s { v0 with n := n' } (sent ++ [r']) := by
+        intro r' h
+        refine ⟨v0.n, ?_⟩
+        exact Delivered.enqueue_progress_same Hdel Hup (by rw [Hmx]; exact enqueueResult_some sent h)
+      ihave #Hcv : certChain C c.base v0.stream $$ []
+      · rw [Hst]; iexact Hcerts
+      ihave #Hpub := pub_send pred ri.sr ri.s v0 sent (progressResp c.maxRev) c.base
+        (Hstart.sr_ok key ri Hri) (Hst0.active Hact0) hnext $$ Hcv
+      ihave #Hpub' : iprop(□ (∀ r', ⌜filterResp pred (progressResp c.maxRev) = some r'⌝ -∗
+          (demuxPub C pred ri.sr).pub none (sent ++ [r']))) $$ []
+      · rw [show (demuxPub C pred ri.sr).pub = demuxPubBody C pred ri.sr from rfl]
+        imodintro; iexact Hpub
+      wp_apply wp_enqueueResponse key ri.γ pred _ sent _ (progressResp c.maxRev) $$ [Hwat']
         as %ok ⟨%sent', Hwat, %Henq⟩
-      · iframe Hw Hwat'; iexact Hrespat
+      · iframe Hw Hwat' Hpub'; iexact Hrespat
       have Hdel' := demuxBP_progress Hdel Hup (by rw [← Hmx] at Henq; exact Henq)
       unfold forMapPostcondition
       iright; ileft
@@ -191,9 +205,9 @@ theorem demux.BroadcastProgress.wp_proof
     iintro HP Hact
     iNamed HP
     wp_auto
-    ihave Hl : demuxLocked d γd cap c c.stream.length regs views
+    ihave Hl : demuxLocked d γd cap C c c.stream.length regs views
       $$ [Hregs Hviews HminRev HmaxRev HactF HlagF Hact Hlag Hhist Hres]
-    · iunfold demuxLocked; iexists actP, lagP; simp only [named]; iframe; ipureintro; exact Hok
+    · iunfold demuxLocked; iexists actP, lagP; simp only [named]; iframe; iframe #; ipureintro; exact ⟨Hok, Hstart⟩
     imod demux_lock_release d γd cap c _ _ $$ [Hd Hcore Hl Hlc3] with HP
     · iframe; iframe #; ipureintro; exact Hinv
     wp_apply sync.RWMutex.wp_Unlock $$ [$Hlk HP] as Hh

@@ -28,10 +28,10 @@ history from `n` on, and becomes active (next revision one above the last batch 
 it failed on (`ResyncStep`, `ResyncOutcome`). The states are the lock's at the time; the
 delivery invariant is kept. -/
 abbrev demux.resyncLaggingWatchers.spec : Prop :=
-  ∀ (d : Loc) (γd : DemuxNames) (cap : Nat),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isDemux d γd cap ∗ demuxHandle d γd cap }}
+  ∀ (d : Loc) (γd : DemuxNames) (cap : Nat) (C : DemuxCert GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isDemux d γd cap C ∗ demuxHandle d γd cap C }}
     (App (Val (d @!! go.GoType.PointerType demux.ty @!! go!"resyncLaggingWatchers")) (Val #()))
-  {{ RET #(); demuxHandle d γd cap ∗
+  {{ RET #(); demuxHandle d γd cap C ∗
       ⌜∃ (c : DemuxCore) (views views' : GMap Loc View),
         DemuxInv cap c ∧ ResyncStep c views views'⌝ }}
 

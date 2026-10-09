@@ -46,7 +46,7 @@ theorem Cache.waitTillRevision.wp_proof
   iNamed Hc
   ihave Hci : (cacheInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hci with ⟨-, -, -, ⟨%eCT, #HeCT⟩⟩
+  icases Hci with ⟨-, -, -, ⟨%eCT, #HeCT⟩, -⟩
   ihave #HisStore' := HisStore
   iunfold isStore at HisStore'
   iNamed HisStore'

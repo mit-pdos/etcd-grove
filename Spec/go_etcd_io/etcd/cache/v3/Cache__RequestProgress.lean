@@ -27,9 +27,9 @@ abbrev Cache.RequestProgress.spec : Prop :=
   ∀ (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNames) (cap : Nat)
     (ctx : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
-      isCacheFields c cf γr γd cap ∗ demuxHandle cf.demux γd cap }}
+      isCacheFields c cf γr γd cap ∗ demuxHandle cf.demux γd cap (etcdStepCert cf.pfx) }}
     (App (Val (c @!! go.GoType.PointerType Cache.ty @!! go!"RequestProgress")) (Val #ctx))
-  {{ RET #GoInterface.nil; demuxHandle cf.demux γd cap }}
+  {{ RET #GoInterface.nil; demuxHandle cf.demux γd cap (etcdStepCert cf.pfx) }}
 
 end spec
 

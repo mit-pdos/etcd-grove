@@ -26,14 +26,14 @@ is the new one, see `BroadcastPre`): every active watcher processed as
 `broadcastProgressLocked`/`broadcastEventsLocked` do; afterwards every active watcher is up to
 date with the whole stream. -/
 abbrev demux.broadcastLocked.spec : Prop :=
-  ∀ (d : Loc) (γd : DemuxNames) (cap : Nat) (c : DemuxCore) (k : Nat)
+  ∀ (d : Loc) (γd : DemuxNames) (cap : Nat) (C : DemuxCert GF) (c : DemuxCore) (k : Nat)
     (regs : GMap Loc RegInfo) (views : GMap Loc View)
     (resp : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
-      demuxLocked d γd cap c k regs views ∗ respAt resp r ∗
+      demuxLocked d γd cap C c k regs views ∗ respAt resp r ∗
       ⌜DemuxInv cap c ∧ BroadcastPre c k r⌝ }}
     (App (Val (d @!! go.GoType.PointerType demux.ty @!! go!"broadcastLocked")) (Val #resp))
-  {{ RET #(); ∃ views', demuxLocked d γd cap c c.stream.length regs views' }}
+  {{ RET #(); ∃ views', demuxLocked d γd cap C c c.stream.length regs views' }}
 
 end spec
 

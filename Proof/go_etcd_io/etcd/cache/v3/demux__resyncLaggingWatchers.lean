@@ -298,6 +298,13 @@ theorem demuxRLW_out_ok (c : DemuxCore) (v : View) (nv nf : w64) (hn : v.n = nv)
   refine ⟨trivial, trivial, Or.inl ⟨trivial, ?_⟩⟩
   simpa using hnf
 
+/-- A start `0` or above the base, initialized: the start condition holds for any view. -/
+theorem demuxRLW_startOk_of {c : DemuxCore} {ri : RegInfo} (h : ri.s = W64 0 ∨ c.base < sint.Z ri.s)
+    (hm : c.minRev ≠ W64 0) (v' : View) : StartOk c ri v' := by
+  rcases h with h | h
+  · exact Or.inl h
+  · exact Or.inr (Or.inl ⟨hm, h⟩)
+
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -310,7 +317,7 @@ theorem demux.resyncLaggingWatchers.wp_proof
     (wp_AscendGreaterOrEqual : ringBuffer.AscendGreaterOrEqual.spec (GF := GF) (hG := hG))
     (wp_enqueueResponse : watcher.enqueueResponse.spec (GF := GF) (hG := hG)) :
     demux.resyncLaggingWatchers.spec (GF := GF) (hG := hG) := by
-  intro d γd cap
+  intro d γd cap C
   wp_start as ⟨#Hd, Hh⟩
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -327,7 +334,8 @@ theorem demux.resyncLaggingWatchers.wp_proof
       HlagF Hact Hlag Hhist Hres Hlc3] with HP
     · iframe Hd Hcore Hlc3
       isplitl
-      · unfold demuxLocked; iexists actP, lagP; simp only [named]; iframe; ipureintro; exact Hok
+      · unfold demuxLocked; iexists actP, lagP; simp only [named]; iframe; iframe #
+        ipureintro; exact ⟨Hok, Hstart⟩
       ipureintro; exact Hinv
     wp_apply sync.RWMutex.wp_Unlock $$ [$Hlocked $HP] as Hh
     iapply HΦ
@@ -342,7 +350,7 @@ theorem demux.resyncLaggingWatchers.wp_proof
         "d" ∷ d_ptr ↦ d ∗ "nextRev" ∷ nextRev_ptr ↦ x ∗ "w" ∷ w_ptr ↦ y ∗
         "Hviews" ∷ ghostMapAuth γd.views 1 views_i ∗
         "Hact" ∷ actP ↦$ actOf views_i ∗
-        "Hres" ∷ ([∗map] w ↦ ri ∈ regs, regRes γd w ri) ∗
+        "Hres" ∷ ([∗map] w ↦ ri ∈ regs, regRes C γd w ri) ∗
         "HminRev" ∷ demuxMinRevAddr d ↦ c.minRev ∗
         "HmaxRev" ∷ demuxMaxRevAddr d ↦ c.maxRev ∗
         "HactF" ∷ demuxActAddr d ↦ actP ∗
@@ -350,11 +358,12 @@ theorem demux.resyncLaggingWatchers.wp_proof
         "Hhist" ∷ ownRingBuffer (demuxHistAddr d) cap (batchAt (hG := hG)) batchRev c.history ∗
         "%Hm'" ∷ ⌜m' = lagOf views_i⌝ ∗
         "%Hok_i" ∷ ⌜RegsOk c c.stream.length regs views_i⌝ ∗
+        "%Hrs" ∷ ⌜RegsStart c regs views_i⌝ ∗
         "%Hdone" ∷ ⌜demuxRLW_done c views keys i views_i⌝))) $$ Hlag
   iintro %keys ⟨%Hkeys, %Hklen, %Hnodup⟩
   isplitl [d nextRev w Hviews Hact Hres HminRev HmaxRev HactF HlagF Hhist]
   · iexists views, _, _; simp only [named]; iframe; ipureintro
-    exact ⟨trivial, Hok, fun w v hv => by simp [hv]⟩
+    exact ⟨trivial, Hok, Hstart, fun w v hv => by simp [hv]⟩
   isplitr
   · imodintro
     iintro %i %key %nv %m' ⟨%Hkey, %Hv, %Hagree⟩ HP Hlagm
@@ -383,6 +392,8 @@ theorem demux.resyncLaggingWatchers.wp_proof
       have : views_i !! key = some v := Hvv
       rw [Hv0] at this; exact (Option.some.inj this).symm
     subst Hvv0
+    have HSO := Hrs.get Hri Hv0 (by rw [Hph]; rfl)
+    have Hsr := Hrs.sr_ok key ri Hri
     have Hvinit : views !! key = some v := by
       have h1 := Hv
       rw [lagOf_lookup] at h1
@@ -398,8 +409,12 @@ theorem demux.resyncLaggingWatchers.wp_proof
       rw [actOf_lookup, Hv0]; simp [Hph]
     wp_if_destruct
     · -- `nextRev < minRev`: compacted at `nv`
-      wp_apply wp_Compact key ri.γ pred sent .opened nv $$ [Hwat] as #Hcl
-      · iframe Hw; simp only [watcherAt]; iexact Hwat
+      ihave #Hcp := pub_close (C := C) pred ri.sr ri.s v sent (some nv) c.base Hsr Hdel HSO.cond
+        (fun m hm => by cases hm; exact Hn.symm) $$ [Hcerts]
+      · rw [Hst]; iexact Hcerts
+      wp_apply wp_Compact key ri.γ pred (demuxPub C pred ri.sr) sent .opened nv $$ [Hwat] as #Hcl
+      · iframe Hw; simp only [watcherAt, watcherClosePub, demuxPub]; iframe Hwat
+        iexact Hcp
       let v' : View := { v with phase := .closed (some nv) }
       imod ghost_map_update v' $$ Hviews Hview with ⟨Hviews, Hview⟩
       wp_apply wp_mapDelete $$ Hlagm as Hlagm
@@ -424,21 +439,23 @@ theorem demux.resyncLaggingWatchers.wp_proof
           unfold regRes
           iexists sent, v', pred
           simp only [named]
-          iframe Hw Hpred Hview
+          iframe Hw Hpred Hview Huniq
           simp only [v', RegPhase.toWatcher, watcherAt, WatcherPhase.cancelAfter]
           iframe Hcl
           ipureintro
           exact Hdel.phase _ (fun m hm => by cases hm; exact Hn.symm)
         ipureintro
-        refine ⟨Hlag'.symm, ?_, ?_⟩
+        refine ⟨Hlag'.symm, ?_, ?_, ?_⟩
         · exact Hok_i.insert (by rw [Hri]; rfl) v' (fun h => by simp [v', RegPhase.mapped] at h)
             (fun h => by simp [v'] at h)
+        · exact Hrs.insert Hri v' (fun h => by simp [v', RegPhase.mapped] at h)
         · exact demuxRLW_done_step Hdone Hkey Hvinit (demuxRLW_out_compact c v nv Hn Hif)
       ipureintro
       intro k hk
       exact GMap.lookup_delete_ne _ (Ne.symm hk)
     -- `nextRev ≥ minRev`: resend the history from `nv` on
     have Hge : ¬ sint.Z nv < sint.Z c.minRev := Hif
+    have HSOr := HSO.resync Hinv.base_minRev Hmin (by rw [Hn]; omega)
     obtain ⟨pre, Hpre_eq, Hpre⟩ := demuxRLW_stream_split Hinv Hge
     have Hhs := demuxRLW_hist_sorted Hinv
     have Hvs : RevSorted batchRev (ascendGeVisited batchRev nv c.history) := demuxRLW_vis_sorted Hhs
@@ -476,14 +493,6 @@ theorem demux.resyncLaggingWatchers.wp_proof
       wp_auto
       unfold batchAt
       icases Hbat with ⟨#Hev, %Hbok⟩
-      wp_apply wp_enqueueResponse key ri.γ pred sent0 _ (eventsResp b) $$ [Hopen]
-        as %ok ⟨%sent'', Hopen, %Henq⟩
-      · iframe Hw Hopen
-        unfold respAt hdrAt eventsResp
-        iframe Hev
-        isplitl
-        · ileft; ipureintro; exact ⟨rfl, rfl⟩
-        ipureintro; exact ⟨rfl, rfl, rfl⟩
       have Hb_mem : b ∈ vis := List.mem_of_getElem? Hb
       have Hrange : streamRange (resyncNext nv vis j) (batchRev b + W64 1) v.stream = [b] := by
         rw [Hst, Hpre_eq]; exact demuxRLW_range_one nv pre vis Hpre Hvs Hvge Hvbd j b Hb
@@ -491,6 +500,27 @@ theorem demux.resyncLaggingWatchers.wp_proof
       have Hbb := Hvbd b Hb_mem
       have Hbm := Hvle b Hb_mem
       have hsucc : sint.Z (batchRev b + W64 1) = sint.Z (batchRev b) + 1 := by word
+      have Hnext : ∀ r', filterResp pred (eventsResp b) = some r' →
+          ∃ n' : w64, Delivered pred ri.s { { v with n := resyncNext nv vis j } with n := n' }
+            (sent0 ++ [r']) := by
+        intro r' hr'
+        exact ⟨batchRev b + W64 1, (Hd.enqueue_events (n' := batchRev b + W64 1)
+          (by simp [Hph, RegPhase.mapped]) (by simp only; omega) (by simp only; rw [Hmx]; omega)
+          (by simp only; rw [Hrange]; simpa using Hbok.1)
+          (by simp only; rw [Hrange]; simpa using enqueueResult_some sent0 hr')).1 rfl⟩
+      ihave #Hpub := pub_send (C := C) pred ri.sr ri.s { v with n := resyncNext nv vis j } sent0
+        (eventsResp b) c.base Hsr HSOr Hnext $$ [Hcerts]
+      · simp only; rw [Hst]; iexact Hcerts
+      wp_apply wp_enqueueResponse key ri.γ pred (demuxPub C pred ri.sr) sent0 _ (eventsResp b)
+        $$ [Hopen] as %ok ⟨%sent'', Hopen, %Henq⟩
+      · iframe Hw Hopen
+        isplitl
+        · unfold respAt hdrAt eventsResp
+          iframe Hev
+          isplitl
+          · ileft; ipureintro; exact ⟨rfl, rfl⟩
+          ipureintro; exact ⟨rfl, rfl, rfl⟩
+        simp only [demuxPub]; iexact Hpub
       obtain ⟨HEok, HEfail⟩ := Hd.enqueue_events (n' := batchRev b + W64 1)
         (by simp [Hph, RegPhase.mapped]) (by simp only; omega) (by simp only; rw [Hmx]; omega)
         (by simp only; rw [Hrange]; simpa using Hbok.1)
@@ -548,14 +578,15 @@ theorem demux.resyncLaggingWatchers.wp_proof
           unfold regRes
           iexists sent1, v', pred
           simp only [named]
-          iframe Hw Hpred Hview
+          iframe Hw Hpred Hview Huniq
           simp only [v', Hph, RegPhase.toWatcher, watcherAt]
           iframe Hopen
           ipureintro; rw [Hph] at Hd; exact Hd
         ipureintro
-        refine ⟨Hlag'.symm, ?_, ?_⟩
+        refine ⟨Hlag'.symm, ?_, ?_, ?_⟩
         · exact Hok_i.insert (by rw [Hri]; rfl) v' (fun _ => ⟨Hst, Hmx⟩)
             (fun h => by simp [v', Hph] at h)
+        · exact Hrs.insert Hri v' (fun _ => demuxRLW_startOk_of HSOr Hmin v')
         · have Ho := demuxRLW_out_fail c v nv Hn Hph Hge j (by rw [Hvis]; exact Hj)
           rw [Hvis] at Ho
           exact demuxRLW_done_step Hdone Hkey Hvinit Ho
@@ -581,26 +612,39 @@ theorem demux.resyncLaggingWatchers.wp_proof
       with [d w HmaxRev nextRev Hopen resp] as HR
     · -- below `maxRev`: a progress notification at `maxRev`
       have Hlt := Hif
-      wp_apply wp_enqueueResponse key ri.γ pred sent1 _ (progressResp c.maxRev) $$ [Hopen]
-        as %ok ⟨%sent2, Hopen, %Henq⟩
-      · iframe Hw Hopen
-        unfold respAt hdrAt eventsAt progressResp
-        isplitl
-        · iexists ([] : List Loc)
-          isplitr
-          · iapply ownSlice_nil
-          isplitr
-          · ipureintro; rfl
-          imodintro
-          iintro %i' %ev %e %h
-          simp at h
-        isplitl
-        · iright
-          isplitr
-          · ipureintro; exact Hhnn
-          iexact Revision
-        ipureintro; exact ⟨rfl, rfl, rfl⟩
       have hsucc : sint.Z (c.maxRev + W64 1) = sint.Z c.maxRev + 1 := by word
+      have Hnext : ∀ r', filterResp pred (progressResp c.maxRev) = some r' →
+          ∃ n' : w64, Delivered pred ri.s
+            { { v with n := resyncNext nv vis vis.length } with n := n' } (sent1 ++ [r']) := by
+        intro r' hr'
+        exact ⟨c.maxRev + W64 1, (Hd.enqueue_progress (n' := c.maxRev + W64 1)
+          (by simp [Hph, RegPhase.mapped]) (by simp only; rw [Hst]; exact Hall)
+          (by simp only; omega) (by simp only; rw [Hmx]; omega)
+          (by simp only; rw [Hmx]; exact enqueueResult_some sent1 hr')).2 rfl⟩
+      ihave #Hpub := pub_send (C := C) pred ri.sr ri.s { v with n := resyncNext nv vis vis.length }
+        sent1 (progressResp c.maxRev) c.base Hsr HSOr Hnext $$ [Hcerts]
+      · simp only; rw [Hst]; iexact Hcerts
+      wp_apply wp_enqueueResponse key ri.γ pred (demuxPub C pred ri.sr) sent1 _
+        (progressResp c.maxRev) $$ [Hopen] as %ok ⟨%sent2, Hopen, %Henq⟩
+      · iframe Hw Hopen
+        isplitl
+        · unfold respAt hdrAt eventsAt progressResp
+          isplitl
+          · iexists ([] : List Loc)
+            isplitr
+            · iapply ownSlice_nil
+            isplitr
+            · ipureintro; rfl
+            imodintro
+            iintro %i' %ev %e %h
+            simp at h
+          isplitl
+          · iright
+            isplitr
+            · ipureintro; exact Hhnn
+            iexact Revision
+          ipureintro; exact ⟨rfl, rfl, rfl⟩
+        simp only [demuxPub]; iexact Hpub
       obtain ⟨HP1, HP2⟩ := Hd.enqueue_progress (n' := c.maxRev + W64 1)
         (by simp [Hph, RegPhase.mapped]) (by simp only; rw [Hst]; exact Hall)
         (by simp only; omega) (by simp only; rw [Hmx]; omega) (by simp only; rw [Hmx]; exact Henq)
@@ -659,14 +703,15 @@ theorem demux.resyncLaggingWatchers.wp_proof
         unfold regRes
         iexists sent2, v', pred
         simp only [named]
-        iframe Hw Hpred Hview
+        iframe Hw Hpred Hview Huniq
         simp only [v', RegPhase.toWatcher, watcherAt]
         iframe Hopen
         ipureintro
         exact Hdn.phase .active (fun m h => by cases h)
       ipureintro
-      refine ⟨Hlag'.symm, ?_, ?_⟩
+      refine ⟨Hlag'.symm, ?_, ?_, ?_⟩
       · exact Hok_i.insert (by rw [Hri]; rfl) v' (fun _ => ⟨Hst, Hmx⟩) (fun _ => Hup)
+      · exact Hrs.insert Hri v' (fun _ => demuxRLW_startOk_of HSOr Hmin v')
       · have Ho := demuxRLW_out_ok c v nv nf Hn Hge (by rw [Hvis]; exact Hnfc)
         exact demuxRLW_done_step Hdone Hkey Hvinit Ho
     ipureintro
@@ -680,7 +725,8 @@ theorem demux.resyncLaggingWatchers.wp_proof
     HlagF Hact Hlagm Hhist Hres Hlc3] with HP
   · iframe Hd Hcore Hlc3
     isplitl
-    · unfold demuxLocked; iexists actP, lagP; simp only [named]; iframe; ipureintro; exact Hok_i
+    · unfold demuxLocked; iexists actP, lagP; simp only [named]; iframe; iframe #
+      ipureintro; exact ⟨Hok_i, Hrs⟩
     ipureintro; exact Hinv
   wp_apply sync.RWMutex.wp_Unlock $$ [$Hlocked $HP] as Hh
   iapply HΦ

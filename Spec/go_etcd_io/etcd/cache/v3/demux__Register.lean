@@ -21,19 +21,20 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `d.Register(w, startingRev)`, for an open watcher with nothing sent yet that is not
-registered (`watcherUnique`, with `watcherOpen γ []`): returns the registration token, with
-the start revision `s` resolved against the `maxRev` `M` at the time (`resolveStart`: `0`
-means "from now"). From then on the lock delivers to `w` the stream from `s` on
-(`Delivered`). -/
+/-- `d.Register(w, startingRev)`, for a fresh (`watcherUnique`) open watcher with nothing
+sent yet, publishing `demuxPub C pred startingRev`: returns the registration token, with the
+start revision `s` resolved against the `maxRev` `M` at the time (`resolveStart`: `0` means
+"from now"). From then on the lock delivers to `w` the stream from `s` on (`Delivered`), and
+`w` publishes, with every log, its delivery facts and the delivered batches' certificates
+(`demuxPub`). -/
 abbrev demux.Register.spec : Prop :=
-  ∀ (d : Loc) (γd : DemuxNames) (cap : Nat) (w : Loc) (γ : WatcherNames)
+  ∀ (d : Loc) (γd : DemuxNames) (cap : Nat) (C : DemuxCert GF) (w : Loc) (γ : WatcherNames)
     (pred : Option (GoString → Bool)) (startingRev : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
-      isDemux d γd cap ∗ demuxHandle d γd cap ∗
-      isWatcher w γ pred ∗ watcherOpen γ [] ∗ watcherUnique w γ }}
+      isDemux d γd cap C ∗ demuxHandle d γd cap C ∗
+      isWatcher w γ pred (demuxPub C pred startingRev) ∗ watcherOpen γ [] ∗ watcherUnique w }}
     (App (App (Val (d @!! go.GoType.PointerType demux.ty @!! go!"Register")) (Val #w)) (Val #startingRev))
-  {{ RET #(); demuxHandle d γd cap ∗
+  {{ RET #(); demuxHandle d γd cap C ∗
       ∃ (s M : w64), demuxRegistered γd w γ pred s ∗ ⌜s = resolveStart startingRev M⌝ }}
 
 end spec

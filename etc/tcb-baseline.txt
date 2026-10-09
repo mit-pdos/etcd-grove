@@ -1,5 +1,8 @@
 # The project's part of the Raft proof's trust base (etc/tcb-report.py --check --update).
+axiom EtcdStep
 axiom etcdState
+axiom etcdStep_compose
+axiom etcdStep_transfer
 axiom fmt.Sprintf.wp_proof
 axiom rand.Int.wp_proof
 axiom reflect.DeepEqual.wp_proof
