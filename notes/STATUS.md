@@ -99,6 +99,26 @@ passes (1333 jobs), `etc/goose.py --check` passes, `etc/gen-link.py --cache` rep
   claim more than Go's code does in the model: `Sort` overflows `2*root+1` in its
   heapsort fallback past 2^62 elements, `Join` panics if the total length overflows
   `int` (and cannot be translated: `strings.Builder` uses `unsafe.String`).
+- **`ownInflightsRaw` is indexed by one pure record (2026-10-08)**, `InflightsRing`
+  (window, `start`, buffer length), instead of the Goose value and the buffer's
+  contents; `grow`'s spec is now deterministic and the public `Inflights` specs are
+  unchanged. The rule (one record, as small as the specs allow) is in decisions.md,
+  "Predicate indices", with what else it was applied to and what is left as is.
+- **`ownUnstable` is indexed by one pure record (2026-10-08)**, `UnstableSt` (entries,
+  `offset`, `offsetInProgress`, pending snapshot), instead of the Goose value and the
+  entries; the predicate carries the snapshot's `ownSnap` and the logger, so the
+  `unstable` specs lost those premises and their "unchanged" facts.
+- **The same rule, applied to the rest (2026-10-08)**: the storage's `prev`/`ents`/`ss`
+  are one `StorState` (`StorageModel.ownStorage`, `isStorageWith`, the
+  `MemoryStorage` predicates); `ownProgressMap`'s pointer map is existential; `Progress.recentActive`
+  and `ReadOnly.safe`, which no spec reads, are gone.
+- **The `raftLog` layer follows it too (2026-10-08)**: `ownRaftLogCore` is inlined into
+  `ownRaftLog l ls` (storage `∃ σ : StorState`), the proofs keep `ls` a variable, and
+  `newLogWithSize` lends the storage with a wand back to `ownRaftLog`. `proj_simps`
+  (`ProjSimps.lean`) generates `@[simp, word_unfold]` projection lemmas for 31
+  record-building functions; `CLAUDE.md` ("Proof writing", "Records") says how proofs
+  handle records (keep them variables, `word` over `omega`). The `ownRawNode` fold into one
+  record was reverted, then superseded by the client-facing `RawNode` specs below.
 - **The `Logger` and `Storage` interfaces assume nothing (2026-10-08).** `isLogger`
   (`InvLogger.lean`) is a definition, the formatting methods' triples bundled as
   `isStorageWith` bundles `Storage`'s, so `isLogger_persistent` is an instance and
@@ -157,6 +177,13 @@ passes (1333 jobs), `etc/goose.py --check` passes, `etc/gen-link.py --cache` rep
   The last four can only go by changing the Go code (the `upamanyus/etcd-raft`
   `goose` fork) or by trusted models (`Perennial/TrustedCode`), which move the
   trust rather than remove it.
+- **`RawNode` specs are client-facing (2026-10-09)**: `ownRawNode γ rn id rs` hides the
+  node state, the ghost state and `NStateRel`; `RNState` is what a client observes
+  (delivered committed log, entries to persist, queued steps, `advanceable`); `Ready`'s
+  committed entries come with `isCommitted γ (rs.delivered ++ ce)`, no `applying`.
+  `PstepCommitMono` and `ready_stable_ok` are proved; `raft.Step`'s spec gained a frame
+  for local messages. Known gap: `advanceable` -- a client can call `Ready` once, then
+  neither `Advance` nor `Ready` (see Next).
 - Trust base: `etc/tcb-report.py` (gate: `--check` against `etc/tcb-baseline.txt`).
 - **Build checked 2026-10-08** at Perennial c35b7710d (a `--packages` override pointing
   at a checkout of the pinned commit): `lake build` completes (977 jobs, 0 errors); `etc/tcb-report.py --check`
@@ -315,7 +342,10 @@ every proof carried over unchanged but for the renames (the fork's `freeNode` an
 
 ## Next
 
-
+- **Close the `Advance` gap** (decisions.md, "RawNode: client-facing specs"): `Advance`
+  is proved only when `Ready` queued no self-addressed response, which the specs expose
+  as `RNState.advanceable`; since `Ready` does not say when that holds, no client can call
+  `Advance` (nor a second `Ready`) yet.
 - Follow the Rocq RawNode branch past 857d09190 (its worktree has an uncommitted
   edit to `proof_RawNode__Ready.v`, not ported).
 

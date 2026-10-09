@@ -58,6 +58,31 @@ def stepMsgTypes : List w32 :=
 def StepMsg [FfiSyntax] (m : raftpb.Message) : Prop :=
   m.Type' ∈ stepMsgTypes
 
+/-- What a `Step` of one of the messages `RawNode` steps itself leaves of the node's
+physical state beyond the protocol (2026-10-09): the term, the entries a `Ready` handed
+out that the application has not appended yet (`unpersisted`), the pending snapshot,
+and `offsetInProgress`, which does not move back. -/
+def LocalFrame [FfiSyntax] (s s' : NState) : Prop :=
+  s'.term = s.term ∧
+  uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress ∧
+  s'.logst.unpersisted = s.logst.unpersisted ∧
+  s'.logst.snap = s.logst.snap
+
+/-- `Step`'s postcondition for the three local messages `RawNode` steps -- a proposal
+(`Propose`) and the two storage acknowledgements (`Advance`): `LocalFrame`, and
+`applying` is unchanged -- a `MsgStorageApplyResp` moves it (`appliedTo`) only past
+entries not yet handed out, so not when its last entry is at or below it. This is what
+lets the `RawNode` predicate (`InvRawnode.lean`) keep its client-facing facts on the log
+(the committed entries handed out so far, the unpersisted ones) across a `Step`.
+Nothing is said for any other message type. -/
+def LocalStepOk [FfiSyntax] (m : raftpb.Message) (ents : List raftpb.Entry)
+    (s s' : NState) : Prop :=
+  (m.Type' = MsgProp ∨ m.Type' = MsgStorageAppendResp ∨ m.Type' = MsgStorageApplyResp) →
+  LocalFrame s s' ∧
+  ((m.Type' = MsgStorageApplyResp →
+      ∀ e, ents.getLast? = some e → uint.Z e.Index' ≤ uint.Z s.logst.applying) →
+   s'.logst.applying = s.logst.applying)
+
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -256,6 +281,9 @@ abbrev raft.Step.spec : Prop :=
       "Hghost" ∷ ownRaftGhost γ id ps' ∗
       "%Hrel" ∷ ⌜NStateRel s' ps'⌝ ∗
       "%Hrefines" ∷ ⌜∃ recv, Step cfg id ps recv ps'⌝ ∗
+      -- for the local messages `RawNode` steps, what is kept of the physical state
+      -- (2026-10-09)
+      "%Hlocal" ∷ ⌜LocalStepOk m ents s s'⌝ ∗
       -- only a proposal can be dropped, with `ErrProposalDropped`
       "Herr" ∷ (⌜err = interface.nil⌝ ∨
                 (⌜m.Type' = MsgProp⌝ ∗

@@ -41,13 +41,10 @@ macro "inflights_add_store" : tactic => `(tactic| (
   · iframe; ipureintro; word
   wp_auto
   iapply HΦ
-  iexists _, _
-  simp only [named]
-  iframe
+  iapply ownInflights_reseal $$ Hiv Hbuf Hbuf_cap
   ipureintro
   constructor
-  · unfold InflightsOk
-    simp only [List.length_set]
+  · simp only [InflightsOk, inflightsRingOf, inflightsAbs, List.length_set]
     refine ⟨?_, ⟨?_, ?_⟩, ⟨?_, ?_⟩, ?_, ?_, ?_⟩ <;>
       first | word | (left; word) | (right; word)
   · simp only [inflightsAbs, inflightsAdd]
@@ -92,11 +89,13 @@ theorem tracker.Inflights.Add.wp_proof
   wp_auto
   wp_apply wp_Inflights_Full $$ [$Hin] as Hin
   rw [Hfull]
-  unfold ownInflights
   iNamed Hin
-  unfold ownInflightsRaw
   iNamed Hin
+  subst Hring
   subst Hiabs
+  have Hok := Hinfl_ok
+  simp only [inflightsRingOf] at Hfull ⊢
+  simp only [InflightsOk, inflightsRingOf, inflightsAbs] at Hinfl_ok
   rw [inflightsFull_abs] at Hfull
   ihave %Hblen := ownSlice_len _ _ _ $$ Hbuf
   -- not full ⇒ `count ≠ size`, and with `InflightsOk` that is
@@ -122,19 +121,25 @@ theorem tracker.Inflights.Add.wp_proof
   · -- no wrap: `next = start + count`
     wp_if_destruct
     · -- the occupied range reaches the end of the buffer: grow
-      ihave Hin : ownInflightsRaw l iv buf $$ [Hiv Hbuf Hbuf_cap]
-      · unfold ownInflightsRaw
-        simp only [named]
-        iframe
-        ipureintro
-        exact ⟨Hs0, Hc, Hbl, Hsz, Hstart, Hring⟩
-      wp_apply wp_Inflights_grow _ _ _ (by word) (by word) $$ [$Hin] as %sl %buf' Hg
-      iNamed Hg
-      unfold ownInflightsRaw
-      iNamed Hin
-      -- `ownInflightsRaw` states the buffer as `{ iv with buffer' := sl }.buffer'`;
-      -- `inflights_add_store`'s `word` needs it as `sl`
-      dsimp only at Hinfl_ok ⊢
+      ihave Hin : ownInflightsRaw l (inflightsRingOf iv buf) $$ [Hiv Hbuf Hbuf_cap]
+      · iapply ownInflightsRaw_intro $$ Hiv Hbuf Hbuf_cap
+        ipureintro; exact Hok
+      wp_apply wp_Inflights_grow l (inflightsRingOf iv buf)
+          (by simp only [inflightsRingOf, inflightsAbs]; word)
+        $$ [$Hin] as Hin
+      -- re-open at the grown state: a new value that differs from `iv` only in its
+      -- buffer, which is `buf'`, of the length `grow` says
+      iunfold ownInflightsRaw at Hin
+      icases Hin with ⟨%iv', %buf', Hiv, Hbuf, Hbuf_cap, %Hring', -⟩
+      obtain ⟨st', c', b', sz', mb', sl⟩ := iv'
+      simp only [inflightsRingOf, inflightsAbs, InflightsRing.mk.injEq, Inflights.mk.injEq]
+        at Hring'
+      obtain ⟨⟨Hc', Hsz', Hb', Hmb'⟩, Hst', Hlen⟩ := Hring'
+      obtain rfl : st' = iv.start' := by word
+      obtain rfl : c' = iv.count' := by word
+      obtain rfl : b' = iv.bytes' := by word
+      obtain rfl : sz' = iv.size' := by word
+      obtain rfl : mb' = iv.maxBytes' := by word
       ihave %Hblen' := ownSlice_len _ _ _ $$ Hbuf
       inflights_add_store
     · inflights_add_store

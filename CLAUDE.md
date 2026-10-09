@@ -99,6 +99,26 @@ its output.
 Perennial's Lean docs (in the dependency, `.lake/packages/perennial/docs/`):
 `PERENNIAL_PROOF_TUTORIAL.md`, `PERENNIAL_PROOF_REFERENCE.md`, `IRIS_PROOF_MODE.md`.
 
+**Records.** A predicate takes its object's state as one record of pure values, holding
+only what the specs on it need (`notes/decisions.md`, "Predicate indices"). In proofs:
+
+- Keep a record a variable (`ls`, `σ`, `us`): do not destructure it with
+  `intro ⟨a, b, c⟩`/`obtain`, and do not write a literal record where a variable will
+  do. A projection of a literal record (`{ prev := p, … }.prev`) is an atom that
+  `omega` and `rw` do not see through. (Exception: the proofs of an object's own methods may
+  substitute a record defined from the Goose value, `subst Hring` with
+  `r = inflightsRingOf iv buf`, and work on the value; the `proj_simps` lemmas of
+  `inflightsRingOf` reduce what is left.)
+- For arithmetic, use `word`, not `omega`: its preprocessing runs `simp`, which
+  reduces projections of literal records and, through the `proj_simps` lemmas,
+  projections of record-building functions (`(inflightsRingOf iv buf).buflen`).
+- Before `rw`/`subst`/`obtain ⟨rfl, …⟩` on a hypothesis that mentions such a
+  projection, `simp only at h` (no lemma needed for literals) — not a guessed
+  `dsimp only [f] at h`.
+- A new function that builds a record gets `proj_simps f` after it
+  (`Proof/go_etcd_io/raft/v3/ProjSimps.lean`); the command refuses a function whose
+  body branches.
+
 ## The Goose translations
 
 `Code/` and `GeneratedProof/` hold Goose translations by the pinned Perennial's

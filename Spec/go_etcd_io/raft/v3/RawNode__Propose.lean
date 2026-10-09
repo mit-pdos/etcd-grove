@@ -4,25 +4,26 @@
 
 `Propose(data)` is one call: `rn.raft.Step(pb.Message{Type: MsgProp, From: rn.raft.id,
 Entries: []pb.Entry{{Data: data}}})` -- a one-entry batch whose entry is the zero
-`Entry` but for `Data` (`propEntry data_sl`). So its spec is `Step`'s `MsgProp` arm
-(`Spec/raft__Step.lean`) for that batch and one proposal update:
+`Entry` but for `Data` (`propEntry data_sl`). The client hands in `propAu γ e0 Q`
+(`Protocol/GhostState.lean`, "The proposal registry"): an update of the global
+committed log that runs when the entry, stamped at some `(t, i)`, is committed, with
+result `Q t i`. Either
 
-- the client hands in `propAu γ e0 Q` (`Protocol/GhostState.lean`, "The proposal
-  registry"): an update of the global committed log that runs when the entry, stamped
-  at some `(t, i)`, is committed, with result `Q t i`;
-- appended at the leader (the node is the leader and `appendEntry` accepted it), the
-  update is registered at the entry's `(term, index)` -- `ps`'s term and the index
-  after `ps`'s last -- and the client gets `isProp` and the token `propTok`, which it
-  trades for `Q t i` with `prop_collect` once `isCommitted` shows an entry of term `t`
-  at `i`;
-- otherwise -- forwarded to the leader by a follower (`err = nil`), or dropped
-  (`ErrProposalDropped`: no leader known, a candidate, the leader refused it) -- the
-  update comes back unrun. A forwarded proposal is not tracked: when the leader appends
-  it, the update is not there (the forwarded `MsgProp` carries no ghost state).
+- the proposal is tracked (`err = nil`): the client gets `isProp γ t i γp Q` and the
+  token `propTok γp`, which it trades for `Q t i` with `prop_collect` once
+  `isCommitted` shows an entry of term `t` at `i` (the node was the leader and
+  appended it at `(t, i)`); or
+- the update comes back unrun: forwarded to the leader (`err = nil`; a forwarded
+  proposal is not tracked -- the forwarded `MsgProp` carries no ghost state) or dropped
+  (`ErrProposalDropped`: no leader known, a candidate, the leader refused it).
 
-The `RawNode` is `ownRawNode` (`InvRawnode.lean`; folded in on 2026-10-06 when the
-RawNode branch merged): `Propose` only steps `rn.raft`, so the `RawNode`'s own state
-`rs` is unchanged.
+The `RawNode`'s client-facing state `rs` is unchanged (`ownRawNode`, `InvRawnode.lean`):
+`Step` of a `MsgProp` keeps what it tracks (`LocalStepOk`), so a proposal between
+`Ready` and `Advance` does not stop `Advance`.
+
+Until 2026-10-09 the spec was stated on the node's states (`NStateRel`, `Step`,
+`ownRaftGhost`) and said where a tracked proposal sits (`(ps.term, plastIndex ps + 1)`,
+at a leader); a client needs only the `isProp`, whatever its `(t, i)`.
 
 `From: rn.raft.id` is why `Step`'s `MsgProp` premise and `send`'s `From` premise admit
 `From = id` since 2026-10-06.
@@ -30,13 +31,11 @@ RawNode branch merged): `Propose` only steps `rn.raft`, so the `RawNode`'s own s
 Lean notes:
 * Rocq's `prop_entry` is `propEntry`.
 * As for `raft.Step.spec` (see its Lean notes), the section fixes `hlc :=
-  HasLC.hasLC` (`ownRaftGhost` needs `[InvGS GF]`, the heap's invariant instance only
-  at `.hasLC`) and has `[AllG GF]`.
-* Rocq's `word.add (plast_index ps) (W64 1)` is `plastIndex ps + W64 1`.
+  HasLC.hasLC` (`ownRawNode` holds `ownRaftGhost`, which needs `[InvGS GF]`, the heap's
+  invariant instance only at `.hasLC`) and has `[AllG GF]`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__Step
 public import Proof.go_etcd_io.raft.v3.InvRawnode
 
 @[expose] public section
@@ -63,30 +62,19 @@ variable [AllG GF]
 
 /-- See the file header. -/
 abbrev RawNode.Propose.spec : Prop :=
-  ∀ (cfg : GSet w64) (γ : RaftNames)
-    (rn : Loc) (id : w64)
-    (s : NState) (ps : PState) (rs : RNState)
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     (data_sl : GoSlice) (data : List w8) (Q : w64 → w64 → IProp GF),
-  -- `Step`'s premises that are not about the message
-  γ.reCfg = cfg →
-  id ∈ cfg →
-  NStateRel s ps →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hrn" ∷ ownRawNode cfg rn id s rs ∗
-      "Hghost" ∷ ownRaftGhost γ id ps ∗
+      "Hrn" ∷ ownRawNode γ rn id rs ∗
       "#Hdata" ∷ data_sl ↦*□ data ∗
       "Hau" ∷ propAu γ (propEntry data_sl) Q }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Propose")) (Val #data_sl))
-  {{ (err : GoInterface) (s' : NState) (ps' : PState), RET #err;
-      "Hrn" ∷ ownRawNode cfg rn id s' rs ∗
-      "Hghost" ∷ ownRaftGhost γ id ps' ∗
-      "%Hrel" ∷ ⌜NStateRel s' ps'⌝ ∗
-      "%Hrefines" ∷ ⌜∃ recv, Step cfg id ps recv ps'⌝ ∗
+  {{ (err : GoInterface), RET #err;
+      "Hrn" ∷ ownRawNode γ rn id rs ∗
       "Hres" ∷ (
-        -- appended at the leader: registered at `(ps.term, last + 1)`
-        (⌜err = interface.nil ∧ ps.role = .leader⌝ ∗
-         ∃ γp, isProp γ ps.term (plastIndex ps + W64 1) γp Q ∗
-               propTok γp)
+        -- tracked: appended at the leader
+        (⌜err = interface.nil⌝ ∗
+         ∃ (t : w64) (i : w64) (γp : GName × GName), isProp γ t i γp Q ∗ propTok γp)
         -- forwarded or dropped: the update back
       ∨ (propAu γ (propEntry data_sl) Q ∗
          (⌜err = interface.nil⌝ ∨ globalAddr ErrProposalDropped ↦□ err))) }}

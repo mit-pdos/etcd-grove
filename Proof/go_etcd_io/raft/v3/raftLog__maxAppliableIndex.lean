@@ -37,14 +37,9 @@ private theorem wp_min_u64 (a b : w64) :
 theorem raftLog.maxAppliableIndex.wp_proof :
     raftLog.maxAppliableIndex.spec (GF := GF) (hG := hG) := by
   intro l ls au
-  obtain ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ := ls
   wp_start as H
   iNamed H
-  icases (ownRaftLog_unfold l prev sents uents lcm lap snap lip lapg lpend lasz lamx).1 $$ Hlog
-    with ⟨%lv, Hl, %Hcm, %Hap, %Hapg, %Hip, %Hasz, %Hamx, Hcore⟩
-  unfold ownRaftLogCore
-  icases Hcore with ⟨%sprev, %stored, %ss, Hcore⟩
-  iNamed Hcore
+  iNamed Hlog
   wp_auto
   cases au
   · wp_auto
@@ -53,8 +48,7 @@ theorem raftLog.maxAppliableIndex.wp_proof :
     isplitl
     · reseal_raftLog
     ipureintro
-    simp only [w64Min_spec, logOffset, Bool.false_eq_true, ite_false]
-    subst lcm
+    simp only [w64Min_spec, logOffset, Bool.false_eq_true, ite_false, ← Hcm]
     word
   · wp_auto
     iapply HΦ

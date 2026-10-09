@@ -36,18 +36,17 @@ theorem tracker.NewInflights.wp_proof : tracker.NewInflights.spec (GF := GF) (hG
           buffer' := slice.nil } := by
     unfold inflightsNew inflightsAbs; rfl
   rw [Habs]
-  iapply ownInflights_intro l _ ([] : List tracker.inflight)
-  unfold ownInflightsRaw
-  simp only [named]
-  iframe Hl
-  isplitr; · iapply ownSlice_nil
-  isplitr; · iapply ownSliceCap_nil
   -- the ring-buffer invariant at a fresh `Inflights`: everything is zero and the
   -- buffer is empty, so only the `size` bounds have content -- exactly the premise.
-  ipureintro
-  unfold InflightsOk
-  simp only [List.length_nil]
-  word
+  have Hok : InflightsOk (inflightsRingOf
+      { start' := 0, count' := 0, bytes' := 0, size' := size, maxBytes' := maxBytes,
+        buffer' := slice.nil } ([] : List tracker.inflight)) := by
+    simp only [InflightsOk, inflightsRingOf, inflightsAbs, List.length_nil]
+    word
+  iapply ownInflights_reseal $$ Hl
+  · iapply ownSlice_nil
+  · iapply ownSliceCap_nil
+  · ipureintro; exact ⟨Hok, rfl⟩
 
 end proof
 

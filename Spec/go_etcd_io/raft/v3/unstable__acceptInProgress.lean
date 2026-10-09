@@ -33,23 +33,18 @@ Every unstable entry is in progress afterwards. With the indices contiguous from
 is `offset + len - 1`, so `offsetInProgress` becomes `offset + len`;
 `snapshotInProgress` is not tracked. -/
 abbrev unstable.acceptInProgress.spec : Prop :=
-  ∀ (u : Loc) (uv : unstable) (uents : List raftpb.Entry),
-  (∀ (k : Nat) (e : raftpb.Entry), uents[k]? = some e →
-     uint.Z e.Index' = uint.Z uv.offset' + (k : Int)) →
-  uint.Z uv.offset' + (uents.length : Int) < 2^64 →
+  ∀ (u : Loc) (us : UnstableSt),
+  (∀ (k : Nat) (e : raftpb.Entry), us.ents[k]? = some e →
+     uint.Z e.Index' = uint.Z us.offset + (k : Int)) →
+  uint.Z us.offset + (us.ents.length : Int) < 2^64 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hun" ∷ ownUnstable u uv uents }}
+      "Hun" ∷ ownUnstable u us }}
     (App (Val (u @!! go.GoType.PointerType unstable.ty @!! go!"acceptInProgress"))
       (Val #()))
-  {{ (uv' : unstable), RET #();
-      ownUnstable u uv' uents ∗
-      ⌜uv'.entries' = uv.entries' ∧
-        uv'.offset' = uv.offset' ∧
-        uv'.snapshot' = uv.snapshot' ∧
-        uv'.logger' = uv.logger' ∧
-        (uents = [] → uv'.offsetInProgress' = uv.offsetInProgress') ∧
-        (uents ≠ [] → uint.Z uv'.offsetInProgress'
-                      = uint.Z uv.offset' + (uents.length : Int))⌝ }}
+  {{ (ip : w64), RET #();
+      ownUnstable u { us with inprogress := ip } ∗
+      ⌜(us.ents = [] → ip = us.inprogress) ∧
+        (us.ents ≠ [] → uint.Z ip = uint.Z us.offset + (us.ents.length : Int))⌝ }}
 
 end spec
 

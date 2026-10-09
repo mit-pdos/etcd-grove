@@ -27,7 +27,9 @@ Lean notes:
 * Rocq has two `Inflights` predicates whose Lean names would collide: the public
   `own_Inflights l i` (indexed by the record `Inflights`) is `ownInflights`, the
   internal `own_inflights l iv buf` (indexed by the Goose value and the ring buffer) is
-  `ownInflightsRaw`. `own_Progress` is `ownProgress`; `progress_of` is `progressOf`;
+  `ownInflightsRaw l r`, indexed instead by the pure record `r : InflightsRing` (the
+  window, `start`, and the buffer's length). `own_Progress` is `ownProgress`;
+  `progress_of` is `progressOf`;
   `inflights_full_abs` is `inflightsFull_abs`; `is_quorum_index` is `IsQuorumIndex`;
   `pvs_acked`/`pvs_match_at` are `pvsAcked`/`pvsMatchAt`; `own_progress_map` is
   `ownProgressMap`; `is_AckedIndexer` is `isAckedIndexer` (with a `Persistent`
@@ -92,10 +94,11 @@ variable (cfg : GSet w64)
 
 /-! ### Inflights
 
-A sliding window of in-flight append sizes. Election never inspects it: `reset`
-allocates a fresh one per peer, and `maybeSendAppend` only asks whether it is full. So
-the contents are existential -- what matters is that the object and its buffer are
-owned, so that a `Progress` can be overwritten wholesale. -/
+A sliding window of in-flight append sizes. Callers see it through the public record
+`Inflights` (how many messages and bytes are in flight, and the two limits): enough to
+state `Full`, `Add`, `FreeLE`, `reset` and `NewInflights` exactly. The ring (`start` and
+the buffer) is internal (`InflightsRing`), and the buffer's contents are in no index at
+all -- no spec states them. -/
 
 /-- `Full()`'s answer (`inflightsFull`, `Defs.lean`), read off the `Inflights` value
 (`Inflights.Full.impl`, `Code/go_etcd_io/raft/v3/tracker.lean`):
@@ -120,8 +123,30 @@ theorem inflightsFull_abs (iv : tracker.Inflights) :
     · intro h hc; apply h; exact uint_Z_inj.1 (by rw [hc]; rfl)
   simp only [h1, h2]
 
-/-- The ring-buffer invariant, over the `Inflights` value and the *length* of the
-buffer it points at.
+/-- The internal state of an `Inflights` object: exactly what the internal spec (`grow`'s,
+the only one) needs, and nothing of the Go struct beyond it -- the public window `win`
+(`count`, `size`, `bytes`, `maxBytes`), the ring position `start`, and the *length*
+`buflen` of the ring buffer, all as the integers they denote. `grow` is about the
+length; `start` is there because `Add`, after a `grow`, needs it unchanged. Neither
+the buffer's address nor its contents is in it: no spec says anything about them
+(`FreeLE` reads the contents, but its spec is a relation on `win`).
+
+One record rather than separate arguments, and as small as the specs allow, so that
+`InflightsOk`, `ownInflightsRaw` and the specs stated on them keep their arity when a
+piece of state is added or dropped; specs write a new state as an update
+(`{ r with buflen := n }`), which survives a new field too. (Until 2026-10-08 the
+predicate took the Goose value and the buffer's contents as two arguments, as Rocq's
+`own_inflights l iv buf` does.) -/
+structure InflightsRing where
+  win : Inflights
+  start : Int
+  buflen : Int
+
+/-- The state a Goose value and its buffer's contents denote. -/
+def inflightsRingOf (iv : tracker.Inflights) (buf : List tracker.inflight) : InflightsRing :=
+  ⟨inflightsAbs iv, sint.Z iv.start', buf.length⟩
+
+/-- The ring-buffer invariant.
 
 `Add` writes `buffer[(start+count) mod size]` after growing the buffer on demand, so a
 triple for it is false without this: with, say, `start = 100`, `count = 0`,
@@ -136,44 +161,82 @@ already grown to the full ring.
 Note `0 ≤ buflen ≤ size` forces `0 ≤ size`, so a degenerate `size = 0` ring is pinned
 to `start = count = buflen = 0`; that ring is always `Full`, so `Add` is unreachable
 on it. -/
-def InflightsOk (iv : tracker.Inflights) (buflen : Int) : Prop :=
-  0 ≤ sint.Z iv.start' ∧
-  (0 ≤ sint.Z iv.count' ∧ sint.Z iv.count' ≤ sint.Z iv.size') ∧
-  (0 ≤ buflen ∧ buflen ≤ sint.Z iv.size') ∧
-  sint.Z iv.size' < 2 ^ 62 ∧
-  (sint.Z iv.start' < sint.Z iv.size' ∨ (sint.Z iv.size' = 0 ∧ sint.Z iv.start' = 0)) ∧
-  (sint.Z iv.start' + sint.Z iv.count' ≤ buflen ∨ buflen = sint.Z iv.size')
+def InflightsOk (r : InflightsRing) : Prop :=
+  0 ≤ r.start ∧
+  (0 ≤ r.win.count ∧ r.win.count ≤ r.win.size) ∧
+  (0 ≤ r.buflen ∧ r.buflen ≤ r.win.size) ∧
+  r.win.size < 2 ^ 62 ∧
+  (r.start < r.win.size ∨ (r.win.size = 0 ∧ r.start = 0)) ∧
+  (r.start + r.win.count ≤ r.buflen ∨ r.buflen = r.win.size)
 
-/-- The **internal** predicate for an `Inflights` object, indexed by its value `iv` and
-the contents `buf` of its ring buffer. `buf` is in the index because `grow` is
-specified by what it does to the buffer. Only `Inflights`' own methods see it: `grow`
-is stated on it, and the other methods' proofs open `ownInflights` to it. (Until
-2026-10-02 this was the one predicate, and every caller's spec named the Goose value;
-until 2026-09-23 there were two forms, `own_inflights_at l iv` and the existential
-`own_inflights l`; notes/decisions.md, "Three layers".) -/
-def ownInflightsRaw (l : Loc) (iv : tracker.Inflights) (buf : List tracker.inflight) :
-    IProp GF :=
-  iprop("Hiv" ∷ l ↦ iv ∗
+/-- The **internal** predicate for an `Inflights` object, indexed by its state `r`
+(`InflightsRing`): the Goose value and the buffer's contents are existential, and
+denote `r`. Only `Inflights`' own methods see it: `grow` is stated on it, and the other
+methods' proofs open `ownInflights` to it. A proof that opens it gets `r` as
+`inflightsRingOf iv buf` (`subst Hring`) and works on the Goose value; one that closes
+it uses `ownInflightsRaw_intro`. (Until 2026-10-02 this was the one predicate, and
+every caller's spec named the Goose value; until 2026-09-23 there were two forms,
+`own_inflights_at l iv` and the existential `own_inflights l`; notes/decisions.md,
+"Three layers".) -/
+def ownInflightsRaw (l : Loc) (r : InflightsRing) : IProp GF :=
+  iprop(∃ (iv : tracker.Inflights) (buf : List tracker.inflight),
+    "Hiv" ∷ l ↦ iv ∗
     "Hbuf" ∷ iv.buffer' ↦* buf ∗
     "Hbuf_cap" ∷ ownSliceCap tracker.inflight iv.buffer' (DFrac.own 1) ∗
-    "%Hinfl_ok" ∷ ⌜InflightsOk iv (buf.length : Int)⌝)
+    "%Hring" ∷ ⌜r = inflightsRingOf iv buf⌝ ∗
+    "%Hinfl_ok" ∷ ⌜InflightsOk r⌝)
+
+/-- Close `ownInflightsRaw` at the state the pieces denote. The pure premise is last,
+so that `iapply ownInflightsRaw_intro $$ Hiv Hbuf Hbuf_cap` fixes the value and the
+contents from the hypotheses (and with them a state left open, as in a postcondition's
+existential) and leaves the ring invariant as the goal. -/
+theorem ownInflightsRaw_intro (l : Loc) (iv : tracker.Inflights)
+    (buf : List tracker.inflight) :
+    ⊢ (l ↦ iv : IProp GF) -∗ iv.buffer' ↦* buf -∗
+      ownSliceCap tracker.inflight iv.buffer' (DFrac.own 1) -∗
+      ⌜InflightsOk (inflightsRingOf iv buf)⌝ -∗
+      ownInflightsRaw l (inflightsRingOf iv buf) := by
+  iintro Hiv Hbuf Hbuf_cap %Hok
+  unfold ownInflightsRaw
+  iexists iv, buf
+  simp only [named]
+  iframe Hiv Hbuf Hbuf_cap
+  ipureintro
+  constructor <;> first | trivial | exact Hok
 
 /-- The **public** predicate for an `Inflights` object, indexed by the record
 `Inflights` (`Defs.lean`): how many messages and bytes are in flight, and the two
 limits -- exactly what the exported methods' specs (`Full`, `Add`, `FreeLE`, `reset`,
-`NewInflights`) say. The ring buffer is hidden. -/
+`NewInflights`) say. The ring (`start` and the buffer) is hidden. -/
 def ownInflights (l : Loc) (i : Inflights) : IProp GF :=
-  iprop(∃ (iv : tracker.Inflights) (buf : List tracker.inflight),
-    "Hin" ∷ ownInflightsRaw l iv buf ∗
-    "%Hiabs" ∷ ⌜inflightsAbs iv = i⌝)
+  iprop(∃ (r : InflightsRing),
+    "Hin" ∷ ownInflightsRaw l r ∗
+    "%Hiabs" ∷ ⌜r.win = i⌝)
 
-theorem ownInflights_intro (l : Loc) (iv : tracker.Inflights) (buf : List tracker.inflight) :
-    ⊢ ownInflightsRaw (GF := GF) l iv buf -∗ ownInflights l (inflightsAbs iv) := by
+theorem ownInflights_intro (l : Loc) (r : InflightsRing) :
+    ⊢ ownInflightsRaw (GF := GF) l r -∗ ownInflights l r.win := by
   iintro Hin
   unfold ownInflights
-  iexists iv, buf
+  iexists r
   simp only [named]
   iframe Hin
+
+/-- Close `ownInflights` from the pieces of an opened `ownInflightsRaw`. The pure
+premise is last, so that `iapply ownInflights_reseal $$ Hiv Hbuf Hbuf_cap` fixes the
+value and the contents from the hypotheses and leaves the ring invariant and the
+window as one pure goal. -/
+theorem ownInflights_reseal (l : Loc) (iv : tracker.Inflights)
+    (buf : List tracker.inflight) (i : Inflights) :
+    ⊢ (l ↦ iv : IProp GF) -∗ iv.buffer' ↦* buf -∗
+      ownSliceCap tracker.inflight iv.buffer' (DFrac.own 1) -∗
+      ⌜InflightsOk (inflightsRingOf iv buf) ∧ inflightsAbs iv = i⌝ -∗
+      ownInflights l i := by
+  iintro Hiv Hbuf Hbuf_cap %H
+  obtain ⟨Hok, rfl⟩ := H
+  rw [show inflightsAbs iv = (inflightsRingOf iv buf).win from rfl]
+  iapply ownInflights_intro l (inflightsRingOf iv buf)
+  iapply ownInflightsRaw_intro l iv buf $$ Hiv Hbuf Hbuf_cap
+  ipureintro; exact Hok
 
 /-! ### Per-peer replication progress
 
@@ -231,8 +294,7 @@ theorem ownProgress_intro (pr : Loc) (pv : tracker.Progress) (p : Progress) :
 (`reset`'s `Visit` closure) or field by field, when the caller wants the record to be
 whatever the value says. -/
 def progressOf (pv : tracker.Progress) (st : PRState) (i : Inflights) : Progress :=
-  ⟨pv.Match', pv.Next', pv.sentCommit', st, pv.PendingSnapshot', pv.RecentActive',
-   pv.MsgAppFlowPaused', i⟩
+  ⟨pv.Match', pv.Next', pv.sentCommit', st, pv.PendingSnapshot', pv.MsgAppFlowPaused', i⟩
 
 theorem ownProgress_of (pr : Loc) (pv : tracker.Progress) (st : PRState) (i : Inflights)
     (Hl : pv.IsLearner' = false) (Hst : pv.State' = prstateW64 st) :
@@ -244,7 +306,7 @@ theorem ownProgress_of (pr : Loc) (pv : tracker.Progress) (st : PRState) (i : In
   simp only [named, progressOf]
   iframe Hpv Hinfl
   ipureintro
-  exact (progressAbs_Some _ _ _).2 ⟨Hl, Hst, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+  exact (progressAbs_Some _ _ _).2 ⟨Hl, Hst, rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 /-- An id set (`map[uint64]struct{}`) that is either `nil` or owned.
 
@@ -758,7 +820,7 @@ counterparts in `(progressAbs_Some _ _ _).1 Habs` / `.2 ⟨…⟩` and `simp onl
 record. -/
 macro "progress_abs_solve" : tactic =>
   `(tactic| (apply (Perennial.EtcdGrove.progressAbs_Some _ _ _).2;
-             refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> try rfl))
+             refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> try rfl))
 
 /-! ## A configuration, and changing to one
 
@@ -926,9 +988,15 @@ theorem wp_min2_uint64 (x y : w64) :
 `matchAckIndexer.AckedIndex`, which receives the map and not the tracker:
 `ProgressTracker.Committed` hands `matchAckIndexer(p.Progress)` to
 `JointConfig.CommittedIndex`, which reads the voter map out of the *same* tracker while
-the indexer is in use, so the indexer cannot be specified on `ownTracker` whole. -/
-def ownProgressMap (m : Loc) (prs : GMap w64 Loc) (pvs : GMap w64 Progress) : IProp GF :=
-  iprop("#Hprs" ∷ m ↦$□ prs ∗
+the indexer is in use, so the indexer cannot be specified on `ownTracker` whole.
+
+Indexed by the progresses only: the map's contents (the `*Progress` pointers) are
+existential, since the one spec on it (`AckedIndex`) only carries them along; a caller
+that knows them (`Committed`, from `ownTracker`) gets them back with
+`progress_map_agree`. (Until 2026-10-08 the pointer map was an index.) -/
+def ownProgressMap (m : Loc) (pvs : GMap w64 Progress) : IProp GF :=
+  iprop(∃ (prs : GMap w64 Loc),
+    "#Hprs" ∷ m ↦$□ prs ∗
     "Hprogs" ∷ ([∗map] _k ↦ pr;p ∈ prs;pvs, ownProgress pr p))
 
 /-- The `quorum.AckedIndexer` interface contract, against a resource `P` the
@@ -951,3 +1019,6 @@ end replication
 
 end EtcdGrove
 end Perennial
+
+-- Projection lemmas, `@[simp, word_unfold]` (ProjSimps.lean).
+proj_simps Perennial.EtcdGrove.inflightsRingOf Perennial.EtcdGrove.progressOf

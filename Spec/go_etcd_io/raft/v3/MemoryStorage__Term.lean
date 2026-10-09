@@ -32,14 +32,14 @@ method: on the range the storage can answer for, `prev.index <= i <= prev.index 
 `ErrCompacted` (`i < ents[0].Index`) and `ErrUnavailable` (`i - offset >= len(ents)`)
 unreachable. -/
 abbrev MemoryStorage.Term.spec : Prop :=
-  ∀ (ms : Loc) (prev : entryID) (ents : List raftpb.Entry) (ss : entryID) (i0 : w64),
+  ∀ (ms : Loc) (σ : StorState) (i0 : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hms" ∷ ownMemoryStorage ms prev ents ss ∗
-      ⌜uint.Z prev.index' ≤ uint.Z i0 ∧
-         uint.Z i0 ≤ uint.Z prev.index' + (ents.length : Int)⌝ }}
+      "Hms" ∷ ownMemoryStorage ms σ ∗
+      ⌜uint.Z σ.prev.index' ≤ uint.Z i0 ∧
+         uint.Z i0 ≤ uint.Z σ.prev.index' + (σ.ents.length : Int)⌝ }}
     (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"Term")) (Val #i0))
   {{ (t : w64), RET (PairV #t #interface.nil);
-      ⌜termAt prev ents i0 = some t⌝ ∗ ownMemoryStorage ms prev ents ss }}
+      ⌜termAt σ.prev σ.ents i0 = some t⌝ ∗ ownMemoryStorage ms σ }}
 
 end spec
 

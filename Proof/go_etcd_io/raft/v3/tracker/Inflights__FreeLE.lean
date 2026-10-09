@@ -31,28 +31,42 @@ local macro "freele_finish" : tactic => `(tactic| (
   have H0 : sint.Z (W64 0) = 0 := rfl
   wp_if_destruct <;>
   · iapply HΦ
-    iframe
-    ipureintro
-    refine ⟨?_, rfl, rfl, rfl, ?_⟩ <;> dsimp only [InflightsOk] <;> omega))
+    isplitl [Hiv Hbuf Hbuf_cap]
+    · iapply ownInflightsRaw_intro $$ Hiv Hbuf Hbuf_cap
+      ipureintro
+      unfold InflightsOk
+      word
+    · ipureintro
+      unfold InflightsFreed
+      word))
+
+set_option hygiene false in
+/-- An exit that leaves the window as it was. -/
+local macro "freele_unchanged" : tactic => `(tactic| (
+  iapply HΦ
+  isplitl [Hiv Hbuf Hbuf_cap]
+  · iapply ownInflightsRaw_intro $$ Hiv Hbuf Hbuf_cap
+    ipureintro; exact Hok
+  · ipureintro; exact ⟨rfl, rfl, Int.le_refl _⟩))
 
 /-- The loop invariant: `0 ≤ i ≤ count` and `idx = (start + i) mod size`, written as its
 two cases so that `word`/`omega` can use it. An occupied slot `idx` (i.e. `i < count`)
 is inside the buffer by `InflightsOk`'s last conjunct: either the occupied range does
 not wrap and ends inside the buffer, or the buffer is the whole ring. -/
-private theorem wp_Inflights_FreeLE_internal (l : Loc) (iv : tracker.Inflights)
-    (buf : List tracker.inflight) (to : w64) :
+private theorem wp_Inflights_FreeLE_internal (l : Loc) (r : InflightsRing) (to : w64) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗
-        "Hin" ∷ ownInflightsRaw l iv buf }}
+        "Hin" ∷ ownInflightsRaw l r }}
       (App (Val (l @!! go.GoType.PointerType tracker.Inflights.ty @!! go!"FreeLE")) (Val #to))
-    {{ (iv' : tracker.Inflights), RET #();
-        ownInflightsRaw l iv' buf ∗
-        ⌜iv'.size' = iv.size' ∧ iv'.maxBytes' = iv.maxBytes' ∧ iv'.buffer' = iv.buffer' ∧
-          sint.Z iv'.count' ≤ sint.Z iv.count'⌝ }} := by
+    {{ (r' : InflightsRing), RET #();
+        ownInflightsRaw l r' ∗ ⌜InflightsFreed r.win r'.win⌝ }} := by
   wp_start as H
   iNamed H
-  unfold ownInflightsRaw
+  iunfold ownInflightsRaw at Hin
   iNamed Hin
+  subst Hring
   ihave %Hblen := ownSlice_len $$ Hbuf
+  have Hok := Hinfl_ok
+  simp only [InflightsOk, word_unfold] at Hinfl_ok
   obtain ⟨Hs0, Hc, Hbl, Hsz, Hstart, Hring⟩ := Hinfl_ok
   have Hlenz : (buf.length : Int) = sint.Z iv.buffer'.len := by rw [Hblen.1]; word
   wp_auto
@@ -60,10 +74,7 @@ private theorem wp_Inflights_FreeLE_internal (l : Loc) (iv : tracker.Inflights)
   · -- exit 1, empty window
     rw [decide_eq_true Hc0]
     wp_auto
-    iapply HΦ
-    iframe
-    ipureintro
-    exact ⟨⟨Hs0, Hc, Hbl, Hsz, Hstart, Hring⟩, rfl, rfl, rfl, Int.le_refl _⟩
+    freele_unchanged
   rw [decide_eq_false Hc0]
   -- a non-empty window: `0 < count ≤ size`, so `start < size`, and the occupied slot
   -- `start` is inside the buffer
@@ -83,10 +94,7 @@ private theorem wp_Inflights_FreeLE_internal (l : Loc) (iv : tracker.Inflights)
   rw [list_insert_id He0]
   wp_if_destruct
   · -- exit 1, `to` is left of the window
-    iapply HΦ
-    iframe
-    ipureintro
-    exact ⟨⟨Hs0, Hc, Hbl, Hsz, Hstart, Hring⟩, rfl, rfl, rfl, Int.le_refl _⟩
+    freele_unchanged
   -- the loop: `i` counts freed slots, `idx` is `start + i` mod `size`
   ihave IH : iprop(∃ (idxv iw bv : w64),
       "idx" ∷ idx_ptr ↦ idxv ∗ "i" ∷ i_ptr ↦ iw ∗ "bytes" ∷ bytes_ptr ↦ bv ∗
@@ -152,21 +160,18 @@ theorem tracker.Inflights.FreeLE.wp_proof :
     tracker.Inflights.FreeLE.spec (GF := GF) (hG := hG) := by
   intro l i to
   iintro %Φ ⟨#Hinit, Hin⟩ HΦ
-  ihave Hin : iprop(∃ iv buf, ownInflightsRaw l iv buf ∗ ⌜inflightsAbs iv = i⌝) $$ [Hin]
+  ihave Hin : iprop(∃ r, ownInflightsRaw l r ∗ ⌜r.win = i⌝) $$ [Hin]
   · unfold ownInflights; simp only [named]; iexact Hin
-  icases Hin with ⟨%iv, %buf, Hin, %Hiabs⟩
+  icases Hin with ⟨%r, Hin, %Hiabs⟩
   iapply wp_Inflights_FreeLE_internal $$ [$Hinit $Hin]
   inext
-  iintro %iv' ⟨Hin, %Hrel⟩
+  iintro %r' ⟨Hin, %Hfreed⟩
   iapply HΦ
   isplitl
   · iapply ownInflights_intro $$ Hin
   ipureintro
   subst Hiabs
-  obtain ⟨Hs, Hm, _, Hc⟩ := Hrel
-  simp only [InflightsFreed, inflightsAbs]
-  rw [Hs, Hm]
-  exact ⟨rfl, rfl, Hc⟩
+  exact Hfreed
 
 end proof
 

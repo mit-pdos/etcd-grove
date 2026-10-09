@@ -48,7 +48,7 @@ theorem is_Storage_MemoryStorage (ms : Loc) :
   isplitr
   · ipureintro; rfl
   isplitr
-  · iintro %prev %ents %ss
+  · iintro %σ
     imodintro
     iintro %Φ Hown HΦ
     ihave ⟨#Hinit, Hown⟩ := ownMemoryStorage_init $$ Hown
@@ -57,7 +57,7 @@ theorem is_Storage_MemoryStorage (ms : Loc) :
     iframe
     ipureintro; exact Hli
   isplitr
-  · iintro %prev %ents %ss
+  · iintro %σ
     imodintro
     iintro %Φ Hown HΦ
     ihave ⟨#Hinit, Hown⟩ := ownMemoryStorage_init $$ Hown
@@ -66,7 +66,7 @@ theorem is_Storage_MemoryStorage (ms : Loc) :
     iframe
     ipureintro; exact Hfi
   isplitr
-  · iintro %prev %ents %ss %i0
+  · iintro %σ %i0
     imodintro
     iintro %Φ ⟨Hown, %Hr⟩ HΦ
     ihave ⟨#Hinit, Hown⟩ := ownMemoryStorage_init $$ Hown
@@ -76,7 +76,7 @@ theorem is_Storage_MemoryStorage (ms : Loc) :
     iframe
     ipureintro; exact Ht
   isplitr
-  · iintro %prev %ents %ss %lo %hi %maxSize
+  · iintro %σ %lo %hi %maxSize
     imodintro
     iintro %Φ ⟨Hown, %Hr⟩ HΦ
     ihave ⟨#Hinit, Hown⟩ := ownMemoryStorage_init $$ Hown
@@ -87,9 +87,9 @@ theorem is_Storage_MemoryStorage (ms : Loc) :
     ipureintro; exact Hp
   isplitr
   · imodintro
-    iintro %prev %ents %ss Hown
+    iintro %σ Hown
     iapply ownMemoryStorage_bounded $$ Hown
-  iintro %prev %ents %ss %esu
+  iintro %σ %esu
   imodintro
   iintro %Φ ⟨Hown, #Hesu⟩ HΦ
   ihave ⟨#Hinit, Hown⟩ := ownMemoryStorage_init $$ Hown

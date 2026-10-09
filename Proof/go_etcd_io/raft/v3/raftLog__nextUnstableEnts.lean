@@ -24,28 +24,17 @@ theorem raftLog.nextUnstableEnts.wp_proof
     (wp_unstable_nextEntries : unstable.nextEntries.spec (GF := GF) (hG := hG)) :
     raftLog.nextUnstableEnts.spec (GF := GF) (hG := hG) := by
   intro l ls
-  obtain ⟨prev, sents, uents, lcm, lap, snap, lip, lapg, lpend, lasz, lamx⟩ := ls
   wp_start as H
   iNamed H
-  icases (ownRaftLog_unfold l prev sents uents lcm lap snap lip lapg lpend lasz lamx).1 $$ Hlog
-    with ⟨%lv, Hl, %Hcm, %Hap, %Hapg, %Hip, %Hasz, %Hamx, Hcore⟩
-  unfold ownRaftLogCore
-  icases Hcore with ⟨%sprev, %stored, %ss, Hcore⟩
-  iNamed Hcore
+  iNamed Hlog
   wp_auto
-  split_unstable l lv
-  wp_apply wp_unstable_nextEntries _ _ _ Hipb $$ [Huf Huents Huents_cap] as %s ⟨Hun, #Hs⟩
-  · unfold ownUnstable
-    simp only [named]
-    iframe # ∗
-  unfold ownUnstable
-  icases Hun with ⟨Huf, Huents_cap, Huents⟩
-  ihave Hl := Hlback $$ Huf
+  lend_unstable
+  wp_apply wp_unstable_nextEntries _ (unstableOf lv ls) Hipb $$ [$Hun] as %s ⟨Hun, #Hs⟩
+  reopen_unstable
   iapply HΦ
   isplitl
   · reseal_raftLog
-  simp only [nextUnstable, logOffset]
-  rw [← Hip, ← Hoffset]
+  simp only [nextUnstable, logOffset, ← Hoffset]
   iexact Hs
 
 end proof

@@ -1350,5 +1350,30 @@ theorem ownRaftGhost_step_0 (γ : RaftNames) (id : w64) (s s' : PState) :
 
 end lemmas
 
+/-! ### The commit index never moves back (2026-10-09)
+
+Every rule of `Step` keeps `commit` or raises it: `plogCommitTo` (`appAccept`,
+`heartbeat`) takes the maximum, `commit`/`snapRestore`/`snapFastfwd` have
+`commit < n` as a premise, and every other rule leaves it alone. `RawNode.Advance` needs
+it to carry a queued `MsgStorageApplyResp`'s "its entries are committed" across the
+steps before it. (Until 2026-10-09 `PstepCommitMono`, a premise of `Advance`'s spec.) -/
+
+theorem plogCommitTo_ge [FfiSyntax] (c t : w64) : uint.Z c ≤ uint.Z (plogCommitTo c t) := by
+  unfold plogCommitTo; split <;> omega
+
+theorem Step.commit_mono [FfiSyntax] {cfg : GSet w64} {id : w64} {ps : PState}
+    {recv : List Msg} {ps' : PState} (H : Step cfg id ps recv ps') :
+    uint.Z ps.commit ≤ uint.Z ps'.commit := by
+  induction H with
+  | refl => exact Int.le_refl _
+  | trans _ _ _ _ _ _ _ ih1 ih2 => omega
+  | appAccept => exact plogCommitTo_ge _ _
+  | heartbeat => exact plogCommitTo_ge _ _
+  | commit _ _ _ h => exact Int.le_of_lt h
+  | snapRestore _ _ _ _ _ _ _ _ _ h => simp only [psendMsgs]; omega
+  | snapFastfwd _ _ _ _ _ _ _ _ _ h => simp only [psendMsgs]; omega
+  | _ => simp [psendMsgs, pbecomeFollower, pbecomeCandidate, pwinState, pappend, pbecomeLeader,
+      padoptLeader]
+
 end EtcdGrove
 end Perennial

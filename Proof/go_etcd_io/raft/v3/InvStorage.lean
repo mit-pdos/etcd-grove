@@ -121,6 +121,18 @@ namespace EtcdGrove
 
 open Iris Iris.BI go_etcd_io.raft.v3
 
+/-- What a `Storage` holds, as the interface's contract states it: the compaction
+boundary `prev` (index and term of the entry before the first stored one), the stored
+entries `ents` after it, and the metadata `ss` of its most recent snapshot (`Snapshot`).
+One record, so that the contract and its clients keep their shape when what is tracked
+changes (notes/decisions.md, "Predicate indices"; until 2026-10-08 these were three
+arguments of `ownStorage`, `isStorageWith`'s `P`, `memstorageFields` and
+`ownMemoryStorage`). -/
+structure StorState [FfiSyntax] where
+  prev : entryID
+  ents : List raftpb.Entry
+  ss : entryID
+
 /-- An abstract description of a client-supplied `Storage`'s contents. A *parameter*
 of the development, not an assumption: abstract because the implementation is not
 raft's and is not in scope, so every result holds for whichever predicate the client
@@ -130,7 +142,7 @@ Exclusive (not persistent) by intent, because a `Storage` is mutable -- `Append`
 instance: one would specialise every result to it. Until 2026-10-08 `ownStorage` was an
 `axiom`, which fixed one unknown predicate that no client could ever establish. -/
 class StorageModel (GF : BundledGFunctors) [FfiSyntax] where
-  ownStorage : Storage → entryID → List raftpb.Entry → entryID → IProp GF
+  ownStorage : Storage → StorState → IProp GF
 
 export StorageModel (ownStorage)
 
@@ -154,40 +166,40 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- The interface contract, against an arbitrary ownership predicate `P` for the
-storage's contents (`prev`, `ents`, `ss` as in `ownStorage`). Persistent: it is a
+storage's contents (a `StorState`, as in `ownStorage`). Persistent: it is a
 property of the interface value (which method implementations it dispatches to), not
 of the storage's current contents -- those live in `P`. `isStorage` below is the case
 `P := ownStorage st` that the rest of the development uses; a concrete implementation
 of the interface is shown to satisfy the contract by proving `isStorageWith` for its
 own predicate (see `InvMemstorage.lean`). -/
-def isStorageWith (P : entryID → List raftpb.Entry → entryID → IProp GF) (st : Storage) :
+def isStorageWith (P : StorState → IProp GF) (st : Storage) :
     IProp GF :=
   iprop(∃ (i : GoInterfaceOk),
   "%Hstok" ∷ ⌜st = interface.ok i⌝ ∗
-  "#HLastIndex" ∷ (∀ (prev : entryID) (ents : List raftpb.Entry) (ss : entryID),
-     {{ P prev ents ss }}
+  "#HLastIndex" ∷ (∀ (σ : StorState),
+     {{ P σ }}
        (App (Val #(methods i.ty go!"LastIndex" i.v)) (Val #()))
      {{ (li : w64), RET (PairV #li #interface.nil);
-         ⌜uint.Z li = uint.Z prev.index' + (ents.length : Int)⌝ ∗
-         P prev ents ss }}) ∗
-  "#HFirstIndex" ∷ (∀ (prev : entryID) (ents : List raftpb.Entry) (ss : entryID),
-     {{ P prev ents ss }}
+         ⌜uint.Z li = uint.Z σ.prev.index' + (σ.ents.length : Int)⌝ ∗
+         P σ }}) ∗
+  "#HFirstIndex" ∷ (∀ (σ : StorState),
+     {{ P σ }}
        (App (Val #(methods i.ty go!"FirstIndex" i.v)) (Val #()))
      {{ (fi : w64), RET (PairV #fi #interface.nil);
-         ⌜uint.Z fi = uint.Z prev.index' + 1⌝ ∗
-         P prev ents ss }}) ∗
-  "#HTerm" ∷ (∀ (prev : entryID) (ents : List raftpb.Entry) (ss : entryID) (i0 : w64),
-     {{ P prev ents ss ∗
-         ⌜uint.Z prev.index' ≤ uint.Z i0 ∧
-            uint.Z i0 ≤ uint.Z prev.index' + (ents.length : Int)⌝ }}
+         ⌜uint.Z fi = uint.Z σ.prev.index' + 1⌝ ∗
+         P σ }}) ∗
+  "#HTerm" ∷ (∀ (σ : StorState) (i0 : w64),
+     {{ P σ ∗
+         ⌜uint.Z σ.prev.index' ≤ uint.Z i0 ∧
+            uint.Z i0 ≤ uint.Z σ.prev.index' + (σ.ents.length : Int)⌝ }}
        (App (Val #(methods i.ty go!"Term" i.v)) (Val #i0))
      {{ (t : w64), RET (PairV #t #interface.nil);
-         ⌜termAt prev ents i0 = some t⌝ ∗ P prev ents ss }}) ∗
-  "#HEntries" ∷ (∀ (prev : entryID) (ents : List raftpb.Entry) (ss : entryID)
+         ⌜termAt σ.prev σ.ents i0 = some t⌝ ∗ P σ }}) ∗
+  "#HEntries" ∷ (∀ (σ : StorState)
       (lo hi maxSize : w64),
-     {{ P prev ents ss ∗
-         ⌜uint.Z prev.index' + 1 ≤ uint.Z lo ∧ uint.Z lo < uint.Z hi ∧
-            uint.Z hi ≤ uint.Z prev.index' + (ents.length : Int) + 1⌝ }}
+     {{ P σ ∗
+         ⌜uint.Z σ.prev.index' + 1 ≤ uint.Z lo ∧ uint.Z lo < uint.Z hi ∧
+            uint.Z hi ≤ uint.Z σ.prev.index' + (σ.ents.length : Int) + 1⌝ }}
        (App (App (App (Val #(methods i.ty go!"Entries" i.v)) (Val #lo)) (Val #hi))
          (Val #maxSize))
      {{ (s : GoSlice) (es : List raftpb.Entry),
@@ -195,20 +207,20 @@ def isStorageWith (P : entryID → List raftpb.Entry → entryID → IProp GF) (
          s ↦*□ es ∗
          ⌜es ≠ [] ∧
            (es.length : Int) ≤ uint.Z hi - uint.Z lo ∧
-           (∀ e, e ∈ es → e ∈ ents.take (uint.Z hi - uint.Z prev.index' - 1).toNat) ∧
+           (∀ e, e ∈ es → e ∈ σ.ents.take (uint.Z hi - uint.Z σ.prev.index' - 1).toNat) ∧
            s.cap = s.len ∧
            -- *which* entries: the stored ones at `[lo, lo+1, ...]`, cut short by
            -- `maxSize` (the `Storage` interface's documented contract: "Entries returns a
            -- slice of consecutive log entries in the range [lo, hi)"; `MemoryStorage`
            -- returns `limitSize(ents[lo-offset:hi-offset])`). Added 2026-10-01 for
            -- `AppOk`'s prefix clause.
-           es <+: (ents.take (uint.Z hi - uint.Z prev.index' - 1).toNat).drop
-                    (uint.Z lo - uint.Z prev.index' - 1).toNat⌝ ∗
-         P prev ents ss }}) ∗
+           es <+: (σ.ents.take (uint.Z hi - uint.Z σ.prev.index' - 1).toNat).drop
+                    (uint.Z lo - uint.Z σ.prev.index' - 1).toNat⌝ ∗
+         P σ }}) ∗
   /- The stable log's last index is far below `2^64`.
 
      This is the one *pure* clause of the contract, and it is what makes appending to
-     the log possible at all. `ownRaftLogCore`'s `Hnowrap` says the whole log's last
+     the log possible at all. `ownRaftLog`'s `Hnowrap` says the whole log's last
      index leaves room for one more entry, and that bound is **not inductive**: after
      an append the log is one longer and the same bound is needed at the new length, so
      no invariant of the log alone can supply it (any invariant preserved by `append`
@@ -229,13 +241,13 @@ def isStorageWith (P : entryID → List raftpb.Entry → entryID → IProp GF) (
      was a documented over-claim in that spec's comment.
 
      It hands `ownStorage` back because the conclusion is pure and `ownStorage` is not
-     persistent: an `icases` against a bare `ownStorage st prev ents -∗ ⌜…⌝` would
+     persistent: an `icases` against a bare `ownStorage st σ -∗ ⌜…⌝` would
      consume the storage (main's notes/gotchas.md, "Reading a pure fact out of a
      definition without consuming it"). -/
-  "#Hbounded" ∷ □ (∀ (prev : entryID) (ents : List raftpb.Entry) (ss : entryID),
-     P prev ents ss -∗
-     ⌜uint.Z prev.index' + (ents.length : Int) < 2^61⌝ ∗
-     P prev ents ss) ∗
+  "#Hbounded" ∷ □ (∀ (σ : StorState),
+     P σ -∗
+     ⌜uint.Z σ.prev.index' + (σ.ents.length : Int) < 2^61⌝ ∗
+     P σ) ∗
   /- `Snapshot()` -- added 2026-09-20 for `raft.maybeSendSnapshot`.
 
      `raftLog.snapshot` (`new/code/go_etcd_io/raft/v3.v:864`) returns
@@ -275,15 +287,15 @@ def isStorageWith (P : entryID → List raftpb.Entry → entryID → IProp GF) (
      success (an empty one is a `panic` in raft; raft only asks after a `Term` or
      `Entries` failed with `ErrCompacted`, i.e. once the storage has compacted, which
      presupposes a snapshot), and the voters' read-only ownership. -/
-  "#HSnapshot" ∷ (∀ (prev : entryID) (ents : List raftpb.Entry) (ss : entryID)
+  "#HSnapshot" ∷ (∀ (σ : StorState)
       (esu : GoInterface),
-     {{ P prev ents ss ∗
+     {{ P σ ∗
          globalAddr ErrSnapshotTemporarilyUnavailable ↦□ esu }}
        (App (Val #(methods i.ty go!"Snapshot" i.v)) (Val #()))
      {{ (snap : raftpb.Snapshot) (err : GoInterface), RET (PairV #snap #err);
-         P prev ents ss ∗
+         P σ ∗
          (⌜err = esu⌝ ∨
-          (⌜err = interface.nil ∧ snapId snap = ss ∧ snap.Metadata'.Index' ≠ W64 0⌝ ∗
+          (⌜err = interface.nil ∧ snapId snap = σ.ss ∧ snap.Metadata'.Index' ≠ W64 0⌝ ∗
            ∃ (voters : List w64), snap.Metadata'.ConfState'.Voters' ↦*□ voters)) }}))
 
 /-- The contract against the abstract `ownStorage`: what every client of the interface
@@ -291,7 +303,7 @@ assumes. -/
 def isStorage (st : Storage) : IProp GF :=
   isStorageWith (ownStorage st) st
 
-instance isStorageWith_pers (P : entryID → List raftpb.Entry → entryID → IProp GF)
+instance isStorageWith_pers (P : StorState → IProp GF)
     (st : Storage) : Persistent (isStorageWith P st) := by
   unfold isStorageWith; infer_instance
 

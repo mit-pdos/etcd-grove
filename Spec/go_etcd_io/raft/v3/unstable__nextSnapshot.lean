@@ -26,12 +26,11 @@ already in progress -- `nil` when there is none. Whether a pending snapshot is i
 progress (`snapshotInProgress`) is not tracked, so only the no-snapshot case is
 pinned. -/
 abbrev unstable.nextSnapshot.spec : Prop :=
-  ∀ (u : Loc) (uv : unstable) (uents : List raftpb.Entry) (snap : Option entryID),
+  ∀ (u : Loc) (us : UnstableSt),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hun" ∷ ownUnstable u uv uents ∗
-      "#Hsnap" ∷ ownSnap uv.snapshot' snap }}
+      "Hun" ∷ ownUnstable u us }}
     (App (Val (u @!! go.GoType.PointerType unstable.ty @!! go!"nextSnapshot")) (Val #()))
-  {{ (p : Loc), RET #p; ownUnstable u uv uents ∗ ⌜snap = none → p = null⌝ }}
+  {{ (p : Loc), RET #p; ownUnstable u us ∗ ⌜us.snap = none → p = null⌝ }}
 
 end spec
 

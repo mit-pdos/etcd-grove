@@ -25,26 +25,23 @@ theorem tracker.Inflights.reset.wp_proof :
     tracker.Inflights.reset.spec (GF := GF) (hG := hG) := by
   intro l i
   wp_start as Hin
-  unfold ownInflights
-  icases Hin with ⟨%iv, %buf, Hin⟩
   iNamed Hin
-  unfold ownInflightsRaw
   iNamed Hin
+  subst Hring
+  subst Hiabs
   wp_auto
   iapply HΦ
-  iexists { iv with start' := W64 0, count' := W64 0, bytes' := W64 0 }, buf
-  simp only [named]
-  iframe
-  ipureintro
-  constructor
-  · -- `start` and `count` go to `0` and the buffer is untouched, so every
-    -- conjunct of the ring invariant is an instance of the old one
+  -- `start` and `count` go to `0` and the buffer is untouched, so every
+  -- conjunct of the ring invariant is an instance of the old one
+  have Hok : InflightsOk (inflightsRingOf
+      { iv with start' := W64 0, count' := W64 0, bytes' := W64 0 } buf) := by
+    simp only [InflightsOk, inflightsRingOf, inflightsAbs] at Hinfl_ok ⊢
     obtain ⟨h1, h2, h3, h4, h5, h6⟩ := Hinfl_ok
-    unfold InflightsOk
-    simp only
     refine ⟨by word, by word, h3, h4, ?_, ?_⟩ <;> word
-  · subst Hiabs
-    simp [inflightsAbs, inflightsReset]
+  iapply ownInflights_reseal $$ Hiv Hbuf Hbuf_cap
+  ipureintro
+  refine ⟨Hok, ?_⟩
+  simp [inflightsRingOf, inflightsAbs, inflightsReset]
 
 end proof
 
