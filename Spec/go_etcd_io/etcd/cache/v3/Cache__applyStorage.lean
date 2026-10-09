@@ -46,12 +46,12 @@ abbrev Cache.applyStorage.spec : Prop :=
       isCacheFields c cf γr γd cap ∗
       isWatcher w γw none (demuxPub (etcdStepCert cf.pfx) none s) ∗
       watcherConsumer γw [] ∗
-      storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) st ∗ isEtcdKvs R cf.pfx st.latest ∗
+      storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) etcdReached st ∗ isEtcdKvs R cf.pfx st.latest ∗
       ⌜st.Synced ∧ 0 < sint.Z s ∧ sint.Z s ≤ sint.Z R + 1 ∧
         (sint.Z s = sint.Z R + 1 ∨ sint.Z R ≤ sint.Z st.latestRev)⌝ }}
     (App (Val (c @!! go.GoType.PointerType Cache.ty @!! go!"applyStorage")) (Val #w))
   {{ (err : GoInterface), RET #err;
-      ∃ st' : StoreState, storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) st' ∗
+      ∃ st' : StoreState, storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) etcdReached st' ∗
         (⌜err = GoInterface.nil⌝ -∗ ∃ R' : w64, isEtcdKvs R' cf.pfx st'.latest ∗
           ⌜st'.Synced ∧ sint.Z R ≤ sint.Z R' ∧
             (sint.Z R ≤ sint.Z st.latestRev → sint.Z R' ≤ sint.Z st'.latestRev)⌝) }}

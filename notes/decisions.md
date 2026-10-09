@@ -945,7 +945,8 @@ would leave the wait group's `int32` counter unbounded, so the loop could not be
 - **etcd's linearizability** for `get`, a premise of `getWatchLoop`: `isEtcdKVLin cf` (for every
   revision the store has reached, `storeRevLb`, a prefix get returns at least it). `isEtcdKVFrom`
   also bounds the revision below `2 ^ 63 - 1`, as the watch contract does, so that `getWatch`'s
-  `rev + 1` does not overflow.
+  `rev + 1` does not overflow. (Superseded 2026-10-09 by `etcdReached`, "`New` and the client":
+  no premise; the bound is in `isEtcdKV`'s result.)
 
 ## `New` and the client: translating `Client`, timers as the trust boundary
 
@@ -967,8 +968,8 @@ it and what the proofs changed.
   field points-tos (persistent: the client's fields are not written after construction), the
   `KV`'s `isEtcdKV`, the `Watcher`'s `isEtcdWatcher` and `isEtcdProgressNotifier` (new:
   `RequestProgress` returns some error; etcd's progress notification shows up on the watch
-  stream, where it is already modelled), and etcd's linearizability for the caches built over
-  the client: `□ ∀ c cf …, isCacheFields c cf … -∗ ⌜cf.kv = kv ∧ cf.pfx = pfx⌝ -∗
+  stream, where it is already modelled), and (until the fix below) etcd's linearizability for
+  the caches built over the client: `□ ∀ c cf …, isCacheFields c cf … -∗ ⌜cf.kv = kv ∧ cf.pfx = pfx⌝ -∗
   isEtcdKVLin cf`. Linearizability is about the store's revision counter (`storeRevLb`), whose
   ghost names exist only once `newCache` has made the store, so it cannot be stated for a
   particular store before `New` runs. *Rejected:* quantifying over every store's ghost names
@@ -982,6 +983,31 @@ it and what the proofs changed.
   watch path's specs. The stated assumption is true of a correct cache over etcd (the store's
   revisions come from this client's responses) but rests on that, which the proofs show for the
   snapshots (`isEtcdKvs`) and not for revisions moved by progress notifications.
+  **Fixed 2026-10-09: `etcdReached`.** "etcd has reached revision `r`" is now a fact of the
+  model (`InvEtcd.lean`): `etcdReached r` is `etcdReachedAt r'` for some `r' ≥ r` (or `r ≤ 0`),
+  over two axioms, `etcdReachedAt` (an `IProp`) and its timelessness. *Why a model fact rather
+  than the store's counter:* linearizability is a property of etcd and its client, so it must be
+  statable before any cache exists, and the store's ghost counter can be allocated at any value
+  (the rejected quantification above); a fact the client's responses produce is about etcd
+  alone. It is an `IProp`, not a `Prop`, because it is knowledge obtained at a time: holding it
+  means a response showed it before the holder's next call, which is what linearizability is
+  about (a `Prop` would make "reached at some time, maybe later" usable now). *Why downward
+  closed:* a `Get` at least `lo` is at least every `lo' ≤ lo`; the demux's progress
+  notifications are at or below `maxRev`; and `0` comes free for a fresh store or demux.
+  *What carries it where:* `isEtcdKV`'s triple takes `etcdReached lo` and returns `etcdReached r`
+  with `lo ≤ r` unless serializable (a serializable get may be served by a lagging member: the
+  exception keeps the assumption true of etcd); the watch receive gives it for created and
+  progress notifications and, through `etcdStepCertBody`, each batch; the store takes a second
+  certificate `R` (in the lock and the writer, `□ R latestRev`; `Restore`/`Apply` ask for it of
+  the revision they move to; the cache's `R` is `etcdReached`); the demux's `DemuxCert` gained
+  `prog` (the lock holds `□ prog maxRev`, a progress `Broadcast` brings it, a batch's certificate
+  implies it, a watcher's publication gives it of every progress notification sent). `get` then
+  calls the client with the writer's `etcdReached latestRev`, and `isEtcdClient` no longer
+  mentions caches. *Rejected:* a bare axiomatized `etcdReached` with persistence, downward
+  closure and zero as axioms (five axioms for what one predicate and a definition give);
+  certifying the store's revision from `E` (progress notifications move it without a snapshot);
+  `P` as a separate demux parameter (folded into `DemuxCert`, so no demux statement changed
+  shape).
 - **Timers are axioms in Perennial**, like `wp_Now`/`wp_Since`: `time.wp_NewTimer`
   (`time.isTimer t ch γ`: `C ↦□ ch`, a bag of times), `Timer.wp_Stop`, `Timer.wp_Reset` (some
   `bool`; Stop/Reset require `isTimer`, since Go panics on a timer `NewTimer` did not make).

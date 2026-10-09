@@ -12,6 +12,8 @@ axiom binary.bigEndian.PutUint64.wp_proof
 axiom binary.bigEndian.Uint64.wp_proof
 axiom config.ServerConfig.ElectionTimeout.wp_proof
 axiom errors.Is.wp_proof
+axiom etcdReachedAt
+axiom etcdReachedAt_timeless
 axiom etcdState
 axiom etcdStep_compose
 axiom etcdStep_transfer

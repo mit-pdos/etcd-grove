@@ -25,15 +25,15 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 (the latest map built from `kvs`, the latest revision `rev`, the history that one
 snapshot). `rev` must not be below the latest revision (the lower bounds readers hold
 stay true; the cache restores from a newer `Get`), and the caller certifies the new snapshot
-(`E rev (restoreMap kvs)`). -/
+(`E rev (restoreMap kvs)`) and the new revision (`R rev`). -/
 abbrev store.Restore.spec : Prop :=
-  ∀ (s : Loc) (γ : StoreNames) (cap : Nat) (E : w64 → KvMap → IProp GF) (st : StoreState) (kvsSl : GoSlice) (kvs : KvMap)
+  ∀ (s : Loc) (γ : StoreNames) (cap : Nat) (E : w64 → KvMap → IProp GF) (R : w64 → IProp GF) (st : StoreState) (kvsSl : GoSlice) (kvs : KvMap)
     (dq : DFrac) (rev : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
-      isStore s γ cap ∗ storeWriter s γ cap E st ∗ kvsSl ↦*{dq} (kvs.map Prod.snd) ∗ kvsAt kvs ∗
-      ⌜sint.Z st.latestRev ≤ sint.Z rev⌝ ∗ □ E rev (restoreMap kvs) }}
+      isStore s γ cap ∗ storeWriter s γ cap E R st ∗ kvsSl ↦*{dq} (kvs.map Prod.snd) ∗ kvsAt kvs ∗
+      ⌜sint.Z st.latestRev ≤ sint.Z rev⌝ ∗ □ E rev (restoreMap kvs) ∗ □ R rev }}
     (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Restore")) (Val #kvsSl)) (Val #rev))
-  {{ RET #(); kvsSl ↦*{dq} (kvs.map Prod.snd) ∗ storeWriter s γ cap E (restoreState rev kvs) ∗
+  {{ RET #(); kvsSl ↦*{dq} (kvs.map Prod.snd) ∗ storeWriter s γ cap E R (restoreState rev kvs) ∗
       storeRevLb γ rev }}
 
 end spec

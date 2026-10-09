@@ -27,23 +27,21 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 unchanged), or the response and `nil`: the header revision `R` is one at which etcd's state under
 the prefix is the map `m` the store now holds (`restoreState R m`, synced).
 
-`Restore` needs `R` at least the store's latest revision, which `isEtcdKV` does not promise (it
-says nothing relating two calls): the premise `isEtcdKVFrom cf.kv cf.pfx st.latestRev` is etcd's
-linearizability for this call (a prefix get returns a revision at least any revision the store
-has already seen), stated as a premise rather than assumed of the client (see STATUS, "The watch
-loop and Cache.Watch", findings); it also bounds `R` below `2 ^ 63 - 1`. -/
+`Restore` needs `R` at least the store's latest revision (finding 4: it does not check it): the
+writer knows etcd has reached the latest revision (`storeWriter`'s certificate, `etcdReached`),
+and the client's get is linearizable (`isEtcdKV`: a non-serializable get returns at least any
+revision etcd is known to have reached), and also bounds `R` below `2 ^ 63 - 1`. -/
 abbrev Cache.get.spec : Prop :=
   ∀ (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNames) (cap : Nat)
     (ctx : GoInterfaceOk) (s : context.ContextDesc (IProp GF)) (st : StoreState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
       isCacheFields c cf γr γd cap ∗ context.isContext ctx s ∗
-      storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) st ∗
-      isEtcdKVFrom cf.kv cf.pfx st.latestRev }}
+      storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) etcdReached st }}
     (App (Val (c @!! go.GoType.PointerType Cache.ty @!! go!"get")) (Val #(GoInterface.ok ctx)))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) st) ∨
+      (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) etcdReached st) ∨
       (⌜err = GoInterface.nil⌝ ∗ ∃ (R : w64) (m : KvMap), getRespRev resp R ∗
-        storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) (restoreState R m) ∗
+        storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) etcdReached (restoreState R m) ∗
         isEtcdKvs R cf.pfx (restoreState R m).latest ∗ storeRevLb cf.γs R ∗
         ⌜sint.Z st.latestRev ≤ sint.Z R ∧ sint.Z R < 2 ^ 63 - 1⌝) }}
 

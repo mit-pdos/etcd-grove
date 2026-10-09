@@ -33,7 +33,11 @@ store's user picks at `newStore`: every history snapshot `(r, m)` carries `□ E
 ring's item predicate is `snapCert E`), `Restore` and `Apply` ask for it of the snapshots they
 append (`applyEventsSnaps`, `applyRespSnaps`, `snapCerts`), and `getSnapshot`/`Get` return it of
 the snapshot they read. The cache's `E` says that the map is etcd's state at that revision
-(`isEtcdKvs`, `InvEtcd.lean`).
+(`isEtcdKvs`, `InvEtcd.lean`). A second parameter `R : w64 → IProp GF` certifies the latest
+revision: the lock invariant and the writer hold `□ R latestRev`, `newStore` asks for `R 0`,
+`Restore` and `Apply` for the revision they move it to (`applyRespRevs`), and `Get`/`LatestRev`
+return it of the state seen. The cache's `R` says that etcd has reached the revision
+(`etcdReached`, `InvEtcd.lean`), so that its linearizable `Get` returns at least it.
 
 Models of the methods: `snapModel` (`getSnapshot`), `kvRange` (`snapshot.Range`),
 `applyEvents`/`applyResp` (`Apply`), `restoreState` (`Restore`).
@@ -304,6 +308,16 @@ def applyRespSnaps (st : StoreState) (r : RespModel) : List (w64 × KvMap) :=
   else if !r.events.isEmpty then applyEventsSnaps st.latest r.events
   else []
 
+/-- The revisions `Apply(r)` may move the latest revision to: a progress notification's header
+revision, or the revision of a snapshot it appends (`applyRespSnaps`). `Apply`'s caller certifies
+each of them (the store's `R`). -/
+def applyRespRevs (st : StoreState) (r : RespModel) : List w64 :=
+  if r.canceled then []
+  else if !validRevisions r st.latestRev then []
+  else if r.isProgressNotify then [r.hdrRev]
+  else if !r.events.isEmpty then (applyEventsSnaps st.latest r.events).map Prod.fst
+  else []
+
 /-- The map `Restore` builds: the key-values `ReplaceOrInsert`ed in order into an empty
 tree (a later duplicate key replaces an earlier one). -/
 def restoreMap (kvs : KvMap) : KvMap :=
@@ -362,6 +376,89 @@ theorem applyResp_synced (cap : Nat) (st : StoreState) (r : RespModel)
     simp only [h1, h2, h3, h4, ite_false, ite_true, Bool.false_eq_true] at hok
     exact applyEvents_synced cap _ _ hs hok
   · exact hs
+
+/-- `applyEvents` leaves the latest revision, or moves it to a snapshot's it appends. -/
+theorem applyEvents_latestRev_mem (cap : Nat) :
+    ∀ (evs : List EvModel) (st : StoreState),
+      (applyEvents cap st evs).1.latestRev = st.latestRev ∨
+        (applyEvents cap st evs).1.latestRev ∈ (applyEventsSnaps st.latest evs).map Prod.fst := by
+  intro evs
+  induction h : evs.length using Nat.strongRecOn generalizing evs with
+  | ind n ih =>
+    intro st
+    match evs with
+    | [] => left; simp [applyEvents]
+    | e :: es =>
+      rw [applyEvents, applyEventsSnaps]
+      split
+      · rename_i m hb
+        simp only [hb, List.map_cons, List.mem_cons]
+        rcases ih _ (h ▸ dropWhile_length_lt e es) _ rfl
+          { latestRev := e.rev, latest := m, history := ringAppend cap st.history (e.rev, m) }
+          with h1 | h1
+        · right; left; exact h1
+        · right; right; exact h1
+      · rename_i m hb
+        left; rfl
+
+/-- `Apply` leaves the latest revision, or moves it to one of `applyRespRevs`. -/
+theorem applyResp_latestRev_mem (cap : Nat) (st : StoreState) (r : RespModel) :
+    (applyResp cap st r).1.latestRev = st.latestRev ∨
+      (applyResp cap st r).1.latestRev ∈ applyRespRevs st r := by
+  unfold applyResp applyRespRevs
+  split
+  · left; rfl
+  split
+  · left; rfl
+  split
+  · split
+    · left; rfl
+    · right; simp
+  split
+  · exact applyEvents_latestRev_mem cap _ _
+  · left; rfl
+
+/-- The revisions of the snapshots `applyEvents` appends are revisions of its events. -/
+theorem applyEventsSnaps_rev_mem :
+    ∀ (evs : List EvModel) (m : KvMap) (h : w64 × KvMap), h ∈ applyEventsSnaps m evs →
+      ∃ e ∈ evs, e.rev = h.1 := by
+  intro evs
+  induction hn : evs.length using Nat.strongRecOn generalizing evs with
+  | ind n ih =>
+    intro m h hh
+    match evs with
+    | [] => simp [applyEventsSnaps] at hh
+    | e :: es =>
+      rw [applyEventsSnaps] at hh
+      split at hh
+      · rename_i m' hb
+        rcases List.mem_cons.1 hh with rfl | hh
+        · exact ⟨e, List.mem_cons_self, rfl⟩
+        · obtain ⟨x, hx, hxr⟩ := ih _ (hn ▸ dropWhile_length_lt e es) _ rfl _ _ hh
+          exact ⟨x, (List.dropWhile_suffix _).subset hx, hxr⟩
+      · simp at hh
+
+/-- A revision `Apply` may move the latest revision to is a progress notification's (a response
+without events) or one of its events'. -/
+theorem applyRespRevs_mem (st : StoreState) (r : RespModel) (x : w64)
+    (h : x ∈ applyRespRevs st r) : (r.events = [] ∧ x = r.hdrRev) ∨ ∃ e ∈ r.events, e.rev = x := by
+  unfold applyRespRevs at h
+  split at h
+  · simp at h
+  split at h
+  · simp at h
+  split at h
+  · rename_i hp
+    left
+    refine ⟨?_, by simpa using h⟩
+    unfold RespModel.isProgressNotify at hp
+    simp only [Bool.and_eq_true] at hp
+    exact List.isEmpty_iff.1 hp.1.1.1.1
+  split at h
+  · right
+    obtain ⟨y, hy, rfl⟩ := List.mem_map.1 h
+    exact applyEventsSnaps_rev_mem _ _ _ hy
+  · simp at h
 
 /-! ## Predicates -/
 
@@ -482,6 +579,14 @@ instance snapCerts_persistent (E : w64 → KvMap → IProp GF) (hs : List (w64 �
     Persistent (snapCerts E hs) := by
   unfold snapCerts; infer_instance
 
+/-- Every revision of `rs` is certified by `R`. -/
+def revCerts (R : w64 → IProp GF) (rs : List w64) : IProp GF :=
+  iprop(□ ∀ r, ⌜r ∈ rs⌝ -∗ R r)
+
+instance revCerts_persistent (R : w64 → IProp GF) (rs : List w64) :
+    Persistent (revCerts R rs) := by
+  unfold revCerts; infer_instance
+
 theorem snapCerts_cons (E : w64 → KvMap → IProp GF) (h : w64 × KvMap) (hs : List (w64 × KvMap)) :
     snapCerts E (h :: hs) ⊢ □ E h.1 h.2 ∗ snapCerts E hs := by
   unfold snapCerts
@@ -505,17 +610,19 @@ def storeLockedPhys (s : Loc) (cap : Nat) (E : w64 → KvMap → IProp GF) (st :
     storeLatestTree s st.latest)
 
 /-- The lock invariant `P q` of `s.mu` (see the module docstring). -/
-def storeLockInv (s : Loc) (γ : StoreNames) (cap : Nat) (E : w64 → KvMap → IProp GF) (q : Qp) :
-    IProp GF :=
+def storeLockInv (s : Loc) (γ : StoreNames) (cap : Nat) (E : w64 → KvMap → IProp GF)
+    (R : w64 → IProp GF) (q : Qp) : IProp GF :=
   iprop(∃ st : StoreState,
     "Hst" ∷ ghostVar γ.state q.half st ∗
     "Hrev" ∷ monoNatAuthOwn γ.rev q (sint.nat st.latestRev) ∗
     "HlatestRev" ∷ storeLatestRevAddr s ↦{DFrac.own q} st.latestRev ∗
     "Hhist" ∷ ownRingBuffer (storeHistAddr s) cap (snapCert E) Prod.fst st.history (DFrac.own q) ∗
+    "#HR" ∷ □ R st.latestRev ∗
     "%Hinv" ∷ ⌜StoreInv cap st⌝)
 
 instance storeLockInv_fractional (s : Loc) (γ : StoreNames) (cap : Nat)
-    (E : w64 → KvMap → IProp GF) : Fractional (storeLockInv (GF := GF) s γ cap E) where
+    (E : w64 → KvMap → IProp GF) (R : w64 → IProp GF) :
+    Fractional (storeLockInv (GF := GF) s γ cap E R) where
   fractional q1 q2 := by
     have hrev : ∀ r : w64, (storeLatestRevAddr s ↦{DFrac.own (q1 + q2)} r : IProp GF) ⊣⊢
         storeLatestRevAddr s ↦{DFrac.own q1} r ∗ storeLatestRevAddr s ↦{DFrac.own q2} r :=
@@ -535,8 +642,8 @@ instance storeLockInv_fractional (s : Loc) (γ : StoreNames) (cap : Nat)
       icases (hrev _).1 $$ HlatestRev with ⟨Hl1, Hl2⟩
       icases (hring _).1 $$ Hhist with ⟨Hh1, Hh2⟩
       isplitl [Hst1 Hrev1 Hl1 Hh1]
-      · iexists st; simp only [named]; iframe; ipureintro; exact Hinv
-      · iexists st; simp only [named]; iframe; ipureintro; exact Hinv
+      · iexists st; simp only [named]; iframe; iframe #; ipureintro; exact Hinv
+      · iexists st; simp only [named]; iframe; iframe #; ipureintro; exact Hinv
     · iintro ⟨H1, H2⟩
       unfold storeLockInv
       iNamedSuffix H1 "1"
@@ -554,6 +661,7 @@ instance storeLockInv_fractional (s : Loc) (γ : StoreNames) (cap : Nat)
       · iapply (hrev _).2; iframe
       isplitl [Hhist1 Hhist2]
       · iapply (hring _).2; iframe
+      iframe #
       ipureintro; exact Hinv1
 
 /-- `s` is a store with a history of capacity `cap` (persistent): `s.revCond` is a
@@ -580,18 +688,30 @@ instance storeRevLb_persistent (γ : StoreNames) (r : w64) :
   unfold storeRevLb; infer_instance
 
 /-- A reader's token: one of the `RWMutex`'s bounded reader slots (`RLock` needs one). -/
-def storeReader (s : Loc) (γ : StoreNames) (cap : Nat) (E : w64 → KvMap → IProp GF) : IProp GF :=
-  sync.ownRWMutex (storeMuAddr s) (storeLockInv (hG := hG) s γ cap E)
+def storeReader (s : Loc) (γ : StoreNames) (cap : Nat) (E : w64 → KvMap → IProp GF)
+    (R : w64 → IProp GF) : IProp GF :=
+  sync.ownRWMutex (storeMuAddr s) (storeLockInv (hG := hG) s γ cap E R)
 
 /-- The single writer's half of the store (the cache's watch loop, which calls `Restore`
 and `Apply`): the store's state is `st`. It holds the other half of `γ.state`, a token of
 `s.mu` (to `Lock` it), and the latest tree, which only the writer touches; and a lower bound on the latest
-revision (the counter itself is in the lock). -/
+revision (the counter itself is in the lock), with its certificate `R`. -/
 def storeWriter (s : Loc) (γ : StoreNames) (cap : Nat) (E : w64 → KvMap → IProp GF)
-    (st : StoreState) : IProp GF :=
+    (R : w64 → IProp GF) (st : StoreState) : IProp GF :=
   iprop(ghostVar γ.state (1 : Qp).half st ∗
-    sync.ownRWMutex (storeMuAddr s) (storeLockInv (hG := hG) s γ cap E) ∗
-    storeLatestTree s st.latest ∗ storeRevLb γ st.latestRev ∗ ⌜StoreInv cap st⌝)
+    sync.ownRWMutex (storeMuAddr s) (storeLockInv (hG := hG) s γ cap E R) ∗
+    storeLatestTree s st.latest ∗ storeRevLb γ st.latestRev ∗ □ R st.latestRev ∗
+    ⌜StoreInv cap st⌝)
+
+/-- The writer knows its latest revision's certificate. -/
+theorem storeWriter_rev (s : Loc) (γ : StoreNames) (cap : Nat) (E : w64 → KvMap → IProp GF)
+    (R : w64 → IProp GF) (st : StoreState) :
+    storeWriter s γ cap E R st ⊢ storeWriter s γ cap E R st ∗ □ R st.latestRev := by
+  unfold storeWriter
+  iintro ⟨H1, H2, H3, #H4, #H5, %H6⟩
+  iframe
+  iframe #
+  ipureintro; exact H6
 
 /-- A watch event `ev` (a `*mvccpb.Event`) modelled by `e`: the fields the store reads,
 read-only (`Type`, `Kv`, and the `KeyValue`'s `Key` and `ModRevision`; on the fields, as

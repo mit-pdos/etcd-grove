@@ -2,7 +2,8 @@
 Proof of `Spec/Cache__getWatchLoop.lean`. Lean-first (no Rocq counterpart).
 
 The loop's invariant: the two writers, in any states. Each `get` gets etcd's linearizability for
-the store's latest revision from `isEtcdKVLin` and the writer's lower bound on it.
+the store's latest revision from the client (`isEtcdKV`) and the writer's certificate that etcd
+has reached it (`etcdReached`, `storeWriter`).
 -/
 module
 
@@ -28,22 +29,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- The store writer's lower bound on its latest revision. -/
-theorem storeWriter_revLb (s : Loc) (γ : StoreNames) (cap : Nat) (E : w64 → KvMap → IProp GF)
-    (st : StoreState) :
-    storeWriter s γ cap E st ⊢ storeWriter s γ cap E st ∗ storeRevLb γ st.latestRev := by
-  unfold storeWriter
-  iintro ⟨H1, H2, H3, #H4, %Hi⟩
-  iframe
-  iframe #
-  ipureintro; exact Hi
-
 theorem Cache.getWatchLoop.wp_proof
     (wp_defaultConfig : defaultConfig.spec (GF := GF) (hG := hG))
     (wp_getWatch : Cache.getWatch.spec (GF := GF) (hG := hG)) :
     Cache.getWatchLoop.spec (GF := GF) (hG := hG) := by
   intro c cf γr γd cap c0 st0
-  wp_start as ⟨#Hc, Hw, Hwr, #Hlin⟩
+  wp_start as ⟨#Hc, Hw, Hwr⟩
   ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
   · iPkgInit
   ihave #Hc' := Hc
@@ -58,7 +49,7 @@ theorem Cache.getWatchLoop.wp_proof
   try ipersist ctx
   try ipersist backoff
   ihave HI : (∃ (c1 : DemuxCore) (st : StoreState), "Hw" ∷ cacheWriter cf γd cap c1 ∗
-      "Hwr" ∷ storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) st : IProp GF) $$ [Hw Hwr]
+      "Hwr" ∷ storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) etcdReached st : IProp GF) $$ [Hw Hwr]
   · iexists c0, st0; simp only [named]; iframe
   wp_for HI
   -- `ctx.Err()`
@@ -73,11 +64,8 @@ theorem Cache.getWatchLoop.wp_proof
     iframe
   | nil =>
   wp_auto
-  -- `c.getWatch()`, with etcd's linearizability for the store's latest revision
-  icases storeWriter_revLb _ _ _ _ _ $$ Hwr with ⟨Hwr, #Hlb⟩
-  iunfold isEtcdKVLin at Hlin
-  ihave #HKV := Hlin $$ %st.latestRev Hlb
-  wp_apply wp_getWatch c cf γr γd cap c1 st $$ [$Hpkg $Hc $Hw $Hwr $HKV]
+  -- `c.getWatch()`
+  wp_apply wp_getWatch c cf γr γd cap c1 st $$ [$Hpkg $Hc $Hw $Hwr]
     as %err ⟨%Hne, %c2, %st', Hw, Hwr⟩
   obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by
     cases err with

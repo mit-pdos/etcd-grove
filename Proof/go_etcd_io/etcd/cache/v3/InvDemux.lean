@@ -420,13 +420,27 @@ structure RegsStart (c : DemuxCore) (regs : GMap Loc RegInfo) (views : GMap Loc 
 /-- A certificate for the demux's batches, its parameter: `cert p b` says that the batch `b`
 follows revision `p` (the cache's, `etcdStepCert`: etcd had no event under the prefix after `p`
 but `b`'s, at `b`'s revision). Timeless, so that `demuxPub` (which holds them) can sit in a
-watcher's invariant. -/
+watcher's invariant.
+
+And a certificate for the revisions progress notifications report, `prog r` (the cache's:
+etcd has reached `r`, `etcdReached`): downward closed, true of `0`, and implied by a batch's
+certificate for the batch's revision. The lock holds `□ prog maxRev` (a progress
+notification's revision comes with it, `respCert`; a batch's from its certificate), and a
+watcher's publication gives it of every progress notification sent (`demuxPubBody_prog`). -/
 structure DemuxCert (GF : BundledGFunctors) where
   cert : w64 → Batch → IProp GF
   timeless : ∀ p b, Timeless (cert p b)
+  prog : w64 → IProp GF
+  prog_timeless : ∀ r, Timeless (prog r)
+  prog_mono : ∀ r r', sint.Z r' ≤ sint.Z r → prog r ⊢ prog r'
+  prog_zero : ⊢ prog (W64 0)
+  cert_prog : ∀ p b, cert p b ⊢ prog (batchRev b)
 
 instance DemuxCert.cert_timeless {GF : BundledGFunctors} (C : DemuxCert GF) (p : w64)
     (b : Batch) : Timeless (C.cert p b) := C.timeless p b
+
+instance DemuxCert.prog_timeless' {GF : BundledGFunctors} (C : DemuxCert GF) (r : w64) :
+    Timeless (C.prog r) := C.prog_timeless r
 
 /-- The revision a certificate chain through `bs` from `last` ends at: the last batch's, `last`
 if there is none. -/
@@ -545,9 +559,10 @@ instance certChain_timeless (C : DemuxCert GF) (last : Int) (bs : List Batch) :
 
 /-- What `Broadcast`'s caller certifies of an accepted response `r` (state `c`): its batches
 chained from the stream's last batch (`base` for an empty stream); for a progress notification,
-that it is at or above `base` (so that `maxRev` stays at or above it). -/
+that it is at or above `base` (so that `maxRev` stays at or above it), with its revision's
+certificate (`C.prog`). -/
 def respCert (C : DemuxCert GF) (c : DemuxCore) (r : RespModel) : IProp GF :=
-  if r.isProgressNotify then iprop(⌜c.base ≤ sint.Z r.hdrRev⌝)
+  if r.isProgressNotify then iprop(⌜c.base ≤ sint.Z r.hdrRev⌝ ∗ □ C.prog r.hdrRev)
   else if r.events = [] then iprop(True)
   else certChain C c.lastRev (splitBatches r.events)
 
@@ -561,13 +576,14 @@ instance respCert_persistent (C : DemuxCert GF) (c : DemuxCore) (r : RespModel) 
 has had (`oc = none`), and for the log it was closed after (`oc = some c`, the cancel `c`), the
 delivery facts for some start `s` (the one `Register` was given, `sr`, unless that was `0`) and
 view `v` (a compaction cancel at `v.n`), and **the certificates** of the delivered stream
-segment, chained from a revision `p₀` below `s` (for `s ≠ 0`). -/
+segment, chained from a revision `p₀` below `s` (for `s ≠ 0`), and the certificate of the view's
+`maxRev` (`C.prog`), which is at or above every progress notification sent. -/
 def demuxPubBody (C : DemuxCert GF) (pred : Option (GoString → Bool)) (sr : w64)
     (oc : Option (Option w64)) (L : List RespModel) : IProp GF :=
   iprop(∃ (s : w64) (v : View) (p₀ : Int),
     ⌜(sr = W64 0 ∨ s = sr) ∧ Delivered pred s v L ∧ (s = W64 0 ∨ p₀ < sint.Z s) ∧
       (∀ m, oc = some (some m) → m = v.n)⌝ ∗
-    certChain C p₀ (streamRange s v.n v.stream))
+    certChain C p₀ (streamRange s v.n v.stream) ∗ □ C.prog v.maxRev)
 
 instance demuxPubBody_timeless (C : DemuxCert GF) (pred : Option (GoString → Bool)) (sr : w64)
     (oc : Option (Option w64)) (L : List RespModel) :
@@ -610,7 +626,8 @@ def demuxSlots (C : DemuxCert GF) (γd : DemuxNames) : IProp GF :=
       [∗map] w ↦ ri ∈ regs, slotRes C γd w ri)
 
 /-- The lock invariant `P q` of `d.mu` without the writer token (see the module docstring), with
-the stream's certificate chain (persistent) and where the registrations' chains may start. -/
+the stream's certificate chain and `maxRev`'s certificate (persistent) and where the
+registrations' chains may start. -/
 def demuxLockRest (d : Loc) (γd : DemuxNames) (cap : Nat) (C : DemuxCert GF) (q : Qp) :
     IProp GF :=
   iprop(∃ (c : DemuxCore) (regs : GMap Loc RegInfo) (views : GMap Loc View) (actP lagP : Loc),
@@ -626,6 +643,7 @@ def demuxLockRest (d : Loc) (γd : DemuxNames) (cap : Nat) (C : DemuxCert GF) (q
     "Hhist" ∷ ownRingBuffer (demuxHistAddr d) cap (batchAt (hG := hG)) batchRev c.history
       (DFrac.own q) ∗
     "#Hcerts" ∷ certChain C c.base c.stream ∗
+    "#Hprog" ∷ □ C.prog c.maxRev ∗
     "%Hinv" ∷ ⌜DemuxInv cap c⌝ ∗
     "%Hok" ∷ ⌜RegsOk c c.stream.length regs views⌝ ∗
     "%Hstart" ∷ ⌜RegsStart c regs views⌝)
@@ -728,6 +746,7 @@ def demuxLocked (d : Loc) (γd : DemuxNames) (cap : Nat) (C : DemuxCert GF) (c :
     "Hhist" ∷ ownRingBuffer (demuxHistAddr d) cap (batchAt (hG := hG)) batchRev c.history ∗
     "Hres" ∷ ([∗map] w ↦ ri ∈ regs, regRes C γd w ri) ∗
     "#Hcerts" ∷ certChain C c.base c.stream ∗
+    "#Hprog" ∷ □ C.prog c.maxRev ∗
     "%Hok" ∷ ⌜RegsOk c k regs views⌝ ∗
     "%Hstart" ∷ ⌜RegsStart c regs views⌝)
 
@@ -1819,7 +1838,7 @@ def demuxRestBody (d : Loc) (γd : DemuxNames) (cap : Nat) (C : DemuxCert GF)
     demuxActAddr d ↦{DFrac.own q} x.2.2.2.1 ∗ demuxLagAddr d ↦{DFrac.own q} x.2.2.2.2 ∗
     x.2.2.2.1 ↦${DFrac.own q} (actOf x.2.2.1) ∗ x.2.2.2.2 ↦${DFrac.own q} (lagOf x.2.2.1) ∗
     ownRingBuffer (demuxHistAddr d) cap (batchAt (hG := hG)) batchRev x.1.history (DFrac.own q) ∗
-    certChain C x.1.base x.1.stream ∗
+    certChain C x.1.base x.1.stream ∗ □ C.prog x.1.maxRev ∗
     ⌜DemuxInv cap x.1⌝ ∗ ⌜RegsOk x.1 x.1.stream.length x.2.1 x.2.2.1⌝ ∗
     ⌜RegsStart x.1 x.2.1 x.2.2.1⌝)
 
@@ -1837,7 +1856,7 @@ theorem demuxLockRest_equiv (d : Loc) (γd : DemuxNames) (cap : Nat) (q : Qp) :
   · iintro ⟨%x, H⟩
     unfold demuxRestBody
     icases H with ⟨Hcore, Hregs, Hviews, HminRev, HmaxRev, HactF, HlagF, Hact, Hlag, Hhist,
-      #Hcerts, %Hinv, %Hok, %Hstart⟩
+      #Hcerts, #Hprog, %Hinv, %Hok, %Hstart⟩
     unfold demuxLockRest
     iexists x.1, x.2.1, x.2.2.1, x.2.2.2.1, x.2.2.2.2
     simp only [named]
@@ -2205,6 +2224,13 @@ theorem regRes_refresh (γd : DemuxNames) (regs : GMap Loc RegInfo) (views : GMa
 theorem certChain_nil (last : Int) : ⊢ certChain (GF := GF) C last [] := by
   unfold certChain; itrivial
 
+/-- The certificate of a fresh (or purged) demux's `maxRev`, `0`. -/
+theorem prog_init : ⊢ □ (C.prog (GF := GF) DemuxCore.init.maxRev) := by
+  rw [show DemuxCore.init.maxRev = W64 0 from rfl]
+  iintro
+  imodintro
+  iapply C.prog_zero
+
 theorem certChain_cons (last : Int) (b : Batch) (bs : List Batch) :
     certChain (GF := GF) C last (b :: bs) = iprop((∃ p : w64, ⌜sint.Z p ≤ last ∧
       last < sint.Z (batchRev b)⌝ ∗ □ C.cert p b) ∗ certChain C (sint.Z (batchRev b)) bs) := rfl
@@ -2303,13 +2329,13 @@ theorem demuxPub_intro (pred : Option (GoString → Bool)) (sr : w64) (oc : Opti
     (hsr : sr = W64 0 ∨ s = sr) (hD : Delivered pred s v L)
     (hcond : s = W64 0 ∨ base < sint.Z s ∨ streamRange s v.n v.stream = [])
     (hoc : ∀ m, oc = some (some m) → m = v.n) :
-    certChain (GF := GF) C base v.stream ⊢ demuxPubBody C pred sr oc L := by
-  iintro #H
+    certChain (GF := GF) C base v.stream ⊢ □ C.prog v.maxRev -∗ demuxPubBody C pred sr oc L := by
+  iintro #H #Hp
   icases certChain_seg (C := C) base v.stream s v.n hD.stream_ok.sorted hcond $$ H
     with ⟨%p₀, %Hp₀, #Hc⟩
   unfold demuxPubBody
   iexists s, v, p₀
-  iframe Hc
+  iframe Hc Hp
   ipureintro
   exact ⟨hsr, hD, Hp₀, hoc⟩
 
@@ -2320,9 +2346,9 @@ theorem pub_send (pred : Option (GoString → Bool)) (sr s : w64) (v : View) (se
     (r : RespModel) (base : Int) (hsr : sr = W64 0 ∨ s = sr) (hcond : s = W64 0 ∨ base < sint.Z s)
     (hnext : ∀ r', filterResp pred r = some r' →
       ∃ n' : w64, Delivered pred s { v with n := n' } (sent ++ [r'])) :
-    certChain (GF := GF) C base v.stream ⊢
+    certChain (GF := GF) C base v.stream ⊢ □ C.prog v.maxRev -∗
       □ (∀ r', ⌜filterResp pred r = some r'⌝ -∗ demuxPubBody C pred sr none (sent ++ [r'])) := by
-  iintro #H
+  iintro #H #Hp
   imodintro
   iintro %r' %Hr'
   obtain ⟨n', Hn'⟩ := hnext r' Hr'
@@ -2331,7 +2357,8 @@ theorem pub_send (pred : Option (GoString → Bool)) (sr s : w64) (v : View) (se
         · exact Or.inl h
         · exact Or.inr (Or.inl h))
     (fun m h => by cases h)
-  iexact H
+  · iexact H
+  · iexact Hp
 
 /-- **A close's publication** (`Stop`/`Compact`'s premise, `watcherClosePub`): the delivery facts
 of the closed log, a compaction cancel at the view's `n`. -/
@@ -2339,12 +2366,48 @@ theorem pub_close (pred : Option (GoString → Bool)) (sr s : w64) (v : View) (s
     (c : Option w64) (base : Int) (hsr : sr = W64 0 ∨ s = sr) (hD : Delivered pred s v sent)
     (hcond : s = W64 0 ∨ base < sint.Z s ∨ streamRange s v.n v.stream = [])
     (hc : ∀ m, c = some m → m = v.n) :
-    certChain (GF := GF) C base v.stream ⊢ □ demuxPubBody C pred sr (some c) sent := by
-  iintro #H
+    certChain (GF := GF) C base v.stream ⊢ □ C.prog v.maxRev -∗
+      □ demuxPubBody C pred sr (some c) sent := by
+  iintro #H #Hp
   imodintro
   iapply demuxPub_intro pred sr (some c) s v sent base hsr hD hcond
     (fun m h => by simp only [Option.some.injEq] at h; exact hc m h)
-  iexact H
+  · iexact H
+  · iexact Hp
+
+/-- **Progress certificates from a publication**: every response without events of a published
+log (a progress notification) has its revision's certificate (`C.prog`): it is at most the
+view's `maxRev` (`Delivered.progress`), whose certificate the publication holds. -/
+theorem demuxPubBody_prog (pred : Option (GoString → Bool)) (sr : w64) (oc : Option (Option w64))
+    (L : List RespModel) :
+    demuxPubBody (GF := GF) C pred sr oc L ⊢
+      □ ∀ r, ⌜r ∈ L ∧ r.events = []⌝ -∗ C.prog r.hdrRev := by
+  unfold demuxPubBody
+  iintro ⟨%s, %v, %p₀, %Hd, -, #Hp⟩
+  obtain ⟨-, hD, -, -⟩ := Hd
+  imodintro
+  iintro %r %Hr
+  iapply C.prog_mono v.maxRev r.hdrRev (hD.progress r Hr.1 Hr.2).1
+  iexact Hp
+
+/-- Every batch of a certificate chain has its revision's certificate (`C.prog`). -/
+theorem certChain_prog (last : Int) (bs : List Batch) :
+    certChain (GF := GF) C last bs ⊢ □ ∀ b, ⌜b ∈ bs⌝ -∗ C.prog (batchRev b) := by
+  induction bs generalizing last with
+  | nil =>
+    iintro -
+    imodintro
+    iintro %b %Hb
+    simp at Hb
+  | cons b bs ih =>
+    rw [certChain_cons]
+    iintro ⟨⟨%p, -, #Hc⟩, H⟩
+    ihave #Hih := ih (sint.Z (batchRev b)) $$ H
+    imodintro
+    iintro %b' %Hb'
+    rcases List.mem_cons.1 Hb' with h | h
+    · subst h; iapply C.cert_prog p b'; iexact Hc
+    · iapply Hih; ipureintro; exact h
 
 /-- **The delivery fact at any time** (for `Cache.Watch`): under a read lock, `w`'s registrant
 learns that what its consumer has received is a prefix of a log with the delivery facts. -/

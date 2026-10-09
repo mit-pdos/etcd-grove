@@ -59,7 +59,7 @@ theorem store_getSnapshot_first (rev : w64) (h : List (w64 × KvMap)) (hs : RevS
 theorem store.getSnapshot.wp_proof
     (wp_DescendLessOrEqual : ringBuffer.DescendLessOrEqual.spec (GF := GF) (hG := hG)) :
     store.getSnapshot.spec (GF := GF) (hG := hG) := by
-  intro s γ cap E r0 rev
+  intro s γ cap E R r0 rev
   wp_start as ⟨#HS, Hrd, #Hlb⟩
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -86,13 +86,14 @@ theorem store.getSnapshot.wp_proof
   · -- not ready
     have Hm : snapModel st rev = .notReady := by simp [snapModel, Hif]
     wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hst Hrev HlatestRev Hhist] as Hrd
-    · inext; iexists st; simp only [named]; iframe; ipureintro; exact Hinv
+    · inext; iexists st; simp only [named]; iframe; iframe #; ipureintro; exact Hinv
     iapply HΦ
     iframe Hrd
     iexists st
     unfold storeSeen storeRevLb
     rw [Hm]
     iframe Hnewlb
+    iframe HR
     simp only [snapErr]
     iframe HeNR
     ipureintro; exact ⟨⟨Hinv, Hr0⟩, by simp⟩
@@ -108,13 +109,14 @@ theorem store.getSnapshot.wp_proof
     iintro %sl ⟨Hsl, -⟩
     wp_apply fmt.wp_Errorf $$ [$Hsl] as %e _
     wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hst Hrev HlatestRev Hhist] as Hrd
-    · inext; iexists st; simp only [named]; iframe; ipureintro; exact Hinv
+    · inext; iexists st; simp only [named]; iframe; iframe #; ipureintro; exact Hinv
     iapply HΦ
     iframe Hrd
     iexists st
     unfold storeSeen storeRevLb
     rw [Hm]
     iframe Hnewlb
+    iframe HR
     simp only [snapErr]
     ipureintro; exact ⟨⟨Hinv, Hr0⟩, ⟨e, rfl⟩, by simp⟩
   have Hnn : ¬ sint.Z rev < 0 := by word
@@ -129,13 +131,14 @@ theorem store.getSnapshot.wp_proof
       unfold snapModel; rw [ite_eq_right Hnz, ite_eq_right Hnn]; simp only [Hrev']
       rw [ite_eq_left Hif]
     wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hst Hrev HlatestRev Hhist] as Hrd
-    · inext; iexists st; simp only [named]; iframe; ipureintro; exact Hinv
+    · inext; iexists st; simp only [named]; iframe; iframe #; ipureintro; exact Hinv
     iapply HΦ
     iframe Hrd
     iexists st
     unfold storeSeen storeRevLb
     rw [Hm]
     iframe Hnewlb
+    iframe HR
     simp only [snapErr]
     iframe HeFR
     ipureintro; exact ⟨⟨Hinv, Hr0⟩, by simp⟩
@@ -180,13 +183,14 @@ theorem store.getSnapshot.wp_proof
     rw [decide_eq_false Hpnn]
     wp_auto
     wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hst Hrev HlatestRev Hhist] as Hrd
-    · inext; iexists st; simp only [named]; iframe; ipureintro; exact Hinv
+    · inext; iexists st; simp only [named]; iframe; iframe #; ipureintro; exact Hinv
     iapply HΦ
     iframe Hrd
     iexists st
     unfold storeSeen storeRevLb
     rw [Hm]
     iframe Hnewlb
+    iframe HR
     simp only [snapErr]
     isplitr
     · ipureintro; exact ⟨Hinv, Hr0⟩
@@ -200,13 +204,14 @@ theorem store.getSnapshot.wp_proof
       rw [Hbase, ← Hfirst, List.getElem?_eq_none (by omega)]
     wp_auto
     wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hst Hrev HlatestRev Hhist] as Hrd
-    · inext; iexists st; simp only [named]; iframe; ipureintro; exact Hinv
+    · inext; iexists st; simp only [named]; iframe; iframe #; ipureintro; exact Hinv
     iapply HΦ
     iframe Hrd
     iexists st
     unfold storeSeen storeRevLb
     rw [Hm]
     iframe Hnewlb
+    iframe HR
     simp only [snapErr]
     iframe HeCP
     ipureintro; exact ⟨⟨Hinv, Hr0⟩, by simp⟩

@@ -1,7 +1,8 @@
 /-
 Proof of `Spec/Cache__get.lean`. Lean-first (no Rocq counterpart).
 
-The client's prefix get (`isEtcdKVFrom`), then `store.Restore` with the response's key-values:
+The client's prefix get (`isEtcdKV`, linearizable from the writer's latest revision, which etcd
+has reached: `storeWriter_rev`), then `store.Restore` with the response's key-values:
 the response lists etcd's state at its revision, sorted by key, so restoring it (inserting the
 entries one by one into an empty tree) gives back the same map (`restoreMap_sorted`).
 -/
@@ -63,6 +64,14 @@ theorem opGetModel_withPrefix_isPrefixGet (pfx : GoString) :
   · simp [opGetModel, opFold, withPrefixM, OpFull.getInit, OpFull.newOp, OpModel.zero,
       OpFull.isPrefixGet, h]
 
+/-- The cache's prefix get is not serializable (so it is linearizable). -/
+theorem opGetModel_withPrefix_serializable (pfx : GoString) :
+    (opGetModel pfx [withPrefixM]).base.serializable = false := by
+  by_cases h : pfx = []
+  · subst h
+    simp [opGetModel, opFold, withPrefixM, OpFull.getInit, OpFull.newOp, OpModel.zero]
+  · simp [opGetModel, opFold, withPrefixM, OpFull.getInit, OpFull.newOp, OpModel.zero, h]
+
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -104,7 +113,8 @@ theorem Cache.get.wp_proof
     (wp_Restore : store.Restore.spec (GF := GF) (hG := hG)) :
     Cache.get.spec (GF := GF) (hG := hG) := by
   intro c cf γr γd cap ctx s st
-  wp_start as ⟨#Hc, #Hctx, Hw, #HKV⟩
+  wp_start as ⟨#Hc, #Hctx, Hw⟩
+  icases storeWriter_rev _ _ _ _ _ _ $$ Hw with ⟨Hw, #HRw⟩
   ihave #Hcl : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
   unfold isCacheFields
@@ -129,16 +139,17 @@ theorem Cache.get.wp_proof
     rcases i with _ | i
     · cases Hf; cases Hg; iexact Hf1
     · simp at Hf
-  iunfold isEtcdKVFrom at HKV
-  ihave #HG := HKV $$ %ctx %s %cf.pfx %optsSl %([withPrefixM] : List (OpFull → OpFull))
-  wp_apply HG $$ [] as %resp %err ⟨#Hres, Hlo⟩
-  · iframe Hctx Hopts
+  iunfold isEtcdKV at HisKV
+  ihave #HG := HisKV $$ %ctx %s %cf.pfx %optsSl %([withPrefixM] : List (OpFull → OpFull))
+    %st.latestRev
+  wp_apply HG $$ [] as %resp %err #Hres
+  · iframe Hctx Hopts HRw
     ipureintro
-    refine ⟨?_, opGetModel_withPrefix_t cf.pfx, opGetModel_withPrefix_isPrefixGet cf.pfx⟩
+    refine ⟨?_, opGetModel_withPrefix_t cf.pfx⟩
     rintro ⟨-, h⟩
     simp [opFold, withPrefixM, OpFull.newOp] at h
   iunfold kvGetResult at Hres
-  icases Hres with (%Herr | ⟨%Herr, %r, %m, #Hrev, #Hm, Hkvs⟩)
+  icases Hres with (%Herr | ⟨%Herr, %r, %m, #Hrev, #Hm, #Hreach, %Hle0, Hkvs⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by
       cases err with
       | nil => exact absurd rfl Herr
@@ -150,26 +161,24 @@ theorem Cache.get.wp_proof
     ipureintro; exact ⟨rfl, Herr⟩
   · subst Herr
     rw [ite_eq_left (opGetModel_withPrefix_isPrefixGet cf.pfx)]
-    icases Hlo $$ %rfl with ⟨%r', #Hrev', %Hle⟩
-    iunfold getRespRev at Hrev Hrev'
+    have Hle : sint.Z st.latestRev ≤ sint.Z r ∧ sint.Z r < 2 ^ 63 - 1 :=
+      ⟨Hle0.1 (opGetModel_withPrefix_serializable cf.pfx), Hle0.2⟩
+    iunfold getRespRev at Hrev
     icases Hrev with ⟨%hdr, #Hh, %Hnn, #Hr⟩
-    icases Hrev' with ⟨%hdr', #Hh', %Hnn', #Hr'⟩
-    icombine Hh Hh' gives %Hhdr
-    subst Hhdr
-    icombine Hr Hr' gives %Hrr
-    subst Hrr
     iunfold getRespKvs at Hkvs
     icases Hkvs with ⟨%kvsSl, #HKs, #HKsl⟩
     icases isEtcdKvs_kvsAt r cf.pfx m $$ Hm with ⟨#HkvsAt, %Hsorted⟩
     wp_auto
-    wp_apply wp_Restore cf.store cf.γs cf.scap (etcdCert cf.pfx) st kvsSl m DFrac.discard r
+    wp_apply wp_Restore cf.store cf.γs cf.scap (etcdCert cf.pfx) etcdReached st kvsSl m DFrac.discard r
       $$ [$HisStore $Hw $HKsl $HkvsAt] as ⟨-, Hw, #Hlb⟩
     · isplitr
       · ipureintro; exact Hle.1
-      imodintro
-      unfold etcdCert
-      rw [restoreMap_sorted m Hsorted]
-      iexact Hm
+      isplitr
+      · imodintro
+        unfold etcdCert
+        rw [restoreMap_sorted m Hsorted]
+        iexact Hm
+      iexact Hreach
     iapply HΦ
     iright
     isplitr

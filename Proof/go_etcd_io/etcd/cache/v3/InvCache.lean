@@ -571,7 +571,9 @@ theorem demuxPubBody_nil (C : DemuxCert GF) (pred : Option (GoString → Bool)) 
   have h0 : streamRange sr (View.mk [] (W64 0) sr .active).n
       (View.mk [] (W64 0) sr .active).stream = [] := rfl
   rw [h0]
-  iapply certChain_nil
+  isplitr
+  · iapply certChain_nil
+  · imodintro; iapply C.prog_zero
 
 /-- **Receiving** on `Cache.Watch`'s channel: with `ok`, the next response, the received log
 (`rs ++ [r]`) still a `cacheWatchLog`; without, the channel was closed. -/
@@ -646,7 +648,7 @@ theorem cacheWatch_delivery (pfx key rangeEnd : GoString) (sr : w64) (L : List R
           (sr ≠ W64 0 → p₀ < sint.Z sr ∧ ∀ b ∈ bs, sint.Z sr ≤ sint.Z (batchRev b))⌝ ∗
         certChain (etcdStepCert pfx) p₀ bs := by
   unfold demuxPubBody
-  iintro ⟨%s, %v, %p₀, %Hf, #Hc⟩
+  iintro ⟨%s, %v, %p₀, %Hf, #Hc, -⟩
   obtain ⟨hsr, hD, hp₀, -⟩ := Hf
   iexists streamRange s v.n v.stream, p₀
   iframe Hc
@@ -669,7 +671,7 @@ theorem cacheWatch_delivery_compacted (pfx key rangeEnd : GoString) (sr n : w64)
           (sr ≠ W64 0 → p₀ < sint.Z sr ∧ ∀ b ∈ bs, sint.Z sr ≤ sint.Z (batchRev b))⌝ ∗
         certChain (etcdStepCert pfx) p₀ bs := by
   unfold demuxPubBody
-  iintro ⟨%s, %v, %p₀, %Hf, #Hc⟩
+  iintro ⟨%s, %v, %p₀, %Hf, #Hc, -⟩
   obtain ⟨hsr, hD, hp₀, hn⟩ := Hf
   have hn' : n = v.n := hn n rfl
   subst hn'
@@ -771,18 +773,10 @@ instance validateResult_persistent (u : Bool) (pfx key rangeEnd : GoString) (f :
 
 /-! ## `Cache.Get` -/
 
-/-- A reader's token of the cache's store, with the cache's certificate (`etcdCert`). -/
+/-- A reader's token of the cache's store, with the cache's certificates (`etcdCert`,
+`etcdReached`). -/
 def cacheReader (cf : CacheFields) : IProp GF :=
-  storeReader cf.store cf.γs cf.scap (etcdCert cf.pfx)
-
-/-- etcd's **linearizability** for the cache's prefix gets (the watch loop's premise): once the
-store has reached revision `lo` (its revisions come from etcd: a get's, or the watch stream's), a
-prefix get returns at least `lo` (`isEtcdKVFrom`), for every `lo` the store reaches. -/
-def isEtcdKVLin (cf : CacheFields) : IProp GF :=
-  iprop(□ ∀ lo : w64, storeRevLb cf.γs lo -∗ isEtcdKVFrom cf.kv cf.pfx lo)
-
-instance isEtcdKVLin_persistent (cf : CacheFields) : Persistent (isEtcdKVLin (GF := GF) cf) := by
-  unfold isEtcdKVLin; infer_instance
+  storeReader cf.store cf.γs cf.scap (etcdCert cf.pfx) etcdReached
 
 /-- What `waitTillRevision(ctx, rev)` returns: `nil` once the store's latest revision is at
 least `rev`; the value of `ErrCacheTimeout`; or the context's (non-nil) error once it is

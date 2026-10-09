@@ -410,8 +410,9 @@ theorem demux.resyncLaggingWatchers.wp_proof
     wp_if_destruct
     · -- `nextRev < minRev`: compacted at `nv`
       ihave #Hcp := pub_close (C := C) pred ri.sr ri.s v sent (some nv) c.base Hsr Hdel HSO.cond
-        (fun m hm => by cases hm; exact Hn.symm) $$ [Hcerts]
+        (fun m hm => by cases hm; exact Hn.symm) $$ [Hcerts] [Hprog]
       · rw [Hst]; iexact Hcerts
+      · rw [Hmx]; iexact Hprog
       wp_apply wp_Compact key ri.γ pred (demuxPub C pred ri.sr) sent .opened nv $$ [Hwat] as #Hcl
       · iframe Hw; simp only [watcherAt, watcherClosePub, demuxPub]; iframe Hwat
         iexact Hcp
@@ -509,8 +510,9 @@ theorem demux.resyncLaggingWatchers.wp_proof
           (by simp only; rw [Hrange]; simpa using Hbok.1)
           (by simp only; rw [Hrange]; simpa using enqueueResult_some sent0 hr')).1 rfl⟩
       ihave #Hpub := pub_send (C := C) pred ri.sr ri.s { v with n := resyncNext nv vis j } sent0
-        (eventsResp b) c.base Hsr HSOr Hnext $$ [Hcerts]
+        (eventsResp b) c.base Hsr HSOr Hnext $$ [Hcerts] [Hprog]
       · simp only; rw [Hst]; iexact Hcerts
+      · simp only; rw [Hmx]; iexact Hprog
       wp_apply wp_enqueueResponse key ri.γ pred (demuxPub C pred ri.sr) sent0 _ (eventsResp b)
         $$ [Hopen] as %ok ⟨%sent'', Hopen, %Henq⟩
       · iframe Hw Hopen
@@ -622,8 +624,9 @@ theorem demux.resyncLaggingWatchers.wp_proof
           (by simp only; omega) (by simp only; rw [Hmx]; omega)
           (by simp only; rw [Hmx]; exact enqueueResult_some sent1 hr')).2 rfl⟩
       ihave #Hpub := pub_send (C := C) pred ri.sr ri.s { v with n := resyncNext nv vis vis.length }
-        sent1 (progressResp c.maxRev) c.base Hsr HSOr Hnext $$ [Hcerts]
+        sent1 (progressResp c.maxRev) c.base Hsr HSOr Hnext $$ [Hcerts] [Hprog]
       · simp only; rw [Hst]; iexact Hcerts
+      · simp only; rw [Hmx]; iexact Hprog
       wp_apply wp_enqueueResponse key ri.γ pred (demuxPub C pred ri.sr) sent1 _
         (progressResp c.maxRev) $$ [Hopen] as %ok ⟨%sent2, Hopen, %Henq⟩
       · iframe Hw Hopen

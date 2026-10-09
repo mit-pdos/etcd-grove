@@ -79,6 +79,8 @@ theorem demux.Init.wp_proof (wp_purge : demux.purge.spec (GF := GF) (hG := hG)) 
     · unfold demuxLocked; iexists actP, lagP; simp only [named]; iframe
       isplitr
       · rw [Hs]; iapply (certChain_nil (GF := GF) (C := C) _)
+      isplitr
+      · iexact Hprog
       ipureintro; exact ⟨Hok', RegsStart.uninit Hstart Hif⟩
     imod ghostVar_update_halves ({ c with minRev := m, base := sint.Z m - 1 }) γd.core c c $$ Hgw Hcore with ⟨Hgw, Hcore⟩
     imod demux_lock_release d γd cap ({ c with minRev := m, base := sint.Z m - 1 }) regs views $$ [$Hd $Hcore $Hl $Hlc3] with HP
@@ -108,6 +110,8 @@ theorem demux.Init.wp_proof (wp_purge : demux.purge.spec (GF := GF) (hG := hG)) 
     · unfold demuxLocked; iexists actP, lagP; simp only [named]; iframe
       isplitr
       · dsimp only [DemuxCore.init]; iapply (certChain_nil (GF := GF) (C := C) _)
+      isplitr
+      · iapply (prog_init (GF := GF) (C := C))
       ipureintro
       exact ⟨⟨Hok.dom, Hok.mapped, Hok.active_up⟩, RegsStart.uninit Hstart rfl⟩
     imod ghostVar_update_halves ({ DemuxCore.init with minRev := m, base := sint.Z m - 1 }) γd.core c c $$ Hgw Hcore with ⟨Hgw, Hcore⟩
@@ -152,6 +156,8 @@ theorem demux.Init.wp_proof (wp_purge : demux.purge.spec (GF := GF) (hG := hG)) 
   · unfold demuxLocked; iexists actP, lagP; simp only [named]; iframe
     isplitr
     · dsimp only [DemuxCore.init]; iapply (certChain_nil (GF := GF) (C := C) _)
+    isplitr
+    · iapply (prog_init (GF := GF) (C := C))
     ipureintro
     exact ⟨⟨Hok.dom, Hok.mapped, Hok.active_up⟩, RegsStart.uninit Hstart rfl⟩
   imod ghostVar_update_halves ({ DemuxCore.init with minRev := m, base := sint.Z m - 1 }) γd.core c c $$ Hgw Hcore with ⟨Hgw, Hcore⟩

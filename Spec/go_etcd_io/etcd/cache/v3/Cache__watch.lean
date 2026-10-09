@@ -42,13 +42,13 @@ abbrev Cache.watch.spec : Prop :=
     (rev R : w64) (c0 : DemuxCore) (st : StoreState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
       isCacheFields c cf γr γd cap ∗ cacheWriter cf γd cap c0 ∗
-      storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) st ∗ isEtcdKvs R cf.pfx st.latest ∗
+      storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) etcdReached st ∗ isEtcdKvs R cf.pfx st.latest ∗
       ⌜st.Synced ∧ 0 < sint.Z rev ∧ sint.Z rev ≤ sint.Z R + 1 ∧
         sint.Z R ≤ sint.Z st.latestRev⌝ }}
     (App (Val (c @!! go.GoType.PointerType Cache.ty @!! go!"watch")) (Val #rev))
   {{ (err : GoInterface), RET #err; ⌜err ≠ GoInterface.nil⌝ ∗
       ∃ (c1 : DemuxCore) (st' : StoreState), cacheWriter cf γd cap c1 ∗
-        storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) st' }}
+        storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) etcdReached st' }}
 
 end spec
 

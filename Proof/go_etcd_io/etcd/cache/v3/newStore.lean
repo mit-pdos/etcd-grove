@@ -34,8 +34,10 @@ theorem newStore.wp_proof
     (wp_newRingBuffer : newRingBuffer.spec (GF := GF) (hG := hG)) :
     newStore.spec (GF := GF) (hG := hG) := by
   have wp_btree_New : btree.New.modelSpec (GF := GF) (hG := hG) := btree.New.modelSpec_of wp_btree_New
-  intro E degree cap
-  wp_start as ⟨%Hdeg, %Hcap⟩
+  intro E R degree cap
+  wp_start as ⟨%Hdeg, %Hcap, #HR0⟩
+  ihave #HR0' : □ R StoreState.init.latestRev $$ []
+  · rw [show StoreState.init.latestRev = W64 0 from rfl]; iexact HR0
   wp_auto
   ihave Hless : btLessSpec (functions kvItemLess []) (kvItemIs (hG := hG)) kvLess $$ []
   · unfold btLessSpec
@@ -76,13 +78,14 @@ theorem newStore.wp_proof
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γr, Hauth, #Hlb⟩
   have Hinv0 : StoreInv (sint.nat cap) StoreState.init := by
     constructor <;> simp [StoreState.init, RevSorted] <;> first | word | skip
-  imod sync.init_RWMutex (storeLockInv (hG := hG) «$r0_ptr» ⟨γs, γr⟩ (sint.nat cap) E)
+  imod sync.init_RWMutex (storeLockInv (hG := hG) «$r0_ptr» ⟨γs, γr⟩ (sint.nat cap) E R)
     (storeMuAddr «$r0_ptr») $$ [Hgs1 Hauth Lrev Hhist] mu with Htoks
   · inext
     unfold storeLockInv
     iexists StoreState.init
     simp only [named]
     iframe
+    iframe HR0'
     ipureintro; exact Hinv0
   iapply wp_fupd
   wp_apply sync.RWMutex.wp_RLocker
@@ -115,6 +118,7 @@ theorem newStore.wp_proof
     · unfold storeRevLb
       rw [show sint.nat StoreState.init.latestRev = 0 from rfl]
       iexact Hlb
+    iframe HR0'
     ipureintro; exact Hinv0
   isplitr
   · unfold storeRevLb

@@ -193,31 +193,40 @@ theorem watchChain_certChain_tail (pfx : GoString) (last : Int) (k : w64) (bs : 
         · ipureintro; exact ⟨hq, hab⟩
         imodintro
         unfold etcdStepCertBody
-        icases Hb with ⟨%cs, #Hm, %Hst⟩
+        icases Hb with ⟨%cs, #Hm, %Hst, #Hre⟩
         iexists cs
-        iframe Hm
+        iframe Hm Hre
         ipureintro
         exact ⟨etcdStep_compose q k (batchRev b) pfx cs hs Hst.1, Hst.2⟩
     iapply watchChain_certChain pfx (batchRev b) bs $$ H
 
-/-- etcd's watch contract for a response that is not an error: its pure part and the chain of
-its batches from the cursor. -/
+/-- etcd's watch contract for a response that is not an error: its pure part, the chain of
+its batches from the cursor, and, for a progress notification, that etcd has reached its
+revision. -/
 theorem watchRespOk_case (pfx : GoString) (k k' : w64)
     (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) (hne : ¬ watchErr v) :
     watchRespOk (GF := GF) pfx k k' v r ⊢
-      ⌜WatchCase pfx k k' r⌝ ∗ watchChain pfx k (splitBatches r.events) := by
+      ⌜WatchCase pfx k k' r⌝ ∗ watchChain pfx k (splitBatches r.events) ∗
+        □ (⌜r.isProgressNotify = true⌝ -∗ etcdReached r.hdrRev) := by
   unfold watchRespOk
-  iintro ⟨%Hh, (%H | %H | %H | ⟨%H, #Hc⟩)⟩
+  iintro ⟨%Hh, (%H | ⟨%H, #Hre⟩ | ⟨%H, #Hre⟩ | ⟨%H, #Hc⟩)⟩
   · exact absurd H.1 hne
   · isplitr
     · ipureintro; exact ⟨Hh, Or.inl H.2⟩
-    rw [H.2.2.1]; unfold splitBatches watchChain; itrivial
+    isplitr
+    · rw [H.2.2.1]; unfold splitBatches watchChain; itrivial
+    imodintro; iintro -; iexact Hre
   · isplitr
     · ipureintro; exact ⟨Hh, Or.inr (Or.inl H.2)⟩
-    rw [isProgressNotify_events H.2.1]; unfold splitBatches watchChain; itrivial
+    isplitr
+    · rw [isProgressNotify_events H.2.1]; unfold splitBatches watchChain; itrivial
+    imodintro; iintro -; iexact Hre
   · isplitr
     · ipureintro; exact ⟨Hh, Or.inr (Or.inr H.2)⟩
-    iexact Hc
+    iframe Hc
+    imodintro; iintro %Hp
+    rw [isProgressNotify_false_of_events H.2.1] at Hp
+    cases Hp
 
 /-- What `Broadcast` asks of the caller: the response's certificate, from the stream's state
 `c` continuing the watch at the cursor `k`. -/
@@ -225,9 +234,10 @@ theorem watchEvents_respCert (pfx : GoString) (cap : Nat) (c : DemuxCore) (r : R
     (k k' : w64) (hinv : DemuxInv cap c) (hk : CursorOk pfx c k)
     (hcase : WatchCase pfx k k' r) :
     watchChain (GF := GF) pfx k (splitBatches r.events) ⊢
+      □ (⌜r.isProgressNotify = true⌝ -∗ etcdReached r.hdrRev) -∗
       ⌜c.minRev ≠ W64 0 ∧ validRevisions r c.maxRev = true⌝ -∗
         respCert (etcdStepCert pfx) c r := by
-  iintro #Hc %Hv
+  iintro #Hc #Hpr %Hv
   obtain ⟨-, hc | hc | hc⟩ := hcase
   · unfold respCert
     rw [isProgressNotify_false_of_created hc.1, hc.2.1]
@@ -236,9 +246,14 @@ theorem watchEvents_respCert (pfx : GoString) (cap : Nat) (c : DemuxCore) (r : R
   · unfold respCert
     rw [hc.1]
     simp only [↓reduceIte]
-    ipureintro
-    have := hk.2.1
-    omega
+    isplitr
+    · ipureintro
+      have := hk.2.1
+      omega
+    rw [etcdStepCert_prog]
+    imodintro
+    iapply Hpr
+    ipureintro; trivial
   · obtain ⟨hne, -, hrevs, -⟩ := hc
     unfold respCert
     rw [isProgressNotify_false_of_events hne]
@@ -440,11 +455,11 @@ theorem Cache.watchEvents.wp_proof
       have h := Herr.1 rfl
       unfold watchErr
       rintro (h' | h' | h') <;> simp_all
-    icases watchRespOk_case cf.pfx k k' v r hnw $$ Hok with ⟨%Hcase, #Hch⟩
+    icases watchRespOk_case cf.pfx k k' v r hnw $$ Hok with ⟨%Hcase, #Hch, #Hpr⟩
     unfold cacheWriter
     icases Hw with ⟨Hdw, %Hwo⟩
     icases demuxWriter_inv $$ Hdw with ⟨Hdw, %Hinv⟩
-    ihave #Hcert := watchEvents_respCert cf.pfx cap cc r k k' Hinv Hkc Hcase $$ Hch
+    ihave #Hcert := watchEvents_respCert cf.pfx cap cc r k k' Hinv Hkc Hcase $$ Hch Hpr
     wp_auto
     wp_apply wp_Broadcast cf.demux γd cap (etcdStepCert cf.pfx) cc v r
       $$ [$HisDemux $Hdw $Hr $Hcert] as %berr Hb

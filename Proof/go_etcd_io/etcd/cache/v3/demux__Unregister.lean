@@ -28,19 +28,19 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 certificate chain: the closed log's publication if the watcher is still open (mapped). -/
 theorem unregister_closePub (C : DemuxCert GF) (c : DemuxCore) (ri : RegInfo) (v : View)
     (pred : Option (GoString → Bool)) (sent : List RespModel)
-    (hst : v.phase.mapped = true → StartOk c ri v ∧ v.stream = c.stream)
+    (hst : v.phase.mapped = true → StartOk c ri v ∧ v.stream = c.stream ∧ v.maxRev = c.maxRev)
     (hsr : ri.sr = W64 0 ∨ ri.s = ri.sr) (hD : Delivered pred ri.s v sent) :
-    certChain C c.base c.stream ⊢
+    certChain C c.base c.stream ⊢ □ C.prog c.maxRev -∗
       watcherClosePub (demuxPub C pred ri.sr) sent none v.phase.toWatcher := by
   cases hph : v.phase with
   | active | lagging =>
-    obtain ⟨hso, hstream⟩ := hst (by rw [hph]; rfl)
+    obtain ⟨hso, hstream, hmax⟩ := hst (by rw [hph]; rfl)
     simp only [RegPhase.toWatcher, watcherClosePub]
-    rw [← hstream]
+    rw [← hstream, ← hmax]
     exact pub_close pred ri.sr ri.s v sent none c.base hsr hD hso.cond (fun m h => by cases h)
   | closed c0 =>
     simp only [RegPhase.toWatcher, watcherClosePub]
-    iintro _
+    iintro _ _
     itrivial
 
 theorem demux.Unregister.wp_proof
@@ -65,8 +65,9 @@ theorem demux.Unregister.wp_proof
   iNamed Hr
   icombine Hviews Hview gives %Hvlook
   ihave #Hcp := unregister_closePub C c (RegInfo.mk γ s pn sr) v pred sent
-    (fun hm => ⟨Hstart.get Hlook Hvlook hm, (Hok.mapped w v Hvlook hm).1⟩)
-    (Hstart.sr_ok w _ Hlook) Hdel $$ Hcerts
+    (fun hm => ⟨Hstart.get Hlook Hvlook hm, (Hok.mapped w v Hvlook hm).1,
+      (Hok.mapped w v Hvlook hm).2⟩)
+    (Hstart.sr_ok w _ Hlook) Hdel $$ Hcerts Hprog
   imod ghost_map_delete $$ Hregs Helem with Hregs
   imod ghost_map_delete $$ Hviews Hview with Hviews
   wp_auto

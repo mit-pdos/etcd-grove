@@ -64,15 +64,17 @@ theorem Cache.serverRevision.wp_proof
     · simp at Hf
   iunfold isEtcdKV at HisKV
   ihave #HG := HisKV $$ %ctx %s %(if cf.pfx = [] then (go!"/" : GoString) else cf.pfx) %optsSl
-    %([withLimitM (W64 1), withCountOnlyM] : List (OpFull → OpFull))
+    %([withLimitM (W64 1), withCountOnlyM] : List (OpFull → OpFull)) %(W64 0)
   wp_apply HG $$ [] as %resp %err #Hres
   · iframe Hctx Hopts
+    isplitr
+    · iapply etcdReached_zero
     ipureintro
     refine ⟨?_, rfl⟩
     rintro ⟨h, -⟩
     cases h
   iunfold kvGetResult at Hres
-  icases Hres with (%Herr | ⟨%Herr, %r, %m, #Hrev, #Hm, -⟩)
+  icases Hres with (%Herr | ⟨%Herr, %r, %m, #Hrev, #Hm, -, -, -⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by
       cases err with
       | nil => exact absurd rfl Herr

@@ -342,7 +342,7 @@ theorem applyEvents_certs (pfx : GoString) (cap : Nat) :
             fun _ _ => rfl
           simp only [hcert]
           iunfold etcdStepCertBody at Hc
-          icases Hc with ⟨%cs, #Hm, %Hst⟩
+          icases Hc with ⟨%cs, #Hm, %Hst, -⟩
           rw [hbr] at Hst
           ihave #HY' : isEtcdKvs e.rev pfx m' $$ []
           · iapply isEtcdKvs_step Y p e.rev pfx st.latest m' _ cs Hp Hst.1 Hst.2 hb
@@ -398,7 +398,7 @@ theorem storeW_chain (pfx : GoString) (s R Y : w64) (rcv : List RespModel) (r : 
           certChain (etcdStepCert pfx) (sint.Z Y) (splitBatches r.events)) := by
   iintro H
   iunfold demuxPubBody at H
-  icases H with ⟨%s', %v, %p₀, %Hpure, #Hch⟩
+  icases H with ⟨%s', %v, %p₀, %Hpure, #Hch, -⟩
   obtain ⟨hs, hD, hp, -⟩ := Hpure
   have hs' : s' = s := by
     rcases hs with hs | hs
@@ -491,6 +491,34 @@ theorem storeW_chain (pfx : GoString) (s R Y : w64) (rcv : List RespModel) (r : 
     rw [hyr]
     exact habove y hy
 
+/-- **The store watcher's next response** `r` after `rcv` moves the store's latest revision only
+to revisions etcd has reached (`revCerts etcdReached`, `Apply`'s premise): a progress
+notification's (`demuxPubBody_prog`), or an event's (its batch's certificate). -/
+theorem storeW_revCerts (pfx : GoString) (s : w64) (rcv : List RespModel) (r : RespModel)
+    (st : StoreState) :
+    demuxPubBody (GF := GF) (etcdStepCert pfx) none s none (rcv ++ [r]) ⊢
+      revCerts etcdReached (applyRespRevs st r) := by
+  iintro #H
+  ihave #Hprog := demuxPubBody_prog (C := etcdStepCert pfx) none s none (rcv ++ [r]) $$ H
+  iunfold demuxPubBody at H
+  icases H with ⟨%s', %v, %p₀, %Hpure, #Hch, -⟩
+  obtain ⟨-, hD, -, -⟩ := Hpure
+  ihave #Hbs := certChain_prog (C := etcdStepCert pfx) p₀ _ $$ Hch
+  rw [etcdStepCert_prog] at *
+  unfold revCerts
+  imodintro
+  iintro %x %hx
+  rcases applyRespRevs_mem st r x hx with ⟨he, rfl⟩ | ⟨e, he, rfl⟩
+  · iapply Hprog; ipureintro; exact ⟨by simp, he⟩
+  · have hmem : e ∈ (streamRange s' v.n v.stream).flatten := by
+      have h1 : e ∈ eventsOf (rcv ++ [r]) := by rw [eventsOf_append]; simp [he]
+      rw [hD.events] at h1
+      exact (List.mem_filter.1 h1).1
+    obtain ⟨b, hb, heb⟩ := List.mem_flatten.1 hmem
+    have hbok : BatchOk b := hD.stream_ok.batches b (streamRange_mem hb).1
+    rw [batchRev_of_mem hbok heb]
+    iapply Hbs; ipureintro; exact hb
+
 theorem Cache.applyStorage.wp_proof
     (wp_Apply : store.Apply.spec (GF := GF) (hG := hG)) :
     Cache.applyStorage.spec (GF := GF) (hG := hG) := by
@@ -508,7 +536,7 @@ theorem Cache.applyStorage.wp_proof
   iNamed Hw'
   wp_auto
   ihave HI : (∃ (st : StoreState) (rcv : List RespModel) (Y : w64),
-      storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) st ∗ watcherConsumer γw rcv ∗
+      storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) etcdReached st ∗ watcherConsumer γw rcv ∗
       isEtcdKvs Y cf.pfx st.latest ∗
       ⌜st.Synced ∧ sint.Z Y = lastEvRevOr rcv (sint.Z R) ∧ sint.Z R ≤ sint.Z Y ∧
         (eventsOf rcv ≠ [] ∨ sint.Z sw = sint.Z R + 1 ∨ sint.Z Y ≤ sint.Z st.latestRev) ∧
@@ -578,6 +606,7 @@ theorem Cache.applyStorage.wp_proof
       have hpub : (demuxPub (etcdStepCert (GF := GF) cf.pfx) none sw).pub =
           demuxPubBody (etcdStepCert cf.pfx) none sw := rfl
       simp only [hpub]
+      ihave #HrevC := storeW_revCerts cf.pfx sw rcv r st $$ Hpub
       icases storeW_chain cf.pfx sw R Y rcv r hs0 hsR hYc $$ Hpub with ⟨%Hsorted, Hchain⟩
       obtain ⟨hsorted, habove0⟩ := Hsorted
       iunfold respSent at Hsent
@@ -595,8 +624,8 @@ theorem Cache.applyStorage.wp_proof
           exact Classical.byContradiction fun h' => hn ⟨e, he, by omega⟩
         obtain ⟨hsn, hfail⟩ := applyResp_stale cf.scap st r Y hstale hYl
         wp_auto
-        wp_apply wp_Apply cf.store cf.γs cf.scap (etcdCert cf.pfx) st resp r
-          $$ [$HisStore $Hwr $Hresp] as %err ⟨Hwr, -, %Herr⟩
+        wp_apply wp_Apply cf.store cf.γs cf.scap (etcdCert cf.pfx) etcdReached st resp r
+          $$ [$HisStore $Hwr $Hresp $HrevC] as %err ⟨Hwr, -, %Herr⟩
         · isplitr
           · ipureintro; exact hsorted
           rw [hsn]
@@ -612,8 +641,8 @@ theorem Cache.applyStorage.wp_proof
       ihave #Hch := Hchain $$ %habove
       icases applyResp_certs cf.pfx cf.scap st r Y $$ [$HYc $Hch] with ⟨#Hsnaps, Hlat⟩
       wp_auto
-      wp_apply wp_Apply cf.store cf.γs cf.scap (etcdCert cf.pfx) st resp r
-        $$ [$HisStore $Hwr $Hresp $Hsnaps] as %err ⟨Hwr, -, %Herr⟩
+      wp_apply wp_Apply cf.store cf.γs cf.scap (etcdCert cf.pfx) etcdReached st resp r
+        $$ [$HisStore $Hwr $Hresp $Hsnaps $HrevC] as %err ⟨Hwr, -, %Herr⟩
       · ipureintro; exact hsorted
       cases hok : (applyResp cf.scap st r).2 with
       | false =>

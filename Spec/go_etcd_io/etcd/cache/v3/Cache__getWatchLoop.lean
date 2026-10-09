@@ -31,17 +31,18 @@ This is the proof that the store has one writer: the writer's token (`storeWrite
 through the loop, `get`'s `Restore`, `watch`, and each iteration's `applyStorage` goroutine, which
 hands it back through `applyErr` before the loop goes on (`Cache.watch`'s spec).
 
-Every `get` needs etcd's linearizability for the store's latest revision; `isEtcdKVLin` gives it
-for every revision the store has reached. -/
+Every `get` needs etcd's linearizability for the store's latest revision: the writer knows etcd
+has reached it (`etcdReached`, the store's revision certificate), and the client's get is
+linearizable (`isEtcdKV`). -/
 abbrev Cache.getWatchLoop.spec : Prop :=
   ∀ (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNames) (cap : Nat)
     (c0 : DemuxCore) (st : StoreState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
       isCacheFields c cf γr γd cap ∗ cacheWriter cf γd cap c0 ∗
-      storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) st ∗ isEtcdKVLin cf }}
+      storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) etcdReached st }}
     (App (Val (c @!! go.GoType.PointerType Cache.ty @!! go!"getWatchLoop")) (Val #()))
   {{ RET #(); ∃ (c1 : DemuxCore) (st' : StoreState), cacheWriter cf γd cap c1 ∗
-      storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) st' }}
+      storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) etcdReached st' }}
 
 end spec
 

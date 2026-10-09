@@ -100,16 +100,18 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 /-- `Stop`'s publication for a mapped watcher (its view's stream is the current one). -/
 theorem demuxPurge_closePub (C : DemuxCert GF) (pred : Option (GoString → Bool)) (c : DemuxCore)
     (ri : RegInfo) (v : View) (sent : List RespModel) (hD : Delivered pred ri.s v sent)
-    (hst : StartOk c ri v) (hsr : ri.sr = W64 0 ∨ ri.s = ri.sr) (hstream : v.stream = c.stream) :
-    certChain (GF := GF) C c.base c.stream ⊢
+    (hst : StartOk c ri v) (hsr : ri.sr = W64 0 ∨ ri.s = ri.sr) (hstream : v.stream = c.stream)
+    (hmax : v.maxRev = c.maxRev) :
+    certChain (GF := GF) C c.base c.stream ⊢ □ C.prog c.maxRev -∗
       watcherClosePub (demuxPub C pred ri.sr) sent none v.phase.toWatcher := by
-  iintro #H
+  iintro #H #Hp
   cases hph : v.phase.toWatcher with
   | opened =>
     dsimp only [watcherClosePub, demuxPub]
-    rw [← hstream]
+    rw [← hstream, ← hmax]
     iapply pub_close pred ri.sr ri.s v sent none c.base hsr hD hst.cond (fun m h => by cases h)
-    iexact H
+    · iexact H
+    · iexact Hp
   | closed _ =>
     unfold watcherClosePub
     ipureintro; trivial
@@ -166,8 +168,9 @@ theorem demux.purge.wp_proof
     · iframe Hw; iframe Hwat
       iapply demuxPurge_closePub C pred c ri v sent Hdel
         (Hstart.get Hri hv (by rw [hvn.1]; rfl)) (Hstart.sr_ok key ri Hri)
-        (Hok.mapped key v hv (by rw [hvn.1]; rfl)).1
-      iexact Hcerts
+        (Hok.mapped key v hv (by rw [hvn.1]; rfl)).1 (Hok.mapped key v hv (by rw [hvn.1]; rfl)).2
+      · iexact Hcerts
+      · iexact Hprog
     unfold forMapPostcondition
     iright; ileft
     isplitr
@@ -253,8 +256,9 @@ theorem demux.purge.wp_proof
     · iframe Hw; iframe Hwat
       iapply demuxPurge_closePub C pred c ri v sent Hdel
         (Hstart.get Hri hv0 (by rw [hvn.1]; rfl)) (Hstart.sr_ok key ri Hri)
-        (Hok.mapped key v hv0 (by rw [hvn.1]; rfl)).1
-      iexact Hcerts
+        (Hok.mapped key v hv0 (by rw [hvn.1]; rfl)).1 (Hok.mapped key v hv0 (by rw [hvn.1]; rfl)).2
+      · iexact Hcerts
+      · iexact Hprog
     unfold forMapPostcondition
     iright; ileft
     isplitr
@@ -300,6 +304,8 @@ theorem demux.purge.wp_proof
   isplitr
   · dsimp only [DemuxCore.init]
     iapply (certChain_nil (GF := GF) (C := C) 0)
+  isplitr
+  · iapply (prog_init (GF := GF) (C := C))
   ipureintro
   refine ⟨⟨fun w => (Hok.dom w).trans (Hdom w).symm, ?_, ?_⟩, RegsStart.unmapped Hstart.sr_ok Hunm⟩
   · intro w v hv hm; rw [Hunm w v hv] at hm; cases hm

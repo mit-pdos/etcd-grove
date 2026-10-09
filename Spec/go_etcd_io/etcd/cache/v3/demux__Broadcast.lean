@@ -29,7 +29,7 @@ state. Every active watcher is sent its part of the response (or a progress noti
 becomes lagging; which one depends on its consumer, so it is not stated, but the delivery
 invariant is kept. If the response is accepted, the caller certifies its batches (`respCert`:
 chained from the stream's last batch, or `base`), or, for a progress notification, that it is at
-or above `base`. -/
+or above `base`, with its revision's certificate (`C.prog`). -/
 abbrev demux.Broadcast.spec : Prop :=
   ∀ (d : Loc) (γd : DemuxNames) (cap : Nat) (C : DemuxCert GF) (c : DemuxCore)
     (resp : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel),

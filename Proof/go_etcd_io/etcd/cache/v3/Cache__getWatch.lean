@@ -27,10 +27,10 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- The store writer's state satisfies the store's invariant. -/
 theorem storeWriter_storeInv (s : Loc) (γ : StoreNames) (cap : Nat) (E : w64 → KvMap → IProp GF)
-    (st : StoreState) :
-    storeWriter s γ cap E st ⊢ storeWriter s γ cap E st ∗ ⌜StoreInv cap st⌝ := by
+    (R : w64 → IProp GF) (st : StoreState) :
+    storeWriter s γ cap E R st ⊢ storeWriter s γ cap E R st ∗ ⌜StoreInv cap st⌝ := by
   unfold storeWriter
-  iintro ⟨H1, H2, H3, H4, %Hi⟩
+  iintro ⟨H1, H2, H3, H4, H5, %Hi⟩
   iframe
   ipureintro; exact ⟨Hi, Hi⟩
 
@@ -39,14 +39,14 @@ theorem Cache.getWatch.wp_proof
     (wp_watch : Cache.watch.spec (GF := GF) (hG := hG)) :
     Cache.getWatch.spec (GF := GF) (hG := hG) := by
   intro c cf γr γd cap c0 st
-  wp_start as ⟨#Hc, Hw, Hwr, #HKV⟩
+  wp_start as ⟨#Hc, Hw, Hwr⟩
   ihave #Hc' := Hc
   iunfold isCacheFields at Hc'
   iNamed Hc'
   icases HisICtx with ⟨%ics, #Hctxi⟩
-  icases storeWriter_storeInv _ _ _ _ _ $$ Hwr with ⟨Hwr, %Hst⟩
+  icases storeWriter_storeInv _ _ _ _ _ _ $$ Hwr with ⟨Hwr, %Hst⟩
   wp_auto
-  wp_apply wp_get c cf γr γd cap cf.ictx ics st $$ [$Hpkg $Hc $Hctxi $Hwr $HKV] as %resp %err Hres
+  wp_apply wp_get c cf γr γd cap cf.ictx ics st $$ [$Hpkg $Hc $Hctxi $Hwr] as %resp %err Hres
   icases Hres with (⟨%Herr, Hwr⟩ | ⟨%Herr, %R, %m, #Hrev, Hwr, #HR, -, %HRb⟩)
   · -- the get failed: return its error
     obtain ⟨-, Hne⟩ := Herr

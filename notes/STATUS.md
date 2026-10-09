@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-09 (merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
+**Last updated:** 2026-10-09 (the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
 
 Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
@@ -13,6 +13,50 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 (`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
+
+## The cache: linearizability as a model fact, `etcdReached` (2026-10-09)
+
+The client assumption no longer mentions caches. "etcd has reached revision `r`"
+(`etcdReached r`, `InvEtcd.lean`) is a fact of the model, produced by the client's responses
+and carried to every place the store's or the demux's revision moves; `isEtcdKV`'s `Get` triple
+is linearizable against it. Design: `decisions.md`, "`New` and the client" (the paragraph
+"fixed 2026-10-09").
+
+- **The model**: `axiom etcdReachedAt (r : w64) : IProp GF` and `axiom etcdReachedAt_timeless`
+  (an instance); `etcdReached r := ⌜sint.Z r ≤ 0⌝ ∨ ∃ r', ⌜sint.Z r ≤ sint.Z r'⌝ ∗ □
+  etcdReachedAt r'`, so persistence, timelessness, downward closure (`etcdReached_mono`) and
+  `etcdReached_zero` are instances/lemmas.
+- **The client**: `isEtcdKV`'s triple takes any `lo` with `etcdReached lo` and returns
+  (`kvGetResult pfx lo`) a header revision `r` with `etcdReached r`, `r < 2^63 - 1`, and `lo ≤ r`
+  **unless the request is serializable** (a serializable get may be served by a lagging member);
+  `isEtcdKVFrom` and `isEtcdKVLin` are gone. The watch contract (`watchRespOk`) gives
+  `etcdReached` of a created notification's and a progress notification's header revision, and
+  `etcdStepCertBody` (each batch) of the batch's revision.
+- **The store** takes a second parameter `R : w64 → IProp GF` beside `E` (`storeLockInv`,
+  `storeReader`, `storeWriter`; not `storeLockedPhys`): the lock invariant and the writer hold
+  `□ R latestRev`; `newStore` asks for `□ R 0`, `Restore kvs rev` for `□ R rev`, `Apply` for
+  `revCerts R (applyRespRevs st r)` (a progress notification's revision, or each snapshot's it
+  appends: `applyResp_latestRev_mem`); `getSnapshot`/`Get`/`LatestRev` return `□ R` of the
+  state seen. `applyEventsLocked` and `applyProgressNotifyLocked` are unchanged. The cache's `R`
+  is `etcdReached`.
+- **The demux**: `DemuxCert` gained `prog : w64 → IProp GF` (timeless, downward closed, `prog 0`,
+  and `cert_prog`: a batch's certificate gives `prog` of its revision); the lock (`demuxLockRest`,
+  `demuxLocked`) holds `□ C.prog maxRev`; `respCert` of a progress notification adds
+  `□ C.prog hdrRev`; `demuxPubBody` adds `□ C.prog v.maxRev`, from which `demuxPubBody_prog`
+  gives it of every progress notification of a published log. Every other demux statement
+  unchanged (`pub_send`/`pub_close`/`demuxPub_intro` take the extra premise). The cache's `prog`
+  is `etcdReached`.
+- **The cache**: `get` calls `kv.Get` with the writer's `etcdReached st.latestRev`
+  (`storeWriter_rev`), so `get`, `getWatch` and `getWatchLoop` lost their linearizability
+  premises; `applyStorage` supplies `Apply`'s `revCerts` from the store watcher's publication
+  (`storeW_revCerts`); `watchEvents` supplies `respCert`'s `prog` from the watch receive.
+  `isEtcdClient` is the two field points-tos with `isEtcdKV`, `isEtcdWatcher`,
+  `isEtcdProgressNotifier`, no quantification over caches. `New.spec` is unchanged.
+- **Gates** (2026-10-09): `lake build` passes (1656 jobs); `etc/tcb-report.py --check` (after
+  `--update`): 38 axioms (new `etcdReachedAt`, `etcdReachedAt_timeless`), 4 sorries;
+  `#print axioms` of `cache_New`, `cache_Get`, `cache_Watch`, `cache_Watch_delivery` now include
+  both; `etc/gen-link.py --cache` reproduces `Link.lean`; `etc/goose.py --check` passes;
+  `etc/verified-code.py --reuse`: cache 97 verified, 10 unfinished of 107 (unchanged).
 
 ## Merged with upstream's server work (2026-10-09)
 
@@ -650,7 +694,9 @@ model".
   `client/v3/InvOp.lean`, covering every field `toRangeRequest` sends): any error; or a header
   revision `r` with `isEtcdKvs r pfx m` for some `m`, and, for a prefix get
   (`OpFull.isPrefixGet`), `resp.Kvs` lists exactly `m`. It is a premise (`isCacheFields`), not
-  an axiom: the Cache stage will assume it of `client.KV` (the axiom about the client).
+  an axiom: the Cache stage will assume it of `client.KV` (the axiom about the client). Since the
+  `etcdReached` change (top section) the triple is also linearizable: it takes `etcdReached lo`
+  and returns `etcdReached r` with `lo ≤ r` for a non-serializable request.
 - **The Get theorem in words** (`Spec/go_etcd_io/etcd/cache/v3/Cache__Get.lean`,
   `cacheGetResult`): for a reader of the store (with a lower bound `r0`), options that do not
   make `OpGet` panic, and `o` the request's `Op`, `c.Get(ctx, key, opts...)` returns either
@@ -727,8 +773,9 @@ model".
     the writer and its certificate; the loop takes it at its first receive (in `watchEvents` or
     in the wait), so `Restore`/`Register` of the next round never run beside an old `Apply`.
   - `Cache.getWatch`: `get` then `watch(R + 1)`; returns a non-nil error and both writers.
-  - `Cache.getWatchLoop`: with both writers and `isEtcdKVLin cf` (etcd's linearizability: a
-    prefix get returns at least any revision the store has reached), returns `()` once the
+  - `Cache.getWatchLoop`: with both writers (etcd's linearizability for `get` was the premise
+    `isEtcdKVLin cf`; since the `etcdReached` change, the writer's certificate and `isEtcdKV`
+    give it, no premise), returns `()` once the
     internal context is done, **with both writers** (returned, not dropped). `defaultConfig` is
     proved (needs Perennial's `time.Minute`).
   - Changed statements: `applyStorage` takes a store watcher from any `0 < s ≤ R + 1` (it was
@@ -791,7 +838,7 @@ model".
   stream is; `readyOnce.Do(Init; Set)` with the framed `Once`), `applyStorage` (the store's writer:
   every snapshot `Apply` appends is etcd's state at its revision, from the store watcher's
   publication and the bridge), `get` (`Restore` of etcd's state at the response's revision; it
-  needs etcd's linearizability, `isEtcdKVFrom`, as a premise: finding 4), `WaitForRevision`.
+  needs etcd's linearizability: finding 4; now from `etcdReached`), `WaitForRevision`.
 - **`Cache.Watch`'s premises and costs**: `cacheWatchSlot` (a demux token and a wait-group
   budget token, both kept by the goroutine: each `Watch` spends one of the `2^31 - 1` slots of
   `cacheWgInv`, which keeps the `int32` counter from overflowing); `isCacheFields` gained the
@@ -847,8 +894,10 @@ model".
      start. Performance only.
   4. *`get` needs linearizability.* `store.Restore` (`store.go:105-117`) does not check that the
      revision does not go back, and the store's readers' lower bounds (`storeRevLb`) need it;
-     `isEtcdKV` relates no two calls, so `Cache.get`'s spec takes `isEtcdKVFrom kv pfx
-     st.latestRev` (a prefix get returns at least the store's revision) as a premise.
+     `isEtcdKV` related no two calls, so `Cache.get`'s spec took `isEtcdKVFrom kv pfx
+     st.latestRev` (a prefix get returns at least the store's revision) as a premise. Now
+     (`etcdReached`, top section) the writer knows etcd reached its latest revision and the
+     client's get is linearizable: no premise.
   5. *`PerWatcherBufferSize` is not validated.* `newCache` (72-77) checks `HistoryWindowSize`
      and `BTreeDegree` only; `WithPerWatcherBufferSize(-1)` makes `newWatcher`'s
      `make(chan, -1)` panic in `Watch` (138) and in the watch loop's goroutine (351), which
@@ -894,10 +943,10 @@ boundary".
 - **The client's assumption** `isEtcdClient client pfx` (`InvNew.lean`, a definition): the
   `KV` and `Watcher` fields point for good to a `KV` with `isEtcdKV` and a `Watcher` with
   `isEtcdWatcher` and `isEtcdProgressNotifier` (`RequestProgress` returns some error, no
-  logical effect; new in `InvEtcd.lean`), and etcd's linearizability for every cache built over
-  this client (`isCacheFields c cf … -∗ ⌜cf.kv = kv ∧ cf.pfx = pfx⌝ -∗ isEtcdKVLin cf`): the
-  store's revisions are revisions this client reported, which the proofs do not track
-  (decisions.md).
+  logical effect; new in `InvEtcd.lean`). Nothing about caches: etcd's linearizability is a
+  property of the client's `Get` against the model fact `etcdReached` (what a caller knows etcd
+  has reached), which the client's responses produce and the store and demux carry (top
+  section; it replaced the quantification over every cache built over the client).
 - **Timers are the trust boundary** (Perennial `8c7000190`, axioms like `wp_Now`):
   `time.wp_NewTimer` returns a `*Timer` with `time.isTimer t ch γ` (its `C` field holds for
   good a channel on which a receive yields some time, `isChanBag`, no logical content);
@@ -915,8 +964,8 @@ boundary".
   readers of the store (`Get`, `WaitForRevision`), `2^30 - 3` watch slots (a demux token and a
   wait-group slot each, `Watch`), `2^30 - 2` handles on the demux's resync notifier
   (`WaitForNextResync`) with its lower bound `0`, and the whole "open" token (`cacheOpen`,
-  `Watch` takes a fraction, `Close` all of it); its resync loop, watch loop (with both writers
-  and linearizability) and progress requestor run on its wait group.
+  `Watch` takes a fraction, `Close` all of it); its resync loop, watch loop (with both writers)
+  and progress requestor run on its wait group.
 - **The other new specs**: `NewDemux` takes the caller's wait group as `wgSlotProtocol` (the
   triples of its `Add(1)`/`Done()`), returns `newDemux`'s resources less the resync loop's demux
   token and notifier handle; `resyncLoop` returns its two tokens once the context is done;
@@ -946,6 +995,9 @@ boundary".
 - **What the cache's results rest on** (`Results.lean`'s `#print axioms`, by `etc/tcb-report.py`;
   besides Lean's `propext`, `Classical.choice`, `Quot.sound` and Perennial's names-only Go
   declarations, about 855 opaque types of the translation):
+  - (since the `etcdReached` change, all of these also rest on `etcdReachedAt` and
+    `etcdReachedAt_timeless`, `cache_Watch_delivery` included: the cache's demux certificate
+    mentions `etcdReached`.)
   - `cache_New`: the model axioms `etcdState`, `EtcdStep`, `etcdStep_compose`,
     `etcdStep_transfer`; this repository's `rpctypes.Error.wp_proof`, `status.Error.wp_proof`
     (grpc's `status` is not translated); Perennial's `time.wp_NewTimer`, `Timer.wp_Stop`,

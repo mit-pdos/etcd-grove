@@ -29,7 +29,7 @@ theorem store.Get.wp_proof
     (wp_getSnapshot : store.getSnapshot.spec (GF := GF) (hG := hG))
     (wp_Range : snapshot.Range.spec (GF := GF) (hG := hG)) :
     store.Get.spec (GF := GF) (hG := hG) := by
-  intro s γ cap E r0 startSl endSl startKey endKey d1 d2 rev
+  intro s γ cap E R r0 startSl endSl startKey endKey d1 d2 rev
   wp_start as ⟨#HS, Hrd, #Hlb, Hs, He⟩
   ihave Hci : (cacheInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -40,7 +40,7 @@ theorem store.Get.wp_proof
   icases Hci with ⟨⟨%eNR, #HeNR⟩, -, -, -⟩
   icases Hri with ⟨⟨%eFR, #HeFR⟩, ⟨%eCP, #HeCP, -⟩⟩
   wp_auto
-  wp_apply wp_getSnapshot $$ [$HS $Hrd $Hlb] as %p %lrev %err ⟨Hrd, %st, Hseen, #Herr, Hres⟩
+  wp_apply wp_getSnapshot $$ [$HS $Hrd $Hlb] as %p %lrev %err ⟨Hrd, %st, Hseen, #HR, #Herr, Hres⟩
   generalize Hm : snapModel st rev = res
   cases res with
   | ok r m =>
@@ -57,7 +57,7 @@ theorem store.Get.wp_proof
     iexists st
     rw [Hm]
     dsimp only
-    iframe Hseen Hout Hcap Hkvs HE
+    iframe Hseen HR Hout Hcap Hkvs HE
     ipureintro; exact ⟨rfl, Hlrev⟩
   | notReady =>
     simp only [snapErr]
@@ -68,7 +68,7 @@ theorem store.Get.wp_proof
     iframe Hrd Hs He
     iexists st
     rw [Hm]
-    iframe Hseen
+    iframe Hseen HR
     iframe HeNR
     ipureintro; exact ⟨rfl, rfl⟩
   | invalid =>
@@ -79,7 +79,7 @@ theorem store.Get.wp_proof
     iframe Hrd Hs He
     iexists st
     rw [Hm]
-    iframe Hseen
+    iframe Hseen HR
     ipureintro; exact ⟨⟨e, rfl⟩, rfl, rfl⟩
   | future =>
     simp only [snapErr]
@@ -90,7 +90,7 @@ theorem store.Get.wp_proof
     iframe Hrd Hs He
     iexists st
     rw [Hm]
-    iframe Hseen
+    iframe Hseen HR
     iframe HeFR
     ipureintro; exact ⟨rfl, rfl⟩
   | compacted =>
@@ -102,7 +102,7 @@ theorem store.Get.wp_proof
     iframe Hrd Hs He
     iexists st
     rw [Hm]
-    iframe Hseen
+    iframe Hseen HR
     iframe HeCP
     ipureintro; exact ⟨rfl, rfl⟩
 

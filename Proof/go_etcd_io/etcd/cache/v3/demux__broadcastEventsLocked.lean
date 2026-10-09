@@ -455,8 +455,9 @@ theorem demux.broadcastEventsLocked.wp_proof
               (by rw [HeL1]; omega) (by rw [HeL1, Hmv.2]; omega) Hnemp
               (enqueueResult_some sent hr')).1 rfl⟩
           ihave #Hpub := pub_send (C := C) pred ri.sr ri.s v sent (eventsResp (evs.drop (sint.nat j)))
-            c.base (Hrs.sr_ok key ri Hri) (HSO.active Hvact) Hnext $$ [Hcerts]
+            c.base (Hrs.sr_ok key ri Hri) (HSO.active Hvact) Hnext $$ [Hcerts] [Hprog]
           · rw [Hmv.1]; iexact Hcerts
+          · rw [Hmv.2]; iexact Hprog
           wp_apply wp_enqueueResponse key ri.γ pred (demuxPub C pred ri.sr) sent _
             (eventsResp (evs.drop (sint.nat j))) $$ [Hwat] as %ok ⟨%sent', Hwat, %Henq⟩
           · iframe Hwat Hw Hresp
@@ -611,6 +612,8 @@ theorem demux.broadcastEventsLocked.wp_proof
   iframe
   isplitr
   · iexact Hcerts
+  isplitr
+  · iexact Hprog
   ipureintro
   refine ⟨demuxBEL_regsOk_full Hok ?_, Hrs⟩
   intro w v hv ha

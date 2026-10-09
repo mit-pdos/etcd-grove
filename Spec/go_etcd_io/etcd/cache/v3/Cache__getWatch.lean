@@ -24,21 +24,17 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- `c.getWatch()`, by the demux's writer and the store's writer (any states): the client's
 prefix get, restored into the store (`get`), then `watch` from the revision after the get's. It
-returns a non-nil error (the get's, or the watch's) and both writers, in some states.
-
-`get` needs etcd's linearizability for the store's latest revision (`isEtcdKVFrom`, see
-`Cache.get`'s spec). -/
+returns a non-nil error (the get's, or the watch's) and both writers, in some states. -/
 abbrev Cache.getWatch.spec : Prop :=
   ∀ (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNames) (cap : Nat)
     (c0 : DemuxCore) (st : StoreState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
       isCacheFields c cf γr γd cap ∗ cacheWriter cf γd cap c0 ∗
-      storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) st ∗
-      isEtcdKVFrom cf.kv cf.pfx st.latestRev }}
+      storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) etcdReached st }}
     (App (Val (c @!! go.GoType.PointerType Cache.ty @!! go!"getWatch")) (Val #()))
   {{ (err : GoInterface), RET #err; ⌜err ≠ GoInterface.nil⌝ ∗
       ∃ (c1 : DemuxCore) (st' : StoreState), cacheWriter cf γd cap c1 ∗
-        storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) st' }}
+        storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) etcdReached st' }}
 
 end spec
 

@@ -42,13 +42,13 @@ def watchP (v : GoError) : IProp GF := iprop(⌜v ≠ GoInterface.nil⌝)
 
 /-- What `applyErr` hands over with a value (`applyStorage` failed): the store's writer. -/
 def watchWs (cf : CacheFields) : IProp GF :=
-  iprop(∃ st : StoreState, storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) st)
+  iprop(∃ st : StoreState, storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) etcdReached st)
 
 /-- What `applyErr` hands over with a close that follows no value (`applyStorage` returned `nil`):
 the store's writer, at a synced state whose latest map is etcd's state at `Y' ≥ Y`, at most the
 latest revision. -/
 def watchWc (cf : CacheFields) (Y : w64) : IProp GF :=
-  iprop(∃ (st : StoreState) (Y' : w64), storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) st ∗
+  iprop(∃ (st : StoreState) (Y' : w64), storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) etcdReached st ∗
     isEtcdKvs Y' cf.pfx st.latest ∗
     ⌜st.Synced ∧ sint.Z Y ≤ sint.Z Y' ∧ sint.Z Y' ≤ sint.Z st.latestRev⌝)
 
@@ -81,7 +81,7 @@ theorem Cache.watch.wp_proof
   ipersist rev
   ihave HI : (∃ (cc : DemuxCore) (st : StoreState) (Y : w64),
       "Hw" ∷ cacheWriter cf γd cap cc ∗
-      "Hwr" ∷ storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) st ∗
+      "Hwr" ∷ storeWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) etcdReached st ∗
       "#HY" ∷ isEtcdKvs Y cf.pfx st.latest ∗
       "%Hi" ∷ ⌜CursorOk cf.pfx cc (rev - W64 1) ∧ st.Synced ∧ sint.Z rev ≤ sint.Z Y + 1 ∧
         sint.Z Y ≤ sint.Z st.latestRev⌝ : IProp GF) $$ [Hdw Hwr]

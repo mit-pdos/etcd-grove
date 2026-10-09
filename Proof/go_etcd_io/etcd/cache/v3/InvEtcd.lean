@@ -26,6 +26,15 @@ at which etcd had a state, and a prefix get (`OpFull.isPrefixGet`: `WithPrefix` 
 revision, limit, sort, filters, keys-only or count-only) lists exactly that state, `r`'s.
 It is a definition (as Perennial's `isLocker` is), not an axiom: the cache's specs take it as
 a premise, and the client axiom is what a caller will have to assume of `client.KV`.
+
+**Time: what etcd has reached.** `etcdReached r` (persistent, timeless, downward closed, free
+for `r ≤ 0`) says that some response from etcd has shown revision `r` to exist. Resources are
+obtained causally, so a holder learned it before any call it makes next: a linearizable `Get`
+started then returns at least `r` (`isEtcdKV`'s triple takes `etcdReached lo` and returns a
+header revision `≥ lo`, with `etcdReached` of it). The watch stream's responses give it of every
+revision they report (`watchRespOk`, `etcdStepCertBody`). It is defined over one axiomatized
+predicate, `etcdReachedAt` (with its timelessness): `etcdReached r` is `etcdReachedAt r'` for
+some `r' ≥ r`, or `r ≤ 0`, so persistence, downward closure and `etcdReached 0` are lemmas.
 -/
 module
 
@@ -69,6 +78,48 @@ axiom etcdState_agree {GF : BundledGFunctors} (rev : w64) (pfx : GoString)
 /-- The keys of `s` are strictly increasing and have the prefix `pfx`. -/
 def EtcdStateWf (pfx : GoString) (s : List EtcdKv) : Prop :=
   (s.map EtcdKv.key).Pairwise go.GoStringLt ∧ ∀ v ∈ s, pfx <+: v.key
+
+/-! ## Time: the revisions etcd has reached -/
+
+/-- **etcd has reached revision `r`** (an axiom: a fact about the server, as known to a holder):
+some response from etcd showed revision `r` to exist. An `IProp`, not a `Prop`, because it is
+knowledge obtained at a point in time: holding it means it was learned (from a response) before
+whatever the holder does next, which is what makes linearizability statable (`isEtcdKV`). -/
+axiom etcdReachedAt {GF : BundledGFunctors} (r : w64) : IProp GF
+
+/-- `etcdReachedAt` is timeless (it carries no resources), so it can sit in invariants opened
+without later credits (the demux's certificates, a watcher's publication). -/
+axiom etcdReachedAt_timeless {GF : BundledGFunctors} (r : w64) :
+  Timeless (etcdReachedAt (GF := GF) r)
+
+attribute [instance] etcdReachedAt_timeless
+
+/-- **etcd has reached revision `r`**, downward closed: etcd reached some `r' ≥ r`, or `r ≤ 0`
+(every revision etcd reports is positive, so `0` is free). Persistent and timeless. -/
+def etcdReached {GF : BundledGFunctors} (r : w64) : IProp GF :=
+  iprop(⌜sint.Z r ≤ 0⌝ ∨ ∃ r' : w64, ⌜sint.Z r ≤ sint.Z r'⌝ ∗ □ etcdReachedAt r')
+
+instance etcdReached_persistent {GF : BundledGFunctors} (r : w64) :
+    Persistent (etcdReached (GF := GF) r) := by
+  unfold etcdReached; infer_instance
+
+instance etcdReached_timeless {GF : BundledGFunctors} (r : w64) :
+    Timeless (etcdReached (GF := GF) r) := by
+  unfold etcdReached; infer_instance
+
+/-- Downward closure: etcd has reached every revision below one it has reached. -/
+theorem etcdReached_mono {GF : BundledGFunctors} (r r' : w64) (h : sint.Z r' ≤ sint.Z r) :
+    etcdReached (GF := GF) r ⊢ etcdReached r' := by
+  unfold etcdReached
+  iintro (%h0 | ⟨%r1, %h1, #H⟩)
+  · ileft; ipureintro; omega
+  · iright; iexists r1; iframe H; ipureintro; omega
+
+/-- `etcdReached 0`, for free. -/
+theorem etcdReached_zero {GF : BundledGFunctors} : ⊢ etcdReached (GF := GF) (W64 0) := by
+  unfold etcdReached
+  iintro
+  ileft; ipureintro; simp
 
 /-! ## etcd's history: steps (the stream model) -/
 
@@ -444,11 +495,12 @@ instance evsMatch_timeless (evs : List EvModel) (cs : List EtcdEv) :
 /-- The cache's certificate for the demux's batches (the demux's `C`): the batch `b` follows
 revision `p` in etcd's history under the prefix `pfx`: its events are etcd's events `cs`
 (`evsMatch`), with a step `p → batchRev b` (`EtcdStep`: nothing under the prefix in between),
-the puts under the prefix. What the client's watch stream gives the cache's writer (`isEtcdWatchChan`)
+the puts under the prefix; and etcd has reached the batch's revision (`etcdReached`). What the client's watch stream gives the cache's writer (`isEtcdWatchChan`)
 and the demux hands, through `demuxPub`, to each watcher's consumer. -/
 def etcdStepCertBody (pfx : GoString) (p : w64) (b : Batch) : IProp GF :=
   iprop(∃ cs : List EtcdEv, evsMatch b cs ∗
-    ⌜EtcdStep p (batchRev b) pfx cs ∧ ∀ c ∈ cs, c.typ = W32 0 → pfx <+: c.kv.key⌝)
+    ⌜EtcdStep p (batchRev b) pfx cs ∧ ∀ c ∈ cs, c.typ = W32 0 → pfx <+: c.kv.key⌝ ∗
+    etcdReached (batchRev b))
 
 instance etcdStepCertBody_timeless (pfx : GoString) (p : w64) (b : Batch) :
     Timeless (etcdStepCertBody (GF := GF) pfx p b) := by
@@ -458,9 +510,22 @@ instance etcdStepCertBody_persistent (pfx : GoString) (p : w64) (b : Batch) :
     Persistent (etcdStepCertBody (GF := GF) pfx p b) := by
   unfold etcdStepCertBody; infer_instance
 
-/-- The cache's demux certificate (`DemuxCert`). -/
-def etcdStepCert (pfx : GoString) : DemuxCert GF :=
-  ⟨etcdStepCertBody pfx, fun _ _ => inferInstance⟩
+/-- The cache's demux certificate (`DemuxCert`): batches by `etcdStepCertBody`, progress
+notifications' revisions by `etcdReached`. -/
+def etcdStepCert (pfx : GoString) : DemuxCert GF where
+  cert := etcdStepCertBody pfx
+  timeless := fun _ _ => inferInstance
+  prog := etcdReached
+  prog_timeless := fun _ => inferInstance
+  prog_mono := etcdReached_mono
+  prog_zero := etcdReached_zero
+  cert_prog := fun p b => by
+    unfold etcdStepCertBody
+    iintro ⟨%cs, -, -, H⟩
+    iexact H
+
+theorem etcdStepCert_prog (pfx : GoString) :
+    (etcdStepCert (GF := GF) pfx).prog = etcdReached := rfl
 
 /-- The cache's store certificate: a snapshot `(r, m)` is etcd's state at `r`, restricted to the
 cache's prefix. -/
@@ -505,58 +570,43 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- What `kv.Get` returns for the `Op` `o`, on a cache of prefix `pfx`: any error; or, on success,
-a response whose header revision `r` is one at which etcd had a state, and which lists exactly
-that state if `o` is a prefix get. -/
-def kvGetResult (pfx : GoString) (o : OpFull) (resp : Loc) (err : GoInterface) : IProp GF :=
+/-- What `kv.Get` returns for the `Op` `o`, on a cache of prefix `pfx`, called with the knowledge
+that etcd has reached `lo`: any error; or, on success, a response whose header revision `r` is one
+at which etcd had a state, which etcd has reached (`etcdReached r`), below `2 ^ 63 - 1` (etcd's
+revisions are; `getWatch` watches from `r + 1`), and at least `lo` unless the request is
+serializable (**linearizability**: a linearizable get started after revision `lo` was observed
+sees it; a serializable one may be served by a lagging member), and which lists exactly that state
+if `o` is a prefix get. -/
+def kvGetResult (pfx : GoString) (lo : w64) (o : OpFull) (resp : Loc) (err : GoInterface) :
+    IProp GF :=
   iprop(⌜err ≠ GoInterface.nil⌝ ∨
     (⌜err = GoInterface.nil⌝ ∗ ∃ (r : w64) (m : KvMap), getRespRev resp r ∗ isEtcdKvs r pfx m ∗
+      etcdReached r ∗
+      ⌜(o.base.serializable = false → sint.Z lo ≤ sint.Z r) ∧ sint.Z r < 2 ^ 63 - 1⌝ ∗
       (if o.isPrefixGet pfx then getRespKvs resp m else iprop(True))))
 
-instance kvGetResult_persistent (pfx : GoString) (o : OpFull) (resp : Loc) (err : GoInterface) :
-    Persistent (kvGetResult (GF := GF) pfx o resp err) := by
+instance kvGetResult_persistent (pfx : GoString) (lo : w64) (o : OpFull) (resp : Loc)
+    (err : GoInterface) : Persistent (kvGetResult (GF := GF) pfx lo o resp err) := by
   unfold kvGetResult; split <;> infer_instance
 
 /-- The `clientv3.KV` interface value `kv` talks to etcd, for a cache of prefix `pfx`: the triple
 of its `Get(ctx, key, opts...)` (a range request: `OpGet(key, opts...)` must not panic and must
-be a range), with any context, options with model transformers `gs`. -/
+be a range), with any context, options with model transformers `gs`, and any revision `lo` the
+caller knows etcd has reached (`etcdReached lo`; `0` is free): the response is
+`kvGetResult pfx lo`, at least `lo` unless serializable (linearizability). -/
 def isEtcdKV (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
   iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (key : GoString)
-      (sl : GoSlice) (gs : List (OpFull → OpFull)),
-    {{ context.isContext ctx cs ∗ optsAt sl gs ∗
+      (sl : GoSlice) (gs : List (OpFull → OpFull)) (lo : w64),
+    {{ context.isContext ctx cs ∗ optsAt sl gs ∗ etcdReached lo ∗
         ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1⌝ }}
       (App (App (App (Val #(methods kv.ty go!"Get" kv.v)) (Val #(GoInterface.ok ctx)))
         (Val #key)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        kvGetResult pfx (opGetModel key gs) resp err }})
+        kvGetResult pfx lo (opGetModel key gs) resp err }})
 
 instance isEtcdKV_persistent (kv : GoInterfaceOk) (pfx : GoString) :
     Persistent (isEtcdKV (GF := GF) kv pfx) := by
   unfold isEtcdKV; infer_instance
-
-/-- etcd's **linearizable** prefix get, for `Cache.get`: `isEtcdKV`'s triple for a prefix get
-(`OpFull.isPrefixGet`), with moreover a header revision at least `lo`. etcd's `Get` is
-linearizable by default, so a get that starts after revision `lo` was observed returns at least
-`lo`; `isEtcdKV` relates no two calls, so this is not derivable from it. `Cache.get` takes it as a
-premise for the store's revision (`Restore` must not go back). The revision is also below
-`2 ^ 63 - 1`, as in etcd's watch contract (`watchRespOk`): `getWatch` watches from the next
-revision, `r + 1`, which must not overflow. -/
-def isEtcdKVFrom (kv : GoInterfaceOk) (pfx : GoString) (lo : w64) : IProp GF :=
-  iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (key : GoString)
-      (sl : GoSlice) (gs : List (OpFull → OpFull)),
-    {{ context.isContext ctx cs ∗ optsAt sl gs ∗
-        ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1 ∧
-          (opGetModel key gs).isPrefixGet pfx = true⌝ }}
-      (App (App (App (Val #(methods kv.ty go!"Get" kv.v)) (Val #(GoInterface.ok ctx)))
-        (Val #key)) (Val #sl))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        kvGetResult pfx (opGetModel key gs) resp err ∗
-        (⌜err = GoInterface.nil⌝ -∗ ∃ r : w64, getRespRev resp r ∗
-          ⌜sint.Z lo ≤ sint.Z r ∧ sint.Z r < 2 ^ 63 - 1⌝) }})
-
-instance isEtcdKVFrom_persistent (kv : GoInterfaceOk) (pfx : GoString) (lo : w64) :
-    Persistent (isEtcdKVFrom (GF := GF) kv pfx lo) := by
-  unfold isEtcdKVFrom; infer_instance
 
 end client
 
@@ -608,19 +658,20 @@ instance watchChain_persistent (pfx : GoString) (prev : w64) (bs : List Batch) :
 at revision `c`, after which it is at `c'`. Its header revision is below `2^63 - 1` (etcd's
 revisions are), and it is one of:
 * an error (`resp.Err() != nil`: a close error, a compaction, a cancel); the position is kept;
-* the created notification (no events); the position is kept;
+* the created notification (no events); the position is kept; etcd has reached its header
+  revision (`etcdReached`, free if `0`);
 * a progress notification at `p ≥ c`: nothing under the prefix changed in `(c, p]`; the
-  position becomes `p`;
+  position becomes `p`; etcd has reached `p`;
 * events, sorted by revision, above `c` and below `2^63 - 1`, grouped by revision into batches,
-  each the step after the previous one (`watchChain`, from `c`); the position becomes the last
-  event's revision. -/
+  each the step after the previous one (`watchChain`, from `c`, which says that etcd has reached
+  each batch's revision); the position becomes the last event's revision. -/
 def watchRespOk (pfx : GoString) (c c' : w64) (v : go_etcd_io.etcd.client.v3.WatchResponse)
     (r : RespModel) : IProp GF :=
   iprop(⌜sint.Z r.hdrRev < 2 ^ 63 - 1⌝ ∗
     (⌜watchErr v ∧ c' = c⌝ ∨
-     ⌜¬ watchErr v ∧ r.created = true ∧ r.events = [] ∧ c' = c⌝ ∨
-     ⌜¬ watchErr v ∧ r.isProgressNotify = true ∧ sint.Z c ≤ sint.Z r.hdrRev ∧ c' = r.hdrRev ∧
-       EtcdStep c r.hdrRev pfx []⌝ ∨
+     (⌜¬ watchErr v ∧ r.created = true ∧ r.events = [] ∧ c' = c⌝ ∗ etcdReached r.hdrRev) ∨
+     (⌜¬ watchErr v ∧ r.isProgressNotify = true ∧ sint.Z c ≤ sint.Z r.hdrRev ∧ c' = r.hdrRev ∧
+       EtcdStep c r.hdrRev pfx []⌝ ∗ etcdReached r.hdrRev) ∨
      (⌜¬ watchErr v ∧ r.events ≠ [] ∧ EvRevSorted r.events ∧
         (∀ e ∈ r.events, sint.Z c < sint.Z e.rev ∧ sint.Z e.rev < 2 ^ 63 - 1) ∧
         r.events.getLast?.map EvModel.rev = some c'⌝ ∗

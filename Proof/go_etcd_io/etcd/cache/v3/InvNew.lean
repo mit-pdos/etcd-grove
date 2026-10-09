@@ -6,12 +6,9 @@ etcd's cache `New`/`newCache` (`cache/cache.go`): the vocabulary of
 `*clientv3.Client` (the trust boundary about the client, a definition like `isEtcdKV`): its
 embedded `KV` and `Watcher` fields hold, for good, a `KV` that answers `Get`s with etcd's state
 (`isEtcdKV`) and a `Watcher` that streams etcd's watch responses (`isEtcdWatcher`) and accepts
-`RequestProgress` (`isEtcdProgressNotifier`), for the prefix `pfx`; and etcd's
-**linearizability** for the caches built over this client (`isEtcdKVLin`): once a cache's store
-has reached a revision, a prefix get returns at least it. The last is stated for every `Cache`
-whose `kv` is this client's (`isCacheFields`): the store's revisions are revisions this client
-reported, which the proof does not track (it would need "etcd has reached revision `r`" facts in
-the client's responses and through the demux to the store, `decisions.md`).
+`RequestProgress` (`isEtcdProgressNotifier`), for the prefix `pfx`. etcd's **linearizability**
+is part of `isEtcdKV`'s triple, stated against what the caller knows etcd has reached
+(`etcdReached`, `InvEtcd.lean`), a property of the client alone: nothing here is about caches.
 
 **What `New` hands out** (`cacheHandles`): the readers of the store (`cacheReader`, for `Get` and
 `WaitForRevision`), the watch slots (`cacheWatchSlot`: a demux token and a wait-group slot, for
@@ -68,14 +65,11 @@ instance (priority := high) client_typeRepr_u :
   go.type_repr_underlying (u := go_etcd_io.etcd.client.v3.Client.underlying)
 
 /-- **The client** `client` (a `*clientv3.Client`) talks to etcd for the prefix `pfx` (persistent;
-see the module docstring): its `KV` and `Watcher` fields, their triples, and etcd's
-linearizability for the caches built over it. -/
+see the module docstring): its `KV` and `Watcher` fields and their triples. -/
 def isEtcdClient (client : Loc) (pfx : GoString) : IProp GF :=
   iprop(∃ (kv w : GoInterfaceOk),
     clientKVAddr client ↦□ GoInterface.ok kv ∗ clientWatcherAddr client ↦□ GoInterface.ok w ∗
-    isEtcdKV kv pfx ∗ isEtcdWatcher w pfx ∗ isEtcdProgressNotifier w ∗
-    □ (∀ (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNames) (cap : Nat),
-        isCacheFields c cf γr γd cap -∗ ⌜cf.kv = kv ∧ cf.pfx = pfx⌝ -∗ isEtcdKVLin cf))
+    isEtcdKV kv pfx ∗ isEtcdWatcher w pfx ∗ isEtcdProgressNotifier w)
 
 instance isEtcdClient_persistent (client : Loc) (pfx : GoString) :
     Persistent (isEtcdClient (GF := GF) client pfx) := by

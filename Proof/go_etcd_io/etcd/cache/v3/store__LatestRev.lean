@@ -24,7 +24,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 theorem store.LatestRev.wp_proof : store.LatestRev.spec (GF := GF) (hG := hG) := by
-  intro s γ cap E r0
+  intro s γ cap E R r0
   wp_start as ⟨#Hs, Hrd, #Hlb⟩
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -38,7 +38,7 @@ theorem store.LatestRev.wp_proof : store.LatestRev.spec (GF := GF) (hG := hG) :=
   ihave %Hle := monoNatLbOwn_valid $$ Hrev Hlb
   wp_auto
   wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hst Hrev HlatestRev Hhist]
-  · inext; iexists st; simp only [named]; iframe; ipureintro; exact Hinv
+  · inext; iexists st; simp only [named]; iframe; iframe #; ipureintro; exact Hinv
   iintro Hrd
   wp_auto
   iapply HΦ
@@ -46,6 +46,7 @@ theorem store.LatestRev.wp_proof : store.LatestRev.spec (GF := GF) (hG := hG) :=
   iexists st
   unfold storeSeen storeRevLb
   iframe Hlb'
+  iframe HR
   ipureintro
   have := Hinv.rev_nonneg
   refine ⟨⟨Hinv, ?_⟩, rfl⟩

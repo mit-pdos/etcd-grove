@@ -111,6 +111,8 @@ theorem newDemux.wp_proof
     iframe
     isplitr
     · simp only [DemuxCore.init]; iapply certChain_nil
+    isplitr
+    · iapply (prog_init (GF := GF) (C := C))
     ipureintro
     refine ⟨Hinv0, ⟨fun w => by simp, fun w v hv => by simp at hv, fun w v hv => by simp at hv⟩,
       RegsStart.unmapped (fun w ri hr => by simp at hr) (fun w v hv => by simp at hv)⟩

@@ -73,11 +73,11 @@ theorem store.Restore.wp_proof
     store.Restore.spec (GF := GF) (hG := hG) := by
   have wp_btree_New : btree.New.modelSpec (GF := GF) (hG := hG) := btree.New.modelSpec_of wp_btree_New
   have wp_ReplaceOrInsert : btree.BTree.ReplaceOrInsert.modelSpec (GF := GF) (hG := hG) := btree.BTree.ReplaceOrInsert.modelSpec_of wp_ReplaceOrInsert
-  intro s γ cap E st kvsSl kvs dq rev
-  wp_start as ⟨#His, Hw, Hkvs, #HkvsAt, %Hrev, #HE⟩
+  intro s γ cap E R st kvsSl kvs dq rev
+  wp_start as ⟨#His, Hw, Hkvs, #HkvsAt, %Hrev, #HE, #HRr⟩
   wp_apply wp_with_defer as %defer defer
   unfold storeWriter
-  icases Hw with ⟨Hgw, Hmu, Htree, -, %Hinv⟩
+  icases Hw with ⟨Hgw, Hmu, Htree, -, -, %Hinv⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_apply sync.RWMutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, HP⟩
@@ -178,6 +178,7 @@ theorem store.Restore.wp_proof
     · iexists restoreState rev kvs
       simp only [named, restoreState]
       iframe
+      iframe HRr
       ipureintro; exact Hinv'
     iapply HΦ
     iframe Hkvs Hgw Hmu
@@ -189,7 +190,7 @@ theorem store.Restore.wp_proof
         iexact HkvsR
       · isplitr
         · unfold storeRevLb; simp only [restoreState]; iexact Hlb
-        · ipureintro; exact Hinv'
+        · simp only [restoreState]; iframe HRr; ipureintro; exact Hinv'
     unfold storeRevLb
     iexact Hlb
 

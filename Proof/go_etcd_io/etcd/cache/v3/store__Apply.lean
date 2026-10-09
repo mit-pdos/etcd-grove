@@ -76,8 +76,8 @@ theorem store.Apply.wp_proof
     (wp_applyProgressNotifyLocked : store.applyProgressNotifyLocked.spec (GF := GF) (hG := hG))
     (wp_applyEventsLocked : store.applyEventsLocked.spec (GF := GF) (hG := hG)) :
     store.Apply.spec (GF := GF) (hG := hG) := by
-  intro s γ cap E st resp r
-  wp_start as ⟨#Hs, Hw, #Hresp, %Hsorted, #Hcerts⟩
+  intro s γ cap E R st resp r
+  wp_start as ⟨#Hs, Hw, #Hresp, %Hsorted, #Hcerts, #Hrevs⟩
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -85,7 +85,7 @@ theorem store.Apply.wp_proof
   iunfold respAt at Hresp'
   icases Hresp' with ⟨#HevsAt, #Hhdr, % ⟨Hcomp, Hcanc, Hcre⟩⟩
   unfold storeWriter
-  icases Hw with ⟨Hgw, Hmu, Htr, #Hlbw, %Hinv⟩
+  icases Hw with ⟨Hgw, Hmu, Htr, #Hlbw, #HRw, %Hinv⟩
   iunfold storeRevLb at Hlbw
   rw [Hcanc]
   cases hc : r.canceled
@@ -105,14 +105,14 @@ theorem store.Apply.wp_proof
       obtain ⟨e, rfl⟩ := Hval
       wp_auto
       wp_apply sync.RWMutex.wp_Unlock $$ [$Hlocked Hst Hrev HlatestRev Hhist] as Hmu
-      · iunfold storeLockInv; iexists st; simp only [named]; iframe; ipureintro; exact Hinv
+      · iunfold storeLockInv; iexists st; simp only [named]; iframe; iframe #; ipureintro; exact Hinv
       have Happ : applyResp cap st r = (st, false) := by simp [applyResp, hc, hv]
       iapply HΦ
       rw [Happ]
       dsimp only
       iunfold storeRevLb
       iframe
-      iframe Hlb0
+      iframe Hlb0 HRw
       ipureintro; exact ⟨Hinv, ⟨e, rfl⟩⟩
     · simp only [hv, ↓reduceIte] at Hval
       subst Hval
@@ -135,7 +135,7 @@ theorem store.Apply.wp_proof
           simp only [Hlen0, _root_.decide_true, Bool.not_true, Bool.true_eq_false, _root_.decide_false]
           wp_auto
           wp_apply sync.RWMutex.wp_Unlock $$ [$Hlocked Hst Hrev HlatestRev Hhist] as Hmu
-          · iunfold storeLockInv; iexists st; simp only [named]; iframe; ipureintro; exact Hinv
+          · iunfold storeLockInv; iexists st; simp only [named]; iframe; iframe #; ipureintro; exact Hinv
           have Happ := Apply_empty (cap := cap) hc hv hpn he
           iapply HΦ
           rw [Happ]
@@ -158,6 +158,12 @@ theorem store.Apply.wp_proof
           obtain ⟨Happ, Habove⟩ := Apply_events (cap := cap) hc hv hpn he
           have Hsnaps : applyRespSnaps st r = applyEventsSnaps st.latest r.events := by
             simp [applyRespSnaps, hc, hv, hpn, he]
+          have Hrevs' : applyRespRevs st r = (applyEventsSnaps st.latest r.events).map Prod.fst := by
+            simp [applyRespRevs, hc, hv, hpn, he]
+          ihave #HRn : □ R (applyEvents cap st r.events).1.latestRev $$ []
+          · rcases applyEvents_latestRev_mem cap r.events st with h | h
+            · rw [h]; iexact HRw
+            · iunfold revCerts at Hrevs; imodintro; iapply Hrevs; ipureintro; rw [Hrevs']; exact h
           rw [Hsnaps] at *
           wp_apply wp_applyEventsLocked s γ cap E st resp.Events' r.events
             $$ [HlatestRev Hhist Htr] as %err ⟨Hphys, % ⟨Hinv', Hmono'⟩, %Herr⟩
@@ -173,7 +179,7 @@ theorem store.Apply.wp_proof
           imod ghostVar_update_halves st' γ.state st st $$ Hst Hgw with ⟨Hst, Hgw⟩
           imod mono_nat_own_update (sint.nat st'.latestRev) Hle $$ Hrev with ⟨Hrev, #Hlb⟩
           wp_apply sync.RWMutex.wp_Unlock $$ [$Hlocked Hst Hrev HlatestRev Hhist] as Hmu
-          · iunfold storeLockInv; iexists st'; simp only [named]; iframe; ipureintro; exact Hinv'
+          · iunfold storeLockInv; iexists st'; simp only [named]; iframe; iframe #; ipureintro; exact Hinv'
           iapply HΦ
           rw [Happ]
           dsimp only
@@ -204,6 +210,12 @@ theorem store.Apply.wp_proof
             else { st with latestRev := r.hdrRev }).history = st.history := by split <;> rfl
         have Hlt : (if st.latestRev = W64 0 then st
             else { st with latestRev := r.hdrRev }).latest = st.latest := by split <;> rfl
+        ihave #HRn : □ R (if st.latestRev = W64 0 then st
+            else { st with latestRev := r.hdrRev }).latestRev $$ []
+        · split
+          · iexact HRw
+          · iunfold revCerts at Hrevs; imodintro; iapply Hrevs; ipureintro
+            simp [applyRespRevs, hc, hv, hpn]
         rw [Hlr]
         generalize (if st.latestRev = W64 0 then st else { st with latestRev := r.hdrRev }) = st'
           at Happ Hinv' Hmono' Hhs Hlt
@@ -213,7 +225,7 @@ theorem store.Apply.wp_proof
         imod ghostVar_update_halves st' γ.state st st $$ Hst Hgw with ⟨Hst, Hgw⟩
         imod mono_nat_own_update (sint.nat st'.latestRev) Hle $$ Hrev with ⟨Hrev, #Hlb⟩
         wp_apply sync.RWMutex.wp_Unlock $$ [$Hlocked Hst Hrev HlatestRev Hhist] as Hmu
-        · iunfold storeLockInv; iexists st'; simp only [named]; iframe; ipureintro; exact Hinv'
+        · iunfold storeLockInv; iexists st'; simp only [named]; iframe; iframe #; ipureintro; exact Hinv'
         iapply HΦ
         rw [Happ]
         dsimp only

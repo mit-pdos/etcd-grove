@@ -135,8 +135,10 @@ theorem demux.BroadcastProgressTo.wp_proof
         exact Delivered.enqueue_progress_same Hdel Hup (by rw [Hmx]; exact enqueueResult_some sent h)
       ihave #Hcv : certChain C c.base v.stream $$ []
       · rw [Hst]; iexact Hcerts
+      ihave #Hpv : □ C.prog v.maxRev $$ []
+      · rw [Hmx]; iexact Hprog
       ihave #Hpub := pub_send pred sr s v sent (progressResp c.maxRev) c.base
-        (Hstart.sr_ok w _ Hrw) (Hst0.active hact) hnext $$ Hcv
+        (Hstart.sr_ok w _ Hrw) (Hst0.active hact) hnext $$ Hcv Hpv
       ihave #Hpub' : iprop(□ (∀ r', ⌜filterResp pred (progressResp c.maxRev) = some r'⌝ -∗
           (demuxPub C pred sr).pub none (sent ++ [r']))) $$ []
       · rw [show (demuxPub C pred sr).pub = demuxPubBody C pred sr from rfl]

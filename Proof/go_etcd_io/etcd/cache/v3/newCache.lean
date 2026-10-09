@@ -74,8 +74,13 @@ theorem newCache.wp_proof
   have hvalid : CfgValid cfg := ⟨by omega, by omega⟩
   obtain ⟨hH, hB, hP⟩ := Hcfg hvalid
   ihave #HstorePre : ⌜1 < sint.Z cfg.BTreeDegree' ∧ sint.Z cfg.BTreeDegree' ≤ 2 ^ 62⌝ ∗
-      ⌜0 < sint.Z cfg.HistoryWindowSize' ∧ sint.Z cfg.HistoryWindowSize' ≤ 2 ^ 61⌝ $$ []
-  · isplitl <;> ipureintro <;> constructor <;> omega
+      ⌜0 < sint.Z cfg.HistoryWindowSize' ∧ sint.Z cfg.HistoryWindowSize' ≤ 2 ^ 61⌝ ∗
+      □ etcdReached (GF := GF) (W64 0) $$ []
+  · isplitl
+    · ipureintro; constructor <;> omega
+    isplitl
+    · ipureintro; constructor <;> omega
+    imodintro; iapply etcdReached_zero
   ihave #HdemuxPre : ⌜0 < sint.Z cfg.HistoryWindowSize' ∧ sint.Z cfg.HistoryWindowSize' ≤ 2 ^ 61⌝ $$ []
   · ipureintro; constructor <;> omega
   -- the internal context
@@ -85,9 +90,10 @@ theorem newCache.wp_proof
   -- the client's fields
   ihave #Hcl' := Hcl
   iunfold isEtcdClient at Hcl'
-  icases Hcl' with ⟨%kv, %w, #HKVf, #HWf, #HisKV, #HisW, #HisPN, #Hlin⟩
+  icases Hcl' with ⟨%kv, %w, #HKVf, #HWf, #HisKV, #HisW, #HisPN⟩
   try wp_auto
-  wp_apply wp_newStore (etcdCert pfx) cfg.BTreeDegree' cfg.HistoryWindowSize' $$ [$Hpkg $HstorePre]
+  wp_apply wp_newStore (etcdCert pfx) etcdReached cfg.BTreeDegree' cfg.HistoryWindowSize'
+    $$ [$Hpkg $HstorePre]
     as %st %γs ⟨#HisStore, Hsw, #Hslb0, Hrds⟩
   wp_apply wp_newReady $$ [$Hpkg] as %rd %γr ⟨#HisReady, -⟩
   wp_apply wp_newCPR (GoInterface.ok w) (GoInterface.ok clk) cfg.ProgressRequestInterval' $$ [$Hpkg]
@@ -171,13 +177,11 @@ theorem newCache.wp_proof
   wp_apply wp_cacheWg_Add2 «$r0_ptr» cf 1 $$ [$Hsync $HisWg' $HwgInv' $H2' $Hop] as ⟨Hr2, Hop⟩
   icases ownToks_add_1 1 1 cf.γwr $$ Hr2 with ⟨Hr1, Hr1'⟩
   -- the watch loop
-  ihave #HKVLin := Hlin $$ %«$r0_ptr» %cf %γr %γd %(sint.nat cfg.HistoryWindowSize') HisCF
-    %(⟨hkv, hpfx⟩ : cf.kv = kv ∧ cf.pfx = pfx)
   wp_apply wp_fork $$ [Hr1 Hdw Hsw]
   · wp_apply wp_with_defer as %defer defer
     try wp_auto
     wp_apply wp_getWatchLoop «$r0_ptr» cf γr γd (sint.nat cfg.HistoryWindowSize') DemuxCore.init
-      StoreState.init $$ [$Hpkg $HisCF $HKVLin Hdw Hsw] as -
+      StoreState.init $$ [$Hpkg $HisCF Hdw Hsw] as -
     · unfold cacheWriter
       rw [hd, hpfx, hst, hγs, hscap]
       iframe
