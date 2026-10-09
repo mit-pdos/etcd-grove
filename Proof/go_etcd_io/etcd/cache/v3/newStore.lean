@@ -30,18 +30,18 @@ attribute [-instance] snapshot.snapshot_access_store_rev snapshot.snapshot_acces
 
 /-- `rw.RLocker()` returns a (non-nil) `Locker` interface value.
 
-**Perennial gap** (the one `sorry` of the store): `RWMutex.RLocker` is
-`Locker((*rlocker)(rw))`, and Perennial's Go semantics has no rule for the conversion
-`(*RWMutex) → (*rlocker)` (a conversion between pointer types with identical underlying
-base types; `Golang/Defn` only converts pointers to and from `unsafe.Pointer`), so the
-body is stuck after unfolding. `isStore` needs only `isCond c lk` for the result (the
+`RWMutex.RLocker` is `Locker((*rlocker)(rw))`: the conversion `(*RWMutex) → (*rlocker)`
+(pointer types with identical underlying base types) steps by Perennial's
+`convert_pointer_same_underlying` (once a gap, and this store's one `sorry`). `isStore` needs only `isCond c lk` for the result (the
 `Cond`'s `Broadcast`); the `rlocker`'s `Lock`/`Unlock` (`isLocker`, for `Cond.Wait`) have
 no spec either. -/
 theorem newStore_RLocker [sync.Assumptions] (rw : Loc) :
     {{ (True : IProp GF) }}
       (App (Val (rw @!! go.GoType.PointerType sync.RWMutex.ty @!! go!"RLocker")) (Val #()))
     {{ (lk : GoInterfaceOk), RET #(GoInterface.ok lk); True }} := by
-  sorry
+  wp_start
+  wp_auto
+  iapply HΦ; itrivial
 
 theorem newStore.wp_proof
     (wp_btree_New : btree.New.spec (GF := GF) (hG := hG))

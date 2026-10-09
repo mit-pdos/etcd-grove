@@ -257,7 +257,9 @@ every proof carried over unchanged but for the renames (the fork's `freeNode` an
   boundary until now) are the proved ones; its `ownBTree` (models under a strict weak
   order) is defined over the btree's, with the classes of the order as keys, and the
   store's proofs derive their model-level triples from the proved specs
-  (`*.modelSpec_of`). `btree.New` and `newStore` (and `isStore`) now require
+  (`*.modelSpec_of`, all proved; the cache's `ownBTree` keeps the list of (Go item,
+  model) pairs, and `ownBTree_persist` rests on `btree.ownBTree_persist`,
+  `Fractional.lean`). `btree.New` and `newStore` (and `isStore`) now require
   `degree <= 2^62`.
 - **Needs Perennial's branch `copy-memmove-modules`** (pinned here at `11fd2db`: `lean`
   `2b8cb96` plus three commits, to be merged into `lean`): (1) `copy` as a memmove --
@@ -350,23 +352,13 @@ it imports). No `sorry`, no axiom: `etc/tcb-report.py --check` now also takes
 - **Errors** are package variables (`Base.lean`: the cache's `ErrNotReady`, `rpctypes`'
   `ErrFutureRev`/`ErrCompacted` point to fixed non-nil errors); specs return "the value of
   that variable" (`snapErr`).
-- **Axioms (trust boundary)**: `ownBTree`, `ownBTree_dfractional` (`InvBtree.lean`) and the
-  `.wp_proof` of `btree.New`, `BTree.Clone`, `Get`, `ReplaceOrInsert`, `Delete`,
-  `AscendGreaterOrEqual`, `AscendRange` (the btree package is names-only).
-- **`sorry`**: one, `newStore_RLocker` (`Proof/newStore.lean`): `RWMutex.RLocker()` converts
-  `*RWMutex` to `*rlocker`, and Perennial's Go semantics has no step for a conversion between
-  two pointer types, so the call is stuck. `fmt.Errorf` (the error paths) is Perennial's own
-  `sorry` (`Proof/fmt.lean`), now reached.
-- **Perennial gaps found**: the pointer-to-pointer conversion above; no `isLocker` for
-  `rlocker` (the cache's `revCond.Wait` will need it); `wp_load` through a fractional or
-  persistent struct points-to fails (the Access search takes the field-store instance, which
-  needs `DFrac.own 1`, and does not backtrack), worked around per proof with
-  `attribute [-instance] …_access_store_…`; a struct field access finds `TypeRepr` through
-  the struct's `IntoValTyped` (for protobuf messages a `sorry`), worked around with direct
-  `TypeRepr` instances in `InvStore.lean`.
-- `etc/tcb-report.py --check`: 14 axioms, 2 sorries (the baseline gained the nine btree
-  axioms, `newStore_RLocker` and Perennial's `fmt.wp_Errorf`). `etc/goose.py --check` passes
-  (fetching the fork from GitHub).
+- **Axioms (trust boundary)**: none of the store's own since 2026-10-09: the btree is
+  proved (`Proof/k8s_io/.../btree/`, see above), and its seven specs and `ownBTree` are
+  the proved ones (`InvBtree.lean`).
+- **`sorry`**: none of the store's own since 2026-10-09: `newStore_RLocker`
+  (`RWMutex.RLocker()`'s conversion `*RWMutex → *rlocker`) steps by Perennial's new
+  `convert_pointer_same_underlying` (branch `copy-memmove-modules`).
+- `etc/tcb-report.py --check` (2026-10-09, roots now including the btree's `Link`): 4 axioms (`fmt.Sprintf`, `rand.Int`, `reflect.DeepEqual`, `strings.Join`) and 3 sorries, all outside this repository's proofs (Perennial's `fmt.wp_Errorf`, two generated protobuf instances); the nine btree axioms and `newStore_RLocker` are gone. `etc/goose.py --check` passes (fetching the fork from GitHub; Go 1.27 for the etcd fork).
 
 ### watcher, notifier, ready (`cache/watcher.go`, `cache/demux.go`, `cache/ready.go`): proved (2026-10-09)
 

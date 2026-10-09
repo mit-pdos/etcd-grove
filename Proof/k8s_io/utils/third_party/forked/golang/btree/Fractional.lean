@@ -121,6 +121,122 @@ theorem ownBTree_split (t : Loc) (dq1 dq2 : DFrac) (s : List (V × K)) :
   · iexists tv, f, less, d; iframe Ht1 Hr1 Hcow Hitems; ipureintro; exact ⟨Hdeg, Hlen, Hsorted⟩
   · iexists tv, f, less, d; iframe Ht2 Hr2 Hcow Hitems; ipureintro; exact ⟨Hdeg, Hlen, Hsorted⟩
 
+/-! ### Read-only for good: `ownBTree … dq ==∗ ownBTree … discard` -/
+
+theorem nodeShallow_persistent (n : Loc) (is : List (V × K)) (ps : List Loc) :
+    Persistent (nodeShallow (GF := GF) (V := V) c DFrac.discard n is ps) := by
+  unfold nodeShallow; infer_instance
+
+mutual
+theorem ownNode_persistent' : ∀ (n : Loc) (t : Tree (V × K)),
+    Persistent (ownNode o c f less DFrac.discard n t)
+  | n, .node is cs => by
+    rw [ownNode_node]
+    unfold ownedNode
+    simp only [Tree.items_node, Tree.children_node]
+    have : ∀ ps, Persistent (ownNodes o c f less DFrac.discard ps cs) :=
+      fun ps => ownNodes_persistent' ps cs
+    have := nodeShallow_persistent (GF := GF) (V := V) (K := K) c
+    infer_instance
+
+theorem ownNodes_persistent' : ∀ (ps : List Loc) (ts : List (Tree (V × K))),
+    Persistent (ownNodes o c f less DFrac.discard ps ts)
+  | [], [] => by rw [ownNodes]; infer_instance
+  | p :: ps, t :: ts => by
+    rw [ownNodes]
+    have := ownNode_persistent' p t
+    have := ownNodes_persistent' ps ts
+    infer_instance
+  | [], _ :: _ => by rw [ownNodes]; infer_instance
+  | _ :: _, [] => by rw [ownNodes]; infer_instance
+end
+
+instance ownNode_persistent (n : Loc) (t : Tree (V × K)) :
+    Persistent (ownNode o c f less DFrac.discard n t) :=
+  ownNode_persistent' o c f less n t
+
+instance ownNodes_persistent (ps : List Loc) (ts : List (Tree (V × K))) :
+    Persistent (ownNodes o c f less DFrac.discard ps ts) :=
+  ownNodes_persistent' o c f less ps ts
+
+instance ownRoot_persistent (d : Nat) (r : Loc) (s : List (V × K)) :
+    Persistent (ownRoot o c f less d DFrac.discard r s) := by
+  unfold ownRoot; infer_instance
+
+instance ownBTree_persistent (t : Loc) (s : List (V × K)) :
+    Persistent (ownBTree o t DFrac.discard s) := by
+  unfold ownBTree; infer_instance
+
+theorem nodeFields_persist (dq : DFrac) (n : Loc) (is cs : GoSlice) (cow : Loc) :
+    nodeFields (GF := GF) (V := V) n dq is cs cow ⊢ |==> nodeFields (V := V) n DFrac.discard is cs cow := by
+  unfold nodeFields
+  iintro ⟨%Hn, Hi, Hc, Hw⟩
+  ipersist Hi
+  ipersist Hc
+  ipersist Hw
+  imodintro
+  iframe # ∗; ipureintro; exact Hn
+
+theorem nodeShallow_persist (dq : DFrac) (n : Loc) (is : List (V × K)) (ps : List Loc) :
+    nodeShallow (GF := GF) (V := V) c dq n is ps ⊢ |==> nodeShallow (V := V) c DFrac.discard n is ps := by
+  unfold nodeShallow
+  iintro ⟨%isl, %csl, Hf, Hi, Hic, Hc, Hcc⟩
+  imod nodeFields_persist dq n isl csl c $$ Hf with Hf
+  ipersist Hi
+  ipersist Hic
+  ipersist Hc
+  ipersist Hcc
+  imodintro
+  iexists isl, csl; iframe # ∗
+
+mutual
+theorem ownNode_persist (dq : DFrac) : ∀ (n : Loc) (t : Tree (V × K)),
+    ownNode o c f less dq n t ⊢ |==> ownNode o c f less DFrac.discard n t
+  | n, .node is cs => by
+    rw [ownNode_node, ownNode_node]
+    unfold ownedNode
+    simp only [Tree.items_node, Tree.children_node]
+    iintro (⟨%ps, Hsh, Hns⟩ | #Hfr)
+    · imod nodeShallow_persist c dq n is ps $$ Hsh with Hsh
+      imod ownNodes_persist dq ps cs $$ Hns with Hns
+      imodintro
+      ileft; iexists ps; iframe
+    · imodintro; iright; iexact Hfr
+
+theorem ownNodes_persist (dq : DFrac) : ∀ (ps : List Loc) (ts : List (Tree (V × K))),
+    ownNodes o c f less dq ps ts ⊢ |==> ownNodes o c f less DFrac.discard ps ts
+  | [], [] => by simp only [ownNodes_nil]; iintro _; imodintro; itrivial
+  | p :: ps, t :: ts => by
+    simp only [ownNodes_cons]
+    iintro ⟨H, Hs⟩
+    imod ownNode_persist dq p t $$ H with H
+    imod ownNodes_persist dq ps ts $$ Hs with Hs
+    imodintro
+    iframe
+  | [], _ :: _ => by rw [ownNodes]; iintro %h; exact h.elim
+  | _ :: _, [] => by rw [ownNodes]; iintro %h; exact h.elim
+end
+
+theorem ownRoot_persist (d : Nat) (dq : DFrac) (r : Loc) (s : List (V × K)) :
+    ownRoot o c f less d dq r s ⊢ |==> ownRoot o c f less d DFrac.discard r s := by
+  unfold ownRoot
+  iintro (%Hnil | ⟨%h, %tr, %Htr, H⟩)
+  · imodintro; ileft; ipureintro; exact Hnil
+  · imod ownNode_persist o c f less dq r tr $$ H with H
+    imodintro
+    iright; iexists h, tr; iframe; ipureintro; exact Htr
+
+/-- **Making a tree read-only for good.** -/
+theorem ownBTree_persist (t : Loc) (dq : DFrac) (s : List (V × K)) :
+    ownBTree o t dq s ⊢ |==> ownBTree o t DFrac.discard s := by
+  unfold ownBTree
+  iintro H
+  iNamed H
+  ipersist Ht
+  imod ownRoot_persist o _ _ _ _ dq _ s $$ Hroot with Hroot
+  imodintro
+  iexists tv, f, less, d; iframe Ht Hroot Hcow Hitems; ipureintro; exact ⟨Hdeg, Hlen, Hsorted⟩
+
 end frac
 
 end btree

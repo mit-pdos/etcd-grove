@@ -137,7 +137,8 @@ partial def statementDefs (env : Environment) (stmt : Expr) : NameSet := Id.run 
 def main (args : List String) : IO UInt32 := do
   initSearchPath (← findSysroot)
   let mods : Array Name :=
-    if args.isEmpty then #[`Proof.go_etcd_io.raft.v3.Link, `Proof.go_etcd_io.raft.v3.Results, `Proof.go_etcd_io.etcd.cache.v3.Link]
+    if args.isEmpty then #[`Proof.go_etcd_io.raft.v3.Link, `Proof.go_etcd_io.raft.v3.Results, `Proof.go_etcd_io.etcd.cache.v3.Link,
+      `Proof.k8s_io.utils.third_party.forked.golang.btree.Link]
     else args.toArray.map String.toName
   let env ← importModules (mods.map fun m => { module := m }) {}
   let mut roots : Array Name := #[]
