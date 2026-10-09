@@ -159,6 +159,12 @@ module system").
   The last four can only go by changing the Go code (the `upamanyus/etcd-raft`
   `goose` fork) or by trusted models (`Perennial/TrustedCode`), which move the
   trust rather than remove it.
+- **`RawNode` specs are client-facing (2026-10-09)**: `ownRawNode γ rn id rs` hides the
+  node state, the ghost state and `NStateRel`; `RNState` is what a client observes
+  (delivered committed log, entries to persist, queued steps, `advanceable`); `Ready`'s
+  committed entries come with `isCommitted γ (rs.delivered ++ ce)`, no `applying`.
+  `PstepCommitMono` and `ready_stable_ok` are proved; `raft.Step`'s spec gained a frame
+  for local messages. Known gap: `advanceable` (above in Next).
 - Trust base: `etc/tcb-report.py` (gate: `--check` against `etc/tcb-baseline.txt`).
 - **Build checked 2026-10-08** at Perennial c35b7710d (a `--packages` override pointing
   at a checkout of the pinned commit): `lake build` completes (977 jobs, 0 errors); `etc/tcb-report.py --check`
@@ -246,6 +252,9 @@ generated and checked by `etc/goose.py` (now two projects, `etcd-raft` and `etcd
 
 ## Next
 
+- **Close the `Advance` gap** (decisions.md, "RawNode: client-facing specs"): `Advance`
+  is proved only when `Ready` queued no self-addressed response, which the specs expose
+  as `RNState.advanceable`; a candidate and a leader with new entries are not covered.
 - Follow the Rocq RawNode branch past 857d09190 (its worktree has an uncommitted
   edit to `proof_RawNode__Ready.v`, not ported).
 

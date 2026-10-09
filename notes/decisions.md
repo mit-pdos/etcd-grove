@@ -672,3 +672,49 @@ so six `simp … at H; exact H` became `simpa … using H`.
 projections are already reducible, and `omega` still fails on a literal record's
 projection, so it does not compare atoms up to reducible unfolding. **Rejected -- a new normalization tactic**: an agent
 would have to know to call it; `word` and `simp` are already what it reaches for.
+
+---
+
+## RawNode: client-facing specs that hide the protocol
+
+**2026-10-09 · accepted**
+
+The refinement of the protocol (`raft.wp_Step`, `ownRaftGhost`, `NStateRel`) exists to
+give `RawNode` simple specs for its clients -- the node specs, later. Until 2026-10-08
+the `RawNode` specs exposed it: `ownRawNode cfg rn id s rs` beside `ownRaftGhost γ id ps`,
+premises `NStateRel s ps`, `PstepCommitMono`, `AdvanceOk s rs.steps`, posts with `Step cfg
+id ps recv ps'`, and `Ready`'s committed entries witnessed through `s.logst.applying`.
+
+**Decision**: `ownRawNode γ rn id rs` holds the node state, the ghost state and
+`NStateRel` inside, indexed by one record of what a client observes:
+`RNState := { delivered, unpersisted, steps, advanceable }` -- the committed log handed
+out so far (`isCommitted γ rs.delivered` inside), the entries `Ready` handed out for the
+application to `Append`, the queued local steps (opaque), and the gap flag below. `Ready`
+returns `ce` with `isCommitted γ (rs.delivered ++ ce)`; messages carry the opaque
+`isRaftMsg γ m`; `HasReady` says nothing about its answer (liveness only); `Ready`'s soft
+state, hard state and `MustSync` facts are gone (no spec used them; there is no crash
+model), and so are `RNState.soft`/`hard`. `ownRawNode_persist` lends the storage for the
+application's `Append` and returns `{ rs with unpersisted := [] }`.
+
+To keep `delivered` across `Propose`/`Advance`, `raft.Step`'s postcondition gained
+`LocalStepOk` (for `MsgProp`, `MsgStorageAppendResp`, `MsgStorageApplyResp`: term,
+`inprogress`, `unpersisted`, `snap` framed, `applying` kept unless the apply ack moves it).
+`PstepCommitMono` is proved (`Step.commit_mono`, `Protocol/Facts.lean`), and Rocq's
+`ready_stable_ok` (the append ack is stable once the application appended) too.
+
+**The gap -- to be closed.** `Advance` steps `rn.stepsOnAdvance` through `raft.Step`, and
+`raft.Step`'s spec needs facts of each message that nothing records for the
+**self-addressed responses** `msgsAfterAppend` queues (a candidate's own vote, a leader's
+own `MsgAppResp`): `To = id`, `Term ≠ 0`, the `Entries`' capacity, a non-rejecting self
+`MsgAppResp`, and for a `MsgPreVoteResp` a term bound at the state the earlier steps
+left, which `Step`'s postcondition does not carry. So `Advance` is proved only for queues
+without them, and the specs say so without protocol terms: `Ready` returns
+`advanceable` (true exactly when no self response was queued, not stated in the spec),
+and `Advance` requires it (and `unpersisted = []`). Consequence: a candidate, and a leader
+after any `Ready` with new entries, can neither `Advance` nor `Ready` again; a running
+leader is covered only across Readys without new entries, and a one-node cluster commits
+nothing through the verified API. **Closing it**: record the per-message facts for the
+self responses (in `ownRaftPhys`'s description of `msgsAfterAppend`, or in `pendingRel`),
+and carry the term bound through `Step`'s postcondition (or step one's own responses with
+dedicated lemmas); then `advanceable` goes and `Advance` takes any queue `Ready` left.
+
