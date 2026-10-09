@@ -100,9 +100,10 @@ structure RNState [FfiSyntax] where
   own vote, a leader's own `MsgAppResp`, which `msgsAfterAppend` produces), because
   `Step`'s spec asks of each message facts the raft struct does not record for the
   queue. `Ready` returns it (its proof sets it to `true` exactly when it queued none;
-  the postcondition does not say when, which is protocol state); when it is `false`
-  the client can call neither `Advance` (unproved) nor `Ready` (which needs `steps`
-  empty). See `RawNode.Advance.spec`. -/
+  the postcondition does not say when, which is protocol state). So a client cannot
+  establish `advanceable = true`: until the gap is closed it can call `Ready` once and
+  then neither `Advance` (unproved) nor `Ready` (which needs `steps` empty). See
+  `RawNode.Advance.spec`. -/
   advanceable : Bool
 
 section defs

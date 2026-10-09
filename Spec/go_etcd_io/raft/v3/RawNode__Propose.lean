@@ -21,7 +21,7 @@ The `RawNode`'s client-facing state `rs` is unchanged (`ownRawNode`, `InvRawnode
 `Step` of a `MsgProp` keeps what it tracks (`LocalStepOk`), so a proposal between
 `Ready` and `Advance` does not stop `Advance`.
 
-Until 2026-10-08 the spec was stated on the node's states (`NStateRel`, `Step`,
+Until 2026-10-09 the spec was stated on the node's states (`NStateRel`, `Step`,
 `ownRaftGhost`) and said where a tracked proposal sits (`(ps.term, plastIndex ps + 1)`,
 at a leader); a client needs only the `isProp`, whatever its `(t, i)`.
 

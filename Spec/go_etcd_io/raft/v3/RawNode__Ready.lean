@@ -2,7 +2,7 @@
 Port of `election_proof/spec_RawNode__Ready.v` (857d09190), made client-facing on
 2026-10-09.
 
-Until 2026-10-08 the spec was stated on the node's states: `ownRawNode cfg rn id s rs`
+Until 2026-10-09 the spec was stated on the node's states: `ownRawNode cfg rn id s rs`
 at the `NState` `s`, with `ownRaftGhost`, `NStateRel` and the `Step.drain` it takes in
 the postcondition; the committed entries as `∃ pre, isCommitted γ (pre ++ ce)` with
 `pre` as long as `s.logst.applying`, and `ce` a prefix of `logCommittedEnts s.logst`;

@@ -95,7 +95,10 @@ only what the specs on it need (`notes/decisions.md`, "Predicate indices"). In p
 - Keep a record a variable (`ls`, `σ`, `us`): do not destructure it with
   `intro ⟨a, b, c⟩`/`obtain`, and do not write a literal record where a variable will
   do. A projection of a literal record (`{ prev := p, … }.prev`) is an atom that
-  `omega` and `rw` do not see through.
+  `omega` and `rw` do not see through. (Exception: the proofs of an object's own methods may
+  substitute a record defined from the Goose value, `subst Hring` with
+  `r = inflightsRingOf iv buf`, and work on the value; the `proj_simps` lemmas of
+  `inflightsRingOf` reduce what is left.)
 - For arithmetic, use `word`, not `omega`: its preprocessing runs `simp`, which
   reduces projections of literal records and, through the `proj_simps` lemmas,
   projections of record-building functions (`(inflightsRingOf iv buf).buflen`).

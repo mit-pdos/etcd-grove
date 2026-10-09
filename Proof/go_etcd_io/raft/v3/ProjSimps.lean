@@ -9,8 +9,9 @@ unfolds to a constructor (a structure instance `{ a := …, b := … }` or an up
 
 proved by `rfl`. Fields whose value is the same projection of an argument (the
 unchanged fields of an update, `(f s).a = s.a`) get a lemma too. If `f`'s body is
-not a constructor after unfolding (an `if`, a `match`), nothing is generated for
-it and the command reports so.
+not a constructor after unfolding (an `if`, a `match`), the command is an error. For
+a structure that extends another, the parent is one field (`f.proj_toParent`), not one
+lemma per inherited field; `simp` still reduces through it.
 
 Why: a projection of a record built by a function, like a projection of a literal
 record (`{ prev := p, … }.prev`), is an atom that `omega` and `rw` do not see through

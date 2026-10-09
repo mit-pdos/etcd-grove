@@ -991,13 +991,12 @@ The predicate now holds the snapshot as `ownSnap` of `us.snap` and the logger as
 about the value. New states are updates of `us` (`truncateAndAppend`'s is
 deterministic), or a new record (`restore`); `stableTo` and `acceptInProgress` keep a
 new state (resp. `offsetInProgress`) bound by the post, with its relation to `us`.
-The `unstable` proofs open the predicate with `open_unstable` (the record destructured
-first, so that `offset`/`offsetInProgress` are substituted by the value's) and close
-it with `close_unstable`/`ownUnstable_intro`. The `raftLog` callers split the field off
-with `raftLog_split_unstable` -- the `AccessStrict` macro `split_unstable` is gone,
-since every `unstable` method now hands back a value the caller has not seen -- and
-rebuild `ownRaftLogCore` at `{ lv with unstable' := uv' }` (`close_unstable_log`,
-`ownUnstable_reopen`, `reopen_unstable`).
+The `unstable` proofs open the predicate with `open_unstable` (`ownUnstable_open`: the
+value built from the record's fields, so `us` stays a variable; "Records in proofs"
+below) and close it with `close_unstable`/`ownUnstable_intro`. The `raftLog` callers
+lend the field with `lend_unstable` (`raftLog_lend_unstable`, passing `unstableOf lv
+ls`) and take it back with `reopen_unstable`; the `AccessStrict` macro `split_unstable`
+is gone, since every `unstable` method hands back a value the caller has not seen.
 
 **Also applied (2026-10-08)**, one commit each:
 
@@ -1011,14 +1010,6 @@ rebuild `ownRaftLogCore` at `{ lv with unstable' := uv' }` (`close_unstable_log`
   it, is out of scope) and `ReadOnly.safe` (the option is case-split on the Go value).
   Both come back if a spec ever needs them.
 
-**Tried and reverted: `ownRawNode rn id s rs` as `ownRawNode rn id rs`** with the node's
-`NState` as `RNState.raft` (2026-10-08, reverted the same day). It removed nothing: every
-node fact in the `RawNode` specs became `rs.raft.*` (the comparisons `nodeHardstate s =
-rs.hard` became `nodeHardstate rs.raft = rs.hard`), the update `{ rs with raft := s' }`
-hid which layer changed, and the proofs destructured the record again. The rule is about
-loose state *arguments*; two cohesive records for two layers (the raft node's `NState`
-and the RawNode's own `RNState`) stay two indices.
-
 - `ownRaftLogCore lv snap prev sents uents pend` (five state arguments, the storage as
   `∃ sprev stored ss`) is gone, inlined into `ownRaftLog l ls`, which holds
   `∃ (lv : raftLog) (σ : StorState)` and states its facts on `ls`; `LogStoreOk`,
@@ -1029,6 +1020,16 @@ and the RawNode's own `RNState`) stay two indices.
   `ownStorage st σ -∗ ownRaftLog l <initial state>`: `LogState` has no storage field,
   and `newRaft` needs that storage for `InitialState` before the log is complete.
   The `raftLog` proofs lost all 56 of their `dsimp only` steps (38 files, −289 lines).
+
+**Tried and reverted: `ownRawNode rn id s rs` as `ownRawNode rn id rs`** with the node's
+`NState` as `RNState.raft` (2026-10-08, reverted the same day). It removed nothing: every
+node fact in the `RawNode` specs became `rs.raft.*` (the comparisons `nodeHardstate s =
+rs.hard` became `nodeHardstate rs.raft = rs.hard`), the update `{ rs with raft := s' }`
+hid which layer changed, and the proofs destructured the record again. The rule is about
+loose state *arguments*; two cohesive records for two layers (the raft node's `NState`
+and the RawNode's own `RNState`) stay two indices. (Superseded on
+2026-10-09: `ownRawNode γ rn id rs` now hides the node state altogether, and `RNState` is
+what a client observes -- "RawNode: client-facing specs" below.)
 
 **Left as is**, deliberately: `visitClosure` (a closure
 contract, not an ownership predicate) and `ownConfig`'s `cfg` (a configuration
@@ -1057,7 +1058,7 @@ or of a **record-building function** (`(inflightsRingOf iv buf).buflen`) is an a
 2. **`proj_simps f`** (`ProjSimps.lean`) generates, for a function whose body is a
    constructor, `@[simp, word_unfold] theorem f.proj_<field> : (f xs).<field> = <value>`
    by `rfl`. Applied to the 31 such functions in `Defs`, `Protocol/Model`, `InvTracker`,
-   `InvMisc`, `InvRawnode`, `InvReadylog` and `RawNode.Ready`'s spec; eleven that branch
+   `InvMisc`, `InvRawnode`, `InvReadylog`, `InvRaftlog` (`unstableOf`) and the `Ready` proof; eleven that branch
    (`becomeLeader`, `progressMaybeUpdate`, …) have none. A literal record's projections
    need no lemma: `simp` reduces them.
 3. **`word` rather than `omega`** where a goal mentions record fields: its preprocessing
@@ -1120,10 +1121,12 @@ own `MsgAppResp`): `To = id`, `Term ≠ 0`, the `Entries`' capacity, a non-rejec
 left, which `Step`'s postcondition does not carry. So `Advance` is proved only for queues
 without them, and the specs say so without protocol terms: `Ready` returns
 `advanceable` (true exactly when no self response was queued, not stated in the spec),
-and `Advance` requires it (and `unpersisted = []`). Consequence: a candidate, and a leader
-after any `Ready` with new entries, can neither `Advance` nor `Ready` again; a running
-leader is covered only across Readys without new entries, and a one-node cluster commits
-nothing through the verified API. **Closing it**: record the per-message facts for the
+and `Advance` requires it (and `unpersisted = []`). Consequence: `Ready`'s spec returns `advanceable`
+existentially and does not say when it holds (that depends on protocol state), so **a
+client can never establish `rs.advanceable = true`**: after one `Ready` it can call
+neither `Advance` nor (with `steps` unknown) `Ready` again. The `Ready`/`Advance` loop is
+not verifiable through these specs until the gap is closed; `Propose`, `HasReady`, the
+first `Ready` (with its `isCommitted` witnesses) and `ownRawNode_persist` are. **Closing it**: record the per-message facts for the
 self responses (in `ownRaftPhys`'s description of `msgsAfterAppend`, or in `pendingRel`),
 and carry the term bound through `Step`'s postcondition (or step one's own responses with
 dedicated lemmas); then `advanceable` goes and `Advance` takes any queue `Ready` left.

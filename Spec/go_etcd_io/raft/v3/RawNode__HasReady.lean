@@ -28,7 +28,7 @@ variable [AllG GF]
 committed entries to apply, read states. Read-only, and the answer is not pinned: a
 client may call `Ready` whenever `Ready`'s premises hold, whatever `HasReady` says.
 
-Until 2026-10-08 the spec pinned `false` on the node's protocol state (`NState`: the
+Until 2026-10-09 the spec pinned `false` on the node's protocol state (`NState`: the
 soft state is the previous one, the hard state empty or the previous one, the outbox
 empty, every unstable entry handed out); that went with the previous `SoftState` and
 `HardState` from `RNState`, which no client-facing spec states. -/

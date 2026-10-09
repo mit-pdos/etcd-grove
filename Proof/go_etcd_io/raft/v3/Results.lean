@@ -14,14 +14,14 @@ a link nothing imported would silently go unchecked.
 The top-level result is `raft.wp_Step` (`Link.lean`): running `Step` on a
 message takes the physical raft struct from a state refining the protocol state `s` to
 one refining `s'`, and the ghost protocol state can be moved from `s` to `s'` at the same
-time -- i.e. the implementation refines the protocol of `Raft/Protocol/`. Beside
+time -- i.e. the implementation refines the protocol of `Protocol/`. Beside
 it: `RawNode.wp_Propose`, the client's entry point (one `Step` of a `MsgProp`), and
 `wp_newRaft`, the constructor, which establishes `ownRaftPhys` (`Spec/newRaft.lean`).
 The `RawNode` results (`wp_Propose`, `wp_Ready`, `wp_Advance`, `wp_HasReady`) are
 client-facing since 2026-10-09: stated on `ownRawNode γ rn id rs` (`InvRawnode.lean`),
 with no protocol state in them; the refinement above is how they are proved.
 
-Scope, matching `Raft/Protocol/`:
+Scope, matching `Protocol/`:
   - no pre-vote, no check-quorum,
   - no proposals, no read-only requests,
   - no reconfiguration and no learners.

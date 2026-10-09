@@ -2,7 +2,7 @@
 Port of `election_proof/spec_RawNode__Advance.v` (857d09190), made client-facing on
 2026-10-09.
 
-Until 2026-10-08 the spec was stated on the node's states (`ownRawNode cfg rn id s rs`
+Until 2026-10-09 the spec was stated on the node's states (`ownRawNode cfg rn id s rs`
 at the `NState` `s`, `ownRaftGhost`, `NStateRel`, the `Step` it refines) and had two
 protocol premises: `PstepCommitMono` (the protocol's commit index never moves back,
 now the lemma `Step.commit_mono`, `Protocol/Facts.lean`) and `AdvanceOk s rs.steps` on
@@ -63,8 +63,9 @@ Premises:
   notes/raft-replication-model.md, "Phase 4", for the fix). `Ready` returns
   `advanceable` (`true` exactly when it queued no such message, which its
   postcondition does not state: whether `msgsAfterAppend` holds one is protocol
-  state -- a candidate's, or a leader's with new entries); without it the client can
-  call neither `Advance` (unproved) nor `Ready` (which needs an empty queue). -/
+  state -- a candidate's, or a leader's with new entries). So no client can establish
+  this premise: until the gap is closed, a client calls `Ready` once and then neither
+  `Advance` (unproved) nor `Ready` (which needs an empty queue). -/
 abbrev RawNode.Advance.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : Ready),
   rs.advanceable = true →
