@@ -4,6 +4,7 @@ Proof of `Spec/WithCountOnly.lean`. Lean-first (no Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.client.v3.WithCountOnly
+public import Proof.go_etcd_io.etcd.client.v3.InvOpLemmas
 
 @[expose] public section
 
@@ -33,10 +34,14 @@ theorem WithCountOnly.wp_proof : WithCountOnly.spec (GF := GF) (hG := hG) := by
   iapply HΦ
   iframe
   unfold opFullAt opAt OpFields
-  icases Hat with ⟨⟨%Hf, #He⟩, #Hk, %Ht⟩
+  icases Hat with ⟨⟨%Hf, #He⟩, #Hk, %Ht, #Hv, #Hs⟩
   simp only [withCountOnlyM]
   iframe #
-  isplitl [] <;> ipureintro <;> simp_all
+  isplitl []
+  · ipureintro; simp_all
+  isplitl []
+  · ipureintro; simp_all
+  · iapply opSortAt_of _ o _ (by simp [withCountOnlyM]) (by simp [withCountOnlyM]) (by simp [withCountOnlyM]) $$ Hs
 
 end proof
 

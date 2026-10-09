@@ -22,6 +22,15 @@ were given, which panics (`opGetPanics`). The models of the `With*` options: `wi
 `withCountOnlyM`, and of the watch options `withProgressNotifyM`, `withCreatedNotifyM`.
 `OpWatch(key, opts...)` applies them to the same start (`opWatchModel`) and panics if the
 result asks for something a watch cannot do (`OpFull.watchPanics`, `opWatchPanics`).
+
+**Puts and deletes** (for `client/v3/concurrency`'s transactions, `InvEtcdTxn.lean`): `OpFull`
+also covers what `toRequestOp` sends of them: the value `val`, the sort option's target and
+order (`opSortAt`: the `*SortOption`, read-only), `ignoreValue`/`ignoreLease`, and whether
+`end` may be non-nil (`rangeEndSet`: `OpPut` panics on a non-nil `end`, which the contents
+`rangeEnd` cannot tell). `OpPut(key, val, opts...)` (`opPutModel`, `putPanics`) and
+`OpDelete(key, opts...)` (`opDeleteModel`, `opDeletePanics`) apply the options to their starts;
+the new options are `withLeaseM`, `withMaxCreateRevM`, `withSortM` and `withTopM`
+(`WithFirstCreate`, `WithLastCreate`).
 -/
 module
 
@@ -170,6 +179,16 @@ structure OpFull where
   withFromKey : Bool
   /-- `leaseID` (`WithLease`) -/
   leaseID : w64
+  /-- the contents of `val` (a put's value) -/
+  val : GoString
+  /-- `end != nil` may hold (an option set the range end); `false` means `end` is nil
+  (`OpPut` panics on a non-nil `end`, which the contents `rangeEnd` cannot tell) -/
+  rangeEndSet : Bool
+  /-- `sort.Target`, `sort.Order` (meaningful when `base.sortSet`) -/
+  sortTarget : w64
+  sortOrder : w64
+  ignoreValue : Bool
+  ignoreLease : Bool
 
 /-- The zero `OpModel` (a zero `Op`). -/
 def OpModel.zero : OpModel :=
@@ -181,7 +200,8 @@ def OpModel.zero : OpModel :=
 /-- `NewOp()`: `&Op{key: []byte("")}`. -/
 def OpFull.newOp : OpFull :=
   { base := .zero, t := W64 0, key := [], keysOnly := false, withPrefix := false,
-    withFromKey := false, leaseID := W64 0 }
+    withFromKey := false, leaseID := W64 0, val := [], rangeEndSet := false,
+    sortTarget := W64 0, sortOrder := W64 0, ignoreValue := false, ignoreLease := false }
 
 /-- What `OpGet(key, ...)` starts from: `Op{t: tRange, key: []byte(key)}`. -/
 def OpFull.getInit (key : GoString) : OpFull := { OpFull.newOp with t := W64 1, key := key }
@@ -233,16 +253,73 @@ def withCreatedNotifyM (o : OpFull) : OpFull :=
   { o with base := { o.base with createdNotify := true } }
 /-- `WithRange(endKey)` -/
 def withRangeM (endKey : GoString) (o : OpFull) : OpFull :=
-  { o with base := { o.base with rangeEnd := endKey } }
+  { o with base := { o.base with rangeEnd := endKey }, rangeEndSet := true }
 /-- `WithFromKey()`: from `key` on (`"\x00"` for an empty key). -/
 def withFromKeyM (o : OpFull) : OpFull :=
   { o with key := (if o.key = [] then [W8 0] else o.key),
-           base := { o.base with rangeEnd := [W8 0] }, withFromKey := true }
+           base := { o.base with rangeEnd := [W8 0] }, withFromKey := true, rangeEndSet := true }
 /-- `WithPrefix()`: the keys with prefix `key` (every key, from `"\x00"`, for an empty key). -/
 def withPrefixM (o : OpFull) : OpFull :=
   if o.key = [] then
-    { o with key := [W8 0], base := { o.base with rangeEnd := [W8 0] }, withPrefix := true }
-  else { o with base := { o.base with rangeEnd := prefixRangeEnd o.key }, withPrefix := true }
+    { o with key := [W8 0], base := { o.base with rangeEnd := [W8 0] }, withPrefix := true,
+             rangeEndSet := true }
+  else { o with base := { o.base with rangeEnd := prefixRangeEnd o.key }, withPrefix := true,
+                rangeEndSet := true }
+/-- `WithLease(id)` -/
+def withLeaseM (id : w64) (o : OpFull) : OpFull := { o with leaseID := id }
+/-- `WithMaxCreateRev(rev)` -/
+def withMaxCreateRevM (rev : w64) (o : OpFull) : OpFull :=
+  { o with base := { o.base with maxCreateRev := rev } }
+/-- `WithSort(target, order)`: a sort by key in ascending order is no sort (`SortNone`), since
+etcd returns keys in that order anyway. -/
+def withSortM (target order : w64) (o : OpFull) : OpFull :=
+  { o with base := { o.base with sortSet := true }, sortTarget := target,
+           sortOrder := (if target = W64 0 ∧ order = W64 1 then W64 0 else order) }
+/-- `withTop(target, order)` (`WithFirstCreate()`, `WithLastCreate()`, ...): the options
+`WithPrefix(), WithSort(target, order), WithLimit(1)`. -/
+def withTopM (target order : w64) : List (OpFull → OpFull) :=
+  [withPrefixM, withSortM target order, withLimitM (W64 1)]
+
+/-! ### `OpPut`, `OpDelete` -/
+
+/-- What `OpPut(key, val, ...)` starts from: `Op{t: tPut, key: []byte(key), val: []byte(val)}`. -/
+def OpFull.putInit (key val : GoString) : OpFull :=
+  { OpFull.newOp with t := W64 2, key := key, val := val }
+
+/-- The `Op` `OpPut(key, val, opts...)` returns, for options with transformers `gs`. -/
+def opPutModel (key val : GoString) (gs : List (OpFull → OpFull)) : OpFull :=
+  opFold gs (OpFull.putInit key val)
+
+/-- `OpPut`'s `switch` may panic: an option set a range end (`rangeEndSet`: conservative, since
+the model keeps the contents of `end`, not whether it is nil), a limit, a revision, a sort, made
+it serializable or count-only, set a revision filter, an event filter or `createdNotify`. -/
+def OpFull.putPanics (o : OpFull) : Prop :=
+  o.rangeEndSet = true ∨ o.base.limit ≠ W64 0 ∨ o.base.rev ≠ W64 0 ∨ o.base.sortSet = true ∨
+    o.base.serializable = true ∨ o.base.countOnly = true ∨
+    o.base.minModRev ≠ W64 0 ∨ o.base.maxModRev ≠ W64 0 ∨
+    o.base.minCreateRev ≠ W64 0 ∨ o.base.maxCreateRev ≠ W64 0 ∨
+    o.base.filterDelete = true ∨ o.base.filterPut = true ∨ o.base.createdNotify = true
+
+/-- What `OpDelete(key, ...)` starts from: `Op{t: tDeleteRange, key: []byte(key)}`. -/
+def OpFull.deleteInit (key : GoString) : OpFull := { OpFull.newOp with t := W64 3, key := key }
+
+/-- The `Op` `OpDelete(key, opts...)` returns, for options with transformers `gs`. -/
+def opDeleteModel (key : GoString) (gs : List (OpFull → OpFull)) : OpFull :=
+  opFold gs (OpFull.deleteInit key)
+
+/-- `OpDelete`'s `switch` panics: a lease, a limit, a revision, a sort, serializable,
+count-only, a revision filter, an event filter or `createdNotify`. -/
+def OpFull.deletePanics (o : OpFull) : Prop :=
+  o.leaseID ≠ W64 0 ∨ o.base.limit ≠ W64 0 ∨ o.base.rev ≠ W64 0 ∨ o.base.sortSet = true ∨
+    o.base.serializable = true ∨ o.base.countOnly = true ∨
+    o.base.minModRev ≠ W64 0 ∨ o.base.maxModRev ≠ W64 0 ∨
+    o.base.minCreateRev ≠ W64 0 ∨ o.base.maxCreateRev ≠ W64 0 ∨
+    o.base.filterDelete = true ∨ o.base.filterPut = true ∨ o.base.createdNotify = true
+
+/-- `OpDelete(key, opts...)` panics: both `WithPrefix` and `WithFromKey` (as `OpGet`), or the
+`switch`. -/
+def opDeletePanics (key : GoString) (gs : List (OpFull → OpFull)) : Prop :=
+  opGetPanics gs ∨ (opDeleteModel key gs).deletePanics
 
 section opdefs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -250,12 +327,25 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
+/-- The sort option `p` (`op.sort`) holds, for good, `o`'s sort target and order, if set. -/
+def opSortAt (p : Loc) (o : OpFull) : IProp GF :=
+  if o.base.sortSet then
+    iprop(p ↦□ ({ Target' := o.sortTarget, Order' := o.sortOrder } :
+      go_etcd_io.etcd.client.v3.SortOption))
+  else iprop(True)
+
+instance opSortAt_persistent (p : Loc) (o : OpFull) : Persistent (opSortAt (GF := GF) p o) := by
+  unfold opSortAt; split <;> infer_instance
+
 /-- The `Op` value `op` is modelled by `o` (`opAt` and the other fields `OpFull` covers; the
-key is a read-only byte slice). -/
+key and the value are read-only byte slices, the sort option read-only). -/
 def opFullAt (op : go_etcd_io.etcd.client.v3.Op) (o : OpFull) : IProp GF :=
   iprop(opAt op o.base ∗ op.key' ↦*□ o.key ∗
     ⌜op.t' = o.t ∧ op.keysOnly' = o.keysOnly ∧ op.isOptsWithPrefix' = o.withPrefix ∧
-      op.isOptsWithFromKey' = o.withFromKey ∧ op.leaseID' = o.leaseID⌝)
+      op.isOptsWithFromKey' = o.withFromKey ∧ op.leaseID' = o.leaseID ∧
+      op.ignoreValue' = o.ignoreValue ∧ op.ignoreLease' = o.ignoreLease ∧
+      (o.rangeEndSet = false → op.end' = slice.nil)⌝ ∗
+    op.val' ↦*□ o.val ∗ opSortAt op.sort' o)
 
 instance opFullAt_persistent (op : go_etcd_io.etcd.client.v3.Op) (o : OpFull) :
     Persistent (opFullAt (GF := GF) op o) := by

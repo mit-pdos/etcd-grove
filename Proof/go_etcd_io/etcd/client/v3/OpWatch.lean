@@ -39,16 +39,20 @@ theorem OpWatch.wp_proof (wp_applyOpts : Op.applyOpts.spec (GF := GF) (hG := hG)
       · iapply ownSlice_nil
     isplitl []
     · iexact Hks
-    ipureintro; simp
+    isplitl []
+    · ipureintro; simp
+    isplitl []
+    · iapply ownSlice_nil
+    · unfold opSortAt; simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
   -- the fields `OpWatch`'s `switch` reads are all unset
   ihave Hat' := Hat
   unfold opFullAt opAt OpFields
-  icases Hat' with ⟨⟨%Hf, -⟩, -, %Ht⟩
+  icases Hat' with ⟨⟨%Hf, -⟩, -, %Ht, -, -⟩
   unfold opWatchPanics opWatchModel OpFull.watchPanics at Hnp
   simp only [not_or, ne_eq, Classical.not_not, Bool.not_eq_true] at Hnp
   obtain ⟨n1, n2, n3, n4, n5, n6, n7, n8, n9⟩ := Hnp
   obtain ⟨hc, -, hs, hl, hmin, hmax, hcmin, hcmax, -, -, -, -, -, hser, -⟩ := Hf
-  obtain ⟨-, -, -, -, hlease⟩ := Ht
+  obtain ⟨-, -, -, -, hlease, -⟩ := Ht
   have hs' : op'.sort' = null := Classical.byContradiction fun hne => by
     rw [n3] at hs; exact absurd (hs.1 hne) (by simp)
   rw [← hlease] at n1; rw [← hl] at n2; rw [← hser] at n4; rw [← hc] at n5

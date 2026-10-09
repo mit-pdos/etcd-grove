@@ -4,6 +4,7 @@ Proof of `Spec/WithProgressNotify.lean`. Lean-first (no Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.client.v3.WithProgressNotify
+public import Proof.go_etcd_io.etcd.client.v3.InvOpLemmas
 
 @[expose] public section
 
@@ -33,10 +34,14 @@ theorem WithProgressNotify.wp_proof : WithProgressNotify.spec (GF := GF) (hG := 
   iapply HΦ
   iframe
   unfold opFullAt opAt OpFields
-  icases Hat with ⟨⟨%Hf, #He⟩, #Hk, %Ht⟩
+  icases Hat with ⟨⟨%Hf, #He⟩, #Hk, %Ht, #Hv, #Hs⟩
   simp only [withProgressNotifyM]
   iframe #
-  isplitl [] <;> ipureintro <;> simp_all
+  isplitl []
+  · ipureintro; simp_all
+  isplitl []
+  · ipureintro; simp_all
+  · iapply opSortAt_of _ o _ (by simp [withProgressNotifyM]) (by simp [withProgressNotifyM]) (by simp [withProgressNotifyM]) $$ Hs
 
 end proof
 

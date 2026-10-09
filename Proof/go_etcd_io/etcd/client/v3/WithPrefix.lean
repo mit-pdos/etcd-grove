@@ -4,6 +4,7 @@ Proof of `Spec/WithPrefix.lean`. Lean-first (no Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.client.v3.WithPrefix
+public import Proof.go_etcd_io.etcd.client.v3.InvOpLemmas
 public import Spec.go_etcd_io.etcd.client.v3.getPrefix
 
 @[expose] public section
@@ -33,7 +34,7 @@ theorem WithPrefix.wp_proof (wp_getPrefix : getPrefix.spec (GF := GF) (hG := hG)
   wp_start as ⟨Hop, #Hat⟩
   iapply wp_fupd
   unfold opFullAt opAt OpFields
-  icases Hat with ⟨⟨%Hf, #He⟩, #Hk, %Ht⟩
+  icases Hat with ⟨⟨%Hf, #He⟩, #Hk, %Ht, #Hv, #Hs⟩
   ihave %Hklen := ownSlice_len _ _ _ $$ Hk
   wp_auto
   wp_if_destruct
@@ -61,7 +62,13 @@ theorem WithPrefix.wp_proof (wp_getPrefix : getPrefix.spec (GF := GF) (hG := hG)
       · first | iexact Hes | (rw [show ([W8 0] : List w8) = [0#8] from rfl]; iexact Hes)
     isplitl []
     · first | iexact Hks | (rw [show ([W8 0] : List w8) = [0#8] from rfl]; iexact Hks)
-    ipureintro; exact ⟨Ht.1, Ht.2.1, trivial, Ht.2.2.2.1, Ht.2.2.2.2⟩
+    isplitl []
+    · ipureintro
+      refine ⟨Ht.1, Ht.2.1, ?_, ?_, Ht.2.2.2.2.1, Ht.2.2.2.2.2.1, Ht.2.2.2.2.2.2.1, nofun⟩ <;>
+        first | trivial | exact Ht.2.2.1 | exact Ht.2.2.2.1
+    isplitl []
+    · iexact Hv
+    · iapply opSortAt_of _ o _ (by rfl) (by rfl) (by rfl) $$ Hs
   · have Hk0 : o.key ≠ [] := by
       intro h; apply Hif; rw [h] at Hklen; simp at Hklen; word
     wp_apply wp_getPrefix $$ [$Hk] as %esl ⟨-, Hes⟩
@@ -76,7 +83,13 @@ theorem WithPrefix.wp_proof (wp_getPrefix : getPrefix.spec (GF := GF) (hG := hG)
       · iexact Hes
     isplitl []
     · iexact Hk
-    ipureintro; exact ⟨Ht.1, Ht.2.1, trivial, Ht.2.2.2.1, Ht.2.2.2.2⟩
+    isplitl []
+    · ipureintro
+      refine ⟨Ht.1, Ht.2.1, ?_, ?_, Ht.2.2.2.2.1, Ht.2.2.2.2.2.1, Ht.2.2.2.2.2.2.1, nofun⟩ <;>
+        first | trivial | exact Ht.2.2.1 | exact Ht.2.2.2.1
+    isplitl []
+    · iexact Hv
+    · iapply opSortAt_of _ o _ (by rfl) (by rfl) (by rfl) $$ Hs
 
 end proof
 

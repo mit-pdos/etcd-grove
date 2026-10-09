@@ -4,6 +4,7 @@ Proof of `Spec/WithSerializable.lean`. Lean-first (no Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.client.v3.WithSerializable
+public import Proof.go_etcd_io.etcd.client.v3.InvOpLemmas
 
 @[expose] public section
 
@@ -33,10 +34,14 @@ theorem WithSerializable.wp_proof : WithSerializable.spec (GF := GF) (hG := hG) 
   iapply HΦ
   iframe
   unfold opFullAt opAt OpFields
-  icases Hat with ⟨⟨%Hf, #He⟩, #Hk, %Ht⟩
+  icases Hat with ⟨⟨%Hf, #He⟩, #Hk, %Ht, #Hv, #Hs⟩
   simp only [withSerializableM]
   iframe #
-  isplitl [] <;> ipureintro <;> simp_all
+  isplitl []
+  · ipureintro; simp_all
+  isplitl []
+  · ipureintro; simp_all
+  · iapply opSortAt_of _ o _ (by simp [withSerializableM]) (by simp [withSerializableM]) (by simp [withSerializableM]) $$ Hs
 
 end proof
 

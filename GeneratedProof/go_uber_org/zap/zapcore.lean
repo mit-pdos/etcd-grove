@@ -2,6 +2,8 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.io
+public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.go_uber_org.zap.zapcore
 
@@ -35,25 +37,6 @@ instance BufferedWriteSyncer_into_val_typed :
 
 end def_
 end BufferedWriteSyncer
-
-namespace Clock
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_uber_org.zap.zapcore.Assumptions]
-
-instance Clock_typed_pointsto :
-    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.Clock :=
-  sorry -- axiomatized type
-
-instance Clock_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.Clock go_uber_org.zap.zapcore.Clock.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Clock
 
 namespace systemClock
 section def_
@@ -160,25 +143,6 @@ instance Encoder_into_val_typed :
 end def_
 end Encoder
 
-namespace WriteSyncer
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_uber_org.zap.zapcore.Assumptions]
-
-instance WriteSyncer_typed_pointsto :
-    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.WriteSyncer :=
-  sorry -- axiomatized type
-
-instance WriteSyncer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.WriteSyncer go_uber_org.zap.zapcore.WriteSyncer.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end WriteSyncer
-
 namespace ioCore
 section def_
 
@@ -253,44 +217,6 @@ instance ioCore_access_store_out (l : Loc) (v : go_uber_org.zap.zapcore.ioCore) 
 end def_
 end ioCore
 
-namespace TimeEncoder
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_uber_org.zap.zapcore.Assumptions]
-
-instance TimeEncoder_typed_pointsto :
-    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.TimeEncoder :=
-  sorry -- axiomatized type
-
-instance TimeEncoder_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.TimeEncoder go_uber_org.zap.zapcore.TimeEncoder.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end TimeEncoder
-
-namespace DurationEncoder
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_uber_org.zap.zapcore.Assumptions]
-
-instance DurationEncoder_typed_pointsto :
-    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.DurationEncoder :=
-  sorry -- axiomatized type
-
-instance DurationEncoder_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.DurationEncoder go_uber_org.zap.zapcore.DurationEncoder.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end DurationEncoder
-
 namespace EncoderConfig
 section def_
 
@@ -300,53 +226,291 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_uber_org.zap.zapcore.Assumptions]
 
 instance EncoderConfig_typed_pointsto :
-    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.EncoderConfig :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.EncoderConfig where
+  typedPointstoDef l v dq := iprop(
+    "MessageKey" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"MessageKey" l) v.MessageKey' dq ∗
+    "LevelKey" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"LevelKey" l) v.LevelKey' dq ∗
+    "TimeKey" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"TimeKey" l) v.TimeKey' dq ∗
+    "NameKey" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"NameKey" l) v.NameKey' dq ∗
+    "CallerKey" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"CallerKey" l) v.CallerKey' dq ∗
+    "FunctionKey" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"FunctionKey" l) v.FunctionKey' dq ∗
+    "StacktraceKey" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"StacktraceKey" l) v.StacktraceKey' dq ∗
+    "SkipLineEnding" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"SkipLineEnding" l) v.SkipLineEnding' dq ∗
+    "LineEnding" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"LineEnding" l) v.LineEnding' dq ∗
+    "EncodeLevel" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeLevel" l) v.EncodeLevel' dq ∗
+    "EncodeTime" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeTime" l) v.EncodeTime' dq ∗
+    "EncodeDuration" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeDuration" l) v.EncodeDuration' dq ∗
+    "EncodeCaller" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeCaller" l) v.EncodeCaller' dq ∗
+    "EncodeName" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeName" l) v.EncodeName' dq ∗
+    "NewReflectedEncoder" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"NewReflectedEncoder" l) v.NewReflectedEncoder' dq ∗
+    "ConsoleSeparator" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"ConsoleSeparator" l) v.ConsoleSeparator' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance EncoderConfig_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.EncoderConfig go_uber_org.zap.zapcore.EncoderConfig.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.EncoderConfig go_uber_org.zap.zapcore.EncoderConfig.underlying := by
+  solve_into_val_typed_struct
+
+instance EncoderConfig_access_load_MessageKey (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"MessageKey" l) v.MessageKey' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"MessageKey" l) v.MessageKey' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance EncoderConfig_access_store_MessageKey (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (MessageKey' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"MessageKey" l) v.MessageKey' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"MessageKey" l) MessageKey' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MessageKey' := MessageKey' } : go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance EncoderConfig_access_load_LevelKey (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"LevelKey" l) v.LevelKey' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"LevelKey" l) v.LevelKey' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance EncoderConfig_access_store_LevelKey (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (LevelKey' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"LevelKey" l) v.LevelKey' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"LevelKey" l) LevelKey' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LevelKey' := LevelKey' } : go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance EncoderConfig_access_load_TimeKey (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"TimeKey" l) v.TimeKey' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"TimeKey" l) v.TimeKey' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance EncoderConfig_access_store_TimeKey (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (TimeKey' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"TimeKey" l) v.TimeKey' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"TimeKey" l) TimeKey' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TimeKey' := TimeKey' } : go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance EncoderConfig_access_load_NameKey (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"NameKey" l) v.NameKey' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"NameKey" l) v.NameKey' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance EncoderConfig_access_store_NameKey (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (NameKey' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"NameKey" l) v.NameKey' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"NameKey" l) NameKey' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NameKey' := NameKey' } : go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance EncoderConfig_access_load_CallerKey (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"CallerKey" l) v.CallerKey' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"CallerKey" l) v.CallerKey' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance EncoderConfig_access_store_CallerKey (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (CallerKey' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"CallerKey" l) v.CallerKey' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"CallerKey" l) CallerKey' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CallerKey' := CallerKey' } : go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance EncoderConfig_access_load_FunctionKey (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"FunctionKey" l) v.FunctionKey' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"FunctionKey" l) v.FunctionKey' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance EncoderConfig_access_store_FunctionKey (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (FunctionKey' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"FunctionKey" l) v.FunctionKey' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"FunctionKey" l) FunctionKey' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FunctionKey' := FunctionKey' } : go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance EncoderConfig_access_load_StacktraceKey (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"StacktraceKey" l) v.StacktraceKey' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"StacktraceKey" l) v.StacktraceKey' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance EncoderConfig_access_store_StacktraceKey (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (StacktraceKey' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"StacktraceKey" l) v.StacktraceKey' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"StacktraceKey" l) StacktraceKey' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StacktraceKey' := StacktraceKey' } : go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance EncoderConfig_access_load_SkipLineEnding (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"SkipLineEnding" l) v.SkipLineEnding' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"SkipLineEnding" l) v.SkipLineEnding' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance EncoderConfig_access_store_SkipLineEnding (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (SkipLineEnding' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"SkipLineEnding" l) v.SkipLineEnding' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"SkipLineEnding" l) SkipLineEnding' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SkipLineEnding' := SkipLineEnding' } : go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance EncoderConfig_access_load_LineEnding (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"LineEnding" l) v.LineEnding' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"LineEnding" l) v.LineEnding' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance EncoderConfig_access_store_LineEnding (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (LineEnding' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"LineEnding" l) v.LineEnding' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"LineEnding" l) LineEnding' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LineEnding' := LineEnding' } : go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance EncoderConfig_access_load_EncodeLevel (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeLevel" l) v.EncodeLevel' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeLevel" l) v.EncodeLevel' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance EncoderConfig_access_store_EncodeLevel (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (EncodeLevel' : go_uber_org.zap.zapcore.LevelEncoder) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeLevel" l) v.EncodeLevel' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeLevel" l) EncodeLevel' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EncodeLevel' := EncodeLevel' } : go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance EncoderConfig_access_load_EncodeTime (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeTime" l) v.EncodeTime' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeTime" l) v.EncodeTime' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance EncoderConfig_access_store_EncodeTime (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (EncodeTime' : go_uber_org.zap.zapcore.TimeEncoder) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeTime" l) v.EncodeTime' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeTime" l) EncodeTime' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EncodeTime' := EncodeTime' } : go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance EncoderConfig_access_load_EncodeDuration (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeDuration" l) v.EncodeDuration' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeDuration" l) v.EncodeDuration' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance EncoderConfig_access_store_EncodeDuration (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (EncodeDuration' : go_uber_org.zap.zapcore.DurationEncoder) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeDuration" l) v.EncodeDuration' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeDuration" l) EncodeDuration' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EncodeDuration' := EncodeDuration' } : go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance EncoderConfig_access_load_EncodeCaller (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeCaller" l) v.EncodeCaller' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeCaller" l) v.EncodeCaller' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance EncoderConfig_access_store_EncodeCaller (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (EncodeCaller' : go_uber_org.zap.zapcore.CallerEncoder) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeCaller" l) v.EncodeCaller' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeCaller" l) EncodeCaller' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EncodeCaller' := EncodeCaller' } : go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance EncoderConfig_access_load_EncodeName (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeName" l) v.EncodeName' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeName" l) v.EncodeName' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance EncoderConfig_access_store_EncodeName (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (EncodeName' : go_uber_org.zap.zapcore.NameEncoder) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeName" l) v.EncodeName' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeName" l) EncodeName' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EncodeName' := EncodeName' } : go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance EncoderConfig_access_load_NewReflectedEncoder (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"NewReflectedEncoder" l) v.NewReflectedEncoder' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"NewReflectedEncoder" l) v.NewReflectedEncoder' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance EncoderConfig_access_store_NewReflectedEncoder (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (NewReflectedEncoder' : GoFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"NewReflectedEncoder" l) v.NewReflectedEncoder' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"NewReflectedEncoder" l) NewReflectedEncoder' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NewReflectedEncoder' := NewReflectedEncoder' } : go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance EncoderConfig_access_load_ConsoleSeparator (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"ConsoleSeparator" l) v.ConsoleSeparator' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"ConsoleSeparator" l) v.ConsoleSeparator' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance EncoderConfig_access_store_ConsoleSeparator (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (ConsoleSeparator' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"ConsoleSeparator" l) v.ConsoleSeparator' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"ConsoleSeparator" l) ConsoleSeparator' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ConsoleSeparator' := ConsoleSeparator' } : go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end EncoderConfig
-
-namespace ObjectEncoder
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_uber_org.zap.zapcore.Assumptions]
-
-instance ObjectEncoder_typed_pointsto :
-    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.ObjectEncoder :=
-  sorry -- axiomatized type
-
-instance ObjectEncoder_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.ObjectEncoder go_uber_org.zap.zapcore.ObjectEncoder.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end ObjectEncoder
-
-namespace ArrayEncoder
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_uber_org.zap.zapcore.Assumptions]
-
-instance ArrayEncoder_typed_pointsto :
-    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.ArrayEncoder :=
-  sorry -- axiomatized type
-
-instance ArrayEncoder_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.ArrayEncoder go_uber_org.zap.zapcore.ArrayEncoder.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end ArrayEncoder
 
 namespace EntryCaller
 section def_
@@ -465,12 +629,118 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_uber_org.zap.zapcore.Assumptions]
 
 instance Entry_typed_pointsto :
-    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.Entry :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.Entry where
+  typedPointstoDef l v dq := iprop(
+    "Level" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Level" l) v.Level' dq ∗
+    "Time" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Time" l) v.Time' dq ∗
+    "LoggerName" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"LoggerName" l) v.LoggerName' dq ∗
+    "Message" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Message" l) v.Message' dq ∗
+    "Caller" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Caller" l) v.Caller' dq ∗
+    "Stack" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Stack" l) v.Stack' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance Entry_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.Entry go_uber_org.zap.zapcore.Entry.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.Entry go_uber_org.zap.zapcore.Entry.underlying := by
+  solve_into_val_typed_struct
+
+instance Entry_access_load_Level (l : Loc) (v : go_uber_org.zap.zapcore.Entry) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Level" l) v.Level' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Level" l) v.Level' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Entry_access_store_Level (l : Loc) (v : go_uber_org.zap.zapcore.Entry) (Level' : go_uber_org.zap.zapcore.Level) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Level" l) v.Level' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Level" l) Level' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Level' := Level' } : go_uber_org.zap.zapcore.Entry) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Entry_access_load_Time (l : Loc) (v : go_uber_org.zap.zapcore.Entry) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Time" l) v.Time' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Time" l) v.Time' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Entry_access_store_Time (l : Loc) (v : go_uber_org.zap.zapcore.Entry) (Time' : time.Time) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Time" l) v.Time' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Time" l) Time' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Time' := Time' } : go_uber_org.zap.zapcore.Entry) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Entry_access_load_LoggerName (l : Loc) (v : go_uber_org.zap.zapcore.Entry) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"LoggerName" l) v.LoggerName' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"LoggerName" l) v.LoggerName' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Entry_access_store_LoggerName (l : Loc) (v : go_uber_org.zap.zapcore.Entry) (LoggerName' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"LoggerName" l) v.LoggerName' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"LoggerName" l) LoggerName' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LoggerName' := LoggerName' } : go_uber_org.zap.zapcore.Entry) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Entry_access_load_Message (l : Loc) (v : go_uber_org.zap.zapcore.Entry) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Message" l) v.Message' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Message" l) v.Message' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Entry_access_store_Message (l : Loc) (v : go_uber_org.zap.zapcore.Entry) (Message' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Message" l) v.Message' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Message" l) Message' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Message' := Message' } : go_uber_org.zap.zapcore.Entry) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Entry_access_load_Caller (l : Loc) (v : go_uber_org.zap.zapcore.Entry) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Caller" l) v.Caller' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Caller" l) v.Caller' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Entry_access_store_Caller (l : Loc) (v : go_uber_org.zap.zapcore.Entry) (Caller' : go_uber_org.zap.zapcore.EntryCaller) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Caller" l) v.Caller' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Caller" l) Caller' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Caller' := Caller' } : go_uber_org.zap.zapcore.Entry) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Entry_access_load_Stack (l : Loc) (v : go_uber_org.zap.zapcore.Entry) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Stack" l) v.Stack' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Stack" l) v.Stack' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Entry_access_store_Stack (l : Loc) (v : go_uber_org.zap.zapcore.Entry) (Stack' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Stack" l) v.Stack' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Stack" l) Stack' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Stack' := Stack' } : go_uber_org.zap.zapcore.Entry) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end Entry
@@ -1025,12 +1295,118 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_uber_org.zap.zapcore.Assumptions]
 
 instance sampler_typed_pointsto :
-    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.sampler :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.sampler where
+  typedPointstoDef l v dq := iprop(
+    "Core" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"Core" l) v.Core' dq ∗
+    "counts" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"counts" l) v.counts' dq ∗
+    "tick" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"tick" l) v.tick' dq ∗
+    "first" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"first" l) v.first' dq ∗
+    "thereafter" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"thereafter" l) v.thereafter' dq ∗
+    "hook" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"hook" l) v.hook' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance sampler_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.sampler go_uber_org.zap.zapcore.sampler.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.sampler go_uber_org.zap.zapcore.sampler.underlying := by
+  solve_into_val_typed_struct
+
+instance sampler_access_load_Core (l : Loc) (v : go_uber_org.zap.zapcore.sampler) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"Core" l) v.Core' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"Core" l) v.Core' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance sampler_access_store_Core (l : Loc) (v : go_uber_org.zap.zapcore.sampler) (Core' : go_uber_org.zap.zapcore.Core) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"Core" l) v.Core' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"Core" l) Core' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Core' := Core' } : go_uber_org.zap.zapcore.sampler) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance sampler_access_load_counts (l : Loc) (v : go_uber_org.zap.zapcore.sampler) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"counts" l) v.counts' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"counts" l) v.counts' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance sampler_access_store_counts (l : Loc) (v : go_uber_org.zap.zapcore.sampler) (counts' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"counts" l) v.counts' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"counts" l) counts' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with counts' := counts' } : go_uber_org.zap.zapcore.sampler) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance sampler_access_load_tick (l : Loc) (v : go_uber_org.zap.zapcore.sampler) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"tick" l) v.tick' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"tick" l) v.tick' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance sampler_access_store_tick (l : Loc) (v : go_uber_org.zap.zapcore.sampler) (tick' : time.Duration) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"tick" l) v.tick' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"tick" l) tick' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tick' := tick' } : go_uber_org.zap.zapcore.sampler) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance sampler_access_load_first (l : Loc) (v : go_uber_org.zap.zapcore.sampler) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"first" l) v.first' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"first" l) v.first' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance sampler_access_store_first (l : Loc) (v : go_uber_org.zap.zapcore.sampler) (first' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"first" l) v.first' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"first" l) first' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with first' := first' } : go_uber_org.zap.zapcore.sampler) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance sampler_access_load_thereafter (l : Loc) (v : go_uber_org.zap.zapcore.sampler) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"thereafter" l) v.thereafter' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"thereafter" l) v.thereafter' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance sampler_access_store_thereafter (l : Loc) (v : go_uber_org.zap.zapcore.sampler) (thereafter' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"thereafter" l) v.thereafter' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"thereafter" l) thereafter' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with thereafter' := thereafter' } : go_uber_org.zap.zapcore.sampler) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance sampler_access_load_hook (l : Loc) (v : go_uber_org.zap.zapcore.sampler) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"hook" l) v.hook' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"hook" l) v.hook' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance sampler_access_store_hook (l : Loc) (v : go_uber_org.zap.zapcore.sampler) (hook' : GoFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"hook" l) v.hook' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"hook" l) hook' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with hook' := hook' } : go_uber_org.zap.zapcore.sampler) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end sampler
@@ -1063,12 +1439,33 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_uber_org.zap.zapcore.Assumptions]
 
 instance writerWrapper_typed_pointsto :
-    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.writerWrapper :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.writerWrapper where
+  typedPointstoDef l v dq := iprop(
+    "Writer" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.writerWrapper go!"Writer" l) v.Writer' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance writerWrapper_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.writerWrapper go_uber_org.zap.zapcore.writerWrapper.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.writerWrapper go_uber_org.zap.zapcore.writerWrapper.underlying := by
+  solve_into_val_typed_struct
+
+instance writerWrapper_access_load_Writer (l : Loc) (v : go_uber_org.zap.zapcore.writerWrapper) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.writerWrapper go!"Writer" l) v.Writer' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.writerWrapper go!"Writer" l) v.Writer' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance writerWrapper_access_store_Writer (l : Loc) (v : go_uber_org.zap.zapcore.writerWrapper) (Writer' : io.Writer) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.writerWrapper go!"Writer" l) v.Writer' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.writerWrapper go!"Writer" l) Writer' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Writer' := Writer' } : go_uber_org.zap.zapcore.writerWrapper) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end writerWrapper

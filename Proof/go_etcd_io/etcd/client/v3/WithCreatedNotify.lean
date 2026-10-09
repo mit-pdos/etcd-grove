@@ -4,6 +4,7 @@ Proof of `Spec/WithCreatedNotify.lean`. Lean-first (no Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.client.v3.WithCreatedNotify
+public import Proof.go_etcd_io.etcd.client.v3.InvOpLemmas
 
 @[expose] public section
 
@@ -33,10 +34,14 @@ theorem WithCreatedNotify.wp_proof : WithCreatedNotify.spec (GF := GF) (hG := hG
   iapply HΦ
   iframe
   unfold opFullAt opAt OpFields
-  icases Hat with ⟨⟨%Hf, #He⟩, #Hk, %Ht⟩
+  icases Hat with ⟨⟨%Hf, #He⟩, #Hk, %Ht, #Hv, #Hs⟩
   simp only [withCreatedNotifyM]
   iframe #
-  isplitl [] <;> ipureintro <;> simp_all
+  isplitl []
+  · ipureintro; simp_all
+  isplitl []
+  · ipureintro; simp_all
+  · iapply opSortAt_of _ o _ (by simp [withCreatedNotifyM]) (by simp [withCreatedNotifyM]) (by simp [withCreatedNotifyM]) $$ Hs
 
 end proof
 

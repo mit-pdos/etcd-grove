@@ -5,7 +5,7 @@
 # For client/v3/concurrency (the transaction and lease model): the comparisons (`Compare` and its
 # oneof wrappers), the transaction's response (`TxnResponse`, `ResponseOp` and its oneof wrappers,
 # `PutResponse`, `DeleteRangeResponse`) and `LeaseRevokeResponse`.
-translate = ["!*", "ResponseHeader", "ResponseHeader.GetRevision", "RangeResponse", "WatchResponse",
+translate = ["!*", "ResponseHeader", "ResponseHeader.GetRevision", "Compare.GetKey", "RangeResponse", "WatchResponse",
   "Compare", "Compare_Version", "Compare_CreateRevision", "Compare_ModRevision", "Compare_Value",
   "Compare_Lease", "Compare_EQUAL", "Compare_GREATER", "Compare_LESS", "Compare_NOT_EQUAL",
   "Compare_VERSION", "Compare_CREATE", "Compare_MOD", "Compare_VALUE", "Compare_LEASE",

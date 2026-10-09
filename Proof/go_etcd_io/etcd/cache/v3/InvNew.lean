@@ -6,7 +6,9 @@ etcd's cache `New`/`newCache` (`cache/cache.go`): the vocabulary of
 `*clientv3.Client` (the trust boundary about the client, a definition like `isEtcdKV`): its
 embedded `KV` and `Watcher` fields hold, for good, a `KV` that answers `Get`s with etcd's state
 (`isEtcdKV`) and a `Watcher` that streams etcd's watch responses (`isEtcdWatcher`) and accepts
-`RequestProgress` (`isEtcdProgressNotifier`), for the prefix `pfx`. etcd's **linearizability**
+`RequestProgress` (`isEtcdProgressNotifier`), for the prefix `pfx`; the same `KV` runs
+transactions (`isEtcdTxnKV`) and the `Lease` field grants, keeps alive and revokes leases
+(`isEtcdLeaseClient`): `InvEtcdTxn.lean`, unused by the cache. etcd's **linearizability**
 is part of `isEtcdKV`'s triple, stated against what the caller knows etcd has reached
 (`etcdReached`, `InvEtcd.lean`), a property of the client alone: nothing here is about caches.
 
@@ -20,6 +22,7 @@ module
 
 public import Proof.go_etcd_io.etcd.cache.v3.InvCache
 public import Proof.go_etcd_io.etcd.cache.v3.InvConfig
+public import Proof.go_etcd_io.etcd.cache.v3.InvEtcdTxn
 
 @[expose] public section
 
@@ -65,11 +68,14 @@ instance (priority := high) client_typeRepr_u :
   go.type_repr_underlying (u := go_etcd_io.etcd.client.v3.Client.underlying)
 
 /-- **The client** `client` (a `*clientv3.Client`) talks to etcd for the prefix `pfx` (persistent;
-see the module docstring): its `KV` and `Watcher` fields and their triples. -/
+see the module docstring): its `KV` and `Watcher` fields and their triples; the `KV`'s
+transactions (`isEtcdTxnKV`) and the `Lease` field (`isEtcdLeaseClient`, `InvEtcdTxn.lean`),
+which the cache does not use. -/
 def isEtcdClient (client : Loc) (pfx : GoString) : IProp GF :=
   iprop(∃ (kv w : GoInterfaceOk),
     clientKVAddr client ↦□ GoInterface.ok kv ∗ clientWatcherAddr client ↦□ GoInterface.ok w ∗
-    isEtcdKV kv pfx ∗ isEtcdWatcher w pfx ∗ isEtcdProgressNotifier w)
+    isEtcdKV kv pfx ∗ isEtcdWatcher w pfx ∗ isEtcdProgressNotifier w ∗
+    isEtcdTxnKV kv pfx ∗ isEtcdLeaseClient client)
 
 instance isEtcdClient_persistent (client : Loc) (pfx : GoString) :
     Persistent (isEtcdClient (GF := GF) client pfx) := by

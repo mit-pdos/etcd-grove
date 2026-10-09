@@ -1642,6 +1642,21 @@ noncomputable def ResponseHeader.GetRevision.impl [FfiSyntax] [GoGlobalContext] 
   (App (Val doExecute)
   (Val #()))))))))
 
+/-- go: rpc.pb.go:1342:19 -/
+noncomputable def Compare.GetKey.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "x"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Compare.ty)))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.byte)))) (Val UntypedNil)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Compare.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Compare.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Compare.ty)))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef Compare.ty go!"Key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Compare.ty)))) (Var "x")))))
+  (App (Val doExecute)
+  (Val #()))))))))
+
 instance info' : PkgInfo pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb where
   pkgImportedPkgs := [pkg_id.google_golang_org.protobuf.runtime.protoimpl, pkg_id.go_etcd_io.etcd.api.v3.mvccpb]
 
@@ -2797,6 +2812,7 @@ class Compare.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   set_unknownFields : ∀ (x : Compare) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Compare.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : Compare)))
   get_sizeCache : ∀ (x : Compare), go.IsGoStepPureDetTagged under (StructFieldGet Compare.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : Compare) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Compare.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : Compare)))
+  ptr_GetKey_unfold : MethodUnfold (go.GoType.PointerType Compare.ty) go!"GetKey" Compare.GetKey.impl
 
 attribute [instance] Compare.TypeAssumptions.type_repr
   Compare.TypeAssumptions.underlying
@@ -2816,6 +2832,7 @@ attribute [instance] Compare.TypeAssumptions.type_repr
   Compare.TypeAssumptions.set_unknownFields
   Compare.TypeAssumptions.get_sizeCache
   Compare.TypeAssumptions.set_sizeCache
+  Compare.TypeAssumptions.ptr_GetKey_unfold
 
 structure Compare_Version [FfiSyntax] where
   mk ::

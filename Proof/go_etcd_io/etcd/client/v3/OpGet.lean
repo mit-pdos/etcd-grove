@@ -65,7 +65,11 @@ theorem OpGet.wp_proof (wp_IsOptsWithPrefix : IsOptsWithPrefix.spec (GF := GF) (
         · iapply ownSlice_nil
       isplitl []
       · iexact Hks
-      ipureintro; simp
+      isplitl []
+      · ipureintro; simp
+      isplitl []
+      · iapply ownSlice_nil
+      · unfold opSortAt; simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
     imodintro
     iapply HΦ'
     unfold opGetModel

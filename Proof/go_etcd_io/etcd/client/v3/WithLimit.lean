@@ -4,6 +4,7 @@ Proof of `Spec/WithLimit.lean`. Lean-first (no Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.client.v3.WithLimit
+public import Proof.go_etcd_io.etcd.client.v3.InvOpLemmas
 
 @[expose] public section
 
@@ -38,10 +39,14 @@ theorem WithLimit.wp_proof : WithLimit.spec (GF := GF) (hG := hG) := by
   iapply HΦ
   iframe
   unfold opFullAt opAt OpFields
-  icases Hat with ⟨⟨%Hf, #He⟩, #Hk, %Ht⟩
+  icases Hat with ⟨⟨%Hf, #He⟩, #Hk, %Ht, #Hv, #Hs⟩
   simp only [withLimitM]
   iframe #
-  isplitl [] <;> ipureintro <;> simp_all
+  isplitl []
+  · ipureintro; simp_all
+  isplitl []
+  · ipureintro; simp_all
+  · iapply opSortAt_of _ o _ (by simp [withLimitM]) (by simp [withLimitM]) (by simp [withLimitM]) $$ Hs
 
 end proof
 

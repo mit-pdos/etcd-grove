@@ -69,7 +69,7 @@ theorem IsOptsWithFromKey.wp_proof (wp_NewOp : NewOp.spec (GF := GF) (hG := hG))
   · have Hge : sint.nat n = gs.length := by rw [← Hlen]; word
     rw [Hge, List.take_length] at *
     unfold opFullAt
-    icases Hat with ⟨-, -, %Ht⟩
+    icases Hat with ⟨-, -, %Ht, -, -⟩
     rw [Ht.2.2.2.1]
     iapply HΦ
     itrivial

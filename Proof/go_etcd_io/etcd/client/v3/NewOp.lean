@@ -39,7 +39,11 @@ theorem NewOp.wp_proof : NewOp.spec (GF := GF) (hG := hG) := by
     · iapply ownSlice_nil
   isplitl []
   · iexact Hks
-  ipureintro; simp
+  isplitl []
+  · ipureintro; simp
+  isplitl []
+  · iapply ownSlice_nil
+  · unfold opSortAt; simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
 
 end proof
 
