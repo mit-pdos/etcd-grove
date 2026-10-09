@@ -90,7 +90,7 @@ abbrev ciMutexAddr (ci : Loc) : Loc := structFieldRef consistentIndex go!"mutex"
 end addrs
 
 /-- The consistent index's invariant's namespace. -/
-def ciN : Namespace := nroot.@"cindex"
+abbrev ciN : Namespace := nroot.@"cindex"
 
 /-- The ghost names of a consistent index. -/
 structure CINames where
