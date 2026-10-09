@@ -22,7 +22,8 @@ environment instead of the source text, so nothing is a lower bound:
     function that no other proof uses (every theorem of `Proof.go_etcd_io.raft.v3.Link` is one
     function's spec instantiated with its callees' results; a spec some other proof
     uses is internal: were it wrong, that proof would fail), and the protocol lemmas
-    of `Proof.go_etcd_io.raft.v3.Results`; likewise the `cache` package's `Proof.go_etcd_io.etcd.cache.v3.Link`;
+    of `Proof.go_etcd_io.raft.v3.Results`; likewise the `cache` package's `Proof.go_etcd_io.etcd.cache.v3.Link`
+    and its exported results restated in `Proof.go_etcd_io.etcd.cache.v3.Results`;
   * definitions -- this repository's definitions those statements are written in
     terms of, transitively through their bodies.  A wrong definition makes a true
     theorem say nothing, so these are trusted exactly as the axioms are.
@@ -264,7 +265,8 @@ def main():
     w(
         f"Roots: the {len(roots)} theorems of `Proof/go_etcd_io/raft/v3/Link.lean` (every Go "
         "function's linked result), `Proof/go_etcd_io/raft/v3/Results.lean` and "
-        "`Proof/go_etcd_io/etcd/cache/v3/Link.lean` (the `cache` package's linked results).\n"
+        "`Proof/go_etcd_io/etcd/cache/v3/Link.lean` (the `cache` package's linked results) and "
+        "`Proof/go_etcd_io/etcd/cache/v3/Results.lean` (its exported results).\n"
     )
 
     w("## Summary\n")

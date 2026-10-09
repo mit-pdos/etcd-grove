@@ -946,3 +946,67 @@ would leave the wait group's `int32` counter unbounded, so the loop could not be
   revision the store has reached, `storeRevLb`, a prefix get returns at least it). `isEtcdKVFrom`
   also bounds the revision below `2 ^ 63 - 1`, as the watch contract does, so that `getWatch`'s
   `rev + 1` does not overflow.
+
+## `New` and the client: translating `Client`, timers as the trust boundary
+
+**2026-10-09 · accepted**
+
+The last unit of etcd's cache package: `New`/`newCache`, `Close`, the three loops and what they
+use (`InvConfig.lean`, `InvNew.lean`). The plan was decided with the user; what follows records
+it and what the proofs changed.
+
+- **`clientv3.Client` is translated, its fields' packages names-only.** `newCache` reads
+  `client.KV` and `client.Watcher`, so `Client` is listed in `client/v3.toml`; its other fields
+  need five more names-only packages (grpc, grpc's `credentials`, the client's `credentials`
+  and `internal/resolver`, zap), under the limit of eight. One Goose bug, fixed in Perennial
+  (an axiomatized generic type's Lean type). `Client.cfg` and four other fields keep
+  axiomatized types, whose `sorry` instances high-priority `TypeRepr` instances for `Client`
+  keep out of the trust base. *Rejected:* the axiomatized view (`clientFields` with two field
+  load axioms): not needed, and two more axioms.
+- **`isEtcdClient client pfx` is a definition, the assumption `New`'s caller makes**: the two
+  field points-tos (persistent: the client's fields are not written after construction), the
+  `KV`'s `isEtcdKV`, the `Watcher`'s `isEtcdWatcher` and `isEtcdProgressNotifier` (new:
+  `RequestProgress` returns some error; etcd's progress notification shows up on the watch
+  stream, where it is already modelled), and etcd's linearizability for the caches built over
+  the client: `□ ∀ c cf …, isCacheFields c cf … -∗ ⌜cf.kv = kv ∧ cf.pfx = pfx⌝ -∗
+  isEtcdKVLin cf`. Linearizability is about the store's revision counter (`storeRevLb`), whose
+  ghost names exist only once `newCache` has made the store, so it cannot be stated for a
+  particular store before `New` runs. *Rejected:* quantifying over every store's ghost names
+  (`∀ γs, □ ∀ lo, storeRevLb γs lo -∗ isEtcdKVFrom kv pfx lo`): any ghost counter can be
+  allocated at any value, so the assumption would force every successful prefix get to return
+  a revision of at least `2^63 - 2`: false of etcd, a vacuous theorem. *Deferred:* the
+  temporal fact itself ("etcd has reached revision `r`", produced by the client's responses
+  and carried through the demux's certificates, the store's revisions and progress
+  notifications to `storeRevLb`), which would make linearizability a property of the client
+  alone; it changes the demux's progress statements, the store's revision certificate and the
+  watch path's specs. The stated assumption is true of a correct cache over etcd (the store's
+  revisions come from this client's responses) but rests on that, which the proofs show for the
+  snapshots (`isEtcdKvs`) and not for revisions moved by progress notifications.
+- **Timers are axioms in Perennial**, like `wp_Now`/`wp_Since`: `time.wp_NewTimer`
+  (`time.isTimer t ch γ`: `C ↦□ ch`, a bag of times), `Timer.wp_Stop`, `Timer.wp_Reset` (some
+  `bool`; Stop/Reset require `isTimer`, since Go panics on a timer `NewTimer` did not make).
+  They over-approximate Go's timers (a stopped timer delivers nothing; the model allows it),
+  which is sound for safety. *Rejected:* a trusted model (`NewTimer`'s Go body calls the
+  runtime's `newTimer`, whose trusted model returns unit, and `sendTime`), a larger trusted
+  base for no gain.
+- **`WithCancel(Background())` is a new Perennial `sorry`**, `wp_WithCancel_Background`,
+  beside `wp_WithCancel` (same reason): `Background()`'s `Done()` is `nil`, which
+  `isContext` excludes, so `wp_WithCancel` does not apply; `wp_Background` (proved) gives the
+  value.
+- **The wait group and `Close`.** `Close` waits (`Wait`), which needs Perennial's waiter
+  token; Perennial's `Add` from zero needs no registered waiter, so a `Watch` (`Add(1)`) and a
+  `Close` must not overlap. The "open" token `cacheOpen cf q` (a fractional ghost variable)
+  enforces it: `Watch` takes a fraction, `Close` the whole, which it deposits in
+  `cacheWgInv` while registered. Nothing comes back through the wait group (the loops'
+  writers stay in the goroutines), so `Close`'s postcondition is the token. Go's own
+  implementation would not panic here (a waiter registers only while the counter is positive
+  and the last `Done` clears it), so this is the spec's conservatism, not a finding.
+- **`NewDemux` takes the caller's wait group abstractly**: `wgSlotProtocol wg Pslot Prun Pret`
+  (the triples of `Add(1)` and `Done()`), instantiated by `newCache` with the cache's slot and
+  "open" token. *Rejected:* `NewDemux` stating `cacheWgInv` (the demux would depend on the
+  `Cache`).
+- **`New`'s postcondition hands out the handles** (`cacheHandles`) as replicated separating
+  conjunctions (the `RWMutex`es' bounded tokens: `2^30 - 2` store readers, `2^30 - 3` watch
+  slots, `2^30 - 2` notifier handles), and requires `CfgBounded` of an accepted configuration:
+  finding 5's `PerWatcherBufferSize ≥ 0` and the overflow bounds `newRingBuffer` and the btree
+  need.

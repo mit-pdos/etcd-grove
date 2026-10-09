@@ -1,12 +1,12 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-09 (the watch loop verified against the fixed code)
+**Last updated:** 2026-10-09 (the whole cache package specified and proved: `New`, `Close`, the loops)
 
 Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
 `worktree-raft-replication`'s `feb5c73d4` and adds Ready/Advance/HasReady; the files
 were first ported from `main`, then from `feb5c73d4`) to Lean on top of Perennial's Lean
-port (mit-pdos/perennial `lean`, pinned at 96ec7016d (2026-10-09: `fmt.wp_Printf`, `time.Minute`; on 099c2a08b: `fmt.wp_Errorf`'s `Error()`; on 640a605cc: a `select` case on a nil channel is never ready, `chan.wp_select_blocking_nil`; on 48e1192c7: rlocker, `Cond.wp_Wait_with`, `time.wp_Since`) on cbb85c041: upstream's `11fd2db` merged with
+port (mit-pdos/perennial `lean`, pinned at f8b35ddbf (2026-10-09: `context.wp_Background`, `wp_WithCancel_Background`; on f35530719: Goose prints an axiomatized generic type in Lean; on 8c7000190: `time.NewTimer`, `Timer.Stop`/`Reset` axioms; on 96ec7016d: `fmt.wp_Printf`, `time.Minute`; on 099c2a08b: `fmt.wp_Errorf`'s `Error()`; on 640a605cc: a `select` case on a nil channel is never ready, `chan.wp_select_blocking_nil`; on 48e1192c7: rlocker, `Cond.wp_Wait_with`, `time.wp_Since`) on cbb85c041: upstream's `11fd2db` merged with
 `bytes.Compare`, on Lean's module system since 2026-10-09). The Goose translations of
 etcd-raft and etcd's `cache` package are this repository's `Code/` and `GeneratedProof/`,
 generated and checked by `etc/goose.py`. Files are laid out by kind and Go package path
@@ -241,9 +241,10 @@ generated and checked by `etc/goose.py` (now two projects, `etcd-raft` and `etcd
   `DoNotImplement`).
   `clientv3.GetResponse` (`type GetResponse pb.RangeResponse`), `clientv3.WatchResponse`,
   `Op`, `OpOption`, `KV`, `Watcher`, `WatchChan` were already translated.
-  `clientv3.Client` is still axiomatized (the cache reads its `KV` and `Watcher` fields
-  in `newCache`): its other fields are grpc, grpc credentials, client's internal
-  resolver and zap types, which would each need a names-only translation.
+  `clientv3.Client` is translated since 2026-10-09 (the cache reads its `KV` and
+  `Watcher` fields in `newCache`), with the packages of its other fields' types names-only
+  (`google.golang.org/grpc`, `grpc/credentials`, `client/v3/credentials`,
+  `client/v3/internal/resolver`, `go.uber.org/zap`; "The whole package" below).
 - Nothing else (grpc, zap, ...) is reached; types that would need it are axiomatized
   (212 `axiom X.underlying`, by `grep '^axiom .*\.underlying'` in `Code/`), and their
   generated instances are `sorry -- axiomatized type` (424, in `GeneratedProof/`: 150
@@ -798,3 +799,103 @@ model".
   `etc/gen-link.py --cache` reproduces `Link.lean`; `etc/verified-code.py --reuse`: the cache
   package 71 of 107 functions verified (8 unfinished: the documented `sorry`s), 776 of 1204
   lines (64.5%); `clientv3` 35 functions.
+
+### The whole package (2026-10-09)
+
+Every function of etcd's `cache` package has a `Spec`/`Proof` pair and a linked result: 107 of
+107 (`etc/verified-code.py --reuse`: 97 verified, 10 unfinished, 943 of 1206 Go lines verified,
+78.2%). This stage added the rest: the ten `Config` options (`InvConfig.lean`), `Prefix.Match`,
+the real clock (`realClock.NewTimer`, `realTimer.Chan/Stop/Reset`), the progress requestor
+(`newConditionalProgressRequestor`, `run`), the demux's `NewDemux`, `resyncLoop` and
+`WaitForNextResync`, and `Cache`'s `WaitForNextResync`, `Close`, `newCache` and `New`
+(`InvNew.lean`). `Results.lean` restates the exported results and prints their trust base.
+Design: `decisions.md`, "`New` and the client: translating `Client`, timers as the trust
+boundary".
+
+- **The client is translated** (Perennial's Goose, no fork change): `clientv3.Client` is listed
+  in `client/v3.toml`, and the packages of its fields' types are names-only (`.toml`s with
+  `translate = ["!*"]`, `translate_types`): `google.golang.org/grpc`, `grpc/credentials`,
+  `client/v3/credentials`, `client/v3/internal/resolver`, `go.uber.org/zap` (five packages;
+  `-lean-root go.uber.org=` in `etc/goose.py`). zap's two axiomatized generic types hit a Lean
+  backend bug of Goose (Rocq's `∀ (T : go.type), go.type` printed verbatim), fixed in Perennial
+  `f35530719` (`GenericTypeExpr`; Rocq output and Perennial's std-lib translations unchanged).
+  `Client.cfg` (`clientv3.Config`, with a `*tls.Config`) and four other field types stay
+  axiomatized; their `sorry -- axiomatized type` instances are kept out of the trust base by
+  high-priority `TypeRepr` instances for `Client` (`InvNew.lean`, as `InvStore.lean` does for
+  the protobuf messages).
+- **The client's assumption** `isEtcdClient client pfx` (`InvNew.lean`, a definition): the
+  `KV` and `Watcher` fields point for good to a `KV` with `isEtcdKV` and a `Watcher` with
+  `isEtcdWatcher` and `isEtcdProgressNotifier` (`RequestProgress` returns some error, no
+  logical effect; new in `InvEtcd.lean`), and etcd's linearizability for every cache built over
+  this client (`isCacheFields c cf … -∗ ⌜cf.kv = kv ∧ cf.pfx = pfx⌝ -∗ isEtcdKVLin cf`): the
+  store's revisions are revisions this client reported, which the proofs do not track
+  (decisions.md).
+- **Timers are the trust boundary** (Perennial `8c7000190`, axioms like `wp_Now`):
+  `time.wp_NewTimer` returns a `*Timer` with `time.isTimer t ch γ` (its `C` field holds for
+  good a channel on which a receive yields some time, `isChanBag`, no logical content);
+  `Timer.wp_Stop` and `Timer.wp_Reset` (for such a timer) return some `bool`. `realClock`'s
+  `NewTimer` proves the cache's `isTimer` from them, so the real clock is an `isClock`
+  (`isClock_realClock`, `Proof/.../New.lean`). `resyncLoop` uses `time.NewTimer` directly.
+- **`New`'s theorem in words** (`Spec/go_etcd_io/etcd/cache/v3/New.lean`, `newCacheResult`):
+  for a client of etcd for the prefix `pfx` (`isEtcdClient`) and options with model
+  transformers `gs` (`cfgOptsAt`), the configuration is `defaultConfig()` with the options
+  applied in order; if it has `HistoryWindowSize ≤ 0` or `BTreeDegree < 2`, `New` returns `nil`
+  and a non-nil error; otherwise, provided the configuration is `CfgBounded`
+  (`HistoryWindowSize ≤ 2^61`, `BTreeDegree ≤ 2^62`, `PerWatcherBufferSize ≥ 0`: finding 5's
+  premise and two overflow bounds the code does not check), it returns a cache `c` with
+  `isCacheFields` (every field, for that prefix and configuration) and its handles: `2^30 - 2`
+  readers of the store (`Get`, `WaitForRevision`), `2^30 - 3` watch slots (a demux token and a
+  wait-group slot each, `Watch`), `2^30 - 2` handles on the demux's resync notifier
+  (`WaitForNextResync`) with its lower bound `0`, and the whole "open" token (`cacheOpen`,
+  `Watch` takes a fraction, `Close` all of it); its resync loop, watch loop (with both writers
+  and linearizability) and progress requestor run on its wait group.
+- **The other new specs**: `NewDemux` takes the caller's wait group as `wgSlotProtocol` (the
+  triples of its `Add(1)`/`Done()`), returns `newDemux`'s resources less the resync loop's demux
+  token and notifier handle; `resyncLoop` returns its two tokens once the context is done;
+  `WaitForNextResync` (demux's and `Cache`'s) is the notifier's `wait`: `nil` only after a
+  notification beyond the caller's lower bound, or the context's error; `run` returns `()`
+  (everything it uses is persistent; `isProgressRequestor` now fixes the `cond`'s locker to
+  `&p.mux`, `isPrRun` its other fields); `Close` takes `cacheOpen cf 1` and gives it back
+  (nothing comes back through the wait group); each `With*` returns a closure with
+  `cfgOptSpec f (fun c => {c with X := n})`; `defaultConfig` now returns `defaultConfigVal`.
+- **Changed statements**: `isCacheFields` gained `stop` (the cancel function, with its triple);
+  `cacheWgInv` admits one waiter, which has deposited `cacheOpen cf 1`, so `Cache.Watch` takes
+  and gives back `cacheOpen cf q` (its `Add(1)` must not happen while `Close` waits:
+  Perennial's `WaitGroup.Add` from zero needs no registered waiter); `newDemux` returns the
+  notifier's handles (`demuxResyncHandle`) and its lower bound.
+- **Perennial** (`f8b35ddbf`, on `f35530719`, on `8c7000190`; push Perennial first):
+  `context.wp_Background` (proved: `backgroundCtxVal`) and `context.wp_WithCancel_Background`
+  (a `sorry`, as `wp_WithCancel`: `Background()`'s `Done()` is `nil`, so it is not an
+  `isContext` and `wp_WithCancel` does not apply); the timer axioms; the Goose fix.
+- **Perennial gaps found**: `wp_apply` loses track of an `IProp`-typed variable introduced
+  by `intro` inside the proof when the applied spec mentions it (here `NewDemux`'s `Pslot`,
+  `Prun`): "unknown free variable", or a silent stop reported as unsolved goals at `by`; a
+  workaround is to bind the spec's variables with `fun … => by`. A side goal of `wp_apply` (a
+  pure premise) may lack the Lean hypotheses `wp_start` introduced (`%H`): frame them from an
+  Iris pure hypothesis instead. `wp_for`'s `cleanup_bool_decide` (`try simp`) can silently
+  fail on a large context (`Cache.Watch` after `isCacheFields` grew): clearing two unused
+  hypotheses fixed it.
+- **What the cache's results rest on** (`Results.lean`'s `#print axioms`, by `etc/tcb-report.py`;
+  besides Lean's `propext`, `Classical.choice`, `Quot.sound` and Perennial's names-only Go
+  declarations, about 855 opaque types of the translation):
+  - `cache_New`: the model axioms `etcdState`, `EtcdStep`, `etcdStep_compose`,
+    `etcdStep_transfer`; this repository's `rpctypes.Error.wp_proof`, `status.Error.wp_proof`
+    (grpc's `status` is not translated); Perennial's `time.wp_NewTimer`, `Timer.wp_Stop`,
+    `Timer.wp_Reset`; the `sorry`s `wp_map_for_range_mut_keys` (the demux's map iteration,
+    Perennial gap), `fmt.wp_Errorf`, `context.wp_WithCancel`, `context.wp_WithCancel_Background`.
+  - `cache_Get`: `etcdState`, `EtcdStep`; Perennial's `time.wp_Now`, `time.wp_Since`; the
+    `sorry` `fmt.wp_Errorf`.
+  - `cache_Watch`: `etcdState`, `EtcdStep`; the `sorry` `fmt.wp_Errorf`.
+  - `cache_Watch_delivery` (the delivery theorem for a received log): `EtcdStep` only.
+  - `cache_WaitForRevision`, `cache_WaitForNextResync`, `cache_Close`: `etcdState`,
+    `EtcdStep`, no `sorry`.
+  The 10 unfinished functions are those whose own proof reaches a `sorry`: `newCache`
+  (`wp_WithCancel_Background`, `fmt.wp_Errorf`), `watchEvents` (`wp_WithCancel`),
+  `validateGet`, `validateWatch`, `validateRevisions`, `store.applyEventsLocked`,
+  `store.getSnapshot` (`fmt.wp_Errorf`), `demux.broadcastEventsLocked`,
+  `broadcastProgressLocked`, `resyncLaggingWatchers` (`wp_map_for_range_mut_keys`).
+- **Gates** (2026-10-09, Perennial `f8b35ddbf`): `lake build` passes (1472 jobs);
+  `etc/tcb-report.py --check` (after `--update`): 10 axioms, 4 sorries (new:
+  `sorry Perennial.context.wp_WithCancel_Background`; the roots now include
+  `Proof.go_etcd_io.etcd.cache.v3.Results`, 389 root theorems); `etc/goose.py --check` passes;
+  `etc/gen-link.py --cache` reproduces `Link.lean`.
