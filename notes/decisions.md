@@ -590,7 +590,7 @@ would need new trusted axioms about `fmt`, for no client.
 
 ## Perennial's `copy` was not Go's: now a memmove
 
-**2026-10-08 · accepted (Perennial branch `copy-memmove`, 5075e9d; to be merged upstream)**
+**2026-10-08 · accepted (in Perennial's `lean` since 2026-10-09, `e9cba5d`)**
 
 Perennial modeled `copy(dst, src)` as a front-to-back loop in place. Go's `copy` allows
 overlapping slices; when `dst` starts past `src` in the same array the loop reads
@@ -602,8 +602,7 @@ separate ownership of the two slices excludes overlap, so none relied on the bad
 **Decision:** in Perennial, `copy` runs the old loop (`slice.copyForward`) twice, through
 a fresh buffer holding all of `src`; `wp_slice_copy` keeps its statement, and
 `wp_slice_copy_within` specifies a copy between two parts of one slice (`insertAt`,
-`removeAt`). Until Perennial's `lean` has it and is re-pinned here, the btree proofs build
-against a checkout of the branch (`lake build --packages=<override>`).
+`removeAt`). In Perennial's `lean` (and pinned here) since 2026-10-09.
 
 ---
 

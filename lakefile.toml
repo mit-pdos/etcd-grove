@@ -1,9 +1,7 @@
 name = "etcdGrove"
 defaultTargets = ["EtcdGrove"]
 
-# The Perennial framework (branch `lean` of mit-pdos/perennial; here its branch
-# `copy-memmove-modules` until that is merged: Go's `copy` as a memmove, pointer
-# conversions, `sort.wp_initialize'`, which the btree proof needs), including the Goose
+# The Perennial framework (branch `lean` of mit-pdos/perennial), including the Goose
 # translator that produced `Code/` and `GeneratedProof/` (checked by
 # `etc/goose.py --check`).
 [[require]]

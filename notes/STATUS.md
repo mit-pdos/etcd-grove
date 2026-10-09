@@ -261,12 +261,12 @@ every proof carried over unchanged but for the renames (the fork's `freeNode` an
   model) pairs, and `ownBTree_persist` rests on `btree.ownBTree_persist`,
   `Fractional.lean`). `btree.New` and `newStore` (and `isStore`) now require
   `degree <= 2^62`.
-- **Needs Perennial's branch `copy-memmove-modules`** (pinned here at `11fd2db`: `lean`
-  `2b8cb96` plus three commits, to be merged into `lean`): (1) `copy` as a memmove --
-  the old model copied in place front to back, which is not Go's `copy` for
-  overlapping slices and made `insertAt`'s `copy(s[i+1:], s[i:])` corrupt the tree
-  (`decisions.md`); (2) a step rule for converting between pointer types with the same
-  underlying type; (3) `sort.wp_initialize'`. Raft needed one change for (1)
+- **Needs Perennial `11fd2db`** (its `lean` since 2026-10-09, pinned here): three
+  commits on top of `2b8cb96`: (1) `copy` as a memmove -- the old model copied in place
+  front to back, which is not Go's `copy` for overlapping slices and made `insertAt`'s
+  `copy(s[i+1:], s[i:])` corrupt the tree (`decisions.md`); (2) a step rule for
+  converting between pointer types with the same underlying type; (3)
+  `sort.wp_initialize'`. Raft needed one change for (1)
   (`Proof/go_etcd_io/raft/v3/InvRaftpb.lean`).
 - Regenerating the `etcd` project needs Go 1.27 for goose (the fork requires it):
   `GOTOOLCHAIN=go1.27.1 etc/goose.py --project etcd`.
@@ -274,7 +274,6 @@ every proof carried over unchanged but for the renames (the fork's `freeNode` an
 
 ## Next
 
-- btree: when Perennial's `lean` has the `copy-memmove-modules` commits, re-pin to it.
 
 - Follow the Rocq RawNode branch past 857d09190 (its worktree has an uncommitted
   edit to `proof_RawNode__Ready.v`, not ported).
@@ -357,7 +356,7 @@ it imports). No `sorry`, no axiom: `etc/tcb-report.py --check` now also takes
   the proved ones (`InvBtree.lean`).
 - **`sorry`**: none of the store's own since 2026-10-09: `newStore_RLocker`
   (`RWMutex.RLocker()`'s conversion `*RWMutex → *rlocker`) steps by Perennial's new
-  `convert_pointer_same_underlying` (branch `copy-memmove-modules`).
+  `convert_pointer_same_underlying` (Perennial `11fd2db`).
 - `etc/tcb-report.py --check` (2026-10-09, roots now including the btree's `Link`): 4 axioms (`fmt.Sprintf`, `rand.Int`, `reflect.DeepEqual`, `strings.Join`) and 3 sorries, all outside this repository's proofs (Perennial's `fmt.wp_Errorf`, two generated protobuf instances); the nine btree axioms and `newStore_RLocker` are gone. `etc/goose.py --check` passes (fetching the fork from GitHub; Go 1.27 for the etcd fork).
 
 ### watcher, notifier, ready (`cache/watcher.go`, `cache/demux.go`, `cache/ready.go`): proved (2026-10-09)
