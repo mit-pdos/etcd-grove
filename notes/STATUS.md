@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-10 (`client/v3/leasing` units 3 and 4: `txn.go` and `kv.go` but the monitors specified and proved, nested transactions and owned responses in the contract, two new findings (a write of an uncached key applied twice, a failed acquisition ignores the get's options), see "Units 3 and 4"; `client/v3/leasing` units 1 and 2: translated, the protocol as a premise on etcd's history with `leased_value_stable`, the lease cache specified and proved, findings in `EvictRange` and `evalCmp`, see "client/v3/leasing: the protocol premise and the lease cache"; merged upstream's register example, `node.go`, raft from upstream etcd-io/raft and thread tokens into the Mutex/Election/STM line, Perennial `7c93f27aa`, see "Merge: the register, `node.go` and thread tokens"; `STM`: all of `stm.go` specified and proved, atomicity of the serializable levels, Perennial `9276bd1ed`: a map has fewer than `2^63` keys, two trust-boundary axioms for the STM's panic and `recover`, a new history law, the serializable snapshot broken after a retry (a finding, reproduced and fixed on a fork branch), see "STM"; `Election`: all of `election.go` specified and proved, election exclusion, only the leader proclaims, `Campaign` may return `nil` without its key (a finding), see "Election"; `Mutex`: mutual exclusion, Perennial `d240c1732`: `fmt.Sprintf` formats `%s`, `strings.HasPrefix`, see "Mutex: mutual exclusion"; the register example verified over raft: logically atomic `Put`/`Get`, raft proposals over a client log, see "The register example"; the cache's wait-group counter bounded by thread tokens, Perennial `105fb79f5`: the `WaitGroup.Add` overflow assumption reverted, `New` assumes fewer than `2^31 - 3` live threads, see "The wait-group counter and thread tokens"; `node.go` proved: `RestartNode`, `run`, `Propose`, `Step`, `Tick`, `Ready`, `Advance`, see "`node.go`: the concurrent `Node`"; groundwork for `node.go`: a computed `Ready` can be abandoned, Perennial's `wp_slice_append_undo`; pre-vote out of scope at the RawNode level; `Ready`'s messages carry terms at most the node's, see "`node.go` groundwork"; `RawNode.Ready` split into `readyWithoutAccept` and `acceptReady`, for `node.go`; the storage contract has a pending append, for `node.go`; `MemoryStorage.Append` and `NewMemoryStorage` proved; merged upstream's RawNode work into the cache-as-shipped and concurrency line, Perennial `7d0b56b07`, see "Merge: upstream's RawNode work"; `RawNode.Step` takes a `MsgApp` between `Ready` and `Advance`; the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; Perennial `7d0b56b07`: Goose with per-iteration loop variables, `break` out of `select`, see "Perennial `7d0b56b07`"; merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
+**Last updated:** 2026-10-10 (`client/v3/leasing` unit 5: the monitors, `NewKV` and `Close` proved, every leasing result unconditional, 66 of 67 functions verified; two findings reproduced (`waitRescind`'s `nil` without a delete lets a range delete through another client's lease; a session reset between `acquire` and `Add` leaves a stale entry), see "Unit 5: the monitors; the package"; `client/v3/leasing` units 3 and 4: `txn.go` and `kv.go` but the monitors specified and proved, nested transactions and owned responses in the contract, two new findings (a write of an uncached key applied twice, a failed acquisition ignores the get's options), see "Units 3 and 4"; `client/v3/leasing` units 1 and 2: translated, the protocol as a premise on etcd's history with `leased_value_stable`, the lease cache specified and proved, findings in `EvictRange` and `evalCmp`, see "client/v3/leasing: the protocol premise and the lease cache"; merged upstream's register example, `node.go`, raft from upstream etcd-io/raft and thread tokens into the Mutex/Election/STM line, Perennial `7c93f27aa`, see "Merge: the register, `node.go` and thread tokens"; `STM`: all of `stm.go` specified and proved, atomicity of the serializable levels, Perennial `9276bd1ed`: a map has fewer than `2^63` keys, two trust-boundary axioms for the STM's panic and `recover`, a new history law, the serializable snapshot broken after a retry (a finding, reproduced and fixed on a fork branch), see "STM"; `Election`: all of `election.go` specified and proved, election exclusion, only the leader proclaims, `Campaign` may return `nil` without its key (a finding), see "Election"; `Mutex`: mutual exclusion, Perennial `d240c1732`: `fmt.Sprintf` formats `%s`, `strings.HasPrefix`, see "Mutex: mutual exclusion"; the register example verified over raft: logically atomic `Put`/`Get`, raft proposals over a client log, see "The register example"; the cache's wait-group counter bounded by thread tokens, Perennial `105fb79f5`: the `WaitGroup.Add` overflow assumption reverted, `New` assumes fewer than `2^31 - 3` live threads, see "The wait-group counter and thread tokens"; `node.go` proved: `RestartNode`, `run`, `Propose`, `Step`, `Tick`, `Ready`, `Advance`, see "`node.go`: the concurrent `Node`"; groundwork for `node.go`: a computed `Ready` can be abandoned, Perennial's `wp_slice_append_undo`; pre-vote out of scope at the RawNode level; `Ready`'s messages carry terms at most the node's, see "`node.go` groundwork"; `RawNode.Ready` split into `readyWithoutAccept` and `acceptReady`, for `node.go`; the storage contract has a pending append, for `node.go`; `MemoryStorage.Append` and `NewMemoryStorage` proved; merged upstream's RawNode work into the cache-as-shipped and concurrency line, Perennial `7d0b56b07`, see "Merge: upstream's RawNode work"; `RawNode.Step` takes a `MsgApp` between `Ready` and `Advance`; the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; Perennial `7d0b56b07`: Goose with per-iteration loop variables, `break` out of `select`, see "Perennial `7d0b56b07`"; merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
 
 Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
@@ -242,8 +242,7 @@ theorems); `Spec`/`Proof` pairs for the 31 leasing functions, ten clientv3 funct
     the next reset (`monitorLease` only rescinds on a `"REVOKE"` put). Not excluded by the specs
     (the facts are about the acquisition revision); this is why `leasingX` has no "entries carry
     the current lease" invariant.
-  - `waitRescind` returning `nil` without a delete event (unit 1's list) is unit 5's to confirm;
-    its spec here promises nothing.
+  - `waitRescind` returning `nil` without a delete event (unit 1's list): confirmed by unit 5.
 - **Trust base**: three new axioms, `strings.TrimPrefix.wp_proof` (`Spec/strings/TrimPrefix.lean`),
   `errors.As.wp_proof` (`Spec/errors/As.lean`, for a `*rpctypes.EtcdError` target), both
   standard-library functions Perennial does not model (to move to Perennial), and
@@ -256,6 +255,67 @@ theorems); `Spec`/`Proof` pairs for the 31 leasing functions, ten clientv3 funct
   --package go.etcd.io/etcd/client/v3/leasing`: 42 verified of 67 (`cache.go` 20/20, `util.go`
   8/8, `txn.go` 7 of 12, `kv.go` 7 of 27 verified), 17 unfinished (resting on unit 5's specs), 7
   translated (unit 5's); 509 of 921 lines verified, 917 specified; etcd 304 verified of 3599.
+- **Push order**: unchanged (the etcd fork's `0fc6f23b1` to `goose-lean`, then etcd-grove).
+
+### Unit 5: the monitors; the package (2026-10-10)
+
+Every function of `client/v3/leasing` but `init` (not translated apart from package
+initialization, `Base.lean`) is specified and proved, no `sorry`: unit 5 proved `waitSession`,
+`waitRescind`, `rescind`, `monitorLease`, `monitorSession`, `Close` and `NewKV`. Files:
+`Spec`/`Proof` pairs for the seven (`rescind`, `monitorSession`, `Close`, `NewKV` newly specified),
+lemma modules `InvLeasingSessionLemmas` (the cache's reset `LeaseCacheSt.reset m st := { st with
+emap := m, entries := ∅, frozen := st.entries.toList ++ st.frozen }`, joining the session
+monitor's halves) and `InvLeasingNewLemmas` (the wait group's two owed goroutines and `Wait`, the
+cache's allocation). Design: `decisions.md`, "Leasing unit 5".
+
+- **No hypotheses left**: the link list has no `fn: ?`; `Link.lean`'s `links_pending` section is
+  gone and the 17 results that took the unit-5 specs (`leasingKV.wp_Get`, `wp_Put`, `wp_Delete`,
+  `wp_Do`, `txnLeasing.wp_Commit` and their callees `get`, `put`, `delete`, `deleteRange`,
+  `acquire`, `revoke`, `revokeLeaseKvs`, `revokeRange`, `guard`, `guardRanges`, `revokeFallback`,
+  `serverTxn`) are unconditional; `Results.lean`'s theorems take no hypotheses, with
+  `leasing_NewKV`, `leasing_Close`, `leasing_waitRescind`, `leasing_monitorLease`,
+  `leasing_monitorSession` added.
+- **Specs**: `NewKV` (`isLeasingEtcdClient`, `closedChInit`, a thread bound) returns
+  `newKVResult`: the `KV` interface value of an `isLeasingKV` with every reader slot, the "open"
+  token, `leasingCloseFn` and `waitSession`'s error; `Close` needs the whole "open" token; the two
+  monitors return (`True`); `waitRescind`: an error, `nil` with `leaseKeyDeleted` (the lease key
+  absent at a revision above `rev`), **or `nil` with no promise** (the watch closed without a
+  delete event).
+- **Changes to existing specs and contracts**: `leasingXBody` holds half of `session`/`sessionc`,
+  `sessionMonitor` the other half (`monitorSession` reads `session` without the lock);
+  `acquireResult`'s success gives `sessionReady` (`monitorLease` calls `leaseID`), `monitorLease`
+  and `waitRescind` take a revision bound (`WithRev(rev+1)`; `txnCommitOk_guarded` exports the
+  header's); the range watch contract gives a delete event's `Value`/`Lease` fields readable
+  (`delKvAt`; `monitorLease` reads `Value` of every event); `isEtcdLease`'s `KeepAlive` success
+  gives a channel (no nil: etcd's lessor always makes one), so `NewSession`'s nil session comes
+  with an error (`monitorSession` would otherwise set a nil session and close `sessionc`).
+- **Findings** (reproduced by integration tests kept out of the tree):
+  - **`waitRescind` returns `nil` without a delete** (confirmed, the spec's third outcome): when
+    the watch channel closes while `ctx` is live (the watch canceled: its start revision
+    compacted, or the client closed), it returns `ctx.Err() == nil`. A single-key write then just
+    retries (its guard still fails); a **range delete goes through another client's lease**:
+    `revokeRange`'s bound covers the still-present lease key, so `deleteRangeRPC`'s guard holds.
+    Reproduction: A caches `k` (`lkvA.Get("k")`, A's watcher stalled so its lease monitor has not
+    run); B's watcher, before its `Watch`, puts twice and compacts; `lkvB.Delete("k",
+    WithPrefix())` returns `Deleted=1` while A's lease key `pfx/k` still exists, and
+    `lkvA.Get("k")` returns `"v1"` though etcd has no `k`. Without the stall, A usually rescinds
+    first (a race). This breaks the protocol premise (`LeasingProtocol` (1)) for leasing clients.
+  - **A stale entry survives a session reset** (confirmed): `get` adds the entry after `acquire`
+    commits; a reset in between (`monitorSession` clears the map before `Add`) leaves an entry of
+    the old lease, whose lease key etcd deleted with the lease. `monitorLease` ignores the delete
+    event (its `Value` is not `"REVOKE"`: `continue`), and a `"REVOKE"` put carrying the old
+    lease (`WithIgnoreLease`) is not this client's current `leaseID()`, so it returns without
+    rescinding. The entry stays until the next reset. Reproduction: A's `KV` wrapped so that after
+    the acquisition's `Commit` it revokes A's session lease (as an expiry would) and waits for A's
+    new session (`WithTTL(2)`); then B (`NewKV` after) puts `"v2"` (its guard holds: no lease
+    key), and `lkvA.Get("k")` returns `"v1"`.
+- **Trust base**: no new axiom; `--collection leasing` 12 axioms, no `sorry` (unchanged); every
+  collection unchanged; `etc/tcb-report.py --check`: 48 axioms, 1 sorry (unchanged).
+- **Gates**: `lake build` passes (2184 jobs); `ETCD_SRC=/shared/etcd etc/goose.py --check`;
+  `etc/gen-link.py` reproduces every `Link.lean`; `etc/verified-code.py --reuse --package
+  go.etcd.io/etcd/client/v3/leasing`: **66 verified of 67** (every one sorry-free; `init`, 4
+  lines, not translated), 0 unfinished, 917 of 921 lines verified (`kv.go` 26/27, `cache.go`,
+  `txn.go`, `util.go` all); etcd 328 verified of 3599.
 - **Push order**: unchanged (the etcd fork's `0fc6f23b1` to `goose-lean`, then etcd-grove).
 
 ## Merge: the register, `node.go` and thread tokens (2026-10-10)

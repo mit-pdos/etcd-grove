@@ -2061,6 +2061,26 @@ monitors, the session monitor, `clearOldRevokes`), and its lock also guards the 
   nested transaction is the leasing KV's own (`serverTxn`'s `OpTxn`).
 
 
+### Leasing unit 5: the session monitor's halves, contract strengthenings
+
+**2026-10-10 · proposed** (unit 5 of `client/v3/leasing`: the monitors, `NewKV`, `Close`)
+
+- **Split fields**: `monitorSession` reads `lkv.session` without the cache's lock (it is the only
+  writer of `session` and `sessionc`), so `leasingXBody` holds half of both fields (`q.half`) and
+  `sessionMonitor` the other half, with the current `sessionc`'s close right (`.Pending`) or the
+  fact that it closed it (`.Done`), which makes the nonblocking `select` on `sessionc` exact.
+  *Rejected:* a ghost copy of the session (a load needs a points-to).
+- **`waitRescind` states its `nil` honestly**: `nil` with `leaseKeyDeleted`, or `nil` with no
+  promise; the second is reachable (a finding), so no stronger spec holds.
+- **Contract changes, both true of etcd**: a delete watch event's `*KeyValue` has readable `Value`
+  and `Lease` (`delKvAt`, values unspecified); `Lease.KeepAlive`'s success returns a channel (the
+  lessor always makes one; the old contract allowed `(nil, nil)`, through which `NewSession`
+  returned a nil session with a nil error and `monitorSession` could not be proved).
+- **`NewKV` hands out** every reader slot of the cache's `RWMutex` and the whole "open" token
+  (as the cache's `New`), and the close function's spec rather than `Close`'s (`leasingCloseFn`);
+  `isLeasingCancel` (the `cancel` field's spec) is apart from `isLeasingKV`, which `Close` alone
+  needs.
+
 ## Panic and recover: a panic outcome in the language, `Catch` for `defer`
 
 **2026-10-10 · proposed** (the plan decided with the user; being implemented on a Perennial
