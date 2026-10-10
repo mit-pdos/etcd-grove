@@ -227,7 +227,7 @@ theorem Election.Resign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG
     iframe Hr Hnl
     isplitr
     · unfold hdrRevAt; iframe HRev; ipureintro; exact Hhdr
-    ipureintro; exact Hrr.1
+    ipureintro; exact Hrr.1 rfl
   · wp_apply HCommitAny $$ %({ model := resignTxn st.key st.rev, cif := true, cthen := true, celse := false } : TxnBuild) [$HB] as %resp %err #Hres
     iunfold txnAnyResult at Hres
     icases Hres with (%Hne | ⟨%Heq, %hdr, %ok, #HH, -⟩)

@@ -339,7 +339,8 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
       TxnBuild).model = campaignTxn key pv id := rfl
   rw [hm]
   ihave %hpos := campaign_txnStates_pos pfx r s0 _ _ $$ Hts
-  obtain ⟨Hlo_r, Hr0, Hrmax, Hwf0⟩ := Hrr
+  obtain ⟨Hlo_r0, Hr0, Hrmax, Hwf0⟩ := Hrr
+  have Hlo_r := Hlo_r0 rfl
   iunfold txnRespAt at Hresp
   icases Hresp with ⟨%hdr, %rsl, %ps, #HH, %Hhdr, #HRev, #HSucc, #HR, #Hps, %Hlens, #Hops⟩
   ihave %Hlen := ownSlice_len _ _ _ $$ Hps

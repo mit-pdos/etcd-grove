@@ -253,7 +253,7 @@ theorem Election.Proclaim.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
         iexists s0, putKv r key val id s0
         iframe Hs0 Hs1
         ipureintro; exact ⟨hok, rfl⟩
-      ipureintro; exact Hrr.1
+      ipureintro; exact Hrr.1 rfl
     · rw [e]
       simp only [txnWrote, List.any_nil]
       unfold txnStates
@@ -279,7 +279,7 @@ theorem Election.Proclaim.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
         iexists s0
         iframe Hts
         ipureintro; exact createGuard_false pfx key rev s0 Hrr.2.2.2 hok
-      ipureintro; exact Hrr.1
+      ipureintro; exact Hrr.1 rfl
   · wp_apply HCommitAny $$ %({ model := proclaimTxn key rev val id, cif := true, cthen := true, celse := false } : TxnBuild) [$HB] as %resp %err #Hres
     iunfold txnAnyResult at Hres
     icases Hres with (%Hne | ⟨%Heq, %hdr, %ok, #HH, #HSucc⟩)
