@@ -77,6 +77,8 @@ public import Proof.go_etcd_io.raft.v3.raft__pastElectionTimeout
 public import Proof.go_etcd_io.raft.v3.RawNode__HasReady
 public import Proof.go_etcd_io.raft.v3.RawNode__Propose
 public import Proof.go_etcd_io.raft.v3.RawNode__Ready
+public import Proof.go_etcd_io.raft.v3.RawNode__acceptReady
+public import Proof.go_etcd_io.raft.v3.RawNode__readyWithoutAccept
 public import Proof.go_etcd_io.raft.v3.SoftState__equal
 public import Proof.go_etcd_io.raft.v3.assertConfStatesEquivalent
 public import Proof.math.big.Int__Int64
@@ -1025,9 +1027,17 @@ theorem RawNode.wp_Propose :
     RawNode.Propose.spec (GF := GF) (hG := hG) :=
   RawNode.Propose.wp_proof raft.wp_Step
 
+theorem RawNode.wp_readyWithoutAccept :
+    RawNode.readyWithoutAccept.spec (GF := GF) (hG := hG) :=
+  RawNode.readyWithoutAccept.wp_proof raftLog.wp_nextUnstableEnts raftLog.wp_nextCommittedEnts SoftState.wp_equal wp_isHardStateEqual raftLog.wp_hasNextUnstableSnapshot wp_MustSync
+
+theorem RawNode.wp_acceptReady :
+    RawNode.acceptReady.spec (GF := GF) (hG := hG) :=
+  RawNode.acceptReady.wp_proof raftLog.wp_hasNextOrInProgressUnstableEnts wp_IsEmptyHardState wp_IsEmptySnap raftLog.wp_lastEntryID wp_needStorageApplyRespMsg raftLog.wp_acceptUnstable wp_entsSize raftLog.wp_acceptApplying wp_traceReady
+
 theorem RawNode.wp_Ready :
     RawNode.Ready.spec (GF := GF) (hG := hG) :=
-  RawNode.Ready.wp_proof raftLog.wp_nextUnstableEnts raftLog.wp_nextCommittedEnts SoftState.wp_equal wp_isHardStateEqual raftLog.wp_hasNextUnstableSnapshot wp_MustSync raftLog.wp_hasNextOrInProgressUnstableEnts wp_IsEmptyHardState wp_IsEmptySnap raftLog.wp_lastEntryID wp_needStorageApplyRespMsg raftLog.wp_acceptUnstable wp_entsSize raftLog.wp_acceptApplying wp_traceReady
+  RawNode.Ready.wp_proof RawNode.wp_readyWithoutAccept RawNode.wp_acceptReady
 
 end links_hasLC
 

@@ -41,3 +41,9 @@ NewRawNode: newRaft raft__softState raft__hardState
 # application's side of the pending append.
 MemoryStorage__Append: MemoryStorage__firstIndex
 NewMemoryStorage:
+# RawNode.Ready split into readyWithoutAccept and acceptReady (rawnode.go), Lean-first
+# (2026-10-10): node.go calls the two apart; Ready (a Rocq-side function) is listed to
+# override its Rocq callees with the two halves.
+RawNode__readyWithoutAccept: raftLog__nextUnstableEnts raftLog__nextCommittedEnts SoftState__equal isHardStateEqual raftLog__hasNextUnstableSnapshot MustSync
+RawNode__acceptReady: raftLog__hasNextOrInProgressUnstableEnts IsEmptyHardState IsEmptySnap raftLog__lastEntryID needStorageApplyRespMsg raftLog__acceptUnstable entsSize raftLog__acceptApplying traceReady
+RawNode__Ready: RawNode__readyWithoutAccept RawNode__acceptReady

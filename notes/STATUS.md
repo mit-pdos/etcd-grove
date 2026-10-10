@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-10 (the storage contract has a pending append, for `node.go`; `MemoryStorage.Append` and `NewMemoryStorage` proved; merged upstream's RawNode work into the cache-as-shipped and concurrency line, Perennial `7d0b56b07`, see "Merge: upstream's RawNode work"; `RawNode.Step` takes a `MsgApp` between `Ready` and `Advance`; the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; Perennial `7d0b56b07`: Goose with per-iteration loop variables, `break` out of `select`, see "Perennial `7d0b56b07`"; merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
+**Last updated:** 2026-10-10 (`RawNode.Ready` split into `readyWithoutAccept` and `acceptReady`, for `node.go`; the storage contract has a pending append, for `node.go`; `MemoryStorage.Append` and `NewMemoryStorage` proved; merged upstream's RawNode work into the cache-as-shipped and concurrency line, Perennial `7d0b56b07`, see "Merge: upstream's RawNode work"; `RawNode.Step` takes a `MsgApp` between `Ready` and `Advance`; the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; Perennial `7d0b56b07`: Goose with per-iteration loop variables, `break` out of `select`, see "Perennial `7d0b56b07`"; merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
 
 Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
@@ -13,6 +13,51 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 (`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
+
+## `RawNode.Ready` split: `readyWithoutAccept` and `acceptReady`, for `node.go` (2026-10-10)
+
+`node.go`'s `run` does not call `Ready`: it calls `readyWithoutAccept`, hands the `Ready`
+to the application (`readyc <- rd`), and only then `acceptReady(rd)`, with no raft step in
+between. Both halves are now specified, proved and linked (Lean-first), and `Ready`'s proof
+composes their specs; `RawNode.Ready.spec` is unchanged.
+
+- `ownRawNodeReady γ rn id rs rd ce es` (`InvRawnodeReady.lean`, new): the node between
+  the two -- `ownRawNode`'s conjuncts at an empty queue and nothing unpersisted, with the
+  raft struct open without the outbox's contents (`ownRaftPhysReady`: `ownRaftPhys_view`'s
+  output minus `r.msgs`' slice, which `readyWithoutAccept` built `rd.Messages` from in
+  place), and what `acceptReady` reads of `rd`: `SoftState` `nil` or read-only, no snapshot
+  nor read states, `CommittedEntries ↦*□ ce` with its capacity (for the queued
+  `MsgStorageApplyResp`), `ce` the next committed entries (`logCommittedEnts`) extending
+  `rs.delivered` (`isCommitted`), `es = nextUnstable`. `acceptReady` does not read
+  `rd.Messages` (it reads `msgsAfterAppend` again, which the node keeps, and sets both
+  outbox fields to `nil`).
+- `RawNode.readyWithoutAccept.spec`: premises as `Ready`'s (`rs.steps = []`,
+  `rs.unpersisted = []`); post `ownRawNodeReady γ rn id rs rd ce es` and everything the
+  application gets with `rd` (`CommittedEntries`, `isCommitted γ (rs.delivered ++ ce)`,
+  `Entries`, `Messages` with their capacity and `isRaftMsg`, no snapshot/read states).
+- `RawNode.acceptReady.spec`: from `ownRawNodeReady … rd ce es` to `ownRawNode γ rn id
+  { rs with delivered := rs.delivered ++ ce, unpersisted := es, steps := steps }` and
+  `appendRight rs.storage es`.
+- The proofs are the old `Ready` proof cut at the call of `acceptReady`
+  (`RawNode__readyWithoutAccept.lean`, `RawNode__acceptReady.lean`; the helpers went with
+  the half that uses them). `acceptReady` keeps less of `rd`: `prevSoftSt`/`prevHardSt`
+  become some read-only `SoftState`/some value (no spec states them), so the joins no
+  longer track `nodeSoftstate`/`nodeHardstate`. Neither half needs the `maxHeartbeats`
+  bump the one proof had.
+- Linked by hand in `Link.lean` (`RawNode.wp_readyWithoutAccept`, `RawNode.wp_acceptReady`,
+  `RawNode.wp_Ready` from the two); `etc/link-lean-first.txt` lists the two and overrides
+  `RawNode__Ready`'s Rocq callees; `Results.lean` prints their axioms.
+
+**Open**: abandoning a `Ready` (`node.go` recomputes `rd` when its `select` takes another
+case, then steps the node) has no lemma: the messages would have to go back to the node,
+but `readyWithoutAccept`'s appends to `rd.Messages` may reallocate, consuming `r.msgs`'
+slice. A `node.go` proof needs either such a lemma (e.g. `readyWithoutAccept` keeping
+`r.msgs`' slice and handing out only a copy's worth, or a spec variant) or to treat the
+outbox as handed out once computed.
+
+`lake build Proof.go_etcd_io.raft.v3.Link Proof.go_etcd_io.raft.v3.Results` passes; no
+new `sorry` or axiom (`wp_Ready`, `wp_readyWithoutAccept`, `wp_acceptReady` have no
+`sorryAx`).
 
 ## The storage contract: a pending append, for `node.go` (2026-10-10)
 

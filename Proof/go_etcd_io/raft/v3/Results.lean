@@ -20,6 +20,9 @@ it: `RawNode.wp_Propose`, the client's entry point (one `Step` of a `MsgProp`), 
 The `RawNode` results (`wp_Propose`, `wp_Ready`, `wp_Advance`, `wp_HasReady`) are
 client-facing since 2026-10-09: stated on `ownRawNode γ rn id rs` (`InvRawnode.lean`),
 with no protocol state in them; the refinement above is how they are proved.
+`wp_Ready` is the composition of `wp_readyWithoutAccept` and `wp_acceptReady`
+(2026-10-10), which `node.go` calls apart (through `ownRawNodeReady`,
+`InvRawnodeReady.lean`).
 
 Scope, matching `Protocol/`:
   - no pre-vote, no check-quorum,
@@ -105,6 +108,8 @@ end Perennial
 #print axioms Perennial.EtcdGrove.RawNode.wp_Propose
 #print axioms Perennial.EtcdGrove.wp_newRaft
 #print axioms Perennial.EtcdGrove.RawNode.wp_Ready
+#print axioms Perennial.EtcdGrove.RawNode.wp_readyWithoutAccept
+#print axioms Perennial.EtcdGrove.RawNode.wp_acceptReady
 #print axioms Perennial.EtcdGrove.RawNode.wp_Advance
 #print axioms Perennial.EtcdGrove.RawNode.wp_HasReady
 #print axioms Perennial.EtcdGrove.RawNode.wp_Campaign
