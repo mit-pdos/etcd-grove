@@ -22,6 +22,7 @@ usage: etc/gen-link.py ROCQ_PROOF_DIR > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --cache > Proof/go_etcd_io/etcd/cache/v3/Link.lean
        etc/gen-link.py --server > Proof/go_etcd_io/etcd/server/v3/etcdserver/Link.lean
        etc/gen-link.py --concurrency > Proof/go_etcd_io/etcd/client/v3/concurrency/Link.lean
+       etc/gen-link.py --register > Proof/github_com/mit_pdos/etcd_grove/examples/register/Link.lean
 
 `--cache` links the proofs of etcd's `cache` package (`Proof/go_etcd_io/etcd/cache/v3/` and
 the specs and proofs of its functions), which are all
@@ -36,6 +37,9 @@ concurrency package's assumptions. Its results are in the namespace `concurrency
 function's with the prefix `v3.` (`concurrency.v3.wp_OpPut`), and the specs are referred to by
 their full names below `EtcdGrove`: the cache's Link links some of the same clientv3 functions
 (under the cache's assumptions), and concurrency's `WithLease` shares its name with clientv3's.
+`--register` links the register example's proofs (`examples/register`), from
+etc/link-lean-first-register.txt; raft's functions it calls are `@` callees, linked in raft's
+`Link.lean`, and its specs' `[RegStor GF]` (the storage registry) is passed on.
 """
 import glob
 import os
@@ -61,6 +65,12 @@ LEAN_FIRST = {
                       "go_etcd_io.etcd.client.v3.concurrency.Assumptions",
                       "The `client/v3/concurrency` package's proofs (`Session`) and the clientv3 "
                       "functions they and the next recipes use", [""]),
+    # the register example (examples/register): its proofs, over raft's (linked in raft's
+    # `Link.lean`, the `@` callees) and the storage model `RegStor` gives
+    "--register": ("link-lean-first-register.txt",
+                   "github_com.mit_pdos.etcd_grove.examples.register go_etcd_io.raft.v3",
+                   "github_com.mit_pdos.etcd_grove.examples.register.Assumptions",
+                   "The register example's proofs (`examples/register`)", [""]),
 }
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--concurrency": "concurrency"}
@@ -215,7 +225,10 @@ variable [package_sem : {assumptions}]
         args = " ".join(result(c) for c in callees[fn])
         body = f"{specref(fn)}.wp_proof" + (f" {args}" if args else "")
         # the specs with ghost state (the store's) take `[AllG GF]`
-        allg = " [AllG GF]" if "[AllG GF]" in open(spec_file(fn)).read() else ""
+        src = open(spec_file(fn)).read()
+        allg = " [AllG GF]" if "[AllG GF]" in src else ""
+        # the register's specs take its storage registry
+        allg += " [RegStor GF]" if "[RegStor GF]" in src else ""
         return (f"theorem {result(fn)}{allg} :\n    {specref(fn)}.spec (GF := GF) (hG := hG) :=\n"
                 f"  {body}\n")
 

@@ -1,0 +1,14 @@
+# The register example (examples/register): every linked result of
+# Proof/github_com/mit_pdos/etcd_grove/examples/register/Link.lean and the results of its
+# Results.lean (over raft's linked results).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/register.txt            what it rests on
+#   etc/tcb-report.py --collection etc/tcb-collections/register.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/register.txt --check --update
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Proof/github_com/mit_pdos/etcd_grove/examples/register/(Link|Results)\.lean$
+#
+# No axiom or `sorry` of this repository (2026-10-10: the results rest only on Perennial's
+# axiomatized standard-library types, checked with `#print axioms` in Results.lean).
