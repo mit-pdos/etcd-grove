@@ -194,45 +194,131 @@ axiom ConfChangeTransitionJointExplicit [FfiSyntax] [GoGlobalContext] : val
 @[reducible] noncomputable def ConfChangeAddLearnerNode [FfiSyntax] [GoGlobalContext] : val :=
   #(W32 3)
 
+@[reducible] noncomputable def EntryType_EntryNormal [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 0)
+
+@[reducible] noncomputable def EntryType_EntryConfChange [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 1)
+
+@[reducible] noncomputable def EntryType_EntryConfChangeV2 [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 2)
+
+@[reducible] noncomputable def MessageType_MsgHup [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 0)
+
+@[reducible] noncomputable def MessageType_MsgBeat [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 1)
+
+@[reducible] noncomputable def MessageType_MsgProp [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 2)
+
+@[reducible] noncomputable def MessageType_MsgApp [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 3)
+
+@[reducible] noncomputable def MessageType_MsgAppResp [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 4)
+
+@[reducible] noncomputable def MessageType_MsgVote [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 5)
+
+@[reducible] noncomputable def MessageType_MsgVoteResp [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 6)
+
+@[reducible] noncomputable def MessageType_MsgSnap [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 7)
+
+@[reducible] noncomputable def MessageType_MsgHeartbeat [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 8)
+
+@[reducible] noncomputable def MessageType_MsgHeartbeatResp [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 9)
+
+@[reducible] noncomputable def MessageType_MsgUnreachable [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 10)
+
+@[reducible] noncomputable def MessageType_MsgSnapStatus [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 11)
+
+@[reducible] noncomputable def MessageType_MsgCheckQuorum [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 12)
+
+@[reducible] noncomputable def MessageType_MsgTransferLeader [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 13)
+
+@[reducible] noncomputable def MessageType_MsgTimeoutNow [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 14)
+
+@[reducible] noncomputable def MessageType_MsgReadIndex [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 15)
+
+@[reducible] noncomputable def MessageType_MsgReadIndexResp [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 16)
+
+@[reducible] noncomputable def MessageType_MsgPreVote [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 17)
+
+@[reducible] noncomputable def MessageType_MsgPreVoteResp [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 18)
+
+@[reducible] noncomputable def MessageType_MsgStorageAppend [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 19)
+
+@[reducible] noncomputable def MessageType_MsgStorageAppendResp [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 20)
+
+@[reducible] noncomputable def MessageType_MsgStorageApply [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 21)
+
+@[reducible] noncomputable def MessageType_MsgStorageApplyResp [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 22)
+
+@[reducible] noncomputable def MessageType_MsgForgetLeader [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 23)
+
+@[reducible] noncomputable def ConfChangeTransition_ConfChangeTransitionAuto [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 0)
+
+@[reducible] noncomputable def ConfChangeTransition_ConfChangeTransitionJointImplicit [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 1)
+
+@[reducible] noncomputable def ConfChangeTransition_ConfChangeTransitionJointExplicit [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 2)
+
+@[reducible] noncomputable def ConfChangeType_ConfChangeAddNode [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 0)
+
+@[reducible] noncomputable def ConfChangeType_ConfChangeRemoveNode [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 1)
+
+@[reducible] noncomputable def ConfChangeType_ConfChangeUpdateNode [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 2)
+
+@[reducible] noncomputable def ConfChangeType_ConfChangeAddLearnerNode [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 3)
+
 noncomputable def EntryType_name [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.EntryType_name"
-
-axiom EntryType_name.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def EntryType_value [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.EntryType_value"
 
-axiom EntryType_value.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def MessageType_name [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.MessageType_name"
-
-axiom MessageType_name.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def MessageType_value [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.MessageType_value"
 
-axiom MessageType_value.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def ConfChangeTransition_name [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.ConfChangeTransition_name"
-
-axiom ConfChangeTransition_name.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def ConfChangeTransition_value [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.ConfChangeTransition_value"
 
-axiom ConfChangeTransition_value.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def ConfChangeType_name [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.ConfChangeType_name"
 
-axiom ConfChangeType_name.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def ConfChangeType_value [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.ConfChangeType_value"
-
-axiom ConfChangeType_value.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def xxx_messageInfo_Entry [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.xxx_messageInfo_Entry"
@@ -392,7 +478,7 @@ noncomputable def ConfState.Equivalent.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore ConfState.ty))) (Pair (Var "cs1") (Var "$r0"))))))))))))
 
-/-- go: raft.pb.go:1244:17 -/
+/-- go: raft.pb.go:1523:17 -/
 noncomputable def Entry.Size.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam BAnon
@@ -437,7 +523,7 @@ noncomputable def Entry.Size.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))))
 
-/-- go: raft.pb.go:1416:6 -/
+/-- go: raft.pb.go:1695:6 -/
 noncomputable def sovRaft.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (App (Val exceptionDo)
@@ -471,6 +557,158 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$k0" (Val #(W32 0))
+  (Let "$v1" (Val #(go!"EntryNormal"))
+  (Let "$k2" (Val #(W32 1))
+  (Let "$v3" (Val #(go!"EntryConfChange"))
+  (Let "$k4" (Val #(W32 2))
+  (Let "$v5" (Val #(go!"EntryConfChangeV2"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.int32 go.string)))) (LiteralValue [(KeyedElement (some (KeyExpression go.int32 (Var "$k0"))) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k2"))) (ElementExpression go.string (Var "$v3"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k4"))) (ElementExpression go.string (Var "$v5")))]))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$k0" (Val #(go!"EntryNormal"))
+  (Let "$v1" (Val #(W32 0))
+  (Let "$k2" (Val #(go!"EntryConfChange"))
+  (Let "$v3" (Val #(W32 1))
+  (Let "$k4" (Val #(go!"EntryConfChangeV2"))
+  (Let "$v5" (Val #(W32 2))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.string go.int32)))) (LiteralValue [(KeyedElement (some (KeyExpression go.string (Var "$k0"))) (ElementExpression go.int32 (Var "$v1"))), (KeyedElement (some (KeyExpression go.string (Var "$k2"))) (ElementExpression go.int32 (Var "$v3"))), (KeyedElement (some (KeyExpression go.string (Var "$k4"))) (ElementExpression go.int32 (Var "$v5")))]))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$k0" (Val #(W32 0))
+  (Let "$v1" (Val #(go!"MsgHup"))
+  (Let "$k2" (Val #(W32 1))
+  (Let "$v3" (Val #(go!"MsgBeat"))
+  (Let "$k4" (Val #(W32 2))
+  (Let "$v5" (Val #(go!"MsgProp"))
+  (Let "$k6" (Val #(W32 3))
+  (Let "$v7" (Val #(go!"MsgApp"))
+  (Let "$k8" (Val #(W32 4))
+  (Let "$v9" (Val #(go!"MsgAppResp"))
+  (Let "$k10" (Val #(W32 5))
+  (Let "$v11" (Val #(go!"MsgVote"))
+  (Let "$k12" (Val #(W32 6))
+  (Let "$v13" (Val #(go!"MsgVoteResp"))
+  (Let "$k14" (Val #(W32 7))
+  (Let "$v15" (Val #(go!"MsgSnap"))
+  (Let "$k16" (Val #(W32 8))
+  (Let "$v17" (Val #(go!"MsgHeartbeat"))
+  (Let "$k18" (Val #(W32 9))
+  (Let "$v19" (Val #(go!"MsgHeartbeatResp"))
+  (Let "$k20" (Val #(W32 10))
+  (Let "$v21" (Val #(go!"MsgUnreachable"))
+  (Let "$k22" (Val #(W32 11))
+  (Let "$v23" (Val #(go!"MsgSnapStatus"))
+  (Let "$k24" (Val #(W32 12))
+  (Let "$v25" (Val #(go!"MsgCheckQuorum"))
+  (Let "$k26" (Val #(W32 13))
+  (Let "$v27" (Val #(go!"MsgTransferLeader"))
+  (Let "$k28" (Val #(W32 14))
+  (Let "$v29" (Val #(go!"MsgTimeoutNow"))
+  (Let "$k30" (Val #(W32 15))
+  (Let "$v31" (Val #(go!"MsgReadIndex"))
+  (Let "$k32" (Val #(W32 16))
+  (Let "$v33" (Val #(go!"MsgReadIndexResp"))
+  (Let "$k34" (Val #(W32 17))
+  (Let "$v35" (Val #(go!"MsgPreVote"))
+  (Let "$k36" (Val #(W32 18))
+  (Let "$v37" (Val #(go!"MsgPreVoteResp"))
+  (Let "$k38" (Val #(W32 19))
+  (Let "$v39" (Val #(go!"MsgStorageAppend"))
+  (Let "$k40" (Val #(W32 20))
+  (Let "$v41" (Val #(go!"MsgStorageAppendResp"))
+  (Let "$k42" (Val #(W32 21))
+  (Let "$v43" (Val #(go!"MsgStorageApply"))
+  (Let "$k44" (Val #(W32 22))
+  (Let "$v45" (Val #(go!"MsgStorageApplyResp"))
+  (Let "$k46" (Val #(W32 23))
+  (Let "$v47" (Val #(go!"MsgForgetLeader"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.int32 go.string)))) (LiteralValue [(KeyedElement (some (KeyExpression go.int32 (Var "$k0"))) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k2"))) (ElementExpression go.string (Var "$v3"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k4"))) (ElementExpression go.string (Var "$v5"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k6"))) (ElementExpression go.string (Var "$v7"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k8"))) (ElementExpression go.string (Var "$v9"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k10"))) (ElementExpression go.string (Var "$v11"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k12"))) (ElementExpression go.string (Var "$v13"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k14"))) (ElementExpression go.string (Var "$v15"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k16"))) (ElementExpression go.string (Var "$v17"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k18"))) (ElementExpression go.string (Var "$v19"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k20"))) (ElementExpression go.string (Var "$v21"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k22"))) (ElementExpression go.string (Var "$v23"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k24"))) (ElementExpression go.string (Var "$v25"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k26"))) (ElementExpression go.string (Var "$v27"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k28"))) (ElementExpression go.string (Var "$v29"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k30"))) (ElementExpression go.string (Var "$v31"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k32"))) (ElementExpression go.string (Var "$v33"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k34"))) (ElementExpression go.string (Var "$v35"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k36"))) (ElementExpression go.string (Var "$v37"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k38"))) (ElementExpression go.string (Var "$v39"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k40"))) (ElementExpression go.string (Var "$v41"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k42"))) (ElementExpression go.string (Var "$v43"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k44"))) (ElementExpression go.string (Var "$v45"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k46"))) (ElementExpression go.string (Var "$v47")))]))))))))))))))))))))))))))))))))))))))))))))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$k0" (Val #(go!"MsgHup"))
+  (Let "$v1" (Val #(W32 0))
+  (Let "$k2" (Val #(go!"MsgBeat"))
+  (Let "$v3" (Val #(W32 1))
+  (Let "$k4" (Val #(go!"MsgProp"))
+  (Let "$v5" (Val #(W32 2))
+  (Let "$k6" (Val #(go!"MsgApp"))
+  (Let "$v7" (Val #(W32 3))
+  (Let "$k8" (Val #(go!"MsgAppResp"))
+  (Let "$v9" (Val #(W32 4))
+  (Let "$k10" (Val #(go!"MsgVote"))
+  (Let "$v11" (Val #(W32 5))
+  (Let "$k12" (Val #(go!"MsgVoteResp"))
+  (Let "$v13" (Val #(W32 6))
+  (Let "$k14" (Val #(go!"MsgSnap"))
+  (Let "$v15" (Val #(W32 7))
+  (Let "$k16" (Val #(go!"MsgHeartbeat"))
+  (Let "$v17" (Val #(W32 8))
+  (Let "$k18" (Val #(go!"MsgHeartbeatResp"))
+  (Let "$v19" (Val #(W32 9))
+  (Let "$k20" (Val #(go!"MsgUnreachable"))
+  (Let "$v21" (Val #(W32 10))
+  (Let "$k22" (Val #(go!"MsgSnapStatus"))
+  (Let "$v23" (Val #(W32 11))
+  (Let "$k24" (Val #(go!"MsgCheckQuorum"))
+  (Let "$v25" (Val #(W32 12))
+  (Let "$k26" (Val #(go!"MsgTransferLeader"))
+  (Let "$v27" (Val #(W32 13))
+  (Let "$k28" (Val #(go!"MsgTimeoutNow"))
+  (Let "$v29" (Val #(W32 14))
+  (Let "$k30" (Val #(go!"MsgReadIndex"))
+  (Let "$v31" (Val #(W32 15))
+  (Let "$k32" (Val #(go!"MsgReadIndexResp"))
+  (Let "$v33" (Val #(W32 16))
+  (Let "$k34" (Val #(go!"MsgPreVote"))
+  (Let "$v35" (Val #(W32 17))
+  (Let "$k36" (Val #(go!"MsgPreVoteResp"))
+  (Let "$v37" (Val #(W32 18))
+  (Let "$k38" (Val #(go!"MsgStorageAppend"))
+  (Let "$v39" (Val #(W32 19))
+  (Let "$k40" (Val #(go!"MsgStorageAppendResp"))
+  (Let "$v41" (Val #(W32 20))
+  (Let "$k42" (Val #(go!"MsgStorageApply"))
+  (Let "$v43" (Val #(W32 21))
+  (Let "$k44" (Val #(go!"MsgStorageApplyResp"))
+  (Let "$v45" (Val #(W32 22))
+  (Let "$k46" (Val #(go!"MsgForgetLeader"))
+  (Let "$v47" (Val #(W32 23))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.string go.int32)))) (LiteralValue [(KeyedElement (some (KeyExpression go.string (Var "$k0"))) (ElementExpression go.int32 (Var "$v1"))), (KeyedElement (some (KeyExpression go.string (Var "$k2"))) (ElementExpression go.int32 (Var "$v3"))), (KeyedElement (some (KeyExpression go.string (Var "$k4"))) (ElementExpression go.int32 (Var "$v5"))), (KeyedElement (some (KeyExpression go.string (Var "$k6"))) (ElementExpression go.int32 (Var "$v7"))), (KeyedElement (some (KeyExpression go.string (Var "$k8"))) (ElementExpression go.int32 (Var "$v9"))), (KeyedElement (some (KeyExpression go.string (Var "$k10"))) (ElementExpression go.int32 (Var "$v11"))), (KeyedElement (some (KeyExpression go.string (Var "$k12"))) (ElementExpression go.int32 (Var "$v13"))), (KeyedElement (some (KeyExpression go.string (Var "$k14"))) (ElementExpression go.int32 (Var "$v15"))), (KeyedElement (some (KeyExpression go.string (Var "$k16"))) (ElementExpression go.int32 (Var "$v17"))), (KeyedElement (some (KeyExpression go.string (Var "$k18"))) (ElementExpression go.int32 (Var "$v19"))), (KeyedElement (some (KeyExpression go.string (Var "$k20"))) (ElementExpression go.int32 (Var "$v21"))), (KeyedElement (some (KeyExpression go.string (Var "$k22"))) (ElementExpression go.int32 (Var "$v23"))), (KeyedElement (some (KeyExpression go.string (Var "$k24"))) (ElementExpression go.int32 (Var "$v25"))), (KeyedElement (some (KeyExpression go.string (Var "$k26"))) (ElementExpression go.int32 (Var "$v27"))), (KeyedElement (some (KeyExpression go.string (Var "$k28"))) (ElementExpression go.int32 (Var "$v29"))), (KeyedElement (some (KeyExpression go.string (Var "$k30"))) (ElementExpression go.int32 (Var "$v31"))), (KeyedElement (some (KeyExpression go.string (Var "$k32"))) (ElementExpression go.int32 (Var "$v33"))), (KeyedElement (some (KeyExpression go.string (Var "$k34"))) (ElementExpression go.int32 (Var "$v35"))), (KeyedElement (some (KeyExpression go.string (Var "$k36"))) (ElementExpression go.int32 (Var "$v37"))), (KeyedElement (some (KeyExpression go.string (Var "$k38"))) (ElementExpression go.int32 (Var "$v39"))), (KeyedElement (some (KeyExpression go.string (Var "$k40"))) (ElementExpression go.int32 (Var "$v41"))), (KeyedElement (some (KeyExpression go.string (Var "$k42"))) (ElementExpression go.int32 (Var "$v43"))), (KeyedElement (some (KeyExpression go.string (Var "$k44"))) (ElementExpression go.int32 (Var "$v45"))), (KeyedElement (some (KeyExpression go.string (Var "$k46"))) (ElementExpression go.int32 (Var "$v47")))]))))))))))))))))))))))))))))))))))))))))))))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$k0" (Val #(W32 0))
+  (Let "$v1" (Val #(go!"ConfChangeTransitionAuto"))
+  (Let "$k2" (Val #(W32 1))
+  (Let "$v3" (Val #(go!"ConfChangeTransitionJointImplicit"))
+  (Let "$k4" (Val #(W32 2))
+  (Let "$v5" (Val #(go!"ConfChangeTransitionJointExplicit"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.int32 go.string)))) (LiteralValue [(KeyedElement (some (KeyExpression go.int32 (Var "$k0"))) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k2"))) (ElementExpression go.string (Var "$v3"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k4"))) (ElementExpression go.string (Var "$v5")))]))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$k0" (Val #(go!"ConfChangeTransitionAuto"))
+  (Let "$v1" (Val #(W32 0))
+  (Let "$k2" (Val #(go!"ConfChangeTransitionJointImplicit"))
+  (Let "$v3" (Val #(W32 1))
+  (Let "$k4" (Val #(go!"ConfChangeTransitionJointExplicit"))
+  (Let "$v5" (Val #(W32 2))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.string go.int32)))) (LiteralValue [(KeyedElement (some (KeyExpression go.string (Var "$k0"))) (ElementExpression go.int32 (Var "$v1"))), (KeyedElement (some (KeyExpression go.string (Var "$k2"))) (ElementExpression go.int32 (Var "$v3"))), (KeyedElement (some (KeyExpression go.string (Var "$k4"))) (ElementExpression go.int32 (Var "$v5")))]))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$k0" (Val #(W32 0))
+  (Let "$v1" (Val #(go!"ConfChangeAddNode"))
+  (Let "$k2" (Val #(W32 1))
+  (Let "$v3" (Val #(go!"ConfChangeRemoveNode"))
+  (Let "$k4" (Val #(W32 2))
+  (Let "$v5" (Val #(go!"ConfChangeUpdateNode"))
+  (Let "$k6" (Val #(W32 3))
+  (Let "$v7" (Val #(go!"ConfChangeAddLearnerNode"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.int32 go.string)))) (LiteralValue [(KeyedElement (some (KeyExpression go.int32 (Var "$k0"))) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k2"))) (ElementExpression go.string (Var "$v3"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k4"))) (ElementExpression go.string (Var "$v5"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k6"))) (ElementExpression go.string (Var "$v7")))]))))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$k0" (Val #(go!"ConfChangeAddNode"))
+  (Let "$v1" (Val #(W32 0))
+  (Let "$k2" (Val #(go!"ConfChangeRemoveNode"))
+  (Let "$v3" (Val #(W32 1))
+  (Let "$k4" (Val #(go!"ConfChangeUpdateNode"))
+  (Let "$v5" (Val #(W32 2))
+  (Let "$k6" (Val #(go!"ConfChangeAddLearnerNode"))
+  (Let "$v7" (Val #(W32 3))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.string go.int32)))) (LiteralValue [(KeyedElement (some (KeyExpression go.string (Var "$k0"))) (ElementExpression go.int32 (Var "$v1"))), (KeyedElement (some (KeyExpression go.string (Var "$k2"))) (ElementExpression go.int32 (Var "$v3"))), (KeyedElement (some (KeyExpression go.string (Var "$k4"))) (ElementExpression go.int32 (Var "$v5"))), (KeyedElement (some (KeyExpression go.string (Var "$k6"))) (ElementExpression go.int32 (Var "$v7")))]))))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -483,21 +721,21 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val fileDescriptor_b042552c306ae59b.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val ConfChangeType_value.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.int32)))) (Pair (App (Val (GoInstruction (GlobalVarAddr ConfChangeType_value))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ConfChangeType_name.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.int32 go.string)))) (Pair (App (Val (GoInstruction (GlobalVarAddr ConfChangeType_name))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ConfChangeTransition_value.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.int32)))) (Pair (App (Val (GoInstruction (GlobalVarAddr ConfChangeTransition_value))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ConfChangeTransition_name.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.int32 go.string)))) (Pair (App (Val (GoInstruction (GlobalVarAddr ConfChangeTransition_name))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val MessageType_value.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.int32)))) (Pair (App (Val (GoInstruction (GlobalVarAddr MessageType_value))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val MessageType_name.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.int32 go.string)))) (Pair (App (Val (GoInstruction (GlobalVarAddr MessageType_name))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val EntryType_value.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.int32)))) (Pair (App (Val (GoInstruction (GlobalVarAddr EntryType_value))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val EntryType_name.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.int32 go.string)))) (Pair (App (Val (GoInstruction (GlobalVarAddr EntryType_name))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val «_».init) (Val #()))))))
   (App (Val doExecute)
@@ -511,7 +749,23 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.slices.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.math.bits.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.math.bits.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc EntryType_name (go.GoType.MapType go.int32 go.string))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc EntryType_value (go.GoType.MapType go.string go.int32))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc MessageType_name (go.GoType.MapType go.int32 go.string))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc MessageType_value (go.GoType.MapType go.string go.int32))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ConfChangeTransition_name (go.GoType.MapType go.int32 go.string))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ConfChangeTransition_value (go.GoType.MapType go.string go.int32))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ConfChangeType_name (go.GoType.MapType go.int32 go.string))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ConfChangeType_value (go.GoType.MapType go.string go.int32))) (Val #()))))))))
 
 abbrev ConfChangeI [FfiSyntax] : Type := GoInterface
 
@@ -909,18 +1163,18 @@ attribute [instance] HardState.TypeAssumptions.type_repr
 structure ConfChange [FfiSyntax] where
   mk ::
   Type' : ConfChangeType
-  NodeID' : w64
+  NodeId' : w64
   Context' : GoSlice
-  ID' : w64
+  Id' : w64
 
 instance ConfChange.zero_val [FfiSyntax] : ZeroVal ConfChange :=
   ⟨ConfChange.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] def ConfChange.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Type" ConfChangeType.ty),
-(go.field_decl.FieldDecl go!"NodeID" go.uint64),
+(go.field_decl.FieldDecl go!"NodeId" go.uint64),
 (go.field_decl.FieldDecl go!"Context" (go.GoType.SliceType go.byte)),
-(go.field_decl.FieldDecl go!"ID" go.uint64)]
+(go.field_decl.FieldDecl go!"Id" go.uint64)]
 
 @[irreducible] def ConfChange.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   ConfChange.fieldsUnsealed
@@ -937,35 +1191,35 @@ class ConfChange.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   underlying : go.UnderlyingDirectedEq ConfChange.ty ConfChange.underlying
   get_Type : ∀ (x : ConfChange), go.IsGoStepPureDetTagged under (StructFieldGet ConfChange.underlying go!"Type") #x (Val #(x.Type'))
   set_Type : ∀ (x : ConfChange) (y : ConfChangeType), go.IsGoStepPureDetTagged under (StructFieldSet ConfChange.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : ConfChange)))
-  get_NodeID : ∀ (x : ConfChange), go.IsGoStepPureDetTagged under (StructFieldGet ConfChange.underlying go!"NodeID") #x (Val #(x.NodeID'))
-  set_NodeID : ∀ (x : ConfChange) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ConfChange.underlying go!"NodeID") (PairV #x #y) (Val #(({ x with NodeID' := y } : ConfChange)))
+  get_NodeId : ∀ (x : ConfChange), go.IsGoStepPureDetTagged under (StructFieldGet ConfChange.underlying go!"NodeId") #x (Val #(x.NodeId'))
+  set_NodeId : ∀ (x : ConfChange) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ConfChange.underlying go!"NodeId") (PairV #x #y) (Val #(({ x with NodeId' := y } : ConfChange)))
   get_Context : ∀ (x : ConfChange), go.IsGoStepPureDetTagged under (StructFieldGet ConfChange.underlying go!"Context") #x (Val #(x.Context'))
   set_Context : ∀ (x : ConfChange) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ConfChange.underlying go!"Context") (PairV #x #y) (Val #(({ x with Context' := y } : ConfChange)))
-  get_ID : ∀ (x : ConfChange), go.IsGoStepPureDetTagged under (StructFieldGet ConfChange.underlying go!"ID") #x (Val #(x.ID'))
-  set_ID : ∀ (x : ConfChange) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ConfChange.underlying go!"ID") (PairV #x #y) (Val #(({ x with ID' := y } : ConfChange)))
+  get_Id : ∀ (x : ConfChange), go.IsGoStepPureDetTagged under (StructFieldGet ConfChange.underlying go!"Id") #x (Val #(x.Id'))
+  set_Id : ∀ (x : ConfChange) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ConfChange.underlying go!"Id") (PairV #x #y) (Val #(({ x with Id' := y } : ConfChange)))
 
 attribute [instance] ConfChange.TypeAssumptions.type_repr
   ConfChange.TypeAssumptions.underlying
   ConfChange.TypeAssumptions.get_Type
   ConfChange.TypeAssumptions.set_Type
-  ConfChange.TypeAssumptions.get_NodeID
-  ConfChange.TypeAssumptions.set_NodeID
+  ConfChange.TypeAssumptions.get_NodeId
+  ConfChange.TypeAssumptions.set_NodeId
   ConfChange.TypeAssumptions.get_Context
   ConfChange.TypeAssumptions.set_Context
-  ConfChange.TypeAssumptions.get_ID
-  ConfChange.TypeAssumptions.set_ID
+  ConfChange.TypeAssumptions.get_Id
+  ConfChange.TypeAssumptions.set_Id
 
 structure ConfChangeSingle [FfiSyntax] where
   mk ::
   Type' : ConfChangeType
-  NodeID' : w64
+  NodeId' : w64
 
 instance ConfChangeSingle.zero_val [FfiSyntax] : ZeroVal ConfChangeSingle :=
   ⟨ConfChangeSingle.mk zeroValDef zeroValDef⟩
 
 @[reducible] def ConfChangeSingle.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Type" ConfChangeType.ty),
-(go.field_decl.FieldDecl go!"NodeID" go.uint64)]
+(go.field_decl.FieldDecl go!"NodeId" go.uint64)]
 
 @[irreducible] def ConfChangeSingle.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   ConfChangeSingle.fieldsUnsealed
@@ -982,15 +1236,15 @@ class ConfChangeSingle.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   underlying : go.UnderlyingDirectedEq ConfChangeSingle.ty ConfChangeSingle.underlying
   get_Type : ∀ (x : ConfChangeSingle), go.IsGoStepPureDetTagged under (StructFieldGet ConfChangeSingle.underlying go!"Type") #x (Val #(x.Type'))
   set_Type : ∀ (x : ConfChangeSingle) (y : ConfChangeType), go.IsGoStepPureDetTagged under (StructFieldSet ConfChangeSingle.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : ConfChangeSingle)))
-  get_NodeID : ∀ (x : ConfChangeSingle), go.IsGoStepPureDetTagged under (StructFieldGet ConfChangeSingle.underlying go!"NodeID") #x (Val #(x.NodeID'))
-  set_NodeID : ∀ (x : ConfChangeSingle) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ConfChangeSingle.underlying go!"NodeID") (PairV #x #y) (Val #(({ x with NodeID' := y } : ConfChangeSingle)))
+  get_NodeId : ∀ (x : ConfChangeSingle), go.IsGoStepPureDetTagged under (StructFieldGet ConfChangeSingle.underlying go!"NodeId") #x (Val #(x.NodeId'))
+  set_NodeId : ∀ (x : ConfChangeSingle) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ConfChangeSingle.underlying go!"NodeId") (PairV #x #y) (Val #(({ x with NodeId' := y } : ConfChangeSingle)))
 
 attribute [instance] ConfChangeSingle.TypeAssumptions.type_repr
   ConfChangeSingle.TypeAssumptions.underlying
   ConfChangeSingle.TypeAssumptions.get_Type
   ConfChangeSingle.TypeAssumptions.set_Type
-  ConfChangeSingle.TypeAssumptions.get_NodeID
-  ConfChangeSingle.TypeAssumptions.set_NodeID
+  ConfChangeSingle.TypeAssumptions.get_NodeId
+  ConfChangeSingle.TypeAssumptions.set_NodeId
 
 structure ConfChangeV2 [FfiSyntax] where
   mk ::

@@ -55,7 +55,7 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   (`Spec/go_etcd_io/etcd/server/v3/etcdserver/cindex/`, `Spec/go_uber_org/zap/`, ...).
 - `EtcdDeps/{Code,GeneratedProof,Spec,Proof}/<pkg>`: the same, for etcd's own raft
   dependency (raft v3.7, in etcd's `go.mod`; modules `EtcdDeps.Code.go_etcd_io.raft.v3`,
-  ...), which the server names. Its Go path is that of the fork in `Code/go_etcd_io/raft/`,
+  ...), which the server names. Its Go path is that of the raft in `Code/go_etcd_io/raft/`,
   and both define `Perennial.go_etcd_io.raft.v3.*`, so no module imports both: the server's
   proofs never meet the Raft proof's (`etc/tcb-report.py` runs Lean on them separately).
 
@@ -97,7 +97,7 @@ by adding a collection for it.
 translated or not translated, counted in functions and Go code lines, per project, per
 module, per package and per file. It takes the projects from `etc/goose.py` (with the
 Go modules counted, `counted_modules`) and reads the Go sources of the translated
-forks (in `.lake/go-src/<project>`, cloned or fetched at the pinned revision), the
+projects (in `.lake/go-src/<project>`, cloned or fetched at the pinned revision), the
 translations in `Code/`, and this repository's proofs (the linked results of every
 `Link.lean`) from `.lake/tcb.json` (shared with `etc/tcb-report.py`; `--reuse` skips
 re-running Lean). `--package PREFIX` adds a summary row for the packages below PREFIX
@@ -139,11 +139,13 @@ only what the specs on it need (`notes/decisions.md`, "Predicate indices"). In p
 ## The Goose translations
 
 `Code/` and `GeneratedProof/` hold Goose translations by the pinned Perennial's
-translator, each of a fork at the revision pinned in `etc/goose.py`. They are
+translator, each of a Go repository at the revision pinned in `etc/goose.py`. They are
 generated: never edit the `.lean` files by hand.
 
-- `{Code,GeneratedProof}/go_etcd_io/raft/`: etcd-raft (the fork
-  `upamanyus/etcd-raft`; modules `Code.go_etcd_io.raft.v3`, ...).
+- `{Code,GeneratedProof}/go_etcd_io/raft/`: etcd-raft, upstream `etcd-io/raft` unmodified,
+  at the last commit before its raftpb moved to protobuf-go v2 (2026-04-15; the later
+  commits pass messages as pointers with getters, which the proof does not model yet:
+  `notes/STATUS.md`, "Retargeting raft to upstream"); modules `Code.go_etcd_io.raft.v3`, ....
 - `{Code,GeneratedProof}/{go_etcd_io/etcd,k8s_io,google_golang_org,go_uber_org}/`: etcd's
   `cache` package (the fork `upamanyus/etcd`, branch `goose-lean`; branch `goose` is the
   Rocq side's), with bodies, and the B-tree it uses
@@ -166,11 +168,11 @@ goose's `-lean-root PKG=` maps every non-standard-library Go path a translation
 reaches to the empty root (`Code.<pkg>`), keeping the modules out of the
 `Perennial.*` names (which Lake resolves to the Perennial library);
 standard-library packages are Perennial's.
-`etc/goose.py` regenerates both (after bumping the Perennial or a fork pin, or
+`etc/goose.py` regenerates both (after bumping the Perennial or a project pin, or
 editing the Goose configuration `Code/**/*.toml`; `--project NAME` for one);
 `etc/goose.py --check` exits 1 if they differ from what the pinned translator
 produces, and CI runs that check before the build. `--src NAME=DIR` (or
-`$ETCD_SRC`, `$ETCD_RAFT_SRC`) translates from a local checkout of the fork instead
+`$ETCD_SRC`, `$ETCD_RAFT_SRC`) translates from a local checkout of the project instead
 of cloning the pin, e.g. for a pinned revision not yet pushed; the output says so,
 and `--check` then requires the checkout to be at the pinned revision. It needs a Go
 toolchain that can load etcd (`go 1.27`): `GOTOOLCHAIN=go1.27.1 etc/goose.py ...` if the

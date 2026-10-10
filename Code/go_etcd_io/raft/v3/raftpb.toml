@@ -51,6 +51,12 @@ translate = [
   "ConfChangeUpdateNode",
   "ConfChangeAddLearnerNode",
   "Message",
+
+  # the enum constants (alias.go defines the names above as aliases of them)
+  "EntryType_*",
+  "MessageType_*",
+  "ConfChangeTransition_*",
+  "ConfChangeType_*",
 ]
 
 # `ConfState.Equivalent` (confstate.go, hand-written) calls into fmt, reflect and slices;
