@@ -40,7 +40,7 @@ theorem New.wp_proof (wp_defaultConfig : defaultConfig.spec (GF := GF) (hG := hG
     (wp_newCache : newCache.spec (GF := GF) (hG := hG))
     (wp_NewTimer : realClock.NewTimer.spec (GF := GF) (hG := hG)) :
     New.spec (GF := GF) (hG := hG) := fun client pfx sl gs => by
-  wp_start as ⟨#Hcci, #Hcl, #Hopts, #Hb⟩
+  wp_start as ⟨#Hcci, #Hcl, #Hopts, #Hb, #Hthr⟩
   unfold cfgOptsAt
   icases Hopts with ⟨%fs, #Hfs, %Hlen, #Hf⟩
   ihave %Hsl := ownSlice_len _ _ _ $$ Hfs
@@ -79,7 +79,8 @@ theorem New.wp_proof (wp_defaultConfig : defaultConfig.spec (GF := GF) (hG := hG
   · have Hge : sint.nat n = gs.length := by rw [← Hlen]; word
     rw [Hge, List.take_length]
     ihave #Hclk := isClock_realClock wp_NewTimer (zero_val realClock) $$ Hpkg
-    wp_apply wp_newCache client pfx (cfgApply gs defaultConfigVal) _ $$ [$Hpkg $Hcci $Hcl $Hclk $Hb]
+    wp_apply wp_newCache client pfx (cfgApply gs defaultConfigVal) _
+      $$ [$Hpkg $Hcci $Hcl $Hclk $Hb $Hthr]
       as %c %err Hr
     iapply HΦ $$ Hr
 

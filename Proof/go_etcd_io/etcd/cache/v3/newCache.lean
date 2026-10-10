@@ -35,7 +35,7 @@ theorem newCache.wp_proof
     (wp_getWatchLoop : Cache.getWatchLoop.spec (GF := GF) (hG := hG))
     (wp_run : conditionalProgressRequestor.run.spec (GF := GF) (hG := hG)) :
     newCache.spec (GF := GF) (hG := hG) := fun client pfx cfg clk => by
-  wp_start as ⟨#Hcci, #Hcl, #Hclk, %Hcfg⟩
+  wp_start as ⟨#Hcci, #Hcl, #Hclk, %Hcfg, %Hthr⟩
   ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
   · iPkgInit
   ihave #Hctxp : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
@@ -115,33 +115,46 @@ theorem newCache.wp_proof
   imod ownTokAuth_alloc (GF := GF) with ⟨%γwb, Hwba⟩
   imod ownTokAuth_add cacheWgBudget γwb 0 $$ Hwba with ⟨Hwba, Hbud⟩
   imod ownToks_0 (GF := GF) γwb with Hbud0
+  imod ownTokAuth_alloc (GF := GF) with ⟨%γwo, Hwoa⟩
+  imod ownTokAuth_alloc (GF := GF) with ⟨%γwc, Hwca⟩
+  imod ownTokAuth_add cacheWgOwedMax γwc 0 $$ Hwca with ⟨Hwca, Hcaps⟩
+  imod ownToks_0 (GF := GF) γwc with Hcap0
+  ihave Htk0 : threadToks (GF := GF) 0 $$ []
+  · iapply threadToks_zero
   imod ghostVar_alloc (GF := GF) () with ⟨%γop, Hop⟩
   obtain ⟨cfX, hX⟩ : ∃ x : CacheFields, x =
       { pfx := pfx, cfg := cfg, ready := rd, demux := null, store := st, γs := γs,
         scap := sint.nat cfg.HistoryWindowSize', kv := kv, pr := pr, watcher := w, ictx := ictx,
-        clock := clk, γwg := γwg, γwb := γwb, γwr := γwr, stop := cancel, γop := γop,
-        γb := γb } := ⟨_, rfl⟩
-  imod inv_alloc cacheWgN ⊤ (cacheWgInv (GF := GF) cfX) $$ [Hwgo Hwaiters Hwra Hbud0 Hwba] with #HwgInv
+        clock := clk, γwg := γwg, γwb := γwb, γwr := γwr, γwo := γwo, γwc := γwc, stop := cancel,
+        γop := γop, γb := γb } := ⟨_, rfl⟩
+  imod inv_alloc cacheWgN ⊤ (cacheWgInv (GF := GF) cfX)
+    $$ [Hwgo Hwaiters Hwra Htk0 Hwoa Hcap0 Hwca Hbud0 Hwba] with #HwgInv
   · inext
     subst hX
     unfold cacheWgInv
-    iexists W32 0, 0
-    rw [show sint.nat (W32 0) = 0 from rfl, Nat.zero_add]
+    iexists W32 0, 0, 0, 0
+    rw [show sint.nat (W32 0) = 0 from rfl]
     iframe
     isplitr
     · ipureintro; decide
+    isplitr
+    · ipureintro; rfl
     ileft; ipureintro; rfl
-  ihave #Hproto := cache_wgSlotProtocol «$r0_ptr» cfX $$ [$Hsync]
+  ihave #Hproto := cache_wgSlotProtocol «$r0_ptr» cfX Hthr $$ [$Hsync]
   · subst hX; iframe #
-  -- one budget token for the resync loop, two for the watch loop and the progress requestor
+  -- one budget token for the resync loop, two for the watch loop and the progress requestor;
+  -- the three owed capacities likewise
   rw [show cacheWgBudget = (2 ^ 31 - 4) + 3 from rfl]
   icases ownToks_add_1 3 (2 ^ 31 - 4) γwb $$ Hbud with ⟨Hbud, H3⟩
   icases ownToks_add_1 2 1 γwb $$ H3 with ⟨H1, H2⟩
-  ihave Hslot1 : cacheWgSlot (GF := GF) cfX ∗ cacheOpen cfX 1 $$ [H1 Hop]
-  · subst hX; unfold cacheWgSlot cacheOpen; iframe
+  rw [show cacheWgOwedMax = 1 + 2 from rfl]
+  icases ownToks_add_1 2 1 γwc $$ Hcaps with ⟨Hcap1, Hcap2⟩
+  ihave Hslot1 : cacheWgSlot (GF := GF) cfX ∗ cacheWgOwedCap cfX ∗ cacheOpen cfX 1 $$ [H1 Hcap1 Hop]
+  · subst hX; unfold cacheWgSlot cacheWgOwedCap cacheOpen; iframe
   -- `NewDemux`, which starts the resync loop
   wp_apply wp_NewDemux (cacheCert cfX) ictx _ (cacheWgAddr «$r0_ptr»)
-    iprop(cacheWgSlot cfX ∗ cacheOpen cfX 1) (cacheWgRunning cfX) (cacheOpen cfX 1)
+    iprop(cacheWgSlot cfX ∗ cacheWgOwedCap cfX ∗ cacheOpen cfX 1) (cacheWgRunningOwed cfX)
+    (cacheOpen cfX 1)
     cfg.HistoryWindowSize' cfg.ResyncInterval' $$ [$Hpkg $Hictx $HdemuxPre $Hproto $Hslot1]
     as %d %γd %γn ⟨Hop, #HisDemux, Hdw, Hdhs, #Hnlb, Hrhs⟩
   ipersist Cprefix'
@@ -165,11 +178,12 @@ theorem newCache.wp_proof
   have hf : cf.pfx = pfx ∧ cf.cfg = cfg ∧ cf.ready = rd ∧ cf.demux = d ∧ cf.store = st ∧
       cf.γs = γs ∧ cf.scap = sint.nat cfg.HistoryWindowSize' ∧ cf.kv = kv ∧ cf.pr = pr ∧
       cf.watcher = w ∧ cf.ictx = ictx ∧ cf.clock = clk ∧ cf.γwg = γwg ∧ cf.γwb = γwb ∧
-      cf.γwr = γwr ∧ cf.stop = cancel ∧ cf.γop = γop ∧ cf.γb = γb := by
+      cf.γwr = γwr ∧ cf.γwo = γwo ∧ cf.γwc = γwc ∧ cf.stop = cancel ∧ cf.γop = γop ∧
+      cf.γb = γb := by
     subst hcf hX; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
-      rfl, rfl, rfl⟩
+      rfl, rfl, rfl, rfl, rfl⟩
   obtain ⟨hpfx, hcfg, hrd, hd, hst, hγs, hscap, hkv, hpr, hw, hictx, hclk, hγwg, hγwb, hγwr,
-    hstop, hγop, hγb⟩ := hf
+    hγwo, hγwc, hstop, hγop, hγb⟩ := hf
   rw [eInv, eOpen, eCert, eRev]
   -- the cache's predicate
   ihave #HisCF : isCacheFields «$r0_ptr» cf γr γd (sint.nat cfg.HistoryWindowSize') $$ []
@@ -181,7 +195,7 @@ theorem newCache.wp_proof
       isplitl []
       · iexact Hictx
       · iexact Hcc
-    ipureintro; exact hP
+    ipureintro; exact ⟨hP, Hthr⟩
   ihave #HwgInv' : inv cacheWgN (cacheWgInv cf) $$ [HwgInv]
   · iexact HwgInv
   ihave #HisWg' : sync.isWaitGroup (cacheWgAddr «$r0_ptr») cf.γwg cacheWgWGN $$ []
@@ -189,15 +203,19 @@ theorem newCache.wp_proof
   -- `cache.waitGroup.Add(2)`
   ihave H2' : ownToks cf.γwb 2 $$ [H2]
   · rw [hγwb]; iexact H2
-  wp_apply wp_cacheWg_Add2 «$r0_ptr» cf 1 $$ [$Hsync $HisWg' $HwgInv' $H2' $Hop] as ⟨Hr2, Hop⟩
-  icases ownToks_add_1 1 1 cf.γwr $$ Hr2 with ⟨Hr1, Hr1'⟩
-  -- the watch loop
-  wp_apply wp_fork $$ [Hr1 Hdw Hba]
-  · wp_apply wp_with_defer as %defer defer
+  ihave Hc2' : ownToks cf.γwc 2 $$ [Hcap2]
+  · rw [hγwc]; iexact Hcap2
+  wp_apply wp_cacheWg_Add2 «$r0_ptr» cf 1 Hthr $$ [$Hsync $HisWg' $HwgInv' $H2' $Hc2' $Hop]
+    as ⟨Hr2, Hop⟩
+  icases ownToks_add_1 1 1 cf.γwo $$ Hr2 with ⟨Hr1, Hr1'⟩
+  -- the watch loop, with the fresh thread token (its own, for the loop's `Add`s)
+  wp_apply wp_fork_tok_body $$ [Hr1 Hdw Hba]
+  · iintro Htok
+    wp_apply wp_with_defer as %defer defer
     try wp_auto
     wp_apply wp_getWatchLoop «$r0_ptr» cf γr γd (sint.nat cfg.HistoryWindowSize') DemuxCore.init
-      $$ [$Hpkg $HisCF Hdw Hba Hr1] as ⟨Hr1, -⟩
-    · unfold cacheWriter cacheWgRunning
+      $$ [$Hpkg $HisCF Hdw Hba Hr1 Htok] as ⟨Hlr, -⟩
+    · unfold cacheWriter cacheWgLoopRunning cacheWgRunningOwed
       rw [hd, hpfx]
       iframe
       isplitr
@@ -210,16 +228,18 @@ theorem newCache.wp_proof
       isplitl
       · iapply etcdReached_zero
       · ipureintro; decide
-    wp_apply wp_cacheWg_Done «$r0_ptr» cf $$ [$Hsync $HisWg' $HwgInv' $Hr1]
-    itrivial
+    iunfold cacheWgLoopRunning at Hlr
+    icases Hlr with ⟨Hr1, Htok⟩
+    wp_apply wp_cacheWg_DoneOwed «$r0_ptr» cf $$ [$Hsync $HisWg' $HwgInv' $Hr1] as -
+    iexact Htok
   -- the progress requestor's loop
   wp_apply wp_fork $$ [Hr1']
   · wp_apply wp_with_defer as %defer defer
     try wp_auto
     wp_apply wp_run pr w clk cfg.ProgressRequestInterval' ictx _
       $$ [$Hpkg $HisPR $HprRun $Hclk $HisPN $Hictx]
-    wp_apply wp_cacheWg_Done «$r0_ptr» cf $$ [$Hsync $HisWg' $HwgInv' Hr1']
-    · unfold cacheWgRunning; iexact Hr1'
+    wp_apply wp_cacheWg_DoneOwed «$r0_ptr» cf $$ [$Hsync $HisWg' $HwgInv' Hr1'] as -
+    · unfold cacheWgRunningOwed; iexact Hr1'
     itrivial
   -- return the cache with its handles
   try wp_auto

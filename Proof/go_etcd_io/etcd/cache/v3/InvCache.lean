@@ -174,8 +174,12 @@ structure CacheFields [FfiSyntax] where
   γwg : sync.WaitGroupNames
   /-- the wait group's budget tokens (`cacheWgInv`) -/
   γwb : GName
-  /-- the wait group's running tokens (`cacheWgInv`) -/
+  /-- the wait group's running tokens (`cacheWgInv`): goroutines whose thread token is deposited -/
   γwr : GName
+  /-- the wait group's owed running tokens (`cacheWgInv`): goroutines that keep their thread token -/
+  γwo : GName
+  /-- the capacity to owe (`cacheWgOwedCap`, `cacheWgOwedMax` in all) -/
+  γwc : GName
   /-- the cancel function of the internal context (`stop`) -/
   stop : GoFunc
   /-- the "open" token (`cacheOpen`): `Watch` needs a fraction, `Close` all of it -/
@@ -374,17 +378,33 @@ group from zero) needs a fraction, `Close` (which waits on it) all of it, so the
 once (Perennial's `WaitGroup` spec forbids an `Add` from zero while a waiter is registered). -/
 def cacheOpen (cf : CacheFields) (q : Qp) : IProp GF := ghostVar cf.γop q ()
 
-/-- The `Cache`'s wait group's counter (an invariant): `ctr` goroutines running, each with a
-running token (`γwr`, for its `Done`); the budget tokens (`γwb`, `cacheWgBudget` in all) spent so
+/-- The number of goroutines that may run on the cache's wait group with their thread token
+"owed" (`cacheWgRunningOwed`): announced to the wait group without a thread token deposited in
+`cacheWgInv`, because they are forked after the `Add` and keep their own token. There are three for
+the cache's lifetime: the demux's resync loop (`NewDemux`'s slot protocol), the watch loop and
+the progress requestor (`newCache`'s `Add(2)`). -/
+def cacheWgOwedMax : Nat := 3
+
+/-- The `Cache`'s wait group's counter (an invariant): `ctr` goroutines running, `k` of them with a
+running token (`γwr`, for its `Done`) and their **thread token** deposited here (`threadToks k`,
+Perennial's `Threads.lean`), `d` of them with an owed running token (`γwo`) and a capacity token
+(`γwc`, `cacheWgOwedMax` in all) spent; the budget tokens (`γwb`, `cacheWgBudget` in all) spent so
 far; and at most one waiter (`Close`), which while registered has deposited the whole "open" token
-(`cacheOpen`), so that no `Watch` adds to the wait group meanwhile. The counter's `int32` overflow
-is excluded by the model (Perennial's `WaitGroup.Add` assumes it away, as `append` does its
-length's), not by the budget: the watch loop adds a goroutine per iteration with no budget
-(`wp_cacheWg_AddRunning`), each `Watch` still spends one of its slots (`wp_cacheWg_Add`). -/
+(`cacheOpen`), so that no `Watch` adds to the wait group meanwhile.
+
+The counter's `int32` overflow is excluded by the thread tokens, not assumed: `k` tokens give
+`k < threadBound GF` (`threadToks_lt`), so `ctr = k + d < threadBound GF + cacheWgOwedMax`, and
+`New`'s caller assumes `threadBound GF + cacheWgOwedMax ≤ 2 ^ 31` (`isCacheFields`): fewer than
+`2^31 - 3` threads are live at once. The watch loop deposits its thread token for each
+iteration's goroutine (`wp_cacheWg_AddRunning`) and receives a fresh one at the `go` statement
+(`wp_fork_tok`); each `Watch` does the same with a budget slot (`wp_cacheWg_Add`); `Done` hands a
+deposited token back to the goroutine, which exits with it (`wp_cacheWg_Done`). -/
 def cacheWgInv (cf : CacheFields) : IProp GF :=
-  iprop(∃ (ctr : w32) (w : Nat), sync.ownWaitGroup cf.γwg ctr ∗ sync.ownWaitGroupWaiters cf.γwg w ∗
-    ownTokAuth cf.γwr (sint.nat ctr) ∗ (∃ k : Nat, ownToks cf.γwb k) ∗
-    ownTokAuth cf.γwb cacheWgBudget ∗ ⌜0 ≤ sint.Z ctr⌝ ∗
+  iprop(∃ (ctr : w32) (w k d : Nat), sync.ownWaitGroup cf.γwg ctr ∗ sync.ownWaitGroupWaiters cf.γwg w ∗
+    ownTokAuth cf.γwr k ∗ threadToks k ∗
+    ownTokAuth cf.γwo d ∗ ownToks cf.γwc d ∗ ownTokAuth cf.γwc cacheWgOwedMax ∗
+    (∃ j : Nat, ownToks cf.γwb j) ∗ ownTokAuth cf.γwb cacheWgBudget ∗
+    ⌜0 ≤ sint.Z ctr⌝ ∗ ⌜sint.nat ctr = k + d⌝ ∗
     (⌜w = 0⌝ ∨ (⌜w = 1⌝ ∗ cacheOpen cf 1)))
 
 instance cacheWgInv_timeless (cf : CacheFields) : Timeless (cacheWgInv (GF := GF) cf) := by
@@ -393,8 +413,21 @@ instance cacheWgInv_timeless (cf : CacheFields) : Timeless (cacheWgInv (GF := GF
 /-- The right to start one goroutine on the cache's wait group (`Add(1)`): a budget token. -/
 def cacheWgSlot (cf : CacheFields) : IProp GF := ownToks cf.γwb 1
 
-/-- A goroutine started on the cache's wait group, before its `Done()`. -/
+/-- A goroutine started on the cache's wait group, before its `Done()`, whose thread token is
+deposited in `cacheWgInv`: its `Done` returns the token. -/
 def cacheWgRunning (cf : CacheFields) : IProp GF := ownToks cf.γwr 1
+
+/-- A goroutine started on the cache's wait group, before its `Done()`, that keeps its own thread
+token (`cacheWgOwedMax` at most): its `Done` returns the capacity it spent. -/
+def cacheWgRunningOwed (cf : CacheFields) : IProp GF := ownToks cf.γwo 1
+
+/-- The capacity to start one goroutine that keeps its own thread token (`wp_cacheWg_AddOwed`). -/
+def cacheWgOwedCap (cf : CacheFields) : IProp GF := ownToks cf.γwc 1
+
+/-- The watch loop's goroutine (`getWatchLoop`, `getWatch`, `watch`): its owed running token and
+its own thread token, which it deposits at each iteration's `Add(1)` (`wp_cacheWg_AddRunning`)
+and gets back fresh at the `go` statement (`wp_fork_tok_self`). -/
+def cacheWgLoopRunning (cf : CacheFields) : IProp GF := iprop(cacheWgRunningOwed cf ∗ threadTok)
 
 theorem cacheWg_mask : (↑cacheWgWGN : CoPset) ⊆ ⊤ \ ↑cacheWgN :=
   sync.wg_mask_ndot_ne nroot "cacheWaitGroup" "cacheWgCounter" (by decide)
@@ -414,48 +447,67 @@ theorem cacheOpen_excl (cf : CacheFields) (q : Qp) :
   simp only [Qp.val_add, Qp.val_one] at h1
   grind
 
-/-- `c.waitGroup.Add(1)`, spending a goroutine slot (`cacheWgSlot`) for a running token, with a
-fraction of the "open" token (no `Close` waits meanwhile). -/
-theorem wp_cacheWg_Add (c : Loc) (cf : CacheFields) (q : Qp) :
+/-- The thread bound the cache assumes (`isCacheFields`): with it, a counter of `k + d` running
+goroutines, `k` thread tokens deposited and `d ≤ cacheWgOwedMax`, plus `n` more (`n` thread tokens
+deposited, or `d + n ≤ cacheWgOwedMax`) stays below `2 ^ 31`. -/
+theorem cacheWg_ctr_bound {k d n : Nat} {T : Nat} (Hbound : T + cacheWgOwedMax ≤ 2 ^ 31)
+    (Hk : k + n < T) (Hd : d ≤ cacheWgOwedMax) : k + d + n < 2 ^ 31 := by
+  unfold cacheWgOwedMax at *; omega
+
+theorem cacheWg_ctr_bound_owed {k d n : Nat} {T : Nat} (Hbound : T + cacheWgOwedMax ≤ 2 ^ 31)
+    (Hk : k < T) (Hd : d + n ≤ cacheWgOwedMax) : k + d + n < 2 ^ 31 := by
+  unfold cacheWgOwedMax at *; omega
+
+/-- `c.waitGroup.Add(1)` by a thread with its thread token, spending a goroutine slot
+(`cacheWgSlot`) for a running token, with a fraction of the "open" token (no `Close` waits
+meanwhile): the thread's token is deposited (the caller receives a fresh one at its `go`
+statement, `wp_fork_tok`). -/
+theorem wp_cacheWg_Add (c : Loc) (cf : CacheFields) (q : Qp)
+    (Hbound : threadBound GF + cacheWgOwedMax ≤ 2 ^ 31) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ sync.isWaitGroup (cacheWgAddr c) cf.γwg cacheWgWGN ∗
-        inv cacheWgN (cacheWgInv cf) ∗ cacheWgSlot cf ∗ cacheOpen cf q }}
+        inv cacheWgN (cacheWgInv cf) ∗ cacheWgSlot cf ∗ cacheOpen cf q ∗ threadTok }}
       (App (Val (cacheWgAddr c @!! go.GoType.PointerType sync.WaitGroup.ty @!! go!"Add")) (Val #(W64 1)))
     {{ RET #(); cacheWgRunning cf ∗ cacheOpen cf q }} := by
-  iintro %Φ ⟨#Hsync, #Hwg, #Hinv, Hslot, Hopen⟩ HΦ
-  iapply sync.WaitGroup.wp_Add (cacheWgAddr c) (W64 1) cf.γwg cacheWgWGN $$ [] [Hslot Hopen HΦ]
+  iintro %Φ ⟨#Hsync, #Hwg, #Hinv, Hslot, Hopen, Htok⟩ HΦ
+  iapply sync.WaitGroup.wp_Add (cacheWgAddr c) (W64 1) cf.γwg cacheWgWGN $$ [] [Hslot Hopen Htok HΦ]
   · iframe #
-  imod inv_acc (E := ⊤ \ ↑cacheWgWGN) cacheWgN_mask $$ Hinv with ⟨Hi, Hclose⟩
-  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iinv Hinv with Hi Hclose
+  iapply fupd_mask_intro cacheWg_mask
   iintro Hmask
   inext
   iunfold cacheWgInv at Hi
-  icases Hi with ⟨%ctr, %wn, Hwgo, Hwt, Hrun, ⟨%k, Hbud⟩, Hbauth, %Hctr, Hwn⟩
+  icases Hi with ⟨%ctr, %wn, %k, %d, Hwgo, Hwt, Hrun, Hk, Hoauth, Hcap, Hcauth, ⟨%j, Hbud⟩, Hbauth,
+    %Hctr, %Hkd, Hwn⟩
   icases Hwn with (%Hw0 | ⟨-, Hop1⟩)
   rotate_left
   · iexfalso
     iapply cacheOpen_excl cf q $$ [$Hopen $Hop1]
   subst Hw0
   unfold cacheWgSlot
-  ihave Hbud' := ownToks_add_2 1 k cf.γwb $$ [Hbud Hslot]
+  ihave Hbud' := ownToks_add_2 1 j cf.γwb $$ [Hbud Hslot]
   · iframe
+  icases threadToks_add_one_lt k $$ [Htok Hk] with ⟨%Hlt, Hk⟩
+  · iframe
+  icombine Hcauth Hcap gives %Hd
+  have hb := cacheWg_ctr_bound (n := 1) Hbound Hlt Hd
+  have h1 : sint.Z (W32 (sint.Z (W64 1))) = 1 := by decide
+  have hc : ((sint.nat ctr : Nat) : Int) = sint.Z ctr := Int.toNat_of_nonneg Hctr
+  have hle : sint.Z ctr + 1 ≤ 2 ^ 31 - 1 := by omega
+  have hn : sint.nat (ctr + W32 (sint.Z (W64 1))) = sint.nat ctr + 1 := by
+    rw [show W32 (sint.Z (W64 1)) = W32 1 from rfl]; word
   iexists ctr
   iframe Hwgo
-  have h1 : sint.Z (W32 (sint.Z (W64 1))) = 1 := by decide
   isplitr
   · ipureintro; rw [h1]; omega
   iright
   iframe Hwt
-  iintro %Hno Hwt Hwgo
-  rw [h1] at Hno
-  have hc : ((sint.nat ctr : Nat) : Int) = sint.Z ctr := Int.toNat_of_nonneg Hctr
-  have hn : sint.nat (ctr + W32 (sint.Z (W64 1))) = sint.nat ctr + 1 := by
-    rw [show W32 (sint.Z (W64 1)) = W32 1 from rfl]; word
+  iintro Hwt Hwgo
   imod Hmask with -
-  imod ownTokAuth_S cf.γwr (sint.nat ctr) $$ Hrun with ⟨Hrun, Hrtok⟩
-  imod Hclose $$ [Hwgo Hwt Hrun Hbud' Hbauth] with -
+  imod ownTokAuth_S cf.γwr k $$ Hrun with ⟨Hrun, Hrtok⟩
+  imod Hclose $$ [Hwgo Hwt Hrun Hk Hoauth Hcap Hcauth Hbud' Hbauth] with -
   · inext
     unfold cacheWgInv
-    iexists ctr + W32 (sint.Z (W64 1)), 0
+    iexists ctr + W32 (sint.Z (W64 1)), 0, k + 1, d
     rw [hn]
     iframe
     isplitr
@@ -463,34 +515,108 @@ theorem wp_cacheWg_Add (c : Loc) (cf : CacheFields) (q : Qp) :
       have : sint.Z (ctr + W32 (sint.Z (W64 1))) = sint.Z ctr + 1 := by
         rw [show W32 (sint.Z (W64 1)) = W32 1 from rfl]; word
       omega
+    isplitr
+    · ipureintro; omega
     ileft; ipureintro; rfl
   imodintro
   iapply HΦ
   unfold cacheWgRunning
   iframe
 
-/-- `c.waitGroup.Add(1)` by a running goroutine (with its running token, which shows the counter
-is not zero, so no `Close` needs excluding), for another running token: no slot is spent. The watch
-loop's per-iteration `Add`: the model assumes the counter does not overflow (Perennial's
-`WaitGroup.Add`), so the loop needs no budget. -/
-theorem wp_cacheWg_AddRunning (c : Loc) (cf : CacheFields) :
+/-- `c.waitGroup.Add(1)` for a goroutine that will keep its own thread token (the resync loop,
+started by `NewDemux`): a slot and a capacity token for an owed running token. -/
+theorem wp_cacheWg_AddOwed (c : Loc) (cf : CacheFields) (q : Qp)
+    (Hbound : threadBound GF + cacheWgOwedMax ≤ 2 ^ 31) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ sync.isWaitGroup (cacheWgAddr c) cf.γwg cacheWgWGN ∗
-        inv cacheWgN (cacheWgInv cf) ∗ cacheWgRunning cf }}
+        inv cacheWgN (cacheWgInv cf) ∗ cacheWgSlot cf ∗ cacheWgOwedCap cf ∗ cacheOpen cf q }}
       (App (Val (cacheWgAddr c @!! go.GoType.PointerType sync.WaitGroup.ty @!! go!"Add")) (Val #(W64 1)))
-    {{ RET #(); cacheWgRunning cf ∗ cacheWgRunning cf }} := by
-  iintro %Φ ⟨#Hsync, #Hwg, #Hinv, Hrtok0⟩ HΦ
-  iapply sync.WaitGroup.wp_Add (cacheWgAddr c) (W64 1) cf.γwg cacheWgWGN $$ [] [Hrtok0 HΦ]
+    {{ RET #(); cacheWgRunningOwed cf ∗ cacheOpen cf q }} := by
+  iintro %Φ ⟨#Hsync, #Hwg, #Hinv, Hslot, Hocap, Hopen⟩ HΦ
+  iapply sync.WaitGroup.wp_Add (cacheWgAddr c) (W64 1) cf.γwg cacheWgWGN $$ [] [Hslot Hocap Hopen HΦ]
   · iframe #
-  imod inv_acc (E := ⊤ \ ↑cacheWgWGN) cacheWgN_mask $$ Hinv with ⟨Hi, Hclose⟩
-  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iinv Hinv with Hi Hclose
+  iapply fupd_mask_intro cacheWg_mask
   iintro Hmask
   inext
   iunfold cacheWgInv at Hi
-  icases Hi with ⟨%ctr, %wn, Hwgo, Hwt, Hrun, Hbud, Hbauth, %Hctr, Hwn⟩
-  unfold cacheWgRunning
-  icombine Hrun Hrtok0 gives %Hle
+  icases Hi with ⟨%ctr, %wn, %k, %d, Hwgo, Hwt, Hrun, Hk, Hoauth, Hcap, Hcauth, ⟨%j, Hbud⟩, Hbauth,
+    %Hctr, %Hkd, Hwn⟩
+  icases Hwn with (%Hw0 | ⟨-, Hop1⟩)
+  rotate_left
+  · iexfalso
+    iapply cacheOpen_excl cf q $$ [$Hopen $Hop1]
+  subst Hw0
+  unfold cacheWgSlot cacheWgOwedCap
+  ihave Hbud' := ownToks_add_2 1 j cf.γwb $$ [Hbud Hslot]
+  · iframe
+  ihave Hcap' := ownToks_add_2 1 d cf.γwc $$ [Hcap Hocap]
+  · iframe
+  icases persistent_entails_left (threadToks_lt (GF := GF) k) $$ Hk with ⟨Hk, %Hlt⟩
+  icombine Hcauth Hcap' gives %Hd
+  have hb := cacheWg_ctr_bound_owed (n := 1) Hbound Hlt Hd
+  have h1 : sint.Z (W32 (sint.Z (W64 1))) = 1 := by decide
+  have hc : ((sint.nat ctr : Nat) : Int) = sint.Z ctr := Int.toNat_of_nonneg Hctr
+  have hle : sint.Z ctr + 1 ≤ 2 ^ 31 - 1 := by omega
+  have hn : sint.nat (ctr + W32 (sint.Z (W64 1))) = sint.nat ctr + 1 := by
+    rw [show W32 (sint.Z (W64 1)) = W32 1 from rfl]; word
+  iexists ctr
+  iframe Hwgo
+  isplitr
+  · ipureintro; rw [h1]; omega
+  iright
+  iframe Hwt
+  iintro Hwt Hwgo
+  imod Hmask with -
+  imod ownTokAuth_S cf.γwo d $$ Hoauth with ⟨Hoauth, Hotok⟩
+  imod Hclose $$ [Hwgo Hwt Hrun Hk Hoauth Hcap' Hcauth Hbud' Hbauth] with -
+  · inext
+    unfold cacheWgInv
+    iexists ctr + W32 (sint.Z (W64 1)), 0, k, d + 1
+    rw [hn]
+    iframe
+    isplitr
+    · ipureintro
+      have : sint.Z (ctr + W32 (sint.Z (W64 1))) = sint.Z ctr + 1 := by
+        rw [show W32 (sint.Z (W64 1)) = W32 1 from rfl]; word
+      omega
+    isplitr
+    · ipureintro; omega
+    ileft; ipureintro; rfl
+  imodintro
+  iapply HΦ
+  unfold cacheWgRunningOwed
+  iframe
+
+/-- `c.waitGroup.Add(1)` by a running goroutine that keeps its own thread token (the watch loop,
+with its owed running token, which shows the counter is not zero, so no `Close` needs excluding),
+depositing a thread token for another running token: no slot is spent. The watch loop's
+per-iteration `Add`: the token deposited is the loop's own, and the `go` statement that follows
+gives it a fresh one (`wp_fork_tok`). -/
+theorem wp_cacheWg_AddRunning (c : Loc) (cf : CacheFields)
+    (Hbound : threadBound GF + cacheWgOwedMax ≤ 2 ^ 31) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ sync.isWaitGroup (cacheWgAddr c) cf.γwg cacheWgWGN ∗
+        inv cacheWgN (cacheWgInv cf) ∗ cacheWgRunningOwed cf ∗ threadTok }}
+      (App (Val (cacheWgAddr c @!! go.GoType.PointerType sync.WaitGroup.ty @!! go!"Add")) (Val #(W64 1)))
+    {{ RET #(); cacheWgRunningOwed cf ∗ cacheWgRunning cf }} := by
+  iintro %Φ ⟨#Hsync, #Hwg, #Hinv, Hotok0, Htok⟩ HΦ
+  iapply sync.WaitGroup.wp_Add (cacheWgAddr c) (W64 1) cf.γwg cacheWgWGN $$ [] [Hotok0 Htok HΦ]
+  · iframe #
+  iinv Hinv with Hi Hclose
+  iapply fupd_mask_intro cacheWg_mask
+  iintro Hmask
+  inext
+  iunfold cacheWgInv at Hi
+  icases Hi with ⟨%ctr, %wn, %k, %d, Hwgo, Hwt, Hrun, Hk, Hoauth, Hcap, Hcauth, Hbud, Hbauth,
+    %Hctr, %Hkd, Hwn⟩
+  unfold cacheWgRunningOwed
+  icombine Hoauth Hotok0 gives %Hle
+  icases threadToks_add_one_lt k $$ [Htok Hk] with ⟨%Hlt, Hk⟩
+  · iframe
+  icombine Hcauth Hcap gives %Hd
+  have hb := cacheWg_ctr_bound (n := 1) Hbound Hlt Hd
   have hc : ((sint.nat ctr : Nat) : Int) = sint.Z ctr := Int.toNat_of_nonneg Hctr
   have h1 : sint.Z (W32 (sint.Z (W64 1))) = 1 := by decide
+  have hle : sint.Z ctr + 1 ≤ 2 ^ 31 - 1 := by omega
   have hne : ctr ≠ W32 0 := by
     intro h; subst h
     have : sint.nat (W32 0) = 0 := rfl
@@ -502,66 +628,117 @@ theorem wp_cacheWg_AddRunning (c : Loc) (cf : CacheFields) :
   ileft
   isplitr
   · ipureintro; exact hne
-  iintro %Hno Hwgo
-  rw [h1] at Hno
+  iintro Hwgo
   have hn : sint.nat (ctr + W32 (sint.Z (W64 1))) = sint.nat ctr + 1 := by
     rw [show W32 (sint.Z (W64 1)) = W32 1 from rfl]; word
   imod Hmask with -
-  imod ownTokAuth_S cf.γwr (sint.nat ctr) $$ Hrun with ⟨Hrun, Hrtok⟩
-  imod Hclose $$ [Hwgo Hwt Hrun Hbud Hbauth Hwn] with -
+  imod ownTokAuth_S cf.γwr k $$ Hrun with ⟨Hrun, Hrtok⟩
+  imod Hclose $$ [Hwgo Hwt Hrun Hk Hoauth Hcap Hcauth Hbud Hbauth Hwn] with -
   · inext
     unfold cacheWgInv
-    iexists ctr + W32 (sint.Z (W64 1)), wn
+    iexists ctr + W32 (sint.Z (W64 1)), wn, k + 1, d
     rw [hn]
     iframe
-    ipureintro
-    have : sint.Z (ctr + W32 (sint.Z (W64 1))) = sint.Z ctr + 1 := by
-      rw [show W32 (sint.Z (W64 1)) = W32 1 from rfl]; word
-    omega
+    isplitr
+    · ipureintro
+      have : sint.Z (ctr + W32 (sint.Z (W64 1))) = sint.Z ctr + 1 := by
+        rw [show W32 (sint.Z (W64 1)) = W32 1 from rfl]; word
+      omega
+    ipureintro; omega
   imodintro
   iapply HΦ
+  unfold cacheWgRunning
   iframe
 
-/-- `c.waitGroup.Done()`, with a running token. -/
+/-- `c.waitGroup.Done()`, with a running token: the goroutine gets its deposited thread token
+back (to exit with). -/
 theorem wp_cacheWg_Done (c : Loc) (cf : CacheFields) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ sync.isWaitGroup (cacheWgAddr c) cf.γwg cacheWgWGN ∗
         inv cacheWgN (cacheWgInv cf) ∗ cacheWgRunning cf }}
       (App (Val (cacheWgAddr c @!! go.GoType.PointerType sync.WaitGroup.ty @!! go!"Done")) (Val #()))
-    {{ RET #(); True }} := by
+    {{ RET #(); threadTok }} := by
   iintro %Φ ⟨#Hsync, #Hwg, #Hinv, Hrtok⟩ HΦ
   iapply sync.WaitGroup.wp_Done (cacheWgAddr c) cf.γwg cacheWgWGN $$ [] [Hrtok HΦ]
   · iframe #
-  imod inv_acc (E := ⊤ \ ↑cacheWgWGN) cacheWgN_mask $$ Hinv with ⟨Hi, Hclose⟩
-  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iinv Hinv with Hi Hclose
+  iapply fupd_mask_intro cacheWg_mask
   iintro Hmask
   inext
   iunfold cacheWgInv at Hi
-  icases Hi with ⟨%ctr, %wn, Hwgo, Hwt, Hrun, Hbud, Hbauth, %Hctr, Hwn⟩
+  icases Hi with ⟨%ctr, %wn, %k, %d, Hwgo, Hwt, Hrun, Hk, Hoauth, Hcap, Hcauth, Hbud, Hbauth,
+    %Hctr, %Hkd, Hwn⟩
   unfold cacheWgRunning
   icombine Hrun Hrtok gives %Hle
   have hc : ((sint.nat ctr : Nat) : Int) = sint.Z ctr := Int.toNat_of_nonneg Hctr
   have h1 : 1 ≤ sint.Z ctr := by omega
   have hn : sint.nat (ctr - W32 1) = sint.nat ctr - 1 := by word
   have hz : sint.Z (ctr - W32 1) = sint.Z ctr - 1 := by word
+  have hlt : sint.Z ctr < 2 ^ 31 := by word
+  obtain ⟨k', rfl⟩ : ∃ k', k = k' + 1 := ⟨k - 1, by omega⟩
+  icases (threadToks_add k' 1).1 $$ Hk with ⟨Hk, Htok⟩
   iexists ctr
   iframe Hwgo
   isplitr
   · ipureintro; omega
   iintro Hwgo
   imod Hmask with -
-  rw [show sint.nat ctr = (sint.nat ctr - 1) + 1 by omega]
-  imod ownTokAuth_delete_S cf.γwr (sint.nat ctr - 1) $$ Hrun Hrtok with Hrun
-  imod Hclose $$ [Hwgo Hwt Hrun Hbud Hbauth Hwn] with -
+  imod ownTokAuth_delete_S cf.γwr k' $$ Hrun Hrtok with Hrun
+  imod Hclose $$ [Hwgo Hwt Hrun Hk Hoauth Hcap Hcauth Hbud Hbauth Hwn] with -
   · inext
     unfold cacheWgInv
-    iexists ctr - W32 1, wn
+    iexists ctr - W32 1, wn, k', d
     rw [hn]
     iframe
     ipureintro
     omega
   imodintro
   iapply HΦ
-  itrivial
+  iexact Htok
+
+/-- `c.waitGroup.Done()`, with an owed running token: the capacity it spent comes back. -/
+theorem wp_cacheWg_DoneOwed (c : Loc) (cf : CacheFields) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ sync.isWaitGroup (cacheWgAddr c) cf.γwg cacheWgWGN ∗
+        inv cacheWgN (cacheWgInv cf) ∗ cacheWgRunningOwed cf }}
+      (App (Val (cacheWgAddr c @!! go.GoType.PointerType sync.WaitGroup.ty @!! go!"Done")) (Val #()))
+    {{ RET #(); cacheWgOwedCap cf }} := by
+  iintro %Φ ⟨#Hsync, #Hwg, #Hinv, Hotok⟩ HΦ
+  iapply sync.WaitGroup.wp_Done (cacheWgAddr c) cf.γwg cacheWgWGN $$ [] [Hotok HΦ]
+  · iframe #
+  iinv Hinv with Hi Hclose
+  iapply fupd_mask_intro cacheWg_mask
+  iintro Hmask
+  inext
+  iunfold cacheWgInv at Hi
+  icases Hi with ⟨%ctr, %wn, %k, %d, Hwgo, Hwt, Hrun, Hk, Hoauth, Hcap, Hcauth, Hbud, Hbauth,
+    %Hctr, %Hkd, Hwn⟩
+  unfold cacheWgRunningOwed
+  icombine Hoauth Hotok gives %Hle
+  have hc : ((sint.nat ctr : Nat) : Int) = sint.Z ctr := Int.toNat_of_nonneg Hctr
+  have h1 : 1 ≤ sint.Z ctr := by omega
+  have hn : sint.nat (ctr - W32 1) = sint.nat ctr - 1 := by word
+  have hz : sint.Z (ctr - W32 1) = sint.Z ctr - 1 := by word
+  have hlt : sint.Z ctr < 2 ^ 31 := by word
+  obtain ⟨d', rfl⟩ : ∃ d', d = d' + 1 := ⟨d - 1, by omega⟩
+  icases ownToks_add_1 1 d' cf.γwc $$ Hcap with ⟨Hcap, Hocap⟩
+  iexists ctr
+  iframe Hwgo
+  isplitr
+  · ipureintro; omega
+  iintro Hwgo
+  imod Hmask with -
+  imod ownTokAuth_delete_S cf.γwo d' $$ Hoauth Hotok with Hoauth
+  imod Hclose $$ [Hwgo Hwt Hrun Hk Hoauth Hcap Hcauth Hbud Hbauth Hwn] with -
+  · inext
+    unfold cacheWgInv
+    iexists ctr - W32 1, wn, k, d'
+    rw [hn]
+    iframe
+    ipureintro
+    omega
+  imodintro
+  iapply HΦ
+  unfold cacheWgOwedCap
+  iexact Hocap
 
 /-! ### The revision bound
 
@@ -1097,7 +1274,8 @@ def isCacheFields (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNa
     "#Hstop" ∷ cacheStopAddr c ↦□ cf.stop ∗
     "#HisStop" ∷ □ (∀ Φ : val → IProp GF, □ (True : IProp GF) -∗ ▷ (True -∗ Φ #()) -∗
       WP (App (Val #cf.stop) (Val #())) {{ Φ }}) ∗
-    "%Hbuf" ∷ ⌜0 ≤ sint.Z cf.cfg.PerWatcherBufferSize'⌝)
+    "%Hbuf" ∷ ⌜0 ≤ sint.Z cf.cfg.PerWatcherBufferSize'⌝ ∗
+    "%Hthreads" ∷ ⌜threadBound GF + cacheWgOwedMax ≤ 2 ^ 31⌝)
 
 instance isCacheFields_persistent (c : Loc) (cf : CacheFields) (γr : ReadyNames)
     (γd : DemuxNames) (cap : Nat) : Persistent (isCacheFields (GF := GF) c cf γr γd cap) := by

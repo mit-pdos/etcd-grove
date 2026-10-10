@@ -40,10 +40,10 @@ abbrev Cache.Watch.spec : Prop :=
     (gs : List (OpFull → OpFull)) (q : Qp),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
       isCacheFields c cf γr γd cap ∗ context.isContext ctx s ∗ optsAt sl gs ∗
-      ⌜¬ opWatchPanics key gs⌝ ∗ cacheWatchSlot cf γd cap ∗ cacheOpen cf q }}
+      ⌜¬ opWatchPanics key gs⌝ ∗ cacheWatchSlot cf γd cap ∗ cacheOpen cf q ∗ threadTok }}
     (App (App (App (Val (c @!! go.GoType.PointerType Cache.ty @!! go!"Watch"))
       (Val #(GoInterface.ok ctx))) (Val #key)) (Val #sl))
-  {{ (rc : Loc), RET #rc; cacheOpen cf q ∗ ∃ γ : CacheWatchNames,
+  {{ (rc : Loc), RET #rc; cacheOpen cf q ∗ threadTok ∗ ∃ γ : CacheWatchNames,
       isCacheWatchChan rc γ (etcdStepCert cf.pfx)
         (some (keyPredForRange key (opWatchModel key gs).base.rangeEnd))
         (opWatchModel key gs).base.rev ∗
