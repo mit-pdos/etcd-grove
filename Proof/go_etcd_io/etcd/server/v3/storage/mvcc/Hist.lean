@@ -547,6 +547,42 @@ theorem kiIsEmpty_false_of_head {ki : KeyIndex} (h : (ki.gens.headD Gen.empty).r
     | nil => simp [h]
     | cons g' t => simp
 
+/-- A delete the log allows (`LogWf'`: the key is present) finds a key index whose last
+generation is not empty. -/
+theorem kiLastEmpty_false_of_del (ilog : Log) (pend : List Change) (k : GoString)
+    (hwf : LogWf' (ilog ++ [pend])) (hwf' : LogWf' (ilog ++ [pend ++ [.del k]]))
+    (hlen : ilog.length + 1 < 2 ^ 63) (hilog : 1 ≤ ilog.length) (hpend : pend.length < 2 ^ 63)
+    (hcs : ∀ cs ∈ ilog, cs.length < 2 ^ 63) :
+    kiLastEmpty (kiOfKey (evsOf (ilog ++ [pend])) k) = false := by
+  have hlink := keyLink_of_rev k (ilog ++ [pend]).reverse (by simp; omega)
+    (fun cs hcs' => by
+      rcases List.mem_append.1 (List.mem_reverse.1 hcs') with h | h
+      · exact hcs cs h
+      · rw [List.mem_singleton] at h; rw [h]; exact hpend)
+    (by rw [List.reverse_reverse]; exact hwf)
+  rw [List.reverse_reverse] at hlink
+  -- the key is present after `pend`
+  have hpresent := hwf'.2 ilog.length (pend ++ [.del k]) pend.length k
+    (by rw [List.getElem?_append_right (Nat.le_refl _), Nat.sub_self]; rfl)
+    (by rw [List.getElem?_append_right (Nat.le_refl _), Nat.sub_self]; rfl)
+  rw [List.take_left, stateAt_append_lt _ _ (by omega), stateAt_last, ← stateAfter_append,
+    ← stateAt_last] at hpresent
+  simp only [List.length_append, List.length_singleton, Nat.add_sub_cancel] at hpresent
+  -- `kiGet` at the top
+  have htop := hlink.match_ ilog.length (by omega)
+  have habove : KiAbove (kiOfKey (evsOf (ilog ++ [pend])) k) ⟨W64 ilog.length, W64 0⟩ := by
+    intro x hx
+    have := hlink.revs x hx
+    simp only [List.length_append, List.length_singleton] at this
+    simp only; word
+  rw [kiGet_top hlink.wf habove] at htop
+  unfold kiLastEmpty
+  by_cases he : ((kiOfKey (evsOf (ilog ++ [pend])) k).gens.getLastD Gen.empty).revs = []
+  · rw [if_pos he] at htop
+    rw [KvMatch_none_left htop] at hpresent
+    simp at hpresent
+  · simp only [he, decide_false]
+
 /-! ### Finding a key in a sorted index -/
 
 /-- `btFind` on a list strictly sorted by a key projection: the element with the key. -/
