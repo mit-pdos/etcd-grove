@@ -1014,6 +1014,14 @@ reverted (`goose-revert`, `ab1deb078`). The proofs fit the code as shipped.
   compare-and-swap, and `Add`'s atomic update opens at `⊤ \ ↑N` (the proof reads the state in the
   wait group's invariant before deciding to commit). *Rejected:* time receipts (bounding the
   execution to `2^31` steps, an assumption about every result); a fork change (not a bug).
+  **Superseded 2026-10-10** (`STATUS.md`, "The wait-group counter and thread tokens"): the
+  assumption was reachable (two `Add(1 << 30)` calls panic in Go) and is reverted in Perennial.
+  The counter is bounded by Perennial's *thread tokens* instead: one per goroutine that has been
+  `Add`ed and not yet `Done`, deposited by the thread that calls `Add` (its own; it gets a fresh
+  one at the `go` statement), so the counter is below the thread bound `T` of the adequacy
+  theorem, and `New` assumes `T + 3 ≤ 2^31` (three goroutines keep their own token). This is
+  the argument the assumption gestured at (`2^31` goroutines cannot be live at once), made in
+  the logic and stated once, as an adequacy hypothesis.
 - *Rejected: the exclusive writer* (the previous design): it needs the loop to wait for each
   iteration's goroutine, a code change that fixes no bug.
 
