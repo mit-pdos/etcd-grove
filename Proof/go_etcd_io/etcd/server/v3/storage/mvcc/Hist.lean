@@ -317,6 +317,30 @@ theorem evsOfHist_prefix_of_count (h : List HistItem) (log : Log) (hpre : h <+: 
   have hnil : evsOfHist T = [] := List.eq_nil_of_length_eq_zero (by omega)
   rw [hnil, List.append_nil]
 
+/-- Two histories, one a prefix of the other, with as many events: the same events. -/
+theorem evsOfHist_prefix_eq (h1 h2 : List HistItem) (hpre : h1 <+: h2)
+    (hc : (evsOfHist h2).length ≤ (evsOfHist h1).length) : evsOfHist h1 = evsOfHist h2 := by
+  obtain ⟨T, hT⟩ := hpre
+  rw [← hT, evsOfHist_append] at hc ⊢
+  rw [List.length_append] at hc
+  have hnil : evsOfHist T = [] := List.eq_nil_of_length_eq_zero (by omega)
+  rw [hnil, List.append_nil]
+
+/-- The events of the pending revision's next change. -/
+theorem evsOf_append_change (ilog : Log) (pend : List Change) (c : Change) :
+    evsOf (ilog ++ [pend ++ [c]]) = evsOf (ilog ++ [pend]) ++ [evOfChange ilog.length pend.length c] := by
+  rw [evsOf_append, evsOf_append, evsOfRev_append_singleton, List.append_assoc]
+
+theorem indexOf_append_ev (evs : List Ev) (ev : Ev) :
+    indexOf (evs ++ [ev]) = idxApply (indexOf evs) ev := by
+  unfold indexOf; rw [List.foldl_append]; rfl
+
+theorem evOfChange_put (m i : Nat) (k v : GoString) (l : w64) :
+    evOfChange m i (.put k v l) = { rev := ⟨W64 m, W64 i⟩, key := k, tomb := false } := rfl
+
+theorem evOfChange_del (m i : Nat) (k : GoString) :
+    evOfChange m i (.del k) = { rev := ⟨W64 m, W64 i⟩, key := k, tomb := true } := rfl
+
 /-! ### A reader's answer is stable under later events -/
 
 theorem kiFold_cons (ki : KeyIndex) (e : Ev) (es : List Ev) (k : GoString) :

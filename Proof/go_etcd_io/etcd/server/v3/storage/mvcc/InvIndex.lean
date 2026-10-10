@@ -370,6 +370,33 @@ theorem bigSepL_ownKi_combine (L1 : List IdxEntry) (q1 q2 : Qp) :
       rw [show DFrac.own (q1 + q2) = DFrac.own q1 • DFrac.own q2 from rfl]
       iexact H
 
+/-- Inserting an entry (by key) into the entries' resources. -/
+theorem bigSepL_ownEntry_insert (z0 : IdxEntry) (q : Qp) : ∀ (L : List IdxEntry),
+    ownEntry (GF := GF) z0 q ∗ ([∗list] z ∈ L, ownEntry z q) ⊢
+      [∗list] z ∈ btInsert entryLess z0 L, ownEntry z q
+  | [] => by
+    iintro ⟨H0, -⟩
+    simp only [btInsert]
+    iapply BigSepL.bigSepL_cons.2
+    iframe H0
+    iapply BigSepL.bigSepL_nil_intro; iempintro
+  | w :: ws => by
+    iintro ⟨H0, H⟩
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨Hw, Hs⟩
+    unfold btInsert
+    split
+    · iapply BigSepL.bigSepL_cons.2
+      iframe Hw
+      iapply bigSepL_ownEntry_insert z0 q ws
+      iframe
+    · split
+      · iapply BigSepL.bigSepL_cons.2
+        iframe H0
+        iapply BigSepL.bigSepL_cons.2
+        iframe
+      · iapply BigSepL.bigSepL_cons.2
+        iframe H0 Hs
+
 /-- Two fractions of the tree hold the same entries (the key indexes' models agree). -/
 theorem ownTree_combine (t : Loc) (L1 L2 : List IdxEntry) (q1 q2 : Qp) :
     ⊢ ownTree (GF := GF) t L1 q1 -∗ ownTree t L2 q2 -∗ ⌜L1 = L2⌝ ∗ ownTree t L1 (q1 + q2) := by
