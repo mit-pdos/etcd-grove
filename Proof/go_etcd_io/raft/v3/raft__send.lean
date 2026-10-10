@@ -51,8 +51,14 @@ set_option hygiene false in
 local macro "out_term" : tactic => `(tactic| (
   first
     | exact Hpvt
-    | (intro _; simp only; omega)
-    | (intro _; simp only; word)))
+    | (intro _
+       refine ⟨?_, ?_⟩ <;>
+         first
+           | (simp only; omega)
+           | (simp only; word)
+           | (simp only [MsgPreVoteResp] at *; exact HnPVR)
+           | simp [MsgPreVoteResp, MsgAppResp, MsgApp, MsgHeartbeat, MsgHeartbeatResp,
+               MsgReadIndexResp, MsgSnap, MsgProp])))
 
 set_option hygiene false in
 /-- A described type other than `MsgSnap`: the wand gets the abstraction of the queued

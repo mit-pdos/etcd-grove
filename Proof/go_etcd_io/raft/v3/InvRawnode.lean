@@ -210,7 +210,9 @@ the storage holds (`stored`, 2026-10-10: the log of the `Ready` that queued it);
 truncating `MsgApp` breaks, so `RawNode.Step` took a `MsgApp` only with an empty queue. -/
 def PendingOk (s : NState) (p : Pending) : Prop :=
   match p with
-  | .self pv t => uint.Z t ≤ uint.Z s.term + (if pv then 1 else 0)
+  | .self pv t => uint.Z t ≤ uint.Z s.term + (if pv then 1 else 0) ∧
+      -- (2026-10-10) with pre-vote off, not a pre-vote response (`OutTermOk`)
+      (s.prevote = false → pv = false)
   | .appendAck t e => uint.Z t ≤ uint.Z s.term ∧ plogLast s.logst.prev s.logst.stored = e
   | .applyAck _ => ApplyAckOk s p
 
@@ -256,7 +258,8 @@ theorem stepsOk_mono_le (s s' : NState) (steps : List Pending)
     (Ht : uint.Z s.term ≤ uint.Z s'.term)
     (Hst : s'.logst.prev = s.logst.prev ∧ s'.logst.stored = s.logst.stored)
     (Hc : uint.Z s.logst.committed ≤ uint.Z s'.logst.committed)
-    (Ha : s'.logst.applying = s.logst.applying) :
+    (Ha : s'.logst.applying = s.logst.applying)
+    (Hpv : s'.prevote = s.prevote := by first | rfl | assumption) :
     StepsOk s steps → StepsOk s' steps := by
   have Hall : ∀ l : List Pending, (∀ p ∈ l, ApplyAckOk s p) → ∀ p ∈ l, ApplyAckOk s' p :=
     fun l H p Hp => applyAckOk_mono s s' p Hc Ha (H p Hp)
@@ -265,8 +268,8 @@ theorem stepsOk_mono_le (s s' : NState) (steps : List Pending)
   | cons p rest IH =>
     cases p with
     | self pv t =>
-      intro ⟨H1, H2⟩
-      exact ⟨by simp only [PendingOk] at H1 ⊢; omega, IH H2⟩
+      intro ⟨⟨H1, H1'⟩, H2⟩
+      exact ⟨⟨by omega, by rw [Hpv]; exact H1'⟩, IH H2⟩
     | appendAck t e =>
       intro ⟨⟨H1, H2⟩, Hr⟩
       refine ⟨⟨by omega, ?_⟩, Hall rest Hr⟩
@@ -281,9 +284,10 @@ theorem stepsOk_mono (s s' : NState) (steps : List Pending)
     (Ht : s'.term = s.term)
     (Hst : s'.logst.prev = s.logst.prev ∧ s'.logst.stored = s.logst.stored)
     (Hc : uint.Z s.logst.committed ≤ uint.Z s'.logst.committed)
-    (Ha : s'.logst.applying = s.logst.applying) :
+    (Ha : s'.logst.applying = s.logst.applying)
+    (Hpv : s'.prevote = s.prevote := by first | rfl | assumption) :
     StepsOk s steps → StepsOk s' steps :=
-  stepsOk_mono_le s s' steps (by rw [Ht]; exact Int.le_refl _) Hst Hc Ha
+  stepsOk_mono_le s s' steps (by rw [Ht]; exact Int.le_refl _) Hst Hc Ha Hpv
 
 /-- What the storage holds agrees with the log up to an entry both have (2026-10-10):
 Log Matching between two logs with records (`RecsAgree`, `logRecs_agree`), one of
@@ -691,7 +695,7 @@ theorem ownRawNode_appended (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState
   iapply ownRawNode_intro γ rn id { rs with unpersisted := [] }
     { s with logst := { s.logst with unpersisted := [] } } ps rnv sv steps Hrel Hin Hasync
     Hdlen rfl Hsnap
-    (stepsOk_mono s _ rs.steps rfl ⟨rfl, rfl⟩ (Int.le_refl _) rfl Hstok)
+    (stepsOk_mono s _ rs.steps rfl ⟨rfl, rfl⟩ (Int.le_refl _) rfl rfl Hstok)
     Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
     $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs
 

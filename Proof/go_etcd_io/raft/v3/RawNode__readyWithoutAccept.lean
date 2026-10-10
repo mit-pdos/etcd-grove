@@ -384,7 +384,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
   have Hmsgs_term : ∀ m ∈ ms1 ++ nonself id ms2, uint.Z m.Term' ≤ uint.Z rs.term := by
     intro m Hm
     rw [Htrm]
-    refine Hout_term m ?_ Hpvoff
+    refine (Hout_term m ?_ Hpvoff).1
     rcases List.mem_append.1 Hm with Hm | Hm
     · exact List.mem_append_left _ Hm
     · exact List.mem_append_right _ (List.mem_filter.1 Hm).1

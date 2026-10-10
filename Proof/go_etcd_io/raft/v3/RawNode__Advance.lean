@@ -68,14 +68,17 @@ private def PendStep (p : Pending) (s s' : NState) : Prop :=
 /-- The self-addressed responses of a queue are no later than `s`'s term (one later for
 a pre-vote response). -/
 private def SelfBound (s : NState) (rest : List Pending) : Prop :=
-  ∀ pv t, Pending.self pv t ∈ rest → uint.Z t ≤ uint.Z s.term + (if pv then 1 else 0)
+  ∀ pv t, Pending.self pv t ∈ rest → uint.Z t ≤ uint.Z s.term + (if pv then 1 else 0) ∧
+    (s.prevote = false → pv = false)
 
 /-- The loop's term invariant (see the file header): from `s` to `s1`, up by at most
 one; and while self-addressed responses remain, a pre-candidate is still at `s`'s term. -/
 private def TermInv (s s1 : NState) (rest : List Pending) : Prop :=
   uint.Z s.term ≤ uint.Z s1.term ∧ uint.Z s1.term ≤ uint.Z s.term + 1 ∧
   ((∃ pv t, Pending.self pv t ∈ rest) → s1.role = .preCandidate →
-    uint.Z s1.term = uint.Z s.term)
+    uint.Z s1.term = uint.Z s.term) ∧
+  -- with pre-vote off the term does not move (2026-10-10)
+  (s.prevote = false → uint.Z s1.term = uint.Z s.term)
 
 private theorem stepsOk_selfBound (s : NState) (l : List Pending) :
     StepsOk s l → SelfBound s l := by
@@ -100,10 +103,10 @@ private theorem termInv_step (s s1 s2 : NState) (p : Pending) (rest : List Pendi
     (Hti : TermInv s s1 (p :: rest))
     (Hge : uint.Z s1.term ≤ uint.Z s2.term) (Hps : PendStep p s1 s2) :
     TermInv s s2 rest := by
-  obtain ⟨Hlo, Hhi, Hpre⟩ := Hti
+  obtain ⟨Hlo, Hhi, Hpre, Hpvt⟩ := Hti
   cases p with
   | self pv t =>
-    have Hb := Hsb pv t List.mem_cons_self
+    obtain ⟨Hb, Hbpv⟩ := Hsb pv t List.mem_cons_self
     have Hpre1 := Hpre ⟨pv, t, List.mem_cons_self⟩
     cases pv with
     | false =>
@@ -111,7 +114,7 @@ private theorem termInv_step (s s1 s2 : NState) (p : Pending) (rest : List Pendi
       simp only [Bool.false_eq_true, ↓reduceIte, Int.add_zero] at Hb
       have H2 : uint.Z s2.term ≤ uint.Z s1.term :=
         Int.le_trans Hle (Int.max_le.2 ⟨Int.le_refl _, by omega⟩)
-      refine ⟨by omega, by omega, fun _ Hr => ?_⟩
+      refine ⟨by omega, by omega, fun _ Hr => ?_, fun Hpf => by have := Hpvt Hpf; omega⟩
       by_cases heq : uint.Z s1.term = uint.Z s.term
       · omega
       · have Hr1 : s1.role = .preCandidate := by rw [← Hrole (by omega)]; exact Hr
@@ -123,17 +126,19 @@ private theorem termInv_step (s s1 s2 : NState) (p : Pending) (rest : List Pendi
         rcases Hab with Hle | ⟨Hr1, Heq⟩
         · exact Int.le_trans Hle (Int.max_le.2 ⟨Hhi, Hb⟩)
         · have := Hpre1 Hr1; omega
-      refine ⟨by omega, Hhi2, fun _ Hr => ?_⟩
+      refine ⟨by omega, Hhi2, fun _ Hr => ?_, fun Hpf => absurd (Hbpv Hpf) (by decide)⟩
       obtain ⟨Hr1, Heq⟩ := Hrole Hr
       have := Hpre1 Hr1
       rw [Heq]; exact this
   | appendAck tm e =>
     have Ht : s2.term = s1.term := Hps
-    refine ⟨by rw [Ht]; exact Hlo, by rw [Ht]; exact Hhi, fun ⟨pv, t, h⟩ => ?_⟩
+    refine ⟨by rw [Ht]; exact Hlo, by rw [Ht]; exact Hhi, fun ⟨pv, t, h⟩ => ?_,
+      fun Hpf => by rw [Ht]; exact Hpvt Hpf⟩
     exact absurd h (stepsOk_ack_noself s1 _ rest (fun _ _ h => by cases h) Hok pv t)
   | applyAck ce =>
     have Ht : s2.term = s1.term := Hps
-    refine ⟨by rw [Ht]; exact Hlo, by rw [Ht]; exact Hhi, fun ⟨pv, t, h⟩ => ?_⟩
+    refine ⟨by rw [Ht]; exact Hlo, by rw [Ht]; exact Hhi, fun ⟨pv, t, h⟩ => ?_,
+      fun Hpf => by rw [Ht]; exact Hpvt Hpf⟩
     exact absurd h (stepsOk_ack_noself s1 _ rest (fun _ _ h => by cases h) Hok pv t)
 
 end terms
@@ -414,7 +419,7 @@ theorem RawNode.Advance.wp_proof
     ipureintro
     exact ⟨by word, ⟨trivial, trivial⟩, Hrel, by simp, ⟨trivial, trivial, trivial⟩, Int.le_refl _,
       Hstok,
-      stepsOk_selfBound s rs.steps Hstok, Int.le_refl _, by omega, fun _ _ => rfl⟩
+      stepsOk_selfBound s rs.steps Hstok, Int.le_refl _, by omega, fun _ _ => rfl, fun _ => rfl⟩
   wp_for IH
   wp_if_destruct
   · have Hlt : sint.Z n < sint.Z rnv.stepsOnAdvance'.len := Hif
@@ -444,7 +449,7 @@ theorem RawNode.Advance.wp_proof
     have Hnw1 : ∀ pv t, p = .self pv t → s1.role = .preCandidate →
         uint.Z s1.term + 1 < 2 ^ 64 := by
       intro pv t hp hr
-      have := Hti1.2.2 ⟨pv, t, by rw [hp]; exact List.mem_cons_self⟩ hr
+      have := Hti1.2.2.1 ⟨pv, t, by rw [hp]; exact List.mem_cons_self⟩ hr
       omega
     ihave #Hstr1 := storedRecs_eq γ _ s1.logst.prev _ s1.logst.stored Hs1.2.2.2.1 Hs1.2.2.2.2
       $$ Hstrecs
@@ -474,7 +479,7 @@ theorem RawNode.Advance.wp_proof
         Hsd2.trans Hs1.2.2.2.2⟩,
       ⟨Hsg2.1.trans Hsg1.1, Hsg2.2.1.trans Hsg1.2.1, Hsg2.2.2.trans Hsg1.2.2⟩,
       Int.le_trans Hc1 Hc12,
-      stepsOk_mono_le s1 s2 _ Ht2 ⟨Hpv2, Hsd2⟩ Hc12 Ha2 Hrest,
+      stepsOk_mono_le s1 s2 _ Ht2 ⟨Hpv2, Hsd2⟩ Hc12 Ha2 (Hsg2.2.1) Hrest,
       fun pv t h => Hsb1 pv t (List.mem_cons_of_mem _ h),
       termInv_step s s1 s2 p _ Hok1 Hsb1 Hti1 Ht2 Hps2⟩
     rw [← HnS, List.drop_set_of_lt (by simp [sint.nat]), ← List.drop_drop, ← List.drop_drop,
@@ -503,9 +508,14 @@ theorem RawNode.Advance.wp_proof
         $$ Hrn Hphys Hghost Hsoft Hsl0 Hcap0 [] [] Hdeliv Hstr1
       · iempintro
       · iempintro
+    isplitr
+    · ipureintro
+      rw [Htrm]
+      exact ⟨Hti1.1, Hti1.2.1⟩
     ipureintro
     rw [Htrm]
-    exact ⟨Hti1.1, Hti1.2.1⟩
+    have := Hti1.2.2.2 Hpvoff
+    word
 
 end proof
 

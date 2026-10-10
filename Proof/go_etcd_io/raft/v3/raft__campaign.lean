@@ -313,7 +313,8 @@ theorem raft.campaign.wp_proof
             -- with pre-vote off, an election's: at the node's term (2026-10-10)
             fun Hpf => by
               cases pre
-              · simp [campRoleState, becomeCandidate, resetTo, sendMsgs]
+              · simp [campRoleState, becomeCandidate, resetTo, sendMsgs, vrespW32, vreqW32,
+                  MsgVoteResp, MsgVote, MsgPreVoteResp]
               · simp [campRoleState, becomePrecandidate, sendMsgs, Hpvpre rfl] at Hpf,
             by cases pre <;> rfl⟩)
         $$ [$Hphys]
@@ -365,7 +366,8 @@ theorem raft.campaign.wp_proof
             fun h => absurd h Hyid,
             fun Hpf => by
               cases pre
-              · simp [campRoleState, becomeCandidate, resetTo, sendMsgs]
+              · simp [campRoleState, becomeCandidate, resetTo, sendMsgs, vrespW32, vreqW32,
+                  MsgVoteResp, MsgVote, MsgPreVoteResp]
               · simp [campRoleState, becomePrecandidate, sendMsgs, Hpvpre rfl] at Hpf,
             by cases pre <;> rfl⟩)
         $$ [$Hphys]

@@ -185,13 +185,15 @@ vote message, whose term the caller sets (`SendOk`): a vote request or response 
 node's term, or (with pre-vote on) a pre-vote at the next term or a pre-vote response
 granting a candidate's. A receiver thus knows a message from the outbox is from a term
 no later than its sender's (`RawNode.readyWithoutAccept`'s `Hmsgs_term`). The bound holds
-at every later term too (`OutTermOk.mono`). -/
+at every later term too (`OutTermOk.mono`). And (2026-10-10) with pre-vote off no queued
+message is a pre-vote response: `RawNode.Advance` then never steps one, so it keeps the
+node's term (the budget `node.go`'s ticks spend). -/
 def OutTermOk (pv : Bool) (t : w64) (m : raftpb.Message) : Prop :=
-  pv = false → uint.Z m.Term' ≤ uint.Z t
+  pv = false → uint.Z m.Term' ≤ uint.Z t ∧ m.Type' ≠ MsgPreVoteResp
 
 theorem OutTermOk.mono {pv : Bool} {t t' : w64} {m : raftpb.Message}
     (Ht : uint.Z t ≤ uint.Z t') (H : OutTermOk pv t m) : OutTermOk pv t' m :=
-  fun Hpv => Int.le_trans (H Hpv) Ht
+  fun Hpv => ⟨Int.le_trans (H Hpv).1 Ht, (H Hpv).2⟩
 
 /-! ### The raft struct's points-to, with `id` and `logger` shared (2026-10-10)
 

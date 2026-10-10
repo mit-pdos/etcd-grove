@@ -86,7 +86,9 @@ abbrev RawNode.Advance.spec : Prop :=
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Advance")) (Val #rd))
   {{ (t : w64), RET #();
       ownRawNode γ rn id { rs with steps := [], term := t } ∗
-      ⌜uint.Z rs.term ≤ uint.Z t ∧ uint.Z t ≤ uint.Z rs.term + 1⌝ }}
+      ⌜uint.Z rs.term ≤ uint.Z t ∧ uint.Z t ≤ uint.Z rs.term + 1⌝ ∗
+      -- with pre-vote off (`ownRawNode`'s scope) the term is kept (2026-10-10)
+      ⌜t = rs.term⌝ }}
 
 end spec
 

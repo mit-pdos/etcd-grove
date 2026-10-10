@@ -635,7 +635,10 @@ theorem RawNode.acceptReady.wp_proof
       have Hb := (Hself (of_decide_eq_true Hm'.2)).2.2.2.2
       refine ⟨⟨_, _, rfl⟩, ?_⟩
       simp only [PendingOk, selfPending, decide_eq_true_eq]
-      exact Hb
+      refine ⟨Hb, fun Hpf => ?_⟩
+      have Hnp := (Hout_term m (List.mem_append_right _ Hm'.1) Hpf).2
+      simp only [decide_eq_false_iff_not]
+      exact Hnp
     apply ready_stepsOk _ _ _ ce _ (Int.le_refl _)
     · -- the acknowledgement is of the last entry of the log, which the storage holds
       -- once the entries handed out are appended (`logAcceptUnstable`)
