@@ -523,5 +523,363 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
 
 end step
 
+/-! ## `run`'s states -/
+
+section states
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+variable [AllG GF]
+
+/-- `rs.asyncStorageWrites`, read from the node (`false`). -/
+theorem ownRawNode_async (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) :
+    ⊢ ownRawNode (GF := GF) γ rn id rs -∗
+      ∃ rnv : RawNode, rawNodeOwn rn rnv ∗ ⌜rnv.asyncStorageWrites' = false⌝ ∗
+        (rawNodeOwn rn rnv -∗ ownRawNode γ rn id rs) := by
+  iintro H
+  iNamed H
+  iexists rnv
+  isplitl [Hrn]
+  · iexact Hrn
+  isplitr
+  · ipureintro; exact Hasync
+  iintro Hrn
+  iapply ownRawNode_intro γ rn id rs s ps rnv sv steps Hrel Hin Hasync Hdlen Hunp Hsnap Hstok
+    Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
+    $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs
+
+/-- A `Ready` `run` computed and abandoned but keeps armed (`readyc` set): what
+`ownRawNodeIdle_ready` needs of it, and, by the lower bounds of `rs`, that it holds no
+messages (`SliceShape`, `k ≤ rs.outlb`) and no entries (`es ≠ [] → rs.unst`) once the
+node is idle. -/
+def staleOk (γ : NodeNames) (rd : Ready) (rs : RNState) : IProp GF :=
+  iprop(∃ (ce es : List raftpb.Entry) (k : Nat),
+    (⌜rd.SoftState' = null⌝ ∨ ∃ v : SoftState, rd.SoftState' ↦□ v) ∗
+    rd.CommittedEntries' ↦*□ ce ∗ ownSliceCap raftpb.Entry rd.CommittedEntries' (DFrac.own 1) ∗
+    isCommitted γ.raft (rs.delivered ++ ce) ∗ rd.Entries' ↦*□ es ∗
+    ⌜(rd.Snapshot' = zero_val raftpb.Snapshot ∧ rd.ReadStates' = slice.nil) ∧
+      (es ≠ [] → rs.unst = true) ∧ SliceShape rd.Messages' k ∧ k ≤ rs.outlb ∧
+      (∀ e, ce.getLast? = some e → uint.Z e.Index' ≤ uint.Z rs.clb ∧
+        uint.Z e.Index' = (rs.delivered.length : Int) + (ce.length : Int))⌝)
+
+/-- A `Ready` `readyWithoutAccept` just computed: its outputs. -/
+def freshOk (γ : NodeNames) (rd : Ready) (rs : RNState) (ce es : List raftpb.Entry)
+    (ms : List raftpb.Message) : IProp GF :=
+  iprop(rd.CommittedEntries' ↦*□ ce ∗ isCommitted γ.raft (rs.delivered ++ ce) ∗
+    rd.Entries' ↦*□ es ∗ rd.Messages' ↦* ms ∗
+    ownSliceCap raftpb.Message rd.Messages' (DFrac.own 1) ∗
+    ([∗list] m ∈ ms, isRaftMsg γ.raft m) ∗
+    ⌜(∀ m ∈ ms, uint.Z m.Term' ≤ uint.Z rs.term) ∧
+     rd.Snapshot' = zero_val raftpb.Snapshot ∧ rd.ReadStates' = slice.nil⌝)
+
+/-- Both halves of `rof`: no `Ready` handed out. -/
+def rofFull (γ : NodeNames) : IProp GF :=
+  iprop(∃ x : List raftpb.Entry × List raftpb.Entry × List raftpb.Entry,
+    dghostVar γ.rof (DFrac.own (1 : Qp).half) x ∗ dghostVar γ.rof (DFrac.own (1 : Qp).half) x)
+
+/-- `run`'s state besides the node, at the loop's head (`ac`: `advancec`, `rc`: `readyc`,
+`rd`: `rd`): no `Ready` handed out (`ac` nil; then `rc` is nil or a stale `Ready` is
+armed), or one handed out and its `Advance` awaited (`ac` is `n.advancec`). -/
+def headRest (γ : NodeNames) (nv : node) (rs : RNState) (ac rc : GoChan) (rd : Ready) :
+    IProp GF :=
+  iprop(termLB γ.bud rs.term ∗ ⌜rs.storage = γ.stor⌝ ∗
+    ((⌜ac = chan.nil ∧ rs.steps = [] ∧ rs.unpersisted = []⌝ ∗
+        dghostVar γ.dlv (DFrac.own (1 : Qp).half) rs.delivered ∗ rofFull γ ∗
+        (⌜rc = chan.nil⌝ ∨ (⌜rc = nv.readyc'⌝ ∗ staleOk γ rd rs)))
+     ∨ (⌜ac = nv.advancec' ∧ rc = chan.nil ∧ rs.unst = false⌝ ∗
+        ∃ d ce : List raftpb.Entry, ⌜rs.delivered = d ++ ce⌝ ∗
+          dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, rs.unpersisted))))
+
+/-- `run`'s loop invariant, but for its local variables. -/
+def runHead (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd : Ready) : IProp GF :=
+  iprop(∃ rs : RNState, ownRawNode γ.raft nv.rn' id rs ∗ headRest γ nv rs ac rc rd)
+
+/-- `run`'s state after its first statement (`HasReady`, `readyWithoutAccept`): the node
+may also be at a fresh `Ready` (`ownRawNodeReady`) or idle with a stale one armed. -/
+def runMid (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd : Ready) : IProp GF :=
+  iprop((⌜ac = nv.advancec'⌝ ∗ runHead γ id nv ac rc rd) ∨
+    (⌜ac = chan.nil⌝ ∗ ∃ rs : RNState, termLB γ.bud rs.term ∗
+      ⌜rs.storage = γ.stor ∧ rs.steps = [] ∧ rs.unpersisted = []⌝ ∗
+      dghostVar γ.dlv (DFrac.own (1 : Qp).half) rs.delivered ∗ rofFull γ ∗
+      ((⌜rc = chan.nil⌝ ∗ ownRawNode γ.raft nv.rn' id rs) ∨
+       (⌜rc = nv.readyc'⌝ ∗ ∃ (ce es : List raftpb.Entry) (ms : List raftpb.Message),
+          ownRawNodeReady γ.raft nv.rn' id rs rd ce es ms false ∗ freshOk γ rd rs ce es ms) ∨
+       (⌜rc = nv.readyc'⌝ ∗ ownRawNodeIdle γ.raft nv.rn' id rs ∗ staleOk γ rd rs))))
+
+theorem headRest_termLB (γ : NodeNames) (nv : node) (rs : RNState) (ac rc : GoChan)
+    (rd : Ready) :
+    ⊢ headRest (GF := GF) γ nv rs ac rc rd -∗ termLB γ.bud rs.term ∗ headRest γ nv rs ac rc rd := by
+  iintro H
+  unfold headRest
+  icases H with ⟨#Hlb, H⟩
+  iframe Hlb H
+
+/-- A step changes only the node's term. -/
+theorem headRest_term (γ : NodeNames) (nv : node) (rs : RNState) (ac rc : GoChan) (rd : Ready)
+    (t : w64) :
+    ⊢ headRest (GF := GF) γ nv rs ac rc rd -∗ termLB γ.bud t -∗
+      headRest γ nv { rs with term := t } ac rc rd := by
+  iintro H #Hlb
+  unfold headRest
+  icases H with ⟨-, %Hst, H⟩
+  iframe Hlb
+  isplitr
+  · ipureintro; exact Hst
+  iExactEq H
+  rfl
+
+/-- With no `Ready` handed out (`ac` nil). -/
+theorem headRest_nil (γ : NodeNames) (nv : node) (rs : RNState) (rc : GoChan) (rd : Ready)
+    (Hnn : nv.advancec' ≠ chan.nil) :
+    ⊢ headRest (GF := GF) γ nv rs chan.nil rc rd -∗
+      termLB γ.bud rs.term ∗ ⌜rs.storage = γ.stor ∧ rs.steps = [] ∧ rs.unpersisted = []⌝ ∗
+      dghostVar γ.dlv (DFrac.own (1 : Qp).half) rs.delivered ∗ rofFull γ ∗
+      (⌜rc = chan.nil⌝ ∨ (⌜rc = nv.readyc'⌝ ∗ staleOk γ rd rs)) := by
+  iintro H
+  unfold headRest
+  icases H with ⟨#Hlb, %Hst, (⟨%Hs, Hdlv, Hrof, Hrc⟩ | ⟨%Hs, -⟩)⟩
+  · iframe Hlb Hdlv Hrof Hrc
+    ipureintro; exact ⟨Hst, Hs.2⟩
+  · exact absurd Hs.1.symm Hnn
+
+/-- With a `Ready` handed out (`ac` not nil): `runMid` as it is. -/
+theorem runHead_mid_busy (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd : Ready)
+    (Hac : ac ≠ chan.nil) :
+    ⊢ runHead (GF := GF) γ id nv ac rc rd -∗ runMid γ id nv ac rc rd := by
+  iintro H
+  unfold runMid
+  ileft
+  unfold runHead
+  icases H with ⟨%rs, Hrn, Hrest⟩
+  unfold headRest
+  icases Hrest with ⟨#Hlb, %Hst, (⟨%Hs, Hdlv, Hrof, Hrc⟩ | ⟨%Hs, Hd⟩)⟩
+  · exact absurd Hs.1 Hac
+  isplitr
+  · ipureintro; exact Hs.1
+  iexists rs
+  iframe Hrn Hlb
+  isplitr
+  · ipureintro; exact Hst
+  iright
+  iframe Hd
+  ipureintro; exact Hs
+
+/-- Abandoning a fresh `Ready` (keeping it armed, `ownRawNodeReady_abandon_keep`), or
+leaving the idle node: back to `runHead`. -/
+theorem runMid_head (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd : Ready) :
+    ⊢ runMid (GF := GF) γ id nv ac rc rd -∗ runHead γ id nv ac rc rd := by
+  iintro H
+  unfold runMid
+  icases H with (⟨-, H⟩ | ⟨%Hac, %rs, #Hlb, %Hrs, Hdlv, Hrof, H⟩)
+  · iexact H
+  obtain ⟨Hst, Hsteps, Hunp⟩ := Hrs
+  unfold runHead
+  icases H with (⟨%Hrc, Hrn⟩ | ⟨%Hrc, %ce, %es, %ms, Hrn, Hf⟩ | ⟨%Hrc, Hrn, Hstale⟩)
+  · iexists rs
+    iframe Hrn
+    unfold headRest
+    iframe Hlb
+    isplitr
+    · ipureintro; exact Hst
+    ileft
+    iframe Hdlv Hrof
+    isplitr
+    · ipureintro; exact ⟨Hac, Hsteps, Hunp⟩
+    ileft; ipureintro; exact Hrc
+  · unfold freshOk
+    icases Hf with ⟨#Hce, #Hcommitted, #Hents, Hmsgs, Hmsgs_cap, #Hmsgs_ok, %Hfacts⟩
+    ihave %Hshape := ownSlice_shape _ _ _ $$ Hmsgs
+    icases ownRawNodeReady_abandon_keep γ.raft nv.rn' id rs rd ce es ms Hsteps Hunp
+      $$ Hmsgs Hmsgs_cap Hrn with ⟨Hce_cap, #Hrdsoft, %n, %u, %c, %Hnuc, Hrn⟩
+    iexists { rs with outlb := n, unst := u, clb := c }
+    iframe Hrn
+    unfold headRest
+    iframe Hlb
+    isplitr
+    · ipureintro; exact Hst
+    ileft
+    iframe Hdlv Hrof
+    isplitr
+    · ipureintro; exact ⟨Hac, Hsteps, Hunp⟩
+    iright
+    isplitr
+    · ipureintro; exact Hrc
+    unfold staleOk
+    iexists ce, es, ms.length
+    iframe Hrdsoft Hce Hce_cap Hcommitted Hents
+    ipureintro
+    exact ⟨⟨Hfacts.2.1, Hfacts.2.2⟩, Hnuc.2.1, Hshape, Hnuc.1, Hnuc.2.2⟩
+  · iexists rs
+    ihave Hrn := ownRawNodeIdle_ownRawNode γ.raft nv.rn' id rs $$ Hrn
+    iframe Hrn
+    unfold headRest
+    iframe Hlb
+    isplitr
+    · ipureintro; exact Hst
+    ileft
+    iframe Hdlv Hrof
+    isplitr
+    · ipureintro; exact ⟨Hac, Hsteps, Hunp⟩
+    iright
+    isplitr
+    · ipureintro; exact Hrc
+    iexact Hstale
+
+/-- What `readyc` and `advancec` may be. -/
+theorem runMid_chans (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd : Ready) :
+    ⊢ runMid (GF := GF) γ id nv ac rc rd -∗
+      ⌜(rc = chan.nil ∨ rc = nv.readyc') ∧ (ac = chan.nil ∨ ac = nv.advancec')⌝ := by
+  iintro H
+  unfold runMid
+  icases H with (⟨%Hac, H⟩ | ⟨%Hac, %rs, -, -, -, -, H⟩)
+  · unfold runHead
+    icases H with ⟨%rs, -, Hrest⟩
+    unfold headRest
+    icases Hrest with ⟨-, -, (⟨%Hs, -, -, (%Hrc | ⟨%Hrc, -⟩)⟩ | ⟨%Hs, -⟩)⟩
+    · ipureintro; exact ⟨.inl Hrc, .inr Hac⟩
+    · ipureintro; exact ⟨.inr Hrc, .inr Hac⟩
+    · ipureintro; exact ⟨.inl Hs.2.1, .inr Hac⟩
+  icases H with (⟨%Hrc, -⟩ | ⟨%Hrc, -⟩ | ⟨%Hrc, -⟩)
+  · ipureintro; exact ⟨.inl Hrc, .inl Hac⟩
+  · ipureintro; exact ⟨.inr Hrc, .inl Hac⟩
+  · ipureintro; exact ⟨.inr Hrc, .inl Hac⟩
+
+/-- `readyc` armed: a fresh `Ready`, or an idle node and a stale one. -/
+theorem runMid_ready (γ : NodeNames) (id : w64) (nv : node) (ac : GoChan) (rd : Ready)
+    (Hnn : nv.readyc' ≠ chan.nil) (Hnn' : nv.advancec' ≠ chan.nil) :
+    ⊢ runMid (GF := GF) γ id nv ac nv.readyc' rd -∗
+      ⌜ac = chan.nil⌝ ∗ ∃ rs : RNState, termLB γ.bud rs.term ∗
+        ⌜rs.storage = γ.stor ∧ rs.steps = [] ∧ rs.unpersisted = []⌝ ∗
+        dghostVar γ.dlv (DFrac.own (1 : Qp).half) rs.delivered ∗ rofFull γ ∗
+        ((∃ (ce es : List raftpb.Entry) (ms : List raftpb.Message),
+            ownRawNodeReady γ.raft nv.rn' id rs rd ce es ms false ∗ freshOk γ rd rs ce es ms) ∨
+         (ownRawNodeIdle γ.raft nv.rn' id rs ∗ staleOk γ rd rs)) := by
+  iintro H
+  unfold runMid
+  icases H with (⟨%Hac, H⟩ | ⟨%Hac, %rs, #Hlb, %Hrs, Hdlv, Hrof, H⟩)
+  · unfold runHead
+    icases H with ⟨%rs, -, Hrest⟩
+    unfold headRest
+    icases Hrest with ⟨-, -, (⟨%Hs, -⟩ | ⟨%Hs, -⟩)⟩
+    · exact absurd (Hac.symm.trans Hs.1) Hnn'
+    · exact absurd Hs.2.1 Hnn
+  isplitr
+  · ipureintro; exact Hac
+  iexists rs
+  iframe Hlb Hdlv Hrof
+  isplitr
+  · ipureintro; exact Hrs
+  icases H with (⟨%Hrc, -⟩ | ⟨%Hrc, Hf⟩ | ⟨%Hrc, Hrn, Hstale⟩)
+  · exact absurd Hrc Hnn
+  · ileft; iexact Hf
+  · iright; iframe Hrn Hstale
+
+/-- `advancec` armed: a `Ready` handed out. -/
+theorem runMid_busy (γ : NodeNames) (id : w64) (nv : node) (rc : GoChan) (rd : Ready)
+    (Hnn : nv.advancec' ≠ chan.nil) :
+    ⊢ runMid (GF := GF) γ id nv nv.advancec' rc rd -∗
+      ∃ (rs : RNState) (d ce : List raftpb.Entry), ownRawNode γ.raft nv.rn' id rs ∗
+        termLB γ.bud rs.term ∗
+        ⌜rs.storage = γ.stor ∧ rc = chan.nil ∧ rs.unst = false ∧ rs.delivered = d ++ ce⌝ ∗
+        dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, rs.unpersisted) := by
+  iintro H
+  unfold runMid
+  icases H with (⟨-, H⟩ | ⟨%Hac, -⟩)
+  · unfold runHead
+    icases H with ⟨%rs, Hrn, Hrest⟩
+    unfold headRest
+    icases Hrest with ⟨#Hlb, %Hst, (⟨%Hs, -⟩ | ⟨%Hs, %d, %ce, %Hd, Hrof⟩)⟩
+    · exact absurd Hs.1 Hnn
+    iexists rs, d, ce
+    iframe Hrn Hlb Hrof
+    ipureintro; exact ⟨Hst, Hs.2.1, Hs.2.2, Hd⟩
+  · exact absurd Hac Hnn
+
+/-- The leader fields, in any of `run`'s states. -/
+theorem runMid_lead (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd : Ready)
+    (r : Loc) :
+    ⊢ runMid (GF := GF) γ id nv ac rc rd -∗ nv.rn'.[RawNode, go!"raft"] ↦□ r -∗
+      leadFields r (runMid γ id nv ac rc rd) := by
+  iintro H #Hr
+  unfold runMid
+  icases H with (⟨%Hac, H⟩ | ⟨%Hac, %rs, #Hlb, %Hrs, Hdlv, Hrof, H⟩)
+  · unfold runHead
+    icases H with ⟨%rs, Hrn, Hrest⟩
+    ihave Hlf := ownRawNode_lead γ.raft nv.rn' id rs r $$ Hrn Hr
+    iunfold leadFields at Hlf
+    icases Hlf with ⟨%ld, %t, Hl, Ht, Hback⟩
+    unfold leadFields
+    iexists ld, t
+    iframe Hl Ht
+    iintro Hl Ht
+    ileft
+    isplitr
+    · ipureintro; exact Hac
+    iexists rs
+    iframe Hrest
+    iapply Hback $$ Hl Ht
+  icases H with (⟨%Hrc, Hrn⟩ | ⟨%Hrc, %ce, %es, %ms, Hrn, Hf⟩ | ⟨%Hrc, Hrn, Hstale⟩)
+  · ihave Hlf := ownRawNode_lead γ.raft nv.rn' id rs r $$ Hrn Hr
+    iunfold leadFields at Hlf
+    icases Hlf with ⟨%ld, %t, Hl, Ht, Hback⟩
+    unfold leadFields
+    iexists ld, t
+    iframe Hl Ht
+    iintro Hl Ht
+    iright
+    isplitr
+    · ipureintro; exact Hac
+    iexists rs
+    iframe Hlb Hdlv Hrof
+    isplitr
+    · ipureintro; exact Hrs
+    ileft
+    isplitr
+    · ipureintro; exact Hrc
+    iapply Hback $$ Hl Ht
+  · ihave Hlf := ownRawNodeReady_lead γ.raft nv.rn' id rs rd ce es ms false r $$ Hrn Hr
+    iunfold leadFields at Hlf
+    icases Hlf with ⟨%ld, %t, Hl, Ht, Hback⟩
+    unfold leadFields
+    iexists ld, t
+    iframe Hl Ht
+    iintro Hl Ht
+    iright
+    isplitr
+    · ipureintro; exact Hac
+    iexists rs
+    iframe Hlb Hdlv Hrof
+    isplitr
+    · ipureintro; exact Hrs
+    iright; ileft
+    isplitr
+    · ipureintro; exact Hrc
+    iexists ce, es, ms
+    iframe Hf
+    iapply Hback $$ Hl Ht
+  · ihave Hlf := ownRawNodeIdle_lead γ.raft nv.rn' id rs r $$ Hrn Hr
+    iunfold leadFields at Hlf
+    icases Hlf with ⟨%ld, %t, Hl, Ht, Hback⟩
+    unfold leadFields
+    iexists ld, t
+    iframe Hl Ht
+    iintro Hl Ht
+    iright
+    isplitr
+    · ipureintro; exact Hac
+    iexists rs
+    iframe Hlb Hdlv Hrof
+    isplitr
+    · ipureintro; exact Hrs
+    iright; iright
+    isplitr
+    · ipureintro; exact Hrc
+    iframe Hstale
+    iapply Hback $$ Hl Ht
+
+end states
+
 end EtcdGrove
 end Perennial
