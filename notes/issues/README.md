@@ -17,10 +17,10 @@ hand from them. A finding that is not a bug (a documentation request) has no fix
 | [leasing-evalcmp-missing-key](leasing-evalcmp-missing-key.md) | bug | `leasing-evalcmp-missing-key` (06541aec6) | `leasing` (units 1–2) |
 | [leasing-modify-uncached-once](leasing-modify-uncached-once.md) | bug | `leasing-modify-uncached-once` (7a6077dec) | `leasing` (units 3–4) |
 | [leasing-get-failed-acquire-options](leasing-get-failed-acquire-options.md) | bug | `leasing-get-failed-acquire-options` (af95e2ff8) | `leasing` (units 3–4) |
+| [leasing-wait-rescind-no-delete](leasing-wait-rescind-no-delete.md) | bug | `leasing-wait-rescind-no-delete` (d3db62afd) | `leasing` (unit 5) |
+| [leasing-stale-entry-after-reset](leasing-stale-entry-after-reset.md) | bug | `leasing-stale-entry-after-reset` (3d0769edc) | `leasing` (unit 5) |
+| [leasing-update-stale](leasing-update-stale.md) | bug | `leasing-update-stale` (d97e455c2) | `leasing` (units 3–5) |
 
-Findings without a draft yet (`notes/STATUS.md`, the leasing sections): the `Update` family
-(`WithIgnoreValue` caching the empty value, the lease never updated, out-of-order updates of
-concurrent puts: one issue, with Go reproductions, once unit 5 settles the monitors' part);
-`waitRescind` returning `nil` without a delete event and an entry carrying an old session's
-lease (to be confirmed by unit 5); `gatherOps` appending into the caller's nested `OpTxn`
-slice (a race only for callers who reuse the slice; assessed, not filed).
+Findings without a draft yet (`notes/STATUS.md`, the leasing sections): `gatherOps` appending
+into the caller's nested `OpTxn` slice (a race only for callers who reuse the slice; assessed,
+not filed).
