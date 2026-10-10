@@ -23,6 +23,7 @@ usage: etc/gen-link.py ROCQ_PROOF_DIR > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --server > Proof/go_etcd_io/etcd/server/v3/etcdserver/Link.lean
        etc/gen-link.py --concurrency > Proof/go_etcd_io/etcd/client/v3/concurrency/Link.lean
        etc/gen-link.py --register > Proof/github_com/mit_pdos/etcd_grove/examples/register/Link.lean
+       etc/gen-link.py --mvcc > Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Link.lean
 
 `--cache` links the proofs of etcd's `cache` package (`Proof/go_etcd_io/etcd/cache/v3/` and
 the specs and proofs of its functions), which are all
@@ -37,6 +38,8 @@ concurrency package's assumptions. Its results are in the namespace `concurrency
 function's with the prefix `v3.` (`concurrency.v3.wp_OpPut`), and the specs are referred to by
 their full names below `EtcdGrove`: the cache's Link links some of the same clientv3 functions
 (under the cache's assumptions), and concurrency's `WithLease` shares its name with clientv3's.
+`--mvcc` links the proofs of the KV core of etcd's `server/v3/storage/mvcc`
+(`Proof/go_etcd_io/etcd/server/v3/storage/mvcc/`), from etc/link-lean-first-mvcc.txt.
 `--register` links the register example's proofs (`examples/register`), from
 etc/link-lean-first-register.txt; raft's functions it calls are `@` callees, linked in raft's
 `Link.lean`, and its specs' `[RegStor GF]` (the storage registry) is passed on.
@@ -65,6 +68,10 @@ LEAN_FIRST = {
                       "go_etcd_io.etcd.client.v3.concurrency.Assumptions",
                       "The `client/v3/concurrency` package's proofs (`Session`) and the clientv3 "
                       "functions they and the next recipes use", [""]),
+    # the mvcc KV core (etcd's server/v3/storage/mvcc)
+    "--mvcc": ("link-lean-first-mvcc.txt", "go_etcd_io.etcd.server.v3.storage.mvcc",
+               "go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions",
+               "The mvcc KV core's proofs (etcd's `server/v3/storage/mvcc`)", [""]),
     # the register example (examples/register): its proofs, over raft's (linked in raft's
     # `Link.lean`, the `@` callees) and the storage model `RegStor` gives
     "--register": ("link-lean-first-register.txt",

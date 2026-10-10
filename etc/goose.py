@@ -123,7 +123,7 @@ PROJECTS = [
         # above: its modules are EtcdDeps.Code.go_etcd_io.raft.v3* (the part below).
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
                     "go.etcd.io/bbolt=", "go.opentelemetry.io=",
-                    "github.com/dustin/go-humanize=", "net/http=",
+                    "github.com/dustin/go-humanize=", "github.com/prometheus/client_golang=", "net/http=",
                     "go.etcd.io/raft/v3=EtcdDeps"],
         packages=[
             # with bodies (cache/v3.toml)
@@ -158,6 +158,8 @@ PROJECTS = [
             "go.etcd.io/etcd/pkg/v3/notify",
             "go.etcd.io/etcd/pkg/v3/pbutil",
             "go.etcd.io/etcd/pkg/v3/traceutil",
+            # names only: the type of mvcc's store.fifoSched
+            "go.etcd.io/etcd/pkg/v3/schedule",
             "go.etcd.io/etcd/pkg/v3/wait",
             "go.etcd.io/etcd/client/pkg/v3/types",
             "go.etcd.io/etcd/client/pkg/v3/verify",
@@ -173,6 +175,8 @@ PROJECTS = [
             "go.uber.org/zap",
             "go.uber.org/zap/zapcore",
             "github.com/dustin/go-humanize",
+            # names only: the metrics mvcc's transactions and key index update
+            "github.com/prometheus/client_golang/prometheus",
             # a standard-library package Perennial does not translate: its names are here
             "net/http",
             # types and names only (their .toml)
@@ -198,6 +202,7 @@ PROJECTS = [
             # (and go.uber.org/zap, above)
         ],
         owned=[os.path.join("go_etcd_io", "etcd"), os.path.join("go_etcd_io", "bbolt"),
+               os.path.join("github_com", "prometheus"),
                "k8s_io", "google_golang_org", "go_uber_org", "go_opentelemetry_io",
                os.path.join("net", "http"), os.path.join("github_com", "dustin")],
         parts=[

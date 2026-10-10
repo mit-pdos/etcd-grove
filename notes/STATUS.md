@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-10 (merged upstream's register example, `node.go`, raft from upstream etcd-io/raft and thread tokens into the Mutex/Election/STM line, Perennial `7c93f27aa`, see "Merge: the register, `node.go` and thread tokens"; `STM`: all of `stm.go` specified and proved, atomicity of the serializable levels, Perennial `9276bd1ed`: a map has fewer than `2^63` keys, two trust-boundary axioms for the STM's panic and `recover`, a new history law, the serializable snapshot broken after a retry (a finding, reproduced and fixed on a fork branch), see "STM"; `Election`: all of `election.go` specified and proved, election exclusion, only the leader proclaims, `Campaign` may return `nil` without its key (a finding), see "Election"; `Mutex`: mutual exclusion, Perennial `d240c1732`: `fmt.Sprintf` formats `%s`, `strings.HasPrefix`, see "Mutex: mutual exclusion"; the register example verified over raft: logically atomic `Put`/`Get`, raft proposals over a client log, see "The register example"; the cache's wait-group counter bounded by thread tokens, Perennial `105fb79f5`: the `WaitGroup.Add` overflow assumption reverted, `New` assumes fewer than `2^31 - 3` live threads, see "The wait-group counter and thread tokens"; `node.go` proved: `RestartNode`, `run`, `Propose`, `Step`, `Tick`, `Ready`, `Advance`, see "`node.go`: the concurrent `Node`"; groundwork for `node.go`: a computed `Ready` can be abandoned, Perennial's `wp_slice_append_undo`; pre-vote out of scope at the RawNode level; `Ready`'s messages carry terms at most the node's, see "`node.go` groundwork"; `RawNode.Ready` split into `readyWithoutAccept` and `acceptReady`, for `node.go`; the storage contract has a pending append, for `node.go`; `MemoryStorage.Append` and `NewMemoryStorage` proved; merged upstream's RawNode work into the cache-as-shipped and concurrency line, Perennial `7d0b56b07`, see "Merge: upstream's RawNode work"; `RawNode.Step` takes a `MsgApp` between `Ready` and `Advance`; the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; Perennial `7d0b56b07`: Goose with per-iteration loop variables, `break` out of `select`, see "Perennial `7d0b56b07`"; merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
+**Last updated:** 2026-10-10 (mvcc: the KV core, phase one: the key index proved, see "mvcc: the KV core, phase one"; merged upstream's register example, `node.go`, raft from upstream etcd-io/raft and thread tokens into the Mutex/Election/STM line, Perennial `7c93f27aa`, see "Merge: the register, `node.go` and thread tokens"; `STM`: all of `stm.go` specified and proved, atomicity of the serializable levels, Perennial `9276bd1ed`: a map has fewer than `2^63` keys, two trust-boundary axioms for the STM's panic and `recover`, a new history law, the serializable snapshot broken after a retry (a finding, reproduced and fixed on a fork branch), see "STM"; `Election`: all of `election.go` specified and proved, election exclusion, only the leader proclaims, `Campaign` may return `nil` without its key (a finding), see "Election"; `Mutex`: mutual exclusion, Perennial `d240c1732`: `fmt.Sprintf` formats `%s`, `strings.HasPrefix`, see "Mutex: mutual exclusion"; the register example verified over raft: logically atomic `Put`/`Get`, raft proposals over a client log, see "The register example"; the cache's wait-group counter bounded by thread tokens, Perennial `105fb79f5`: the `WaitGroup.Add` overflow assumption reverted, `New` assumes fewer than `2^31 - 3` live threads, see "The wait-group counter and thread tokens"; `node.go` proved: `RestartNode`, `run`, `Propose`, `Step`, `Tick`, `Ready`, `Advance`, see "`node.go`: the concurrent `Node`"; groundwork for `node.go`: a computed `Ready` can be abandoned, Perennial's `wp_slice_append_undo`; pre-vote out of scope at the RawNode level; `Ready`'s messages carry terms at most the node's, see "`node.go` groundwork"; `RawNode.Ready` split into `readyWithoutAccept` and `acceptReady`, for `node.go`; the storage contract has a pending append, for `node.go`; `MemoryStorage.Append` and `NewMemoryStorage` proved; merged upstream's RawNode work into the cache-as-shipped and concurrency line, Perennial `7d0b56b07`, see "Merge: upstream's RawNode work"; `RawNode.Step` takes a `MsgApp` between `Ready` and `Advance`; the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; Perennial `7d0b56b07`: Goose with per-iteration loop variables, `break` out of `select`, see "Perennial `7d0b56b07`"; merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
 
 Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
@@ -13,6 +13,50 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 (`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
+
+## mvcc: the KV core, phase one (2026-10-10)
+
+Started the verification of etcd's `server/v3/storage/mvcc` KV core (`notes/decisions.md`,
+"mvcc: the log of changes as the model"), on branch `mvcc` (worktree `/shared/etcd-grove-mvcc`;
+another session was committing `client/v3/leasing` to the main checkout at the time).
+
+- **Translation**: the KV core with bodies (`Code/go_etcd_io/etcd/server/v3/storage/mvcc.toml`:
+  `revision.go`, `key_index.go`, `index.go`, `kv.go`, `kv_view.go`, `kvstore_txn.go`,
+  `metrics_txn.go`, the promoted methods of embedded fields), `pkg/v3/schedule` and prometheus's
+  `client_golang/prometheus` names-only (`etc/goose.py`). It needs the Perennial checkout
+  `/shared/perennial-mvcc` (commit `47a12615e` on `7c93f27aa`: goose's range over an integer;
+  plus uncommitted `float64(n)` conversion rules in `Golang/Defn/{PostLang,Predeclared}.lean`),
+  not pushed or pinned yet: `etc/goose.py --project etcd --src etcd=/shared/etcd --perennial
+  /shared/perennial-mvcc` (the etcd pin `0fc6f23b1` is only in `/shared/etcd`, branch `goose`).
+  The checked-in translation is what that translator produces; `etc/goose.py --check` with the
+  pinned translator fails on mvcc until the pin moves (push order: Perennial `lean` first).
+- **Model** (`Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Model.lean`): the log of changes,
+  `stateAt` through the client model's `putKv`, the key index `indexOf (evsOf log)` with
+  `kiPut`/`kiTombstone`/`kiGet`/`kiFindGen`/`genWalk` mirroring the code, the key bucket
+  `bucketOf log` with the opaque `kvEncode`, `revBytes`, `LogWf`; the pure lemmas the proofs use.
+- **Proved** (specs in `Spec/go_etcd_io/etcd/server/v3/storage/mvcc/`, proofs beside the shared
+  `Base`/`Model`/`Defs`; `Link.lean` by `etc/gen-link.py --mvcc` from
+  `etc/link-lean-first-mvcc.txt`; `Results.lean` prints the axioms; collection
+  `etc/tcb-collections/mvcc.txt`): `Revision.GreaterThan`, `generation.isEmpty`,
+  `generation.walk`, `keyIndex.Less`, `keyIndex.isEmpty`, `keyIndex.findGeneration`,
+  `keyIndex.get`, `keyIndex.put`, `keyIndex.tombstone`: 9 of the core's 72 functions, all
+  sorry-free, resting on no axiom of this repository (the error and metrics variables are
+  package facts, `Base.lean`).
+- **Not yet**: the pure theorem `kiGet_indexOf` (what the index answers is the state's
+  key-value), `index.go` over the verified btree, the revision encoding, the transactions and
+  the store's concurrency (the plan in decisions.md), `NewStore`, the trust-boundary specs of
+  the backend, the lessor, `traceutil`, `proto.Marshal`/`Unmarshal`, `zap.Logger.Fatal`/`Panic`,
+  `fmt.Errorf`'s use; `etc/verified-code.py` and `etc/tcb-report.py --check` (whole repository)
+  not rerun on this branch.
+- **Incident**: a `lake env` call in the worktree, whose `.lake/packages` was then a symlink to
+  the main checkout's, found the main checkout's manifest pointing at a Perennial revision
+  (`1eabc2c47`, the other session's unpushed commit, with a non-GitHub remote) and re-cloned
+  `.lake/packages/perennial`, deleting that clone and its build cache. Restored at the pinned
+  `7c93f27aa` with the cache copied earlier; `1eabc2c47` exists in no local repository. The
+  worktree now has its own `.lake/packages` (copies; `perennial` a clone of
+  `/shared/perennial-mvcc` with the GitHub remote URL).
+- **Environment**: this machine had no Lean or Go; elan (`~/.elan`, toolchain `v4.34.1`) and Go
+  1.27.1 (`~/.local/go`) were installed user-locally, not on `PATH`.
 
 ## Merge: the register, `node.go` and thread tokens (2026-10-10)
 

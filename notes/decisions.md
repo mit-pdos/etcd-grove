@@ -1911,3 +1911,89 @@ a fixed `ConfState`), and `run` refuses (spins) to append past `2^61` entries
 now takes an empty batch without a token (a `Ready`'s `appendRight` for no entries): the
 promoted method still reads the `MemoryStorage` field, so `isReplica` keeps the storage's
 record.
+
+---
+
+## mvcc: the log of changes as the model, the key index as a function of its events
+
+**2026-10-10 · accepted** (Lean-first; the plan discussed with the user: "start on the mvcc KV
+core, phase one")
+
+Goal: verify the KV core of etcd's `server/v3/storage/mvcc` (`revision.go`, `key_index.go`,
+`index.go`, `kv.go`, `kv_view.go`, `kvstore_txn.go`, `metrics_txn.go`) and, eventually, state its
+result in the client model's terms (`InvEtcd.lean`, `InvEtcdTxn.lean`), so that `etcdState`,
+`EtcdStep` and the history laws become theorems of the server. Restore, compaction, hashing and
+the watchable store are out of scope for this phase. `Proof/go_etcd_io/etcd/server/v3/storage/mvcc/`.
+
+**Decision: the model is a log of changes; everything else is a function of it.** `Model.lean`:
+`Log := List (List Change)`, revision `r`'s changes (`put key value lease` or `del key`) in
+sub-revision order; `stateAt log r` applies them with the client model's `putKv` (a new key is
+created at `r` with version 1, an existing one keeps its create revision and gets version + 1),
+a delete filtering the key out. The key index is `indexOf (evsOf log)`: the sorted
+`(key, KeyIndex)` list built event by event with `kiPut`/`kiTombstone` exactly as the code
+does, `kiGet`/`kiFindGen`/`genWalk` mirroring `get`/`findGeneration`/`walk`; the backend's key
+bucket is `bucketOf log` (the bytes of a change's revision, `revBytes`, mapped to the
+protobuf encoding `kvEncode` of what it wrote; `kvEncode` is opaque: `proto.Marshal`/`Unmarshal`
+are the trust boundary). The store's ghost state will be the committed log (a monotone list)
+and the in-flight write transaction's pending changes; the index and the bucket are determined,
+so the invariants are equations, and the model's main theorem (to prove next, `kiGet_indexOf`)
+says what the index answers of a key at a revision: the state's key-value there. *Rejected:*
+a relational invariant between the index's generations and the states (every proof would carry
+the generation structure); storing the key-value in a put change (then `LogWf` must say it is
+what `putKv` computes: the fold computes it instead).
+
+**Decision: the code-level specs are the model's functions, nothing more.** `keyIndex.put` is
+`kiPut` (precondition: a revision above `modified`, else the code panics), `get` is `kiGet`
+(`kiGetVal`: the 4-tuple with `ErrRevisionNotFound`), `findGeneration` returns `genPtr gs
+(kiFindGen ki rev)` (the address of a generation in the slice, or nil), `walk` returns
+`genWalk` for a closure deciding a predicate (`walkFnSpec`; `get`'s closure reads its `atRev`
+cell, made persistent), `tombstone` is `kiTombstone` or `ErrRevisionNotFound` if the last
+generation is empty (`kiLastEmpty`). The semantic content (what `kiGet` of the index built from
+a log means) is a pure theorem, separate from the code proofs. The pure lemmas the proofs need
+(`genWalk_eq_some`, `kiFindGenAux_{skip,tomb,found,next}`, `set_last`, ...) are in `Model.lean`.
+
+**Representation (`Defs.lean`).** `ownKi p gs ki dq`: the mutable fields `modified` and
+`generations` (slice `gs`) of a `*keyIndex`, at fraction `dq` (readers hold a fraction under the
+index's `RLock`); the key is a persistent `kiKey` (never written after `&keyIndex{key}`).
+`ownGens gs gens dq` is `∃ gvs, gs ↦*{dq} gvs ∗ cap ∗ ownGensL dq gvs gens`, `ownGensL`
+recursive on the two lists (as the btree's `ownNodes`): `ownGens_acc`/`ownGens_acc_z` borrow
+the `i`-th generation (its element points-to, as `&gs[i]`, and `ownGen` of its model) and give
+it back with a new value, the model list `set`; `ownGensL_app` appends. *Rejected:* an indexed
+big-sep `[∗list] i ↦ gv ∈ gvs, ownGen gv (gens.getD i _)` (`set` on it needs the two-list
+`bigSepL_lookup_acc_impl` dance).
+
+**Loads through a borrowed struct points-to.** Perennial's `wp_load`/`wp_auto` load a field
+through `l ↦{dq} v` (the generated `AccessStrict` instances) only for a literal fraction and a
+load at the head of the expression; a load of `g.revs` through `g ↦{dq} gv` with `dq` a variable
+(a reader), or nested under `let:`/`Convert` (the `len(g.revs) == 0` tests), finds no
+points-to. So the proofs split the borrowed generation into its field points-tos
+(`gen_split`, `rev_split`; `gen_combine`, `gen_combine'`, `rev_combine` to refold) and load from
+those, as the btree proofs do with `nodeFields`; and `wp_pures; wp_load` where `wp_auto`
+reports no progress on a full-fraction nested load (`keyIndex.put`).
+
+**Translation.** `Code/go_etcd_io/etcd/server/v3/storage/mvcc.toml` lists the KV core's functions
+with bodies, including the **promoted methods of embedded fields** (`treeIndex.Lock` from its
+`RWMutex`, `storeTxnRead.Range` from `storeTxnCommon`, `metricsTxnWrite.FirstRev` from the
+embedded interface, ...): goose emits their `MethodUnfold` wrappers only for names the filter
+translates. `store`'s typed points-to was axiomatized until its fields' packages were imported
+(`time`, `pkg/v3/schedule`, names only); prometheus (`metrics.go`'s counters and gauges) is
+translated names-only (`Code/github_com/prometheus/client_golang/prometheus.toml`), and its
+`Inc`/`Dec`/`Add` on the package's variables are package facts (`mvccInit`, `Base.lean`:
+metrics have no effect here), as are the three error variables. Two translator changes were
+needed, in `/shared/perennial-mvcc` (branch `lean`, on `7c93f27aa`; not yet pushed or pinned):
+`for i := range n` (Go 1.22: `kvstore_txn.go`'s `rangeKeys`), translated as the three-clause
+loop it stands for (`$range` evaluated once, a counter cell `$range_i`); and `float64(n)` of
+an integer (`metrics_txn.go`'s `End`), an uninterpreted function in `FloatOps`
+(`int64ToFloat64`, ...) with `Float64Semantics` rules. Until the Perennial pin moves,
+`etc/goose.py --check` with the pinned translator fails on mvcc.
+
+**Next.** The pure theorem `kiGet_indexOf`; `index.go` (`treeIndex` over the verified btree:
+`ownBTree` with `isItem p (k, p') := ⌜p = p'⌝ ∗ kiKey p k` and the mutable `ownKi`s beside it,
+under the index's `RWMutex` guard: `P q := ∃ elog, ghostVar γ.elog (q/2) elog ∗ ownTreeIndex
+(indexOf elog) q`); the revision encoding (`revBytes`, big-endian as the consistent index's);
+then the transactions: `revMu`'s fractional invariant (`currentRev`, the committed log's lower
+bound, the bucket's persistent entries), the batch lock's resources (the writer's halves, the
+pending changes), the backend contract (`ConcurrentReadTx`'s snapshot of the written-back
+bucket, the batch transaction's `UnsafeSeqPut`/`UnsafeRange`/`Unlock` as write-back), the
+lessor's `GetLease`/`Attach`/`Detach` contract; `NewStore` on a fresh backend (a ghost
+allocation first, `restore` later).

@@ -1,0 +1,8 @@
+# The mvcc KV core (etcd's server/v3/storage/mvcc): every linked result of
+# Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Link.lean.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/mvcc.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Link\.lean$

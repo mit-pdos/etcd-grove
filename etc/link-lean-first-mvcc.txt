@@ -1,0 +1,13 @@
+# The mvcc KV core's functions (all Lean-first: no Rocq counterpart), read by
+# `etc/gen-link.py --mvcc`: `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
+# Revisions (revision.go), see Model.lean.
+Revision__GreaterThan:
+# The key index and its generations (key_index.go), see Model.lean, Defs.lean.
+generation__isEmpty:
+generation__walk:
+keyIndex__Less:
+keyIndex__isEmpty: generation__isEmpty
+keyIndex__findGeneration:
+keyIndex__get: keyIndex__isEmpty keyIndex__findGeneration generation__isEmpty generation__walk
+keyIndex__put: Revision__GreaterThan
+keyIndex__tombstone: keyIndex__isEmpty generation__isEmpty keyIndex__put
