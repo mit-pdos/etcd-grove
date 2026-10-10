@@ -16,6 +16,10 @@ namespace bbolt
 def PgidsSorted (l : List w64) : Prop :=
   l.Pairwise (fun x y => uint.Z x ≤ uint.Z y)
 
+theorem getD_of_lt {l : List w64} {n : Nat} (d : w64) (h : n < l.length) :
+    l.getD n d = l[n] := by
+  simp [List.getD_eq_getElem?_getD, h]
+
 theorem PgidsSorted.take_drop {ls : List w64} (h : PgidsSorted ls) (n : Nat) :
     PgidsSorted (ls.take n) ∧ PgidsSorted (ls.drop n) ∧
       ∀ x ∈ ls.take n, ∀ y ∈ ls.drop n, uint.Z x ≤ uint.Z y := by

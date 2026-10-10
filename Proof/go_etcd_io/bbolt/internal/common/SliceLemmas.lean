@@ -67,19 +67,20 @@ theorem wp_slice_append_in_place {st t : go.GoType} [st ↓u go.SliceType t]
 theorem slice_prefix_len (sl : GoSlice) (n : w64) : (slice.slice sl V (W64 0) n).len = n := by
   simp only [slice.slice]; word
 
-/-- `wp_slice_append_in_place` for a prefix `dst[0:k]` of a slice, appending into
-`dst[k:k+len(sl2)]`: the result is `dst[0:k+len(sl2)]`. -/
+/-- `wp_slice_append_in_place` for a prefix `dst[0:k]` of a slice, appending `n` elements
+into `dst[k:k+n]`: the result is `dst[0:k+n]`. -/
 theorem wp_slice_append_prefix {st t : go.GoType} [st ↓u go.SliceType t]
     [IntoValTyped (GF := GF) V t]
     (dst : GoSlice) (k : w64) (vs : List V) (junk : List V) (sl2 : GoSlice) (vs' : List V)
-    (dq : DFrac)
-    (hk : 0 ≤ sint.Z k) (hcap : sint.Z k + sint.Z sl2.len ≤ sint.Z dst.cap) :
-    {{ (slice.slice dst V (W64 0) k ↦* vs ∗ slice.slice dst V k (k + sl2.len) ↦* junk ∗
+    (dq : DFrac) (n : w64) (hn : sl2.len = n)
+    (hk : 0 ≤ sint.Z k) (hcap : sint.Z k + sint.Z n ≤ sint.Z dst.cap) :
+    {{ (slice.slice dst V (W64 0) k ↦* vs ∗ slice.slice dst V k (k + n) ↦* junk ∗
         sl2 ↦*{dq} vs' : IProp GF) }}
       (App (App (Val #(functions go.append [st])) (Val #(slice.slice dst V (W64 0) k)))
         (Val #sl2)) @ s; E
-    {{ RET #(slice.slice dst V (W64 0) (k + sl2.len));
-        slice.slice dst V (W64 0) (k + sl2.len) ↦* (vs ++ vs') ∗ sl2 ↦*{dq} vs' }} := by
+    {{ RET #(slice.slice dst V (W64 0) (k + n));
+        slice.slice dst V (W64 0) (k + n) ↦* (vs ++ vs') ∗ sl2 ↦*{dq} vs' }} := by
+  subst hn
   iintro %Φ ⟨Hs, Hjunk, Hs2⟩ HΦ
   have hl := slice_prefix_len (V := V) dst k
   have hss : slice.slice (slice.slice dst V (W64 0) k) V k (k + sl2.len) =

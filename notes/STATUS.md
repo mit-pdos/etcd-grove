@@ -25,7 +25,7 @@ file-backed mmap. It also covers the fork alternative. What is goosable now:
 `internal/common`'s page-id helpers are translated with bodies
 (`Code/go_etcd_io/bbolt/internal/common.toml`), with package init, the sorted-list model,
 `wp_slice_append_in_place` and the `Mergepgids` spec in
-`{Proof,Spec}/go_etcd_io/bbolt/internal/common/`. `Mergepgids`' proof is in progress. Most of
+`{Proof,Spec}/go_etcd_io/bbolt/internal/common/`. `Mergepgids` is proved (no `sorry`; `Results.lean` prints its axioms). Most of
 `internal/freelist` and `errors` are goosable too.
 
 ## `node.go` groundwork: abandoning a `Ready`, pre-vote off, the messages' terms (2026-10-10)

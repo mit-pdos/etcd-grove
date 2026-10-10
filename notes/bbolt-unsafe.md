@@ -259,6 +259,6 @@ way.
 
 Only the code that touches none of this: `internal/common`'s page-id helpers (`Pgids.Merge`,
 `Mergepgids`), translated with bodies (`Code/go_etcd_io/bbolt/internal/common.toml`), with
-`Mergepgids`' spec in `Spec/go_etcd_io/bbolt/internal/common/`. Most of `internal/freelist`
+`Mergepgids` specified and proved (`{Spec,Proof}/go_etcd_io/bbolt/internal/common/`). Most of `internal/freelist`
 (`array`, `hashMap`, `shared` except `Read`/`Write`/`EstimatedWritePageSize`) and the `errors`
 package are equally goosable.
