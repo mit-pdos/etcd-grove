@@ -11,7 +11,8 @@ revision, version and lease `0` — **except a value comparison, which then fail
 chosen branch's operations **in order, each on the state the previous one left** (`runOps`,
 `applyTxnOp`), all at one revision `r`: a put of a new key creates it with create and mod
 revision `r` and version `1`; a put of an existing key keeps its create revision, sets its mod
-revision to `r`, increments its version, and sets its value and lease; a delete removes the keys
+revision to `r`, increments its version, and sets its value and lease (or keeps the lease: a
+put with `WithIgnoreLease`, `putKeep`); a delete removes the keys
 its range selects; a get reads the state at that point (`rangeSel`: the keys in its range,
 filtered by its revision filters; the response sorts and limits them, `rangeKvsOk`). The
 revision advances only if the transaction wrote (`txnWrote`: a put, or a delete of at least one
@@ -111,11 +112,16 @@ def cmpHolds (s : List EtcdKv) (c : CmpModel) : Bool :=
 /-! ## Transactions -/
 
 /-- An operation of a transaction: a get (a range request, with its `Op`'s model), a put of a
-key's value with a lease (`0`: none), or a delete (a range). -/
+key's value with a lease (`0`: none), a delete (a range), or a put that keeps the key's lease
+(`WithIgnoreLease`). -/
 inductive TxnOp where
   | get (o : OpFull)
   | put (key value : GoString) (lease : w64)
   | delete (o : OpFull)
+  /-- `OpPut(key, value, WithIgnoreLease())`: the key keeps its lease. etcd fails the whole
+  transaction (an error) if the key does not exist (`ErrKeyNotFound`); the model then gives it no
+  lease, which no successful response claims. -/
+  | putKeep (key value : GoString)
 
 /-- A transaction: `If(cmps...).Then(thenOps...).Else(elseOps...)`. -/
 structure TxnModel where
@@ -134,12 +140,15 @@ inductive TxnOpResult where
   | delete (deleted : Nat)
 
 /-- The operation an `Op` (`Then`'s and `Else`'s arguments) stands for in a transaction: a range
-at the current revision, a put (without `WithIgnoreValue`/`WithIgnoreLease`), a delete; nothing
-for a nested transaction or another revision (not modelled). -/
+at the current revision, a put (without `WithIgnoreValue`; with `WithIgnoreLease` and no lease, a
+put keeping the key's lease), a delete; nothing for a nested transaction or another revision (not
+modelled). -/
 def txnOpOf (o : OpFull) : Option TxnOp :=
   if o.t = W64 1 then (if o.base.rev = W64 0 then some (.get o) else none)
   else if o.t = W64 2 then
     (if o.ignoreValue = false ∧ o.ignoreLease = false then some (.put o.key o.val o.leaseID)
+     else if o.ignoreValue = false ∧ o.ignoreLease = true ∧ o.leaseID = W64 0 then
+       some (.putKeep o.key o.val)
      else none)
   else if o.t = W64 3 then some (.delete o)
   else none
@@ -156,6 +165,8 @@ def putKv (r : w64) (key value : GoString) (lease : w64) (s : List EtcdKv) : Lis
 def applyTxnOp (r : w64) (s : List EtcdKv) : TxnOp → List EtcdKv × TxnOpResult
   | .get o => (s, .range (rangeSel s o) (rangeIn s o).length)
   | .put k v l => (putKv r k v l s, .put)
+  | .putKeep k v =>
+    (putKv r k v (((s.find? (fun v => decide (v.key = k))).map EtcdKv.lease).getD (W64 0)) s, .put)
   | .delete o => (s.filter (fun v => !inRange o.key o.base.rangeEnd v.key),
       .delete (rangeIn s o).length)
 
@@ -211,6 +222,8 @@ theorem runOps_noWrite (r : w64) :
       exact runOps_noWrite r s ops h
     | put k v l =>
       simp [runOps, applyTxnOp, txnWrote, TxnOpResult.wrote] at h
+    | putKeep k v =>
+      simp [runOps, applyTxnOp, txnWrote, TxnOpResult.wrote] at h
     | delete o =>
       simp only [runOps, applyTxnOp, txnWrote, List.any_cons, TxnOpResult.wrote,
         Bool.or_eq_false_iff, bne_eq_false_iff_eq] at h ⊢
@@ -231,6 +244,7 @@ def TxnOp.Under (pfx : GoString) : TxnOp → Prop
   | .get o => KeyRangeUnder pfx o.key o.base.rangeEnd
   | .put k _ _ => pfx <+: k
   | .delete o => KeyRangeUnder pfx o.key o.base.rangeEnd
+  | .putKeep k _ => pfx <+: k
 
 /-- Every key the transaction compares or touches is under the prefix `pfx` (the client's
 contract is stated per prefix, as `isEtcdKV`'s). -/
@@ -304,6 +318,10 @@ def txnOpRespAt (p : Loc) (op : TxnOp) (res : TxnOpResult) : IProp GF :=
         structFieldRef etcdserverpb.ResponseOp_ResponseRange go!"ResponseRange" w ↦□ rr ∗
         ⌜rr ≠ null⌝ ∗ rangeRespAt rr o sel n)
     | .put _ _ _, .put => iprop(∃ (w pr : Loc),
+        ⌜u = interface.mkOk (go.GoType.PointerType etcdserverpb.ResponseOp_ResponsePut.ty) #w⌝ ∗
+        structFieldRef etcdserverpb.ResponseOp_ResponsePut go!"ResponsePut" w ↦□ pr ∗
+        ⌜pr ≠ null⌝)
+    | .putKeep _ _, .put => iprop(∃ (w pr : Loc),
         ⌜u = interface.mkOk (go.GoType.PointerType etcdserverpb.ResponseOp_ResponsePut.ty) #w⌝ ∗
         structFieldRef etcdserverpb.ResponseOp_ResponsePut go!"ResponsePut" w ↦□ pr ∗
         ⌜pr ≠ null⌝)
