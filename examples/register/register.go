@@ -18,13 +18,13 @@ const (
 	opGet = 2
 )
 
-// encode is an operation as a log entry: the proposing replica (8 bytes), its
-// sequence number there (8 bytes), the kind (1 byte), then the value (the rest; empty
-// for a Get).
+// encode is an operation as a log entry: the proposing replica (8 bytes, little-endian),
+// its sequence number there (8 bytes), the kind (1 byte), then the value (the rest;
+// empty for a Get).
 func encode(replica, seq uint64, kind byte, val string) []byte {
 	b := make([]byte, 17, 17+len(val))
-	binary.BigEndian.PutUint64(b, replica)
-	binary.BigEndian.PutUint64(b[8:], seq)
+	binary.LittleEndian.PutUint64(b, replica)
+	binary.LittleEndian.PutUint64(b[8:], seq)
 	b[16] = kind
 	return append(b, val...)
 }
@@ -35,7 +35,7 @@ func decode(b []byte) (replica, seq uint64, kind byte, val string, ok bool) {
 	if len(b) < 17 {
 		return 0, 0, 0, "", false
 	}
-	return binary.BigEndian.Uint64(b), binary.BigEndian.Uint64(b[8:]), b[16], string(b[17:]), true
+	return binary.LittleEndian.Uint64(b), binary.LittleEndian.Uint64(b[8:]), b[16], string(b[17:]), true
 }
 
 // Storage is a replica's raft storage for a new cluster: a MemoryStorage whose initial

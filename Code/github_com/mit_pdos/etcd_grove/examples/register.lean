@@ -54,9 +54,9 @@ noncomputable def NewStorage [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/register.New"
 
-/-- encode is an operation as a log entry: the proposing replica (8 bytes), its
-    sequence number there (8 bytes), the kind (1 byte), then the value (the rest; empty
-    for a Get).
+/-- encode is an operation as a log entry: the proposing replica (8 bytes, little-endian),
+    its sequence number there (8 bytes), the kind (1 byte), then the value (the rest;
+    empty for a Get).
 
     go: register.go:24:6 -/
 noncomputable def encode.impl [FfiSyntax] [GoGlobalContext] : val :=
@@ -87,11 +87,11 @@ noncomputable def encode.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
   (App (Val (GoInstruction (Slice (go.GoType.SliceType go.byte)))) (Pair (Pair (Var "$s") (Val #(W64 8))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "seq"))
-  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.encoding.binary.bigEndian.ty) go!"PutUint64"))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.encoding.binary.BigEndian))) (Val #()))) (Var "$a0")) (Var "$a1"))))))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.encoding.binary.littleEndian.ty) go!"PutUint64"))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.encoding.binary.LittleEndian))) (Val #()))) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "replica"))
-  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.encoding.binary.bigEndian.ty) go!"PutUint64"))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.encoding.binary.BigEndian))) (Val #()))) (Var "$a0")) (Var "$a1"))))))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.encoding.binary.littleEndian.ty) go!"PutUint64"))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.encoding.binary.LittleEndian))) (Val #()))) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0"))))))))))))))))
 
@@ -111,9 +111,9 @@ noncomputable def decode.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Pair (Pair (Pair (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.encoding.binary.bigEndian.ty) go!"Uint64"))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.encoding.binary.BigEndian))) (Val #()))) (Var "$a0"))) (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.encoding.binary.littleEndian.ty) go!"Uint64"))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.encoding.binary.LittleEndian))) (Val #()))) (Var "$a0"))) (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
   (App (Val (GoInstruction (Slice (go.GoType.SliceType go.byte)))) (Pair (Pair (Var "$s") (Val #(W64 8))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.encoding.binary.bigEndian.ty) go!"Uint64"))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.encoding.binary.BigEndian))) (Val #()))) (Var "$a0")))) (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b")) (Val #(W64 16)))))) (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.encoding.binary.littleEndian.ty) go!"Uint64"))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.encoding.binary.LittleEndian))) (Val #()))) (Var "$a0")))) (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b")) (Val #(W64 16)))))) (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
   (App (Val (GoInstruction (Slice (go.GoType.SliceType go.byte)))) (Pair (Pair (Var "$s") (Val #(W64 17))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b")))))))) (Val #true)))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))) (Val #(W64 17)))))
