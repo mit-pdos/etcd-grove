@@ -26,6 +26,7 @@ public import Spec.k8s_io.utils.third_party.forked.golang.btree.BTree__Clone
 public import Spec.k8s_io.utils.third_party.forked.golang.btree.BTree__AscendGreaterOrEqual
 public import Spec.k8s_io.utils.third_party.forked.golang.btree.BTree__AscendRange
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.Fractional
+public import Proof.k8s_io.utils.third_party.forked.golang.btree.Combine
 
 @[expose] public section
 
@@ -522,6 +523,80 @@ theorem ownBTree_persist {T' : Type} [ZeroVal T'] [TypedPointsto (GF := GF) T']
   iexists h, zs
   iframe # ∗
   ipureintro; exact Hzs
+
+/-- Lists of pairs with the same projections are equal. -/
+theorem pairs_ext {A B : Type} : ∀ (l1 l2 : List (A × B)), l1.map Prod.fst = l2.map Prod.fst →
+    l1.map Prod.snd = l2.map Prod.snd → l1 = l2
+  | [], [], _, _ => rfl
+  | [], _ :: _, h, _ => by simp at h
+  | _ :: _, [], h, _ => by simp at h
+  | (a, b) :: l1, (a', b') :: l2, h1, h2 => by
+    simp only [List.map_cons, List.cons.injEq] at h1 h2
+    rw [h1.1, h2.1, pairs_ext l1 l2 h1.2 h2.2]
+
+/-- Pairs of Go items and models, the same Go items, whose models the items determine. -/
+theorem models_agree {T' V : Type} (isItem : T' → V → IProp GF) [∀ p v, Persistent (isItem p v)]
+    (hfun : ∀ (p : T') (v1 v2 : V), ⊢ isItem p v1 -∗ isItem p v2 -∗ (⌜v1 = v2⌝ : IProp GF)) :
+    ∀ (zs1 zs2 : List (T' × V)), zs1.map Prod.fst = zs2.map Prod.fst →
+      ⊢ (□ ∀ z, ⌜z ∈ zs1⌝ -∗ isItem z.1 z.2) -∗ (□ ∀ z, ⌜z ∈ zs2⌝ -∗ isItem z.1 z.2) -∗
+        (⌜zs1 = zs2⌝ : IProp GF)
+  | [], [], _ => by iintro _ _; ipureintro; rfl
+  | [], _ :: _, h => by simp at h
+  | _ :: _, [], h => by simp at h
+  | (p, v) :: t1, (p', v') :: t2, h => by
+    simp only [List.map_cons, List.cons.injEq] at h
+    obtain ⟨rfl, h⟩ := h
+    iintro #H1 #H2
+    ihave #Hv : isItem p v $$ []
+    · ispecialize H1 $$ %(p, v); iapply H1; ipureintro; exact List.mem_cons_self
+    ihave #Hv' : isItem p v' $$ []
+    · ispecialize H2 $$ %(p, v'); iapply H2; ipureintro; exact List.mem_cons_self
+    ihave %hv := hfun p v v' $$ Hv Hv'
+    ihave #H1' : (□ ∀ z, ⌜z ∈ t1⌝ -∗ isItem z.1 z.2 : IProp GF) $$ []
+    · imodintro; iintro %z %hz; iapply H1; ipureintro; exact List.mem_cons_of_mem _ hz
+    ihave #H2' : (□ ∀ z, ⌜z ∈ t2⌝ -∗ isItem z.1 z.2 : IProp GF) $$ []
+    · imodintro; iintro %z %hz; iapply H2; ipureintro; exact List.mem_cons_of_mem _ hz
+    ihave %ht := models_agree isItem hfun t1 t2 h $$ H1' H2'
+    ipureintro
+    rw [hv, ht]
+
+/-- Combining readers' fractions (`ownBTree_split`'s converse, through
+`btree.ownBTree_combine`), when the Go items determine their models: the two fractions hold
+the same items. -/
+theorem ownBTree_combine {T' : Type} [ZeroVal T'] [TypedPointsto (GF := GF) T']
+    (T : go.GoType) [IntoValTyped (GF := GF) T' T] {V : Type}
+    (t : Loc) (isItem : T' → V → IProp GF) [∀ p v, Persistent (isItem p v)]
+    (less : V → V → Prop) (items1 items2 : List V) (dq1 dq2 : DFrac)
+    [k8s_io.utils.third_party.forked.golang.btree.Assumptions]
+    (hfun : ∀ (p : T') (v1 v2 : V), ⊢ isItem p v1 -∗ isItem p v2 -∗ (⌜v1 = v2⌝ : IProp GF)) :
+    ownBTree T t isItem less items1 dq1 ∗ ownBTree T t isItem less items2 dq2 ⊢
+      ⌜items1 = items2⌝ ∗ ownBTree T t isItem less items1 (dq1 • dq2) := by
+  unfold ownBTree
+  iintro ⟨⟨%h1, %zs1, Ht1, %Hz1, #Hall1⟩, ⟨%h2, %zs2, Ht2, %Hz2, #Hall2⟩⟩
+  have hkey : btree.KeysOfItems (keyOrder isItem h2) := by
+    intro v k1 k2
+    simp only [keyOrder]
+    iintro ⟨%w1, #Hw1, %Hk1⟩ ⟨%w2, #Hw2, %Hk2⟩
+    ihave %Hw := hfun v w1 w2 $$ Hw1 Hw2
+    ipureintro; rw [← Hk1, ← Hk2, Hw]
+  ihave Hc : (⌜zs1.map (entry h2) = zs2.map (entry h2)⌝ ∗
+      btree.ownBTree (keyOrder isItem h2) t (dq1 • dq2) (zs1.map (entry h2)) : IProp GF)
+      $$ [Ht1 Ht2]
+  · iapply btree.ownBTree_combine (keyOrder isItem h2) hkey t dq1 dq2 _ _; iframe
+  icases Hc with ⟨%Hs, Ht⟩
+  have hfst : zs1.map Prod.fst = zs2.map Prod.fst := by
+    have := congrArg (List.map Prod.fst) Hs
+    rw [List.map_map, List.map_map] at this
+    exact this
+  ihave %hzs := models_agree isItem hfun zs1 zs2 hfst $$ Hall1 Hall2
+  subst hzs
+  isplitl []
+  · ipureintro; rw [← Hz1, ← Hz2]
+  iexists h2, zs1
+  iframe Ht
+  isplitl []
+  · ipureintro; exact Hz1
+  iexact Hall1
 
 theorem keyOrder_item (isItem : T' → V → IProp GF) [∀ p v, Persistent (isItem p v)]
     {less : V → V → Prop} (h : StrictWeakOrder less) (p : T') (v : V) :
