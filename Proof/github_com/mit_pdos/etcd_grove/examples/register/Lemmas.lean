@@ -299,6 +299,26 @@ theorem reg_propAu (γr : RegNames) (d : List w8) (kind : w8) (val : List w8)
     imodintro
     iexact HΦ
 
+/-- Spending an operation credit. -/
+theorem opCred_spend (γp : RepNames) (c : Nat) :
+    ⊢ own (GF := GF) γp.cred (● c : Auth Nat) -∗ opCred γp 1 ==∗
+      ⌜1 ≤ c⌝ ∗ own γp.cred (● (c - 1) : Auth Nat) := by
+  iintro HC Hcr
+  unfold opCred
+  icombine HC Hcr gives %Hv
+  have Hc1 : 1 ≤ c := by
+    obtain ⟨z, hz⟩ := (Auth.auth_both_valid_discrete.mp Hv).1
+    have : c = 1 + z := hz
+    omega
+  icombine HC Hcr as HCC
+  imod own_update γp.cred _ ((● (c - 1) : Auth Nat) • ◯ (0 : Nat))
+    (Auth.auth_update (CommMonoidLike.leftCancelAdd_local_update (by show c + 0 = (c - 1) + 1; omega)))
+    $$ HCC with HCC
+  icases (own_op γp.cred _ _).1 $$ HCC with ⟨HC, -⟩
+  imodintro
+  iframe HC
+  ipureintro; exact Hc1
+
 end lemmas
 
 end EtcdGrove
