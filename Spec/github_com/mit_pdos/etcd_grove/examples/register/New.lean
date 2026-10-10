@@ -31,7 +31,7 @@ variable [RegStor GF]
 abbrev New.spec : Prop :=
   ∀ (γr : RegNames) (γn : NodeNames) (id : w64) (n st : Loc) (send : GoFunc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.register ∗ regInv γr ∗ nodeDriver γn id n [] ∗ ⌜γn.raft = γr.raft⌝ ∗
-      ⌜γn.stor = regStorIface st⌝ ∗ isCommitted γr.raft [] ∗ id ↪[γr.seq] (W64 0) ∗
+      ⌜γn.stor = regStorIface st⌝ ∗ (∃ (ms : Loc) (γs : MemStorNames), regStorRec st ms γs) ∗ isCommitted γr.raft [] ∗ id ↪[γr.seq] (W64 0) ∗
       sendSpec send γn }}
     (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.register.New))
       (Val #id)) (Val #(interface.mkOk (go.GoType.PointerType node.ty) #n))) (Val #st))

@@ -46,6 +46,19 @@ theorem MemoryStorage.Append.wp_proof
     MemoryStorage.Append.spec (GF := GF) (hG := hG) := by
   intro ms γs σ p s dq Hbnd
   wp_start as ⟨Htok, Hs⟩
+  icases Htok with (%Hnil | Htok)
+  · -- an empty batch: `Append` returns at once
+    subst Hnil
+    ihave %Hslen := ownSlice_len $$ Hs
+    simp only [List.length_nil] at Hslen
+    wp_apply wp_with_defer as %defer defer
+    wp_if_destruct
+    · iapply HΦ
+      iframe Hs
+      ileft; ipureintro; trivial
+    · exfalso
+      apply Hif
+      word
   iunfold memAppendTok at Htok
   icases Htok with ⟨#Hinit, #Hmu, %H, Hdone, #Hhist, Hep, %Htk⟩
   obtain ⟨Hlast, Hpe, Hpne, Hpok⟩ := Htk
@@ -203,6 +216,7 @@ theorem MemoryStorage.Append.wp_proof
       exact Hpb'
     iapply HΦ
     iframe Hs
+    iright
     unfold memAppendedTok
     iexists D
     iframe Hdone Hep
@@ -246,6 +260,7 @@ theorem MemoryStorage.Append.wp_proof
       exact Hpb'
     iapply HΦ
     iframe Hs
+    iright
     unfold memAppendedTok
     iexists D
     iframe Hdone Hep

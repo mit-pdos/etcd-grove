@@ -254,6 +254,7 @@ def isReplica (γr : RegNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc
     "#Hid" ∷ r.[RRegister, go!"id"] ↦□ id ∗
     "#Hnode" ∷ r.[RRegister, go!"node"] ↦□ interface.mkOk (go.GoType.PointerType node.ty) #n ∗
     "#Hst" ∷ r.[RRegister, go!"storage"] ↦□ st ∗
+    "#Hsrec" ∷ (∃ (ms : Loc) (γs : MemStorNames), regStorRec st ms γs) ∗
     "#HisNode" ∷ isNode γp.node id n ∗
     "%Hraft" ∷ ⌜γp.node.raft = γr.raft⌝ ∗
     "%Hstor" ∷ ⌜γp.node.stor = regStorIface st⌝ ∗

@@ -34,16 +34,19 @@ storage's bound (`isStorage`'s `Hbounded`) needs once the batch is in -- a clien
 assumption, as that clause is (no raft log comes near). The token's `PendOk` makes the
 two `Append` exits that drop or cut the batch, and its `Panicf` on a gap, unreachable:
 the batch starts above the compaction boundary and at most one past the stored
-entries. -/
+entries.
+
+An empty batch needs no token (2026-10-10): `Append` returns at once, as the empty
+case of a `Ready`'s `appendRight`/`appendReceipt` (`InvStorage.lean`) has it. -/
 abbrev MemoryStorage.Append.spec : Prop :=
   ∀ (ms : Loc) (γs : MemStorNames) (σ : StorState) (p : List raftpb.Entry) (s : GoSlice)
     (dq : DFrac),
   (∀ e0, p.head? = some e0 → uint.Z e0.Index' + (p.length : Int) ≤ 2^61) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Htok" ∷ memAppendTok ms γs σ p ∗
+      "Htok" ∷ (⌜p = []⌝ ∨ memAppendTok ms γs σ p) ∗
       "Hs" ∷ s ↦*{dq} p }}
     (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"Append")) (Val #s))
-  {{ RET #interface.nil; memAppendedTok ms γs σ p ∗ s ↦*{dq} p }}
+  {{ RET #interface.nil; (⌜p = []⌝ ∨ memAppendedTok ms γs σ p) ∗ s ↦*{dq} p }}
 
 end spec
 
