@@ -42,8 +42,17 @@ another session was committing `client/v3/leasing` to the main checkout at the t
   `keyIndex.get`, `keyIndex.put`, `keyIndex.tombstone`: 9 of the core's 72 functions, all
   sorry-free, resting on no axiom of this repository (the error and metrics variables are
   package facts, `Base.lean`).
-- **Not yet**: the pure theorem `kiGet_indexOf` (what the index answers is the state's
-  key-value), `index.go` over the verified btree, the revision encoding, the transactions and
+- **The model's main theorem** (`LogLemmas.lean`, `kiGet_indexOf`, sorry-free, standard axioms
+  only): for a well-formed log (`LogWf`, length and every revision's change count below 2^63),
+  what the index built from the log's events answers of a key at a revision (`idxGet` then
+  `kiGet`) matches the key-value of the state at that revision (`KvMatch`): both absent, or the
+  key-value's mod revision, create revision and version are the answer's, and the bucket holds
+  the key-value at the answer's revision (`BucketHas`: `changeKv` of that change). Proved
+  key by key (`kiOfKey`, the key's events folded; `indexOf_rep` links it to the btree-model
+  index), by induction over the log's revisions and, within one, over its changes
+  (`rev_step`), with `Lemmas.lean` (what `kiGet` answers after `kiPut`/`kiTombstone`, below
+  and at or above the new revision, under `KiWf`/`KiAbove`; `kiGet_top`).
+- **Not yet**: `index.go` over the verified btree, the revision encoding, the transactions and
   the store's concurrency (the plan in decisions.md), `NewStore`, the trust-boundary specs of
   the backend, the lessor, `traceutil`, `proto.Marshal`/`Unmarshal`, `zap.Logger.Fatal`/`Panic`,
   `fmt.Errorf`'s use; `etc/verified-code.py` and `etc/tcb-report.py --check` (whole repository)

@@ -17,7 +17,7 @@ model.
 revision `(main, sub)`, a key, and whether it is a tombstone): `indexOf (evsOf log)`, the
 sorted list of `(key, KeyIndex)` built by `kiPut`/`kiTombstone` event by event, as the code
 does. `kiGet` mirrors `keyIndex.get` (`kiFindGen` its `findGeneration`, `genWalk` its
-`walk`), and the model's main theorem (`kiGet_indexOf`, `Lemmas.lean`) says what it returns
+`walk`), and the model's main theorem (`kiGet_indexOf`, `LogLemmas.lean`) says what it returns
 of a key at a revision: the key-value of the state at that revision (its mod revision, create
 revision and version), or nothing if the key is absent.
 
