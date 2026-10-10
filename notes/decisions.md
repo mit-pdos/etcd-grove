@@ -1514,3 +1514,51 @@ with `e` agree up to it.
 acknowledgement misses"), or reporting the truncation point in `raft.Step`'s `MsgApp`
 postcondition -- both false or too weak after two `MsgApp`s, as above: what makes the
 hit right is what the storage holds, which no fact about the current log records.
+
+---
+
+## Mutex: `lockedAt`, exclusion from the two history laws
+
+**2026-10-10 · accepted** (the design decided with the user; adjusted here where noted)
+
+`concurrency.Mutex` is a lock on a prefix built from etcd keys: the key created first holds it.
+What its specs say, and what "mutual exclusion" means over etcd's model (`InvMutex.lean`).
+
+- **The ownership fact is a statement about one revision.** `lockedAt pfx key c R`: etcd's state
+  at `R` under the prefix has `key` with create revision `c` and no key with a smaller one.
+  `TryLock` gets it at its transaction's revision (the owner get runs on the state the put left);
+  `Lock` at its last `Get`'s revision, from `waitDeletes`' last `Get` (`R0`: nothing created
+  before `myRev`) and `etcdState_create_persist` (a key created before `myRev` and present at
+  `R ≥ R0` was present at `R0`, `lock_final`). *Changed from the plan's first form* ("at `rev`"):
+  a waiter only learns its ownership when its last `Get` answers, at a revision after its key's
+  creation.
+- **Exclusion is derived, not assumed** (`lockedAt_exclusion`): if `(k1, c1)` and `(k2, c2)`,
+  `c1 < c2`, were both present at `a ≥ R2`, then `k1` (created at `c1 < c2 ≤ R2`) was present at `R2`
+  (`etcdState_create_persist`; `c2 ≤ R2` by `etcdState_revs`), against the minimality at `R2`. Only
+  the two history laws; no protocol invariant over etcd's history (the model has no notion of
+  who writes). `c1 = c2` is not excluded: two keys created by one transaction; a mutex's creates
+  one key, but that is a fact about writers the model does not have. At one revision the holder's
+  create revision is unique (`mutex_holder_unique`, from `etcdState_agree`).
+- **`Lock`'s spec states what its code checks.** Its last check is that the key exists, not
+  that its create revision is unchanged; so `nil` gives `lockedAt ∨ keyRecreated` (STATUS: two
+  mutexes of one session on one prefix share the key). *Rejected:* a premise making re-creation
+  impossible (it is about other clients' writes, which the model cannot state); dropping the
+  disjunct (false of the model).
+- **The state is a record of the fields, not an enumeration** (*changed from the plan's*
+  `unlocked | locked key rev | released`): `tryAcquire` writes `myKey` before its transaction, so an
+  error leaves a mix no constructor names, and every method runs from any state. `MutexSt.init`,
+  `MutexSt.released`, `MutexSt.noKey` name the plan's states.
+- **The client contracts grow minimally, as definitions**: the range clause of `kvGetResult`
+  (`getRespRange`: one relation, `rangeKvsOk` of `rangeSel`, for every range get at the latest
+  revision; the prefix get keeps its exact `KvMap` clause), `Delete` as a one-operation
+  transaction (reusing `runTxn`/`txnStates`), and a single-key watch contract stated directly (a
+  delete event at `r` means the key is absent at `r`). *Rejected:* the single-key watch through
+  `EtcdStep` (a step is per prefix and lists every event under it; a key's watch sees one key's —
+  a per-key step would be a second history predicate); a whole-keyspace state.
+- **`Sprintf`'s result**: a sound model in Perennial (`%s` exact, everything else arbitrary)
+  rather than a premise: a premise contradicting the old model (which returned the format) would
+  have made the specs vacuous. The mutex needs only that the key is under the prefix.
+- **`lockerMutex` is not specified**: it panics on any error, every client call may fail, and a
+  panic is stuck in Perennial. *Rejected:* a spec promising success (false), an axiom (likewise),
+  a `sorry` (it is not unfinished work).
+

@@ -1,18 +1,102 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-10 (merged upstream's RawNode work into the cache-as-shipped and concurrency line, Perennial `7d0b56b07`, see "Merge: upstream's RawNode work"; `RawNode.Step` takes a `MsgApp` between `Ready` and `Advance`; the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; Perennial `7d0b56b07`: Goose with per-iteration loop variables, `break` out of `select`, see "Perennial `7d0b56b07`"; merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
+**Last updated:** 2026-10-10 (`Mutex`: mutual exclusion, Perennial `d240c1732`: `fmt.Sprintf` formats `%s`, `strings.HasPrefix`, see "Mutex: mutual exclusion"; merged upstream's RawNode work into the cache-as-shipped and concurrency line, Perennial `7d0b56b07`, see "Merge: upstream's RawNode work"; `RawNode.Step` takes a `MsgApp` between `Ready` and `Advance`; the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; Perennial `7d0b56b07`: Goose with per-iteration loop variables, `break` out of `select`, see "Perennial `7d0b56b07`"; merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
 
 Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
 `worktree-raft-replication`'s `feb5c73d4` and adds Ready/Advance/HasReady; the files
 were first ported from `main`, then from `feb5c73d4`) to Lean on top of Perennial's Lean
-port (mit-pdos/perennial `lean`, pinned at 7d0b56b07 (2026-10-09: on 7d0b56b07: our `9092f8eaa` merged with upstream's Goose changes (per-iteration loop variables, array ranges, `fallthrough`, `break` out of `switch`/`select`, local types) and `context.wp_WithCancel` building again, see "Perennial `7d0b56b07`"; on f52ce33dc (upstream's, in 7d0b56b07): the Goose features for upstream raft, see "Perennial `f52ce33dc`"; on 79adaac01 (upstream's, in 7d0b56b07): `context.wp_withCancel` builds again; on 9092f8eaa: `WaitGroup.Add`'s overflow a model assumption, the `RWMutex` writer guard, see "The cache as shipped"; on 56b1b6651: our 3ae7dc6a4 merged with upstream's `00b3c10ea` (trusted models and proved specs of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`; `math/big`'s `ownInt` normalized, its and `crypto/rand`'s `IsPkgInit` instances now Perennial's), see "Perennial `56b1b6651`"; on 68d220ac8: `fmt.wp_Errorf` proved, `map.forRange` with `wp_map_for_range_mut{,_keys}`, `context.wp_WithCancel` proved; on 3ae7dc6a4: `context.isClosedchanInit`, see "Sorry-free"; on 8c33774d0: upstream's `37416dd10` (Rocq code removed) and `cdf8c0f81` (Goose without `-lean` and the ⁱᵐᵖˡ encoding) merged, see below; on f8b35ddbf: `context.wp_Background`, `wp_WithCancel_Background`; on f35530719: Goose prints an axiomatized generic type in Lean; on 8c7000190: `time.NewTimer`, `Timer.Stop`/`Reset` axioms; on 96ec7016d: `fmt.wp_Printf`, `time.Minute`; on 099c2a08b: `fmt.wp_Errorf`'s `Error()`; on 640a605cc: a `select` case on a nil channel is never ready, `chan.wp_select_blocking_nil`; on 48e1192c7: rlocker, `Cond.wp_Wait_with`, `time.wp_Since`) on cbb85c041: upstream's `11fd2db` merged with
+port (mit-pdos/perennial `lean`, pinned at d240c1732 (2026-10-10: on d240c1732: models of `fmt.Sprintf` formatting `%s` and of `strings.HasPrefix`, see "Mutex: mutual exclusion"; on 7d0b56b07: our `9092f8eaa` merged with upstream's Goose changes (per-iteration loop variables, array ranges, `fallthrough`, `break` out of `switch`/`select`, local types) and `context.wp_WithCancel` building again, see "Perennial `7d0b56b07`"; on f52ce33dc (upstream's, in 7d0b56b07): the Goose features for upstream raft, see "Perennial `f52ce33dc`"; on 79adaac01 (upstream's, in 7d0b56b07): `context.wp_withCancel` builds again; on 9092f8eaa: `WaitGroup.Add`'s overflow a model assumption, the `RWMutex` writer guard, see "The cache as shipped"; on 56b1b6651: our 3ae7dc6a4 merged with upstream's `00b3c10ea` (trusted models and proved specs of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`; `math/big`'s `ownInt` normalized, its and `crypto/rand`'s `IsPkgInit` instances now Perennial's), see "Perennial `56b1b6651`"; on 68d220ac8: `fmt.wp_Errorf` proved, `map.forRange` with `wp_map_for_range_mut{,_keys}`, `context.wp_WithCancel` proved; on 3ae7dc6a4: `context.isClosedchanInit`, see "Sorry-free"; on 8c33774d0: upstream's `37416dd10` (Rocq code removed) and `cdf8c0f81` (Goose without `-lean` and the ⁱᵐᵖˡ encoding) merged, see below; on f8b35ddbf: `context.wp_Background`, `wp_WithCancel_Background`; on f35530719: Goose prints an axiomatized generic type in Lean; on 8c7000190: `time.NewTimer`, `Timer.Stop`/`Reset` axioms; on 96ec7016d: `fmt.wp_Printf`, `time.Minute`; on 099c2a08b: `fmt.wp_Errorf`'s `Error()`; on 640a605cc: a `select` case on a nil channel is never ready, `chan.wp_select_blocking_nil`; on 48e1192c7: rlocker, `Cond.wp_Wait_with`, `time.wp_Since`) on cbb85c041: upstream's `11fd2db` merged with
 `bytes.Compare`, on Lean's module system since 2026-10-09). The Goose translations of
 etcd-raft and etcd's `cache` package are this repository's `Code/` and `GeneratedProof/`,
 generated and checked by `etc/goose.py`. Files are laid out by kind and Go package path
 (`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
+
+## Mutex: mutual exclusion (2026-10-10)
+
+`client/v3/concurrency`'s `Mutex` (`mutex.go`, `key.go`) is specified and proved, with mutual
+exclusion as a theorem over etcd's model. Design: `decisions.md`, "Mutex: `lockedAt`, exclusion from
+the two history laws". Files: `client/v3/concurrency/InvMutex.lean` (vocabulary, exclusion),
+`InvMutexLemmas.lean` (the gets, the transaction, the delete, `Lock`'s last step), `Results.lean`.
+
+- **The ownership fact** `lockedAt pfx key c R`: etcd's state at `R` under the mutex's prefix has
+  `key` with create revision `c`, and no key with a smaller one. **Mutual exclusion**
+  (`lockedAt_exclusion`, exported as `mutex_exclusion`): two holders `(k1, c1)` at `R1`, `(k2, c2)`
+  at `R2` with `c1 ≠ c2` are never both present in etcd's state at any revision `a ≥ R1, R2`; from
+  `etcdState_revs` and `etcdState_create_persist` alone. `mutex_holder_unique`: two ownership facts
+  at one revision have the same create revision (`etcdState_agree`). Equal create revisions with
+  different keys (two keys created by one transaction) are not excluded: the model does not record
+  who wrote a key (a mutex's transaction creates one).
+- **Specs, in words** (the mutex's prefix `pfx` is `NewMutex`'s argument plus `/`; `isMutex` holds
+  the session and prefix, `mutexState m st` the fields `myKey`/`myRev`/`hdr`, which every method
+  accepts in any state; all knowing etcd has reached `lo`):
+  - `NewMutex(s, pfx)`: `isMutex` and the initial state, for a client answering for `pfx + "/"`
+    (`isEtcdMutexClient`). `NewLocker`: the same, wrapped in a `lockerMutex`.
+  - `tryAcquire`: `myKey` under the prefix (`Sprintf`), then the transaction: an error, or
+    `acquireResp` (at `r ≥ lo`, the key with create revision `myRev ≤ r`, and the owner get).
+  - `TryLock`: `nil` ⇒ `lockedAt pfx key rev r`; `ErrLocked` ⇒ the key deleted (absent at some
+    `r ≥ lo`), released state; other errors, some state.
+  - `Lock` (a cancelable context): `nil` ⇒ at the last `Get`'s revision `R ≥ lo`,
+    `lockedAt pfx key rev R` **or `keyRecreated`** (below); `ErrSessionExpired` ⇒ the key absent at
+    `R`; other errors, some state.
+  - `Unlock`: `nil` ⇒ the key absent at some `R ≥ lo`, released; `ErrLockReleased` ⇒ no key;
+    other errors (the delete, the `HasPrefix` check), unchanged.
+  - `IsOwner`: the comparison `CreateRevision(myKey) = myRev`; `Key`, `Header`: the fields.
+  - `waitDelete(ctx, client, key, rev)`: `nil` ⇒ `key` absent at some `r ≥ rev` (a delete event);
+    `waitDeletes(ctx, client, pfx, n)` (`n > 0`): `nil` ⇒ at some `R ≥ lo` no key under `pfx` has a
+    create revision `≤ n`.
+- **Finding: `Lock` may return `nil` without the lock.** `Lock`'s last check is that `myKey`
+  exists (`len(gresp.Kvs) == 0`), not that its create revision is still `myRev`. Two `Mutex`
+  values of one session on one prefix share the key (`pfx/<lease>`); if the other one unlocks
+  (e.g. its `Lock`'s context is canceled, which calls `Unlock`) and locks again while this one
+  waits, the key is re-created with a later create revision, `waitDeletes(myRev - 1)` returns, and
+  `Lock` returns `nil` while a key created between `myRev` and the new create revision may hold the
+  lock too. The spec states it (`keyRecreated pfx key rev R`: present with a create revision above
+  `rev`, nothing older); with one `Mutex` per session and prefix the disjunct cannot arise, but the
+  model cannot express that (it does not record who writes). Not confirmed by a Go test; a fix
+  would compare `gresp.Kvs[0].CreateRevision` with `m.myRev`.
+- **Client contracts, extended** (definitions; `isEtcdMutexClient` bundles them):
+  `kvGetResult` lists, for any get of a range under the prefix at the latest revision, etcd's
+  selection (`getRespRange`: sorted, limited, filtered — `rangeKvsOk`; the single-key `Get` and
+  `waitDeletes`' `WithLastCreate, WithMaxCreateRev`); `isEtcdDeleteKV` (`Delete` as a
+  one-operation transaction, `deleteResult`); `isEtcdKeyWatcher` (a single-key watch from `rev`:
+  an SPSC channel whose events are of the key, at revisions `≥ rev` etcd reached, and a delete
+  event at `r` means the key is absent at `r`, `keyWatchRespOk`); `txnOpRespAt`'s `ResponseOp` is
+  non-nil.
+- **`Sprintf`**: Perennial's model returned the format string, so `myKey` would have been
+  `"%s%x"`, not under the prefix (the transaction's `Under` premise and `Unlock`'s `HasPrefix` need
+  it). Perennial **`d240c1732`** (on `7d0b56b07`): `fmt.Sprintf` formats `%%` and `%s` of a string
+  argument exactly and makes the rest arbitrary at any other directive or with arguments left
+  over (`fmt.SprintfOut`, an over-approximation); `wp_Sprintf` needs `StringArgsWf` (an argument
+  of dynamic type `string` holds a string), so raft's `fmt.Sprintf.spec` gained that premise
+  (`newRaft` passes `uint64`s). The mutex gets `pfx <+: myKey`; nothing about `%x` (not needed:
+  exclusion does not use distinct keys). Also a trusted model of `strings.HasPrefix`
+  (`wp_HasPrefix`: `decide (pfx <+: s)`; a byte loop, Goose has no string slicing).
+- **The panic question**: `lockerMutex.Lock`/`Unlock` call `panic(err)` on any error of
+  `Mutex.Lock`/`Unlock`, which every client call allows, and Perennial's `panic` is a stuck
+  expression (a WP of it is unprovable). A `sync.Locker` spec would have to promise no error, which
+  is false of the client contract: they are not specified (counted "translated"), and `NewLocker`
+  is.
+- **Translation**: `etcdserverpb.ResponseOp.GetResponseRange` (proved), `mvccpb.Event_PUT`/
+  `Event_DELETE` (constants; were axiomatized `val`s). `withTop`/`WithFirstCreate`/
+  `WithLastCreate` return the slice's capacity (`waitDeletes` appends to it). concurrency's package
+  facts (`concurrencyInit`): Mutex's three errors. No change to etcd's Go code.
+- **Perennial tooling** (worked around in `Mutex__tryAcquire.lean`): `wp_apply` fails silently on
+  a triple whose continuation's premise is a local predicate (`B b`, the transaction builder's
+  state): `wp_apply_post` calls `whnfR` outside the goal's context ("unknown free variable",
+  swallowed); `wp_apply_raw` works. A fix in Perennial would run it under `mv'.withContext`.
+- **Gates**: `lake build` passes (1791 jobs); no `sorry` of this work; `etc/tcb-report.py --check`
+  after `--update`: 40 axioms, 1 sorry (new in the trust base, all existing model axioms:
+  `etcdState_revs`, `etcdState_create_persist`, `etcdState_agree`); `--collection concurrency`
+  (now `Link` and `Results`): 10 axioms, 1 sorry; the other collections unchanged;
+  `etc/goose.py --check` passes; `etc/gen-link.py --cache/--concurrency/--server` and
+  `gen-btree-link.py` reproduce; `etc/verified-code.py --reuse`: `client/v3/concurrency` 20
+  verified, 1 unfinished (`Session.Close`) of 62, `mutex.go` 9 of 11 (89/101 lines), `key.go` 2 of 2;
+  etcd 204 verified of 3599.
+- **Push order**: Perennial `lean` (`d240c1732`, a fast-forward of `7d0b56b07`) first, then
+  etcd-grove `lean`. The etcd fork is unchanged.
 
 ## Merge: upstream's RawNode work (2026-10-10)
 

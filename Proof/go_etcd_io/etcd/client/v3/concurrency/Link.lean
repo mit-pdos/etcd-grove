@@ -22,11 +22,22 @@ public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithPrefix
 public import Proof.go_etcd_io.etcd.client.v3.LeaseValue
 public import Proof.go_uber_org.zap.Logger__Warn
 public import Proof.go_etcd_io.etcd.client.v3.ModRevision
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.Mutex__Header
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.Mutex__IsOwner
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.Mutex__Key
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.Mutex__Lock
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.Mutex__TryLock
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.Mutex__Unlock
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.Mutex__tryAcquire
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.NewLocker
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.NewMutex
 public import Proof.go_etcd_io.etcd.client.v3.NewOp
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.NewSession
 public import Proof.go_etcd_io.etcd.client.v3.OpDelete
+public import Proof.go_etcd_io.etcd.client.v3.OpGet
 public import Proof.go_etcd_io.etcd.client.v3.OpPut
 public import Proof.go_etcd_io.etcd.client.v3.Op__applyOpts
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp__GetResponseRange
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.Session__Client
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.Session__Close
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.Session__Ctx
@@ -35,12 +46,14 @@ public import Proof.go_etcd_io.etcd.client.v3.concurrency.Session__Lease
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.Session__Orphan
 public import Proof.go_etcd_io.etcd.client.v3.Value
 public import Proof.go_etcd_io.etcd.client.v3.Version
+public import Proof.go_etcd_io.etcd.client.v3.WatchResponse__Err
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.WithContext
 public import Proof.go_etcd_io.etcd.client.v3.WithFirstCreate
 public import Proof.go_etcd_io.etcd.client.v3.WithLastCreate
 public import Proof.go_etcd_io.etcd.client.v3.WithLimit
 public import Proof.go_etcd_io.etcd.client.v3.WithMaxCreateRev
 public import Proof.go_etcd_io.etcd.client.v3.WithPrefix
+public import Proof.go_etcd_io.etcd.client.v3.WithRev
 public import Proof.go_etcd_io.etcd.client.v3.WithSort
 public import Proof.go_etcd_io.etcd.client.v3.cloneCompare
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.WithLease
@@ -49,7 +62,11 @@ public import Proof.go_etcd_io.etcd.client.v3.getPrefix
 public import Proof.go_etcd_io.etcd.client.v3.mustInt64
 public import Proof.go_etcd_io.etcd.client.v3.mustInt64orLeaseID
 public import Proof.google_golang_org.protobuf.proto.Clone
+public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Error
+public import Proof.google_golang_org.grpc.status.Error
 public import Proof.go_etcd_io.etcd.client.v3.WithLease
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.waitDelete
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.waitDeletes
 public import Proof.go_etcd_io.etcd.client.v3.withTop
 public import Proof.go_uber_org.zap.Int64
 
@@ -146,25 +163,21 @@ theorem v3.wp_ModRevision :
     EtcdGrove.ModRevision.spec (GF := GF) (hG := hG) :=
   EtcdGrove.ModRevision.wp_proof
 
+theorem v3.wp_WithLease :
+    EtcdGrove.WithLease.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.WithLease.wp_proof
+
 theorem v3.Op.wp_applyOpts :
     EtcdGrove.Op.applyOpts.spec (GF := GF) (hG := hG) :=
   EtcdGrove.Op.applyOpts.wp_proof
-
-theorem v3.wp_OpDelete :
-    EtcdGrove.OpDelete.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.OpDelete.wp_proof v3.wp_IsOptsWithPrefix v3.wp_IsOptsWithFromKey v3.Op.wp_applyOpts
 
 theorem v3.wp_OpPut :
     EtcdGrove.OpPut.spec (GF := GF) (hG := hG) :=
   EtcdGrove.OpPut.wp_proof v3.Op.wp_applyOpts
 
-theorem v3.wp_Value :
-    EtcdGrove.Value.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.Value.wp_proof
-
-theorem v3.wp_Version :
-    EtcdGrove.Version.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.Version.wp_proof
+theorem v3.wp_OpGet :
+    EtcdGrove.OpGet.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.OpGet.wp_proof v3.wp_IsOptsWithPrefix v3.wp_IsOptsWithFromKey v3.Op.wp_applyOpts
 
 theorem v3.wp_WithPrefix :
     EtcdGrove.WithPrefix.spec (GF := GF) (hG := hG) :=
@@ -186,6 +199,10 @@ theorem v3.wp_WithFirstCreate :
     EtcdGrove.WithFirstCreate.spec (GF := GF) (hG := hG) :=
   EtcdGrove.WithFirstCreate.wp_proof v3.wp_withTop
 
+theorem ResponseOp.wp_GetResponseRange :
+    EtcdGrove.ResponseOp.GetResponseRange.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.ResponseOp.GetResponseRange.wp_proof
+
 theorem v3.wp_WithLastCreate :
     EtcdGrove.WithLastCreate.spec (GF := GF) (hG := hG) :=
   EtcdGrove.WithLastCreate.wp_proof v3.wp_withTop
@@ -194,13 +211,37 @@ theorem v3.wp_WithMaxCreateRev :
     EtcdGrove.WithMaxCreateRev.spec (GF := GF) (hG := hG) :=
   EtcdGrove.WithMaxCreateRev.wp_proof
 
+theorem v3.wp_WithRev :
+    EtcdGrove.WithRev.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.WithRev.wp_proof
+
+theorem rpctypes.wp_Error :
+    EtcdGrove.rpctypes.Error.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.rpctypes.Error.wp_proof
+
+theorem status.wp_Error :
+    EtcdGrove.status.Error.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.status.Error.wp_proof
+
+theorem v3.WatchResponse.wp_Err :
+    EtcdGrove.WatchResponse.Err.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.WatchResponse.Err.wp_proof rpctypes.wp_Error status.wp_Error
+
+theorem v3.wp_OpDelete :
+    EtcdGrove.OpDelete.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.OpDelete.wp_proof v3.wp_IsOptsWithPrefix v3.wp_IsOptsWithFromKey v3.Op.wp_applyOpts
+
+theorem v3.wp_Value :
+    EtcdGrove.Value.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Value.wp_proof
+
+theorem v3.wp_Version :
+    EtcdGrove.Version.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Version.wp_proof
+
 theorem zap.wp_Int64 :
     EtcdGrove.zap.Int64.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Int64.wp_proof
-
-theorem v3.wp_WithLease :
-    EtcdGrove.WithLease.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.WithLease.wp_proof
 
 end links
 
@@ -217,13 +258,61 @@ theorem v3.Client.wp_GetLogger [AllG GF] :
     EtcdGrove.Client.GetLogger.spec (GF := GF) (hG := hG) :=
   EtcdGrove.Client.GetLogger.wp_proof
 
-theorem wp_NewSession [AllG GF] :
-    EtcdGrove.concurrency.NewSession.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.concurrency.NewSession.wp_proof v3.Client.wp_GetLogger v3.Client.wp_Ctx
+theorem Mutex.wp_Header [AllG GF] :
+    EtcdGrove.concurrency.Mutex.Header.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.Mutex.Header.wp_proof
+
+theorem Mutex.wp_IsOwner [AllG GF] :
+    EtcdGrove.concurrency.Mutex.IsOwner.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.Mutex.IsOwner.wp_proof v3.wp_CreateRevision v3.wp_Compare
+
+theorem Mutex.wp_Key [AllG GF] :
+    EtcdGrove.concurrency.Mutex.Key.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.Mutex.Key.wp_proof
 
 theorem Session.wp_Client [AllG GF] :
     EtcdGrove.concurrency.Session.Client.spec (GF := GF) (hG := hG) :=
   EtcdGrove.concurrency.Session.Client.wp_proof
+
+theorem Session.wp_Lease [AllG GF] :
+    EtcdGrove.concurrency.Session.Lease.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.Session.Lease.wp_proof
+
+theorem Mutex.wp_tryAcquire [AllG GF] :
+    EtcdGrove.concurrency.Mutex.tryAcquire.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.Mutex.tryAcquire.wp_proof Session.wp_Client Session.wp_Lease v3.wp_CreateRevision v3.wp_Compare v3.wp_WithLease v3.wp_OpPut v3.wp_OpGet v3.wp_WithFirstCreate ResponseOp.wp_GetResponseRange
+
+theorem wp_waitDelete [AllG GF] :
+    EtcdGrove.concurrency.waitDelete.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.waitDelete.wp_proof v3.wp_WithRev v3.WatchResponse.wp_Err
+
+theorem wp_waitDeletes [AllG GF] :
+    EtcdGrove.concurrency.waitDeletes.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.waitDeletes.wp_proof v3.wp_WithLastCreate v3.wp_WithMaxCreateRev wp_waitDelete
+
+theorem Mutex.wp_Unlock [AllG GF] :
+    EtcdGrove.concurrency.Mutex.Unlock.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.Mutex.Unlock.wp_proof Session.wp_Client
+
+theorem Mutex.wp_Lock [AllG GF] :
+    EtcdGrove.concurrency.Mutex.Lock.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.Mutex.Lock.wp_proof Mutex.wp_tryAcquire ResponseOp.wp_GetResponseRange Session.wp_Client wp_waitDeletes v3.Client.wp_Ctx Mutex.wp_Unlock
+
+theorem Mutex.wp_TryLock [AllG GF] :
+    EtcdGrove.concurrency.Mutex.TryLock.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.Mutex.TryLock.wp_proof Mutex.wp_tryAcquire ResponseOp.wp_GetResponseRange Session.wp_Client
+
+theorem wp_NewMutex [AllG GF] :
+    EtcdGrove.concurrency.NewMutex.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.NewMutex.wp_proof
+
+theorem wp_NewLocker [AllG GF] :
+    EtcdGrove.concurrency.NewLocker.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.NewLocker.wp_proof wp_NewMutex
+
+theorem wp_NewSession [AllG GF] :
+    EtcdGrove.concurrency.NewSession.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.NewSession.wp_proof v3.Client.wp_GetLogger v3.Client.wp_Ctx
 
 theorem Session.wp_Orphan [AllG GF] :
     EtcdGrove.concurrency.Session.Orphan.spec (GF := GF) (hG := hG) :=
@@ -240,10 +329,6 @@ theorem Session.wp_Ctx [AllG GF] :
 theorem Session.wp_Done [AllG GF] :
     EtcdGrove.concurrency.Session.Done.spec (GF := GF) (hG := hG) :=
   EtcdGrove.concurrency.Session.Done.wp_proof
-
-theorem Session.wp_Lease [AllG GF] :
-    EtcdGrove.concurrency.Session.Lease.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.concurrency.Session.Lease.wp_proof
 
 theorem wp_WithContext [AllG GF] :
     EtcdGrove.concurrency.WithContext.spec (GF := GF) (hG := hG) :=
