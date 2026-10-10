@@ -76,7 +76,7 @@ theorem mvcc.treeIndex.Get.wp_proof
       (GoInterface.ok e) = mvcc.kiGetVal (mvcc.kiOfKey (mvcc.evsOf log) k) atRev (GoInterface.ok e) := by
     unfold mvcc.kiGetVal; rw [hans, hr, hstab]
   rw [hval]
-  obtain ⟨a, b, c, d, hp⟩ := kiGetVal_pairs (mvcc.kiOfKey (mvcc.evsOf log) k) atRev (GoInterface.ok e)
+  obtain ⟨m, c, v, i, hp⟩ := kiGetVal_pairs (mvcc.kiOfKey (mvcc.evsOf log) k) atRev (GoInterface.ok e)
   rw [hp]
   wp_auto
   -- the deferred `ti.RUnlock()`

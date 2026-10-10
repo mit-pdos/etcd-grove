@@ -24,9 +24,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [AllG GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `kiGetVal` is a 4-tuple. -/
+/-- `kiGetVal` is a 4-tuple of typed values (two revisions, a version and an error): the
+components are `#x`, so the pure steps of a function returning them (each a `let` of a value
+that is not a panic) go through. -/
 theorem kiGetVal_pairs (ki : mvcc.KeyIndex) (atRev : w64) (e : GoInterface) :
-    ∃ a b c d : val, mvcc.kiGetVal ki atRev e = PairV (PairV (PairV a b) c) d := by
+    ∃ (m c : Revision) (v : w64) (i : GoInterface),
+      mvcc.kiGetVal ki atRev e = PairV (PairV (PairV #m #c) #v) #i := by
   unfold mvcc.kiGetVal
   cases mvcc.kiGet ki atRev with
   | none => exact ⟨_, _, _, _, rfl⟩

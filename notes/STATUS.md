@@ -87,6 +87,22 @@ another session was committing `client/v3/leasing` to the main checkout at the t
   the backend, the lessor, `traceutil`, `proto.Marshal`/`Unmarshal`, `zap.Logger.Fatal`/`Panic`,
   `fmt.Errorf`'s use; `etc/verified-code.py` and `etc/tcb-report.py --check` (whole repository)
   not rerun on this branch.
+- **Perennial `bf935cbd5` pinned, `lean` merged** (2026-10-10 evening): the two Goose/semantics
+  commits were rebased on upstream's `7cea8cc26` (panics and `recover`; no conflict; goose's
+  tests, Perennial's build and the examples' regeneration checked) and pushed; the pin moved
+  from `7c93f27aa` (via `lean`'s `7cea8cc26`) and `lean` (`client/v3/leasing`, the panic
+  adoption, 15 commits) was merged (`fb427fb05`: both sides' `gen-link.py` modes and notes
+  kept). `etc/goose.py --check` passes; the only translation that differed was `lean`'s
+  regenerated `client/v3/concurrency` (`with_defer_recover:`). Two fixes for the new Perennial:
+  `treeIndex.Get`'s proof stalled at the function's `return` (every pure `let` step now needs
+  its value not to be a panic, `v.isPanic = false`, proved automatically for `#x` and
+  constructors but not for an opaque `val`), so `ReadLemmas.kiGetVal_pairs` gives the
+  4-tuple's components typed (`#m`, `#c`, `#v`, `#i`); and `etcdserver/BaseApply.lean`'s
+  `storage/mvcc` instance, `True` from the names-only translation, failed once the
+  translation had bodies (`define_is_pkg_init` wants prometheus's instance; the whole-repo
+  build had not been run on this branch), so `BaseApply` now imports mvcc's `Base.lean`
+  (which has `mvccInit` and the instances of traceutil, lease, schedule, prometheus) and its
+  three duplicates (mvcc, traceutil, lease) are gone.
 - **Incident**: a `lake env` call in the worktree, whose `.lake/packages` was then a symlink to
   the main checkout's, found the main checkout's manifest pointing at a Perennial revision
   (`1eabc2c47`, the other session's unpushed commit, with a non-GitHub remote) and re-cloned
