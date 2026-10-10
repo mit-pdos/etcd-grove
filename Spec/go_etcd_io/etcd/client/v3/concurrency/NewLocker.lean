@@ -25,8 +25,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 /-- **`NewLocker(s, pfx)`**: a `sync.Locker` wrapping (`lockerMutex`) a new mutex on `pfx + "/"`
 (`NewMutex`). Its `Lock` and `Unlock` panic on any error of `Mutex.Lock`/`Unlock`, which every
-client call allows, and Perennial's `panic` is stuck: they are not specified (see
-`notes/STATUS.md`, "Mutex: mutual exclusion"). -/
+client call allows (`lockerMutex.Lock.spec`, `lockerMutex.Unlock.spec`: a panic outcome). -/
 abbrev NewLocker.spec : Prop :=
   ∀ (s : Loc) (γ : SessionNames) (client : Loc) (id : w64) (pfx : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isSession s γ client id ∗

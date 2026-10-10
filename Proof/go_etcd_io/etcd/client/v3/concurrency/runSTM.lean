@@ -53,7 +53,23 @@ theorem runSTM.wp_proof :
     (try wp_auto)
     wp_apply HReset $$ [$Hst] as Hst
     ihave #Happ := Hap' $$ %lvl %p %STMSt.empty Hm
-    wp_apply Happ $$ [$Hst] as %err ⟨%st', Hst, %Herr⟩
+    wp_apply Happ $$ [$Hst] as %r Hr
+    iunfold stmRet at Hr
+    icases Hr with (⟨%err, %Hr, %st', Hst, %Herr⟩ | %Hab)
+    rotate_left
+    · -- the attempt aborted (`panic(stmError{err})`): the panic leaves the loop and reaches the
+      -- `Catch`, whose deferred literal recovers it and sends `(nil, err)`
+      obtain ⟨e, Hne, rfl⟩ := Hab
+      unfold stmAbort
+      wp_auto
+      wp_for_post
+      wp_apply wp_recoverPanic $$ [$pnc] as pnc
+      wp_apply wp_bag_send (P := fun r : stmResponse => stmResult (GF := GF) pfx lvl lo Q r.resp' r.err')
+        $$ [$Hch]
+      · unfold stmResult; ileft; ipureintro; exact Hne
+      itrivial
+    subst Hr
+    wp_auto
     cases err with
     | ok e =>
       wp_auto
@@ -65,7 +81,22 @@ theorem runSTM.wp_proof :
       itrivial
     | nil =>
       wp_auto
-      wp_apply HCommit $$ [$Hst $Hlo] as %resp ⟨Hst, Hres⟩
+      wp_apply HCommit $$ [$Hst $Hlo] as %r Hr
+      iunfold stmRet at Hr
+      icases Hr with (⟨%resp, %Hr, Hst, Hres⟩ | %Hab)
+      rotate_left
+      · -- the commit aborted: as above
+        obtain ⟨e, Hne, rfl⟩ := Hab
+        unfold stmAbort
+        wp_auto
+        wp_for_post
+        wp_apply wp_recoverPanic $$ [$pnc] as pnc
+        wp_apply wp_bag_send (P := fun r : stmResponse => stmResult (GF := GF) pfx lvl lo Q r.resp' r.err')
+          $$ [$Hch]
+        · unfold stmResult; ileft; ipureintro; exact Hne
+        itrivial
+      subst Hr
+      wp_auto
       icases Hres with (%Hnull | ⟨%Hnn, #Hout⟩)
       · subst Hnull
         wp_auto

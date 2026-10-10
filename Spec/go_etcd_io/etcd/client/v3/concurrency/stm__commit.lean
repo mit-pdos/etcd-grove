@@ -25,14 +25,15 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 /-- `s.commit()` (a `*stm`; any level's conflicts closure), knowing etcd has reached `lo`: the
 transaction `If(conflicts...).Then(puts...)`; nil if it failed, otherwise its response, with
-`stmOutcome`. A client error aborts it (`stmPanic.spec`). -/
+`stmOutcome`. A client error aborts it (`stmRet`). -/
 abbrev stm.commit.spec : Prop :=
   ∀ (lvl : w64) (b : Loc) (pfx : GoString) (st : STMSt) (lo : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ stmEnv pfx b ∗ stmRsetOwn pfx b st.reads ∗ stmWsetOwn pfx b st.writes ∗
       stmConflictsAt lvl pfx b ∗ etcdReached lo }}
     (App (Val (b @!! go.GoType.PointerType stm.ty @!! go!"commit")) (Val #()))
-  {{ (resp : Loc), RET #resp; stmRsetOwn pfx b st.reads ∗ stmWsetOwn pfx b st.writes ∗
-      (⌜resp = null⌝ ∨ ⌜resp ≠ null⌝ ∗ stmOutcome pfx lvl lo st resp) }}
+  {{ (r : val), RET r; stmRet r fun resp : Loc => iprop(
+      stmRsetOwn pfx b st.reads ∗ stmWsetOwn pfx b st.writes ∗
+      (⌜resp = null⌝ ∨ ⌜resp ≠ null⌝ ∗ stmOutcome pfx lvl lo st resp)) }}
 
 end spec
 

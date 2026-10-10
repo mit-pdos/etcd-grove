@@ -65,7 +65,7 @@ status_Error:
 WatchResponse__Err: rpctypes_Error status_Error
 ResponseOp__GetResponseRange:
 # Mutex (client/v3/concurrency/mutex.go, key.go), see InvMutex.lean. lockerMutex's Lock and Unlock
-# are not specified (they panic on any error, and every client call may fail).
+# panic on any error (their specs' panic outcome).
 NewMutex:
 Mutex__Key:
 Mutex__Header:
@@ -77,6 +77,8 @@ Mutex__tryAcquire: Session__Client Session__Lease CreateRevision v3_Compare v3_W
 Mutex__Unlock: Session__Client
 Mutex__TryLock: Mutex__tryAcquire ResponseOp__GetResponseRange Session__Client
 Mutex__Lock: Mutex__tryAcquire ResponseOp__GetResponseRange Session__Client waitDeletes Client__Ctx Mutex__Unlock
+lockerMutex__Lock: Session__Client Client__Ctx Mutex__Lock
+lockerMutex__Unlock: Session__Client Client__Ctx Mutex__Unlock
 # Election (client/v3/concurrency/election.go), see InvElection.lean.
 NewElection:
 ResumeElection:
@@ -90,8 +92,7 @@ Election__Campaign: Session__Client Session__Lease CreateRevision v3_Compare v3_
 Election__observe: Session__Client WithFirstCreate WithRev WithPrefix WatchResponse__Err
 Election__Observe: Election__observe
 # STM (client/v3/concurrency/stm.go), see InvSTM.lean. The STM's abort (`panic(stmError{err})`)
-# is the trust boundary (an axiom).
-stmPanic:
+# is a panic outcome of fetch and the commits, which runSTM's deferred literal recovers.
 WithIsolation:
 WithAbortContext:
 WithPrefetch:
@@ -107,13 +108,13 @@ stmSerializable__gets: OpGet
 stm__reset:
 stm__Put: OpPut
 stm__Del: OpDelete
-stm__fetch: OpGet ResponseOp__GetResponseRange readSet__add stmPanic
+stm__fetch: OpGet ResponseOp__GetResponseRange readSet__add
 stm__Get: writeSet__get stm__fetch respToValue
 stm__Rev: stm__fetch
 stmSerializable__Get: writeSet__get stm__fetch respToValue WithRev WithSerializable
 stmSerializable__Rev: stmSerializable__Get stm__Rev
-stm__commit: writeSet__puts stmPanic
-stmSerializable__commit: stmSerializable__gets writeSet__puts readSet__add stmPanic
+stm__commit: writeSet__puts
+stmSerializable__commit: stmSerializable__gets writeSet__puts readSet__add
 mkSTM: readSet__cmps readSet__first writeSet__cmps stm__Get stm__Put stm__Rev stm__Del stm__commit stm__reset stmSerializable__Get stmSerializable__Rev stmSerializable__commit WithSerializable
 runSTM:
 NewSTM: Client__Ctx mkSTM runSTM

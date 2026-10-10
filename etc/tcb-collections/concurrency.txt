@@ -7,7 +7,6 @@
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Proof/go_etcd_io/etcd/client/v3/concurrency/(Link|Results)\.lean$
-axiom concurrency.stmPanic.wp_proof
 axiom etcdReachedAt
 axiom etcdState
 axiom etcdState_agree

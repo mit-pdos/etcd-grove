@@ -7,7 +7,6 @@ public import Spec.go_etcd_io.etcd.client.v3.concurrency.stmSerializable__commit
 public import Spec.go_etcd_io.etcd.client.v3.concurrency.stmSerializable__gets
 public import Spec.go_etcd_io.etcd.client.v3.concurrency.writeSet__puts
 public import Spec.go_etcd_io.etcd.client.v3.concurrency.readSet__add
-public import Spec.go_etcd_io.etcd.client.v3.concurrency.stmPanic
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.InvSTMCommit
 
 @[expose] public section
@@ -33,8 +32,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 theorem stmSerializable.commit.wp_proof
     (hGets : stmSerializable.gets.spec (GF := GF) (hG := hG))
     (hPuts : writeSet.puts.spec (GF := GF) (hG := hG))
-    (hAdd : readSet.add.spec (GF := GF) (hG := hG))
-    (hPanic : stmPanic.spec (GF := GF) (hG := hG)) :
+    (hAdd : readSet.add.spec (GF := GF) (hG := hG)) :
     stmSerializable.commit.spec (GF := GF) (hG := hG) := by
   intro lvl p pfx st lo
   wp_start as ⟨Hst, #Hlo, %Hser⟩
@@ -103,7 +101,9 @@ theorem stmSerializable.commit.wp_proof
       | nil => exact absurd rfl Hne
       | ok e => exact ⟨e, rfl⟩
     (try wp_auto)
-    wp_apply hPanic (GoInterface.ok e) _ (by simp)
+    wp_apply wp_panic
+    iapply HΦ
+    iapply stmRet_abort _ (by simp)
   subst Heq
   have hm : ({ model := { cmps := ms, thenOps := ops, elseOps := (ks.map keyOp).map TxnOp.get }, cif := true, cthen := true, celse := true } : TxnBuild).model =
       ({ cmps := ms, thenOps := ops, elseOps := (ks.map keyOp).map TxnOp.get } : TxnModel) := rfl
@@ -141,6 +141,7 @@ theorem stmSerializable.commit.wp_proof
     wp_apply hAdd rm2 pfx rsMap2 st.reads ksl ks resp rsl ps es $$ [$Hpkg $Hrm $Hreads2 $Hks $HRs $Hps $Hrd] as ⟨%rsMap3, Hrm, #Hreads3⟩
     · ipureintro; omega
     iapply HΦ
+    iapply stmRet_ret
     isplitl
     · iunfold stmWsetOwn at Hws
       icases Hws with ⟨%wm', %wsMap', Hwf', -, -⟩
@@ -166,6 +167,7 @@ theorem stmSerializable.commit.wp_proof
     rw [hok']
     (try wp_auto)
     iapply HΦ
+    iapply stmRet_ret
     isplitl
     · iunfold stmRsetOwn at Hrs
       icases Hrs with ⟨%rm', %rsMap', Hrf', -, -⟩

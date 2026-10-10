@@ -77,9 +77,17 @@ theorem stmMethods_stm
   · imodintro
     iintro %st %sl %ks
     wp_start_folded as ⟨⟨#Henv, Hr, Hw, ⟨%gs, Ho, %Hgs⟩, #Hcf, -⟩, #Hks, %Hk⟩
-    wp_apply hGet p pfx st gs sl ks $$ [$Hpkg $Henv $Hr $Hw $Ho $Hks] as %v ⟨%reads', Hr, Hw, Ho, %Hpost⟩
+    wp_apply hGet p pfx st gs sl ks $$ [$Hpkg $Henv $Hr $Hw $Ho $Hks] as %r Hres
     · ipureintro; exact ⟨readOptsOk_of_getOptsOk lvl gs Hgs, Hk⟩
+    iunfold stmRet at Hres
+    icases Hres with (⟨%v, %Hv, %reads', Hr, Hw, Ho, %Hpost⟩ | %Hab)
+    rotate_left
+    · iapply HΦ
+      unfold stmRet
+      iright; ipureintro; exact Hab
+    subst Hv
     iapply HΦ
+    iapply stmRet_ret
     iexists { reads := reads', writes := st.writes }
     iframe
     iframe #
@@ -99,9 +107,17 @@ theorem stmMethods_stm
   · imodintro
     iintro %st %k
     wp_start_folded as ⟨⟨#Henv, Hr, Hw, ⟨%gs, Ho, %Hgs⟩, #Hcf, -⟩, %Hk⟩
-    wp_apply hRev p pfx st.reads gs k $$ [$Hpkg $Henv $Hr $Ho] as %r ⟨%reads', Hr, Ho, %Hpost⟩
+    wp_apply hRev p pfx st.reads gs k $$ [$Hpkg $Henv $Hr $Ho] as %r' Hres
     · ipureintro; exact ⟨readOptsOk_of_getOptsOk lvl gs Hgs, Hk⟩
+    iunfold stmRet at Hres
+    icases Hres with (⟨%r, %Hr', %reads', Hr, Ho, %Hpost⟩ | %Hab)
+    rotate_left
+    · iapply HΦ
+      unfold stmRet
+      iright; ipureintro; exact Hab
+    subst Hr'
     iapply HΦ
+    iapply stmRet_ret
     iexists { reads := reads', writes := st.writes }
     iframe
     iframe #
@@ -121,17 +137,26 @@ theorem stmMethods_stm
   · imodintro
     iintro %st %lo
     wp_start_folded as ⟨⟨#Henv, Hr, Hw, Ho, #Hcf, -⟩, #Hlo⟩
-    wp_apply hCommit lvl p pfx st lo $$ [$Hpkg $Henv $Hr $Hw $Hcf $Hlo] as %resp ⟨Hr, Hw, Hres⟩
+    wp_apply hCommit lvl p pfx st lo $$ [$Hpkg $Henv $Hr $Hw $Hcf $Hlo] as %r Hres
+    iunfold stmRet at Hres
+    icases Hres with (⟨%resp, %Hresp, Hr, Hw, Hres⟩ | %Hab)
+    rotate_left
+    · iapply HΦ
+      unfold stmRet
+      iright; ipureintro; exact Hab
+    subst Hresp
     unfold stmRsetOwn stmWsetOwn
     icases Hr with ⟨%m1, %rm, Hr, -⟩
     icases Hw with ⟨%m2, %wm, Hw, -⟩
     iapply HΦ
+    iapply stmRet_ret
     iframe
     iframe #
   · imodintro
     wp_start_folded as ⟨#Henv, Hr, Hw, Ho, #Hcf, -⟩
     wp_apply hReset p pfx $$ [$Hpkg $Hr $Hw] as ⟨Hr, Hw⟩
     iapply HΦ
+    simp only [STMSt.empty]
     iframe
     iframe #
 

@@ -78,6 +78,8 @@ public import Proof.go_etcd_io.etcd.client.v3.concurrency.WithLease
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.WithTTL
 public import Proof.go_etcd_io.etcd.client.v3.getPrefix
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.isKeyCurrent
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.lockerMutex__Lock
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.lockerMutex__Unlock
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.mkSTM
 public import Proof.go_etcd_io.etcd.client.v3.mustInt64
 public import Proof.go_etcd_io.etcd.client.v3.mustInt64orLeaseID
@@ -89,7 +91,6 @@ public import Proof.go_etcd_io.etcd.client.v3.concurrency.respToValue
 public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Error
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.runSTM
 public import Proof.google_golang_org.grpc.status.Error
-public import Proof.go_etcd_io.etcd.client.v3.concurrency.stmPanic
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.stmSerializable__Get
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.stmSerializable__Rev
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.stmSerializable__commit
@@ -419,13 +420,9 @@ theorem readSet.wp_add [AllG GF] :
     EtcdGrove.concurrency.readSet.add.spec (GF := GF) (hG := hG) :=
   EtcdGrove.concurrency.readSet.add.wp_proof ResponseOp.wp_GetResponseRange
 
-theorem wp_stmPanic [AllG GF] :
-    EtcdGrove.concurrency.stmPanic.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.concurrency.stmPanic.wp_proof
-
 theorem stm.wp_fetch [AllG GF] :
     EtcdGrove.concurrency.stm.fetch.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.concurrency.stm.fetch.wp_proof v3.wp_OpGet ResponseOp.wp_GetResponseRange readSet.wp_add wp_stmPanic
+  EtcdGrove.concurrency.stm.fetch.wp_proof v3.wp_OpGet ResponseOp.wp_GetResponseRange readSet.wp_add
 
 theorem wp_respToValue [AllG GF] :
     EtcdGrove.concurrency.respToValue.spec (GF := GF) (hG := hG) :=
@@ -453,7 +450,7 @@ theorem writeSet.wp_puts [AllG GF] :
 
 theorem stm.wp_commit [AllG GF] :
     EtcdGrove.concurrency.stm.commit.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.concurrency.stm.commit.wp_proof writeSet.wp_puts wp_stmPanic
+  EtcdGrove.concurrency.stm.commit.wp_proof writeSet.wp_puts
 
 theorem stm.wp_reset [AllG GF] :
     EtcdGrove.concurrency.stm.reset.spec (GF := GF) (hG := hG) :=
@@ -473,7 +470,7 @@ theorem stmSerializable.wp_gets [AllG GF] :
 
 theorem stmSerializable.wp_commit [AllG GF] :
     EtcdGrove.concurrency.stmSerializable.commit.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.concurrency.stmSerializable.commit.wp_proof stmSerializable.wp_gets writeSet.wp_puts readSet.wp_add wp_stmPanic
+  EtcdGrove.concurrency.stmSerializable.commit.wp_proof stmSerializable.wp_gets writeSet.wp_puts readSet.wp_add
 
 theorem wp_mkSTM [AllG GF] :
     EtcdGrove.concurrency.mkSTM.spec (GF := GF) (hG := hG) :=
@@ -546,6 +543,14 @@ theorem wp_WithLease [AllG GF] :
 theorem wp_WithTTL [AllG GF] :
     EtcdGrove.concurrency.WithTTL.spec (GF := GF) (hG := hG) :=
   EtcdGrove.concurrency.WithTTL.wp_proof zap.wp_Int64 zap.Logger.wp_Warn
+
+theorem lockerMutex.wp_Lock [AllG GF] :
+    EtcdGrove.concurrency.lockerMutex.Lock.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.lockerMutex.Lock.wp_proof Session.wp_Client v3.Client.wp_Ctx Mutex.wp_Lock
+
+theorem lockerMutex.wp_Unlock [AllG GF] :
+    EtcdGrove.concurrency.lockerMutex.Unlock.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.lockerMutex.Unlock.wp_proof Session.wp_Client v3.Client.wp_Ctx Mutex.wp_Unlock
 
 end links_hasLC
 

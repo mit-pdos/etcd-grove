@@ -38,8 +38,18 @@ theorem stmSerializable.Rev.wp_proof (hGet : stmSerializable.Get.spec (GF := GF)
   iintro %ksl ⟨Hksl, -⟩
   ipersist Hksl
   wp_auto
-  wp_apply hGet lvl p pfx st _ [k] $$ [$Hpkg $Hst $Hksl] as %v ⟨%st1, Hst, %Hgp⟩
+  wp_apply hGet lvl p pfx st _ [k] $$ [$Hpkg $Hst $Hksl] as %r Hr
   · ipureintro; refine ⟨Hser, ?_⟩; simpa using Hpk
+  iunfold stmRet at Hr
+  icases Hr with (⟨%v, %Hrv, %st1, Hst, %Hgp⟩ | %Hab)
+  rotate_left
+  · obtain ⟨err, Hne, rfl⟩ := Hab
+    unfold stmAbort
+    wp_auto
+    iapply HΦ
+    iapply stmRet_abort _ Hne
+  subst Hrv
+  wp_auto
   unfold stmState
   simp only [stmBase, Hser, ↓reduceIte]
   icases Hst with ⟨#Henv, Hrs, Hws, ⟨%gs, Hopts, %Hgs⟩, #Hcf, ⟨%pre, Hpre, %HpreOk⟩⟩
@@ -50,11 +60,22 @@ theorem stmSerializable.Rev.wp_proof (hGet : stmSerializable.Get.spec (GF := GF)
     rcases Hgs with h | ⟨S, h⟩
     · exact Or.inl h
     · exact Or.inr (Or.inr ⟨S, h⟩)
-  wp_apply hRev (structFieldRef stmSerializable go!"stm" p) pfx st1.reads gs k $$ [$Hpkg $Henv $Hrs $Hopts] as %r ⟨%reads', Hrs, Hopts, %Hrv⟩
+  wp_apply hRev (structFieldRef stmSerializable go!"stm" p) pfx st1.reads gs k $$ [$Hpkg $Henv $Hrs $Hopts] as %r' Hr
   · ipureintro; exact ⟨Hgs', Hpk⟩
+  iunfold stmRet at Hr
+  icases Hr with (⟨%r, %Hr', %reads', Hrs, Hopts, %Hrv⟩ | %Hab)
+  rotate_left
+  · obtain ⟨err, Hne, rfl⟩ := Hab
+    unfold stmAbort
+    wp_auto
+    iapply HΦ
+    iapply stmRet_abort _ Hne
+  subst Hr'
+  wp_auto
   obtain ⟨Hgw, Hgg, -, Hgv⟩ := Hgp
   obtain ⟨Hrg, e, Hre, Hr⟩ := Hrv
   iapply HΦ
+  iapply stmRet_ret
   iexists ({ reads := reads', writes := st1.writes } : STMSt)
   iframe Henv Hrs Hws Hcf
   isplitl [Hopts Hpre]

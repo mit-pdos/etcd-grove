@@ -26,12 +26,13 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 /-- `s.Get(keys...)` (a `*stmSerializable`: the serializable levels), keys under `pfx`: `""` for no
 key; a written key's value; otherwise the prefetched reads of `keys` move to the read set, and
 `fetch`'s value; after the attempt's first read, the gets are at its header's revision
-(`WithRev`) (`GetPost`). A client error aborts it. -/
+(`WithRev`) (`GetPost`). A client error aborts it (`stmRet`). -/
 abbrev stmSerializable.Get.spec : Prop :=
   ∀ (lvl : w64) (p : Loc) (pfx : GoString) (st : STMSt) (ksl : GoSlice) (ks : List GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ stmState lvl pfx p st ∗ ksl ↦*□ ks ∗ ⌜isoSer lvl = true ∧ ∀ k ∈ ks, pfx <+: k⌝ }}
     (App (Val (p @!! go.GoType.PointerType stmSerializable.ty @!! go!"Get")) (Val #ksl))
-  {{ (v : GoString), RET #v; ∃ st' : STMSt, stmState lvl pfx p st' ∗ ⌜GetPost ks st v st'⌝ }}
+  {{ (r : val), RET r; stmRet r fun v : GoString => iprop(
+      ∃ st' : STMSt, stmState lvl pfx p st' ∗ ⌜GetPost ks st v st'⌝) }}
 
 end spec
 

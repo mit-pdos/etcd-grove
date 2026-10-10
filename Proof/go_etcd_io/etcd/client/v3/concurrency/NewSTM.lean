@@ -119,11 +119,33 @@ theorem NewSTM.wp_proof (hCtx : Client.Ctx.spec (GF := GF) (hG := hG))
       ihave #HGet1 := HGet $$ %st %psl %O.prefetch
       simp only [stmIface]
       wp_auto
-      wp_apply HGet1 $$ [$Hst $Hpsl] as %v ⟨%st', Hst, -⟩
+      wp_apply HGet1 $$ [$Hst $Hpsl] as %r Hr
       · ipureintro; exact Hpre.2
+      iunfold stmRet at Hr
+      icases Hr with (⟨%v, %Hv, %st', Hst, -⟩ | %Hab)
+      rotate_left
+      · -- the prefetch aborted: so does the closure
+        obtain ⟨err, Hne, rfl⟩ := Hab
+        unfold stmAbort
+        wp_auto
+        iapply HΦ
+        iapply stmRet_abort _ Hne
+      subst Hv
+      wp_auto
       ihave #Hap3 := Hap1 $$ %st' Hm
-      wp_apply Hap3 $$ [$Hst] as %err Hres
+      wp_apply Hap3 $$ [$Hst] as %r' Hres
+      iunfold stmRet at Hres
+      icases Hres with (⟨%err, %Herr, Hres⟩ | %Hab)
+      rotate_left
+      · obtain ⟨err, Hne, rfl⟩ := Hab
+        unfold stmAbort
+        wp_auto
+        iapply HΦ
+        iapply stmRet_abort _ Hne
+      subst Herr
+      wp_auto
       iapply HΦ
+      iapply stmRet_ret
       iexact Hres
     iapply HΦ
     iexact Hres
