@@ -297,33 +297,41 @@ theorem ownBTree_split_own {T' : Type} [ZeroVal T'] [TypedPointsto (GF := GF) T'
 
 /-! ### The tree with its key indexes -/
 
+/-- An entry's key index: its pointer (not `nil`) and its mutable part, at fraction `q`. -/
+def ownEntry (z : IdxEntry) (q : Qp) : IProp GF :=
+  iprop(⌜z.1 ≠ null⌝ ∗ ∃ gs : GoSlice, ownKi z.1 gs z.2.2 (DFrac.own q))
+
 /-- The tree at `t` and its key indexes hold the entries `L` (keys strictly increasing), at
 fraction `q`. -/
 def ownTree (t : Loc) (L : List IdxEntry) (q : Qp) : IProp GF :=
   iprop(⌜(itemsOfEntries L).Pairwise kiItemLess⌝ ∗
     ownBTree kiPtrT t kiItemIs kiItemLess (itemsOfEntries L) (DFrac.own q) ∗
-    [∗list] z ∈ L, ∃ gs : GoSlice, ownKi z.1 gs z.2.2 (DFrac.own q))
+    [∗list] z ∈ L, ownEntry z q)
 
 theorem bigSepL_ownKi_split (L : List IdxEntry) (q1 q2 : Qp) :
-    ([∗list] z ∈ L, ∃ gs : GoSlice, ownKi (GF := GF) z.1 gs z.2.2 (DFrac.own (q1 + q2))) ⊢
-      ([∗list] z ∈ L, ∃ gs : GoSlice, ownKi z.1 gs z.2.2 (DFrac.own q1)) ∗
-      ([∗list] z ∈ L, ∃ gs : GoSlice, ownKi z.1 gs z.2.2 (DFrac.own q2)) := by
+    ([∗list] z ∈ L, ownEntry (GF := GF) z (q1 + q2)) ⊢
+      ([∗list] z ∈ L, ownEntry z q1) ∗ ([∗list] z ∈ L, ownEntry z q2) := by
   induction L with
   | nil => iintro _; isplitl [] <;> (iapply BigSepL.bigSepL_nil_intro; iempintro)
   | cons z L ih =>
     iintro H
-    icases BigSepL.bigSepL_cons.1 $$ H with ⟨⟨%gs, H⟩, Hs⟩
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨Hz, Hs⟩
+    iunfold ownEntry at Hz
+    icases Hz with ⟨%Hn, %gs, H⟩
     icases ownKi_split_own _ _ _ _ _ $$ H with ⟨H1, H2⟩
     icases ih $$ Hs with ⟨Hs1, Hs2⟩
     isplitl [H1 Hs1]
-    · iapply BigSepL.bigSepL_cons.2; iframe Hs1; iexists gs; iexact H1
-    · iapply BigSepL.bigSepL_cons.2; iframe Hs2; iexists gs; iexact H2
+    · iapply BigSepL.bigSepL_cons.2; iframe Hs1; iunfold ownEntry; isplitl []
+      · ipureintro; exact Hn
+      iexists gs; iexact H1
+    · iapply BigSepL.bigSepL_cons.2; iframe Hs2; iunfold ownEntry; isplitl []
+      · ipureintro; exact Hn
+      iexists gs; iexact H2
 
 theorem bigSepL_ownKi_combine (L1 : List IdxEntry) (q1 q2 : Qp) :
     ∀ (L2 : List IdxEntry), itemsOfEntries L1 = itemsOfEntries L2 →
-    ⊢ ([∗list] z ∈ L1, ∃ gs : GoSlice, ownKi (GF := GF) z.1 gs z.2.2 (DFrac.own q1)) -∗
-      ([∗list] z ∈ L2, ∃ gs : GoSlice, ownKi z.1 gs z.2.2 (DFrac.own q2)) -∗
-      ⌜L1 = L2⌝ ∗ [∗list] z ∈ L1, ∃ gs : GoSlice, ownKi z.1 gs z.2.2 (DFrac.own (q1 + q2)) := by
+    ⊢ ([∗list] z ∈ L1, ownEntry (GF := GF) z q1) -∗ ([∗list] z ∈ L2, ownEntry z q2) -∗
+      ⌜L1 = L2⌝ ∗ [∗list] z ∈ L1, ownEntry z (q1 + q2) := by
   induction L1 with
   | nil =>
     intro L2 h
@@ -341,18 +349,26 @@ theorem bigSepL_ownKi_combine (L1 : List IdxEntry) (q1 q2 : Qp) :
       simp only [itemsOfEntries, List.map_cons, List.cons.injEq, Prod.mk.injEq] at h
       obtain ⟨⟨rfl, rfl⟩, h⟩ := h
       iintro H1 H2
-      icases BigSepL.bigSepL_cons.1 $$ H1 with ⟨⟨%gs1, H1⟩, Hs1⟩
-      icases BigSepL.bigSepL_cons.1 $$ H2 with ⟨⟨%gs2, H2⟩, Hs2⟩
+      icases BigSepL.bigSepL_cons.1 $$ H1 with ⟨Hz1, Hs1⟩
+      icases BigSepL.bigSepL_cons.1 $$ H2 with ⟨Hz2, Hs2⟩
+      iunfold ownEntry at Hz1
+      iunfold ownEntry at Hz2
+      icases Hz1 with ⟨%Hn, %gs1, H1⟩
+      icases Hz2 with ⟨-, %gs2, H2⟩
       icases ownKi_combine _ _ _ _ _ _ _ $$ H1 H2 with ⟨%Hp, H⟩
       icases ih L' (by unfold itemsOfEntries; exact h) $$ Hs1 Hs2 with ⟨%HL, Hs⟩
       isplitl []
       · ipureintro
         simp only at Hp
         rw [HL, Hp.2]
-      rw [show DFrac.own (q1 + q2) = DFrac.own q1 • DFrac.own q2 from rfl]
       iapply BigSepL.bigSepL_cons.2
       iframe Hs
-      iexists gs1; iexact H
+      iunfold ownEntry
+      isplitl []
+      · ipureintro; exact Hn
+      iexists gs1
+      rw [show DFrac.own (q1 + q2) = DFrac.own q1 • DFrac.own q2 from rfl]
+      iexact H
 
 /-- Two fractions of the tree hold the same entries (the key indexes' models agree). -/
 theorem ownTree_combine (t : Loc) (L1 L2 : List IdxEntry) (q1 q2 : Qp) :
