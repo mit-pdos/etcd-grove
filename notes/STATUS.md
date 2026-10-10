@@ -14,6 +14,20 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## bbolt: not goosable as written; the `unsafe` it needs (2026-10-10)
+
+bbolt (v1.5.0, etcd's dependency) works by reading `[]byte` buffers (the mmap'd file, heap
+pages) as structs through `unsafe.Pointer`, with `uintptr` arithmetic. Perennial's typed heap
+gives that no meaning, and it leaves `uintptr ↔ pointer` stuck on purpose. `notes/bbolt-unsafe.md`
+inventories every use and says what a model needs: layout constants, a byte view of
+pointer-free structs (the core change), byte-offset arithmetic, slices over raw memory, and a
+file-backed mmap. It also covers the fork alternative. What is goosable now:
+`internal/common`'s page-id helpers are translated with bodies
+(`Code/go_etcd_io/bbolt/internal/common.toml`), with package init, the sorted-list model,
+`wp_slice_append_in_place` and the `Mergepgids` spec in
+`{Proof,Spec}/go_etcd_io/bbolt/internal/common/`. `Mergepgids`' proof is in progress. Most of
+`internal/freelist` and `errors` are goosable too.
+
 ## `node.go` groundwork: abandoning a `Ready`, pre-vote off, the messages' terms (2026-10-10)
 
 Three pieces `node.go`'s proof will need (uncommitted Perennial change: `Slice.lean`).
