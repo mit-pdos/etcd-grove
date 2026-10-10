@@ -29,6 +29,41 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
+/-! ## The applier's table, pure -/
+
+theorem occStep_mem (L : List (List w8)) (d : List w8) (h : d ∈ L) : occStep L (some d) = L := by
+  show (if d ∈ L then _ else _) = _; rw [if_pos h]
+
+theorem occStep_nmem (L : List (List w8)) (d : List w8) (h : d ∉ L) :
+    occStep L (some d) = L ++ [d] := by
+  show (if d ∈ L then _ else _) = _; rw [if_neg h]
+
+theorem appliedOk_skip (A : GMap (List w8) Bool) (L : List (List w8)) (d : List w8)
+    (HA : AppliedOk A L) (Hd : decodeOp d = none ∨ d ∈ L) : AppliedOk A (occStep L (some d)) := by
+  by_cases Hm : d ∈ L
+  · rw [occStep_mem L d Hm]; exact HA
+  · have Hd' : decodeOp d = none := by rcases Hd with h | h; exact h; exact absurd h Hm
+    rw [occStep_nmem L d Hm]
+    intro d'
+    rw [HA d']
+    by_cases Heq : d' = d
+    · subst Heq; simp [Hd', Hm]
+    · simp [List.mem_append, Heq]
+
+theorem appliedOk_insert (A : GMap (List w8) Bool) (L : List (List w8)) (d : List w8)
+    (HA : AppliedOk A L) (Hm : d ∉ L) (Hd : (decodeOp d).isSome) :
+    AppliedOk (A.insert d true) (L ++ [d]) := by
+  intro d'
+  by_cases Heq : d' = d
+  · subst Heq; rw [GMap.lookup_insert_eq]; simp [Hd]
+  · rw [GMap.lookup_insert_ne _ _ (Ne.symm Heq), HA d']
+    simp [List.mem_append, Heq]
+
+theorem appliedOk_lookup (A : GMap (List w8) Bool) (L : List (List w8)) (d : List w8)
+    (HA : AppliedOk A L) (Hd : (decodeOp d).isSome) : (A !! d).getD false = decide (d ∈ L) := by
+  rw [HA d]
+  by_cases Hm : d ∈ L <;> simp [Hm, Hd]
+
 section lemmas
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
