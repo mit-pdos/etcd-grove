@@ -17,6 +17,15 @@ public import Proof.go_etcd_io.etcd.client.v3.Cmp__ensureCompare
 public import Proof.go_etcd_io.etcd.client.v3.Compare
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.Compare__GetKey
 public import Proof.go_etcd_io.etcd.client.v3.CreateRevision
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.Election__Campaign
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.Election__Header
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.Election__Key
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.Election__Leader
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.Election__Observe
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.Election__Proclaim
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.Election__Resign
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.Election__Rev
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.Election__observe
 public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithFromKey
 public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithPrefix
 public import Proof.go_etcd_io.etcd.client.v3.LeaseValue
@@ -29,6 +38,7 @@ public import Proof.go_etcd_io.etcd.client.v3.concurrency.Mutex__Lock
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.Mutex__TryLock
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.Mutex__Unlock
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.Mutex__tryAcquire
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.NewElection
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.NewLocker
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.NewMutex
 public import Proof.go_etcd_io.etcd.client.v3.NewOp
@@ -38,6 +48,7 @@ public import Proof.go_etcd_io.etcd.client.v3.OpGet
 public import Proof.go_etcd_io.etcd.client.v3.OpPut
 public import Proof.go_etcd_io.etcd.client.v3.Op__applyOpts
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp__GetResponseRange
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.ResumeElection
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.Session__Client
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.Session__Close
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.Session__Ctx
@@ -139,30 +150,6 @@ theorem v3.wp_CreateRevision :
     EtcdGrove.CreateRevision.spec (GF := GF) (hG := hG) :=
   EtcdGrove.CreateRevision.wp_proof
 
-theorem v3.wp_NewOp :
-    EtcdGrove.NewOp.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.NewOp.wp_proof
-
-theorem v3.wp_IsOptsWithFromKey :
-    EtcdGrove.IsOptsWithFromKey.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.IsOptsWithFromKey.wp_proof v3.wp_NewOp
-
-theorem v3.wp_IsOptsWithPrefix :
-    EtcdGrove.IsOptsWithPrefix.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.IsOptsWithPrefix.wp_proof v3.wp_NewOp
-
-theorem v3.wp_LeaseValue :
-    EtcdGrove.LeaseValue.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.LeaseValue.wp_proof
-
-theorem zap.Logger.wp_Warn :
-    EtcdGrove.zap.Logger.Warn.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zap.Logger.Warn.wp_proof
-
-theorem v3.wp_ModRevision :
-    EtcdGrove.ModRevision.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.ModRevision.wp_proof
-
 theorem v3.wp_WithLease :
     EtcdGrove.WithLease.spec (GF := GF) (hG := hG) :=
   EtcdGrove.WithLease.wp_proof
@@ -175,9 +162,29 @@ theorem v3.wp_OpPut :
     EtcdGrove.OpPut.spec (GF := GF) (hG := hG) :=
   EtcdGrove.OpPut.wp_proof v3.Op.wp_applyOpts
 
+theorem v3.wp_NewOp :
+    EtcdGrove.NewOp.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.NewOp.wp_proof
+
+theorem v3.wp_IsOptsWithPrefix :
+    EtcdGrove.IsOptsWithPrefix.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.IsOptsWithPrefix.wp_proof v3.wp_NewOp
+
+theorem v3.wp_IsOptsWithFromKey :
+    EtcdGrove.IsOptsWithFromKey.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.IsOptsWithFromKey.wp_proof v3.wp_NewOp
+
 theorem v3.wp_OpGet :
     EtcdGrove.OpGet.spec (GF := GF) (hG := hG) :=
   EtcdGrove.OpGet.wp_proof v3.wp_IsOptsWithPrefix v3.wp_IsOptsWithFromKey v3.Op.wp_applyOpts
+
+theorem ResponseOp.wp_GetResponseRange :
+    EtcdGrove.ResponseOp.GetResponseRange.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.ResponseOp.GetResponseRange.wp_proof
+
+theorem v3.wp_OpDelete :
+    EtcdGrove.OpDelete.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.OpDelete.wp_proof v3.wp_IsOptsWithPrefix v3.wp_IsOptsWithFromKey v3.Op.wp_applyOpts
 
 theorem v3.wp_WithPrefix :
     EtcdGrove.WithPrefix.spec (GF := GF) (hG := hG) :=
@@ -194,14 +201,6 @@ theorem v3.wp_WithLimit :
 theorem v3.wp_withTop :
     EtcdGrove.withTop.spec (GF := GF) (hG := hG) :=
   EtcdGrove.withTop.wp_proof v3.wp_WithPrefix v3.wp_WithSort v3.wp_WithLimit
-
-theorem v3.wp_WithFirstCreate :
-    EtcdGrove.WithFirstCreate.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.WithFirstCreate.wp_proof v3.wp_withTop
-
-theorem ResponseOp.wp_GetResponseRange :
-    EtcdGrove.ResponseOp.GetResponseRange.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.ResponseOp.GetResponseRange.wp_proof
 
 theorem v3.wp_WithLastCreate :
     EtcdGrove.WithLastCreate.spec (GF := GF) (hG := hG) :=
@@ -227,9 +226,21 @@ theorem v3.WatchResponse.wp_Err :
     EtcdGrove.WatchResponse.Err.spec (GF := GF) (hG := hG) :=
   EtcdGrove.WatchResponse.Err.wp_proof rpctypes.wp_Error status.wp_Error
 
-theorem v3.wp_OpDelete :
-    EtcdGrove.OpDelete.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.OpDelete.wp_proof v3.wp_IsOptsWithPrefix v3.wp_IsOptsWithFromKey v3.Op.wp_applyOpts
+theorem v3.wp_WithFirstCreate :
+    EtcdGrove.WithFirstCreate.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.WithFirstCreate.wp_proof v3.wp_withTop
+
+theorem v3.wp_LeaseValue :
+    EtcdGrove.LeaseValue.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.LeaseValue.wp_proof
+
+theorem zap.Logger.wp_Warn :
+    EtcdGrove.zap.Logger.Warn.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Logger.Warn.wp_proof
+
+theorem v3.wp_ModRevision :
+    EtcdGrove.ModRevision.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.ModRevision.wp_proof
 
 theorem v3.wp_Value :
     EtcdGrove.Value.spec (GF := GF) (hG := hG) :=
@@ -258,6 +269,58 @@ theorem v3.Client.wp_GetLogger [AllG GF] :
     EtcdGrove.Client.GetLogger.spec (GF := GF) (hG := hG) :=
   EtcdGrove.Client.GetLogger.wp_proof
 
+theorem Session.wp_Client [AllG GF] :
+    EtcdGrove.concurrency.Session.Client.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.Session.Client.wp_proof
+
+theorem Session.wp_Lease [AllG GF] :
+    EtcdGrove.concurrency.Session.Lease.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.Session.Lease.wp_proof
+
+theorem Election.wp_Proclaim [AllG GF] :
+    EtcdGrove.concurrency.Election.Proclaim.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.Election.Proclaim.wp_proof Session.wp_Client v3.wp_CreateRevision v3.wp_Compare Session.wp_Lease v3.wp_WithLease v3.wp_OpPut
+
+theorem Election.wp_Resign [AllG GF] :
+    EtcdGrove.concurrency.Election.Resign.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.Election.Resign.wp_proof Session.wp_Client v3.wp_CreateRevision v3.wp_Compare v3.wp_OpDelete
+
+theorem wp_waitDelete [AllG GF] :
+    EtcdGrove.concurrency.waitDelete.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.waitDelete.wp_proof v3.wp_WithRev v3.WatchResponse.wp_Err
+
+theorem wp_waitDeletes [AllG GF] :
+    EtcdGrove.concurrency.waitDeletes.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.waitDeletes.wp_proof v3.wp_WithLastCreate v3.wp_WithMaxCreateRev wp_waitDelete
+
+theorem Election.wp_Campaign [AllG GF] :
+    EtcdGrove.concurrency.Election.Campaign.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.Election.Campaign.wp_proof Session.wp_Client Session.wp_Lease v3.wp_CreateRevision v3.wp_Compare v3.wp_WithLease v3.wp_OpPut v3.wp_OpGet ResponseOp.wp_GetResponseRange Election.wp_Proclaim Election.wp_Resign wp_waitDeletes v3.Client.wp_Ctx
+
+theorem Election.wp_Header [AllG GF] :
+    EtcdGrove.concurrency.Election.Header.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.Election.Header.wp_proof
+
+theorem Election.wp_Key [AllG GF] :
+    EtcdGrove.concurrency.Election.Key.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.Election.Key.wp_proof
+
+theorem Election.wp_Leader [AllG GF] :
+    EtcdGrove.concurrency.Election.Leader.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.Election.Leader.wp_proof Session.wp_Client v3.wp_WithFirstCreate
+
+theorem Election.wp_observe [AllG GF] :
+    EtcdGrove.concurrency.Election.observe.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.Election.observe.wp_proof Session.wp_Client v3.wp_WithFirstCreate v3.wp_WithRev v3.wp_WithPrefix v3.WatchResponse.wp_Err
+
+theorem Election.wp_Observe [AllG GF] :
+    EtcdGrove.concurrency.Election.Observe.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.Election.Observe.wp_proof Election.wp_observe
+
+theorem Election.wp_Rev [AllG GF] :
+    EtcdGrove.concurrency.Election.Rev.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.Election.Rev.wp_proof
+
 theorem Mutex.wp_Header [AllG GF] :
     EtcdGrove.concurrency.Mutex.Header.spec (GF := GF) (hG := hG) :=
   EtcdGrove.concurrency.Mutex.Header.wp_proof
@@ -270,25 +333,9 @@ theorem Mutex.wp_Key [AllG GF] :
     EtcdGrove.concurrency.Mutex.Key.spec (GF := GF) (hG := hG) :=
   EtcdGrove.concurrency.Mutex.Key.wp_proof
 
-theorem Session.wp_Client [AllG GF] :
-    EtcdGrove.concurrency.Session.Client.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.concurrency.Session.Client.wp_proof
-
-theorem Session.wp_Lease [AllG GF] :
-    EtcdGrove.concurrency.Session.Lease.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.concurrency.Session.Lease.wp_proof
-
 theorem Mutex.wp_tryAcquire [AllG GF] :
     EtcdGrove.concurrency.Mutex.tryAcquire.spec (GF := GF) (hG := hG) :=
   EtcdGrove.concurrency.Mutex.tryAcquire.wp_proof Session.wp_Client Session.wp_Lease v3.wp_CreateRevision v3.wp_Compare v3.wp_WithLease v3.wp_OpPut v3.wp_OpGet v3.wp_WithFirstCreate ResponseOp.wp_GetResponseRange
-
-theorem wp_waitDelete [AllG GF] :
-    EtcdGrove.concurrency.waitDelete.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.concurrency.waitDelete.wp_proof v3.wp_WithRev v3.WatchResponse.wp_Err
-
-theorem wp_waitDeletes [AllG GF] :
-    EtcdGrove.concurrency.waitDeletes.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.concurrency.waitDeletes.wp_proof v3.wp_WithLastCreate v3.wp_WithMaxCreateRev wp_waitDelete
 
 theorem Mutex.wp_Unlock [AllG GF] :
     EtcdGrove.concurrency.Mutex.Unlock.spec (GF := GF) (hG := hG) :=
@@ -302,6 +349,10 @@ theorem Mutex.wp_TryLock [AllG GF] :
     EtcdGrove.concurrency.Mutex.TryLock.spec (GF := GF) (hG := hG) :=
   EtcdGrove.concurrency.Mutex.TryLock.wp_proof Mutex.wp_tryAcquire ResponseOp.wp_GetResponseRange Session.wp_Client
 
+theorem wp_NewElection [AllG GF] :
+    EtcdGrove.concurrency.NewElection.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.NewElection.wp_proof
+
 theorem wp_NewMutex [AllG GF] :
     EtcdGrove.concurrency.NewMutex.spec (GF := GF) (hG := hG) :=
   EtcdGrove.concurrency.NewMutex.wp_proof
@@ -313,6 +364,10 @@ theorem wp_NewLocker [AllG GF] :
 theorem wp_NewSession [AllG GF] :
     EtcdGrove.concurrency.NewSession.spec (GF := GF) (hG := hG) :=
   EtcdGrove.concurrency.NewSession.wp_proof v3.Client.wp_GetLogger v3.Client.wp_Ctx
+
+theorem wp_ResumeElection [AllG GF] :
+    EtcdGrove.concurrency.ResumeElection.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.ResumeElection.wp_proof
 
 theorem Session.wp_Orphan [AllG GF] :
     EtcdGrove.concurrency.Session.Orphan.spec (GF := GF) (hG := hG) :=

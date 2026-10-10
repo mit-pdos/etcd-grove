@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-10 (`Mutex`: mutual exclusion, Perennial `d240c1732`: `fmt.Sprintf` formats `%s`, `strings.HasPrefix`, see "Mutex: mutual exclusion"; merged upstream's RawNode work into the cache-as-shipped and concurrency line, Perennial `7d0b56b07`, see "Merge: upstream's RawNode work"; `RawNode.Step` takes a `MsgApp` between `Ready` and `Advance`; the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; Perennial `7d0b56b07`: Goose with per-iteration loop variables, `break` out of `select`, see "Perennial `7d0b56b07`"; merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
+**Last updated:** 2026-10-10 (`Election`: all of `election.go` specified and proved, election exclusion, only the leader proclaims, `Campaign` may return `nil` without its key (a finding), see "Election"; `Mutex`: mutual exclusion, Perennial `d240c1732`: `fmt.Sprintf` formats `%s`, `strings.HasPrefix`, see "Mutex: mutual exclusion"; merged upstream's RawNode work into the cache-as-shipped and concurrency line, Perennial `7d0b56b07`, see "Merge: upstream's RawNode work"; `RawNode.Step` takes a `MsgApp` between `Ready` and `Advance`; the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; Perennial `7d0b56b07`: Goose with per-iteration loop variables, `break` out of `select`, see "Perennial `7d0b56b07`"; merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
 
 Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
@@ -13,6 +13,85 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 (`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
+
+## Election (2026-10-10)
+
+`client/v3/concurrency`'s `Election` (`election.go`) is specified and proved: all 11 functions,
+with the mutex's exclusion as the election's and a pure theorem that only the leader proclaims.
+Design: `decisions.md`, "Election: the mutex's leader fact, no final check, what `Observe` can
+promise". Files: `client/v3/concurrency/InvElection.lean` (vocabulary, `proclaimStep_guard`),
+`Spec`/`Proof` pairs `NewElection`, `ResumeElection`, `Election__*`, `Results.lean`.
+
+- **The leader fact** is the mutex's: `leaderAt pfx key c R := lockedAt pfx key c R` (at `R`,
+  under the election's prefix, `key` present with create revision `c`, no key with a smaller one).
+- **Specs, in words** (the prefix `pfx` is `NewElection`'s argument plus `/`, `ResumeElection`'s
+  as given; `isElection` holds the session and prefix, `electionState e s st` the fields
+  `leaderKey`/`leaderRev`/`leaderSession` (nil or `s`)/`hdr`; every method runs from any state,
+  knowing etcd has reached `lo`):
+  - `NewElection(s, pfx)`: `isElection` and the zero state; `ResumeElection(s, pfx, key, rev)`:
+    the given key and revision, `s` as leader session (nothing checked).
+  - `Campaign(ctx, val)` (cancelable `ctx`): `nil` ⇒ the key `key` (under the prefix) was created
+    at `rev`, had value `val` at a revision `rv` (`keyValAt`: put, found, or proclaimed), and at
+    `waitDeletes`' last revision `R ≥ rv` no key under the prefix was created before `rev`:
+    **`leaderAt pfx key rev R ∨ campaignLost pfx key rev R`** (the second: `key` is not there with
+    create revision `rev`); the state holds the key, `rev`, the session and the transaction's header.
+    Errors: some state.
+  - `Proclaim(ctx, val)`: `nil` ⇒ a leader session, and (key under the prefix) etcd's states at
+    `r - 1` and `r ≥ lo` are a `ProclaimStep` (`proclaimedAt`: the guard
+    `CreateRevision(key) = rev` held and the key was put with `val`); `ErrElectionNotLeader` ⇒ no
+    leader session (unchanged), or the guard failed (the key is not there with create revision `rev`
+    at some `r ≥ lo`, `notLeaderAt`; `leaderKey` cleared); other errors unchanged.
+  - `Resign(ctx)`: no leader session ⇒ `nil`, unchanged; otherwise the guarded delete, leader key
+    and session cleared, and on `nil` the key is not there with create revision `rev` at the
+    header's revision `R ≥ lo`.
+  - `Leader(ctx)`: `nil` ⇒ the response lists one key-value, the leader at its revision
+    (`leaderKvAt`); `ErrElectionNoLeader` ⇒ the prefix is empty at some `R ≥ lo`.
+  - `Observe(ctx)`: an SPSC channel (`isObserveChan`) of `*GetResponse`s each listing one
+    key-value `v` with `observedAt pfx v R`, the `R`s non-decreasing from `lo` (a monotone ghost
+    list). `observe` is its goroutine (Perennial `go`, the channel's producer).
+  - `Key`, `Rev`, `Header`: the fields.
+- **What `Observe` guarantees** (`observedAt pfx v R`): `v` is in etcd's state at `R` and either
+  (1) it is the leader there, or (2) `v`'s key was the leader at an earlier `R0` with create
+  revision `c0`, `v` is a later incarnation of it (`c0 < v.createRev`) and no key created before
+  `c0` is alive at `R`, or (3) the prefix was empty at an earlier `R0` and every key alive at `R`
+  (`v` too) was created after `R0`. Responses from `Get(pfx, WithFirstCreate)` are (1); a
+  forwarded put on the leader's key is (1) if it has the leader's create revision, else (2); the
+  first put after an empty prefix, and puts forwarded from it, are (3). (2) and (3) are the leader
+  too with etcd's real watch (gap-free: the delete before a re-creation would end the forwarding;
+  the first put's batch creates every key there is), but the client contract does not promise a
+  gap-free stream, nor that a key's create revision is the revision of a put event, so the spec
+  says what the code gives against it.
+- **Finding: `Campaign` may return `nil` without being the leader.** After `waitDeletes`, `Campaign`
+  returns `nil` without looking at its own key; if the key was deleted while it waited (the
+  session's lease expired or was revoked, the session closed, another `Election` value on the same
+  session and prefix (which shares the key `pfx/<lease>`) resigned, or anyone deleted it), `Campaign`
+  still returns `nil` once the older keys are gone, and the caller believes it is the leader while
+  another candidate may be. `Mutex.Lock` had the same gap and got a final `Get` of its key
+  (`ErrSessionExpired`, upstream `b14c7cd44`, 2019, "concurrency: make lock more reliable");
+  `Campaign` never did. The spec states it (`campaignLost`). Not yet reproduced by a Go test;
+  a reproduction: candidate B campaigns behind leader A, B's key is deleted (e.g. `client.Delete`
+  or revoking B's lease) while B waits, A resigns: B's `Campaign` returns `nil`, B's key absent.
+  A fix would end `Campaign` as `Lock` does (a `Get` of the key comparing its create revision).
+- **Contract extensions** (definitions; `InvEtcdTxn.lean`): the single-key watch becomes a
+  **range watch** (`isEtcdRangeWatcher`, in `isEtcdMutexClient`: a key or a sub-prefix under the
+  client's prefix, from `rev ≥ 0`): an event is a put or a delete, its key in the range, at a
+  revision `≥ rev`, `< 2^63 - 1`, reached; a delete means absent; **a put's key-value is in etcd's
+  state at the event's revision**; events sorted above the stream's position (a monotone list,
+  as the cache's watch); the receiver **owns the header's `Revision`** of a response with events
+  (`observe` writes it). The transaction builder's `Commit` gains a triple for **any** transaction
+  (`txnAnyResult`). `waitDeletes` takes `maxCreateRev ≥ 0`. `concurrencyInit` holds Election's two
+  errors. `Observe` takes `lo ≥ 0` (its gets' revisions are watched from, and `Watch` needs them
+  non-negative; `0` is free).
+- **Other observations** (stated, not bugs): `ResumeElection` does not add `/` to the prefix
+  (`NewElection` does); after a failed `Proclaim` the leader key is `""` while the leader session
+  stays, so a second `Proclaim` or a `Resign` commits a transaction on the key `""` (etcd rejects
+  the empty key): their specs promise nothing beyond some header then (`txnAnyResult`).
+- **Gates**: `lake build` passes (1814 jobs); no `sorry` of this work; `etc/tcb-report.py --check`
+  unchanged (40 axioms, 1 sorry; `--collection concurrency`: 10 axioms, 1 sorry; no new trust-boundary
+  item); `etc/goose.py --check` passes; `etc/gen-link.py --cache/--concurrency/--server` reproduce;
+  `etc/verified-code.py --reuse`: `client/v3/concurrency` 31 verified, 1 unfinished (`Session.Close`)
+  of 62, `election.go` 11 of 11 (164/164 lines); etcd 215 verified of 3599.
+- **Push order**: etcd-grove `lean` only (Perennial and the etcd fork unchanged).
 
 ## Mutex: mutual exclusion (2026-10-10)
 

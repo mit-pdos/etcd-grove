@@ -16,6 +16,19 @@ base of each printed in the build log (`#print axioms`). Every function of `mute
   both of their `lockedAt` revisions; and at one revision the holder's create revision is unique
   (`mutex_holder_unique`). Stated over the model facts the specs return; proved from the two
   history laws (`etcdState_revs`, `etcdState_create_persist`) and `etcdState_agree`.
+
+`Election` (`election.go`): every function has a `Spec`/`Proof` pair and a linked result.
+
+* **`Campaign`** (`election_Campaign`): `nil` means the campaign's key, with the proposed value at
+  some revision, and at the revision `R` of its wait's last `Get` no key under the prefix older than
+  it: the leader at `R` (`leaderAt`, the mutex's `lockedAt`) — or its key is gone (`campaignLost`):
+  `Campaign` does not check its key after the wait (see its spec, and `notes/STATUS.md`).
+* **`Proclaim`**, **`Resign`**, **`Leader`**, **`Observe`** (`election_*`): see their specs.
+* **Election exclusion** (`election_exclusion`): two leaders with different create revisions are
+  never both present at a revision at or after both of their `leaderAt` revisions (the mutex's).
+* **Only the leader proclaims** (`proclaim_only_leader`, pure): a successful `Proclaim`'s step
+  (what its spec returns, `proclaimedAt`) for a positive create revision `rev` happened on a state
+  where the key had create revision `rev`, and leaves it so with the proclaimed value.
 -/
 module
 
@@ -80,7 +93,49 @@ theorem mutex_holder_unique (pfx k1 k2 : GoString) (c1 c2 R : w64) :
   have : sint.Z c1 = sint.Z c2 := by omega
   word
 
+/-- `NewElection(s, pfx)` (`Spec/go_etcd_io/etcd/client/v3/concurrency/NewElection.lean`). -/
+theorem election_NewElection : NewElection.spec (GF := GF) (hG := hG) := wp_NewElection
+
+/-- `ResumeElection(s, pfx, key, rev)`
+(`Spec/go_etcd_io/etcd/client/v3/concurrency/ResumeElection.lean`). -/
+theorem election_ResumeElection : ResumeElection.spec (GF := GF) (hG := hG) := wp_ResumeElection
+
+/-- `e.Campaign(ctx, val)` (`Spec/go_etcd_io/etcd/client/v3/concurrency/Election__Campaign.lean`). -/
+theorem election_Campaign : Election.Campaign.spec (GF := GF) (hG := hG) := Election.wp_Campaign
+
+/-- `e.Proclaim(ctx, val)` (`Spec/go_etcd_io/etcd/client/v3/concurrency/Election__Proclaim.lean`). -/
+theorem election_Proclaim : Election.Proclaim.spec (GF := GF) (hG := hG) := Election.wp_Proclaim
+
+/-- `e.Resign(ctx)` (`Spec/go_etcd_io/etcd/client/v3/concurrency/Election__Resign.lean`). -/
+theorem election_Resign : Election.Resign.spec (GF := GF) (hG := hG) := Election.wp_Resign
+
+/-- `e.Leader(ctx)` (`Spec/go_etcd_io/etcd/client/v3/concurrency/Election__Leader.lean`). -/
+theorem election_Leader : Election.Leader.spec (GF := GF) (hG := hG) := Election.wp_Leader
+
+/-- `e.Observe(ctx)` (`Spec/go_etcd_io/etcd/client/v3/concurrency/Election__Observe.lean`). -/
+theorem election_Observe : Election.Observe.spec (GF := GF) (hG := hG) := Election.wp_Observe
+
+/-- **Election exclusion.** Two leaders on `pfx` (what `Campaign` returns on `nil` in its first
+case, or a `Leader`/`Observe` leader fact through `leaderKvAt_leaderAt`), `(k1, c1)` at `R1` and
+`(k2, c2)` at `R2`, with different create revisions, are never both present in etcd's state `s` at
+a revision `a` at or after `R1` and `R2`. -/
+theorem election_exclusion (pfx k1 k2 : GoString) (c1 c2 R1 R2 a : w64) (s : List EtcdKv)
+    (hne : c1 ≠ c2) (h1 : sint.Z R1 ≤ sint.Z a) (h2 : sint.Z R2 ≤ sint.Z a) :
+    leaderAt (GF := GF) pfx k1 c1 R1 ∗ leaderAt pfx k2 c2 R2 ∗ etcdState a pfx s ⊢
+      ⌜¬ (HasKeyAt k1 c1 s ∧ HasKeyAt k2 c2 s)⌝ := by
+  unfold leaderAt
+  exact lockedAt_exclusion pfx k1 k2 c1 c2 R1 R2 a s hne h1 h2
+
 end results
+
+/-- **Only the leader proclaims** (pure). A successful `Proclaim` of `val` on `key` with the
+campaign's create revision `rev > 0` (its spec's `proclaimedAt`: etcd's states `s0` at `r - 1` and
+`s` at `r` are a `ProclaimStep`) happened when `key` had create revision `rev` (the guard), and
+leaves `key` with create revision `rev` and the value `val`. -/
+theorem proclaim_only_leader (key : GoString) (rev : w64) (val : GoString) (lease r : w64)
+    (s0 s : List EtcdKv) (h : ProclaimStep key rev val lease r s0 s) (hrev : 0 < sint.Z rev) :
+    HasKeyAt key rev s0 ∧ HasKeyValAt key rev val s :=
+  proclaimStep_guard key rev val lease r s0 s h hrev
 
 end concurrency
 end EtcdGrove
@@ -91,3 +146,10 @@ end Perennial
 #print axioms Perennial.EtcdGrove.concurrency.mutex_Unlock
 #print axioms Perennial.EtcdGrove.concurrency.mutex_exclusion
 #print axioms Perennial.EtcdGrove.concurrency.mutex_holder_unique
+#print axioms Perennial.EtcdGrove.concurrency.election_Campaign
+#print axioms Perennial.EtcdGrove.concurrency.election_Proclaim
+#print axioms Perennial.EtcdGrove.concurrency.election_Resign
+#print axioms Perennial.EtcdGrove.concurrency.election_Leader
+#print axioms Perennial.EtcdGrove.concurrency.election_Observe
+#print axioms Perennial.EtcdGrove.concurrency.election_exclusion
+#print axioms Perennial.EtcdGrove.concurrency.proclaim_only_leader

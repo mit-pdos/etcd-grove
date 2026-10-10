@@ -25,7 +25,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 /-- **`e.observe(ctx, ch)`** (`Observe`'s goroutine), for a cancelable context, as the producer of
 `Observe`'s channel `ch` having sent `sent`, with the revisions `L` (`L.length = sent.length + 1`,
-the last, `Rl`, reached by etcd): every response it sends satisfies `observeElem` (its fact's
+the last, `Rl ≥ 0`, reached by etcd): every response it sends satisfies `observeElem` (its fact's
 revision at least the previous one's), and it closes the channel when it returns. -/
 abbrev Election.observe.spec : Prop :=
   ∀ (e s : Loc) (γs : SessionNames) (client : Loc) (id : w64) (pfx : GoString)
@@ -34,7 +34,7 @@ abbrev Election.observe.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isElection e s γs client id pfx ∗
       context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs ∗ isObserveChan ch γ pfx ∗
       spscProducer γ.spsc sent ∗ monoListAuthOwn γ.revs 1 L ∗ etcdReached Rl ∗
-      ⌜L.length = sent.length + 1 ∧ L.getLast? = some Rl⌝ }}
+      ⌜L.length = sent.length + 1 ∧ L.getLast? = some Rl⌝ ∗ ⌜0 ≤ sint.Z Rl⌝ }}
     (App (App (Val (e @!! go.GoType.PointerType Election.ty @!! go!"observe"))
       (Val #(GoInterface.ok ctx))) (Val #ch))
   {{ RET #(); True }}

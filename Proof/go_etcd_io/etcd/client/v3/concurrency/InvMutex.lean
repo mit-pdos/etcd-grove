@@ -144,7 +144,7 @@ theorem lockedAt_exclusion (pfx k1 k2 : GoString) (c1 c2 R1 R2 a : w64) (s : Lis
 
 /-! ## The client -/
 
-/-- **The client, as a mutex uses it** (persistent; see the module docstring): for the prefix
+/-- **The client, as a mutex (and an election) uses it** (persistent; see the module docstring): for the prefix
 `pfx`, gets, transactions and deletes through its `KV`, range watches (a key, a sub-prefix) through its `Watcher`,
 and a context in its `ctx` field. The trust boundary about the client (definitions, as
 `isEtcdClient`). -/

@@ -1562,3 +1562,54 @@ What its specs say, and what "mutual exclusion" means over etcd's model (`InvMut
   panic is stuck in Perennial. *Rejected:* a spec promising success (false), an axiom (likewise),
   a `sorry` (it is not unfinished work).
 
+---
+
+## Election: the mutex's leader fact, no final check, what `Observe` can promise
+
+**2026-10-10 · accepted** (the design decided with the user; adjusted here where noted)
+
+`concurrency.Election` (`election.go`) is the mutex's protocol with a value: the key created
+first under the prefix is the leader. `InvElection.lean`.
+
+- **The leader fact is `lockedAt`** (`leaderAt := lockedAt`), so the election's exclusion is the
+  mutex's (`election_exclusion` is `lockedAt_exclusion`).
+- **`Campaign`'s spec states what its code checks: nothing after the wait.** `nil` gives
+  `leaderAt ∨ campaignLost` (no key older than the campaign's, and the campaign's key not there
+  with its create revision). *Changed from the plan* ("the final `Get` of the key"): `Campaign` has
+  no final `Get`; it returns after `waitDeletes`. A finding (STATUS, "Election").
+- **`waitDeletes` takes `maxCreateRev ≥ 0`.** `Campaign` calls it with `leaderRev - 1`, which is `0`
+  for a key created at revision `1` (the model's create revisions are only positive; etcd's first
+  write is at revision 2): `WithMaxCreateRev(0)` is no filter, and the spec's conclusion (no key
+  with create revision `≤ 0`) holds trivially. *Rejected:* a history law that create revisions are
+  at least 2 (a new axiom for an unreachable case).
+- **A transaction outside the prefix gets a weak `Commit`** (`txnAnyResult`: an error, or a
+  response with a header and `Succeeded`). After a failed `Proclaim` the leader key is `""` and the
+  leader session stays, so `Campaign`'s cleanup `Resign` (and a second `Proclaim`) commit on the key
+  `""`, which the per-prefix contract does not cover. *Rejected:* a precondition excluding that
+  state (`Campaign`'s own error path reaches it).
+- **The range watch** (`isEtcdRangeWatcher`, replacing the single-key `isEtcdKeyWatcher`; one
+  contract for a key and a sub-prefix): per event the key is in the range, at a revision `≥ rev`,
+  reached, a delete means absent, and **a put's key-value is the key's in etcd's state at the
+  event's revision**; events sorted above the stream's position (a monotone list, as the cache's
+  `watchRespOk`); the receiver **owns the header's `Revision` of a response with events**
+  (`watchHdrOwn`: `observe` writes `hdr.Revision = kv.ModRevision`; the client builds each event
+  response from its own gRPC message and reads its header only before sending it; a progress
+  notification's, broadcast to every watch, stays read-only). *Rejected:* the cache's
+  `EtcdStep`-chain contract for the prefix watch (`observe` does not ask for progress or created
+  notifications, and the chain's laws, without a law tying a key's create revision to a put event,
+  would not give the first put's minimality either); a completeness promise (a second history
+  predicate).
+- **`Observe`'s responses say what the code gives against that contract** (`observedAt`: leader,
+  or re-created leader key, or created after an empty prefix), at non-decreasing revisions
+  (`observeElem`'s ghost list, from `Observe`'s `lo`). With a gap-free watch the last two are the
+  leader; the contract does not promise gap-freedom. *Rejected:* stating the leader fact for every
+  response (false of the model).
+- **`Observe` takes `lo ≥ 0`.** `observe` watches the prefix from its get's revision, which the
+  range watch needs non-negative; the get answers at `≥ lo`, so `0 ≤ lo` (always available:
+  `etcdReached_zero`) is carried through the loop. *Rejected:* dropping `0 ≤ rev` from the watch
+  premise (`rev - 1` would wrap for the least `int64`); adding `0 < r` to `kvGetResult` (true of
+  etcd, but a change to the cache's contract for one caller).
+- **`proclaim_only_leader` is pure** (`proclaimStep_guard`): `Proclaim`'s spec returns the model
+  step (`ProclaimStep`: the guard held on the state before, the state after is the put), and the
+  theorem reads off it that the key had the campaign's create revision and keeps it with the new
+  value.
