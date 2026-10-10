@@ -5,7 +5,6 @@ module
 
 public import Spec.go_etcd_io.etcd.client.v3.concurrency.stm__fetch
 public import Spec.go_etcd_io.etcd.client.v3.concurrency.readSet__add
-public import Spec.go_etcd_io.etcd.client.v3.concurrency.stmPanic
 public import Spec.go_etcd_io.etcd.client.v3.OpGet
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp__GetResponseRange
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.InvSTMReads
@@ -31,7 +30,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 theorem stm.fetch.wp_proof (hGet : EtcdGrove.OpGet.spec (GF := GF) (hG := hG))
     (hGRR : EtcdGrove.ResponseOp.GetResponseRange.spec (GF := GF) (hG := hG))
-    (hAdd : readSet.add.spec (GF := GF) (hG := hG)) (hP : stmPanic.spec (GF := GF) (hG := hG)) :
+    (hAdd : readSet.add.spec (GF := GF) (hG := hG)) :
     stm.fetch.spec (GF := GF) (hG := hG) := by
   intro b pfx reads gs ksl ks
   wp_start as ⟨#Henv, Hrs, Hopts, %Hgs, #Hks, %Hpk⟩
@@ -44,6 +43,7 @@ theorem stm.fetch.wp_proof (hGet : EtcdGrove.OpGet.spec (GF := GF) (hG := hG))
       exact List.length_eq_zero_iff.1 (by rw [h1]; rfl)
     subst Hks0
     iapply HΦ
+    iapply stmRet_ret
     iexists reads
     iframe Hrs Hopts
     isplitr
@@ -109,6 +109,7 @@ theorem stm.fetch.wp_proof (hGet : EtcdGrove.OpGet.spec (GF := GF) (hG := hG))
       wp_auto
       wp_for_post
       iapply HΦ
+      iapply stmRet_ret
       iexists reads
       isplitl [Hrf Hrm]
       · iexists m, rsMap
@@ -231,8 +232,9 @@ theorem stm.fetch.wp_proof (hGet : EtcdGrove.OpGet.spec (GF := GF) (hG := hG))
         | nil => exact absurd rfl Hne
         | ok e => exact ⟨e, rfl⟩
       wp_auto
-      wp_bind (App (Val #(functions go.panic [])) _)
-      iapply (hP (GoInterface.ok e) _ (by simp))
+      wp_apply wp_panic
+      iapply HΦ
+      iapply stmRet_abort _ (by simp)
     subst Heq
     obtain ⟨Hpsl, -, -, -⟩ := Hrr
     simp only [List.length_map] at Hpsl
@@ -298,6 +300,7 @@ theorem stm.fetch.wp_proof (hGet : EtcdGrove.OpGet.spec (GF := GF) (hG := hG))
     wp_apply hGRR p0 w rr $$ [$Hpbi $Hu $Hw]
     · ipureintro; exact Hpn
     iapply HΦ
+    iapply stmRet_ret
     iexists readsAdd reads (ks.zip es)
     isplitl [Hrf Hrm]
     · iexists m, rsMap'

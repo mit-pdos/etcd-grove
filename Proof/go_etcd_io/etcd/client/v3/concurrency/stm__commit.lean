@@ -5,7 +5,6 @@ module
 
 public import Spec.go_etcd_io.etcd.client.v3.concurrency.stm__commit
 public import Spec.go_etcd_io.etcd.client.v3.concurrency.writeSet__puts
-public import Spec.go_etcd_io.etcd.client.v3.concurrency.stmPanic
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.InvSTMCommit
 
 @[expose] public section
@@ -28,8 +27,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
-theorem stm.commit.wp_proof (hPuts : writeSet.puts.spec (GF := GF) (hG := hG))
-    (hPanic : stmPanic.spec (GF := GF) (hG := hG)) :
+theorem stm.commit.wp_proof (hPuts : writeSet.puts.spec (GF := GF) (hG := hG)) :
     stm.commit.spec (GF := GF) (hG := hG) := by
   intro lvl b pfx st lo
   wp_start as ⟨#Henv, Hrs, Hws, #Hcf, #Hlo⟩
@@ -80,7 +78,9 @@ theorem stm.commit.wp_proof (hPuts : writeSet.puts.spec (GF := GF) (hG := hG))
       | nil => exact absurd rfl Hne
       | ok e => exact ⟨e, rfl⟩
     (try wp_auto)
-    wp_apply hPanic (GoInterface.ok e) _ (by simp)
+    wp_apply wp_panic
+    iapply HΦ
+    iapply stmRet_abort _ (by simp)
   subst Heq
   have hm : ({ model := { cmps := ms, thenOps := ops, elseOps := [] }, cif := true, cthen := true, celse := false } : TxnBuild).model =
       ({ cmps := ms, thenOps := ops, elseOps := [] } : TxnModel) := rfl
@@ -95,12 +95,14 @@ theorem stm.commit.wp_proof (hPuts : writeSet.puts.spec (GF := GF) (hG := hG))
     rw [hok']
     (try wp_auto)
     iapply HΦ
+    iapply stmRet_ret
     iframe
     ileft; ipureintro; rfl
   · have hok' : ms.all (cmpHolds s0) = true := hok
     rw [hok']
     (try wp_auto)
     iapply HΦ
+    iapply stmRet_ret
     iframe
     by_cases hnull : resp = null
     · ileft; ipureintro; exact hnull

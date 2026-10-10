@@ -1,8 +1,7 @@
 /-
 The exported results of `client/v3/concurrency`'s `Mutex`, restated at top level, with the trust
 base of each printed in the build log (`#print axioms`). Every function of `mutex.go` and
-`key.go` but `lockerMutex.Lock`/`Unlock` has a `Spec`/`Proof` pair and a linked result
-(`Link.lean`, generated).
+`key.go` has a `Spec`/`Proof` pair and a linked result (`Link.lean`, generated).
 
 * **`TryLock`** (`mutex_TryLock`): `nil` means the mutex's key holds the lock at the
   transaction's revision `r` (`lockedAt pfx key rev r`: present with create revision `rev`, no key
@@ -11,6 +10,8 @@ base of each printed in the build log (`#print axioms`). Every function of `mute
   `Get` — or that the key was deleted and re-created since `rev` (`keyRecreated`), which `Lock`'s
   last check (the key exists) cannot tell apart (see `Mutex__Lock`'s spec).
 * **`Unlock`** (`mutex_Unlock`): `nil` means the key is gone.
+* **`NewLocker`'s `Lock`/`Unlock`** (`locker_Lock`, `locker_Unlock`): `Mutex.Lock`/`Unlock` with
+  the client's context; any error is a panic (`panic(err)`), the specs' panic outcome.
 * **Mutual exclusion** (`mutex_exclusion`): two holders of the lock on one prefix, with
   different create revisions, are never both present in etcd's state at a revision at or after
   both of their `lockedAt` revisions; and at one revision the holder's create revision is unique
@@ -31,8 +32,9 @@ base of each printed in the build log (`#print axioms`). Every function of `mute
   where the key had create revision `rev`, and leaves it so with the proclaimed value.
 
 `STM` (`stm.go`): every function has a `Spec`/`Proof` pair and a linked result; the STM's abort
-(`panic(stmError{err})`) and `runSTM`'s `recover()` are the trust boundary (`stmPanic`,
-`stmRecover`, axioms; see `notes/decisions.md`, "STM").
+(`panic(stmError{err})`) is a panic outcome of `fetch` and the commits (`stmRet`), which `Get`,
+`Rev` and the closure propagate and `runSTM`'s deferred literal recovers (`with_defer_recover:`;
+see `notes/decisions.md`, "STM").
 
 * **`NewSTM`** (`stm_NewSTM`): for a closure `apply` whose `nil` means `Q` of its attempt
   (`applySpec`), `nil` means a committed attempt `st` with `Q st` and `stmOutcome`: a revision `R`,
@@ -79,6 +81,14 @@ theorem mutex_Lock : Mutex.Lock.spec (GF := GF) (hG := hG) := Mutex.wp_Lock
 
 /-- `m.Unlock(ctx)` (`Spec/go_etcd_io/etcd/client/v3/concurrency/Mutex__Unlock.lean`). -/
 theorem mutex_Unlock : Mutex.Unlock.spec (GF := GF) (hG := hG) := Mutex.wp_Unlock
+
+/-- `lm.Lock()` of `NewLocker`'s locker
+(`Spec/go_etcd_io/etcd/client/v3/concurrency/lockerMutex__Lock.lean`). -/
+theorem locker_Lock : lockerMutex.Lock.spec (GF := GF) (hG := hG) := lockerMutex.wp_Lock
+
+/-- `lm.Unlock()` of `NewLocker`'s locker
+(`Spec/go_etcd_io/etcd/client/v3/concurrency/lockerMutex__Unlock.lean`). -/
+theorem locker_Unlock : lockerMutex.Unlock.spec (GF := GF) (hG := hG) := lockerMutex.wp_Unlock
 
 /-- **Mutual exclusion.** Two holders of the lock on `pfx` (what `TryLock` and `Lock` return on
 `nil`), `(k1, c1)` at `R1` and `(k2, c2)` at `R2`, with different create revisions, are never both
@@ -205,6 +215,8 @@ end Perennial
 #print axioms Perennial.EtcdGrove.concurrency.mutex_TryLock
 #print axioms Perennial.EtcdGrove.concurrency.mutex_Lock
 #print axioms Perennial.EtcdGrove.concurrency.mutex_Unlock
+#print axioms Perennial.EtcdGrove.concurrency.locker_Lock
+#print axioms Perennial.EtcdGrove.concurrency.locker_Unlock
 #print axioms Perennial.EtcdGrove.concurrency.mutex_exclusion
 #print axioms Perennial.EtcdGrove.concurrency.mutex_holder_unique
 #print axioms Perennial.EtcdGrove.concurrency.election_Campaign

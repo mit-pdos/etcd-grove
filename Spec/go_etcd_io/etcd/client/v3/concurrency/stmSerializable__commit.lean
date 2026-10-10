@@ -26,13 +26,13 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 /-- `s.commit()` (a `*stmSerializable`), knowing etcd has reached `lo`: the transaction
 `If(conflicts...).Then(puts...).Else(gets of the read keys...)`; nil if it failed (the `Else`
 responses become the prefetched reads, and the gets are at the latest revision again), otherwise
-its response, with `stmOutcome`; the state is stale either way. A client error aborts it. -/
+its response, with `stmOutcome`; the state is stale either way. A client error aborts it (`stmRet`). -/
 abbrev stmSerializable.commit.spec : Prop :=
   ∀ (lvl : w64) (p : Loc) (pfx : GoString) (st : STMSt) (lo : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ stmState lvl pfx p st ∗ etcdReached lo ∗ ⌜isoSer lvl = true⌝ }}
     (App (Val (p @!! go.GoType.PointerType stmSerializable.ty @!! go!"commit")) (Val #()))
-  {{ (resp : Loc), RET #resp; stmStale lvl pfx p ∗
-      (⌜resp = null⌝ ∨ ⌜resp ≠ null⌝ ∗ stmOutcome pfx lvl lo st resp) }}
+  {{ (r : val), RET r; stmRet r fun resp : Loc => iprop(stmStale lvl pfx p ∗
+      (⌜resp = null⌝ ∨ ⌜resp ≠ null⌝ ∗ stmOutcome pfx lvl lo st resp)) }}
 
 end spec
 

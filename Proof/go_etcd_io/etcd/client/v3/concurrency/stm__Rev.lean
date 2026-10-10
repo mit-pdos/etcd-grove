@@ -36,8 +36,18 @@ theorem stm.Rev.wp_proof (hF : stm.fetch.spec (GF := GF) (hG := hG)) :
   iintro %ksl ⟨Hksl, -⟩
   ipersist Hksl
   wp_auto
-  wp_apply hF b pfx reads gs _ [k] $$ [$Hpkg $Henv $Hrs $Hopts $Hksl] as %p ⟨%reads', Hrs, Hopts, %Hgrow, Hp⟩
+  wp_apply hF b pfx reads gs _ [k] $$ [$Hpkg $Henv $Hrs $Hopts $Hksl] as %r Hr
   · ipureintro; refine ⟨Hgs, ?_⟩; simpa using Hpk
+  iunfold stmRet at Hr
+  icases Hr with (⟨%p, %Hrp, %reads', Hrs, Hopts, %Hgrow, Hp⟩ | %Hab)
+  rotate_left
+  · obtain ⟨err, Hne, rfl⟩ := Hab
+    unfold stmAbort
+    wp_auto
+    iapply HΦ
+    iapply stmRet_abort _ Hne
+  subst Hrp
+  wp_auto
   icases Hp with (%Hnil | ⟨%k', %e, %e', %Hke, #He⟩)
   · simp at Hnil
   obtain ⟨Hk', Hre, Hkv⟩ := Hke
@@ -58,6 +68,7 @@ theorem stm.Rev.wp_proof (hF : stm.fetch.spec (GF := GF) (hG := hG)) :
     rw [Hlen0]
     wp_auto
     iapply HΦ
+    iapply stmRet_ret
     iexists reads'
     iframe Hrs Hopts
     ipureintro
@@ -78,6 +89,7 @@ theorem stm.Rev.wp_proof (hF : stm.fetch.spec (GF := GF) (hG := hG)) :
     wp_apply wp_load_slice_index sl (sint.Z (W64 0)) [kp] _ kp (by decide) $$ [Hps] as -
     · iframe Hps; ipureintro; rfl
     iapply HΦ
+    iapply stmRet_ret
     iexists reads'
     iframe Hrs Hopts
     ipureintro

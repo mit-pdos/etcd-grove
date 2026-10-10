@@ -280,6 +280,14 @@ def withSortM (target order : w64) (o : OpFull) : OpFull :=
 def withTopM (target order : w64) : List (OpFull → OpFull) :=
   [withPrefixM, withSortM target order, withLimitM (W64 1)]
 
+/-- `WithKeysOnly()` -/
+def withKeysOnlyM (o : OpFull) : OpFull := { o with keysOnly := true }
+/-- `WithIgnoreLease()` -/
+def withIgnoreLeaseM (o : OpFull) : OpFull := { o with ignoreLease := true }
+/-- `OpTxn(cmps, thenOps, elseOps)`'s `Op` (`Op{t: tTxn, cmps, thenOps, elseOps}`): no key, no
+value, no option (the lists are `OpT`'s, `InvEtcdTxnOwn.lean`). -/
+def OpFull.txnInit : OpFull := { OpFull.newOp with t := W64 4 }
+
 /-! ### `OpPut`, `OpDelete` -/
 
 /-- What `OpPut(key, val, ...)` starts from: `Op{t: tPut, key: []byte(key), val: []byte(val)}`. -/

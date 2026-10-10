@@ -10,8 +10,6 @@ axiom applierFor_persistent
 axiom apply.Apply.wp_proof
 axiom binary.bigEndian.PutUint64.wp_proof
 axiom binary.bigEndian.Uint64.wp_proof
-axiom concurrency.stmPanic.wp_proof
-axiom concurrency.stmRecover.wp_proof
 axiom config.ServerConfig.ElectionTimeout.wp_proof
 axiom errors.Is.wp_proof
 axiom etcdReachedAt
@@ -32,6 +30,7 @@ axiom proto.Clone.wp_proof
 axiom reflect.DeepEqual.wp_proof
 axiom rpctypes.Error.wp_proof
 axiom status.Error.wp_proof
+axiom status.FromError.wp_proof
 axiom v3alarm.AlarmStore.Get.wp_proof
 axiom verify.Verify.wp_proof
 axiom zap.Error.wp_proof

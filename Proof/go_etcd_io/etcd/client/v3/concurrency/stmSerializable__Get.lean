@@ -49,6 +49,7 @@ theorem stmSerializable.Get.wp_proof (hWG : writeSet.get.spec (GF := GF) (hG := 
       exact List.length_eq_zero_iff.1 (by rw [h1]; rfl)
     subst Hks0
     iapply HΦ
+    iapply stmRet_ret
     iexists st
     isplitl
     · iframe Henv Hrs Hws Hcf
@@ -75,6 +76,7 @@ theorem stmSerializable.Get.wp_proof (hWG : writeSet.get.spec (GF := GF) (hG := 
     wp_auto
     obtain ⟨Hk, Hwk, Hv⟩ := Hw
     iapply HΦ
+    iapply stmRet_ret
     iexists st
     isplitl
     · iframe Henv Hrs Hcf
@@ -183,8 +185,17 @@ theorem stmSerializable.Get.wp_proof (hWG : writeSet.get.spec (GF := GF) (hG := 
     · unfold stmRsetOwn
       iexists rm, rsMap'
       iframe Hrf Hrm Hrat
-    wp_apply hF (structFieldRef stmSerializable go!"stm" p) pfx reads' gs ksl ks $$ [$Hpkg $Henv $Hrs $Hopts $Hks] as %rp ⟨%reads'', Hrs, Hopts, %Hgrow, Hrp⟩
+    wp_apply hF (structFieldRef stmSerializable go!"stm" p) pfx reads' gs ksl ks $$ [$Hpkg $Henv $Hrs $Hopts $Hks] as %r Hr
     · ipureintro; exact ⟨Hgs', Hpk⟩
+    iunfold stmRet at Hr
+    icases Hr with (⟨%rp, %Hrp', %reads'', Hrs, Hopts, %Hgrow, Hrp⟩ | %Hab)
+    rotate_left
+    · obtain ⟨err, Hne, rfl⟩ := Hab
+      unfold stmAbort
+      wp_auto
+      iapply HΦ
+      iapply stmRet_abort _ Hne
+    subst Hrp'
     icases Hrp with (%Hnil | ⟨%k, %e, %e', %Hke, #He⟩)
     · exact absurd Hnil.1 (List.ne_nil_of_length_pos Hksne)
     obtain ⟨Hfin1, Hfin2⟩ := MoveInv_final st pre ks reads' pre' reads'' Hmv HpreOk Hgrow
@@ -193,6 +204,7 @@ theorem stmSerializable.Get.wp_proof (hWG : writeSet.get.spec (GF := GF) (hG := 
       wp_apply hRV rp e.value $$ [$Hpkg]
       · iright; iexists pfx, k, e; iframe He; ipureintro; rfl
       iapply HΦ
+      iapply stmRet_ret
       iexists ({ reads := reads'', writes := st.writes } : STMSt)
       iunfold stmRsetOwn at Hrs
       icases Hrs with ⟨%rm2, %rsMap2, Hrf2, Hrm2, #Hrat2⟩
@@ -247,6 +259,7 @@ theorem stmSerializable.Get.wp_proof (hWG : writeSet.get.spec (GF := GF) (hG := 
       wp_apply hRV rp e.value $$ [$Hpkg]
       · iright; iexists pfx, k, e; iframe He; ipureintro; rfl
       iapply HΦ
+      iapply stmRet_ret
       iexists ({ reads := reads'', writes := st.writes } : STMSt)
       iunfold stmRsetOwn at Hrs
       icases Hrs with ⟨%rm2, %rsMap2, Hrf2, Hrm2, #Hrat2⟩

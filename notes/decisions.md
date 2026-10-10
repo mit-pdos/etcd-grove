@@ -1570,7 +1570,9 @@ What its specs say, and what "mutual exclusion" means over etcd's model (`InvMut
   have made the specs vacuous. The mutex needs only that the key is under the prefix.
 - **`lockerMutex` is not specified**: it panics on any error, every client call may fail, and a
   panic is stuck in Perennial. *Rejected:* a spec promising success (false), an axiom (likewise),
-  a `sorry` (it is not unfinished work).
+  a `sorry` (it is not unfinished work). *Superseded* (2026-10-10, "Panic and recover"): with
+  panics as outcomes, `Lock`/`Unlock` are specified: `Mutex.Lock`/`Unlock`'s `nil` case, or the
+  panic `panic(err)`.
 
 ---
 
@@ -1626,7 +1628,7 @@ first under the prefix is the leader. `InvElection.lean`.
 
 ---
 
-## STM: a higher-order closure spec, aborts as divergence, what each isolation level gives
+## STM: a higher-order closure spec, aborts as panics, what each isolation level gives
 
 **2026-10-10 · proposed** (the intent decided with the user; the panic boundary, the read
 transaction contract and the snapshot claim decided here, for review)
@@ -1685,21 +1687,22 @@ buffered reads and writes with one guarded transaction, retrying on conflict.
   write commits an empty transaction, answered by the member at a possibly older revision.
 - **The range response's header** (`rangeRespAt`): it exists (`first()` and the serializable `Get`
   read it); its revision is not stated (nothing needs it).
-- **Aborts: `panic(stmError{err})` and `recover()` are the trust boundary** (`stmPanic.spec`,
-  `stmRecover.spec`, axioms). `stm.fetch` and the commits panic on any client error, which every
-  client call allows; `runSTM`'s deferred function recovers the panic and sends `(nil, err)`.
-  Perennial's `panic` is stuck (a verified program never panics) and it has no `recover`, so no
-  spec of these functions is provable as they stand. The boundary: such a panic **does not return**
-  (its WP holds for any postcondition, for `err ≠ nil`), and `recover()` **returns nil** where a
-  verified execution reaches it. Sound for what is claimed: a panicking attempt never reaches the
-  code after it, so the proof covers exactly the executions without an abort; with an abort,
-  `runSTM` returns `(nil, err)` with `err` the client's (non-nil), which `stmResult`'s error case
-  allows with no promise. The user's closure must not recover the STM's panics (documented on
-  `applySpec`; a recovering closure would make `recover()`'s model false). *Rejected:* a
-  "Gooseable" rewrite (no behavior-preserving rewrite removes the panic: it unwinds the user's
-  closure); a client that never errs (false); leaving `NewSTM` unspecified (like `lockerMutex`,
-  whose panics are not recovered: there a spec would promise success, here the error is returned).
-  A Perennial model of panics and `recover` would replace both axioms.
+- **Aborts are panic outcomes** (since 2026-10-10; before, the trust boundary, below). `stm.fetch`
+  and the commits `panic(stmError{err})` on any client error, which every client call allows;
+  `runSTM`'s deferred function recovers the panic and sends `(nil, err)`. Their specs say so
+  (`stmRet r Q`: a return `#x` with `Q x`, or `r = stmAbort err`, the panic of the `stmError` as an
+  `interface{}`, with `err ≠ nil`; proved with `wp_panic`), and so do `Get`, `Rev`, the interface's
+  triples (`stmMethods`) and the closure (`applySpec`), which propagate it (`wp_auto` unwinds).
+  `runSTM`'s proof follows the panic out of the attempt loop (`wp_for_post`) to the `Catch` of its
+  goroutine's `with_defer_recover:`, whose deferred literal reads it with `recover()`
+  (`wp_recoverPanic`), asserts it to `stmError` (which succeeds) and sends `(nil, err)`; the
+  goroutine returns normally (`wp_fork`'s non-panic body). `NewSTM`'s spec is unchanged. A closure
+  that recovered an abort and returned would still satisfy `applySpec` (its return is a return).
+  *History*: Perennial's `panic` was stuck and it had no `recover`, so the abort was a trust
+  boundary of two axioms (`stmPanic.spec`: the panic satisfies any postcondition, for
+  `err ≠ nil`; `stmRecover.spec`: `recover()` returns `nil` where a verified run reaches it),
+  sound by the argument that a verified run reaches the code after an abort only without one;
+  both are gone (Perennial branch `panic`, "Panic and recover").
 - **`Get`'s results** (`GetPost`): `Get(keys...)` returns, for some key `k` of `keys`, its write's
   value, or, not written, its read's value; the reads grow by keys of `keys` only and **a read, once
   there, stays** (repeatable reads within an attempt). For the serializable STM this needs an
@@ -1997,3 +2000,301 @@ pending changes), the backend contract (`ConcurrentReadTx`'s snapshot of the wri
 bucket, the batch transaction's `UnsafeSeqPut`/`UnsafeRange`/`Unlock` as write-back), the
 lessor's `GetLease`/`Attach`/`Detach` contract; `NewStore` on a fresh backend (a ghost
 allocation first, `restore` later).
+## Leasing: the protocol as a premise on the history
+
+**2026-10-10 · proposed** (units 1 and 2 of `client/v3/leasing`; the premise's form, the holder's
+writes and the cache's lock decided here, for review)
+
+`client/v3/leasing` caches a key `k` at the client (the *holder*) whose session lease owns the
+*lease key* `pfx ++ k`; every leasing client modifies `k` in a transaction guarded by
+`CreateRevision(pfx ++ k) < g + 1` (`g = 0`, or the holder's own entry revision), and a writer
+that is not the holder first puts `"REVOKE"` into the lease key and waits for the holder to delete
+it. Whether etcd's history obeys this depends on every writer of the deployment, not on one
+client's code. `InvLeasingModel.lean`.
+
+- **A premise, not an axiom.** `LeasingProtocol pfx h` (persistent) is a hypothesis the leasing
+  theorems take: it holds of a deployment where every writer of a data key is a leasing client
+  of prefix `pfx`, and nobody else writes lease keys. *Rejected:* an axiom (it is false of a
+  deployment with a plain-client writer); proving it from the leasing clients' code (a ghost
+  protocol over every client's transactions: what units 4 and 5 may establish for leasing
+  clients, but a non-leasing writer always breaks it).
+- **Its exact form.** A history `h` (`LeasingHist`): etcd's whole-keyspace state at every revision
+  `z ≥ 0` (`h.st z`, linked to the model by `□ ∀ r ≥ 0, etcdState r "" (h.st r)`, keys unique),
+  and `h.writer z`, the session lease of the leasing client whose transaction made revision `z`.
+  `LeasingStepOk` for every `0 < z < 2^63` and data key `k` (outside `pfx`): (1) if `k`'s record
+  changes at `z`, `pfx ++ k` is absent at `z - 1`, or present with a lease `L ≠ 0` and
+  `h.writer z = L` (the holder's write); (2) a lease key that keeps its create revision keeps its
+  lease (the only write to an existing lease key is the `"REVOKE"` put, `WithIgnoreLease`). The
+  model's `etcdState` gives states only at observed revisions; the premise names every revision,
+  so that `leased_value_stable` can walk from one observed revision to another
+  (`etcdState_create_persist` carries the lease key's presence, `LeasingStepOk` the record).
+- **The holder's own writes** (*changed from the plan*, which said "`k` changes only while
+  `pfx ++ k` is absent"): false, since the holder writes `k` while holding the lease (its guard is
+  its own entry's revision) and updates its cache (`Update`, `delete`). The model does not record
+  who wrote a revision, so the premise names the writer (`h.writer`), and the lemmas exclude the
+  holder's transactions explicitly: `leased_value_stable` (the lease key present at `a` and `b`
+  with one create revision, no transaction of the holder in `(a, b]` ⇒ `k`'s record at `b` is its
+  record at `a`); `revoked_protects` (a non-holder changes `k` after the `"REVOKE"` only once the
+  incarnation is gone). How the holder knows which revisions are its own is unit 4's (its cache
+  serializes its writes behind the waiter channels). *Rejected:* an abstract "holder write"
+  predicate (vacuous unless instantiated); identifying the holder through the guard value `g`
+  (any client can read a lease key's create revision; a range delete's guard is a maximum).
+- **The lease-expiry window is excluded by the statements, not the premise.** When the holder's
+  session lease expires, etcd deletes its lease keys (a step changing no data key) and other
+  writers may then write `k`, while the holder's cache still serves `k` until its session monitor
+  resets the entries. The premise allows it; the lemmas speak of a lease key still present. A
+  cached answer is `k`'s record at a revision at which the lease key existed: not linearizable,
+  and not claimed to be.
+- **The whole keyspace.** The leasing KV's keys (data and lease) are anywhere in the keyspace, so
+  its contracts are used at prefix `""` (`EtcdStateWf ""`, `TxnModel.Under ""` hold of every key).
+  *Rejected:* a pair of prefixes (the model has no law relating two prefixes' states).
+- **Contract extension: `WithIgnoreLease`.** `TxnOp.putKeep` (a put keeping the key's lease;
+  `txnOpOf` maps a put with `ignoreLease` and no lease to it); on a missing key etcd fails the
+  transaction, and the model's choice there (no lease) is never claimed by a successful response.
+  `Compare(CreateRevision(lkey).WithRange(lend), "<", n)` needed no change (`cmpHolds` is over the
+  range's keys, the zero key-value for an empty range, as etcd's `applyCompare`). Nested
+  transactions (`OpTxn`, `txnLeasing.serverTxn`) and owned range responses (the cache stores and
+  mutates the acquisition's response, which the contract gives read-only) are left to the units
+  that use them (4 and 5).
+
+### The lease cache: one lock, exact transitions, frozen entries
+
+`InvLeaseCache.lean`. The cache (`leaseCache`: the entries map, the revocation times, the latest
+header, under an `RWMutex`) is shared by every goroutine of the leasing KV (gets, puts, the lease
+monitors, the session monitor, `clearOldRevokes`), and its lock also guards the KV's `session` and
+`sessionc` fields (kv.go).
+
+- **The lock invariant is fractional** (`RWMutex` readers hold `rfrac`): the state is a record of
+  pure values (`LeaseCacheSt`, `LeaseEntry`, `CachedKv`, `HdrM`), held in a ghost variable so the
+  fractions agree; the physical resources are field points-tos with fraction `q` (`lcOwn`,
+  `entryOwn`, `respOwn`, `cachedKvOwn`; field by field, since the proof mode does not find a
+  struct field's points-to inside a struct's), read-only headers, and the entries' persistent
+  facts. *Rejected:* a `Mutex`-style invariant (readers would serialize: not the code).
+- **The client's part `X st q`** (fractional, a parameter): what kv.go keeps under the same lock
+  and its own invariant over the state. **Exact transitions:** a writer's spec takes the client's
+  step `X st 1 ={⊤}=∗ X (f st) 1 ∗ Q st` for its transition `f` (`LeaseCacheSt.add`, `evict`,
+  `evictRange`, `modify … del`, `setWaitc`), and returns `Q` of the state it found; a reader's
+  returns what the client learns of the state it read (`lcPeek X Qr`). `Lock`/`LockRange` change
+  only waiter channels (`WaitcOnly`), a persistent step (`lcWaitcStep`). `Update` and `delete` run
+  with the lock held by their caller and are specified on the owned state. *Rejected:* specs
+  "for some state" with no ghost link (the client could not relate two calls); logically atomic
+  triples (the step premise is what kv.go needs, more simply).
+- **The entries' facts** (`entryFacts`, persistent, kept for every entry and frozen entry): etcd's
+  whole keyspace at the entry's revision has the key's acquisition record and the lease key with
+  the holder's lease and a create revision at most the revision. The cached value changes with the
+  holder's writes (`Update`), so "the cached value is `k`'s record at `rev`" is not an invariant;
+  the facts are about the acquisition (`acq`), and unit 4 relates the cached value to the history.
+- **Frozen entries.** `Get` finds an entry (`notify`), waits, and reads `*li` again; an eviction in
+  between removes it from the map, but Go keeps it alive. Evicted (and replaced) entries are frozen:
+  their resources made read-only (`DFrac.discard`) and kept; a monotone list records every
+  `*leaseKey` installed under each key (`leaseKeyInstalled`), and the invariant keeps each one the
+  key's entry or frozen.
+- **Readiness.** `lc.entries` is nil until the session monitor makes it; `Add` writes it, so it
+  takes `leaseCacheReady` (a monotone counter at `1`), which unit 4's session reset will give.
+- **The trust boundary** (axioms): `strings.Compare` (Perennial has no model; a trusted model in
+  Perennial, as `strings.HasPrefix`'s, would replace it: written and proved, but not committed,
+  see STATUS) and `(*time.Time).Add` (Perennial models the value receiver only). *Since
+  2026-10-10* both are Perennial's (`strings.wp_Compare` from a trusted model,
+  `time.Time.wp_ptr_Add` from `ptr_Add_unfold`), as are `strings.TrimPrefix` and `errors.As`
+  (units 3 and 4): see "Panic and recover", "The standard library's models".
+
+### Nested transactions, owned responses, `isLeasingKV` (units 3 and 4)
+
+**2026-10-10 · proposed** (units 3 and 4 of `client/v3/leasing`: `txn.go` and `kv.go`)
+
+- **Nested transactions in the model, minimally** (`InvEtcdTxn.lean`): `TxnOp.txn cmps thn els`
+  and `TxnOpResult.txn ok rs`; `applyTxnOp`/`runOps` are mutually recursive (structural), a nested
+  transaction evaluates its comparisons on the state the operations before it left and runs its
+  chosen branch at the same revision, as etcd does; `TxnOpResult.wrote`/`wroteL`, `TxnOp.Under`/
+  `UnderL` likewise; `runOps_noWrite` by mutual recursion. Also `TxnOp.putIgnVal key lease?`
+  (`WithIgnoreValue`, value kept; `none`: lease kept too), so that `txnOpOf` models the puts etcd
+  accepts with `WithIgnoreValue` and the leasing `Update` can be compared with etcd on them. The
+  existing `txnOpRespAt`, `txnBuilderSpec`, `isEtcdTxnKV` are unchanged; every cache and
+  concurrency proof builds unchanged. *Rejected:* recursive `OpFull` (the getters' model is flat;
+  the nested lists are described apart, `OpT`).
+- **Operation trees** (`InvEtcdTxnOwn.lean`, `OpT`): an `Op` value is a leaf (`OpFull`, not a
+  transaction) or `OpTxn(cmps, thn, els)`; `opTAtC c v t` describes the value, with `c = true`
+  also the spare capacity of every nested `thenOps` slice (owned): `gatherOps` appends `elseOps`
+  into it (`append(thenOps, elseOps...)`), which its spec states as the code is (it can then be
+  called once per tree; the leasing KV's own callers pass plain operations).
+- **Owned responses** (`txnCommitResultO`, `isEtcdTxnKVO`): the client's `Commit` returns a fresh
+  message the caller owns; the contract now hands over the transaction's `Succeeded` and the
+  top-level responses' fields the leasing KV writes or caches (a range response's header,
+  key-values, `More`, `Count`: `rangeRespOwn`; a put's, delete's, nested transaction's header) and
+  the full header (`hdrFull`, moved here from the lease cache with `HdrM`, `CachedKv`,
+  `cachedKvOwn`). A new builder contract beside the old one (`txnBuilderSpecO`: `Then`/`Else` on
+  trees, `Commit` owned); `isEtcdDoKV` for `kv.Do` of a get (as `Get`). *Rejected:* changing
+  `isEtcdTxnKV` (every concurrency proof destructs it).
+- **`isLeasingKV`** (`InvLeasingKV.lean`, persistent): the immutable fields, the client contracts
+  at prefix `[]`, what unit 5's monitors need (`isLeasingClient`: range watcher, leases, session
+  client and options; `lkv.ctx` a `*cancelCtx`), the lease cache with the KV's lock part
+  `leasingX`, the wait group. **`leasingX`** holds `session`/`sessionc`, the session's readiness
+  (monotone: once set, never nil), `sessionc` as a broadcast channel announcing readiness, and a
+  **log of the cache's states** (a monotone list whose last element is the current state), so
+  that a spec can state a cache transition (`leasingStep γ st st'`: `put`'s `Update`) and what a
+  reader saw (`leasingSeen`). *Changed from the plan:* "every entry's lease is the current
+  session's" is not an invariant: `get` adds the entry of an acquisition after reading the
+  session, and a session reset in between leaves an entry of the old session's lease (a finding).
+- **The wait group** as the cache's (`leasingWgInv`): `get` adds a lease monitor with a fraction
+  of the "open" token and its thread token deposited; the monitor keeps a reader slot of the
+  cache's `RWMutex` for good (as `Cache.Watch` keeps a watch slot): `get` takes two reader slots
+  and returns the second unless it started a monitor.
+- **Unit 5's functions as hypotheses**: `waitSession`, `waitRescind`, `monitorLease` are specified
+  now and proved with the monitors; `etc/gen-link.py` marks them `fn: ?` and links every result
+  reaching them in `section links_pending`, with their specs as hypotheses (`etc/verified-code.py`
+  counts those results as unfinished).
+- **Contexts**: a write may `revoke`, whose `waitRescind` calls `WithCancel(ctx)`: Perennial's
+  `wp_WithCancel` needs a `*cancelCtx` parent, so `put`, `delete`, `Commit`, `Do` take
+  `isCancelCtxCtx ctx` (as `NewSession` does); `get` does not.
+- **User transactions are flat**: `Txn().Then`/`Else` take plain operations (`txnOpOf`), the
+  nested transaction is the leasing KV's own (`serverTxn`'s `OpTxn`).
+
+
+### Leasing unit 5: the session monitor's halves, contract strengthenings
+
+**2026-10-10 · proposed** (unit 5 of `client/v3/leasing`: the monitors, `NewKV`, `Close`)
+
+- **Split fields**: `monitorSession` reads `lkv.session` without the cache's lock (it is the only
+  writer of `session` and `sessionc`), so `leasingXBody` holds half of both fields (`q.half`) and
+  `sessionMonitor` the other half, with the current `sessionc`'s close right (`.Pending`) or the
+  fact that it closed it (`.Done`), which makes the nonblocking `select` on `sessionc` exact.
+  *Rejected:* a ghost copy of the session (a load needs a points-to).
+- **`waitRescind` states its `nil` honestly**: `nil` with `leaseKeyDeleted`, or `nil` with no
+  promise; the second is reachable (a finding), so no stronger spec holds.
+- **Contract changes, both true of etcd**: a delete watch event's `*KeyValue` has readable `Value`
+  and `Lease` (`delKvAt`, values unspecified); `Lease.KeepAlive`'s success returns a channel (the
+  lessor always makes one; the old contract allowed `(nil, nil)`, through which `NewSession`
+  returned a nil session with a nil error and `monitorSession` could not be proved).
+- **`NewKV` hands out** every reader slot of the cache's `RWMutex` and the whole "open" token
+  (as the cache's `New`), and the close function's spec rather than `Close`'s (`leasingCloseFn`);
+  `isLeasingCancel` (the `cancel` field's spec) is apart from `isLeasingKV`, which `Close` alone
+  needs.
+
+## Panic and recover: a panic outcome in the language, `Catch` for `defer`
+
+**2026-10-10 · implemented** on Perennial branch `panic` (`b4f46e1dd`..`c46da895a`, with the
+standard-library models below up to `7cea8cc26`), pinned by this merge (the plan decided with the
+user; the deviations the implementation made are listed at the end)
+
+The STM (`stm.go`) aborts an attempt by `panic(stmError{err})` from `fetch` and both `commit`
+methods, and `runSTM` turns the panic back into the returned error with a deferred `recover()`.
+GooseLang has no model of this: `panic` is a stuck expression (`wp_panic : ▷ False ⊢ WP (Panic
+msg)`), the right treatment for raft's assertion-style panics, whose proofs show they never
+fire, and the wrong one for a panic meant to fire and be recovered; `recover()` has no
+semantics at all. The STM proof closed the gap with two callee-spec axioms (`stmPanic.spec`: a
+weakest precondition of `panic(stmError{err})` for `err ≠ nil`; `stmRecover.spec`: `recover()`
+returns `nil`), sound by the informal argument that a verified run reaches `recover()` normally
+only when nothing panicked, but of a different kind than the etcd model's axioms: a statement
+the model refutes (the WP of a stuck expression is `False`), not an assumption about etcd. The
+same gap left the mutex's `sync.Locker` wrappers (`lockerMutex.Lock/Unlock`, which panic on any
+error) unspecified. The fix is a Perennial feature, decided as follows.
+
+- **Panic propagates in the language, not in the exception monad.** Goose compiles `return`,
+  `break` and `continue` through labeled values (`("execute", v)`, `("return", v)`, ...;
+  `Golang/Defn/Exception.lean`): `;;;` short-circuits on any label but `execute`, loops pass up
+  the labels they don't own, and a function body's `exceptionDo` strips the label (`Snd`). A
+  fourth label `("panic", v)` would unwind a body and its loops with no new rules, but not a
+  call: a callee's result crosses the call as a plain value in `let: "$r0" := f x in …`, and the
+  continuation is ordinary GooseLang, not a `;;;` chain. Propagating through the monad would mean
+  checking every call's result and lifting every continuation, a change to the shape of every
+  translated function and of every proof that steps past a call. *Rejected.*
+- **A panic outcome is a value**: `val.PanicV (p : val)`. One generic head step
+  `fill_item Ki (Val (PanicV p)) → Val (PanicV p)` for every evaluation frame `Ki` is the
+  unwinding; it is a legal ectxi head step (the hole holds a value), so iris-lean's `wp_bind` and
+  the language axioms are untouched. `go.panic` is `λ: v, Val (PanicV v)`.
+- **One new expression `Catch e h k`**: `Catch (Val (PanicV p)) h k → h p`,
+  `Catch (Val v) h k → k v`; its frame is the only one that does not unwind. `wrapDefer`
+  (`Golang/Defn/Defer.lean`) becomes `Catch (exceptionDo (body $defer)) (λ p, store p in a
+  `$panic` cell, run the deferred chain, then: cell cleared by a `recover` ⇒ return the
+  function's named results (zero values if unnamed), else re-raise) (λ r, run the chain; r)`.
+  Goose emits the result expression (it knows the signature) and translates `recover()` as
+  read-and-clear of `$panic` when it is lexically in a function literal that is the direct operand
+  of a `defer` statement (the STM's and `sync`'s idiom); any other `recover()` is reported as
+  unsupported, not modeled as `nil`. The model is thus stricter than Go (whose rule is dynamic:
+  `recover` works only when called directly by a deferred function), never more permissive.
+- **One postcondition, applied to panics too**: `Φ : val → iProp` now also receives `PanicV p`.
+  `wp_panic : Φ (PanicV p) ⊢ WP (go.panic p) {{Φ}}`; `wp_unwind : Φ (PanicV p) ⊢
+  WP K[PanicV p] {{Φ}}` for `Catch`-free `K`; `wp_catch` splits on the outcome. Existing specs
+  `{{P}} e {{RET v; Q}}` name a normal value, so they exclude panics and existing proofs keep
+  working; a spec that lets a function panic adds the disjunct `∃ p, r = PanicV p ∧ Ψ p`, which
+  callers discharge with `wp_unwind` up to their `Catch`. This is the "panic postcondition"
+  without a second weakest precondition. *Rejected:* a WP with two postconditions (a new program
+  logic for one feature).
+- **An unrecovered panic stays forbidden.** `wp_fork` requires `WP e {{ v, ⌜¬ isPanic v⌝ }}`
+  (today a goroutine's panic is stuck, hence forbidden) and the adequacy theorem's `φ` is the
+  client's, with `φ (PanicV _) = False` for the main thread. A verified program never panics
+  unrecovered, which is how Go's "a panicking goroutine kills the process" is modeled; raft's
+  assertion-style panics still need their unreachability proofs.
+- **Left out, acceptably**: a deferred function panicking during unwinding (Go replaces the
+  panic), `panic(nil)`, `runtime.Goexit`.
+- **Cost**: GooseLang (the `val` constructor, `Catch`, two step rules, `Countable`/decidable
+  equality); the ectxi instance (one frame); Lifting (`wp_catch`, `wp_unwind`, `wp_fork`'s side
+  condition); `wrapDefer`/`wp_with_defer` (50 proofs here use the rule and 68 translated sites
+  regenerate; a no-panic corollary of the same shape keeps the proofs nearly unchanged); Goose
+  (`recover`, the result expression); the adequacy statement only through `φ`.
+- **The STM afterwards** (done): `stmPanic.spec` became `wp_panic`, `stmRecover.spec` the cell read
+  inside `runSTM`'s `Catch` (`wp_recoverPanic`); `stm.fetch`/the commits have the panic outcome
+  (`stmRet`: the panic of `stmError{err}`, `err ≠ nil`), which `runSTM`'s proof turns into the
+  `(nil, err)` return; the `lockerMutex` wrappers got specs the same way (a return, or
+  `panic(err)`). The concurrency collection is at 11 axioms, all the etcd model's. See "STM",
+  "Aborts are panic outcomes".
+- **What the implementation changed** (Perennial's commits and docs, `PERENNIAL_PROOF_REFERENCE.md`
+  "Panics"):
+  - *Unwinding overlaps the other steps.* A frame around a panic can also take a beta, pair or Go
+    instruction step, so the trusted step relation is `HeadStep`: the unwinding, or `base_step`
+    on a redex that does not unwind (`Unwinds`). Frames that hold an evaluated operand carry a
+    proof that it is not a panic (`AppLCtx v2 h2`, ...), and every pure step that binds or pairs a
+    value needs `v.isPanic = false`; the tactics discharge it (`notPanicProof?`: `#x`,
+    constructors, definitions of them, hypotheses), so proofs see it only for a generic
+    `v : val` (here: a `let` binding an axiomatized constant, `etcdserverpb.AlarmType_NOSPACE`,
+    now translated; and the generic results of `stmRet` specs, cased on first).
+  - *`go.panic` is `λ: "v", Raise "v"`*, `Raise` a primitive (`RaiseOp`) that steps to
+    `PanicV v`; `wp_panic : Φ (PanicV #p) ⊢ WP (go.panic #p)`. The builtins' run-time panics
+    (`Panic "msg"`: an index out of range, a failed type assertion) stay stuck
+    (`wp_PanicOp : ▷ False ⊢ ...`): raft's assertion-style panics keep their unreachability
+    proofs.
+  - *`recover` only where a deferred literal calls it*, by a separate wrapper:
+    `with_defer_recover: r; e` (`wrapDeferRecover`), whose body also gets the `$panic` cell and
+    whose `r` returns the results when the chain cleared the cell (named results are allocated
+    outside the wrapper, hoisted); `recover()` is `recoverPanic $panic`. The 68 plain `with_defer`
+    sites and `wp_with_defer` keep their shape (`wrapDefer` now runs the body under a `Catch` whose
+    handler runs the chain and raises the panic again); the no-panic corollary of the plan was not
+    needed. A `recover()` anywhere else is reported unsupported.
+  - *`Catch e h k`'s handlers are expressions* (Goose emits lambdas), not values.
+  - *Two new class fields*: `GoGlobalContext.intoVal_not_panic` (no Go value is a panic, so a
+    spec `RET #x` excludes panics) and `MapSemantics.is_map_pure_not_panic` (`SafeMapKey` is
+    unchanged); `wp_for` takes three non-panic hypotheses (discharged by the tactic) and a panicking
+    body proves its `forPostcondition` (`wp_for_post_panic`); `wp_fork*`'s body ends in
+    `⌜v.isPanic = false⌝`; `goose_adequacy_nopanic`.
+  - *Unsupported*: a panicking loop condition or `range` body, a deferred function panicking while
+    unwinding, `panic(nil)`, `runtime.Goexit`.
+  - *Cost here*: two proofs changed for the adoption (`runSTM`, `applyEntryNormal`'s constant);
+    the STM's specs changed for the panic outcome.
+
+### The standard library's models (with the panic branch)
+
+**2026-10-10 · implemented** (Perennial branch `panic`, `d958136aa`, `c01745d27`, `7cea8cc26`)
+
+`client/v3/leasing` carried four standard-library axioms; Perennial now has their specs and the
+callers use them directly, as the cache uses `bytes.wp_Compare`.
+
+- **`strings.Compare`**: a trusted model in `TrustedCode/strings.lean` (Go's `<` and `==` on
+  strings, as `bytes.Compare`'s model; Go's is `bytealg.CompareString`, assembly);
+  `strings.wp_Compare` returns `strings.compareResult`.
+- **`strings.TrimPrefix`**: a trusted model, goose's translation of `HasPrefix` and
+  `string([]byte(s)[len(prefix):])` (Goose has no string slicing); `strings.wp_TrimPrefix`
+  returns `strings.trimPrefix`.
+- **`(*time.Time).Add`**: `Time.Add` translated, for the method set of `*Time`
+  (`ptr_Add_unfold`); `time.Time.wp_ptr_Add` from `Time.wp_Add`, which stays an axiom (the body
+  uses `&^`, which the model's Go semantics does not define, and the untranslated `addSec`,
+  `stripMono`).
+- **`errors.As`**: `errors.wp_As`, an axiom (reflection, `internal/reflectlite`, not
+  translated), with `wp_AsType`'s precondition (`isErrorTree S T' T`: the specs of the tree's
+  `As`/`Unwrap` methods and the typing of its errors) for a target `*T`; a leaf error (no `As`,
+  no `Unwrap`: `errors.isLeafError`) is a one-error tree (`isErrorTree_leaf`). Go's panic for a
+  target type neither an interface nor implementing `error` is not stated (method sets are
+  uninterpreted). The caller (`acquire`) needs the client's error to be such a leaf: the client
+  contract says so (`clientErr` in `txnCommitResultO`'s error case: a leaf, an `EtcdError` if of
+  that type; true of gRPC status errors, `rpctypes.EtcdError`s and context errors). *Rejected:*
+  an `errors.As` spec without the tree (false for an error whose `As` method loops or panics).
+- **`status.FromError`** (grpc) stays an etcd-grove axiom.

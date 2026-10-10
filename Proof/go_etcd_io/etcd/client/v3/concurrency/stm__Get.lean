@@ -41,13 +41,23 @@ theorem stm.Get.wp_proof (hWG : writeSet.get.spec (GF := GF) (hG := hG))
   icases Hp with (⟨%Hpn, %Hnw⟩ | ⟨%k, %w, %sp, %Hw, Hp⟩)
   · obtain ⟨rfl, -⟩ := Hpn
     wp_auto
-    wp_apply hF b pfx st.reads gs ksl ks $$ [$Hpkg $Henv $Hrs $Hopts $Hks] as %p ⟨%reads', Hrs, Hopts, %Hgrow, Hp⟩
+    wp_apply hF b pfx st.reads gs ksl ks $$ [$Hpkg $Henv $Hrs $Hopts $Hks] as %r Hr
     · ipureintro; exact ⟨Hgs, Hpk⟩
+    iunfold stmRet at Hr
+    icases Hr with (⟨%p, %Hrp, %reads', Hrs, Hopts, %Hgrow, Hp⟩ | %Hab)
+    rotate_left
+    · obtain ⟨err, Hne, rfl⟩ := Hab
+      unfold stmAbort
+      wp_auto
+      iapply HΦ
+      iapply stmRet_abort _ Hne
+    subst Hrp
     icases Hp with (%Hnil | ⟨%k, %e, %e', %Hke, #He⟩)
     · obtain ⟨rfl, rfl⟩ := Hnil
       wp_apply hRV null [] $$ [$Hpkg]
       · ileft; ipureintro; exact ⟨rfl, rfl⟩
       iapply HΦ
+      iapply stmRet_ret
       iexists reads'
       iframe Hrs Hopts
       isplitl [Hf Hm]
@@ -58,6 +68,7 @@ theorem stm.Get.wp_proof (hWG : writeSet.get.spec (GF := GF) (hG := hG))
     · wp_apply hRV p e.value $$ [$Hpkg]
       · iright; iexists pfx, k, e; iframe He; ipureintro; rfl
       iapply HΦ
+      iapply stmRet_ret
       iexists reads'
       iframe Hrs Hopts
       isplitl [Hf Hm]
@@ -73,6 +84,7 @@ theorem stm.Get.wp_proof (hWG : writeSet.get.spec (GF := GF) (hG := hG))
     wp_auto
     obtain ⟨Hk, Hwk, Hv⟩ := Hw
     iapply HΦ
+    iapply stmRet_ret
     iexists st.reads
     iframe Hrs Hopts
     isplitl [Hf Hm]

@@ -2,7 +2,7 @@
 `client/v3/concurrency`'s software transactional memory (`stm.go`): the vocabulary of
 `Spec/go_etcd_io/etcd/client/v3/concurrency/{NewSTM,mkSTM,runSTM,stm__*,stmSerializable__*,
 readSet__*,writeSet__*,...}.lean`. Lean-first (no Rocq counterpart). See `decisions.md`, "STM: a
-higher-order closure spec, aborts as divergence, what each isolation level gives".
+higher-order closure spec, aborts as panics, what each isolation level gives".
 
 **The protocol.** `NewSTM(client, apply, opts...)` runs the user's closure `apply` against an
 `STM` (an interface: `Get`, `Put`, `Rev`, `Del`; `commit` and `reset` internal) that buffers
@@ -39,9 +39,11 @@ attempt's state satisfies `Q`. `NewSTM` returns, on `nil`, a committed attempt's
 with `Q st` and `stmOutcome`.
 
 **Aborts.** `stm.fetch` and the commits `panic(stmError{err})` on a client error, which
-`runSTM`'s deferred function recovers into the returned error. Perennial models neither `panic`
-(stuck) nor `recover`: the two are the trust boundary here (`stmPanic.spec`: such a panic does
-not return; `stmRecover.spec`: `recover()` returns nil), see `decisions.md`.
+`runSTM`'s deferred function recovers into the returned error (`with_defer_recover:`). A panic is
+an outcome of Perennial's GooseLang (`PanicV`): the specs of `fetch`, the commits, `Get`, `Rev` and
+the closure say what they return or that they abort (`stmRet`: the panic `stmAbort err`,
+`err ≠ nil`), and `runSTM`'s proof follows the abort to its deferred `recover()`; see
+`decisions.md`.
 -/
 module
 
@@ -260,6 +262,14 @@ def stmBase (lvl : w64) (p : Loc) : Loc :=
 /-- The STM `p` of level `lvl` as an `STM` interface value. -/
 def stmIface (lvl : w64) (p : Loc) : GoInterfaceOk :=
   interface.mk (go.GoType.PointerType (if isoSer lvl then stmSerializable.ty else stm.ty)) #p
+
+/-- **The STM's abort** with the client error `err`: the panic of `panic(stmError{err})` (the
+`stmError` converted to `interface{}`), by `stm.fetch` and the commits, which `runSTM`'s deferred
+function recovers. -/
+def stmAbort (err : GoInterface) : val := PanicV #(interface.mkOk stmError.ty #(stmError.mk err))
+
+/-- `r` is the STM's abort with a client error. -/
+def stmAborted (r : val) : Prop := ∃ err, err ≠ GoInterface.nil ∧ r = stmAbort err
 
 end addrs
 
@@ -498,18 +508,40 @@ instance stmResult_persistent (pfx : GoString) (lvl lo : w64) (Q : STMSt → Pro
 
 /-! ## The interface's methods and the closure -/
 
+/-- **An STM operation's outcome** `r`: a return `#x` with `Q x`, or the STM's abort
+(`stmAborted`: a client error made `fetch` or a commit panic). -/
+def stmRet {V : Type} (r : val) (Q : V → IProp GF) : IProp GF :=
+  iprop((∃ x : V, ⌜r = #x⌝ ∗ Q x) ∨ ⌜stmAborted r⌝)
+
+theorem stmRet_ret {V : Type} (x : V) (Q : V → IProp GF) : Q x ⊢ stmRet #x Q := by
+  iintro H
+  unfold stmRet
+  ileft
+  iexists x
+  iframe H
+  ipureintro; rfl
+
+theorem stmRet_abort {V : Type} (err : GoInterface) (h : err ≠ GoInterface.nil)
+    (Q : V → IProp GF) :
+    ⊢ stmRet (PanicV #(interface.mkOk stmError.ty #(stmError.mk err))) Q := by
+  unfold stmRet
+  iright
+  ipureintro
+  exact ⟨err, h, rfl⟩
+
 /-- **The STM's methods** (persistent): the triples of the `STM` interface's methods on the STM
 `p` of level `lvl` (`stmIface`), over its state. `Get(keys...)` (keys under `pfx`): `GetPost`;
 `Put(k, v, opts...)`: the write set gets the put; `Rev(k)`: `RevPost`; `Del(k)`: the write set
 gets the delete; `commit()`: `nil` (failed) or a response with `stmOutcome`, leaving the state
 stale; `reset()`: from a stale state, a fresh attempt. A client error aborts `Get`, `Rev` and
-`commit` (a panic `runSTM` recovers: they do not return, `stmPanic.spec`). -/
+`commit` (`stmRet`: the panic `runSTM` recovers). -/
 def stmMethods (lvl : w64) (pfx : GoString) (p : Loc) : IProp GF :=
   iprop(
     (□ ∀ (st : STMSt) (sl : GoSlice) (ks : List GoString),
       {{ stmState lvl pfx p st ∗ sl ↦*□ ks ∗ ⌜∀ k ∈ ks, pfx <+: k⌝ }}
         (App (Val #(methods (stmIface lvl p).ty go!"Get" (stmIface lvl p).v)) (Val #sl))
-      {{ (v : GoString), RET #v; ∃ st', stmState lvl pfx p st' ∗ ⌜GetPost ks st v st'⌝ }}) ∗
+      {{ (r : val), RET r; stmRet r fun v : GoString => iprop(
+          ∃ st', stmState lvl pfx p st' ∗ ⌜GetPost ks st v st'⌝) }}) ∗
     (□ ∀ (st : STMSt) (k v : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)),
       {{ stmState lvl pfx p st ∗ optsAt sl gs ∗ ⌜pfx <+: k ∧ PutOptsOk k v gs⌝ }}
         (App (App (App (Val #(methods (stmIface lvl p).ty go!"Put" (stmIface lvl p).v))
@@ -519,7 +551,8 @@ def stmMethods (lvl : w64) (pfx : GoString) (p : Loc) : IProp GF :=
     (□ ∀ (st : STMSt) (k : GoString),
       {{ stmState lvl pfx p st ∗ ⌜pfx <+: k⌝ }}
         (App (Val #(methods (stmIface lvl p).ty go!"Rev" (stmIface lvl p).v)) (Val #k))
-      {{ (r : w64), RET #r; ∃ st', stmState lvl pfx p st' ∗ ⌜RevPost k st r st'⌝ }}) ∗
+      {{ (r : val), RET r; stmRet r fun rev : w64 => iprop(
+          ∃ st', stmState lvl pfx p st' ∗ ⌜RevPost k st rev st'⌝) }}) ∗
     (□ ∀ (st : STMSt) (k : GoString),
       {{ stmState lvl pfx p st ∗ ⌜pfx <+: k⌝ }}
         (App (Val #(methods (stmIface lvl p).ty go!"Del" (stmIface lvl p).v)) (Val #k))
@@ -527,8 +560,8 @@ def stmMethods (lvl : w64) (pfx : GoString) (p : Loc) : IProp GF :=
     (□ ∀ (st : STMSt) (lo : w64),
       {{ stmState lvl pfx p st ∗ etcdReached lo }}
         (App (Val #(methods (stmIface lvl p).ty go!"commit" (stmIface lvl p).v)) (Val #()))
-      {{ (resp : Loc), RET #resp; stmStale lvl pfx p ∗
-          (⌜resp = null⌝ ∨ ⌜resp ≠ null⌝ ∗ stmOutcome pfx lvl lo st resp) }}) ∗
+      {{ (r : val), RET r; stmRet r fun resp : Loc => iprop(stmStale lvl pfx p ∗
+          (⌜resp = null⌝ ∨ ⌜resp ≠ null⌝ ∗ stmOutcome pfx lvl lo st resp)) }}) ∗
     (□ {{ stmStale lvl pfx p }}
         (App (Val #(methods (stmIface lvl p).ty go!"reset" (stmIface lvl p).v)) (Val #()))
       {{ RET #(); stmState lvl pfx p STMSt.empty }}))
@@ -539,15 +572,15 @@ instance stmMethods_persistent (lvl : w64) (pfx : GoString) (p : Loc) :
 
 /-- **The user's closure** `apply` (`func(STM) error`; persistent: `runSTM` calls it once per
 attempt): on any STM with the methods' triples, from any state, it returns an error or `nil`, in
-some state, and `nil` means the attempt's reads and writes satisfy `Q`. It may only use the
-STM through `Get`, `Put`, `Rev`, `Del` (it has no triple of `commit`/`reset`), and must not
-recover a panic (the STM's aborts are panics `runSTM` recovers). -/
+some state, and `nil` means the attempt's reads and writes satisfy `Q`; or it aborts, by a
+method's abort (`stmRet`), which it does not recover. It may only use the STM through `Get`,
+`Put`, `Rev`, `Del` (it has no triple of `commit`/`reset`). -/
 def applySpec (pfx : GoString) (apply : GoFunc) (Q : STMSt → Prop) : IProp GF :=
   iprop(□ ∀ (lvl : w64) (p : Loc) (st : STMSt), stmMethods lvl pfx p -∗
     {{ stmState lvl pfx p st }}
       (App (Val #apply) (Val #(GoInterface.ok (stmIface lvl p))))
-    {{ (err : GoInterface), RET #err;
-        ∃ st', stmState lvl pfx p st' ∗ ⌜err = GoInterface.nil → Q st'⌝ }})
+    {{ (r : val), RET r; stmRet r fun err : GoInterface => iprop(
+        ∃ st', stmState lvl pfx p st' ∗ ⌜err = GoInterface.nil → Q st'⌝) }})
 
 instance applySpec_persistent (pfx : GoString) (apply : GoFunc) (Q : STMSt → Prop) :
     Persistent (applySpec (GF := GF) (hG := hG) pfx apply Q) := by
