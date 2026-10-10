@@ -1099,7 +1099,9 @@ axiom file_raft_internal_proto_rawDesc [FfiSyntax] [GoGlobalContext] : val
 
 axiom AlarmType_NONE [FfiSyntax] [GoGlobalContext] : val
 
-axiom AlarmType_NOSPACE [FfiSyntax] [GoGlobalContext] : val
+/-- space quota is exhausted -/
+@[reducible] noncomputable def AlarmType_NOSPACE [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 1)
 
 axiom AlarmType_CORRUPT [FfiSyntax] [GoGlobalContext] : val
 

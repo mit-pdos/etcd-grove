@@ -90,9 +90,8 @@ Election__Campaign: Session__Client Session__Lease CreateRevision v3_Compare v3_
 Election__observe: Session__Client WithFirstCreate WithRev WithPrefix WatchResponse__Err
 Election__Observe: Election__observe
 # STM (client/v3/concurrency/stm.go), see InvSTM.lean. The STM's abort (`panic(stmError{err})`)
-# and `runSTM`'s `recover()` are the trust boundary (axioms).
+# is the trust boundary (an axiom).
 stmPanic:
-stmRecover:
 WithIsolation:
 WithAbortContext:
 WithPrefetch:
@@ -116,7 +115,7 @@ stmSerializable__Rev: stmSerializable__Get stm__Rev
 stm__commit: writeSet__puts stmPanic
 stmSerializable__commit: stmSerializable__gets writeSet__puts readSet__add stmPanic
 mkSTM: readSet__cmps readSet__first writeSet__cmps stm__Get stm__Put stm__Rev stm__Del stm__commit stm__reset stmSerializable__Get stmSerializable__Rev stmSerializable__commit WithSerializable
-runSTM: stmRecover
+runSTM:
 NewSTM: Client__Ctx mkSTM runSTM
 NewSTMRepeatable: NewSTM WithAbortContext WithIsolation
 NewSTMSerializable: NewSTM WithAbortContext WithIsolation

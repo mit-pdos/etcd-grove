@@ -90,7 +90,6 @@ public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Error
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.runSTM
 public import Proof.google_golang_org.grpc.status.Error
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.stmPanic
-public import Proof.go_etcd_io.etcd.client.v3.concurrency.stmRecover
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.stmSerializable__Get
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.stmSerializable__Rev
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.stmSerializable__commit
@@ -480,13 +479,9 @@ theorem wp_mkSTM [AllG GF] :
     EtcdGrove.concurrency.mkSTM.spec (GF := GF) (hG := hG) :=
   EtcdGrove.concurrency.mkSTM.wp_proof readSet.wp_cmps readSet.wp_first writeSet.wp_cmps stm.wp_Get stm.wp_Put stm.wp_Rev stm.wp_Del stm.wp_commit stm.wp_reset stmSerializable.wp_Get stmSerializable.wp_Rev stmSerializable.wp_commit v3.wp_WithSerializable
 
-theorem wp_stmRecover [AllG GF] :
-    EtcdGrove.concurrency.stmRecover.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.concurrency.stmRecover.wp_proof
-
 theorem wp_runSTM [AllG GF] :
     EtcdGrove.concurrency.runSTM.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.concurrency.runSTM.wp_proof wp_stmRecover
+  EtcdGrove.concurrency.runSTM.wp_proof
 
 theorem wp_NewSTM [AllG GF] :
     EtcdGrove.concurrency.NewSTM.spec (GF := GF) (hG := hG) :=

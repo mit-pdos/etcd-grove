@@ -31,8 +31,8 @@ base of each printed in the build log (`#print axioms`). Every function of `mute
   where the key had create revision `rev`, and leaves it so with the proclaimed value.
 
 `STM` (`stm.go`): every function has a `Spec`/`Proof` pair and a linked result; the STM's abort
-(`panic(stmError{err})`) and `runSTM`'s `recover()` are the trust boundary (`stmPanic`,
-`stmRecover`, axioms; see `notes/decisions.md`, "STM").
+(`panic(stmError{err})`) is the trust boundary (`stmPanic`, an axiom; see `notes/decisions.md`,
+"STM"); `runSTM`'s `recover()` is Perennial's (`with_defer_recover:`).
 
 * **`NewSTM`** (`stm_NewSTM`): for a closure `apply` whose `nil` means `Q` of its attempt
   (`applySpec`), `nil` means a committed attempt `st` with `Q st` and `stmOutcome`: a revision `R`,

@@ -4,7 +4,6 @@ Proof of `Spec/go_etcd_io/etcd/client/v3/concurrency/runSTM.lean`. Lean-first (n
 module
 
 public import Spec.go_etcd_io.etcd.client.v3.concurrency.runSTM
-public import Spec.go_etcd_io.etcd.client.v3.concurrency.stmRecover
 public import Perennial.Golang.Theory.Chan.Idioms.Bag
 
 @[expose] public section
@@ -28,7 +27,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
-theorem runSTM.wp_proof (hRec : stmRecover.spec (GF := GF) (hG := hG)) :
+theorem runSTM.wp_proof :
     runSTM.spec (GF := GF) (hG := hG) := by
   intro lvl pfx p apply Q lo
   wp_start as ⟨#Hm, Hst, #Hap, #Hlo⟩
@@ -46,9 +45,7 @@ theorem runSTM.wp_proof (hRec : stmRecover.spec (GF := GF) (hG := hG)) :
   ipersist outc
   wp_apply wp_fork $$ [Hst s apply]
   · wp_auto
-    wp_apply wp_with_defer
-    iintro %defer Hdefer
-    wp_auto
+    wp_apply wp_with_defer_recover as %defer %pnc defer pnc
     ihave IH : iprop(∃ o : stmResponse, "out" ∷ out_ptr ↦ o ∗ "Hst" ∷ stmStale lvl pfx p) $$ [out Hst]
     · iexists _; simp only [named]; iframe
     wp_for IH
@@ -64,7 +61,7 @@ theorem runSTM.wp_proof (hRec : stmRecover.spec (GF := GF) (hG := hG)) :
       wp_apply wp_bag_send (P := fun r : stmResponse => stmResult (GF := GF) pfx lvl lo Q r.resp' r.err')
         $$ [$Hch]
       · unfold stmResult; ileft; ipureintro; simp
-      wp_apply hRec
+      wp_apply wp_recoverPanic $$ [$pnc] as pnc
       itrivial
     | nil =>
       wp_auto
@@ -90,7 +87,7 @@ theorem runSTM.wp_proof (hRec : stmRecover.spec (GF := GF) (hG := hG)) :
           iexists st'
           iframe #
           ipureintro; exact Herr rfl
-        wp_apply hRec
+        wp_apply wp_recoverPanic $$ [$pnc] as pnc
         itrivial
   wp_apply wp_bag_receive (t := stmResponse.ty) γ ch
     (fun r : stmResponse => stmResult (GF := GF) pfx lvl lo Q r.resp' r.err') $$ [$Hch] as %r #Hr

@@ -39,9 +39,8 @@ attempt's state satisfies `Q`. `NewSTM` returns, on `nil`, a committed attempt's
 with `Q st` and `stmOutcome`.
 
 **Aborts.** `stm.fetch` and the commits `panic(stmError{err})` on a client error, which
-`runSTM`'s deferred function recovers into the returned error. Perennial models neither `panic`
-(stuck) nor `recover`: the two are the trust boundary here (`stmPanic.spec`: such a panic does
-not return; `stmRecover.spec`: `recover()` returns nil), see `decisions.md`.
+`runSTM`'s deferred function recovers into the returned error (`with_defer_recover:`). The panic
+is the trust boundary here (`stmPanic.spec`: such a panic does not return), see `decisions.md`.
 -/
 module
 

@@ -11,7 +11,6 @@ axiom apply.Apply.wp_proof
 axiom binary.bigEndian.PutUint64.wp_proof
 axiom binary.bigEndian.Uint64.wp_proof
 axiom concurrency.stmPanic.wp_proof
-axiom concurrency.stmRecover.wp_proof
 axiom config.ServerConfig.ElectionTimeout.wp_proof
 axiom errors.As.wp_proof
 axiom errors.Is.wp_proof
