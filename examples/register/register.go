@@ -52,10 +52,11 @@ func NewStorage(voters []uint64) *Storage {
 	return &Storage{MemoryStorage: raft.NewMemoryStorage(), voters: voters}
 }
 
-// InitialState is the MemoryStorage's, with the cluster's voters as the configuration.
+// InitialState is a new cluster's: no hard state (the register persists only the log's
+// entries, never a HardState, so the MemoryStorage's is always empty), and the cluster's
+// voters as the configuration.
 func (s *Storage) InitialState() (pb.HardState, pb.ConfState, error) {
-	hs, _, err := s.MemoryStorage.InitialState()
-	return hs, pb.ConfState{Voters: append([]uint64(nil), s.voters...)}, err
+	return pb.HardState{}, pb.ConfState{Voters: s.voters}, nil
 }
 
 // Snapshot is the MemoryStorage's, but a storage that has never had one (a new
@@ -92,10 +93,24 @@ func New(id uint64, node raft.Node, storage *Storage, send func([]pb.Message)) *
 	return r
 }
 
+// maxIndex bounds the indices of the entries a Storage holds (the bound raft's Storage
+// contract assumes of the stable log, 2^61).
+const maxIndex = 1 << 61
+
+// fits says whether appending es keeps the stored log within maxIndex.
+func fits(es []pb.Entry) bool {
+	return len(es) == 0 || (uint64(len(es)) <= maxIndex && es[0].Index <= maxIndex-uint64(len(es)))
+}
+
 // run handles the node's Readys: persist the entries, send the messages, apply the
-// committed entries in order, then Advance.
+// committed entries in order, then Advance. A log that would outgrow maxIndex stops the
+// replica (2^61 entries: it does not happen).
 func (r *Register) run(send func([]pb.Message)) {
 	for rd := range r.node.Ready() {
+		if !fits(rd.Entries) {
+			for {
+			}
+		}
 		r.storage.Append(rd.Entries)
 		send(rd.Messages)
 		for _, e := range rd.CommittedEntries {

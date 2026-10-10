@@ -42,6 +42,9 @@ attribute [irreducible] Register.ty
 @[reducible] noncomputable def opGet [FfiSyntax] [GoGlobalContext] : val :=
   #(2 : Int)
 
+@[reducible] noncomputable def maxIndex [FfiSyntax] [GoGlobalContext] : val :=
+  #(2305843009213693952 : Int)
+
 noncomputable def encode [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/register.encode"
 
@@ -53,6 +56,9 @@ noncomputable def NewStorage [FfiSyntax] [GoGlobalContext] : GoString :=
 
 noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/register.New"
+
+noncomputable def fits [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/register.fits"
 
 /-- encode is an operation as a log entry: the proposing replica (8 bytes, little-endian),
     its sequence number there (8 bytes), the kind (1 byte), then the value (the rest;
@@ -134,43 +140,25 @@ noncomputable def NewStorage.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (Var "voters"))
   (App (Val (GoInstruction (CompositeLiteral Storage.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"MemoryStorage")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"voters")) (ElementExpression (go.GoType.SliceType go.uint64) (Var "$v1")))])))))))))
 
-/-- InitialState is the MemoryStorage's, with the cluster's voters as the configuration.
+/-- InitialState is a new cluster's: no hard state (the register persists only the log's
+    entries, never a HardState, so the MemoryStorage's is always empty), and the cluster's
+    voters as the configuration.
 
-    go: register.go:56:19 -/
+    go: register.go:58:19 -/
 noncomputable def Storage.InitialState.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Storage.ty)))) (Var "s"))
-  (Let "__p" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty) go!"InitialState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty)))) (App (Val (GoInstruction (StructFieldRef Storage.ty go!"MemoryStorage"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Storage.ty)))) (Var "s"))))) (Val #()))
-  (Let "$ret0" (Fst (Fst (Var "__p")))
-  (Let "$ret1" (Snd (Fst (Var "__p")))
-  (Let "$ret2" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "$r2" (Var "$ret2")
-  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (Let "hs" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty))) (Var "hs")) (Let "$v0" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.uint64)))) (Val UntypedNil))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (StructFieldRef Storage.ty go!"voters"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Storage.ty)))) (Var "s"))))
-  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType go.uint64)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Voters")) (ElementExpression (go.GoType.SliceType go.uint64) (Var "$v0")))])))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r2")))))))
-  (App (Val doExecute)
-  (Var "$r1")))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty))) (Pair (Var "hs") (Var "$r0"))))))))))))))))))
+  (Pair (Pair (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty))) (LiteralValue [])) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (StructFieldRef Storage.ty go!"voters"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Storage.ty)))) (Var "s"))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Voters")) (ElementExpression (go.GoType.SliceType go.uint64) (Var "$v0")))])))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))))
 
 /-- Snapshot is the MemoryStorage's, but a storage that has never had one (a new
     cluster's) says it has none for now, as the Storage interface asks, rather than
     returning an empty snapshot.
 
-    go: register.go:64:19 -/
+    go: register.go:65:19 -/
 noncomputable def Storage.Snapshot.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -201,7 +189,7 @@ noncomputable def Storage.Snapshot.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- New starts replica id on a running node and its storage; send delivers the node's
     messages to the other replicas.
 
-    go: register.go:89:6 -/
+    go: register.go:90:6 -/
 noncomputable def New.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "id"
   (Lam "node"
@@ -231,10 +219,24 @@ noncomputable def New.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Register.ty)))) (Pair (Var "r") (Var "$r0"))))))))))))))))
 
-/-- run handles the node's Readys: persist the entries, send the messages, apply the
-    committed entries in order, then Advance.
+/-- fits says whether appending es keeps the stored log within maxIndex.
 
-    go: register.go:97:20 -/
+    go: register.go:101:6 -/
+noncomputable def fits.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "es"
+  (App (Val exceptionDo)
+  (Let "es" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (Var "es"))
+  (App (Val doReturn)
+  (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (Var "es"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (Val #true) (If (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (App (Val (GoInstruction (Convert go.int go.uint64))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (Var "es"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)]))) (Val #())) (Var "$a0")))) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val maxIndex)))) (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty go!"Index"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (Var "es")) (Val #(W64 0)))))) (App (Val (GoInstruction (GoOp GoSub go.uint64))) (Pair (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val maxIndex)) (App (Val (GoInstruction (Convert go.int go.uint64))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (Var "es"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)]))) (Val #())) (Var "$a0")))))))) (Val #false)))))))
+
+/-- run handles the node's Readys: persist the entries, send the messages, apply the
+    committed entries in order, then Advance. A log that would outgrow maxIndex stops the
+    replica (2^61 entries: it does not happen).
+
+    go: register.go:108:20 -/
 noncomputable def Register.run.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "send"
@@ -248,6 +250,7 @@ noncomputable def Register.run.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "rd" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.Ready.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.Ready.ty))) (Val #())))
   (App (App (Val (chan.forRange _root_.Perennial.go_etcd_io.raft.v3.Ready.ty)) (Var "$range"))
   (Lam "$key"
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -274,6 +277,16 @@ noncomputable def Register.run.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.Ready.ty go!"Entries"))) (Var "rd")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Storage.ty) go!"Append"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Storage.ty)))) (App (Val (GoInstruction (StructFieldRef Register.ty go!"storage"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Register.ty)))) (Var "r"))))) (Var "$a0")))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.Ready.ty go!"Entries"))) (Var "rd")))
+  (App (App (Val (GoInstruction (FuncResolve fits []))) (Val #())) (Var "$a0"))))
+  (App (App (App (Val doFor) (Lam BAnon
+  (Val #true))) (Lam BAnon
+  (App (Val doExecute)
+  (Val #()))))
+  (Lam BAnon
+  (Val #())))
+  (App (Val doExecute)
+  (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.Ready.ty))) (Pair (Var "rd") (Var "$key")))))))))))))))
 
@@ -284,7 +297,7 @@ noncomputable def Register.run.impl [FfiSyntax] [GoGlobalContext] : val :=
     takes effect once. Operations are told apart by their encoding, which is unique: the
     replica and a sequence number of its own.
 
-    go: register.go:114:20 -/
+    go: register.go:129:20 -/
 noncomputable def Register.apply.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "e"
@@ -408,7 +421,7 @@ noncomputable def Register.apply.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- do proposes one operation and waits until it is applied; a dropped proposal (no
     leader known) is proposed again.
 
-    go: register.go:148:20 -/
+    go: register.go:163:20 -/
 noncomputable def Register.«do».impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "kind"
@@ -458,7 +471,7 @@ noncomputable def Register.«do».impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- Put sets the register to val.
 
-    go: register.go:161:20 -/
+    go: register.go:176:20 -/
 noncomputable def Register.Put.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "val"
@@ -475,7 +488,7 @@ noncomputable def Register.Put.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- Get returns the register's value.
 
-    go: register.go:166:20 -/
+    go: register.go:181:20 -/
 noncomputable def Register.Get.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -723,6 +736,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   decode_unfold : FuncUnfold decode [] decode.impl
   NewStorage_unfold : FuncUnfold NewStorage [] NewStorage.impl
   New_unfold : FuncUnfold New [] New.impl
+  fits_unfold : FuncUnfold fits [] fits.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_binary_Assumption : _root_.Perennial.encoding.binary.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
@@ -735,6 +749,7 @@ attribute [instance] Assumptions.Storage_instance
   Assumptions.decode_unfold
   Assumptions.NewStorage_unfold
   Assumptions.New_unfold
+  Assumptions.fits_unfold
   Assumptions.import_context_Assumption
   Assumptions.import_binary_Assumption
   Assumptions.import_sync_Assumption
