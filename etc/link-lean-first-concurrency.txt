@@ -59,6 +59,7 @@ Session__Close: Session__Orphan
 # clientv3's single-key gets and watches, and the transaction's range responses, for Mutex.
 OpGet: IsOptsWithPrefix IsOptsWithFromKey Op__applyOpts
 WithRev:
+WithSerializable:
 rpctypes_Error:
 status_Error:
 WatchResponse__Err: rpctypes_Error status_Error
@@ -88,3 +89,35 @@ Election__Proclaim: Session__Client CreateRevision Compare Session__Lease v3_Wit
 Election__Campaign: Session__Client Session__Lease CreateRevision Compare v3_WithLease OpPut OpGet ResponseOp__GetResponseRange Election__Proclaim Election__Resign waitDeletes Client__Ctx
 Election__observe: Session__Client WithFirstCreate WithRev WithPrefix WatchResponse__Err
 Election__Observe: Election__observe
+# STM (client/v3/concurrency/stm.go), see InvSTM.lean. The STM's abort (`panic(stmError{err})`)
+# and `runSTM`'s `recover()` are the trust boundary (axioms).
+stmPanic:
+stmRecover:
+WithIsolation:
+WithAbortContext:
+WithPrefetch:
+isKeyCurrent: ModRevision Compare
+respToValue:
+readSet__add: ResponseOp__GetResponseRange
+readSet__first:
+readSet__cmps: isKeyCurrent
+writeSet__get:
+writeSet__cmps: ModRevision Compare
+writeSet__puts:
+stmSerializable__gets: OpGet
+stm__reset:
+stm__Put: OpPut
+stm__Del: OpDelete
+stm__fetch: OpGet ResponseOp__GetResponseRange readSet__add stmPanic
+stm__Get: writeSet__get stm__fetch respToValue
+stm__Rev: stm__fetch
+stmSerializable__Get: writeSet__get stm__fetch respToValue WithRev WithSerializable
+stmSerializable__Rev: stmSerializable__Get stm__Rev
+stm__commit: writeSet__puts stmPanic
+stmSerializable__commit: stmSerializable__gets writeSet__puts readSet__add stmPanic
+mkSTM: readSet__cmps readSet__first writeSet__cmps stm__Get stm__Put stm__Rev stm__Del stm__commit stm__reset stmSerializable__Get stmSerializable__Rev stmSerializable__commit WithSerializable
+runSTM: stmRecover
+NewSTM: Client__Ctx mkSTM runSTM
+NewSTMRepeatable: NewSTM WithAbortContext WithIsolation
+NewSTMSerializable: NewSTM WithAbortContext WithIsolation
+NewSTMReadCommitted: NewSTM WithAbortContext WithIsolation

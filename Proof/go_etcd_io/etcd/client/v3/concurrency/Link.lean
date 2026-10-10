@@ -42,6 +42,10 @@ public import Proof.go_etcd_io.etcd.client.v3.concurrency.NewElection
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.NewLocker
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.NewMutex
 public import Proof.go_etcd_io.etcd.client.v3.NewOp
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.NewSTM
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.NewSTMReadCommitted
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.NewSTMRepeatable
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.NewSTMSerializable
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.NewSession
 public import Proof.go_etcd_io.etcd.client.v3.OpDelete
 public import Proof.go_etcd_io.etcd.client.v3.OpGet
@@ -58,27 +62,54 @@ public import Proof.go_etcd_io.etcd.client.v3.concurrency.Session__Orphan
 public import Proof.go_etcd_io.etcd.client.v3.Value
 public import Proof.go_etcd_io.etcd.client.v3.Version
 public import Proof.go_etcd_io.etcd.client.v3.WatchResponse__Err
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.WithAbortContext
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.WithContext
 public import Proof.go_etcd_io.etcd.client.v3.WithFirstCreate
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.WithIsolation
 public import Proof.go_etcd_io.etcd.client.v3.WithLastCreate
 public import Proof.go_etcd_io.etcd.client.v3.WithLimit
 public import Proof.go_etcd_io.etcd.client.v3.WithMaxCreateRev
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.WithPrefetch
 public import Proof.go_etcd_io.etcd.client.v3.WithPrefix
 public import Proof.go_etcd_io.etcd.client.v3.WithRev
+public import Proof.go_etcd_io.etcd.client.v3.WithSerializable
 public import Proof.go_etcd_io.etcd.client.v3.WithSort
 public import Proof.go_etcd_io.etcd.client.v3.cloneCompare
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.WithLease
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.WithTTL
 public import Proof.go_etcd_io.etcd.client.v3.getPrefix
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.isKeyCurrent
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.mkSTM
 public import Proof.go_etcd_io.etcd.client.v3.mustInt64
 public import Proof.go_etcd_io.etcd.client.v3.mustInt64orLeaseID
 public import Proof.google_golang_org.protobuf.proto.Clone
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.readSet__add
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.readSet__cmps
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.readSet__first
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.respToValue
 public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Error
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.runSTM
 public import Proof.google_golang_org.grpc.status.Error
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.stmPanic
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.stmRecover
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.stmSerializable__Get
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.stmSerializable__Rev
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.stmSerializable__commit
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.stmSerializable__gets
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.stm__Del
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.stm__Get
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.stm__Put
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.stm__Rev
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.stm__commit
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.stm__fetch
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.stm__reset
 public import Proof.go_etcd_io.etcd.client.v3.WithLease
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.waitDelete
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.waitDeletes
 public import Proof.go_etcd_io.etcd.client.v3.withTop
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.writeSet__cmps
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.writeSet__get
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.writeSet__puts
 public import Proof.go_uber_org.zap.Int64
 
 @[expose] public section
@@ -242,6 +273,10 @@ theorem v3.wp_ModRevision :
     EtcdGrove.ModRevision.spec (GF := GF) (hG := hG) :=
   EtcdGrove.ModRevision.wp_proof
 
+theorem v3.wp_WithSerializable :
+    EtcdGrove.WithSerializable.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.WithSerializable.wp_proof
+
 theorem v3.wp_Value :
     EtcdGrove.Value.spec (GF := GF) (hG := hG) :=
   EtcdGrove.Value.wp_proof
@@ -361,6 +396,122 @@ theorem wp_NewLocker [AllG GF] :
     EtcdGrove.concurrency.NewLocker.spec (GF := GF) (hG := hG) :=
   EtcdGrove.concurrency.NewLocker.wp_proof wp_NewMutex
 
+theorem wp_isKeyCurrent [AllG GF] :
+    EtcdGrove.concurrency.isKeyCurrent.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.isKeyCurrent.wp_proof v3.wp_ModRevision v3.wp_Compare
+
+theorem readSet.wp_cmps [AllG GF] :
+    EtcdGrove.concurrency.readSet.cmps.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.readSet.cmps.wp_proof wp_isKeyCurrent
+
+theorem readSet.wp_first [AllG GF] :
+    EtcdGrove.concurrency.readSet.first.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.readSet.first.wp_proof
+
+theorem writeSet.wp_cmps [AllG GF] :
+    EtcdGrove.concurrency.writeSet.cmps.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.writeSet.cmps.wp_proof v3.wp_ModRevision v3.wp_Compare
+
+theorem writeSet.wp_get [AllG GF] :
+    EtcdGrove.concurrency.writeSet.get.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.writeSet.get.wp_proof
+
+theorem readSet.wp_add [AllG GF] :
+    EtcdGrove.concurrency.readSet.add.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.readSet.add.wp_proof ResponseOp.wp_GetResponseRange
+
+theorem wp_stmPanic [AllG GF] :
+    EtcdGrove.concurrency.stmPanic.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.stmPanic.wp_proof
+
+theorem stm.wp_fetch [AllG GF] :
+    EtcdGrove.concurrency.stm.fetch.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.stm.fetch.wp_proof v3.wp_OpGet ResponseOp.wp_GetResponseRange readSet.wp_add wp_stmPanic
+
+theorem wp_respToValue [AllG GF] :
+    EtcdGrove.concurrency.respToValue.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.respToValue.wp_proof
+
+theorem stm.wp_Get [AllG GF] :
+    EtcdGrove.concurrency.stm.Get.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.stm.Get.wp_proof writeSet.wp_get stm.wp_fetch wp_respToValue
+
+theorem stm.wp_Put [AllG GF] :
+    EtcdGrove.concurrency.stm.Put.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.stm.Put.wp_proof v3.wp_OpPut
+
+theorem stm.wp_Rev [AllG GF] :
+    EtcdGrove.concurrency.stm.Rev.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.stm.Rev.wp_proof stm.wp_fetch
+
+theorem stm.wp_Del [AllG GF] :
+    EtcdGrove.concurrency.stm.Del.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.stm.Del.wp_proof v3.wp_OpDelete
+
+theorem writeSet.wp_puts [AllG GF] :
+    EtcdGrove.concurrency.writeSet.puts.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.writeSet.puts.wp_proof
+
+theorem stm.wp_commit [AllG GF] :
+    EtcdGrove.concurrency.stm.commit.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.stm.commit.wp_proof writeSet.wp_puts wp_stmPanic
+
+theorem stm.wp_reset [AllG GF] :
+    EtcdGrove.concurrency.stm.reset.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.stm.reset.wp_proof
+
+theorem stmSerializable.wp_Get [AllG GF] :
+    EtcdGrove.concurrency.stmSerializable.Get.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.stmSerializable.Get.wp_proof writeSet.wp_get stm.wp_fetch wp_respToValue v3.wp_WithRev v3.wp_WithSerializable
+
+theorem stmSerializable.wp_Rev [AllG GF] :
+    EtcdGrove.concurrency.stmSerializable.Rev.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.stmSerializable.Rev.wp_proof stmSerializable.wp_Get stm.wp_Rev
+
+theorem stmSerializable.wp_gets [AllG GF] :
+    EtcdGrove.concurrency.stmSerializable.gets.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.stmSerializable.gets.wp_proof v3.wp_OpGet
+
+theorem stmSerializable.wp_commit [AllG GF] :
+    EtcdGrove.concurrency.stmSerializable.commit.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.stmSerializable.commit.wp_proof stmSerializable.wp_gets writeSet.wp_puts readSet.wp_add wp_stmPanic
+
+theorem wp_mkSTM [AllG GF] :
+    EtcdGrove.concurrency.mkSTM.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.mkSTM.wp_proof readSet.wp_cmps readSet.wp_first writeSet.wp_cmps stm.wp_Get stm.wp_Put stm.wp_Rev stm.wp_Del stm.wp_commit stm.wp_reset stmSerializable.wp_Get stmSerializable.wp_Rev stmSerializable.wp_commit v3.wp_WithSerializable
+
+theorem wp_stmRecover [AllG GF] :
+    EtcdGrove.concurrency.stmRecover.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.stmRecover.wp_proof
+
+theorem wp_runSTM [AllG GF] :
+    EtcdGrove.concurrency.runSTM.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.runSTM.wp_proof wp_stmRecover
+
+theorem wp_NewSTM [AllG GF] :
+    EtcdGrove.concurrency.NewSTM.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.NewSTM.wp_proof v3.Client.wp_Ctx wp_mkSTM wp_runSTM
+
+theorem wp_WithAbortContext [AllG GF] :
+    EtcdGrove.concurrency.WithAbortContext.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.WithAbortContext.wp_proof
+
+theorem wp_WithIsolation [AllG GF] :
+    EtcdGrove.concurrency.WithIsolation.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.WithIsolation.wp_proof
+
+theorem wp_NewSTMReadCommitted [AllG GF] :
+    EtcdGrove.concurrency.NewSTMReadCommitted.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.NewSTMReadCommitted.wp_proof wp_NewSTM wp_WithAbortContext wp_WithIsolation
+
+theorem wp_NewSTMRepeatable [AllG GF] :
+    EtcdGrove.concurrency.NewSTMRepeatable.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.NewSTMRepeatable.wp_proof wp_NewSTM wp_WithAbortContext wp_WithIsolation
+
+theorem wp_NewSTMSerializable [AllG GF] :
+    EtcdGrove.concurrency.NewSTMSerializable.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.NewSTMSerializable.wp_proof wp_NewSTM wp_WithAbortContext wp_WithIsolation
+
 theorem wp_NewSession [AllG GF] :
     EtcdGrove.concurrency.NewSession.spec (GF := GF) (hG := hG) :=
   EtcdGrove.concurrency.NewSession.wp_proof v3.Client.wp_GetLogger v3.Client.wp_Ctx
@@ -388,6 +539,10 @@ theorem Session.wp_Done [AllG GF] :
 theorem wp_WithContext [AllG GF] :
     EtcdGrove.concurrency.WithContext.spec (GF := GF) (hG := hG) :=
   EtcdGrove.concurrency.WithContext.wp_proof
+
+theorem wp_WithPrefetch [AllG GF] :
+    EtcdGrove.concurrency.WithPrefetch.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.WithPrefetch.wp_proof
 
 theorem wp_WithLease [AllG GF] :
     EtcdGrove.concurrency.WithLease.spec (GF := GF) (hG := hG) :=

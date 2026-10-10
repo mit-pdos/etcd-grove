@@ -1613,3 +1613,91 @@ first under the prefix is the leader. `InvElection.lean`.
   step (`ProclaimStep`: the guard held on the state before, the state after is the put), and the
   theorem reads off it that the key had the campaign's create revision and keeps it with the new
   value.
+
+---
+
+## STM: a higher-order closure spec, aborts as divergence, what each isolation level gives
+
+**2026-10-10 · proposed** (the intent decided with the user; the panic boundary, the read
+transaction contract and the snapshot claim decided here, for review)
+
+`concurrency.NewSTM` (`stm.go`) runs a user's closure against an `STM` interface and commits its
+buffered reads and writes with one guarded transaction, retrying on conflict.
+`InvSTM.lean` (vocabulary), `InvSTMAtomic.lean` (the commit key by key), `Results.lean`.
+
+- **The closure is specified higher-order** (`applySpec pfx apply Q`, persistent: `runSTM` calls
+  it once per attempt): for any STM `p` of any level with the interface's triples
+  (`stmMethods lvl pfx p`: `Get`, `Put`, `Rev`, `Del`, and the internal `commit`, `reset`), from
+  any state (`stmState lvl pfx p st`, exclusive: the attempt's read and write sets `st`), `apply`
+  returns an error or `nil` in some state, and `nil` means `Q st'` of the attempt's final reads and
+  writes. `Q` is pure: what the closure promises about what it read and wrote (e.g. "`x` is written
+  with the value read from `y` plus one"); `NewSTM`'s `nil` gives `Q` of the committed attempt with
+  `stmOutcome`. The closure can only use the STM through the methods it has triples for, and keeps
+  no exclusive resource across attempts. *Rejected:* `P`/`Q` resources threaded through the
+  attempts (each attempt starts over; a failed attempt's effects are invisible, so an exclusive `P`
+  would have to be given back by an attempt that may abort by a panic).
+- **The model of an attempt** (`STMSt`): reads (`ReadM`: the response's header revision, the
+  revision `rev` of the state read, the key-value read) and writes (`WriteM`: put with lease, or
+  delete). Each read carries `readFact` (etcd's state at `rev` has that key-value). The commit's
+  comparisons per level (`ConflictsOk`) are stated on the model (permutations of the map order:
+  the key lists `wp_map_for_range` gives).
+- **What a commit gives** (`STMCommitted`, pure; `stmOutcome` adds the states, `txnStates`): the
+  transaction ran at `R` on `s` (etcd's state at `R - 1` if it wrote, at `R` otherwise) and left
+  `s'` (etcd's at `R`) = `s` with the writes applied; **every read is `s`'s key-value of its key**
+  (`ReadsAgree`, all levels but `ReadCommitted`), from the comparison `ModRevision(k) = m` on `s`
+  and the new history law below; `SerializableSnapshot`: every written key's mod revision in `s` is
+  at most `first()`. `stm_atomicity` (Results, pure) reads this key by key
+  (`runOps_writeOps_kvAt`): the attempt's reads are the values at `R - 1` and etcd's state at `R`
+  is that state with the writes applied, each key independently of the write set's order: the
+  closure ran atomically at `R`.
+- **A new history law** (`etcdState_modrev_det`, `InvEtcdTxn.lean`): two states holding a key with
+  the same mod revision hold the same key-value (a revision writes a key at most once). The
+  existing laws do not imply it (they speak of create revisions and bounds). Without it a
+  successful comparison on mod revisions says nothing about values.
+- **The snapshot is not claimed** (a finding, STATUS "STM"): the serializable levels' documented
+  promise "reads within the same transaction attempt return data from the revision of the first
+  read" fails after a failed commit, when the next attempt's first read is of a key not prefetched:
+  that read sets the snapshot at the latest revision, while prefetched reads (from the failed
+  commit's `Else`) are older. The specs say what holds: each read's own revision (`readFact`), and
+  at commit the comparisons; serializability (`ReadsAgree`) does not need a snapshot.
+- **Reads at an earlier revision: a second contract for `Txn`** (`isEtcdReadTxnKV`,
+  `readTxnResult`): a transaction of gets alone, each at the current revision or at its `WithRev`
+  revision, serializable or not, answers each get on etcd's state at its revision. The `Txn`
+  contract `isEtcdTxnKV` models gets at the transaction's revision only (`txnOpOf`), and a pure
+  `runTxn` has no other state to read. *Rejected:* a history oracle in `runTxn` (every existing
+  transaction proof would change for one caller).
+- **Linearizability of a transaction, corrected** (`TxnModel.linearizable`): etcd serves a
+  transaction whose operations are all serializable gets, or which has none, from the member's own
+  state (`IsTxnSerializable`); `txnCommitResult` claimed `lo ≤ r` for every transaction, which is
+  false for those (no existing proof used one). Now `lo ≤ r` only if an operation is not a
+  serializable get. The STM's commits are linearizable when they have an operation
+  (`ops ≠ [] → lo ≤ R` in `STMCommitted`); a `RepeatableReads`/`ReadCommitted` attempt with no
+  write commits an empty transaction, answered by the member at a possibly older revision.
+- **The range response's header** (`rangeRespAt`): it exists (`first()` and the serializable `Get`
+  read it); its revision is not stated (nothing needs it).
+- **Aborts: `panic(stmError{err})` and `recover()` are the trust boundary** (`stmPanic.spec`,
+  `stmRecover.spec`, axioms). `stm.fetch` and the commits panic on any client error, which every
+  client call allows; `runSTM`'s deferred function recovers the panic and sends `(nil, err)`.
+  Perennial's `panic` is stuck (a verified program never panics) and it has no `recover`, so no
+  spec of these functions is provable as they stand. The boundary: such a panic **does not return**
+  (its WP holds for any postcondition, for `err ≠ nil`), and `recover()` **returns nil** where a
+  verified execution reaches it. Sound for what is claimed: a panicking attempt never reaches the
+  code after it, so the proof covers exactly the executions without an abort; with an abort,
+  `runSTM` returns `(nil, err)` with `err` the client's (non-nil), which `stmResult`'s error case
+  allows with no promise. The user's closure must not recover the STM's panics (documented on
+  `applySpec`; a recovering closure would make `recover()`'s model false). *Rejected:* a
+  "Gooseable" rewrite (no behavior-preserving rewrite removes the panic: it unwinds the user's
+  closure); a client that never errs (false); leaving `NewSTM` unspecified (like `lockerMutex`,
+  whose panics are not recovered: there a spec would promise success, here the error is returned).
+  A Perennial model of panics and `recover` would replace both axioms.
+- **`Get`'s results** (`GetPost`): `Get(keys...)` returns, for some key `k` of `keys`, its write's
+  value, or, not written, its read's value; the reads grow by keys of `keys` only and **a read, once
+  there, stays** (repeatable reads within an attempt). For the serializable STM this needs an
+  invariant (`PreOk`: a key both read and prefetched is written), since `Get` moves prefetched reads
+  into the read set.
+- **A map's length is bounded in the model** (Perennial `9276bd1ed`, `wp_map_len_lt`): `len(m)`
+  of a map with `2^63` keys or more does not return (`assume false`), as `append` assumes its length
+  does not overflow. `readSet.cmps`, `writeSet.cmps`, `writeSet.puts` and `gets` call
+  `make([]T, 0, len(m))`, which panics on a negative capacity. *Rejected:* a size bound in
+  `stmState` (an insert could not keep it without the same assumption); a precondition on the
+  callers (likewise).

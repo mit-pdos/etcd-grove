@@ -1,18 +1,83 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-10 (`Election`: all of `election.go` specified and proved, election exclusion, only the leader proclaims, `Campaign` may return `nil` without its key (a finding), see "Election"; `Mutex`: mutual exclusion, Perennial `d240c1732`: `fmt.Sprintf` formats `%s`, `strings.HasPrefix`, see "Mutex: mutual exclusion"; merged upstream's RawNode work into the cache-as-shipped and concurrency line, Perennial `7d0b56b07`, see "Merge: upstream's RawNode work"; `RawNode.Step` takes a `MsgApp` between `Ready` and `Advance`; the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; Perennial `7d0b56b07`: Goose with per-iteration loop variables, `break` out of `select`, see "Perennial `7d0b56b07`"; merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
+**Last updated:** 2026-10-10 (`STM`: all of `stm.go` specified and proved, atomicity of the serializable levels, Perennial `9276bd1ed`: a map has fewer than `2^63` keys, two trust-boundary axioms for the STM's panic and `recover`, a new history law, the serializable snapshot broken after a retry (a finding, reproduced and fixed on a fork branch), see "STM"; `Election`: all of `election.go` specified and proved, election exclusion, only the leader proclaims, `Campaign` may return `nil` without its key (a finding), see "Election"; `Mutex`: mutual exclusion, Perennial `d240c1732`: `fmt.Sprintf` formats `%s`, `strings.HasPrefix`, see "Mutex: mutual exclusion"; merged upstream's RawNode work into the cache-as-shipped and concurrency line, Perennial `7d0b56b07`, see "Merge: upstream's RawNode work"; `RawNode.Step` takes a `MsgApp` between `Ready` and `Advance`; the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; Perennial `7d0b56b07`: Goose with per-iteration loop variables, `break` out of `select`, see "Perennial `7d0b56b07`"; merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
 
 Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
 `worktree-raft-replication`'s `feb5c73d4` and adds Ready/Advance/HasReady; the files
 were first ported from `main`, then from `feb5c73d4`) to Lean on top of Perennial's Lean
-port (mit-pdos/perennial `lean`, pinned at d240c1732 (2026-10-10: on d240c1732: models of `fmt.Sprintf` formatting `%s` and of `strings.HasPrefix`, see "Mutex: mutual exclusion"; on 7d0b56b07: our `9092f8eaa` merged with upstream's Goose changes (per-iteration loop variables, array ranges, `fallthrough`, `break` out of `switch`/`select`, local types) and `context.wp_WithCancel` building again, see "Perennial `7d0b56b07`"; on f52ce33dc (upstream's, in 7d0b56b07): the Goose features for upstream raft, see "Perennial `f52ce33dc`"; on 79adaac01 (upstream's, in 7d0b56b07): `context.wp_withCancel` builds again; on 9092f8eaa: `WaitGroup.Add`'s overflow a model assumption, the `RWMutex` writer guard, see "The cache as shipped"; on 56b1b6651: our 3ae7dc6a4 merged with upstream's `00b3c10ea` (trusted models and proved specs of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`; `math/big`'s `ownInt` normalized, its and `crypto/rand`'s `IsPkgInit` instances now Perennial's), see "Perennial `56b1b6651`"; on 68d220ac8: `fmt.wp_Errorf` proved, `map.forRange` with `wp_map_for_range_mut{,_keys}`, `context.wp_WithCancel` proved; on 3ae7dc6a4: `context.isClosedchanInit`, see "Sorry-free"; on 8c33774d0: upstream's `37416dd10` (Rocq code removed) and `cdf8c0f81` (Goose without `-lean` and the ⁱᵐᵖˡ encoding) merged, see below; on f8b35ddbf: `context.wp_Background`, `wp_WithCancel_Background`; on f35530719: Goose prints an axiomatized generic type in Lean; on 8c7000190: `time.NewTimer`, `Timer.Stop`/`Reset` axioms; on 96ec7016d: `fmt.wp_Printf`, `time.Minute`; on 099c2a08b: `fmt.wp_Errorf`'s `Error()`; on 640a605cc: a `select` case on a nil channel is never ready, `chan.wp_select_blocking_nil`; on 48e1192c7: rlocker, `Cond.wp_Wait_with`, `time.wp_Since`) on cbb85c041: upstream's `11fd2db` merged with
+port (mit-pdos/perennial `lean`, pinned at 9276bd1ed (2026-10-10: on 9276bd1ed: a map has fewer than `2^63` keys, `wp_map_len_lt`, see "STM"; on d240c1732: models of `fmt.Sprintf` formatting `%s` and of `strings.HasPrefix`, see "Mutex: mutual exclusion"; on 7d0b56b07: our `9092f8eaa` merged with upstream's Goose changes (per-iteration loop variables, array ranges, `fallthrough`, `break` out of `switch`/`select`, local types) and `context.wp_WithCancel` building again, see "Perennial `7d0b56b07`"; on f52ce33dc (upstream's, in 7d0b56b07): the Goose features for upstream raft, see "Perennial `f52ce33dc`"; on 79adaac01 (upstream's, in 7d0b56b07): `context.wp_withCancel` builds again; on 9092f8eaa: `WaitGroup.Add`'s overflow a model assumption, the `RWMutex` writer guard, see "The cache as shipped"; on 56b1b6651: our 3ae7dc6a4 merged with upstream's `00b3c10ea` (trusted models and proved specs of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`; `math/big`'s `ownInt` normalized, its and `crypto/rand`'s `IsPkgInit` instances now Perennial's), see "Perennial `56b1b6651`"; on 68d220ac8: `fmt.wp_Errorf` proved, `map.forRange` with `wp_map_for_range_mut{,_keys}`, `context.wp_WithCancel` proved; on 3ae7dc6a4: `context.isClosedchanInit`, see "Sorry-free"; on 8c33774d0: upstream's `37416dd10` (Rocq code removed) and `cdf8c0f81` (Goose without `-lean` and the ⁱᵐᵖˡ encoding) merged, see below; on f8b35ddbf: `context.wp_Background`, `wp_WithCancel_Background`; on f35530719: Goose prints an axiomatized generic type in Lean; on 8c7000190: `time.NewTimer`, `Timer.Stop`/`Reset` axioms; on 96ec7016d: `fmt.wp_Printf`, `time.Minute`; on 099c2a08b: `fmt.wp_Errorf`'s `Error()`; on 640a605cc: a `select` case on a nil channel is never ready, `chan.wp_select_blocking_nil`; on 48e1192c7: rlocker, `Cond.wp_Wait_with`, `time.wp_Since`) on cbb85c041: upstream's `11fd2db` merged with
 `bytes.Compare`, on Lean's module system since 2026-10-09). The Goose translations of
 etcd-raft and etcd's `cache` package are this repository's `Code/` and `GeneratedProof/`,
 generated and checked by `etc/goose.py`. Files are laid out by kind and Go package path
 (`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
+
+## STM (2026-10-10)
+
+`client/v3/concurrency`'s software transactional memory (`stm.go`) is specified and proved: every
+function (28), with atomicity theorems per isolation level. Design: `decisions.md`, "STM:
+a higher-order closure spec, aborts as divergence, what each isolation level gives". Files:
+`client/v3/concurrency/InvSTM.lean` (vocabulary), `InvSTMAtomic.lean` (the commit key by key, the
+per-level theorems), lemma modules `InvSTMMaps`, `InvSTMReads`, `InvSTMCommit`, `InvSTMRun`; `Spec`/`Proof`
+pairs `NewSTM`, `NewSTM{Repeatable,Serializable,ReadCommitted}`, `mkSTM`, `runSTM`, `With{Isolation,
+AbortContext,Prefetch}`, `stm__{Get,Put,Rev,Del,commit,fetch,reset}`,
+`stmSerializable__{Get,Rev,gets,commit}`, `readSet__{add,first,cmps}`, `writeSet__{get,cmps,puts}`,
+`isKeyCurrent`, `respToValue`, and the trust boundary `stmPanic`, `stmRecover`; `Results.lean`.
+
+- **The closure** (`applySpec pfx apply Q`): for any STM with the interface's triples
+  (`stmMethods`), from any state, `apply` returns an error or `nil`, and `nil` means `Q` of the
+  attempt's reads and writes (`STMSt`). `NewSTM` returns an error, or `nil` with a committed attempt
+  `st`, `Q st` and `stmOutcome` (`stmResult`).
+- **What each level is proved to give** (`stmOutcome`: a revision `R`, the state `s` the commit ran
+  on, etcd's at `R - 1` if it wrote (at `R` otherwise), and `s'`, etcd's at `R`; `STMCommitted`):
+  - all levels: `s'` is `s` with the attempt's writes applied, key by key, independently of the
+    write set's order (`stm_read_committed`); every read is etcd's key-value at the revision it read
+    (`readFact`); `R` is at least a revision the caller had seen if the commit had an operation.
+  - `SerializableSnapshot`, `Serializable` (`stm_atomicity`) and `RepeatableReads`
+    (`stm_repeatable_reads`): additionally, **every read of the committed attempt is `s`'s
+    key-value of its key**: the attempt ran atomically at `R` (`R - 1` → `R`). `SerializableSnapshot`
+    also: no written key was modified after `first()` (the least header revision of the reads).
+  - within an attempt, a key read once reads the same (repeatable reads, `GetPost`), all levels.
+- **Finding: a retried serializable attempt reads from two revisions.** The serializable levels
+  document "reads within the same transaction attempt return data from the revision of the first
+  read". After a failed commit, the next attempt's prefetched reads are at the failed commit's
+  revision `r`; if its first read is of a key not prefetched, that read is at the latest revision
+  `r2` and sets the snapshot to `r2`, while later reads of prefetched keys return values at `r`. An
+  attempt can then see a state that never existed (the commit fails afterwards, so serializability
+  holds, but the closure ran on an inconsistent view). The specs claim no snapshot. **Reproduced**
+  on upstream main (`f061acd09`) by an integration test, for both levels; fix and test on
+  `/shared/etcd-stm-repro`, branch `stm-serializable-snapshot` (`479a65c65`, not pushed): after a
+  failed commit, the next attempt reads at the prefetched reads' revision (`WithRev`). The existing
+  STM integration tests pass with the fix.
+- **Other observations** (stated, not bugs): a `RepeatableReads`/`ReadCommitted` attempt with no
+  write commits an empty transaction, which etcd answers from the member's state (no recency
+  promise); `fetch` of a key listed twice keeps the later response (the same key-value); after
+  `apply` fails, `runSTM` returns the response field an earlier attempt left (nil in practice: a
+  failed commit). A successful commit's response is not known to be non-nil from the contract
+  (the spec allows nil; `runSTM` would then retry).
+- **Contract changes** (`InvEtcdTxn.lean`, definitions): **read transactions** (`isEtcdReadTxnKV`,
+  `readTxnResult`: gets alone, each at the current revision or its `WithRev`, serializable or not;
+  `isEtcdSTMClient` bundles it with `isEtcdTxnKV`); **linearizability corrected**: `txnCommitResult`'s
+  `lo ≤ r` only for a transaction with an operation that is not a serializable get
+  (`TxnModel.linearizable`; etcd serves the others from the member's state; no existing proof used
+  such a transaction; Mutex/Election proofs discharge it by `rfl`); a range response's header exists
+  (`rangeRespAt`).
+- **Trust base** (`etc/tcb-baseline.txt` after `--check --update`: 43 axioms, 1 sorry; `--collection
+  concurrency` updated): a new history law `etcdState_modrev_det` (same key, same mod revision ⇒ same
+  key-value); the STM's abort `stmPanic.wp_proof` (`panic(stmError{err})`, `err ≠ nil`, does not
+  return) and `stmRecover.wp_proof` (`recover()` returns nil): Perennial's `panic` is stuck and it has
+  no `recover`, see decisions.md. No `sorry`.
+- **Perennial `9276bd1ed`** (on `d240c1732`): `len` of a map assumes fewer than `2^63` keys (as
+  `append` assumes no overflow): `wp_map_len_lt`. Needed by `make([]T, 0, len(m))` (a negative
+  capacity panics).
+- **Gates**: `lake build` passes (1880 jobs); `etc/tcb-report.py --check` (and per collection) passes;
+  `etc/goose.py --check` passes; `etc/gen-link.py --cache/--concurrency/--server` reproduce;
+  `etc/verified-code.py --reuse`: `stm.go` 28 of 28 (243/243 lines); `client/v3/concurrency` 59
+  verified, 1 unfinished (`Session.Close`) of 62; etcd 243 verified of 3599.
+- **Push order**: Perennial `lean` (`9276bd1ed`) first, then etcd-grove `lean`. The etcd fork's
+  `goose` is unchanged; the fix branch `stm-serializable-snapshot` is for an upstream PR.
 
 ## Election (2026-10-10)
 

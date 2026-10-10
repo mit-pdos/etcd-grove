@@ -29,10 +29,25 @@ base of each printed in the build log (`#print axioms`). Every function of `mute
 * **Only the leader proclaims** (`proclaim_only_leader`, pure): a successful `Proclaim`'s step
   (what its spec returns, `proclaimedAt`) for a positive create revision `rev` happened on a state
   where the key had create revision `rev`, and leaves it so with the proclaimed value.
+
+`STM` (`stm.go`): every function has a `Spec`/`Proof` pair and a linked result; the STM's abort
+(`panic(stmError{err})`) and `runSTM`'s `recover()` are the trust boundary (`stmPanic`,
+`stmRecover`, axioms; see `notes/decisions.md`, "STM").
+
+* **`NewSTM`** (`stm_NewSTM`): for a closure `apply` whose `nil` means `Q` of its attempt
+  (`applySpec`), `nil` means a committed attempt `st` with `Q st` and `stmOutcome`: a revision `R`,
+  the state `s` the commit ran on (etcd's at `R - 1` if it wrote, at `R` otherwise), the state `s'`
+  it left (etcd's at `R`), and `STMCommitted`.
+* **Atomicity, serializable levels** (`stm_atomicity`, pure): every read of the committed attempt
+  is `s`'s key-value of its key, and `s'` is `s` with the attempt's writes applied, key by key;
+  `SerializableSnapshot` also: no written key was modified after `first()`.
+* **`RepeatableReads`** (`stm_repeatable_reads`, pure): the same, without the write comparison.
+* **`ReadCommitted`** (`stm_read_committed`, pure): only the writes.
 -/
 module
 
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.Link
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.InvSTMAtomic
 
 @[expose] public section
 
@@ -126,6 +141,20 @@ theorem election_exclusion (pfx k1 k2 : GoString) (c1 c2 R1 R2 a : w64) (s : Lis
   unfold leaderAt
   exact lockedAt_exclusion pfx k1 k2 c1 c2 R1 R2 a s hne h1 h2
 
+/-- `NewSTM(c, apply, opts...)` (`Spec/go_etcd_io/etcd/client/v3/concurrency/NewSTM.lean`). -/
+theorem stm_NewSTM : NewSTM.spec (GF := GF) (hG := hG) := wp_NewSTM
+
+/-- `NewSTMRepeatable(ctx, c, apply)`. -/
+theorem stm_NewSTMRepeatable : NewSTMRepeatable.spec (GF := GF) (hG := hG) := wp_NewSTMRepeatable
+
+/-- `NewSTMSerializable(ctx, c, apply)`. -/
+theorem stm_NewSTMSerializable : NewSTMSerializable.spec (GF := GF) (hG := hG) :=
+  wp_NewSTMSerializable
+
+/-- `NewSTMReadCommitted(ctx, c, apply)`. -/
+theorem stm_NewSTMReadCommitted : NewSTMReadCommitted.spec (GF := GF) (hG := hG) :=
+  wp_NewSTMReadCommitted
+
 end results
 
 /-- **Only the leader proclaims** (pure). A successful `Proclaim` of `val` on `key` with the
@@ -136,6 +165,38 @@ theorem proclaim_only_leader (key : GoString) (rev : w64) (val : GoString) (leas
     (s0 s : List EtcdKv) (h : ProclaimStep key rev val lease r s0 s) (hrev : 0 < sint.Z rev) :
     HasKeyAt key rev s0 ∧ HasKeyValAt key rev val s :=
   proclaimStep_guard key rev val lease r s0 s h hrev
+
+/-- **STM atomicity** (`SerializableSnapshot`, `Serializable`; pure). A committed attempt (what
+`NewSTM`'s `nil` gives: `stmOutcome`'s `STMCommitted`, with `s` etcd's state at `R - 1` and `s'` at
+`R` if the commit wrote, `s = s'` at `R` otherwise) read, for every key it read, `s`'s key-value
+of the key, and `s'` is `s` with its writes applied, each key as `applyWriteKv` (unwritten keys
+unchanged): the closure's reads and writes took effect atomically at `R`. `SerializableSnapshot`
+also: every written key's mod revision in `s` is at most `first()`, the least header revision of
+the reads. -/
+theorem stm_atomicity (pfx : GoString) (lvl lo : w64) (st : STMSt) (R : w64)
+    (s s' : List EtcdKv) (ops : List TxnOp) (h : STMCommitted pfx lvl lo st R s s' ops)
+    (hl : lvl = isoSS ∨ lvl = isoS) :
+    (∀ k e, st.reads !! k = some e → kvAt s k = e.kv) ∧
+    (∀ k, kvAt s' k = applyWriteKv R k (kvAt s k) (st.writes !! k)) ∧
+    (lvl = isoSS → ∃ f, FirstOk st.reads f ∧
+      ∀ k, (st.writes !! k).isSome → sint.Z (modRevAt s k) < sint.Z (f + W64 1)) :=
+  stmCommitted_serializable pfx lvl lo st R s s' ops h hl
+
+/-- **STM, `RepeatableReads`** (pure): a committed attempt read `s`'s key-values (each read from
+the member's latest state when made, and checked at the commit), and `s'` is `s` with its writes
+applied. -/
+theorem stm_repeatable_reads (pfx : GoString) (lo : w64) (st : STMSt) (R : w64)
+    (s s' : List EtcdKv) (ops : List TxnOp) (h : STMCommitted pfx isoRR lo st R s s' ops) :
+    (∀ k e, st.reads !! k = some e → kvAt s k = e.kv) ∧
+    (∀ k, kvAt s' k = applyWriteKv R k (kvAt s k) (st.writes !! k)) :=
+  stmCommitted_repeatableReads pfx lo st R s s' ops h
+
+/-- **STM, `ReadCommitted`** (pure): the commit applied the attempt's writes to `s`; the reads
+are only each their own revision's (`readFact`). -/
+theorem stm_read_committed (pfx : GoString) (lo : w64) (st : STMSt) (R : w64)
+    (s s' : List EtcdKv) (ops : List TxnOp) (h : STMCommitted pfx isoRC lo st R s s' ops) :
+    ∀ k, kvAt s' k = applyWriteKv R k (kvAt s k) (st.writes !! k) :=
+  stmCommitted_writes pfx isoRC lo st R s s' ops h
 
 end concurrency
 end EtcdGrove
@@ -153,3 +214,7 @@ end Perennial
 #print axioms Perennial.EtcdGrove.concurrency.election_Observe
 #print axioms Perennial.EtcdGrove.concurrency.election_exclusion
 #print axioms Perennial.EtcdGrove.concurrency.proclaim_only_leader
+#print axioms Perennial.EtcdGrove.concurrency.stm_NewSTM
+#print axioms Perennial.EtcdGrove.concurrency.stm_atomicity
+#print axioms Perennial.EtcdGrove.concurrency.stm_repeatable_reads
+#print axioms Perennial.EtcdGrove.concurrency.stm_read_committed
