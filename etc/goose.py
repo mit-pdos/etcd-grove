@@ -223,8 +223,8 @@ PROJECTS = [
     Project(
         name="register",
         # An example application on raft's Node: a replicated string register. A Go
-        # module of this repository, whose go.mod replaces go.etcd.io/raft/v3 by the
-        # etcd-raft fork at the revision pinned above.
+        # module of this repository, whose go.mod requires go.etcd.io/raft/v3 at the
+        # revision pinned above (keep the two in step).
         repo=None,
         rev=None,
         local=os.path.join("examples", "register"),
