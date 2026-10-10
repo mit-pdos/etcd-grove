@@ -186,10 +186,24 @@ structure RaftNames where
   /-- The global committed log: a `mono_list` of entries whose authority is in
   `raftCommitInv` and whose lower bounds are `isCommitted` (2026-10-05). -/
   reCommit : GName
-  /-- The proposal registry: a ghost map `(term, index) ↦ (γq, γk, e0)` of the
-  proposals registered by `ownRaftGhost_step_propose_reg`, whose authority is in
-  `raftCommitInv` (2026-10-05). -/
+  /-- The proposal registry (2026-10-10, re-keyed by data): a ghost map
+  `data ↦ (γq, γk)` of the proposals whose atomic update was deposited (`prop_deposit`),
+  whose authority is in `raftCommitInv`; `γq` names the update's result predicate, `γk`
+  the client's ticket for it. -/
   reProps : GName
+  /-- The proposed slices (2026-10-10): a ghost map `slice ↦ data` (persistent
+  elements, `isPropData`): the data a proposed entry's `Data'` slice holds, so that the
+  ghost commit knows what it commits. The authority is the application's
+  (`propDataInv`, `InvNode.lean`, keeps the heap points-tos). -/
+  reSl : GName
+  /-- The client log (2026-10-10): a ghost variable, halved between `raftCommitInv` and
+  the client (`cLog`), of the data of the committed client entries in commit order,
+  first occurrences only. Only a deposited atomic update moves it. -/
+  reCLog : GName
+  /-- The fresh-data tokens (2026-10-10): a ghost map `data ↦ ()` whose authority the
+  client holds; `propFresh γ d` (an element) is what a first deposit of `d` consumes
+  (the invariant keeps it), so no data is deposited twice. -/
+  reFresh : GName
 
 /-- An event of a node's history (`reEvs`): an acknowledgement `(t, i)`, or a vote in
 `T` cast knowing the leader of `T` iff `d`, with full log `F` (`isVlog`'s data). -/
@@ -361,6 +375,72 @@ theorem isCamp_ok (γ : RaftNames) (c T : w64) (F : List raftpb.Entry) :
   iintro ⟨%_, %H, -⟩
   ipureintro; exact H.2
 
+/-! ### Proposed data (2026-10-10)
+
+What an entry's `Data'` slice holds, for the client log (`cLog`, `GhostState.lean`): a
+leader's own entry (the empty entry a new leader appends) has the zero slice; every other
+entry was proposed, and its slice is recorded (`isPropData`) with data whose atomic
+update was deposited (`deposited`). -/
+
+/-- The slice `sl` was proposed holding `d` (persistent). -/
+def isPropData (γ : RaftNames) (sl : GoSlice) (d : List w8) : IProp GF :=
+  sl ↪[γ.reSl]□ d
+
+/-- `d`'s atomic update was deposited (persistent): its slot names `γp`. -/
+def deposited (γ : RaftNames) (d : List w8) : IProp GF :=
+  iprop(∃ γp : GName × GName, d ↪[γ.reProps]□ γp)
+
+/-- The data of entry `e`: `none` for the zero slice (a leader's own entry), `some d`
+for a proposed slice holding `d` (of a normal entry: what a proposal's `isMessage`
+requires of its entries). -/
+def entDataIs (γ : RaftNames) (e : raftpb.Entry) : Option (List w8) → IProp GF
+  | none => iprop(⌜e.Data' = (zero_val raftpb.Entry).Data'⌝)
+  | some d => iprop(⌜e.Data' ≠ (zero_val raftpb.Entry).Data' ∧ e.Type' = W32 0⌝ ∗
+      isPropData γ e.Data' d ∗ deposited γ d)
+
+def entData (γ : RaftNames) (e : raftpb.Entry) : IProp GF :=
+  iprop(∃ o, entDataIs γ e o)
+
+instance isPropData_persistent (γ : RaftNames) (sl : GoSlice) (d : List w8) :
+    Persistent (isPropData (GF := GF) γ sl d) := by
+  unfold isPropData; infer_instance
+instance deposited_persistent (γ : RaftNames) (d : List w8) :
+    Persistent (deposited (GF := GF) γ d) := by
+  unfold deposited; infer_instance
+instance entDataIs_persistent (γ : RaftNames) (e : raftpb.Entry) (o : Option (List w8)) :
+    Persistent (entDataIs (GF := GF) γ e o) := by
+  cases o <;> unfold entDataIs <;> infer_instance
+instance entDataIs_timeless (γ : RaftNames) (e : raftpb.Entry) (o : Option (List w8)) :
+    Timeless (entDataIs (GF := GF) γ e o) := by
+  cases o <;> unfold entDataIs <;> (try unfold isPropData deposited) <;> infer_instance
+instance entData_persistent (γ : RaftNames) (e : raftpb.Entry) :
+    Persistent (entData (GF := GF) γ e) := by
+  unfold entData; infer_instance
+instance entData_timeless (γ : RaftNames) (e : raftpb.Entry) :
+    Timeless (entData (GF := GF) γ e) := by
+  unfold entData; infer_instance
+
+/-- An entry's data is one. -/
+theorem entDataIs_agree (γ : RaftNames) (e : raftpb.Entry) (o1 o2 : Option (List w8)) :
+    ⊢ entDataIs (GF := GF) γ e o1 -∗ entDataIs γ e o2 -∗ ⌜o1 = o2⌝ := by
+  cases o1 <;> cases o2 <;> unfold entDataIs
+  · iintro _ _; ipureintro; rfl
+  · iintro %H1 ⟨%H2, -⟩; exact absurd H1 H2.1
+  · iintro ⟨%H1, -⟩ %H2; exact absurd H2 H1.1
+  · unfold isPropData
+    iintro ⟨-, #H1, -⟩ ⟨-, #H2, -⟩
+    icases ghostMapElem_agree $$ H1 H2 with %H
+    ipureintro; rw [H]
+
+/-- Stamping keeps the data. -/
+theorem entDataIs_stamp (γ : RaftNames) (e : raftpb.Entry) (t i : w64) (o : Option (List w8)) :
+    entDataIs (GF := GF) γ { e with Term' := t, Index' := i } o = entDataIs γ e o := by
+  cases o <;> rfl
+
+theorem entData_stamp (γ : RaftNames) (e : raftpb.Entry) (t i : w64) :
+    entData (GF := GF) γ { e with Term' := t, Index' := i } = entData γ e := by
+  unfold entData; simp only [entDataIs_stamp]
+
 /-- `e` was created by the leader of its term, after an entry of term `pt`: the term log
 of `e`'s term holds `(e, pt)` at `e`'s index. Since 2026-10-03 also: `e` is past the
 leader's campaign log `F0`, its predecessor is `F0`'s last entry or another entry of
@@ -372,7 +452,9 @@ def isEntryR (γ : RaftNames) (e : raftpb.Entry) (pt : w64) : IProp GF :=
                  isTermLog γ ldr e.Term' γt b l0 ∗
                  isCamp γ ldr e.Term' F0 ∗
                  e.Index' ↪[γt]□ ((e, pt) : raftpb.Entry × w64) ∗
-                 ⌜PtOk F0 e.Term' (uint.Z e.Index') pt⌝)
+                 ⌜PtOk F0 e.Term' (uint.Z e.Index') pt⌝ ∗
+                 -- what the entry's data is (2026-10-10)
+                 entData γ e)
 
 def isEntry (γ : RaftNames) (e : raftpb.Entry) : IProp GF :=
   iprop(∃ pt, isEntryR γ e pt)
@@ -728,7 +810,7 @@ theorem logRecs_lookup (γ : RaftNames) (F : List raftpb.Entry) (k : Nat)
 theorem isEntryR_pt (γ : RaftNames) (e : raftpb.Entry) (pt : w64) :
     ⊢ isEntryR (GF := GF) γ e pt -∗ ⌜uint.Z pt ≤ uint.Z e.Term'⌝ := by
   unfold isEntryR
-  iintro ⟨%_, %_, %_, %_, %_, -, -, -, -, %Hok⟩
+  iintro ⟨%_, %_, %_, %_, %_, -, -, -, -, %Hok, -⟩
   ipureintro; exact Hok.2.1
 
 /-- Full-log matching: two full logs with records that have the same term at `i` agree
@@ -936,7 +1018,7 @@ theorem recs_chain (γ : RaftNames) (F : List raftpb.Entry) (ldr T : w64)
   subst HT
   ihave ⟨%pt, %Hpt, #He⟩ := logRecs_lookup γ F k e Hk (by omega) $$ H
   unfold isEntryR
-  icases He with ⟨%ldr', %γt, %b, %l0, %F0', #Hl', -, #Hc', -, %Hok⟩
+  icases He with ⟨%ldr', %γt, %b, %l0, %F0', #Hl', -, #Hc', -, %Hok, -⟩
   icases isLeader_unique γ ldr ldr' e.Term' $$ Hl Hl' with %H1
   subst H1
   icases isCamp_agree γ ldr e.Term' F0 F0' $$ Hc Hc' with %H2

@@ -25,9 +25,12 @@ variable [AllG GF]
 theorem node.Propose.wp_proof
     (wp_node_stepWait : node.stepWait.spec (GF := GF) (hG := hG)) :
     node.Propose.spec (GF := GF) (hG := hG) := by
-  intro γ id n data_sl data
-  wp_start as ⟨#Hnode, #Hdata⟩
-  wp_auto
+  intro γ id n data_sl data Q fresh
+  wp_start as ⟨#Hnode, #Hdata, Harg⟩
+  wp_auto_lc 1
+  -- the proposal's ghost work (2026-10-10): the slice recorded, the update deposited
+  imod node_propose_ghost γ id n data_sl data Q fresh ⊤ CoPset.subseteq_top
+    CoPset.subseteq_top $$ Hnode Hdata Hlc1 Harg with ⟨#Hent, Hres⟩
   wp_apply wp_slice_literal (l := [propEntry data_sl])
   isplitr
   · ipureintro; rfl
@@ -36,11 +39,11 @@ theorem node.Propose.wp_proof
   have Hm : ∀ s : GoSlice, raftpb.Message.mk (W32 2) 0 0 0 0 0 s 0 0 Loc.null false 0
       slice.nil slice.nil = propMsg s := fun _ => rfl
   rw [Hm]
-  wp_apply wp_node_stepWait γ id n data_sl _ data $$ [$Hnode $Hes $Hcap $Hdata]
+  wp_apply wp_node_stepWait γ id n data_sl _ data $$ [$Hnode $Hes $Hcap $Hdata $Hent]
   iintro %err -
   wp_auto
   iapply HΦ
-  itrivial
+  iexact Hres
 
 end proof
 

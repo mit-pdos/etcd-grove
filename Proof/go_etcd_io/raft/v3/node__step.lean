@@ -26,7 +26,22 @@ theorem node.step.wp_proof
     (wp_node_stepWithWaitOption : node.stepWithWaitOption.spec (GF := GF) (hG := hG)) :
     node.step.spec (GF := GF) (hG := hG) := by
   intro γ id n m
-  wp_start as ⟨#Hnode, Hnet⟩
+  wp_start as ⟨#Hnode, Hstep⟩
+  unfold stepP
+  icases Hstep with (Hnet | Hfwd)
+  rotate_left
+  · -- a forwarded proposal (2026-10-10)
+    wp_auto
+    wp_apply wp_node_stepWithWaitOption γ id n m false $$ [Hfwd]
+    · iframe Hnode
+      unfold stepArg
+      iright; iright
+      iframe Hfwd
+      ipureintro; rfl
+    iintro %err -
+    wp_auto
+    iapply HΦ
+    itrivial
   iunfold netP at Hnet
   icases Hnet with ⟨%Hok, Hnet⟩
   wp_auto

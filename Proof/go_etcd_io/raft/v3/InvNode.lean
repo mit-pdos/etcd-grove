@@ -46,6 +46,7 @@ public import Spec.go_etcd_io.raft.v3.RawNode__Propose
 public import Perennial.Golang.Theory.Chan.Idioms.Handshake
 public import Proof.go_etcd_io.etcd.cache.v3.Handoff
 public import Perennial.Ghost.MonoNat
+public import Proof.go_etcd_io.raft.v3.Protocol.Facts
 
 @[expose] public section
 
@@ -267,6 +268,9 @@ structure NodeNames [FfiSyntax] where
 
 def tickN : Namespace := nroot.@"raft_tick"
 
+/-- The proposed slices' invariant (2026-10-10). -/
+def propDataN : Namespace := nroot.@"raft_propdata"
+
 section node
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -279,15 +283,37 @@ variable [AllG GF]
 def propMsg (esl : GoSlice) : raftpb.Message :=
   { (zero_val raftpb.Message) with Type' := MsgProp, Entries' := esl }
 
-/-- A proposal on `propc`: the message `Propose` builds, with its one-entry batch owned and
-the data read-only, and its result channel, of which `run` is the producer (a `Handoff`:
-`run` sends the error and closes). -/
-def propP (_γ : NodeNames) (pm : msgWithResult) : IProp GF :=
-  iprop(∃ (data_sl esl : GoSlice) (data : List w8) (γr : HandoffNames),
+/-- The proposed slices (2026-10-10): every slice recorded in the cluster's map `reSl`
+(`isPropData`) holds its data, read-only. The application allocates it once per cluster,
+with the raft ghost state (`propDataInv_alloc`). -/
+def propDataInv (γ : RaftNames) : IProp GF :=
+  iprop(∃ S : GMap GoSlice (List w8), ghostMapAuth γ.reSl 1 S ∗
+    [∗map] sl ↦ d ∈ S, sl ↦*□ d ∗ sl ↪[γ.reSl]□ d)
+
+instance propDataInv_timeless (γ : RaftNames) : Timeless (propDataInv (GF := GF) γ) := by
+  unfold propDataInv; infer_instance
+
+/-- A proposal forwarded by a peer (2026-10-10), as `Node.Step` takes it: its batch owned
+(`appendEntry` stamps it; a transport delivers a copy), its context, and what it carries
+as a protocol message (each entry's data, `entData`, so its update was deposited). -/
+def fwdP (γ : NodeNames) (m : raftpb.Message) : IProp GF :=
+  iprop(⌜m.Type' = MsgProp⌝ ∗ ∃ (ents : List raftpb.Entry) (ctx : List w8),
+    m.Entries' ↦* ents ∗ ownSliceCap raftpb.Entry m.Entries' (DFrac.own 1) ∗
+    m.Context' ↦*□ ctx ∗ ⌜ctx ≠ campaignTransfer⌝ ∗
+    isMessage γ.raft (absMsg .propose m ents))
+
+/-- A proposal on `propc`: the message `Propose` builds, with its one-entry batch owned,
+the data read-only and its record (`entData`, 2026-10-10), and its result channel, of
+which `run` is the producer (a `Handoff`: `run` sends the error and closes); or
+(2026-10-10) a proposal forwarded by a peer (`Node.Step`), with no result channel. -/
+def propP (γ : NodeNames) (pm : msgWithResult) : IProp GF :=
+  iprop((∃ (data_sl esl : GoSlice) (data : List w8) (γr : HandoffNames),
     ⌜pm.m' = propMsg esl⌝ ∗ esl ↦* [propEntry data_sl] ∗
     ownSliceCap raftpb.Entry esl (DFrac.own 1) ∗ data_sl ↦*□ data ∗
+    entData γ.raft (propEntry data_sl) ∗
     isHandoff γr pm.result' (fun (_ : GoInterface) => iprop(True)) iprop(True) iprop(True) ∗
-    handoffProducer γr false)
+    handoffProducer γr false) ∨
+    (⌜pm.result' = zero_val GoChan⌝ ∗ fwdP γ pm.m'))
 
 /-- A message from the network on `recvc`, for node `id`: what `RawNode.Step` takes
 (`NetMsgOk`, its entries read-only with their capacity, its context, its abstraction sent)
@@ -299,6 +325,11 @@ def netP (γ : NodeNames) (id : w64) (m : raftpb.Message) : IProp GF :=
       m.Context' ↦*□ ctx ∗ ⌜ctx ≠ campaignTransfer ∧ (m.Type' = MsgHeartbeatResp → ctx = [])⌝ ∗
       □ (∀ ty, ⌜mtypeOf m.Type' = some ty⌝ -∗ isMessage γ.raft (absMsg ty m ents)) ∗
       termLB γ.bud m.Term')
+
+/-- What `Node.Step` takes (2026-10-10): a message from the network for the receive
+channel (`netP`), or a proposal forwarded by a peer (`fwdP`). -/
+def stepP (γ : NodeNames) (id : w64) (m : raftpb.Message) : IProp GF :=
+  iprop(netP γ id m ∨ fwdP γ m)
 
 /-- What a `Ready` gives the driver, after the committed log `d` handed out before it: the
 committed entries `ce` to apply next (`isCommitted` of `d ++ ce`), the entries `es` to
@@ -348,8 +379,13 @@ def isNode (γ : NodeNames) (id : w64) (n : Loc) : IProp GF :=
     "#Hstatus" ∷ isHandshake γ.status nv.status' (fun (_ : GoChan) => iprop(False)) iprop(True) ∗
     "#Htickc" ∷ isChan nv.tickc' γ.tick Unit ∗
     "#Htickinv" ∷ inv tickN (tickInv γ) ∗
-    "#Hbud" ∷ inv budgetN (budgetInv γ.bud))
+    "#Hbud" ∷ inv budgetN (budgetInv γ.bud) ∗
+    -- the cluster's commit invariant and proposed slices (2026-10-10)
+    "#Hcinv" ∷ raftCommitInv γ.raft ∗
+    "#Hpdinv" ∷ inv propDataN (propDataInv γ.raft))
 
+set_option synthInstance.maxHeartbeats 400000 in
+set_option synthInstance.maxSize 4096 in
 instance isNode_persistent (γ : NodeNames) (id : w64) (n : Loc) :
     Persistent (isNode (GF := GF) γ id n) := by
   unfold isNode; infer_instance
@@ -460,6 +496,186 @@ macro "open_node " H:ident : tactic =>
              iNamed $H:ident
              ihave #Hn' := Hn
              iStructNamed Hn'))
+
+/-! ## Proposals and the client log, at the node (2026-10-10)
+
+The cluster's proposed slices (`propDataInv`), allocated once with the raft ghost state;
+a proposal's ghost work before it leaves the node (`node_propose_ghost`: the slice
+recorded, the update deposited); and what the committed log's entries hold, for the
+application applying them (`node_committed_data`, `node_entData_heap`,
+`node_collect`). -/
+
+section props
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [AllG GF]
+
+/-- What `Node.Propose` takes for its data `d` (`fresh`: the first proposal of `d`, with
+its fresh token and the client's atomic update; otherwise a retry, with `d` deposited). -/
+def propArg (γ : RaftNames) (d : List w8) (Q : List (List w8) → IProp GF) (fresh : Bool) :
+    IProp GF :=
+  if fresh then iprop(propFresh γ d ∗ propAu γ d Q) else deposited γ d
+
+/-- What it gives back: `d` deposited, and for a first proposal the handle and ticket for
+the update's result. -/
+def propRes (γ : RaftNames) (d : List w8) (Q : List (List w8) → IProp GF) (fresh : Bool) :
+    IProp GF :=
+  iprop(deposited γ d ∗
+    if fresh then iprop(∃ γp, isProp γ d γp Q ∗ propTok γp) else iprop(True))
+
+theorem propDataInv_alloc (γ : RaftNames) (E : CoPset) :
+    ⊢ ghostMapAuth γ.reSl 1 (∅ : GMap GoSlice (List w8)) ={E}=∗
+      inv propDataN (propDataInv (GF := GF) γ) := by
+  iintro Ha
+  iapply inv_alloc propDataN E
+  inext
+  unfold propDataInv
+  iexists ∅
+  iframe Ha
+  iapply (BigSepM.bigSepM_empty).2; iempintro
+
+/-- Recording a proposed slice. -/
+theorem propData_register (γ : RaftNames) (sl : GoSlice) (d : List w8) (E : CoPset)
+    (HE : ↑propDataN ⊆ E) :
+    ⊢ inv propDataN (propDataInv (GF := GF) γ) -∗ sl ↦*□ d ={E}=∗ isPropData γ sl d := by
+  iintro #Hinv #Hsl
+  iinv Hinv with >Hi Hclose
+  unfold propDataInv
+  icases Hi with ⟨%S, Ha, #Hm⟩
+  cases HS : S !! sl with
+  | some d' =>
+    ihave ⟨#Hsl', #Hfrag⟩ := BigSepM.bigSepM_lookup (Φ := fun (sl : GoSlice) (d : List w8) =>
+      iprop(sl ↦*□ d ∗ sl ↪[γ.reSl]□ d)) HS $$ Hm
+    ihave %Heq := ownSlice_agree sl _ _ d d' $$ Hsl Hsl'
+    subst Heq
+    imod Hclose $$ [Ha] with -
+    · inext
+      iexists S
+      iframe Ha Hm
+    imodintro
+    unfold isPropData
+    iexact Hfrag
+  | none =>
+    imod ghost_map_insert_persist sl d HS $$ Ha with ⟨Ha, #Hfrag⟩
+    imod Hclose $$ [Ha] with -
+    · inext
+      iexists Std.insert S sl d
+      iframe Ha
+      iapply (BigSepM.bigSepM_insert (Φ := fun (sl : GoSlice) (d : List w8) =>
+        iprop(sl ↦*□ d ∗ sl ↪[γ.reSl]□ d)) HS).2
+      iframe Hsl Hfrag Hm
+    imodintro
+    unfold isPropData
+    iexact Hfrag
+
+/-- A recorded slice holds its data. -/
+theorem propData_heap (γ : RaftNames) (sl : GoSlice) (d : List w8) (E : CoPset)
+    (HE : ↑propDataN ⊆ E) :
+    ⊢ inv propDataN (propDataInv (GF := GF) γ) -∗ isPropData γ sl d ={E}=∗ sl ↦*□ d := by
+  iintro #Hinv #Hfrag
+  iinv Hinv with >Hi Hclose
+  unfold propDataInv
+  icases Hi with ⟨%S, Ha, #Hm⟩
+  unfold isPropData
+  icases ghost_map_lookup $$ Ha Hfrag with %HS
+  ihave ⟨#Hsl, -⟩ := BigSepM.bigSepM_lookup (Φ := fun (sl : GoSlice) (d : List w8) =>
+    iprop(sl ↦*□ d ∗ sl ↪[γ.reSl]□ d)) HS $$ Hm
+  imod Hclose $$ [Ha] with -
+  · inext
+    iexists S
+    iframe Ha Hm
+  imodintro
+  iexact Hsl
+
+end props
+
+section nodeprops
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+variable [AllG GF]
+
+/-- A proposal's ghost work before it leaves the node (`Node.Propose`): its slice
+recorded, its update deposited (a first proposal; a later credit with it), so that its
+entry carries its data (`entData`). -/
+theorem node_propose_ghost (γ : NodeNames) (id : w64) (n : Loc) (data_sl : GoSlice)
+    (data : List w8) (Q : List (List w8) → IProp GF) (fresh : Bool) (E : CoPset)
+    (HE1 : ↑raftN ⊆ E) (HE2 : ↑propDataN ⊆ E) :
+    ⊢ isNode γ id n -∗ data_sl ↦*□ data -∗ £ 1 -∗ propArg γ.raft data Q fresh ={E}=∗
+      entData γ.raft (propEntry data_sl) ∗ propRes γ.raft data Q fresh := by
+  iintro #Hnode #Hdata Hlc Harg
+  open_node Hnode
+  imod propData_register γ.raft data_sl data E HE2 $$ Hpdinv Hdata with #Hpd
+  ihave Hres : |={E}=> propRes γ.raft data Q fresh $$ [Hlc Harg]
+  · unfold propArg propRes
+    cases fresh with
+    | false =>
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      imodintro
+      iframe Harg
+    | true =>
+      simp only [↓reduceIte]
+      icases Harg with ⟨Hfr, Hau⟩
+      imod prop_deposit γ.raft E data Q HE1 $$ Hcinv Hfr Hlc Hau with ⟨%γp, #Hp, Htok⟩
+      imodintro
+      isplitr
+      · iapply isProp_deposited $$ Hp
+      · iexists γp
+        iframe Hp Htok
+  imod Hres with Hres
+  ihave #Hdep : deposited γ.raft data $$ [Hres]
+  · unfold propRes
+    icases Hres with ⟨#Hd, -⟩
+    iexact Hd
+  imodintro
+  iframe Hres
+  unfold entData
+  by_cases Hz : data_sl = (zero_val raftpb.Entry).Data'
+  · iexists none
+    unfold entDataIs
+    ipureintro; exact Hz
+  · iexists some data
+    unfold entDataIs propEntry
+    simp only []
+    iframe Hpd Hdep
+    ipureintro; exact ⟨Hz, rfl⟩
+
+/-- The data of a committed log's entries. -/
+theorem node_committed_data (γ : NodeNames) (id : w64) (n : Loc) (l : List raftpb.Entry)
+    (E : CoPset) (HE : ↑raftN ⊆ E) :
+    ⊢ isNode γ id n -∗ isCommitted γ.raft l ={E}=∗
+      ∃ ods, [∗list] e;o ∈ l;ods, entDataIs (GF := GF) γ.raft e o := by
+  iintro #Hnode #Hc
+  open_node Hnode
+  iapply committed_data γ.raft E l HE $$ Hcinv Hc
+
+/-- A proposed entry's slice holds its data. -/
+theorem node_entData_heap (γ : NodeNames) (id : w64) (n : Loc) (e : raftpb.Entry)
+    (d : List w8) (E : CoPset) (HE : ↑propDataN ⊆ E) :
+    ⊢ isNode γ id n -∗ entDataIs γ.raft e (some d) ={E}=∗ e.Data' ↦*□ d := by
+  iintro #Hnode #He
+  open_node Hnode
+  unfold entDataIs
+  icases He with ⟨-, #Hpd, -⟩
+  iapply propData_heap γ.raft e.Data' d E HE $$ Hpdinv Hpd
+
+/-- Collecting a proposal's result (`prop_collect`), at the node. -/
+theorem node_collect (γ : NodeNames) (id : w64) (n : Loc) (d : List w8) (γp : GName × GName)
+    (Q : List (List w8) → IProp GF) (l : List raftpb.Entry) (ods : List (Option (List w8)))
+    (m : Nat) (E : CoPset) (HE : ↑raftN ⊆ E) :
+    ods[m]? = some (some d) → d ∉ firstOcc (ods.take m) →
+    ⊢ isNode γ id n -∗ isProp γ.raft d γp Q -∗ propTok γp -∗ isCommitted γ.raft l -∗
+      ([∗list] e;o ∈ l;ods, entDataIs γ.raft e o) ={E}=∗ ▷ ▷ Q (firstOcc (ods.take m)) := by
+  intro Hm Hf
+  iintro #Hnode #Hp Htok #Hc #Hds
+  open_node Hnode
+  iapply prop_collect γ.raft E d γp Q l ods m HE Hm Hf $$ Hcinv Hp Htok Hc Hds
+
+end nodeprops
 
 end EtcdGrove
 end Perennial

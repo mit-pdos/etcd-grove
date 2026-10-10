@@ -39,7 +39,7 @@ theorem RawNode.Campaign.wp_proof
   iNamed H
   iNamed Hrn
   wp_auto
-  wp_apply wp_raft_Step γ.reCfg γ _ id s ps _ [] [] rfl
+  wp_apply wp_raft_Step γ.reCfg γ _ id s ps _ [] rfl
     (by simp [StepMsg, stepMsgTypes, MsgHup]) Hin
     (fun _ => ⟨rfl, by rw [← Htrm]; exact Hterm⟩)
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
@@ -63,8 +63,6 @@ theorem RawNode.Campaign.wp_proof
       rw [show mtypeOf (W32 0) = none from rfl] at Hty
       cases Hty
     isplitr
-    · itrivial
-    isplitr
     · iexists []
       isplitr
       · iapply ownSlice_nil
@@ -75,7 +73,7 @@ theorem RawNode.Campaign.wp_proof
     simp [MsgSnap] at Hc
   have hP : (W32 0 : w32) ≠ MsgProp := by simp [MsgProp]
   simp only [hP, ↓reduceIte]
-  iintro %err %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, -, %Hfr, %Htm, -, Herr, -⟩
+  iintro %err %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, -, %Hfr, %Htm, -, Herr⟩
   wp_auto
   obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh⟩ := Hfr (by msg_ne) (by msg_ne)
   obtain ⟨Ht1, Ht2, -, -⟩ := Htm (by msg_ne)

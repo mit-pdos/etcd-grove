@@ -23,6 +23,32 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 variable [AllG GF]
 
+/-- `Node.Step`'s message types are nonnegative (for `IsLocalMsg`). -/
+private theorem stepP_type (γ : NodeNames) (id : w64) (m : raftpb.Message) :
+    ⊢ stepP (GF := GF) γ id m -∗ ⌜0 ≤ sint.Z m.Type'⌝ ∗ stepP γ id m := by
+  iintro H
+  unfold stepP
+  icases H with (Hnet | Hfwd)
+  · iunfold netP at Hnet
+    icases Hnet with ⟨%Hok, Hnet⟩
+    isplitr
+    · ipureintro
+      have h := Hok.1
+      simp only [netStepTypes, List.mem_cons, List.not_mem_nil, or_false] at h
+      rcases h with h | h | h | h | h | h <;> rw [h] <;> decide
+    ileft
+    unfold netP
+    iframe Hnet
+    ipureintro; exact Hok
+  · iunfold fwdP at Hfwd
+    icases Hfwd with ⟨%Hty, Hfwd⟩
+    isplitr
+    · ipureintro; rw [Hty]; decide
+    iright
+    unfold fwdP
+    iframe Hfwd
+    ipureintro; exact Hty
+
 /-- A local message from a remote sender is dropped; anything else goes to `step`. -/
 theorem node.Step.wp_proof
     (wp_IsLocalMsg : IsLocalMsg.spec (GF := GF) (hG := hG))
@@ -30,22 +56,13 @@ theorem node.Step.wp_proof
     (wp_node_step : node.step.spec (GF := GF) (hG := hG)) :
     node.Step.spec (GF := GF) (hG := hG) := by
   intro γ id n m
-  wp_start as ⟨#Hnode, Hnet⟩
-  iunfold netP at Hnet
-  icases Hnet with ⟨%Hok, Hnet⟩
-  have Hty : 0 ≤ sint.Z m.Type' := by
-    have h := Hok.1
-    simp only [netStepTypes, List.mem_cons, List.not_mem_nil, or_false] at h
-    rcases h with h | h | h | h | h | h <;> rw [h] <;> decide
+  wp_start as ⟨#Hnode, Hstep⟩
+  icases stepP_type γ id m $$ Hstep with ⟨%Hty, Hstep⟩
   wp_auto
   wp_apply wp_IsLocalMsg m.Type' Hty as %b -
   cases b
   · wp_auto
-    wp_apply wp_node_step γ id n m $$ [Hnet]
-    · iframe Hnode
-      unfold netP
-      iframe Hnet
-      ipureintro; exact Hok
+    wp_apply wp_node_step γ id n m $$ [$Hnode $Hstep]
     iintro %err -
     wp_auto
     iapply HΦ
@@ -53,11 +70,7 @@ theorem node.Step.wp_proof
   · wp_auto
     wp_apply wp_IsLocalMsgTarget m.From'
     wp_if_destruct
-    · wp_apply wp_node_step γ id n m $$ [Hnet]
-      · iframe Hnode
-        unfold netP
-        iframe Hnet
-        ipureintro; exact Hok
+    · wp_apply wp_node_step γ id n m $$ [$Hnode $Hstep]
       iintro %err -
       wp_auto
       iapply HΦ

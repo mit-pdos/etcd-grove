@@ -384,7 +384,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
         StableOk s.logst (entryID.mk m.LogTerm' m.Index')) ∧ s.gh.unst = false := by
     not_net
   have P8 : m.Type' = MsgStorageApplyResp → m.Term' = W64 0 := by not_net
-  wp_apply wp_raft_Step γ.reCfg γ _ id s ps m ents [] rfl Hsm Hin P1
+  wp_apply wp_raft_Step γ.reCfg γ _ id s ps m ents rfl Hsm Hin P1
     (fun _ => ⟨Hto, Hterm, Hfrom⟩) (fun _ => ⟨Hto, Hterm⟩) P2 P3
     (fun h => ⟨Hto, Hterm, Hfrom, Hself (.inl h)⟩)
     (fun h => ⟨Hto, Hterm, Hfrom, Hself (.inr (.inl h))⟩)
@@ -406,8 +406,6 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
       iintro %ty %Hty' _
       iapply Hmsg $$ %ty %Hty'
     isplitr
-    · itrivial
-    isplitr
     · iexists ctx
       iframe Hctx
       ipureintro; exact Hctx_ok
@@ -417,7 +415,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
     revert h
     not_net
   simp only [HnP, ↓reduceIte]
-  iintro %err %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, -, %Hfr, %Htm, -, -, -⟩
+  iintro %err %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, -, %Hfr, %Htm, -, -⟩
   obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh⟩ := Hfr (by not_net) (by not_net)
   obtain ⟨Ht1, -, Ht3, -⟩ := Htm (by not_net)
   have Ht3 := Ht3 (by not_net) (by not_net)
@@ -444,36 +442,83 @@ local macro "msg_ne" : tactic => `(tactic| (intro Hc; simp [MsgHup, MsgVote, Msg
   MsgPreVote, MsgPreVoteResp, MsgApp, MsgHeartbeat, MsgAppResp, MsgHeartbeatResp, MsgSnap,
   MsgBeat, MsgStorageAppendResp, MsgStorageApplyResp, propMsg, MsgProp] at Hc))
 
-/-- `r.Step(m)` on a proposal `Propose` built (`m.From` set to the node's id, as `run`
-does), `r` the node's raft struct: `RawNode.Propose`'s call of `raft.Step`, with nobody
-waiting on the entry (`Q := True`). -/
+set_option hygiene false in
+/-- A premise of `Step` about another message type, for a message of type `MsgProp`
+(`Hty'` in context). -/
+local macro "msg_ne'" : tactic => `(tactic| (intro Hc; rw [Hty'] at Hc; simp [MsgHup, MsgVote,
+  MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgHeartbeat, MsgAppResp, MsgHeartbeatResp,
+  MsgSnap, MsgBeat, MsgStorageAppendResp, MsgStorageApplyResp, MsgProp] at Hc))
+
+/-- A proposal's abstraction is legitimately sent, from the node's: `isMessage` of a
+proposal reads only its term and entries, not its sender (2026-10-10). -/
+theorem isMessage_propose_from (γ : RaftNames) (m : raftpb.Message) (ents : List raftpb.Entry)
+    (x : w64) :
+    ⊢ isMessage (GF := GF) γ (absMsg .propose m ents) -∗
+      isMessage γ (absMsg .propose { m with From' := x } ents) := by
+  iintro H
+  unfold isMessage absMsg absMsgFrom at *
+  iexact H
+
+theorem isMessage_propose_pure (γ : RaftNames) (m : raftpb.Message) (ents : List raftpb.Entry) :
+    ⊢ isMessage (GF := GF) γ (absMsg .propose m ents) -∗
+      ⌜m.Term' = W64 0 ∧ ents ≠ [] ∧ (∀ e ∈ ents, e.Type' = W32 0) ∧
+        (ents.length : Int) < 2 ^ 61⌝ := by
+  unfold isMessage absMsg absMsgFrom
+  iintro ⟨%H, -⟩
+  ipureintro; exact H
+
+/-- The proposal `Propose` builds is legitimately sent, given its entry's data. -/
+theorem isMessage_propMsg (γ : RaftNames) (esl data_sl : GoSlice) :
+    ⊢ entData (GF := GF) γ (propEntry data_sl) -∗
+      isMessage γ (absMsg .propose (propMsg esl) [propEntry data_sl]) := by
+  iintro #Hent
+  unfold isMessage absMsg absMsgFrom
+  isplitr
+  · ipureintro
+    refine ⟨rfl, List.cons_ne_nil _ _, ?_, by simp⟩
+    intro e He
+    simp only [List.mem_singleton] at He
+    subst He
+    rfl
+  iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => entData (GF := GF) γ e)).2
+  iexact Hent
+
+/-- `r.Step(m)` on a proposal (`m.From` set to the node's id, as `run` does), `r` the
+node's raft struct: the batch owned, the proposal legitimately sent (its entries' data:
+their updates deposited), its context. Either the one `Propose` built, or (2026-10-10)
+one forwarded by a peer. -/
 theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
-    (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : Loc) (esl data_sl : GoSlice)
-    (data : List w8) :
+    (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : Loc) (m : raftpb.Message)
+    (ents : List raftpb.Entry) (Hty : m.Type' = MsgProp) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         ownRawNode γ rn id rs ∗ rn.[RawNode, go!"raft"] ↦□ r ∗
-        esl ↦* [propEntry data_sl] ∗ ownSliceCap raftpb.Entry esl (DFrac.own 1) ∗
-        data_sl ↦*□ data }}
+        m.Entries' ↦* ents ∗ ownSliceCap raftpb.Entry m.Entries' (DFrac.own 1) ∗
+        isMessage γ (absMsg .propose m ents) ∗
+        (∃ ctx : List w8, m.Context' ↦*□ ctx ∗ ⌜ctx ≠ campaignTransfer⌝) }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step"))
-        (Val #({ propMsg esl with From' := id })))
+        (Val #({ m with From' := id })))
     {{ (err : GoInterface), RET #err; ownRawNode γ rn id rs }} := by
-  iintro %Φ ⟨#Hpkg, Hrn, #Hr, Hes, Hcap, #Hdata⟩ HΦ
+  iintro %Φ ⟨#Hpkg, Hrn, #Hr, Hes, Hcap, #Hm, ⟨%ctx, #Hctx, %Hctxne⟩⟩ HΦ
   iNamed Hrn
   ihave #Hr' := rawNodeOwn_raft rn rnv $$ Hrn
   icombine Hr Hr' gives %Heq
   subst Heq
-  wp_apply wp_raft_Step γ.reCfg γ _ id s ps ({ propMsg esl with From' := id }) [propEntry data_sl]
-    [fun _ _ => iprop(True)] rfl
-    (by simp [StepMsg, stepMsgTypes, MsgProp, propMsg]) Hin
-    (by msg_ne) (by msg_ne)
-    (by msg_ne) (by msg_ne)
-    (by msg_ne) (by msg_ne)
-    (by msg_ne) (by msg_ne)
-    (by msg_ne) (by msg_ne)
-    (by msg_ne)
-    (fun _ => ⟨rfl, .inr rfl⟩) (by msg_ne) (by msg_ne) Hrel
+  ihave #Hm' := isMessage_propose_from γ m ents id $$ Hm
+  ihave %Hpm := isMessage_propose_pure γ m ents $$ Hm
+  obtain ⟨Hterm, Hne, Hnorm, Hlen⟩ := Hpm
+  have Hty' : ({ m with From' := id } : raftpb.Message).Type' = MsgProp := Hty
+  wp_apply wp_raft_Step γ.reCfg γ _ id s ps ({ m with From' := id }) ents rfl
+    (by simp only [StepMsg, stepMsgTypes]; rw [Hty']; simp [MsgProp]) Hin
+    (by msg_ne') (by msg_ne')
+    (by msg_ne') (by msg_ne')
+    (by msg_ne') (by msg_ne')
+    (by msg_ne') (by msg_ne')
+    (by msg_ne') (by msg_ne')
+    (by msg_ne')
+    (fun _ => ⟨Hterm, .inr rfl⟩) (by msg_ne') (by msg_ne') Hrel
     $$ [$Hphys $Hghost Hes Hcap]
-  · simp only [propMsg, MsgProp, ite_true]
+  · rw [Hty']
+    simp only [ite_true]
     isplitl [Hes Hcap]
     · simp only [named]
       isplitl [Hes]
@@ -483,42 +528,29 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
       isplitr
       · ipureintro
         intro _
-        refine ⟨List.cons_ne_nil _ _, ?_, by simp⟩
-        intro e He
-        simp only [List.mem_singleton] at He
-        subst He
-        rfl
+        exact ⟨Hne, Hnorm, Hlen⟩
       isplitr
       · ipureintro
         intro Hc
-        simp [MsgStorageApplyResp] at Hc
+        simp [Hty', MsgProp, MsgStorageApplyResp] at Hc
       · imodintro
-        iintro %ty %Hty _
-        rw [show mtypeOf (W32 2) = some .propose from rfl] at Hty
-        cases Hty
-        unfold isMessage absMsg absMsgFrom
-        itrivial
+        iintro %ty %Hty2 _
+        try rw [Hty'] at Hty2
+        rw [show mtypeOf MsgProp = some .propose from rfl] at Hty2
+        cases Hty2
+        iexact Hm'
     isplitr
-    · simp only [named]
-      iapply (BigSepL2.bigSepL2_singleton (Φ := fun _ e Q' => propAu γ e Q')).2
-      unfold propAu
-      iintro %t %i %l %_ Hc
-      iframe Hc
-    isplitr
-    · iexists []
-      isplitr
-      · iapply ownSlice_nil
-      · ipureintro
-        refine ⟨?_, fun Hc => ?_⟩
-        · intro Hc; unfold campaignTransfer at Hc; simp at Hc
-        · simp [MsgHeartbeatResp] at Hc
+    · iexists ctx
+      iframe Hctx
+      ipureintro
+      refine ⟨Hctxne, fun Hc => ?_⟩
+      simp [Hty', MsgProp, MsgHeartbeatResp] at Hc
     · imodintro
       iintro %Hc
-      simp [MsgSnap] at Hc
-  simp only [propMsg, MsgProp, ite_true]
-  iintro %err %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, %Hloc, %_, %_, %_, -, -⟩
-  obtain ⟨Hfr, Hap⟩ := Hloc (.inl rfl)
-  have Hap' := Hap (fun Hc => absurd Hc (by msg_ne))
+      simp [Hty', MsgProp, MsgSnap] at Hc
+  iintro %err %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, %Hloc, %_, %_, %_, -⟩
+  obtain ⟨Hfr, Hap⟩ := Hloc (.inl Hty')
+  have Hap' := Hap (fun Hc => by rw [Hty'] at Hc; simp [MsgProp, MsgStorageApplyResp] at Hc)
   have Hc : uint.Z s.logst.committed ≤ uint.Z s'.logst.committed := by
     obtain ⟨recv, Hst⟩ := Href
     have H := Step.commit_mono Hst

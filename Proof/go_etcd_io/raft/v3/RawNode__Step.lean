@@ -110,7 +110,7 @@ theorem RawNode.Step.wp_proof
             StableOk s.logst (entryID.mk m.LogTerm' m.Index')) ∧ s.gh.unst = false := by
         not_net
       have P8 : m.Type' = MsgStorageApplyResp → m.Term' = W64 0 := by not_net
-      wp_apply wp_raft_Step γ.reCfg γ _ id s ps m ents [] rfl Hsm Hin P1
+      wp_apply wp_raft_Step γ.reCfg γ _ id s ps m ents rfl Hsm Hin P1
         (fun _ => ⟨Hto, Hterm, Hfrom⟩) (fun _ => ⟨Hto, Hterm⟩) P2 P3
         (fun h => ⟨Hto, Hterm, Hfrom, Hself (.inl h)⟩)
         (fun h => ⟨Hto, Hterm, Hfrom, Hself (.inr (.inl h))⟩)
@@ -132,8 +132,6 @@ theorem RawNode.Step.wp_proof
           iintro %ty %Hty' _
           iapply Hmsg $$ %ty %Hty'
         isplitr
-        · itrivial
-        isplitr
         · iexists ctx
           iframe Hctx
           ipureintro; exact Hctx_ok
@@ -143,7 +141,7 @@ theorem RawNode.Step.wp_proof
         revert h
         not_net
       simp only [HnP, ↓reduceIte]
-      iintro %err %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, -, %Hfr, %Htm, -, -, -⟩
+      iintro %err %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, -, %Hfr, %Htm, -, -⟩
       obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh⟩ := Hfr (by not_net) (by not_net)
       obtain ⟨Ht1, -, Ht3, -⟩ := Htm (by not_net)
       have Ht3 := Ht3 (by not_net) (by not_net)

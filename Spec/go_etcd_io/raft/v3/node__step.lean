@@ -29,7 +29,7 @@ variable [AllG GF]
 /-- See the file header. -/
 abbrev node.step.spec : Prop :=
   ∀ (γ : NodeNames) (id : w64) (n : Loc) (m : raftpb.Message),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗ netP γ id m }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗ stepP γ id m }}
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"step"))
       (Val #(interface.ok context.backgroundCtxVal))) (Val #m))
   {{ (err : GoInterface), RET #err; True }}

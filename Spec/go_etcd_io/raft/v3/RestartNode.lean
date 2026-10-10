@@ -6,7 +6,9 @@
 `node` whose goroutine `run` it starts, for the cluster's term budget `bud`
 (`budget_alloc`, `InvNode.lean`). It returns the node (`isNode`, persistent: what
 `Propose`, `Step`, `Tick` and `Ready` take) and the driver's token (`nodeDriver`, at
-the empty committed log: what `node_ready_receive` and `Advance` take).
+the empty committed log: what `node_ready_receive` and `Advance` take). Since 2026-10-10
+also the cluster's proposed slices (`propDataInv`, allocated once with the raft ghost
+state), which `isNode` keeps with the commit invariant.
 -/
 module
 
@@ -68,7 +70,9 @@ abbrev RestartNode.spec : Prop :=
            WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) ∗
       ownRaftGhost γ cv.ID' initPState ∗ isCommitted γ [] ∗
       -- the cluster's term budget
-      inv budgetN (budgetInv bud) ∗ termLB bud (W64 0) }}
+      inv budgetN (budgetInv bud) ∗ termLB bud (W64 0) ∗
+      -- the cluster's proposed slices (2026-10-10, `propDataInv_alloc`)
+      inv propDataN (propDataInv γ) }}
     (App (Val #(functions RestartNode [])) (Val #c))
   {{ (nd : GoInterface), RET #nd;
       ∃ (γn : NodeNames) (n : Loc),

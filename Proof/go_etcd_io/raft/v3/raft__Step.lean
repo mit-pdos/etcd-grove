@@ -343,10 +343,10 @@ theorem raft.Step.wp_proof
      wp_stepFollower, wp_stepLeader, wp_traceReceiveMessage, wp_raftLog_lastEntryID,
      wp_raftLog_isUpToDate, wp_raftLog_stableTo, wp_raft_appliedTo,
      wp_raft_reduceUncommittedSize, wp_entsSize, wp_payloadsSize⟩
-  intro cfg γ r id s ps m ents Qs Hcfg Hsm Hin Hhup Hvote Hvoteresp Hprevote Hprevoteresp
+  intro cfg γ r id s ps m ents Hcfg Hsm Hin Hhup Hvote Hvoteresp Hprevote Hprevoteresp
     Happ Hhb Happresp Hhbresp Hsnapt Hbeat Hprop Hsar Hsapr Hrel
   obtain ⟨rfl, Hwf⟩ := Hrel
-  iintro %Φ ⟨#Hinit, Hphys, Hghost, Hm, Hprops, #Hctx, #Hsnap⟩ HΦ
+  iintro %Φ ⟨#Hinit, Hphys, Hghost, Hm, #Hctx, #Hsnap⟩ HΦ
   icases Hm with ⟨Hents, Hcap, %Hpents, %Happly, #Hmsg0⟩
   iapply wp_fupd
   by_cases Hty : m.Type' = MsgProp
@@ -365,7 +365,6 @@ theorem raft.Step.wp_proof
       apply Hlok0
       rw [toPState_role, Hf]; decide
     ihave #Hm' := Hmsg0 $$ %MsgType.propose %(by rw [Hty]; exact mtypeOf_MsgProp) %(by decide)
-    ihave %HlenQ := BigSepL2.bigSepL2_length $$ Hprops
     -- a leader's term is nonzero (2026-10-10): `appendEntry` stamps its
     -- self-acknowledgement with it
     have Hlnz_lem : ⊢ ownRaftGhost (GF := GF) γ id (toPState s) -∗
@@ -381,69 +380,36 @@ theorem raft.Step.wp_proof
     wp_apply (wp_Step_MsgProp P cfg r id s m ents Hty Hterm Hfrom Hne Hnorm Hlen Hlok Hlnz Hin
       Hwf)
       $$ [$Hphys $Hents $Hcap] as %err %s' ⟨Hphys, %Hwf', %Hfr, %Hst, Herr⟩
-    rcases Hst with ⟨recv, Hrecv, Hstep⟩ | ⟨rfl, Hrl, Hnorm0, Hnw, Hstep⟩
-    · -- forwarded or dropped: one uniform ghost step, the updates back
-      imod ghost_step_recv γ cfg id _ _ _ recv Hcfg Hrecv Hstep $$ Hm' Hghost with Hghost
-      imodintro
-      iapply HΦ $$ %err %s' %(toPState s')
-      iframe Hphys Hghost
-      isplitr
-      · ipureintro; exact ⟨rfl, Hwf'⟩
-      isplitr
-      · ipureintro; exact ⟨recv, Hstep⟩
-      isplitr
-      · ipureintro; exact fun _ => ⟨Hfr.1, fun _ => Hfr.2⟩
-      isplitr
-      · ipureintro; exact fun _ _ => ⟨Hfr.2, Hfr.1.2.2.2.1, Hfr.1.2.2.1, Hfr.1.2.2.2.2.1, Hfr.1.2.2.2.2.2⟩
-      isplitr
-      · ipureintro; exact fun _ => TermStep.of_local Hfr.1
-      isplitr
-      · ipureintro; resp_other
-      isplitl [Herr]
-      · icases Herr with (%Herr | #Hd)
-        · ileft; ipureintro; exact Herr
-        · iright; iframe Hd; ipureintro; exact Hty
-      iright
-      iexact Hprops
-    · -- appended at the leader: `Step.propose`'s ghost update registers the proposals
-      -- (`ownRaftGhost_step_propose_reg`); the broadcast after it is the uniform ghost
-      -- step, consuming nothing
-      imod ownRaftGhost_step_propose_reg γ id (toPState s) ents Qs Hrl Hnw (by omega)
-        $$ Hghost Hprops with ⟨Hghost, Hout⟩
-      have Hstep' : Step γ.reCfg id
-          (psendMsgs (pappend (toPState s)
-              (ents.mapIdx (stamp (toPState s).term (plastIndex (toPState s)))))
-            [pselfAck id (pappend (toPState s)
-              (ents.mapIdx (stamp (toPState s).term (plastIndex (toPState s)))))])
-          [] (toPState s') := by
-        rw [Hcfg]; exact Hstep
-      imod ownRaftGhost_step_0 γ id _ _ Hstep' $$ Hghost with Hghost
-      imodintro
-      iapply HΦ $$ %interface.nil %s' %(toPState s')
-      iframe Hphys Hghost
-      isplitr
-      · ipureintro; exact ⟨rfl, Hwf'⟩
-      isplitr
-      · ipureintro
-        exact ⟨[] ++ [], .trans _ _ _ _ _ (.propose _ _ Hrl Hnorm0 Hnw) Hstep⟩
-      isplitr
-      · ipureintro; exact fun _ => ⟨Hfr.1, fun _ => Hfr.2⟩
-      isplitr
-      · ipureintro; exact fun _ _ => ⟨Hfr.2, Hfr.1.2.2.2.1, Hfr.1.2.2.1, Hfr.1.2.2.2.2.1, Hfr.1.2.2.2.2.2⟩
-      isplitr
-      · ipureintro; exact fun _ => TermStep.of_local Hfr.1
-      isplitr
-      · ipureintro; resp_other
-      isplitr
-      · ileft; ipureintro; rfl
-      ileft
-      iframe Hout
-      ipureintro
-      exact ⟨rfl, Hrl⟩
-  -- every other type: `Hprops` is `True` in the pre- and postcondition, and the
-  -- postcondition is `stepPost`
+    have Hst' : ∃ recv, (∀ m' ∈ recv, m' = absMsg .propose m ents) ∧
+        Step cfg id (toPState s) recv (toPState s') := by
+      rcases Hst with H | ⟨-, Hrl, Hnorm0, Hnw, Hstep⟩
+      · exact H
+      · -- appended at the leader: `Step.propose` receives the proposal (2026-10-10)
+        exact ⟨[absMsg .propose m ents] ++ [], by simp,
+          .trans _ _ _ _ _ (.propose (absMsg .propose m ents) _ ents rfl rfl Hrl Hnorm0 Hnw)
+            Hstep⟩
+    obtain ⟨recv, Hrecv, Hstep⟩ := Hst'
+    imod ghost_step_recv γ cfg id _ _ _ recv Hcfg Hrecv Hstep $$ Hm' Hghost with Hghost
+    imodintro
+    iapply HΦ $$ %err %s' %(toPState s')
+    iframe Hphys Hghost
+    isplitr
+    · ipureintro; exact ⟨rfl, Hwf'⟩
+    isplitr
+    · ipureintro; exact ⟨recv, Hstep⟩
+    isplitr
+    · ipureintro; exact fun _ => ⟨Hfr.1, fun _ => Hfr.2⟩
+    isplitr
+    · ipureintro; exact fun _ _ => ⟨Hfr.2, Hfr.1.2.2.2.1, Hfr.1.2.2.1, Hfr.1.2.2.2.2.1, Hfr.1.2.2.2.2.2⟩
+    isplitr
+    · ipureintro; exact fun _ => TermStep.of_local Hfr.1
+    isplitr
+    · ipureintro; resp_other
+    icases Herr with (%Herr | #Hd)
+    · ileft; ipureintro; exact Herr
+    · iright; iframe Hd; ipureintro; exact Hty
+  -- every other type: the postcondition is `stepPost`
   simp only [ite_eq_right Hty]
-  iclear Hprops
   -- and the entries are read-only: the `by_cases` reduced `"Hents"`'s
   -- `if m.Type' = MsgProp`
   icases Hents with #Hents
@@ -474,9 +440,7 @@ theorem raft.Step.wp_proof
     isplitr
     · ipureintro; exact RespStep.of_type (by rw [HtyA]; w32_ne) (by rw [HtyA]; w32_ne)
         (by rw [HtyA]; w32_ne)
-    isplitr
-    · ileft; ipureintro; exact Herr
-    itrivial
+    ileft; ipureintro; exact Herr
   by_cases HtyB : m.Type' = MsgStorageApplyResp
   · -- MsgStorageApplyResp: `appliedTo`, invisible to the protocol.
     -- `Hents` is already read-only: the `MsgProp` case split reduced its `if`
@@ -500,9 +464,7 @@ theorem raft.Step.wp_proof
     isplitr
     · ipureintro; exact RespStep.of_type (by rw [HtyB]; w32_ne) (by rw [HtyB]; w32_ne)
         (by rw [HtyB]; w32_ne)
-    isplitr
-    · ileft; ipureintro; exact Herr
-    itrivial
+    ileft; ipureintro; exact Herr
   ihave HΦ : ▷ stepPost γ cfg r id s m Φ $$ [HΦ]
   · inext
     unfold stepPost

@@ -30,7 +30,7 @@ theorem node.stepWithWaitOption.wp_proof :
   ihave #Hnode' := Hnode
   open_node Hnode'
   unfold stepArg
-  icases Harg with (⟨%Hty, Hnet⟩ | ⟨%Hw, %data_sl, %esl, %data, %Hm, Hes, Hcap, #Hdata⟩)
+  icases Harg with (⟨%Hty, Hnet⟩ | ⟨%Hw, %data_sl, %esl, %data, %Hm, Hes, Hcap, #Hdata, #Hent⟩ | ⟨%Hw, Hfwd⟩)
   · -- a message from the network: `recvc <- m`
     wp_auto
     wp_if_destruct
@@ -96,8 +96,9 @@ theorem node.stepWithWaitOption.wp_proof :
       iapply handshake_send_au γ.propc nv.propc' ({ m' := propMsg esl, result' := rch } : msgWithResult)
         (propP γ) iprop(True) $$ [$Hlc1 $Hlc2 $Hlc3] Hpropc [Hes Hcap Hprod]
       · unfold propP
+        ileft
         iexists data_sl, esl, data, γr
-        iframe Hes Hcap Hdata Hho Hprod
+        iframe Hes Hcap Hdata Hent Hho Hprod
         ipureintro; rfl
       inext
       iintro -
@@ -136,6 +137,58 @@ theorem node.stepWithWaitOption.wp_proof :
         · iapply isHandshake_isChan $$ Hdone
         iapply handshake_false_recv_au γ.done nv.done' $$ [$Hlc2 $Hlc3] Hdone
       iapply BigAndL.bigAndL_nil.2
+      itrivial
+    iapply BigAndL.bigAndL_cons.2
+    isplit
+    · iright
+      iapply chan.nilClausePre_recv Unit _ _ rfl
+    iapply BigAndL.bigAndL_cons.2
+    isplit
+    · ileft
+      simp only [chan.blockingClausePre]
+      iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, nv.done', γ.done
+      isplitr
+      · ipureintro; rfl
+      isplitr
+      · iapply isHandshake_isChan $$ Hdone
+      iapply handshake_false_recv_au γ.done nv.done' $$ [$Hlc1 $Hlc2] Hdone
+    iapply BigAndL.bigAndL_nil.2
+    itrivial
+
+  · -- a forwarded proposal (2026-10-10): `propc <- pm`, no result channel
+    subst Hw
+    ihave %Hty : ⌜m.Type' = MsgProp⌝ $$ [Hfwd]
+    · unfold fwdP
+      icases Hfwd with ⟨%H, -⟩
+      ipureintro; exact H
+    wp_auto
+    wp_if_destruct
+    rotate_left
+    · exact absurd Hty Hif
+    wp_apply +noauto context.wp_background_Done
+    wp_auto_lc 3
+    wp_apply_core chan.wp_select_blocking_nil
+    iapply BigAndL.bigAndL_cons.2
+    isplit
+    · ileft
+      simp only [chan.blockingClausePre]
+      iexists msgWithResult, inferInstance, inferInstance, inferInstance, inferInstance,
+        nv.propc', γ.propc, ({ m' := m, result' := zero_val GoChan } : msgWithResult)
+      isplitr
+      · ipureintro; exact ⟨rfl, rfl⟩
+      isplitr
+      · iapply isHandshake_isChan $$ Hpropc
+      iapply handshake_send_au γ.propc nv.propc' ({ m' := m, result' := zero_val GoChan } : msgWithResult)
+        (propP γ) iprop(True) $$ [$Hlc1 $Hlc2 $Hlc3] Hpropc [Hfwd]
+      · unfold propP
+        iright
+        isplitr
+        · ipureintro; rfl
+        iexact Hfwd
+      inext
+      iintro -
+      wp_auto
+      iapply HΦ
       itrivial
     iapply BigAndL.bigAndL_cons.2
     isplit

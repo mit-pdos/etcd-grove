@@ -35,7 +35,10 @@ def stepArg (γ : NodeNames) (id : w64) (m : raftpb.Message) (wait : Bool) : IPr
   iprop((⌜m.Type' ≠ MsgProp⌝ ∗ netP γ id m) ∨
     (⌜wait = true⌝ ∗ ∃ (data_sl esl : GoSlice) (data : List w8),
       ⌜m = propMsg esl⌝ ∗ esl ↦* [propEntry data_sl] ∗
-      ownSliceCap raftpb.Entry esl (DFrac.own 1) ∗ data_sl ↦*□ data))
+      ownSliceCap raftpb.Entry esl (DFrac.own 1) ∗ data_sl ↦*□ data ∗
+      entData γ.raft (propEntry data_sl)) ∨
+    -- a proposal forwarded by a peer (2026-10-10)
+    (⌜wait = false⌝ ∗ fwdP γ m))
 
 /-- See the file header. -/
 abbrev node.stepWithWaitOption.spec : Prop :=

@@ -1,8 +1,7 @@
 /- Port of election_proof/spec_raft__Step.v (857d09190).
 
 Lean notes:
-* The spec mentions ghost state (`ownRaftGhost`, `isMessage`, `propAu`, `isProp`,
-  `propTok`), so the section has the extra variable `[AllG GF]` (porting guide,
+* The spec mentions ghost state (`ownRaftGhost`, `isMessage`), so the section has the extra variable `[AllG GF]` (porting guide,
   "Section variables"), and fixes `hlc := HasLC.hasLC` (`[hG : HeapGS HasLC.hasLC GF]`
   instead of `{hlc : HasLC} [hG : HeapGS hlc GF]`): `ownRaftGhost` (through
   `raftCommitInv`) needs `[InvGS GF]`, which is `InvGS_gen .hasLC GF`, and the heap's
@@ -229,10 +228,11 @@ abbrev raft.Step.spec : Prop :=
     (γ : RaftNames) (r : Loc) (id : w64) (s : NState) (ps : PState)
     (m : raftpb.Message)
     -- The message's `Entries` (`[]` for a message without entries), bound here rather
-    -- than in `"Hm"` since 2026-10-06 so that the postcondition can hand a proposal's
-    -- updates back unchanged; and, for a `MsgProp`, the client's result predicate for
-    -- each proposed entry (`"Hprops"`; unused for every other type).
-    (ents : List raftpb.Entry) (Qs : List (w64 → w64 → IProp GF)),
+    -- than in `"Hm"` since 2026-10-06. (Until 2026-10-10 also, for a `MsgProp`, the
+    -- client's result predicate for each entry: a proposal's atomic update is now
+    -- deposited before the proposal reaches `Step` (`prop_deposit`), and its entries'
+    -- `isMessage` says so (`entData`).)
+    (ents : List raftpb.Entry),
   -- The ghost state is about one configuration, and it is this one. Without this the
   -- caller could hand `ownRaftGhost_step` a `cfg` of its own choosing -- a singleton
   -- one, say, in which the node is its own quorum -- and election safety would not
@@ -370,12 +370,6 @@ abbrev raft.Step.spec : Prop :=
          "#Hmsg" ∷ □ (∀ ty, ⌜mtypeOf m.Type' = some ty⌝ -∗
                             ⌜ty ≠ .snap⌝ -∗
                             isMessage γ (absMsg ty m ents))) ∗
-      -- A proposal's client updates (2026-10-06), one per entry (`propAu`,
-      -- `Protocol/GhostState.lean`: run when the entry, stamped, is committed).
-      -- `bigSepL2` makes `Qs.length = ents.length`. Absent for every other type.
-      "Hprops" ∷ (if m.Type' = MsgProp
-                  then [∗list] e;Q ∈ ents;Qs, propAu γ e Q
-                  else iprop(True)) ∗
       -- the `Context`: not the leader-transfer marker (out of scope), and empty on a
       -- heartbeat response (no read-index requests in scope: `bcastHeartbeat` sends
       -- `nil` and `handleHeartbeat` echoes it)
@@ -417,20 +411,7 @@ abbrev raft.Step.spec : Prop :=
       -- only a proposal can be dropped, with `ErrProposalDropped`
       "Herr" ∷ (⌜err = interface.nil⌝ ∨
                 (⌜m.Type' = MsgProp⌝ ∗
-                 globalAddr ErrProposalDropped ↦□ err)) ∗
-      -- A proposal (2026-10-06): appended at the leader (`Step.propose`: stamped at
-      -- `ps`'s term and the indices after `ps`'s last), each update is registered at
-      -- its entry's `(term, index)` and the client gets `isProp` and the token to
-      -- collect `Q t i` with (`prop_collect`) once the entry is committed; otherwise
-      -- -- forwarded by a follower, dropped (no leader known, a candidate,
-      -- `appendEntry` refused it) -- the updates come back unrun.
-      "Hprops" ∷ (if m.Type' = MsgProp
-                  then (⌜err = interface.nil ∧ ps.role = .leader⌝ ∗
-                        [∗list] k ↦ Q ∈ Qs, ∃ γp,
-                          isProp γ ps.term (plastIndex ps + W64 1 + W64 (k : Int)) γp Q ∗
-                          propTok γp)
-                       ∨ ([∗list] e;Q ∈ ents;Qs, propAu γ e Q)
-                  else iprop(True)) }}
+                 globalAddr ErrProposalDropped ↦□ err)) }}
 
 end spec
 

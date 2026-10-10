@@ -31,7 +31,7 @@ abbrev node.stepWait.spec : Prop :=
   ∀ (γ : NodeNames) (id : w64) (n : Loc) (data_sl esl : GoSlice) (data : List w8),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗
       esl ↦* [propEntry data_sl] ∗ ownSliceCap raftpb.Entry esl (DFrac.own 1) ∗
-      data_sl ↦*□ data }}
+      data_sl ↦*□ data ∗ entData γ.raft (propEntry data_sl) }}
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"stepWait"))
       (Val #(interface.ok context.backgroundCtxVal))) (Val #(propMsg esl)))
   {{ (err : GoInterface), RET #err; True }}

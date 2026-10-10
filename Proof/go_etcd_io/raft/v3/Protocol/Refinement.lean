@@ -473,10 +473,17 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (id : w64) (s : PState)
     iexists id, γt, s.base, s.log, (fp ++ s.log)
     rw [Heterm]
     iframe Hnewlead Htl Hcown Htel
+    isplitr
+    · ipureintro
+      unfold PtOk
+      rw [HLF, Heidx, HlastF, Hpt]
+      exact ⟨by omega, by omega, fun _ => rfl, fun h => by omega⟩
+    -- a new leader's own entry: the zero slice (2026-10-10)
+    unfold entData
+    iexists none
+    unfold entDataIs
     ipureintro
-    unfold PtOk
-    rw [HLF, Heidx, HlastF, Hpt]
-    exact ⟨by omega, by omega, fun _ => rfl, fun h => by omega⟩
+    rw [← He]; rfl
   have Hwl2 : PlogWf s.base s2.log := by
     rw [Hs2log]
     refine (PlogWf_app _ _ _).mpr ⟨Hwl, fun k x Hk => ?_⟩
@@ -887,15 +894,17 @@ theorem ownRaftGhost_step_send_apps (γ : RaftNames) (id : w64) (s : PState)
   · ipureintro; exact Hfollower_votes
   · ipureintro; exact Hrole_ok
 
-/-- `Step.propForward`: a proposal carries nothing. -/
-theorem ownRaftGhost_step_prop_forward (γ : RaftNames) (id : w64) (s : PState) (m : Msg) :
-    ⊢ ownRaftGhost (GF := GF) γ id s ==∗
+/-- `Step.propForward`: the forwarded proposal carries the received one's entries, and
+what it says of them (2026-10-10). -/
+theorem ownRaftGhost_step_prop_forward (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
+    (Hty : m.ty = .propose) :
+    ⊢ isMessage (GF := GF) γ m -∗ ownRaftGhost γ id s ==∗
       ownRaftGhost γ id
         (psendMsgs s
            [Msg.mk .propose id s.lead (W64 0) m.reject
               m.index m.logterm m.commit m.rejecthint
               m.entries]) := by
-  iintro Hown
+  iintro #Hm Hown
   iunfold ownRaftGhost at Hown
   icases Hown with ⟨%γv, %voted, %kl, H⟩
   iNamed H
@@ -904,7 +913,13 @@ theorem ownRaftGhost_step_prop_forward (γ : RaftNames) (id : w64) (s : PState) 
   · ipureintro; exact Hhist
   · rw [psendMsgs_outbox]
     iapply outbox_snoc $$ Hout
-    iapply isMessage_free; rfl
+    iunfold isMessage at Hm
+    rw [Hty]
+    icases Hm with ⟨%Hp, #Hed⟩
+    unfold isMessage
+    isplitr
+    · ipureintro; exact ⟨rfl, Hp.2⟩
+    · iexact Hed
   · iapply tally_eq γ id s (psendMsgs s _) rfl rfl $$ Htally
   · iapply leaderWit_eq γ id s (psendMsgs s _) rfl rfl $$ Hlead
   · iapply ownLogGhost_mono γ id s (psendMsgs s _) kl rfl rfl rfl (fun h => ⟨h, rfl, rfl⟩) (fun h => ⟨h, rfl⟩) (fun h => h) rfl (fun h => h) $$ Hlg
@@ -1002,7 +1017,7 @@ theorem ownRaftGhost_step_commit (γ : RaftNames) (id : w64) (s : PState) (n : w
     isplitr
     · ipureintro; simpa using Hle'
     · iapply BigSepM.bigSepM_lookup Hx $$ Hmatched
-  imod commit_extend γ ⊤ s.term n (fp0 ++ s.log) CoPset.subseteq_top $$ Hinv Hcq with #Hcmn
+  imod commit_extend γ s.term n (fp0 ++ s.log) $$ Hinv Hcq with #Hcmn
   imodintro
   iapply ownRaftGhost_intro γ id _ γv voted kl Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs []
   · ipureintro; exact Hhist
@@ -1625,6 +1640,25 @@ theorem term_log_insert_stamped (γt : GName) (M : GMap w64 (raftpb.Entry × w64
       · iexact Hents
       · rw [List.length_mapIdx]; iexact Hnew
 
+/-- Stamping keeps the entries' data (2026-10-10). -/
+private theorem entData_mapIdx_stamp (γ : RaftNames) (t L : w64) (ents : List raftpb.Entry) :
+    ⊢ ([∗list] e ∈ ents, entData (GF := GF) γ e) -∗
+      [∗list] x ∈ ents.mapIdx (stamp t L), entData γ x := by
+  iintro #H
+  iapply BigSepL.bigSepL_intro (P := iprop(□ [∗list] e ∈ ents, entData (GF := GF) γ e))
+  · intro k x Hk
+    rw [List.getElem?_mapIdx] at Hk
+    cases Hy : ents[k]? with
+    | none => rw [Hy] at Hk; cases Hk
+    | some y =>
+      rw [Hy] at Hk; cases Hk
+      iintro #Hl
+      rw [show stamp t L k y = { y with Term' := t, Index' := L + W64 1 + W64 k } from rfl,
+        entData_stamp]
+      iapply BigSepL.bigSepL_lookup (Φ := fun _ (e : raftpb.Entry) => entData (GF := GF) γ e)
+        Hy $$ Hl
+  · iexact H
+
 /-- `Step.propose`: the stamped entries go into the leader's term log
 (`term_log_insert_stamped`), which gives each its `isEntryR` (the first after the old
 last entry, the rest after each other); the self-acknowledgement is the node's own to
@@ -1633,14 +1667,15 @@ theorem ownRaftGhost_step_propose (γ : RaftNames) (id : w64) (s : PState)
     (ents : List raftpb.Entry) :
     s.role = .leader →
     plogLastIndexZ s.base s.log + (ents.length : Int) < 2 ^ 64 →
-    ⊢ ownRaftGhost (GF := GF) γ id s ==∗
+    ⊢ ([∗list] e ∈ ents, entData (GF := GF) γ e) -∗ ownRaftGhost γ id s ==∗
       ownRaftGhost γ id
         (psendMsgs (pappend s (ents.mapIdx (stamp s.term (plastIndex s))))
           [pselfAck id (pappend s (ents.mapIdx (stamp s.term (plastIndex s))))]) := by
   intro Hrole Hnw
   rw [show plastIndex s = W64 (plogLastIndexZ s.base s.log) from rfl]
   generalize HL : plogLastIndexZ s.base s.log = L at Hnw ⊢
-  iintro Hown
+  iintro #Hed Hown
+  ihave #Hnwd := entData_mapIdx_stamp γ s.term (W64 L) ents $$ Hed
   iunfold ownRaftGhost at Hown
   icases Hown with ⟨%γv, %voted, %kl, H⟩
   iNamed H
@@ -1725,10 +1760,13 @@ theorem ownRaftGhost_step_propose (γ : RaftNames) (id : w64) (s : PState)
         iexists id, γt, s.base, l0, F0
         rw [Hxt]
         iframe Hl Htl Hc0 Hxe
-        ipureintro
-        rw [HLF] at HF0
-        unfold PtOk
-        refine ⟨by omega, Int.le_refl _, fun h => by omega, fun _ => rfl⟩
+        isplitr
+        · ipureintro
+          rw [HLF] at HF0
+          unfold PtOk
+          refine ⟨by omega, Int.le_refl _, fun h => by omega, fun _ => rfl⟩
+        iapply BigSepL.bigSepL_lookup (Φ := fun _ (e : raftpb.Entry) => entData (GF := GF) γ e)
+          Hk $$ Hnwd
   ihave #Hlf' : leadFrags γt l0 (s.log ++ nw) $$ []
   · unfold leadFrags
     iapply (BigSepL.bigSepL_append (Φ := fun k (e : raftpb.Entry) =>
@@ -2508,13 +2546,19 @@ theorem ownRaftGhost_step (γ : RaftNames) (id : w64) (s : PState) (recv : List 
     iintro _ Hown
     imod ownRaftGhost_step_send_apps γ id s ms Hrole Hms $$ Hown with Hown
     imodintro; iexact Hown
-  | propose s ents Hrole _ Hnw =>
-    iintro _ Hown
-    imod ownRaftGhost_step_propose γ id s ents Hrole Hnw $$ Hown with Hown
+  | propose m s ents Hty Hents Hrole _ Hnw =>
+    iintro Hrecv Hown
+    ihave #Hm := recv_one $$ Hrecv
+    iunfold isMessage at Hm
+    rw [Hty]
+    icases Hm with ⟨-, #Hed⟩
+    rw [Hents]
+    imod ownRaftGhost_step_propose γ id s ents Hrole Hnw $$ Hed Hown with Hown
     imodintro; iexact Hown
-  | propForward m s _ _ _ =>
-    iintro _ Hown
-    imod ownRaftGhost_step_prop_forward γ id s m $$ Hown with Hown
+  | propForward m s Hty _ _ =>
+    iintro Hrecv Hown
+    ihave #Hm := recv_one $$ Hrecv
+    imod ownRaftGhost_step_prop_forward γ id s m Hty $$ Hm Hown with Hown
     imodintro; iexact Hown
   | snapRestore m s Hty _ Hfid Hterm Hrole _ _ Hlt Hnm =>
     iintro Hrecv Hown

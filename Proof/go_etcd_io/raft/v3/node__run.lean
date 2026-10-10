@@ -214,35 +214,72 @@ theorem node.run.wp_proof
     inext
     iintro %pm HP
     iunfold propP at HP
-    icases HP with ⟨%data_sl, %esl, %data, %γr, %Hpm, Hes, Hcap, #Hdata, #Hho, Hprod⟩
-    wp_auto
-    ihave Hhead := runMid_head γ id nv ac rc' rdv' $$ Hmid
-    iunfold runHead at Hhead
-    icases Hhead with ⟨%rs, Hrn, Hrest⟩
-    rw [Hpm]
-    wp_apply wp_rn_raft_Step_prop wp_raft_Step γ.raft nv.rn' id rs r esl data_sl data
-      $$ [$Hrn $Hrnraft $Hes $Hcap $Hdata] as %err Hrn
-    ihave %Hrnn := isChan_not_null $$ [Hho]
-    · unfold isHandoff
-      icases Hho with ⟨$, -⟩
-    wp_if_destruct
-    · exact absurd Hif Hrnn
-    wp_apply wp_handoff_send (t := go.error) γr pm.result' (fun (_ : GoInterface) => iprop(True))
-      iprop(True) iprop(True) err $$ [$Hho $Hprod] as Hprod
-    · isplitl <;> itrivial
-    wp_apply wp_handoff_close (t := go.error) γr pm.result' (fun (_ : GoInterface) => iprop(True))
-      iprop(True) iprop(True) true $$ [$Hho $Hprod]
-    · simp only [↓reduceIte]
-      itrivial
-    wp_for_post
-    iframe HΦ n r
-    iexists nv.propc', rc', ac, rdv', ld'
-    iframe propc readyc advancec rd lead
-    isplitr
-    · ipureintro; right; rfl
-    unfold runHead
-    iexists rs
-    iframe Hrn Hrest
+    icases HP with (⟨%data_sl, %esl, %data, %γr, %Hpm, Hes, Hcap, #Hdata, #Hent, #Hho, Hprod⟩ |
+      ⟨%Hres, Hfwd⟩)
+    · wp_auto
+      ihave Hhead := runMid_head γ id nv ac rc' rdv' $$ Hmid
+      iunfold runHead at Hhead
+      icases Hhead with ⟨%rs, Hrn, Hrest⟩
+      rw [Hpm]
+      ihave #Hm := isMessage_propMsg γ.raft esl data_sl $$ Hent
+      ihave Hes : (propMsg esl).Entries' ↦* [propEntry data_sl] $$ [Hes]
+      · rw [show (propMsg esl).Entries' = esl from rfl]; iexact Hes
+      ihave Hcap : ownSliceCap raftpb.Entry (propMsg esl).Entries' (DFrac.own 1) $$ [Hcap]
+      · rw [show (propMsg esl).Entries' = esl from rfl]; iexact Hcap
+      wp_apply wp_rn_raft_Step_prop wp_raft_Step γ.raft nv.rn' id rs r (propMsg esl)
+        [propEntry data_sl] rfl $$ [$Hrn $Hrnraft $Hes $Hcap $Hm]
+        as %err Hrn
+      · iexists []
+        isplitr
+        · rw [show (propMsg esl).Context' = slice.nil from rfl]
+          iapply ownSlice_nil
+        · ipureintro; intro Hc; unfold campaignTransfer at Hc; simp at Hc
+      ihave %Hrnn := isChan_not_null $$ [Hho]
+      · unfold isHandoff
+        icases Hho with ⟨$, -⟩
+      wp_if_destruct
+      · exact absurd Hif Hrnn
+      wp_apply wp_handoff_send (t := go.error) γr pm.result' (fun (_ : GoInterface) => iprop(True))
+        iprop(True) iprop(True) err $$ [$Hho $Hprod] as Hprod
+      · isplitl <;> itrivial
+      wp_apply wp_handoff_close (t := go.error) γr pm.result' (fun (_ : GoInterface) => iprop(True))
+        iprop(True) iprop(True) true $$ [$Hho $Hprod]
+      · simp only [↓reduceIte]
+        itrivial
+      wp_for_post
+      iframe HΦ n r
+      iexists nv.propc', rc', ac, rdv', ld'
+      iframe propc readyc advancec rd lead
+      isplitr
+      · ipureintro; right; rfl
+      unfold runHead
+      iexists rs
+      iframe Hrn Hrest
+    · -- a proposal forwarded by a peer (2026-10-10): no result channel
+      iunfold fwdP at Hfwd
+      icases Hfwd with ⟨%Hty, %ents, %ctx, Hes, Hcap, #Hctx, %Hctxne, #Hm⟩
+      wp_auto
+      ihave Hhead := runMid_head γ id nv ac rc' rdv' $$ Hmid
+      iunfold runHead at Hhead
+      icases Hhead with ⟨%rs, Hrn, Hrest⟩
+      wp_apply wp_rn_raft_Step_prop wp_raft_Step γ.raft nv.rn' id rs r pm.m' ents Hty
+        $$ [$Hrn $Hrnraft $Hes $Hcap $Hm] as %err Hrn
+      · iexists ctx
+        iframe Hctx
+        ipureintro; exact Hctxne
+      rw [Hres]
+      wp_if_destruct
+      rotate_left
+      · exact absurd rfl Hif
+      wp_for_post
+      iframe HΦ n r
+      iexists nv.propc', rc', ac, rdv', ld'
+      iframe propc readyc advancec rd lead
+      isplitr
+      · ipureintro; right; rfl
+      unfold runHead
+      iexists rs
+      iframe Hrn Hrest
   -- `m := <-n.recvc`
   iapply BigAndL.bigAndL_cons.2
   isplit

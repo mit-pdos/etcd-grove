@@ -26,16 +26,17 @@ theorem node.stepWait.wp_proof
     (wp_node_stepWithWaitOption : node.stepWithWaitOption.spec (GF := GF) (hG := hG)) :
     node.stepWait.spec (GF := GF) (hG := hG) := by
   intro γ id n data_sl esl data
-  wp_start as ⟨#Hnode, Hes, Hcap, #Hdata⟩
+  wp_start as ⟨#Hnode, Hes, Hcap, #Hdata, #Hent⟩
   wp_auto
   wp_apply wp_node_stepWithWaitOption γ id n (propMsg esl) true $$ [Hes Hcap]
   · iframe Hnode
     unfold stepArg
     iright
+    ileft
     isplitr
     · ipureintro; rfl
     iexists data_sl, esl, data
-    iframe Hes Hcap Hdata
+    iframe Hes Hcap Hdata Hent
     ipureintro; rfl
   iintro %err -
   wp_auto

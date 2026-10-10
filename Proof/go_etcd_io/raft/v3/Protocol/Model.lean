@@ -184,6 +184,118 @@ structure PState [FfiSyntax] where
   /-- `Progress.Match` per voter, leaders only -/
   matched : GMap w64 w64
 
+/-! ### The client log (2026-10-10)
+
+The data of committed client entries in commit order, first occurrences only: what
+`cLog` (`GhostState.lean`) holds of the committed log, given each entry's data
+(`none` for a leader's own entry). -/
+
+/-- One entry's data added to the client log: a new data is appended; a repeated one, or
+a leader's own entry (`none`), leaves it. -/
+def occStep (L : List (List w8)) : Option (List w8) → List (List w8)
+  | none => L
+  | some d => if d ∈ L then L else L ++ [d]
+
+def firstOcc (ods : List (Option (List w8))) : List (List w8) := ods.foldl occStep []
+
+theorem firstOcc_snoc (ods : List (Option (List w8))) (o : Option (List w8)) :
+    firstOcc (ods ++ [o]) = occStep (firstOcc ods) o := by
+  simp [firstOcc, List.foldl_append]
+
+theorem occStep_prefix (L : List (List w8)) (o : Option (List w8)) : L <+: occStep L o := by
+  cases o with
+  | none => exact List.prefix_refl _
+  | some d =>
+    by_cases h : d ∈ L
+    · simp only [occStep, h, if_true]; exact List.prefix_refl _
+    · simp only [occStep, h, if_false]; exact List.prefix_append _ _
+
+theorem foldl_occStep_prefix (L : List (List w8)) (b : List (Option (List w8))) :
+    L <+: b.foldl occStep L := by
+  induction b generalizing L with
+  | nil => exact List.prefix_refl _
+  | cons o b ih => exact (occStep_prefix L o).trans (ih _)
+
+theorem firstOcc_append_prefix (a b : List (Option (List w8))) :
+    firstOcc a <+: firstOcc (a ++ b) := by
+  unfold firstOcc; rw [List.foldl_append]; exact foldl_occStep_prefix _ _
+
+theorem firstOcc_take_prefix (ods : List (Option (List w8))) (n : Nat) :
+    firstOcc (ods.take n) <+: firstOcc ods := by
+  have := firstOcc_append_prefix (ods.take n) (ods.drop n)
+  rwa [List.take_append_drop] at this
+
+theorem mem_foldl_occStep (L : List (List w8)) (b : List (Option (List w8))) (d : List w8) :
+    d ∈ b.foldl occStep L ↔ d ∈ L ∨ some d ∈ b := by
+  induction b generalizing L with
+  | nil => simp
+  | cons o b ih =>
+    simp only [List.foldl_cons, List.mem_cons]
+    rw [ih]
+    cases o with
+    | none => simp [occStep]
+    | some d' =>
+      by_cases h : d' ∈ L
+      · simp only [occStep, h, if_true]
+        constructor
+        · rintro (h1 | h1)
+          · exact .inl h1
+          · exact .inr (.inr h1)
+        · rintro (h1 | h1 | h1)
+          · exact .inl h1
+          · cases h1; exact .inl h
+          · exact .inr h1
+      · simp only [occStep, h, if_false, List.mem_append, List.mem_singleton]
+        constructor
+        · rintro ((h1 | h1) | h1)
+          · exact .inl h1
+          · subst h1; exact .inr (.inl rfl)
+          · exact .inr (.inr h1)
+        · rintro (h1 | h1 | h1)
+          · exact .inl (.inl h1)
+          · cases h1; exact .inl (.inr rfl)
+          · exact .inr h1
+
+theorem mem_firstOcc (ods : List (Option (List w8))) (d : List w8) :
+    d ∈ firstOcc ods ↔ some d ∈ ods := by
+  unfold firstOcc; rw [mem_foldl_occStep]; simp
+
+theorem nodup_foldl_occStep (L : List (List w8)) (b : List (Option (List w8))) :
+    L.Nodup → (b.foldl occStep L).Nodup := by
+  induction b generalizing L with
+  | nil => exact id
+  | cons o b ih =>
+    intro hL
+    apply ih
+    cases o with
+    | none => exact hL
+    | some d =>
+      by_cases h : d ∈ L
+      · simp only [occStep, h, if_true]; exact hL
+      · simp only [occStep, h, if_false]
+        exact List.nodup_append.mpr ⟨hL, List.nodup_cons.mpr ⟨by simp, List.nodup_nil⟩,
+          fun a ha b hb => by
+            simp only [List.mem_singleton] at hb; subst hb; intro e; subst e; exact h ha⟩
+
+theorem firstOcc_nodup (ods : List (Option (List w8))) : (firstOcc ods).Nodup :=
+  nodup_foldl_occStep [] ods List.nodup_nil
+
+/-- In a list without duplicates, what comes before `d` is determined. -/
+theorem prefix_before_unique (L L0 L1 : List (List w8)) (d : List w8) (Hnd : L.Nodup)
+    (H0 : L0 ++ [d] <+: L) (H1 : L1 ++ [d] <+: L) : L0 = L1 := by
+  have k0 : L[L0.length]? = some d := by
+    obtain ⟨r, rfl⟩ := H0; simp
+  have k1 : L[L1.length]? = some d := by
+    obtain ⟨r, rfl⟩ := H1; simp
+  obtain ⟨h0lt, h0e⟩ := List.getElem?_eq_some_iff.mp k0
+  obtain ⟨h1lt, h1e⟩ := List.getElem?_eq_some_iff.mp k1
+  have hlen := (List.Nodup.getElem_inj Hnd).mp (h0e.trans h1e.symm)
+  have e0 := List.prefix_iff_eq_take.mp ((List.prefix_append L0 [d]).trans H0)
+  have e1 := List.prefix_iff_eq_take.mp ((List.prefix_append L1 [d]).trans H1)
+  calc L0 = L.take L0.length := e0
+    _ = L.take L1.length := by rw [hlen]
+    _ = L1 := e1.symm
+
 section pure
 variable [FfiSyntax]
 
@@ -1403,15 +1515,18 @@ inductive Step : PState → List Msg → PState → Prop where
       (∀ m ∈ ms, ReplOk id s m) →
       Step s [] (psendMsgs s ms)
   /-- `MsgProp` at the leader: `appendEntry` of the batch, which queues the
-  self-acknowledgement. `EntryNormal` only: no conf change in phase 1.
+  self-acknowledgement. `EntryNormal` only: no conf change in phase 1. The proposal is
+  received (2026-10-10): its `isMessage` carries each entry's data (`entData`).
 
   The third premise: the stamped indices do not wrap (`appendEntry`'s `Hsmall` and the
   log's own bound give it). Rocq's `let s' := pappend s (imap …) in` is inlined. -/
-  | propose (s : PState) (ents : List raftpb.Entry) :
+  | propose (m : Msg) (s : PState) (ents : List raftpb.Entry) :
+      m.ty = .propose →
+      m.entries = ents →
       s.role = .leader →
       (∀ e ∈ ents, e.Type' = W32 0) →
       plogLastIndexZ s.base s.log + (ents.length : Int) < 2 ^ 64 →
-      Step s []
+      Step s [m]
         (psendMsgs (pappend s (ents.mapIdx (stamp s.term (plastIndex s))))
           [pselfAck id (pappend s (ents.mapIdx (stamp s.term (plastIndex s))))])
   /-- `MsgProp` at a follower that knows a leader: forwarded, with `Term` left at `0`
