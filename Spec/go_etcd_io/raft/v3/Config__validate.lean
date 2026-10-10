@@ -49,7 +49,9 @@ def ConfigPreserved (cv cv' : Config) : Prop :=
   -- `MaxSizePerMsg` when unset
   cv'.MaxCommittedSizePerReady' =
     (if cv.MaxCommittedSizePerReady' = W64 0 then cv.MaxSizePerMsg'
-     else cv.MaxCommittedSizePerReady')
+     else cv.MaxCommittedSizePerReady') ∧
+  -- read by `NewRawNode` after `newRaft` (2026-10-09)
+  cv'.AsyncStorageWrites' = cv.AsyncStorageWrites'
 
 end defs
 

@@ -27,7 +27,7 @@ theorem raft.becomeCandidate.wp_proof
     (wp_raft_reset : raft.reset.spec (GF := GF) (hG := hG))
     (wp_traceBecomeCandidate : traceBecomeCandidate.spec (GF := GF) (hG := hG)) :
     raft.becomeCandidate.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s Hrole
+  intro cfg r id s Hrole Hnw
   wp_start as Hphys
   wp_auto
   -- `becomeCandidate` panics on a leader; by assumption we are not one.
@@ -41,10 +41,11 @@ theorem raft.becomeCandidate.wp_proof
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
   -- `reset`'s state is left to the frame (in Rocq, giving it explicitly ran for 24
   -- minutes before failing, 2026-09-22)
-  wp_apply wp_raft_reset $$ [$Hphys] as %pvs ⟨Hphys, -⟩
+  wp_apply wp_raft_reset cfg r id { s with stepfn := functions stepCandidate [] }
+    (s.term + W64 1) (by word) $$ [$Hphys] as %pvs ⟨Hphys, -⟩
   -- `Match` is irrelevant for a non-leader (`toPState`)
   -- `r.tick`, `r.Vote := r.id`, `r.state := StateCandidate`
-  wp_apply raft.wp_store_tick $$ Hphys as Hphys
+  wp_apply raft.wp_store_tick (Hf := .inl rfl) $$ Hphys as Hphys
   wp_apply raft.wp_load_id $$ Hphys as Hphys
   wp_apply raft.wp_store_Vote $$ Hphys as Hphys
   rw [show (go_etcd_io.raft.v3.StateCandidate : val) = #(stateW64 .candidate) from rfl]

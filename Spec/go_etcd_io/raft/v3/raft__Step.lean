@@ -61,12 +61,16 @@ def StepMsg [FfiSyntax] (m : raftpb.Message) : Prop :=
 /-- What a `Step` of one of the messages `RawNode` steps itself leaves of the node's
 physical state beyond the protocol (2026-10-09): the term, the entries a `Ready` handed
 out that the application has not appended yet (`unpersisted`), the pending snapshot,
-and `offsetInProgress`, which does not move back. -/
+and `offsetInProgress`, which does not move back; and (2026-10-10) the log's boundary
+and what the storage holds (`prev`, the ghost `stored`), which the `RawNode` predicate
+keeps the records of for the acknowledgement `Advance` steps (`InvRawnode.lean`). -/
 def LocalFrame [FfiSyntax] (s s' : NState) : Prop :=
   s'.term = s.term ∧
   uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress ∧
   s'.logst.unpersisted = s.logst.unpersisted ∧
-  s'.logst.snap = s.logst.snap
+  s'.logst.snap = s.logst.snap ∧
+  s'.logst.prev = s.logst.prev ∧
+  s'.logst.stored = s.logst.stored
 
 /-- `Step`'s postcondition for the three local messages `RawNode` steps -- a proposal
 (`Propose`) and the two storage acknowledgements (`Advance`): `LocalFrame`, and
@@ -82,6 +86,103 @@ def LocalStepOk [FfiSyntax] (m : raftpb.Message) (ents : List raftpb.Entry)
   ((m.Type' = MsgStorageApplyResp →
       ∀ e, ents.getLast? = some e → uint.Z e.Index' ≤ uint.Z s.logst.applying) →
    s'.logst.applying = s.logst.applying)
+
+/-- What every `Step` but a `MsgSnap`'s and a `MsgStorageApplyResp`'s leaves of the log's
+state beyond the protocol (2026-10-09): `applying` (only `appliedTo` moves it), the pending
+snapshot (only `restore` sets one) and the entries a `Ready` handed out that the
+application has not appended yet (only `ownRaftLog_persist` empties them). This is what
+the `RawNode` predicate needs to survive a `Step` of a message from the network
+(`RawNode.Step`, `Tick`, `Campaign`). Unlike `LocalFrame`, it says nothing of the term or
+of `offsetInProgress`, which a truncating `MsgApp` moves back. And (2026-10-10) the log's
+boundary `prev` and what the storage holds (the ghost `stored`): no `Step` but a
+`MsgSnap`'s restores, and only a `Ready` changes `stored`, so a truncating `MsgApp`
+leaves the storage holding entries the log no longer has -- which is why the
+acknowledgement `Advance` steps after it may still move them stable (`StableOk`). -/
+def NetFrame [FfiSyntax] (s s' : NState) : Prop :=
+  s'.logst.applying = s.logst.applying ∧
+  s'.logst.snap = s.logst.snap ∧
+  s'.logst.unpersisted = s.logst.unpersisted ∧
+  s'.logst.prev = s.logst.prev ∧
+  s'.logst.stored = s.logst.stored
+
+theorem NetFrame.refl [FfiSyntax] (s : NState) : NetFrame s s := ⟨rfl, rfl, rfl, rfl, rfl⟩
+
+theorem NetFrame.trans [FfiSyntax] {s1 s2 s3 : NState} (h1 : NetFrame s1 s2)
+    (h2 : NetFrame s2 s3) : NetFrame s1 s3 :=
+  ⟨h2.1.trans h1.1, h2.2.1.trans h1.2.1, h2.2.2.1.trans h1.2.2.1, h2.2.2.2.1.trans h1.2.2.2.1,
+   h2.2.2.2.2.trans h1.2.2.2.2⟩
+
+/-- Two states with the same log state. -/
+theorem NetFrame.of_logst [FfiSyntax] {s s' : NState} (h : s'.logst = s.logst) :
+    NetFrame s s' := by
+  unfold NetFrame; rw [h]; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
+
+/-- How a `Step` moves the term (2026-10-09): never back; by a local `MsgHup` at most one
+up (a campaign); by any other message (but a `MsgPreVoteResp`, which may also campaign)
+at most to the message's term. And `offsetInProgress` does not move back but by a
+`MsgApp`, whose append may truncate the in-progress entries. -/
+def TermStep [FfiSyntax] (m : raftpb.Message) (s s' : NState) : Prop :=
+  uint.Z s.term ≤ uint.Z s'.term ∧
+  (m.Type' = MsgHup → uint.Z s'.term ≤ uint.Z s.term + 1) ∧
+  (m.Type' ≠ MsgHup → m.Type' ≠ MsgPreVoteResp →
+     uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term')) ∧
+  (m.Type' ≠ MsgApp → uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress)
+
+/-- A step that keeps the term. -/
+theorem TermStep.of_term [FfiSyntax] {m : raftpb.Message} {s s' : NState}
+    (h : s'.term = s.term)
+    (hi : m.Type' ≠ MsgApp → uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress) :
+    TermStep m s s' := by
+  unfold TermStep; rw [h]
+  exact ⟨Int.le_refl _, fun _ => by omega, fun _ _ => Int.le_max_left _ _, hi⟩
+
+theorem TermStep.refl [FfiSyntax] (m : raftpb.Message) (s : NState) : TermStep m s s :=
+  TermStep.of_term rfl (fun _ => Int.le_refl _)
+
+/-- A step to a term between the start's and the message's, for a message other than
+`MsgHup` (a step-down to `m.Term`, then a handler that keeps it). -/
+theorem TermStep.of_le [FfiSyntax] {m : raftpb.Message} {s s' : NState}
+    (hup : m.Type' ≠ MsgHup) (h1 : uint.Z s.term ≤ uint.Z s'.term)
+    (h2 : uint.Z s'.term ≤ uint.Z m.Term')
+    (hi : m.Type' ≠ MsgApp → uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress) :
+    TermStep m s s' :=
+  ⟨h1, fun h => absurd h hup, fun _ _ => Int.le_trans h2 (Int.le_max_right _ _), hi⟩
+
+/-- A local step's frame keeps the term and does not move `offsetInProgress` back. -/
+theorem TermStep.of_local [FfiSyntax] {m : raftpb.Message} {s s' : NState}
+    (h : LocalFrame s s') : TermStep m s s' :=
+  TermStep.of_term h.1 (fun _ => h.2.1)
+
+/-- What a response does to the role and the term (2026-10-10), beyond `TermStep`: a
+stale `MsgVoteResp` or `MsgAppResp` (from a term below the node's) leaves the role; a
+`MsgPreVoteResp` moves the term at most to the message's, or one up from a
+pre-candidate (a won pre-vote's `campaign`), and never makes the node a pre-candidate
+(nor changes the term of one). `RawNode.Advance` steps the node's own responses, queued
+by `Ready`: with this, stepping them all moves the term up by at most one -- once a
+pre-vote is won the node is a candidate, and stays one through the rest of the queue,
+whose responses are then all stale or a candidate's to ignore. -/
+def RespStep [FfiSyntax] (m : raftpb.Message) (s s' : NState) : Prop :=
+  ((m.Type' = MsgVoteResp ∨ m.Type' = MsgAppResp) →
+     uint.Z m.Term' < uint.Z s.term → s'.role = s.role) ∧
+  (m.Type' = MsgPreVoteResp →
+     (uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term') ∨
+      (s.role = .preCandidate ∧ uint.Z s'.term = uint.Z s.term + 1)) ∧
+     (s'.role = .preCandidate → s.role = .preCandidate ∧ s'.term = s.term))
+
+theorem RespStep.refl [FfiSyntax] (m : raftpb.Message) (s : NState) : RespStep m s s :=
+  ⟨fun _ _ => rfl, fun _ => ⟨.inl (Int.le_max_left _ _), fun h => ⟨h, rfl⟩⟩⟩
+
+/-- Any step of a message that is none of the three responses. -/
+theorem RespStep.of_type [FfiSyntax] {m : raftpb.Message} {s s' : NState}
+    (h1 : m.Type' ≠ MsgVoteResp) (h2 : m.Type' ≠ MsgAppResp)
+    (h3 : m.Type' ≠ MsgPreVoteResp) : RespStep m s s' :=
+  ⟨fun h => by rcases h with h | h <;> contradiction, fun h => absurd h h3⟩
+
+/-- Any step of a `MsgVoteResp` or `MsgAppResp` that is not stale. -/
+theorem RespStep.of_fresh [FfiSyntax] {m : raftpb.Message} {s s' : NState}
+    (h3 : m.Type' ≠ MsgPreVoteResp) (hge : uint.Z s.term ≤ uint.Z m.Term') :
+    RespStep m s s' :=
+  ⟨fun _ hlt => absurd hlt (Int.not_lt.2 hge), fun h => absurd h h3⟩
 
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -153,7 +254,9 @@ abbrev raft.Step.spec : Prop :=
   --   least the log's), but not implied by `ownRaftPhys`, which admits a persisted
   --   log ahead of the persisted term;
   -- - a `MsgPreVoteResp` at a pre-candidate may win, which runs the real `campaign`
-  --   and increments the term: it must not wrap (as for `MsgHup`).
+  --   and increments the term: it must not wrap (as for `MsgHup`). Only at a
+  --   pre-candidate (2026-10-10: `RawNode.Advance` may step its own pre-vote response
+  --   after a won pre-vote raised the term, at a candidate, which ignores it).
   (m.Type' = MsgPreVote →
      m.To' = id ∧ m.Term' ≠ W64 0 ∧
      m.From' ≠ W64 0 ∧ m.From' ≠ id ∧
@@ -163,7 +266,7 @@ abbrev raft.Step.spec : Prop :=
   (m.Type' = MsgPreVoteResp →
      m.To' = id ∧ m.Term' ≠ W64 0 ∧
      m.From' ≠ W64 0 ∧
-     uint.Z s.term + 1 < 2 ^ 64) →
+     (s.role = .preCandidate → uint.Z s.term + 1 < 2 ^ 64)) →
   -- The replication types, by what the transport and the peers guarantee (Go checks
   -- none of it). A leader's `MsgApp`/`MsgHeartbeat`, and a `MsgHeartbeatResp`, come
   -- from another node: `send` never queues them to oneself. An accepting
@@ -284,6 +387,12 @@ abbrev raft.Step.spec : Prop :=
       -- for the local messages `RawNode` steps, what is kept of the physical state
       -- (2026-10-09)
       "%Hlocal" ∷ ⌜LocalStepOk m ents s s'⌝ ∗
+      -- for every other message but a snapshot, what is kept of the log (2026-10-09)
+      "%Hframe" ∷ ⌜m.Type' ≠ MsgSnap → m.Type' ≠ MsgStorageApplyResp → NetFrame s s'⌝ ∗
+      -- and how the term moves (2026-10-09)
+      "%Hterm" ∷ ⌜m.Type' ≠ MsgSnap → TermStep m s s'⌝ ∗
+      -- and what a response does to the role and the term (2026-10-10)
+      "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
       -- only a proposal can be dropped, with `ErrProposalDropped`
       "Herr" ∷ (⌜err = interface.nil⌝ ∨
                 (⌜m.Type' = MsgProp⌝ ∗

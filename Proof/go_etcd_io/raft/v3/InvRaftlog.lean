@@ -426,12 +426,17 @@ or is exactly `pend` -- *exactly* when all of the unstable suffix has been hande
 (the application's truncating append leaves nothing behind it), and with no unstable
 entries nothing is waiting to be persisted. `unstable.stableTo` (an `Advance`) moves
 stable exactly entries this says are persisted, and the equality is what gives
-`LogStoreOk`'s `sents = stored` when it empties the suffix. -/
+`LogStoreOk`'s `sents = stored` when it empties the suffix. And (2026-10-10) what the
+storage then holds is the ghost `LogState.stored`: a truncating `MsgApp` lowers
+`offsetInProgress` below entries the storage still holds, and the acknowledgement
+`Advance` steps next may move them stable because they agree with the log
+(`StableOk`, `InvReadylog.lean`). -/
 def LogPersistOk (σ : StorState)
-    (sents uents : List raftpb.Entry) (ipo : Int) (pend : List raftpb.Entry) : Prop :=
+    (sents uents : List raftpb.Entry) (ipo : Int) (pend stored : List raftpb.Entry) : Prop :=
   (sents ++ uents.take ipo.toNat) <+: storApp σ pend ∧
   (ipo.toNat = uents.length → sents ++ uents = storApp σ pend) ∧
-  (uents = [] → pend = [])
+  (uents = [] → pend = []) ∧
+  storApp σ pend = stored
 
 /-- The one predicate for a `raftLog`, indexed by its abstract state `ls` (`LogState`,
 above): the struct at some value `lv` whose fields are `ls`'s, the `Storage` at some
@@ -480,7 +485,8 @@ def ownRaftLog (l : Loc) (ls : LogState) : IProp GF :=
              uint.Z ls.inprogress ≤ uint.Z lv.unstable'.offset' + (ls.uents.length : Int)⌝ ∗
   "%Hpersist" ∷ ⌜ls.snap = none →
                   LogPersistOk σ ls.sents ls.uents
-                    (uint.Z ls.inprogress - uint.Z lv.unstable'.offset') ls.unpersisted⌝ ∗
+                    (uint.Z ls.inprogress - uint.Z lv.unstable'.offset') ls.unpersisted
+                    ls.stored⌝ ∗
   "%Happlying" ∷ ⌜uint.Z ls.applied ≤ uint.Z ls.applying ∧
                    uint.Z ls.applying ≤ uint.Z ls.committed⌝ ∗
   "%Hpaused" ∷ ⌜lv.applyingEntsPaused' = false → uint.Z ls.apsize < uint.Z ls.apmax⌝)
@@ -518,7 +524,7 @@ theorem ownRaftLog_intro (l : Loc) (lv : raftLog) (st : Storage) (σ : StorState
       uint.Z ls.inprogress ≤ uint.Z lv.unstable'.offset' + (ls.uents.length : Int) →
     (ls.snap = none →
       LogPersistOk σ ls.sents ls.uents
-        (uint.Z ls.inprogress - uint.Z lv.unstable'.offset') ls.unpersisted) →
+        (uint.Z ls.inprogress - uint.Z lv.unstable'.offset') ls.unpersisted ls.stored) →
     uint.Z ls.applied ≤ uint.Z ls.applying ∧ uint.Z ls.applying ≤ uint.Z ls.committed →
     (lv.applyingEntsPaused' = false → uint.Z ls.apsize < uint.Z ls.apmax) →
     lv.applyingEntsSize' = ls.apsize →
@@ -636,7 +642,7 @@ theorem ownRaftLog_persist (l : Loc) (ls : LogState) :
     | some sid => rw [Hs] at Hstore; exact Hstore
     | none =>
       rw [Hs] at Hstore
-      obtain ⟨Hpre, _, Hpe⟩ := Hpersist Hs
+      obtain ⟨Hpre, _, Hpe, -⟩ := Hpersist Hs
       obtain ⟨Hsp, _, Hsu⟩ := Hstore
       refine ⟨Hsp, (List.prefix_append ls.sents _).trans Hpre, ?_⟩
       intro Hu
@@ -644,10 +650,10 @@ theorem ownRaftLog_persist (l : Loc) (ls : LogState) :
       exact Hsu Hu
   have Hpersist' : ls.snap = none →
       LogPersistOk { σ with ents := storApp σ ls.unpersisted } ls.sents ls.uents
-        (uint.Z ls.inprogress - uint.Z lv.unstable'.offset') [] := by
+        (uint.Z ls.inprogress - uint.Z lv.unstable'.offset') [] ls.stored := by
     intro Hs
-    obtain ⟨Hpre, Heq, _⟩ := Hpersist Hs
-    exact ⟨Hpre, Heq, fun _ => rfl⟩
+    obtain ⟨Hpre, Heq, _, Hst⟩ := Hpersist Hs
+    exact ⟨Hpre, Heq, fun _ => rfl, Hst⟩
   iapply ownRaftLog_intro l lv lv.storage' _ _ _ { ls with unpersisted := [] } rfl Hcm Hap Hidx
     Hnowrap Hstore' Hoffset HnoConfChange Happlied Hpapplied Hcommitted Hssnap Hapg Hip Hipb
     Hpersist' Happlying Hpaused Hasz Hamx rfl rfl $$ Hl HisStorage HStorage Husnap Huents

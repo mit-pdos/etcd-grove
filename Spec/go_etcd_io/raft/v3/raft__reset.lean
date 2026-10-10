@@ -28,9 +28,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `reset term` clears the vote iff the term changes, clears `lead` and the vote
 tally, and re-initializes the non-election state; `resetTo` (`Defs.lean`) is exactly
 that. `r.step` is untouched, so `becomeFollower` -- which assigns it *before* calling
-`reset` -- gets it back as it left it. -/
+`reset` -- gets it back as it left it. The term does not move back (2026-10-10:
+`raft.wp_store_Term`'s premise; every caller resets to the current term or a later
+one). -/
 abbrev raft.reset.spec : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (term : w64),
+  uint.Z s.term ≤ uint.Z term →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"reset")) (Val #term))
   {{ (pvs : GMap w64 Progress), RET #();

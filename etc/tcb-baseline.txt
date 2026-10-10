@@ -1,4 +1,4 @@
-# The project's part of the Raft proof's trust base (etc/tcb-report.py --check --update).
+# This repository's part of the proofs' trust base (etc/tcb-report.py --check --update).
 axiom EtcdServer.GoAttach.wp_proof
 axiom EtcdServer.Logger.wp_proof
 axiom EtcdServer.applyConfChange.wp_proof
@@ -23,7 +23,6 @@ axiom membership.RaftCluster.Members.wp_proof
 axiom notify.Notifier.Notify.wp_proof
 axiom pbutil.MustUnmarshalMessage.wp_proof
 axiom proto.Clone.wp_proof
-axiom rand.Int.wp_proof
 axiom reflect.DeepEqual.wp_proof
 axiom rpctypes.Error.wp_proof
 axiom status.Error.wp_proof

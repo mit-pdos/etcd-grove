@@ -62,7 +62,7 @@ theorem newRaft.wp_proof
   wp_auto
   wp_apply wp_Config_validate _ _ ⟨HvID, HvID1, HvID2, Hticks, HvSt, HvInfl, HvIB, HvLog, HvRO⟩
     $$ [$Hc] as %cv' ⟨Hc, %Hpres⟩
-  obtain ⟨HpID, HpET, HpHT, HpSt, HpAp, HpMI, HpCQ, HpPV, HpDPF, HpLg, HpMC⟩ := Hpres
+  obtain ⟨HpID, HpET, HpHT, HpSt, HpAp, HpMI, HpCQ, HpPV, HpDPF, HpLg, HpMC, HpAW⟩ := Hpres
   rw [HpSt, Hsto, HpLg, Hlok]
   have Hmcs' : 0 < uint.Z cv'.MaxCommittedSizePerReady' := by
     rw [HpMC]
@@ -96,9 +96,9 @@ theorem newRaft.wp_proof
   -- one `MakeProgressTracker` built, and its log is at the state
   -- `newLogWithSize` built. It holds no `Progress` yet, so `prvals` is
   -- empty.
-  let ls0 : LogState := ⟨σ.prev, σ.ents, [], σ.prev.index', σ.prev.index', none, ip, σ.prev.index', [],
+  let ls0 : LogState := ⟨σ.prev, σ.ents, [], σ.prev.index', σ.prev.index', none, ip, σ.prev.index', [], σ.ents,
     W64 0, cv'.MaxCommittedSizePerReady'⟩
-  let s0 : NState := ⟨W64 0, W64 0, W64 0, .follower, ∅, [], func.nil, ∅, l, ls0, ∅,
+  let s0 : NState := ⟨W64 0, W64 0, W64 0, .follower, ∅, [], func.nil, false, ∅, l, ls0, ∅,
     cv.PreVote'⟩
   ihave Htrk0 := ownTracker_empty tv0 v0 Htv0arr Htv0l Htv0ln Htv0al Hmi $$ Hv0 Hvotes Hprs0
   ihave Hmisc : ownRaftMisc (GF := GF) slice.nil ro slice.nil $$ [Hro]
@@ -123,6 +123,7 @@ theorem newRaft.wp_proof
   ihave Hphys := ownRaftPhys_intro ∅ «$r0_ptr» cv.ID' s0 _ [] [] lok
     HpID rfl rfl rfl rfl rfl HpPV (by rw [HpDPF, Hdpf]) (by rw [HpCQ, Hcq]) rfl rfl HvID
     (by show 0 < sint.Z cv'.ElectionTick'; rw [HpET]; omega) (by rw [HpLg, Hlok]) rfl
+    (fun h => absurd h (by simp only [s0]; decide)) (fun _ h => absurd h List.not_mem_nil)
     $$ «$r0» Hlg0 Htrk0 HL Hnil1 Hcap1 Hnil2 Hcap2 Hmisc Hob
   -- the configuration `Restore` built, as `switchToConfig` installs it
   ipersist Hprsm
@@ -150,7 +151,7 @@ theorem newRaft.wp_proof
   -- same struct state `s1` and log state `ls1`, so the rest of the proof
   -- is done once, for both.
   let ls1 : LogState := ⟨σ.prev, σ.ents, [], committedAfter σ.prev hs, σ.prev.index', none, ip,
-    σ.prev.index', [], W64 0, cv'.MaxCommittedSizePerReady'⟩
+    σ.prev.index', [], σ.ents, W64 0, cv'.MaxCommittedSizePerReady'⟩
   let s1 : NState :=
     { s0 with progress := prs, prvals := pvs1, term := hs.Term', vote := hs.Vote', logst := ls1 }
   wp_join iprop(ownRaftPhys (listToSet voters) «$r0_ptr» cv.ID' s1 ∗ hs_ptr ↦ hs ∗
@@ -182,7 +183,8 @@ theorem newRaft.wp_proof
         show uint.Z σ.prev.index' ≤ _ ∧ _ ≤ uint.Z (logLast ls0)
         rw [Hll]; exact this
       wp_apply wp_raft_loadState _ _ _
-        { s0 with progress := prs, prvals := pvs1 } hs Hpre $$ [$Hphys] as Hphys
+        { s0 with progress := prs, prvals := pvs1 } hs Hpre
+        (by show uint.Z (W64 0) ≤ uint.Z hs.Term'; word) $$ [$Hphys] as Hphys
       isplitr
       · ipureintro; rfl
       iframe hs r
@@ -191,7 +193,7 @@ theorem newRaft.wp_proof
   -- `if c.Applied > 0 { raftlog.appliedTo(c.Applied, 0) }`, likewise
   let ap : w64 := if cv.Applied' = W64 0 then σ.prev.index' else cv.Applied'
   let ls2 : LogState := ⟨σ.prev, σ.ents, [], committedAfter σ.prev hs, ap, none, ip,
-    w64Max σ.prev.index' ap, [], W64 0, cv'.MaxCommittedSizePerReady'⟩
+    w64Max σ.prev.index' ap, [], σ.ents, W64 0, cv'.MaxCommittedSizePerReady'⟩
   let s2 : NState := { s1 with logst := ls2 }
   rw [HpAp]
   wp_join iprop(ownRaftPhys (listToSet voters) «$r0_ptr» cv.ID' s2 ∗ c_ptr ↦ c ∗ c ↦ cv' ∗
@@ -217,7 +219,8 @@ theorem newRaft.wp_proof
     simp only [s2, ls2, ap, ls1, s1, Ha0, ↓reduceIte, w64Max, Int.lt_irrefl]
   -- `r.becomeFollower(r.Term, None)`
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
-  wp_apply wp_raft_becomeFollower _ _ _ s2 s2.term (W64 0) $$ [$Hphys] as %pvs3 Hphys
+  wp_apply wp_raft_becomeFollower _ _ _ s2 s2.term (W64 0) (Int.le_refl _) $$ [$Hphys]
+    as %pvs3 Hphys
   let s3 : NState := { becomeFollower s2 s2.term (W64 0) with prvals := pvs3 }
   -- `r.trk.VoterNodes()`
   icases ownRaftPhys_tracker_same _ _ _ s3 $$ Hphys with ⟨%tv3, Htrkf, Htrk3, Htrkback⟩
@@ -278,12 +281,14 @@ theorem newRaft.wp_proof
   ihave Hlog3 := Hl3back $$ Hl3
   ihave Hphys := Hlogback $$ Hlog3
   wp_raft_log
-  iapply HΦ $$ %«$r0_ptr» %s3
-  iframe Hphys
+  iapply HΦ $$ %«$r0_ptr» %s3 %cv'
+  iframe Hphys Hc
+  isplitr
+  · ipureintro; exact HpAW
   -- `becomeFollower(r.Term, None)` keeps the term, so `reset` keeps the
   -- vote: the state is the persisted `HardState`'s
   ipureintro
-  refine ⟨rfl, rfl, ?_, rfl, rfl, rfl, rfl, rfl⟩
+  refine ⟨⟨rfl, rfl⟩, rfl, ?_, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
   show (if s2.term = s2.term then s2.vote else W64 0) = hs.Vote'
   simp only [↓reduceIte]
   rfl

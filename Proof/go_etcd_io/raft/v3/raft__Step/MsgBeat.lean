@@ -48,7 +48,9 @@ theorem wp_Step_MsgBeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "Hphys" ∷ ownRaftPhys cfg r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜Step cfg id (toPState s) [] (toPState s')⌝ ∗
-        "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
+        "%Herr" ∷ ⌜err = interface.nil⌝ ∗
+        "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
+        "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
   intro Hty Hterm Hcfg Hwf
   wp_start as Hphys
   iNamed Hphys
@@ -63,7 +65,7 @@ theorem wp_Step_MsgBeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   wp_apply raft.wp_load_step $$ Hphys as Hphys
   have Hty3 : m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp :=
     .inl Hty
-  rw [show s.stepfn = stepFuncOf s.role from Hwf]
+  rw [show s.stepfn = stepFuncOf s.role from Hwf.1]
   have Hsnap0 : ∀ (P : IProp GF), ⊢ (⌜m.Type' = MsgSnap⌝ -∗ P : IProp GF) := fun P => by
     iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
   cases Hrole : s.role
@@ -88,7 +90,7 @@ theorem wp_Step_MsgBeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %s
     iframe Hphys
     ipureintro
-    exact ⟨Hwf, .refl _, rfl⟩
+    exact ⟨Hwf, .refl _, rfl, keep_frame rfl rfl rfl rfl rfl⟩
   · -- Candidate: no `MsgBeat` arm either
     simp only [stepFuncOf]
     wp_apply _P.stepCandidate cfg r id s m [] (zero_val _) []
@@ -113,7 +115,7 @@ theorem wp_Step_MsgBeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %s
     iframe Hphys
     ipureintro
-    exact ⟨Hwf, .refl _, rfl⟩
+    exact ⟨Hwf, .refl _, rfl, keep_frame rfl rfl rfl rfl rfl⟩
   · -- Leader: `bcastHeartbeat`
     simp only [stepFuncOf]
     wp_apply _P.stepLeader cfg r id s m [] (.inr (.inl Hty)) Hrole Hcfg
@@ -126,7 +128,8 @@ theorem wp_Step_MsgBeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     · isplitl []
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
-    obtain ⟨rfl, Hwf', Hstep⟩ := leader_beat_step cfg id s m [] dropped s' Hrole Hty Hwf Hres
+    obtain ⟨rfl, Hwf', Hstep, Hl, Ht⟩ :=
+      leader_beat_step cfg id s m [] dropped s' Hrole Hty Hwf Hres
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn
     subst Herrn
@@ -134,7 +137,7 @@ theorem wp_Step_MsgBeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %s'
     iframe Hphys
     ipureintro
-    exact ⟨Hwf', Hstep, rfl⟩
+    exact ⟨Hwf', Hstep, rfl, keep_frame_logst Ht Hl⟩
   · -- PreCandidate (2026-10-04), as a candidate: no `MsgBeat` arm either
     simp only [stepFuncOf]
     wp_apply _P.stepCandidate cfg r id s m [] (zero_val _) []
@@ -159,7 +162,7 @@ theorem wp_Step_MsgBeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %s
     iframe Hphys
     ipureintro
-    exact ⟨Hwf, .refl _, rfl⟩
+    exact ⟨Hwf, .refl _, rfl, keep_frame rfl rfl rfl rfl rfl⟩
 
 end StepProof
 

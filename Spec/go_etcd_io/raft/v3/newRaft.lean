@@ -143,14 +143,25 @@ abbrev newRaft.spec : Prop :=
             Φ (PairV (PairV #hs #cs) #interface.nil)) -∗
            WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) }}
     (App (Val #(functions newRaft [])) (Val #c))
-  {{ (r : Loc) (s : NState), RET #r;
+  {{ (r : Loc) (s : NState) (cv' : Config), RET #r;
       ownRaftPhys (GMap.listToSet voters) r cv.ID' s ∗
+      -- the `Config`, `validate`d (2026-10-09): `NewRawNode` reads it after
+      c ↦ cv' ∗ ⌜cv'.AsyncStorageWrites' = cv.AsyncStorageWrites'⌝ ∗
       ⌜NStateWf s ∧
         s.term = hs.Term' ∧
         s.vote = hs.Vote' ∧
         s.lead = W64 0 ∧ s.role = .follower ∧
         s.votes = ∅ ∧ s.outbox = [] ∧
-        s.prevote = cv.PreVote'⌝ }}
+        s.prevote = cv.PreVote' ∧
+        -- the log, as the storage and the `HardState` give it (2026-10-09, for
+        -- `NewRawNode`): the stored entries, nothing unstable, the commit index the
+        -- `HardState` restores, applying from `Config.Applied`, nothing handed out
+        s.logst.prev = σ.prev ∧ s.logst.sents = σ.ents ∧ s.logst.uents = [] ∧
+        s.logst.stored = σ.ents ∧
+        s.logst.committed = committedAfter σ.prev hs ∧
+        s.logst.applying = w64Max σ.prev.index'
+          (if cv.Applied' = W64 0 then σ.prev.index' else cv.Applied') ∧
+        s.logst.unpersisted = [] ∧ s.logst.snap = none⌝ }}
 
 end spec
 

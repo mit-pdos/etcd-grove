@@ -1,0 +1,8 @@
+# The cache's B-tree (k8s.io/utils' fork of google/btree):
+# Proof/k8s_io/utils/third_party/forked/golang/btree/Link.lean and Results.lean.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/btree.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Proof/k8s_io/utils/third_party/forked/golang/btree/(Link|Results)\.lean$

@@ -52,6 +52,8 @@ Lean notes:
 module
 
 public import Proof.go_etcd_io.raft.v3.Link
+-- `newRaft_post_init` (moved there 2026-10-09: `NewRawNode`'s proof uses it)
+public import Spec.go_etcd_io.raft.v3.NewRawNode
 
 @[expose] public section
 
@@ -94,31 +96,6 @@ theorem raft_election_safety (γ : RaftNames) (id1 id2 : w64) (s1 s2 : PState) :
 
 end proof
 
-section newRaft_post
-variable [ext : FfiSyntax] [go_gctx : GoGlobalContext] [GoSemanticsFunctions]
-
-/-- `newRaft`'s postcondition, on a storage with no persisted `HardState` and an empty
-log, is the protocol's initial state. (Since 2026-10-01 the protocol state has the log,
-and `initPState`'s is empty: a node starting from a storage that already holds entries
-is not at `initPState`, and `ownRaftGhost_alloc` does not cover it -- its entries would
-need `isEntry`s.) -/
-theorem newRaft_post_init (hs : raftpb.HardState) (s : NState) :
-    HsEmpty hs →
-    (NStateWf s ∧
-     s.term = hs.Term' ∧
-     s.vote = hs.Vote' ∧
-     s.lead = W64 0 ∧ s.role = .follower ∧
-     s.votes = ∅ ∧ s.outbox = []) →
-    s.logst.prev = entryID.mk (W64 0) (W64 0) →
-    s.logst.sents = [] →
-    s.logst.uents = [] →
-    s.logst.committed = W64 0 →
-    NStateRel s initPState := by
-  intro ⟨HT, HV, _⟩ ⟨Hwf, Ht, Hv, Hl, Hr, Hvs, Ho⟩ Hp Hse Hue Hc
-  refine ⟨?_, Hwf⟩
-  simp [toPState, initPState, Ht, Hv, HT, HV, Hl, Hr, Hvs, Ho, Hp, Hse, Hue, Hc, proleRole]
-
-end newRaft_post
 
 end EtcdGrove
 end Perennial
@@ -130,3 +107,7 @@ end Perennial
 #print axioms Perennial.EtcdGrove.RawNode.wp_Ready
 #print axioms Perennial.EtcdGrove.RawNode.wp_Advance
 #print axioms Perennial.EtcdGrove.RawNode.wp_HasReady
+#print axioms Perennial.EtcdGrove.RawNode.wp_Campaign
+#print axioms Perennial.EtcdGrove.RawNode.wp_Step
+#print axioms Perennial.EtcdGrove.RawNode.wp_Tick
+#print axioms Perennial.EtcdGrove.wp_NewRawNode

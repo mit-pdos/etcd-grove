@@ -147,7 +147,7 @@ theorem raft.appendEntry.wp_proof
     (wp_raftLog_append : raftLog.append.spec (GF := GF) (hG := hG))
     (wp_raft_send : raft.send.spec (GF := GF) (hG := hG)) :
     raft.appendEntry.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s es ents Hnorm Hsmall
+  intro cfg r id s es ents Hnorm Hsmall Hnz
   wp_start as ⟨Hphys, Hes⟩
   wp_auto
   wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
@@ -290,7 +290,7 @@ theorem raft.appendEntry.wp_proof
         Reject' := false, RejectHint' := 0, Context' := slice.nil, Responses' := slice.nil }
     wp_apply wp_raft_send cfg r id s' m [] [selfAck id s'] ?_ ?_ $$ [$Hphys]
     · exact Or.inl rfl
-    · refine Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, ?_⟩)))
+    · refine Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, fun _ => ⟨rfl, rfl, Hnz, rfl⟩, ?_⟩)))
       unfold selfAck absMsgFrom
       rw [Hlast2]
       rfl

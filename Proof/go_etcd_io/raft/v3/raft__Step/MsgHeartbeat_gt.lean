@@ -62,7 +62,9 @@ theorem wp_Step_MsgHeartbeat_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .heartbeat m ents) ∧
             Step cfg id (toPState s) recv (toPState s')⌝ ∗
-        "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
+        "%Herr" ∷ ⌜err = interface.nil⌝ ∗
+        "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
+        "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
   intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hcommit Hgt
   wp_start as ⟨Hphys, #Hents⟩
   wp_auto
@@ -80,7 +82,7 @@ theorem wp_Step_MsgHeartbeat_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
   -- MsgApp || MsgHeartbeat || MsgSnap: the second holds
   repeat (rw [Hty]; wp_auto)
   -- becomeFollower(m.Term, m.From): a leader's message
-  wp_apply _P.becomeFollower cfg r id s m.Term' m.From' $$ [$Hphys] as %pvs Hphys
+  wp_apply _P.becomeFollower cfg r id s m.Term' m.From' (Int.le_of_lt Hgt) $$ [$Hphys] as %pvs Hphys
   repeat (rw [Hty]; wp_auto)
   wp_apply raft.wp_load_step $$ Hphys as Hphys
   rw [show ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).stepfn
@@ -103,8 +105,9 @@ theorem wp_Step_MsgHeartbeat_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
   iapply HΦ $$ %interface.nil %_
   iframe Hphys
   ipureintro
-  refine ⟨nstateWf_heartbeatResult _ _ _ ?_, ?_, rfl⟩
-  · rfl
+  refine ⟨nstateWf_heartbeatResult _ _ _ ?_, ?_, rfl,
+    stepdown_frame (by rw [Hty]; w32_ne) (Int.le_of_lt Hgt) rfl rfl rfl rfl rfl⟩
+  · exact ⟨rfl, rfl⟩
   · refine ⟨[absMsg .heartbeat m ents] ++ [absMsg .heartbeat m ents], ?_, ?_⟩
     · intro m' Hm'
       simp only [List.mem_append, List.mem_singleton, or_self] at Hm'

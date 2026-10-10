@@ -1960,11 +1960,13 @@ theorem slots_take_all (γd : DemuxNames) (regs : GMap Loc RegInfo) :
     rw [(BigSepM.bigSepM_insert (Φ := fun w ri => slotRes (hG := hG) C γd w ri) hi).to_eq,
       (BigSepM.bigSepM_insert (Φ := fun w ri => regRes (hG := hG) C γd w ri) hi).to_eq]
     iintro ⟨Hw, Hs, Hrest⟩
+    -- the rest first, while `Hrest` still matches `IH`'s premise (unfolding `slotRes`
+    -- would unfold it under `Hrest`'s big separating conjunction as well)
+    icases IH $$ [Hw Hrest] with ⟨Hw, Hrest⟩
+    · iframe
     unfold slotRes
     icases Hs with (Hr | ⟨Hb, -⟩)
-    · icases IH $$ [Hw Hrest] with ⟨Hw, Hrest⟩
-      · iframe
-      iframe
+    · iframe
     · ihave %Hv := ghostVar_valid_2 _ _ _ _ _ $$ Hw Hb
       exact absurd Hv.1 (qp_one_add_not_le _)
 

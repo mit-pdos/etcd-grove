@@ -26,7 +26,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 to the stable part (`logStableTo`); the protocol log `sents ++ uents` does not change.
 
 The premise `StableOk` is what keeps `ownRaftLog`'s storage relation: the entries moved
-stable are persisted (in progress, nothing left unpersisted) and no snapshot is
+stable are persisted (nothing left unpersisted, and the storage holds the log up to
+`id`: `stored`; until 2026-10-10 `id.index < offsetInProgress`) and no snapshot is
 pending. Go checks only the term at `id.index`, so this is a real premise -- see
 `StableOk`. -/
 abbrev raftLog.stableTo.spec : Prop :=

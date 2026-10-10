@@ -64,7 +64,8 @@ the second and third on whether `(m.LogTerm, m.Index)` matches the log
 - stale: the reply carries `committed`;
 - accept: the log is `maybeAppend`'s new log -- `prev` and `applied` unchanged, the
   entries `plogMaybeAppend`'s, `committed` raised to `min(m.Commit, lastnewi)`
-  (`plogCommitTo`) -- and the reply carries `lastnewi`. `ls'` is existential because
+  (`plogCommitTo`), `applying`, the pending snapshot and `unpersisted` unchanged
+  (2026-10-09) -- and the reply carries `lastnewi`. `ls'` is existential because
   `maybeAppend`'s spec says no more about the `sents`/`uents` split;
 - reject: state unchanged but for the reply; the hint is *some* `(hint, hintterm)`
   (`findConflictByTerm`'s spec pins only `hint ≤ min(m.Index, lastIndex())`, and the
@@ -87,6 +88,8 @@ def HandleAppResult (id : w64) (s : NState) (m : raftpb.Message)
      ls'.committed =
        plogCommitTo ls.committed
          (if uint.Z m.Commit' < uint.Z lastnewi then m.Commit' else lastnewi) ∧
+     (ls'.applying = ls.applying ∧ ls'.snap = ls.snap ∧ ls'.unpersisted = ls.unpersisted ∧
+      ls'.prev = ls.prev ∧ ls'.stored = ls.stored) ∧
      s' = sendMsgs { s with logst := ls' }
             [appResp id s dst false lastnewi (W64 0) (W64 0)])
   ∨
@@ -133,6 +136,9 @@ abbrev raft.handleAppendEntries.spec : Prop :=
    PlogMatches ls.prev es (entryID.mk m.LogTerm' m.Index') →
    plogFindConflict ls.prev es ents = W64 0 ∨
    uint.Z ls.committed < uint.Z (plogFindConflict ls.prev es ents)) →
+  -- from another node (2026-10-10; `Step`'s premise): every reply goes to `m.From`, and
+  -- a self-addressed rejection would not be steppable (`AAMsgOk`)
+  m.From' ≠ id →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s ∗
       "#Hents" ∷ m.Entries' ↦*□ ents ∗

@@ -37,16 +37,17 @@ theorem raft.becomeFollower.wp_proof
     (wp_raft_reset : raft.reset.spec (GF := GF) (hG := hG))
     (wp_traceBecomeFollower : traceBecomeFollower.spec (GF := GF) (hG := hG)) :
     raft.becomeFollower.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s term lead
+  intro cfg r id s term lead Hle
   wp_start as Hphys
   wp_auto
   -- `r.step := stepFollower`
   wp_apply raft.wp_store_step $$ Hphys as Hphys
   -- `reset`'s state is left to the frame
-  wp_apply wp_raft_reset $$ [$Hphys] as %pvs ⟨Hphys, -⟩
+  wp_apply wp_raft_reset cfg r id { s with stepfn := functions stepFollower [] } term Hle
+    $$ [$Hphys] as %pvs ⟨Hphys, -⟩
   -- `Match` is irrelevant for a non-leader (`toPState`)
   -- `r.tick`, `r.lead := lead`, `r.state := StateFollower`
-  wp_apply raft.wp_store_tick $$ Hphys as Hphys
+  wp_apply raft.wp_store_tick (Hf := .inl rfl) $$ Hphys as Hphys
   wp_apply raft.wp_store_lead $$ Hphys as Hphys
   wp_apply wp_store_state_follower $$ Hphys as Hphys
   wp_apply raft.wp_load_id $$ Hphys as Hphys

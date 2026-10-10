@@ -34,6 +34,9 @@ because `ownRaftPhys` did not record its state.) -/
 abbrev raft.loadState.spec : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (hs : raftpb.HardState),
   uint.Z s.logst.committed ≤ uint.Z hs.Commit' ∧ uint.Z hs.Commit' ≤ uint.Z (logLast s.logst) →
+  -- the term does not move back (2026-10-10, `raft.wp_store_Term`); `newRaft` loads the
+  -- persisted state into a struct at term `0`
+  uint.Z s.term ≤ uint.Z hs.Term' →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"loadState")) (Val #hs))
   {{ RET #();

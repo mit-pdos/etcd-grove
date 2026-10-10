@@ -81,7 +81,7 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   -- MsgApp || MsgHeartbeat || MsgSnap: the third holds
   repeat (rw [Hty]; wp_auto)
   -- becomeFollower(m.Term, m.From): a leader's message
-  wp_apply _P.becomeFollower cfg r id s m.Term' m.From' $$ [$Hphys] as %pvs Hphys
+  wp_apply _P.becomeFollower cfg r id s m.Term' m.From' (Int.le_of_lt Hgt) $$ [$Hphys] as %pvs Hphys
   repeat (rw [Hty]; wp_auto)
   wp_apply raft.wp_load_step $$ Hphys as Hphys
   rw [show ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).stepfn
@@ -97,7 +97,7 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     · iintro %_
       isplitr
       · ipureintro
-        exact ⟨Hscope, rfl, rfl, Hcfg⟩
+        exact ⟨Hscope, rfl, rfl, Hcfg, Hfid⟩
       · iframe Hsv Hvs
     · iintro %Hc; exfalso; rw [Hty] at Hc
       rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
@@ -110,7 +110,7 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   iframe Hphys
   ipureintro
   refine ⟨nstateWf_handle_snap _ _ _ _ _ ?_ Hhs, ?_, rfl⟩
-  · rfl
+  · exact ⟨rfl, rfl⟩
   refine ⟨[absSnap m sv voters] ++ [absSnap m sv voters], ?_, ?_⟩
   · intro m' Hm'
     simp only [List.mem_append, List.mem_singleton, or_self] at Hm'

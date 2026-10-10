@@ -55,8 +55,10 @@ The `Ready` it returns:
   scope).
 
 The node's new state: `delivered` grows by `ce`, `unpersisted` is `es`, and the local
-messages for `Advance` are queued (`steps`), with `advanceable` saying whether
-`Advance` is proved for them (the gap, `RNState.advanceable`). -/
+messages for `Advance` are queued (`steps`), which `Advance` takes whatever they are.
+(Until 2026-10-10 the postcondition also returned a flag `advanceable`, whether
+`Advance` was proved for the queue: not when it held a self-addressed response, which
+no client could rule out.) -/
 abbrev RawNode.Ready.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState),
   rs.steps = [] →
@@ -65,10 +67,9 @@ abbrev RawNode.Ready.spec : Prop :=
       "Hrn" ∷ ownRawNode γ rn id rs }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Ready")) (Val #()))
   {{ (rd : Ready) (ce es : List raftpb.Entry) (ms : List raftpb.Message)
-      (steps : List Pending) (adv : Bool), RET #rd;
+      (steps : List Pending), RET #rd;
       "Hrn" ∷ ownRawNode γ rn id
-        { rs with delivered := rs.delivered ++ ce, unpersisted := es,
-                  steps := steps, advanceable := adv } ∗
+        { rs with delivered := rs.delivered ++ ce, unpersisted := es, steps := steps } ∗
       "#Hce" ∷ rd.CommittedEntries' ↦*□ ce ∗
       "#Hcommitted" ∷ isCommitted γ (rs.delivered ++ ce) ∗
       "#Hents" ∷ rd.Entries' ↦*□ es ∗

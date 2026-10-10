@@ -78,7 +78,7 @@ theorem step_handle_app (cfg : GSet w64) (id : w64) (ps : PState) (t : NState)
   unfold HandleAppResult at Hres
   simp only [Hb, Hl] at Hres
   rw [Hc] at Hres
-  rcases Hres with ⟨Hlt, rfl⟩ | ⟨Hle, lastnewi, es', ls', Happ, Hprev', Hes, -, Hcm', rfl⟩ |
+  rcases Hres with ⟨Hlt, rfl⟩ | ⟨Hle, lastnewi, es', ls', Happ, Hprev', Hes, -, Hcm', -, rfl⟩ |
       ⟨Hle, Hnm, hint, hintterm, rfl⟩
   · -- stale
     refine step_eq cfg id _ _ _ _
@@ -173,7 +173,31 @@ theorem nstateWf_handle_app (id : w64) (t : NState) (m : raftpb.Message)
     NStateWf t → HandleAppResult id t m ents s' → NStateWf s' := by
   intro Hwf Hres
   unfold HandleAppResult at Hres
-  rcases Hres with ⟨-, rfl⟩ | ⟨-, _, _, _, -, -, -, -, -, rfl⟩ | ⟨-, -, _, _, rfl⟩ <;> exact Hwf
+  rcases Hres with ⟨-, rfl⟩ | ⟨-, _, _, _, -, -, -, -, -, -, rfl⟩ | ⟨-, -, _, _, rfl⟩ <;>
+    exact Hwf
+
+/-- `handleAppendEntries` keeps the term and `NetFrame`'s fields (2026-10-09). -/
+theorem frame_handle_app (id : w64) (t : NState) (m : raftpb.Message)
+    (ents : List raftpb.Entry) (s' : NState) :
+    HandleAppResult id t m ents s' → NetFrame t s' ∧ s'.term = t.term := by
+  intro Hres
+  unfold HandleAppResult at Hres
+  rcases Hres with ⟨-, rfl⟩ | ⟨-, _, _, _, -, -, -, -, -, Hfr, rfl⟩ | ⟨-, -, _, _, rfl⟩
+  · exact ⟨⟨rfl, rfl, rfl, rfl, rfl⟩, rfl⟩
+  · exact ⟨Hfr, rfl⟩
+  · exact ⟨⟨rfl, rfl, rfl, rfl, rfl⟩, rfl⟩
+
+/-- A `MsgApp` branch's frame and term step: the adoption `s → t` (at most a step-down
+to the message's term), then the handler. -/
+theorem app_frame {id : w64} {m : raftpb.Message} {ents : List raftpb.Entry}
+    {s t s' : NState} (Happ : m.Type' = MsgApp) (Hres : HandleAppResult id t m ents s')
+    (Hft : NetFrame s t) (H1 : uint.Z s.term ≤ uint.Z t.term)
+    (H2 : uint.Z t.term ≤ max (uint.Z s.term) (uint.Z m.Term')) :
+    NetFrame s s' ∧ TermStep m s s' := by
+  obtain ⟨Hf, Ht⟩ := frame_handle_app id t m ents s' Hres
+  refine ⟨Hft.trans Hf, by rw [Ht]; exact H1, fun h => ?_, fun _ _ => by rw [Ht]; exact H2,
+    fun h => absurd Happ h⟩
+  rw [Happ] at h; exact absurd h (by w32_ne)
 
 theorem nstateWf_heartbeatResult (id : w64) (t : NState) (m : raftpb.Message) :
     NStateWf t → NStateWf (heartbeatResult id t m) := by

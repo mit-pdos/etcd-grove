@@ -27,11 +27,14 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `becomeLeader` is `reset`, the role transition, marking its own `Progress`
 replicating, and the empty entry, which `appendEntry` acknowledges with a
 self-addressed `MsgAppResp` (`becomeLeader`, `Defs.lean`). `id ∈ cfg` is needed because
-only voters are in the `Progress` map. -/
+only voters are in the `Progress` map. The term is nonzero (2026-10-10): `appendEntry`
+stamps the self-acknowledgement with it (a candidate's term, which `stepCandidate` has
+from the winning `MsgVoteResp`). -/
 abbrev raft.becomeLeader.spec : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState),
   s.role ≠ .follower →
   id ∈ cfg →
+  s.term ≠ W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"becomeLeader")) (Val #()))
   {{ (pvs : GMap w64 Progress), RET #();

@@ -137,7 +137,7 @@ theorem raft.reset.wp_proof
       raft.resetRandomizedElectionTimeout.spec (GF := GF) (hG := hG))
     (wp_raft_abortLeaderTransfer : raft.abortLeaderTransfer.spec (GF := GF) (hG := hG)) :
     raft.reset.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s term
+  intro cfg r id s term Hle
   wp_start as Hphys
   -- `lastIndex()` does not wrap: the closure's `pr.Match = lastIndex()` is then `logLast`
   icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog, Hlb⟩
@@ -150,7 +150,7 @@ theorem raft.reset.wp_proof
   wp_join iprop(r_ptr ↦ r ∗ term_ptr ↦ term ∗ ownRaftPhys cfg r id
       { s with term := term, vote := if term = s.term then s.vote else W64 0 })
     with [r term Hphys] as ⟨r, term, Hphys⟩
-  · wp_apply raft.wp_store_Term $$ Hphys as Hphys
+  · wp_apply raft.wp_store_Term (Hle := Hle) $$ Hphys as Hphys
     wp_apply raft.wp_store_Vote $$ Hphys as Hphys
     isplitr
     · ipureintro; exact rfl

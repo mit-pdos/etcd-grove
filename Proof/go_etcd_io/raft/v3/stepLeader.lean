@@ -751,7 +751,8 @@ private theorem wp_stepLeader_prop
     (wp_raft_appendEntry : raft.appendEntry.spec (GF := GF) (hG := hG))
     (r : Loc) (id : w64) (s : NState) (m : raftpb.Message) (ents : List raftpb.Entry)
     (Hty : m.Type' = MsgProp) (Hid : id ∈ cfg) (Hne : ents ≠ [])
-    (Hnorm : ∀ e ∈ ents, e.Type' = EntryNormal) (Hsmall : (ents.length : Int) < 2^61) :
+    (Hnorm : ∀ e ∈ ents, e.Type' = EntryNormal) (Hsmall : (ents.length : Int) < 2^61)
+    (Hnz : s.term ≠ W64 0) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s ∗
         m.Entries' ↦* ents }}
       (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #m))
@@ -764,7 +765,7 @@ private theorem wp_stepLeader_prop
   wp_start as ⟨Hphys, Hes⟩
   ihave #Hinit := isInitialized_access $$ Hpkg
   unfold isInitialized
-  icases Hinit with ⟨%e1, %e2, %e3, %e4, %errPropDropped, %gr, #Hinit⟩
+  icases Hinit with ⟨%e1, %e2, %e3, %e4, %errPropDropped, %gr, %_, %_, %_, %_, #Hinit⟩
   iNamed Hinit
   wp_auto
   simp only [Hty, MsgProp]
@@ -834,7 +835,7 @@ private theorem wp_stepLeader_prop
     iframe
     ipureintro
     word
-  · wp_apply wp_raft_appendEntry cfg r id s _ ents Hnorm Hsmall $$ [$Hphys $Hes]
+  · wp_apply wp_raft_appendEntry cfg r id s _ ents Hnorm Hsmall Hnz $$ [$Hphys $Hes]
       as %acc ⟨-, Hes, Hphys⟩
     cases acc <;> simp only [Bool.false_eq_true, ↓reduceIte]
     · -- dropped
@@ -883,10 +884,10 @@ theorem stepLeader.wp_proof
   intro cfg r id s m ents Hty Hlead Hid Hfrom0 Hself Hprop
   iintro %Φ ⟨#Hinit, Hphys, Hctx, Hents⟩ HΦ
   by_cases Hp : m.Type' = MsgProp
-  · obtain ⟨Hne, Hnorm, Hsmall⟩ := Hprop Hp
+  · obtain ⟨Hne, Hnorm, Hsmall, Hnz⟩ := Hprop Hp
     ihave Hes := Hents $$ %Hp
     iapply wp_stepLeader_prop cfg wp_raft_bcastAppend wp_raft_appendEntry r id s m ents Hp Hid
-      Hne Hnorm Hsmall $$ [Hphys Hes]
+      Hne Hnorm Hsmall Hnz $$ [Hphys Hes]
     · iframe
       iexact Hinit
     inext

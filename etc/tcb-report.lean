@@ -1,16 +1,16 @@
 /-
-Trust base of the Raft proof.  Not part of the lakefile; run with
+Trust base of this repository's proofs.  Not part of the lakefile; run with
 
-    lake env lean --run etc/tcb-report.lean [MODULE...]  > tcb.json
+    lake env lean --run etc/tcb-report.lean [--part=ROOT]... MODULE...  > tcb.json
 
-(normally via `etc/tcb-report.py`, which renders the report).  The roots are the theorems
-declared in the given modules (default: `Proof.go_etcd_io.raft.v3.Link`, every function's linked
-result, `Proof.go_etcd_io.raft.v3.Results`, `Proof.go_etcd_io.etcd.cache.v3.Link`, the `cache` package's linked
-results, `Proof.go_etcd_io.etcd.cache.v3.Results`, its exported results restated, the btree's
-`Link`, and `Proof.go_etcd_io.etcd.client.v3.concurrency.Link`, `client/v3/concurrency`'s; `etc/tcb-report.py` runs it again on `Proof.go_etcd_io.etcd.server.v3.etcdserver.Link`, the
-etcd server's, which cannot be imported with the Raft proof: both name `go_etcd_io.raft.v3`, of
-different raft versions).  For each root it computes what `#print axioms`
-computes -- the axioms its proof transitively depends on -- and, in addition, which
+(normally via `etc/tcb-report.py` and `etc/verified-code.py`, through
+`etc/proof_roots.py`, which choose the modules: every `Link` and `Results` module, in
+groups that can be imported together).  The roots are the theorems declared in the
+given modules.  This repository's own declarations are those of the modules `Spec.*`,
+`Proof.*` and, for each `--part=ROOT` (a module root of a project's part, as
+`etc/goose.py` configures), `ROOT.Spec.*` and `ROOT.Proof.*`.
+
+For each root it computes what `#print axioms` computes -- the axioms its proof transitively depends on -- and, in addition, which
 declarations along the way contain a `sorry` themselves (`#print axioms` only says
 `sorryAx`).  One JSON object per line:
 
@@ -98,11 +98,13 @@ partial def closure (env : Environment) (roots : Array Name) :
           stack := stack.pop
   return memo
 
-def isProject (env : Environment) (n : Name) : Bool :=
+/-- Whether `n` is declared in this repository's specs and proofs: `Spec.*`, `Proof.*`,
+and `ROOT.Spec.*`, `ROOT.Proof.*` for the part roots `parts`. -/
+def isProject (parts : List Name) (env : Environment) (n : Name) : Bool :=
   let m := modOf env n
   let r := m.getRoot
-  -- `EtcdDeps.{Spec,Proof}.*`: the specs and proofs of etcd's own raft dependency
-  r == `Spec || r == `Proof || (`EtcdDeps.Spec).isPrefixOf m || (`EtcdDeps.Proof).isPrefixOf m
+  r == `Spec || r == `Proof ||
+    parts.any fun p => (p ++ `Spec).isPrefixOf m || (p ++ `Proof).isPrefixOf m
 
 def kindOf : ConstantInfo → String
   | .axiomInfo _ => "axiom" | .defnInfo _ => "def" | .thmInfo _ => "theorem"
@@ -123,13 +125,14 @@ def meaningDeps (ci : ConstantInfo) : NameSet :=
 /-- This repository's definitions a statement is written in terms of: the closure of
 `meaningDeps` from the statement, not descending outside this repository (the
 framework is trusted as a whole) or into proofs. -/
-partial def statementDefs (env : Environment) (stmt : Expr) : NameSet := Id.run do
+partial def statementDefs (parts : List Name) (env : Environment) (stmt : Expr) :
+    NameSet := Id.run do
   let mut seen : NameSet := {}
   let mut todo : Array Name := stmt.getUsedConstants
   while todo.size > 0 do
     let n := todo.back!
     todo := todo.pop
-    if seen.contains n || !isProject env n then continue
+    if seen.contains n || !isProject parts env n then continue
     let some ci := env.find? n | continue
     if ci matches .thmInfo _ then continue
     seen := seen.insert n
@@ -141,11 +144,13 @@ partial def statementDefs (env : Environment) (stmt : Expr) : NameSet := Id.run 
 
 def main (args : List String) : IO UInt32 := do
   initSearchPath (← findSysroot)
+  let parts : List Name := args.filterMap fun a =>
+    (a.dropPrefix? "--part=").map (·.toString.toName)
   let mods : Array Name :=
-    if args.isEmpty then #[`Proof.go_etcd_io.raft.v3.Link, `Proof.go_etcd_io.raft.v3.Results, `Proof.go_etcd_io.etcd.cache.v3.Link,
-      `Proof.go_etcd_io.etcd.cache.v3.Results, `Proof.k8s_io.utils.third_party.forked.golang.btree.Link,
-      `Proof.go_etcd_io.etcd.client.v3.concurrency.Link]
-    else args.toArray.map String.toName
+    (args.filter (!·.startsWith "--")).toArray.map String.toName
+  if mods.isEmpty then
+    IO.eprintln "usage: etc/tcb-report.lean [--part=ROOT]... MODULE..."
+    return 2
   let env ← importModules (mods.map fun m => { module := m }) {}
   let mut roots : Array Name := #[]
   for (n, ci) in env.constants.map₁.toList do
@@ -177,7 +182,7 @@ def main (args : List String) : IO UInt32 := do
     let some rci := env.find? r | continue
     let uses := ((rci.value? (allowOpaque := true)).map (·.getUsedConstants) |>.getD #[]).filter
       (fun d => rootSet.contains d && d != r)
-    let sd := statementDefs env rci.type
+    let sd := statementDefs parts env rci.type
     defs := sd.toList.foldl (init := defs) (·.insert ·)
     let jl (a : Array Name) := ",".intercalate (a.toList.map (jstr ·.toString))
     out.putStrLn s!"\{\"t\":\"root\",\"name\":{jstr r.toString},\"module\":{jstr (modOf env r).toString},\"line\":{line},\"axioms\":[{",".intercalate (axs.toList.map jstr)}],\"sorries\":[{",".intercalate (srs.toList.map jstr)}],\"uses\":[{jl uses}],\"defs\":[{jl sd.toList.toArray}]}"

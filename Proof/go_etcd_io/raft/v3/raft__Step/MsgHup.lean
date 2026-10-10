@@ -58,7 +58,9 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "Hphys" ∷ ownRaftPhys cfg r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜Step cfg id (toPState s) [] (toPState s')⌝ ∗
-        "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
+        "%Herr" ∷ ⌜err = interface.nil⌝ ∗
+        "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
+        "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
   intro Hty Hterm Hnowrap Hwf
   wp_start as Hphys
   iNamed Hphys
@@ -76,11 +78,13 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   cases s.prevote
   all_goals
     wp_auto
-    wp_apply _P.hup cfg r id s _ Hnowrap Hwf $$ [$Hphys] as %s' ⟨Hphys, %Hwf', %Hstep⟩
+    wp_apply _P.hup cfg r id s _ Hnowrap Hwf $$ [$Hphys]
+      as %s' ⟨Hphys, %Hwf', %Hstep, %Hl, %Ht1, %Ht2⟩
     iapply HΦ $$ %interface.nil %s'
     iframe Hphys
     ipureintro
-    exact ⟨Hwf', Hstep, rfl⟩
+    exact ⟨Hwf', Hstep, rfl, NetFrame.of_logst Hl, Ht1, fun _ => Ht2,
+      fun h _ => absurd Hty h, fun _ => by rw [Hl]; exact Int.le_refl _⟩
 
 end StepProof
 

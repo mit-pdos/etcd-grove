@@ -43,6 +43,8 @@ theorem wp_Step_MsgPreVote (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     m.To' = id →
     m.Term' ≠ W64 0 →
     m.From' ≠ W64 0 →
+    -- from another node (2026-10-10): the answer goes to `m.From`
+    m.From' ≠ id →
     NStateWf s →
     (s.term = W64 0 →
       plogUpToDate s.logst.prev (s.logst.sents ++ s.logst.uents)
@@ -55,16 +57,18 @@ theorem wp_Step_MsgPreVote (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "Hphys" ∷ ownRaftPhys cfg r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜Step cfg id (toPState s) [] (toPState s')⌝ ∗
-        "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hwf Hutd0
+        "%Herr" ∷ ⌜err = interface.nil⌝ ∗
+        "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
+        "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
+  intro Hty Hto Hterm Hfnz Hfid Hwf Hutd0
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
-  · exact wp_Step_MsgPreVote_gt _P cfg r id s m Hty Hto Hterm Hfnz Hgt Hwf Hutd0
+  · exact wp_Step_MsgPreVote_gt _P cfg r id s m Hty Hto Hterm Hfnz Hfid Hgt Hwf Hutd0
   · wp_start_folded as ⟨Hphys, -⟩
     by_cases Hlt : uint.Z m.Term' < uint.Z s.term
-    · iapply wp_Step_MsgPreVote_lt _P cfg r id s m Hty Hto Hterm Hfnz Hlt Hwf
+    · iapply wp_Step_MsgPreVote_lt _P cfg r id s m Hty Hto Hterm Hfnz Hfid Hlt Hwf
         $$ [$Hpkg $Hphys] HΦ
     · have Heq : m.Term' = s.term := by word
-      iapply wp_Step_MsgPreVote_eq _P cfg r id s m Hty Hto Hterm Hfnz Heq Hwf
+      iapply wp_Step_MsgPreVote_eq _P cfg r id s m Hty Hto Hterm Hfnz Hfid Heq Hwf
         $$ [$Hpkg $Hphys] HΦ
 
 end StepProof

@@ -99,7 +99,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
   r.id`) and `Term = 0` (a local proposal; `send` takes the first and its `MsgProp`
   clause the second) and `lead ≠ id` (`send`'s self-addressed `Panicf`) -- for the
   forwarding arm;
-- `MsgApp`: `handleAppendEntries`'s premises, at `s` (`lead` does not enter them);
+- `MsgApp`: `handleAppendEntries`'s premises, at `s` (`lead` does not enter them),
+  `m.From ≠ id` among them since 2026-10-10 (and `handleSnapshot`'s for a `MsgSnap`);
 - `MsgHeartbeat`: `handleHeartbeat`'s two -- `m.Commit` within the log (`commitTo`'s
   `Panicf`; the protocol fact `heartbeat_commit_le_last`) and `m.From ≠ id` (`send`'s
   self-addressed `Panicf`);
@@ -126,7 +127,9 @@ abbrev stepFollower.spec : Prop :=
       uint.Z ls.committed ≤ uint.Z m.Index' →
       PlogMatches ls.prev es (entryID.mk m.LogTerm' m.Index') →
       plogFindConflict ls.prev es ents = W64 0 ∨
-      uint.Z ls.committed < uint.Z (plogFindConflict ls.prev es ents))) →
+      uint.Z ls.committed < uint.Z (plogFindConflict ls.prev es ents)) ∧
+     -- from another node (2026-10-10, `handleAppendEntries`'s premise)
+     m.From' ≠ id) →
   (m.Type' = MsgHeartbeat →
      uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) ∧
      m.From' ≠ id) →
@@ -134,7 +137,7 @@ abbrev stepFollower.spec : Prop :=
       "Hphys" ∷ ownRaftPhys cfg r id s ∗
       "Hsnap" ∷ (⌜m.Type' = MsgSnap⌝ -∗
                  ⌜SnapScope cfg sv voters ∧ s.role = .follower ∧
-                   s.votes = ∅ ∧ id ∈ cfg⌝ ∗
+                   s.votes = ∅ ∧ id ∈ cfg ∧ m.From' ≠ id⌝ ∗
                  m.Snapshot' ↦□ sv ∗
                  sv.Metadata'.ConfState'.Voters' ↦*□ voters) ∗
       "Hents" ∷ (⌜m.Type' = MsgApp ∨ m.Type' = MsgProp⌝ -∗

@@ -1,31 +1,45 @@
 #!/usr/bin/env python3
-"""Report the trusted computing base (TCB) of the Raft proof.
+"""Report the trusted computing base (TCB) of this repository's proofs.
 
 usage: etc/tcb-report.py [-o REPORT.md] [--defs] [--json TCB.json] [--reuse]
                          [--check [--update]]
+       etc/tcb-report.py (--roots PATTERN... | --collection FILE) [--per-root]
+                         [--check [--update]] [-o OUT] [--json TCB.json] [--reuse]
 
   -o       where to write the Markdown report (default: stdout)
   --defs   also list every definition the results' statements rest on
   --json   where to keep the raw output of etc/tcb-report.lean (default
-           .lake/tcb.json); --reuse skips re-running Lean
+           .lake/tcb.json); --reuse skips re-running Lean if it is of the current
+           root modules (etc/proof_roots.py)
   --check  compare the project's axioms and sorries with etc/tcb-baseline.txt and
            exit 1 if they differ (`--check --update` rewrites the baseline): a gate
            for CI, where the report is a viewer
 
-Needs a built project (`lake build`).  The Lean counterpart of the Rocq branches'
-`etc/tcb-report.py`, with the same notion of the TCB, but read off the elaborated
-environment instead of the source text, so nothing is a lower bound:
+  --roots  only the roots matching one of the regular expressions, searched in the
+           root's name (`T.wp_M`, without the namespace of the `Link.lean` files), its
+           module's file (`Proof/<pkg>/Link.lean`) and its spec's file
+           (`Spec/<pkg>/T__M.lean`): print this repository's
+           axioms and the `sorry`s they rest on, how many of them reach each, and the
+           roots that reach a `sorry` (--per-root: every root)
+  --collection  the same for the `roots PATTERN` lines of FILE (one per line, as
+           `etc/tcb-collections/*.txt`), whose `axiom X`/`sorry X` lines are its
+           baseline: with --check, compared (exit 1 if they differ); with
+           --check --update, rewritten (the other lines kept)
+
+Needs a built project (`lake build`; `$LAKE_OPTS` is passed to lake, e.g.
+`--packages=<file>` when the build used it).  For a Goose verification project laid out as
+CLAUDE.md describes (`Spec/<pkg>/`, `Proof/<pkg>/` with a `Link.lean` per package, the
+projects and parts of `etc/goose.py`; etc/proof_roots.py); nothing in it names a
+project.  The TCB is read off the elaborated environment, not the source text, so
+nothing is a lower bound:
 
   * assumed -- the axioms the results' proofs depend on and the declarations
     containing a `sorry` (what `#print axioms` shows, with the `sorry`s located);
   * results -- the statements of what the proof exports: the linked result of a Go
-    function that no other proof uses (every theorem of `Proof.go_etcd_io.raft.v3.Link` is one
-    function's spec instantiated with its callees' results; a spec some other proof
-    uses is internal: were it wrong, that proof would fail), and the protocol lemmas
-    of `Proof.go_etcd_io.raft.v3.Results`; likewise the `cache` package's `Proof.go_etcd_io.etcd.cache.v3.Link`
-    and its exported results restated in `Proof.go_etcd_io.etcd.cache.v3.Results`; the
-    etcd server's `Proof.go_etcd_io.etcd.server.v3.etcdserver.Link`; and `client/v3/concurrency`'s
-    `Proof.go_etcd_io.etcd.client.v3.concurrency.Link`;
+    function that no other proof uses (every theorem of a package's
+    `Proof/<pkg>/Link.lean` is one function's spec instantiated with its callees'
+    results; a spec some other proof uses is internal: were it wrong, that proof would
+    fail), and the theorems of each `Results.lean` (results restated or derived);
   * definitions -- this repository's definitions those statements are written in
     terms of, transitively through their bodies.  A wrong definition makes a true
     theorem say nothing, so these are trusted exactly as the axioms are.
@@ -44,28 +58,23 @@ import sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 LEAN_AX = ["propext", "Classical.choice", "Quot.sound"]
-NS = "Perennial.EtcdGrove."
 BASELINE = os.path.join(ROOT, "etc", "tcb-baseline.txt")
 
 # Where a linked result's statement lives: `Link.lean` states `T.wp_M : T.M.spec`.
 SPEC_DIR = "Spec"
 
-# The modules of linked results (each states `T.wp_M : T.M.spec`): the Raft proof's and
-# the `cache` package's.
-LINKS = ("Proof.go_etcd_io.raft.v3.Link", "Proof.go_etcd_io.etcd.cache.v3.Link",
-         "Proof.k8s_io.utils.third_party.forked.golang.btree.Link",
-         "Proof.go_etcd_io.etcd.server.v3.etcdserver.Link",
-         "Proof.go_etcd_io.etcd.client.v3.concurrency.Link")
+sys.dont_write_bytecode = True  # no etc/__pycache__
+sys.path.insert(0, os.path.join(ROOT, "etc"))
+import proof_roots  # noqa: E402  (etc/proof_roots.py: the root modules, running Lean)
 
-# This repository's specs and proofs: `Spec/`, `Proof/`, and those of etcd's own raft
-# dependency (raft v3.7, whose Go path is the fork's) in `EtcdDeps/`.
-PROJECT_DIRS = ("Spec", "Proof", "EtcdDeps/Spec", "EtcdDeps/Proof")
-PROJECT_MODS = ("Spec.", "Proof.", "EtcdDeps.Spec.", "EtcdDeps.Proof.")
-
-# etc/tcb-report.lean's runs: its default modules, then the etcd server's links, which
-# cannot share an environment with the Raft proof (both name `go_etcd_io.raft.v3`: the
-# fork's, in `Code/`, and etcd's own raft v3.7, in `EtcdDeps/Code/`).
-LEAN_RUNS = ([], ["Proof.go_etcd_io.etcd.server.v3.etcdserver.Link"])
+# The namespace of this repository's declarations, not shown.
+NS = proof_roots.namespace()
+# The modules of linked results (each states `T.wp_M : T.M.spec`): every `Link.lean`
+# under `Proof/` (and a part's `<root>/Proof/`).
+LINKS = tuple(proof_roots.link_modules())
+# This repository's specs and proofs: `Spec/`, `Proof/`, and the parts'.
+PROJECT_DIRS = proof_roots.PROJECT_DIRS
+PROJECT_MODS = proof_roots.PROJECT_MODS
 
 # Source constructs that weaken what the kernel checks.
 RISKY = [
@@ -116,26 +125,6 @@ def spec_file(root, defs):
     return mod_path(root["module"])
 
 
-def run_lean(json_path):
-    env = dict(os.environ)
-    env["PATH"] = os.path.expanduser("~/.elan/bin") + os.pathsep + env.get("PATH", "")
-    with open(json_path, "w") as f:
-        for mods in LEAN_RUNS:
-            f.flush()
-            r = subprocess.run(
-                ["lake", "env", "lean", "--run", "etc/tcb-report.lean", *mods],
-                cwd=ROOT,
-                stdout=f,
-                env=env,
-                check=False,
-            )
-            if r.returncode != 0:
-                sys.exit(
-                    f"tcb: etc/tcb-report.lean {' '.join(mods)} failed (exit {r.returncode}); "
-                    "is the project built?"
-                )
-
-
 def git(*args):
     try:
         return subprocess.run(
@@ -180,6 +169,88 @@ def scan_sources():
     return hits
 
 
+def matches(r, pat, defs):
+    """Whether root `r` is selected by the regular expression `pat`: searched in its
+    name (`T.wp_M`), its module's file and, for a linked result, its spec's file
+    (`Spec/<pkg>/T__M.lean`)."""
+    keys = [short(r["name"]), mod_path(r["module"])]
+    if r["module"] in LINKS:
+        keys.append(spec_file(r, defs))
+    return any(re.search(pat, k) for k in keys)
+
+
+def check(path, current, kept, srs, sorries, update):
+    """Compare the `axiom X`/`sorry X` entries `current` with those of the file `path`
+    (exit status 1 if they differ, or if a `sorry` of `srs` is an elaboration error);
+    `update` rewrites its entries, keeping the lines `kept` (comments, `roots` lines)."""
+    rel = proof_roots.shown(path)
+    if update:
+        with open(path, "w") as f:
+            f.write("".join(x + "\n" for x in kept + current))
+        print(f"tcb: wrote {rel} ({len(current)} entries)")
+        return 0
+    base = [x.strip() for x in read(path).splitlines() if x.startswith(("axiom ", "sorry "))]
+    added = sorted(set(current) - set(base))
+    removed = sorted(set(base) - set(current))
+    synth = [n for n in srs if sorries[n]["synthetic"]]
+    for a in added:
+        print(f"tcb: NEW in the trust base: {a}")
+    for a in removed:
+        print(f"tcb: gone from the trust base (update {rel}): {a}")
+    for x in synth:
+        print(f"tcb: elaboration error (synthetic sorry) in {short(x)}")
+    if added or removed or synth:
+        return 1
+    n_ax = sum(1 for x in current if x.startswith("axiom "))
+    print(f"tcb: trust base matches {rel} ({n_ax} axioms, {len(current) - n_ax} sorries)")
+    return 0
+
+
+def selection_report(sel, pats, n_roots, sel_ax, sel_sr, axioms, sorries, users, fw_ax,
+                     defs, per_root):
+    """What the roots `sel` rest on, in plain text."""
+    names = {r["name"] for r in sel}
+    out = []
+    w = out.append
+    w(f"{len(sel)} of {n_roots} roots match {' '.join(repr(p) for p in pats)}.")
+    clean = [r for r in sel if not r["sorries"]]
+    w(f"{len(clean)} of them reach no `sorry`.")
+    w("")
+    w(f"This repository's axioms they rest on: {len(sel_ax)}")
+    rows = [(short(n), loc(axioms[n]).strip("`"), len(names & set(users[n]))) for n in sel_ax]
+    rows += [] if rows else [("(none)", "", 0)]
+    wa = max(len(x[0]) for x in rows)
+    wb = max(len(x[1]) for x in rows)
+    for a, l, k in rows:
+        w(f"  {a.ljust(wa)}  {l.ljust(wb)}  {f'reached by {k}' if l else ''}".rstrip())
+    w("")
+    w(f"Unfinished proofs (`sorry`) they reach: {len(sel_sr)}")
+    rows = [(short(n), loc(sorries[n]).strip("`")
+             + (" (elaboration error)" if sorries[n]["synthetic"] else ""),
+             len(names & set(users[n]))) for n in sel_sr]
+    rows += [] if rows else [("(none)", "", 0)]
+    wa = max(len(x[0]) for x in rows)
+    wb = max(len(x[1]) for x in rows)
+    for a, l, k in rows:
+        w(f"  {a.ljust(wa)}  {l.ljust(wb)}  {f'reached by {k}' if l else ''}".rstrip())
+    w("")
+    n_fw = len({a for r in sel for a in r["axioms"] if a in fw_ax})
+    w(f"Perennial's axioms (Go types Goose does not translate): {n_fw}.")
+    w("")
+    listed = sel if per_root else [r for r in sel if r["sorries"]]
+    if listed:
+        w(("Every root" if per_root else "The roots that reach a `sorry` (--per-root: every root)")
+          + ":")
+        wa = max([len(short(r["name"])) for r in listed] + [4])
+        w(f"  {'root'.ljust(wa)}  sorry  axioms  statement")
+        for r in listed:
+            pa = sum(1 for a in r["axioms"] if a in sel_ax)
+            where = spec_file(r, defs) if r["module"] in LINKS else mod_path(r["module"])
+            w(f"  {short(r['name']).ljust(wa)}  {len(r['sorries']):5}  {pa:6}  {where}")
+        w("")
+    return "\n".join(out)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("-o", "--out")
@@ -188,20 +259,20 @@ def main():
     ap.add_argument("--reuse", action="store_true")
     ap.add_argument("--check", action="store_true")
     ap.add_argument("--update", action="store_true")
+    ap.add_argument("--roots", nargs="+", metavar="PATTERN")
+    ap.add_argument("--collection", metavar="FILE")
+    ap.add_argument("--per-root", action="store_true")
     args = ap.parse_args()
 
-    if not (args.reuse and os.path.exists(args.json)):
-        run_lean(args.json)
     roots, axioms, sorries, defs = {}, {}, {}, {}
-    for line in read(args.json).splitlines():
-        o = json.loads(line)
+    for o in proof_roots.load(args.json, "tcb", args.reuse):
         {"root": roots, "axiom": axioms, "sorry": sorries, "def": defs}[o["t"]][
             o["name"]
         ] = o
     used = {u for r in roots.values() for u in r["uses"]}
     exported = sorted(
         (r for n, r in roots.items() if n not in used),
-        key=lambda r: (r["module"] not in LINKS, r["module"] != LINKS[0], short(r["name"])),
+        key=lambda r: (r["module"] not in LINKS, r["module"], short(r["name"])),
     )
     trusted_defs = sorted({d for r in exported for d in r["defs"] if d in defs})
 
@@ -224,43 +295,49 @@ def main():
         for s in r["sorries"]:
             users[s].append(r["name"])
 
-    # --check: the project's part of the trust base against the baseline
-    current = sorted(
-        [f"axiom {short(n)}" for n in proj_ax] + [f"sorry {short(n)}" for n in sorries]
-    )
-    if args.check:
-        if args.update:
-            with open(BASELINE, "w") as f:
-                f.write(
-                    "# The project's part of the Raft proof's trust base "
-                    "(etc/tcb-report.py --check --update).\n"
-                )
-                f.write("".join(c + "\n" for c in current))
-            print(
-                f"tcb: wrote {os.path.relpath(BASELINE, ROOT)} ({len(current)} entries)"
-            )
-            return 0
-        base = [
-            x.strip()
-            for x in read(BASELINE).splitlines()
-            if x.strip() and not x.startswith("#")
-        ]
-        added = sorted(set(current) - set(base))
-        removed = sorted(set(base) - set(current))
-        synth = [n for n, o in sorries.items() if o["synthetic"]]
-        for a in added:
-            print(f"tcb: NEW in the trust base: {a}")
-        for a in removed:
-            print(f"tcb: gone from the trust base (update the baseline): {a}")
-        for s in synth:
-            print(f"tcb: elaboration error (synthetic sorry) in {short(s)}")
-        if added or removed or synth:
-            return 1
-        print(
-            f"tcb: trust base matches {os.path.relpath(BASELINE, ROOT)} "
-            f"({len(proj_ax)} axioms, {len(sorries)} sorries)"
-        )
+    def entries(axs, srs):
+        return sorted([f"axiom {short(n)}" for n in axs] + [f"sorry {short(n)}" for n in srs])
+
+    # --roots/--collection: what a collection of roots rests on
+    if args.collection:
+        coll = read(args.collection).splitlines()
+        pats = [x.split(None, 1)[1].strip() for x in coll if x.startswith("roots ")]
+        if args.roots:
+            sys.exit("tcb: give --roots or --collection, not both")
+        if not pats:
+            sys.exit(f"tcb: {args.collection} has no `roots PATTERN` line")
+    else:
+        pats = args.roots or []
+    if pats:
+        sel = []
+        for p in pats:
+            hit = [r for r in roots.values() if matches(r, p, defs)]
+            if not hit:
+                sys.exit(f"tcb: no root matches {p!r}")
+            sel += [r for r in hit if r not in sel]
+        sel.sort(key=lambda r: short(r["name"]))
+        sel_ax = sorted({a for r in sel for a in r["axioms"] if is_project(a)})
+        sel_sr = sorted({x for r in sel for x in r["sorries"]})
+        current = entries(sel_ax, sel_sr)
+        if args.check:
+            kept = [x for x in coll if not x.startswith(("axiom ", "sorry "))]
+            return check(args.collection, current, kept, sel_sr, sorries, args.update)
+        text = selection_report(sel, pats, len(roots), sel_ax, sel_sr, axioms, sorries,
+                                users, fw_ax, defs, args.per_root)
+        if args.out:
+            with open(args.out, "w") as f:
+                f.write(text)
+            print(f"tcb: wrote {args.out}", file=sys.stderr)
+        else:
+            print(text, end="")
         return 0
+
+    # --check: the project's part of the trust base against the baseline
+    if args.check:
+        kept = ["# This repository's part of the proofs' trust base "
+                "(etc/tcb-report.py --check --update)."]
+        return check(BASELINE, entries(proj_ax, sorries), kept, sorries, sorries,
+                     args.update)
 
     out = []
     w = out.append
@@ -274,18 +351,16 @@ def main():
     pin = next((p["rev"][:9] for p in man["packages"] if p["name"] == "perennial"), "?")
     toolchain = read(os.path.join(ROOT, "lean-toolchain")).strip()
 
-    w("# Trusted computing base of the Raft proof\n")
+    w("# Trusted computing base\n")
     w(
         f"Generated by `etc/tcb-report.py` at `{head}`{dirty}; Perennial `{pin}`, `{toolchain}`. "
         "Do not edit by hand.\n"
     )
     w(
-        f"Roots: the {len(roots)} theorems of `Proof/go_etcd_io/raft/v3/Link.lean` (every Go "
-        "function's linked result), `Proof/go_etcd_io/raft/v3/Results.lean`, "
-        "`Proof/go_etcd_io/etcd/cache/v3/Link.lean` (the `cache` package's linked results), "
-        "`Proof/go_etcd_io/etcd/cache/v3/Results.lean` (its exported results), "
-        "`Proof/go_etcd_io/etcd/server/v3/etcdserver/Link.lean` (the etcd server's) and "
-        "`Proof/go_etcd_io/etcd/client/v3/concurrency/Link.lean` (`client/v3/concurrency`'s).\n"
+        f"Roots: the {len(roots)} theorems of "
+        + ", ".join(f"`{mod_path(m)}`" for m in proof_roots.root_modules())
+        + " (each `Link.lean` holds a package's linked results: every Go function's spec "
+        "instantiated with its callees' results; each `Results.lean` its exported results).\n"
     )
 
     w("## Summary\n")
@@ -411,9 +486,10 @@ def main():
         "`theorem`'s *statement* is what it elaborates to."
     )
     w(
-        f"- **Perennial** (`{pin}`): the Goose translation of etcd raft "
-        "(`Code/go_etcd_io/raft/v3.lean`) is trusted to mean what the Go code "
-        "means, and Perennial's Go semantics to be Go's."
+        f"- **Perennial** (`{pin}`): the Goose translations (`Code/`"
+        + "".join(f", `{r}/Code/`" for r in proof_roots.PART_ROOTS)
+        + ") are trusted to mean what the Go code means, and Perennial's Go semantics "
+        "to be Go's."
     )
     w(
         "- **The statements**: a proved theorem says only what its statement says. The "

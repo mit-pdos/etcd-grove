@@ -57,9 +57,11 @@ def nextUnstable (ls : LogState) : List raftpb.Entry :=
 
 /-- `acceptUnstable()`: every unstable entry is in progress (`offsetInProgress` at the
 end), and the ones just handed out are now the application's to persist
-(`LogState.unpersisted`). -/
+(`LogState.unpersisted`); once it has, the storage holds the whole log (`stored`,
+2026-10-10). -/
 def logAcceptUnstable (ls : LogState) : LogState :=
-  { ls with inprogress := logEnd ls, unpersisted := nextUnstable ls }
+  { ls with inprogress := logEnd ls, unpersisted := nextUnstable ls,
+            stored := ls.sents ++ ls.uents }
 
 /-- The committed entries not yet handed out for applying: `(applying, committed]` --
 what `nextCommittedEnts(true)` slices, before `maxSize` cuts it short. -/
@@ -108,18 +110,22 @@ def logStableTo (ls : LogState) (id : entryID) : LogState :=
   else ls
 
 /-- What makes a `stableTo(id)` that hits correct: the entries it moves stable are
-persisted -- they are in progress (`id.index < offsetInProgress`) and the application
-has appended what it was handed (`unpersisted = []`) -- and no snapshot is pending (the
-stable part is then empty, `LogStoreOk`). Not checkable by Go, which compares only the
-term at `id.index`: an entry handed out, then truncated away by a conflicting `MsgApp`,
-then replaced by one *of the same term* would be moved stable unpersisted. The protocol
-rules that out (Log Matching); it is a premise here, discharged by whoever knows the log
-was not truncated below `id` since the `Ready` that handed it out. -/
+persisted -- the application has appended what it was handed (`unpersisted = []`) and
+the storage then holds exactly the log up to `id` (`stored`, 2026-10-10) -- and no
+snapshot is pending (the stable part is then empty, `LogStoreOk`). Not checkable by
+Go, which compares only the term at `id.index`. Until 2026-10-10 the second fact was
+`id.index < offsetInProgress` (the entries are in progress), which a `MsgApp` between
+the `Ready` and the `Advance` breaks: it truncates the log at or below `id.index`
+(`offsetInProgress` moves back to the truncation), and a later one, from the leader of
+a higher term, puts the very entry `id` back -- the acknowledgement then hits with
+`id.index ≥ offsetInProgress`, and is still right, because the storage (which holds
+the log of the `Ready`, up to `id`) agrees with the log up to `id` by Log Matching.
+The `RawNode` discharges it so (`stored_agree`, `InvRawnode.lean`). -/
 def StableOk (ls : LogState) (id : entryID) : Prop :=
   StableHit ls id →
   ls.snap = none ∧
-  uint.Z id.index' < uint.Z ls.inprogress ∧
-  ls.unpersisted = []
+  ls.unpersisted = [] ∧
+  ls.stored = (ls.sents ++ ls.uents).take (uint.Z id.index' - uint.Z ls.prev.index').toNat
 
 /-! What `acceptApplying` and `stableTo` leave alone (2026-10-09): the fields the
 `RawNode` predicate (`InvRawnode.lean`) states its facts on. Both functions branch, so
@@ -129,8 +135,10 @@ theorem logAcceptApplying_fields (ls : LogState) (ce : List raftpb.Entry) (sz : 
     (logAcceptApplying ls ce sz).committed = ls.committed ∧
     (logAcceptApplying ls ce sz).inprogress = ls.inprogress ∧
     (logAcceptApplying ls ce sz).unpersisted = ls.unpersisted ∧
-    (logAcceptApplying ls ce sz).snap = ls.snap := by
-  unfold logAcceptApplying; split <;> exact ⟨rfl, rfl, rfl, rfl⟩
+    (logAcceptApplying ls ce sz).snap = ls.snap ∧
+    (logAcceptApplying ls ce sz).prev = ls.prev ∧
+    (logAcceptApplying ls ce sz).stored = ls.stored := by
+  unfold logAcceptApplying; split <;> exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 theorem logAcceptApplying_applying (ls : LogState) (ce : List raftpb.Entry) (sz : w64)
     (e : raftpb.Entry) (He : ce.getLast? = some e) :
@@ -141,12 +149,14 @@ theorem logStableTo_fields (ls : LogState) (id : entryID) :
     (logStableTo ls id).applying = ls.applying ∧
     (logStableTo ls id).unpersisted = ls.unpersisted ∧
     (logStableTo ls id).snap = ls.snap ∧
-    uint.Z ls.inprogress ≤ uint.Z (logStableTo ls id).inprogress := by
+    uint.Z ls.inprogress ≤ uint.Z (logStableTo ls id).inprogress ∧
+    (logStableTo ls id).prev = ls.prev ∧
+    (logStableTo ls id).stored = ls.stored := by
   unfold logStableTo
   split
-  · refine ⟨rfl, rfl, rfl, ?_⟩
+  · refine ⟨rfl, rfl, rfl, ?_, rfl, rfl⟩
     simp only [w64Max_spec]; omega
-  · exact ⟨rfl, rfl, rfl, Int.le_refl _⟩
+  · exact ⟨rfl, rfl, rfl, Int.le_refl _, rfl, rfl⟩
 
 /-- The persistence invariant (`LogPersistOk`, `InvRaftlog.lean`) across
 `acceptUnstable`: with nothing unpersisted, handing out the rest of the unstable suffix
@@ -158,8 +168,10 @@ theorem persist_accept (prev : entryID) (σ : StorState) (sents uents : List raf
     (Hidx : LogIndicesOk prev (sents ++ uents))
     (Hsp : σ.prev = prev)
     (Hipo : 0 ≤ ipo ∧ ipo ≤ (uents.length : Int))
-    (H : LogPersistOk σ sents uents ipo []) :
-    LogPersistOk σ sents uents (uents.length : Int) (uents.drop ipo.toNat) := by
+    (st : List raftpb.Entry)
+    (H : LogPersistOk σ sents uents ipo [] st) :
+    LogPersistOk σ sents uents (uents.length : Int) (uents.drop ipo.toNat)
+      (sents ++ uents) := by
   subst prev
   obtain ⟨Hpre, Heq, _⟩ := H
   simp only [storApp] at Hpre Heq
@@ -173,7 +185,7 @@ theorem persist_accept (prev : entryID) (σ : StorState) (sents uents : List raf
       omega
     have Hs := Heq Hall
     simp only [storApp]
-    exact ⟨Hs ▸ List.prefix_refl _, fun _ => Hs, by simp⟩
+    exact ⟨Hs ▸ List.prefix_refl _, fun _ => Hs, by simp, Hs.symm⟩
   | cons e0 rest =>
     have Hlk : uents[ipo.toNat]? = some e0 := by
       have := congrArg (fun l => l[0]?) Hdrop
@@ -192,31 +204,50 @@ theorem persist_accept (prev : entryID) (σ : StorState) (sents uents : List raf
           simp only [List.length_append, List.length_take]; omega,
         List.take_left, ← Hdrop, List.append_assoc, List.take_append_drop]
     rw [Hst]
-    refine ⟨List.prefix_refl _, fun _ => rfl, ?_⟩
+    refine ⟨List.prefix_refl _, fun _ => rfl, ?_, rfl⟩
     intro Hu
     subst Hu
     simp at Hdrop
 
-/-- ... and across `stableTo` of `k` entries that are in progress: the stable part
-grows by them, the in-progress part of the suffix shrinks by them, the storage is
-unchanged. -/
-theorem persist_stable (σ : StorState) (sents uents : List raftpb.Entry)
+/-- ... and across `stableTo` of `k` entries: the stable part grows by them, the
+in-progress part of the suffix is what is left of it (`max ipo k - k`), the storage is
+unchanged. The `k` entries are in progress (`k ≤ ipo`) or (2026-10-10) the storage
+holds exactly the log up to them (`Hst`); either way, once the suffix is empty, the
+stable part is what the storage holds (the second conjunct, `LogStoreOk`'s). -/
+theorem persist_stable (σ : StorState) (sents uents stored : List raftpb.Entry)
     (ipo k : Int)
-    (Hk : 0 ≤ k ∧ k ≤ ipo ∧ ipo ≤ (uents.length : Int))
-    (H : LogPersistOk σ sents uents ipo []) :
+    (Hk : 0 ≤ k ∧ k ≤ (uents.length : Int) ∧ 0 ≤ ipo ∧ ipo ≤ (uents.length : Int))
+    (H : LogPersistOk σ sents uents ipo [] stored)
+    (Hst : ipo < k → stored = sents ++ uents.take k.toNat) :
     LogPersistOk σ (sents ++ uents.take k.toNat) (uents.drop k.toNat)
-      (ipo - k) [] := by
-  obtain ⟨Hpre, Heq, _⟩ := H
-  simp only [LogPersistOk, storApp] at Hpre Heq ⊢
-  have Hsplit : uents.take k.toNat ++ (uents.drop k.toNat).take (ipo - k).toNat
-      = uents.take ipo.toNat := by
-    rw [← List.take_add, show k.toNat + (ipo - k).toNat = ipo.toNat by omega]
-  refine ⟨?_, ?_, fun _ => trivial⟩
-  · rw [List.append_assoc, Hsplit]; exact Hpre
-  · intro Hfull
-    rw [List.length_drop] at Hfull
-    rw [List.append_assoc, List.take_append_drop]
-    exact Heq (by omega)
+      (max ipo k - k) [] stored ∧
+    (uents.drop k.toNat = [] → sents ++ uents.take k.toNat = σ.ents) := by
+  obtain ⟨Hpre, Heq, _, Hsto⟩ := H
+  simp only [LogPersistOk, storApp] at Hpre Heq Hsto ⊢
+  by_cases Hle : k ≤ ipo
+  · have Hsplit : uents.take k.toNat ++ (uents.drop k.toNat).take (max ipo k - k).toNat
+        = uents.take ipo.toNat := by
+      rw [← List.take_add, show k.toNat + (max ipo k - k).toNat = ipo.toNat by omega]
+    refine ⟨⟨?_, ?_, fun _ => trivial, Hsto⟩, ?_⟩
+    · rw [List.append_assoc, Hsplit]; exact Hpre
+    · intro Hfull
+      rw [List.length_drop] at Hfull
+      rw [List.append_assoc, List.take_append_drop]
+      exact Heq (by omega)
+    · intro Hnil
+      have Hk' : uents.length ≤ k.toNat := List.drop_eq_nil_iff.mp Hnil
+      rw [List.take_of_length_le Hk']
+      exact Heq (by omega)
+  · have Hs := Hst (by omega)
+    rw [← Hsto] at Hs
+    have H0 : (max ipo k - k).toNat = 0 := by omega
+    refine ⟨⟨?_, ?_, fun _ => trivial, Hsto⟩, ?_⟩
+    · rw [H0, List.take_zero, List.append_nil, Hs]; exact List.prefix_refl _
+    · intro Hfull
+      rw [H0, List.length_drop] at Hfull
+      rw [List.append_assoc, List.take_append_drop, Hs,
+        List.take_of_length_le (by omega : uents.length ≤ k.toNat)]
+    · intro _; exact Hs.symm
 
 /-- `stableTo` and `appliedTo` are invisible to the protocol: the protocol log is
 `sents ++ uents`, which `stableTo` only re-splits, and `applied`/`applying`/the applying

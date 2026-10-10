@@ -1,0 +1,14 @@
+# client/v3/concurrency: every linked result of
+# Proof/go_etcd_io/etcd/client/v3/concurrency/Link.lean (Session and the clientv3
+# functions it uses).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/concurrency.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Proof/go_etcd_io/etcd/client/v3/concurrency/Link\.lean$
+axiom etcdReachedAt
+axiom proto.Clone.wp_proof
+axiom zap.Int64.wp_proof
+axiom zap.Logger.Warn.wp_proof
+sorry Perennial.context.wp_WithDeadlineCause

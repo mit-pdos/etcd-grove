@@ -76,6 +76,8 @@ abbrev raft.handleSnapshot.spec : Prop :=
   s.votes = ∅ →
   id ∈ cfg →
   SnapScope cfg sv voters →
+  -- from another node (2026-10-10; `Step`'s premise): the reply goes to `m.From`
+  m.From' ≠ id →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s ∗
       "#Hsv" ∷ m.Snapshot' ↦□ sv ∗

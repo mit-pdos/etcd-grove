@@ -27,6 +27,9 @@ public import Proof.go_etcd_io.raft.v3.tracker.Inflights__reset
 public import Proof.go_etcd_io.raft.v3.IsEmptyHardState
 public import Proof.go_etcd_io.raft.v3.IsEmptySnap
 public import Proof.go_etcd_io.raft.v3.IsLocalMsgTarget
+public import Proof.go_etcd_io.raft.v3.IsLocalMsg
+public import Proof.go_etcd_io.raft.v3.IsResponseMsg
+public import Proof.go_etcd_io.raft.v3.isMsgInArray
 public import Proof.go_etcd_io.raft.v3.quorum.JointConfig__CommittedIndex
 public import Proof.go_etcd_io.raft.v3.quorum.JointConfig__IDs
 public import Proof.go_etcd_io.raft.v3.quorum.JointConfig__VoteResult
@@ -60,6 +63,15 @@ public import Proof.go_etcd_io.raft.v3.tracker.Progress__ResetState
 public import Proof.go_etcd_io.raft.v3.tracker.Progress__SentCommit
 public import Proof.go_etcd_io.raft.v3.tracker.Progress__SentEntries
 public import Proof.go_etcd_io.raft.v3.RawNode__Advance
+public import Proof.go_etcd_io.raft.v3.RawNode__Campaign
+public import Proof.go_etcd_io.raft.v3.RawNode__Step
+public import Proof.go_etcd_io.raft.v3.RawNode__Tick
+public import Proof.go_etcd_io.raft.v3.NewRawNode
+public import Proof.go_etcd_io.raft.v3.raft__softState
+public import Proof.go_etcd_io.raft.v3.raft__hardState
+public import Proof.go_etcd_io.raft.v3.raft__tickElection
+public import Proof.go_etcd_io.raft.v3.raft__tickHeartbeat
+public import Proof.go_etcd_io.raft.v3.raft__pastElectionTimeout
 public import Proof.go_etcd_io.raft.v3.RawNode__HasReady
 public import Proof.go_etcd_io.raft.v3.RawNode__Propose
 public import Proof.go_etcd_io.raft.v3.RawNode__Ready
@@ -214,6 +226,18 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem wp_IsLocalMsgTarget :
     IsLocalMsgTarget.spec (GF := GF) (hG := hG) :=
   IsLocalMsgTarget.wp_proof
+
+theorem wp_isMsgInArray :
+    isMsgInArray.spec (GF := GF) (hG := hG) :=
+  isMsgInArray.wp_proof
+
+theorem wp_IsLocalMsg :
+    IsLocalMsg.spec (GF := GF) (hG := hG) :=
+  IsLocalMsg.wp_proof wp_isMsgInArray
+
+theorem wp_IsResponseMsg :
+    IsResponseMsg.spec (GF := GF) (hG := hG) :=
+  IsResponseMsg.wp_proof wp_isMsgInArray
 
 theorem Config.wp_validate :
     Config.validate.spec (GF := GF) (hG := hG) :=
@@ -946,6 +970,42 @@ theorem raft.wp_Step :
 theorem RawNode.wp_Advance :
     RawNode.Advance.spec (GF := GF) (hG := hG) :=
   RawNode.Advance.wp_proof raft.wp_Step
+
+theorem RawNode.wp_Campaign :
+    RawNode.Campaign.spec (GF := GF) (hG := hG) :=
+  RawNode.Campaign.wp_proof raft.wp_Step
+
+theorem RawNode.wp_Step :
+    RawNode.Step.spec (GF := GF) (hG := hG) :=
+  RawNode.Step.wp_proof wp_IsResponseMsg wp_IsLocalMsg wp_IsLocalMsgTarget raft.wp_Step
+
+theorem raft.wp_pastElectionTimeout :
+    raft.pastElectionTimeout.spec (GF := GF) (hG := hG) :=
+  raft.pastElectionTimeout.wp_proof
+
+theorem raft.wp_tickElection :
+    raft.tickElection.spec (GF := GF) (hG := hG) :=
+  raft.tickElection.wp_proof raft.wp_promotable raft.wp_pastElectionTimeout raft.wp_Step
+
+theorem raft.wp_tickHeartbeat :
+    raft.tickHeartbeat.spec (GF := GF) (hG := hG) :=
+  raft.tickHeartbeat.wp_proof raft.wp_Step
+
+theorem RawNode.wp_Tick :
+    RawNode.Tick.spec (GF := GF) (hG := hG) :=
+  RawNode.Tick.wp_proof raft.wp_tickElection raft.wp_tickHeartbeat
+
+theorem raft.wp_softState :
+    raft.softState.spec (GF := GF) (hG := hG) :=
+  raft.softState.wp_proof
+
+theorem raft.wp_hardState :
+    raft.hardState.spec (GF := GF) (hG := hG) :=
+  raft.hardState.wp_proof
+
+theorem wp_NewRawNode :
+    NewRawNode.spec (GF := GF) (hG := hG) :=
+  NewRawNode.wp_proof wp_newRaft raft.wp_softState raft.wp_hardState
 
 theorem RawNode.wp_HasReady :
     RawNode.HasReady.spec (GF := GF) (hG := hG) :=

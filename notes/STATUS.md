@@ -1,12 +1,12 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-09 (Perennial `7d0b56b07`: Goose with per-iteration loop variables, `break` out of `select`, see "Perennial `7d0b56b07`"; merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; Perennial `56b1b6651`: `fmt.Sprintf` and `strings.Join` proved from Perennial's models, `rand.Int` stays assumed; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
+**Last updated:** 2026-10-10 (merged upstream's RawNode work into the cache-as-shipped and concurrency line, Perennial `7d0b56b07`, see "Merge: upstream's RawNode work"; `RawNode.Step` takes a `MsgApp` between `Ready` and `Advance`; the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; Perennial `7d0b56b07`: Goose with per-iteration loop variables, `break` out of `select`, see "Perennial `7d0b56b07`"; merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
 
 Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
 `worktree-raft-replication`'s `feb5c73d4` and adds Ready/Advance/HasReady; the files
 were first ported from `main`, then from `feb5c73d4`) to Lean on top of Perennial's Lean
-port (mit-pdos/perennial `lean`, pinned at 7d0b56b07 (2026-10-09: on 7d0b56b07: our `9092f8eaa` merged with upstream's Goose changes (per-iteration loop variables, array ranges, `fallthrough`, `break` out of `switch`/`select`, local types) and `context.wp_WithCancel` building again, see "Perennial `7d0b56b07`"; on 9092f8eaa: `WaitGroup.Add`'s overflow a model assumption, the `RWMutex` writer guard, see "The cache as shipped"; on 56b1b6651: our 3ae7dc6a4 merged with upstream's `00b3c10ea` (trusted models and proved specs of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`; `math/big`'s `ownInt` normalized, its and `crypto/rand`'s `IsPkgInit` instances now Perennial's), see "Perennial `56b1b6651`"; on 68d220ac8: `fmt.wp_Errorf` proved, `map.forRange` with `wp_map_for_range_mut{,_keys}`, `context.wp_WithCancel` proved; on 3ae7dc6a4: `context.isClosedchanInit`, see "Sorry-free"; on 8c33774d0: upstream's `37416dd10` (Rocq code removed) and `cdf8c0f81` (Goose without `-lean` and the ⁱᵐᵖˡ encoding) merged, see below; on f8b35ddbf: `context.wp_Background`, `wp_WithCancel_Background`; on f35530719: Goose prints an axiomatized generic type in Lean; on 8c7000190: `time.NewTimer`, `Timer.Stop`/`Reset` axioms; on 96ec7016d: `fmt.wp_Printf`, `time.Minute`; on 099c2a08b: `fmt.wp_Errorf`'s `Error()`; on 640a605cc: a `select` case on a nil channel is never ready, `chan.wp_select_blocking_nil`; on 48e1192c7: rlocker, `Cond.wp_Wait_with`, `time.wp_Since`) on cbb85c041: upstream's `11fd2db` merged with
+port (mit-pdos/perennial `lean`, pinned at 7d0b56b07 (2026-10-09: on 7d0b56b07: our `9092f8eaa` merged with upstream's Goose changes (per-iteration loop variables, array ranges, `fallthrough`, `break` out of `switch`/`select`, local types) and `context.wp_WithCancel` building again, see "Perennial `7d0b56b07`"; on f52ce33dc (upstream's, in 7d0b56b07): the Goose features for upstream raft, see "Perennial `f52ce33dc`"; on 79adaac01 (upstream's, in 7d0b56b07): `context.wp_withCancel` builds again; on 9092f8eaa: `WaitGroup.Add`'s overflow a model assumption, the `RWMutex` writer guard, see "The cache as shipped"; on 56b1b6651: our 3ae7dc6a4 merged with upstream's `00b3c10ea` (trusted models and proved specs of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`; `math/big`'s `ownInt` normalized, its and `crypto/rand`'s `IsPkgInit` instances now Perennial's), see "Perennial `56b1b6651`"; on 68d220ac8: `fmt.wp_Errorf` proved, `map.forRange` with `wp_map_for_range_mut{,_keys}`, `context.wp_WithCancel` proved; on 3ae7dc6a4: `context.isClosedchanInit`, see "Sorry-free"; on 8c33774d0: upstream's `37416dd10` (Rocq code removed) and `cdf8c0f81` (Goose without `-lean` and the ⁱᵐᵖˡ encoding) merged, see below; on f8b35ddbf: `context.wp_Background`, `wp_WithCancel_Background`; on f35530719: Goose prints an axiomatized generic type in Lean; on 8c7000190: `time.NewTimer`, `Timer.Stop`/`Reset` axioms; on 96ec7016d: `fmt.wp_Printf`, `time.Minute`; on 099c2a08b: `fmt.wp_Errorf`'s `Error()`; on 640a605cc: a `select` case on a nil channel is never ready, `chan.wp_select_blocking_nil`; on 48e1192c7: rlocker, `Cond.wp_Wait_with`, `time.wp_Since`) on cbb85c041: upstream's `11fd2db` merged with
 `bytes.Compare`, on Lean's module system since 2026-10-09). The Goose translations of
 etcd-raft and etcd's `cache` package are this repository's `Code/` and `GeneratedProof/`,
 generated and checked by `etc/goose.py`. Files are laid out by kind and Go package path
@@ -14,6 +14,195 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## Merge: upstream's RawNode work (2026-10-10)
+
+Merged upstream `lean` (`f380444db`: `RawNode.Step`/`Tick`/`Campaign`/`NewRawNode` proved,
+the `Advance` gap closed, `raft.Step` framing, the generic TCB/verified-code scripts, their
+replacement of the `Sprintf`/`Join`/`rand.Int` axioms, Perennial `f52ce33dc`) into the
+cache-as-shipped and `client/v3/concurrency` line (`56084b262`). Resolutions:
+
+- **Pin**: ours, Perennial `7d0b56b07` (contains their `f52ce33dc`; on GitHub). Their
+  lakefile change was only the pin.
+- **Scripts**: theirs (`etc/proof_roots.py`, `tcb-report.{py,lean}`, `verified-code.{py,go}`).
+  They find the roots themselves (every `Link.lean`/`Results.lean`), so the cache's
+  `Link`/`Results`, the concurrency `Link`, the btree's and the server's (its own Lean run,
+  through `EtcdDeps`) are roots without a list. Two additions for the concurrency `Link`,
+  whose results are in a namespace of their own: `proof_roots.link_namespace`, and
+  `verified-code.py` drops that namespace before another package's qualifier
+  (`concurrency.v3.wp_OpPut` is clientv3's `OpPut`; what our `NAMESPACED` did, now generic);
+  and `resolve_local` takes a qualifier shared by a part's package and another (`v3`: the
+  `EtcdDeps` raft and clientv3) as the other's when that package has the function (else
+  clientv3's 23 linked functions counted as `EtcdDeps`'s raft). New collections
+  `etc/tcb-collections/{cache,concurrency,server,btree}.txt`, and every collection's
+  baseline recorded (raft: `reflect.DeepEqual` only; cache 9 axioms; concurrency 4 axioms +
+  `context.wp_WithDeadlineCause`; server 26 axioms; btree none).
+- **Axioms**: both sides proved `fmt.Sprintf`/`strings.Join` from Perennial's models; theirs
+  (`66665c735`) also proves `rand.Int`, with `mz < 2^63` added to its spec (what Perennial's
+  model covers; `lockedRand.Intn` passes an `int64`, and proves the bound), which is sound:
+  taken, the axiom is gone. The merged files have one theorem each; `Base.lean` no longer has
+  `isRandInitialized` (Perennial's).
+- **Baseline** (`etc/tcb-baseline.txt`): the union, relative to `d45daf8ab`: +
+  `etcdStep_delete_present`, `proto.Clone.wp_proof`, `sorry Perennial.context.wp_WithDeadlineCause`
+  (ours), − `rand.Int.wp_proof` (theirs; their RawNode work added none); 37 axioms, 1 sorry.
+- **Gates**: `etc/goose.py --check` (both translations up to date at Perennial `7d0b56b07`,
+  etcd `ab1deb078`); `lake build` passes (1764 jobs), no proof fix needed; `etc/tcb-report.py
+  --check` matches without `--update`; every collection `--check`s; `etc/gen-link.py
+  --cache`/`--concurrency`/`--server` and `etc/gen-btree-link.py` reproduce their `Link.lean`
+  (raft's needs the Rocq directory: untouched); `etc/verified-code.py --reuse`: etcd-raft
+  187/323 (2322 of 3641 lines), etcd 193 verified, 1 unfinished, 13 assumed of 3599; the cache
+  107/107 sorry-free; `client/v3/concurrency` 9 verified + 1 unfinished (`Session.Close`);
+  `client/v3` 58; the server's `etcdserver` 6, `cindex` 8, `schema` 5. (`Compare.GetKey`, named
+  `concurrency.Compare.wp_GetKey` in the concurrency `Link`, still resolves outside the totals.)
+- **Push order**: Perennial `7d0b56b07` is on GitHub; the fork's `ab1deb078` on `goose-lean`;
+  so etcd-grove alone.
+
+## `RawNode.Step`: a `MsgApp` between `Ready` and `Advance` (2026-10-10)
+
+`RawNode.Step.spec` lost its premise `m.Type' = MsgApp → rs.steps = []`: every message type
+may be stepped with a `Ready` outstanding, as the concurrent `node.go` does (decisions.md,
+"RawNode: the acknowledgement across a truncation"). The premise was there because the
+queued `MsgStorageAppendResp` asked `e.index < offsetInProgress` (`PendingOk`), which a
+truncating `MsgApp` breaks. A single-step argument does not repair it: a first `MsgApp`
+may truncate the log below `e`, and a second, from a leader of a higher term that has
+`e`, put it back, so the acknowledgement hits with `e.index ≥ offsetInProgress` (reachable,
+Figure 8 of the Raft paper). It is still right because the storage holds the log of the
+`Ready` up to `e`, which agrees with the log up to `e` by Log Matching. So:
+
+- `LogState` gained the ghost field `stored` (what the storage holds once `unpersisted` is
+  appended; `LogPersistOk`'s new last conjunct `storApp σ pend = stored`); only `Ready`
+  changes it (`logAcceptUnstable`: the whole log); `newLogWithSize`/`newRaft` start it at
+  the storage's entries.
+- `StableOk` (`raft.Step`'s `MsgStorageAppendResp` premise, `raftLog.stableTo`'s) asks
+  `stored = (sents ++ uents).take (id.index - prev.index)` instead of
+  `id.index < offsetInProgress`; `persist_stable` covers both cases.
+- `NetFrame` and `LocalFrame` (`raft.Step`'s postconditions) also keep `prev` and `stored`
+  (`HandleAppResult`, `raftLog.maybeAppend`'s spec, `logStableTo_fields`,
+  `logAcceptApplying_fields` say so; `keep_frame`/`stepdown_frame` take them as
+  auto-params, `rfl`).
+- `PendingOk (.appendAck t e)` is `t ≤ term ∧ plogLast prev stored = e`; `stepsOk_mono_le`
+  takes `prev`/`stored` kept instead of `offsetInProgress` not moving back.
+- `ownRawNode` keeps `storedRecs γ prev stored` (`PlogWf` and `logRecs` of `stored`,
+  `Hstrecs`; `ownRawNode_intro` takes it); `Ready` takes it from the ghost state
+  (`ownRaftGhost_storedRecs_keep`), `NewRawNode` has `stored = []`. `Advance` derives
+  `StableOk` with `stableOk_of_stored` (`stored_agree`: Log Matching via `logRecs_agree`
+  and `plog_match_down`).
+
+`lake build Proof.go_etcd_io.raft.v3.Link Proof.go_etcd_io.raft.v3.Results` passes; no new
+`sorry` or axiom.
+
+## The `Advance` gap closed (2026-10-10)
+
+`RawNode.Advance` steps any queue `Ready` left, the node's own responses included;
+`RNState.advanceable` is gone (decisions.md, "RawNode: client-facing specs", "The gap --
+closed"). `Advance` now takes `rs.term + 1 < 2^64` and returns the term up by at most one
+(`∃ t, ownRawNode … { rs with steps := [], term := t } ∗ ⌜rs.term ≤ t ≤ rs.term + 1⌝`);
+`Ready` returns no flag. Underneath: `ownRaftPhys` records `msgsAfterAppend`'s messages
+(`AAMsgOk`) and the term never moves back (`raft.wp_store_Term`'s premise, threaded through
+`reset`/`becomeX`/`loadState`); `SendOk`'s response clauses, `appendEntry`/`becomeLeader`
+(`s.term ≠ 0`), `handleAppendEntries`/`handleSnapshot` (`m.From ≠ id`),
+`stepFollower`/`stepCandidate`/`stepLeader` gained premises; `raft.Step`'s spec gained
+`RespStep` in its postcondition and its `MsgPreVoteResp` no-wrap premise is only for a
+pre-candidate; `ownRaftGhost_term_nz` (`Protocol/Facts.lean`). `lake build
+Proof.go_etcd_io.raft.v3.Link Proof.go_etcd_io.raft.v3.Results` passes; no new `sorry`
+or axiom.
+
+## `RawNode.Campaign`, `RawNode.Step` (2026-10-09)
+
+Both proved and linked (`RawNode.wp_Campaign`, `RawNode.wp_Step`; Lean-first, in
+`etc/link-lean-first.txt`, added to `Link.lean` by hand: `etc/gen-link.py`'s output already
+differed from the checked-in file, e.g. `confchange.Restore`'s callees). `RNState` gained
+`term` (`ownRawNode`: `rs.term = s.term`).
+
+- `Campaign`: for `rs.term + 1 < 2^64` (Go panics when the campaign wraps the term), `nil`,
+  the term up by at most one; the rest of `rs` kept, also between `Ready` and `Advance`
+  (`stepsOk_mono_le`: the queue survives a higher term).
+- `Step`: for a message of replication or election (`NetMsgOk`: `MsgApp`, `MsgAppResp`,
+  `MsgVote`, `MsgVoteResp`, `MsgHeartbeat`, `MsgHeartbeatResp`, with `raft.Step`'s transport
+  premises; no pre-vote, snapshots, read-index or leader transfer), its `isMessage`, read-only
+  entries with the capacity owned, a `Context` that is not the transfer marker: the term
+  moves up to at most the message's, `err` unspecified (the guards' rejections change
+  nothing). A `MsgApp` only with no `Ready` outstanding (`rs.steps = []`: it may lower
+  `offsetInProgress`; premise gone 2026-10-10, see above). The guards' `IsLocalMsg`/`IsResponseMsg` (`isMsgInArray`) are
+  specified to return some `bool` (for a nonnegative type: `MessageType` is an `int32`, a
+  negative one panics); `isInitialized` gained their tables and the two error globals.
+
+- `Tick` (proved and linked, `RawNode.wp_Tick`): for `rs.term + 1 < 2^64`, the term up by at
+  most one, the rest of `rs` kept (also between `Ready` and `Advance`). `ownRaftPhys` now
+  records `r.tick` (`Htick`: once `NState.ticking` is set, `TickFnOk r rv.tick'`: the method
+  value `r.tickElection` or `r.tickHeartbeat`, not tied to the role -- both are safe in any
+  role); every `becomeX` model sets `ticking`, and `NStateWf` says it is set (only
+  `newRaft`'s struct before its `becomeFollower` has `r.tick = nil`). `raft.tickElection`
+  and `raft.tickHeartbeat` are specified like `raft.Step` (`TickStep`: `NetFrame`, the term
+  up by at most one, `offsetInProgress` not back) and proved, with `pastElectionTimeout`.
+
+- `NewRawNode` (proved and linked, `wp_NewRawNode`): a node of a new cluster -- an empty
+  storage, no `HardState`, nothing applied, synchronous writes, and `ownRaftGhost γ id
+  initPState` with `isCommitted γ []` (what `ownRaftGhost_alloc` hands out) -- comes out as
+  `ownRawNode` with nothing delivered, to persist or to step, at term `0`. `newRaft`'s
+  postcondition gained the initial log (`prev`, `sents`, `uents`, `committed`, `applying`,
+  `unpersisted`, `snap`) and gives the `validate`d `Config` back (`ConfigPreserved` gained
+  `AsyncStorageWrites`); `raft.softState`/`raft.hardState` are specified and proved;
+  `newRaft_post_init` moved from `Results.lean` to `Spec/NewRawNode.lean`.
+
+Next: the `Advance` gap.
+
+## `raft.Step` frames the log and bounds the term (2026-10-09)
+
+Towards `RawNode.Step`/`Tick`/`Campaign` (a network message, a tick): `raft.Step`'s
+postcondition gained, for every type but `MsgSnap`, `"%Hframe"` (`NetFrame s s'`:
+`applying`, the pending snapshot and `unpersisted` kept; not for a
+`MsgStorageApplyResp`) and `"%Hterm"` (`TermStep m s s'`: the term never moves back, a
+`MsgHup` raises it by at most one, any other message but a `MsgPreVoteResp` at most to the
+message's term, and `offsetInProgress` moves back only on a `MsgApp`). Every branch
+lemma under `Proof/go_etcd_io/raft/v3/raft__Step/` states both (`stepPost`,
+`finish_branch` carry them); `raft.hup`'s spec says the log is untouched and the term
+moves up by at most one; `raftLog.maybeAppend`'s and `handleAppendEntries`'
+(`HandleAppResult`) postconditions keep `applying`, `snap`, `unpersisted`. `lake build
+Proof.go_etcd_io.raft.v3.Link Proof.go_etcd_io.raft.v3.Results` passes; no `sorry` added.
+
+## Perennial `f52ce33dc`; retargeting raft to upstream (2026-10-09)
+
+Re-pinned to Perennial `f52ce33dc` (`lean`: `79adaac01` below merged with the Goose
+work for upstream raft, `b0293f805`/`d57475ff3`: each loop iteration has its own iteration variables where that
+is observable, range loops over arrays, `fallthrough`, a `break` in a `switch`/`select`
+case ends that statement, function-local types, an empty void function body is
+`return: #()`). Regenerated: `Code/go_etcd_io/raft/v3.lean` (the `trace*` stubs; `node.run`'s
+`select` is wrapped in `catchBreak`; `entsSize`'s range variable `ent`, whose address
+`ent.Size()` takes, is allocated in the body), `Code/go_etcd_io/etcd/cache/v3.lean`
+(`demux.resyncLaggingWatchers`'s `w, nextRev`, captured by the `AscendGreaterOrEqual`
+callback, allocated in the body) and `cindex.lean` (empty bodies). Proofs: `entsSize` and
+`demux.resyncLaggingWatchers` drop the per-iteration variables from their loop invariants
+(each iteration allocates them afresh); nothing else changed.
+
+**Retargeting raft to upstream `etcd-io/raft` (parked).** The goal is to goose raft from
+upstream `1c0011d2` (2026-09-22) instead of the fork `upamanyus/etcd-raft` at `531b20c`
+(upstream `24643b3` of 2026-03-10 plus two edits in `quorum/`: `JointConfig.IDs` ranging
+over the two configs by index, and `MajorityConfig.Describe`'s local type `tup` hoisted;
+the new Goose translates both as written). Between those two upstream commits raft moved
+raftpb from gogoproto to protobuf-go v2 (March to May 2026: `Entry`, `Message`, `Snapshot`,
+`HardState`, `ConfState`, `ConfChange*` are passed as pointers, their fields are pointers read
+through `GetXXX` getters, `[]pb.Entry` is `[]*pb.Entry`, `proto.Clone`/`Marshal`/`Unmarshal`/
+`Size` replace the generated methods). The mechanics work: branch
+`raft-upstream-1c0011d2-wip` has `etc/goose.py` pointed at upstream `1c0011d2` (with
+`google.golang.org=` as a Lean root, so raft's `proto` import is the names-only
+`Code.google_golang_org.protobuf.proto` of the etcd project) and a new
+`Code/go_etcd_io/raft/v3/raftpb.toml` (everything but the protobuf runtime plumbing), and
+the regenerated `Code/` and `GeneratedProof/` build against Perennial `d57475ff3`. The proofs
+do not: 154 Spec/Proof files (36k lines) mention the raftpb types as values (`List
+raftpb.Entry` in `LogState`, `absMsg`, ...), so the retarget is a redesign of the raft proof's
+entry/message/snapshot ownership (heap entries shared between the log, messages and
+`Ready`), not an adaptation. The last upstream commit before the migration, `40f8be7`
+(2026-04-15), translates unmodified with the new Goose and differs from the fork's
+translation only by the gogoproto option cleanups (`NodeID` to `NodeId` in `ConfChange*`,
+the `MessageType_*`/`EntryType_*` enum constants with `MsgHup`-style aliases) and the
+Goose changes above: that is the cheap retarget. Decision pending.
+
+Gates (2026-10-09): `lake build` passes (1659 jobs); `etc/goose.py --check` passes;
+`etc/tcb-report.py --check` matches the baseline. Building against a Perennial checkout
+other than `.lake/packages/perennial` (other worktrees share it): `lake build
+--packages=<override manifest>`, and `LAKE_OPTS=--packages=<file> etc/tcb-report.py`.
+`etc/goose.py` needs a Go toolchain that can load etcd (`go 1.27`): with an older default
+`go`, `GOTOOLCHAIN=go1.27.1 etc/goose.py ...`.
 ## Perennial `7d0b56b07`: Goose with per-iteration loop variables (2026-10-09)
 
 Perennial `lean` at **`7d0b56b07`**: our `9092f8eaa` merged (cleanly) with upstream's
@@ -233,29 +422,73 @@ without liveness; the create-revision persistence law".
   contract; they will need `etcdState_create_persist`. Push order: the etcd fork's `207c8f747`
   (to `goose-lean`), then etcd-grove (Perennial is unchanged).
 
-## Perennial `56b1b6651`: `fmt.Sprintf`, `strings.Join` proved (2026-10-09)
+## Perennial models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int` (2026-10-09)
 
-Perennial's `00b3c10ea` (merged into ours as `56b1b6651`) gives `fmt.Sprintf`,
-`strings.Join` and `crypto/rand.Int` trusted models (`Perennial/TrustedCode`) and proved
-specs. Two of the raft trust-boundary axioms are now theorems, with their `.spec`s
-unchanged (only docstrings), so `Link.lean` is untouched:
-- `fmt.Sprintf.wp_proof` from `fmt.wp_Sprintf` (needs only `isPkgInit`; the args slice is framed);
-- `strings.Join.wp_proof` from `strings.wp_Join` (stronger: the result is `sep.intercalate xs`;
-  Go's panic on a length overflow is not in the model, so the no-panic claim now rests on it).
-- `rand.Int.wp_proof` **stays an axiom**: `crypto.rand.wp_Int` has the same pre/postcondition
-  (same reader, `math.big.ownInt` = our `ownBigInt`) but needs `mz < 2^63` (the model reads one
-  magnitude word and panics beyond); our spec claims every `0 < mz`.
+The three standard-library axioms of the Raft proof are theorems now, from trusted models
+in Perennial (`Perennial/TrustedCode/{fmt,strings,crypto/rand}.lean`, wired through
+`trusted` in the packages' `.toml`; Perennial `00b3c10ea`, merged with upstream's
+`3ae7dc6a4` as `56b1b6651`; pinned at `79adaac01`, which also fixes `context.lean`'s
+`wp_withCancel`: at `3ae7dc6a4` `Perennial.Proof.context` does not build, so neither does
+`lean` at `55d80f991`):
 
-`Proof/go_etcd_io/raft/v3/Base.lean` lost its `math/big` and `crypto/rand` `IsPkgInit`
-instances (Perennial now has them; `isRandInitialized` keeps the same body, its
-`_access` goes through Perennial's `crypto.rand.isInitialized_access`). Perennial's
-`etc/lean-ci.sh`: 369/369 modules ok. Gates: `lake build` passes (1660 jobs);
-`etc/goose.py --check` passes (no translation changed); `etc/tcb-report.py --check --update`:
-the baseline lost exactly `fmt.Sprintf.wp_proof` and `strings.Join.wp_proof` (36 entries, all
-axioms, 0 sorries); `etc/gen-link.py --cache`/`--server` and `etc/gen-btree-link.py`
-reproduce their `Link.lean`; `etc/verified-code.py --reuse`: totals unchanged (Raft 175/323,
-0 assumed: these are standard-library specs, outside the totals, where `fmt.Sprintf` and
-`strings.Join` are now "verified"); cache 107/107 sorry-free. Push Perennial (`56b1b6651`) first.
+- `fmt.Sprintf`: returns its format string (as `Errorf`'s model does); `fmt.wp_Sprintf`
+  promises some string, which is all `Spec/fmt/Sprintf.lean` says.
+- `strings.Join`: goose's translation of a `+` loop; `strings.wp_Join` returns
+  `sep.intercalate xs`. Go's panic when the length overflows `int` is not modelled (as
+  for `append` and string `+`), which is the overflow the old axiom's no-panic claim
+  glossed over.
+- `crypto/rand.Int`: an arbitrary value in `[0, max)` and no error for `0 < max < 2^63`,
+  read from `max`'s sign and one magnitude word; a panic otherwise; the reader is not
+  read. `crypto.rand.wp_Int` is for the package's own `Reader` (which never returns an
+  error), so `Spec/crypto/rand/Int.lean` gained `mz < 2^63` (`lockedRand.Intn` passes an
+  `int64`). Perennial's `math.big.ownInt` now records a normalized magnitude (Go's
+  invariant), which reading a value below `2^63` as one word needs, and Perennial owns
+  `math/big`'s and `crypto/rand`'s `isPkgInit` (the `Reader` points-to, formerly
+  `isRandInitialized` in `Base.lean`).
+
+(`d45daf8ab`, from a parallel session, had proved `Sprintf` and `Join` from the same
+models, kept `rand.Int` an axiom and pinned `56b1b6651`; this supersedes it.)
+`etc/tcb-report.py --check` (after `--update`): 35 axioms, no `sorry`. The Raft proof's one
+remaining axiom is `reflect.DeepEqual`, which `RawNode.wp_Propose`, `wp_Advance`,
+`wp_newRaft` and `raft.wp_Step` reach (through `assertConfStatesEquivalent` in `newRaft`
+and `raft.restore`); `RawNode.wp_Ready` and `wp_HasReady` rest on none of this
+repository's axioms.
+
+## The TCB and verified-code scripts: generic, per-collection trust base (2026-10-09)
+
+`etc/tcb-report.py`, `etc/tcb-report.lean`, `etc/verified-code.py` and `etc/verified-code.go`
+name no project any more: what they need comes from the layout and `etc/goose.py`, through
+the new `etc/proof_roots.py` (shared by the two Python scripts):
+
+- **Roots**: every `Link.lean`/`Results.lean` under `Proof/` and a part's `<root>/Proof/`
+  (was a hard-coded list in each script and in `tcb-report.lean`'s defaults, which are gone:
+  it takes the modules and `--part=ROOT` for each part root). Lean runs are grouped by the
+  part roots a module reaches through the import graph (here: the server's `Link` alone, as
+  before). The namespace stripped from names is the common one of the `Link.lean` files.
+- **`.lake/tcb.json`** starts with a meta line (modules, commit), is written only when every
+  Lean run succeeds, and `--reuse` refuses one of other modules. Before, a failed run left
+  it empty and `--reuse` then counted nothing as verified (what the main checkout's empty
+  `tcb.json` did: its build lacked the cache's `Link`).
+- **`tcb-report.py --roots PATTERN...`** / **`--collection FILE`**: the axioms and `sorry`s a
+  set of roots rests on (regexes over the name, module file and spec file), the roots that
+  reach a `sorry`, and `--check [--update]` against the collection's own baseline.
+  `etc/tcb-collections/raft.txt` is the Raft proof (`Link` and `Results`); its baseline is
+  not recorded yet (no build of this commit on the machine when written): run
+  `etc/tcb-report.py --collection etc/tcb-collections/raft.txt --check --update` after
+  `lake build`.
+- **`verified-code.py`**: tables per project of `etc/goose.py` (by module if it has more than
+  one, by package for the packages Goose touches, by file), not "Raft"/"etcd". The counted
+  Go modules are `Project.counted_modules` in `etc/goose.py` (the list that was `ETCD_MODS`,
+  and raft's main module: its checkout also has `go.etcd.io/raft/tools/v3`). The by-file
+  tables (and `--functions`) now include every file with a function translated with its
+  body or specified: the server's `server.go` (apply thread), `cindex.go`, schema's
+  `cindex.go`, `client/v3`'s `op.go`/`watch.go` were missing, so `server/v3` showed
+  nothing verified there. `--package PREFIX` adds a summary row and narrows those tables.
+  Specs of packages whose Go code is not in the sources (the btree, zap, raft v3.7's raftpb
+  in `EtcdDeps/`, humanize) are listed with the package instead of as "outside"
+  (`zap.Int'`, methods of names-only packages, `go-humanize` were mis-resolved). Totals are
+  unchanged (checked on the same `tcb.json`); `raftpb/confchange.go` (nothing translated, in a
+  package with names-only functions) is no longer listed.
 
 ## Sorry-free (2026-10-09)
 
@@ -295,7 +528,6 @@ sorry-free), 13 assumed of 3599 (1560 of 45566 lines, 3.4%), `server/v3` 19 veri
 unfinished, 9 assumed (215 lines). `Results.lean`'s `#print axioms` of `cache_New`,
 `cache_Get`, `cache_Watch`, `cache_Watch_delivery`: no `sorryAx`. Push Perennial
 (`3ae7dc6a4`) first.
-
 ## The cache: linearizability as a model fact, `etcdReached` (2026-10-09)
 
 The client assumption no longer mentions caches. "etcd has reached revision `r`"
@@ -534,7 +766,8 @@ passes (1333 jobs), `etc/goose.py --check` passes, `etc/gen-link.py --cache` rep
   from Perennial's trusted models; the Raft proof's own axioms are `reflect.DeepEqual` and
   `rand.Int` (Perennial's `wp_Int` covers only `mz < 2^63`).
 - **What the four remaining axioms would take** (checked 2026-10-08, with "no
-  higher-level spec changes" as the constraint):
+  higher-level spec changes" as the constraint; since 2026-10-09 only `reflect.DeepEqual`
+  remains, the other three are Perennial models, see the section at the top):
   - `fmt.Sprintf`, `strings.Join`: not translatable (`fmt`'s printer reaches
     `reflect`; `strings.Builder.String` is `unsafe.String`), and `Join`'s no-panic claim
     needs a bound on the strings' total length that `Sprintf`'s "some string" cannot
@@ -546,11 +779,11 @@ passes (1333 jobs), `etc/goose.py --check` passes, `etc/gen-link.py --cache` rep
   trust rather than remove it.
 - **`RawNode` specs are client-facing (2026-10-09)**: `ownRawNode γ rn id rs` hides the
   node state, the ghost state and `NStateRel`; `RNState` is what a client observes
-  (delivered committed log, entries to persist, queued steps, `advanceable`); `Ready`'s
+  (delivered committed log, entries to persist, queued steps, term); `Ready`'s
   committed entries come with `isCommitted γ (rs.delivered ++ ce)`, no `applying`.
   `PstepCommitMono` and `ready_stable_ok` are proved; `raft.Step`'s spec gained a frame
-  for local messages. Known gap: `advanceable` -- a client can call `Ready` once, then
-  neither `Advance` nor `Ready` (see Next).
+  for local messages. The `Advance` gap (`advanceable`) is closed since 2026-10-10 (see
+  the section of that date).
 - Trust base: `etc/tcb-report.py` (gate: `--check` against `etc/tcb-baseline.txt`).
 - **Build checked 2026-10-08** at Perennial c35b7710d (a `--packages` override pointing
   at a checkout of the pinned commit): `lake build` completes (977 jobs, 0 errors); `etc/tcb-report.py --check`
@@ -710,10 +943,6 @@ every proof carried over unchanged but for the renames (the fork's `freeNode` an
 
 ## Next
 
-- **Close the `Advance` gap** (decisions.md, "RawNode: client-facing specs"): `Advance`
-  is proved only when `Ready` queued no self-addressed response, which the specs expose
-  as `RNState.advanceable`; since `Ready` does not say when that holds, no client can call
-  `Advance` (nor a second `Ready`) yet.
 - Follow the Rocq RawNode branch past 857d09190 (its worktree has an uncommitted
   edit to `proof_RawNode__Ready.v`, not ported).
 

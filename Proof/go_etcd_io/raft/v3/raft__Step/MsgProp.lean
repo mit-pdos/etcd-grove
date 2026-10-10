@@ -99,6 +99,8 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (∀ e ∈ ents, e.Type' = EntryNormal) →
     (ents.length : Int) < 2^61 →
     (s.role = .follower → s.lead ≠ id) →
+    -- a leader's term is nonzero (2026-10-10, `ownRaftGhost_term_nz`)
+    (s.role = .leader → s.term ≠ W64 0) →
     id ∈ cfg →
     NStateWf s →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
@@ -129,7 +131,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
                    (ents.mapIdx (stamp (toPState s).term (plastIndex (toPState s)))))])
                [] (toPState s'))⌝ ∗
         "Herr" ∷ (⌜err = interface.nil⌝ ∨ globalAddr ErrProposalDropped ↦□ err) }} := by
-  intro Hty Hterm Hfrom Hne Hnorm Hlen Hlok Hcfg Hwf
+  intro Hty Hterm Hfrom Hne Hnorm Hlen Hlok Hlnz Hcfg Hwf
   wp_start as ⟨Hphys, Hents, Hcap⟩
   wp_auto
   wp_apply _P.traceReceiveMessage
@@ -138,7 +140,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   rw [Hty]
   wp_auto
   wp_apply raft.wp_load_step $$ Hphys as Hphys
-  rw [show s.stepfn = stepFuncOf s.role from Hwf]
+  rw [show s.stepfn = stepFuncOf s.role from Hwf.1]
   have HnVR : m.Type' ≠ MsgVoteResp := by rw [Hty]; w32_ne
   cases Hrole : s.role
   · -- Follower: forward to the leader, or drop. `send` wants the entries read-only.
@@ -169,7 +171,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         isplitr
         · ipureintro; exact Hwf
         isplitr
-        · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl⟩, rfl⟩
+        · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl⟩, rfl⟩
         isplitr
         · ipureintro; left; exact ⟨[], by simp, .refl _⟩
         iright; iexact Herrn
@@ -185,7 +187,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       isplitr
       · ipureintro; exact nstateWf_sendMsgs _ _ Hwf
       isplitr
-      · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl⟩, rfl⟩
+      · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl⟩, rfl⟩
       isplitr
       · ipureintro; left
         refine ⟨[absMsg .propose m ents], by simp, ?_⟩
@@ -224,7 +226,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       isplitr
       · ipureintro; exact Hwf
       isplitr
-      · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl⟩, rfl⟩
+      · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl⟩, rfl⟩
       isplitr
       · ipureintro; left; exact ⟨[], by simp, .refl _⟩
       iright; iexact Herrn
@@ -235,7 +237,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun Hc => by
           exfalso; rw [Hty] at Hc
           rcases Hc with Hc | ⟨Hc, -⟩ <;> exact absurd Hc (by w32_ne))
-        (fun _ => ⟨Hne, Hnorm, Hlen⟩)
+        (fun _ => ⟨Hne, Hnorm, Hlen, Hlnz Hrole⟩)
       $$ [$Hphys Hents] as %err %s' %dropped ⟨Hphys, %Hres, Herrn, -⟩
     · isplitl []
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
@@ -259,7 +261,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       isplitr
       · ipureintro; exact nstateWf_prvals _ _ (nstateWf_sendMsgs _ _ Hwf)
       isplitr
-      · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl⟩, rfl⟩
+      · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl⟩, rfl⟩
       isplitr
       · ipureintro; right
         refine ⟨rfl, by rw [toPState_role, Hrole]; rfl, Hnorm, ?_, ?_⟩
@@ -283,7 +285,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         isplitr
         · ipureintro; exact Hwf
         isplitr
-        · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl⟩, rfl⟩
+        · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl⟩, rfl⟩
         isplitr
         · ipureintro; left; exact ⟨[], by simp, .refl _⟩
         iright; iexact Herrn
@@ -314,7 +316,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       isplitr
       · ipureintro; exact Hwf
       isplitr
-      · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl⟩, rfl⟩
+      · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl⟩, rfl⟩
       isplitr
       · ipureintro; left; exact ⟨[], by simp, .refl _⟩
       iright; iexact Herrn

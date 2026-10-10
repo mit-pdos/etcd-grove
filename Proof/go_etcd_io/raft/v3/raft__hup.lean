@@ -65,7 +65,7 @@ theorem raft.hup.wp_proof
     iapply HΦ $$ %s
     iframe Hphys
     ipureintro
-    exact ⟨Hwf, .refl _⟩
+    exact ⟨Hwf, .refl _, rfl, Int.le_refl _, by omega⟩
   · -- not a leader
     have Hnl : stateW64 s.role ≠ W64 2 := by
       cases h : s.role <;> simp_all [stateW64] <;> decide
@@ -86,8 +86,12 @@ theorem raft.hup.wp_proof
       iapply HΦ
       iframe Hphys
       ipureintro
-      exact ⟨nstateWf_prvals _ _ (nstateWf_campaignState _ _ _ _),
-        step_campaignState cfg _ _ _ _ _ Hrl Hin Hnowrap Hpeers⟩
+      refine ⟨nstateWf_prvals _ _ (nstateWf_campaignState _ _ _ _),
+        step_campaignState cfg _ _ _ _ _ Hrl Hin Hnowrap Hpeers, ?_⟩
+      unfold campaignState
+      refine ⟨by split <;> rfl, ?_⟩
+      split <;> simp only [sendMsgs, becomePrecandidate, becomeCandidate, resetTo] <;>
+        constructor <;> word
     | false =>
       -- unpromotable: log and return, having done nothing
       wp_auto
@@ -96,7 +100,7 @@ theorem raft.hup.wp_proof
       iapply HΦ $$ %s
       iframe Hphys
       ipureintro
-      exact ⟨Hwf, .refl _⟩
+      exact ⟨Hwf, .refl _, rfl, Int.le_refl _, by omega⟩
 
 end proof
 

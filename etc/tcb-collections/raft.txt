@@ -1,0 +1,12 @@
+# The Raft proof: every linked result of Proof/go_etcd_io/raft/v3/Link.lean (raft's
+# functions and the standard-library callees they are linked with) and the protocol
+# results of Proof/go_etcd_io/raft/v3/Results.lean.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/raft.txt            what it rests on
+#   etc/tcb-report.py --collection etc/tcb-collections/raft.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/raft.txt --check --update
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Proof/go_etcd_io/raft/v3/(Link|Results)\.lean$
+axiom reflect.DeepEqual.wp_proof

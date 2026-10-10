@@ -66,7 +66,8 @@ local macro "prevote_resp_tail" : tactic =>
     wp_apply _P.send cfg r id s _ [] _ (Or.inl rfl)
         (Or.inl ⟨.preVoteResp, Or.inr (Or.inr (Or.inr rfl)), mtypeOf_MsgPreVoteResp,
           by first | exact Hterm | exact Hs0,
-          fun Hc => by rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne), rfl⟩)
+          fun Hc => by rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne),
+          fun h => absurd h Hfid, rfl⟩)
       $$ [Hphys]
     · iframe Hphys
       isplitr
@@ -80,7 +81,7 @@ local macro "prevote_resp_tail" : tactic =>
     iapply HΦ $$ %interface.nil %_
     iframe Hphys
     ipureintro
-    refine ⟨nstateWf_sendMsgs _ _ Hwf, ?_, rfl⟩
+    refine ⟨nstateWf_sendMsgs _ _ Hwf, ?_, rfl, keep_frame rfl rfl rfl rfl rfl⟩
     rw [toPState_sendMsgs]
     exact .sendFree _ _ (.inr rfl) rfl))
 
@@ -94,6 +95,8 @@ theorem wp_Step_MsgPreVote_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     m.To' = id →
     m.Term' ≠ W64 0 →
     m.From' ≠ W64 0 →
+    -- from another node (2026-10-10): the answer goes to `m.From`
+    m.From' ≠ id →
     -- this file: the same term
     m.Term' = s.term →
     NStateWf s →
@@ -104,8 +107,10 @@ theorem wp_Step_MsgPreVote_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "Hphys" ∷ ownRaftPhys cfg r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜Step cfg id (toPState s) [] (toPState s')⌝ ∗
-        "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  intro Hty Hto Hterm Hfnz Heq0 Hwf
+        "%Herr" ∷ ⌜err = interface.nil⌝ ∗
+        "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
+        "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
+  intro Hty Hto Hterm Hfnz Hfid Heq0 Hwf
   have Hs0 : s.term ≠ W64 0 := Heq0 ▸ Hterm
   wp_start as Hphys
   iNamed Hphys

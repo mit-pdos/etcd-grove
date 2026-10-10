@@ -41,12 +41,12 @@ theorem lockedRand.Intn.wp_proof
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, -⟩
   ihave #Hrand : isPkgInit (PROP := IProp GF) pkg_id.crypto.rand $$ []
   · iPkgInit
-  ihave #Hreader := isRandInitialized_access $$ Hrand
-  unfold isRandInitialized
+  ihave #Hreader := crypto.rand.isInitialized_access $$ Hrand
+  unfold crypto.rand.isInitialized
   icases Hreader with ⟨%rdr, #Reader⟩
   wp_auto
   wp_apply wp_big_NewInt as %max Hmax
-  wp_apply wp_rand_Int _ _ _ Hn $$ [$Reader $Hmax] as %v %z ⟨Hmax, Hv, %Hz⟩
+  wp_apply wp_rand_Int _ _ _ ⟨Hn, by have := word.signed_range n; omega⟩ $$ [$Reader $Hmax] as %v %z ⟨Hmax, Hv, %Hz⟩
   wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked]
   · itrivial
   wp_apply wp_big_Int_Int64 _ _ (by have := word.signed_range n; omega) $$ [$Hv] as Hv

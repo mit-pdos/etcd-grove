@@ -54,9 +54,10 @@ omit go_gctx in
 over the bare quantities: `E` the batch's first index, `P` the old `prev.index`, `kip`
 and `k'` the old and new `offsetInProgress - offset`. -/
 private theorem append_persistOk (σ : StorState)
-    (lpend sents uents : List raftpb.Entry) (e0 : raftpb.Entry)
+    (lpend sents uents stored : List raftpb.Entry) (e0 : raftpb.Entry)
     (ents' : List raftpb.Entry) (E P kip k' : Int)
     (Hpre0 : (sents ++ uents.take kip.toNat) <+: storApp σ lpend)
+    (Hst : storApp σ lpend = stored)
     (Hkip : kip.toNat ≤ uents.length)
     (HP : P < E) (HE : E ≤ P + (sents.length : Int) + (uents.length : Int) + 1)
     (Hk1 : k'.toNat ≤ kip.toNat)
@@ -64,8 +65,8 @@ private theorem append_persistOk (σ : StorState)
       k'.toNat ≤ (E - P - 1).toNat - sents.length)
     (Hk3 : E = P + (sents.length : Int) + (uents.length : Int) + 1 → k'.toNat = kip.toNat) :
     LogPersistOk σ (sents.take (E - P - 1).toNat)
-      (uents.take (E - P - 1 - (sents.length : Int)).toNat ++ e0 :: ents') k' lpend := by
-  refine ⟨?_, ?_, ?_⟩
+      (uents.take (E - P - 1 - (sents.length : Int)).toNat ++ e0 :: ents') k' lpend stored := by
+  refine ⟨?_, ?_, ?_, Hst⟩
   · refine List.IsPrefix.trans ?_ Hpre0
     rw [show (E - P - 1 - (sents.length : Int)).toNat = (E - P - 1).toNat - sents.length
       by omega]
@@ -256,11 +257,13 @@ theorem raftLog.append.wp_proof
           (ls.sents.take (uint.Z e0.Index' - uint.Z ls.prev.index' - 1).toNat)
           (ls.uents.take (uint.Z e0.Index' - uint.Z ls.prev.index' - 1
               - (ls.sents.length : Int)).toNat ++ e0 :: ents')
-          (uint.Z (logTruncInprogress ls e0.Index') - uint.Z uv'.offset') ls.unpersisted := by
+          (uint.Z (logTruncInprogress ls e0.Index') - uint.Z uv'.offset') ls.unpersisted
+          ls.stored := by
       intro Hs
-      obtain ⟨Hpre0, -, -⟩ := Hpersist Hs
+      obtain ⟨Hpre0, -, -, Hst0⟩ := Hpersist Hs
       obtain ⟨Hk1, Hk2, Hk3⟩ := Hk'
-      exact append_persistOk σ ls.unpersisted ls.sents ls.uents e0 ents' _ _ _ _ Hpre0
+      exact append_persistOk σ ls.unpersisted ls.sents ls.uents ls.stored e0 ents' _ _ _ _ Hpre0
+        Hst0
         (by omega) Hprev (by omega) Hk1 Hk2 Hk3
     ihave Hlog : ownRaftLog l (logTruncateAppend ls (e0 :: ents'))
         $$ [Hl HStorage Hents Hents_cap]

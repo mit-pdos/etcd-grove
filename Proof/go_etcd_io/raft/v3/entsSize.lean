@@ -23,10 +23,10 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- A `for range` accumulating `Entry.Size()` into `size`. Since the spec says nothing
-about the value, the loop invariant carries no arithmetic at all -- only the three
-mutable locations and the index bound that the `IndexRef` needs. `ent` is allocated
-*outside* the loop and written on every iteration, so it is existentially quantified
-inside the invariant (the `cur` lesson from `raft.campaign`'s proof).
+about the value, the loop invariant carries no arithmetic at all -- only the two
+mutable locations and the index bound that the `IndexRef` needs. `ent.Size()` takes the
+address of the range variable `ent`, so each iteration has its own `ent` (Go's
+per-iteration loop variables), allocated in the body: it is not in the invariant.
 
 `Entry.Size` has a pointer receiver and the range variable `ent` is that pointer, so
 `raftpb.Entry.Size.spec` applies to `ent_ptr` directly. -/
