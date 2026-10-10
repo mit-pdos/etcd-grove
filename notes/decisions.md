@@ -1687,8 +1687,8 @@ predicate per entry (`entryP`) and linearizing at apply (both needed per-replica
 machinery that the client log makes unnecessary); running `Q` at collect inside a fancy
 update (it would not be the commit's linearization point).
 
-**The register on top** keeps one invariant, `inv regN (∃ L, cLog γ L ∗ regAuth
-(regFold L) ∗ …)`. `do` wraps the client's update over `regVal` in the update over
+**The register on top** keeps one invariant, `inv regN (∃ L, cLog γ L ∗ ghostVar γr.val ½
+(regFold L) ∗ …)` (the other half of the value is the client's `regVal`). `do` wraps the client's update over `regVal` in the update over
 `cLog` that it hands to `Propose` (`reg_propAu`): when fired, it opens `regInv`, runs the
 client's update and moves both to `L ++ [d]`. The rest (the applied table, the waiters)
 is plain physical state under the lock or the `run` goroutine.
