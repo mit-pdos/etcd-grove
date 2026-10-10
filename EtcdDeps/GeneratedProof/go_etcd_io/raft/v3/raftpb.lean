@@ -53,7 +53,9 @@ instance Entry_access_load_state (l : Loc) (v : go_etcd_io.raft.v3.raftpb.Entry)
  by
   solve_pointsto_access_struct
 
-instance Entry_access_store_state (l : Loc) (v : go_etcd_io.raft.v3.raftpb.Entry) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) Entry_access_store_state (l : Loc) (v : go_etcd_io.raft.v3.raftpb.Entry) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Entry go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Entry go!"state" l) state' (DFrac.own 1))
@@ -69,7 +71,9 @@ instance Entry_access_load_Term (l : Loc) (v : go_etcd_io.raft.v3.raftpb.Entry) 
  by
   solve_pointsto_access_struct
 
-instance Entry_access_store_Term (l : Loc) (v : go_etcd_io.raft.v3.raftpb.Entry) (Term' : Loc) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) Entry_access_store_Term (l : Loc) (v : go_etcd_io.raft.v3.raftpb.Entry) (Term' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Entry go!"Term" l) v.Term' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Entry go!"Term" l) Term' (DFrac.own 1))
@@ -85,7 +89,9 @@ instance Entry_access_load_Index (l : Loc) (v : go_etcd_io.raft.v3.raftpb.Entry)
  by
   solve_pointsto_access_struct
 
-instance Entry_access_store_Index (l : Loc) (v : go_etcd_io.raft.v3.raftpb.Entry) (Index' : Loc) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) Entry_access_store_Index (l : Loc) (v : go_etcd_io.raft.v3.raftpb.Entry) (Index' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Entry go!"Index" l) v.Index' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Entry go!"Index" l) Index' (DFrac.own 1))
@@ -101,7 +107,9 @@ instance Entry_access_load_Type (l : Loc) (v : go_etcd_io.raft.v3.raftpb.Entry) 
  by
   solve_pointsto_access_struct
 
-instance Entry_access_store_Type (l : Loc) (v : go_etcd_io.raft.v3.raftpb.Entry) (Type' : Loc) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) Entry_access_store_Type (l : Loc) (v : go_etcd_io.raft.v3.raftpb.Entry) (Type' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Entry go!"Type" l) v.Type' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Entry go!"Type" l) Type' (DFrac.own 1))
@@ -117,7 +125,9 @@ instance Entry_access_load_Data (l : Loc) (v : go_etcd_io.raft.v3.raftpb.Entry) 
  by
   solve_pointsto_access_struct
 
-instance Entry_access_store_Data (l : Loc) (v : go_etcd_io.raft.v3.raftpb.Entry) (Data' : GoSlice) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) Entry_access_store_Data (l : Loc) (v : go_etcd_io.raft.v3.raftpb.Entry) (Data' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Entry go!"Data" l) v.Data' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Entry go!"Data" l) Data' (DFrac.own 1))
@@ -133,7 +143,9 @@ instance Entry_access_load_unknownFields (l : Loc) (v : go_etcd_io.raft.v3.raftp
  by
   solve_pointsto_access_struct
 
-instance Entry_access_store_unknownFields (l : Loc) (v : go_etcd_io.raft.v3.raftpb.Entry) (unknownFields' : GoSlice) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) Entry_access_store_unknownFields (l : Loc) (v : go_etcd_io.raft.v3.raftpb.Entry) (unknownFields' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Entry go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Entry go!"unknownFields" l) unknownFields' (DFrac.own 1))
@@ -149,7 +161,9 @@ instance Entry_access_load_sizeCache (l : Loc) (v : go_etcd_io.raft.v3.raftpb.En
  by
   solve_pointsto_access_struct
 
-instance Entry_access_store_sizeCache (l : Loc) (v : go_etcd_io.raft.v3.raftpb.Entry) (sizeCache' : w32) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) Entry_access_store_sizeCache (l : Loc) (v : go_etcd_io.raft.v3.raftpb.Entry) (sizeCache' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Entry go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Entry go!"sizeCache" l) sizeCache' (DFrac.own 1))
@@ -290,7 +304,9 @@ instance ConfChange_access_load_state (l : Loc) (v : go_etcd_io.raft.v3.raftpb.C
  by
   solve_pointsto_access_struct
 
-instance ConfChange_access_store_state (l : Loc) (v : go_etcd_io.raft.v3.raftpb.ConfChange) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) ConfChange_access_store_state (l : Loc) (v : go_etcd_io.raft.v3.raftpb.ConfChange) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChange go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChange go!"state" l) state' (DFrac.own 1))
@@ -306,7 +322,9 @@ instance ConfChange_access_load_Type (l : Loc) (v : go_etcd_io.raft.v3.raftpb.Co
  by
   solve_pointsto_access_struct
 
-instance ConfChange_access_store_Type (l : Loc) (v : go_etcd_io.raft.v3.raftpb.ConfChange) (Type' : Loc) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) ConfChange_access_store_Type (l : Loc) (v : go_etcd_io.raft.v3.raftpb.ConfChange) (Type' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChange go!"Type" l) v.Type' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChange go!"Type" l) Type' (DFrac.own 1))
@@ -322,7 +340,9 @@ instance ConfChange_access_load_NodeId (l : Loc) (v : go_etcd_io.raft.v3.raftpb.
  by
   solve_pointsto_access_struct
 
-instance ConfChange_access_store_NodeId (l : Loc) (v : go_etcd_io.raft.v3.raftpb.ConfChange) (NodeId' : Loc) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) ConfChange_access_store_NodeId (l : Loc) (v : go_etcd_io.raft.v3.raftpb.ConfChange) (NodeId' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChange go!"NodeId" l) v.NodeId' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChange go!"NodeId" l) NodeId' (DFrac.own 1))
@@ -338,7 +358,9 @@ instance ConfChange_access_load_Context (l : Loc) (v : go_etcd_io.raft.v3.raftpb
  by
   solve_pointsto_access_struct
 
-instance ConfChange_access_store_Context (l : Loc) (v : go_etcd_io.raft.v3.raftpb.ConfChange) (Context' : GoSlice) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) ConfChange_access_store_Context (l : Loc) (v : go_etcd_io.raft.v3.raftpb.ConfChange) (Context' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChange go!"Context" l) v.Context' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChange go!"Context" l) Context' (DFrac.own 1))
@@ -354,7 +376,9 @@ instance ConfChange_access_load_Id (l : Loc) (v : go_etcd_io.raft.v3.raftpb.Conf
  by
   solve_pointsto_access_struct
 
-instance ConfChange_access_store_Id (l : Loc) (v : go_etcd_io.raft.v3.raftpb.ConfChange) (Id' : Loc) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) ConfChange_access_store_Id (l : Loc) (v : go_etcd_io.raft.v3.raftpb.ConfChange) (Id' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChange go!"Id" l) v.Id' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChange go!"Id" l) Id' (DFrac.own 1))
@@ -370,7 +394,9 @@ instance ConfChange_access_load_unknownFields (l : Loc) (v : go_etcd_io.raft.v3.
  by
   solve_pointsto_access_struct
 
-instance ConfChange_access_store_unknownFields (l : Loc) (v : go_etcd_io.raft.v3.raftpb.ConfChange) (unknownFields' : GoSlice) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) ConfChange_access_store_unknownFields (l : Loc) (v : go_etcd_io.raft.v3.raftpb.ConfChange) (unknownFields' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChange go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChange go!"unknownFields" l) unknownFields' (DFrac.own 1))
@@ -386,7 +412,9 @@ instance ConfChange_access_load_sizeCache (l : Loc) (v : go_etcd_io.raft.v3.raft
  by
   solve_pointsto_access_struct
 
-instance ConfChange_access_store_sizeCache (l : Loc) (v : go_etcd_io.raft.v3.raftpb.ConfChange) (sizeCache' : w32) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) ConfChange_access_store_sizeCache (l : Loc) (v : go_etcd_io.raft.v3.raftpb.ConfChange) (sizeCache' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChange go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChange go!"sizeCache" l) sizeCache' (DFrac.own 1))

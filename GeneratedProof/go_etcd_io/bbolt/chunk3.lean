@@ -67,7 +67,9 @@ instance checkConfig_access_load_kvStringer (l : Loc) (v : go_etcd_io.bbolt.chec
  by
   solve_pointsto_access_struct
 
-instance checkConfig_access_store_kvStringer (l : Loc) (v : go_etcd_io.bbolt.checkConfig) (kvStringer' : go_etcd_io.bbolt.KVStringer) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) checkConfig_access_store_kvStringer (l : Loc) (v : go_etcd_io.bbolt.checkConfig) (kvStringer' : go_etcd_io.bbolt.KVStringer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.checkConfig go!"kvStringer" l) v.kvStringer' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.checkConfig go!"kvStringer" l) kvStringer' (DFrac.own 1))
@@ -83,7 +85,9 @@ instance checkConfig_access_load_pageId (l : Loc) (v : go_etcd_io.bbolt.checkCon
  by
   solve_pointsto_access_struct
 
-instance checkConfig_access_store_pageId (l : Loc) (v : go_etcd_io.bbolt.checkConfig) (pageId' : w64) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) checkConfig_access_store_pageId (l : Loc) (v : go_etcd_io.bbolt.checkConfig) (pageId' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.checkConfig go!"pageId" l) v.pageId' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.checkConfig go!"pageId" l) pageId' (DFrac.own 1))

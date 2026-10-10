@@ -51,7 +51,9 @@ instance setKeyAction_access_load_Bucket (l : Loc) (v : go_etcd_io.etcd.server.v
  by
   solve_pointsto_access_struct
 
-instance setKeyAction_access_store_Bucket (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.setKeyAction) (Bucket' : go_etcd_io.etcd.server.v3.storage.backend.Bucket) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) setKeyAction_access_store_Bucket (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.setKeyAction) (Bucket' : go_etcd_io.etcd.server.v3.storage.backend.Bucket) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.setKeyAction go!"Bucket" l) v.Bucket' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.setKeyAction go!"Bucket" l) Bucket' (DFrac.own 1))
@@ -67,7 +69,9 @@ instance setKeyAction_access_load_FieldName (l : Loc) (v : go_etcd_io.etcd.serve
  by
   solve_pointsto_access_struct
 
-instance setKeyAction_access_store_FieldName (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.setKeyAction) (FieldName' : GoSlice) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) setKeyAction_access_store_FieldName (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.setKeyAction) (FieldName' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.setKeyAction go!"FieldName" l) v.FieldName' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.setKeyAction go!"FieldName" l) FieldName' (DFrac.own 1))
@@ -83,7 +87,9 @@ instance setKeyAction_access_load_FieldValue (l : Loc) (v : go_etcd_io.etcd.serv
  by
   solve_pointsto_access_struct
 
-instance setKeyAction_access_store_FieldValue (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.setKeyAction) (FieldValue' : GoSlice) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) setKeyAction_access_store_FieldValue (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.setKeyAction) (FieldValue' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.setKeyAction go!"FieldValue" l) v.FieldValue' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.setKeyAction go!"FieldValue" l) FieldValue' (DFrac.own 1))
@@ -124,7 +130,9 @@ instance deleteKeyAction_access_load_Bucket (l : Loc) (v : go_etcd_io.etcd.serve
  by
   solve_pointsto_access_struct
 
-instance deleteKeyAction_access_store_Bucket (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.deleteKeyAction) (Bucket' : go_etcd_io.etcd.server.v3.storage.backend.Bucket) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) deleteKeyAction_access_store_Bucket (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.deleteKeyAction) (Bucket' : go_etcd_io.etcd.server.v3.storage.backend.Bucket) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.deleteKeyAction go!"Bucket" l) v.Bucket' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.deleteKeyAction go!"Bucket" l) Bucket' (DFrac.own 1))
@@ -140,7 +148,9 @@ instance deleteKeyAction_access_load_FieldName (l : Loc) (v : go_etcd_io.etcd.se
  by
   solve_pointsto_access_struct
 
-instance deleteKeyAction_access_store_FieldName (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.deleteKeyAction) (FieldName' : GoSlice) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) deleteKeyAction_access_store_FieldName (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.deleteKeyAction) (FieldName' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.deleteKeyAction go!"FieldName" l) v.FieldName' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.deleteKeyAction go!"FieldName" l) FieldName' (DFrac.own 1))
@@ -277,7 +287,9 @@ instance bucket_access_load_id (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.
  by
   solve_pointsto_access_struct
 
-instance bucket_access_store_id (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.bucket) (id' : go_etcd_io.etcd.server.v3.storage.backend.BucketID) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) bucket_access_store_id (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.bucket) (id' : go_etcd_io.etcd.server.v3.storage.backend.BucketID) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.bucket go!"id" l) v.id' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.bucket go!"id" l) id' (DFrac.own 1))
@@ -293,7 +305,9 @@ instance bucket_access_load_name (l : Loc) (v : go_etcd_io.etcd.server.v3.storag
  by
   solve_pointsto_access_struct
 
-instance bucket_access_store_name (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.bucket) (name' : GoSlice) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) bucket_access_store_name (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.bucket) (name' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.bucket go!"name" l) v.name' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.bucket go!"name" l) name' (DFrac.own 1))
@@ -309,7 +323,9 @@ instance bucket_access_load_safeRangeBucket (l : Loc) (v : go_etcd_io.etcd.serve
  by
   solve_pointsto_access_struct
 
-instance bucket_access_store_safeRangeBucket (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.bucket) (safeRangeBucket' : Bool) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) bucket_access_store_safeRangeBucket (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.bucket) (safeRangeBucket' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.bucket go!"safeRangeBucket" l) v.safeRangeBucket' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.bucket go!"safeRangeBucket" l) safeRangeBucket' (DFrac.own 1))
@@ -350,7 +366,9 @@ instance simpleSchemaChange_access_load_upgrade (l : Loc) (v : go_etcd_io.etcd.s
  by
   solve_pointsto_access_struct
 
-instance simpleSchemaChange_access_store_upgrade (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.simpleSchemaChange) (upgrade' : go_etcd_io.etcd.server.v3.storage.schema.action) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) simpleSchemaChange_access_store_upgrade (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.simpleSchemaChange) (upgrade' : go_etcd_io.etcd.server.v3.storage.schema.action) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.simpleSchemaChange go!"upgrade" l) v.upgrade' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.simpleSchemaChange go!"upgrade" l) upgrade' (DFrac.own 1))
@@ -366,7 +384,9 @@ instance simpleSchemaChange_access_load_downgrade (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-instance simpleSchemaChange_access_store_downgrade (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.simpleSchemaChange) (downgrade' : go_etcd_io.etcd.server.v3.storage.schema.action) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) simpleSchemaChange_access_store_downgrade (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.simpleSchemaChange) (downgrade' : go_etcd_io.etcd.server.v3.storage.schema.action) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.simpleSchemaChange go!"downgrade" l) v.downgrade' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.simpleSchemaChange go!"downgrade" l) downgrade' (DFrac.own 1))

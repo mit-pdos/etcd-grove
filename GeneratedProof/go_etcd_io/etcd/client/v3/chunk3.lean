@@ -85,7 +85,9 @@ instance valCtx_access_load_Context (l : Loc) (v : go_etcd_io.etcd.client.v3.val
  by
   solve_pointsto_access_struct
 
-instance valCtx_access_store_Context (l : Loc) (v : go_etcd_io.etcd.client.v3.valCtx) (Context' : context.Context) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) valCtx_access_store_Context (l : Loc) (v : go_etcd_io.etcd.client.v3.valCtx) (Context' : context.Context) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.valCtx go!"Context" l) v.Context' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.valCtx go!"Context" l) Context' (DFrac.own 1))

@@ -67,7 +67,9 @@ instance Status_access_load_BasicStatus (l : Loc) (v : go_etcd_io.raft.v3.Status
  by
   solve_pointsto_access_struct
 
-instance Status_access_store_BasicStatus (l : Loc) (v : go_etcd_io.raft.v3.Status) (BasicStatus' : go_etcd_io.raft.v3.BasicStatus) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) Status_access_store_BasicStatus (l : Loc) (v : go_etcd_io.raft.v3.Status) (BasicStatus' : go_etcd_io.raft.v3.BasicStatus) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Status go!"BasicStatus" l) v.BasicStatus' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Status go!"BasicStatus" l) BasicStatus' (DFrac.own 1))
@@ -83,7 +85,9 @@ instance Status_access_load_Config (l : Loc) (v : go_etcd_io.raft.v3.Status) (dq
  by
   solve_pointsto_access_struct
 
-instance Status_access_store_Config (l : Loc) (v : go_etcd_io.raft.v3.Status) (Config' : go_etcd_io.raft.v3.tracker.Config) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) Status_access_store_Config (l : Loc) (v : go_etcd_io.raft.v3.Status) (Config' : go_etcd_io.raft.v3.tracker.Config) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Status go!"Config" l) v.Config' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Status go!"Config" l) Config' (DFrac.own 1))
@@ -99,7 +103,9 @@ instance Status_access_load_Progress (l : Loc) (v : go_etcd_io.raft.v3.Status) (
  by
   solve_pointsto_access_struct
 
-instance Status_access_store_Progress (l : Loc) (v : go_etcd_io.raft.v3.Status) (Progress' : GoMap) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) Status_access_store_Progress (l : Loc) (v : go_etcd_io.raft.v3.Status) (Progress' : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Status go!"Progress" l) v.Progress' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Status go!"Progress" l) Progress' (DFrac.own 1))

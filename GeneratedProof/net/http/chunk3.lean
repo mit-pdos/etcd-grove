@@ -84,7 +84,9 @@ instance nothingWrittenError_access_load_error (l : Loc) (v : net.http.nothingWr
  by
   solve_pointsto_access_struct
 
-instance nothingWrittenError_access_store_error (l : Loc) (v : net.http.nothingWrittenError) (error' : GoError) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) nothingWrittenError_access_store_error (l : Loc) (v : net.http.nothingWrittenError) (error' : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.nothingWrittenError go!"error" l) v.error' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.nothingWrittenError go!"error" l) error' (DFrac.own 1))
@@ -126,7 +128,9 @@ instance writeRequest_access_load_req (l : Loc) (v : net.http.writeRequest) (dq 
  by
   solve_pointsto_access_struct
 
-instance writeRequest_access_store_req (l : Loc) (v : net.http.writeRequest) (req' : Loc) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) writeRequest_access_store_req (l : Loc) (v : net.http.writeRequest) (req' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.writeRequest go!"req" l) v.req' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.writeRequest go!"req" l) req' (DFrac.own 1))
@@ -142,7 +146,9 @@ instance writeRequest_access_load_ch (l : Loc) (v : net.http.writeRequest) (dq :
  by
   solve_pointsto_access_struct
 
-instance writeRequest_access_store_ch (l : Loc) (v : net.http.writeRequest) (ch' : GoChan) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) writeRequest_access_store_ch (l : Loc) (v : net.http.writeRequest) (ch' : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.writeRequest go!"ch" l) v.ch' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.writeRequest go!"ch" l) ch' (DFrac.own 1))
@@ -158,7 +164,9 @@ instance writeRequest_access_load_continueCh (l : Loc) (v : net.http.writeReques
  by
   solve_pointsto_access_struct
 
-instance writeRequest_access_store_continueCh (l : Loc) (v : net.http.writeRequest) (continueCh' : GoChan) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) writeRequest_access_store_continueCh (l : Loc) (v : net.http.writeRequest) (continueCh' : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.writeRequest go!"continueCh" l) v.continueCh' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.writeRequest go!"continueCh" l) continueCh' (DFrac.own 1))
@@ -198,7 +206,9 @@ instance timeoutError_access_load_err (l : Loc) (v : net.http.timeoutError) (dq 
  by
   solve_pointsto_access_struct
 
-instance timeoutError_access_store_err (l : Loc) (v : net.http.timeoutError) (err' : GoString) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) timeoutError_access_store_err (l : Loc) (v : net.http.timeoutError) (err' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.timeoutError go!"err" l) v.err' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.timeoutError go!"err" l) err' (DFrac.own 1))

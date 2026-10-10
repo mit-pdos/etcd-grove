@@ -165,7 +165,9 @@ instance AuthInfo_access_load_Username (l : Loc) (v : go_etcd_io.etcd.server.v3.
  by
   solve_pointsto_access_struct
 
-instance AuthInfo_access_store_Username (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.AuthInfo) (Username' : GoString) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) AuthInfo_access_store_Username (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.AuthInfo) (Username' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.AuthInfo go!"Username" l) v.Username' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.AuthInfo go!"Username" l) Username' (DFrac.own 1))
@@ -181,7 +183,9 @@ instance AuthInfo_access_load_Revision (l : Loc) (v : go_etcd_io.etcd.server.v3.
  by
   solve_pointsto_access_struct
 
-instance AuthInfo_access_store_Revision (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.AuthInfo) (Revision' : w64) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) AuthInfo_access_store_Revision (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.AuthInfo) (Revision' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.AuthInfo go!"Revision" l) v.Revision' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.AuthInfo go!"Revision" l) Revision' (DFrac.own 1))

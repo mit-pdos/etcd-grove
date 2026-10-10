@@ -46,7 +46,9 @@ instance unsafeSet_access_load_d (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.ty
  by
   solve_pointsto_access_struct
 
-instance unsafeSet_access_store_d (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.types.unsafeSet) (d' : GoMap) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) unsafeSet_access_store_d (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.types.unsafeSet) (d' : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.types.unsafeSet go!"d" l) v.d' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.types.unsafeSet go!"d" l) d' (DFrac.own 1))

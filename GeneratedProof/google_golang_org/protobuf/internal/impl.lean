@@ -1418,7 +1418,9 @@ instance MessageState_access_load_NoUnkeyedLiterals (l : Loc) (v : google_golang
  by
   solve_pointsto_access_struct
 
-instance MessageState_access_store_NoUnkeyedLiterals (l : Loc) (v : google_golang_org.protobuf.internal.impl.MessageState) (NoUnkeyedLiterals' : google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) MessageState_access_store_NoUnkeyedLiterals (l : Loc) (v : google_golang_org.protobuf.internal.impl.MessageState) (NoUnkeyedLiterals' : google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.MessageState go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.MessageState go!"NoUnkeyedLiterals" l) NoUnkeyedLiterals' (DFrac.own 1))
@@ -1434,7 +1436,9 @@ instance MessageState_access_load_DoNotCompare (l : Loc) (v : google_golang_org.
  by
   solve_pointsto_access_struct
 
-instance MessageState_access_store_DoNotCompare (l : Loc) (v : google_golang_org.protobuf.internal.impl.MessageState) (DoNotCompare' : google_golang_org.protobuf.internal.pragma.DoNotCompare) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) MessageState_access_store_DoNotCompare (l : Loc) (v : google_golang_org.protobuf.internal.impl.MessageState) (DoNotCompare' : google_golang_org.protobuf.internal.pragma.DoNotCompare) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.MessageState go!"DoNotCompare" l) v.DoNotCompare' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.MessageState go!"DoNotCompare" l) DoNotCompare' (DFrac.own 1))
@@ -1450,7 +1454,9 @@ instance MessageState_access_load_DoNotCopy (l : Loc) (v : google_golang_org.pro
  by
   solve_pointsto_access_struct
 
-instance MessageState_access_store_DoNotCopy (l : Loc) (v : google_golang_org.protobuf.internal.impl.MessageState) (DoNotCopy' : google_golang_org.protobuf.internal.pragma.DoNotCopy) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) MessageState_access_store_DoNotCopy (l : Loc) (v : google_golang_org.protobuf.internal.impl.MessageState) (DoNotCopy' : google_golang_org.protobuf.internal.pragma.DoNotCopy) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.MessageState go!"DoNotCopy" l) v.DoNotCopy' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.MessageState go!"DoNotCopy" l) DoNotCopy' (DFrac.own 1))
@@ -1466,7 +1472,9 @@ instance MessageState_access_load_atomicMessageInfo (l : Loc) (v : google_golang
  by
   solve_pointsto_access_struct
 
-instance MessageState_access_store_atomicMessageInfo (l : Loc) (v : google_golang_org.protobuf.internal.impl.MessageState) (atomicMessageInfo' : Loc) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) MessageState_access_store_atomicMessageInfo (l : Loc) (v : google_golang_org.protobuf.internal.impl.MessageState) (atomicMessageInfo' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.MessageState go!"atomicMessageInfo" l) v.atomicMessageInfo' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.MessageState go!"atomicMessageInfo" l) atomicMessageInfo' (DFrac.own 1))

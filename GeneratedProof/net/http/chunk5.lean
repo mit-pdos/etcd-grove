@@ -47,7 +47,9 @@ instance fileTransport_access_load_fh (l : Loc) (v : net.http.fileTransport) (dq
  by
   solve_pointsto_access_struct
 
-instance fileTransport_access_store_fh (l : Loc) (v : net.http.fileTransport) (fh' : net.http.fileHandler) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) fileTransport_access_store_fh (l : Loc) (v : net.http.fileTransport) (fh' : net.http.fileHandler) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.fileTransport go!"fh" l) v.fh' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.fileTransport go!"fh" l) fh' (DFrac.own 1))

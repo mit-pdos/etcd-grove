@@ -46,7 +46,9 @@ instance list'_access_load_e (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.list') (
  by
   solve_pointsto_access_struct
 
-instance list'_access_store_e (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.list') (e' : GoSlice) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) list'_access_store_e (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.list') (e' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.list' go!"e" l) v.e' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.list' go!"e" l) e' (DFrac.own 1))
@@ -105,7 +107,9 @@ instance waitWithResponse_access_load_ch (l : Loc) (v : go_etcd_io.etcd.pkg.v3.w
  by
   solve_pointsto_access_struct
 
-instance waitWithResponse_access_store_ch (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.waitWithResponse) (ch' : GoChan) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) waitWithResponse_access_store_ch (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.waitWithResponse) (ch' : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.waitWithResponse go!"ch" l) v.ch' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.waitWithResponse go!"ch" l) ch' (DFrac.own 1))

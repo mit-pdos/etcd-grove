@@ -65,7 +65,9 @@ instance perRPCCredentialBundle_access_load_rc (l : Loc) (v : go_etcd_io.etcd.cl
  by
   solve_pointsto_access_struct
 
-instance perRPCCredentialBundle_access_store_rc (l : Loc) (v : go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle) (rc' : Loc) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) perRPCCredentialBundle_access_store_rc (l : Loc) (v : go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle) (rc' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle go!"rc" l) v.rc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle go!"rc" l) rc' (DFrac.own 1))

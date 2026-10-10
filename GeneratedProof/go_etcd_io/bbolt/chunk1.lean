@@ -65,7 +65,9 @@ instance anonStruct_f41ae3ebe286c14c_access_load_writeAt (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-instance anonStruct_f41ae3ebe286c14c_access_store_writeAt (l : Loc) (v : go_etcd_io.bbolt.anonStruct_f41ae3ebe286c14c) (writeAt' : GoFunc) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) anonStruct_f41ae3ebe286c14c_access_store_writeAt (l : Loc) (v : go_etcd_io.bbolt.anonStruct_f41ae3ebe286c14c) (writeAt' : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.anonStruct_f41ae3ebe286c14c go!"writeAt" l) v.writeAt' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.anonStruct_f41ae3ebe286c14c go!"writeAt" l) writeAt' (DFrac.own 1))
@@ -106,7 +108,9 @@ instance anonStruct_f8032a6b9f7a43c3_access_load_InBucket (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-instance anonStruct_f8032a6b9f7a43c3_access_store_InBucket (l : Loc) (v : go_etcd_io.bbolt.anonStruct_f8032a6b9f7a43c3) (InBucket' : go_etcd_io.bbolt.internal.common.InBucket) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) anonStruct_f8032a6b9f7a43c3_access_store_InBucket (l : Loc) (v : go_etcd_io.bbolt.anonStruct_f8032a6b9f7a43c3) (InBucket' : go_etcd_io.bbolt.internal.common.InBucket) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.anonStruct_f8032a6b9f7a43c3 go!"InBucket" l) v.InBucket' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.anonStruct_f8032a6b9f7a43c3 go!"InBucket" l) InBucket' (DFrac.own 1))
@@ -122,7 +126,9 @@ instance anonStruct_f8032a6b9f7a43c3_access_load_Page (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-instance anonStruct_f8032a6b9f7a43c3_access_store_Page (l : Loc) (v : go_etcd_io.bbolt.anonStruct_f8032a6b9f7a43c3) (Page' : go_etcd_io.bbolt.internal.common.Page) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) anonStruct_f8032a6b9f7a43c3_access_store_Page (l : Loc) (v : go_etcd_io.bbolt.anonStruct_f8032a6b9f7a43c3) (Page' : go_etcd_io.bbolt.internal.common.Page) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.anonStruct_f8032a6b9f7a43c3 go!"Page" l) v.Page' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.anonStruct_f8032a6b9f7a43c3 go!"Page" l) Page' (DFrac.own 1))
@@ -168,7 +174,9 @@ instance Bucket_access_load_InBucket (l : Loc) (v : go_etcd_io.bbolt.Bucket) (dq
  by
   solve_pointsto_access_struct
 
-instance Bucket_access_store_InBucket (l : Loc) (v : go_etcd_io.bbolt.Bucket) (InBucket' : Loc) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) Bucket_access_store_InBucket (l : Loc) (v : go_etcd_io.bbolt.Bucket) (InBucket' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"InBucket" l) v.InBucket' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"InBucket" l) InBucket' (DFrac.own 1))
@@ -184,7 +192,9 @@ instance Bucket_access_load_tx (l : Loc) (v : go_etcd_io.bbolt.Bucket) (dq : DFr
  by
   solve_pointsto_access_struct
 
-instance Bucket_access_store_tx (l : Loc) (v : go_etcd_io.bbolt.Bucket) (tx' : Loc) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) Bucket_access_store_tx (l : Loc) (v : go_etcd_io.bbolt.Bucket) (tx' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"tx" l) v.tx' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"tx" l) tx' (DFrac.own 1))
@@ -200,7 +210,9 @@ instance Bucket_access_load_buckets (l : Loc) (v : go_etcd_io.bbolt.Bucket) (dq 
  by
   solve_pointsto_access_struct
 
-instance Bucket_access_store_buckets (l : Loc) (v : go_etcd_io.bbolt.Bucket) (buckets' : GoMap) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) Bucket_access_store_buckets (l : Loc) (v : go_etcd_io.bbolt.Bucket) (buckets' : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"buckets" l) v.buckets' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"buckets" l) buckets' (DFrac.own 1))
@@ -216,7 +228,9 @@ instance Bucket_access_load_page (l : Loc) (v : go_etcd_io.bbolt.Bucket) (dq : D
  by
   solve_pointsto_access_struct
 
-instance Bucket_access_store_page (l : Loc) (v : go_etcd_io.bbolt.Bucket) (page' : Loc) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) Bucket_access_store_page (l : Loc) (v : go_etcd_io.bbolt.Bucket) (page' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"page" l) v.page' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"page" l) page' (DFrac.own 1))
@@ -232,7 +246,9 @@ instance Bucket_access_load_rootNode (l : Loc) (v : go_etcd_io.bbolt.Bucket) (dq
  by
   solve_pointsto_access_struct
 
-instance Bucket_access_store_rootNode (l : Loc) (v : go_etcd_io.bbolt.Bucket) (rootNode' : Loc) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) Bucket_access_store_rootNode (l : Loc) (v : go_etcd_io.bbolt.Bucket) (rootNode' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"rootNode" l) v.rootNode' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"rootNode" l) rootNode' (DFrac.own 1))
@@ -248,7 +264,9 @@ instance Bucket_access_load_nodes (l : Loc) (v : go_etcd_io.bbolt.Bucket) (dq : 
  by
   solve_pointsto_access_struct
 
-instance Bucket_access_store_nodes (l : Loc) (v : go_etcd_io.bbolt.Bucket) (nodes' : GoMap) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) Bucket_access_store_nodes (l : Loc) (v : go_etcd_io.bbolt.Bucket) (nodes' : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"nodes" l) v.nodes' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"nodes" l) nodes' (DFrac.own 1))
@@ -264,7 +282,9 @@ instance Bucket_access_load_FillPercent (l : Loc) (v : go_etcd_io.bbolt.Bucket) 
  by
   solve_pointsto_access_struct
 
-instance Bucket_access_store_FillPercent (l : Loc) (v : go_etcd_io.bbolt.Bucket) (FillPercent' : w64) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) Bucket_access_store_FillPercent (l : Loc) (v : go_etcd_io.bbolt.Bucket) (FillPercent' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"FillPercent" l) v.FillPercent' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"FillPercent" l) FillPercent' (DFrac.own 1))
@@ -316,7 +336,9 @@ instance BucketStats_access_load_BranchPageN (l : Loc) (v : go_etcd_io.bbolt.Buc
  by
   solve_pointsto_access_struct
 
-instance BucketStats_access_store_BranchPageN (l : Loc) (v : go_etcd_io.bbolt.BucketStats) (BranchPageN' : w64) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) BucketStats_access_store_BranchPageN (l : Loc) (v : go_etcd_io.bbolt.BucketStats) (BranchPageN' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.BucketStats go!"BranchPageN" l) v.BranchPageN' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.BucketStats go!"BranchPageN" l) BranchPageN' (DFrac.own 1))
@@ -332,7 +354,9 @@ instance BucketStats_access_load_BranchOverflowN (l : Loc) (v : go_etcd_io.bbolt
  by
   solve_pointsto_access_struct
 
-instance BucketStats_access_store_BranchOverflowN (l : Loc) (v : go_etcd_io.bbolt.BucketStats) (BranchOverflowN' : w64) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) BucketStats_access_store_BranchOverflowN (l : Loc) (v : go_etcd_io.bbolt.BucketStats) (BranchOverflowN' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.BucketStats go!"BranchOverflowN" l) v.BranchOverflowN' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.BucketStats go!"BranchOverflowN" l) BranchOverflowN' (DFrac.own 1))
@@ -348,7 +372,9 @@ instance BucketStats_access_load_LeafPageN (l : Loc) (v : go_etcd_io.bbolt.Bucke
  by
   solve_pointsto_access_struct
 
-instance BucketStats_access_store_LeafPageN (l : Loc) (v : go_etcd_io.bbolt.BucketStats) (LeafPageN' : w64) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) BucketStats_access_store_LeafPageN (l : Loc) (v : go_etcd_io.bbolt.BucketStats) (LeafPageN' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.BucketStats go!"LeafPageN" l) v.LeafPageN' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.BucketStats go!"LeafPageN" l) LeafPageN' (DFrac.own 1))
@@ -364,7 +390,9 @@ instance BucketStats_access_load_LeafOverflowN (l : Loc) (v : go_etcd_io.bbolt.B
  by
   solve_pointsto_access_struct
 
-instance BucketStats_access_store_LeafOverflowN (l : Loc) (v : go_etcd_io.bbolt.BucketStats) (LeafOverflowN' : w64) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) BucketStats_access_store_LeafOverflowN (l : Loc) (v : go_etcd_io.bbolt.BucketStats) (LeafOverflowN' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.BucketStats go!"LeafOverflowN" l) v.LeafOverflowN' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.BucketStats go!"LeafOverflowN" l) LeafOverflowN' (DFrac.own 1))
@@ -380,7 +408,9 @@ instance BucketStats_access_load_KeyN (l : Loc) (v : go_etcd_io.bbolt.BucketStat
  by
   solve_pointsto_access_struct
 
-instance BucketStats_access_store_KeyN (l : Loc) (v : go_etcd_io.bbolt.BucketStats) (KeyN' : w64) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) BucketStats_access_store_KeyN (l : Loc) (v : go_etcd_io.bbolt.BucketStats) (KeyN' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.BucketStats go!"KeyN" l) v.KeyN' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.BucketStats go!"KeyN" l) KeyN' (DFrac.own 1))
@@ -396,7 +426,9 @@ instance BucketStats_access_load_Depth (l : Loc) (v : go_etcd_io.bbolt.BucketSta
  by
   solve_pointsto_access_struct
 
-instance BucketStats_access_store_Depth (l : Loc) (v : go_etcd_io.bbolt.BucketStats) (Depth' : w64) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) BucketStats_access_store_Depth (l : Loc) (v : go_etcd_io.bbolt.BucketStats) (Depth' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.BucketStats go!"Depth" l) v.Depth' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.BucketStats go!"Depth" l) Depth' (DFrac.own 1))
@@ -412,7 +444,9 @@ instance BucketStats_access_load_BranchAlloc (l : Loc) (v : go_etcd_io.bbolt.Buc
  by
   solve_pointsto_access_struct
 
-instance BucketStats_access_store_BranchAlloc (l : Loc) (v : go_etcd_io.bbolt.BucketStats) (BranchAlloc' : w64) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) BucketStats_access_store_BranchAlloc (l : Loc) (v : go_etcd_io.bbolt.BucketStats) (BranchAlloc' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.BucketStats go!"BranchAlloc" l) v.BranchAlloc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.BucketStats go!"BranchAlloc" l) BranchAlloc' (DFrac.own 1))
@@ -428,7 +462,9 @@ instance BucketStats_access_load_BranchInuse (l : Loc) (v : go_etcd_io.bbolt.Buc
  by
   solve_pointsto_access_struct
 
-instance BucketStats_access_store_BranchInuse (l : Loc) (v : go_etcd_io.bbolt.BucketStats) (BranchInuse' : w64) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) BucketStats_access_store_BranchInuse (l : Loc) (v : go_etcd_io.bbolt.BucketStats) (BranchInuse' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.BucketStats go!"BranchInuse" l) v.BranchInuse' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.BucketStats go!"BranchInuse" l) BranchInuse' (DFrac.own 1))
@@ -444,7 +480,9 @@ instance BucketStats_access_load_LeafAlloc (l : Loc) (v : go_etcd_io.bbolt.Bucke
  by
   solve_pointsto_access_struct
 
-instance BucketStats_access_store_LeafAlloc (l : Loc) (v : go_etcd_io.bbolt.BucketStats) (LeafAlloc' : w64) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) BucketStats_access_store_LeafAlloc (l : Loc) (v : go_etcd_io.bbolt.BucketStats) (LeafAlloc' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.BucketStats go!"LeafAlloc" l) v.LeafAlloc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.BucketStats go!"LeafAlloc" l) LeafAlloc' (DFrac.own 1))
@@ -460,7 +498,9 @@ instance BucketStats_access_load_LeafInuse (l : Loc) (v : go_etcd_io.bbolt.Bucke
  by
   solve_pointsto_access_struct
 
-instance BucketStats_access_store_LeafInuse (l : Loc) (v : go_etcd_io.bbolt.BucketStats) (LeafInuse' : w64) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) BucketStats_access_store_LeafInuse (l : Loc) (v : go_etcd_io.bbolt.BucketStats) (LeafInuse' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.BucketStats go!"LeafInuse" l) v.LeafInuse' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.BucketStats go!"LeafInuse" l) LeafInuse' (DFrac.own 1))
@@ -476,7 +516,9 @@ instance BucketStats_access_load_BucketN (l : Loc) (v : go_etcd_io.bbolt.BucketS
  by
   solve_pointsto_access_struct
 
-instance BucketStats_access_store_BucketN (l : Loc) (v : go_etcd_io.bbolt.BucketStats) (BucketN' : w64) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) BucketStats_access_store_BucketN (l : Loc) (v : go_etcd_io.bbolt.BucketStats) (BucketN' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.BucketStats go!"BucketN" l) v.BucketN' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.BucketStats go!"BucketN" l) BucketN' (DFrac.own 1))
@@ -492,7 +534,9 @@ instance BucketStats_access_load_InlineBucketN (l : Loc) (v : go_etcd_io.bbolt.B
  by
   solve_pointsto_access_struct
 
-instance BucketStats_access_store_InlineBucketN (l : Loc) (v : go_etcd_io.bbolt.BucketStats) (InlineBucketN' : w64) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) BucketStats_access_store_InlineBucketN (l : Loc) (v : go_etcd_io.bbolt.BucketStats) (InlineBucketN' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.BucketStats go!"InlineBucketN" l) v.InlineBucketN' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.BucketStats go!"InlineBucketN" l) InlineBucketN' (DFrac.own 1))
@@ -508,7 +552,9 @@ instance BucketStats_access_load_InlineBucketInuse (l : Loc) (v : go_etcd_io.bbo
  by
   solve_pointsto_access_struct
 
-instance BucketStats_access_store_InlineBucketInuse (l : Loc) (v : go_etcd_io.bbolt.BucketStats) (InlineBucketInuse' : w64) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) BucketStats_access_store_InlineBucketInuse (l : Loc) (v : go_etcd_io.bbolt.BucketStats) (InlineBucketInuse' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.BucketStats go!"InlineBucketInuse" l) v.InlineBucketInuse' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.BucketStats go!"InlineBucketInuse" l) InlineBucketInuse' (DFrac.own 1))
@@ -550,7 +596,9 @@ instance BucketStructure_access_load_Name (l : Loc) (v : go_etcd_io.bbolt.Bucket
  by
   solve_pointsto_access_struct
 
-instance BucketStructure_access_store_Name (l : Loc) (v : go_etcd_io.bbolt.BucketStructure) (Name' : GoString) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) BucketStructure_access_store_Name (l : Loc) (v : go_etcd_io.bbolt.BucketStructure) (Name' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.BucketStructure go!"Name" l) v.Name' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.BucketStructure go!"Name" l) Name' (DFrac.own 1))
@@ -566,7 +614,9 @@ instance BucketStructure_access_load_KeyN (l : Loc) (v : go_etcd_io.bbolt.Bucket
  by
   solve_pointsto_access_struct
 
-instance BucketStructure_access_store_KeyN (l : Loc) (v : go_etcd_io.bbolt.BucketStructure) (KeyN' : w64) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) BucketStructure_access_store_KeyN (l : Loc) (v : go_etcd_io.bbolt.BucketStructure) (KeyN' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.BucketStructure go!"KeyN" l) v.KeyN' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.BucketStructure go!"KeyN" l) KeyN' (DFrac.own 1))
@@ -582,7 +632,9 @@ instance BucketStructure_access_load_Children (l : Loc) (v : go_etcd_io.bbolt.Bu
  by
   solve_pointsto_access_struct
 
-instance BucketStructure_access_store_Children (l : Loc) (v : go_etcd_io.bbolt.BucketStructure) (Children' : GoSlice) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) BucketStructure_access_store_Children (l : Loc) (v : go_etcd_io.bbolt.BucketStructure) (Children' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.BucketStructure go!"Children" l) v.Children' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.BucketStructure go!"Children" l) Children' (DFrac.own 1))
@@ -623,7 +675,9 @@ instance Cursor_access_load_bucket (l : Loc) (v : go_etcd_io.bbolt.Cursor) (dq :
  by
   solve_pointsto_access_struct
 
-instance Cursor_access_store_bucket (l : Loc) (v : go_etcd_io.bbolt.Cursor) (bucket' : Loc) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) Cursor_access_store_bucket (l : Loc) (v : go_etcd_io.bbolt.Cursor) (bucket' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.Cursor go!"bucket" l) v.bucket' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.Cursor go!"bucket" l) bucket' (DFrac.own 1))
@@ -639,7 +693,9 @@ instance Cursor_access_load_stack (l : Loc) (v : go_etcd_io.bbolt.Cursor) (dq : 
  by
   solve_pointsto_access_struct
 
-instance Cursor_access_store_stack (l : Loc) (v : go_etcd_io.bbolt.Cursor) (stack' : GoSlice) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) Cursor_access_store_stack (l : Loc) (v : go_etcd_io.bbolt.Cursor) (stack' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.Cursor go!"stack" l) v.stack' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.Cursor go!"stack" l) stack' (DFrac.own 1))
@@ -681,7 +737,9 @@ instance elemRef_access_load_page (l : Loc) (v : go_etcd_io.bbolt.elemRef) (dq :
  by
   solve_pointsto_access_struct
 
-instance elemRef_access_store_page (l : Loc) (v : go_etcd_io.bbolt.elemRef) (page' : Loc) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) elemRef_access_store_page (l : Loc) (v : go_etcd_io.bbolt.elemRef) (page' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.elemRef go!"page" l) v.page' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.elemRef go!"page" l) page' (DFrac.own 1))
@@ -697,7 +755,9 @@ instance elemRef_access_load_node (l : Loc) (v : go_etcd_io.bbolt.elemRef) (dq :
  by
   solve_pointsto_access_struct
 
-instance elemRef_access_store_node (l : Loc) (v : go_etcd_io.bbolt.elemRef) (node' : Loc) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) elemRef_access_store_node (l : Loc) (v : go_etcd_io.bbolt.elemRef) (node' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.elemRef go!"node" l) v.node' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.elemRef go!"node" l) node' (DFrac.own 1))
@@ -713,7 +773,9 @@ instance elemRef_access_load_index (l : Loc) (v : go_etcd_io.bbolt.elemRef) (dq 
  by
   solve_pointsto_access_struct
 
-instance elemRef_access_store_index (l : Loc) (v : go_etcd_io.bbolt.elemRef) (index' : w64) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) elemRef_access_store_index (l : Loc) (v : go_etcd_io.bbolt.elemRef) (index' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.elemRef go!"index" l) v.index' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.elemRef go!"index" l) index' (DFrac.own 1))
@@ -754,7 +816,9 @@ instance call_access_load_fn (l : Loc) (v : go_etcd_io.bbolt.call) (dq : DFrac) 
  by
   solve_pointsto_access_struct
 
-instance call_access_store_fn (l : Loc) (v : go_etcd_io.bbolt.call) (fn' : GoFunc) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) call_access_store_fn (l : Loc) (v : go_etcd_io.bbolt.call) (fn' : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.call go!"fn" l) v.fn' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.call go!"fn" l) fn' (DFrac.own 1))
@@ -770,7 +834,9 @@ instance call_access_load_err (l : Loc) (v : go_etcd_io.bbolt.call) (dq : DFrac)
  by
   solve_pointsto_access_struct
 
-instance call_access_store_err (l : Loc) (v : go_etcd_io.bbolt.call) (err' : GoChan) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) call_access_store_err (l : Loc) (v : go_etcd_io.bbolt.call) (err' : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.call go!"err" l) v.err' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.call go!"err" l) err' (DFrac.own 1))
@@ -813,7 +879,9 @@ instance batch_access_load_db (l : Loc) (v : go_etcd_io.bbolt.batch) (dq : DFrac
  by
   solve_pointsto_access_struct
 
-instance batch_access_store_db (l : Loc) (v : go_etcd_io.bbolt.batch) (db' : Loc) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) batch_access_store_db (l : Loc) (v : go_etcd_io.bbolt.batch) (db' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.batch go!"db" l) v.db' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.batch go!"db" l) db' (DFrac.own 1))
@@ -829,7 +897,9 @@ instance batch_access_load_timer (l : Loc) (v : go_etcd_io.bbolt.batch) (dq : DF
  by
   solve_pointsto_access_struct
 
-instance batch_access_store_timer (l : Loc) (v : go_etcd_io.bbolt.batch) (timer' : Loc) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) batch_access_store_timer (l : Loc) (v : go_etcd_io.bbolt.batch) (timer' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.batch go!"timer" l) v.timer' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.batch go!"timer" l) timer' (DFrac.own 1))
@@ -845,7 +915,9 @@ instance batch_access_load_start (l : Loc) (v : go_etcd_io.bbolt.batch) (dq : DF
  by
   solve_pointsto_access_struct
 
-instance batch_access_store_start (l : Loc) (v : go_etcd_io.bbolt.batch) (start' : sync.Once) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) batch_access_store_start (l : Loc) (v : go_etcd_io.bbolt.batch) (start' : sync.Once) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.batch go!"start" l) v.start' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.batch go!"start" l) start' (DFrac.own 1))
@@ -861,7 +933,9 @@ instance batch_access_load_calls (l : Loc) (v : go_etcd_io.bbolt.batch) (dq : DF
  by
   solve_pointsto_access_struct
 
-instance batch_access_store_calls (l : Loc) (v : go_etcd_io.bbolt.batch) (calls' : GoSlice) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) batch_access_store_calls (l : Loc) (v : go_etcd_io.bbolt.batch) (calls' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.batch go!"calls" l) v.calls' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.batch go!"calls" l) calls' (DFrac.own 1))
@@ -901,7 +975,9 @@ instance panicked_access_load_reason (l : Loc) (v : go_etcd_io.bbolt.panicked) (
  by
   solve_pointsto_access_struct
 
-instance panicked_access_store_reason (l : Loc) (v : go_etcd_io.bbolt.panicked) (reason' : GoInterface) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) panicked_access_store_reason (l : Loc) (v : go_etcd_io.bbolt.panicked) (reason' : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.panicked go!"reason" l) v.reason' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.panicked go!"reason" l) reason' (DFrac.own 1))
@@ -952,7 +1028,9 @@ instance TxStats_access_load_PageCount (l : Loc) (v : go_etcd_io.bbolt.TxStats) 
  by
   solve_pointsto_access_struct
 
-instance TxStats_access_store_PageCount (l : Loc) (v : go_etcd_io.bbolt.TxStats) (PageCount' : w64) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) TxStats_access_store_PageCount (l : Loc) (v : go_etcd_io.bbolt.TxStats) (PageCount' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"PageCount" l) v.PageCount' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"PageCount" l) PageCount' (DFrac.own 1))
@@ -968,7 +1046,9 @@ instance TxStats_access_load_PageAlloc (l : Loc) (v : go_etcd_io.bbolt.TxStats) 
  by
   solve_pointsto_access_struct
 
-instance TxStats_access_store_PageAlloc (l : Loc) (v : go_etcd_io.bbolt.TxStats) (PageAlloc' : w64) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) TxStats_access_store_PageAlloc (l : Loc) (v : go_etcd_io.bbolt.TxStats) (PageAlloc' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"PageAlloc" l) v.PageAlloc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"PageAlloc" l) PageAlloc' (DFrac.own 1))
@@ -984,7 +1064,9 @@ instance TxStats_access_load_CursorCount (l : Loc) (v : go_etcd_io.bbolt.TxStats
  by
   solve_pointsto_access_struct
 
-instance TxStats_access_store_CursorCount (l : Loc) (v : go_etcd_io.bbolt.TxStats) (CursorCount' : w64) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) TxStats_access_store_CursorCount (l : Loc) (v : go_etcd_io.bbolt.TxStats) (CursorCount' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"CursorCount" l) v.CursorCount' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"CursorCount" l) CursorCount' (DFrac.own 1))
@@ -1000,7 +1082,9 @@ instance TxStats_access_load_NodeCount (l : Loc) (v : go_etcd_io.bbolt.TxStats) 
  by
   solve_pointsto_access_struct
 
-instance TxStats_access_store_NodeCount (l : Loc) (v : go_etcd_io.bbolt.TxStats) (NodeCount' : w64) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) TxStats_access_store_NodeCount (l : Loc) (v : go_etcd_io.bbolt.TxStats) (NodeCount' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"NodeCount" l) v.NodeCount' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"NodeCount" l) NodeCount' (DFrac.own 1))
@@ -1016,7 +1100,9 @@ instance TxStats_access_load_NodeDeref (l : Loc) (v : go_etcd_io.bbolt.TxStats) 
  by
   solve_pointsto_access_struct
 
-instance TxStats_access_store_NodeDeref (l : Loc) (v : go_etcd_io.bbolt.TxStats) (NodeDeref' : w64) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) TxStats_access_store_NodeDeref (l : Loc) (v : go_etcd_io.bbolt.TxStats) (NodeDeref' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"NodeDeref" l) v.NodeDeref' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"NodeDeref" l) NodeDeref' (DFrac.own 1))
@@ -1032,7 +1118,9 @@ instance TxStats_access_load_Rebalance (l : Loc) (v : go_etcd_io.bbolt.TxStats) 
  by
   solve_pointsto_access_struct
 
-instance TxStats_access_store_Rebalance (l : Loc) (v : go_etcd_io.bbolt.TxStats) (Rebalance' : w64) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) TxStats_access_store_Rebalance (l : Loc) (v : go_etcd_io.bbolt.TxStats) (Rebalance' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"Rebalance" l) v.Rebalance' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"Rebalance" l) Rebalance' (DFrac.own 1))
@@ -1048,7 +1136,9 @@ instance TxStats_access_load_RebalanceTime (l : Loc) (v : go_etcd_io.bbolt.TxSta
  by
   solve_pointsto_access_struct
 
-instance TxStats_access_store_RebalanceTime (l : Loc) (v : go_etcd_io.bbolt.TxStats) (RebalanceTime' : time.Duration) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) TxStats_access_store_RebalanceTime (l : Loc) (v : go_etcd_io.bbolt.TxStats) (RebalanceTime' : time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"RebalanceTime" l) v.RebalanceTime' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"RebalanceTime" l) RebalanceTime' (DFrac.own 1))
@@ -1064,7 +1154,9 @@ instance TxStats_access_load_Split (l : Loc) (v : go_etcd_io.bbolt.TxStats) (dq 
  by
   solve_pointsto_access_struct
 
-instance TxStats_access_store_Split (l : Loc) (v : go_etcd_io.bbolt.TxStats) (Split' : w64) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) TxStats_access_store_Split (l : Loc) (v : go_etcd_io.bbolt.TxStats) (Split' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"Split" l) v.Split' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"Split" l) Split' (DFrac.own 1))
@@ -1080,7 +1172,9 @@ instance TxStats_access_load_Spill (l : Loc) (v : go_etcd_io.bbolt.TxStats) (dq 
  by
   solve_pointsto_access_struct
 
-instance TxStats_access_store_Spill (l : Loc) (v : go_etcd_io.bbolt.TxStats) (Spill' : w64) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) TxStats_access_store_Spill (l : Loc) (v : go_etcd_io.bbolt.TxStats) (Spill' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"Spill" l) v.Spill' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"Spill" l) Spill' (DFrac.own 1))
@@ -1096,7 +1190,9 @@ instance TxStats_access_load_SpillTime (l : Loc) (v : go_etcd_io.bbolt.TxStats) 
  by
   solve_pointsto_access_struct
 
-instance TxStats_access_store_SpillTime (l : Loc) (v : go_etcd_io.bbolt.TxStats) (SpillTime' : time.Duration) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) TxStats_access_store_SpillTime (l : Loc) (v : go_etcd_io.bbolt.TxStats) (SpillTime' : time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"SpillTime" l) v.SpillTime' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"SpillTime" l) SpillTime' (DFrac.own 1))
@@ -1112,7 +1208,9 @@ instance TxStats_access_load_Write (l : Loc) (v : go_etcd_io.bbolt.TxStats) (dq 
  by
   solve_pointsto_access_struct
 
-instance TxStats_access_store_Write (l : Loc) (v : go_etcd_io.bbolt.TxStats) (Write' : w64) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) TxStats_access_store_Write (l : Loc) (v : go_etcd_io.bbolt.TxStats) (Write' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"Write" l) v.Write' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"Write" l) Write' (DFrac.own 1))
@@ -1128,7 +1226,9 @@ instance TxStats_access_load_WriteTime (l : Loc) (v : go_etcd_io.bbolt.TxStats) 
  by
   solve_pointsto_access_struct
 
-instance TxStats_access_store_WriteTime (l : Loc) (v : go_etcd_io.bbolt.TxStats) (WriteTime' : time.Duration) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) TxStats_access_store_WriteTime (l : Loc) (v : go_etcd_io.bbolt.TxStats) (WriteTime' : time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"WriteTime" l) v.WriteTime' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"WriteTime" l) WriteTime' (DFrac.own 1))
@@ -1169,7 +1269,9 @@ instance Info_access_load_Data (l : Loc) (v : go_etcd_io.bbolt.Info) (dq : DFrac
  by
   solve_pointsto_access_struct
 
-instance Info_access_store_Data (l : Loc) (v : go_etcd_io.bbolt.Info) (Data' : w64) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) Info_access_store_Data (l : Loc) (v : go_etcd_io.bbolt.Info) (Data' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.Info go!"Data" l) v.Data' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.Info go!"Data" l) Data' (DFrac.own 1))
@@ -1185,7 +1287,9 @@ instance Info_access_load_PageSize (l : Loc) (v : go_etcd_io.bbolt.Info) (dq : D
  by
   solve_pointsto_access_struct
 
-instance Info_access_store_PageSize (l : Loc) (v : go_etcd_io.bbolt.Info) (PageSize' : w64) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) Info_access_store_PageSize (l : Loc) (v : go_etcd_io.bbolt.Info) (PageSize' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.Info go!"PageSize" l) v.PageSize' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.Info go!"PageSize" l) PageSize' (DFrac.own 1))
@@ -1226,7 +1330,9 @@ instance DefaultLogger_access_load_Logger (l : Loc) (v : go_etcd_io.bbolt.Defaul
  by
   solve_pointsto_access_struct
 
-instance DefaultLogger_access_store_Logger (l : Loc) (v : go_etcd_io.bbolt.DefaultLogger) (Logger' : Loc) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) DefaultLogger_access_store_Logger (l : Loc) (v : go_etcd_io.bbolt.DefaultLogger) (Logger' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.DefaultLogger go!"Logger" l) v.Logger' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.DefaultLogger go!"Logger" l) Logger' (DFrac.own 1))
@@ -1242,7 +1348,9 @@ instance DefaultLogger_access_load_debug (l : Loc) (v : go_etcd_io.bbolt.Default
  by
   solve_pointsto_access_struct
 
-instance DefaultLogger_access_store_debug (l : Loc) (v : go_etcd_io.bbolt.DefaultLogger) (debug' : Bool) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) DefaultLogger_access_store_debug (l : Loc) (v : go_etcd_io.bbolt.DefaultLogger) (debug' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.DefaultLogger go!"debug" l) v.debug' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.DefaultLogger go!"debug" l) debug' (DFrac.own 1))

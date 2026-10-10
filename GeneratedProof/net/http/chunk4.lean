@@ -47,7 +47,9 @@ instance fileHandler_access_load_root (l : Loc) (v : net.http.fileHandler) (dq :
  by
   solve_pointsto_access_struct
 
-instance fileHandler_access_store_root (l : Loc) (v : net.http.fileHandler) (root' : net.http.FileSystem) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) fileHandler_access_store_root (l : Loc) (v : net.http.fileHandler) (root' : net.http.FileSystem) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.fileHandler go!"root" l) v.root' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.fileHandler go!"root" l) root' (DFrac.own 1))
@@ -88,7 +90,9 @@ instance PushOptions_access_load_Method (l : Loc) (v : net.http.PushOptions) (dq
  by
   solve_pointsto_access_struct
 
-instance PushOptions_access_store_Method (l : Loc) (v : net.http.PushOptions) (Method' : GoString) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) PushOptions_access_store_Method (l : Loc) (v : net.http.PushOptions) (Method' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.PushOptions go!"Method" l) v.Method' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.PushOptions go!"Method" l) Method' (DFrac.own 1))
@@ -104,7 +108,9 @@ instance PushOptions_access_load_Header (l : Loc) (v : net.http.PushOptions) (dq
  by
   solve_pointsto_access_struct
 
-instance PushOptions_access_store_Header (l : Loc) (v : net.http.PushOptions) (Header' : net.http.Header) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) PushOptions_access_store_Header (l : Loc) (v : net.http.PushOptions) (Header' : net.http.Header) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.PushOptions go!"Header" l) v.Header' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.PushOptions go!"Header" l) Header' (DFrac.own 1))
@@ -144,7 +150,9 @@ instance http2Handler_access_load_h (l : Loc) (v : net.http.http2Handler) (dq : 
  by
   solve_pointsto_access_struct
 
-instance http2Handler_access_store_h (l : Loc) (v : net.http.http2Handler) (h' : net.http.Handler) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) http2Handler_access_store_h (l : Loc) (v : net.http.http2Handler) (h' : net.http.Handler) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.http2Handler go!"h" l) v.h' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.http2Handler go!"h" l) h' (DFrac.own 1))
@@ -184,7 +192,9 @@ instance ResponseController_access_load_rw (l : Loc) (v : net.http.ResponseContr
  by
   solve_pointsto_access_struct
 
-instance ResponseController_access_store_rw (l : Loc) (v : net.http.ResponseController) (rw' : net.http.ResponseWriter) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) ResponseController_access_store_rw (l : Loc) (v : net.http.ResponseController) (rw' : net.http.ResponseWriter) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.ResponseController go!"rw" l) v.rw' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.ResponseController go!"rw" l) rw' (DFrac.own 1))
@@ -228,7 +238,9 @@ instance routingNode_access_load_pattern (l : Loc) (v : net.http.routingNode) (d
  by
   solve_pointsto_access_struct
 
-instance routingNode_access_store_pattern (l : Loc) (v : net.http.routingNode) (pattern' : Loc) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) routingNode_access_store_pattern (l : Loc) (v : net.http.routingNode) (pattern' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.routingNode go!"pattern" l) v.pattern' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.routingNode go!"pattern" l) pattern' (DFrac.own 1))
@@ -244,7 +256,9 @@ instance routingNode_access_load_handler (l : Loc) (v : net.http.routingNode) (d
  by
   solve_pointsto_access_struct
 
-instance routingNode_access_store_handler (l : Loc) (v : net.http.routingNode) (handler' : net.http.Handler) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) routingNode_access_store_handler (l : Loc) (v : net.http.routingNode) (handler' : net.http.Handler) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.routingNode go!"handler" l) v.handler' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.routingNode go!"handler" l) handler' (DFrac.own 1))
@@ -260,7 +274,9 @@ instance routingNode_access_load_children (l : Loc) (v : net.http.routingNode) (
  by
   solve_pointsto_access_struct
 
-instance routingNode_access_store_children (l : Loc) (v : net.http.routingNode) (children' : (net.http.mapping GoString Loc)) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) routingNode_access_store_children (l : Loc) (v : net.http.routingNode) (children' : (net.http.mapping GoString Loc)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.routingNode go!"children" l) v.children' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.routingNode go!"children" l) children' (DFrac.own 1))
@@ -276,7 +292,9 @@ instance routingNode_access_load_multiChild (l : Loc) (v : net.http.routingNode)
  by
   solve_pointsto_access_struct
 
-instance routingNode_access_store_multiChild (l : Loc) (v : net.http.routingNode) (multiChild' : Loc) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) routingNode_access_store_multiChild (l : Loc) (v : net.http.routingNode) (multiChild' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.routingNode go!"multiChild" l) v.multiChild' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.routingNode go!"multiChild" l) multiChild' (DFrac.own 1))
@@ -292,7 +310,9 @@ instance routingNode_access_load_emptyChild (l : Loc) (v : net.http.routingNode)
  by
   solve_pointsto_access_struct
 
-instance routingNode_access_store_emptyChild (l : Loc) (v : net.http.routingNode) (emptyChild' : Loc) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) routingNode_access_store_emptyChild (l : Loc) (v : net.http.routingNode) (emptyChild' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.routingNode go!"emptyChild" l) v.emptyChild' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.routingNode go!"emptyChild" l) emptyChild' (DFrac.own 1))
@@ -333,7 +353,9 @@ instance muxEntry_access_load_h (l : Loc) (v : net.http.muxEntry) (dq : DFrac) :
  by
   solve_pointsto_access_struct
 
-instance muxEntry_access_store_h (l : Loc) (v : net.http.muxEntry) (h' : net.http.Handler) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) muxEntry_access_store_h (l : Loc) (v : net.http.muxEntry) (h' : net.http.Handler) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.muxEntry go!"h" l) v.h' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.muxEntry go!"h" l) h' (DFrac.own 1))
@@ -349,7 +371,9 @@ instance muxEntry_access_load_pattern (l : Loc) (v : net.http.muxEntry) (dq : DF
  by
   solve_pointsto_access_struct
 
-instance muxEntry_access_store_pattern (l : Loc) (v : net.http.muxEntry) (pattern' : GoString) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) muxEntry_access_store_pattern (l : Loc) (v : net.http.muxEntry) (pattern' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.muxEntry go!"pattern" l) v.pattern' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.muxEntry go!"pattern" l) pattern' (DFrac.own 1))
@@ -392,7 +416,9 @@ instance chunkWriter_access_load_res (l : Loc) (v : net.http.chunkWriter) (dq : 
  by
   solve_pointsto_access_struct
 
-instance chunkWriter_access_store_res (l : Loc) (v : net.http.chunkWriter) (res' : Loc) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) chunkWriter_access_store_res (l : Loc) (v : net.http.chunkWriter) (res' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.chunkWriter go!"res" l) v.res' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.chunkWriter go!"res" l) res' (DFrac.own 1))
@@ -408,7 +434,9 @@ instance chunkWriter_access_load_header (l : Loc) (v : net.http.chunkWriter) (dq
  by
   solve_pointsto_access_struct
 
-instance chunkWriter_access_store_header (l : Loc) (v : net.http.chunkWriter) (header' : net.http.Header) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) chunkWriter_access_store_header (l : Loc) (v : net.http.chunkWriter) (header' : net.http.Header) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.chunkWriter go!"header" l) v.header' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.chunkWriter go!"header" l) header' (DFrac.own 1))
@@ -424,7 +452,9 @@ instance chunkWriter_access_load_wroteHeader (l : Loc) (v : net.http.chunkWriter
  by
   solve_pointsto_access_struct
 
-instance chunkWriter_access_store_wroteHeader (l : Loc) (v : net.http.chunkWriter) (wroteHeader' : Bool) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) chunkWriter_access_store_wroteHeader (l : Loc) (v : net.http.chunkWriter) (wroteHeader' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.chunkWriter go!"wroteHeader" l) v.wroteHeader' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.chunkWriter go!"wroteHeader" l) wroteHeader' (DFrac.own 1))
@@ -440,7 +470,9 @@ instance chunkWriter_access_load_chunking (l : Loc) (v : net.http.chunkWriter) (
  by
   solve_pointsto_access_struct
 
-instance chunkWriter_access_store_chunking (l : Loc) (v : net.http.chunkWriter) (chunking' : Bool) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) chunkWriter_access_store_chunking (l : Loc) (v : net.http.chunkWriter) (chunking' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.chunkWriter go!"chunking" l) v.chunking' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.chunkWriter go!"chunking" l) chunking' (DFrac.own 1))
@@ -483,7 +515,9 @@ instance readResult_access_load__0 (l : Loc) (v : net.http.readResult) (dq : DFr
  by
   solve_pointsto_access_struct
 
-instance readResult_access_store__0 (l : Loc) (v : net.http.readResult) (_0' : net.http.incomparable) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) readResult_access_store__0 (l : Loc) (v : net.http.readResult) (_0' : net.http.incomparable) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.readResult go!"_0" l) v._0' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.readResult go!"_0" l) _0' (DFrac.own 1))
@@ -499,7 +533,9 @@ instance readResult_access_load_n (l : Loc) (v : net.http.readResult) (dq : DFra
  by
   solve_pointsto_access_struct
 
-instance readResult_access_store_n (l : Loc) (v : net.http.readResult) (n' : w64) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) readResult_access_store_n (l : Loc) (v : net.http.readResult) (n' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.readResult go!"n" l) v.n' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.readResult go!"n" l) n' (DFrac.own 1))
@@ -515,7 +551,9 @@ instance readResult_access_load_err (l : Loc) (v : net.http.readResult) (dq : DF
  by
   solve_pointsto_access_struct
 
-instance readResult_access_store_err (l : Loc) (v : net.http.readResult) (err' : GoError) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) readResult_access_store_err (l : Loc) (v : net.http.readResult) (err' : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.readResult go!"err" l) v.err' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.readResult go!"err" l) err' (DFrac.own 1))
@@ -531,7 +569,9 @@ instance readResult_access_load_b (l : Loc) (v : net.http.readResult) (dq : DFra
  by
   solve_pointsto_access_struct
 
-instance readResult_access_store_b (l : Loc) (v : net.http.readResult) (b' : w8) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) readResult_access_store_b (l : Loc) (v : net.http.readResult) (b' : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.readResult go!"b" l) v.b' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.readResult go!"b" l) b' (DFrac.own 1))
@@ -573,7 +613,9 @@ instance responseAndError_access_load__0 (l : Loc) (v : net.http.responseAndErro
  by
   solve_pointsto_access_struct
 
-instance responseAndError_access_store__0 (l : Loc) (v : net.http.responseAndError) (_0' : net.http.incomparable) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) responseAndError_access_store__0 (l : Loc) (v : net.http.responseAndError) (_0' : net.http.incomparable) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.responseAndError go!"_0" l) v._0' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.responseAndError go!"_0" l) _0' (DFrac.own 1))
@@ -589,7 +631,9 @@ instance responseAndError_access_load_res (l : Loc) (v : net.http.responseAndErr
  by
   solve_pointsto_access_struct
 
-instance responseAndError_access_store_res (l : Loc) (v : net.http.responseAndError) (res' : Loc) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) responseAndError_access_store_res (l : Loc) (v : net.http.responseAndError) (res' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.responseAndError go!"res" l) v.res' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.responseAndError go!"res" l) res' (DFrac.own 1))
@@ -605,7 +649,9 @@ instance responseAndError_access_load_err (l : Loc) (v : net.http.responseAndErr
  by
   solve_pointsto_access_struct
 
-instance responseAndError_access_store_err (l : Loc) (v : net.http.responseAndError) (err' : GoError) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) responseAndError_access_store_err (l : Loc) (v : net.http.responseAndError) (err' : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.responseAndError go!"err" l) v.err' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.responseAndError go!"err" l) err' (DFrac.own 1))
@@ -650,7 +696,9 @@ instance requestAndChan_access_load__0 (l : Loc) (v : net.http.requestAndChan) (
  by
   solve_pointsto_access_struct
 
-instance requestAndChan_access_store__0 (l : Loc) (v : net.http.requestAndChan) (_0' : net.http.incomparable) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) requestAndChan_access_store__0 (l : Loc) (v : net.http.requestAndChan) (_0' : net.http.incomparable) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.requestAndChan go!"_0" l) v._0' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.requestAndChan go!"_0" l) _0' (DFrac.own 1))
@@ -666,7 +714,9 @@ instance requestAndChan_access_load_treq (l : Loc) (v : net.http.requestAndChan)
  by
   solve_pointsto_access_struct
 
-instance requestAndChan_access_store_treq (l : Loc) (v : net.http.requestAndChan) (treq' : Loc) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) requestAndChan_access_store_treq (l : Loc) (v : net.http.requestAndChan) (treq' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.requestAndChan go!"treq" l) v.treq' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.requestAndChan go!"treq" l) treq' (DFrac.own 1))
@@ -682,7 +732,9 @@ instance requestAndChan_access_load_ch (l : Loc) (v : net.http.requestAndChan) (
  by
   solve_pointsto_access_struct
 
-instance requestAndChan_access_store_ch (l : Loc) (v : net.http.requestAndChan) (ch' : GoChan) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) requestAndChan_access_store_ch (l : Loc) (v : net.http.requestAndChan) (ch' : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.requestAndChan go!"ch" l) v.ch' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.requestAndChan go!"ch" l) ch' (DFrac.own 1))
@@ -698,7 +750,9 @@ instance requestAndChan_access_load_addedGzip (l : Loc) (v : net.http.requestAnd
  by
   solve_pointsto_access_struct
 
-instance requestAndChan_access_store_addedGzip (l : Loc) (v : net.http.requestAndChan) (addedGzip' : Bool) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) requestAndChan_access_store_addedGzip (l : Loc) (v : net.http.requestAndChan) (addedGzip' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.requestAndChan go!"addedGzip" l) v.addedGzip' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.requestAndChan go!"addedGzip" l) addedGzip' (DFrac.own 1))
@@ -714,7 +768,9 @@ instance requestAndChan_access_load_continueCh (l : Loc) (v : net.http.requestAn
  by
   solve_pointsto_access_struct
 
-instance requestAndChan_access_store_continueCh (l : Loc) (v : net.http.requestAndChan) (continueCh' : GoChan) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) requestAndChan_access_store_continueCh (l : Loc) (v : net.http.requestAndChan) (continueCh' : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.requestAndChan go!"continueCh" l) v.continueCh' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.requestAndChan go!"continueCh" l) continueCh' (DFrac.own 1))
@@ -730,7 +786,9 @@ instance requestAndChan_access_load_callerGone (l : Loc) (v : net.http.requestAn
  by
   solve_pointsto_access_struct
 
-instance requestAndChan_access_store_callerGone (l : Loc) (v : net.http.requestAndChan) (callerGone' : GoChan) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) requestAndChan_access_store_callerGone (l : Loc) (v : net.http.requestAndChan) (callerGone' : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.requestAndChan go!"callerGone" l) v.callerGone' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.requestAndChan go!"callerGone" l) callerGone' (DFrac.own 1))

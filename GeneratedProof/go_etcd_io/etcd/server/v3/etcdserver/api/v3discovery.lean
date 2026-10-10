@@ -67,7 +67,9 @@ instance memberInfo_access_load_peerRegKey (l : Loc) (v : go_etcd_io.etcd.server
  by
   solve_pointsto_access_struct
 
-instance memberInfo_access_store_peerRegKey (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.memberInfo) (peerRegKey' : GoString) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) memberInfo_access_store_peerRegKey (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.memberInfo) (peerRegKey' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.memberInfo go!"peerRegKey" l) v.peerRegKey' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.memberInfo go!"peerRegKey" l) peerRegKey' (DFrac.own 1))
@@ -83,7 +85,9 @@ instance memberInfo_access_load_peerURLsMap (l : Loc) (v : go_etcd_io.etcd.serve
  by
   solve_pointsto_access_struct
 
-instance memberInfo_access_store_peerURLsMap (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.memberInfo) (peerURLsMap' : GoString) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) memberInfo_access_store_peerURLsMap (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.memberInfo) (peerURLsMap' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.memberInfo go!"peerURLsMap" l) v.peerURLsMap' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.memberInfo go!"peerURLsMap" l) peerURLsMap' (DFrac.own 1))
@@ -99,7 +103,9 @@ instance memberInfo_access_load_createRev (l : Loc) (v : go_etcd_io.etcd.server.
  by
   solve_pointsto_access_struct
 
-instance memberInfo_access_store_createRev (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.memberInfo) (createRev' : w64) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) memberInfo_access_store_createRev (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.memberInfo) (createRev' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.memberInfo go!"createRev" l) v.createRev' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.memberInfo go!"createRev" l) createRev' (DFrac.own 1))
@@ -140,7 +146,9 @@ instance clusterInfo_access_load_clusterToken (l : Loc) (v : go_etcd_io.etcd.ser
  by
   solve_pointsto_access_struct
 
-instance clusterInfo_access_store_clusterToken (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.clusterInfo) (clusterToken' : GoString) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) clusterInfo_access_store_clusterToken (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.clusterInfo) (clusterToken' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.clusterInfo go!"clusterToken" l) v.clusterToken' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.clusterInfo go!"clusterToken" l) clusterToken' (DFrac.own 1))
@@ -156,7 +164,9 @@ instance clusterInfo_access_load_members (l : Loc) (v : go_etcd_io.etcd.server.v
  by
   solve_pointsto_access_struct
 
-instance clusterInfo_access_store_members (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.clusterInfo) (members' : GoSlice) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) clusterInfo_access_store_members (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.clusterInfo) (members' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.clusterInfo go!"members" l) v.members' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.clusterInfo go!"members" l) members' (DFrac.own 1))

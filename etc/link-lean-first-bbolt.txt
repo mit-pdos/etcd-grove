@@ -1,0 +1,67 @@
+# bbolt's functions (go.etcd.io/bbolt, all Lean-first), read by `etc/gen-link.py --bbolt`:
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
+# internal/common: the sorted merge of page ids, unsafe.go's pointer arithmetic, the
+# accessors of the on-disk structs.
+common_Mergepgids:
+common_UnsafeAdd:
+common_UnsafeIndex:
+common_UnsafeByteSlice: common_UnsafeAdd
+Page__Id:
+Page__SetId:
+Page__Flags:
+Page__SetFlags:
+Page__Count:
+Page__SetCount:
+Page__Overflow:
+Page__SetOverflow:
+Page__IsBranchPage:
+Page__IsLeafPage:
+Page__IsMetaPage:
+Page__IsFreelistPage:
+Page__IsValidPage: Page__IsBranchPage Page__IsLeafPage Page__IsMetaPage Page__IsFreelistPage
+Page__Meta: common_UnsafeAdd
+Page__LeafPageElement: common_UnsafeIndex
+Page__BranchPageElement: common_UnsafeIndex
+Page__PageElementSize: Page__IsLeafPage
+branchPageElement__Pos:
+branchPageElement__SetPos:
+branchPageElement__Ksize:
+branchPageElement__SetKsize:
+branchPageElement__Pgid:
+branchPageElement__SetPgid:
+leafPageElement__Flags:
+leafPageElement__SetFlags:
+leafPageElement__Pos:
+leafPageElement__SetPos:
+leafPageElement__Ksize:
+leafPageElement__SetKsize:
+leafPageElement__Vsize:
+leafPageElement__SetVsize:
+Meta__Magic:
+Meta__SetMagic:
+Meta__Version:
+Meta__SetVersion:
+Meta__PageSize:
+Meta__SetPageSize:
+Meta__Flags:
+Meta__SetFlags:
+Meta__Freelist:
+Meta__SetFreelist:
+Meta__Pgid:
+Meta__SetPgid:
+Meta__Txid:
+Meta__SetTxid:
+Meta__Checksum:
+Meta__SetChecksum:
+InBucket__RootPage:
+InBucket__SetRootPage:
+InBucket__InSequence:
+InBucket__SetInSequence:
+Inode__Flags:
+Inode__SetFlags:
+Inode__Pgid:
+Inode__SetPgid:
+Inode__Key:
+Inode__SetKey:
+Inode__Value:
+Inode__SetValue:

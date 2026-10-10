@@ -93,7 +93,9 @@ instance Field_access_load_Key (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.F
  by
   solve_pointsto_access_struct
 
-instance Field_access_store_Key (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Field) (Key' : GoString) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) Field_access_store_Key (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Field) (Key' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Field go!"Key" l) v.Key' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Field go!"Key" l) Key' (DFrac.own 1))
@@ -109,7 +111,9 @@ instance Field_access_load_Value (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil
  by
   solve_pointsto_access_struct
 
-instance Field_access_store_Value (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Field) (Value' : GoInterface) :
+-- below the load instance, which a load must find (with `dq`): the store instance
+-- also matches a load (storing the same value), but only at `DFrac.own 1`
+instance (priority := low) Field_access_store_Value (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Field) (Value' : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Field go!"Value" l) v.Value' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Field go!"Value" l) Value' (DFrac.own 1))
