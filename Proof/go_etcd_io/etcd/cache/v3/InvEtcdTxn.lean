@@ -112,8 +112,9 @@ def cmpHolds (s : List EtcdKv) (c : CmpModel) : Bool :=
 /-! ## Transactions -/
 
 /-- An operation of a transaction: a get (a range request, with its `Op`'s model), a put of a
-key's value with a lease (`0`: none), a delete (a range), or a put that keeps the key's lease
-(`WithIgnoreLease`). -/
+key's value with a lease (`0`: none), a delete (a range), a put that keeps the key's lease
+(`WithIgnoreLease`), a put that keeps the key's value (`WithIgnoreValue`), or a nested
+transaction (`OpTxn(cmps, thenOps, elseOps)`). -/
 inductive TxnOp where
   | get (o : OpFull)
   | put (key value : GoString) (lease : w64)
@@ -122,6 +123,13 @@ inductive TxnOp where
   transaction (an error) if the key does not exist (`ErrKeyNotFound`); the model then gives it no
   lease, which no successful response claims. -/
   | putKeep (key value : GoString)
+  /-- `OpPut(key, "", WithIgnoreValue(), ...)`: the key keeps its value, and its lease too if
+  `lease` is `none` (`WithIgnoreLease()`), otherwise gets `lease`. etcd fails the whole transaction
+  if the key does not exist (`ErrKeyNotFound`); the model then gives it the empty value. -/
+  | putIgnVal (key : GoString) (lease : Option w64)
+  /-- A nested transaction, `OpTxn(cmps, thenOps, elseOps)`: run as etcd runs it, at the same
+  revision, on the state the operations before it left, its comparisons choosing the branch. -/
+  | txn (cmps : List CmpModel) (thenOps elseOps : List TxnOp)
 
 /-- A transaction: `If(cmps...).Then(thenOps...).Else(elseOps...)`. -/
 structure TxnModel where
@@ -133,22 +141,29 @@ structure TxnModel where
 def TxnModel.empty : TxnModel := { cmps := [], thenOps := [], elseOps := [] }
 
 /-- The result of an operation: a get's selected key-values (in key order) and the number of keys
-in its range; a put; a delete's number of deleted keys. -/
+in its range; a put; a delete's number of deleted keys; a nested transaction's outcome (whether its
+comparisons held) and its chosen branch's results. -/
 inductive TxnOpResult where
   | range (sel : List EtcdKv) (count : Nat)
   | put
   | delete (deleted : Nat)
+  | txn (ok : Bool) (rs : List TxnOpResult)
 
 /-- The operation an `Op` (`Then`'s and `Else`'s arguments) stands for in a transaction: a range
-at the current revision, a put (without `WithIgnoreValue`; with `WithIgnoreLease` and no lease, a
-put keeping the key's lease), a delete; nothing for a nested transaction or another revision (not
-modelled). -/
+at the current revision, a put (with `WithIgnoreLease` and no lease, a put keeping the key's lease;
+with `WithIgnoreValue` and no value, a put keeping its value), a delete; nothing for another
+revision or what etcd rejects (a value with `WithIgnoreValue`, a lease with `WithIgnoreLease`). A
+nested transaction's `Op` has no `OpFull` model of its own: `OpT` (below) describes it. -/
 def txnOpOf (o : OpFull) : Option TxnOp :=
   if o.t = W64 1 then (if o.base.rev = W64 0 then some (.get o) else none)
   else if o.t = W64 2 then
     (if o.ignoreValue = false ∧ o.ignoreLease = false then some (.put o.key o.val o.leaseID)
      else if o.ignoreValue = false ∧ o.ignoreLease = true ∧ o.leaseID = W64 0 then
        some (.putKeep o.key o.val)
+     else if o.ignoreValue = true ∧ o.val = [] ∧ o.ignoreLease = false then
+       some (.putIgnVal o.key (some o.leaseID))
+     else if o.ignoreValue = true ∧ o.val = [] ∧ o.ignoreLease = true ∧ o.leaseID = W64 0 then
+       some (.putIgnVal o.key none)
      else none)
   else if o.t = W64 3 then some (.delete o)
   else none
@@ -161,6 +176,7 @@ def putKv (r : w64) (key value : GoString) (lease : w64) (s : List EtcdKv) : Lis
                 lease := lease }
   btInsert etcdKvLess nv s
 
+mutual
 /-- One operation, at revision `r`, on the state `s`: the state after it and its result. -/
 def applyTxnOp (r : w64) (s : List EtcdKv) : TxnOp → List EtcdKv × TxnOpResult
   | .get o => (s, .range (rangeSel s o) (rangeIn s o).length)
@@ -169,6 +185,13 @@ def applyTxnOp (r : w64) (s : List EtcdKv) : TxnOp → List EtcdKv × TxnOpResul
     (putKv r k v (((s.find? (fun v => decide (v.key = k))).map EtcdKv.lease).getD (W64 0)) s, .put)
   | .delete o => (s.filter (fun v => !inRange o.key o.base.rangeEnd v.key),
       .delete (rangeIn s o).length)
+  | .putIgnVal k l =>
+    (putKv r k (((s.find? (fun v => decide (v.key = k))).map EtcdKv.value).getD [])
+      (l.getD (((s.find? (fun v => decide (v.key = k))).map EtcdKv.lease).getD (W64 0))) s, .put)
+  | .txn cs ts es =>
+    match cs.all (cmpHolds s) with
+    | true => ((runOps r s ts).1, .txn true (runOps r s ts).2)
+    | false => ((runOps r s es).1, .txn false (runOps r s es).2)
 
 /-- Operations in order, each on the state the previous one left. -/
 def runOps (r : w64) : List EtcdKv → List TxnOp → List EtcdKv × List TxnOpResult
@@ -177,6 +200,7 @@ def runOps (r : w64) : List EtcdKv → List TxnOp → List EtcdKv × List TxnOpR
     let p := applyTxnOp r s op
     let q := runOps r p.1 ops
     (q.1, p.2 :: q.2)
+end
 
 /-- The branch the comparisons choose. -/
 def TxnModel.branch (t : TxnModel) (ok : Bool) : List TxnOp := if ok then t.thenOps else t.elseOps
@@ -188,13 +212,27 @@ def runTxn (r : w64) (s : List EtcdKv) (t : TxnModel) : Bool × List EtcdKv × L
   let q := runOps r s (t.branch ok)
   (ok, q.1, q.2)
 
-/-- An operation's result is a write: a put, or a delete of some key. -/
+mutual
+/-- An operation's result is a write: a put, a delete of some key, or a nested transaction whose
+chosen branch wrote. -/
 def TxnOpResult.wrote : TxnOpResult → Bool
   | .put => true
   | .delete n => n != 0
   | .range _ _ => false
+  | .txn _ rs => TxnOpResult.wroteL rs
 
-/-- An operation that makes a transaction linearizable: anything but a serializable get. -/
+/-- Some result of the list is a write (`List.any TxnOpResult.wrote`, `wroteL_eq`). -/
+def TxnOpResult.wroteL : List TxnOpResult → Bool
+  | [] => false
+  | r :: rs => r.wrote || TxnOpResult.wroteL rs
+end
+
+theorem TxnOpResult.wroteL_eq : ∀ rs : List TxnOpResult, TxnOpResult.wroteL rs = rs.any TxnOpResult.wrote
+  | [] => rfl
+  | r :: rs => by simp [TxnOpResult.wroteL, TxnOpResult.wroteL_eq rs]
+
+/-- An operation that makes a transaction linearizable: anything but a serializable get (a nested
+transaction too: etcd's `IsTxnSerializable` looks at the top-level operations only). -/
 def TxnOp.linearizable : TxnOp → Bool
   | .get o => !o.base.serializable
   | _ => true
@@ -208,6 +246,35 @@ def TxnModel.linearizable (t : TxnModel) : Bool := (t.thenOps ++ t.elseOps).any 
 /-- The transaction wrote (so it has a revision of its own). -/
 def txnWrote (rs : List TxnOpResult) : Bool := rs.any TxnOpResult.wrote
 
+theorem delete_noWrite (s : List EtcdKv) (o : OpFull) (h0 : (rangeIn s o).length = 0) :
+    s.filter (fun v => !inRange o.key o.base.rangeEnd v.key) = s := by
+  rw [List.filter_eq_self]
+  intro v hv
+  have : v ∉ rangeIn s o := by
+    rw [List.length_eq_zero_iff] at h0; rw [h0]; simp
+  unfold rangeIn at this
+  simp only [List.mem_filter, not_and] at this
+  simpa using this hv
+
+mutual
+/-- An operation that did not write leaves the state as it was. -/
+theorem applyTxnOp_noWrite (r : w64) (s : List EtcdKv) :
+    ∀ op : TxnOp, (applyTxnOp r s op).2.wrote = false → (applyTxnOp r s op).1 = s
+  | .get o => fun _ => rfl
+  | .put k v l => by simp [applyTxnOp, TxnOpResult.wrote]
+  | .putKeep k v => by simp [applyTxnOp, TxnOpResult.wrote]
+  | .putIgnVal k l => by simp [applyTxnOp, TxnOpResult.wrote]
+  | .delete o => by
+    simp only [applyTxnOp, TxnOpResult.wrote, bne_eq_false_iff_eq]
+    exact delete_noWrite s o
+  | .txn cs ts es => by
+    simp only [applyTxnOp]
+    split
+    · simp only [TxnOpResult.wrote, TxnOpResult.wroteL_eq]
+      exact runOps_noWrite r s ts
+    · simp only [TxnOpResult.wrote, TxnOpResult.wroteL_eq]
+      exact runOps_noWrite r s es
+
 /-- Operations that did not write leave the state as it was. -/
 theorem runOps_noWrite (r : w64) :
     ∀ (s : List EtcdKv) (ops : List TxnOp), txnWrote (runOps r s ops).2 = false →
@@ -215,36 +282,30 @@ theorem runOps_noWrite (r : w64) :
   | _, [] => fun _ => rfl
   | s, op :: ops => by
     intro h
-    cases op with
-    | get o =>
-      simp only [runOps, applyTxnOp, txnWrote, List.any_cons, TxnOpResult.wrote,
-        Bool.false_or] at h ⊢
-      exact runOps_noWrite r s ops h
-    | put k v l =>
-      simp [runOps, applyTxnOp, txnWrote, TxnOpResult.wrote] at h
-    | putKeep k v =>
-      simp [runOps, applyTxnOp, txnWrote, TxnOpResult.wrote] at h
-    | delete o =>
-      simp only [runOps, applyTxnOp, txnWrote, List.any_cons, TxnOpResult.wrote,
-        Bool.or_eq_false_iff, bne_eq_false_iff_eq] at h ⊢
-      obtain ⟨h0, h1⟩ := h
-      have hs : s.filter (fun v => !inRange o.key o.base.rangeEnd v.key) = s := by
-        rw [List.filter_eq_self]
-        intro v hv
-        have : v ∉ rangeIn s o := by
-          rw [List.length_eq_zero_iff] at h0; rw [h0]; simp
-        unfold rangeIn at this
-        simp only [List.mem_filter, not_and] at this
-        simpa using this hv
-      rw [hs] at h1 ⊢
-      exact runOps_noWrite r s ops h1
+    simp only [runOps, txnWrote, List.any_cons, Bool.or_eq_false_iff] at h ⊢
+    obtain ⟨h0, h1⟩ := h
+    have hs := applyTxnOp_noWrite r s op h0
+    have h1' := runOps_noWrite r (applyTxnOp r s op).1 ops h1
+    rw [h1', hs]
+end
 
-/-- The keys an operation touches are under the prefix `pfx`. -/
+mutual
+/-- The keys an operation touches (and a nested transaction compares) are under the prefix
+`pfx`. -/
 def TxnOp.Under (pfx : GoString) : TxnOp → Prop
   | .get o => KeyRangeUnder pfx o.key o.base.rangeEnd
   | .put k _ _ => pfx <+: k
   | .delete o => KeyRangeUnder pfx o.key o.base.rangeEnd
   | .putKeep k _ => pfx <+: k
+  | .putIgnVal k _ => pfx <+: k
+  | .txn cs ts es => (∀ c ∈ cs, KeyRangeUnder pfx c.key c.rangeEnd) ∧ TxnOp.UnderL pfx ts ∧
+      TxnOp.UnderL pfx es
+
+/-- Every operation of the list is under `pfx`. -/
+def TxnOp.UnderL (pfx : GoString) : List TxnOp → Prop
+  | [] => True
+  | op :: ops => op.Under pfx ∧ TxnOp.UnderL pfx ops
+end
 
 /-- Every key the transaction compares or touches is under the prefix `pfx` (the client's
 contract is stated per prefix, as `isEtcdKV`'s). -/
@@ -322,6 +383,10 @@ def txnOpRespAt (p : Loc) (op : TxnOp) (res : TxnOpResult) : IProp GF :=
         structFieldRef etcdserverpb.ResponseOp_ResponsePut go!"ResponsePut" w ↦□ pr ∗
         ⌜pr ≠ null⌝)
     | .putKeep _ _, .put => iprop(∃ (w pr : Loc),
+        ⌜u = interface.mkOk (go.GoType.PointerType etcdserverpb.ResponseOp_ResponsePut.ty) #w⌝ ∗
+        structFieldRef etcdserverpb.ResponseOp_ResponsePut go!"ResponsePut" w ↦□ pr ∗
+        ⌜pr ≠ null⌝)
+    | .putIgnVal _ _, .put => iprop(∃ (w pr : Loc),
         ⌜u = interface.mkOk (go.GoType.PointerType etcdserverpb.ResponseOp_ResponsePut.ty) #w⌝ ∗
         structFieldRef etcdserverpb.ResponseOp_ResponsePut go!"ResponsePut" w ↦□ pr ∗
         ⌜pr ≠ null⌝)

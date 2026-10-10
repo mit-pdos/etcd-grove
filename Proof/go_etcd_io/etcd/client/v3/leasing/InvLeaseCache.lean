@@ -40,6 +40,7 @@ module
 public import Proof.go_etcd_io.etcd.client.v3.leasing.Base
 public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeasingModel
 public import Proof.go_etcd_io.etcd.client.v3.InvOp
+public import Proof.go_etcd_io.etcd.cache.v3.InvEtcdTxnOwn
 public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
 public import Perennial.Golang.Theory.Map
 public import Perennial.Ghost.GhostVar
@@ -61,23 +62,6 @@ open Iris Iris.BI go_etcd_io.etcd.client.v3.leasing go_etcd_io.etcd.api.v3
 
 section model
 variable [ext : FfiSyntax]
-
-/-- A `*pb.ResponseHeader`'s fields (what `copyHeader` copies). -/
-structure HdrM where
-  clusterId : w64
-  memberId : w64
-  revision : w64
-  raftTerm : w64
-  leaderId : w64
-  deriving DecidableEq
-
-/-- A cached `*mvccpb.KeyValue`: its location, its `Key` and `Value` slices (whose contents are
-read-only) and its contents. -/
-structure CachedKv where
-  p : Loc
-  keySl : GoSlice
-  valSl : GoSlice
-  kv : EtcdKv
 
 /-- A cache entry: the `*leaseKey` `li` (`response`, `rev`, `waitc`) and its `*GetResponse`
 `resp` (`Header`, `Kvs`, `More`, `Count`); `lease` and `acq` are ghost (the holder's lease and
@@ -315,33 +299,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
-
-/-- The `*pb.ResponseHeader` `h` (not nil) holds the fields `m`, read-only (a header is shared:
-the cache's latest header and its entries' responses point to the ones the client returned). -/
-def hdrFull (h : Loc) (m : HdrM) : IProp GF :=
-  iprop(⌜h ≠ null⌝ ∗
-    structFieldRef etcdserverpb.ResponseHeader go!"ClusterId" h ↦□ m.clusterId ∗
-    structFieldRef etcdserverpb.ResponseHeader go!"MemberId" h ↦□ m.memberId ∗
-    structFieldRef etcdserverpb.ResponseHeader go!"Revision" h ↦□ m.revision ∗
-    structFieldRef etcdserverpb.ResponseHeader go!"RaftTerm" h ↦□ m.raftTerm ∗
-    structFieldRef etcdserverpb.ResponseHeader go!"LeaderId" h ↦□ m.leaderId)
-
-instance hdrFull_persistent (h : Loc) (m : HdrM) : Persistent (hdrFull (GF := GF) h m) := by
-  unfold hdrFull; infer_instance
-
-/-- The fields of a cached `*mvccpb.KeyValue` (not nil), with fraction `dq` (the contents of its
-`Key` and `Value` slices read-only). -/
-def cachedKvOwn (c : CachedKv) (dq : DFrac) : IProp GF :=
-  iprop(⌜c.p ≠ null⌝ ∗ structFieldRef mvccpb.KeyValue go!"Key" c.p ↦{dq} c.keySl ∗ c.keySl ↦*□ c.kv.key ∗
-    structFieldRef mvccpb.KeyValue go!"CreateRevision" c.p ↦{dq} c.kv.createRev ∗
-    structFieldRef mvccpb.KeyValue go!"ModRevision" c.p ↦{dq} c.kv.modRev ∗
-    structFieldRef mvccpb.KeyValue go!"Version" c.p ↦{dq} c.kv.version ∗
-    structFieldRef mvccpb.KeyValue go!"Value" c.p ↦{dq} c.valSl ∗ c.valSl ↦*□ c.kv.value ∗
-    structFieldRef mvccpb.KeyValue go!"Lease" c.p ↦{dq} c.kv.lease)
-
-instance cachedKvOwn_dfractional (c : CachedKv) :
-    DFractional (fun dq => cachedKvOwn (GF := GF) c dq) := by
-  unfold cachedKvOwn; infer_instance
 
 /-- What closing a waiter channel announces: nothing (a waiter reads the cache again). -/
 abbrev waitQ : IProp GF := iprop(True)

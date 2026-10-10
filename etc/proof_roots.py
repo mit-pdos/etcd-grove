@@ -108,6 +108,15 @@ def link_namespace(mod):
     return ns.removeprefix(namespace())
 
 
+def link_pending(mod):
+    """The results of a `Link.lean` that rest on a function specified but not proved yet (its
+    `section links_pending`, `etc/gen-link.py`'s `fn: ?`): their names, as declared (`T.wp_M`)."""
+    with open(path_of(mod), encoding="utf-8") as f:
+        text = f.read()
+    m = re.search(r"^section links_pending\b(.*?)^end links_pending\b", text, re.M | re.S)
+    return set(re.findall(r"^theorem ([\w.«»']+)", m.group(1), re.M)) if m else set()
+
+
 def _imports(mod, memo={}):
     if mod not in memo:
         try:
