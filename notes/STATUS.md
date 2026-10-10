@@ -109,26 +109,45 @@ concurrently); `newRaft` returns `s.gh = {}`.
 
 Not checked: `etc/tcb-report.py --check` (needs a full build; the disk is short).
 
-## bbolt: not goosable as written; the `unsafe` it needs (2026-10-10)
+## bbolt: translated with bodies on branch `bbolt`; the first proofs (2026-10-10)
 
-bbolt (v1.5.0, etcd's dependency) works by reading `[]byte` buffers (the mmap'd file, heap
-pages) as structs through `unsafe.Pointer`, with `uintptr` arithmetic. Perennial's typed heap
-gives that no meaning, and it leaves `uintptr ↔ pointer` stuck on purpose. `notes/bbolt-unsafe.md`
-inventories every use and says what a model needs: layout constants, a byte view of
-pointer-free structs (the core change), byte-offset arithmetic, slices over raw memory, and a
-file-backed mmap. It also covers the fork alternative. What is goosable now:
-`internal/common`'s page-id helpers are translated with bodies
-(`Code/go_etcd_io/bbolt/internal/common.toml`), with package init, the sorted-list model,
-`wp_slice_append_in_place` and the `Mergepgids` spec in
-`{Proof,Spec}/go_etcd_io/bbolt/internal/common/`. `Mergepgids` is proved (no `sorry`; `Results.lean` prints its axioms). Most of
-`internal/freelist` and `errors` are goosable too.
+**Branch.** This work is on etcd-grove branch `bbolt`, pinned to Perennial branch
+`goose-bbolt` (`535c763`, not merged into Perennial's `lean`), so it is not on `lean`.
+Merging it needs Perennial's branch merged first and the whole repository rebuilt against it
+(below).
 
-Toward modeling and verifying all of bbolt (`notes/bbolt-unsafe.md`, "Where Perennial stands"):
-- Perennial's array allocation is a `-- TODO` that diverges (`AngelicExit`), so every proof past
-  a non-empty `make` here holds vacuously (31 files use `wp_slice_make*`/`wp_slice_append`).
-- Perennial has no byte-level memory and no crash semantics; both are core changes.
-- Goose now folds `unsafe.Sizeof`/`Offsetof`/`Alignof`, `uintptr` constants and labeled loops
-  (Perennial branch `goose-bbolt`, `ff60796`; not pinned).
+**Perennial `goose-bbolt`** (the memory model, `notes/bbolt-unsafe.md`, "Where Perennial
+stands"): a heap cell is a byte for integers (16, 32 and 64 bits are little-endian byte
+cells; `AtomicWord` reads and writes them at once), types have sizes and alignments and
+structs gc's layout (`Golang/Defn/Layout.lean`, `StructLayout`), `arrayIndexRef` is a
+definition (`l +ₗ i * typeSize V`), `GoAlloc` of a struct or an array is a real `AllocN`,
+and `uintptr(p)`, `unsafe.Add`, `unsafe.Slice` have semantics (`go.UnsafeSemantics`). No
+crash semantics (not needed: the request is crash-free). `Golang/Theory/Bytes.lean` is
+the byte view: `bytesPointsto l dq bs`, split at any offset, with words and nonempty byte
+slices as views of their bytes. Goose additions: anonymous struct field types
+(`anonStruct_<hash>`, `DB.ops`), methods named `init`, slicing a pointer to an array,
+imports of packages whose types the code reaches, axiomatized aliases' `X.ty`; std
+`encoding/hex`, `hash`, `hash/fnv`, `io/fs`, `syscall` (names only).
+
+**Translation.** bbolt v1.5.0 is translated with bodies: the root package, `errors`,
+`internal/common`, `internal/freelist` (`Code/go_etcd_io/bbolt*.toml`);
+`golang.org/x/sys/unix` names only. Every Code/GeneratedProof module of bbolt builds.
+
+**Proved** (`Proof/go_etcd_io/bbolt/internal/common/`, `Results.lean`, no `sorry`):
+`Mergepgids` (as before, now over byte-cell words), `UnsafeAdd`, `UnsafeIndex`,
+`UnsafeByteSlice` (linked to `UnsafeAdd`), and `Page_bytes` (`Bytes.lean`: a page header
+is its 16 bytes; the field offsets come from the layout).
+
+**Not checked.** The rest of the repository (raft, cache, server, register) was regenerated
+with the new translator but not rebuilt against `goose-bbolt`: the disk had under 1G free,
+and a full build needs about 2G. Its proofs may need changes where they unfold word
+points-tos or struct allocation. `etc/tcb-report.py --check` likewise.
+
+**Next.** The byte views of `Meta`, `InBucket` and the page elements (as `Page_bytes`); specs
+of `Page`'s accessors (`Meta()`, `LeafPageElement(i)`, `PgidList` through
+`unsafe.Slice`); then `internal/freelist`, and the file and mmap model for the root
+package (`DB.mmap`, `unix.Mmap`, `File.WriteAt`: axioms at the trust boundary, the mapped
+bytes kept coherent with the file's).
 
 ## `node.go` groundwork: abandoning a `Ready`, pre-vote off, the messages' terms (2026-10-10)
 
