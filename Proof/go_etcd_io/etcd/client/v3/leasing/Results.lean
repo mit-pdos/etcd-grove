@@ -18,10 +18,33 @@ cache), restated at top level, with the trust base of each printed in the build 
   facts (`entryFacts`); see their specs and `InvLeaseCache.lean`. `EvictRange` evicts `key`, not
   the keys in range, and `evalCmp` is not etcd's comparison: the specs state what the code does
   (findings, `notes/STATUS.md`).
+
+Units 3 and 4 (`txn.go`, `kv.go` but the monitors): every function has a `Spec`/`Proof` pair; the
+results reaching unit 5's `waitSession`, `waitRescind`, `monitorLease` (specified, not yet proved)
+take their specs as hypotheses (`Link.lean`'s `links_pending`), restated here with the same
+hypotheses (`hMonitorLease`, `hWaitRescind`, `hWaitSession`).
+
+* **Theorem 1, cached reads** (`leasing_get`, `getCached`; `leasing_cached_get_stable`,
+  `leasing_getResult_acq`): a `Get` served from the cache returns the cached answer of an entry
+  with its facts (etcd's record of the key at the entry's revision, the lease key with the
+  holder's lease); under the protocol premise, while the lease key keeps its incarnation and the
+  holder commits nothing, that record is etcd's (if the entry's cached key-value is still its
+  acquisition's: this client's own writes change it, theorem 3).
+* **Theorem 2, uncached operations** (`leasing_get`'s other cases, `leasing_put`,
+  `leasing_delete`, `leasing_Txn_Commit`): what the client's contracts promise, linearizable
+  (`lo ≤ r`).
+* **Theorem 3, the holder's writes** (`leasing_put`'s `putCommitted`: the cache's step;
+  `leasing_update_tracks_put`, `leasing_update_ignoreValue`, `leasing_update_new_key`,
+  `leasing_update_out_of_order`): when the cached record tracks etcd's after a put, and the three
+  ways it does not (the lease, `WithIgnoreValue`, out-of-order updates).
+* **Theorem 4, locally evaluated transactions** (`leasing_Txn_Commit`'s `evalResult`;
+  `leasing_evalCmpM_agrees`, `leasing_leaseEvalCmps_agrees`, and the divergences
+  `leasing_evalCmpM_absent_lt`, `leasing_evalCmpM_lease`).
 -/
 module
 
 public import Proof.go_etcd_io.etcd.client.v3.leasing.Link
+public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeasingResults
 
 @[expose] public section
 
@@ -94,6 +117,122 @@ theorem leaseCache_Rev : leaseCache.Rev.spec (GF := GF) (hG := hG) := leaseCache
 theorem leaseCache_clearOldRevokes : leaseCache.clearOldRevokes.spec (GF := GF) (hG := hG) :=
   leaseCache.wp_clearOldRevokes
 
+/-! ## Units 3 and 4: the leasing KV -/
+
+section kv
+variable (hMonitorLease : leasingKV.monitorLease.spec (GF := GF) (hG := hG))
+variable (hWaitRescind : leasingKV.waitRescind.spec (GF := GF) (hG := hG))
+variable (hWaitSession : leasingKV.waitSession.spec (GF := GF) (hG := hG))
+include hMonitorLease hWaitRescind hWaitSession
+
+/-- **Theorems 1 and 2 for reads**: `lkv.Get(ctx, key, opts...)` returns `getOutcome`: the
+client's answer (linearizable unless serializable), the cache's (`getCached`: an entry with its
+facts), an acquisition's (`getAcquired`: etcd's record at a revision `≥ lo`), or a failed
+acquisition's (`getNotAcquired`: etcd's answer to `OpGet(key)`, the options ignored, a finding). -/
+theorem leasing_get : leasingKV.Get.spec (GF := GF) (hG := hG) :=
+  leasingKV.wp_Get hMonitorLease hWaitRescind hWaitSession
+
+/-- **Theorem 2 and 3 for puts**: `lkv.Put(ctx, key, val, opts...)` returns an error or the put
+committed at a revision `r ≥ lo` on etcd's state at `r - 1` (`putCommitted`), with the cache's
+step (`LeaseEntry.update` of the key's entry). -/
+theorem leasing_put : leasingKV.Put.spec (GF := GF) (hG := hG) :=
+  leasingKV.wp_Put hMonitorLease hWaitRescind hWaitSession
+
+/-- **Theorem 2 for deletes**: `lkv.Delete(ctx, key, opts...)` returns an error or the delete of
+the range committed at a revision `r ≥ lo` (`deleteCommitted`). -/
+theorem leasing_delete : leasingKV.Delete.spec (GF := GF) (hG := hG) :=
+  leasingKV.wp_Delete hMonitorLease hWaitRescind hWaitSession
+
+/-- **Theorems 2 and 4 for transactions**: `txn.Commit()` returns the cache's evaluation
+(`evalResult`: `leaseEvalCmps` of the cached entries, the cached gets' answers, at the cache's
+header) or the client's answer for the user's transaction (`txnCommitResult`). -/
+theorem leasing_Txn_Commit : txnLeasing.Commit.spec (GF := GF) (hG := hG) :=
+  txnLeasing.wp_Commit hMonitorLease hWaitRescind hWaitSession
+
+/-- `lkv.Do(ctx, op)`, by the operation's kind. -/
+theorem leasing_Do : leasingKV.Do.spec (GF := GF) (hG := hG) :=
+  leasingKV.wp_Do hMonitorLease hWaitRescind hWaitSession
+
+end kv
+
+/-- `lkv.Txn(ctx)` (`Spec/go_etcd_io/etcd/client/v3/leasing/leasingKV__Txn.lean`). -/
+theorem leasing_Txn : leasingKV.Txn.spec (GF := GF) (hG := hG) := leasingKV.wp_Txn
+
+/-- **Theorem 1's corollary** (`InvLeasingResults.lean`). -/
+theorem leasing_cached_get_stable (pfx key : GoString) (h : LeasingHist) (e : LeaseEntry) (b : w64)
+    (sb : List EtcdKv) (hk : LeasingDataKey pfx key) (hrev : sint.Z e.rev ≤ sint.Z b)
+    (hw : ∀ z : Int, sint.Z e.rev < z → z ≤ sint.Z b → h.writer z ≠ e.lease) :
+    LeasingProtocol (GF := GF) pfx h ∗ entryFacts pfx key e ∗ etcdState b [] sb ⊢
+      ∃ (s : List EtcdKv) (lv : EtcdKv), □ etcdState e.rev [] s ∗
+        ⌜kvOf s (pfx ++ key) = some lv ∧ lv.lease = e.lease ∧
+          ∀ lb, kvOf sb (pfx ++ key) = some lb → lb.createRev = lv.createRev → kvOf sb key = e.acq⌝ :=
+  cached_get_stable pfx key h e b sb hk hrev hw
+
+/-- The cached get's answer of an entry whose cached key-value is its acquisition's. -/
+theorem leasing_getResult_acq (o : OpFull) (e : LeaseEntry) (h : e.kv = e.acq) :
+    getResult o e = if getEmpty o.base e.kvs then none
+      else e.acq.map (fun v => if o.keysOnly then { v with value := [] } else v) :=
+  getResult_acq o e h
+
+/-- **Theorem 3**: `Update` tracks the holder's put iff the put keeps the cached lease. -/
+theorem leasing_update_tracks_put (c : CachedKv) (r : w64) (valSl : GoSlice) (key val : GoString)
+    (l : w64) (s : List EtcdKv) (hwf : EtcdStateWf [] s) (hrec : kvOf s key = some c.kv)
+    (hmod : sint.Z c.kv.modRev < sint.Z r) :
+    kvOf (applyTxnOp r s (.put key val l)).1 key = some (c.bump r valSl val).kv ↔
+      l = c.kv.lease :=
+  update_tracks_put c r valSl key val l s hwf hrec hmod
+
+/-- **Theorem 3, `WithIgnoreValue`** (a finding): the cache serves the empty value. -/
+theorem leasing_update_ignoreValue (c : CachedKv) (r : w64) (valSl : GoSlice) (key : GoString)
+    (l : Option w64) (s : List EtcdKv) (hwf : EtcdStateWf [] s) (hrec : kvOf s key = some c.kv)
+    (hmod : sint.Z c.kv.modRev < sint.Z r) :
+    kvOf (applyTxnOp r s (.putIgnVal key l)).1 key = some (c.bump r valSl []).kv ↔
+      c.kv.value = [] ∧ l.getD c.kv.lease = c.kv.lease :=
+  update_ignoreValue c r valSl key l s hwf hrec hmod
+
+/-- **Theorem 3, a key cached as absent**. -/
+theorem leasing_update_new_key (p : Loc) (keySl valSl : GoSlice) (r : w64) (key val : GoString)
+    (l : w64) (s : List EtcdKv) (hwf : EtcdStateWf [] s) (habs : kvOf s key = none)
+    (hr : 0 < sint.Z r) :
+    kvOf (applyTxnOp r s (.put key val l)).1 key =
+        some ((freshKv p keySl key r).bump r valSl val).kv ↔ l = W64 0 :=
+  update_new_key p keySl valSl r key val l s hwf habs hr
+
+/-- **Theorem 3, out-of-order updates** (a finding). -/
+theorem leasing_update_out_of_order (c : CachedKv) (r1 r2 : w64) (sl1 sl2 : GoSlice)
+    (v1 v2 : GoString) (h1 : sint.Z c.kv.modRev < sint.Z r1) (h12 : sint.Z r1 < sint.Z r2) :
+    (c.bump r2 sl2 v2).kv = { c.kv with version := c.kv.version + W64 1, modRev := r2, value := v2 } ∧
+    ((c.bump r2 sl2 v2).bump r1 sl1 v1).kv =
+      { c.kv with version := c.kv.version + W64 1 + W64 1, modRev := r2, value := v2 } :=
+  update_out_of_order c r1 r2 sl1 sl2 v1 v2 h1 h12
+
+/-- **Theorem 4: when the cache's comparison is etcd's**. -/
+theorem leasing_evalCmpM_agrees (s : List EtcdKv) (m : CmpModel) (hwf : EtcdStateWf [] s)
+    (hr : m.rangeEnd = []) (hl : m.target ≠ .lease)
+    (habs : kvOf s m.key = none → m.target ≠ .value ∧ m.num = W64 0) :
+    leaseCmpHolds m (kvOf s m.key) = cmpHolds s m :=
+  evalCmpM_agrees s m hwf hr hl habs
+
+/-- **Theorem 4: a transaction's comparisons**. -/
+theorem leasing_leaseEvalCmps_agrees (st : LeaseCacheSt) (s : List EtcdKv) (hwf : EtcdStateWf [] s)
+    (ms : List CmpModel)
+    (hc : ∀ m ∈ ms, m.rangeEnd = [] ∧ m.target ≠ .lease ∧
+      (∃ e, st.entries !! m.key = some e ∧ e.kv = kvOf s m.key) ∧
+      (kvOf s m.key = none → m.target ≠ .value ∧ m.num = W64 0)) :
+    leaseEvalCmps st ms = (ms.all (cmpHolds s), true) :=
+  leaseEvalCmps_agrees st s hwf ms hc
+
+/-- **Theorem 4, the divergences** (findings): an absent key, a lease comparison. -/
+theorem leasing_evalCmpM_absent_lt (k : GoString) :
+    leaseCmpHolds (compareM (cmpKeyM .create k) .lt (.num (W64 5))) none = false ∧
+      cmpHolds [] (compareM (cmpKeyM .create k) .lt (.num (W64 5))) = true :=
+  evalCmpM_absent_lt k
+
+theorem leasing_evalCmpM_lease (v : EtcdKv) (hv : v.lease = W64 7) :
+    leaseCmpHolds (compareM (cmpKeyM .lease v.key) .eq (.num (W64 8))) (some v) = true ∧
+      cmpKv (compareM (cmpKeyM .lease v.key) .eq (.num (W64 8))) v = false :=
+  evalCmpM_lease v hv
+
 end results
 
 end leasing
@@ -112,3 +251,19 @@ end Perennial
 #print axioms Perennial.EtcdGrove.leasing.leaseCache_LockWriteOps
 #print axioms Perennial.EtcdGrove.leasing.leaseCache_Rev
 #print axioms Perennial.EtcdGrove.leasing.leaseCache_clearOldRevokes
+#print axioms Perennial.EtcdGrove.leasing.leasing_get
+#print axioms Perennial.EtcdGrove.leasing.leasing_put
+#print axioms Perennial.EtcdGrove.leasing.leasing_delete
+#print axioms Perennial.EtcdGrove.leasing.leasing_Txn_Commit
+#print axioms Perennial.EtcdGrove.leasing.leasing_Do
+#print axioms Perennial.EtcdGrove.leasing.leasing_Txn
+#print axioms Perennial.EtcdGrove.leasing.leasing_cached_get_stable
+#print axioms Perennial.EtcdGrove.leasing.leasing_getResult_acq
+#print axioms Perennial.EtcdGrove.leasing.leasing_update_tracks_put
+#print axioms Perennial.EtcdGrove.leasing.leasing_update_ignoreValue
+#print axioms Perennial.EtcdGrove.leasing.leasing_update_new_key
+#print axioms Perennial.EtcdGrove.leasing.leasing_update_out_of_order
+#print axioms Perennial.EtcdGrove.leasing.leasing_evalCmpM_agrees
+#print axioms Perennial.EtcdGrove.leasing.leasing_leaseEvalCmps_agrees
+#print axioms Perennial.EtcdGrove.leasing.leasing_evalCmpM_absent_lt
+#print axioms Perennial.EtcdGrove.leasing.leasing_evalCmpM_lease

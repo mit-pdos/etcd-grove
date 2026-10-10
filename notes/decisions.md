@@ -2009,6 +2009,58 @@ monitors, the session monitor, `clearOldRevokes`), and its lock also guards the 
   Perennial, as `strings.HasPrefix`'s, would replace it: written and proved, but not committed,
   see STATUS) and `(*time.Time).Add` (Perennial models the value receiver only).
 
+### Nested transactions, owned responses, `isLeasingKV` (units 3 and 4)
+
+**2026-10-10 · proposed** (units 3 and 4 of `client/v3/leasing`: `txn.go` and `kv.go`)
+
+- **Nested transactions in the model, minimally** (`InvEtcdTxn.lean`): `TxnOp.txn cmps thn els`
+  and `TxnOpResult.txn ok rs`; `applyTxnOp`/`runOps` are mutually recursive (structural), a nested
+  transaction evaluates its comparisons on the state the operations before it left and runs its
+  chosen branch at the same revision, as etcd does; `TxnOpResult.wrote`/`wroteL`, `TxnOp.Under`/
+  `UnderL` likewise; `runOps_noWrite` by mutual recursion. Also `TxnOp.putIgnVal key lease?`
+  (`WithIgnoreValue`, value kept; `none`: lease kept too), so that `txnOpOf` models the puts etcd
+  accepts with `WithIgnoreValue` and the leasing `Update` can be compared with etcd on them. The
+  existing `txnOpRespAt`, `txnBuilderSpec`, `isEtcdTxnKV` are unchanged; every cache and
+  concurrency proof builds unchanged. *Rejected:* recursive `OpFull` (the getters' model is flat;
+  the nested lists are described apart, `OpT`).
+- **Operation trees** (`InvEtcdTxnOwn.lean`, `OpT`): an `Op` value is a leaf (`OpFull`, not a
+  transaction) or `OpTxn(cmps, thn, els)`; `opTAtC c v t` describes the value, with `c = true`
+  also the spare capacity of every nested `thenOps` slice (owned): `gatherOps` appends `elseOps`
+  into it (`append(thenOps, elseOps...)`), which its spec states as the code is (it can then be
+  called once per tree; the leasing KV's own callers pass plain operations).
+- **Owned responses** (`txnCommitResultO`, `isEtcdTxnKVO`): the client's `Commit` returns a fresh
+  message the caller owns; the contract now hands over the transaction's `Succeeded` and the
+  top-level responses' fields the leasing KV writes or caches (a range response's header,
+  key-values, `More`, `Count`: `rangeRespOwn`; a put's, delete's, nested transaction's header) and
+  the full header (`hdrFull`, moved here from the lease cache with `HdrM`, `CachedKv`,
+  `cachedKvOwn`). A new builder contract beside the old one (`txnBuilderSpecO`: `Then`/`Else` on
+  trees, `Commit` owned); `isEtcdDoKV` for `kv.Do` of a get (as `Get`). *Rejected:* changing
+  `isEtcdTxnKV` (every concurrency proof destructs it).
+- **`isLeasingKV`** (`InvLeasingKV.lean`, persistent): the immutable fields, the client contracts
+  at prefix `[]`, what unit 5's monitors need (`isLeasingClient`: range watcher, leases, session
+  client and options; `lkv.ctx` a `*cancelCtx`), the lease cache with the KV's lock part
+  `leasingX`, the wait group. **`leasingX`** holds `session`/`sessionc`, the session's readiness
+  (monotone: once set, never nil), `sessionc` as a broadcast channel announcing readiness, and a
+  **log of the cache's states** (a monotone list whose last element is the current state), so
+  that a spec can state a cache transition (`leasingStep γ st st'`: `put`'s `Update`) and what a
+  reader saw (`leasingSeen`). *Changed from the plan:* "every entry's lease is the current
+  session's" is not an invariant: `get` adds the entry of an acquisition after reading the
+  session, and a session reset in between leaves an entry of the old session's lease (a finding).
+- **The wait group** as the cache's (`leasingWgInv`): `get` adds a lease monitor with a fraction
+  of the "open" token and its thread token deposited; the monitor keeps a reader slot of the
+  cache's `RWMutex` for good (as `Cache.Watch` keeps a watch slot): `get` takes two reader slots
+  and returns the second unless it started a monitor.
+- **Unit 5's functions as hypotheses**: `waitSession`, `waitRescind`, `monitorLease` are specified
+  now and proved with the monitors; `etc/gen-link.py` marks them `fn: ?` and links every result
+  reaching them in `section links_pending`, with their specs as hypotheses (`etc/verified-code.py`
+  counts those results as unfinished).
+- **Contexts**: a write may `revoke`, whose `waitRescind` calls `WithCancel(ctx)`: Perennial's
+  `wp_WithCancel` needs a `*cancelCtx` parent, so `put`, `delete`, `Commit`, `Do` take
+  `isCancelCtxCtx ctx` (as `NewSession` does); `get` does not.
+- **User transactions are flat**: `Txn().Then`/`Else` take plain operations (`txnOpOf`), the
+  nested transaction is the leasing KV's own (`serverTxn`'s `OpTxn`).
+
+
 ## Panic and recover: a panic outcome in the language, `Catch` for `defer`
 
 **2026-10-10 · proposed** (the plan decided with the user; being implemented on a Perennial

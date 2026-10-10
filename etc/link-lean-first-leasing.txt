@@ -65,3 +65,93 @@ leaseCache__delete: copyHeader
 leaseCache__Delete: leaseCache__delete
 leaseCache__evalCmp: Cmp__GetCompare Compare__GetRangeEnd Cmp__KeyBytes evalCmp
 leaseCache__evalOps: leaseKey__get isBadOp Op__IsGet Op__KeyBytes
+# clientv3's builders and conversions kv.go and txn.go use (client/v3/op.go, kv.go), under the
+# leasing package's assumptions (as concurrency's Link links them under its own).
+NewOp:
+Op__applyOpts:
+IsOptsWithPrefix: NewOp
+IsOptsWithFromKey: NewOp
+getPrefix:
+WithPrefix: getPrefix
+WithLimit:
+v3_WithLease:
+WithSort:
+withTop: WithPrefix WithSort WithLimit
+WithLastRev: withTop
+WithRange:
+WithKeysOnly:
+WithIgnoreLease:
+OpGet: IsOptsWithPrefix IsOptsWithFromKey Op__applyOpts
+OpPut: Op__applyOpts
+OpDelete: IsOptsWithPrefix IsOptsWithFromKey Op__applyOpts
+proto_Clone:
+cloneCompare: proto_Clone
+Cmp__Clone: cloneCompare
+mustInt64:
+mustInt64orLeaseID: mustInt64
+CreateRevision:
+ModRevision:
+LeaseValue:
+v3_Compare: Cmp__Clone Cmp__ensureCompare mustInt64 mustInt64orLeaseID
+Cmp__WithRange: Cmp__Clone Cmp__ensureCompare
+OpTxn: Cmp__Clone
+Op__Txn:
+Op__IsSerializable:
+OpResponse__Get:
+GetResponse__OpResponse:
+PutResponse__OpResponse:
+DeleteResponse__OpResponse:
+TxnResponse__OpResponse:
+# etcdserverpb's ResponseOp getters (kv.go, txn.go, util.go).
+ResponseOp__GetResponseRange:
+ResponseOp__GetResponsePut:
+ResponseOp__GetResponseDeleteRange:
+ResponseOp__GetResponseTxn:
+# client/v3/concurrency's Session (kv.go's session).
+Session__Lease:
+Session__Done:
+# The trust boundary: the standard library's and grpc's functions not translated (axioms).
+strings_TrimPrefix:
+errors_As:
+status_FromError:
+status_Error:
+# Unit 5 (the monitors): specified, proved later; a hypothesis of the results reaching them.
+leasingKV__waitSession: ?
+leasingKV__waitRescind: ?
+leasingKV__monitorLease: ?
+# util.go's nested transactions (see InvEtcdTxnOwn.lean).
+gatherOps: Op__IsTxn Op__Txn
+gatherResponseOps: Op__IsTxn Op__Txn ResponseOp__GetResponseTxn
+# kv.go (see InvLeasingKV.lean).
+leasingKV__readySession: Session__Done
+leasingKV__leaseID: Session__Lease
+leasingKV__tryModifyOp: Op__KeyBytes leaseCache__Lock CreateRevision v3_Compare leaseCache__Evict
+leasingKV__revoke: leaseCache__Rev CreateRevision v3_Compare WithIgnoreLease OpPut leasingKV__waitRescind
+leasingKV__revokeLeaseKvs: leasingKV__leaseID strings_TrimPrefix OpGet leasingKV__revoke
+leasingKV__revokeRange: WithRange leasingKV__revokeLeaseKvs
+leasingKV__deleteRangeRPC: CreateRevision Cmp__WithRange v3_Compare WithRange WithKeysOnly OpGet OpDelete leaseCache__EvictRange ResponseOp__GetResponseRange leaseCache__Delete ResponseOp__GetResponseDeleteRange
+leasingKV__deleteRange: Op__KeyBytes Op__RangeBytes leasingKV__revokeRange leaseCache__LockRange leasingKV__deleteRangeRPC closeAll
+leasingKV__delete: leasingKV__waitSession Op__RangeBytes leasingKV__deleteRange Op__KeyBytes leasingKV__tryModifyOp leasingKV__revoke leaseCache__Evict ResponseOp__GetResponseDeleteRange leaseCache__Delete
+leasingKV__put: leasingKV__waitSession leasingKV__tryModifyOp Op__KeyBytes leasingKV__revoke Op__ValueBytes leaseCache__Update ResponseOp__GetResponsePut
+leasingKV__acquire: leasingKV__waitSession LeaseValue CreateRevision v3_Compare leasingKV__leaseID v3_WithLease OpPut OpGet ResponseOp__GetResponseRange errors_As status_FromError
+leasingKV__get: OpResponse__Get leasingKV__readySession leaseCache__Get Op__IsSerializable Op__KeyBytes leaseCache__MayAcquire OpGet leasingKV__acquire ResponseOp__GetResponseRange leaseCache__Add leasingKV__monitorLease
+leasingKV__Get: OpGet leasingKV__get
+leasingKV__Put: OpPut leasingKV__put
+leasingKV__Delete: OpDelete leasingKV__delete
+leasingKV__GetStream: status_Error
+leasingKV__Compact:
+leasingKV__Txn:
+# txn.go (see InvLeasingKV.lean).
+txnLeasing__If:
+txnLeasing__Then:
+txnLeasing__Else:
+txnLeasing__eval: gatherOps leaseCache__NotifyOps leaseCache__evalCmp leaseCache__evalOps copyHeader
+txnLeasing__fallback: Op__IsGet Op__KeyBytes Op__RangeBytes WithRange OpGet
+txnLeasing__guardKeys: Op__KeyBytes Op__IsGet Op__RangeBytes leaseCache__Rev CreateRevision v3_Compare
+txnLeasing__guardRanges: Op__IsGet Op__RangeBytes Op__KeyBytes leasingKV__revokeRange WithLastRev WithRange ModRevision Cmp__WithRange v3_Compare CreateRevision
+txnLeasing__guard: txnLeasing__guardKeys txnLeasing__guardRanges
+txnLeasing__commitToCache: gatherResponseOps Op__KeyBytes Op__IsDelete Op__RangeBytes inRange leaseCache__delete Op__IsPut Op__ValueBytes leaseCache__Update
+txnLeasing__revokeFallback: ResponseOp__GetResponseRange leasingKV__revokeLeaseKvs
+txnLeasing__serverTxn: leasingKV__waitSession gatherOps OpTxn txnLeasing__fallback leaseCache__LockWriteOps closeAll txnLeasing__guard Cmp__KeyBytes strings_TrimPrefix leaseCache__Evict txnLeasing__commitToCache ResponseOp__GetResponseTxn txnLeasing__revokeFallback
+txnLeasing__Commit: txnLeasing__eval txnLeasing__serverTxn
+leasingKV__Do: Op__IsGet leasingKV__get GetResponse__OpResponse Op__IsPut leasingKV__put PutResponse__OpResponse Op__IsDelete leasingKV__delete DeleteResponse__OpResponse Op__IsTxn Op__Txn leasingKV__Txn txnLeasing__If txnLeasing__Then txnLeasing__Else txnLeasing__Commit TxnResponse__OpResponse
