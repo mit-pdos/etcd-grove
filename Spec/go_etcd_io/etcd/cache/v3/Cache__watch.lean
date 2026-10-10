@@ -42,10 +42,10 @@ abbrev Cache.watch.spec : Prop :=
   ∀ (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNames) (cap : Nat)
     (rev R : w64) (c0 : DemuxCore),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
-      isCacheFields c cf γr γd cap ∗ cacheWriter cf γd cap c0 ∗ cacheWgRunning cf ∗
+      isCacheFields c cf γr γd cap ∗ cacheWriter cf γd cap c0 ∗ cacheWgLoopRunning cf ∗
       storeSnapLb cf.γs R ∗ ⌜0 < sint.Z rev ∧ sint.Z rev ≤ sint.Z R + 1⌝ }}
     (App (Val (c @!! go.GoType.PointerType Cache.ty @!! go!"watch")) (Val #rev))
-  {{ (err : GoInterface), RET #err; ⌜err ≠ GoInterface.nil⌝ ∗ cacheWgRunning cf ∗
+  {{ (err : GoInterface), RET #err; ⌜err ≠ GoInterface.nil⌝ ∗ cacheWgLoopRunning cf ∗
       ∃ c1 : DemuxCore, cacheWriter cf γd cap c1 }}
 
 end spec

@@ -37,16 +37,17 @@ theorem wp_cacheWg_Wait (c : Loc) (cf : CacheFields) :
   iintro Hmask
   inext
   iunfold cacheWgInv at Hi
-  icases Hi with ⟨%ctr, %wn, Hwgo, Hwt, Hrun, Hbud, Hbauth, %Hctr, Hwn⟩
+  icases Hi with ⟨%ctr, %wn, %k, %d, Hwgo, Hwt, Hrun, Hk, Hoauth, Hcap, Hcauth, Hbud, Hbauth,
+    %Hctr, %Hkd, Hwn⟩
   iexists ctr
   iframe Hwgo
   iintro %H0 Hwgo
   imod Hmask with -
-  imod Hclose $$ [Hwgo Hwt Hrun Hbud Hbauth Hwn] with -
+  imod Hclose $$ [Hwgo Hwt Hrun Hk Hoauth Hcap Hcauth Hbud Hbauth Hwn] with -
   · unfold cacheWgInv
-    iexists ctr, wn
+    iexists ctr, wn, k, d
     iframe
-    ipureintro; exact Hctr
+    ipureintro; exact ⟨Hctr, Hkd⟩
   imodintro
   iintro Htok
   iapply HΦ $$ Htok
@@ -66,7 +67,8 @@ theorem Cache.Close.wp_proof : Cache.Close.spec (GF := GF) (hG := hG) := by
   iapply fupd_wp
   iinv HwgInv with >Hi Hclose
   iunfold cacheWgInv at Hi
-  icases Hi with ⟨%ctr, %wn, Hwgo, Hwt, Hrun, Hbud, Hbauth, %Hctr, Hwn⟩
+  icases Hi with ⟨%ctr, %wn, %k, %d, Hwgo, Hwt, Hrun, Hk, Hoauth, Hcap, Hcauth, Hbud, Hbauth,
+    %Hctr, %Hkd, Hwn⟩
   icases Hwn with (%Hw0 | ⟨-, Hop1⟩)
   rotate_left
   · iexfalso
@@ -76,13 +78,15 @@ theorem Cache.Close.wp_proof : Cache.Close.spec (GF := GF) (hG := hG) := by
   imod sync.alloc_wait_token (cacheWgAddr c) cf.γwg cacheWgWGN 0 (by decide) $$ HisWg Hwt
     with ⟨Hwt, Htok⟩
   imod Hmask with -
-  imod Hclose $$ [Hwgo Hwt Hrun Hbud Hbauth Hopen] with -
+  imod Hclose $$ [Hwgo Hwt Hrun Hk Hoauth Hcap Hcauth Hbud Hbauth Hopen] with -
   · inext
     unfold cacheWgInv
-    iexists ctr, 1
+    iexists ctr, 1, k, d
     iframe
     isplitr
     · ipureintro; exact Hctr
+    isplitr
+    · ipureintro; exact Hkd
     iright
     iframe
     ipureintro; rfl
@@ -93,7 +97,8 @@ theorem Cache.Close.wp_proof : Cache.Close.spec (GF := GF) (hG := hG) := by
   iapply fupd_wp
   iinv HwgInv with >Hi Hclose
   iunfold cacheWgInv at Hi
-  icases Hi with ⟨%ctr, %wn, Hwgo, Hwt, Hrun, Hbud, Hbauth, %Hctr, Hwn⟩
+  icases Hi with ⟨%ctr, %wn, %k, %d, Hwgo, Hwt, Hrun, Hk, Hoauth, Hcap, Hcauth, Hbud, Hbauth,
+    %Hctr, %Hkd, Hwn⟩
   icases Hwn with (%Hw0 | ⟨%Hw1, Hopen⟩)
   · subst Hw0
     iexfalso
@@ -103,13 +108,15 @@ theorem Cache.Close.wp_proof : Cache.Close.spec (GF := GF) (hG := hG) := by
   imod sync.dealloc_wait_token (cacheWgAddr c) cf.γwg cacheWgWGN 1 (by decide) $$ HisWg Hwt Htok
     with Hwt
   imod Hmask with -
-  imod Hclose $$ [Hwgo Hwt Hrun Hbud Hbauth] with -
+  imod Hclose $$ [Hwgo Hwt Hrun Hk Hoauth Hcap Hcauth Hbud Hbauth] with -
   · inext
     unfold cacheWgInv
-    iexists ctr, 0
+    iexists ctr, 0, k, d
     iframe
     isplitr
     · ipureintro; exact Hctr
+    isplitr
+    · ipureintro; exact Hkd
     ileft; ipureintro; rfl
   imodintro
   wp_auto

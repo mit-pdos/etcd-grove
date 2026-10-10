@@ -109,14 +109,15 @@ theorem validateErrorString_holds : validateErrorString (GF := GF) (hG := hG) :=
 
 /-- The deferred calls of `Watch`'s goroutine (`c.demux.Unregister(w)`, `close(responseChan)`,
 `c.waitGroup.Done()`, and `progressTimer.Stop()` if there is a timer): run with the goroutine's
-running token, its demux token and registration, and the channel's producer. -/
+running token, its demux token and registration, and the channel's producer; the `Done` hands
+back the thread token the goroutine exits with. -/
 def watchDeferOk (cf : CacheFields) (γd : DemuxNames) (cap : Nat) (w : Loc) (γw : WatcherNames)
     (pred : Option (GoString → Bool)) (sR : w64) (γs : SpscNames) (d : GoFunc) : IProp GF :=
   iprop({{ cacheWgRunning cf ∗ demuxHandle cf.demux γd cap (cacheCert cf) ∗
       demuxRegistered γd w γw pred sR ∗
       (∃ sent : List go_etcd_io.etcd.client.v3.WatchResponse, spscProducer γs sent) }}
     (App (Val #d) (Val #()))
-    {{ RET #(); True }})
+    {{ RET #(); threadTok }})
 
 instance watchDeferOk_persistent (cf : CacheFields) (γd : DemuxNames) (cap : Nat) (w : Loc)
     (γw : WatcherNames) (pred : Option (GoString → Bool)) (sR : w64) (γs : SpscNames) (d : GoFunc) :
@@ -165,7 +166,7 @@ theorem Cache.Watch.wp_proof
     (wp_Unregister : demux.Unregister.spec (GF := GF) (hG := hG)) :
     Cache.Watch.spec (GF := GF) (hG := hG) := by
   intro c cf γr γd cap ctx s key sl gs q
-  wp_start as ⟨#Hc, #Hctx, #Hopts, %Hnp, Hslot, Hopen⟩
+  wp_start as ⟨#Hc, #Hctx, #Hopts, %Hnp, Hslot, Hopen, Htok⟩
   ihave #Hcl : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -199,7 +200,7 @@ theorem Cache.Watch.wp_proof
       iframe Hrc Hprod
     try wp_auto
     iapply HΦ
-    iframe Hopen
+    iframe Hopen Htok
     iexists γ
     iframe Hrc Hcons
   subst Hnil
@@ -260,13 +261,13 @@ theorem Cache.Watch.wp_proof
       (some (keyPredForRange key of.base.rangeEnd)) of.base.rev
       $$ Hch [Hoc] with ⟨%γ, #Hrc, Hprod, Hauth, Hcons⟩
     · ileft; iexact Hoc
-    wp_apply wp_cacheWg_Add c cf q $$ [$Hsync $HisWg $HwgInv $Hwgslot $Hopen] as ⟨Hrtok, Hopen⟩
+    wp_apply wp_cacheWg_Add c cf q Hthreads $$ [$Hsync $HisWg $HwgInv $Hwgslot $Hopen $Htok] as ⟨Hrtok, Hopen⟩
     ipersist c
     ipersist ctx
     ipersist op
     ipersist w
     ipersist responseChan
-    wp_apply wp_fork $$ [Hrtok Hh Hreg Hwcons Hprod Hauth]
+    wp_apply wp_fork_tok_self $$ [Hrtok Hh Hreg Hwcons Hprod Hauth] as Htok
     · wp_auto
       wp_apply wp_with_defer as %defer defer
       ihave Hdef : iprop(∃ d, defer ↦ d ∗ watchDeferOk cf γd cap w γw
@@ -284,9 +285,9 @@ theorem Cache.Watch.wp_proof
             $$ [Hprod]
         · iunfold isCacheWatchChan at Hrc
           iframe Hrc Hprod
-        wp_apply wp_cacheWg_Done c cf $$ [$Hsync $HisWg $HwgInv $Hrtok]
+        wp_apply wp_cacheWg_Done c cf $$ [$Hsync $HisWg $HwgInv $Hrtok] as Htok
         iapply HΨ
-        itrivial
+        iexact Htok
       icases Hdef with ⟨%d0, defer, #Hd0⟩
       wp_join iprop(∃ (pt : GoInterface) (pc : Loc) (d : GoFunc), progressTimer_ptr ↦ pt ∗
           progressChan_ptr ↦ pc ∗ defer ↦ d ∗ watchTimerOk pt pc ∗
@@ -320,9 +321,9 @@ theorem Cache.Watch.wp_proof
           iintro %Ψ Hpre HΨ
           wp_auto
           wp_apply HtStop as %b -
-          wp_apply Hd0 $$ [$Hpre]
+          wp_apply Hd0 $$ [$Hpre] as Htok
           iapply HΨ
-          itrivial
+          iexact Htok
         · wp_auto
           isplitr
           · ipureintro; rfl
@@ -380,9 +381,9 @@ theorem Cache.Watch.wp_proof
         iintro -
         wp_auto
         wp_for_post
-        wp_apply Hd $$ [$Hrtok $Hh $Hreg Hprod]
+        wp_apply Hd $$ [$Hrtok $Hh $Hreg Hprod] as Htok
         · iexists vs; iexact Hprod
-        itrivial
+        iexact Htok
       iapply BigAndL.bigAndL_cons.2
       isplit
       · -- `<-c.internalCtx.Done()`: return
@@ -397,9 +398,9 @@ theorem Cache.Watch.wp_proof
         iintro -
         wp_auto
         wp_for_post
-        wp_apply Hd $$ [$Hrtok $Hh $Hreg Hprod]
+        wp_apply Hd $$ [$Hrtok $Hh $Hreg Hprod] as Htok
         · iexists vs; iexact Hprod
-        itrivial
+        iexact Htok
       iapply BigAndL.bigAndL_cons.2
       isplit
       · -- `<-progressChan`: a progress notification to `w`, and the timer reset
@@ -452,9 +453,9 @@ theorem Cache.Watch.wp_proof
           wp_if_destruct
           · -- no cancel response (`Stop`)
             wp_for_post
-            wp_apply Hd $$ [$Hrtok $Hh $Hreg Hprod]
+            wp_apply Hd $$ [$Hrtok $Hh $Hreg Hprod] as Htok
             · iexists vs; iexact Hprod
-            itrivial
+            iexact Htok
           -- the compaction's cancel response
           rcases cl with _ | n
           · iunfold cancelAt at Hp
@@ -484,9 +485,9 @@ theorem Cache.Watch.wp_proof
             iintro -
             wp_auto
             wp_for_post
-            wp_apply Hd $$ [$Hrtok $Hh $Hreg Hprod]
+            wp_apply Hd $$ [$Hrtok $Hh $Hreg Hprod] as Htok
             · iexists vs; iexact Hprod
-            itrivial
+            iexact Htok
           iapply BigAndL.bigAndL_cons.2
           isplit
           · -- `<-c.internalCtx.Done()`
@@ -500,9 +501,9 @@ theorem Cache.Watch.wp_proof
             iintro -
             wp_auto
             wp_for_post
-            wp_apply Hd $$ [$Hrtok $Hh $Hreg Hprod]
+            wp_apply Hd $$ [$Hrtok $Hh $Hreg Hprod] as Htok
             · iexists vs; iexact Hprod
-            itrivial
+            iexact Htok
           iapply BigAndL.bigAndL_cons.2
           isplit
           · -- `responseChan <- *w.cancelResp`
@@ -531,9 +532,9 @@ theorem Cache.Watch.wp_proof
             iintro Hprod
             wp_auto
             wp_for_post
-            wp_apply Hd $$ [$Hrtok $Hh $Hreg Hprod]
+            wp_apply Hd $$ [$Hrtok $Hh $Hreg Hprod] as Htok
             · iexists vs ++ [cv']; iexact Hprod
-            itrivial
+            iexact Htok
           iapply BigAndL.bigAndL_nil.2
           itrivial
         · simp only [↓reduceIte]
@@ -557,9 +558,9 @@ theorem Cache.Watch.wp_proof
             iintro -
             wp_auto
             wp_for_post
-            wp_apply Hd $$ [$Hrtok $Hh $Hreg Hprod]
+            wp_apply Hd $$ [$Hrtok $Hh $Hreg Hprod] as Htok
             · iexists vs; iexact Hprod
-            itrivial
+            iexact Htok
           iapply BigAndL.bigAndL_cons.2
           isplit
           · -- `<-c.internalCtx.Done()`: return
@@ -573,9 +574,9 @@ theorem Cache.Watch.wp_proof
             iintro -
             wp_auto
             wp_for_post
-            wp_apply Hd $$ [$Hrtok $Hh $Hreg Hprod]
+            wp_apply Hd $$ [$Hrtok $Hh $Hreg Hprod] as Htok
             · iexists vs; iexact Hprod
-            itrivial
+            iexact Htok
           iapply BigAndL.bigAndL_cons.2
           isplit
           · -- `responseChan <- resp`, and the timer reset
@@ -624,7 +625,7 @@ theorem Cache.Watch.wp_proof
       iapply BigAndL.bigAndL_nil.2
       itrivial
     iapply HΦ
-    iframe Hopen
+    iframe Hopen Htok
     iexists γ
     iframe Hrc Hcons
   obtain ⟨e, rfl⟩ : ∃ e, verr = GoInterface.ok e := by
@@ -683,7 +684,7 @@ theorem Cache.Watch.wp_proof
   · iunfold isCacheWatchChan at Hrc
     iframe Hrc Hprod
   iapply HΦ
-  iframe Hopen
+  iframe Hopen Htok
   iexists γ
   iframe Hrc Hcons
 
