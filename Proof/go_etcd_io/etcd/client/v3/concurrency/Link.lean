@@ -14,7 +14,6 @@ public import Proof.go_etcd_io.etcd.client.v3.Cmp__Clone
 public import Proof.go_etcd_io.etcd.client.v3.Cmp__WithPrefix
 public import Proof.go_etcd_io.etcd.client.v3.Cmp__WithRange
 public import Proof.go_etcd_io.etcd.client.v3.Cmp__ensureCompare
-public import Proof.go_etcd_io.etcd.client.v3.Compare
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.Compare__GetKey
 public import Proof.go_etcd_io.etcd.client.v3.CreateRevision
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.Election__Campaign
@@ -103,6 +102,7 @@ public import Proof.go_etcd_io.etcd.client.v3.concurrency.stm__Rev
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.stm__commit
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.stm__fetch
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.stm__reset
+public import Proof.go_etcd_io.etcd.client.v3.Compare
 public import Proof.go_etcd_io.etcd.client.v3.WithLease
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.waitDelete
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.waitDeletes
@@ -165,6 +165,10 @@ theorem v3.Cmp.wp_WithRange :
     EtcdGrove.Cmp.WithRange.spec (GF := GF) (hG := hG) :=
   EtcdGrove.Cmp.WithRange.wp_proof v3.Cmp.wp_Clone v3.Cmp.wp_ensureCompare
 
+theorem v3.wp_CreateRevision :
+    EtcdGrove.CreateRevision.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.CreateRevision.wp_proof
+
 theorem v3.wp_mustInt64 :
     EtcdGrove.mustInt64.spec (GF := GF) (hG := hG) :=
   EtcdGrove.mustInt64.wp_proof
@@ -176,10 +180,6 @@ theorem v3.wp_mustInt64orLeaseID :
 theorem v3.wp_Compare :
     EtcdGrove.Compare.spec (GF := GF) (hG := hG) :=
   EtcdGrove.Compare.wp_proof v3.Cmp.wp_Clone v3.Cmp.wp_ensureCompare v3.wp_mustInt64 v3.wp_mustInt64orLeaseID
-
-theorem v3.wp_CreateRevision :
-    EtcdGrove.CreateRevision.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.CreateRevision.wp_proof
 
 theorem v3.wp_WithLease :
     EtcdGrove.WithLease.spec (GF := GF) (hG := hG) :=

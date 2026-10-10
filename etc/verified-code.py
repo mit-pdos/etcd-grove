@@ -249,7 +249,10 @@ def local_proofs(objs):
         fn = ".".join(pre + [last.removeprefix("wp_")])
         inherited = {s for u in r["uses"] if u in roots for s in roots[u]["sorries"]}
         own = set(r["sorries"]) - inherited
-        if f"{NS}{fn}.wp_proof" in axioms:
+        # a spec of another package not among the qualifiers (`leasing.strings.Compare`, an axiom
+        # `strings.Compare.wp_proof` outside the Link's namespace)
+        bare = fn.removeprefix(lns) if lns and fn.startswith(lns) else fn
+        if f"{NS}{fn}.wp_proof" in axioms or f"{NS}{bare}.wp_proof" in axioms:
             state = "assumed"
         elif own:
             state = "unfinished"

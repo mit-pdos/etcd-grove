@@ -1911,3 +1911,100 @@ a fixed `ConfState`), and `run` refuses (spins) to append past `2^61` entries
 now takes an empty batch without a token (a `Ready`'s `appendRight` for no entries): the
 promoted method still reads the `MemoryStorage` field, so `isReplica` keeps the storage's
 record.
+
+---
+
+## Leasing: the protocol as a premise on the history
+
+**2026-10-10 · proposed** (units 1 and 2 of `client/v3/leasing`; the premise's form, the holder's
+writes and the cache's lock decided here, for review)
+
+`client/v3/leasing` caches a key `k` at the client (the *holder*) whose session lease owns the
+*lease key* `pfx ++ k`; every leasing client modifies `k` in a transaction guarded by
+`CreateRevision(pfx ++ k) < g + 1` (`g = 0`, or the holder's own entry revision), and a writer
+that is not the holder first puts `"REVOKE"` into the lease key and waits for the holder to delete
+it. Whether etcd's history obeys this depends on every writer of the deployment, not on one
+client's code. `InvLeasingModel.lean`.
+
+- **A premise, not an axiom.** `LeasingProtocol pfx h` (persistent) is a hypothesis the leasing
+  theorems take: it holds of a deployment where every writer of a data key is a leasing client
+  of prefix `pfx`, and nobody else writes lease keys. *Rejected:* an axiom (it is false of a
+  deployment with a plain-client writer); proving it from the leasing clients' code (a ghost
+  protocol over every client's transactions: what units 4 and 5 may establish for leasing
+  clients, but a non-leasing writer always breaks it).
+- **Its exact form.** A history `h` (`LeasingHist`): etcd's whole-keyspace state at every revision
+  `z ≥ 0` (`h.st z`, linked to the model by `□ ∀ r ≥ 0, etcdState r "" (h.st r)`, keys unique),
+  and `h.writer z`, the session lease of the leasing client whose transaction made revision `z`.
+  `LeasingStepOk` for every `0 < z < 2^63` and data key `k` (outside `pfx`): (1) if `k`'s record
+  changes at `z`, `pfx ++ k` is absent at `z - 1`, or present with a lease `L ≠ 0` and
+  `h.writer z = L` (the holder's write); (2) a lease key that keeps its create revision keeps its
+  lease (the only write to an existing lease key is the `"REVOKE"` put, `WithIgnoreLease`). The
+  model's `etcdState` gives states only at observed revisions; the premise names every revision,
+  so that `leased_value_stable` can walk from one observed revision to another
+  (`etcdState_create_persist` carries the lease key's presence, `LeasingStepOk` the record).
+- **The holder's own writes** (*changed from the plan*, which said "`k` changes only while
+  `pfx ++ k` is absent"): false, since the holder writes `k` while holding the lease (its guard is
+  its own entry's revision) and updates its cache (`Update`, `delete`). The model does not record
+  who wrote a revision, so the premise names the writer (`h.writer`), and the lemmas exclude the
+  holder's transactions explicitly: `leased_value_stable` (the lease key present at `a` and `b`
+  with one create revision, no transaction of the holder in `(a, b]` ⇒ `k`'s record at `b` is its
+  record at `a`); `revoked_protects` (a non-holder changes `k` after the `"REVOKE"` only once the
+  incarnation is gone). How the holder knows which revisions are its own is unit 4's (its cache
+  serializes its writes behind the waiter channels). *Rejected:* an abstract "holder write"
+  predicate (vacuous unless instantiated); identifying the holder through the guard value `g`
+  (any client can read a lease key's create revision; a range delete's guard is a maximum).
+- **The lease-expiry window is excluded by the statements, not the premise.** When the holder's
+  session lease expires, etcd deletes its lease keys (a step changing no data key) and other
+  writers may then write `k`, while the holder's cache still serves `k` until its session monitor
+  resets the entries. The premise allows it; the lemmas speak of a lease key still present. A
+  cached answer is `k`'s record at a revision at which the lease key existed: not linearizable,
+  and not claimed to be.
+- **The whole keyspace.** The leasing KV's keys (data and lease) are anywhere in the keyspace, so
+  its contracts are used at prefix `""` (`EtcdStateWf ""`, `TxnModel.Under ""` hold of every key).
+  *Rejected:* a pair of prefixes (the model has no law relating two prefixes' states).
+- **Contract extension: `WithIgnoreLease`.** `TxnOp.putKeep` (a put keeping the key's lease;
+  `txnOpOf` maps a put with `ignoreLease` and no lease to it); on a missing key etcd fails the
+  transaction, and the model's choice there (no lease) is never claimed by a successful response.
+  `Compare(CreateRevision(lkey).WithRange(lend), "<", n)` needed no change (`cmpHolds` is over the
+  range's keys, the zero key-value for an empty range, as etcd's `applyCompare`). Nested
+  transactions (`OpTxn`, `txnLeasing.serverTxn`) and owned range responses (the cache stores and
+  mutates the acquisition's response, which the contract gives read-only) are left to the units
+  that use them (4 and 5).
+
+### The lease cache: one lock, exact transitions, frozen entries
+
+`InvLeaseCache.lean`. The cache (`leaseCache`: the entries map, the revocation times, the latest
+header, under an `RWMutex`) is shared by every goroutine of the leasing KV (gets, puts, the lease
+monitors, the session monitor, `clearOldRevokes`), and its lock also guards the KV's `session` and
+`sessionc` fields (kv.go).
+
+- **The lock invariant is fractional** (`RWMutex` readers hold `rfrac`): the state is a record of
+  pure values (`LeaseCacheSt`, `LeaseEntry`, `CachedKv`, `HdrM`), held in a ghost variable so the
+  fractions agree; the physical resources are field points-tos with fraction `q` (`lcOwn`,
+  `entryOwn`, `respOwn`, `cachedKvOwn`; field by field, since the proof mode does not find a
+  struct field's points-to inside a struct's), read-only headers, and the entries' persistent
+  facts. *Rejected:* a `Mutex`-style invariant (readers would serialize: not the code).
+- **The client's part `X st q`** (fractional, a parameter): what kv.go keeps under the same lock
+  and its own invariant over the state. **Exact transitions:** a writer's spec takes the client's
+  step `X st 1 ={⊤}=∗ X (f st) 1 ∗ Q st` for its transition `f` (`LeaseCacheSt.add`, `evict`,
+  `evictRange`, `modify … del`, `setWaitc`), and returns `Q` of the state it found; a reader's
+  returns what the client learns of the state it read (`lcPeek X Qr`). `Lock`/`LockRange` change
+  only waiter channels (`WaitcOnly`), a persistent step (`lcWaitcStep`). `Update` and `delete` run
+  with the lock held by their caller and are specified on the owned state. *Rejected:* specs
+  "for some state" with no ghost link (the client could not relate two calls); logically atomic
+  triples (the step premise is what kv.go needs, more simply).
+- **The entries' facts** (`entryFacts`, persistent, kept for every entry and frozen entry): etcd's
+  whole keyspace at the entry's revision has the key's acquisition record and the lease key with
+  the holder's lease and a create revision at most the revision. The cached value changes with the
+  holder's writes (`Update`), so "the cached value is `k`'s record at `rev`" is not an invariant;
+  the facts are about the acquisition (`acq`), and unit 4 relates the cached value to the history.
+- **Frozen entries.** `Get` finds an entry (`notify`), waits, and reads `*li` again; an eviction in
+  between removes it from the map, but Go keeps it alive. Evicted (and replaced) entries are frozen:
+  their resources made read-only (`DFrac.discard`) and kept; a monotone list records every
+  `*leaseKey` installed under each key (`leaseKeyInstalled`), and the invariant keeps each one the
+  key's entry or frozen.
+- **Readiness.** `lc.entries` is nil until the session monitor makes it; `Add` writes it, so it
+  takes `leaseCacheReady` (a monotone counter at `1`), which unit 4's session reset will give.
+- **The trust boundary** (axioms): `strings.Compare` (Perennial has no model; a trusted model in
+  Perennial, as `strings.HasPrefix`'s, would replace it: written and proved, but not committed,
+  see STATUS) and `(*time.Time).Add` (Perennial models the value receiver only).

@@ -32,6 +32,8 @@ axiom proto.Clone.wp_proof
 axiom reflect.DeepEqual.wp_proof
 axiom rpctypes.Error.wp_proof
 axiom status.Error.wp_proof
+axiom strings.Compare.wp_proof
+axiom time.Time.Add.wp_proof
 axiom v3alarm.AlarmStore.Get.wp_proof
 axiom verify.Verify.wp_proof
 axiom zap.Error.wp_proof

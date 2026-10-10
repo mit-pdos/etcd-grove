@@ -35,7 +35,7 @@ Version:
 CreateRevision:
 ModRevision:
 LeaseValue:
-Compare: Cmp__Clone Cmp__ensureCompare mustInt64 mustInt64orLeaseID
+v3_Compare: Cmp__Clone Cmp__ensureCompare mustInt64 mustInt64orLeaseID
 Cmp__WithRange: Cmp__Clone Cmp__ensureCompare
 Compare__GetKey:
 Cmp__WithPrefix: Cmp__Clone Cmp__ensureCompare Compare__GetKey getPrefix
@@ -69,11 +69,11 @@ ResponseOp__GetResponseRange:
 NewMutex:
 Mutex__Key:
 Mutex__Header:
-Mutex__IsOwner: CreateRevision Compare
+Mutex__IsOwner: CreateRevision v3_Compare
 NewLocker: NewMutex
 waitDelete: WithRev WatchResponse__Err
 waitDeletes: WithLastCreate WithMaxCreateRev waitDelete
-Mutex__tryAcquire: Session__Client Session__Lease CreateRevision Compare v3_WithLease OpPut OpGet WithFirstCreate ResponseOp__GetResponseRange
+Mutex__tryAcquire: Session__Client Session__Lease CreateRevision v3_Compare v3_WithLease OpPut OpGet WithFirstCreate ResponseOp__GetResponseRange
 Mutex__Unlock: Session__Client
 Mutex__TryLock: Mutex__tryAcquire ResponseOp__GetResponseRange Session__Client
 Mutex__Lock: Mutex__tryAcquire ResponseOp__GetResponseRange Session__Client waitDeletes Client__Ctx Mutex__Unlock
@@ -84,9 +84,9 @@ Election__Key:
 Election__Rev:
 Election__Header:
 Election__Leader: Session__Client WithFirstCreate
-Election__Resign: Session__Client CreateRevision Compare OpDelete
-Election__Proclaim: Session__Client CreateRevision Compare Session__Lease v3_WithLease OpPut
-Election__Campaign: Session__Client Session__Lease CreateRevision Compare v3_WithLease OpPut OpGet ResponseOp__GetResponseRange Election__Proclaim Election__Resign waitDeletes Client__Ctx
+Election__Resign: Session__Client CreateRevision v3_Compare OpDelete
+Election__Proclaim: Session__Client CreateRevision v3_Compare Session__Lease v3_WithLease OpPut
+Election__Campaign: Session__Client Session__Lease CreateRevision v3_Compare v3_WithLease OpPut OpGet ResponseOp__GetResponseRange Election__Proclaim Election__Resign waitDeletes Client__Ctx
 Election__observe: Session__Client WithFirstCreate WithRev WithPrefix WatchResponse__Err
 Election__Observe: Election__observe
 # STM (client/v3/concurrency/stm.go), see InvSTM.lean. The STM's abort (`panic(stmError{err})`)
@@ -96,13 +96,13 @@ stmRecover:
 WithIsolation:
 WithAbortContext:
 WithPrefetch:
-isKeyCurrent: ModRevision Compare
+isKeyCurrent: ModRevision v3_Compare
 respToValue:
 readSet__add: ResponseOp__GetResponseRange
 readSet__first:
 readSet__cmps: isKeyCurrent
 writeSet__get:
-writeSet__cmps: ModRevision Compare
+writeSet__cmps: ModRevision v3_Compare
 writeSet__puts:
 stmSerializable__gets: OpGet
 stm__reset:

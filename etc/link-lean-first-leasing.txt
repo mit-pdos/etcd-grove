@@ -1,0 +1,67 @@
+# The functions linked in `Proof/go_etcd_io/etcd/client/v3/leasing/Link.lean` (all Lean-first:
+# no Rocq counterpart), read by `etc/gen-link.py --leasing`:
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`. The results are in the namespace
+# `leasing` (`leasing.leaseCache.wp_Add`); a clientv3 function's has the prefix `v3.`
+# (`leasing.v3.Op.wp_KeyBytes`).
+#
+# The standard library's functions Perennial does not model (axioms, the trust boundary).
+strings_Compare:
+Time__Add:
+# etcdserverpb's header getters (copyHeader).
+ResponseHeader__GetClusterId:
+ResponseHeader__GetMemberId:
+ResponseHeader__GetRevision:
+ResponseHeader__GetRaftTerm:
+ResponseHeader__GetLeaderId:
+# etcdserverpb's comparison getters, clientv3's `Cmp` accessors (evalCmp).
+Compare__GetTarget:
+Compare__GetTargetUnion:
+Compare__GetResult:
+Compare__GetRangeEnd:
+Compare__GetKey:
+Cmp__ensureCompare:
+Cmp__GetCompare: Cmp__ensureCompare
+Cmp__KeyBytes: Compare__GetKey
+# clientv3's `Op` getters (client/v3/op.go), see InvOp.lean.
+Op__KeyBytes:
+Op__ValueBytes:
+Op__IsGet:
+Op__IsPut:
+Op__IsDelete:
+Op__IsTxn:
+Op__IsKeysOnly:
+Op__Rev:
+Op__RangeBytes:
+Op__IsCountOnly:
+Op__MinModRev:
+Op__MaxModRev:
+Op__MinCreateRev:
+Op__MaxCreateRev:
+# The lease cache's helpers (client/v3/leasing/util.go, cache.go), see InvLeaseCache.lean.
+compareInt64:
+closeAll:
+inRange: strings_Compare
+isBadOp: Op__Rev Op__RangeBytes
+copyHeader: ResponseHeader__GetClusterId ResponseHeader__GetMemberId ResponseHeader__GetRevision ResponseHeader__GetRaftTerm ResponseHeader__GetLeaderId
+copyKeyValue:
+copyGetResponseMetadataOnly: copyHeader
+evalCmp: compareInt64 Cmp__GetCompare Compare__GetTarget Compare__GetTargetUnion Compare__GetResult
+leaseKey__get: Op__IsCountOnly Op__MinModRev Op__MaxModRev Op__MinCreateRev Op__MaxCreateRev Op__IsKeysOnly copyGetResponseMetadataOnly copyKeyValue
+# The lease cache (client/v3/leasing/cache.go), see InvLeaseCache.lean.
+leaseCache__Rev:
+leaseCache__notify:
+leaseCache__MayAcquire:
+leaseCache__NotifyOps: Op__IsGet Op__KeyBytes leaseCache__notify
+leaseCache__Get: isBadOp Op__KeyBytes leaseCache__notify leaseKey__get
+leaseCache__Lock:
+leaseCache__LockRange: inRange
+leaseCache__LockWriteOps: leaseCache__Lock leaseCache__LockRange Op__IsGet Op__KeyBytes Op__RangeBytes
+leaseCache__Evict:
+leaseCache__EvictRange: inRange
+leaseCache__clearOldRevokes: Time__Add
+leaseCache__Add: leaseKey__get
+leaseCache__Update:
+leaseCache__delete: copyHeader
+leaseCache__Delete: leaseCache__delete
+leaseCache__evalCmp: Cmp__GetCompare Compare__GetRangeEnd Cmp__KeyBytes evalCmp
+leaseCache__evalOps: leaseKey__get isBadOp Op__IsGet Op__KeyBytes

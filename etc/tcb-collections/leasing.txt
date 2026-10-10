@@ -1,0 +1,15 @@
+# client/v3/leasing: every linked result of Proof/go_etcd_io/etcd/client/v3/leasing/Link.lean
+# (the lease cache and the functions it calls) and Results.lean (the protocol lemmas and the
+# exported results).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/leasing.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Proof/go_etcd_io/etcd/client/v3/leasing/(Link|Results)\.lean$
+axiom etcdState
+axiom etcdState_agree
+axiom etcdState_create_persist
+axiom etcdState_revs
+axiom strings.Compare.wp_proof
+axiom time.Time.Add.wp_proof
