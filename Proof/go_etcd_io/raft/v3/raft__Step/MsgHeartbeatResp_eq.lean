@@ -143,7 +143,7 @@ theorem wp_Step_MsgHeartbeatResp_eq (_P : raft.Step.Postulates (GF := GF) (hG :=
     · isplitl []
       · iintro _; iexact Hctx0
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
-    obtain ⟨rfl, Hwf', Hstep, Hl, Ht⟩ :=
+    obtain ⟨rfl, Hwf', Hstep, Hl, Ht, Hpv⟩ :=
       leader_hbresp_step cfg id s m [] dropped s' Hrole Hty Hwf Hres
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn
@@ -153,7 +153,7 @@ theorem wp_Step_MsgHeartbeatResp_eq (_P : raft.Step.Postulates (GF := GF) (hG :=
     iframe Hphys
     ipureintro
     exact ⟨Hwf', ⟨[], fun _ Hin => absurd Hin List.not_mem_nil, Hstep⟩, rfl,
-      keep_frame_logst Ht Hl⟩
+      keep_frame_logst Ht Hl Hpv⟩
   · -- PreCandidate (2026-10-04), as a candidate: no `MsgHeartbeatResp` arm either
     simp only [stepFuncOf]
     wp_apply _P.stepCandidate cfg r id s m [] (zero_val _) []

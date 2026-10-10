@@ -341,7 +341,7 @@ theorem RawNode.acceptReady.wp_proof
     (wp_raftLog_acceptApplying : raftLog.acceptApplying.spec (GF := GF) (hG := hG))
     (wp_traceReady : traceReady.spec (GF := GF) (hG := hG)) :
     RawNode.acceptReady.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs rd ce es
+  intro γ rn id rs rd ce es ms
   wp_start as H
   iNamed H
   iNamed Hrn
@@ -573,12 +573,13 @@ theorem RawNode.acceptReady.wp_proof
     %([] : List raftpb.Message) %([] : List Msg)
     %(logAcceptApplying (logAcceptUnstable s.logst) ce sz)
     Hf_id Hf_Term Hf_Vote Hf_readStates Hf_raftLog Hf_state Hf_lead Hf_msgs [] [] Hf_msgsAA [] []
-    [] [] Hlog
+    [] [] [] Hlog
   · iapply ownSlice_nil
   · iapply ownSliceCap_nil
   · iapply ownSlice_nil
   · iapply ownSliceCap_nil
   · iapply outboxRel_nil
+  · ipureintro; intro _ h; cases h
   · ipureintro; intro _ h; cases h
   iunfold outboxRel at Houtbox
   icases Houtbox with ⟨%as1, %as2, %Hperm, #Hb1, #Hb2⟩
@@ -656,7 +657,7 @@ theorem RawNode.acceptReady.wp_proof
       v _
       (nstateRel_ready s _ ce sz ⟨rfl, Hwfs⟩) Hin Hasync Hdlen'
       (by rw [Hlogst, Hlf.2.2.1]; rfl) (by rw [Hlogst, Hlf.2.2.2.1]; exact Hsnap) Hstok' Htrm
-      (by rw [Hlogst, logAcceptApplying_storage]; exact Hstor)
+      (by rw [Hlogst, logAcceptApplying_storage]; exact Hstor) Hpvoff
       $$ Hrn Hphys Hghost Hpsp Hsteps Hsteps_cap [] [Hcecap] Hcommitted Hstrecs'
     · -- the pending steps' messages
       simp only [readySteps]

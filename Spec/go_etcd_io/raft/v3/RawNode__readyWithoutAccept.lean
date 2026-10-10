@@ -36,7 +36,15 @@ What the application gets with `rd` (all of `RawNode.Ready.spec`'s postcondition
 node and the right to append): the committed entries `ce` extending `rs.delivered`, the
 entries `es` to append, the messages to send, each `isRaftMsg`, no snapshot and no read
 states. The node is `ownRawNodeReady` (`InvRawnodeReady.lean`): the outbox's slice is now
-`rd.Messages`, and `acceptReady rd` takes it to `ownRawNode` at the post-`Ready` state. -/
+`rd.Messages`, and `acceptReady rd` takes it to `ownRawNode` at the post-`Ready` state.
+
+Since 2026-10-10 also:
+- `Hmsgs_term`: every message handed out is of a term at most the node's (`rs.term`), so
+  a receiver knows a message's term is at most its sender's (pre-vote is off,
+  `ownRawNode`'s scope);
+- `Habandon`: the `Ready` may be dropped instead of accepted (`node.go`'s `select` takes
+  another case): with the messages given back, the node is whole again, at `rs`
+  (`ownRawNodeReady_abandon`). -/
 abbrev RawNode.readyWithoutAccept.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState),
   rs.steps = [] →
@@ -46,13 +54,17 @@ abbrev RawNode.readyWithoutAccept.spec : Prop :=
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"readyWithoutAccept"))
       (Val #()))
   {{ (rd : Ready) (ce es : List raftpb.Entry) (ms : List raftpb.Message), RET #rd;
-      "Hrn" ∷ ownRawNodeReady γ rn id rs rd ce es ∗
+      "Hrn" ∷ ownRawNodeReady γ rn id rs rd ce es ms ∗
       "#Hce" ∷ rd.CommittedEntries' ↦*□ ce ∗
       "#Hcommitted" ∷ isCommitted γ (rs.delivered ++ ce) ∗
       "#Hents" ∷ rd.Entries' ↦*□ es ∗
       "Hmsgs" ∷ rd.Messages' ↦* ms ∗
       "Hmsgs_cap" ∷ ownSliceCap raftpb.Message rd.Messages' (DFrac.own 1) ∗
       "#Hmsgs_ok" ∷ ([∗list] m ∈ ms, isRaftMsg γ m) ∗
+      "%Hmsgs_term" ∷ ⌜∀ m ∈ ms, uint.Z m.Term' ≤ uint.Z rs.term⌝ ∗
+      "Habandon" ∷ (rd.Messages' ↦* ms -∗
+                    ownSliceCap raftpb.Message rd.Messages' (DFrac.own 1) -∗
+                    ownRawNodeReady γ rn id rs rd ce es ms -∗ ownRawNode γ rn id rs) ∗
       "%Hsnapz" ∷ ⌜rd.Snapshot' = zero_val raftpb.Snapshot ∧
                    rd.ReadStates' = slice.nil⌝ }}
 

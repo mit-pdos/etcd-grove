@@ -52,7 +52,7 @@ theorem raft.hup.wp_proof
     (wp_raft_promotable : raft.promotable.spec (GF := GF) (hG := hG))
     (wp_raft_hasUnappliedConfChanges : raft.hasUnappliedConfChanges.spec (GF := GF) (hG := hG)) :
     raft.hup.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s t Hnowrap Hwf
+  intro cfg r id s t Hnowrap Hpv Hwf
   wp_start as Hphys
   wp_auto
   wp_apply raft.wp_load_state $$ Hphys as Hphys
@@ -65,7 +65,7 @@ theorem raft.hup.wp_proof
     iapply HΦ $$ %s
     iframe Hphys
     ipureintro
-    exact ⟨Hwf, .refl _, rfl, Int.le_refl _, by omega⟩
+    exact ⟨Hwf, .refl _, rfl, Int.le_refl _, by omega, rfl⟩
   · -- not a leader
     have Hnl : stateW64 s.role ≠ W64 2 := by
       cases h : s.role <;> simp_all [stateW64] <;> decide
@@ -81,7 +81,7 @@ theorem raft.hup.wp_proof
       wp_apply raft.wp_load_id $$ Hphys as Hphys
       wp_apply raft.wp_load_Term $$ Hphys as Hphys
       wp_raft_log
-      wp_apply wp_raft_campaign _ _ _ _ _ Hrl Hin Hnowrap $$ [$Hphys]
+      wp_apply wp_raft_campaign _ _ _ _ _ Hrl Hin Hnowrap Hpv $$ [$Hphys]
         as %peers %pvs ⟨%Hpeers, Hphys⟩
       iapply HΦ
       iframe Hphys
@@ -91,7 +91,7 @@ theorem raft.hup.wp_proof
       unfold campaignState
       refine ⟨by split <;> rfl, ?_⟩
       split <;> simp only [sendMsgs, becomePrecandidate, becomeCandidate, resetTo] <;>
-        constructor <;> word
+        refine ⟨?_, ?_, ?_⟩ <;> first | exact True.intro | word
     | false =>
       -- unpromotable: log and return, having done nothing
       wp_auto
@@ -100,7 +100,7 @@ theorem raft.hup.wp_proof
       iapply HΦ $$ %s
       iframe Hphys
       ipureintro
-      exact ⟨Hwf, .refl _, rfl, Int.le_refl _, by omega⟩
+      exact ⟨Hwf, .refl _, rfl, Int.le_refl _, by omega, rfl⟩
 
 end proof
 

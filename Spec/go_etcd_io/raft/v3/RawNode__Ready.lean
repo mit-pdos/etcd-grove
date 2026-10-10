@@ -79,6 +79,8 @@ abbrev RawNode.Ready.spec : Prop :=
       "Hmsgs" ∷ rd.Messages' ↦* ms ∗
       "Hmsgs_cap" ∷ ownSliceCap raftpb.Message rd.Messages' (DFrac.own 1) ∗
       "#Hmsgs_ok" ∷ ([∗list] m ∈ ms, isRaftMsg γ m) ∗
+      -- every message is of a term at most the node's at the call (2026-10-10)
+      "%Hmsgs_term" ∷ ⌜∀ m ∈ ms, uint.Z m.Term' ≤ uint.Z rs.term⌝ ∗
       "%Hsnapz" ∷ ⌜rd.Snapshot' = zero_val raftpb.Snapshot ∧
                    rd.ReadStates' = slice.nil⌝ ∗
       -- the right to append `es` to the node's storage (2026-10-10)

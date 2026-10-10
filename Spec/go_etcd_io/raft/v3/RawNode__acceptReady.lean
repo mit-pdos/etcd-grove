@@ -30,12 +30,13 @@ between (`ownRawNodeReady`): the node's new state as after `RawNode.Ready` -- `d
 grows by `ce`, `unpersisted` is `es`, the local messages for `Advance` are queued
 (`steps`, opaque) -- and the right to append `es` to the node's storage
 (`appendRight`). `acceptReady` does not read `rd.Messages`, which the application may
-already hold. -/
+already hold (`ms`, what `readyWithoutAccept` handed out there, is only an index of
+`ownRawNodeReady`, since 2026-10-10). -/
 abbrev RawNode.acceptReady.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : Ready)
-    (ce es : List raftpb.Entry),
+    (ce es : List raftpb.Entry) (ms : List raftpb.Message),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hrn" ∷ ownRawNodeReady γ rn id rs rd ce es }}
+      "Hrn" ∷ ownRawNodeReady γ rn id rs rd ce es ms }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"acceptReady")) (Val #rd))
   {{ (steps : List Pending), RET #();
       "Hrn" ∷ ownRawNode γ rn id

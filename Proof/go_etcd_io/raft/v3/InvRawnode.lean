@@ -13,7 +13,10 @@ term. Inside are the struct, the `raft` it points to at some physical state `s`
 `delivered` as long as `applying`, `rs.unpersisted = s.logst.unpersisted`, `StepsOk` for
 the queue, and the term. The scope facts the specs took as premises until then are
 conjuncts: the node is a voter of `γ.reCfg`, the configuration `ownRaftPhys` is about; no
-snapshot is pending (handing one out is phase 2); synchronous storage writes.
+snapshot is pending (handing one out is phase 2); synchronous storage writes; and (since
+2026-10-10) pre-vote off (`s.prevote = false`, `NewRawNode` takes `Config.PreVote` unset):
+then every queued message is of a term at most the node's (`OutTermOk`), which
+`readyWithoutAccept` reports of the messages it hands out.
 
 Until 2026-10-08 the predicate was `ownRawNode cfg rn id s rs`, indexed by the node's
 `NState` and an `RNState` of the previous `SoftState`/`HardState` and the queue, with
@@ -510,7 +513,11 @@ def ownRawNode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp GF 
   -- `advanceable` one)
   "%Hstok" ∷ ⌜StepsOk s rs.steps⌝ ∗
   "%Htrm" ∷ ⌜rs.term = s.term⌝ ∗
-  "%Hstor" ∷ ⌜rs.storage = s.logst.storage⌝)
+  "%Hstor" ∷ ⌜rs.storage = s.logst.storage⌝ ∗
+  -- scope: pre-vote off (2026-10-10; `Config.PreVote` unset, `NewRawNode` copies it to
+  -- `r.preVote`, never written again): pre-vote is an optimization, out of scope. With
+  -- it off every message the node queues is of a term at most its own (`OutTermOk`)
+  "%Hpvoff" ∷ ⌜s.prevote = false⌝)
 
 /-- Closing the predicate; the pure premises are first, the resources in the order of
 the definition. -/
@@ -520,7 +527,8 @@ theorem ownRawNode_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     (Hdlen : rs.delivered.length = (uint.Z s.logst.applying).toNat)
     (Hunp : rs.unpersisted = s.logst.unpersisted) (Hsnap : s.logst.snap = none)
     (Hstok : StepsOk s rs.steps)
-    (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage) :
+    (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage)
+    (Hpvoff : s.prevote = false) :
     ⊢ rn ↦ rnv -∗ ownRaftPhys γ.reCfg rnv.raft' id s -∗ ownRaftGhost (GF := GF) γ id ps -∗
       rnv.prevSoftSt' ↦□ sv -∗ rnv.stepsOnAdvance' ↦* steps -∗
       ownSliceCap raftpb.Message rnv.stepsOnAdvance' (DFrac.own 1) -∗
@@ -535,7 +543,7 @@ theorem ownRawNode_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
   simp only [named]
   iframe Hrn Hphys Hghost Hsoft Hsteps Hcap Hpend Hpown Hdeliv Hstrecs
   ipureintro
-  exact ⟨Hrel, Hin, Hasync, Hdlen, Hunp, Hsnap, Hstok, Htrm, Hstor⟩
+  exact ⟨Hrel, Hin, Hasync, Hdlen, Hunp, Hsnap, Hstok, Htrm, Hstor, Hpvoff⟩
 
 /-- The storage handshake, at the RawNode (2026-10-10; until then `ownRawNode_persist`,
 which lent the client the storage itself): the receipt of the application's append of
@@ -566,7 +574,7 @@ theorem ownRawNode_appended (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState
     { s with logst := { s.logst with unpersisted := [] } } ps rnv sv steps Hrel Hin Hasync
     Hdlen rfl Hsnap
     (stepsOk_mono s _ rs.steps rfl ⟨rfl, rfl⟩ (Int.le_refl _) rfl Hstok)
-    Htrm Hstor $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs
+    Htrm Hstor Hpvoff $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs
 
 end rawnode
 

@@ -65,7 +65,7 @@ and `offsetInProgress`, which does not move back; and (2026-10-10) the log's bou
 and what the storage holds (`prev`, the ghost `stored`), which the `RawNode` predicate
 keeps the records of for the acknowledgement `Advance` steps (`InvRawnode.lean`); and
 the storage the log reads (`LogState.storage`, constant), which the `RawNode` predicate
-names to its client (`RNState.storage`). -/
+names to its client (`RNState.storage`); and (2026-10-10) `r.preVote`. -/
 def LocalFrame [FfiSyntax] (s s' : NState) : Prop :=
   s'.term = s.term ∧
   uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress ∧
@@ -73,7 +73,8 @@ def LocalFrame [FfiSyntax] (s s' : NState) : Prop :=
   s'.logst.snap = s.logst.snap ∧
   s'.logst.prev = s.logst.prev ∧
   s'.logst.stored = s.logst.stored ∧
-  s'.logst.storage = s.logst.storage
+  s'.logst.storage = s.logst.storage ∧
+  s'.prevote = s.prevote
 
 /-- `Step`'s postcondition for the three local messages `RawNode` steps -- a proposal
 (`Propose`) and the two storage acknowledgements (`Advance`): `LocalFrame`, and
@@ -101,26 +102,31 @@ boundary `prev` and what the storage holds (the ghost `stored`): no `Step` but a
 `MsgSnap`'s restores, and only a `Ready` changes `stored`, so a truncating `MsgApp`
 leaves the storage holding entries the log no longer has -- which is why the
 acknowledgement `Advance` steps after it may still move them stable (`StableOk`). And
-the storage the log reads (`LogState.storage`, constant). -/
+the storage the log reads (`LogState.storage`, constant). And (2026-10-10) `r.preVote`,
+never written after `newRaft` (the `RawNode` predicate keeps pre-vote off, its scope). -/
 def NetFrame [FfiSyntax] (s s' : NState) : Prop :=
   s'.logst.applying = s.logst.applying ∧
   s'.logst.snap = s.logst.snap ∧
   s'.logst.unpersisted = s.logst.unpersisted ∧
   s'.logst.prev = s.logst.prev ∧
   s'.logst.stored = s.logst.stored ∧
-  s'.logst.storage = s.logst.storage
+  s'.logst.storage = s.logst.storage ∧
+  s'.prevote = s.prevote
 
-theorem NetFrame.refl [FfiSyntax] (s : NState) : NetFrame s s := ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
+theorem NetFrame.refl [FfiSyntax] (s : NState) : NetFrame s s :=
+  ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 theorem NetFrame.trans [FfiSyntax] {s1 s2 s3 : NState} (h1 : NetFrame s1 s2)
     (h2 : NetFrame s2 s3) : NetFrame s1 s3 :=
   ⟨h2.1.trans h1.1, h2.2.1.trans h1.2.1, h2.2.2.1.trans h1.2.2.1, h2.2.2.2.1.trans h1.2.2.2.1,
-   h2.2.2.2.2.1.trans h1.2.2.2.2.1, h2.2.2.2.2.2.trans h1.2.2.2.2.2⟩
+   h2.2.2.2.2.1.trans h1.2.2.2.2.1, h2.2.2.2.2.2.1.trans h1.2.2.2.2.2.1,
+   h2.2.2.2.2.2.2.trans h1.2.2.2.2.2.2⟩
 
-/-- Two states with the same log state. -/
-theorem NetFrame.of_logst [FfiSyntax] {s s' : NState} (h : s'.logst = s.logst) :
+/-- Two states with the same log state and pre-vote setting. -/
+theorem NetFrame.of_logst [FfiSyntax] {s s' : NState} (h : s'.logst = s.logst)
+    (hpv : s'.prevote = s.prevote := by rfl) :
     NetFrame s s' := by
-  unfold NetFrame; rw [h]; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
+  unfold NetFrame; rw [h, hpv]; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 /-- How a `Step` moves the term (2026-10-09): never back; by a local `MsgHup` at most one
 up (a campaign); by any other message (but a `MsgPreVoteResp`, which may also campaign)
@@ -261,13 +267,18 @@ abbrev raft.Step.spec : Prop :=
   -- - a `MsgPreVoteResp` at a pre-candidate may win, which runs the real `campaign`
   --   and increments the term: it must not wrap (as for `MsgHup`). Only at a
   --   pre-candidate (2026-10-10: `RawNode.Advance` may step its own pre-vote response
-  --   after a won pre-vote raised the term, at a candidate, which ignores it).
+  --   after a won pre-vote raised the term, at a candidate, which ignores it);
+  -- - (2026-10-10) a `MsgPreVote` reaches only a node with pre-vote on (the setting is
+  --   the cluster's): a node with pre-vote off then never sends a pre-vote message, and
+  --   every message it queues is of a term at most its own (`OutTermOk`). `RawNode.Step`
+  --   takes no pre-vote message at all.
   (m.Type' = MsgPreVote →
      m.To' = id ∧ m.Term' ≠ W64 0 ∧
      m.From' ≠ W64 0 ∧ m.From' ≠ id ∧
      (s.term = W64 0 →
       plogUpToDate s.logst.prev (s.logst.sents ++ s.logst.uents)
-        (entryID.mk m.LogTerm' m.Index') = true)) →
+        (entryID.mk m.LogTerm' m.Index') = true) ∧
+     s.prevote = true) →
   (m.Type' = MsgPreVoteResp →
      m.To' = id ∧ m.Term' ≠ W64 0 ∧
      m.From' ≠ W64 0 ∧

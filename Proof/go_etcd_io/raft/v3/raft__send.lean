@@ -46,11 +46,20 @@ local macro "send_tail " acc:term : tactic => `(tactic| (
   iapply HΦ))
 
 set_option hygiene false in
+/-- The queued message's term bound (`OutTermOk`): the caller's (`SendOk`'s vote clause,
+`Hpvt`), or the node's own term stamped in, or `0`. -/
+local macro "out_term" : tactic => `(tactic| (
+  first
+    | exact Hpvt
+    | (intro _; simp only; omega)
+    | (intro _; simp only; word)))
+
+set_option hygiene false in
 /-- A described type other than `MsgSnap`: the wand gets the abstraction of the queued
 message, whose `Entries` is `m`'s, and the outbox is then `sendMsgs s out` by
 computation. -/
 local macro "finish_some" : tactic => `(tactic| (
-  ihave Hphys := Hback $$ %q' %_ %(some (absMsg ty _ ents)) Hf Hq Hq_cap []
+  ihave Hphys := Hback $$ %q' %_ %(some (absMsg ty _ ents)) Hf Hq Hq_cap [] []
   · unfold msgAbs
     iright; ileft
     iexists ty, ents
@@ -59,6 +68,7 @@ local macro "finish_some" : tactic => `(tactic| (
     refine ⟨Hty, ?_, rfl⟩
     rintro rfl
     exact absurd Hty (by decide)
+  · ipureintro; out_term
   iapply ownRaftPhys_eq _ _ _ _ _ ?_ $$ Hphys
   rfl))
 
@@ -67,7 +77,7 @@ set_option hygiene false in
 message is `AAMsgOk` -- from `id`, and if self-addressed, as `SendOk`'s vote clause
 says (`Hself2`). -/
 local macro "finish_some_aa" : tactic => `(tactic| (
-  ihave Hphys := Hback $$ %q' %_ %(some (absMsg ty _ ents)) Hf Hq Hq_cap [] []
+  ihave Hphys := Hback $$ %q' %_ %(some (absMsg ty _ ents)) Hf Hq Hq_cap [] [] []
   · unfold msgAbs
     iright; ileft
     iexists ty, ents
@@ -80,17 +90,19 @@ local macro "finish_some_aa" : tactic => `(tactic| (
     refine ⟨by simp [MsgAppResp, MsgVoteResp, MsgPreVoteResp], rfl, fun Hto => ?_⟩
     obtain ⟨He, Hc, Ht⟩ := Hself2 Hto
     exact ⟨Hmterm, He, Hc, fun h => by simp [MsgAppResp] at h, Ht⟩
+  · ipureintro; out_term
   iapply ownRaftPhys_eq _ _ _ _ _ ?_ $$ Hphys
   rfl))
 
 set_option hygiene false in
 /-- An undescribed type: it contributes nothing. -/
 local macro "finish_none" : tactic => `(tactic| (
-  ihave Hphys := Hback $$ %q' %_ %none Hf Hq Hq_cap []
+  ihave Hphys := Hback $$ %q' %_ %none Hf Hq Hq_cap [] []
   · unfold msgAbs
     ileft
     ipureintro
     exact ⟨Hty, rfl⟩
+  · ipureintro; out_term
   iapply ownRaftPhys_eq _ _ _ _ _ ?_ $$ Hphys
   rfl))
 
@@ -115,7 +127,7 @@ theorem raft.send.wp_proof
     rw [Hmeq]
     iframe
   unfold SendOk at Hok
-  rcases Hok with ⟨ty, Hvoty, Hty, Hmterm, Hself, Hself2, rfl⟩ |
+  rcases Hok with ⟨ty, Hvoty, Hty, Hmterm, Hself, Hself2, Hpvt, rfl⟩ |
     ⟨ty, Hlty, Hty, Hmterm, Hself, rfl⟩ |
     (⟨HSnap, Hmterm, Hself⟩ | ⟨Hty, Hmterm, Hself, rfl⟩) | ⟨HAR, Hmterm, Hself2, rfl⟩ |
     ⟨HProp, Hmterm, Hself, rfl⟩
@@ -129,7 +141,7 @@ theorem raft.send.wp_proof
         mresp⟩ := m
       simp only [MsgVote] at Hvt
       subst Hvt
-      simp only at Hmterm Hself Hty ⊢
+      simp only at Hmterm Hself Hty Hpvt ⊢
       wp_auto
       rw [decide_eq_false Hmterm]
       wp_auto
@@ -144,7 +156,7 @@ theorem raft.send.wp_proof
         mresp⟩ := m
       simp only [MsgVoteResp] at Hvt
       subst Hvt
-      simp only at Hmterm Hself Hself2 Hty ⊢
+      simp only at Hmterm Hself Hself2 Hty Hpvt ⊢
       wp_auto
       rw [decide_eq_false Hmterm]
       wp_auto
@@ -155,7 +167,7 @@ theorem raft.send.wp_proof
         mresp⟩ := m
       simp only [MsgPreVote] at Hvt
       subst Hvt
-      simp only at Hmterm Hself Hty ⊢
+      simp only at Hmterm Hself Hty Hpvt ⊢
       wp_auto
       rw [decide_eq_false Hmterm]
       wp_auto
@@ -169,7 +181,7 @@ theorem raft.send.wp_proof
         mresp⟩ := m
       simp only [MsgPreVoteResp] at Hvt
       subst Hvt
-      simp only at Hmterm Hself Hself2 Hty ⊢
+      simp only at Hmterm Hself Hself2 Hty Hpvt ⊢
       wp_auto
       rw [decide_eq_false Hmterm]
       wp_auto
@@ -205,13 +217,14 @@ theorem raft.send.wp_proof
     icases Hsnap $$ %rfl with ⟨%sv, %voters, %Hout, #Hsv, #Hvoters⟩
     subst Hout
     send_tail ownRaftPhys_msgs
-    ihave Hphys := Hback $$ %q' %_ %(some (absSnap _ sv voters)) Hf Hq Hq_cap []
+    ihave Hphys := Hback $$ %q' %_ %(some (absSnap _ sv voters)) Hf Hq Hq_cap [] []
     · unfold msgAbs
       iright; iright
       iexists sv, voters
       iframe Hsv Hvoters
       ipureintro
       exact ⟨rfl, rfl⟩
+    · ipureintro; out_term
     iapply ownRaftPhys_eq _ _ _ _ _ ?_ $$ Hphys
     rfl
   · -- (c) a type the model does not see: stamped, onto `r.msgs`, and it drops out of
@@ -242,7 +255,7 @@ theorem raft.send.wp_proof
     wp_apply raft.wp_load_Term $$ Hphys as Hphys
     have Hty : mtypeOf (W32 4) = some MsgType.appResp := rfl
     send_tail ownRaftPhys_msgsAA
-    ihave Hphys := Hback $$ %q' %_ %(some (absMsg .appResp _ ents)) Hf Hq Hq_cap [] []
+    ihave Hphys := Hback $$ %q' %_ %(some (absMsg .appResp _ ents)) Hf Hq Hq_cap [] [] []
     · unfold msgAbs
       iright; ileft
       iexists .appResp, ents
@@ -254,6 +267,7 @@ theorem raft.send.wp_proof
       refine ⟨by simp [MsgAppResp], rfl, fun Hto => ?_⟩
       obtain ⟨He, Hc, Hnz, Hrj⟩ := Hself2 Hto
       exact ⟨Hnz, He, Hc, fun _ => Hrj, by simp only; split <;> omega⟩
+    · ipureintro; out_term
     iapply ownRaftPhys_eq _ _ _ _ _ ?_ $$ Hphys
     rfl
   · -- (e) a forwarded proposal: `Term` stays zero; not a response
@@ -266,13 +280,14 @@ theorem raft.send.wp_proof
     rw [decide_eq_false Hself]
     wp_auto
     send_tail ownRaftPhys_msgs
-    ihave Hphys := Hback $$ %q' %_ %(some (absMsg .propose _ ents)) Hf Hq Hq_cap []
+    ihave Hphys := Hback $$ %q' %_ %(some (absMsg .propose _ ents)) Hf Hq Hq_cap [] []
     · unfold msgAbs
       iright; ileft
       iexists .propose, ents
       iframe Hents
       ipureintro
       exact ⟨rfl, by decide, rfl⟩
+    · ipureintro; out_term
     iapply ownRaftPhys_eq _ _ _ _ _ ?_ $$ Hphys
     rfl
 

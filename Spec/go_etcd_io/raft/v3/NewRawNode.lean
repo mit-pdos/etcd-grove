@@ -79,6 +79,8 @@ abbrev NewRawNode.spec : Prop :=
   (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
   -- synchronous storage writes, nothing applied
   cv.AsyncStorageWrites' = false →
+  -- pre-vote off (2026-10-10): pre-vote is an optimization, out of scope (`ownRawNode`)
+  cv.PreVote' = false →
   cv.Applied' = W64 0 →
   -- an empty storage: no entries, no `HardState`
   σ.prev = entryID.mk (W64 0) (W64 0) →

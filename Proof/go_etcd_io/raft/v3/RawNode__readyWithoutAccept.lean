@@ -6,6 +6,10 @@ election_proof/proof_RawNode__Ready.v at 857d09190, finished in Lean), up to the
 proved at the end of `Ready`'s proof; they come here, since `node.go` hands the `Ready` out
 before accepting it.
 
+Since 2026-10-10 the messages are appended with `wp_slice_append_undo`, so that the
+loop keeps a way back to `r.msgs`' slice (`Hundo`, for `ownRawNodeReady_abandon`), and
+their terms are bounded by the outbox's `OutTermOk` (pre-vote off).
+
 Lean notes: `readyWithoutAccept`'s `rd` is tracked as `readyVal` (one field per argument).
 -/
 module
@@ -294,12 +298,16 @@ theorem RawNode.readyWithoutAccept.wp_proof
   generalize HMS : decide (¬sents.len = W64 0 ∨ ¬s.vote = hard0.vote ∨
       ¬s.term = hard0.term) = MS
   -- `for _, m := range r.msgsAfterAppend { if m.To != r.id { rd.Messages =
-  -- append(rd.Messages, m) } }`: in place, into `r.msgs`' capacity
+  -- append(rd.Messages, m) } }`: in place, into `r.msgs`' capacity, or into a new array;
+  -- either way `r.msgs`' slice can be had back (`Hundo`, for abandoning the `Ready`)
   ihave IH : iprop(∃ (n : w64) (msl : GoSlice) (mv : raftpb.Message),
       "i" ∷ i_ptr ↦ n ∗ "m" ∷ m_ptr ↦ mv ∗
       "rd" ∷ rd_ptr ↦ readyVal sp HS sents sce msl MS ∗
       "Hmsgs" ∷ msl ↦* (ms1 ++ nonself id (ms2.take (sint.nat n))) ∗
       "Hmsgs_cap" ∷ ownSliceCap raftpb.Message msl (DFrac.own 1) ∗
+      "Hundo" ∷ (msl ↦* (ms1 ++ nonself id (ms2.take (sint.nat n))) -∗
+                 ownSliceCap raftpb.Message msl (DFrac.own 1) -∗
+                 sl1 ↦* ms1 ∗ ownSliceCap raftpb.Message sl1 (DFrac.own 1)) ∗
       "HmsgsAA" ∷ sl2 ↦* ms2 ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (ms2.length : Int)⌝)
     $$ [i m rd Hmsgs Hmsgs_cap HmsgsAA]
@@ -310,6 +318,8 @@ theorem RawNode.readyWithoutAccept.wp_proof
     iframe i m Hmsgs Hmsgs_cap HmsgsAA
     isplitl [rd]
     · iexact rd
+    isplitr
+    · iintro H1 H2; iframe H1 H2
     · ipureintro; word
   wp_for IH
   ihave %Hl2 := ownSlice_len _ _ _ $$ HmsgsAA
@@ -336,7 +346,15 @@ theorem RawNode.readyWithoutAccept.wp_proof
       try (isplitr; (ipureintro; rfl))
       iintro %msl1 ⟨Hsl1, -⟩
       wp_auto
-      wp_apply wp_slice_append $$ [$Hmsgs $Hmsgs_cap $Hsl1] as %msl' ⟨Hmsgs, Hmsgs_cap, -⟩
+      wp_apply wp_slice_append_undo $$ [$Hmsgs $Hmsgs_cap $Hsl1]
+        as %msl' ⟨Hmsgs, Hmsgs_cap, -, Hundo'⟩
+      ihave Hundo : iprop(msl' ↦* ((ms1 ++ nonself id (ms2.take (sint.nat n))) ++ [mm]) -∗
+          ownSliceCap raftpb.Message msl' (DFrac.own 1) -∗
+          sl1 ↦* ms1 ∗ ownSliceCap raftpb.Message sl1 (DFrac.own 1)) $$ [Hundo Hundo']
+      · iintro H1 H2
+        icases Hundo' $$ [H1 H2] with ⟨H1, H2⟩
+        · iframe H1 H2
+        iapply Hundo $$ H1 H2
       wp_for_post
       iframe
       iexists n + W64 1, msl', mm
@@ -346,15 +364,23 @@ theorem RawNode.readyWithoutAccept.wp_proof
   -- the loop is done: every message of `msgsAfterAppend` seen
   rw [List.take_of_length_le (l := ms2) (i := sint.nat n) (by word)]
   -- the raft struct, without the outbox's contents (now `rd.Messages`)
-  ihave Hphys : ownRaftPhysReady γ.reCfg rnv.raft' id s $$
+  ihave Hphys : ownRaftPhysReady γ.reCfg rnv.raft' id s msl (ms1 ++ nonself id ms2) $$
     [Hf_id Hf_Term Hf_Vote Hf_readStates Hf_raftLog Hf_state Hf_lead Hf_msgs Hf_msgsAA
-     HmsgsAA HmsgsAA_cap Hlog Hclose]
+     HmsgsAA HmsgsAA_cap Hundo Hlog Hclose]
   · unfold ownRaftPhysReady
     iexists rss, sl1, sl2, ms1, ms2
     simp only [named]
     iframe Hf_id Hf_Term Hf_Vote Hf_readStates Hf_raftLog Hf_state Hf_lead Hf_msgs Hf_msgsAA
-      HmsgsAA HmsgsAA_cap Hlog Hclose Houtbox
-    ipureintro; exact ⟨Hrs, HmsgsAA_ok⟩
+      HmsgsAA HmsgsAA_cap Hundo Hlog Hclose Houtbox
+    ipureintro; exact ⟨Hrs, HmsgsAA_ok, Hout_term⟩
+  -- the messages' terms: with pre-vote off, at most the node's (`OutTermOk`)
+  have Hmsgs_term : ∀ m ∈ ms1 ++ nonself id ms2, uint.Z m.Term' ≤ uint.Z rs.term := by
+    intro m Hm
+    rw [Htrm]
+    refine Hout_term m ?_ Hpvoff
+    rcases List.mem_append.1 Hm with Hm | Hm
+    · exact List.mem_append_left _ Hm
+    · exact List.mem_append_right _ (List.mem_filter.1 Hm).1
   iunfold outboxRel at Houtbox
   icases Houtbox with ⟨%as1, %as2, %Hperm, #Hb1, #Hb2⟩
   obtain ⟨Hps, Hwfs⟩ := Hrel
@@ -393,7 +419,8 @@ theorem RawNode.readyWithoutAccept.wp_proof
     simp only [named]
     iframe Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hdeliv' Hstrecs Hrdsoft Hce Hce_cap
     ipureintro
-    exact ⟨⟨rfl, Hwfs⟩, Hin, Hasync, Hdlen, HunpS, Hsnap, Htrm, Hstor, ⟨trivial, trivial⟩, Hcepre, trivial⟩
+    exact ⟨⟨rfl, Hwfs⟩, Hin, Hasync, Hdlen, HunpS, Hsnap, Htrm, Hstor, Hpvoff, ⟨trivial, trivial⟩,
+      Hcepre, trivial⟩
   isplitr
   · iexact Hce
   isplitr
@@ -412,6 +439,12 @@ theorem RawNode.readyWithoutAccept.wp_proof
     · iapply nonself_sepL id ms2 (fun m => isRaftMsg (GF := GF) γ m)
       iapply msgs_ok_list γ (toPState s).outbox ms2 as2
         (fun a Ha => Hin_out a (List.mem_append_right _ Ha)) $$ Hout Hb2
+  isplitr
+  · ipureintro; exact Hmsgs_term
+  isplitr
+  · iintro H1 H2 H3
+    iapply ownRawNodeReady_abandon γ rn id rs (readyVal sp HS sents sce msl MS) ce
+      (nextUnstable s.logst) (ms1 ++ nonself id ms2) Hsteps0 Hunp0 $$ H1 H2 H3
   ipureintro; exact ⟨trivial, trivial⟩
 
 end proof

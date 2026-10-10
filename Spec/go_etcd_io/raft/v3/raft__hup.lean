@@ -35,6 +35,8 @@ abbrev raft.hup.spec : Prop :=
   -- `hup` may reach `campaign`, which increments the term -- see the note on
   -- `raft.campaign.spec`.
   uint.Z s.term + 1 < 2 ^ 64 →
+  -- a pre-election only with pre-vote on (2026-10-10; see `raft.campaign.spec`)
+  (t = campaignPreElection → s.prevote = true) →
   -- `r.step` matches the role; kept by the call
   NStateWf s →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s }}
@@ -42,9 +44,10 @@ abbrev raft.hup.spec : Prop :=
   {{ (s' : NState), RET #();
       ownRaftPhys cfg r id s' ∗ ⌜NStateWf s'⌝ ∗
       ⌜Step cfg id (toPState s) [] (toPState s')⌝ ∗
-      -- the log is untouched and the term moves up by at most one (2026-10-09)
+      -- the log is untouched and the term moves up by at most one (2026-10-09); and
+      -- `r.preVote` is kept (2026-10-10)
       ⌜s'.logst = s.logst ∧ uint.Z s.term ≤ uint.Z s'.term ∧
-       uint.Z s'.term ≤ uint.Z s.term + 1⌝ }}
+       uint.Z s'.term ≤ uint.Z s.term + 1 ∧ s'.prevote = s.prevote⌝ }}
 
 end spec
 

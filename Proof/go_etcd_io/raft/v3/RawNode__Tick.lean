@@ -43,7 +43,7 @@ theorem RawNode.Tick.wp_proof
     | wp_apply wp_tickHeartbeat γ.reCfg γ rnv.raft' id s ps rfl Hin Hrel
         $$ [$Hphys $Hghost] as %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, %Htk⟩
   all_goals (
-    obtain ⟨⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg⟩, Ht1, Ht2, -⟩ := Htk
+    obtain ⟨⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre⟩, Ht1, Ht2, -⟩ := Htk
     ihave #Hstr' := storedRecs_eq γ _ s'.logst.prev _ s'.logst.stored Hpv Hsd $$ Hstrecs
     have Hc : uint.Z s.logst.committed ≤ uint.Z s'.logst.committed := by
       obtain ⟨recv, Hst⟩ := Href
@@ -54,7 +54,7 @@ theorem RawNode.Tick.wp_proof
     isplitl
     · iapply ownRawNode_intro γ rn id { rs with term := s'.term } s' ps' rnv sv steps Hrel' Hin
         Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
-        (stepsOk_mono_le s s' _ Ht1 ⟨Hpv, Hsd⟩ Hc Ha Hstok) rfl (by rw [Hsg]; exact Hstor)
+        (stepsOk_mono_le s s' _ Ht1 ⟨Hpv, Hsd⟩ Hc Ha Hstok) rfl (by rw [Hsg]; exact Hstor) (by rw [Hpre]; exact Hpvoff)
         $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstr'
     ipureintro
     rw [Htrm]

@@ -67,7 +67,7 @@ private theorem sendOk_voteResp (id : w64) (s : NState) (to term : w64) (rej : B
     fun Hc => by
       exfalso; change MsgVoteResp = _ ∨ MsgVoteResp = _ at Hc
       rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne),
-    fun _ => ⟨rfl, rfl, Int.le_trans Hle (by split <;> omega)⟩, rfl⟩
+    fun _ => ⟨rfl, rfl, Int.le_trans Hle (by split <;> omega)⟩, fun _ => Hle, rfl⟩
 
 set_option hygiene false in
 /-- `m.Type' = W32 k` is false: `m` is a `MsgVote` (`Hty`). -/

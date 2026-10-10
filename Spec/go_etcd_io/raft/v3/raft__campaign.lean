@@ -51,6 +51,10 @@ abbrev raft.campaign.spec : Prop :=
   -- the term wraps to zero and the real code panics. Added 2026-09-16; see
   -- notes/STATUS.md.
   uint.Z s.term + 1 < 2 ^ 64 →
+  -- a pre-election only with pre-vote on (2026-10-10): its pre-vote messages are of the
+  -- next term, which `ownRaftPhys` allows only then (`OutTermOk`); `hup` is called with
+  -- `campaignPreElection` exactly when `r.preVote`
+  (t = campaignPreElection → s.prevote = true) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"campaign")) (Val #t))
   {{ (peers : List w64) (pvs : GMap w64 Progress), RET #();

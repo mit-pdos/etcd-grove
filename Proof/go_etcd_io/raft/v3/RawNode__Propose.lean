@@ -120,7 +120,8 @@ theorem RawNode.Propose.wp_proof
       (by rw [Hap']; exact Hdlen) (by rw [Hfr.2.2.1]; exact Hunp)
       (by rw [Hfr.2.2.2.1]; exact Hsnap)
       (stepsOk_mono s s' _ Hfr.1 ⟨Hfr.2.2.2.2.1, Hfr.2.2.2.2.2.1⟩ Hc Hap' Hstok)
-      (by rw [Hfr.1]; exact Htrm) (by rw [Hfr.2.2.2.2.2.2]; exact Hstor)
+      (by rw [Hfr.1]; exact Htrm) (by rw [Hfr.2.2.2.2.2.2.1]; exact Hstor)
+      (by rw [Hfr.2.2.2.2.2.2.2]; exact Hpvoff)
       $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstr'
   icases Hprops with (⟨%Hok, Hout⟩ | Hau)
   · ileft

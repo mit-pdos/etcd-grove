@@ -1598,3 +1598,28 @@ follows any error of `raftLog.term(pr.Next - 1)`: `ErrCompacted` (then `prev.ind
 peers, unproved here). So the clause stays; `ownMemoryStorage` dropped `σ.ss.index ≠ 0`
 (so `NewMemoryStorage` can produce it) and the instance `is_Storage_MemoryStorage ms γs`
 adds it to `P`. Closing it needs a `Next` bound in the tracker invariant.
+
+## RawNode: pre-vote out of scope, and the terms of the outbox
+
+**2026-10-10 · accepted**
+
+For `node.go`'s argument that terms never wrap, a receiver must know a message's term is
+at most its sender's. With pre-vote on that is false (a `MsgPreVote` is at the next term,
+a granting `MsgPreVoteResp` echoes the candidate's), and pre-vote is an optimization:
+out of scope.
+
+**Decision.** `ownRawNode` holds `s.prevote = false` (`NewRawNode` takes `Config.PreVote`
+unset; `NetFrame`/`LocalFrame` keep `prevote`). `ownRaftPhys` records of every queued
+message `OutTermOk s.prevote s.term m` (`prevote = false → Term ≤ term`), which `send`
+establishes: it stamps the node's term into every message but a forwarded proposal and a
+vote message, and `SendOk`'s vote clause bounds the caller's term under the same
+condition. A pre-vote message is then only ever sent with pre-vote on: `campaign`'s
+pre-election takes `t = campaignPreElection → s.prevote = true` (as does `hup`; `Step`
+calls it so exactly when `r.preVote`), and `raft.Step.spec` takes a `MsgPreVote` only at
+a node with pre-vote on -- a transport premise (the setting is the cluster's), vacuous
+for `RawNode.Step`, which takes no pre-vote message.
+
+*Rejected*: keeping `raft.Step` unrestricted and tracking "no pre-vote response to
+another node in the outbox" in `ownRawNode`, or as a ghost flag of `NState` -- either
+needs a new fact about every `Step` branch's outbox growth, where the premise costs one
+hypothesis threaded into the three `MsgPreVote` branches.

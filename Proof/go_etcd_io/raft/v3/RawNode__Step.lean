@@ -34,7 +34,7 @@ local macro "early_return" e:term : tactic => `(tactic| (
   iapply HΦ $$ %$e %rs.term
   isplitl
   · iapply ownRawNode_intro γ rn id { rs with term := rs.term } s ps rnv sv steps Hrel Hin
-      Hasync Hdlen Hunp Hsnap Hstok Htrm Hstor
+      Hasync Hdlen Hunp Hsnap Hstok Htrm Hstor Hpvoff
       $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs
   ipureintro; constructor <;> omega))
 
@@ -93,7 +93,8 @@ theorem RawNode.Step.wp_proof
       have P1 : m.Type' = MsgHup → m.Term' = W64 0 ∧ uint.Z s.term + 1 < 2 ^ 64 := by not_net
       have P2 : m.Type' = MsgPreVote → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧
           m.From' ≠ id ∧ (s.term = W64 0 → plogUpToDate s.logst.prev
-            (s.logst.sents ++ s.logst.uents) (entryID.mk m.LogTerm' m.Index') = true) := by
+            (s.logst.sents ++ s.logst.uents) (entryID.mk m.LogTerm' m.Index') = true) ∧
+          s.prevote = true := by
         not_net
       have P3 : m.Type' = MsgPreVoteResp → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧
           (s.role = .preCandidate → uint.Z s.term + 1 < 2 ^ 64) := by not_net
@@ -141,7 +142,7 @@ theorem RawNode.Step.wp_proof
         not_net
       simp only [HnP, ↓reduceIte]
       iintro %err %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, -, %Hfr, %Htm, -, -, -⟩
-      obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg⟩ := Hfr (by not_net) (by not_net)
+      obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre⟩ := Hfr (by not_net) (by not_net)
       obtain ⟨Ht1, -, Ht3, -⟩ := Htm (by not_net)
       have Ht3 := Ht3 (by not_net) (by not_net)
       have Hc : uint.Z s.logst.committed ≤ uint.Z s'.logst.committed := by
@@ -158,7 +159,7 @@ theorem RawNode.Step.wp_proof
       isplitl
       · iapply ownRawNode_intro γ rn id { rs with term := s'.term } s' ps' rnv sv steps Hrel' Hin
           Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
-          Hstok' rfl (by rw [Hsg]; exact Hstor)
+          Hstok' rfl (by rw [Hsg]; exact Hstor) (by rw [Hpre]; exact Hpvoff)
           $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstr'
       ipureintro
       rw [Htrm]

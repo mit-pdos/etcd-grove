@@ -114,15 +114,17 @@ theorem keep_frame {m : raftpb.Message} {s s' : NState} (ht : s'.term = s.term)
     (hi : s'.logst.inprogress = s.logst.inprogress)
     (hp : s'.logst.prev = s.logst.prev := by rfl)
     (hst : s'.logst.stored = s.logst.stored := by rfl)
-    (hsg : s'.logst.storage = s.logst.storage := by rfl) :
+    (hsg : s'.logst.storage = s.logst.storage := by rfl)
+    (hpv : s'.prevote = s.prevote := by rfl) :
     NetFrame s s' ∧ TermStep m s s' :=
-  ⟨⟨ha, hs, hu, hp, hst, hsg⟩, TermStep.of_term ht (fun _ => by rw [hi]; exact Int.le_refl _)⟩
+  ⟨⟨ha, hs, hu, hp, hst, hsg, hpv⟩, TermStep.of_term ht (fun _ => by rw [hi]; exact Int.le_refl _)⟩
 
 /-- The same, for a branch that keeps the whole log. -/
 theorem keep_frame_logst {m : raftpb.Message} {s s' : NState} (ht : s'.term = s.term)
-    (hl : s'.logst = s.logst) : NetFrame s s' ∧ TermStep m s s' := by
+    (hl : s'.logst = s.logst) (hpv : s'.prevote = s.prevote := by rfl) :
+    NetFrame s s' ∧ TermStep m s s' := by
   exact keep_frame ht (by rw [hl]) (by rw [hl]) (by rw [hl]) (by rw [hl]) (by rw [hl])
-    (by rw [hl]) (by rw [hl])
+    (by rw [hl]) (by rw [hl]) hpv
 
 /-- The same, for a branch that steps down to the message's term (`becomeFollower`) and
 keeps the rest. -/
@@ -133,9 +135,10 @@ theorem stepdown_frame {m : raftpb.Message} {s s' : NState} (hup : m.Type' ≠ M
     (hi : s'.logst.inprogress = s.logst.inprogress)
     (hp : s'.logst.prev = s.logst.prev := by rfl)
     (hst : s'.logst.stored = s.logst.stored := by rfl)
-    (hsg : s'.logst.storage = s.logst.storage := by rfl) :
+    (hsg : s'.logst.storage = s.logst.storage := by rfl)
+    (hpv : s'.prevote = s.prevote := by rfl) :
     NetFrame s s' ∧ TermStep m s s' :=
-  ⟨⟨ha, hs, hu, hp, hst, hsg⟩, TermStep.of_le hup Hle (by rw [ht]; exact Int.le_refl _)
+  ⟨⟨ha, hs, hu, hp, hst, hsg, hpv⟩, TermStep.of_le hup Hle (by rw [ht]; exact Int.le_refl _)
     (fun _ => by rw [hi]; exact Int.le_refl _)⟩
 
 /-- The same, with the stepped-down state named (`s1`) and the branch's end state built
@@ -143,12 +146,13 @@ from it without touching its term or log. -/
 theorem stepdown_frame' {m : raftpb.Message} {s s1 s' : NState} {l : w64}
     {pvs : GMap w64 Progress} (hup : m.Type' ≠ MsgHup) (Hgt : uint.Z s.term < uint.Z m.Term')
     (Hs1 : s1 = { becomeFollower s m.Term' l with prvals := pvs })
-    (ht : s'.term = s1.term) (hl : s'.logst = s1.logst) :
+    (ht : s'.term = s1.term) (hl : s'.logst = s1.logst)
+    (hpv : s'.prevote = s1.prevote := by rfl) :
     NetFrame s s' ∧ TermStep m s s' := by
   subst Hs1
   exact stepdown_frame hup (by rw [ht]; exact Int.le_of_lt Hgt) (ht.trans rfl)
     (by rw [hl]; rfl) (by rw [hl]; rfl) (by rw [hl]; rfl) (by rw [hl]; rfl) (by rw [hl]; rfl)
-    (by rw [hl]; rfl) (by rw [hl]; rfl)
+    (by rw [hl]; rfl) (by rw [hl]; rfl) hpv
 
 /-- The one ghost update of a branch: `recv` is the incoming message, some number of
 times, and that message is `isMessage`. -/

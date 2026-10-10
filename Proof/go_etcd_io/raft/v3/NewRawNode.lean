@@ -29,7 +29,7 @@ theorem NewRawNode.wp_proof
     (wp_softState : raft.softState.spec (GF := GF) (hG := hG))
     (wp_hardState : raft.hardState.spec (GF := GF) (hG := hG)) :
     NewRawNode.spec (GF := GF) (hG := hG) := by
-  intro γ c cv lok si σ hs cs voters dqv Hvalid Hlok Hsto Hmi Hcq Hdpf Hmcs Hasync Happ
+  intro γ c cv lok si σ hs cs voters dqv Hvalid Hlok Hsto Hmi Hcq Hdpf Hmcs Hasync HpvF Happ
     Hprev Hents Hss Hpe Hhs Hvne Hvnd Hv0 Hvlen Hc1 Hc2 Hc3 Hal Hcfg Hid
   wp_start as ⟨Hc, #Hlg, #Hst, HSt, #Hinit, Hghost, #Hcomm⟩
   wp_auto
@@ -43,7 +43,7 @@ theorem NewRawNode.wp_proof
   -- `prevSoftSt` points to a `SoftState` nobody writes again
   ipersist ss
   wp_apply wp_hardState _ r cv.ID' s $$ Hphys as Hphys
-  obtain ⟨Hwf, Ht, Hv, Hl, Hr, Hvs, Ho, -, Hp, Hse, Hue, Hsd, Hcm, Hap, Hun, Hsn, Hsg⟩ := Hpost
+  obtain ⟨Hwf, Ht, Hv, Hl, Hr, Hvs, Ho, Hpv, Hp, Hse, Hue, Hsd, Hcm, Hap, Hun, Hsn, Hsg⟩ := Hpost
   have HT : hs.Term' = W64 0 := Hhs.1
   have Hrel : NStateRel s initPState :=
     newRaft_post_init hs s Hhs ⟨Hwf, Ht, Hv, Hl, Hr, Hvs, Ho⟩ (by rw [Hp, Hprev])
@@ -59,7 +59,7 @@ theorem NewRawNode.wp_proof
       s initPState _ _ [] Hrel
       (by rw [Hcfg]; exact (GMap.elem_of_list_to_set _ _).2 Hid) ?_
       (by rw [Hap, Hprev, Happ]; rfl) (by rw [Hun]) Hsn trivial
-      (by rw [Ht, HT]) (by rw [Hsg])
+      (by rw [Ht, HT]) (by rw [Hsg]) (by rw [Hpv, HpvF])
       $$ «$r0» Hphys Hghost ss [] [] [] [] Hcomm []
     all_goals first
       | (rw [Hsd, Hents]; iapply storedRecs_nil)

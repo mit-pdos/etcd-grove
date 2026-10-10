@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-10 (`RawNode.Ready` split into `readyWithoutAccept` and `acceptReady`, for `node.go`; the storage contract has a pending append, for `node.go`; `MemoryStorage.Append` and `NewMemoryStorage` proved; merged upstream's RawNode work into the cache-as-shipped and concurrency line, Perennial `7d0b56b07`, see "Merge: upstream's RawNode work"; `RawNode.Step` takes a `MsgApp` between `Ready` and `Advance`; the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; Perennial `7d0b56b07`: Goose with per-iteration loop variables, `break` out of `select`, see "Perennial `7d0b56b07`"; merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
+**Last updated:** 2026-10-10 (groundwork for `node.go`: a computed `Ready` can be abandoned, Perennial's `wp_slice_append_undo`; pre-vote out of scope at the RawNode level; `Ready`'s messages carry terms at most the node's, see "`node.go` groundwork"; `RawNode.Ready` split into `readyWithoutAccept` and `acceptReady`, for `node.go`; the storage contract has a pending append, for `node.go`; `MemoryStorage.Append` and `NewMemoryStorage` proved; merged upstream's RawNode work into the cache-as-shipped and concurrency line, Perennial `7d0b56b07`, see "Merge: upstream's RawNode work"; `RawNode.Step` takes a `MsgApp` between `Ready` and `Advance`; the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; Perennial `7d0b56b07`: Goose with per-iteration loop variables, `break` out of `select`, see "Perennial `7d0b56b07`"; merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
 
 Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
@@ -13,6 +13,52 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 (`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
+
+## `node.go` groundwork: abandoning a `Ready`, pre-vote off, the messages' terms (2026-10-10)
+
+Three pieces `node.go`'s proof will need (uncommitted Perennial change: `Slice.lean`).
+
+- **Abandoning a computed `Ready`.** Perennial: `wp_slice_append_undo` (`Slice.lean`, next
+  to `wp_slice_append`): `wp_slice_append`'s triple plus a wand
+  `s' ↦* (vs ++ vs') ∗ ownSliceCap V s' (DFrac.own 1) -∗ sl ↦* vs ∗ ownSliceCap V sl
+  (DFrac.own 1)` -- in place, the new slice is split at `len(sl)` and the rest goes back
+  to `sl`'s capacity (`ownSlice_append_undo_in_place`); reallocating, the old slice and
+  capacity are kept. `readyWithoutAccept` builds `rd.Messages` with it, so
+  `ownRaftPhysReady` holds `Hundo` (from `rd.Messages`' contents and capacity back to
+  `r.msgs`'), and `ownRawNodeReady` gained the index `ms` (the messages handed out;
+  `acceptReady.spec` takes it as one more `∀`). `ownRawNodeReady_abandon`
+  (`InvRawnodeReady.lean`): `rd.Messages' ↦* ms -∗ ownSliceCap … -∗ ownRawNodeReady γ rn
+  id rs rd ce es ms -∗ ownRawNode γ rn id rs` (premises `rs.steps = []`,
+  `rs.unpersisted = []`, `readyWithoutAccept`'s); `readyWithoutAccept.spec` returns it as
+  `"Habandon"`.
+- **Pre-vote off at the RawNode.** `NetFrame` and `LocalFrame` (hence `TickStep`) gained
+  `s'.prevote = s.prevote` (`keep_frame`/`stepdown_frame`/`keep_frame_logst`/
+  `NetFrame.of_logst` take it as an auto-param `rfl`; `hup`'s post states it);
+  `ownRawNode` and `ownRawNodeReady` have the scope conjunct `"%Hpvoff" ∷ ⌜s.prevote =
+  false⌝` (named so as not to clash with the proofs' `Hpv`), `ownRawNode_intro` takes it,
+  and `NewRawNode.spec` requires `cv.PreVote' = false`.
+- **The terms of `Ready`'s messages.** `readyWithoutAccept.spec` and `Ready.spec` return
+  `"%Hmsgs_term" ∷ ⌜∀ m ∈ ms, uint.Z m.Term' ≤ uint.Z rs.term⌝`. The route, the cheapest
+  sound one found: `ownRaftPhys` records of every queued message (both queues)
+  `OutTermOk s.prevote s.term m` -- `s.prevote = false → Term ≤ s.term` (monotone in the
+  term, `wp_store_Term` keeps it; `ownRaftPhys_intro`, the queue accessors' wands,
+  `ownRaftPhys_view` and its `Hclose` carry it). `send` stamps the node's term into
+  everything but a forwarded `MsgProp` (`0`) and a vote message, whose term `SendOk`'s
+  vote clause now bounds: `s.prevote = false → Term ≤ s.term`. Its callers: a
+  `MsgVote`/`MsgVoteResp` is of the node's term (`campaign`'s election, `Step`'s vote
+  branches); a pre-vote message is sent only by `campaign`'s pre-election, which (with
+  `hup`) now takes `t = campaignPreElection → s.prevote = true` (`Step`'s `MsgHup`
+  branch calls it so exactly when `r.preVote`), or in answer to a `MsgPreVote`, for which
+  `raft.Step.spec` now requires `s.prevote = true` (a transport premise: pre-vote
+  messages reach only nodes with pre-vote on, the setting being the cluster's;
+  `RawNode.Step` takes no pre-vote message, so it is vacuous there). So no ghost
+  tracking of "no pre-vote message in the outbox" was needed. *Rejected*: tracking
+  "no `MsgPreVoteResp` to another node in the outbox" in `ownRawNode` (needs a new
+  `raft.Step` postcondition on the outbox's growth, proved per branch) or a ghost flag in
+  `NState` (the same per-branch frame work).
+
+`lake build Proof.go_etcd_io.raft.v3.Link Proof.go_etcd_io.raft.v3.Results` passes; no
+new `sorry` or axiom.
 
 ## `RawNode.Ready` split: `readyWithoutAccept` and `acceptReady`, for `node.go` (2026-10-10)
 
@@ -48,7 +94,8 @@ composes their specs; `RawNode.Ready.spec` is unchanged.
   `RawNode.wp_Ready` from the two); `etc/link-lean-first.txt` lists the two and overrides
   `RawNode__Ready`'s Rocq callees; `Results.lean` prints their axioms.
 
-**Open**: abandoning a `Ready` (`node.go` recomputes `rd` when its `select` takes another
+**Open** (closed the same day: `ownRawNodeReady_abandon`, "`node.go` groundwork" above):
+abandoning a `Ready` (`node.go` recomputes `rd` when its `select` takes another
 case, then steps the node) has no lemma: the messages would have to go back to the node,
 but `readyWithoutAccept`'s appends to `rd.Messages` may reallocate, consuming `r.msgs`'
 slice. A `node.go` proof needs either such a lemma (e.g. `readyWithoutAccept` keeping

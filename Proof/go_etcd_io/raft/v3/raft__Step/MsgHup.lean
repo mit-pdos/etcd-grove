@@ -75,15 +75,22 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   -- `hup(campaignPreElection)` with pre-vote on, `hup(campaignElection)` otherwise;
   -- `hup`'s spec covers both
   wp_apply raft.wp_load_preVote $$ Hphys as Hphys
-  cases s.prevote
+  -- `hup(campaignPreElection)` exactly when `r.preVote`
+  cases Hpv : s.prevote
   all_goals
     wp_auto
-    wp_apply _P.hup cfg r id s _ Hnowrap Hwf $$ [$Hphys]
-      as %s' ⟨Hphys, %Hwf', %Hstep, %Hl, %Ht1, %Ht2⟩
+    wp_apply _P.hup cfg r id s _ Hnowrap ?Hpvt Hwf $$ [$Hphys]
+      as %s' ⟨Hphys, %Hwf', %Hstep, %Hl, %Ht1, %Ht2, %Hpv'⟩
+    case Hpvt =>
+      first
+        | exact fun _ => Hpv
+        | exact fun h => by
+            have := congrArg List.length h
+            simp [campaignElection, campaignPreElection] at this
     iapply HΦ $$ %interface.nil %s'
     iframe Hphys
     ipureintro
-    exact ⟨Hwf', Hstep, rfl, NetFrame.of_logst Hl, Ht1, fun _ => Ht2,
+    exact ⟨Hwf', Hstep, rfl, NetFrame.of_logst Hl Hpv', Ht1, fun _ => Ht2,
       fun h _ => absurd Hty h, fun _ => by rw [Hl]; exact Int.le_refl _⟩
 
 end StepProof

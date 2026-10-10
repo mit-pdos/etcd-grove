@@ -58,7 +58,10 @@ clause per shape a caller builds:
     2026-10-10) carries no `Entries` and no `Context` and is not from a later term than
     the node's -- one later for a `MsgPreVoteResp`, a pre-campaign's own -- which is what
     `ownRaftPhys` records of a self-addressed response (`AAMsgOk`, `InvRaftPhys.lean`)
-    for `RawNode.Advance` to step it.
+    for `RawNode.Advance` to step it. With pre-vote off (since 2026-10-10) its term is at
+    most the node's (`OutTermOk`, which `ownRaftPhys` records of every queued message):
+    a pre-vote message is sent only with pre-vote on (`campaign`'s pre-election) or to
+    answer a `MsgPreVote` (`raft.Step` takes one only with pre-vote on).
 (b) a message stamped with the current term and queued on `r.msgs`: `MsgApp`,
     `MsgHeartbeat`, `MsgReadIndexResp`, `MsgHeartbeatResp`. `Term` must be unset; the
     abstract message carries `s.term`, which is what `send` stamps in
@@ -97,6 +100,7 @@ def SendOk (id : w64) (s : NState) (m : raftpb.Message) (ents : List raftpb.Entr
      (m.To' = id →
         m.Entries' = slice.nil ∧ m.Context' = slice.nil ∧
         uint.Z m.Term' ≤ uint.Z s.term + (if m.Type' = MsgPreVoteResp then 1 else 0)) ∧
+     (s.prevote = false → uint.Z m.Term' ≤ uint.Z s.term) ∧
      out = [absMsgFrom ty m id m.Term' ents])
   ∨
   (∃ ty,

@@ -198,7 +198,7 @@ private theorem wp_step_pending
          uint.Z s.term ≤ uint.Z s'.term ∧
          PendStep p s s' ∧
          s'.logst.prev = s.logst.prev ∧ s'.logst.stored = s.logst.stored ∧
-         s'.logst.storage = s.logst.storage⌝ }} := by
+         s'.logst.storage = s.logst.storage ∧ s'.prevote = s.prevote⌝ }} := by
   iintro %Φ ⟨#Hinit, Hphys, Hghost, #Hp, Hown, #Hstr⟩ HΦ
   cases p with
   | self pv t =>
@@ -396,7 +396,7 @@ theorem RawNode.Advance.wp_proof
       "%Hs1" ∷ ⌜s1.logst.applying = s.logst.applying ∧
                 s1.logst.unpersisted = s.logst.unpersisted ∧ s1.logst.snap = s.logst.snap ∧
                 s1.logst.prev = s.logst.prev ∧ s1.logst.stored = s.logst.stored⌝ ∗
-      "%Hsg1" ∷ ⌜s1.logst.storage = s.logst.storage⌝ ∗
+      "%Hsg1" ∷ ⌜s1.logst.storage = s.logst.storage ∧ s1.prevote = s.prevote⌝ ∗
       "%Hok1" ∷ ⌜StepsOk s1 (rs.steps.drop (sint.nat n))⌝ ∗
       "%Hsb1" ∷ ⌜SelfBound s (rs.steps.drop (sint.nat n))⌝ ∗
       "%Hti1" ∷ ⌜TermInv s s1 (rs.steps.drop (sint.nat n))⌝ ∗
@@ -409,7 +409,7 @@ theorem RawNode.Advance.wp_proof
     simp only [named]
     iframe
     ipureintro
-    exact ⟨by word, ⟨trivial, trivial⟩, Hrel, by simp, Hstok,
+    exact ⟨by word, ⟨trivial, trivial⟩, Hrel, by simp, ⟨trivial, trivial⟩, Hstok,
       stepsOk_selfBound s rs.steps Hstok, Int.le_refl _, by omega, fun _ _ => rfl⟩
   wp_for IH
   wp_if_destruct
@@ -466,7 +466,7 @@ theorem RawNode.Advance.wp_proof
     ipureintro
     refine ⟨by word, ⟨by rw [List.length_set]; exact Hsteps1.1, ?_⟩, Hrel2,
       ⟨Ha2.trans Hs1.1, Hu2.trans Hs1.2.1, Hsn2.trans Hs1.2.2.1, Hpv2.trans Hs1.2.2.2.1,
-        Hsd2.trans Hs1.2.2.2.2⟩, Hsg2.trans Hsg1,
+        Hsd2.trans Hs1.2.2.2.2⟩, ⟨Hsg2.1.trans Hsg1.1, Hsg2.2.trans Hsg1.2⟩,
       stepsOk_mono_le s1 s2 _ Ht2 ⟨Hpv2, Hsd2⟩ Hc12 Ha2 Hrest,
       fun pv t h => Hsb1 pv t (List.mem_cons_of_mem _ h),
       termInv_step s s1 s2 p _ Hok1 Hsb1 Hti1 Ht2 Hps2⟩
@@ -490,7 +490,8 @@ theorem RawNode.Advance.wp_proof
         { rnv with stepsOnAdvance' :=
             slice.slice rnv.stepsOnAdvance' raftpb.Message (W64 0) (W64 0) }
         sv [] Hrel1 Hin Hasync (by rw [Hs1.1]; exact Hdlen) (by rw [Hs1.2.1]; exact Hunp)
-        (by rw [Hs1.2.2.1]; exact Hsnap) trivial rfl (by rw [Hsg1]; exact Hstor)
+        (by rw [Hs1.2.2.1]; exact Hsnap) trivial rfl (by rw [Hsg1.1]; exact Hstor)
+        (by rw [Hsg1.2]; exact Hpvoff)
         $$ Hrn Hphys Hghost Hsoft Hsl0 Hcap0 [] [] Hdeliv Hstr1
       · iempintro
       · iempintro
