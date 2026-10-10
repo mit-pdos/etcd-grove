@@ -19,6 +19,12 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.LogLemmas
 #print axioms Perennial.EtcdGrove.mvcc.keyIndex.wp_get
 #print axioms Perennial.EtcdGrove.mvcc.keyIndex.wp_put
 #print axioms Perennial.EtcdGrove.mvcc.keyIndex.wp_tombstone
+#print axioms Perennial.EtcdGrove.mvcc.wp_newTreeIndex
+#print axioms Perennial.EtcdGrove.mvcc.treeIndex.wp_keyIndex
+#print axioms Perennial.EtcdGrove.mvcc.treeIndex.wp_unsafeGet
+#print axioms Perennial.EtcdGrove.mvcc.treeIndex.wp_Get
+#print axioms Perennial.EtcdGrove.mvcc.treeIndex.wp_Put
+#print axioms Perennial.EtcdGrove.mvcc.treeIndex.wp_Tombstone
 
 /-! The model: what the index answers of a key at a revision is the state's key-value. -/
 #print axioms Perennial.EtcdGrove.mvcc.kiGet_indexOf

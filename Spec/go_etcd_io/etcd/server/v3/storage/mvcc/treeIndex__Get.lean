@@ -17,9 +17,10 @@ open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [AllG GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- `ti.Get(key, atRev)` by a reader with the certificate of a committed log `log`, at a
 revision below its length: what `log` determines of the key (`kiGetVal` of the key's index

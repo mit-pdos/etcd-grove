@@ -20,6 +20,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [AllG GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- `newTreeIndex(lg)`: a fresh tree index (as the `index` interface), with its writer's handle
 for the empty log and its reader tokens (one per reader slot of the `RWMutex`). -/

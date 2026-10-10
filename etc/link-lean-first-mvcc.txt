@@ -11,3 +11,15 @@ keyIndex__findGeneration:
 keyIndex__get: keyIndex__isEmpty keyIndex__findGeneration generation__isEmpty generation__walk
 keyIndex__put: Revision__GreaterThan
 keyIndex__tombstone: keyIndex__isEmpty generation__isEmpty keyIndex__put
+# The btree (k8s.io/utils/third_party/forked/golang/btree), proved and linked in its own
+# package (`@`, as in the cache's list).
+btree_New: @
+BTree__Get: @
+BTree__ReplaceOrInsert: @
+# The tree index (index.go), see InvIndex.lean, Hist.lean.
+newTreeIndex: btree_New keyIndex__Less
+treeIndex__keyIndex: BTree__Get
+treeIndex__unsafeGet: treeIndex__keyIndex keyIndex__get
+treeIndex__Get: treeIndex__unsafeGet
+treeIndex__Put: BTree__Get BTree__ReplaceOrInsert keyIndex__put
+treeIndex__Tombstone: BTree__Get keyIndex__tombstone

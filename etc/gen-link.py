@@ -236,6 +236,9 @@ variable [package_sem : {assumptions}]
         allg = " [AllG GF]" if "[AllG GF]" in src else ""
         # the register's specs take its storage registry
         allg += " [RegStor GF]" if "[RegStor GF]" in src else ""
+        # mvcc's index specs use the btree through the cache's interface (its assumptions)
+        allg += (" [go_etcd_io.etcd.cache.v3.Assumptions]"
+                 if "variable [go_etcd_io.etcd.cache.v3.Assumptions]" in src else "")
         return (f"theorem {result(fn)}{allg} :\n    {specref(fn)}.spec (GF := GF) (hG := hG) :=\n"
                 f"  {body}\n")
 

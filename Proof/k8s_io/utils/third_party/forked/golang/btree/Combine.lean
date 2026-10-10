@@ -292,7 +292,7 @@ theorem ownNodes_combine (hkey : KeysOfItems o) (S : List (V × K)) (dq1 dq2 : D
   | _ :: _, _ :: _, [], _, _ => by simp only [ownNodes_cons_nil]; iintro - - %h; exact h.elim
 end
 
-theorem ownNode_not_null (dq : DFrac) (t : Tree (V × K)) :
+theorem ownNode_null_absurd (dq : DFrac) (t : Tree (V × K)) :
     ownNode o c f less dq null t ⊢ (False : IProp GF) := by
   cases t with
   | node is cs =>
@@ -323,8 +323,8 @@ theorem ownRoot_combine (hkey : KeysOfItems o) (d : Nat) (dq1 dq2 : DFrac) (r : 
   · isplitl []
     · ipureintro; rw [Hnil1.2, Hnil2.2]
     ileft; ipureintro; exact Hnil1
-  · iexfalso; rw [Hnil1.1]; iapply ownNode_not_null o c f less dq2 tr2 $$ H2
-  · iexfalso; rw [Hnil2.1]; iapply ownNode_not_null o c f less dq1 tr1 $$ H1
+  · iexfalso; rw [Hnil1.1]; iapply ownNode_null_absurd o c f less dq2 tr2 $$ H2
+  · iexfalso; rw [Hnil2.1]; iapply ownNode_null_absurd o c f less dq1 tr1 $$ H1
   · ihave #H : allItems o (s1 ++ s2) $$ [H1 H2]
     · iapply allItems_app o s1 s2; iframe #
     icases ownNode_combine o c f less hkey (s1 ++ s2) dq1 dq2 r tr1 tr2

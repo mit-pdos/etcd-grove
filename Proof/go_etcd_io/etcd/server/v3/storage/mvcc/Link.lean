@@ -17,6 +17,13 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__get
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__isEmpty
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__put
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__tombstone
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newTreeIndex
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Get
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Put
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Tombstone
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__keyIndex
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__unsafeGet
+public import Proof.k8s_io.utils.third_party.forked.golang.btree.Link
 
 @[expose] public section
 
@@ -70,7 +77,42 @@ theorem mvcc.keyIndex.wp_tombstone :
     mvcc.keyIndex.tombstone.spec (GF := GF) (hG := hG) :=
   mvcc.keyIndex.tombstone.wp_proof mvcc.keyIndex.wp_isEmpty mvcc.generation.wp_isEmpty mvcc.keyIndex.wp_put
 
+theorem mvcc.wp_newTreeIndex [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
+    mvcc.newTreeIndex.spec (GF := GF) (hG := hG) :=
+  mvcc.newTreeIndex.wp_proof btree.wp_New mvcc.keyIndex.wp_Less
+
+theorem mvcc.treeIndex.wp_keyIndex [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
+    mvcc.treeIndex.keyIndex.spec (GF := GF) (hG := hG) :=
+  mvcc.treeIndex.keyIndex.wp_proof btree.BTree.wp_Get
+
+theorem mvcc.treeIndex.wp_unsafeGet [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
+    mvcc.treeIndex.unsafeGet.spec (GF := GF) (hG := hG) :=
+  mvcc.treeIndex.unsafeGet.wp_proof mvcc.treeIndex.wp_keyIndex mvcc.keyIndex.wp_get
+
 end links
+
+/-! The specs stated at `HeapGS HasLC.hasLC GF`: those using channels, `sync.Once` or
+`context` (Perennial states them there: their invariants need later credits). -/
+section links_hasLC
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+
+theorem mvcc.treeIndex.wp_Get [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
+    mvcc.treeIndex.Get.spec (GF := GF) (hG := hG) :=
+  mvcc.treeIndex.Get.wp_proof mvcc.treeIndex.wp_unsafeGet
+
+theorem mvcc.treeIndex.wp_Put [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
+    mvcc.treeIndex.Put.spec (GF := GF) (hG := hG) :=
+  mvcc.treeIndex.Put.wp_proof btree.BTree.wp_Get btree.BTree.wp_ReplaceOrInsert mvcc.keyIndex.wp_put
+
+theorem mvcc.treeIndex.wp_Tombstone [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
+    mvcc.treeIndex.Tombstone.spec (GF := GF) (hG := hG) :=
+  mvcc.treeIndex.Tombstone.wp_proof btree.BTree.wp_Get mvcc.keyIndex.wp_tombstone
+
+end links_hasLC
 
 end EtcdGrove
 end Perennial

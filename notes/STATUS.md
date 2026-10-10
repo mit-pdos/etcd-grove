@@ -52,17 +52,19 @@ another session was committing `client/v3/leasing` to the main checkout at the t
   index), by induction over the log's revisions and, within one, over its changes
   (`rev_step`), with `Lemmas.lean` (what `kiGet` answers after `kiPut`/`kiTombstone`, below
   and at or above the new revision, under `KiWf`/`KiAbove`; `kiGet_top`).
-- **`index.go`, in progress** (2026-10-10, branch `mvcc`): the btree's `ownBTree_combine`
-  (`btree/Combine.lean`, keys determined by items) and the cache wrapper's, so a tree can be a
-  `RWMutex` resource; `Hist.lean` (the index's history with commit markers, `kiGet_reader`, the
-  writer's facts, finding/inserting entries by key); `InvIndex.lean` (`ownTree`, fractional;
-  `idxLockInv`, `isTreeIndex`, `idxReader`, `idxWriter`, `idxCert`, `idxWriter_commit`,
-  `reader_answer`); specs of `newTreeIndex`, `treeIndex.keyIndex/unsafeGet/Get/Put/Tombstone`
-  (compile). Proof drafts of `newTreeIndex` and `treeIndex.keyIndex` are **uncommitted** (three
-  small errors left: the `kiItemLess` defeq at the `Less` closure's postcondition, `imod` of
-  `mono_list_own_alloc` needs `with ⟨%γ, H, #Hlb⟩` after `ihave >`, an `icases` pattern);
-  `unsafeGet`/`Get`/`Put`/`Tombstone` proofs, `unsafeVisit`/`Revisions`/`Range`, the Link list
-  entries (`btree_New`-style `@` callees) not started.
+- **`index.go`, the point operations** (2026-10-10, branch `mvcc`): the btree's
+  `ownBTree_combine` (`btree/Combine.lean`, keys determined by items) and the cache wrapper's, so
+  a tree can be a `RWMutex` resource; `Hist.lean` (the index's history with commit markers,
+  `kiGet_reader`, the writer's facts, finding/inserting entries by key, `kiLastEmpty_false_of_del`);
+  `InvIndex.lean` (`ownTree`, fractional; `idxLockInv`, `isTreeIndex`, `idxReader`, `idxWriter`,
+  `idxCert`, `idxWriter_commit`, `reader_answer`). **Proved and linked** (sorry-free):
+  `newTreeIndex`, `treeIndex.keyIndex`, `unsafeGet`, `Get` (a reader with the certificate of a
+  committed log reads what it determines), `Put` and `Tombstone` (the writer, for the pending
+  revision's next change). The specs of `Get`/`Put`/`Tombstone` are stated at
+  `HeapGS HasLC.hasLC` (later credits) with the cache's btree interface assumptions
+  (`etc/gen-link.py` adds `[go_etcd_io.etcd.cache.v3.Assumptions]` when a spec has it).
+  **Not yet**: `unsafeVisit`, `Revisions`, `CountRevisions`, `Range` (the range reads, through
+  the btree's `AscendGreaterOrEqual` and a closure), `Insert`, `KeyIndex`.
 - **Not yet**: the revision encoding, the transactions and
   the store's concurrency (the plan in decisions.md), `NewStore`, the trust-boundary specs of
   the backend, the lessor, `traceutil`, `proto.Marshal`/`Unmarshal`, `zap.Logger.Fatal`/`Panic`,
