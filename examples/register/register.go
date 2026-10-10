@@ -26,7 +26,7 @@ func encode(replica, seq uint64, kind byte, val string) []byte {
 	binary.LittleEndian.PutUint64(b, replica)
 	binary.LittleEndian.PutUint64(b[8:], seq)
 	b[16] = kind
-	return append(b, val...)
+	return append(b, []byte(val)...)
 }
 
 // decode reads back what encode wrote; ok is false for an entry that is not an
@@ -70,8 +70,8 @@ func (s *Storage) Snapshot() (pb.Snapshot, error) {
 }
 
 // Register is one replica: its id, the raft node, its storage, the register's value
-// as of the last applied entry, the last sequence number applied of each replica, and
-// the operations of this replica waiting for theirs (by sequence number).
+// as of the last applied entry, the operations applied (by their encoding), and the
+// operations of this replica waiting for theirs (by sequence number).
 type Register struct {
 	id      uint64
 	node    raft.Node
@@ -80,14 +80,14 @@ type Register struct {
 	mu      sync.Mutex
 	value   string
 	nextSeq uint64
-	applied map[uint64]uint64
+	applied map[string]bool
 	waiters map[uint64]chan string
 }
 
 // New starts replica id on a running node and its storage; send delivers the node's
 // messages to the other replicas.
 func New(id uint64, node raft.Node, storage *Storage, send func([]pb.Message)) *Register {
-	r := &Register{id: id, node: node, storage: storage, applied: make(map[uint64]uint64), waiters: make(map[uint64]chan string)}
+	r := &Register{id: id, node: node, storage: storage, applied: make(map[string]bool), waiters: make(map[uint64]chan string)}
 	go r.run(send)
 	return r
 }
@@ -107,8 +107,10 @@ func (r *Register) run(send func([]pb.Message)) {
 
 // apply runs one committed entry: a Put sets the value; either kind answers its
 // waiter, if this replica proposed it, with the value after the operation. An entry
-// whose operation was already applied (one replica's operations are proposed one at a
-// time, in sequence order) is skipped, so that an operation takes effect once.
+// whose operation was already applied (an operation may be committed more than once: a
+// proposal retried after an error, or delivered twice) is skipped, so that an operation
+// takes effect once. Operations are told apart by their encoding, which is unique: the
+// replica and a sequence number of its own.
 func (r *Register) apply(e pb.Entry) {
 	if e.Type != pb.EntryNormal {
 		return
@@ -118,11 +120,11 @@ func (r *Register) apply(e pb.Entry) {
 		return
 	}
 	r.mu.Lock()
-	if seq <= r.applied[replica] {
+	if r.applied[string(e.Data)] {
 		r.mu.Unlock()
 		return
 	}
-	r.applied[replica] = seq
+	r.applied[string(e.Data)] = true
 	if kind == opPut {
 		r.value = val
 	}
