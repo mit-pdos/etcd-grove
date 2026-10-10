@@ -7,7 +7,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__CountRevisi
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__unsafeGet
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__unsafeVisit
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__get
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Get
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReadLemmas
 @[expose] public section
 
 set_option linter.unusedSectionVars false

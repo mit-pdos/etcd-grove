@@ -4,6 +4,7 @@ Proof of `Spec/.../mvcc/treeIndex__Get.lean`. Lean-first (no Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Get
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReadLemmas
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__unsafeGet
 @[expose] public section
 
@@ -23,21 +24,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `kiGetVal` is a 4-tuple. -/
-theorem kiGetVal_pairs (ki : mvcc.KeyIndex) (atRev : w64) (e : GoInterface) :
-    ∃ a b c d : val, mvcc.kiGetVal ki atRev e = PairV (PairV (PairV a b) c) d := by
-  unfold mvcc.kiGetVal
-  cases mvcc.kiGet ki atRev with
-  | none => exact ⟨_, _, _, _, rfl⟩
-  | some r => obtain ⟨m, c, v⟩ := r; exact ⟨_, _, _, _, rfl⟩
-
-/-- Every key index of the tree (the index of some events) has a revision. -/
-theorem entries_not_empty (L : List mvcc.IdxEntry) (evs : List mvcc.Ev)
-    (h : mvcc.idxOfEntries L = mvcc.indexOf evs) : ∀ z ∈ L, mvcc.kiIsEmpty z.2.2 = false := by
-  intro z hz
-  have : (z.2.1, z.2.2) ∈ mvcc.indexOf evs := by
-    rw [← h]; unfold mvcc.idxOfEntries; exact List.mem_map_of_mem hz
-  exact (mvcc.kiIsEmpty_false_of_head (mvcc.indexOf_head' evs _ this)).1
 
 theorem mvcc.treeIndex.Get.wp_proof
     (hUnsafe : mvcc.treeIndex.unsafeGet.spec (GF := GF) (hG := hG)) :

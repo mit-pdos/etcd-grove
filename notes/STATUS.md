@@ -24,9 +24,9 @@ another session was committing `client/v3/leasing` to the main checkout at the t
   `revision.go`, `key_index.go`, `index.go`, `kv.go`, `kv_view.go`, `kvstore_txn.go`,
   `metrics_txn.go`, the promoted methods of embedded fields), `pkg/v3/schedule` and prometheus's
   `client_golang/prometheus` names-only (`etc/goose.py`). It needs the Perennial checkout
-  `/shared/perennial-mvcc` (commit `47a12615e` on `7c93f27aa`: goose's range over an integer;
-  plus uncommitted `float64(n)` conversion rules in `Golang/Defn/{PostLang,Predeclared}.lean`),
-  not pushed or pinned yet: `etc/goose.py --project etcd --src etcd=/shared/etcd --perennial
+  `/shared/perennial-mvcc` (commits `47a12615e`, goose's range over an integer, and `632b4a0ed`,
+  `float64(n)` of an integer as an uninterpreted function, on `7c93f27aa`), not pushed or
+  pinned yet: `etc/goose.py --project etcd --src etcd=/shared/etcd --perennial
   /shared/perennial-mvcc` (the etcd pin `0fc6f23b1` is only in `/shared/etcd`, branch `goose`).
   The checked-in translation is what that translator produces; `etc/goose.py --check` with the
   pinned translator fails on mvcc until the pin moves (push order: Perennial `lean` first).
@@ -63,8 +63,25 @@ another session was committing `client/v3/leasing` to the main checkout at the t
   revision's next change). The specs of `Get`/`Put`/`Tombstone` are stated at
   `HeapGS HasLC.hasLC` (later credits) with the cache's btree interface assumptions
   (`etc/gen-link.py` adds `[go_etcd_io.etcd.cache.v3.Assumptions]` when a spec has it).
-  **Not yet**: `unsafeVisit`, `Revisions`, `CountRevisions`, `Range` (the range reads, through
-  the btree's `AscendGreaterOrEqual` and a closure), `Insert`, `KeyIndex`.
+  **Not yet**: `Insert`, `KeyIndex` (used by the restore and the tests only).
+- **`index.go`, the range reads** (2026-10-10, branch `mvcc`): `unsafeVisit` (the entries in
+  `[key, end)` in key order, `rangeEntries`, through the btree's `AscendGreaterOrEqual` model
+  spec and a visitor triple `visitSpec`, the visited entries lent to the caller's closure by
+  index), `Revisions`, `CountRevisions`, `Range`: a reader with the certificate of a committed
+  `log` and `atRev` below its length gets the keys of the range with a revision at `atRev` in
+  `log`, in key order (`rangeAnswers`; the one key if `end == nil`), at most `limit` of them if
+  positive (`rangeTaken`), and the count (`rangeTotal`: all of them if `withTotalCount`, else at
+  most `limit`); `Range`'s `keys` are the key indexes' own key slices, read-only (`ownKeys`).
+  The model: `rangeAt` (the index's answers in a range), `reader_range` (a reader's range
+  answer is its certified log's: the certified keys stay, `kiOfKey_ne_mono`, sorted subsets
+  are sublists, the later keys answer nothing below the certified length), the visiting
+  (`fromKey`, `belowEnd`, `filter` as `takeWhile` on sorted entries) and the visitors'
+  accumulation (`entryAnswers` of a prefix, `takeLimit`/`totalOf`/`reached` and the limit's
+  arithmetic), in `Hist.lean`; the proofs share `ReadLemmas.lean` (`kiGetVal_pairs`,
+  `entries_not_empty`, and the two Boolean conditions of the visitors as triples on the Goose
+  expressions, `wp_reachedLimit`, `wp_stopCond`, so each visitor has one continuation per
+  outcome). All four sorry-free and linked; `Results.lean` prints 20 results and the two model
+  theorems; the collection's baseline is still empty (no axiom, no sorry).
 - **Not yet**: the revision encoding, the transactions and
   the store's concurrency (the plan in decisions.md), `NewStore`, the trust-boundary specs of
   the backend, the lessor, `traceutil`, `proto.Marshal`/`Unmarshal`, `zap.Logger.Fatal`/`Panic`,

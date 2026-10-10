@@ -16,6 +16,7 @@ keyIndex__tombstone: keyIndex__isEmpty generation__isEmpty keyIndex__put
 btree_New: @
 BTree__Get: @
 BTree__ReplaceOrInsert: @
+BTree__AscendGreaterOrEqual: @
 # The tree index (index.go), see InvIndex.lean, Hist.lean.
 newTreeIndex: btree_New keyIndex__Less
 treeIndex__keyIndex: BTree__Get
@@ -23,3 +24,8 @@ treeIndex__unsafeGet: treeIndex__keyIndex keyIndex__get
 treeIndex__Get: treeIndex__unsafeGet
 treeIndex__Put: BTree__Get BTree__ReplaceOrInsert keyIndex__put
 treeIndex__Tombstone: BTree__Get keyIndex__tombstone
+# The range reads (unsafeVisit's visitors are the callers' closures), see Hist.lean, ReadLemmas.lean.
+treeIndex__unsafeVisit: BTree__AscendGreaterOrEqual keyIndex__Less
+treeIndex__Revisions: treeIndex__unsafeGet treeIndex__unsafeVisit keyIndex__get
+treeIndex__CountRevisions: treeIndex__unsafeGet treeIndex__unsafeVisit keyIndex__get
+treeIndex__Range: treeIndex__unsafeGet treeIndex__unsafeVisit keyIndex__get

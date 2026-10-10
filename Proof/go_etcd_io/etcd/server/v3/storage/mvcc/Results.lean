@@ -25,6 +25,12 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.LogLemmas
 #print axioms Perennial.EtcdGrove.mvcc.treeIndex.wp_Get
 #print axioms Perennial.EtcdGrove.mvcc.treeIndex.wp_Put
 #print axioms Perennial.EtcdGrove.mvcc.treeIndex.wp_Tombstone
+#print axioms Perennial.EtcdGrove.mvcc.treeIndex.wp_unsafeVisit
+#print axioms Perennial.EtcdGrove.mvcc.treeIndex.wp_Revisions
+#print axioms Perennial.EtcdGrove.mvcc.treeIndex.wp_CountRevisions
+#print axioms Perennial.EtcdGrove.mvcc.treeIndex.wp_Range
 
-/-! The model: what the index answers of a key at a revision is the state's key-value. -/
+/-! The model: what the index answers of a key at a revision is the state's key-value, and a
+reader's range answer is its certified log's. -/
 #print axioms Perennial.EtcdGrove.mvcc.kiGet_indexOf
+#print axioms Perennial.EtcdGrove.mvcc.reader_range

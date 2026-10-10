@@ -7,7 +7,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Revisions
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__unsafeGet
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__unsafeVisit
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__get
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Get
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReadLemmas
 @[expose] public section
 
 set_option linter.unusedSectionVars false
@@ -38,61 +38,6 @@ def mvcc.revisionsInv (revs_ptr totalCount_ptr : Loc) (vis : List mvcc.IdxEntry)
     ⌜total = W64 (mvcc.totalOf (mvcc.limitOf limit) withTotal
       (mvcc.entryAnswers (vis.take i) atRev).length)⌝)
 
-/-- `limit > 0 && len(revs) >= limit`, as Goose compiles it (the first conjunct already a value):
-`reached`. -/
-theorem wp_reachedLimit (limit : w64) (limit_ptr revs_ptr : Loc) (rs : GoSlice) (vs : List Revision) :
-    {{ (limit_ptr ↦□ limit : IProp GF) ∗ revs_ptr ↦ rs ∗ rs ↦* vs }}
-      (If (Val #(decide (sint.Z (W64 0) < sint.Z limit)))
-        (App (Val (GoInstruction (GoOp GoGe go.int)))
-          (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Revision.ty)))) (Val #revs_ptr))
-                  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType Revision.ty)])))
-                    (Val #())) (Var "$a0")))
-                (App (Val (GoInstruction (GoLoad go.int))) (Val #limit_ptr))))
-        (Val #false))
-    {{ (b : Bool), RET #b; ⌜b = mvcc.reached (mvcc.limitOf limit) vs.length⌝ ∗ revs_ptr ↦ rs ∗ rs ↦* vs }} := by
-  wp_start as ⟨#Hl, Hrs, Hsl⟩
-  ihave %Hlen := ownSlice_len _ _ _ $$ Hsl
-  wp_if_destruct
-  · (try wp_auto)
-    iapply HΦ
-    iframe Hrs Hsl
-    ipureintro
-    unfold mvcc.limitOf mvcc.reached
-    have h0 : (0 : Int) < sint.Z limit := by
-      have h := Hif; rw [show sint.Z (W64 0) = 0 by decide] at h; exact h
-    simp only [h0, ↓reduceIte]
-    obtain ⟨h1, h2⟩ := Hlen
-    rw [h1]
-    unfold sint.nat sint.Z at *
-    simp only [decide_eq_decide]
-    omega
-  · (try wp_auto)
-    iapply HΦ
-    iframe Hrs Hsl
-    ipureintro
-    unfold mvcc.limitOf mvcc.reached
-    have h0 : ¬ (0 : Int) < sint.Z limit := by
-      have h := Hif; rw [show sint.Z (W64 0) = 0 by decide] at h; exact h
-    simp [h0]
-
-/-- `reachedLimit && !withTotalCount` (`reachedLimit` already loaded). -/
-theorem wp_stopCond (b wt : Bool) (wt_ptr : Loc) :
-    {{ (wt_ptr ↦□ wt : IProp GF) }}
-      (If (Val #b)
-        (App (Val (GoInstruction (GoUnOp GoNot go.bool)))
-          (App (Val (GoInstruction (GoLoad go.bool))) (Val #wt_ptr)))
-        (Val #false))
-    {{ RET #(b && !wt); True }} := by
-  wp_start as #Hwt
-  cases b
-  · (try wp_auto)
-    simp only [Bool.false_and]
-    iapply HΦ
-    itrivial
-  · wp_auto
-    simp only [Bool.true_and]
-    iapply HΦ
-    itrivial
 
 theorem mvcc.treeIndex.Revisions.wp_proof
     (hUnsafe : mvcc.treeIndex.unsafeGet.spec (GF := GF) (hG := hG))
@@ -250,7 +195,8 @@ theorem mvcc.treeIndex.Revisions.wp_proof
           unfold mvcc.rangeEntries at h
           exact (List.mem_filter.1 h).1
         wp_auto
-        wp_apply (wp_reachedLimit limit limit_ptr revs_ptr rs _) $$ [$limit $Hrs $Hsl] as %b ⟨%hb, Hrs, Hsl⟩
+        wp_apply (wp_reachedLimit (V := Revision) Revision.ty limit limit_ptr revs_ptr rs _) $$ [$limit $Hrs $Hsl]
+          as %b ⟨%hb, Hrs, Hsl⟩
         rw [List.length_map, mvcc.reached_takeLimit] at hb
         subst hb
         (try wp_auto)
