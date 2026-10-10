@@ -406,17 +406,11 @@ theorem plogTermAt_truncateAppend_below (b : entryID) (es ents : List raftpb.Ent
 
 /-! ## The storage handshake (2026-10-05)
 
-`storApp σ pend` is what a `Storage` at `σ` (`σ.ents` after `σ.prev`) holds
-once the entries `pend` are appended to it the way `MemoryStorage.Append` does
-(`storage.go`): everything at or above the batch's first index is replaced by the
-batch. `Append` is not part of the `Storage` interface raft uses; it is how the
-*application* persists `Ready.Entries`, and this is the state the application has to
-leave the storage in (`ownRaftLog_persist`). -/
-def storApp (σ : StorState) (pend : List raftpb.Entry) : List raftpb.Entry :=
-  match pend with
-  | [] => σ.ents
-  | e0 :: _ =>
-      σ.ents.take (uint.Z e0.Index' - uint.Z σ.prev.index' - 1).toNat ++ pend
+`storApp σ pend` (`InvStorage.lean`, since 2026-10-10) is what a `Storage` at `σ`
+holds once the entries `pend` are appended to it the way `MemoryStorage.Append` does.
+The application appends the entries a `Ready` handed out (`LogState.unpersisted`,
+which is the storage's pending batch `σ.pend`); `acceptUnstable` hands the right to do
+so out (the storage's hand-out law) and `ownRaftLog_absorb` takes the receipt back. -/
 
 /-- The persistence invariant (`Hpersist` below), with no snapshot pending: the stable
 part followed by the unstable entries already handed to the application
@@ -437,6 +431,28 @@ def LogPersistOk (σ : StorState)
   (ipo.toNat = uents.length → sents ++ uents = storApp σ pend) ∧
   (uents = [] → pend = []) ∧
   storApp σ pend = stored
+
+/-- The storage's pending batch is the log's `unpersisted` (2026-10-10), and with no
+snapshot pending it starts at or above `unstable.offset` (`prev.index + |sents| + 1`):
+it is the in-progress part of the unstable suffix a `Ready` handed out, and only a
+truncating `append` moves the offset, down. Every read of the stable part is below the
+offset (`term`, `slice`), so it is below the batch, as the storage's triples ask
+(`PendFrom`); `lastIndex()` reads the storage only with no unstable entries, and then
+nothing is pending (`LogPersistOk`). -/
+def PendLogOk (σ : StorState) (ls : LogState) : Prop :=
+  σ.pend = ls.unpersisted ∧
+  (ls.snap = none → ∀ e0, ls.unpersisted.head? = some e0 →
+     uint.Z ls.prev.index' + (ls.sents.length : Int) + 1 ≤ uint.Z e0.Index')
+
+omit [GoGlobalContext] in
+/-- A read below `unstable.offset` is below the pending batch (`PendLogOk`). -/
+theorem pendFrom_of_logOk (σ : StorState) (ls : LogState) (Hp : PendLogOk σ ls)
+    (Hs : ls.snap = none) (n : Int)
+    (Hn : n ≤ uint.Z ls.prev.index' + (ls.sents.length : Int) + 1) : PendFrom σ n := by
+  intro e0 He0
+  rw [Hp.1] at He0
+  have := Hp.2 Hs e0 He0
+  omega
 
 /-- The one predicate for a `raftLog`, indexed by its abstract state `ls` (`LogState`,
 above): the struct at some value `lv` whose fields are `ls`'s, the `Storage` at some
@@ -489,7 +505,10 @@ def ownRaftLog (l : Loc) (ls : LogState) : IProp GF :=
                     ls.stored⌝ ∗
   "%Happlying" ∷ ⌜uint.Z ls.applied ≤ uint.Z ls.applying ∧
                    uint.Z ls.applying ≤ uint.Z ls.committed⌝ ∗
-  "%Hpaused" ∷ ⌜lv.applyingEntsPaused' = false → uint.Z ls.apsize < uint.Z ls.apmax⌝)
+  "%Hpaused" ∷ ⌜lv.applyingEntsPaused' = false → uint.Z ls.apsize < uint.Z ls.apmax⌝ ∗
+  -- the storage, as the state names it, and its pending batch (2026-10-10)
+  "%Hstor" ∷ ⌜lv.storage' = ls.storage⌝ ∗
+  "%Hpend" ∷ ⌜PendLogOk σ ls⌝)
 
 /-- Re-seal `ownRaftLog` from the pieces `iNamed Hlog` names. **Use this rather than
 `iframe`**: with the existential storage state, Rocq's `iFrame` spends ~35 s searching
@@ -529,6 +548,8 @@ theorem ownRaftLog_intro (l : Loc) (lv : raftLog) (st : Storage) (σ : StorState
     (lv.applyingEntsPaused' = false → uint.Z ls.apsize < uint.Z ls.apmax) →
     lv.applyingEntsSize' = ls.apsize →
     lv.maxApplyingEntsSize' = ls.apmax →
+    lv.storage' = ls.storage →
+    PendLogOk σ ls →
     ls.snap = snap →
     ls.uents = uents →
     ⊢ l ↦ lv -∗
@@ -541,7 +562,7 @@ theorem ownRaftLog_intro (l : Loc) (lv : raftLog) (st : Storage) (σ : StorState
       isLoggerVal lv.unstable'.logger' -∗
       ownRaftLog l ls := by
   intro Hst Hcm Hap Hidx Hnowrap Hstore Hoffset HnoConfChange Happlied Hpapplied
-    Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying Hpaused Hasz Hamx Hsnap Huents
+    Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying Hpaused Hasz Hamx Hstor Hpend Hsnap Huents
   subst Hst Hsnap Huents
   iintro Hl #HisStorage HStorage #Husnap #Huents Huents_cap #Hl_logger #Hu_logger
   unfold ownRaftLog
@@ -550,7 +571,7 @@ theorem ownRaftLog_intro (l : Loc) (lv : raftLog) (st : Storage) (σ : StorState
   iframe Hl HisStorage HStorage Husnap Huents Huents_cap Hl_logger Hu_logger
   ipureintro
   exact ⟨Hcm, Hap, Hapg, Hip, Hasz, Hamx, Hidx, Hnowrap, Hstore, Hoffset, HnoConfChange,
-    Happlied, Hpapplied, Hcommitted, Hssnap, Hipb, Hpersist, Happlying, Hpaused⟩
+    Happlied, Hpapplied, Hcommitted, Hssnap, Hipb, Hpersist, Happlying, Hpaused, Hstor, Hpend⟩
 
 /-- The struct, for a field read. `committed` and `applied` are what the state says
 they are. -/
@@ -568,7 +589,7 @@ theorem ownRaftLog_struct (l : Loc) (ls : LogState) :
   · iintro Hl
     iapply ownRaftLog_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
       HnoConfChange Happlied Hpapplied Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying
-      Hpaused Hasz Hamx rfl rfl $$ Hl HisStorage HStorage Husnap Huents Huents_cap Hl_logger
+      Hpaused Hasz Hamx Hstor Hpend rfl rfl $$ Hl HisStorage HStorage Husnap Huents Huents_cap Hl_logger
       Hu_logger
 
 /-- Read a pure fact of `ownRaftLog` out of it, without consuming it, from the facts
@@ -598,7 +619,7 @@ theorem ownRaftLog_pure (l : Loc) (ls : LogState) (φ : Prop)
       Hipb Happlying
   · iapply ownRaftLog_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
       HnoConfChange Happlied Hpapplied Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying
-      Hpaused Hasz Hamx rfl rfl $$ Hl HisStorage HStorage Husnap Huents Huents_cap Hl_logger
+      Hpaused Hasz Hamx Hstor Hpend rfl rfl $$ Hl HisStorage HStorage Husnap Huents Huents_cap Hl_logger
       Hu_logger
 
 /-- The `Ready`-side facts, read out without consuming the log: `inprogress` between
@@ -613,31 +634,38 @@ theorem ownRaftLog_ready_wf (l : Loc) (ls : LogState) :
   ownRaftLog_pure l ls _ fun _ _ _ _ _ Hoffset _ _ _ _ Hipb Happlying =>
     ⟨⟨by omega, by omega⟩, Happlying⟩
 
-/-- The storage handshake's application side (2026-10-05): the `Storage` the log owns,
-opened so that the application can append the unpersisted entries to it, and closed at
-the state that leaves -- `storApp` of the entries `Ready` handed out, which is what
-`MemoryStorage.Append(rd.Entries)` does. The log then records nothing unpersisted.
+/-- The storage handshake's last step (2026-10-10; until then `ownRaftLog_persist`, an
+accessor lending the storage itself): the receipt of the application's append of the
+unpersisted entries -- for the log's own storage, at the state they were handed out at
+-- is absorbed into the storage (`isStorage`'s `Habsorb`), which then holds them
+(`storAbsorb`, `storApp` of the entries `Ready` handed out, which is what
+`MemoryStorage.Append(rd.Entries)` does). The log then records nothing unpersisted.
 
-This is an accessor, not a loan: nothing else may be called on the log while it is
-open. A loan -- the storage out of `ownRaftLog` across calls, recorded in `LogState` --
-was the first design and does not work: `Step` between `Ready` and `Advance` is legal
-in Go, and `Step` reads the storage on most of its paths (`term` of a stable index for
-`matchTerm`/`findConflict`, `lastIndex` with an empty unstable part, `firstIndex` in
-every `term`/`slice`, `slice` and `snapshot` for a leader's `maybeSendAppend`), so
-`Step` could not keep its spec with the storage lent out. -/
-theorem ownRaftLog_persist (l : Loc) (ls : LogState) :
-    ⊢ ownRaftLog (GF := GF) l ls -∗
-      ∃ (st : Storage) (σ : StorState),
-        isStorage st ∗ ownStorage st σ ∗
-        (ownStorage st { σ with ents := storApp σ ls.unpersisted } -∗
-         ownRaftLog l { ls with unpersisted := [] }) := by
-  iintro H
+Until 2026-10-10 the application borrowed the storage itself, which excluded raft's
+reads meanwhile; a loan across calls was rejected earlier for the same reason (`Step`
+between `Ready` and `Advance` is legal in Go, and reads the storage on most of its
+paths). The pending batch in the storage's state (`StorState.pend`) lets raft keep
+reading while the application appends. -/
+theorem ownRaftLog_absorb (l : Loc) (ls : LogState) (σa : StorState) :
+    ⊢ ownRaftLog (GF := GF) l ls -∗ appendedTok ls.storage σa ls.unpersisted ==∗
+      ownRaftLog l { ls with unpersisted := [] } := by
+  iintro H Htok
   iNamed H
-  iexists lv.storage', σ
-  iframe HisStorage HStorage
-  iintro HStorage
-  have Hstore' : LogStoreOk ls.snap { σ with ents := storApp σ ls.unpersisted }
-      ls.prev ls.sents ls.uents := by
+  ihave Htok : appendedTok lv.storage' σa ls.unpersisted $$ [Htok]
+  · rw [Hstor]; iexact Htok
+  ihave #Hsto : isStorageWith (ownStorage lv.storage') (appendTok lv.storage')
+      (appendedTok lv.storage') lv.storage' $$ [HisStorage]
+  · unfold isStorage; iexact HisStorage
+  unfold isStorageWith
+  icases Hsto with ⟨%isv, #Hsto⟩
+  iNamed Hsto
+  imod Habsorb $$ HStorage Htok with ⟨%Heq, HStorage⟩
+  imodintro
+  obtain ⟨Hpσ, -⟩ := Hpend
+  have Hab : storAbsorb σ = { σ with ents := storApp σ ls.unpersisted, pend := [] } := by
+    rw [← Hpσ]; rfl
+  have Hstore' : LogStoreOk ls.snap (storAbsorb σ) ls.prev ls.sents ls.uents := by
+    rw [Hab]
     cases Hs : ls.snap with
     | some sid => rw [Hs] at Hstore; exact Hstore
     | none =>
@@ -649,15 +677,20 @@ theorem ownRaftLog_persist (l : Loc) (ls : LogState) :
       rw [Hpe Hu]
       exact Hsu Hu
   have Hpersist' : ls.snap = none →
-      LogPersistOk { σ with ents := storApp σ ls.unpersisted } ls.sents ls.uents
+      LogPersistOk (storAbsorb σ) ls.sents ls.uents
         (uint.Z ls.inprogress - uint.Z lv.unstable'.offset') [] ls.stored := by
     intro Hs
+    rw [Hab]
     obtain ⟨Hpre, Heq, _, Hst⟩ := Hpersist Hs
     exact ⟨Hpre, Heq, fun _ => rfl, Hst⟩
+  have Hssnap' : ls.snap = none →
+      StoredSnapOk (storAbsorb σ) ls.committed ls.prev (ls.sents ++ ls.uents) := Hssnap
+  have Hpend' : PendLogOk (storAbsorb σ) { ls with unpersisted := [] } :=
+    ⟨rfl, fun _ e0 He0 => by simp at He0⟩
   iapply ownRaftLog_intro l lv lv.storage' _ _ _ { ls with unpersisted := [] } rfl Hcm Hap Hidx
-    Hnowrap Hstore' Hoffset HnoConfChange Happlied Hpapplied Hcommitted Hssnap Hapg Hip Hipb
-    Hpersist' Happlying Hpaused Hasz Hamx rfl rfl $$ Hl HisStorage HStorage Husnap Huents
-    Huents_cap Hl_logger Hu_logger
+    Hnowrap Hstore' Hoffset HnoConfChange Happlied Hpapplied Hcommitted Hssnap' Hapg Hip Hipb
+    Hpersist' Happlying Hpaused Hasz Hamx Hstor Hpend' rfl rfl $$ Hl HisStorage HStorage Husnap
+    Huents Huents_cap Hl_logger Hu_logger
 
 /-- `Hnowrap`, read out without consuming the log. Needed to know `lastIndex() + 1`
 does not wrap, which is what makes the range premises of `raftLog.slice` and
@@ -948,7 +981,10 @@ bounds), or, after `reopen_unstable`, by the same once rewritten with `Huoff`. -
 macro "reseal_raftLog" : tactic =>
   `(tactic| (iapply Perennial.EtcdGrove.ownRaftLog_intro _ _ _ _ _ _ _ $$ Hl HisStorage HStorage Husnap Huents Huents_cap Hl_logger Hu_logger) <;>
     try (first | with_reducible rfl | with_reducible assumption
-               | ((rewrite [Huoff]); with_reducible assumption)))
+               | ((rewrite [Huoff]); with_reducible assumption)
+               -- the storage and its pending batch (2026-10-10), for a state that
+               -- keeps the fields they are stated on
+               | exact Hstor | exact Hpend))
 
 set_option hygiene false in
 /-- Open `Hun : ownUnstable u us` in the proof of an `unstable` method

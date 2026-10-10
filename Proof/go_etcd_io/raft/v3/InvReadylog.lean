@@ -140,6 +140,15 @@ theorem logAcceptApplying_fields (ls : LogState) (ce : List raftpb.Entry) (sz : 
     (logAcceptApplying ls ce sz).stored = ls.stored := by
   unfold logAcceptApplying; split <;> exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
 
+/-- Neither changes the storage (2026-10-10). -/
+theorem logAcceptApplying_storage (ls : LogState) (ce : List raftpb.Entry) (sz : w64) :
+    (logAcceptApplying ls ce sz).storage = ls.storage := by
+  unfold logAcceptApplying; split <;> rfl
+
+theorem logStableTo_storage (ls : LogState) (id : entryID) :
+    (logStableTo ls id).storage = ls.storage := by
+  unfold logStableTo; split <;> rfl
+
 theorem logAcceptApplying_applying (ls : LogState) (ce : List raftpb.Entry) (sz : w64)
     (e : raftpb.Entry) (He : ce.getLast? = some e) :
     (logAcceptApplying ls ce sz).applying = e.Index' := by

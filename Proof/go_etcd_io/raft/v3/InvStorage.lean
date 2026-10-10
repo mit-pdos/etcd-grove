@@ -89,6 +89,24 @@ an assumption that is not needed is an assumption not worth making: it would be 
 claim about client code. Add it when a proof needs it, with the same "state it, then
 use it" discipline.
 
+### The pending append (2026-10-10)
+
+The application appends the entries a `Ready` handed out (`MemoryStorage.Append`) on its
+own goroutine, while raft -- `node.go`'s `run` -- keeps reading the storage. So the
+storage's state has a pending batch, `StorState.pend` (`[]` when none), and the method
+triples answer only what the batch cannot change: `Term(i)` below its first index,
+`Entries(lo, hi)` with `hi` at most its first index (`PendFrom`), `LastIndex` with
+nothing pending. Two laws, ghost updates of the storage's owner, move the batch in and
+out: `Hhandout` (with nothing pending, hand out the right `AT σ p` to append `p` --
+`appendTok` for `isStorage` -- and keep reading at `{ σ with pend := p }`) and `Habsorb`
+(the receipt `DT σ p` -- `appendedTok` -- of the append, which an implementation's
+`Append` returns for the right, makes the owner's state `storAbsorb`: the batch
+appended, `storApp`). Raft runs the hand-out in `acceptUnstable` (`Ready`) and the
+absorb in `ownRaftLog_absorb`/`ownRawNode_appended`; it reads only below
+`unstable.offset`, at or below the batch's first index (`PendLogOk`, `InvRaftlog.lean`).
+`MemoryStorage` proves both laws with a ghost protocol under its lock
+(`InvMemstorage.lean`). notes/decisions.md, "Storage: a pending append, for node.go".
+
 ### Why the triples return `#interface.nil` for the error
 
 That is the contract, not a convenience: raft treats a non-nil error from any of these
@@ -123,8 +141,8 @@ open Iris Iris.BI go_etcd_io.raft.v3
 
 /-- What a `Storage` holds, as the interface's contract states it: the compaction
 boundary `prev` (index and term of the entry before the first stored one), the stored
-entries `ents` after it, and the metadata `ss` of its most recent snapshot (`Snapshot`).
-One record, so that the contract and its clients keep their shape when what is tracked
+entries `ents` after it, the metadata `ss` of its most recent snapshot (`Snapshot`),
+and (2026-10-10) the batch `pend` the application may be appending. One record, so that the contract and its clients keep their shape when what is tracked
 changes (notes/decisions.md, "Predicate indices"; until 2026-10-08 these were three
 arguments of `ownStorage`, `isStorageWith`'s `P`, `memstorageFields` and
 `ownMemoryStorage`). -/
@@ -132,6 +150,13 @@ structure StorState [FfiSyntax] where
   prev : entryID
   ents : List raftpb.Entry
   ss : entryID
+  /-- The batch the application may be appending (2026-10-10, for `node.go`), `[]` when
+  none: handed out by the hand-out law (`Hhandout`, below), when raft's `Ready` hands the
+  entries out, and absorbed (`Habsorb`) once the application has appended it. While it
+  is pending the storage may hold `ents` or `storApp` of it, and the method triples
+  answer only what both agree on ("Storage: a pending append, for node.go",
+  notes/decisions.md). -/
+  pend : List raftpb.Entry
 
 /-- An abstract description of a client-supplied `Storage`'s contents. A *parameter*
 of the development, not an assumption: abstract because the implementation is not
@@ -143,8 +168,17 @@ instance: one would specialise every result to it. Until 2026-10-08 `ownStorage`
 `axiom`, which fixed one unknown predicate that no client could ever establish. -/
 class StorageModel (GF : BundledGFunctors) [FfiSyntax] where
   ownStorage : Storage → StorState → IProp GF
+  /-- `appendTok st σ p` (2026-10-10): the application's right to append the batch `p`
+  to the storage `st`, handed out at the state `σ` (with nothing pending) by the
+  hand-out law (`isStorageWith`'s `Hhandout`). An implementation's own `Append` consumes
+  it (`MemoryStorage.Append`, `Spec/.../MemoryStorage__Append.lean`). -/
+  appendTok : Storage → StorState → List raftpb.Entry → IProp GF
+  /-- `appendedTok st σ p`: the application did append `p` (what `Append` returns); the
+  absorb law (`Habsorb`) gives it back to the storage's owner, whose state then holds
+  the batch. -/
+  appendedTok : Storage → StorState → List raftpb.Entry → IProp GF
 
-export StorageModel (ownStorage)
+export StorageModel (ownStorage appendTok appendedTok)
 
 section termAt
 variable [FfiSyntax]
@@ -155,6 +189,42 @@ def termAt (prev : entryID) (ents : List raftpb.Entry) (i : w64) : Option w64 :=
   if uint.Z i = uint.Z prev.index' then some prev.term'
   else (fun e : raftpb.Entry => e.Term') <$>
          ents[(uint.Z i - uint.Z prev.index' - 1).toNat]?
+
+/-- What a storage holding `σ.ents` after `σ.prev` holds once the entries `pend` are
+appended to it the way `MemoryStorage.Append` does (`storage.go`): everything at or
+above the batch's first index is replaced by the batch. `Append` is not part of the
+`Storage` interface raft uses; it is how the *application* persists `Ready.Entries`.
+(Defined in `InvRaftlog.lean` until 2026-10-10, when the hand-out and absorb laws below
+came to mention it.) -/
+def storApp (σ : StorState) (pend : List raftpb.Entry) : List raftpb.Entry :=
+  match pend with
+  | [] => σ.ents
+  | e0 :: _ =>
+      σ.ents.take (uint.Z e0.Index' - uint.Z σ.prev.index' - 1).toNat ++ pend
+
+/-- `storApp` reads only `prev` and `ents`. -/
+theorem storApp_pend (σ : StorState) (q pend : List raftpb.Entry) :
+    storApp { σ with pend := q } pend = storApp σ pend := by
+  cases pend <;> rfl
+
+/-- The state once the pending batch is appended: the absorb law's result. -/
+def storAbsorb (σ : StorState) : StorState :=
+  { σ with ents := storApp σ σ.pend, pend := [] }
+
+/-- The pending batch, if any, starts at or above index `n`: what the method triples
+ask of a query (`Term(i)` with `n = i + 1`, `Entries(lo, hi)` with `n = hi`), so that
+the answer is the same whether or not the application has appended the batch yet. -/
+def PendFrom (σ : StorState) (n : Int) : Prop :=
+  ∀ e0, σ.pend.head? = some e0 → n ≤ uint.Z e0.Index'
+
+/-- The hand-out law's premise on the batch `p`: non-empty, starting above the
+compaction boundary and at most one past the stored entries (so that `Append` neither
+cuts the batch nor leaves a gap -- `MemoryStorage.Append`'s `Panicf`). -/
+def PendOk (σ : StorState) (p : List raftpb.Entry) : Prop :=
+  p ≠ [] ∧
+  ∀ e0, p.head? = some e0 →
+    uint.Z σ.prev.index' < uint.Z e0.Index' ∧
+    uint.Z e0.Index' ≤ uint.Z σ.prev.index' + (σ.ents.length : Int) + 1
 
 end termAt
 
@@ -172,12 +242,14 @@ of the storage's current contents -- those live in `P`. `isStorage` below is the
 `P := ownStorage st` that the rest of the development uses; a concrete implementation
 of the interface is shown to satisfy the contract by proving `isStorageWith` for its
 own predicate (see `InvMemstorage.lean`). -/
-def isStorageWith (P : StorState → IProp GF) (st : Storage) :
+def isStorageWith (P : StorState → IProp GF)
+    (AT DT : StorState → List raftpb.Entry → IProp GF) (st : Storage) :
     IProp GF :=
   iprop(∃ (i : GoInterfaceOk),
   "%Hstok" ∷ ⌜st = interface.ok i⌝ ∗
+  -- `LastIndex` only with nothing pending: the batch may extend the log (2026-10-10)
   "#HLastIndex" ∷ (∀ (σ : StorState),
-     {{ P σ }}
+     {{ P σ ∗ ⌜σ.pend = []⌝ }}
        (App (Val #(methods i.ty go!"LastIndex" i.v)) (Val #()))
      {{ (li : w64), RET (PairV #li #interface.nil);
          ⌜uint.Z li = uint.Z σ.prev.index' + (σ.ents.length : Int)⌝ ∗
@@ -191,7 +263,9 @@ def isStorageWith (P : StorState → IProp GF) (st : Storage) :
   "#HTerm" ∷ (∀ (σ : StorState) (i0 : w64),
      {{ P σ ∗
          ⌜uint.Z σ.prev.index' ≤ uint.Z i0 ∧
-            uint.Z i0 ≤ uint.Z σ.prev.index' + (σ.ents.length : Int)⌝ }}
+            uint.Z i0 ≤ uint.Z σ.prev.index' + (σ.ents.length : Int)⌝ ∗
+         -- below the pending batch (2026-10-10)
+         ⌜PendFrom σ (uint.Z i0 + 1)⌝ }}
        (App (Val #(methods i.ty go!"Term" i.v)) (Val #i0))
      {{ (t : w64), RET (PairV #t #interface.nil);
          ⌜termAt σ.prev σ.ents i0 = some t⌝ ∗ P σ }}) ∗
@@ -199,7 +273,9 @@ def isStorageWith (P : StorState → IProp GF) (st : Storage) :
       (lo hi maxSize : w64),
      {{ P σ ∗
          ⌜uint.Z σ.prev.index' + 1 ≤ uint.Z lo ∧ uint.Z lo < uint.Z hi ∧
-            uint.Z hi ≤ uint.Z σ.prev.index' + (σ.ents.length : Int) + 1⌝ }}
+            uint.Z hi ≤ uint.Z σ.prev.index' + (σ.ents.length : Int) + 1⌝ ∗
+         -- below the pending batch (2026-10-10)
+         ⌜PendFrom σ (uint.Z hi)⌝ }}
        (App (App (App (Val #(methods i.ty go!"Entries" i.v)) (Val #lo)) (Val #hi))
          (Val #maxSize))
      {{ (s : GoSlice) (es : List raftpb.Entry),
@@ -296,19 +372,78 @@ def isStorageWith (P : StorState → IProp GF) (st : Storage) :
          P σ ∗
          (⌜err = esu⌝ ∨
           (⌜err = interface.nil ∧ snapId snap = σ.ss ∧ snap.Metadata'.Index' ≠ W64 0⌝ ∗
-           ∃ (voters : List w64), snap.Metadata'.ConfState'.Voters' ↦*□ voters)) }}))
+           ∃ (voters : List w64), snap.Metadata'.ConfState'.Voters' ↦*□ voters)) }}) ∗
+  /- The pending append (2026-10-10, for `node.go`; notes/decisions.md, "Storage: a
+     pending append, for node.go"). The application appends a `Ready`'s entries on its own
+     goroutine while raft keeps reading the storage. Two laws, ghost updates of the
+     storage's owner:
+
+     - **hand-out**: with nothing pending, the owner hands out the right to append a
+       batch `p` (`AT σ p`) and keeps reading at `{ σ with pend := p }`, where the method
+       triples answer only queries the batch cannot affect (`PendFrom`, `LastIndex` with
+       nothing pending);
+     - **absorb**: the receipt of the append (`DT σ p`, which an implementation's
+       `Append` returns for `AT σ p`) turns the owner's state into the appended one,
+       `storAbsorb`; the receipt fixes which state the batch was handed out at.
+
+     `PendOk` is what the hand-out asks of the batch. -/
+  "#Hhandout" ∷ □ (∀ (σ : StorState) (p : List raftpb.Entry),
+     P σ -∗ ⌜σ.pend = [] ∧ PendOk σ p⌝ ==∗ P { σ with pend := p } ∗ AT σ p) ∗
+  "#Habsorb" ∷ □ (∀ (σ1 σ : StorState) (p : List raftpb.Entry),
+     P σ1 -∗ DT σ p ==∗ ⌜σ1 = { σ with pend := p }⌝ ∗ P (storAbsorb σ1)))
 
 /-- The contract against the abstract `ownStorage`: what every client of the interface
 assumes. -/
 def isStorage (st : Storage) : IProp GF :=
-  isStorageWith (ownStorage st) st
+  isStorageWith (ownStorage st) (appendTok st) (appendedTok st) st
 
 instance isStorageWith_pers (P : StorState → IProp GF)
-    (st : Storage) : Persistent (isStorageWith P st) := by
+    (AT DT : StorState → List raftpb.Entry → IProp GF)
+    (st : Storage) : Persistent (isStorageWith P AT DT st) := by
   unfold isStorageWith; infer_instance
 
 instance isStorage_pers (st : Storage) : Persistent (isStorage (GF := GF) st) := by
   unfold isStorage; infer_instance
+
+/-- What a client of raft holds for the entries `p` a `Ready` handed out (2026-10-10):
+nothing to do for no entries, otherwise the right to append them (`appendTok`), at the
+storage's state when they were handed out. `RawNode.Ready` returns it. -/
+def appendRight (st : Storage) (p : List raftpb.Entry) : IProp GF :=
+  iprop(⌜p = []⌝ ∨ ∃ σ, appendTok st σ p)
+
+/-- ... and the receipt the client gives back once it has appended them
+(`ownRawNode_appended`, `InvRawnode.lean`). -/
+def appendReceipt (st : Storage) (p : List raftpb.Entry) : IProp GF :=
+  iprop(⌜p = []⌝ ∨ ∃ σ, appendedTok st σ p)
+
+/-- The hand-out law at a batch that may be empty: for `[]` nothing happens (the state
+already has nothing pending), otherwise `Hhandout`. What `raftLog.acceptUnstable` runs
+for the entries a `Ready` hands out. -/
+theorem isStorage_handout (st : Storage) (σ : StorState) (p : List raftpb.Entry)
+    (Hpo : σ.pend = [] ∧ (p ≠ [] → PendOk σ p)) :
+    ⊢ isStorage (GF := GF) st -∗ ownStorage st σ ==∗
+      ownStorage st { σ with pend := p } ∗ appendRight st p := by
+  iintro #Hst HS
+  unfold appendRight
+  by_cases Hne : p = []
+  · have Hσ : ({ σ with pend := p } : StorState) = σ := by
+      rw [Hne, ← Hpo.1]
+    rw [Hσ]
+    imodintro
+    iframe HS
+    ileft
+    ipureintro
+    exact Hne
+  unfold isStorage isStorageWith
+  icases Hst with ⟨%i, %Hi, #HL, #HF, #HT, #HE, #Hb, #HSn, #Hho, #Hab⟩
+  ihave Hpo' : ⌜σ.pend = [] ∧ PendOk σ p⌝ $$ []
+  · ipureintro; exact ⟨Hpo.1, Hpo.2 Hne⟩
+  imod Hho $$ HS Hpo' with ⟨HS, Htok⟩
+  imodintro
+  iframe HS
+  iright
+  iexists σ
+  iexact Htok
 
 end proof
 

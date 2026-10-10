@@ -31,9 +31,11 @@ anyway. -/
 abbrev raftLog.acceptUnstable.spec : Prop :=
   ∀ (l : Loc) (ls : LogState),
   ls.unpersisted = [] →
+  ls.snap = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls }}
     (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"acceptUnstable")) (Val #()))
-  {{ RET #(); ownRaftLog l (logAcceptUnstable ls) }}
+  {{ RET #(); ownRaftLog l (logAcceptUnstable ls) ∗
+      appendRight ls.storage (nextUnstable ls) }}
 
 end spec
 

@@ -32,13 +32,15 @@ values, `err = nil`, same value), on `ownMemoryStorage` -- the one predicate for
 `MemoryStorage` -- so that `isStorageWith (ownMemoryStorage ms)` is a rearrangement of
 the five public methods' specs (`InvMemstorage.lean`). -/
 abbrev MemoryStorage.LastIndex.spec : Prop :=
-  ∀ (ms : Loc) (σ : StorState),
+  ∀ (ms : Loc) (γs : MemStorNames) (σ : StorState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hms" ∷ ownMemoryStorage ms σ }}
+      "Hms" ∷ ownMemoryStorage ms γs σ ∗
+      -- nothing pending (2026-10-10)
+      ⌜σ.pend = []⌝ }}
     (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"LastIndex")) (Val #()))
   {{ (li : w64), RET (PairV #li #interface.nil);
       ⌜uint.Z li = uint.Z σ.prev.index' + (σ.ents.length : Int)⌝ ∗
-      ownMemoryStorage ms σ }}
+      ownMemoryStorage ms γs σ }}
 
 end spec
 

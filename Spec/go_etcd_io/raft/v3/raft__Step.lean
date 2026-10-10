@@ -63,14 +63,17 @@ physical state beyond the protocol (2026-10-09): the term, the entries a `Ready`
 out that the application has not appended yet (`unpersisted`), the pending snapshot,
 and `offsetInProgress`, which does not move back; and (2026-10-10) the log's boundary
 and what the storage holds (`prev`, the ghost `stored`), which the `RawNode` predicate
-keeps the records of for the acknowledgement `Advance` steps (`InvRawnode.lean`). -/
+keeps the records of for the acknowledgement `Advance` steps (`InvRawnode.lean`); and
+the storage the log reads (`LogState.storage`, constant), which the `RawNode` predicate
+names to its client (`RNState.storage`). -/
 def LocalFrame [FfiSyntax] (s s' : NState) : Prop :=
   s'.term = s.term ∧
   uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress ∧
   s'.logst.unpersisted = s.logst.unpersisted ∧
   s'.logst.snap = s.logst.snap ∧
   s'.logst.prev = s.logst.prev ∧
-  s'.logst.stored = s.logst.stored
+  s'.logst.stored = s.logst.stored ∧
+  s'.logst.storage = s.logst.storage
 
 /-- `Step`'s postcondition for the three local messages `RawNode` steps -- a proposal
 (`Propose`) and the two storage acknowledgements (`Advance`): `LocalFrame`, and
@@ -90,32 +93,34 @@ def LocalStepOk [FfiSyntax] (m : raftpb.Message) (ents : List raftpb.Entry)
 /-- What every `Step` but a `MsgSnap`'s and a `MsgStorageApplyResp`'s leaves of the log's
 state beyond the protocol (2026-10-09): `applying` (only `appliedTo` moves it), the pending
 snapshot (only `restore` sets one) and the entries a `Ready` handed out that the
-application has not appended yet (only `ownRaftLog_persist` empties them). This is what
+application has not appended yet (only `ownRaftLog_absorb` empties them). This is what
 the `RawNode` predicate needs to survive a `Step` of a message from the network
 (`RawNode.Step`, `Tick`, `Campaign`). Unlike `LocalFrame`, it says nothing of the term or
 of `offsetInProgress`, which a truncating `MsgApp` moves back. And (2026-10-10) the log's
 boundary `prev` and what the storage holds (the ghost `stored`): no `Step` but a
 `MsgSnap`'s restores, and only a `Ready` changes `stored`, so a truncating `MsgApp`
 leaves the storage holding entries the log no longer has -- which is why the
-acknowledgement `Advance` steps after it may still move them stable (`StableOk`). -/
+acknowledgement `Advance` steps after it may still move them stable (`StableOk`). And
+the storage the log reads (`LogState.storage`, constant). -/
 def NetFrame [FfiSyntax] (s s' : NState) : Prop :=
   s'.logst.applying = s.logst.applying ∧
   s'.logst.snap = s.logst.snap ∧
   s'.logst.unpersisted = s.logst.unpersisted ∧
   s'.logst.prev = s.logst.prev ∧
-  s'.logst.stored = s.logst.stored
+  s'.logst.stored = s.logst.stored ∧
+  s'.logst.storage = s.logst.storage
 
-theorem NetFrame.refl [FfiSyntax] (s : NState) : NetFrame s s := ⟨rfl, rfl, rfl, rfl, rfl⟩
+theorem NetFrame.refl [FfiSyntax] (s : NState) : NetFrame s s := ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 theorem NetFrame.trans [FfiSyntax] {s1 s2 s3 : NState} (h1 : NetFrame s1 s2)
     (h2 : NetFrame s2 s3) : NetFrame s1 s3 :=
   ⟨h2.1.trans h1.1, h2.2.1.trans h1.2.1, h2.2.2.1.trans h1.2.2.1, h2.2.2.2.1.trans h1.2.2.2.1,
-   h2.2.2.2.2.trans h1.2.2.2.2⟩
+   h2.2.2.2.2.1.trans h1.2.2.2.2.1, h2.2.2.2.2.2.trans h1.2.2.2.2.2⟩
 
 /-- Two states with the same log state. -/
 theorem NetFrame.of_logst [FfiSyntax] {s s' : NState} (h : s'.logst = s.logst) :
     NetFrame s s' := by
-  unfold NetFrame; rw [h]; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
+  unfold NetFrame; rw [h]; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 /-- How a `Step` moves the term (2026-10-09): never back; by a local `MsgHup` at most one
 up (a campaign); by any other message (but a `MsgPreVoteResp`, which may also campaign)

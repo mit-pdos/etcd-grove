@@ -37,6 +37,7 @@ public import Proof.go_etcd_io.raft.v3.quorum.MajorityConfig__CommittedIndex
 public import Proof.go_etcd_io.raft.v3.quorum.MajorityConfig__Slice
 public import Proof.go_etcd_io.raft.v3.quorum.MajorityConfig__VoteResult
 public import Proof.go_etcd_io.raft.v3.tracker.MakeProgressTracker
+public import Proof.go_etcd_io.raft.v3.MemoryStorage__Append
 public import Proof.go_etcd_io.raft.v3.MemoryStorage__Entries
 public import Proof.go_etcd_io.raft.v3.MemoryStorage__FirstIndex
 public import Proof.go_etcd_io.raft.v3.MemoryStorage__LastIndex
@@ -66,6 +67,7 @@ public import Proof.go_etcd_io.raft.v3.RawNode__Advance
 public import Proof.go_etcd_io.raft.v3.RawNode__Campaign
 public import Proof.go_etcd_io.raft.v3.RawNode__Step
 public import Proof.go_etcd_io.raft.v3.RawNode__Tick
+public import Proof.go_etcd_io.raft.v3.NewMemoryStorage
 public import Proof.go_etcd_io.raft.v3.NewRawNode
 public import Proof.go_etcd_io.raft.v3.raft__softState
 public import Proof.go_etcd_io.raft.v3.raft__hardState
@@ -342,6 +344,14 @@ theorem MemoryStorage.wp_firstIndex :
 theorem MemoryStorage.wp_FirstIndex :
     MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG) :=
   MemoryStorage.FirstIndex.wp_proof MemoryStorage.wp_firstIndex
+
+theorem MemoryStorage.wp_Append :
+    MemoryStorage.Append.spec (GF := GF) (hG := hG) :=
+  MemoryStorage.Append.wp_proof MemoryStorage.wp_firstIndex
+
+theorem wp_NewMemoryStorage :
+    NewMemoryStorage.spec (GF := GF) (hG := hG) :=
+  NewMemoryStorage.wp_proof
 
 theorem MemoryStorage.wp_LastIndex :
     MemoryStorage.LastIndex.spec (GF := GF) (hG := hG) :=

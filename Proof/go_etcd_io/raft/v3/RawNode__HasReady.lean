@@ -46,7 +46,7 @@ set_option hygiene false in
 local macro "finish" : tactic => `(tactic| (
   close_view
   iapply HΦ
-  iapply ownRawNode_intro γ rn id rs s ps rnv sv steps Hrel Hin Hasync Hdlen Hunp Hsnap Hstok Htrm
+  iapply ownRawNode_intro γ rn id rs s ps rnv sv steps Hrel Hin Hasync Hdlen Hunp Hsnap Hstok Htrm Hstor
     $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs))
 
 set_option hygiene false in

@@ -44,7 +44,7 @@ theorem raftLog.hasNextCommittedEnts.wp_proof
   ihave Hlog : ownRaftLog l ls $$ [Hl HStorage Huents Huents_cap]
   · reseal_raftLog
   clear Hcm Hap Hapg Hip Hasz Hamx Hidx Hnowrap Hstore Hoffset HnoConfChange Happlied
-    Hpapplied Hcommitted Hssnap Hipb Hpersist Happlying Hpaused
+    Hpapplied Hcommitted Hssnap Hipb Hpersist Happlying Hpaused Hstor Hpend
   iclear HisStorage Husnap Hl_logger Hu_logger
   wp_auto
   wp_apply wp_raftLog_hasNextOrInProgressSnapshot l _ $$ [Hlog] as %b ⟨Hlog, %Hb⟩
@@ -67,7 +67,7 @@ theorem raftLog.hasNextCommittedEnts.wp_proof
     ihave Hlog : ownRaftLog l ls $$ [Hl HStorage Huents Huents_cap]
     · reseal_raftLog
     clear Hcm Hap Hapg Hip Hasz Hamx Hidx Hnowrap Hstore Hoffset HnoConfChange Happlied
-      Hpapplied Hcommitted Hssnap Hipb Hpersist Happlying Hpaused
+      Hpapplied Hcommitted Hssnap Hipb Hpersist Happlying Hpaused Hstor Hpend
     iclear HisStorage Husnap Hl_logger Hu_logger
     wp_apply wp_raftLog_maxAppliableIndex l _ au $$ [Hlog] as %hi0 ⟨Hlog, %Hhi0⟩
     · iexact Hlog

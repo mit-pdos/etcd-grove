@@ -28,7 +28,8 @@ theorem raftLog.snapshot.wp_proof : raftLog.snapshot.spec (GF := GF) (hG := hG) 
   wp_start as H
   iNamed H
   iNamed Hlog
-  ihave #Hsto : isStorageWith (ownStorage lv.storage') lv.storage' $$ [HisStorage]
+  ihave #Hsto : isStorageWith (ownStorage lv.storage') (appendTok lv.storage')
+      (appendedTok lv.storage') lv.storage' $$ [HisStorage]
   · unfold isStorage; iexact HisStorage
   unfold isStorageWith
   icases Hsto with ⟨%isv, #Hsto⟩

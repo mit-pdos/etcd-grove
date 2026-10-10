@@ -112,15 +112,15 @@ theorem RawNode.Propose.wp_proof
     rw [← Hrel.1, ← Hrel'.1] at H
     exact H
   ihave #Hstr' := storedRecs_eq γ _ s'.logst.prev _ s'.logst.stored Hfr.2.2.2.2.1
-    Hfr.2.2.2.2.2 $$ Hstrecs
+    Hfr.2.2.2.2.2.1 $$ Hstrecs
   iapply HΦ
   simp only [named]
   isplitl [Hrn Hphys Hghost Hsteps Hsteps_cap Hpown]
   · iapply ownRawNode_intro γ rn id rs s' ps' rnv sv steps Hrel' Hin Hasync
       (by rw [Hap']; exact Hdlen) (by rw [Hfr.2.2.1]; exact Hunp)
       (by rw [Hfr.2.2.2.1]; exact Hsnap)
-      (stepsOk_mono s s' _ Hfr.1 ⟨Hfr.2.2.2.2.1, Hfr.2.2.2.2.2⟩ Hc Hap' Hstok)
-      (by rw [Hfr.1]; exact Htrm)
+      (stepsOk_mono s s' _ Hfr.1 ⟨Hfr.2.2.2.2.1, Hfr.2.2.2.2.2.1⟩ Hc Hap' Hstok)
+      (by rw [Hfr.1]; exact Htrm) (by rw [Hfr.2.2.2.2.2.2]; exact Hstor)
       $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstr'
   icases Hprops with (⟨%Hok, Hout⟩ | Hau)
   · ileft

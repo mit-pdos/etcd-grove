@@ -84,6 +84,7 @@ abbrev NewRawNode.spec : Prop :=
   σ.prev = entryID.mk (W64 0) (W64 0) →
   σ.ents = [] →
   (uint.Z σ.ss.index' = 0 ∨ σ.ss = σ.prev) →
+  σ.pend = [] →
   HsEmpty hs →
   -- the persisted ConfState: voters only, this node among them, and the cluster's
   voters ≠ [] → voters.Nodup → W64 0 ∉ voters → (voters.length : Int) ≤ 2 ^ 62 →
@@ -105,7 +106,8 @@ abbrev NewRawNode.spec : Prop :=
     (App (Val #(functions NewRawNode [])) (Val #c))
   {{ (rn : Loc) (err : GoInterface), RET (PairV #rn #err);
       "Hrn" ∷ ownRawNode γ rn cv.ID'
-        { delivered := [], unpersisted := [], steps := [], term := W64 0 } ∗
+        { delivered := [], unpersisted := [], steps := [], term := W64 0,
+          storage := interface.ok si } ∗
       "%Herr" ∷ ⌜err = interface.nil⌝ }}
 
 end spec

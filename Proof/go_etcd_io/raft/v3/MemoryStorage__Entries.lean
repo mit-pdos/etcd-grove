@@ -26,19 +26,21 @@ theorem MemoryStorage.Entries.wp_proof
     (wp_MemoryStorage_lastIndex : MemoryStorage.lastIndex.spec (GF := GF) (hG := hG))
     (wp_limitSize : limitSize.spec (GF := GF) (hG := hG)) :
     MemoryStorage.Entries.spec (GF := GF) (hG := hG) := by
-  intro ms σ lo hi maxSize
-  wp_start as ⟨Hms, %Hrange⟩
+  intro ms γs σv lo hi maxSize
+  wp_start as ⟨Hms, %Hrangev, %Hpf⟩
   iunfold ownMemoryStorage at Hms
-  icases Hms with ⟨%γ, Hms⟩
-  iNamed Hms
+  icases Hms with ⟨#Hinit, #Hmu, Hview, %Hbounded⟩
   wp_apply wp_with_defer as %defer defer
   -- `ms.Lock()`: the method of the embedded `sync.Mutex`
   wp_method_call
   wp_call
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
+  iunfold memstorageInv at Hinv
+  icases Hinv with ⟨%σ, Hinv⟩
   iNamedSuffix Hinv "_inv"
-  ihave %Heq := ghostVar_agree $$ Hgs Hgs_inv
-  subst Heq
+  -- below the pending batch the contents `σ` answer as the view `σv` (2026-10-10)
+  icases memView_agree γs σv σ $$ Hview Hgs_inv with ⟨%Hvw, Hview, Hgs_inv⟩
+  obtain ⟨Hrange, Htk, Hprev⟩ := memView_entries σv σ Hvw lo hi Hrangev Hpf
   iNamed Hfields_inv
   icases Hents with #Hents
   wp_auto
@@ -52,13 +54,13 @@ theorem MemoryStorage.Entries.wp_proof
   obtain ⟨Hd0, Hd1⟩ := Hdummy
   wp_if_destruct
   · exfalso; rw [Hd0] at Hif; omega
-  ihave Hf : memstorageFields ms σ $$ [HhardState Hsnapshot Hvoters Hents_f HcallStats]
+  ihave Hf : memstorageFields ms σ $$ [HhardState Hsnapshot Hvoters Hents_f Hents_cap HcallStats]
   · unfold memstorageFields
     iexists _, _, _, _, _, _
-    iframe HhardState Hsnapshot Hvoters Hents_f HcallStats Hents
+    iframe HhardState Hsnapshot Hvoters Hents_f HcallStats Hents Hents_cap
     ipureintro
     exact ⟨Hsnap_id, Hd0, Hd1⟩
-  wp_apply wp_MemoryStorage_lastIndex ms σ Hbounded $$ [$Hf] as %li ⟨%Hli, Hf⟩
+  wp_apply wp_MemoryStorage_lastIndex ms σ Hpb_inv $$ [$Hf] as %li ⟨%Hli, Hf⟩
   iclear Hents He Term Index Type' Data
   rw [Hd0]
   unfold memstorageFields
@@ -112,10 +114,10 @@ theorem MemoryStorage.Entries.wp_proof
           go.arrayIndexRef_0])
     (by simp only [slice.fullSlice]; word)
     (by simp only [slice.fullSlice]; word) $$ Hs1
-  ihave Hf : memstorageFields ms σ $$ [HhardState Hsnapshot Hvoters Hents_f HcallStats]
+  ihave Hf : memstorageFields ms σ $$ [HhardState Hsnapshot Hvoters Hents_f Hents_cap HcallStats]
   · unfold memstorageFields
     iexists _, _, _, _, _, _
-    iframe HhardState Hsnapshot Hvoters Hents_f HcallStats Hents
+    iframe HhardState Hsnapshot Hvoters Hents_f HcallStats Hents Hents_cap
     ipureintro
     exact ⟨Hsnap_id, Hd0', Hd1'⟩
   wp_auto
@@ -126,20 +128,21 @@ theorem MemoryStorage.Entries.wp_proof
   · unfold memstorageInv
     iexists σ
     iframe
+    ipureintro; exact Hpb_inv
   iapply HΦ
   iframe Hs2
   isplitr
   · ipureintro
+    rw [← Htk, ← Hprev]
     refine ⟨Hnetake, ?_, ?_, ?_, List.take_prefix _ _⟩
     · rw [List.length_take, HE0len]; omega
     · intro e He
       exact List.mem_of_mem_drop (List.mem_of_mem_take He)
     · simp only [slice.fullSlice]
   unfold ownMemoryStorage
-  iexists γ
   iframe # ∗
   ipureintro
-  exact ⟨Hbounded, Hss⟩
+  exact Hbounded
 
 end proof
 

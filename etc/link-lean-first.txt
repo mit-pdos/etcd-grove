@@ -37,3 +37,7 @@ RawNode__Tick: raft__tickElection raft__tickHeartbeat
 raft__softState:
 raft__hardState:
 NewRawNode: newRaft raft__softState raft__hardState
+# MemoryStorage.Append and NewMemoryStorage (storage.go), Lean-first (2026-10-10): the
+# application's side of the pending append.
+MemoryStorage__Append: MemoryStorage__firstIndex
+NewMemoryStorage:

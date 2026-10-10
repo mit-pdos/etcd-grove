@@ -837,7 +837,7 @@ theorem RawNode.Ready.wp_proof
     iexists stl3
     rw [ite_pos' Hce0, ite_pos' Hce0, List.append_nil]
     iframe Hrn Hsteps Hsteps_cap
-  wp_apply wp_raftLog_acceptUnstable _ _ HunpS $$ [Hlog] as Hlog
+  wp_apply wp_raftLog_acceptUnstable _ _ HunpS Hsnap $$ [Hlog] as ⟨Hlog, Happ⟩
   · iframe Hlog
   -- `if len(rd.CommittedEntries) > 0 { ... acceptApplying(index, entsSize(ents),
   -- applyUnstableEntries()) }`
@@ -1007,6 +1007,7 @@ theorem RawNode.Ready.wp_proof
       (softstateVal (nodeSoftstate s)) _
       (nstateRel_ready s _ ce sz ⟨rfl, Hwfs⟩) Hin Hasync Hdlen'
       (by rw [Hlogst, Hlf.2.2.1]; rfl) (by rw [Hlogst, Hlf.2.2.2.1]; exact Hsnap) Hstok' Htrm
+      (by rw [Hlogst, logAcceptApplying_storage]; exact Hstor)
       $$ Hrn Hphys Hghost Hpsp Hsteps Hsteps_cap [] [Hcecap] Hdeliv' Hstrecs'
     · -- the pending steps' messages
       simp only [readySteps]
@@ -1064,7 +1065,10 @@ theorem RawNode.Ready.wp_proof
     · iapply nonself_sepL id ms2 (fun m => isRaftMsg (GF := GF) γ m)
       iapply msgs_ok_list γ (toPState s).outbox ms2 as2
         (fun a Ha => Hin_out a (List.mem_append_right _ Ha)) $$ Hout Hb2
+  isplitr
   · ipureintro; trivial
+  rw [Hstor]
+  iexact Happ
 
 end proof
 

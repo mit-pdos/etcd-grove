@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-10 (merged upstream's RawNode work into the cache-as-shipped and concurrency line, Perennial `7d0b56b07`, see "Merge: upstream's RawNode work"; `RawNode.Step` takes a `MsgApp` between `Ready` and `Advance`; the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; Perennial `7d0b56b07`: Goose with per-iteration loop variables, `break` out of `select`, see "Perennial `7d0b56b07`"; merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
+**Last updated:** 2026-10-10 (the storage contract has a pending append, for `node.go`; `MemoryStorage.Append` and `NewMemoryStorage` proved; merged upstream's RawNode work into the cache-as-shipped and concurrency line, Perennial `7d0b56b07`, see "Merge: upstream's RawNode work"; `RawNode.Step` takes a `MsgApp` between `Ready` and `Advance`; the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; Perennial `7d0b56b07`: Goose with per-iteration loop variables, `break` out of `select`, see "Perennial `7d0b56b07`"; merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
 
 Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
@@ -13,6 +13,41 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 (`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
+
+## The storage contract: a pending append, for `node.go` (2026-10-10)
+
+The application may now append a `Ready`'s entries while raft keeps reading the storage
+(decisions.md, "Storage: a pending append, for node.go"):
+
+- `StorState.pend` (the batch being appended); `isStorageWith P AT DT st` answers `Term`
+  and `Entries` only below the batch (`PendFrom`), `LastIndex` only with nothing pending,
+  and has two laws, `Hhandout` and `Habsorb`; `StorageModel` gained `appendTok` and
+  `appendedTok`. `storApp` moved to `InvStorage.lean` (`storAbsorb`, `PendOk`).
+- `ownRaftLog`: `Hstor` (`lv.storage' = ls.storage`, the new `LogState.storage`) and
+  `Hpend` (`PendLogOk`: the batch is `unpersisted`, at or above `unstable.offset`); the
+  reseal macro tries `exact Hstor`/`exact Hpend`. `NetFrame`/`LocalFrame`, the
+  `maybeAppend`/`handleAppendEntries` frames and `newRaft`'s post keep the storage.
+- `raftLog.acceptUnstable` takes `ls.snap = none` and returns `appendRight ls.storage
+  (nextUnstable ls)`; `RawNode.Ready` returns `"Happ" ∷ appendRight rs.storage es`.
+  `ownRawNode_persist` is gone: `ownRawNode_appended` absorbs `appendReceipt rs.storage
+  rs.unpersisted`. `RNState.storage` (new): `NewRawNode` returns `storage := interface.ok
+  si` and takes `σ.pend = []` (as `newRaft`, `newLogWithSize`).
+- `MemoryStorage`: `ownMemoryStorage ms γs σ` (names `MemStorNames`: `hist`, `done`, `ep`,
+  see `InvMemstorage.lean`'s header), `memAppendTok`/`memAppendedTok`, the laws
+  `memStorage_handout`/`memStorage_absorb`; the method specs take `γs` and the new
+  premises (`Snapshot` no longer promises non-emptiness); `MemoryStorage.Append`
+  (consumes the right, returns the receipt, under the lock) and `NewMemoryStorage` (at
+  `memStorEmpty`) specified and proved, linked (`etc/link-lean-first.txt`, `Link.lean` by
+  hand: `etc/gen-link.py` against the Rocq checkout no longer reproduces `Link.lean`).
+  `is_Storage_MemoryStorage ms γs` is for `ownMemoryStorage ms γs σ ∗ ⌜σ.ss.index ≠ 0⌝`.
+
+**Open**: a new `MemoryStorage` (empty snapshot) is not an `isStorage`: `maybeSendSnapshot`
+follows `ErrUnavailable` too (a peer's `Next` past the log), not only `ErrCompacted`, so the
+`Snapshot` clause cannot be weakened to "non-empty once compacted" without a bound
+`Next ≤ lastIndex + 1` in the tracker invariant (decisions.md, same section).
+
+`lake build Proof.go_etcd_io.raft.v3.Link Proof.go_etcd_io.raft.v3.Results` passes (and
+every raft module); no new `sorry` or axiom.
 
 ## Merge: upstream's RawNode work (2026-10-10)
 

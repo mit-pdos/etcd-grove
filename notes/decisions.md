@@ -1330,8 +1330,10 @@ also the gap flag `advanceable`, below). `Ready`
 returns `ce` with `isCommitted γ (rs.delivered ++ ce)`; messages carry the opaque
 `isRaftMsg γ m`; `HasReady` says nothing about its answer (liveness only); `Ready`'s soft
 state, hard state and `MustSync` facts are gone (no spec used them; there is no crash
-model), and so are `RNState.soft`/`hard`. `ownRawNode_persist` lends the storage for the
-application's `Append` and returns `{ rs with unpersisted := [] }`.
+model), and so are `RNState.soft`/`hard`. `ownRawNode_persist` lent the storage for the
+application's `Append` and returned `{ rs with unpersisted := [] }` (until 2026-10-10: now
+`Ready` returns the right to append and `ownRawNode_appended` takes the receipt, "Storage:
+a pending append, for node.go" below).
 
 To keep `delivered` across `Propose`/`Advance`, `raft.Step`'s postcondition gained
 `LocalStepOk` (for `MsgProp`, `MsgStorageAppendResp`, `MsgStorageApplyResp`: term,
@@ -1514,3 +1516,85 @@ with `e` agree up to it.
 acknowledgement misses"), or reporting the truncation point in `raft.Step`'s `MsgApp`
 postcondition -- both false or too weak after two `MsgApp`s, as above: what makes the
 hit right is what the storage holds, which no fact about the current log records.
+
+## Storage: a pending append, for node.go
+
+**2026-10-10 · accepted**
+
+`node.go`'s `run` goroutine owns the `RawNode` and keeps reading the `Storage` (`term`,
+`slice`, `lastIndex`, `firstIndex`, `snapshot`) while the application, on its own
+goroutine, appends the last `Ready`'s entries (`storage.Append(rd.Entries)`) and only then
+calls `Advance`. Until 2026-10-10 the contract could not say so: `ownStorage st σ` was one
+exclusive predicate held by `ownRaftLog`, and the application appended by borrowing it
+(`ownRawNode_persist`), excluding raft's reads meanwhile.
+
+Raft never reads what the pending append changes: `raftLog.term(i)` asks the storage only
+below `unstable.offset` (or with nothing unstable), `slice` only below it, `lastIndex()`
+only with nothing unstable -- and then nothing is pending -- and the batch (`unpersisted`)
+starts at or above the offset (it is the in-progress part of the unstable suffix; only a
+truncating `append` moves the offset, down).
+
+**Decision.**
+
+- `StorState.pend`: the batch the application may be appending, `[]` when none.
+  `isStorageWith P AT DT st` (two new parameters: the right to append and its receipt)
+  promises `Term(i)` only below the batch, `Entries(lo, hi)` only for `hi` at most its
+  first index (`PendFrom`), `LastIndex` only with nothing pending; `FirstIndex`,
+  `Snapshot`, `Hbounded` as before. Two new persistent clauses: `Hhandout` (`P σ` with
+  nothing pending and a `PendOk` batch `p` `==∗ P { σ with pend := p } ∗ AT σ p`) and
+  `Habsorb` (`P σ1 -∗ DT σ p ==∗ ⌜σ1 = { σ with pend := p }⌝ ∗ P (storAbsorb σ1)`).
+  `StorageModel` gained `appendTok`/`appendedTok`; `isStorage st` instantiates `AT`/`DT`
+  with them. `PendOk` (non-empty, starting above the boundary and at most one past the
+  stored entries) is what makes `MemoryStorage.Append`'s cut and `Panicf` unreachable.
+- Raft's side: `ownRaftLog` ties the batch to `ls.unpersisted` and puts it at or above
+  the offset (`PendLogOk`); the read proofs discharge `PendFrom` from it
+  (`pendFrom_of_logOk`), `lastIndex` from `LogPersistOk`'s `uents = [] → pend = []`.
+  `acceptUnstable` runs the hand-out (`isStorage_handout`) and returns the right
+  (`appendRight st p := ⌜p = []⌝ ∨ ∃ σ, appendTok st σ p`), and `RawNode.Ready`
+  returns it with the `Ready`. `ownRawNode_appended` (replacing `ownRawNode_persist`)
+  absorbs the receipt (`appendReceipt`) into `ownRawNode { rs with unpersisted := [] }`
+  (`ownRaftLog_absorb`). `acceptUnstable` takes `ls.snap = none` (`Ready` has it).
+- **The storage's identity.** A receipt is for one storage: absorbing one storage's
+  receipt into a node reading another would be unsound (two nodes may hand out the same
+  entries). So the client must name the storage: `RNState.storage` (the `Config.Storage`
+  given to `NewRawNode`), and `ownRawNode` ties it to the log's: `LogState.storage`
+  (`ownRaftLog`'s `Hstor`: `lv.storage' = ls.storage`), kept by every step like
+  `unpersisted` -- `NetFrame`, `LocalFrame`, `raftLog.maybeAppend`'s and
+  `handleAppendEntries`' frames gained the conjunct (`keep_frame` & co. as an auto-param
+  `rfl`), `newRaft` returns it. *Rejected*: a ghost name per node (`RaftNames` is
+  cluster-wide; every choice still has to reach the log's storage pointer, which only
+  `LogState` sees); a law `ownStorage st1 σ1 ∗ appendedTok st σ p ⊢ ⌜st1 = st⌝` (false for
+  two `MemoryStorage`s).
+- **The right comes with `Ready`**, not from a lemma on `ownRawNode` as first planned:
+  the hand-out runs where `unpersisted` is set (`acceptUnstable`), and a later lemma
+  would need `ownRawNode` to record whether the right was taken out already.
+- **`MemoryStorage`** (`InvMemstorage.lean`): three ghost names (`MemStorNames`, now an
+  index of `ownMemoryStorage ms γs σ` and of its tokens). The lock's invariant holds half
+  of the authority of `done` (a `mono_list` of the states the storage has been in; the
+  contents are its last) and a lower bound of `hist` (a `mono_list` of the states the
+  owner sanctioned, its authority with the owner); the other half of `done` is the
+  writer's -- the owner's when idle, the token's while appending -- and a ghost variable
+  `ep` of the hand-out is halved between the owner and the token. The hand-out extends
+  `hist` and needs no lock (the invariant has only a lower bound); `Append` (under the
+  lock) extends `done`; the absorb agrees on `ep` and takes the writer's half back. Under
+  the lock the owner, holding `hist` at `H ++ [appended]` and a lower bound of `done` at
+  `H`, knows the contents are `H`'s last or the appended state (`memView_agree`), which
+  agree below the batch (`memView_term`, `memView_entries`). *Rejected*: a ghost variable
+  of the state shared with the invariant (the hand-out would need the lock), and one
+  tracking only raft's view (the owner could not bound what `Append` writes).
+- `MemoryStorage.Append` and `NewMemoryStorage` are specified and proved (Lean-first).
+  `Append` takes the batch's bound (`e0.Index + |p| ≤ 2^61`: a client assumption, as
+  `Hbounded` is) and the right; its in-place arm needs the entries' capacity, now owned
+  in `memstorageFields`; the bound the private helpers need is the invariant's
+  (`memstorageInv`'s `Hpb`), the contents running ahead of the owner's view.
+
+**Not done -- a new `MemoryStorage` is not an `isStorage`.** The contract's `Snapshot`
+clause promises a non-empty snapshot (`maybeSendSnapshot` panics on an empty one); a new
+storage has none. The plan was to promise non-emptiness only once compacted
+(`σ.prev.index ≠ 0`), because `maybeSendSnapshot` follows a failed storage query. But it
+follows any error of `raftLog.term(pr.Next - 1)`: `ErrCompacted` (then `prev.index > 0`)
+*or* `ErrUnavailable`, for a peer whose `Next` is past the log + 1, which nothing in
+`ownRaftPhys`/`ownProgress` excludes (raft keeps `Next ≤ lastIndex + 1` for a leader's
+peers, unproved here). So the clause stays; `ownMemoryStorage` dropped `σ.ss.index ≠ 0`
+(so `NewMemoryStorage` can produce it) and the instance `is_Storage_MemoryStorage ms γs`
+adds it to `P`. Closing it needs a `Next` bound in the tracker invariant.

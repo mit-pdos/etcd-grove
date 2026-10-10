@@ -109,7 +109,7 @@ structure RNState [FfiSyntax] where
   node was built. -/
   delivered : List raftpb.Entry
   /-- The entries `Ready` handed out (`Ready.Entries`) that the application must still
-  append to the `Storage` (`ownRawNode_persist`). -/
+  append to the `Storage` (and give the receipt back: `ownRawNode_appended`). -/
   unpersisted : List raftpb.Entry
   /-- `rn.stepsOnAdvance`: what `Advance` will step. Opaque to clients, which only
   learn that it is empty (after `Advance`), as `Ready` requires. (Until 2026-10-10 a
@@ -120,6 +120,10 @@ structure RNState [FfiSyntax] where
   `HardState`); the specs need it because Go panics when a campaign wraps it
   (`Campaign`, `Tick`, `Advance`), and say how a step moves it. -/
   term : w64
+  /-- The `Storage` the node reads (`Config.Storage`), constant (2026-10-10): the right
+  to append `Ready` hands out (`appendRight`) and the receipt `ownRawNode_appended` takes
+  back are for this storage. -/
+  storage : Storage
 
 section defs
 variable [FfiSyntax]
@@ -259,7 +263,7 @@ theorem stepsOk_mono_le (s s' : NState) (steps : List Pending)
 
 /-- `StepsOk` survives a step that keeps the term, `applying`, `prev` and `stored` and
 does not move `committed` back -- a `Propose`'s (`LocalStepOk`, `Step.commit_mono`), or
-the application's append (`ownRawNode_persist`). -/
+the application's append (`ownRawNode_appended`). -/
 theorem stepsOk_mono (s s' : NState) (steps : List Pending)
     (Ht : s'.term = s.term)
     (Hst : s'.logst.prev = s.logst.prev ∧ s'.logst.stored = s.logst.stored)
@@ -505,7 +509,8 @@ def ownRawNode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp GF 
   -- the queue is steppable (since 2026-10-10 unconditionally: until then only for an
   -- `advanceable` one)
   "%Hstok" ∷ ⌜StepsOk s rs.steps⌝ ∗
-  "%Htrm" ∷ ⌜rs.term = s.term⌝)
+  "%Htrm" ∷ ⌜rs.term = s.term⌝ ∗
+  "%Hstor" ∷ ⌜rs.storage = s.logst.storage⌝)
 
 /-- Closing the predicate; the pure premises are first, the resources in the order of
 the definition. -/
@@ -515,7 +520,7 @@ theorem ownRawNode_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     (Hdlen : rs.delivered.length = (uint.Z s.logst.applying).toNat)
     (Hunp : rs.unpersisted = s.logst.unpersisted) (Hsnap : s.logst.snap = none)
     (Hstok : StepsOk s rs.steps)
-    (Htrm : rs.term = s.term) :
+    (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage) :
     ⊢ rn ↦ rnv -∗ ownRaftPhys γ.reCfg rnv.raft' id s -∗ ownRaftGhost (GF := GF) γ id ps -∗
       rnv.prevSoftSt' ↦□ sv -∗ rnv.stepsOnAdvance' ↦* steps -∗
       ownSliceCap raftpb.Message rnv.stepsOnAdvance' (DFrac.own 1) -∗
@@ -530,33 +535,38 @@ theorem ownRawNode_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
   simp only [named]
   iframe Hrn Hphys Hghost Hsoft Hsteps Hcap Hpend Hpown Hdeliv Hstrecs
   ipureintro
-  exact ⟨Hrel, Hin, Hasync, Hdlen, Hunp, Hsnap, Hstok, Htrm⟩
+  exact ⟨Hrel, Hin, Hasync, Hdlen, Hunp, Hsnap, Hstok, Htrm, Hstor⟩
 
-/-- The storage handshake, at the RawNode: the `Storage` the log owns, for the
-application to append the entries the last `Ready` handed out (`ownRaftLog_persist`,
-`InvRaftlog.lean`); afterwards nothing is unpersisted. -/
-theorem ownRawNode_persist (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) :
-    ⊢ ownRawNode (GF := GF) γ rn id rs -∗
-      ∃ (st : Storage) (σ : StorState),
-        isStorage st ∗ ownStorage st σ ∗
-        (ownStorage st { σ with ents := storApp σ rs.unpersisted } -∗
-         ownRawNode γ rn id { rs with unpersisted := [] }) := by
-  iintro H
+/-- The storage handshake, at the RawNode (2026-10-10; until then `ownRawNode_persist`,
+which lent the client the storage itself): the receipt of the application's append of
+the entries the last `Ready` handed out (`appendReceipt`, for the node's storage) is
+absorbed into the log's storage (`ownRaftLog_absorb`); afterwards nothing is
+unpersisted. The right to append came with the `Ready` (`appendRight`); in between the
+node may be stepped, ticked, or asked to propose or campaign, while the application
+appends on its own. -/
+theorem ownRawNode_appended (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) :
+    ⊢ ownRawNode (GF := GF) γ rn id rs -∗ appendReceipt rs.storage rs.unpersisted ==∗
+      ownRawNode γ rn id { rs with unpersisted := [] } := by
+  iintro H Hr
+  iunfold appendReceipt at Hr
+  icases Hr with (%Hnil | ⟨%σa, Htok⟩)
+  · have Hrs : { rs with unpersisted := [] } = rs := by
+      cases rs; simp only at Hnil ⊢; rw [Hnil]
+    rw [Hrs]
+    imodintro
+    iexact H
   iNamed H
+  ihave Htok : appendedTok s.logst.storage σa s.logst.unpersisted $$ [Htok]
+  · rw [← Hstor, ← Hunp]; iexact Htok
   icases ownRaftPhys_log_at γ.reCfg rnv.raft' id s $$ Hphys with ⟨Hlog, Hlback⟩
-  icases ownRaftLog_persist s.log s.logst $$ Hlog with
-    ⟨%st, %σ, #Hst, HSt, Hclose⟩
-  rw [Hunp]
-  iexists st, σ
-  iframe Hst HSt
-  iintro HSt
-  ihave Hlog := Hclose $$ HSt
+  imod ownRaftLog_absorb s.log s.logst σa $$ Hlog Htok with Hlog
   ihave Hphys := Hlback $$ %_ Hlog
+  imodintro
   iapply ownRawNode_intro γ rn id { rs with unpersisted := [] }
     { s with logst := { s.logst with unpersisted := [] } } ps rnv sv steps Hrel Hin Hasync
     Hdlen rfl Hsnap
     (stepsOk_mono s _ rs.steps rfl ⟨rfl, rfl⟩ (Int.le_refl _) rfl Hstok)
-    Htrm $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs
+    Htrm Hstor $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs
 
 end rawnode
 

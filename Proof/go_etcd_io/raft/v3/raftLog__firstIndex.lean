@@ -33,7 +33,8 @@ theorem raftLog.firstIndex.wp_proof
   iNamed H
   iNamed Hlog
   wp_auto
-  ihave #Hsto : isStorageWith (ownStorage lv.storage') lv.storage' $$ [HisStorage]
+  ihave #Hsto : isStorageWith (ownStorage lv.storage') (appendTok lv.storage')
+      (appendedTok lv.storage') lv.storage' $$ [HisStorage]
   · unfold isStorage; iexact HisStorage
   unfold isStorageWith
   icases Hsto with ⟨%isv, #Hsto⟩

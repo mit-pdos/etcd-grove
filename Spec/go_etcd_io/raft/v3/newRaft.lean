@@ -122,6 +122,8 @@ abbrev newRaft.spec : Prop :=
   LogIndicesOk σ.prev σ.ents →
   (∀ e ∈ σ.ents, e.Type' = EntryNormal) →
   (uint.Z σ.ss.index' = 0 ∨ σ.ss = σ.prev) →
+  -- nothing pending (2026-10-10)
+  σ.pend = [] →
   -- the persisted HardState
   (¬ HsEmpty hs →
    uint.Z σ.prev.index' ≤ uint.Z hs.Commit' ∧
@@ -161,7 +163,9 @@ abbrev newRaft.spec : Prop :=
         s.logst.committed = committedAfter σ.prev hs ∧
         s.logst.applying = w64Max σ.prev.index'
           (if cv.Applied' = W64 0 then σ.prev.index' else cv.Applied') ∧
-        s.logst.unpersisted = [] ∧ s.logst.snap = none⌝ }}
+        s.logst.unpersisted = [] ∧ s.logst.snap = none ∧
+        -- the storage it reads (2026-10-10, for `RNState.storage`)
+        s.logst.storage = interface.ok si⌝ }}
 
 end spec
 

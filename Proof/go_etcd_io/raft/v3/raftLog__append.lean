@@ -265,12 +265,18 @@ theorem raftLog.append.wp_proof
       exact append_persistOk σ ls.unpersisted ls.sents ls.uents ls.stored e0 ents' _ _ _ _ Hpre0
         Hst0
         (by omega) Hprev (by omega) Hk1 Hk2 Hk3
+    -- the storage's pending batch is above the (shorter) stable part (2026-10-10)
+    have Hpend2 : PendLogOk σ (logTruncateAppend ls (e0 :: ents')) := by
+      refine ⟨Hpend.1, fun Hs e1 He1 => ?_⟩
+      have := Hpend.2 Hs e1 He1
+      simp only [logTruncateAppend, List.length_take] at this ⊢
+      omega
     ihave Hlog : ownRaftLog l (logTruncateAppend ls (e0 :: ents'))
         $$ [Hl HStorage Hents Hents_cap]
     · iapply ownRaftLog_intro l { lv with unstable' := uv' } lv.storage' σ _ _
           (logTruncateAppend ls (e0 :: ents')) rfl Hcm Hap Hidx' Hnw2 Hst2 Hoff2 Hnc'
           Happlied Hpapplied Hcm2 Hss2 Hapg Hip2 Hipb2 Hpers2 Happlying Hpaused Hasz Hamx
-          ?_ ?_
+          Hstor Hpend2 ?_ ?_
         $$ Hl HisStorage HStorage Husnap Hents Hents_cap Hl_logger Hu_logger
       all_goals rfl
     wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, %Hli⟩

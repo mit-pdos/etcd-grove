@@ -34,21 +34,22 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 Stated exactly as `isStorage`'s `HSnapshot` asks of the method, including the premise
 about `ErrSnapshotTemporarilyUnavailable` and the error *disjunction* --
 `MemoryStorage` only ever takes the second disjunct (`nil`, the stored snapshot). The
-snapshot's metadata is the storage's `ss` (`snapId`); it is non-empty because
-`ownMemoryStorage` says `ss.index <> 0` (a finding about the contract: a
-`MemoryStorage` with no snapshot returns an empty one, which `isStorage` excludes); and
-its `ConfState.Voters` slice is the read-only one `ownMemoryStorage` holds. -/
+snapshot's metadata is the storage's `ss` (`snapId`) -- until 2026-10-10 also
+non-empty, because `ownMemoryStorage` said `ss.index <> 0`; a new `MemoryStorage` has
+no snapshot and returns an empty one, which `isStorage` excludes, so the instance
+(`MemstorageInstance.lean`) adds the premise instead -- and its `ConfState.Voters` slice
+is the read-only one `ownMemoryStorage` holds. -/
 abbrev MemoryStorage.Snapshot.spec : Prop :=
-  ∀ (ms : Loc) (σ : StorState)
+  ∀ (ms : Loc) (γs : MemStorNames) (σ : StorState)
     (esu : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hms" ∷ ownMemoryStorage ms σ ∗
+      "Hms" ∷ ownMemoryStorage ms γs σ ∗
       globalAddr ErrSnapshotTemporarilyUnavailable ↦□ esu }}
     (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"Snapshot")) (Val #()))
   {{ (snap : raftpb.Snapshot) (err : GoInterface), RET (PairV #snap #err);
-      ownMemoryStorage ms σ ∗
+      ownMemoryStorage ms γs σ ∗
       (⌜err = esu⌝ ∨
-       (⌜err = interface.nil ∧ snapId snap = σ.ss ∧ snap.Metadata'.Index' ≠ W64 0⌝ ∗
+       (⌜err = interface.nil ∧ snapId snap = σ.ss⌝ ∗
         ∃ (voters : List w64), snap.Metadata'.ConfState'.Voters' ↦*□ voters)) }}
 
 end spec

@@ -251,8 +251,11 @@ structure LogState [FfiSyntax] where
   field of the state", notes/decisions.md): `ownRaftLog` still owns the `Storage` --
   `Step` reads it on most paths, so it cannot be lent out -- and promises that once
   the storage also holds these entries, the in-progress prefix of the log is persisted
-  (`InvRaftlog.lean`, `Hpersist`, `StorApp`). The application appends them through
-  `ownRaftLog_persist`, which empties the field; `Advance` requires it empty. -/
+  (`InvRaftlog.lean`, `Hpersist`, `StorApp`). Since 2026-10-10 they are also the
+  storage's pending batch (`StorState.pend`, `PendLogOk`): `acceptUnstable` hands out
+  the right to append them, and `ownRaftLog_absorb` takes the receipt back and empties
+  the field (until then `ownRaftLog_persist` lent the storage itself); `Advance`
+  requires it empty. -/
   unpersisted : List raftpb.Entry
   /-- What the `Storage` holds (its entries after `prev`) once the application has
   appended `unpersisted` (2026-10-10), while no snapshot is pending (`InvRaftlog.lean`,
@@ -270,6 +273,12 @@ structure LogState [FfiSyntax] where
   under the limit while applying is not paused). -/
   apsize : w64
   apmax : w64
+  /-- `l.storage`, the `Storage` interface value the log reads (2026-10-10). Constant:
+  nothing writes the field after `newLogWithSize`. In the state so that a client can
+  name the storage it appends to (`RNState.storage`): the receipt of an append
+  (`appendedTok st σ p`, `InvStorage.lean`) is for one storage, and only the log that
+  reads that storage may absorb it (`ownRaftLog_absorb`). -/
+  storage : Storage
 
 /-! ## The tracker's records (2026-10-02)
 
@@ -547,7 +556,7 @@ snapshot pending. `unstable.restore` sets `offsetInProgress` to the new offset;
 `applying` and the unpersisted entries are untouched. -/
 def logRestore (ls : LogState) (sid : entryID) : LogState :=
   ⟨sid, [], [], sid.index', ls.applied, some sid, sid.index' + W64 1, ls.applying,
-   ls.unpersisted, ls.stored, ls.apsize, ls.apmax⟩
+   ls.unpersisted, ls.stored, ls.apsize, ls.apmax, ls.storage⟩
 
 /-! `stamp`, `appendEntry`'s stamping loop, is in `Protocol/Model.lean` (since
 2026-10-01: the model's `Step.win` and `Step.propose` stamp too). -/

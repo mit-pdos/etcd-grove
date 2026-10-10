@@ -111,3 +111,5 @@ end Perennial
 #print axioms Perennial.EtcdGrove.RawNode.wp_Step
 #print axioms Perennial.EtcdGrove.RawNode.wp_Tick
 #print axioms Perennial.EtcdGrove.wp_NewRawNode
+#print axioms Perennial.EtcdGrove.MemoryStorage.wp_Append
+#print axioms Perennial.EtcdGrove.wp_NewMemoryStorage

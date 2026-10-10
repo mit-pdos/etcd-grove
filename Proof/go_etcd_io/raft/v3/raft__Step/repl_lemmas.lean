@@ -183,9 +183,9 @@ theorem frame_handle_app (id : w64) (t : NState) (m : raftpb.Message)
   intro Hres
   unfold HandleAppResult at Hres
   rcases Hres with ⟨-, rfl⟩ | ⟨-, _, _, _, -, -, -, -, -, Hfr, rfl⟩ | ⟨-, -, _, _, rfl⟩
-  · exact ⟨⟨rfl, rfl, rfl, rfl, rfl⟩, rfl⟩
+  · exact ⟨⟨rfl, rfl, rfl, rfl, rfl, rfl⟩, rfl⟩
   · exact ⟨Hfr, rfl⟩
-  · exact ⟨⟨rfl, rfl, rfl, rfl, rfl⟩, rfl⟩
+  · exact ⟨⟨rfl, rfl, rfl, rfl, rfl, rfl⟩, rfl⟩
 
 /-- A `MsgApp` branch's frame and term step: the adoption `s → t` (at most a step-down
 to the message's term), then the handler. -/

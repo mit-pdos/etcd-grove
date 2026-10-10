@@ -34,7 +34,7 @@ local macro "early_return" e:term : tactic => `(tactic| (
   iapply HΦ $$ %$e %rs.term
   isplitl
   · iapply ownRawNode_intro γ rn id { rs with term := rs.term } s ps rnv sv steps Hrel Hin
-      Hasync Hdlen Hunp Hsnap Hstok Htrm
+      Hasync Hdlen Hunp Hsnap Hstok Htrm Hstor
       $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs
   ipureintro; constructor <;> omega))
 
@@ -141,7 +141,7 @@ theorem RawNode.Step.wp_proof
         not_net
       simp only [HnP, ↓reduceIte]
       iintro %err %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, -, %Hfr, %Htm, -, -, -⟩
-      obtain ⟨Ha, Hsn, Hu, Hpv, Hsd⟩ := Hfr (by not_net) (by not_net)
+      obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg⟩ := Hfr (by not_net) (by not_net)
       obtain ⟨Ht1, -, Ht3, -⟩ := Htm (by not_net)
       have Ht3 := Ht3 (by not_net) (by not_net)
       have Hc : uint.Z s.logst.committed ≤ uint.Z s'.logst.committed := by
@@ -158,7 +158,7 @@ theorem RawNode.Step.wp_proof
       isplitl
       · iapply ownRawNode_intro γ rn id { rs with term := s'.term } s' ps' rnv sv steps Hrel' Hin
           Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
-          Hstok' rfl
+          Hstok' rfl (by rw [Hsg]; exact Hstor)
           $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstr'
       ipureintro
       rw [Htrm]
