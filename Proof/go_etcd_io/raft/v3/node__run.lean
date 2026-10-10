@@ -21,6 +21,7 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
+open RawNodeOwnAccess
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -196,7 +197,52 @@ theorem node.run.wp_proof
   -- `pm := <-propc`
   iapply BigAndL.bigAndL_cons.2
   isplit
-  · sorry
+  · rcases Hpc' with rfl | rfl
+    · iright
+      iapply chan.nilClausePre_recv msgWithResult _ _ rfl
+    ileft
+    simp only [chan.blockingClausePre]
+    iexists msgWithResult, inferInstance, inferInstance, inferInstance, inferInstance,
+      nv.propc', γ.propc
+    isplitr
+    · ipureintro; rfl
+    isplitr
+    · iapply isHandshake_isChan $$ Hpropc
+    iapply handshake_receive_au γ.propc nv.propc' (propP γ) iprop(True) _
+      $$ [$Hlc1 $Hlc2] Hpropc []
+    · itrivial
+    inext
+    iintro %pm HP
+    iunfold propP at HP
+    icases HP with ⟨%data_sl, %esl, %data, %γr, %Hpm, Hes, Hcap, #Hdata, #Hho, Hprod⟩
+    wp_auto
+    ihave Hhead := runMid_head γ id nv ac rc' rdv' $$ Hmid
+    iunfold runHead at Hhead
+    icases Hhead with ⟨%rs, Hrn, Hrest⟩
+    rw [Hpm]
+    wp_apply wp_rn_raft_Step_prop wp_raft_Step γ.raft nv.rn' id rs r esl data_sl data
+      $$ [$Hrn $Hrnraft $Hes $Hcap $Hdata] as %err Hrn
+    ihave %Hrnn := isChan_not_null $$ [Hho]
+    · unfold isHandoff
+      icases Hho with ⟨$, -⟩
+    wp_if_destruct
+    · exact absurd Hif Hrnn
+    wp_apply wp_handoff_send (t := go.error) γr pm.result' (fun (_ : GoInterface) => iprop(True))
+      iprop(True) iprop(True) err $$ [$Hho $Hprod] as Hprod
+    · isplitl <;> itrivial
+    wp_apply wp_handoff_close (t := go.error) γr pm.result' (fun (_ : GoInterface) => iprop(True))
+      iprop(True) iprop(True) true $$ [$Hho $Hprod]
+    · simp only [↓reduceIte]
+      itrivial
+    wp_for_post
+    iframe HΦ n r
+    iexists nv.propc', rc', ac, rdv', ld'
+    iframe propc readyc advancec rd lead
+    isplitr
+    · ipureintro; right; rfl
+    unfold runHead
+    iexists rs
+    iframe Hrn Hrest
   -- `m := <-n.recvc`
   iapply BigAndL.bigAndL_cons.2
   isplit
@@ -319,11 +365,167 @@ theorem node.run.wp_proof
   -- `readyc <- rd`
   iapply BigAndL.bigAndL_cons.2
   isplit
-  · sorry
+  · rcases Hchans.1 with Hrc | Hrc <;> subst Hrc
+    · iright
+      iapply chan.nilClausePre_send _ rdv' _ rfl
+    ileft
+    simp only [chan.blockingClausePre]
+    iexists Ready, inferInstance, inferInstance, inferInstance, inferInstance,
+      nv.readyc', γ.readyc, rdv'
+    isplitr
+    · ipureintro; exact ⟨rfl, rfl⟩
+    isplitr
+    · iapply isHandshake_isChan $$ Hreadyc
+    icases runMid_ready γ id nv ac rdv' Hrdy_nn Hadv_nn $$ Hmid with
+      ⟨%Hac, %rs, #Hlb', %Hrs, Hdlv, Hrof, Hst⟩
+    subst Hac
+    obtain ⟨Hstor, Hsteps, Hunp⟩ := Hrs
+    -- the `Ready` to send, fresh or stale (then it holds no messages and no entries)
+    ihave Hg : iprop(∃ (ce es : List raftpb.Entry) (ms : List raftpb.Message),
+        ownRawNodeReady γ.raft nv.rn' id rs rdv' ce es ms false ∗
+        rdv'.CommittedEntries' ↦*□ ce ∗ isCommitted γ.raft (rs.delivered ++ ce) ∗
+        rdv'.Entries' ↦*□ es ∗ rdv'.Messages' ↦* ms ∗ ([∗list] m ∈ ms, isRaftMsg γ.raft m) ∗
+        ⌜(∀ m ∈ ms, uint.Z m.Term' ≤ uint.Z rs.term) ∧
+          rdv'.Snapshot' = zero_val raftpb.Snapshot ∧ rdv'.ReadStates' = slice.nil⌝) $$ [Hst]
+    · icases Hst with (⟨%ce, %es, %ms, Hrn, Hf⟩ | ⟨Hrn, Hstale⟩)
+      · iunfold freshOk at Hf
+        icases Hf with ⟨#Hce, #Hcommitted, #Hents, Hmsgs, -, #Hmsgs_ok, %Hfacts⟩
+        iexists ce, es, ms
+        iframe Hrn Hce Hcommitted Hents Hmsgs Hmsgs_ok
+        ipureintro; exact Hfacts
+      · icases ownRawNodeIdle_facts γ.raft nv.rn' id rs $$ Hrn with ⟨%Hidf, Hrn⟩
+        iunfold staleOk at Hstale
+        icases Hstale with ⟨%ce, %es, %k, #Hrdsoft, #Hce, Hce_cap, #Hcommitted, #Hents, %Hsf⟩
+        obtain ⟨Hrdz, Hes, Hshape, Hk, Hce_ok⟩ := Hsf
+        have Hes0 : es = [] := by
+          by_cases h : es = []
+          · exact h
+          · have := Hes h
+            rw [Hidf.2] at this
+            exact absurd this (by simp)
+        have Hk0 : k = 0 := by have := Hidf.1; omega
+        subst Hes0 Hk0
+        ihave Hrn := ownRawNodeIdle_ready γ.raft nv.rn' id rs rdv' ce Hsteps Hunp Hrdz Hce_ok
+          $$ Hrdsoft Hce Hce_cap Hcommitted Hrn
+        iexists ce, [], []
+        iframe Hrn Hce Hcommitted Hents
+        isplitl []
+        · iapply ownSlice_of_shape rdv'.Messages' (DFrac.own 1) Hshape
+        isplitl []
+        · iapply BigSepL.bigSepL_nil.2
+          iempintro
+        ipureintro; exact ⟨by simp, Hrdz⟩
+    icases Hg with ⟨%ce, %es, %ms, Hrn, #Hce, #Hcommitted, #Hents, Hmsgs, #Hmsgs_ok, %Hfacts⟩
+    iapply handshake_send_au_upd (t := Ready.ty) γ.readyc nv.readyc' rdv' (readyP γ) iprop(True) _
+      $$ [$Hlc1 $Hlc2 $Hlc3] Hreadyc
+    -- the append right goes with the `Ready`, and `rof` records it
+    imod ownRawNodeReady_handout γ.raft nv.rn' id rs rdv' ce es ms $$ Hrn with ⟨Hrn, Happ⟩
+    iunfold rofFull at Hrof
+    icases Hrof with ⟨%x, Hr1, Hr2⟩
+    imod dghostVar_update_halves (rs.delivered, ce, es) γ.rof x x $$ Hr1 Hr2 with ⟨Hr1, Hr2⟩
+    ihave Hmt := readyMsgs_termLB γ rs.term ms Hfacts.1 $$ Hmsgs_ok Hlb'
+    imodintro
+    isplitl [Hdlv Hr1 Happ Hmsgs Hmt]
+    · unfold readyP
+      iexists rs.delivered, ce, es, ms
+      iframe Hdlv Hr1
+      unfold readyData
+      iframe Hce Hcommitted Hents Hmsgs Hmt
+      isplitl [Happ]
+      · rw [← Hstor]
+        iexact Happ
+      ipureintro; exact Hfacts.2
+    inext
+    iintro -
+    wp_auto
+    wp_apply wp_RawNode_acceptReady γ.raft nv.rn' id rs rdv' ce es ms $$ [$Hrn] as %steps Hrn
+    icases ownRawNode_async γ.raft nv.rn' id _ $$ Hrn with ⟨%rnv, Hrnown, %Hasync, Hrnback⟩
+    wp_auto
+    rw [Hasync]
+    wp_auto
+    ihave Hrn := Hrnback $$ Hrnown
+    wp_for_post
+    iframe HΦ n r
+    iexists pc', chan.nil, nv.advancec', rdv', ld'
+    iframe propc readyc advancec rd lead
+    isplitr
+    · ipureintro; exact Hpc'
+    unfold runHead
+    iexists { rs with delivered := rs.delivered ++ ce, unpersisted := es, steps := steps,
+                      outlb := 0, unst := false }
+    iframe Hrn
+    unfold headRest
+    iframe Hlb'
+    isplitr
+    · ipureintro; exact Hstor
+    iright
+    isplitr
+    · ipureintro; exact ⟨rfl, rfl, rfl⟩
+    iexists rs.delivered, ce
+    iframe Hr2
+    ipureintro; rfl
   -- `<-advancec`
   iapply BigAndL.bigAndL_cons.2
   isplit
-  · sorry
+  · rcases Hchans.2 with Hac | Hac <;> subst Hac
+    · iright
+      iapply chan.nilClausePre_recv Unit _ _ rfl
+    ileft
+    simp only [chan.blockingClausePre]
+    iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance,
+      nv.advancec', γ.advancec
+    isplitr
+    · ipureintro; rfl
+    isplitr
+    · iapply isHandshake_isChan $$ Hadvancec
+    icases runMid_busy γ id nv rc' rdv' Hadv_nn $$ Hmid with
+      ⟨%rs, %d, %ce, Hrn, #Hlb', %Hrs, Hrof⟩
+    obtain ⟨Hstor, Hrc, Hunst, Hdel⟩ := Hrs
+    iapply handshake_receive_au γ.advancec nv.advancec' (advanceP γ) iprop(True) _
+      $$ [$Hlc1 $Hlc2] Hadvancec []
+    · itrivial
+    inext
+    iintro %u HP
+    iunfold advanceP at HP
+    icases HP with ⟨%d', %ce', %es', Hdlv, Hrof', Hrcpt⟩
+    ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hrof Hrof'
+    simp only [Prod.mk.injEq] at Heq
+    obtain ⟨rfl, rfl, rfl⟩ := Heq
+    wp_auto
+    -- the receipt: the `Ready`'s entries are appended
+    ihave Hrcpt' : appendReceipt rs.storage rs.unpersisted $$ [Hrcpt]
+    · rw [Hstor]
+      iexact Hrcpt
+    imod ownRawNode_appended γ.raft nv.rn' id rs $$ Hrn Hrcpt' with Hrn
+    imod termLB_bound γ.bud rs.term ⊤ (by solve_ndisj) $$ Hbud Hlb' with %Hbnd
+    wp_apply wp_RawNode_Advance γ.raft nv.rn' id { rs with unpersisted := [] } rdv' rfl
+      (by simp only; omega) Hunst $$ [$Hrn] as %t ⟨Hrn, %Ht1, %Ht2⟩
+    subst Ht2 Hrc
+    wp_for_post
+    iframe HΦ n r
+    iexists pc', chan.nil, chan.nil, zero_val Ready, ld'
+    iframe propc readyc advancec rd lead
+    isplitr
+    · ipureintro; exact Hpc'
+    unfold runHead
+    iexists _
+    isplitl [Hrn]
+    · iexact Hrn
+    unfold headRest
+    simp only
+    iframe Hlb'
+    isplitr
+    · ipureintro; exact Hstor
+    ileft
+    isplitr
+    · ipureintro; simp
+    rw [Hdel]
+    iframe Hdlv
+    isplitl [Hrof Hrof']
+    · unfold rofFull
+      iexists (d, ce, rs.unpersisted)
+      iframe Hrof Hrof'
+    ileft; ipureintro; simp
   -- `<-n.status`: never
   iapply BigAndL.bigAndL_cons.2
   isplit

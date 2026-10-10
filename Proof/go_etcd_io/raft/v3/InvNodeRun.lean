@@ -727,6 +727,25 @@ theorem runMid_head (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd
     · ipureintro; exact Hrc
     iexact Hstale
 
+/-- A `Ready`'s messages are of terms within the budget: at most the node's. -/
+theorem readyMsgs_termLB (γ : NodeNames) (t : w64) (ms : List raftpb.Message)
+    (H : ∀ m ∈ ms, uint.Z m.Term' ≤ uint.Z t) :
+    ⊢ ([∗list] m ∈ ms, isRaftMsg (GF := GF) γ.raft m) -∗ termLB γ.bud t -∗
+      [∗list] m ∈ ms, isRaftMsg γ.raft m ∗ termLB γ.bud m.Term' := by
+  induction ms with
+  | nil =>
+    iintro - -
+    iapply BigSepL.bigSepL_nil.2
+    iempintro
+  | cons m ms ih =>
+    iintro Hl #Hlb
+    icases BigSepL.bigSepL_cons.1 $$ Hl with ⟨Hm, Hl⟩
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [Hm]
+    · iframe Hm
+      iapply termLB_le γ.bud t m.Term' (H m (List.mem_cons_self ..)) $$ Hlb
+    · iapply ih (fun m' hm => H m' (List.mem_cons_of_mem _ hm)) $$ Hl Hlb
+
 /-- What `readyc` and `advancec` may be. -/
 theorem runMid_chans (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd : Ready) :
     ⊢ runMid (GF := GF) γ id nv ac rc rd -∗
