@@ -27,6 +27,7 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
+open RawNodeOwnAccess
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -47,6 +48,7 @@ theorem RawNode.Ready.wp_proof
   wp_apply wp_RawNode_readyWithoutAccept γ rn id rs Hsteps0 Hunp0 $$ [$Hrn]
     as %rd %ce %es %ms H
   iNamed H
+  imod ownRawNodeReady_handout γ rn id rs rd ce es ms $$ Hrn with ⟨Hrn, Happ⟩
   wp_apply wp_RawNode_acceptReady γ rn id rs rd ce es ms $$ [$Hrn] as %steps H
   iNamed H
   iapply HΦ $$ %rd %ce %es %ms %steps

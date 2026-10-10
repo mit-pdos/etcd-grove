@@ -72,7 +72,8 @@ abbrev RawNode.Ready.spec : Prop :=
   {{ (rd : Ready) (ce es : List raftpb.Entry) (ms : List raftpb.Message)
       (steps : List Pending), RET #rd;
       "Hrn" ∷ ownRawNode γ rn id
-        { rs with delivered := rs.delivered ++ ce, unpersisted := es, steps := steps } ∗
+        { rs with delivered := rs.delivered ++ ce, unpersisted := es, steps := steps,
+                  outlb := 0, unst := false } ∗
       "#Hce" ∷ rd.CommittedEntries' ↦*□ ce ∗
       "#Hcommitted" ∷ isCommitted γ (rs.delivered ++ ce) ∗
       "#Hents" ∷ rd.Entries' ↦*□ es ∗

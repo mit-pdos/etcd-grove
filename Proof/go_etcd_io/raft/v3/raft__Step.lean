@@ -452,8 +452,9 @@ theorem raft.Step.wp_proof
   -- (`LocalStepOk`, 2026-10-09)
   by_cases HtyA : m.Type' = MsgStorageAppendResp
   · -- MsgStorageAppendResp: `stableTo`, invisible to the protocol.
-    obtain ⟨Hsn, Hle, Hstok⟩ := Hsar HtyA
-    wp_apply (wp_Step_MsgStorageAppendResp P cfg r id s m HtyA Hsn Hle Hstok Hwf) $$ [$Hphys]
+    obtain ⟨Hsn, Hle, Hstok, Hghoff⟩ := Hsar HtyA
+    wp_apply (wp_Step_MsgStorageAppendResp P cfg r id s m HtyA Hsn Hle Hstok Hghoff Hwf)
+      $$ [$Hphys]
       as %err %s' ⟨Hphys, %Hwf', %Hfr, %Hst, %Herr⟩
     have Hst' : Step γ.reCfg id (toPState s) [] (toPState s') := by rw [Hcfg]; exact Hst
     imod ownRaftGhost_step_0 γ id _ _ Hst' $$ Hghost with Hghost

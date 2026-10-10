@@ -31,6 +31,7 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
+open RawNodeOwnAccess
 
 /-- `if_pos`/`if_neg` (deprecated in core under those names). -/
 private theorem ite_pos' {α : Sort _} {c : Prop} [Decidable c] (h : c) {a b : α} :
@@ -212,6 +213,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
   icases ownRaftLog_ready_wf _ _ $$ Hlog with ⟨%Hwf1, Hlog⟩
   icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hwf2, Hlog⟩
   icases ownRaftLog_nowrap _ _ $$ Hlog with ⟨%Hwf3, Hlog⟩
+  icases ownRaftLog_wf _ _ $$ Hlog with ⟨%Hidx, Hlog⟩
   wp_auto
   wp_apply wp_raftLog_nextUnstableEnts $$ [Hlog] as %sents ⟨Hlog, #Hents⟩
   · iframe Hlog
@@ -364,20 +366,25 @@ theorem RawNode.readyWithoutAccept.wp_proof
   -- the loop is done: every message of `msgsAfterAppend` seen
   rw [List.take_of_length_le (l := ms2) (i := sint.nat n) (by word)]
   -- the raft struct, without the outbox's contents (now `rd.Messages`)
-  ihave Hphys : ownRaftPhysReady γ.reCfg rnv.raft' id s msl (ms1 ++ nonself id ms2) $$
+  ihave Hphys : ownRaftPhysReady γ.reCfg rnv.raft' id s msl (ms1 ++ nonself id ms2) false $$
     [Hf_id Hf_Term Hf_Vote Hf_readStates Hf_raftLog Hf_state Hf_lead Hf_msgs Hf_msgsAA
      HmsgsAA HmsgsAA_cap Hundo Hlog Hclose]
   · unfold ownRaftPhysReady
     iexists rss, sl1, sl2, ms1, ms2
-    simp only [named]
+    simp only [named, Bool.false_eq_true, ↓reduceIte]
     iframe Hf_id Hf_Term Hf_Vote Hf_readStates Hf_raftLog Hf_state Hf_lead Hf_msgs Hf_msgsAA
       HmsgsAA HmsgsAA_cap Hundo Hlog Hclose Houtbox
-    ipureintro; exact ⟨Hrs, HmsgsAA_ok, Hout_term⟩
+    ipureintro
+    refine ⟨Hrs, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, ?_⟩
+    simp only [List.length_append]
+    have := List.length_filter_le (fun m => decide (m.To' ≠ id)) ms2
+    unfold nonself
+    omega
   -- the messages' terms: with pre-vote off, at most the node's (`OutTermOk`)
   have Hmsgs_term : ∀ m ∈ ms1 ++ nonself id ms2, uint.Z m.Term' ≤ uint.Z rs.term := by
     intro m Hm
     rw [Htrm]
-    refine Hout_term m ?_ Hpvoff
+    refine (Hout_term m ?_ Hpvoff).1
     rcases List.mem_append.1 Hm with Hm | Hm
     · exact List.mem_append_left _ Hm
     · exact List.mem_append_right _ (List.mem_filter.1 Hm).1
@@ -419,8 +426,10 @@ theorem RawNode.readyWithoutAccept.wp_proof
     simp only [named]
     iframe Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hdeliv' Hstrecs Hrdsoft Hce Hce_cap
     ipureintro
-    exact ⟨⟨rfl, Hwfs⟩, Hin, Hasync, Hdlen, HunpS, Hsnap, Htrm, Hstor, Hpvoff, ⟨trivial, trivial⟩,
-      Hcepre, trivial⟩
+    exact ⟨⟨rfl, Hwfs⟩, Hin, Hasync, Hdlen, HunpS, Hsnap, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst,
+      Hrs_clb, ⟨trivial, trivial⟩,
+      ceOk_of_prefix s.logst ce Hidx ⟨by have := Hwf2.2 Hsnap; omega, Hwf1.2.2⟩ (by omega) Hcepre,
+      trivial⟩
   isplitr
   · iexact Hce
   isplitr

@@ -32,6 +32,7 @@ theorem raftLog.acceptUnstable.wp_proof
   wp_start as H
   iNamed H
   iNamed Hlog
+  simp only [logHanded] at *
   wp_auto
   have Hcontig : ∀ (k : Nat) (e : raftpb.Entry), ls.uents[k]? = some e →
       uint.Z e.Index' = uint.Z lv.unstable'.offset' + (k : Int) := by
@@ -47,9 +48,6 @@ theorem raftLog.acceptUnstable.wp_proof
   -- above the storage's boundary and at most one past what it holds (`LogPersistOk`)
   obtain ⟨Hsp, -, -⟩ : LogStoreOk none σ ls.prev ls.sents ls.uents := Hs0 ▸ Hstore
   have Hp0 := Hpersist Hs0
-  rw [Hunp0] at Hp0
-  have Hplen := Hp0.1.length_le
-  simp only [storApp, List.length_append, List.length_take] at Hplen
   have Hhead : ∀ e0, (nextUnstable ls).head? = some e0 →
       uint.Z e0.Index' = uint.Z ls.inprogress ∧
       uint.Z ls.inprogress - uint.Z lv.unstable'.offset' < (ls.uents.length : Int) := by
@@ -59,18 +57,6 @@ theorem raftLog.acceptUnstable.wp_proof
     have Hc := Hcontig _ _ He0
     simp only [logOffset] at Hc Hlt
     constructor <;> omega
-  have Hpo : σ.pend = [] ∧ (nextUnstable ls ≠ [] → PendOk σ (nextUnstable ls)) := by
-    refine ⟨Hpend.1.trans Hunp0, fun Hne => ⟨Hne, fun e0 He0 => ?_⟩⟩
-    obtain ⟨Hi, Hlt⟩ := Hhead e0 He0
-    rw [Hsp]
-    constructor <;> omega
-  -- the storage's hand-out law: the right to append the batch, and the storage at
-  -- `{ σ with pend := nextUnstable ls }`, which reads as before below the batch (with
-  -- nothing to hand out, the storage keeps its state, which is that one)
-  imod isStorage_handout lv.storage' σ (nextUnstable ls) Hpo $$ HisStorage HStorage
-    with ⟨HStorage, Happ⟩
-  ihave Happ : appendRight ls.storage (nextUnstable ls) $$ [Happ]
-  · rw [← Hstor]; iexact Happ
   lend_unstable
   wp_apply wp_unstable_acceptInProgress _ (unstableOf lv ls) Hcontig Hnw' $$ [$Hun]
     as %nip ⟨Hun, %Hnip⟩
@@ -89,27 +75,22 @@ theorem raftLog.acceptUnstable.wp_proof
       word
   have Hipo : uint.Z (logEnd ls) - uint.Z uv'.offset' = (ls.uents.length : Int) := by
     simp only [logEnd, logLast]; word
-  have Hstore' : LogStoreOk ls.snap { σ with pend := nextUnstable ls } ls.prev ls.sents
-      ls.uents := Hstore
-  have Hssnap' : ls.snap = none →
-      StoredSnapOk { σ with pend := nextUnstable ls } ls.committed ls.prev
-        (ls.sents ++ ls.uents) := Hssnap
-  have HpendN : PendLogOk { σ with pend := nextUnstable ls }
+  have HpendN : PendLogOk σ
       { ls with inprogress := logEnd ls, unpersisted := nextUnstable ls,
                 stored := ls.sents ++ ls.uents } := by
-    refine ⟨rfl, fun _ e0 He0 => ?_⟩
+    refine ⟨Hpend.1, fun _ e0 He0 => ?_⟩
     obtain ⟨Hi, Hlt⟩ := Hhead e0 He0
     word
-  have HpersistN : ls.snap = none → LogPersistOk { σ with pend := nextUnstable ls } ls.sents
+  have HpersistN : ls.snap = none → LogPersistOk σ ls.sents
       ls.uents (uint.Z (logEnd ls) - uint.Z uv'.offset') (nextUnstable ls)
       (ls.sents ++ ls.uents) := by
     intro _
-    simp only [LogPersistOk, storApp_pend]
-    simp only [Hipo, nextUnstable, logOffset, ← Hoffset]
-    exact persist_accept ls.prev σ ls.sents ls.uents _ Hidx Hsp (by omega) ls.stored Hp0
+    obtain ⟨-, -, H3, H4⟩ := Hp0
+    refine ⟨?_, fun _ => H4.symm, H3, H4⟩
+    rw [H4]
+    exact (List.prefix_append_right_inj ls.sents).mpr (List.take_prefix _ _)
   iapply HΦ
   unfold logAcceptUnstable
-  iframe Happ
   reseal_raftLog
   · simp only [logEnd, logLast]; word
   · simp only [logEnd, logLast]; word

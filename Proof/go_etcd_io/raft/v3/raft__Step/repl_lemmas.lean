@@ -185,7 +185,7 @@ theorem frame_handle_app (id : w64) (t : NState) (m : raftpb.Message)
   rcases Hres with ⟨-, rfl⟩ | ⟨-, _, _, _, -, -, -, -, -, Hfr, rfl⟩ | ⟨-, -, _, _, rfl⟩
   · exact ⟨NetFrame.refl _, rfl⟩
   · obtain ⟨H1, H2, H3, H4, H5, H6⟩ := Hfr
-    exact ⟨⟨H1, H2, H3, H4, H5, H6, rfl⟩, rfl⟩
+    exact ⟨⟨H1, H2, H3, H4, H5, H6, rfl, rfl⟩, rfl⟩
   · exact ⟨NetFrame.refl _, rfl⟩
 
 /-- A `MsgApp` branch's frame and term step: the adoption `s → t` (at most a step-down

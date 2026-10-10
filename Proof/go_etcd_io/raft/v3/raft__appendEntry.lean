@@ -250,7 +250,7 @@ theorem raft.appendEntry.wp_proof
         rw [List.getElem?_append_right (by simp only [List.length_append]; omega)]
         simp only [List.length_append, Nat.add_sub_cancel_left]; exact Hk)
       rw [H]; push_cast; omega
-    icases ownRaftPhys_log_at cfg r id s $$ Hphys with ⟨Hlog, Hlogback⟩
+    icases ownRaftPhys_log_at cfg r id s $$ Hphys with ⟨Hlog, %Hgh0, Hlogback⟩
     -- `append`'s widened spec: the stamped batch continues the log, so
     -- it is a plain `logAppend` and nothing is adopted
     obtain ⟨Htac, Hado⟩ := logTruncateAppend_cont s.logst (ents.mapIdx (stamp s.term li))
@@ -273,7 +273,7 @@ theorem raft.appendEntry.wp_proof
     · rw [Hado]; simp only [Bool.false_eq_true, ↓reduceIte, named]; itrivial
     rw [Hado, Htac] at *
     simp only [Bool.false_eq_true, ↓reduceIte]
-    ihave Hphys := Hlogback $$ %_ Hlog
+    ihave Hphys := Hlogback $$ %_ Hlog %(LogGhOk.append _ Hgh0)
     wp_apply raft.wp_load_id $$ Hphys as Hphys
     have Hlast2 : logLast (logAppend s.logst (ents.mapIdx (stamp s.term li))) = li2 := by
       unfold logLast

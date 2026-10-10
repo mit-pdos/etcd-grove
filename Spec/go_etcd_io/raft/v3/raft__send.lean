@@ -100,7 +100,7 @@ def SendOk (id : w64) (s : NState) (m : raftpb.Message) (ents : List raftpb.Entr
      (m.To' = id →
         m.Entries' = slice.nil ∧ m.Context' = slice.nil ∧
         uint.Z m.Term' ≤ uint.Z s.term + (if m.Type' = MsgPreVoteResp then 1 else 0)) ∧
-     (s.prevote = false → uint.Z m.Term' ≤ uint.Z s.term) ∧
+     (s.prevote = false → uint.Z m.Term' ≤ uint.Z s.term ∧ m.Type' ≠ MsgPreVoteResp) ∧
      out = [absMsgFrom ty m id m.Term' ents])
   ∨
   (∃ ty,

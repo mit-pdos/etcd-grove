@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-10 (groundwork for `node.go`: a computed `Ready` can be abandoned, Perennial's `wp_slice_append_undo`; pre-vote out of scope at the RawNode level; `Ready`'s messages carry terms at most the node's, see "`node.go` groundwork"; `RawNode.Ready` split into `readyWithoutAccept` and `acceptReady`, for `node.go`; the storage contract has a pending append, for `node.go`; `MemoryStorage.Append` and `NewMemoryStorage` proved; merged upstream's RawNode work into the cache-as-shipped and concurrency line, Perennial `7d0b56b07`, see "Merge: upstream's RawNode work"; `RawNode.Step` takes a `MsgApp` between `Ready` and `Advance`; the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; Perennial `7d0b56b07`: Goose with per-iteration loop variables, `break` out of `select`, see "Perennial `7d0b56b07`"; merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
+**Last updated:** 2026-10-10 (`node.go` proved: `RestartNode`, `run`, `Propose`, `Step`, `Tick`, `Ready`, `Advance`, see "`node.go`: the concurrent `Node`"; groundwork for `node.go`: a computed `Ready` can be abandoned, Perennial's `wp_slice_append_undo`; pre-vote out of scope at the RawNode level; `Ready`'s messages carry terms at most the node's, see "`node.go` groundwork"; `RawNode.Ready` split into `readyWithoutAccept` and `acceptReady`, for `node.go`; the storage contract has a pending append, for `node.go`; `MemoryStorage.Append` and `NewMemoryStorage` proved; merged upstream's RawNode work into the cache-as-shipped and concurrency line, Perennial `7d0b56b07`, see "Merge: upstream's RawNode work"; `RawNode.Step` takes a `MsgApp` between `Ready` and `Advance`; the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; Perennial `7d0b56b07`: Goose with per-iteration loop variables, `break` out of `select`, see "Perennial `7d0b56b07`"; merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
 
 Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
@@ -13,6 +13,78 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 (`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
+
+## `node.go`: the concurrent `Node` (2026-10-10)
+
+Specified, proved and linked (`Link.lean` by hand, `etc/link-lean-first.txt`; `#print
+axioms` in `Results.lean`): `RestartNode`, `newNode`, `node.run`, `node.Propose` (through
+`stepWait`/`stepWithWaitOption`), `node.Step` (through `step`), `node.Tick`, `node.Ready`,
+`node.Advance`, and `raft.hasLeader`. No `sorry`, no new axiom: every node result rests on
+exactly the axioms of the RawNode results it calls. Out of scope (their channels carry
+`P := False`, never sent on): `Stop`, `Status`, `ProposeConfChange`, `ApplyConfChange`,
+`Campaign`, `ReadIndex`, `TransferLeadership`, `ReportUnreachable`, `ReportSnapshot`,
+`ForgetLeader`, `StartNode`/`Bootstrap`; `ctx` is `context.Background()` only.
+
+The client-facing specs (`InvNode.lean` defines the predicates; decisions.md, "node.go"):
+
+- `RestartNode`: `NewRawNode`'s premises plus `inv budgetN (budgetInv bud) ∗ termLB bud 0`
+  ⇒ `∃ γn n, ⌜γn.raft = γ ∧ γn.bud = bud ∧ γn.stor = si ∧ nd = interface.mkOk (*node) n⌝ ∗
+  isNode γn id n ∗ nodeDriver γn id n []`.
+- `Propose(ctx, data)`: `{isNode ∗ data ↦*□ _} … {err, True}`.
+- `Step(ctx, m)`: `{isNode ∗ netP γ id m} … {err, True}`; `netP` = `NetMsgOk id m`, the
+  entries/context read-only, `isMessage` of its abstraction, and `termLB bud m.Term`.
+- `Tick()`: `{isNode ∗ tickCred bud 1} … {True}`.
+- `Ready()`: `{isNode} … {ch, isReadyChan γ ch}`; receiving (`node_ready_receive`) with
+  `nodeDriver γ id n ds` gives `readyData γ rd ds ce es ms` (the committed entries `ce`
+  with `isCommitted (ds ++ ce)`, the entries `es` with `appendRight`, the messages with
+  `isRaftMsg` and `termLB` of their terms) and `nodeDriverBusy γ id n (ds ++ ce) es`.
+- `Advance()`: `{nodeDriverBusy γ id n ds es ∗ appendReceipt γ.stor es} … {nodeDriver γ id n ds}`.
+- The term budget (`budget_alloc N`, `N < 2^64 - 1`): `M + c < 2^64 - 1` for the bound `M`
+  on every term and `c` tick credits out; `budget_spend` turns a credit and `termLB t`
+  into `t + 1 < 2^64 - 1` and `termLB (t + 1)`.
+
+`run`'s proof (`node__run.lean`, lemmas in `InvNodeRun.lean`): the loop invariant
+`runHead` (the node at `ownRawNode`, `headRest`: no `Ready` out with `rof` whole, `dlv`'s
+half, a stale `Ready` possibly armed (`staleOk`); or one out, `rof`'s half recording it);
+after the first statement `runMid` (also a fresh `Ready`, `ownRawNodeReady`, or an idle
+node with a stale one). `wp_join` twice (the `HasReady` branch, the leader check), one
+`select` of eight cases. `r.Step` on the node: `wp_rn_raft_Step_net`/`_prop` (the tails of
+`RawNode.Step`/`Propose`); an abandoned `Ready` stays armed
+(`ownRawNodeReady_abandon_keep`, `SliceShape` to rebuild its empty messages slice).
+
+RawNode spec changes for `node.go` (this session; commits `b68a476e6`, `7796d5635`,
+`9a67d5ce5`, `23c156cfc`): `HasReady`'s `false` gives `ownRawNodeIdle` (pinned: no
+message queued, no unstable entry); `RNState` lower bounds `outlb`/`unst`/`clb`
+(`NGhost` in `NState`) raised by `ownRawNodeReady_abandon`; `acceptReady` takes
+`ownRawNodeReady … true` (the append right handed out first, `ownRawNodeReady_handout`,
+`logHanded`) and no longer returns it; `raftLog.acceptUnstable` likewise; `Advance` takes
+`rs.unst = false` and returns `t = rs.term`; `raft.Step`'s `MsgStorageAppendResp` premise
+has `s.gh.unst = false`; `OutTermOk`: no `MsgPreVoteResp` with pre-vote off; the raft
+struct's `id` and `logger` persistent (`raftOwn`, `rawNodeOwn`: `Tick` reads them
+concurrently); `newRaft` returns `s.gh = {}`.
+
+Not checked: `etc/tcb-report.py --check` (needs a full build; the disk is short).
+
+## bbolt: not goosable as written; the `unsafe` it needs (2026-10-10)
+
+bbolt (v1.5.0, etcd's dependency) works by reading `[]byte` buffers (the mmap'd file, heap
+pages) as structs through `unsafe.Pointer`, with `uintptr` arithmetic. Perennial's typed heap
+gives that no meaning, and it leaves `uintptr ↔ pointer` stuck on purpose. `notes/bbolt-unsafe.md`
+inventories every use and says what a model needs: layout constants, a byte view of
+pointer-free structs (the core change), byte-offset arithmetic, slices over raw memory, and a
+file-backed mmap. It also covers the fork alternative. What is goosable now:
+`internal/common`'s page-id helpers are translated with bodies
+(`Code/go_etcd_io/bbolt/internal/common.toml`), with package init, the sorted-list model,
+`wp_slice_append_in_place` and the `Mergepgids` spec in
+`{Proof,Spec}/go_etcd_io/bbolt/internal/common/`. `Mergepgids` is proved (no `sorry`; `Results.lean` prints its axioms). Most of
+`internal/freelist` and `errors` are goosable too.
+
+Toward modeling and verifying all of bbolt (`notes/bbolt-unsafe.md`, "Where Perennial stands"):
+- Perennial's array allocation is a `-- TODO` that diverges (`AngelicExit`), so every proof past
+  a non-empty `make` here holds vacuously (31 files use `wp_slice_make*`/`wp_slice_append`).
+- Perennial has no byte-level memory and no crash semantics; both are core changes.
+- Goose now folds `unsafe.Sizeof`/`Offsetof`/`Alignof`, `uintptr` constants and labeled loops
+  (Perennial branch `goose-bbolt`, `ff60796`; not pinned).
 
 ## `node.go` groundwork: abandoning a `Ready`, pre-vote off, the messages' terms (2026-10-10)
 

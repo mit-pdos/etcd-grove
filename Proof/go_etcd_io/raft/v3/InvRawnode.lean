@@ -127,6 +127,16 @@ structure RNState [FfiSyntax] where
   to append `Ready` hands out (`appendRight`) and the receipt `ownRawNode_appended` takes
   back are for this storage. -/
   storage : Storage
+  /-- Lower bounds for `node.go` (2026-10-10): at most this many messages are queued
+  (`NGhost.outlb`), ... -/
+  outlb : Nat := 0
+  /-- ... some unstable entry is still to be handed out (`NGhost.unst`), ... -/
+  unst : Bool := false
+  /-- ... and the commit index is at least this. A step keeps all three; `acceptReady`
+  resets the first two. `node.go`'s `run` raises them when it abandons a computed `Ready`
+  (`ownRawNodeReady_abandon`), so that, should `HasReady` later report nothing new, the
+  abandoned `Ready` is known to hold nothing (`ownRawNodeIdle`). -/
+  clb : w64 := W64 0
 
 section defs
 variable [FfiSyntax]
@@ -200,7 +210,9 @@ the storage holds (`stored`, 2026-10-10: the log of the `Ready` that queued it);
 truncating `MsgApp` breaks, so `RawNode.Step` took a `MsgApp` only with an empty queue. -/
 def PendingOk (s : NState) (p : Pending) : Prop :=
   match p with
-  | .self pv t => uint.Z t ≤ uint.Z s.term + (if pv then 1 else 0)
+  | .self pv t => uint.Z t ≤ uint.Z s.term + (if pv then 1 else 0) ∧
+      -- (2026-10-10) with pre-vote off, not a pre-vote response (`OutTermOk`)
+      (s.prevote = false → pv = false)
   | .appendAck t e => uint.Z t ≤ uint.Z s.term ∧ plogLast s.logst.prev s.logst.stored = e
   | .applyAck _ => ApplyAckOk s p
 
@@ -246,7 +258,8 @@ theorem stepsOk_mono_le (s s' : NState) (steps : List Pending)
     (Ht : uint.Z s.term ≤ uint.Z s'.term)
     (Hst : s'.logst.prev = s.logst.prev ∧ s'.logst.stored = s.logst.stored)
     (Hc : uint.Z s.logst.committed ≤ uint.Z s'.logst.committed)
-    (Ha : s'.logst.applying = s.logst.applying) :
+    (Ha : s'.logst.applying = s.logst.applying)
+    (Hpv : s'.prevote = s.prevote := by first | rfl | assumption) :
     StepsOk s steps → StepsOk s' steps := by
   have Hall : ∀ l : List Pending, (∀ p ∈ l, ApplyAckOk s p) → ∀ p ∈ l, ApplyAckOk s' p :=
     fun l H p Hp => applyAckOk_mono s s' p Hc Ha (H p Hp)
@@ -255,8 +268,8 @@ theorem stepsOk_mono_le (s s' : NState) (steps : List Pending)
   | cons p rest IH =>
     cases p with
     | self pv t =>
-      intro ⟨H1, H2⟩
-      exact ⟨by simp only [PendingOk] at H1 ⊢; omega, IH H2⟩
+      intro ⟨⟨H1, H1'⟩, H2⟩
+      exact ⟨⟨by omega, by rw [Hpv]; exact H1'⟩, IH H2⟩
     | appendAck t e =>
       intro ⟨⟨H1, H2⟩, Hr⟩
       refine ⟨⟨by omega, ?_⟩, Hall rest Hr⟩
@@ -271,9 +284,10 @@ theorem stepsOk_mono (s s' : NState) (steps : List Pending)
     (Ht : s'.term = s.term)
     (Hst : s'.logst.prev = s.logst.prev ∧ s'.logst.stored = s.logst.stored)
     (Hc : uint.Z s.logst.committed ≤ uint.Z s'.logst.committed)
-    (Ha : s'.logst.applying = s.logst.applying) :
+    (Ha : s'.logst.applying = s.logst.applying)
+    (Hpv : s'.prevote = s.prevote := by first | rfl | assumption) :
     StepsOk s steps → StepsOk s' steps :=
-  stepsOk_mono_le s s' steps (by rw [Ht]; exact Int.le_refl _) Hst Hc Ha
+  stepsOk_mono_le s s' steps (by rw [Ht]; exact Int.le_refl _) Hst Hc Ha Hpv
 
 /-- What the storage holds agrees with the log up to an entry both have (2026-10-10):
 Log Matching between two logs with records (`RecsAgree`, `logRecs_agree`), one of
@@ -477,6 +491,108 @@ theorem storedRecs_eq (γ : RaftNames) (b b' : entryID) (L L' : List raftpb.Entr
     ⊢ storedRecs (GF := GF) γ b L -∗ storedRecs γ b' L' := by
   subst Hb HL; iintro H; iexact H
 
+/-! ## The `RawNode` struct, with `raft` shared (2026-10-10)
+
+The `AccessStrict` instances for `rawNodeOwn` are scoped (`open RawNodeOwnAccess`): the
+`AccessStrict` classes' last parameters are `outParam`s, so a global instance would be
+tried for a field of a whole-struct points-to as well (`NewRawNode`'s) and win.
+
+`rawNodeOwn l v` is `l ↦ v` with the field nobody writes after `NewRawNode` -- `raft`, the
+pointer to the raft struct -- persistent: `node.go`'s `Tick` reads `n.rn.raft` while `run`
+owns the node (`raftOwn`, `InvRaftPhys.lean`, for the raft struct's own fields). -/
+def rawNodeOwn (l : Loc) (v : RawNode) : IProp GF :=
+  iprop("#H_raft" ∷ l.[RawNode, go!"raft"] ↦□ v.raft' ∗
+    "H_asyncStorageWrites" ∷ l.[RawNode, go!"asyncStorageWrites"] ↦ v.asyncStorageWrites' ∗
+    "H_prevSoftSt" ∷ l.[RawNode, go!"prevSoftSt"] ↦ v.prevSoftSt' ∗
+    "H_prevHardSt" ∷ l.[RawNode, go!"prevHardSt"] ↦ v.prevHardSt' ∗
+    "H_stepsOnAdvance" ∷ l.[RawNode, go!"stepsOnAdvance"] ↦ v.stepsOnAdvance')
+
+theorem rawNodeOwn_of_pts (l : Loc) (v : RawNode) :
+    ⊢ (l ↦ v : IProp GF) ==∗ rawNodeOwn l v := by
+  iintro Hl
+  rw [typedPointsto_unseal_eq l v]
+  icases Hl with ⟨Hf, -⟩
+  simp only [TypedPointsto.typedPointstoDef]
+  iNamed Hf
+  ipersist raft
+  imodintro
+  unfold rawNodeOwn
+  simp only [named]
+  iframe
+  try iframe #
+
+theorem rawNodeOwn_raft (l : Loc) (v : RawNode) :
+    ⊢ rawNodeOwn (GF := GF) l v -∗ l.[RawNode, go!"raft"] ↦□ v.raft' := by
+  iintro H; unfold rawNodeOwn; iNamed H; iexact H_raft
+
+local macro "rawNodeOwn_access " f:ident : tactic =>
+  `(tactic| (constructor
+             unfold rawNodeOwn
+             iintro H
+             iNamed H
+             isplitl [$f:ident]
+             · iexact $f:ident
+             iintro $f:ident
+             simp only [named]
+             iframe
+             try iframe #))
+
+namespace RawNodeOwnAccess
+
+scoped instance (priority := high) rawNodeOwn_access_load_raft (l : Loc) (v : RawNode) :
+    AccessStrict (PROP := IProp GF) (l.[RawNode, go!"raft"] ↦□ v.raft')
+      (l.[RawNode, go!"raft"] ↦□ v.raft') (rawNodeOwn l v) (rawNodeOwn l v) := by
+  constructor
+  unfold rawNodeOwn
+  iintro H
+  iNamed H
+  iframe H_raft
+  iintro -
+  iframe
+  try iframe #
+
+scoped instance (priority := high) rawNodeOwn_access_load_asyncStorageWrites (l : Loc) (v : RawNode) :
+    AccessStrict (PROP := IProp GF) (l.[RawNode, go!"asyncStorageWrites"] ↦ v.asyncStorageWrites') (l.[RawNode, go!"asyncStorageWrites"] ↦ v.asyncStorageWrites')
+      (rawNodeOwn l v) (rawNodeOwn l v) := by
+  rawNodeOwn_access H_asyncStorageWrites
+
+scoped instance (priority := high) rawNodeOwn_access_store_asyncStorageWrites (l : Loc) (v : RawNode) (x : Bool) :
+    AccessStrict (PROP := IProp GF) (l.[RawNode, go!"asyncStorageWrites"] ↦ v.asyncStorageWrites') (l.[RawNode, go!"asyncStorageWrites"] ↦ x)
+      (rawNodeOwn l v) (rawNodeOwn l { v with asyncStorageWrites' := x }) := by
+  rawNodeOwn_access H_asyncStorageWrites
+
+scoped instance (priority := high) rawNodeOwn_access_load_prevSoftSt (l : Loc) (v : RawNode) :
+    AccessStrict (PROP := IProp GF) (l.[RawNode, go!"prevSoftSt"] ↦ v.prevSoftSt') (l.[RawNode, go!"prevSoftSt"] ↦ v.prevSoftSt')
+      (rawNodeOwn l v) (rawNodeOwn l v) := by
+  rawNodeOwn_access H_prevSoftSt
+
+scoped instance (priority := high) rawNodeOwn_access_store_prevSoftSt (l : Loc) (v : RawNode) (x : Loc) :
+    AccessStrict (PROP := IProp GF) (l.[RawNode, go!"prevSoftSt"] ↦ v.prevSoftSt') (l.[RawNode, go!"prevSoftSt"] ↦ x)
+      (rawNodeOwn l v) (rawNodeOwn l { v with prevSoftSt' := x }) := by
+  rawNodeOwn_access H_prevSoftSt
+
+scoped instance (priority := high) rawNodeOwn_access_load_prevHardSt (l : Loc) (v : RawNode) :
+    AccessStrict (PROP := IProp GF) (l.[RawNode, go!"prevHardSt"] ↦ v.prevHardSt') (l.[RawNode, go!"prevHardSt"] ↦ v.prevHardSt')
+      (rawNodeOwn l v) (rawNodeOwn l v) := by
+  rawNodeOwn_access H_prevHardSt
+
+scoped instance (priority := high) rawNodeOwn_access_store_prevHardSt (l : Loc) (v : RawNode) (x : raftpb.HardState) :
+    AccessStrict (PROP := IProp GF) (l.[RawNode, go!"prevHardSt"] ↦ v.prevHardSt') (l.[RawNode, go!"prevHardSt"] ↦ x)
+      (rawNodeOwn l v) (rawNodeOwn l { v with prevHardSt' := x }) := by
+  rawNodeOwn_access H_prevHardSt
+
+scoped instance (priority := high) rawNodeOwn_access_load_stepsOnAdvance (l : Loc) (v : RawNode) :
+    AccessStrict (PROP := IProp GF) (l.[RawNode, go!"stepsOnAdvance"] ↦ v.stepsOnAdvance') (l.[RawNode, go!"stepsOnAdvance"] ↦ v.stepsOnAdvance')
+      (rawNodeOwn l v) (rawNodeOwn l v) := by
+  rawNodeOwn_access H_stepsOnAdvance
+
+scoped instance (priority := high) rawNodeOwn_access_store_stepsOnAdvance (l : Loc) (v : RawNode) (x : GoSlice) :
+    AccessStrict (PROP := IProp GF) (l.[RawNode, go!"stepsOnAdvance"] ↦ v.stepsOnAdvance') (l.[RawNode, go!"stepsOnAdvance"] ↦ x)
+      (rawNodeOwn l v) (rawNodeOwn l { v with stepsOnAdvance' := x }) := by
+  rawNodeOwn_access H_stepsOnAdvance
+
+end RawNodeOwnAccess
+
 /-! ## The one predicate for a `RawNode` -/
 
 /-- See the file header. `s` and `ps` are the node's physical and protocol states;
@@ -485,7 +601,7 @@ such list), `unpersisted` the log's. -/
 def ownRawNode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp GF :=
   iprop(∃ (s : NState) (ps : PState) (rnv : RawNode) (sv : SoftState)
       (steps : List raftpb.Message),
-  "Hrn" ∷ rn ↦ rnv ∗
+  "Hrn" ∷ rawNodeOwn rn rnv ∗
   "Hphys" ∷ ownRaftPhys γ.reCfg rnv.raft' id s ∗
   "Hghost" ∷ ownRaftGhost γ id ps ∗
   "%Hrel" ∷ ⌜NStateRel s ps⌝ ∗
@@ -517,7 +633,11 @@ def ownRawNode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp GF 
   -- scope: pre-vote off (2026-10-10; `Config.PreVote` unset, `NewRawNode` copies it to
   -- `r.preVote`, never written again): pre-vote is an optimization, out of scope. With
   -- it off every message the node queues is of a term at most its own (`OutTermOk`)
-  "%Hpvoff" ∷ ⌜s.prevote = false⌝)
+  "%Hpvoff" ∷ ⌜s.prevote = false⌝ ∗
+  -- the lower bounds for `node.go` (2026-10-10, `RNState.outlb`)
+  "%Hrs_out" ∷ ⌜rs.outlb = s.gh.outlb⌝ ∗
+  "%Hrs_unst" ∷ ⌜rs.unst = s.gh.unst⌝ ∗
+  "%Hrs_clb" ∷ ⌜uint.Z rs.clb ≤ uint.Z s.logst.committed⌝)
 
 /-- Closing the predicate; the pure premises are first, the resources in the order of
 the definition. -/
@@ -528,8 +648,9 @@ theorem ownRawNode_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     (Hunp : rs.unpersisted = s.logst.unpersisted) (Hsnap : s.logst.snap = none)
     (Hstok : StepsOk s rs.steps)
     (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage)
-    (Hpvoff : s.prevote = false) :
-    ⊢ rn ↦ rnv -∗ ownRaftPhys γ.reCfg rnv.raft' id s -∗ ownRaftGhost (GF := GF) γ id ps -∗
+    (Hpvoff : s.prevote = false) (Hrs_out : rs.outlb = s.gh.outlb)
+    (Hrs_unst : rs.unst = s.gh.unst) (Hrs_clb : uint.Z rs.clb ≤ uint.Z s.logst.committed) :
+    ⊢ rawNodeOwn rn rnv -∗ ownRaftPhys γ.reCfg rnv.raft' id s -∗ ownRaftGhost (GF := GF) γ id ps -∗
       rnv.prevSoftSt' ↦□ sv -∗ rnv.stepsOnAdvance' ↦* steps -∗
       ownSliceCap raftpb.Message rnv.stepsOnAdvance' (DFrac.own 1) -∗
       ([∗list] _k ↦ m;p ∈ steps;rs.steps, pendingRel γ id m p) -∗
@@ -543,7 +664,8 @@ theorem ownRawNode_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
   simp only [named]
   iframe Hrn Hphys Hghost Hsoft Hsteps Hcap Hpend Hpown Hdeliv Hstrecs
   ipureintro
-  exact ⟨Hrel, Hin, Hasync, Hdlen, Hunp, Hsnap, Hstok, Htrm, Hstor, Hpvoff⟩
+  exact ⟨Hrel, Hin, Hasync, Hdlen, Hunp, Hsnap, Hstok, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst,
+    Hrs_clb⟩
 
 /-- The storage handshake, at the RawNode (2026-10-10; until then `ownRawNode_persist`,
 which lent the client the storage itself): the receipt of the application's append of
@@ -566,15 +688,16 @@ theorem ownRawNode_appended (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState
   iNamed H
   ihave Htok : appendedTok s.logst.storage σa s.logst.unpersisted $$ [Htok]
   · rw [← Hstor, ← Hunp]; iexact Htok
-  icases ownRaftPhys_log_at γ.reCfg rnv.raft' id s $$ Hphys with ⟨Hlog, Hlback⟩
+  icases ownRaftPhys_log_at γ.reCfg rnv.raft' id s $$ Hphys with ⟨Hlog, %Hgh0, Hlback⟩
   imod ownRaftLog_absorb s.log s.logst σa $$ Hlog Htok with Hlog
-  ihave Hphys := Hlback $$ %_ Hlog
+  ihave Hphys := Hlback $$ %_ Hlog %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl)
   imodintro
   iapply ownRawNode_intro γ rn id { rs with unpersisted := [] }
     { s with logst := { s.logst with unpersisted := [] } } ps rnv sv steps Hrel Hin Hasync
     Hdlen rfl Hsnap
-    (stepsOk_mono s _ rs.steps rfl ⟨rfl, rfl⟩ (Int.le_refl _) rfl Hstok)
-    Htrm Hstor Hpvoff $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs
+    (stepsOk_mono s _ rs.steps rfl ⟨rfl, rfl⟩ (Int.le_refl _) rfl rfl Hstok)
+    Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
+    $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs
 
 end rawnode
 

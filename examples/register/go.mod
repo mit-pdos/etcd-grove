@@ -1,10 +1,8 @@
 module github.com/mit-pdos/etcd-grove/examples/register
 
-go 1.25.0
+go 1.26
 
-replace go.etcd.io/raft/v3 => github.com/upamanyus/etcd-raft/v3 v3.0.0-20260311205704-531b20c6251e
-
-require go.etcd.io/raft/v3 v3.0.0-00010101000000-000000000000
+require go.etcd.io/raft/v3 v3.6.0-beta.0.0.20260415131831-40f8be730b18
 
 require (
 	github.com/gogo/protobuf v1.3.2 // indirect

@@ -1623,3 +1623,39 @@ for `RawNode.Step`, which takes no pre-vote message.
 another node in the outbox" in `ownRawNode`, or as a ghost flag of `NState` -- either
 needs a new fact about every `Step` branch's outbox growth, where the premise costs one
 hypothesis threaded into the three `MsgPreVote` branches.
+
+## node.go: small client specs, a term budget, the Ready/Advance exchange
+
+**2026-10-10 · accepted**
+
+`node.go` puts a goroutine (`run`) between the clients and the `RawNode`. The specs a
+client sees stay small (`isNode` is persistent; `Propose` and `Step` return `True`); what
+`run` needs of them is carried by the channels' payloads (Perennial's `Handshake` idiom:
+`propP`, `netP`, `readyP`, `advanceP`; a proposal's result channel is a `Handoff`).
+
+**The terms never wrap.** `RawNode.Tick`, `Advance` and a step need `term + 1 < 2^64`.
+A cluster-wide budget (`budgetInv`): a monotone bound `M` on every node's term and every
+message's (`termLB`, persistent), and `c` tick credits out, with `M + c < 2^64 - 1`. A
+tick spends a credit and may raise `M` by one past a term (`budget_spend`); a step moves
+a node's term to at most a message's, already under `M` (`netP` carries `termLB` of the
+message's term); `Ready`'s messages are of terms at most the node's (pre-vote off,
+`OutTermOk`). The application allocates the budget with as many credits as it will ever
+tick. *Rejected*: a per-node bound (a message from a peer can raise the term past it).
+
+**The Ready/Advance exchange.** One driver; `dlv` (halves: `run`'s and the driver's) is
+the committed log handed out, `rof` `run`'s record `(delivered, committed entries,
+entries)` of the last `Ready`. A `Ready` carries `run`'s `dlv` half and a `rof` half: the
+driver, holding both `dlv` halves, learns that the committed entries follow what it
+applied. `Advance` carries a `dlv` half back with the `rof` half and the append receipt:
+`run` recognizes its record, so the receipt is for the entries it handed out. *Rejected*:
+an exchange whose order is visible in the specs (a ghost sequence number per `Ready`).
+
+**An abandoned `Ready` may still be sent.** `run` computes a `Ready` and arms `readyc`,
+but may take another case and come back with `HasReady` false, then send the old one.
+`RNState`'s lower bounds (`outlb`, `unst`, `clb`), raised when it abandons the `Ready`
+(`ownRawNodeReady_abandon_keep`), and `HasReady`'s `false` pinned to an idle node
+(`ownRawNodeIdle`: no message queued, no unstable entry) show that it then holds no
+messages and no entries, and committed entries still the next ones
+(`ownRawNodeIdle_ready`). The append right is handed out inside the atomic update of the
+send (`handshake_send_au_upd`, `ownRawNodeReady_handout`), so only a taken `Ready` gives
+it away.

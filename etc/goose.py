@@ -163,6 +163,8 @@ PROJECTS = [
             "go.etcd.io/etcd/pkg/v3/featuregate",
             "go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery",
             "go.etcd.io/bbolt",
+            # bbolt's page-id helpers, with bodies (bbolt/internal/common.toml)
+            "go.etcd.io/bbolt/internal/common",
             "go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc",
             "google.golang.org/protobuf/proto",
             "google.golang.org/protobuf/reflect/protoreflect",
@@ -221,8 +223,8 @@ PROJECTS = [
     Project(
         name="register",
         # An example application on raft's Node: a replicated string register. A Go
-        # module of this repository, whose go.mod replaces go.etcd.io/raft/v3 by the
-        # etcd-raft fork at the revision pinned above.
+        # module of this repository, whose go.mod requires go.etcd.io/raft/v3 at the
+        # revision pinned above (keep the two in step).
         repo=None,
         rev=None,
         local=os.path.join("examples", "register"),

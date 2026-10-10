@@ -57,6 +57,9 @@ Premises:
   only (`StableOk`, `Step`'s premise; Rocq's `ready_stable_ok`) -- also after `MsgApp`s
   stepped since the `Ready` truncated the log below the acknowledged entry (2026-10-10:
   the storage agrees with the log up to it by Log Matching, `stableOk_of_stored`);
+- no unstable entry is known to be still to hand out (`rs.unst = false`, 2026-10-10):
+  `acceptReady` resets the flag and steps keep it; the acknowledgement's `stableTo` may
+  hand out the rest (`NGhost`);
 - the term does not wrap if it is raised (2026-10-10): stepping the node's own
   pre-vote response may win a pre-election, whose `campaign` increments the term
   (`Step`'s premise for a pre-candidate's `MsgPreVoteResp`).
@@ -77,12 +80,15 @@ abbrev RawNode.Advance.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : Ready),
   rs.unpersisted = [] →
   uint.Z rs.term + 1 < 2 ^ 64 →
+  rs.unst = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Advance")) (Val #rd))
   {{ (t : w64), RET #();
       ownRawNode γ rn id { rs with steps := [], term := t } ∗
-      ⌜uint.Z rs.term ≤ uint.Z t ∧ uint.Z t ≤ uint.Z rs.term + 1⌝ }}
+      ⌜uint.Z rs.term ≤ uint.Z t ∧ uint.Z t ≤ uint.Z rs.term + 1⌝ ∗
+      -- with pre-vote off (`ownRawNode`'s scope) the term is kept (2026-10-10)
+      ⌜t = rs.term⌝ }}
 
 end spec
 

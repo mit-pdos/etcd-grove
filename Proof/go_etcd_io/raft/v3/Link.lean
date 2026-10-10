@@ -79,6 +79,18 @@ public import Proof.go_etcd_io.raft.v3.RawNode__Propose
 public import Proof.go_etcd_io.raft.v3.RawNode__Ready
 public import Proof.go_etcd_io.raft.v3.RawNode__acceptReady
 public import Proof.go_etcd_io.raft.v3.RawNode__readyWithoutAccept
+public import Proof.go_etcd_io.raft.v3.raft__hasLeader
+public import Proof.go_etcd_io.raft.v3.newNode
+public import Proof.go_etcd_io.raft.v3.node__run
+public import Proof.go_etcd_io.raft.v3.RestartNode
+public import Proof.go_etcd_io.raft.v3.node__stepWithWaitOption
+public import Proof.go_etcd_io.raft.v3.node__step
+public import Proof.go_etcd_io.raft.v3.node__stepWait
+public import Proof.go_etcd_io.raft.v3.node__Propose
+public import Proof.go_etcd_io.raft.v3.node__Step
+public import Proof.go_etcd_io.raft.v3.node__Ready
+public import Proof.go_etcd_io.raft.v3.node__Advance
+public import Proof.go_etcd_io.raft.v3.node__Tick
 public import Proof.go_etcd_io.raft.v3.SoftState__equal
 public import Proof.go_etcd_io.raft.v3.assertConfStatesEquivalent
 public import Proof.math.big.Int__Int64
@@ -1038,6 +1050,55 @@ theorem RawNode.wp_acceptReady :
 theorem RawNode.wp_Ready :
     RawNode.Ready.spec (GF := GF) (hG := hG) :=
   RawNode.Ready.wp_proof RawNode.wp_readyWithoutAccept RawNode.wp_acceptReady
+
+-- node.go (2026-10-10), Lean-first
+theorem raft.wp_hasLeader :
+    raft.hasLeader.spec (GF := GF) (hG := hG) :=
+  raft.hasLeader.wp_proof
+
+theorem wp_newNode :
+    newNode.spec (GF := GF) (hG := hG) :=
+  newNode.wp_proof
+
+theorem node.wp_run :
+    node.run.spec (GF := GF) (hG := hG) :=
+  node.run.wp_proof RawNode.wp_HasReady RawNode.wp_readyWithoutAccept RawNode.wp_acceptReady RawNode.wp_Advance RawNode.wp_Tick raft.wp_Step raft.wp_hasLeader wp_IsResponseMsg wp_IsLocalMsgTarget
+
+theorem wp_RestartNode :
+    RestartNode.spec (GF := GF) (hG := hG) :=
+  RestartNode.wp_proof wp_NewRawNode wp_newNode node.wp_run
+
+theorem node.wp_stepWithWaitOption :
+    node.stepWithWaitOption.spec (GF := GF) (hG := hG) :=
+  node.stepWithWaitOption.wp_proof
+
+theorem node.wp_step :
+    node.step.spec (GF := GF) (hG := hG) :=
+  node.step.wp_proof node.wp_stepWithWaitOption
+
+theorem node.wp_stepWait :
+    node.stepWait.spec (GF := GF) (hG := hG) :=
+  node.stepWait.wp_proof node.wp_stepWithWaitOption
+
+theorem node.wp_Propose :
+    node.Propose.spec (GF := GF) (hG := hG) :=
+  node.Propose.wp_proof node.wp_stepWait
+
+theorem node.wp_Step :
+    node.Step.spec (GF := GF) (hG := hG) :=
+  node.Step.wp_proof wp_IsLocalMsg wp_IsLocalMsgTarget node.wp_step
+
+theorem node.wp_Ready :
+    node.Ready.spec (GF := GF) (hG := hG) :=
+  node.Ready.wp_proof
+
+theorem node.wp_Advance :
+    node.Advance.spec (GF := GF) (hG := hG) :=
+  node.Advance.wp_proof
+
+theorem node.wp_Tick :
+    node.Tick.spec (GF := GF) (hG := hG) :=
+  node.Tick.wp_proof
 
 end links_hasLC
 

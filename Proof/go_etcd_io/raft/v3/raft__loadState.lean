@@ -53,7 +53,7 @@ theorem raft.loadState.wp_proof
   wp_auto
   -- `r.raftLog.committed = state.Commit`
   wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-  icases ownRaftPhys_log_at $$ Hphys with ⟨HL, Hlogback⟩
+  icases ownRaftPhys_log_at $$ Hphys with ⟨HL, %Hgh0, Hlogback⟩
   iNamed HL
   wp_auto
   ihave HL : ownRaftLog s.log { s.logst with committed := hs.Commit' } $$
@@ -62,7 +62,7 @@ theorem raft.loadState.wp_proof
     all_goals first
       | (intro Hs; exact StoredSnapOk_commit _ _ _ _ _ Hc.1 (Hssnap Hs))
       | word
-  ihave Hphys := Hlogback $$ %_ HL
+  ihave Hphys := Hlogback $$ %_ HL %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl)
   wp_apply raft.wp_store_Term cfg r id { s with logst := { s.logst with committed := hs.Commit' } }
     hs.Term' Hle $$ Hphys as Hphys
   wp_apply raft.wp_store_Vote $$ Hphys as Hphys

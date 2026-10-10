@@ -99,7 +99,7 @@ theorem newRaft.wp_proof
   let ls0 : LogState := ⟨σ.prev, σ.ents, [], σ.prev.index', σ.prev.index', none, ip, σ.prev.index', [], σ.ents,
     W64 0, cv'.MaxCommittedSizePerReady', interface.ok si⟩
   let s0 : NState := ⟨W64 0, W64 0, W64 0, .follower, ∅, [], func.nil, false, ∅, l, ls0, ∅,
-    cv.PreVote'⟩
+    cv.PreVote', {}⟩
   ihave Htrk0 := ownTracker_empty tv0 v0 Htv0arr Htv0l Htv0ln Htv0al Hmi $$ Hv0 Hvotes Hprs0
   ihave Hmisc : ownRaftMisc (GF := GF) slice.nil ro slice.nil $$ [Hro]
   · unfold ownRaftMisc
@@ -120,11 +120,12 @@ theorem newRaft.wp_proof
   ihave Hcap1 := ownSliceCap_nil (V := raftpb.Message) (GF := GF)
   ihave Hcap2 := ownSliceCap_nil (V := raftpb.Message) (GF := GF)
   ihave Hob := outboxRel_nil (GF := GF)
+  imod raftOwn_of_pts «$r0_ptr» _ $$ «$r0» with «$r0»
   ihave Hphys := ownRaftPhys_intro ∅ «$r0_ptr» cv.ID' s0 _ [] [] lok
     HpID rfl rfl rfl rfl rfl HpPV (by rw [HpDPF, Hdpf]) (by rw [HpCQ, Hcq]) rfl rfl HvID
     (by show 0 < sint.Z cv'.ElectionTick'; rw [HpET]; omega) (by rw [HpLg, Hlok]) rfl
     (fun h => absurd h (by simp only [s0]; decide)) (fun _ h => absurd h List.not_mem_nil)
-    (fun _ h => absurd h List.not_mem_nil)
+    (fun _ h => absurd h List.not_mem_nil) (Nat.zero_le _) (fun h => absurd h Bool.false_ne_true)
     $$ «$r0» Hlg0 Htrk0 HL Hnil1 Hcap1 Hnil2 Hcap2 Hmisc Hob
   -- the configuration `Restore` built, as `switchToConfig` installs it
   ipersist Hprsm
@@ -208,9 +209,9 @@ theorem newRaft.wp_proof
       rcases Happ with h | h
       · exact absurd h Ha0
       · exact h
-    icases ownRaftPhys_log_at _ «$r0_ptr» cv.ID' s1 $$ Hphys with ⟨HL, Hlogback⟩
+    icases ownRaftPhys_log_at _ «$r0_ptr» cv.ID' s1 $$ Hphys with ⟨HL, %Hgh0, Hlogback⟩
     wp_apply wp_raftLog_appliedTo l ls1 cv'.Applied' (W64 0) Hrng $$ [$HL] as HL
-    ihave Hphys := Hlogback $$ %_ HL
+    ihave Hphys := Hlogback $$ %_ HL %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl)
     isplitr
     · ipureintro; rfl
     iframe c Hc raftlog
@@ -291,7 +292,8 @@ theorem newRaft.wp_proof
   -- `becomeFollower(r.Term, None)` keeps the term, so `reset` keeps the
   -- vote: the state is the persisted `HardState`'s
   ipureintro
-  refine ⟨⟨rfl, rfl⟩, rfl, ?_, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+  refine ⟨⟨rfl, rfl⟩, rfl, ?_, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
+    rfl⟩
   show (if s2.term = s2.term then s2.vote else W64 0) = hs.Vote'
   simp only [↓reduceIte]
   rfl

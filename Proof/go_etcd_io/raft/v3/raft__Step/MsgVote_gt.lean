@@ -179,7 +179,7 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
           exfalso; change MsgVoteResp = _ ∨ MsgVoteResp = _ at Hc
           rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne),
         fun _ => ⟨rfl, rfl, by show uint.Z s1.term ≤ _; split <;> omega⟩,
-        fun _ => Int.le_refl _, rfl⟩
+        fun _ => ⟨Int.le_refl _, (by w32_ne : MsgVoteResp ≠ MsgPreVoteResp)⟩, rfl⟩
     wp_apply _P.send cfg r id s1 resp [] _ (.inl rfl) Hok $$ [$Hphys] as Hphys
     · isplitr
       · iapply ownSlice_nil
@@ -206,7 +206,7 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
           exfalso; change MsgVoteResp = _ ∨ MsgVoteResp = _ at Hc
           rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne),
         fun _ => ⟨rfl, rfl, by show uint.Z m.Term' ≤ _; rw [Ht1]; split <;> omega⟩,
-        fun _ => by show uint.Z m.Term' ≤ _; rw [Ht1]; exact Int.le_refl _, rfl⟩
+        fun _ => ⟨by show uint.Z m.Term' ≤ _; rw [Ht1]; exact Int.le_refl _, (by w32_ne : MsgVoteResp ≠ MsgPreVoteResp)⟩, rfl⟩
     -- `send` the granted vote response, then record the vote
     wp_apply _P.send cfg r id s1 resp [] _ (.inl rfl) Hok $$ [$Hphys] as Hphys
     · isplitr

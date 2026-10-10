@@ -184,9 +184,9 @@ theorem raft.restore.wp_proof
     -- `commitTo(Index)`: in range, the log has a term at `Index`
     obtain ⟨-, Hle⟩ := plogTermAt_some_range _ _ _ _ Hm
     wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-    icases ownRaftPhys_log_at $$ Hphys with ⟨Hlog, Hlogback⟩
+    icases ownRaftPhys_log_at $$ Hphys with ⟨Hlog, %Hgh0, Hlogback⟩
     wp_apply wp_raftLog_commitTo _ _ sv.Metadata'.Index' Hle $$ [$Hlog] as Hlog
-    ihave Hphys := Hlogback $$ Hlog
+    ihave Hphys := Hlogback $$ Hlog %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl)
     iapply HΦ $$ %false %_
     iframe Hphys
     ipureintro
@@ -197,10 +197,10 @@ theorem raft.restore.wp_proof
     wp_auto
     -- `r.raftLog.restore(s)`
     wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-    icases ownRaftPhys_log_at $$ Hphys with ⟨Hlog, Hlogback⟩
+    icases ownRaftPhys_log_at $$ Hphys with ⟨Hlog, -, Hlogback⟩
     wp_apply wp_raftLog_restore _ _ sv voters (by simp only [snapId]; omega)
         (by simp only [snapId]; omega) $$ [$Hlog $Hvoters] as Hlog
-    ihave Hphys := Hlogback $$ %_ Hlog
+    ihave Hphys := Hlogback $$ %_ Hlog %(LogGhOk.of_snap (by simp [logRestore]))
     -- the tracker replaced by the empty one, the log used meanwhile
     icases ownRaftPhys_retrack _ ∅ $$ Hphys with ⟨%tv, Htrkf, Htrk, Hlf, Hlog, Hback⟩
     icases ownTracker_size $$ Htrk with ⟨%Hcfg_size, Htrk⟩
@@ -223,6 +223,7 @@ theorem raft.restore.wp_proof
     -- the struct, re-sealed over the empty configuration
     ihave Htrk0 := ownTracker_empty tv0 v0 Htv0arr Htv0l Htv0ln Htv0al Hmi0 $$ Hv0 Hvotes0 Hprs0
     ihave Hphys := Hback $$ %tv0 %∅ %∅ %∅ %_ Hlf Htrkf Htrk0 Hlog
+      %(LogGhOk.of_snap (by simp [logRestore]))
     -- `assertConfStatesEquivalent(r.logger, cs, r.switchToConfig(cfg, trk))`
     wp_apply raft.wp_load_logger $$ Hphys as %lok0 ⟨Hphys, #Hlg0⟩
     have Hcfgeq : GMap.listToSet voters = cfg := by
