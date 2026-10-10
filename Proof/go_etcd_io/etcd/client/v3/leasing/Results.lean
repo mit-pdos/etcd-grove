@@ -19,10 +19,9 @@ cache), restated at top level, with the trust base of each printed in the build 
   the keys in range, and `evalCmp` is not etcd's comparison: the specs state what the code does
   (findings, `notes/STATUS.md`).
 
-Units 3 and 4 (`txn.go`, `kv.go` but the monitors): every function has a `Spec`/`Proof` pair; the
-results reaching unit 5's `waitSession`, `waitRescind`, `monitorLease` (specified, not yet proved)
-take their specs as hypotheses (`Link.lean`'s `links_pending`), restated here with the same
-hypotheses (`hMonitorLease`, `hWaitRescind`, `hWaitSession`).
+Units 3, 4 and 5 (`txn.go`, `kv.go`): every function has a `Spec`/`Proof` pair and an
+unconditional linked result (unit 5 proved the monitors, `NewKV` and `Close`, whose specs the
+results of units 3 and 4 had taken as hypotheses).
 
 * **Theorem 1, cached reads** (`leasing_get`, `getCached`; `leasing_cached_get_stable`,
   `leasing_getResult_acq`): a `Get` served from the cache returns the cached answer of an entry
@@ -119,41 +118,54 @@ theorem leaseCache_clearOldRevokes : leaseCache.clearOldRevokes.spec (GF := GF) 
 
 /-! ## Units 3 and 4: the leasing KV -/
 
-section kv
-variable (hMonitorLease : leasingKV.monitorLease.spec (GF := GF) (hG := hG))
-variable (hWaitRescind : leasingKV.waitRescind.spec (GF := GF) (hG := hG))
-variable (hWaitSession : leasingKV.waitSession.spec (GF := GF) (hG := hG))
-include hMonitorLease hWaitRescind hWaitSession
-
 /-- **Theorems 1 and 2 for reads**: `lkv.Get(ctx, key, opts...)` returns `getOutcome`: the
 client's answer (linearizable unless serializable), the cache's (`getCached`: an entry with its
 facts), an acquisition's (`getAcquired`: etcd's record at a revision `≥ lo`), or a failed
 acquisition's (`getNotAcquired`: etcd's answer to `OpGet(key)`, the options ignored, a finding). -/
 theorem leasing_get : leasingKV.Get.spec (GF := GF) (hG := hG) :=
-  leasingKV.wp_Get hMonitorLease hWaitRescind hWaitSession
+  leasingKV.wp_Get
 
 /-- **Theorem 2 and 3 for puts**: `lkv.Put(ctx, key, val, opts...)` returns an error or the put
 committed at a revision `r ≥ lo` on etcd's state at `r - 1` (`putCommitted`), with the cache's
 step (`LeaseEntry.update` of the key's entry). -/
 theorem leasing_put : leasingKV.Put.spec (GF := GF) (hG := hG) :=
-  leasingKV.wp_Put hMonitorLease hWaitRescind hWaitSession
+  leasingKV.wp_Put
 
 /-- **Theorem 2 for deletes**: `lkv.Delete(ctx, key, opts...)` returns an error or the delete of
 the range committed at a revision `r ≥ lo` (`deleteCommitted`). -/
 theorem leasing_delete : leasingKV.Delete.spec (GF := GF) (hG := hG) :=
-  leasingKV.wp_Delete hMonitorLease hWaitRescind hWaitSession
+  leasingKV.wp_Delete
 
 /-- **Theorems 2 and 4 for transactions**: `txn.Commit()` returns the cache's evaluation
 (`evalResult`: `leaseEvalCmps` of the cached entries, the cached gets' answers, at the cache's
 header) or the client's answer for the user's transaction (`txnCommitResult`). -/
 theorem leasing_Txn_Commit : txnLeasing.Commit.spec (GF := GF) (hG := hG) :=
-  txnLeasing.wp_Commit hMonitorLease hWaitRescind hWaitSession
+  txnLeasing.wp_Commit
 
 /-- `lkv.Do(ctx, op)`, by the operation's kind. -/
 theorem leasing_Do : leasingKV.Do.spec (GF := GF) (hG := hG) :=
-  leasingKV.wp_Do hMonitorLease hWaitRescind hWaitSession
+  leasingKV.wp_Do
 
-end kv
+/-- **Unit 5, the leasing KV's constructor**: `NewKV(cl, pfx, opts...)` returns the `KV` interface
+value of a leasing KV (`isLeasingKV`) with every reader slot of its cache, the whole "open"
+token, the close function's spec (`leasingCloseFn`) and `waitSession`'s error (`newKVResult`);
+the session monitor and `clearOldRevokes` running. -/
+theorem leasing_NewKV : NewKV.spec (GF := GF) (hG := hG) := wp_NewKV
+
+/-- `lkv.Close()` (`Spec/go_etcd_io/etcd/client/v3/leasing/leasingKV__Close.lean`). -/
+theorem leasing_Close : leasingKV.Close.spec (GF := GF) (hG := hG) := leasingKV.wp_Close
+
+/-- **`waitRescind`'s outcomes** (a finding): `nil` after a delete of the lease key above `rev`, or
+`nil` with no promise (the watch closed without a delete event). -/
+theorem leasing_waitRescind : leasingKV.waitRescind.spec (GF := GF) (hG := hG) :=
+  leasingKV.wp_waitRescind
+
+/-- The lease monitor (`get`'s goroutine) and the session monitor (`NewKV`'s) return. -/
+theorem leasing_monitorLease : leasingKV.monitorLease.spec (GF := GF) (hG := hG) :=
+  leasingKV.wp_monitorLease
+
+theorem leasing_monitorSession : leasingKV.monitorSession.spec (GF := GF) (hG := hG) :=
+  leasingKV.wp_monitorSession
 
 /-- `lkv.Txn(ctx)` (`Spec/go_etcd_io/etcd/client/v3/leasing/leasingKV__Txn.lean`). -/
 theorem leasing_Txn : leasingKV.Txn.spec (GF := GF) (hG := hG) := leasingKV.wp_Txn
@@ -257,6 +269,11 @@ end Perennial
 #print axioms Perennial.EtcdGrove.leasing.leasing_Txn_Commit
 #print axioms Perennial.EtcdGrove.leasing.leasing_Do
 #print axioms Perennial.EtcdGrove.leasing.leasing_Txn
+#print axioms Perennial.EtcdGrove.leasing.leasing_NewKV
+#print axioms Perennial.EtcdGrove.leasing.leasing_Close
+#print axioms Perennial.EtcdGrove.leasing.leasing_waitRescind
+#print axioms Perennial.EtcdGrove.leasing.leasing_monitorLease
+#print axioms Perennial.EtcdGrove.leasing.leasing_monitorSession
 #print axioms Perennial.EtcdGrove.leasing.leasing_cached_get_stable
 #print axioms Perennial.EtcdGrove.leasing.leasing_getResult_acq
 #print axioms Perennial.EtcdGrove.leasing.leasing_update_tracks_put

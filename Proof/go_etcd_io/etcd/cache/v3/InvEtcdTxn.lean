@@ -783,8 +783,7 @@ def isEtcdLease (l : GoInterfaceOk) : IProp GF :=
         (App (App (Val #(methods l.ty go!"KeepAlive" l.v)) (Val #(GoInterface.ok ctx))) (Val #id))
       {{ (ch : Loc) (err : GoInterface), RET (PairV #ch #err);
           ⌜err ≠ GoInterface.nil⌝ ∨
-          (⌜err = GoInterface.nil⌝ ∗ (⌜ch = null⌝ ∨ ∃ γ : ChanNames,
-            isChanAny γ ch)) }}) ∗
+          (⌜err = GoInterface.nil⌝ ∗ ∃ γ : ChanNames, isChanAny γ ch) }}) ∗
     (□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (id : w64),
       {{ context.isContext ctx cs }}
         (App (App (Val #(methods l.ty go!"Revoke" l.v)) (Val #(GoInterface.ok ctx))) (Val #id))

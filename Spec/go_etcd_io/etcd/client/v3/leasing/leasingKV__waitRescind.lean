@@ -31,7 +31,8 @@ finding, `STATUS.md`). The context must be cancelable (`WithCancel(ctx)`). -/
 abbrev leasingKV.waitRescind.spec : Prop :=
   ∀ (lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
     (cs : context.ContextDesc (IProp GF)) (key : GoString) (rev : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs ∗
+      ⌜0 ≤ sint.Z rev ∧ sint.Z rev < 2 ^ 63 - 1⌝ }}
     (App (App (App (Val (lkv @!! go.GoType.PointerType leasingKV.ty @!! go!"waitRescind")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #rev))
   {{ (err : GoInterface), RET #err;
       ⌜err ≠ GoInterface.nil⌝ ∨ (⌜err = GoInterface.nil⌝ ∗ leaseKeyDeleted pfx key rev) ∨

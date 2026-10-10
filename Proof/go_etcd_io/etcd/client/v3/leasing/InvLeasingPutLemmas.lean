@@ -87,6 +87,7 @@ theorem txnCommitOk_guarded (lo : w64) (cs : List CmpModel) (top : TxnOp) (els :
     txnCommitOk (GF := GF) [] lo ⟨cs, [top], els⟩ resp ⊢
       ∃ (ok : Bool) (hdr : Loc) (hm : HdrM),
         structFieldRef etcdserverpb.TxnResponse go!"Header" resp ↦□ hdr ∗ hdrFull hdr hm ∗
+        ⌜0 < sint.Z hm.revision ∧ sint.Z hm.revision < 2 ^ 63 - 1⌝ ∗
         structFieldRef etcdserverpb.TxnResponse go!"Succeeded" resp ↦ ok ∗
         (if ok then (structFieldRef etcdserverpb.TxnResponse go!"Succeeded" resp ↦ true -∗
           opCommitted lo top resp) else iprop(True)) := by
@@ -95,6 +96,8 @@ theorem txnCommitOk_guarded (lo : w64) (cs : List CmpModel) (top : TxnOp) (els :
   cases hok : (runTxn r s ⟨cs, [top], els⟩).1
   · iexists false, hdr, hm
     iframe #
+    isplitr
+    · ipureintro; rw [Hhm]; exact ⟨Hf.2.1, Hf.2.2.1⟩
     isplitl [HS]
     · iexact HS
     · simp only [Bool.false_eq_true, ↓reduceIte]
@@ -102,6 +105,8 @@ theorem txnCommitOk_guarded (lo : w64) (cs : List CmpModel) (top : TxnOp) (els :
   · obtain ⟨h1, h2, h3⟩ := runTxn_then r s cs top els hok
     iexists true, hdr, hm
     iframe #
+    isplitr
+    · ipureintro; rw [Hhm]; exact ⟨Hf.2.1, Hf.2.2.1⟩
     iframe HS
     simp only [↓reduceIte]
     iintro HS

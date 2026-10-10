@@ -181,7 +181,7 @@ theorem leasingKV.revoke.wp_proof
   subst Heq
   have Hlin : (TxnModel.linearizable ⟨[compareM (cmpKeyM .create (pfx ++ key)) .lt (.num (rv + W64 1))], [top], [TxnOp.putKeep (pfx ++ key) go!"REVOKE"]⟩) = true := by
     simp [TxnModel.linearizable, TxnOp.linearizable]
-  icases txnCommitOk_guarded lo _ top _ resp Hlin $$ Hok with ⟨%ok, %hdr, %hm, #HH, #Hhf, HS, Hok⟩
+  icases txnCommitOk_guarded lo _ top _ resp Hlin $$ Hok with ⟨%ok, %hdr, %hm, #HH, #Hhf, %Hrb, HS, Hok⟩
   (try wp_auto)
   cases ok
   · simp only [Bool.false_eq_true, ↓reduceIte]
@@ -189,6 +189,7 @@ theorem leasingKV.revoke.wp_proof
     icases Hhf with ⟨%Hhn, -, -, #Hrev, -, -⟩
     (try wp_auto)
     wp_apply (hWR lkv γ pfx ctx cs key hm.revision) $$ [$Hlkv $Hctx $Hcc] as %err2 -
+    · ipureintro; constructor <;> omega
     (try wp_auto)
     iapply HΦ
     iframe
