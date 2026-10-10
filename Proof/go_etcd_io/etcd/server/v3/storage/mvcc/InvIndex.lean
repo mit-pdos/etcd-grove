@@ -587,21 +587,6 @@ theorem idxWriter_commit (γ : IdxNames) (ilog : Log) (pend : List Change)
     ipureintro
     exact ⟨hwf, by simp; omega, hcs'⟩
 
-/-- **A reader's answer** (pure): the index's history (`ilog`, `pend`) and a certified log
-`log₀` are comparable lower bounds, and the index had at least `log₀`'s events; below
-`log₀.length` the answer is `log₀`'s. -/
-theorem reader_answer (log₀ ilog : Log) (pend : List Change)
-    (hcmp : histOf log₀ <+: histShape ilog pend ∨ histShape ilog pend <+: histOf log₀)
-    (hcount : (evsOf log₀).length ≤ (evsOf (ilog ++ [pend])).length)
-    (hlen : ilog.length < 2 ^ 63) (hwf : LogWf' log₀) (hcs : ∀ cs ∈ log₀, cs.length < 2 ^ 63)
-    (k : GoString) (r : Nat) (hr : r < log₀.length) :
-    kiGet (kiOfKey (evsOf (ilog ++ [pend])) k) (W64 r) = kiGet (kiOfKey (evsOf log₀) k) (W64 r) := by
-  rcases hcmp with hpre | hpre
-  · exact kiGet_reader log₀ ilog pend hpre hlen hwf hcs k r hr
-  · have := evsOfHist_prefix_of_count (histShape ilog pend) log₀ hpre
-      (by rw [evsOfHist_histShape]; exact hcount)
-    rw [evsOfHist_histShape] at this
-    rw [this]
 
 end reprs2
 

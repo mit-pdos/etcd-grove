@@ -802,6 +802,548 @@ theorem find?_entry_none (L : List IdxEntry) (k : GoString)
   have := List.find?_eq_none.1 h z hz
   simpa using this
 
+/-! ### Range reads: the keys in `[k, e)` with their answers -/
+
+/-- A key is in `[k, e)` (`e = []`: no upper bound). -/
+def inRange (k e key : GoString) : Bool :=
+  !decide (go.GoStringLt key k) && (decide (e = []) || decide (go.GoStringLt key e))
+
+/-- The entries of the tree in `[k, e)`, in key order (what `unsafeVisit` visits). -/
+def rangeEntries (L : List IdxEntry) (k e : GoString) : List IdxEntry :=
+  L.filter fun z => inRange k e z.2.1
+
+/-- The keys of `idx` in `[k, e)` that have an answer at `atRev`, with it, in key order. -/
+def rangeAt (idx : IndexM) (k e : GoString) (atRev : w64) : List (GoString × Rev × Rev × w64) :=
+  (idx.filter fun z => inRange k e z.1).filterMap fun z => (kiGet z.2 atRev).map fun r => (z.1, r)
+
+/-- `limit`, if positive. -/
+def limitOf (limit : w64) : Option Nat :=
+  if 0 < sint.Z limit then some (sint.Z limit).toNat else none
+
+def takeLimit {α : Type} (lim : Option Nat) (l : List α) : List α :=
+  match lim with
+  | some n => l.take n
+  | none => l
+
+/-- The count a range read returns: all the answers, or at most the limit when they are not all
+counted. -/
+def totalOf (lim : Option Nat) (withTotal : Bool) (n : Nat) : Nat :=
+  match lim, withTotal with
+  | some m, false => min n m
+  | _, _ => n
+
+/-- The key index of a key in an index (the empty one if it has none). -/
+def kiAt (idx : IndexM) (key : GoString) : KeyIndex := (idxGet idx key).getD kiEmpty
+
+/-- `idxGet` of an entry's key, on sorted entries, is the entry. -/
+theorem idxGet_of_mem : ∀ (idx : IndexM), idx.Pairwise idxLess → ∀ z ∈ idx, idxGet idx z.1 = some z.2
+  | [], _, _, hz => by simp at hz
+  | w :: ws, hs, z, hz => by
+    rw [List.pairwise_cons] at hs
+    rw [idxGet_eq_find? _ (List.pairwise_cons.2 hs), List.find?_cons]
+    rcases List.mem_cons.1 hz with rfl | hz
+    · simp
+    · have hlt : idxLess w z := hs.1 z hz
+      have hne : w.1 ≠ z.1 := fun h => goStringLt_irrefl _ (by unfold idxLess at hlt; rw [h] at hlt; exact hlt)
+      simp only [hne, decide_false]
+      rw [← idxGet_eq_find? _ hs.2]
+      exact idxGet_of_mem ws hs.2 z hz
+
+theorem kiAt_of_mem {idx : IndexM} (hs : idx.Pairwise idxLess) {z : GoString × KeyIndex} (hz : z ∈ idx) :
+    kiAt idx z.1 = z.2 := by
+  unfold kiAt; rw [idxGet_of_mem idx hs z hz]; rfl
+
+theorem filterMap_congr' {α β : Type} {f g : α → Option β} : ∀ (l : List α), (∀ x ∈ l, f x = g x) →
+    l.filterMap f = l.filterMap g
+  | [], _ => rfl
+  | x :: l, h => by
+    rw [List.filterMap_cons, List.filterMap_cons, h x List.mem_cons_self,
+      filterMap_congr' l (fun y hy => h y (List.mem_cons_of_mem _ hy))]
+
+/-- The range read, key by key. -/
+theorem rangeAt_eq_keys (idx : IndexM) (hs : idx.Pairwise idxLess) (k e : GoString) (atRev : w64) :
+    rangeAt idx k e atRev =
+      ((idx.map Prod.fst).filter (inRange k e)).filterMap fun key =>
+        (kiGet (kiAt idx key) atRev).map fun r => (key, r) := by
+  unfold rangeAt
+  rw [List.filter_map, List.filterMap_map]
+  apply filterMap_congr'
+  intro z hz
+  rw [List.mem_filter] at hz
+  simp only [Function.comp]
+  rw [kiAt_of_mem hs hz.1]
+
+theorem kiAt_indexOf (evs : List Ev) (key : GoString) : kiAt (indexOf evs) key = kiOfKey evs key :=
+  (indexOf_rep evs).2 key
+
+theorem kiEmpty_head : (kiEmpty.gens.headD Gen.empty).revs = [] := rfl
+
+/-- A key is in the index iff its key index is not the empty one. -/
+theorem mem_keys_iff (evs : List Ev) (key : GoString) :
+    key ∈ (indexOf evs).map Prod.fst ↔ kiOfKey evs key ≠ kiEmpty := by
+  constructor
+  · intro h
+    rw [List.mem_map] at h
+    obtain ⟨z, hz, rfl⟩ := h
+    rw [← kiAt_indexOf, kiAt_of_mem (indexOf_sorted evs) hz]
+    intro he
+    have := indexOf_head' evs z hz
+    rw [he] at this
+    exact this kiEmpty_head
+  · intro h
+    rw [← kiAt_indexOf] at h
+    unfold kiAt at h
+    cases hg : idxGet (indexOf evs) key with
+    | none => rw [hg] at h; exact absurd rfl h
+    | some ki =>
+      unfold idxGet at hg
+      cases hf : btFind idxLess (key, KeyIndex.fresh) (indexOf evs) with
+      | none => rw [hf] at hg; simp at hg
+      | some z =>
+        have hmem := btFind_mem hf
+        have heq := btFind_equiv hf
+        have hk : z.1 = key := goStringLt_eq_of_not_lt heq.1 heq.2
+        rw [List.mem_map]
+        exact ⟨z, hmem, hk⟩
+
+theorem head_ne_apply {ki : KeyIndex} (h : (ki.gens.headD Gen.empty).revs ≠ []) (e : Ev) :
+    ((kiApply ki e).gens.headD Gen.empty).revs ≠ [] := by
+  have := KiHead.apply (Or.inr h) e
+  rcases this with h' | h'
+  · exfalso
+    unfold kiApply at h'
+    split at h'
+    · split at h'
+      · rw [h'] at h; exact h kiEmpty_head
+      · have hh := kiPut_head (Or.inr h) e.rev
+        have := congrArg (fun ki => (ki.gens.headD Gen.empty).revs) h'
+        simp only [kiTombstone_gens] at this
+        cases hg : (kiPut ki e.rev).gens with
+        | nil => exact absurd hg (kiPut_gens_ne_nil _ _)
+        | cons g t =>
+          rw [hg] at this hh
+          simp only [List.cons_append, List.headD_cons] at this hh
+          rw [this] at hh
+          exact hh kiEmpty_head
+    · have hh := kiPut_head (Or.inr h) e.rev
+      rw [h'] at hh
+      exact hh kiEmpty_head
+  · exact h'
+
+theorem head_ne_fold (k : GoString) : ∀ (es : List Ev) (ki : KeyIndex),
+    (ki.gens.headD Gen.empty).revs ≠ [] → ((kiFold ki es k).gens.headD Gen.empty).revs ≠ []
+  | [], _, h => h
+  | e :: es, ki, h => by
+    rw [kiFold_cons]
+    apply head_ne_fold k es
+    split
+    · exact head_ne_apply h e
+    · exact h
+
+/-- A key the index has stays in it. -/
+theorem kiOfKey_ne_mono (evs more : List Ev) (key : GoString) (h : kiOfKey evs key ≠ kiEmpty) :
+    kiOfKey (evs ++ more) key ≠ kiEmpty := by
+  have hh : ((kiOfKey evs key).gens.headD Gen.empty).revs ≠ [] := by
+    rcases KiHead.kiOfKey evs key with h' | h'
+    · exact absurd h' h
+    · exact h'
+  rw [kiOfKey_eq_kiFold, kiFold_append, ← kiOfKey_eq_kiFold]
+  intro he
+  have := head_ne_fold key more _ hh
+  rw [he] at this
+  exact this kiEmpty_head
+
+/-- A subset of a strictly sorted list, sorted, is a sublist. -/
+theorem sublist_of_subset_sorted : ∀ (S T : List GoString), S.Pairwise go.GoStringLt →
+    T.Pairwise go.GoStringLt → (∀ x ∈ S, x ∈ T) → S.Sublist T
+  | [], T, _, _, _ => List.nil_sublist T
+  | s :: S, [], _, _, h => absurd (h s List.mem_cons_self) (by simp)
+  | s :: S, t :: T, hS, hT, h => by
+    rw [List.pairwise_cons] at hS hT
+    by_cases hst : s = t
+    · subst hst
+      apply List.Sublist.cons_cons
+      apply sublist_of_subset_sorted S T hS.2 hT.2
+      intro x hx
+      have hx' := h x (List.mem_cons_of_mem _ hx)
+      rcases List.mem_cons.1 hx' with rfl | hx'
+      · exact absurd (hS.1 x hx) (goStringLt_irrefl x)
+      · exact hx'
+    · apply List.Sublist.cons
+      apply sublist_of_subset_sorted (s :: S) T (List.pairwise_cons.2 hS) hT.2
+      intro x hx
+      have hx' := h x hx
+      rcases List.mem_cons.1 hx' with rfl | hx'
+      · -- `t ∈ s :: S` with `s ≠ t`: `t ∈ S`, so `s < t`; but `t ∉ T`, and `s ∈ t :: T`
+        exfalso
+        rcases List.mem_cons.1 hx with hxs | hxS
+        · exact hst hxs.symm
+        · have hlt := hS.1 x hxS
+          have hs' := h s List.mem_cons_self
+          rcases List.mem_cons.1 hs' with hs' | hs'
+          · exact hst hs'
+          · exact goStringLt_irrefl _ (goStringLt_trans hlt (hT.1 s hs'))
+      · exact hx'
+
+theorem filterMap_sublist_eq {α β : Type} (f : α → Option β) : ∀ {S T : List α}, S.Sublist T →
+    T.Nodup → (∀ x ∈ T, x ∉ S → f x = none) → T.filterMap f = S.filterMap f := by
+  intro S T hsub
+  induction hsub with
+  | slnil => intro _ _; rfl
+  | cons a hsub ih =>
+    intro hnd h
+    rw [List.nodup_cons] at hnd
+    rw [List.filterMap_cons]
+    have ha : f a = none := h a List.mem_cons_self (fun hm => hnd.1 (hsub.subset hm))
+    rw [ha]
+    exact ih hnd.2 (fun x hx hnx => h x (List.mem_cons_of_mem _ hx) hnx)
+  | cons_cons a hsub ih =>
+    intro hnd h
+    rw [List.nodup_cons] at hnd
+    rw [List.filterMap_cons, List.filterMap_cons, ih hnd.2 (fun x hx hnx =>
+      h x (List.mem_cons_of_mem _ hx) (fun hm => by
+        rcases List.mem_cons.1 hm with rfl | hm
+        · exact hnd.1 hx
+        · exact hnx hm))]
+
+theorem keys_sorted (evs : List Ev) : ((indexOf evs).map Prod.fst).Pairwise go.GoStringLt := by
+  rw [List.pairwise_map]; exact indexOf_sorted evs
+
+theorem nodup_of_sorted {l : List GoString} (h : l.Pairwise go.GoStringLt) : l.Nodup :=
+  List.Pairwise.imp (fun {a b} hlt (he : a = b) => by subst he; exact goStringLt_irrefl _ hlt) h
+
+/-- **A reader's answer** (pure): the index's history (`ilog`, `pend`) and a certified log
+`log₀` are comparable lower bounds, and the index had at least `log₀`'s events; below
+`log₀.length` the answer is `log₀`'s. -/
+theorem reader_answer (log₀ ilog : Log) (pend : List Change)
+    (hcmp : histOf log₀ <+: histShape ilog pend ∨ histShape ilog pend <+: histOf log₀)
+    (hcount : (evsOf log₀).length ≤ (evsOf (ilog ++ [pend])).length)
+    (hlen : ilog.length < 2 ^ 63) (hwf : LogWf' log₀) (hcs : ∀ cs ∈ log₀, cs.length < 2 ^ 63)
+    (k : GoString) (r : Nat) (hr : r < log₀.length) :
+    kiGet (kiOfKey (evsOf (ilog ++ [pend])) k) (W64 r) = kiGet (kiOfKey (evsOf log₀) k) (W64 r) := by
+  rcases hcmp with hpre | hpre
+  · exact kiGet_reader log₀ ilog pend hpre hlen hwf hcs k r hr
+  · have := evsOfHist_prefix_of_count (histShape ilog pend) log₀ hpre
+      (by rw [evsOfHist_histShape]; exact hcount)
+    rw [evsOfHist_histShape] at this
+    rw [this]
+
+/-- A reader's history is the certified log's events followed by later ones. -/
+theorem reader_prefix (log₀ ilog : Log) (pend : List Change)
+    (hcmp : histOf log₀ <+: histShape ilog pend ∨ histShape ilog pend <+: histOf log₀)
+    (hcount : (evsOf log₀).length ≤ (evsOf (ilog ++ [pend])).length) (hlen : ilog.length < 2 ^ 63) :
+    ∃ rest, evsOf (ilog ++ [pend]) = evsOf log₀ ++ rest := by
+  rcases hcmp with hpre | hpre
+  · obtain ⟨rest, h, -, -⟩ := histOf_prefix_shape log₀ ilog pend hpre hlen
+    exact ⟨rest, h⟩
+  · have := evsOfHist_prefix_of_count _ _ hpre (by rw [evsOfHist_histShape]; exact hcount)
+    rw [evsOfHist_histShape] at this
+    exact ⟨[], by rw [this, List.append_nil]⟩
+
+/-- **A reader's range answer** is the certified log's, below its length. -/
+theorem reader_range (log₀ ilog : Log) (pend : List Change)
+    (hcmp : histOf log₀ <+: histShape ilog pend ∨ histShape ilog pend <+: histOf log₀)
+    (hcount : (evsOf log₀).length ≤ (evsOf (ilog ++ [pend])).length)
+    (hlen : ilog.length < 2 ^ 63) (hwf : LogWf' log₀) (hcs : ∀ cs ∈ log₀, cs.length < 2 ^ 63)
+    (k e : GoString) (r : Nat) (hr : r < log₀.length) :
+    rangeAt (indexOf (evsOf (ilog ++ [pend]))) k e (W64 r) =
+      rangeAt (indexOf (evsOf log₀)) k e (W64 r) := by
+  rw [rangeAt_eq_keys _ (indexOf_sorted _), rangeAt_eq_keys _ (indexOf_sorted _)]
+  obtain ⟨rest, hrest⟩ := reader_prefix log₀ ilog pend hcmp hcount hlen
+  have hans : ∀ key, kiGet (kiAt (indexOf (evsOf (ilog ++ [pend]))) key) (W64 r) =
+      kiGet (kiAt (indexOf (evsOf log₀)) key) (W64 r) := by
+    intro key
+    rw [kiAt_indexOf, kiAt_indexOf]
+    exact reader_answer log₀ ilog pend hcmp hcount hlen hwf hcs key r hr
+  simp only [hans]
+  have hsub : (((indexOf (evsOf log₀)).map Prod.fst).filter (inRange k e)).Sublist
+      (((indexOf (evsOf (ilog ++ [pend]))).map Prod.fst).filter (inRange k e)) := by
+    apply List.Sublist.filter
+    apply sublist_of_subset_sorted _ _ (keys_sorted _) (keys_sorted _)
+    intro x hx
+    rw [mem_keys_iff] at hx ⊢
+    rw [hrest]
+    exact kiOfKey_ne_mono _ _ _ hx
+  apply filterMap_sublist_eq _ hsub (nodup_of_sorted ((keys_sorted _).filter _))
+  intro x hx hnx
+  rw [List.mem_filter] at hx
+  have hx0 : x ∉ (indexOf (evsOf log₀)).map Prod.fst := fun h => hnx (List.mem_filter.2 ⟨h, hx.2⟩)
+  rw [mem_keys_iff] at hx0
+  have he : kiOfKey (evsOf log₀) x = kiEmpty := Classical.byContradiction fun h => hx0 h
+  rw [kiAt_indexOf, he, kiGet_kiEmpty]
+  rfl
+
+/-! ### What `unsafeVisit` visits: the entries at or above `k`, until one at or above `e` -/
+
+/-- The entries at or above `k` (what `AscendGreaterOrEqual` visits). -/
+def fromKey (L : List IdxEntry) (k : GoString) : List IdxEntry :=
+  L.filter fun z => !decide (go.GoStringLt z.2.1 k)
+
+/-- Below `e` (or no bound). -/
+def belowEnd (e : GoString) (z : IdxEntry) : Bool := decide (e = []) || decide (go.GoStringLt z.2.1 e)
+
+theorem rangeEntries_eq (L : List IdxEntry) (k e : GoString) :
+    rangeEntries L k e = (fromKey L k).filter (belowEnd e) := by
+  unfold rangeEntries fromKey belowEnd inRange
+  rw [List.filter_filter]
+  apply List.filter_congr
+  intro z _
+  exact Bool.and_comm _ _
+
+theorem btAscendGe_entries (L : List IdxEntry) (q : Loc) (k : GoString) :
+    btAscendGe kiItemLess (q, k) (itemsOfEntries L) = itemsOfEntries (fromKey L k) := by
+  unfold btAscendGe fromKey itemsOfEntries
+  rw [List.filter_map]
+  rfl
+
+theorem fromKey_sorted {L : List IdxEntry} (hs : L.Pairwise entryLess) (k : GoString) :
+    (fromKey L k).Pairwise entryLess := hs.filter _
+
+theorem fromKey_sublist (L : List IdxEntry) (k : GoString) : (fromKey L k).Sublist L :=
+  List.filter_sublist
+
+/-- On sorted entries, those below `e` are a prefix: `filter` is `takeWhile`. -/
+theorem filter_belowEnd_eq_takeWhile (e : GoString) : ∀ (G : List IdxEntry), G.Pairwise entryLess →
+    G.filter (belowEnd e) = G.takeWhile (belowEnd e)
+  | [], _ => rfl
+  | z :: G, hs => by
+    rw [List.pairwise_cons] at hs
+    rw [List.filter_cons, List.takeWhile_cons]
+    by_cases hz : belowEnd e z = true
+    · simp only [hz, ↓reduceIte, List.cons.injEq, true_and]
+      exact filter_belowEnd_eq_takeWhile e G hs.2
+    · simp only [hz, Bool.false_eq_true, ↓reduceIte]
+      rw [List.filter_eq_nil_iff.2]
+      intro w hw
+      intro hb
+      apply hz
+      unfold belowEnd at hb ⊢
+      simp only [Bool.or_eq_true, decide_eq_true_eq] at hb ⊢
+      rcases hb with hb | hb
+      · exact Or.inl hb
+      · exact Or.inr (goStringLt_trans (hs.1 w hw) hb)
+
+/-- `takeWhile` through the visited prefix. -/
+theorem takeWhile_eq_take {α : Type} (p : α → Bool) : ∀ (G : List α) (i : Nat), (∀ j (h : j < G.length), j < i → p G[j] = true) →
+    i ≤ G.length → (i = G.length ∨ ∃ h : i < G.length, p G[i] = false) → G.takeWhile p = G.take i
+  | [], 0, _, _, _ => rfl
+  | [], i + 1, _, hi, _ => by simp at hi
+  | x :: G, 0, _, _, hstop => by
+    rcases hstop with h | ⟨_, h⟩
+    · simp at h
+    · simp only [List.getElem_cons_zero] at h
+      rw [List.takeWhile_cons, h]; rfl
+  | x :: G, i + 1, hp, hi, hstop => by
+    rw [List.takeWhile_cons]
+    have hx : p x = true := hp 0 (by simp) (by omega)
+    rw [hx]
+    simp only [↓reduceIte, List.take_succ_cons, List.cons.injEq, true_and]
+    apply takeWhile_eq_take p G i
+    · intro j hj hji
+      have := hp (j + 1) (by simp; omega) (by omega)
+      simpa using this
+    · simp at hi; omega
+    · rcases hstop with h | ⟨h, hpi⟩
+      · left; simp at h; omega
+      · right; exact ⟨by simp at h; omega, by simpa using hpi⟩
+
+theorem takeWhile_getElem? {α : Type} (p : α → Bool) : ∀ (G : List α) (i : Nat),
+    (∀ j (h : j < G.length), j ≤ i → p G[j] = true) → (G.takeWhile p)[i]? = G[i]?
+  | [], _, _ => rfl
+  | x :: G, 0, hp => by
+    have hx : p x = true := hp 0 (by simp) (Nat.le_refl _)
+    rw [List.takeWhile_cons, hx]
+    rfl
+  | x :: G, i + 1, hp => by
+    have hx : p x = true := hp 0 (by simp) (by omega)
+    rw [List.takeWhile_cons, hx]
+    simp only [↓reduceIte, List.getElem?_cons_succ]
+    exact takeWhile_getElem? p G i (fun j hj hji => hp (j + 1) (by simp; omega) (by omega))
+
+/-! ### `Revisions`, `CountRevisions`, `Range`: the model -/
+
+/-- The answers of a range read of the certified `log` (`end == nil`: the one key). -/
+def rangeAnswers (log : Log) (endNil : Bool) (k e : GoString) (atRev : w64) :
+    List (GoString × Rev × Rev × w64) :=
+  if endNil then
+    match kiGet (kiOfKey (evsOf log) k) atRev with
+    | some r => [(k, r)]
+    | none => []
+  else rangeAt (indexOf (evsOf log)) k e atRev
+
+/-- The answers `Revisions`/`Range` return (at most the limit), and the count. -/
+def rangeTaken (log : Log) (endNil : Bool) (k e : GoString) (atRev limit : w64) :
+    List (GoString × Rev × Rev × w64) :=
+  if endNil then rangeAnswers log endNil k e atRev
+  else takeLimit (limitOf limit) (rangeAnswers log endNil k e atRev)
+
+def rangeTotal (log : Log) (endNil : Bool) (k e : GoString) (atRev limit : w64) (withTotal : Bool) :
+    Nat :=
+  if endNil then (rangeAnswers log endNil k e atRev).length
+  else totalOf (limitOf limit) withTotal (rangeAnswers log endNil k e atRev).length
+
+/-! ### The visitor's accumulation: the answers of a prefix of the visited entries -/
+
+/-- The answers at `atRev` among entries, with their keys (what the visitors of `Revisions`,
+`CountRevisions` and `Range` accumulate). -/
+def entryAnswers (G : List IdxEntry) (atRev : w64) : List (GoString × Rev × Rev × w64) :=
+  G.filterMap fun z => (kiGet z.2.2 atRev).map fun r => (z.2.1, r)
+
+theorem rangeAt_entries (L : List IdxEntry) (k e : GoString) (atRev : w64) :
+    rangeAt (idxOfEntries L) k e atRev = entryAnswers (rangeEntries L k e) atRev := by
+  unfold rangeAt rangeEntries entryAnswers idxOfEntries
+  rw [List.filter_map, List.filterMap_map]
+  rfl
+
+theorem entryAnswers_nil (atRev : w64) : entryAnswers [] atRev = [] := rfl
+
+theorem entryAnswers_take_succ (G : List IdxEntry) (atRev : w64) (i : Nat) (z : IdxEntry)
+    (hz : G[i]? = some z) :
+    entryAnswers (G.take (i + 1)) atRev =
+      entryAnswers (G.take i) atRev ++ ((kiGet z.2.2 atRev).map fun r => (z.2.1, r)).toList := by
+  unfold entryAnswers
+  rw [List.take_succ, hz, List.filterMap_append]
+  cases hg : kiGet z.2.2 atRev <;> simp [hg]
+
+theorem entryAnswers_prefix (G : List IdxEntry) (atRev : w64) (i : Nat) :
+    entryAnswers (G.take i) atRev <+: entryAnswers G atRev := by
+  unfold entryAnswers
+  obtain ⟨t, ht⟩ := List.take_prefix i G
+  exact ⟨t.filterMap _, by rw [← List.filterMap_append, ht]⟩
+
+theorem take_append_of_le {α : Type} : ∀ (A t : List α) (m : Nat), m ≤ A.length →
+    (A ++ t).take m = A.take m
+  | _, _, 0, _ => by simp
+  | [], _, _ + 1, hm => by simp at hm
+  | a :: A, t, m + 1, hm => by
+    simp only [List.cons_append, List.take_succ_cons, List.cons.injEq, true_and]
+    exact take_append_of_le A t m (by simp at hm; omega)
+
+theorem take_of_prefix {α : Type} {A B : List α} (h : A <+: B) (m : Nat) (hm : m ≤ A.length) :
+    B.take m = A.take m := by
+  obtain ⟨t, rfl⟩ := h
+  exact take_append_of_le A t m hm
+
+/-- `limit > 0 && len(taken) >= limit`. -/
+def reached (lim : Option Nat) (n : Nat) : Bool :=
+  match lim with
+  | some m => decide (m ≤ n)
+  | none => false
+
+theorem reached_takeLimit {α : Type} (lim : Option Nat) (A : List α) :
+    reached lim (takeLimit lim A).length = reached lim A.length := by
+  cases lim with
+  | none => rfl
+  | some m =>
+    unfold reached takeLimit
+    simp only [List.length_take]
+    by_cases h : m ≤ A.length
+    · simp [h, Nat.min_eq_left h]
+    · simp [h, Nat.min_eq_right (Nat.le_of_not_le h)]
+
+theorem takeLimit_append_reached {α : Type} (lim : Option Nat) (A B : List α)
+    (h : reached lim A.length = true) : takeLimit lim (A ++ B) = takeLimit lim A := by
+  cases lim with
+  | none => simp [reached] at h
+  | some m =>
+    simp only [reached, decide_eq_true_eq] at h
+    exact take_append_of_le A B m h
+
+theorem takeLimit_append_not {α : Type} (lim : Option Nat) (A : List α) (a : α)
+    (h : reached lim A.length = false) : takeLimit lim (A ++ [a]) = takeLimit lim A ++ [a] := by
+  cases lim with
+  | none => rfl
+  | some m =>
+    simp only [reached, decide_eq_false_iff_not, Nat.not_le] at h
+    show List.take m (A ++ [a]) = List.take m A ++ [a]
+    rw [List.take_of_length_le (by simp; omega), List.take_of_length_le (Nat.le_of_lt h)]
+
+theorem takeLimit_of_prefix {α : Type} (lim : Option Nat) {A B : List α} (hp : A <+: B)
+    (h : reached lim A.length = true) : takeLimit lim B = takeLimit lim A := by
+  cases lim with
+  | none => simp [reached] at h
+  | some m =>
+    simp only [reached, decide_eq_true_eq] at h
+    exact take_of_prefix hp m h
+
+theorem takeLimit_length {α : Type} (lim : Option Nat) (A : List α) :
+    (takeLimit lim A).length = totalOf lim false A.length := by
+  cases lim with
+  | none => rfl
+  | some m => simp [takeLimit, totalOf, Nat.min_comm]
+
+theorem totalOf_succ (lim : Option Nat) (withTotal : Bool) (n : Nat)
+    (h : withTotal = true ∨ reached lim n = false) :
+    totalOf lim withTotal (n + 1) = totalOf lim withTotal n + 1 := by
+  cases lim with
+  | none => cases withTotal <;> rfl
+  | some m =>
+    cases withTotal
+    · simp only [reached, decide_eq_false_iff_not, Nat.not_le, Bool.false_eq_true, false_or] at h
+      simp [totalOf]; omega
+    · rfl
+
+theorem totalOf_reached (lim : Option Nat) (n N : Nat) (hn : n ≤ N) (h : reached lim n = true) :
+    totalOf lim false N = totalOf lim false n := by
+  cases lim with
+  | none => simp [reached] at h
+  | some m =>
+    simp only [reached, decide_eq_true_eq] at h
+    simp [totalOf]; omega
+
+theorem totalOf_true (lim : Option Nat) (n : Nat) : totalOf lim true n = n := by
+  cases lim <;> rfl
+
+/-- `limit > 0 && len(revs) >= limit`, on the words. -/
+theorem reached_words (limit : w64) (s : GoSlice) (n : Nat) (hs : n = sint.nat s.len)
+    (hs0 : 0 ≤ sint.Z s.len) :
+    (decide (0 < sint.Z limit) && decide (sint.Z limit ≤ sint.Z s.len)) = reached (limitOf limit) n := by
+  unfold limitOf reached
+  by_cases h : 0 < sint.Z limit
+  · simp only [h, ↓reduceIte, decide_true, Bool.true_and]
+    subst hs
+    unfold sint.nat sint.Z at *
+    simp only [decide_eq_decide]
+    omega
+  · simp [h]
+
+theorem takeLimit_nil {α : Type} (lim : Option Nat) : takeLimit lim ([] : List α) = [] := by
+  cases lim <;> simp [takeLimit]
+
+theorem totalOf_zero (lim : Option Nat) (withTotal : Bool) : totalOf lim withTotal 0 = 0 := by
+  cases lim <;> cases withTotal <;> rfl
+
+/-- The range answers of the certified log are those of the tree's entries in range (through
+the reader's stability, `reader_range`). -/
+theorem rangeAnswers_entries (log₀ ilog : Log) (pend : List Change) (L : List IdxEntry)
+    (hcmp : histOf log₀ <+: histShape ilog pend ∨ histShape ilog pend <+: histOf log₀)
+    (hcount : (evsOf log₀).length ≤ (evsOf (ilog ++ [pend])).length)
+    (hlen : ilog.length < 2 ^ 63) (hwf : LogWf' log₀) (hcs : ∀ cs ∈ log₀, cs.length < 2 ^ 63)
+    (HLL : idxOfEntries L = indexOf (evsOf (ilog ++ [pend])))
+    (k e : GoString) (r : Nat) (hr : r < log₀.length) :
+    rangeAnswers log₀ false k e (W64 r) = entryAnswers (rangeEntries L k e) (W64 r) := by
+  unfold rangeAnswers
+  simp only [Bool.false_eq_true, ↓reduceIte]
+  rw [← reader_range log₀ ilog pend hcmp hcount hlen hwf hcs k e r hr, ← HLL, rangeAt_entries]
+
+theorem rangeAnswers_nil (log : Log) (k e : GoString) (atRev : w64) :
+    rangeAnswers log true k e atRev = ((kiGet (kiOfKey (evsOf log) k) atRev).map fun r => (k, r)).toList := by
+  unfold rangeAnswers
+  cases kiGet (kiOfKey (evsOf log) k) atRev <;> rfl
+
+theorem rangeTaken_true (log : Log) (k e : GoString) (atRev limit : w64) :
+    rangeTaken log true k e atRev limit = rangeAnswers log true k e atRev := rfl
+
+theorem rangeTaken_false (log : Log) (k e : GoString) (atRev limit : w64) :
+    rangeTaken log false k e atRev limit = takeLimit (limitOf limit) (rangeAnswers log false k e atRev) := rfl
+
+theorem rangeTotal_true (log : Log) (k e : GoString) (atRev limit : w64) (wt : Bool) :
+    rangeTotal log true k e atRev limit wt = (rangeAnswers log true k e atRev).length := rfl
+
+theorem rangeTotal_false (log : Log) (k e : GoString) (atRev limit : w64) (wt : Bool) :
+    rangeTotal log false k e atRev limit wt =
+      totalOf (limitOf limit) wt (rangeAnswers log false k e atRev).length := rfl
+
 end mvcc
 end EtcdGrove
 end Perennial
