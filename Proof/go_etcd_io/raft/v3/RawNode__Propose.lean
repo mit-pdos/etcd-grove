@@ -17,6 +17,7 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
+open RawNodeOwnAccess
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -37,7 +38,7 @@ postcondition; `LocalStepOk` and `Step.commit_mono` keep `ownRawNode` at `rs`. -
 theorem RawNode.Propose.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
     RawNode.Propose.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs data_sl data Q
+  intro γ rn id rs data_sl data
   wp_start as H
   iNamed H
   iNamed Hrn
@@ -48,7 +49,7 @@ theorem RawNode.Propose.wp_proof
   · ipureintro; rfl
   iintro %sl_ptr ⟨Hes, Hcap⟩
   wp_auto
-  wp_apply wp_raft_Step γ.reCfg γ _ id s ps _ [propEntry data_sl] [Q] rfl
+  wp_apply wp_raft_Step γ.reCfg γ _ id s ps _ [propEntry data_sl] rfl
     (by simp [StepMsg, stepMsgTypes, MsgProp]) Hin
     (by msg_ne) (by msg_ne)
     (by msg_ne) (by msg_ne)
@@ -57,7 +58,7 @@ theorem RawNode.Propose.wp_proof
     (by msg_ne) (by msg_ne)
     (by msg_ne)
     (fun _ => ⟨rfl, .inr rfl⟩) (by msg_ne) (by msg_ne) Hrel
-    $$ [$Hphys $Hghost Hes Hcap Hau]
+    $$ [$Hphys $Hghost Hes Hcap]
   · -- the message: its one-entry batch, owned; `Context` nil
     simp only [MsgProp, ite_true]
     isplitl [Hes Hcap]
@@ -83,11 +84,15 @@ theorem RawNode.Propose.wp_proof
         rw [show mtypeOf (W32 2) = some .propose from rfl] at Hty
         cases Hty
         unfold isMessage absMsg absMsgFrom
-        itrivial
-    isplitl [Hau]
-    · simp only [named]
-      iapply (BigSepL2.bigSepL2_singleton (Φ := fun _ e Q' => propAu γ e Q')).2
-      iexact Hau
+        isplitr
+        · ipureintro
+          refine ⟨rfl, List.cons_ne_nil _ _, ?_, by simp⟩
+          intro e He
+          simp only [List.mem_singleton] at He
+          subst He
+          rfl
+        iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => entData (GF := GF) γ e)).2
+        iexact Hent
     isplitr
     · iexists []
       isplitr
@@ -100,7 +105,7 @@ theorem RawNode.Propose.wp_proof
       iintro %Hc
       simp [MsgSnap] at Hc
   simp only [MsgProp, ite_true]
-  iintro %err %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, %Hloc, %_, %_, %_, Herr, Hprops⟩
+  iintro %err %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, %Hloc, %_, %_, %_, Herr⟩
   wp_auto
   -- what the `RawNode` tracks is kept: `LocalStepOk`, and the commit index does not move
   -- back (`Step.commit_mono`)
@@ -112,31 +117,23 @@ theorem RawNode.Propose.wp_proof
     rw [← Hrel.1, ← Hrel'.1] at H
     exact H
   ihave #Hstr' := storedRecs_eq γ _ s'.logst.prev _ s'.logst.stored Hfr.2.2.2.2.1
-    Hfr.2.2.2.2.2 $$ Hstrecs
+    Hfr.2.2.2.2.2.1 $$ Hstrecs
   iapply HΦ
   simp only [named]
   isplitl [Hrn Hphys Hghost Hsteps Hsteps_cap Hpown]
   · iapply ownRawNode_intro γ rn id rs s' ps' rnv sv steps Hrel' Hin Hasync
       (by rw [Hap']; exact Hdlen) (by rw [Hfr.2.2.1]; exact Hunp)
       (by rw [Hfr.2.2.2.1]; exact Hsnap)
-      (stepsOk_mono s s' _ Hfr.1 ⟨Hfr.2.2.2.2.1, Hfr.2.2.2.2.2⟩ Hc Hap' Hstok)
-      (by rw [Hfr.1]; exact Htrm)
+      (stepsOk_mono s s' _ Hfr.1 ⟨Hfr.2.2.2.2.1, Hfr.2.2.2.2.2.1⟩ Hc Hap'
+        Hfr.2.2.2.2.2.2.2.1 Hstok)
+      (by rw [Hfr.1]; exact Htrm) (by rw [Hfr.2.2.2.2.2.2.1]; exact Hstor)
+      (by rw [Hfr.2.2.2.2.2.2.2.1]; exact Hpvoff)
+      (by rw [Hfr.2.2.2.2.2.2.2.2]; exact Hrs_out) (by rw [Hfr.2.2.2.2.2.2.2.2]; exact Hrs_unst)
+      (Int.le_trans Hrs_clb Hc)
       $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstr'
-  icases Hprops with (⟨%Hok, Hout⟩ | Hau)
-  · ileft
-    isplitr
-    · ipureintro; exact Hok.1
-    icases (BigSepL.bigSepL_singleton (Φ := fun k Q' => iprop(∃ γp,
-        isProp γ ps.term (plastIndex ps + W64 1 + W64 (k : Int)) γp Q' ∗ propTok γp))).1 $$ Hout
-      with ⟨%γp, Hp, Ht⟩
-    iexists ps.term, plastIndex ps + W64 1 + W64 ((0 : Nat) : Int), γp
-    iframe Hp Ht
-  · iright
-    icases (BigSepL2.bigSepL2_singleton (Φ := fun _ e Q' => propAu γ e Q')).1 $$ Hau with Hau
-    iframe Hau
-    icases Herr with (%Herr | ⟨-, #Hd⟩)
-    · ileft; ipureintro; exact Herr
-    · iright; iexact Hd
+  icases Herr with (%Herr | ⟨-, #Hd⟩)
+  · ileft; ipureintro; exact Herr
+  · iright; iexact Hd
 
 end proof
 

@@ -36,7 +36,8 @@ abbrev New.spec : Prop :=
   ∀ (client : Loc) (pfx : GoString) (sl : GoSlice) (gs : List (Config → Config)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ context.isClosedchanInit ∗
       isEtcdClient client pfx ∗ cfgOptsAt sl gs ∗
-      ⌜CfgValid (cfgApply gs defaultConfigVal) → CfgBounded (cfgApply gs defaultConfigVal)⌝ }}
+      ⌜CfgValid (cfgApply gs defaultConfigVal) → CfgBounded (cfgApply gs defaultConfigVal)⌝ ∗
+      ⌜threadBound GF + cacheWgOwedMax ≤ 2 ^ 31⌝ }}
     (App (App (App (Val (@! New)) (Val #client)) (Val #pfx)) (Val #sl))
   {{ (c : Loc) (err : GoInterface), RET (PairV #c #err);
       newCacheResult pfx (cfgApply gs defaultConfigVal) c err }}

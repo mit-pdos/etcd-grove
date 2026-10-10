@@ -116,12 +116,13 @@ theorem raft.handleAppendEntries.wp_proof
     exact .inl ⟨Hif, rfl⟩
   · -- `maybeAppend`
     wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-    icases ownRaftPhys_log_at cfg r id s $$ Hphys with ⟨Hlog, Hlogback⟩
+    icases ownRaftPhys_log_at cfg r id s $$ Hphys with ⟨Hlog, %Hgh0, Hlogback⟩
     wp_apply wp_raftLog_maybeAppend _ s.logst
         (logSlice.mk m.Term' (entryID.mk m.LogTerm' m.Index') m.Entries') ents m.Commit'
         Hwf Hnw Hnorm (fun Hm => Hconf (by omega) Hm) $$ [$Hlog $Hents $Hcap]
-      as %lastnewi %ok %ls' ⟨Hlog, %Hma⟩
+      as %lastnewi %ok %ls' ⟨Hlog, %Hma, %Hmagh⟩
     ihave Hphys := Hlogback $$ %ls' Hlog
+      %(fun h => (Hgh0 h).elim (fun h1 => .inl (Hmagh.2 h1)) (fun h1 => .inr (Hmagh.1 ▸ h1)))
     cases Hpm : plogMaybeAppend s.logst.prev (s.logst.sents ++ s.logst.uents)
         (entryID.mk m.LogTerm' m.Index') ents with
     | some res =>

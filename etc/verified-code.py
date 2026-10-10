@@ -122,6 +122,8 @@ def git(cwd, *args):
 
 
 def fork(p):
+    if p.local is not None:
+        return p.local
     return p.repo.removeprefix("https://github.com/")
 
 
@@ -130,6 +132,9 @@ def go_sources(base):
     os.makedirs(base, exist_ok=True)
     dirs = {}
     for name, p in PROJECTS.items():
+        if p.local is not None:
+            dirs[name] = os.path.join(ROOT, p.local)
+            continue
         d = os.path.join(base, name)
         if not os.path.isdir(d):
             print(f"verified-code: cloning {p.repo} into {d}", file=sys.stderr)
@@ -285,6 +290,12 @@ def resolve_local(fn, pkgs, part_pkgs, by_key, known):
         return None
     for pkg in pkgs:
         key = (pkg, parts[0], parts[1]) if len(parts) == 2 else (pkg, "", parts[0])
+        if key in by_key or key in known:
+            return key, False
+    # qualified by the main package's own qualifier (the register's `register.Register.Put`)
+    if len(parts) in (2, 3) and parts[0] == qualifier(pkgs[0]):
+        rest = parts[1:]
+        key = (pkgs[0], rest[0], rest[1]) if len(rest) == 2 else (pkgs[0], "", rest[0])
         if key in by_key or key in known:
             return key, False
     return None

@@ -7,7 +7,7 @@ defaultTargets = ["EtcdGrove"]
 [[require]]
 name = "perennial"
 git = "https://github.com/mit-pdos/perennial"
-rev = "9276bd1ed19860f3ab1cca98315e9439dcf147d6"
+rev = "7c93f27aa02d671bbaee9acbf7661b1ff6a2ce27"
 
 # Everything here, laid out by kind and then by Go package path:
 #   Code/<pkg>, GeneratedProof/<pkg>  the Goose translations of etcd-raft and of etcd's
@@ -20,7 +20,7 @@ rev = "9276bd1ed19860f3ab1cca98315e9439dcf147d6"
 #                                     Proof/go_etcd_io/etcd/server/v3/etcdserver/ the
 #                                     server's
 #   EtcdDeps/{Code,...,Proof}/<pkg>   the same for etcd's own raft dependency (raft v3.7),
-#                                     whose Go path is the fork's: no module imports both
+#                                     whose Go path is etcd-raft's: no module imports both
 [[lean_lib]]
 name = "EtcdGrove"
 globs = ["Code.+", "GeneratedProof.+", "Spec.+", "Proof.+", "EtcdDeps.+"]

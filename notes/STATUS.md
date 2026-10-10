@@ -1,18 +1,57 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-10 (`STM`: all of `stm.go` specified and proved, atomicity of the serializable levels, Perennial `9276bd1ed`: a map has fewer than `2^63` keys, two trust-boundary axioms for the STM's panic and `recover`, a new history law, the serializable snapshot broken after a retry (a finding, reproduced and fixed on a fork branch), see "STM"; `Election`: all of `election.go` specified and proved, election exclusion, only the leader proclaims, `Campaign` may return `nil` without its key (a finding), see "Election"; `Mutex`: mutual exclusion, Perennial `d240c1732`: `fmt.Sprintf` formats `%s`, `strings.HasPrefix`, see "Mutex: mutual exclusion"; merged upstream's RawNode work into the cache-as-shipped and concurrency line, Perennial `7d0b56b07`, see "Merge: upstream's RawNode work"; `RawNode.Step` takes a `MsgApp` between `Ready` and `Advance`; the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; Perennial `7d0b56b07`: Goose with per-iteration loop variables, `break` out of `select`, see "Perennial `7d0b56b07`"; merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
+**Last updated:** 2026-10-10 (merged upstream's register example, `node.go`, raft from upstream etcd-io/raft and thread tokens into the Mutex/Election/STM line, Perennial `7c93f27aa`, see "Merge: the register, `node.go` and thread tokens"; `STM`: all of `stm.go` specified and proved, atomicity of the serializable levels, Perennial `9276bd1ed`: a map has fewer than `2^63` keys, two trust-boundary axioms for the STM's panic and `recover`, a new history law, the serializable snapshot broken after a retry (a finding, reproduced and fixed on a fork branch), see "STM"; `Election`: all of `election.go` specified and proved, election exclusion, only the leader proclaims, `Campaign` may return `nil` without its key (a finding), see "Election"; `Mutex`: mutual exclusion, Perennial `d240c1732`: `fmt.Sprintf` formats `%s`, `strings.HasPrefix`, see "Mutex: mutual exclusion"; the register example verified over raft: logically atomic `Put`/`Get`, raft proposals over a client log, see "The register example"; the cache's wait-group counter bounded by thread tokens, Perennial `105fb79f5`: the `WaitGroup.Add` overflow assumption reverted, `New` assumes fewer than `2^31 - 3` live threads, see "The wait-group counter and thread tokens"; `node.go` proved: `RestartNode`, `run`, `Propose`, `Step`, `Tick`, `Ready`, `Advance`, see "`node.go`: the concurrent `Node`"; groundwork for `node.go`: a computed `Ready` can be abandoned, Perennial's `wp_slice_append_undo`; pre-vote out of scope at the RawNode level; `Ready`'s messages carry terms at most the node's, see "`node.go` groundwork"; `RawNode.Ready` split into `readyWithoutAccept` and `acceptReady`, for `node.go`; the storage contract has a pending append, for `node.go`; `MemoryStorage.Append` and `NewMemoryStorage` proved; merged upstream's RawNode work into the cache-as-shipped and concurrency line, Perennial `7d0b56b07`, see "Merge: upstream's RawNode work"; `RawNode.Step` takes a `MsgApp` between `Ready` and `Advance`; the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; Perennial `7d0b56b07`: Goose with per-iteration loop variables, `break` out of `select`, see "Perennial `7d0b56b07`"; merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
 
 Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
 `worktree-raft-replication`'s `feb5c73d4` and adds Ready/Advance/HasReady; the files
 were first ported from `main`, then from `feb5c73d4`) to Lean on top of Perennial's Lean
-port (mit-pdos/perennial `lean`, pinned at 9276bd1ed (2026-10-10: on 9276bd1ed: a map has fewer than `2^63` keys, `wp_map_len_lt`, see "STM"; on d240c1732: models of `fmt.Sprintf` formatting `%s` and of `strings.HasPrefix`, see "Mutex: mutual exclusion"; on 7d0b56b07: our `9092f8eaa` merged with upstream's Goose changes (per-iteration loop variables, array ranges, `fallthrough`, `break` out of `switch`/`select`, local types) and `context.wp_WithCancel` building again, see "Perennial `7d0b56b07`"; on f52ce33dc (upstream's, in 7d0b56b07): the Goose features for upstream raft, see "Perennial `f52ce33dc`"; on 79adaac01 (upstream's, in 7d0b56b07): `context.wp_withCancel` builds again; on 9092f8eaa: `WaitGroup.Add`'s overflow a model assumption, the `RWMutex` writer guard, see "The cache as shipped"; on 56b1b6651: our 3ae7dc6a4 merged with upstream's `00b3c10ea` (trusted models and proved specs of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`; `math/big`'s `ownInt` normalized, its and `crypto/rand`'s `IsPkgInit` instances now Perennial's), see "Perennial `56b1b6651`"; on 68d220ac8: `fmt.wp_Errorf` proved, `map.forRange` with `wp_map_for_range_mut{,_keys}`, `context.wp_WithCancel` proved; on 3ae7dc6a4: `context.isClosedchanInit`, see "Sorry-free"; on 8c33774d0: upstream's `37416dd10` (Rocq code removed) and `cdf8c0f81` (Goose without `-lean` and the ⁱᵐᵖˡ encoding) merged, see below; on f8b35ddbf: `context.wp_Background`, `wp_WithCancel_Background`; on f35530719: Goose prints an axiomatized generic type in Lean; on 8c7000190: `time.NewTimer`, `Timer.Stop`/`Reset` axioms; on 96ec7016d: `fmt.wp_Printf`, `time.Minute`; on 099c2a08b: `fmt.wp_Errorf`'s `Error()`; on 640a605cc: a `select` case on a nil channel is never ready, `chan.wp_select_blocking_nil`; on 48e1192c7: rlocker, `Cond.wp_Wait_with`, `time.wp_Since`) on cbb85c041: upstream's `11fd2db` merged with
+port (mit-pdos/perennial `lean`, pinned at 7c93f27aa (2026-10-10: on 7c93f27aa: our 9276bd1ed merged with upstream's 105fb79f5 (thread tokens, `wp_fork_tok_*`, the revert of the `WaitGroup.Add` assumption, `wp_slice_append_undo`, the iframe heartbeat option), see "Merge: the register, `node.go` and thread tokens"; on 9276bd1ed: a map has fewer than `2^63` keys, `wp_map_len_lt`, see "STM"; on d240c1732: models of `fmt.Sprintf` formatting `%s` and of `strings.HasPrefix`, see "Mutex: mutual exclusion"; on 7d0b56b07: our `9092f8eaa` merged with upstream's Goose changes (per-iteration loop variables, array ranges, `fallthrough`, `break` out of `switch`/`select`, local types) and `context.wp_WithCancel` building again, see "Perennial `7d0b56b07`"; on f52ce33dc (upstream's, in 7d0b56b07): the Goose features for upstream raft, see "Perennial `f52ce33dc`"; on 79adaac01 (upstream's, in 7d0b56b07): `context.wp_withCancel` builds again; on 9092f8eaa: `WaitGroup.Add`'s overflow a model assumption, the `RWMutex` writer guard, see "The cache as shipped"; on 56b1b6651: our 3ae7dc6a4 merged with upstream's `00b3c10ea` (trusted models and proved specs of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`; `math/big`'s `ownInt` normalized, its and `crypto/rand`'s `IsPkgInit` instances now Perennial's), see "Perennial `56b1b6651`"; on 68d220ac8: `fmt.wp_Errorf` proved, `map.forRange` with `wp_map_for_range_mut{,_keys}`, `context.wp_WithCancel` proved; on 3ae7dc6a4: `context.isClosedchanInit`, see "Sorry-free"; on 8c33774d0: upstream's `37416dd10` (Rocq code removed) and `cdf8c0f81` (Goose without `-lean` and the ⁱᵐᵖˡ encoding) merged, see below; on f8b35ddbf: `context.wp_Background`, `wp_WithCancel_Background`; on f35530719: Goose prints an axiomatized generic type in Lean; on 8c7000190: `time.NewTimer`, `Timer.Stop`/`Reset` axioms; on 96ec7016d: `fmt.wp_Printf`, `time.Minute`; on 099c2a08b: `fmt.wp_Errorf`'s `Error()`; on 640a605cc: a `select` case on a nil channel is never ready, `chan.wp_select_blocking_nil`; on 48e1192c7: rlocker, `Cond.wp_Wait_with`, `time.wp_Since`) on cbb85c041: upstream's `11fd2db` merged with
 `bytes.Compare`, on Lean's module system since 2026-10-09). The Goose translations of
 etcd-raft and etcd's `cache` package are this repository's `Code/` and `GeneratedProof/`,
 generated and checked by `etc/goose.py`. Files are laid out by kind and Go package path
 (`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
+
+## Merge: the register, `node.go` and thread tokens (2026-10-10)
+
+Merged upstream `lean` (`67c6b9292`, 43 commits: Perennial thread tokens and the cache's
+wait-group counter bounded by them, `node.go` proved, the `examples/register` replicated
+register, raft translated from upstream `etcd-io/raft` `40f8be7` unmodified, bbolt's
+`internal/common`) into the Mutex/Election/STM line (`e5406a399`).
+
+- **Perennial `7c93f27aa`** (`lean`): our `9276bd1ed` (`Sprintf`/`HasPrefix` models, the map-length
+  bound) merged cleanly with upstream's `105fb79f5` (thread tokens, `wp_fork_tok_*`, the revert of
+  our `WaitGroup.Add` assumption, `wp_slice_append_undo`, the iframe heartbeat option).
+  `etc/lean-ci.sh`: 374/374; the std-lib regeneration (`GOTOOLCHAIN=go1.26.0
+  etc/update-goose-new.py --compile --std-lib`) is clean; `go test ./...` in `goose/` passes.
+- **Conflicts**: only the Perennial pin (`lakefile.toml`, `lake-manifest.json`: `7c93f27aa`) and
+  these notes (both sides' sections; the `WaitGroup.Add` assumption marked superseded in "The cache
+  as shipped"). `etc/goose.py` is upstream's (raft from `etcd-io/raft`, the `register` project) and
+  already has the concurrency package and the `ab1deb078` pin; `etc/tcb-baseline.txt` is ours
+  (upstream added no axiom or `sorry`). The regenerated translation is identical to the merge.
+- **Thread tokens**: no proof of ours changed. Our side never touched the cache's wait-group files,
+  so they are upstream's (shared writers and `cacheBound` already in, from the earlier merge).
+  `wp_fork` keeps its statement (the forked thread keeps its own token, `wp_fork_tok` underneath),
+  so the other `go` statements (`NewDemux`, `Session`'s keep-alive, `Observe`, `waitTillRevision`,
+  the progress requestor, STM/Mutex/Election) build unchanged. The exported statements are ours but
+  for upstream's thread-token changes: `New`/`newCache` assume `threadBound GF + 3 ≤ 2^31`,
+  `Watch` takes and returns a `threadTok` (see "The wait-group counter and thread tokens").
+- **`etc/verified-code.py`**: crashed on the `register` project (no `repo`: `fork()` now names
+  its directory), and did not resolve the register's results (`register.Register.Put`: a name
+  qualified by the main package's own qualifier is now looked up there).
+- **Gates**: `lake build` passes (1958 jobs); `etc/goose.py --check --perennial
+  .lake/packages/perennial` passes; `etc/tcb-report.py --check`: 43 axioms, 1 `sorry` (the
+  baseline unchanged); per collection: btree 51 roots, no axiom; cache 152, 9 axioms, sorry-free;
+  concurrency 125 (124 sorry-free), 13 axioms, 1 `sorry` (`Session.Close`); raft 213, 1 axiom,
+  sorry-free; register 19, no axiom, sorry-free; server 47, 26 axioms, sorry-free. `etc/gen-link.py
+  --cache`/`--concurrency`/`--server`/`--register` and `etc/gen-btree-link.py` reproduce their
+  `Link.lean` (raft's is by hand since upstream's `MemoryStorage` work). `etc/verified-code.py
+  --reuse`: raft 203/323 (2608 of 3646 lines), all sorry-free; etcd 243 verified, 1 unfinished, 13
+  assumed of 3599 (the cache 107/107 sorry-free; `client/v3/concurrency` 59 + 1 unfinished of 62);
+  register 12/12 (96 lines).
+- **Push order**: Perennial `lean` (`7c93f27aa`) first, then etcd-grove `lean`.
 
 ## STM (2026-10-10)
 
@@ -242,6 +281,249 @@ the two history laws". Files: `client/v3/concurrency/InvMutex.lean` (vocabulary,
 - **Push order**: Perennial `lean` (`d240c1732`, a fast-forward of `7d0b56b07`) first, then
   etcd-grove `lean`. The etcd fork is unchanged.
 
+## The register example: verified over raft, logically atomic (2026-10-10)
+
+`examples/register/register.go` (a replicated register on raft's `Node`; Goose project
+`register`, `Code/github_com/mit_pdos/etcd_grove/examples/register.lean`) is specified,
+proved and linked: `encode`, `decode`, `fits`, `NewStorage`, `(*Storage).InitialState`,
+`(*Storage).Snapshot`, `New`, `run`, `apply`, `do`, `Put`, `Get`
+(`Proof/github_com/mit_pdos/etcd_grove/examples/register/`; `Link.lean` generated by
+`etc/gen-link.py --register` from `etc/link-lean-first-register.txt`, raft's callees linked
+in raft's `Link.lean`; `#print axioms` in `Results.lean`; collection
+`etc/tcb-collections/register.txt`). No `sorry`, and no axiom of this repository: the
+results rest only on Perennial's axiomatized standard-library types.
+
+The client-facing statements (`Results.lean`; decisions.md, "The register: TaDa proposals
+over raft's client log"):
+
+- `Put(val)` (`val.length < 2^62`): `{isRegister γr γp r ∗ opCred γp 1 ∗ AU <{∃∃ x, regVal γr
+  x}> @ regMask, ∅ <{regVal γr val, COMM Φ}>} … {Φ}`; `Get()` the same with `<{regVal γr x,
+  COMM Φ x}>`, returning `x`. The update runs when raft commits the operation's first entry
+  (the linearization point); `regMask` is everything but raft's commit invariant and the
+  register's.
+- `New(id, node, storage, send)`: `regInv γr`, the node's driver token at `[]`
+  (`nodeDriver`), the storage's record, `isCommitted γr.raft []`, `id ↪[γr.seq] 0` and
+  `sendSpec send` give `∃ γp, isRegister γr γp r ∗ opCred γp (2^64 - 1)`; `run` is forked.
+- `*register.Storage` is a raft `Storage` (`register_storage_isStorage`: `regStorRec ⊢
+  isStorage (regStorIface s)`, the storage model `regStorageModel`), its `InitialState` what
+  `RestartNode` asks (`register_storage_initialState`).
+- The ghost state: `regStorInv_alloc`, `regInv_alloc` (`Alloc.lean`), from raft's
+  `ownRaftGhost_alloc` (which now also hands the client `cLog γ []` and the authorities of
+  the fresh-data tokens and of the proposed slices).
+
+Raft changes for it (commit `b856a83be`): proposals are logically atomic over a client
+log (`cLog`); `node.Propose` deposits the client's atomic update, which the ghost commit
+fires; `node.Step` takes a forwarded `MsgProp` (`fwdP`); `isEntryR` records each entry's
+client data (`entData`). `MemoryStorage.Append` takes an empty batch without a token
+(`26a6bc1d4`). Go changes (`ec7dc0a13`, `b4a362514`, minimal, `go test -race` passes):
+`apply` dedups by the operation's encoding (`applied map[string]bool`), not by a sequence
+number (wrong under concurrent operations of one replica); `encode` appends
+`[]byte(val)`; `InitialState` returns the empty `HardState` and the voters slice itself
+(no `MemoryStorage` call: `RestartNode` takes a fixed `ConfState`); `run` spins rather
+than append past `2^61` entries (`fits`).
+
+Out of scope: liveness (an operation may wait forever), the transport (`send` is a
+callback that gets the messages with what `Ready` says of them), `Stop`.
+
+## `node.go`: the concurrent `Node` (2026-10-10)
+
+Specified, proved and linked (`Link.lean` by hand, `etc/link-lean-first.txt`; `#print
+axioms` in `Results.lean`): `RestartNode`, `newNode`, `node.run`, `node.Propose` (through
+`stepWait`/`stepWithWaitOption`), `node.Step` (through `step`), `node.Tick`, `node.Ready`,
+`node.Advance`, and `raft.hasLeader`. No `sorry`, no new axiom: every node result rests on
+exactly the axioms of the RawNode results it calls. Out of scope (their channels carry
+`P := False`, never sent on): `Stop`, `Status`, `ProposeConfChange`, `ApplyConfChange`,
+`Campaign`, `ReadIndex`, `TransferLeadership`, `ReportUnreachable`, `ReportSnapshot`,
+`ForgetLeader`, `StartNode`/`Bootstrap`; `ctx` is `context.Background()` only.
+
+The client-facing specs (`InvNode.lean` defines the predicates; decisions.md, "node.go"):
+
+- `RestartNode`: `NewRawNode`'s premises plus `inv budgetN (budgetInv bud) ∗ termLB bud 0`
+  ⇒ `∃ γn n, ⌜γn.raft = γ ∧ γn.bud = bud ∧ γn.stor = si ∧ nd = interface.mkOk (*node) n⌝ ∗
+  isNode γn id n ∗ nodeDriver γn id n []`.
+- `Propose(ctx, data)`: `{isNode ∗ data ↦*□ _} … {err, True}`.
+- `Step(ctx, m)`: `{isNode ∗ netP γ id m} … {err, True}`; `netP` = `NetMsgOk id m`, the
+  entries/context read-only, `isMessage` of its abstraction, and `termLB bud m.Term`.
+- `Tick()`: `{isNode ∗ tickCred bud 1} … {True}`.
+- `Ready()`: `{isNode} … {ch, isReadyChan γ ch}`; receiving (`node_ready_receive`) with
+  `nodeDriver γ id n ds` gives `readyData γ rd ds ce es ms` (the committed entries `ce`
+  with `isCommitted (ds ++ ce)`, the entries `es` with `appendRight`, the messages with
+  `isRaftMsg` and `termLB` of their terms) and `nodeDriverBusy γ id n (ds ++ ce) es`.
+- `Advance()`: `{nodeDriverBusy γ id n ds es ∗ appendReceipt γ.stor es} … {nodeDriver γ id n ds}`.
+- The term budget (`budget_alloc N`, `N < 2^64 - 1`): `M + c < 2^64 - 1` for the bound `M`
+  on every term and `c` tick credits out; `budget_spend` turns a credit and `termLB t`
+  into `t + 1 < 2^64 - 1` and `termLB (t + 1)`.
+
+`run`'s proof (`node__run.lean`, lemmas in `InvNodeRun.lean`): the loop invariant
+`runHead` (the node at `ownRawNode`, `headRest`: no `Ready` out with `rof` whole, `dlv`'s
+half, a stale `Ready` possibly armed (`staleOk`); or one out, `rof`'s half recording it);
+after the first statement `runMid` (also a fresh `Ready`, `ownRawNodeReady`, or an idle
+node with a stale one). `wp_join` twice (the `HasReady` branch, the leader check), one
+`select` of eight cases. `r.Step` on the node: `wp_rn_raft_Step_net`/`_prop` (the tails of
+`RawNode.Step`/`Propose`); an abandoned `Ready` stays armed
+(`ownRawNodeReady_abandon_keep`, `SliceShape` to rebuild its empty messages slice).
+
+RawNode spec changes for `node.go` (this session; commits `b68a476e6`, `7796d5635`,
+`9a67d5ce5`, `23c156cfc`): `HasReady`'s `false` gives `ownRawNodeIdle` (pinned: no
+message queued, no unstable entry); `RNState` lower bounds `outlb`/`unst`/`clb`
+(`NGhost` in `NState`) raised by `ownRawNodeReady_abandon`; `acceptReady` takes
+`ownRawNodeReady … true` (the append right handed out first, `ownRawNodeReady_handout`,
+`logHanded`) and no longer returns it; `raftLog.acceptUnstable` likewise; `Advance` takes
+`rs.unst = false` and returns `t = rs.term`; `raft.Step`'s `MsgStorageAppendResp` premise
+has `s.gh.unst = false`; `OutTermOk`: no `MsgPreVoteResp` with pre-vote off; the raft
+struct's `id` and `logger` persistent (`raftOwn`, `rawNodeOwn`: `Tick` reads them
+concurrently); `newRaft` returns `s.gh = {}`.
+
+Not checked: `etc/tcb-report.py --check` (needs a full build; the disk is short).
+
+## bbolt: not goosable as written; the `unsafe` it needs (2026-10-10)
+
+bbolt (v1.5.0, etcd's dependency) works by reading `[]byte` buffers (the mmap'd file, heap
+pages) as structs through `unsafe.Pointer`, with `uintptr` arithmetic. Perennial's typed heap
+gives that no meaning, and it leaves `uintptr ↔ pointer` stuck on purpose. `notes/bbolt-unsafe.md`
+inventories every use and says what a model needs: layout constants, a byte view of
+pointer-free structs (the core change), byte-offset arithmetic, slices over raw memory, and a
+file-backed mmap. It also covers the fork alternative. What is goosable now:
+`internal/common`'s page-id helpers are translated with bodies
+(`Code/go_etcd_io/bbolt/internal/common.toml`), with package init, the sorted-list model,
+`wp_slice_append_in_place` and the `Mergepgids` spec in
+`{Proof,Spec}/go_etcd_io/bbolt/internal/common/`. `Mergepgids` is proved (no `sorry`; `Results.lean` prints its axioms). Most of
+`internal/freelist` and `errors` are goosable too.
+
+Toward modeling and verifying all of bbolt (`notes/bbolt-unsafe.md`, "Where Perennial stands"):
+- Perennial's array allocation is a `-- TODO` that diverges (`AngelicExit`), so every proof past
+  a non-empty `make` here holds vacuously (31 files use `wp_slice_make*`/`wp_slice_append`).
+- Perennial has no byte-level memory and no crash semantics; both are core changes.
+- Goose now folds `unsafe.Sizeof`/`Offsetof`/`Alignof`, `uintptr` constants and labeled loops
+  (Perennial branch `goose-bbolt`, `ff60796`; not pinned).
+
+## `node.go` groundwork: abandoning a `Ready`, pre-vote off, the messages' terms (2026-10-10)
+
+Three pieces `node.go`'s proof will need (uncommitted Perennial change: `Slice.lean`).
+
+- **Abandoning a computed `Ready`.** Perennial: `wp_slice_append_undo` (`Slice.lean`, next
+  to `wp_slice_append`): `wp_slice_append`'s triple plus a wand
+  `s' ↦* (vs ++ vs') ∗ ownSliceCap V s' (DFrac.own 1) -∗ sl ↦* vs ∗ ownSliceCap V sl
+  (DFrac.own 1)` -- in place, the new slice is split at `len(sl)` and the rest goes back
+  to `sl`'s capacity (`ownSlice_append_undo_in_place`); reallocating, the old slice and
+  capacity are kept. `readyWithoutAccept` builds `rd.Messages` with it, so
+  `ownRaftPhysReady` holds `Hundo` (from `rd.Messages`' contents and capacity back to
+  `r.msgs`'), and `ownRawNodeReady` gained the index `ms` (the messages handed out;
+  `acceptReady.spec` takes it as one more `∀`). `ownRawNodeReady_abandon`
+  (`InvRawnodeReady.lean`): `rd.Messages' ↦* ms -∗ ownSliceCap … -∗ ownRawNodeReady γ rn
+  id rs rd ce es ms -∗ ownRawNode γ rn id rs` (premises `rs.steps = []`,
+  `rs.unpersisted = []`, `readyWithoutAccept`'s); `readyWithoutAccept.spec` returns it as
+  `"Habandon"`.
+- **Pre-vote off at the RawNode.** `NetFrame` and `LocalFrame` (hence `TickStep`) gained
+  `s'.prevote = s.prevote` (`keep_frame`/`stepdown_frame`/`keep_frame_logst`/
+  `NetFrame.of_logst` take it as an auto-param `rfl`; `hup`'s post states it);
+  `ownRawNode` and `ownRawNodeReady` have the scope conjunct `"%Hpvoff" ∷ ⌜s.prevote =
+  false⌝` (named so as not to clash with the proofs' `Hpv`), `ownRawNode_intro` takes it,
+  and `NewRawNode.spec` requires `cv.PreVote' = false`.
+- **The terms of `Ready`'s messages.** `readyWithoutAccept.spec` and `Ready.spec` return
+  `"%Hmsgs_term" ∷ ⌜∀ m ∈ ms, uint.Z m.Term' ≤ uint.Z rs.term⌝`. The route, the cheapest
+  sound one found: `ownRaftPhys` records of every queued message (both queues)
+  `OutTermOk s.prevote s.term m` -- `s.prevote = false → Term ≤ s.term` (monotone in the
+  term, `wp_store_Term` keeps it; `ownRaftPhys_intro`, the queue accessors' wands,
+  `ownRaftPhys_view` and its `Hclose` carry it). `send` stamps the node's term into
+  everything but a forwarded `MsgProp` (`0`) and a vote message, whose term `SendOk`'s
+  vote clause now bounds: `s.prevote = false → Term ≤ s.term`. Its callers: a
+  `MsgVote`/`MsgVoteResp` is of the node's term (`campaign`'s election, `Step`'s vote
+  branches); a pre-vote message is sent only by `campaign`'s pre-election, which (with
+  `hup`) now takes `t = campaignPreElection → s.prevote = true` (`Step`'s `MsgHup`
+  branch calls it so exactly when `r.preVote`), or in answer to a `MsgPreVote`, for which
+  `raft.Step.spec` now requires `s.prevote = true` (a transport premise: pre-vote
+  messages reach only nodes with pre-vote on, the setting being the cluster's;
+  `RawNode.Step` takes no pre-vote message, so it is vacuous there). So no ghost
+  tracking of "no pre-vote message in the outbox" was needed. *Rejected*: tracking
+  "no `MsgPreVoteResp` to another node in the outbox" in `ownRawNode` (needs a new
+  `raft.Step` postcondition on the outbox's growth, proved per branch) or a ghost flag in
+  `NState` (the same per-branch frame work).
+
+`lake build Proof.go_etcd_io.raft.v3.Link Proof.go_etcd_io.raft.v3.Results` passes; no
+new `sorry` or axiom.
+
+## `RawNode.Ready` split: `readyWithoutAccept` and `acceptReady`, for `node.go` (2026-10-10)
+
+`node.go`'s `run` does not call `Ready`: it calls `readyWithoutAccept`, hands the `Ready`
+to the application (`readyc <- rd`), and only then `acceptReady(rd)`, with no raft step in
+between. Both halves are now specified, proved and linked (Lean-first), and `Ready`'s proof
+composes their specs; `RawNode.Ready.spec` is unchanged.
+
+- `ownRawNodeReady γ rn id rs rd ce es` (`InvRawnodeReady.lean`, new): the node between
+  the two -- `ownRawNode`'s conjuncts at an empty queue and nothing unpersisted, with the
+  raft struct open without the outbox's contents (`ownRaftPhysReady`: `ownRaftPhys_view`'s
+  output minus `r.msgs`' slice, which `readyWithoutAccept` built `rd.Messages` from in
+  place), and what `acceptReady` reads of `rd`: `SoftState` `nil` or read-only, no snapshot
+  nor read states, `CommittedEntries ↦*□ ce` with its capacity (for the queued
+  `MsgStorageApplyResp`), `ce` the next committed entries (`logCommittedEnts`) extending
+  `rs.delivered` (`isCommitted`), `es = nextUnstable`. `acceptReady` does not read
+  `rd.Messages` (it reads `msgsAfterAppend` again, which the node keeps, and sets both
+  outbox fields to `nil`).
+- `RawNode.readyWithoutAccept.spec`: premises as `Ready`'s (`rs.steps = []`,
+  `rs.unpersisted = []`); post `ownRawNodeReady γ rn id rs rd ce es` and everything the
+  application gets with `rd` (`CommittedEntries`, `isCommitted γ (rs.delivered ++ ce)`,
+  `Entries`, `Messages` with their capacity and `isRaftMsg`, no snapshot/read states).
+- `RawNode.acceptReady.spec`: from `ownRawNodeReady … rd ce es` to `ownRawNode γ rn id
+  { rs with delivered := rs.delivered ++ ce, unpersisted := es, steps := steps }` and
+  `appendRight rs.storage es`.
+- The proofs are the old `Ready` proof cut at the call of `acceptReady`
+  (`RawNode__readyWithoutAccept.lean`, `RawNode__acceptReady.lean`; the helpers went with
+  the half that uses them). `acceptReady` keeps less of `rd`: `prevSoftSt`/`prevHardSt`
+  become some read-only `SoftState`/some value (no spec states them), so the joins no
+  longer track `nodeSoftstate`/`nodeHardstate`. Neither half needs the `maxHeartbeats`
+  bump the one proof had.
+- Linked by hand in `Link.lean` (`RawNode.wp_readyWithoutAccept`, `RawNode.wp_acceptReady`,
+  `RawNode.wp_Ready` from the two); `etc/link-lean-first.txt` lists the two and overrides
+  `RawNode__Ready`'s Rocq callees; `Results.lean` prints their axioms.
+
+**Open** (closed the same day: `ownRawNodeReady_abandon`, "`node.go` groundwork" above):
+abandoning a `Ready` (`node.go` recomputes `rd` when its `select` takes another
+case, then steps the node) has no lemma: the messages would have to go back to the node,
+but `readyWithoutAccept`'s appends to `rd.Messages` may reallocate, consuming `r.msgs`'
+slice. A `node.go` proof needs either such a lemma (e.g. `readyWithoutAccept` keeping
+`r.msgs`' slice and handing out only a copy's worth, or a spec variant) or to treat the
+outbox as handed out once computed.
+
+`lake build Proof.go_etcd_io.raft.v3.Link Proof.go_etcd_io.raft.v3.Results` passes; no
+new `sorry` or axiom (`wp_Ready`, `wp_readyWithoutAccept`, `wp_acceptReady` have no
+`sorryAx`).
+
+## The storage contract: a pending append, for `node.go` (2026-10-10)
+
+The application may now append a `Ready`'s entries while raft keeps reading the storage
+(decisions.md, "Storage: a pending append, for node.go"):
+
+- `StorState.pend` (the batch being appended); `isStorageWith P AT DT st` answers `Term`
+  and `Entries` only below the batch (`PendFrom`), `LastIndex` only with nothing pending,
+  and has two laws, `Hhandout` and `Habsorb`; `StorageModel` gained `appendTok` and
+  `appendedTok`. `storApp` moved to `InvStorage.lean` (`storAbsorb`, `PendOk`).
+- `ownRaftLog`: `Hstor` (`lv.storage' = ls.storage`, the new `LogState.storage`) and
+  `Hpend` (`PendLogOk`: the batch is `unpersisted`, at or above `unstable.offset`); the
+  reseal macro tries `exact Hstor`/`exact Hpend`. `NetFrame`/`LocalFrame`, the
+  `maybeAppend`/`handleAppendEntries` frames and `newRaft`'s post keep the storage.
+- `raftLog.acceptUnstable` takes `ls.snap = none` and returns `appendRight ls.storage
+  (nextUnstable ls)`; `RawNode.Ready` returns `"Happ" ∷ appendRight rs.storage es`.
+  `ownRawNode_persist` is gone: `ownRawNode_appended` absorbs `appendReceipt rs.storage
+  rs.unpersisted`. `RNState.storage` (new): `NewRawNode` returns `storage := interface.ok
+  si` and takes `σ.pend = []` (as `newRaft`, `newLogWithSize`).
+- `MemoryStorage`: `ownMemoryStorage ms γs σ` (names `MemStorNames`: `hist`, `done`, `ep`,
+  see `InvMemstorage.lean`'s header), `memAppendTok`/`memAppendedTok`, the laws
+  `memStorage_handout`/`memStorage_absorb`; the method specs take `γs` and the new
+  premises (`Snapshot` no longer promises non-emptiness); `MemoryStorage.Append`
+  (consumes the right, returns the receipt, under the lock) and `NewMemoryStorage` (at
+  `memStorEmpty`) specified and proved, linked (`etc/link-lean-first.txt`, `Link.lean` by
+  hand: `etc/gen-link.py` against the Rocq checkout no longer reproduces `Link.lean`).
+  `is_Storage_MemoryStorage ms γs` is for `ownMemoryStorage ms γs σ ∗ ⌜σ.ss.index ≠ 0⌝`.
+
+**Open**: a new `MemoryStorage` (empty snapshot) is not an `isStorage`: `maybeSendSnapshot`
+follows `ErrUnavailable` too (a peer's `Next` past the log), not only `ErrCompacted`, so the
+`Snapshot` clause cannot be weakened to "non-empty once compacted" without a bound
+`Next ≤ lastIndex + 1` in the tracker invariant (decisions.md, same section).
+
+`lake build Proof.go_etcd_io.raft.v3.Link Proof.go_etcd_io.raft.v3.Results` passes (and
+every raft module); no new `sorry` or axiom.
+
 ## Merge: upstream's RawNode work (2026-10-10)
 
 Merged upstream `lean` (`f380444db`: `RawNode.Step`/`Tick`/`Campaign`/`NewRawNode` proved,
@@ -402,8 +684,16 @@ callback, allocated in the body) and `cindex.lean` (empty bodies). Proofs: `ents
 `demux.resyncLaggingWatchers` drop the per-iteration variables from their loop invariants
 (each iteration allocates them afresh); nothing else changed.
 
-**Retargeting raft to upstream `etcd-io/raft` (parked).** The goal is to goose raft from
-upstream `1c0011d2` (2026-09-22) instead of the fork `upamanyus/etcd-raft` at `531b20c`
+**Retargeting raft to upstream `etcd-io/raft` (2026-10-10: done, to `40f8be7`).** Raft is
+now goosed from upstream `etcd-io/raft` unmodified, at `40f8be7` (2026-04-15), the last
+commit before raftpb moved to protobuf-go v2; the fork `upamanyus/etcd-raft` is gone from
+`etc/goose.py`. Relative to the fork's translation: `JointConfig.IDs` ranges over the array
+value with `array.forRange 2` (its proof is a `wp_for` over the index, unrolled for the two
+elements, with the old map-range proof inside); `ConfChange`/`ConfChangeSingle`'s `NodeID`
+and `ID` fields are `NodeId`/`Id` (`addNodeCC` in `InvConfchange.lean`); the enum constants
+`MessageType_*`, `EntryType_*`, `ConfChangeType_*`, `ConfChangeTransition_*` are translated
+(raftpb.toml), with `MsgHup`-style aliases; `MajorityConfig.String`/`Describe` format ids in
+hex (not proved). No spec changed. The original goal was upstream `1c0011d2` (2026-09-22):
 (upstream `24643b3` of 2026-03-10 plus two edits in `quorum/`: `JointConfig.IDs` ranging
 over the two configs by index, and `MajorityConfig.Describe`'s local type `tup` hoisted;
 the new Goose translates both as written). Between those two upstream commits raft moved
@@ -423,7 +713,8 @@ entry/message/snapshot ownership (heap entries shared between the log, messages 
 (2026-04-15), translates unmodified with the new Goose and differs from the fork's
 translation only by the gogoproto option cleanups (`NodeID` to `NodeId` in `ConfChange*`,
 the `MessageType_*`/`EntryType_*` enum constants with `MsgHup`-style aliases) and the
-Goose changes above: that is the cheap retarget. Decision pending.
+Goose changes above: that is the cheap retarget, taken on 2026-10-10 (above). The retarget to
+`1c0011d2` stays parked on that branch.
 
 Gates (2026-10-09): `lake build` passes (1659 jobs); `etc/goose.py --check` passes;
 `etc/tcb-report.py --check` matches the baseline. Building against a Perennial checkout
@@ -513,7 +804,9 @@ the readiness fix and the Gooseable changes. `go build ./...`, `go vet ./cache/`
 `etc/goose.py` pins it; only `Code/go_etcd_io/etcd/cache/v3.lean` changed (`watch`,
 `watchEvents`). Design: `decisions.md`, "No code changes unless a bug".
 
-- **Perennial `9092f8eaa`** (branch `wg-assume`, on `56b1b6651`; push Perennial first):
+- **Perennial `9092f8eaa`** (branch `wg-assume`, on `56b1b6651`; push Perennial first;
+  **the `WaitGroup.Add` assumption is superseded** by the thread-token bound, Perennial `105fb79f5`,
+  see "The wait-group counter and thread tokens"):
   `614fa61d3` **`WaitGroup.Add`'s counter overflow is a model assumption**: `WaitGroup.Add` is a
   trusted model (`TrustedCode/sync.lean`), Goose's translation of Go's `Add` verbatim but for the
   atomic add, which is `waitGroupStateAddAssume` (a compare-and-swap loop that `assume`s the
@@ -583,6 +876,44 @@ the readiness fix and the Gooseable changes. `go build ./...`, `go vet ./cache/`
   `etc/verified-code.py --reuse` (with `ab1deb078` fetched into `.lake/go-src/etcd`): the cache
   107 of 107 verified, sorry-free, 1202 of 1202 lines; Raft 175/323, etcd 161 verified, 13 assumed.
   Push Perennial (`wg-assume`, `9092f8eaa`) first; the fork's `goose-revert` (`ab1deb078`).
+
+## The wait-group counter and thread tokens (2026-10-10)
+
+Perennial `105fb79f5` (merged into `lean`) reverts `614fa61d3`: `WaitGroup.Add` is
+Goose's translation again and `WaitGroup.wp_Add` asks its caller to bound the new counter by
+`2^31` (two `Add(1 << 30)` calls panic in Go, so the overflow was reachable and must not be
+assumed). The bound is discharged with Perennial's **thread tokens** (`GooseLang/Threads.lean`;
+`docs/PERENNIAL_PROOF_REFERENCE.md`, "Thread tokens"): the trusted semantics counts the live
+threads (`GlobalState.threads`; `Fork e` spawns `e ;; ThreadExit`), the bounded layer has a
+thread fuel next to the step fuel, and `threadToks n ⊢ n < threadBound GF` for a bound `T`
+fixed at adequacy time (`goose_adequacy N T`, about executions along which fewer than `T` threads
+are live). `Fork` hands the forking thread a token (`wp_fork_tok`, `wp_fork_tok_self`,
+`wp_fork_tok_body`) and the forked thread returns one at its exit.
+
+- **`cacheWgInv`** (`InvCache.lean`): the counter is `k + d`; `k` goroutines (`cacheWgRunning`,
+  `γwr`) have their **thread token deposited** in the invariant (`threadToks k`), `d` goroutines
+  (`cacheWgRunningOwed`, `γwo`) keep their own token and spent a capacity (`cacheWgOwedCap`,
+  `γwc`; `cacheWgOwedMax = 3`: the resync loop, the watch loop, the progress requestor, for the
+  cache's lifetime). `k` tokens give `k < threadBound GF`, so the counter is below
+  `threadBound GF + 3`; **`New` assumes `threadBound GF + cacheWgOwedMax ≤ 2^31`** (a pure
+  premise of `New.spec`/`newCache.spec`, kept in `isCacheFields` as `%Hthreads`): fewer than
+  `2^31 - 3` threads are live at once. The `cacheWgBudget` slots are unchanged.
+- **Who deposits.** The watch loop (`getWatchLoop`, `getWatch`, `watch`: `cacheWgLoopRunning`,
+  its owed running token and its own thread token) deposits its token at each iteration's
+  `Add(1)` (`wp_cacheWg_AddRunning`) and gets a fresh one at the `go` statement
+  (`wp_fork_tok_self`); the iteration's goroutine exits with the token its deferred `Done`
+  returns (`wp_cacheWg_Done`). `Watch` (`threadTok` in and out of its spec) does the same with a
+  budget slot (`wp_cacheWg_Add`). `NewDemux`'s slot protocol and `newCache`'s `Add(2)` start the
+  three owed goroutines (`wp_cacheWg_AddOwed`, `wp_cacheWg_Add2`; `wp_cacheWg_DoneOwed` returns
+  the capacity); `New`'s spec needs no token of its own.
+- **Changed statements**: `New`, `newCache` (the thread-bound premise), `Watch` (`threadTok`),
+  `watch`, `getWatch`, `getWatchLoop` (`cacheWgLoopRunning` for `cacheWgRunning`). `Close` and
+  the delivery theorem are unchanged.
+- **Trust base**: the model assumption is gone from Perennial's trusted code; what replaces it is
+  the semantic thread count and thread fuel (Perennial's `Lang.lean`, `BoundedLang.lean`,
+  `Threads.lean`, `Lifting.lean`, `Adequacy.lean`; see Perennial's README) and the adequacy
+  hypothesis `RealThreadsBelow T`, instantiated here by `New`'s premise. `etc/tcb-report.py
+  --check` is unchanged (the premise is a hypothesis of a spec, not an axiom).
 
 ## client/v3/concurrency: the transaction and lease model, Session (2026-10-09)
 
@@ -1716,7 +2047,9 @@ boundary".
   fail on a large context (`Cache.Watch` after `isCacheFields` grew): clearing two unused
   hypotheses fixed it.
 - **What the cache's results rest on, since the cache as shipped** (2026-10-09): as below, plus
-  the model axiom `etcdStep_delete_present` (`cache_New`), and Perennial's model assumption that
+  the model axiom `etcdStep_delete_present` (`cache_New`), and (superseded 2026-10-10 by the
+  thread-token bound and `New`'s thread-bound premise, see "The wait-group counter and thread
+  tokens") Perennial's model assumption that
   `WaitGroup.Add`'s `int32` counter does not overflow (trusted code, `TrustedCode/sync.lean`, not
   an axiom: every result using the cache's wait group, `cache_New`, `cache_Watch`, `cache_Close`).
 - **What the cache's results rest on** (closed 2026-10-09: the four `sorry`s below are gone,

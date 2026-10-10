@@ -40,62 +40,101 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [AllG GF] [S
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-theorem is_Storage_MemoryStorage (ms : Loc) :
-    ⊢ isStorageWith (GF := GF) (ownMemoryStorage ms)
+/-- A `MemoryStorage` with a snapshot meets the contract, with its own hand-out and
+receipt (`memAppendTok`, `memAppendedTok`, `InvMemstorage.lean`). The snapshot premise
+(`ss.index ≠ 0`, until 2026-10-10 a conjunct of `ownMemoryStorage`) is the contract's
+`Snapshot` clause, which promises a non-empty snapshot: a new storage
+(`NewMemoryStorage`) has none, and raft's `maybeSendSnapshot` panics on an empty one.
+It is reached only after a storage query failed, which `ErrCompacted` does only once the
+storage has compacted -- but also after an `ErrUnavailable` for a peer's `Next` past the
+log, which nothing proved here bounds (notes/decisions.md, "Storage: a pending append,
+for node.go"). Both laws keep `ss`. -/
+theorem is_Storage_MemoryStorage (ms : Loc) (γs : MemStorNames) :
+    ⊢ isStorageWith (GF := GF) (fun σ => iprop(ownMemoryStorage ms γs σ ∗ ⌜σ.ss.index' ≠ W64 0⌝))
+        (memAppendTok ms γs) (memAppendedTok ms γs)
         (interface.mkOk (go.GoType.PointerType MemoryStorage.ty) #ms) := by
   unfold isStorageWith
+  simp only []
   iexists (interface.mk (go.GoType.PointerType MemoryStorage.ty) #ms)
   isplitr
   · ipureintro; rfl
   isplitr
   · iintro %σ
     imodintro
-    iintro %Φ Hown HΦ
+    iintro %Φ ⟨⟨Hown, %Hss⟩, %Hpn⟩ HΦ
     ihave ⟨#Hinit, Hown⟩ := ownMemoryStorage_init $$ Hown
     wp_apply MemoryStorage.wp_LastIndex $$ [$Hown] as %li ⟨%Hli, Hown⟩
+    · ipureintro; exact Hpn
     iapply HΦ
     iframe
-    ipureintro; exact Hli
+    ipureintro; exact ⟨Hli, Hss⟩
   isplitr
   · iintro %σ
     imodintro
-    iintro %Φ Hown HΦ
+    iintro %Φ ⟨Hown, %Hss⟩ HΦ
     ihave ⟨#Hinit, Hown⟩ := ownMemoryStorage_init $$ Hown
     wp_apply MemoryStorage.wp_FirstIndex $$ [$Hown] as %fi ⟨%Hfi, Hown⟩
     iapply HΦ
     iframe
-    ipureintro; exact Hfi
+    ipureintro; exact ⟨Hfi, Hss⟩
   isplitr
   · iintro %σ %i0
     imodintro
-    iintro %Φ ⟨Hown, %Hr⟩ HΦ
+    iintro %Φ ⟨⟨Hown, %Hss⟩, %Hr, %Hpf⟩ HΦ
     ihave ⟨#Hinit, Hown⟩ := ownMemoryStorage_init $$ Hown
     wp_apply MemoryStorage.wp_Term $$ [$Hown] as %t ⟨%Ht, Hown⟩
-    · ipureintro; exact Hr
+    · ipureintro; exact ⟨Hr, Hpf⟩
     iapply HΦ
     iframe
-    ipureintro; exact Ht
+    ipureintro; exact ⟨Ht, Hss⟩
   isplitr
   · iintro %σ %lo %hi %maxSize
     imodintro
-    iintro %Φ ⟨Hown, %Hr⟩ HΦ
+    iintro %Φ ⟨⟨Hown, %Hss⟩, %Hr, %Hpf⟩ HΦ
     ihave ⟨#Hinit, Hown⟩ := ownMemoryStorage_init $$ Hown
     wp_apply MemoryStorage.wp_Entries $$ [$Hown] as %s %es ⟨Hs, %Hp, Hown⟩
-    · ipureintro; exact Hr
+    · ipureintro; exact ⟨Hr, Hpf⟩
     iapply HΦ
     iframe
-    ipureintro; exact Hp
+    ipureintro; exact ⟨Hp, Hss⟩
   isplitr
   · imodintro
-    iintro %σ Hown
-    iapply ownMemoryStorage_bounded $$ Hown
-  iintro %σ %esu
+    iintro %σ ⟨Hown, %Hss⟩
+    icases ownMemoryStorage_bounded $$ Hown with ⟨%Hb, Hown⟩
+    iframe
+    ipureintro; exact ⟨Hb, Hss⟩
+  isplitr
+  · iintro %σ %esu
+    imodintro
+    iintro %Φ ⟨⟨Hown, %Hss⟩, #Hesu⟩ HΦ
+    ihave ⟨#Hinit, Hown⟩ := ownMemoryStorage_init $$ Hown
+    wp_apply MemoryStorage.wp_Snapshot $$ [$Hown $Hesu] as %snap %err ⟨Hown, Hr⟩
+    iapply HΦ
+    iframe Hown
+    isplitr
+    · ipureintro; exact Hss
+    icases Hr with (%Herr | ⟨%Herr, Hv⟩)
+    · ileft; ipureintro; exact Herr
+    iright
+    iframe Hv
+    ipureintro
+    refine ⟨Herr.1, Herr.2, ?_⟩
+    have H := congrArg entryID.index' Herr.2
+    simp only [snapId] at H
+    rw [H]; exact Hss
+  isplitr
+  · imodintro
+    iintro %σ %p ⟨Hown, %Hss⟩ %Hpo
+    imod memStorage_handout ms γs σ p Hpo $$ Hown with ⟨Hown, Htok⟩
+    imodintro
+    iframe
+    ipureintro; exact Hss
   imodintro
-  iintro %Φ ⟨Hown, #Hesu⟩ HΦ
-  ihave ⟨#Hinit, Hown⟩ := ownMemoryStorage_init $$ Hown
-  wp_apply MemoryStorage.wp_Snapshot $$ [$Hown $Hesu] as %snap %err ⟨Hown, Hr⟩
-  iapply HΦ
+  iintro %σ1 %σ %p ⟨Hown, %Hss⟩ Ht
+  imod memStorage_absorb ms γs σ1 σ p $$ Hown Ht with ⟨%Heq, Hown⟩
+  imodintro
   iframe
+  ipureintro; exact ⟨Heq, Hss⟩
 
 end proof
 

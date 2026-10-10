@@ -84,18 +84,22 @@ theorem prevoteRespResult_frame (id : w64) (s : NState) (src : w64) (reject won 
         NState).logst = s.logst ∧
       uint.Z s.term ≤
         uint.Z ({ prevoteRespResult id s src reject won lost peers with prvals := pvs } :
-          NState).term := by
+          NState).term ∧
+      ({ prevoteRespResult id s src reject won lost peers with prvals := pvs } :
+          NState).prevote = s.prevote ∧
+      ({ prevoteRespResult id s src reject won lost peers with prvals := pvs } :
+          NState).gh = s.gh := by
     unfold prevoteRespResult
     split
-    · refine ⟨rfl, ?_⟩
+    · refine ⟨rfl, ?_, rfl, rfl⟩
       simp only [campaignState, sendMsgs, becomeCandidate, resetTo, Bool.false_eq_true,
         ↓reduceIte]
       word
     · split
-      · exact ⟨rfl, Int.le_refl _⟩
-      · exact ⟨rfl, Int.le_refl _⟩
-  obtain ⟨Hl, Ht⟩ := H
-  refine ⟨NetFrame.of_logst Hl, Ht, fun h => ?_, fun _ h => absurd Hty h,
+      · exact ⟨rfl, Int.le_refl _, rfl, rfl⟩
+      · exact ⟨rfl, Int.le_refl _, rfl, rfl⟩
+  obtain ⟨Hl, Ht, Hpv, Hg⟩ := H
+  refine ⟨NetFrame.of_logst Hl Hpv Hg, Ht, fun h => ?_, fun _ h => absurd Hty h,
     fun _ => by rw [Hl]; exact Int.le_refl _⟩
   rw [Hty] at h; exact absurd h (by w32_ne)
 

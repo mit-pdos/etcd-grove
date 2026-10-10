@@ -73,7 +73,7 @@ theorem Cache.watch.wp_proof
   ihave HI : (∃ (cc : DemuxCore),
       "Hw" ∷ (demuxWriter cf.demux γd cap (cacheCert cf) cc ∗ ⌜WriterOk cf.pfx cc⌝ ∗
         ∃ B : w64, cacheBound cf B) ∗
-      "Hrun" ∷ cacheWgRunning cf ∗
+      "Hrun" ∷ cacheWgLoopRunning cf ∗
       "%Hi" ∷ ⌜CursorOk cf.pfx cc (rev - W64 1)⌝ : IProp GF) $$ [Hdw Hbd Hrun]
   · iexists (initCore c0 rev).1
     simp only [named]
@@ -106,10 +106,14 @@ theorem Cache.watch.wp_proof
   · iexact Hoc
   ipersist storeW
   ipersist applyErr
-  -- `c.waitGroup.Add(1)`, by this running goroutine
-  wp_apply wp_cacheWg_AddRunning c cf $$ [$Hsync $HisWg $HwgInv $Hrun] as ⟨Hrun, Hrun'⟩
-  -- the goroutine: `defer c.waitGroup.Done()`, `applyStorage`, then the handoff
-  wp_apply wp_fork $$ [Hwcons Hprod Hrun']
+  -- `c.waitGroup.Add(1)`, by this running goroutine, depositing its thread token
+  iunfold cacheWgLoopRunning at Hrun
+  icases Hrun with ⟨Hown, Htok⟩
+  wp_apply wp_cacheWg_AddRunning c cf Hthreads $$ [$Hsync $HisWg $HwgInv $Hown $Htok]
+    as ⟨Hown, Hrun'⟩
+  -- the goroutine: `defer c.waitGroup.Done()`, `applyStorage`, then the handoff; it exits with
+  -- the thread token its `Done` returns, and the loop gets a fresh one
+  wp_apply wp_fork_tok_self $$ [Hwcons Hprod Hrun']
   · wp_apply wp_with_defer as %defer defer
     try wp_auto
     wp_apply wp_applyStorage c cf γr γd cap w γw rev $$ [$Hpkg $Hc $Hwi $Hwcons $Hslb] as %err -
@@ -127,15 +131,18 @@ theorem Cache.watch.wp_proof
       wp_apply wp_handoff_close γa ch watchP iprop(True) iprop(True) true $$ [$Hae $Hprod]
       · simp only [↓reduceIte]; itrivial
       try wp_auto
-      wp_apply wp_cacheWg_Done c cf $$ [$Hsync $HisWg $HwgInv $Hrun']
-      itrivial
+      wp_apply wp_cacheWg_Done c cf $$ [$Hsync $HisWg $HwgInv $Hrun'] as Htok
+      iexact Htok
     | nil =>
       wp_auto
       wp_apply wp_handoff_close γa ch watchP iprop(True) iprop(True) false $$ [$Hae $Hprod]
       · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
       try wp_auto
-      wp_apply wp_cacheWg_Done c cf $$ [$Hsync $HisWg $HwgInv $Hrun']
-      itrivial
+      wp_apply wp_cacheWg_Done c cf $$ [$Hsync $HisWg $HwgInv $Hrun'] as Htok
+      iexact Htok
+  iintro Htok
+  ihave Hrun : cacheWgLoopRunning (GF := GF) cf $$ [Hown Htok]
+  · unfold cacheWgLoopRunning; iframe
   -- `err := c.watchEvents(rev, applyErr, &readyOnce)`
   try wp_auto
   wp_apply wp_watchEvents c cf γr γd cap rev ch γa watchP iprop(True) iprop(True)

@@ -188,7 +188,8 @@ theorem raftLog.slice.wp_proof
       omega
     obtain ⟨Hsp, Hstored, -⟩ : LogStoreOk none σ ls.prev ls.sents ls.uents := Hsn ▸ Hstore
     have Hstlen := Hstored.length_le
-    ihave #Hsto : isStorageWith (ownStorage lv.storage') lv.storage' $$ [HisStorage]
+    ihave #Hsto : isStorageWith (ownStorage lv.storage') (appendTok lv.storage')
+      (appendedTok lv.storage') lv.storage' $$ [HisStorage]
     · unfold isStorage; iexact HisStorage
     unfold isStorageWith
     icases Hsto with ⟨%isv, #Hsto⟩
@@ -218,7 +219,9 @@ theorem raftLog.slice.wp_proof
       rw [Hstok]
       wp_apply HEntries $$ %σ %lo %hi %maxSize [$HStorage]
         as %se %ese ⟨#Hse, %Hpost, HStorage⟩
-      · ipureintro; rw [Hsp]; omega
+      · isplitr
+        · ipureintro; rw [Hsp]; omega
+        · ipureintro; exact pendFrom_of_logOk σ ls Hpend Hsn _ (by omega)
       rw [Hsp] at Hpost
       rw [← Hstok]
       obtain ⟨Hnee, Hlene, Hine, Hcape, Hpre⟩ := Hpost
@@ -239,7 +242,9 @@ theorem raftLog.slice.wp_proof
       rw [Hstok]
       wp_apply HEntries $$ %σ %lo %lv.unstable'.offset' %maxSize [$HStorage]
         as %se %ese ⟨#Hse, %Hpost, HStorage⟩
-      · ipureintro; rw [Hsp]; omega
+      · isplitr
+        · ipureintro; rw [Hsp]; omega
+        · ipureintro; exact pendFrom_of_logOk σ ls Hpend Hsn _ (by omega)
       rw [Hsp] at Hpost
       rw [← Hstok]
       obtain ⟨Hnee, Hlene, Hine, Hcape, Hpre⟩ := Hpost

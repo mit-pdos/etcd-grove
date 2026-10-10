@@ -328,7 +328,11 @@ theorem stepCandidate.wp_proof
         have Hnw1 := Hpvnw Hrole Hty
         rw [show go_etcd_io.raft.v3.campaignElection = #campaignElection from rfl]
         wp_apply wp_raft_campaign _ _ _ { s with votes := recordVote s.votes m.From' (!m.Reject') }
-            _ Hnl1 Hcfg Hnw1 $$ [$Hphys]
+            _ Hnl1 Hcfg Hnw1
+            (fun h => by
+              have := congrArg List.length h
+              simp [campaignElection, campaignPreElection] at this)
+            $$ [$Hphys]
           as %peers %pvs ⟨%Hpeers, Hphys⟩
         iapply HΦ $$ %GoInterface.nil %_ %false
         iframe Hphys

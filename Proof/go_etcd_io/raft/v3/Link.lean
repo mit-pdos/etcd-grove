@@ -37,6 +37,7 @@ public import Proof.go_etcd_io.raft.v3.quorum.MajorityConfig__CommittedIndex
 public import Proof.go_etcd_io.raft.v3.quorum.MajorityConfig__Slice
 public import Proof.go_etcd_io.raft.v3.quorum.MajorityConfig__VoteResult
 public import Proof.go_etcd_io.raft.v3.tracker.MakeProgressTracker
+public import Proof.go_etcd_io.raft.v3.MemoryStorage__Append
 public import Proof.go_etcd_io.raft.v3.MemoryStorage__Entries
 public import Proof.go_etcd_io.raft.v3.MemoryStorage__FirstIndex
 public import Proof.go_etcd_io.raft.v3.MemoryStorage__LastIndex
@@ -66,6 +67,7 @@ public import Proof.go_etcd_io.raft.v3.RawNode__Advance
 public import Proof.go_etcd_io.raft.v3.RawNode__Campaign
 public import Proof.go_etcd_io.raft.v3.RawNode__Step
 public import Proof.go_etcd_io.raft.v3.RawNode__Tick
+public import Proof.go_etcd_io.raft.v3.NewMemoryStorage
 public import Proof.go_etcd_io.raft.v3.NewRawNode
 public import Proof.go_etcd_io.raft.v3.raft__softState
 public import Proof.go_etcd_io.raft.v3.raft__hardState
@@ -75,6 +77,20 @@ public import Proof.go_etcd_io.raft.v3.raft__pastElectionTimeout
 public import Proof.go_etcd_io.raft.v3.RawNode__HasReady
 public import Proof.go_etcd_io.raft.v3.RawNode__Propose
 public import Proof.go_etcd_io.raft.v3.RawNode__Ready
+public import Proof.go_etcd_io.raft.v3.RawNode__acceptReady
+public import Proof.go_etcd_io.raft.v3.RawNode__readyWithoutAccept
+public import Proof.go_etcd_io.raft.v3.raft__hasLeader
+public import Proof.go_etcd_io.raft.v3.newNode
+public import Proof.go_etcd_io.raft.v3.node__run
+public import Proof.go_etcd_io.raft.v3.RestartNode
+public import Proof.go_etcd_io.raft.v3.node__stepWithWaitOption
+public import Proof.go_etcd_io.raft.v3.node__step
+public import Proof.go_etcd_io.raft.v3.node__stepWait
+public import Proof.go_etcd_io.raft.v3.node__Propose
+public import Proof.go_etcd_io.raft.v3.node__Step
+public import Proof.go_etcd_io.raft.v3.node__Ready
+public import Proof.go_etcd_io.raft.v3.node__Advance
+public import Proof.go_etcd_io.raft.v3.node__Tick
 public import Proof.go_etcd_io.raft.v3.SoftState__equal
 public import Proof.go_etcd_io.raft.v3.assertConfStatesEquivalent
 public import Proof.math.big.Int__Int64
@@ -342,6 +358,14 @@ theorem MemoryStorage.wp_firstIndex :
 theorem MemoryStorage.wp_FirstIndex :
     MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG) :=
   MemoryStorage.FirstIndex.wp_proof MemoryStorage.wp_firstIndex
+
+theorem MemoryStorage.wp_Append :
+    MemoryStorage.Append.spec (GF := GF) (hG := hG) :=
+  MemoryStorage.Append.wp_proof MemoryStorage.wp_firstIndex
+
+theorem wp_NewMemoryStorage :
+    NewMemoryStorage.spec (GF := GF) (hG := hG) :=
+  NewMemoryStorage.wp_proof
 
 theorem MemoryStorage.wp_LastIndex :
     MemoryStorage.LastIndex.spec (GF := GF) (hG := hG) :=
@@ -1015,9 +1039,66 @@ theorem RawNode.wp_Propose :
     RawNode.Propose.spec (GF := GF) (hG := hG) :=
   RawNode.Propose.wp_proof raft.wp_Step
 
+theorem RawNode.wp_readyWithoutAccept :
+    RawNode.readyWithoutAccept.spec (GF := GF) (hG := hG) :=
+  RawNode.readyWithoutAccept.wp_proof raftLog.wp_nextUnstableEnts raftLog.wp_nextCommittedEnts SoftState.wp_equal wp_isHardStateEqual raftLog.wp_hasNextUnstableSnapshot wp_MustSync
+
+theorem RawNode.wp_acceptReady :
+    RawNode.acceptReady.spec (GF := GF) (hG := hG) :=
+  RawNode.acceptReady.wp_proof raftLog.wp_hasNextOrInProgressUnstableEnts wp_IsEmptyHardState wp_IsEmptySnap raftLog.wp_lastEntryID wp_needStorageApplyRespMsg raftLog.wp_acceptUnstable wp_entsSize raftLog.wp_acceptApplying wp_traceReady
+
 theorem RawNode.wp_Ready :
     RawNode.Ready.spec (GF := GF) (hG := hG) :=
-  RawNode.Ready.wp_proof raftLog.wp_nextUnstableEnts raftLog.wp_nextCommittedEnts SoftState.wp_equal wp_isHardStateEqual raftLog.wp_hasNextUnstableSnapshot wp_MustSync raftLog.wp_hasNextOrInProgressUnstableEnts wp_IsEmptyHardState wp_IsEmptySnap raftLog.wp_lastEntryID wp_needStorageApplyRespMsg raftLog.wp_acceptUnstable wp_entsSize raftLog.wp_acceptApplying wp_traceReady
+  RawNode.Ready.wp_proof RawNode.wp_readyWithoutAccept RawNode.wp_acceptReady
+
+-- node.go (2026-10-10), Lean-first
+theorem raft.wp_hasLeader :
+    raft.hasLeader.spec (GF := GF) (hG := hG) :=
+  raft.hasLeader.wp_proof
+
+theorem wp_newNode :
+    newNode.spec (GF := GF) (hG := hG) :=
+  newNode.wp_proof
+
+theorem node.wp_run :
+    node.run.spec (GF := GF) (hG := hG) :=
+  node.run.wp_proof RawNode.wp_HasReady RawNode.wp_readyWithoutAccept RawNode.wp_acceptReady RawNode.wp_Advance RawNode.wp_Tick raft.wp_Step raft.wp_hasLeader wp_IsResponseMsg wp_IsLocalMsgTarget
+
+theorem wp_RestartNode :
+    RestartNode.spec (GF := GF) (hG := hG) :=
+  RestartNode.wp_proof wp_NewRawNode wp_newNode node.wp_run
+
+theorem node.wp_stepWithWaitOption :
+    node.stepWithWaitOption.spec (GF := GF) (hG := hG) :=
+  node.stepWithWaitOption.wp_proof
+
+theorem node.wp_step :
+    node.step.spec (GF := GF) (hG := hG) :=
+  node.step.wp_proof node.wp_stepWithWaitOption
+
+theorem node.wp_stepWait :
+    node.stepWait.spec (GF := GF) (hG := hG) :=
+  node.stepWait.wp_proof node.wp_stepWithWaitOption
+
+theorem node.wp_Propose :
+    node.Propose.spec (GF := GF) (hG := hG) :=
+  node.Propose.wp_proof node.wp_stepWait
+
+theorem node.wp_Step :
+    node.Step.spec (GF := GF) (hG := hG) :=
+  node.Step.wp_proof wp_IsLocalMsg wp_IsLocalMsgTarget node.wp_step
+
+theorem node.wp_Ready :
+    node.Ready.spec (GF := GF) (hG := hG) :=
+  node.Ready.wp_proof
+
+theorem node.wp_Advance :
+    node.Advance.spec (GF := GF) (hG := hG) :=
+  node.Advance.wp_proof
+
+theorem node.wp_Tick :
+    node.Tick.spec (GF := GF) (hG := hG) :=
+  node.Tick.wp_proof
 
 end links_hasLC
 

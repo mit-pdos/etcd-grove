@@ -41,7 +41,7 @@ variable [AllG GF]
 
 Premises: `Advance` ran since the last `Ready` (`acceptReady` `Panicf`s on a non-empty
 `stepsOnAdvance`), and the application appended the previous `Ready`'s entries to the
-storage (`ownRawNode_persist`).
+storage (and handed the receipt back, `ownRawNode_appended`).
 
 The `Ready` it returns:
 - `CommittedEntries`: `ce`, read-only, the committed entries right after the ones
@@ -49,7 +49,10 @@ The `Ready` it returns:
   (`isCommitted`, `Protocol`): the entries the application applies are the cluster's,
   in order and without gaps (`ce` may be empty, e.g. while applying is paused);
 - `Entries`: `es`, read-only, the entries the application must append to the storage
-  before the next `Ready` (`RNState.unpersisted`);
+  before the next `Ready` (`RNState.unpersisted`), with the right to do so
+  (`appendRight`, 2026-10-10: the storage's hand-out law, `InvStorage.lean`), which an
+  implementation's `Append` turns into the receipt `ownRawNode_appended` takes back --
+  on the application's goroutine, while the node keeps reading the storage;
 - `Messages`: the application's slice, to send; each message is `isRaftMsg`;
 - `Snapshot` empty and `ReadStates` nil (no snapshot pending, no read-index request in
   scope).
@@ -69,15 +72,20 @@ abbrev RawNode.Ready.spec : Prop :=
   {{ (rd : Ready) (ce es : List raftpb.Entry) (ms : List raftpb.Message)
       (steps : List Pending), RET #rd;
       "Hrn" ∷ ownRawNode γ rn id
-        { rs with delivered := rs.delivered ++ ce, unpersisted := es, steps := steps } ∗
+        { rs with delivered := rs.delivered ++ ce, unpersisted := es, steps := steps,
+                  outlb := 0, unst := false } ∗
       "#Hce" ∷ rd.CommittedEntries' ↦*□ ce ∗
       "#Hcommitted" ∷ isCommitted γ (rs.delivered ++ ce) ∗
       "#Hents" ∷ rd.Entries' ↦*□ es ∗
       "Hmsgs" ∷ rd.Messages' ↦* ms ∗
       "Hmsgs_cap" ∷ ownSliceCap raftpb.Message rd.Messages' (DFrac.own 1) ∗
       "#Hmsgs_ok" ∷ ([∗list] m ∈ ms, isRaftMsg γ m) ∗
+      -- every message is of a term at most the node's at the call (2026-10-10)
+      "%Hmsgs_term" ∷ ⌜∀ m ∈ ms, uint.Z m.Term' ≤ uint.Z rs.term⌝ ∗
       "%Hsnapz" ∷ ⌜rd.Snapshot' = zero_val raftpb.Snapshot ∧
-                   rd.ReadStates' = slice.nil⌝ }}
+                   rd.ReadStates' = slice.nil⌝ ∗
+      -- the right to append `es` to the node's storage (2026-10-10)
+      "Happ" ∷ appendRight rs.storage es }}
 
 end spec
 

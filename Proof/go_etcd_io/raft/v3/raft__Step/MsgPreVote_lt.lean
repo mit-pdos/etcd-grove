@@ -47,6 +47,8 @@ theorem wp_Step_MsgPreVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     -- this file: the incoming term is stale
     uint.Z m.Term' < uint.Z s.term →
     NStateWf s →
+    -- pre-vote on (2026-10-10; `raft.Step.spec`)
+    s.prevote = true →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhys cfg r id s }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
@@ -57,7 +59,7 @@ theorem wp_Step_MsgPreVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hlt0 Hwf
+  intro Hty Hto Hterm Hfnz Hfid Hlt0 Hwf Hpvon
   have Hn8 : decide (m.Type' = W32 8) = false := decide_eq_false (by rw [Hty]; w32_ne)
   have Hn3 : decide (m.Type' = W32 3) = false := decide_eq_false (by rw [Hty]; w32_ne)
   have Hy17 : decide (m.Type' = W32 17) = true := decide_eq_true Hty
@@ -96,7 +98,8 @@ theorem wp_Step_MsgPreVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     wp_apply _P.send cfg r id s _ [] _ (Or.inl rfl)
         (Or.inl ⟨.preVoteResp, Or.inr (Or.inr (Or.inr rfl)), mtypeOf_MsgPreVoteResp, Hs0,
           fun Hc => by rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne),
-          fun h => absurd h Hfid, rfl⟩)
+          fun h => absurd h Hfid,
+          fun Hpf => absurd (Hpvon.symm.trans Hpf) (by decide), rfl⟩)
       $$ [$Hphys]
     · isplitr
       · iapply ownSlice_nil

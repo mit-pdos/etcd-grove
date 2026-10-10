@@ -49,6 +49,8 @@ theorem wp_Step_MsgPreVote (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (s.term = W64 0 →
       plogUpToDate s.logst.prev (s.logst.sents ++ s.logst.uents)
         (entryID.mk m.LogTerm' m.Index') = true) →
+    -- pre-vote on (2026-10-10; `raft.Step.spec`)
+    s.prevote = true →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhys cfg r id s ∗
         "#Hctx" ∷ (∃ (ctx : List w8), m.Context' ↦*□ ctx ∗ ⌜ctx ≠ campaignTransfer⌝) }}
@@ -60,15 +62,15 @@ theorem wp_Step_MsgPreVote (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hwf Hutd0
+  intro Hty Hto Hterm Hfnz Hfid Hwf Hutd0 Hpvon
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
-  · exact wp_Step_MsgPreVote_gt _P cfg r id s m Hty Hto Hterm Hfnz Hfid Hgt Hwf Hutd0
+  · exact wp_Step_MsgPreVote_gt _P cfg r id s m Hty Hto Hterm Hfnz Hfid Hgt Hwf Hutd0 Hpvon
   · wp_start_folded as ⟨Hphys, -⟩
     by_cases Hlt : uint.Z m.Term' < uint.Z s.term
-    · iapply wp_Step_MsgPreVote_lt _P cfg r id s m Hty Hto Hterm Hfnz Hfid Hlt Hwf
+    · iapply wp_Step_MsgPreVote_lt _P cfg r id s m Hty Hto Hterm Hfnz Hfid Hlt Hwf Hpvon
         $$ [$Hpkg $Hphys] HΦ
     · have Heq : m.Term' = s.term := by word
-      iapply wp_Step_MsgPreVote_eq _P cfg r id s m Hty Hto Hterm Hfnz Hfid Heq Hwf
+      iapply wp_Step_MsgPreVote_eq _P cfg r id s m Hty Hto Hterm Hfnz Hfid Heq Hwf Hpvon
         $$ [$Hpkg $Hphys] HΦ
 
 end StepProof

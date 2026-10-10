@@ -251,8 +251,11 @@ structure LogState [FfiSyntax] where
   field of the state", notes/decisions.md): `ownRaftLog` still owns the `Storage` --
   `Step` reads it on most paths, so it cannot be lent out -- and promises that once
   the storage also holds these entries, the in-progress prefix of the log is persisted
-  (`InvRaftlog.lean`, `Hpersist`, `StorApp`). The application appends them through
-  `ownRaftLog_persist`, which empties the field; `Advance` requires it empty. -/
+  (`InvRaftlog.lean`, `Hpersist`, `StorApp`). Since 2026-10-10 they are also the
+  storage's pending batch (`StorState.pend`, `PendLogOk`): `acceptUnstable` hands out
+  the right to append them, and `ownRaftLog_absorb` takes the receipt back and empties
+  the field (until then `ownRaftLog_persist` lent the storage itself); `Advance`
+  requires it empty. -/
   unpersisted : List raftpb.Entry
   /-- What the `Storage` holds (its entries after `prev`) once the application has
   appended `unpersisted` (2026-10-10), while no snapshot is pending (`InvRaftlog.lean`,
@@ -270,6 +273,12 @@ structure LogState [FfiSyntax] where
   under the limit while applying is not paused). -/
   apsize : w64
   apmax : w64
+  /-- `l.storage`, the `Storage` interface value the log reads (2026-10-10). Constant:
+  nothing writes the field after `newLogWithSize`. In the state so that a client can
+  name the storage it appends to (`RNState.storage`): the receipt of an append
+  (`appendedTok st σ p`, `InvStorage.lean`) is for one storage, and only the log that
+  reads that storage may absorb it (`ownRaftLog_absorb`). -/
+  storage : Storage
 
 /-! ## The tracker's records (2026-10-02)
 
@@ -531,6 +540,18 @@ it as an `Int` equation, and `ownRaftLog`'s `Hnowrap` says the `W64` does not wr
 def logLast (ls : LogState) : w64 :=
   W64 (uint.Z ls.prev.index' + ls.sents.length + ls.uents.length)
 
+/-- `unstable.offset`, which `ownRaftLog` pins to the end of the stable part
+(`Hoffset`). -/
+def logOffset (ls : LogState) : Int :=
+  uint.Z ls.prev.index' + (ls.sents.length : Int) + 1
+
+/-- `nextUnstableEnts()`: the unstable entries not yet handed out by a `Ready`
+(`u.entries[offsetInProgress-offset:]`). -/
+def nextUnstable (ls : LogState) : List raftpb.Entry :=
+  ls.uents.drop (uint.Z ls.inprogress - logOffset ls).toNat
+-- (Both moved here from `InvReadylog.lean` on 2026-10-10: `ownRaftPhys` states
+-- `NGhost.unst` on `nextUnstable`.)
+
 /-- `raftLog.append` at the end of the log: the batch joins the unstable suffix
 (`Spec/raftLog__append.lean`). -/
 def logAppend (ls : LogState) (ents : List raftpb.Entry) : LogState :=
@@ -547,7 +568,7 @@ snapshot pending. `unstable.restore` sets `offsetInProgress` to the new offset;
 `applying` and the unpersisted entries are untouched. -/
 def logRestore (ls : LogState) (sid : entryID) : LogState :=
   ⟨sid, [], [], sid.index', ls.applied, some sid, sid.index' + W64 1, ls.applying,
-   ls.unpersisted, ls.stored, ls.apsize, ls.apmax⟩
+   ls.unpersisted, ls.stored, ls.apsize, ls.apmax, ls.storage⟩
 
 /-! `stamp`, `appendEntry`'s stamping loop, is in `Protocol/Model.lean` (since
 2026-10-01: the model's `Step.win` and `Step.propose` stamp too). -/
@@ -605,6 +626,20 @@ pre-candidate as a follower.
 The first six fields have `PState`'s names, so that a spec's `s.term` reads the same
 as it always did; `role` is the physical role. -/
 
+/-- Ghost facts the raft struct keeps for `node.go` (2026-10-10), lower bounds that only a
+`Ready` resets: `outlb` is at most the number of queued messages (`r.msgs` and
+`r.msgsAfterAppend`; they only grow until `acceptReady` empties them), and `unst` says
+that some unstable entry has not been handed out (`nextUnstable` is non-empty, or a
+snapshot is pending). `node.go`'s `run` abandons a computed `Ready` and may later send
+it after all, when `HasReady` reports nothing new: that is right only because whatever
+the abandoned `Ready` held is still there (`ownRawNodeReady_abandon`, `RNState.outlb`).
+`ownRaftPhys` states both (`Hgh_out`, `Hgh_unst`); every step but a storage
+acknowledgement keeps them (`NetFrame`, `LocalFrame`). -/
+structure NGhost where
+  outlb : Nat := 0
+  unst : Bool := false
+deriving DecidableEq
+
 structure NState [FfiSyntax] where
   term : w64
   vote : w64
@@ -629,6 +664,8 @@ structure NState [FfiSyntax] where
   prvals : GMap w64 Progress
   /-- `r.preVote` (2026-10-04) -/
   prevote : Bool
+  /-- ghost lower bounds for `node.go` (2026-10-10), see `NGhost` -/
+  gh : NGhost := {}
 
 section phys_state
 variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]

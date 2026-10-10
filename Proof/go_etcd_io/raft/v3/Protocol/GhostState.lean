@@ -27,6 +27,9 @@ Lean notes:
 module
 
 public import Proof.go_etcd_io.raft.v3.Protocol.Ghost
+public import Perennial.Ghost.GhostVar
+public import Iris.BI.Lib.Atomic
+public import Iris.Instances.Lib.FUpd
 
 @[expose] public section
 
@@ -90,6 +93,13 @@ def isMessage (γ : RaftNames) (m : Msg) : IProp GF :=
          -- the committed prefix the snapshot covers (2026-10-05)
          isCommitted γ ((fp ++ l).take (uint.Z m.index).toNat)) ∗
       ⌜m.src ≠ W64 0⌝)
+  | .propose =>
+      -- a proposal (2026-10-10): a local one (term `0`), a non-empty batch of normal
+      -- entries short enough for `appendEntry`, each with its data (`entData`: proposed,
+      -- its update deposited before it left the proposing node)
+      iprop(⌜m.term = W64 0 ∧ m.entries ≠ [] ∧ (∀ e ∈ m.entries, e.Type' = W32 0) ∧
+          (m.entries.length : Int) < 2 ^ 61⌝ ∗
+        [∗list] e ∈ m.entries, entData γ e)
   | _ => iprop(True)
 
 instance isMessage_persistent (γ : RaftNames) (m : Msg) :
@@ -103,7 +113,7 @@ instance isMessage_timeless (γ : RaftNames) (m : Msg) :
 /-- The message types that carry nothing. -/
 def MsgFree (ty : MsgType) : Bool :=
   match ty with
-  | .heartbeatResp | .propose | .preVote
+  | .heartbeatResp | .preVote
   | .preVoteResp | .readIndex | .readIndexResp => true
   | _ => false
 
@@ -592,76 +602,116 @@ instance committedJust_timeless (γ : RaftNames) (l : List raftpb.Entry) :
 
 def raftN : Namespace := nroot .@ "raft_commit"
 
-/-! ### The proposal registry (2026-10-05)
+/-! ### The client log and the proposal registry (2026-10-10)
 
-`propAu γ e0 Q`: the client's update for a proposal of the unstamped entry `e0`, run
-**when the entry is committed** -- when the global log `l` is extended to `l ++ [e]`,
-`e = stampAt e0 t i` the entry at index `i = length l + 1`. It is handed the authority
-of the global log just extended and must give it back unchanged; it produces `Q t i`
-(the client learns where its entry landed).
+The client's view of the committed log is `cLog γ L`: the data of the committed client
+entries, in commit order, first occurrences only (`firstOcc`, `Model.lean`); a leader's own
+entries (the zero slice) do not count. `raftCommitInv` holds one half of the ghost
+variable `reCLog`, the client the other: raft cannot move it without the client.
 
-It is a plain wand, not a fancy update: it is stored in `raftCommitInv`, so it is under
-a later when `Step.commit` runs it, and a ghost step has no later to spend (no physical
-step, no credits); a wand under a later still produces its result under a later, which
-is where the registry keeps it. A client that wants a fancy update takes
-`Q := fun t i => |={⊤ \ ↑raftN}=> Q' t i` and runs it when it collects.
+What moves it is the client's **atomic update** for a proposal of data `d`
+(`propAu γ d Q`: `AU <{ ∃∃ L, cLog γ L }> @ ⊤ ∖ ↑raftN, ∅ <{ cLog γ (L ++ [d]), COMM Q L }>`),
+deposited in the registry before the proposal leaves the proposing node
+(`prop_deposit`), and fired by the ghost commit (`commit_extend`) when the first entry
+with data `d` is committed -- the linearization point. Each pending slot holds a later
+credit with its update: the update is under the invariant's later, and the credit strips
+it when the commit fires it (the commit itself is a ghost step, without a later of its
+own). A data is deposited once (the fresh token `propFresh γ d`, kept by the invariant);
+a retried proposal of the same data carries the persistent `deposited γ d`, and a
+duplicate entry (a retry, a redelivered proposal) does not move `cLog`.
 
-A registered proposal `(t, i) ↦ (γq, γk, e0)` has the leader's entry `stampAt e0 t i`
-(`propsIdx`, which keeps registration fresh: the leader of `t` is creating index `i`
-now) and is in one of three states (`propSlot`): pending, holding the update, while the
-global log has no entry of term `t` at `i`; done, holding its result `Φ (t, i)`, once it
-has; collected, holding the token the client traded for the result (`prop_collect`).
-The client's `Q` is tied to the slot's `Φ` by a saved predicate (`isProp`). -/
+A slot `d ↦ (γq, γk)` (`propSlot`) is pending (holding the credit and the update, while
+`d ∉ L`) or fired (`d ∈ L`, after the client log `L0` it was fired at), holding the
+update's result `Q L0` or, once the client collected it (`prop_collect`), the client's
+ticket `γk`. The client's `Q` is tied to the slot by a saved predicate (`isProp`). -/
 
-def propAu (γ : RaftNames) (e0 : raftpb.Entry) (Q : w64 → w64 → IProp GF) : IProp GF :=
-  iprop(∀ (t i : w64) (l : List raftpb.Entry),
-    ⌜(l.length : Int) + 1 = uint.Z i⌝ -∗
-    ownCommitted γ (l ++ [stampAt e0 t i]) -∗
-    ownCommitted γ (l ++ [stampAt e0 t i]) ∗ Q t i)
+/-- The client's half of the client log. -/
+def cLog (γ : RaftNames) (L : List (List w8)) : IProp GF :=
+  ghostVar γ.reCLog (1 : Qp).half L
 
-abbrev PropRec := (GName × GName) × raftpb.Entry
+instance cLog_timeless (γ : RaftNames) (L : List (List w8)) : Timeless (cLog (GF := GF) γ L) := by
+  unfold cLog; infer_instance
 
-def propSlot (γ : RaftNames) (k : w64 × w64) (v : PropRec) (l : List raftpb.Entry) :
-    IProp GF :=
-  iprop(∃ Φ : w64 × w64 → IProp GF, savedPredOwn v.1.1 DFrac.discard Φ ∗
-    ( (⌜∀ e, l[pos k.2]? = some e → e.Term' ≠ k.1⌝ ∗
-        propAu γ v.2 (fun t i => Φ (t, i)))
-    ∨ (⌜∃ e, l[pos k.2]? = some e ∧ e.Term' = k.1⌝ ∗ Φ k)
-    ∨ token v.1.2 ))
+/-- The token for depositing `d` the first time (an element of the client's map
+`reFresh`). -/
+def propFresh (γ : RaftNames) (d : List w8) : IProp GF :=
+  d ↪[γ.reFresh] ()
 
-def propsIdx (γ : RaftNames) (R : GMap (w64 × w64) PropRec) : IProp GF :=
-  iprop([∗map] k ↦ v ∈ R, isEntry γ (stampAt v.2 k.1 k.2) ∗ ⌜0 < uint.Z k.2⌝)
+instance propFresh_timeless (γ : RaftNames) (d : List w8) :
+    Timeless (propFresh (GF := GF) γ d) := by
+  unfold propFresh; infer_instance
 
-instance propsIdx_persistent (γ : RaftNames) (R : GMap (w64 × w64) PropRec) :
-    Persistent (propsIdx (GF := GF) γ R) := by
-  unfold propsIdx; infer_instance
-instance propsIdx_timeless (γ : RaftNames) (R : GMap (w64 × w64) PropRec) :
-    Timeless (propsIdx (GF := GF) γ R) := by
-  unfold propsIdx; infer_instance
+/-- The client's handle on its deposited proposal: the slot of `d`, with result `Q`. -/
+def isProp (γ : RaftNames) (d : List w8) (γp : GName × GName)
+    (Q : List (List w8) → IProp GF) : IProp GF :=
+  iprop(d ↪[γ.reProps]□ γp ∗ savedPredOwn γp.1 DFrac.discard Q)
 
-/-- The client's handle on its proposal: registered at `(t, i)`, with result `Q`; and the
-token it trades for `Q t i`. -/
-def isProp (γ : RaftNames) (t i : w64) (γp : GName × GName) (Q : w64 → w64 → IProp GF) :
-    IProp GF :=
-  iprop(∃ e0 : raftpb.Entry, (t, i) ↪[γ.reProps]□ (((γp.1, γp.2), e0) : PropRec) ∗
-        savedPredOwn γp.1 DFrac.discard (fun ti : w64 × w64 => Q ti.1 ti.2))
-
+/-- The ticket the client trades for the result. -/
 def propTok (γp : GName × GName) : IProp GF := token γp.2
 
-instance isProp_persistent (γ : RaftNames) (t i : w64) (γp : GName × GName)
-    (Q : w64 → w64 → IProp GF) : Persistent (isProp γ t i γp Q) := by
+instance isProp_persistent (γ : RaftNames) (d : List w8) (γp : GName × GName)
+    (Q : List (List w8) → IProp GF) : Persistent (isProp γ d γp Q) := by
   unfold isProp; infer_instance
 instance propTok_timeless (γp : GName × GName) : Timeless (propTok (GF := GF) γp) := by
   unfold propTok; infer_instance
 
+theorem isProp_deposited (γ : RaftNames) (d : List w8) (γp : GName × GName)
+    (Q : List (List w8) → IProp GF) : ⊢ isProp (GF := GF) γ d γp Q -∗ deposited γ d := by
+  unfold isProp deposited
+  iintro ⟨#H, -⟩
+  iexists γp; iexact H
+
 section inv
 variable [InvGS GF]
 
+/-- See the section header. -/
+def propAu (γ : RaftNames) (d : List w8) (Q : List (List w8) → IProp GF) : IProp GF :=
+  iprop(AU <{ ∃∃ (L : List (List w8)), cLog γ L }> @ ⊤ \ ↑raftN, ∅
+          <{ cLog γ (L ++ [d]), COMM Q L }>)
+
+/-- Firing a deposited update: the raft half of the client log, at `Lr`, moves to
+`Lr ++ [d]` with the client's half, and the update's result comes out. -/
+theorem propAu_fire (γ : RaftNames) (d : List w8) (Q : List (List w8) → IProp GF)
+    (Lr : List (List w8)) :
+    ⊢ propAu γ d Q -∗ ghostVar γ.reCLog (1 : Qp).half Lr ={⊤ \ ↑raftN}=∗
+      ghostVar γ.reCLog (1 : Qp).half (Lr ++ [d]) ∗ Q Lr := by
+  iintro Hau Hv
+  unfold propAu
+  ihave Hacc := aupd_aacc $$ Hau
+  unfold atomic_acc
+  imod Hacc with Hacc
+  isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
+  icases Hacc with ⟨%L', HcL, Hclose⟩
+  unfold cLog
+  ihave %Heq := ghostVar_agree γ.reCLog Lr (1 : Qp).half L' (1 : Qp).half $$ Hv HcL
+  subst Heq
+  imod ghostVar_update_halves (Lr ++ [d]) γ.reCLog Lr Lr $$ Hv HcL with ⟨Hv, HcL⟩
+  icases Hclose with ⟨-, Hcomm⟩
+  isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcomm
+  imod Hcomm $$ HcL with HQ
+  imodintro
+  iframe Hv HQ
+
+def propSlot (γ : RaftNames) (d : List w8) (γp : GName × GName) (L : List (List w8)) :
+    IProp GF :=
+  iprop(∃ Q : List (List w8) → IProp GF, savedPredOwn γp.1 DFrac.discard Q ∗
+    ( (⌜d ∉ L⌝ ∗ £ 1 ∗ propAu γ d Q)
+    ∨ (∃ L0, ⌜L0 ++ [d] <+: L ∧ d ∉ L0⌝ ∗ (Q L0 ∨ token γp.2)) ))
+
+/-- The registry and the client log, for the committed log `l`: each committed entry's
+data (`ods`), the raft half of the client log at `firstOcc ods`, and the slots (each
+holding its data's fresh token). -/
+def propsOwn (γ : RaftNames) (l : List raftpb.Entry) (R : GMap (List w8) (GName × GName)) :
+    IProp GF :=
+  iprop(∃ (ods : List (Option (List w8))),
+    ([∗list] e;o ∈ l;ods, entDataIs γ e o) ∗
+    ghostVar γ.reCLog (1 : Qp).half (firstOcc ods) ∗
+    ghostMapAuth γ.reProps 1 R ∗
+    [∗map] d ↦ γp ∈ R, propSlot γ d γp (firstOcc ods) ∗ propFresh γ d)
+
 def raftCommitInv (γ : RaftNames) : IProp GF :=
-  inv raftN iprop(∃ l, ∃ (R : GMap (w64 × w64) PropRec),
-               ownCommitted γ l ∗ committedJust γ l ∗ votesTbl γ ∗
-               ghostMapAuth γ.reProps 1 R ∗ propsIdx γ R ∗
-               [∗map] k ↦ v ∈ R, propSlot γ k v l)
+  inv raftN iprop(∃ l, ∃ (R : GMap (List w8) (GName × GName)),
+               ownCommitted γ l ∗ committedJust γ l ∗ votesTbl γ ∗ propsOwn γ l R)
 
 instance raftCommitInv_persistent (γ : RaftNames) :
     Persistent (raftCommitInv (GF := GF) γ) := by

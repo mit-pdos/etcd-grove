@@ -7,7 +7,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                files; exit 1 (printing a diff) if they differ.  A gate for CI: the
                checked-in translation must be exactly what the pinned translator
                produces from the pinned Go source.
-  --project    only this project (etcd-raft or etcd; repeatable; default: all).
+  --project    only this project (etcd-raft, etcd or register; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
                $ETCD_RAFT_SRC).  For a pinned revision not yet pushed, or for trying
@@ -23,7 +23,7 @@ every non-standard-library Go path the translation reaches to the empty root
 (modules `Code.<pkg>`, `GeneratedProof.<pkg>`; standard-library packages stay
 `Perennial.*`, Perennial's).  A project's `parts` translate more of its packages into a
 module root of their own (`<root>/Code/`, configured by `<root>/Code/**.toml`): etcd's raft
-dependency, in `EtcdDeps/`, whose Go path is that of the etcd-raft fork.
+dependency, in `EtcdDeps/`, whose Go path is that of the etcd-raft project.
 Without --check, the generated `.lean` files under `{Code,GeneratedProof}/`
 (in the subdirectories the project owns) are replaced by fresh output.  The Goose
 configuration (`*.toml`, next to the code) is input and is never touched.
@@ -31,7 +31,8 @@ configuration (`*.toml`, next to the code) is input and is never touched.
 The translator (`goose`, `proofgen`) is built with `go` from Perennial's `goose/`.
 The pinned Perennial is `.lake/packages/perennial` when Lake has already checked it
 out at the pinned revision, otherwise a clone in `.lake/goose/perennial`.  A
-project's source is cloned into `.lake/goose/<name>` at its pinned revision.
+project's source is cloned into `.lake/goose/<name>` at its pinned revision, except
+for a project in this repository (`local`), whose source is that directory.
 """
 
 import argparse
@@ -52,7 +53,7 @@ WORK = os.path.join(ROOT, ".lake", "goose")
 class Part:
     """A translation of some of a project's packages into the module root `root`: for a Go
     path that is also translated from another source (etcd's own raft dependency, whose
-    path is the fork's), so that the two have different modules."""
+    path is etcd-raft's), so that the two have different modules."""
     root: str
     lean_roots: list
     packages: list
@@ -62,8 +63,8 @@ class Part:
 @dataclass
 class Project:
     name: str
-    # The Go source: a fork that makes the code translatable.  Change the revision
-    # here and rerun etc/goose.py.
+    # The Go source, at a pinned revision (upstream, or a fork that makes the code
+    # translatable).  Change the revision here and rerun etc/goose.py.
     repo: str
     rev: str
     # goose's -lean-root PKG=ROOT arguments: Go path prefixes -> Lean module root.
@@ -80,6 +81,9 @@ class Project:
     # The Go modules of the checkout whose code etc/verified-code.py counts (not its
     # tests or tools); None: every module of the checkout.
     counted_modules: list = None
+    # The Go source is this directory of this repository (relative to its root) instead
+    # of a fork (`repo`, `rev`: None).
+    local: str = None
 
     @property
     def env(self):
@@ -89,8 +93,11 @@ class Project:
 PROJECTS = [
     Project(
         name="etcd-raft",
-        repo="https://github.com/upamanyus/etcd-raft",
-        rev="531b20c6251eb54f79ed1ca242430a20aaaae0c3",
+        # Upstream, unmodified: the last commit before raftpb moved to protobuf-go v2
+        # (2026-04-15; from the next commit on, messages are pointers with getters, see
+        # notes/STATUS.md, "Retargeting raft to upstream").
+        repo="https://github.com/etcd-io/raft",
+        rev="40f8be730b181c22b430ad83845ce477ca76ad15",
         # Modules Code.go_etcd_io.raft.v3*, GeneratedProof.go_etcd_io.raft.v3*.
         lean_roots=["go.etcd.io/raft/v3="],
         packages=[
@@ -112,7 +119,7 @@ PROJECTS = [
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
         rev="ab1deb078c7665f4907b0a4297cbd990266ecfde",
-        # go.etcd.io/raft/v3 is etcd's own raft dependency (etcd's go.mod), not the fork
+        # go.etcd.io/raft/v3 is etcd's own raft dependency (etcd's go.mod), not the raft
         # above: its modules are EtcdDeps.Code.go_etcd_io.raft.v3* (the part below).
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
                     "go.etcd.io/bbolt=", "go.opentelemetry.io=",
@@ -156,6 +163,8 @@ PROJECTS = [
             "go.etcd.io/etcd/pkg/v3/featuregate",
             "go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery",
             "go.etcd.io/bbolt",
+            # bbolt's page-id helpers, with bodies (bbolt/internal/common.toml)
+            "go.etcd.io/bbolt/internal/common",
             "go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc",
             "google.golang.org/protobuf/proto",
             "google.golang.org/protobuf/reflect/protoreflect",
@@ -189,7 +198,7 @@ PROJECTS = [
                os.path.join("net", "http"), os.path.join("github_com", "dustin")],
         parts=[
             # etcd's own raft dependency (go.etcd.io/raft/v3 in etcd's go.mod), whose
-            # raftpb is protobuf-go v2: not the gogoproto fork etcd-raft above, but the same
+            # raftpb is protobuf-go v2: not the gogoproto etcd-raft above, but the same
             # Go path, so into a root of its own (modules EtcdDeps.Code.go_etcd_io.raft.v3*;
             # both define `Perennial.go_etcd_io.raft.v3.*`, so no module imports both).
             Part(
@@ -210,6 +219,18 @@ PROJECTS = [
             "go.etcd.io/etcd/pkg/v3",
             "go.etcd.io/etcd/server/v3",
         ],
+    ),
+    Project(
+        name="register",
+        # An example application on raft's Node: a replicated string register. A Go
+        # module of this repository, whose go.mod requires go.etcd.io/raft/v3 at the
+        # revision pinned above (keep the two in step).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "register"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove")],
     ),
 ]
 
@@ -281,6 +302,10 @@ def pieces(proj):
 
 def source(proj, local, check):
     """The checkout to translate, and a description of it for the output."""
+    if proj.local is not None:
+        if local is not None:
+            sys.exit(f"goose.py: {proj.name} is translated from {proj.local}; no --src")
+        return os.path.join(ROOT, proj.local), proj.local
     if local is None:
         return checkout(proj.repo, proj.rev, os.path.join(WORK, proj.name)), proj.rev[:12]
     local = os.path.abspath(local)

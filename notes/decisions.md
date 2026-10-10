@@ -1014,6 +1014,14 @@ reverted (`goose-revert`, `ab1deb078`). The proofs fit the code as shipped.
   compare-and-swap, and `Add`'s atomic update opens at `⊤ \ ↑N` (the proof reads the state in the
   wait group's invariant before deciding to commit). *Rejected:* time receipts (bounding the
   execution to `2^31` steps, an assumption about every result); a fork change (not a bug).
+  **Superseded 2026-10-10** (`STATUS.md`, "The wait-group counter and thread tokens"): the
+  assumption was reachable (two `Add(1 << 30)` calls panic in Go) and is reverted in Perennial.
+  The counter is bounded by Perennial's *thread tokens* instead: one per goroutine that has been
+  `Add`ed and not yet `Done`, deposited by the thread that calls `Add` (its own; it gets a fresh
+  one at the `go` statement), so the counter is below the thread bound `T` of the adequacy
+  theorem, and `New` assumes `T + 3 ≤ 2^31` (three goroutines keep their own token). This is
+  the argument the assumption gestured at (`2^31` goroutines cannot be live at once), made in
+  the logic and stated once, as an adequacy hypothesis.
 - *Rejected: the exclusive writer* (the previous design): it needs the loop to wait for each
   iteration's goroutine, a code change that fixes no bug.
 
@@ -1330,8 +1338,10 @@ also the gap flag `advanceable`, below). `Ready`
 returns `ce` with `isCommitted γ (rs.delivered ++ ce)`; messages carry the opaque
 `isRaftMsg γ m`; `HasReady` says nothing about its answer (liveness only); `Ready`'s soft
 state, hard state and `MustSync` facts are gone (no spec used them; there is no crash
-model), and so are `RNState.soft`/`hard`. `ownRawNode_persist` lends the storage for the
-application's `Append` and returns `{ rs with unpersisted := [] }`.
+model), and so are `RNState.soft`/`hard`. `ownRawNode_persist` lent the storage for the
+application's `Append` and returned `{ rs with unpersisted := [] }` (until 2026-10-10: now
+`Ready` returns the right to append and `ownRawNode_appended` takes the receipt, "Storage:
+a pending append, for node.go" below).
 
 To keep `delivered` across `Propose`/`Advance`, `raft.Step`'s postcondition gained
 `LocalStepOk` (for `MsgProp`, `MsgStorageAppendResp`, `MsgStorageApplyResp`: term,
@@ -1701,3 +1711,203 @@ buffered reads and writes with one guarded transaction, retrying on conflict.
   `make([]T, 0, len(m))`, which panics on a negative capacity. *Rejected:* a size bound in
   `stmState` (an insert could not keep it without the same assumption); a precondition on the
   callers (likewise).
+
+---
+
+## Storage: a pending append, for node.go
+
+**2026-10-10 · accepted**
+
+`node.go`'s `run` goroutine owns the `RawNode` and keeps reading the `Storage` (`term`,
+`slice`, `lastIndex`, `firstIndex`, `snapshot`) while the application, on its own
+goroutine, appends the last `Ready`'s entries (`storage.Append(rd.Entries)`) and only then
+calls `Advance`. Until 2026-10-10 the contract could not say so: `ownStorage st σ` was one
+exclusive predicate held by `ownRaftLog`, and the application appended by borrowing it
+(`ownRawNode_persist`), excluding raft's reads meanwhile.
+
+Raft never reads what the pending append changes: `raftLog.term(i)` asks the storage only
+below `unstable.offset` (or with nothing unstable), `slice` only below it, `lastIndex()`
+only with nothing unstable -- and then nothing is pending -- and the batch (`unpersisted`)
+starts at or above the offset (it is the in-progress part of the unstable suffix; only a
+truncating `append` moves the offset, down).
+
+**Decision.**
+
+- `StorState.pend`: the batch the application may be appending, `[]` when none.
+  `isStorageWith P AT DT st` (two new parameters: the right to append and its receipt)
+  promises `Term(i)` only below the batch, `Entries(lo, hi)` only for `hi` at most its
+  first index (`PendFrom`), `LastIndex` only with nothing pending; `FirstIndex`,
+  `Snapshot`, `Hbounded` as before. Two new persistent clauses: `Hhandout` (`P σ` with
+  nothing pending and a `PendOk` batch `p` `==∗ P { σ with pend := p } ∗ AT σ p`) and
+  `Habsorb` (`P σ1 -∗ DT σ p ==∗ ⌜σ1 = { σ with pend := p }⌝ ∗ P (storAbsorb σ1)`).
+  `StorageModel` gained `appendTok`/`appendedTok`; `isStorage st` instantiates `AT`/`DT`
+  with them. `PendOk` (non-empty, starting above the boundary and at most one past the
+  stored entries) is what makes `MemoryStorage.Append`'s cut and `Panicf` unreachable.
+- Raft's side: `ownRaftLog` ties the batch to `ls.unpersisted` and puts it at or above
+  the offset (`PendLogOk`); the read proofs discharge `PendFrom` from it
+  (`pendFrom_of_logOk`), `lastIndex` from `LogPersistOk`'s `uents = [] → pend = []`.
+  `acceptUnstable` runs the hand-out (`isStorage_handout`) and returns the right
+  (`appendRight st p := ⌜p = []⌝ ∨ ∃ σ, appendTok st σ p`), and `RawNode.Ready`
+  returns it with the `Ready`. `ownRawNode_appended` (replacing `ownRawNode_persist`)
+  absorbs the receipt (`appendReceipt`) into `ownRawNode { rs with unpersisted := [] }`
+  (`ownRaftLog_absorb`). `acceptUnstable` takes `ls.snap = none` (`Ready` has it).
+- **The storage's identity.** A receipt is for one storage: absorbing one storage's
+  receipt into a node reading another would be unsound (two nodes may hand out the same
+  entries). So the client must name the storage: `RNState.storage` (the `Config.Storage`
+  given to `NewRawNode`), and `ownRawNode` ties it to the log's: `LogState.storage`
+  (`ownRaftLog`'s `Hstor`: `lv.storage' = ls.storage`), kept by every step like
+  `unpersisted` -- `NetFrame`, `LocalFrame`, `raftLog.maybeAppend`'s and
+  `handleAppendEntries`' frames gained the conjunct (`keep_frame` & co. as an auto-param
+  `rfl`), `newRaft` returns it. *Rejected*: a ghost name per node (`RaftNames` is
+  cluster-wide; every choice still has to reach the log's storage pointer, which only
+  `LogState` sees); a law `ownStorage st1 σ1 ∗ appendedTok st σ p ⊢ ⌜st1 = st⌝` (false for
+  two `MemoryStorage`s).
+- **The right comes with `Ready`**, not from a lemma on `ownRawNode` as first planned:
+  the hand-out runs where `unpersisted` is set (`acceptUnstable`), and a later lemma
+  would need `ownRawNode` to record whether the right was taken out already.
+- **`MemoryStorage`** (`InvMemstorage.lean`): three ghost names (`MemStorNames`, now an
+  index of `ownMemoryStorage ms γs σ` and of its tokens). The lock's invariant holds half
+  of the authority of `done` (a `mono_list` of the states the storage has been in; the
+  contents are its last) and a lower bound of `hist` (a `mono_list` of the states the
+  owner sanctioned, its authority with the owner); the other half of `done` is the
+  writer's -- the owner's when idle, the token's while appending -- and a ghost variable
+  `ep` of the hand-out is halved between the owner and the token. The hand-out extends
+  `hist` and needs no lock (the invariant has only a lower bound); `Append` (under the
+  lock) extends `done`; the absorb agrees on `ep` and takes the writer's half back. Under
+  the lock the owner, holding `hist` at `H ++ [appended]` and a lower bound of `done` at
+  `H`, knows the contents are `H`'s last or the appended state (`memView_agree`), which
+  agree below the batch (`memView_term`, `memView_entries`). *Rejected*: a ghost variable
+  of the state shared with the invariant (the hand-out would need the lock), and one
+  tracking only raft's view (the owner could not bound what `Append` writes).
+- `MemoryStorage.Append` and `NewMemoryStorage` are specified and proved (Lean-first).
+  `Append` takes the batch's bound (`e0.Index + |p| ≤ 2^61`: a client assumption, as
+  `Hbounded` is) and the right; its in-place arm needs the entries' capacity, now owned
+  in `memstorageFields`; the bound the private helpers need is the invariant's
+  (`memstorageInv`'s `Hpb`), the contents running ahead of the owner's view.
+
+**Not done -- a new `MemoryStorage` is not an `isStorage`.** The contract's `Snapshot`
+clause promises a non-empty snapshot (`maybeSendSnapshot` panics on an empty one); a new
+storage has none. The plan was to promise non-emptiness only once compacted
+(`σ.prev.index ≠ 0`), because `maybeSendSnapshot` follows a failed storage query. But it
+follows any error of `raftLog.term(pr.Next - 1)`: `ErrCompacted` (then `prev.index > 0`)
+*or* `ErrUnavailable`, for a peer whose `Next` is past the log + 1, which nothing in
+`ownRaftPhys`/`ownProgress` excludes (raft keeps `Next ≤ lastIndex + 1` for a leader's
+peers, unproved here). So the clause stays; `ownMemoryStorage` dropped `σ.ss.index ≠ 0`
+(so `NewMemoryStorage` can produce it) and the instance `is_Storage_MemoryStorage ms γs`
+adds it to `P`. Closing it needs a `Next` bound in the tracker invariant.
+
+## RawNode: pre-vote out of scope, and the terms of the outbox
+
+**2026-10-10 · accepted**
+
+For `node.go`'s argument that terms never wrap, a receiver must know a message's term is
+at most its sender's. With pre-vote on that is false (a `MsgPreVote` is at the next term,
+a granting `MsgPreVoteResp` echoes the candidate's), and pre-vote is an optimization:
+out of scope.
+
+**Decision.** `ownRawNode` holds `s.prevote = false` (`NewRawNode` takes `Config.PreVote`
+unset; `NetFrame`/`LocalFrame` keep `prevote`). `ownRaftPhys` records of every queued
+message `OutTermOk s.prevote s.term m` (`prevote = false → Term ≤ term`), which `send`
+establishes: it stamps the node's term into every message but a forwarded proposal and a
+vote message, and `SendOk`'s vote clause bounds the caller's term under the same
+condition. A pre-vote message is then only ever sent with pre-vote on: `campaign`'s
+pre-election takes `t = campaignPreElection → s.prevote = true` (as does `hup`; `Step`
+calls it so exactly when `r.preVote`), and `raft.Step.spec` takes a `MsgPreVote` only at
+a node with pre-vote on -- a transport premise (the setting is the cluster's), vacuous
+for `RawNode.Step`, which takes no pre-vote message.
+
+*Rejected*: keeping `raft.Step` unrestricted and tracking "no pre-vote response to
+another node in the outbox" in `ownRawNode`, or as a ghost flag of `NState` -- either
+needs a new fact about every `Step` branch's outbox growth, where the premise costs one
+hypothesis threaded into the three `MsgPreVote` branches.
+
+## node.go: small client specs, a term budget, the Ready/Advance exchange
+
+**2026-10-10 · accepted**
+
+`node.go` puts a goroutine (`run`) between the clients and the `RawNode`. The specs a
+client sees stay small (`isNode` is persistent; `Propose` and `Step` return `True`); what
+`run` needs of them is carried by the channels' payloads (Perennial's `Handshake` idiom:
+`propP`, `netP`, `readyP`, `advanceP`; a proposal's result channel is a `Handoff`).
+
+**The terms never wrap.** `RawNode.Tick`, `Advance` and a step need `term + 1 < 2^64`.
+A cluster-wide budget (`budgetInv`): a monotone bound `M` on every node's term and every
+message's (`termLB`, persistent), and `c` tick credits out, with `M + c < 2^64 - 1`. A
+tick spends a credit and may raise `M` by one past a term (`budget_spend`); a step moves
+a node's term to at most a message's, already under `M` (`netP` carries `termLB` of the
+message's term); `Ready`'s messages are of terms at most the node's (pre-vote off,
+`OutTermOk`). The application allocates the budget with as many credits as it will ever
+tick. *Rejected*: a per-node bound (a message from a peer can raise the term past it).
+
+**The Ready/Advance exchange.** One driver; `dlv` (halves: `run`'s and the driver's) is
+the committed log handed out, `rof` `run`'s record `(delivered, committed entries,
+entries)` of the last `Ready`. A `Ready` carries `run`'s `dlv` half and a `rof` half: the
+driver, holding both `dlv` halves, learns that the committed entries follow what it
+applied. `Advance` carries a `dlv` half back with the `rof` half and the append receipt:
+`run` recognizes its record, so the receipt is for the entries it handed out. *Rejected*:
+an exchange whose order is visible in the specs (a ghost sequence number per `Ready`).
+
+**An abandoned `Ready` may still be sent.** `run` computes a `Ready` and arms `readyc`,
+but may take another case and come back with `HasReady` false, then send the old one.
+`RNState`'s lower bounds (`outlb`, `unst`, `clb`), raised when it abandons the `Ready`
+(`ownRawNodeReady_abandon_keep`), and `HasReady`'s `false` pinned to an idle node
+(`ownRawNodeIdle`: no message queued, no unstable entry) show that it then holds no
+messages and no entries, and committed entries still the next ones
+(`ownRawNodeIdle_ready`). The append right is handed out inside the atomic update of the
+send (`handshake_send_au_upd`, `ownRawNodeReady_handout`), so only a taken `Ready` gives
+it away.
+
+## The register: TaDa proposals over raft's client log
+
+**2026-10-10 · accepted**
+
+The register (`examples/register`) is linearizable at raft's commit, so raft's proposals
+had to carry a client's atomic update. The design is TaDa style: the client owns the
+state, and raft runs the update when it commits.
+
+**The client log.** `cLog γ L` (a ghost variable, halves: one in `raftCommitInv`, one
+the client's) holds the data of the committed client entries, first occurrences only
+(`firstOcc`): a proposal retried, or delivered twice, appears in `L` once. `isEntryR`
+records each entry's data (`entData`: none for raft's own entries, otherwise the data with
+`isPropData` and `deposited`), so the committed log determines `L`.
+
+**Deposit, fire, collect.** `node.Propose` with a fresh token (`propFresh γ d`, an
+element of a ghost map whose authority the client holds) deposits a real Iris atomic
+update `AU <{∃∃ L, cLog γ L}> @ ⊤∖↑raftN, ∅ <{cLog γ (L ++ [d]), COMM Q L}>` (`propAu`)
+under `d` in `raftCommitInv`'s registry (`propsOwn`) and returns the persistent
+`deposited γ d` with a ticket (`isProp`, `propTok`). A retry needs only `deposited`. When
+the ghost commit makes the entry's data's first occurrence committed, it fires the update
+(`fire_upto`, at mask `⊤∖↑raftN`); the later credit the update needs is stored in the
+pending slot (`propSlot`: `d ∉ L ∗ £1 ∗ propAu`). The client trades its ticket for `Q`
+(`node_collect`, two laters, so `do` takes two credits before it blocks). *Rejected*: a
+predicate per entry (`entryP`) and linearizing at apply (both needed per-replica
+machinery that the client log makes unnecessary); running `Q` at collect inside a fancy
+update (it would not be the commit's linearization point).
+
+**The register on top** keeps one invariant, `inv regN (∃ L, cLog γ L ∗ ghostVar γr.val ½
+(regFold L) ∗ …)` (the other half of the value is the client's `regVal`). `do` wraps the client's update over `regVal` in the update over
+`cLog` that it hands to `Propose` (`reg_propAu`): when fired, it opens `regInv`, runs the
+client's update and moves both to `L ++ [d]`. The rest (the applied table, the waiters)
+is plain physical state under the lock or the `run` goroutine.
+
+**Fresh data.** `Propose` wants a token nobody had. The register mints one per
+operation, keyed by its encoding's `(replica, seq)` (`MintOk`, `reg_mint`): `regInv`
+holds the authority of the fresh-token map, each replica's last sequence number, and the
+persistent record of each minted operation. A `seq` that would wrap is excluded by
+operation credits (`opCred`: `2^64 - 1` per replica, one per `Put`/`Get`).
+
+**Dedup by data, a Go change.** `apply` skipped an operation whose `seq` was at most the
+replica's last applied one; with concurrent operations of one replica, `seq 2` committed
+before `seq 1` makes it skip `seq 1`. It now skips an encoding already applied
+(`applied map[string]bool`), which is exactly the first-occurrence rule of `cLog`.
+
+**The storage.** raft's `StorageModel` is a class, so the register's storages are
+recognized through a registry (`RegStor`: a ghost map from a `Storage` to its
+`MemoryStorage` and names, in `regStorInv`). `NewStorage` registers a new storage; its
+freshness comes from the registry keeping half of each registered storage's
+`MemoryStorage` field. `InitialState` returns the voters slice itself (`RestartNode` takes
+a fixed `ConfState`), and `run` refuses (spins) to append past `2^61` entries
+(`MemoryStorage.Append`'s premise, which nothing else guarantees). `MemoryStorage.Append`
+now takes an empty batch without a token (a `Ready`'s `appendRight` for no entries): the
+promoted method still reads the `MemoryStorage` field, so `isReplica` keeps the storage's
+record.

@@ -100,9 +100,10 @@ theorem raft.maybeCommit.wp_proof
   wp_apply wp_ProgressTracker_Committed $$ [$Htrkf $Htrk] as %N ⟨Htrkf, Htrk, %Hempty, %Hq⟩
   ihave Hphys := Hback $$ %tv Htrkf Htrk
   wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-  icases ownRaftPhys_log_at cfg r id s $$ Hphys with ⟨Hlog, Hlogback⟩
+  icases ownRaftPhys_log_at cfg r id s $$ Hphys with ⟨Hlog, %Hgh0, Hlogback⟩
   wp_apply wp_raftLog_maybeCommit $$ [$Hlog] as %b ⟨Hlog, %Hb⟩
   ihave Hphys := Hlogback $$ %_ Hlog
+    %(by cases b <;> exact LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl)
   wp_apply wp_traceCommit
   iapply HΦ $$ %b %N
   cases b with

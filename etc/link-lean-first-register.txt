@@ -1,0 +1,24 @@
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/register/Link.lean`
+# (all Lean-first: no Rocq counterpart), read by `etc/gen-link.py --register`:
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
+#
+# raft's functions the register calls, linked in raft's `Link.lean`.
+NewMemoryStorage: @
+MemoryStorage__Snapshot: @
+MemoryStorage__Append: @
+node__Propose: @
+node__Ready: @
+node__Advance: @
+# the register (examples/register/register.go)
+encode:
+decode:
+fits:
+NewStorage: NewMemoryStorage
+Storage__InitialState:
+Storage__Snapshot: MemoryStorage__Snapshot
+Register__apply: decode
+Register__do: encode node__Propose
+Register__Put: Register__do
+Register__Get: Register__do
+Register__run: fits Register__apply node__Ready node__Advance MemoryStorage__Append
+register_New: Register__run

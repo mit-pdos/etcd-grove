@@ -128,6 +128,8 @@ theorem raftLog.stableTo.wp_proof
         rw [w64Max_spec]; word
       simp only [Huoff, Hipo, Hup]
       exact Hps.1
+    · -- nothing pending: an acknowledgement that hits comes after the append
+      exact ⟨Hpend.1, fun _ e0 He0 => by simp [Hup] at He0⟩
     · simp only [unstableOf, Hk]
   · -- a miss: nothing changes
     rw [if_neg Hh]

@@ -67,7 +67,8 @@ local macro "prevote_resp_tail" : tactic =>
         (Or.inl ⟨.preVoteResp, Or.inr (Or.inr (Or.inr rfl)), mtypeOf_MsgPreVoteResp,
           by first | exact Hterm | exact Hs0,
           fun Hc => by rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne),
-          fun h => absurd h Hfid, rfl⟩)
+          fun h => absurd h Hfid,
+          fun Hpf => absurd (Hpvon.symm.trans Hpf) (by decide), rfl⟩)
       $$ [Hphys]
     · iframe Hphys
       isplitr
@@ -106,6 +107,8 @@ theorem wp_Step_MsgPreVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (s.term = W64 0 →
       plogUpToDate s.logst.prev (s.logst.sents ++ s.logst.uents)
         (entryID.mk m.LogTerm' m.Index') = true) →
+    -- pre-vote on (2026-10-10; `raft.Step.spec`)
+    s.prevote = true →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhys cfg r id s ∗
         "#Hctx" ∷ (∃ (ctx : List w8), m.Context' ↦*□ ctx ∗ ⌜ctx ≠ campaignTransfer⌝) }}
@@ -117,7 +120,7 @@ theorem wp_Step_MsgPreVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hgt0 Hwf Hutd0
+  intro Hty Hto Hterm Hfnz Hfid Hgt0 Hwf Hutd0 Hpvon
   have Hn5 : decide (m.Type' = W32 5) = false := decide_eq_false (by rw [Hty]; w32_ne)
   have Hy17 : decide (m.Type' = W32 17) = true := decide_eq_true Hty
   wp_start as ⟨Hphys, #Hctx⟩

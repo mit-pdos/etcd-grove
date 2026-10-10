@@ -101,7 +101,10 @@ abbrev raftLog.maybeAppend.spec : Prop :=
               plogCommitTo ls.committed
                 (if uint.Z committed < uint.Z lni then committed else lni) ∧
             ls'.applying = ls.applying ∧ ls'.snap = ls.snap ∧
-            ls'.unpersisted = ls.unpersisted ∧ ls'.stored = ls.stored⌝ }}
+            ls'.unpersisted = ls.unpersisted ∧ ls'.stored = ls.stored ∧
+            ls'.storage = ls.storage⌝ ∗
+      -- (2026-10-10) entries still to be handed out stay so (`NGhost.unst`)
+      ⌜ls'.snap = ls.snap ∧ (nextUnstable ls ≠ [] → nextUnstable ls' ≠ [])⌝ }}
 
 end spec
 

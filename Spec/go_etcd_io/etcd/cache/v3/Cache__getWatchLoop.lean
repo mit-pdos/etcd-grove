@@ -37,9 +37,9 @@ abbrev Cache.getWatchLoop.spec : Prop :=
   ∀ (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNames) (cap : Nat)
     (c0 : DemuxCore),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
-      isCacheFields c cf γr γd cap ∗ cacheWriter cf γd cap c0 ∗ cacheWgRunning cf }}
+      isCacheFields c cf γr γd cap ∗ cacheWriter cf γd cap c0 ∗ cacheWgLoopRunning cf }}
     (App (Val (c @!! go.GoType.PointerType Cache.ty @!! go!"getWatchLoop")) (Val #()))
-  {{ RET #(); cacheWgRunning cf ∗ ∃ c1 : DemuxCore, cacheWriter cf γd cap c1 }}
+  {{ RET #(); cacheWgLoopRunning cf ∗ ∃ c1 : DemuxCore, cacheWriter cf γd cap c1 }}
 
 end spec
 

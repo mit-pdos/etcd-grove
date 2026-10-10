@@ -130,7 +130,7 @@ theorem raft.campaign.wp_proof
     (wp_raftLog_lastEntryID : raftLog.lastEntryID.spec (GF := GF) (hG := hG))
     (wp_slices_Sort : slices.«Sort».spec (GF := GF) (hG := hG)) :
     raft.campaign.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s t Hrole Hid_cfg Hnowrap
+  intro cfg r id s t Hrole Hid_cfg Hnowrap Hpv
   -- every `send` below carries `Term + 1`; `send` panics on a zero term,
   -- whence the premise.
   have Hno_wrap : s.term + W64 1 ≠ W64 0 := by word
@@ -176,7 +176,9 @@ theorem raft.campaign.wp_proof
     iframe
   iintro HJ
   iNamed HJ
-  generalize decide (t = campaignPreElection) = pre
+  have Hpvpre : decide (t = campaignPreElection) = true → s.prevote = true :=
+    fun h => Hpv (of_decide_eq_true h)
+  generalize decide (t = campaignPreElection) = pre at Hpvpre
   wp_auto
   -- the voter ids, as a map. `IDs` is a method of the tracker's
   -- `Config.Voters`, so it takes the tracker object; the call does not
@@ -308,6 +310,12 @@ theorem raft.campaign.wp_proof
             fun _ => ⟨rfl, rfl, by
               cases pre <;> simp [campRoleState, becomeCandidate, becomePrecandidate, resetTo,
                 sendMsgs, vrespW32, MsgPreVoteResp, MsgVoteResp] <;> word⟩,
+            -- with pre-vote off, an election's: at the node's term (2026-10-10)
+            fun Hpf => by
+              cases pre
+              · simp [campRoleState, becomeCandidate, resetTo, sendMsgs, vrespW32, vreqW32,
+                  MsgVoteResp, MsgVote, MsgPreVoteResp]
+              · simp [campRoleState, becomePrecandidate, sendMsgs, Hpvpre rfl] at Hpf,
             by cases pre <;> rfl⟩)
         $$ [$Hphys]
       · isplitr
@@ -356,6 +364,11 @@ theorem raft.campaign.wp_proof
             Hno_wrap,
             fun _ => Hyid,
             fun h => absurd h Hyid,
+            fun Hpf => by
+              cases pre
+              · simp [campRoleState, becomeCandidate, resetTo, sendMsgs, vrespW32, vreqW32,
+                  MsgVoteResp, MsgVote, MsgPreVoteResp]
+              · simp [campRoleState, becomePrecandidate, sendMsgs, Hpvpre rfl] at Hpf,
             by cases pre <;> rfl⟩)
         $$ [$Hphys]
       · isplitr

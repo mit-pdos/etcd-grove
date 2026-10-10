@@ -61,6 +61,8 @@ abbrev newLogWithSize.spec : Prop :=
   LogIndicesOk σ.prev σ.ents →
   (∀ e ∈ σ.ents, e.Type' = EntryNormal) →
   (uint.Z σ.ss.index' = 0 ∨ σ.ss = σ.prev) →
+  -- nothing pending (2026-10-10)
+  σ.pend = [] →
   lg = interface.ok lok →
   -- a positive applying-size limit (2026-10-05): the log starts with applying unpaused
   -- at size `0`, and `nextCommittedEnts` `Panicf`s on
@@ -78,7 +80,7 @@ abbrev newLogWithSize.spec : Prop :=
          { prev := σ.prev, sents := σ.ents, uents := [], committed := σ.prev.index',
            applied := σ.prev.index', snap := none, inprogress := ip,
            applying := σ.prev.index', unpersisted := [], stored := σ.ents, apsize := W64 0,
-           apmax := maxSize }) }}
+           apmax := maxSize, storage := st }) }}
 
 end spec
 

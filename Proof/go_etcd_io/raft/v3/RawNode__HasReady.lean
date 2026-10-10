@@ -26,6 +26,7 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
+open RawNodeOwnAccess
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -38,15 +39,40 @@ variable [AllG GF]
 set_option hygiene false in
 /-- Rocq's local `close_view`: close the raft struct unchanged (`Hphys`). -/
 local macro "close_view" : tactic => `(tactic| (
-  ihave Hphys := Hclose $$ Hf_id Hf_Term Hf_Vote Hf_readStates Hf_raftLog Hf_state Hf_lead
-    Hf_msgs Hmsgs Hmsgs_cap Hf_msgsAA HmsgsAA HmsgsAA_cap Houtbox %HmsgsAA_ok Hlog))
+  ihave Hphys := Hclose $$ %sl1 %sl2 %ms1 %ms2 %s.outbox %s.logst %s.gh Hf_Term Hf_Vote
+    Hf_readStates Hf_raftLog Hf_state Hf_lead Hf_msgs Hmsgs Hmsgs_cap Hf_msgsAA HmsgsAA
+    HmsgsAA_cap Houtbox %HmsgsAA_ok %Hout_term %Hgh_out %Hgh_unst Hlog))
 
 set_option hygiene false in
 /-- Close the view, refold `ownRawNode` unchanged, return. -/
 local macro "finish" : tactic => `(tactic| (
   close_view
   iapply HΦ
-  iapply ownRawNode_intro γ rn id rs s ps rnv sv steps Hrel Hin Hasync Hdlen Hunp Hsnap Hstok Htrm
+  ileft
+  isplitr
+  · ipureintro; rfl
+  iapply ownRawNode_intro γ rn id rs s ps rnv sv steps Hrel Hin Hasync Hdlen Hunp Hsnap Hstok Htrm Hstor
+    Hpvoff Hrs_out Hrs_unst Hrs_clb
+    $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs))
+
+set_option hygiene false in
+/-- The one path that returns `false`: no queue is non-empty and no unstable entry is
+still to be handed out, so the node is idle. -/
+local macro "finish_false" : tactic => `(tactic| (
+  ihave %Hl1 := ownSlice_len _ _ _ $$ Hmsgs
+  ihave %Hl2 := ownSlice_len _ _ _ $$ HmsgsAA
+  have Hnu : nextUnstable s.logst = [] := by
+    by_cases h : nextUnstable s.logst = []
+    · exact h
+    · exact absurd (Hue.trans (decide_eq_true h)) (by decide)
+  have Hout0 : s.gh.outlb = 0 := by word
+  close_view
+  iapply HΦ
+  iright
+  isplitr
+  · ipureintro; rfl
+  iapply ownRawNodeIdle_intro γ rn id rs s ps rnv sv steps Hrel Hin Hasync Hdlen Hunp Hsnap
+    Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb ⟨Hout0, Hnu⟩
     $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs))
 
 set_option hygiene false in
@@ -75,7 +101,7 @@ local macro "rest" : tactic => `(tactic| (
       · wp_auto
         rw [Hrs]
         wp_auto
-        finish
+        finish_false
       · wp_auto
         finish
     · wp_auto

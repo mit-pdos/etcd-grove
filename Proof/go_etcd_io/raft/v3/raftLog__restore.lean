@@ -57,7 +57,8 @@ theorem raftLog.restore.wp_proof
   simp only [snapId] at Hcmlt Hlt
   iapply ownRaftLog_intro l { lv with committed' := sv.Metadata'.Index', unstable' := uv' }
       lv.storage' σ _ _ (logRestore ls (snapId sv))
-      rfl rfl Hap ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ Hapg ?_ ?_ ?_ ?_ Hpaused Hasz Hamx ?_ ?_
+      rfl rfl Hap ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ Hapg ?_ ?_ ?_ ?_ Hpaused Hasz Hamx Hstor
+      ⟨Hpend.1, fun h => by simp [logRestore] at h⟩ ?_ ?_
     $$ Hl HisStorage HStorage Hsn Hents Hents_cap Hl_logger Hu_logger
   all_goals simp only [logRestore, snapId, List.append_nil, List.length_nil, Int.natCast_zero,
     Int.add_zero]

@@ -88,7 +88,8 @@ theorem raftLog.term.wp_proof
     obtain ⟨rfl, Hse, -⟩ : LogStoreOk (some sid) σ ls.prev ls.sents ls.uents := Hs ▸ Hstore
     rw [Hse, List.length_nil, Int.natCast_zero, Int.add_zero] at Hoffset
     exact Hoffset
-  ihave #Hsto : isStorageWith (ownStorage lv.storage') lv.storage' $$ [HisStorage]
+  ihave #Hsto : isStorageWith (ownStorage lv.storage') (appendTok lv.storage')
+      (appendedTok lv.storage') lv.storage' $$ [HisStorage]
   · unfold isStorage; iexact HisStorage
   unfold isStorageWith
   icases Hsto with ⟨%isv, #Hsto⟩
@@ -184,13 +185,15 @@ theorem raftLog.term.wp_proof
     | none =>
     clear Hnotin Hnotsnap Hsoff Hnw Hok Hokt Hoffset Hstok Happlied Hpapplied Hcommitted
       Hidx Hnowrap HnoConfChange Hb1 Hb2 Hfi Hli Hcm Hap Hstore Hssnap
-      Hapg Hip Hasz Hamx Hipb Hpersist Happlying Hpaused Huoff
-    iclear HisStorage HLastIndex HFirstIndex HTerm HEntries Hbounded HSnapshot Hl_logger
+      Hapg Hip Hasz Hamx Hipb Hpersist Happlying Hpaused Huoff Hstor Hpend
+    iclear HisStorage HLastIndex HFirstIndex HTerm HEntries Hbounded HSnapshot Hhandout Habsorb
+      Hl_logger
       Hu_logger Husnap
     clear lv uv' isv fi li σ
     iNamed Hlog
     wp_auto
-    ihave #Hsto : isStorageWith (ownStorage lv.storage') lv.storage' $$ [HisStorage]
+    ihave #Hsto : isStorageWith (ownStorage lv.storage') (appendTok lv.storage')
+      (appendedTok lv.storage') lv.storage' $$ [HisStorage]
     · unfold isStorage; iexact HisStorage
     unfold isStorageWith
     icases Hsto with ⟨%isv, #Hsto⟩
@@ -199,7 +202,9 @@ theorem raftLog.term.wp_proof
     obtain ⟨Hsp, Hstored, -⟩ : LogStoreOk none σ ls.prev ls.sents ls.uents := Hs ▸ Hstore
     have Hstlen := Hstored.length_le
     wp_apply HTerm $$ %σ %i [$HStorage] as %t2 ⟨%Ht2, HStorage⟩
-    · ipureintro; rw [Hsp]; omega
+    · isplitr
+      · ipureintro; rw [Hsp]; omega
+      · ipureintro; exact pendFrom_of_logOk σ ls Hpend Hs _ (by omega)
     rw [Hsp] at Ht2
     rw [← Hstok]
     iapply HΦ $$ %t2 %interface.nil

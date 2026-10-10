@@ -49,7 +49,7 @@ theorem Cache.getWatchLoop.wp_proof
   try ipersist ctx
   try ipersist backoff
   ihave HI : (∃ (c1 : DemuxCore), "Hw" ∷ cacheWriter cf γd cap c1 ∗
-      "Hrun" ∷ cacheWgRunning cf : IProp GF) $$ [Hw Hrun]
+      "Hrun" ∷ cacheWgLoopRunning cf : IProp GF) $$ [Hw Hrun]
   · iexists c0; simp only [named]; iframe
   wp_for HI
   -- `ctx.Err()`

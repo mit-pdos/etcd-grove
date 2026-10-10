@@ -128,7 +128,7 @@ theorem wp_Step_MsgBeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     · isplitl []
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
-    obtain ⟨rfl, Hwf', Hstep, Hl, Ht⟩ :=
+    obtain ⟨rfl, Hwf', Hstep, Hl, Ht, Hpv, Hg⟩ :=
       leader_beat_step cfg id s m [] dropped s' Hrole Hty Hwf Hres
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn
@@ -137,7 +137,7 @@ theorem wp_Step_MsgBeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %s'
     iframe Hphys
     ipureintro
-    exact ⟨Hwf', Hstep, rfl, keep_frame_logst Ht Hl⟩
+    exact ⟨Hwf', Hstep, rfl, keep_frame_logst Ht Hl Hpv Hg⟩
   · -- PreCandidate (2026-10-04), as a candidate: no `MsgBeat` arm either
     simp only [stepFuncOf]
     wp_apply _P.stepCandidate cfg r id s m [] (zero_val _) []

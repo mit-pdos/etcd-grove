@@ -698,9 +698,9 @@ instance ConfChange_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.raft.v3.raftpb.ConfChange where
   typedPointstoDef l v dq := iprop(
     "Type'" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChange go!"Type" l) v.Type' dq ∗
-    "NodeID" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChange go!"NodeID" l) v.NodeID' dq ∗
+    "NodeId" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChange go!"NodeId" l) v.NodeId' dq ∗
     "Context" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChange go!"Context" l) v.Context' dq ∗
-    "ID" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChange go!"ID" l) v.ID' dq ∗
+    "Id" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChange go!"Id" l) v.Id' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -726,19 +726,19 @@ instance ConfChange_access_store_Type (l : Loc) (v : go_etcd_io.raft.v3.raftpb.C
  by
   solve_pointsto_access_struct
 
-instance ConfChange_access_load_NodeID (l : Loc) (v : go_etcd_io.raft.v3.raftpb.ConfChange) (dq : DFrac) :
+instance ConfChange_access_load_NodeId (l : Loc) (v : go_etcd_io.raft.v3.raftpb.ConfChange) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChange go!"NodeID" l) v.NodeID' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChange go!"NodeID" l) v.NodeID' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChange go!"NodeId" l) v.NodeId' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChange go!"NodeId" l) v.NodeId' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-instance ConfChange_access_store_NodeID (l : Loc) (v : go_etcd_io.raft.v3.raftpb.ConfChange) (NodeID' : w64) :
+instance ConfChange_access_store_NodeId (l : Loc) (v : go_etcd_io.raft.v3.raftpb.ConfChange) (NodeId' : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChange go!"NodeID" l) v.NodeID' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChange go!"NodeID" l) NodeID' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NodeID' := NodeID' } : go_etcd_io.raft.v3.raftpb.ConfChange) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChange go!"NodeId" l) v.NodeId' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChange go!"NodeId" l) NodeId' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NodeId' := NodeId' } : go_etcd_io.raft.v3.raftpb.ConfChange) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -758,19 +758,19 @@ instance ConfChange_access_store_Context (l : Loc) (v : go_etcd_io.raft.v3.raftp
  by
   solve_pointsto_access_struct
 
-instance ConfChange_access_load_ID (l : Loc) (v : go_etcd_io.raft.v3.raftpb.ConfChange) (dq : DFrac) :
+instance ConfChange_access_load_Id (l : Loc) (v : go_etcd_io.raft.v3.raftpb.ConfChange) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChange go!"ID" l) v.ID' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChange go!"ID" l) v.ID' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChange go!"Id" l) v.Id' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChange go!"Id" l) v.Id' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-instance ConfChange_access_store_ID (l : Loc) (v : go_etcd_io.raft.v3.raftpb.ConfChange) (ID' : w64) :
+instance ConfChange_access_store_Id (l : Loc) (v : go_etcd_io.raft.v3.raftpb.ConfChange) (Id' : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChange go!"ID" l) v.ID' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChange go!"ID" l) ID' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ID' := ID' } : go_etcd_io.raft.v3.raftpb.ConfChange) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChange go!"Id" l) v.Id' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChange go!"Id" l) Id' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Id' := Id' } : go_etcd_io.raft.v3.raftpb.ConfChange) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -789,7 +789,7 @@ instance ConfChangeSingle_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.raft.v3.raftpb.ConfChangeSingle where
   typedPointstoDef l v dq := iprop(
     "Type'" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChangeSingle go!"Type" l) v.Type' dq ∗
-    "NodeID" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChangeSingle go!"NodeID" l) v.NodeID' dq ∗
+    "NodeId" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChangeSingle go!"NodeId" l) v.NodeId' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -815,19 +815,19 @@ instance ConfChangeSingle_access_store_Type (l : Loc) (v : go_etcd_io.raft.v3.ra
  by
   solve_pointsto_access_struct
 
-instance ConfChangeSingle_access_load_NodeID (l : Loc) (v : go_etcd_io.raft.v3.raftpb.ConfChangeSingle) (dq : DFrac) :
+instance ConfChangeSingle_access_load_NodeId (l : Loc) (v : go_etcd_io.raft.v3.raftpb.ConfChangeSingle) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChangeSingle go!"NodeID" l) v.NodeID' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChangeSingle go!"NodeID" l) v.NodeID' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChangeSingle go!"NodeId" l) v.NodeId' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChangeSingle go!"NodeId" l) v.NodeId' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-instance ConfChangeSingle_access_store_NodeID (l : Loc) (v : go_etcd_io.raft.v3.raftpb.ConfChangeSingle) (NodeID' : w64) :
+instance ConfChangeSingle_access_store_NodeId (l : Loc) (v : go_etcd_io.raft.v3.raftpb.ConfChangeSingle) (NodeId' : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChangeSingle go!"NodeID" l) v.NodeID' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChangeSingle go!"NodeID" l) NodeID' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NodeID' := NodeID' } : go_etcd_io.raft.v3.raftpb.ConfChangeSingle) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChangeSingle go!"NodeId" l) v.NodeId' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChangeSingle go!"NodeId" l) NodeId' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NodeId' := NodeId' } : go_etcd_io.raft.v3.raftpb.ConfChangeSingle) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

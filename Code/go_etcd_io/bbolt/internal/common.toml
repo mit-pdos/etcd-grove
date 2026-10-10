@@ -1,0 +1,9 @@
+# The page-id helpers of bbolt's internal/common, with bodies: the sorted union of
+# page-id lists that every freelist merge goes through. The rest of the package (pages,
+# metas, inodes: byte buffers reinterpreted as structs through unsafe.Pointer, which
+# Perennial's typed heap cannot model) is names only.
+translate = ["!*", "Pgid", "Pgids", "Txid", "Pgids.Len", "Pgids.Swap", "Pgids.Less", "Pgids.Merge", "Mergepgids"]
+imports = ["!*", "fmt", "sort"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

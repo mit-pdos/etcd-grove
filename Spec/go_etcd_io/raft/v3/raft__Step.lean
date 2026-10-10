@@ -1,8 +1,7 @@
 /- Port of election_proof/spec_raft__Step.v (857d09190).
 
 Lean notes:
-* The spec mentions ghost state (`ownRaftGhost`, `isMessage`, `propAu`, `isProp`,
-  `propTok`), so the section has the extra variable `[AllG GF]` (porting guide,
+* The spec mentions ghost state (`ownRaftGhost`, `isMessage`), so the section has the extra variable `[AllG GF]` (porting guide,
   "Section variables"), and fixes `hlc := HasLC.hasLC` (`[hG : HeapGS HasLC.hasLC GF]`
   instead of `{hlc : HasLC} [hG : HeapGS hlc GF]`): `ownRaftGhost` (through
   `raftCommitInv`) needs `[InvGS GF]`, which is `InvGS_gen .hasLC GF`, and the heap's
@@ -63,14 +62,19 @@ physical state beyond the protocol (2026-10-09): the term, the entries a `Ready`
 out that the application has not appended yet (`unpersisted`), the pending snapshot,
 and `offsetInProgress`, which does not move back; and (2026-10-10) the log's boundary
 and what the storage holds (`prev`, the ghost `stored`), which the `RawNode` predicate
-keeps the records of for the acknowledgement `Advance` steps (`InvRawnode.lean`). -/
+keeps the records of for the acknowledgement `Advance` steps (`InvRawnode.lean`); and
+the storage the log reads (`LogState.storage`, constant), which the `RawNode` predicate
+names to its client (`RNState.storage`); and (2026-10-10) `r.preVote`. -/
 def LocalFrame [FfiSyntax] (s s' : NState) : Prop :=
   s'.term = s.term ∧
   uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress ∧
   s'.logst.unpersisted = s.logst.unpersisted ∧
   s'.logst.snap = s.logst.snap ∧
   s'.logst.prev = s.logst.prev ∧
-  s'.logst.stored = s.logst.stored
+  s'.logst.stored = s.logst.stored ∧
+  s'.logst.storage = s.logst.storage ∧
+  s'.prevote = s.prevote ∧
+  s'.gh = s.gh
 
 /-- `Step`'s postcondition for the three local messages `RawNode` steps -- a proposal
 (`Propose`) and the two storage acknowledgements (`Advance`): `LocalFrame`, and
@@ -90,32 +94,40 @@ def LocalStepOk [FfiSyntax] (m : raftpb.Message) (ents : List raftpb.Entry)
 /-- What every `Step` but a `MsgSnap`'s and a `MsgStorageApplyResp`'s leaves of the log's
 state beyond the protocol (2026-10-09): `applying` (only `appliedTo` moves it), the pending
 snapshot (only `restore` sets one) and the entries a `Ready` handed out that the
-application has not appended yet (only `ownRaftLog_persist` empties them). This is what
+application has not appended yet (only `ownRaftLog_absorb` empties them). This is what
 the `RawNode` predicate needs to survive a `Step` of a message from the network
 (`RawNode.Step`, `Tick`, `Campaign`). Unlike `LocalFrame`, it says nothing of the term or
 of `offsetInProgress`, which a truncating `MsgApp` moves back. And (2026-10-10) the log's
 boundary `prev` and what the storage holds (the ghost `stored`): no `Step` but a
 `MsgSnap`'s restores, and only a `Ready` changes `stored`, so a truncating `MsgApp`
 leaves the storage holding entries the log no longer has -- which is why the
-acknowledgement `Advance` steps after it may still move them stable (`StableOk`). -/
+acknowledgement `Advance` steps after it may still move them stable (`StableOk`). And
+the storage the log reads (`LogState.storage`, constant). And (2026-10-10) `r.preVote`,
+never written after `newRaft` (the `RawNode` predicate keeps pre-vote off, its scope). -/
 def NetFrame [FfiSyntax] (s s' : NState) : Prop :=
   s'.logst.applying = s.logst.applying ∧
   s'.logst.snap = s.logst.snap ∧
   s'.logst.unpersisted = s.logst.unpersisted ∧
   s'.logst.prev = s.logst.prev ∧
-  s'.logst.stored = s.logst.stored
+  s'.logst.stored = s.logst.stored ∧
+  s'.logst.storage = s.logst.storage ∧
+  s'.prevote = s.prevote ∧
+  s'.gh = s.gh
 
-theorem NetFrame.refl [FfiSyntax] (s : NState) : NetFrame s s := ⟨rfl, rfl, rfl, rfl, rfl⟩
+theorem NetFrame.refl [FfiSyntax] (s : NState) : NetFrame s s :=
+  ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 theorem NetFrame.trans [FfiSyntax] {s1 s2 s3 : NState} (h1 : NetFrame s1 s2)
     (h2 : NetFrame s2 s3) : NetFrame s1 s3 :=
   ⟨h2.1.trans h1.1, h2.2.1.trans h1.2.1, h2.2.2.1.trans h1.2.2.1, h2.2.2.2.1.trans h1.2.2.2.1,
-   h2.2.2.2.2.trans h1.2.2.2.2⟩
+   h2.2.2.2.2.1.trans h1.2.2.2.2.1, h2.2.2.2.2.2.1.trans h1.2.2.2.2.2.1,
+   h2.2.2.2.2.2.2.1.trans h1.2.2.2.2.2.2.1, h2.2.2.2.2.2.2.2.trans h1.2.2.2.2.2.2.2⟩
 
-/-- Two states with the same log state. -/
-theorem NetFrame.of_logst [FfiSyntax] {s s' : NState} (h : s'.logst = s.logst) :
+/-- Two states with the same log state and pre-vote setting. -/
+theorem NetFrame.of_logst [FfiSyntax] {s s' : NState} (h : s'.logst = s.logst)
+    (hpv : s'.prevote = s.prevote := by rfl) (hg : s'.gh = s.gh := by rfl) :
     NetFrame s s' := by
-  unfold NetFrame; rw [h]; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
+  unfold NetFrame; rw [h, hpv, hg]; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 /-- How a `Step` moves the term (2026-10-09): never back; by a local `MsgHup` at most one
 up (a campaign); by any other message (but a `MsgPreVoteResp`, which may also campaign)
@@ -216,10 +228,11 @@ abbrev raft.Step.spec : Prop :=
     (γ : RaftNames) (r : Loc) (id : w64) (s : NState) (ps : PState)
     (m : raftpb.Message)
     -- The message's `Entries` (`[]` for a message without entries), bound here rather
-    -- than in `"Hm"` since 2026-10-06 so that the postcondition can hand a proposal's
-    -- updates back unchanged; and, for a `MsgProp`, the client's result predicate for
-    -- each proposed entry (`"Hprops"`; unused for every other type).
-    (ents : List raftpb.Entry) (Qs : List (w64 → w64 → IProp GF)),
+    -- than in `"Hm"` since 2026-10-06. (Until 2026-10-10 also, for a `MsgProp`, the
+    -- client's result predicate for each entry: a proposal's atomic update is now
+    -- deposited before the proposal reaches `Step` (`prop_deposit`), and its entries'
+    -- `isMessage` says so (`entData`).)
+    (ents : List raftpb.Entry),
   -- The ghost state is about one configuration, and it is this one. Without this the
   -- caller could hand `ownRaftGhost_step` a `cfg` of its own choosing -- a singleton
   -- one, say, in which the node is its own quorum -- and election safety would not
@@ -256,13 +269,18 @@ abbrev raft.Step.spec : Prop :=
   -- - a `MsgPreVoteResp` at a pre-candidate may win, which runs the real `campaign`
   --   and increments the term: it must not wrap (as for `MsgHup`). Only at a
   --   pre-candidate (2026-10-10: `RawNode.Advance` may step its own pre-vote response
-  --   after a won pre-vote raised the term, at a candidate, which ignores it).
+  --   after a won pre-vote raised the term, at a candidate, which ignores it);
+  -- - (2026-10-10) a `MsgPreVote` reaches only a node with pre-vote on (the setting is
+  --   the cluster's): a node with pre-vote off then never sends a pre-vote message, and
+  --   every message it queues is of a term at most its own (`OutTermOk`). `RawNode.Step`
+  --   takes no pre-vote message at all.
   (m.Type' = MsgPreVote →
      m.To' = id ∧ m.Term' ≠ W64 0 ∧
      m.From' ≠ W64 0 ∧ m.From' ≠ id ∧
      (s.term = W64 0 →
       plogUpToDate s.logst.prev (s.logst.sents ++ s.logst.uents)
-        (entryID.mk m.LogTerm' m.Index') = true)) →
+        (entryID.mk m.LogTerm' m.Index') = true) ∧
+     s.prevote = true) →
   (m.Type' = MsgPreVoteResp →
      m.To' = id ∧ m.Term' ≠ W64 0 ∧
      m.From' ≠ W64 0 ∧
@@ -311,7 +329,10 @@ abbrev raft.Step.spec : Prop :=
      uint.Z m.Term' ≤ uint.Z s.term ∧
      (m.Term' = W64 0 ∨ m.Term' = s.term →
       m.Index' ≠ W64 0 →
-      StableOk s.logst (entryID.mk m.LogTerm' m.Index'))) →
+      StableOk s.logst (entryID.mk m.LogTerm' m.Index')) ∧
+     -- (2026-10-10) `stableTo` may hand out every unstable entry still to come
+     -- (`NGhost.unst`): `RawNode.Advance` steps it only after `acceptReady` reset the flag
+     s.gh.unst = false) →
   (m.Type' = MsgStorageApplyResp → m.Term' = W64 0) →
   -- The one place the two layers meet. `s` is the physical abstract state
   -- `ownRaftPhys` is indexed by, `ps` the protocol state the ghost state is about,
@@ -349,12 +370,6 @@ abbrev raft.Step.spec : Prop :=
          "#Hmsg" ∷ □ (∀ ty, ⌜mtypeOf m.Type' = some ty⌝ -∗
                             ⌜ty ≠ .snap⌝ -∗
                             isMessage γ (absMsg ty m ents))) ∗
-      -- A proposal's client updates (2026-10-06), one per entry (`propAu`,
-      -- `Protocol/GhostState.lean`: run when the entry, stamped, is committed).
-      -- `bigSepL2` makes `Qs.length = ents.length`. Absent for every other type.
-      "Hprops" ∷ (if m.Type' = MsgProp
-                  then [∗list] e;Q ∈ ents;Qs, propAu γ e Q
-                  else iprop(True)) ∗
       -- the `Context`: not the leader-transfer marker (out of scope), and empty on a
       -- heartbeat response (no read-index requests in scope: `bcastHeartbeat` sends
       -- `nil` and `handleHeartbeat` echoes it)
@@ -396,20 +411,7 @@ abbrev raft.Step.spec : Prop :=
       -- only a proposal can be dropped, with `ErrProposalDropped`
       "Herr" ∷ (⌜err = interface.nil⌝ ∨
                 (⌜m.Type' = MsgProp⌝ ∗
-                 globalAddr ErrProposalDropped ↦□ err)) ∗
-      -- A proposal (2026-10-06): appended at the leader (`Step.propose`: stamped at
-      -- `ps`'s term and the indices after `ps`'s last), each update is registered at
-      -- its entry's `(term, index)` and the client gets `isProp` and the token to
-      -- collect `Q t i` with (`prop_collect`) once the entry is committed; otherwise
-      -- -- forwarded by a follower, dropped (no leader known, a candidate,
-      -- `appendEntry` refused it) -- the updates come back unrun.
-      "Hprops" ∷ (if m.Type' = MsgProp
-                  then (⌜err = interface.nil ∧ ps.role = .leader⌝ ∗
-                        [∗list] k ↦ Q ∈ Qs, ∃ γp,
-                          isProp γ ps.term (plastIndex ps + W64 1 + W64 (k : Int)) γp Q ∗
-                          propTok γp)
-                       ∨ ([∗list] e;Q ∈ ents;Qs, propAu γ e Q)
-                  else iprop(True)) }}
+                 globalAddr ErrProposalDropped ↦□ err)) }}
 
 end spec
 

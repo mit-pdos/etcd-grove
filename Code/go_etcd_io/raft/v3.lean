@@ -587,7 +587,7 @@ noncomputable def RawNode.Bootstrap.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Let "$a0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty go!"AsV2"))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Peer.ty go!"ID"))) (Var "peer")))
   (Let "$v1" (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeAddNode)
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"NodeID")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"Type")) (ElementExpression _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty (Var "$v1")))]))))) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"NodeId")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"Type")) (ElementExpression _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty (Var "$v1")))]))))) (Val #()))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"applyConfChange"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (App (Val (GoInstruction (StructFieldRef RawNode.ty go!"raft"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RawNode.ty)))) (Var "rn"))))) (Var "$a0"))))))
   (App (Val doExecute)
   (Var "$key")))))
@@ -609,7 +609,7 @@ noncomputable def RawNode.Bootstrap.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$r0" (Let "$v0" (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeAddNode)
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Peer.ty go!"ID"))) (Var "peer")))
   (Let "$v2" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef Peer.ty go!"Context"))) (Var "peer")))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Type")) (ElementExpression _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"NodeID")) (ElementExpression go.uint64 (Var "$v1"))), (KeyedElement (some (KeyField go!"Context")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v2")))])))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Type")) (ElementExpression _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"NodeId")) (ElementExpression go.uint64 (Var "$v1"))), (KeyedElement (some (KeyField go!"Context")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v2")))])))))
   (Let "cc" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty) go!"Marshal"))) (Var "cc")) (Val #()))
@@ -11334,6 +11334,12 @@ class Ready.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType SoftState.ty) go!"equal"))) (App (Val (GoInstruction (StructFieldGet Ready.ty go!"SoftState"))) (Var "$r"))))
   ptr_Descriptor_unfold : MethodUnfold (go.GoType.PointerType Ready.ty) go!"Descriptor" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"Descriptor"))) (App (Val (GoInstruction (StructFieldRef Ready.ty go!"HardState"))) (Var "$r"))))
+  ptr_GetCommit_unfold : MethodUnfold (go.GoType.PointerType Ready.ty) go!"GetCommit" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetCommit"))) (App (Val (GoInstruction (StructFieldRef Ready.ty go!"HardState"))) (Var "$r"))))
+  ptr_GetTerm_unfold : MethodUnfold (go.GoType.PointerType Ready.ty) go!"GetTerm" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetTerm"))) (App (Val (GoInstruction (StructFieldRef Ready.ty go!"HardState"))) (Var "$r"))))
+  ptr_GetVote_unfold : MethodUnfold (go.GoType.PointerType Ready.ty) go!"GetVote" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetVote"))) (App (Val (GoInstruction (StructFieldRef Ready.ty go!"HardState"))) (Var "$r"))))
   ptr_Marshal_unfold : MethodUnfold (go.GoType.PointerType Ready.ty) go!"Marshal" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"Marshal"))) (App (Val (GoInstruction (StructFieldRef Ready.ty go!"HardState"))) (Var "$r"))))
   ptr_MarshalTo_unfold : MethodUnfold (go.GoType.PointerType Ready.ty) go!"MarshalTo" (LamV "$r"
@@ -11383,6 +11389,9 @@ attribute [instance] Ready.TypeAssumptions.type_repr
   Ready.TypeAssumptions.set_MustSync
   Ready.TypeAssumptions.equal_unfold
   Ready.TypeAssumptions.ptr_Descriptor_unfold
+  Ready.TypeAssumptions.ptr_GetCommit_unfold
+  Ready.TypeAssumptions.ptr_GetTerm_unfold
+  Ready.TypeAssumptions.ptr_GetVote_unfold
   Ready.TypeAssumptions.ptr_Marshal_unfold
   Ready.TypeAssumptions.ptr_MarshalTo_unfold
   Ready.TypeAssumptions.ptr_MarshalToSizedBuffer_unfold
@@ -12449,6 +12458,12 @@ class BasicStatus.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   set_LeadTransferee : ∀ (x : BasicStatus) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet BasicStatus.underlying go!"LeadTransferee") (PairV #x #y) (Val #(({ x with LeadTransferee' := y } : BasicStatus)))
   ptr_Descriptor_unfold : MethodUnfold (go.GoType.PointerType BasicStatus.ty) go!"Descriptor" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"Descriptor"))) (App (Val (GoInstruction (StructFieldRef BasicStatus.ty go!"HardState"))) (Var "$r"))))
+  ptr_GetCommit_unfold : MethodUnfold (go.GoType.PointerType BasicStatus.ty) go!"GetCommit" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetCommit"))) (App (Val (GoInstruction (StructFieldRef BasicStatus.ty go!"HardState"))) (Var "$r"))))
+  ptr_GetTerm_unfold : MethodUnfold (go.GoType.PointerType BasicStatus.ty) go!"GetTerm" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetTerm"))) (App (Val (GoInstruction (StructFieldRef BasicStatus.ty go!"HardState"))) (Var "$r"))))
+  ptr_GetVote_unfold : MethodUnfold (go.GoType.PointerType BasicStatus.ty) go!"GetVote" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetVote"))) (App (Val (GoInstruction (StructFieldRef BasicStatus.ty go!"HardState"))) (Var "$r"))))
   ptr_Marshal_unfold : MethodUnfold (go.GoType.PointerType BasicStatus.ty) go!"Marshal" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"Marshal"))) (App (Val (GoInstruction (StructFieldRef BasicStatus.ty go!"HardState"))) (Var "$r"))))
   ptr_MarshalTo_unfold : MethodUnfold (go.GoType.PointerType BasicStatus.ty) go!"MarshalTo" (LamV "$r"
@@ -12491,6 +12506,9 @@ attribute [instance] BasicStatus.TypeAssumptions.type_repr
   BasicStatus.TypeAssumptions.get_LeadTransferee
   BasicStatus.TypeAssumptions.set_LeadTransferee
   BasicStatus.TypeAssumptions.ptr_Descriptor_unfold
+  BasicStatus.TypeAssumptions.ptr_GetCommit_unfold
+  BasicStatus.TypeAssumptions.ptr_GetTerm_unfold
+  BasicStatus.TypeAssumptions.ptr_GetVote_unfold
   BasicStatus.TypeAssumptions.ptr_Marshal_unfold
   BasicStatus.TypeAssumptions.ptr_MarshalTo_unfold
   BasicStatus.TypeAssumptions.ptr_MarshalToSizedBuffer_unfold
@@ -12543,6 +12561,12 @@ class Status.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
   String_unfold : MethodUnfold Status.ty go!"String" Status.String.impl
   ptr_Descriptor_unfold : MethodUnfold (go.GoType.PointerType Status.ty) go!"Descriptor" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType BasicStatus.ty) go!"Descriptor"))) (App (Val (GoInstruction (StructFieldRef Status.ty go!"BasicStatus"))) (Var "$r"))))
+  ptr_GetCommit_unfold : MethodUnfold (go.GoType.PointerType Status.ty) go!"GetCommit" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType BasicStatus.ty) go!"GetCommit"))) (App (Val (GoInstruction (StructFieldRef Status.ty go!"BasicStatus"))) (Var "$r"))))
+  ptr_GetTerm_unfold : MethodUnfold (go.GoType.PointerType Status.ty) go!"GetTerm" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType BasicStatus.ty) go!"GetTerm"))) (App (Val (GoInstruction (StructFieldRef Status.ty go!"BasicStatus"))) (Var "$r"))))
+  ptr_GetVote_unfold : MethodUnfold (go.GoType.PointerType Status.ty) go!"GetVote" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType BasicStatus.ty) go!"GetVote"))) (App (Val (GoInstruction (StructFieldRef Status.ty go!"BasicStatus"))) (Var "$r"))))
   ptr_Marshal_unfold : MethodUnfold (go.GoType.PointerType Status.ty) go!"Marshal" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType BasicStatus.ty) go!"Marshal"))) (App (Val (GoInstruction (StructFieldRef Status.ty go!"BasicStatus"))) (Var "$r"))))
   ptr_MarshalJSON_unfold : MethodUnfold (go.GoType.PointerType Status.ty) go!"MarshalJSON" (LamV "$r"
@@ -12585,6 +12609,9 @@ attribute [instance] Status.TypeAssumptions.type_repr
   Status.TypeAssumptions.MarshalJSON_unfold
   Status.TypeAssumptions.String_unfold
   Status.TypeAssumptions.ptr_Descriptor_unfold
+  Status.TypeAssumptions.ptr_GetCommit_unfold
+  Status.TypeAssumptions.ptr_GetTerm_unfold
+  Status.TypeAssumptions.ptr_GetVote_unfold
   Status.TypeAssumptions.ptr_Marshal_unfold
   Status.TypeAssumptions.ptr_MarshalJSON_unfold
   Status.TypeAssumptions.ptr_MarshalTo_unfold

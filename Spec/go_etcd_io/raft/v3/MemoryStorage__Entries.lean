@@ -36,12 +36,14 @@ and `len(ents) == 1` (`ErrUnavailable`). The result is `limitSize` of the sub-sl
 read-only and for good, which `ownMemoryStorage` can allow because it holds `ms.ents`
 read-only itself. -/
 abbrev MemoryStorage.Entries.spec : Prop :=
-  ∀ (ms : Loc) (σ : StorState)
+  ∀ (ms : Loc) (γs : MemStorNames) (σ : StorState)
     (lo hi maxSize : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hms" ∷ ownMemoryStorage ms σ ∗
+      "Hms" ∷ ownMemoryStorage ms γs σ ∗
       ⌜uint.Z σ.prev.index' + 1 ≤ uint.Z lo ∧ uint.Z lo < uint.Z hi ∧
-         uint.Z hi ≤ uint.Z σ.prev.index' + (σ.ents.length : Int) + 1⌝ }}
+         uint.Z hi ≤ uint.Z σ.prev.index' + (σ.ents.length : Int) + 1⌝ ∗
+      -- below the pending batch (2026-10-10)
+      ⌜PendFrom σ (uint.Z hi)⌝ }}
     (App (App (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"Entries"))
       (Val #lo)) (Val #hi)) (Val #maxSize))
   {{ (s : GoSlice) (es : List raftpb.Entry), RET (PairV #s #interface.nil);
@@ -52,7 +54,7 @@ abbrev MemoryStorage.Entries.spec : Prop :=
         s.cap = s.len ∧
         es <+: (σ.ents.take (uint.Z hi - uint.Z σ.prev.index' - 1).toNat).drop
                  (uint.Z lo - uint.Z σ.prev.index' - 1).toNat⌝ ∗
-      ownMemoryStorage ms σ }}
+      ownMemoryStorage ms γs σ }}
 
 end spec
 
