@@ -143,6 +143,12 @@ def regStorInvBody : IProp GF :=
 
 def regStorInv : IProp GF := inv regStorN regStorInvBody
 
+instance regStorInv_persistent : Persistent (regStorInv (GF := GF)) := by
+  unfold regStorInv; infer_instance
+
+instance regStorInvBody_timeless : Timeless (regStorInvBody (GF := GF)) := by
+  unfold regStorInvBody; infer_instance
+
 end stor
 
 /-! ## The register's ghost state -/
@@ -162,6 +168,12 @@ def regN : Namespace := nroot.@"register"
 /-- What `Put`/`Get`'s atomic update may open: everything but raft's commit invariant
 and the register's. -/
 def regMask : CoPset := (⊤ \ ↑raftN) \ ↑regN
+
+theorem regN_raftN : (↑regN : CoPset) ⊆ ⊤ \ ↑raftN :=
+  mask_ndot_ne' nroot "register" "raft_commit" (by decide)
+
+theorem raftN_regN : (↑raftN : CoPset) ⊆ ⊤ \ ↑regN :=
+  mask_ndot_ne' nroot "raft_commit" "register" (by decide)
 
 /-- The minting discipline (see the file header). -/
 def MintOk (M : GMap (List w8) Unit) (S : GMap w64 w64) (Mi : GMap (w64 × w64) (List w8)) :
