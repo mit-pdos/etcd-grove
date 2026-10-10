@@ -45,9 +45,9 @@ non-joint config, and what `Config.Clone` produces (it does not copy `AutoLeave`
 def ConfigSimple [FfiSyntax] (cfg : tracker.Config) (v : Loc) : Prop :=
   ConfigVotersOnly cfg v ∧ cfg.AutoLeave' = false
 
-/-- `pb.ConfChangeSingle{Type: pb.ConfChangeAddNode, NodeID: id}`. -/
+/-- `pb.ConfChangeSingle{Type: pb.ConfChangeAddNode, NodeId: id}`. -/
 abbrev addNodeCC [FfiSyntax] (id : w64) : raftpb.ConfChangeSingle :=
-  { Type' := W32 0, NodeID' := id }
+  { Type' := W32 0, NodeId' := id }
 
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]

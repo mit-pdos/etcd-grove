@@ -65,6 +65,20 @@ concurrently); `newRaft` returns `s.gh = {}`.
 
 Not checked: `etc/tcb-report.py --check` (needs a full build; the disk is short).
 
+## bbolt: not goosable as written; the `unsafe` it needs (2026-10-10)
+
+bbolt (v1.5.0, etcd's dependency) works by reading `[]byte` buffers (the mmap'd file, heap
+pages) as structs through `unsafe.Pointer`, with `uintptr` arithmetic. Perennial's typed heap
+gives that no meaning, and it leaves `uintptr ↔ pointer` stuck on purpose. `notes/bbolt-unsafe.md`
+inventories every use and says what a model needs: layout constants, a byte view of
+pointer-free structs (the core change), byte-offset arithmetic, slices over raw memory, and a
+file-backed mmap. It also covers the fork alternative. What is goosable now:
+`internal/common`'s page-id helpers are translated with bodies
+(`Code/go_etcd_io/bbolt/internal/common.toml`), with package init, the sorted-list model,
+`wp_slice_append_in_place` and the `Mergepgids` spec in
+`{Proof,Spec}/go_etcd_io/bbolt/internal/common/`. `Mergepgids` is proved (no `sorry`; `Results.lean` prints its axioms). Most of
+`internal/freelist` and `errors` are goosable too.
+
 ## `node.go` groundwork: abandoning a `Ready`, pre-vote off, the messages' terms (2026-10-10)
 
 Three pieces `node.go`'s proof will need (uncommitted Perennial change: `Slice.lean`).
@@ -352,8 +366,16 @@ callback, allocated in the body) and `cindex.lean` (empty bodies). Proofs: `ents
 `demux.resyncLaggingWatchers` drop the per-iteration variables from their loop invariants
 (each iteration allocates them afresh); nothing else changed.
 
-**Retargeting raft to upstream `etcd-io/raft` (parked).** The goal is to goose raft from
-upstream `1c0011d2` (2026-09-22) instead of the fork `upamanyus/etcd-raft` at `531b20c`
+**Retargeting raft to upstream `etcd-io/raft` (2026-10-10: done, to `40f8be7`).** Raft is
+now goosed from upstream `etcd-io/raft` unmodified, at `40f8be7` (2026-04-15), the last
+commit before raftpb moved to protobuf-go v2; the fork `upamanyus/etcd-raft` is gone from
+`etc/goose.py`. Relative to the fork's translation: `JointConfig.IDs` ranges over the array
+value with `array.forRange 2` (its proof is a `wp_for` over the index, unrolled for the two
+elements, with the old map-range proof inside); `ConfChange`/`ConfChangeSingle`'s `NodeID`
+and `ID` fields are `NodeId`/`Id` (`addNodeCC` in `InvConfchange.lean`); the enum constants
+`MessageType_*`, `EntryType_*`, `ConfChangeType_*`, `ConfChangeTransition_*` are translated
+(raftpb.toml), with `MsgHup`-style aliases; `MajorityConfig.String`/`Describe` format ids in
+hex (not proved). No spec changed. The original goal was upstream `1c0011d2` (2026-09-22):
 (upstream `24643b3` of 2026-03-10 plus two edits in `quorum/`: `JointConfig.IDs` ranging
 over the two configs by index, and `MajorityConfig.Describe`'s local type `tup` hoisted;
 the new Goose translates both as written). Between those two upstream commits raft moved
@@ -373,7 +395,8 @@ entry/message/snapshot ownership (heap entries shared between the log, messages 
 (2026-04-15), translates unmodified with the new Goose and differs from the fork's
 translation only by the gogoproto option cleanups (`NodeID` to `NodeId` in `ConfChange*`,
 the `MessageType_*`/`EntryType_*` enum constants with `MsgHup`-style aliases) and the
-Goose changes above: that is the cheap retarget. Decision pending.
+Goose changes above: that is the cheap retarget, taken on 2026-10-10 (above). The retarget to
+`1c0011d2` stays parked on that branch.
 
 Gates (2026-10-09): `lake build` passes (1659 jobs); `etc/goose.py --check` passes;
 `etc/tcb-report.py --check` matches the baseline. Building against a Perennial checkout
