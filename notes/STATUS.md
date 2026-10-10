@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-10 (`client/v3/leasing` unit 5: the monitors, `NewKV` and `Close` proved, every leasing result unconditional, 66 of 67 functions verified; two findings reproduced (`waitRescind`'s `nil` without a delete lets a range delete through another client's lease; a session reset between `acquire` and `Add` leaves a stale entry), see "Unit 5: the monitors; the package"; `client/v3/leasing` units 3 and 4: `txn.go` and `kv.go` but the monitors specified and proved, nested transactions and owned responses in the contract, two new findings (a write of an uncached key applied twice, a failed acquisition ignores the get's options), see "Units 3 and 4"; `client/v3/leasing` units 1 and 2: translated, the protocol as a premise on etcd's history with `leased_value_stable`, the lease cache specified and proved, findings in `EvictRange` and `evalCmp`, see "client/v3/leasing: the protocol premise and the lease cache"; merged upstream's register example, `node.go`, raft from upstream etcd-io/raft and thread tokens into the Mutex/Election/STM line, Perennial `7c93f27aa`, see "Merge: the register, `node.go` and thread tokens"; `STM`: all of `stm.go` specified and proved, atomicity of the serializable levels, Perennial `9276bd1ed`: a map has fewer than `2^63` keys, two trust-boundary axioms for the STM's panic and `recover`, a new history law, the serializable snapshot broken after a retry (a finding, reproduced and fixed on a fork branch), see "STM"; `Election`: all of `election.go` specified and proved, election exclusion, only the leader proclaims, `Campaign` may return `nil` without its key (a finding), see "Election"; `Mutex`: mutual exclusion, Perennial `d240c1732`: `fmt.Sprintf` formats `%s`, `strings.HasPrefix`, see "Mutex: mutual exclusion"; the register example verified over raft: logically atomic `Put`/`Get`, raft proposals over a client log, see "The register example"; the cache's wait-group counter bounded by thread tokens, Perennial `105fb79f5`: the `WaitGroup.Add` overflow assumption reverted, `New` assumes fewer than `2^31 - 3` live threads, see "The wait-group counter and thread tokens"; `node.go` proved: `RestartNode`, `run`, `Propose`, `Step`, `Tick`, `Ready`, `Advance`, see "`node.go`: the concurrent `Node`"; groundwork for `node.go`: a computed `Ready` can be abandoned, Perennial's `wp_slice_append_undo`; pre-vote out of scope at the RawNode level; `Ready`'s messages carry terms at most the node's, see "`node.go` groundwork"; `RawNode.Ready` split into `readyWithoutAccept` and `acceptReady`, for `node.go`; the storage contract has a pending append, for `node.go`; `MemoryStorage.Append` and `NewMemoryStorage` proved; merged upstream's RawNode work into the cache-as-shipped and concurrency line, Perennial `7d0b56b07`, see "Merge: upstream's RawNode work"; `RawNode.Step` takes a `MsgApp` between `Ready` and `Advance`; the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; Perennial `7d0b56b07`: Goose with per-iteration loop variables, `break` out of `select`, see "Perennial `7d0b56b07`"; merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
+**Last updated:** 2026-10-10 (Perennial's panics and `recover` adopted (Perennial branch `panic`, not yet pinned: needs `7cea8cc26`), the STM's two panic axioms gone, `lockerMutex.Lock`/`Unlock` specified, four standard-library axioms of `client/v3/leasing` replaced by Perennial's specs, see "Panic and recover"; `client/v3/leasing` unit 5: the monitors, `NewKV` and `Close` proved, every leasing result unconditional, 66 of 67 functions verified; two findings reproduced (`waitRescind`'s `nil` without a delete lets a range delete through another client's lease; a session reset between `acquire` and `Add` leaves a stale entry), see "Unit 5: the monitors; the package"; `client/v3/leasing` units 3 and 4: `txn.go` and `kv.go` but the monitors specified and proved, nested transactions and owned responses in the contract, two new findings (a write of an uncached key applied twice, a failed acquisition ignores the get's options), see "Units 3 and 4"; `client/v3/leasing` units 1 and 2: translated, the protocol as a premise on etcd's history with `leased_value_stable`, the lease cache specified and proved, findings in `EvictRange` and `evalCmp`, see "client/v3/leasing: the protocol premise and the lease cache"; merged upstream's register example, `node.go`, raft from upstream etcd-io/raft and thread tokens into the Mutex/Election/STM line, Perennial `7c93f27aa`, see "Merge: the register, `node.go` and thread tokens"; `STM`: all of `stm.go` specified and proved, atomicity of the serializable levels, Perennial `9276bd1ed`: a map has fewer than `2^63` keys, two trust-boundary axioms for the STM's panic and `recover`, a new history law, the serializable snapshot broken after a retry (a finding, reproduced and fixed on a fork branch), see "STM"; `Election`: all of `election.go` specified and proved, election exclusion, only the leader proclaims, `Campaign` may return `nil` without its key (a finding), see "Election"; `Mutex`: mutual exclusion, Perennial `d240c1732`: `fmt.Sprintf` formats `%s`, `strings.HasPrefix`, see "Mutex: mutual exclusion"; the register example verified over raft: logically atomic `Put`/`Get`, raft proposals over a client log, see "The register example"; the cache's wait-group counter bounded by thread tokens, Perennial `105fb79f5`: the `WaitGroup.Add` overflow assumption reverted, `New` assumes fewer than `2^31 - 3` live threads, see "The wait-group counter and thread tokens"; `node.go` proved: `RestartNode`, `run`, `Propose`, `Step`, `Tick`, `Ready`, `Advance`, see "`node.go`: the concurrent `Node`"; groundwork for `node.go`: a computed `Ready` can be abandoned, Perennial's `wp_slice_append_undo`; pre-vote out of scope at the RawNode level; `Ready`'s messages carry terms at most the node's, see "`node.go` groundwork"; `RawNode.Ready` split into `readyWithoutAccept` and `acceptReady`, for `node.go`; the storage contract has a pending append, for `node.go`; `MemoryStorage.Append` and `NewMemoryStorage` proved; merged upstream's RawNode work into the cache-as-shipped and concurrency line, Perennial `7d0b56b07`, see "Merge: upstream's RawNode work"; `RawNode.Step` takes a `MsgApp` between `Ready` and `Advance`; the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; Perennial `7d0b56b07`: Goose with per-iteration loop variables, `break` out of `select`, see "Perennial `7d0b56b07`"; merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
 
 Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
@@ -13,6 +13,49 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 (`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
+
+## Panic and recover: Perennial's panics adopted, the STM's axioms gone (2026-10-10)
+
+Perennial branch `panic` (`b4f46e1dd`..`c46da895a`: a panic outcome `PanicV` in GooseLang,
+`Catch`, `with_defer_recover:`; and `d958136aa`, `c01745d27`, `7cea8cc26`: standard-library
+models) is adopted; **the pin is not moved in this tree**: the branch builds with
+`lake build --packages=<a manifest whose perennial is a path to that checkout>` and needs
+Perennial `7cea8cc26` pinned once pushed. Design and the implementation's deviations:
+`decisions.md`, "Panic and recover" and "The standard library's models".
+
+- **Adoption**: Goose translates only `runSTM`'s goroutine differently (its deferred literal calls
+  `recover()`: `with_defer_recover:`); the 68 other `with_defer` sites are unchanged. Two proofs
+  changed: `runSTM` (`wp_with_defer_recover`, `wp_recoverPanic`) and, indirectly,
+  `EtcdServer.applyEntryNormal` (it binds `etcdserverpb.AlarmType_NOSPACE`, an axiomatized
+  constant `val` a `let` can no longer bind without knowing it is not a panic: now translated,
+  `etcdserverpb.toml`). Every other proof builds unchanged.
+- **STM**: `fetch` and both commits state their abort (`stmRet`: a return, or the panic of
+  `stmError{err}`, `err ≠ nil`; `wp_panic`); `Get`, `Rev`, the interface's triples and the closure
+  (`applySpec`) propagate it; `runSTM` recovers it (`Catch`, the deferred literal's `recover()`,
+  the assertion to `stmError`, `(nil, err)` sent). `NewSTM`'s spec is unchanged. The axioms
+  `stmPanic.spec`, `stmRecover.spec` are gone.
+- **Mutex**: `lockerMutex.Lock`/`Unlock` (`NewLocker`'s `sync.Locker`) specified and proved, a
+  return or `panic(err)` (`locker_Lock`, `locker_Unlock` in `Results.lean`).
+- **Leasing**: `strings.Compare`, `strings.TrimPrefix`, `errors.As`, `(*time.Time).Add` are
+  Perennial's (`strings.wp_Compare`/`wp_TrimPrefix` from trusted models, `errors.wp_As` an axiom
+  in Perennial with an error-tree precondition, `time.Time.wp_ptr_Add` from `ptr_Add_unfold`);
+  their four axiom pairs here are gone. Contract change: `txnCommitResultO`'s error case carries
+  `clientErr` (a leaf error without `As`/`Unwrap` methods, an `EtcdError` if of that type), which
+  `acquire` gives `errors.wp_As`. `status.FromError` stays an axiom.
+- **Merged** `lean` at `1bf5733bf` (leasing unit 5) on top: no conflict but the leasing link list
+  (regenerated); builds unchanged.
+- **Trust base** (after `--check --update`): 42 axioms, 1 `sorry` (`etc/tcb-baseline.txt`; −6:
+  `stmPanic`, `stmRecover`, `strings.Compare`, `strings.TrimPrefix`, `errors.As`,
+  `time.Time.Add`); collections: concurrency 11 axioms (the etcd model's), 1 `sorry`
+  (Perennial's `context.wp_WithDeadlineCause`); leasing 8 axioms; btree 0, cache 9, raft 1,
+  register 0, server 26, unchanged.
+- **Gates** (with `--packages`): `lake build` passes (2176 jobs); `etc/tcb-report.py --check` and
+  every collection pass; `etc/goose.py --check --perennial /shared/perennial-panic` passes;
+  `etc/gen-link.py --cache/--concurrency/--leasing/--server` reproduce the Links;
+  `etc/verified-code.py --reuse --package go.etcd.io/etcd/client/v3/concurrency`: 62 functions,
+  61 verified, 1 unfinished (`Session.Close`, through Perennial's `sorry`), none translated-only
+  (the two locker wrappers were).
+- **Push order**: Perennial `panic` (`7cea8cc26`) first, re-pin, then etcd-grove.
 
 ## client/v3/leasing: the protocol premise and the lease cache (2026-10-10)
 
@@ -367,7 +410,8 @@ per-level theorems), lemma modules `InvSTMMaps`, `InvSTMReads`, `InvSTMCommit`, 
 pairs `NewSTM`, `NewSTM{Repeatable,Serializable,ReadCommitted}`, `mkSTM`, `runSTM`, `With{Isolation,
 AbortContext,Prefetch}`, `stm__{Get,Put,Rev,Del,commit,fetch,reset}`,
 `stmSerializable__{Get,Rev,gets,commit}`, `readSet__{add,first,cmps}`, `writeSet__{get,cmps,puts}`,
-`isKeyCurrent`, `respToValue`, and the trust boundary `stmPanic`, `stmRecover`; `Results.lean`.
+`isKeyCurrent`, `respToValue`, and (until the panic adoption) the trust boundary `stmPanic`,
+`stmRecover`; `Results.lean`.
 
 - **The closure** (`applySpec pfx apply Q`): for any STM with the interface's triples
   (`stmMethods`), from any state, `apply` returns an error or `nil`, and `nil` means `Q` of the
@@ -410,7 +454,7 @@ AbortContext,Prefetch}`, `stm__{Get,Put,Rev,Del,commit,fetch,reset}`,
 - **Trust base** (`etc/tcb-baseline.txt` after `--check --update`: 43 axioms, 1 sorry; `--collection
   concurrency` updated): a new history law `etcdState_modrev_det` (same key, same mod revision ⇒ same
   key-value); the STM's abort `stmPanic.wp_proof` (`panic(stmError{err})`, `err ≠ nil`, does not
-  return) and `stmRecover.wp_proof` (`recover()` returns nil): Perennial's `panic` is stuck and it has
+  return) and `stmRecover.wp_proof` (`recover()` returns nil; both gone since "Panic and recover"): Perennial's `panic` is stuck and it has
   no `recover`, see decisions.md. No `sorry`.
 - **Perennial `9276bd1ed`** (on `d240c1732`): `len` of a map assumes fewer than `2^63` keys (as
   `append` assumes no overflow): `wp_map_len_lt`. Needed by `make([]T, 0, len(m))` (a negative
@@ -561,7 +605,8 @@ the two history laws". Files: `client/v3/concurrency/InvMutex.lean` (vocabulary,
   (`newRaft` passes `uint64`s). The mutex gets `pfx <+: myKey`; nothing about `%x` (not needed:
   exclusion does not use distinct keys). Also a trusted model of `strings.HasPrefix`
   (`wp_HasPrefix`: `decide (pfx <+: s)`; a byte loop, Goose has no string slicing).
-- **The panic question**: `lockerMutex.Lock`/`Unlock` call `panic(err)` on any error of
+- **The panic question** (settled since "Panic and recover": specified, a return or `panic(err)`):
+  `lockerMutex.Lock`/`Unlock` call `panic(err)` on any error of
   `Mutex.Lock`/`Unlock`, which every client call allows, and Perennial's `panic` is a stuck
   expression (a WP of it is unprovable). A `sync.Locker` spec would have to promise no error, which
   is false of the client contract: they are not specified (counted "translated"), and `NewLocker`

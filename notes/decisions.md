@@ -1570,7 +1570,9 @@ What its specs say, and what "mutual exclusion" means over etcd's model (`InvMut
   have made the specs vacuous. The mutex needs only that the key is under the prefix.
 - **`lockerMutex` is not specified**: it panics on any error, every client call may fail, and a
   panic is stuck in Perennial. *Rejected:* a spec promising success (false), an axiom (likewise),
-  a `sorry` (it is not unfinished work).
+  a `sorry` (it is not unfinished work). *Superseded* (2026-10-10, "Panic and recover"): with
+  panics as outcomes, `Lock`/`Unlock` are specified: `Mutex.Lock`/`Unlock`'s `nil` case, or the
+  panic `panic(err)`.
 
 ---
 
@@ -1626,7 +1628,7 @@ first under the prefix is the leader. `InvElection.lean`.
 
 ---
 
-## STM: a higher-order closure spec, aborts as divergence, what each isolation level gives
+## STM: a higher-order closure spec, aborts as panics, what each isolation level gives
 
 **2026-10-10 · proposed** (the intent decided with the user; the panic boundary, the read
 transaction contract and the snapshot claim decided here, for review)
@@ -1685,21 +1687,22 @@ buffered reads and writes with one guarded transaction, retrying on conflict.
   write commits an empty transaction, answered by the member at a possibly older revision.
 - **The range response's header** (`rangeRespAt`): it exists (`first()` and the serializable `Get`
   read it); its revision is not stated (nothing needs it).
-- **Aborts: `panic(stmError{err})` and `recover()` are the trust boundary** (`stmPanic.spec`,
-  `stmRecover.spec`, axioms). `stm.fetch` and the commits panic on any client error, which every
-  client call allows; `runSTM`'s deferred function recovers the panic and sends `(nil, err)`.
-  Perennial's `panic` is stuck (a verified program never panics) and it has no `recover`, so no
-  spec of these functions is provable as they stand. The boundary: such a panic **does not return**
-  (its WP holds for any postcondition, for `err ≠ nil`), and `recover()` **returns nil** where a
-  verified execution reaches it. Sound for what is claimed: a panicking attempt never reaches the
-  code after it, so the proof covers exactly the executions without an abort; with an abort,
-  `runSTM` returns `(nil, err)` with `err` the client's (non-nil), which `stmResult`'s error case
-  allows with no promise. The user's closure must not recover the STM's panics (documented on
-  `applySpec`; a recovering closure would make `recover()`'s model false). *Rejected:* a
-  "Gooseable" rewrite (no behavior-preserving rewrite removes the panic: it unwinds the user's
-  closure); a client that never errs (false); leaving `NewSTM` unspecified (like `lockerMutex`,
-  whose panics are not recovered: there a spec would promise success, here the error is returned).
-  A Perennial model of panics and `recover` would replace both axioms.
+- **Aborts are panic outcomes** (since 2026-10-10; before, the trust boundary, below). `stm.fetch`
+  and the commits `panic(stmError{err})` on any client error, which every client call allows;
+  `runSTM`'s deferred function recovers the panic and sends `(nil, err)`. Their specs say so
+  (`stmRet r Q`: a return `#x` with `Q x`, or `r = stmAbort err`, the panic of the `stmError` as an
+  `interface{}`, with `err ≠ nil`; proved with `wp_panic`), and so do `Get`, `Rev`, the interface's
+  triples (`stmMethods`) and the closure (`applySpec`), which propagate it (`wp_auto` unwinds).
+  `runSTM`'s proof follows the panic out of the attempt loop (`wp_for_post`) to the `Catch` of its
+  goroutine's `with_defer_recover:`, whose deferred literal reads it with `recover()`
+  (`wp_recoverPanic`), asserts it to `stmError` (which succeeds) and sends `(nil, err)`; the
+  goroutine returns normally (`wp_fork`'s non-panic body). `NewSTM`'s spec is unchanged. A closure
+  that recovered an abort and returned would still satisfy `applySpec` (its return is a return).
+  *History*: Perennial's `panic` was stuck and it had no `recover`, so the abort was a trust
+  boundary of two axioms (`stmPanic.spec`: the panic satisfies any postcondition, for
+  `err ≠ nil`; `stmRecover.spec`: `recover()` returns `nil` where a verified run reaches it),
+  sound by the argument that a verified run reaches the code after an abort only without one;
+  both are gone (Perennial branch `panic`, "Panic and recover").
 - **`Get`'s results** (`GetPost`): `Get(keys...)` returns, for some key `k` of `keys`, its write's
   value, or, not written, its read's value; the reads grow by keys of `keys` only and **a read, once
   there, stays** (repeatable reads within an attempt). For the serializable STM this needs an
@@ -2007,7 +2010,10 @@ monitors, the session monitor, `clearOldRevokes`), and its lock also guards the 
   takes `leaseCacheReady` (a monotone counter at `1`), which unit 4's session reset will give.
 - **The trust boundary** (axioms): `strings.Compare` (Perennial has no model; a trusted model in
   Perennial, as `strings.HasPrefix`'s, would replace it: written and proved, but not committed,
-  see STATUS) and `(*time.Time).Add` (Perennial models the value receiver only).
+  see STATUS) and `(*time.Time).Add` (Perennial models the value receiver only). *Since
+  2026-10-10* both are Perennial's (`strings.wp_Compare` from a trusted model,
+  `time.Time.wp_ptr_Add` from `ptr_Add_unfold`), as are `strings.TrimPrefix` and `errors.As`
+  (units 3 and 4): see "Panic and recover", "The standard library's models".
 
 ### Nested transactions, owned responses, `isLeasingKV` (units 3 and 4)
 
@@ -2083,8 +2089,9 @@ monitors, the session monitor, `clearOldRevokes`), and its lock also guards the 
 
 ## Panic and recover: a panic outcome in the language, `Catch` for `defer`
 
-**2026-10-10 · proposed** (the plan decided with the user; being implemented on a Perennial
-branch, not yet pinned)
+**2026-10-10 · implemented** on Perennial branch `panic` (`b4f46e1dd`..`c46da895a`, with the
+standard-library models below up to `7cea8cc26`), pinned by this merge (the plan decided with the
+user; the deviations the implementation made are listed at the end)
 
 The STM (`stm.go`) aborts an attempt by `panic(stmError{err})` from `fetch` and both `commit`
 methods, and `runSTM` turns the panic back into the returned error with a deferred `recover()`.
@@ -2142,8 +2149,69 @@ error) unspecified. The fix is a Perennial feature, decided as follows.
   condition); `wrapDefer`/`wp_with_defer` (50 proofs here use the rule and 68 translated sites
   regenerate; a no-panic corollary of the same shape keeps the proofs nearly unchanged); Goose
   (`recover`, the result expression); the adequacy statement only through `φ`.
-- **For the STM afterwards**: `stmPanic.spec` is `wp_panic`, `stmRecover.spec` is the cell read
-  inside `runSTM`'s `Catch`; `stm.fetch`/`commit` get the panic disjunct
-  `Ψ p := p = stmError{err} ∧ err ≠ nil`, which `runSTM`'s proof turns into the `(nil, err)`
-  return; the `lockerMutex` wrappers get specs the same way. The concurrency collection drops to
-  11 axioms, all about etcd.
+- **The STM afterwards** (done): `stmPanic.spec` became `wp_panic`, `stmRecover.spec` the cell read
+  inside `runSTM`'s `Catch` (`wp_recoverPanic`); `stm.fetch`/the commits have the panic outcome
+  (`stmRet`: the panic of `stmError{err}`, `err ≠ nil`), which `runSTM`'s proof turns into the
+  `(nil, err)` return; the `lockerMutex` wrappers got specs the same way (a return, or
+  `panic(err)`). The concurrency collection is at 11 axioms, all the etcd model's. See "STM",
+  "Aborts are panic outcomes".
+- **What the implementation changed** (Perennial's commits and docs, `PERENNIAL_PROOF_REFERENCE.md`
+  "Panics"):
+  - *Unwinding overlaps the other steps.* A frame around a panic can also take a beta, pair or Go
+    instruction step, so the trusted step relation is `HeadStep`: the unwinding, or `base_step`
+    on a redex that does not unwind (`Unwinds`). Frames that hold an evaluated operand carry a
+    proof that it is not a panic (`AppLCtx v2 h2`, ...), and every pure step that binds or pairs a
+    value needs `v.isPanic = false`; the tactics discharge it (`notPanicProof?`: `#x`,
+    constructors, definitions of them, hypotheses), so proofs see it only for a generic
+    `v : val` (here: a `let` binding an axiomatized constant, `etcdserverpb.AlarmType_NOSPACE`,
+    now translated; and the generic results of `stmRet` specs, cased on first).
+  - *`go.panic` is `λ: "v", Raise "v"`*, `Raise` a primitive (`RaiseOp`) that steps to
+    `PanicV v`; `wp_panic : Φ (PanicV #p) ⊢ WP (go.panic #p)`. The builtins' run-time panics
+    (`Panic "msg"`: an index out of range, a failed type assertion) stay stuck
+    (`wp_PanicOp : ▷ False ⊢ ...`): raft's assertion-style panics keep their unreachability
+    proofs.
+  - *`recover` only where a deferred literal calls it*, by a separate wrapper:
+    `with_defer_recover: r; e` (`wrapDeferRecover`), whose body also gets the `$panic` cell and
+    whose `r` returns the results when the chain cleared the cell (named results are allocated
+    outside the wrapper, hoisted); `recover()` is `recoverPanic $panic`. The 68 plain `with_defer`
+    sites and `wp_with_defer` keep their shape (`wrapDefer` now runs the body under a `Catch` whose
+    handler runs the chain and raises the panic again); the no-panic corollary of the plan was not
+    needed. A `recover()` anywhere else is reported unsupported.
+  - *`Catch e h k`'s handlers are expressions* (Goose emits lambdas), not values.
+  - *Two new class fields*: `GoGlobalContext.intoVal_not_panic` (no Go value is a panic, so a
+    spec `RET #x` excludes panics) and `MapSemantics.is_map_pure_not_panic` (`SafeMapKey` is
+    unchanged); `wp_for` takes three non-panic hypotheses (discharged by the tactic) and a panicking
+    body proves its `forPostcondition` (`wp_for_post_panic`); `wp_fork*`'s body ends in
+    `⌜v.isPanic = false⌝`; `goose_adequacy_nopanic`.
+  - *Unsupported*: a panicking loop condition or `range` body, a deferred function panicking while
+    unwinding, `panic(nil)`, `runtime.Goexit`.
+  - *Cost here*: two proofs changed for the adoption (`runSTM`, `applyEntryNormal`'s constant);
+    the STM's specs changed for the panic outcome.
+
+### The standard library's models (with the panic branch)
+
+**2026-10-10 · implemented** (Perennial branch `panic`, `d958136aa`, `c01745d27`, `7cea8cc26`)
+
+`client/v3/leasing` carried four standard-library axioms; Perennial now has their specs and the
+callers use them directly, as the cache uses `bytes.wp_Compare`.
+
+- **`strings.Compare`**: a trusted model in `TrustedCode/strings.lean` (Go's `<` and `==` on
+  strings, as `bytes.Compare`'s model; Go's is `bytealg.CompareString`, assembly);
+  `strings.wp_Compare` returns `strings.compareResult`.
+- **`strings.TrimPrefix`**: a trusted model, goose's translation of `HasPrefix` and
+  `string([]byte(s)[len(prefix):])` (Goose has no string slicing); `strings.wp_TrimPrefix`
+  returns `strings.trimPrefix`.
+- **`(*time.Time).Add`**: `Time.Add` translated, for the method set of `*Time`
+  (`ptr_Add_unfold`); `time.Time.wp_ptr_Add` from `Time.wp_Add`, which stays an axiom (the body
+  uses `&^`, which the model's Go semantics does not define, and the untranslated `addSec`,
+  `stripMono`).
+- **`errors.As`**: `errors.wp_As`, an axiom (reflection, `internal/reflectlite`, not
+  translated), with `wp_AsType`'s precondition (`isErrorTree S T' T`: the specs of the tree's
+  `As`/`Unwrap` methods and the typing of its errors) for a target `*T`; a leaf error (no `As`,
+  no `Unwrap`: `errors.isLeafError`) is a one-error tree (`isErrorTree_leaf`). Go's panic for a
+  target type neither an interface nor implementing `error` is not stated (method sets are
+  uninterpreted). The caller (`acquire`) needs the client's error to be such a leaf: the client
+  contract says so (`clientErr` in `txnCommitResultO`'s error case: a leaf, an `EtcdError` if of
+  that type; true of gRPC status errors, `rpctypes.EtcdError`s and context errors). *Rejected:*
+  an `errors.As` spec without the tree (false for an error whose `As` method loops or panics).
+- **`status.FromError`** (grpc) stays an etcd-grove axiom.
