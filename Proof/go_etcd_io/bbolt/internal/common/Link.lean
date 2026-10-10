@@ -42,6 +42,7 @@ public import Proof.go_etcd_io.bbolt.internal.common.Meta__SetVersion
 public import Proof.go_etcd_io.bbolt.internal.common.Meta__Txid
 public import Proof.go_etcd_io.bbolt.internal.common.Meta__Version
 public import Proof.go_etcd_io.bbolt.internal.common.Page__BranchPageElement
+public import Proof.go_etcd_io.bbolt.internal.common.Page__BranchPageElements
 public import Proof.go_etcd_io.bbolt.internal.common.Page__Count
 public import Proof.go_etcd_io.bbolt.internal.common.Page__Flags
 public import Proof.go_etcd_io.bbolt.internal.common.Page__Id
@@ -51,6 +52,7 @@ public import Proof.go_etcd_io.bbolt.internal.common.Page__IsLeafPage
 public import Proof.go_etcd_io.bbolt.internal.common.Page__IsMetaPage
 public import Proof.go_etcd_io.bbolt.internal.common.Page__IsValidPage
 public import Proof.go_etcd_io.bbolt.internal.common.Page__LeafPageElement
+public import Proof.go_etcd_io.bbolt.internal.common.Page__LeafPageElements
 public import Proof.go_etcd_io.bbolt.internal.common.Page__Meta
 public import Proof.go_etcd_io.bbolt.internal.common.Page__Overflow
 public import Proof.go_etcd_io.bbolt.internal.common.Page__PageElementSize
@@ -245,6 +247,14 @@ theorem Page.wp_BranchPageElement :
     EtcdGrove.bbolt.Page.BranchPageElement.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Page.BranchPageElement.wp_proof wp_UnsafeIndex
 
+theorem wp_UnsafeAdd :
+    EtcdGrove.bbolt.UnsafeAdd.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.UnsafeAdd.wp_proof
+
+theorem Page.wp_BranchPageElements :
+    EtcdGrove.bbolt.Page.BranchPageElements.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Page.BranchPageElements.wp_proof wp_UnsafeAdd
+
 theorem Page.wp_Count :
     EtcdGrove.bbolt.Page.Count.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Page.Count.wp_proof
@@ -281,9 +291,9 @@ theorem Page.wp_LeafPageElement :
     EtcdGrove.bbolt.Page.LeafPageElement.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Page.LeafPageElement.wp_proof wp_UnsafeIndex
 
-theorem wp_UnsafeAdd :
-    EtcdGrove.bbolt.UnsafeAdd.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.UnsafeAdd.wp_proof
+theorem Page.wp_LeafPageElements :
+    EtcdGrove.bbolt.Page.LeafPageElements.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Page.LeafPageElements.wp_proof wp_UnsafeAdd
 
 theorem Page.wp_Meta :
     EtcdGrove.bbolt.Page.Meta.spec (GF := GF) (hG := hG) :=

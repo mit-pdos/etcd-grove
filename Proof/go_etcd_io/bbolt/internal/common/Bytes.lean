@@ -27,6 +27,20 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.common.Assumptions]
 
+include package_sem in
+theorem typeSize_leafPageElement : typeSize leafPageElement = 16 := by
+  rw [go.StructLayout.size (V := leafPageElement)]
+  simp [go.structLayout, go.structLayoutAux, go.roundUp] <;> decide
+
+include package_sem in
+theorem typeSize_branchPageElement : typeSize branchPageElement = 16 := by
+  rw [go.StructLayout.size (V := branchPageElement)]
+  simp [go.structLayout, go.structLayoutAux, go.roundUp] <;> decide
+
+/-- A location in a block is not null, nor is any offset of it. -/
+theorem loc_add_ne_null (l : Loc) (k : Int) (h : l.locCar ≠ 0) : l +ₗ k ≠ null := by
+  intro e; apply h; simpa [Loc.add, null] using congrArg Loc.locCar e
+
 /-- Element 0 of an array is at its start (in a block or not). -/
 theorem arrayIndexRef_zero (V : Type) (l : Loc) : arrayIndexRef V 0 l = l := by
   unfold arrayIndexRef; split <;> simp

@@ -81,3 +81,5 @@ Pgids__Len:
 Pgids__Less:
 Pgids__Swap:
 Pgids__Merge: common_Mergepgids
+Page__LeafPageElements: common_UnsafeAdd
+Page__BranchPageElements: common_UnsafeAdd

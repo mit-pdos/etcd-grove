@@ -52,6 +52,8 @@ namespace bbolt
 #print axioms Meta.wp_Version
 #print axioms wp_UnsafeIndex
 #print axioms Page.wp_BranchPageElement
+#print axioms wp_UnsafeAdd
+#print axioms Page.wp_BranchPageElements
 #print axioms Page.wp_Count
 #print axioms Page.wp_Flags
 #print axioms Page.wp_Id
@@ -61,7 +63,7 @@ namespace bbolt
 #print axioms Page.wp_IsMetaPage
 #print axioms Page.wp_IsValidPage
 #print axioms Page.wp_LeafPageElement
-#print axioms wp_UnsafeAdd
+#print axioms Page.wp_LeafPageElements
 #print axioms Page.wp_Meta
 #print axioms Page.wp_Overflow
 #print axioms Page.wp_PageElementSize
