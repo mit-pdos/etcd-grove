@@ -111,10 +111,14 @@ Session__Done:
 # (strings.Compare, strings.TrimPrefix, errors.As, (*time.Time).Add) are Perennial's specs.
 status_FromError:
 status_Error:
-# Unit 5 (the monitors): specified, proved later; a hypothesis of the results reaching them.
-leasingKV__waitSession: ?
-leasingKV__waitRescind: ?
-leasingKV__monitorLease: ?
+# Unit 5 (the monitors' callees): the clientv3 and concurrency functions they call.
+WithRev:
+Client__Ctx:
+Client__GetLogger:
+NewSession: Client__GetLogger Client__Ctx
+# Unit 5: the monitors (kv.go), see InvLeasingKV.lean.
+leasingKV__waitSession:
+leasingKV__waitRescind: WithRev
 # util.go's nested transactions (see InvEtcdTxnOwn.lean).
 gatherOps: Op__IsTxn Op__Txn
 gatherResponseOps: Op__IsTxn Op__Txn ResponseOp__GetResponseTxn
@@ -130,6 +134,8 @@ leasingKV__deleteRange: Op__KeyBytes Op__RangeBytes leasingKV__revokeRange lease
 leasingKV__delete: leasingKV__waitSession Op__RangeBytes leasingKV__deleteRange Op__KeyBytes leasingKV__tryModifyOp leasingKV__revoke leaseCache__Evict ResponseOp__GetResponseDeleteRange leaseCache__Delete
 leasingKV__put: leasingKV__waitSession leasingKV__tryModifyOp Op__KeyBytes leasingKV__revoke Op__ValueBytes leaseCache__Update ResponseOp__GetResponsePut
 leasingKV__acquire: leasingKV__waitSession LeaseValue CreateRevision v3_Compare leasingKV__leaseID v3_WithLease OpPut OpGet ResponseOp__GetResponseRange status_FromError
+leasingKV__rescind: leaseCache__Evict CreateRevision v3_Compare OpDelete
+leasingKV__monitorLease: leasingKV__leaseID WithRev leasingKV__rescind
 leasingKV__get: OpResponse__Get leasingKV__readySession leaseCache__Get Op__IsSerializable Op__KeyBytes leaseCache__MayAcquire OpGet leasingKV__acquire ResponseOp__GetResponseRange leaseCache__Add leasingKV__monitorLease
 leasingKV__Get: OpGet leasingKV__get
 leasingKV__Put: OpPut leasingKV__put
@@ -151,3 +157,7 @@ txnLeasing__revokeFallback: ResponseOp__GetResponseRange leasingKV__revokeLeaseK
 txnLeasing__serverTxn: leasingKV__waitSession gatherOps OpTxn txnLeasing__fallback leaseCache__LockWriteOps closeAll txnLeasing__guard Cmp__KeyBytes leaseCache__Evict txnLeasing__commitToCache ResponseOp__GetResponseTxn txnLeasing__revokeFallback
 txnLeasing__Commit: txnLeasing__eval txnLeasing__serverTxn
 leasingKV__Do: Op__IsGet leasingKV__get GetResponse__OpResponse Op__IsPut leasingKV__put PutResponse__OpResponse Op__IsDelete leasingKV__delete DeleteResponse__OpResponse Op__IsTxn Op__Txn leasingKV__Txn txnLeasing__If txnLeasing__Then txnLeasing__Else txnLeasing__Commit TxnResponse__OpResponse
+# Unit 5: the session monitor, Close, NewKV (kv.go).
+leasingKV__monitorSession: NewSession Session__Done
+leasingKV__Close:
+NewKV: Client__Ctx leasingKV__monitorSession leaseCache__clearOldRevokes leasingKV__Close leasingKV__waitSession

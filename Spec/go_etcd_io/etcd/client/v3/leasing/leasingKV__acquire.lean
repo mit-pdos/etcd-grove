@@ -27,7 +27,7 @@ revision): the transaction at a revision `r ≥ lo` (reached; etcd's state at `r
 header, its `Succeeded` `ok` (owned: `acquire` rewrote it), its first response the get's (owned,
 `rangeRespOwn`, on `s`); if `ok`, the lease key `pfx ++ key` is present at `r` with a lease `id`
 of this client's sessions (`Then` put it, or it already had it), created at or before `r`, and
-the entries map was made. -/
+the entries map was made and a session set. -/
 def acquireResult (γ : LeasingNames) (pfx key : GoString) (lo : w64) (o : OpFull) (resp : Loc) :
     IProp GF :=
   iprop(∃ (r : w64) (s : List EtcdKv) (hdr : Loc) (hm : HdrM) (rsl : GoSlice) (p0 w rr : Loc)
@@ -44,7 +44,7 @@ def acquireResult (γ : LeasingNames) (pfx key : GoString) (lo : w64) (o : OpFul
     ⌜rr ≠ null⌝ ∗ rangeRespOwn rr o (rangeSel s o) n ∗
     (if ok then iprop(∃ (id : w64) (lv : EtcdKv),
         ⌜kvOf s (pfx ++ key) = some lv ∧ lv.lease = id ∧ sint.Z lv.createRev ≤ sint.Z r⌝ ∗
-        leaseCacheReady γ.lc)
+        leaseCacheReady γ.lc ∗ sessionReady γ)
      else iprop(True)))
 
 /-- **`lkv.acquire(ctx, key, op)`** for a get `op` (`o`) of `key` alone: until the context is done

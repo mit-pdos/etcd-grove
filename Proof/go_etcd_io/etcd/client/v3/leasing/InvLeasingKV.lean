@@ -126,11 +126,13 @@ instance sessioncOk_persistent (γ : LeasingNames) (sc : GoChan) :
     Persistent (sessioncOk (GF := GF) γ sc) := by
   unfold sessioncOk; infer_instance
 
-/-- The body of `leasingX` for the fields' values. -/
+/-- The body of `leasingX` for the fields' values: **half** of the `session` and `sessionc` fields
+(`q.half`), the other half being the session monitor's (`sessionMonitor`), which reads `session`
+without the lock (it is the only writer of both fields). -/
 def leasingXBody (lkv : Loc) (γ : LeasingNames) (st : LeaseCacheSt)
     (x : Loc × GoChan × List LeaseCacheSt) (q : Qp) : IProp GF :=
-  iprop(structFieldRef leasingKV go!"session" lkv ↦{DFrac.own q} x.1 ∗
-    structFieldRef leasingKV go!"sessionc" lkv ↦{DFrac.own q} x.2.1 ∗
+  iprop(structFieldRef leasingKV go!"session" lkv ↦{DFrac.own q.half} x.1 ∗
+    structFieldRef leasingKV go!"sessionc" lkv ↦{DFrac.own q.half} x.2.1 ∗
     monoListAuthOwn γ.log q x.2.2 ∗ ⌜x.2.2.getLast? = some st⌝ ∗
     monoNatAuthOwn γ.sess q (sessN x.1) ∗ □ sessionOk γ x.1 ∗ □ sessioncOk γ x.2.1)
 
@@ -138,14 +140,32 @@ def leasingXBody (lkv : Loc) (γ : LeasingNames) (st : LeaseCacheSt)
 def leasingX (lkv : Loc) (γ : LeasingNames) (st : LeaseCacheSt) (q : Qp) : IProp GF :=
   iprop(∃ x : Loc × GoChan × List LeaseCacheSt, leasingXBody lkv γ st x q)
 
+/-- Halving distributes over a sum of fractions. -/
+theorem Qp_half_add (p q : Qp) : (p + q).half = p.half + q.half := Subtype.ext (by simp; grind)
+
+/-- A points-to at half the fraction is fractional. -/
+theorem half_pointsto_fractional_loc (l : Loc) (v : Loc) :
+    Fractional (fun q : Qp => typedPointsto (GF := GF) l v (DFrac.own q.half)) where
+  fractional p q := by
+    have h := (fractional_of_dfractional (fun dq => typedPointsto (GF := GF) l v dq)).fractional
+      p.half q.half
+    rw [Qp_half_add]
+    exact h
+
+theorem half_pointsto_fractional_chan (l : Loc) (v : GoChan) :
+    Fractional (fun q : Qp => typedPointsto (GF := GF) l v (DFrac.own q.half)) where
+  fractional p q := by
+    have h := (fractional_of_dfractional (fun dq => typedPointsto (GF := GF) l v dq)).fractional
+      p.half q.half
+    rw [Qp_half_add]
+    exact h
+
 theorem leasingXBody_fractional (lkv : Loc) (γ : LeasingNames) (st : LeaseCacheSt)
     (x : Loc × GoChan × List LeaseCacheSt) :
     Fractional (leasingXBody (GF := GF) lkv γ st x) := by
   unfold leasingXBody
-  haveI : ∀ (l : Loc) (v : Loc), Fractional (fun q : Qp => typedPointsto (GF := GF) l v (DFrac.own q)) :=
-    fun l v => fractional_of_dfractional (fun dq => typedPointsto l v dq)
-  haveI : ∀ (l : Loc) (v : GoChan), Fractional (fun q : Qp => typedPointsto (GF := GF) l v (DFrac.own q)) :=
-    fun l v => fractional_of_dfractional (fun dq => typedPointsto l v dq)
+  haveI := half_pointsto_fractional_loc (GF := GF) (structFieldRef leasingKV go!"session" lkv) x.1
+  haveI := half_pointsto_fractional_chan (GF := GF) (structFieldRef leasingKV go!"sessionc" lkv) x.2.1
   infer_instance
 
 instance leasingX_fractional (lkv : Loc) (γ : LeasingNames) (st : LeaseCacheSt) :
@@ -252,6 +272,78 @@ def isLeasingKV (lkv : Loc) (γ : LeasingNames) (pfx : GoString) : IProp GF :=
 instance isLeasingKV_persistent (lkv : Loc) (γ : LeasingNames) (pfx : GoString) :
     Persistent (isLeasingKV (GF := GF) lkv γ pfx) := by
   unfold isLeasingKV; infer_instance
+
+/-! ## The monitors and `NewKV` (unit 5) -/
+
+/-- **The session monitor's resources** (`monitorSession`, the only writer of `session` and
+`sessionc`): the other halves of the two fields (`leasingXBody` has one half under the lock), what
+the session it set gives (`sessionOk`), and the current `sessionc`'s close right (`.Pending`) or
+the fact that it closed it (`.Done`). -/
+def sessionMonitor (lkv : Loc) (γ : LeasingNames) : IProp GF :=
+  iprop(∃ (s : Loc) (sc : GoChan) (γch : ChanNames) (closed : Bool),
+    structFieldRef leasingKV go!"session" lkv ↦{DFrac.own (1 : Qp).half} s ∗ □ sessionOk γ s ∗
+    structFieldRef leasingKV go!"sessionc" lkv ↦{DFrac.own (1 : Qp).half} sc ∗
+    ownBroadcastChan sc γch (sessionReadyQ γ) (if closed then .Done else .Pending))
+
+/-- The leasing KV's `cancel` field holds a cancel function that may be called any number of
+times (persistent; `Close` calls it). -/
+def isLeasingCancel (lkv : Loc) : IProp GF :=
+  iprop(∃ cancel : GoFunc, structFieldRef leasingKV go!"cancel" lkv ↦□ cancel ∗
+    concurrency.cancelSpec cancel)
+
+instance isLeasingCancel_persistent (lkv : Loc) : Persistent (isLeasingCancel (GF := GF) lkv) := by
+  unfold isLeasingCancel; infer_instance
+
+/-- **What `NewKV` assumes of the client** `cl` and the session options `osl` (persistent; the
+trust boundary about the client, as the cache's `isEtcdClient`): its `KV` field's gets, `Do`s of a
+get and transactions over the whole keyspace, what the monitors use (`isLeasingClient`: the
+watcher, the leases, a session client whose options give a cancelable context), and its context
+(the `ctx` field `cl.Ctx()` returns) a cancelable one (`newClient` makes it with `WithCancel`). -/
+def isLeasingEtcdClient (cl : Loc) (osl : GoSlice) : IProp GF :=
+  iprop(∃ (kv : GoInterfaceOk) (cctx : GoInterfaceOk) (ccs : context.ContextDesc (IProp GF)),
+    isEtcdKV kv [] ∗ isEtcdDoKV kv [] ∗ isEtcdTxnKVO kv [] ∗ isLeasingClient cl kv osl ∗
+    structFieldRef go_etcd_io.etcd.client.v3.Client go!"ctx" cl ↦□ GoInterface.ok cctx ∗
+    context.isContext cctx ccs ∗ context.isCancelCtxCtx cctx ccs)
+
+instance isLeasingEtcdClient_persistent (cl : Loc) (osl : GoSlice) :
+    Persistent (isLeasingEtcdClient (GF := GF) cl osl) := by
+  unfold isLeasingEtcdClient; infer_instance
+
+/-- The `v3.KV` interface value of a `*leasingKV`. -/
+abbrev lkvIface (lkv : Loc) : GoInterfaceOk :=
+  interface.mk (go.GoType.PointerType leasingKV.ty) #lkv
+
+/-- **The close function** `cf` `NewKV` returns (`lkv.Close`), for the leasing KV with ghost names
+`γ` (persistent): called with the whole "open" token (no `get` running), it returns. -/
+def leasingCloseFn (cf : GoFunc) (γ : LeasingNames) : IProp GF :=
+  iprop(□ ∀ Φ : val → IProp GF, leasingOpen γ 1 -∗ ▷ Φ #() -∗ WP (App (Val #cf) (Val #())) {{ Φ }})
+
+instance leasingCloseFn_persistent (cf : GoFunc) (γ : LeasingNames) :
+    Persistent (leasingCloseFn (GF := GF) cf γ) := by
+  unfold leasingCloseFn; infer_instance
+
+/-- The number of the reader slots of the lease cache's `RWMutex` (`sync.rwmutex.actualMaxReaders`,
+`2^30 - 1`), all of which `NewKV` hands out. -/
+abbrev leasingMaxReaders : Nat := Int.toNat sync.rwmutex.actualMaxReaders
+
+/-- **What `NewKV` returns** for the prefix `pfx`: the `KV` interface value of a leasing KV `lkv`
+(`isLeasingKV`) with its handles (every reader slot of the cache, `lkvReader`, and the whole
+"open" token), the close function's spec, and the error of `waitSession` (`nil`: a session was
+set). -/
+def newKVResult (pfx : GoString) (kv : GoInterface) (cf : GoFunc) (err : GoInterface) : IProp GF :=
+  iprop(∃ (lkv : Loc) (γ : LeasingNames), ⌜kv = GoInterface.ok (lkvIface lkv)⌝ ∗
+    isLeasingKV lkv γ pfx ∗ ([∗list] _x ∈ List.replicate leasingMaxReaders (), lkvReader lkv γ pfx) ∗
+    leasingOpen γ 1 ∗ leasingCloseFn cf γ ∗
+    (⌜err ≠ GoInterface.nil⌝ ∨ (⌜err = GoInterface.nil⌝ ∗ sessionReadyQ γ)))
+
+/-- **A lease key deleted** after `rev` (what `waitRescind` waits for): etcd's whole keyspace at a
+revision `r > rev` (reached) has no key `pfx ++ key`. -/
+def leaseKeyDeleted (pfx key : GoString) (rev : w64) : IProp GF :=
+  iprop(∃ r : w64, etcdReached r ∗ etcdAbsent [] (pfx ++ key) r ∗ ⌜sint.Z rev < sint.Z r⌝)
+
+instance leaseKeyDeleted_persistent (pfx key : GoString) (rev : w64) :
+    Persistent (leaseKeyDeleted (GF := GF) pfx key rev) := by
+  unfold leaseKeyDeleted; infer_instance
 
 /-! ## A transaction being built -/
 

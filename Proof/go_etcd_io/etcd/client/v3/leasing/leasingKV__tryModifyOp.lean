@@ -155,7 +155,7 @@ theorem leasingKV.tryModifyOp.wp_proof
   subst Heq
   have Hlin : (TxnModel.linearizable ⟨[compareM (cmpKeyM .create (pfx ++ o.key)) .lt (.num (rv + W64 1))], [top], []⟩) = true := by
     simp [TxnModel.linearizable, txnOpOf_write_lin Htop Hot]
-  icases txnCommitOk_guarded lo _ top [] resp Hlin $$ Hok with ⟨%ok, %hdr, %hm, -, -, HS, Hok⟩
+  icases txnCommitOk_guarded lo _ top [] resp Hlin $$ Hok with ⟨%ok, %hdr, %hm, -, -, -, HS, Hok⟩
   (try wp_auto)
   cases ok
   · (try wp_auto)
