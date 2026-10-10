@@ -77,3 +77,7 @@ leafPageElement__IsBucketEntry:
 leafPageElement__Key: common_UnsafeByteSlice
 leafPageElement__Value: common_UnsafeByteSlice
 branchPageElement__Key: common_UnsafeByteSlice
+Pgids__Len:
+Pgids__Less:
+Pgids__Swap:
+Pgids__Merge: common_Mergepgids

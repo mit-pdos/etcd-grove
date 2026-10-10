@@ -58,6 +58,10 @@ public import Proof.go_etcd_io.bbolt.internal.common.Page__SetCount
 public import Proof.go_etcd_io.bbolt.internal.common.Page__SetFlags
 public import Proof.go_etcd_io.bbolt.internal.common.Page__SetId
 public import Proof.go_etcd_io.bbolt.internal.common.Page__SetOverflow
+public import Proof.go_etcd_io.bbolt.internal.common.Pgids__Len
+public import Proof.go_etcd_io.bbolt.internal.common.Pgids__Less
+public import Proof.go_etcd_io.bbolt.internal.common.Pgids__Merge
+public import Proof.go_etcd_io.bbolt.internal.common.Pgids__Swap
 public import Proof.go_etcd_io.bbolt.internal.common.branchPageElement__Key
 public import Proof.go_etcd_io.bbolt.internal.common.branchPageElement__Ksize
 public import Proof.go_etcd_io.bbolt.internal.common.branchPageElement__Pgid
@@ -309,6 +313,26 @@ theorem Page.wp_SetOverflow :
     EtcdGrove.bbolt.Page.SetOverflow.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Page.SetOverflow.wp_proof
 
+theorem Pgids.wp_Len :
+    EtcdGrove.bbolt.Pgids.Len.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Pgids.Len.wp_proof
+
+theorem Pgids.wp_Less :
+    EtcdGrove.bbolt.Pgids.Less.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Pgids.Less.wp_proof
+
+theorem wp_Mergepgids :
+    EtcdGrove.bbolt.Mergepgids.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Mergepgids.wp_proof
+
+theorem Pgids.wp_Merge :
+    EtcdGrove.bbolt.Pgids.Merge.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Pgids.Merge.wp_proof wp_Mergepgids
+
+theorem Pgids.wp_Swap :
+    EtcdGrove.bbolt.Pgids.Swap.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Pgids.Swap.wp_proof
+
 theorem wp_UnsafeByteSlice :
     EtcdGrove.bbolt.UnsafeByteSlice.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.UnsafeByteSlice.wp_proof wp_UnsafeAdd
@@ -352,10 +376,6 @@ theorem wp_LoadPage :
 theorem wp_LoadPageMeta :
     EtcdGrove.bbolt.LoadPageMeta.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.LoadPageMeta.wp_proof
-
-theorem wp_Mergepgids :
-    EtcdGrove.bbolt.Mergepgids.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.Mergepgids.wp_proof
 
 theorem leafPageElement.wp_Flags :
     EtcdGrove.bbolt.leafPageElement.Flags.spec (GF := GF) (hG := hG) :=

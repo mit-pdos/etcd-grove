@@ -69,6 +69,11 @@ namespace bbolt
 #print axioms Page.wp_SetFlags
 #print axioms Page.wp_SetId
 #print axioms Page.wp_SetOverflow
+#print axioms Pgids.wp_Len
+#print axioms Pgids.wp_Less
+#print axioms wp_Mergepgids
+#print axioms Pgids.wp_Merge
+#print axioms Pgids.wp_Swap
 #print axioms wp_UnsafeByteSlice
 #print axioms branchPageElement.wp_Key
 #print axioms branchPageElement.wp_Ksize
@@ -80,7 +85,6 @@ namespace bbolt
 #print axioms wp_LoadBucket
 #print axioms wp_LoadPage
 #print axioms wp_LoadPageMeta
-#print axioms wp_Mergepgids
 #print axioms leafPageElement.wp_Flags
 #print axioms leafPageElement.wp_IsBucketEntry
 #print axioms leafPageElement.wp_Key
