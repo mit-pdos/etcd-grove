@@ -341,6 +341,7 @@ instance equals_unfold_ConfigChangeContext [FfiSyntax] [GoGlobalContext] :
 class ConfigChangeContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ConfigChangeContext.underlying ConfigChangeContext
   underlying : go.UnderlyingDirectedEq ConfigChangeContext.ty ConfigChangeContext.underlying
+  layout : go.StructLayout ConfigChangeContext [(go!"Member", typeSize Member, typeAlign Member), (go!"IsPromote", typeSize Bool, typeAlign Bool)]
   get_Member : ∀ (x : ConfigChangeContext), go.IsGoStepPureDetTagged under (StructFieldGet ConfigChangeContext.underlying go!"Member") #x (Val #(x.Member'))
   set_Member : ∀ (x : ConfigChangeContext) (y : Member), go.IsGoStepPureDetTagged under (StructFieldSet ConfigChangeContext.underlying go!"Member") (PairV #x #y) (Val #(({ x with Member' := y } : ConfigChangeContext)))
   get_IsPromote : ∀ (x : ConfigChangeContext), go.IsGoStepPureDetTagged under (StructFieldGet ConfigChangeContext.underlying go!"IsPromote") #x (Val #(x.IsPromote'))
@@ -348,6 +349,7 @@ class ConfigChangeContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocal
 
 attribute [instance] ConfigChangeContext.TypeAssumptions.type_repr
   ConfigChangeContext.TypeAssumptions.underlying
+  ConfigChangeContext.TypeAssumptions.layout
   ConfigChangeContext.TypeAssumptions.get_Member
   ConfigChangeContext.TypeAssumptions.set_Member
   ConfigChangeContext.TypeAssumptions.get_IsPromote
@@ -386,11 +388,13 @@ instance equals_unfold_ClusterOptions [FfiSyntax] [GoGlobalContext] :
 class ClusterOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ClusterOptions.underlying ClusterOptions
   underlying : go.UnderlyingDirectedEq ClusterOptions.ty ClusterOptions.underlying
+  layout : go.StructLayout ClusterOptions [(go!"maxLearners", typeSize w64, typeAlign w64)]
   get_maxLearners : ∀ (x : ClusterOptions), go.IsGoStepPureDetTagged under (StructFieldGet ClusterOptions.underlying go!"maxLearners") #x (Val #(x.maxLearners'))
   set_maxLearners : ∀ (x : ClusterOptions) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ClusterOptions.underlying go!"maxLearners") (PairV #x #y) (Val #(({ x with maxLearners' := y } : ClusterOptions)))
 
 attribute [instance] ClusterOptions.TypeAssumptions.type_repr
   ClusterOptions.TypeAssumptions.underlying
+  ClusterOptions.TypeAssumptions.layout
   ClusterOptions.TypeAssumptions.get_maxLearners
   ClusterOptions.TypeAssumptions.set_maxLearners
 
@@ -429,6 +433,7 @@ instance equals_unfold_RaftAttributes [FfiSyntax] [GoGlobalContext] :
 class RaftAttributes.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RaftAttributes.underlying RaftAttributes
   underlying : go.UnderlyingDirectedEq RaftAttributes.ty RaftAttributes.underlying
+  layout : go.StructLayout RaftAttributes [(go!"PeerURLs", typeSize GoSlice, typeAlign GoSlice), (go!"IsLearner", typeSize Bool, typeAlign Bool)]
   get_PeerURLs : ∀ (x : RaftAttributes), go.IsGoStepPureDetTagged under (StructFieldGet RaftAttributes.underlying go!"PeerURLs") #x (Val #(x.PeerURLs'))
   set_PeerURLs : ∀ (x : RaftAttributes) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet RaftAttributes.underlying go!"PeerURLs") (PairV #x #y) (Val #(({ x with PeerURLs' := y } : RaftAttributes)))
   get_IsLearner : ∀ (x : RaftAttributes), go.IsGoStepPureDetTagged under (StructFieldGet RaftAttributes.underlying go!"IsLearner") #x (Val #(x.IsLearner'))
@@ -436,6 +441,7 @@ class RaftAttributes.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
 
 attribute [instance] RaftAttributes.TypeAssumptions.type_repr
   RaftAttributes.TypeAssumptions.underlying
+  RaftAttributes.TypeAssumptions.layout
   RaftAttributes.TypeAssumptions.get_PeerURLs
   RaftAttributes.TypeAssumptions.set_PeerURLs
   RaftAttributes.TypeAssumptions.get_IsLearner
@@ -466,6 +472,7 @@ instance equals_unfold_Attributes [FfiSyntax] [GoGlobalContext] :
 class Attributes.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Attributes.underlying Attributes
   underlying : go.UnderlyingDirectedEq Attributes.ty Attributes.underlying
+  layout : go.StructLayout Attributes [(go!"Name", typeSize GoString, typeAlign GoString), (go!"ClientURLs", typeSize GoSlice, typeAlign GoSlice)]
   get_Name : ∀ (x : Attributes), go.IsGoStepPureDetTagged under (StructFieldGet Attributes.underlying go!"Name") #x (Val #(x.Name'))
   set_Name : ∀ (x : Attributes) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Attributes.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : Attributes)))
   get_ClientURLs : ∀ (x : Attributes), go.IsGoStepPureDetTagged under (StructFieldGet Attributes.underlying go!"ClientURLs") #x (Val #(x.ClientURLs'))
@@ -473,6 +480,7 @@ class Attributes.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
 
 attribute [instance] Attributes.TypeAssumptions.type_repr
   Attributes.TypeAssumptions.underlying
+  Attributes.TypeAssumptions.layout
   Attributes.TypeAssumptions.get_Name
   Attributes.TypeAssumptions.set_Name
   Attributes.TypeAssumptions.get_ClientURLs

@@ -299,11 +299,13 @@ instance equals_unfold_LeaseItem [FfiSyntax] [GoGlobalContext] :
 class LeaseItem.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LeaseItem.underlying LeaseItem
   underlying : go.UnderlyingDirectedEq LeaseItem.ty LeaseItem.underlying
+  layout : go.StructLayout LeaseItem [(go!"Key", typeSize GoString, typeAlign GoString)]
   get_Key : ∀ (x : LeaseItem), go.IsGoStepPureDetTagged under (StructFieldGet LeaseItem.underlying go!"Key") #x (Val #(x.Key'))
   set_Key : ∀ (x : LeaseItem) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet LeaseItem.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : LeaseItem)))
 
 attribute [instance] LeaseItem.TypeAssumptions.type_repr
   LeaseItem.TypeAssumptions.underlying
+  LeaseItem.TypeAssumptions.layout
   LeaseItem.TypeAssumptions.get_Key
   LeaseItem.TypeAssumptions.set_Key
 
@@ -354,6 +356,7 @@ instance equals_unfold_LeaseWithTime [FfiSyntax] [GoGlobalContext] :
 class LeaseWithTime.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LeaseWithTime.underlying LeaseWithTime
   underlying : go.UnderlyingDirectedEq LeaseWithTime.ty LeaseWithTime.underlying
+  layout : go.StructLayout LeaseWithTime [(go!"id", typeSize LeaseID, typeAlign LeaseID), (go!"time", typeSize _root_.Perennial.time.Time, typeAlign _root_.Perennial.time.Time), (go!"index", typeSize w64, typeAlign w64)]
   get_id : ∀ (x : LeaseWithTime), go.IsGoStepPureDetTagged under (StructFieldGet LeaseWithTime.underlying go!"id") #x (Val #(x.id'))
   set_id : ∀ (x : LeaseWithTime) (y : LeaseID), go.IsGoStepPureDetTagged under (StructFieldSet LeaseWithTime.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : LeaseWithTime)))
   get_time : ∀ (x : LeaseWithTime), go.IsGoStepPureDetTagged under (StructFieldGet LeaseWithTime.underlying go!"time") #x (Val #(x.time'))
@@ -363,6 +366,7 @@ class LeaseWithTime.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
 
 attribute [instance] LeaseWithTime.TypeAssumptions.type_repr
   LeaseWithTime.TypeAssumptions.underlying
+  LeaseWithTime.TypeAssumptions.layout
   LeaseWithTime.TypeAssumptions.get_id
   LeaseWithTime.TypeAssumptions.set_id
   LeaseWithTime.TypeAssumptions.get_time
@@ -405,6 +409,7 @@ instance equals_unfold_LeaseExpiredNotifier [FfiSyntax] [GoGlobalContext] :
 class LeaseExpiredNotifier.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LeaseExpiredNotifier.underlying LeaseExpiredNotifier
   underlying : go.UnderlyingDirectedEq LeaseExpiredNotifier.ty LeaseExpiredNotifier.underlying
+  layout : go.StructLayout LeaseExpiredNotifier [(go!"m", typeSize GoMap, typeAlign GoMap), (go!"queue", typeSize LeaseQueue, typeAlign LeaseQueue)]
   get_m : ∀ (x : LeaseExpiredNotifier), go.IsGoStepPureDetTagged under (StructFieldGet LeaseExpiredNotifier.underlying go!"m") #x (Val #(x.m'))
   set_m : ∀ (x : LeaseExpiredNotifier) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet LeaseExpiredNotifier.underlying go!"m") (PairV #x #y) (Val #(({ x with m' := y } : LeaseExpiredNotifier)))
   get_queue : ∀ (x : LeaseExpiredNotifier), go.IsGoStepPureDetTagged under (StructFieldGet LeaseExpiredNotifier.underlying go!"queue") #x (Val #(x.queue'))
@@ -412,6 +417,7 @@ class LeaseExpiredNotifier.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLoca
 
 attribute [instance] LeaseExpiredNotifier.TypeAssumptions.type_repr
   LeaseExpiredNotifier.TypeAssumptions.underlying
+  LeaseExpiredNotifier.TypeAssumptions.layout
   LeaseExpiredNotifier.TypeAssumptions.get_m
   LeaseExpiredNotifier.TypeAssumptions.set_m
   LeaseExpiredNotifier.TypeAssumptions.get_queue
@@ -514,6 +520,7 @@ instance equals_unfold_LessorConfig [FfiSyntax] [GoGlobalContext] :
 class LessorConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LessorConfig.underlying LessorConfig
   underlying : go.UnderlyingDirectedEq LessorConfig.ty LessorConfig.underlying
+  layout : go.StructLayout LessorConfig [(go!"MinLeaseTTL", typeSize w64, typeAlign w64), (go!"CheckpointInterval", typeSize _root_.Perennial.time.Duration, typeAlign _root_.Perennial.time.Duration), (go!"ExpiredLeasesRetryInterval", typeSize _root_.Perennial.time.Duration, typeAlign _root_.Perennial.time.Duration), (go!"CheckpointPersist", typeSize Bool, typeAlign Bool), (go!"leaseRevokeRate", typeSize w64, typeAlign w64)]
   get_MinLeaseTTL : ∀ (x : LessorConfig), go.IsGoStepPureDetTagged under (StructFieldGet LessorConfig.underlying go!"MinLeaseTTL") #x (Val #(x.MinLeaseTTL'))
   set_MinLeaseTTL : ∀ (x : LessorConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet LessorConfig.underlying go!"MinLeaseTTL") (PairV #x #y) (Val #(({ x with MinLeaseTTL' := y } : LessorConfig)))
   get_CheckpointInterval : ∀ (x : LessorConfig), go.IsGoStepPureDetTagged under (StructFieldGet LessorConfig.underlying go!"CheckpointInterval") #x (Val #(x.CheckpointInterval'))
@@ -527,6 +534,7 @@ class LessorConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
 
 attribute [instance] LessorConfig.TypeAssumptions.type_repr
   LessorConfig.TypeAssumptions.underlying
+  LessorConfig.TypeAssumptions.layout
   LessorConfig.TypeAssumptions.get_MinLeaseTTL
   LessorConfig.TypeAssumptions.set_MinLeaseTTL
   LessorConfig.TypeAssumptions.get_CheckpointInterval
@@ -561,11 +569,13 @@ instance equals_unfold_FakeLessor [FfiSyntax] [GoGlobalContext] :
 class FakeLessor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying FakeLessor.underlying FakeLessor
   underlying : go.UnderlyingDirectedEq FakeLessor.ty FakeLessor.underlying
+  layout : go.StructLayout FakeLessor [(go!"LeaseSet", typeSize GoMap, typeAlign GoMap)]
   get_LeaseSet : ∀ (x : FakeLessor), go.IsGoStepPureDetTagged under (StructFieldGet FakeLessor.underlying go!"LeaseSet") #x (Val #(x.LeaseSet'))
   set_LeaseSet : ∀ (x : FakeLessor) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet FakeLessor.underlying go!"LeaseSet") (PairV #x #y) (Val #(({ x with LeaseSet' := y } : FakeLessor)))
 
 attribute [instance] FakeLessor.TypeAssumptions.type_repr
   FakeLessor.TypeAssumptions.underlying
+  FakeLessor.TypeAssumptions.layout
   FakeLessor.TypeAssumptions.get_LeaseSet
   FakeLessor.TypeAssumptions.set_LeaseSet
 
@@ -592,11 +602,13 @@ instance equals_unfold_FakeTxnDelete [FfiSyntax] [GoGlobalContext] :
 class FakeTxnDelete.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying FakeTxnDelete.underlying FakeTxnDelete
   underlying : go.UnderlyingDirectedEq FakeTxnDelete.ty FakeTxnDelete.underlying
+  layout : go.StructLayout FakeTxnDelete [(go!"BatchTx", typeSize _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx, typeAlign _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx)]
   get_BatchTx : ∀ (x : FakeTxnDelete), go.IsGoStepPureDetTagged under (StructFieldGet FakeTxnDelete.underlying go!"BatchTx") #x (Val #(x.BatchTx'))
   set_BatchTx : ∀ (x : FakeTxnDelete) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx), go.IsGoStepPureDetTagged under (StructFieldSet FakeTxnDelete.underlying go!"BatchTx") (PairV #x #y) (Val #(({ x with BatchTx' := y } : FakeTxnDelete)))
 
 attribute [instance] FakeTxnDelete.TypeAssumptions.type_repr
   FakeTxnDelete.TypeAssumptions.underlying
+  FakeTxnDelete.TypeAssumptions.layout
   FakeTxnDelete.TypeAssumptions.get_BatchTx
   FakeTxnDelete.TypeAssumptions.set_BatchTx
 

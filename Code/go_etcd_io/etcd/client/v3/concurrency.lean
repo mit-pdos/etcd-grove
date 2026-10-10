@@ -3133,6 +3133,7 @@ instance equals_unfold_Election [FfiSyntax] [GoGlobalContext] :
 class Election.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Election.underlying Election
   underlying : go.UnderlyingDirectedEq Election.ty Election.underlying
+  layout : go.StructLayout Election [(go!"session", typeSize Loc, typeAlign Loc), (go!"keyPrefix", typeSize GoString, typeAlign GoString), (go!"leaderKey", typeSize GoString, typeAlign GoString), (go!"leaderRev", typeSize w64, typeAlign w64), (go!"leaderSession", typeSize Loc, typeAlign Loc), (go!"hdr", typeSize Loc, typeAlign Loc)]
   get_session : ∀ (x : Election), go.IsGoStepPureDetTagged under (StructFieldGet Election.underlying go!"session") #x (Val #(x.session'))
   set_session : ∀ (x : Election) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Election.underlying go!"session") (PairV #x #y) (Val #(({ x with session' := y } : Election)))
   get_keyPrefix : ∀ (x : Election), go.IsGoStepPureDetTagged under (StructFieldGet Election.underlying go!"keyPrefix") #x (Val #(x.keyPrefix'))
@@ -3157,6 +3158,7 @@ class Election.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
 
 attribute [instance] Election.TypeAssumptions.type_repr
   Election.TypeAssumptions.underlying
+  Election.TypeAssumptions.layout
   Election.TypeAssumptions.get_session
   Election.TypeAssumptions.set_session
   Election.TypeAssumptions.get_keyPrefix
@@ -3210,6 +3212,7 @@ instance equals_unfold_Mutex [FfiSyntax] [GoGlobalContext] :
 class Mutex.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Mutex.underlying Mutex
   underlying : go.UnderlyingDirectedEq Mutex.ty Mutex.underlying
+  layout : go.StructLayout Mutex [(go!"s", typeSize Loc, typeAlign Loc), (go!"pfx", typeSize GoString, typeAlign GoString), (go!"myKey", typeSize GoString, typeAlign GoString), (go!"myRev", typeSize w64, typeAlign w64), (go!"hdr", typeSize Loc, typeAlign Loc)]
   get_s : ∀ (x : Mutex), go.IsGoStepPureDetTagged under (StructFieldGet Mutex.underlying go!"s") #x (Val #(x.s'))
   set_s : ∀ (x : Mutex) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Mutex.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : Mutex)))
   get_pfx : ∀ (x : Mutex), go.IsGoStepPureDetTagged under (StructFieldGet Mutex.underlying go!"pfx") #x (Val #(x.pfx'))
@@ -3230,6 +3233,7 @@ class Mutex.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
 
 attribute [instance] Mutex.TypeAssumptions.type_repr
   Mutex.TypeAssumptions.underlying
+  Mutex.TypeAssumptions.layout
   Mutex.TypeAssumptions.get_s
   Mutex.TypeAssumptions.set_s
   Mutex.TypeAssumptions.get_pfx
@@ -3271,6 +3275,7 @@ instance equals_unfold_lockerMutex [FfiSyntax] [GoGlobalContext] :
 class lockerMutex.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying lockerMutex.underlying lockerMutex
   underlying : go.UnderlyingDirectedEq lockerMutex.ty lockerMutex.underlying
+  layout : go.StructLayout lockerMutex [(go!"Mutex", typeSize Loc, typeAlign Loc)]
   get_Mutex : ∀ (x : lockerMutex), go.IsGoStepPureDetTagged under (StructFieldGet lockerMutex.underlying go!"Mutex") #x (Val #(x.Mutex'))
   set_Mutex : ∀ (x : lockerMutex) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet lockerMutex.underlying go!"Mutex") (PairV #x #y) (Val #(({ x with Mutex' := y } : lockerMutex)))
   Header_unfold : MethodUnfold lockerMutex.ty go!"Header" (LamV "$r"
@@ -3298,6 +3303,7 @@ class lockerMutex.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
 
 attribute [instance] lockerMutex.TypeAssumptions.type_repr
   lockerMutex.TypeAssumptions.underlying
+  lockerMutex.TypeAssumptions.layout
   lockerMutex.TypeAssumptions.get_Mutex
   lockerMutex.TypeAssumptions.set_Mutex
   lockerMutex.TypeAssumptions.Header_unfold
@@ -3346,6 +3352,7 @@ instance equals_unfold_Session [FfiSyntax] [GoGlobalContext] :
 class Session.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Session.underlying Session
   underlying : go.UnderlyingDirectedEq Session.ty Session.underlying
+  layout : go.StructLayout Session [(go!"client", typeSize Loc, typeAlign Loc), (go!"opts", typeSize Loc, typeAlign Loc), (go!"id", typeSize _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID, typeAlign _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID), (go!"ctx", typeSize _root_.Perennial.context.Context, typeAlign _root_.Perennial.context.Context), (go!"cancel", typeSize _root_.Perennial.context.CancelFunc, typeAlign _root_.Perennial.context.CancelFunc), (go!"donec", typeSize GoChan, typeAlign GoChan)]
   get_client : ∀ (x : Session), go.IsGoStepPureDetTagged under (StructFieldGet Session.underlying go!"client") #x (Val #(x.client'))
   set_client : ∀ (x : Session) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Session.underlying go!"client") (PairV #x #y) (Val #(({ x with client' := y } : Session)))
   get_opts : ∀ (x : Session), go.IsGoStepPureDetTagged under (StructFieldGet Session.underlying go!"opts") #x (Val #(x.opts'))
@@ -3367,6 +3374,7 @@ class Session.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
 
 attribute [instance] Session.TypeAssumptions.type_repr
   Session.TypeAssumptions.underlying
+  Session.TypeAssumptions.layout
   Session.TypeAssumptions.get_client
   Session.TypeAssumptions.set_client
   Session.TypeAssumptions.get_opts
@@ -3413,6 +3421,7 @@ instance equals_unfold_sessionOptions [FfiSyntax] [GoGlobalContext] :
 class sessionOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying sessionOptions.underlying sessionOptions
   underlying : go.UnderlyingDirectedEq sessionOptions.ty sessionOptions.underlying
+  layout : go.StructLayout sessionOptions [(go!"ttl", typeSize w64, typeAlign w64), (go!"leaseID", typeSize _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID, typeAlign _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID), (go!"ctx", typeSize _root_.Perennial.context.Context, typeAlign _root_.Perennial.context.Context)]
   get_ttl : ∀ (x : sessionOptions), go.IsGoStepPureDetTagged under (StructFieldGet sessionOptions.underlying go!"ttl") #x (Val #(x.ttl'))
   set_ttl : ∀ (x : sessionOptions) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet sessionOptions.underlying go!"ttl") (PairV #x #y) (Val #(({ x with ttl' := y } : sessionOptions)))
   get_leaseID : ∀ (x : sessionOptions), go.IsGoStepPureDetTagged under (StructFieldGet sessionOptions.underlying go!"leaseID") #x (Val #(x.leaseID'))
@@ -3422,6 +3431,7 @@ class sessionOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
 
 attribute [instance] sessionOptions.TypeAssumptions.type_repr
   sessionOptions.TypeAssumptions.underlying
+  sessionOptions.TypeAssumptions.layout
   sessionOptions.TypeAssumptions.get_ttl
   sessionOptions.TypeAssumptions.set_ttl
   sessionOptions.TypeAssumptions.get_leaseID
@@ -3482,11 +3492,13 @@ instance equals_unfold_stmError [FfiSyntax] [GoGlobalContext] :
 class stmError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying stmError.underlying stmError
   underlying : go.UnderlyingDirectedEq stmError.ty stmError.underlying
+  layout : go.StructLayout stmError [(go!"err", typeSize GoError, typeAlign GoError)]
   get_err : ∀ (x : stmError), go.IsGoStepPureDetTagged under (StructFieldGet stmError.underlying go!"err") #x (Val #(x.err'))
   set_err : ∀ (x : stmError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet stmError.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : stmError)))
 
 attribute [instance] stmError.TypeAssumptions.type_repr
   stmError.TypeAssumptions.underlying
+  stmError.TypeAssumptions.layout
   stmError.TypeAssumptions.get_err
   stmError.TypeAssumptions.set_err
 
@@ -3517,6 +3529,7 @@ instance equals_unfold_stmOptions [FfiSyntax] [GoGlobalContext] :
 class stmOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying stmOptions.underlying stmOptions
   underlying : go.UnderlyingDirectedEq stmOptions.ty stmOptions.underlying
+  layout : go.StructLayout stmOptions [(go!"iso", typeSize Isolation, typeAlign Isolation), (go!"ctx", typeSize _root_.Perennial.context.Context, typeAlign _root_.Perennial.context.Context), (go!"prefetch", typeSize GoSlice, typeAlign GoSlice)]
   get_iso : ∀ (x : stmOptions), go.IsGoStepPureDetTagged under (StructFieldGet stmOptions.underlying go!"iso") #x (Val #(x.iso'))
   set_iso : ∀ (x : stmOptions) (y : Isolation), go.IsGoStepPureDetTagged under (StructFieldSet stmOptions.underlying go!"iso") (PairV #x #y) (Val #(({ x with iso' := y } : stmOptions)))
   get_ctx : ∀ (x : stmOptions), go.IsGoStepPureDetTagged under (StructFieldGet stmOptions.underlying go!"ctx") #x (Val #(x.ctx'))
@@ -3526,6 +3539,7 @@ class stmOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
 
 attribute [instance] stmOptions.TypeAssumptions.type_repr
   stmOptions.TypeAssumptions.underlying
+  stmOptions.TypeAssumptions.layout
   stmOptions.TypeAssumptions.get_iso
   stmOptions.TypeAssumptions.set_iso
   stmOptions.TypeAssumptions.get_ctx
@@ -3568,6 +3582,7 @@ instance equals_unfold_stmResponse [FfiSyntax] [GoGlobalContext] :
 class stmResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying stmResponse.underlying stmResponse
   underlying : go.UnderlyingDirectedEq stmResponse.ty stmResponse.underlying
+  layout : go.StructLayout stmResponse [(go!"resp", typeSize Loc, typeAlign Loc), (go!"err", typeSize GoError, typeAlign GoError)]
   get_resp : ∀ (x : stmResponse), go.IsGoStepPureDetTagged under (StructFieldGet stmResponse.underlying go!"resp") #x (Val #(x.resp'))
   set_resp : ∀ (x : stmResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet stmResponse.underlying go!"resp") (PairV #x #y) (Val #(({ x with resp' := y } : stmResponse)))
   get_err : ∀ (x : stmResponse), go.IsGoStepPureDetTagged under (StructFieldGet stmResponse.underlying go!"err") #x (Val #(x.err'))
@@ -3575,6 +3590,7 @@ class stmResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
 
 attribute [instance] stmResponse.TypeAssumptions.type_repr
   stmResponse.TypeAssumptions.underlying
+  stmResponse.TypeAssumptions.layout
   stmResponse.TypeAssumptions.get_resp
   stmResponse.TypeAssumptions.set_resp
   stmResponse.TypeAssumptions.get_err
@@ -3663,6 +3679,7 @@ instance equals_unfold_stm [FfiSyntax] [GoGlobalContext] :
 class stm.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying stm.underlying stm
   underlying : go.UnderlyingDirectedEq stm.ty stm.underlying
+  layout : go.StructLayout stm [(go!"client", typeSize Loc, typeAlign Loc), (go!"ctx", typeSize _root_.Perennial.context.Context, typeAlign _root_.Perennial.context.Context), (go!"rset", typeSize readSet, typeAlign readSet), (go!"wset", typeSize writeSet, typeAlign writeSet), (go!"getOpts", typeSize GoSlice, typeAlign GoSlice), (go!"conflicts", typeSize GoFunc, typeAlign GoFunc)]
   get_client : ∀ (x : stm), go.IsGoStepPureDetTagged under (StructFieldGet stm.underlying go!"client") #x (Val #(x.client'))
   set_client : ∀ (x : stm) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet stm.underlying go!"client") (PairV #x #y) (Val #(({ x with client' := y } : stm)))
   get_ctx : ∀ (x : stm), go.IsGoStepPureDetTagged under (StructFieldGet stm.underlying go!"ctx") #x (Val #(x.ctx'))
@@ -3685,6 +3702,7 @@ class stm.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSema
 
 attribute [instance] stm.TypeAssumptions.type_repr
   stm.TypeAssumptions.underlying
+  stm.TypeAssumptions.layout
   stm.TypeAssumptions.get_client
   stm.TypeAssumptions.set_client
   stm.TypeAssumptions.get_ctx
@@ -3730,6 +3748,7 @@ instance equals_unfold_stmPut [FfiSyntax] [GoGlobalContext] :
 class stmPut.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying stmPut.underlying stmPut
   underlying : go.UnderlyingDirectedEq stmPut.ty stmPut.underlying
+  layout : go.StructLayout stmPut [(go!"val", typeSize GoString, typeAlign GoString), (go!"op", typeSize _root_.Perennial.go_etcd_io.etcd.client.v3.Op, typeAlign _root_.Perennial.go_etcd_io.etcd.client.v3.Op)]
   get_val : ∀ (x : stmPut), go.IsGoStepPureDetTagged under (StructFieldGet stmPut.underlying go!"val") #x (Val #(x.val'))
   set_val : ∀ (x : stmPut) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet stmPut.underlying go!"val") (PairV #x #y) (Val #(({ x with val' := y } : stmPut)))
   get_op : ∀ (x : stmPut), go.IsGoStepPureDetTagged under (StructFieldGet stmPut.underlying go!"op") #x (Val #(x.op'))
@@ -3737,6 +3756,7 @@ class stmPut.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
 
 attribute [instance] stmPut.TypeAssumptions.type_repr
   stmPut.TypeAssumptions.underlying
+  stmPut.TypeAssumptions.layout
   stmPut.TypeAssumptions.get_val
   stmPut.TypeAssumptions.set_val
   stmPut.TypeAssumptions.get_op
@@ -3767,6 +3787,7 @@ instance equals_unfold_stmSerializable [FfiSyntax] [GoGlobalContext] :
 class stmSerializable.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying stmSerializable.underlying stmSerializable
   underlying : go.UnderlyingDirectedEq stmSerializable.ty stmSerializable.underlying
+  layout : go.StructLayout stmSerializable [(go!"stm", typeSize stm, typeAlign stm), (go!"prefetch", typeSize GoMap, typeAlign GoMap)]
   get_stm : ∀ (x : stmSerializable), go.IsGoStepPureDetTagged under (StructFieldGet stmSerializable.underlying go!"stm") #x (Val #(x.stm'))
   set_stm : ∀ (x : stmSerializable) (y : stm), go.IsGoStepPureDetTagged under (StructFieldSet stmSerializable.underlying go!"stm") (PairV #x #y) (Val #(({ x with stm' := y } : stmSerializable)))
   get_prefetch : ∀ (x : stmSerializable), go.IsGoStepPureDetTagged under (StructFieldGet stmSerializable.underlying go!"prefetch") #x (Val #(x.prefetch'))
@@ -3786,6 +3807,7 @@ class stmSerializable.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
 
 attribute [instance] stmSerializable.TypeAssumptions.type_repr
   stmSerializable.TypeAssumptions.underlying
+  stmSerializable.TypeAssumptions.layout
   stmSerializable.TypeAssumptions.get_stm
   stmSerializable.TypeAssumptions.set_stm
   stmSerializable.TypeAssumptions.get_prefetch

@@ -846,6 +846,7 @@ instance equals_unfold_Entry [FfiSyntax] [GoGlobalContext] :
 class Entry.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Entry.underlying Entry
   underlying : go.UnderlyingDirectedEq Entry.ty Entry.underlying
+  layout : go.StructLayout Entry [(go!"Term", typeSize w64, typeAlign w64), (go!"Index", typeSize w64, typeAlign w64), (go!"Type", typeSize EntryType, typeAlign EntryType), (go!"Data", typeSize GoSlice, typeAlign GoSlice)]
   get_Term : ∀ (x : Entry), go.IsGoStepPureDetTagged under (StructFieldGet Entry.underlying go!"Term") #x (Val #(x.Term'))
   set_Term : ∀ (x : Entry) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Entry.underlying go!"Term") (PairV #x #y) (Val #(({ x with Term' := y } : Entry)))
   get_Index : ∀ (x : Entry), go.IsGoStepPureDetTagged under (StructFieldGet Entry.underlying go!"Index") #x (Val #(x.Index'))
@@ -858,6 +859,7 @@ class Entry.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
 
 attribute [instance] Entry.TypeAssumptions.type_repr
   Entry.TypeAssumptions.underlying
+  Entry.TypeAssumptions.layout
   Entry.TypeAssumptions.get_Term
   Entry.TypeAssumptions.set_Term
   Entry.TypeAssumptions.get_Index
@@ -899,6 +901,7 @@ instance equals_unfold_ConfState [FfiSyntax] [GoGlobalContext] :
 class ConfState.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ConfState.underlying ConfState
   underlying : go.UnderlyingDirectedEq ConfState.ty ConfState.underlying
+  layout : go.StructLayout ConfState [(go!"Voters", typeSize GoSlice, typeAlign GoSlice), (go!"Learners", typeSize GoSlice, typeAlign GoSlice), (go!"VotersOutgoing", typeSize GoSlice, typeAlign GoSlice), (go!"LearnersNext", typeSize GoSlice, typeAlign GoSlice), (go!"AutoLeave", typeSize Bool, typeAlign Bool)]
   get_Voters : ∀ (x : ConfState), go.IsGoStepPureDetTagged under (StructFieldGet ConfState.underlying go!"Voters") #x (Val #(x.Voters'))
   set_Voters : ∀ (x : ConfState) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ConfState.underlying go!"Voters") (PairV #x #y) (Val #(({ x with Voters' := y } : ConfState)))
   get_Learners : ∀ (x : ConfState), go.IsGoStepPureDetTagged under (StructFieldGet ConfState.underlying go!"Learners") #x (Val #(x.Learners'))
@@ -915,6 +918,7 @@ class ConfState.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
 
 attribute [instance] ConfState.TypeAssumptions.type_repr
   ConfState.TypeAssumptions.underlying
+  ConfState.TypeAssumptions.layout
   ConfState.TypeAssumptions.get_Voters
   ConfState.TypeAssumptions.set_Voters
   ConfState.TypeAssumptions.get_Learners
@@ -955,6 +959,7 @@ instance equals_unfold_SnapshotMetadata [FfiSyntax] [GoGlobalContext] :
 class SnapshotMetadata.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SnapshotMetadata.underlying SnapshotMetadata
   underlying : go.UnderlyingDirectedEq SnapshotMetadata.ty SnapshotMetadata.underlying
+  layout : go.StructLayout SnapshotMetadata [(go!"ConfState", typeSize ConfState, typeAlign ConfState), (go!"Index", typeSize w64, typeAlign w64), (go!"Term", typeSize w64, typeAlign w64)]
   get_ConfState : ∀ (x : SnapshotMetadata), go.IsGoStepPureDetTagged under (StructFieldGet SnapshotMetadata.underlying go!"ConfState") #x (Val #(x.ConfState'))
   set_ConfState : ∀ (x : SnapshotMetadata) (y : ConfState), go.IsGoStepPureDetTagged under (StructFieldSet SnapshotMetadata.underlying go!"ConfState") (PairV #x #y) (Val #(({ x with ConfState' := y } : SnapshotMetadata)))
   get_Index : ∀ (x : SnapshotMetadata), go.IsGoStepPureDetTagged under (StructFieldGet SnapshotMetadata.underlying go!"Index") #x (Val #(x.Index'))
@@ -964,6 +969,7 @@ class SnapshotMetadata.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
 
 attribute [instance] SnapshotMetadata.TypeAssumptions.type_repr
   SnapshotMetadata.TypeAssumptions.underlying
+  SnapshotMetadata.TypeAssumptions.layout
   SnapshotMetadata.TypeAssumptions.get_ConfState
   SnapshotMetadata.TypeAssumptions.set_ConfState
   SnapshotMetadata.TypeAssumptions.get_Index
@@ -996,6 +1002,7 @@ instance equals_unfold_Snapshot [FfiSyntax] [GoGlobalContext] :
 class Snapshot.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Snapshot.underlying Snapshot
   underlying : go.UnderlyingDirectedEq Snapshot.ty Snapshot.underlying
+  layout : go.StructLayout Snapshot [(go!"Data", typeSize GoSlice, typeAlign GoSlice), (go!"Metadata", typeSize SnapshotMetadata, typeAlign SnapshotMetadata)]
   get_Data : ∀ (x : Snapshot), go.IsGoStepPureDetTagged under (StructFieldGet Snapshot.underlying go!"Data") #x (Val #(x.Data'))
   set_Data : ∀ (x : Snapshot) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Snapshot.underlying go!"Data") (PairV #x #y) (Val #(({ x with Data' := y } : Snapshot)))
   get_Metadata : ∀ (x : Snapshot), go.IsGoStepPureDetTagged under (StructFieldGet Snapshot.underlying go!"Metadata") #x (Val #(x.Metadata'))
@@ -1003,6 +1010,7 @@ class Snapshot.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
 
 attribute [instance] Snapshot.TypeAssumptions.type_repr
   Snapshot.TypeAssumptions.underlying
+  Snapshot.TypeAssumptions.layout
   Snapshot.TypeAssumptions.get_Data
   Snapshot.TypeAssumptions.set_Data
   Snapshot.TypeAssumptions.get_Metadata
@@ -1057,6 +1065,7 @@ instance equals_unfold_Message [FfiSyntax] [GoGlobalContext] :
 class Message.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Message.underlying Message
   underlying : go.UnderlyingDirectedEq Message.ty Message.underlying
+  layout : go.StructLayout Message [(go!"Type", typeSize MessageType, typeAlign MessageType), (go!"To", typeSize w64, typeAlign w64), (go!"From", typeSize w64, typeAlign w64), (go!"Term", typeSize w64, typeAlign w64), (go!"LogTerm", typeSize w64, typeAlign w64), (go!"Index", typeSize w64, typeAlign w64), (go!"Entries", typeSize GoSlice, typeAlign GoSlice), (go!"Commit", typeSize w64, typeAlign w64), (go!"Vote", typeSize w64, typeAlign w64), (go!"Snapshot", typeSize Loc, typeAlign Loc), (go!"Reject", typeSize Bool, typeAlign Bool), (go!"RejectHint", typeSize w64, typeAlign w64), (go!"Context", typeSize GoSlice, typeAlign GoSlice), (go!"Responses", typeSize GoSlice, typeAlign GoSlice)]
   get_Type : ∀ (x : Message), go.IsGoStepPureDetTagged under (StructFieldGet Message.underlying go!"Type") #x (Val #(x.Type'))
   set_Type : ∀ (x : Message) (y : MessageType), go.IsGoStepPureDetTagged under (StructFieldSet Message.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : Message)))
   get_To : ∀ (x : Message), go.IsGoStepPureDetTagged under (StructFieldGet Message.underlying go!"To") #x (Val #(x.To'))
@@ -1088,6 +1097,7 @@ class Message.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
 
 attribute [instance] Message.TypeAssumptions.type_repr
   Message.TypeAssumptions.underlying
+  Message.TypeAssumptions.layout
   Message.TypeAssumptions.get_Type
   Message.TypeAssumptions.set_Type
   Message.TypeAssumptions.get_To
@@ -1144,6 +1154,7 @@ instance equals_unfold_HardState [FfiSyntax] [GoGlobalContext] :
 class HardState.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying HardState.underlying HardState
   underlying : go.UnderlyingDirectedEq HardState.ty HardState.underlying
+  layout : go.StructLayout HardState [(go!"Term", typeSize w64, typeAlign w64), (go!"Vote", typeSize w64, typeAlign w64), (go!"Commit", typeSize w64, typeAlign w64)]
   get_Term : ∀ (x : HardState), go.IsGoStepPureDetTagged under (StructFieldGet HardState.underlying go!"Term") #x (Val #(x.Term'))
   set_Term : ∀ (x : HardState) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet HardState.underlying go!"Term") (PairV #x #y) (Val #(({ x with Term' := y } : HardState)))
   get_Vote : ∀ (x : HardState), go.IsGoStepPureDetTagged under (StructFieldGet HardState.underlying go!"Vote") #x (Val #(x.Vote'))
@@ -1153,6 +1164,7 @@ class HardState.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
 
 attribute [instance] HardState.TypeAssumptions.type_repr
   HardState.TypeAssumptions.underlying
+  HardState.TypeAssumptions.layout
   HardState.TypeAssumptions.get_Term
   HardState.TypeAssumptions.set_Term
   HardState.TypeAssumptions.get_Vote
@@ -1189,6 +1201,7 @@ instance equals_unfold_ConfChange [FfiSyntax] [GoGlobalContext] :
 class ConfChange.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ConfChange.underlying ConfChange
   underlying : go.UnderlyingDirectedEq ConfChange.ty ConfChange.underlying
+  layout : go.StructLayout ConfChange [(go!"Type", typeSize ConfChangeType, typeAlign ConfChangeType), (go!"NodeId", typeSize w64, typeAlign w64), (go!"Context", typeSize GoSlice, typeAlign GoSlice), (go!"Id", typeSize w64, typeAlign w64)]
   get_Type : ∀ (x : ConfChange), go.IsGoStepPureDetTagged under (StructFieldGet ConfChange.underlying go!"Type") #x (Val #(x.Type'))
   set_Type : ∀ (x : ConfChange) (y : ConfChangeType), go.IsGoStepPureDetTagged under (StructFieldSet ConfChange.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : ConfChange)))
   get_NodeId : ∀ (x : ConfChange), go.IsGoStepPureDetTagged under (StructFieldGet ConfChange.underlying go!"NodeId") #x (Val #(x.NodeId'))
@@ -1200,6 +1213,7 @@ class ConfChange.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
 
 attribute [instance] ConfChange.TypeAssumptions.type_repr
   ConfChange.TypeAssumptions.underlying
+  ConfChange.TypeAssumptions.layout
   ConfChange.TypeAssumptions.get_Type
   ConfChange.TypeAssumptions.set_Type
   ConfChange.TypeAssumptions.get_NodeId
@@ -1234,6 +1248,7 @@ instance equals_unfold_ConfChangeSingle [FfiSyntax] [GoGlobalContext] :
 class ConfChangeSingle.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ConfChangeSingle.underlying ConfChangeSingle
   underlying : go.UnderlyingDirectedEq ConfChangeSingle.ty ConfChangeSingle.underlying
+  layout : go.StructLayout ConfChangeSingle [(go!"Type", typeSize ConfChangeType, typeAlign ConfChangeType), (go!"NodeId", typeSize w64, typeAlign w64)]
   get_Type : ∀ (x : ConfChangeSingle), go.IsGoStepPureDetTagged under (StructFieldGet ConfChangeSingle.underlying go!"Type") #x (Val #(x.Type'))
   set_Type : ∀ (x : ConfChangeSingle) (y : ConfChangeType), go.IsGoStepPureDetTagged under (StructFieldSet ConfChangeSingle.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : ConfChangeSingle)))
   get_NodeId : ∀ (x : ConfChangeSingle), go.IsGoStepPureDetTagged under (StructFieldGet ConfChangeSingle.underlying go!"NodeId") #x (Val #(x.NodeId'))
@@ -1241,6 +1256,7 @@ class ConfChangeSingle.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
 
 attribute [instance] ConfChangeSingle.TypeAssumptions.type_repr
   ConfChangeSingle.TypeAssumptions.underlying
+  ConfChangeSingle.TypeAssumptions.layout
   ConfChangeSingle.TypeAssumptions.get_Type
   ConfChangeSingle.TypeAssumptions.set_Type
   ConfChangeSingle.TypeAssumptions.get_NodeId
@@ -1273,6 +1289,7 @@ instance equals_unfold_ConfChangeV2 [FfiSyntax] [GoGlobalContext] :
 class ConfChangeV2.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ConfChangeV2.underlying ConfChangeV2
   underlying : go.UnderlyingDirectedEq ConfChangeV2.ty ConfChangeV2.underlying
+  layout : go.StructLayout ConfChangeV2 [(go!"Transition", typeSize ConfChangeTransition, typeAlign ConfChangeTransition), (go!"Changes", typeSize GoSlice, typeAlign GoSlice), (go!"Context", typeSize GoSlice, typeAlign GoSlice)]
   get_Transition : ∀ (x : ConfChangeV2), go.IsGoStepPureDetTagged under (StructFieldGet ConfChangeV2.underlying go!"Transition") #x (Val #(x.Transition'))
   set_Transition : ∀ (x : ConfChangeV2) (y : ConfChangeTransition), go.IsGoStepPureDetTagged under (StructFieldSet ConfChangeV2.underlying go!"Transition") (PairV #x #y) (Val #(({ x with Transition' := y } : ConfChangeV2)))
   get_Changes : ∀ (x : ConfChangeV2), go.IsGoStepPureDetTagged under (StructFieldGet ConfChangeV2.underlying go!"Changes") #x (Val #(x.Changes'))
@@ -1282,6 +1299,7 @@ class ConfChangeV2.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
 
 attribute [instance] ConfChangeV2.TypeAssumptions.type_repr
   ConfChangeV2.TypeAssumptions.underlying
+  ConfChangeV2.TypeAssumptions.layout
   ConfChangeV2.TypeAssumptions.get_Transition
   ConfChangeV2.TypeAssumptions.set_Transition
   ConfChangeV2.TypeAssumptions.get_Changes

@@ -21,6 +21,11 @@ end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.v2stats
 
+def anonStruct_bd9d38e69bbb039e.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v2stats.anonStruct_bd9d38e69bbb039e" [])
+
+attribute [irreducible] anonStruct_bd9d38e69bbb039e.ty
+
 def LeaderStats.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v2stats.LeaderStats" [])
 
@@ -66,6 +71,8 @@ def serverStats.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] serverStats.ty
 
+axiom anonStruct_bd9d38e69bbb039e.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+
 axiom LeaderStats.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom FollowerStats.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
@@ -97,6 +104,19 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val exceptionDo)
   (App (Val doExecute)
   (Val #()))))))
+
+axiom anonStruct_bd9d38e69bbb039e : Type
+axiom anonStruct_bd9d38e69bbb039e.zero_val : ZeroVal anonStruct_bd9d38e69bbb039e
+attribute [instance] anonStruct_bd9d38e69bbb039e.zero_val
+
+class anonStruct_bd9d38e69bbb039e.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying anonStruct_bd9d38e69bbb039e.underlying anonStruct_bd9d38e69bbb039e
+  underlying : go.UnderlyingDirectedEq anonStruct_bd9d38e69bbb039e.ty anonStruct_bd9d38e69bbb039e.underlying
+  isUnderlying : go.IsUnderlying anonStruct_bd9d38e69bbb039e.underlying anonStruct_bd9d38e69bbb039e.underlying
+
+attribute [instance] anonStruct_bd9d38e69bbb039e.TypeAssumptions.type_repr
+  anonStruct_bd9d38e69bbb039e.TypeAssumptions.underlying
+  anonStruct_bd9d38e69bbb039e.TypeAssumptions.isUnderlying
 
 axiom LeaderStats : Type
 axiom LeaderStats.zero_val : ZeroVal LeaderStats
@@ -136,6 +156,7 @@ instance equals_unfold_leaderStats [FfiSyntax] [GoGlobalContext] :
 class leaderStats.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying leaderStats.underlying leaderStats
   underlying : go.UnderlyingDirectedEq leaderStats.ty leaderStats.underlying
+  layout : go.StructLayout leaderStats [(go!"Leader", typeSize GoString, typeAlign GoString), (go!"Followers", typeSize GoMap, typeAlign GoMap)]
   get_Leader : ∀ (x : leaderStats), go.IsGoStepPureDetTagged under (StructFieldGet leaderStats.underlying go!"Leader") #x (Val #(x.Leader'))
   set_Leader : ∀ (x : leaderStats) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet leaderStats.underlying go!"Leader") (PairV #x #y) (Val #(({ x with Leader' := y } : leaderStats)))
   get_Followers : ∀ (x : leaderStats), go.IsGoStepPureDetTagged under (StructFieldGet leaderStats.underlying go!"Followers") #x (Val #(x.Followers'))
@@ -143,6 +164,7 @@ class leaderStats.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
 
 attribute [instance] leaderStats.TypeAssumptions.type_repr
   leaderStats.TypeAssumptions.underlying
+  leaderStats.TypeAssumptions.layout
   leaderStats.TypeAssumptions.get_Leader
   leaderStats.TypeAssumptions.set_Leader
   leaderStats.TypeAssumptions.get_Followers
@@ -194,6 +216,7 @@ instance equals_unfold_LatencyStats [FfiSyntax] [GoGlobalContext] :
 class LatencyStats.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LatencyStats.underlying LatencyStats
   underlying : go.UnderlyingDirectedEq LatencyStats.ty LatencyStats.underlying
+  layout : go.StructLayout LatencyStats [(go!"Current", typeSize w64, typeAlign w64), (go!"Average", typeSize w64, typeAlign w64), (go!"averageSquare", typeSize w64, typeAlign w64), (go!"StandardDeviation", typeSize w64, typeAlign w64), (go!"Minimum", typeSize w64, typeAlign w64), (go!"Maximum", typeSize w64, typeAlign w64)]
   get_Current : ∀ (x : LatencyStats), go.IsGoStepPureDetTagged under (StructFieldGet LatencyStats.underlying go!"Current") #x (Val #(x.Current'))
   set_Current : ∀ (x : LatencyStats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet LatencyStats.underlying go!"Current") (PairV #x #y) (Val #(({ x with Current' := y } : LatencyStats)))
   get_Average : ∀ (x : LatencyStats), go.IsGoStepPureDetTagged under (StructFieldGet LatencyStats.underlying go!"Average") #x (Val #(x.Average'))
@@ -209,6 +232,7 @@ class LatencyStats.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
 
 attribute [instance] LatencyStats.TypeAssumptions.type_repr
   LatencyStats.TypeAssumptions.underlying
+  LatencyStats.TypeAssumptions.layout
   LatencyStats.TypeAssumptions.get_Current
   LatencyStats.TypeAssumptions.set_Current
   LatencyStats.TypeAssumptions.get_Average
@@ -247,6 +271,7 @@ instance equals_unfold_CountsStats [FfiSyntax] [GoGlobalContext] :
 class CountsStats.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CountsStats.underlying CountsStats
   underlying : go.UnderlyingDirectedEq CountsStats.ty CountsStats.underlying
+  layout : go.StructLayout CountsStats [(go!"Fail", typeSize w64, typeAlign w64), (go!"Success", typeSize w64, typeAlign w64)]
   get_Fail : ∀ (x : CountsStats), go.IsGoStepPureDetTagged under (StructFieldGet CountsStats.underlying go!"Fail") #x (Val #(x.Fail'))
   set_Fail : ∀ (x : CountsStats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet CountsStats.underlying go!"Fail") (PairV #x #y) (Val #(({ x with Fail' := y } : CountsStats)))
   get_Success : ∀ (x : CountsStats), go.IsGoStepPureDetTagged under (StructFieldGet CountsStats.underlying go!"Success") #x (Val #(x.Success'))
@@ -254,6 +279,7 @@ class CountsStats.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
 
 attribute [instance] CountsStats.TypeAssumptions.type_repr
   CountsStats.TypeAssumptions.underlying
+  CountsStats.TypeAssumptions.layout
   CountsStats.TypeAssumptions.get_Fail
   CountsStats.TypeAssumptions.set_Fail
   CountsStats.TypeAssumptions.get_Success
@@ -312,6 +338,7 @@ attribute [instance] serverStats.TypeAssumptions.type_repr
   serverStats.TypeAssumptions.isUnderlying
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  anonStruct_bd9d38e69bbb039e_instance : anonStruct_bd9d38e69bbb039e.TypeAssumptions
   LeaderStats_instance : LeaderStats.TypeAssumptions
   leaderStats_instance : leaderStats.TypeAssumptions
   FollowerStats_instance : FollowerStats.TypeAssumptions
@@ -322,7 +349,8 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   ServerStats_instance : ServerStats.TypeAssumptions
   serverStats_instance : serverStats.TypeAssumptions
 
-attribute [instance] Assumptions.LeaderStats_instance
+attribute [instance] Assumptions.anonStruct_bd9d38e69bbb039e_instance
+  Assumptions.LeaderStats_instance
   Assumptions.leaderStats_instance
   Assumptions.FollowerStats_instance
   Assumptions.LatencyStats_instance

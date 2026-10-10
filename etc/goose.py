@@ -122,7 +122,7 @@ PROJECTS = [
         # go.etcd.io/raft/v3 is etcd's own raft dependency (etcd's go.mod), not the raft
         # above: its modules are EtcdDeps.Code.go_etcd_io.raft.v3* (the part below).
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
-                    "go.etcd.io/bbolt=", "go.opentelemetry.io=",
+                    "go.etcd.io/bbolt=", "go.opentelemetry.io=", "golang.org/x=",
                     "github.com/dustin/go-humanize=", "net/http=",
                     "go.etcd.io/raft/v3=EtcdDeps"],
         packages=[
@@ -162,9 +162,13 @@ PROJECTS = [
             "go.etcd.io/etcd/client/pkg/v3/transport",
             "go.etcd.io/etcd/pkg/v3/featuregate",
             "go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery",
+            # bbolt, with bodies (bbolt.toml, bbolt/**.toml)
             "go.etcd.io/bbolt",
-            # bbolt's page-id helpers, with bodies (bbolt/internal/common.toml)
+            "go.etcd.io/bbolt/errors",
             "go.etcd.io/bbolt/internal/common",
+            "go.etcd.io/bbolt/internal/freelist",
+            # names only: the system calls bbolt makes
+            "golang.org/x/sys/unix",
             "go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc",
             "google.golang.org/protobuf/proto",
             "google.golang.org/protobuf/reflect/protoreflect",
@@ -195,7 +199,8 @@ PROJECTS = [
         ],
         owned=[os.path.join("go_etcd_io", "etcd"), os.path.join("go_etcd_io", "bbolt"),
                "k8s_io", "google_golang_org", "go_uber_org", "go_opentelemetry_io",
-               os.path.join("net", "http"), os.path.join("github_com", "dustin")],
+               os.path.join("net", "http"), os.path.join("github_com", "dustin"),
+               os.path.join("golang_org", "x")],
         parts=[
             # etcd's own raft dependency (go.etcd.io/raft/v3 in etcd's go.mod), whose
             # raftpb is protobuf-go v2: not the gogoproto etcd-raft above, but the same

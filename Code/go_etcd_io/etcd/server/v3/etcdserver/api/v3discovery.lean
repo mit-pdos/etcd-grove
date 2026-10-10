@@ -173,6 +173,7 @@ instance equals_unfold_memberInfo [FfiSyntax] [GoGlobalContext] :
 class memberInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying memberInfo.underlying memberInfo
   underlying : go.UnderlyingDirectedEq memberInfo.ty memberInfo.underlying
+  layout : go.StructLayout memberInfo [(go!"peerRegKey", typeSize GoString, typeAlign GoString), (go!"peerURLsMap", typeSize GoString, typeAlign GoString), (go!"createRev", typeSize w64, typeAlign w64)]
   get_peerRegKey : ∀ (x : memberInfo), go.IsGoStepPureDetTagged under (StructFieldGet memberInfo.underlying go!"peerRegKey") #x (Val #(x.peerRegKey'))
   set_peerRegKey : ∀ (x : memberInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet memberInfo.underlying go!"peerRegKey") (PairV #x #y) (Val #(({ x with peerRegKey' := y } : memberInfo)))
   get_peerURLsMap : ∀ (x : memberInfo), go.IsGoStepPureDetTagged under (StructFieldGet memberInfo.underlying go!"peerURLsMap") #x (Val #(x.peerURLsMap'))
@@ -182,6 +183,7 @@ class memberInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
 
 attribute [instance] memberInfo.TypeAssumptions.type_repr
   memberInfo.TypeAssumptions.underlying
+  memberInfo.TypeAssumptions.layout
   memberInfo.TypeAssumptions.get_peerRegKey
   memberInfo.TypeAssumptions.set_peerRegKey
   memberInfo.TypeAssumptions.get_peerURLsMap
@@ -214,6 +216,7 @@ instance equals_unfold_clusterInfo [FfiSyntax] [GoGlobalContext] :
 class clusterInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying clusterInfo.underlying clusterInfo
   underlying : go.UnderlyingDirectedEq clusterInfo.ty clusterInfo.underlying
+  layout : go.StructLayout clusterInfo [(go!"clusterToken", typeSize GoString, typeAlign GoString), (go!"members", typeSize GoSlice, typeAlign GoSlice)]
   get_clusterToken : ∀ (x : clusterInfo), go.IsGoStepPureDetTagged under (StructFieldGet clusterInfo.underlying go!"clusterToken") #x (Val #(x.clusterToken'))
   set_clusterToken : ∀ (x : clusterInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet clusterInfo.underlying go!"clusterToken") (PairV #x #y) (Val #(({ x with clusterToken' := y } : clusterInfo)))
   get_members : ∀ (x : clusterInfo), go.IsGoStepPureDetTagged under (StructFieldGet clusterInfo.underlying go!"members") #x (Val #(x.members'))
@@ -221,6 +224,7 @@ class clusterInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
 
 attribute [instance] clusterInfo.TypeAssumptions.type_repr
   clusterInfo.TypeAssumptions.underlying
+  clusterInfo.TypeAssumptions.layout
   clusterInfo.TypeAssumptions.get_clusterToken
   clusterInfo.TypeAssumptions.set_clusterToken
   clusterInfo.TypeAssumptions.get_members

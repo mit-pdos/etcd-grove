@@ -1242,11 +1242,13 @@ instance equals_unfold_serverVersionAdapter [FfiSyntax] [GoGlobalContext] :
 class serverVersionAdapter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying serverVersionAdapter.underlying serverVersionAdapter
   underlying : go.UnderlyingDirectedEq serverVersionAdapter.ty serverVersionAdapter.underlying
+  layout : go.StructLayout serverVersionAdapter [(go!"EtcdServer", typeSize Loc, typeAlign Loc)]
   get_EtcdServer : ∀ (x : serverVersionAdapter), go.IsGoStepPureDetTagged under (StructFieldGet serverVersionAdapter.underlying go!"EtcdServer") #x (Val #(x.EtcdServer'))
   set_EtcdServer : ∀ (x : serverVersionAdapter) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet serverVersionAdapter.underlying go!"EtcdServer") (PairV #x #y) (Val #(({ x with EtcdServer' := y } : serverVersionAdapter)))
 
 attribute [instance] serverVersionAdapter.TypeAssumptions.type_repr
   serverVersionAdapter.TypeAssumptions.underlying
+  serverVersionAdapter.TypeAssumptions.layout
   serverVersionAdapter.TypeAssumptions.get_EtcdServer
   serverVersionAdapter.TypeAssumptions.set_EtcdServer
 
@@ -1281,6 +1283,7 @@ instance equals_unfold_bootstrappedServer [FfiSyntax] [GoGlobalContext] :
 class bootstrappedServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying bootstrappedServer.underlying bootstrappedServer
   underlying : go.UnderlyingDirectedEq bootstrappedServer.ty bootstrappedServer.underlying
+  layout : go.StructLayout bootstrappedServer [(go!"storage", typeSize Loc, typeAlign Loc), (go!"cluster", typeSize Loc, typeAlign Loc), (go!"raft", typeSize Loc, typeAlign Loc), (go!"prt", typeSize _root_.Perennial.net.http.RoundTripper, typeAlign _root_.Perennial.net.http.RoundTripper), (go!"ss", typeSize Loc, typeAlign Loc)]
   get_storage : ∀ (x : bootstrappedServer), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedServer.underlying go!"storage") #x (Val #(x.storage'))
   set_storage : ∀ (x : bootstrappedServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedServer.underlying go!"storage") (PairV #x #y) (Val #(({ x with storage' := y } : bootstrappedServer)))
   get_cluster : ∀ (x : bootstrappedServer), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedServer.underlying go!"cluster") #x (Val #(x.cluster'))
@@ -1294,6 +1297,7 @@ class bootstrappedServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalC
 
 attribute [instance] bootstrappedServer.TypeAssumptions.type_repr
   bootstrappedServer.TypeAssumptions.underlying
+  bootstrappedServer.TypeAssumptions.layout
   bootstrappedServer.TypeAssumptions.get_storage
   bootstrappedServer.TypeAssumptions.set_storage
   bootstrappedServer.TypeAssumptions.get_cluster
@@ -1330,6 +1334,7 @@ instance equals_unfold_bootstrappedStorage [FfiSyntax] [GoGlobalContext] :
 class bootstrappedStorage.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying bootstrappedStorage.underlying bootstrappedStorage
   underlying : go.UnderlyingDirectedEq bootstrappedStorage.ty bootstrappedStorage.underlying
+  layout : go.StructLayout bootstrappedStorage [(go!"backend", typeSize Loc, typeAlign Loc), (go!"wal", typeSize Loc, typeAlign Loc)]
   get_backend : ∀ (x : bootstrappedStorage), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedStorage.underlying go!"backend") #x (Val #(x.backend'))
   set_backend : ∀ (x : bootstrappedStorage) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedStorage.underlying go!"backend") (PairV #x #y) (Val #(({ x with backend' := y } : bootstrappedStorage)))
   get_wal : ∀ (x : bootstrappedStorage), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedStorage.underlying go!"wal") #x (Val #(x.wal'))
@@ -1337,6 +1342,7 @@ class bootstrappedStorage.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocal
 
 attribute [instance] bootstrappedStorage.TypeAssumptions.type_repr
   bootstrappedStorage.TypeAssumptions.underlying
+  bootstrappedStorage.TypeAssumptions.layout
   bootstrappedStorage.TypeAssumptions.get_backend
   bootstrappedStorage.TypeAssumptions.set_backend
   bootstrappedStorage.TypeAssumptions.get_wal
@@ -1373,6 +1379,7 @@ instance equals_unfold_bootstrappedBackend [FfiSyntax] [GoGlobalContext] :
 class bootstrappedBackend.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying bootstrappedBackend.underlying bootstrappedBackend
   underlying : go.UnderlyingDirectedEq bootstrappedBackend.ty bootstrappedBackend.underlying
+  layout : go.StructLayout bootstrappedBackend [(go!"beHooks", typeSize Loc, typeAlign Loc), (go!"be", typeSize _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend, typeAlign _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend), (go!"ci", typeSize _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.cindex.ConsistentIndexer, typeAlign _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.cindex.ConsistentIndexer), (go!"beExist", typeSize Bool, typeAlign Bool), (go!"snapshot", typeSize Loc, typeAlign Loc)]
   get_beHooks : ∀ (x : bootstrappedBackend), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedBackend.underlying go!"beHooks") #x (Val #(x.beHooks'))
   set_beHooks : ∀ (x : bootstrappedBackend) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedBackend.underlying go!"beHooks") (PairV #x #y) (Val #(({ x with beHooks' := y } : bootstrappedBackend)))
   get_be : ∀ (x : bootstrappedBackend), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedBackend.underlying go!"be") #x (Val #(x.be'))
@@ -1386,6 +1393,7 @@ class bootstrappedBackend.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocal
 
 attribute [instance] bootstrappedBackend.TypeAssumptions.type_repr
   bootstrappedBackend.TypeAssumptions.underlying
+  bootstrappedBackend.TypeAssumptions.layout
   bootstrappedBackend.TypeAssumptions.get_beHooks
   bootstrappedBackend.TypeAssumptions.set_beHooks
   bootstrappedBackend.TypeAssumptions.get_be
@@ -1424,6 +1432,7 @@ instance equals_unfold_bootstrappedCluster [FfiSyntax] [GoGlobalContext] :
 class bootstrappedCluster.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying bootstrappedCluster.underlying bootstrappedCluster
   underlying : go.UnderlyingDirectedEq bootstrappedCluster.ty bootstrappedCluster.underlying
+  layout : go.StructLayout bootstrappedCluster [(go!"remotes", typeSize GoSlice, typeAlign GoSlice), (go!"cl", typeSize Loc, typeAlign Loc), (go!"nodeID", typeSize _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID, typeAlign _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID)]
   get_remotes : ∀ (x : bootstrappedCluster), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedCluster.underlying go!"remotes") #x (Val #(x.remotes'))
   set_remotes : ∀ (x : bootstrappedCluster) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedCluster.underlying go!"remotes") (PairV #x #y) (Val #(({ x with remotes' := y } : bootstrappedCluster)))
   get_cl : ∀ (x : bootstrappedCluster), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedCluster.underlying go!"cl") #x (Val #(x.cl'))
@@ -1433,6 +1442,7 @@ class bootstrappedCluster.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocal
 
 attribute [instance] bootstrappedCluster.TypeAssumptions.type_repr
   bootstrappedCluster.TypeAssumptions.underlying
+  bootstrappedCluster.TypeAssumptions.layout
   bootstrappedCluster.TypeAssumptions.get_remotes
   bootstrappedCluster.TypeAssumptions.set_remotes
   bootstrappedCluster.TypeAssumptions.get_cl
@@ -1471,6 +1481,7 @@ instance equals_unfold_bootstrappedRaft [FfiSyntax] [GoGlobalContext] :
 class bootstrappedRaft.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying bootstrappedRaft.underlying bootstrappedRaft
   underlying : go.UnderlyingDirectedEq bootstrappedRaft.ty bootstrappedRaft.underlying
+  layout : go.StructLayout bootstrappedRaft [(go!"lg", typeSize Loc, typeAlign Loc), (go!"heartbeat", typeSize _root_.Perennial.time.Duration, typeAlign _root_.Perennial.time.Duration), (go!"peers", typeSize GoSlice, typeAlign GoSlice), (go!"config", typeSize Loc, typeAlign Loc), (go!"storage", typeSize Loc, typeAlign Loc)]
   get_lg : ∀ (x : bootstrappedRaft), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedRaft.underlying go!"lg") #x (Val #(x.lg'))
   set_lg : ∀ (x : bootstrappedRaft) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedRaft.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : bootstrappedRaft)))
   get_heartbeat : ∀ (x : bootstrappedRaft), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedRaft.underlying go!"heartbeat") #x (Val #(x.heartbeat'))
@@ -1484,6 +1495,7 @@ class bootstrappedRaft.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
 
 attribute [instance] bootstrappedRaft.TypeAssumptions.type_repr
   bootstrappedRaft.TypeAssumptions.underlying
+  bootstrappedRaft.TypeAssumptions.layout
   bootstrappedRaft.TypeAssumptions.get_lg
   bootstrappedRaft.TypeAssumptions.set_lg
   bootstrappedRaft.TypeAssumptions.get_heartbeat
@@ -1520,6 +1532,7 @@ instance equals_unfold_snapshotMetadata [FfiSyntax] [GoGlobalContext] :
 class snapshotMetadata.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying snapshotMetadata.underlying snapshotMetadata
   underlying : go.UnderlyingDirectedEq snapshotMetadata.ty snapshotMetadata.underlying
+  layout : go.StructLayout snapshotMetadata [(go!"nodeID", typeSize _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID, typeAlign _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), (go!"clusterID", typeSize _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID, typeAlign _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID)]
   get_nodeID : ∀ (x : snapshotMetadata), go.IsGoStepPureDetTagged under (StructFieldGet snapshotMetadata.underlying go!"nodeID") #x (Val #(x.nodeID'))
   set_nodeID : ∀ (x : snapshotMetadata) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet snapshotMetadata.underlying go!"nodeID") (PairV #x #y) (Val #(({ x with nodeID' := y } : snapshotMetadata)))
   get_clusterID : ∀ (x : snapshotMetadata), go.IsGoStepPureDetTagged under (StructFieldGet snapshotMetadata.underlying go!"clusterID") #x (Val #(x.clusterID'))
@@ -1527,6 +1540,7 @@ class snapshotMetadata.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
 
 attribute [instance] snapshotMetadata.TypeAssumptions.type_repr
   snapshotMetadata.TypeAssumptions.underlying
+  snapshotMetadata.TypeAssumptions.layout
   snapshotMetadata.TypeAssumptions.get_nodeID
   snapshotMetadata.TypeAssumptions.set_nodeID
   snapshotMetadata.TypeAssumptions.get_clusterID
@@ -1594,6 +1608,7 @@ instance equals_unfold_corruptionChecker [FfiSyntax] [GoGlobalContext] :
 class corruptionChecker.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying corruptionChecker.underlying corruptionChecker
   underlying : go.UnderlyingDirectedEq corruptionChecker.ty corruptionChecker.underlying
+  layout : go.StructLayout corruptionChecker [(go!"lg", typeSize Loc, typeAlign Loc), (go!"hasher", typeSize Hasher, typeAlign Hasher), (go!"mux", typeSize _root_.Perennial.sync.RWMutex, typeAlign _root_.Perennial.sync.RWMutex), (go!"latestRevisionChecked", typeSize w64, typeAlign w64)]
   get_lg : ∀ (x : corruptionChecker), go.IsGoStepPureDetTagged under (StructFieldGet corruptionChecker.underlying go!"lg") #x (Val #(x.lg'))
   set_lg : ∀ (x : corruptionChecker) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet corruptionChecker.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : corruptionChecker)))
   get_hasher : ∀ (x : corruptionChecker), go.IsGoStepPureDetTagged under (StructFieldGet corruptionChecker.underlying go!"hasher") #x (Val #(x.hasher'))
@@ -1605,6 +1620,7 @@ class corruptionChecker.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCo
 
 attribute [instance] corruptionChecker.TypeAssumptions.type_repr
   corruptionChecker.TypeAssumptions.underlying
+  corruptionChecker.TypeAssumptions.layout
   corruptionChecker.TypeAssumptions.get_lg
   corruptionChecker.TypeAssumptions.set_lg
   corruptionChecker.TypeAssumptions.get_hasher
@@ -1639,6 +1655,7 @@ instance equals_unfold_hasherAdapter [FfiSyntax] [GoGlobalContext] :
 class hasherAdapter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying hasherAdapter.underlying hasherAdapter
   underlying : go.UnderlyingDirectedEq hasherAdapter.ty hasherAdapter.underlying
+  layout : go.StructLayout hasherAdapter [(go!"EtcdServer", typeSize Loc, typeAlign Loc), (go!"HashStorage", typeSize _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.HashStorage, typeAlign _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.HashStorage)]
   get_EtcdServer : ∀ (x : hasherAdapter), go.IsGoStepPureDetTagged under (StructFieldGet hasherAdapter.underlying go!"EtcdServer") #x (Val #(x.EtcdServer'))
   set_EtcdServer : ∀ (x : hasherAdapter) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet hasherAdapter.underlying go!"EtcdServer") (PairV #x #y) (Val #(({ x with EtcdServer' := y } : hasherAdapter)))
   get_HashStorage : ∀ (x : hasherAdapter), go.IsGoStepPureDetTagged under (StructFieldGet hasherAdapter.underlying go!"HashStorage") #x (Val #(x.HashStorage'))
@@ -1646,6 +1663,7 @@ class hasherAdapter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
 
 attribute [instance] hasherAdapter.TypeAssumptions.type_repr
   hasherAdapter.TypeAssumptions.underlying
+  hasherAdapter.TypeAssumptions.layout
   hasherAdapter.TypeAssumptions.get_EtcdServer
   hasherAdapter.TypeAssumptions.set_EtcdServer
   hasherAdapter.TypeAssumptions.get_HashStorage
@@ -1676,6 +1694,7 @@ instance equals_unfold_peerInfo [FfiSyntax] [GoGlobalContext] :
 class peerInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying peerInfo.underlying peerInfo
   underlying : go.UnderlyingDirectedEq peerInfo.ty peerInfo.underlying
+  layout : go.StructLayout peerInfo [(go!"id", typeSize _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID, typeAlign _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), (go!"eps", typeSize GoSlice, typeAlign GoSlice)]
   get_id : ∀ (x : peerInfo), go.IsGoStepPureDetTagged under (StructFieldGet peerInfo.underlying go!"id") #x (Val #(x.id'))
   set_id : ∀ (x : peerInfo) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet peerInfo.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : peerInfo)))
   get_eps : ∀ (x : peerInfo), go.IsGoStepPureDetTagged under (StructFieldGet peerInfo.underlying go!"eps") #x (Val #(x.eps'))
@@ -1683,6 +1702,7 @@ class peerInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
 
 attribute [instance] peerInfo.TypeAssumptions.type_repr
   peerInfo.TypeAssumptions.underlying
+  peerInfo.TypeAssumptions.layout
   peerInfo.TypeAssumptions.get_id
   peerInfo.TypeAssumptions.set_id
   peerInfo.TypeAssumptions.get_eps
@@ -1715,6 +1735,7 @@ instance equals_unfold_peerHashKVResp [FfiSyntax] [GoGlobalContext] :
 class peerHashKVResp.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying peerHashKVResp.underlying peerHashKVResp
   underlying : go.UnderlyingDirectedEq peerHashKVResp.ty peerHashKVResp.underlying
+  layout : go.StructLayout peerHashKVResp [(go!"peerInfo", typeSize peerInfo, typeAlign peerInfo), (go!"resp", typeSize Loc, typeAlign Loc), (go!"err", typeSize GoError, typeAlign GoError)]
   get_peerInfo : ∀ (x : peerHashKVResp), go.IsGoStepPureDetTagged under (StructFieldGet peerHashKVResp.underlying go!"peerInfo") #x (Val #(x.peerInfo'))
   set_peerInfo : ∀ (x : peerHashKVResp) (y : peerInfo), go.IsGoStepPureDetTagged under (StructFieldSet peerHashKVResp.underlying go!"peerInfo") (PairV #x #y) (Val #(({ x with peerInfo' := y } : peerHashKVResp)))
   get_resp : ∀ (x : peerHashKVResp), go.IsGoStepPureDetTagged under (StructFieldGet peerHashKVResp.underlying go!"resp") #x (Val #(x.resp'))
@@ -1724,6 +1745,7 @@ class peerHashKVResp.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
 
 attribute [instance] peerHashKVResp.TypeAssumptions.type_repr
   peerHashKVResp.TypeAssumptions.underlying
+  peerHashKVResp.TypeAssumptions.layout
   peerHashKVResp.TypeAssumptions.get_peerInfo
   peerHashKVResp.TypeAssumptions.set_peerInfo
   peerHashKVResp.TypeAssumptions.get_resp
@@ -1756,6 +1778,7 @@ instance equals_unfold_hashKVHandler [FfiSyntax] [GoGlobalContext] :
 class hashKVHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying hashKVHandler.underlying hashKVHandler
   underlying : go.UnderlyingDirectedEq hashKVHandler.ty hashKVHandler.underlying
+  layout : go.StructLayout hashKVHandler [(go!"lg", typeSize Loc, typeAlign Loc), (go!"server", typeSize Loc, typeAlign Loc)]
   get_lg : ∀ (x : hashKVHandler), go.IsGoStepPureDetTagged under (StructFieldGet hashKVHandler.underlying go!"lg") #x (Val #(x.lg'))
   set_lg : ∀ (x : hashKVHandler) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet hashKVHandler.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : hashKVHandler)))
   get_server : ∀ (x : hashKVHandler), go.IsGoStepPureDetTagged under (StructFieldGet hashKVHandler.underlying go!"server") #x (Val #(x.server'))
@@ -1763,6 +1786,7 @@ class hashKVHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
 
 attribute [instance] hashKVHandler.TypeAssumptions.type_repr
   hashKVHandler.TypeAssumptions.underlying
+  hashKVHandler.TypeAssumptions.layout
   hashKVHandler.TypeAssumptions.get_lg
   hashKVHandler.TypeAssumptions.set_lg
   hashKVHandler.TypeAssumptions.get_server
@@ -1797,6 +1821,7 @@ instance equals_unfold_toApply [FfiSyntax] [GoGlobalContext] :
 class toApply.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying toApply.underlying toApply
   underlying : go.UnderlyingDirectedEq toApply.ty toApply.underlying
+  layout : go.StructLayout toApply [(go!"entries", typeSize GoSlice, typeAlign GoSlice), (go!"snapshot", typeSize Loc, typeAlign Loc), (go!"notifyc", typeSize GoChan, typeAlign GoChan), (go!"raftAdvancedC", typeSize GoChan, typeAlign GoChan)]
   get_entries : ∀ (x : toApply), go.IsGoStepPureDetTagged under (StructFieldGet toApply.underlying go!"entries") #x (Val #(x.entries'))
   set_entries : ∀ (x : toApply) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet toApply.underlying go!"entries") (PairV #x #y) (Val #(({ x with entries' := y } : toApply)))
   get_snapshot : ∀ (x : toApply), go.IsGoStepPureDetTagged under (StructFieldGet toApply.underlying go!"snapshot") #x (Val #(x.snapshot'))
@@ -1808,6 +1833,7 @@ class toApply.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
 
 attribute [instance] toApply.TypeAssumptions.type_repr
   toApply.TypeAssumptions.underlying
+  toApply.TypeAssumptions.layout
   toApply.TypeAssumptions.get_entries
   toApply.TypeAssumptions.set_entries
   toApply.TypeAssumptions.get_snapshot
@@ -1852,6 +1878,7 @@ instance equals_unfold_raftNodeConfig [FfiSyntax] [GoGlobalContext] :
 class raftNodeConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying raftNodeConfig.underlying raftNodeConfig
   underlying : go.UnderlyingDirectedEq raftNodeConfig.ty raftNodeConfig.underlying
+  layout : go.StructLayout raftNodeConfig [(go!"lg", typeSize Loc, typeAlign Loc), (go!"isIDRemoved", typeSize GoFunc, typeAlign GoFunc), (go!"Node", typeSize _root_.Perennial.go_etcd_io.raft.v3.Node, typeAlign _root_.Perennial.go_etcd_io.raft.v3.Node), (go!"raftStorage", typeSize Loc, typeAlign Loc), (go!"storage", typeSize _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Storage, typeAlign _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Storage), (go!"heartbeat", typeSize _root_.Perennial.time.Duration, typeAlign _root_.Perennial.time.Duration), (go!"transport", typeSize _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transporter, typeAlign _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transporter)]
   get_lg : ∀ (x : raftNodeConfig), go.IsGoStepPureDetTagged under (StructFieldGet raftNodeConfig.underlying go!"lg") #x (Val #(x.lg'))
   set_lg : ∀ (x : raftNodeConfig) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet raftNodeConfig.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : raftNodeConfig)))
   get_isIDRemoved : ∀ (x : raftNodeConfig), go.IsGoStepPureDetTagged under (StructFieldGet raftNodeConfig.underlying go!"isIDRemoved") #x (Val #(x.isIDRemoved'))
@@ -1869,6 +1896,7 @@ class raftNodeConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
 
 attribute [instance] raftNodeConfig.TypeAssumptions.type_repr
   raftNodeConfig.TypeAssumptions.underlying
+  raftNodeConfig.TypeAssumptions.layout
   raftNodeConfig.TypeAssumptions.get_lg
   raftNodeConfig.TypeAssumptions.set_lg
   raftNodeConfig.TypeAssumptions.get_isIDRemoved
@@ -1927,6 +1955,7 @@ instance equals_unfold_raftNode [FfiSyntax] [GoGlobalContext] :
 class raftNode.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying raftNode.underlying raftNode
   underlying : go.UnderlyingDirectedEq raftNode.ty raftNode.underlying
+  layout : go.StructLayout raftNode [(go!"lg", typeSize Loc, typeAlign Loc), (go!"tickMu", typeSize Loc, typeAlign Loc), (go!"latestTickTs", typeSize _root_.Perennial.time.Time, typeAlign _root_.Perennial.time.Time), (go!"raftNodeConfig", typeSize raftNodeConfig, typeAlign raftNodeConfig), (go!"msgSnapC", typeSize GoChan, typeAlign GoChan), (go!"applyc", typeSize GoChan, typeAlign GoChan), (go!"readStateC", typeSize GoChan, typeAlign GoChan), (go!"ticker", typeSize Loc, typeAlign Loc), (go!"td", typeSize Loc, typeAlign Loc), (go!"stopped", typeSize GoChan, typeAlign GoChan), (go!"done", typeSize GoChan, typeAlign GoChan)]
   get_lg : ∀ (x : raftNode), go.IsGoStepPureDetTagged under (StructFieldGet raftNode.underlying go!"lg") #x (Val #(x.lg'))
   set_lg : ∀ (x : raftNode) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet raftNode.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : raftNode)))
   get_tickMu : ∀ (x : raftNode), go.IsGoStepPureDetTagged under (StructFieldGet raftNode.underlying go!"tickMu") #x (Val #(x.tickMu'))
@@ -1952,6 +1981,7 @@ class raftNode.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
 
 attribute [instance] raftNode.TypeAssumptions.type_repr
   raftNode.TypeAssumptions.underlying
+  raftNode.TypeAssumptions.layout
   raftNode.TypeAssumptions.get_lg
   raftNode.TypeAssumptions.set_lg
   raftNode.TypeAssumptions.get_tickMu
@@ -2136,6 +2166,7 @@ instance equals_unfold_EtcdServer [FfiSyntax] [GoGlobalContext] :
 class EtcdServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EtcdServer.underlying EtcdServer
   underlying : go.UnderlyingDirectedEq EtcdServer.ty EtcdServer.underlying
+  layout : go.StructLayout EtcdServer [(go!"inflightSnapshots", typeSize _root_.Perennial.sync.atomic.Int64, typeAlign _root_.Perennial.sync.atomic.Int64), (go!"appliedIndex", typeSize _root_.Perennial.sync.atomic.Uint64, typeAlign _root_.Perennial.sync.atomic.Uint64), (go!"committedIndex", typeSize _root_.Perennial.sync.atomic.Uint64, typeAlign _root_.Perennial.sync.atomic.Uint64), (go!"term", typeSize _root_.Perennial.sync.atomic.Uint64, typeAlign _root_.Perennial.sync.atomic.Uint64), (go!"lead", typeSize _root_.Perennial.sync.atomic.Uint64, typeAlign _root_.Perennial.sync.atomic.Uint64), (go!"consistIndex", typeSize _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.cindex.ConsistentIndexer, typeAlign _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.cindex.ConsistentIndexer), (go!"r", typeSize raftNode, typeAlign raftNode), (go!"readych", typeSize GoChan, typeAlign GoChan), (go!"Cfg", typeSize _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig, typeAlign _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig), (go!"lgMu", typeSize Loc, typeAlign Loc), (go!"lg", typeSize Loc, typeAlign Loc), (go!"w", typeSize _root_.Perennial.go_etcd_io.etcd.pkg.v3.wait.Wait, typeAlign _root_.Perennial.go_etcd_io.etcd.pkg.v3.wait.Wait), (go!"read", typeSize Loc, typeAlign Loc), (go!"stop", typeSize GoChan, typeAlign GoChan), (go!"stopping", typeSize GoChan, typeAlign GoChan), (go!"done", typeSize GoChan, typeAlign GoChan), (go!"leaderChanged", typeSize Loc, typeAlign Loc), (go!"errorc", typeSize GoChan, typeAlign GoChan), (go!"memberID", typeSize _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID, typeAlign _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), (go!"attributes", typeSize _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes, typeAlign _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes), (go!"cluster", typeSize Loc, typeAlign Loc), (go!"snapshotter", typeSize Loc, typeAlign Loc), (go!"uberApply", typeSize _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.UberApplier, typeAlign _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.UberApplier), (go!"applyWait", typeSize _root_.Perennial.go_etcd_io.etcd.pkg.v3.wait.WaitTime, typeAlign _root_.Perennial.go_etcd_io.etcd.pkg.v3.wait.WaitTime), (go!"kv", typeSize _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV, typeAlign _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV), (go!"lessor", typeSize _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor, typeAlign _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor), (go!"bemu", typeSize _root_.Perennial.sync.RWMutex, typeAlign _root_.Perennial.sync.RWMutex), (go!"be", typeSize _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend, typeAlign _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend), (go!"beHooks", typeSize Loc, typeAlign Loc), (go!"authStore", typeSize _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore, typeAlign _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore), (go!"alarmStore", typeSize Loc, typeAlign Loc), (go!"stats", typeSize Loc, typeAlign Loc), (go!"lstats", typeSize Loc, typeAlign Loc), (go!"compactor", typeSize _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Compactor, typeAlign _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Compactor), (go!"peerRt", typeSize _root_.Perennial.net.http.RoundTripper, typeAlign _root_.Perennial.net.http.RoundTripper), (go!"reqIDGen", typeSize Loc, typeAlign Loc), (go!"wgMu", typeSize _root_.Perennial.sync.RWMutex, typeAlign _root_.Perennial.sync.RWMutex), (go!"wg", typeSize _root_.Perennial.sync.WaitGroup, typeAlign _root_.Perennial.sync.WaitGroup), (go!"ctx", typeSize _root_.Perennial.context.Context, typeAlign _root_.Perennial.context.Context), (go!"cancel", typeSize _root_.Perennial.context.CancelFunc, typeAlign _root_.Perennial.context.CancelFunc), (go!"leadTimeMu", typeSize _root_.Perennial.sync.RWMutex, typeAlign _root_.Perennial.sync.RWMutex), (go!"leadElectedTime", typeSize _root_.Perennial.time.Time, typeAlign _root_.Perennial.time.Time), (go!"firstCommitInTerm", typeSize Loc, typeAlign Loc), (go!"clusterVersionChanged", typeSize Loc, typeAlign Loc), (go!"AccessController", typeSize Loc, typeAlign Loc), (go!"forceDiskSnapshot", typeSize Bool, typeAlign Bool), (go!"corruptionChecker", typeSize CorruptionChecker, typeAlign CorruptionChecker)]
   get_inflightSnapshots : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"inflightSnapshots") #x (Val #(x.inflightSnapshots'))
   set_inflightSnapshots : ∀ (x : EtcdServer) (y : _root_.Perennial.sync.atomic.Int64), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"inflightSnapshots") (PairV #x #y) (Val #(({ x with inflightSnapshots' := y } : EtcdServer)))
   get_appliedIndex : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"appliedIndex") #x (Val #(x.appliedIndex'))
@@ -2239,6 +2270,7 @@ class EtcdServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
 
 attribute [instance] EtcdServer.TypeAssumptions.type_repr
   EtcdServer.TypeAssumptions.underlying
+  EtcdServer.TypeAssumptions.layout
   EtcdServer.TypeAssumptions.get_inflightSnapshots
   EtcdServer.TypeAssumptions.set_inflightSnapshots
   EtcdServer.TypeAssumptions.get_appliedIndex
@@ -2404,6 +2436,7 @@ instance equals_unfold_etcdProgress [FfiSyntax] [GoGlobalContext] :
 class etcdProgress.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying etcdProgress.underlying etcdProgress
   underlying : go.UnderlyingDirectedEq etcdProgress.ty etcdProgress.underlying
+  layout : go.StructLayout etcdProgress [(go!"confState", typeSize Loc, typeAlign Loc), (go!"diskSnapshotIndex", typeSize w64, typeAlign w64), (go!"memorySnapshotIndex", typeSize w64, typeAlign w64), (go!"appliedt", typeSize w64, typeAlign w64), (go!"appliedi", typeSize w64, typeAlign w64)]
   get_confState : ∀ (x : etcdProgress), go.IsGoStepPureDetTagged under (StructFieldGet etcdProgress.underlying go!"confState") #x (Val #(x.confState'))
   set_confState : ∀ (x : etcdProgress) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet etcdProgress.underlying go!"confState") (PairV #x #y) (Val #(({ x with confState' := y } : etcdProgress)))
   get_diskSnapshotIndex : ∀ (x : etcdProgress), go.IsGoStepPureDetTagged under (StructFieldGet etcdProgress.underlying go!"diskSnapshotIndex") #x (Val #(x.diskSnapshotIndex'))
@@ -2417,6 +2450,7 @@ class etcdProgress.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
 
 attribute [instance] etcdProgress.TypeAssumptions.type_repr
   etcdProgress.TypeAssumptions.underlying
+  etcdProgress.TypeAssumptions.layout
   etcdProgress.TypeAssumptions.get_confState
   etcdProgress.TypeAssumptions.set_confState
   etcdProgress.TypeAssumptions.get_diskSnapshotIndex
@@ -2457,6 +2491,7 @@ instance equals_unfold_raftReadyHandler [FfiSyntax] [GoGlobalContext] :
 class raftReadyHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying raftReadyHandler.underlying raftReadyHandler
   underlying : go.UnderlyingDirectedEq raftReadyHandler.ty raftReadyHandler.underlying
+  layout : go.StructLayout raftReadyHandler [(go!"getLead", typeSize GoFunc, typeAlign GoFunc), (go!"updateLead", typeSize GoFunc, typeAlign GoFunc), (go!"updateLeadership", typeSize GoFunc, typeAlign GoFunc), (go!"updateCommittedIndex", typeSize GoFunc, typeAlign GoFunc)]
   get_getLead : ∀ (x : raftReadyHandler), go.IsGoStepPureDetTagged under (StructFieldGet raftReadyHandler.underlying go!"getLead") #x (Val #(x.getLead'))
   set_getLead : ∀ (x : raftReadyHandler) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet raftReadyHandler.underlying go!"getLead") (PairV #x #y) (Val #(({ x with getLead' := y } : raftReadyHandler)))
   get_updateLead : ∀ (x : raftReadyHandler), go.IsGoStepPureDetTagged under (StructFieldGet raftReadyHandler.underlying go!"updateLead") #x (Val #(x.updateLead'))
@@ -2468,6 +2503,7 @@ class raftReadyHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
 
 attribute [instance] raftReadyHandler.TypeAssumptions.type_repr
   raftReadyHandler.TypeAssumptions.underlying
+  raftReadyHandler.TypeAssumptions.layout
   raftReadyHandler.TypeAssumptions.get_getLead
   raftReadyHandler.TypeAssumptions.set_getLead
   raftReadyHandler.TypeAssumptions.get_updateLead
@@ -2504,6 +2540,7 @@ instance equals_unfold_confChangeResponse [FfiSyntax] [GoGlobalContext] :
 class confChangeResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying confChangeResponse.underlying confChangeResponse
   underlying : go.UnderlyingDirectedEq confChangeResponse.ty confChangeResponse.underlying
+  layout : go.StructLayout confChangeResponse [(go!"membs", typeSize GoSlice, typeAlign GoSlice), (go!"raftAdvanceC", typeSize GoChan, typeAlign GoChan), (go!"err", typeSize GoError, typeAlign GoError)]
   get_membs : ∀ (x : confChangeResponse), go.IsGoStepPureDetTagged under (StructFieldGet confChangeResponse.underlying go!"membs") #x (Val #(x.membs'))
   set_membs : ∀ (x : confChangeResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet confChangeResponse.underlying go!"membs") (PairV #x #y) (Val #(({ x with membs' := y } : confChangeResponse)))
   get_raftAdvanceC : ∀ (x : confChangeResponse), go.IsGoStepPureDetTagged under (StructFieldGet confChangeResponse.underlying go!"raftAdvanceC") #x (Val #(x.raftAdvanceC'))
@@ -2513,6 +2550,7 @@ class confChangeResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalC
 
 attribute [instance] confChangeResponse.TypeAssumptions.type_repr
   confChangeResponse.TypeAssumptions.underlying
+  confChangeResponse.TypeAssumptions.layout
   confChangeResponse.TypeAssumptions.get_membs
   confChangeResponse.TypeAssumptions.set_membs
   confChangeResponse.TypeAssumptions.get_raftAdvanceC
@@ -2549,6 +2587,7 @@ instance equals_unfold_AccessController [FfiSyntax] [GoGlobalContext] :
 class AccessController.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AccessController.underlying AccessController
   underlying : go.UnderlyingDirectedEq AccessController.ty AccessController.underlying
+  layout : go.StructLayout AccessController [(go!"corsMu", typeSize _root_.Perennial.sync.RWMutex, typeAlign _root_.Perennial.sync.RWMutex), (go!"CORS", typeSize GoMap, typeAlign GoMap), (go!"hostWhitelistMu", typeSize _root_.Perennial.sync.RWMutex, typeAlign _root_.Perennial.sync.RWMutex), (go!"HostWhitelist", typeSize GoMap, typeAlign GoMap)]
   get_corsMu : ∀ (x : AccessController), go.IsGoStepPureDetTagged under (StructFieldGet AccessController.underlying go!"corsMu") #x (Val #(x.corsMu'))
   set_corsMu : ∀ (x : AccessController) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet AccessController.underlying go!"corsMu") (PairV #x #y) (Val #(({ x with corsMu' := y } : AccessController)))
   get_CORS : ∀ (x : AccessController), go.IsGoStepPureDetTagged under (StructFieldGet AccessController.underlying go!"CORS") #x (Val #(x.CORS'))
@@ -2560,6 +2599,7 @@ class AccessController.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
 
 attribute [instance] AccessController.TypeAssumptions.type_repr
   AccessController.TypeAssumptions.underlying
+  AccessController.TypeAssumptions.layout
   AccessController.TypeAssumptions.get_corsMu
   AccessController.TypeAssumptions.set_corsMu
   AccessController.TypeAssumptions.get_CORS
@@ -2627,6 +2667,7 @@ instance equals_unfold_zapRaftLogger [FfiSyntax] [GoGlobalContext] :
 class zapRaftLogger.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying zapRaftLogger.underlying zapRaftLogger
   underlying : go.UnderlyingDirectedEq zapRaftLogger.ty zapRaftLogger.underlying
+  layout : go.StructLayout zapRaftLogger [(go!"lg", typeSize Loc, typeAlign Loc), (go!"sugar", typeSize Loc, typeAlign Loc)]
   get_lg : ∀ (x : zapRaftLogger), go.IsGoStepPureDetTagged under (StructFieldGet zapRaftLogger.underlying go!"lg") #x (Val #(x.lg'))
   set_lg : ∀ (x : zapRaftLogger) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet zapRaftLogger.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : zapRaftLogger)))
   get_sugar : ∀ (x : zapRaftLogger), go.IsGoStepPureDetTagged under (StructFieldGet zapRaftLogger.underlying go!"sugar") #x (Val #(x.sugar'))
@@ -2634,6 +2675,7 @@ class zapRaftLogger.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
 
 attribute [instance] zapRaftLogger.TypeAssumptions.type_repr
   zapRaftLogger.TypeAssumptions.underlying
+  zapRaftLogger.TypeAssumptions.layout
   zapRaftLogger.TypeAssumptions.get_lg
   zapRaftLogger.TypeAssumptions.set_lg
   zapRaftLogger.TypeAssumptions.get_sugar

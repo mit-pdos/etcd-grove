@@ -17,6 +17,44 @@ open Iris Iris.BI
 noncomputable section
 namespace net.http
 
+namespace anonStruct_14acb559c0198712
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : net.http.Assumptions]
+
+instance anonStruct_14acb559c0198712_typed_pointsto :
+    TypedPointsto (GF := GF) net.http.anonStruct_14acb559c0198712 :=
+  sorry -- axiomatized type
+
+instance anonStruct_14acb559c0198712_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) net.http.anonStruct_14acb559c0198712 net.http.anonStruct_14acb559c0198712.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end anonStruct_14acb559c0198712
+
+namespace anonStruct_d6e4d156adb90116
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : net.http.Assumptions]
+
+instance anonStruct_d6e4d156adb90116_typed_pointsto :
+    TypedPointsto (GF := GF) net.http.anonStruct_d6e4d156adb90116 :=
+  sorry -- axiomatized type
+
+instance anonStruct_d6e4d156adb90116_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) net.http.anonStruct_d6e4d156adb90116 net.http.anonStruct_d6e4d156adb90116.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end anonStruct_d6e4d156adb90116
+
 namespace Client
 section def_
 
@@ -1423,44 +1461,6 @@ instance routingIndexKey_access_store_s (l : Loc) (v : net.http.routingIndexKey)
 
 end def_
 end routingIndexKey
-
-namespace serveMux121
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.http.Assumptions]
-
-instance serveMux121_typed_pointsto :
-    TypedPointsto (GF := GF) net.http.serveMux121 :=
-  sorry -- axiomatized type
-
-instance serveMux121_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.http.serveMux121 net.http.serveMux121.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end serveMux121
-
-namespace Hijacker
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.http.Assumptions]
-
-instance Hijacker_typed_pointsto :
-    TypedPointsto (GF := GF) net.http.Hijacker :=
-  sorry -- axiomatized type
-
-instance Hijacker_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.http.Hijacker net.http.Hijacker.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Hijacker
 
 end net.http
 end

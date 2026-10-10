@@ -172,11 +172,13 @@ instance equals_unfold_unsafeSet [FfiSyntax] [GoGlobalContext] :
 class unsafeSet.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying unsafeSet.underlying unsafeSet
   underlying : go.UnderlyingDirectedEq unsafeSet.ty unsafeSet.underlying
+  layout : go.StructLayout unsafeSet [(go!"d", typeSize GoMap, typeAlign GoMap)]
   get_d : ∀ (x : unsafeSet), go.IsGoStepPureDetTagged under (StructFieldGet unsafeSet.underlying go!"d") #x (Val #(x.d'))
   set_d : ∀ (x : unsafeSet) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet unsafeSet.underlying go!"d") (PairV #x #y) (Val #(({ x with d' := y } : unsafeSet)))
 
 attribute [instance] unsafeSet.TypeAssumptions.type_repr
   unsafeSet.TypeAssumptions.underlying
+  unsafeSet.TypeAssumptions.layout
   unsafeSet.TypeAssumptions.get_d
   unsafeSet.TypeAssumptions.set_d
 

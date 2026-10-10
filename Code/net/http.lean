@@ -21,6 +21,16 @@ end pkg_id
 
 namespace net.http
 
+def anonStruct_14acb559c0198712.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"net/http.anonStruct_14acb559c0198712" [])
+
+attribute [irreducible] anonStruct_14acb559c0198712.ty
+
+def anonStruct_d6e4d156adb90116.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"net/http.anonStruct_d6e4d156adb90116" [])
+
+attribute [irreducible] anonStruct_d6e4d156adb90116.ty
+
 def Client.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net/http.Client" [])
 
@@ -716,6 +726,10 @@ def connLRU.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] connLRU.ty
 
+axiom anonStruct_14acb559c0198712.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+
+axiom anonStruct_d6e4d156adb90116.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+
 axiom Client.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom cancelTimerBody.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
@@ -744,9 +758,9 @@ axiom stringWriter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom HTTP2Config.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom http2Server [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom http2Server.ty [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom http2Transport [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom http2Transport.ty [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom http2ResponseWriter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
@@ -2631,6 +2645,32 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val DefaultClient.init) (Val #()))))))))
 
+axiom anonStruct_14acb559c0198712 : Type
+axiom anonStruct_14acb559c0198712.zero_val : ZeroVal anonStruct_14acb559c0198712
+attribute [instance] anonStruct_14acb559c0198712.zero_val
+
+class anonStruct_14acb559c0198712.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying anonStruct_14acb559c0198712.underlying anonStruct_14acb559c0198712
+  underlying : go.UnderlyingDirectedEq anonStruct_14acb559c0198712.ty anonStruct_14acb559c0198712.underlying
+  isUnderlying : go.IsUnderlying anonStruct_14acb559c0198712.underlying anonStruct_14acb559c0198712.underlying
+
+attribute [instance] anonStruct_14acb559c0198712.TypeAssumptions.type_repr
+  anonStruct_14acb559c0198712.TypeAssumptions.underlying
+  anonStruct_14acb559c0198712.TypeAssumptions.isUnderlying
+
+axiom anonStruct_d6e4d156adb90116 : Type
+axiom anonStruct_d6e4d156adb90116.zero_val : ZeroVal anonStruct_d6e4d156adb90116
+attribute [instance] anonStruct_d6e4d156adb90116.zero_val
+
+class anonStruct_d6e4d156adb90116.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying anonStruct_d6e4d156adb90116.underlying anonStruct_d6e4d156adb90116
+  underlying : go.UnderlyingDirectedEq anonStruct_d6e4d156adb90116.ty anonStruct_d6e4d156adb90116.underlying
+  isUnderlying : go.IsUnderlying anonStruct_d6e4d156adb90116.underlying anonStruct_d6e4d156adb90116.underlying
+
+attribute [instance] anonStruct_d6e4d156adb90116.TypeAssumptions.type_repr
+  anonStruct_d6e4d156adb90116.TypeAssumptions.underlying
+  anonStruct_d6e4d156adb90116.TypeAssumptions.isUnderlying
+
 axiom Client : Type
 axiom Client.zero_val : ZeroVal Client
 attribute [instance] Client.zero_val
@@ -2726,11 +2766,13 @@ instance equals_unfold_http1ClientConn [FfiSyntax] [GoGlobalContext] :
 class http1ClientConn.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying http1ClientConn.underlying http1ClientConn
   underlying : go.UnderlyingDirectedEq http1ClientConn.ty http1ClientConn.underlying
+  layout : go.StructLayout http1ClientConn [(go!"pconn", typeSize Loc, typeAlign Loc)]
   get_pconn : ∀ (x : http1ClientConn), go.IsGoStepPureDetTagged under (StructFieldGet http1ClientConn.underlying go!"pconn") #x (Val #(x.pconn'))
   set_pconn : ∀ (x : http1ClientConn) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet http1ClientConn.underlying go!"pconn") (PairV #x #y) (Val #(({ x with pconn' := y } : http1ClientConn)))
 
 attribute [instance] http1ClientConn.TypeAssumptions.type_repr
   http1ClientConn.TypeAssumptions.underlying
+  http1ClientConn.TypeAssumptions.layout
   http1ClientConn.TypeAssumptions.get_pconn
   http1ClientConn.TypeAssumptions.set_pconn
 
@@ -2792,9 +2834,11 @@ instance equals_unfold_noopHandler [FfiSyntax] [GoGlobalContext] :
 class noopHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying noopHandler.underlying noopHandler
   underlying : go.UnderlyingDirectedEq noopHandler.ty noopHandler.underlying
+  layout : go.StructLayout noopHandler []
 
 attribute [instance] noopHandler.TypeAssumptions.type_repr
   noopHandler.TypeAssumptions.underlying
+  noopHandler.TypeAssumptions.layout
 
 abbrev FileSystem [FfiSyntax] : Type := GoInterface
 
@@ -2829,11 +2873,13 @@ instance equals_unfold_fileHandler [FfiSyntax] [GoGlobalContext] :
 class fileHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying fileHandler.underlying fileHandler
   underlying : go.UnderlyingDirectedEq fileHandler.ty fileHandler.underlying
+  layout : go.StructLayout fileHandler [(go!"root", typeSize FileSystem, typeAlign FileSystem)]
   get_root : ∀ (x : fileHandler), go.IsGoStepPureDetTagged under (StructFieldGet fileHandler.underlying go!"root") #x (Val #(x.root'))
   set_root : ∀ (x : fileHandler) (y : FileSystem), go.IsGoStepPureDetTagged under (StructFieldSet fileHandler.underlying go!"root") (PairV #x #y) (Val #(({ x with root' := y } : fileHandler)))
 
 attribute [instance] fileHandler.TypeAssumptions.type_repr
   fileHandler.TypeAssumptions.underlying
+  fileHandler.TypeAssumptions.layout
   fileHandler.TypeAssumptions.get_root
   fileHandler.TypeAssumptions.set_root
 
@@ -2860,11 +2906,13 @@ instance equals_unfold_fileTransport [FfiSyntax] [GoGlobalContext] :
 class fileTransport.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying fileTransport.underlying fileTransport
   underlying : go.UnderlyingDirectedEq fileTransport.ty fileTransport.underlying
+  layout : go.StructLayout fileTransport [(go!"fh", typeSize fileHandler, typeAlign fileHandler)]
   get_fh : ∀ (x : fileTransport), go.IsGoStepPureDetTagged under (StructFieldGet fileTransport.underlying go!"fh") #x (Val #(x.fh'))
   set_fh : ∀ (x : fileTransport) (y : fileHandler), go.IsGoStepPureDetTagged under (StructFieldSet fileTransport.underlying go!"fh") (PairV #x #y) (Val #(({ x with fh' := y } : fileTransport)))
 
 attribute [instance] fileTransport.TypeAssumptions.type_repr
   fileTransport.TypeAssumptions.underlying
+  fileTransport.TypeAssumptions.layout
   fileTransport.TypeAssumptions.get_fh
   fileTransport.TypeAssumptions.set_fh
 
@@ -3001,6 +3049,7 @@ instance equals_unfold_httpRange [FfiSyntax] [GoGlobalContext] :
 class httpRange.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying httpRange.underlying httpRange
   underlying : go.UnderlyingDirectedEq httpRange.ty httpRange.underlying
+  layout : go.StructLayout httpRange [(go!"start", typeSize w64, typeAlign w64), (go!"length", typeSize w64, typeAlign w64)]
   get_start : ∀ (x : httpRange), go.IsGoStepPureDetTagged under (StructFieldGet httpRange.underlying go!"start") #x (Val #(x.start'))
   set_start : ∀ (x : httpRange) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet httpRange.underlying go!"start") (PairV #x #y) (Val #(({ x with start' := y } : httpRange)))
   get_length : ∀ (x : httpRange), go.IsGoStepPureDetTagged under (StructFieldGet httpRange.underlying go!"length") #x (Val #(x.length'))
@@ -3008,6 +3057,7 @@ class httpRange.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
 
 attribute [instance] httpRange.TypeAssumptions.type_repr
   httpRange.TypeAssumptions.underlying
+  httpRange.TypeAssumptions.layout
   httpRange.TypeAssumptions.get_start
   httpRange.TypeAssumptions.set_start
   httpRange.TypeAssumptions.get_length
@@ -3071,6 +3121,7 @@ instance equals_unfold_keyValues [FfiSyntax] [GoGlobalContext] :
 class keyValues.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying keyValues.underlying keyValues
   underlying : go.UnderlyingDirectedEq keyValues.ty keyValues.underlying
+  layout : go.StructLayout keyValues [(go!"key", typeSize GoString, typeAlign GoString), (go!"values", typeSize GoSlice, typeAlign GoSlice)]
   get_key : ∀ (x : keyValues), go.IsGoStepPureDetTagged under (StructFieldGet keyValues.underlying go!"key") #x (Val #(x.key'))
   set_key : ∀ (x : keyValues) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet keyValues.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : keyValues)))
   get_values : ∀ (x : keyValues), go.IsGoStepPureDetTagged under (StructFieldGet keyValues.underlying go!"values") #x (Val #(x.values'))
@@ -3078,6 +3129,7 @@ class keyValues.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
 
 attribute [instance] keyValues.TypeAssumptions.type_repr
   keyValues.TypeAssumptions.underlying
+  keyValues.TypeAssumptions.layout
   keyValues.TypeAssumptions.get_key
   keyValues.TypeAssumptions.set_key
   keyValues.TypeAssumptions.get_values
@@ -3106,11 +3158,13 @@ instance equals_unfold_headerSorter [FfiSyntax] [GoGlobalContext] :
 class headerSorter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying headerSorter.underlying headerSorter
   underlying : go.UnderlyingDirectedEq headerSorter.ty headerSorter.underlying
+  layout : go.StructLayout headerSorter [(go!"kvs", typeSize GoSlice, typeAlign GoSlice)]
   get_kvs : ∀ (x : headerSorter), go.IsGoStepPureDetTagged under (StructFieldGet headerSorter.underlying go!"kvs") #x (Val #(x.kvs'))
   set_kvs : ∀ (x : headerSorter) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet headerSorter.underlying go!"kvs") (PairV #x #y) (Val #(({ x with kvs' := y } : headerSorter)))
 
 attribute [instance] headerSorter.TypeAssumptions.type_repr
   headerSorter.TypeAssumptions.underlying
+  headerSorter.TypeAssumptions.layout
   headerSorter.TypeAssumptions.get_kvs
   headerSorter.TypeAssumptions.set_kvs
 
@@ -3137,11 +3191,13 @@ instance equals_unfold_Protocols [FfiSyntax] [GoGlobalContext] :
 class Protocols.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Protocols.underlying Protocols
   underlying : go.UnderlyingDirectedEq Protocols.ty Protocols.underlying
+  layout : go.StructLayout Protocols [(go!"bits", typeSize w8, typeAlign w8)]
   get_bits : ∀ (x : Protocols), go.IsGoStepPureDetTagged under (StructFieldGet Protocols.underlying go!"bits") #x (Val #(x.bits'))
   set_bits : ∀ (x : Protocols) (y : w8), go.IsGoStepPureDetTagged under (StructFieldSet Protocols.underlying go!"bits") (PairV #x #y) (Val #(({ x with bits' := y } : Protocols)))
 
 attribute [instance] Protocols.TypeAssumptions.type_repr
   Protocols.TypeAssumptions.underlying
+  Protocols.TypeAssumptions.layout
   Protocols.TypeAssumptions.get_bits
   Protocols.TypeAssumptions.set_bits
 
@@ -3178,11 +3234,13 @@ instance equals_unfold_contextKey [FfiSyntax] [GoGlobalContext] :
 class contextKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying contextKey.underlying contextKey
   underlying : go.UnderlyingDirectedEq contextKey.ty contextKey.underlying
+  layout : go.StructLayout contextKey [(go!"name", typeSize GoString, typeAlign GoString)]
   get_name : ∀ (x : contextKey), go.IsGoStepPureDetTagged under (StructFieldGet contextKey.underlying go!"name") #x (Val #(x.name'))
   set_name : ∀ (x : contextKey) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet contextKey.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : contextKey)))
 
 attribute [instance] contextKey.TypeAssumptions.type_repr
   contextKey.TypeAssumptions.underlying
+  contextKey.TypeAssumptions.layout
   contextKey.TypeAssumptions.get_name
   contextKey.TypeAssumptions.set_name
 
@@ -3208,9 +3266,11 @@ instance equals_unfold_noBody [FfiSyntax] [GoGlobalContext] :
 class noBody.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying noBody.underlying noBody
   underlying : go.UnderlyingDirectedEq noBody.ty noBody.underlying
+  layout : go.StructLayout noBody []
 
 attribute [instance] noBody.TypeAssumptions.type_repr
   noBody.TypeAssumptions.underlying
+  noBody.TypeAssumptions.layout
 
 structure PushOptions [FfiSyntax] where
   mk ::
@@ -3237,6 +3297,7 @@ instance equals_unfold_PushOptions [FfiSyntax] [GoGlobalContext] :
 class PushOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PushOptions.underlying PushOptions
   underlying : go.UnderlyingDirectedEq PushOptions.ty PushOptions.underlying
+  layout : go.StructLayout PushOptions [(go!"Method", typeSize GoString, typeAlign GoString), (go!"Header", typeSize Header, typeAlign Header)]
   get_Method : ∀ (x : PushOptions), go.IsGoStepPureDetTagged under (StructFieldGet PushOptions.underlying go!"Method") #x (Val #(x.Method'))
   set_Method : ∀ (x : PushOptions) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PushOptions.underlying go!"Method") (PairV #x #y) (Val #(({ x with Method' := y } : PushOptions)))
   get_Header : ∀ (x : PushOptions), go.IsGoStepPureDetTagged under (StructFieldGet PushOptions.underlying go!"Header") #x (Val #(x.Header'))
@@ -3244,6 +3305,7 @@ class PushOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
 
 attribute [instance] PushOptions.TypeAssumptions.type_repr
   PushOptions.TypeAssumptions.underlying
+  PushOptions.TypeAssumptions.layout
   PushOptions.TypeAssumptions.get_Method
   PushOptions.TypeAssumptions.set_Method
   PushOptions.TypeAssumptions.get_Header
@@ -3305,11 +3367,13 @@ instance equals_unfold_http2Handler [FfiSyntax] [GoGlobalContext] :
 class http2Handler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying http2Handler.underlying http2Handler
   underlying : go.UnderlyingDirectedEq http2Handler.ty http2Handler.underlying
+  layout : go.StructLayout http2Handler [(go!"h", typeSize Handler, typeAlign Handler)]
   get_h : ∀ (x : http2Handler), go.IsGoStepPureDetTagged under (StructFieldGet http2Handler.underlying go!"h") #x (Val #(x.h'))
   set_h : ∀ (x : http2Handler) (y : Handler), go.IsGoStepPureDetTagged under (StructFieldSet http2Handler.underlying go!"h") (PairV #x #y) (Val #(({ x with h' := y } : http2Handler)))
 
 attribute [instance] http2Handler.TypeAssumptions.type_repr
   http2Handler.TypeAssumptions.underlying
+  http2Handler.TypeAssumptions.layout
   http2Handler.TypeAssumptions.get_h
   http2Handler.TypeAssumptions.set_h
 
@@ -3349,11 +3413,13 @@ instance equals_unfold_http2ServerConfig [FfiSyntax] [GoGlobalContext] :
 class http2ServerConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying http2ServerConfig.underlying http2ServerConfig
   underlying : go.UnderlyingDirectedEq http2ServerConfig.ty http2ServerConfig.underlying
+  layout : go.StructLayout http2ServerConfig [(go!"s", typeSize Loc, typeAlign Loc)]
   get_s : ∀ (x : http2ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet http2ServerConfig.underlying go!"s") #x (Val #(x.s'))
   set_s : ∀ (x : http2ServerConfig) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet http2ServerConfig.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : http2ServerConfig)))
 
 attribute [instance] http2ServerConfig.TypeAssumptions.type_repr
   http2ServerConfig.TypeAssumptions.underlying
+  http2ServerConfig.TypeAssumptions.layout
   http2ServerConfig.TypeAssumptions.get_s
   http2ServerConfig.TypeAssumptions.set_s
 
@@ -3406,11 +3472,13 @@ instance equals_unfold_http2ErringRoundTripper [FfiSyntax] [GoGlobalContext] :
 class http2ErringRoundTripper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying http2ErringRoundTripper.underlying http2ErringRoundTripper
   underlying : go.UnderlyingDirectedEq http2ErringRoundTripper.ty http2ErringRoundTripper.underlying
+  layout : go.StructLayout http2ErringRoundTripper [(go!"err", typeSize GoError, typeAlign GoError)]
   get_err : ∀ (x : http2ErringRoundTripper), go.IsGoStepPureDetTagged under (StructFieldGet http2ErringRoundTripper.underlying go!"err") #x (Val #(x.err'))
   set_err : ∀ (x : http2ErringRoundTripper) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet http2ErringRoundTripper.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : http2ErringRoundTripper)))
 
 attribute [instance] http2ErringRoundTripper.TypeAssumptions.type_repr
   http2ErringRoundTripper.TypeAssumptions.underlying
+  http2ErringRoundTripper.TypeAssumptions.layout
   http2ErringRoundTripper.TypeAssumptions.get_err
   http2ErringRoundTripper.TypeAssumptions.set_err
 
@@ -3463,11 +3531,13 @@ instance equals_unfold_transportConfig [FfiSyntax] [GoGlobalContext] :
 class transportConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying transportConfig.underlying transportConfig
   underlying : go.UnderlyingDirectedEq transportConfig.ty transportConfig.underlying
+  layout : go.StructLayout transportConfig [(go!"t", typeSize Loc, typeAlign Loc)]
   get_t : ∀ (x : transportConfig), go.IsGoStepPureDetTagged under (StructFieldGet transportConfig.underlying go!"t") #x (Val #(x.t'))
   set_t : ∀ (x : transportConfig) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet transportConfig.underlying go!"t") (PairV #x #y) (Val #(({ x with t' := y } : transportConfig)))
 
 attribute [instance] transportConfig.TypeAssumptions.type_repr
   transportConfig.TypeAssumptions.underlying
+  transportConfig.TypeAssumptions.layout
   transportConfig.TypeAssumptions.get_t
   transportConfig.TypeAssumptions.set_t
 
@@ -3519,6 +3589,7 @@ instance equals_unfold_mapping [FfiSyntax] [GoGlobalContext] (K V : go.GoType) :
 class mapping.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (K V : go.GoType) (K' V' : Type) [ZeroVal K'] [TypeRepr K K'] [ZeroVal V'] [TypeRepr V V'], go.TypeReprUnderlying (mapping.underlying K V) (mapping K' V')
   underlying : ∀ (K V : go.GoType), go.UnderlyingDirectedEq (mapping.ty K V) (mapping.underlying K V)
+  layout : ∀ (K' V' : Type), go.StructLayout (mapping K' V') [(go!"s", typeSize GoSlice, typeAlign GoSlice), (go!"m", typeSize GoMap, typeAlign GoMap)]
   get_s : ∀ (K V : go.GoType) (K' V' : Type) (x : (mapping K' V')), go.IsGoStepPureDetTagged under (StructFieldGet (mapping.underlying K V) go!"s") #x (Val #(x.s'))
   set_s : ∀ (K V : go.GoType) (K' V' : Type) (x : (mapping K' V')) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet (mapping.underlying K V) go!"s") (PairV #x #y) (Val #(({ x with s' := y } : (mapping K' V'))))
   get_m : ∀ (K V : go.GoType) (K' V' : Type) (x : (mapping K' V')), go.IsGoStepPureDetTagged under (StructFieldGet (mapping.underlying K V) go!"m") #x (Val #(x.m'))
@@ -3526,6 +3597,7 @@ class mapping.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
 
 attribute [instance] mapping.TypeAssumptions.type_repr
   mapping.TypeAssumptions.underlying
+  mapping.TypeAssumptions.layout
   mapping.TypeAssumptions.get_s
   mapping.TypeAssumptions.set_s
   mapping.TypeAssumptions.get_m
@@ -3556,6 +3628,7 @@ instance equals_unfold_entry [FfiSyntax] [GoGlobalContext] (K V : go.GoType) :
 class entry.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (K V : go.GoType) (K' V' : Type) [ZeroVal K'] [TypeRepr K K'] [ZeroVal V'] [TypeRepr V V'], go.TypeReprUnderlying (entry.underlying K V) (entry K' V')
   underlying : ∀ (K V : go.GoType), go.UnderlyingDirectedEq (entry.ty K V) (entry.underlying K V)
+  layout : ∀ (K' V' : Type), go.StructLayout (entry K' V') [(go!"key", typeSize K', typeAlign K'), (go!"value", typeSize V', typeAlign V')]
   get_key : ∀ (K V : go.GoType) (K' V' : Type) (x : (entry K' V')), go.IsGoStepPureDetTagged under (StructFieldGet (entry.underlying K V) go!"key") #x (Val #(x.key'))
   set_key : ∀ (K V : go.GoType) (K' V' : Type) (x : (entry K' V')) (y : K'), go.IsGoStepPureDetTagged under (StructFieldSet (entry.underlying K V) go!"key") (PairV #x #y) (Val #(({ x with key' := y } : (entry K' V'))))
   get_value : ∀ (K V : go.GoType) (K' V' : Type) (x : (entry K' V')), go.IsGoStepPureDetTagged under (StructFieldGet (entry.underlying K V) go!"value") #x (Val #(x.value'))
@@ -3563,6 +3636,7 @@ class entry.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
 
 attribute [instance] entry.TypeAssumptions.type_repr
   entry.TypeAssumptions.underlying
+  entry.TypeAssumptions.layout
   entry.TypeAssumptions.get_key
   entry.TypeAssumptions.set_key
   entry.TypeAssumptions.get_value
@@ -3599,6 +3673,7 @@ instance equals_unfold_pattern [FfiSyntax] [GoGlobalContext] :
 class pattern.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying pattern.underlying pattern
   underlying : go.UnderlyingDirectedEq pattern.ty pattern.underlying
+  layout : go.StructLayout pattern [(go!"str", typeSize GoString, typeAlign GoString), (go!"method", typeSize GoString, typeAlign GoString), (go!"host", typeSize GoString, typeAlign GoString), (go!"segments", typeSize GoSlice, typeAlign GoSlice), (go!"loc", typeSize GoString, typeAlign GoString)]
   get_str : ∀ (x : pattern), go.IsGoStepPureDetTagged under (StructFieldGet pattern.underlying go!"str") #x (Val #(x.str'))
   set_str : ∀ (x : pattern) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet pattern.underlying go!"str") (PairV #x #y) (Val #(({ x with str' := y } : pattern)))
   get_method : ∀ (x : pattern), go.IsGoStepPureDetTagged under (StructFieldGet pattern.underlying go!"method") #x (Val #(x.method'))
@@ -3612,6 +3687,7 @@ class pattern.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
 
 attribute [instance] pattern.TypeAssumptions.type_repr
   pattern.TypeAssumptions.underlying
+  pattern.TypeAssumptions.layout
   pattern.TypeAssumptions.get_str
   pattern.TypeAssumptions.set_str
   pattern.TypeAssumptions.get_method
@@ -3650,6 +3726,7 @@ instance equals_unfold_segment [FfiSyntax] [GoGlobalContext] :
 class segment.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying segment.underlying segment
   underlying : go.UnderlyingDirectedEq segment.ty segment.underlying
+  layout : go.StructLayout segment [(go!"s", typeSize GoString, typeAlign GoString), (go!"wild", typeSize Bool, typeAlign Bool), (go!"multi", typeSize Bool, typeAlign Bool)]
   get_s : ∀ (x : segment), go.IsGoStepPureDetTagged under (StructFieldGet segment.underlying go!"s") #x (Val #(x.s'))
   set_s : ∀ (x : segment) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet segment.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : segment)))
   get_wild : ∀ (x : segment), go.IsGoStepPureDetTagged under (StructFieldGet segment.underlying go!"wild") #x (Val #(x.wild'))
@@ -3659,6 +3736,7 @@ class segment.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
 
 attribute [instance] segment.TypeAssumptions.type_repr
   segment.TypeAssumptions.underlying
+  segment.TypeAssumptions.layout
   segment.TypeAssumptions.get_s
   segment.TypeAssumptions.set_s
   segment.TypeAssumptions.get_wild
@@ -3699,11 +3777,13 @@ instance equals_unfold_ProtocolError [FfiSyntax] [GoGlobalContext] :
 class ProtocolError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ProtocolError.underlying ProtocolError
   underlying : go.UnderlyingDirectedEq ProtocolError.ty ProtocolError.underlying
+  layout : go.StructLayout ProtocolError [(go!"ErrorString", typeSize GoString, typeAlign GoString)]
   get_ErrorString : ∀ (x : ProtocolError), go.IsGoStepPureDetTagged under (StructFieldGet ProtocolError.underlying go!"ErrorString") #x (Val #(x.ErrorString'))
   set_ErrorString : ∀ (x : ProtocolError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ProtocolError.underlying go!"ErrorString") (PairV #x #y) (Val #(({ x with ErrorString' := y } : ProtocolError)))
 
 attribute [instance] ProtocolError.TypeAssumptions.type_repr
   ProtocolError.TypeAssumptions.underlying
+  ProtocolError.TypeAssumptions.layout
   ProtocolError.TypeAssumptions.get_ErrorString
   ProtocolError.TypeAssumptions.set_ErrorString
 
@@ -3743,11 +3823,13 @@ instance equals_unfold_requestBodyReadError [FfiSyntax] [GoGlobalContext] :
 class requestBodyReadError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying requestBodyReadError.underlying requestBodyReadError
   underlying : go.UnderlyingDirectedEq requestBodyReadError.ty requestBodyReadError.underlying
+  layout : go.StructLayout requestBodyReadError [(go!"error", typeSize GoError, typeAlign GoError)]
   get_error : ∀ (x : requestBodyReadError), go.IsGoStepPureDetTagged under (StructFieldGet requestBodyReadError.underlying go!"error") #x (Val #(x.error'))
   set_error : ∀ (x : requestBodyReadError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet requestBodyReadError.underlying go!"error") (PairV #x #y) (Val #(({ x with error' := y } : requestBodyReadError)))
 
 attribute [instance] requestBodyReadError.TypeAssumptions.type_repr
   requestBodyReadError.TypeAssumptions.underlying
+  requestBodyReadError.TypeAssumptions.layout
   requestBodyReadError.TypeAssumptions.get_error
   requestBodyReadError.TypeAssumptions.set_error
 
@@ -3774,11 +3856,13 @@ instance equals_unfold_MaxBytesError [FfiSyntax] [GoGlobalContext] :
 class MaxBytesError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MaxBytesError.underlying MaxBytesError
   underlying : go.UnderlyingDirectedEq MaxBytesError.ty MaxBytesError.underlying
+  layout : go.StructLayout MaxBytesError [(go!"Limit", typeSize w64, typeAlign w64)]
   get_Limit : ∀ (x : MaxBytesError), go.IsGoStepPureDetTagged under (StructFieldGet MaxBytesError.underlying go!"Limit") #x (Val #(x.Limit'))
   set_Limit : ∀ (x : MaxBytesError) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet MaxBytesError.underlying go!"Limit") (PairV #x #y) (Val #(({ x with Limit' := y } : MaxBytesError)))
 
 attribute [instance] MaxBytesError.TypeAssumptions.type_repr
   MaxBytesError.TypeAssumptions.underlying
+  MaxBytesError.TypeAssumptions.layout
   MaxBytesError.TypeAssumptions.get_Limit
   MaxBytesError.TypeAssumptions.set_Limit
 
@@ -3841,11 +3925,13 @@ instance equals_unfold_ResponseController [FfiSyntax] [GoGlobalContext] :
 class ResponseController.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResponseController.underlying ResponseController
   underlying : go.UnderlyingDirectedEq ResponseController.ty ResponseController.underlying
+  layout : go.StructLayout ResponseController [(go!"rw", typeSize ResponseWriter, typeAlign ResponseWriter)]
   get_rw : ∀ (x : ResponseController), go.IsGoStepPureDetTagged under (StructFieldGet ResponseController.underlying go!"rw") #x (Val #(x.rw'))
   set_rw : ∀ (x : ResponseController) (y : ResponseWriter), go.IsGoStepPureDetTagged under (StructFieldSet ResponseController.underlying go!"rw") (PairV #x #y) (Val #(({ x with rw' := y } : ResponseController)))
 
 attribute [instance] ResponseController.TypeAssumptions.type_repr
   ResponseController.TypeAssumptions.underlying
+  ResponseController.TypeAssumptions.layout
   ResponseController.TypeAssumptions.get_rw
   ResponseController.TypeAssumptions.set_rw
 
@@ -3884,6 +3970,7 @@ instance equals_unfold_routingIndex [FfiSyntax] [GoGlobalContext] :
 class routingIndex.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying routingIndex.underlying routingIndex
   underlying : go.UnderlyingDirectedEq routingIndex.ty routingIndex.underlying
+  layout : go.StructLayout routingIndex [(go!"segments", typeSize GoMap, typeAlign GoMap), (go!"multis", typeSize GoSlice, typeAlign GoSlice)]
   get_segments : ∀ (x : routingIndex), go.IsGoStepPureDetTagged under (StructFieldGet routingIndex.underlying go!"segments") #x (Val #(x.segments'))
   set_segments : ∀ (x : routingIndex) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet routingIndex.underlying go!"segments") (PairV #x #y) (Val #(({ x with segments' := y } : routingIndex)))
   get_multis : ∀ (x : routingIndex), go.IsGoStepPureDetTagged under (StructFieldGet routingIndex.underlying go!"multis") #x (Val #(x.multis'))
@@ -3891,6 +3978,7 @@ class routingIndex.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
 
 attribute [instance] routingIndex.TypeAssumptions.type_repr
   routingIndex.TypeAssumptions.underlying
+  routingIndex.TypeAssumptions.layout
   routingIndex.TypeAssumptions.get_segments
   routingIndex.TypeAssumptions.set_segments
   routingIndex.TypeAssumptions.get_multis
@@ -3921,6 +4009,7 @@ instance equals_unfold_routingIndexKey [FfiSyntax] [GoGlobalContext] :
 class routingIndexKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying routingIndexKey.underlying routingIndexKey
   underlying : go.UnderlyingDirectedEq routingIndexKey.ty routingIndexKey.underlying
+  layout : go.StructLayout routingIndexKey [(go!"pos", typeSize w64, typeAlign w64), (go!"s", typeSize GoString, typeAlign GoString)]
   get_pos : ∀ (x : routingIndexKey), go.IsGoStepPureDetTagged under (StructFieldGet routingIndexKey.underlying go!"pos") #x (Val #(x.pos'))
   set_pos : ∀ (x : routingIndexKey) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet routingIndexKey.underlying go!"pos") (PairV #x #y) (Val #(({ x with pos' := y } : routingIndexKey)))
   get_s : ∀ (x : routingIndexKey), go.IsGoStepPureDetTagged under (StructFieldGet routingIndexKey.underlying go!"s") #x (Val #(x.s'))
@@ -3928,6 +4017,7 @@ class routingIndexKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
 
 attribute [instance] routingIndexKey.TypeAssumptions.type_repr
   routingIndexKey.TypeAssumptions.underlying
+  routingIndexKey.TypeAssumptions.layout
   routingIndexKey.TypeAssumptions.get_pos
   routingIndexKey.TypeAssumptions.set_pos
   routingIndexKey.TypeAssumptions.get_s
@@ -3964,6 +4054,7 @@ instance equals_unfold_routingNode [FfiSyntax] [GoGlobalContext] :
 class routingNode.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying routingNode.underlying routingNode
   underlying : go.UnderlyingDirectedEq routingNode.ty routingNode.underlying
+  layout : go.StructLayout routingNode [(go!"pattern", typeSize Loc, typeAlign Loc), (go!"handler", typeSize Handler, typeAlign Handler), (go!"children", typeSize (mapping GoString Loc), typeAlign (mapping GoString Loc)), (go!"multiChild", typeSize Loc, typeAlign Loc), (go!"emptyChild", typeSize Loc, typeAlign Loc)]
   get_pattern : ∀ (x : routingNode), go.IsGoStepPureDetTagged under (StructFieldGet routingNode.underlying go!"pattern") #x (Val #(x.pattern'))
   set_pattern : ∀ (x : routingNode) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet routingNode.underlying go!"pattern") (PairV #x #y) (Val #(({ x with pattern' := y } : routingNode)))
   get_handler : ∀ (x : routingNode), go.IsGoStepPureDetTagged under (StructFieldGet routingNode.underlying go!"handler") #x (Val #(x.handler'))
@@ -3977,6 +4068,7 @@ class routingNode.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
 
 attribute [instance] routingNode.TypeAssumptions.type_repr
   routingNode.TypeAssumptions.underlying
+  routingNode.TypeAssumptions.layout
   routingNode.TypeAssumptions.get_pattern
   routingNode.TypeAssumptions.set_pattern
   routingNode.TypeAssumptions.get_handler
@@ -4026,6 +4118,7 @@ instance equals_unfold_muxEntry [FfiSyntax] [GoGlobalContext] :
 class muxEntry.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying muxEntry.underlying muxEntry
   underlying : go.UnderlyingDirectedEq muxEntry.ty muxEntry.underlying
+  layout : go.StructLayout muxEntry [(go!"h", typeSize Handler, typeAlign Handler), (go!"pattern", typeSize GoString, typeAlign GoString)]
   get_h : ∀ (x : muxEntry), go.IsGoStepPureDetTagged under (StructFieldGet muxEntry.underlying go!"h") #x (Val #(x.h'))
   set_h : ∀ (x : muxEntry) (y : Handler), go.IsGoStepPureDetTagged under (StructFieldSet muxEntry.underlying go!"h") (PairV #x #y) (Val #(({ x with h' := y } : muxEntry)))
   get_pattern : ∀ (x : muxEntry), go.IsGoStepPureDetTagged under (StructFieldGet muxEntry.underlying go!"pattern") #x (Val #(x.pattern'))
@@ -4033,6 +4126,7 @@ class muxEntry.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
 
 attribute [instance] muxEntry.TypeAssumptions.type_repr
   muxEntry.TypeAssumptions.underlying
+  muxEntry.TypeAssumptions.layout
   muxEntry.TypeAssumptions.get_h
   muxEntry.TypeAssumptions.set_h
   muxEntry.TypeAssumptions.get_pattern
@@ -4113,6 +4207,7 @@ instance equals_unfold_chunkWriter [FfiSyntax] [GoGlobalContext] :
 class chunkWriter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying chunkWriter.underlying chunkWriter
   underlying : go.UnderlyingDirectedEq chunkWriter.ty chunkWriter.underlying
+  layout : go.StructLayout chunkWriter [(go!"res", typeSize Loc, typeAlign Loc), (go!"header", typeSize Header, typeAlign Header), (go!"wroteHeader", typeSize Bool, typeAlign Bool), (go!"chunking", typeSize Bool, typeAlign Bool)]
   get_res : ∀ (x : chunkWriter), go.IsGoStepPureDetTagged under (StructFieldGet chunkWriter.underlying go!"res") #x (Val #(x.res'))
   set_res : ∀ (x : chunkWriter) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet chunkWriter.underlying go!"res") (PairV #x #y) (Val #(({ x with res' := y } : chunkWriter)))
   get_header : ∀ (x : chunkWriter), go.IsGoStepPureDetTagged under (StructFieldGet chunkWriter.underlying go!"header") #x (Val #(x.header'))
@@ -4124,6 +4219,7 @@ class chunkWriter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
 
 attribute [instance] chunkWriter.TypeAssumptions.type_repr
   chunkWriter.TypeAssumptions.underlying
+  chunkWriter.TypeAssumptions.layout
   chunkWriter.TypeAssumptions.get_res
   chunkWriter.TypeAssumptions.set_res
   chunkWriter.TypeAssumptions.get_header
@@ -4188,6 +4284,7 @@ instance equals_unfold_readResult [FfiSyntax] [GoGlobalContext] :
 class readResult.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying readResult.underlying readResult
   underlying : go.UnderlyingDirectedEq readResult.ty readResult.underlying
+  layout : go.StructLayout readResult [(go!"_0", typeSize incomparable, typeAlign incomparable), (go!"n", typeSize w64, typeAlign w64), (go!"err", typeSize GoError, typeAlign GoError), (go!"b", typeSize w8, typeAlign w8)]
   get__0 : ∀ (x : readResult), go.IsGoStepPureDetTagged under (StructFieldGet readResult.underlying go!"_0") #x (Val #(x._0'))
   set__0 : ∀ (x : readResult) (y : incomparable), go.IsGoStepPureDetTagged under (StructFieldSet readResult.underlying go!"_0") (PairV #x #y) (Val #(({ x with _0' := y } : readResult)))
   get_n : ∀ (x : readResult), go.IsGoStepPureDetTagged under (StructFieldGet readResult.underlying go!"n") #x (Val #(x.n'))
@@ -4199,6 +4296,7 @@ class readResult.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
 
 attribute [instance] readResult.TypeAssumptions.type_repr
   readResult.TypeAssumptions.underlying
+  readResult.TypeAssumptions.layout
   readResult.TypeAssumptions.get__0
   readResult.TypeAssumptions.set__0
   readResult.TypeAssumptions.get_n
@@ -4265,6 +4363,7 @@ instance equals_unfold_extraHeader [FfiSyntax] [GoGlobalContext] :
 class extraHeader.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying extraHeader.underlying extraHeader
   underlying : go.UnderlyingDirectedEq extraHeader.ty extraHeader.underlying
+  layout : go.StructLayout extraHeader [(go!"contentType", typeSize GoString, typeAlign GoString), (go!"connection", typeSize GoString, typeAlign GoString), (go!"transferEncoding", typeSize GoString, typeAlign GoString), (go!"date", typeSize GoSlice, typeAlign GoSlice), (go!"contentLength", typeSize GoSlice, typeAlign GoSlice)]
   get_contentType : ∀ (x : extraHeader), go.IsGoStepPureDetTagged under (StructFieldGet extraHeader.underlying go!"contentType") #x (Val #(x.contentType'))
   set_contentType : ∀ (x : extraHeader) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet extraHeader.underlying go!"contentType") (PairV #x #y) (Val #(({ x with contentType' := y } : extraHeader)))
   get_connection : ∀ (x : extraHeader), go.IsGoStepPureDetTagged under (StructFieldGet extraHeader.underlying go!"connection") #x (Val #(x.connection'))
@@ -4278,6 +4377,7 @@ class extraHeader.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
 
 attribute [instance] extraHeader.TypeAssumptions.type_repr
   extraHeader.TypeAssumptions.underlying
+  extraHeader.TypeAssumptions.layout
   extraHeader.TypeAssumptions.get_contentType
   extraHeader.TypeAssumptions.set_contentType
   extraHeader.TypeAssumptions.get_connection
@@ -4324,6 +4424,7 @@ instance equals_unfold_statusError [FfiSyntax] [GoGlobalContext] :
 class statusError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying statusError.underlying statusError
   underlying : go.UnderlyingDirectedEq statusError.ty statusError.underlying
+  layout : go.StructLayout statusError [(go!"code", typeSize w64, typeAlign w64), (go!"text", typeSize GoString, typeAlign GoString)]
   get_code : ∀ (x : statusError), go.IsGoStepPureDetTagged under (StructFieldGet statusError.underlying go!"code") #x (Val #(x.code'))
   set_code : ∀ (x : statusError) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet statusError.underlying go!"code") (PairV #x #y) (Val #(({ x with code' := y } : statusError)))
   get_text : ∀ (x : statusError), go.IsGoStepPureDetTagged under (StructFieldGet statusError.underlying go!"text") #x (Val #(x.text'))
@@ -4331,6 +4432,7 @@ class statusError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
 
 attribute [instance] statusError.TypeAssumptions.type_repr
   statusError.TypeAssumptions.underlying
+  statusError.TypeAssumptions.layout
   statusError.TypeAssumptions.get_code
   statusError.TypeAssumptions.set_code
   statusError.TypeAssumptions.get_text
@@ -4397,6 +4499,7 @@ instance equals_unfold_redirectHandler [FfiSyntax] [GoGlobalContext] :
 class redirectHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying redirectHandler.underlying redirectHandler
   underlying : go.UnderlyingDirectedEq redirectHandler.ty redirectHandler.underlying
+  layout : go.StructLayout redirectHandler [(go!"url", typeSize GoString, typeAlign GoString), (go!"code", typeSize w64, typeAlign w64)]
   get_url : ∀ (x : redirectHandler), go.IsGoStepPureDetTagged under (StructFieldGet redirectHandler.underlying go!"url") #x (Val #(x.url'))
   set_url : ∀ (x : redirectHandler) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet redirectHandler.underlying go!"url") (PairV #x #y) (Val #(({ x with url' := y } : redirectHandler)))
   get_code : ∀ (x : redirectHandler), go.IsGoStepPureDetTagged under (StructFieldGet redirectHandler.underlying go!"code") #x (Val #(x.code'))
@@ -4404,6 +4507,7 @@ class redirectHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
 
 attribute [instance] redirectHandler.TypeAssumptions.type_repr
   redirectHandler.TypeAssumptions.underlying
+  redirectHandler.TypeAssumptions.layout
   redirectHandler.TypeAssumptions.get_url
   redirectHandler.TypeAssumptions.set_url
   redirectHandler.TypeAssumptions.get_code
@@ -4468,11 +4572,13 @@ instance equals_unfold_serverHandler [FfiSyntax] [GoGlobalContext] :
 class serverHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying serverHandler.underlying serverHandler
   underlying : go.UnderlyingDirectedEq serverHandler.ty serverHandler.underlying
+  layout : go.StructLayout serverHandler [(go!"srv", typeSize Loc, typeAlign Loc)]
   get_srv : ∀ (x : serverHandler), go.IsGoStepPureDetTagged under (StructFieldGet serverHandler.underlying go!"srv") #x (Val #(x.srv'))
   set_srv : ∀ (x : serverHandler) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet serverHandler.underlying go!"srv") (PairV #x #y) (Val #(({ x with srv' := y } : serverHandler)))
 
 attribute [instance] serverHandler.TypeAssumptions.type_repr
   serverHandler.TypeAssumptions.underlying
+  serverHandler.TypeAssumptions.layout
   serverHandler.TypeAssumptions.get_srv
   serverHandler.TypeAssumptions.set_srv
 
@@ -4550,9 +4656,11 @@ instance equals_unfold_globalOptionsHandler [FfiSyntax] [GoGlobalContext] :
 class globalOptionsHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying globalOptionsHandler.underlying globalOptionsHandler
   underlying : go.UnderlyingDirectedEq globalOptionsHandler.ty globalOptionsHandler.underlying
+  layout : go.StructLayout globalOptionsHandler []
 
 attribute [instance] globalOptionsHandler.TypeAssumptions.type_repr
   globalOptionsHandler.TypeAssumptions.underlying
+  globalOptionsHandler.TypeAssumptions.layout
 
 axiom initALPNRequest : Type
 axiom initALPNRequest.zero_val : ZeroVal initALPNRequest
@@ -4603,11 +4711,13 @@ instance equals_unfold_checkConnErrorWriter [FfiSyntax] [GoGlobalContext] :
 class checkConnErrorWriter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying checkConnErrorWriter.underlying checkConnErrorWriter
   underlying : go.UnderlyingDirectedEq checkConnErrorWriter.ty checkConnErrorWriter.underlying
+  layout : go.StructLayout checkConnErrorWriter [(go!"c", typeSize Loc, typeAlign Loc)]
   get_c : ∀ (x : checkConnErrorWriter), go.IsGoStepPureDetTagged under (StructFieldGet checkConnErrorWriter.underlying go!"c") #x (Val #(x.c'))
   set_c : ∀ (x : checkConnErrorWriter) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet checkConnErrorWriter.underlying go!"c") (PairV #x #y) (Val #(({ x with c' := y } : checkConnErrorWriter)))
 
 attribute [instance] checkConnErrorWriter.TypeAssumptions.type_repr
   checkConnErrorWriter.TypeAssumptions.underlying
+  checkConnErrorWriter.TypeAssumptions.layout
   checkConnErrorWriter.TypeAssumptions.get_c
   checkConnErrorWriter.TypeAssumptions.set_c
 
@@ -4705,6 +4815,7 @@ instance equals_unfold_socksUsernamePassword [FfiSyntax] [GoGlobalContext] :
 class socksUsernamePassword.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying socksUsernamePassword.underlying socksUsernamePassword
   underlying : go.UnderlyingDirectedEq socksUsernamePassword.ty socksUsernamePassword.underlying
+  layout : go.StructLayout socksUsernamePassword [(go!"Username", typeSize GoString, typeAlign GoString), (go!"Password", typeSize GoString, typeAlign GoString)]
   get_Username : ∀ (x : socksUsernamePassword), go.IsGoStepPureDetTagged under (StructFieldGet socksUsernamePassword.underlying go!"Username") #x (Val #(x.Username'))
   set_Username : ∀ (x : socksUsernamePassword) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet socksUsernamePassword.underlying go!"Username") (PairV #x #y) (Val #(({ x with Username' := y } : socksUsernamePassword)))
   get_Password : ∀ (x : socksUsernamePassword), go.IsGoStepPureDetTagged under (StructFieldGet socksUsernamePassword.underlying go!"Password") #x (Val #(x.Password'))
@@ -4712,6 +4823,7 @@ class socksUsernamePassword.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLoc
 
 attribute [instance] socksUsernamePassword.TypeAssumptions.type_repr
   socksUsernamePassword.TypeAssumptions.underlying
+  socksUsernamePassword.TypeAssumptions.layout
   socksUsernamePassword.TypeAssumptions.get_Username
   socksUsernamePassword.TypeAssumptions.set_Username
   socksUsernamePassword.TypeAssumptions.get_Password
@@ -4740,11 +4852,13 @@ instance equals_unfold_errorReader [FfiSyntax] [GoGlobalContext] :
 class errorReader.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying errorReader.underlying errorReader
   underlying : go.UnderlyingDirectedEq errorReader.ty errorReader.underlying
+  layout : go.StructLayout errorReader [(go!"err", typeSize GoError, typeAlign GoError)]
   get_err : ∀ (x : errorReader), go.IsGoStepPureDetTagged under (StructFieldGet errorReader.underlying go!"err") #x (Val #(x.err'))
   set_err : ∀ (x : errorReader) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet errorReader.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : errorReader)))
 
 attribute [instance] errorReader.TypeAssumptions.type_repr
   errorReader.TypeAssumptions.underlying
+  errorReader.TypeAssumptions.layout
   errorReader.TypeAssumptions.get_err
   errorReader.TypeAssumptions.set_err
 
@@ -4773,6 +4887,7 @@ instance equals_unfold_byteReader [FfiSyntax] [GoGlobalContext] :
 class byteReader.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying byteReader.underlying byteReader
   underlying : go.UnderlyingDirectedEq byteReader.ty byteReader.underlying
+  layout : go.StructLayout byteReader [(go!"b", typeSize w8, typeAlign w8), (go!"done", typeSize Bool, typeAlign Bool)]
   get_b : ∀ (x : byteReader), go.IsGoStepPureDetTagged under (StructFieldGet byteReader.underlying go!"b") #x (Val #(x.b'))
   set_b : ∀ (x : byteReader) (y : w8), go.IsGoStepPureDetTagged under (StructFieldSet byteReader.underlying go!"b") (PairV #x #y) (Val #(({ x with b' := y } : byteReader)))
   get_done : ∀ (x : byteReader), go.IsGoStepPureDetTagged under (StructFieldGet byteReader.underlying go!"done") #x (Val #(x.done'))
@@ -4780,6 +4895,7 @@ class byteReader.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
 
 attribute [instance] byteReader.TypeAssumptions.type_repr
   byteReader.TypeAssumptions.underlying
+  byteReader.TypeAssumptions.layout
   byteReader.TypeAssumptions.get_b
   byteReader.TypeAssumptions.set_b
   byteReader.TypeAssumptions.get_done
@@ -4834,11 +4950,13 @@ instance equals_unfold_unsupportedTEError [FfiSyntax] [GoGlobalContext] :
 class unsupportedTEError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying unsupportedTEError.underlying unsupportedTEError
   underlying : go.UnderlyingDirectedEq unsupportedTEError.ty unsupportedTEError.underlying
+  layout : go.StructLayout unsupportedTEError [(go!"err", typeSize GoString, typeAlign GoString)]
   get_err : ∀ (x : unsupportedTEError), go.IsGoStepPureDetTagged under (StructFieldGet unsupportedTEError.underlying go!"err") #x (Val #(x.err'))
   set_err : ∀ (x : unsupportedTEError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet unsupportedTEError.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : unsupportedTEError)))
 
 attribute [instance] unsupportedTEError.TypeAssumptions.type_repr
   unsupportedTEError.TypeAssumptions.underlying
+  unsupportedTEError.TypeAssumptions.layout
   unsupportedTEError.TypeAssumptions.get_err
   unsupportedTEError.TypeAssumptions.set_err
 
@@ -4878,11 +4996,13 @@ instance equals_unfold_bodyLocked [FfiSyntax] [GoGlobalContext] :
 class bodyLocked.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying bodyLocked.underlying bodyLocked
   underlying : go.UnderlyingDirectedEq bodyLocked.ty bodyLocked.underlying
+  layout : go.StructLayout bodyLocked [(go!"b", typeSize Loc, typeAlign Loc)]
   get_b : ∀ (x : bodyLocked), go.IsGoStepPureDetTagged under (StructFieldGet bodyLocked.underlying go!"b") #x (Val #(x.b'))
   set_b : ∀ (x : bodyLocked) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bodyLocked.underlying go!"b") (PairV #x #y) (Val #(({ x with b' := y } : bodyLocked)))
 
 attribute [instance] bodyLocked.TypeAssumptions.type_repr
   bodyLocked.TypeAssumptions.underlying
+  bodyLocked.TypeAssumptions.layout
   bodyLocked.TypeAssumptions.get_b
   bodyLocked.TypeAssumptions.set_b
 
@@ -4909,11 +5029,13 @@ instance equals_unfold_finishAsyncByteRead [FfiSyntax] [GoGlobalContext] :
 class finishAsyncByteRead.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying finishAsyncByteRead.underlying finishAsyncByteRead
   underlying : go.UnderlyingDirectedEq finishAsyncByteRead.ty finishAsyncByteRead.underlying
+  layout : go.StructLayout finishAsyncByteRead [(go!"tw", typeSize Loc, typeAlign Loc)]
   get_tw : ∀ (x : finishAsyncByteRead), go.IsGoStepPureDetTagged under (StructFieldGet finishAsyncByteRead.underlying go!"tw") #x (Val #(x.tw'))
   set_tw : ∀ (x : finishAsyncByteRead) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet finishAsyncByteRead.underlying go!"tw") (PairV #x #y) (Val #(({ x with tw' := y } : finishAsyncByteRead)))
 
 attribute [instance] finishAsyncByteRead.TypeAssumptions.type_repr
   finishAsyncByteRead.TypeAssumptions.underlying
+  finishAsyncByteRead.TypeAssumptions.layout
   finishAsyncByteRead.TypeAssumptions.get_tw
   finishAsyncByteRead.TypeAssumptions.set_tw
 
@@ -5015,11 +5137,13 @@ instance equals_unfold_transportReadFromServerError [FfiSyntax] [GoGlobalContext
 class transportReadFromServerError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying transportReadFromServerError.underlying transportReadFromServerError
   underlying : go.UnderlyingDirectedEq transportReadFromServerError.ty transportReadFromServerError.underlying
+  layout : go.StructLayout transportReadFromServerError [(go!"err", typeSize GoError, typeAlign GoError)]
   get_err : ∀ (x : transportReadFromServerError), go.IsGoStepPureDetTagged under (StructFieldGet transportReadFromServerError.underlying go!"err") #x (Val #(x.err'))
   set_err : ∀ (x : transportReadFromServerError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet transportReadFromServerError.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : transportReadFromServerError)))
 
 attribute [instance] transportReadFromServerError.TypeAssumptions.type_repr
   transportReadFromServerError.TypeAssumptions.underlying
+  transportReadFromServerError.TypeAssumptions.layout
   transportReadFromServerError.TypeAssumptions.get_err
   transportReadFromServerError.TypeAssumptions.set_err
 
@@ -5076,6 +5200,7 @@ instance equals_unfold_wantConnQueue [FfiSyntax] [GoGlobalContext] :
 class wantConnQueue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying wantConnQueue.underlying wantConnQueue
   underlying : go.UnderlyingDirectedEq wantConnQueue.ty wantConnQueue.underlying
+  layout : go.StructLayout wantConnQueue [(go!"head", typeSize GoSlice, typeAlign GoSlice), (go!"headPos", typeSize w64, typeAlign w64), (go!"tail", typeSize GoSlice, typeAlign GoSlice)]
   get_head : ∀ (x : wantConnQueue), go.IsGoStepPureDetTagged under (StructFieldGet wantConnQueue.underlying go!"head") #x (Val #(x.head'))
   set_head : ∀ (x : wantConnQueue) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet wantConnQueue.underlying go!"head") (PairV #x #y) (Val #(({ x with head' := y } : wantConnQueue)))
   get_headPos : ∀ (x : wantConnQueue), go.IsGoStepPureDetTagged under (StructFieldGet wantConnQueue.underlying go!"headPos") #x (Val #(x.headPos'))
@@ -5085,6 +5210,7 @@ class wantConnQueue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
 
 attribute [instance] wantConnQueue.TypeAssumptions.type_repr
   wantConnQueue.TypeAssumptions.underlying
+  wantConnQueue.TypeAssumptions.layout
   wantConnQueue.TypeAssumptions.get_head
   wantConnQueue.TypeAssumptions.set_head
   wantConnQueue.TypeAssumptions.get_headPos
@@ -5125,11 +5251,13 @@ instance equals_unfold_persistConnWriter [FfiSyntax] [GoGlobalContext] :
 class persistConnWriter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying persistConnWriter.underlying persistConnWriter
   underlying : go.UnderlyingDirectedEq persistConnWriter.ty persistConnWriter.underlying
+  layout : go.StructLayout persistConnWriter [(go!"pc", typeSize Loc, typeAlign Loc)]
   get_pc : ∀ (x : persistConnWriter), go.IsGoStepPureDetTagged under (StructFieldGet persistConnWriter.underlying go!"pc") #x (Val #(x.pc'))
   set_pc : ∀ (x : persistConnWriter) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet persistConnWriter.underlying go!"pc") (PairV #x #y) (Val #(({ x with pc' := y } : persistConnWriter)))
 
 attribute [instance] persistConnWriter.TypeAssumptions.type_repr
   persistConnWriter.TypeAssumptions.underlying
+  persistConnWriter.TypeAssumptions.layout
   persistConnWriter.TypeAssumptions.get_pc
   persistConnWriter.TypeAssumptions.set_pc
 
@@ -5175,6 +5303,7 @@ instance equals_unfold_connectMethodKey [FfiSyntax] [GoGlobalContext] :
 class connectMethodKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying connectMethodKey.underlying connectMethodKey
   underlying : go.UnderlyingDirectedEq connectMethodKey.ty connectMethodKey.underlying
+  layout : go.StructLayout connectMethodKey [(go!"proxy", typeSize GoString, typeAlign GoString), (go!"scheme", typeSize GoString, typeAlign GoString), (go!"addr", typeSize GoString, typeAlign GoString), (go!"onlyH1", typeSize Bool, typeAlign Bool)]
   get_proxy : ∀ (x : connectMethodKey), go.IsGoStepPureDetTagged under (StructFieldGet connectMethodKey.underlying go!"proxy") #x (Val #(x.proxy'))
   set_proxy : ∀ (x : connectMethodKey) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet connectMethodKey.underlying go!"proxy") (PairV #x #y) (Val #(({ x with proxy' := y } : connectMethodKey)))
   get_scheme : ∀ (x : connectMethodKey), go.IsGoStepPureDetTagged under (StructFieldGet connectMethodKey.underlying go!"scheme") #x (Val #(x.scheme'))
@@ -5186,6 +5315,7 @@ class connectMethodKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
 
 attribute [instance] connectMethodKey.TypeAssumptions.type_repr
   connectMethodKey.TypeAssumptions.underlying
+  connectMethodKey.TypeAssumptions.layout
   connectMethodKey.TypeAssumptions.get_proxy
   connectMethodKey.TypeAssumptions.set_proxy
   connectMethodKey.TypeAssumptions.get_scheme
@@ -5244,11 +5374,13 @@ instance equals_unfold_nothingWrittenError [FfiSyntax] [GoGlobalContext] :
 class nothingWrittenError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying nothingWrittenError.underlying nothingWrittenError
   underlying : go.UnderlyingDirectedEq nothingWrittenError.ty nothingWrittenError.underlying
+  layout : go.StructLayout nothingWrittenError [(go!"error", typeSize GoError, typeAlign GoError)]
   get_error : ∀ (x : nothingWrittenError), go.IsGoStepPureDetTagged under (StructFieldGet nothingWrittenError.underlying go!"error") #x (Val #(x.error'))
   set_error : ∀ (x : nothingWrittenError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet nothingWrittenError.underlying go!"error") (PairV #x #y) (Val #(({ x with error' := y } : nothingWrittenError)))
 
 attribute [instance] nothingWrittenError.TypeAssumptions.type_repr
   nothingWrittenError.TypeAssumptions.underlying
+  nothingWrittenError.TypeAssumptions.layout
   nothingWrittenError.TypeAssumptions.get_error
   nothingWrittenError.TypeAssumptions.set_error
 
@@ -5279,6 +5411,7 @@ instance equals_unfold_responseAndError [FfiSyntax] [GoGlobalContext] :
 class responseAndError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying responseAndError.underlying responseAndError
   underlying : go.UnderlyingDirectedEq responseAndError.ty responseAndError.underlying
+  layout : go.StructLayout responseAndError [(go!"_0", typeSize incomparable, typeAlign incomparable), (go!"res", typeSize Loc, typeAlign Loc), (go!"err", typeSize GoError, typeAlign GoError)]
   get__0 : ∀ (x : responseAndError), go.IsGoStepPureDetTagged under (StructFieldGet responseAndError.underlying go!"_0") #x (Val #(x._0'))
   set__0 : ∀ (x : responseAndError) (y : incomparable), go.IsGoStepPureDetTagged under (StructFieldSet responseAndError.underlying go!"_0") (PairV #x #y) (Val #(({ x with _0' := y } : responseAndError)))
   get_res : ∀ (x : responseAndError), go.IsGoStepPureDetTagged under (StructFieldGet responseAndError.underlying go!"res") #x (Val #(x.res'))
@@ -5288,6 +5421,7 @@ class responseAndError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
 
 attribute [instance] responseAndError.TypeAssumptions.type_repr
   responseAndError.TypeAssumptions.underlying
+  responseAndError.TypeAssumptions.layout
   responseAndError.TypeAssumptions.get__0
   responseAndError.TypeAssumptions.set__0
   responseAndError.TypeAssumptions.get_res
@@ -5328,6 +5462,7 @@ instance equals_unfold_requestAndChan [FfiSyntax] [GoGlobalContext] :
 class requestAndChan.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying requestAndChan.underlying requestAndChan
   underlying : go.UnderlyingDirectedEq requestAndChan.ty requestAndChan.underlying
+  layout : go.StructLayout requestAndChan [(go!"_0", typeSize incomparable, typeAlign incomparable), (go!"treq", typeSize Loc, typeAlign Loc), (go!"ch", typeSize GoChan, typeAlign GoChan), (go!"addedGzip", typeSize Bool, typeAlign Bool), (go!"continueCh", typeSize GoChan, typeAlign GoChan), (go!"callerGone", typeSize GoChan, typeAlign GoChan)]
   get__0 : ∀ (x : requestAndChan), go.IsGoStepPureDetTagged under (StructFieldGet requestAndChan.underlying go!"_0") #x (Val #(x._0'))
   set__0 : ∀ (x : requestAndChan) (y : incomparable), go.IsGoStepPureDetTagged under (StructFieldSet requestAndChan.underlying go!"_0") (PairV #x #y) (Val #(({ x with _0' := y } : requestAndChan)))
   get_treq : ∀ (x : requestAndChan), go.IsGoStepPureDetTagged under (StructFieldGet requestAndChan.underlying go!"treq") #x (Val #(x.treq'))
@@ -5343,6 +5478,7 @@ class requestAndChan.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
 
 attribute [instance] requestAndChan.TypeAssumptions.type_repr
   requestAndChan.TypeAssumptions.underlying
+  requestAndChan.TypeAssumptions.layout
   requestAndChan.TypeAssumptions.get__0
   requestAndChan.TypeAssumptions.set__0
   requestAndChan.TypeAssumptions.get_treq
@@ -5383,6 +5519,7 @@ instance equals_unfold_writeRequest [FfiSyntax] [GoGlobalContext] :
 class writeRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying writeRequest.underlying writeRequest
   underlying : go.UnderlyingDirectedEq writeRequest.ty writeRequest.underlying
+  layout : go.StructLayout writeRequest [(go!"req", typeSize Loc, typeAlign Loc), (go!"ch", typeSize GoChan, typeAlign GoChan), (go!"continueCh", typeSize GoChan, typeAlign GoChan)]
   get_req : ∀ (x : writeRequest), go.IsGoStepPureDetTagged under (StructFieldGet writeRequest.underlying go!"req") #x (Val #(x.req'))
   set_req : ∀ (x : writeRequest) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet writeRequest.underlying go!"req") (PairV #x #y) (Val #(({ x with req' := y } : writeRequest)))
   get_ch : ∀ (x : writeRequest), go.IsGoStepPureDetTagged under (StructFieldGet writeRequest.underlying go!"ch") #x (Val #(x.ch'))
@@ -5392,6 +5529,7 @@ class writeRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
 
 attribute [instance] writeRequest.TypeAssumptions.type_repr
   writeRequest.TypeAssumptions.underlying
+  writeRequest.TypeAssumptions.layout
   writeRequest.TypeAssumptions.get_req
   writeRequest.TypeAssumptions.set_req
   writeRequest.TypeAssumptions.get_ch
@@ -5422,11 +5560,13 @@ instance equals_unfold_timeoutError [FfiSyntax] [GoGlobalContext] :
 class timeoutError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying timeoutError.underlying timeoutError
   underlying : go.UnderlyingDirectedEq timeoutError.ty timeoutError.underlying
+  layout : go.StructLayout timeoutError [(go!"err", typeSize GoString, typeAlign GoString)]
   get_err : ∀ (x : timeoutError), go.IsGoStepPureDetTagged under (StructFieldGet timeoutError.underlying go!"err") #x (Val #(x.err'))
   set_err : ∀ (x : timeoutError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet timeoutError.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : timeoutError)))
 
 attribute [instance] timeoutError.TypeAssumptions.type_repr
   timeoutError.TypeAssumptions.underlying
+  timeoutError.TypeAssumptions.layout
   timeoutError.TypeAssumptions.get_err
   timeoutError.TypeAssumptions.set_err
 
@@ -5452,9 +5592,11 @@ instance equals_unfold_tLogKey [FfiSyntax] [GoGlobalContext] :
 class tLogKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying tLogKey.underlying tLogKey
   underlying : go.UnderlyingDirectedEq tLogKey.ty tLogKey.underlying
+  layout : go.StructLayout tLogKey []
 
 attribute [instance] tLogKey.TypeAssumptions.type_repr
   tLogKey.TypeAssumptions.underlying
+  tLogKey.TypeAssumptions.layout
 
 axiom bodyEOFSignal : Type
 axiom bodyEOFSignal.zero_val : ZeroVal bodyEOFSignal
@@ -5504,9 +5646,11 @@ instance equals_unfold_eofReader [FfiSyntax] [GoGlobalContext] :
 class eofReader.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying eofReader.underlying eofReader
   underlying : go.UnderlyingDirectedEq eofReader.ty eofReader.underlying
+  layout : go.StructLayout eofReader []
 
 attribute [instance] eofReader.TypeAssumptions.type_repr
   eofReader.TypeAssumptions.underlying
+  eofReader.TypeAssumptions.layout
 
 structure tlsHandshakeTimeoutError [FfiSyntax] where
   mk ::
@@ -5530,9 +5674,11 @@ instance equals_unfold_tlsHandshakeTimeoutError [FfiSyntax] [GoGlobalContext] :
 class tlsHandshakeTimeoutError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying tlsHandshakeTimeoutError.underlying tlsHandshakeTimeoutError
   underlying : go.UnderlyingDirectedEq tlsHandshakeTimeoutError.ty tlsHandshakeTimeoutError.underlying
+  layout : go.StructLayout tlsHandshakeTimeoutError []
 
 attribute [instance] tlsHandshakeTimeoutError.TypeAssumptions.type_repr
   tlsHandshakeTimeoutError.TypeAssumptions.underlying
+  tlsHandshakeTimeoutError.TypeAssumptions.layout
 
 structure fakeLocker [FfiSyntax] where
   mk ::
@@ -5556,9 +5702,11 @@ instance equals_unfold_fakeLocker [FfiSyntax] [GoGlobalContext] :
 class fakeLocker.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying fakeLocker.underlying fakeLocker
   underlying : go.UnderlyingDirectedEq fakeLocker.ty fakeLocker.underlying
+  layout : go.StructLayout fakeLocker []
 
 attribute [instance] fakeLocker.TypeAssumptions.type_repr
   fakeLocker.TypeAssumptions.underlying
+  fakeLocker.TypeAssumptions.layout
 
 axiom connLRU : Type
 axiom connLRU.zero_val : ZeroVal connLRU
@@ -5574,6 +5722,8 @@ attribute [instance] connLRU.TypeAssumptions.type_repr
   connLRU.TypeAssumptions.isUnderlying
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  anonStruct_14acb559c0198712_instance : anonStruct_14acb559c0198712.TypeAssumptions
+  anonStruct_d6e4d156adb90116_instance : anonStruct_d6e4d156adb90116.TypeAssumptions
   Client_instance : Client.TypeAssumptions
   RoundTripper_instance : RoundTripper.TypeAssumptions
   cancelTimerBody_instance : cancelTimerBody.TypeAssumptions
@@ -5714,7 +5864,9 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   fakeLocker_instance : fakeLocker.TypeAssumptions
   connLRU_instance : connLRU.TypeAssumptions
 
-attribute [instance] Assumptions.Client_instance
+attribute [instance] Assumptions.anonStruct_14acb559c0198712_instance
+  Assumptions.anonStruct_d6e4d156adb90116_instance
+  Assumptions.Client_instance
   Assumptions.RoundTripper_instance
   Assumptions.cancelTimerBody_instance
   Assumptions.ClientConn_instance

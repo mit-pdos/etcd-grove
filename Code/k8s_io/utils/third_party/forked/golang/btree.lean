@@ -2282,6 +2282,7 @@ instance equals_unfold_FreeList [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
 class FreeList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (FreeList.underlying T) (FreeList T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (FreeList.ty T) (FreeList.underlying T)
+  layout : ∀ (T' : Type), go.StructLayout (FreeList T') [(go!"mu", typeSize _root_.Perennial.sync.Mutex, typeAlign _root_.Perennial.sync.Mutex), (go!"freelist", typeSize GoSlice, typeAlign GoSlice)]
   get_mu : ∀ (T : go.GoType) (T' : Type) (x : (FreeList T')), go.IsGoStepPureDetTagged under (StructFieldGet (FreeList.underlying T) go!"mu") #x (Val #(x.mu'))
   set_mu : ∀ (T : go.GoType) (T' : Type) (x : (FreeList T')) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet (FreeList.underlying T) go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : (FreeList T'))))
   get_freelist : ∀ (T : go.GoType) (T' : Type) (x : (FreeList T')), go.IsGoStepPureDetTagged under (StructFieldGet (FreeList.underlying T) go!"freelist") #x (Val #(x.freelist'))
@@ -2291,6 +2292,7 @@ class FreeList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
 
 attribute [instance] FreeList.TypeAssumptions.type_repr
   FreeList.TypeAssumptions.underlying
+  FreeList.TypeAssumptions.layout
   FreeList.TypeAssumptions.get_mu
   FreeList.TypeAssumptions.set_mu
   FreeList.TypeAssumptions.get_freelist
@@ -2358,6 +2360,7 @@ instance equals_unfold_node [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
 class node.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (node.underlying T) (node T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (node.ty T) (node.underlying T)
+  layout : ∀ (T' : Type), go.StructLayout (node T') [(go!"items", typeSize (items T'), typeAlign (items T')), (go!"children", typeSize (items Loc), typeAlign (items Loc)), (go!"cow", typeSize Loc, typeAlign Loc)]
   get_items : ∀ (T : go.GoType) (T' : Type) (x : (node T')), go.IsGoStepPureDetTagged under (StructFieldGet (node.underlying T) go!"items") #x (Val #(x.items'))
   set_items : ∀ (T : go.GoType) (T' : Type) (x : (node T')) (y : (items T')), go.IsGoStepPureDetTagged under (StructFieldSet (node.underlying T) go!"items") (PairV #x #y) (Val #(({ x with items' := y } : (node T'))))
   get_children : ∀ (T : go.GoType) (T' : Type) (x : (node T')), go.IsGoStepPureDetTagged under (StructFieldGet (node.underlying T) go!"children") #x (Val #(x.children'))
@@ -2377,6 +2380,7 @@ class node.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSem
 
 attribute [instance] node.TypeAssumptions.type_repr
   node.TypeAssumptions.underlying
+  node.TypeAssumptions.layout
   node.TypeAssumptions.get_items
   node.TypeAssumptions.set_items
   node.TypeAssumptions.get_children
@@ -2439,6 +2443,7 @@ instance equals_unfold_optionalItem [FfiSyntax] [GoGlobalContext] (T : go.GoType
 class optionalItem.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (optionalItem.underlying T) (optionalItem T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (optionalItem.ty T) (optionalItem.underlying T)
+  layout : ∀ (T' : Type), go.StructLayout (optionalItem T') [(go!"item", typeSize T', typeAlign T'), (go!"valid", typeSize Bool, typeAlign Bool)]
   get_item : ∀ (T : go.GoType) (T' : Type) (x : (optionalItem T')), go.IsGoStepPureDetTagged under (StructFieldGet (optionalItem.underlying T) go!"item") #x (Val #(x.item'))
   set_item : ∀ (T : go.GoType) (T' : Type) (x : (optionalItem T')) (y : T'), go.IsGoStepPureDetTagged under (StructFieldSet (optionalItem.underlying T) go!"item") (PairV #x #y) (Val #(({ x with item' := y } : (optionalItem T'))))
   get_valid : ∀ (T : go.GoType) (T' : Type) (x : (optionalItem T')), go.IsGoStepPureDetTagged under (StructFieldGet (optionalItem.underlying T) go!"valid") #x (Val #(x.valid'))
@@ -2446,6 +2451,7 @@ class optionalItem.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
 
 attribute [instance] optionalItem.TypeAssumptions.type_repr
   optionalItem.TypeAssumptions.underlying
+  optionalItem.TypeAssumptions.layout
   optionalItem.TypeAssumptions.get_item
   optionalItem.TypeAssumptions.set_item
   optionalItem.TypeAssumptions.get_valid
@@ -2480,6 +2486,7 @@ instance equals_unfold_BTree [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
 class BTree.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (BTree.underlying T) (BTree T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (BTree.ty T) (BTree.underlying T)
+  layout : ∀ (T' : Type), go.StructLayout (BTree T') [(go!"degree", typeSize w64, typeAlign w64), (go!"length", typeSize w64, typeAlign w64), (go!"root", typeSize Loc, typeAlign Loc), (go!"cow", typeSize Loc, typeAlign Loc)]
   get_degree : ∀ (T : go.GoType) (T' : Type) (x : (BTree T')), go.IsGoStepPureDetTagged under (StructFieldGet (BTree.underlying T) go!"degree") #x (Val #(x.degree'))
   set_degree : ∀ (T : go.GoType) (T' : Type) (x : (BTree T')) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet (BTree.underlying T) go!"degree") (PairV #x #y) (Val #(({ x with degree' := y } : (BTree T'))))
   get_length : ∀ (T : go.GoType) (T' : Type) (x : (BTree T')), go.IsGoStepPureDetTagged under (StructFieldGet (BTree.underlying T) go!"length") #x (Val #(x.length'))
@@ -2513,6 +2520,7 @@ class BTree.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
 
 attribute [instance] BTree.TypeAssumptions.type_repr
   BTree.TypeAssumptions.underlying
+  BTree.TypeAssumptions.layout
   BTree.TypeAssumptions.get_degree
   BTree.TypeAssumptions.set_degree
   BTree.TypeAssumptions.get_length
@@ -2579,6 +2587,7 @@ instance equals_unfold_copyOnWriteContext [FfiSyntax] [GoGlobalContext] (T : go.
 class copyOnWriteContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (copyOnWriteContext.underlying T) (copyOnWriteContext T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (copyOnWriteContext.ty T) (copyOnWriteContext.underlying T)
+  layout : ∀ (T' : Type), go.StructLayout (copyOnWriteContext T') [(go!"freelist", typeSize Loc, typeAlign Loc), (go!"less", typeSize (LessFunc T'), typeAlign (LessFunc T'))]
   get_freelist : ∀ (T : go.GoType) (T' : Type) (x : (copyOnWriteContext T')), go.IsGoStepPureDetTagged under (StructFieldGet (copyOnWriteContext.underlying T) go!"freelist") #x (Val #(x.freelist'))
   set_freelist : ∀ (T : go.GoType) (T' : Type) (x : (copyOnWriteContext T')) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet (copyOnWriteContext.underlying T) go!"freelist") (PairV #x #y) (Val #(({ x with freelist' := y } : (copyOnWriteContext T'))))
   get_less : ∀ (T : go.GoType) (T' : Type) (x : (copyOnWriteContext T')), go.IsGoStepPureDetTagged under (StructFieldGet (copyOnWriteContext.underlying T) go!"less") #x (Val #(x.less'))
@@ -2588,6 +2597,7 @@ class copyOnWriteContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalC
 
 attribute [instance] copyOnWriteContext.TypeAssumptions.type_repr
   copyOnWriteContext.TypeAssumptions.underlying
+  copyOnWriteContext.TypeAssumptions.layout
   copyOnWriteContext.TypeAssumptions.get_freelist
   copyOnWriteContext.TypeAssumptions.set_freelist
   copyOnWriteContext.TypeAssumptions.get_less

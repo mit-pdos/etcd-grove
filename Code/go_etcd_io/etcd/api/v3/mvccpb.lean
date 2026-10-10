@@ -171,6 +171,7 @@ instance equals_unfold_KeyValue [FfiSyntax] [GoGlobalContext] :
 class KeyValue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying KeyValue.underlying KeyValue
   underlying : go.UnderlyingDirectedEq KeyValue.ty KeyValue.underlying
+  layout : go.StructLayout KeyValue [(go!"state", typeSize _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState, typeAlign _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), (go!"Key", typeSize GoSlice, typeAlign GoSlice), (go!"CreateRevision", typeSize w64, typeAlign w64), (go!"ModRevision", typeSize w64, typeAlign w64), (go!"Version", typeSize w64, typeAlign w64), (go!"Value", typeSize GoSlice, typeAlign GoSlice), (go!"Lease", typeSize w64, typeAlign w64), (go!"unknownFields", typeSize GoSlice, typeAlign GoSlice), (go!"sizeCache", typeSize w32, typeAlign w32)]
   get_state : ∀ (x : KeyValue), go.IsGoStepPureDetTagged under (StructFieldGet KeyValue.underlying go!"state") #x (Val #(x.state'))
   set_state : ∀ (x : KeyValue) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet KeyValue.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : KeyValue)))
   get_Key : ∀ (x : KeyValue), go.IsGoStepPureDetTagged under (StructFieldGet KeyValue.underlying go!"Key") #x (Val #(x.Key'))
@@ -192,6 +193,7 @@ class KeyValue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
 
 attribute [instance] KeyValue.TypeAssumptions.type_repr
   KeyValue.TypeAssumptions.underlying
+  KeyValue.TypeAssumptions.layout
   KeyValue.TypeAssumptions.get_state
   KeyValue.TypeAssumptions.set_state
   KeyValue.TypeAssumptions.get_Key
@@ -244,6 +246,7 @@ instance equals_unfold_Event [FfiSyntax] [GoGlobalContext] :
 class Event.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Event.underlying Event
   underlying : go.UnderlyingDirectedEq Event.ty Event.underlying
+  layout : go.StructLayout Event [(go!"state", typeSize _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState, typeAlign _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), (go!"Type", typeSize Event_EventType, typeAlign Event_EventType), (go!"Kv", typeSize Loc, typeAlign Loc), (go!"PrevKv", typeSize Loc, typeAlign Loc), (go!"unknownFields", typeSize GoSlice, typeAlign GoSlice), (go!"sizeCache", typeSize w32, typeAlign w32)]
   get_state : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"state") #x (Val #(x.state'))
   set_state : ∀ (x : Event) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : Event)))
   get_Type : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"Type") #x (Val #(x.Type'))
@@ -259,6 +262,7 @@ class Event.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
 
 attribute [instance] Event.TypeAssumptions.type_repr
   Event.TypeAssumptions.underlying
+  Event.TypeAssumptions.layout
   Event.TypeAssumptions.get_state
   Event.TypeAssumptions.set_state
   Event.TypeAssumptions.get_Type

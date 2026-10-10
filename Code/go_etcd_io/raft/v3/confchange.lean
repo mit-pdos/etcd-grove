@@ -7,6 +7,7 @@ public import Perennial.Code.strings
 public import Code.go_etcd_io.raft.v3.quorum
 public import Code.go_etcd_io.raft.v3.raftpb
 public import Code.go_etcd_io.raft.v3.tracker
+public import Perennial.Code.io
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -1599,6 +1600,7 @@ instance equals_unfold_Changer [FfiSyntax] [GoGlobalContext] :
 class Changer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Changer.underlying Changer
   underlying : go.UnderlyingDirectedEq Changer.ty Changer.underlying
+  layout : go.StructLayout Changer [(go!"Tracker", typeSize _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker, typeAlign _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker), (go!"LastIndex", typeSize w64, typeAlign w64)]
   get_Tracker : ∀ (x : Changer), go.IsGoStepPureDetTagged under (StructFieldGet Changer.underlying go!"Tracker") #x (Val #(x.Tracker'))
   set_Tracker : ∀ (x : Changer) (y : _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker), go.IsGoStepPureDetTagged under (StructFieldSet Changer.underlying go!"Tracker") (PairV #x #y) (Val #(({ x with Tracker' := y } : Changer)))
   get_LastIndex : ∀ (x : Changer), go.IsGoStepPureDetTagged under (StructFieldGet Changer.underlying go!"LastIndex") #x (Val #(x.LastIndex'))
@@ -1636,6 +1638,7 @@ class Changer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
 
 attribute [instance] Changer.TypeAssumptions.type_repr
   Changer.TypeAssumptions.underlying
+  Changer.TypeAssumptions.layout
   Changer.TypeAssumptions.get_Tracker
   Changer.TypeAssumptions.set_Tracker
   Changer.TypeAssumptions.get_LastIndex

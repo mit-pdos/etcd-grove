@@ -75,6 +75,7 @@ instance equals_unfold_Generator [FfiSyntax] [GoGlobalContext] :
 class Generator.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Generator.underlying Generator
   underlying : go.UnderlyingDirectedEq Generator.ty Generator.underlying
+  layout : go.StructLayout Generator [(go!"prefix", typeSize w64, typeAlign w64), (go!"suffix", typeSize w64, typeAlign w64)]
   get_prefix : ∀ (x : Generator), go.IsGoStepPureDetTagged under (StructFieldGet Generator.underlying go!"prefix") #x (Val #(x.prefix'))
   set_prefix : ∀ (x : Generator) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Generator.underlying go!"prefix") (PairV #x #y) (Val #(({ x with prefix' := y } : Generator)))
   get_suffix : ∀ (x : Generator), go.IsGoStepPureDetTagged under (StructFieldGet Generator.underlying go!"suffix") #x (Val #(x.suffix'))
@@ -82,6 +83,7 @@ class Generator.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
 
 attribute [instance] Generator.TypeAssumptions.type_repr
   Generator.TypeAssumptions.underlying
+  Generator.TypeAssumptions.layout
   Generator.TypeAssumptions.get_prefix
   Generator.TypeAssumptions.set_prefix
   Generator.TypeAssumptions.get_suffix

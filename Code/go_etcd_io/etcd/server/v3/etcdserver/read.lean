@@ -156,6 +156,7 @@ instance equals_unfold_notifier [FfiSyntax] [GoGlobalContext] :
 class notifier.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying notifier.underlying notifier
   underlying : go.UnderlyingDirectedEq notifier.ty notifier.underlying
+  layout : go.StructLayout notifier [(go!"c", typeSize GoChan, typeAlign GoChan), (go!"err", typeSize GoError, typeAlign GoError)]
   get_c : ∀ (x : notifier), go.IsGoStepPureDetTagged under (StructFieldGet notifier.underlying go!"c") #x (Val #(x.c'))
   set_c : ∀ (x : notifier) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet notifier.underlying go!"c") (PairV #x #y) (Val #(({ x with c' := y } : notifier)))
   get_err : ∀ (x : notifier), go.IsGoStepPureDetTagged under (StructFieldGet notifier.underlying go!"err") #x (Val #(x.err'))
@@ -163,6 +164,7 @@ class notifier.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
 
 attribute [instance] notifier.TypeAssumptions.type_repr
   notifier.TypeAssumptions.underlying
+  notifier.TypeAssumptions.layout
   notifier.TypeAssumptions.get_c
   notifier.TypeAssumptions.set_c
   notifier.TypeAssumptions.get_err

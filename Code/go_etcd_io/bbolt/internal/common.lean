@@ -2,7 +2,17 @@
 module
 
 public import Perennial.Code.fmt
+public import Perennial.Code.«unsafe»
+public import Perennial.Code.hash.fnv
+public import Perennial.Code.io
+public import Code.go_etcd_io.bbolt.errors
+public import Perennial.Code.os
 public import Perennial.Code.sort
+public import Perennial.Code.runtime
+public import Perennial.Code.time
+public import Perennial.Code.strings
+public import Perennial.Code.hash
+public import Perennial.Code.io.fs
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -88,58 +98,82 @@ def VerificationType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] VerificationType.ty
 
-axiom MaxMapSize [FfiSyntax] [GoGlobalContext] : val
+/-- 256TB -/
+@[reducible] noncomputable def MaxMapSize [FfiSyntax] [GoGlobalContext] : val :=
+  #(281474976710655 : Int)
 
-axiom MaxAllocSize [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def MaxAllocSize [FfiSyntax] [GoGlobalContext] : val :=
+  #(2147483647 : Int)
 
-axiom BucketHeaderSize [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def BucketHeaderSize [FfiSyntax] [GoGlobalContext] : val :=
+  #(W64 16)
 
-axiom PageHeaderSize [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def PageHeaderSize [FfiSyntax] [GoGlobalContext] : val :=
+  #(W64 16)
 
-axiom MinKeysPerPage [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def MinKeysPerPage [FfiSyntax] [GoGlobalContext] : val :=
+  #(2 : Int)
 
-axiom BranchPageElementSize [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def BranchPageElementSize [FfiSyntax] [GoGlobalContext] : val :=
+  #(W64 16)
 
-axiom LeafPageElementSize [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def LeafPageElementSize [FfiSyntax] [GoGlobalContext] : val :=
+  #(W64 16)
 
-axiom pgidSize [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def pgidSize [FfiSyntax] [GoGlobalContext] : val :=
+  #(W64 8)
 
-axiom BranchPageFlag [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def BranchPageFlag [FfiSyntax] [GoGlobalContext] : val :=
+  #(1 : Int)
 
-axiom LeafPageFlag [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def LeafPageFlag [FfiSyntax] [GoGlobalContext] : val :=
+  #(2 : Int)
 
-axiom MetaPageFlag [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def MetaPageFlag [FfiSyntax] [GoGlobalContext] : val :=
+  #(4 : Int)
 
-axiom FreelistPageFlag [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def FreelistPageFlag [FfiSyntax] [GoGlobalContext] : val :=
+  #(16 : Int)
 
-axiom BucketLeafFlag [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def BucketLeafFlag [FfiSyntax] [GoGlobalContext] : val :=
+  #(1 : Int)
 
-axiom MaxMmapStep [FfiSyntax] [GoGlobalContext] : val
+/-- 1GB -/
+@[reducible] noncomputable def MaxMmapStep [FfiSyntax] [GoGlobalContext] : val :=
+  #(1073741824 : Int)
 
-axiom Version [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def Version [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 2)
 
-axiom Magic [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def Magic [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 3977042669)
 
-axiom PgidNoFreelist [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def PgidNoFreelist [FfiSyntax] [GoGlobalContext] : val :=
+  #(W64 18446744073709551615)
 
-axiom IgnoreNoSync [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def IgnoreNoSync [FfiSyntax] [GoGlobalContext] : val :=
+  #false
 
-axiom DefaultMaxBatchSize [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def DefaultMaxBatchSize [FfiSyntax] [GoGlobalContext] : val :=
+  #(W64 1000)
 
-axiom DefaultMaxBatchDelay [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def DefaultMaxBatchDelay [FfiSyntax] [GoGlobalContext] : val :=
+  #(W64 10000000)
 
-axiom DefaultAllocSize [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def DefaultAllocSize [FfiSyntax] [GoGlobalContext] : val :=
+  #(16777216 : Int)
 
-axiom ENV_VERIFY [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def ENV_VERIFY [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"BBOLT_VERIFY")
 
-axiom ENV_VERIFY_VALUE_ALL [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def ENV_VERIFY_VALUE_ALL [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"all")
 
-axiom ENV_VERIFY_VALUE_ASSERT [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def ENV_VERIFY_VALUE_ASSERT [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"assert")
 
 noncomputable def DefaultPageSize [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/internal/common.DefaultPageSize"
-
-axiom DefaultPageSize.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def NewInBucket [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/internal/common.NewInBucket"
@@ -203,6 +237,1641 @@ noncomputable def Verify [FfiSyntax] [GoGlobalContext] : GoString :=
 
 noncomputable def Assert [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/internal/common.Assert"
+
+/-- go: bucket.go:19:6 -/
+noncomputable def NewInBucket.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "root"
+  (Lam "seq"
+  (App (Val exceptionDo)
+  (Let "seq" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "seq"))
+  (Let "root" (App (Val (GoInstruction (GoAlloc Pgid.ty))) (Var "root"))
+  (App (Val doReturn)
+  (Let "$v0" (App (Val (GoInstruction (GoLoad Pgid.ty))) (Var "root"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "seq"))
+  (App (Val (GoInstruction (CompositeLiteral InBucket.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"root")) (ElementExpression Pgid.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"sequence")) (ElementExpression go.uint64 (Var "$v1")))]))))))))))
+
+/-- go: bucket.go:26:20 -/
+noncomputable def InBucket.RootPage.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "b"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType InBucket.ty)))) (Var "b"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad Pgid.ty))) (App (Val (GoInstruction (StructFieldRef InBucket.ty go!"root"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType InBucket.ty)))) (Var "b")))))))))
+
+/-- go: bucket.go:30:20 -/
+noncomputable def InBucket.SetRootPage.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "b"
+  (Lam "id"
+  (App (Val exceptionDo)
+  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType InBucket.ty)))) (Var "b"))
+  (Let "id" (App (Val (GoInstruction (GoAlloc Pgid.ty))) (Var "id"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Pgid.ty))) (Var "id"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Pgid.ty))) (Pair (App (Val (GoInstruction (StructFieldRef InBucket.ty go!"root"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType InBucket.ty)))) (Var "b"))) (Var "$r0")))))))))))
+
+/-- InSequence returns the sequence. The reason why not naming it `Sequence`
+    is to avoid duplicated name as `(*Bucket) Sequence()`
+
+    go: bucket.go:36:20 -/
+noncomputable def InBucket.InSequence.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "b"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType InBucket.ty)))) (Var "b"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef InBucket.ty go!"sequence"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType InBucket.ty)))) (Var "b")))))))))
+
+/-- go: bucket.go:40:20 -/
+noncomputable def InBucket.SetInSequence.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "b"
+  (Lam "v"
+  (App (Val exceptionDo)
+  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType InBucket.ty)))) (Var "b"))
+  (Let "v" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "v"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "v"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef InBucket.ty go!"sequence"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType InBucket.ty)))) (Var "b"))) (Var "$r0")))))))))))
+
+/-- go: bucket.go:44:20 -/
+noncomputable def InBucket.IncSequence.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "b"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType InBucket.ty)))) (Var "b"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef InBucket.ty go!"sequence"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType InBucket.ty)))) (Var "b"))) (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef InBucket.ty go!"sequence"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType InBucket.ty)))) (Var "b")))) (Val #(W64 1))))))))))))
+
+/-- go: bucket.go:48:20 -/
+noncomputable def InBucket.InlinePage.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "b"
+  (Lam "v"
+  (App (Val exceptionDo)
+  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType InBucket.ty)))) (Var "b"))
+  (Let "v" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "v"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert «unsafe».Pointer (go.GoType.PointerType Page.ty)))) (App (Val (GoInstruction (Convert (go.GoType.PointerType go.byte) «unsafe».Pointer))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "v")) (Val BucketHeaderSize)))))))))))
+
+/-- go: bucket.go:52:20 -/
+noncomputable def InBucket.String.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "b"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType InBucket.ty)))) (Var "b"))
+  (App (Val doReturn)
+  (Let "$a0" (Val #(go!"<pgid=%d,seq=%d>"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert Pgid.ty go.any))) (App (Val (GoInstruction (GoLoad Pgid.ty))) (App (Val (GoInstruction (StructFieldRef InBucket.ty go!"root"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType InBucket.ty)))) (Var "b")))))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 go.any))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef InBucket.ty go!"sequence"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType InBucket.ty)))) (Var "b")))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))
+
+/-- go: inode.go:17:18 -/
+noncomputable def Inode.Flags.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "in"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "in" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Inode.ty)))) (Var "in"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.uint32))) (App (Val (GoInstruction (StructFieldRef Inode.ty go!"flags"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inode.ty)))) (Var "in")))))))))
+
+/-- go: inode.go:21:18 -/
+noncomputable def Inode.SetFlags.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "in"
+  (Lam "flags"
+  (App (Val exceptionDo)
+  (Let "in" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Inode.ty)))) (Var "in"))
+  (Let "flags" (App (Val (GoInstruction (GoAlloc go.uint32))) (Var "flags"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint32))) (Var "flags"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint32))) (Pair (App (Val (GoInstruction (StructFieldRef Inode.ty go!"flags"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inode.ty)))) (Var "in"))) (Var "$r0")))))))))))
+
+/-- go: inode.go:25:18 -/
+noncomputable def Inode.Pgid.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "in"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "in" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Inode.ty)))) (Var "in"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad Pgid.ty))) (App (Val (GoInstruction (StructFieldRef Inode.ty go!"pgid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inode.ty)))) (Var "in")))))))))
+
+/-- go: inode.go:29:18 -/
+noncomputable def Inode.SetPgid.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "in"
+  (Lam "id"
+  (App (Val exceptionDo)
+  (Let "in" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Inode.ty)))) (Var "in"))
+  (Let "id" (App (Val (GoInstruction (GoAlloc Pgid.ty))) (Var "id"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Pgid.ty))) (Var "id"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Pgid.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Inode.ty go!"pgid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inode.ty)))) (Var "in"))) (Var "$r0")))))))))))
+
+/-- go: inode.go:33:18 -/
+noncomputable def Inode.Key.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "in"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "in" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Inode.ty)))) (Var "in"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef Inode.ty go!"key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inode.ty)))) (Var "in")))))))))
+
+/-- go: inode.go:37:18 -/
+noncomputable def Inode.SetKey.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "in"
+  (Lam "key"
+  (App (Val exceptionDo)
+  (Let "in" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Inode.ty)))) (Var "in"))
+  (Let "key" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "key"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "key"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (StructFieldRef Inode.ty go!"key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inode.ty)))) (Var "in"))) (Var "$r0")))))))))))
+
+/-- go: inode.go:41:18 -/
+noncomputable def Inode.Value.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "in"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "in" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Inode.ty)))) (Var "in"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef Inode.ty go!"value"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inode.ty)))) (Var "in")))))))))
+
+/-- go: inode.go:45:18 -/
+noncomputable def Inode.SetValue.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "in"
+  (Lam "value"
+  (App (Val exceptionDo)
+  (Let "in" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Inode.ty)))) (Var "in"))
+  (Let "value" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "value"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "value"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (StructFieldRef Inode.ty go!"value"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inode.ty)))) (Var "in"))) (Var "$r0")))))))))))
+
+/-- go: inode.go:49:6 -/
+noncomputable def ReadInodeFromPage.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "p"
+  (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Page.ty)))) (Var "p"))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [Inodes.ty]))) (Val #())) (App (Val (GoInstruction (Convert go.uint16 go.int))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Page.ty) go!"Count"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p"))) (Val #()))))
+  (Let "inodes" (App (Val (GoInstruction (GoAlloc Inodes.ty))) (App (Val (GoInstruction (GoZeroVal Inodes.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Page.ty) go!"IsLeafPage"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p"))) (Val #()))
+  (Let "isLeaf" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad Inodes.ty))) (Var "inodes")))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (App (Val (GoInstruction (Convert go.uint16 go.int))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Page.ty) go!"Count"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p"))) (Val #()))))))) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (IndexRef Inodes.ty))) (Pair (App (Val (GoInstruction (GoLoad Inodes.ty))) (Var "inodes")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))
+  (Let "inode" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Inode.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Inode.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Inode.ty) go!"Key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inode.ty)))) (Var "inode"))) (Val #()))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))) (Val #(W64 0))))
+  (Let "$a1" (Val #(go!"read: zero-length inode key"))
+  (Let "$a2" (Val #slice.nil)
+  (App (App (App (App (Val (GoInstruction (FuncResolve Assert []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "isLeaf"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert go.int go.uint16))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Page.ty) go!"LeafPageElement"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p"))) (Var "$a0")))
+  (Let "elem" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType leafPageElement.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType leafPageElement.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType leafPageElement.ty) go!"Value"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType leafPageElement.ty)))) (Var "elem"))) (Val #()))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Inode.ty) go!"SetValue"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inode.ty)))) (Var "inode"))) (Var "$a0"))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType leafPageElement.ty) go!"Key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType leafPageElement.ty)))) (Var "elem"))) (Val #()))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Inode.ty) go!"SetKey"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inode.ty)))) (Var "inode"))) (Var "$a0")))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType leafPageElement.ty) go!"Flags"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType leafPageElement.ty)))) (Var "elem"))) (Val #()))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Inode.ty) go!"SetFlags"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inode.ty)))) (Var "inode"))) (Var "$a0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType leafPageElement.ty)))) (Pair (Var "elem") (Var "$r0")))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert go.int go.uint16))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Page.ty) go!"BranchPageElement"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p"))) (Var "$a0")))
+  (Let "elem" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType branchPageElement.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType branchPageElement.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType branchPageElement.ty) go!"Key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType branchPageElement.ty)))) (Var "elem"))) (Val #()))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Inode.ty) go!"SetKey"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inode.ty)))) (Var "inode"))) (Var "$a0"))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType branchPageElement.ty) go!"Pgid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType branchPageElement.ty)))) (Var "elem"))) (Val #()))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Inode.ty) go!"SetPgid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inode.ty)))) (Var "inode"))) (Var "$a0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType branchPageElement.ty)))) (Pair (Var "elem") (Var "$r0")))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Inode.ty)))) (Pair (Var "inode") (Var "$r0")))))))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "isLeaf") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Inodes.ty))) (Pair (Var "inodes") (Var "$r0"))))))))))
+
+/-- go: inode.go:70:6 -/
+noncomputable def WriteInodeToPage.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "inodes"
+  (Lam "p"
+  (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Page.ty)))) (Var "p"))
+  (Let "inodes" (App (Val (GoInstruction (GoAlloc Inodes.ty))) (Var "inodes"))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.uintptr))) (Pair (Val #(W64 16)) (App (Val (GoInstruction (GoOp GoMul go.uintptr))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Page.ty) go!"PageElementSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p"))) (Val #())) (App (Val (GoInstruction (Convert go.int go.uintptr))) (Let "$a0" (App (Val (GoInstruction (GoLoad Inodes.ty))) (Var "inodes"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [Inodes.ty]))) (Val #())) (Var "$a0"))))))))
+  (Let "off" (App (Val (GoInstruction (GoAlloc go.uintptr))) (App (Val (GoInstruction (GoZeroVal go.uintptr))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Page.ty) go!"IsLeafPage"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p"))) (Val #()))
+  (Let "isLeaf" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert go.uintptr go.uint32))) (App (Val (GoInstruction (GoLoad go.uintptr))) (Var "off"))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Inodes.ty))) (Var "inodes"))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val (slice.forRange Inode.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (Let "item" (App (Val (GoInstruction (GoAlloc Inode.ty))) (Var "$value"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Inode.ty) go!"Key"))) (Var "item")) (Val #()))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))) (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Inode.ty) go!"Value"))) (Var "item")) (Val #()))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")))))
+  (Let "sz" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType Page.ty) «unsafe».Pointer))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p")))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.uintptr))) (Var "off"))
+  (Let "$a2" (Val #(W64 0))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad go.int))) (Var "sz"))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve UnsafeByteSlice []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
+  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Inode.ty) go!"Key"))) (Var "item")) (Val #()))
+  (App (App (App (Val (GoInstruction (FuncResolve go.copy [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "l" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.byte)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoLoad go.int))) (Var "l"))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))))))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Inode.ty) go!"Value"))) (Var "item")) (Val #()))
+  (App (App (App (Val (GoInstruction (FuncResolve go.copy [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")) (Var "$a1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "l") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "isLeaf"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert go.int go.uint16))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Page.ty) go!"LeafPageElement"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p"))) (Var "$a0")))
+  (Let "elem" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType leafPageElement.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType leafPageElement.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.int go.uint32))) (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Inode.ty) go!"Value"))) (Var "item")) (Val #()))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType leafPageElement.ty) go!"SetVsize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType leafPageElement.ty)))) (Var "elem"))) (Var "$a0"))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.int go.uint32))) (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Inode.ty) go!"Key"))) (Var "item")) (Val #()))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType leafPageElement.ty) go!"SetKsize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType leafPageElement.ty)))) (Var "elem"))) (Var "$a0")))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Inode.ty) go!"Flags"))) (Var "item")) (Val #()))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType leafPageElement.ty) go!"SetFlags"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType leafPageElement.ty)))) (Var "elem"))) (Var "$a0")))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.uintptr go.uint32))) (App (Val (GoInstruction (GoOp GoSub go.uintptr))) (Pair (App (Val (GoInstruction (Convert «unsafe».Pointer go.uintptr))) (App (Val (GoInstruction (Convert (go.GoType.PointerType go.byte) «unsafe».Pointer))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b")) (Val #(W64 0)))))) (App (Val (GoInstruction (Convert «unsafe».Pointer go.uintptr))) (App (Val (GoInstruction (Convert (go.GoType.PointerType leafPageElement.ty) «unsafe».Pointer))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType leafPageElement.ty)))) (Var "elem")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType leafPageElement.ty) go!"SetPos"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType leafPageElement.ty)))) (Var "elem"))) (Var "$a0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType leafPageElement.ty)))) (Pair (Var "elem") (Var "$r0")))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert go.int go.uint16))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Page.ty) go!"BranchPageElement"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p"))) (Var "$a0")))
+  (Let "elem" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType branchPageElement.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType branchPageElement.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Pgid.ty))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType branchPageElement.ty) go!"Pgid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType branchPageElement.ty)))) (Var "elem"))) (Val #())) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Page.ty) go!"Id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p"))) (Val #())))))
+  (Let "$a1" (Val #(go!"write: circular dependency occurred"))
+  (Let "$a2" (Val #slice.nil)
+  (App (App (App (App (Val (GoInstruction (FuncResolve Assert []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Inode.ty) go!"Pgid"))) (Var "item")) (Val #()))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType branchPageElement.ty) go!"SetPgid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType branchPageElement.ty)))) (Var "elem"))) (Var "$a0")))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.int go.uint32))) (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Inode.ty) go!"Key"))) (Var "item")) (Val #()))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType branchPageElement.ty) go!"SetKsize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType branchPageElement.ty)))) (Var "elem"))) (Var "$a0")))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.uintptr go.uint32))) (App (Val (GoInstruction (GoOp GoSub go.uintptr))) (Pair (App (Val (GoInstruction (Convert «unsafe».Pointer go.uintptr))) (App (Val (GoInstruction (Convert (go.GoType.PointerType go.byte) «unsafe».Pointer))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b")) (Val #(W64 0)))))) (App (Val (GoInstruction (Convert «unsafe».Pointer go.uintptr))) (App (Val (GoInstruction (Convert (go.GoType.PointerType branchPageElement.ty) «unsafe».Pointer))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType branchPageElement.ty)))) (Var "elem")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType branchPageElement.ty) go!"SetPos"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType branchPageElement.ty)))) (Var "elem"))) (Var "$a0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType branchPageElement.ty)))) (Pair (Var "elem") (Var "$r0")))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uintptr))) (Pair (Var "off") (App (Val (GoInstruction (GoOp GoPlus go.uintptr))) (Pair (App (Val (GoInstruction (GoLoad go.uintptr))) (Var "off")) (App (Val (GoInstruction (Convert go.int go.uintptr))) (App (Val (GoInstruction (GoLoad go.int))) (Var "sz")))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "sz") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Inode.ty) go!"Key"))) (Var "item")) (Val #()))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))) (Val #(W64 0))))
+  (Let "$a1" (Val #(go!"write: zero-length inode key"))
+  (Let "$a2" (Val #slice.nil)
+  (App (App (App (App (Val (GoInstruction (FuncResolve Assert []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "isLeaf") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uintptr))) (Pair (Var "off") (Var "$r0"))))))))))))
+
+/-- go: inode.go:107:6 -/
+noncomputable def UsedSpaceInPage.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "inodes"
+  (Lam "p"
+  (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Page.ty)))) (Var "p"))
+  (Let "inodes" (App (Val (GoInstruction (GoAlloc Inodes.ty))) (Var "inodes"))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.uintptr))) (Pair (Val #(W64 16)) (App (Val (GoInstruction (GoOp GoMul go.uintptr))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Page.ty) go!"PageElementSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p"))) (Val #())) (App (Val (GoInstruction (Convert go.int go.uintptr))) (Let "$a0" (App (Val (GoInstruction (GoLoad Inodes.ty))) (Var "inodes"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [Inodes.ty]))) (Val #())) (Var "$a0"))))))))
+  (Let "off" (App (Val (GoInstruction (GoAlloc go.uintptr))) (App (Val (GoInstruction (GoZeroVal go.uintptr))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert go.uintptr go.uint32))) (App (Val (GoInstruction (GoLoad go.uintptr))) (Var "off"))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Inodes.ty))) (Var "inodes"))
+  (App (App (Val (slice.forRange Inode.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (Let "item" (App (Val (GoInstruction (GoAlloc Inode.ty))) (Var "$value"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Inode.ty) go!"Key"))) (Var "item")) (Val #()))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))) (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Inode.ty) go!"Value"))) (Var "item")) (Val #()))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")))))
+  (Let "sz" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uintptr))) (Pair (Var "off") (App (Val (GoInstruction (GoOp GoPlus go.uintptr))) (Pair (App (Val (GoInstruction (GoLoad go.uintptr))) (Var "off")) (App (Val (GoInstruction (Convert go.int go.uintptr))) (App (Val (GoInstruction (GoLoad go.int))) (Var "sz"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "sz") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (Var "$key")))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uintptr))) (Pair (Var "off") (Var "$r0"))))))))))))
+
+/-- Validate checks the marker bytes and version of the meta page to ensure it matches this binary.
+
+    go: meta.go:25:16 -/
+noncomputable def Meta.Validate.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Meta.ty)))) (Var "m"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint32))) (Pair (App (Val (GoInstruction (GoLoad go.uint32))) (App (Val (GoInstruction (StructFieldRef Meta.ty go!"magic"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m")))) (Val Magic)))))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.bbolt.errors.ErrInvalid))) (Val #()))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint32))) (Pair (App (Val (GoInstruction (GoLoad go.uint32))) (App (Val (GoInstruction (StructFieldRef Meta.ty go!"version"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m")))) (Val Version)))))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.bbolt.errors.ErrVersionMismatch))) (Val #()))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Meta.ty go!"checksum"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m")))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Meta.ty) go!"Sum64"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m"))) (Val #()))))))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.bbolt.errors.ErrChecksum))) (Val #()))))
+  (App (Val doExecute)
+  (Val #()))))))))))
+
+/-- Copy copies one meta object to another.
+
+    go: meta.go:37:16 -/
+noncomputable def Meta.Copy.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Lam "dest"
+  (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Meta.ty)))) (Var "m"))
+  (Let "dest" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Meta.ty)))) (Var "dest"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Meta.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m")))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Meta.ty))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "dest")) (Var "$r0")))))))))))
+
+/-- Write writes the meta onto a page.
+
+    go: meta.go:42:16 -/
+noncomputable def Meta.Write.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Lam "p"
+  (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Meta.ty)))) (Var "m"))
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Page.ty)))) (Var "p"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoRemainder Txid.ty))) (Pair (App (Val (GoInstruction (GoLoad Txid.ty))) (App (Val (GoInstruction (StructFieldRef Meta.ty go!"txid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m")))) (Val #(W64 2))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Meta.ty) go!"Sum64"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m"))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Page.ty) go!"Meta"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p"))) (Val #()))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Meta.ty) go!"Copy"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m"))) (Var "$a0"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef Meta.ty go!"checksum"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.untypedInt go.uint16))) (Val MetaPageFlag))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Page.ty) go!"SetFlags"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p"))) (Var "$a0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Pgid.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Page.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p"))) (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGe Pgid.ty))) (Pair (App (Val (GoInstruction (GoLoad Pgid.ty))) (App (Val (GoInstruction (StructFieldRef InBucket.ty go!"root"))) (App (Val (GoInstruction (StructFieldRef Meta.ty go!"root"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m"))))) (App (Val (GoInstruction (GoLoad Pgid.ty))) (App (Val (GoInstruction (StructFieldRef Meta.ty go!"pgid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m")))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Let "$a0" (Val #(go!"root bucket pgid (%d) above high water mark (%d)"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert Pgid.ty go.any))) (App (Val (GoInstruction (GoLoad Pgid.ty))) (App (Val (GoInstruction (StructFieldRef InBucket.ty go!"root"))) (App (Val (GoInstruction (StructFieldRef Meta.ty go!"root"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m"))))))
+  (Let "$sl1" (App (Val (GoInstruction (Convert Pgid.ty go.any))) (App (Val (GoInstruction (GoLoad Pgid.ty))) (App (Val (GoInstruction (StructFieldRef Meta.ty go!"pgid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m")))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoGe Pgid.ty))) (Pair (App (Val (GoInstruction (GoLoad Pgid.ty))) (App (Val (GoInstruction (StructFieldRef Meta.ty go!"freelist"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m")))) (App (Val (GoInstruction (GoLoad Pgid.ty))) (App (Val (GoInstruction (StructFieldRef Meta.ty go!"pgid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m")))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Pgid.ty))) (Pair (App (Val (GoInstruction (GoLoad Pgid.ty))) (App (Val (GoInstruction (StructFieldRef Meta.ty go!"freelist"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m")))) (Val PgidNoFreelist)))) (Val #false)))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Let "$a0" (Val #(go!"freelist pgid (%d) above high water mark (%d)"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert Pgid.ty go.any))) (App (Val (GoInstruction (GoLoad Pgid.ty))) (App (Val (GoInstruction (StructFieldRef Meta.ty go!"freelist"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m")))))
+  (Let "$sl1" (App (Val (GoInstruction (Convert Pgid.ty go.any))) (App (Val (GoInstruction (GoLoad Pgid.ty))) (App (Val (GoInstruction (StructFieldRef Meta.ty go!"pgid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m")))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #())))))))))))
+
+/-- Sum64 generates the checksum for the meta.
+
+    go: meta.go:61:16 -/
+noncomputable def Meta.Sum64.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Meta.ty)))) (Var "m"))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.hash.fnv.New64a []))) (Val #())) (Val #()))
+  (Let "h" (App (Val (GoInstruction (GoAlloc _root_.Perennial.hash.Hash64.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.hash.Hash64.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (Let "$s" (App (Val (GoInstruction (Convert «unsafe».Pointer (go.GoType.PointerType (go.GoType.ArrayType 56 go.byte))))) (App (Val (GoInstruction (Convert (go.GoType.PointerType Meta.ty) «unsafe».Pointer))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m"))))
+  (App (Val (GoInstruction (Slice (go.GoType.PointerType (go.GoType.ArrayType 56 go.byte))))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.PointerType (go.GoType.ArrayType 56 go.byte))]))) (Val #())) (App (Val (GoInstruction (Convert «unsafe».Pointer (go.GoType.PointerType (go.GoType.ArrayType 56 go.byte))))) (App (Val (GoInstruction (Convert (go.GoType.PointerType Meta.ty) «unsafe».Pointer))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m"))))))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.hash.Hash64.ty go!"Write"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.hash.Hash64.ty))) (Var "h"))) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.hash.Hash64.ty go!"Sum64"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.hash.Hash64.ty))) (Var "h"))) (Val #())))))
+  (App (Val doExecute)
+  (Var "$r1")))))
+  (App (Val doExecute)
+  (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.hash.Hash64.ty))) (Pair (Var "h") (Var "$r0")))))))))))
+
+/-- go: meta.go:67:16 -/
+noncomputable def Meta.Magic.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Meta.ty)))) (Var "m"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.uint32))) (App (Val (GoInstruction (StructFieldRef Meta.ty go!"magic"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m")))))))))
+
+/-- go: meta.go:71:16 -/
+noncomputable def Meta.SetMagic.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Lam "v"
+  (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Meta.ty)))) (Var "m"))
+  (Let "v" (App (Val (GoInstruction (GoAlloc go.uint32))) (Var "v"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint32))) (Var "v"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint32))) (Pair (App (Val (GoInstruction (StructFieldRef Meta.ty go!"magic"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m"))) (Var "$r0")))))))))))
+
+/-- go: meta.go:75:16 -/
+noncomputable def Meta.Version.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Meta.ty)))) (Var "m"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.uint32))) (App (Val (GoInstruction (StructFieldRef Meta.ty go!"version"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m")))))))))
+
+/-- go: meta.go:79:16 -/
+noncomputable def Meta.SetVersion.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Lam "v"
+  (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Meta.ty)))) (Var "m"))
+  (Let "v" (App (Val (GoInstruction (GoAlloc go.uint32))) (Var "v"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint32))) (Var "v"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint32))) (Pair (App (Val (GoInstruction (StructFieldRef Meta.ty go!"version"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m"))) (Var "$r0")))))))))))
+
+/-- go: meta.go:83:16 -/
+noncomputable def Meta.PageSize.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Meta.ty)))) (Var "m"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.uint32))) (App (Val (GoInstruction (StructFieldRef Meta.ty go!"pageSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m")))))))))
+
+/-- go: meta.go:87:16 -/
+noncomputable def Meta.SetPageSize.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Lam "v"
+  (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Meta.ty)))) (Var "m"))
+  (Let "v" (App (Val (GoInstruction (GoAlloc go.uint32))) (Var "v"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint32))) (Var "v"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint32))) (Pair (App (Val (GoInstruction (StructFieldRef Meta.ty go!"pageSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m"))) (Var "$r0")))))))))))
+
+/-- go: meta.go:91:16 -/
+noncomputable def Meta.Flags.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Meta.ty)))) (Var "m"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.uint32))) (App (Val (GoInstruction (StructFieldRef Meta.ty go!"flags"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m")))))))))
+
+/-- go: meta.go:95:16 -/
+noncomputable def Meta.SetFlags.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Lam "v"
+  (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Meta.ty)))) (Var "m"))
+  (Let "v" (App (Val (GoInstruction (GoAlloc go.uint32))) (Var "v"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint32))) (Var "v"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint32))) (Pair (App (Val (GoInstruction (StructFieldRef Meta.ty go!"flags"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m"))) (Var "$r0")))))))))))
+
+/-- go: meta.go:99:16 -/
+noncomputable def Meta.SetRootBucket.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Lam "b"
+  (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Meta.ty)))) (Var "m"))
+  (Let "b" (App (Val (GoInstruction (GoAlloc InBucket.ty))) (Var "b"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad InBucket.ty))) (Var "b"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore InBucket.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Meta.ty go!"root"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m"))) (Var "$r0")))))))))))
+
+/-- go: meta.go:103:16 -/
+noncomputable def Meta.RootBucket.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Meta.ty)))) (Var "m"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (StructFieldRef Meta.ty go!"root"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m"))))))))
+
+/-- go: meta.go:107:16 -/
+noncomputable def Meta.Freelist.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Meta.ty)))) (Var "m"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad Pgid.ty))) (App (Val (GoInstruction (StructFieldRef Meta.ty go!"freelist"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m")))))))))
+
+/-- go: meta.go:111:16 -/
+noncomputable def Meta.SetFreelist.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Lam "v"
+  (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Meta.ty)))) (Var "m"))
+  (Let "v" (App (Val (GoInstruction (GoAlloc Pgid.ty))) (Var "v"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Pgid.ty))) (Var "v"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Pgid.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Meta.ty go!"freelist"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m"))) (Var "$r0")))))))))))
+
+/-- go: meta.go:115:16 -/
+noncomputable def Meta.IsFreelistPersisted.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Meta.ty)))) (Var "m"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Pgid.ty))) (Pair (App (Val (GoInstruction (GoLoad Pgid.ty))) (App (Val (GoInstruction (StructFieldRef Meta.ty go!"freelist"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m")))) (Val PgidNoFreelist)))))))))
+
+/-- go: meta.go:119:16 -/
+noncomputable def Meta.Pgid.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Meta.ty)))) (Var "m"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad Pgid.ty))) (App (Val (GoInstruction (StructFieldRef Meta.ty go!"pgid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m")))))))))
+
+/-- go: meta.go:123:16 -/
+noncomputable def Meta.SetPgid.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Lam "id"
+  (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Meta.ty)))) (Var "m"))
+  (Let "id" (App (Val (GoInstruction (GoAlloc Pgid.ty))) (Var "id"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Pgid.ty))) (Var "id"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Pgid.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Meta.ty go!"pgid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m"))) (Var "$r0")))))))))))
+
+/-- go: meta.go:127:16 -/
+noncomputable def Meta.Txid.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Meta.ty)))) (Var "m"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad Txid.ty))) (App (Val (GoInstruction (StructFieldRef Meta.ty go!"txid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m")))))))))
+
+/-- go: meta.go:131:16 -/
+noncomputable def Meta.SetTxid.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Lam "id"
+  (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Meta.ty)))) (Var "m"))
+  (Let "id" (App (Val (GoInstruction (GoAlloc Txid.ty))) (Var "id"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Txid.ty))) (Var "id"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Txid.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Meta.ty go!"txid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m"))) (Var "$r0")))))))))))
+
+/-- go: meta.go:135:16 -/
+noncomputable def Meta.IncTxid.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Meta.ty)))) (Var "m"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Txid.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Meta.ty go!"txid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m"))) (App (Val (GoInstruction (GoOp GoPlus Txid.ty))) (Pair (App (Val (GoInstruction (GoLoad Txid.ty))) (App (Val (GoInstruction (StructFieldRef Meta.ty go!"txid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m")))) (Val #(W64 1))))))))))))
+
+/-- go: meta.go:139:16 -/
+noncomputable def Meta.DecTxid.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Meta.ty)))) (Var "m"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Txid.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Meta.ty go!"txid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m"))) (App (Val (GoInstruction (GoOp GoSub Txid.ty))) (Pair (App (Val (GoInstruction (GoLoad Txid.ty))) (App (Val (GoInstruction (StructFieldRef Meta.ty go!"txid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m")))) (Val #(W64 1))))))))))))
+
+/-- go: meta.go:143:16 -/
+noncomputable def Meta.Checksum.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Meta.ty)))) (Var "m"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Meta.ty go!"checksum"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m")))))))))
+
+/-- go: meta.go:147:16 -/
+noncomputable def Meta.SetChecksum.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Lam "v"
+  (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Meta.ty)))) (Var "m"))
+  (Let "v" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "v"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "v"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef Meta.ty go!"checksum"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m"))) (Var "$r0")))))))))))
+
+/-- go: meta.go:151:16 -/
+noncomputable def Meta.Print.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Lam "w"
+  (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Meta.ty)))) (Var "m"))
+  (Let "w" (App (Val (GoInstruction (GoAlloc _root_.Perennial.io.Writer.ty))) (Var "w"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Writer.ty))) (Var "w"))
+  (Let "$a1" (Val #(go!"\n"))
+  (Let "$a2" (Val #slice.nil)
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Fprintf []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Writer.ty))) (Var "w"))
+  (Let "$a1" (Val #(go!"Checksum:   %016x\n"))
+  (Let "$a2" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 go.any))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Meta.ty go!"checksum"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m")))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Fprintf []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Writer.ty))) (Var "w"))
+  (Let "$a1" (Val #(go!"Txn ID:     %d\n"))
+  (Let "$a2" (Let "$sl0" (App (Val (GoInstruction (Convert Txid.ty go.any))) (App (Val (GoInstruction (GoLoad Txid.ty))) (App (Val (GoInstruction (StructFieldRef Meta.ty go!"txid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m")))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Fprintf []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Writer.ty))) (Var "w"))
+  (Let "$a1" (Val #(go!"HWM:        <pgid=%d>\n"))
+  (Let "$a2" (Let "$sl0" (App (Val (GoInstruction (Convert Pgid.ty go.any))) (App (Val (GoInstruction (GoLoad Pgid.ty))) (App (Val (GoInstruction (StructFieldRef Meta.ty go!"pgid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m")))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Fprintf []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Writer.ty))) (Var "w"))
+  (Let "$a1" (Val #(go!"Freelist:   <pgid=%d>\n"))
+  (Let "$a2" (Let "$sl0" (App (Val (GoInstruction (Convert Pgid.ty go.any))) (App (Val (GoInstruction (GoLoad Pgid.ty))) (App (Val (GoInstruction (StructFieldRef Meta.ty go!"freelist"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m")))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Fprintf []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Writer.ty))) (Var "w"))
+  (Let "$a1" (Val #(go!"Root:       <pgid=%d>\n"))
+  (Let "$a2" (Let "$sl0" (App (Val (GoInstruction (Convert Pgid.ty go.any))) (App (Val (GoInstruction (GoLoad Pgid.ty))) (App (Val (GoInstruction (StructFieldRef InBucket.ty go!"root"))) (App (Val (GoInstruction (StructFieldRef Meta.ty go!"root"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m"))))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Fprintf []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Writer.ty))) (Var "w"))
+  (Let "$a1" (Val #(go!"Flags:      %08x\n"))
+  (Let "$a2" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint32 go.any))) (App (Val (GoInstruction (GoLoad go.uint32))) (App (Val (GoInstruction (StructFieldRef Meta.ty go!"flags"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m")))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Fprintf []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Writer.ty))) (Var "w"))
+  (Let "$a1" (Val #(go!"Page Size:  %d bytes\n"))
+  (Let "$a2" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint32 go.any))) (App (Val (GoInstruction (GoLoad go.uint32))) (App (Val (GoInstruction (StructFieldRef Meta.ty go!"pageSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m")))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Fprintf []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Writer.ty))) (Var "w"))
+  (Let "$a1" (Val #(go!"Version:    %d\n"))
+  (Let "$a2" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint32 go.any))) (App (Val (GoInstruction (GoLoad go.uint32))) (App (Val (GoInstruction (StructFieldRef Meta.ty go!"version"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m")))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Fprintf []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))))))
+
+/-- go: page.go:38:6 -/
+noncomputable def NewPage.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "id"
+  (Lam "flags"
+  (Lam "count"
+  (Lam "overflow"
+  (App (Val exceptionDo)
+  (Let "overflow" (App (Val (GoInstruction (GoAlloc go.uint32))) (Var "overflow"))
+  (Let "count" (App (Val (GoInstruction (GoAlloc go.uint16))) (Var "count"))
+  (Let "flags" (App (Val (GoInstruction (GoAlloc go.uint16))) (Var "flags"))
+  (Let "id" (App (Val (GoInstruction (GoAlloc Pgid.ty))) (Var "id"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoAlloc Page.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad Pgid.ty))) (Var "id"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.uint16))) (Var "flags"))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad go.uint16))) (Var "count"))
+  (Let "$v3" (App (Val (GoInstruction (GoLoad go.uint32))) (Var "overflow"))
+  (App (Val (GoInstruction (CompositeLiteral Page.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"id")) (ElementExpression Pgid.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"flags")) (ElementExpression go.uint16 (Var "$v1"))), (KeyedElement (some (KeyField go!"count")) (ElementExpression go.uint16 (Var "$v2"))), (KeyedElement (some (KeyField go!"overflow")) (ElementExpression go.uint32 (Var "$v3")))])))))))))))))))))
+
+/-- Typ returns a human-readable page type string used for debugging.
+
+    go: page.go:48:16 -/
+noncomputable def Page.Typ.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "p"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Page.ty)))) (Var "p"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Let "$a0" (Val #(go!"unknown<%02x>"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint16 go.any))) (App (Val (GoInstruction (GoLoad go.uint16))) (App (Val (GoInstruction (StructFieldRef Page.ty go!"flags"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p")))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
+  (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Page.ty) go!"IsBranchPage"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p"))) (Val #()))
+  (App (Val doReturn)
+  (Val #(go!"branch")))
+  (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Page.ty) go!"IsLeafPage"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p"))) (Val #()))
+  (App (Val doReturn)
+  (Val #(go!"leaf")))
+  (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Page.ty) go!"IsMetaPage"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p"))) (Val #()))
+  (App (Val doReturn)
+  (Val #(go!"meta")))
+  (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Page.ty) go!"IsFreelistPage"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p"))) (Val #()))
+  (App (Val doReturn)
+  (Val #(go!"freelist")))
+  (App (Val doExecute)
+  (Val #())))))))))))
+
+/-- go: page.go:61:16 -/
+noncomputable def Page.IsBranchPage.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "p"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Page.ty)))) (Var "p"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoOp GoEquals go.uint16))) (Pair (App (Val (GoInstruction (GoLoad go.uint16))) (App (Val (GoInstruction (StructFieldRef Page.ty go!"flags"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p")))) (App (Val (GoInstruction (Convert go.untypedInt go.uint16))) (Val BranchPageFlag)))))))))
+
+/-- go: page.go:65:16 -/
+noncomputable def Page.IsLeafPage.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "p"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Page.ty)))) (Var "p"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoOp GoEquals go.uint16))) (Pair (App (Val (GoInstruction (GoLoad go.uint16))) (App (Val (GoInstruction (StructFieldRef Page.ty go!"flags"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p")))) (App (Val (GoInstruction (Convert go.untypedInt go.uint16))) (Val LeafPageFlag)))))))))
+
+/-- go: page.go:69:16 -/
+noncomputable def Page.IsMetaPage.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "p"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Page.ty)))) (Var "p"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoOp GoEquals go.uint16))) (Pair (App (Val (GoInstruction (GoLoad go.uint16))) (App (Val (GoInstruction (StructFieldRef Page.ty go!"flags"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p")))) (App (Val (GoInstruction (Convert go.untypedInt go.uint16))) (Val MetaPageFlag)))))))))
+
+/-- go: page.go:73:16 -/
+noncomputable def Page.IsFreelistPage.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "p"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Page.ty)))) (Var "p"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoOp GoEquals go.uint16))) (Pair (App (Val (GoInstruction (GoLoad go.uint16))) (App (Val (GoInstruction (StructFieldRef Page.ty go!"flags"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p")))) (App (Val (GoInstruction (Convert go.untypedInt go.uint16))) (Val FreelistPageFlag)))))))))
+
+/-- IsValidPage checks Page flags correctness, only a single proper flag can be used.
+
+    go: page.go:78:16 -/
+noncomputable def Page.IsValidPage.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "p"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Page.ty)))) (Var "p"))
+  (App (Val doReturn)
+  (If (If (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Page.ty) go!"IsBranchPage"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p"))) (Val #())) (Val #true) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Page.ty) go!"IsLeafPage"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p"))) (Val #()))) (Val #true) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Page.ty) go!"IsMetaPage"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p"))) (Val #()))) (Val #true) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Page.ty) go!"IsFreelistPage"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p"))) (Val #()))))))))
+
+/-- Meta returns a pointer to the metadata section of the page.
+
+    go: page.go:86:16 -/
+noncomputable def Page.Meta.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "p"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Page.ty)))) (Var "p"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert «unsafe».Pointer (go.GoType.PointerType Meta.ty)))) (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType Page.ty) «unsafe».Pointer))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p")))
+  (Let "$a1" (Val #(W64 16))
+  (App (App (App (Val (GoInstruction (FuncResolve UnsafeAdd []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))))
+
+/-- go: page.go:90:16 -/
+noncomputable def Page.FastCheck.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "p"
+  (Lam "id"
+  (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Page.ty)))) (Var "p"))
+  (Let "id" (App (Val (GoInstruction (GoAlloc Pgid.ty))) (Var "id"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Page.ty) go!"IsValidPage"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p"))) (Val #())))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Let "$a0" (Val #(go!"assertion failed: page %v: has unexpected type/flags: %x"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert Pgid.ty go.any))) (App (Val (GoInstruction (GoLoad Pgid.ty))) (App (Val (GoInstruction (StructFieldRef Page.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p")))))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.uint16 go.any))) (App (Val (GoInstruction (GoLoad go.uint16))) (App (Val (GoInstruction (StructFieldRef Page.ty go!"flags"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p")))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #())))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Pgid.ty))) (Pair (App (Val (GoInstruction (GoLoad Pgid.ty))) (App (Val (GoInstruction (StructFieldRef Page.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p")))) (App (Val (GoInstruction (GoLoad Pgid.ty))) (Var "id"))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Let "$a0" (Val #(go!"assertion failed: Page expected to be: %v, but self identifies as %v"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert Pgid.ty go.any))) (App (Val (GoInstruction (GoLoad Pgid.ty))) (Var "id")))
+  (Let "$sl1" (App (Val (GoInstruction (Convert Pgid.ty go.any))) (App (Val (GoInstruction (GoLoad Pgid.ty))) (App (Val (GoInstruction (StructFieldRef Page.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p")))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))))))
+
+/-- LeafPageElement retrieves the leaf node by index
+
+    go: page.go:101:16 -/
+noncomputable def Page.LeafPageElement.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "p"
+  (Lam "index"
+  (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Page.ty)))) (Var "p"))
+  (Let "index" (App (Val (GoInstruction (GoAlloc go.uint16))) (Var "index"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert «unsafe».Pointer (go.GoType.PointerType leafPageElement.ty)))) (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType Page.ty) «unsafe».Pointer))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p")))
+  (Let "$a1" (Val #(W64 16))
+  (Let "$a2" (Val LeafPageElementSize)
+  (Let "$a3" (App (Val (GoInstruction (Convert go.uint16 go.int))) (App (Val (GoInstruction (GoLoad go.uint16))) (Var "index")))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve UnsafeIndex []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")))))))))))))
+
+/-- LeafPageElements retrieves a list of leaf nodes.
+
+    go: page.go:107:16 -/
+noncomputable def Page.LeafPageElements.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "p"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Page.ty)))) (Var "p"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType Page.ty) «unsafe».Pointer))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p")))
+  (Let "$a1" (Val #(W64 16))
+  (App (App (App (Val (GoInstruction (FuncResolve UnsafeAdd []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "data" (App (Val (GoInstruction (GoAlloc «unsafe».Pointer))) (App (Val (GoInstruction (GoZeroVal «unsafe».Pointer))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (App (Val (GoInstruction (FuncResolve «unsafe».Slice [leafPageElement.ty]))) (Val #())) (App (Val (GoInstruction (Convert «unsafe».Pointer (go.GoType.PointerType leafPageElement.ty)))) (App (Val (GoInstruction (GoLoad «unsafe».Pointer))) (Var "data")))) (App (Val (GoInstruction (Convert go.uint16 go.int))) (App (Val (GoInstruction (GoLoad go.uint16))) (App (Val (GoInstruction (StructFieldRef Page.ty go!"count"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p"))))))
+  (Let "elems" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType leafPageElement.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType leafPageElement.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType leafPageElement.ty)))) (Var "elems")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType leafPageElement.ty)))) (Pair (Var "elems") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore «unsafe».Pointer))) (Pair (Var "data") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint16))) (Pair (App (Val (GoInstruction (GoLoad go.uint16))) (App (Val (GoInstruction (StructFieldRef Page.ty go!"count"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p")))) (Val #(W16 0)))))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType leafPageElement.ty)))) (Val UntypedNil)))
+  (App (Val doExecute)
+  (Val #()))))))))
+
+/-- BranchPageElement retrieves the branch node by index
+
+    go: page.go:117:16 -/
+noncomputable def Page.BranchPageElement.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "p"
+  (Lam "index"
+  (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Page.ty)))) (Var "p"))
+  (Let "index" (App (Val (GoInstruction (GoAlloc go.uint16))) (Var "index"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert «unsafe».Pointer (go.GoType.PointerType branchPageElement.ty)))) (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType Page.ty) «unsafe».Pointer))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p")))
+  (Let "$a1" (Val #(W64 16))
+  (Let "$a2" (Val #(W64 16))
+  (Let "$a3" (App (Val (GoInstruction (Convert go.uint16 go.int))) (App (Val (GoInstruction (GoLoad go.uint16))) (Var "index")))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve UnsafeIndex []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")))))))))))))
+
+/-- BranchPageElements retrieves a list of branch nodes.
+
+    go: page.go:123:16 -/
+noncomputable def Page.BranchPageElements.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "p"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Page.ty)))) (Var "p"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType Page.ty) «unsafe».Pointer))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p")))
+  (Let "$a1" (Val #(W64 16))
+  (App (App (App (Val (GoInstruction (FuncResolve UnsafeAdd []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "data" (App (Val (GoInstruction (GoAlloc «unsafe».Pointer))) (App (Val (GoInstruction (GoZeroVal «unsafe».Pointer))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (App (Val (GoInstruction (FuncResolve «unsafe».Slice [branchPageElement.ty]))) (Val #())) (App (Val (GoInstruction (Convert «unsafe».Pointer (go.GoType.PointerType branchPageElement.ty)))) (App (Val (GoInstruction (GoLoad «unsafe».Pointer))) (Var "data")))) (App (Val (GoInstruction (Convert go.uint16 go.int))) (App (Val (GoInstruction (GoLoad go.uint16))) (App (Val (GoInstruction (StructFieldRef Page.ty go!"count"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p"))))))
+  (Let "elems" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType branchPageElement.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType branchPageElement.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType branchPageElement.ty)))) (Var "elems")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType branchPageElement.ty)))) (Pair (Var "elems") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore «unsafe».Pointer))) (Pair (Var "data") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint16))) (Pair (App (Val (GoInstruction (GoLoad go.uint16))) (App (Val (GoInstruction (StructFieldRef Page.ty go!"count"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p")))) (Val #(W16 0)))))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType branchPageElement.ty)))) (Val UntypedNil)))
+  (App (Val doExecute)
+  (Val #()))))))))
+
+/-- go: page.go:132:16 -/
+noncomputable def Page.FreelistPageCount.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "p"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Page.ty)))) (Var "p"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 0))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.uint16 go.int))) (App (Val (GoInstruction (GoLoad go.uint16))) (App (Val (GoInstruction (StructFieldRef Page.ty go!"count"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p")))))
+  (Let "count" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Let "idx" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "idx")) (App (Val (GoInstruction (GoLoad go.int))) (Var "count"))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "count")) (Val #(W64 65535)))))
+  (Let "$r0" (Val #(W64 1))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Pgid.ty))) (App (Val (GoInstruction (Convert «unsafe».Pointer (go.GoType.PointerType Pgid.ty)))) (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType Page.ty) «unsafe».Pointer))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p")))
+  (Let "$a1" (Val #(W64 16))
+  (App (App (App (Val (GoInstruction (FuncResolve UnsafeAdd []))) (Val #())) (Var "$a0")) (Var "$a1"))))))
+  (Let "c" (App (Val (GoInstruction (GoAlloc Pgid.ty))) (App (Val (GoInstruction (GoZeroVal Pgid.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert Pgid.ty go.int))) (App (Val (GoInstruction (GoLoad Pgid.ty))) (Var "c")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "count")) (Val #(W64 0)))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Let "$a0" (Val #(go!"leading element count %d overflows int"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert Pgid.ty go.any))) (App (Val (GoInstruction (GoLoad Pgid.ty))) (Var "c")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "count") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Pgid.ty))) (Pair (Var "c") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "idx") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "count") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "idx") (Var "$r0")))))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Page.ty) go!"IsFreelistPage"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p"))) (Val #())))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Let "$a0" (Val #(go!"assertion failed: can't get freelist page count from a non-freelist page: %2x"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint16 go.any))) (App (Val (GoInstruction (GoLoad go.uint16))) (App (Val (GoInstruction (StructFieldRef Page.ty go!"flags"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p")))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))))
+
+/-- go: page.go:152:16 -/
+noncomputable def Page.FreelistPageIds.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "p"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Page.ty)))) (Var "p"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Page.ty) go!"FreelistPageCount"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p"))) (Val #()))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "count" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Let "idx" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType Page.ty) «unsafe».Pointer))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p")))
+  (Let "$a1" (Val #(W64 16))
+  (Let "$a2" (Val pgidSize)
+  (Let "$a3" (App (Val (GoInstruction (GoLoad go.int))) (Var "idx"))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve UnsafeIndex []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
+  (Let "data" (App (Val (GoInstruction (GoAlloc «unsafe».Pointer))) (App (Val (GoInstruction (GoZeroVal «unsafe».Pointer))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (App (Val (GoInstruction (FuncResolve «unsafe».Slice [Pgid.ty]))) (Val #())) (App (Val (GoInstruction (Convert «unsafe».Pointer (go.GoType.PointerType Pgid.ty)))) (App (Val (GoInstruction (GoLoad «unsafe».Pointer))) (Var "data")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "count")))
+  (Let "ids" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Pgid.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType Pgid.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Pgid.ty)))) (Var "ids")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType Pgid.ty)))) (Pair (Var "ids") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore «unsafe».Pointer))) (Pair (Var "data") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "count")) (Val #(W64 0)))))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType Pgid.ty)))) (Val UntypedNil)))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "count") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "idx") (Var "$r0"))))))))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Page.ty) go!"IsFreelistPage"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p"))) (Val #())))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Let "$a0" (Val #(go!"assertion failed: can't get freelist page IDs from a non-freelist page: %2x"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint16 go.any))) (App (Val (GoInstruction (GoLoad go.uint16))) (App (Val (GoInstruction (StructFieldRef Page.ty go!"flags"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p")))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))))
+
+/-- dump writes n bytes of the page to STDERR as hex output.
+
+    go: page.go:170:16 -/
+noncomputable def Page.hexdump.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "p"
+  (Lam "n"
+  (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Page.ty)))) (Var "p"))
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (Var "n"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType Page.ty) «unsafe».Pointer))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p")))
+  (Let "$a1" (Val #(W64 0))
+  (Let "$a2" (Val #(W64 0))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve UnsafeByteSlice []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
+  (Let "buf" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.os.File.ty) _root_.Perennial.io.Writer.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.os.Stderr))) (Val #()))))
+  (Let "$a1" (Val #(go!"%x\n"))
+  (Let "$a2" (Let "$sl0" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "buf")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Fprintf []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "buf") (Var "$r0")))))))))))))
+
+/-- go: page.go:175:16 -/
+noncomputable def Page.PageElementSize.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "p"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Page.ty)))) (Var "p"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val BranchPageElementSize))))
+  (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Page.ty) go!"IsLeafPage"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p"))) (Val #()))
+  (App (Val doReturn)
+  (Val LeafPageElementSize))
+  (App (Val doExecute)
+  (Val #()))))))))
+
+/-- go: page.go:182:16 -/
+noncomputable def Page.Id.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "p"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Page.ty)))) (Var "p"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad Pgid.ty))) (App (Val (GoInstruction (StructFieldRef Page.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p")))))))))
+
+/-- go: page.go:186:16 -/
+noncomputable def Page.SetId.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "p"
+  (Lam "target"
+  (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Page.ty)))) (Var "p"))
+  (Let "target" (App (Val (GoInstruction (GoAlloc Pgid.ty))) (Var "target"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Pgid.ty))) (Var "target"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Pgid.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Page.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p"))) (Var "$r0")))))))))))
+
+/-- go: page.go:190:16 -/
+noncomputable def Page.Flags.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "p"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Page.ty)))) (Var "p"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.uint16))) (App (Val (GoInstruction (StructFieldRef Page.ty go!"flags"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p")))))))))
+
+/-- go: page.go:194:16 -/
+noncomputable def Page.SetFlags.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "p"
+  (Lam "v"
+  (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Page.ty)))) (Var "p"))
+  (Let "v" (App (Val (GoInstruction (GoAlloc go.uint16))) (Var "v"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint16))) (Var "v"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint16))) (Pair (App (Val (GoInstruction (StructFieldRef Page.ty go!"flags"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p"))) (Var "$r0")))))))))))
+
+/-- go: page.go:198:16 -/
+noncomputable def Page.Count.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "p"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Page.ty)))) (Var "p"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.uint16))) (App (Val (GoInstruction (StructFieldRef Page.ty go!"count"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p")))))))))
+
+/-- go: page.go:202:16 -/
+noncomputable def Page.SetCount.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "p"
+  (Lam "target"
+  (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Page.ty)))) (Var "p"))
+  (Let "target" (App (Val (GoInstruction (GoAlloc go.uint16))) (Var "target"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint16))) (Var "target"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint16))) (Pair (App (Val (GoInstruction (StructFieldRef Page.ty go!"count"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p"))) (Var "$r0")))))))))))
+
+/-- go: page.go:206:16 -/
+noncomputable def Page.Overflow.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "p"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Page.ty)))) (Var "p"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.uint32))) (App (Val (GoInstruction (StructFieldRef Page.ty go!"overflow"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p")))))))))
+
+/-- go: page.go:210:16 -/
+noncomputable def Page.SetOverflow.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "p"
+  (Lam "target"
+  (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Page.ty)))) (Var "p"))
+  (Let "target" (App (Val (GoInstruction (GoAlloc go.uint32))) (Var "target"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint32))) (Var "target"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint32))) (Pair (App (Val (GoInstruction (StructFieldRef Page.ty go!"overflow"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p"))) (Var "$r0")))))))))))
+
+/-- go: page.go:214:16 -/
+noncomputable def Page.String.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "p"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Page.ty)))) (Var "p"))
+  (App (Val doReturn)
+  (Let "$a0" (Val #(go!"ID: %d, Type: %s, count: %d, overflow: %d"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert Pgid.ty go.any))) (App (Val (GoInstruction (GoLoad Pgid.ty))) (App (Val (GoInstruction (StructFieldRef Page.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p")))))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.string go.any))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Page.ty) go!"Typ"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p"))) (Val #())))
+  (Let "$sl2" (App (Val (GoInstruction (Convert go.uint16 go.any))) (App (Val (GoInstruction (GoLoad go.uint16))) (App (Val (GoInstruction (StructFieldRef Page.ty go!"count"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p")))))
+  (Let "$sl3" (App (Val (GoInstruction (Convert go.uint32 go.any))) (App (Val (GoInstruction (GoLoad go.uint32))) (App (Val (GoInstruction (StructFieldRef Page.ty go!"overflow"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (Var "p")))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1"))), (KeyedElement none (ElementExpression go.any (Var "$sl2"))), (KeyedElement none (ElementExpression go.any (Var "$sl3")))]))))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))
+
+/-- go: page.go:220:16 -/
+noncomputable def Pages.Len.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc Pages.ty))) (Var "s"))
+  (App (Val doReturn)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad Pages.ty))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [Pages.ty]))) (Val #())) (Var "$a0"))))))))
+
+/-- go: page.go:221:16 -/
+noncomputable def Pages.Swap.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam "i"
+  (Lam "j"
+  (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc Pages.ty))) (Var "s"))
+  (Let "j" (App (Val (GoInstruction (GoAlloc go.int))) (Var "j"))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (Var "i"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (App (Val (GoInstruction (IndexRef Pages.ty))) (Pair (App (Val (GoInstruction (GoLoad Pages.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (App (Val (GoInstruction (IndexRef Pages.ty))) (Pair (App (Val (GoInstruction (GoLoad Pages.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Page.ty)))) (Pair (App (Val (GoInstruction (IndexRef Pages.ty))) (Pair (App (Val (GoInstruction (GoLoad Pages.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))) (Var "$r1"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Page.ty)))) (Pair (App (Val (GoInstruction (IndexRef Pages.ty))) (Pair (App (Val (GoInstruction (GoLoad Pages.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Var "$r0")))))))))))))))
+
+/-- go: page.go:222:16 -/
+noncomputable def Pages.Less.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam "i"
+  (Lam "j"
+  (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc Pages.ty))) (Var "s"))
+  (Let "j" (App (Val (GoInstruction (GoAlloc go.int))) (Var "j"))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (Var "i"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoOp GoLt Pgid.ty))) (Pair (App (Val (GoInstruction (GoLoad Pgid.ty))) (App (Val (GoInstruction (StructFieldRef Page.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (App (Val (GoInstruction (IndexRef Pages.ty))) (Pair (App (Val (GoInstruction (GoLoad Pages.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))))) (App (Val (GoInstruction (GoLoad Pgid.ty))) (App (Val (GoInstruction (StructFieldRef Page.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Page.ty)))) (App (Val (GoInstruction (IndexRef Pages.ty))) (Pair (App (Val (GoInstruction (GoLoad Pages.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))))))))))))))))
+
+/-- go: page.go:231:29 -/
+noncomputable def branchPageElement.Pos.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "n"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType branchPageElement.ty)))) (Var "n"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.uint32))) (App (Val (GoInstruction (StructFieldRef branchPageElement.ty go!"pos"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType branchPageElement.ty)))) (Var "n")))))))))
+
+/-- go: page.go:235:29 -/
+noncomputable def branchPageElement.SetPos.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "n"
+  (Lam "v"
+  (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType branchPageElement.ty)))) (Var "n"))
+  (Let "v" (App (Val (GoInstruction (GoAlloc go.uint32))) (Var "v"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint32))) (Var "v"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint32))) (Pair (App (Val (GoInstruction (StructFieldRef branchPageElement.ty go!"pos"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType branchPageElement.ty)))) (Var "n"))) (Var "$r0")))))))))))
+
+/-- go: page.go:239:29 -/
+noncomputable def branchPageElement.Ksize.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "n"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType branchPageElement.ty)))) (Var "n"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.uint32))) (App (Val (GoInstruction (StructFieldRef branchPageElement.ty go!"ksize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType branchPageElement.ty)))) (Var "n")))))))))
+
+/-- go: page.go:243:29 -/
+noncomputable def branchPageElement.SetKsize.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "n"
+  (Lam "v"
+  (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType branchPageElement.ty)))) (Var "n"))
+  (Let "v" (App (Val (GoInstruction (GoAlloc go.uint32))) (Var "v"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint32))) (Var "v"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint32))) (Pair (App (Val (GoInstruction (StructFieldRef branchPageElement.ty go!"ksize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType branchPageElement.ty)))) (Var "n"))) (Var "$r0")))))))))))
+
+/-- go: page.go:247:29 -/
+noncomputable def branchPageElement.Pgid.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "n"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType branchPageElement.ty)))) (Var "n"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad Pgid.ty))) (App (Val (GoInstruction (StructFieldRef branchPageElement.ty go!"pgid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType branchPageElement.ty)))) (Var "n")))))))))
+
+/-- go: page.go:251:29 -/
+noncomputable def branchPageElement.SetPgid.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "n"
+  (Lam "v"
+  (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType branchPageElement.ty)))) (Var "n"))
+  (Let "v" (App (Val (GoInstruction (GoAlloc Pgid.ty))) (Var "v"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Pgid.ty))) (Var "v"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Pgid.ty))) (Pair (App (Val (GoInstruction (StructFieldRef branchPageElement.ty go!"pgid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType branchPageElement.ty)))) (Var "n"))) (Var "$r0")))))))))))
+
+/-- Key returns a byte slice of the node key.
+
+    go: page.go:256:29 -/
+noncomputable def branchPageElement.Key.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "n"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType branchPageElement.ty)))) (Var "n"))
+  (App (Val doReturn)
+  (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType branchPageElement.ty) «unsafe».Pointer))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType branchPageElement.ty)))) (Var "n")))
+  (Let "$a1" (Val #(W64 0))
+  (Let "$a2" (App (Val (GoInstruction (Convert go.uint32 go.int))) (App (Val (GoInstruction (GoLoad go.uint32))) (App (Val (GoInstruction (StructFieldRef branchPageElement.ty go!"pos"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType branchPageElement.ty)))) (Var "n")))))
+  (Let "$a3" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (Convert go.uint32 go.int))) (App (Val (GoInstruction (GoLoad go.uint32))) (App (Val (GoInstruction (StructFieldRef branchPageElement.ty go!"pos"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType branchPageElement.ty)))) (Var "n"))))) (App (Val (GoInstruction (Convert go.uint32 go.int))) (App (Val (GoInstruction (GoLoad go.uint32))) (App (Val (GoInstruction (StructFieldRef branchPageElement.ty go!"ksize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType branchPageElement.ty)))) (Var "n")))))))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve UnsafeByteSlice []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")))))))))))
+
+/-- go: page.go:268:6 -/
+noncomputable def NewLeafPageElement.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "flags"
+  (Lam "pos"
+  (Lam "ksize"
+  (Lam "vsize"
+  (App (Val exceptionDo)
+  (Let "vsize" (App (Val (GoInstruction (GoAlloc go.uint32))) (Var "vsize"))
+  (Let "ksize" (App (Val (GoInstruction (GoAlloc go.uint32))) (Var "ksize"))
+  (Let "pos" (App (Val (GoInstruction (GoAlloc go.uint32))) (Var "pos"))
+  (Let "flags" (App (Val (GoInstruction (GoAlloc go.uint32))) (Var "flags"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoAlloc leafPageElement.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.uint32))) (Var "flags"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.uint32))) (Var "pos"))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad go.uint32))) (Var "ksize"))
+  (Let "$v3" (App (Val (GoInstruction (GoLoad go.uint32))) (Var "vsize"))
+  (App (Val (GoInstruction (CompositeLiteral leafPageElement.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"flags")) (ElementExpression go.uint32 (Var "$v0"))), (KeyedElement (some (KeyField go!"pos")) (ElementExpression go.uint32 (Var "$v1"))), (KeyedElement (some (KeyField go!"ksize")) (ElementExpression go.uint32 (Var "$v2"))), (KeyedElement (some (KeyField go!"vsize")) (ElementExpression go.uint32 (Var "$v3")))])))))))))))))))))
+
+/-- go: page.go:277:27 -/
+noncomputable def leafPageElement.Flags.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "n"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType leafPageElement.ty)))) (Var "n"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.uint32))) (App (Val (GoInstruction (StructFieldRef leafPageElement.ty go!"flags"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType leafPageElement.ty)))) (Var "n")))))))))
+
+/-- go: page.go:281:27 -/
+noncomputable def leafPageElement.SetFlags.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "n"
+  (Lam "v"
+  (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType leafPageElement.ty)))) (Var "n"))
+  (Let "v" (App (Val (GoInstruction (GoAlloc go.uint32))) (Var "v"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint32))) (Var "v"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint32))) (Pair (App (Val (GoInstruction (StructFieldRef leafPageElement.ty go!"flags"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType leafPageElement.ty)))) (Var "n"))) (Var "$r0")))))))))))
+
+/-- go: page.go:285:27 -/
+noncomputable def leafPageElement.Pos.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "n"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType leafPageElement.ty)))) (Var "n"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.uint32))) (App (Val (GoInstruction (StructFieldRef leafPageElement.ty go!"pos"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType leafPageElement.ty)))) (Var "n")))))))))
+
+/-- go: page.go:289:27 -/
+noncomputable def leafPageElement.SetPos.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "n"
+  (Lam "v"
+  (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType leafPageElement.ty)))) (Var "n"))
+  (Let "v" (App (Val (GoInstruction (GoAlloc go.uint32))) (Var "v"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint32))) (Var "v"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint32))) (Pair (App (Val (GoInstruction (StructFieldRef leafPageElement.ty go!"pos"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType leafPageElement.ty)))) (Var "n"))) (Var "$r0")))))))))))
+
+/-- go: page.go:293:27 -/
+noncomputable def leafPageElement.Ksize.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "n"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType leafPageElement.ty)))) (Var "n"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.uint32))) (App (Val (GoInstruction (StructFieldRef leafPageElement.ty go!"ksize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType leafPageElement.ty)))) (Var "n")))))))))
+
+/-- go: page.go:297:27 -/
+noncomputable def leafPageElement.SetKsize.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "n"
+  (Lam "v"
+  (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType leafPageElement.ty)))) (Var "n"))
+  (Let "v" (App (Val (GoInstruction (GoAlloc go.uint32))) (Var "v"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint32))) (Var "v"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint32))) (Pair (App (Val (GoInstruction (StructFieldRef leafPageElement.ty go!"ksize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType leafPageElement.ty)))) (Var "n"))) (Var "$r0")))))))))))
+
+/-- go: page.go:301:27 -/
+noncomputable def leafPageElement.Vsize.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "n"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType leafPageElement.ty)))) (Var "n"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.uint32))) (App (Val (GoInstruction (StructFieldRef leafPageElement.ty go!"vsize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType leafPageElement.ty)))) (Var "n")))))))))
+
+/-- go: page.go:305:27 -/
+noncomputable def leafPageElement.SetVsize.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "n"
+  (Lam "v"
+  (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType leafPageElement.ty)))) (Var "n"))
+  (Let "v" (App (Val (GoInstruction (GoAlloc go.uint32))) (Var "v"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint32))) (Var "v"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint32))) (Pair (App (Val (GoInstruction (StructFieldRef leafPageElement.ty go!"vsize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType leafPageElement.ty)))) (Var "n"))) (Var "$r0")))))))))))
+
+/-- Key returns a byte slice of the node key.
+
+    go: page.go:310:27 -/
+noncomputable def leafPageElement.Key.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "n"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType leafPageElement.ty)))) (Var "n"))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.uint32 go.int))) (App (Val (GoInstruction (GoLoad go.uint32))) (App (Val (GoInstruction (StructFieldRef leafPageElement.ty go!"pos"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType leafPageElement.ty)))) (Var "n")))))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (App (Val (GoInstruction (Convert go.uint32 go.int))) (App (Val (GoInstruction (GoLoad go.uint32))) (App (Val (GoInstruction (StructFieldRef leafPageElement.ty go!"ksize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType leafPageElement.ty)))) (Var "n")))))))
+  (Let "j" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType leafPageElement.ty) «unsafe».Pointer))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType leafPageElement.ty)))) (Var "n")))
+  (Let "$a1" (Val #(W64 0))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad go.int))) (Var "j"))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve UnsafeByteSlice []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "j") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))))
+
+/-- Value returns a byte slice of the node value.
+
+    go: page.go:317:27 -/
+noncomputable def leafPageElement.Value.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "n"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType leafPageElement.ty)))) (Var "n"))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (Convert go.uint32 go.int))) (App (Val (GoInstruction (GoLoad go.uint32))) (App (Val (GoInstruction (StructFieldRef leafPageElement.ty go!"pos"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType leafPageElement.ty)))) (Var "n"))))) (App (Val (GoInstruction (Convert go.uint32 go.int))) (App (Val (GoInstruction (GoLoad go.uint32))) (App (Val (GoInstruction (StructFieldRef leafPageElement.ty go!"ksize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType leafPageElement.ty)))) (Var "n")))))))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (App (Val (GoInstruction (Convert go.uint32 go.int))) (App (Val (GoInstruction (GoLoad go.uint32))) (App (Val (GoInstruction (StructFieldRef leafPageElement.ty go!"vsize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType leafPageElement.ty)))) (Var "n")))))))
+  (Let "j" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType leafPageElement.ty) «unsafe».Pointer))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType leafPageElement.ty)))) (Var "n")))
+  (Let "$a1" (Val #(W64 0))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad go.int))) (Var "j"))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve UnsafeByteSlice []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "j") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))))
+
+/-- go: page.go:323:27 -/
+noncomputable def leafPageElement.IsBucketEntry.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "n"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType leafPageElement.ty)))) (Var "n"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint32))) (Pair (App (Val (GoInstruction (GoOp GoAnd go.uint32))) (Pair (App (Val (GoInstruction (GoLoad go.uint32))) (App (Val (GoInstruction (StructFieldRef leafPageElement.ty go!"flags"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType leafPageElement.ty)))) (Var "n")))) (App (Val (GoInstruction (Convert go.untypedInt go.uint32))) (Val BucketLeafFlag)))) (Val #(W32 0))))))))))
+
+/-- go: page.go:327:27 -/
+noncomputable def leafPageElement.Bucket.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "n"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType leafPageElement.ty)))) (Var "n"))
+  (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType leafPageElement.ty) go!"IsBucketEntry"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType leafPageElement.ty)))) (Var "n"))) (Val #()))
+  (App (Val doReturn)
+  (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType leafPageElement.ty) go!"Value"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType leafPageElement.ty)))) (Var "n"))) (Val #()))
+  (App (App (Val (GoInstruction (FuncResolve LoadBucket []))) (Val #())) (Var "$a0"))))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType InBucket.ty)))) (Val UntypedNil))))))))
 
 /-- go: page.go:345:16 -/
 noncomputable def Pgids.Len.impl [FfiSyntax] [GoGlobalContext] : val :=
@@ -414,10 +2083,390 @@ noncomputable def Mergepgids.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))))))
 
-instance info' : PkgInfo pkg_id.go_etcd_io.bbolt.internal.common where
-  pkgImportedPkgs := [pkg_id.fmt, pkg_id.sort]
+/-- go: unsafe.go:7:6 -/
+noncomputable def UnsafeAdd.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "base"
+  (Lam "offset"
+  (App (Val exceptionDo)
+  (Let "offset" (App (Val (GoInstruction (GoAlloc go.uintptr))) (Var "offset"))
+  (Let "base" (App (Val (GoInstruction (GoAlloc «unsafe».Pointer))) (Var "base"))
+  (App (Val doReturn)
+  (App (App (App (Val (GoInstruction (FuncResolve «unsafe».Add []))) (Val #())) (App (Val (GoInstruction (GoLoad «unsafe».Pointer))) (Var "base"))) (App (Val (GoInstruction (Convert go.uintptr go.int))) (App (Val (GoInstruction (GoLoad go.uintptr))) (Var "offset"))))))))))
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+/-- go: unsafe.go:11:6 -/
+noncomputable def UnsafeIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "base"
+  (Lam "offset"
+  (Lam "elemsz"
+  (Lam "n"
+  (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (Var "n"))
+  (Let "elemsz" (App (Val (GoInstruction (GoAlloc go.uintptr))) (Var "elemsz"))
+  (Let "offset" (App (Val (GoInstruction (GoAlloc go.uintptr))) (Var "offset"))
+  (Let "base" (App (Val (GoInstruction (GoAlloc «unsafe».Pointer))) (Var "base"))
+  (App (Val doReturn)
+  (App (App (App (Val (GoInstruction (FuncResolve «unsafe».Add []))) (Val #())) (App (Val (GoInstruction (GoLoad «unsafe».Pointer))) (Var "base"))) (App (Val (GoInstruction (Convert go.uintptr go.int))) (App (Val (GoInstruction (GoOp GoPlus go.uintptr))) (Pair (App (Val (GoInstruction (GoLoad go.uintptr))) (Var "offset")) (App (Val (GoInstruction (GoOp GoMul go.uintptr))) (Pair (App (Val (GoInstruction (Convert go.int go.uintptr))) (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))) (App (Val (GoInstruction (GoLoad go.uintptr))) (Var "elemsz"))))))))))))))))))
+
+/-- go: unsafe.go:15:6 -/
+noncomputable def UnsafeByteSlice.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "base"
+  (Lam "offset"
+  (Lam "i"
+  (Lam "j"
+  (App (Val exceptionDo)
+  (Let "j" (App (Val (GoInstruction (GoAlloc go.int))) (Var "j"))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (Var "i"))
+  (Let "offset" (App (Val (GoInstruction (GoAlloc go.uintptr))) (Var "offset"))
+  (Let "base" (App (Val (GoInstruction (GoAlloc «unsafe».Pointer))) (Var "base"))
+  (App (Val doReturn)
+  (Let "$s" (App (Val (GoInstruction (Convert «unsafe».Pointer (go.GoType.PointerType (go.GoType.ArrayType 2147483647 go.byte))))) (Let "$a0" (App (Val (GoInstruction (GoLoad «unsafe».Pointer))) (Var "base"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.uintptr))) (Var "offset"))
+  (App (App (App (Val (GoInstruction (FuncResolve UnsafeAdd []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (Val (GoInstruction (FullSlice (go.GoType.PointerType (go.GoType.ArrayType 2147483647 go.byte))))) (Pair (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))) (App (Val (GoInstruction (GoLoad go.int))) (Var "j"))) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))))))))))))))
+
+/-- go: utils.go:10:6 -/
+noncomputable def LoadBucket.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "buf"
+  (App (Val exceptionDo)
+  (Let "buf" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "buf"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert «unsafe».Pointer (go.GoType.PointerType InBucket.ty)))) (App (Val (GoInstruction (Convert (go.GoType.PointerType go.byte) «unsafe».Pointer))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "buf")) (Val #(W64 0))))))))))
+
+/-- go: utils.go:14:6 -/
+noncomputable def LoadPage.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "buf"
+  (App (Val exceptionDo)
+  (Let "buf" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "buf"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert «unsafe».Pointer (go.GoType.PointerType Page.ty)))) (App (Val (GoInstruction (Convert (go.GoType.PointerType go.byte) «unsafe».Pointer))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "buf")) (Val #(W64 0))))))))))
+
+/-- go: utils.go:18:6 -/
+noncomputable def LoadPageMeta.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "buf"
+  (App (Val exceptionDo)
+  (Let "buf" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "buf"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert «unsafe».Pointer (go.GoType.PointerType Meta.ty)))) (App (Val (GoInstruction (Convert (go.GoType.PointerType go.byte) «unsafe».Pointer))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "buf")) (App (Val (GoInstruction (Convert go.uintptr go.int))) (Val PageHeaderSize))))))))))
+
+/-- go: utils.go:22:6 -/
+noncomputable def CopyFile.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "srcPath"
+  (Lam "dstPath"
+  (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "dstPath" (App (Val (GoInstruction (GoAlloc go.string))) (Var "dstPath"))
+  (Let "srcPath" (App (Val (GoInstruction (GoAlloc go.string))) (Var "srcPath"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "srcPath"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.os.Stat []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "dstPath"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.os.Stat []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "srcPath"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.os.Open []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "srcDB" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "dstPath"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.os.Create []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "dstDB" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.os.File.ty) _root_.Perennial.io.Writer.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (Var "dstDB")))
+  (Let "$a1" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.os.File.ty) _root_.Perennial.io.Reader.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (Var "srcDB")))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.io.Copy []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "written" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Stat"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (Var "srcDB"))) (Val #()))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "srcFi" (App (Val (GoInstruction (GoAlloc _root_.Perennial.os.FileInfo.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.os.FileInfo.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.io.fs.FileInfo.ty go!"Size"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.os.FileInfo.ty))) (Var "srcFi"))) (Val #()))
+  (Let "initialSize" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "initialSize")) (App (Val (GoInstruction (GoLoad go.int64))) (Var "written"))))))
+  (App (Val doReturn)
+  (Let "$a0" (Val #(go!"the byte copied (%q: %d) isn't equal to the initial db size (%q: %d)"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (Var "dstPath")))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.int64 go.any))) (App (Val (GoInstruction (GoLoad go.int64))) (Var "written")))
+  (Let "$sl2" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (Var "srcPath")))
+  (Let "$sl3" (App (Val (GoInstruction (Convert go.int64 go.any))) (App (Val (GoInstruction (GoLoad go.int64))) (Var "initialSize")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1"))), (KeyedElement none (ElementExpression go.any (Var "$sl2"))), (KeyedElement none (ElementExpression go.any (Var "$sl3")))]))))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "initialSize") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (Let "$a0" (Val #(go!"failed to get source file info %q: %w"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (Var "srcPath")))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.error go.any))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.os.FileInfo.ty))) (Pair (Var "srcFi") (Var "$r0")))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (Let "$a0" (Val #(go!"failed to copy database file from %q to %q: %w"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (Var "srcPath")))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (Var "dstPath")))
+  (Let "$sl2" (App (Val (GoInstruction (Convert go.error go.any))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1"))), (KeyedElement none (ElementExpression go.any (Var "$sl2")))])))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "written") (Var "$r0")))))))))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (Var "dstDB")))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (Let "$a0" (Val #(go!"failed to create output file %q: %w"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (Var "dstPath")))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.error go.any))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (Pair (Var "dstDB") (Var "$r0")))))))))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (Var "srcDB")))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (Let "$a0" (Val #(go!"failed to open source file %q: %w"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (Var "srcPath")))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.error go.any))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (Pair (Var "srcDB") (Var "$r0")))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (App (Val doReturn)
+  (Let "$a0" (Val #(go!"output file %q already exists"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (Var "dstPath")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.os.IsNotExist []))) (Val #())) (Var "$a0"))))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (Var "$r0"))))))))))
+  (If (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.os.IsNotExist []))) (Val #())) (Var "$a0")))
+  (App (Val doReturn)
+  (Let "$a0" (Val #(go!"source file %q not found"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (Var "srcPath")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (Var "$r0")))))))))))))))
+
+/-- go: verify.go:19:6 -/
+noncomputable def getEnvVerify.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (App (Val exceptionDo)
+  (App (Val doReturn)
+  (Let "$a0" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val ENV_VERIFY))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.os.Getenv []))) (Val #())) (Var "$a0")))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strings.ToLower []))) (Val #())) (Var "$a0"))))))
+
+/-- go: verify.go:23:6 -/
+noncomputable def IsVerificationEnabled.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "verification"
+  (App (Val exceptionDo)
+  (Let "verification" (App (Val (GoInstruction (GoAlloc VerificationType.ty))) (Var "verification"))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve getEnvVerify []))) (Val #())) (Val #()))
+  (Let "env" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "env")) (Val ENV_VERIFY_VALUE_ALL))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "env")) (Let "$a0" (App (Val (GoInstruction (GoLoad VerificationType.ty))) (Var "verification"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strings.ToLower []))) (Val #())) (Var "$a0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "env") (Var "$r0"))))))))))
+
+/-- EnableVerifications sets `ENV_VERIFY` and returns a function that
+    can be used to bring the original settings.
+
+    go: verify.go:30:6 -/
+noncomputable def EnableVerifications.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "verification"
+  (App (Val exceptionDo)
+  (Let "verification" (App (Val (GoInstruction (GoAlloc VerificationType.ty))) (Var "verification"))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve getEnvVerify []))) (Val #())) (Val #()))
+  (Let "previousEnv" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val ENV_VERIFY))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "previousEnv"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.os.Setenv []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val ENV_VERIFY))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad VerificationType.ty))) (Var "verification"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.os.Setenv []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "previousEnv") (Var "$r0"))))))))))
+
+/-- EnableAllVerifications enables verification and returns a function
+    that can be used to bring the original settings.
+
+    go: verify.go:40:6 -/
+noncomputable def EnableAllVerifications.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (App (Val exceptionDo)
+  (App (Val doReturn)
+  (Let "$a0" (Val ENV_VERIFY_VALUE_ALL)
+  (App (App (Val (GoInstruction (FuncResolve EnableVerifications []))) (Val #())) (Var "$a0"))))))
+
+/-- DisableVerifications unsets `ENV_VERIFY` and returns a function that
+    can be used to bring the original settings.
+
+    go: verify.go:46:6 -/
+noncomputable def DisableVerifications.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (App (Val exceptionDo)
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve getEnvVerify []))) (Val #())) (Val #()))
+  (Let "previousEnv" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val ENV_VERIFY))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "previousEnv"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.os.Setenv []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val ENV_VERIFY))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.os.Unsetenv []))) (Val #())) (Var "$a0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "previousEnv") (Var "$r0")))))))))
+
+/-- Verify performs verification if the assertions are enabled.
+    In the default setup running in tests and skipped in the production code.
+
+    go: verify.go:56:6 -/
+noncomputable def Verify.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "f"
+  (App (Val exceptionDo)
+  (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [] false []))))) (Var "f"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (If (Let "$a0" (Val ENV_VERIFY_VALUE_ASSERT)
+  (App (App (Val (GoInstruction (FuncResolve IsVerificationEnabled []))) (Val #())) (Var "$a0")))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [] false []))))) (Var "f")) (Val #())))
+  (App (Val doExecute)
+  (Val #())))))))
+
+/-- Assert will panic with a given formatted message if the given condition is false.
+
+    go: verify.go:63:6 -/
+noncomputable def Assert.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "condition"
+  (Lam "msg"
+  (Lam "v"
+  (App (Val exceptionDo)
+  (Let "v" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.any)))) (Var "v"))
+  (Let "msg" (App (Val (GoInstruction (GoAlloc go.string))) (Var "msg"))
+  (Let "condition" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "condition"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "condition")))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Let "$a0" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"assertion failed: ")) (App (Val (GoInstruction (GoLoad go.string))) (Var "msg"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.any)))) (Var "v"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #())))))))))))
+
+instance info' : PkgInfo pkg_id.go_etcd_io.bbolt.internal.common where
+  pkgImportedPkgs := [pkg_id.fmt, pkg_id.«unsafe», pkg_id.hash.fnv, pkg_id.io, pkg_id.go_etcd_io.bbolt.errors, pkg_id.os, pkg_id.sort, pkg_id.runtime, pkg_id.time, pkg_id.strings]
 
 noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -425,12 +2474,40 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.os.Getpagesize []))) (Val #())) (Val #()))
   (App (Val doExecute)
-  (App (Val DefaultPageSize.init) (Val #())))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (GlobalVarAddr DefaultPageSize))) (Val #())) (Var "$r0")))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.fmt.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.sort.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.«unsafe».initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.hash.fnv.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.io.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_etcd_io.bbolt.errors.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.os.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.sort.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.runtime.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.time.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.strings.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc DefaultPageSize go.int)) (Val #()))))))))
 
 abbrev Pgid [FfiSyntax] : Type := w64
 
@@ -467,17 +2544,33 @@ instance equals_unfold_InBucket [FfiSyntax] [GoGlobalContext] :
 class InBucket.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying InBucket.underlying InBucket
   underlying : go.UnderlyingDirectedEq InBucket.ty InBucket.underlying
+  layout : go.StructLayout InBucket [(go!"root", typeSize Pgid, typeAlign Pgid), (go!"sequence", typeSize w64, typeAlign w64)]
   get_root : ∀ (x : InBucket), go.IsGoStepPureDetTagged under (StructFieldGet InBucket.underlying go!"root") #x (Val #(x.root'))
   set_root : ∀ (x : InBucket) (y : Pgid), go.IsGoStepPureDetTagged under (StructFieldSet InBucket.underlying go!"root") (PairV #x #y) (Val #(({ x with root' := y } : InBucket)))
   get_sequence : ∀ (x : InBucket), go.IsGoStepPureDetTagged under (StructFieldGet InBucket.underlying go!"sequence") #x (Val #(x.sequence'))
   set_sequence : ∀ (x : InBucket) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet InBucket.underlying go!"sequence") (PairV #x #y) (Val #(({ x with sequence' := y } : InBucket)))
+  ptr_InSequence_unfold : MethodUnfold (go.GoType.PointerType InBucket.ty) go!"InSequence" InBucket.InSequence.impl
+  ptr_IncSequence_unfold : MethodUnfold (go.GoType.PointerType InBucket.ty) go!"IncSequence" InBucket.IncSequence.impl
+  ptr_InlinePage_unfold : MethodUnfold (go.GoType.PointerType InBucket.ty) go!"InlinePage" InBucket.InlinePage.impl
+  ptr_RootPage_unfold : MethodUnfold (go.GoType.PointerType InBucket.ty) go!"RootPage" InBucket.RootPage.impl
+  ptr_SetInSequence_unfold : MethodUnfold (go.GoType.PointerType InBucket.ty) go!"SetInSequence" InBucket.SetInSequence.impl
+  ptr_SetRootPage_unfold : MethodUnfold (go.GoType.PointerType InBucket.ty) go!"SetRootPage" InBucket.SetRootPage.impl
+  ptr_String_unfold : MethodUnfold (go.GoType.PointerType InBucket.ty) go!"String" InBucket.String.impl
 
 attribute [instance] InBucket.TypeAssumptions.type_repr
   InBucket.TypeAssumptions.underlying
+  InBucket.TypeAssumptions.layout
   InBucket.TypeAssumptions.get_root
   InBucket.TypeAssumptions.set_root
   InBucket.TypeAssumptions.get_sequence
   InBucket.TypeAssumptions.set_sequence
+  InBucket.TypeAssumptions.ptr_InSequence_unfold
+  InBucket.TypeAssumptions.ptr_IncSequence_unfold
+  InBucket.TypeAssumptions.ptr_InlinePage_unfold
+  InBucket.TypeAssumptions.ptr_RootPage_unfold
+  InBucket.TypeAssumptions.ptr_SetInSequence_unfold
+  InBucket.TypeAssumptions.ptr_SetRootPage_unfold
+  InBucket.TypeAssumptions.ptr_String_unfold
 
 structure Inode [FfiSyntax] where
   mk ::
@@ -508,6 +2601,7 @@ instance equals_unfold_Inode [FfiSyntax] [GoGlobalContext] :
 class Inode.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Inode.underlying Inode
   underlying : go.UnderlyingDirectedEq Inode.ty Inode.underlying
+  layout : go.StructLayout Inode [(go!"flags", typeSize w32, typeAlign w32), (go!"pgid", typeSize Pgid, typeAlign Pgid), (go!"key", typeSize GoSlice, typeAlign GoSlice), (go!"value", typeSize GoSlice, typeAlign GoSlice)]
   get_flags : ∀ (x : Inode), go.IsGoStepPureDetTagged under (StructFieldGet Inode.underlying go!"flags") #x (Val #(x.flags'))
   set_flags : ∀ (x : Inode) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Inode.underlying go!"flags") (PairV #x #y) (Val #(({ x with flags' := y } : Inode)))
   get_pgid : ∀ (x : Inode), go.IsGoStepPureDetTagged under (StructFieldGet Inode.underlying go!"pgid") #x (Val #(x.pgid'))
@@ -516,9 +2610,18 @@ class Inode.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
   set_key : ∀ (x : Inode) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Inode.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : Inode)))
   get_value : ∀ (x : Inode), go.IsGoStepPureDetTagged under (StructFieldGet Inode.underlying go!"value") #x (Val #(x.value'))
   set_value : ∀ (x : Inode) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Inode.underlying go!"value") (PairV #x #y) (Val #(({ x with value' := y } : Inode)))
+  ptr_Flags_unfold : MethodUnfold (go.GoType.PointerType Inode.ty) go!"Flags" Inode.Flags.impl
+  ptr_Key_unfold : MethodUnfold (go.GoType.PointerType Inode.ty) go!"Key" Inode.Key.impl
+  ptr_Pgid_unfold : MethodUnfold (go.GoType.PointerType Inode.ty) go!"Pgid" Inode.Pgid.impl
+  ptr_SetFlags_unfold : MethodUnfold (go.GoType.PointerType Inode.ty) go!"SetFlags" Inode.SetFlags.impl
+  ptr_SetKey_unfold : MethodUnfold (go.GoType.PointerType Inode.ty) go!"SetKey" Inode.SetKey.impl
+  ptr_SetPgid_unfold : MethodUnfold (go.GoType.PointerType Inode.ty) go!"SetPgid" Inode.SetPgid.impl
+  ptr_SetValue_unfold : MethodUnfold (go.GoType.PointerType Inode.ty) go!"SetValue" Inode.SetValue.impl
+  ptr_Value_unfold : MethodUnfold (go.GoType.PointerType Inode.ty) go!"Value" Inode.Value.impl
 
 attribute [instance] Inode.TypeAssumptions.type_repr
   Inode.TypeAssumptions.underlying
+  Inode.TypeAssumptions.layout
   Inode.TypeAssumptions.get_flags
   Inode.TypeAssumptions.set_flags
   Inode.TypeAssumptions.get_pgid
@@ -527,6 +2630,14 @@ attribute [instance] Inode.TypeAssumptions.type_repr
   Inode.TypeAssumptions.set_key
   Inode.TypeAssumptions.get_value
   Inode.TypeAssumptions.set_value
+  Inode.TypeAssumptions.ptr_Flags_unfold
+  Inode.TypeAssumptions.ptr_Key_unfold
+  Inode.TypeAssumptions.ptr_Pgid_unfold
+  Inode.TypeAssumptions.ptr_SetFlags_unfold
+  Inode.TypeAssumptions.ptr_SetKey_unfold
+  Inode.TypeAssumptions.ptr_SetPgid_unfold
+  Inode.TypeAssumptions.ptr_SetValue_unfold
+  Inode.TypeAssumptions.ptr_Value_unfold
 
 abbrev Inodes [FfiSyntax] : Type := GoSlice
 
@@ -587,6 +2698,7 @@ instance equals_unfold_Meta [FfiSyntax] [GoGlobalContext] :
 class Meta.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Meta.underlying Meta
   underlying : go.UnderlyingDirectedEq Meta.ty Meta.underlying
+  layout : go.StructLayout Meta [(go!"magic", typeSize w32, typeAlign w32), (go!"version", typeSize w32, typeAlign w32), (go!"pageSize", typeSize w32, typeAlign w32), (go!"flags", typeSize w32, typeAlign w32), (go!"root", typeSize InBucket, typeAlign InBucket), (go!"freelist", typeSize Pgid, typeAlign Pgid), (go!"pgid", typeSize Pgid, typeAlign Pgid), (go!"txid", typeSize Txid, typeAlign Txid), (go!"checksum", typeSize w64, typeAlign w64)]
   get_magic : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"magic") #x (Val #(x.magic'))
   set_magic : ∀ (x : Meta) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"magic") (PairV #x #y) (Val #(({ x with magic' := y } : Meta)))
   get_version : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"version") #x (Val #(x.version'))
@@ -605,9 +2717,36 @@ class Meta.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSem
   set_txid : ∀ (x : Meta) (y : Txid), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"txid") (PairV #x #y) (Val #(({ x with txid' := y } : Meta)))
   get_checksum : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"checksum") #x (Val #(x.checksum'))
   set_checksum : ∀ (x : Meta) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"checksum") (PairV #x #y) (Val #(({ x with checksum' := y } : Meta)))
+  ptr_Checksum_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"Checksum" Meta.Checksum.impl
+  ptr_Copy_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"Copy" Meta.Copy.impl
+  ptr_DecTxid_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"DecTxid" Meta.DecTxid.impl
+  ptr_Flags_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"Flags" Meta.Flags.impl
+  ptr_Freelist_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"Freelist" Meta.Freelist.impl
+  ptr_IncTxid_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"IncTxid" Meta.IncTxid.impl
+  ptr_IsFreelistPersisted_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"IsFreelistPersisted" Meta.IsFreelistPersisted.impl
+  ptr_Magic_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"Magic" Meta.Magic.impl
+  ptr_PageSize_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"PageSize" Meta.PageSize.impl
+  ptr_Pgid_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"Pgid" Meta.Pgid.impl
+  ptr_Print_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"Print" Meta.Print.impl
+  ptr_RootBucket_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"RootBucket" Meta.RootBucket.impl
+  ptr_SetChecksum_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"SetChecksum" Meta.SetChecksum.impl
+  ptr_SetFlags_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"SetFlags" Meta.SetFlags.impl
+  ptr_SetFreelist_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"SetFreelist" Meta.SetFreelist.impl
+  ptr_SetMagic_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"SetMagic" Meta.SetMagic.impl
+  ptr_SetPageSize_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"SetPageSize" Meta.SetPageSize.impl
+  ptr_SetPgid_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"SetPgid" Meta.SetPgid.impl
+  ptr_SetRootBucket_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"SetRootBucket" Meta.SetRootBucket.impl
+  ptr_SetTxid_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"SetTxid" Meta.SetTxid.impl
+  ptr_SetVersion_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"SetVersion" Meta.SetVersion.impl
+  ptr_Sum64_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"Sum64" Meta.Sum64.impl
+  ptr_Txid_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"Txid" Meta.Txid.impl
+  ptr_Validate_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"Validate" Meta.Validate.impl
+  ptr_Version_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"Version" Meta.Version.impl
+  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"Write" Meta.Write.impl
 
 attribute [instance] Meta.TypeAssumptions.type_repr
   Meta.TypeAssumptions.underlying
+  Meta.TypeAssumptions.layout
   Meta.TypeAssumptions.get_magic
   Meta.TypeAssumptions.set_magic
   Meta.TypeAssumptions.get_version
@@ -626,6 +2765,32 @@ attribute [instance] Meta.TypeAssumptions.type_repr
   Meta.TypeAssumptions.set_txid
   Meta.TypeAssumptions.get_checksum
   Meta.TypeAssumptions.set_checksum
+  Meta.TypeAssumptions.ptr_Checksum_unfold
+  Meta.TypeAssumptions.ptr_Copy_unfold
+  Meta.TypeAssumptions.ptr_DecTxid_unfold
+  Meta.TypeAssumptions.ptr_Flags_unfold
+  Meta.TypeAssumptions.ptr_Freelist_unfold
+  Meta.TypeAssumptions.ptr_IncTxid_unfold
+  Meta.TypeAssumptions.ptr_IsFreelistPersisted_unfold
+  Meta.TypeAssumptions.ptr_Magic_unfold
+  Meta.TypeAssumptions.ptr_PageSize_unfold
+  Meta.TypeAssumptions.ptr_Pgid_unfold
+  Meta.TypeAssumptions.ptr_Print_unfold
+  Meta.TypeAssumptions.ptr_RootBucket_unfold
+  Meta.TypeAssumptions.ptr_SetChecksum_unfold
+  Meta.TypeAssumptions.ptr_SetFlags_unfold
+  Meta.TypeAssumptions.ptr_SetFreelist_unfold
+  Meta.TypeAssumptions.ptr_SetMagic_unfold
+  Meta.TypeAssumptions.ptr_SetPageSize_unfold
+  Meta.TypeAssumptions.ptr_SetPgid_unfold
+  Meta.TypeAssumptions.ptr_SetRootBucket_unfold
+  Meta.TypeAssumptions.ptr_SetTxid_unfold
+  Meta.TypeAssumptions.ptr_SetVersion_unfold
+  Meta.TypeAssumptions.ptr_Sum64_unfold
+  Meta.TypeAssumptions.ptr_Txid_unfold
+  Meta.TypeAssumptions.ptr_Validate_unfold
+  Meta.TypeAssumptions.ptr_Version_unfold
+  Meta.TypeAssumptions.ptr_Write_unfold
 
 structure Page [FfiSyntax] where
   mk ::
@@ -656,6 +2821,7 @@ instance equals_unfold_Page [FfiSyntax] [GoGlobalContext] :
 class Page.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Page.underlying Page
   underlying : go.UnderlyingDirectedEq Page.ty Page.underlying
+  layout : go.StructLayout Page [(go!"id", typeSize Pgid, typeAlign Pgid), (go!"flags", typeSize w16, typeAlign w16), (go!"count", typeSize w16, typeAlign w16), (go!"overflow", typeSize w32, typeAlign w32)]
   get_id : ∀ (x : Page), go.IsGoStepPureDetTagged under (StructFieldGet Page.underlying go!"id") #x (Val #(x.id'))
   set_id : ∀ (x : Page) (y : Pgid), go.IsGoStepPureDetTagged under (StructFieldSet Page.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : Page)))
   get_flags : ∀ (x : Page), go.IsGoStepPureDetTagged under (StructFieldGet Page.underlying go!"flags") #x (Val #(x.flags'))
@@ -664,9 +2830,35 @@ class Page.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSem
   set_count : ∀ (x : Page) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet Page.underlying go!"count") (PairV #x #y) (Val #(({ x with count' := y } : Page)))
   get_overflow : ∀ (x : Page), go.IsGoStepPureDetTagged under (StructFieldGet Page.underlying go!"overflow") #x (Val #(x.overflow'))
   set_overflow : ∀ (x : Page) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Page.underlying go!"overflow") (PairV #x #y) (Val #(({ x with overflow' := y } : Page)))
+  ptr_BranchPageElement_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"BranchPageElement" Page.BranchPageElement.impl
+  ptr_BranchPageElements_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"BranchPageElements" Page.BranchPageElements.impl
+  ptr_Count_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"Count" Page.Count.impl
+  ptr_FastCheck_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"FastCheck" Page.FastCheck.impl
+  ptr_Flags_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"Flags" Page.Flags.impl
+  ptr_FreelistPageCount_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"FreelistPageCount" Page.FreelistPageCount.impl
+  ptr_FreelistPageIds_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"FreelistPageIds" Page.FreelistPageIds.impl
+  ptr_Id_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"Id" Page.Id.impl
+  ptr_IsBranchPage_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"IsBranchPage" Page.IsBranchPage.impl
+  ptr_IsFreelistPage_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"IsFreelistPage" Page.IsFreelistPage.impl
+  ptr_IsLeafPage_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"IsLeafPage" Page.IsLeafPage.impl
+  ptr_IsMetaPage_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"IsMetaPage" Page.IsMetaPage.impl
+  ptr_IsValidPage_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"IsValidPage" Page.IsValidPage.impl
+  ptr_LeafPageElement_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"LeafPageElement" Page.LeafPageElement.impl
+  ptr_LeafPageElements_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"LeafPageElements" Page.LeafPageElements.impl
+  ptr_Meta_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"Meta" Page.Meta.impl
+  ptr_Overflow_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"Overflow" Page.Overflow.impl
+  ptr_PageElementSize_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"PageElementSize" Page.PageElementSize.impl
+  ptr_SetCount_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"SetCount" Page.SetCount.impl
+  ptr_SetFlags_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"SetFlags" Page.SetFlags.impl
+  ptr_SetId_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"SetId" Page.SetId.impl
+  ptr_SetOverflow_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"SetOverflow" Page.SetOverflow.impl
+  ptr_String_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"String" Page.String.impl
+  ptr_Typ_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"Typ" Page.Typ.impl
+  ptr_hexdump_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"hexdump" Page.hexdump.impl
 
 attribute [instance] Page.TypeAssumptions.type_repr
   Page.TypeAssumptions.underlying
+  Page.TypeAssumptions.layout
   Page.TypeAssumptions.get_id
   Page.TypeAssumptions.set_id
   Page.TypeAssumptions.get_flags
@@ -675,6 +2867,31 @@ attribute [instance] Page.TypeAssumptions.type_repr
   Page.TypeAssumptions.set_count
   Page.TypeAssumptions.get_overflow
   Page.TypeAssumptions.set_overflow
+  Page.TypeAssumptions.ptr_BranchPageElement_unfold
+  Page.TypeAssumptions.ptr_BranchPageElements_unfold
+  Page.TypeAssumptions.ptr_Count_unfold
+  Page.TypeAssumptions.ptr_FastCheck_unfold
+  Page.TypeAssumptions.ptr_Flags_unfold
+  Page.TypeAssumptions.ptr_FreelistPageCount_unfold
+  Page.TypeAssumptions.ptr_FreelistPageIds_unfold
+  Page.TypeAssumptions.ptr_Id_unfold
+  Page.TypeAssumptions.ptr_IsBranchPage_unfold
+  Page.TypeAssumptions.ptr_IsFreelistPage_unfold
+  Page.TypeAssumptions.ptr_IsLeafPage_unfold
+  Page.TypeAssumptions.ptr_IsMetaPage_unfold
+  Page.TypeAssumptions.ptr_IsValidPage_unfold
+  Page.TypeAssumptions.ptr_LeafPageElement_unfold
+  Page.TypeAssumptions.ptr_LeafPageElements_unfold
+  Page.TypeAssumptions.ptr_Meta_unfold
+  Page.TypeAssumptions.ptr_Overflow_unfold
+  Page.TypeAssumptions.ptr_PageElementSize_unfold
+  Page.TypeAssumptions.ptr_SetCount_unfold
+  Page.TypeAssumptions.ptr_SetFlags_unfold
+  Page.TypeAssumptions.ptr_SetId_unfold
+  Page.TypeAssumptions.ptr_SetOverflow_unfold
+  Page.TypeAssumptions.ptr_String_unfold
+  Page.TypeAssumptions.ptr_Typ_unfold
+  Page.TypeAssumptions.ptr_hexdump_unfold
 
 abbrev Pages [FfiSyntax] : Type := GoSlice
 
@@ -683,8 +2900,23 @@ abbrev Pages [FfiSyntax] : Type := GoSlice
 
 class Pages.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Pages.ty Pages.underlying
+  Len_unfold : MethodUnfold Pages.ty go!"Len" Pages.Len.impl
+  Less_unfold : MethodUnfold Pages.ty go!"Less" Pages.Less.impl
+  Swap_unfold : MethodUnfold Pages.ty go!"Swap" Pages.Swap.impl
+  ptr_Len_unfold : MethodUnfold (go.GoType.PointerType Pages.ty) go!"Len" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Pages.ty go!"Len"))) (App (Val (GoInstruction (GoLoad Pages.ty))) (Var "$r"))))
+  ptr_Less_unfold : MethodUnfold (go.GoType.PointerType Pages.ty) go!"Less" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Pages.ty go!"Less"))) (App (Val (GoInstruction (GoLoad Pages.ty))) (Var "$r"))))
+  ptr_Swap_unfold : MethodUnfold (go.GoType.PointerType Pages.ty) go!"Swap" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Pages.ty go!"Swap"))) (App (Val (GoInstruction (GoLoad Pages.ty))) (Var "$r"))))
 
 attribute [instance] Pages.TypeAssumptions.underlying
+  Pages.TypeAssumptions.Len_unfold
+  Pages.TypeAssumptions.Less_unfold
+  Pages.TypeAssumptions.Swap_unfold
+  Pages.TypeAssumptions.ptr_Len_unfold
+  Pages.TypeAssumptions.ptr_Less_unfold
+  Pages.TypeAssumptions.ptr_Swap_unfold
 
 structure branchPageElement [FfiSyntax] where
   mk ::
@@ -713,21 +2945,37 @@ instance equals_unfold_branchPageElement [FfiSyntax] [GoGlobalContext] :
 class branchPageElement.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying branchPageElement.underlying branchPageElement
   underlying : go.UnderlyingDirectedEq branchPageElement.ty branchPageElement.underlying
+  layout : go.StructLayout branchPageElement [(go!"pos", typeSize w32, typeAlign w32), (go!"ksize", typeSize w32, typeAlign w32), (go!"pgid", typeSize Pgid, typeAlign Pgid)]
   get_pos : ∀ (x : branchPageElement), go.IsGoStepPureDetTagged under (StructFieldGet branchPageElement.underlying go!"pos") #x (Val #(x.pos'))
   set_pos : ∀ (x : branchPageElement) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet branchPageElement.underlying go!"pos") (PairV #x #y) (Val #(({ x with pos' := y } : branchPageElement)))
   get_ksize : ∀ (x : branchPageElement), go.IsGoStepPureDetTagged under (StructFieldGet branchPageElement.underlying go!"ksize") #x (Val #(x.ksize'))
   set_ksize : ∀ (x : branchPageElement) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet branchPageElement.underlying go!"ksize") (PairV #x #y) (Val #(({ x with ksize' := y } : branchPageElement)))
   get_pgid : ∀ (x : branchPageElement), go.IsGoStepPureDetTagged under (StructFieldGet branchPageElement.underlying go!"pgid") #x (Val #(x.pgid'))
   set_pgid : ∀ (x : branchPageElement) (y : Pgid), go.IsGoStepPureDetTagged under (StructFieldSet branchPageElement.underlying go!"pgid") (PairV #x #y) (Val #(({ x with pgid' := y } : branchPageElement)))
+  ptr_Key_unfold : MethodUnfold (go.GoType.PointerType branchPageElement.ty) go!"Key" branchPageElement.Key.impl
+  ptr_Ksize_unfold : MethodUnfold (go.GoType.PointerType branchPageElement.ty) go!"Ksize" branchPageElement.Ksize.impl
+  ptr_Pgid_unfold : MethodUnfold (go.GoType.PointerType branchPageElement.ty) go!"Pgid" branchPageElement.Pgid.impl
+  ptr_Pos_unfold : MethodUnfold (go.GoType.PointerType branchPageElement.ty) go!"Pos" branchPageElement.Pos.impl
+  ptr_SetKsize_unfold : MethodUnfold (go.GoType.PointerType branchPageElement.ty) go!"SetKsize" branchPageElement.SetKsize.impl
+  ptr_SetPgid_unfold : MethodUnfold (go.GoType.PointerType branchPageElement.ty) go!"SetPgid" branchPageElement.SetPgid.impl
+  ptr_SetPos_unfold : MethodUnfold (go.GoType.PointerType branchPageElement.ty) go!"SetPos" branchPageElement.SetPos.impl
 
 attribute [instance] branchPageElement.TypeAssumptions.type_repr
   branchPageElement.TypeAssumptions.underlying
+  branchPageElement.TypeAssumptions.layout
   branchPageElement.TypeAssumptions.get_pos
   branchPageElement.TypeAssumptions.set_pos
   branchPageElement.TypeAssumptions.get_ksize
   branchPageElement.TypeAssumptions.set_ksize
   branchPageElement.TypeAssumptions.get_pgid
   branchPageElement.TypeAssumptions.set_pgid
+  branchPageElement.TypeAssumptions.ptr_Key_unfold
+  branchPageElement.TypeAssumptions.ptr_Ksize_unfold
+  branchPageElement.TypeAssumptions.ptr_Pgid_unfold
+  branchPageElement.TypeAssumptions.ptr_Pos_unfold
+  branchPageElement.TypeAssumptions.ptr_SetKsize_unfold
+  branchPageElement.TypeAssumptions.ptr_SetPgid_unfold
+  branchPageElement.TypeAssumptions.ptr_SetPos_unfold
 
 structure leafPageElement [FfiSyntax] where
   mk ::
@@ -758,6 +3006,7 @@ instance equals_unfold_leafPageElement [FfiSyntax] [GoGlobalContext] :
 class leafPageElement.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying leafPageElement.underlying leafPageElement
   underlying : go.UnderlyingDirectedEq leafPageElement.ty leafPageElement.underlying
+  layout : go.StructLayout leafPageElement [(go!"flags", typeSize w32, typeAlign w32), (go!"pos", typeSize w32, typeAlign w32), (go!"ksize", typeSize w32, typeAlign w32), (go!"vsize", typeSize w32, typeAlign w32)]
   get_flags : ∀ (x : leafPageElement), go.IsGoStepPureDetTagged under (StructFieldGet leafPageElement.underlying go!"flags") #x (Val #(x.flags'))
   set_flags : ∀ (x : leafPageElement) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet leafPageElement.underlying go!"flags") (PairV #x #y) (Val #(({ x with flags' := y } : leafPageElement)))
   get_pos : ∀ (x : leafPageElement), go.IsGoStepPureDetTagged under (StructFieldGet leafPageElement.underlying go!"pos") #x (Val #(x.pos'))
@@ -766,9 +3015,22 @@ class leafPageElement.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   set_ksize : ∀ (x : leafPageElement) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet leafPageElement.underlying go!"ksize") (PairV #x #y) (Val #(({ x with ksize' := y } : leafPageElement)))
   get_vsize : ∀ (x : leafPageElement), go.IsGoStepPureDetTagged under (StructFieldGet leafPageElement.underlying go!"vsize") #x (Val #(x.vsize'))
   set_vsize : ∀ (x : leafPageElement) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet leafPageElement.underlying go!"vsize") (PairV #x #y) (Val #(({ x with vsize' := y } : leafPageElement)))
+  ptr_Bucket_unfold : MethodUnfold (go.GoType.PointerType leafPageElement.ty) go!"Bucket" leafPageElement.Bucket.impl
+  ptr_Flags_unfold : MethodUnfold (go.GoType.PointerType leafPageElement.ty) go!"Flags" leafPageElement.Flags.impl
+  ptr_IsBucketEntry_unfold : MethodUnfold (go.GoType.PointerType leafPageElement.ty) go!"IsBucketEntry" leafPageElement.IsBucketEntry.impl
+  ptr_Key_unfold : MethodUnfold (go.GoType.PointerType leafPageElement.ty) go!"Key" leafPageElement.Key.impl
+  ptr_Ksize_unfold : MethodUnfold (go.GoType.PointerType leafPageElement.ty) go!"Ksize" leafPageElement.Ksize.impl
+  ptr_Pos_unfold : MethodUnfold (go.GoType.PointerType leafPageElement.ty) go!"Pos" leafPageElement.Pos.impl
+  ptr_SetFlags_unfold : MethodUnfold (go.GoType.PointerType leafPageElement.ty) go!"SetFlags" leafPageElement.SetFlags.impl
+  ptr_SetKsize_unfold : MethodUnfold (go.GoType.PointerType leafPageElement.ty) go!"SetKsize" leafPageElement.SetKsize.impl
+  ptr_SetPos_unfold : MethodUnfold (go.GoType.PointerType leafPageElement.ty) go!"SetPos" leafPageElement.SetPos.impl
+  ptr_SetVsize_unfold : MethodUnfold (go.GoType.PointerType leafPageElement.ty) go!"SetVsize" leafPageElement.SetVsize.impl
+  ptr_Value_unfold : MethodUnfold (go.GoType.PointerType leafPageElement.ty) go!"Value" leafPageElement.Value.impl
+  ptr_Vsize_unfold : MethodUnfold (go.GoType.PointerType leafPageElement.ty) go!"Vsize" leafPageElement.Vsize.impl
 
 attribute [instance] leafPageElement.TypeAssumptions.type_repr
   leafPageElement.TypeAssumptions.underlying
+  leafPageElement.TypeAssumptions.layout
   leafPageElement.TypeAssumptions.get_flags
   leafPageElement.TypeAssumptions.set_flags
   leafPageElement.TypeAssumptions.get_pos
@@ -777,6 +3039,18 @@ attribute [instance] leafPageElement.TypeAssumptions.type_repr
   leafPageElement.TypeAssumptions.set_ksize
   leafPageElement.TypeAssumptions.get_vsize
   leafPageElement.TypeAssumptions.set_vsize
+  leafPageElement.TypeAssumptions.ptr_Bucket_unfold
+  leafPageElement.TypeAssumptions.ptr_Flags_unfold
+  leafPageElement.TypeAssumptions.ptr_IsBucketEntry_unfold
+  leafPageElement.TypeAssumptions.ptr_Key_unfold
+  leafPageElement.TypeAssumptions.ptr_Ksize_unfold
+  leafPageElement.TypeAssumptions.ptr_Pos_unfold
+  leafPageElement.TypeAssumptions.ptr_SetFlags_unfold
+  leafPageElement.TypeAssumptions.ptr_SetKsize_unfold
+  leafPageElement.TypeAssumptions.ptr_SetPos_unfold
+  leafPageElement.TypeAssumptions.ptr_SetVsize_unfold
+  leafPageElement.TypeAssumptions.ptr_Value_unfold
+  leafPageElement.TypeAssumptions.ptr_Vsize_unfold
 
 structure PageInfo [FfiSyntax] where
   mk ::
@@ -807,6 +3081,7 @@ instance equals_unfold_PageInfo [FfiSyntax] [GoGlobalContext] :
 class PageInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PageInfo.underlying PageInfo
   underlying : go.UnderlyingDirectedEq PageInfo.ty PageInfo.underlying
+  layout : go.StructLayout PageInfo [(go!"ID", typeSize w64, typeAlign w64), (go!"Type", typeSize GoString, typeAlign GoString), (go!"Count", typeSize w64, typeAlign w64), (go!"OverflowCount", typeSize w64, typeAlign w64)]
   get_ID : ∀ (x : PageInfo), go.IsGoStepPureDetTagged under (StructFieldGet PageInfo.underlying go!"ID") #x (Val #(x.ID'))
   set_ID : ∀ (x : PageInfo) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet PageInfo.underlying go!"ID") (PairV #x #y) (Val #(({ x with ID' := y } : PageInfo)))
   get_Type : ∀ (x : PageInfo), go.IsGoStepPureDetTagged under (StructFieldGet PageInfo.underlying go!"Type") #x (Val #(x.Type'))
@@ -818,6 +3093,7 @@ class PageInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
 
 attribute [instance] PageInfo.TypeAssumptions.type_repr
   PageInfo.TypeAssumptions.underlying
+  PageInfo.TypeAssumptions.layout
   PageInfo.TypeAssumptions.get_ID
   PageInfo.TypeAssumptions.set_ID
   PageInfo.TypeAssumptions.get_Type
@@ -881,9 +3157,37 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Pgids_instance : Pgids.TypeAssumptions
   Txid_instance : Txid.TypeAssumptions
   VerificationType_instance : VerificationType.TypeAssumptions
+  NewInBucket_unfold : FuncUnfold NewInBucket [] NewInBucket.impl
+  ReadInodeFromPage_unfold : FuncUnfold ReadInodeFromPage [] ReadInodeFromPage.impl
+  WriteInodeToPage_unfold : FuncUnfold WriteInodeToPage [] WriteInodeToPage.impl
+  UsedSpaceInPage_unfold : FuncUnfold UsedSpaceInPage [] UsedSpaceInPage.impl
+  NewPage_unfold : FuncUnfold NewPage [] NewPage.impl
+  NewLeafPageElement_unfold : FuncUnfold NewLeafPageElement [] NewLeafPageElement.impl
   Mergepgids_unfold : FuncUnfold Mergepgids [] Mergepgids.impl
+  UnsafeAdd_unfold : FuncUnfold UnsafeAdd [] UnsafeAdd.impl
+  UnsafeIndex_unfold : FuncUnfold UnsafeIndex [] UnsafeIndex.impl
+  UnsafeByteSlice_unfold : FuncUnfold UnsafeByteSlice [] UnsafeByteSlice.impl
+  LoadBucket_unfold : FuncUnfold LoadBucket [] LoadBucket.impl
+  LoadPage_unfold : FuncUnfold LoadPage [] LoadPage.impl
+  LoadPageMeta_unfold : FuncUnfold LoadPageMeta [] LoadPageMeta.impl
+  CopyFile_unfold : FuncUnfold CopyFile [] CopyFile.impl
+  getEnvVerify_unfold : FuncUnfold getEnvVerify [] getEnvVerify.impl
+  IsVerificationEnabled_unfold : FuncUnfold IsVerificationEnabled [] IsVerificationEnabled.impl
+  EnableVerifications_unfold : FuncUnfold EnableVerifications [] EnableVerifications.impl
+  EnableAllVerifications_unfold : FuncUnfold EnableAllVerifications [] EnableAllVerifications.impl
+  DisableVerifications_unfold : FuncUnfold DisableVerifications [] DisableVerifications.impl
+  Verify_unfold : FuncUnfold Verify [] Verify.impl
+  Assert_unfold : FuncUnfold Assert [] Assert.impl
   import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
+  import_unsafe_Assumption : _root_.Perennial.«unsafe».Assumptions
+  import_fnv_Assumption : _root_.Perennial.hash.fnv.Assumptions
+  import_io_Assumption : _root_.Perennial.io.Assumptions
+  import_errors_Assumption : _root_.Perennial.go_etcd_io.bbolt.errors.Assumptions
+  import_os_Assumption : _root_.Perennial.os.Assumptions
   import_sort_Assumption : _root_.Perennial.sort.Assumptions
+  import_runtime_Assumption : _root_.Perennial.runtime.Assumptions
+  import_time_Assumption : _root_.Perennial.time.Assumptions
+  import_strings_Assumption : _root_.Perennial.strings.Assumptions
 
 attribute [instance] Assumptions.InBucket_instance
   Assumptions.Inode_instance
@@ -898,9 +3202,37 @@ attribute [instance] Assumptions.InBucket_instance
   Assumptions.Pgids_instance
   Assumptions.Txid_instance
   Assumptions.VerificationType_instance
+  Assumptions.NewInBucket_unfold
+  Assumptions.ReadInodeFromPage_unfold
+  Assumptions.WriteInodeToPage_unfold
+  Assumptions.UsedSpaceInPage_unfold
+  Assumptions.NewPage_unfold
+  Assumptions.NewLeafPageElement_unfold
   Assumptions.Mergepgids_unfold
+  Assumptions.UnsafeAdd_unfold
+  Assumptions.UnsafeIndex_unfold
+  Assumptions.UnsafeByteSlice_unfold
+  Assumptions.LoadBucket_unfold
+  Assumptions.LoadPage_unfold
+  Assumptions.LoadPageMeta_unfold
+  Assumptions.CopyFile_unfold
+  Assumptions.getEnvVerify_unfold
+  Assumptions.IsVerificationEnabled_unfold
+  Assumptions.EnableVerifications_unfold
+  Assumptions.EnableAllVerifications_unfold
+  Assumptions.DisableVerifications_unfold
+  Assumptions.Verify_unfold
+  Assumptions.Assert_unfold
   Assumptions.import_fmt_Assumption
+  Assumptions.import_unsafe_Assumption
+  Assumptions.import_fnv_Assumption
+  Assumptions.import_io_Assumption
+  Assumptions.import_errors_Assumption
+  Assumptions.import_os_Assumption
   Assumptions.import_sort_Assumption
+  Assumptions.import_runtime_Assumption
+  Assumptions.import_time_Assumption
+  Assumptions.import_strings_Assumption
 
 end go_etcd_io.bbolt.internal.common
 

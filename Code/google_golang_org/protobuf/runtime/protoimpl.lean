@@ -27,15 +27,15 @@ def EnforceVersion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] EnforceVersion.ty
 
-axiom DescBuilder [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DescBuilder.ty [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom TypeBuilder [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom TypeBuilder.ty [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom EnumInfo [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom EnumInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom MessageInfo [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom MessageInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom ExtensionInfo [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ExtensionInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType
 
 @[reducible] def MessageState.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState.ty
@@ -43,20 +43,20 @@ axiom ExtensionInfo [FfiSyntax] [GoGlobalContext] : go.GoType
 @[reducible] def SizeCache.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.int32
 
-axiom WeakFields [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom WeakFields.ty [FfiSyntax] [GoGlobalContext] : go.GoType
 
 @[reducible] def UnknownFields.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType go.byte)
 
-axiom ExtensionFields [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ExtensionFields.ty [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom ExtensionFieldV1 [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ExtensionFieldV1.ty [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom Pointer [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Pointer.ty [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom LazyUnmarshalInfo [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom LazyUnmarshalInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom RaceDetectHookData [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom RaceDetectHookData.ty [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom EnforceVersion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 

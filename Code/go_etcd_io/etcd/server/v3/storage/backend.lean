@@ -570,11 +570,13 @@ instance equals_unfold_txBuffer [FfiSyntax] [GoGlobalContext] :
 class txBuffer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying txBuffer.underlying txBuffer
   underlying : go.UnderlyingDirectedEq txBuffer.ty txBuffer.underlying
+  layout : go.StructLayout txBuffer [(go!"buckets", typeSize GoMap, typeAlign GoMap)]
   get_buckets : ∀ (x : txBuffer), go.IsGoStepPureDetTagged under (StructFieldGet txBuffer.underlying go!"buckets") #x (Val #(x.buckets'))
   set_buckets : ∀ (x : txBuffer) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet txBuffer.underlying go!"buckets") (PairV #x #y) (Val #(({ x with buckets' := y } : txBuffer)))
 
 attribute [instance] txBuffer.TypeAssumptions.type_repr
   txBuffer.TypeAssumptions.underlying
+  txBuffer.TypeAssumptions.layout
   txBuffer.TypeAssumptions.get_buckets
   txBuffer.TypeAssumptions.set_buckets
 
@@ -603,6 +605,7 @@ instance equals_unfold_txWriteBuffer [FfiSyntax] [GoGlobalContext] :
 class txWriteBuffer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying txWriteBuffer.underlying txWriteBuffer
   underlying : go.UnderlyingDirectedEq txWriteBuffer.ty txWriteBuffer.underlying
+  layout : go.StructLayout txWriteBuffer [(go!"txBuffer", typeSize txBuffer, typeAlign txBuffer), (go!"bucket2seq", typeSize GoMap, typeAlign GoMap)]
   get_txBuffer : ∀ (x : txWriteBuffer), go.IsGoStepPureDetTagged under (StructFieldGet txWriteBuffer.underlying go!"txBuffer") #x (Val #(x.txBuffer'))
   set_txBuffer : ∀ (x : txWriteBuffer) (y : txBuffer), go.IsGoStepPureDetTagged under (StructFieldSet txWriteBuffer.underlying go!"txBuffer") (PairV #x #y) (Val #(({ x with txBuffer' := y } : txWriteBuffer)))
   get_bucket2seq : ∀ (x : txWriteBuffer), go.IsGoStepPureDetTagged under (StructFieldGet txWriteBuffer.underlying go!"bucket2seq") #x (Val #(x.bucket2seq'))
@@ -610,6 +613,7 @@ class txWriteBuffer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
 
 attribute [instance] txWriteBuffer.TypeAssumptions.type_repr
   txWriteBuffer.TypeAssumptions.underlying
+  txWriteBuffer.TypeAssumptions.layout
   txWriteBuffer.TypeAssumptions.get_txBuffer
   txWriteBuffer.TypeAssumptions.set_txBuffer
   txWriteBuffer.TypeAssumptions.get_bucket2seq
@@ -642,6 +646,7 @@ instance equals_unfold_batchTxBuffered [FfiSyntax] [GoGlobalContext] :
 class batchTxBuffered.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying batchTxBuffered.underlying batchTxBuffered
   underlying : go.UnderlyingDirectedEq batchTxBuffered.ty batchTxBuffered.underlying
+  layout : go.StructLayout batchTxBuffered [(go!"batchTx", typeSize batchTx, typeAlign batchTx), (go!"buf", typeSize txWriteBuffer, typeAlign txWriteBuffer), (go!"pendingDeleteOperations", typeSize w64, typeAlign w64)]
   get_batchTx : ∀ (x : batchTxBuffered), go.IsGoStepPureDetTagged under (StructFieldGet batchTxBuffered.underlying go!"batchTx") #x (Val #(x.batchTx'))
   set_batchTx : ∀ (x : batchTxBuffered) (y : batchTx), go.IsGoStepPureDetTagged under (StructFieldSet batchTxBuffered.underlying go!"batchTx") (PairV #x #y) (Val #(({ x with batchTx' := y } : batchTxBuffered)))
   get_buf : ∀ (x : batchTxBuffered), go.IsGoStepPureDetTagged under (StructFieldGet batchTxBuffered.underlying go!"buf") #x (Val #(x.buf'))
@@ -651,6 +656,7 @@ class batchTxBuffered.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
 
 attribute [instance] batchTxBuffered.TypeAssumptions.type_repr
   batchTxBuffered.TypeAssumptions.underlying
+  batchTxBuffered.TypeAssumptions.layout
   batchTxBuffered.TypeAssumptions.get_batchTx
   batchTxBuffered.TypeAssumptions.set_batchTx
   batchTxBuffered.TypeAssumptions.get_buf
@@ -701,11 +707,13 @@ instance equals_unfold_hooks [FfiSyntax] [GoGlobalContext] :
 class hooks.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying hooks.underlying hooks
   underlying : go.UnderlyingDirectedEq hooks.ty hooks.underlying
+  layout : go.StructLayout hooks [(go!"onPreCommitUnsafe", typeSize HookFunc, typeAlign HookFunc)]
   get_onPreCommitUnsafe : ∀ (x : hooks), go.IsGoStepPureDetTagged under (StructFieldGet hooks.underlying go!"onPreCommitUnsafe") #x (Val #(x.onPreCommitUnsafe'))
   set_onPreCommitUnsafe : ∀ (x : hooks) (y : HookFunc), go.IsGoStepPureDetTagged under (StructFieldSet hooks.underlying go!"onPreCommitUnsafe") (PairV #x #y) (Val #(({ x with onPreCommitUnsafe' := y } : hooks)))
 
 attribute [instance] hooks.TypeAssumptions.type_repr
   hooks.TypeAssumptions.underlying
+  hooks.TypeAssumptions.layout
   hooks.TypeAssumptions.get_onPreCommitUnsafe
   hooks.TypeAssumptions.set_onPreCommitUnsafe
 
@@ -765,11 +773,13 @@ instance equals_unfold_readTx [FfiSyntax] [GoGlobalContext] :
 class readTx.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying readTx.underlying readTx
   underlying : go.UnderlyingDirectedEq readTx.ty readTx.underlying
+  layout : go.StructLayout readTx [(go!"baseReadTx", typeSize baseReadTx, typeAlign baseReadTx)]
   get_baseReadTx : ∀ (x : readTx), go.IsGoStepPureDetTagged under (StructFieldGet readTx.underlying go!"baseReadTx") #x (Val #(x.baseReadTx'))
   set_baseReadTx : ∀ (x : readTx) (y : baseReadTx), go.IsGoStepPureDetTagged under (StructFieldSet readTx.underlying go!"baseReadTx") (PairV #x #y) (Val #(({ x with baseReadTx' := y } : readTx)))
 
 attribute [instance] readTx.TypeAssumptions.type_repr
   readTx.TypeAssumptions.underlying
+  readTx.TypeAssumptions.layout
   readTx.TypeAssumptions.get_baseReadTx
   readTx.TypeAssumptions.set_baseReadTx
 
@@ -796,11 +806,13 @@ instance equals_unfold_concurrentReadTx [FfiSyntax] [GoGlobalContext] :
 class concurrentReadTx.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying concurrentReadTx.underlying concurrentReadTx
   underlying : go.UnderlyingDirectedEq concurrentReadTx.ty concurrentReadTx.underlying
+  layout : go.StructLayout concurrentReadTx [(go!"baseReadTx", typeSize baseReadTx, typeAlign baseReadTx)]
   get_baseReadTx : ∀ (x : concurrentReadTx), go.IsGoStepPureDetTagged under (StructFieldGet concurrentReadTx.underlying go!"baseReadTx") #x (Val #(x.baseReadTx'))
   set_baseReadTx : ∀ (x : concurrentReadTx) (y : baseReadTx), go.IsGoStepPureDetTagged under (StructFieldSet concurrentReadTx.underlying go!"baseReadTx") (PairV #x #y) (Val #(({ x with baseReadTx' := y } : concurrentReadTx)))
 
 attribute [instance] concurrentReadTx.TypeAssumptions.type_repr
   concurrentReadTx.TypeAssumptions.underlying
+  concurrentReadTx.TypeAssumptions.layout
   concurrentReadTx.TypeAssumptions.get_baseReadTx
   concurrentReadTx.TypeAssumptions.set_baseReadTx
 
@@ -829,6 +841,7 @@ instance equals_unfold_txReadBuffer [FfiSyntax] [GoGlobalContext] :
 class txReadBuffer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying txReadBuffer.underlying txReadBuffer
   underlying : go.UnderlyingDirectedEq txReadBuffer.ty txReadBuffer.underlying
+  layout : go.StructLayout txReadBuffer [(go!"txBuffer", typeSize txBuffer, typeAlign txBuffer), (go!"bufVersion", typeSize w64, typeAlign w64)]
   get_txBuffer : ∀ (x : txReadBuffer), go.IsGoStepPureDetTagged under (StructFieldGet txReadBuffer.underlying go!"txBuffer") #x (Val #(x.txBuffer'))
   set_txBuffer : ∀ (x : txReadBuffer) (y : txBuffer), go.IsGoStepPureDetTagged under (StructFieldSet txReadBuffer.underlying go!"txBuffer") (PairV #x #y) (Val #(({ x with txBuffer' := y } : txReadBuffer)))
   get_bufVersion : ∀ (x : txReadBuffer), go.IsGoStepPureDetTagged under (StructFieldGet txReadBuffer.underlying go!"bufVersion") #x (Val #(x.bufVersion'))
@@ -836,6 +849,7 @@ class txReadBuffer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
 
 attribute [instance] txReadBuffer.TypeAssumptions.type_repr
   txReadBuffer.TypeAssumptions.underlying
+  txReadBuffer.TypeAssumptions.layout
   txReadBuffer.TypeAssumptions.get_txBuffer
   txReadBuffer.TypeAssumptions.set_txBuffer
   txReadBuffer.TypeAssumptions.get_bufVersion
@@ -866,6 +880,7 @@ instance equals_unfold_kv [FfiSyntax] [GoGlobalContext] :
 class kv.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying kv.underlying kv
   underlying : go.UnderlyingDirectedEq kv.ty kv.underlying
+  layout : go.StructLayout kv [(go!"key", typeSize GoSlice, typeAlign GoSlice), (go!"val", typeSize GoSlice, typeAlign GoSlice)]
   get_key : ∀ (x : kv), go.IsGoStepPureDetTagged under (StructFieldGet kv.underlying go!"key") #x (Val #(x.key'))
   set_key : ∀ (x : kv) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet kv.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : kv)))
   get_val : ∀ (x : kv), go.IsGoStepPureDetTagged under (StructFieldGet kv.underlying go!"val") #x (Val #(x.val'))
@@ -873,6 +888,7 @@ class kv.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSeman
 
 attribute [instance] kv.TypeAssumptions.type_repr
   kv.TypeAssumptions.underlying
+  kv.TypeAssumptions.layout
   kv.TypeAssumptions.get_key
   kv.TypeAssumptions.set_key
   kv.TypeAssumptions.get_val
@@ -903,6 +919,7 @@ instance equals_unfold_bucketBuffer [FfiSyntax] [GoGlobalContext] :
 class bucketBuffer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying bucketBuffer.underlying bucketBuffer
   underlying : go.UnderlyingDirectedEq bucketBuffer.ty bucketBuffer.underlying
+  layout : go.StructLayout bucketBuffer [(go!"buf", typeSize GoSlice, typeAlign GoSlice), (go!"used", typeSize w64, typeAlign w64)]
   get_buf : ∀ (x : bucketBuffer), go.IsGoStepPureDetTagged under (StructFieldGet bucketBuffer.underlying go!"buf") #x (Val #(x.buf'))
   set_buf : ∀ (x : bucketBuffer) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet bucketBuffer.underlying go!"buf") (PairV #x #y) (Val #(({ x with buf' := y } : bucketBuffer)))
   get_used : ∀ (x : bucketBuffer), go.IsGoStepPureDetTagged under (StructFieldGet bucketBuffer.underlying go!"used") #x (Val #(x.used'))
@@ -910,6 +927,7 @@ class bucketBuffer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
 
 attribute [instance] bucketBuffer.TypeAssumptions.type_repr
   bucketBuffer.TypeAssumptions.underlying
+  bucketBuffer.TypeAssumptions.layout
   bucketBuffer.TypeAssumptions.get_buf
   bucketBuffer.TypeAssumptions.set_buf
   bucketBuffer.TypeAssumptions.get_used

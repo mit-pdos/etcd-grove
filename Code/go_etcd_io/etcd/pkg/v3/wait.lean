@@ -114,11 +114,13 @@ instance equals_unfold_list [FfiSyntax] [GoGlobalContext] :
 class list.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying list'.underlying list'
   underlying : go.UnderlyingDirectedEq list'.ty list'.underlying
+  layout : go.StructLayout list' [(go!"e", typeSize GoSlice, typeAlign GoSlice)]
   get_e : ∀ (x : list'), go.IsGoStepPureDetTagged under (StructFieldGet list'.underlying go!"e") #x (Val #(x.e'))
   set_e : ∀ (x : list') (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet list'.underlying go!"e") (PairV #x #y) (Val #(({ x with e' := y } : list')))
 
 attribute [instance] list.TypeAssumptions.type_repr
   list.TypeAssumptions.underlying
+  list.TypeAssumptions.layout
   list.TypeAssumptions.get_e
   list.TypeAssumptions.set_e
 
@@ -158,11 +160,13 @@ instance equals_unfold_waitWithResponse [FfiSyntax] [GoGlobalContext] :
 class waitWithResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying waitWithResponse.underlying waitWithResponse
   underlying : go.UnderlyingDirectedEq waitWithResponse.ty waitWithResponse.underlying
+  layout : go.StructLayout waitWithResponse [(go!"ch", typeSize GoChan, typeAlign GoChan)]
   get_ch : ∀ (x : waitWithResponse), go.IsGoStepPureDetTagged under (StructFieldGet waitWithResponse.underlying go!"ch") #x (Val #(x.ch'))
   set_ch : ∀ (x : waitWithResponse) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet waitWithResponse.underlying go!"ch") (PairV #x #y) (Val #(({ x with ch' := y } : waitWithResponse)))
 
 attribute [instance] waitWithResponse.TypeAssumptions.type_repr
   waitWithResponse.TypeAssumptions.underlying
+  waitWithResponse.TypeAssumptions.layout
   waitWithResponse.TypeAssumptions.get_ch
   waitWithResponse.TypeAssumptions.set_ch
 

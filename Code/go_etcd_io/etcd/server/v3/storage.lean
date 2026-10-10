@@ -184,9 +184,11 @@ instance equals_unfold_passthroughQuota [FfiSyntax] [GoGlobalContext] :
 class passthroughQuota.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying passthroughQuota.underlying passthroughQuota
   underlying : go.UnderlyingDirectedEq passthroughQuota.ty passthroughQuota.underlying
+  layout : go.StructLayout passthroughQuota []
 
 attribute [instance] passthroughQuota.TypeAssumptions.type_repr
   passthroughQuota.TypeAssumptions.underlying
+  passthroughQuota.TypeAssumptions.layout
 
 axiom BackendQuota : Type
 axiom BackendQuota.zero_val : ZeroVal BackendQuota

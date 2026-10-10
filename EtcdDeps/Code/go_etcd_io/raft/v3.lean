@@ -663,6 +663,7 @@ instance equals_unfold_unstable [FfiSyntax] [GoGlobalContext] :
 class unstable.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying unstable.underlying unstable
   underlying : go.UnderlyingDirectedEq unstable.ty unstable.underlying
+  layout : go.StructLayout unstable [(go!"snapshot", typeSize Loc, typeAlign Loc), (go!"entries", typeSize GoSlice, typeAlign GoSlice), (go!"offset", typeSize w64, typeAlign w64), (go!"snapshotInProgress", typeSize Bool, typeAlign Bool), (go!"offsetInProgress", typeSize w64, typeAlign w64), (go!"logger", typeSize Logger, typeAlign Logger)]
   get_snapshot : ∀ (x : unstable), go.IsGoStepPureDetTagged under (StructFieldGet unstable.underlying go!"snapshot") #x (Val #(x.snapshot'))
   set_snapshot : ∀ (x : unstable) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet unstable.underlying go!"snapshot") (PairV #x #y) (Val #(({ x with snapshot' := y } : unstable)))
   get_entries : ∀ (x : unstable), go.IsGoStepPureDetTagged under (StructFieldGet unstable.underlying go!"entries") #x (Val #(x.entries'))
@@ -678,6 +679,7 @@ class unstable.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
 
 attribute [instance] unstable.TypeAssumptions.type_repr
   unstable.TypeAssumptions.underlying
+  unstable.TypeAssumptions.layout
   unstable.TypeAssumptions.get_snapshot
   unstable.TypeAssumptions.set_snapshot
   unstable.TypeAssumptions.get_entries
@@ -740,6 +742,7 @@ instance equals_unfold_raftLog [FfiSyntax] [GoGlobalContext] :
 class raftLog.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying raftLog.underlying raftLog
   underlying : go.UnderlyingDirectedEq raftLog.ty raftLog.underlying
+  layout : go.StructLayout raftLog [(go!"storage", typeSize Storage, typeAlign Storage), (go!"unstable", typeSize unstable, typeAlign unstable), (go!"committed", typeSize w64, typeAlign w64), (go!"applying", typeSize w64, typeAlign w64), (go!"applied", typeSize w64, typeAlign w64), (go!"logger", typeSize Logger, typeAlign Logger), (go!"maxApplyingEntsSize", typeSize entryEncodingSize, typeAlign entryEncodingSize), (go!"applyingEntsSize", typeSize entryEncodingSize, typeAlign entryEncodingSize), (go!"applyingEntsPaused", typeSize Bool, typeAlign Bool)]
   get_storage : ∀ (x : raftLog), go.IsGoStepPureDetTagged under (StructFieldGet raftLog.underlying go!"storage") #x (Val #(x.storage'))
   set_storage : ∀ (x : raftLog) (y : Storage), go.IsGoStepPureDetTagged under (StructFieldSet raftLog.underlying go!"storage") (PairV #x #y) (Val #(({ x with storage' := y } : raftLog)))
   get_unstable : ∀ (x : raftLog), go.IsGoStepPureDetTagged under (StructFieldGet raftLog.underlying go!"unstable") #x (Val #(x.unstable'))
@@ -761,6 +764,7 @@ class raftLog.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
 
 attribute [instance] raftLog.TypeAssumptions.type_repr
   raftLog.TypeAssumptions.underlying
+  raftLog.TypeAssumptions.layout
   raftLog.TypeAssumptions.get_storage
   raftLog.TypeAssumptions.set_storage
   raftLog.TypeAssumptions.get_unstable
@@ -838,6 +842,7 @@ instance equals_unfold_SoftState [FfiSyntax] [GoGlobalContext] :
 class SoftState.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SoftState.underlying SoftState
   underlying : go.UnderlyingDirectedEq SoftState.ty SoftState.underlying
+  layout : go.StructLayout SoftState [(go!"Lead", typeSize w64, typeAlign w64), (go!"RaftState", typeSize StateType, typeAlign StateType)]
   get_Lead : ∀ (x : SoftState), go.IsGoStepPureDetTagged under (StructFieldGet SoftState.underlying go!"Lead") #x (Val #(x.Lead'))
   set_Lead : ∀ (x : SoftState) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet SoftState.underlying go!"Lead") (PairV #x #y) (Val #(({ x with Lead' := y } : SoftState)))
   get_RaftState : ∀ (x : SoftState), go.IsGoStepPureDetTagged under (StructFieldGet SoftState.underlying go!"RaftState") #x (Val #(x.RaftState'))
@@ -845,6 +850,7 @@ class SoftState.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
 
 attribute [instance] SoftState.TypeAssumptions.type_repr
   SoftState.TypeAssumptions.underlying
+  SoftState.TypeAssumptions.layout
   SoftState.TypeAssumptions.get_Lead
   SoftState.TypeAssumptions.set_Lead
   SoftState.TypeAssumptions.get_RaftState
@@ -887,6 +893,7 @@ instance equals_unfold_Ready [FfiSyntax] [GoGlobalContext] :
 class Ready.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Ready.underlying Ready
   underlying : go.UnderlyingDirectedEq Ready.ty Ready.underlying
+  layout : go.StructLayout Ready [(go!"SoftState", typeSize Loc, typeAlign Loc), (go!"HardState", typeSize Loc, typeAlign Loc), (go!"ReadStates", typeSize GoSlice, typeAlign GoSlice), (go!"Entries", typeSize GoSlice, typeAlign GoSlice), (go!"Snapshot", typeSize Loc, typeAlign Loc), (go!"CommittedEntries", typeSize GoSlice, typeAlign GoSlice), (go!"Messages", typeSize GoSlice, typeAlign GoSlice), (go!"MustSync", typeSize Bool, typeAlign Bool)]
   get_SoftState : ∀ (x : Ready), go.IsGoStepPureDetTagged under (StructFieldGet Ready.underlying go!"SoftState") #x (Val #(x.SoftState'))
   set_SoftState : ∀ (x : Ready) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Ready.underlying go!"SoftState") (PairV #x #y) (Val #(({ x with SoftState' := y } : Ready)))
   get_HardState : ∀ (x : Ready), go.IsGoStepPureDetTagged under (StructFieldGet Ready.underlying go!"HardState") #x (Val #(x.HardState'))
@@ -906,6 +913,7 @@ class Ready.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
 
 attribute [instance] Ready.TypeAssumptions.type_repr
   Ready.TypeAssumptions.underlying
+  Ready.TypeAssumptions.layout
   Ready.TypeAssumptions.get_SoftState
   Ready.TypeAssumptions.set_SoftState
   Ready.TypeAssumptions.get_HardState
@@ -961,6 +969,7 @@ instance equals_unfold_Peer [FfiSyntax] [GoGlobalContext] :
 class Peer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Peer.underlying Peer
   underlying : go.UnderlyingDirectedEq Peer.ty Peer.underlying
+  layout : go.StructLayout Peer [(go!"ID", typeSize w64, typeAlign w64), (go!"Context", typeSize GoSlice, typeAlign GoSlice)]
   get_ID : ∀ (x : Peer), go.IsGoStepPureDetTagged under (StructFieldGet Peer.underlying go!"ID") #x (Val #(x.ID'))
   set_ID : ∀ (x : Peer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Peer.underlying go!"ID") (PairV #x #y) (Val #(({ x with ID' := y } : Peer)))
   get_Context : ∀ (x : Peer), go.IsGoStepPureDetTagged under (StructFieldGet Peer.underlying go!"Context") #x (Val #(x.Context'))
@@ -968,6 +977,7 @@ class Peer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSem
 
 attribute [instance] Peer.TypeAssumptions.type_repr
   Peer.TypeAssumptions.underlying
+  Peer.TypeAssumptions.layout
   Peer.TypeAssumptions.get_ID
   Peer.TypeAssumptions.set_ID
   Peer.TypeAssumptions.get_Context
@@ -998,6 +1008,7 @@ instance equals_unfold_msgWithResult [FfiSyntax] [GoGlobalContext] :
 class msgWithResult.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying msgWithResult.underlying msgWithResult
   underlying : go.UnderlyingDirectedEq msgWithResult.ty msgWithResult.underlying
+  layout : go.StructLayout msgWithResult [(go!"m", typeSize Loc, typeAlign Loc), (go!"result", typeSize GoChan, typeAlign GoChan)]
   get_m : ∀ (x : msgWithResult), go.IsGoStepPureDetTagged under (StructFieldGet msgWithResult.underlying go!"m") #x (Val #(x.m'))
   set_m : ∀ (x : msgWithResult) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet msgWithResult.underlying go!"m") (PairV #x #y) (Val #(({ x with m' := y } : msgWithResult)))
   get_result : ∀ (x : msgWithResult), go.IsGoStepPureDetTagged under (StructFieldGet msgWithResult.underlying go!"result") #x (Val #(x.result'))
@@ -1005,6 +1016,7 @@ class msgWithResult.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
 
 attribute [instance] msgWithResult.TypeAssumptions.type_repr
   msgWithResult.TypeAssumptions.underlying
+  msgWithResult.TypeAssumptions.layout
   msgWithResult.TypeAssumptions.get_m
   msgWithResult.TypeAssumptions.set_m
   msgWithResult.TypeAssumptions.get_result
@@ -1053,6 +1065,7 @@ instance equals_unfold_node [FfiSyntax] [GoGlobalContext] :
 class node.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying node.underlying node
   underlying : go.UnderlyingDirectedEq node.ty node.underlying
+  layout : go.StructLayout node [(go!"propc", typeSize GoChan, typeAlign GoChan), (go!"recvc", typeSize GoChan, typeAlign GoChan), (go!"confc", typeSize GoChan, typeAlign GoChan), (go!"confstatec", typeSize GoChan, typeAlign GoChan), (go!"readyc", typeSize GoChan, typeAlign GoChan), (go!"advancec", typeSize GoChan, typeAlign GoChan), (go!"tickc", typeSize GoChan, typeAlign GoChan), (go!"done", typeSize GoChan, typeAlign GoChan), (go!"stop", typeSize GoChan, typeAlign GoChan), (go!"status", typeSize GoChan, typeAlign GoChan), (go!"rn", typeSize Loc, typeAlign Loc)]
   get_propc : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"propc") #x (Val #(x.propc'))
   set_propc : ∀ (x : node) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"propc") (PairV #x #y) (Val #(({ x with propc' := y } : node)))
   get_recvc : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"recvc") #x (Val #(x.recvc'))
@@ -1078,6 +1091,7 @@ class node.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSem
 
 attribute [instance] node.TypeAssumptions.type_repr
   node.TypeAssumptions.underlying
+  node.TypeAssumptions.layout
   node.TypeAssumptions.get_propc
   node.TypeAssumptions.set_propc
   node.TypeAssumptions.get_recvc
@@ -1203,6 +1217,7 @@ instance equals_unfold_Config [FfiSyntax] [GoGlobalContext] :
 class Config.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Config.underlying Config
   underlying : go.UnderlyingDirectedEq Config.ty Config.underlying
+  layout : go.StructLayout Config [(go!"ID", typeSize w64, typeAlign w64), (go!"ElectionTick", typeSize w64, typeAlign w64), (go!"HeartbeatTick", typeSize w64, typeAlign w64), (go!"Storage", typeSize Storage, typeAlign Storage), (go!"Applied", typeSize w64, typeAlign w64), (go!"AsyncStorageWrites", typeSize Bool, typeAlign Bool), (go!"MaxSizePerMsg", typeSize w64, typeAlign w64), (go!"MaxCommittedSizePerReady", typeSize w64, typeAlign w64), (go!"MaxUncommittedEntriesSize", typeSize w64, typeAlign w64), (go!"MaxInflightMsgs", typeSize w64, typeAlign w64), (go!"MaxInflightBytes", typeSize w64, typeAlign w64), (go!"CheckQuorum", typeSize Bool, typeAlign Bool), (go!"PreVote", typeSize Bool, typeAlign Bool), (go!"ReadOnlyOption", typeSize ReadOnlyOption, typeAlign ReadOnlyOption), (go!"Logger", typeSize Logger, typeAlign Logger), (go!"DisableProposalForwarding", typeSize Bool, typeAlign Bool), (go!"DisableConfChangeValidation", typeSize Bool, typeAlign Bool), (go!"StepDownOnRemoval", typeSize Bool, typeAlign Bool), (go!"TraceLogger", typeSize TraceLogger, typeAlign TraceLogger)]
   get_ID : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ID") #x (Val #(x.ID'))
   set_ID : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ID") (PairV #x #y) (Val #(({ x with ID' := y } : Config)))
   get_ElectionTick : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ElectionTick") #x (Val #(x.ElectionTick'))
@@ -1244,6 +1259,7 @@ class Config.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
 
 attribute [instance] Config.TypeAssumptions.type_repr
   Config.TypeAssumptions.underlying
+  Config.TypeAssumptions.layout
   Config.TypeAssumptions.get_ID
   Config.TypeAssumptions.set_ID
   Config.TypeAssumptions.get_ElectionTick
@@ -1337,6 +1353,7 @@ instance equals_unfold_RawNode [FfiSyntax] [GoGlobalContext] :
 class RawNode.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RawNode.underlying RawNode
   underlying : go.UnderlyingDirectedEq RawNode.ty RawNode.underlying
+  layout : go.StructLayout RawNode [(go!"raft", typeSize Loc, typeAlign Loc), (go!"asyncStorageWrites", typeSize Bool, typeAlign Bool), (go!"prevSoftSt", typeSize Loc, typeAlign Loc), (go!"prevHardSt", typeSize Loc, typeAlign Loc), (go!"stepsOnAdvance", typeSize GoSlice, typeAlign GoSlice)]
   get_raft : ∀ (x : RawNode), go.IsGoStepPureDetTagged under (StructFieldGet RawNode.underlying go!"raft") #x (Val #(x.raft'))
   set_raft : ∀ (x : RawNode) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RawNode.underlying go!"raft") (PairV #x #y) (Val #(({ x with raft' := y } : RawNode)))
   get_asyncStorageWrites : ∀ (x : RawNode), go.IsGoStepPureDetTagged under (StructFieldGet RawNode.underlying go!"asyncStorageWrites") #x (Val #(x.asyncStorageWrites'))
@@ -1350,6 +1367,7 @@ class RawNode.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
 
 attribute [instance] RawNode.TypeAssumptions.type_repr
   RawNode.TypeAssumptions.underlying
+  RawNode.TypeAssumptions.layout
   RawNode.TypeAssumptions.get_raft
   RawNode.TypeAssumptions.set_raft
   RawNode.TypeAssumptions.get_asyncStorageWrites
@@ -1396,6 +1414,7 @@ instance equals_unfold_ReadState [FfiSyntax] [GoGlobalContext] :
 class ReadState.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ReadState.underlying ReadState
   underlying : go.UnderlyingDirectedEq ReadState.ty ReadState.underlying
+  layout : go.StructLayout ReadState [(go!"Index", typeSize w64, typeAlign w64), (go!"RequestCtx", typeSize GoSlice, typeAlign GoSlice)]
   get_Index : ∀ (x : ReadState), go.IsGoStepPureDetTagged under (StructFieldGet ReadState.underlying go!"Index") #x (Val #(x.Index'))
   set_Index : ∀ (x : ReadState) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ReadState.underlying go!"Index") (PairV #x #y) (Val #(({ x with Index' := y } : ReadState)))
   get_RequestCtx : ∀ (x : ReadState), go.IsGoStepPureDetTagged under (StructFieldGet ReadState.underlying go!"RequestCtx") #x (Val #(x.RequestCtx'))
@@ -1403,6 +1422,7 @@ class ReadState.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
 
 attribute [instance] ReadState.TypeAssumptions.type_repr
   ReadState.TypeAssumptions.underlying
+  ReadState.TypeAssumptions.layout
   ReadState.TypeAssumptions.get_Index
   ReadState.TypeAssumptions.set_Index
   ReadState.TypeAssumptions.get_RequestCtx
@@ -1433,6 +1453,7 @@ instance equals_unfold_readIndexRequest [FfiSyntax] [GoGlobalContext] :
 class readIndexRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying readIndexRequest.underlying readIndexRequest
   underlying : go.UnderlyingDirectedEq readIndexRequest.ty readIndexRequest.underlying
+  layout : go.StructLayout readIndexRequest [(go!"req", typeSize Loc, typeAlign Loc), (go!"index", typeSize w64, typeAlign w64)]
   get_req : ∀ (x : readIndexRequest), go.IsGoStepPureDetTagged under (StructFieldGet readIndexRequest.underlying go!"req") #x (Val #(x.req'))
   set_req : ∀ (x : readIndexRequest) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet readIndexRequest.underlying go!"req") (PairV #x #y) (Val #(({ x with req' := y } : readIndexRequest)))
   get_index : ∀ (x : readIndexRequest), go.IsGoStepPureDetTagged under (StructFieldGet readIndexRequest.underlying go!"index") #x (Val #(x.index'))
@@ -1440,6 +1461,7 @@ class readIndexRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
 
 attribute [instance] readIndexRequest.TypeAssumptions.type_repr
   readIndexRequest.TypeAssumptions.underlying
+  readIndexRequest.TypeAssumptions.layout
   readIndexRequest.TypeAssumptions.get_req
   readIndexRequest.TypeAssumptions.set_req
   readIndexRequest.TypeAssumptions.get_index
@@ -1474,6 +1496,7 @@ instance equals_unfold_readOnly [FfiSyntax] [GoGlobalContext] :
 class readOnly.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying readOnly.underlying readOnly
   underlying : go.UnderlyingDirectedEq readOnly.ty readOnly.underlying
+  layout : go.StructLayout readOnly [(go!"option", typeSize ReadOnlyOption, typeAlign ReadOnlyOption), (go!"acks", typeSize GoMap, typeAlign GoMap), (go!"unconfirmedReads", typeSize GoSlice, typeAlign GoSlice), (go!"confirmedReads", typeSize w64, typeAlign w64)]
   get_option : ∀ (x : readOnly), go.IsGoStepPureDetTagged under (StructFieldGet readOnly.underlying go!"option") #x (Val #(x.option'))
   «set_option» : ∀ (x : readOnly) (y : ReadOnlyOption), go.IsGoStepPureDetTagged under (StructFieldSet readOnly.underlying go!"option") (PairV #x #y) (Val #(({ x with option' := y } : readOnly)))
   get_acks : ∀ (x : readOnly), go.IsGoStepPureDetTagged under (StructFieldGet readOnly.underlying go!"acks") #x (Val #(x.acks'))
@@ -1485,6 +1508,7 @@ class readOnly.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
 
 attribute [instance] readOnly.TypeAssumptions.type_repr
   readOnly.TypeAssumptions.underlying
+  readOnly.TypeAssumptions.layout
   readOnly.TypeAssumptions.get_option
   readOnly.TypeAssumptions.«set_option»
   readOnly.TypeAssumptions.get_acks
@@ -1516,9 +1540,11 @@ instance equals_unfold_TracingEvent [FfiSyntax] [GoGlobalContext] :
 class TracingEvent.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TracingEvent.underlying TracingEvent
   underlying : go.UnderlyingDirectedEq TracingEvent.ty TracingEvent.underlying
+  layout : go.StructLayout TracingEvent []
 
 attribute [instance] TracingEvent.TypeAssumptions.type_repr
   TracingEvent.TypeAssumptions.underlying
+  TracingEvent.TypeAssumptions.layout
 
 axiom Status : Type
 axiom Status.zero_val : ZeroVal Status
@@ -1564,6 +1590,7 @@ instance equals_unfold_BasicStatus [FfiSyntax] [GoGlobalContext] :
 class BasicStatus.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying BasicStatus.underlying BasicStatus
   underlying : go.UnderlyingDirectedEq BasicStatus.ty BasicStatus.underlying
+  layout : go.StructLayout BasicStatus [(go!"ID", typeSize w64, typeAlign w64), (go!"HardState", typeSize Loc, typeAlign Loc), (go!"SoftState", typeSize SoftState, typeAlign SoftState), (go!"Applied", typeSize w64, typeAlign w64), (go!"LeadTransferee", typeSize w64, typeAlign w64)]
   get_ID : ∀ (x : BasicStatus), go.IsGoStepPureDetTagged under (StructFieldGet BasicStatus.underlying go!"ID") #x (Val #(x.ID'))
   set_ID : ∀ (x : BasicStatus) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet BasicStatus.underlying go!"ID") (PairV #x #y) (Val #(({ x with ID' := y } : BasicStatus)))
   get_HardState : ∀ (x : BasicStatus), go.IsGoStepPureDetTagged under (StructFieldGet BasicStatus.underlying go!"HardState") #x (Val #(x.HardState'))
@@ -1577,6 +1604,7 @@ class BasicStatus.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
 
 attribute [instance] BasicStatus.TypeAssumptions.type_repr
   BasicStatus.TypeAssumptions.underlying
+  BasicStatus.TypeAssumptions.layout
   BasicStatus.TypeAssumptions.get_ID
   BasicStatus.TypeAssumptions.set_ID
   BasicStatus.TypeAssumptions.get_HardState
@@ -1621,6 +1649,7 @@ instance equals_unfold_inMemStorageCallStats [FfiSyntax] [GoGlobalContext] :
 class inMemStorageCallStats.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying inMemStorageCallStats.underlying inMemStorageCallStats
   underlying : go.UnderlyingDirectedEq inMemStorageCallStats.ty inMemStorageCallStats.underlying
+  layout : go.StructLayout inMemStorageCallStats [(go!"initialState", typeSize w64, typeAlign w64), (go!"firstIndex", typeSize w64, typeAlign w64), (go!"lastIndex", typeSize w64, typeAlign w64), (go!"entries", typeSize w64, typeAlign w64), (go!"term", typeSize w64, typeAlign w64), (go!"snapshot", typeSize w64, typeAlign w64)]
   get_initialState : ∀ (x : inMemStorageCallStats), go.IsGoStepPureDetTagged under (StructFieldGet inMemStorageCallStats.underlying go!"initialState") #x (Val #(x.initialState'))
   set_initialState : ∀ (x : inMemStorageCallStats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet inMemStorageCallStats.underlying go!"initialState") (PairV #x #y) (Val #(({ x with initialState' := y } : inMemStorageCallStats)))
   get_firstIndex : ∀ (x : inMemStorageCallStats), go.IsGoStepPureDetTagged under (StructFieldGet inMemStorageCallStats.underlying go!"firstIndex") #x (Val #(x.firstIndex'))
@@ -1636,6 +1665,7 @@ class inMemStorageCallStats.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLoc
 
 attribute [instance] inMemStorageCallStats.TypeAssumptions.type_repr
   inMemStorageCallStats.TypeAssumptions.underlying
+  inMemStorageCallStats.TypeAssumptions.layout
   inMemStorageCallStats.TypeAssumptions.get_initialState
   inMemStorageCallStats.TypeAssumptions.set_initialState
   inMemStorageCallStats.TypeAssumptions.get_firstIndex
@@ -1687,6 +1717,7 @@ instance equals_unfold_entryID [FfiSyntax] [GoGlobalContext] :
 class entryID.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying entryID.underlying entryID
   underlying : go.UnderlyingDirectedEq entryID.ty entryID.underlying
+  layout : go.StructLayout entryID [(go!"term", typeSize w64, typeAlign w64), (go!"index", typeSize w64, typeAlign w64)]
   get_term : ∀ (x : entryID), go.IsGoStepPureDetTagged under (StructFieldGet entryID.underlying go!"term") #x (Val #(x.term'))
   set_term : ∀ (x : entryID) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet entryID.underlying go!"term") (PairV #x #y) (Val #(({ x with term' := y } : entryID)))
   get_index : ∀ (x : entryID), go.IsGoStepPureDetTagged under (StructFieldGet entryID.underlying go!"index") #x (Val #(x.index'))
@@ -1694,6 +1725,7 @@ class entryID.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
 
 attribute [instance] entryID.TypeAssumptions.type_repr
   entryID.TypeAssumptions.underlying
+  entryID.TypeAssumptions.layout
   entryID.TypeAssumptions.get_term
   entryID.TypeAssumptions.set_term
   entryID.TypeAssumptions.get_index
@@ -1726,6 +1758,7 @@ instance equals_unfold_logSlice [FfiSyntax] [GoGlobalContext] :
 class logSlice.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying logSlice.underlying logSlice
   underlying : go.UnderlyingDirectedEq logSlice.ty logSlice.underlying
+  layout : go.StructLayout logSlice [(go!"term", typeSize w64, typeAlign w64), (go!"prev", typeSize entryID, typeAlign entryID), (go!"entries", typeSize GoSlice, typeAlign GoSlice)]
   get_term : ∀ (x : logSlice), go.IsGoStepPureDetTagged under (StructFieldGet logSlice.underlying go!"term") #x (Val #(x.term'))
   set_term : ∀ (x : logSlice) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet logSlice.underlying go!"term") (PairV #x #y) (Val #(({ x with term' := y } : logSlice)))
   get_prev : ∀ (x : logSlice), go.IsGoStepPureDetTagged under (StructFieldGet logSlice.underlying go!"prev") #x (Val #(x.prev'))
@@ -1735,6 +1768,7 @@ class logSlice.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
 
 attribute [instance] logSlice.TypeAssumptions.type_repr
   logSlice.TypeAssumptions.underlying
+  logSlice.TypeAssumptions.layout
   logSlice.TypeAssumptions.get_term
   logSlice.TypeAssumptions.set_term
   logSlice.TypeAssumptions.get_prev

@@ -473,6 +473,7 @@ instance equals_unfold_consistentIndex [FfiSyntax] [GoGlobalContext] :
 class consistentIndex.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying consistentIndex.underlying consistentIndex
   underlying : go.UnderlyingDirectedEq consistentIndex.ty consistentIndex.underlying
+  layout : go.StructLayout consistentIndex [(go!"consistentIndex", typeSize w64, typeAlign w64), (go!"term", typeSize w64, typeAlign w64), (go!"applyingIndex", typeSize w64, typeAlign w64), (go!"applyingTerm", typeSize w64, typeAlign w64), (go!"be", typeSize Backend, typeAlign Backend), (go!"mutex", typeSize _root_.Perennial.sync.Mutex, typeAlign _root_.Perennial.sync.Mutex)]
   get_consistentIndex : ∀ (x : consistentIndex), go.IsGoStepPureDetTagged under (StructFieldGet consistentIndex.underlying go!"consistentIndex") #x (Val #(x.consistentIndex'))
   set_consistentIndex : ∀ (x : consistentIndex) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet consistentIndex.underlying go!"consistentIndex") (PairV #x #y) (Val #(({ x with consistentIndex' := y } : consistentIndex)))
   get_term : ∀ (x : consistentIndex), go.IsGoStepPureDetTagged under (StructFieldGet consistentIndex.underlying go!"term") #x (Val #(x.term'))
@@ -495,6 +496,7 @@ class consistentIndex.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
 
 attribute [instance] consistentIndex.TypeAssumptions.type_repr
   consistentIndex.TypeAssumptions.underlying
+  consistentIndex.TypeAssumptions.layout
   consistentIndex.TypeAssumptions.get_consistentIndex
   consistentIndex.TypeAssumptions.set_consistentIndex
   consistentIndex.TypeAssumptions.get_term
@@ -540,6 +542,7 @@ instance equals_unfold_fakeConsistentIndex [FfiSyntax] [GoGlobalContext] :
 class fakeConsistentIndex.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying fakeConsistentIndex.underlying fakeConsistentIndex
   underlying : go.UnderlyingDirectedEq fakeConsistentIndex.ty fakeConsistentIndex.underlying
+  layout : go.StructLayout fakeConsistentIndex [(go!"index", typeSize w64, typeAlign w64), (go!"term", typeSize w64, typeAlign w64)]
   get_index : ∀ (x : fakeConsistentIndex), go.IsGoStepPureDetTagged under (StructFieldGet fakeConsistentIndex.underlying go!"index") #x (Val #(x.index'))
   set_index : ∀ (x : fakeConsistentIndex) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet fakeConsistentIndex.underlying go!"index") (PairV #x #y) (Val #(({ x with index' := y } : fakeConsistentIndex)))
   get_term : ∀ (x : fakeConsistentIndex), go.IsGoStepPureDetTagged under (StructFieldGet fakeConsistentIndex.underlying go!"term") #x (Val #(x.term'))
@@ -554,6 +557,7 @@ class fakeConsistentIndex.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocal
 
 attribute [instance] fakeConsistentIndex.TypeAssumptions.type_repr
   fakeConsistentIndex.TypeAssumptions.underlying
+  fakeConsistentIndex.TypeAssumptions.layout
   fakeConsistentIndex.TypeAssumptions.get_index
   fakeConsistentIndex.TypeAssumptions.set_index
   fakeConsistentIndex.TypeAssumptions.get_term

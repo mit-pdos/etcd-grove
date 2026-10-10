@@ -19,6 +19,25 @@ open Iris Iris.BI
 noncomputable section
 namespace go_uber_org.zap.zapcore
 
+namespace anonStruct_c915cf551744adac
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_uber_org.zap.zapcore.Assumptions]
+
+instance anonStruct_c915cf551744adac_typed_pointsto :
+    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.anonStruct_c915cf551744adac :=
+  sorry -- axiomatized type
+
+instance anonStruct_c915cf551744adac_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.anonStruct_c915cf551744adac go_uber_org.zap.zapcore.anonStruct_c915cf551744adac.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end anonStruct_c915cf551744adac
+
 namespace BufferedWriteSyncer
 section def_
 

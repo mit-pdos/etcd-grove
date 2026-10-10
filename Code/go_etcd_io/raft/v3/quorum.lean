@@ -7,6 +7,7 @@ public import Perennial.Code.math
 public import Perennial.Code.slices
 public import Perennial.Code.strings
 public import Perennial.Code.strconv
+public import Perennial.Code.io
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -852,6 +853,7 @@ instance equals_unfold_tup [FfiSyntax] [GoGlobalContext] :
 class tup.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying tup.underlying tup
   underlying : go.UnderlyingDirectedEq tup.ty tup.underlying
+  layout : go.StructLayout tup [(go!"id", typeSize w64, typeAlign w64), (go!"idx", typeSize Index', typeAlign Index'), (go!"ok", typeSize Bool, typeAlign Bool), (go!"bar", typeSize w64, typeAlign w64)]
   get_id : ∀ (x : tup), go.IsGoStepPureDetTagged under (StructFieldGet tup.underlying go!"id") #x (Val #(x.id'))
   set_id : ∀ (x : tup) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet tup.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : tup)))
   get_idx : ∀ (x : tup), go.IsGoStepPureDetTagged under (StructFieldGet tup.underlying go!"idx") #x (Val #(x.idx'))
@@ -863,6 +865,7 @@ class tup.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSema
 
 attribute [instance] tup.TypeAssumptions.type_repr
   tup.TypeAssumptions.underlying
+  tup.TypeAssumptions.layout
   tup.TypeAssumptions.get_id
   tup.TypeAssumptions.set_id
   tup.TypeAssumptions.get_idx

@@ -17,6 +17,25 @@ open Iris Iris.BI
 noncomputable section
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.v2stats
 
+namespace anonStruct_bd9d38e69bbb039e
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.Assumptions]
+
+instance anonStruct_bd9d38e69bbb039e_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.anonStruct_bd9d38e69bbb039e :=
+  sorry -- axiomatized type
+
+instance anonStruct_bd9d38e69bbb039e_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.anonStruct_bd9d38e69bbb039e go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.anonStruct_bd9d38e69bbb039e.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end anonStruct_bd9d38e69bbb039e
+
 namespace LeaderStats
 section def_
 

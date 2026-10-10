@@ -346,9 +346,11 @@ instance equals_unfold_gRPCContextKey [FfiSyntax] [GoGlobalContext] :
 class gRPCContextKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying gRPCContextKey.underlying gRPCContextKey
   underlying : go.UnderlyingDirectedEq gRPCContextKey.ty gRPCContextKey.underlying
+  layout : go.StructLayout gRPCContextKey []
 
 attribute [instance] gRPCContextKey.TypeAssumptions.type_repr
   gRPCContextKey.TypeAssumptions.underlying
+  gRPCContextKey.TypeAssumptions.layout
 
 structure dialTargetContextKey [FfiSyntax] where
   mk ::
@@ -372,9 +374,11 @@ instance equals_unfold_dialTargetContextKey [FfiSyntax] [GoGlobalContext] :
 class dialTargetContextKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying dialTargetContextKey.underlying dialTargetContextKey
   underlying : go.UnderlyingDirectedEq dialTargetContextKey.ty dialTargetContextKey.underlying
+  layout : go.StructLayout dialTargetContextKey []
 
 attribute [instance] dialTargetContextKey.TypeAssumptions.type_repr
   dialTargetContextKey.TypeAssumptions.underlying
+  dialTargetContextKey.TypeAssumptions.layout
 
 axiom gRPCContext : Type
 axiom gRPCContext.zero_val : ZeroVal gRPCContext

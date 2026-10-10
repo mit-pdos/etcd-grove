@@ -76,9 +76,11 @@ instance equals_unfold_NoUnkeyedLiterals [FfiSyntax] [GoGlobalContext] :
 class NoUnkeyedLiterals.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying NoUnkeyedLiterals.underlying NoUnkeyedLiterals
   underlying : go.UnderlyingDirectedEq NoUnkeyedLiterals.ty NoUnkeyedLiterals.underlying
+  layout : go.StructLayout NoUnkeyedLiterals []
 
 attribute [instance] NoUnkeyedLiterals.TypeAssumptions.type_repr
   NoUnkeyedLiterals.TypeAssumptions.underlying
+  NoUnkeyedLiterals.TypeAssumptions.layout
 
 abbrev DoNotImplement [FfiSyntax] : Type := GoInterface
 

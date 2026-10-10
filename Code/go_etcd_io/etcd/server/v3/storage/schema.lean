@@ -846,6 +846,7 @@ instance equals_unfold_setKeyAction [FfiSyntax] [GoGlobalContext] :
 class setKeyAction.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying setKeyAction.underlying setKeyAction
   underlying : go.UnderlyingDirectedEq setKeyAction.ty setKeyAction.underlying
+  layout : go.StructLayout setKeyAction [(go!"Bucket", typeSize _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket, typeAlign _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket), (go!"FieldName", typeSize GoSlice, typeAlign GoSlice), (go!"FieldValue", typeSize GoSlice, typeAlign GoSlice)]
   get_Bucket : ∀ (x : setKeyAction), go.IsGoStepPureDetTagged under (StructFieldGet setKeyAction.underlying go!"Bucket") #x (Val #(x.Bucket'))
   set_Bucket : ∀ (x : setKeyAction) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket), go.IsGoStepPureDetTagged under (StructFieldSet setKeyAction.underlying go!"Bucket") (PairV #x #y) (Val #(({ x with Bucket' := y } : setKeyAction)))
   get_FieldName : ∀ (x : setKeyAction), go.IsGoStepPureDetTagged under (StructFieldGet setKeyAction.underlying go!"FieldName") #x (Val #(x.FieldName'))
@@ -855,6 +856,7 @@ class setKeyAction.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
 
 attribute [instance] setKeyAction.TypeAssumptions.type_repr
   setKeyAction.TypeAssumptions.underlying
+  setKeyAction.TypeAssumptions.layout
   setKeyAction.TypeAssumptions.get_Bucket
   setKeyAction.TypeAssumptions.set_Bucket
   setKeyAction.TypeAssumptions.get_FieldName
@@ -887,6 +889,7 @@ instance equals_unfold_deleteKeyAction [FfiSyntax] [GoGlobalContext] :
 class deleteKeyAction.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying deleteKeyAction.underlying deleteKeyAction
   underlying : go.UnderlyingDirectedEq deleteKeyAction.ty deleteKeyAction.underlying
+  layout : go.StructLayout deleteKeyAction [(go!"Bucket", typeSize _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket, typeAlign _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket), (go!"FieldName", typeSize GoSlice, typeAlign GoSlice)]
   get_Bucket : ∀ (x : deleteKeyAction), go.IsGoStepPureDetTagged under (StructFieldGet deleteKeyAction.underlying go!"Bucket") #x (Val #(x.Bucket'))
   set_Bucket : ∀ (x : deleteKeyAction) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket), go.IsGoStepPureDetTagged under (StructFieldSet deleteKeyAction.underlying go!"Bucket") (PairV #x #y) (Val #(({ x with Bucket' := y } : deleteKeyAction)))
   get_FieldName : ∀ (x : deleteKeyAction), go.IsGoStepPureDetTagged under (StructFieldGet deleteKeyAction.underlying go!"FieldName") #x (Val #(x.FieldName'))
@@ -894,6 +897,7 @@ class deleteKeyAction.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
 
 attribute [instance] deleteKeyAction.TypeAssumptions.type_repr
   deleteKeyAction.TypeAssumptions.underlying
+  deleteKeyAction.TypeAssumptions.layout
   deleteKeyAction.TypeAssumptions.get_Bucket
   deleteKeyAction.TypeAssumptions.set_Bucket
   deleteKeyAction.TypeAssumptions.get_FieldName
@@ -1001,6 +1005,7 @@ instance equals_unfold_bucket [FfiSyntax] [GoGlobalContext] :
 class bucket.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying bucket.underlying bucket
   underlying : go.UnderlyingDirectedEq bucket.ty bucket.underlying
+  layout : go.StructLayout bucket [(go!"id", typeSize _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BucketID, typeAlign _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BucketID), (go!"name", typeSize GoSlice, typeAlign GoSlice), (go!"safeRangeBucket", typeSize Bool, typeAlign Bool)]
   get_id : ∀ (x : bucket), go.IsGoStepPureDetTagged under (StructFieldGet bucket.underlying go!"id") #x (Val #(x.id'))
   set_id : ∀ (x : bucket) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BucketID), go.IsGoStepPureDetTagged under (StructFieldSet bucket.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : bucket)))
   get_name : ∀ (x : bucket), go.IsGoStepPureDetTagged under (StructFieldGet bucket.underlying go!"name") #x (Val #(x.name'))
@@ -1010,6 +1015,7 @@ class bucket.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
 
 attribute [instance] bucket.TypeAssumptions.type_repr
   bucket.TypeAssumptions.underlying
+  bucket.TypeAssumptions.layout
   bucket.TypeAssumptions.get_id
   bucket.TypeAssumptions.set_id
   bucket.TypeAssumptions.get_name
@@ -1052,6 +1058,7 @@ instance equals_unfold_simpleSchemaChange [FfiSyntax] [GoGlobalContext] :
 class simpleSchemaChange.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying simpleSchemaChange.underlying simpleSchemaChange
   underlying : go.UnderlyingDirectedEq simpleSchemaChange.ty simpleSchemaChange.underlying
+  layout : go.StructLayout simpleSchemaChange [(go!"upgrade", typeSize action, typeAlign action), (go!"downgrade", typeSize action, typeAlign action)]
   get_upgrade : ∀ (x : simpleSchemaChange), go.IsGoStepPureDetTagged under (StructFieldGet simpleSchemaChange.underlying go!"upgrade") #x (Val #(x.upgrade'))
   set_upgrade : ∀ (x : simpleSchemaChange) (y : action), go.IsGoStepPureDetTagged under (StructFieldSet simpleSchemaChange.underlying go!"upgrade") (PairV #x #y) (Val #(({ x with upgrade' := y } : simpleSchemaChange)))
   get_downgrade : ∀ (x : simpleSchemaChange), go.IsGoStepPureDetTagged under (StructFieldGet simpleSchemaChange.underlying go!"downgrade") #x (Val #(x.downgrade'))
@@ -1059,6 +1066,7 @@ class simpleSchemaChange.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalC
 
 attribute [instance] simpleSchemaChange.TypeAssumptions.type_repr
   simpleSchemaChange.TypeAssumptions.underlying
+  simpleSchemaChange.TypeAssumptions.layout
   simpleSchemaChange.TypeAssumptions.get_upgrade
   simpleSchemaChange.TypeAssumptions.set_upgrade
   simpleSchemaChange.TypeAssumptions.get_downgrade

@@ -6,6 +6,7 @@ public import Perennial.Code.slices
 public import Perennial.Code.strings
 public import Code.go_etcd_io.raft.v3.quorum
 public import Code.go_etcd_io.raft.v3.raftpb
+public import Perennial.Code.io
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -1373,6 +1374,7 @@ instance equals_unfold_inflight [FfiSyntax] [GoGlobalContext] :
 class inflight.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying inflight.underlying inflight
   underlying : go.UnderlyingDirectedEq inflight.ty inflight.underlying
+  layout : go.StructLayout inflight [(go!"index", typeSize w64, typeAlign w64), (go!"bytes", typeSize w64, typeAlign w64)]
   get_index : ∀ (x : inflight), go.IsGoStepPureDetTagged under (StructFieldGet inflight.underlying go!"index") #x (Val #(x.index'))
   set_index : ∀ (x : inflight) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet inflight.underlying go!"index") (PairV #x #y) (Val #(({ x with index' := y } : inflight)))
   get_bytes : ∀ (x : inflight), go.IsGoStepPureDetTagged under (StructFieldGet inflight.underlying go!"bytes") #x (Val #(x.bytes'))
@@ -1380,6 +1382,7 @@ class inflight.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
 
 attribute [instance] inflight.TypeAssumptions.type_repr
   inflight.TypeAssumptions.underlying
+  inflight.TypeAssumptions.layout
   inflight.TypeAssumptions.get_index
   inflight.TypeAssumptions.set_index
   inflight.TypeAssumptions.get_bytes
@@ -1418,6 +1421,7 @@ instance equals_unfold_Inflights [FfiSyntax] [GoGlobalContext] :
 class Inflights.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Inflights.underlying Inflights
   underlying : go.UnderlyingDirectedEq Inflights.ty Inflights.underlying
+  layout : go.StructLayout Inflights [(go!"start", typeSize w64, typeAlign w64), (go!"count", typeSize w64, typeAlign w64), (go!"bytes", typeSize w64, typeAlign w64), (go!"size", typeSize w64, typeAlign w64), (go!"maxBytes", typeSize w64, typeAlign w64), (go!"buffer", typeSize GoSlice, typeAlign GoSlice)]
   get_start : ∀ (x : Inflights), go.IsGoStepPureDetTagged under (StructFieldGet Inflights.underlying go!"start") #x (Val #(x.start'))
   set_start : ∀ (x : Inflights) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Inflights.underlying go!"start") (PairV #x #y) (Val #(({ x with start' := y } : Inflights)))
   get_count : ∀ (x : Inflights), go.IsGoStepPureDetTagged under (StructFieldGet Inflights.underlying go!"count") #x (Val #(x.count'))
@@ -1440,6 +1444,7 @@ class Inflights.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
 
 attribute [instance] Inflights.TypeAssumptions.type_repr
   Inflights.TypeAssumptions.underlying
+  Inflights.TypeAssumptions.layout
   Inflights.TypeAssumptions.get_start
   Inflights.TypeAssumptions.set_start
   Inflights.TypeAssumptions.get_count
@@ -1514,6 +1519,7 @@ instance equals_unfold_Progress [FfiSyntax] [GoGlobalContext] :
 class Progress.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Progress.underlying Progress
   underlying : go.UnderlyingDirectedEq Progress.ty Progress.underlying
+  layout : go.StructLayout Progress [(go!"Match", typeSize w64, typeAlign w64), (go!"Next", typeSize w64, typeAlign w64), (go!"sentCommit", typeSize w64, typeAlign w64), (go!"State", typeSize StateType, typeAlign StateType), (go!"PendingSnapshot", typeSize w64, typeAlign w64), (go!"RecentActive", typeSize Bool, typeAlign Bool), (go!"MsgAppFlowPaused", typeSize Bool, typeAlign Bool), (go!"Inflights", typeSize Loc, typeAlign Loc), (go!"IsLearner", typeSize Bool, typeAlign Bool)]
   get_Match : ∀ (x : Progress), go.IsGoStepPureDetTagged under (StructFieldGet Progress.underlying go!"Match") #x (Val #(x.Match'))
   set_Match : ∀ (x : Progress) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Progress.underlying go!"Match") (PairV #x #y) (Val #(({ x with Match' := y } : Progress)))
   get_Next : ∀ (x : Progress), go.IsGoStepPureDetTagged under (StructFieldGet Progress.underlying go!"Next") #x (Val #(x.Next'))
@@ -1546,6 +1552,7 @@ class Progress.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
 
 attribute [instance] Progress.TypeAssumptions.type_repr
   Progress.TypeAssumptions.underlying
+  Progress.TypeAssumptions.layout
   Progress.TypeAssumptions.get_Match
   Progress.TypeAssumptions.set_Match
   Progress.TypeAssumptions.get_Next
@@ -1620,6 +1627,7 @@ instance equals_unfold_Config [FfiSyntax] [GoGlobalContext] :
 class Config.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Config.underlying Config
   underlying : go.UnderlyingDirectedEq Config.ty Config.underlying
+  layout : go.StructLayout Config [(go!"Voters", typeSize _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig, typeAlign _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig), (go!"AutoLeave", typeSize Bool, typeAlign Bool), (go!"Learners", typeSize GoMap, typeAlign GoMap), (go!"LearnersNext", typeSize GoMap, typeAlign GoMap)]
   get_Voters : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Voters") #x (Val #(x.Voters'))
   set_Voters : ∀ (x : Config) (y : _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Voters") (PairV #x #y) (Val #(({ x with Voters' := y } : Config)))
   get_AutoLeave : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"AutoLeave") #x (Val #(x.AutoLeave'))
@@ -1635,6 +1643,7 @@ class Config.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
 
 attribute [instance] Config.TypeAssumptions.type_repr
   Config.TypeAssumptions.underlying
+  Config.TypeAssumptions.layout
   Config.TypeAssumptions.get_Voters
   Config.TypeAssumptions.set_Voters
   Config.TypeAssumptions.get_AutoLeave
@@ -1678,6 +1687,7 @@ instance equals_unfold_ProgressTracker [FfiSyntax] [GoGlobalContext] :
 class ProgressTracker.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ProgressTracker.underlying ProgressTracker
   underlying : go.UnderlyingDirectedEq ProgressTracker.ty ProgressTracker.underlying
+  layout : go.StructLayout ProgressTracker [(go!"Config", typeSize Config, typeAlign Config), (go!"Progress", typeSize ProgressMap, typeAlign ProgressMap), (go!"Votes", typeSize GoMap, typeAlign GoMap), (go!"MaxInflight", typeSize w64, typeAlign w64), (go!"MaxInflightBytes", typeSize w64, typeAlign w64)]
   get_Config : ∀ (x : ProgressTracker), go.IsGoStepPureDetTagged under (StructFieldGet ProgressTracker.underlying go!"Config") #x (Val #(x.Config'))
   set_Config : ∀ (x : ProgressTracker) (y : Config), go.IsGoStepPureDetTagged under (StructFieldSet ProgressTracker.underlying go!"Config") (PairV #x #y) (Val #(({ x with Config' := y } : ProgressTracker)))
   get_Progress : ∀ (x : ProgressTracker), go.IsGoStepPureDetTagged under (StructFieldGet ProgressTracker.underlying go!"Progress") #x (Val #(x.Progress'))
@@ -1707,6 +1717,7 @@ class ProgressTracker.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
 
 attribute [instance] ProgressTracker.TypeAssumptions.type_repr
   ProgressTracker.TypeAssumptions.underlying
+  ProgressTracker.TypeAssumptions.layout
   ProgressTracker.TypeAssumptions.get_Config
   ProgressTracker.TypeAssumptions.set_Config
   ProgressTracker.TypeAssumptions.get_Progress

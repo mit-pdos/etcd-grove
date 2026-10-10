@@ -4579,6 +4579,7 @@ instance equals_unfold_Config [FfiSyntax] [GoGlobalContext] :
 class Config.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Config.underlying Config
   underlying : go.UnderlyingDirectedEq Config.ty Config.underlying
+  layout : go.StructLayout Config [(go!"PerWatcherBufferSize", typeSize w64, typeAlign w64), (go!"HistoryWindowSize", typeSize w64, typeAlign w64), (go!"ResyncInterval", typeSize _root_.Perennial.time.Duration, typeAlign _root_.Perennial.time.Duration), (go!"InitialBackoff", typeSize _root_.Perennial.time.Duration, typeAlign _root_.Perennial.time.Duration), (go!"MaxBackoff", typeSize _root_.Perennial.time.Duration, typeAlign _root_.Perennial.time.Duration), (go!"GetTimeout", typeSize _root_.Perennial.time.Duration, typeAlign _root_.Perennial.time.Duration), (go!"WaitTimeout", typeSize _root_.Perennial.time.Duration, typeAlign _root_.Perennial.time.Duration), (go!"BTreeDegree", typeSize w64, typeAlign w64), (go!"ProgressRequestInterval", typeSize _root_.Perennial.time.Duration, typeAlign _root_.Perennial.time.Duration), (go!"ProgressNotifyInterval", typeSize _root_.Perennial.time.Duration, typeAlign _root_.Perennial.time.Duration)]
   get_PerWatcherBufferSize : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"PerWatcherBufferSize") #x (Val #(x.PerWatcherBufferSize'))
   set_PerWatcherBufferSize : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"PerWatcherBufferSize") (PairV #x #y) (Val #(({ x with PerWatcherBufferSize' := y } : Config)))
   get_HistoryWindowSize : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"HistoryWindowSize") #x (Val #(x.HistoryWindowSize'))
@@ -4602,6 +4603,7 @@ class Config.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
 
 attribute [instance] Config.TypeAssumptions.type_repr
   Config.TypeAssumptions.underlying
+  Config.TypeAssumptions.layout
   Config.TypeAssumptions.get_PerWatcherBufferSize
   Config.TypeAssumptions.set_PerWatcherBufferSize
   Config.TypeAssumptions.get_HistoryWindowSize
@@ -4688,6 +4690,7 @@ instance equals_unfold_Cache [FfiSyntax] [GoGlobalContext] :
 class Cache.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Cache.underlying Cache
   underlying : go.UnderlyingDirectedEq Cache.ty Cache.underlying
+  layout : go.StructLayout Cache [(go!"prefix", typeSize GoString, typeAlign GoString), (go!"cfg", typeSize Config, typeAlign Config), (go!"watcher", typeSize _root_.Perennial.go_etcd_io.etcd.client.v3.Watcher, typeAlign _root_.Perennial.go_etcd_io.etcd.client.v3.Watcher), (go!"kv", typeSize _root_.Perennial.go_etcd_io.etcd.client.v3.KV, typeAlign _root_.Perennial.go_etcd_io.etcd.client.v3.KV), (go!"demux", typeSize Loc, typeAlign Loc), (go!"store", typeSize Loc, typeAlign Loc), (go!"ready", typeSize Loc, typeAlign Loc), (go!"stop", typeSize _root_.Perennial.context.CancelFunc, typeAlign _root_.Perennial.context.CancelFunc), (go!"waitGroup", typeSize _root_.Perennial.sync.WaitGroup, typeAlign _root_.Perennial.sync.WaitGroup), (go!"internalCtx", typeSize _root_.Perennial.context.Context, typeAlign _root_.Perennial.context.Context), (go!"progressRequestor", typeSize progressRequestor, typeAlign progressRequestor), (go!"clock", typeSize Clock, typeAlign Clock)]
   get_prefix : ∀ (x : Cache), go.IsGoStepPureDetTagged under (StructFieldGet Cache.underlying go!"prefix") #x (Val #(x.prefix'))
   set_prefix : ∀ (x : Cache) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Cache.underlying go!"prefix") (PairV #x #y) (Val #(({ x with prefix' := y } : Cache)))
   get_cfg : ∀ (x : Cache), go.IsGoStepPureDetTagged under (StructFieldGet Cache.underlying go!"cfg") #x (Val #(x.cfg'))
@@ -4734,6 +4737,7 @@ class Cache.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
 
 attribute [instance] Cache.TypeAssumptions.type_repr
   Cache.TypeAssumptions.underlying
+  Cache.TypeAssumptions.layout
   Cache.TypeAssumptions.get_prefix
   Cache.TypeAssumptions.set_prefix
   Cache.TypeAssumptions.get_cfg
@@ -4810,12 +4814,14 @@ instance equals_unfold_realClock [FfiSyntax] [GoGlobalContext] :
 class realClock.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying realClock.underlying realClock
   underlying : go.UnderlyingDirectedEq realClock.ty realClock.underlying
+  layout : go.StructLayout realClock []
   NewTimer_unfold : MethodUnfold realClock.ty go!"NewTimer" realClock.NewTimer.impl
   ptr_NewTimer_unfold : MethodUnfold (go.GoType.PointerType realClock.ty) go!"NewTimer" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve realClock.ty go!"NewTimer"))) (App (Val (GoInstruction (GoLoad realClock.ty))) (Var "$r"))))
 
 attribute [instance] realClock.TypeAssumptions.type_repr
   realClock.TypeAssumptions.underlying
+  realClock.TypeAssumptions.layout
   realClock.TypeAssumptions.NewTimer_unfold
   realClock.TypeAssumptions.ptr_NewTimer_unfold
 
@@ -4842,6 +4848,7 @@ instance equals_unfold_realTimer [FfiSyntax] [GoGlobalContext] :
 class realTimer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying realTimer.underlying realTimer
   underlying : go.UnderlyingDirectedEq realTimer.ty realTimer.underlying
+  layout : go.StructLayout realTimer [(go!"timer", typeSize Loc, typeAlign Loc)]
   get_timer : ∀ (x : realTimer), go.IsGoStepPureDetTagged under (StructFieldGet realTimer.underlying go!"timer") #x (Val #(x.timer'))
   set_timer : ∀ (x : realTimer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet realTimer.underlying go!"timer") (PairV #x #y) (Val #(({ x with timer' := y } : realTimer)))
   ptr_Chan_unfold : MethodUnfold (go.GoType.PointerType realTimer.ty) go!"Chan" realTimer.Chan.impl
@@ -4850,6 +4857,7 @@ class realTimer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
 
 attribute [instance] realTimer.TypeAssumptions.type_repr
   realTimer.TypeAssumptions.underlying
+  realTimer.TypeAssumptions.layout
   realTimer.TypeAssumptions.get_timer
   realTimer.TypeAssumptions.set_timer
   realTimer.TypeAssumptions.ptr_Chan_unfold
@@ -4907,6 +4915,7 @@ instance equals_unfold_ringBuffer [FfiSyntax] [GoGlobalContext] (T : go.GoType) 
 class ringBuffer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (ringBuffer.underlying T) (ringBuffer T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (ringBuffer.ty T) (ringBuffer.underlying T)
+  layout : ∀ (T' : Type), go.StructLayout (ringBuffer T') [(go!"buffer", typeSize GoSlice, typeAlign GoSlice), (go!"head", typeSize w64, typeAlign w64), (go!"tail", typeSize w64, typeAlign w64), (go!"size", typeSize w64, typeAlign w64), (go!"revisionOf", typeSize (RevisionOf T'), typeAlign (RevisionOf T'))]
   get_buffer : ∀ (T : go.GoType) (T' : Type) (x : (ringBuffer T')), go.IsGoStepPureDetTagged under (StructFieldGet (ringBuffer.underlying T) go!"buffer") #x (Val #(x.buffer'))
   set_buffer : ∀ (T : go.GoType) (T' : Type) (x : (ringBuffer T')) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet (ringBuffer.underlying T) go!"buffer") (PairV #x #y) (Val #(({ x with buffer' := y } : (ringBuffer T'))))
   get_head : ∀ (T : go.GoType) (T' : Type) (x : (ringBuffer T')), go.IsGoStepPureDetTagged under (StructFieldGet (ringBuffer.underlying T) go!"head") #x (Val #(x.head'))
@@ -4933,6 +4942,7 @@ class ringBuffer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
 
 attribute [instance] ringBuffer.TypeAssumptions.type_repr
   ringBuffer.TypeAssumptions.underlying
+  ringBuffer.TypeAssumptions.layout
   ringBuffer.TypeAssumptions.get_buffer
   ringBuffer.TypeAssumptions.set_buffer
   ringBuffer.TypeAssumptions.get_head
@@ -4994,6 +5004,7 @@ instance equals_unfold_demux [FfiSyntax] [GoGlobalContext] :
 class demux.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying demux.underlying demux
   underlying : go.UnderlyingDirectedEq demux.ty demux.underlying
+  layout : go.StructLayout demux [(go!"mu", typeSize _root_.Perennial.sync.RWMutex, typeAlign _root_.Perennial.sync.RWMutex), (go!"activeWatchers", typeSize GoMap, typeAlign GoMap), (go!"laggingWatchers", typeSize GoMap, typeAlign GoMap), (go!"resyncInterval", typeSize _root_.Perennial.time.Duration, typeAlign _root_.Perennial.time.Duration), (go!"minRev", typeSize w64, typeAlign w64), (go!"maxRev", typeSize w64, typeAlign w64), (go!"history", typeSize (ringBuffer GoSlice), typeAlign (ringBuffer GoSlice)), (go!"resynced", typeSize Loc, typeAlign Loc)]
   get_mu : ∀ (x : demux), go.IsGoStepPureDetTagged under (StructFieldGet demux.underlying go!"mu") #x (Val #(x.mu'))
   set_mu : ∀ (x : demux) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet demux.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : demux)))
   get_activeWatchers : ∀ (x : demux), go.IsGoStepPureDetTagged under (StructFieldGet demux.underlying go!"activeWatchers") #x (Val #(x.activeWatchers'))
@@ -5030,6 +5041,7 @@ class demux.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
 
 attribute [instance] demux.TypeAssumptions.type_repr
   demux.TypeAssumptions.underlying
+  demux.TypeAssumptions.layout
   demux.TypeAssumptions.get_mu
   demux.TypeAssumptions.set_mu
   demux.TypeAssumptions.get_activeWatchers
@@ -5089,6 +5101,7 @@ instance equals_unfold_notifier [FfiSyntax] [GoGlobalContext] :
 class notifier.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying notifier.underlying notifier
   underlying : go.UnderlyingDirectedEq notifier.ty notifier.underlying
+  layout : go.StructLayout notifier [(go!"mu", typeSize _root_.Perennial.sync.RWMutex, typeAlign _root_.Perennial.sync.RWMutex), (go!"ch", typeSize GoChan, typeAlign GoChan)]
   get_mu : ∀ (x : notifier), go.IsGoStepPureDetTagged under (StructFieldGet notifier.underlying go!"mu") #x (Val #(x.mu'))
   set_mu : ∀ (x : notifier) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet notifier.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : notifier)))
   get_ch : ∀ (x : notifier), go.IsGoStepPureDetTagged under (StructFieldGet notifier.underlying go!"ch") #x (Val #(x.ch'))
@@ -5098,6 +5111,7 @@ class notifier.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
 
 attribute [instance] notifier.TypeAssumptions.type_repr
   notifier.TypeAssumptions.underlying
+  notifier.TypeAssumptions.layout
   notifier.TypeAssumptions.get_mu
   notifier.TypeAssumptions.set_mu
   notifier.TypeAssumptions.get_ch
@@ -5165,6 +5179,7 @@ instance equals_unfold_conditionalProgressRequestor [FfiSyntax] [GoGlobalContext
 class conditionalProgressRequestor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying conditionalProgressRequestor.underlying conditionalProgressRequestor
   underlying : go.UnderlyingDirectedEq conditionalProgressRequestor.ty conditionalProgressRequestor.underlying
+  layout : go.StructLayout conditionalProgressRequestor [(go!"mux", typeSize _root_.Perennial.sync.Mutex, typeAlign _root_.Perennial.sync.Mutex), (go!"cond", typeSize Loc, typeAlign Loc), (go!"waiting", typeSize w32, typeAlign w32), (go!"stopped", typeSize Bool, typeAlign Bool), (go!"notifier", typeSize progressNotifier, typeAlign progressNotifier), (go!"requestInterval", typeSize _root_.Perennial.time.Duration, typeAlign _root_.Perennial.time.Duration), (go!"clock", typeSize Clock, typeAlign Clock)]
   get_mux : ∀ (x : conditionalProgressRequestor), go.IsGoStepPureDetTagged under (StructFieldGet conditionalProgressRequestor.underlying go!"mux") #x (Val #(x.mux'))
   set_mux : ∀ (x : conditionalProgressRequestor) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet conditionalProgressRequestor.underlying go!"mux") (PairV #x #y) (Val #(({ x with mux' := y } : conditionalProgressRequestor)))
   get_cond : ∀ (x : conditionalProgressRequestor), go.IsGoStepPureDetTagged under (StructFieldGet conditionalProgressRequestor.underlying go!"cond") #x (Val #(x.cond'))
@@ -5185,6 +5200,7 @@ class conditionalProgressRequestor.TypeAssumptions [FfiSyntax] [GoGlobalContext]
 
 attribute [instance] conditionalProgressRequestor.TypeAssumptions.type_repr
   conditionalProgressRequestor.TypeAssumptions.underlying
+  conditionalProgressRequestor.TypeAssumptions.layout
   conditionalProgressRequestor.TypeAssumptions.get_mux
   conditionalProgressRequestor.TypeAssumptions.set_mux
   conditionalProgressRequestor.TypeAssumptions.get_cond
@@ -5230,6 +5246,7 @@ instance equals_unfold_ready [FfiSyntax] [GoGlobalContext] :
 class ready.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ready.underlying ready
   underlying : go.UnderlyingDirectedEq ready.ty ready.underlying
+  layout : go.StructLayout ready [(go!"mu", typeSize _root_.Perennial.sync.Mutex, typeAlign _root_.Perennial.sync.Mutex), (go!"isReady", typeSize Bool, typeAlign Bool), (go!"stateCh", typeSize GoChan, typeAlign GoChan)]
   get_mu : ∀ (x : ready), go.IsGoStepPureDetTagged under (StructFieldGet ready.underlying go!"mu") #x (Val #(x.mu'))
   set_mu : ∀ (x : ready) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet ready.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : ready)))
   get_isReady : ∀ (x : ready), go.IsGoStepPureDetTagged under (StructFieldGet ready.underlying go!"isReady") #x (Val #(x.isReady'))
@@ -5245,6 +5262,7 @@ class ready.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
 
 attribute [instance] ready.TypeAssumptions.type_repr
   ready.TypeAssumptions.underlying
+  ready.TypeAssumptions.layout
   ready.TypeAssumptions.get_mu
   ready.TypeAssumptions.set_mu
   ready.TypeAssumptions.get_isReady
@@ -5283,6 +5301,7 @@ instance equals_unfold_entry [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
 class entry.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (entry.underlying T) (entry T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (entry.ty T) (entry.underlying T)
+  layout : ∀ (T' : Type), go.StructLayout (entry T') [(go!"revision", typeSize w64, typeAlign w64), (go!"item", typeSize T', typeAlign T')]
   get_revision : ∀ (T : go.GoType) (T' : Type) (x : (entry T')), go.IsGoStepPureDetTagged under (StructFieldGet (entry.underlying T) go!"revision") #x (Val #(x.revision'))
   set_revision : ∀ (T : go.GoType) (T' : Type) (x : (entry T')) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet (entry.underlying T) go!"revision") (PairV #x #y) (Val #(({ x with revision' := y } : (entry T'))))
   get_item : ∀ (T : go.GoType) (T' : Type) (x : (entry T')), go.IsGoStepPureDetTagged under (StructFieldGet (entry.underlying T) go!"item") #x (Val #(x.item'))
@@ -5290,6 +5309,7 @@ class entry.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
 
 attribute [instance] entry.TypeAssumptions.type_repr
   entry.TypeAssumptions.underlying
+  entry.TypeAssumptions.layout
   entry.TypeAssumptions.get_revision
   entry.TypeAssumptions.set_revision
   entry.TypeAssumptions.get_item
@@ -5330,6 +5350,7 @@ instance equals_unfold_snapshot [FfiSyntax] [GoGlobalContext] :
 class snapshot.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying snapshot.underlying snapshot
   underlying : go.UnderlyingDirectedEq snapshot.ty snapshot.underlying
+  layout : go.StructLayout snapshot [(go!"rev", typeSize w64, typeAlign w64), (go!"tree", typeSize Loc, typeAlign Loc)]
   get_rev : ∀ (x : snapshot), go.IsGoStepPureDetTagged under (StructFieldGet snapshot.underlying go!"rev") #x (Val #(x.rev'))
   set_rev : ∀ (x : snapshot) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet snapshot.underlying go!"rev") (PairV #x #y) (Val #(({ x with rev' := y } : snapshot)))
   get_tree : ∀ (x : snapshot), go.IsGoStepPureDetTagged under (StructFieldGet snapshot.underlying go!"tree") #x (Val #(x.tree'))
@@ -5338,6 +5359,7 @@ class snapshot.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
 
 attribute [instance] snapshot.TypeAssumptions.type_repr
   snapshot.TypeAssumptions.underlying
+  snapshot.TypeAssumptions.layout
   snapshot.TypeAssumptions.get_rev
   snapshot.TypeAssumptions.set_rev
   snapshot.TypeAssumptions.get_tree
@@ -5375,6 +5397,7 @@ instance equals_unfold_store [FfiSyntax] [GoGlobalContext] :
 class store.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying store.underlying store
   underlying : go.UnderlyingDirectedEq store.ty store.underlying
+  layout : go.StructLayout store [(go!"mu", typeSize _root_.Perennial.sync.RWMutex, typeAlign _root_.Perennial.sync.RWMutex), (go!"revCond", typeSize Loc, typeAlign Loc), (go!"degree", typeSize w64, typeAlign w64), (go!"latest", typeSize snapshot, typeAlign snapshot), (go!"history", typeSize (ringBuffer Loc), typeAlign (ringBuffer Loc))]
   get_mu : ∀ (x : store), go.IsGoStepPureDetTagged under (StructFieldGet store.underlying go!"mu") #x (Val #(x.mu'))
   set_mu : ∀ (x : store) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet store.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : store)))
   get_revCond : ∀ (x : store), go.IsGoStepPureDetTagged under (StructFieldGet store.underlying go!"revCond") #x (Val #(x.revCond'))
@@ -5395,6 +5418,7 @@ class store.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
 
 attribute [instance] store.TypeAssumptions.type_repr
   store.TypeAssumptions.underlying
+  store.TypeAssumptions.layout
   store.TypeAssumptions.get_mu
   store.TypeAssumptions.set_mu
   store.TypeAssumptions.get_revCond
@@ -5438,6 +5462,7 @@ instance equals_unfold_kvItem [FfiSyntax] [GoGlobalContext] :
 class kvItem.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying kvItem.underlying kvItem
   underlying : go.UnderlyingDirectedEq kvItem.ty kvItem.underlying
+  layout : go.StructLayout kvItem [(go!"key", typeSize GoString, typeAlign GoString), (go!"kv", typeSize Loc, typeAlign Loc)]
   get_key : ∀ (x : kvItem), go.IsGoStepPureDetTagged under (StructFieldGet kvItem.underlying go!"key") #x (Val #(x.key'))
   set_key : ∀ (x : kvItem) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet kvItem.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : kvItem)))
   get_kv : ∀ (x : kvItem), go.IsGoStepPureDetTagged under (StructFieldGet kvItem.underlying go!"kv") #x (Val #(x.kv'))
@@ -5445,6 +5470,7 @@ class kvItem.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
 
 attribute [instance] kvItem.TypeAssumptions.type_repr
   kvItem.TypeAssumptions.underlying
+  kvItem.TypeAssumptions.layout
   kvItem.TypeAssumptions.get_key
   kvItem.TypeAssumptions.set_key
   kvItem.TypeAssumptions.get_kv
@@ -5479,6 +5505,7 @@ instance equals_unfold_watcher [FfiSyntax] [GoGlobalContext] :
 class watcher.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying watcher.underlying watcher
   underlying : go.UnderlyingDirectedEq watcher.ty watcher.underlying
+  layout : go.StructLayout watcher [(go!"respCh", typeSize GoChan, typeAlign GoChan), (go!"cancelResp", typeSize Loc, typeAlign Loc), (go!"keyPred", typeSize GoFunc, typeAlign GoFunc), (go!"stopOnce", typeSize _root_.Perennial.sync.Once, typeAlign _root_.Perennial.sync.Once)]
   get_respCh : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"respCh") #x (Val #(x.respCh'))
   set_respCh : ∀ (x : watcher) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"respCh") (PairV #x #y) (Val #(({ x with respCh' := y } : watcher)))
   get_cancelResp : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"cancelResp") #x (Val #(x.cancelResp'))
@@ -5493,6 +5520,7 @@ class watcher.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
 
 attribute [instance] watcher.TypeAssumptions.type_repr
   watcher.TypeAssumptions.underlying
+  watcher.TypeAssumptions.layout
   watcher.TypeAssumptions.get_respCh
   watcher.TypeAssumptions.set_respCh
   watcher.TypeAssumptions.get_cancelResp

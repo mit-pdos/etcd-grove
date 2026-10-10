@@ -553,6 +553,7 @@ instance equals_unfold_Entry [FfiSyntax] [GoGlobalContext] :
 class Entry.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Entry.underlying Entry
   underlying : go.UnderlyingDirectedEq Entry.ty Entry.underlying
+  layout : go.StructLayout Entry [(go!"state", typeSize _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState, typeAlign _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), (go!"Term", typeSize Loc, typeAlign Loc), (go!"Index", typeSize Loc, typeAlign Loc), (go!"Type", typeSize Loc, typeAlign Loc), (go!"Data", typeSize GoSlice, typeAlign GoSlice), (go!"unknownFields", typeSize GoSlice, typeAlign GoSlice), (go!"sizeCache", typeSize w32, typeAlign w32)]
   get_state : ∀ (x : Entry), go.IsGoStepPureDetTagged under (StructFieldGet Entry.underlying go!"state") #x (Val #(x.state'))
   set_state : ∀ (x : Entry) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet Entry.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : Entry)))
   get_Term : ∀ (x : Entry), go.IsGoStepPureDetTagged under (StructFieldGet Entry.underlying go!"Term") #x (Val #(x.Term'))
@@ -574,6 +575,7 @@ class Entry.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
 
 attribute [instance] Entry.TypeAssumptions.type_repr
   Entry.TypeAssumptions.underlying
+  Entry.TypeAssumptions.layout
   Entry.TypeAssumptions.get_state
   Entry.TypeAssumptions.set_state
   Entry.TypeAssumptions.get_Term
@@ -693,6 +695,7 @@ instance equals_unfold_ConfChange [FfiSyntax] [GoGlobalContext] :
 class ConfChange.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ConfChange.underlying ConfChange
   underlying : go.UnderlyingDirectedEq ConfChange.ty ConfChange.underlying
+  layout : go.StructLayout ConfChange [(go!"state", typeSize _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState, typeAlign _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), (go!"Type", typeSize Loc, typeAlign Loc), (go!"NodeId", typeSize Loc, typeAlign Loc), (go!"Context", typeSize GoSlice, typeAlign GoSlice), (go!"Id", typeSize Loc, typeAlign Loc), (go!"unknownFields", typeSize GoSlice, typeAlign GoSlice), (go!"sizeCache", typeSize w32, typeAlign w32)]
   get_state : ∀ (x : ConfChange), go.IsGoStepPureDetTagged under (StructFieldGet ConfChange.underlying go!"state") #x (Val #(x.state'))
   set_state : ∀ (x : ConfChange) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet ConfChange.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : ConfChange)))
   get_Type : ∀ (x : ConfChange), go.IsGoStepPureDetTagged under (StructFieldGet ConfChange.underlying go!"Type") #x (Val #(x.Type'))
@@ -711,6 +714,7 @@ class ConfChange.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
 
 attribute [instance] ConfChange.TypeAssumptions.type_repr
   ConfChange.TypeAssumptions.underlying
+  ConfChange.TypeAssumptions.layout
   ConfChange.TypeAssumptions.get_state
   ConfChange.TypeAssumptions.set_state
   ConfChange.TypeAssumptions.get_Type

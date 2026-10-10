@@ -801,6 +801,7 @@ instance equals_unfold_KeyValueHash [FfiSyntax] [GoGlobalContext] :
 class KeyValueHash.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying KeyValueHash.underlying KeyValueHash
   underlying : go.UnderlyingDirectedEq KeyValueHash.ty KeyValueHash.underlying
+  layout : go.StructLayout KeyValueHash [(go!"Hash", typeSize w32, typeAlign w32), (go!"CompactRevision", typeSize w64, typeAlign w64), (go!"Revision", typeSize w64, typeAlign w64)]
   get_Hash : ∀ (x : KeyValueHash), go.IsGoStepPureDetTagged under (StructFieldGet KeyValueHash.underlying go!"Hash") #x (Val #(x.Hash'))
   set_Hash : ∀ (x : KeyValueHash) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet KeyValueHash.underlying go!"Hash") (PairV #x #y) (Val #(({ x with Hash' := y } : KeyValueHash)))
   get_CompactRevision : ∀ (x : KeyValueHash), go.IsGoStepPureDetTagged under (StructFieldGet KeyValueHash.underlying go!"CompactRevision") #x (Val #(x.CompactRevision'))
@@ -810,6 +811,7 @@ class KeyValueHash.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
 
 attribute [instance] KeyValueHash.TypeAssumptions.type_repr
   KeyValueHash.TypeAssumptions.underlying
+  KeyValueHash.TypeAssumptions.layout
   KeyValueHash.TypeAssumptions.get_Hash
   KeyValueHash.TypeAssumptions.set_Hash
   KeyValueHash.TypeAssumptions.get_CompactRevision
@@ -888,6 +890,7 @@ instance equals_unfold_Revision [FfiSyntax] [GoGlobalContext] :
 class Revision.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Revision.underlying Revision
   underlying : go.UnderlyingDirectedEq Revision.ty Revision.underlying
+  layout : go.StructLayout Revision [(go!"Main", typeSize w64, typeAlign w64), (go!"Sub", typeSize w64, typeAlign w64)]
   get_Main : ∀ (x : Revision), go.IsGoStepPureDetTagged under (StructFieldGet Revision.underlying go!"Main") #x (Val #(x.Main'))
   set_Main : ∀ (x : Revision) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Revision.underlying go!"Main") (PairV #x #y) (Val #(({ x with Main' := y } : Revision)))
   get_Sub : ∀ (x : Revision), go.IsGoStepPureDetTagged under (StructFieldGet Revision.underlying go!"Sub") #x (Val #(x.Sub'))
@@ -895,6 +898,7 @@ class Revision.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
 
 attribute [instance] Revision.TypeAssumptions.type_repr
   Revision.TypeAssumptions.underlying
+  Revision.TypeAssumptions.layout
   Revision.TypeAssumptions.get_Main
   Revision.TypeAssumptions.set_Main
   Revision.TypeAssumptions.get_Sub
@@ -927,6 +931,7 @@ instance equals_unfold_keyIndex [FfiSyntax] [GoGlobalContext] :
 class keyIndex.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying keyIndex.underlying keyIndex
   underlying : go.UnderlyingDirectedEq keyIndex.ty keyIndex.underlying
+  layout : go.StructLayout keyIndex [(go!"key", typeSize GoSlice, typeAlign GoSlice), (go!"modified", typeSize Revision, typeAlign Revision), (go!"generations", typeSize GoSlice, typeAlign GoSlice)]
   get_key : ∀ (x : keyIndex), go.IsGoStepPureDetTagged under (StructFieldGet keyIndex.underlying go!"key") #x (Val #(x.key'))
   set_key : ∀ (x : keyIndex) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet keyIndex.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : keyIndex)))
   get_modified : ∀ (x : keyIndex), go.IsGoStepPureDetTagged under (StructFieldGet keyIndex.underlying go!"modified") #x (Val #(x.modified'))
@@ -936,6 +941,7 @@ class keyIndex.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
 
 attribute [instance] keyIndex.TypeAssumptions.type_repr
   keyIndex.TypeAssumptions.underlying
+  keyIndex.TypeAssumptions.layout
   keyIndex.TypeAssumptions.get_key
   keyIndex.TypeAssumptions.set_key
   keyIndex.TypeAssumptions.get_modified
@@ -970,6 +976,7 @@ instance equals_unfold_generation [FfiSyntax] [GoGlobalContext] :
 class generation.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying generation.underlying generation
   underlying : go.UnderlyingDirectedEq generation.ty generation.underlying
+  layout : go.StructLayout generation [(go!"ver", typeSize w64, typeAlign w64), (go!"created", typeSize Revision, typeAlign Revision), (go!"revs", typeSize GoSlice, typeAlign GoSlice)]
   get_ver : ∀ (x : generation), go.IsGoStepPureDetTagged under (StructFieldGet generation.underlying go!"ver") #x (Val #(x.ver'))
   set_ver : ∀ (x : generation) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet generation.underlying go!"ver") (PairV #x #y) (Val #(({ x with ver' := y } : generation)))
   get_created : ∀ (x : generation), go.IsGoStepPureDetTagged under (StructFieldGet generation.underlying go!"created") #x (Val #(x.created'))
@@ -979,6 +986,7 @@ class generation.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
 
 attribute [instance] generation.TypeAssumptions.type_repr
   generation.TypeAssumptions.underlying
+  generation.TypeAssumptions.layout
   generation.TypeAssumptions.get_ver
   generation.TypeAssumptions.set_ver
   generation.TypeAssumptions.get_created
@@ -1017,6 +1025,7 @@ instance equals_unfold_RangeOptions [FfiSyntax] [GoGlobalContext] :
 class RangeOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RangeOptions.underlying RangeOptions
   underlying : go.UnderlyingDirectedEq RangeOptions.ty RangeOptions.underlying
+  layout : go.StructLayout RangeOptions [(go!"Limit", typeSize w64, typeAlign w64), (go!"Rev", typeSize w64, typeAlign w64), (go!"CountOnly", typeSize Bool, typeAlign Bool), (go!"FastKeysOnly", typeSize Bool, typeAlign Bool), (go!"WithTotalCount", typeSize Bool, typeAlign Bool)]
   get_Limit : ∀ (x : RangeOptions), go.IsGoStepPureDetTagged under (StructFieldGet RangeOptions.underlying go!"Limit") #x (Val #(x.Limit'))
   set_Limit : ∀ (x : RangeOptions) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RangeOptions.underlying go!"Limit") (PairV #x #y) (Val #(({ x with Limit' := y } : RangeOptions)))
   get_Rev : ∀ (x : RangeOptions), go.IsGoStepPureDetTagged under (StructFieldGet RangeOptions.underlying go!"Rev") #x (Val #(x.Rev'))
@@ -1030,6 +1039,7 @@ class RangeOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
 
 attribute [instance] RangeOptions.TypeAssumptions.type_repr
   RangeOptions.TypeAssumptions.underlying
+  RangeOptions.TypeAssumptions.layout
   RangeOptions.TypeAssumptions.get_Limit
   RangeOptions.TypeAssumptions.set_Limit
   RangeOptions.TypeAssumptions.get_Rev
@@ -1126,11 +1136,13 @@ instance equals_unfold_txnReadWrite [FfiSyntax] [GoGlobalContext] :
 class txnReadWrite.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying txnReadWrite.underlying txnReadWrite
   underlying : go.UnderlyingDirectedEq txnReadWrite.ty txnReadWrite.underlying
+  layout : go.StructLayout txnReadWrite [(go!"TxnRead", typeSize TxnRead, typeAlign TxnRead)]
   get_TxnRead : ∀ (x : txnReadWrite), go.IsGoStepPureDetTagged under (StructFieldGet txnReadWrite.underlying go!"TxnRead") #x (Val #(x.TxnRead'))
   set_TxnRead : ∀ (x : txnReadWrite) (y : TxnRead), go.IsGoStepPureDetTagged under (StructFieldSet txnReadWrite.underlying go!"TxnRead") (PairV #x #y) (Val #(({ x with TxnRead' := y } : txnReadWrite)))
 
 attribute [instance] txnReadWrite.TypeAssumptions.type_repr
   txnReadWrite.TypeAssumptions.underlying
+  txnReadWrite.TypeAssumptions.layout
   txnReadWrite.TypeAssumptions.get_TxnRead
   txnReadWrite.TypeAssumptions.set_TxnRead
 
@@ -1200,11 +1212,13 @@ instance equals_unfold_readView [FfiSyntax] [GoGlobalContext] :
 class readView.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying readView.underlying readView
   underlying : go.UnderlyingDirectedEq readView.ty readView.underlying
+  layout : go.StructLayout readView [(go!"kv", typeSize KV, typeAlign KV)]
   get_kv : ∀ (x : readView), go.IsGoStepPureDetTagged under (StructFieldGet readView.underlying go!"kv") #x (Val #(x.kv'))
   set_kv : ∀ (x : readView) (y : KV), go.IsGoStepPureDetTagged under (StructFieldSet readView.underlying go!"kv") (PairV #x #y) (Val #(({ x with kv' := y } : readView)))
 
 attribute [instance] readView.TypeAssumptions.type_repr
   readView.TypeAssumptions.underlying
+  readView.TypeAssumptions.layout
   readView.TypeAssumptions.get_kv
   readView.TypeAssumptions.set_kv
 
@@ -1231,11 +1245,13 @@ instance equals_unfold_writeView [FfiSyntax] [GoGlobalContext] :
 class writeView.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying writeView.underlying writeView
   underlying : go.UnderlyingDirectedEq writeView.ty writeView.underlying
+  layout : go.StructLayout writeView [(go!"kv", typeSize KV, typeAlign KV)]
   get_kv : ∀ (x : writeView), go.IsGoStepPureDetTagged under (StructFieldGet writeView.underlying go!"kv") #x (Val #(x.kv'))
   set_kv : ∀ (x : writeView) (y : KV), go.IsGoStepPureDetTagged under (StructFieldSet writeView.underlying go!"kv") (PairV #x #y) (Val #(({ x with kv' := y } : writeView)))
 
 attribute [instance] writeView.TypeAssumptions.type_repr
   writeView.TypeAssumptions.underlying
+  writeView.TypeAssumptions.layout
   writeView.TypeAssumptions.get_kv
   writeView.TypeAssumptions.set_kv
 
@@ -1348,6 +1364,7 @@ instance equals_unfold_metricsTxnWrite [FfiSyntax] [GoGlobalContext] :
 class metricsTxnWrite.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying metricsTxnWrite.underlying metricsTxnWrite
   underlying : go.UnderlyingDirectedEq metricsTxnWrite.ty metricsTxnWrite.underlying
+  layout : go.StructLayout metricsTxnWrite [(go!"TxnWrite", typeSize TxnWrite, typeAlign TxnWrite), (go!"ranges", typeSize w64, typeAlign w64), (go!"puts", typeSize w64, typeAlign w64), (go!"deletes", typeSize w64, typeAlign w64), (go!"putSize", typeSize w64, typeAlign w64)]
   get_TxnWrite : ∀ (x : metricsTxnWrite), go.IsGoStepPureDetTagged under (StructFieldGet metricsTxnWrite.underlying go!"TxnWrite") #x (Val #(x.TxnWrite'))
   set_TxnWrite : ∀ (x : metricsTxnWrite) (y : TxnWrite), go.IsGoStepPureDetTagged under (StructFieldSet metricsTxnWrite.underlying go!"TxnWrite") (PairV #x #y) (Val #(({ x with TxnWrite' := y } : metricsTxnWrite)))
   get_ranges : ∀ (x : metricsTxnWrite), go.IsGoStepPureDetTagged under (StructFieldGet metricsTxnWrite.underlying go!"ranges") #x (Val #(x.ranges'))
@@ -1361,6 +1378,7 @@ class metricsTxnWrite.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
 
 attribute [instance] metricsTxnWrite.TypeAssumptions.type_repr
   metricsTxnWrite.TypeAssumptions.underlying
+  metricsTxnWrite.TypeAssumptions.layout
   metricsTxnWrite.TypeAssumptions.get_TxnWrite
   metricsTxnWrite.TypeAssumptions.set_TxnWrite
   metricsTxnWrite.TypeAssumptions.get_ranges
@@ -1397,6 +1415,7 @@ instance equals_unfold_BucketKey [FfiSyntax] [GoGlobalContext] :
 class BucketKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying BucketKey.underlying BucketKey
   underlying : go.UnderlyingDirectedEq BucketKey.ty BucketKey.underlying
+  layout : go.StructLayout BucketKey [(go!"Revision", typeSize Revision, typeAlign Revision), (go!"tombstone", typeSize Bool, typeAlign Bool)]
   get_Revision : ∀ (x : BucketKey), go.IsGoStepPureDetTagged under (StructFieldGet BucketKey.underlying go!"Revision") #x (Val #(x.Revision'))
   set_Revision : ∀ (x : BucketKey) (y : Revision), go.IsGoStepPureDetTagged under (StructFieldSet BucketKey.underlying go!"Revision") (PairV #x #y) (Val #(({ x with Revision' := y } : BucketKey)))
   get_tombstone : ∀ (x : BucketKey), go.IsGoStepPureDetTagged under (StructFieldGet BucketKey.underlying go!"tombstone") #x (Val #(x.tombstone'))
@@ -1404,6 +1423,7 @@ class BucketKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
 
 attribute [instance] BucketKey.TypeAssumptions.type_repr
   BucketKey.TypeAssumptions.underlying
+  BucketKey.TypeAssumptions.layout
   BucketKey.TypeAssumptions.get_Revision
   BucketKey.TypeAssumptions.set_Revision
   BucketKey.TypeAssumptions.get_tombstone
@@ -1503,6 +1523,7 @@ instance equals_unfold_watcher [FfiSyntax] [GoGlobalContext] :
 class watcher.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying watcher.underlying watcher
   underlying : go.UnderlyingDirectedEq watcher.ty watcher.underlying
+  layout : go.StructLayout watcher [(go!"key", typeSize GoSlice, typeAlign GoSlice), (go!"end", typeSize GoSlice, typeAlign GoSlice), (go!"victim", typeSize Bool, typeAlign Bool), (go!"compacted", typeSize Bool, typeAlign Bool), (go!"restore", typeSize Bool, typeAlign Bool), (go!"startRev", typeSize w64, typeAlign w64), (go!"minRev", typeSize w64, typeAlign w64), (go!"id", typeSize WatchID, typeAlign WatchID), (go!"fcs", typeSize GoSlice, typeAlign GoSlice), (go!"ch", typeSize GoChan, typeAlign GoChan)]
   get_key : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"key") #x (Val #(x.key'))
   set_key : ∀ (x : watcher) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : watcher)))
   get_end : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"end") #x (Val #(x.end'))
@@ -1526,6 +1547,7 @@ class watcher.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
 
 attribute [instance] watcher.TypeAssumptions.type_repr
   watcher.TypeAssumptions.underlying
+  watcher.TypeAssumptions.layout
   watcher.TypeAssumptions.get_key
   watcher.TypeAssumptions.set_key
   watcher.TypeAssumptions.get_end
@@ -1572,6 +1594,7 @@ instance equals_unfold_watchableStoreTxnWrite [FfiSyntax] [GoGlobalContext] :
 class watchableStoreTxnWrite.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying watchableStoreTxnWrite.underlying watchableStoreTxnWrite
   underlying : go.UnderlyingDirectedEq watchableStoreTxnWrite.ty watchableStoreTxnWrite.underlying
+  layout : go.StructLayout watchableStoreTxnWrite [(go!"TxnWrite", typeSize TxnWrite, typeAlign TxnWrite), (go!"s", typeSize Loc, typeAlign Loc)]
   get_TxnWrite : ∀ (x : watchableStoreTxnWrite), go.IsGoStepPureDetTagged under (StructFieldGet watchableStoreTxnWrite.underlying go!"TxnWrite") #x (Val #(x.TxnWrite'))
   set_TxnWrite : ∀ (x : watchableStoreTxnWrite) (y : TxnWrite), go.IsGoStepPureDetTagged under (StructFieldSet watchableStoreTxnWrite.underlying go!"TxnWrite") (PairV #x #y) (Val #(({ x with TxnWrite' := y } : watchableStoreTxnWrite)))
   get_s : ∀ (x : watchableStoreTxnWrite), go.IsGoStepPureDetTagged under (StructFieldGet watchableStoreTxnWrite.underlying go!"s") #x (Val #(x.s'))
@@ -1579,6 +1602,7 @@ class watchableStoreTxnWrite.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLo
 
 attribute [instance] watchableStoreTxnWrite.TypeAssumptions.type_repr
   watchableStoreTxnWrite.TypeAssumptions.underlying
+  watchableStoreTxnWrite.TypeAssumptions.layout
   watchableStoreTxnWrite.TypeAssumptions.get_TxnWrite
   watchableStoreTxnWrite.TypeAssumptions.set_TxnWrite
   watchableStoreTxnWrite.TypeAssumptions.get_s

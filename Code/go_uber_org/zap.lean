@@ -22,6 +22,11 @@ end pkg_id
 
 namespace go_uber_org.zap
 
+def anonStruct_85b244b38d9eac1b.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"go.uber.org/zap.anonStruct_85b244b38d9eac1b" [])
+
+attribute [irreducible] anonStruct_85b244b38d9eac1b.ty
+
 def objects.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap.objects" [T])
 
@@ -236,6 +241,8 @@ def invalidPairs.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap.invalidPairs" [])
 
 attribute [irreducible] invalidPairs.ty
+
+axiom anonStruct_85b244b38d9eac1b.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom durations.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
@@ -759,6 +766,19 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_uber_org.zap.zapcore.initialize') (Val #()))))))))
 
+axiom anonStruct_85b244b38d9eac1b : Type
+axiom anonStruct_85b244b38d9eac1b.zero_val : ZeroVal anonStruct_85b244b38d9eac1b
+attribute [instance] anonStruct_85b244b38d9eac1b.zero_val
+
+class anonStruct_85b244b38d9eac1b.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying anonStruct_85b244b38d9eac1b.underlying anonStruct_85b244b38d9eac1b
+  underlying : go.UnderlyingDirectedEq anonStruct_85b244b38d9eac1b.ty anonStruct_85b244b38d9eac1b.underlying
+  isUnderlying : go.IsUnderlying anonStruct_85b244b38d9eac1b.underlying anonStruct_85b244b38d9eac1b.underlying
+
+attribute [instance] anonStruct_85b244b38d9eac1b.TypeAssumptions.type_repr
+  anonStruct_85b244b38d9eac1b.TypeAssumptions.underlying
+  anonStruct_85b244b38d9eac1b.TypeAssumptions.isUnderlying
+
 abbrev objects [FfiSyntax] (T : Type) : Type := GoSlice
 
 @[reducible] def objects.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
@@ -1032,6 +1052,7 @@ instance equals_unfold_SamplingConfig [FfiSyntax] [GoGlobalContext] :
 class SamplingConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SamplingConfig.underlying SamplingConfig
   underlying : go.UnderlyingDirectedEq SamplingConfig.ty SamplingConfig.underlying
+  layout : go.StructLayout SamplingConfig [(go!"Initial", typeSize w64, typeAlign w64), (go!"Thereafter", typeSize w64, typeAlign w64), (go!"Hook", typeSize GoFunc, typeAlign GoFunc)]
   get_Initial : ∀ (x : SamplingConfig), go.IsGoStepPureDetTagged under (StructFieldGet SamplingConfig.underlying go!"Initial") #x (Val #(x.Initial'))
   set_Initial : ∀ (x : SamplingConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet SamplingConfig.underlying go!"Initial") (PairV #x #y) (Val #(({ x with Initial' := y } : SamplingConfig)))
   get_Thereafter : ∀ (x : SamplingConfig), go.IsGoStepPureDetTagged under (StructFieldGet SamplingConfig.underlying go!"Thereafter") #x (Val #(x.Thereafter'))
@@ -1041,6 +1062,7 @@ class SamplingConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
 
 attribute [instance] SamplingConfig.TypeAssumptions.type_repr
   SamplingConfig.TypeAssumptions.underlying
+  SamplingConfig.TypeAssumptions.layout
   SamplingConfig.TypeAssumptions.get_Initial
   SamplingConfig.TypeAssumptions.set_Initial
   SamplingConfig.TypeAssumptions.get_Thereafter
@@ -1102,6 +1124,7 @@ instance equals_unfold_Config [FfiSyntax] [GoGlobalContext] :
 class Config.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Config.underlying Config
   underlying : go.UnderlyingDirectedEq Config.ty Config.underlying
+  layout : go.StructLayout Config [(go!"Level", typeSize AtomicLevel, typeAlign AtomicLevel), (go!"Development", typeSize Bool, typeAlign Bool), (go!"DisableCaller", typeSize Bool, typeAlign Bool), (go!"DisableStacktrace", typeSize Bool, typeAlign Bool), (go!"Sampling", typeSize Loc, typeAlign Loc), (go!"Encoding", typeSize GoString, typeAlign GoString), (go!"EncoderConfig", typeSize _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig, typeAlign _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig), (go!"OutputPaths", typeSize GoSlice, typeAlign GoSlice), (go!"ErrorOutputPaths", typeSize GoSlice, typeAlign GoSlice), (go!"InitialFields", typeSize GoMap, typeAlign GoMap)]
   get_Level : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Level") #x (Val #(x.Level'))
   set_Level : ∀ (x : Config) (y : AtomicLevel), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Level") (PairV #x #y) (Val #(({ x with Level' := y } : Config)))
   get_Development : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Development") #x (Val #(x.Development'))
@@ -1125,6 +1148,7 @@ class Config.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
 
 attribute [instance] Config.TypeAssumptions.type_repr
   Config.TypeAssumptions.underlying
+  Config.TypeAssumptions.layout
   Config.TypeAssumptions.get_Level
   Config.TypeAssumptions.set_Level
   Config.TypeAssumptions.get_Development
@@ -1179,11 +1203,13 @@ instance equals_unfold_errArrayElem [FfiSyntax] [GoGlobalContext] :
 class errArrayElem.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying errArrayElem.underlying errArrayElem
   underlying : go.UnderlyingDirectedEq errArrayElem.ty errArrayElem.underlying
+  layout : go.StructLayout errArrayElem [(go!"error", typeSize GoError, typeAlign GoError)]
   get_error : ∀ (x : errArrayElem), go.IsGoStepPureDetTagged under (StructFieldGet errArrayElem.underlying go!"error") #x (Val #(x.error'))
   set_error : ∀ (x : errArrayElem) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet errArrayElem.underlying go!"error") (PairV #x #y) (Val #(({ x with error' := y } : errArrayElem)))
 
 attribute [instance] errArrayElem.TypeAssumptions.type_repr
   errArrayElem.TypeAssumptions.underlying
+  errArrayElem.TypeAssumptions.layout
   errArrayElem.TypeAssumptions.get_error
   errArrayElem.TypeAssumptions.set_error
 
@@ -1230,11 +1256,13 @@ instance equals_unfold_loggerWriter [FfiSyntax] [GoGlobalContext] :
 class loggerWriter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying loggerWriter.underlying loggerWriter
   underlying : go.UnderlyingDirectedEq loggerWriter.ty loggerWriter.underlying
+  layout : go.StructLayout loggerWriter [(go!"logFunc", typeSize GoFunc, typeAlign GoFunc)]
   get_logFunc : ∀ (x : loggerWriter), go.IsGoStepPureDetTagged under (StructFieldGet loggerWriter.underlying go!"logFunc") #x (Val #(x.logFunc'))
   set_logFunc : ∀ (x : loggerWriter) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet loggerWriter.underlying go!"logFunc") (PairV #x #y) (Val #(({ x with logFunc' := y } : loggerWriter)))
 
 attribute [instance] loggerWriter.TypeAssumptions.type_repr
   loggerWriter.TypeAssumptions.underlying
+  loggerWriter.TypeAssumptions.layout
   loggerWriter.TypeAssumptions.get_logFunc
   loggerWriter.TypeAssumptions.set_logFunc
 
@@ -1289,6 +1317,7 @@ instance equals_unfold_Logger [FfiSyntax] [GoGlobalContext] :
 class Logger.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Logger.underlying Logger
   underlying : go.UnderlyingDirectedEq Logger.ty Logger.underlying
+  layout : go.StructLayout Logger [(go!"core", typeSize _root_.Perennial.go_uber_org.zap.zapcore.Core, typeAlign _root_.Perennial.go_uber_org.zap.zapcore.Core), (go!"development", typeSize Bool, typeAlign Bool), (go!"addCaller", typeSize Bool, typeAlign Bool), (go!"onPanic", typeSize _root_.Perennial.go_uber_org.zap.zapcore.CheckWriteHook, typeAlign _root_.Perennial.go_uber_org.zap.zapcore.CheckWriteHook), (go!"onFatal", typeSize _root_.Perennial.go_uber_org.zap.zapcore.CheckWriteHook, typeAlign _root_.Perennial.go_uber_org.zap.zapcore.CheckWriteHook), (go!"name", typeSize GoString, typeAlign GoString), (go!"errorOutput", typeSize _root_.Perennial.go_uber_org.zap.zapcore.WriteSyncer, typeAlign _root_.Perennial.go_uber_org.zap.zapcore.WriteSyncer), (go!"addStack", typeSize _root_.Perennial.go_uber_org.zap.zapcore.LevelEnabler, typeAlign _root_.Perennial.go_uber_org.zap.zapcore.LevelEnabler), (go!"callerSkip", typeSize w64, typeAlign w64), (go!"clock", typeSize _root_.Perennial.go_uber_org.zap.zapcore.Clock, typeAlign _root_.Perennial.go_uber_org.zap.zapcore.Clock)]
   get_core : ∀ (x : Logger), go.IsGoStepPureDetTagged under (StructFieldGet Logger.underlying go!"core") #x (Val #(x.core'))
   set_core : ∀ (x : Logger) (y : _root_.Perennial.go_uber_org.zap.zapcore.Core), go.IsGoStepPureDetTagged under (StructFieldSet Logger.underlying go!"core") (PairV #x #y) (Val #(({ x with core' := y } : Logger)))
   get_development : ∀ (x : Logger), go.IsGoStepPureDetTagged under (StructFieldGet Logger.underlying go!"development") #x (Val #(x.development'))
@@ -1312,6 +1341,7 @@ class Logger.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
 
 attribute [instance] Logger.TypeAssumptions.type_repr
   Logger.TypeAssumptions.underlying
+  Logger.TypeAssumptions.layout
   Logger.TypeAssumptions.get_core
   Logger.TypeAssumptions.set_core
   Logger.TypeAssumptions.get_development
@@ -1389,11 +1419,13 @@ instance equals_unfold_errSinkNotFound [FfiSyntax] [GoGlobalContext] :
 class errSinkNotFound.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying errSinkNotFound.underlying errSinkNotFound
   underlying : go.UnderlyingDirectedEq errSinkNotFound.ty errSinkNotFound.underlying
+  layout : go.StructLayout errSinkNotFound [(go!"scheme", typeSize GoString, typeAlign GoString)]
   get_scheme : ∀ (x : errSinkNotFound), go.IsGoStepPureDetTagged under (StructFieldGet errSinkNotFound.underlying go!"scheme") #x (Val #(x.scheme'))
   set_scheme : ∀ (x : errSinkNotFound) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet errSinkNotFound.underlying go!"scheme") (PairV #x #y) (Val #(({ x with scheme' := y } : errSinkNotFound)))
 
 attribute [instance] errSinkNotFound.TypeAssumptions.type_repr
   errSinkNotFound.TypeAssumptions.underlying
+  errSinkNotFound.TypeAssumptions.layout
   errSinkNotFound.TypeAssumptions.get_scheme
   errSinkNotFound.TypeAssumptions.set_scheme
 
@@ -1420,11 +1452,13 @@ instance equals_unfold_nopCloserSink [FfiSyntax] [GoGlobalContext] :
 class nopCloserSink.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying nopCloserSink.underlying nopCloserSink
   underlying : go.UnderlyingDirectedEq nopCloserSink.ty nopCloserSink.underlying
+  layout : go.StructLayout nopCloserSink [(go!"WriteSyncer", typeSize _root_.Perennial.go_uber_org.zap.zapcore.WriteSyncer, typeAlign _root_.Perennial.go_uber_org.zap.zapcore.WriteSyncer)]
   get_WriteSyncer : ∀ (x : nopCloserSink), go.IsGoStepPureDetTagged under (StructFieldGet nopCloserSink.underlying go!"WriteSyncer") #x (Val #(x.WriteSyncer'))
   set_WriteSyncer : ∀ (x : nopCloserSink) (y : _root_.Perennial.go_uber_org.zap.zapcore.WriteSyncer), go.IsGoStepPureDetTagged under (StructFieldSet nopCloserSink.underlying go!"WriteSyncer") (PairV #x #y) (Val #(({ x with WriteSyncer' := y } : nopCloserSink)))
 
 attribute [instance] nopCloserSink.TypeAssumptions.type_repr
   nopCloserSink.TypeAssumptions.underlying
+  nopCloserSink.TypeAssumptions.layout
   nopCloserSink.TypeAssumptions.get_WriteSyncer
   nopCloserSink.TypeAssumptions.set_WriteSyncer
 
@@ -1464,11 +1498,13 @@ instance equals_unfold_SugaredLogger [FfiSyntax] [GoGlobalContext] :
 class SugaredLogger.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SugaredLogger.underlying SugaredLogger
   underlying : go.UnderlyingDirectedEq SugaredLogger.ty SugaredLogger.underlying
+  layout : go.StructLayout SugaredLogger [(go!"base", typeSize Loc, typeAlign Loc)]
   get_base : ∀ (x : SugaredLogger), go.IsGoStepPureDetTagged under (StructFieldGet SugaredLogger.underlying go!"base") #x (Val #(x.base'))
   set_base : ∀ (x : SugaredLogger) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet SugaredLogger.underlying go!"base") (PairV #x #y) (Val #(({ x with base' := y } : SugaredLogger)))
 
 attribute [instance] SugaredLogger.TypeAssumptions.type_repr
   SugaredLogger.TypeAssumptions.underlying
+  SugaredLogger.TypeAssumptions.layout
   SugaredLogger.TypeAssumptions.get_base
   SugaredLogger.TypeAssumptions.set_base
 
@@ -1499,6 +1535,7 @@ instance equals_unfold_invalidPair [FfiSyntax] [GoGlobalContext] :
 class invalidPair.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying invalidPair.underlying invalidPair
   underlying : go.UnderlyingDirectedEq invalidPair.ty invalidPair.underlying
+  layout : go.StructLayout invalidPair [(go!"position", typeSize w64, typeAlign w64), (go!"key", typeSize GoInterface, typeAlign GoInterface), (go!"value", typeSize GoInterface, typeAlign GoInterface)]
   get_position : ∀ (x : invalidPair), go.IsGoStepPureDetTagged under (StructFieldGet invalidPair.underlying go!"position") #x (Val #(x.position'))
   set_position : ∀ (x : invalidPair) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet invalidPair.underlying go!"position") (PairV #x #y) (Val #(({ x with position' := y } : invalidPair)))
   get_key : ∀ (x : invalidPair), go.IsGoStepPureDetTagged under (StructFieldGet invalidPair.underlying go!"key") #x (Val #(x.key'))
@@ -1508,6 +1545,7 @@ class invalidPair.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
 
 attribute [instance] invalidPair.TypeAssumptions.type_repr
   invalidPair.TypeAssumptions.underlying
+  invalidPair.TypeAssumptions.layout
   invalidPair.TypeAssumptions.get_position
   invalidPair.TypeAssumptions.set_position
   invalidPair.TypeAssumptions.get_key
@@ -1526,6 +1564,7 @@ class invalidPairs.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
 attribute [instance] invalidPairs.TypeAssumptions.underlying
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  anonStruct_85b244b38d9eac1b_instance : anonStruct_85b244b38d9eac1b.TypeAssumptions
   objects_instance : objects.TypeAssumptions
   ObjectMarshalerPtr_instance : ObjectMarshalerPtr.TypeAssumptions
   objectValues_instance : objectValues.TypeAssumptions
@@ -1571,7 +1610,8 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   invalidPairs_instance : invalidPairs.TypeAssumptions
   import_zapcore_Assumption : _root_.Perennial.go_uber_org.zap.zapcore.Assumptions
 
-attribute [instance] Assumptions.objects_instance
+attribute [instance] Assumptions.anonStruct_85b244b38d9eac1b_instance
+  Assumptions.objects_instance
   Assumptions.ObjectMarshalerPtr_instance
   Assumptions.objectValues_instance
   Assumptions.stringers_instance

@@ -763,11 +763,13 @@ instance equals_unfold_closeNotifier [FfiSyntax] [GoGlobalContext] :
 class closeNotifier.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying closeNotifier.underlying closeNotifier
   underlying : go.UnderlyingDirectedEq closeNotifier.ty closeNotifier.underlying
+  layout : go.StructLayout closeNotifier [(go!"done", typeSize GoChan, typeAlign GoChan)]
   get_done : ∀ (x : closeNotifier), go.IsGoStepPureDetTagged under (StructFieldGet closeNotifier.underlying go!"done") #x (Val #(x.done'))
   set_done : ∀ (x : closeNotifier) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet closeNotifier.underlying go!"done") (PairV #x #y) (Val #(({ x with done' := y } : closeNotifier)))
 
 attribute [instance] closeNotifier.TypeAssumptions.type_repr
   closeNotifier.TypeAssumptions.underlying
+  closeNotifier.TypeAssumptions.layout
   closeNotifier.TypeAssumptions.get_done
   closeNotifier.TypeAssumptions.set_done
 
@@ -874,6 +876,7 @@ instance equals_unfold_failureType [FfiSyntax] [GoGlobalContext] :
 class failureType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying failureType.underlying failureType
   underlying : go.UnderlyingDirectedEq failureType.ty failureType.underlying
+  layout : go.StructLayout failureType [(go!"source", typeSize GoString, typeAlign GoString), (go!"action", typeSize GoString, typeAlign GoString)]
   get_source : ∀ (x : failureType), go.IsGoStepPureDetTagged under (StructFieldGet failureType.underlying go!"source") #x (Val #(x.source'))
   set_source : ∀ (x : failureType) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet failureType.underlying go!"source") (PairV #x #y) (Val #(({ x with source' := y } : failureType)))
   get_action : ∀ (x : failureType), go.IsGoStepPureDetTagged under (StructFieldGet failureType.underlying go!"action") #x (Val #(x.action'))
@@ -881,6 +884,7 @@ class failureType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
 
 attribute [instance] failureType.TypeAssumptions.type_repr
   failureType.TypeAssumptions.underlying
+  failureType.TypeAssumptions.layout
   failureType.TypeAssumptions.get_source
   failureType.TypeAssumptions.set_source
   failureType.TypeAssumptions.get_action

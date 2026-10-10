@@ -109,9 +109,11 @@ instance equals_unfold_TraceKey [FfiSyntax] [GoGlobalContext] :
 class TraceKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TraceKey.underlying TraceKey
   underlying : go.UnderlyingDirectedEq TraceKey.ty TraceKey.underlying
+  layout : go.StructLayout TraceKey []
 
 attribute [instance] TraceKey.TypeAssumptions.type_repr
   TraceKey.TypeAssumptions.underlying
+  TraceKey.TypeAssumptions.layout
 
 structure StartTimeKey [FfiSyntax] where
   mk ::
@@ -135,9 +137,11 @@ instance equals_unfold_StartTimeKey [FfiSyntax] [GoGlobalContext] :
 class StartTimeKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying StartTimeKey.underlying StartTimeKey
   underlying : go.UnderlyingDirectedEq StartTimeKey.ty StartTimeKey.underlying
+  layout : go.StructLayout StartTimeKey []
 
 attribute [instance] StartTimeKey.TypeAssumptions.type_repr
   StartTimeKey.TypeAssumptions.underlying
+  StartTimeKey.TypeAssumptions.layout
 
 structure Field [FfiSyntax] where
   mk ::
@@ -164,6 +168,7 @@ instance equals_unfold_Field [FfiSyntax] [GoGlobalContext] :
 class Field.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Field.underlying Field
   underlying : go.UnderlyingDirectedEq Field.ty Field.underlying
+  layout : go.StructLayout Field [(go!"Key", typeSize GoString, typeAlign GoString), (go!"Value", typeSize GoInterface, typeAlign GoInterface)]
   get_Key : ∀ (x : Field), go.IsGoStepPureDetTagged under (StructFieldGet Field.underlying go!"Key") #x (Val #(x.Key'))
   set_Key : ∀ (x : Field) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Field.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : Field)))
   get_Value : ∀ (x : Field), go.IsGoStepPureDetTagged under (StructFieldGet Field.underlying go!"Value") #x (Val #(x.Value'))
@@ -171,6 +176,7 @@ class Field.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
 
 attribute [instance] Field.TypeAssumptions.type_repr
   Field.TypeAssumptions.underlying
+  Field.TypeAssumptions.layout
   Field.TypeAssumptions.get_Key
   Field.TypeAssumptions.set_Key
   Field.TypeAssumptions.get_Value

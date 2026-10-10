@@ -233,11 +233,13 @@ instance equals_unfold_applierV3backend [FfiSyntax] [GoGlobalContext] :
 class applierV3backend.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying applierV3backend.underlying applierV3backend
   underlying : go.UnderlyingDirectedEq applierV3backend.ty applierV3backend.underlying
+  layout : go.StructLayout applierV3backend [(go!"options", typeSize ApplierOptions, typeAlign ApplierOptions)]
   get_options : ∀ (x : applierV3backend), go.IsGoStepPureDetTagged under (StructFieldGet applierV3backend.underlying go!"options") #x (Val #(x.options'))
   set_options : ∀ (x : applierV3backend) (y : ApplierOptions), go.IsGoStepPureDetTagged under (StructFieldSet applierV3backend.underlying go!"options") (PairV #x #y) (Val #(({ x with options' := y } : applierV3backend)))
 
 attribute [instance] applierV3backend.TypeAssumptions.type_repr
   applierV3backend.TypeAssumptions.underlying
+  applierV3backend.TypeAssumptions.layout
   applierV3backend.TypeAssumptions.get_options
   applierV3backend.TypeAssumptions.set_options
 
@@ -290,11 +292,13 @@ instance equals_unfold_applierV3Corrupt [FfiSyntax] [GoGlobalContext] :
 class applierV3Corrupt.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying applierV3Corrupt.underlying applierV3Corrupt
   underlying : go.UnderlyingDirectedEq applierV3Corrupt.ty applierV3Corrupt.underlying
+  layout : go.StructLayout applierV3Corrupt [(go!"applierV3", typeSize applierV3, typeAlign applierV3)]
   get_applierV3 : ∀ (x : applierV3Corrupt), go.IsGoStepPureDetTagged under (StructFieldGet applierV3Corrupt.underlying go!"applierV3") #x (Val #(x.applierV3'))
   set_applierV3 : ∀ (x : applierV3Corrupt) (y : applierV3), go.IsGoStepPureDetTagged under (StructFieldSet applierV3Corrupt.underlying go!"applierV3") (PairV #x #y) (Val #(({ x with applierV3' := y } : applierV3Corrupt)))
 
 attribute [instance] applierV3Corrupt.TypeAssumptions.type_repr
   applierV3Corrupt.TypeAssumptions.underlying
+  applierV3Corrupt.TypeAssumptions.layout
   applierV3Corrupt.TypeAssumptions.get_applierV3
   applierV3Corrupt.TypeAssumptions.set_applierV3
 
@@ -363,6 +367,7 @@ instance equals_unfold_Result [FfiSyntax] [GoGlobalContext] :
 class Result.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Result.underlying Result
   underlying : go.UnderlyingDirectedEq Result.ty Result.underlying
+  layout : go.StructLayout Result [(go!"Resp", typeSize _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.ProtoMessage, typeAlign _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.ProtoMessage), (go!"Err", typeSize GoError, typeAlign GoError), (go!"Physc", typeSize GoChan, typeAlign GoChan), (go!"Trace", typeSize Loc, typeAlign Loc)]
   get_Resp : ∀ (x : Result), go.IsGoStepPureDetTagged under (StructFieldGet Result.underlying go!"Resp") #x (Val #(x.Resp'))
   set_Resp : ∀ (x : Result) (y : _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.ProtoMessage), go.IsGoStepPureDetTagged under (StructFieldSet Result.underlying go!"Resp") (PairV #x #y) (Val #(({ x with Resp' := y } : Result)))
   get_Err : ∀ (x : Result), go.IsGoStepPureDetTagged under (StructFieldGet Result.underlying go!"Err") #x (Val #(x.Err'))
@@ -374,6 +379,7 @@ class Result.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
 
 attribute [instance] Result.TypeAssumptions.type_repr
   Result.TypeAssumptions.underlying
+  Result.TypeAssumptions.layout
   Result.TypeAssumptions.get_Resp
   Result.TypeAssumptions.set_Resp
   Result.TypeAssumptions.get_Err

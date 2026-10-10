@@ -546,6 +546,7 @@ instance equals_unfold_Storage [FfiSyntax] [GoGlobalContext] :
 class Storage.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Storage.underlying Storage
   underlying : go.UnderlyingDirectedEq Storage.ty Storage.underlying
+  layout : go.StructLayout Storage [(go!"MemoryStorage", typeSize Loc, typeAlign Loc), (go!"voters", typeSize GoSlice, typeAlign GoSlice)]
   get_MemoryStorage : ∀ (x : Storage), go.IsGoStepPureDetTagged under (StructFieldGet Storage.underlying go!"MemoryStorage") #x (Val #(x.MemoryStorage'))
   set_MemoryStorage : ∀ (x : Storage) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Storage.underlying go!"MemoryStorage") (PairV #x #y) (Val #(({ x with MemoryStorage' := y } : Storage)))
   get_voters : ∀ (x : Storage), go.IsGoStepPureDetTagged under (StructFieldGet Storage.underlying go!"voters") #x (Val #(x.voters'))
@@ -611,6 +612,7 @@ class Storage.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
 
 attribute [instance] Storage.TypeAssumptions.type_repr
   Storage.TypeAssumptions.underlying
+  Storage.TypeAssumptions.layout
   Storage.TypeAssumptions.get_MemoryStorage
   Storage.TypeAssumptions.set_MemoryStorage
   Storage.TypeAssumptions.get_voters
@@ -683,6 +685,7 @@ instance equals_unfold_Register [FfiSyntax] [GoGlobalContext] :
 class Register.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Register.underlying Register
   underlying : go.UnderlyingDirectedEq Register.ty Register.underlying
+  layout : go.StructLayout Register [(go!"id", typeSize w64, typeAlign w64), (go!"node", typeSize _root_.Perennial.go_etcd_io.raft.v3.Node, typeAlign _root_.Perennial.go_etcd_io.raft.v3.Node), (go!"storage", typeSize Loc, typeAlign Loc), (go!"mu", typeSize _root_.Perennial.sync.Mutex, typeAlign _root_.Perennial.sync.Mutex), (go!"value", typeSize GoString, typeAlign GoString), (go!"nextSeq", typeSize w64, typeAlign w64), (go!"applied", typeSize GoMap, typeAlign GoMap), (go!"waiters", typeSize GoMap, typeAlign GoMap)]
   get_id : ∀ (x : Register), go.IsGoStepPureDetTagged under (StructFieldGet Register.underlying go!"id") #x (Val #(x.id'))
   set_id : ∀ (x : Register) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Register.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : Register)))
   get_node : ∀ (x : Register), go.IsGoStepPureDetTagged under (StructFieldGet Register.underlying go!"node") #x (Val #(x.node'))
@@ -707,6 +710,7 @@ class Register.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
 
 attribute [instance] Register.TypeAssumptions.type_repr
   Register.TypeAssumptions.underlying
+  Register.TypeAssumptions.layout
   Register.TypeAssumptions.get_id
   Register.TypeAssumptions.set_id
   Register.TypeAssumptions.get_node

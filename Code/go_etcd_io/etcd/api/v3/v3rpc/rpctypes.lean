@@ -1107,9 +1107,11 @@ instance equals_unfold_TokenFieldNameGRPCKey [FfiSyntax] [GoGlobalContext] :
 class TokenFieldNameGRPCKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TokenFieldNameGRPCKey.underlying TokenFieldNameGRPCKey
   underlying : go.UnderlyingDirectedEq TokenFieldNameGRPCKey.ty TokenFieldNameGRPCKey.underlying
+  layout : go.StructLayout TokenFieldNameGRPCKey []
 
 attribute [instance] TokenFieldNameGRPCKey.TypeAssumptions.type_repr
   TokenFieldNameGRPCKey.TypeAssumptions.underlying
+  TokenFieldNameGRPCKey.TypeAssumptions.layout
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   EtcdError_instance : EtcdError.TypeAssumptions

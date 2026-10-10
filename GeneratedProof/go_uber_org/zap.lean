@@ -18,6 +18,25 @@ open Iris Iris.BI
 noncomputable section
 namespace go_uber_org.zap
 
+namespace anonStruct_85b244b38d9eac1b
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_uber_org.zap.Assumptions]
+
+instance anonStruct_85b244b38d9eac1b_typed_pointsto :
+    TypedPointsto (GF := GF) go_uber_org.zap.anonStruct_85b244b38d9eac1b :=
+  sorry -- axiomatized type
+
+instance anonStruct_85b244b38d9eac1b_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.anonStruct_85b244b38d9eac1b go_uber_org.zap.anonStruct_85b244b38d9eac1b.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end anonStruct_85b244b38d9eac1b
+
 namespace durations
 section def_
 

@@ -153,6 +153,7 @@ instance equals_unfold_FeatureSpec [FfiSyntax] [GoGlobalContext] :
 class FeatureSpec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying FeatureSpec.underlying FeatureSpec
   underlying : go.UnderlyingDirectedEq FeatureSpec.ty FeatureSpec.underlying
+  layout : go.StructLayout FeatureSpec [(go!"Default", typeSize Bool, typeAlign Bool), (go!"LockToDefault", typeSize Bool, typeAlign Bool), (go!"PreRelease", typeSize prerelease, typeAlign prerelease)]
   get_Default : ∀ (x : FeatureSpec), go.IsGoStepPureDetTagged under (StructFieldGet FeatureSpec.underlying go!"Default") #x (Val #(x.Default'))
   set_Default : ∀ (x : FeatureSpec) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet FeatureSpec.underlying go!"Default") (PairV #x #y) (Val #(({ x with Default' := y } : FeatureSpec)))
   get_LockToDefault : ∀ (x : FeatureSpec), go.IsGoStepPureDetTagged under (StructFieldGet FeatureSpec.underlying go!"LockToDefault") #x (Val #(x.LockToDefault'))
@@ -162,6 +163,7 @@ class FeatureSpec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
 
 attribute [instance] FeatureSpec.TypeAssumptions.type_repr
   FeatureSpec.TypeAssumptions.underlying
+  FeatureSpec.TypeAssumptions.layout
   FeatureSpec.TypeAssumptions.get_Default
   FeatureSpec.TypeAssumptions.set_Default
   FeatureSpec.TypeAssumptions.get_LockToDefault

@@ -236,6 +236,7 @@ instance equals_unfold_DiscoveryError [FfiSyntax] [GoGlobalContext] :
 class DiscoveryError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DiscoveryError.underlying DiscoveryError
   underlying : go.UnderlyingDirectedEq DiscoveryError.ty DiscoveryError.underlying
+  layout : go.StructLayout DiscoveryError [(go!"Op", typeSize GoString, typeAlign GoString), (go!"Err", typeSize GoError, typeAlign GoError)]
   get_Op : ∀ (x : DiscoveryError), go.IsGoStepPureDetTagged under (StructFieldGet DiscoveryError.underlying go!"Op") #x (Val #(x.Op'))
   set_Op : ∀ (x : DiscoveryError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet DiscoveryError.underlying go!"Op") (PairV #x #y) (Val #(({ x with Op' := y } : DiscoveryError)))
   get_Err : ∀ (x : DiscoveryError), go.IsGoStepPureDetTagged under (StructFieldGet DiscoveryError.underlying go!"Err") #x (Val #(x.Err'))
@@ -243,6 +244,7 @@ class DiscoveryError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
 
 attribute [instance] DiscoveryError.TypeAssumptions.type_repr
   DiscoveryError.TypeAssumptions.underlying
+  DiscoveryError.TypeAssumptions.layout
   DiscoveryError.TypeAssumptions.get_Op
   DiscoveryError.TypeAssumptions.set_Op
   DiscoveryError.TypeAssumptions.get_Err

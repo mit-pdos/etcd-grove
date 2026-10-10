@@ -94,11 +94,13 @@ instance equals_unfold_perRPCCredentialBundle [FfiSyntax] [GoGlobalContext] :
 class perRPCCredentialBundle.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying perRPCCredentialBundle.underlying perRPCCredentialBundle
   underlying : go.UnderlyingDirectedEq perRPCCredentialBundle.ty perRPCCredentialBundle.underlying
+  layout : go.StructLayout perRPCCredentialBundle [(go!"rc", typeSize Loc, typeAlign Loc)]
   get_rc : ∀ (x : perRPCCredentialBundle), go.IsGoStepPureDetTagged under (StructFieldGet perRPCCredentialBundle.underlying go!"rc") #x (Val #(x.rc'))
   set_rc : ∀ (x : perRPCCredentialBundle) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet perRPCCredentialBundle.underlying go!"rc") (PairV #x #y) (Val #(({ x with rc' := y } : perRPCCredentialBundle)))
 
 attribute [instance] perRPCCredentialBundle.TypeAssumptions.type_repr
   perRPCCredentialBundle.TypeAssumptions.underlying
+  perRPCCredentialBundle.TypeAssumptions.layout
   perRPCCredentialBundle.TypeAssumptions.get_rc
   perRPCCredentialBundle.TypeAssumptions.set_rc
 

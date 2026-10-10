@@ -240,11 +240,13 @@ instance equals_unfold_CommonAuthInfo [FfiSyntax] [GoGlobalContext] :
 class CommonAuthInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CommonAuthInfo.underlying CommonAuthInfo
   underlying : go.UnderlyingDirectedEq CommonAuthInfo.ty CommonAuthInfo.underlying
+  layout : go.StructLayout CommonAuthInfo [(go!"SecurityLevel", typeSize SecurityLevel, typeAlign SecurityLevel)]
   get_SecurityLevel : ∀ (x : CommonAuthInfo), go.IsGoStepPureDetTagged under (StructFieldGet CommonAuthInfo.underlying go!"SecurityLevel") #x (Val #(x.SecurityLevel'))
   set_SecurityLevel : ∀ (x : CommonAuthInfo) (y : SecurityLevel), go.IsGoStepPureDetTagged under (StructFieldSet CommonAuthInfo.underlying go!"SecurityLevel") (PairV #x #y) (Val #(({ x with SecurityLevel' := y } : CommonAuthInfo)))
 
 attribute [instance] CommonAuthInfo.TypeAssumptions.type_repr
   CommonAuthInfo.TypeAssumptions.underlying
+  CommonAuthInfo.TypeAssumptions.layout
   CommonAuthInfo.TypeAssumptions.get_SecurityLevel
   CommonAuthInfo.TypeAssumptions.set_SecurityLevel
 
@@ -277,6 +279,7 @@ instance equals_unfold_ProtocolInfo [FfiSyntax] [GoGlobalContext] :
 class ProtocolInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ProtocolInfo.underlying ProtocolInfo
   underlying : go.UnderlyingDirectedEq ProtocolInfo.ty ProtocolInfo.underlying
+  layout : go.StructLayout ProtocolInfo [(go!"ProtocolVersion", typeSize GoString, typeAlign GoString), (go!"SecurityProtocol", typeSize GoString, typeAlign GoString), (go!"SecurityVersion", typeSize GoString, typeAlign GoString), (go!"ServerName", typeSize GoString, typeAlign GoString)]
   get_ProtocolVersion : ∀ (x : ProtocolInfo), go.IsGoStepPureDetTagged under (StructFieldGet ProtocolInfo.underlying go!"ProtocolVersion") #x (Val #(x.ProtocolVersion'))
   set_ProtocolVersion : ∀ (x : ProtocolInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ProtocolInfo.underlying go!"ProtocolVersion") (PairV #x #y) (Val #(({ x with ProtocolVersion' := y } : ProtocolInfo)))
   get_SecurityProtocol : ∀ (x : ProtocolInfo), go.IsGoStepPureDetTagged under (StructFieldGet ProtocolInfo.underlying go!"SecurityProtocol") #x (Val #(x.SecurityProtocol'))
@@ -288,6 +291,7 @@ class ProtocolInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
 
 attribute [instance] ProtocolInfo.TypeAssumptions.type_repr
   ProtocolInfo.TypeAssumptions.underlying
+  ProtocolInfo.TypeAssumptions.layout
   ProtocolInfo.TypeAssumptions.get_ProtocolVersion
   ProtocolInfo.TypeAssumptions.set_ProtocolVersion
   ProtocolInfo.TypeAssumptions.get_SecurityProtocol
@@ -365,6 +369,7 @@ instance equals_unfold_RequestInfo [FfiSyntax] [GoGlobalContext] :
 class RequestInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RequestInfo.underlying RequestInfo
   underlying : go.UnderlyingDirectedEq RequestInfo.ty RequestInfo.underlying
+  layout : go.StructLayout RequestInfo [(go!"Method", typeSize GoString, typeAlign GoString), (go!"AuthInfo", typeSize AuthInfo, typeAlign AuthInfo)]
   get_Method : ∀ (x : RequestInfo), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfo.underlying go!"Method") #x (Val #(x.Method'))
   set_Method : ∀ (x : RequestInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfo.underlying go!"Method") (PairV #x #y) (Val #(({ x with Method' := y } : RequestInfo)))
   get_AuthInfo : ∀ (x : RequestInfo), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfo.underlying go!"AuthInfo") #x (Val #(x.AuthInfo'))
@@ -372,6 +377,7 @@ class RequestInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
 
 attribute [instance] RequestInfo.TypeAssumptions.type_repr
   RequestInfo.TypeAssumptions.underlying
+  RequestInfo.TypeAssumptions.layout
   RequestInfo.TypeAssumptions.get_Method
   RequestInfo.TypeAssumptions.set_Method
   RequestInfo.TypeAssumptions.get_AuthInfo
@@ -399,9 +405,11 @@ instance equals_unfold_requestInfoKey [FfiSyntax] [GoGlobalContext] :
 class requestInfoKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying requestInfoKey.underlying requestInfoKey
   underlying : go.UnderlyingDirectedEq requestInfoKey.ty requestInfoKey.underlying
+  layout : go.StructLayout requestInfoKey []
 
 attribute [instance] requestInfoKey.TypeAssumptions.type_repr
   requestInfoKey.TypeAssumptions.underlying
+  requestInfoKey.TypeAssumptions.layout
 
 axiom ClientHandshakeInfo : Type
 axiom ClientHandshakeInfo.zero_val : ZeroVal ClientHandshakeInfo
@@ -504,6 +512,7 @@ instance equals_unfold_TLSChannelzSecurityValue [FfiSyntax] [GoGlobalContext] :
 class TLSChannelzSecurityValue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TLSChannelzSecurityValue.underlying TLSChannelzSecurityValue
   underlying : go.UnderlyingDirectedEq TLSChannelzSecurityValue.ty TLSChannelzSecurityValue.underlying
+  layout : go.StructLayout TLSChannelzSecurityValue [(go!"ChannelzSecurityValue", typeSize ChannelzSecurityValue, typeAlign ChannelzSecurityValue), (go!"StandardName", typeSize GoString, typeAlign GoString), (go!"LocalCertificate", typeSize GoSlice, typeAlign GoSlice), (go!"RemoteCertificate", typeSize GoSlice, typeAlign GoSlice)]
   get_ChannelzSecurityValue : ∀ (x : TLSChannelzSecurityValue), go.IsGoStepPureDetTagged under (StructFieldGet TLSChannelzSecurityValue.underlying go!"ChannelzSecurityValue") #x (Val #(x.ChannelzSecurityValue'))
   set_ChannelzSecurityValue : ∀ (x : TLSChannelzSecurityValue) (y : ChannelzSecurityValue), go.IsGoStepPureDetTagged under (StructFieldSet TLSChannelzSecurityValue.underlying go!"ChannelzSecurityValue") (PairV #x #y) (Val #(({ x with ChannelzSecurityValue' := y } : TLSChannelzSecurityValue)))
   get_StandardName : ∀ (x : TLSChannelzSecurityValue), go.IsGoStepPureDetTagged under (StructFieldGet TLSChannelzSecurityValue.underlying go!"StandardName") #x (Val #(x.StandardName'))
@@ -515,6 +524,7 @@ class TLSChannelzSecurityValue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [Go
 
 attribute [instance] TLSChannelzSecurityValue.TypeAssumptions.type_repr
   TLSChannelzSecurityValue.TypeAssumptions.underlying
+  TLSChannelzSecurityValue.TypeAssumptions.layout
   TLSChannelzSecurityValue.TypeAssumptions.get_ChannelzSecurityValue
   TLSChannelzSecurityValue.TypeAssumptions.set_ChannelzSecurityValue
   TLSChannelzSecurityValue.TypeAssumptions.get_StandardName

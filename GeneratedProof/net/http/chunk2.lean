@@ -17,6 +17,44 @@ open Iris Iris.BI
 noncomputable section
 namespace net.http
 
+namespace serveMux121
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : net.http.Assumptions]
+
+instance serveMux121_typed_pointsto :
+    TypedPointsto (GF := GF) net.http.serveMux121 :=
+  sorry -- axiomatized type
+
+instance serveMux121_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) net.http.serveMux121 net.http.serveMux121.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end serveMux121
+
+namespace Hijacker
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : net.http.Assumptions]
+
+instance Hijacker_typed_pointsto :
+    TypedPointsto (GF := GF) net.http.Hijacker :=
+  sorry -- axiomatized type
+
+instance Hijacker_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) net.http.Hijacker net.http.Hijacker.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end Hijacker
+
 namespace conn
 section def_
 
@@ -1411,44 +1449,6 @@ instance connectMethodKey_access_store_onlyH1 (l : Loc) (v : net.http.connectMet
 
 end def_
 end connectMethodKey
-
-namespace persistConn
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.http.Assumptions]
-
-instance persistConn_typed_pointsto :
-    TypedPointsto (GF := GF) net.http.persistConn :=
-  sorry -- axiomatized type
-
-instance persistConn_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.http.persistConn net.http.persistConn.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end persistConn
-
-namespace readWriteCloserBody
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.http.Assumptions]
-
-instance readWriteCloserBody_typed_pointsto :
-    TypedPointsto (GF := GF) net.http.readWriteCloserBody :=
-  sorry -- axiomatized type
-
-instance readWriteCloserBody_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.http.readWriteCloserBody net.http.readWriteCloserBody.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end readWriteCloserBody
 
 end net.http
 end

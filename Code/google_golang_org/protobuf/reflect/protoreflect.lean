@@ -21,6 +21,66 @@ end pkg_id
 
 namespace google_golang_org.protobuf.reflect.protoreflect
 
+def anonStruct_1aa9679ee711ca86.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.anonStruct_1aa9679ee711ca86" [])
+
+attribute [irreducible] anonStruct_1aa9679ee711ca86.ty
+
+def anonStruct_2324f7b2e4bdda19.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.anonStruct_2324f7b2e4bdda19" [])
+
+attribute [irreducible] anonStruct_2324f7b2e4bdda19.ty
+
+def anonStruct_2707f7b50f73c1b9.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.anonStruct_2707f7b50f73c1b9" [])
+
+attribute [irreducible] anonStruct_2707f7b50f73c1b9.ty
+
+def anonStruct_4f512db8745dbfcb.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.anonStruct_4f512db8745dbfcb" [])
+
+attribute [irreducible] anonStruct_4f512db8745dbfcb.ty
+
+def anonStruct_5fa2c47d2adda34b.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.anonStruct_5fa2c47d2adda34b" [])
+
+attribute [irreducible] anonStruct_5fa2c47d2adda34b.ty
+
+def anonStruct_623722c657041b5d.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.anonStruct_623722c657041b5d" [])
+
+attribute [irreducible] anonStruct_623722c657041b5d.ty
+
+def anonStruct_68a3880c0e3cf927.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.anonStruct_68a3880c0e3cf927" [])
+
+attribute [irreducible] anonStruct_68a3880c0e3cf927.ty
+
+def anonStruct_8e6fcadadfa82ead.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.anonStruct_8e6fcadadfa82ead" [])
+
+attribute [irreducible] anonStruct_8e6fcadadfa82ead.ty
+
+def anonStruct_acb8f94f646518b0.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.anonStruct_acb8f94f646518b0" [])
+
+attribute [irreducible] anonStruct_acb8f94f646518b0.ty
+
+def anonStruct_b80a2745a7a20fc5.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.anonStruct_b80a2745a7a20fc5" [])
+
+attribute [irreducible] anonStruct_b80a2745a7a20fc5.ty
+
+def anonStruct_b9058ab353087e9c.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.anonStruct_b9058ab353087e9c" [])
+
+attribute [irreducible] anonStruct_b9058ab353087e9c.ty
+
+def anonStruct_ef7d008c6fff5c1d.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.anonStruct_ef7d008c6fff5c1d" [])
+
+attribute [irreducible] anonStruct_ef7d008c6fff5c1d.ty
+
 def doNotImplement.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.doNotImplement" [])
 
@@ -321,38 +381,62 @@ def value.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] value.ty
 
-axiom methods [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom anonStruct_1aa9679ee711ca86.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+
+axiom anonStruct_2324f7b2e4bdda19.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+
+axiom anonStruct_2707f7b50f73c1b9.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+
+axiom anonStruct_4f512db8745dbfcb.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+
+axiom anonStruct_5fa2c47d2adda34b.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+
+axiom anonStruct_623722c657041b5d.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+
+axiom anonStruct_68a3880c0e3cf927.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+
+axiom anonStruct_8e6fcadadfa82ead.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+
+axiom anonStruct_acb8f94f646518b0.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+
+axiom anonStruct_b80a2745a7a20fc5.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+
+axiom anonStruct_b9058ab353087e9c.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+
+axiom anonStruct_ef7d008c6fff5c1d.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+
+axiom methods.ty [FfiSyntax] [GoGlobalContext] : go.GoType
 
 @[reducible] def supportFlags.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.uint64
 
-axiom sizeInput [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom sizeInput.ty [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom sizeOutput [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom sizeOutput.ty [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom marshalInput [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom marshalInput.ty [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom marshalOutput [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom marshalOutput.ty [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom unmarshalInput [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom unmarshalInput.ty [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom unmarshalOutput [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom unmarshalOutput.ty [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom mergeInput [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom mergeInput.ty [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom mergeOutput [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom mergeOutput.ty [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom checkInitializedInput [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom checkInitializedInput.ty [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom checkInitializedOutput [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom checkInitializedOutput.ty [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom equalInput [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom equalInput.ty [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom equalOutput [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom equalOutput.ty [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom doNotImplement.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom FieldNumber [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom FieldNumber.ty [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom FieldNumbers.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
@@ -595,6 +679,162 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val nilType.init) (Val #()))))))))
 
+axiom anonStruct_1aa9679ee711ca86 : Type
+axiom anonStruct_1aa9679ee711ca86.zero_val : ZeroVal anonStruct_1aa9679ee711ca86
+attribute [instance] anonStruct_1aa9679ee711ca86.zero_val
+
+class anonStruct_1aa9679ee711ca86.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying anonStruct_1aa9679ee711ca86.underlying anonStruct_1aa9679ee711ca86
+  underlying : go.UnderlyingDirectedEq anonStruct_1aa9679ee711ca86.ty anonStruct_1aa9679ee711ca86.underlying
+  isUnderlying : go.IsUnderlying anonStruct_1aa9679ee711ca86.underlying anonStruct_1aa9679ee711ca86.underlying
+
+attribute [instance] anonStruct_1aa9679ee711ca86.TypeAssumptions.type_repr
+  anonStruct_1aa9679ee711ca86.TypeAssumptions.underlying
+  anonStruct_1aa9679ee711ca86.TypeAssumptions.isUnderlying
+
+axiom anonStruct_2324f7b2e4bdda19 : Type
+axiom anonStruct_2324f7b2e4bdda19.zero_val : ZeroVal anonStruct_2324f7b2e4bdda19
+attribute [instance] anonStruct_2324f7b2e4bdda19.zero_val
+
+class anonStruct_2324f7b2e4bdda19.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying anonStruct_2324f7b2e4bdda19.underlying anonStruct_2324f7b2e4bdda19
+  underlying : go.UnderlyingDirectedEq anonStruct_2324f7b2e4bdda19.ty anonStruct_2324f7b2e4bdda19.underlying
+  isUnderlying : go.IsUnderlying anonStruct_2324f7b2e4bdda19.underlying anonStruct_2324f7b2e4bdda19.underlying
+
+attribute [instance] anonStruct_2324f7b2e4bdda19.TypeAssumptions.type_repr
+  anonStruct_2324f7b2e4bdda19.TypeAssumptions.underlying
+  anonStruct_2324f7b2e4bdda19.TypeAssumptions.isUnderlying
+
+axiom anonStruct_2707f7b50f73c1b9 : Type
+axiom anonStruct_2707f7b50f73c1b9.zero_val : ZeroVal anonStruct_2707f7b50f73c1b9
+attribute [instance] anonStruct_2707f7b50f73c1b9.zero_val
+
+class anonStruct_2707f7b50f73c1b9.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying anonStruct_2707f7b50f73c1b9.underlying anonStruct_2707f7b50f73c1b9
+  underlying : go.UnderlyingDirectedEq anonStruct_2707f7b50f73c1b9.ty anonStruct_2707f7b50f73c1b9.underlying
+  isUnderlying : go.IsUnderlying anonStruct_2707f7b50f73c1b9.underlying anonStruct_2707f7b50f73c1b9.underlying
+
+attribute [instance] anonStruct_2707f7b50f73c1b9.TypeAssumptions.type_repr
+  anonStruct_2707f7b50f73c1b9.TypeAssumptions.underlying
+  anonStruct_2707f7b50f73c1b9.TypeAssumptions.isUnderlying
+
+axiom anonStruct_4f512db8745dbfcb : Type
+axiom anonStruct_4f512db8745dbfcb.zero_val : ZeroVal anonStruct_4f512db8745dbfcb
+attribute [instance] anonStruct_4f512db8745dbfcb.zero_val
+
+class anonStruct_4f512db8745dbfcb.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying anonStruct_4f512db8745dbfcb.underlying anonStruct_4f512db8745dbfcb
+  underlying : go.UnderlyingDirectedEq anonStruct_4f512db8745dbfcb.ty anonStruct_4f512db8745dbfcb.underlying
+  isUnderlying : go.IsUnderlying anonStruct_4f512db8745dbfcb.underlying anonStruct_4f512db8745dbfcb.underlying
+
+attribute [instance] anonStruct_4f512db8745dbfcb.TypeAssumptions.type_repr
+  anonStruct_4f512db8745dbfcb.TypeAssumptions.underlying
+  anonStruct_4f512db8745dbfcb.TypeAssumptions.isUnderlying
+
+axiom anonStruct_5fa2c47d2adda34b : Type
+axiom anonStruct_5fa2c47d2adda34b.zero_val : ZeroVal anonStruct_5fa2c47d2adda34b
+attribute [instance] anonStruct_5fa2c47d2adda34b.zero_val
+
+class anonStruct_5fa2c47d2adda34b.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying anonStruct_5fa2c47d2adda34b.underlying anonStruct_5fa2c47d2adda34b
+  underlying : go.UnderlyingDirectedEq anonStruct_5fa2c47d2adda34b.ty anonStruct_5fa2c47d2adda34b.underlying
+  isUnderlying : go.IsUnderlying anonStruct_5fa2c47d2adda34b.underlying anonStruct_5fa2c47d2adda34b.underlying
+
+attribute [instance] anonStruct_5fa2c47d2adda34b.TypeAssumptions.type_repr
+  anonStruct_5fa2c47d2adda34b.TypeAssumptions.underlying
+  anonStruct_5fa2c47d2adda34b.TypeAssumptions.isUnderlying
+
+axiom anonStruct_623722c657041b5d : Type
+axiom anonStruct_623722c657041b5d.zero_val : ZeroVal anonStruct_623722c657041b5d
+attribute [instance] anonStruct_623722c657041b5d.zero_val
+
+class anonStruct_623722c657041b5d.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying anonStruct_623722c657041b5d.underlying anonStruct_623722c657041b5d
+  underlying : go.UnderlyingDirectedEq anonStruct_623722c657041b5d.ty anonStruct_623722c657041b5d.underlying
+  isUnderlying : go.IsUnderlying anonStruct_623722c657041b5d.underlying anonStruct_623722c657041b5d.underlying
+
+attribute [instance] anonStruct_623722c657041b5d.TypeAssumptions.type_repr
+  anonStruct_623722c657041b5d.TypeAssumptions.underlying
+  anonStruct_623722c657041b5d.TypeAssumptions.isUnderlying
+
+axiom anonStruct_68a3880c0e3cf927 : Type
+axiom anonStruct_68a3880c0e3cf927.zero_val : ZeroVal anonStruct_68a3880c0e3cf927
+attribute [instance] anonStruct_68a3880c0e3cf927.zero_val
+
+class anonStruct_68a3880c0e3cf927.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying anonStruct_68a3880c0e3cf927.underlying anonStruct_68a3880c0e3cf927
+  underlying : go.UnderlyingDirectedEq anonStruct_68a3880c0e3cf927.ty anonStruct_68a3880c0e3cf927.underlying
+  isUnderlying : go.IsUnderlying anonStruct_68a3880c0e3cf927.underlying anonStruct_68a3880c0e3cf927.underlying
+
+attribute [instance] anonStruct_68a3880c0e3cf927.TypeAssumptions.type_repr
+  anonStruct_68a3880c0e3cf927.TypeAssumptions.underlying
+  anonStruct_68a3880c0e3cf927.TypeAssumptions.isUnderlying
+
+axiom anonStruct_8e6fcadadfa82ead : Type
+axiom anonStruct_8e6fcadadfa82ead.zero_val : ZeroVal anonStruct_8e6fcadadfa82ead
+attribute [instance] anonStruct_8e6fcadadfa82ead.zero_val
+
+class anonStruct_8e6fcadadfa82ead.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying anonStruct_8e6fcadadfa82ead.underlying anonStruct_8e6fcadadfa82ead
+  underlying : go.UnderlyingDirectedEq anonStruct_8e6fcadadfa82ead.ty anonStruct_8e6fcadadfa82ead.underlying
+  isUnderlying : go.IsUnderlying anonStruct_8e6fcadadfa82ead.underlying anonStruct_8e6fcadadfa82ead.underlying
+
+attribute [instance] anonStruct_8e6fcadadfa82ead.TypeAssumptions.type_repr
+  anonStruct_8e6fcadadfa82ead.TypeAssumptions.underlying
+  anonStruct_8e6fcadadfa82ead.TypeAssumptions.isUnderlying
+
+axiom anonStruct_acb8f94f646518b0 : Type
+axiom anonStruct_acb8f94f646518b0.zero_val : ZeroVal anonStruct_acb8f94f646518b0
+attribute [instance] anonStruct_acb8f94f646518b0.zero_val
+
+class anonStruct_acb8f94f646518b0.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying anonStruct_acb8f94f646518b0.underlying anonStruct_acb8f94f646518b0
+  underlying : go.UnderlyingDirectedEq anonStruct_acb8f94f646518b0.ty anonStruct_acb8f94f646518b0.underlying
+  isUnderlying : go.IsUnderlying anonStruct_acb8f94f646518b0.underlying anonStruct_acb8f94f646518b0.underlying
+
+attribute [instance] anonStruct_acb8f94f646518b0.TypeAssumptions.type_repr
+  anonStruct_acb8f94f646518b0.TypeAssumptions.underlying
+  anonStruct_acb8f94f646518b0.TypeAssumptions.isUnderlying
+
+axiom anonStruct_b80a2745a7a20fc5 : Type
+axiom anonStruct_b80a2745a7a20fc5.zero_val : ZeroVal anonStruct_b80a2745a7a20fc5
+attribute [instance] anonStruct_b80a2745a7a20fc5.zero_val
+
+class anonStruct_b80a2745a7a20fc5.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying anonStruct_b80a2745a7a20fc5.underlying anonStruct_b80a2745a7a20fc5
+  underlying : go.UnderlyingDirectedEq anonStruct_b80a2745a7a20fc5.ty anonStruct_b80a2745a7a20fc5.underlying
+  isUnderlying : go.IsUnderlying anonStruct_b80a2745a7a20fc5.underlying anonStruct_b80a2745a7a20fc5.underlying
+
+attribute [instance] anonStruct_b80a2745a7a20fc5.TypeAssumptions.type_repr
+  anonStruct_b80a2745a7a20fc5.TypeAssumptions.underlying
+  anonStruct_b80a2745a7a20fc5.TypeAssumptions.isUnderlying
+
+axiom anonStruct_b9058ab353087e9c : Type
+axiom anonStruct_b9058ab353087e9c.zero_val : ZeroVal anonStruct_b9058ab353087e9c
+attribute [instance] anonStruct_b9058ab353087e9c.zero_val
+
+class anonStruct_b9058ab353087e9c.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying anonStruct_b9058ab353087e9c.underlying anonStruct_b9058ab353087e9c
+  underlying : go.UnderlyingDirectedEq anonStruct_b9058ab353087e9c.ty anonStruct_b9058ab353087e9c.underlying
+  isUnderlying : go.IsUnderlying anonStruct_b9058ab353087e9c.underlying anonStruct_b9058ab353087e9c.underlying
+
+attribute [instance] anonStruct_b9058ab353087e9c.TypeAssumptions.type_repr
+  anonStruct_b9058ab353087e9c.TypeAssumptions.underlying
+  anonStruct_b9058ab353087e9c.TypeAssumptions.isUnderlying
+
+axiom anonStruct_ef7d008c6fff5c1d : Type
+axiom anonStruct_ef7d008c6fff5c1d.zero_val : ZeroVal anonStruct_ef7d008c6fff5c1d
+attribute [instance] anonStruct_ef7d008c6fff5c1d.zero_val
+
+class anonStruct_ef7d008c6fff5c1d.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying anonStruct_ef7d008c6fff5c1d.underlying anonStruct_ef7d008c6fff5c1d
+  underlying : go.UnderlyingDirectedEq anonStruct_ef7d008c6fff5c1d.ty anonStruct_ef7d008c6fff5c1d.underlying
+  isUnderlying : go.IsUnderlying anonStruct_ef7d008c6fff5c1d.underlying anonStruct_ef7d008c6fff5c1d.underlying
+
+attribute [instance] anonStruct_ef7d008c6fff5c1d.TypeAssumptions.type_repr
+  anonStruct_ef7d008c6fff5c1d.TypeAssumptions.underlying
+  anonStruct_ef7d008c6fff5c1d.TypeAssumptions.isUnderlying
+
 axiom doNotImplement : Type
 axiom doNotImplement.zero_val : ZeroVal doNotImplement
 attribute [instance] doNotImplement.zero_val
@@ -813,6 +1053,7 @@ instance equals_unfold_SourceLocation [FfiSyntax] [GoGlobalContext] :
 class SourceLocation.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SourceLocation.underlying SourceLocation
   underlying : go.UnderlyingDirectedEq SourceLocation.ty SourceLocation.underlying
+  layout : go.StructLayout SourceLocation [(go!"Path", typeSize SourcePath, typeAlign SourcePath), (go!"StartLine", typeSize w64, typeAlign w64), (go!"StartColumn", typeSize w64, typeAlign w64), (go!"EndLine", typeSize w64, typeAlign w64), (go!"EndColumn", typeSize w64, typeAlign w64), (go!"LeadingDetachedComments", typeSize GoSlice, typeAlign GoSlice), (go!"LeadingComments", typeSize GoString, typeAlign GoString), (go!"TrailingComments", typeSize GoString, typeAlign GoString), (go!"Next", typeSize w64, typeAlign w64)]
   get_Path : ∀ (x : SourceLocation), go.IsGoStepPureDetTagged under (StructFieldGet SourceLocation.underlying go!"Path") #x (Val #(x.Path'))
   set_Path : ∀ (x : SourceLocation) (y : SourcePath), go.IsGoStepPureDetTagged under (StructFieldSet SourceLocation.underlying go!"Path") (PairV #x #y) (Val #(({ x with Path' := y } : SourceLocation)))
   get_StartLine : ∀ (x : SourceLocation), go.IsGoStepPureDetTagged under (StructFieldGet SourceLocation.underlying go!"StartLine") #x (Val #(x.StartLine'))
@@ -834,6 +1075,7 @@ class SourceLocation.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
 
 attribute [instance] SourceLocation.TypeAssumptions.type_repr
   SourceLocation.TypeAssumptions.underlying
+  SourceLocation.TypeAssumptions.layout
   SourceLocation.TypeAssumptions.get_Path
   SourceLocation.TypeAssumptions.set_Path
   SourceLocation.TypeAssumptions.get_StartLine
@@ -930,6 +1172,7 @@ instance equals_unfold_FileImport [FfiSyntax] [GoGlobalContext] :
 class FileImport.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying FileImport.underlying FileImport
   underlying : go.UnderlyingDirectedEq FileImport.ty FileImport.underlying
+  layout : go.StructLayout FileImport [(go!"FileDescriptor", typeSize FileDescriptor, typeAlign FileDescriptor), (go!"IsPublic", typeSize Bool, typeAlign Bool), (go!"IsWeak", typeSize Bool, typeAlign Bool)]
   get_FileDescriptor : ∀ (x : FileImport), go.IsGoStepPureDetTagged under (StructFieldGet FileImport.underlying go!"FileDescriptor") #x (Val #(x.FileDescriptor'))
   set_FileDescriptor : ∀ (x : FileImport) (y : FileDescriptor), go.IsGoStepPureDetTagged under (StructFieldSet FileImport.underlying go!"FileDescriptor") (PairV #x #y) (Val #(({ x with FileDescriptor' := y } : FileImport)))
   get_IsPublic : ∀ (x : FileImport), go.IsGoStepPureDetTagged under (StructFieldGet FileImport.underlying go!"IsPublic") #x (Val #(x.IsPublic'))
@@ -939,6 +1182,7 @@ class FileImport.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
 
 attribute [instance] FileImport.TypeAssumptions.type_repr
   FileImport.TypeAssumptions.underlying
+  FileImport.TypeAssumptions.layout
   FileImport.TypeAssumptions.get_FileDescriptor
   FileImport.TypeAssumptions.set_FileDescriptor
   FileImport.TypeAssumptions.get_IsPublic
@@ -1335,6 +1579,7 @@ instance equals_unfold_ifaceHeader [FfiSyntax] [GoGlobalContext] :
 class ifaceHeader.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ifaceHeader.underlying ifaceHeader
   underlying : go.UnderlyingDirectedEq ifaceHeader.ty ifaceHeader.underlying
+  layout : go.StructLayout ifaceHeader [(go!"_0", typeSize (GoArray GoInterface 0), typeAlign (GoArray GoInterface 0)), (go!"Type", typeSize Loc, typeAlign Loc), (go!"Data", typeSize Loc, typeAlign Loc)]
   get__0 : ∀ (x : ifaceHeader), go.IsGoStepPureDetTagged under (StructFieldGet ifaceHeader.underlying go!"_0") #x (Val #(x._0'))
   set__0 : ∀ (x : ifaceHeader) (y : (GoArray GoInterface 0)), go.IsGoStepPureDetTagged under (StructFieldSet ifaceHeader.underlying go!"_0") (PairV #x #y) (Val #(({ x with _0' := y } : ifaceHeader)))
   get_Type : ∀ (x : ifaceHeader), go.IsGoStepPureDetTagged under (StructFieldGet ifaceHeader.underlying go!"Type") #x (Val #(x.Type'))
@@ -1344,6 +1589,7 @@ class ifaceHeader.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
 
 attribute [instance] ifaceHeader.TypeAssumptions.type_repr
   ifaceHeader.TypeAssumptions.underlying
+  ifaceHeader.TypeAssumptions.layout
   ifaceHeader.TypeAssumptions.get__0
   ifaceHeader.TypeAssumptions.set__0
   ifaceHeader.TypeAssumptions.get_Type
@@ -1352,6 +1598,18 @@ attribute [instance] ifaceHeader.TypeAssumptions.type_repr
   ifaceHeader.TypeAssumptions.set_Data
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  anonStruct_1aa9679ee711ca86_instance : anonStruct_1aa9679ee711ca86.TypeAssumptions
+  anonStruct_2324f7b2e4bdda19_instance : anonStruct_2324f7b2e4bdda19.TypeAssumptions
+  anonStruct_2707f7b50f73c1b9_instance : anonStruct_2707f7b50f73c1b9.TypeAssumptions
+  anonStruct_4f512db8745dbfcb_instance : anonStruct_4f512db8745dbfcb.TypeAssumptions
+  anonStruct_5fa2c47d2adda34b_instance : anonStruct_5fa2c47d2adda34b.TypeAssumptions
+  anonStruct_623722c657041b5d_instance : anonStruct_623722c657041b5d.TypeAssumptions
+  anonStruct_68a3880c0e3cf927_instance : anonStruct_68a3880c0e3cf927.TypeAssumptions
+  anonStruct_8e6fcadadfa82ead_instance : anonStruct_8e6fcadadfa82ead.TypeAssumptions
+  anonStruct_acb8f94f646518b0_instance : anonStruct_acb8f94f646518b0.TypeAssumptions
+  anonStruct_b80a2745a7a20fc5_instance : anonStruct_b80a2745a7a20fc5.TypeAssumptions
+  anonStruct_b9058ab353087e9c_instance : anonStruct_b9058ab353087e9c.TypeAssumptions
+  anonStruct_ef7d008c6fff5c1d_instance : anonStruct_ef7d008c6fff5c1d.TypeAssumptions
   doNotImplement_instance : doNotImplement.TypeAssumptions
   ProtoMessage_instance : ProtoMessage.TypeAssumptions
   Syntax_instance : Syntax.TypeAssumptions
@@ -1413,7 +1671,19 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   ifaceHeader_instance : ifaceHeader.TypeAssumptions
   value_instance : value.TypeAssumptions
 
-attribute [instance] Assumptions.doNotImplement_instance
+attribute [instance] Assumptions.anonStruct_1aa9679ee711ca86_instance
+  Assumptions.anonStruct_2324f7b2e4bdda19_instance
+  Assumptions.anonStruct_2707f7b50f73c1b9_instance
+  Assumptions.anonStruct_4f512db8745dbfcb_instance
+  Assumptions.anonStruct_5fa2c47d2adda34b_instance
+  Assumptions.anonStruct_623722c657041b5d_instance
+  Assumptions.anonStruct_68a3880c0e3cf927_instance
+  Assumptions.anonStruct_8e6fcadadfa82ead_instance
+  Assumptions.anonStruct_acb8f94f646518b0_instance
+  Assumptions.anonStruct_b80a2745a7a20fc5_instance
+  Assumptions.anonStruct_b9058ab353087e9c_instance
+  Assumptions.anonStruct_ef7d008c6fff5c1d_instance
+  Assumptions.doNotImplement_instance
   Assumptions.ProtoMessage_instance
   Assumptions.Syntax_instance
   Assumptions.syntax_instance

@@ -21,7 +21,7 @@ end pkg_id
 
 namespace google_golang_org.grpc.status
 
-axiom Status [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Status.ty [FfiSyntax] [GoGlobalContext] : go.GoType
 
 noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/status.New"

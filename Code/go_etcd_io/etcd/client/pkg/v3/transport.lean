@@ -413,6 +413,7 @@ instance equals_unfold_SocketOpts [FfiSyntax] [GoGlobalContext] :
 class SocketOpts.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SocketOpts.underlying SocketOpts
   underlying : go.UnderlyingDirectedEq SocketOpts.ty SocketOpts.underlying
+  layout : go.StructLayout SocketOpts [(go!"ReusePort", typeSize Bool, typeAlign Bool), (go!"ReuseAddress", typeSize Bool, typeAlign Bool)]
   get_ReusePort : ∀ (x : SocketOpts), go.IsGoStepPureDetTagged under (StructFieldGet SocketOpts.underlying go!"ReusePort") #x (Val #(x.ReusePort'))
   set_ReusePort : ∀ (x : SocketOpts) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet SocketOpts.underlying go!"ReusePort") (PairV #x #y) (Val #(({ x with ReusePort' := y } : SocketOpts)))
   get_ReuseAddress : ∀ (x : SocketOpts), go.IsGoStepPureDetTagged under (StructFieldGet SocketOpts.underlying go!"ReuseAddress") #x (Val #(x.ReuseAddress'))
@@ -420,6 +421,7 @@ class SocketOpts.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
 
 attribute [instance] SocketOpts.TypeAssumptions.type_repr
   SocketOpts.TypeAssumptions.underlying
+  SocketOpts.TypeAssumptions.layout
   SocketOpts.TypeAssumptions.get_ReusePort
   SocketOpts.TypeAssumptions.set_ReusePort
   SocketOpts.TypeAssumptions.get_ReuseAddress

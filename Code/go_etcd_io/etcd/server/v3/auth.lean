@@ -489,9 +489,11 @@ instance equals_unfold_tokenNop [FfiSyntax] [GoGlobalContext] :
 class tokenNop.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying tokenNop.underlying tokenNop
   underlying : go.UnderlyingDirectedEq tokenNop.ty tokenNop.underlying
+  layout : go.StructLayout tokenNop []
 
 attribute [instance] tokenNop.TypeAssumptions.type_repr
   tokenNop.TypeAssumptions.underlying
+  tokenNop.TypeAssumptions.layout
 
 axiom jwtOptions : Type
 axiom jwtOptions.zero_val : ZeroVal jwtOptions
@@ -570,6 +572,7 @@ instance equals_unfold_AuthInfo [FfiSyntax] [GoGlobalContext] :
 class AuthInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthInfo.underlying AuthInfo
   underlying : go.UnderlyingDirectedEq AuthInfo.ty AuthInfo.underlying
+  layout : go.StructLayout AuthInfo [(go!"Username", typeSize GoString, typeAlign GoString), (go!"Revision", typeSize w64, typeAlign w64)]
   get_Username : ∀ (x : AuthInfo), go.IsGoStepPureDetTagged under (StructFieldGet AuthInfo.underlying go!"Username") #x (Val #(x.Username'))
   set_Username : ∀ (x : AuthInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AuthInfo.underlying go!"Username") (PairV #x #y) (Val #(({ x with Username' := y } : AuthInfo)))
   get_Revision : ∀ (x : AuthInfo), go.IsGoStepPureDetTagged under (StructFieldGet AuthInfo.underlying go!"Revision") #x (Val #(x.Revision'))
@@ -577,6 +580,7 @@ class AuthInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
 
 attribute [instance] AuthInfo.TypeAssumptions.type_repr
   AuthInfo.TypeAssumptions.underlying
+  AuthInfo.TypeAssumptions.layout
   AuthInfo.TypeAssumptions.get_Username
   AuthInfo.TypeAssumptions.set_Username
   AuthInfo.TypeAssumptions.get_Revision
@@ -604,9 +608,11 @@ instance equals_unfold_AuthenticateParamIndex [FfiSyntax] [GoGlobalContext] :
 class AuthenticateParamIndex.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthenticateParamIndex.underlying AuthenticateParamIndex
   underlying : go.UnderlyingDirectedEq AuthenticateParamIndex.ty AuthenticateParamIndex.underlying
+  layout : go.StructLayout AuthenticateParamIndex []
 
 attribute [instance] AuthenticateParamIndex.TypeAssumptions.type_repr
   AuthenticateParamIndex.TypeAssumptions.underlying
+  AuthenticateParamIndex.TypeAssumptions.layout
 
 structure AuthenticateParamSimpleTokenPrefix [FfiSyntax] where
   mk ::
@@ -630,9 +636,11 @@ instance equals_unfold_AuthenticateParamSimpleTokenPrefix [FfiSyntax] [GoGlobalC
 class AuthenticateParamSimpleTokenPrefix.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthenticateParamSimpleTokenPrefix.underlying AuthenticateParamSimpleTokenPrefix
   underlying : go.UnderlyingDirectedEq AuthenticateParamSimpleTokenPrefix.ty AuthenticateParamSimpleTokenPrefix.underlying
+  layout : go.StructLayout AuthenticateParamSimpleTokenPrefix []
 
 attribute [instance] AuthenticateParamSimpleTokenPrefix.TypeAssumptions.type_repr
   AuthenticateParamSimpleTokenPrefix.TypeAssumptions.underlying
+  AuthenticateParamSimpleTokenPrefix.TypeAssumptions.layout
 
 axiom AuthStore : Type
 axiom AuthStore.zero_val : ZeroVal AuthStore

@@ -1,0 +1,6 @@
+# Names only: the system calls bbolt makes (mmap, flock, fdatasync, ...).
+translate = ["!*"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

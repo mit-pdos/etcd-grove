@@ -18,6 +18,272 @@ open Iris Iris.BI
 noncomputable section
 namespace google_golang_org.protobuf.internal.impl
 
+namespace anonStruct_0242c7fb0b8aea2f
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
+
+instance anonStruct_0242c7fb0b8aea2f_typed_pointsto :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.anonStruct_0242c7fb0b8aea2f :=
+  sorry -- axiomatized type
+
+instance anonStruct_0242c7fb0b8aea2f_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.anonStruct_0242c7fb0b8aea2f google_golang_org.protobuf.internal.impl.anonStruct_0242c7fb0b8aea2f.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end anonStruct_0242c7fb0b8aea2f
+
+namespace anonStruct_1aa9679ee711ca86
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
+
+instance anonStruct_1aa9679ee711ca86_typed_pointsto :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.anonStruct_1aa9679ee711ca86 :=
+  sorry -- axiomatized type
+
+instance anonStruct_1aa9679ee711ca86_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.anonStruct_1aa9679ee711ca86 google_golang_org.protobuf.internal.impl.anonStruct_1aa9679ee711ca86.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end anonStruct_1aa9679ee711ca86
+
+namespace anonStruct_2707f7b50f73c1b9
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
+
+instance anonStruct_2707f7b50f73c1b9_typed_pointsto :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.anonStruct_2707f7b50f73c1b9 :=
+  sorry -- axiomatized type
+
+instance anonStruct_2707f7b50f73c1b9_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.anonStruct_2707f7b50f73c1b9 google_golang_org.protobuf.internal.impl.anonStruct_2707f7b50f73c1b9.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end anonStruct_2707f7b50f73c1b9
+
+namespace anonStruct_369e51ca9c825a4a
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
+
+instance anonStruct_369e51ca9c825a4a_typed_pointsto :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.anonStruct_369e51ca9c825a4a :=
+  sorry -- axiomatized type
+
+instance anonStruct_369e51ca9c825a4a_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.anonStruct_369e51ca9c825a4a google_golang_org.protobuf.internal.impl.anonStruct_369e51ca9c825a4a.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end anonStruct_369e51ca9c825a4a
+
+namespace anonStruct_55f46b9f5a45b2b8
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
+
+instance anonStruct_55f46b9f5a45b2b8_typed_pointsto :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.anonStruct_55f46b9f5a45b2b8 :=
+  sorry -- axiomatized type
+
+instance anonStruct_55f46b9f5a45b2b8_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.anonStruct_55f46b9f5a45b2b8 google_golang_org.protobuf.internal.impl.anonStruct_55f46b9f5a45b2b8.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end anonStruct_55f46b9f5a45b2b8
+
+namespace anonStruct_6147181db5478303
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
+
+instance anonStruct_6147181db5478303_typed_pointsto :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.anonStruct_6147181db5478303 :=
+  sorry -- axiomatized type
+
+instance anonStruct_6147181db5478303_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.anonStruct_6147181db5478303 google_golang_org.protobuf.internal.impl.anonStruct_6147181db5478303.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end anonStruct_6147181db5478303
+
+namespace anonStruct_617668326db7f0c8
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
+
+instance anonStruct_617668326db7f0c8_typed_pointsto :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.anonStruct_617668326db7f0c8 :=
+  sorry -- axiomatized type
+
+instance anonStruct_617668326db7f0c8_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.anonStruct_617668326db7f0c8 google_golang_org.protobuf.internal.impl.anonStruct_617668326db7f0c8.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end anonStruct_617668326db7f0c8
+
+namespace anonStruct_74be10c811c4fc14
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
+
+instance anonStruct_74be10c811c4fc14_typed_pointsto :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.anonStruct_74be10c811c4fc14 :=
+  sorry -- axiomatized type
+
+instance anonStruct_74be10c811c4fc14_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.anonStruct_74be10c811c4fc14 google_golang_org.protobuf.internal.impl.anonStruct_74be10c811c4fc14.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end anonStruct_74be10c811c4fc14
+
+namespace anonStruct_7a9c64b40a77974f
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
+
+instance anonStruct_7a9c64b40a77974f_typed_pointsto :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.anonStruct_7a9c64b40a77974f :=
+  sorry -- axiomatized type
+
+instance anonStruct_7a9c64b40a77974f_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.anonStruct_7a9c64b40a77974f google_golang_org.protobuf.internal.impl.anonStruct_7a9c64b40a77974f.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end anonStruct_7a9c64b40a77974f
+
+namespace anonStruct_9a49757459fb6fba
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
+
+instance anonStruct_9a49757459fb6fba_typed_pointsto :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.anonStruct_9a49757459fb6fba :=
+  sorry -- axiomatized type
+
+instance anonStruct_9a49757459fb6fba_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.anonStruct_9a49757459fb6fba google_golang_org.protobuf.internal.impl.anonStruct_9a49757459fb6fba.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end anonStruct_9a49757459fb6fba
+
+namespace anonStruct_9f38387b890cf4c7
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
+
+instance anonStruct_9f38387b890cf4c7_typed_pointsto :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.anonStruct_9f38387b890cf4c7 :=
+  sorry -- axiomatized type
+
+instance anonStruct_9f38387b890cf4c7_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.anonStruct_9f38387b890cf4c7 google_golang_org.protobuf.internal.impl.anonStruct_9f38387b890cf4c7.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end anonStruct_9f38387b890cf4c7
+
+namespace anonStruct_acb8f94f646518b0
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
+
+instance anonStruct_acb8f94f646518b0_typed_pointsto :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.anonStruct_acb8f94f646518b0 :=
+  sorry -- axiomatized type
+
+instance anonStruct_acb8f94f646518b0_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.anonStruct_acb8f94f646518b0 google_golang_org.protobuf.internal.impl.anonStruct_acb8f94f646518b0.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end anonStruct_acb8f94f646518b0
+
+namespace anonStruct_da09c3b2ebb5a950
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
+
+instance anonStruct_da09c3b2ebb5a950_typed_pointsto :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.anonStruct_da09c3b2ebb5a950 :=
+  sorry -- axiomatized type
+
+instance anonStruct_da09c3b2ebb5a950_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.anonStruct_da09c3b2ebb5a950 google_golang_org.protobuf.internal.impl.anonStruct_da09c3b2ebb5a950.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end anonStruct_da09c3b2ebb5a950
+
+namespace anonStruct_ef7d008c6fff5c1d
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
+
+instance anonStruct_ef7d008c6fff5c1d_typed_pointsto :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.anonStruct_ef7d008c6fff5c1d :=
+  sorry -- axiomatized type
+
+instance anonStruct_ef7d008c6fff5c1d_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.anonStruct_ef7d008c6fff5c1d google_golang_org.protobuf.internal.impl.anonStruct_ef7d008c6fff5c1d.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end anonStruct_ef7d008c6fff5c1d
+
 namespace Export
 section def_
 

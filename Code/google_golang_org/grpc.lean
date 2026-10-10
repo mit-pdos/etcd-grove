@@ -668,7 +668,7 @@ axiom healthData.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom refCountedProducer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom healthProducerRegisterFn [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom healthProducerRegisterFn.ty [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom connectivityStateManager.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
@@ -750,7 +750,7 @@ axiom ServerTransportStream.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom atomicSemaphore.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom MethodConfig [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom MethodConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom ServiceConfig.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
@@ -1798,11 +1798,13 @@ instance equals_unfold_defaultConfigSelector [FfiSyntax] [GoGlobalContext] :
 class defaultConfigSelector.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying defaultConfigSelector.underlying defaultConfigSelector
   underlying : go.UnderlyingDirectedEq defaultConfigSelector.ty defaultConfigSelector.underlying
+  layout : go.StructLayout defaultConfigSelector [(go!"sc", typeSize Loc, typeAlign Loc)]
   get_sc : ∀ (x : defaultConfigSelector), go.IsGoStepPureDetTagged under (StructFieldGet defaultConfigSelector.underlying go!"sc") #x (Val #(x.sc'))
   set_sc : ∀ (x : defaultConfigSelector) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet defaultConfigSelector.underlying go!"sc") (PairV #x #y) (Val #(({ x with sc' := y } : defaultConfigSelector)))
 
 attribute [instance] defaultConfigSelector.TypeAssumptions.type_repr
   defaultConfigSelector.TypeAssumptions.underlying
+  defaultConfigSelector.TypeAssumptions.layout
   defaultConfigSelector.TypeAssumptions.get_sc
   defaultConfigSelector.TypeAssumptions.set_sc
 
@@ -1890,9 +1892,11 @@ instance equals_unfold_securityLevelKey [FfiSyntax] [GoGlobalContext] :
 class securityLevelKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying securityLevelKey.underlying securityLevelKey
   underlying : go.UnderlyingDirectedEq securityLevelKey.ty securityLevelKey.underlying
+  layout : go.StructLayout securityLevelKey []
 
 attribute [instance] securityLevelKey.TypeAssumptions.type_repr
   securityLevelKey.TypeAssumptions.underlying
+  securityLevelKey.TypeAssumptions.layout
 
 axiom retryThrottler : Type
 axiom retryThrottler.zero_val : ZeroVal retryThrottler
@@ -1943,11 +1947,13 @@ instance equals_unfold_codecV0Bridge [FfiSyntax] [GoGlobalContext] :
 class codecV0Bridge.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying codecV0Bridge.underlying codecV0Bridge
   underlying : go.UnderlyingDirectedEq codecV0Bridge.ty codecV0Bridge.underlying
+  layout : go.StructLayout codecV0Bridge [(go!"codec", typeSize GoInterface, typeAlign GoInterface)]
   get_codec : ∀ (x : codecV0Bridge), go.IsGoStepPureDetTagged under (StructFieldGet codecV0Bridge.underlying go!"codec") #x (Val #(x.codec'))
   set_codec : ∀ (x : codecV0Bridge) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet codecV0Bridge.underlying go!"codec") (PairV #x #y) (Val #(({ x with codec' := y } : codecV0Bridge)))
 
 attribute [instance] codecV0Bridge.TypeAssumptions.type_repr
   codecV0Bridge.TypeAssumptions.underlying
+  codecV0Bridge.TypeAssumptions.layout
   codecV0Bridge.TypeAssumptions.get_codec
   codecV0Bridge.TypeAssumptions.set_codec
 
@@ -1976,6 +1982,7 @@ instance equals_unfold_codecV1Bridge [FfiSyntax] [GoGlobalContext] :
 class codecV1Bridge.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying codecV1Bridge.underlying codecV1Bridge
   underlying : go.UnderlyingDirectedEq codecV1Bridge.ty codecV1Bridge.underlying
+  layout : go.StructLayout codecV1Bridge [(go!"codecV0Bridge", typeSize codecV0Bridge, typeAlign codecV0Bridge), (go!"name", typeSize GoString, typeAlign GoString)]
   get_codecV0Bridge : ∀ (x : codecV1Bridge), go.IsGoStepPureDetTagged under (StructFieldGet codecV1Bridge.underlying go!"codecV0Bridge") #x (Val #(x.codecV0Bridge'))
   set_codecV0Bridge : ∀ (x : codecV1Bridge) (y : codecV0Bridge), go.IsGoStepPureDetTagged under (StructFieldSet codecV1Bridge.underlying go!"codecV0Bridge") (PairV #x #y) (Val #(({ x with codecV0Bridge' := y } : codecV1Bridge)))
   get_name : ∀ (x : codecV1Bridge), go.IsGoStepPureDetTagged under (StructFieldGet codecV1Bridge.underlying go!"name") #x (Val #(x.name'))
@@ -1983,6 +1990,7 @@ class codecV1Bridge.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
 
 attribute [instance] codecV1Bridge.TypeAssumptions.type_repr
   codecV1Bridge.TypeAssumptions.underlying
+  codecV1Bridge.TypeAssumptions.layout
   codecV1Bridge.TypeAssumptions.get_codecV0Bridge
   codecV1Bridge.TypeAssumptions.set_codecV0Bridge
   codecV1Bridge.TypeAssumptions.get_name
@@ -2056,9 +2064,11 @@ instance equals_unfold_EmptyDialOption [FfiSyntax] [GoGlobalContext] :
 class EmptyDialOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EmptyDialOption.underlying EmptyDialOption
   underlying : go.UnderlyingDirectedEq EmptyDialOption.ty EmptyDialOption.underlying
+  layout : go.StructLayout EmptyDialOption []
 
 attribute [instance] EmptyDialOption.TypeAssumptions.type_repr
   EmptyDialOption.TypeAssumptions.underlying
+  EmptyDialOption.TypeAssumptions.layout
 
 structure disableGlobalDialOptions [FfiSyntax] where
   mk ::
@@ -2082,9 +2092,11 @@ instance equals_unfold_disableGlobalDialOptions [FfiSyntax] [GoGlobalContext] :
 class disableGlobalDialOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying disableGlobalDialOptions.underlying disableGlobalDialOptions
   underlying : go.UnderlyingDirectedEq disableGlobalDialOptions.ty disableGlobalDialOptions.underlying
+  layout : go.StructLayout disableGlobalDialOptions []
 
 attribute [instance] disableGlobalDialOptions.TypeAssumptions.type_repr
   disableGlobalDialOptions.TypeAssumptions.underlying
+  disableGlobalDialOptions.TypeAssumptions.layout
 
 structure funcDialOption [FfiSyntax] where
   mk ::
@@ -2109,11 +2121,13 @@ instance equals_unfold_funcDialOption [FfiSyntax] [GoGlobalContext] :
 class funcDialOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying funcDialOption.underlying funcDialOption
   underlying : go.UnderlyingDirectedEq funcDialOption.ty funcDialOption.underlying
+  layout : go.StructLayout funcDialOption [(go!"f", typeSize GoFunc, typeAlign GoFunc)]
   get_f : ∀ (x : funcDialOption), go.IsGoStepPureDetTagged under (StructFieldGet funcDialOption.underlying go!"f") #x (Val #(x.f'))
   set_f : ∀ (x : funcDialOption) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet funcDialOption.underlying go!"f") (PairV #x #y) (Val #(({ x with f' := y } : funcDialOption)))
 
 attribute [instance] funcDialOption.TypeAssumptions.type_repr
   funcDialOption.TypeAssumptions.underlying
+  funcDialOption.TypeAssumptions.layout
   funcDialOption.TypeAssumptions.get_f
   funcDialOption.TypeAssumptions.set_f
 
@@ -2140,11 +2154,13 @@ instance equals_unfold_joinDialOption [FfiSyntax] [GoGlobalContext] :
 class joinDialOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying joinDialOption.underlying joinDialOption
   underlying : go.UnderlyingDirectedEq joinDialOption.ty joinDialOption.underlying
+  layout : go.StructLayout joinDialOption [(go!"opts", typeSize GoSlice, typeAlign GoSlice)]
   get_opts : ∀ (x : joinDialOption), go.IsGoStepPureDetTagged under (StructFieldGet joinDialOption.underlying go!"opts") #x (Val #(x.opts'))
   set_opts : ∀ (x : joinDialOption) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet joinDialOption.underlying go!"opts") (PairV #x #y) (Val #(({ x with opts' := y } : joinDialOption)))
 
 attribute [instance] joinDialOption.TypeAssumptions.type_repr
   joinDialOption.TypeAssumptions.underlying
+  joinDialOption.TypeAssumptions.layout
   joinDialOption.TypeAssumptions.get_opts
   joinDialOption.TypeAssumptions.set_opts
 
@@ -2171,11 +2187,13 @@ instance equals_unfold_MaxHeaderListSizeDialOption [FfiSyntax] [GoGlobalContext]
 class MaxHeaderListSizeDialOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MaxHeaderListSizeDialOption.underlying MaxHeaderListSizeDialOption
   underlying : go.UnderlyingDirectedEq MaxHeaderListSizeDialOption.ty MaxHeaderListSizeDialOption.underlying
+  layout : go.StructLayout MaxHeaderListSizeDialOption [(go!"MaxHeaderListSize", typeSize w32, typeAlign w32)]
   get_MaxHeaderListSize : ∀ (x : MaxHeaderListSizeDialOption), go.IsGoStepPureDetTagged under (StructFieldGet MaxHeaderListSizeDialOption.underlying go!"MaxHeaderListSize") #x (Val #(x.MaxHeaderListSize'))
   set_MaxHeaderListSize : ∀ (x : MaxHeaderListSizeDialOption) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet MaxHeaderListSizeDialOption.underlying go!"MaxHeaderListSize") (PairV #x #y) (Val #(({ x with MaxHeaderListSize' := y } : MaxHeaderListSizeDialOption)))
 
 attribute [instance] MaxHeaderListSizeDialOption.TypeAssumptions.type_repr
   MaxHeaderListSizeDialOption.TypeAssumptions.underlying
+  MaxHeaderListSizeDialOption.TypeAssumptions.layout
   MaxHeaderListSizeDialOption.TypeAssumptions.get_MaxHeaderListSize
   MaxHeaderListSizeDialOption.TypeAssumptions.set_MaxHeaderListSize
 
@@ -2256,6 +2274,7 @@ instance equals_unfold_UnaryServerInfo [FfiSyntax] [GoGlobalContext] :
 class UnaryServerInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying UnaryServerInfo.underlying UnaryServerInfo
   underlying : go.UnderlyingDirectedEq UnaryServerInfo.ty UnaryServerInfo.underlying
+  layout : go.StructLayout UnaryServerInfo [(go!"Server", typeSize GoInterface, typeAlign GoInterface), (go!"FullMethod", typeSize GoString, typeAlign GoString)]
   get_Server : ∀ (x : UnaryServerInfo), go.IsGoStepPureDetTagged under (StructFieldGet UnaryServerInfo.underlying go!"Server") #x (Val #(x.Server'))
   set_Server : ∀ (x : UnaryServerInfo) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet UnaryServerInfo.underlying go!"Server") (PairV #x #y) (Val #(({ x with Server' := y } : UnaryServerInfo)))
   get_FullMethod : ∀ (x : UnaryServerInfo), go.IsGoStepPureDetTagged under (StructFieldGet UnaryServerInfo.underlying go!"FullMethod") #x (Val #(x.FullMethod'))
@@ -2263,6 +2282,7 @@ class UnaryServerInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
 
 attribute [instance] UnaryServerInfo.TypeAssumptions.type_repr
   UnaryServerInfo.TypeAssumptions.underlying
+  UnaryServerInfo.TypeAssumptions.layout
   UnaryServerInfo.TypeAssumptions.get_Server
   UnaryServerInfo.TypeAssumptions.set_Server
   UnaryServerInfo.TypeAssumptions.get_FullMethod
@@ -2321,6 +2341,7 @@ instance equals_unfold_StreamServerInfo [FfiSyntax] [GoGlobalContext] :
 class StreamServerInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying StreamServerInfo.underlying StreamServerInfo
   underlying : go.UnderlyingDirectedEq StreamServerInfo.ty StreamServerInfo.underlying
+  layout : go.StructLayout StreamServerInfo [(go!"FullMethod", typeSize GoString, typeAlign GoString), (go!"IsClientStream", typeSize Bool, typeAlign Bool), (go!"IsServerStream", typeSize Bool, typeAlign Bool)]
   get_FullMethod : ∀ (x : StreamServerInfo), go.IsGoStepPureDetTagged under (StructFieldGet StreamServerInfo.underlying go!"FullMethod") #x (Val #(x.FullMethod'))
   set_FullMethod : ∀ (x : StreamServerInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet StreamServerInfo.underlying go!"FullMethod") (PairV #x #y) (Val #(({ x with FullMethod' := y } : StreamServerInfo)))
   get_IsClientStream : ∀ (x : StreamServerInfo), go.IsGoStepPureDetTagged under (StructFieldGet StreamServerInfo.underlying go!"IsClientStream") #x (Val #(x.IsClientStream'))
@@ -2330,6 +2351,7 @@ class StreamServerInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
 
 attribute [instance] StreamServerInfo.TypeAssumptions.type_repr
   StreamServerInfo.TypeAssumptions.underlying
+  StreamServerInfo.TypeAssumptions.layout
   StreamServerInfo.TypeAssumptions.get_FullMethod
   StreamServerInfo.TypeAssumptions.set_FullMethod
   StreamServerInfo.TypeAssumptions.get_IsClientStream
@@ -2409,11 +2431,13 @@ instance equals_unfold_dropError [FfiSyntax] [GoGlobalContext] :
 class dropError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying dropError.underlying dropError
   underlying : go.UnderlyingDirectedEq dropError.ty dropError.underlying
+  layout : go.StructLayout dropError [(go!"error", typeSize GoError, typeAlign GoError)]
   get_error : ∀ (x : dropError), go.IsGoStepPureDetTagged under (StructFieldGet dropError.underlying go!"error") #x (Val #(x.error'))
   set_error : ∀ (x : dropError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet dropError.underlying go!"error") (PairV #x #y) (Val #(({ x with error' := y } : dropError)))
 
 attribute [instance] dropError.TypeAssumptions.type_repr
   dropError.TypeAssumptions.underlying
+  dropError.TypeAssumptions.layout
   dropError.TypeAssumptions.get_error
   dropError.TypeAssumptions.set_error
 
@@ -2540,9 +2564,11 @@ instance equals_unfold_EmptyCallOption [FfiSyntax] [GoGlobalContext] :
 class EmptyCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EmptyCallOption.underlying EmptyCallOption
   underlying : go.UnderlyingDirectedEq EmptyCallOption.ty EmptyCallOption.underlying
+  layout : go.StructLayout EmptyCallOption []
 
 attribute [instance] EmptyCallOption.TypeAssumptions.type_repr
   EmptyCallOption.TypeAssumptions.underlying
+  EmptyCallOption.TypeAssumptions.layout
 
 structure StaticMethodCallOption [FfiSyntax] where
   mk ::
@@ -2567,11 +2593,13 @@ instance equals_unfold_StaticMethodCallOption [FfiSyntax] [GoGlobalContext] :
 class StaticMethodCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying StaticMethodCallOption.underlying StaticMethodCallOption
   underlying : go.UnderlyingDirectedEq StaticMethodCallOption.ty StaticMethodCallOption.underlying
+  layout : go.StructLayout StaticMethodCallOption [(go!"EmptyCallOption", typeSize EmptyCallOption, typeAlign EmptyCallOption)]
   get_EmptyCallOption : ∀ (x : StaticMethodCallOption), go.IsGoStepPureDetTagged under (StructFieldGet StaticMethodCallOption.underlying go!"EmptyCallOption") #x (Val #(x.EmptyCallOption'))
   set_EmptyCallOption : ∀ (x : StaticMethodCallOption) (y : EmptyCallOption), go.IsGoStepPureDetTagged under (StructFieldSet StaticMethodCallOption.underlying go!"EmptyCallOption") (PairV #x #y) (Val #(({ x with EmptyCallOption' := y } : StaticMethodCallOption)))
 
 attribute [instance] StaticMethodCallOption.TypeAssumptions.type_repr
   StaticMethodCallOption.TypeAssumptions.underlying
+  StaticMethodCallOption.TypeAssumptions.layout
   StaticMethodCallOption.TypeAssumptions.get_EmptyCallOption
   StaticMethodCallOption.TypeAssumptions.set_EmptyCallOption
 
@@ -2637,11 +2665,13 @@ instance equals_unfold_FailFastCallOption [FfiSyntax] [GoGlobalContext] :
 class FailFastCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying FailFastCallOption.underlying FailFastCallOption
   underlying : go.UnderlyingDirectedEq FailFastCallOption.ty FailFastCallOption.underlying
+  layout : go.StructLayout FailFastCallOption [(go!"FailFast", typeSize Bool, typeAlign Bool)]
   get_FailFast : ∀ (x : FailFastCallOption), go.IsGoStepPureDetTagged under (StructFieldGet FailFastCallOption.underlying go!"FailFast") #x (Val #(x.FailFast'))
   set_FailFast : ∀ (x : FailFastCallOption) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet FailFastCallOption.underlying go!"FailFast") (PairV #x #y) (Val #(({ x with FailFast' := y } : FailFastCallOption)))
 
 attribute [instance] FailFastCallOption.TypeAssumptions.type_repr
   FailFastCallOption.TypeAssumptions.underlying
+  FailFastCallOption.TypeAssumptions.layout
   FailFastCallOption.TypeAssumptions.get_FailFast
   FailFastCallOption.TypeAssumptions.set_FailFast
 
@@ -2668,11 +2698,13 @@ instance equals_unfold_OnFinishCallOption [FfiSyntax] [GoGlobalContext] :
 class OnFinishCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying OnFinishCallOption.underlying OnFinishCallOption
   underlying : go.UnderlyingDirectedEq OnFinishCallOption.ty OnFinishCallOption.underlying
+  layout : go.StructLayout OnFinishCallOption [(go!"OnFinish", typeSize GoFunc, typeAlign GoFunc)]
   get_OnFinish : ∀ (x : OnFinishCallOption), go.IsGoStepPureDetTagged under (StructFieldGet OnFinishCallOption.underlying go!"OnFinish") #x (Val #(x.OnFinish'))
   set_OnFinish : ∀ (x : OnFinishCallOption) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet OnFinishCallOption.underlying go!"OnFinish") (PairV #x #y) (Val #(({ x with OnFinish' := y } : OnFinishCallOption)))
 
 attribute [instance] OnFinishCallOption.TypeAssumptions.type_repr
   OnFinishCallOption.TypeAssumptions.underlying
+  OnFinishCallOption.TypeAssumptions.layout
   OnFinishCallOption.TypeAssumptions.get_OnFinish
   OnFinishCallOption.TypeAssumptions.set_OnFinish
 
@@ -2699,11 +2731,13 @@ instance equals_unfold_MaxRecvMsgSizeCallOption [FfiSyntax] [GoGlobalContext] :
 class MaxRecvMsgSizeCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MaxRecvMsgSizeCallOption.underlying MaxRecvMsgSizeCallOption
   underlying : go.UnderlyingDirectedEq MaxRecvMsgSizeCallOption.ty MaxRecvMsgSizeCallOption.underlying
+  layout : go.StructLayout MaxRecvMsgSizeCallOption [(go!"MaxRecvMsgSize", typeSize w64, typeAlign w64)]
   get_MaxRecvMsgSize : ∀ (x : MaxRecvMsgSizeCallOption), go.IsGoStepPureDetTagged under (StructFieldGet MaxRecvMsgSizeCallOption.underlying go!"MaxRecvMsgSize") #x (Val #(x.MaxRecvMsgSize'))
   set_MaxRecvMsgSize : ∀ (x : MaxRecvMsgSizeCallOption) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet MaxRecvMsgSizeCallOption.underlying go!"MaxRecvMsgSize") (PairV #x #y) (Val #(({ x with MaxRecvMsgSize' := y } : MaxRecvMsgSizeCallOption)))
 
 attribute [instance] MaxRecvMsgSizeCallOption.TypeAssumptions.type_repr
   MaxRecvMsgSizeCallOption.TypeAssumptions.underlying
+  MaxRecvMsgSizeCallOption.TypeAssumptions.layout
   MaxRecvMsgSizeCallOption.TypeAssumptions.get_MaxRecvMsgSize
   MaxRecvMsgSizeCallOption.TypeAssumptions.set_MaxRecvMsgSize
 
@@ -2730,11 +2764,13 @@ instance equals_unfold_AuthorityOverrideCallOption [FfiSyntax] [GoGlobalContext]
 class AuthorityOverrideCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthorityOverrideCallOption.underlying AuthorityOverrideCallOption
   underlying : go.UnderlyingDirectedEq AuthorityOverrideCallOption.ty AuthorityOverrideCallOption.underlying
+  layout : go.StructLayout AuthorityOverrideCallOption [(go!"Authority", typeSize GoString, typeAlign GoString)]
   get_Authority : ∀ (x : AuthorityOverrideCallOption), go.IsGoStepPureDetTagged under (StructFieldGet AuthorityOverrideCallOption.underlying go!"Authority") #x (Val #(x.Authority'))
   set_Authority : ∀ (x : AuthorityOverrideCallOption) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AuthorityOverrideCallOption.underlying go!"Authority") (PairV #x #y) (Val #(({ x with Authority' := y } : AuthorityOverrideCallOption)))
 
 attribute [instance] AuthorityOverrideCallOption.TypeAssumptions.type_repr
   AuthorityOverrideCallOption.TypeAssumptions.underlying
+  AuthorityOverrideCallOption.TypeAssumptions.layout
   AuthorityOverrideCallOption.TypeAssumptions.get_Authority
   AuthorityOverrideCallOption.TypeAssumptions.set_Authority
 
@@ -2761,11 +2797,13 @@ instance equals_unfold_MaxSendMsgSizeCallOption [FfiSyntax] [GoGlobalContext] :
 class MaxSendMsgSizeCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MaxSendMsgSizeCallOption.underlying MaxSendMsgSizeCallOption
   underlying : go.UnderlyingDirectedEq MaxSendMsgSizeCallOption.ty MaxSendMsgSizeCallOption.underlying
+  layout : go.StructLayout MaxSendMsgSizeCallOption [(go!"MaxSendMsgSize", typeSize w64, typeAlign w64)]
   get_MaxSendMsgSize : ∀ (x : MaxSendMsgSizeCallOption), go.IsGoStepPureDetTagged under (StructFieldGet MaxSendMsgSizeCallOption.underlying go!"MaxSendMsgSize") #x (Val #(x.MaxSendMsgSize'))
   set_MaxSendMsgSize : ∀ (x : MaxSendMsgSizeCallOption) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet MaxSendMsgSizeCallOption.underlying go!"MaxSendMsgSize") (PairV #x #y) (Val #(({ x with MaxSendMsgSize' := y } : MaxSendMsgSizeCallOption)))
 
 attribute [instance] MaxSendMsgSizeCallOption.TypeAssumptions.type_repr
   MaxSendMsgSizeCallOption.TypeAssumptions.underlying
+  MaxSendMsgSizeCallOption.TypeAssumptions.layout
   MaxSendMsgSizeCallOption.TypeAssumptions.get_MaxSendMsgSize
   MaxSendMsgSizeCallOption.TypeAssumptions.set_MaxSendMsgSize
 
@@ -2805,11 +2843,13 @@ instance equals_unfold_CompressorCallOption [FfiSyntax] [GoGlobalContext] :
 class CompressorCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CompressorCallOption.underlying CompressorCallOption
   underlying : go.UnderlyingDirectedEq CompressorCallOption.ty CompressorCallOption.underlying
+  layout : go.StructLayout CompressorCallOption [(go!"CompressorType", typeSize GoString, typeAlign GoString)]
   get_CompressorType : ∀ (x : CompressorCallOption), go.IsGoStepPureDetTagged under (StructFieldGet CompressorCallOption.underlying go!"CompressorType") #x (Val #(x.CompressorType'))
   set_CompressorType : ∀ (x : CompressorCallOption) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet CompressorCallOption.underlying go!"CompressorType") (PairV #x #y) (Val #(({ x with CompressorType' := y } : CompressorCallOption)))
 
 attribute [instance] CompressorCallOption.TypeAssumptions.type_repr
   CompressorCallOption.TypeAssumptions.underlying
+  CompressorCallOption.TypeAssumptions.layout
   CompressorCallOption.TypeAssumptions.get_CompressorType
   CompressorCallOption.TypeAssumptions.set_CompressorType
 
@@ -2836,11 +2876,13 @@ instance equals_unfold_acceptCompressorsCallOption [FfiSyntax] [GoGlobalContext]
 class acceptCompressorsCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying acceptCompressorsCallOption.underlying acceptCompressorsCallOption
   underlying : go.UnderlyingDirectedEq acceptCompressorsCallOption.ty acceptCompressorsCallOption.underlying
+  layout : go.StructLayout acceptCompressorsCallOption [(go!"names", typeSize GoSlice, typeAlign GoSlice)]
   get_names : ∀ (x : acceptCompressorsCallOption), go.IsGoStepPureDetTagged under (StructFieldGet acceptCompressorsCallOption.underlying go!"names") #x (Val #(x.names'))
   set_names : ∀ (x : acceptCompressorsCallOption) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet acceptCompressorsCallOption.underlying go!"names") (PairV #x #y) (Val #(({ x with names' := y } : acceptCompressorsCallOption)))
 
 attribute [instance] acceptCompressorsCallOption.TypeAssumptions.type_repr
   acceptCompressorsCallOption.TypeAssumptions.underlying
+  acceptCompressorsCallOption.TypeAssumptions.layout
   acceptCompressorsCallOption.TypeAssumptions.get_names
   acceptCompressorsCallOption.TypeAssumptions.set_names
 
@@ -2867,11 +2909,13 @@ instance equals_unfold_ContentSubtypeCallOption [FfiSyntax] [GoGlobalContext] :
 class ContentSubtypeCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ContentSubtypeCallOption.underlying ContentSubtypeCallOption
   underlying : go.UnderlyingDirectedEq ContentSubtypeCallOption.ty ContentSubtypeCallOption.underlying
+  layout : go.StructLayout ContentSubtypeCallOption [(go!"ContentSubtype", typeSize GoString, typeAlign GoString)]
   get_ContentSubtype : ∀ (x : ContentSubtypeCallOption), go.IsGoStepPureDetTagged under (StructFieldGet ContentSubtypeCallOption.underlying go!"ContentSubtype") #x (Val #(x.ContentSubtype'))
   set_ContentSubtype : ∀ (x : ContentSubtypeCallOption) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ContentSubtypeCallOption.underlying go!"ContentSubtype") (PairV #x #y) (Val #(({ x with ContentSubtype' := y } : ContentSubtypeCallOption)))
 
 attribute [instance] ContentSubtypeCallOption.TypeAssumptions.type_repr
   ContentSubtypeCallOption.TypeAssumptions.underlying
+  ContentSubtypeCallOption.TypeAssumptions.layout
   ContentSubtypeCallOption.TypeAssumptions.get_ContentSubtype
   ContentSubtypeCallOption.TypeAssumptions.set_ContentSubtype
 
@@ -2924,11 +2968,13 @@ instance equals_unfold_CustomCodecCallOption [FfiSyntax] [GoGlobalContext] :
 class CustomCodecCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CustomCodecCallOption.underlying CustomCodecCallOption
   underlying : go.UnderlyingDirectedEq CustomCodecCallOption.ty CustomCodecCallOption.underlying
+  layout : go.StructLayout CustomCodecCallOption [(go!"Codec", typeSize Codec, typeAlign Codec)]
   get_Codec : ∀ (x : CustomCodecCallOption), go.IsGoStepPureDetTagged under (StructFieldGet CustomCodecCallOption.underlying go!"Codec") #x (Val #(x.Codec'))
   set_Codec : ∀ (x : CustomCodecCallOption) (y : Codec), go.IsGoStepPureDetTagged under (StructFieldSet CustomCodecCallOption.underlying go!"Codec") (PairV #x #y) (Val #(({ x with Codec' := y } : CustomCodecCallOption)))
 
 attribute [instance] CustomCodecCallOption.TypeAssumptions.type_repr
   CustomCodecCallOption.TypeAssumptions.underlying
+  CustomCodecCallOption.TypeAssumptions.layout
   CustomCodecCallOption.TypeAssumptions.get_Codec
   CustomCodecCallOption.TypeAssumptions.set_Codec
 
@@ -2955,11 +3001,13 @@ instance equals_unfold_MaxRetryRPCBufferSizeCallOption [FfiSyntax] [GoGlobalCont
 class MaxRetryRPCBufferSizeCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MaxRetryRPCBufferSizeCallOption.underlying MaxRetryRPCBufferSizeCallOption
   underlying : go.UnderlyingDirectedEq MaxRetryRPCBufferSizeCallOption.ty MaxRetryRPCBufferSizeCallOption.underlying
+  layout : go.StructLayout MaxRetryRPCBufferSizeCallOption [(go!"MaxRetryRPCBufferSize", typeSize w64, typeAlign w64)]
   get_MaxRetryRPCBufferSize : ∀ (x : MaxRetryRPCBufferSizeCallOption), go.IsGoStepPureDetTagged under (StructFieldGet MaxRetryRPCBufferSizeCallOption.underlying go!"MaxRetryRPCBufferSize") #x (Val #(x.MaxRetryRPCBufferSize'))
   set_MaxRetryRPCBufferSize : ∀ (x : MaxRetryRPCBufferSizeCallOption) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet MaxRetryRPCBufferSizeCallOption.underlying go!"MaxRetryRPCBufferSize") (PairV #x #y) (Val #(({ x with MaxRetryRPCBufferSize' := y } : MaxRetryRPCBufferSizeCallOption)))
 
 attribute [instance] MaxRetryRPCBufferSizeCallOption.TypeAssumptions.type_repr
   MaxRetryRPCBufferSizeCallOption.TypeAssumptions.underlying
+  MaxRetryRPCBufferSizeCallOption.TypeAssumptions.layout
   MaxRetryRPCBufferSizeCallOption.TypeAssumptions.get_MaxRetryRPCBufferSize
   MaxRetryRPCBufferSizeCallOption.TypeAssumptions.set_MaxRetryRPCBufferSize
 
@@ -3008,9 +3056,11 @@ instance equals_unfold_noCopy [FfiSyntax] [GoGlobalContext] :
 class noCopy.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying noCopy.underlying noCopy
   underlying : go.UnderlyingDirectedEq noCopy.ty noCopy.underlying
+  layout : go.StructLayout noCopy []
 
 attribute [instance] noCopy.TypeAssumptions.type_repr
   noCopy.TypeAssumptions.underlying
+  noCopy.TypeAssumptions.layout
 
 axiom parser : Type
 axiom parser.zero_val : ZeroVal parser
@@ -3086,6 +3136,7 @@ instance equals_unfold_rpcInfo [FfiSyntax] [GoGlobalContext] :
 class rpcInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying rpcInfo.underlying rpcInfo
   underlying : go.UnderlyingDirectedEq rpcInfo.ty rpcInfo.underlying
+  layout : go.StructLayout rpcInfo [(go!"failfast", typeSize Bool, typeAlign Bool), (go!"preloaderInfo", typeSize compressorInfo, typeAlign compressorInfo)]
   get_failfast : ∀ (x : rpcInfo), go.IsGoStepPureDetTagged under (StructFieldGet rpcInfo.underlying go!"failfast") #x (Val #(x.failfast'))
   set_failfast : ∀ (x : rpcInfo) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet rpcInfo.underlying go!"failfast") (PairV #x #y) (Val #(({ x with failfast' := y } : rpcInfo)))
   get_preloaderInfo : ∀ (x : rpcInfo), go.IsGoStepPureDetTagged under (StructFieldGet rpcInfo.underlying go!"preloaderInfo") #x (Val #(x.preloaderInfo'))
@@ -3093,6 +3144,7 @@ class rpcInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
 
 attribute [instance] rpcInfo.TypeAssumptions.type_repr
   rpcInfo.TypeAssumptions.underlying
+  rpcInfo.TypeAssumptions.layout
   rpcInfo.TypeAssumptions.get_failfast
   rpcInfo.TypeAssumptions.set_failfast
   rpcInfo.TypeAssumptions.get_preloaderInfo
@@ -3120,9 +3172,11 @@ instance equals_unfold_rpcInfoContextKey [FfiSyntax] [GoGlobalContext] :
 class rpcInfoContextKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying rpcInfoContextKey.underlying rpcInfoContextKey
   underlying : go.UnderlyingDirectedEq rpcInfoContextKey.ty rpcInfoContextKey.underlying
+  layout : go.StructLayout rpcInfoContextKey []
 
 attribute [instance] rpcInfoContextKey.TypeAssumptions.type_repr
   rpcInfoContextKey.TypeAssumptions.underlying
+  rpcInfoContextKey.TypeAssumptions.layout
 
 axiom MethodHandler : Type
 axiom MethodHandler.zero_val : ZeroVal MethodHandler
@@ -3162,6 +3216,7 @@ instance equals_unfold_MethodDesc [FfiSyntax] [GoGlobalContext] :
 class MethodDesc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MethodDesc.underlying MethodDesc
   underlying : go.UnderlyingDirectedEq MethodDesc.ty MethodDesc.underlying
+  layout : go.StructLayout MethodDesc [(go!"MethodName", typeSize GoString, typeAlign GoString), (go!"Handler", typeSize MethodHandler, typeAlign MethodHandler)]
   get_MethodName : ∀ (x : MethodDesc), go.IsGoStepPureDetTagged under (StructFieldGet MethodDesc.underlying go!"MethodName") #x (Val #(x.MethodName'))
   set_MethodName : ∀ (x : MethodDesc) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet MethodDesc.underlying go!"MethodName") (PairV #x #y) (Val #(({ x with MethodName' := y } : MethodDesc)))
   get_Handler : ∀ (x : MethodDesc), go.IsGoStepPureDetTagged under (StructFieldGet MethodDesc.underlying go!"Handler") #x (Val #(x.Handler'))
@@ -3169,6 +3224,7 @@ class MethodDesc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
 
 attribute [instance] MethodDesc.TypeAssumptions.type_repr
   MethodDesc.TypeAssumptions.underlying
+  MethodDesc.TypeAssumptions.layout
   MethodDesc.TypeAssumptions.get_MethodName
   MethodDesc.TypeAssumptions.set_MethodName
   MethodDesc.TypeAssumptions.get_Handler
@@ -3205,6 +3261,7 @@ instance equals_unfold_ServiceDesc [FfiSyntax] [GoGlobalContext] :
 class ServiceDesc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ServiceDesc.underlying ServiceDesc
   underlying : go.UnderlyingDirectedEq ServiceDesc.ty ServiceDesc.underlying
+  layout : go.StructLayout ServiceDesc [(go!"ServiceName", typeSize GoString, typeAlign GoString), (go!"HandlerType", typeSize GoInterface, typeAlign GoInterface), (go!"Methods", typeSize GoSlice, typeAlign GoSlice), (go!"Streams", typeSize GoSlice, typeAlign GoSlice), (go!"Metadata", typeSize GoInterface, typeAlign GoInterface)]
   get_ServiceName : ∀ (x : ServiceDesc), go.IsGoStepPureDetTagged under (StructFieldGet ServiceDesc.underlying go!"ServiceName") #x (Val #(x.ServiceName'))
   set_ServiceName : ∀ (x : ServiceDesc) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ServiceDesc.underlying go!"ServiceName") (PairV #x #y) (Val #(({ x with ServiceName' := y } : ServiceDesc)))
   get_HandlerType : ∀ (x : ServiceDesc), go.IsGoStepPureDetTagged under (StructFieldGet ServiceDesc.underlying go!"HandlerType") #x (Val #(x.HandlerType'))
@@ -3218,6 +3275,7 @@ class ServiceDesc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
 
 attribute [instance] ServiceDesc.TypeAssumptions.type_repr
   ServiceDesc.TypeAssumptions.underlying
+  ServiceDesc.TypeAssumptions.layout
   ServiceDesc.TypeAssumptions.get_ServiceName
   ServiceDesc.TypeAssumptions.set_ServiceName
   ServiceDesc.TypeAssumptions.get_HandlerType
@@ -3256,6 +3314,7 @@ instance equals_unfold_serviceInfo [FfiSyntax] [GoGlobalContext] :
 class serviceInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying serviceInfo.underlying serviceInfo
   underlying : go.UnderlyingDirectedEq serviceInfo.ty serviceInfo.underlying
+  layout : go.StructLayout serviceInfo [(go!"serviceImpl", typeSize GoInterface, typeAlign GoInterface), (go!"streams", typeSize GoMap, typeAlign GoMap), (go!"mdata", typeSize GoInterface, typeAlign GoInterface)]
   get_serviceImpl : ∀ (x : serviceInfo), go.IsGoStepPureDetTagged under (StructFieldGet serviceInfo.underlying go!"serviceImpl") #x (Val #(x.serviceImpl'))
   set_serviceImpl : ∀ (x : serviceInfo) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet serviceInfo.underlying go!"serviceImpl") (PairV #x #y) (Val #(({ x with serviceImpl' := y } : serviceInfo)))
   get_streams : ∀ (x : serviceInfo), go.IsGoStepPureDetTagged under (StructFieldGet serviceInfo.underlying go!"streams") #x (Val #(x.streams'))
@@ -3265,6 +3324,7 @@ class serviceInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
 
 attribute [instance] serviceInfo.TypeAssumptions.type_repr
   serviceInfo.TypeAssumptions.underlying
+  serviceInfo.TypeAssumptions.layout
   serviceInfo.TypeAssumptions.get_serviceImpl
   serviceInfo.TypeAssumptions.set_serviceImpl
   serviceInfo.TypeAssumptions.get_streams
@@ -3330,9 +3390,11 @@ instance equals_unfold_EmptyServerOption [FfiSyntax] [GoGlobalContext] :
 class EmptyServerOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EmptyServerOption.underlying EmptyServerOption
   underlying : go.UnderlyingDirectedEq EmptyServerOption.ty EmptyServerOption.underlying
+  layout : go.StructLayout EmptyServerOption []
 
 attribute [instance] EmptyServerOption.TypeAssumptions.type_repr
   EmptyServerOption.TypeAssumptions.underlying
+  EmptyServerOption.TypeAssumptions.layout
 
 structure funcServerOption [FfiSyntax] where
   mk ::
@@ -3357,11 +3419,13 @@ instance equals_unfold_funcServerOption [FfiSyntax] [GoGlobalContext] :
 class funcServerOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying funcServerOption.underlying funcServerOption
   underlying : go.UnderlyingDirectedEq funcServerOption.ty funcServerOption.underlying
+  layout : go.StructLayout funcServerOption [(go!"f", typeSize GoFunc, typeAlign GoFunc)]
   get_f : ∀ (x : funcServerOption), go.IsGoStepPureDetTagged under (StructFieldGet funcServerOption.underlying go!"f") #x (Val #(x.f'))
   set_f : ∀ (x : funcServerOption) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet funcServerOption.underlying go!"f") (PairV #x #y) (Val #(({ x with f' := y } : funcServerOption)))
 
 attribute [instance] funcServerOption.TypeAssumptions.type_repr
   funcServerOption.TypeAssumptions.underlying
+  funcServerOption.TypeAssumptions.layout
   funcServerOption.TypeAssumptions.get_f
   funcServerOption.TypeAssumptions.set_f
 
@@ -3388,11 +3452,13 @@ instance equals_unfold_joinServerOption [FfiSyntax] [GoGlobalContext] :
 class joinServerOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying joinServerOption.underlying joinServerOption
   underlying : go.UnderlyingDirectedEq joinServerOption.ty joinServerOption.underlying
+  layout : go.StructLayout joinServerOption [(go!"opts", typeSize GoSlice, typeAlign GoSlice)]
   get_opts : ∀ (x : joinServerOption), go.IsGoStepPureDetTagged under (StructFieldGet joinServerOption.underlying go!"opts") #x (Val #(x.opts'))
   set_opts : ∀ (x : joinServerOption) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet joinServerOption.underlying go!"opts") (PairV #x #y) (Val #(({ x with opts' := y } : joinServerOption)))
 
 attribute [instance] joinServerOption.TypeAssumptions.type_repr
   joinServerOption.TypeAssumptions.underlying
+  joinServerOption.TypeAssumptions.layout
   joinServerOption.TypeAssumptions.get_opts
   joinServerOption.TypeAssumptions.set_opts
 
@@ -3419,11 +3485,13 @@ instance equals_unfold_MaxHeaderListSizeServerOption [FfiSyntax] [GoGlobalContex
 class MaxHeaderListSizeServerOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MaxHeaderListSizeServerOption.underlying MaxHeaderListSizeServerOption
   underlying : go.UnderlyingDirectedEq MaxHeaderListSizeServerOption.ty MaxHeaderListSizeServerOption.underlying
+  layout : go.StructLayout MaxHeaderListSizeServerOption [(go!"MaxHeaderListSize", typeSize w32, typeAlign w32)]
   get_MaxHeaderListSize : ∀ (x : MaxHeaderListSizeServerOption), go.IsGoStepPureDetTagged under (StructFieldGet MaxHeaderListSizeServerOption.underlying go!"MaxHeaderListSize") #x (Val #(x.MaxHeaderListSize'))
   set_MaxHeaderListSize : ∀ (x : MaxHeaderListSizeServerOption) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet MaxHeaderListSizeServerOption.underlying go!"MaxHeaderListSize") (PairV #x #y) (Val #(({ x with MaxHeaderListSize' := y } : MaxHeaderListSizeServerOption)))
 
 attribute [instance] MaxHeaderListSizeServerOption.TypeAssumptions.type_repr
   MaxHeaderListSizeServerOption.TypeAssumptions.underlying
+  MaxHeaderListSizeServerOption.TypeAssumptions.layout
   MaxHeaderListSizeServerOption.TypeAssumptions.get_MaxHeaderListSize
   MaxHeaderListSizeServerOption.TypeAssumptions.set_MaxHeaderListSize
 
@@ -3464,6 +3532,7 @@ instance equals_unfold_MethodInfo [FfiSyntax] [GoGlobalContext] :
 class MethodInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MethodInfo.underlying MethodInfo
   underlying : go.UnderlyingDirectedEq MethodInfo.ty MethodInfo.underlying
+  layout : go.StructLayout MethodInfo [(go!"Name", typeSize GoString, typeAlign GoString), (go!"IsClientStream", typeSize Bool, typeAlign Bool), (go!"IsServerStream", typeSize Bool, typeAlign Bool)]
   get_Name : ∀ (x : MethodInfo), go.IsGoStepPureDetTagged under (StructFieldGet MethodInfo.underlying go!"Name") #x (Val #(x.Name'))
   set_Name : ∀ (x : MethodInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet MethodInfo.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : MethodInfo)))
   get_IsClientStream : ∀ (x : MethodInfo), go.IsGoStepPureDetTagged under (StructFieldGet MethodInfo.underlying go!"IsClientStream") #x (Val #(x.IsClientStream'))
@@ -3473,6 +3542,7 @@ class MethodInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
 
 attribute [instance] MethodInfo.TypeAssumptions.type_repr
   MethodInfo.TypeAssumptions.underlying
+  MethodInfo.TypeAssumptions.layout
   MethodInfo.TypeAssumptions.get_Name
   MethodInfo.TypeAssumptions.set_Name
   MethodInfo.TypeAssumptions.get_IsClientStream
@@ -3505,6 +3575,7 @@ instance equals_unfold_ServiceInfo [FfiSyntax] [GoGlobalContext] :
 class ServiceInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ServiceInfo.underlying ServiceInfo
   underlying : go.UnderlyingDirectedEq ServiceInfo.ty ServiceInfo.underlying
+  layout : go.StructLayout ServiceInfo [(go!"Methods", typeSize GoSlice, typeAlign GoSlice), (go!"Metadata", typeSize GoInterface, typeAlign GoInterface)]
   get_Methods : ∀ (x : ServiceInfo), go.IsGoStepPureDetTagged under (StructFieldGet ServiceInfo.underlying go!"Methods") #x (Val #(x.Methods'))
   set_Methods : ∀ (x : ServiceInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ServiceInfo.underlying go!"Methods") (PairV #x #y) (Val #(({ x with Methods' := y } : ServiceInfo)))
   get_Metadata : ∀ (x : ServiceInfo), go.IsGoStepPureDetTagged under (StructFieldGet ServiceInfo.underlying go!"Metadata") #x (Val #(x.Metadata'))
@@ -3512,6 +3583,7 @@ class ServiceInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
 
 attribute [instance] ServiceInfo.TypeAssumptions.type_repr
   ServiceInfo.TypeAssumptions.underlying
+  ServiceInfo.TypeAssumptions.layout
   ServiceInfo.TypeAssumptions.get_Methods
   ServiceInfo.TypeAssumptions.set_Methods
   ServiceInfo.TypeAssumptions.get_Metadata
@@ -3552,9 +3624,11 @@ instance equals_unfold_streamKey [FfiSyntax] [GoGlobalContext] :
 class streamKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying streamKey.underlying streamKey
   underlying : go.UnderlyingDirectedEq streamKey.ty streamKey.underlying
+  layout : go.StructLayout streamKey []
 
 attribute [instance] streamKey.TypeAssumptions.type_repr
   streamKey.TypeAssumptions.underlying
+  streamKey.TypeAssumptions.layout
 
 axiom ServerTransportStream : Type
 axiom ServerTransportStream.zero_val : ZeroVal ServerTransportStream
@@ -3591,9 +3665,11 @@ instance equals_unfold_serverKey [FfiSyntax] [GoGlobalContext] :
 class serverKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying serverKey.underlying serverKey
   underlying : go.UnderlyingDirectedEq serverKey.ty serverKey.underlying
+  layout : go.StructLayout serverKey []
 
 attribute [instance] serverKey.TypeAssumptions.type_repr
   serverKey.TypeAssumptions.underlying
+  serverKey.TypeAssumptions.layout
 
 axiom atomicSemaphore : Type
 axiom atomicSemaphore.zero_val : ZeroVal atomicSemaphore
@@ -3644,11 +3720,13 @@ instance equals_unfold_healthCheckConfig [FfiSyntax] [GoGlobalContext] :
 class healthCheckConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying healthCheckConfig.underlying healthCheckConfig
   underlying : go.UnderlyingDirectedEq healthCheckConfig.ty healthCheckConfig.underlying
+  layout : go.StructLayout healthCheckConfig [(go!"ServiceName", typeSize GoString, typeAlign GoString)]
   get_ServiceName : ∀ (x : healthCheckConfig), go.IsGoStepPureDetTagged under (StructFieldGet healthCheckConfig.underlying go!"ServiceName") #x (Val #(x.ServiceName'))
   set_ServiceName : ∀ (x : healthCheckConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet healthCheckConfig.underlying go!"ServiceName") (PairV #x #y) (Val #(({ x with ServiceName' := y } : healthCheckConfig)))
 
 attribute [instance] healthCheckConfig.TypeAssumptions.type_repr
   healthCheckConfig.TypeAssumptions.underlying
+  healthCheckConfig.TypeAssumptions.layout
   healthCheckConfig.TypeAssumptions.get_ServiceName
   healthCheckConfig.TypeAssumptions.set_ServiceName
 
@@ -3690,6 +3768,7 @@ instance equals_unfold_retryThrottlingPolicy [FfiSyntax] [GoGlobalContext] :
 class retryThrottlingPolicy.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying retryThrottlingPolicy.underlying retryThrottlingPolicy
   underlying : go.UnderlyingDirectedEq retryThrottlingPolicy.ty retryThrottlingPolicy.underlying
+  layout : go.StructLayout retryThrottlingPolicy [(go!"MaxTokens", typeSize w64, typeAlign w64), (go!"TokenRatio", typeSize w64, typeAlign w64)]
   get_MaxTokens : ∀ (x : retryThrottlingPolicy), go.IsGoStepPureDetTagged under (StructFieldGet retryThrottlingPolicy.underlying go!"MaxTokens") #x (Val #(x.MaxTokens'))
   set_MaxTokens : ∀ (x : retryThrottlingPolicy) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet retryThrottlingPolicy.underlying go!"MaxTokens") (PairV #x #y) (Val #(({ x with MaxTokens' := y } : retryThrottlingPolicy)))
   get_TokenRatio : ∀ (x : retryThrottlingPolicy), go.IsGoStepPureDetTagged under (StructFieldGet retryThrottlingPolicy.underlying go!"TokenRatio") #x (Val #(x.TokenRatio'))
@@ -3697,6 +3776,7 @@ class retryThrottlingPolicy.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLoc
 
 attribute [instance] retryThrottlingPolicy.TypeAssumptions.type_repr
   retryThrottlingPolicy.TypeAssumptions.underlying
+  retryThrottlingPolicy.TypeAssumptions.layout
   retryThrottlingPolicy.TypeAssumptions.get_MaxTokens
   retryThrottlingPolicy.TypeAssumptions.set_MaxTokens
   retryThrottlingPolicy.TypeAssumptions.get_TokenRatio
@@ -3727,6 +3807,7 @@ instance equals_unfold_jsonName [FfiSyntax] [GoGlobalContext] :
 class jsonName.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying jsonName.underlying jsonName
   underlying : go.UnderlyingDirectedEq jsonName.ty jsonName.underlying
+  layout : go.StructLayout jsonName [(go!"Service", typeSize GoString, typeAlign GoString), (go!"Method", typeSize GoString, typeAlign GoString)]
   get_Service : ∀ (x : jsonName), go.IsGoStepPureDetTagged under (StructFieldGet jsonName.underlying go!"Service") #x (Val #(x.Service'))
   set_Service : ∀ (x : jsonName) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet jsonName.underlying go!"Service") (PairV #x #y) (Val #(({ x with Service' := y } : jsonName)))
   get_Method : ∀ (x : jsonName), go.IsGoStepPureDetTagged under (StructFieldGet jsonName.underlying go!"Method") #x (Val #(x.Method'))
@@ -3734,6 +3815,7 @@ class jsonName.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
 
 attribute [instance] jsonName.TypeAssumptions.type_repr
   jsonName.TypeAssumptions.underlying
+  jsonName.TypeAssumptions.layout
   jsonName.TypeAssumptions.get_Service
   jsonName.TypeAssumptions.set_Service
   jsonName.TypeAssumptions.get_Method
@@ -3804,6 +3886,7 @@ instance equals_unfold_StreamDesc [FfiSyntax] [GoGlobalContext] :
 class StreamDesc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying StreamDesc.underlying StreamDesc
   underlying : go.UnderlyingDirectedEq StreamDesc.ty StreamDesc.underlying
+  layout : go.StructLayout StreamDesc [(go!"StreamName", typeSize GoString, typeAlign GoString), (go!"Handler", typeSize StreamHandler, typeAlign StreamHandler), (go!"ServerStreams", typeSize Bool, typeAlign Bool), (go!"ClientStreams", typeSize Bool, typeAlign Bool)]
   get_StreamName : ∀ (x : StreamDesc), go.IsGoStepPureDetTagged under (StructFieldGet StreamDesc.underlying go!"StreamName") #x (Val #(x.StreamName'))
   set_StreamName : ∀ (x : StreamDesc) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet StreamDesc.underlying go!"StreamName") (PairV #x #y) (Val #(({ x with StreamName' := y } : StreamDesc)))
   get_Handler : ∀ (x : StreamDesc), go.IsGoStepPureDetTagged under (StructFieldGet StreamDesc.underlying go!"Handler") #x (Val #(x.Handler'))
@@ -3815,6 +3898,7 @@ class StreamDesc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
 
 attribute [instance] StreamDesc.TypeAssumptions.type_repr
   StreamDesc.TypeAssumptions.underlying
+  StreamDesc.TypeAssumptions.layout
   StreamDesc.TypeAssumptions.get_StreamName
   StreamDesc.TypeAssumptions.set_StreamName
   StreamDesc.TypeAssumptions.get_Handler
@@ -3914,6 +3998,7 @@ instance equals_unfold_replayOp [FfiSyntax] [GoGlobalContext] :
 class replayOp.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying replayOp.underlying replayOp
   underlying : go.UnderlyingDirectedEq replayOp.ty replayOp.underlying
+  layout : go.StructLayout replayOp [(go!"op", typeSize GoFunc, typeAlign GoFunc), (go!"cleanup", typeSize GoFunc, typeAlign GoFunc)]
   get_op : ∀ (x : replayOp), go.IsGoStepPureDetTagged under (StructFieldGet replayOp.underlying go!"op") #x (Val #(x.op'))
   set_op : ∀ (x : replayOp) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet replayOp.underlying go!"op") (PairV #x #y) (Val #(({ x with op' := y } : replayOp)))
   get_cleanup : ∀ (x : replayOp), go.IsGoStepPureDetTagged under (StructFieldGet replayOp.underlying go!"cleanup") #x (Val #(x.cleanup'))
@@ -3921,6 +4006,7 @@ class replayOp.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
 
 attribute [instance] replayOp.TypeAssumptions.type_repr
   replayOp.TypeAssumptions.underlying
+  replayOp.TypeAssumptions.layout
   replayOp.TypeAssumptions.get_op
   replayOp.TypeAssumptions.set_op
   replayOp.TypeAssumptions.get_cleanup
@@ -4061,11 +4147,13 @@ instance equals_unfold_GenericClientStream [FfiSyntax] [GoGlobalContext] (Req Re
 class GenericClientStream.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (Req Res : go.GoType) (Req' Res' : Type) [ZeroVal Req'] [TypeRepr Req Req'] [ZeroVal Res'] [TypeRepr Res Res'], go.TypeReprUnderlying (GenericClientStream.underlying Req Res) (GenericClientStream Req' Res')
   underlying : ∀ (Req Res : go.GoType), go.UnderlyingDirectedEq (GenericClientStream.ty Req Res) (GenericClientStream.underlying Req Res)
+  layout : ∀ (Req' Res' : Type), go.StructLayout (GenericClientStream Req' Res') [(go!"ClientStream", typeSize ClientStream, typeAlign ClientStream)]
   get_ClientStream : ∀ (Req Res : go.GoType) (Req' Res' : Type) (x : (GenericClientStream Req' Res')), go.IsGoStepPureDetTagged under (StructFieldGet (GenericClientStream.underlying Req Res) go!"ClientStream") #x (Val #(x.ClientStream'))
   set_ClientStream : ∀ (Req Res : go.GoType) (Req' Res' : Type) (x : (GenericClientStream Req' Res')) (y : ClientStream), go.IsGoStepPureDetTagged under (StructFieldSet (GenericClientStream.underlying Req Res) go!"ClientStream") (PairV #x #y) (Val #(({ x with ClientStream' := y } : (GenericClientStream Req' Res'))))
 
 attribute [instance] GenericClientStream.TypeAssumptions.type_repr
   GenericClientStream.TypeAssumptions.underlying
+  GenericClientStream.TypeAssumptions.layout
   GenericClientStream.TypeAssumptions.get_ClientStream
   GenericClientStream.TypeAssumptions.set_ClientStream
 
@@ -4092,11 +4180,13 @@ instance equals_unfold_GenericServerStream [FfiSyntax] [GoGlobalContext] (Req Re
 class GenericServerStream.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (Req Res : go.GoType) (Req' Res' : Type) [ZeroVal Req'] [TypeRepr Req Req'] [ZeroVal Res'] [TypeRepr Res Res'], go.TypeReprUnderlying (GenericServerStream.underlying Req Res) (GenericServerStream Req' Res')
   underlying : ∀ (Req Res : go.GoType), go.UnderlyingDirectedEq (GenericServerStream.ty Req Res) (GenericServerStream.underlying Req Res)
+  layout : ∀ (Req' Res' : Type), go.StructLayout (GenericServerStream Req' Res') [(go!"ServerStream", typeSize ServerStream, typeAlign ServerStream)]
   get_ServerStream : ∀ (Req Res : go.GoType) (Req' Res' : Type) (x : (GenericServerStream Req' Res')), go.IsGoStepPureDetTagged under (StructFieldGet (GenericServerStream.underlying Req Res) go!"ServerStream") #x (Val #(x.ServerStream'))
   set_ServerStream : ∀ (Req Res : go.GoType) (Req' Res' : Type) (x : (GenericServerStream Req' Res')) (y : ServerStream), go.IsGoStepPureDetTagged under (StructFieldSet (GenericServerStream.underlying Req Res) go!"ServerStream") (PairV #x #y) (Val #(({ x with ServerStream' := y } : (GenericServerStream Req' Res'))))
 
 attribute [instance] GenericServerStream.TypeAssumptions.type_repr
   GenericServerStream.TypeAssumptions.underlying
+  GenericServerStream.TypeAssumptions.layout
   GenericServerStream.TypeAssumptions.get_ServerStream
   GenericServerStream.TypeAssumptions.set_ServerStream
 
@@ -4161,6 +4251,7 @@ instance equals_unfold_traceInfo [FfiSyntax] [GoGlobalContext] :
 class traceInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying traceInfo.underlying traceInfo
   underlying : go.UnderlyingDirectedEq traceInfo.ty traceInfo.underlying
+  layout : go.StructLayout traceInfo [(go!"tr", typeSize traceLog, typeAlign traceLog), (go!"firstLine", typeSize firstLine, typeAlign firstLine)]
   get_tr : ∀ (x : traceInfo), go.IsGoStepPureDetTagged under (StructFieldGet traceInfo.underlying go!"tr") #x (Val #(x.tr'))
   set_tr : ∀ (x : traceInfo) (y : traceLog), go.IsGoStepPureDetTagged under (StructFieldSet traceInfo.underlying go!"tr") (PairV #x #y) (Val #(({ x with tr' := y } : traceInfo)))
   get_firstLine : ∀ (x : traceInfo), go.IsGoStepPureDetTagged under (StructFieldGet traceInfo.underlying go!"firstLine") #x (Val #(x.firstLine'))
@@ -4168,6 +4259,7 @@ class traceInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
 
 attribute [instance] traceInfo.TypeAssumptions.type_repr
   traceInfo.TypeAssumptions.underlying
+  traceInfo.TypeAssumptions.layout
   traceInfo.TypeAssumptions.get_tr
   traceInfo.TypeAssumptions.set_tr
   traceInfo.TypeAssumptions.get_firstLine
@@ -4198,6 +4290,7 @@ instance equals_unfold_payload [FfiSyntax] [GoGlobalContext] :
 class payload.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying payload.underlying payload
   underlying : go.UnderlyingDirectedEq payload.ty payload.underlying
+  layout : go.StructLayout payload [(go!"sent", typeSize Bool, typeAlign Bool), (go!"msg", typeSize GoInterface, typeAlign GoInterface)]
   get_sent : ∀ (x : payload), go.IsGoStepPureDetTagged under (StructFieldGet payload.underlying go!"sent") #x (Val #(x.sent'))
   set_sent : ∀ (x : payload) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet payload.underlying go!"sent") (PairV #x #y) (Val #(({ x with sent' := y } : payload)))
   get_msg : ∀ (x : payload), go.IsGoStepPureDetTagged under (StructFieldGet payload.underlying go!"msg") #x (Val #(x.msg'))
@@ -4205,6 +4298,7 @@ class payload.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
 
 attribute [instance] payload.TypeAssumptions.type_repr
   payload.TypeAssumptions.underlying
+  payload.TypeAssumptions.layout
   payload.TypeAssumptions.get_sent
   payload.TypeAssumptions.set_sent
   payload.TypeAssumptions.get_msg
@@ -4235,6 +4329,7 @@ instance equals_unfold_fmtStringer [FfiSyntax] [GoGlobalContext] :
 class fmtStringer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying fmtStringer.underlying fmtStringer
   underlying : go.UnderlyingDirectedEq fmtStringer.ty fmtStringer.underlying
+  layout : go.StructLayout fmtStringer [(go!"format", typeSize GoString, typeAlign GoString), (go!"a", typeSize GoSlice, typeAlign GoSlice)]
   get_format : ∀ (x : fmtStringer), go.IsGoStepPureDetTagged under (StructFieldGet fmtStringer.underlying go!"format") #x (Val #(x.format'))
   set_format : ∀ (x : fmtStringer) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet fmtStringer.underlying go!"format") (PairV #x #y) (Val #(({ x with format' := y } : fmtStringer)))
   get_a : ∀ (x : fmtStringer), go.IsGoStepPureDetTagged under (StructFieldGet fmtStringer.underlying go!"a") #x (Val #(x.a'))
@@ -4242,6 +4337,7 @@ class fmtStringer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
 
 attribute [instance] fmtStringer.TypeAssumptions.type_repr
   fmtStringer.TypeAssumptions.underlying
+  fmtStringer.TypeAssumptions.layout
   fmtStringer.TypeAssumptions.get_format
   fmtStringer.TypeAssumptions.set_format
   fmtStringer.TypeAssumptions.get_a
