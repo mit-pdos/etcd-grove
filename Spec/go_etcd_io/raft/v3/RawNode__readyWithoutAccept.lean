@@ -43,8 +43,8 @@ Since 2026-10-10 also:
   a receiver knows a message's term is at most its sender's (pre-vote is off,
   `ownRawNode`'s scope);
 - `Habandon`: the `Ready` may be dropped instead of accepted (`node.go`'s `select` takes
-  another case): with the messages given back, the node is whole again, at `rs`
-  (`ownRawNodeReady_abandon`). -/
+  another case): with the messages given back, the node is whole again, at `rs` with the
+  lower bounds raised to what the `Ready` held (`ownRawNodeReady_abandon`). -/
 abbrev RawNode.readyWithoutAccept.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState),
   rs.steps = [] →
@@ -64,7 +64,12 @@ abbrev RawNode.readyWithoutAccept.spec : Prop :=
       "%Hmsgs_term" ∷ ⌜∀ m ∈ ms, uint.Z m.Term' ≤ uint.Z rs.term⌝ ∗
       "Habandon" ∷ (rd.Messages' ↦* ms -∗
                     ownSliceCap raftpb.Message rd.Messages' (DFrac.own 1) -∗
-                    ownRawNodeReady γ rn id rs rd ce es ms -∗ ownRawNode γ rn id rs) ∗
+                    ownRawNodeReady γ rn id rs rd ce es ms -∗
+                    ∃ (n : Nat) (u : Bool) (c : w64),
+                      ⌜ms.length ≤ n ∧ (es ≠ [] → u = true) ∧
+                       (∀ e, ce.getLast? = some e → uint.Z e.Index' ≤ uint.Z c ∧
+                         uint.Z e.Index' = (rs.delivered.length : Int) + (ce.length : Int))⌝ ∗
+                      ownRawNode γ rn id { rs with outlb := n, unst := u, clb := c }) ∗
       "%Hsnapz" ∷ ⌜rd.Snapshot' = zero_val raftpb.Snapshot ∧
                    rd.ReadStates' = slice.nil⌝ }}
 

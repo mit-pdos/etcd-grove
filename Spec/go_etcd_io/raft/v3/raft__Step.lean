@@ -74,7 +74,8 @@ def LocalFrame [FfiSyntax] (s s' : NState) : Prop :=
   s'.logst.prev = s.logst.prev ∧
   s'.logst.stored = s.logst.stored ∧
   s'.logst.storage = s.logst.storage ∧
-  s'.prevote = s.prevote
+  s'.prevote = s.prevote ∧
+  s'.gh = s.gh
 
 /-- `Step`'s postcondition for the three local messages `RawNode` steps -- a proposal
 (`Propose`) and the two storage acknowledgements (`Advance`): `LocalFrame`, and
@@ -111,22 +112,23 @@ def NetFrame [FfiSyntax] (s s' : NState) : Prop :=
   s'.logst.prev = s.logst.prev ∧
   s'.logst.stored = s.logst.stored ∧
   s'.logst.storage = s.logst.storage ∧
-  s'.prevote = s.prevote
+  s'.prevote = s.prevote ∧
+  s'.gh = s.gh
 
 theorem NetFrame.refl [FfiSyntax] (s : NState) : NetFrame s s :=
-  ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+  ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 theorem NetFrame.trans [FfiSyntax] {s1 s2 s3 : NState} (h1 : NetFrame s1 s2)
     (h2 : NetFrame s2 s3) : NetFrame s1 s3 :=
   ⟨h2.1.trans h1.1, h2.2.1.trans h1.2.1, h2.2.2.1.trans h1.2.2.1, h2.2.2.2.1.trans h1.2.2.2.1,
    h2.2.2.2.2.1.trans h1.2.2.2.2.1, h2.2.2.2.2.2.1.trans h1.2.2.2.2.2.1,
-   h2.2.2.2.2.2.2.trans h1.2.2.2.2.2.2⟩
+   h2.2.2.2.2.2.2.1.trans h1.2.2.2.2.2.2.1, h2.2.2.2.2.2.2.2.trans h1.2.2.2.2.2.2.2⟩
 
 /-- Two states with the same log state and pre-vote setting. -/
 theorem NetFrame.of_logst [FfiSyntax] {s s' : NState} (h : s'.logst = s.logst)
-    (hpv : s'.prevote = s.prevote := by rfl) :
+    (hpv : s'.prevote = s.prevote := by rfl) (hg : s'.gh = s.gh := by rfl) :
     NetFrame s s' := by
-  unfold NetFrame; rw [h, hpv]; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+  unfold NetFrame; rw [h, hpv, hg]; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 /-- How a `Step` moves the term (2026-10-09): never back; by a local `MsgHup` at most one
 up (a campaign); by any other message (but a `MsgPreVoteResp`, which may also campaign)
@@ -327,7 +329,10 @@ abbrev raft.Step.spec : Prop :=
      uint.Z m.Term' ≤ uint.Z s.term ∧
      (m.Term' = W64 0 ∨ m.Term' = s.term →
       m.Index' ≠ W64 0 →
-      StableOk s.logst (entryID.mk m.LogTerm' m.Index'))) →
+      StableOk s.logst (entryID.mk m.LogTerm' m.Index')) ∧
+     -- (2026-10-10) `stableTo` may hand out every unstable entry still to come
+     -- (`NGhost.unst`): `RawNode.Advance` steps it only after `acceptReady` reset the flag
+     s.gh.unst = false) →
   (m.Type' = MsgStorageApplyResp → m.Term' = W64 0) →
   -- The one place the two layers meet. `s` is the physical abstract state
   -- `ownRaftPhys` is indexed by, `ps` the protocol state the ghost state is about,

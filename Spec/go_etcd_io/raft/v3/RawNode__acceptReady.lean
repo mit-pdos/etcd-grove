@@ -29,7 +29,8 @@ variable [AllG GF]
 between (`ownRawNodeReady`): the node's new state as after `RawNode.Ready` -- `delivered`
 grows by `ce`, `unpersisted` is `es`, the local messages for `Advance` are queued
 (`steps`, opaque) -- and the right to append `es` to the node's storage
-(`appendRight`). `acceptReady` does not read `rd.Messages`, which the application may
+(`appendRight`); the lower bounds `outlb` and `unst` are reset (2026-10-10: nothing is
+queued, and every unstable entry is handed out). `acceptReady` does not read `rd.Messages`, which the application may
 already hold (`ms`, what `readyWithoutAccept` handed out there, is only an index of
 `ownRawNodeReady`, since 2026-10-10). -/
 abbrev RawNode.acceptReady.spec : Prop :=
@@ -40,7 +41,8 @@ abbrev RawNode.acceptReady.spec : Prop :=
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"acceptReady")) (Val #rd))
   {{ (steps : List Pending), RET #();
       "Hrn" ∷ ownRawNode γ rn id
-        { rs with delivered := rs.delivered ++ ce, unpersisted := es, steps := steps } ∗
+        { rs with delivered := rs.delivered ++ ce, unpersisted := es, steps := steps,
+                  outlb := 0, unst := false } ∗
       "Happ" ∷ appendRight rs.storage es }}
 
 end spec

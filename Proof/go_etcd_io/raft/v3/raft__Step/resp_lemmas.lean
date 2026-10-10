@@ -61,7 +61,7 @@ theorem leader_beat_step (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Me
     (Hr : s.role = .leader) (Hty : m.Type' = MsgBeat) (Hwf : NStateWf s)
     (H : LeaderStepResult cfg id s m ents dropped s') :
     dropped = false ∧ NStateWf s' ∧ Step cfg id (toPState s) [] (toPState s') ∧
-      s'.logst = s.logst ∧ s'.term = s.term ∧ s'.prevote = s.prevote := by
+      s'.logst = s.logst ∧ s'.term = s.term ∧ s'.prevote = s.prevote ∧ s'.gh = s.gh := by
   have Hpr : (toPState s).role = .leader := by rw [toPState_role, Hr]; rfl
   unfold LeaderStepResult at H
   rw [ite_eq_right (by rw [Hty]; w32_ne)] at H
@@ -71,7 +71,7 @@ theorem leader_beat_step (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Me
   rcases Hres with ⟨Hc, -⟩ | ⟨-, ms, pvs, rfl, Hok, Hpm⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩
   · exfalso; rw [Hty] at Hc
     rcases Hc with Hc | Hc | Hc | Hc <;> exact absurd Hc (by w32_ne)
-  · refine ⟨Hwf, ?_, rfl, rfl, rfl⟩
+  · refine ⟨Hwf, ?_, rfl, rfl, rfl, rfl⟩
     rw [toPState_prvals (sendMsgs s ms) pvs (fun _ => Hpm), toPState_sendMsgs]
     exact .beat _ ms Hpr Hok
   · exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
@@ -84,7 +84,7 @@ theorem leader_hbresp_step (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.
     (Hr : s.role = .leader) (Hty : m.Type' = MsgHeartbeatResp) (Hwf : NStateWf s)
     (H : LeaderStepResult cfg id s m ents dropped s') :
     dropped = false ∧ NStateWf s' ∧ Step cfg id (toPState s) [] (toPState s') ∧
-      s'.logst = s.logst ∧ s'.term = s.term ∧ s'.prevote = s.prevote := by
+      s'.logst = s.logst ∧ s'.term = s.term ∧ s'.prevote = s.prevote ∧ s'.gh = s.gh := by
   have Hpr : (toPState s).role = .leader := by rw [toPState_role, Hr]; rfl
   unfold LeaderStepResult at H
   rw [ite_eq_right (by rw [Hty]; w32_ne)] at H
@@ -95,7 +95,7 @@ theorem leader_hbresp_step (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.
   · exfalso; rw [Hty] at Hc
     rcases Hc with Hc | Hc | Hc | Hc <;> exact absurd Hc (by w32_ne)
   · exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
-  · refine ⟨Hwf, ?_, rfl, rfl, rfl⟩
+  · refine ⟨Hwf, ?_, rfl, rfl, rfl, rfl⟩
     rw [toPState_prvals (sendMsgs s ms) pvs (fun _ => Hpm), toPState_sendMsgs]
     exact .sendApps _ ms Hpr Hok
   · exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)

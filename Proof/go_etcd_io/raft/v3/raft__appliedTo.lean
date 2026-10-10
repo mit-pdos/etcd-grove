@@ -51,11 +51,11 @@ theorem raft.appliedTo.wp_proof
   all_goals
     -- `r.raftLog.appliedTo(newApplied, size)`
     wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-    icases ownRaftPhys_log_at cfg r id s $$ Hphys with ⟨Hlog, Hback⟩
+    icases ownRaftPhys_log_at cfg r id s $$ Hphys with ⟨Hlog, %Hgh0, Hback⟩
     first
       | wp_apply wp_raftLog_appliedTo _ _ index size (by omega) $$ [$Hlog] as Hlog
       | wp_apply wp_raftLog_appliedTo _ _ s.logst.applied size (by omega) $$ [$Hlog] as Hlog
-    ihave Hphys := Hback $$ %_ Hlog
+    ihave Hphys := Hback $$ %_ Hlog %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl)
     -- `r.trk.Config.AutoLeave` is `false`: the rest is dead
     icases ownRaftPhys_tracker_same cfg r id _ $$ Hphys with ⟨%tv, Htrkf, Htrk, Htback⟩
     icases ownTracker_autoleave cfg _ _ $$ Htrk with ⟨%Hal, Htrk⟩

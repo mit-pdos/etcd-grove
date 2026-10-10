@@ -42,18 +42,8 @@ def LocalApplyThread : w64 := W64 18446744073709551614
 section readylog
 variable [FfiSyntax]
 
-/-- `unstable.offset`, which `ownRaftLog` pins to the end of the stable part
-(`Hoffset`). -/
-def logOffset (ls : LogState) : Int :=
-  uint.Z ls.prev.index' + (ls.sents.length : Int) + 1
-
 /-- One past the last index. -/
 def logEnd (ls : LogState) : w64 := logLast ls + W64 1
-
-/-- `nextUnstableEnts()`: the unstable entries not yet handed out by a `Ready`
-(`u.entries[offsetInProgress-offset:]`). -/
-def nextUnstable (ls : LogState) : List raftpb.Entry :=
-  ls.uents.drop (uint.Z ls.inprogress - logOffset ls).toNat
 
 /-- `acceptUnstable()`: every unstable entry is in progress (`offsetInProgress` at the
 end), and the ones just handed out are now the application's to persist

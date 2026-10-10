@@ -17,6 +17,7 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
+open RawNodeOwnAccess
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -121,7 +122,9 @@ theorem RawNode.Propose.wp_proof
       (by rw [Hfr.2.2.2.1]; exact Hsnap)
       (stepsOk_mono s s' _ Hfr.1 ⟨Hfr.2.2.2.2.1, Hfr.2.2.2.2.2.1⟩ Hc Hap' Hstok)
       (by rw [Hfr.1]; exact Htrm) (by rw [Hfr.2.2.2.2.2.2.1]; exact Hstor)
-      (by rw [Hfr.2.2.2.2.2.2.2]; exact Hpvoff)
+      (by rw [Hfr.2.2.2.2.2.2.2.1]; exact Hpvoff)
+      (by rw [Hfr.2.2.2.2.2.2.2.2]; exact Hrs_out) (by rw [Hfr.2.2.2.2.2.2.2.2]; exact Hrs_unst)
+      (Int.le_trans Hrs_clb Hc)
       $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstr'
   icases Hprops with (⟨%Hok, Hout⟩ | Hau)
   · ileft

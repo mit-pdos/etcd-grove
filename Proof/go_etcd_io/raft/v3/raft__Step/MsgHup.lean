@@ -80,7 +80,7 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   all_goals
     wp_auto
     wp_apply _P.hup cfg r id s _ Hnowrap ?Hpvt Hwf $$ [$Hphys]
-      as %s' ⟨Hphys, %Hwf', %Hstep, %Hl, %Ht1, %Ht2, %Hpv'⟩
+      as %s' ⟨Hphys, %Hwf', %Hstep, %Hl, %Ht1, %Ht2, %Hpv', %Hg'⟩
     case Hpvt =>
       first
         | exact fun _ => Hpv
@@ -90,7 +90,7 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %s'
     iframe Hphys
     ipureintro
-    exact ⟨Hwf', Hstep, rfl, NetFrame.of_logst Hl Hpv', Ht1, fun _ => Ht2,
+    exact ⟨Hwf', Hstep, rfl, NetFrame.of_logst Hl Hpv' Hg', Ht1, fun _ => Ht2,
       fun h _ => absurd Hty h, fun _ => by rw [Hl]; exact Int.le_refl _⟩
 
 end StepProof

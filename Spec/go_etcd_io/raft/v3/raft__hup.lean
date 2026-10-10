@@ -47,7 +47,7 @@ abbrev raft.hup.spec : Prop :=
       -- the log is untouched and the term moves up by at most one (2026-10-09); and
       -- `r.preVote` is kept (2026-10-10)
       ⌜s'.logst = s.logst ∧ uint.Z s.term ≤ uint.Z s'.term ∧
-       uint.Z s'.term ≤ uint.Z s.term + 1 ∧ s'.prevote = s.prevote⌝ }}
+       uint.Z s'.term ≤ uint.Z s.term + 1 ∧ s'.prevote = s.prevote ∧ s'.gh = s.gh⌝ }}
 
 end spec
 

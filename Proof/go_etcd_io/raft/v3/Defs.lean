@@ -540,6 +540,18 @@ it as an `Int` equation, and `ownRaftLog`'s `Hnowrap` says the `W64` does not wr
 def logLast (ls : LogState) : w64 :=
   W64 (uint.Z ls.prev.index' + ls.sents.length + ls.uents.length)
 
+/-- `unstable.offset`, which `ownRaftLog` pins to the end of the stable part
+(`Hoffset`). -/
+def logOffset (ls : LogState) : Int :=
+  uint.Z ls.prev.index' + (ls.sents.length : Int) + 1
+
+/-- `nextUnstableEnts()`: the unstable entries not yet handed out by a `Ready`
+(`u.entries[offsetInProgress-offset:]`). -/
+def nextUnstable (ls : LogState) : List raftpb.Entry :=
+  ls.uents.drop (uint.Z ls.inprogress - logOffset ls).toNat
+-- (Both moved here from `InvReadylog.lean` on 2026-10-10: `ownRaftPhys` states
+-- `NGhost.unst` on `nextUnstable`.)
+
 /-- `raftLog.append` at the end of the log: the batch joins the unstable suffix
 (`Spec/raftLog__append.lean`). -/
 def logAppend (ls : LogState) (ents : List raftpb.Entry) : LogState :=
@@ -614,6 +626,20 @@ pre-candidate as a follower.
 The first six fields have `PState`'s names, so that a spec's `s.term` reads the same
 as it always did; `role` is the physical role. -/
 
+/-- Ghost facts the raft struct keeps for `node.go` (2026-10-10), lower bounds that only a
+`Ready` resets: `outlb` is at most the number of queued messages (`r.msgs` and
+`r.msgsAfterAppend`; they only grow until `acceptReady` empties them), and `unst` says
+that some unstable entry has not been handed out (`nextUnstable` is non-empty, or a
+snapshot is pending). `node.go`'s `run` abandons a computed `Ready` and may later send
+it after all, when `HasReady` reports nothing new: that is right only because whatever
+the abandoned `Ready` held is still there (`ownRawNodeReady_abandon`, `RNState.outlb`).
+`ownRaftPhys` states both (`Hgh_out`, `Hgh_unst`); every step but a storage
+acknowledgement keeps them (`NetFrame`, `LocalFrame`). -/
+structure NGhost where
+  outlb : Nat := 0
+  unst : Bool := false
+deriving DecidableEq
+
 structure NState [FfiSyntax] where
   term : w64
   vote : w64
@@ -638,6 +664,8 @@ structure NState [FfiSyntax] where
   prvals : GMap w64 Progress
   /-- `r.preVote` (2026-10-04) -/
   prevote : Bool
+  /-- ghost lower bounds for `node.go` (2026-10-10), see `NGhost` -/
+  gh : NGhost := {}
 
 section phys_state
 variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]

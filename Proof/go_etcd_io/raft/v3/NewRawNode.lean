@@ -13,6 +13,7 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
+open RawNodeOwnAccess
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -38,12 +39,14 @@ theorem NewRawNode.wp_proof
     (by rw [Hents]; intro e h; simp at h) Hss Hpe (fun h => absurd Hhs h) (.inl Happ)
     Hvne Hvnd Hv0 Hvlen Hc1 Hc2 Hc3 Hal
     $$ [$Hc $Hlg $Hst $HSt $Hinit] as %r %s %cv' ⟨Hphys, Hc, %HAW, %Hpost⟩
+  imod rawNodeOwn_of_pts «$r0_ptr» _ $$ «$r0» with «$r0»
   try wp_auto
   wp_apply wp_softState _ r cv.ID' s $$ Hphys as Hphys
   -- `prevSoftSt` points to a `SoftState` nobody writes again
   ipersist ss
   wp_apply wp_hardState _ r cv.ID' s $$ Hphys as Hphys
-  obtain ⟨Hwf, Ht, Hv, Hl, Hr, Hvs, Ho, Hpv, Hp, Hse, Hue, Hsd, Hcm, Hap, Hun, Hsn, Hsg⟩ := Hpost
+  obtain ⟨Hwf, Ht, Hv, Hl, Hr, Hvs, Ho, Hpv, Hp, Hse, Hue, Hsd, Hcm, Hap, Hun, Hsn, Hsg, Hgh⟩ :=
+    Hpost
   have HT : hs.Term' = W64 0 := Hhs.1
   have Hrel : NStateRel s initPState :=
     newRaft_post_init hs s Hhs ⟨Hwf, Ht, Hv, Hl, Hr, Hvs, Ho⟩ (by rw [Hp, Hprev])
@@ -59,7 +62,8 @@ theorem NewRawNode.wp_proof
       s initPState _ _ [] Hrel
       (by rw [Hcfg]; exact (GMap.elem_of_list_to_set _ _).2 Hid) ?_
       (by rw [Hap, Hprev, Happ]; rfl) (by rw [Hun]) Hsn trivial
-      (by rw [Ht, HT]) (by rw [Hsg]) (by rw [Hpv, HpvF])
+      (by rw [Ht, HT]) (by rw [Hsg]) (by rw [Hpv, HpvF]) (by rw [Hgh]) (by rw [Hgh])
+      (uint_Z_nonneg _)
       $$ «$r0» Hphys Hghost ss [] [] [] [] Hcomm []
     all_goals first
       | (rw [Hsd, Hents]; iapply storedRecs_nil)

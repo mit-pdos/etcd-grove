@@ -34,9 +34,9 @@ theorem raft.handleHeartbeat.wp_proof
   iNamed Hphys
   wp_auto
   wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-  icases ownRaftPhys_log_at cfg r id s $$ Hphys with ⟨Hlog, Hlogback⟩
+  icases ownRaftPhys_log_at cfg r id s $$ Hphys with ⟨Hlog, %Hgh0, Hlogback⟩
   wp_apply wp_raftLog_commitTo _ _ _ Hcommit $$ [$Hlog] as Hlog
-  ihave Hphys := Hlogback $$ Hlog
+  ihave Hphys := Hlogback $$ Hlog %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl)
   try wp_auto
   let hb : raftpb.Message :=
     { Type' := W32 9, To' := m.From', From' := 0, Term' := 0, LogTerm' := 0, Index' := 0,
