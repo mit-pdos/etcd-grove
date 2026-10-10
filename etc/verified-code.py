@@ -130,6 +130,9 @@ def go_sources(base):
     os.makedirs(base, exist_ok=True)
     dirs = {}
     for name, p in PROJECTS.items():
+        if p.local is not None:
+            dirs[name] = os.path.join(ROOT, p.local)
+            continue
         d = os.path.join(base, name)
         if not os.path.isdir(d):
             print(f"verified-code: cloning {p.repo} into {d}", file=sys.stderr)

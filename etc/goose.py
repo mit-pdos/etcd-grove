@@ -7,7 +7,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                files; exit 1 (printing a diff) if they differ.  A gate for CI: the
                checked-in translation must be exactly what the pinned translator
                produces from the pinned Go source.
-  --project    only this project (etcd-raft or etcd; repeatable; default: all).
+  --project    only this project (etcd-raft, etcd or register; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
                $ETCD_RAFT_SRC).  For a pinned revision not yet pushed, or for trying
@@ -31,7 +31,8 @@ configuration (`*.toml`, next to the code) is input and is never touched.
 The translator (`goose`, `proofgen`) is built with `go` from Perennial's `goose/`.
 The pinned Perennial is `.lake/packages/perennial` when Lake has already checked it
 out at the pinned revision, otherwise a clone in `.lake/goose/perennial`.  A
-project's source is cloned into `.lake/goose/<name>` at its pinned revision.
+project's source is cloned into `.lake/goose/<name>` at its pinned revision, except
+for a project in this repository (`local`), whose source is that directory.
 """
 
 import argparse
@@ -80,6 +81,9 @@ class Project:
     # The Go modules of the checkout whose code etc/verified-code.py counts (not its
     # tests or tools); None: every module of the checkout.
     counted_modules: list = None
+    # The Go source is this directory of this repository (relative to its root) instead
+    # of a fork (`repo`, `rev`: None).
+    local: str = None
 
     @property
     def env(self):
@@ -211,6 +215,18 @@ PROJECTS = [
             "go.etcd.io/etcd/server/v3",
         ],
     ),
+    Project(
+        name="register",
+        # An example application on raft's Node: a replicated string register. A Go
+        # module of this repository, whose go.mod replaces go.etcd.io/raft/v3 by the
+        # etcd-raft fork at the revision pinned above.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "register"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove")],
+    ),
 ]
 
 
@@ -281,6 +297,10 @@ def pieces(proj):
 
 def source(proj, local, check):
     """The checkout to translate, and a description of it for the output."""
+    if proj.local is not None:
+        if local is not None:
+            sys.exit(f"goose.py: {proj.name} is translated from {proj.local}; no --src")
+        return os.path.join(ROOT, proj.local), proj.local
     if local is None:
         return checkout(proj.repo, proj.rev, os.path.join(WORK, proj.name)), proj.rev[:12]
     local = os.path.abspath(local)
