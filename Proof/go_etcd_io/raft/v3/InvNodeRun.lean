@@ -135,6 +135,23 @@ theorem ownRawNodeIdle_borrow (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSta
     Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hidle
     $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs
 
+/-- The fields of the raft struct `isNode` shares, out of a node. -/
+theorem ownRawNode_shared (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) :
+    ⊢ ownRawNode (GF := GF) γ rn id rs -∗
+      ∃ (r : Loc) (lok : GoInterfaceOk), rn.[RawNode, go!"raft"] ↦□ r ∗
+        r.[raft, go!"id"] ↦□ id ∗ r.[raft, go!"logger"] ↦□ (interface.ok lok : GoInterface) ∗
+        isLogger lok ∗ ownRawNode γ rn id rs := by
+  iintro H
+  iNamed H
+  ihave #Hr := rawNodeOwn_raft rn rnv $$ Hrn
+  icases ownRaftPhys_shared γ.reCfg rnv.raft' id s $$ Hphys with
+    ⟨%lok, #Hid, #Hlg, #Hlogger, Hphys⟩
+  iexists rnv.raft', lok
+  iframe Hr Hid Hlg Hlogger
+  iapply ownRawNode_intro γ rn id rs s ps rnv sv steps Hrel Hin Hasync Hdlen Hunp Hsnap Hstok
+    Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
+    $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs
+
 /-- The leader fields, for `run`'s check (any values: the check only logs and arms the
 proposal channel). -/
 def leadFields (r : Loc) (X : IProp GF) : IProp GF :=
