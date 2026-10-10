@@ -109,45 +109,53 @@ concurrently); `newRaft` returns `s.gh = {}`.
 
 Not checked: `etc/tcb-report.py --check` (needs a full build; the disk is short).
 
-## bbolt: translated with bodies on branch `bbolt`; the first proofs (2026-10-10)
+## bbolt: translated with bodies on branch `bbolt`; the models; `internal/common` (2026-10-10)
 
 **Branch.** This work is on etcd-grove branch `bbolt`, pinned to Perennial branch
-`goose-bbolt` (`535c763`, not merged into Perennial's `lean`), so it is not on `lean`.
-Merging it needs Perennial's branch merged first and the whole repository rebuilt against it
-(below).
+`goose-bbolt` (`92924a9`, not merged into Perennial's `lean`). Merging it needs Perennial's
+branch merged first and the whole repository rebuilt against it (below).
 
-**Perennial `goose-bbolt`** (the memory model, `notes/bbolt-unsafe.md`, "Where Perennial
-stands"): a heap cell is a byte for integers (16, 32 and 64 bits are little-endian byte
-cells; `AtomicWord` reads and writes them at once), types have sizes and alignments and
-structs gc's layout (`Golang/Defn/Layout.lean`, `StructLayout`), `arrayIndexRef` is a
-definition (`l +ₗ i * typeSize V`), `GoAlloc` of a struct or an array is a real `AllocN`,
-and `uintptr(p)`, `unsafe.Add`, `unsafe.Slice` have semantics (`go.UnsafeSemantics`). No
-crash semantics (not needed: the request is crash-free). `Golang/Theory/Bytes.lean` is
-the byte view: `bytesPointsto l dq bs`, split at any offset, with words and nonempty byte
-slices as views of their bytes. Goose additions: anonymous struct field types
-(`anonStruct_<hash>`, `DB.ops`), methods named `init`, slicing a pointer to an array,
-imports of packages whose types the code reaches, axiomatized aliases' `X.ty`; std
-`encoding/hex`, `hash`, `hash/fnv`, `io/fs`, `syscall` (names only).
+**The models** (`notes/bbolt-unsafe.md`, "The models"): integers are little-endian byte
+cells, types have gc's sizes and layouts, array and struct allocation is real, `unsafe.Add`
+and `unsafe.Slice` have semantics, `Golang/Theory/Bytes.lean` is the byte view; the file and
+the memory map are `Proof/os/FileModel.lean` (abstract state; the specs of the `os`,
+`syscall` and `unix` functions bbolt calls are axioms, `Spec/{os,io/fs,syscall,golang_org}/`).
+No crash semantics.
 
-**Translation.** bbolt v1.5.0 is translated with bodies: the root package, `errors`,
-`internal/common`, `internal/freelist` (`Code/go_etcd_io/bbolt*.toml`);
-`golang.org/x/sys/unix` names only. Every Code/GeneratedProof module of bbolt builds.
+**Translation.** bbolt v1.5.0 (etcd's `go.mod`) with bodies: the root package, `errors`,
+`internal/common`, `internal/freelist`; `golang.org/x/sys/unix` names only (with its
+constants: Goose's new `translate_consts`, also on for Perennial's `syscall` and `os`).
 
-**Proved** (`Proof/go_etcd_io/bbolt/internal/common/`, `Results.lean`, no `sorry`):
-`Mergepgids` (as before, now over byte-cell words), `UnsafeAdd`, `UnsafeIndex`,
-`UnsafeByteSlice` (linked to `UnsafeAdd`), and `Page_bytes` (`Bytes.lean`: a page header
-is its 16 bytes; the field offsets come from the layout).
+**Proved** (no `sorry`; `Results.lean` of each prints the axioms):
+- `Proof/go_etcd_io/bbolt/internal/common/` (`Link.lean` by `etc/gen-link.py --bbolt`, 81
+  results): `Mergepgids`, `Pgids.{Len,Less,Swap,Merge}`, `UnsafeAdd`, `UnsafeIndex`,
+  `UnsafeByteSlice`, every getter (at any fraction) and setter of `Page`, `Meta`,
+  `InBucket`, `Inode` and the page elements, `Page`'s flag tests, `IsValidPage`, `Meta()`,
+  `LeafPageElement(i)`, `BranchPageElement(i)`, `LeafPageElements`, `BranchPageElements`,
+  `PageElementSize`, the elements' `Key`/`Value`, `IsBucketEntry`, `LoadPage`,
+  `LoadBucket`, `LoadPageMeta`, `IsFreelistPersisted`, `RootBucket`, `IncTxid`, `DecTxid`,
+  `IncSequence`; `Page_bytes` (`Bytes.lean`: a page header is its 16 bytes).
+- `Proof/go_etcd_io/bbolt/` (`Link.lean` by `etc/gen-link.py --bbolt-root`): `mmap`,
+  `munmap`, over the file model.
+
+**Found on the way** (Perennial `goose-bbolt`): a load through a fractional or persistent
+struct points-to failed (`wp_auto`'s `Access` search took the store instance first and did
+not come back); proofgen now puts the store instances at low priority. Perennial's `workq`
+proof changed with it (a `wp_auto_lc 2` with nothing left to do), and any proof here that
+relied on the old behaviour may need the same (not checked, below).
 
 **Not checked.** The rest of the repository (raft, cache, server, register) was regenerated
 with the new translator but not rebuilt against `goose-bbolt`: the disk had under 1G free,
 and a full build needs about 2G. Its proofs may need changes where they unfold word
-points-tos or struct allocation. `etc/tcb-report.py --check` likewise.
+points-tos or struct allocation, or after the `Access` priority change. `etc/tcb-report.py
+--check` likewise (the bbolt axioms are new: the baseline needs `--check --update`).
 
-**Next.** The byte views of `Meta`, `InBucket` and the page elements (as `Page_bytes`); specs
-of `Page`'s accessors (`Meta()`, `LeafPageElement(i)`, `PgidList` through
-`unsafe.Slice`); then `internal/freelist`, and the file and mmap model for the root
-package (`DB.mmap`, `unix.Mmap`, `File.WriteAt`: axioms at the trust boundary, the mapped
-bytes kept coherent with the file's).
+**Next.** `internal/common`'s rest (`FreelistPageCount`/`FreelistPageIds`, which read the
+page body as `Pgid`s; `Meta.Validate`/`Write`/`Sum64`, which need a `hash/fnv` model;
+`InlinePage`, `leafPageElement.Bucket`); `internal/freelist` (the array and hashmap
+freelists, `Read`/`Write` over a page); then the root package bottom-up: page access
+(`db.page`, `db.meta`), `node`, `Cursor`, `Bucket`, `Tx` (commit writes pages through
+`WriteAt`, the model's discipline), `DB.Open`/`init`/`mmap` growth.
 
 ## `node.go` groundwork: abandoning a `Ready`, pre-vote off, the messages' terms (2026-10-10)
 

@@ -255,65 +255,39 @@ Upstream bbolt as written needs 1–5 in Perennial. 1 is a translator change. 2 
 and it decides the cost. 3 and 4 are small once 2 exists. 5 is a new OS model, needed either
 way.
 
+## The models (etcd-grove branch `bbolt`, Perennial branch `goose-bbolt`)
+
+Built on 2026-10-10, as the minimal changes to Perennial's memory model (no crash safety):
+
+- **Array allocation is real.** `GoAlloc` of an array or a struct is an `AllocN` of
+  `typeSize V` zero bytes followed by a store (`alloc_array`, `alloc_struct`); a size of
+  `2^63` bytes or more is `AngelicExit` (not considered). This fixes fact 1 above.
+- **Integers are bytes.** A heap cell holds one `val`, but `w16`/`w32`/`w64` occupy 2/4/8
+  cells holding their little-endian bytes (`wordTypedPointsto`), read and written at once by
+  `AtomicWord` (`GooseLang/Lang.lean`); `w8` is one cell. Pointers, slices, strings and
+  interfaces stay one opaque cell at the start of their range.
+- **Layout.** `typeSize`/`typeAlign` (amd64's) and gc's struct layout (`Golang/Defn/Layout.lean`;
+  Goose emits `layout : go.StructLayout V [...]` in every struct's `TypeAssumptions`);
+  `arrayIndexRef V i l = l +ₗ i * typeSize V` is a definition (the uninterpreted version was
+  inconsistent with `arrayIndexRef_null_inv`: `[go.Semantics] → False`).
+- **`unsafe`.** `uintptr(p)` is `ptrAddr p` (consecutive in a block), `unsafe.Add`,
+  `unsafe.Slice` (`go.UnsafeSemantics`); Goose emits `unsafe.Add` for
+  `unsafe.Pointer(uintptr(p) + n)`, slices pointers to arrays, translates anonymous struct
+  field types (`DB.ops`) and names-only constants (`translate_consts`).
+- **The byte view** (`Golang/Theory/Bytes.lean`): `bytesPointsto l dq bs`, split at any
+  offset; words and nonempty byte slices are views of their bytes; a struct of words is its
+  fields' bytes at the layout's offsets (bbolt's `Page_bytes`).
+- **Files and the memory map** (`Proof/os/FileModel.lean`, axioms at the trust boundary):
+  the file's bytes are abstract state; a read-only shared mapping's cells are heap cells
+  holding them, of which the caller gets half (the system keeps the other half, so the caller
+  can read but never store); `WriteAt` and `Truncate` take the caller's half of the cells they
+  change and give it back updated. This is bbolt's own discipline made precise: a writer
+  writes only pages no reader holds.
+
 ## What is verified now
 
-Only the code that touches none of this: `internal/common`'s page-id helpers (`Pgids.Merge`,
-`Mergepgids`), translated with bodies (`Code/go_etcd_io/bbolt/internal/common.toml`), with
-`Mergepgids` specified and proved (`{Spec,Proof}/go_etcd_io/bbolt/internal/common/`). Most of `internal/freelist`
-(`array`, `hashMap`, `shared` except `Read`/`Write`/`EstimatedWritePageSize`) and the `errors`
-package are equally goosable.
-
-## Where Perennial stands (2026-10-10, `lean` at `6ffd21fce`)
-
-Looking at Perennial's Go semantics to place the models turned up three facts that come
-before any bbolt-specific model.
-
-1. **Allocating an array diverges.** `ArraySemantics.alloc_array`
-   (`Perennial/Golang/Defn/Array.lean:31`, marked `-- TODO`) steps
-   `GoAlloc (ArrayType n elem)` to `AngelicExit`, which steps to itself forever. A `make` with
-   non-zero capacity goes through it (`InternalDynamicArrayAlloc`, `Defn/Slice.lean:85`), so
-   every Hoare triple holds vacuously from the first non-empty slice or array allocation on.
-   `wp_alloc` for arrays is proved by `wp_AngelicExit` (`Theory/Array.lean:342`), and
-   `wp_slice_make3` gets its array from that `wp_alloc`. This affects proofs in this repository
-   as well, not only bbolt: 31 files under `Proof/` use `wp_slice_make*` or `wp_slice_append`
-   (whose reallocating branch allocates), e.g. `raft__campaign`, `unstable__shrinkEntriesArray`.
-   `etc/tcb-report.py` does not show it, because it is a field of a semantics class, not an
-   axiom.
-2. **No byte-level memory.**
-   - A heap cell holds one `val`.
-   - `structFieldRef`/`arrayIndexRef` are uninterpreted functions, indexed by the Lean
-     representation type (`GoSemanticsFunctions`, `Defn/PostLang.lean:80-105`).
-   - No type has a size.
-   - The only layout fact is that a byte array occupies consecutive cells
-     (`arrayIndexRef_add_loc_add : arrayIndexRef w8 i l = l +ₗ i`, added for the disk FFI).
-
-   So a `w64` in memory is one cell, and nothing can make it also be 8 byte cells. A byte view
-   cannot be added downstream (as a trusted model here) consistently with the existing classes.
-   The `[]Pgid` that `unsafe.Slice` makes over a freelist page (`FreelistPageIds`,
-   `shared.Write`) is read and written as ordinary `Pgid`s by generic code (`copy`,
-   `Mergepgids`), so even lowering the punned *struct* types in the translator would leave it
-   unmodeled.
-3. **No crash semantics.** `GooseLang/Lang.lean` has none (its header says so). The disk FFI
-   (`GooseLang/Ffi/DiskFfi`) is a block map with read/write/size. A file + mmap model can be
-   stated (as an FFI, or as trusted Go-level code), but bbolt's crash safety (`fdatasync`, the
-   meta page's checksum, recovery from the newer valid meta) cannot be stated until Perennial
-   has crash semantics.
-
-What this means for "verify bbolt":
-
-| Piece | Where | Size |
-|---|---|---|
-| Real array allocation (fix 1) | Perennial core, `ArraySemantics` and `wp_alloc` for arrays | moderate; needed by everything |
-| Byte-level integers: `wN` = N byte cells, little-endian; `arrayIndexRef V i l = l +ₗ i·size V`; `structFieldRef` at gc's offsets; `Convert` pointer ↔ `uintptr` within a block | Perennial core (`GoSemanticsFunctions`, `PredeclaredSemantics`, the `heapTypedPointsto` instances and their `wp_load`/`wp_store`) | large; changes the memory model every Perennial proof sits on |
-| `unsafe.Slice`, `unsafe.Add`, `(*[N]T)(p)` over raw memory, pointer differences | Goose plus `unsafe.Semantics` | small, after the previous row |
-| File + mmap (coherent with `WriteAt`, `munmap`, `flock`, `fdatasync`) | a new FFI (Goose's `ffiMapping`, a prelude, `FfiSemantics`, adequacy) or trusted code | moderate without crashes |
-| Crash semantics | Perennial core (`Lang.lean`, recovery WP) | large |
-| bbolt itself (~5,600 Go lines: freelist, page codec, node split/rebalance, cursor, bucket, tx, DB, remap protocol, MVCC through pending pages) | here | large; tens of thousands of proof lines by this repository's ratios |
-
-Done so far toward the translation (Perennial branch `goose-bbolt`, `ff60796`, pushed): Goose
-folds `unsafe.Sizeof`/`Offsetof`/`Alignof` to gc's values, translates `uintptr` constants, and
-supports labeled loops whose branches target the loop directly (`DB.Batch`'s
-`continue retry`). The goose tests pass with new cases in `testdata/examples/unittest`. What is
-left for bbolt to translate in full is `unsafe.Slice` (4 sites) and the anonymous-struct field
-`DB.ops`. Both need the byte-level memory first to mean anything: the field is a test hook for
-`WriteAt`.
+On branch `bbolt` (`notes/STATUS.md`, "bbolt"), with no `sorry`: most of `internal/common`
+(the page-id merge, `unsafe.go`'s pointer arithmetic, the accessors of every on-disk struct,
+`Page`'s element and key/value views through `UnsafeByteSlice` and `unsafe.Slice`, the
+loads of pages, metas and buckets from buffers, `Pgids`' sort methods), and the root
+package's `mmap` and `munmap` over the file model.
