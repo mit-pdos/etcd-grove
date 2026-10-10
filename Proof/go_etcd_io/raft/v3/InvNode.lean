@@ -422,5 +422,44 @@ theorem handshake_send_au_upd {V : Type} [Pos.Countable V] [ZeroVal V]
 
 end node
 
+section helpers
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
+variable [sem : go.Semantics]
+
+theorem isHandshake_isChan {V : Type} [Pos.Countable V] [ZeroVal V]
+    [TypedPointsto (GF := GF) V] (γc : ChanNames) (ch : Loc) (P : V → IProp GF) (Q : IProp GF) :
+    ⊢ isHandshake γc ch P Q -∗ isChan ch γc V := by
+  iintro H
+  unfold isHandshake
+  icases H with ⟨$, -⟩
+
+/-- A receive on a channel nobody sends on (`P := False`) never completes: any
+continuation. -/
+theorem handshake_false_recv_au {V : Type} [Pos.Countable V] [ZeroVal V]
+    [TypedPointsto (GF := GF) V] (γc : ChanNames) (ch : Loc) (Φ : V → Bool → IProp GF) :
+    ⊢ £ 1 ∗ £ 1 -∗ isHandshake γc ch (fun (_ : V) => iprop(False)) iprop(True) -∗
+      recvAu γc V Φ := by
+  iintro Hlc #Hh
+  iapply handshake_receive_au γc ch (fun (_ : V) => iprop(False)) iprop(True) Φ $$ Hlc Hh []
+  · itrivial
+  inext
+  iintro %v Hf
+  iexfalso; iexact Hf
+
+end helpers
+
+set_option hygiene false in
+/-- Open `isNode` in the hypothesis `H` (persistent): the node struct's value `nv`, the
+raft struct `r`, its logger `lok`, the named conjuncts, and the node struct's fields as
+persistent points-tos (named by field: `propc`, `recvc`, ..., `rn`). -/
+macro "open_node " H:ident : tactic =>
+  `(tactic| (iunfold isNode at $H:ident
+             icases $H:ident with ⟨%nv, %r, %lok, #$H:ident⟩
+             iNamed $H:ident
+             ihave #Hn' := Hn
+             iStructNamed Hn'))
+
 end EtcdGrove
 end Perennial
