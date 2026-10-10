@@ -748,7 +748,7 @@ noncomputable def Meta.Sum64.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "h" (App (Val (GoInstruction (GoAlloc _root_.Perennial.hash.Hash64.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.hash.Hash64.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (Let "$s" (App (Val (GoInstruction (Convert «unsafe».Pointer (go.GoType.PointerType (go.GoType.ArrayType 56 go.byte))))) (App (Val (GoInstruction (Convert (go.GoType.PointerType Meta.ty) «unsafe».Pointer))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m"))))
-  (App (Val (GoInstruction (Slice (go.GoType.PointerType (go.GoType.ArrayType 56 go.byte))))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.PointerType (go.GoType.ArrayType 56 go.byte))]))) (Val #())) (App (Val (GoInstruction (Convert «unsafe».Pointer (go.GoType.PointerType (go.GoType.ArrayType 56 go.byte))))) (App (Val (GoInstruction (Convert (go.GoType.PointerType Meta.ty) «unsafe».Pointer))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Meta.ty)))) (Var "m"))))))))
+  (App (Val (GoInstruction (Slice (go.GoType.ArrayType 56 go.byte)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (Val #(W64 56)))))
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.hash.Hash64.ty go!"Write"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.hash.Hash64.ty))) (Var "h"))) (Var "$a0")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
@@ -2122,7 +2122,7 @@ noncomputable def UnsafeByteSlice.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$s" (App (Val (GoInstruction (Convert «unsafe».Pointer (go.GoType.PointerType (go.GoType.ArrayType 2147483647 go.byte))))) (Let "$a0" (App (Val (GoInstruction (GoLoad «unsafe».Pointer))) (Var "base"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.uintptr))) (Var "offset"))
   (App (App (App (Val (GoInstruction (FuncResolve UnsafeAdd []))) (Val #())) (Var "$a0")) (Var "$a1")))))
-  (App (Val (GoInstruction (FullSlice (go.GoType.PointerType (go.GoType.ArrayType 2147483647 go.byte))))) (Pair (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))) (App (Val (GoInstruction (GoLoad go.int))) (Var "j"))) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))))))))))))))
+  (App (Val (GoInstruction (FullSlice (go.GoType.ArrayType 2147483647 go.byte)))) (Pair (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))) (App (Val (GoInstruction (GoLoad go.int))) (Var "j"))) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))))))))))))))
 
 /-- go: utils.go:10:6 -/
 noncomputable def LoadBucket.impl [FfiSyntax] [GoGlobalContext] : val :=
