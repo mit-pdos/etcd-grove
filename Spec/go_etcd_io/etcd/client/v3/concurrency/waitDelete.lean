@@ -25,7 +25,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 /-- **`waitDelete(ctx, client, key, rev)`**, for a key under the client's prefix and a cancelable
 context (`WithCancel`): `nil` only after a delete event of `key` at a revision `r ≥ rev`, so `key`
-is absent from etcd's state at `r` (`isEtcdKeyWatcher`); otherwise an error (the watch's, the
+is absent from etcd's state at `r` (`isEtcdRangeWatcher`); otherwise an error (the watch's, the
 context's, or "lost watcher" when the channel closes). -/
 abbrev waitDelete.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (client : Loc) (pfx key : GoString)

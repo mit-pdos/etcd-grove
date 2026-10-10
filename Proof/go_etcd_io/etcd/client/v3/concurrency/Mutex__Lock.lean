@@ -138,7 +138,7 @@ theorem Mutex.Lock.wp_proof
   wp_apply wp_Client s γ client id $$ [$Hsess]
   wp_apply wp_waitDeletes ctx cs client pfx (rev - W64 1) r $$ [$Hcl $Hctx $Hcc $Hr]
     as %werr Hwd
-  · ipureintro; exact ⟨Hpfx, Hrev1⟩
+  · ipureintro; exact ⟨Hpfx, Int.le_of_lt Hrev1⟩
   ihave #Hcl' := Hcl
   iunfold isEtcdMutexClient at Hcl'
   icases Hcl' with ⟨%kv, %wt, %cctx, %ccs, #Hkvf, -, #Hctxf, #Hcctx, #HKV, -, -, -⟩

@@ -290,24 +290,27 @@ theorem lastCreateOp_not_panics (n : w64) :
     ¬ opGetPanics (withTopM (W64 2) (W64 2) ++ [withMaxCreateRevM n]) := by
   simp [ownerOp, lastCreateOp, keyOp, opGetModel, opFold, withTopM, withPrefixM, withSortM, withLimitM, withMaxCreateRevM, withLeaseM, OpFull.getInit, OpFull.newOp, OpModel.zero, opPutModel, OpFull.putInit, opDeleteModel, OpFull.deleteInit, opGetPanics]
 
-/-- **`waitDeletes`'s get** (`OpGet(pfx, WithLastCreate()..., WithMaxCreateRev(n))`, `n > 0`):
-nothing means no key was created at or before `n`; anything listed is in the state. -/
+/-- **`waitDeletes`'s get** (`OpGet(pfx, WithLastCreate()..., WithMaxCreateRev(n))`, `n ≥ 0`; `0`
+is no filter): nothing means no key was created at or before `n`; anything listed is in the
+state. -/
 theorem lastCreateOp_kvs (pfx : GoString) (n : w64) (s kvs : List EtcdKv) (hp : pfx ≠ [])
-    (hn : 0 < sint.Z n) (hwf : EtcdStateWf pfx s)
+    (hwf : EtcdStateWf pfx s)
     (h : rangeKvsOk (lastCreateOp pfx n) (rangeSel s (lastCreateOp pfx n)) kvs) :
     (kvs = [] → ∀ v ∈ s, sint.Z n < sint.Z v.createRev) ∧ ∀ w ∈ kvs, w ∈ s := by
   obtain ⟨hkey, he, hso, hst, hl, hc, hko, h1, h2, h3, h4⟩ := lastCreateOp_fields pfx n hp
-  have hn0 : n ≠ W64 0 := by intro e; subst e; simp at hn
-  have hmem : ∀ v, v ∈ rangeSel s (lastCreateOp pfx n) ↔ v ∈ s ∧ sint.Z v.createRev ≤ sint.Z n := by
+  have hmem : ∀ v, v ∈ rangeSel s (lastCreateOp pfx n) ↔
+      v ∈ s ∧ (n = W64 0 ∨ sint.Z v.createRev ≤ sint.Z n) := by
     intro v
     unfold rangeSel; rw [rangeIn_prefix_all pfx _ s hp hwf hkey he, List.mem_filter]
     rw [and_congr_right_iff]; intro _
-    simp only [kvFilterOk, h1, h2, h3, h4, hn0]; simp
+    by_cases hn0 : n = W64 0
+    · subst hn0; simp only [kvFilterOk, h1, h2, h3, h4]; simp
+    · simp only [kvFilterOk, h1, h2, h3, h4, hn0]; simp [hn0]
   obtain ⟨l, hperm, -, -, -, rfl⟩ := h
   simp only [hc, hl, hko] at *
   refine ⟨fun h0 v hv => ?_, fun w hw => ?_⟩
   · refine Int.lt_of_not_ge fun hle => ?_
-    have := hperm.symm.subset ((hmem v).2 ⟨hv, hle⟩)
+    have := hperm.symm.subset ((hmem v).2 ⟨hv, Or.inr hle⟩)
     cases l with
     | nil => simp at this
     | cons x l' => simp at h0

@@ -330,6 +330,20 @@ instance txnCommitResult_persistent (pfx : GoString) (lo : w64) (t : TxnModel) (
     (err : GoInterface) : Persistent (txnCommitResult (GF := GF) pfx lo t resp err) := by
   unfold txnCommitResult; infer_instance
 
+/-- **What `Commit()` returns for any transaction** (one with a key outside the prefix the
+contract speaks for, say): an error, or a response with a header and `Succeeded`, read-only, and
+nothing else (`Election.Resign` and `Proclaim` after a failed `Proclaim` commit a transaction on the
+key `""`). -/
+def txnAnyResult (resp : Loc) (err : GoInterface) : IProp GF :=
+  iprop(⌜err ≠ GoInterface.nil⌝ ∨
+    (⌜err = GoInterface.nil⌝ ∗ ∃ (hdr : Loc) (ok : Bool),
+      structFieldRef etcdserverpb.TxnResponse go!"Header" resp ↦□ hdr ∗
+      structFieldRef etcdserverpb.TxnResponse go!"Succeeded" resp ↦□ ok))
+
+instance txnAnyResult_persistent (resp : Loc) (err : GoInterface) :
+    Persistent (txnAnyResult (GF := GF) resp err) := by
+  unfold txnAnyResult; infer_instance
+
 /-- A transaction being built: the model so far and which of `If`, `Then`, `Else` were called. -/
 structure TxnBuild where
   model : TxnModel
@@ -344,7 +358,7 @@ def TxnBuild.empty : TxnBuild := { model := .empty, cif := false, cthen := false
 `B b` is owned by the caller): the triples of its four methods. `If(cs...)` (before `Then` and
 `Else`, once), `Then(ops...)` (before `Else`, once), `Else(ops...)` (once) append the comparisons
 or operations (each `Op` one a transaction can run, `txnOpOf`) and return `t`; `Commit()`, for a
-transaction under `pfx`, returns `txnCommitResult`. -/
+transaction under `pfx`, returns `txnCommitResult`, and for any transaction `txnAnyResult`. -/
 def txnBuilderSpec (t : GoInterfaceOk) (pfx : GoString) (B : TxnBuild → IProp GF) : IProp GF :=
   iprop(
     (□ ∀ (b : TxnBuild) (sl : GoSlice) (ms : List CmpModel),
@@ -369,7 +383,11 @@ def txnBuilderSpec (t : GoInterfaceOk) (pfx : GoString) (B : TxnBuild → IProp 
       {{ B b ∗ etcdReached lo ∗ ⌜b.model.Under pfx⌝ }}
         (App (Val #(methods t.ty go!"Commit" t.v)) (Val #()))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          txnCommitResult pfx lo b.model resp err }}))
+          txnCommitResult pfx lo b.model resp err }}) ∗
+    (□ ∀ (b : TxnBuild),
+      {{ B b }}
+        (App (Val #(methods t.ty go!"Commit" t.v)) (Val #()))
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); txnAnyResult resp err }}))
 
 instance txnBuilderSpec_persistent (t : GoInterfaceOk) (pfx : GoString)
     (B : TxnBuild → IProp GF) : Persistent (txnBuilderSpec t pfx B) := by
@@ -437,56 +455,90 @@ instance etcdAbsent_persistent (pfx key : GoString) (r : w64) :
     Persistent (etcdAbsent (GF := GF) pfx key r) := by
   unfold etcdAbsent; infer_instance
 
-/-! ## The client's single-key watch -/
+/-! ## The client's range watch (a key, or a prefix) -/
 
-/-- A watch of the single key `key` from revision `rev` (`Watch(ctx, key, WithRev(rev))`): no range
-end, that revision, and none of the options that change which events are sent or how
-(`WithPrevKV`, `WithFragment`, the event filters); progress and created notifications allowed. -/
-def OpFull.isKeyWatch (key : GoString) (rev : w64) (o : OpFull) : Bool :=
-  decide (o.t = W64 1 ∧ o.key = key ∧ o.base.rangeEnd = [] ∧ o.base.rev = rev ∧
-    o.base.prevKV = false ∧ o.base.fragment = false ∧ o.base.filterPut = false ∧
-    o.base.filterDelete = false)
+/-- A watch of the range of `o` (`[o.key, o.base.rangeEnd)`: one key if the range end is empty,
+a prefix with `WithPrefix`) from revision `rev` (`WithRev(rev)`), with none of the options that
+change which events are sent or how (`WithPrevKV`, `WithFragment`, the event filters); progress
+and created notifications allowed, requested or not. -/
+def OpFull.isRangeWatch (rev : w64) (o : OpFull) : Bool :=
+  decide (o.t = W64 1 ∧ o.base.rev = rev ∧ o.base.prevKV = false ∧ o.base.fragment = false ∧
+    o.base.filterPut = false ∧ o.base.filterDelete = false)
 
-/-- **etcd's single-key watch contract**, for one response modelled by `r`, of a watch of `key`
-(under `pfx`) from revision `rev`: every event is of `key`, at a revision at least `rev` that etcd
-has reached; a delete event at revision `e.rev` means `key` is absent from etcd's state at
-`e.rev` (etcd emits a delete event only for a key a `DeleteRange` or a lease's expiry removes, and
-a transaction cannot delete and put one key). Nothing else is promised (errors, compactions,
-cancellations, progress notifications: any). -/
-def keyWatchRespOk (pfx key : GoString) (rev : w64) (r : RespModel) : IProp GF :=
-  iprop(□ ∀ (i : Nat) (e : EvModel), ⌜r.events[i]? = some e⌝ -∗
-    ⌜e.key = key ∧ sint.Z rev ≤ sint.Z e.rev⌝ ∗ etcdReached e.rev ∗
-    (⌜e.typ = W32 1⌝ -∗ etcdAbsent pfx key e.rev))
+/-- **etcd's contract for one event** `e` of a watch of the range of `o` (under `pfx`) from
+revision `rev`: its key is in the range; its revision is at least `rev`, below `2^63 - 1`, and
+etcd has reached it; a delete event at `e.rev` means the key is absent from etcd's state at
+`e.rev`; a put event's `*KeyValue` holds a key-value `v` of that key, modified at `e.rev`, which is
+in etcd's state at `e.rev`. (etcd emits a delete event only for a key a `DeleteRange` or a lease's
+expiry removes, and the events of one revision are one transaction's, which cannot write one key
+twice, so the key-value an event carries is the key's at that revision.) -/
+def rangeWatchEvOk (pfx : GoString) (o : OpFull) (rev : w64) (e : EvModel) : IProp GF :=
+  iprop(⌜inRange o.key o.base.rangeEnd e.key = true ∧ sint.Z rev ≤ sint.Z e.rev ∧
+      sint.Z e.rev < 2 ^ 63 - 1⌝ ∗ etcdReached e.rev ∗
+    (⌜e.typ = W32 1⌝ -∗ etcdAbsent pfx e.key e.rev) ∗
+    (⌜e.typ = W32 0⌝ -∗ ∃ v : EtcdKv, kvValAt e.kv v ∗ ⌜v.key = e.key ∧ v.modRev = e.rev⌝ ∗
+      ∃ s : List EtcdKv, □ etcdState e.rev pfx s ∗ ⌜v ∈ s ∧ EtcdStateWf pfx s⌝))
 
-instance keyWatchRespOk_persistent (pfx key : GoString) (rev : w64) (r : RespModel) :
-    Persistent (keyWatchRespOk (GF := GF) pfx key rev r) := by
-  unfold keyWatchRespOk; infer_instance
+instance rangeWatchEvOk_persistent (pfx : GoString) (o : OpFull) (rev : w64) (e : EvModel) :
+    Persistent (rangeWatchEvOk (GF := GF) pfx o rev e) := by
+  unfold rangeWatchEvOk; infer_instance
 
-/-- The `i`-th response `v` of a single-key watch channel: modelled by some `r` satisfying the
-contract (`keyWatchRespOk`). -/
-def keyWatchElem (pfx key : GoString) (rev : w64) (_ : Int)
+/-- **etcd's range watch contract**, for one response modelled by `r`, received when the stream
+is at position `c` (the revision of the last event before it; `rev - 1` at the start), after
+which it is at `c'`: its events are sorted by revision, all above `c`, each satisfying
+`rangeWatchEvOk`; the position becomes the last event's revision (`c` if there is none). Nothing
+else is promised: errors, compactions, cancellations, created and progress notifications, any;
+and no event is promised (the stream may skip some: the contract does not say it is complete). -/
+def rangeWatchRespOk (pfx : GoString) (o : OpFull) (rev c c' : w64) (r : RespModel) :
+    IProp GF :=
+  iprop(⌜EvRevSorted r.events ∧ (∀ e ∈ r.events, sint.Z c < sint.Z e.rev) ∧
+      c' = (r.events.getLast?.map EvModel.rev).getD c⌝ ∗
+    □ ∀ (i : Nat) (e : EvModel), ⌜r.events[i]? = some e⌝ -∗ rangeWatchEvOk pfx o rev e)
+
+instance rangeWatchRespOk_persistent (pfx : GoString) (o : OpFull) (rev c c' : w64)
+    (r : RespModel) : Persistent (rangeWatchRespOk (GF := GF) pfx o rev c c' r) := by
+  unfold rangeWatchRespOk; infer_instance
+
+/-- A watch response's header `h`: for a response with events, the receiver owns its `Revision`
+field (the client builds each event response from its own gRPC message, whose header no other
+watch receives, and does not read it after sending it); otherwise read-only (`hdrAt`: a progress
+notification's header is shared by every watch it is broadcast to). -/
+def watchHdrOwn (h : Loc) (r : RespModel) : IProp GF :=
+  if r.events = [] then hdrAt h r.hdrRev
+  else iprop(⌜h ≠ null⌝ ∗ structFieldRef etcdserverpb.ResponseHeader go!"Revision" h ↦ r.hdrRev)
+
+/-- The `i`-th response `v` of a range watch channel: modelled by some `r` (its events, read-only;
+its header, `watchHdrOwn`; the flags), satisfying the contract from the position before it to the
+one after it (`γ.cur`, a monotone list of positions). -/
+def rangeWatchElem (γ : EtcdWatchNames) (pfx : GoString) (o : OpFull) (rev : w64) (i : Int)
     (v : go_etcd_io.etcd.client.v3.WatchResponse) : IProp GF :=
-  iprop(∃ r : RespModel, respAt v r ∗ keyWatchRespOk pfx key rev r)
+  iprop(∃ (r : RespModel) (c c' : w64), eventsAt v.Events' r.events ∗ watchHdrOwn v.Header' r ∗
+    ⌜v.CompactRevision' = r.compactRev ∧ v.Canceled' = r.canceled ∧ v.Created' = r.created⌝ ∗
+    monoListIdxOwn γ.cur i.toNat c ∗ monoListIdxOwn γ.cur (i.toNat + 1) c' ∗
+    rangeWatchRespOk pfx o rev c c' r)
 
-/-- **The client's single-key watch** (`clientv3.Watcher`'s `Watch`; a definition, as
-`isEtcdWatcher` for a prefix watch): a watch of one key `key` under `pfx` from revision `rev ≥ 0`
-(`isKeyWatch`; the options must not make `OpWatch` panic) returns an SPSC channel (the caller
-consumes it) whose responses satisfy `keyWatchRespOk`, and which may be closed at any time. -/
-def isEtcdKeyWatcher (w : GoInterfaceOk) (pfx : GoString) : IProp GF :=
+/-- **The client's range watch** (`clientv3.Watcher`'s `Watch`; a definition, as `isEtcdWatcher`
+for the cache's prefix watch): a watch of a range under `pfx` (a key, or a sub-prefix with
+`WithPrefix`) from revision `rev ≥ 0` (`isRangeWatch`; the options must not make `OpWatch` panic)
+returns an SPSC channel (the caller consumes it) whose responses satisfy `rangeWatchRespOk`
+from position `rev - 1`, and which may be closed at any time. -/
+def isEtcdRangeWatcher (w : GoInterfaceOk) (pfx : GoString) : IProp GF :=
   iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (key : GoString)
       (sl : GoSlice) (gs : List (OpFull → OpFull)) (rev : w64),
     {{ context.isContext ctx cs ∗ optsAt sl gs ∗
-        ⌜(opWatchModel key gs).isKeyWatch key rev = true ∧ ¬ opWatchPanics key gs ∧
-          0 ≤ sint.Z rev ∧ pfx <+: key⌝ }}
+        ⌜(opWatchModel key gs).isRangeWatch rev = true ∧ ¬ opWatchPanics key gs ∧
+          0 ≤ sint.Z rev ∧
+          KeyRangeUnder pfx (opWatchModel key gs).key (opWatchModel key gs).base.rangeEnd⌝ }}
       (App (App (App (Val #(methods w.ty go!"Watch" w.v)) (Val #(GoInterface.ok ctx)))
         (Val #key)) (Val #sl))
-    {{ (ch : Loc) (γ : SpscNames), RET #ch;
-        isSpsc γ ch (keyWatchElem pfx key rev) (fun _ => iprop(True)) ∗
-          spscConsumer γ ([] : List go_etcd_io.etcd.client.v3.WatchResponse) }})
+    {{ (ch : Loc) (γ : EtcdWatchNames), RET #ch;
+        isSpsc γ.spsc ch (rangeWatchElem γ pfx (opWatchModel key gs) rev) (fun _ => iprop(True)) ∗
+          spscConsumer γ.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
+          monoListIdxOwn γ.cur 0 (rev - W64 1) }})
 
-instance isEtcdKeyWatcher_persistent (w : GoInterfaceOk) (pfx : GoString) :
-    Persistent (isEtcdKeyWatcher (GF := GF) w pfx) := by
-  unfold isEtcdKeyWatcher; infer_instance
+instance isEtcdRangeWatcher_persistent (w : GoInterfaceOk) (pfx : GoString) :
+    Persistent (isEtcdRangeWatcher (GF := GF) w pfx) := by
+  unfold isEtcdRangeWatcher; infer_instance
 
 /-! ## Leases -/
 

@@ -21,7 +21,7 @@ create revision below `c2`, against `lockedAt k2 c2 R2`'s minimality.
 
 **The client** (`isEtcdMutexClient client pfx`, persistent): its `KV` answers gets (`isEtcdKV`,
 with the range clause `getRespRange`), transactions (`isEtcdTxnKV`) and deletes
-(`isEtcdDeleteKV`), its `Watcher` single-key watches (`isEtcdKeyWatcher`), all for the prefix
+(`isEtcdDeleteKV`), its `Watcher` range watches (`isEtcdRangeWatcher`: a key, a sub-prefix), all for the prefix
 `pfx`; its context field holds a context (`client.Ctx()`, which `Lock` passes to `Unlock`).
 
 **The mutex** (`isMutex m s γ client id pfx`, persistent: its session `s` and prefix `pfx` never
@@ -145,7 +145,7 @@ theorem lockedAt_exclusion (pfx k1 k2 : GoString) (c1 c2 R1 R2 a : w64) (s : Lis
 /-! ## The client -/
 
 /-- **The client, as a mutex uses it** (persistent; see the module docstring): for the prefix
-`pfx`, gets, transactions and deletes through its `KV`, single-key watches through its `Watcher`,
+`pfx`, gets, transactions and deletes through its `KV`, range watches (a key, a sub-prefix) through its `Watcher`,
 and a context in its `ctx` field. The trust boundary about the client (definitions, as
 `isEtcdClient`). -/
 def isEtcdMutexClient (client : Loc) (pfx : GoString) : IProp GF :=
@@ -153,7 +153,7 @@ def isEtcdMutexClient (client : Loc) (pfx : GoString) : IProp GF :=
     clientKVAddr client ↦□ GoInterface.ok kv ∗ clientWatcherAddr client ↦□ GoInterface.ok w ∗
     structFieldRef go_etcd_io.etcd.client.v3.Client go!"ctx" client ↦□ GoInterface.ok cctx ∗
     context.isContext cctx ccs ∗
-    isEtcdKV kv pfx ∗ isEtcdTxnKV kv pfx ∗ isEtcdDeleteKV kv pfx ∗ isEtcdKeyWatcher w pfx)
+    isEtcdKV kv pfx ∗ isEtcdTxnKV kv pfx ∗ isEtcdDeleteKV kv pfx ∗ isEtcdRangeWatcher w pfx)
 
 instance isEtcdMutexClient_persistent (client : Loc) (pfx : GoString) :
     Persistent (isEtcdMutexClient (GF := GF) client pfx) := by

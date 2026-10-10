@@ -111,7 +111,7 @@ theorem waitDeletes.wp_proof (wp_WithLastCreate : WithLastCreate.spec (GF := GF)
         [withMaxCreateRevM maxCreateRev])).key (opGetModel pfx (withTopM (W64 2) (W64 2) ++
         [withMaxCreateRevM maxCreateRev])).base.rangeEnd from ⟨Hrev0, Hunder⟩)]
   icases Hgr with ⟨%s', %gsl', %gps, %gkvs, #Hs', %Hwf', #Hgsl', #Hgps, #Hgkvs, %Hgok⟩
-  obtain ⟨Hempty, Hmem⟩ := lastCreateOp_kvs pfx maxCreateRev s' gkvs Hp.1 Hp.2 Hwf' Hgok
+  obtain ⟨Hempty, Hmem⟩ := lastCreateOp_kvs pfx maxCreateRev s' gkvs Hp.1 Hwf' Hgok
   iunfold kvPtrsAt at Hgkvs
   icases Hgkvs with ⟨%Hgl, #Hgkv⟩
   ihave %Hgsl := ownSlice_len $$ Hgps

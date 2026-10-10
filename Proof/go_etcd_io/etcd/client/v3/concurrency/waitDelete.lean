@@ -7,6 +7,7 @@ module
 public import Spec.go_etcd_io.etcd.client.v3.concurrency.waitDelete
 public import Spec.go_etcd_io.etcd.client.v3.WithRev
 public import Spec.go_etcd_io.etcd.client.v3.WatchResponse__Err
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.InvMutexLemmas
 
 @[expose] public section
 
@@ -20,11 +21,12 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.client.v3.concurrency go_etcd_i
 
 /-- `Watch(key, WithRev(rev))` is a single-key watch from `rev` that does not panic. -/
 theorem waitDelete_opts (key : GoString) (rev : w64) :
-    (opWatchModel key [withRevM rev]).isKeyWatch key rev = true ∧
-      ¬ opWatchPanics key [withRevM rev] := by
-  constructor <;>
+    (opWatchModel key [withRevM rev]).isRangeWatch rev = true ∧
+      ¬ opWatchPanics key [withRevM rev] ∧ (opWatchModel key [withRevM rev]).key = key ∧
+      (opWatchModel key [withRevM rev]).base.rangeEnd = [] := by
+  refine ⟨?_, ?_, ?_, ?_⟩ <;>
   simp [opWatchModel, opWatchPanics, OpFull.watchPanics, opFold, OpFull.getInit, OpFull.newOp,
-    OpModel.zero, withRevM, OpFull.isKeyWatch]
+    OpModel.zero, withRevM, OpFull.isRangeWatch]
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -66,24 +68,27 @@ theorem waitDelete.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
     rcases i with _ | i
     · cases Hf'; cases Hg; iexact Hf
     · simp at Hf'
-  iunfold isEtcdKeyWatcher at HW
+  iunfold isEtcdRangeWatcher at HW
   ihave #HWa := HW $$ %ctx' %({ cs with PDone := iprop(cs.PDone ∨ True), Done_gn := γ' })
     %key %optsSl %([withRevM rev] : List (OpFull → OpFull)) %rev
   wp_auto
-  wp_apply HWa $$ [] as %wch %γw ⟨#Hwch, Hcons⟩
+  obtain ⟨Hw1, Hw2, Hw3, Hw4⟩ := waitDelete_opts key rev
+  wp_apply HWa $$ [] as %wch %γw ⟨#Hwch, Hcons, -⟩
   · iframe Hctx' Hopts
     ipureintro
-    exact ⟨(waitDelete_opts key rev).1, (waitDelete_opts key rev).2, Hp.2, Hp.1⟩
+    refine ⟨Hw1, Hw2, Hp.2, ?_⟩
+    rw [Hw3, Hw4]; exact keyRangeUnder_key pfx key Hp.1
   ihave IH : iprop(∃ (rcv : List go_etcd_io.etcd.client.v3.WatchResponse)
       (v : go_etcd_io.etcd.client.v3.WatchResponse),
-      "Hcons" ∷ spscConsumer γw rcv ∗ "wr" ∷ wr_ptr ↦ v) $$ [Hcons wr]
+      "Hcons" ∷ spscConsumer γw.spsc rcv ∗ "wr" ∷ wr_ptr ↦ v) $$ [Hcons wr]
   · iexists [], _
     simp only [named]
     iframe
   wp_for IH
   (try wp_auto)
   wp_bind (App (Val (chan.receive _)) _)
-  wp_apply wp_spsc_receive γw wch (keyWatchElem pfx key rev) (fun _ => iprop(True)) rcv
+  wp_apply wp_spsc_receive γw.spsc wch
+    (rangeWatchElem γw pfx (opWatchModel key [withRevM rev]) rev) (fun _ => iprop(True)) rcv
     $$ [$Hwch $Hcons] as %v' %ok H
   cases ok
   · simp only [Bool.false_eq_true, ↓reduceIte]
@@ -124,10 +129,8 @@ theorem waitDelete.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
         ileft; ipureintro; intro h; cases h
   simp only [↓reduceIte]
   icases H with ⟨HP, Hcons⟩
-  iunfold keyWatchElem at HP
-  icases HP with ⟨%r, #Hr, #Hok⟩
-  iunfold respAt at Hr
-  icases Hr with ⟨#Hevs, -, -⟩
+  iunfold rangeWatchElem at HP
+  icases HP with ⟨%r, %c, %c', #Hevs, -, -, -, -, #Hok⟩
   iunfold eventsAt at Hevs
   icases Hevs with ⟨%ls, #Hls, %Hlen, #Hev⟩
   wp_auto
@@ -155,10 +158,14 @@ theorem waitDelete.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
     wp_auto
     wp_if_destruct
     · -- a delete event: `key` is absent at its revision
-      iunfold keyWatchRespOk at Hok
+      iunfold rangeWatchRespOk at Hok
+      icases Hok with ⟨-, #Hok⟩
       ihave #Hok' := Hok $$ %(sint.nat n) %e %He
-      icases Hok' with ⟨%Hke, #Hreach, #Habs⟩
+      iunfold rangeWatchEvOk at Hok'
+      icases Hok' with ⟨%Hke, #Hreach, #Habs, -⟩
       ihave #Habs' := Habs $$ %‹e.typ = W32 1›
+      have Hek : e.key = key := by
+        have := Hke.1; rw [Hw3, Hw4] at this; simpa [inRange] using this
       wp_for_post
       wp_for_post
       wp_apply Hcancel'
@@ -169,8 +176,9 @@ theorem waitDelete.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
       isplitr
       · ipureintro; rfl
       iexists e.rev
+      rw [← Hek]
       iframe Hreach Habs'
-      ipureintro; exact Hke.2
+      ipureintro; exact Hke.2.1
     (try wp_auto)
     wp_for_post
     iframe

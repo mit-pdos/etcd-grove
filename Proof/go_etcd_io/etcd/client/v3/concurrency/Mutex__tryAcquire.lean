@@ -179,7 +179,7 @@ theorem Mutex.tryAcquire.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := h
   iunfold isEtcdTxnKV at HTxn
   wp_apply HTxn $$ %ctx %cs [$Hctx] as %t ⟨%B, HB, #HBs⟩
   iunfold txnBuilderSpec at HBs
-  icases HBs with ⟨#HIf, #HThen, #HElse, #HCommit⟩
+  icases HBs with ⟨#HIf, #HThen, #HElse, #HCommit, -⟩
   -- `wp_apply_raw`: `wp_apply`'s post-processing fails (unknown free variable) on a
   -- continuation whose premise is `B _` with `B` a local
   wp_apply_raw HIf $$ %TxnBuild.empty %(slice.mk slC (W64 (go.arrayLiteralSize [KeyedElement none (ElementExpression go_etcd_io.etcd.client.v3.Cmp.ty #c1)])) (W64 (go.arrayLiteralSize [KeyedElement none (ElementExpression go_etcd_io.etcd.client.v3.Cmp.ty #c1)]))) %([compareM (cmpKeyM .create key) .eq (.num (W64 0))] : List CmpModel) [$HB]
