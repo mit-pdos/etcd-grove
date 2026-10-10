@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-10 (`node.go` proved: `RestartNode`, `run`, `Propose`, `Step`, `Tick`, `Ready`, `Advance`, see "`node.go`: the concurrent `Node`"; groundwork for `node.go`: a computed `Ready` can be abandoned, Perennial's `wp_slice_append_undo`; pre-vote out of scope at the RawNode level; `Ready`'s messages carry terms at most the node's, see "`node.go` groundwork"; `RawNode.Ready` split into `readyWithoutAccept` and `acceptReady`, for `node.go`; the storage contract has a pending append, for `node.go`; `MemoryStorage.Append` and `NewMemoryStorage` proved; merged upstream's RawNode work into the cache-as-shipped and concurrency line, Perennial `7d0b56b07`, see "Merge: upstream's RawNode work"; `RawNode.Step` takes a `MsgApp` between `Ready` and `Advance`; the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; Perennial `7d0b56b07`: Goose with per-iteration loop variables, `break` out of `select`, see "Perennial `7d0b56b07`"; merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
+**Last updated:** 2026-10-10 (the register example verified over raft: logically atomic `Put`/`Get`, raft proposals over a client log, see "The register example"; `node.go` proved: `RestartNode`, `run`, `Propose`, `Step`, `Tick`, `Ready`, `Advance`, see "`node.go`: the concurrent `Node`"; groundwork for `node.go`: a computed `Ready` can be abandoned, Perennial's `wp_slice_append_undo`; pre-vote out of scope at the RawNode level; `Ready`'s messages carry terms at most the node's, see "`node.go` groundwork"; `RawNode.Ready` split into `readyWithoutAccept` and `acceptReady`, for `node.go`; the storage contract has a pending append, for `node.go`; `MemoryStorage.Append` and `NewMemoryStorage` proved; merged upstream's RawNode work into the cache-as-shipped and concurrency line, Perennial `7d0b56b07`, see "Merge: upstream's RawNode work"; `RawNode.Step` takes a `MsgApp` between `Ready` and `Advance`; the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; Perennial `7d0b56b07`: Goose with per-iteration loop variables, `break` out of `select`, see "Perennial `7d0b56b07`"; merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
 
 Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
@@ -13,6 +13,50 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 (`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
+
+## The register example: verified over raft, logically atomic (2026-10-10)
+
+`examples/register/register.go` (a replicated register on raft's `Node`; Goose project
+`register`, `Code/github_com/mit_pdos/etcd_grove/examples/register.lean`) is specified,
+proved and linked: `encode`, `decode`, `fits`, `NewStorage`, `(*Storage).InitialState`,
+`(*Storage).Snapshot`, `New`, `run`, `apply`, `do`, `Put`, `Get`
+(`Proof/github_com/mit_pdos/etcd_grove/examples/register/`; `Link.lean` generated by
+`etc/gen-link.py --register` from `etc/link-lean-first-register.txt`, raft's callees linked
+in raft's `Link.lean`; `#print axioms` in `Results.lean`; collection
+`etc/tcb-collections/register.txt`). No `sorry`, and no axiom of this repository: the
+results rest only on Perennial's axiomatized standard-library types.
+
+The client-facing statements (`Results.lean`; decisions.md, "The register: TaDa proposals
+over raft's client log"):
+
+- `Put(val)` (`val.length < 2^62`): `{isRegister γr γp r ∗ opCred γp 1 ∗ AU <{∃∃ x, regVal γr
+  x}> @ regMask, ∅ <{regVal γr val, COMM Φ}>} … {Φ}`; `Get()` the same with `<{regVal γr x,
+  COMM Φ x}>`, returning `x`. The update runs when raft commits the operation's first entry
+  (the linearization point); `regMask` is everything but raft's commit invariant and the
+  register's.
+- `New(id, node, storage, send)`: `regInv γr`, the node's driver token at `[]`
+  (`nodeDriver`), the storage's record, `isCommitted γr.raft []`, `id ↪[γr.seq] 0` and
+  `sendSpec send` give `∃ γp, isRegister γr γp r ∗ opCred γp (2^64 - 1)`; `run` is forked.
+- `*register.Storage` is a raft `Storage` (`register_storage_isStorage`: `regStorRec ⊢
+  isStorage (regStorIface s)`, the storage model `regStorageModel`), its `InitialState` what
+  `RestartNode` asks (`register_storage_initialState`).
+- The ghost state: `regStorInv_alloc`, `regInv_alloc` (`Alloc.lean`), from raft's
+  `ownRaftGhost_alloc` (which now also hands the client `cLog γ []` and the authorities of
+  the fresh-data tokens and of the proposed slices).
+
+Raft changes for it (commit `b856a83be`): proposals are logically atomic over a client
+log (`cLog`); `node.Propose` deposits the client's atomic update, which the ghost commit
+fires; `node.Step` takes a forwarded `MsgProp` (`fwdP`); `isEntryR` records each entry's
+client data (`entData`). `MemoryStorage.Append` takes an empty batch without a token
+(`26a6bc1d4`). Go changes (`ec7dc0a13`, `b4a362514`, minimal, `go test -race` passes):
+`apply` dedups by the operation's encoding (`applied map[string]bool`), not by a sequence
+number (wrong under concurrent operations of one replica); `encode` appends
+`[]byte(val)`; `InitialState` returns the empty `HardState` and the voters slice itself
+(no `MemoryStorage` call: `RestartNode` takes a fixed `ConfState`); `run` spins rather
+than append past `2^61` entries (`fits`).
+
+Out of scope: liveness (an operation may wait forever), the transport (`send` is a
+callback that gets the messages with what `Ready` says of them), `Stop`.
 
 ## `node.go`: the concurrent `Node` (2026-10-10)
 

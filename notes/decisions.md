@@ -1659,3 +1659,58 @@ messages and no entries, and committed entries still the next ones
 (`ownRawNodeIdle_ready`). The append right is handed out inside the atomic update of the
 send (`handshake_send_au_upd`, `ownRawNodeReady_handout`), so only a taken `Ready` gives
 it away.
+
+## The register: TaDa proposals over raft's client log
+
+**2026-10-10 · accepted**
+
+The register (`examples/register`) is linearizable at raft's commit, so raft's proposals
+had to carry a client's atomic update. The design is TaDa style: the client owns the
+state, and raft runs the update when it commits.
+
+**The client log.** `cLog γ L` (a ghost variable, halves: one in `raftCommitInv`, one
+the client's) holds the data of the committed client entries, first occurrences only
+(`firstOcc`): a proposal retried, or delivered twice, appears in `L` once. `isEntryR`
+records each entry's data (`entData`: none for raft's own entries, otherwise the data with
+`isPropData` and `deposited`), so the committed log determines `L`.
+
+**Deposit, fire, collect.** `node.Propose` with a fresh token (`propFresh γ d`, an
+element of a ghost map whose authority the client holds) deposits a real Iris atomic
+update `AU <{∃∃ L, cLog γ L}> @ ⊤∖↑raftN, ∅ <{cLog γ (L ++ [d]), COMM Q L}>` (`propAu`)
+under `d` in `raftCommitInv`'s registry (`propsOwn`) and returns the persistent
+`deposited γ d` with a ticket (`isProp`, `propTok`). A retry needs only `deposited`. When
+the ghost commit makes the entry's data's first occurrence committed, it fires the update
+(`fire_upto`, at mask `⊤∖↑raftN`); the later credit the update needs is stored in the
+pending slot (`propSlot`: `d ∉ L ∗ £1 ∗ propAu`). The client trades its ticket for `Q`
+(`node_collect`, two laters, so `do` takes two credits before it blocks). *Rejected*: a
+predicate per entry (`entryP`) and linearizing at apply (both needed per-replica
+machinery that the client log makes unnecessary); running `Q` at collect inside a fancy
+update (it would not be the commit's linearization point).
+
+**The register on top** keeps one invariant, `inv regN (∃ L, cLog γ L ∗ regAuth
+(regFold L) ∗ …)`. `do` wraps the client's update over `regVal` in the update over
+`cLog` that it hands to `Propose` (`reg_propAu`): when fired, it opens `regInv`, runs the
+client's update and moves both to `L ++ [d]`. The rest (the applied table, the waiters)
+is plain physical state under the lock or the `run` goroutine.
+
+**Fresh data.** `Propose` wants a token nobody had. The register mints one per
+operation, keyed by its encoding's `(replica, seq)` (`MintOk`, `reg_mint`): `regInv`
+holds the authority of the fresh-token map, each replica's last sequence number, and the
+persistent record of each minted operation. A `seq` that would wrap is excluded by
+operation credits (`opCred`: `2^64 - 1` per replica, one per `Put`/`Get`).
+
+**Dedup by data, a Go change.** `apply` skipped an operation whose `seq` was at most the
+replica's last applied one; with concurrent operations of one replica, `seq 2` committed
+before `seq 1` makes it skip `seq 1`. It now skips an encoding already applied
+(`applied map[string]bool`), which is exactly the first-occurrence rule of `cLog`.
+
+**The storage.** raft's `StorageModel` is a class, so the register's storages are
+recognized through a registry (`RegStor`: a ghost map from a `Storage` to its
+`MemoryStorage` and names, in `regStorInv`). `NewStorage` registers a new storage; its
+freshness comes from the registry keeping half of each registered storage's
+`MemoryStorage` field. `InitialState` returns the voters slice itself (`RestartNode` takes
+a fixed `ConfState`), and `run` refuses (spins) to append past `2^61` entries
+(`MemoryStorage.Append`'s premise, which nothing else guarantees). `MemoryStorage.Append`
+now takes an empty batch without a token (a `Ready`'s `appendRight` for no entries): the
+promoted method still reads the `MemoryStorage` field, so `isReplica` keeps the storage's
+record.
