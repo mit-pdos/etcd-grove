@@ -79,6 +79,13 @@ file-backed mmap. It also covers the fork alternative. What is goosable now:
 `{Proof,Spec}/go_etcd_io/bbolt/internal/common/`. `Mergepgids` is proved (no `sorry`; `Results.lean` prints its axioms). Most of
 `internal/freelist` and `errors` are goosable too.
 
+Toward modeling and verifying all of bbolt (`notes/bbolt-unsafe.md`, "Where Perennial stands"):
+- Perennial's array allocation is a `-- TODO` that diverges (`AngelicExit`), so every proof past
+  a non-empty `make` here holds vacuously (31 files use `wp_slice_make*`/`wp_slice_append`).
+- Perennial has no byte-level memory and no crash semantics; both are core changes.
+- Goose now folds `unsafe.Sizeof`/`Offsetof`/`Alignof`, `uintptr` constants and labeled loops
+  (Perennial branch `goose-bbolt`, `ff60796`; not pinned).
+
 ## `node.go` groundwork: abandoning a `Ready`, pre-vote off, the messages' terms (2026-10-10)
 
 Three pieces `node.go`'s proof will need (uncommitted Perennial change: `Slice.lean`).
