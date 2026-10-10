@@ -52,7 +52,18 @@ another session was committing `client/v3/leasing` to the main checkout at the t
   index), by induction over the log's revisions and, within one, over its changes
   (`rev_step`), with `Lemmas.lean` (what `kiGet` answers after `kiPut`/`kiTombstone`, below
   and at or above the new revision, under `KiWf`/`KiAbove`; `kiGet_top`).
-- **Not yet**: `index.go` over the verified btree, the revision encoding, the transactions and
+- **`index.go`, in progress** (2026-10-10, branch `mvcc`): the btree's `ownBTree_combine`
+  (`btree/Combine.lean`, keys determined by items) and the cache wrapper's, so a tree can be a
+  `RWMutex` resource; `Hist.lean` (the index's history with commit markers, `kiGet_reader`, the
+  writer's facts, finding/inserting entries by key); `InvIndex.lean` (`ownTree`, fractional;
+  `idxLockInv`, `isTreeIndex`, `idxReader`, `idxWriter`, `idxCert`, `idxWriter_commit`,
+  `reader_answer`); specs of `newTreeIndex`, `treeIndex.keyIndex/unsafeGet/Get/Put/Tombstone`
+  (compile). Proof drafts of `newTreeIndex` and `treeIndex.keyIndex` are **uncommitted** (three
+  small errors left: the `kiItemLess` defeq at the `Less` closure's postcondition, `imod` of
+  `mono_list_own_alloc` needs `with ⟨%γ, H, #Hlb⟩` after `ihave >`, an `icases` pattern);
+  `unsafeGet`/`Get`/`Put`/`Tombstone` proofs, `unsafeVisit`/`Revisions`/`Range`, the Link list
+  entries (`btree_New`-style `@` callees) not started.
+- **Not yet**: the revision encoding, the transactions and
   the store's concurrency (the plan in decisions.md), `NewStore`, the trust-boundary specs of
   the backend, the lessor, `traceutil`, `proto.Marshal`/`Unmarshal`, `zap.Logger.Fatal`/`Panic`,
   `fmt.Errorf`'s use; `etc/verified-code.py` and `etc/tcb-report.py --check` (whole repository)

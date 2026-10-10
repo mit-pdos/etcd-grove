@@ -523,6 +523,225 @@ theorem kiIsEmpty_false_of_head {ki : KeyIndex} (h : (ki.gens.headD Gen.empty).r
     | nil => simp [h]
     | cons g' t => simp
 
+/-! ### Finding a key in a sorted index -/
+
+/-- `btFind` on a list strictly sorted by a key projection: the element with the key. -/
+theorem btFind_sorted_eq_find? {V : Type} (keyf : V → GoString) (less : V → V → Prop)
+    [DecidableRel less] (hless : ∀ a b, less a b ↔ go.GoStringLt (keyf a) (keyf b)) :
+    ∀ (l : List V), (l.map keyf).Pairwise go.GoStringLt → ∀ (x : V),
+      btFind less x l = l.find? (fun y => decide (keyf y = keyf x))
+  | [], _, _ => rfl
+  | w :: ws, hs, x => by
+    rw [List.map_cons, List.pairwise_cons] at hs
+    unfold btFind
+    rw [List.find?_cons]
+    by_cases h1 : less w x
+    · rw [if_pos h1, btFind_sorted_eq_find? keyf less hless ws hs.2 x]
+      have : keyf w ≠ keyf x := fun e => goStringLt_irrefl _ (e ▸ (hless _ _).1 h1)
+      simp [this]
+    · rw [if_neg h1]
+      by_cases h2 : less x w
+      · rw [if_pos h2]
+        have : keyf w ≠ keyf x := fun e => goStringLt_irrefl _ (e ▸ (hless _ _).1 h2)
+        simp only [this, decide_false]
+        rw [List.find?_eq_none.2]
+        intro y hy
+        simp only [decide_eq_true_eq]
+        intro e
+        have := hs.1 (keyf y) (List.mem_map_of_mem hy)
+        rw [e] at this
+        exact goStringLt_irrefl _ (goStringLt_trans ((hless _ _).1 h2) this)
+      · rw [if_neg h2]
+        have : keyf w = keyf x :=
+          goStringLt_eq_of_not_lt (fun h => h1 ((hless _ _).2 h)) (fun h => h2 ((hless _ _).2 h))
+        simp [this]
+
+theorem idxGet_eq_find? (idx : IndexM) (hs : idx.Pairwise idxLess) (k : GoString) :
+    idxGet idx k = (idx.find? fun z => decide (z.1 = k)).map Prod.snd := by
+  unfold idxGet
+  rw [btFind_sorted_eq_find? Prod.fst idxLess (fun _ _ => Iff.rfl) idx
+    (by rw [List.pairwise_map]; exact hs)]
+
+/-- Every key index in the index built from events has a revision in its first generation. -/
+theorem indexOf_head (evs : List Ev) : ∀ (pre : List Ev) (idx : IndexM), IdxRep pre idx →
+    (∀ z ∈ idx, (z.2.gens.headD Gen.empty).revs ≠ []) →
+    ∀ z ∈ evs.foldl idxApply idx, (z.2.gens.headD Gen.empty).revs ≠ [] := by
+  induction evs with
+  | nil => intro pre idx _ h; exact h
+  | cons ev evs ih =>
+    intro pre idx hrep h
+    rw [List.foldl_cons]
+    apply ih (pre ++ [ev]) _ (hrep.step ev)
+    intro z hz
+    have hki0 : KiHead ((idxGet idx ev.key).getD kiEmpty) := by
+      cases hg : idxGet idx ev.key with
+      | none => exact Or.inl rfl
+      | some ki =>
+        right
+        unfold idxGet at hg
+        cases hf : btFind idxLess (ev.key, KeyIndex.fresh) idx with
+        | none => rw [hf] at hg; simp at hg
+        | some z' =>
+          rw [hf] at hg
+          simp only [Option.map_some, Option.some.injEq] at hg
+          subst hg
+          exact h z' (btFind_mem hf)
+    unfold idxApply at hz
+    split at hz
+    · rw [idxTombstone_eq] at hz
+      split at hz
+      · exact h z hz
+      · rcases btInsert_mem hz with hz | hz
+        · subst hz
+          simp only
+          rw [kiTombstone_gens]
+          have hh := kiPut_head hki0 ev.rev
+          cases hg : (kiPut ((idxGet idx ev.key).getD kiEmpty) ev.rev).gens with
+          | nil => exact absurd hg (kiPut_gens_ne_nil _ _)
+          | cons g t => rw [hg] at hh; simpa using hh
+        · exact h z hz
+    · rw [idxPut_eq] at hz
+      rcases btInsert_mem hz with hz | hz
+      · subst hz
+        exact kiPut_head hki0 ev.rev
+      · exact h z hz
+
+theorem indexOf_head' (evs : List Ev) : ∀ z ∈ indexOf evs, (z.2.gens.headD Gen.empty).revs ≠ [] :=
+  indexOf_head evs [] [] IdxRep.nil (fun _ h => by simp at h)
+
+theorem indexOf_sorted (evs : List Ev) : (indexOf evs).Pairwise idxLess := (indexOf_rep evs).1
+
+/-! ### The tree's entries: finding and inserting by key -/
+
+/-- An entry of the index: the key index's pointer, its key and its model (`InvIndex.lean`). -/
+abbrev IdxEntry := Loc × GoString × KeyIndex
+
+def idxOfEntries (L : List IdxEntry) : IndexM := L.map fun z => (z.2.1, z.2.2)
+
+def itemsOfEntries (L : List IdxEntry) : List (Loc × GoString) := L.map fun z => (z.1, z.2.1)
+
+/-- The items' order: by key (`keyIndex.Less`). -/
+def kiItemLess (a b : Loc × GoString) : Prop := go.GoStringLt a.2 b.2
+
+instance kiItemLess_dec : DecidableRel kiItemLess := fun a b => go.goStringLt_dec a.2 b.2
+
+/-- The entries' order: by key. -/
+def entryLess (a b : IdxEntry) : Prop := go.GoStringLt a.2.1 b.2.1
+
+instance entryLess_dec : DecidableRel entryLess := fun a b => go.goStringLt_dec a.2.1 b.2.1
+
+theorem idxOfEntries_sorted {L : List IdxEntry} (h : (itemsOfEntries L).Pairwise kiItemLess) :
+    (idxOfEntries L).Pairwise idxLess := by
+  unfold itemsOfEntries at h
+  unfold idxOfEntries
+  rw [List.pairwise_map] at h ⊢
+  exact h
+
+theorem btFind_items (L : List IdxEntry) (hs : (itemsOfEntries L).Pairwise kiItemLess) (q : Loc)
+    (k : GoString) :
+    btFind kiItemLess (q, k) (itemsOfEntries L) =
+      (L.find? fun z => decide (z.2.1 = k)).map fun z => (z.1, z.2.1) := by
+  rw [btFind_sorted_eq_find? Prod.snd kiItemLess (fun _ _ => Iff.rfl) _
+    (by unfold itemsOfEntries at hs ⊢; rw [List.pairwise_map] at hs; rw [List.pairwise_map, List.pairwise_map]; exact hs)]
+  unfold itemsOfEntries
+  rw [List.find?_map]
+  rfl
+
+theorem idxGet_entries (L : List IdxEntry) (hs : (itemsOfEntries L).Pairwise kiItemLess) (k : GoString) :
+    idxGet (idxOfEntries L) k = (L.find? fun z => decide (z.2.1 = k)).map fun z => z.2.2 := by
+  rw [idxGet_eq_find? _ (idxOfEntries_sorted hs)]
+  unfold idxOfEntries
+  rw [List.find?_map, Option.map_map]
+  rfl
+
+/-- Inserting an entry (by key) commutes with the projections. -/
+theorem itemsOfEntries_btInsert (z : IdxEntry) (L : List IdxEntry) :
+    itemsOfEntries (btInsert entryLess z L) = btInsert kiItemLess (z.1, z.2.1) (itemsOfEntries L) := by
+  unfold itemsOfEntries
+  rw [btInsert_map (lessA := entryLess) (lessB := kiItemLess) (fun z => (z.1, z.2.1)) z L
+    (fun _ _ => ⟨Iff.rfl, Iff.rfl⟩)]
+
+theorem idxOfEntries_btInsert (z : IdxEntry) (L : List IdxEntry) :
+    idxOfEntries (btInsert entryLess z L) = btInsert idxLess (z.2.1, z.2.2) (idxOfEntries L) := by
+  unfold idxOfEntries
+  rw [btInsert_map (lessA := entryLess) (lessB := idxLess) (fun z => (z.2.1, z.2.2)) z L
+    (fun _ _ => ⟨Iff.rfl, Iff.rfl⟩)]
+
+theorem entryLess_swo : StrictWeakOrder entryLess where
+  irrefl a := goStringLt_irrefl a.2.1
+  trans _ _ _ h1 h2 := goStringLt_trans h1 h2
+  incomp_trans a b c h1 h2 h3 h4 := by
+    have e1 := goStringLt_eq_of_not_lt h1 h2
+    have e2 := goStringLt_eq_of_not_lt h3 h4
+    unfold entryLess
+    rw [e1, e2]
+    exact ⟨goStringLt_irrefl _, goStringLt_irrefl _⟩
+
+theorem itemsOfEntries_sorted_iff (L : List IdxEntry) :
+    (itemsOfEntries L).Pairwise kiItemLess ↔ L.Pairwise entryLess := by
+  unfold itemsOfEntries; rw [List.pairwise_map]; rfl
+
+/-- Replacing the entry at `i` (its key kept) is `btInsert` of the new one, on sorted entries. -/
+theorem btInsert_set_entry : ∀ (L : List IdxEntry), L.Pairwise entryLess → ∀ (i : Nat) (z z' : IdxEntry),
+    L[i]? = some z → z'.2.1 = z.2.1 → btInsert entryLess z' L = L.set i z'
+  | [], _, i, _, _, h, _ => by simp at h
+  | w :: ws, hs, 0, z, z', h, hk => by
+    simp only [List.getElem?_cons_zero, Option.some.injEq] at h
+    subst h
+    unfold btInsert
+    have h1 : ¬ entryLess w z' := by unfold entryLess; rw [hk]; exact goStringLt_irrefl _
+    have h2 : ¬ entryLess z' w := by unfold entryLess; rw [hk]; exact goStringLt_irrefl _
+    rw [if_neg h1, if_neg h2]
+    rfl
+  | w :: ws, hs, i + 1, z, z', h, hk => by
+    simp only [List.getElem?_cons_succ] at h
+    rw [List.pairwise_cons] at hs
+    have hz : z ∈ ws := List.mem_of_getElem? h
+    have hw : entryLess w z := hs.1 z hz
+    unfold btInsert
+    have h1 : entryLess w z' := by unfold entryLess at *; rw [hk]; exact hw
+    rw [if_pos h1, btInsert_set_entry ws hs.2 i z z' h hk]
+    rfl
+
+theorem itemsOfEntries_set (L : List IdxEntry) (i : Nat) (z z' : IdxEntry) (h : L[i]? = some z)
+    (hp : z'.1 = z.1) (hk : z'.2.1 = z.2.1) : itemsOfEntries (L.set i z') = itemsOfEntries L := by
+  unfold itemsOfEntries
+  rw [List.map_set]
+  apply List.ext_getElem?
+  intro j
+  by_cases hj : j = i
+  · subst hj
+    rw [List.getElem?_set_self (by rw [List.length_map]; exact (List.getElem?_eq_some_iff.1 h).1),
+      List.getElem?_map, h]
+    simp [hp, hk]
+  · rw [List.getElem?_set_ne (Ne.symm hj)]
+
+theorem idxOfEntries_set (L : List IdxEntry) (i : Nat) (z' : IdxEntry) :
+    idxOfEntries (L.set i z') = (idxOfEntries L).set i (z'.2.1, z'.2.2) := by
+  unfold idxOfEntries; rw [List.map_set]
+
+/-- `btInsert` of a key the index has, on sorted entries: the entry at its position replaced. -/
+theorem btInsert_idx_set (L : List IdxEntry) (hs : (itemsOfEntries L).Pairwise kiItemLess) (i : Nat)
+    (z : IdxEntry) (hz : ∃ h : i < L.length, L[i] = z) (ki : KeyIndex) :
+    btInsert idxLess (z.2.1, ki) (idxOfEntries L) = idxOfEntries (L.set i (z.1, z.2.1, ki)) := by
+  rw [← idxOfEntries_btInsert (z.1, z.2.1, ki) L,
+    btInsert_set_entry L ((itemsOfEntries_sorted_iff L).1 hs) i z (z.1, z.2.1, ki)
+      (List.getElem?_eq_some_iff.2 hz) rfl]
+
+/-- The position of a found entry. -/
+theorem find?_entry_getElem? (L : List IdxEntry) (k : GoString) (z : IdxEntry)
+    (h : L.find? (fun z => decide (z.2.1 = k)) = some z) : ∃ i : Nat, L[i]? = some z ∧ z.2.1 = k := by
+  have hz := List.mem_of_find?_eq_some h
+  have hk := List.find?_some h
+  obtain ⟨i, hi⟩ := List.mem_iff_getElem?.1 hz
+  exact ⟨i, hi, by simpa using hk⟩
+
+theorem find?_entry_none (L : List IdxEntry) (k : GoString)
+    (h : L.find? (fun z => decide (z.2.1 = k)) = none) : ∀ z ∈ L, z.2.1 ≠ k := by
+  intro z hz
+  have := List.find?_eq_none.1 h z hz
+  simpa using this
+
 end mvcc
 end EtcdGrove
 end Perennial
