@@ -366,12 +366,12 @@ theorem RawNode.readyWithoutAccept.wp_proof
   -- the loop is done: every message of `msgsAfterAppend` seen
   rw [List.take_of_length_le (l := ms2) (i := sint.nat n) (by word)]
   -- the raft struct, without the outbox's contents (now `rd.Messages`)
-  ihave Hphys : ownRaftPhysReady γ.reCfg rnv.raft' id s msl (ms1 ++ nonself id ms2) $$
+  ihave Hphys : ownRaftPhysReady γ.reCfg rnv.raft' id s msl (ms1 ++ nonself id ms2) false $$
     [Hf_id Hf_Term Hf_Vote Hf_readStates Hf_raftLog Hf_state Hf_lead Hf_msgs Hf_msgsAA
      HmsgsAA HmsgsAA_cap Hundo Hlog Hclose]
   · unfold ownRaftPhysReady
     iexists rss, sl1, sl2, ms1, ms2
-    simp only [named]
+    simp only [named, Bool.false_eq_true, ↓reduceIte]
     iframe Hf_id Hf_Term Hf_Vote Hf_readStates Hf_raftLog Hf_state Hf_lead Hf_msgs Hf_msgsAA
       HmsgsAA HmsgsAA_cap Hundo Hlog Hclose Houtbox
     ipureintro

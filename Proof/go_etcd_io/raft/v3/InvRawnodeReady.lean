@@ -92,7 +92,7 @@ the way back from `msl` to `r.msgs`' slice (`Hundo`): see the file header. Since
 messages handed out are at most those queued (`Hmslen`), which the wand `Hclose` lets
 raise (`ownRawNodeReady_abandon`). -/
 def ownRaftPhysReady (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (msl : GoSlice)
-    (ms : List raftpb.Message) : IProp GF :=
+    (ms : List raftpb.Message) (h : Bool) : IProp GF :=
   iprop(∃ (rsl sl1 sl2 : GoSlice) (ms1 ms2 : List raftpb.Message),
     "#Hf_id" ∷ r.[raft, go!"id"] ↦□ id ∗
     "Hf_Term" ∷ r.[raft, go!"Term"] ↦ s.term ∗
@@ -113,7 +113,8 @@ def ownRaftPhysReady (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (msl : G
     "%Hmslen" ∷ ⌜ms.length ≤ ms1.length + ms2.length⌝ ∗
     "Hundo" ∷ (msl ↦* ms -∗ ownSliceCap raftpb.Message msl (DFrac.own 1) -∗
                sl1 ↦* ms1 ∗ ownSliceCap raftpb.Message sl1 (DFrac.own 1)) ∗
-    "Hlog" ∷ ownRaftLog s.log s.logst ∗
+    -- the log, after the storage's hand-out if `h` (2026-10-10, `ownRaftLog_handout`)
+    "Hlog" ∷ ownRaftLog s.log (if h then logHanded s.logst else s.logst) ∗
     "Hclose" ∷ (∀ (sl1' sl2' : GoSlice) (ms1' ms2' : List raftpb.Message) (o : List Msg)
                   (ls' : LogState) (g : NGhost),
         r.[raft, go!"Term"] ↦ s.term -∗
@@ -143,10 +144,10 @@ read-only, no snapshot nor read states, the committed entries `ce` extending
 slice's capacity, and the entries `es` handed out (`nextUnstable`). `ms` are the messages
 handed out in `rd.Messages`, which `ownRawNodeReady_abandon` takes back (2026-10-10). -/
 def ownRawNodeReady (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : Ready)
-    (ce es : List raftpb.Entry) (ms : List raftpb.Message) : IProp GF :=
+    (ce es : List raftpb.Entry) (ms : List raftpb.Message) (h : Bool := false) : IProp GF :=
   iprop(∃ (s : NState) (ps : PState) (rnv : RawNode) (sv : SoftState),
   "Hrn" ∷ rawNodeOwn rn rnv ∗
-  "Hphys" ∷ ownRaftPhysReady γ.reCfg rnv.raft' id s rd.Messages' ms ∗
+  "Hphys" ∷ ownRaftPhysReady γ.reCfg rnv.raft' id s rd.Messages' ms h ∗
   "Hghost" ∷ ownRaftGhost γ id ps ∗
   "%Hrel" ∷ ⌜NStateRel s ps⌝ ∗
   "%Hin" ∷ ⌜id ∈ γ.reCfg⌝ ∗
@@ -202,6 +203,7 @@ theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
   icases Hphys with ⟨%rsl, %sl1, %sl2, %ms1, %ms2, Hphys⟩
   iNamed Hphys
   icases Hundo $$ Hmsgs Hmsgs_cap with ⟨Hm1, Hc1⟩
+  simp only [Bool.false_eq_true, ↓reduceIte]
   let g : NGhost := { outlb := ms1.length + ms2.length,
                       unst := decide (nextUnstable s.logst ≠ []) }
   ihave Hphys := Hclose $$ %sl1 %sl2 %ms1 %ms2 %s.outbox %s.logst %g Hf_Term Hf_Vote
@@ -239,6 +241,42 @@ theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     Hstor Hpvoff rfl rfl
     (Int.le_refl _)
     $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs
+
+/-- The storage's hand-out for the entries a computed `Ready` hands out (2026-10-10): the
+right to append them, ahead of `acceptReady` (`ownRaftLog_handout`). `node.go` runs it in
+the atomic update of `readyc <- rd`, giving the right to the application with the `Ready`;
+`acceptReady` takes the node after it. -/
+theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
+    (rd : Ready) (ce es : List raftpb.Entry) (ms : List raftpb.Message) :
+    ⊢ ownRawNodeReady (GF := GF) γ rn id rs rd ce es ms false ==∗
+      ownRawNodeReady γ rn id rs rd ce es ms true ∗ appendRight rs.storage es := by
+  iintro H
+  iunfold ownRawNodeReady at H
+  icases H with ⟨%s, %ps, %rnv, %sv, H⟩
+  iNamed H
+  iunfold ownRaftPhysReady at Hphys
+  icases Hphys with ⟨%rsl, %sl1, %sl2, %ms1, %ms2, Hphys⟩
+  iNamed Hphys
+  simp only [Bool.false_eq_true, ↓reduceIte]
+  imod ownRaftLog_handout _ _ Hunp Hsnap $$ Hlog with ⟨Hlog, Happ⟩
+  imodintro
+  isplitr [Happ]
+  · iunfold ownRawNodeReady
+    iexists s, ps, rnv, sv
+    simp only [named]
+    iframe Hrn Hghost Hsoft Hsteps Hsteps_cap Hcommitted Hstrecs Hrdsoft Hce Hce_cap
+    isplitl
+    · iunfold ownRaftPhysReady
+      iexists rsl, sl1, sl2, ms1, ms2
+      simp only [named, ↓reduceIte]
+      iframe Hf_id Hf_Term Hf_Vote Hf_readStates Hf_raftLog Hf_state Hf_lead Hf_msgs
+        Hf_msgsAA HmsgsAA HmsgsAA_cap Houtbox Hundo Hlog Hclose
+      ipureintro
+      exact ⟨Hrs, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hmslen⟩
+    ipureintro
+    exact ⟨Hrel, Hin, Hasync, Hdlen, Hunp, Hsnap, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst,
+      Hrs_clb, Hrdz, Hceok, Hes⟩
+  rw [Hes, ← Hstor]; iexact Happ
 
 /-! ## A node with nothing new to hand out (2026-10-10)
 
@@ -353,7 +391,7 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
       rd.CommittedEntries' ↦*□ ce -∗
       ownSliceCap raftpb.Entry rd.CommittedEntries' (DFrac.own 1) -∗
       isCommitted γ (rs.delivered ++ ce) -∗
-      ownRawNodeIdle (GF := GF) γ rn id rs -∗ ownRawNodeReady γ rn id rs rd ce [] [] := by
+      ownRawNodeIdle (GF := GF) γ rn id rs -∗ ownRawNodeReady γ rn id rs rd ce [] [] false := by
   iintro #Hrdsoft #Hce Hce_cap #Hcommitted H
   iNamed H
   ihave %Hlen := BigSepL2.bigSepL2_length $$ Hpend
@@ -370,7 +408,7 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   isplitl
   · iunfold ownRaftPhysReady
     iexists rss, sl1, sl2, ms1, ms2
-    simp only [named]
+    simp only [named, Bool.false_eq_true, ↓reduceIte]
     iframe Hf_id Hf_Term Hf_Vote Hf_readStates Hf_raftLog Hf_state Hf_lead Hf_msgs Hf_msgsAA
       HmsgsAA HmsgsAA_cap Houtbox Hlog
     isplitr

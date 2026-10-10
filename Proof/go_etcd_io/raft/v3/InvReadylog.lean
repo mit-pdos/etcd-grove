@@ -290,8 +290,118 @@ theorem ownTracker_autoleave (tv : tracker.ProgressTracker) (t : Trk) :
 
 end tracker
 
+
+
+/-! ## The storage's hand-out, ahead of `acceptUnstable` (2026-10-10)
+
+`logHanded ls` is the log at `ls` (nothing unpersisted) once the storage has handed out the
+entries a `Ready` hands out (`nextUnstable ls`): they are recorded as unpersisted and as
+what the storage holds once appended, while `offsetInProgress` has not moved yet.
+`ownRaftLog_handout` takes the log there, with the storage's ghost hand-out law, which
+gives the application the right to append; `acceptUnstable` then moves `offsetInProgress`
+(to `logAcceptUnstable ls`). `node.go` needs the two apart: the application receives the
+right with the `Ready` (`readyc <- rd`, in the channel's atomic update), and `run` calls
+`acceptReady` only afterwards. -/
+
+section handed
+variable [FfiSyntax]
+
+def logHanded (ls : LogState) : LogState :=
+  { ls with unpersisted := nextUnstable ls, stored := ls.sents ++ ls.uents }
+
+/-- The persistence invariant after the hand-out: the batch handed out continues the
+in-progress prefix the storage holds (`persist_accept`, which this follows). -/
+theorem persist_handed (prev : entryID) (σ : StorState) (sents uents : List raftpb.Entry)
+    (ipo : Int)
+    (Hidx : LogIndicesOk prev (sents ++ uents))
+    (Hsp : σ.prev = prev)
+    (Hipo : 0 ≤ ipo ∧ ipo ≤ (uents.length : Int))
+    (st : List raftpb.Entry)
+    (H : LogPersistOk σ sents uents ipo [] st) :
+    LogPersistOk σ sents uents ipo (uents.drop ipo.toNat) (sents ++ uents) := by
+  obtain ⟨-, -, H3, H4⟩ := persist_accept prev σ sents uents ipo Hidx Hsp Hipo st H
+  refine ⟨?_, fun _ => H4.symm, H3, H4⟩
+  rw [H4]
+  exact (List.prefix_append_right_inj sents).mpr (List.take_prefix _ _)
+
+end handed
+
+section handout
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- The storage's hand-out law for the entries a `Ready` hands out (the first half of what
+`acceptUnstable` did until 2026-10-10). -/
+theorem ownRaftLog_handout (l : Loc) (ls : LogState) (Hunp0 : ls.unpersisted = [])
+    (Hs0 : ls.snap = none) :
+    ⊢ ownRaftLog (GF := GF) l ls ==∗
+      ownRaftLog l (logHanded ls) ∗ appendRight ls.storage (nextUnstable ls) := by
+  iintro Hlog
+  iNamed Hlog
+  have Hcontig : ∀ (k : Nat) (e : raftpb.Entry), ls.uents[k]? = some e →
+      uint.Z e.Index' = uint.Z lv.unstable'.offset' + (k : Int) := by
+    intro k e Hk
+    have Hk' : (ls.sents ++ ls.uents)[ls.sents.length + k]? = some e := by
+      rw [List.getElem?_append_right (by omega)]
+      simpa using Hk
+    have := Hidx _ _ Hk'
+    push_cast at this
+    omega
+  obtain ⟨Hsp, -, -⟩ : LogStoreOk none σ ls.prev ls.sents ls.uents := Hs0 ▸ Hstore
+  have Hhead : ∀ e0, (nextUnstable ls).head? = some e0 →
+      uint.Z e0.Index' = uint.Z ls.inprogress ∧
+      uint.Z ls.inprogress - uint.Z lv.unstable'.offset' < (ls.uents.length : Int) := by
+    intro e0 He0
+    simp only [nextUnstable, List.head?_drop] at He0
+    have Hlt := (List.getElem?_eq_some_iff.1 He0).1
+    have Hc := Hcontig _ _ He0
+    simp only [logOffset] at Hc Hlt
+    constructor <;> omega
+  have Hp0 := Hpersist Hs0
+  rw [Hunp0] at Hp0
+  have Hplen := Hp0.1.length_le
+  simp only [storApp, List.length_append, List.length_take] at Hplen
+  have Hpo : σ.pend = [] ∧ (nextUnstable ls ≠ [] → PendOk σ (nextUnstable ls)) := by
+    refine ⟨Hpend.1.trans Hunp0, fun Hne => ⟨Hne, fun e0 He0 => ?_⟩⟩
+    obtain ⟨Hi, Hlt⟩ := Hhead e0 He0
+    rw [Hsp]
+    constructor <;> omega
+  imod isStorage_handout lv.storage' σ (nextUnstable ls) Hpo $$ HisStorage HStorage
+    with ⟨HStorage, Happ⟩
+  have Hstore' : LogStoreOk (logHanded ls).snap { σ with pend := nextUnstable ls }
+      (logHanded ls).prev (logHanded ls).sents (logHanded ls).uents := Hstore
+  have Hssnap' : (logHanded ls).snap = none →
+      StoredSnapOk { σ with pend := nextUnstable ls } (logHanded ls).committed
+        (logHanded ls).prev ((logHanded ls).sents ++ (logHanded ls).uents) := Hssnap
+  have HpendN : PendLogOk { σ with pend := nextUnstable ls } (logHanded ls) := by
+    refine ⟨rfl, fun _ e0 He0 => ?_⟩
+    obtain ⟨Hi, Hlt⟩ := Hhead e0 He0
+    simp only [logHanded] at He0 ⊢
+    word
+  have HpersistN : (logHanded ls).snap = none →
+      LogPersistOk { σ with pend := nextUnstable ls } (logHanded ls).sents (logHanded ls).uents
+        (uint.Z (logHanded ls).inprogress - uint.Z lv.unstable'.offset')
+        (logHanded ls).unpersisted (logHanded ls).stored := by
+    intro _
+    simp only [LogPersistOk, storApp_pend, logHanded]
+    simp only [nextUnstable, logOffset, ← Hoffset]
+    exact persist_handed ls.prev σ ls.sents ls.uents _ Hidx Hsp (by omega) ls.stored Hp0
+  imodintro
+  isplitr [Happ]
+  · iapply ownRaftLog_intro l lv lv.storage' { σ with pend := nextUnstable ls } ls.snap ls.uents
+      (logHanded ls) rfl Hcm Hap Hidx Hnowrap Hstore' Hoffset HnoConfChange Happlied Hpapplied
+      Hcommitted Hssnap' Hapg Hip Hipb HpersistN Happlying Hpaused Hasz Hamx Hstor HpendN rfl rfl
+      $$ Hl HisStorage HStorage Husnap Huents Huents_cap Hl_logger Hu_logger
+  rw [← Hstor]; iexact Happ
+
+end handout
+
 end EtcdGrove
 end Perennial
 
 -- Projection lemmas, `@[simp, word_unfold]` (ProjSimps.lean).
 proj_simps Perennial.EtcdGrove.logAcceptUnstable Perennial.EtcdGrove.logAppliedTo
+  Perennial.EtcdGrove.logHanded

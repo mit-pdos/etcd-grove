@@ -349,6 +349,9 @@ theorem RawNode.acceptReady.wp_proof
   iunfold ownRaftPhysReady at Hphys
   icases Hphys with ⟨%rss, %sl1, %sl2, %ms1, %ms2, Hv⟩
   iNamed Hv
+  ihave Hlog : ownRaftLog s.log (logHanded s.logst) $$ [Hlog]
+  · iExactEq Hlog
+    rfl
   subst Hes
   -- ghost facts, read before anything moves
   ihave #Hout := ownRaftGhost_outbox _ _ _ $$ Hghost
@@ -357,6 +360,7 @@ theorem RawNode.acceptReady.wp_proof
   icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hwf2, Hlog⟩
   icases ownRaftLog_nowrap _ _ $$ Hlog with ⟨%Hwf3, Hlog⟩
   icases ownRaftLog_wf _ _ $$ Hlog with ⟨%Hidx, Hlog⟩
+  simp only [logHanded] at Hwf1 Hwf2 Hwf3 Hidx
   wp_auto
   -- `if rd.SoftState != nil { rn.prevSoftSt = rd.SoftState }`: either way `prevSoftSt`
   -- points to a read-only `SoftState`
@@ -440,9 +444,9 @@ theorem RawNode.acceptReady.wp_proof
   rw [List.take_of_length_le (l := ms2) (i := sint.nat n) (by word)]
   -- `needStorageAppendRespMsg(r, rd)`: the snapshot is empty
   wp_apply wp_needStorageAppendRespMsg_inline wp_raftLog_hasNextOrInProgressUnstableEnts
-    wp_IsEmptySnap rnv.raft' s.log s.logst _ Hrdz.1 $$ [$Hf_raftLog $Hlog] as ⟨Hf_raftLog, Hlog⟩
+    wp_IsEmptySnap rnv.raft' s.log (logHanded s.logst) _ Hrdz.1 $$ [$Hf_raftLog $Hlog] as ⟨Hf_raftLog, Hlog⟩
   wp_join iprop(rn_ptr ↦ rn ∗ rd_ptr ↦ rd ∗
-      ownRaftLog s.log s.logst ∗ rnv.raft'.[raft, go!"raftLog"] ↦ s.log ∗
+      ownRaftLog s.log (logHanded s.logst) ∗ rnv.raft'.[raft, go!"raftLog"] ↦ s.log ∗
       rnv.raft'.[raft, go!"id"] ↦□ id ∗ rnv.raft'.[raft, go!"Term"] ↦ s.term ∗
       ∃ stl', rawNodeOwn rn { rnv with prevSoftSt' := psp, prevHardSt' := ph, stepsOnAdvance' := stl' } ∗
         stl' ↦* (selfmsgs id ms2 ++
@@ -458,7 +462,7 @@ theorem RawNode.acceptReady.wp_proof
     iframe Hrn Hsteps Hsteps_cap
   · -- `newStorageAppendRespMsg(r, rd)`
     wp_apply wp_newStorageAppendRespMsg_inline wp_raftLog_hasNextOrInProgressUnstableEnts
-      wp_IsEmptySnap wp_raftLog_lastEntryID rnv.raft' id s.term s.log s.logst _ Hif Hrdz.1
+      wp_IsEmptySnap wp_raftLog_lastEntryID rnv.raft' id s.term s.log (logHanded s.logst) _ Hif Hrdz.1
       $$ [$Hf_id $Hf_Term $Hf_raftLog $Hlog] as ⟨Hf_id, Hf_Term, Hf_raftLog, Hlog⟩
     wp_apply wp_slice_literal
     try (isplitr; (ipureintro; rfl))
@@ -508,7 +512,7 @@ theorem RawNode.acceptReady.wp_proof
     iexists stl3
     rw [ite_pos' Hce0, ite_pos' Hce0, List.append_nil]
     iframe Hrn Hsteps Hsteps_cap
-  wp_apply wp_raftLog_acceptUnstable _ _ Hunp Hsnap $$ [Hlog] as ⟨Hlog, Happ⟩
+  wp_apply wp_raftLog_acceptUnstable _ _ Hunp Hsnap $$ [Hlog] as Hlog
   · iframe Hlog
   -- `if len(rd.CommittedEntries) > 0 { ... acceptApplying(index, entsSize(ents),
   -- applyUnstableEntries()) }`
@@ -649,59 +653,56 @@ theorem RawNode.acceptReady.wp_proof
     (by rw [Hlogst, Hlf.2.2.2.2.2]; rfl) $$ Hlr
   iapply HΦ $$ %(readySteps s ((selfmsgs id ms2).map selfPending) ce)
   simp only [named]
-  isplitl [Hrn Hphys Hghost Hsteps Hsteps_cap Hcecap]
-  · iapply ownRawNode_intro γ rn id
-      { rs with delivered := rs.delivered ++ ce, unpersisted := nextUnstable s.logst,
-                steps := readySteps s ((selfmsgs id ms2).map selfPending) ce,
-                outlb := 0, unst := false }
-      (readyNstate s ce sz) { toPState s with outbox := [] }
-      { rnv with prevSoftSt' := psp, prevHardSt' := ph, stepsOnAdvance' := stl4 }
-      v _
-      (nstateRel_ready s _ ce sz ⟨rfl, Hwfs⟩) Hin Hasync Hdlen'
-      (by rw [Hlogst, Hlf.2.2.1]; rfl) (by rw [Hlogst, Hlf.2.2.2.1]; exact Hsnap) Hstok' Htrm
-      (by rw [Hlogst, logAcceptApplying_storage]; exact Hstor) Hpvoff rfl rfl
-      (by rw [Hlogst, Hlf.1]; exact Hrs_clb)
-      $$ Hrn Hphys Hghost Hpsp Hsteps Hsteps_cap [] [Hcecap] Hcommitted Hstrecs'
-    · -- the pending steps' messages
-      simp only [readySteps]
-      iapply BigSepL2.bigSepL2_app_wand $$ [] []
-      · iapply BigSepL2.bigSepL2_app_wand $$ [] []
-        · iapply self_pending γ id s.term (toPState s).outbox ms2 as2
-            (fun a Ha => Hin_out a (List.mem_append_right _ Ha)) HmsgsAA_ok $$ Hout Hb2
-        · by_cases hu : s.logst.uents = []
-          · rw [ite_pos' hu, ite_pos' hu]; iempintro
-          · rw [ite_neg' hu, ite_neg' hu]
-            iapply (BigSepL2.bigSepL2_singleton (Φ := fun _ m p => pendingRel (GF := GF) γ id m p)).2
-            simp only [pendingRel]
-            ipureintro; trivial
-      · by_cases hc : ce = []
-        · rw [ite_pos' hc, ite_pos' hc]; iempintro
-        · rw [ite_neg' hc, ite_neg' hc]
+  iapply ownRawNode_intro γ rn id
+    { rs with delivered := rs.delivered ++ ce, unpersisted := nextUnstable s.logst,
+              steps := readySteps s ((selfmsgs id ms2).map selfPending) ce,
+              outlb := 0, unst := false }
+    (readyNstate s ce sz) { toPState s with outbox := [] }
+    { rnv with prevSoftSt' := psp, prevHardSt' := ph, stepsOnAdvance' := stl4 }
+    v _
+    (nstateRel_ready s _ ce sz ⟨rfl, Hwfs⟩) Hin Hasync Hdlen'
+    (by rw [Hlogst, Hlf.2.2.1]; rfl) (by rw [Hlogst, Hlf.2.2.2.1]; exact Hsnap) Hstok' Htrm
+    (by rw [Hlogst, logAcceptApplying_storage]; exact Hstor) Hpvoff rfl rfl
+    (by rw [Hlogst, Hlf.1]; exact Hrs_clb)
+    $$ Hrn Hphys Hghost Hpsp Hsteps Hsteps_cap [] [Hcecap] Hcommitted Hstrecs'
+  · -- the pending steps' messages
+    simp only [readySteps]
+    iapply BigSepL2.bigSepL2_app_wand $$ [] []
+    · iapply BigSepL2.bigSepL2_app_wand $$ [] []
+      · iapply self_pending γ id s.term (toPState s).outbox ms2 as2
+          (fun a Ha => Hin_out a (List.mem_append_right _ Ha)) HmsgsAA_ok $$ Hout Hb2
+      · by_cases hu : s.logst.uents = []
+        · rw [ite_pos' hu, ite_pos' hu]; iempintro
+        · rw [ite_neg' hu, ite_neg' hu]
           iapply (BigSepL2.bigSepL2_singleton (Φ := fun _ m p => pendingRel (GF := GF) γ id m p)).2
           simp only [pendingRel]
-          iexists rd.CommittedEntries'
-          isplitr
-          · ipureintro; rfl
-          · iexact Hce
-    · -- what they own: the committed entries' capacity
-      simp only [readySteps]
-      iapply BigSepL2.bigSepL2_app_wand $$ [] [Hcecap]
-      · iapply BigSepL2.bigSepL2_app_wand $$ [] []
-        · iapply self_pending_own id ms2
-        · by_cases hu : s.logst.uents = []
-          · rw [ite_pos' hu, ite_pos' hu]; iempintro
-          · rw [ite_neg' hu, ite_neg' hu]
-            iapply (BigSepL2.bigSepL2_singleton (Φ := fun _ m p => pendingOwn (GF := GF) m p)).2
-            simp only [pendingOwn]
-            itrivial
-      · by_cases hc : ce = []
-        · simp only [hc, ↓reduceIte]; iempintro
-        · simp only [hc, ↓reduceIte]
+          ipureintro; trivial
+    · by_cases hc : ce = []
+      · rw [ite_pos' hc, ite_pos' hc]; iempintro
+      · rw [ite_neg' hc, ite_neg' hc]
+        iapply (BigSepL2.bigSepL2_singleton (Φ := fun _ m p => pendingRel (GF := GF) γ id m p)).2
+        simp only [pendingRel]
+        iexists rd.CommittedEntries'
+        isplitr
+        · ipureintro; rfl
+        · iexact Hce
+  · -- what they own: the committed entries' capacity
+    simp only [readySteps]
+    iapply BigSepL2.bigSepL2_app_wand $$ [] [Hcecap]
+    · iapply BigSepL2.bigSepL2_app_wand $$ [] []
+      · iapply self_pending_own id ms2
+      · by_cases hu : s.logst.uents = []
+        · rw [ite_pos' hu, ite_pos' hu]; iempintro
+        · rw [ite_neg' hu, ite_neg' hu]
           iapply (BigSepL2.bigSepL2_singleton (Φ := fun _ m p => pendingOwn (GF := GF) m p)).2
-          simp only [pendingOwn, applyAckMsg]
-          iexact Hcecap
-  rw [Hstor]
-  iexact Happ
+          simp only [pendingOwn]
+          itrivial
+    · by_cases hc : ce = []
+      · simp only [hc, ↓reduceIte]; iempintro
+      · simp only [hc, ↓reduceIte]
+        iapply (BigSepL2.bigSepL2_singleton (Φ := fun _ m p => pendingOwn (GF := GF) m p)).2
+        simp only [pendingOwn, applyAckMsg]
+        iexact Hcecap
 
 end proof
 
