@@ -6,7 +6,7 @@ module
 
 public import Spec.go_etcd_io.etcd.client.v3.leasing.leaseCache__clearOldRevokes
 public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeaseCacheWrite
-public import Spec.time.Time__Add
+public import Perennial.Proof.time
 
 @[expose] public section
 
@@ -25,8 +25,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
-theorem leaseCache.clearOldRevokes.wp_proof
-    (hAdd : EtcdGrove.time.Time.Add.spec (GF := GF) (hG := hG)) :
+theorem leaseCache.clearOldRevokes.wp_proof :
     leaseCache.clearOldRevokes.spec (GF := GF) (hG := hG) := by
   intro lc γ pfx X ctx cs
   wp_start as ⟨#Hlc, #Hctx, #Hstep⟩
@@ -93,7 +92,7 @@ theorem leaseCache.clearOldRevokes.wp_proof
       iintro %i %key %v %m' ⟨%Hki, %Hmv, %Hagree⟩ HP Hm
       iNamed HP
       wp_auto
-      wp_apply hAdd $$ [$lr] as %t1 lr
+      wp_apply time.Time.wp_ptr_Add $$ [$lr] as %t1 lr
       wp_apply time.wp_Since as %d -
       wp_if_destruct
       · wp_apply wp_mapDelete $$ [$Hm] as Hm

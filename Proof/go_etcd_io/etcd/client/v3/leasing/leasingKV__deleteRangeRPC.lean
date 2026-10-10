@@ -193,7 +193,7 @@ theorem leasingKV.deleteRangeRPC.wp_proof
   inext
   iintro %resp %err Hres
   iunfold txnCommitResultO at Hres
-  icases Hres with (%Hne | ⟨%Heq, Hok⟩)
+  icases Hres with (⟨%Hne, -⟩ | ⟨%Heq, Hok⟩)
   · obtain ⟨g, rfl⟩ : ∃ g, err = GoInterface.ok g := by
       cases err with
       | nil => exact absurd rfl Hne

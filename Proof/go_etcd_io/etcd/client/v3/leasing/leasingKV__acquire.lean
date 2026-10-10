@@ -14,7 +14,7 @@ public import Spec.go_etcd_io.etcd.client.v3.WithLease
 public import Spec.go_etcd_io.etcd.client.v3.OpPut
 public import Spec.go_etcd_io.etcd.client.v3.OpGet
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp__GetResponseRange
-public import Spec.errors.As
+public import Perennial.Proof.errors
 public import Spec.google_golang_org.grpc.status.FromError
 public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeasingGetLemmas
 
@@ -55,7 +55,6 @@ theorem leasingKV.acquire.wp_proof
     (hPut : EtcdGrove.OpPut.spec (GF := GF) (hG := hG))
     (hGet : EtcdGrove.OpGet.spec (GF := GF) (hG := hG))
     (hGRR : EtcdGrove.ResponseOp.GetResponseRange.spec (GF := GF) (hG := hG))
-    (hAs : EtcdGrove.errors.As.spec (GF := GF) (hG := hG))
     (hFE : EtcdGrove.status.FromError.spec (GF := GF) (hG := hG)) :
     leasingKV.acquire.spec (GF := GF) (hG := hG) := by
   intro lkv γ pfx ctx cs key opv o lo
@@ -255,7 +254,7 @@ theorem leasingKV.acquire.wp_proof
   wp_apply HCommit $$ %_ %lo [$HB $Hlo] as %resp %err Hres
   · ipureintro; exact TxnModel.under_nil _
   iunfold txnCommitResultO at Hres
-  icases Hres with (%Hne | ⟨%Heq, Hok⟩)
+  icases Hres with (⟨%Hne, %Hce⟩ | ⟨%Heq, Hok⟩)
   · -- an error: `errors.As`, then `status.FromError`
     obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by
       cases err with
@@ -264,7 +263,12 @@ theorem leasingKV.acquire.wp_proof
     (try wp_auto)
     ihave #Herrs : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []
     · iPkgInit
-    wp_apply hAs (GoInterface.ok e) _ _ $$ [$Herrs $serverErr] as %b Hse
+    obtain ⟨Hleaf, Htyped⟩ := Hce e rfl
+    ihave #Htree := errors.isErrorTree_leaf (GF := GF) e Hleaf Htyped
+    wp_apply errors.wp_As (T' := go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError)
+        (T := go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) (· = GoInterface.ok e)
+        (GoInterface.ok e) _ _ $$ [$Herrs $Htree $serverErr] as %b %v' Hse
+    · ipureintro; rfl
     cases b
     · wp_auto
       ihave #Hst : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status $$ []

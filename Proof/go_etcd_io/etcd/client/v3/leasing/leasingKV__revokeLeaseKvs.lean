@@ -7,7 +7,7 @@ module
 public import Spec.go_etcd_io.etcd.client.v3.leasing.leasingKV__revokeLeaseKvs
 public import Spec.go_etcd_io.etcd.client.v3.leasing.leasingKV__leaseID
 public import Spec.go_etcd_io.etcd.client.v3.leasing.leasingKV__revoke
-public import Spec.strings.TrimPrefix
+public import Perennial.Proof.strings
 public import Spec.go_etcd_io.etcd.client.v3.OpGet
 
 @[expose] public section
@@ -35,7 +35,6 @@ variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
 theorem leasingKV.revokeLeaseKvs.wp_proof
     (hLID : leasingKV.leaseID.spec (GF := GF) (hG := hG))
-    (hTP : EtcdGrove.strings.TrimPrefix.spec (GF := GF) (hG := hG))
     (hGet : EtcdGrove.OpGet.spec (GF := GF) (hG := hG))
     (hRev : leasingKV.revoke.spec (GF := GF) (hG := hG)) :
     leasingKV.revokeLeaseKvs.spec (GF := GF) (hG := hG) := by
@@ -86,7 +85,7 @@ theorem leasingKV.revokeLeaseKvs.wp_proof
       iframe
       ipureintro; constructor <;> word
     wp_apply wp_bytes_to_string ksl v.key DFrac.discard $$ [$Hks] as -
-    wp_apply hTP v.key pfx
+    wp_apply strings.wp_TrimPrefix v.key pfx
     ihave #Hnil : optsAt (GF := GF) slice.nil ([] : List (OpFull → OpFull)) $$ []
     · unfold optsAt
       iexists ([] : List GoFunc)
@@ -97,11 +96,11 @@ theorem leasingKV.revokeLeaseKvs.wp_proof
       imodintro
       iintro %i %f %g %Hf
       simp at Hf
-    wp_apply hGet (trimPrefixResult v.key pfx) slice.nil [] $$ [$Hnil] as %opv #Hopv
+    wp_apply hGet (strings.trimPrefix v.key pfx) slice.nil [] $$ [$Hnil] as %opv #Hopv
     · ipureintro; simp [opGetPanics, opFold, OpFull.newOp]
     ihave #H0 := etcdReached_zero (GF := GF)
-    wp_apply hRev lkv γ pfx ctx cs (trimPrefixResult v.key pfx) opv
-        (opGetModel (trimPrefixResult v.key pfx) []) (.get (opGetModel (trimPrefixResult v.key pfx) []))
+    wp_apply hRev lkv γ pfx ctx cs (strings.trimPrefix v.key pfx) opv
+        (opGetModel (strings.trimPrefix v.key pfx) []) (.get (opGetModel (strings.trimPrefix v.key pfx) []))
         (W64 0) $$ [$Hpkg $Hlkv $Hrd $Hctx $Hcc $Hopv $H0]
       as %resp %err ⟨Hrd, -⟩
     · ipureintro

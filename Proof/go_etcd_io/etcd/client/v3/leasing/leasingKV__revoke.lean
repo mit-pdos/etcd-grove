@@ -169,7 +169,7 @@ theorem leasingKV.revoke.wp_proof
   wp_apply HCommit $$ %_ %lo [$HB $Hlo] as %resp %err Hres
   · ipureintro; exact TxnModel.under_nil _
   iunfold txnCommitResultO at Hres
-  icases Hres with (%Hne | ⟨%Heq, Hok⟩)
+  icases Hres with (⟨%Hne, -⟩ | ⟨%Heq, Hok⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by
       cases err with
       | nil => exact absurd rfl Hne

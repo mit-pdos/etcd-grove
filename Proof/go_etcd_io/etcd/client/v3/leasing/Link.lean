@@ -60,7 +60,6 @@ public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp__GetResponseR
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp__GetResponseTxn
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.Session__Done
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.Session__Lease
-public import Proof.time.Time__Add
 public import Proof.go_etcd_io.etcd.client.v3.TxnResponse__OpResponse
 public import Proof.go_etcd_io.etcd.client.v3.WithIgnoreLease
 public import Proof.go_etcd_io.etcd.client.v3.WithKeysOnly
@@ -75,7 +74,6 @@ public import Proof.go_etcd_io.etcd.client.v3.leasing.compareInt64
 public import Proof.go_etcd_io.etcd.client.v3.leasing.copyGetResponseMetadataOnly
 public import Proof.go_etcd_io.etcd.client.v3.leasing.copyHeader
 public import Proof.go_etcd_io.etcd.client.v3.leasing.copyKeyValue
-public import Proof.errors.As
 public import Proof.go_etcd_io.etcd.client.v3.leasing.evalCmp
 public import Proof.go_etcd_io.etcd.client.v3.leasing.gatherOps
 public import Proof.go_etcd_io.etcd.client.v3.leasing.gatherResponseOps
@@ -124,8 +122,6 @@ public import Proof.go_etcd_io.etcd.client.v3.mustInt64orLeaseID
 public import Proof.google_golang_org.protobuf.proto.Clone
 public import Proof.google_golang_org.grpc.status.Error
 public import Proof.google_golang_org.grpc.status.FromError
-public import Proof.strings.Compare
-public import Proof.strings.TrimPrefix
 public import Proof.go_etcd_io.etcd.client.v3.leasing.txnLeasing__Commit
 public import Proof.go_etcd_io.etcd.client.v3.leasing.txnLeasing__Else
 public import Proof.go_etcd_io.etcd.client.v3.leasing.txnLeasing__If
@@ -370,10 +366,6 @@ theorem ResponseOp.wp_GetResponseTxn :
     EtcdGrove.ResponseOp.GetResponseTxn.spec (GF := GF) (hG := hG) :=
   EtcdGrove.ResponseOp.GetResponseTxn.wp_proof
 
-theorem time.Time.wp_Add :
-    EtcdGrove.time.Time.Add.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.time.Time.Add.wp_proof
-
 theorem v3.TxnResponse.wp_OpResponse :
     EtcdGrove.TxnResponse.OpResponse.spec (GF := GF) (hG := hG) :=
   EtcdGrove.TxnResponse.OpResponse.wp_proof
@@ -413,18 +405,6 @@ theorem v3.wp_WithLastRev :
 theorem v3.wp_WithRange :
     EtcdGrove.WithRange.spec (GF := GF) (hG := hG) :=
   EtcdGrove.WithRange.wp_proof
-
-theorem errors.wp_As :
-    EtcdGrove.errors.As.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.errors.As.wp_proof
-
-theorem strings.wp_Compare :
-    EtcdGrove.strings.Compare.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.strings.Compare.wp_proof
-
-theorem strings.wp_TrimPrefix :
-    EtcdGrove.strings.TrimPrefix.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.strings.TrimPrefix.wp_proof
 
 theorem v3.wp_mustInt64 :
     EtcdGrove.mustInt64.spec (GF := GF) (hG := hG) :=
@@ -503,7 +483,7 @@ theorem wp_gatherResponseOps [AllG GF] :
 
 theorem wp_inRange [AllG GF] :
     EtcdGrove.leasing.inRange.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.leasing.inRange.wp_proof strings.wp_Compare
+  EtcdGrove.leasing.inRange.wp_proof
 
 theorem wp_isBadOp [AllG GF] :
     EtcdGrove.leasing.isBadOp.spec (GF := GF) (hG := hG) :=
@@ -571,7 +551,7 @@ theorem leaseCache.wp_Update [AllG GF] :
 
 theorem leaseCache.wp_clearOldRevokes [AllG GF] :
     EtcdGrove.leasing.leaseCache.clearOldRevokes.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.leasing.leaseCache.clearOldRevokes.wp_proof time.Time.wp_Add
+  EtcdGrove.leasing.leaseCache.clearOldRevokes.wp_proof
 
 theorem leaseCache.wp_evalCmp [AllG GF] :
     EtcdGrove.leasing.leaseCache.evalCmp.spec (GF := GF) (hG := hG) :=
@@ -658,7 +638,7 @@ theorem leasingKV.wp_revoke :
 
 theorem leasingKV.wp_revokeLeaseKvs :
     EtcdGrove.leasing.leasingKV.revokeLeaseKvs.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.leasing.leasingKV.revokeLeaseKvs.wp_proof leasingKV.wp_leaseID strings.wp_TrimPrefix v3.wp_OpGet (leasingKV.wp_revoke h_leasingKV__monitorLease h_leasingKV__waitRescind h_leasingKV__waitSession)
+  EtcdGrove.leasing.leasingKV.revokeLeaseKvs.wp_proof leasingKV.wp_leaseID v3.wp_OpGet (leasingKV.wp_revoke h_leasingKV__monitorLease h_leasingKV__waitRescind h_leasingKV__waitSession)
 
 theorem leasingKV.wp_revokeRange :
     EtcdGrove.leasing.leasingKV.revokeRange.spec (GF := GF) (hG := hG) :=
@@ -678,7 +658,7 @@ theorem leasingKV.wp_Delete :
 
 theorem leasingKV.wp_acquire :
     EtcdGrove.leasing.leasingKV.acquire.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.leasing.leasingKV.acquire.wp_proof h_leasingKV__waitSession v3.wp_LeaseValue v3.wp_CreateRevision v3.wp_Compare leasingKV.wp_leaseID v3.wp_WithLease v3.wp_OpPut v3.wp_OpGet ResponseOp.wp_GetResponseRange errors.wp_As status.wp_FromError
+  EtcdGrove.leasing.leasingKV.acquire.wp_proof h_leasingKV__waitSession v3.wp_LeaseValue v3.wp_CreateRevision v3.wp_Compare leasingKV.wp_leaseID v3.wp_WithLease v3.wp_OpPut v3.wp_OpGet ResponseOp.wp_GetResponseRange status.wp_FromError
 
 theorem leasingKV.wp_get :
     EtcdGrove.leasing.leasingKV.get.spec (GF := GF) (hG := hG) :=
@@ -702,7 +682,7 @@ theorem txnLeasing.wp_revokeFallback :
 
 theorem txnLeasing.wp_serverTxn :
     EtcdGrove.leasing.txnLeasing.serverTxn.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.leasing.txnLeasing.serverTxn.wp_proof h_leasingKV__waitSession wp_gatherOps v3.wp_OpTxn txnLeasing.wp_fallback leaseCache.wp_LockWriteOps wp_closeAll (txnLeasing.wp_guard h_leasingKV__monitorLease h_leasingKV__waitRescind h_leasingKV__waitSession) v3.Cmp.wp_KeyBytes strings.wp_TrimPrefix leaseCache.wp_Evict txnLeasing.wp_commitToCache ResponseOp.wp_GetResponseTxn (txnLeasing.wp_revokeFallback h_leasingKV__monitorLease h_leasingKV__waitRescind h_leasingKV__waitSession)
+  EtcdGrove.leasing.txnLeasing.serverTxn.wp_proof h_leasingKV__waitSession wp_gatherOps v3.wp_OpTxn txnLeasing.wp_fallback leaseCache.wp_LockWriteOps wp_closeAll (txnLeasing.wp_guard h_leasingKV__monitorLease h_leasingKV__waitRescind h_leasingKV__waitSession) v3.Cmp.wp_KeyBytes leaseCache.wp_Evict txnLeasing.wp_commitToCache ResponseOp.wp_GetResponseTxn (txnLeasing.wp_revokeFallback h_leasingKV__monitorLease h_leasingKV__waitRescind h_leasingKV__waitSession)
 
 theorem txnLeasing.wp_Commit :
     EtcdGrove.leasing.txnLeasing.Commit.spec (GF := GF) (hG := hG) :=

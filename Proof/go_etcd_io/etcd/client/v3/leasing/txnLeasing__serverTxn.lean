@@ -13,7 +13,7 @@ public import Spec.go_etcd_io.etcd.client.v3.leasing.leaseCache__LockWriteOps
 public import Spec.go_etcd_io.etcd.client.v3.leasing.closeAll
 public import Spec.go_etcd_io.etcd.client.v3.leasing.txnLeasing__guard
 public import Spec.go_etcd_io.etcd.client.v3.Cmp__KeyBytes
-public import Spec.strings.TrimPrefix
+public import Perennial.Proof.strings
 public import Spec.go_etcd_io.etcd.client.v3.leasing.leaseCache__Evict
 public import Spec.go_etcd_io.etcd.client.v3.leasing.txnLeasing__commitToCache
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp__GetResponseTxn
@@ -46,7 +46,6 @@ theorem txnLeasing.serverTxn.wp_proof
     (hclose : closeAll.spec (GF := GF) (hG := hG))
     (hguard : txnLeasing.guard.spec (GF := GF) (hG := hG))
     (hCKey : EtcdGrove.Cmp.KeyBytes.spec (GF := GF) (hG := hG))
-    (htrim : EtcdGrove.strings.TrimPrefix.spec (GF := GF) (hG := hG))
     (hevict : leaseCache.Evict.spec (GF := GF) (hG := hG))
     (hctc : txnLeasing.commitToCache.spec (GF := GF) (hG := hG))
     (hGRT : EtcdGrove.ResponseOp.GetResponseTxn.spec (GF := GF) (hG := hG))
@@ -177,7 +176,7 @@ theorem txnLeasing.serverTxn.wp_proof
     iintro %resp %cerr Hcr
     simp only [TxnBuild.empty, TxnModel.empty, List.nil_append]
     unfold txnCommitResultO
-    icases Hcr with (%Hcerr | ⟨%Hcerr, Hok⟩)
+    icases Hcr with (⟨%Hcerr, -⟩ | ⟨%Hcerr, Hok⟩)
     · cases cerr with
       | nil => exact absurd rfl Hcerr
       | ok e =>
@@ -212,11 +211,11 @@ theorem txnLeasing.serverTxn.wp_proof
           wp_apply hCKey $$ [$cmp $Hr3] as cmp
           · ipureintro; exact Hcnn
           wp_apply wp_bytes_to_string ksl m.key DFrac.discard $$ [$Hr4] as -
-          wp_apply htrim $$ [$Hstrings]
+          wp_apply strings.wp_TrimPrefix $$ [$Hstrings]
           wp_apply (hevict (lkvLeases lkv) γ.lc pfx (leasingX lkv γ) (leasingSeen γ)
-              (trimPrefixResult m.key pfx) (fun _ => iprop(True))) $$ [$Hcache $Hpeek] as %rv -
+              (strings.trimPrefix m.key pfx) (fun _ => iprop(True))) $$ [$Hcache $Hpeek] as %rv -
           · iintro %st %tt HX
-            imod leasingX_step lkv γ st (st.evict (trimPrefixResult m.key pfx) tt) $$ HX with ⟨HX, -⟩
+            imod leasingX_step lkv γ st (st.evict (strings.trimPrefix m.key pfx) tt) $$ HX with ⟨HX, -⟩
             iframe
           wp_for_post
           iframe

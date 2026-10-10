@@ -16,7 +16,8 @@ branches a transaction's results chose (`gatherResponseOps`).
 `*pb.TxnResponse` with its `Succeeded` and its chosen branch's responses, recursively; a plain
 operation's is `txnOpRespAt`'s.
 
-**Owned responses** (`txnCommitResultO`): what the client's `Commit()` returns is a fresh message
+**Owned responses** (`txnCommitResultO`): what the client's `Commit()` returns is an error
+(`clientErr`: a leaf of an error tree, as `errors.As` needs) or a fresh message
 (protobuf decodes it from the gRPC reply), which the caller owns: the transaction's `Succeeded`,
 and the top-level operations' responses (a range response's header, key-values, `More` and
 `Count`; a put's, delete's or nested transaction's header) are owned; the rest is read-only. The
@@ -32,6 +33,8 @@ the `OpResponse`'s `get` field.
 module
 
 public import Proof.go_etcd_io.etcd.cache.v3.InvEtcdTxn
+public import Perennial.Proof.errors
+public import Code.go_etcd_io.etcd.api.v3.v3rpc.rpctypes
 
 @[expose] public section
 
@@ -67,6 +70,20 @@ structure CachedKv where
   kv : EtcdKv
 
 end model
+
+section clientErr
+variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+
+/-- **An error etcd's client returns** (a gRPC status error, an `rpctypes.EtcdError`, a context
+error): a leaf of an error tree, without `Unwrap` or `As` methods (`errors.isLeafError`), whose
+value, if its dynamic type is `rpctypes.EtcdError`, is an `EtcdError` (Go's typing, which the model
+lacks: `errors.AsTypeTyped`). What `errors.As(err, &serverErr)` needs (`leasingKV.acquire`,
+`errors.wp_As`). -/
+def clientErr (err : GoInterface) : Prop :=
+  ∀ ii, err = GoInterface.ok ii → errors.isLeafError ii ∧
+    errors.AsTypeTyped v3rpc.rpctypes.EtcdError v3rpc.rpctypes.EtcdError.ty ii
+
+end clientErr
 
 /-! ## Nested operations -/
 
@@ -425,10 +442,11 @@ def txnCommitOk (pfx : GoString) (lo : w64) (t : TxnModel) (resp : Loc) : IProp 
       EtcdStateWf pfx s⌝ ∗
     txnStates pfx r s (runTxn r s t).2.1 (txnWrote (runTxn r s t).2.2))
 
-/-- **What `Commit()` returns, owned**: an error, or `txnCommitOk`. -/
+/-- **What `Commit()` returns, owned**: an error (`clientErr`), or `txnCommitOk`. -/
 def txnCommitResultO (pfx : GoString) (lo : w64) (t : TxnModel) (resp : Loc) (err : GoInterface) :
     IProp GF :=
-  iprop(⌜err ≠ GoInterface.nil⌝ ∨ (⌜err = GoInterface.nil⌝ ∗ txnCommitOk pfx lo t resp))
+  iprop((⌜err ≠ GoInterface.nil⌝ ∗ ⌜clientErr err⌝) ∨
+    (⌜err = GoInterface.nil⌝ ∗ txnCommitOk pfx lo t resp))
 
 /-! ## The builder with nested operations and owned responses -/
 

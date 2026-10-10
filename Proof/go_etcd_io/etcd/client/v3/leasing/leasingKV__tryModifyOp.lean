@@ -128,7 +128,7 @@ theorem leasingKV.tryModifyOp.wp_proof
     imodintro
     iframe
   iunfold txnCommitResultO at Hres
-  icases Hres with (%Hne | ⟨%Heq, Hok⟩)
+  icases Hres with (⟨%Hne, -⟩ | ⟨%Heq, Hok⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by
       cases err with
       | nil => exact absurd rfl Hne
