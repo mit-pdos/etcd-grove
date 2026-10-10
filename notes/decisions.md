@@ -2008,3 +2008,70 @@ monitors, the session monitor, `clearOldRevokes`), and its lock also guards the 
 - **The trust boundary** (axioms): `strings.Compare` (Perennial has no model; a trusted model in
   Perennial, as `strings.HasPrefix`'s, would replace it: written and proved, but not committed,
   see STATUS) and `(*time.Time).Add` (Perennial models the value receiver only).
+
+## Panic and recover: a panic outcome in the language, `Catch` for `defer`
+
+**2026-10-10 · proposed** (the plan decided with the user; being implemented on a Perennial
+branch, not yet pinned)
+
+The STM (`stm.go`) aborts an attempt by `panic(stmError{err})` from `fetch` and both `commit`
+methods, and `runSTM` turns the panic back into the returned error with a deferred `recover()`.
+GooseLang has no model of this: `panic` is a stuck expression (`wp_panic : ▷ False ⊢ WP (Panic
+msg)`), the right treatment for raft's assertion-style panics, whose proofs show they never
+fire, and the wrong one for a panic meant to fire and be recovered; `recover()` has no
+semantics at all. The STM proof closed the gap with two callee-spec axioms (`stmPanic.spec`: a
+weakest precondition of `panic(stmError{err})` for `err ≠ nil`; `stmRecover.spec`: `recover()`
+returns `nil`), sound by the informal argument that a verified run reaches `recover()` normally
+only when nothing panicked, but of a different kind than the etcd model's axioms: a statement
+the model refutes (the WP of a stuck expression is `False`), not an assumption about etcd. The
+same gap left the mutex's `sync.Locker` wrappers (`lockerMutex.Lock/Unlock`, which panic on any
+error) unspecified. The fix is a Perennial feature, decided as follows.
+
+- **Panic propagates in the language, not in the exception monad.** Goose compiles `return`,
+  `break` and `continue` through labeled values (`("execute", v)`, `("return", v)`, ...;
+  `Golang/Defn/Exception.lean`): `;;;` short-circuits on any label but `execute`, loops pass up
+  the labels they don't own, and a function body's `exceptionDo` strips the label (`Snd`). A
+  fourth label `("panic", v)` would unwind a body and its loops with no new rules, but not a
+  call: a callee's result crosses the call as a plain value in `let: "$r0" := f x in …`, and the
+  continuation is ordinary GooseLang, not a `;;;` chain. Propagating through the monad would mean
+  checking every call's result and lifting every continuation, a change to the shape of every
+  translated function and of every proof that steps past a call. *Rejected.*
+- **A panic outcome is a value**: `val.PanicV (p : val)`. One generic head step
+  `fill_item Ki (Val (PanicV p)) → Val (PanicV p)` for every evaluation frame `Ki` is the
+  unwinding; it is a legal ectxi head step (the hole holds a value), so iris-lean's `wp_bind` and
+  the language axioms are untouched. `go.panic` is `λ: v, Val (PanicV v)`.
+- **One new expression `Catch e h k`**: `Catch (Val (PanicV p)) h k → h p`,
+  `Catch (Val v) h k → k v`; its frame is the only one that does not unwind. `wrapDefer`
+  (`Golang/Defn/Defer.lean`) becomes `Catch (exceptionDo (body $defer)) (λ p, store p in a
+  `$panic` cell, run the deferred chain, then: cell cleared by a `recover` ⇒ return the
+  function's named results (zero values if unnamed), else re-raise) (λ r, run the chain; r)`.
+  Goose emits the result expression (it knows the signature) and translates `recover()` as
+  read-and-clear of `$panic` when it is lexically in a function literal that is the direct operand
+  of a `defer` statement (the STM's and `sync`'s idiom); any other `recover()` is reported as
+  unsupported, not modeled as `nil`. The model is thus stricter than Go (whose rule is dynamic:
+  `recover` works only when called directly by a deferred function), never more permissive.
+- **One postcondition, applied to panics too**: `Φ : val → iProp` now also receives `PanicV p`.
+  `wp_panic : Φ (PanicV p) ⊢ WP (go.panic p) {{Φ}}`; `wp_unwind : Φ (PanicV p) ⊢
+  WP K[PanicV p] {{Φ}}` for `Catch`-free `K`; `wp_catch` splits on the outcome. Existing specs
+  `{{P}} e {{RET v; Q}}` name a normal value, so they exclude panics and existing proofs keep
+  working; a spec that lets a function panic adds the disjunct `∃ p, r = PanicV p ∧ Ψ p`, which
+  callers discharge with `wp_unwind` up to their `Catch`. This is the "panic postcondition"
+  without a second weakest precondition. *Rejected:* a WP with two postconditions (a new program
+  logic for one feature).
+- **An unrecovered panic stays forbidden.** `wp_fork` requires `WP e {{ v, ⌜¬ isPanic v⌝ }}`
+  (today a goroutine's panic is stuck, hence forbidden) and the adequacy theorem's `φ` is the
+  client's, with `φ (PanicV _) = False` for the main thread. A verified program never panics
+  unrecovered, which is how Go's "a panicking goroutine kills the process" is modeled; raft's
+  assertion-style panics still need their unreachability proofs.
+- **Left out, acceptably**: a deferred function panicking during unwinding (Go replaces the
+  panic), `panic(nil)`, `runtime.Goexit`.
+- **Cost**: GooseLang (the `val` constructor, `Catch`, two step rules, `Countable`/decidable
+  equality); the ectxi instance (one frame); Lifting (`wp_catch`, `wp_unwind`, `wp_fork`'s side
+  condition); `wrapDefer`/`wp_with_defer` (50 proofs here use the rule and 68 translated sites
+  regenerate; a no-panic corollary of the same shape keeps the proofs nearly unchanged); Goose
+  (`recover`, the result expression); the adequacy statement only through `φ`.
+- **For the STM afterwards**: `stmPanic.spec` is `wp_panic`, `stmRecover.spec` is the cell read
+  inside `runSTM`'s `Catch`; `stm.fetch`/`commit` get the panic disjunct
+  `Ψ p := p = stmError{err} ∧ err ≠ nil`, which `runSTM`'s proof turns into the `(nil, err)`
+  return; the `lockerMutex` wrappers get specs the same way. The concurrency collection drops to
+  11 axioms, all about etcd.
