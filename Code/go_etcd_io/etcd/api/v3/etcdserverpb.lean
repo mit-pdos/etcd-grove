@@ -1642,6 +1642,37 @@ noncomputable def ResponseHeader.GetRevision.impl [FfiSyntax] [GoGlobalContext] 
   (App (Val doExecute)
   (Val #()))))))))
 
+/-- go: rpc.pb.go:1211:22 -/
+noncomputable def ResponseOp.GetResponseRange.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "x"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ResponseOp.ty)))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType RangeResponse.ty)))) (Val UntypedNil)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType ResponseOp.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ResponseOp.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType ResponseOp.ty)))) (Val UntypedNil))))))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType ResponseOp_ResponseRange.ty)))) (App (Val (GoInstruction (GoLoad isResponseOp_Response.ty))) (App (Val (GoInstruction (StructFieldRef ResponseOp.ty go!"Response"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ResponseOp.ty)))) (Var "x")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ResponseOp_ResponseRange.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType ResponseOp_ResponseRange.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RangeResponse.ty)))) (App (Val (GoInstruction (StructFieldRef ResponseOp_ResponseRange.ty go!"ResponseRange"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ResponseOp_ResponseRange.ty)))) (Var "x")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType ResponseOp_ResponseRange.ty)))) (Pair (Var "x") (Var "$r0"))))))))))))
+  (App (Val doExecute)
+  (Val #()))))))))
+
 /-- go: rpc.pb.go:1342:19 -/
 noncomputable def Compare.GetKey.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
@@ -2613,6 +2644,7 @@ class ResponseOp.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_unknownFields : ∀ (x : ResponseOp) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ResponseOp.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ResponseOp)))
   get_sizeCache : ∀ (x : ResponseOp), go.IsGoStepPureDetTagged under (StructFieldGet ResponseOp.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : ResponseOp) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ResponseOp.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ResponseOp)))
+  ptr_GetResponseRange_unfold : MethodUnfold (go.GoType.PointerType ResponseOp.ty) go!"GetResponseRange" ResponseOp.GetResponseRange.impl
 
 attribute [instance] ResponseOp.TypeAssumptions.type_repr
   ResponseOp.TypeAssumptions.underlying
@@ -2624,6 +2656,7 @@ attribute [instance] ResponseOp.TypeAssumptions.type_repr
   ResponseOp.TypeAssumptions.set_unknownFields
   ResponseOp.TypeAssumptions.get_sizeCache
   ResponseOp.TypeAssumptions.set_sizeCache
+  ResponseOp.TypeAssumptions.ptr_GetResponseRange_unfold
 
 structure ResponseOp_ResponseRange [FfiSyntax] where
   mk ::

@@ -25,10 +25,10 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 theorem WithFirstCreate.wp_proof (wp_withTop : withTop.spec (GF := GF) (hG := hG)) :
     WithFirstCreate.spec (GF := GF) (hG := hG) := by
   wp_start
-  wp_apply wp_withTop (W64 2) (W64 1) as %sl #Hsl
+  wp_apply wp_withTop (W64 2) (W64 1) as %sl ⟨#Hsl, Hcap⟩
   · iframe #; ipureintro; decide
   iapply HΦ
-  iexact Hsl
+  iframe Hsl Hcap
 
 end proof
 

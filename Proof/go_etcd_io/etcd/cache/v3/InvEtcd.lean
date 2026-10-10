@@ -665,6 +665,66 @@ instance getRespKvs_persistent (resp : Loc) (m : KvMap) :
 
 end defs
 
+/-! ## Key ranges and a get's selection (used by `kvGetResult` and the transactions,
+`InvEtcdTxn.lean`) -/
+
+/-- The key `k` is in the range `[key, rangeEnd)` of a request or a comparison: the key alone if
+`rangeEnd` is empty, every key from `key` on if it is `[0]`. -/
+def inRange (key rangeEnd k : GoString) : Bool :=
+  if rangeEnd = [] then decide (k = key)
+  else if rangeEnd = [W8 0] then !decide (go.GoStringLt k key)
+  else !decide (go.GoStringLt k key) && decide (go.GoStringLt k rangeEnd)
+
+/-- Every key of the range `[key, rangeEnd)` has the prefix `pfx`. -/
+def KeyRangeUnder (pfx key rangeEnd : GoString) : Prop :=
+  ∀ k, inRange key rangeEnd k = true → pfx <+: k
+
+/-- The keys of the range of `o`, in the state `s` (in key order). -/
+def rangeIn (s : List EtcdKv) (o : OpFull) : List EtcdKv :=
+  s.filter (fun v => inRange o.key o.base.rangeEnd v.key)
+
+/-- A range request's revision filters (`0`: no filter). -/
+def kvFilterOk (o : OpFull) (v : EtcdKv) : Bool :=
+  (decide (o.base.minModRev = W64 0) || decide (sint.Z o.base.minModRev ≤ sint.Z v.modRev)) &&
+  (decide (o.base.maxModRev = W64 0) || decide (sint.Z v.modRev ≤ sint.Z o.base.maxModRev)) &&
+  (decide (o.base.minCreateRev = W64 0) || decide (sint.Z o.base.minCreateRev ≤ sint.Z v.createRev)) &&
+  (decide (o.base.maxCreateRev = W64 0) || decide (sint.Z v.createRev ≤ sint.Z o.base.maxCreateRev))
+
+/-- What a get selects: the keys of its range that pass its filters, in key order. -/
+def rangeSel (s : List EtcdKv) (o : OpFull) : List EtcdKv := (rangeIn s o).filter (kvFilterOk o)
+
+/-! ### A get's response: sort, limit, keys-only, count-only -/
+
+/-- etcd's sort order for a range (`pb.RangeRequest_SortOrder`: `0` none, `1` ascending, `2`
+descending): none if not set; a sort by another target than the key with no order is ascending
+(etcd's `Range`). -/
+def OpFull.effSortOrder (o : OpFull) : w64 :=
+  if o.base.sortSet = false then W64 0
+  else if o.sortTarget ≠ W64 0 ∧ o.sortOrder = W64 0 then W64 1
+  else if o.sortTarget = W64 0 ∧ o.sortOrder = W64 1 then W64 0
+  else o.sortOrder
+
+/-- `a` sorts no later than `b` by the target (`0` key, `1` version, `2` create revision,
+`3` mod revision, `4` value). -/
+def kvLeBy (target : w64) (a b : EtcdKv) : Prop :=
+  if target = W64 1 then sint.Z a.version ≤ sint.Z b.version
+  else if target = W64 2 then sint.Z a.createRev ≤ sint.Z b.createRev
+  else if target = W64 3 then sint.Z a.modRev ≤ sint.Z b.modRev
+  else if target = W64 4 then go.GoStringLe a.value b.value
+  else go.GoStringLe a.key b.key
+
+/-- **A get's response key-values** `kvs`, for its selection `sel` (key order): a reordering of
+`sel` sorted as requested (etcd's sort is not stable: ties in any order), limited (a positive
+limit), values dropped if keys-only, nothing if count-only. -/
+def rangeKvsOk (o : OpFull) (sel kvs : List EtcdKv) : Prop :=
+  ∃ l : List EtcdKv, l.Perm sel ∧
+    (o.effSortOrder = W64 0 → l = sel) ∧
+    (o.effSortOrder = W64 1 → l.Pairwise (kvLeBy o.sortTarget)) ∧
+    (o.effSortOrder = W64 2 → l.Pairwise (fun a b => kvLeBy o.sortTarget b a)) ∧
+    kvs = (if o.base.countOnly then []
+      else ((if 0 < sint.Z o.base.limit then l.take (sint.Z o.base.limit).toNat else l).map
+        (fun v => if o.keysOnly then { v with value := [] } else v)))
+
 /-- A get of every key with the prefix `pfx` at the latest revision: what `WithPrefix()` makes of
 `OpGet(pfx)` (from `"\x00"` on for the empty prefix), and no other option that changes the answer
 (revision, limit, sort, revision filters, keys-only, count-only; serializable is allowed). -/
@@ -682,20 +742,47 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
+/-- The `*mvccpb.KeyValue`s `ps` hold, in order, the key-values `kvs` (read-only). -/
+def kvPtrsAt (ps : List Loc) (kvs : List EtcdKv) : IProp GF :=
+  iprop(⌜ps.length = kvs.length⌝ ∗
+    □ ∀ (i : Nat) (p : Loc) (v : EtcdKv), ⌜ps[i]? = some p⌝ -∗ ⌜kvs[i]? = some v⌝ -∗ kvValAt p v)
+
+instance kvPtrsAt_persistent (ps : List Loc) (kvs : List EtcdKv) :
+    Persistent (kvPtrsAt (GF := GF) ps kvs) := by
+  unfold kvPtrsAt; infer_instance
+
+/-- The range get `o` (at the latest revision, of a range under the prefix `pfx`: a single key, a
+sub-prefix, sorted, limited, filtered, ...) answered at revision `r`: the response's `Kvs` are
+etcd's selection at `r` (`rangeSel`), sorted and limited as requested (`rangeKvsOk`). Nothing for
+another revision or a range not under `pfx`. (Classical: `KeyRangeUnder` is not decidable.) -/
+def getRespRange (pfx : GoString) (r : w64) (o : OpFull) (resp : Loc) : IProp GF :=
+  open Classical in
+  if o.base.rev = W64 0 ∧ KeyRangeUnder pfx o.key o.base.rangeEnd then
+    iprop(∃ (s : List EtcdKv) (sl : GoSlice) (ps : List Loc) (kvs : List EtcdKv),
+      □ etcdState r pfx s ∗ ⌜EtcdStateWf pfx s⌝ ∗
+      structFieldRef go_etcd_io.etcd.client.v3.GetResponse go!"Kvs" resp ↦□ sl ∗ sl ↦*□ ps ∗
+      kvPtrsAt ps kvs ∗ ⌜rangeKvsOk o (rangeSel s o) kvs⌝)
+  else iprop(True)
+
+instance getRespRange_persistent (pfx : GoString) (r : w64) (o : OpFull) (resp : Loc) :
+    Persistent (getRespRange (GF := GF) pfx r o resp) := by
+  unfold getRespRange; split <;> infer_instance
+
 /-- What `kv.Get` returns for the `Op` `o`, on a cache of prefix `pfx`, called with the knowledge
 that etcd has reached `lo`: any error; or, on success, a response whose header revision `r` is one
 at which etcd had a state, which etcd has reached (`etcdReached r`), below `2 ^ 63 - 1` (etcd's
 revisions are; `getWatch` watches from `r + 1`), and at least `lo` unless the request is
 serializable (**linearizability**: a linearizable get started after revision `lo` was observed
 sees it; a serializable one may be served by a lagging member), and which lists exactly that state
-if `o` is a prefix get. -/
+if `o` is a prefix get, or etcd's selection at `r` for any other get of a range under `pfx` at the
+latest revision (`getRespRange`: a single key, the mutex's sorted and filtered gets). -/
 def kvGetResult (pfx : GoString) (lo : w64) (o : OpFull) (resp : Loc) (err : GoInterface) :
     IProp GF :=
   iprop(⌜err ≠ GoInterface.nil⌝ ∨
     (⌜err = GoInterface.nil⌝ ∗ ∃ (r : w64) (m : KvMap), getRespRev resp r ∗ isEtcdKvs r pfx m ∗
       etcdReached r ∗
       ⌜(o.base.serializable = false → sint.Z lo ≤ sint.Z r) ∧ sint.Z r < 2 ^ 63 - 1⌝ ∗
-      (if o.isPrefixGet pfx then getRespKvs resp m else iprop(True))))
+      (if o.isPrefixGet pfx then getRespKvs resp m else getRespRange pfx r o resp)))
 
 instance kvGetResult_persistent (pfx : GoString) (lo : w64) (o : OpFull) (resp : Loc)
     (err : GoInterface) : Persistent (kvGetResult (GF := GF) pfx lo o resp err) := by

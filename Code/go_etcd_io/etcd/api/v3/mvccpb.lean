@@ -41,9 +41,11 @@ axiom PUT [FfiSyntax] [GoGlobalContext] : val
 
 axiom DELETE [FfiSyntax] [GoGlobalContext] : val
 
-axiom Event_PUT [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def Event_PUT [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 0)
 
-axiom Event_DELETE [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def Event_DELETE [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 1)
 
 axiom file_kv_proto_rawDesc [FfiSyntax] [GoGlobalContext] : val
 

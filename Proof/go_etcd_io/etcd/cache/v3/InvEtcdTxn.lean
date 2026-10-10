@@ -62,17 +62,6 @@ open Iris Iris.BI go_etcd_io.etcd.cache.v3 go_etcd_io.etcd.api.v3
 
 /-! ## Key ranges and comparisons -/
 
-/-- The key `k` is in the range `[key, rangeEnd)` of a request or a comparison: the key alone if
-`rangeEnd` is empty, every key from `key` on if it is `[0]`. -/
-def inRange (key rangeEnd k : GoString) : Bool :=
-  if rangeEnd = [] then decide (k = key)
-  else if rangeEnd = [W8 0] then !decide (go.GoStringLt k key)
-  else !decide (go.GoStringLt k key) && decide (go.GoStringLt k rangeEnd)
-
-/-- Every key of the range `[key, rangeEnd)` has the prefix `pfx`. -/
-def KeyRangeUnder (pfx key rangeEnd : GoString) : Prop :=
-  ∀ k, inRange key rangeEnd k = true → pfx <+: k
-
 /-- `-1`, `0` or `1`, as `bytes.Compare` and etcd's `compareInt64`. -/
 def cmpSign (lt eq : Bool) : Int := if lt then -1 else if eq then 0 else 1
 
@@ -144,20 +133,6 @@ def txnOpOf (o : OpFull) : Option TxnOp :=
      else none)
   else if o.t = W64 3 then some (.delete o)
   else none
-
-/-- The keys of the range of `o`, in the state `s` (in key order). -/
-def rangeIn (s : List EtcdKv) (o : OpFull) : List EtcdKv :=
-  s.filter (fun v => inRange o.key o.base.rangeEnd v.key)
-
-/-- A range request's revision filters (`0`: no filter). -/
-def kvFilterOk (o : OpFull) (v : EtcdKv) : Bool :=
-  (decide (o.base.minModRev = W64 0) || decide (sint.Z o.base.minModRev ≤ sint.Z v.modRev)) &&
-  (decide (o.base.maxModRev = W64 0) || decide (sint.Z v.modRev ≤ sint.Z o.base.maxModRev)) &&
-  (decide (o.base.minCreateRev = W64 0) || decide (sint.Z o.base.minCreateRev ≤ sint.Z v.createRev)) &&
-  (decide (o.base.maxCreateRev = W64 0) || decide (sint.Z v.createRev ≤ sint.Z o.base.maxCreateRev))
-
-/-- What a get selects: the keys of its range that pass its filters, in key order. -/
-def rangeSel (s : List EtcdKv) (o : OpFull) : List EtcdKv := (rangeIn s o).filter (kvFilterOk o)
 
 /-- A put of `key` at revision `r` (see the module docstring). -/
 def putKv (r : w64) (key value : GoString) (lease : w64) (s : List EtcdKv) : List EtcdKv :=
@@ -242,38 +217,6 @@ def TxnModel.Under (pfx : GoString) (t : TxnModel) : Prop :=
   (∀ c ∈ t.cmps, KeyRangeUnder pfx c.key c.rangeEnd) ∧ (∀ op ∈ t.thenOps, op.Under pfx) ∧
     (∀ op ∈ t.elseOps, op.Under pfx)
 
-/-! ### A get's response: sort, limit, keys-only, count-only -/
-
-/-- etcd's sort order for a range (`pb.RangeRequest_SortOrder`: `0` none, `1` ascending, `2`
-descending): none if not set; a sort by another target than the key with no order is ascending
-(etcd's `Range`). -/
-def OpFull.effSortOrder (o : OpFull) : w64 :=
-  if o.base.sortSet = false then W64 0
-  else if o.sortTarget ≠ W64 0 ∧ o.sortOrder = W64 0 then W64 1
-  else if o.sortTarget = W64 0 ∧ o.sortOrder = W64 1 then W64 0
-  else o.sortOrder
-
-/-- `a` sorts no later than `b` by the target (`0` key, `1` version, `2` create revision,
-`3` mod revision, `4` value). -/
-def kvLeBy (target : w64) (a b : EtcdKv) : Prop :=
-  if target = W64 1 then sint.Z a.version ≤ sint.Z b.version
-  else if target = W64 2 then sint.Z a.createRev ≤ sint.Z b.createRev
-  else if target = W64 3 then sint.Z a.modRev ≤ sint.Z b.modRev
-  else if target = W64 4 then go.GoStringLe a.value b.value
-  else go.GoStringLe a.key b.key
-
-/-- **A get's response key-values** `kvs`, for its selection `sel` (key order): a reordering of
-`sel` sorted as requested (etcd's sort is not stable: ties in any order), limited (a positive
-limit), values dropped if keys-only, nothing if count-only. -/
-def rangeKvsOk (o : OpFull) (sel kvs : List EtcdKv) : Prop :=
-  ∃ l : List EtcdKv, l.Perm sel ∧
-    (o.effSortOrder = W64 0 → l = sel) ∧
-    (o.effSortOrder = W64 1 → l.Pairwise (kvLeBy o.sortTarget)) ∧
-    (o.effSortOrder = W64 2 → l.Pairwise (fun a b => kvLeBy o.sortTarget b a)) ∧
-    kvs = (if o.base.countOnly then []
-      else ((if 0 < sint.Z o.base.limit then l.take (sint.Z o.base.limit).toNat else l).map
-        (fun v => if o.keysOnly then { v with value := [] } else v)))
-
 /-! ## History laws -/
 
 /-- **Revisions are well formed** (an axiom about etcd's history): a key-value of etcd's state at
@@ -302,15 +245,6 @@ variable [sem : go.Semantics]
 
 /-! ## The client's transactions -/
 
-/-- The `*mvccpb.KeyValue`s `ps` hold, in order, the key-values `kvs` (read-only). -/
-def kvPtrsAt (ps : List Loc) (kvs : List EtcdKv) : IProp GF :=
-  iprop(⌜ps.length = kvs.length⌝ ∗
-    □ ∀ (i : Nat) (p : Loc) (v : EtcdKv), ⌜ps[i]? = some p⌝ -∗ ⌜kvs[i]? = some v⌝ -∗ kvValAt p v)
-
-instance kvPtrsAt_persistent (ps : List Loc) (kvs : List EtcdKv) :
-    Persistent (kvPtrsAt (GF := GF) ps kvs) := by
-  unfold kvPtrsAt; infer_instance
-
 /-- The `*pb.RangeResponse` `rr` answers the get `o` whose selection is `sel` and whose range
 has `count` keys (read-only). -/
 def rangeRespAt (rr : Loc) (o : OpFull) (sel : List EtcdKv) (count : Nat) : IProp GF :=
@@ -323,10 +257,10 @@ instance rangeRespAt_persistent (rr : Loc) (o : OpFull) (sel : List EtcdKv) (cou
     Persistent (rangeRespAt (GF := GF) rr o sel count) := by
   unfold rangeRespAt; infer_instance
 
-/-- The `*pb.ResponseOp` `p` is the response of the operation `op` with result `res` (read-only):
-its `Response` oneof holds the wrapper of the operation's kind. -/
+/-- The `*pb.ResponseOp` `p` (not nil) is the response of the operation `op` with result `res`
+(read-only): its `Response` oneof holds the wrapper of the operation's kind. -/
 def txnOpRespAt (p : Loc) (op : TxnOp) (res : TxnOpResult) : IProp GF :=
-  iprop(∃ u : GoInterface, structFieldRef etcdserverpb.ResponseOp go!"Response" p ↦□ u ∗
+  iprop(⌜p ≠ null⌝ ∗ ∃ u : GoInterface, structFieldRef etcdserverpb.ResponseOp go!"Response" p ↦□ u ∗
     match op, res with
     | .get o, .range sel n => iprop(∃ (w rr : Loc),
         ⌜u = interface.mkOk (go.GoType.PointerType etcdserverpb.ResponseOp_ResponseRange.ty) #w⌝ ∗
@@ -453,6 +387,106 @@ def isEtcdTxnKV (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
 instance isEtcdTxnKV_persistent (kv : GoInterfaceOk) (pfx : GoString) :
     Persistent (isEtcdTxnKV (GF := GF) kv pfx) := by
   unfold isEtcdTxnKV; infer_instance
+
+/-! ## The client's deletes -/
+
+/-- The one-operation transaction of a delete `o` (`kv.Delete` is `kv.Do(OpDelete(...))`, a
+`DeleteRange` request, which etcd applies as a transaction of that one operation). -/
+def deleteTxn (o : OpFull) : TxnModel := { cmps := [], thenOps := [.delete o], elseOps := [] }
+
+/-- **What `kv.Delete` returns** for the delete `o` under the prefix `pfx`, called knowing that etcd
+has reached `lo`: an error, or a revision `r` (at least `lo`, reached, below `2^63 - 1`) and a state
+`s` such that the delete ran as a one-operation transaction (`deleteTxn`): if it deleted a key, `s`
+was etcd's state at `r - 1` and the state without the range's keys is its state at `r`; if it
+deleted nothing, `s` is etcd's state at `r` (`txnStates`). The response itself is not modelled
+(`client/v3/concurrency` ignores it). -/
+def deleteResult (pfx : GoString) (lo : w64) (o : OpFull) (err : GoInterface) : IProp GF :=
+  iprop(⌜err ≠ GoInterface.nil⌝ ∨
+    (⌜err = GoInterface.nil⌝ ∗ ∃ (r : w64) (s : List EtcdKv), etcdReached r ∗
+      ⌜sint.Z lo ≤ sint.Z r ∧ 0 < sint.Z r ∧ sint.Z r < 2 ^ 63 - 1 ∧ EtcdStateWf pfx s⌝ ∗
+      txnStates pfx r s (runTxn r s (deleteTxn o)).2.1 (txnWrote (runTxn r s (deleteTxn o)).2.2)))
+
+instance deleteResult_persistent (pfx : GoString) (lo : w64) (o : OpFull) (err : GoInterface) :
+    Persistent (deleteResult (GF := GF) pfx lo o err) := by
+  unfold deleteResult; infer_instance
+
+/-- **The client's deletes** (`clientv3.KV`'s `Delete(ctx, key, opts...)`; a definition, the
+assumption a caller makes of `client.KV`, as `isEtcdKV` for `Get`): for options with which
+`OpDelete` does not panic, of a range under `pfx`, the result is `deleteResult` (linearizable, as
+`Get` and `Commit`). -/
+def isEtcdDeleteKV (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
+  iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (key : GoString)
+      (sl : GoSlice) (gs : List (OpFull → OpFull)) (lo : w64),
+    {{ context.isContext ctx cs ∗ optsAt sl gs ∗ etcdReached lo ∗
+        ⌜¬ opDeletePanics key gs ∧
+          KeyRangeUnder pfx (opDeleteModel key gs).key (opDeleteModel key gs).base.rangeEnd⌝ }}
+      (App (App (App (Val #(methods kv.ty go!"Delete" kv.v)) (Val #(GoInterface.ok ctx)))
+        (Val #key)) (Val #sl))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        deleteResult pfx lo (opDeleteModel key gs) err }})
+
+instance isEtcdDeleteKV_persistent (kv : GoInterfaceOk) (pfx : GoString) :
+    Persistent (isEtcdDeleteKV (GF := GF) kv pfx) := by
+  unfold isEtcdDeleteKV; infer_instance
+
+/-- The key `key` is absent from etcd's state at `r` under the prefix `pfx` (persistent). -/
+def etcdAbsent (pfx key : GoString) (r : w64) : IProp GF :=
+  iprop(∃ s : List EtcdKv, □ etcdState r pfx s ∗ ⌜∀ v ∈ s, v.key ≠ key⌝)
+
+instance etcdAbsent_persistent (pfx key : GoString) (r : w64) :
+    Persistent (etcdAbsent (GF := GF) pfx key r) := by
+  unfold etcdAbsent; infer_instance
+
+/-! ## The client's single-key watch -/
+
+/-- A watch of the single key `key` from revision `rev` (`Watch(ctx, key, WithRev(rev))`): no range
+end, that revision, and none of the options that change which events are sent or how
+(`WithPrevKV`, `WithFragment`, the event filters); progress and created notifications allowed. -/
+def OpFull.isKeyWatch (key : GoString) (rev : w64) (o : OpFull) : Bool :=
+  decide (o.t = W64 1 ∧ o.key = key ∧ o.base.rangeEnd = [] ∧ o.base.rev = rev ∧
+    o.base.prevKV = false ∧ o.base.fragment = false ∧ o.base.filterPut = false ∧
+    o.base.filterDelete = false)
+
+/-- **etcd's single-key watch contract**, for one response modelled by `r`, of a watch of `key`
+(under `pfx`) from revision `rev`: every event is of `key`, at a revision at least `rev` that etcd
+has reached; a delete event at revision `e.rev` means `key` is absent from etcd's state at
+`e.rev` (etcd emits a delete event only for a key a `DeleteRange` or a lease's expiry removes, and
+a transaction cannot delete and put one key). Nothing else is promised (errors, compactions,
+cancellations, progress notifications: any). -/
+def keyWatchRespOk (pfx key : GoString) (rev : w64) (r : RespModel) : IProp GF :=
+  iprop(□ ∀ (i : Nat) (e : EvModel), ⌜r.events[i]? = some e⌝ -∗
+    ⌜e.key = key ∧ sint.Z rev ≤ sint.Z e.rev⌝ ∗ etcdReached e.rev ∗
+    (⌜e.typ = W32 1⌝ -∗ etcdAbsent pfx key e.rev))
+
+instance keyWatchRespOk_persistent (pfx key : GoString) (rev : w64) (r : RespModel) :
+    Persistent (keyWatchRespOk (GF := GF) pfx key rev r) := by
+  unfold keyWatchRespOk; infer_instance
+
+/-- The `i`-th response `v` of a single-key watch channel: modelled by some `r` satisfying the
+contract (`keyWatchRespOk`). -/
+def keyWatchElem (pfx key : GoString) (rev : w64) (_ : Int)
+    (v : go_etcd_io.etcd.client.v3.WatchResponse) : IProp GF :=
+  iprop(∃ r : RespModel, respAt v r ∗ keyWatchRespOk pfx key rev r)
+
+/-- **The client's single-key watch** (`clientv3.Watcher`'s `Watch`; a definition, as
+`isEtcdWatcher` for a prefix watch): a watch of one key `key` under `pfx` from revision `rev ≥ 0`
+(`isKeyWatch`; the options must not make `OpWatch` panic) returns an SPSC channel (the caller
+consumes it) whose responses satisfy `keyWatchRespOk`, and which may be closed at any time. -/
+def isEtcdKeyWatcher (w : GoInterfaceOk) (pfx : GoString) : IProp GF :=
+  iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (key : GoString)
+      (sl : GoSlice) (gs : List (OpFull → OpFull)) (rev : w64),
+    {{ context.isContext ctx cs ∗ optsAt sl gs ∗
+        ⌜(opWatchModel key gs).isKeyWatch key rev = true ∧ ¬ opWatchPanics key gs ∧
+          0 ≤ sint.Z rev ∧ pfx <+: key⌝ }}
+      (App (App (App (Val #(methods w.ty go!"Watch" w.v)) (Val #(GoInterface.ok ctx)))
+        (Val #key)) (Val #sl))
+    {{ (ch : Loc) (γ : SpscNames), RET #ch;
+        isSpsc γ ch (keyWatchElem pfx key rev) (fun _ => iprop(True)) ∗
+          spscConsumer γ ([] : List go_etcd_io.etcd.client.v3.WatchResponse) }})
+
+instance isEtcdKeyWatcher_persistent (w : GoInterfaceOk) (pfx : GoString) :
+    Persistent (isEtcdKeyWatcher (GF := GF) w pfx) := by
+  unfold isEtcdKeyWatcher; infer_instance
 
 /-! ## Leases -/
 
