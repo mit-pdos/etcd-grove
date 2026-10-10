@@ -663,18 +663,30 @@ def OpFull.isRangeWatch (rev : w64) (o : OpFull) : Bool :=
   decide (o.t = W64 1 ∧ o.base.rev = rev ∧ o.base.prevKV = false ∧ o.base.fragment = false ∧
     o.base.filterPut = false ∧ o.base.filterDelete = false)
 
+/-- A delete event's `*KeyValue` `l`: its `Value` (some byte slice) and `Lease` fields can be read
+(read-only). -/
+def delKvAt (l : Loc) : IProp GF :=
+  iprop(∃ (valSl : GoSlice) (val : GoString) (lease : w64),
+    structFieldRef mvccpb.KeyValue go!"Value" l ↦□ valSl ∗ valSl ↦*□ val ∗
+    structFieldRef mvccpb.KeyValue go!"Lease" l ↦□ lease)
+
+instance delKvAt_persistent (l : Loc) : Persistent (delKvAt (GF := GF) l) := by
+  unfold delKvAt; infer_instance
+
 /-- **etcd's contract for one event** `e` of a watch of the range of `o` (under `pfx`) from
 revision `rev`: it is a put or a delete (`mvccpb.Event_EventType` has no other value); its key is
 in the range; its revision is at least `rev`, below `2^63 - 1`, and
 etcd has reached it; a delete event at `e.rev` means the key is absent from etcd's state at
-`e.rev`; a put event's `*KeyValue` holds a key-value `v` of that key, modified at `e.rev`, which is
-in etcd's state at `e.rev`. (etcd emits a delete event only for a key a `DeleteRange` or a lease's
-expiry removes, and the events of one revision are one transaction's, which cannot write one key
-twice, so the key-value an event carries is the key's at that revision.) -/
+`e.rev`, and its `*KeyValue`'s `Value` and `Lease` fields can be read (`delKvAt`: etcd sends the
+deleted key with empty other fields; the contract does not say which values); a put event's
+`*KeyValue` holds a key-value `v` of that key, modified at `e.rev`, which is in etcd's state at
+`e.rev`. (etcd emits a delete event only for a key a `DeleteRange` or a lease's expiry removes, and
+the events of one revision are one transaction's, which cannot write one key twice, so the
+key-value an event carries is the key's at that revision.) -/
 def rangeWatchEvOk (pfx : GoString) (o : OpFull) (rev : w64) (e : EvModel) : IProp GF :=
   iprop(⌜inRange o.key o.base.rangeEnd e.key = true ∧ sint.Z rev ≤ sint.Z e.rev ∧
       sint.Z e.rev < 2 ^ 63 - 1 ∧ (e.typ = W32 0 ∨ e.typ = W32 1)⌝ ∗ etcdReached e.rev ∗
-    (⌜e.typ = W32 1⌝ -∗ etcdAbsent pfx e.key e.rev) ∗
+    (⌜e.typ = W32 1⌝ -∗ etcdAbsent pfx e.key e.rev ∗ delKvAt e.kv) ∗
     (⌜e.typ = W32 0⌝ -∗ ∃ v : EtcdKv, kvValAt e.kv v ∗ ⌜v.key = e.key ∧ v.modRev = e.rev⌝ ∗
       ∃ s : List EtcdKv, □ etcdState e.rev pfx s ∗ ⌜v ∈ s ∧ EtcdStateWf pfx s⌝))
 

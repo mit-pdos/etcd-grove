@@ -22,16 +22,20 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
-/-- **`lkv.waitRescind(ctx, key, rev)`**: watches the lease key from `rev + 1` until a delete
-event or the watch's end, and returns `ctx.Err()`: no promise (it returns `nil` when the watch
-closes without a delete event: a finding, `STATUS.md`). The context must be cancelable
-(`WithCancel(ctx)`). -/
+/-- **`lkv.waitRescind(ctx, key, rev)`**: watches the lease key `pfx ++ key` from `rev + 1` until
+a delete event or the watch's end, and returns `ctx.Err()`. An error, or `nil` after a delete event
+(the lease key absent at a revision above `rev`, `leaseKeyDeleted`), **or `nil` with no promise**:
+the watch channel closed without a delete event while `ctx` is not done (the watch was canceled,
+e.g. its start revision compacted, or the client closed), so the lease key may still exist (a
+finding, `STATUS.md`). The context must be cancelable (`WithCancel(ctx)`). -/
 abbrev leasingKV.waitRescind.spec : Prop :=
   ∀ (lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
     (cs : context.ContextDesc (IProp GF)) (key : GoString) (rev : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs }}
     (App (App (App (Val (lkv @!! go.GoType.PointerType leasingKV.ty @!! go!"waitRescind")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #rev))
-  {{ (err : GoInterface), RET #err; True }}
+  {{ (err : GoInterface), RET #err;
+      ⌜err ≠ GoInterface.nil⌝ ∨ (⌜err = GoInterface.nil⌝ ∗ leaseKeyDeleted pfx key rev) ∨
+      ⌜err = GoInterface.nil⌝ }}
 
 end spec
 

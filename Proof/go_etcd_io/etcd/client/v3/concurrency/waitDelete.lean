@@ -164,6 +164,7 @@ theorem waitDelete.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
       iunfold rangeWatchEvOk at Hok'
       icases Hok' with ⟨%Hke, #Hreach, #Habs, -⟩
       ihave #Habs' := Habs $$ %‹e.typ = W32 1›
+      icases Habs' with ⟨#Habs', -⟩
       have Hek : e.key = key := by
         have := Hke.1; rw [Hw3, Hw4] at this; simpa [inRange] using this
       wp_for_post

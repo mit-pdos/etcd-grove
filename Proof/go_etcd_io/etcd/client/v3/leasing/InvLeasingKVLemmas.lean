@@ -99,9 +99,9 @@ theorem leasingX_waitc (lkv : Loc) (γ : LeasingNames) :
 session gives (`sessionOk`), `sessionReady` if it is set, and the way back. -/
 theorem leasingX_session (lkv : Loc) (γ : LeasingNames) (st : LeaseCacheSt) (q : Qp) :
     leasingX (GF := GF) lkv γ st q ⊢ ∃ s : Loc,
-      structFieldRef leasingKV go!"session" lkv ↦{DFrac.own q} s ∗ □ sessionOk γ s ∗
+      structFieldRef leasingKV go!"session" lkv ↦{DFrac.own q.half} s ∗ □ sessionOk γ s ∗
       □ (if s = null then iprop(True) else sessionReady γ) ∗
-      (structFieldRef leasingKV go!"session" lkv ↦{DFrac.own q} s -∗ leasingX lkv γ st q) := by
+      (structFieldRef leasingKV go!"session" lkv ↦{DFrac.own q.half} s -∗ leasingX lkv γ st q) := by
   unfold leasingX leasingXBody
   iintro ⟨%x, Hs, Hsc, Hl, %Hlast, Hn, #Hso, #Hsco⟩
   ihave #Hlb := monoNatLbOwn_get γ.sess q (sessN x.1) $$ Hn
@@ -124,9 +124,9 @@ theorem leasingX_session (lkv : Loc) (γ : LeasingNames) (st : LeaseCacheSt) (q 
 /-- **The `session` field once a session was set**: it is not nil. -/
 theorem leasingX_session_ready (lkv : Loc) (γ : LeasingNames) (st : LeaseCacheSt) (q : Qp) :
     sessionReady (GF := GF) γ ∗ leasingX lkv γ st q ⊢ ∃ s : Loc,
-      structFieldRef leasingKV go!"session" lkv ↦{DFrac.own q} s ∗ ⌜s ≠ null⌝ ∗
+      structFieldRef leasingKV go!"session" lkv ↦{DFrac.own q.half} s ∗ ⌜s ≠ null⌝ ∗
       □ sessionOk γ s ∗
-      (structFieldRef leasingKV go!"session" lkv ↦{DFrac.own q} s -∗ leasingX lkv γ st q) := by
+      (structFieldRef leasingKV go!"session" lkv ↦{DFrac.own q.half} s -∗ leasingX lkv γ st q) := by
   unfold leasingX leasingXBody
   iintro ⟨#Hr, %x, Hs, Hsc, Hl, %Hlast, Hn, #Hso, #Hsco⟩
   unfold sessionReady

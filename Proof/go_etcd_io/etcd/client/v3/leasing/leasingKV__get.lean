@@ -184,7 +184,7 @@ theorem leasingKV.get.wp_proof
           ipureintro; exact ⟨Hrr, Hrev, Hlo_r, Hwf⟩
         -- acquired: cache the response
         simp only [↓reduceIte]
-        icases Hokf with ⟨%id, %lv, %Hlv, #Hready⟩
+        icases Hokf with ⟨%id, %lv, %Hlv, #Hready, #Hsr⟩
         iunfold rangeBodyOwn at Hbody
         icases Hbody with ⟨%sl, %cs1, %more, Hkvs, Hsl, Hcap, Hcs, %Hok, Hmore, Hcount⟩
         let e0 : LeaseEntry := LeaseEntry.mk null hm.revision null rr hdr hm sl cs1 more
@@ -230,7 +230,8 @@ theorem leasingKV.get.wp_proof
         · try wp_auto
           wp_apply wp_with_defer as %defer defer
           try wp_auto
-          wp_apply hML lkv γ pfx ctx cs o.key hm.revision $$ [$Hpkg $Hlkv $Hslot $Hctx]
+          wp_apply hML lkv γ pfx ctx cs o.key hm.revision $$ [$Hpkg $Hlkv $Hslot $Hsr $Hctx]
+          · ipureintro; rw [Hrev]; constructor <;> omega
           try wp_auto
           wp_apply wp_leasingWg_Done lkv γ $$ [$Hsync $Hwg $Hwginv $Hrun] as Htok
           try wp_auto
