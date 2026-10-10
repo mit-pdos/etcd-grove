@@ -24,6 +24,7 @@ usage: etc/gen-link.py ROCQ_PROOF_DIR > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --concurrency > Proof/go_etcd_io/etcd/client/v3/concurrency/Link.lean
        etc/gen-link.py --register > Proof/github_com/mit_pdos/etcd_grove/examples/register/Link.lean
        etc/gen-link.py --bbolt > Proof/go_etcd_io/bbolt/internal/common/Link.lean
+       etc/gen-link.py --bbolt-root > Proof/go_etcd_io/bbolt/Link.lean
 
 `--cache` links the proofs of etcd's `cache` package (`Proof/go_etcd_io/etcd/cache/v3/` and
 the specs and proofs of its functions), which are all
@@ -39,7 +40,9 @@ function's with the prefix `v3.` (`concurrency.v3.wp_OpPut`), and the specs are 
 their full names below `EtcdGrove`: the cache's Link links some of the same clientv3 functions
 (under the cache's assumptions), and concurrency's `WithLease` shares its name with clientv3's.
 `--bbolt` links bbolt's proofs (`internal/common` so far), from etc/link-lean-first-bbolt.txt,
-in the namespace `bbolt` (their specs' namespace).
+in the namespace `bbolt` (their specs' namespace). `--bbolt-root` links those of bbolt's root
+package (and the axioms of the file and memory-map model, `Proof/os/FileModel.lean`, which
+they call), from etc/link-lean-first-bbolt-root.txt.
 `--register` links the register example's proofs (`examples/register`), from
 etc/link-lean-first-register.txt; raft's functions it calls are `@` callees, linked in raft's
 `Link.lean`, and its specs' `[RegStor GF]` (the storage registry) is passed on.
@@ -77,9 +80,12 @@ LEAN_FIRST = {
     # bbolt (go.etcd.io/bbolt): its proofs, in namespace `bbolt`
     "--bbolt": ("link-lean-first-bbolt.txt", "go_etcd_io.bbolt.internal.common",
                 "go_etcd_io.bbolt.internal.common.Assumptions", "bbolt's proofs", [""]),
+    "--bbolt-root": ("link-lean-first-bbolt-root.txt", "go_etcd_io.bbolt",
+                     "go_etcd_io.bbolt.Assumptions",
+                     "bbolt's root package's proofs and the file model's axioms", [""]),
 }
 # The mode whose results are put in a namespace of their own (see the docstring).
-NAMESPACED = {"--concurrency": "concurrency", "--bbolt": "bbolt"}
+NAMESPACED = {"--concurrency": "concurrency", "--bbolt": "bbolt", "--bbolt-root": "bbolt"}
 mode = LEAN_FIRST.get(sys.argv[1])
 cache = mode is not None
 here = os.path.dirname(os.path.abspath(__file__))

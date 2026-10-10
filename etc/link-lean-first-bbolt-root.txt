@@ -1,0 +1,20 @@
+# bbolt's root package (go.etcd.io/bbolt, Lean-first), read by `etc/gen-link.py --bbolt-root`:
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`. The functions of os, syscall
+# and golang.org/x/sys/unix are the file model's axioms (`Proof/os/FileModel.lean`).
+os_OpenFile:
+os_File__Close:
+os_File__Fd:
+os_File__Name:
+os_File__Stat:
+fs_FileInfo__Size:
+os_File__ReadAt:
+os_File__WriteAt:
+os_File__Truncate:
+os_File__Sync:
+syscall_Fdatasync:
+syscall_Flock:
+unix_Mmap:
+unix_Munmap:
+unix_Madvise:
+bbolt_mmap: os_File__Fd unix_Mmap unix_Madvise
+bbolt_munmap: unix_Munmap
