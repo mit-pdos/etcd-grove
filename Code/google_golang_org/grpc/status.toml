@@ -1,4 +1,7 @@
 # Names only: `status.Error` is called by `clientv3.WatchResponse.Err`; its body is not
-# translated (see `Spec/google_golang_org/grpc/status/Error.lean`).
-translate = ["!*"]
-imports = ["!*"]
+# translated (see `Spec/google_golang_org/grpc/status/Error.lean`). The alias `Status` (of
+# `internal/status.Status`, names only) is translated for `client/v3/leasing`, which calls
+# `FromError` and the result's `Code()`: an untranslated alias is emitted as an axiomatized type
+# without the `.ty` its users name.
+translate = ["!*", "Status"]
+imports = ["!*", "google.golang.org/grpc/internal/status"]

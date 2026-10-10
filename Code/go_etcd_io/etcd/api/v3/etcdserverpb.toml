@@ -4,7 +4,8 @@
 # has (`state protoimpl.MessageState`, ...).
 # For client/v3/concurrency (the transaction and lease model): the comparisons (`Compare` and its
 # oneof wrappers), the transaction's response (`TxnResponse`, `ResponseOp` and its oneof wrappers,
-# `PutResponse`, `DeleteRangeResponse`) and `LeaseRevokeResponse`; for `Mutex`, `ResponseOp.GetResponseRange`.
+# `PutResponse`, `DeleteRangeResponse`) and `LeaseRevokeResponse`; for `Mutex`, `ResponseOp.GetResponseRange`;
+# for client/v3/leasing, the header's, the comparison's and the response's getters.
 translate = ["!*", "ResponseHeader", "ResponseHeader.GetRevision", "Compare.GetKey", "RangeResponse", "WatchResponse",
   "Compare", "Compare_Version", "Compare_CreateRevision", "Compare_ModRevision", "Compare_Value",
   "Compare_Lease", "Compare_EQUAL", "Compare_GREATER", "Compare_LESS", "Compare_NOT_EQUAL",
@@ -12,7 +13,11 @@ translate = ["!*", "ResponseHeader", "ResponseHeader.GetRevision", "Compare.GetK
   "TxnResponse", "ResponseOp", "ResponseOp_ResponseRange", "ResponseOp_ResponsePut",
   "ResponseOp_ResponseDeleteRange", "ResponseOp_ResponseTxn", "ResponseOp.GetResponseRange",
   "PutResponse", "DeleteRangeResponse",
-  "LeaseRevokeResponse"]
+  "LeaseRevokeResponse",
+  "ResponseHeader.GetClusterId", "ResponseHeader.GetMemberId", "ResponseHeader.GetRaftTerm",
+  "ResponseHeader.GetLeaderId", "Compare.GetRangeEnd", "Compare.GetResult", "Compare.GetTarget",
+  "Compare.GetTargetUnion", "ResponseOp.GetResponseTxn", "ResponseOp.GetResponsePut",
+  "ResponseOp.GetResponseDeleteRange", "ResponseOp.GetResponse"]
 imports = ["!*", "go.etcd.io/etcd/api/v3/mvccpb", "google.golang.org/protobuf/runtime/protoimpl"]
 
 # translate the definitions of all type declarations goose supports

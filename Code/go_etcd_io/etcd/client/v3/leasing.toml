@@ -1,0 +1,4 @@
+# go.etcd.io/etcd/client/v3/leasing: translated in full (every declaration, with bodies): the
+# lease cache (cache.go, util.go) and the leasing KV (kv.go, txn.go).
+translate = ["*"]
+imports = ["*"]

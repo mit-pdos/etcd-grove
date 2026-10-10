@@ -114,6 +114,15 @@ instance grpc_codes_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.codes :=
   build_get_is_pkg_init_wf
 
+-- The names-only target of the alias `grpc/status.Status` (imported by `grpc/status` since
+-- `client/v3/leasing` names it).
+instance grpc_internal_status_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.internal.status :=
+  define_is_pkg_init iprop(True)
+instance grpc_internal_status_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.internal.status :=
+  build_get_is_pkg_init_wf
+
 instance grpc_status_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.status :=
   define_is_pkg_init iprop(True)

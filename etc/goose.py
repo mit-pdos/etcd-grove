@@ -118,7 +118,7 @@ PROJECTS = [
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="ab1deb078c7665f4907b0a4297cbd990266ecfde",
+        rev="0fc6f23b14641ad8ed21f6c03620c342831795d1",
         # go.etcd.io/raft/v3 is etcd's own raft dependency (etcd's go.mod), not the raft
         # above: its modules are EtcdDeps.Code.go_etcd_io.raft.v3* (the part below).
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
@@ -130,6 +130,8 @@ PROJECTS = [
             "go.etcd.io/etcd/cache/v3",
             # with bodies (client/v3/concurrency.toml): Session, Mutex, Election, STM
             "go.etcd.io/etcd/client/v3/concurrency",
+            # with bodies (client/v3/leasing.toml): the leasing KV and its lease cache
+            "go.etcd.io/etcd/client/v3/leasing",
             # the server's consistent index, with bodies (cindex.toml), or some of them
             # (etcdserver.toml: the apply thread; storage/schema.toml: cindex.go)
             "go.etcd.io/etcd/server/v3/etcdserver/cindex",
@@ -182,6 +184,8 @@ PROJECTS = [
             # names only: what `clientv3.WatchResponse.Err` calls
             "google.golang.org/grpc/codes",
             "google.golang.org/grpc/status",
+            # names only: the target of the alias grpc/status.Status (client/v3/leasing)
+            "google.golang.org/grpc/internal/status",
             # the types of protobuf messages' fields (protoimpl.MessageState, ...)
             "google.golang.org/protobuf/runtime/protoimpl",
             "google.golang.org/protobuf/internal/impl",

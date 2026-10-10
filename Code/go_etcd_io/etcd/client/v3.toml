@@ -88,6 +88,29 @@ translate = [
   "SortAscend",
   "SortDescend",
   "SortNone",
+  # client/v3/leasing: the Op getters and builders it uses, nested transactions, the comparison's
+  # message and key, the response conversions
+  "Op.KeyBytes",
+  "Op.ValueBytes",
+  "Op.IsGet",
+  "Op.IsPut",
+  "Op.IsDelete",
+  "Op.IsTxn",
+  "Op.Txn",
+  "Op.IsKeysOnly",
+  "tTxn",
+  "OpTxn",
+  "WithIgnoreLease",
+  "WithKeysOnly",
+  "WithLastRev",
+  "SortByModRevision",
+  "Cmp.KeyBytes",
+  "Cmp.GetCompare",
+  "GetResponse.OpResponse",
+  "PutResponse.OpResponse",
+  "DeleteResponse.OpResponse",
+  "TxnResponse.OpResponse",
+  "OpResponse.Get",
 ]
 imports = ["!*", "context", "sync", "time", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "google.golang.org/grpc/codes", "google.golang.org/grpc/status", "google.golang.org/grpc", "google.golang.org/grpc/credentials", "go.etcd.io/etcd/client/v3/internal/resolver", "go.etcd.io/etcd/client/v3/credentials", "go.uber.org/zap", "sync/atomic", "google.golang.org/protobuf/proto", "fmt"]
 
