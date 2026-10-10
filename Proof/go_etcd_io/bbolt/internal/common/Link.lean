@@ -9,6 +9,7 @@ hand.
 module
 
 public import Proof.go_etcd_io.bbolt.internal.common.InBucket__InSequence
+public import Proof.go_etcd_io.bbolt.internal.common.InBucket__IncSequence
 public import Proof.go_etcd_io.bbolt.internal.common.InBucket__RootPage
 public import Proof.go_etcd_io.bbolt.internal.common.InBucket__SetInSequence
 public import Proof.go_etcd_io.bbolt.internal.common.InBucket__SetRootPage
@@ -21,11 +22,15 @@ public import Proof.go_etcd_io.bbolt.internal.common.Inode__SetPgid
 public import Proof.go_etcd_io.bbolt.internal.common.Inode__SetValue
 public import Proof.go_etcd_io.bbolt.internal.common.Inode__Value
 public import Proof.go_etcd_io.bbolt.internal.common.Meta__Checksum
+public import Proof.go_etcd_io.bbolt.internal.common.Meta__DecTxid
 public import Proof.go_etcd_io.bbolt.internal.common.Meta__Flags
 public import Proof.go_etcd_io.bbolt.internal.common.Meta__Freelist
+public import Proof.go_etcd_io.bbolt.internal.common.Meta__IncTxid
+public import Proof.go_etcd_io.bbolt.internal.common.Meta__IsFreelistPersisted
 public import Proof.go_etcd_io.bbolt.internal.common.Meta__Magic
 public import Proof.go_etcd_io.bbolt.internal.common.Meta__PageSize
 public import Proof.go_etcd_io.bbolt.internal.common.Meta__Pgid
+public import Proof.go_etcd_io.bbolt.internal.common.Meta__RootBucket
 public import Proof.go_etcd_io.bbolt.internal.common.Meta__SetChecksum
 public import Proof.go_etcd_io.bbolt.internal.common.Meta__SetFlags
 public import Proof.go_etcd_io.bbolt.internal.common.Meta__SetFreelist
@@ -53,23 +58,30 @@ public import Proof.go_etcd_io.bbolt.internal.common.Page__SetCount
 public import Proof.go_etcd_io.bbolt.internal.common.Page__SetFlags
 public import Proof.go_etcd_io.bbolt.internal.common.Page__SetId
 public import Proof.go_etcd_io.bbolt.internal.common.Page__SetOverflow
+public import Proof.go_etcd_io.bbolt.internal.common.branchPageElement__Key
 public import Proof.go_etcd_io.bbolt.internal.common.branchPageElement__Ksize
 public import Proof.go_etcd_io.bbolt.internal.common.branchPageElement__Pgid
 public import Proof.go_etcd_io.bbolt.internal.common.branchPageElement__Pos
 public import Proof.go_etcd_io.bbolt.internal.common.branchPageElement__SetKsize
 public import Proof.go_etcd_io.bbolt.internal.common.branchPageElement__SetPgid
 public import Proof.go_etcd_io.bbolt.internal.common.branchPageElement__SetPos
+public import Proof.go_etcd_io.bbolt.internal.common.LoadBucket
+public import Proof.go_etcd_io.bbolt.internal.common.LoadPage
+public import Proof.go_etcd_io.bbolt.internal.common.LoadPageMeta
 public import Proof.go_etcd_io.bbolt.internal.common.Mergepgids
 public import Proof.go_etcd_io.bbolt.internal.common.UnsafeAdd
 public import Proof.go_etcd_io.bbolt.internal.common.UnsafeByteSlice
 public import Proof.go_etcd_io.bbolt.internal.common.UnsafeIndex
 public import Proof.go_etcd_io.bbolt.internal.common.leafPageElement__Flags
+public import Proof.go_etcd_io.bbolt.internal.common.leafPageElement__IsBucketEntry
+public import Proof.go_etcd_io.bbolt.internal.common.leafPageElement__Key
 public import Proof.go_etcd_io.bbolt.internal.common.leafPageElement__Ksize
 public import Proof.go_etcd_io.bbolt.internal.common.leafPageElement__Pos
 public import Proof.go_etcd_io.bbolt.internal.common.leafPageElement__SetFlags
 public import Proof.go_etcd_io.bbolt.internal.common.leafPageElement__SetKsize
 public import Proof.go_etcd_io.bbolt.internal.common.leafPageElement__SetPos
 public import Proof.go_etcd_io.bbolt.internal.common.leafPageElement__SetVsize
+public import Proof.go_etcd_io.bbolt.internal.common.leafPageElement__Value
 public import Proof.go_etcd_io.bbolt.internal.common.leafPageElement__Vsize
 
 @[expose] public section
@@ -92,6 +104,10 @@ variable [package_sem : go_etcd_io.bbolt.internal.common.Assumptions]
 theorem InBucket.wp_InSequence :
     EtcdGrove.bbolt.InBucket.InSequence.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.InBucket.InSequence.wp_proof
+
+theorem InBucket.wp_IncSequence :
+    EtcdGrove.bbolt.InBucket.IncSequence.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.InBucket.IncSequence.wp_proof
 
 theorem InBucket.wp_RootPage :
     EtcdGrove.bbolt.InBucket.RootPage.spec (GF := GF) (hG := hG) :=
@@ -141,6 +157,10 @@ theorem Meta.wp_Checksum :
     EtcdGrove.bbolt.Meta.Checksum.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Meta.Checksum.wp_proof
 
+theorem Meta.wp_DecTxid :
+    EtcdGrove.bbolt.Meta.DecTxid.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Meta.DecTxid.wp_proof
+
 theorem Meta.wp_Flags :
     EtcdGrove.bbolt.Meta.Flags.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Meta.Flags.wp_proof
@@ -148,6 +168,14 @@ theorem Meta.wp_Flags :
 theorem Meta.wp_Freelist :
     EtcdGrove.bbolt.Meta.Freelist.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Meta.Freelist.wp_proof
+
+theorem Meta.wp_IncTxid :
+    EtcdGrove.bbolt.Meta.IncTxid.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Meta.IncTxid.wp_proof
+
+theorem Meta.wp_IsFreelistPersisted :
+    EtcdGrove.bbolt.Meta.IsFreelistPersisted.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Meta.IsFreelistPersisted.wp_proof
 
 theorem Meta.wp_Magic :
     EtcdGrove.bbolt.Meta.Magic.spec (GF := GF) (hG := hG) :=
@@ -160,6 +188,10 @@ theorem Meta.wp_PageSize :
 theorem Meta.wp_Pgid :
     EtcdGrove.bbolt.Meta.Pgid.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Meta.Pgid.wp_proof
+
+theorem Meta.wp_RootBucket :
+    EtcdGrove.bbolt.Meta.RootBucket.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Meta.RootBucket.wp_proof
 
 theorem Meta.wp_SetChecksum :
     EtcdGrove.bbolt.Meta.SetChecksum.spec (GF := GF) (hG := hG) :=
@@ -277,6 +309,14 @@ theorem Page.wp_SetOverflow :
     EtcdGrove.bbolt.Page.SetOverflow.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Page.SetOverflow.wp_proof
 
+theorem wp_UnsafeByteSlice :
+    EtcdGrove.bbolt.UnsafeByteSlice.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.UnsafeByteSlice.wp_proof wp_UnsafeAdd
+
+theorem branchPageElement.wp_Key :
+    EtcdGrove.bbolt.branchPageElement.Key.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.branchPageElement.Key.wp_proof wp_UnsafeByteSlice
+
 theorem branchPageElement.wp_Ksize :
     EtcdGrove.bbolt.branchPageElement.Ksize.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.branchPageElement.Ksize.wp_proof
@@ -301,17 +341,33 @@ theorem branchPageElement.wp_SetPos :
     EtcdGrove.bbolt.branchPageElement.SetPos.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.branchPageElement.SetPos.wp_proof
 
+theorem wp_LoadBucket :
+    EtcdGrove.bbolt.LoadBucket.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.LoadBucket.wp_proof
+
+theorem wp_LoadPage :
+    EtcdGrove.bbolt.LoadPage.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.LoadPage.wp_proof
+
+theorem wp_LoadPageMeta :
+    EtcdGrove.bbolt.LoadPageMeta.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.LoadPageMeta.wp_proof
+
 theorem wp_Mergepgids :
     EtcdGrove.bbolt.Mergepgids.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Mergepgids.wp_proof
 
-theorem wp_UnsafeByteSlice :
-    EtcdGrove.bbolt.UnsafeByteSlice.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.UnsafeByteSlice.wp_proof wp_UnsafeAdd
-
 theorem leafPageElement.wp_Flags :
     EtcdGrove.bbolt.leafPageElement.Flags.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.leafPageElement.Flags.wp_proof
+
+theorem leafPageElement.wp_IsBucketEntry :
+    EtcdGrove.bbolt.leafPageElement.IsBucketEntry.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.leafPageElement.IsBucketEntry.wp_proof
+
+theorem leafPageElement.wp_Key :
+    EtcdGrove.bbolt.leafPageElement.Key.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.leafPageElement.Key.wp_proof wp_UnsafeByteSlice
 
 theorem leafPageElement.wp_Ksize :
     EtcdGrove.bbolt.leafPageElement.Ksize.spec (GF := GF) (hG := hG) :=
@@ -336,6 +392,10 @@ theorem leafPageElement.wp_SetPos :
 theorem leafPageElement.wp_SetVsize :
     EtcdGrove.bbolt.leafPageElement.SetVsize.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.leafPageElement.SetVsize.wp_proof
+
+theorem leafPageElement.wp_Value :
+    EtcdGrove.bbolt.leafPageElement.Value.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.leafPageElement.Value.wp_proof wp_UnsafeByteSlice
 
 theorem leafPageElement.wp_Vsize :
     EtcdGrove.bbolt.leafPageElement.Vsize.spec (GF := GF) (hG := hG) :=

@@ -1,7 +1,8 @@
 /-
 The proved results of bbolt (`internal/common` so far): the sorted merge of page ids,
-`unsafe.go`'s pointer arithmetic, the accessors of the on-disk structs (`Link.lean`, every
-proof linked to its callees' proofs), and the byte view of a page header (`Bytes.lean`).
+`unsafe.go`'s pointer arithmetic, the accessors of the on-disk structs and the views of a
+page's elements, keys and values (`Link.lean`, every proof linked to its callees' proofs),
+and the byte view of a page header (`Bytes.lean`).
 
 `#print axioms` on a result is its trust base (`sorryAx` is unfinished work).
 -/
@@ -17,6 +18,7 @@ namespace EtcdGrove
 namespace bbolt
 
 #print axioms InBucket.wp_InSequence
+#print axioms InBucket.wp_IncSequence
 #print axioms InBucket.wp_RootPage
 #print axioms InBucket.wp_SetInSequence
 #print axioms InBucket.wp_SetRootPage
@@ -29,11 +31,15 @@ namespace bbolt
 #print axioms Inode.wp_SetValue
 #print axioms Inode.wp_Value
 #print axioms Meta.wp_Checksum
+#print axioms Meta.wp_DecTxid
 #print axioms Meta.wp_Flags
 #print axioms Meta.wp_Freelist
+#print axioms Meta.wp_IncTxid
+#print axioms Meta.wp_IsFreelistPersisted
 #print axioms Meta.wp_Magic
 #print axioms Meta.wp_PageSize
 #print axioms Meta.wp_Pgid
+#print axioms Meta.wp_RootBucket
 #print axioms Meta.wp_SetChecksum
 #print axioms Meta.wp_SetFlags
 #print axioms Meta.wp_SetFreelist
@@ -63,21 +69,28 @@ namespace bbolt
 #print axioms Page.wp_SetFlags
 #print axioms Page.wp_SetId
 #print axioms Page.wp_SetOverflow
+#print axioms wp_UnsafeByteSlice
+#print axioms branchPageElement.wp_Key
 #print axioms branchPageElement.wp_Ksize
 #print axioms branchPageElement.wp_Pgid
 #print axioms branchPageElement.wp_Pos
 #print axioms branchPageElement.wp_SetKsize
 #print axioms branchPageElement.wp_SetPgid
 #print axioms branchPageElement.wp_SetPos
+#print axioms wp_LoadBucket
+#print axioms wp_LoadPage
+#print axioms wp_LoadPageMeta
 #print axioms wp_Mergepgids
-#print axioms wp_UnsafeByteSlice
 #print axioms leafPageElement.wp_Flags
+#print axioms leafPageElement.wp_IsBucketEntry
+#print axioms leafPageElement.wp_Key
 #print axioms leafPageElement.wp_Ksize
 #print axioms leafPageElement.wp_Pos
 #print axioms leafPageElement.wp_SetFlags
 #print axioms leafPageElement.wp_SetKsize
 #print axioms leafPageElement.wp_SetPos
 #print axioms leafPageElement.wp_SetVsize
+#print axioms leafPageElement.wp_Value
 #print axioms leafPageElement.wp_Vsize
 #print axioms Page_bytes
 

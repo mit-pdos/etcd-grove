@@ -65,3 +65,15 @@ Inode__Key:
 Inode__SetKey:
 Inode__Value:
 Inode__SetValue:
+Meta__IncTxid:
+Meta__DecTxid:
+InBucket__IncSequence:
+Meta__IsFreelistPersisted:
+Meta__RootBucket:
+common_LoadBucket:
+common_LoadPage:
+common_LoadPageMeta:
+leafPageElement__IsBucketEntry:
+leafPageElement__Key: common_UnsafeByteSlice
+leafPageElement__Value: common_UnsafeByteSlice
+branchPageElement__Key: common_UnsafeByteSlice

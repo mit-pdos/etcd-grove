@@ -27,6 +27,10 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.common.Assumptions]
 
+/-- Element 0 of an array is at its start (in a block or not). -/
+theorem arrayIndexRef_zero (V : Type) (l : Loc) : arrayIndexRef V 0 l = l := by
+  unfold arrayIndexRef; split <;> simp
+
 /-- The bytes of a page header: `id` (8), `flags` (2), `count` (2), `overflow` (4). -/
 def pageBytes (p : Page) : List w8 :=
   leBytes 8 p.id'.toNat ++ leBytes 2 p.flags'.toNat ++ leBytes 2 p.count'.toNat ++
