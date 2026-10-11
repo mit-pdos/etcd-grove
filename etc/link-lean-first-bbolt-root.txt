@@ -36,6 +36,13 @@ Cursor__keyValue: elemRef__count Page__LeafPageElement leafPageElement__Key leaf
 # (pending internal/common link) common_Assert: @
 Meta__Txid: @
 Meta__Pgid: @
+# (pending internal/common link) Meta__Validate: @
+# (pending internal/common link) DB__meta: Meta__Txid Meta__Validate
+# (pending internal/common link) Meta__Copy: @
+# (pending internal/common link) Meta__RootBucket: @
+# (pending internal/common link) Meta__IncTxid: @
+newBucket:
+# (pending internal/common link) Tx__init: DB__meta Meta__Copy newBucket Meta__RootBucket Meta__IncTxid
 Page__LeafPageElements: @
 Cursor__nsearch: Page__LeafPageElements Page__Count leafPageElement__Key
 bbolt_atomicLoadDuration:
