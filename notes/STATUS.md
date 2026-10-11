@@ -87,7 +87,7 @@ one". Units 0 to 4; unit 0 (translation, scaffolding, the reproductions) is done
   propagate. For the proofs as shipped, `WaitEvents`'s spec takes the premise that the channel
   delivers the events before it closes (a nil dereference is stuck in GooseLang), stated on the
   watch channel.
-- **Numbers** (`etc/verified-code.py --reuse`): the recipes 38 functions, 398 Go lines, all
+- **Numbers** (`etc/verified-code.py --reuse`): the recipes 38 functions, 401 Go lines (at `bc8b52a50`), all
   translated, 0 verified (`double_barrier.go` 4/101 lines, `key.go` 13/98, `rwmutex.go` 6/46,
   `priority_queue.go` 3/37, `queue.go` 3/36, `watch.go` 3/32, `barrier.go` 4/26, `client.go`
   2/22); etcd 330 verified of 3599.
