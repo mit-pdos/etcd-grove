@@ -32,9 +32,14 @@ theorem mvcc.txnReadWrite.Range.wp_proof
   iunfold mvcc.isRoTxnWrite at Hro
   icases Hro with ⟨%mw, Hf, Htx⟩
   (try wp_auto)
-  wp_apply (hRange mw s γ log rev ctx cd key endk k e ro) $$ [$Hpkg $Htx $Hctx $Hk $He]
-    as %r %err ⟨Htx, Hout⟩
+  ihave Htx : mvcc.isTxn mw s γ (.read log rev) $$ [Htx]
+  · simp only [mvcc.isTxn]; iexact Htx
+  ihave #Hctx' : mvcc.rangeCtx false ctx cd $$ []
+  · simp only [mvcc.rangeCtx, Bool.false_eq_true, ↓reduceIte]; iexact Hctx
+  wp_apply (hRange mw s γ (.read log rev) ctx cd false key endk k e ro)
+    $$ [$Hpkg $Htx $Hctx' $Hk $He] as %r %err ⟨-, Htx, Hout⟩
   (try wp_auto)
+  simp only [mvcc.isTxn, mvcc.TxnKind.readLog, mvcc.TxnKind.readRev]
   iapply HΦ
   iframe Hout
   iunfold mvcc.isRoTxnWrite

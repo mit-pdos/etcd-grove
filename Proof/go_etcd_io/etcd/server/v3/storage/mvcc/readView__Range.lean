@@ -49,9 +49,14 @@ theorem mvcc.readView.Range.wp_proof
   wp_apply (hRead s γ _ t 0 []) $$ [$Hs $Hrd $Hnone $Hc0] as %mw ⟨%log, %rev, Htx, -, -⟩
   (try wp_auto)
   -- `tr.Range(...)`: `metricsTxnWrite.Range`
-  wp_apply (hRange mw s γ log rev ctx cd key endk k e ro) $$ [$Htx $Hctx $Hkey $Hend]
-    as %r %err ⟨Htx, Hout⟩
+  ihave Htx : mvcc.isTxn mw s γ (.read log rev) $$ [Htx]
+  · simp only [mvcc.isTxn]; iexact Htx
+  ihave #Hctx' : mvcc.rangeCtx false ctx cd $$ []
+  · simp only [mvcc.rangeCtx, Bool.false_eq_true, ↓reduceIte]; iexact Hctx
+  wp_apply (hRange mw s γ (.read log rev) ctx cd false key endk k e ro)
+    $$ [$Htx $Hctx' $Hkey $Hend] as %r %err ⟨-, Htx, Hout⟩
   (try wp_auto)
+  simp only [mvcc.isTxn, mvcc.TxnKind.readLog, mvcc.TxnKind.readRev]
   iunfold mvcc.isTxnRead at Htx
   iNamed Htx
   ihave #HtrT := Htr

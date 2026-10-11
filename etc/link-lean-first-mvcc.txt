@@ -78,7 +78,7 @@ storeTxnWrite__Changes:
 # promoted methods of `txnReadWrite` and `storeTxnRead` (unfolded in the proofs); `readView`
 # opens and closes a transaction around each read; `traceutil.TODO` is an axiom.
 traceutil_TODO:
-metricsTxnWrite__Range: storeTxnCommon__Range
+metricsTxnWrite__Range: storeTxnCommon__Range storeTxnWrite__Range
 metricsTxnWrite__Put: storeTxnWrite__Put
 metricsTxnWrite__DeleteRange: storeTxnWrite__DeleteRange
 metricsTxnWrite__End: storeTxnRead__End storeTxnWrite__End

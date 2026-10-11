@@ -348,9 +348,13 @@ theorem mvcc.storeTxnCommon.wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.storeTxnCommon.Range.spec (GF := GF) (hG := hG) :=
   mvcc.storeTxnCommon.Range.wp_proof mvcc.storeTxnCommon.wp_Rev mvcc.storeTxnCommon.wp_rangeKeys
 
+theorem mvcc.storeTxnWrite.wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
+    mvcc.storeTxnWrite.Range.spec (GF := GF) (hG := hG) :=
+  mvcc.storeTxnWrite.Range.wp_proof mvcc.storeTxnCommon.wp_rangeKeys
+
 theorem mvcc.metricsTxnWrite.wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.metricsTxnWrite.Range.spec (GF := GF) (hG := hG) :=
-  mvcc.metricsTxnWrite.Range.wp_proof mvcc.storeTxnCommon.wp_Range
+  mvcc.metricsTxnWrite.Range.wp_proof mvcc.storeTxnCommon.wp_Range mvcc.storeTxnWrite.wp_Range
 
 theorem mvcc.wp_newMetricsTxnWrite :
     mvcc.newMetricsTxnWrite.spec (GF := GF) (hG := hG) :=
@@ -375,10 +379,6 @@ theorem mvcc.readView.wp_Rev :
 theorem mvcc.storeTxnWrite.wp_Changes :
     mvcc.storeTxnWrite.Changes.spec (GF := GF) (hG := hG) :=
   mvcc.storeTxnWrite.Changes.wp_proof
-
-theorem mvcc.storeTxnWrite.wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
-    mvcc.storeTxnWrite.Range.spec (GF := GF) (hG := hG) :=
-  mvcc.storeTxnWrite.Range.wp_proof mvcc.storeTxnCommon.wp_rangeKeys
 
 theorem mvcc.storeTxnWrite.wp_Rev :
     mvcc.storeTxnWrite.Rev.spec (GF := GF) (hG := hG) :=
