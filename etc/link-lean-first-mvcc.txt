@@ -1,7 +1,18 @@
 # The mvcc KV core's functions (all Lean-first: no Rocq counterpart), read by
 # `etc/gen-link.py --mvcc`: `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
-# Revisions (revision.go), see Model.lean.
+# Revisions (revision.go), see Model.lean; their encoding as bucket keys, see RevBytes.lean
+# (encoding/binary's BigEndian is the trust boundary of the server's list, in Spec/encoding/binary/).
 Revision__GreaterThan:
+newBucketKey:
+NewRevBytes:
+isTombstone:
+IsTombstone: isTombstone
+binary_bigEndian__PutUint64:
+binary_bigEndian__Uint64:
+BucketKeyToBytes: binary_bigEndian__PutUint64
+RevToBytes: newBucketKey BucketKeyToBytes
+BytesToBucketKey: binary_bigEndian__Uint64 isTombstone
+BytesToRev: BytesToBucketKey
 # The key index and its generations (key_index.go), see Model.lean, Defs.lean.
 generation__isEmpty:
 generation__walk:

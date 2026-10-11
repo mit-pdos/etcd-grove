@@ -6,3 +6,5 @@
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Link\.lean$
+axiom binary.bigEndian.PutUint64.wp_proof
+axiom binary.bigEndian.Uint64.wp_proof

@@ -30,6 +30,18 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.LogLemmas
 #print axioms Perennial.EtcdGrove.mvcc.treeIndex.wp_CountRevisions
 #print axioms Perennial.EtcdGrove.mvcc.treeIndex.wp_Range
 
+/-! The revision encoding (`revision.go`): bucket keys of 17 bytes, 18 for a tombstone, through
+encoding/binary's `BigEndian` (the trust boundary, two axioms: `binary.bigEndian.PutUint64.wp_proof`
+and `binary.bigEndian.Uint64.wp_proof`, as in the server's results). -/
+#print axioms Perennial.EtcdGrove.mvcc.wp_newBucketKey
+#print axioms Perennial.EtcdGrove.mvcc.wp_NewRevBytes
+#print axioms Perennial.EtcdGrove.mvcc.wp_isTombstone
+#print axioms Perennial.EtcdGrove.mvcc.wp_IsTombstone
+#print axioms Perennial.EtcdGrove.mvcc.wp_BucketKeyToBytes
+#print axioms Perennial.EtcdGrove.mvcc.wp_RevToBytes
+#print axioms Perennial.EtcdGrove.mvcc.wp_BytesToBucketKey
+#print axioms Perennial.EtcdGrove.mvcc.wp_BytesToRev
+
 /-! The model: what the index answers of a key at a revision is the state's key-value, and a
 reader's range answer is its certified log's. -/
 #print axioms Perennial.EtcdGrove.mvcc.kiGet_indexOf

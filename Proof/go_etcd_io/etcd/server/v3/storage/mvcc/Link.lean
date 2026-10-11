@@ -8,15 +8,25 @@ hand.
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BucketKeyToBytes
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BytesToBucketKey
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BytesToRev
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.IsTombstone
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewRevBytes
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RevToBytes
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Revision__GreaterThan
+public import Proof.encoding.binary.bigEndian__PutUint64
+public import Proof.encoding.binary.bigEndian__Uint64
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.generation__isEmpty
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.generation__walk
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.isTombstone
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__Less
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__findGeneration
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__get
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__isEmpty
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__put
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__tombstone
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newBucketKey
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newTreeIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__CountRevisions
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Get
@@ -44,6 +54,46 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+
+theorem binary.bigEndian.wp_PutUint64 :
+    binary.bigEndian.PutUint64.spec (GF := GF) (hG := hG) :=
+  binary.bigEndian.PutUint64.wp_proof
+
+theorem mvcc.wp_BucketKeyToBytes :
+    mvcc.BucketKeyToBytes.spec (GF := GF) (hG := hG) :=
+  mvcc.BucketKeyToBytes.wp_proof binary.bigEndian.wp_PutUint64
+
+theorem binary.bigEndian.wp_Uint64 :
+    binary.bigEndian.Uint64.spec (GF := GF) (hG := hG) :=
+  binary.bigEndian.Uint64.wp_proof
+
+theorem mvcc.wp_isTombstone :
+    mvcc.isTombstone.spec (GF := GF) (hG := hG) :=
+  mvcc.isTombstone.wp_proof
+
+theorem mvcc.wp_BytesToBucketKey :
+    mvcc.BytesToBucketKey.spec (GF := GF) (hG := hG) :=
+  mvcc.BytesToBucketKey.wp_proof binary.bigEndian.wp_Uint64 mvcc.wp_isTombstone
+
+theorem mvcc.wp_BytesToRev :
+    mvcc.BytesToRev.spec (GF := GF) (hG := hG) :=
+  mvcc.BytesToRev.wp_proof mvcc.wp_BytesToBucketKey
+
+theorem mvcc.wp_IsTombstone :
+    mvcc.IsTombstone.spec (GF := GF) (hG := hG) :=
+  mvcc.IsTombstone.wp_proof mvcc.wp_isTombstone
+
+theorem mvcc.wp_NewRevBytes :
+    mvcc.NewRevBytes.spec (GF := GF) (hG := hG) :=
+  mvcc.NewRevBytes.wp_proof
+
+theorem mvcc.wp_newBucketKey :
+    mvcc.newBucketKey.spec (GF := GF) (hG := hG) :=
+  mvcc.newBucketKey.wp_proof
+
+theorem mvcc.wp_RevToBytes :
+    mvcc.RevToBytes.spec (GF := GF) (hG := hG) :=
+  mvcc.RevToBytes.wp_proof mvcc.wp_newBucketKey mvcc.wp_BucketKeyToBytes
 
 theorem mvcc.Revision.wp_GreaterThan :
     mvcc.Revision.GreaterThan.spec (GF := GF) (hG := hG) :=
