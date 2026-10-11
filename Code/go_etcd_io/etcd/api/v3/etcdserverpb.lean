@@ -863,16 +863,6 @@ axiom EmptyResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom InternalAuthenticateRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom RangeRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom PutRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom DeleteRangeRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom RequestOp.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom TxnRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
 axiom CompactionRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom CompactionResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
@@ -1105,21 +1095,32 @@ axiom AlarmType_NONE [FfiSyntax] [GoGlobalContext] : val
 
 axiom AlarmType_CORRUPT [FfiSyntax] [GoGlobalContext] : val
 
-axiom RangeRequest_NONE [FfiSyntax] [GoGlobalContext] : val
+/-- default, no sorting -/
+@[reducible] noncomputable def RangeRequest_NONE [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 0)
 
-axiom RangeRequest_ASCEND [FfiSyntax] [GoGlobalContext] : val
+/-- lowest target value first -/
+@[reducible] noncomputable def RangeRequest_ASCEND [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 1)
 
-axiom RangeRequest_DESCEND [FfiSyntax] [GoGlobalContext] : val
+/-- highest target value first -/
+@[reducible] noncomputable def RangeRequest_DESCEND [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 2)
 
-axiom RangeRequest_KEY [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def RangeRequest_KEY [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 0)
 
-axiom RangeRequest_VERSION [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def RangeRequest_VERSION [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 1)
 
-axiom RangeRequest_CREATE [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def RangeRequest_CREATE [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 2)
 
-axiom RangeRequest_MOD [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def RangeRequest_MOD [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 3)
 
-axiom RangeRequest_VALUE [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def RangeRequest_VALUE [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 4)
 
 @[reducible] noncomputable def Compare_EQUAL [FfiSyntax] [GoGlobalContext] : val :=
   #(W32 0)
@@ -1701,6 +1702,37 @@ noncomputable def ResponseHeader.GetLeaderId.impl [FfiSyntax] [GoGlobalContext] 
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType ResponseHeader.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ResponseHeader.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType ResponseHeader.ty)))) (Val UntypedNil))))))
   (App (Val doReturn)
   (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef ResponseHeader.ty go!"LeaderId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ResponseHeader.ty)))) (Var "x")))))
+  (App (Val doExecute)
+  (Val #()))))))))
+
+/-- go: rpc.pb.go:1095:21 -/
+noncomputable def RequestOp.GetRequestRange.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "x"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType RequestOp.ty)))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType RangeRequest.ty)))) (Val UntypedNil)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType RequestOp.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RequestOp.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType RequestOp.ty)))) (Val UntypedNil))))))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType RequestOp_RequestRange.ty)))) (App (Val (GoInstruction (GoLoad isRequestOp_Request.ty))) (App (Val (GoInstruction (StructFieldRef RequestOp.ty go!"Request"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RequestOp.ty)))) (Var "x")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType RequestOp_RequestRange.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType RequestOp_RequestRange.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RangeRequest.ty)))) (App (Val (GoInstruction (StructFieldRef RequestOp_RequestRange.ty go!"RequestRange"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RequestOp_RequestRange.ty)))) (Var "x")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType RequestOp_RequestRange.ty)))) (Pair (Var "x") (Var "$r0"))))))))))))
   (App (Val doExecute)
   (Val #()))))))))
 
@@ -2466,18 +2498,126 @@ attribute [instance] ResponseHeader.TypeAssumptions.type_repr
   ResponseHeader.TypeAssumptions.ptr_GetRaftTerm_unfold
   ResponseHeader.TypeAssumptions.ptr_GetRevision_unfold
 
-axiom RangeRequest : Type
-axiom RangeRequest.zero_val : ZeroVal RangeRequest
-attribute [instance] RangeRequest.zero_val
+structure RangeRequest [FfiSyntax] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  Key' : GoSlice
+  RangeEnd' : GoSlice
+  Limit' : w64
+  Revision' : w64
+  SortOrder' : RangeRequest_SortOrder
+  SortTarget' : RangeRequest_SortTarget
+  Serializable' : Bool
+  KeysOnly' : Bool
+  CountOnly' : Bool
+  MinModRevision' : w64
+  MaxModRevision' : w64
+  MinCreateRevision' : w64
+  MaxCreateRevision' : w64
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+instance RangeRequest.zero_val [FfiSyntax] : ZeroVal RangeRequest :=
+  ⟨RangeRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def RangeRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"Key" (go.GoType.SliceType go.byte)),
+(go.field_decl.FieldDecl go!"RangeEnd" (go.GoType.SliceType go.byte)),
+(go.field_decl.FieldDecl go!"Limit" go.int64),
+(go.field_decl.FieldDecl go!"Revision" go.int64),
+(go.field_decl.FieldDecl go!"SortOrder" RangeRequest_SortOrder.ty),
+(go.field_decl.FieldDecl go!"SortTarget" RangeRequest_SortTarget.ty),
+(go.field_decl.FieldDecl go!"Serializable" go.bool),
+(go.field_decl.FieldDecl go!"KeysOnly" go.bool),
+(go.field_decl.FieldDecl go!"CountOnly" go.bool),
+(go.field_decl.FieldDecl go!"MinModRevision" go.int64),
+(go.field_decl.FieldDecl go!"MaxModRevision" go.int64),
+(go.field_decl.FieldDecl go!"MinCreateRevision" go.int64),
+(go.field_decl.FieldDecl go!"MaxCreateRevision" go.int64),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] def RangeRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  RangeRequest.fieldsUnsealed
+
+instance equals_unfold_RangeRequest [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold RangeRequest.fields RangeRequest.fieldsUnsealed :=
+  ⟨by unfold RangeRequest.fields; rfl⟩
+
+@[reducible] def RangeRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType RangeRequest.fields)
 
 class RangeRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RangeRequest.underlying RangeRequest
   underlying : go.UnderlyingDirectedEq RangeRequest.ty RangeRequest.underlying
-  isUnderlying : go.IsUnderlying RangeRequest.underlying RangeRequest.underlying
+  get_state : ∀ (x : RangeRequest), go.IsGoStepPureDetTagged under (StructFieldGet RangeRequest.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : RangeRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet RangeRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : RangeRequest)))
+  get_Key : ∀ (x : RangeRequest), go.IsGoStepPureDetTagged under (StructFieldGet RangeRequest.underlying go!"Key") #x (Val #(x.Key'))
+  set_Key : ∀ (x : RangeRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet RangeRequest.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : RangeRequest)))
+  get_RangeEnd : ∀ (x : RangeRequest), go.IsGoStepPureDetTagged under (StructFieldGet RangeRequest.underlying go!"RangeEnd") #x (Val #(x.RangeEnd'))
+  set_RangeEnd : ∀ (x : RangeRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet RangeRequest.underlying go!"RangeEnd") (PairV #x #y) (Val #(({ x with RangeEnd' := y } : RangeRequest)))
+  get_Limit : ∀ (x : RangeRequest), go.IsGoStepPureDetTagged under (StructFieldGet RangeRequest.underlying go!"Limit") #x (Val #(x.Limit'))
+  set_Limit : ∀ (x : RangeRequest) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RangeRequest.underlying go!"Limit") (PairV #x #y) (Val #(({ x with Limit' := y } : RangeRequest)))
+  get_Revision : ∀ (x : RangeRequest), go.IsGoStepPureDetTagged under (StructFieldGet RangeRequest.underlying go!"Revision") #x (Val #(x.Revision'))
+  set_Revision : ∀ (x : RangeRequest) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RangeRequest.underlying go!"Revision") (PairV #x #y) (Val #(({ x with Revision' := y } : RangeRequest)))
+  get_SortOrder : ∀ (x : RangeRequest), go.IsGoStepPureDetTagged under (StructFieldGet RangeRequest.underlying go!"SortOrder") #x (Val #(x.SortOrder'))
+  set_SortOrder : ∀ (x : RangeRequest) (y : RangeRequest_SortOrder), go.IsGoStepPureDetTagged under (StructFieldSet RangeRequest.underlying go!"SortOrder") (PairV #x #y) (Val #(({ x with SortOrder' := y } : RangeRequest)))
+  get_SortTarget : ∀ (x : RangeRequest), go.IsGoStepPureDetTagged under (StructFieldGet RangeRequest.underlying go!"SortTarget") #x (Val #(x.SortTarget'))
+  set_SortTarget : ∀ (x : RangeRequest) (y : RangeRequest_SortTarget), go.IsGoStepPureDetTagged under (StructFieldSet RangeRequest.underlying go!"SortTarget") (PairV #x #y) (Val #(({ x with SortTarget' := y } : RangeRequest)))
+  get_Serializable : ∀ (x : RangeRequest), go.IsGoStepPureDetTagged under (StructFieldGet RangeRequest.underlying go!"Serializable") #x (Val #(x.Serializable'))
+  set_Serializable : ∀ (x : RangeRequest) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet RangeRequest.underlying go!"Serializable") (PairV #x #y) (Val #(({ x with Serializable' := y } : RangeRequest)))
+  get_KeysOnly : ∀ (x : RangeRequest), go.IsGoStepPureDetTagged under (StructFieldGet RangeRequest.underlying go!"KeysOnly") #x (Val #(x.KeysOnly'))
+  set_KeysOnly : ∀ (x : RangeRequest) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet RangeRequest.underlying go!"KeysOnly") (PairV #x #y) (Val #(({ x with KeysOnly' := y } : RangeRequest)))
+  get_CountOnly : ∀ (x : RangeRequest), go.IsGoStepPureDetTagged under (StructFieldGet RangeRequest.underlying go!"CountOnly") #x (Val #(x.CountOnly'))
+  set_CountOnly : ∀ (x : RangeRequest) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet RangeRequest.underlying go!"CountOnly") (PairV #x #y) (Val #(({ x with CountOnly' := y } : RangeRequest)))
+  get_MinModRevision : ∀ (x : RangeRequest), go.IsGoStepPureDetTagged under (StructFieldGet RangeRequest.underlying go!"MinModRevision") #x (Val #(x.MinModRevision'))
+  set_MinModRevision : ∀ (x : RangeRequest) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RangeRequest.underlying go!"MinModRevision") (PairV #x #y) (Val #(({ x with MinModRevision' := y } : RangeRequest)))
+  get_MaxModRevision : ∀ (x : RangeRequest), go.IsGoStepPureDetTagged under (StructFieldGet RangeRequest.underlying go!"MaxModRevision") #x (Val #(x.MaxModRevision'))
+  set_MaxModRevision : ∀ (x : RangeRequest) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RangeRequest.underlying go!"MaxModRevision") (PairV #x #y) (Val #(({ x with MaxModRevision' := y } : RangeRequest)))
+  get_MinCreateRevision : ∀ (x : RangeRequest), go.IsGoStepPureDetTagged under (StructFieldGet RangeRequest.underlying go!"MinCreateRevision") #x (Val #(x.MinCreateRevision'))
+  set_MinCreateRevision : ∀ (x : RangeRequest) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RangeRequest.underlying go!"MinCreateRevision") (PairV #x #y) (Val #(({ x with MinCreateRevision' := y } : RangeRequest)))
+  get_MaxCreateRevision : ∀ (x : RangeRequest), go.IsGoStepPureDetTagged under (StructFieldGet RangeRequest.underlying go!"MaxCreateRevision") #x (Val #(x.MaxCreateRevision'))
+  set_MaxCreateRevision : ∀ (x : RangeRequest) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RangeRequest.underlying go!"MaxCreateRevision") (PairV #x #y) (Val #(({ x with MaxCreateRevision' := y } : RangeRequest)))
+  get_unknownFields : ∀ (x : RangeRequest), go.IsGoStepPureDetTagged under (StructFieldGet RangeRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : RangeRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet RangeRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : RangeRequest)))
+  get_sizeCache : ∀ (x : RangeRequest), go.IsGoStepPureDetTagged under (StructFieldGet RangeRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : RangeRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet RangeRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : RangeRequest)))
 
 attribute [instance] RangeRequest.TypeAssumptions.type_repr
   RangeRequest.TypeAssumptions.underlying
-  RangeRequest.TypeAssumptions.isUnderlying
+  RangeRequest.TypeAssumptions.get_state
+  RangeRequest.TypeAssumptions.set_state
+  RangeRequest.TypeAssumptions.get_Key
+  RangeRequest.TypeAssumptions.set_Key
+  RangeRequest.TypeAssumptions.get_RangeEnd
+  RangeRequest.TypeAssumptions.set_RangeEnd
+  RangeRequest.TypeAssumptions.get_Limit
+  RangeRequest.TypeAssumptions.set_Limit
+  RangeRequest.TypeAssumptions.get_Revision
+  RangeRequest.TypeAssumptions.set_Revision
+  RangeRequest.TypeAssumptions.get_SortOrder
+  RangeRequest.TypeAssumptions.set_SortOrder
+  RangeRequest.TypeAssumptions.get_SortTarget
+  RangeRequest.TypeAssumptions.set_SortTarget
+  RangeRequest.TypeAssumptions.get_Serializable
+  RangeRequest.TypeAssumptions.set_Serializable
+  RangeRequest.TypeAssumptions.get_KeysOnly
+  RangeRequest.TypeAssumptions.set_KeysOnly
+  RangeRequest.TypeAssumptions.get_CountOnly
+  RangeRequest.TypeAssumptions.set_CountOnly
+  RangeRequest.TypeAssumptions.get_MinModRevision
+  RangeRequest.TypeAssumptions.set_MinModRevision
+  RangeRequest.TypeAssumptions.get_MaxModRevision
+  RangeRequest.TypeAssumptions.set_MaxModRevision
+  RangeRequest.TypeAssumptions.get_MinCreateRevision
+  RangeRequest.TypeAssumptions.set_MinCreateRevision
+  RangeRequest.TypeAssumptions.get_MaxCreateRevision
+  RangeRequest.TypeAssumptions.set_MaxCreateRevision
+  RangeRequest.TypeAssumptions.get_unknownFields
+  RangeRequest.TypeAssumptions.set_unknownFields
+  RangeRequest.TypeAssumptions.get_sizeCache
+  RangeRequest.TypeAssumptions.set_sizeCache
 
 structure RangeResponse [FfiSyntax] where
   mk ::
@@ -2546,18 +2686,84 @@ attribute [instance] RangeResponse.TypeAssumptions.type_repr
   RangeResponse.TypeAssumptions.get_sizeCache
   RangeResponse.TypeAssumptions.set_sizeCache
 
-axiom PutRequest : Type
-axiom PutRequest.zero_val : ZeroVal PutRequest
-attribute [instance] PutRequest.zero_val
+structure PutRequest [FfiSyntax] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  Key' : GoSlice
+  Value' : GoSlice
+  Lease' : w64
+  PrevKv' : Bool
+  IgnoreValue' : Bool
+  IgnoreLease' : Bool
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+instance PutRequest.zero_val [FfiSyntax] : ZeroVal PutRequest :=
+  ⟨PutRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def PutRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"Key" (go.GoType.SliceType go.byte)),
+(go.field_decl.FieldDecl go!"Value" (go.GoType.SliceType go.byte)),
+(go.field_decl.FieldDecl go!"Lease" go.int64),
+(go.field_decl.FieldDecl go!"PrevKv" go.bool),
+(go.field_decl.FieldDecl go!"IgnoreValue" go.bool),
+(go.field_decl.FieldDecl go!"IgnoreLease" go.bool),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] def PutRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  PutRequest.fieldsUnsealed
+
+instance equals_unfold_PutRequest [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold PutRequest.fields PutRequest.fieldsUnsealed :=
+  ⟨by unfold PutRequest.fields; rfl⟩
+
+@[reducible] def PutRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType PutRequest.fields)
 
 class PutRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PutRequest.underlying PutRequest
   underlying : go.UnderlyingDirectedEq PutRequest.ty PutRequest.underlying
-  isUnderlying : go.IsUnderlying PutRequest.underlying PutRequest.underlying
+  get_state : ∀ (x : PutRequest), go.IsGoStepPureDetTagged under (StructFieldGet PutRequest.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : PutRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet PutRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : PutRequest)))
+  get_Key : ∀ (x : PutRequest), go.IsGoStepPureDetTagged under (StructFieldGet PutRequest.underlying go!"Key") #x (Val #(x.Key'))
+  set_Key : ∀ (x : PutRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PutRequest.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : PutRequest)))
+  get_Value : ∀ (x : PutRequest), go.IsGoStepPureDetTagged under (StructFieldGet PutRequest.underlying go!"Value") #x (Val #(x.Value'))
+  set_Value : ∀ (x : PutRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PutRequest.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : PutRequest)))
+  get_Lease : ∀ (x : PutRequest), go.IsGoStepPureDetTagged under (StructFieldGet PutRequest.underlying go!"Lease") #x (Val #(x.Lease'))
+  set_Lease : ∀ (x : PutRequest) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet PutRequest.underlying go!"Lease") (PairV #x #y) (Val #(({ x with Lease' := y } : PutRequest)))
+  get_PrevKv : ∀ (x : PutRequest), go.IsGoStepPureDetTagged under (StructFieldGet PutRequest.underlying go!"PrevKv") #x (Val #(x.PrevKv'))
+  set_PrevKv : ∀ (x : PutRequest) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PutRequest.underlying go!"PrevKv") (PairV #x #y) (Val #(({ x with PrevKv' := y } : PutRequest)))
+  get_IgnoreValue : ∀ (x : PutRequest), go.IsGoStepPureDetTagged under (StructFieldGet PutRequest.underlying go!"IgnoreValue") #x (Val #(x.IgnoreValue'))
+  set_IgnoreValue : ∀ (x : PutRequest) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PutRequest.underlying go!"IgnoreValue") (PairV #x #y) (Val #(({ x with IgnoreValue' := y } : PutRequest)))
+  get_IgnoreLease : ∀ (x : PutRequest), go.IsGoStepPureDetTagged under (StructFieldGet PutRequest.underlying go!"IgnoreLease") #x (Val #(x.IgnoreLease'))
+  set_IgnoreLease : ∀ (x : PutRequest) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PutRequest.underlying go!"IgnoreLease") (PairV #x #y) (Val #(({ x with IgnoreLease' := y } : PutRequest)))
+  get_unknownFields : ∀ (x : PutRequest), go.IsGoStepPureDetTagged under (StructFieldGet PutRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : PutRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PutRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : PutRequest)))
+  get_sizeCache : ∀ (x : PutRequest), go.IsGoStepPureDetTagged under (StructFieldGet PutRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : PutRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet PutRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : PutRequest)))
 
 attribute [instance] PutRequest.TypeAssumptions.type_repr
   PutRequest.TypeAssumptions.underlying
-  PutRequest.TypeAssumptions.isUnderlying
+  PutRequest.TypeAssumptions.get_state
+  PutRequest.TypeAssumptions.set_state
+  PutRequest.TypeAssumptions.get_Key
+  PutRequest.TypeAssumptions.set_Key
+  PutRequest.TypeAssumptions.get_Value
+  PutRequest.TypeAssumptions.set_Value
+  PutRequest.TypeAssumptions.get_Lease
+  PutRequest.TypeAssumptions.set_Lease
+  PutRequest.TypeAssumptions.get_PrevKv
+  PutRequest.TypeAssumptions.set_PrevKv
+  PutRequest.TypeAssumptions.get_IgnoreValue
+  PutRequest.TypeAssumptions.set_IgnoreValue
+  PutRequest.TypeAssumptions.get_IgnoreLease
+  PutRequest.TypeAssumptions.set_IgnoreLease
+  PutRequest.TypeAssumptions.get_unknownFields
+  PutRequest.TypeAssumptions.set_unknownFields
+  PutRequest.TypeAssumptions.get_sizeCache
+  PutRequest.TypeAssumptions.set_sizeCache
 
 structure PutResponse [FfiSyntax] where
   mk ::
@@ -2614,18 +2820,66 @@ attribute [instance] PutResponse.TypeAssumptions.type_repr
   PutResponse.TypeAssumptions.get_sizeCache
   PutResponse.TypeAssumptions.set_sizeCache
 
-axiom DeleteRangeRequest : Type
-axiom DeleteRangeRequest.zero_val : ZeroVal DeleteRangeRequest
-attribute [instance] DeleteRangeRequest.zero_val
+structure DeleteRangeRequest [FfiSyntax] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  Key' : GoSlice
+  RangeEnd' : GoSlice
+  PrevKv' : Bool
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+instance DeleteRangeRequest.zero_val [FfiSyntax] : ZeroVal DeleteRangeRequest :=
+  ⟨DeleteRangeRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def DeleteRangeRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"Key" (go.GoType.SliceType go.byte)),
+(go.field_decl.FieldDecl go!"RangeEnd" (go.GoType.SliceType go.byte)),
+(go.field_decl.FieldDecl go!"PrevKv" go.bool),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] def DeleteRangeRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  DeleteRangeRequest.fieldsUnsealed
+
+instance equals_unfold_DeleteRangeRequest [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold DeleteRangeRequest.fields DeleteRangeRequest.fieldsUnsealed :=
+  ⟨by unfold DeleteRangeRequest.fields; rfl⟩
+
+@[reducible] def DeleteRangeRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType DeleteRangeRequest.fields)
 
 class DeleteRangeRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DeleteRangeRequest.underlying DeleteRangeRequest
   underlying : go.UnderlyingDirectedEq DeleteRangeRequest.ty DeleteRangeRequest.underlying
-  isUnderlying : go.IsUnderlying DeleteRangeRequest.underlying DeleteRangeRequest.underlying
+  get_state : ∀ (x : DeleteRangeRequest), go.IsGoStepPureDetTagged under (StructFieldGet DeleteRangeRequest.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : DeleteRangeRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet DeleteRangeRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : DeleteRangeRequest)))
+  get_Key : ∀ (x : DeleteRangeRequest), go.IsGoStepPureDetTagged under (StructFieldGet DeleteRangeRequest.underlying go!"Key") #x (Val #(x.Key'))
+  set_Key : ∀ (x : DeleteRangeRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DeleteRangeRequest.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : DeleteRangeRequest)))
+  get_RangeEnd : ∀ (x : DeleteRangeRequest), go.IsGoStepPureDetTagged under (StructFieldGet DeleteRangeRequest.underlying go!"RangeEnd") #x (Val #(x.RangeEnd'))
+  set_RangeEnd : ∀ (x : DeleteRangeRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DeleteRangeRequest.underlying go!"RangeEnd") (PairV #x #y) (Val #(({ x with RangeEnd' := y } : DeleteRangeRequest)))
+  get_PrevKv : ∀ (x : DeleteRangeRequest), go.IsGoStepPureDetTagged under (StructFieldGet DeleteRangeRequest.underlying go!"PrevKv") #x (Val #(x.PrevKv'))
+  set_PrevKv : ∀ (x : DeleteRangeRequest) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet DeleteRangeRequest.underlying go!"PrevKv") (PairV #x #y) (Val #(({ x with PrevKv' := y } : DeleteRangeRequest)))
+  get_unknownFields : ∀ (x : DeleteRangeRequest), go.IsGoStepPureDetTagged under (StructFieldGet DeleteRangeRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : DeleteRangeRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DeleteRangeRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : DeleteRangeRequest)))
+  get_sizeCache : ∀ (x : DeleteRangeRequest), go.IsGoStepPureDetTagged under (StructFieldGet DeleteRangeRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : DeleteRangeRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DeleteRangeRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : DeleteRangeRequest)))
 
 attribute [instance] DeleteRangeRequest.TypeAssumptions.type_repr
   DeleteRangeRequest.TypeAssumptions.underlying
-  DeleteRangeRequest.TypeAssumptions.isUnderlying
+  DeleteRangeRequest.TypeAssumptions.get_state
+  DeleteRangeRequest.TypeAssumptions.set_state
+  DeleteRangeRequest.TypeAssumptions.get_Key
+  DeleteRangeRequest.TypeAssumptions.set_Key
+  DeleteRangeRequest.TypeAssumptions.get_RangeEnd
+  DeleteRangeRequest.TypeAssumptions.set_RangeEnd
+  DeleteRangeRequest.TypeAssumptions.get_PrevKv
+  DeleteRangeRequest.TypeAssumptions.set_PrevKv
+  DeleteRangeRequest.TypeAssumptions.get_unknownFields
+  DeleteRangeRequest.TypeAssumptions.set_unknownFields
+  DeleteRangeRequest.TypeAssumptions.get_sizeCache
+  DeleteRangeRequest.TypeAssumptions.set_sizeCache
 
 structure DeleteRangeResponse [FfiSyntax] where
   mk ::
@@ -2688,19 +2942,6 @@ attribute [instance] DeleteRangeResponse.TypeAssumptions.type_repr
   DeleteRangeResponse.TypeAssumptions.get_sizeCache
   DeleteRangeResponse.TypeAssumptions.set_sizeCache
 
-axiom RequestOp : Type
-axiom RequestOp.zero_val : ZeroVal RequestOp
-attribute [instance] RequestOp.zero_val
-
-class RequestOp.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying RequestOp.underlying RequestOp
-  underlying : go.UnderlyingDirectedEq RequestOp.ty RequestOp.underlying
-  isUnderlying : go.IsUnderlying RequestOp.underlying RequestOp.underlying
-
-attribute [instance] RequestOp.TypeAssumptions.type_repr
-  RequestOp.TypeAssumptions.underlying
-  RequestOp.TypeAssumptions.isUnderlying
-
 abbrev isRequestOp_Request [FfiSyntax] : Type := GoInterface
 
 @[reducible] def isRequestOp_Request.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
@@ -2710,6 +2951,57 @@ class isRequestOp_Request.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocal
   underlying : go.UnderlyingDirectedEq isRequestOp_Request.ty isRequestOp_Request.underlying
 
 attribute [instance] isRequestOp_Request.TypeAssumptions.underlying
+
+structure RequestOp [FfiSyntax] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  Request' : isRequestOp_Request
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+instance RequestOp.zero_val [FfiSyntax] : ZeroVal RequestOp :=
+  ⟨RequestOp.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def RequestOp.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"Request" isRequestOp_Request.ty),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] def RequestOp.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  RequestOp.fieldsUnsealed
+
+instance equals_unfold_RequestOp [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold RequestOp.fields RequestOp.fieldsUnsealed :=
+  ⟨by unfold RequestOp.fields; rfl⟩
+
+@[reducible] def RequestOp.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType RequestOp.fields)
+
+class RequestOp.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying RequestOp.underlying RequestOp
+  underlying : go.UnderlyingDirectedEq RequestOp.ty RequestOp.underlying
+  get_state : ∀ (x : RequestOp), go.IsGoStepPureDetTagged under (StructFieldGet RequestOp.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : RequestOp) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet RequestOp.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : RequestOp)))
+  get_Request : ∀ (x : RequestOp), go.IsGoStepPureDetTagged under (StructFieldGet RequestOp.underlying go!"Request") #x (Val #(x.Request'))
+  set_Request : ∀ (x : RequestOp) (y : isRequestOp_Request), go.IsGoStepPureDetTagged under (StructFieldSet RequestOp.underlying go!"Request") (PairV #x #y) (Val #(({ x with Request' := y } : RequestOp)))
+  get_unknownFields : ∀ (x : RequestOp), go.IsGoStepPureDetTagged under (StructFieldGet RequestOp.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : RequestOp) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet RequestOp.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : RequestOp)))
+  get_sizeCache : ∀ (x : RequestOp), go.IsGoStepPureDetTagged under (StructFieldGet RequestOp.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : RequestOp) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet RequestOp.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : RequestOp)))
+  ptr_GetRequestRange_unfold : MethodUnfold (go.GoType.PointerType RequestOp.ty) go!"GetRequestRange" RequestOp.GetRequestRange.impl
+
+attribute [instance] RequestOp.TypeAssumptions.type_repr
+  RequestOp.TypeAssumptions.underlying
+  RequestOp.TypeAssumptions.get_state
+  RequestOp.TypeAssumptions.set_state
+  RequestOp.TypeAssumptions.get_Request
+  RequestOp.TypeAssumptions.set_Request
+  RequestOp.TypeAssumptions.get_unknownFields
+  RequestOp.TypeAssumptions.set_unknownFields
+  RequestOp.TypeAssumptions.get_sizeCache
+  RequestOp.TypeAssumptions.set_sizeCache
+  RequestOp.TypeAssumptions.ptr_GetRequestRange_unfold
 
 structure RequestOp_RequestRange [FfiSyntax] where
   mk ::
@@ -3276,18 +3568,66 @@ attribute [instance] Compare_Lease.TypeAssumptions.type_repr
   Compare_Lease.TypeAssumptions.get_Lease
   Compare_Lease.TypeAssumptions.set_Lease
 
-axiom TxnRequest : Type
-axiom TxnRequest.zero_val : ZeroVal TxnRequest
-attribute [instance] TxnRequest.zero_val
+structure TxnRequest [FfiSyntax] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  Compare' : GoSlice
+  Success' : GoSlice
+  Failure' : GoSlice
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+instance TxnRequest.zero_val [FfiSyntax] : ZeroVal TxnRequest :=
+  ⟨TxnRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def TxnRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"Compare" (go.GoType.SliceType (go.GoType.PointerType Compare.ty))),
+(go.field_decl.FieldDecl go!"Success" (go.GoType.SliceType (go.GoType.PointerType RequestOp.ty))),
+(go.field_decl.FieldDecl go!"Failure" (go.GoType.SliceType (go.GoType.PointerType RequestOp.ty))),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] def TxnRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  TxnRequest.fieldsUnsealed
+
+instance equals_unfold_TxnRequest [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold TxnRequest.fields TxnRequest.fieldsUnsealed :=
+  ⟨by unfold TxnRequest.fields; rfl⟩
+
+@[reducible] def TxnRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType TxnRequest.fields)
 
 class TxnRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TxnRequest.underlying TxnRequest
   underlying : go.UnderlyingDirectedEq TxnRequest.ty TxnRequest.underlying
-  isUnderlying : go.IsUnderlying TxnRequest.underlying TxnRequest.underlying
+  get_state : ∀ (x : TxnRequest), go.IsGoStepPureDetTagged under (StructFieldGet TxnRequest.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : TxnRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet TxnRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : TxnRequest)))
+  get_Compare : ∀ (x : TxnRequest), go.IsGoStepPureDetTagged under (StructFieldGet TxnRequest.underlying go!"Compare") #x (Val #(x.Compare'))
+  set_Compare : ∀ (x : TxnRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet TxnRequest.underlying go!"Compare") (PairV #x #y) (Val #(({ x with Compare' := y } : TxnRequest)))
+  get_Success : ∀ (x : TxnRequest), go.IsGoStepPureDetTagged under (StructFieldGet TxnRequest.underlying go!"Success") #x (Val #(x.Success'))
+  set_Success : ∀ (x : TxnRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet TxnRequest.underlying go!"Success") (PairV #x #y) (Val #(({ x with Success' := y } : TxnRequest)))
+  get_Failure : ∀ (x : TxnRequest), go.IsGoStepPureDetTagged under (StructFieldGet TxnRequest.underlying go!"Failure") #x (Val #(x.Failure'))
+  set_Failure : ∀ (x : TxnRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet TxnRequest.underlying go!"Failure") (PairV #x #y) (Val #(({ x with Failure' := y } : TxnRequest)))
+  get_unknownFields : ∀ (x : TxnRequest), go.IsGoStepPureDetTagged under (StructFieldGet TxnRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : TxnRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet TxnRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : TxnRequest)))
+  get_sizeCache : ∀ (x : TxnRequest), go.IsGoStepPureDetTagged under (StructFieldGet TxnRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : TxnRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet TxnRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : TxnRequest)))
 
 attribute [instance] TxnRequest.TypeAssumptions.type_repr
   TxnRequest.TypeAssumptions.underlying
-  TxnRequest.TypeAssumptions.isUnderlying
+  TxnRequest.TypeAssumptions.get_state
+  TxnRequest.TypeAssumptions.set_state
+  TxnRequest.TypeAssumptions.get_Compare
+  TxnRequest.TypeAssumptions.set_Compare
+  TxnRequest.TypeAssumptions.get_Success
+  TxnRequest.TypeAssumptions.set_Success
+  TxnRequest.TypeAssumptions.get_Failure
+  TxnRequest.TypeAssumptions.set_Failure
+  TxnRequest.TypeAssumptions.get_unknownFields
+  TxnRequest.TypeAssumptions.set_unknownFields
+  TxnRequest.TypeAssumptions.get_sizeCache
+  TxnRequest.TypeAssumptions.set_sizeCache
 
 structure TxnResponse [FfiSyntax] where
   mk ::

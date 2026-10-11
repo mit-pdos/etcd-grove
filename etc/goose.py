@@ -140,6 +140,9 @@ PROJECTS = [
             "go.etcd.io/etcd/server/v3/etcdserver/cindex",
             "go.etcd.io/etcd/server/v3/etcdserver",
             "go.etcd.io/etcd/server/v3/storage/schema",
+            # with bodies (etcdserver/txn.toml): the server's Range, Put, DeleteRange, Txn over
+            # the mvcc core
+            "go.etcd.io/etcd/server/v3/etcdserver/txn",
             # types and names only: what the server's types and the apply thread name
             "go.etcd.io/etcd/server/v3/storage",
             "go.etcd.io/etcd/server/v3/storage/backend",
