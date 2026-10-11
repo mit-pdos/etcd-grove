@@ -1722,3 +1722,27 @@ a fixed `ConfState`), and `run` refuses (spins) to append past `2^61` entries
 now takes an empty batch without a token (a `Ready`'s `appendRight` for no entries): the
 promoted method still reads the `MemoryStorage` field, so `isReplica` keeps the storage's
 record.
+
+## The register's driver: specs at any storage registry, a filtering transport
+
+- **No registry in the top-level statement.** The register's specs are stated under
+  `[RegStor GF]`, a class holding the registry's ghost name, so that raft's `StorageModel`
+  instance is an instance. A top-level statement must not assume a ghost name. `Main.spec`'s
+  section has no `RegStor`, and `Main.wp_proof` takes each callee spec as
+  `∀ [RegStor GF], X.spec`. The proof allocates the registry and sets
+  `letI : RegStor GF := ⟨γ⟩`. The linked results pass in through implicit lambdas.
+  `gen-link.py` already left `[RegStor GF]` off a spec that does not mention it. It now gives
+  `[StorageModel GF]` to a spec stated over any storage model (`deliver`, `tick`).
+- **Filter in Go rather than strengthen `Ready`.** Making `Ready` promise `NetMsgOk`-like facts of
+  its outgoing messages would mean proving them per `send` site in raft. The type, `To` and the
+  context are new per-message invariants in `ownRaftPhys`, like `OutTermOk`. The transport
+  checks them in a few lines instead, and drops what fails. That costs nothing at run time,
+  since raft sends nothing that fails, and the proof stays local to the example. Rejected:
+  assuming them, which the brief forbade, or setting `Context = nil` in the copy, which
+  rewrites messages rather than checking them.
+- **Loops over a concrete voter list.** `Main` ranges over `[]uint64{1, 2, 3}` twice, building
+  maps keyed by id. The invariants carry a big-sep over `take k` (resources produced, with
+  pure map lookups), one over `drop k` (resources to consume), and the freshness of the
+  `drop k` keys. Nodup of the list makes the keys distinct (`take_drop_ne`). The raft and
+  sequence-token allocations come as big-seps over `listToSet`/`constMap` maps, which
+  `bigSepM_constMap` turns into big-seps over the list.
