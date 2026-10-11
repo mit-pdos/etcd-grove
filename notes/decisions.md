@@ -2348,6 +2348,59 @@ leasing, so the plan reuses their contracts and adds as little as possible.
   are the recipe's by construction; the overflow is at `10^16` items). *Rejected:* an
   unconditional order (false, above); a documentation issue (the package documents nothing of
   its key format).
+- **Unit 1b: `fmt.Sscanf` is an etcd-grove axiom** (trust boundary, `Spec/fmt/Sscanf.lean`,
+  `Proof/fmt/Sscanf.lean`: `fmt.Sscanf.wp_proof`), for the one call shape
+  `Sscanf(s, "%d", &n)` with an `int` `n`: with `err = nil`, `n` holds `fmt.scanInt s` where
+  that is defined; with an error, `n` is unchanged; the count is unconstrained. `fmt.scanInt`
+  (pure): drop leading ASCII spaces, one optional sign (`+`/`-`), the longest run of decimal
+  digits, which must be non-empty and whose value must fit an `int64`; the rest is ignored
+  (`"5abc"` is `5`). Stated as "where defined", not "`err = nil` implies `scanInt s = some n`":
+  Go also skips a tab and the other Unicode spaces (`"\t5"` scans as `5`), which `scanInt`
+  does not model, and an axiom must not claim Go fails there. Checked against Go 1.27.1 on ten
+  inputs (parsed: `" 5"`, `"+5"`, `"-0007"`, `"5abc"`, `"0000000000000005"`,
+  `"-9223372036854775808"`; errors, `n` unchanged: `""`, `"+-5"`, `"\n5"`,
+  `"9223372036854775808"`). *Rejected:* a Perennial model of the scanner (one caller).
+- **Unit 1b: `clientErrIs`, a contract strengthening** (`InvEtcdTxn.lean`).
+  `errors.Is(err, ErrKeyExists)` (`newUniqueKV`, `newUniqueEphemeralKV`) needs, for the client's
+  own error (`putNewKV`'s third case: a gRPC status error, which has an `Is` method, so
+  `wp_Is_leaf` does not apply), the error tree `errors.wp_Is` takes. The transaction contract at
+  `context.TODO()` now gives it: `isEtcdTxnKVTodo`'s builder has a second `Commit` triple
+  (`txnCommitErrTodo`: `txnCommitResult` and, on an error, `clientErrIs err`), and
+  `clientErrIs err` is, for every target, an error tree `errorIsTree S M target` with `S err`
+  whose `Is` methods claim only targets of their own error's dynamic type (`M ii →
+  target = ok tii → tii.ty = ii.ty`). True of etcd's client errors: `(*status.Error).Is`
+  returns `true` only for a `*status.Error`; `rpctypes.EtcdError`, `errors.New` errors and the
+  context errors have no `Is`. The other `TODO()` contracts and `txnBuilderSpec` are unchanged
+  (a minimal edit, as unit 2's revision token is in `txnCommitResult`). `putNewKV`, `newKV`
+  and `newEphemeralKV` carry it in their third case; `newKey`'s spec is unchanged (its proof
+  drops it). The recipes' package facts record `ErrKeyExists` as an `errors.New` error
+  (`errNewLeaf`: a pointer error, a leaf without `Is`, `Base.lean`), so `errors.Is` of it is
+  `true` (`wp_Is_leaf`). Neither loop needs `Is`'s answer on a client error: `true` retries,
+  `false` returns the error.
+- **Unit 1b: `newSequentialKV` does not create its key.** The transaction compares only
+  `ModRevision(__kp) < g + 1`: a key `kp/%016d(n + 1)` that already exists (a key under `kp`
+  not made by `newSequentialKV`, or one made after the get by a writer that does not put
+  `__kp`) is overwritten. Unit 1's "created fresh" (`keyCreatedAt`) was false; the spec says
+  what was put (`seqKeyPutAt pfx kp key val g r`: the get's state `sg` at `g`, the key made
+  from it, `SeqNext`; the state at `r` is `putKv` of `__kp` then the key on the state at
+  `r - 1`, where `__kp` had mod revision `≤ g`), and takes `pfx <+: __kp` (the bookkeeping key
+  is under the contracts' prefix: the priority queue's are at `""`). Freshness is a corollary
+  under premises (`seqKeyPutAt_created`, below).
+- **Unit 1b: `SeqKeysWf`, exactly** (`InvRecipesSeq.lean`). `seqKey kp m = kp ++ "/" ++
+  padZeros 16 (decimalNat m)`; `SeqKeysBelow kp N s`: every key of `s` **with the prefix
+  `kp`** (not only `kp/`: `WithLastKey()` reads the prefix range of `kp`, and a key `kpz` sorts
+  above every `kp/…`) is `seqKey kp m` for some `m < N`; `SeqKeysWf kp = SeqKeysBelow kp
+  10^16`. The order theorem (`seqNext_order`, and `seqKeyPutAt_order` on the spec's result)
+  takes `kp ≠ []` and `SeqKeysBelow kp (10^16 - 1) sg` (the state at the get's revision) and
+  gives `m < 10^16` with `key = seqKey kp m`, every key with prefix `kp` in `sg` a `seqKey kp
+  m'` with `m' < m` and `go.GoStringLt` below `key`, and `m = 0` or `seqKey kp (m - 1)` in `sg`
+  (so `m` is one past the greatest; the new key keeps `SeqKeysWf`). The bound `10^16 - 1`
+  is the simplest that makes `m < 10^16`. Freshness (`seqKeyPutAt_created`) adds that every
+  key with prefix `kp` at `r - 1` was in `sg` (no key under `kp` appeared between the get and
+  the transaction: true if every writer under `kp` also puts `__kp`, which the comparison then
+  excludes) and gives `keyCreatedAt`'s facts at `r`. The priority queue's prefixes are
+  `q.key ++ %05d(pr)` (always five digits), so its priorities never share a range; two queues
+  whose keys are prefixes of each other (`q` and `q0`) can, which the premise excludes.
 
 ## One `AllG`: `HeapGS` provides the ghost-state instance
 

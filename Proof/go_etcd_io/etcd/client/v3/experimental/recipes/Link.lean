@@ -11,7 +11,7 @@ Generated with `--skip-unproved`: not linked yet (no proof file, or reaching suc
 `DoubleBarrier__Leave`, `DoubleBarrier__enteredClients`, `NewBarrier`, `NewDoubleBarrier`,
 `NewPriorityQueue`, `NewQueue`, `NewRWMutex`, `PriorityQueue__Dequeue`,
 `PriorityQueue__Enqueue`, `Queue__Dequeue`, `Queue__Enqueue`, `RWMutex__Lock`, `RWMutex__RLock`,
-`RWMutex__RUnlock`, `RWMutex__Unlock`, `RWMutex__waitOnLastRev`, `fmt_Sscanf`.
+`RWMutex__RUnlock`, `RWMutex__Unlock`, `RWMutex__waitOnLastRev`.
 -/
 module
 
@@ -48,6 +48,7 @@ public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.claimFirstKey
 public import Proof.go_etcd_io.etcd.client.v3.cloneCompare
 public import Proof.context.TODO
 public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.deleteRevKey
+public import Proof.fmt.Sscanf
 public import Proof.go_etcd_io.etcd.client.v3.getPrefix
 public import Proof.go_etcd_io.etcd.client.v3.mustInt64
 public import Proof.go_etcd_io.etcd.client.v3.mustInt64orLeaseID
@@ -194,6 +195,10 @@ theorem v3.wp_Compare :
     EtcdGrove.Compare.spec (GF := GF) (hG := hG) :=
   EtcdGrove.Compare.wp_proof v3.Cmp.wp_Clone v3.Cmp.wp_ensureCompare v3.wp_mustInt64 v3.wp_mustInt64orLeaseID
 
+theorem fmt.wp_Sscanf :
+    EtcdGrove.fmt.Sscanf.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.fmt.Sscanf.wp_proof
+
 theorem v3.wp_WithLease :
     EtcdGrove.WithLease.spec (GF := GF) (hG := hG) :=
   EtcdGrove.WithLease.wp_proof
@@ -275,7 +280,7 @@ theorem wp_newKey :
 
 theorem wp_newSequentialKV :
     EtcdGrove.recipes.newSequentialKV.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.recipes.newSequentialKV.wp_proof v3.wp_WithLastKey v3.wp_ModRevision v3.wp_Compare v3.wp_OpPut context.wp_TODO
+  EtcdGrove.recipes.newSequentialKV.wp_proof v3.wp_WithLastKey v3.wp_ModRevision v3.wp_Compare v3.wp_OpPut context.wp_TODO fmt.wp_Sscanf
 
 theorem wp_newUniqueEphemeralKV :
     EtcdGrove.recipes.newUniqueEphemeralKV.spec (GF := GF) (hG := hG) :=

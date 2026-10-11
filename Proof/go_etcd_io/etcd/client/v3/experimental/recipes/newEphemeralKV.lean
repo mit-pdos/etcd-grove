@@ -42,7 +42,7 @@ theorem newEphemeralKV.wp_proof (hCl : concurrency.Session.Client.spec (GF := GF
   (try wp_auto)
   wp_apply hNKV kv pfx key val id lo $$ [$Hpkg $Hkv $Hlo] as %rk %err Hres
   · ipureintro; exact Hk
-  icases Hres with (⟨%Heq, %r, Hrk, #Hr, #Hc, %Hrr⟩ | ⟨#Herr, %Hrk, %r, #Hr, #Hp, %Hlr⟩ | %Hne)
+  icases Hres with (⟨%Heq, %r, Hrk, #Hr, #Hc, %Hrr⟩ | ⟨#Herr, %Hrk, %r, #Hr, #Hp, %Hlr⟩ | ⟨%Hne, #Hce⟩)
   · subst Heq
     unfold ownRemoteKV RemoteKVSt.val'
     wp_auto
@@ -81,6 +81,7 @@ theorem newEphemeralKV.wp_proof (hCl : concurrency.Session.Client.spec (GF := GF
     wp_auto
     iapply HΦ
     iright; iright
+    iframe Hce
     ipureintro; exact ⟨Hne, rfl⟩
 
 end proof

@@ -22,6 +22,7 @@ axiom etcdState_revs
 axiom etcdStep_compose
 axiom etcdStep_delete_present
 axiom etcdStep_transfer
+axiom fmt.Sscanf.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom membership.RaftCluster.Members.wp_proof
 axiom notify.Notifier.Notify.wp_proof
@@ -42,6 +43,3 @@ axiom zap.String.wp_proof
 axiom zap.Stringer.wp_proof
 axiom zap.Uint64.wp_proof
 sorry Perennial.context.wp_WithDeadlineCause
-sorry recipes.newSequentialKV.wp_proof
-sorry recipes.newUniqueEphemeralKV.wp_proof
-sorry recipes.newUniqueKV.wp_proof

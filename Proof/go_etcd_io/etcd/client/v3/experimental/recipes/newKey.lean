@@ -33,7 +33,10 @@ theorem newKey.wp_proof (hNKV : newKV.spec (GF := GF) (hG := hG)) :
   · ipureintro; exact Hk
   (try wp_auto)
   iapply HΦ
-  iexact Hres
+  icases Hres with (H | H | ⟨%Hne, -⟩)
+  · ileft; iexact H
+  · iright; ileft; iexact H
+  · iright; iright; ipureintro; exact Hne
 
 end proof
 

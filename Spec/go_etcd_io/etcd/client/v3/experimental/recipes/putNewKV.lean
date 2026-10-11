@@ -30,7 +30,8 @@ WithLease(leaseID)))` (`newKeyTxn`):
   `r - 1`, at `r` with create and mod revision `r`), and etcd has reached `r`;
 * `(0, ErrKeyExists)`: `key` was present at some `r ≥ lo` etcd has reached;
 * any other error (the client's: it may be any value, `ErrKeyExists`'s too, so this case does
-  not exclude the previous one). -/
+  not exclude the previous one), a client error as `errors.Is` sees it (`clientErrIs`, from the
+  transaction contract at `context.TODO()`). -/
 abbrev putNewKV.spec : Prop :=
   ∀ (kv : GoInterfaceOk) (pfx key val : GoString) (lease lo : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ isRecipesKV (GoInterface.ok kv) pfx ∗ etcdReached lo ∗ ⌜pfx <+: key⌝ }}
@@ -41,7 +42,7 @@ abbrev putNewKV.spec : Prop :=
         ⌜sint.Z lo ≤ sint.Z rev ∧ sint.Z rev < 2 ^ 63 - 1⌝) ∨
       (concurrency.isPkgErr ErrKeyExists err ∗ ⌜rev = W64 0⌝ ∗ ∃ r : w64, etcdReached r ∗
         etcdPresent pfx key r ∗ ⌜sint.Z lo ≤ sint.Z r⌝) ∨
-      ⌜err ≠ GoInterface.nil ∧ rev = W64 0⌝ }}
+      (⌜err ≠ GoInterface.nil ∧ rev = W64 0⌝ ∗ clientErrIs err) }}
 
 end spec
 

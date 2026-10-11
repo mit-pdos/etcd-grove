@@ -31,7 +31,7 @@ theorem newKV.wp_proof (hPNK : putNewKV.spec (GF := GF) (hG := hG)) :
   wp_auto
   wp_apply hPNK kv pfx key val lease lo $$ [$Hpkg $Hkv $Hlo] as %rev %err Hres
   · ipureintro; exact Hk
-  icases Hres with (⟨%Heq, #Hr, #Hc, %Hrr⟩ | ⟨#Herr, %Hrev, %r, #Hr, #Hp, %Hlr⟩ | %Hne)
+  icases Hres with (⟨%Heq, #Hr, #Hc, %Hrr⟩ | ⟨#Herr, %Hrev, %r, #Hr, #Hp, %Hlr⟩ | ⟨%Hne, #Hce⟩)
   · subst Heq
     wp_auto
     wp_alloc rk as Hrk
@@ -67,6 +67,7 @@ theorem newKV.wp_proof (hPNK : putNewKV.spec (GF := GF) (hG := hG)) :
     wp_auto
     iapply HΦ
     iright; iright
+    iframe Hce
     ipureintro; exact ⟨Hne, rfl⟩
 
 end proof

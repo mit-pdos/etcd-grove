@@ -5,6 +5,7 @@ see `InvRecipesClient.lean`.
 module
 
 public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.InvRecipesClient
+public import Perennial.Proof.fmt
 
 @[expose] public section
 
@@ -26,9 +27,8 @@ variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptio
 /-- **`newUniqueKV(kv, prefix, val)`** (unit 1b), for a prefix `kp` under the prefix `pfx` of
 `kv`'s contracts, knowing etcd has reached `lo`: tries `putNewKV` (no lease) on keys
 `kp ++ "/" ++ <decimal of time.Now().UnixNano()>` until one is created or the error is not
-`ErrKeyExists`: on success a fresh `*RemoteKV` for a key under `kp ++ "/"` created at `r ≥ lo`
-(`keyCreatedAt`); a nil pointer with the error otherwise. (The key's shape beyond its prefix,
-the decimal, is unit 1b's, with Perennial's `Sprintf` model of `%v` on an integer.) -/
+`ErrKeyExists`: on success a fresh `*RemoteKV` for a key `kp/<decimal of an int64>` created at
+`r ≥ lo` (`keyCreatedAt`); a nil pointer with the error otherwise. -/
 abbrev newUniqueKV.spec : Prop :=
   ∀ (kv : GoInterfaceOk) (pfx kp val : GoString) (lo : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ isRecipesKV (GoInterface.ok kv) pfx ∗ etcdReached lo ∗ ⌜pfx <+: kp⌝ }}
@@ -38,7 +38,8 @@ abbrev newUniqueKV.spec : Prop :=
       (⌜err = GoInterface.nil⌝ ∗ ∃ (key : GoString) (r : w64),
         ownRemoteKV rk ⟨GoInterface.ok kv, key, r, val⟩ ∗ etcdReached r ∗
         keyCreatedAt pfx key val (W64 0) r ∗
-        ⌜(kp ++ go!"/") <+: key ∧ sint.Z lo ≤ sint.Z r ∧ sint.Z r < 2 ^ 63 - 1⌝) ∨
+        ⌜(kp ++ go!"/") <+: key ∧ sint.Z lo ≤ sint.Z r ∧ sint.Z r < 2 ^ 63 - 1 ∧
+          ∃ t : w64, key = kp ++ go!"/" ++ _root_.Perennial.fmt.decimal (sint.Z t)⌝) ∨
       ⌜err ≠ GoInterface.nil ∧ rk = null⌝ }}
 
 end spec

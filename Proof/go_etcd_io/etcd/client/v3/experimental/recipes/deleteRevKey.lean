@@ -70,7 +70,7 @@ theorem deleteRevKey.wp_proof (hMR : EtcdGrove.ModRevision.spec (GF := GF) (hG :
   wp_apply hTODO
   (try wp_auto)
   iunfold isEtcdTxnKVTodo at HTxn
-  wp_apply HTxn as %t ⟨%B, HB, #HBs⟩
+  wp_apply HTxn as %t ⟨%B, HB, #HBs, -⟩
   iunfold txnBuilderSpec at HBs
   icases HBs with ⟨#HIf, #HThen, -, #HCommit, -⟩
   wp_apply_raw HIf $$ %TxnBuild.empty %_ %([compareM (cmpKeyM .mod key) .eq (.num rev)] : List CmpModel) [$HB]

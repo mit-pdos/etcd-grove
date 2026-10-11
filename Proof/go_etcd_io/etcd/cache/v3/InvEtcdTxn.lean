@@ -65,6 +65,7 @@ module
 
 public import Proof.go_etcd_io.etcd.cache.v3.InvEtcd
 public import Proof.go_etcd_io.etcd.client.v3.InvCmp
+public import Perennial.Proof.errors
 
 @[expose] public section
 
@@ -722,13 +723,48 @@ instance isEtcdKVTodo_persistent (kv : GoInterfaceOk) (pfx : GoString) :
     Persistent (isEtcdKVTodo (GF := GF) kv pfx) := by
   unfold isEtcdKVTodo; infer_instance
 
+/-- **An error the client returns, as `errors.Is` sees it** (persistent): for any target, the
+error is in an error tree (`errors.errorIsTree`: the specs of its `Is` and `Unwrap` methods, if it
+has them) whose `Is` methods claim (`M`) only targets of their own error's dynamic type. True of
+etcd's client errors: a gRPC status error's `(*status.Error).Is` returns `true` only for a
+`*status.Error` (it compares the statuses), and an `rpctypes.EtcdError`, an `errors.New` error
+or a context error has no `Is` method. So it never claims another package's pointer error (the
+recipes' `ErrKeyExists`, an `*errors.errorString`). What `errors.Is(err, ErrKeyExists)` needs
+of the client's error (`errors.wp_Is`, `newUniqueKV`); the recipes' addition to the
+transaction contract at `context.TODO()` (`txnCommitErrTodo`). -/
+def clientErrIs (err : GoInterface) : IProp GF :=
+  iprop(□ ∀ target : GoInterface, ∃ (S : GoInterface → Prop) (M : GoInterfaceOk → Prop),
+    errors.errorIsTree (GF := GF) S M target ∗
+    ⌜S err ∧ ∀ ii tii, M ii → target = GoInterface.ok tii → tii.ty = ii.ty⌝)
+
+instance clientErrIs_persistent (err : GoInterface) :
+    Persistent (clientErrIs (GF := GF) err) := by
+  unfold clientErrIs; infer_instance
+
+/-- **`Commit()` at `context.TODO()`, its error** (the recipes' addition): `txnBuilderSpec`'s
+`Commit` for a transaction under `pfx`, whose error, if any, is a client error as `errors.Is`
+sees it (`clientErrIs`). -/
+def txnCommitErrTodo (t : GoInterfaceOk) (pfx : GoString) (B : TxnBuild → IProp GF) :
+    IProp GF :=
+  iprop(□ ∀ (b : TxnBuild) (lo : w64),
+    {{ B b ∗ etcdReached lo ∗ ⌜b.model.Under pfx⌝ }}
+      (App (Val #(methods t.ty go!"Commit" t.v)) (Val #()))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        txnCommitResult pfx lo b.model resp err ∗ (⌜err = GoInterface.nil⌝ ∨ clientErrIs err) }})
+
+instance txnCommitErrTodo_persistent (t : GoInterfaceOk) (pfx : GoString)
+    (B : TxnBuild → IProp GF) : Persistent (txnCommitErrTodo t pfx B) := by
+  unfold txnCommitErrTodo; infer_instance
+
 /-- **`isEtcdTxnKV` at `context.TODO()`**: `kv.Txn(context.TODO())` returns a builder in its
-empty state. The recipes' addition, as `isEtcdKVTodo`. -/
+empty state, whose `Commit`'s error is a client error (`txnCommitErrTodo`). The recipes'
+addition, as `isEtcdKVTodo`. -/
 def isEtcdTxnKVTodo (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
   iprop(□ {{ True }}
       (App (Val #(methods kv.ty go!"Txn" kv.v)) (Val #(GoInterface.ok todoCtxVal)))
     {{ (t : GoInterfaceOk), RET #(GoInterface.ok t);
-        ∃ B : TxnBuild → IProp GF, B TxnBuild.empty ∗ txnBuilderSpec t pfx B }})
+        ∃ B : TxnBuild → IProp GF, B TxnBuild.empty ∗ txnBuilderSpec t pfx B ∗
+          txnCommitErrTodo t pfx B }})
 
 instance isEtcdTxnKVTodo_persistent (kv : GoInterfaceOk) (pfx : GoString) :
     Persistent (isEtcdTxnKVTodo (GF := GF) kv pfx) := by

@@ -37,7 +37,7 @@ abbrev newKV.spec : Prop :=
         ⌜sint.Z lo ≤ sint.Z r ∧ sint.Z r < 2 ^ 63 - 1⌝) ∨
       (concurrency.isPkgErr ErrKeyExists err ∗ ⌜rk = null⌝ ∗ ∃ r : w64, etcdReached r ∗
         etcdPresent pfx key r ∗ ⌜sint.Z lo ≤ sint.Z r⌝) ∨
-      ⌜err ≠ GoInterface.nil ∧ rk = null⌝ }}
+      (⌜err ≠ GoInterface.nil ∧ rk = null⌝ ∗ clientErrIs err) }}
 
 end spec
 

@@ -89,9 +89,10 @@ theorem putNewKV.wp_proof (hVer : EtcdGrove.Version.spec (GF := GF) (hG := hG))
   wp_apply hTODO
   (try wp_auto)
   iunfold isEtcdTxnKVTodo at HTxn
-  wp_apply HTxn as %t ⟨%B, HB, #HBs⟩
+  wp_apply HTxn as %t ⟨%B, HB, #HBs, #HCommit⟩
   iunfold txnBuilderSpec at HBs
-  icases HBs with ⟨#HIf, #HThen, -, #HCommit, -⟩
+  icases HBs with ⟨#HIf, #HThen, -, -, -⟩
+  iunfold txnCommitErrTodo at HCommit
   wp_apply_raw HIf $$ %TxnBuild.empty %_ %([compareM (cmpKeyM .version key) .eq (.num (W64 0))] : List CmpModel) [$HB]
   · isplitl
     · unfold cmpsAt
@@ -127,7 +128,7 @@ theorem putNewKV.wp_proof (hVer : EtcdGrove.Version.spec (GF := GF) (hG := hG))
   iintro HB
   (try wp_auto)
   ihave HB := B_conv B _ ({ model := newKeyTxn key val lease, cif := true, cthen := true, celse := false } : TxnBuild) (by rfl) $$ HB
-  wp_apply HCommit $$ %({ model := newKeyTxn key val lease, cif := true, cthen := true, celse := false } : TxnBuild) %lo [$HB $Hlo] as %resp %err #Hres
+  wp_apply HCommit $$ %({ model := newKeyTxn key val lease, cif := true, cthen := true, celse := false } : TxnBuild) %lo [$HB $Hlo] as %resp %err ⟨#Hres, #Hce⟩
   · ipureintro; exact newKeyTxn_under pfx key val lease Hk
   iunfold txnCommitResult at Hres
   icases Hres with (%Hne | ⟨%Heq, %r, %s0, #Hresp, #Hr, %Hrr, #Hts⟩)
@@ -135,9 +136,12 @@ theorem putNewKV.wp_proof (hVer : EtcdGrove.Version.spec (GF := GF) (hG := hG))
       cases err with
       | nil => exact absurd rfl Hne
       | ok e => exact ⟨e, rfl⟩
+    icases Hce with (%Hn | #Hce)
+    · exact absurd Hn Hne
     (try wp_auto)
     iapply HΦ
     iright; iright
+    iframe Hce
     ipureintro; exact ⟨Hne, rfl⟩
   subst Heq
   have hm : ({ model := newKeyTxn key val lease, cif := true, cthen := true, celse := false } :
@@ -158,7 +162,7 @@ theorem putNewKV.wp_proof (hVer : EtcdGrove.Version.spec (GF := GF) (hG := hG))
     (try wp_auto)
     ihave Hri : (recipesInit : IProp GF) $$ []
     · iapply isPkgInit_access $$ Hpkg
-    icases Hri with ⟨⟨%eK, #HeK⟩, -, -, -⟩
+    icases Hri with ⟨⟨%eK, #HeK, -⟩, -, -, -⟩
     (try wp_auto)
     iapply HΦ
     iright; ileft

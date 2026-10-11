@@ -34,7 +34,14 @@ theorem newUniqueEphemeralKey.wp_proof
   · ipureintro; exact Hk
   (try wp_auto)
   iapply HΦ
-  iexact Hres
+  icases Hres with (⟨%Heq, %kv, %key, %r, #HKV, Hek, #Hr, #Hc, %Hrr⟩ | %H)
+  · ileft
+    isplitr
+    · ipureintro; exact Heq
+    iexists kv, key, r
+    iframe HKV Hek Hr Hc
+    ipureintro; exact ⟨Hrr.1, Hrr.2.1, Hrr.2.2.1⟩
+  · iright; ipureintro; exact H
 
 end proof
 

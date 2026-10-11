@@ -65,8 +65,7 @@ putNewKV: Version v3_Compare v3_WithLease OpPut context_TODO
 newKV: putNewKV
 newKey: newKV
 newUniqueKV: putNewKV
-# unit 1b adds fmt_Sscanf (its axiom) to newSequentialKV's callees
-newSequentialKV: WithLastKey ModRevision v3_Compare OpPut context_TODO
+newSequentialKV: WithLastKey ModRevision v3_Compare OpPut context_TODO fmt_Sscanf
 RemoteKV__Key:
 RemoteKV__Revision:
 RemoteKV__Value:
