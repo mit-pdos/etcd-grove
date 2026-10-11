@@ -57,6 +57,15 @@ protobuf's `Unmarshal` are the trust boundary (two axioms). -/
 #print axioms Perennial.EtcdGrove.mvcc.storeTxnCommon.wp_rangeKeys
 #print axioms Perennial.EtcdGrove.mvcc.storeTxnCommon.wp_Range
 
+/-! The wrappers (`metrics_txn.go`, `kv_view.go`): the metrics wrapper's `Range` and `End`
+(the promoted methods of `txnReadWrite` and `storeTxnRead` unfolded), and the store's
+`readView`, a read transaction around each read (`traceutil.TODO` is an axiom). -/
+#print axioms Perennial.EtcdGrove.mvcc.metricsTxnWrite.wp_Range
+#print axioms Perennial.EtcdGrove.mvcc.metricsTxnWrite.wp_End
+#print axioms Perennial.EtcdGrove.mvcc.readView.wp_FirstRev
+#print axioms Perennial.EtcdGrove.mvcc.readView.wp_Rev
+#print axioms Perennial.EtcdGrove.mvcc.readView.wp_Range
+
 /-! The model: what the index answers of a key at a revision is the state's key-value, and a
 reader's range answer is its certified log's. -/
 #print axioms Perennial.EtcdGrove.mvcc.kiGet_indexOf

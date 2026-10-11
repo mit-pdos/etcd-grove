@@ -53,3 +53,12 @@ traceutil_Trace__Step:
 proto_Unmarshal:
 storeTxnCommon__rangeKeys: treeIndex__CountRevisions treeIndex__Range treeIndex__Revisions sliceCapWithLimit NewRevBytes RevToBytes traceutil_Trace__Step proto_Unmarshal
 storeTxnCommon__Range: storeTxnCommon__Rev storeTxnCommon__rangeKeys
+# The wrappers (metrics_txn.go, kv_view.go): `metricsTxnWrite` counts and forwards to the
+# promoted methods of `txnReadWrite` and `storeTxnRead` (unfolded in the proofs); `readView`
+# opens and closes a transaction around each read; `traceutil.TODO` is an axiom.
+traceutil_TODO:
+metricsTxnWrite__Range: storeTxnCommon__Range
+metricsTxnWrite__End: storeTxnRead__End
+readView__FirstRev: traceutil_TODO store__Read storeTxnCommon__FirstRev metricsTxnWrite__End
+readView__Rev: traceutil_TODO store__Read storeTxnCommon__Rev metricsTxnWrite__End
+readView__Range: traceutil_TODO store__Read metricsTxnWrite__Range metricsTxnWrite__End

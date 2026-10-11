@@ -32,6 +32,7 @@ axiom reflect.DeepEqual.wp_proof
 axiom rpctypes.Error.wp_proof
 axiom status.Error.wp_proof
 axiom status.FromError.wp_proof
+axiom traceutil.TODO.wp_proof
 axiom traceutil.Trace.Step.wp_proof
 axiom v3alarm.AlarmStore.Get.wp_proof
 axiom verify.Verify.wp_proof

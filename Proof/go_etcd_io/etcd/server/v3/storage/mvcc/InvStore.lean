@@ -217,6 +217,16 @@ def isTxnRead (mw s : Loc) (γ : StoreNames) (log : Log) (rev : w64) : IProp GF 
     "HrevMu" ∷ sync.ownRWMutex (revMuAddr s) (revMuInv s γ) ∗
     "Hti" ∷ idxReader ti γ.idx)
 
+/-- The store's `readView` (`kv_view.go`): its `kv` is the store `s`. -/
+def isReadView (rv s : Loc) (γ : StoreNames) : IProp GF :=
+  iprop("#Hkv" ∷ rv.[readView, go!"kv"] ↦□
+      (interface.mkOk (go.GoType.PointerType store.ty) #s : GoInterface) ∗
+    "#Hs" ∷ isStore s γ)
+
+instance isReadView_persistent (rv s : Loc) (γ : StoreNames) :
+    Persistent (isReadView (GF := GF) rv s γ) := by
+  unfold isReadView; infer_instance
+
 /-! ## The result of a range read -/
 
 /-- A fresh `*mvccpb.KeyValue` holding the model's `kv`: all its fields (`full`), or, for a
