@@ -2401,6 +2401,39 @@ leasing, so the plan reuses their contracts and adds as little as possible.
   excludes) and gives `keyCreatedAt`'s facts at `r`. The priority queue's prefixes are
   `q.key ++ %05d(pr)` (always five digits), so its priorities never share a range; two queues
   whose keys are prefixes of each other (`q` and `q0`) can, which the premise excludes.
+- **Unit 3: `rwHeldAt`, exclusion under unmodified keys.** `rwHeldAt pfx role key c R`
+  (`InvRWMutex.lean`): `key` under `(pfx ++ role.name) ++ "/"`, `0 < c ≤ R`, and at `R` no key with
+  the role's blocking prefix (`pfx ++ "write"` for a reader, as `RLock`'s `waitOnLastRev(pfx +
+  "write")`, no slash; `pfx` for a writer) has a mod revision below `c` (`RWBlockFree`). Nothing
+  about the holder's own key at `R` (neither `RLock` nor `Lock` checks it after the wait; the
+  results are about keys present in a state, as `Mutex`'s). Exclusion (`rwHeldAt_write_exclusion`,
+  `rwHeldAt_read_write_exclusion`) is `lockedAt_excludes_earlier`'s argument with one more
+  premise, `keyUnmodified pfx k c` on both keys (a key-value of `k` with create revision `c` has
+  mod revision `c` in every state): `waitOnLastRev` filters by **mod** revision
+  (`WithMaxModRev(myRev - 1)`), `Mutex` by create revision, and `etcdState_create_persist` keeps
+  the earlier key present at the later holder's `R` with its create revision but says nothing of
+  its mod revision. A plain `Put` of a lock key by another client moves its mod revision past a
+  later holder's and makes it invisible (not a finding: the recipe only creates and deletes its
+  keys; a premise on other clients, as the session-lease one). *Rejected:* a new history law
+  (mod revisions of one incarnation only grow), which would remove the premise but add an axiom
+  for a misuse case.
+- **Unit 3: the double barrier's statement.** Both: `Enter`'s spec states what each path knows
+  (`enterReady`: the direct path's `waitersSeen` at its second get's revision; the waiting path's
+  `readyPut`, a write of `key/ready` at a revision at least the key's creation), with no premise
+  (`double_barrier_enter_ready`); `double_barrier_enter_count` adds the protocol's premise
+  `readyPutsCounted` (every write of `key/ready` at `z` is preceded by a state at some `R ≤ z` with
+  `count` waiters, which the direct path's fact discharges if only `Enter`s of barriers on `key`
+  for `count` write it) and concludes `waitersSeen` at a revision etcd has reached. "Waiters" are
+  the keys with the prefix `key ++ "/waiters"` (the code's get, no slash). `count > 0` is a
+  precondition of `NewDoubleBarrier`, carried by `isDoubleBarrier`. `Leave`'s `nil` is "the key
+  absent at some `r ≥ lo`, or its record's `KV` already nil" (`leaveResult`: `RemoteKV.Delete` on a
+  record it already deleted is a no-op, and the record cannot tell a failed delete from a
+  successful one); `Enter` and `Lock` return records with a `KV`, so `double_barrier_leave` and
+  `rwmutex_unlock_released` conclude absence. The recursion is Löb induction (`iloeb`).
+- **Unit 3: the key field.** `rwMyKey`/`dbMyKey m pfx (o : Option (Loc × RemoteKVSt))`: `none` is
+  a pointer the proof does not track (nil after `New*`, or the previous key when
+  `newUniqueEphemeralKey` fails), `some (ek, st)` the owned `*EphemeralKV` with its record and its
+  `KV`'s contracts. `ek.rev` (`Enter`) loads through the embedded struct's points-to.
 
 ## One `AllG`: `HeapGS` provides the ghost-state instance
 

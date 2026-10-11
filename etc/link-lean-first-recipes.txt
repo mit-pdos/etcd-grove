@@ -91,15 +91,15 @@ Queue__Dequeue: WithFirstRev claimFirstKey WaitPrefixEvents deleteRevKey
 NewPriorityQueue:
 PriorityQueue__Enqueue: newSequentialKV
 PriorityQueue__Dequeue: WithFirstKey claimFirstKey WaitPrefixEvents deleteRevKey
-# rwmutex.go.
-NewRWMutex:
+# rwmutex.go (unit 3: hypothesis order).
+NewRWMutex: context_TODO
 RWMutex__waitOnLastRev: Session__Client WithLastRev RemoteKV__Revision WithMaxModRev WaitEvents
 RWMutex__RLock: newUniqueEphemeralKey RWMutex__waitOnLastRev
 RWMutex__Lock: newUniqueEphemeralKey RWMutex__waitOnLastRev
 RWMutex__RUnlock: RemoteKV__Delete
 RWMutex__Unlock: RemoteKV__Delete
-# double_barrier.go.
-NewDoubleBarrier:
+# double_barrier.go (unit 3: hypothesis order).
+NewDoubleBarrier: context_TODO
 DoubleBarrier__enteredClients: WithPrefix WithSort
 DoubleBarrier__Enter: Session__Client DoubleBarrier__enteredClients newUniqueEphemeralKey RemoteKV__Delete RemoteKV__Revision WaitEvents
 DoubleBarrier__Leave: Session__Client WithPrefix RemoteKV__Key RemoteKV__Delete WaitEvents

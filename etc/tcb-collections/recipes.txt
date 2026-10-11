@@ -9,6 +9,7 @@
 roots ^Proof/go_etcd_io/etcd/client/v3/experimental/recipes/(Link|Results)\.lean$
 axiom etcdReachedAt
 axiom etcdState
+axiom etcdState_create_persist
 axiom etcdState_revs
 axiom fmt.Sscanf.wp_proof
 axiom proto.Clone.wp_proof
