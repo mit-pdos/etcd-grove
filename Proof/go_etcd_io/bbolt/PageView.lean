@@ -116,6 +116,46 @@ theorem pageBytes_pageOf (pg : List w8) (h : 16 ≤ pg.length) :
     bytesAt_append pg 0 8 8]
   simp [bytesAt]
 
+/-- The bytes of a leaf element: `flags`, `pos`, `ksize`, `vsize` (4 each). -/
+def leafElemBytes (e : leafPageElement) : List w8 :=
+  leBytes 4 e.flags'.toNat ++ leBytes 4 e.pos'.toNat ++ leBytes 4 e.ksize'.toNat ++
+    leBytes 4 e.vsize'.toNat
+
+/-- The bytes of a branch element: `pos`, `ksize` (4 each), `pgid` (8). -/
+def branchElemBytes (e : branchPageElement) : List w8 :=
+  leBytes 4 e.pos'.toNat ++ leBytes 4 e.ksize'.toNat ++ leBytes 8 e.pgid'.toNat
+
+/-- Leaf element `i` of a page's bytes. -/
+def leafElemOf (pg : List w8) (i : Nat) : leafPageElement :=
+  leafPageElement.mk (W32 (leafFlags pg i)) (W32 (leafPos pg i)) (W32 (leafKsize pg i))
+    (W32 (leafVsize pg i))
+
+/-- Branch element `i` of a page's bytes. -/
+def branchElemOf (pg : List w8) (i : Nat) : branchPageElement :=
+  branchPageElement.mk (W32 (branchPos pg i)) (W32 (branchKsize pg i)) (W64 (branchPgid pg i))
+
+theorem leafElemBytes_of (pg : List w8) (i : Nat) (h : elemOff i + 16 ≤ pg.length) :
+    leafElemBytes (leafElemOf pg i) = bytesAt pg (elemOff i) 16 := by
+  unfold leafElemBytes leafElemOf
+  simp only
+  unfold leafFlags leafPos leafKsize leafVsize
+  rw [toNat_W32 _ (leAt_lt _ _ 4), toNat_W32 _ (leAt_lt _ _ 4), toNat_W32 _ (leAt_lt _ _ 4),
+    toNat_W32 _ (leAt_lt _ _ 4)]
+  rw [leBytes_leAt pg _ 4 (by omega), leBytes_leAt pg _ 4 (by omega),
+    leBytes_leAt pg _ 4 (by omega), leBytes_leAt pg _ 4 (by omega)]
+  rw [List.append_assoc, List.append_assoc, bytesAt_append pg (elemOff i + 8) 4 4,
+    bytesAt_append pg (elemOff i + 4) 4 8, bytesAt_append pg (elemOff i) 4 12]
+
+theorem branchElemBytes_of (pg : List w8) (i : Nat) (h : elemOff i + 16 ≤ pg.length) :
+    branchElemBytes (branchElemOf pg i) = bytesAt pg (elemOff i) 16 := by
+  unfold branchElemBytes branchElemOf
+  simp only
+  unfold branchPos branchKsize branchPgid
+  rw [toNat_W32 _ (leAt_lt _ _ 4), toNat_W32 _ (leAt_lt _ _ 4), toNat_W64 _ (leAt_lt _ _ 8)]
+  rw [leBytes_leAt pg _ 4 (by omega), leBytes_leAt pg _ 4 (by omega),
+    leBytes_leAt pg _ 8 (by omega)]
+  rw [List.append_assoc, bytesAt_append pg (elemOff i + 4) 4 8, bytesAt_append pg (elemOff i) 4 12]
+
 end header
 
 section view
@@ -135,6 +175,137 @@ theorem page_header_bytes (l : Loc) (q : DFrac) (pg : List w8) (h : 16 ≤ pg.le
   refine (bytesPointsto_app l q _ _).trans ?_
   rw [List.length_take, Nat.min_eq_left h, ← pageBytes_pageOf pg h]
   exact sep_congr (Page_bytes (hG := hG) l (pageOf pg) q hc).symm .rfl
+
+include package_sem in
+theorem leafElem_fields (l : Loc) (h : l.locCar ≠ 0) :
+    structFieldRef leafPageElement go!"flags" l = l ∧
+    structFieldRef leafPageElement go!"pos" l = l +ₗ 4 ∧
+    structFieldRef leafPageElement go!"ksize" l = l +ₗ 8 ∧
+    structFieldRef leafPageElement go!"vsize" l = l +ₗ 12 := by
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · have H0 : structFieldRef leafPageElement go!"flags" l = l +ₗ 0 := by solve_field_ref
+    simpa using H0
+  all_goals solve_field_ref
+
+include package_sem in
+theorem branchElem_fields (l : Loc) (h : l.locCar ≠ 0) :
+    structFieldRef branchPageElement go!"pos" l = l ∧
+    structFieldRef branchPageElement go!"ksize" l = l +ₗ 4 ∧
+    structFieldRef branchPageElement go!"pgid" l = l +ₗ 8 := by
+  refine ⟨?_, ?_, ?_⟩
+  · have H0 : structFieldRef branchPageElement go!"pos" l = l +ₗ 0 := by solve_field_ref
+    simpa using H0
+  all_goals solve_field_ref
+
+theorem leafElemBytes_split (l : Loc) (dq : DFrac) (e : leafPageElement) :
+    bytesPointsto (GF := GF) l dq (leafElemBytes e) ⊣⊢
+      bytesPointsto l dq (leBytes 4 e.flags'.toNat) ∗
+      bytesPointsto (l +ₗ 4) dq (leBytes 4 e.pos'.toNat) ∗
+      bytesPointsto (l +ₗ 8) dq (leBytes 4 e.ksize'.toNat) ∗
+      bytesPointsto (l +ₗ 12) dq (leBytes 4 e.vsize'.toNat) := by
+  unfold leafElemBytes
+  rw [List.append_assoc, List.append_assoc]
+  refine ((bytesPointsto_app _ _ _ _).trans (sep_congr .rfl ((bytesPointsto_app _ _ _ _).trans
+    (sep_congr .rfl (bytesPointsto_app _ _ _ _))))).trans ?_
+  simp only [leBytes_length, loc_add_assoc]
+  exact .rfl
+
+theorem branchElemBytes_split (l : Loc) (dq : DFrac) (e : branchPageElement) :
+    bytesPointsto (GF := GF) l dq (branchElemBytes e) ⊣⊢
+      bytesPointsto l dq (leBytes 4 e.pos'.toNat) ∗
+      bytesPointsto (l +ₗ 4) dq (leBytes 4 e.ksize'.toNat) ∗
+      bytesPointsto (l +ₗ 8) dq (leBytes 8 e.pgid'.toNat) := by
+  unfold branchElemBytes
+  rw [List.append_assoc]
+  refine ((bytesPointsto_app _ _ _ _).trans (sep_congr .rfl (bytesPointsto_app _ _ _ _))).trans ?_
+  simp only [leBytes_length, loc_add_assoc]
+  exact .rfl
+
+include package_sem in
+/-- A leaf element is its bytes. -/
+theorem leafElem_bytes (l : Loc) (e : leafPageElement) (dq : DFrac) (h : l.locCar ≠ 0) :
+    l ↦{dq} e ⊣⊢ bytesPointsto (GF := GF) l dq (leafElemBytes e) := by
+  obtain ⟨H1, H2, H3, H4⟩ := leafElem_fields (hG := hG) l h
+  rw [typedPointsto_unseal_eq]
+  simp only [TypedPointsto.typedPointstoDef]
+  rw [H1, H2, H3, H4]
+  refine Iris.BI.BiEntails.trans ?_ (leafElemBytes_split l dq e).symm
+  constructor
+  · iintro ⟨⟨H1, H2, H3, H4, -⟩, -⟩
+    isplitl [H1]; · iapply (typedPointsto_w32_bytes _ _ _).1 $$ H1
+    isplitl [H2]; · iapply (typedPointsto_w32_bytes _ _ _).1 $$ H2
+    isplitl [H3]; · iapply (typedPointsto_w32_bytes _ _ _).1 $$ H3
+    iapply (typedPointsto_w32_bytes _ _ _).1 $$ H4
+  · iintro ⟨H1, H2, H3, H4⟩
+    isplitl [H1 H2 H3 H4]
+    · isplitl [H1]; · iapply (typedPointsto_w32_bytes _ _ _).2 $$ H1
+      isplitl [H2]; · iapply (typedPointsto_w32_bytes _ _ _).2 $$ H2
+      isplitl [H3]; · iapply (typedPointsto_w32_bytes _ _ _).2 $$ H3
+      isplitl [H4]; · iapply (typedPointsto_w32_bytes _ _ _).2 $$ H4
+      itrivial
+    · ipureintro; exact loc_ne_null_of_car l h
+
+include package_sem in
+/-- A branch element is its bytes. -/
+theorem branchElem_bytes (l : Loc) (e : branchPageElement) (dq : DFrac) (h : l.locCar ≠ 0) :
+    l ↦{dq} e ⊣⊢ bytesPointsto (GF := GF) l dq (branchElemBytes e) := by
+  obtain ⟨H1, H2, H3⟩ := branchElem_fields (hG := hG) l h
+  rw [typedPointsto_unseal_eq]
+  simp only [TypedPointsto.typedPointstoDef]
+  rw [H1, H2, H3]
+  refine Iris.BI.BiEntails.trans ?_ (branchElemBytes_split l dq e).symm
+  constructor
+  · iintro ⟨⟨H1, H2, H3, -⟩, -⟩
+    isplitl [H1]; · iapply (typedPointsto_w32_bytes _ _ _).1 $$ H1
+    isplitl [H2]; · iapply (typedPointsto_w32_bytes _ _ _).1 $$ H2
+    iapply (typedPointsto_w64_bytes _ _ _).1 $$ H3
+  · iintro ⟨H1, H2, H3⟩
+    isplitl [H1 H2 H3]
+    · isplitl [H1]; · iapply (typedPointsto_w32_bytes _ _ _).2 $$ H1
+      isplitl [H2]; · iapply (typedPointsto_w32_bytes _ _ _).2 $$ H2
+      isplitl [H3]; · iapply (typedPointsto_w64_bytes _ _ _).2 $$ H3
+      itrivial
+    · ipureintro; exact loc_ne_null_of_car l h
+
+/-- A page's bytes around `n` of them at `off`. -/
+theorem bytesPointsto_around (l : Loc) (q : DFrac) (pg : List w8) (off n : Nat)
+    (h : off + n ≤ pg.length) :
+    bytesPointsto (GF := GF) l q pg ⊣⊢ bytesPointsto l q (pg.take off) ∗
+      bytesPointsto (l +ₗ (off : Int)) q (bytesAt pg off n) ∗
+      bytesPointsto (l +ₗ ((off + n : Nat) : Int)) q (pg.drop (off + n)) := by
+  have Hpg : pg = pg.take off ++ (bytesAt pg off n ++ pg.drop (off + n)) := by
+    unfold bytesAt
+    rw [← List.drop_drop, List.take_append_drop, List.take_append_drop]
+  refine (BIBase.BiEntails.of_eq (congrArg (bytesPointsto l q) Hpg)).trans ?_
+  refine (bytesPointsto_app _ _ _ _).trans (sep_congr ?_ ?_)
+  · exact .rfl
+  · rw [List.length_take, Nat.min_eq_left (by omega)]
+    refine (bytesPointsto_app _ _ _ _).trans (sep_congr .rfl ?_)
+    rw [bytesAt_length pg off n h, loc_add_assoc,
+      show ((off + n : Nat) : Int) = (off : Int) + (n : Int) by omega]
+    exact .rfl
+
+include package_sem in
+/-- Leaf element `i` inside a page's bytes. -/
+theorem leafElem_in_page (l : Loc) (q : DFrac) (pg : List w8) (i : Nat)
+    (h : elemOff i + 16 ≤ pg.length) (hc : l.locCar ≠ 0) :
+    bytesPointsto (GF := GF) l q pg ⊣⊢ bytesPointsto l q (pg.take (elemOff i)) ∗
+      (l +ₗ (elemOff i : Int)) ↦{q} leafElemOf pg i ∗
+      bytesPointsto (l +ₗ ((elemOff i + 16 : Nat) : Int)) q (pg.drop (elemOff i + 16)) := by
+  refine (bytesPointsto_around l q pg (elemOff i) 16 h).trans (sep_congr .rfl (sep_congr ?_ .rfl))
+  rw [← leafElemBytes_of pg i h]
+  exact (leafElem_bytes (hG := hG) _ _ q (by simpa [Loc.add] using hc)).symm
+
+include package_sem in
+/-- Branch element `i` inside a page's bytes. -/
+theorem branchElem_in_page (l : Loc) (q : DFrac) (pg : List w8) (i : Nat)
+    (h : elemOff i + 16 ≤ pg.length) (hc : l.locCar ≠ 0) :
+    bytesPointsto (GF := GF) l q pg ⊣⊢ bytesPointsto l q (pg.take (elemOff i)) ∗
+      (l +ₗ (elemOff i : Int)) ↦{q} branchElemOf pg i ∗
+      bytesPointsto (l +ₗ ((elemOff i + 16 : Nat) : Int)) q (pg.drop (elemOff i + 16)) := by
+  refine (bytesPointsto_around l q pg (elemOff i) 16 h).trans (sep_congr .rfl (sep_congr ?_ .rfl))
+  rw [← branchElemBytes_of pg i h]
+  exact (branchElem_bytes (hG := hG) _ _ q (by simpa [Loc.add] using hc)).symm
 
 end view
 
