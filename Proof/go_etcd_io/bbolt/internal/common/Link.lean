@@ -10,9 +10,11 @@ module
 
 public import Proof.go_etcd_io.bbolt.internal.common.InBucket__InSequence
 public import Proof.go_etcd_io.bbolt.internal.common.InBucket__IncSequence
+public import Proof.go_etcd_io.bbolt.internal.common.InBucket__InlinePage
 public import Proof.go_etcd_io.bbolt.internal.common.InBucket__RootPage
 public import Proof.go_etcd_io.bbolt.internal.common.InBucket__SetInSequence
 public import Proof.go_etcd_io.bbolt.internal.common.InBucket__SetRootPage
+public import Proof.go_etcd_io.bbolt.internal.common.InBucket__String
 public import Proof.go_etcd_io.bbolt.internal.common.Inode__Flags
 public import Proof.go_etcd_io.bbolt.internal.common.Inode__Key
 public import Proof.go_etcd_io.bbolt.internal.common.Inode__Pgid
@@ -22,6 +24,7 @@ public import Proof.go_etcd_io.bbolt.internal.common.Inode__SetPgid
 public import Proof.go_etcd_io.bbolt.internal.common.Inode__SetValue
 public import Proof.go_etcd_io.bbolt.internal.common.Inode__Value
 public import Proof.go_etcd_io.bbolt.internal.common.Meta__Checksum
+public import Proof.go_etcd_io.bbolt.internal.common.Meta__Copy
 public import Proof.go_etcd_io.bbolt.internal.common.Meta__DecTxid
 public import Proof.go_etcd_io.bbolt.internal.common.Meta__Flags
 public import Proof.go_etcd_io.bbolt.internal.common.Meta__Freelist
@@ -37,14 +40,21 @@ public import Proof.go_etcd_io.bbolt.internal.common.Meta__SetFreelist
 public import Proof.go_etcd_io.bbolt.internal.common.Meta__SetMagic
 public import Proof.go_etcd_io.bbolt.internal.common.Meta__SetPageSize
 public import Proof.go_etcd_io.bbolt.internal.common.Meta__SetPgid
+public import Proof.go_etcd_io.bbolt.internal.common.Meta__SetRootBucket
 public import Proof.go_etcd_io.bbolt.internal.common.Meta__SetTxid
 public import Proof.go_etcd_io.bbolt.internal.common.Meta__SetVersion
+public import Proof.go_etcd_io.bbolt.internal.common.Meta__Sum64
 public import Proof.go_etcd_io.bbolt.internal.common.Meta__Txid
+public import Proof.go_etcd_io.bbolt.internal.common.Meta__Validate
 public import Proof.go_etcd_io.bbolt.internal.common.Meta__Version
+public import Proof.go_etcd_io.bbolt.internal.common.Meta__Write
 public import Proof.go_etcd_io.bbolt.internal.common.Page__BranchPageElement
 public import Proof.go_etcd_io.bbolt.internal.common.Page__BranchPageElements
 public import Proof.go_etcd_io.bbolt.internal.common.Page__Count
+public import Proof.go_etcd_io.bbolt.internal.common.Page__FastCheck
 public import Proof.go_etcd_io.bbolt.internal.common.Page__Flags
+public import Proof.go_etcd_io.bbolt.internal.common.Page__FreelistPageCount
+public import Proof.go_etcd_io.bbolt.internal.common.Page__FreelistPageIds
 public import Proof.go_etcd_io.bbolt.internal.common.Page__Id
 public import Proof.go_etcd_io.bbolt.internal.common.Page__IsBranchPage
 public import Proof.go_etcd_io.bbolt.internal.common.Page__IsFreelistPage
@@ -60,6 +70,11 @@ public import Proof.go_etcd_io.bbolt.internal.common.Page__SetCount
 public import Proof.go_etcd_io.bbolt.internal.common.Page__SetFlags
 public import Proof.go_etcd_io.bbolt.internal.common.Page__SetId
 public import Proof.go_etcd_io.bbolt.internal.common.Page__SetOverflow
+public import Proof.go_etcd_io.bbolt.internal.common.Page__String
+public import Proof.go_etcd_io.bbolt.internal.common.Page__Typ
+public import Proof.go_etcd_io.bbolt.internal.common.Pages__Len
+public import Proof.go_etcd_io.bbolt.internal.common.Pages__Less
+public import Proof.go_etcd_io.bbolt.internal.common.Pages__Swap
 public import Proof.go_etcd_io.bbolt.internal.common.Pgids__Len
 public import Proof.go_etcd_io.bbolt.internal.common.Pgids__Less
 public import Proof.go_etcd_io.bbolt.internal.common.Pgids__Merge
@@ -71,13 +86,30 @@ public import Proof.go_etcd_io.bbolt.internal.common.branchPageElement__Pos
 public import Proof.go_etcd_io.bbolt.internal.common.branchPageElement__SetKsize
 public import Proof.go_etcd_io.bbolt.internal.common.branchPageElement__SetPgid
 public import Proof.go_etcd_io.bbolt.internal.common.branchPageElement__SetPos
+public import Proof.go_etcd_io.bbolt.internal.common.Assert
+public import Proof.go_etcd_io.bbolt.internal.common.DisableVerifications
+public import Proof.go_etcd_io.bbolt.internal.common.EnableAllVerifications
+public import Proof.go_etcd_io.bbolt.internal.common.EnableVerifications
+public import Proof.go_etcd_io.bbolt.internal.common.IsVerificationEnabled
 public import Proof.go_etcd_io.bbolt.internal.common.LoadBucket
 public import Proof.go_etcd_io.bbolt.internal.common.LoadPage
 public import Proof.go_etcd_io.bbolt.internal.common.LoadPageMeta
 public import Proof.go_etcd_io.bbolt.internal.common.Mergepgids
+public import Proof.go_etcd_io.bbolt.internal.common.NewInBucket
+public import Proof.go_etcd_io.bbolt.internal.common.NewLeafPageElement
+public import Proof.go_etcd_io.bbolt.internal.common.NewPage
+public import Proof.go_etcd_io.bbolt.internal.common.ReadInodeFromPage
 public import Proof.go_etcd_io.bbolt.internal.common.UnsafeAdd
 public import Proof.go_etcd_io.bbolt.internal.common.UnsafeByteSlice
 public import Proof.go_etcd_io.bbolt.internal.common.UnsafeIndex
+public import Proof.go_etcd_io.bbolt.internal.common.UsedSpaceInPage
+public import Proof.go_etcd_io.bbolt.internal.common.Verify
+public import Proof.go_etcd_io.bbolt.internal.common.WriteInodeToPage
+public import Proof.go_etcd_io.bbolt.internal.common.getEnvVerify
+public import Proof.hash.fnv.New64a
+public import Proof.hash.fnv.sum64a__Sum64
+public import Proof.hash.fnv.sum64a__Write
+public import Proof.go_etcd_io.bbolt.internal.common.leafPageElement__Bucket
 public import Proof.go_etcd_io.bbolt.internal.common.leafPageElement__Flags
 public import Proof.go_etcd_io.bbolt.internal.common.leafPageElement__IsBucketEntry
 public import Proof.go_etcd_io.bbolt.internal.common.leafPageElement__Key
@@ -89,6 +121,10 @@ public import Proof.go_etcd_io.bbolt.internal.common.leafPageElement__SetPos
 public import Proof.go_etcd_io.bbolt.internal.common.leafPageElement__SetVsize
 public import Proof.go_etcd_io.bbolt.internal.common.leafPageElement__Value
 public import Proof.go_etcd_io.bbolt.internal.common.leafPageElement__Vsize
+public import Proof.os.Getenv
+public import Proof.os.Setenv
+public import Proof.os.Unsetenv
+public import Proof.strings.ToLower
 
 @[expose] public section
 
@@ -106,6 +142,9 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.common.Assumptions]
+-- `hash.Hash64`'s type: bbolt's `Assumptions` do not include `hash`'s (it reaches `hash` only
+-- through `hash/fnv`)
+variable [hash_sem : _root_.Perennial.hash.Hash64.TypeAssumptions]
 
 theorem InBucket.wp_InSequence :
     EtcdGrove.bbolt.InBucket.InSequence.spec (GF := GF) (hG := hG) :=
@@ -114,6 +153,10 @@ theorem InBucket.wp_InSequence :
 theorem InBucket.wp_IncSequence :
     EtcdGrove.bbolt.InBucket.IncSequence.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.InBucket.IncSequence.wp_proof
+
+theorem InBucket.wp_InlinePage :
+    EtcdGrove.bbolt.InBucket.InlinePage.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.InBucket.InlinePage.wp_proof
 
 theorem InBucket.wp_RootPage :
     EtcdGrove.bbolt.InBucket.RootPage.spec (GF := GF) (hG := hG) :=
@@ -126,6 +169,10 @@ theorem InBucket.wp_SetInSequence :
 theorem InBucket.wp_SetRootPage :
     EtcdGrove.bbolt.InBucket.SetRootPage.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.InBucket.SetRootPage.wp_proof
+
+theorem InBucket.wp_String :
+    EtcdGrove.bbolt.InBucket.String.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.InBucket.String.wp_proof
 
 theorem Inode.wp_Flags :
     EtcdGrove.bbolt.Inode.Flags.spec (GF := GF) (hG := hG) :=
@@ -162,6 +209,10 @@ theorem Inode.wp_Value :
 theorem Meta.wp_Checksum :
     EtcdGrove.bbolt.Meta.Checksum.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Meta.Checksum.wp_proof
+
+theorem Meta.wp_Copy :
+    EtcdGrove.bbolt.Meta.Copy.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Meta.Copy.wp_proof
 
 theorem Meta.wp_DecTxid :
     EtcdGrove.bbolt.Meta.DecTxid.spec (GF := GF) (hG := hG) :=
@@ -223,6 +274,10 @@ theorem Meta.wp_SetPgid :
     EtcdGrove.bbolt.Meta.SetPgid.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Meta.SetPgid.wp_proof
 
+theorem Meta.wp_SetRootBucket :
+    EtcdGrove.bbolt.Meta.SetRootBucket.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Meta.SetRootBucket.wp_proof
+
 theorem Meta.wp_SetTxid :
     EtcdGrove.bbolt.Meta.SetTxid.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Meta.SetTxid.wp_proof
@@ -231,13 +286,49 @@ theorem Meta.wp_SetVersion :
     EtcdGrove.bbolt.Meta.SetVersion.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Meta.SetVersion.wp_proof
 
+theorem fnv.wp_New64a :
+    EtcdGrove.bbolt.fnv.New64a.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.fnv.New64a.wp_proof
+
+theorem fnv.sum64a.wp_Write :
+    EtcdGrove.bbolt.fnv.sum64a.Write.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.fnv.sum64a.Write.wp_proof
+
+theorem fnv.sum64a.wp_Sum64 :
+    EtcdGrove.bbolt.fnv.sum64a.Sum64.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.fnv.sum64a.Sum64.wp_proof
+
+theorem Meta.wp_Sum64 :
+    EtcdGrove.bbolt.Meta.Sum64.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Meta.Sum64.wp_proof EtcdGrove.bbolt.fnv.wp_New64a EtcdGrove.bbolt.fnv.sum64a.wp_Write EtcdGrove.bbolt.fnv.sum64a.wp_Sum64
+
 theorem Meta.wp_Txid :
     EtcdGrove.bbolt.Meta.Txid.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Meta.Txid.wp_proof
 
+theorem Meta.wp_Validate :
+    EtcdGrove.bbolt.Meta.Validate.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Meta.Validate.wp_proof EtcdGrove.bbolt.Meta.wp_Sum64
+
 theorem Meta.wp_Version :
     EtcdGrove.bbolt.Meta.Version.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Meta.Version.wp_proof
+
+theorem Page.wp_SetFlags :
+    EtcdGrove.bbolt.Page.SetFlags.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Page.SetFlags.wp_proof
+
+theorem wp_UnsafeAdd :
+    EtcdGrove.bbolt.UnsafeAdd.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.UnsafeAdd.wp_proof
+
+theorem Page.wp_Meta :
+    EtcdGrove.bbolt.Page.Meta.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Page.Meta.wp_proof EtcdGrove.bbolt.wp_UnsafeAdd
+
+theorem Meta.wp_Write :
+    EtcdGrove.bbolt.Meta.Write.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Meta.Write.wp_proof EtcdGrove.bbolt.Meta.wp_Sum64 EtcdGrove.bbolt.Page.wp_SetFlags EtcdGrove.bbolt.Page.wp_Meta EtcdGrove.bbolt.Meta.wp_Copy
 
 theorem wp_UnsafeIndex :
     EtcdGrove.bbolt.UnsafeIndex.spec (GF := GF) (hG := hG) :=
@@ -245,35 +336,19 @@ theorem wp_UnsafeIndex :
 
 theorem Page.wp_BranchPageElement :
     EtcdGrove.bbolt.Page.BranchPageElement.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.Page.BranchPageElement.wp_proof wp_UnsafeIndex
-
-theorem wp_UnsafeAdd :
-    EtcdGrove.bbolt.UnsafeAdd.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.UnsafeAdd.wp_proof
+  EtcdGrove.bbolt.Page.BranchPageElement.wp_proof EtcdGrove.bbolt.wp_UnsafeIndex
 
 theorem Page.wp_BranchPageElements :
     EtcdGrove.bbolt.Page.BranchPageElements.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.Page.BranchPageElements.wp_proof wp_UnsafeAdd
+  EtcdGrove.bbolt.Page.BranchPageElements.wp_proof EtcdGrove.bbolt.wp_UnsafeAdd
 
 theorem Page.wp_Count :
     EtcdGrove.bbolt.Page.Count.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Page.Count.wp_proof
 
-theorem Page.wp_Flags :
-    EtcdGrove.bbolt.Page.Flags.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.Page.Flags.wp_proof
-
-theorem Page.wp_Id :
-    EtcdGrove.bbolt.Page.Id.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.Page.Id.wp_proof
-
 theorem Page.wp_IsBranchPage :
     EtcdGrove.bbolt.Page.IsBranchPage.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Page.IsBranchPage.wp_proof
-
-theorem Page.wp_IsFreelistPage :
-    EtcdGrove.bbolt.Page.IsFreelistPage.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.Page.IsFreelistPage.wp_proof
 
 theorem Page.wp_IsLeafPage :
     EtcdGrove.bbolt.Page.IsLeafPage.spec (GF := GF) (hG := hG) :=
@@ -283,21 +358,41 @@ theorem Page.wp_IsMetaPage :
     EtcdGrove.bbolt.Page.IsMetaPage.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Page.IsMetaPage.wp_proof
 
+theorem Page.wp_IsFreelistPage :
+    EtcdGrove.bbolt.Page.IsFreelistPage.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Page.IsFreelistPage.wp_proof
+
 theorem Page.wp_IsValidPage :
     EtcdGrove.bbolt.Page.IsValidPage.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.Page.IsValidPage.wp_proof Page.wp_IsBranchPage Page.wp_IsLeafPage Page.wp_IsMetaPage Page.wp_IsFreelistPage
+  EtcdGrove.bbolt.Page.IsValidPage.wp_proof EtcdGrove.bbolt.Page.wp_IsBranchPage EtcdGrove.bbolt.Page.wp_IsLeafPage EtcdGrove.bbolt.Page.wp_IsMetaPage EtcdGrove.bbolt.Page.wp_IsFreelistPage
+
+theorem Page.wp_FastCheck :
+    EtcdGrove.bbolt.Page.FastCheck.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Page.FastCheck.wp_proof EtcdGrove.bbolt.Page.wp_IsValidPage
+
+theorem Page.wp_Flags :
+    EtcdGrove.bbolt.Page.Flags.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Page.Flags.wp_proof
+
+theorem Page.wp_FreelistPageCount :
+    EtcdGrove.bbolt.Page.FreelistPageCount.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Page.FreelistPageCount.wp_proof EtcdGrove.bbolt.Page.wp_IsFreelistPage EtcdGrove.bbolt.wp_UnsafeAdd
+
+theorem Page.wp_FreelistPageIds :
+    EtcdGrove.bbolt.Page.FreelistPageIds.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Page.FreelistPageIds.wp_proof EtcdGrove.bbolt.Page.wp_IsFreelistPage EtcdGrove.bbolt.Page.wp_FreelistPageCount EtcdGrove.bbolt.wp_UnsafeIndex
+
+theorem Page.wp_Id :
+    EtcdGrove.bbolt.Page.Id.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Page.Id.wp_proof
 
 theorem Page.wp_LeafPageElement :
     EtcdGrove.bbolt.Page.LeafPageElement.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.Page.LeafPageElement.wp_proof wp_UnsafeIndex
+  EtcdGrove.bbolt.Page.LeafPageElement.wp_proof EtcdGrove.bbolt.wp_UnsafeIndex
 
 theorem Page.wp_LeafPageElements :
     EtcdGrove.bbolt.Page.LeafPageElements.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.Page.LeafPageElements.wp_proof wp_UnsafeAdd
-
-theorem Page.wp_Meta :
-    EtcdGrove.bbolt.Page.Meta.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.Page.Meta.wp_proof wp_UnsafeAdd
+  EtcdGrove.bbolt.Page.LeafPageElements.wp_proof EtcdGrove.bbolt.wp_UnsafeAdd
 
 theorem Page.wp_Overflow :
     EtcdGrove.bbolt.Page.Overflow.spec (GF := GF) (hG := hG) :=
@@ -305,15 +400,11 @@ theorem Page.wp_Overflow :
 
 theorem Page.wp_PageElementSize :
     EtcdGrove.bbolt.Page.PageElementSize.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.Page.PageElementSize.wp_proof Page.wp_IsLeafPage
+  EtcdGrove.bbolt.Page.PageElementSize.wp_proof EtcdGrove.bbolt.Page.wp_IsLeafPage
 
 theorem Page.wp_SetCount :
     EtcdGrove.bbolt.Page.SetCount.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Page.SetCount.wp_proof
-
-theorem Page.wp_SetFlags :
-    EtcdGrove.bbolt.Page.SetFlags.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.Page.SetFlags.wp_proof
 
 theorem Page.wp_SetId :
     EtcdGrove.bbolt.Page.SetId.spec (GF := GF) (hG := hG) :=
@@ -322,6 +413,26 @@ theorem Page.wp_SetId :
 theorem Page.wp_SetOverflow :
     EtcdGrove.bbolt.Page.SetOverflow.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Page.SetOverflow.wp_proof
+
+theorem Page.wp_Typ :
+    EtcdGrove.bbolt.Page.Typ.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Page.Typ.wp_proof EtcdGrove.bbolt.Page.wp_IsBranchPage EtcdGrove.bbolt.Page.wp_IsLeafPage EtcdGrove.bbolt.Page.wp_IsMetaPage EtcdGrove.bbolt.Page.wp_IsFreelistPage
+
+theorem Page.wp_String :
+    EtcdGrove.bbolt.Page.String.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Page.String.wp_proof EtcdGrove.bbolt.Page.wp_Typ
+
+theorem Pages.wp_Len :
+    EtcdGrove.bbolt.Pages.Len.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Pages.Len.wp_proof
+
+theorem Pages.wp_Less :
+    EtcdGrove.bbolt.Pages.Less.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Pages.Less.wp_proof
+
+theorem Pages.wp_Swap :
+    EtcdGrove.bbolt.Pages.Swap.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Pages.Swap.wp_proof
 
 theorem Pgids.wp_Len :
     EtcdGrove.bbolt.Pgids.Len.spec (GF := GF) (hG := hG) :=
@@ -337,7 +448,7 @@ theorem wp_Mergepgids :
 
 theorem Pgids.wp_Merge :
     EtcdGrove.bbolt.Pgids.Merge.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.Pgids.Merge.wp_proof wp_Mergepgids
+  EtcdGrove.bbolt.Pgids.Merge.wp_proof EtcdGrove.bbolt.wp_Mergepgids
 
 theorem Pgids.wp_Swap :
     EtcdGrove.bbolt.Pgids.Swap.spec (GF := GF) (hG := hG) :=
@@ -345,11 +456,11 @@ theorem Pgids.wp_Swap :
 
 theorem wp_UnsafeByteSlice :
     EtcdGrove.bbolt.UnsafeByteSlice.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.UnsafeByteSlice.wp_proof wp_UnsafeAdd
+  EtcdGrove.bbolt.UnsafeByteSlice.wp_proof EtcdGrove.bbolt.wp_UnsafeAdd
 
 theorem branchPageElement.wp_Key :
     EtcdGrove.bbolt.branchPageElement.Key.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.branchPageElement.Key.wp_proof wp_UnsafeByteSlice
+  EtcdGrove.bbolt.branchPageElement.Key.wp_proof EtcdGrove.bbolt.wp_UnsafeByteSlice
 
 theorem branchPageElement.wp_Ksize :
     EtcdGrove.bbolt.branchPageElement.Ksize.spec (GF := GF) (hG := hG) :=
@@ -375,6 +486,46 @@ theorem branchPageElement.wp_SetPos :
     EtcdGrove.bbolt.branchPageElement.SetPos.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.branchPageElement.SetPos.wp_proof
 
+theorem wp_Assert :
+    EtcdGrove.bbolt.Assert.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Assert.wp_proof
+
+theorem os.wp_Getenv :
+    EtcdGrove.bbolt.os.Getenv.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.os.Getenv.wp_proof
+
+theorem strings.wp_ToLower :
+    EtcdGrove.bbolt.strings.ToLower.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.strings.ToLower.wp_proof
+
+theorem wp_getEnvVerify :
+    EtcdGrove.bbolt.getEnvVerify.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.getEnvVerify.wp_proof EtcdGrove.bbolt.os.wp_Getenv EtcdGrove.bbolt.strings.wp_ToLower
+
+theorem os.wp_Setenv :
+    EtcdGrove.bbolt.os.Setenv.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.os.Setenv.wp_proof
+
+theorem os.wp_Unsetenv :
+    EtcdGrove.bbolt.os.Unsetenv.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.os.Unsetenv.wp_proof
+
+theorem wp_DisableVerifications :
+    EtcdGrove.bbolt.DisableVerifications.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.DisableVerifications.wp_proof EtcdGrove.bbolt.wp_getEnvVerify EtcdGrove.bbolt.os.wp_Setenv EtcdGrove.bbolt.os.wp_Unsetenv
+
+theorem wp_EnableVerifications :
+    EtcdGrove.bbolt.EnableVerifications.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.EnableVerifications.wp_proof EtcdGrove.bbolt.wp_getEnvVerify EtcdGrove.bbolt.os.wp_Setenv
+
+theorem wp_EnableAllVerifications :
+    EtcdGrove.bbolt.EnableAllVerifications.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.EnableAllVerifications.wp_proof EtcdGrove.bbolt.wp_EnableVerifications
+
+theorem wp_IsVerificationEnabled :
+    EtcdGrove.bbolt.IsVerificationEnabled.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.IsVerificationEnabled.wp_proof EtcdGrove.bbolt.wp_getEnvVerify EtcdGrove.bbolt.strings.wp_ToLower
+
 theorem wp_LoadBucket :
     EtcdGrove.bbolt.LoadBucket.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.LoadBucket.wp_proof
@@ -387,25 +538,45 @@ theorem wp_LoadPageMeta :
     EtcdGrove.bbolt.LoadPageMeta.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.LoadPageMeta.wp_proof
 
+theorem wp_NewInBucket :
+    EtcdGrove.bbolt.NewInBucket.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.NewInBucket.wp_proof
+
+theorem wp_NewLeafPageElement :
+    EtcdGrove.bbolt.NewLeafPageElement.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.NewLeafPageElement.wp_proof
+
+theorem wp_NewPage :
+    EtcdGrove.bbolt.NewPage.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.NewPage.wp_proof
+
 theorem leafPageElement.wp_Flags :
     EtcdGrove.bbolt.leafPageElement.Flags.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.leafPageElement.Flags.wp_proof
 
-theorem leafPageElement.wp_IsBucketEntry :
-    EtcdGrove.bbolt.leafPageElement.IsBucketEntry.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.leafPageElement.IsBucketEntry.wp_proof
-
 theorem leafPageElement.wp_Key :
     EtcdGrove.bbolt.leafPageElement.Key.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.leafPageElement.Key.wp_proof wp_UnsafeByteSlice
+  EtcdGrove.bbolt.leafPageElement.Key.wp_proof EtcdGrove.bbolt.wp_UnsafeByteSlice
 
-theorem leafPageElement.wp_Ksize :
-    EtcdGrove.bbolt.leafPageElement.Ksize.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.leafPageElement.Ksize.wp_proof
+theorem leafPageElement.wp_Value :
+    EtcdGrove.bbolt.leafPageElement.Value.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.leafPageElement.Value.wp_proof EtcdGrove.bbolt.wp_UnsafeByteSlice
 
-theorem leafPageElement.wp_Pos :
-    EtcdGrove.bbolt.leafPageElement.Pos.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.leafPageElement.Pos.wp_proof
+theorem wp_ReadInodeFromPage :
+    EtcdGrove.bbolt.ReadInodeFromPage.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.ReadInodeFromPage.wp_proof EtcdGrove.bbolt.Page.wp_Count EtcdGrove.bbolt.Page.wp_IsLeafPage EtcdGrove.bbolt.Page.wp_LeafPageElement EtcdGrove.bbolt.Page.wp_BranchPageElement EtcdGrove.bbolt.leafPageElement.wp_Flags EtcdGrove.bbolt.leafPageElement.wp_Key EtcdGrove.bbolt.leafPageElement.wp_Value EtcdGrove.bbolt.branchPageElement.wp_Pgid EtcdGrove.bbolt.branchPageElement.wp_Key EtcdGrove.bbolt.Inode.wp_SetFlags EtcdGrove.bbolt.Inode.wp_SetKey EtcdGrove.bbolt.Inode.wp_SetValue EtcdGrove.bbolt.Inode.wp_SetPgid EtcdGrove.bbolt.Inode.wp_Key EtcdGrove.bbolt.wp_Assert
+
+theorem wp_UsedSpaceInPage :
+    EtcdGrove.bbolt.UsedSpaceInPage.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.UsedSpaceInPage.wp_proof EtcdGrove.bbolt.Page.wp_PageElementSize EtcdGrove.bbolt.Inode.wp_Key EtcdGrove.bbolt.Inode.wp_Value
+
+theorem wp_Verify :
+    EtcdGrove.bbolt.Verify.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Verify.wp_proof EtcdGrove.bbolt.wp_IsVerificationEnabled
+
+theorem leafPageElement.wp_SetPos :
+    EtcdGrove.bbolt.leafPageElement.SetPos.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.leafPageElement.SetPos.wp_proof
 
 theorem leafPageElement.wp_SetFlags :
     EtcdGrove.bbolt.leafPageElement.SetFlags.spec (GF := GF) (hG := hG) :=
@@ -415,17 +586,29 @@ theorem leafPageElement.wp_SetKsize :
     EtcdGrove.bbolt.leafPageElement.SetKsize.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.leafPageElement.SetKsize.wp_proof
 
-theorem leafPageElement.wp_SetPos :
-    EtcdGrove.bbolt.leafPageElement.SetPos.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.leafPageElement.SetPos.wp_proof
-
 theorem leafPageElement.wp_SetVsize :
     EtcdGrove.bbolt.leafPageElement.SetVsize.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.leafPageElement.SetVsize.wp_proof
 
-theorem leafPageElement.wp_Value :
-    EtcdGrove.bbolt.leafPageElement.Value.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.leafPageElement.Value.wp_proof wp_UnsafeByteSlice
+theorem wp_WriteInodeToPage :
+    EtcdGrove.bbolt.WriteInodeToPage.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.WriteInodeToPage.wp_proof EtcdGrove.bbolt.Page.wp_PageElementSize EtcdGrove.bbolt.Page.wp_IsLeafPage EtcdGrove.bbolt.Page.wp_LeafPageElement EtcdGrove.bbolt.Page.wp_BranchPageElement EtcdGrove.bbolt.Page.wp_Id EtcdGrove.bbolt.leafPageElement.wp_SetPos EtcdGrove.bbolt.leafPageElement.wp_SetFlags EtcdGrove.bbolt.leafPageElement.wp_SetKsize EtcdGrove.bbolt.leafPageElement.wp_SetVsize EtcdGrove.bbolt.branchPageElement.wp_SetPos EtcdGrove.bbolt.branchPageElement.wp_SetKsize EtcdGrove.bbolt.branchPageElement.wp_SetPgid EtcdGrove.bbolt.branchPageElement.wp_Pgid EtcdGrove.bbolt.Inode.wp_Key EtcdGrove.bbolt.Inode.wp_Value EtcdGrove.bbolt.Inode.wp_Flags EtcdGrove.bbolt.Inode.wp_Pgid EtcdGrove.bbolt.wp_UnsafeByteSlice EtcdGrove.bbolt.wp_Assert
+
+theorem leafPageElement.wp_IsBucketEntry :
+    EtcdGrove.bbolt.leafPageElement.IsBucketEntry.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.leafPageElement.IsBucketEntry.wp_proof
+
+theorem leafPageElement.wp_Bucket :
+    EtcdGrove.bbolt.leafPageElement.Bucket.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.leafPageElement.Bucket.wp_proof EtcdGrove.bbolt.leafPageElement.wp_IsBucketEntry EtcdGrove.bbolt.leafPageElement.wp_Value EtcdGrove.bbolt.wp_LoadBucket
+
+theorem leafPageElement.wp_Ksize :
+    EtcdGrove.bbolt.leafPageElement.Ksize.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.leafPageElement.Ksize.wp_proof
+
+theorem leafPageElement.wp_Pos :
+    EtcdGrove.bbolt.leafPageElement.Pos.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.leafPageElement.Pos.wp_proof
 
 theorem leafPageElement.wp_Vsize :
     EtcdGrove.bbolt.leafPageElement.Vsize.spec (GF := GF) (hG := hG) :=

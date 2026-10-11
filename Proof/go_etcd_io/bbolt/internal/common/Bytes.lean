@@ -41,6 +41,15 @@ theorem typeSize_branchPageElement : typeSize branchPageElement = 16 := by
 theorem loc_add_ne_null (l : Loc) (k : Int) (h : l.locCar ≠ 0) : l +ₗ k ≠ null := by
   intro e; apply h; simpa [Loc.add, null] using congrArg Loc.locCar e
 
+/-- The bytes of a region split at `n`. -/
+theorem bytesPointsto_take_drop (l : Loc) (dq : DFrac) (bs : List w8) (n : Nat) (h : n ≤ bs.length) :
+    bytesPointsto (GF := GF) l dq bs ⊣⊢
+      bytesPointsto l dq (bs.take n) ∗ bytesPointsto (l +ₗ (n : Int)) dq (bs.drop n) := by
+  conv => lhs; rw [← List.take_append_drop n bs]
+  refine (bytesPointsto_app _ _ _ _).trans ?_
+  rw [List.length_take, Nat.min_eq_left h]
+  exact .rfl
+
 /-- Element 0 of an array is at its start (in a block or not). -/
 theorem arrayIndexRef_zero (V : Type) (l : Loc) : arrayIndexRef V 0 l = l := by
   unfold arrayIndexRef; split <;> simp
@@ -168,6 +177,63 @@ theorem Meta_fields (l : Loc) (h : l.locCar ≠ 0) :
     apply go.StructLayout.field_ref _ _ _ _ h
     simp [go.structFieldOffset, go.structLayout, go.structLayoutAux, go.roundUp, Hib, Hia]
     try decide
+
+theorem metaBytes_split (l : Loc) (dq : DFrac) (m : Meta) :
+    bytesPointsto (GF := GF) l dq (metaBytes m) ⊣⊢
+      bytesPointsto l dq (leBytes 4 m.magic'.toNat) ∗
+      bytesPointsto (l +ₗ 4) dq (leBytes 4 m.version'.toNat) ∗
+      bytesPointsto (l +ₗ 8) dq (leBytes 4 m.pageSize'.toNat) ∗
+      bytesPointsto (l +ₗ 12) dq (leBytes 4 m.flags'.toNat) ∗
+      bytesPointsto (l +ₗ 16) dq (inBucketBytes m.root') ∗
+      bytesPointsto (l +ₗ 32) dq (leBytes 8 m.freelist'.toNat) ∗
+      bytesPointsto (l +ₗ 40) dq (leBytes 8 m.pgid'.toNat) ∗
+      bytesPointsto (l +ₗ 48) dq (leBytes 8 m.txid'.toNat) ∗
+      bytesPointsto (l +ₗ 56) dq (leBytes 8 m.checksum'.toNat) := by
+  unfold metaBytes
+  simp only [List.append_assoc]
+  refine ((bytesPointsto_app _ _ _ _).trans (sep_congr .rfl ((bytesPointsto_app _ _ _ _).trans
+    (sep_congr .rfl ((bytesPointsto_app _ _ _ _).trans (sep_congr .rfl
+    ((bytesPointsto_app _ _ _ _).trans (sep_congr .rfl ((bytesPointsto_app _ _ _ _).trans
+    (sep_congr .rfl ((bytesPointsto_app _ _ _ _).trans (sep_congr .rfl
+    ((bytesPointsto_app _ _ _ _).trans (sep_congr .rfl
+    (bytesPointsto_app _ _ _ _))))))))))))))).trans ?_
+  simp only [leBytes_length, loc_add_assoc, inBucketBytes, List.length_append]
+  exact .rfl
+
+include package_sem in
+/-- A `Meta` is its 64 bytes. -/
+theorem Meta_bytes (l : Loc) (m : Meta) (dq : DFrac) (h : l.locCar ≠ 0) :
+    l ↦{dq} m ⊣⊢ bytesPointsto (GF := GF) l dq (metaBytes m) := by
+  obtain ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9⟩ := Meta_fields (hG := hG) l h
+  have hr : (l +ₗ 16).locCar ≠ 0 := by simpa [Loc.add] using h
+  rw [typedPointsto_unseal_eq]
+  simp only [TypedPointsto.typedPointstoDef]
+  rw [H1, H2, H3, H4, H5, H6, H7, H8, H9]
+  refine Iris.BI.BiEntails.trans ?_ (metaBytes_split l dq m).symm
+  constructor
+  · iintro ⟨⟨Ha, Hb, Hc, Hd, He, Hf, Hg, Hh, Hi, -⟩, -⟩
+    isplitl [Ha]; · iapply (typedPointsto_w32_bytes _ _ _).1 $$ Ha
+    isplitl [Hb]; · iapply (typedPointsto_w32_bytes _ _ _).1 $$ Hb
+    isplitl [Hc]; · iapply (typedPointsto_w32_bytes _ _ _).1 $$ Hc
+    isplitl [Hd]; · iapply (typedPointsto_w32_bytes _ _ _).1 $$ Hd
+    isplitl [He]; · iapply (InBucket_bytes (hG := hG) _ _ _ hr).1 $$ He
+    isplitl [Hf]; · iapply (typedPointsto_w64_bytes _ _ _).1 $$ Hf
+    isplitl [Hg]; · iapply (typedPointsto_w64_bytes _ _ _).1 $$ Hg
+    isplitl [Hh]; · iapply (typedPointsto_w64_bytes _ _ _).1 $$ Hh
+    iapply (typedPointsto_w64_bytes _ _ _).1 $$ Hi
+  · iintro ⟨Ha, Hb, Hc, Hd, He, Hf, Hg, Hh, Hi⟩
+    isplitl [Ha Hb Hc Hd He Hf Hg Hh Hi]
+    · isplitl [Ha]; · iapply (typedPointsto_w32_bytes _ _ _).2 $$ Ha
+      isplitl [Hb]; · iapply (typedPointsto_w32_bytes _ _ _).2 $$ Hb
+      isplitl [Hc]; · iapply (typedPointsto_w32_bytes _ _ _).2 $$ Hc
+      isplitl [Hd]; · iapply (typedPointsto_w32_bytes _ _ _).2 $$ Hd
+      isplitl [He]; · iapply (InBucket_bytes (hG := hG) _ _ _ hr).2 $$ He
+      isplitl [Hf]; · iapply (typedPointsto_w64_bytes _ _ _).2 $$ Hf
+      isplitl [Hg]; · iapply (typedPointsto_w64_bytes _ _ _).2 $$ Hg
+      isplitl [Hh]; · iapply (typedPointsto_w64_bytes _ _ _).2 $$ Hh
+      isplitl [Hi]; · iapply (typedPointsto_w64_bytes _ _ _).2 $$ Hi
+      itrivial
+    · ipureintro; exact loc_ne_null_of_car l h
 
 end bytes
 

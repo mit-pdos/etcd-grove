@@ -18,20 +18,24 @@ namespace EtcdGrove
 namespace bbolt
 
 #print axioms BucketStats.wp_Add
+#print axioms DB.wp_page
+#print axioms Tx.wp_page
+#print axioms Bucket.wp_pageNode
 #print axioms elemRef.wp_count
 #print axioms Cursor.wp_keyValue
 #print axioms Cursor.wp_nsearch
 #print axioms DB.wp_GoString
+#print axioms DB.wp_Info
 #print axioms DB.wp_IsReadOnly
 #print axioms DB.wp_Path
 #print axioms DB.wp_String
 #print axioms DB.wp_growSize
 #print axioms DB.wp_invalidate
+#print axioms DB.wp_meta
 #print axioms DB.wp_mmapSize
 #print axioms unix.wp_Munmap
 #print axioms wp_munmap
 #print axioms DB.wp_munmap
-#print axioms DB.wp_page
 #print axioms DB.wp_pageInBuffer
 #print axioms Options.wp_String
 #print axioms TxStats.wp_GetPageCount
@@ -69,6 +73,8 @@ namespace bbolt
 #print axioms Tx.wp_Size
 #print axioms Tx.wp_Stats
 #print axioms Tx.wp_Writable
+#print axioms wp_newBucket
+#print axioms Tx.wp_init
 #print axioms wp_cloneBytes
 #print axioms wp_compareKeys
 #print axioms os.File.wp_Fd

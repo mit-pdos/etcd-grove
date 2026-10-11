@@ -9,14 +9,17 @@ hand.
 module
 
 public import Proof.go_etcd_io.bbolt.BucketStats__Add
+public import Proof.go_etcd_io.bbolt.Bucket__pageNode
 public import Proof.go_etcd_io.bbolt.Cursor__keyValue
 public import Proof.go_etcd_io.bbolt.Cursor__nsearch
 public import Proof.go_etcd_io.bbolt.DB__GoString
+public import Proof.go_etcd_io.bbolt.DB__Info
 public import Proof.go_etcd_io.bbolt.DB__IsReadOnly
 public import Proof.go_etcd_io.bbolt.DB__Path
 public import Proof.go_etcd_io.bbolt.DB__String
 public import Proof.go_etcd_io.bbolt.DB__growSize
 public import Proof.go_etcd_io.bbolt.DB__invalidate
+public import Proof.go_etcd_io.bbolt.DB__meta
 public import Proof.go_etcd_io.bbolt.DB__mmapSize
 public import Proof.go_etcd_io.bbolt.DB__munmap
 public import Proof.go_etcd_io.bbolt.DB__page
@@ -55,6 +58,8 @@ public import Proof.go_etcd_io.bbolt.Tx__OnCommit
 public import Proof.go_etcd_io.bbolt.Tx__Size
 public import Proof.go_etcd_io.bbolt.Tx__Stats
 public import Proof.go_etcd_io.bbolt.Tx__Writable
+public import Proof.go_etcd_io.bbolt.Tx__init
+public import Proof.go_etcd_io.bbolt.Tx__page
 public import Proof.go_etcd_io.bbolt.atomicAddDuration
 public import Proof.go_etcd_io.bbolt.atomicLoadDuration
 public import Proof.go_etcd_io.bbolt.cloneBytes
@@ -64,6 +69,7 @@ public import Proof.go_etcd_io.bbolt.munmap
 public import Proof.go_etcd_io.bbolt.elemRef__count
 public import Proof.go_etcd_io.bbolt.elemRef__isLeaf
 public import Proof.io.fs.FileInfo__Size
+public import Proof.go_etcd_io.bbolt.newBucket
 public import Proof.go_etcd_io.bbolt.nodes__Len
 public import Proof.go_etcd_io.bbolt.nodes__Swap
 public import Proof.os.File__Close
@@ -98,10 +104,25 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
+-- `hash.Hash64`'s type: bbolt's `Assumptions` do not include `hash`'s (it reaches `hash` only
+-- through `hash/fnv`)
+variable [hash_sem : _root_.Perennial.hash.Hash64.TypeAssumptions]
 
 theorem BucketStats.wp_Add :
     EtcdGrove.bbolt.BucketStats.Add.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.BucketStats.Add.wp_proof
+
+theorem DB.wp_page :
+    EtcdGrove.bbolt.DB.page.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.DB.page.wp_proof
+
+theorem Tx.wp_page :
+    EtcdGrove.bbolt.Tx.page.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Tx.page.wp_proof EtcdGrove.bbolt.DB.wp_page EtcdGrove.bbolt.Page.wp_FastCheck
+
+theorem Bucket.wp_pageNode :
+    EtcdGrove.bbolt.Bucket.pageNode.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Bucket.pageNode.wp_proof EtcdGrove.bbolt.InBucket.wp_RootPage EtcdGrove.bbolt.Tx.wp_page
 
 theorem elemRef.wp_count :
     EtcdGrove.bbolt.elemRef.count.spec (GF := GF) (hG := hG) :=
@@ -118,6 +139,10 @@ theorem Cursor.wp_nsearch :
 theorem DB.wp_GoString :
     EtcdGrove.bbolt.DB.GoString.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.DB.GoString.wp_proof
+
+theorem DB.wp_Info :
+    EtcdGrove.bbolt.DB.Info.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.DB.Info.wp_proof EtcdGrove.bbolt.wp_Assert
 
 theorem DB.wp_IsReadOnly :
     EtcdGrove.bbolt.DB.IsReadOnly.spec (GF := GF) (hG := hG) :=
@@ -139,6 +164,10 @@ theorem DB.wp_invalidate :
     EtcdGrove.bbolt.DB.invalidate.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.DB.invalidate.wp_proof
 
+theorem DB.wp_meta :
+    EtcdGrove.bbolt.DB.meta.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.DB.meta.wp_proof EtcdGrove.bbolt.Meta.wp_Txid EtcdGrove.bbolt.Meta.wp_Validate
+
 theorem DB.wp_mmapSize :
     EtcdGrove.bbolt.DB.mmapSize.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.DB.mmapSize.wp_proof
@@ -154,10 +183,6 @@ theorem wp_munmap :
 theorem DB.wp_munmap :
     EtcdGrove.bbolt.DB.munmap.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.DB.munmap.wp_proof EtcdGrove.bbolt.wp_munmap EtcdGrove.bbolt.DB.wp_invalidate
-
-theorem DB.wp_page :
-    EtcdGrove.bbolt.DB.page.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.DB.page.wp_proof
 
 theorem DB.wp_pageInBuffer :
     EtcdGrove.bbolt.DB.pageInBuffer.spec (GF := GF) (hG := hG) :=
@@ -306,6 +331,14 @@ theorem Tx.wp_Stats :
 theorem Tx.wp_Writable :
     EtcdGrove.bbolt.Tx.Writable.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Tx.Writable.wp_proof
+
+theorem wp_newBucket :
+    EtcdGrove.bbolt.newBucket.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.newBucket.wp_proof
+
+theorem Tx.wp_init :
+    EtcdGrove.bbolt.Tx.init.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Tx.init.wp_proof EtcdGrove.bbolt.DB.wp_meta EtcdGrove.bbolt.Meta.wp_Copy EtcdGrove.bbolt.wp_newBucket EtcdGrove.bbolt.Meta.wp_RootBucket EtcdGrove.bbolt.Meta.wp_IncTxid
 
 theorem wp_cloneBytes :
     EtcdGrove.bbolt.cloneBytes.spec (GF := GF) (hG := hG) :=

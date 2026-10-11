@@ -84,6 +84,12 @@ LEAN_FIRST = {
                      "go_etcd_io.bbolt.Assumptions",
                      "bbolt's root package's proofs and the file model's axioms", [""]),
 }
+# bbolt reaches `hash` only through `hash/fnv`, so its `Assumptions` lack `hash`'s, which the
+# meta checksum's specs (`Meta.Sum64`, ...) take: a Goose gap, an instance hypothesis until fixed
+BBOLT_HASH = """-- `hash.Hash64`'s type: bbolt's `Assumptions` do not include `hash`'s (it reaches `hash` only
+-- through `hash/fnv`)
+variable [hash_sem : _root_.Perennial.hash.Hash64.TypeAssumptions]
+"""
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--concurrency": "concurrency", "--bbolt": "bbolt", "--bbolt-root": "bbolt"}
 mode = LEAN_FIRST.get(sys.argv[1])
@@ -232,7 +238,7 @@ variable [go_gctx : GoGlobalContext]
 variable {{hlc : HasLC}} {{GF : BundledGFunctors}} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : {assumptions}]
-""")
+""" + (BBOLT_HASH if sys.argv[1] in ("--bbolt", "--bbolt-root") else ""))
     def emit_cache(fn):
         # qualified in a namespaced mode: in `theorem DB.wp_munmap`, a bare `wp_munmap` would be
         # `DB.wp_munmap` itself
