@@ -68,13 +68,14 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
     wp_apply HRL
     (try wp_auto)
     -- `s.revMu.RUnlock()`
-    wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrevl Hrev Hcmp Hbucket Hcert] as HrevMuR
+    wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrevl Hrev Hbucket Hcert] as HrevMuR
     · inext
       iunfold mvcc.revMuInv
       iexists log
       simp only [named]
-      iframe Hrev Hcmp Hbucket
+      iframe Hrev Hbucket
       iframe #
+      ipureintro; exact Hne
     (try wp_auto)
     wp_alloc tr as Htr
     iStructNamedPrefix Htr "T"
@@ -102,7 +103,9 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
       iexists (mvcc.bucketMap log)
       simp only [named]
       iframe #
-      ipureintro; exact fun _ _ h => h
+      isplitl []
+      · ipureintro; exact fun _ _ h => h
+      ipureintro; exact ⟨Hne, trivial⟩
     iexact HidxR
 
 end proof

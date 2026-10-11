@@ -130,14 +130,15 @@ def bucketView (γ : StoreNames) (q : Qp) (m : Bucket) : IProp GF :=
 
 
 /-- `s.revMu`'s resource at fraction `q`: the committed log `log`'s last revision in
-`currentRev`, no compaction, the index's certificate of `log` and the bucket's authority
-(`bucketMap log`). -/
+`currentRev`, the index's certificate of `log` and the bucket's authority (`bucketMap log`).
+(`compactMainRev` is fixed at `-1`, no compaction in scope: `isStore`; `rangeKeys` reads it
+without the lock.) -/
 def revMuInv (s : Loc) (γ : StoreNames) (q : Qp) : IProp GF :=
   iprop(∃ log : Log,
     "Hrev" ∷ (s.[store, go!"currentRev"] ↦{DFrac.own q} (W64 ((log.length : Int) - 1) : w64) :
       IProp GF) ∗
-    "Hcmp" ∷ (s.[store, go!"compactMainRev"] ↦{DFrac.own q} (W64 (-1) : w64) : IProp GF) ∗
     "#Hcert" ∷ idxCert γ.idx log ∗
+    "%Hne" ∷ ⌜log ≠ []⌝ ∗
     "Hbucket" ∷ bucketView γ q (bucketMap log))
 
 /-- A store (persistent): its backend, index, logger, and the two locks' guards. The fields
@@ -150,6 +151,7 @@ def isStore (s : Loc) (γ : StoreNames) : IProp GF :=
       (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
     "#Hti" ∷ isTreeIndex ti γ.idx ∗
     "#Hlg" ∷ s.[store, go!"lg"] ↦□ lg ∗
+    "#Hcmp" ∷ s.[store, go!"compactMainRev"] ↦□ (W64 (-1) : w64) ∗
     "#Hmu" ∷ sync.isRWMutexGuard (muAddr s) muInv ∗
     "#HrevMu" ∷ sync.isRWMutexGuard (revMuAddr s) (revMuInv s γ))
 
@@ -182,6 +184,7 @@ def storeTxnReadIs (tr s : Loc) (rt : GoInterfaceOk) (trace : Loc) (γ : StoreNa
     "#Hsnap" ∷ keyReadSnap rt m ∗
     "%Hsub" ∷ ⌜GMap.Subseteq (bucketMap log) m⌝ ∗
     "#Hcert" ∷ idxCert γ.idx log ∗
+    "%Hne" ∷ ⌜log ≠ []⌝ ∗
     "%Hrev" ∷ ⌜rev = W64 ((log.length : Int) - 1)⌝)
 
 instance storeTxnReadIs_persistent (tr s : Loc) (rt : GoInterfaceOk) (trace : Loc) (γ : StoreNames)
@@ -205,6 +208,28 @@ def isTxnRead (mw s : Loc) (γ : StoreNames) (log : Log) (rev : w64) : IProp GF 
     "Hmu" ∷ sync.ownRWMutexRLocked (muAddr s) muInv ∗
     "HrevMu" ∷ sync.ownRWMutex (revMuAddr s) (revMuInv s γ) ∗
     "Hti" ∷ idxReader ti γ.idx)
+
+/-! ## The result of a range read -/
+
+/-- A fresh `*mvccpb.KeyValue` holding the model's `kv`: all its fields (`full`), or, for a
+keys-only read, its key and revisions and version (value and lease zero); the key and value
+as read-only slices. -/
+def kvPtrIs (full : Bool) (p : Loc) (kv : EtcdKv) : IProp GF :=
+  iprop(∃ (ks vs : GoSlice) (st : google_golang_org.protobuf.internal.impl.MessageState)
+    (uf : GoSlice) (sc : w32),
+    p ↦ ({
+      state' := st, Key' := ks, CreateRevision' := kv.createRev, ModRevision' := kv.modRev,
+      Version' := kv.version, Value' := if full then vs else slice.nil,
+      Lease' := if full then kv.lease else W64 0, unknownFields' := uf, sizeCache' := sc } :
+      go_etcd_io.etcd.api.v3.mvccpb.KeyValue) ∗
+    ks ↦*□ kv.key ∗ vs ↦*□ kv.value)
+
+/-- The key-values of a `RangeResult` (`KVs`): fresh, one per answer of the index, in order,
+each the state's key-value of the answer's key. -/
+def rangeKvs (full : Bool) (kvs : GoSlice) (st : List EtcdKv)
+    (answers : List (GoString × Rev × Rev × w64)) : IProp GF :=
+  iprop(∃ ps : List Loc, kvs ↦* ps ∗ ⌜ps.length = answers.length⌝ ∗
+    [∗list] pa ∈ ps.zip answers, ∃ kv : EtcdKv, ⌜findKey pa.2.1 st = some kv⌝ ∗ kvPtrIs full pa.1 kv)
 
 end reprs
 
