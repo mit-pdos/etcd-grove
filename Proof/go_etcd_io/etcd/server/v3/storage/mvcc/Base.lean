@@ -2,9 +2,9 @@
 Package initialization instances for etcd's mvcc store (`server/v3/storage/mvcc`) and the
 packages it imports that no other proof module provides: `pkg/v3/traceutil`, `server/v3/lease`,
 `pkg/v3/schedule`, prometheus's `client_golang/prometheus` and opentelemetry's `otel/trace` (all
-names and types only), and the interval tree `pkg/v3/adt` (with bodies; no package facts yet).
-The others are the cache's (`cache/v3/Base.lean`: `zap`, `proto`, `mvccpb`, `client/v3`), the
-server's (`etcdserver/Base.lean`: `backend`, `schema`, `client/pkg/v3/verify`), the btree's
+names and types only). The others are the interval tree's (`pkg/v3/adt/Base.lean`), the
+cache's (`cache/v3/Base.lean`: `zap`, `proto`, `mvccpb`, `client/v3`), the server's
+(`etcdserver/Base.lean`: `backend`, `schema`, `client/pkg/v3/verify`), the btree's
 (`btree/Init.lean`) and Perennial's (`sync`, `bytes`, `context`, `errors`, `fmt`, `time`,
 `encoding/binary`, `math`, `strings`).
 
@@ -23,6 +23,7 @@ public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.mvcc
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Base
 public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.Init
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.Base
 public import Perennial.Proof.time
 public import Perennial.Proof.bytes
 public import Perennial.Proof.math
@@ -91,15 +92,6 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_opentelemet
   build_get_is_pkg_init_wf
 
 end go_opentelemetry_io.otel.trace
-
-namespace go_etcd_io.etcd.pkg.v3.adt
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.pkg.v3.adt
 
 namespace go_etcd_io.etcd.server.v3.storage.mvcc
 

@@ -1978,6 +1978,55 @@ record.
   result's statement. *Rejected:* writing the representation invariant in unit 1b (unit 4's
   hardest design decision before any client exercises the contract).
 
+### The watcher group and the stream (unit 2)
+
+**2026-10-11 · adopted** (design; the unit to be proved against it).
+- **A group is a set of watcher pointers; the structures are indexes.** A watcher's `key`,
+  `end`, `startRev`, `id` and `fcs` are never written after `watch()` builds it, so its range
+  is a persistent fact of the pointer (`watcherFixed w r fcs`, as a key index's `kiKey`): a
+  single key (`end == nil`) or `[key, end)` under the affine order (`end` empty, non-nil, is
+  +∞: a `WithFromKey` watch). `ownWatcherGroup wg W` (`W` the members with their ranges) holds
+  the key map, the interval tree (through its contract, the tree's values the `watcherSet`
+  maps as interface values) and the all-watchers set, consistent with `W`: no empty set in
+  the key map or the tree (both delete them), every set's members those of that key or
+  interval. `add` is union (premise: not a member), `delete` removal returning membership,
+  `contains key` a decidable existence over `W`, `size` the cardinality; `watcherSetByKey`
+  lends (by a wand) the set of the members whose range holds the key, since the code returns
+  its own maps by alias when it can (and a nil map when there is none: the specs say so).
+- **The members' mutable state is the caller's.** `minRev`, `victim`, `compacted`, `restore`
+  and `ch` are written by the store under its lock, or by the victim mover after taking the
+  batch out, never through a group; a watcher in no group (a victim) has its state with the
+  batch. So the group owns membership only, and `choose`, `chooseAll` and `newWatcherBatch`
+  take the members' states as a big-sep (`watcherOwn w st`) and give them back. *Rejected:*
+  the group owning its members' state (every move between groups and to the victims would
+  split and rejoin it).
+- **Batches are a pure fold.** `newWatcherBatch wg evs` is, per member, the fold of the events
+  in order (`ebAdd`, mirroring `eventBatch.add`: a new revision counts, past
+  `watchBatchMaxRevs` the first revision left out is `moreRev`), keeping those whose key the
+  member's range holds at or above its `minRev`; the map's iteration order does not matter
+  since each member's batch depends on the events only. An `mvccpb.Event` is a persistent
+  fact of its pointer (`evIs e ev`: the type, the key-value pointer read-only for good, the
+  previous key-value or `nil`): events are immutable once `End` has fixed a delete's
+  `ModRevision`, and batches share them (the copies `newWatcherBatch` makes share the
+  key-value).
+- **Compaction and `restore` out of scope, as premises.** `chooseAll` (and so `choose`) take
+  that no member is below `compactRev` or above `curRev` and none is restoring: the store's
+  invariant on the unsynced group (unit 3), which excludes its compaction response and its
+  panic. The group's own panics (`add watcher twice`, `removing missing watcher`, the tree's
+  `Delete` failing) are plain `panic(...)`s on inputs the invariants exclude: premises, as
+  `treeIndex.Put`'s, not panic outcomes (no logger to specify; the key index's total specs
+  were for `zap.Logger.Panic`). `choose`'s subset is nondeterministic (map iteration): some
+  subset of the right size, the group returned being `wg` itself or a fresh one.
+- **The stream over an abstract `watchable`.** `watcher.go` is proved now against the
+  `watchable` interface's contract (persistent triples `watch` — a live-watcher token and a
+  cancel closure whose spec consumes it —, `progress`/`progressAll` — a persistent "is a
+  watcher of this store" fact only, since `RequestProgress` runs without the stream's lock
+  while `Cancel` may run —, `rev`), which unit 3's store satisfies. The stream's state (its
+  `watchers` and `cancels` maps, `closed`, `nextID`) is under its own `sync.Mutex`; `Watch`
+  returns a registration token per id (consumed by `Cancel`; `Close` cancels all). The
+  constants `clientv3.AutoWatchID`/`InvalidWatchID` are translated with their values (`Watch`
+  and `progressAll` compare against them).
+
 ## mvcc: the log of changes as the model, the key index as a function of its events
 
 **2026-10-10 · accepted** (Lean-first; the plan discussed with the user: "start on the mvcc KV

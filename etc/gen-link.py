@@ -26,6 +26,7 @@ usage: etc/gen-link.py ROCQ_PROOF_DIR > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --recipes > Proof/go_etcd_io/etcd/client/v3/experimental/recipes/Link.lean
        etc/gen-link.py --register > Proof/github_com/mit_pdos/etcd_grove/examples/register/Link.lean
        etc/gen-link.py --mvcc > Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Link.lean
+       etc/gen-link.py --adt > Proof/go_etcd_io/etcd/pkg/v3/adt/Link.lean
 
 `--cache` links the proofs of etcd's `cache` package (`Proof/go_etcd_io/etcd/cache/v3/` and
 the specs and proofs of its functions), which are all
@@ -54,6 +55,8 @@ A callee list `?` (`fn: ?`) marks a function specified but not proved yet (a lat
 spec is a hypothesis (`h_<fn>`, `section links_pending`) of every result that reaches it.
 `--mvcc` links the proofs of the KV core of etcd's `server/v3/storage/mvcc`
 (`Proof/go_etcd_io/etcd/server/v3/storage/mvcc/`), from etc/link-lean-first-mvcc.txt.
+`--adt` links the proofs of etcd's interval tree (`pkg/v3/adt`, `Proof/go_etcd_io/etcd/pkg/v3/adt/`),
+from etc/link-lean-first-adt.txt: the tree's contract pending (`?`), the comparisons proved.
 `--skip-unproved` (after the mode) leaves out the listed functions with no proof file yet (no
 spec, or no `Proof/` file: a later unit's) and every function that reaches one, and names them
 in the header: a package proved in units links what is done, from the full list.
@@ -95,6 +98,10 @@ LEAN_FIRST = {
     "--mvcc": ("link-lean-first-mvcc.txt", "go_etcd_io.etcd.server.v3.storage.mvcc",
                "go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions",
                "The mvcc KV core's proofs (etcd's `server/v3/storage/mvcc`)", [""]),
+    # the interval tree (etcd's pkg/v3/adt), the watchable store's
+    "--adt": ("link-lean-first-adt.txt", "go_etcd_io.etcd.pkg.v3.adt",
+              "go_etcd_io.etcd.pkg.v3.adt.Assumptions",
+              "The interval tree's proofs (etcd's `pkg/v3/adt`)", [""]),
     "--recipes": ("link-lean-first-recipes.txt",
                   "go_etcd_io.etcd.client.v3.experimental.recipes go_etcd_io.etcd.api.v3",
                   "go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions",

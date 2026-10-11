@@ -1,0 +1,17 @@
+# The interval tree's functions (etcd's pkg/v3/adt; all Lean-first: no Rocq counterpart), read by
+# `etc/gen-link.py --adt`: `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
+# The string-affine comparisons and intervals, see Model.lean, Defs.lean.
+StringAffineComparable__Compare:
+NewStringAffineInterval:
+NewStringAffinePoint: NewStringAffineInterval
+Interval__Compare: StringAffineComparable__Compare
+# The tree's contract (string-affine intervals over the opaque `ownIvt`), see Model.lean,
+# Defs.lean: specified, not proved yet; unit 4 (the tree's proof) proves them, until then
+# hypotheses of every result that reaches them.
+NewIntervalTree: ?
+intervalTree__Insert: ?
+intervalTree__Delete: ?
+intervalTree__Find: ?
+intervalTree__Intersects: ?
+intervalTree__Stab: ?
+intervalTree__Len: ?
