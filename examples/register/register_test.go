@@ -74,3 +74,7 @@ func TestPutGet(t *testing.T) {
 		}
 	}
 }
+
+func TestCluster(t *testing.T) {
+	Main()
+}

@@ -9,6 +9,9 @@ MemoryStorage__Append: @
 node__Propose: @
 node__Ready: @
 node__Advance: @
+RestartNode: @
+node__Step: @
+node__Tick: @
 # the register (examples/register/register.go)
 encode:
 decode:
@@ -22,3 +25,12 @@ Register__Put: Register__do
 Register__Get: Register__do
 Register__run: fits Register__apply node__Ready node__Advance MemoryStorage__Append
 register_New: Register__run
+# the cluster driver (examples/register/cluster.go)
+register_quietLogger__Debugf:
+register_quietLogger__Errorf:
+register_quietLogger__Infof:
+register_quietLogger__Warningf:
+register_deliverable:
+register_deliver: register_deliverable node__Step
+register_tick: node__Tick
+register_Main: NewStorage Storage__InitialState Storage__Snapshot register_New Register__Put Register__Get register_deliver register_tick register_quietLogger__Debugf register_quietLogger__Errorf register_quietLogger__Infof register_quietLogger__Warningf RestartNode

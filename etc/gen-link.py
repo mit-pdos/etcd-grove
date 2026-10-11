@@ -265,6 +265,9 @@ variable [package_sem : {assumptions}]
         allg = " [AllG GF]" if "[AllG GF]" in src and fn not in blocked else ""
         # the register's specs take its storage registry
         allg += " [RegStor GF]" if "[RegStor GF]" in src else ""
+        # ... or, stated over any raft storage model, that (the register's transport)
+        if "[RegStor GF]" not in src and "[StorageModel GF]" in src:
+            allg += " [StorageModel GF]"
         return (f"theorem {result(fn)}{allg} :\n    {specref(fn)}.spec (GF := GF) (hG := hG) :=\n"
                 f"  {body}\n")
 

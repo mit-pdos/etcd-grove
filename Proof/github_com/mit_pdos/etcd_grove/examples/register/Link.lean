@@ -19,7 +19,15 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.register.Storage__Sn
 public import Proof.github_com.mit_pdos.etcd_grove.examples.register.decode
 public import Proof.github_com.mit_pdos.etcd_grove.examples.register.encode
 public import Proof.github_com.mit_pdos.etcd_grove.examples.register.fits
+public import Proof.github_com.mit_pdos.etcd_grove.examples.register.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.register.New
+public import Proof.github_com.mit_pdos.etcd_grove.examples.register.deliver
+public import Proof.github_com.mit_pdos.etcd_grove.examples.register.deliverable
+public import Proof.github_com.mit_pdos.etcd_grove.examples.register.quietLogger__Debugf
+public import Proof.github_com.mit_pdos.etcd_grove.examples.register.quietLogger__Errorf
+public import Proof.github_com.mit_pdos.etcd_grove.examples.register.quietLogger__Infof
+public import Proof.github_com.mit_pdos.etcd_grove.examples.register.quietLogger__Warningf
+public import Proof.github_com.mit_pdos.etcd_grove.examples.register.tick
 public import Proof.go_etcd_io.raft.v3.Link
 
 @[expose] public section
@@ -96,6 +104,38 @@ theorem register.Storage.wp_Snapshot [RegStor GF] :
 theorem register.wp_New [RegStor GF] :
     register.New.spec (GF := GF) (hG := hG) :=
   register.New.wp_proof register.Register.wp_run
+
+theorem register.wp_deliverable [AllG GF] :
+    register.deliverable.spec (GF := GF) (hG := hG) :=
+  register.deliverable.wp_proof
+
+theorem register.wp_deliver [AllG GF] [StorageModel GF] :
+    register.deliver.spec (GF := GF) (hG := hG) :=
+  register.deliver.wp_proof register.wp_deliverable node.wp_Step
+
+theorem register.wp_tick [AllG GF] [StorageModel GF] :
+    register.tick.spec (GF := GF) (hG := hG) :=
+  register.tick.wp_proof node.wp_Tick
+
+theorem register.quietLogger.wp_Debugf [AllG GF] :
+    register.quietLogger.Debugf.spec (GF := GF) (hG := hG) :=
+  register.quietLogger.Debugf.wp_proof
+
+theorem register.quietLogger.wp_Errorf [AllG GF] :
+    register.quietLogger.Errorf.spec (GF := GF) (hG := hG) :=
+  register.quietLogger.Errorf.wp_proof
+
+theorem register.quietLogger.wp_Infof [AllG GF] :
+    register.quietLogger.Infof.spec (GF := GF) (hG := hG) :=
+  register.quietLogger.Infof.wp_proof
+
+theorem register.quietLogger.wp_Warningf [AllG GF] :
+    register.quietLogger.Warningf.spec (GF := GF) (hG := hG) :=
+  register.quietLogger.Warningf.wp_proof
+
+theorem register.wp_Main [AllG GF] :
+    register.Main.spec (GF := GF) (hG := hG) :=
+  register.Main.wp_proof register.wp_NewStorage register.Storage.wp_InitialState register.Storage.wp_Snapshot register.wp_New register.Register.wp_Put register.Register.wp_Get register.wp_deliver register.wp_tick register.quietLogger.wp_Debugf register.quietLogger.wp_Errorf register.quietLogger.wp_Infof register.quietLogger.wp_Warningf wp_RestartNode
 
 end links_hasLC
 

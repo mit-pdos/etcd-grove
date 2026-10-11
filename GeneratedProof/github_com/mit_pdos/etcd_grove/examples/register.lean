@@ -7,6 +7,7 @@ public import Perennial.GeneratedProof.encoding.binary
 public import GeneratedProof.go_etcd_io.raft.v3
 public import GeneratedProof.go_etcd_io.raft.v3.raftpb
 public import Perennial.GeneratedProof.sync
+public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.github_com.mit_pdos.etcd_grove.examples.register
 
@@ -21,6 +22,29 @@ namespace Perennial
 open Iris Iris.BI
 noncomputable section
 namespace github_com.mit_pdos.etcd_grove.examples.register
+
+namespace quietLogger
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.register.Assumptions]
+
+instance quietLogger_typed_pointsto :
+    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.register.quietLogger where
+  typedPointstoDef l v dq := iprop(
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance quietLogger_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.register.quietLogger github_com.mit_pdos.etcd_grove.examples.register.quietLogger.underlying := by
+  solve_into_val_typed_struct
+
+end def_
+end quietLogger
 
 namespace Storage
 section def_

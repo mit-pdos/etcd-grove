@@ -71,6 +71,17 @@ GiB, measured 2026-10-08; `notes/decisions.md`, "Lean's module system"). A
 definition sealed inside its file (`ownRaftPhys`) is `@[no_expose]`. New files follow
 the same pattern; Perennial's are modules too.
 
+## Issues in the verified code
+
+When you find a bug in the Go code being verified (a reachable panic, a wrong result) or
+in its documentation (a precondition the code needs that its API does not state, behavior
+its documentation contradicts), record it in `issues/`, one file per issue, in the format
+of `issues/README.md`, with a reproduction when you can make one (a Go test). Do this as
+soon as it is found, including when a spec sidesteps it with a premise: the premise is
+where the proof records it, `issues/` is where people find it. Bugs in this repository's
+own specs and proofs go in `notes/` instead. A subagent that finds one says so in its
+report.
+
 ## Trust base
 
 `etc/tcb-report.py` reports what the proof rests on (needs `lake build`): the
