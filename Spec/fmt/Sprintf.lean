@@ -24,13 +24,13 @@ models it (`Perennial/TrustedCode/fmt.lean`) and proves `fmt.wp_Sprintf`. `newRa
 it only to build a log line. The postcondition is *some* string: nothing reads what it
 says.
 
-It asks only that an argument of dynamic type `string` hold a string
-(`fmt.StringArgsWf`, which Perennial's model, formatting `%s`, needs); `newRaft` passes only
-`uint64`s. -/
+It asks only that an argument's dynamic type tell the truth about its value for the types
+Perennial's model formats (`fmt.ArgsWf`: a `string` holds a string, an integer type an integer);
+`newRaft` passes only `uint64`s. -/
 abbrev fmt.Sprintf.spec : Prop :=
   ∀ (format : GoString) (args : GoSlice) (xs : List GoInterface) (dq : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ args ↦*{dq} xs ∗
-      ⌜_root_.Perennial.fmt.StringArgsWf xs⌝ }}
+      ⌜_root_.Perennial.fmt.ArgsWf xs⌝ }}
     (App (App (Val #(functions _root_.Perennial.fmt.Sprintf [])) (Val #format)) (Val #args))
   {{ (s : GoString), RET #s; args ↦*{dq} xs }}
 
