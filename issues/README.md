@@ -50,3 +50,6 @@ the tests; the issues and pull requests are filed by hand from them. A finding t
 Findings without a draft yet (`notes/STATUS.md`, the leasing sections): `gatherOps` appending
 into the caller's nested `OpTxn` slice (a race only for callers who reuse the slice; assessed,
 not filed).
+[etcd-txn-empty-requestop](etcd-txn-empty-requestop.md): the server's `txn.Txn` panics on a
+`RequestOp` with an empty oneof, which the gRPC layer rejects (an unstated precondition; found
+2026-10-11, txn unit 0; not filed).
