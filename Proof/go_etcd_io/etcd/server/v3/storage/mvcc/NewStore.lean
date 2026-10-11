@@ -137,7 +137,7 @@ theorem mvcc.NewStore.wp_proof
   wp_join iprop(∃ c : StoreConfig, cfg_ptr ↦ c) with [cfg] as ⟨%cfg1, cfg⟩
   wp_join iprop(∃ c : StoreConfig, cfg_ptr ↦ c) with [cfg] as ⟨%cfg2, cfg⟩
   -- the store's struct
-  wp_apply hNewIdx as %ti ⟨%γi, #Hti, Hiw, Hird⟩
+  wp_apply hNewIdx as %ti ⟨%γi, #Hti, Hiw, Hil, Hird⟩
   (try wp_auto)
   wp_apply hFifo as %sc -
   (try wp_auto)
@@ -161,8 +161,8 @@ theorem mvcc.NewStore.wp_proof
   (try wp_auto)
   -- the ghost state: the index at the initial log `[[], []]` (revision 0 and `currentRev = 1`),
   -- the committed log, the revision budget
-  imod mvcc.idxWriter_commit γi [] [] (by simp) $$ Hiw with ⟨Hiw, -⟩
-  imod mvcc.idxWriter_commit γi ([] ++ [[]]) [] (by simp) $$ Hiw with ⟨Hiw, #Hcert⟩
+  imod mvcc.idxWriter_commit γi [] [] (by simp) $$ Hiw Hil with ⟨Hiw, Hil, -⟩
+  imod mvcc.idxWriter_commit γi ([] ++ [[]]) [] (by simp) $$ Hiw Hil with ⟨Hiw, Hil, #Hcert⟩
   have hlog : (([] : mvcc.Log) ++ [[]] ++ [[]]) = [[], []] := rfl
   rw [hlog]
   imod ghostVar_alloc (GF := GF) ([[], []] : mvcc.Log) with ⟨%γc, Hc⟩
@@ -170,6 +170,7 @@ theorem mvcc.NewStore.wp_proof
   imod ownTokAuth_alloc (GF := GF) with ⟨%γr, Hauth⟩
   imod ownTokAuth_add (2 ^ 63 - 5) γr 0 $$ Hauth with ⟨Hauth, Htoks⟩
   rw [Nat.zero_add]
+  icases (mvcc.ownTokAuth_halves γr _).1 $$ Hauth with ⟨Hauth, HauthR⟩
   obtain ⟨γ, hγi, hγb, hγc, hγl, hγr⟩ : ∃ γ : mvcc.StoreNames, γ.idx = γi ∧ γ.bucket = γb ∧
       γ.clog = γc ∧ γ.leases = γl ∧ γ.revs = γr := ⟨⟨γi, γb, γc, γl, γr⟩, rfl, rfl, rfl, rfl, rfl⟩
   rw [← hγi, ← hγc, ← hγr]
@@ -262,13 +263,13 @@ theorem mvcc.NewStore.wp_proof
   -- `s.revMu` initialized with the committed log `[[], []]`: the other halves of
   -- `currentRev`, of the committed log and of the bucket's view, the index's certificate
   imod sync.init_RWMutex (mvcc.revMuInv «$r0_ptr» γ) (mvcc.revMuAddr «$r0_ptr»)
-    $$ [HcurB Hc2 Hbv2] revMu with Hrevs
+    $$ [HcurB Hc2 Hbv2 HauthR Hil] revMu with Hrevs
   · inext
     iunfold mvcc.revMuInv
-    iexists [[], []]
+    iexists [[], []], 2 ^ 63 - 5
     simp only [named]
     rw [mvcc.bucketMap_init, ← hone]
-    iframe HcurB Hc2 Hbv2
+    iframe HcurB Hc2 Hbv2 HauthR Hil
     iframe #
     ipureintro; simp
   icases mvcc.guard_of_slots _ _ $$ Hrevs with ⟨Hrevs, #Hrevg⟩

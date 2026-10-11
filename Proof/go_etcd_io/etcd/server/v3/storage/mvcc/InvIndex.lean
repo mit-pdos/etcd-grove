@@ -583,12 +583,17 @@ instance isTreeIndex_persistent (ti : Loc) (γ : IdxNames) : Persistent (isTreeI
 def idxReader (ti : Loc) (γ : IdxNames) : IProp GF :=
   iprop(∃ t : Loc, ti.[treeIndex, go!"tree"] ↦□ t ∗ sync.ownRWMutex (idxMuAddr ti) (idxLockInv t γ))
 
+/-- The committed log's authority at fraction `q`: half is the writer's (`idxWriter`), half
+is kept elsewhere (the store's `s.revMu`), so that a reader of the committed log there finds
+every certificate below it (`idxLogAuth_cert_prefix`). -/
+abbrev idxLogAuth (γ : IdxNames) (q : Qp) (log : Log) : IProp GF := monoListAuthOwn γ.log q log
+
 /-- The writer's handle: the history's authority (`ilog` committed, `pend` put so far), a
-lower bound of the event count at its last write, and the committed log's authority. -/
+lower bound of the event count at its last write, and half the committed log's authority. -/
 def idxWriter (γ : IdxNames) (ilog : Log) (pend : List Change) : IProp GF :=
   iprop(monoListAuthOwn γ.hist 1 (histShape ilog pend) ∗
     monoNatLbOwn γ.nev (evsOf (ilog ++ [pend])).length ∗ ⌜IdxWf ilog pend⌝ ∗
-    monoListAuthOwn γ.log 1 ilog)
+    idxLogAuth γ (1 : Qp).half ilog)
 
 theorem idxWriter_wf (γ : IdxNames) (ilog : Log) (pend : List Change) :
     idxWriter (GF := GF) γ ilog pend ⊢ ⌜IdxWf ilog pend⌝ := by
@@ -620,13 +625,34 @@ theorem idxCert_agree_len (γ : IdxNames) (log log' : Log) :
   · exact h.eq_of_length hlen
   · exact (h.eq_of_length hlen.symm).symm
 
+/-- The committed log (any part of its authority) extends every certificate's. -/
+theorem idxLogAuth_cert_prefix (γ : IdxNames) (q : Qp) (ilog log : Log) :
+    idxLogAuth (GF := GF) γ q ilog ∗ idxCert γ log ⊢ ⌜log <+: ilog⌝ := by
+  unfold idxCert
+  iintro ⟨Ha, ⟨-, -, -, Hl⟩⟩
+  ihave %h := mono_list_auth_lb_valid γ.log q ilog log $$ Ha Hl
+  ipureintro; exact h.2
+
 /-- The writer's committed log extends every certificate's. -/
 theorem idxWriter_cert_prefix (γ : IdxNames) (ilog : Log) (pend : List Change) (log : Log) :
     idxWriter (GF := GF) γ ilog pend ∗ idxCert γ log ⊢ ⌜log <+: ilog⌝ := by
-  unfold idxWriter idxCert
-  iintro ⟨⟨-, -, -, Ha⟩, ⟨-, -, -, Hl⟩⟩
-  ihave %h := mono_list_auth_lb_valid γ.log 1 ilog log $$ Ha Hl
-  ipureintro; exact h.2
+  unfold idxWriter
+  iintro ⟨⟨-, -, -, Ha⟩, Hc⟩
+  iapply idxLogAuth_cert_prefix γ _ ilog log $$ [$Ha $Hc]
+
+/-- The certificate of the empty log (nothing committed). -/
+theorem idxCert_nil (γ : IdxNames) : ⊢ |==> idxCert (GF := GF) γ [] := by
+  unfold idxCert
+  imod monoListLbOwn_nil (GF := GF) (A := HistItem) γ.hist with #H1
+  imod monoNatLbOwn_0 (GF := GF) γ.nev with #H2
+  imod monoListLbOwn_nil (GF := GF) (A := List Change) γ.log with #H3
+  imodintro
+  have h1 : histOf [] = ([] : List HistItem) := rfl
+  have h2 : (evsOf []).length = 0 := rfl
+  rw [h1, h2]
+  iframe H1 H2 H3
+  ipureintro
+  exact ⟨⟨fun h => absurd rfl h, fun r cs i k hr _ => by simp at hr⟩, by simp, by simp⟩
 
 theorem LogWf'.append_nil {log : Log} (h : LogWf' log) (hne : log ≠ []) : LogWf' (log ++ [[]]) := by
   refine ⟨fun _ => ?_, fun r cs i k hr hi => ?_⟩
@@ -649,12 +675,20 @@ theorem LogWf'.append_nil {log : Log} (h : LogWf' log) (hne : log ≠ []) : LogW
 committed log is certified. -/
 theorem idxWriter_commit (γ : IdxNames) (ilog : Log) (pend : List Change)
     (hlen : ilog.length + 2 < 2 ^ 63) :
-    ⊢ idxWriter (GF := GF) γ ilog pend ==∗ idxWriter γ (ilog ++ [pend]) [] ∗ idxCert γ (ilog ++ [pend]) := by
-  unfold idxWriter idxCert
-  iintro ⟨Hauth, #Hnev, %Hwf, Hlauth⟩
+    ⊢ idxWriter (GF := GF) γ ilog pend -∗ idxLogAuth γ (1 : Qp).half ilog ==∗
+      idxWriter γ (ilog ++ [pend]) [] ∗ idxLogAuth γ (1 : Qp).half (ilog ++ [pend]) ∗
+        idxCert γ (ilog ++ [pend]) := by
+  have hhalves := fun (l : Log) =>
+    (monoListAuthOwn_fractional (GF := GF) γ.log l).fractional (1 : Qp).half (1 : Qp).half
+  rw [Qp.half_add_half] at hhalves
+  unfold idxWriter idxCert idxLogAuth
+  iintro ⟨Hauth, #Hnev, %Hwf, Hlauth⟩ Hlother
   obtain ⟨hwf, hl, hp, hcs⟩ := Hwf
+  ihave Hlauth : monoListAuthOwn γ.log 1 ilog $$ [Hlauth Hlother]
+  · iapply (hhalves ilog).2; iframe Hlauth Hlother
   imod monoListAuthOwn_update_app [HistItem.commit] $$ Hauth with ⟨Hauth, #Hlb⟩
   imod monoListAuthOwn_update_app [pend] $$ Hlauth with ⟨Hlauth, #Hllb⟩
+  icases (hhalves (ilog ++ [pend])).1 $$ Hlauth with ⟨Hlauth, Hlother⟩
   imodintro
   have hwf' : LogWf' (ilog ++ [pend] ++ [[]]) := hwf.append_nil (by simp)
   have hcs' : ∀ cs ∈ ilog ++ [pend], cs.length < 2 ^ 63 := by
@@ -675,6 +709,7 @@ theorem idxWriter_commit (γ : IdxNames) (ilog : Log) (pend : List Change)
     · iexact Hnev
     ipureintro
     refine ⟨hwf', by simp; omega, by simp, hcs'⟩
+  iframe Hlother
   · isplitl []
     · iexact Hlb
     isplitl []

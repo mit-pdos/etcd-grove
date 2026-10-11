@@ -26,8 +26,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) (hG := hG)) :
     mvcc.store.Read.spec (GF := GF) (hG := hG) := by
-  intro s γ mode trace
-  wp_start as ⟨#Hs, Hrd⟩
+  intro s γ mode trace m log₀
+  wp_start as ⟨#Hs, Hrd, Hmine, #Hc0⟩
+  iunfold mvcc.idxCert at Hc0
+  icases Hc0 with ⟨-, -, -, #Hl0⟩
   ihave #Hs0 : mvcc.isStore s γ $$ []
   · iexact Hs
   iunfold mvcc.isStore at Hs
@@ -44,8 +46,12 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.revMuInv s γ sync.rfrac)) $$ Hlc1 HP with HP
   iunfold mvcc.revMuInv at HP
-  icases HP with ⟨%log, HP⟩
+  icases HP with ⟨%log, %ntok, HP⟩
   iNamed HP
+  -- the caller's tokens are among the budget's
+  icombine Htoks Hmine gives %Hle
+  -- the caller's certificate is below the committed log
+  ihave %Hpre := mono_list_auth_lb_valid γ.idx.log _ _ _ $$ Hlog Hl0
   iunfold mvcc.isKeyBackend at Hbk
   icases Hbk with ⟨%bi, %Hbi, #HC, #HR, -⟩
   subst Hbi
@@ -68,14 +74,14 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
     wp_apply HRL
     (try wp_auto)
     -- `s.revMu.RUnlock()`
-    wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrevl Hrev Hbucket Hclog Hcert] as HrevMuR
+    wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrevl Hrev Hbucket Hclog Hcert Htoks Hlog] as HrevMuR
     · inext
       iunfold mvcc.revMuInv
-      iexists log
+      iexists log, ntok
       simp only [named]
-      iframe Hrev Hbucket Hclog
+      iframe Hrev Hbucket Hclog Htoks Hlog
       iframe #
-      ipureintro; exact Hne
+      ipureintro; exact ⟨Hne, Hbudget⟩
     (try wp_auto)
     wp_alloc tr as Htr
     iStructNamedPrefix Htr "T"
@@ -92,6 +98,9 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
     iStructNamedPrefix Htrw "W"
     iapply HΦ
     iexists log, (W64 ((log.length : Int) - 1))
+    isplitr [Hmine]
+    rotate_left
+    · iframe Hmine; ipureintro; exact ⟨Hpre.2, by omega⟩
     iunfold mvcc.isTxnRead
     iexists trw, tr, trace, ti2, rt, (W64 0)
     simp only [named]

@@ -92,7 +92,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     wp_auto_lc 1
     imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.revMuInv s γ 1)) $$ Hlc1 HP with HP
     iunfold mvcc.revMuInv at HP
-    icases HP with ⟨%log, HP⟩
+    icases HP with ⟨%log, %ntokL, HP⟩
     iNamedSuffix HP "L"
     -- the committed log is the writer's
     ihave %Hlog := ghostVar_agree γ.clog _ _ _ _ $$ HclogL Hclog
@@ -107,10 +107,16 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     -- the ghost commit: the index writer, the committed log, the revision budget
     iunfold mvcc.revToken at Htok
     icombine Htoks Htok gives %Hge
-    obtain ⟨n, rfl⟩ : ∃ n, ntok = n + 1 := ⟨ntok - 1, by omega⟩
+    icombine HtoksL Htoks gives %Hn
+    obtain ⟨-, Hn⟩ := Hn
+    subst Hn
+    ihave Htoks : ownTokAuth γ.revs ntokL $$ [HtoksL Htoks]
+    · iapply (mvcc.ownTokAuth_halves γ.revs ntokL).2; iframe HtoksL Htoks
+    obtain ⟨n, rfl⟩ : ∃ n, ntokL = n + 1 := ⟨ntokL - 1, by omega⟩
     imod ownTokAuth_delete_S γ.revs n $$ Htoks Htok with Htoks
+    icases (mvcc.ownTokAuth_halves γ.revs n).1 $$ Htoks with ⟨HtoksL, Htoks⟩
     imod ghostVar_update_halves (ilog ++ [pend]) γ.clog _ _ $$ HclogL Hclog with ⟨HclogL, Hclog⟩
-    imod mvcc.idxWriter_commit γ.idx ilog pend (by omega) $$ Hw with ⟨Hw, #Hcert'⟩
+    imod mvcc.idxWriter_commit γ.idx ilog pend (by omega) $$ Hw HlogL with ⟨Hw, HlogL, #Hcert'⟩
     have hrev : (W64 ((ilog.length : Int) - 1) : w64) + W64 1 =
         W64 (((ilog ++ [pend]).length : Int) - 1) := by
       rw [← mvcc.W64_add_one]; simp
@@ -145,14 +151,14 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     · exfalso
       exact hne' (hpend.2 Hif)
     · (try wp_auto)
-      wp_apply sync.RWMutex.wp_Unlock $$ [$Hlk HcurL HclogL Hbucket] as HrevMu
+      wp_apply sync.RWMutex.wp_Unlock $$ [$Hlk HcurL HclogL Hbucket HtoksL HlogL] as HrevMu
       · inext
         iunfold mvcc.revMuInv
-        iexists (ilog ++ [pend])
+        iexists (ilog ++ [pend]), n
         simp only [named]
-        iframe HcurL HclogL Hbucket
+        iframe HcurL HclogL Hbucket HtoksL HlogL
         iframe #
-        ipureintro; simp
+        ipureintro; simp; omega
       (try wp_auto)
       -- `tw.s.mu.RUnlock()`
       wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hmu] as Hmu

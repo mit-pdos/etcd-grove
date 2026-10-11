@@ -1,37 +1,30 @@
 /-
-The sole writer of the server's txn package (unit 0b): **the revision tokens pin the write
-transaction's log.** Lean-first; the plan's "Premise: the sole writer", `notes/STATUS.md`, "The
-server's txn package".
+The sole writer of the server's txn package (units 0b, 0c): **the revision tokens and the
+certificate pin the logs a caller's transactions see.** Lean-first; the plan's "Premise: the
+sole writer", `notes/STATUS.md`, "The server's txn package".
 
 `Txn` reads (`checkTxn`, at a read transaction), then writes (`executeTxn`, at a write
 transaction): it is the client model's `runTxn` only if no revision is committed in between. The
 apply thread is etcd's only writer; in the model, the store's revision budget says so: `NewStore`
 hands out `2 ^ 63 - 5` revision tokens (`ownToks γ.revs`), a write transaction costs one
-(`revToken`), and the writer's authority `ownTokAuth γ.revs ntok` keeps
-`ilog.length + ntok + 3 ≤ 2 ^ 63` (`writerRes`, `storeTxnWriteIs`). A caller holding all
+(`revToken`), and the budget's authority `ownTokAuth γ.revs ntok` (half the writer's, half under
+`s.revMu`) keeps `log.length + ntok + 3 ≤ 2 ^ 63` for the committed log. A caller holding all
 `2 ^ 63 - 3 - log.length` tokens that are not spent, with the certificate of `log`
-(`soleWriter γ log`), therefore finds every write transaction it opens at a committed log no
-longer than `log`, and (the certificates) no shorter.
-
-**What the certificates pin.** `idxCert γ.idx log` is a lower bound of the index's history,
-whose items are the events (revision, key, delete or not) and the commit markers: it fixes the
-log's length and *shape* (`logShape`), not its values and leases. So the write pin is
-`ilog.length = log.length ∧ logShape ilog = logShape log` (`soleWriter_pins_write`); `ilog = log`
-needs a certificate of the log's values from mvcc (`notes/STATUS.md`: the history's commit
-marker carrying the revision's changes would do).
+(`soleWriter γ log`), therefore finds every transaction it opens at a committed log no longer
+than `log`; and no shorter, for the certificate is a lower bound of the committed log
+(`idxCert` carries the log itself: unit 0c). So the write pin is `ilog = log`
+(`soleWriter_pins_write`) and the read pin `log' = log` (`soleWriter_pins_read`, from
+`store.Read`'s post; `soleWriter_Read`, `store.Read` at the sole writer).
 
 **The bookkeeping.** `soleWriter γ log` holds exactly `soleBudget log = 2 ^ 63 - 3 - log.length`
 tokens: a write transaction is opened with one of them (`soleWriter_split`), and `End` spends it
-on a commit (`pend ≠ []`: one revision more, one token less) or, with no change, should return
-it (`soleWriter_close`). mvcc's `End` returns it in neither case (`txnEndPost`: the certificate
-alone): after an `End` with no change, the token is lost (`writerRes`'s count does not drop) and
-the exact count — on which the pin rests — is gone; no weaker bookkeeping recovers the pin (each
-lost token lets a writer commit one revision unseen). So `soleWriter_close` takes the token
-back as a premise for `pend = []`, which `End`'s spec must supply (`notes/STATUS.md`).
+on a commit (`pend ≠ []`: one revision more, one token less) or, with no change, returns it
+(`storeTxnWrite.End`'s post): `soleWriter_close`, `soleWriter_close_end`.
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Read
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Lemmas
 
 @[expose] public section
@@ -182,9 +175,19 @@ theorem soleWriter_pins_write' (γ : mvcc.StoreNames) (log ilog : Log) (pend : L
       ⌜ilog = log⌝ ∗ (soleWriterOpen γ log ∗ storeTxnWriteIs tw s γ ilog pend) :=
   persistent_entails_right (soleWriter_pins_write γ log ilog pend tw s)
 
+/-- **The sole writer pins its read transaction**, from `store.Read`'s post at the sole
+writer's tokens and certificate: the log read extends `log` and leaves room for `log`'s tokens,
+so it is `log`. -/
+theorem soleWriter_pins_read (log log' : Log) (hlen : log.length + 3 ≤ 2 ^ 63)
+    (h : log <+: log' ∧ log'.length + soleBudget log + 3 ≤ 2 ^ 63) : log' = log := by
+  obtain ⟨hpre, hb⟩ := h
+  have hl := hpre.length_le
+  unfold soleBudget at hb
+  exact (hpre.eq_of_length (by omega)).symm
+
 /-- What a read transaction's log is to the sole writer's, from the certificates alone: shapes
-in prefix order, one way or the other. (Equality needs mvcc's `store.Read` to relate the log it
-reads to the caller's tokens and certificate: `notes/STATUS.md`.) -/
+in prefix order, one way or the other (`soleWriter_pins_read` has equality, from `store.Read`'s
+post). -/
 theorem soleWriter_read_shape (γ : mvcc.StoreNames) (log log' : Log) (tr s : Loc) (rt : GoInterfaceOk)
     (trace : Loc) (rev : w64) :
     ⊢ soleWriter (GF := GF) γ log -∗ storeTxnReadIs tr s rt trace γ log' rev -∗
@@ -197,6 +200,40 @@ theorem soleWriter_read_shape (γ : mvcc.StoreNames) (log log' : Log) (tr s : Lo
   iapply idxCert_logShape $$ Hc Hcert
 
 end defs
+
+section wp
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+
+open go_etcd_io.etcd.server.v3.storage.mvcc in
+/-- **`store.Read` at the sole writer** reads its log: `store.Read`'s spec at the sole writer's
+tokens and certificate, with `soleWriter_pins_read`. -/
+theorem soleWriter_Read (hRead : mvcc.store.Read.spec (GF := GF) (hG := hG))
+    (s : Loc) (γ : mvcc.StoreNames) (mode : w32) (trace : Loc) (log : Log)
+    (hlen : log.length + 3 ≤ 2 ^ 63) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+        mvcc.isStore s γ ∗ mvcc.storeReader s γ ∗ soleWriter γ log }}
+      (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Read")) (Val #mode)) (Val #trace))
+    {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
+        ∃ rev : w64, mvcc.isTxnRead mw s γ log rev ∗ soleWriter γ log }} := by
+  wp_start_folded as ⟨#Hs, Hrd, Hsw⟩
+  iunfold soleWriter at Hsw
+  icases Hsw with ⟨#Hc, Ht⟩
+  iapply (hRead s γ mode trace (soleBudget log) log) $$ [Hrd Ht]
+  · iframe # ∗
+  inext
+  iintro %mw ⟨%log', %rev, Htx, Ht, %Hp⟩
+  have heq := soleWriter_pins_read log log' hlen Hp
+  subst heq
+  iapply HΦ
+  iexists rev
+  iunfold soleWriter
+  iframe Htx Ht Hc
+
+end wp
 
 end txn
 end EtcdGrove
