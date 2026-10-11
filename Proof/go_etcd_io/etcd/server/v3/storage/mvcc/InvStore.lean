@@ -74,6 +74,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [AllG GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
+include sem in
+/-- Two interface values of the same pointer type are the same pointer. -/
+theorem mkOk_loc_inj (T : go.GoType) {a b : Loc}
+    (h : interface.mkOk T #a = interface.mkOk T #b) : a = b := by
+  unfold interface.mkOk at h
+  simp only [GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, true_and] at h
+  exact go.intoVal_inj h
+
 /-! ## The backend's contract -/
 
 /-- What `UnsafeRange(Key, k, nil, 0)` returns of the bucket `m`: the key and its value if `m`
@@ -215,14 +223,20 @@ def isTxnRead (mw s : Loc) (γ : StoreNames) (log : Log) (rev : w64) : IProp GF 
 keys-only read, its key and revisions and version (value and lease zero); the key and value
 as read-only slices. -/
 def kvPtrIs (full : Bool) (p : Loc) (kv : EtcdKv) : IProp GF :=
-  iprop(∃ (ks vs : GoSlice) (st : google_golang_org.protobuf.internal.impl.MessageState)
+  iprop(∃ (ks : GoSlice) (st : google_golang_org.protobuf.internal.impl.MessageState)
     (uf : GoSlice) (sc : w32),
-    p ↦ ({
-      state' := st, Key' := ks, CreateRevision' := kv.createRev, ModRevision' := kv.modRev,
-      Version' := kv.version, Value' := if full then vs else slice.nil,
-      Lease' := if full then kv.lease else W64 0, unknownFields' := uf, sizeCache' := sc } :
-      go_etcd_io.etcd.api.v3.mvccpb.KeyValue) ∗
-    ks ↦*□ kv.key ∗ vs ↦*□ kv.value)
+    ks ↦*□ kv.key ∗
+    if full then
+      ∃ vs : GoSlice, vs ↦*□ kv.value ∗
+        p ↦ ({
+          state' := st, Key' := ks, CreateRevision' := kv.createRev, ModRevision' := kv.modRev,
+          Version' := kv.version, Value' := vs, Lease' := kv.lease, unknownFields' := uf,
+          sizeCache' := sc } : go_etcd_io.etcd.api.v3.mvccpb.KeyValue)
+    else
+      p ↦ ({
+        state' := st, Key' := ks, CreateRevision' := kv.createRev, ModRevision' := kv.modRev,
+        Version' := kv.version, Value' := slice.nil, Lease' := W64 0, unknownFields' := uf,
+        sizeCache' := sc } : go_etcd_io.etcd.api.v3.mvccpb.KeyValue))
 
 /-- The key-values of a `RangeResult` (`KVs`): fresh, one per answer of the index, in order,
 each the state's key-value of the answer's key. -/
@@ -230,6 +244,38 @@ def rangeKvs (full : Bool) (kvs : GoSlice) (st : List EtcdKv)
     (answers : List (GoString × Rev × Rev × w64)) : IProp GF :=
   iprop(∃ ps : List Loc, kvs ↦* ps ∗ ⌜ps.length = answers.length⌝ ∗
     [∗list] pa ∈ ps.zip answers, ∃ kv : EtcdKv, ⌜findKey pa.2.1 st = some kv⌝ ∗ kvPtrIs full pa.1 kv)
+
+/-- The revision a range read answers at: the option's, or the transaction's if the option's
+is not positive. -/
+def rangeRev (rev optRev : w64) : w64 := if sint.Z optRev ≤ 0 then rev else optRev
+
+/-- What `rangeKeys(ctx, key, end, rev, ro)` returns (`r`, `err`) of the committed log `log`
+at the transaction's revision `rev`, for `[k, e)` (`endNil`: no end key):
+* a future revision (`ro.Rev > rev`): `ErrFutureRev` and a count of `-1`;
+* the context done (a full read only): no result and an error;
+* else the answer at `rangeRev rev ro.Rev`: the count alone (`CountOnly`), or the key-values
+  of the index's answers (at most the limit), keys and revisions only (`FastKeysOnly`) or the
+  state's key-values from the bucket, with the index's count. -/
+def rangeOutcome (r : Loc) (err : GoInterface) (log : Log) (rev : w64) (endNil : Bool)
+    (k e : GoString) (ro : RangeOptions) : IProp GF :=
+  iprop(
+    (⌜sint.Z rev < sint.Z ro.Rev'⌝ ∗
+      (∃ ef : GoInterfaceOk, globalAddr ErrFutureRev ↦□ GoInterface.ok ef ∗ ⌜err = GoInterface.ok ef⌝) ∗
+      r ↦ ({ KVs' := slice.nil, Rev' := rev, Count' := W64 (-1) } : RangeResult)) ∨
+    (⌜sint.Z ro.Rev' ≤ sint.Z rev⌝ ∗ ⌜ro.CountOnly' = false ∧ ro.FastKeysOnly' = false⌝ ∗
+      ⌜r = null⌝ ∗ ⌜err ≠ GoInterface.nil⌝) ∨
+    (⌜sint.Z ro.Rev' ≤ sint.Z rev⌝ ∗ ⌜err = GoInterface.nil⌝ ∗
+      if ro.CountOnly' then
+        r ↦ ({
+          KVs' := slice.nil, Rev' := rev,
+          Count' := W64 (rangeAnswers log endNil k e (rangeRev rev ro.Rev')).length } : RangeResult)
+      else ∃ kvs : GoSlice,
+        r ↦ ({
+          KVs' := kvs, Rev' := rev,
+          Count' := W64 (rangeTotal log endNil k e (rangeRev rev ro.Rev') ro.Limit'
+            ro.WithTotalCount') } : RangeResult) ∗
+        rangeKvs (!ro.FastKeysOnly') kvs (stateAt log (sint.nat (rangeRev rev ro.Rev')))
+          (rangeTaken log endNil k e (rangeRev rev ro.Rev') ro.Limit')))
 
 end reprs
 

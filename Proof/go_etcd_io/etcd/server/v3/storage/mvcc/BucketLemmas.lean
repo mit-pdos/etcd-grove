@@ -205,6 +205,92 @@ theorem bucketMap_lookup_of_BucketHas (log : Log) (hwf : LogWf log) (hlen : log.
   intro p hp hk
   exact bucketOf_fun log hlen hcs p hp _ (bucketOf_mem_of_BucketHas log hwf rev kv h hmod) hk
 
+/-! ## The limited answers -/
+
+/-- No answer taken, none counted. -/
+theorem rangeTotal_of_taken_nil (log : Log) (endNil : Bool) (k e : GoString) (atRev limit : w64)
+    (withTotal : Bool) (h : rangeTaken log endNil k e atRev limit = []) :
+    rangeTotal log endNil k e atRev limit withTotal = 0 := by
+  unfold rangeTaken at h
+  unfold rangeTotal
+  cases endNil with
+  | true => simp only [↓reduceIte] at h ⊢; rw [h]; rfl
+  | false =>
+    simp only [Bool.false_eq_true, ↓reduceIte] at h ⊢
+    unfold limitOf at h ⊢
+    split at h
+    · rename_i hpos
+      simp only [takeLimit, List.take_eq_nil_iff] at h
+      rcases h with h | h
+      · exfalso; omega
+      · simp only [hpos, ↓reduceIte, h, List.length_nil]; cases withTotal <;> rfl
+    · rename_i hneg
+      simp only [takeLimit] at h
+      simp only [hneg, ↓reduceIte, h, List.length_nil]; cases withTotal <;> rfl
+
+/-- A taken answer is an answer. -/
+theorem mem_rangeAnswers_of_taken (log : Log) (endNil : Bool) (k e : GoString) (atRev limit : w64)
+    (a : GoString × Rev × Rev × w64) (h : a ∈ rangeTaken log endNil k e atRev limit) :
+    a ∈ rangeAnswers log endNil k e atRev := by
+  unfold rangeTaken at h
+  cases endNil with
+  | true => simpa using h
+  | false =>
+    simp only [Bool.false_eq_true, ↓reduceIte] at h
+    unfold takeLimit at h
+    split at h
+    · exact List.mem_of_mem_take h
+    · exact h
+
+/-! ## Filling a slice of pointers in order -/
+
+/-- Setting the slot after the `i` filled ones (the rest still `null`). -/
+theorem set_filled {ps : List Loc} {i n : Nat} (hps : ps.length = i) (hin : i < n) (p : Loc) :
+    (ps ++ List.replicate (n - i) (zero_val Loc)).set i p =
+      (ps ++ [p]) ++ List.replicate (n - (i + 1)) (zero_val Loc) := by
+  rw [List.set_append_right _ _ (by omega), hps, Nat.sub_self,
+    show n - i = (n - (i + 1)) + 1 by omega, List.replicate_succ, List.set_cons_zero,
+    List.append_assoc, List.singleton_append]
+
+/-- A found key-value's key. -/
+theorem findKey_key {k : GoString} {s : List EtcdKv} {kv : EtcdKv} (h : findKey k s = some kv) :
+    kv.key = k := by
+  unfold findKey at h
+  simpa using List.find?_some h
+
+/-- `sliceCapWithLimit(limit, s)`: `len(s)` unless `limit` is positive and smaller. -/
+def capWithLimit (limit : w64) (n : Nat) : Nat :=
+  if sint.Z limit ≤ 0 ∨ (n : Int) < sint.Z limit then n else (sint.Z limit).toNat
+
+/-- At most one answer without an end key. -/
+theorem rangeAnswers_nil_length_le (log : Log) (k e : GoString) (atRev : w64) :
+    (rangeAnswers log true k e atRev).length ≤ 1 := by
+  rw [rangeAnswers_nil]
+  cases kiGet (kiOfKey (evsOf log) k) atRev <;> simp
+
+/-- The taken answers are within the limit: `sliceCapWithLimit` keeps them all. -/
+theorem capWithLimit_rangeTaken (log : Log) (endNil : Bool) (k e : GoString) (atRev limit : w64) :
+    capWithLimit limit (rangeTaken log endNil k e atRev limit).length =
+      (rangeTaken log endNil k e atRev limit).length := by
+  unfold capWithLimit
+  split
+  · rfl
+  · rename_i h
+    have hpos : 0 < sint.Z limit := by omega
+    have hle : sint.Z limit ≤ (rangeTaken log endNil k e atRev limit).length := by omega
+    unfold rangeTaken at hle ⊢
+    cases endNil with
+    | true =>
+      simp only [↓reduceIte] at hle ⊢
+      have := rangeAnswers_nil_length_le log k e atRev
+      omega
+    | false =>
+      simp only [Bool.false_eq_true, ↓reduceIte] at hle ⊢
+      rw [takeLimit_length] at hle ⊢
+      unfold limitOf totalOf at hle ⊢
+      simp only [hpos, ↓reduceIte] at hle ⊢
+      omega
+
 /-! ## The answers of a range read -/
 
 theorem LogWf.of_wf' {log : Log} (h : LogWf' log) (hne : log ≠ []) : LogWf log :=

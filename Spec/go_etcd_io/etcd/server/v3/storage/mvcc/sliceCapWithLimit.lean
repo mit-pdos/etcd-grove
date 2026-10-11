@@ -4,6 +4,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BucketLemmas
 
 @[expose] public section
 
@@ -13,10 +14,6 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
-
-/-- `sliceCapWithLimit(limit, s)`: `len(s)` unless `limit` is positive and smaller. -/
-def mvcc.capWithLimit (limit : w64) (n : Nat) : Nat :=
-  if sint.Z limit ≤ 0 ∨ (n : Int) < sint.Z limit then n else (sint.Z limit).toNat
 
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]

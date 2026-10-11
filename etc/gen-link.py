@@ -272,11 +272,19 @@ variable [package_sem : {assumptions}]
         allg = " [AllG GF]" if "[AllG GF]" in src and fn not in blocked else ""
         # the register's specs take its storage registry
         allg += " [RegStor GF]" if "[RegStor GF]" in src else ""
-        # mvcc's index specs use the btree through the cache's interface (its assumptions)
-        allg += (" [go_etcd_io.etcd.cache.v3.Assumptions]"
-                 if "variable [go_etcd_io.etcd.cache.v3.Assumptions]" in src else "")
+        # mvcc's index specs use the btree through the cache's interface (its assumptions), and
+        # so does every result that links one of them
+        allg += " [go_etcd_io.etcd.cache.v3.Assumptions]" if fn in cache_assumptions else ""
         return (f"theorem {result(fn)}{allg} :\n    {specref(fn)}.spec (GF := GF) (hG := hG) :=\n"
                 f"  {body}\n")
+
+    cache_assumptions = set()
+    for fn in order:
+        if fn in external:
+            continue
+        if ("variable [go_etcd_io.etcd.cache.v3.Assumptions]" in open(spec_file(fn)).read()
+                or any(c in cache_assumptions for c in callees[fn])):
+            cache_assumptions.add(fn)
 
     # the results that reach a pending function, and the pending functions themselves: emitted
     # last, with the pending specs as hypotheses

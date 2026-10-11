@@ -50,6 +50,13 @@ revision with a snapshot of the bucket, `End` closes it. -/
 #print axioms Perennial.EtcdGrove.mvcc.store.wp_Read
 #print axioms Perennial.EtcdGrove.mvcc.storeTxnRead.wp_End
 
+/-! The read transaction's range (`kvstore_txn.go`): `Range` answers from the certified log at the
+requested revision, reading the index then the bucket's snapshot; the trace's `Step` and
+protobuf's `Unmarshal` are the trust boundary (two axioms). -/
+#print axioms Perennial.EtcdGrove.mvcc.wp_sliceCapWithLimit
+#print axioms Perennial.EtcdGrove.mvcc.storeTxnCommon.wp_rangeKeys
+#print axioms Perennial.EtcdGrove.mvcc.storeTxnCommon.wp_Range
+
 /-! The model: what the index answers of a key at a revision is the state's key-value, and a
 reader's range answer is its certified log's. -/
 #print axioms Perennial.EtcdGrove.mvcc.kiGet_indexOf

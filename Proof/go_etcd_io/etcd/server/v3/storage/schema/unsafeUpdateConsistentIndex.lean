@@ -36,7 +36,7 @@ theorem schema.unsafeUpdateConsistentIndex.wp_proof
   wp_start as ⟨#Hw, HTM, %Hmono⟩
   ihave Hsi : (schema.schemaInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hsi with ⟨⟨%mb, #Hmb⟩, ⟨%ck, #Hck, #Hckb⟩, ⟨%tk, #Htk, #Htkb⟩⟩
+  icases Hsi with ⟨⟨%mb, #Hmb⟩, ⟨%ck, #Hck, #Hckb⟩, ⟨%tk, #Htk, #Htkb⟩, -⟩
   unfold metaWriter
   icases Hw with ⟨#Hrd, #Hput, #Hputt⟩
   wp_auto

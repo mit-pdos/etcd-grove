@@ -46,3 +46,10 @@ storeTxnCommon__FirstRev:
 storeTxnCommon__Rev:
 store__Read: newMetricsTxnRead
 storeTxnRead__End:
+# The read transaction's range (kvstore_txn.go): `Range` reads the index then the bucket; the
+# trace's `Step` and protobuf's `Unmarshal` are its trust boundary (axioms).
+sliceCapWithLimit:
+traceutil_Trace__Step:
+proto_Unmarshal:
+storeTxnCommon__rangeKeys: treeIndex__CountRevisions treeIndex__Range treeIndex__Revisions sliceCapWithLimit NewRevBytes RevToBytes traceutil_Trace__Step proto_Unmarshal
+storeTxnCommon__Range: storeTxnCommon__Rev storeTxnCommon__rangeKeys
