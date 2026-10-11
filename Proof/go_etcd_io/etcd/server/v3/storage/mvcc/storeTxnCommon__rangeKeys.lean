@@ -144,6 +144,8 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
             as %keys %modifies %creates %vers %total
               ⟨Hti0, -, Hkeys, Hmod, Hmodcap, Hcre, Hcrecap, Hvers, Hverscap, %Htotal⟩
           · ipureintro; exact ⟨hR0, hRlt⟩
+          rw [mvcc.IdxKnow.log_cert]
+          rw [mvcc.IdxKnow.log_cert] at Htotal
           (try wp_auto)
           wp_apply (hStep trace _ _)
           (try wp_auto)

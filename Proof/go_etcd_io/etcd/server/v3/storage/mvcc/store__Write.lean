@@ -71,7 +71,7 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   iunfold mvcc.storeTxnWriteIs
   iexists trace, ti2, bt, Locked, chs, [], ntok
   simp only [named, mvcc.pendPuts_nil]
-  rw [show List.replicate (sint.nat (W64 0 : w64)) (zero_val Loc) = [] from rfl] at Hchs
+  simp only [List.replicate_zero]
   iframe Htoks Htok «$r0» Hchs Hcap Hlocked Hw Hclog Hcur Hmul HrevMuR HtiR
   iframe #
   isplitl []

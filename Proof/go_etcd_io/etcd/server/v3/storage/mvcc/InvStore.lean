@@ -433,6 +433,24 @@ def changesAre (ps : List Loc) (ilog : Log) (pend : List Change) : IProp GF :=
   iprop([∗list] i ↦ p ∈ ps, ∃ kv : EtcdKv,
     ⌜changeKv (W64 ilog.length) (stateAfter ilog) pend i = some kv⌝ ∗ kvPtrIs true p kv)
 
+/-- One more change: its key-value, at the pending revision after the changes so far, appended
+to the `changes`. -/
+theorem changesAre_snoc (ps : List Loc) (ilog : Log) (pend : List Change) (c : Change) (p : Loc)
+    (kv : EtcdKv) (hps : ps.length = pend.length)
+    (hkv : changeKv (W64 ilog.length) (stateAfter ilog) (pend ++ [c]) pend.length = some kv) :
+    changesAre (GF := GF) ps ilog pend ∗ kvPtrIs true p kv ⊢
+      changesAre (ps ++ [p]) ilog (pend ++ [c]) := by
+  unfold changesAre
+  refine (sep_mono (BigSepL.bigSepL_mono ?_) ?_).trans BigSepL.bigSepL_snoc.2
+  · intro i p' hi
+    rw [changeKv_append_lt _ _ _ _ (by have := (List.getElem?_eq_some_iff.1 hi).1; omega)]
+  · rw [hps]
+    iintro H
+    iexists kv
+    isplitl []
+    · ipureintro; exact hkv
+    iexact H
+
 /-- The `storeTxnWrite` at `tw` of a write transaction of the store `s` at the committed log
 `ilog`, with the pending changes `pend` (the next revision's, not yet visible to readers): its
 fields (`beginRev` is `ilog`'s last revision, `changes` the key-values written), the batch

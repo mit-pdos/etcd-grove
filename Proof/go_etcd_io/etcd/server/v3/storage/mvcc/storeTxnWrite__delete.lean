@@ -89,11 +89,11 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
     · rw [List.mem_singleton] at h; rw [h]; exact Hplen
   have hrev : (W64 ((ilog.length : Int) - 1) : w64) + W64 1 = W64 (ilog.length : Int) := by
     rw [← mvcc.W64_add_one]; simp
-  ihave %Hlen := ownSlice_len chs (DFrac.own 1) ps $$ Hchs
+  ihave %Hchl := ownSlice_len chs (DFrac.own 1) ps $$ Hchs
   have hcl : chs.len = W64 (pend.length : Int) := by
-    rw [← Hps, Hlen.1]; exact (mvcc.W64_sint_nat chs.len Hlen.2).symm
+    rw [← Hps, Hchl.1]; exact (mvcc.W64_sint_nat chs.len Hchl.2).symm
   have hkvm' : mvcc.changeKv (W64 (ilog.length : Int)) (mvcc.stateAfter ilog) (pend ++ [.del k])
-      pend.length = some (zeroKv k) := by
+      pend.length = some ({ key := k, createRev := 0, modRev := 0, version := 0, value := [], lease := 0 } : EtcdKv) := by
     unfold mvcc.changeKv
     rw [List.getElem?_append_right (Nat.le_refl _), Nat.sub_self]
     rfl
@@ -108,25 +108,20 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
   (try wp_auto)
   (try rw [hrev])
   (try rw [hcl])
-  trace_state
   -- `ibytes = BucketKeyToBytes(idxRev, ibytes)`
-  wp_apply (hBKTo _ ib _ (Or.inl (by simp))) $$ [$Hib $Hibcap] as %ib' ⟨Hib, Hibcap⟩
+  wp_apply (hBKTo _ ib (List.replicate 17 (W8 0)) (Or.inl (List.length_replicate))) $$ [$Hib $Hibcap] as %ib' ⟨Hib, Hibcap⟩
   (try wp_auto)
   rw [mvcc.bucketKeyBytes_true]
-  trace_state
   -- `kv := &mvccpb.KeyValue{Key: key}`; `d, err := proto.Marshal(kv)`
-  wp_apply (hMarshal «$r0_ptr» _ (zeroKv k) DFrac.discard DFrac.discard) $$ [$«$r0» $Hkey $Hnil]
+  wp_apply (hMarshal «$r0_ptr» _ ({ key := k, createRev := 0, modRev := 0, version := 0, value := [], lease := 0 } : EtcdKv) DFrac.discard DFrac.discard)
+    $$ [$«$r0» $Hkey $Hnil]
     as %d ⟨⟨%sc, Hkv⟩, -, -, Hd, Hdcap⟩
   · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
   (try wp_auto)
-  -- `if err != nil { Fatal }`: not taken
-  wp_if_destruct
-  rotate_left
-  · exfalso; exact Hif rfl
-  (try wp_auto)
+  -- `if err != nil { Fatal }`: not taken (`err` is `nil`: resolved by `wp_auto`)
   -- `tw.tx.UnsafeSeqPut(schema.Key, ibytes, d)`
-  wp_apply (HSeqPut (mvcc.pendPuts ilog pend) bK ib' d _ _ (DFrac.own 1) (DFrac.own 1))
-    $$ [$HKeyG $Hlocked $Hib $Hd] as ⟨Hlocked, Hib, Hd⟩
+  ihave #HSeqPut' := HSeqPut $$ %(mvcc.pendPuts ilog pend) %bK %ib' %d %_ %_ %(DFrac.own 1) %(DFrac.own 1)
+  wp_apply HSeqPut' $$ [$HKeyG $Hlocked $Hib $Hd] as ⟨Hlocked, Hib, Hd⟩
   (try wp_auto)
   -- `err = tw.s.kvindex.Tombstone(key, idxRev.Revision)`
   wp_apply (hTomb ti γ.idx ilog pend key k _) $$ [$HtiS $Hw $Hkey] as Hw
@@ -134,26 +129,30 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
     refine ⟨rfl, hpos, Hb, mvcc.LogWf'.append_change Hwf' Hne _ (fun k' h => ?_)⟩
     rw [← mvcc.Change.del.inj h]; exact Hpresent
   (try wp_auto)
-  -- `if err != nil { Fatal }`: not taken
-  wp_if_destruct
-  rotate_left
-  · exfalso; exact Hif rfl
-  (try wp_auto)
+  -- `if err != nil { Fatal }`: not taken (`err` is `nil`: resolved by `wp_auto`)
   -- `tw.changes = append(tw.changes, kv)`
-  wp_apply wp_slice_literal
+  wp_apply wp_slice_literal (l := [«$r0_ptr»])
   isplitr
   · ipureintro; rfl
   iintro %lit ⟨Hlit, -⟩
-  wp_apply (wp_slice_append chs ps lit [«$r0_ptr»] (DFrac.own 1)) $$ [$Hchs $Hcap $Hlit]
-    as %chs' ⟨Hchs, Hcap, -⟩
   (try wp_auto)
-  -- the transaction with the delete, for every lease outcome
-  ihave Htw' : mvcc.storeTxnWriteIs tw s γ ilog (pend ++ [.del k])
-      $$ [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hmu HrevMu Hti Hkv]
-  · iunfold mvcc.storeTxnWriteIs
+  wp_apply wp_slice_append $$ [$Hchs $Hcap $Hlit] as %chs' ⟨Hchs, Hcap, -⟩
+  (try wp_auto)
+  -- the transaction with the delete, for every lease outcome (a wand: the code still reads
+  -- `tw.s` for the lease, through `tw`'s points-to)
+  ihave Hpack : (tw ↦ ({
+        storeTxnCommon' := {
+          s' := s, tx' := GoInterface.ok bt, firstRev' := W64 0, rev' := W64 0, trace' := trace },
+        tx' := GoInterface.ok bt, beginRev' := W64 ((ilog.length : Int) - 1),
+        changes' := chs' } : storeTxnWrite) -∗
+      mvcc.storeTxnWriteIs tw s γ ilog (pend ++ [.del k]) : IProp GF)
+      $$ [Htoks Htok Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hmu HrevMu Hti Hkv]
+  · iintro Htw
+    iunfold mvcc.storeTxnWriteIs
     iexists trace, ti, bt, Locked, chs', (ps ++ [«$r0_ptr»]), ntok
     simp only [named]
     rw [mvcc.pendPuts_append ilog pend (.del k) _ hkvm']
+    simp only [mvcc.revOf, mvcc.Change.isDel]
     iframe Htoks Htok Htw Hchs Hcap Hlocked Hw Hclog Hcur Hmu HrevMu Hti
     iframe #
     isplitl []
@@ -161,57 +160,55 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
     isplitl []
     · ipureintro; simp [Hps]
     isplitl [Hkvs Hkv]
-    · iunfold mvcc.changesAre
-      iapply BigSepL.bigSepL_snoc.2
-      isplitl [Hkvs]
-      · iapply (BigSepL.bigSepL_mono ?_) $$ Hkvs
-        intro i p hi
-        rw [mvcc.changeKv_append_lt _ _ _ _ (by have := (List.getElem?_eq_some_iff.1 hi).1; omega)]
-        exact BIBase.Entails.refl _
-      · rw [Hps]
-        iexists _
-        isplitl []
-        · ipureintro; exact hkvm'
-        iunfold mvcc.kvPtrIs
-        iexists key, _, _, sc
-        iframe Hkey
-        simp only [↓reduceIte]
-        iexists slice.nil
-        isplitl []
-        · iexact Hnil
-        iexact Hkv
+    · iapply (mvcc.changesAre_snoc ps ilog pend (.del k) «$r0_ptr» _ Hps hkvm') $$ [Hkvs Hkv]
+      iframe Hkvs
+      iunfold mvcc.kvPtrIs
+      iexists key, _, _, sc
+      iframe Hkey
+      simp only [↓reduceIte]
+      iexists slice.nil
+      isplitl []
+      · iexact Hnil
+      iexact Hkv
     ipureintro; exact Hne
   -- `item := lease.LeaseItem{Key: string(key)}`; `leaseID := tw.s.le.GetLease(item)`
   wp_apply (wp_bytes_to_string key k DFrac.discard) $$ [$Hkey] as -
   (try wp_auto)
-  wp_apply HGetL as %lid -
+  ihave #HGetL' := HGetL $$ %({ Key' := k } : go_etcd_io.etcd.server.v3.lease.LeaseItem)
+  (try wp_auto)
+  wp_apply HGetL' as %lid -
   (try wp_auto)
   -- `if leaseID != lease.NoLease { Detach }`: the first goal is `leaseID == NoLease`
   wp_if_destruct
   · (try wp_auto)
-    iapply HΦ; iexact Htw'
+    iapply HΦ; iapply Hpack; iexact Htw
   · (try wp_auto)
     wp_apply wp_slice_literal
     isplitr
     · ipureintro; rfl
     iintro %items ⟨Hitems, -⟩
-    wp_apply (HDetach _ items _ (DFrac.own 1)) $$ [$Hitems] as %err -
+    (try wp_auto)
+    ihave #HDetach' := HDetach $$ %lid %_ %_ %(DFrac.own 1)
+    wp_apply HDetach' $$ [$Hitems] as %err -
     (try wp_auto)
     -- `if err != nil { Error }`: the first goal is `err == nil`
-    wp_if_destruct
-    · (try wp_auto)
-      iapply HΦ; iexact Htw'
-    · (try wp_auto)
-      wp_apply (hZapErr err) as %f -
+    cases err with
+    | nil =>
+      (try wp_auto)
+      iapply HΦ; iapply Hpack; iexact Htw
+    | ok e =>
+      (try wp_auto)
+      wp_apply (hZapErr (GoInterface.ok e)) as %f -
       (try wp_auto)
       wp_apply wp_slice_literal
       isplitr
       · ipureintro; rfl
       iintro %fl ⟨Hfl, -⟩
-      wp_apply (hLogErr lg _ fl)
+      (try wp_auto)
+      wp_apply (hLogErr lg _ _)
       · ipureintro; exact HlgnnS
       (try wp_auto)
-      iapply HΦ; iexact Htw'
+      iapply HΦ; iapply Hpack; iexact Htw
 
 end proof
 

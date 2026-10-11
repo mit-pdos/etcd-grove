@@ -8,6 +8,9 @@
 roots ^Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Link\.lean$
 axiom binary.bigEndian.PutUint64.wp_proof
 axiom binary.bigEndian.Uint64.wp_proof
+axiom proto.Marshal.wp_proof
 axiom proto.Unmarshal.wp_proof
 axiom traceutil.TODO.wp_proof
 axiom traceutil.Trace.Step.wp_proof
+axiom zap.Error.wp_proof
+axiom zap.Logger.Error.wp_proof

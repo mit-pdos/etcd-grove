@@ -27,6 +27,7 @@ axiom membership.RaftCluster.Members.wp_proof
 axiom notify.Notifier.Notify.wp_proof
 axiom pbutil.MustUnmarshalMessage.wp_proof
 axiom proto.Clone.wp_proof
+axiom proto.Marshal.wp_proof
 axiom proto.Unmarshal.wp_proof
 axiom reflect.DeepEqual.wp_proof
 axiom rpctypes.Error.wp_proof
@@ -40,6 +41,7 @@ axiom zap.Error.wp_proof
 axiom zap.Int'.wp_proof
 axiom zap.Int64.wp_proof
 axiom zap.Logger.Debug.wp_proof
+axiom zap.Logger.Error.wp_proof
 axiom zap.Logger.Warn.wp_proof
 axiom zap.String.wp_proof
 axiom zap.Stringer.wp_proof

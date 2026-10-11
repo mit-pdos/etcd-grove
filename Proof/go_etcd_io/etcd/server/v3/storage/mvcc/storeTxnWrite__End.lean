@@ -32,6 +32,9 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
   · iexact Hs
   iunfold mvcc.isStore at Hs
   iNamedSuffix Hs "S"
+  icombine Hidx HidxS gives %Hti_eq
+  have Hti_eq' := mvcc.mkOk_loc_inj _ Hti_eq
+  subst Hti_eq'
   iunfold mvcc.batchTxSpec at Hbt
   icases Hbt with ⟨-, -, #HUnlock0, #HUnlock⟩
   ihave %Hlen := ownSlice_len chs (DFrac.own 1) ps $$ Hchs
@@ -63,6 +66,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     wp_apply HUnlock0 $$ [$Hlocked $HW]
     (try wp_auto)
     wp_if_destruct
+    rotate_left
     · exfalso
       exact Hif (hpend.1 rfl)
     (try wp_auto)
@@ -91,16 +95,16 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     iNamedSuffix HP "L"
     -- the committed log is the writer's
     ihave %Hlog := ghostVar_agree γ.clog _ _ _ _ $$ HclogL Hclog
-    subst Hlog
+    subst log
     -- `currentRev++`: both halves
-    ihave Hcur : (s.[store, go!"currentRev"] ↦ (W64 ((ilog.length : Int) - 1) : w64) : IProp GF)
-        $$ [HrevL Hcur]
-    · rw [hsplit]
-      iapply (dfractional (Φ := fun dq => (s.[store, go!"currentRev"] ↦{dq}
-        (W64 ((ilog.length : Int) - 1) : w64) : IProp GF)) _ _).2
+    ihave Hcur : (s.[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half • DFrac.own (1 : Qp).half}
+        (W64 ((ilog.length : Int) - 1) : w64) : IProp GF) $$ [HrevL Hcur]
+    · iapply ((typedPointsto_dfractional (GF := GF) _ _).dfractional _ _).2
       iframe
+    rw [← hsplit]
     (try wp_auto)
     -- the ghost commit: the index writer, the committed log, the revision budget
+    iunfold mvcc.revToken at Htok
     icombine Htoks Htok gives %Hge
     obtain ⟨n, rfl⟩ : ∃ n, ntok = n + 1 := ⟨ntok - 1, by omega⟩
     imod ownTokAuth_delete_S γ.revs n $$ Htoks Htok with Htoks
@@ -109,11 +113,11 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     have hrev : (W64 ((ilog.length : Int) - 1) : w64) + W64 1 =
         W64 (((ilog ++ [pend]).length : Int) - 1) := by
       rw [← mvcc.W64_add_one]; simp
-    rw [hrev] at Hcur
-    rw [hsplit] at Hcur
-    icases (dfractional (Φ := fun dq => (s.[store, go!"currentRev"] ↦{dq}
-        (W64 (((ilog ++ [pend]).length : Int) - 1) : w64) : IProp GF)) _ _).1 $$ Hcur
-      with ⟨HcurL, Hcur⟩
+    rw [hrev]
+    ihave Hcur2 : (s.[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half • DFrac.own (1 : Qp).half}
+        (W64 (((ilog ++ [pend]).length : Int) - 1) : w64) : IProp GF) $$ [Hcur]
+    · rw [← hsplit]; iexact Hcur
+    icases ((typedPointsto_dfractional (GF := GF) _ _).dfractional _ _).1 $$ Hcur2 with ⟨HcurL, Hcur⟩
     -- the batch lock's resource, at the committed log
     ihave HW : mvcc.writerRes s γ $$ [Htoks Hw Hclog Hcur]
     · iunfold mvcc.writerRes
@@ -124,12 +128,14 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
       ipureintro
       exact ⟨by simp; omega, by simp⟩
     -- `tw.tx.Unlock()`: the write-back
-    wp_apply (HUnlock (mvcc.pendPuts ilog pend) (mvcc.bucketMap ilog)) $$ [$Hlocked $HW $HbucketL]
-      as Hbucket
+    ihave #HUnlock' := HUnlock $$ %(mvcc.pendPuts ilog pend) %(mvcc.bucketMap ilog)
+    wp_apply HUnlock' $$ [$Hlocked $HW $HbucketL] as Hbucket
     (try wp_auto)
-    rw [← mvcc.bucketMap_append ilog pend Hne] at Hbucket
+    rw [← mvcc.bucketMap_append ilog pend Hne]
     -- `tw.s.revMu.Unlock()`
     wp_if_destruct
+    · exfalso
+      exact hne' (hpend.2 Hif)
     · (try wp_auto)
       wp_apply sync.RWMutex.wp_Unlock $$ [$Hlk HcurL HclogL Hbucket] as HrevMu
       · inext
@@ -154,8 +160,6 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
       unfold mvcc.commitLog
       rw [if_neg hne']
       iexact Hcert'
-    · exfalso
-      exact hne' (hpend.2 Hif)
 end proof
 
 end EtcdGrove

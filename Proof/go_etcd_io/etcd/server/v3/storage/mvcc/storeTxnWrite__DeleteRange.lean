@@ -40,6 +40,8 @@ theorem mvcc.storeTxnWrite.DeleteRange.wp_proof
   have hrev : (W64 ((ilog.length : Int) - 1) : w64) + W64 1 = W64 (ilog.length : Int) := by
     rw [← mvcc.W64_add_one]; simp
   ihave %Hlen := ownSlice_len chs (DFrac.own 1) ps $$ Hchs
+  have hcl : chs.len = W64 ((pend ++ ks.map mvcc.Change.del).length : Int) := by
+    rw [← Hps, Hlen.1]; exact (mvcc.W64_sint_nat chs.len Hlen.2).symm
   have hpend : pend ++ List.map Change.del ks = [] ↔ chs.len = 0 := by
     obtain ⟨h1, h2⟩ := Hlen
     constructor
@@ -49,34 +51,87 @@ theorem mvcc.storeTxnWrite.DeleteRange.wp_proof
     · intro h
       rw [h] at h1
       exact List.length_eq_zero_iff.1 (by rw [← Hps, h1]; rfl)
-  have hkslt : ks.length < 2 ^ 64 := by omega
+  have hkslt : ks.length < 2 ^ 63 := by omega
+  have hksZ : sint.Z (W64 (ks.length : Int) : w64) = ks.length := by
+    unfold sint.Z W64
+    rw [BitVec.toInt_ofInt_eq_self (by decide)
+      (by rw [show (64 - 1 : Nat) = 63 from rfl]; omega)
+      (by rw [show (64 - 1 : Nat) = 63 from rfl]; omega)]
+  have hpZ : sint.Z (W64 (pend.length : Int) : w64) = pend.length := by
+    unfold sint.Z W64
+    rw [BitVec.toInt_ofInt_eq_self (by decide)
+      (by rw [show (64 - 1 : Nat) = 63 from rfl]; omega)
+      (by rw [show (64 - 1 : Nat) = 63 from rfl]; omega)]
+  have h0Z : sint.Z (W64 0 : w64) = 0 := by decide
+  -- `n != 0 || len(tw.changes) > 0`: first `n == 0`
   wp_if_destruct
   · -- `n == 0`: nothing deleted
     have hks0 : ks.length = 0 := by
-      have h := congrArg BitVec.toNat Hif
-      rw [BitVec.toNat_ofNat, Nat.mod_eq_of_lt hkslt] at h
-      simpa using h
+      have h := congrArg sint.Z Hif
+      rw [hksZ, h0Z] at h
+      omega
     have hks : ks = [] := List.length_eq_zero_iff.1 hks0
     subst hks
     simp only [List.map_nil, List.append_nil] at *
     (try wp_auto)
     wp_if_destruct
     · -- `len(tw.changes) > 0`: the pending revision
-      trace_state
+      have hpne : pend ≠ [] := by
+        intro h
+        have hc : sint.Z (W64 0 : w64) < sint.Z chs.len := by
+          first | exact Hif | (have := go.intoVal_inj Hif; simpa using this)
+        rw [hcl, hpZ, h0Z] at hc
+        rw [h] at hc
+        simp at hc
       (try wp_auto)
-      trace_state
-      sorry
-    · trace_state
+      iapply HΦ
+      isplitl [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hmu HrevMu Hti]
+      iunfold mvcc.storeTxnWriteIs
+      iexists trace, ti, bt, Locked, chs, ps, ntok
+      simp only [named]
+      iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hmu HrevMu Hti
+      iframe #
+      ipureintro; exact ⟨Hbudget, Hps, Hne⟩
+      ipureintro
+      refine ⟨rfl, ?_⟩
+      rw [hrev]; unfold mvcc.writeRev; rw [if_neg hpne]
+    · -- no change: the committed log's last revision
+      have hp : pend = [] := by
+        have hc : ¬ sint.Z (W64 0 : w64) < sint.Z chs.len := by
+          first | exact Hif | exact fun h => Hif (by rw [decide_eq_true h])
+        rw [hcl, hpZ, h0Z] at hc
+        apply List.length_eq_zero_iff.1
+        omega
       (try wp_auto)
-      trace_state
-      sorry
+      iapply HΦ
+      isplitl [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hmu HrevMu Hti]
+      iunfold mvcc.storeTxnWriteIs
+      iexists trace, ti, bt, Locked, chs, ps, ntok
+      simp only [named]
+      iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hmu HrevMu Hti
+      iframe #
+      ipureintro; exact ⟨Hbudget, Hps, Hne⟩
+      ipureintro
+      refine ⟨rfl, ?_⟩
+      unfold mvcc.writeRev; rw [if_pos hp]; congr 1
+      have := List.length_pos_iff.2 Hne
+      omega
   · -- `n != 0`: the pending revision
-    have hks : ks ≠ [] := fun h => by subst h; exact Hif rfl
+    have hks : ks ≠ [] := by
+      intro h; subst h; exact Hif rfl
     (try wp_auto)
-    trace_state
-    wp_pures
-    trace_state
-    sorry
+    iapply HΦ
+    isplitl [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hmu HrevMu Hti]
+    iunfold mvcc.storeTxnWriteIs
+    iexists trace, ti, bt, Locked, chs, ps, ntok
+    simp only [named]
+    iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hmu HrevMu Hti
+    iframe #
+    ipureintro; exact ⟨Hbudget, Hps, Hne⟩
+    ipureintro
+    refine ⟨rfl, ?_⟩
+    rw [hrev]; unfold mvcc.writeRev
+    rw [if_neg (by simp [hks])]
 
 end proof
 

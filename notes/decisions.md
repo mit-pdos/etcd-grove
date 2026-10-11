@@ -2071,6 +2071,69 @@ releases it before returning); a snapshot as a copy of the bucket's `GMap` in th
 *Scope.* `Read` with both modes, `Range`/`FirstRev`/`Rev`/`End` of the read transaction and
 the wrappers, `readView.Range`/`Rev`/`FirstRev`; `Write`/`Put`/`DeleteRange`/`End` next, with
 the batch transaction's contract and the lessor's.
+### The write transactions: the batch lock's resources, the backend's write path, the lessor
+
+**2026-10-11 · adopted** (the write side specified at the checkpoint `628f69632`, the proofs
+finished the same day)
+
+What `store.Write`, `storeTxnWrite.put`/`delete`/`deleteRange`/`End` do, and what each holds:
+
+- **The batch transaction** (`backend.BatchTx`, names-only: the trust boundary of the backend's
+  write path) is the writers' lock: `Write` takes it (`LockInsideApply`) after `s.mu` shared, and
+  `End` releases it (`Unlock`). Its contract (`batchTxSpec bt View W Locked`, `InvStore.lean`):
+  `LockInsideApply()` gives `Locked []` and the lock's resource `W`; `UnsafeSeqPut(Key, k, v)`
+  under it appends `(k, v)` to the token's list; `Unlock()` with no puts takes `W` back and
+  leaves the bucket as it is, with puts it takes `W` and the bucket's full view `View 1 m` and
+  returns the view with the puts inserted in order (the write-back into the read buffer).
+  `isKeyBackend` now also gives `BatchTx()`. The token's predicate `Locked` is existential
+  (`isBatchTx`): the backend's own.
+- **The batch lock's resource** (`W := writerRes s γ`): the index writer's handle at the committed
+  log with no pending change (`idxWriter γ.idx ilog []`), half the committed-log ghost variable
+  `γ.clog` (the other half under `s.revMu`: `End` agrees them and updates both), half of
+  `currentRev` (`store.Write` reads `beginRev` under the batch lock alone, without `s.revMu`;
+  `End` joins the halves to increment it), the index's certificate of `ilog`, and the revision
+  budget: `ownTokAuth γ.revs ntok` with `ilog.length + ntok + 3 ≤ 2 ^ 63`. A write transaction
+  costs one `revToken γ` (`store.Write`'s precondition; `NewStore`, later, hands out
+  `2 ^ 63 - 4`), which `End` returns to the authority when it commits, so `currentRev` never
+  overflows and the pending revision's index is below `2 ^ 63` (the index's own bound).
+- **`s.revMu`** (`revMuInv`) now holds its half of `currentRev` and of `γ.clog`; `End` with a
+  change takes it exclusively around `currentRev++` and the batch `Unlock` (the write-back),
+  as the code does, and releases it with the committed log one revision longer and the bucket
+  `bucketMap (ilog ++ [pend])` (`bucketMap_append`: the old entries then the pending puts).
+  Without a change `End` only unlocks (no revision is made: `commitLog`).
+- **The transaction** (`storeTxnWriteIs tw s γ ilog pend`): the `storeTxnWrite`'s fields
+  (`beginRev = ilog.length - 1`, `changes` the `*mvccpb.KeyValue`s written, `changesAre`: the
+  `i`-th holds `changeKv` of the `i`-th pending change), the batch transaction locked with the
+  pending puts (`Locked (pendPuts ilog pend)`: each change's revision bytes to its encoding),
+  the writer's resources with the pending changes in the index writer's handle, the revision
+  token and the transaction's reader slots. `put` and `delete` append a change: the index's
+  `Put`/`Tombstone` (the writer's `idxWriter_commit` discipline of `InvIndex.lean`), the batch
+  `UnsafeSeqPut` of `revBytes`/`kvEncode` (`proto.Marshal` is a trust-boundary axiom, the
+  converse of `Unmarshal`: `kvEncode kv` of the pointer's fields), the `changes` append
+  (`changesAre_snoc`). `put` reads the index first (`treeIndex.Get` by the writer: the specs of
+  `Get`/`Range` take an `IdxKnow`, the certificate or the writer's handle, `idxKnows`;
+  `changeKv_put` says the index's answer at the pending revision gives the create revision and
+  version the code computes). `deleteRange` ranges the index at `writeRev` (the pending
+  revision if it has a change, else the committed log's last) and deletes each key
+  (`delKeys`: present after the pending changes, `delKeys_present`; distinct, `delKeys_nodup`).
+- **The lessor** (`lease.Lessor`, names-only: the trust boundary): `GetLease(item)` returns some
+  id; `Attach(id, items)` of a *granted* lease (`leaseKnown γ id`, a persistent ghost fact of
+  `γ.leases` that `Grant`, out of scope, allocates) returns `nil`, so `put`'s panic on a failed
+  `Attach` is unreachable: `Put`'s precondition is `leaseID = NoLease ∨ leaseKnown γ leaseID`;
+  `Detach` returns anything (the code logs an error: `zap.Logger.Error`, an axiom, as
+  `zap.Error`). Leases have no liveness here (as in the client's transaction model).
+- **The wrappers**: `metricsTxnWrite.End` over a `TxnKind` (`isTxn`: a read or a write
+  transaction behind the wrapper; `txnEndPost`: nothing, or the certificate of `commitLog`),
+  so `readView` and `writeView` share it; `writeView.Put`/`DeleteRange` open a transaction with
+  a token and return with the certificate of the committed log (`ilog ++ [[.put k v l]]`, or
+  `commitLog ilog (delKeys ...)`) and the revision.
+
+*Rejected:* the whole `storeTxnWrite` points-to inside `storeTxnWriteIs` for the whole proof of
+`put`/`delete` (the code reads `tw.s` for the lessor after the change is made: the predicate is
+rebuilt at each return through a wand over `tw`'s points-to); `End` holding `s.revMu` for the
+whole write-back only (it also needs the batch lock's resource back, which `Unlock` returns
+through `W`).
+
 ## Leasing: the protocol as a premise on the history
 
 **2026-10-10 · proposed** (units 1 and 2 of `client/v3/leasing`; the premise's form, the holder's
