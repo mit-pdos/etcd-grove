@@ -27,7 +27,12 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__isEmpty
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__put
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__tombstone
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newBucketKey
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newMetricsTxnRead
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newTreeIndex
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnCommon__FirstRev
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnCommon__Rev
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnRead__End
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Read
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__CountRevisions
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Get
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Put
@@ -131,9 +136,21 @@ theorem mvcc.keyIndex.wp_tombstone :
     mvcc.keyIndex.tombstone.spec (GF := GF) (hG := hG) :=
   mvcc.keyIndex.tombstone.wp_proof mvcc.keyIndex.wp_isEmpty mvcc.generation.wp_isEmpty mvcc.keyIndex.wp_put
 
+theorem mvcc.wp_newMetricsTxnRead [AllG GF] :
+    mvcc.newMetricsTxnRead.spec (GF := GF) (hG := hG) :=
+  mvcc.newMetricsTxnRead.wp_proof
+
 theorem mvcc.wp_newTreeIndex [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.newTreeIndex.spec (GF := GF) (hG := hG) :=
   mvcc.newTreeIndex.wp_proof btree.wp_New mvcc.keyIndex.wp_Less
+
+theorem mvcc.storeTxnCommon.wp_FirstRev [AllG GF] :
+    mvcc.storeTxnCommon.FirstRev.spec (GF := GF) (hG := hG) :=
+  mvcc.storeTxnCommon.FirstRev.wp_proof
+
+theorem mvcc.storeTxnCommon.wp_Rev [AllG GF] :
+    mvcc.storeTxnCommon.Rev.spec (GF := GF) (hG := hG) :=
+  mvcc.storeTxnCommon.Rev.wp_proof
 
 theorem mvcc.treeIndex.wp_keyIndex [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.treeIndex.keyIndex.spec (GF := GF) (hG := hG) :=
@@ -157,6 +174,14 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+
+theorem mvcc.storeTxnRead.wp_End [AllG GF] :
+    mvcc.storeTxnRead.End.spec (GF := GF) (hG := hG) :=
+  mvcc.storeTxnRead.End.wp_proof
+
+theorem mvcc.store.wp_Read [AllG GF] :
+    mvcc.store.Read.spec (GF := GF) (hG := hG) :=
+  mvcc.store.Read.wp_proof mvcc.wp_newMetricsTxnRead
 
 theorem mvcc.treeIndex.wp_CountRevisions [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.treeIndex.CountRevisions.spec (GF := GF) (hG := hG) :=

@@ -2000,6 +2000,77 @@ pending changes), the backend contract (`ConcurrentReadTx`'s snapshot of the wri
 bucket, the batch transaction's `UnsafeSeqPut`/`UnsafeRange`/`Unlock` as write-back), the
 lessor's `GetLease`/`Attach`/`Detach` contract; `NewStore` on a fresh backend (a ghost
 allocation first, `restore` later).
+
+### The transactions: the store's locks and the backend contract
+
+**2026-10-11 · proposed** (the read transactions first; the design for review, after
+`revision.go` was proved)
+
+What `kvstore.go`/`kvstore_txn.go` do with their three locks, and what each holds here:
+
+- **`s.mu` (RWMutex)** is read-locked by every transaction (`Read` and `Write` both take
+  `RLock`; the writers exclude each other through the batch transaction's lock) and
+  write-locked by `restore`, `Compact`'s barrier and `Close`, which are out of scope. Its
+  resource is `True`: the fields `restore` rewrites (`kvindex`, `currentRev`, ...) are
+  persistent (`↦□`) in `isStore`, as if the store were never restored or closed. A transaction
+  needs a reader slot of it (`sync.ownRWMutex`), as of the index's lock.
+- **`s.revMu` (RWMutex)** protects `currentRev` and `compactMainRev` and, with them, *which
+  revisions are in the backend*: `storeTxnWrite.End` takes it exclusively around `currentRev++`
+  **and** the batch transaction's `Unlock` (the write-back of the pending puts into the read
+  buffer), and `Read` takes it shared around `ConcurrentReadTx()` (the snapshot of the read
+  buffer) and the read of `currentRev`. So a reader's snapshot holds exactly the revisions
+  `≤ currentRev` it read. Its resource (`revMuInv s γ`): `∃ log, currentRev ↦ W64 (log.length - 1)
+  ∗ compactMainRev ↦ W64 (-1) ∗ idxCert γ log ∗ bucketView (bucketMap log)`, with `log` the
+  committed log (the index's certificate `idxCert γ log` says the index's history extends it;
+  the index may already hold the pending revision's events, which `reader_answer` shows do not
+  change answers at revisions `≤ currentRev`). `compactMainRev` stays `-1` (no compaction in
+  scope). `bucketView` is the backend's view of the `Key` bucket (below).
+- **The index's `RWMutex`** as before (`InvIndex.lean`).
+
+**The backend contract** (`InvStore.lean`, the shape of the consistent index's
+`InvCindex.lean`: linearizable reads of an abstract view at a mask, as the trust boundary of
+bbolt and the read buffer):
+
+- `bucketView m : IProp` is a parameter (the store instantiates it with a ghost map authority
+  whose fragments are persistent, as the bucket only grows: `bucketMap log` is monotone in
+  `log`), `m : GMap GoString GoString`, the `Key` bucket's written-back contents.
+- `keyReadSnap rt m`: a `ReadTx` over a **snapshot** `m` (persistent): `RLock`/`RUnlock`
+  return; `UnsafeRange(schema.Key, k, nil, 0)` returns `([k], [v])` with `v = m[k]` if `k ∈ m`,
+  else `([], [])` (read-only slices, `↦*□`).
+- `isKeyBackend b E bucketView`: `ConcurrentReadTx()` is a linearizable read of the view at
+  mask `E` (`readAU`, as `metaRangeSpec`) returning `keyReadSnap rt m` of the `m` read;
+  `ReadTx()` the same (the shared-buffer mode is also a snapshot while `s.revMu` is held
+  shared: the writer's write-back is under `revMu` exclusively; `rangeKeys` is used in both
+  modes); `BatchTx()` returns the batch transaction (its contract with the writes, later).
+- The entries' values are the opaque `kvEncode kv` (`Model.lean`); `proto.Unmarshal(v, p)` with
+  `v = kvEncode kv` fills `*p` with `kv`'s fields and returns `nil` (a trust-boundary axiom,
+  `Spec/google_golang_org/protobuf/proto/Unmarshal.lean`); `proto.Marshal` the converse (the
+  writers, later).
+
+**The read transaction.** `isTxnRead tr γ log rev` (what `store.Read` returns, through the
+`metricsTxnWrite{&txnReadWrite{tr}}` wrappers whose `Range`/`End` forward): the
+`storeTxnRead`'s fields (`s`, the `tx` of both `UnsafeReader` and `ReadTx` type: the same
+snapshot reader, `firstRev = -1`, `rev`, `trace`), the snapshot `keyReadSnap tx m` with
+`bucketMap log ⊆ m` (the snapshot may be later than the certified log: a writer's write-back
+between the reader's `ConcurrentReadTx()` and ... no: both are under `revMu`, so `m = bucketMap
+log` exactly; kept as `⊆` since only inclusion is used), `idxCert γ log` with
+`rev = log.length - 1`, and the reader slots of `s.mu` and the index (`idxReader`) held until
+`End`. `Range(ctx, key, end, ro)` for `ro.Rev ≤ rev` and not `CountOnly`/`FastKeysOnly`
+returns `RangeResult{KVs, Count, Rev = rev}` where `KVs` are fresh `*KeyValue`s of the
+model's answer (`rangeAnswers`, `rangeTaken` of `Hist.lean`, at `ro.Rev` or `rev` if
+`ro.Rev ≤ 0`): each key-value `kv` of the state at that revision in key order, limited and
+counted as `treeIndex.Revisions` says; the three `CountOnly`/`FastKeysOnly`/`ErrFutureRev`
+branches are the index's answers alone (`ErrCompacted` is unreachable with `compactMainRev =
+-1`). `ctx` is a `context.isContext` whose `Done()` may be ready: then `Range` returns a non-nil
+error and no result (the spec allows both outcomes, as etcd does).
+
+*Rejected:* the reader keeping `s.revMu` shared for the whole transaction (it does not: `Read`
+releases it before returning); a snapshot as a copy of the bucket's `GMap` in the reader
+(it is: `keyReadSnap` is exactly that, as a persistent spec, no ghost state).
+
+*Scope.* `Read` with both modes, `Range`/`FirstRev`/`Rev`/`End` of the read transaction and
+the wrappers, `readView.Range`/`Rev`/`FirstRev`; `Write`/`Put`/`DeleteRange`/`End` next, with
+the batch transaction's contract and the lessor's.
 ## Leasing: the protocol as a premise on the history
 
 **2026-10-10 · proposed** (units 1 and 2 of `client/v3/leasing`; the premise's form, the holder's

@@ -42,6 +42,14 @@ and `binary.bigEndian.Uint64.wp_proof`, as in the server's results). -/
 #print axioms Perennial.EtcdGrove.mvcc.wp_BytesToBucketKey
 #print axioms Perennial.EtcdGrove.mvcc.wp_BytesToRev
 
+/-! The read transactions (`kvstore_txn.go`): `Read` opens one at the committed log's last
+revision with a snapshot of the bucket, `End` closes it. -/
+#print axioms Perennial.EtcdGrove.mvcc.wp_newMetricsTxnRead
+#print axioms Perennial.EtcdGrove.mvcc.storeTxnCommon.wp_FirstRev
+#print axioms Perennial.EtcdGrove.mvcc.storeTxnCommon.wp_Rev
+#print axioms Perennial.EtcdGrove.mvcc.store.wp_Read
+#print axioms Perennial.EtcdGrove.mvcc.storeTxnRead.wp_End
+
 /-! The model: what the index answers of a key at a revision is the state's key-value, and a
 reader's range answer is its certified log's. -/
 #print axioms Perennial.EtcdGrove.mvcc.kiGet_indexOf

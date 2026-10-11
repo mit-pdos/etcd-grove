@@ -40,3 +40,9 @@ treeIndex__unsafeVisit: BTree__AscendGreaterOrEqual keyIndex__Less
 treeIndex__Revisions: treeIndex__unsafeGet treeIndex__unsafeVisit keyIndex__get
 treeIndex__CountRevisions: treeIndex__unsafeGet treeIndex__unsafeVisit keyIndex__get
 treeIndex__Range: treeIndex__unsafeGet treeIndex__unsafeVisit keyIndex__get
+# The store's read transactions (kvstore_txn.go, metrics_txn.go), see InvStore.lean.
+newMetricsTxnRead:
+storeTxnCommon__FirstRev:
+storeTxnCommon__Rev:
+store__Read: newMetricsTxnRead
+storeTxnRead__End:
