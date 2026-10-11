@@ -22,7 +22,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [AllG GF]
 
 /-- `r.tick` is one of the two tick functions (`TickFnOk`, since `r.tick` is set:
 `NStateWf`); either one's `TickStep` keeps `ownRawNode` but for the term. -/

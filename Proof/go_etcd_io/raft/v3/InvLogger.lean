@@ -27,10 +27,14 @@ variable [sem : go.Semantics]
 
 /-- The formatting log methods. Deliberately *not* `Panic`/`Panicf`: those do not
 return, so a path that reaches one has to be shown unreachable rather than assumed
-away. -/
+away. Only the formatting ones (2026-10-11): `isLogger` states each as a call on a
+format and an argument slice, which `Info`/`Debug`/`Warning`/`Error` (one variadic
+parameter) do not take -- with them in the list `isLogger` held of no `Logger`, and
+`RestartNode`/`NewRawNode` (which take it) of no configuration. raft calls those four only
+on paths the proof does not cover (`Error` twice: `stepFollower`'s `MsgForgetLeader`
+and `releasePendingReadIndexMessages`). -/
 def logMethods : List GoString :=
-  [go!"Info", go!"Infof", go!"Debug", go!"Debugf",
-   go!"Warning", go!"Warningf", go!"Error", go!"Errorf"]
+  [go!"Infof", go!"Debugf", go!"Warningf", go!"Errorf"]
 
 /-- The `Logger` contract: every formatting method returns unit and has no observable
 effect. A definition, not an assumption: a `Logger` method call is dispatched through

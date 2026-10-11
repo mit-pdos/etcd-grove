@@ -34,7 +34,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 section inst
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.register.Assumptions]
 variable [RegStor GF]
@@ -54,7 +54,7 @@ theorem regOwnStorage_at (s ms : Loc) (γs : MemStorNames) (σ : StorState) :
   · iexact Hown
   unfold regOwnStorage
   icases Hown with ⟨%s', %ms', %γs', %Hst, #Hrec', Hown⟩
-  have := regStorIface_inj _ _ Hst
+  have := regStorIface_inj (GF := GF) _ _ Hst
   subst this
   icases regStorRec_agree s ms ms' γs γs' $$ Hrec Hrec' with ⟨%H1, %H2⟩
   subst H1 H2
@@ -177,7 +177,7 @@ theorem regStorage_isStorage
   · iexact Ht
   unfold regAppendedTok
   icases Ht with ⟨%s', %ms', %γs', %Hst, #Hrec2, Ht⟩
-  have := regStorIface_inj _ _ Hst
+  have := regStorIface_inj (GF := GF) _ _ Hst
   subst this
   icases regStorRec_agree s ms ms' γs γs' $$ Hrec Hrec2 with ⟨%H1, %H2⟩
   subst H1 H2

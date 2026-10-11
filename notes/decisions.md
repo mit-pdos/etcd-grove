@@ -1915,6 +1915,30 @@ now takes an empty batch without a token (a `Ready`'s `appendRight` for no entri
 promoted method still reads the `MemoryStorage` field, so `isReplica` keeps the storage's
 record.
 
+## The register's driver: specs at any storage registry, a filtering transport
+
+- **No registry in the top-level statement.** The register's specs are stated under
+  `[RegStor GF]`, a class holding the registry's ghost name, so that raft's `StorageModel`
+  instance is an instance. A top-level statement must not assume a ghost name. `Main.spec`'s
+  section has no `RegStor`, and `Main.wp_proof` takes each callee spec as
+  `∀ [RegStor GF], X.spec`. The proof allocates the registry and sets
+  `letI : RegStor GF := ⟨γ⟩`. The linked results pass in through implicit lambdas.
+  `gen-link.py` already left `[RegStor GF]` off a spec that does not mention it. It now gives
+  `[StorageModel GF]` to a spec stated over any storage model (`deliver`, `tick`).
+- **Filter in Go rather than strengthen `Ready`.** Making `Ready` promise `NetMsgOk`-like facts of
+  its outgoing messages would mean proving them per `send` site in raft. The type, `To` and the
+  context are new per-message invariants in `ownRaftPhys`, like `OutTermOk`. The transport
+  checks them in a few lines instead, and drops what fails. That costs nothing at run time,
+  since raft sends nothing that fails, and the proof stays local to the example. Rejected:
+  assuming them, which the brief forbade, or setting `Context = nil` in the copy, which
+  rewrites messages rather than checking them.
+- **Loops over a concrete voter list.** `Main` ranges over `[]uint64{1, 2, 3}` twice, building
+  maps keyed by id. The invariants carry a big-sep over `take k` (resources produced, with
+  pure map lookups), one over `drop k` (resources to consume), and the freshness of the
+  `drop k` keys. Nodup of the list makes the keys distinct (`take_drop_ne`). The raft and
+  sequence-token allocations come as big-seps over `listToSet`/`constMap` maps, which
+  `bigSepM_constMap` turns into big-seps over the list.
+
 ---
 
 ## Leasing: the protocol as a premise on the history
@@ -2215,6 +2239,7 @@ callers use them directly, as the cache uses `bytes.wp_Compare`.
   that type; true of gRPC status errors, `rpctypes.EtcdError`s and context errors). *Rejected:*
   an `errors.As` spec without the tree (false for an error whose `As` method loops or panics).
 - **`status.FromError`** (grpc) stays an etcd-grove axiom.
+
 ## Recipes: the client contracts reused, the queue's claim, two prefixes as one
 
 **2026-10-11 · proposed** (`client/v3/experimental/recipes`, 778 lines: barrier, double barrier,
@@ -2303,3 +2328,21 @@ leasing, so the plan reuses their contracts and adds as little as possible.
   a premise on the keys under the prefix (all made by `newSequentialKV`, fewer than `10^16`).
 - **`newUniqueEphemeralKey`** is proved now (one call), so three `sorry`s, not four.
 - **`gen-link.py --skip-unproved`** links what is proved from the full list.
+
+## One `AllG`: `HeapGS` provides the ghost-state instance
+
+Since Perennial `cb6a5921e` (2026-10-11) `AllG GF` is a singleton carried by `GooseGlobalGS`
+(`gooseAllG`), hence by `HeapGS`; `ThreadGS` and `ReceiptGS` no longer bundle their own.
+- **Section variables**: a section with `[hG : HeapGS hlc GF]` has no `[AllG GF]` (654 files
+  changed); only the generic ghost theory without `HeapGS` (`Proof/go_etcd_io/raft/v3/Protocol/`,
+  `Results.lean`) assumes `[AllG GF]`. *Why:* two instances in scope make the client's ghost
+  resources (`own`, `ghostVar`, `threadTok`) a different term from Perennial's, and the cache
+  proofs that take `threadTok` from `wp_fork_tok` or `dghostVar` from the broadcast idiom fail
+  to unify. *Rejected:* keeping `[AllG GF]` and living with the two instances, which worked
+  only while no Perennial lemma exposed ghost resources to clients.
+- **Fixing `GF`**: the `AllG` out-parameter used to fix `GF` for a bare ghost-state term;
+  `HeapGS`'s `GF` is not an out-parameter, so such a term needs `(GF := GF)` (porting guide,
+  "Section variables"). A theorem that does not mention `GF` but is declared under the
+  section's `[hG : HeapGS hlc GF]` (the register's `regStorIface_inj`) gets `GF` as a binder it
+  can never infer: write `(GF := GF)` at its uses, or declare it outside the section.
+

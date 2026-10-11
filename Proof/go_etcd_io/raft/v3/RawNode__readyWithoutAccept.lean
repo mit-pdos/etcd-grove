@@ -111,7 +111,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [AllG GF]
 
 /-- The messages handed out: each one's abstraction was in the outbox, whose messages
 are all `isMessage` (`ownRaftGhost_outbox`). -/

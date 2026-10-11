@@ -35,7 +35,12 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 ```
 
-Ghost state needs `[AllG GF]` (and `[InvGS GF]` for fancy updates outside a WP).
+Ghost state is `own` over Perennial's one `AllG GF`, which `HeapGS` provides: a section
+with `[hG : HeapGS hlc GF]` does not add `[AllG GF]` (a second instance in scope, whose
+resources would not match Perennial's, e.g. `threadTok`). Only generic ghost theory
+without `HeapGS` assumes `[AllG GF]` (and `[InvGS GF]` for fancy updates outside a WP).
+Since `GF` is not an out-parameter of `HeapGS`, a bare ghost-state term whose `GF` the
+expected type does not fix needs `(GF := GF)`.
 Pure definitions need only `[FfiSyntax]` (and `[GoGlobalContext]
 [GoSemanticsFunctions]` for `functions …`).
 
