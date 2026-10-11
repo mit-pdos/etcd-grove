@@ -5,9 +5,11 @@
 # (`recipes.v3.wp_WithFirstRev`), concurrency's the prefix `concurrency.`
 # (`recipes.concurrency.Session.wp_Client`).
 #
-# FIRST GUESS (unit 0): every function of the package, each with the functions it calls in the
-# order of the Go code (each once, at its first call). The proof writers reorder the callees to
-# match their `wp_proof`s' hypotheses, and drop or add some, as the proofs settle. Not listed:
+# Every function of the package. Unit 1's (the options, key.go, client.go, watch.go) have their
+# callees in the order of their `wp_proof`s' hypotheses; the others' lines are unit 0's FIRST
+# GUESS (the functions each calls, in the order of the Go code, each once, at its first call),
+# for units 2 and 3 to reorder. Until every function has a proof, the Link is generated with
+# `etc/gen-link.py --recipes --skip-unproved`, which leaves out those with no proof file yet. Not listed:
 # calls through interfaces (the client's `KV`, `Txn` and `Watcher` methods: the client bundle's
 # contracts, not linked functions), a function's calls to itself (`newSequentialKV`,
 # `Queue.Dequeue`, `PriorityQueue.Dequeue`, `DoubleBarrier.Leave`: the proof's own induction),
@@ -23,10 +25,11 @@ WithLimit:
 WithSort:
 withTop: WithPrefix WithSort WithLimit
 WithFirstRev: withTop
-WithFirstKey: withTop
+WithFirstKey: WithPrefix WithLimit
 WithLastKey: withTop
 WithLastRev: withTop
 WithMaxModRev:
+WithMinModRev:
 WithRev:
 v3_WithLease:
 # clientv3's operations (client/v3/op.go), see InvOp.lean.
@@ -50,22 +53,25 @@ v3_Compare: Cmp__Clone Cmp__ensureCompare mustInt64 mustInt64orLeaseID
 # client/v3/concurrency's Session.
 Session__Client:
 Session__Lease:
+# `context.TODO()` (Perennial translates `context` but does not specify `TODO`).
+context_TODO:
 # The trust boundary: `fmt.Sscanf` (an etcd-grove axiom; one caller, newSequentialKV).
 fmt_Sscanf:
 # client.go: the claim of a key at a mod revision.
-deleteRevKey: ModRevision v3_Compare OpDelete
+deleteRevKey: ModRevision v3_Compare OpDelete context_TODO
 claimFirstKey: deleteRevKey
 # key.go: the keys.
-putNewKV: Version v3_Compare v3_WithLease OpPut
+putNewKV: Version v3_Compare v3_WithLease OpPut context_TODO
 newKV: putNewKV
 newKey: newKV
 newUniqueKV: putNewKV
-newSequentialKV: WithLastKey fmt_Sscanf ModRevision v3_Compare OpPut
+# unit 1b adds fmt_Sscanf (its axiom) to newSequentialKV's callees
+newSequentialKV: WithLastKey ModRevision v3_Compare OpPut context_TODO
 RemoteKV__Key:
 RemoteKV__Revision:
 RemoteKV__Value:
-RemoteKV__Delete:
-RemoteKV__Put:
+RemoteKV__Delete: context_TODO
+RemoteKV__Put: context_TODO
 newEphemeralKV: Session__Client Session__Lease newKV
 newUniqueEphemeralKV: newEphemeralKV
 newUniqueEphemeralKey: newUniqueEphemeralKV

@@ -42,3 +42,6 @@ axiom zap.String.wp_proof
 axiom zap.Stringer.wp_proof
 axiom zap.Uint64.wp_proof
 sorry Perennial.context.wp_WithDeadlineCause
+sorry recipes.newSequentialKV.wp_proof
+sorry recipes.newUniqueEphemeralKV.wp_proof
+sorry recipes.newUniqueKV.wp_proof

@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-11 (`client/v3/experimental/recipes` unit 0: translated (a Gooseable commit `bc8b52a50` pinned), the clientv3 option bodies, `gen-link.py --recipes`, the collection, two findings reproduced and fixed on a fork branch (`waitEvents` returns `nil` on a closed watch channel: `Dequeue` panics, `Barrier.Wait` returns released), see "Recipes"; 2026-10-10: Perennial's panics and `recover` adopted (Perennial branch `panic`, not yet pinned: needs `7cea8cc26`), the STM's two panic axioms gone, `lockerMutex.Lock`/`Unlock` specified, four standard-library axioms of `client/v3/leasing` replaced by Perennial's specs, see "Panic and recover"; `client/v3/leasing` unit 5: the monitors, `NewKV` and `Close` proved, every leasing result unconditional, 66 of 67 functions verified; two findings reproduced (`waitRescind`'s `nil` without a delete lets a range delete through another client's lease; a session reset between `acquire` and `Add` leaves a stale entry), see "Unit 5: the monitors; the package"; `client/v3/leasing` units 3 and 4: `txn.go` and `kv.go` but the monitors specified and proved, nested transactions and owned responses in the contract, two new findings (a write of an uncached key applied twice, a failed acquisition ignores the get's options), see "Units 3 and 4"; `client/v3/leasing` units 1 and 2: translated, the protocol as a premise on etcd's history with `leased_value_stable`, the lease cache specified and proved, findings in `EvictRange` and `evalCmp`, see "client/v3/leasing: the protocol premise and the lease cache"; merged upstream's register example, `node.go`, raft from upstream etcd-io/raft and thread tokens into the Mutex/Election/STM line, Perennial `7c93f27aa`, see "Merge: the register, `node.go` and thread tokens"; `STM`: all of `stm.go` specified and proved, atomicity of the serializable levels, Perennial `9276bd1ed`: a map has fewer than `2^63` keys, two trust-boundary axioms for the STM's panic and `recover`, a new history law, the serializable snapshot broken after a retry (a finding, reproduced and fixed on a fork branch), see "STM"; `Election`: all of `election.go` specified and proved, election exclusion, only the leader proclaims, `Campaign` may return `nil` without its key (a finding), see "Election"; `Mutex`: mutual exclusion, Perennial `d240c1732`: `fmt.Sprintf` formats `%s`, `strings.HasPrefix`, see "Mutex: mutual exclusion"; the register example verified over raft: logically atomic `Put`/`Get`, raft proposals over a client log, see "The register example"; the cache's wait-group counter bounded by thread tokens, Perennial `105fb79f5`: the `WaitGroup.Add` overflow assumption reverted, `New` assumes fewer than `2^31 - 3` live threads, see "The wait-group counter and thread tokens"; `node.go` proved: `RestartNode`, `run`, `Propose`, `Step`, `Tick`, `Ready`, `Advance`, see "`node.go`: the concurrent `Node`"; groundwork for `node.go`: a computed `Ready` can be abandoned, Perennial's `wp_slice_append_undo`; pre-vote out of scope at the RawNode level; `Ready`'s messages carry terms at most the node's, see "`node.go` groundwork"; `RawNode.Ready` split into `readyWithoutAccept` and `acceptReady`, for `node.go`; the storage contract has a pending append, for `node.go`; `MemoryStorage.Append` and `NewMemoryStorage` proved; merged upstream's RawNode work into the cache-as-shipped and concurrency line, Perennial `7d0b56b07`, see "Merge: upstream's RawNode work"; `RawNode.Step` takes a `MsgApp` between `Ready` and `Advance`; the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; Perennial `7d0b56b07`: Goose with per-iteration loop variables, `break` out of `select`, see "Perennial `7d0b56b07`"; merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
+**Last updated:** 2026-10-11 (`client/v3/experimental/recipes` unit 1: the client bundle under the premise that a watch channel is never closed, the client's contracts at `context.TODO()` and its puts, `WithFirstKey`'s options needing a resource, `key.go`/`client.go`/`watch.go` specified and proved but three helpers left to unit 1b, the claim happens at one revision, see "Unit 1"; `client/v3/experimental/recipes` unit 0: translated (a Gooseable commit `bc8b52a50` pinned), the clientv3 option bodies, `gen-link.py --recipes`, the collection, two findings reproduced and fixed on a fork branch (`waitEvents` returns `nil` on a closed watch channel: `Dequeue` panics, `Barrier.Wait` returns released), see "Recipes"; 2026-10-10: Perennial's panics and `recover` adopted (Perennial branch `panic`, not yet pinned: needs `7cea8cc26`), the STM's two panic axioms gone, `lockerMutex.Lock`/`Unlock` specified, four standard-library axioms of `client/v3/leasing` replaced by Perennial's specs, see "Panic and recover"; `client/v3/leasing` unit 5: the monitors, `NewKV` and `Close` proved, every leasing result unconditional, 66 of 67 functions verified; two findings reproduced (`waitRescind`'s `nil` without a delete lets a range delete through another client's lease; a session reset between `acquire` and `Add` leaves a stale entry), see "Unit 5: the monitors; the package"; `client/v3/leasing` units 3 and 4: `txn.go` and `kv.go` but the monitors specified and proved, nested transactions and owned responses in the contract, two new findings (a write of an uncached key applied twice, a failed acquisition ignores the get's options), see "Units 3 and 4"; `client/v3/leasing` units 1 and 2: translated, the protocol as a premise on etcd's history with `leased_value_stable`, the lease cache specified and proved, findings in `EvictRange` and `evalCmp`, see "client/v3/leasing: the protocol premise and the lease cache"; merged upstream's register example, `node.go`, raft from upstream etcd-io/raft and thread tokens into the Mutex/Election/STM line, Perennial `7c93f27aa`, see "Merge: the register, `node.go` and thread tokens"; `STM`: all of `stm.go` specified and proved, atomicity of the serializable levels, Perennial `9276bd1ed`: a map has fewer than `2^63` keys, two trust-boundary axioms for the STM's panic and `recover`, a new history law, the serializable snapshot broken after a retry (a finding, reproduced and fixed on a fork branch), see "STM"; `Election`: all of `election.go` specified and proved, election exclusion, only the leader proclaims, `Campaign` may return `nil` without its key (a finding), see "Election"; `Mutex`: mutual exclusion, Perennial `d240c1732`: `fmt.Sprintf` formats `%s`, `strings.HasPrefix`, see "Mutex: mutual exclusion"; the register example verified over raft: logically atomic `Put`/`Get`, raft proposals over a client log, see "The register example"; the cache's wait-group counter bounded by thread tokens, Perennial `105fb79f5`: the `WaitGroup.Add` overflow assumption reverted, `New` assumes fewer than `2^31 - 3` live threads, see "The wait-group counter and thread tokens"; `node.go` proved: `RestartNode`, `run`, `Propose`, `Step`, `Tick`, `Ready`, `Advance`, see "`node.go`: the concurrent `Node`"; groundwork for `node.go`: a computed `Ready` can be abandoned, Perennial's `wp_slice_append_undo`; pre-vote out of scope at the RawNode level; `Ready`'s messages carry terms at most the node's, see "`node.go` groundwork"; `RawNode.Ready` split into `readyWithoutAccept` and `acceptReady`, for `node.go`; the storage contract has a pending append, for `node.go`; `MemoryStorage.Append` and `NewMemoryStorage` proved; merged upstream's RawNode work into the cache-as-shipped and concurrency line, Perennial `7d0b56b07`, see "Merge: upstream's RawNode work"; `RawNode.Step` takes a `MsgApp` between `Ready` and `Advance`; the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; Perennial `7d0b56b07`: Goose with per-iteration loop variables, `break` out of `select`, see "Perennial `7d0b56b07`"; merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
 
 Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
@@ -17,7 +17,8 @@ module system").
 ## Recipes (`client/v3/experimental/recipes`)
 
 Plan: `decisions.md`, "Recipes: the client contracts reused, the queue's claim, two prefixes as
-one". Units 0 to 4; unit 0 (translation, scaffolding, the reproductions) is done.
+one". Units 0 to 4; unit 0 (translation, scaffolding, the reproductions) and unit 1 (the bundle,
+`key.go`, `client.go`, `watch.go`; three key helpers' proofs left to unit 1b) are done.
 
 ### Unit 0: translation and scaffolding (2026-10-11)
 
@@ -94,6 +95,68 @@ one". Units 0 to 4; unit 0 (translation, scaffolding, the reproductions) is done
 - **Gates**: `lake build` passes with the translation (the recipes' `Code` and
   `GeneratedProof` modules included); `etc/tcb-report.py --check` matches the baseline (42
   axioms, 1 sorry); `ETCD_SRC=/shared/etcd etc/goose.py --check` passes at the new pin.
+
+### Unit 1: the base, the client bundle, `key.go`, `client.go`, `watch.go` (2026-10-11)
+
+Files: `Proof/go_etcd_io/etcd/client/v3/experimental/recipes/` (`Base`, `InvRecipesClient`,
+`InvRecipesLemmas`, `InvRecipesClaim`, one proof per function, `Link`) and
+`Spec/go_etcd_io/etcd/client/v3/experimental/recipes/`; deviations from the plan:
+`decisions.md`, "Recipes", "Unit 1".
+
+- **The bundle** `isEtcdRecipesClient client pfx` (persistent): the `KV` field with the
+  contracts at `context.TODO()` (`isRecipesKV`: `isEtcdKVTodo`, `isEtcdTxnKVTodo`,
+  `isEtcdDeleteKVTodo`, `isEtcdPutKVTodo`, `InvEtcdTxn.lean`; the recipes pass `TODO()` to every
+  `KV` call, and `TODO()`'s context, never done, is not an `isContext`), and the `Watcher` field
+  with `isEtcdRangeWatcherOpen` (`InvEtcdTxn.lean`): `isEtcdRangeWatcher` with the SPSC close
+  predicate `False`. **The premise**: a watch channel is never closed (no compaction past a
+  watched revision, the client not closed while a recipe waits); every recipes result rests on
+  it, which the fixed code would not need (the two findings). No `ctx` field (unused).
+- **Puts** (`InvEtcdTxn.lean`, the recipes' addition): `putTxn op` (the one-operation transaction
+  `Then(OpPut(...))`), `putResult` (as `deleteResult`, through `runTxn`: no new etcd semantics),
+  `isEtcdPutKV` (any `isContext`) and `isEtcdPutKVTodo`. `context.TODO()` specified and proved
+  (`Spec/context/TODO.lean`: `todoCtxVal`).
+- **Options** (`InvOp.lean`): `withMaxModRevM`, `withMinModRevM`; `WithFirstRev`, `WithLastKey`,
+  `WithMaxModRev`, `WithMinModRev` specified and proved as the existing ones; **`WithFirstKey`**
+  (`withTop(SortByKey, SortAscend)`, whose `WithSort` closure rewrites its captured `order`,
+  which `WithSort.spec`/`withTop.spec` exclude) returns options needing a resource
+  (`optsAtRes sl gs R`, `optSpecRes`, `optsAt_res`: the closures are called one at a time),
+  proved by stepping into `withTop` and `WithSort`; `isEtcdKVTodo` takes such options.
+- **Keys** (`key.go`): `RemoteKVSt` (`kv`, `key`, `rev`, `val`) behind `ownRemoteKV` (exclusive),
+  `ownEphemeralKV` (the embedded field); `RemoteKV.Key/Revision/Value`, `Delete` (nil `kv`: `nil`;
+  otherwise `deleteResult`; `kv` becomes nil), `Put` (needs a `kv`: `putResult` of
+  `.put key val 0`). `putNewKV`: `(r, nil)` with `keyCreatedAt pfx key val lease r` (absent at
+  `r - 1`, at `r` created with create/mod revision `r`, version 1, the value, the lease),
+  `(0, ErrKeyExists)` with the key present at some `r ≥ lo`, or another error; `newKV`,
+  `newKey`, `newEphemeralKV` (the session's client's `KV`, its lease `id`).
+- **The claim** (`client.go`): `deleteRevKey kv key rev` (`rev > 0`): `(true, nil)` with
+  `revKeyDeleted pfx key rev r` (mod revision `rev` at `r - 1`, absent at `r`), `(false, nil)`
+  with `revKeyGone` (no `key` with mod revision `rev` at `r`), or an error; `claimFirstKey`: the
+  first claimed `*KeyValue` with its `revKeyDeleted`, each before it gone (`claimedBefore`), or
+  `nil` with all gone. **At most once** (`InvRecipesClaim.lean`, `revKeyDeleted_same_rev`): two
+  claims of `(key, rev)` are at the same revision (history laws only).
+- **Events** (`watch.go`): `waitEvents` (loop invariant: the consumer's received list and
+  `0 ≤ i < len(evs)`; the close branch is `False`) returns an `*Event` with `waitedEvent pfx o
+  rev typ ev` (`eventAt`, of the last awaited type, `rangeWatchEvOk`); `WaitEvents` /
+  `WaitPrefixEvents` (`WithCancel(Background())`, deferred `cancel()`, `c.Watcher.Watch`):
+  always `err = nil` (never `ErrNoWatcher`: the channel is not nil, `isChan_not_null`);
+  `waitedEvent_key_delete`, `waitedEvent_put`, `waitedEvent_key` for the callers.
+- **Deferred to unit 1b** (specs written, proofs `sorry`): `newUniqueKV`, `newSequentialKV`,
+  `newUniqueEphemeralKV` (Perennial's `strings.Split`, `errors.Is`, `Sprintf` integer models;
+  `fmt.Sscanf` an axiom then). `newUniqueEphemeralKey` is proved (a call of
+  `newUniqueEphemeralKV`). The specs state the key's prefix `kp ++ "/"` and its creation; the
+  decimal shape and `newSequentialKV`'s order are unit 1b's (the order needs a premise on the
+  keys under the prefix, see `decisions.md`).
+- **Link**: `etc/gen-link.py --recipes --skip-unproved` (new flag: leaves out the listed
+  functions with no proof file and those reaching one, named in the header);
+  `etc/link-lean-first-recipes.txt`: unit 1's lines in hypothesis order, `context_TODO`,
+  `WithMinModRev`; `fmt_Sscanf` off `newSequentialKV`'s line until 1b.
+- **Numbers** (`etc/verified-code.py --reuse`): the recipes 15 of 38 functions verified (14
+  sorry-free: `newUniqueEphemeralKey` reaches a unit-1b `sorry`), 3 unfinished, 102 of 401 Go
+  lines (`key.go` 47/98, `client.go` 22/22, `watch.go` 33/33); etcd 350 verified of 3599.
+- **Gates**: `lake build` passes; `etc/tcb-report.py --collection etc/tcb-collections/recipes.txt`:
+  the first baseline, the axioms `etcdReachedAt`, `etcdState`, `etcdState_revs`,
+  `proto.Clone.wp_proof` and the three unit-1b `sorry`s; `etc/tcb-report.py --check`: the three
+  `sorry`s are new, the repository baseline updated (`--check --update`: 42 axioms, 4 sorries).
 
 ## Panic and recover: Perennial's panics adopted, the STM's axioms gone (2026-10-10)
 

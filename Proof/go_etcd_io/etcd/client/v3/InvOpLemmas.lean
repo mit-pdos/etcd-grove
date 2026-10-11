@@ -38,6 +38,37 @@ theorem opSortAt_unset (p : Loc) (o : OpFull) (h : o.base.sortSet = false) :
   simp only [Bool.false_eq_true, ↓reduceIte]
   iintro; itrivial
 
+/-- A closure needing no resource needs any: `optSpec` frames `R`. -/
+theorem optSpec_res (f : GoFunc) (g : OpFull → OpFull) (R : IProp GF) :
+    optSpec (GF := GF) f g ⊢ optSpecRes f g R := by
+  unfold optSpec optSpecRes
+  iintro #Hf
+  imodintro
+  iintro %opp %op %o
+  imodintro
+  iintro %Φ ⟨HR, Hop, #Hat⟩ HΦ
+  ihave Hf' := Hf $$ %opp %op %o
+  iapply Hf' $$ [$Hop $Hat]
+  inext
+  iintro %op' ⟨Hop, #Hat'⟩
+  iapply HΦ
+  iframe
+  iexact Hat'
+
+/-- An `OpOption` slice of closures needing no resource is one needing any (`optSpec_res`). -/
+theorem optsAt_res (sl : GoSlice) (gs : List (OpFull → OpFull)) (R : IProp GF) :
+    optsAt (GF := GF) sl gs ⊢ optsAtRes sl gs R := by
+  unfold optsAt optsAtRes
+  iintro ⟨%fs, #Hsl, %Hlen, #Hfs⟩
+  iexists fs
+  iframe Hsl
+  isplitr
+  · ipureintro; exact Hlen
+  imodintro
+  iintro %i %f %g %Hf %Hg
+  ihave #H := Hfs $$ %i %f %g %Hf %Hg
+  iapply optSpec_res $$ H
+
 end lemmas
 
 end EtcdGrove

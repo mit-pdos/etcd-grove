@@ -2273,3 +2273,33 @@ leasing, so the plan reuses their contracts and adds as little as possible.
   collection, the reproductions, the Perennial batch); 1 base, bundle, `key.go`, `client.go`,
   `watch.go`; 2 barrier and the two queues; 3 RWMutex and double barrier; 4 results, baseline,
   notes, issues. 2 and 3 in parallel after 1.
+
+### Unit 1: where the plan moved (2026-10-11)
+
+- **`context.TODO()`.** The recipes pass `context.TODO()` to every `KV` call; its context is
+  never done, its `Done()` is `nil`, so it is not an `isContext` (whose `Done` returns a
+  channel), and none of the existing client contracts covers such a call. The bundle takes the
+  contracts at `TODO()` (`isEtcdKVTodo`, `isEtcdTxnKVTodo`, `isEtcdDeleteKVTodo`,
+  `isEtcdPutKVTodo`: the same postconditions, no context premise), not `isEtcdMutexClient`'s;
+  `context.TODO` gets a spec and proof here (Perennial has none). *Rejected:* changing the
+  existing contracts' context premise (every caller rewritten).
+- **`WithFirstKey`.** `withTop(SortByKey, SortAscend)`'s `WithSort` closure writes the `order`
+  it captured: a persistent closure spec (`optSpec`) cannot hold of it (concurrent calls race),
+  hence `WithSort.spec`'s exclusion. The closures are called one at a time by the client, so
+  `optSpecRes f g R`/`optsAtRes` thread a resource (the variable) through the calls, and the
+  `TODO()` `Get` contract takes them (`optsAt_res` for the others). `WithFirstKey` is proved by
+  stepping into `withTop` and `WithSort`.
+- **`waitEvents`** returns an `*Event` with `eventAt` (what callers dereference), not `ev ≠ nil`:
+  nothing says a watch event pointer is non-nil, and a load needs only the points-to.
+- **`deleteRevKey`** takes `rev > 0` (for `rev = 0` on a missing key the comparison holds and the
+  transaction succeeds deleting nothing); its `false` says `revKeyGone`.
+- **At most once** is "the same revision" (`revKeyDeleted_same_rev`). "Dequeued at most once"
+  (unit 2) needs more: that a written revision is one transaction's (a token per written
+  revision in `txnCommitResult`), which the contract does not give.
+- **Unit 1b's specs** state what holds without a premise: the key under `kp ++ "/"`, created
+  fresh (`keyCreatedAt`). `newSequentialKV`'s order is not unconditional: a key under
+  `kp/` that is not a 16-digit decimal (`kp/5abc` parses as 5, so `kp/0000000000000006` sorts
+  below it) or a 17-digit successor (`9999999999999999 + 1`) breaks it; unit 1b states it under
+  a premise on the keys under the prefix (all made by `newSequentialKV`, fewer than `10^16`).
+- **`newUniqueEphemeralKey`** is proved now (one call), so three `sorry`s, not four.
+- **`gen-link.py --skip-unproved`** links what is proved from the full list.

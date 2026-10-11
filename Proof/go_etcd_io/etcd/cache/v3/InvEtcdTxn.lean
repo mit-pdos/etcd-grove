@@ -54,6 +54,12 @@ the stream lasts); `Revoke` returns an error or a response whose header revision
 reached. What a lease does to keys (a put with `WithLease(id)` records `id` in the key-value;
 the lease's expiry or revocation deletes them, a step of etcd's history like any other) is not
 stated beyond the put's `lease`: nothing about liveness.
+
+**`client/v3/experimental/recipes`' additions**: puts (`putTxn`, `putResult`, `isEtcdPutKV`: a put
+as the one-operation transaction `Then(OpPut(...))`, as a delete is `deleteTxn`), the contracts at
+`context.TODO()` (`isEtcdKVTodo`, `isEtcdTxnKVTodo`, `isEtcdDeleteKVTodo`, `isEtcdPutKVTodo`:
+`TODO()`'s context is not an `isContext`), and the range watch under the premise that its channel
+is never closed (`isEtcdRangeWatcherOpen`).
 -/
 module
 
@@ -645,6 +651,121 @@ instance isEtcdDeleteKV_persistent (kv : GoInterfaceOk) (pfx : GoString) :
     Persistent (isEtcdDeleteKV (GF := GF) kv pfx) := by
   unfold isEtcdDeleteKV; infer_instance
 
+/-! ## The client's puts (`client/v3/experimental/recipes`' addition) -/
+
+/-- The one-operation transaction of a put `op` (`kv.Put` is `kv.Do(OpPut(...))`, a `Put`
+request, which etcd applies as a transaction of that one operation, as a delete: `deleteTxn`).
+The recipes' addition (`RemoteKV.Put`, the double barrier's ready key), stated through the
+transaction model: no new etcd semantics. -/
+def putTxn (op : TxnOp) : TxnModel := { cmps := [], thenOps := [op], elseOps := [] }
+
+/-- **What `kv.Put` returns** for the put `op` (`txnOpOf` of `OpPut`'s model) under the prefix
+`pfx`, called knowing that etcd has reached `lo`: an error, or a revision `r` (at least `lo`,
+reached, below `2^63 - 1`) and a state `s` such that the put ran as a one-operation transaction
+(`putTxn`): `s` was etcd's state at `r - 1` and the state with the put applied is its state at
+`r` (`txnStates`; a put always writes). The response itself is not modelled (the recipes ignore
+it). The recipes' addition, as `deleteResult`. -/
+def putResult (pfx : GoString) (lo : w64) (op : TxnOp) (err : GoInterface) : IProp GF :=
+  iprop(⌜err ≠ GoInterface.nil⌝ ∨
+    (⌜err = GoInterface.nil⌝ ∗ ∃ (r : w64) (s : List EtcdKv), etcdReached r ∗
+      ⌜sint.Z lo ≤ sint.Z r ∧ 0 < sint.Z r ∧ sint.Z r < 2 ^ 63 - 1 ∧ EtcdStateWf pfx s⌝ ∗
+      txnStates pfx r s (runTxn r s (putTxn op)).2.1 (txnWrote (runTxn r s (putTxn op)).2.2)))
+
+instance putResult_persistent (pfx : GoString) (lo : w64) (op : TxnOp) (err : GoInterface) :
+    Persistent (putResult (GF := GF) pfx lo op err) := by
+  unfold putResult; infer_instance
+
+/-- **The client's puts** (`clientv3.KV`'s `Put(ctx, key, val, opts...)`; a definition, the
+assumption a caller makes of `client.KV`, as `isEtcdDeleteKV` for `Delete`): for options with
+which `OpPut` does not panic and which make a put a transaction can run (`txnOpOf`), of a key
+under `pfx`, the result is `putResult` (linearizable, as `Delete` and `Commit`).
+`client/v3/experimental/recipes`' addition (the first plain put a verified client makes). -/
+def isEtcdPutKV (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
+  iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (key val : GoString)
+      (sl : GoSlice) (gs : List (OpFull → OpFull)) (op : TxnOp) (lo : w64),
+    {{ context.isContext ctx cs ∗ optsAt sl gs ∗ etcdReached lo ∗
+        ⌜¬ (opPutModel key val gs).putPanics ∧ txnOpOf (opPutModel key val gs) = some op ∧
+          op.Under pfx⌝ }}
+      (App (App (App (App (Val #(methods kv.ty go!"Put" kv.v)) (Val #(GoInterface.ok ctx)))
+        (Val #key)) (Val #val)) (Val #sl))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); putResult pfx lo op err }})
+
+instance isEtcdPutKV_persistent (kv : GoInterfaceOk) (pfx : GoString) :
+    Persistent (isEtcdPutKV (GF := GF) kv pfx) := by
+  unfold isEtcdPutKV; infer_instance
+
+/-! ## The client at `context.TODO()` (`client/v3/experimental/recipes`' addition) -/
+
+/-- `context.TODO()`: a `todoCtx{}` as a `Context` (`Spec/context/TODO.lean`). Its `Done()` is
+`nil` (it is never canceled), so it is not an `isContext` (whose `Done()` returns a channel), and
+the contracts above, which take an `isContext`, do not cover a call with it. -/
+abbrev todoCtxVal : GoInterfaceOk :=
+  interface.mk context.todoCtx.ty #(zero_val context.todoCtx)
+
+/-- **`isEtcdKV` at `context.TODO()`** (a definition, the assumption a caller makes of
+`client.KV`): `kv.Get(context.TODO(), key, opts...)` returns `kvGetResult`, as `isEtcdKV` does
+for a context (whose descriptor no postcondition mentions). The recipes' addition: every call
+the recipes make through `client.KV` passes `context.TODO()`. The options' closures may need a
+resource `R` (`optsAtRes`: the client calls them one at a time, in the caller's goroutine), which
+the call gives back (`WithFirstKey()`'s sort option writes a variable it captured; `optsAt_res`
+for the others). -/
+def isEtcdKVTodo (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
+  iprop(□ ∀ (key : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (R : IProp GF)
+      (lo : w64),
+    {{ optsAtRes sl gs R ∗ R ∗ etcdReached lo ∗ ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1⌝ }}
+      (App (App (App (Val #(methods kv.ty go!"Get" kv.v)) (Val #(GoInterface.ok todoCtxVal)))
+        (Val #key)) (Val #sl))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        R ∗ kvGetResult pfx lo (opGetModel key gs) resp err }})
+
+instance isEtcdKVTodo_persistent (kv : GoInterfaceOk) (pfx : GoString) :
+    Persistent (isEtcdKVTodo (GF := GF) kv pfx) := by
+  unfold isEtcdKVTodo; infer_instance
+
+/-- **`isEtcdTxnKV` at `context.TODO()`**: `kv.Txn(context.TODO())` returns a builder in its
+empty state. The recipes' addition, as `isEtcdKVTodo`. -/
+def isEtcdTxnKVTodo (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
+  iprop(□ {{ True }}
+      (App (Val #(methods kv.ty go!"Txn" kv.v)) (Val #(GoInterface.ok todoCtxVal)))
+    {{ (t : GoInterfaceOk), RET #(GoInterface.ok t);
+        ∃ B : TxnBuild → IProp GF, B TxnBuild.empty ∗ txnBuilderSpec t pfx B }})
+
+instance isEtcdTxnKVTodo_persistent (kv : GoInterfaceOk) (pfx : GoString) :
+    Persistent (isEtcdTxnKVTodo (GF := GF) kv pfx) := by
+  unfold isEtcdTxnKVTodo; infer_instance
+
+/-- **`isEtcdDeleteKV` at `context.TODO()`**: `kv.Delete(context.TODO(), key, opts...)` returns
+`deleteResult`. The recipes' addition, as `isEtcdKVTodo`. -/
+def isEtcdDeleteKVTodo (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
+  iprop(□ ∀ (key : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (lo : w64),
+    {{ optsAt sl gs ∗ etcdReached lo ∗
+        ⌜¬ opDeletePanics key gs ∧
+          KeyRangeUnder pfx (opDeleteModel key gs).key (opDeleteModel key gs).base.rangeEnd⌝ }}
+      (App (App (App (Val #(methods kv.ty go!"Delete" kv.v)) (Val #(GoInterface.ok todoCtxVal)))
+        (Val #key)) (Val #sl))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        deleteResult pfx lo (opDeleteModel key gs) err }})
+
+instance isEtcdDeleteKVTodo_persistent (kv : GoInterfaceOk) (pfx : GoString) :
+    Persistent (isEtcdDeleteKVTodo (GF := GF) kv pfx) := by
+  unfold isEtcdDeleteKVTodo; infer_instance
+
+/-- **`isEtcdPutKV` at `context.TODO()`**: `kv.Put(context.TODO(), key, val, opts...)` returns
+`putResult`. The recipes' addition, as `isEtcdKVTodo`. -/
+def isEtcdPutKVTodo (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
+  iprop(□ ∀ (key val : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (op : TxnOp)
+      (lo : w64),
+    {{ optsAt sl gs ∗ etcdReached lo ∗
+        ⌜¬ (opPutModel key val gs).putPanics ∧ txnOpOf (opPutModel key val gs) = some op ∧
+          op.Under pfx⌝ }}
+      (App (App (App (App (Val #(methods kv.ty go!"Put" kv.v)) (Val #(GoInterface.ok todoCtxVal)))
+        (Val #key)) (Val #val)) (Val #sl))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); putResult pfx lo op err }})
+
+instance isEtcdPutKVTodo_persistent (kv : GoInterfaceOk) (pfx : GoString) :
+    Persistent (isEtcdPutKVTodo (GF := GF) kv pfx) := by
+  unfold isEtcdPutKVTodo; infer_instance
+
 /-- The key `key` is absent from etcd's state at `r` under the prefix `pfx` (persistent). -/
 def etcdAbsent (pfx key : GoString) (r : w64) : IProp GF :=
   iprop(∃ s : List EtcdKv, □ etcdState r pfx s ∗ ⌜∀ v ∈ s, v.key ≠ key⌝)
@@ -750,6 +871,35 @@ def isEtcdRangeWatcher (w : GoInterfaceOk) (pfx : GoString) : IProp GF :=
 instance isEtcdRangeWatcher_persistent (w : GoInterfaceOk) (pfx : GoString) :
     Persistent (isEtcdRangeWatcher (GF := GF) w pfx) := by
   unfold isEtcdRangeWatcher; infer_instance
+
+/-- **The client's range watch, under the premise that its channel is never closed**
+(`client/v3/experimental/recipes`' bundle): `isEtcdRangeWatcher` with the SPSC channel's close
+predicate `False`, so that a receive always yields a response (`spsc_rcv_au`: a close would give
+`False`). A premise, not a fact: etcd's client closes a watch channel when the client is closed
+or when etcd cancels the watch (a compaction past the watched revision), and the recipes as
+shipped are wrong then (`notes/issues/recipes-dequeue-closed-watch.md`,
+`recipes-barrier-wait-closed-watch.md`: on a close `waitEvents` returns `nil`, so
+`WaitEvents`/`WaitPrefixEvents` return `(nil, nil)`, `Queue.Dequeue` dereferences it and
+panics, `Barrier.Wait` reports a release while the barrier is held). Every recipes result is
+under this premise (no compaction past a watched revision, the client not closed while a recipe
+waits), which the fixed code (returning the canceled response's error) would not need. -/
+def isEtcdRangeWatcherOpen (w : GoInterfaceOk) (pfx : GoString) : IProp GF :=
+  iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (key : GoString)
+      (sl : GoSlice) (gs : List (OpFull → OpFull)) (rev : w64),
+    {{ context.isContext ctx cs ∗ optsAt sl gs ∗
+        ⌜(opWatchModel key gs).isRangeWatch rev = true ∧ ¬ opWatchPanics key gs ∧
+          0 ≤ sint.Z rev ∧
+          KeyRangeUnder pfx (opWatchModel key gs).key (opWatchModel key gs).base.rangeEnd⌝ }}
+      (App (App (App (Val #(methods w.ty go!"Watch" w.v)) (Val #(GoInterface.ok ctx)))
+        (Val #key)) (Val #sl))
+    {{ (ch : Loc) (γ : EtcdWatchNames), RET #ch;
+        isSpsc γ.spsc ch (rangeWatchElem γ pfx (opWatchModel key gs) rev) (fun _ => iprop(False)) ∗
+          spscConsumer γ.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
+          monoListIdxOwn γ.cur 0 (rev - W64 1) }})
+
+instance isEtcdRangeWatcherOpen_persistent (w : GoInterfaceOk) (pfx : GoString) :
+    Persistent (isEtcdRangeWatcherOpen (GF := GF) w pfx) := by
+  unfold isEtcdRangeWatcherOpen; infer_instance
 
 /-! ## Leases -/
 
