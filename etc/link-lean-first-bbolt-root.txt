@@ -22,3 +22,9 @@ DB__page:
 DB__pageInBuffer:
 Page__FastCheck: @
 Tx__page: DB__page Page__FastCheck
+Page__IsLeafPage: @
+Page__Count: @
+InBucket__RootPage: @
+Bucket__pageNode: InBucket__RootPage Tx__page
+elemRef__isLeaf: Page__IsLeafPage
+elemRef__count: Page__Count
