@@ -2786,3 +2786,49 @@ Since Perennial `cb6a5921e` (2026-10-11) `AllG GF` is a singleton carried by `Go
   section's `[hG : HeapGS hlc GF]` (the register's `regStorIface_inj`) gets `GF` as a binder it
   can never infer: write `(GF := GF)` at its uses, or declare it outside the section.
 
+
+## mvcc: the certificate carries the log, the token count is exact, a read is pinned by tokens
+
+2026-10-11, for the server's txn package, unit 0c (`notes/STATUS.md`, "Unit 0c"). The txn
+package's sole writer (`txn/SoleWriter.lean`: the certificate of `log` and every revision token
+not spent) must pin the logs its write and read transactions see to `log`; unit 0b found four
+gaps in mvcc's specs. Each change is minimal and keeps every spec at least as strong.
+
+- **The certificate carries the log.** `IdxNames` gains `log`, a monotone list of the committed
+  log's revisions (`List Change` items); `idxCert γ log` adds its lower bound, the index writer
+  (`idxWriter`) half its authority (`idxLogAuth γ (1/2) ilog`), and `idxWriter_commit` appends
+  the pending revision (it takes the other half and gives it back). So two certificates are of
+  logs in prefix order (`idxCert_prefix`, `idxCert_agree_len`), and a committed log extends every
+  certificate (`idxWriter_cert_prefix`, `idxLogAuth_cert_prefix`). *Rejected:* the history's
+  commit marker carrying the revision's changes (`HistItem.commit cs`): `histOf` would be
+  injective with no new ghost, but `HistItem.commit` is a constant in some 200 places of
+  `Hist.lean` and the index proofs; the second list touches only the definitions, the
+  allocation and the three writer proofs that unfold `idxWriter` (one more conjunct framed).
+  (`Change`'s countability moved from `InvStore` to `InvIndex`.)
+- **The token count is exact.** `storeTxnWrite.End` with no change (`pend = []`) makes no
+  revision and leaves the authority's count, so it now returns the transaction's `revToken`
+  (`… ∗ if pend = [] then revToken γ else True`, also in `txnEndPost`, hence
+  `metricsTxnWrite.End`); `writeView.Put`/`DeleteRange` drop it. Without it each such `End`
+  lost a token for good and the sole writer's count (`ntok = 2^63 - 3 - log.length`) could not
+  be kept.
+- **`NewStore` returns `idxCert γ.idx [[], []]`** (its proof had it).
+- **A read is pinned by the caller's tokens and certificate.** The revision budget's authority
+  `ownTokAuth γ.revs ntok` is split in halves (`ownTokAuth_halves`, `ownTokAuthDfrac_split`):
+  one is the writer's, as before (`writerRes`, `storeTxnWriteIs`), the other is under `s.revMu`
+  (`revMuInv`, with `log.length + ntok + 3 ≤ 2^63` for the committed log); `revMuInv` also holds
+  the other half of the committed log's authority (`idxLogAuth`). `End` changes both under
+  `s.revMu` held exclusively (`currentRev++`). `store.Read` takes `ownToks γ.revs m` and
+  `idxCert γ.idx log₀` (new binders `m`, `log₀`) and returns them with
+  `⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2^63⌝` for the log read: the tokens bound it from above,
+  the certificate from below. With `m = 0` and `log₀ = []` (`ownToks_0`, `idxCert_nil`, ghost
+  updates; the `readView` proofs do this) it is the old spec. *Why the certificate too:* the
+  tokens alone give `log.length ≤ log₀.length`; without a lower bound read under `s.revMu` the
+  read log could be a strict prefix of the sole writer's (unit 0b's "read pin" proposal had only
+  the tokens). *Rejected:* a separate "committed length" monotone counter in `StoreNames`
+  (its lower bound would have to travel beside `idxCert`, and `End` and `NewStore` return it);
+  keeping the whole authority in `revMuInv` and borrowing it at `End` (the writer's pin,
+  `soleWriter_pins_write`, reads it inside `storeTxnWriteIs`).
+
+Spec changes: `store.Read` (two binders, pre and post), `storeTxnWrite.End` and
+`metricsTxnWrite.End` (`txnEndPost`) posts, `NewStore` post, `newTreeIndex` post (the other half
+of `idxLogAuth γ`). The `Link.lean` binders are unchanged (`gen-link.py --mvcc` reproduces it).

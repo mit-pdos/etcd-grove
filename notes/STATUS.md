@@ -64,7 +64,8 @@ Branch `txn-u0b` (from `e3effe933`), two new files in
   caller's tokens and the transaction's, the writer's history authority is above the caller's
   certificate), `soleWriter_pins_write'` (keeping the resources), `stateAfter_commitLog`,
   `soleWriter_read_shape` (a read transaction's log and the sole writer's: shapes comparable).
-- **Not provable from the current mvcc specs** (proposed mvcc changes, one each):
+- **Not provable from unit 0b's mvcc specs** (proposed mvcc changes, one each; all resolved by
+  unit 0c, below):
   1. *Values*: the pins give the log's length and shape, not `ilog = log`; make the index
      history's commit marker carry the revision's changes (`HistItem.commit cs`, so `histOf`
      is injective and `idxCert` certifies the log itself), or add a monotone list of committed
@@ -82,6 +83,37 @@ Branch `txn-u0b` (from `e3effe933`), two new files in
      kept a fraction of `ownTokAuth γ.revs` with the budget (`End` changes the count under
      `s.revMu` held exclusively). Until then, unit 3 can use only the write pin and the
      certificates' order.
+
+### Unit 0c: the mvcc changes for the sole writer (2026-10-11)
+
+Branch `txn-mvcc` (from `txn-u0b`), four commits, sorry-free, no new axiom; built with
+`--packages=.lake/manifest-merge.json`. Unit 0b's "not provable" list is closed: the sole writer
+pins both its transactions' logs to its own. Design and rejected options: `notes/decisions.md`,
+"mvcc: the certificate carries the log, the token count is exact, a read is pinned by tokens".
+
+1. *The certificate carries the log*: `IdxNames.log`, a monotone list of the committed log,
+   half its authority in `idxWriter`, half `idxLogAuth` (under `s.revMu`); `idxCert` holds its
+   lower bound. `idxCert_prefix`, `idxCert_agree_len`, `idxWriter_cert_prefix`,
+   `idxLogAuth_cert_prefix`, `idxCert_nil`; `idxWriter_commit` takes and returns the other half.
+2. *An empty `End` keeps its token*: `storeTxnWrite.End`'s post and `txnEndPost` add
+   `if pend = [] then revToken γ else True`.
+3. *`NewStore`* returns `idxCert γ.idx [[], []]`.
+4. *The read pin*: the budget's authority is split in halves (`ownTokAuth_halves`), one under
+   `s.revMu` with `log.length + ntok + 3 ≤ 2^63`; `store.Read` takes `ownToks γ.revs m` and
+   `idxCert γ.idx log₀` and returns them with `log₀ <+: log ∧ log.length + m + 3 ≤ 2^63`
+   (`m = 0`, `log₀ = []` give the old spec: the `readView` proofs). The certificate is needed
+   too: the tokens bound the log read from above only.
+
+`SoleWriter.lean`: `soleWriter_pins_write` gives `ilog = log`; `soleWriter_pins_read` (pure:
+from `store.Read`'s post at the sole writer, `log' = log`) and `soleWriter_Read` (`store.Read`
+at `soleWriter γ log` returns `isTxnRead mw s γ log rev ∗ soleWriter γ log`, needs
+`log.length + 3 ≤ 2^63`); `soleWriter_close` is fed by `End`'s post, `soleWriter_close_end` by
+`txnEndPost`; `soleWriter_of_NewStore` takes `NewStore`'s post (`ownToks ∗ idxCert`).
+`Lemmas.lean` untouched. Files: mvcc's `InvIndex`, `InvStore`, `newTreeIndex`, `NewStore`,
+`store__Read`, `storeTxnWrite__End`, `metricsTxnWrite__End`, `readView__{Rev,Range,FirstRev}`,
+`writeView__{Put,DeleteRange}`, `storeTxnCommon__Range`, `treeIndex__{Put,Tombstone,Insert}`
+(proofs, a few lines each), the specs `store__Read`, `storeTxnWrite__End`, `NewStore`,
+`newTreeIndex`; `txn/SoleWriter.lean`.
 
 ## Merge: mvcc into lean (2026-10-11)
 
