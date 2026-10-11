@@ -953,6 +953,25 @@ theorem kiOfKey_ne_mono (evs more : List Ev) (key : GoString) (h : kiOfKey evs k
   rw [he] at this
   exact this kiEmpty_head
 
+/-- A key has an index in the index of `evs` exactly when its key index is not the empty one
+(an index's first generation has a revision: `indexOf_head'`). -/
+theorem idxGet_indexOf_eq_none_iff (evs : List Ev) (k : GoString) :
+    idxGet (indexOf evs) k = none ↔ kiOfKey evs k = kiEmpty := by
+  have hrep := (indexOf_rep evs).2 k
+  constructor
+  · intro h; rw [h] at hrep; exact hrep.symm
+  · intro h
+    cases hg : idxGet (indexOf evs) k with
+    | none => rfl
+    | some ki =>
+      exfalso
+      rw [hg, Option.getD_some, h] at hrep
+      rw [idxGet_eq_find? _ (indexOf_sorted evs)] at hg
+      obtain ⟨z, hz, hzk⟩ := Option.map_eq_some_iff.1 hg
+      have := indexOf_head' evs z (List.mem_of_find?_eq_some hz)
+      rw [hzk, hrep] at this
+      exact this kiEmpty_head
+
 /-- A subset of a strictly sorted list, sorted, is a sublist. -/
 theorem sublist_of_subset_sorted : ∀ (S T : List GoString), S.Pairwise go.GoStringLt →
     T.Pairwise go.GoStringLt → (∀ x ∈ S, x ∈ T) → S.Sublist T

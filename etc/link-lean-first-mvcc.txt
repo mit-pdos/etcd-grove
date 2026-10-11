@@ -35,6 +35,8 @@ treeIndex__unsafeGet: treeIndex__keyIndex keyIndex__get
 treeIndex__Get: treeIndex__unsafeGet
 treeIndex__Put: BTree__Get BTree__ReplaceOrInsert keyIndex__put
 treeIndex__Tombstone: BTree__Get keyIndex__tombstone
+treeIndex__KeyIndex: treeIndex__keyIndex
+treeIndex__Insert: BTree__ReplaceOrInsert
 # The range reads (unsafeVisit's visitors are the callers' closures), see Hist.lean, ReadLemmas.lean.
 treeIndex__unsafeVisit: BTree__AscendGreaterOrEqual keyIndex__Less
 treeIndex__Revisions: treeIndex__unsafeGet treeIndex__unsafeVisit keyIndex__get

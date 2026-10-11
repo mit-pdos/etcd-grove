@@ -65,6 +65,8 @@ public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.TODO
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__Step
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__CountRevisions
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Get
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Insert
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__KeyIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Put
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Range
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Revisions
@@ -373,6 +375,14 @@ theorem mvcc.storeTxnWrite.wp_Rev [AllG GF] :
 theorem mvcc.store.wp_Write [AllG GF] :
     mvcc.store.Write.spec (GF := GF) (hG := hG) :=
   mvcc.store.Write.wp_proof mvcc.wp_newMetricsTxnWrite
+
+theorem mvcc.treeIndex.wp_Insert [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
+    mvcc.treeIndex.Insert.spec (GF := GF) (hG := hG) :=
+  mvcc.treeIndex.Insert.wp_proof btree.BTree.wp_ReplaceOrInsert
+
+theorem mvcc.treeIndex.wp_KeyIndex [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
+    mvcc.treeIndex.KeyIndex.spec (GF := GF) (hG := hG) :=
+  mvcc.treeIndex.KeyIndex.wp_proof mvcc.treeIndex.wp_keyIndex
 
 theorem mvcc.writeView.wp_DeleteRange [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.writeView.DeleteRange.spec (GF := GF) (hG := hG) :=

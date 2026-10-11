@@ -2169,6 +2169,21 @@ and the hash storage are not modelled (`NewHashStorage`, `schedule.NewFIFOSchedu
 the lessor is given (a closure over `store.Write`) is opaque to it, and the lessor's later calls
 of it on lease expiry are outside the model.
 
+**`KeyIndex` and `Insert` under the history** (2026-10-11, later · adopted): the last two
+methods of `index.go` are used only by `restore` (on its private index, before any reader) and
+the tests, and `restore` mutates the key indexes it gets from `KeyIndex` outside the lock, which
+the live index's invariant (the key indexes owned by the lock) cannot express. They are
+specified under that invariant anyway, honestly narrower than their Go signatures: the history
+fixes the tree's keys and their indexes, so `KeyIndex` promises only what survives the lock's
+release (the pointer carries its key, `kiKey`, persistent; it is not `nil` when the reader's log
+gives the key an index, `kiOfKey … ≠ kiEmpty`, which later events keep; with the writer's
+knowledge the converse too) and `Insert` by the writer, with an owned key index equal to what
+its log gives the key, always replaces the key's entry (the premise `≠ kiEmpty` puts the key in
+the tree) and returns the old one, owned; the writer's log is unchanged. *Rejected:* making
+`isTreeIndex` parametric in the lock's resource so a private index could use them at the tree
+level with its key indexes owned: every index spec and proof and `InvStore` would change, for a
+client (`restore`) that is out of scope.
+
 *Rejected:* the whole `storeTxnWrite` points-to inside `storeTxnWriteIs` for the whole proof of
 `put`/`delete` (the code reads `tw.s` for the lessor after the change is made: the predicate is
 rebuilt at each return through a wand over `tw`'s points-to); `End` holding `s.revMu` for the

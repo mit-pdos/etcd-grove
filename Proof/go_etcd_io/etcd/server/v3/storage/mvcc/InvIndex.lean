@@ -431,6 +431,49 @@ instance ownTree_fractional (t : Loc) (L : List IdxEntry) :
       icases ownTree_combine t L L q1 q2 $$ H1 H2 with ⟨-, H⟩
       iexact H
 
+/-- The tree's items are sorted by key. -/
+theorem ownTree_sorted (t : Loc) (L : List IdxEntry) (q : Qp) :
+    ownTree (GF := GF) t L q ⊢ ownTree t L q ∗ ⌜(itemsOfEntries L).Pairwise kiItemLess⌝ := by
+  unfold ownTree
+  iintro ⟨%Hs, Ht, Hk⟩
+  iframe Ht Hk
+  isplitl [] <;> (ipureintro; exact Hs)
+
+/-- An entry of the tree: its pointer is not `nil`, and is a key index of the entry's key, for
+good. -/
+theorem ownTree_entry (t : Loc) (L : List IdxEntry) (q : Qp) (z : IdxEntry) (hz : z ∈ L) :
+    ownTree (GF := GF) t L q ⊢ ownTree t L q ∗ ⌜z.1 ≠ null⌝ ∗ kiKey z.1 z.2.1 := by
+  unfold ownTree
+  iintro ⟨%Hs, Ht, Hk⟩
+  icases BigSepL.bigSepL_mem_acc (Φ := fun z => ownEntry (GF := GF) z q) hz $$ Hk with ⟨Hz, Hback⟩
+  iunfold ownEntry at Hz
+  icases Hz with ⟨%Hn, Hz⟩
+  ihave Hk := Hback $$ [Hz]
+  · iunfold ownEntry; iframe Hz; ipureintro; exact Hn
+  iunfold ownBTree at Ht
+  icases Ht with ⟨%h, %zs, Hbt, %Hzs, #Hall⟩
+  have hmem : (z.1, z.2.1) ∈ zs.map Prod.snd := by
+    rw [Hzs]; unfold itemsOfEntries; exact List.mem_map_of_mem hz
+  obtain ⟨y, hy, hyv⟩ := List.mem_map.1 hmem
+  ihave #Hy : kiItemIs y.1 (z.1, z.2.1) $$ []
+  · rw [← hyv]; iapply Hall; ipureintro; exact hy
+  iunfold kiItemIs at Hy
+  icases Hy with ⟨%Hyp, #Hkey⟩
+  isplitl [Hbt Hk]
+  · iframe Hk
+    isplitl []
+    · ipureintro; exact Hs
+    iunfold ownBTree
+    iexists h, zs
+    iframe Hbt
+    iframe #
+    ipureintro; exact Hzs
+  isplitl []
+  · ipureintro; exact Hn
+  simp only at Hyp
+  rw [← Hyp]
+  iexact Hkey
+
 /-! ### The lock invariant, the writer and the certificate -/
 
 /-- The ghost names of a tree index: its history and its number of events. -/
@@ -681,6 +724,38 @@ theorem idxKnows_facts (γ : IdxNames) (kn : IdxKnow) (log : Log) (hlog : kn.log
         rcases List.mem_append.1 hcs' with h | h
         · exact hcs cs h
         · rw [List.mem_singleton] at h; rw [h]; exact hpend
+    iunfold idxWriter
+    iframe Hauth
+    iframe #
+    ipureintro; exact Hwwf
+
+/-- With the writer's handle, the lock's events are the writer's (`writer_events`). -/
+theorem idxKnows_writer_events (γ : IdxNames) (kn : IdxKnow) (ilog : Log) (pend : List Change)
+    (q : Qp) :
+    ⊢ idxKnows (GF := GF) γ kn -∗ monoListLbOwn γ.hist (histShape ilog pend) -∗
+      monoNatAuthOwn γ.nev q (evsOf (ilog ++ [pend])).length -∗
+      ⌜∀ ilog' pend', kn = .writer ilog' pend' →
+        evsOf (ilog ++ [pend]) = evsOf (ilog' ++ [pend'])⌝ ∗
+      idxKnows γ kn ∗ monoNatAuthOwn γ.nev q (evsOf (ilog ++ [pend])).length := by
+  cases kn with
+  | cert log =>
+    iintro Hkn _ Hnev
+    iframe Hkn Hnev
+    ipureintro; intro _ _ h; cases h
+  | writer ilog' pend' =>
+    rw [idxKnows_writer]
+    iintro Hkn #Hlb Hnev
+    iunfold idxWriter at Hkn
+    icases Hkn with ⟨Hauth, #Hwlb, %Hwwf⟩
+    ihave %Hpre := mono_list_auth_lb_valid γ.hist 1 _ _ $$ Hauth Hlb
+    ihave %Hcnt := monoNatLbOwn_valid γ.nev q _ _ $$ Hnev Hwlb
+    iframe Hnev
+    isplitl []
+    · ipureintro
+      intro a b h
+      injection h with h1 h2
+      subst h1 h2
+      exact writer_events ilog' ilog pend' pend Hpre.2 Hcnt.2
     iunfold idxWriter
     iframe Hauth
     iframe #
