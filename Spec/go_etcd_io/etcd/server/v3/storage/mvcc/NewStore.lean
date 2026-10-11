@@ -27,7 +27,7 @@ variable [go_etcd_io.etcd.cache.v3.Assumptions]
 initial committed log `[[], []]` (revision 0 and `currentRev = 1`, both empty), with its two
 views, all the reader slots of its locks (`storeReader`, one per slot) and the revision budget
 (`2 ^ 63 - 5` tokens: the batch lock's resource `writerRes` needs `ilog.length + ntok + 3 ≤
-2 ^ 63`, with the initial log of length 2).
+2 ^ 63`, with the initial log of length 2), and the index's certificate of the initial log.
 
 * The empty bucket view `ghostMapAuth γb 1 ∅` is *given* by the backend's creator (the
   fresh-backend assumption), not allocated by the store; the backend's contract is quantified
@@ -56,7 +56,7 @@ abbrev mvcc.NewStore.spec : Prop :=
         mvcc.isWriteView wv s γ) ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
         mvcc.storeReader s γ) ∗
-      ownToks γ.revs (2 ^ 63 - 5) }}
+      ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] }}
 
 end spec
 

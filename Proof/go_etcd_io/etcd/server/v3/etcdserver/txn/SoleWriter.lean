@@ -88,12 +88,13 @@ instance soleWriterOpen_timeless (γ : mvcc.StoreNames) (log : Log) :
   unfold soleWriterOpen idxCert; infer_instance
 
 /-- **`NewStore` makes the sole writer** of its initial log `[[], []]`: its `2 ^ 63 - 5` tokens
-are the budget, with the certificate of `[[], []]` (which `NewStore`'s spec does not return yet:
-`notes/STATUS.md`). -/
+are the budget, with the certificate of `[[], []]` (both in `NewStore`'s post, in this order). -/
 theorem soleWriter_of_NewStore (γ : mvcc.StoreNames) :
-    idxCert (GF := GF) γ.idx [[], []] ∗ ownToks γ.revs (2 ^ 63 - 5) ⊢ soleWriter γ [[], []] := by
+    ownToks (GF := GF) γ.revs (2 ^ 63 - 5) ∗ idxCert γ.idx [[], []] ⊢ soleWriter γ [[], []] := by
   have h : soleBudget [[], []] = 2 ^ 63 - 5 := by unfold soleBudget; simp
   unfold soleWriter; rw [h]
+  iintro ⟨Ht, Hc⟩
+  iframe Ht Hc
 
 /-- **Opening a write transaction**: one token for `store.Write`, while the log leaves room for
 one more revision (`log.length + 4 ≤ 2 ^ 63`). -/

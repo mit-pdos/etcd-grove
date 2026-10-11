@@ -290,7 +290,7 @@ theorem mvcc.NewStore.wp_proof
   iexists γ
   isplitr
   · ipureintro; exact ⟨hγb, hγl⟩
-  iframe Hs Htoks
+  iframe Hs Htoks Hcert
   isplitr
   · iexists rv, wv
     iunfold mvcc.isReadView
