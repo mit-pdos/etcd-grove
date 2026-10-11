@@ -3,7 +3,7 @@ Package initialization for etcd's server `txn` package (`server/v3/etcdserver/tx
 server's `Range`, `Put`, `DeleteRange` and `Txn` over the mvcc core). Every package it imports
 already has its instance: mvcc's (`storage/mvcc/Base.lean`: mvcc, `traceutil`, `lease`,
 `schedule`, prometheus), the cache's (`cache/v3/Base.lean`: `zap`, `proto`, `mvccpb`,
-`etcdserverpb`), the server's (`etcdserver/BaseApply.lean`: `etcdserver/errors`) and
+`etcdserverpb`), `etcdserver/errors/Base.lean` and
 Perennial's (`context`, `time`, `bytes`, `math`, `sort`, `fmt`).
 
 As in those, the package facts are assumptions about package initialization, not proved from
@@ -22,7 +22,7 @@ module
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.txn
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.txn
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Base
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.errors.Base
 public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import Perennial.Proof.time
 public import Perennial.Proof.bytes
