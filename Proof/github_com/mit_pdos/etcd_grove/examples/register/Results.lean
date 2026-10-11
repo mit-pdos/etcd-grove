@@ -17,6 +17,12 @@ generated); raft's functions it calls are linked in raft's `Link.lean`.
   (`isStorage`), and its `InitialState` is what `RestartNode` asks of its storage.
 * **The ghost state's allocation** (`regStorInv_alloc`, `regInv_alloc`, `Alloc.lean`): the
   invariants the above assume, from raft's allocation (`ownRaftGhost_alloc`).
+* **The cluster driver** (`register_Main`, `examples/register/cluster.go`): from the register
+  package's `isPkgInit` alone, `Main()` -- three replicas over raft's `Node`, an in-process
+  transport, a ticker per node, and two clients, B checking that its `Get` returns what A's
+  `Put` wrote -- is safe: `{{ isPkgInit register }} Main() {{ RET #(); True }}`. Every ghost
+  resource is allocated inside the proof (no storage registry is assumed: `register_Main`
+  takes no `[RegStor GF]`).
 -/
 module
 
@@ -89,6 +95,21 @@ theorem register_storage_initialState (s : Loc) (vsl : GoSlice) (voters : List w
 
 end results
 
+/-! The top-level driver, at no storage registry (the section has no `RegStor`). -/
+section main
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.register.Assumptions]
+
+/-- **The top-level driver** `Main()` (`Spec/github_com/mit_pdos/etcd_grove/examples/register/Main.lean`):
+safe from package initialization. Stated at no storage registry: the proof allocates one. -/
+theorem register_Main : register.Main.spec (GF := GF) (hG := hG) :=
+  register.wp_Main
+
+end main
+
 #print axioms register_Put
 #print axioms register_Get
 #print axioms register_New
@@ -98,6 +119,7 @@ end results
 #print axioms register_storage_initialState
 #print axioms regStorInv_alloc
 #print axioms regInv_alloc
+#print axioms register_Main
 
 end EtcdGrove
 end Perennial

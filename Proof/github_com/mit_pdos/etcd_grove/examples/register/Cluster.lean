@@ -14,7 +14,7 @@ two clients on it.
   that it was legitimately sent (`isRaftMsg`) and of a term within the budget (`termLB`);
   `Node.Step` takes more (`stepP`: the type, the target, a nonzero term and sender, no
   context, its entries owned). The transport checks in Go what it can (`Deliverable`: the
-  type, a sender other than the target, a term, an empty context), routes by `To` (so the
+  type, a sender other than the target, a term, a nil context), routes by `To` (so the
   target is the receiver) and copies the entries; raft sends nothing it drops.
 * **The peers** (`peerOk`): the node a peer table maps an id to is that id's, of the
   cluster's raft ghost state and term budget (persistent).
@@ -54,13 +54,13 @@ def qLogger [FfiSyntax] [GoGlobalContext] : GoInterfaceOk := interface.mk qLogge
 /-- What `deliverable` checks of a message (see the file header). -/
 def Deliverable [FfiSyntax] (m : raftpb.Message) : Prop :=
   (m.Type' = MsgProp ∨ (m.Type' ∈ netStepTypes ∧ m.Term' ≠ W64 0)) ∧
-  m.From' ≠ W64 0 ∧ m.From' ≠ m.To' ∧ m.Context'.len = W64 0
+  m.From' ≠ W64 0 ∧ m.From' ≠ m.To' ∧ m.Context' = slice.nil
 
 /-- A node's ticks (`ticks`). -/
 def ticksN : Nat := 2 ^ 20
 
 /-- `"hello"`. -/
-def helloB : List w8 := go!"hello"
+abbrev helloB : List w8 := go!"hello"
 
 def clientN : Namespace := nroot.@"register_cluster"
 
@@ -91,6 +91,90 @@ def peerOk (γ : RaftNames) (bud : BudgetNames) (id : w64) (nd : GoInterface) : 
 instance peerOk_persistent (γ : RaftNames) (bud : BudgetNames) (id : w64) (nd : GoInterface) :
     Persistent (peerOk (GF := GF) γ bud id nd) := by
   unfold peerOk; infer_instance
+
+/-- A deliverable message is of a type the protocol describes, not a snapshot. -/
+theorem deliverable_mtype (m : raftpb.Message) (Hd : Deliverable m) :
+    ∃ ty, mtypeOf m.Type' = some ty ∧ ty ≠ .snap := by
+  obtain ⟨Hty, -⟩ := Hd
+  unfold netStepTypes at Hty
+  rcases Hty with h | ⟨h, -⟩
+  · exact ⟨_, by rw [h]; exact mtypeOf_MsgProp, by decide⟩
+  · simp only [List.mem_cons, List.not_mem_nil, or_false] at h
+    rcases h with h | h | h | h | h | h <;> rw [h]
+    · exact ⟨_, mtypeOf_MsgApp, by decide⟩
+    · exact ⟨_, mtypeOf_MsgAppResp, by decide⟩
+    · exact ⟨_, mtypeOf_MsgVote, by decide⟩
+    · exact ⟨_, mtypeOf_MsgVoteResp, by decide⟩
+    · exact ⟨_, mtypeOf_MsgHeartbeat, by decide⟩
+    · exact ⟨_, mtypeOf_MsgHeartbeatResp, by decide⟩
+
+/-- What `Ready` says of a deliverable message: its entries, read-only, and its abstraction
+sent. -/
+theorem raftMsg_deliverable (γ : RaftNames) (m : raftpb.Message) (Hd : Deliverable m) :
+    isRaftMsg (GF := GF) γ m ⊢ ∃ (ty : MsgType) (ents : List raftpb.Entry),
+      ⌜mtypeOf m.Type' = some ty⌝ ∗ m.Entries' ↦*□ ents ∗ isMessage γ (absMsg ty m ents) := by
+  obtain ⟨ty0, Hty0, Hns⟩ := deliverable_mtype m Hd
+  iintro Hm
+  unfold isRaftMsg msgAbs
+  icases Hm with ⟨%a, (⟨%Hn, -⟩ | ⟨%ty, %ents, %H, #He⟩ | ⟨%sv, %voters, %H, -⟩), #Hl⟩
+  · rw [Hty0] at Hn; cases Hn
+  · obtain ⟨H1, -, rfl⟩ := H
+    iexists ty, ents
+    iframe He
+    isplitr
+    · ipureintro; exact H1
+    simp only [Option.toList_some]
+    iapply (BigSepL.bigSepL_singleton (Φ := fun _ x => isMessage (GF := GF) γ x)).1 $$ Hl
+  · rw [Hty0] at H; cases H.1; exact absurd rfl Hns
+
+/-- ... and with its entries copied (`s'`), what `Node.Step` takes, at the node `id` it
+is addressed to. -/
+theorem stepP_deliverable (γn : NodeNames) (id : w64) (m : raftpb.Message) (ty : MsgType)
+    (ents : List raftpb.Entry) (s' : GoSlice) (Hd : Deliverable m) (Hto : m.To' = id)
+    (Hty : mtypeOf m.Type' = some ty) :
+    ⊢ isMessage (GF := GF) γn.raft (absMsg ty m ents) -∗ termLB γn.bud m.Term' -∗
+      s' ↦* ents -∗ ownSliceCap raftpb.Entry s' (DFrac.own 1) ==∗
+      stepP γn id { m with Entries' := s' } := by
+  iintro #Hmsg #Hlb Hs Hcap
+  obtain ⟨Hty', HF, HFT, Hctx⟩ := Hd
+  have Habs : ∀ ty', absMsg ty' { m with Entries' := s' } ents = absMsg ty' m ents :=
+    fun _ => rfl
+  ihave #Hctx' : (m.Context' ↦*□ ([] : List w8)) $$ []
+  · rw [Hctx]; iapply ownSlice_nil
+  have Hct : ([] : List w8) ≠ campaignTransfer := by simp [campaignTransfer]
+  unfold stepP
+  rcases Hty' with Hp | ⟨Hn, Ht⟩
+  · imodintro
+    iright
+    unfold fwdP
+    isplitr
+    · ipureintro; exact Hp
+    iexists ents, []
+    iframe Hs Hcap Hctx'
+    isplitr
+    · ipureintro; exact Hct
+    rw [Habs]
+    rw [Hp] at Hty
+    cases Hty
+    iexact Hmsg
+  · imod ownSlice_persist s' _ _ $$ Hs with #Hs
+    imodintro
+    ileft
+    unfold netP
+    isplitr
+    · ipureintro
+      refine ⟨Hn, Hto, Ht, HF, fun _ => Hto ▸ HFT, fun _ _ => Hto ▸ HFT⟩
+    iexists ents, []
+    iframe Hs Hcap Hctx' Hlb
+    isplitr
+    · ipureintro; exact ⟨Hct, fun _ => rfl⟩
+    imodintro
+    iintro %ty' %Hty2
+    rw [Habs]
+    simp only at Hty2
+    rw [Hty] at Hty2
+    cases Hty2
+    iexact Hmsg
 
 end defs
 

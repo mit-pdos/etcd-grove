@@ -28,7 +28,7 @@ func (quietLogger) Panicf(format string, v ...interface{})   { panic(format) }
 // deliverable says whether the transport passes m on: a message of a type a node of the
 // cluster sends its peers (a proposal forwarded to the leader, or a replication or
 // election message: pre-vote and snapshots are off), from a node to another, of a term
-// (but a proposal, which carries none), and with no context (the cluster uses neither
+// (but a proposal, which carries none), and with no context (nil: the cluster uses neither
 // read-only queries nor leader transfer, its two uses). raft sends nothing else, but
 // what it promises of a Ready's messages does not say so.
 func deliverable(m pb.Message) bool {
@@ -41,7 +41,7 @@ func deliverable(m pb.Message) bool {
 	default:
 		return false
 	}
-	return m.From != 0 && m.From != m.To && len(m.Context) == 0
+	return m.From != 0 && m.From != m.To && m.Context == nil
 }
 
 // deliver passes the deliverable messages to their targets among peers, each its own copy
