@@ -18,3 +18,7 @@ unix_Munmap:
 unix_Madvise:
 bbolt_mmap: os_File__Fd unix_Mmap unix_Madvise
 bbolt_munmap: unix_Munmap
+DB__page:
+DB__pageInBuffer:
+Page__FastCheck: @
+Tx__page: DB__page Page__FastCheck
