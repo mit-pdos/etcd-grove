@@ -85,3 +85,14 @@ readView__Rev: traceutil_TODO store__Read storeTxnCommon__Rev metricsTxnWrite__E
 readView__Range: traceutil_TODO store__Read metricsTxnWrite__Range metricsTxnWrite__End
 writeView__Put: traceutil_TODO store__Write metricsTxnWrite__Put metricsTxnWrite__End
 writeView__DeleteRange: traceutil_TODO store__Write metricsTxnWrite__DeleteRange metricsTxnWrite__End
+# The store's constructor (kvstore.go) on a fresh backend, see InvStore.lean: the ghost state
+# allocated (the index at the initial log `[[], []]`, the committed log, the revision budget), the
+# batch lock's resource deposited at the first `Unlock`, the locks initialized; zap's `NewNop`,
+# schedule's `NewFIFOScheduler`, `NewHashStorage`, schema's `UnsafeCreateMetaBucket` and
+# `restore` (the identity on a fresh backend) are the trust boundary (axioms).
+zap_NewNop:
+schedule_NewFIFOScheduler:
+NewHashStorage:
+schema_UnsafeCreateMetaBucket:
+store__restore:
+NewStore: zap_NewNop newTreeIndex schedule_NewFIFOScheduler NewHashStorage schema_UnsafeCreateMetaBucket store__restore

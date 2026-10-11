@@ -34,7 +34,7 @@ translate = ["!*",
   "newMetricsTxnRead", "newMetricsTxnWrite", "metricsTxnWrite.Range",
   "metricsTxnWrite.DeleteRange", "metricsTxnWrite.Put", "metricsTxnWrite.End",
   # kvstore.go
-  "ErrCompacted", "ErrFutureRev",
+  "ErrCompacted", "ErrFutureRev", "NewStore",
   # the promoted methods of embedded fields (goose's MethodUnfold wrappers): treeIndex's
   # RWMutex; storeTxnRead's and storeTxnWrite's storeTxnCommon; metricsTxnWrite's and
   # txnReadWrite's embedded interfaces; store's ReadView and WriteView; BucketKey's Revision

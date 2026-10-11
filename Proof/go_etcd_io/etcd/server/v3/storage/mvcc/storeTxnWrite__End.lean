@@ -109,7 +109,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     obtain ⟨n, rfl⟩ : ∃ n, ntok = n + 1 := ⟨ntok - 1, by omega⟩
     imod ownTokAuth_delete_S γ.revs n $$ Htoks Htok with Htoks
     imod ghostVar_update_halves (ilog ++ [pend]) γ.clog _ _ $$ HclogL Hclog with ⟨HclogL, Hclog⟩
-    imod mvcc.idxWriter_commit γ.idx ilog pend (by omega) Hne $$ Hw with ⟨Hw, #Hcert'⟩
+    imod mvcc.idxWriter_commit γ.idx ilog pend (by omega) $$ Hw with ⟨Hw, #Hcert'⟩
     have hrev : (W64 ((ilog.length : Int) - 1) : w64) + W64 1 =
         W64 (((ilog ++ [pend]).length : Int) - 1) := by
       rw [← mvcc.W64_add_one]; simp

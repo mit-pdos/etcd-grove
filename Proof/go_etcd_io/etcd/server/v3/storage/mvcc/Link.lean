@@ -12,7 +12,9 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BucketKeyToBytes
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BytesToBucketKey
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BytesToRev
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.IsTombstone
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewHashStorage
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewRevBytes
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewStore
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RevToBytes
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Revision__GreaterThan
 public import Proof.encoding.binary.bigEndian__PutUint64
@@ -39,6 +41,8 @@ public import Proof.google_golang_org.protobuf.proto.Unmarshal
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.readView__FirstRev
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.readView__Range
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.readView__Rev
+public import Proof.go_etcd_io.etcd.pkg.v3.schedule.NewFIFOScheduler
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeCreateMetaBucket
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.sliceCapWithLimit
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnCommon__FirstRev
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnCommon__Range
@@ -56,6 +60,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__delete
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__put
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Read
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Write
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__restore
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.TODO
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__Step
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__CountRevisions
@@ -71,6 +76,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.writeView__DeleteRang
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.writeView__Put
 public import Proof.go_uber_org.zap.Error
 public import Proof.go_uber_org.zap.Logger__Error
+public import Proof.go_uber_org.zap.NewNop
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.Link
 
 @[expose] public section
@@ -117,9 +123,37 @@ theorem mvcc.wp_IsTombstone :
     mvcc.IsTombstone.spec (GF := GF) (hG := hG) :=
   mvcc.IsTombstone.wp_proof mvcc.wp_isTombstone
 
+theorem mvcc.wp_NewHashStorage :
+    mvcc.NewHashStorage.spec (GF := GF) (hG := hG) :=
+  mvcc.NewHashStorage.wp_proof
+
 theorem mvcc.wp_NewRevBytes :
     mvcc.NewRevBytes.spec (GF := GF) (hG := hG) :=
   mvcc.NewRevBytes.wp_proof
+
+theorem zap.wp_NewNop :
+    zap.NewNop.spec (GF := GF) (hG := hG) :=
+  zap.NewNop.wp_proof
+
+theorem mvcc.keyIndex.wp_Less :
+    mvcc.keyIndex.Less.spec (GF := GF) (hG := hG) :=
+  mvcc.keyIndex.Less.wp_proof
+
+theorem mvcc.wp_newTreeIndex [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
+    mvcc.newTreeIndex.spec (GF := GF) (hG := hG) :=
+  mvcc.newTreeIndex.wp_proof btree.wp_New mvcc.keyIndex.wp_Less
+
+theorem schedule.wp_NewFIFOScheduler :
+    schedule.NewFIFOScheduler.spec (GF := GF) (hG := hG) :=
+  schedule.NewFIFOScheduler.wp_proof
+
+theorem schema.wp_UnsafeCreateMetaBucket :
+    schema.UnsafeCreateMetaBucket.spec (GF := GF) (hG := hG) :=
+  schema.UnsafeCreateMetaBucket.wp_proof
+
+theorem mvcc.store.wp_restore [AllG GF] :
+    mvcc.store.restore.spec (GF := GF) (hG := hG) :=
+  mvcc.store.restore.wp_proof
 
 theorem mvcc.wp_newBucketKey :
     mvcc.newBucketKey.spec (GF := GF) (hG := hG) :=
@@ -140,10 +174,6 @@ theorem mvcc.generation.wp_isEmpty :
 theorem mvcc.generation.wp_walk :
     mvcc.generation.walk.spec (GF := GF) (hG := hG) :=
   mvcc.generation.walk.wp_proof
-
-theorem mvcc.keyIndex.wp_Less :
-    mvcc.keyIndex.Less.spec (GF := GF) (hG := hG) :=
-  mvcc.keyIndex.Less.wp_proof
 
 theorem mvcc.keyIndex.wp_findGeneration :
     mvcc.keyIndex.findGeneration.spec (GF := GF) (hG := hG) :=
@@ -209,10 +239,6 @@ theorem mvcc.wp_newMetricsTxnRead [AllG GF] :
     mvcc.newMetricsTxnRead.spec (GF := GF) (hG := hG) :=
   mvcc.newMetricsTxnRead.wp_proof
 
-theorem mvcc.wp_newTreeIndex [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
-    mvcc.newTreeIndex.spec (GF := GF) (hG := hG) :=
-  mvcc.newTreeIndex.wp_proof btree.wp_New mvcc.keyIndex.wp_Less
-
 theorem traceutil.wp_TODO :
     traceutil.TODO.spec (GF := GF) (hG := hG) :=
   traceutil.TODO.wp_proof
@@ -231,6 +257,10 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+
+theorem mvcc.wp_NewStore [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
+    mvcc.NewStore.spec (GF := GF) (hG := hG) :=
+  mvcc.NewStore.wp_proof zap.wp_NewNop mvcc.wp_newTreeIndex schedule.wp_NewFIFOScheduler mvcc.wp_NewHashStorage schema.wp_UnsafeCreateMetaBucket mvcc.store.wp_restore
 
 theorem mvcc.treeIndex.wp_Range [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.treeIndex.Range.spec (GF := GF) (hG := hG) :=

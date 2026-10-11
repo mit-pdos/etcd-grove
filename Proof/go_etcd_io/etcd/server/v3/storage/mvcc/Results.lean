@@ -86,6 +86,12 @@ protobuf's `Marshal` and zap's `Error` are the trust boundary (axioms). -/
 #print axioms Perennial.EtcdGrove.mvcc.writeView.wp_Put
 #print axioms Perennial.EtcdGrove.mvcc.writeView.wp_DeleteRange
 
+/-! The store's constructor (`kvstore.go`) on a fresh backend: the ghost state allocated, the
+batch lock's resource deposited at its first `Unlock`, the locks initialized; zap's `NewNop`,
+schedule's `NewFIFOScheduler`, `NewHashStorage`, schema's `UnsafeCreateMetaBucket` and `restore`
+(the identity on a fresh backend) are the trust boundary (axioms). -/
+#print axioms Perennial.EtcdGrove.mvcc.wp_NewStore
+
 /-! The model: what the index answers of a key at a revision is the state's key-value, and a
 reader's range answer is its certified log's. -/
 #print axioms Perennial.EtcdGrove.mvcc.kiGet_indexOf

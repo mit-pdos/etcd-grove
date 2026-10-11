@@ -11,7 +11,8 @@ As in those, the package facts are assumptions about package initialization, not
 variables). `mvccInit` states what the KV core reads of them: the three error variables, each
 a fixed non-nil error, and the prometheus counters and gauges of `metrics.go` the transactions
 and the key index update, each a fixed interface value whose `Inc`/`Dec`/`Add` return
-(`counterSpec`, `gaugeSpec`: metrics have no effect here).
+(`counterSpec`, `gaugeSpec`: metrics have no effect here); and the two configuration defaults
+`NewStore` reads (`defaultCompactionBatchLimit`, `defaultCompactionSleepInterval`), any values.
 -/
 module
 
@@ -101,7 +102,9 @@ instance gaugeSpec_persistent (g : GoInterfaceOk) : Persistent (gaugeSpec (GF :=
 `ErrCompacted` and `ErrFutureRev` (`kvstore.go`), each a fixed non-nil error; and the metrics
 of `metrics.go` the KV core updates: the gauge `keysGauge` (the key index), the counters
 `txnCounter`, `rangeCounter`, `putCounter`, `deleteCounter` and the gauge `totalPutSizeGauge`
-(the transactions' `End`). -/
+(the transactions' `End`); and the variables `defaultCompactionBatchLimit` and
+`defaultCompactionSleepInterval` (`kvstore.go`) `NewStore` reads, read-only (only tests change
+them), their values unconstrained (the store's configuration is not modelled). -/
 abbrev mvccInit : IProp GF :=
   iprop((∃ e : GoInterfaceOk, globalAddr ErrRevisionNotFound ↦□ GoInterface.ok e) ∗
     (∃ e : GoInterfaceOk, globalAddr ErrCompacted ↦□ GoInterface.ok e) ∗
@@ -111,7 +114,9 @@ abbrev mvccInit : IProp GF :=
     (∃ c : GoInterfaceOk, globalAddr rangeCounter ↦□ GoInterface.ok c ∗ counterSpec c) ∗
     (∃ c : GoInterfaceOk, globalAddr putCounter ↦□ GoInterface.ok c ∗ counterSpec c) ∗
     (∃ c : GoInterfaceOk, globalAddr deleteCounter ↦□ GoInterface.ok c ∗ counterSpec c) ∗
-    (∃ g : GoInterfaceOk, globalAddr totalPutSizeGauge ↦□ GoInterface.ok g ∗ gaugeSpec g))
+    (∃ g : GoInterfaceOk, globalAddr totalPutSizeGauge ↦□ GoInterface.ok g ∗ gaugeSpec g) ∗
+    (∃ n : w64, globalAddr defaultCompactionBatchLimit ↦□ n) ∗
+    (∃ d : w64, globalAddr defaultCompactionSleepInterval ↦□ d))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc :=
   define_is_pkg_init mvccInit

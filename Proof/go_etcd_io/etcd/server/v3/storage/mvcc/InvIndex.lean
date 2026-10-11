@@ -559,7 +559,7 @@ theorem LogWf'.append_nil {log : Log} (h : LogWf' log) (hne : log ≠ []) : LogW
 /-- **Commit** (a ghost step, outside the index lock): the pending revision is closed, and the
 committed log is certified. -/
 theorem idxWriter_commit (γ : IdxNames) (ilog : Log) (pend : List Change)
-    (hlen : ilog.length + 2 < 2 ^ 63) (hne : ilog ≠ []) :
+    (hlen : ilog.length + 2 < 2 ^ 63) :
     ⊢ idxWriter (GF := GF) γ ilog pend ==∗ idxWriter γ (ilog ++ [pend]) [] ∗ idxCert γ (ilog ++ [pend]) := by
   unfold idxWriter idxCert
   iintro ⟨Hauth, #Hnev, %Hwf⟩

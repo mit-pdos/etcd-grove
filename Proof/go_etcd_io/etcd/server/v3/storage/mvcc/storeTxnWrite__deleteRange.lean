@@ -59,7 +59,7 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
   · iPkgInit
   -- the lessor and the batch transaction
   iunfold mvcc.isLessor at HlessorS
-  icases HlessorS with ⟨%li, %Hli, #HGetL, #HAttach, #HDetach⟩
+  icases HlessorS with ⟨%li, %Hli, #HGetL, #HAttach, #HDetach, -⟩
   subst Hli
   ihave #Hbt0 : mvcc.batchTxSpec bt (mvcc.bucketView γ) (mvcc.writerRes s γ) Locked $$ []
   · iexact Hbt

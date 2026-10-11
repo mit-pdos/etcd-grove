@@ -2094,7 +2094,7 @@ What `store.Write`, `storeTxnWrite.put`/`delete`/`deleteRange`/`End` do, and wha
   `End` joins the halves to increment it), the index's certificate of `ilog`, and the revision
   budget: `ownTokAuth γ.revs ntok` with `ilog.length + ntok + 3 ≤ 2 ^ 63`. A write transaction
   costs one `revToken γ` (`store.Write`'s precondition; `NewStore`, later, hands out
-  `2 ^ 63 - 4`), which `End` returns to the authority when it commits, so `currentRev` never
+  `2 ^ 63 - 5`: the initial log has length 2), which `End` returns to the authority when it commits, so `currentRev` never
   overflows and the pending revision's index is below `2 ^ 63` (the index's own bound).
 - **`s.revMu`** (`revMuInv`) now holds its half of `currentRev` and of `γ.clog`; `End` with a
   change takes it exclusively around `currentRev++` and the batch `Unlock` (the write-back),
@@ -2147,6 +2147,27 @@ writer's handle, as `Get`/`Range`/`Revisions`/`CountRevisions` now all take) and
 `storeTxnWrite.Range`'s result is `rangeOutcome` at `ilog ++ [pend]` and `writeRev ilog pend`:
 the transaction reads its own pending revision when it has a change, else the committed log's
 last (an empty pending revision changes nothing).
+
+**The constructor on a fresh backend** (2026-10-11, later · adopted): `NewStore` is translated;
+`restore` (and what it calls) is not: on a fresh backend it is a trust-boundary axiom, the
+identity on the store's verified state (`currentRev = 1`, `compactMainRev = -1`, the empty
+bucket view, `s.revMu` fresh), returning `nil`; a backend with data is out of scope (the real
+`restore` rebuilds the index from the bucket). The fresh-backend assumption is a *premise*: the
+caller gives the empty bucket view `ghostMapAuth γb 1 ∅` (the backend's creator's fact), not
+something the store allocates — conjuring the view inside the store would let the proof assume
+any bucket contents. The backend contract is quantified over the store's location and names with
+that bucket name (`∀ s γ, γ.bucket = γb → isKeyBackend b (bucketView γ) (writerRes s γ)`: the
+batch lock's resource `writerRes s γ` is the store's choice, as a lock's resource is its
+client's), and the lessor's ghost name `γl` is the lessor's own (`isLessor le γl` over a
+`GName`; `leaseKnown γl id`). The batch lock starts empty: `LockOutsideApply()` gives `Locked []`
+and no resource, and `NewStore` deposits `writerRes` at its first no-puts `Unlock`; from then on
+`LockInsideApply` hands it out as before. `NewStore` allocates the rest of the ghost state (the
+log `[[], []]`, two empty revisions so `currentRev = 1`; the revision budget: `2 ^ 63 - 5`
+tokens) and returns `isStore`, the two views, every reader slot and the tokens. The configuration
+and the hash storage are not modelled (`NewHashStorage`, `schedule.NewFIFOScheduler`,
+`zap.NewNop`, `schema.UnsafeCreateMetaBucket` are axioms returning a value); the range deleter
+the lessor is given (a closure over `store.Write`) is opaque to it, and the lessor's later calls
+of it on lease expiry are outside the model.
 
 *Rejected:* the whole `storeTxnWrite` points-to inside `storeTxnWriteIs` for the whole proof of
 `put`/`delete` (the code reads `tw.s` for the lessor after the change is made: the predicate is

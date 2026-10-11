@@ -41,7 +41,7 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   (try wp_auto)
   -- `tx := s.b.BatchTx()`
   iunfold mvcc.isKeyBackend at Hbk
-  icases Hbk with ⟨%bi, %Hbi, #HC, #HR, #HB⟩
+  icases Hbk with ⟨%bi, %Hbi, #HC, #HR, #HB, -⟩
   subst Hbi
   (try wp_auto)
   wp_apply HB as %bt #Hbt

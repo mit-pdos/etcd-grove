@@ -34,7 +34,7 @@ theorem mvcc.metricsTxnWrite.End.wp_proof
   ihave Hmi : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hmi with ⟨-, -, -, -, ⟨%ct, #Hct, #HctS⟩, ⟨%cr, #Hcr, #HcrS⟩, ⟨%cp, #Hcp, #HcpS⟩,
-    ⟨%cdl, #Hcd, #HcdS⟩, ⟨%g, #Hg, #HgS⟩⟩
+    ⟨%cdl, #Hcd, #HcdS⟩, ⟨%g, #Hg, #HgS⟩, -⟩
   iunfold counterSpec at HctS HcrS HcpS HcdS
   iunfold gaugeSpec at HgS
   icases HctS with ⟨#HctI, -⟩
