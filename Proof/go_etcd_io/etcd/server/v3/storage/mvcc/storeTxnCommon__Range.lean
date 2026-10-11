@@ -42,7 +42,7 @@ theorem mvcc.storeTxnCommon.Range.wp_proof (hRev : mvcc.storeTxnCommon.Rev.spec 
   ihave #Hcert0 : mvcc.idxCert γ.idx log $$ []
   · iexact HcertT
   iunfold mvcc.idxCert at HcertT
-  icases HcertT with ⟨-, -, %Hcwf⟩
+  icases HcertT with ⟨-, -, %Hcwf, -⟩
   have hpos : 0 < log.length := List.length_pos_iff.2 HneT
   have hrv : 0 ≤ sint.Z rev ∧ sint.Z rev < log.length := by
     rw [HrevT]; unfold sint.Z W64

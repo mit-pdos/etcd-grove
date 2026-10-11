@@ -50,23 +50,6 @@ structure StoreNames where
   `currentRev` never overflows -/
   revs : GName
 
-/-! ### Countability of the log (for its ghost variable) -/
-
-def Change.enc : Change → Bool × GoString × GoString × w64
-  | .put k v l => (false, k, v, l)
-  | .del k => (true, k, [], W64 0)
-
-theorem Change.enc_inj : Function.Injective Change.enc := by
-  intro x y h
-  cases x <;> cases y <;> simp only [Change.enc, Prod.mk.injEq] at h
-  · obtain ⟨-, rfl, rfl, rfl⟩ := h; rfl
-  · exact Bool.noConfusion h.1
-  · exact Bool.noConfusion h.1
-  · obtain ⟨-, rfl, -, -⟩ := h; rfl
-
-instance Change.countable : Pos.Countable Change :=
-  .ofInjective (fun c => Pos.Countable.encode c.enc) (fun _ _ h => Change.enc_inj (Pos.encode_inj h))
-
 /-- `s.mu`'s resource: nothing (see the module docstring); it takes the semantics' instances
 (unused) so that the lock lemmas' own are determined at its uses. -/
 def muInv [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -187,7 +170,7 @@ theorem idxKnows_wf (γ : IdxNames) (kn : IdxKnow) :
     iintro #H
     iframe H
     iunfold idxCert at H
-    icases H with ⟨-, -, %Hc⟩
+    icases H with ⟨-, -, %Hc, -⟩
     ipureintro; exact Hc
   | writer ilog pend =>
     rw [idxKnows_writer]

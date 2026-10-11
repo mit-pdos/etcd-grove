@@ -146,40 +146,31 @@ theorem idxCert_logShape (γ : mvcc.StoreNames) (a b : Log) :
   exact h.imp (histOf_prefix_logShape a b) (histOf_prefix_logShape b a)
 
 /-- **The sole writer pins its write transaction** (`store.Write` returns `∃ ilog`): the
-transaction's committed log `ilog` has the sole writer's length and shape. The tokens bound
-`ilog`'s length by `log`'s (`ownTokAuth`'s count covers the sole writer's tokens and the
-transaction's: `soleBudget log ≤ ntok`, and `ilog.length + ntok + 3 ≤ 2 ^ 63`), the index's
-authority (the writer's) is above `log`'s certificate (`ilog` at least as long, its shape
-extending `log`'s). -/
+transaction's committed log `ilog` is the sole writer's. The tokens bound `ilog`'s length by
+`log`'s (`ownTokAuth`'s count covers the sole writer's tokens and the transaction's:
+`soleBudget log - 1 + 1 ≤ ntok`, and `ilog.length + ntok + 3 ≤ 2 ^ 63`); the index writer's
+committed-log authority is above `log`'s certificate (`log <+: ilog`, `idxWriter_cert_prefix`). -/
 theorem soleWriter_pins_write (γ : mvcc.StoreNames) (log ilog : Log) (pend : List Change) (tw s : Loc) :
-    soleWriterOpen (GF := GF) γ log ∗ storeTxnWriteIs tw s γ ilog pend ⊢
-      ⌜ilog.length = log.length ∧ logShape ilog = logShape log⌝ := by
+    soleWriterOpen (GF := GF) γ log ∗ storeTxnWriteIs tw s γ ilog pend ⊢ ⌜ilog = log⌝ := by
   unfold soleWriterOpen
-  iintro ⟨⟨Hmycert, Hmine⟩, H⟩
+  iintro ⟨⟨#Hmycert, Hmine⟩, H⟩
   unfold storeTxnWriteIs
   icases H with ⟨%trace, %ti, %bt, %Locked, %chs, %ps, %ntok, H⟩
   iNamed H
   unfold revToken
   icombine Hmine Htok as Hall
   icombine Htoks Hall gives %hle
-  unfold idxCert
-  icases Hmycert with ⟨Hlb, -, -⟩
-  unfold idxWriter
-  icases Hw with ⟨Hauth, -, -⟩
-  ihave %hpre := mono_list_auth_lb_valid _ _ _ _ $$ Hauth Hlb
+  ihave %hpre := idxWriter_cert_prefix γ.idx ilog pend log $$ [$Hw $Hmycert]
   ipureintro
-  obtain ⟨-, hpre⟩ := hpre
-  have hlen : ilog.length < 2 ^ 63 := by omega
-  obtain ⟨-, -, -, hge⟩ := histOf_prefix_shape log ilog pend hpre hlen
-  have hsh := histOf_prefix_shape_logShape log ilog pend hpre
+  have hlen : (log <+: ilog) := hpre
+  have hl := hlen.length_le
   have heq : ilog.length = log.length := by unfold soleBudget at hle; omega
-  exact ⟨heq, (logShape_eq_of_prefix hsh (by omega)).symm⟩
+  exact (hlen.eq_of_length heq.symm).symm
 
 /-- `soleWriter_pins_write`, keeping the resources. -/
 theorem soleWriter_pins_write' (γ : mvcc.StoreNames) (log ilog : Log) (pend : List Change) (tw s : Loc) :
     soleWriterOpen (GF := GF) γ log ∗ storeTxnWriteIs tw s γ ilog pend ⊢
-      ⌜ilog.length = log.length ∧ logShape ilog = logShape log⌝ ∗
-        (soleWriterOpen γ log ∗ storeTxnWriteIs tw s γ ilog pend) :=
+      ⌜ilog = log⌝ ∗ (soleWriterOpen γ log ∗ storeTxnWriteIs tw s γ ilog pend) :=
   persistent_entails_right (soleWriter_pins_write γ log ilog pend tw s)
 
 /-- What a read transaction's log is to the sole writer's, from the certificates alone: shapes

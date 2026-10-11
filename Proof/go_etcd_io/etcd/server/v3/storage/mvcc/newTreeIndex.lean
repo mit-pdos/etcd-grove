@@ -73,7 +73,8 @@ theorem mvcc.newTreeIndex.wp_proof
   ipersist lg
   imod mono_list_own_alloc (GF := GF) ([] : List mvcc.HistItem) with ⟨%γh, Hhauth, #Hhlb⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γn, Hnauth, #Hnlb⟩
-  let γ : mvcc.IdxNames := ⟨γh, γn⟩
+  imod mono_list_own_alloc (GF := GF) ([] : mvcc.Log) with ⟨%γl, Hlauth, -⟩
+  let γ : mvcc.IdxNames := ⟨γh, γn, γl⟩
   have hshape : mvcc.histShape [] [] = [] := rfl
   have hevs : (mvcc.evsOf ([] ++ [[]])).length = 0 := rfl
   have hwf : mvcc.IdxWf [] [] := by
@@ -117,11 +118,11 @@ theorem mvcc.newTreeIndex.wp_proof
     iexists t, lg
     simp only [named, γ]
     iframe #
-  isplitl [Hhauth]
+  isplitl [Hhauth Hlauth]
   · iunfold mvcc.idxWriter
     simp only [γ]
     rw [hshape, hevs]
-    iframe Hhauth
+    iframe Hhauth Hlauth
     isplitl []
     · iexact Hnlb
     ipureintro; exact hwf
