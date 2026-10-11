@@ -79,17 +79,17 @@ newUniqueEphemeralKey: newUniqueEphemeralKV
 waitEvents:
 WaitEvents: WithRev waitEvents
 WaitPrefixEvents: WithPrefix WithRev waitEvents
-# barrier.go.
-NewBarrier:
+# barrier.go (unit 2: in hypothesis order).
+NewBarrier: context_TODO
 Barrier__Hold: newKey
 Barrier__Release:
 Barrier__Wait: WaitEvents
-# queue.go.
-NewQueue:
+# queue.go (unit 2: in hypothesis order).
+NewQueue: context_TODO
 Queue__Enqueue: newUniqueKV
 Queue__Dequeue: WithFirstRev claimFirstKey WaitPrefixEvents deleteRevKey
-# priority_queue.go.
-NewPriorityQueue:
+# priority_queue.go (unit 2: in hypothesis order).
+NewPriorityQueue: context_TODO
 PriorityQueue__Enqueue: newSequentialKV
 PriorityQueue__Dequeue: WithFirstKey claimFirstKey WaitPrefixEvents deleteRevKey
 # rwmutex.go.
