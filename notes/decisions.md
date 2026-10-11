@@ -2424,12 +2424,15 @@ leasing, so the plan reuses their contracts and adds as little as possible.
   as a fourth conjunct (`newUniqueKV`'s proof drops it).
 - **Unit 2: FIFO where it holds.** The plan's FIFO at the claim (`r - 1`) needs a history law the
   model does not assume: that a key-value lives unchanged from its mod revision while present
-  (`EtcdModRevPersist`). Stated as a hypothesis of `queue_fifo_before_claim` (the get path), not an
-  axiom: one result needs it, and the trust base stays the plan's. `queue_fifo` (no hypothesis)
-  is at the get's revision. The wait path is weaker (the watch contract does not promise that no
+  (`EtcdModRevPersist`). Stated first as a hypothesis of `queue_fifo_before_claim` (the get path),
+  not an axiom: one result needs it, and the trust base stays the plan's; on 2026-10-11 the owner
+  promoted it to the history axiom `etcdState_modrev_persist` (`InvEtcdTxn.lean`, beside
+  `etcdState_modrev_det`: that law fixes the record per mod revision, this one keeps it there),
+  and the result is unconditional. `queue_fifo` is at the get's revision. The wait path is weaker (the watch contract does not promise that no
   event is skipped). The priority queue's least key is at the get only: at the claim it is false
   in etcd (a higher-priority `Enqueue` between the get and the claim; `STATUS.md`, Unit 2).
-  *Rejected:* a seventh history axiom for one result.
+  *Rejected at first:* a seventh history axiom for one result; *taken* once the owner judged the
+  law part of what the model should say of etcd's history.
 - **Unit 2: `pqueue_order`, for the merge with unit 1b.** With 1b's order premise and theorem
   (`SeqKeysWf kp s`: every key under `kp ++ "/"` is `kp ++ "/" ++ padZeros 16 (decimal n)`, made by
   `newSequentialKV`, fewer than `10^16`), the statement is: for the priority queue on `key`, if at
@@ -2482,7 +2485,8 @@ leasing, so the plan reuses their contracts and adds as little as possible.
   both the token and the error premise after the merge; `newSequentialKV` puts but does not create
   its key (`seqKeyPutAt`), so `PriorityQueue.Enqueue`'s spec returns `seqKeyPutAt` (not
   `keyCreatedAt`, as unit 2 had it); FIFO at the get's revision, at the claim only under the
-  hypothesis `EtcdModRevPersist` (not promoted to an axiom: the owner decides), the wait path
+  hypothesis `EtcdModRevPersist` (since promoted to the axiom `etcdState_modrev_persist`), the
+  wait path
   weaker (the watch may skip events); the priority queue's least key at the get only (not
   linearizable); the RWMutex's exclusion under `keyUnmodified`; the double barrier's count under
   `readyPutsCounted`. **`pqueue_order`** as drafted above, with `PQKeysWf key s0` (every key

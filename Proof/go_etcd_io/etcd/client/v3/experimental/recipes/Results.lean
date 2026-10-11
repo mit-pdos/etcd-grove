@@ -48,22 +48,13 @@ a linked result (`Link.lean`, generated).
   one with the least mod revision under the prefix (the get path), or every item there then was
   claimed by others by `r` and the item was put at or after `r0` (the wait path: the watch
   contract does not say that no event is skipped, so nothing is said of items put between `r0` and
-  the event). `queue_fifo_before_claim`: under the history law that a key-value lives unchanged
-  from its mod revision while it is present (`EtcdModRevPersist`, not among the model's axioms),
-  the get path's item had the least mod revision among the items present just before the claim.
+  the event). `queue_fifo_before_claim`: by the history law that a key-value lives unchanged
+  from its mod revision while it is present (`etcdState_modrev_persist`), the get path's item had
+  the least mod revision among the items present just before the claim.
 * **Least key** (`pqueue_min_key`): the priority queue's, at the get's revision `r0` (the get
   path), or the wait path's facts. Not at the claim: a key with a higher priority (a smaller key)
   enqueued between the get and the claim is not seen (`notes/STATUS.md`).
 -/
-
-/-- **A key-value lives unchanged from its mod revision while it is present** (a law of etcd's
-history the model does not assume; stated for `queue_fifo_before_claim`): a key-value of etcd's
-state at `a` is in its state at every `b` from its mod revision to `a` (a key not written in
-`(m, a]` keeps its record; any write, a lease's expiry too, gives it a new mod revision or deletes
-it). -/
-def EtcdModRevPersist (GF : BundledGFunctors) (pfx : GoString) : Prop :=
-  ∀ (a b : w64) (s s' : List EtcdKv), etcdState (GF := GF) a pfx s ∗ etcdState b pfx s' ⊢
-    ⌜∀ v ∈ s, sint.Z v.modRev ≤ sint.Z b → sint.Z b ≤ sint.Z a → v ∈ s'⌝
 
 section unit2
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -171,13 +162,12 @@ theorem queue_fifo (kp : GoString) (it : EtcdKv) (r : w64) :
   iintro H
   iexact H
 
-/-- **FIFO just before the claim, on the get path**, under the history law `EtcdModRevPersist`:
-a dequeue from the queue on `kp` that took the get's item claimed the item with the least mod
+/-- **FIFO just before the claim, on the get path** (by the history law
+`etcdState_modrev_persist`): a dequeue from the queue on `kp` that took the get's item claimed the item with the least mod
 revision among those under `kp` in etcd's state just before the claim (an item older than it
 would have been in the get's state, where `it` was the oldest; a newer one is newer). On the wait
 path, the facts of `queue_fifo`. -/
-theorem queue_fifo_before_claim (kp : GoString) (it : EtcdKv) (r : w64)
-    (hmp : EtcdModRevPersist GF kp) :
+theorem queue_fifo_before_claim (kp : GoString) (it : EtcdKv) (r : w64) :
     dequeuedAt (GF := GF) kp kp it r ∗ dequeueOrder kp kp modRevLe it r ⊢
       ∃ s : List EtcdKv, □ etcdState (r - W64 1) kp s ∗ ⌜it ∈ s⌝ ∗
         (⌜∀ w ∈ s, kp <+: w.key → sint.Z it.modRev ≤ sint.Z w.modRev⌝ ∨
@@ -196,7 +186,7 @@ theorem queue_fifo_before_claim (kp : GoString) (it : EtcdKv) (r : w64)
     · ipureintro; exact Hit
     ileft
     ihave %Hrv0 := etcdState_revs r0 kp s0 $$ Hs0
-    ihave %Hp := hmp (r - W64 1) r0 s s0 $$ [$Hs $Hs0]
+    ihave %Hp := etcdState_modrev_persist (r - W64 1) r0 kp s s0 $$ [$Hs $Hs0]
     ipureintro
     intro w hw hwk
     have hr1 : sint.Z (r - W64 1) = sint.Z r - 1 := by

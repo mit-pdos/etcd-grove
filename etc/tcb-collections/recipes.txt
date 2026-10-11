@@ -14,6 +14,7 @@ axiom etcdState
 axiom etcdState_agree
 axiom etcdState_create_persist
 axiom etcdState_modrev_det
+axiom etcdState_modrev_persist
 axiom etcdState_revs
 axiom fmt.Sscanf.wp_proof
 axiom proto.Clone.wp_proof

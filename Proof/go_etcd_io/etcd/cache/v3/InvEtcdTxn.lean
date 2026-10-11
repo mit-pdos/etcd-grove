@@ -360,6 +360,18 @@ axiom etcdState_modrev_det {GF : BundledGFunctors} (a b : w64) (pfx : GoString)
   etcdState (GF := GF) a pfx s ∗ etcdState b pfx s' ⊢
     ⌜∀ v ∈ s, ∀ v' ∈ s', v.key = v'.key → v.modRev = v'.modRev → v = v'⌝
 
+/-- **A key-value lives unchanged from its mod revision while it is present** (an axiom about
+etcd's history): a key-value of the state at `a` is in the state at every revision `b` in
+`[modRev, a]`. A key not written in `(m, a]` keeps its record; any write, a lease's expiry too,
+gives it a new mod revision or deletes it; so a key present at `a` with mod revision `m` was
+written at `m` and untouched since. Used by the queue: an item under the prefix just before the
+claim with an older mod revision than the dequeuer's get was already there, unchanged, at the get
+(`queue_fifo_before_claim`). -/
+axiom etcdState_modrev_persist {GF : BundledGFunctors} (a b : w64) (pfx : GoString)
+    (s s' : List EtcdKv) :
+  etcdState (GF := GF) a pfx s ∗ etcdState b pfx s' ⊢
+    ⌜∀ v ∈ s, sint.Z v.modRev ≤ sint.Z b → sint.Z b ≤ sint.Z a → v ∈ s'⌝
+
 /-- **The revision `r` was made by the holder's commit** (an axiom: a fact about the server, as
 `etcdState`): an exclusive token, which the client's contract gives the caller of a commit that
 wrote (`txnCommitResultTok`, `putResult`). A committed write is its own revision: etcd applies
