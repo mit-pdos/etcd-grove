@@ -1941,6 +1941,43 @@ record.
 
 ---
 
+## The watchable store: the plan, the interval tree's contract
+
+**2026-10-11 · adopted** (the plan; the contract's design, unit 1b, to be written against it).
+- **Contract first, the tree's proof last.** The watch guarantee is the result; the red-black
+  interval tree (`pkg/adt`, 950 lines: insert/delete fixups with the `max` augmentation) is
+  infrastructure, the longest single proof of the plan. So the tree gets model specs (a
+  contract) first, pending (`?` in the link list: hypotheses of every result that reaches them,
+  the recipes' mechanism), the watcher group and the store are proved over the contract, and
+  the tree's proof comes last, discharging the hypotheses. *Rejected:* proving the tree first
+  as the B-tree was (no pending hypotheses, but the guarantee two units later); taking the tree
+  as six trusted axioms (fastest, but a trusted data structure in the mvcc collection).
+- **String-affine intervals only.** The tree is generic over the `Comparable` interface
+  (dynamic dispatch of `Compare`), but its only client, the watcher group, uses
+  `StringAffineComparable` intervals (`""` as the end is +∞: a `WithFromKey` watch arrives
+  with an empty, non-nil end). The model: intervals as pairs of Go strings under the affine
+  order, the overlap test mirroring `Interval.Compare` exactly (`ivlCmp`: left if
+  `b < b' ∧ e ≤ b'`, right if `b ≥ e'`, else 0), entries sorted by (begin, end) — `Insert`
+  descends by begin then end and goes right on equality, rotations and the successor-based
+  delete preserve the in-order sequence — and distinct (the group `Find`s before it
+  `Insert`s; a precondition of `Insert`, so `Delete`'s removed entry is determined). `Stab q`
+  is the entries overlapping `q` in that order; `Intersects q` whether there is one; `Find`
+  the entry with exactly that interval. *Rejected:* a contract generic over a key type with a
+  comparison and a predicate per comparable (the B-tree's `isItem`): no client needs it.
+- **The nodes' pairs are read-only, for good.** A node's `iv` (`IntervalValue`: the interval
+  and the `any` value) is written at creation only (`updateMax`, the rotations and the fixups
+  touch `max`, the links and the colour), so `Find` and `Stab` return persistent read-only
+  pointers to the nodes' `iv` fields (`p ↦□ …`): no lending protocol (as `unsafeVisit`'s) is
+  needed, and the group reads `iv.Val` whenever it likes. The values are interface values the
+  tree keeps opaque; the ownership of the watcher sets they wrap is the group's.
+- **`ownIvt` is an `opaque` placeholder until unit 4.** The tree's ownership predicate
+  `ownIvt t L` (the tree at `t` holds the entries `L`) is a Lean `opaque` constant (a
+  definition with a hidden trivial body, not an axiom), used only through the contract's
+  triples; unit 4 replaces it by the representation invariant (the sentinel, the colours, the
+  `max` augmentation, the in-order list) and proves the triples, without changing any
+  result's statement. *Rejected:* writing the representation invariant in unit 1b (unit 4's
+  hardest design decision before any client exercises the contract).
+
 ## mvcc: the log of changes as the model, the key index as a function of its events
 
 **2026-10-10 · accepted** (Lean-first; the plan discussed with the user: "start on the mvcc KV

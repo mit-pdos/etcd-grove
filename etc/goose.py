@@ -140,6 +140,8 @@ PROJECTS = [
             "go.etcd.io/etcd/server/v3/etcdserver/cindex",
             "go.etcd.io/etcd/server/v3/etcdserver",
             "go.etcd.io/etcd/server/v3/storage/schema",
+            # with bodies (pkg/v3/adt.toml): the interval tree of mvcc's watcher groups
+            "go.etcd.io/etcd/pkg/v3/adt",
             # types and names only: what the server's types and the apply thread name
             "go.etcd.io/etcd/server/v3/storage",
             "go.etcd.io/etcd/server/v3/storage/backend",
@@ -173,6 +175,8 @@ PROJECTS = [
             # bbolt's page-id helpers, with bodies (bbolt/internal/common.toml)
             "go.etcd.io/bbolt/internal/common",
             "go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc",
+            # names only: what mvcc's watchStream.Watch calls (SpanFromContext, Span.End)
+            "go.opentelemetry.io/otel/trace",
             "google.golang.org/protobuf/proto",
             "google.golang.org/protobuf/reflect/protoreflect",
             "go.uber.org/zap",

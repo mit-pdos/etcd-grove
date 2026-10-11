@@ -1,10 +1,12 @@
 /-
 Package initialization instances for etcd's mvcc store (`server/v3/storage/mvcc`) and the
 packages it imports that no other proof module provides: `pkg/v3/traceutil`, `server/v3/lease`,
-`pkg/v3/schedule` and prometheus's `client_golang/prometheus` (all names and types only). The
-others are the cache's (`cache/v3/Base.lean`: `zap`, `proto`, `mvccpb`), the server's
-(`etcdserver/Base.lean`: `backend`, `schema`), the btree's (`btree/Init.lean`) and
-Perennial's (`sync`, `bytes`, `context`, `errors`, `fmt`, `time`, `encoding/binary`).
+`pkg/v3/schedule`, prometheus's `client_golang/prometheus` and opentelemetry's `otel/trace` (all
+names and types only), and the interval tree `pkg/v3/adt` (with bodies; no package facts yet).
+The others are the cache's (`cache/v3/Base.lean`: `zap`, `proto`, `mvccpb`, `client/v3`), the
+server's (`etcdserver/Base.lean`: `backend`, `schema`, `client/pkg/v3/verify`), the btree's
+(`btree/Init.lean`) and Perennial's (`sync`, `bytes`, `context`, `errors`, `fmt`, `time`,
+`encoding/binary`, `math`, `strings`).
 
 As in those, the package facts are assumptions about package initialization, not proved from
 `initialize'` (mvcc's initializer runs the axiomatized initializers of its untranslated
@@ -23,6 +25,8 @@ public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.Init
 public import Perennial.Proof.time
 public import Perennial.Proof.bytes
+public import Perennial.Proof.math
+public import Perennial.Proof.strings
 
 @[expose] public section
 
@@ -78,6 +82,24 @@ instance get_isPkgInit_wf_inst :
   build_get_is_pkg_init_wf
 
 end github_com.prometheus.client_golang.prometheus
+
+namespace go_opentelemetry_io.otel.trace
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_opentelemetry_io.otel.trace :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_opentelemetry_io.otel.trace :=
+  build_get_is_pkg_init_wf
+
+end go_opentelemetry_io.otel.trace
+
+namespace go_etcd_io.etcd.pkg.v3.adt
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt :=
+  build_get_is_pkg_init_wf
+
+end go_etcd_io.etcd.pkg.v3.adt
 
 namespace go_etcd_io.etcd.server.v3.storage.mvcc
 

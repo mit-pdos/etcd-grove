@@ -1,0 +1,7 @@
+# Types and names only: function and method bodies are axiomatized (what mvcc's
+# watchStream.Watch calls: trace.SpanFromContext, Span.End).
+translate = ["!*"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true
