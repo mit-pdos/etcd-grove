@@ -2215,3 +2215,61 @@ callers use them directly, as the cache uses `bytes.wp_Compare`.
   that type; true of gRPC status errors, `rpctypes.EtcdError`s and context errors). *Rejected:*
   an `errors.As` spec without the tree (false for an error whose `As` method loops or panics).
 - **`status.FromError`** (grpc) stays an etcd-grove axiom.
+## Recipes: the client contracts reused, the queue's claim, two prefixes as one
+
+**2026-10-11 · proposed** (`client/v3/experimental/recipes`, 778 lines: barrier, double barrier,
+queue, priority queue, RWMutex, the key helpers and `WaitEvents`; the plan, for review)
+
+The recipes are client code on `Session`, transactions and watches, the shape of concurrency and
+leasing, so the plan reuses their contracts and adds as little as possible.
+
+- **The client bundle.** `isEtcdRecipesClient client pfx`: the mutex client (`isEtcdKV`,
+  `isEtcdTxnKV`, `isEtcdDeleteKV`, `isEtcdRangeWatcher`) plus a `Put` contract (`isEtcdPutKV`,
+  mirroring `isEtcdDeleteKV`: the double barrier's `Put(key/ready, "")` is the first plain put a
+  verified client makes), asserted beside `isSession s γ client id` on the same client, as
+  `isMutex` does. The recipes take `*clientv3.Client` and `*concurrency.Session`; `Session.Client`
+  and `Session.Lease` are already specified.
+- **One prefix per recipe**: the barrier its key (a key is a range under itself), the queue
+  `keyPrefix`, the RWMutex `pfx/` (read and write keys under it), the double barrier `key/`
+  (waiters and ready). **The priority queue at the empty prefix**: `newSequentialKV` puts
+  `prefix/…` and compares `__prefix`, two disjoint prefixes, so its contracts are instantiated
+  at `""` (as leasing's), and the notes say the code touches only the two. *Rejected:* a
+  contract over a set of prefixes (new machinery for one recipe; generalize if a later package
+  needs it).
+- **The queue's linchpin is `deleteRevKey`**: a transaction `ModRevision(key) = rev; Delete(key)`
+  succeeds at most once per `(key, rev)` (`etcdState_modrev_det`: the record at a mod revision is
+  determined, and a deleted key's next record has a greater one), so an item is dequeued at most
+  once by any number of dequeuers. FIFO (the dequeued item has the least mod revision, or the
+  least key for the priority queue, among the items present at the claim) holds on both paths:
+  the get's single item (`WithFirstRev`, limit 1, `More` retried), or the first put event after
+  the get's revision when the get's items were all claimed by others.
+- **Exclusion for the RWMutex is the mutex's**: `lockedAt` with a role; a writer holds only after
+  every lower key (read or write) under `pfx/` is gone, a reader after every lower write key, so
+  writer/writer and writer/reader pairs are never both present at a revision after both acquired
+  (`lockedAt_exclusion`'s argument), under the same session-lease premise as `Mutex`.
+- **The double barrier promises a lower bound only**: `Enter` returns `nil` only if `count`
+  waiter keys were present at some revision at or before its return (the ready put's writer saw
+  them), and `Leave` only with the caller's key deleted. Reuse of a barrier across rounds is not
+  promised by the code (a late entrant can see a leaver's key gone) and is not claimed.
+- **The standard library, one Perennial batch**: `strings.Split` (a pure model), `errors.Is` on
+  leaf errors (as `errors.As`: `ErrKeyExists` is never wrapped), and the integer directives of
+  `Sprintf` (`%d`, `%v` of an integer, `%0Nd`: the decimal, zero-padded), in the model rather
+  than as a premise: zero-padding is why the priority queue's keys sort numerically, a fact
+  about Go's `fmt`, which the trusted models are for; it also makes `newUniqueKV`'s key
+  `prefix/<decimal>` rather than a prefix plus junk. `fmt.Sscanf` stays an etcd-grove axiom (one
+  caller). *Rejected:* the format as a hypothesis of every priority-queue theorem (nobody could
+  discharge it).
+- **Suspects, settled by Go reproductions before the Lean**: `waitEvents` returns `nil` when the
+  watch channel closes (client closed, compaction past the watched revision), and (1)
+  `Queue.Dequeue`/`PriorityQueue.Dequeue` then dereference `ev.Kv` (a nil-pointer panic, where an
+  error is due); (2) `Barrier.Wait` returns `nil`, reporting release while the barrier is held.
+  A nil dereference is stuck in GooseLang (a runtime panic is not a `Raise`), so if (1) is
+  confirmed the proofs as shipped take a premise on the watch channel (an event before the
+  close), stated on `WaitEvents`, and the bug gets a fix branch and an issue draft, as leasing's.
+  Misuse panics (`RemoteKV.Put` after `Delete`, `WaitEvents` with no event types, `Leave` without
+  `Enter`) become preconditions.
+- **Units**: 0 translation and scaffolding (`recipes.toml` in full, bodies for `WithFirstRev`,
+  `WithFirstKey`, `WithLastKey`, `WithMaxModRev`, `WithMinModRev`, `gen-link.py --recipes`, the
+  collection, the reproductions, the Perennial batch); 1 base, bundle, `key.go`, `client.go`,
+  `watch.go`; 2 barrier and the two queues; 3 RWMutex and double barrier; 4 results, baseline,
+  notes, issues. 2 and 3 in parallel after 1.

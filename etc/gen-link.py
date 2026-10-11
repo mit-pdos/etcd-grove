@@ -23,6 +23,7 @@ usage: etc/gen-link.py ROCQ_PROOF_DIR > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --server > Proof/go_etcd_io/etcd/server/v3/etcdserver/Link.lean
        etc/gen-link.py --concurrency > Proof/go_etcd_io/etcd/client/v3/concurrency/Link.lean
        etc/gen-link.py --leasing > Proof/go_etcd_io/etcd/client/v3/leasing/Link.lean
+       etc/gen-link.py --recipes > Proof/go_etcd_io/etcd/client/v3/experimental/recipes/Link.lean
        etc/gen-link.py --register > Proof/github_com/mit_pdos/etcd_grove/examples/register/Link.lean
 
 `--cache` links the proofs of etcd's `cache` package (`Proof/go_etcd_io/etcd/cache/v3/` and
@@ -42,6 +43,12 @@ their full names below `EtcdGrove`: the cache's Link links some of the same clie
 etcdserverpb and standard-library functions they call, from etc/link-lean-first-leasing.txt,
 under the leasing package's assumptions; as `--concurrency`, its results are in a namespace of
 their own (`leasing`), a clientv3 function's with the prefix `v3.`.
+`--recipes` links the proofs of `client/v3/experimental/recipes` (barrier, double barrier, queue,
+priority queue, RWMutex) and of the clientv3 and concurrency functions they call, from
+etc/link-lean-first-recipes.txt, under the recipes package's assumptions; as `--leasing`, its
+results are in a namespace of their own (`recipes`), a clientv3 function's with the prefix `v3.`
+and concurrency's with the prefix `concurrency.` (its specs' own namespace,
+`recipes.concurrency.Session.wp_Client`).
 A callee list `?` (`fn: ?`) marks a function specified but not proved yet (a later unit's): its
 spec is a hypothesis (`h_<fn>`, `section links_pending`) of every result that reaches it.
 `--register` links the register example's proofs (`examples/register`), from
@@ -77,6 +84,11 @@ LEAN_FIRST = {
                   "go_etcd_io.etcd.client.v3.leasing.Assumptions",
                   "The `client/v3/leasing` package's proofs (the lease cache) and the functions "
                   "they call", [""]),
+    "--recipes": ("link-lean-first-recipes.txt",
+                  "go_etcd_io.etcd.client.v3.experimental.recipes go_etcd_io.etcd.api.v3",
+                  "go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions",
+                  "The `client/v3/experimental/recipes` package's proofs and the functions they "
+                  "call", [""]),
     # the register example (examples/register): its proofs, over raft's (linked in raft's
     # `Link.lean`, the `@` callees) and the storage model `RegStor` gives
     "--register": ("link-lean-first-register.txt",
@@ -85,7 +97,7 @@ LEAN_FIRST = {
                    "The register example's proofs (`examples/register`)", [""]),
 }
 # The mode whose results are put in a namespace of their own (see the docstring).
-NAMESPACED = {"--concurrency": "concurrency", "--leasing": "leasing"}
+NAMESPACED = {"--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes"}
 mode = LEAN_FIRST.get(sys.argv[1])
 cache = mode is not None
 here = os.path.dirname(os.path.abspath(__file__))

@@ -1,0 +1,100 @@
+# The functions linked in `Proof/go_etcd_io/etcd/client/v3/experimental/recipes/Link.lean` (all
+# Lean-first: no Rocq counterpart), read by `etc/gen-link.py --recipes`:
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`. The results are in the namespace
+# `recipes` (`recipes.Queue.wp_Dequeue`); a clientv3 function's has the prefix `v3.`
+# (`recipes.v3.wp_WithFirstRev`), concurrency's the prefix `concurrency.`
+# (`recipes.concurrency.Session.wp_Client`).
+#
+# FIRST GUESS (unit 0): every function of the package, each with the functions it calls in the
+# order of the Go code (each once, at its first call). The proof writers reorder the callees to
+# match their `wp_proof`s' hypotheses, and drop or add some, as the proofs settle. Not listed:
+# calls through interfaces (the client's `KV`, `Txn` and `Watcher` methods: the client bundle's
+# contracts, not linked functions), a function's calls to itself (`newSequentialKV`,
+# `Queue.Dequeue`, `PriorityQueue.Dequeue`, `DoubleBarrier.Leave`: the proof's own induction),
+# and the standard library's functions with Perennial specs (`fmt.Sprintf`, `time.Now`,
+# `Time.UnixNano`, `errors.Is`, `strings.Split`, `context.TODO`/`Background`/`WithCancel`).
+# The promoted methods of `EphemeralKV` (`ek.Revision()`, `ek.Delete()`, `ek.Key()`) unfold to
+# `RemoteKV`'s and are listed as those.
+#
+# clientv3's options (client/v3/op.go), see InvOp.lean.
+getPrefix:
+WithPrefix: getPrefix
+WithLimit:
+WithSort:
+withTop: WithPrefix WithSort WithLimit
+WithFirstRev: withTop
+WithFirstKey: withTop
+WithLastKey: withTop
+WithLastRev: withTop
+WithMaxModRev:
+WithRev:
+v3_WithLease:
+# clientv3's operations (client/v3/op.go), see InvOp.lean.
+NewOp:
+Op__applyOpts:
+IsOptsWithPrefix: NewOp
+IsOptsWithFromKey: NewOp
+OpPut: Op__applyOpts
+OpDelete: IsOptsWithPrefix IsOptsWithFromKey Op__applyOpts
+# clientv3's comparisons (client/v3/compare.go), see InvCmp.lean; protobuf's `proto.Clone` is
+# the trust boundary (an axiom).
+proto_Clone:
+cloneCompare: proto_Clone
+Cmp__ensureCompare:
+Cmp__Clone: cloneCompare
+mustInt64:
+mustInt64orLeaseID: mustInt64
+Version:
+ModRevision:
+v3_Compare: Cmp__Clone Cmp__ensureCompare mustInt64 mustInt64orLeaseID
+# client/v3/concurrency's Session.
+Session__Client:
+Session__Lease:
+# The trust boundary: `fmt.Sscanf` (an etcd-grove axiom; one caller, newSequentialKV).
+fmt_Sscanf:
+# client.go: the claim of a key at a mod revision.
+deleteRevKey: ModRevision v3_Compare OpDelete
+claimFirstKey: deleteRevKey
+# key.go: the keys.
+putNewKV: Version v3_Compare v3_WithLease OpPut
+newKV: putNewKV
+newKey: newKV
+newUniqueKV: putNewKV
+newSequentialKV: WithLastKey fmt_Sscanf ModRevision v3_Compare OpPut
+RemoteKV__Key:
+RemoteKV__Revision:
+RemoteKV__Value:
+RemoteKV__Delete:
+RemoteKV__Put:
+newEphemeralKV: Session__Client Session__Lease newKV
+newUniqueEphemeralKV: newEphemeralKV
+newUniqueEphemeralKey: newUniqueEphemeralKV
+# watch.go: waiting for events.
+waitEvents:
+WaitEvents: WithRev waitEvents
+WaitPrefixEvents: WithPrefix WithRev waitEvents
+# barrier.go.
+NewBarrier:
+Barrier__Hold: newKey
+Barrier__Release:
+Barrier__Wait: WaitEvents
+# queue.go.
+NewQueue:
+Queue__Enqueue: newUniqueKV
+Queue__Dequeue: WithFirstRev claimFirstKey WaitPrefixEvents deleteRevKey
+# priority_queue.go.
+NewPriorityQueue:
+PriorityQueue__Enqueue: newSequentialKV
+PriorityQueue__Dequeue: WithFirstKey claimFirstKey WaitPrefixEvents deleteRevKey
+# rwmutex.go.
+NewRWMutex:
+RWMutex__waitOnLastRev: Session__Client WithLastRev RemoteKV__Revision WithMaxModRev WaitEvents
+RWMutex__RLock: newUniqueEphemeralKey RWMutex__waitOnLastRev
+RWMutex__Lock: newUniqueEphemeralKey RWMutex__waitOnLastRev
+RWMutex__RUnlock: RemoteKV__Delete
+RWMutex__Unlock: RemoteKV__Delete
+# double_barrier.go.
+NewDoubleBarrier:
+DoubleBarrier__enteredClients: WithPrefix WithSort
+DoubleBarrier__Enter: Session__Client DoubleBarrier__enteredClients newUniqueEphemeralKey RemoteKV__Delete RemoteKV__Revision WaitEvents
+DoubleBarrier__Leave: Session__Client WithPrefix RemoteKV__Key RemoteKV__Delete WaitEvents
