@@ -98,3 +98,14 @@ NewHashStorage:
 schema_UnsafeCreateMetaBucket:
 store__restore:
 NewStore: zap_NewNop newTreeIndex schedule_NewFIFOScheduler NewHashStorage schema_UnsafeCreateMetaBucket store__restore
+# The read-only write transaction (kv.go), for the server's txn package, see InvRoTxn.lean: the
+# read transaction wrapped as a `TxnWrite`; its reads delegate (through the promoted methods),
+# `Changes` returns nil, `Put` and `DeleteRange` panic.
+NewReadOnlyTxnWrite:
+txnReadWrite__FirstRev: storeTxnCommon__FirstRev
+txnReadWrite__Rev: storeTxnCommon__Rev
+txnReadWrite__Range: metricsTxnWrite__Range
+txnReadWrite__End: metricsTxnWrite__End
+txnReadWrite__Changes:
+txnReadWrite__Put:
+txnReadWrite__DeleteRange:
