@@ -2376,6 +2376,42 @@ noncomputable def WithCountOnly.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef Op.ty go!"countOnly"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Op.ty)))) (Var "op"))) (Var "$r0"))))))))))))
 
+/-- WithMinModRev filters out keys for Get with modification revisions less than the given revision.
+
+    go: op.go:480:6 -/
+noncomputable def WithMinModRev.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "rev"
+  (App (Val exceptionDo)
+  (Let "rev" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "rev"))
+  (App (Val doReturn)
+  (Lam "op"
+  (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Op.ty)))) (Var "op"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "rev"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef Op.ty go!"minModRev"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Op.ty)))) (Var "op"))) (Var "$r0")))))))))))))
+
+/-- WithMaxModRev filters out keys for Get with modification revisions greater than the given revision.
+
+    go: op.go:483:6 -/
+noncomputable def WithMaxModRev.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "rev"
+  (App (Val exceptionDo)
+  (Let "rev" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "rev"))
+  (App (Val doReturn)
+  (Lam "op"
+  (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Op.ty)))) (Var "op"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "rev"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef Op.ty go!"maxModRev"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Op.ty)))) (Var "op"))) (Var "$r0")))))))))))))
+
 /-- WithMaxCreateRev filters out keys for Get with creation revisions greater than the given revision.
 
     go: op.go:489:6 -/
@@ -2414,6 +2450,39 @@ noncomputable def WithLastCreate.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (Let "$a0" (Val SortByCreateRevision)
   (Let "$a1" (Val SortDescend)
+  (App (App (App (Val (GoInstruction (FuncResolve withTop []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
+
+/-- WithFirstKey gets the lexically first key in the request range.
+
+    go: op.go:498:6 -/
+noncomputable def WithFirstKey.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (App (Val exceptionDo)
+  (App (Val doReturn)
+  (Let "$a0" (Val SortByKey)
+  (Let "$a1" (Val SortAscend)
+  (App (App (App (Val (GoInstruction (FuncResolve withTop []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
+
+/-- WithLastKey gets the lexically last key in the request range.
+
+    go: op.go:501:6 -/
+noncomputable def WithLastKey.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (App (Val exceptionDo)
+  (App (Val doReturn)
+  (Let "$a0" (Val SortByKey)
+  (Let "$a1" (Val SortDescend)
+  (App (App (App (Val (GoInstruction (FuncResolve withTop []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
+
+/-- WithFirstRev gets the key with the oldest modification revision in the request range.
+
+    go: op.go:504:6 -/
+noncomputable def WithFirstRev.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (App (Val exceptionDo)
+  (App (Val doReturn)
+  (Let "$a0" (Val SortByModRevision)
+  (Let "$a1" (Val SortAscend)
   (App (App (App (Val (GoInstruction (FuncResolve withTop []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
 
 /-- WithLastRev gets the key with the latest modification revision in the request range.
@@ -5901,9 +5970,14 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   WithSerializable_unfold : FuncUnfold WithSerializable [] WithSerializable.impl
   WithKeysOnly_unfold : FuncUnfold WithKeysOnly [] WithKeysOnly.impl
   WithCountOnly_unfold : FuncUnfold WithCountOnly [] WithCountOnly.impl
+  WithMinModRev_unfold : FuncUnfold WithMinModRev [] WithMinModRev.impl
+  WithMaxModRev_unfold : FuncUnfold WithMaxModRev [] WithMaxModRev.impl
   WithMaxCreateRev_unfold : FuncUnfold WithMaxCreateRev [] WithMaxCreateRev.impl
   WithFirstCreate_unfold : FuncUnfold WithFirstCreate [] WithFirstCreate.impl
   WithLastCreate_unfold : FuncUnfold WithLastCreate [] WithLastCreate.impl
+  WithFirstKey_unfold : FuncUnfold WithFirstKey [] WithFirstKey.impl
+  WithLastKey_unfold : FuncUnfold WithLastKey [] WithLastKey.impl
+  WithFirstRev_unfold : FuncUnfold WithFirstRev [] WithFirstRev.impl
   WithLastRev_unfold : FuncUnfold WithLastRev [] WithLastRev.impl
   withTop_unfold : FuncUnfold withTop [] withTop.impl
   WithProgressNotify_unfold : FuncUnfold WithProgressNotify [] WithProgressNotify.impl
@@ -6061,9 +6135,14 @@ attribute [instance] Assumptions.AuthEnableResponse_instance
   Assumptions.WithSerializable_unfold
   Assumptions.WithKeysOnly_unfold
   Assumptions.WithCountOnly_unfold
+  Assumptions.WithMinModRev_unfold
+  Assumptions.WithMaxModRev_unfold
   Assumptions.WithMaxCreateRev_unfold
   Assumptions.WithFirstCreate_unfold
   Assumptions.WithLastCreate_unfold
+  Assumptions.WithFirstKey_unfold
+  Assumptions.WithLastKey_unfold
+  Assumptions.WithFirstRev_unfold
   Assumptions.WithLastRev_unfold
   Assumptions.withTop_unfold
   Assumptions.WithProgressNotify_unfold

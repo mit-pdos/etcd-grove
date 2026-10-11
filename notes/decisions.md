@@ -1915,6 +1915,30 @@ now takes an empty batch without a token (a `Ready`'s `appendRight` for no entri
 promoted method still reads the `MemoryStorage` field, so `isReplica` keeps the storage's
 record.
 
+## The register's driver: specs at any storage registry, a filtering transport
+
+- **No registry in the top-level statement.** The register's specs are stated under
+  `[RegStor GF]`, a class holding the registry's ghost name, so that raft's `StorageModel`
+  instance is an instance. A top-level statement must not assume a ghost name. `Main.spec`'s
+  section has no `RegStor`, and `Main.wp_proof` takes each callee spec as
+  `∀ [RegStor GF], X.spec`. The proof allocates the registry and sets
+  `letI : RegStor GF := ⟨γ⟩`. The linked results pass in through implicit lambdas.
+  `gen-link.py` already left `[RegStor GF]` off a spec that does not mention it. It now gives
+  `[StorageModel GF]` to a spec stated over any storage model (`deliver`, `tick`).
+- **Filter in Go rather than strengthen `Ready`.** Making `Ready` promise `NetMsgOk`-like facts of
+  its outgoing messages would mean proving them per `send` site in raft. The type, `To` and the
+  context are new per-message invariants in `ownRaftPhys`, like `OutTermOk`. The transport
+  checks them in a few lines instead, and drops what fails. That costs nothing at run time,
+  since raft sends nothing that fails, and the proof stays local to the example. Rejected:
+  assuming them, which the brief forbade, or setting `Context = nil` in the copy, which
+  rewrites messages rather than checking them.
+- **Loops over a concrete voter list.** `Main` ranges over `[]uint64{1, 2, 3}` twice, building
+  maps keyed by id. The invariants carry a big-sep over `take k` (resources produced, with
+  pure map lookups), one over `drop k` (resources to consume), and the freshness of the
+  `drop k` keys. Nodup of the list makes the keys distinct (`take_drop_ne`). The raft and
+  sequence-token allocations come as big-seps over `listToSet`/`constMap` maps, which
+  `bigSepM_constMap` turns into big-seps over the list.
+
 ---
 
 ## mvcc: the log of changes as the model, the key index as a function of its events
@@ -2488,3 +2512,277 @@ callers use them directly, as the cache uses `bytes.wp_Compare`.
   that type; true of gRPC status errors, `rpctypes.EtcdError`s and context errors). *Rejected:*
   an `errors.As` spec without the tree (false for an error whose `As` method loops or panics).
 - **`status.FromError`** (grpc) stays an etcd-grove axiom.
+
+## Recipes: the client contracts reused, the queue's claim, two prefixes as one
+
+**2026-10-11 · implemented** (last bullet; `client/v3/experimental/recipes`, 778 lines: barrier, double barrier,
+queue, priority queue, RWMutex, the key helpers and `WaitEvents`; the plan, for review)
+
+The recipes are client code on `Session`, transactions and watches, the shape of concurrency and
+leasing, so the plan reuses their contracts and adds as little as possible.
+
+- **The client bundle.** `isEtcdRecipesClient client pfx`: the mutex client (`isEtcdKV`,
+  `isEtcdTxnKV`, `isEtcdDeleteKV`, `isEtcdRangeWatcher`) plus a `Put` contract (`isEtcdPutKV`,
+  mirroring `isEtcdDeleteKV`: the double barrier's `Put(key/ready, "")` is the first plain put a
+  verified client makes), asserted beside `isSession s γ client id` on the same client, as
+  `isMutex` does. The recipes take `*clientv3.Client` and `*concurrency.Session`; `Session.Client`
+  and `Session.Lease` are already specified.
+- **One prefix per recipe**: the barrier its key (a key is a range under itself), the queue
+  `keyPrefix`, the RWMutex `pfx/` (read and write keys under it), the double barrier `key/`
+  (waiters and ready). **The priority queue at the empty prefix**: `newSequentialKV` puts
+  `prefix/…` and compares `__prefix`, two disjoint prefixes, so its contracts are instantiated
+  at `""` (as leasing's), and the notes say the code touches only the two. *Rejected:* a
+  contract over a set of prefixes (new machinery for one recipe; generalize if a later package
+  needs it).
+- **The queue's linchpin is `deleteRevKey`**: a transaction `ModRevision(key) = rev; Delete(key)`
+  succeeds at most once per `(key, rev)` (`etcdState_modrev_det`: the record at a mod revision is
+  determined, and a deleted key's next record has a greater one), so an item is dequeued at most
+  once by any number of dequeuers. FIFO (the dequeued item has the least mod revision, or the
+  least key for the priority queue, among the items present at the claim) holds on both paths:
+  the get's single item (`WithFirstRev`, limit 1, `More` retried), or the first put event after
+  the get's revision when the get's items were all claimed by others.
+- **Exclusion for the RWMutex is the mutex's**: `lockedAt` with a role; a writer holds only after
+  every lower key (read or write) under `pfx/` is gone, a reader after every lower write key, so
+  writer/writer and writer/reader pairs are never both present at a revision after both acquired
+  (`lockedAt_exclusion`'s argument), under the same session-lease premise as `Mutex`.
+- **The double barrier promises a lower bound only**: `Enter` returns `nil` only if `count`
+  waiter keys were present at some revision at or before its return (the ready put's writer saw
+  them), and `Leave` only with the caller's key deleted. Reuse of a barrier across rounds is not
+  promised by the code (a late entrant can see a leaver's key gone) and is not claimed.
+- **The standard library, one Perennial batch**: `strings.Split` (a pure model), `errors.Is` on
+  leaf errors (as `errors.As`: `ErrKeyExists` is never wrapped), and the integer directives of
+  `Sprintf` (`%d`, `%v` of an integer, `%0Nd`: the decimal, zero-padded), in the model rather
+  than as a premise: zero-padding is why the priority queue's keys sort numerically, a fact
+  about Go's `fmt`, which the trusted models are for; it also makes `newUniqueKV`'s key
+  `prefix/<decimal>` rather than a prefix plus junk. `fmt.Sscanf` stays an etcd-grove axiom (one
+  caller). *Rejected:* the format as a hypothesis of every priority-queue theorem (nobody could
+  discharge it).
+- **Suspects, settled by Go reproductions before the Lean**: `waitEvents` returns `nil` when the
+  watch channel closes (client closed, compaction past the watched revision), and (1)
+  `Queue.Dequeue`/`PriorityQueue.Dequeue` then dereference `ev.Kv` (a nil-pointer panic, where an
+  error is due); (2) `Barrier.Wait` returns `nil`, reporting release while the barrier is held.
+  A nil dereference is stuck in GooseLang (a runtime panic is not a `Raise`), so if (1) is
+  confirmed the proofs as shipped take a premise on the watch channel (an event before the
+  close), stated on `WaitEvents`, and the bug gets a fix branch and an issue draft, as leasing's.
+  Misuse panics (`RemoteKV.Put` after `Delete`, `WaitEvents` with no event types, `Leave` without
+  `Enter`) become preconditions.
+- **Units**: 0 translation and scaffolding (`recipes.toml` in full, bodies for `WithFirstRev`,
+  `WithFirstKey`, `WithLastKey`, `WithMaxModRev`, `WithMinModRev`, `gen-link.py --recipes`, the
+  collection, the reproductions, the Perennial batch); 1 base, bundle, `key.go`, `client.go`,
+  `watch.go`; 2 barrier and the two queues; 3 RWMutex and double barrier; 4 results, baseline,
+  notes, issues. 2 and 3 in parallel after 1.
+
+### Unit 1: where the plan moved (2026-10-11)
+
+- **`context.TODO()`.** The recipes pass `context.TODO()` to every `KV` call; its context is
+  never done, its `Done()` is `nil`, so it is not an `isContext` (whose `Done` returns a
+  channel), and none of the existing client contracts covers such a call. The bundle takes the
+  contracts at `TODO()` (`isEtcdKVTodo`, `isEtcdTxnKVTodo`, `isEtcdDeleteKVTodo`,
+  `isEtcdPutKVTodo`: the same postconditions, no context premise), not `isEtcdMutexClient`'s;
+  `context.TODO` gets a spec and proof here (Perennial has none). *Rejected:* changing the
+  existing contracts' context premise (every caller rewritten).
+- **`WithFirstKey`.** `withTop(SortByKey, SortAscend)`'s `WithSort` closure writes the `order`
+  it captured: a persistent closure spec (`optSpec`) cannot hold of it (concurrent calls race),
+  hence `WithSort.spec`'s exclusion. The closures are called one at a time by the client, so
+  `optSpecRes f g R`/`optsAtRes` thread a resource (the variable) through the calls, and the
+  `TODO()` `Get` contract takes them (`optsAt_res` for the others). `WithFirstKey` is proved by
+  stepping into `withTop` and `WithSort`.
+- **`waitEvents`** returns an `*Event` with `eventAt` (what callers dereference), not `ev ≠ nil`:
+  nothing says a watch event pointer is non-nil, and a load needs only the points-to.
+- **`deleteRevKey`** takes `rev > 0` (for `rev = 0` on a missing key the comparison holds and the
+  transaction succeeds deleting nothing); its `false` says `revKeyGone`.
+- **At most once** is "the same revision" (`revKeyDeleted_same_rev`). "Dequeued at most once"
+  (unit 2) needs more: that a written revision is one transaction's (a token per written
+  revision in `txnCommitResult`), which the contract does not give.
+- **Unit 1b's specs** state what holds without a premise: the key under `kp ++ "/"`, created
+  fresh (`keyCreatedAt`). `newSequentialKV`'s order is not unconditional: a key under
+  `kp/` that is not a 16-digit decimal (`kp/5abc` parses as 5, so `kp/0000000000000006` sorts
+  below it) or a 17-digit successor (`9999999999999999 + 1`) breaks it; unit 1b states it under
+  a premise on the keys under the prefix (all made by `newSequentialKV`, fewer than `10^16`).
+- **`newUniqueEphemeralKey`** is proved now (one call), so three `sorry`s, not four.
+- **`gen-link.py --skip-unproved`** links what is proved from the full list.
+
+### Units 1b, 2 and 3: two decisions (2026-10-11, decided)
+
+- **A token per written revision in the commit contract.** "Dequeued at most once" (two
+  dequeuers never return the same item) needs that two successful writing commits never share a
+  revision: `revKeyDeleted_same_rev` gives "the same revision", and the contract gave each
+  commit a revision without ownership of it. The transaction contract (`txnCommitResult`, and
+  the `TODO()` variants) now yields an exclusive token for the revision a writing commit made
+  (`etcdRevToken r`, in the trust boundary with `etcdState`): true of etcd, where every
+  committed write is its own revision; as `etcdState_modrev_det` was, a law of the history the
+  model already assumes. *Rejected:* a ghost protocol over the recipe's own transactions
+  (another client's dequeue is not the recipe's code).
+- **The priority queue's order under a premise on the keys.** `newSequentialKV` parses the last
+  key's last path segment with `%d` and formats `%016d`, so its order holds only if every key
+  under `kp/` was made by it (`kp/%016d`) and fewer than `10^16` were allocated: a premise on
+  etcd's state under the prefix (`SeqKeysWf kp s`), stated on the theorems that need it (the
+  priority queue's "least key"), not an issue to file (the keys under a priority queue's prefix
+  are the recipe's by construction; the overflow is at `10^16` items). *Rejected:* an
+  unconditional order (false, above); a documentation issue (the package documents nothing of
+  its key format).
+- **Unit 1b: `fmt.Sscanf` is an etcd-grove axiom** (trust boundary, `Spec/fmt/Sscanf.lean`,
+  `Proof/fmt/Sscanf.lean`: `fmt.Sscanf.wp_proof`), for the one call shape
+  `Sscanf(s, "%d", &n)` with an `int` `n`: with `err = nil`, `n` holds `fmt.scanInt s` where
+  that is defined; with an error, `n` is unchanged; the count is unconstrained. `fmt.scanInt`
+  (pure): drop leading ASCII spaces, one optional sign (`+`/`-`), the longest run of decimal
+  digits, which must be non-empty and whose value must fit an `int64`; the rest is ignored
+  (`"5abc"` is `5`). Stated as "where defined", not "`err = nil` implies `scanInt s = some n`":
+  Go also skips a tab and the other Unicode spaces (`"\t5"` scans as `5`), which `scanInt`
+  does not model, and an axiom must not claim Go fails there. Checked against Go 1.27.1 on ten
+  inputs (parsed: `" 5"`, `"+5"`, `"-0007"`, `"5abc"`, `"0000000000000005"`,
+  `"-9223372036854775808"`; errors, `n` unchanged: `""`, `"+-5"`, `"\n5"`,
+  `"9223372036854775808"`). *Rejected:* a Perennial model of the scanner (one caller).
+- **Unit 1b: `clientErrIs`, a contract strengthening** (`InvEtcdTxn.lean`).
+  `errors.Is(err, ErrKeyExists)` (`newUniqueKV`, `newUniqueEphemeralKV`) needs, for the client's
+  own error (`putNewKV`'s third case: a gRPC status error, which has an `Is` method, so
+  `wp_Is_leaf` does not apply), the error tree `errors.wp_Is` takes. The transaction contract at
+  `context.TODO()` now gives it: `isEtcdTxnKVTodo`'s builder has a second `Commit` triple
+  (`txnCommitErrTodo`: `txnCommitResult` and, on an error, `clientErrIs err`), and
+  `clientErrIs err` is, for every target, an error tree `errorIsTree S M target` with `S err`
+  whose `Is` methods claim only targets of their own error's dynamic type (`M ii →
+  target = ok tii → tii.ty = ii.ty`). True of etcd's client errors: `(*status.Error).Is`
+  returns `true` only for a `*status.Error`; `rpctypes.EtcdError`, `errors.New` errors and the
+  context errors have no `Is`. The other `TODO()` contracts and `txnBuilderSpec` are unchanged
+  (a minimal edit, as unit 2's revision token is in `txnCommitResult`). `putNewKV`, `newKV`
+  and `newEphemeralKV` carry it in their third case; `newKey`'s spec is unchanged (its proof
+  drops it). The recipes' package facts record `ErrKeyExists` as an `errors.New` error
+  (`errNewLeaf`: a pointer error, a leaf without `Is`, `Base.lean`), so `errors.Is` of it is
+  `true` (`wp_Is_leaf`). Neither loop needs `Is`'s answer on a client error: `true` retries,
+  `false` returns the error.
+- **Unit 1b: `newSequentialKV` does not create its key.** The transaction compares only
+  `ModRevision(__kp) < g + 1`: a key `kp/%016d(n + 1)` that already exists (a key under `kp`
+  not made by `newSequentialKV`, or one made after the get by a writer that does not put
+  `__kp`) is overwritten. Unit 1's "created fresh" (`keyCreatedAt`) was false; the spec says
+  what was put (`seqKeyPutAt pfx kp key val g r`: the get's state `sg` at `g`, the key made
+  from it, `SeqNext`; the state at `r` is `putKv` of `__kp` then the key on the state at
+  `r - 1`, where `__kp` had mod revision `≤ g`), and takes `pfx <+: __kp` (the bookkeeping key
+  is under the contracts' prefix: the priority queue's are at `""`). Freshness is a corollary
+  under premises (`seqKeyPutAt_created`, below).
+- **Unit 1b: `SeqKeysWf`, exactly** (`InvRecipesSeq.lean`). `seqKey kp m = kp ++ "/" ++
+  padZeros 16 (decimalNat m)`; `SeqKeysBelow kp N s`: every key of `s` **with the prefix
+  `kp`** (not only `kp/`: `WithLastKey()` reads the prefix range of `kp`, and a key `kpz` sorts
+  above every `kp/…`) is `seqKey kp m` for some `m < N`; `SeqKeysWf kp = SeqKeysBelow kp
+  10^16`. The order theorem (`seqNext_order`, and `seqKeyPutAt_order` on the spec's result)
+  takes `kp ≠ []` and `SeqKeysBelow kp (10^16 - 1) sg` (the state at the get's revision) and
+  gives `m < 10^16` with `key = seqKey kp m`, every key with prefix `kp` in `sg` a `seqKey kp
+  m'` with `m' < m` and `go.GoStringLt` below `key`, and `m = 0` or `seqKey kp (m - 1)` in `sg`
+  (so `m` is one past the greatest; the new key keeps `SeqKeysWf`). The bound `10^16 - 1`
+  is the simplest that makes `m < 10^16`. Freshness (`seqKeyPutAt_created`) adds that every
+  key with prefix `kp` at `r - 1` was in `sg` (no key under `kp` appeared between the get and
+  the transaction: true if every writer under `kp` also puts `__kp`, which the comparison then
+  excludes) and gives `keyCreatedAt`'s facts at `r`. The priority queue's prefixes are
+  `q.key ++ %05d(pr)` (always five digits), so its priorities never share a range; two queues
+  whose keys are prefixes of each other (`q` and `q0`) can, which the premise excludes.
+- **Unit 2: the token's form** (decided above, settled here). `etcdRevToken (r : w64) : IProp GF`
+  and `etcdRevToken_excl : etcdRevToken r ∗ etcdRevToken r ⊢ False`, axioms in
+  `InvEtcdTxn.lean` beside the history laws (an opaque predicate of the server, as `etcdState`;
+  not timeless, nothing needs it). The builder's `Commit` under the prefix returns
+  `txnCommitResultTok` (`txnCommitResult`'s disjunction with `if txnWrote … then etcdRevToken r
+  else True` in the success case) rather than a token inside `txnCommitResult`: leasing's
+  `serverTxn` builds a `txnCommitResult` from its own commit (`txnCommitResultO`, no token) and the
+  six concurrency proofs keep it persistent (`txnCommitResultTok_result` drops the token). The
+  token only when the transaction wrote: etcd's `storeTxnWrite.End` advances the revision only if
+  the transaction changed something, which is the model's `txnWrote` (a delete of nothing does not
+  write). `putResult` carries it unconditionally (a put always writes). *Rejected:* a token in
+  `deleteResult` (no caller), in leasing's owned variant (out of scope); a token inside
+  `txnCommitResult` (non-persistent: every use rewritten, leasing's construction impossible).
+- **Unit 2: the get's `More` flag** in the `TODO()` get contract (`getRespMore`, beside
+  `kvGetResult` in `isEtcdKVTodo`'s postcondition; etcd's semantics: `More` iff a positive limit
+  cut the selection, none for count-only). The queues' wait path needs it (`More` false: the get
+  listed every item). *Rejected:* adding it to `getRespRange` (every cache, concurrency and leasing
+  pattern on it rewritten). Unit 1b's and unit 3's proofs that call a `TODO()` `Get` bind three
+  conjuncts (`⟨HR, #Hres, -⟩`), and their `Commit` calls take `Hres` (not `#Hres`) and
+  `txnCommitResultTok_result` (or unfold `txnCommitResultTok`); `putNewKV`'s `nil` has the token
+  as a fourth conjunct (`newUniqueKV`'s proof drops it).
+- **Unit 2: FIFO where it holds.** The plan's FIFO at the claim (`r - 1`) needs a history law the
+  model does not assume: that a key-value lives unchanged from its mod revision while present
+  (`EtcdModRevPersist`). Stated first as a hypothesis of `queue_fifo_before_claim` (the get path),
+  not an axiom: one result needs it, and the trust base stays the plan's; on 2026-10-11 the owner
+  promoted it to the history axiom `etcdState_modrev_persist` (`InvEtcdTxn.lean`, beside
+  `etcdState_modrev_det`: that law fixes the record per mod revision, this one keeps it there),
+  and the result is unconditional. `queue_fifo` is at the get's revision. The wait path is weaker (the watch contract does not promise that no
+  event is skipped). The priority queue's least key is at the get only: at the claim it is false
+  in etcd (a higher-priority `Enqueue` between the get and the claim; `STATUS.md`, Unit 2).
+  *Rejected at first:* a seventh history axiom for one result; *taken* once the owner judged the
+  law part of what the model should say of etcd's history.
+- **Unit 2: `pqueue_order`, for the merge with unit 1b.** With 1b's order premise and theorem
+  (`SeqKeysWf kp s`: every key under `kp ++ "/"` is `kp ++ "/" ++ padZeros 16 (decimal n)`, made by
+  `newSequentialKV`, fewer than `10^16`), the statement is: for the priority queue on `key`, if at
+  the get's revision `r0` of a get-path dequeue of `it` every key under `key ++ "/"` is
+  `key ++ "/" ++ padZeros 5 (decimal p) ++ "/" ++ padZeros 16 (decimal n)` for a `p : w16` and an
+  `n < 10^16` (what `Enqueue` writes, under `SeqKeysWf (key ++ "/" ++ padZeros 5 (decimal p))` for
+  each `p`), then `it`'s `(p, n)` is the least, lexicographically, among the items under
+  `key ++ "/"` in `s0`: the highest priority (the smallest `p`; five digits hold every `uint16`, so
+  key order is numeric order), then the earliest allocated. It composes `pqueue_min_key`'s get path
+  (`go.GoStringLe it.key w.key`) with the order of fixed-width decimals.
+- **Unit 3: `rwHeldAt`, exclusion under unmodified keys.** `rwHeldAt pfx role key c R`
+  (`InvRWMutex.lean`): `key` under `(pfx ++ role.name) ++ "/"`, `0 < c ≤ R`, and at `R` no key with
+  the role's blocking prefix (`pfx ++ "write"` for a reader, as `RLock`'s `waitOnLastRev(pfx +
+  "write")`, no slash; `pfx` for a writer) has a mod revision below `c` (`RWBlockFree`). Nothing
+  about the holder's own key at `R` (neither `RLock` nor `Lock` checks it after the wait; the
+  results are about keys present in a state, as `Mutex`'s). Exclusion (`rwHeldAt_write_exclusion`,
+  `rwHeldAt_read_write_exclusion`) is `lockedAt_excludes_earlier`'s argument with one more
+  premise, `keyUnmodified pfx k c` on both keys (a key-value of `k` with create revision `c` has
+  mod revision `c` in every state): `waitOnLastRev` filters by **mod** revision
+  (`WithMaxModRev(myRev - 1)`), `Mutex` by create revision, and `etcdState_create_persist` keeps
+  the earlier key present at the later holder's `R` with its create revision but says nothing of
+  its mod revision. A plain `Put` of a lock key by another client moves its mod revision past a
+  later holder's and makes it invisible (not a finding: the recipe only creates and deletes its
+  keys; a premise on other clients, as the session-lease one). *Rejected:* a new history law
+  (mod revisions of one incarnation only grow), which would remove the premise but add an axiom
+  for a misuse case.
+- **Unit 3: the double barrier's statement.** Both: `Enter`'s spec states what each path knows
+  (`enterReady`: the direct path's `waitersSeen` at its second get's revision; the waiting path's
+  `readyPut`, a write of `key/ready` at a revision at least the key's creation), with no premise
+  (`double_barrier_enter_ready`); `double_barrier_enter_count` adds the protocol's premise
+  `readyPutsCounted` (every write of `key/ready` at `z` is preceded by a state at some `R ≤ z` with
+  `count` waiters, which the direct path's fact discharges if only `Enter`s of barriers on `key`
+  for `count` write it) and concludes `waitersSeen` at a revision etcd has reached. "Waiters" are
+  the keys with the prefix `key ++ "/waiters"` (the code's get, no slash). `count > 0` is a
+  precondition of `NewDoubleBarrier`, carried by `isDoubleBarrier`. `Leave`'s `nil` is "the key
+  absent at some `r ≥ lo`, or its record's `KV` already nil" (`leaveResult`: `RemoteKV.Delete` on a
+  record it already deleted is a no-op, and the record cannot tell a failed delete from a
+  successful one); `Enter` and `Lock` return records with a `KV`, so `double_barrier_leave` and
+  `rwmutex_unlock_released` conclude absence. The recursion is Löb induction (`iloeb`).
+- **Unit 3: the key field.** `rwMyKey`/`dbMyKey m pfx (o : Option (Loc × RemoteKVSt))`: `none` is
+  a pointer the proof does not track (nil after `New*`, or the previous key when
+  `newUniqueEphemeralKey` fails), `some (ek, st)` the owned `*EphemeralKV` with its record and its
+  `KV`'s contracts. `ek.rev` (`Enter`) loads through the embedded struct's points-to.
+- **Implemented (2026-10-11, units 0 to 3 merged).** Every function of the package is specified
+  and proved (38 of 38), sorry-free. Deviations from the plan, each in its unit's bullet above or
+  in `STATUS.md`: the client's calls are at `context.TODO()` (contracts `*Todo`, not
+  `isContext`); `WithFirstKey()`'s options need a resource; `fmt.Sscanf` an etcd-grove axiom;
+  `clientErrIs` and the revision token (`etcdRevToken`, `etcdRevToken_excl`: two new axioms of the
+  trust base) and the get's `More` flag in the client contract, with `txnCommitErrTodo` returning
+  both the token and the error premise after the merge; `newSequentialKV` puts but does not create
+  its key (`seqKeyPutAt`), so `PriorityQueue.Enqueue`'s spec returns `seqKeyPutAt` (not
+  `keyCreatedAt`, as unit 2 had it); FIFO at the get's revision, at the claim only under the
+  hypothesis `EtcdModRevPersist` (since promoted to the axiom `etcdState_modrev_persist`), the
+  wait path
+  weaker (the watch may skip events); the priority queue's least key at the get only (not
+  linearizable); the RWMutex's exclusion under `keyUnmodified`; the double barrier's count under
+  `readyPutsCounted`. **`pqueue_order`** as drafted above, with `PQKeysWf key s0` (every key
+  under `key/` is `pqKey key p n = key/%05d(p)/%016d(n)`, `p < 10^5`, `n < 10^16`; `p < 10^5`
+  rather than `p : w16`, a weaker premise) and the item's key under `key/` from `dequeuedAt`;
+  `pqueue_enqueue_order` restates `seqKeyPutAt_order` on `Enqueue`'s result, and
+  `pqKeysWf_seqKeysWf` shows the dequeue's premise gives each priority's `SeqKeysWf` (the
+  enqueue's order takes the bound `10^16 - 1`, one less). No piece was missing.
+
+## One `AllG`: `HeapGS` provides the ghost-state instance
+
+Since Perennial `cb6a5921e` (2026-10-11) `AllG GF` is a singleton carried by `GooseGlobalGS`
+(`gooseAllG`), hence by `HeapGS`; `ThreadGS` and `ReceiptGS` no longer bundle their own.
+- **Section variables**: a section with `[hG : HeapGS hlc GF]` has no `[AllG GF]` (654 files
+  changed); only the generic ghost theory without `HeapGS` (`Proof/go_etcd_io/raft/v3/Protocol/`,
+  `Results.lean`) assumes `[AllG GF]`. *Why:* two instances in scope make the client's ghost
+  resources (`own`, `ghostVar`, `threadTok`) a different term from Perennial's, and the cache
+  proofs that take `threadTok` from `wp_fork_tok` or `dghostVar` from the broadcast idiom fail
+  to unify. *Rejected:* keeping `[AllG GF]` and living with the two instances, which worked
+  only while no Perennial lemma exposed ghost resources to clients.
+- **Fixing `GF`**: the `AllG` out-parameter used to fix `GF` for a bare ghost-state term;
+  `HeapGS`'s `GF` is not an out-parameter, so such a term needs `(GF := GF)` (porting guide,
+  "Section variables"). A theorem that does not mention `GF` but is declared under the
+  section's `[hG : HeapGS hlc GF]` (the register's `regStorIface_inj`) gets `GF` as a binder it
+  can never infer: write `(GF := GF)` at its uses, or declare it outside the section.
+

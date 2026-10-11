@@ -21,7 +21,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [AllG GF]
 
 /-- `NewRawNode`, `newNode`, then the node's ghost state: the channels' hand-shakes (with
 `P := False` on those nobody sends on), the tick channel's invariant (no credit yet),

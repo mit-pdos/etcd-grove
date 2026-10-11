@@ -394,7 +394,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [AllG GF]
 
 /-- The physical message queued for a pending step. A self-addressed response
 (2026-10-10): `SelfMsgOk`, its term and type as `Pending.self` records them, and its

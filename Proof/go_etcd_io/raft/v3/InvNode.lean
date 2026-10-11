@@ -126,7 +126,7 @@ theorem uint_nat_eq (w : w64) : (uint.nat w : Int) = uint.Z w := by
 section budget
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 
 /-- See the file header. -/
 def budgetInv (bud : BudgetNames) : IProp GF :=
@@ -277,7 +277,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [AllG GF]
 
 /-- The message `Propose` builds: `pb.Message{Type: MsgProp, Entries: esl}`. -/
 def propMsg (esl : GoSlice) : raftpb.Message :=
@@ -461,7 +460,7 @@ end node
 section helpers
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 theorem isHandshake_isChan {V : Type} [Pos.Countable V] [ZeroVal V]
@@ -510,7 +509,6 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [AllG GF]
 
 /-- What `Node.Propose` takes for its data `d` (`fresh`: the first proposal of `d`, with
 its fresh token and the client's atomic update; otherwise a retry, with `d` deposited). -/
@@ -597,7 +595,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [AllG GF]
 
 /-- A proposal's ghost work before it leaves the node (`Node.Propose`): its slice
 recorded, its update deposited (a first proposal; a later credit with it), so that its

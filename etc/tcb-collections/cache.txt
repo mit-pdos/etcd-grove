@@ -9,6 +9,7 @@ roots ^Proof/go_etcd_io/etcd/cache/v3/(Link|Results)\.lean$
 axiom EtcdStep
 axiom etcdReachedAt
 axiom etcdReachedAt_timeless
+axiom etcdRevToken
 axiom etcdState
 axiom etcdStep_compose
 axiom etcdStep_delete_present

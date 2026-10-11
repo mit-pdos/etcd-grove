@@ -26,7 +26,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [AllG GF]
 
 /-- What `run` starts with (see the file header). -/
 def runPre (γ : NodeNames) (id : w64) (n : Loc) : IProp GF :=

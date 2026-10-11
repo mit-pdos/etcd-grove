@@ -25,7 +25,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.register.Assumptions]
 variable [RegStor GF]
@@ -77,7 +77,7 @@ theorem Register.run.wp_proof
     ihave Htok : regAppendTok (regStorIface st) σ es $$ Htok
     unfold regAppendTok
     icases Htok with ⟨%s', %ms', %γs', %Hst, #Hrec2, Htok⟩
-    have := regStorIface_inj _ _ Hst
+    have := regStorIface_inj (GF := GF) _ _ Hst
     subst this
     icases regStorRec_agree st ms ms' γs γs' $$ Hrec Hrec2 with ⟨%H1, %H2⟩
     subst H1 H2

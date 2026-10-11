@@ -25,7 +25,7 @@ private theorem B_conv {PROP : Type _} [BI PROP] (B : TxnBuild → PROP) (b b' :
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
@@ -92,8 +92,9 @@ theorem stmSerializable.commit.wp_proof
     intro k hk
     obtain ⟨e, he⟩ := Option.isSome_iff_exists.1 ((Hksl.2 k).1 hk)
     exact Hru k e he
-  wp_apply HCommit $$ %({ model := { cmps := ms, thenOps := ops, elseOps := (ks.map keyOp).map TxnOp.get }, cif := true, cthen := true, celse := true } : TxnBuild) %lo [$HB $Hlo] as %resp %err #Hres
+  wp_apply HCommit $$ %({ model := { cmps := ms, thenOps := ops, elseOps := (ks.map keyOp).map TxnOp.get }, cif := true, cthen := true, celse := true } : TxnBuild) %lo [$HB $Hlo] as %resp %err Hres
   · ipureintro; exact stmTxn_under pfx lvl Hru Hwu Hms Hops.2 (keyOps_under pfx ks hks)
+  ihave #Hres := txnCommitResultTok_result _ _ _ _ _ $$ Hres
   iunfold txnCommitResult at Hres
   icases Hres with (%Hne | ⟨%Heq, %r, %s0, #Hresp, #Hr, %Hrr, #Hts⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by

@@ -71,11 +71,11 @@ instance Change.countable : Pos.Countable Change :=
 (unused) so that the lock lemmas' own are determined at its uses. -/
 def muInv [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
     [go_gctx : GoGlobalContext] {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-    [AllG GF] [sem : go.Semantics] (_q : Qp) : IProp GF := iprop(True)
+    [sem : go.Semantics] (_q : Qp) : IProp GF := iprop(True)
 
 instance muInv_fractional [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi]
     [FfiSemantics ext ffi] [go_gctx : GoGlobalContext] {hlc : HasLC} {GF : BundledGFunctors}
-    [hG : HeapGS hlc GF] [AllG GF] [sem : go.Semantics] : Fractional (muInv (hG := hG)) where
+    [hG : HeapGS hlc GF] [sem : go.Semantics] : Fractional (muInv (hG := hG)) where
   fractional _ _ := by
     unfold muInv
     constructor
@@ -96,20 +96,22 @@ abbrev txCommonW (tw : Loc) : Loc := structFieldRef storeTxnWrite go!"storeTxnCo
 
 end addrs
 
-section reprs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [AllG GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
-
-include sem in
-/-- Two interface values of the same pointer type are the same pointer. -/
-theorem mkOk_loc_inj (T : go.GoType) {a b : Loc}
+/-- Two interface values of the same pointer type are the same pointer (with its own binders:
+nothing in its statement determines a section's `GF`). -/
+theorem mkOk_loc_inj [FfiSyntax] [GoLocalContext] [GoGlobalContext] [go.Semantics] (T : go.GoType)
+    {a b : Loc}
     (h : interface.mkOk T #a = interface.mkOk T #b) : a = b := by
   unfold interface.mkOk at h
   simp only [GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, true_and] at h
   exact go.intoVal_inj h
+
+section reprs
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+
 
 /-! ## The backend's contract -/
 
@@ -310,7 +312,7 @@ needs it. -/
 def leaseKnown (γl : GName) (id : w64) : IProp GF :=
   iprop(id ↪[γl]□ ())
 
-instance leaseKnown_persistent (γl : GName) (id : w64) : Persistent (leaseKnown γl id) := by
+instance leaseKnown_persistent (γl : GName) (id : w64) : Persistent (leaseKnown (GF := GF) γl id) := by
   unfold leaseKnown; infer_instance
 
 /-- The lessor `le` (`lease.Lessor`, names-only: the trust boundary), as the KV core uses it:
@@ -340,7 +342,7 @@ def isLessor (le : GoInterface) (γl : GName) : IProp GF :=
       {{ True }} (App (Val #(methods li.ty go!"SetRangeDeleter" li.v)) (Val f))
       {{ RET #(); True }}))
 
-instance isLessor_persistent (le : GoInterface) (γl : GName) : Persistent (isLessor le γl) := by
+instance isLessor_persistent (le : GoInterface) (γl : GName) : Persistent (isLessor (GF := GF) le γl) := by
   unfold isLessor; infer_instance
 
 /-- The store's view of the bucket: the ghost map's authority at fraction `q`. -/

@@ -165,7 +165,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [AllG GF]
 
 theorem nstateRel_ready (s : NState) (ps : PState) (ce : List raftpb.Entry) (sz : w64) :
     NStateRel s ps → NStateRel (readyNstate s ce sz) { ps with outbox := [] } := by

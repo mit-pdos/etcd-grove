@@ -18,7 +18,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [AllG GF]
 
 theorem node.Ready.wp_proof : node.Ready.spec (GF := GF) (hG := hG) := by
   intro γ id n

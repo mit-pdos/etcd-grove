@@ -204,7 +204,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [AllG GF]
 
 /-- The top-level dispatch, and **one spec like every other function**. The
 per-message-type branches are proof structure, not specification: since 2026-09-17

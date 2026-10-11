@@ -18,7 +18,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [AllG GF]
 
 /-- The `dlv` halves move on past the `Ready` (`run` will recognize its record), one goes
 with the receipt on `advancec`; `n.done` never fires. -/

@@ -118,7 +118,7 @@ PROJECTS = [
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="0fc6f23b14641ad8ed21f6c03620c342831795d1",
+        rev="bc8b52a503191e8af023b209a1cc5b54e1025d6d",
         # go.etcd.io/raft/v3 is etcd's own raft dependency (etcd's go.mod), not the raft
         # above: its modules are EtcdDeps.Code.go_etcd_io.raft.v3* (the part below).
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
@@ -132,6 +132,9 @@ PROJECTS = [
             "go.etcd.io/etcd/client/v3/concurrency",
             # with bodies (client/v3/leasing.toml): the leasing KV and its lease cache
             "go.etcd.io/etcd/client/v3/leasing",
+            # with bodies (client/v3/experimental/recipes.toml): barrier, double barrier, queue,
+            # priority queue, RWMutex
+            "go.etcd.io/etcd/client/v3/experimental/recipes",
             # the server's consistent index, with bodies (cindex.toml), or some of them
             # (etcdserver.toml: the apply thread; storage/schema.toml: cindex.go)
             "go.etcd.io/etcd/server/v3/etcdserver/cindex",

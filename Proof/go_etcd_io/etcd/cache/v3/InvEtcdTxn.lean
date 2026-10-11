@@ -39,6 +39,12 @@ with create revision `c` is present, with the same create revision, at every rev
 two states holding a key with the same mod revision hold the same key-value
 (`etcdState_modrev_det`: a revision writes a key at most once).
 
+**A written revision is one commit's** (`etcdRevToken r`, an axiom with its exclusivity law
+`etcdRevToken_excl`): every committed write is its own revision, so the client's contract hands
+the caller of a writing commit an exclusive token for the revision it made (`txnCommitResultTok`,
+`putResult`); a read-only transaction makes no revision (etcd answers it at the current one) and
+gets no token.
+
 **Linearizability** holds for a transaction with an operation that is not a serializable get
 (`TxnModel.linearizable`); etcd answers one of serializable gets alone, or of no operation, from
 the member's state, which may lag (`EtcdServer.Txn`, `IsTxnSerializable`).
@@ -54,11 +60,19 @@ the stream lasts); `Revoke` returns an error or a response whose header revision
 reached. What a lease does to keys (a put with `WithLease(id)` records `id` in the key-value;
 the lease's expiry or revocation deletes them, a step of etcd's history like any other) is not
 stated beyond the put's `lease`: nothing about liveness.
+
+**`client/v3/experimental/recipes`' additions**: puts (`putTxn`, `putResult`, `isEtcdPutKV`: a put
+as the one-operation transaction `Then(OpPut(...))`, as a delete is `deleteTxn`), the contracts at
+`context.TODO()` (`isEtcdKVTodo`, `isEtcdTxnKVTodo`, `isEtcdDeleteKVTodo`, `isEtcdPutKVTodo`:
+`TODO()`'s context is not an `isContext`; the get's response also has its `More` flag,
+`getRespMore`), and the range watch under the premise that its channel is never closed
+(`isEtcdRangeWatcherOpen`).
 -/
 module
 
 public import Proof.go_etcd_io.etcd.cache.v3.InvEtcd
 public import Proof.go_etcd_io.etcd.client.v3.InvCmp
+public import Perennial.Proof.errors
 
 @[expose] public section
 
@@ -346,10 +360,35 @@ axiom etcdState_modrev_det {GF : BundledGFunctors} (a b : w64) (pfx : GoString)
   etcdState (GF := GF) a pfx s ∗ etcdState b pfx s' ⊢
     ⌜∀ v ∈ s, ∀ v' ∈ s', v.key = v'.key → v.modRev = v'.modRev → v = v'⌝
 
+/-- **A key-value lives unchanged from its mod revision while it is present** (an axiom about
+etcd's history): a key-value of the state at `a` is in the state at every revision `b` in
+`[modRev, a]`. A key not written in `(m, a]` keeps its record; any write, a lease's expiry too,
+gives it a new mod revision or deletes it; so a key present at `a` with mod revision `m` was
+written at `m` and untouched since. Used by the queue: an item under the prefix just before the
+claim with an older mod revision than the dequeuer's get was already there, unchanged, at the get
+(`queue_fifo_before_claim`). -/
+axiom etcdState_modrev_persist {GF : BundledGFunctors} (a b : w64) (pfx : GoString)
+    (s s' : List EtcdKv) :
+  etcdState (GF := GF) a pfx s ∗ etcdState b pfx s' ⊢
+    ⌜∀ v ∈ s, sint.Z v.modRev ≤ sint.Z b → sint.Z b ≤ sint.Z a → v ∈ s'⌝
+
+/-- **The revision `r` was made by the holder's commit** (an axiom: a fact about the server, as
+`etcdState`): an exclusive token, which the client's contract gives the caller of a commit that
+wrote (`txnCommitResultTok`, `putResult`). A committed write is its own revision: etcd applies
+the requests one at a time, and each that writes (a put, a delete of some key, a transaction
+whose chosen branch does) advances the revision by one (`Txn` with only comparisons and gets
+answers at the current revision and makes none, hence no token for it). Its one law is
+exclusivity (`etcdRevToken_excl`): two commits never made the same revision. -/
+axiom etcdRevToken {GF : BundledGFunctors} (r : w64) : IProp GF
+
+/-- Two tokens for one revision: impossible (a revision is one commit's). -/
+axiom etcdRevToken_excl {GF : BundledGFunctors} (r : w64) :
+  etcdRevToken (GF := GF) r ∗ etcdRevToken r ⊢ False
+
 section client
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-! ## The client's transactions -/
@@ -452,6 +491,35 @@ instance txnCommitResult_persistent (pfx : GoString) (lo : w64) (t : TxnModel) (
     (err : GoInterface) : Persistent (txnCommitResult (GF := GF) pfx lo t resp err) := by
   unfold txnCommitResult; infer_instance
 
+/-- **What `Commit()` returns, with the revision's token**: `txnCommitResult`, and, if the
+transaction wrote, the token of its revision (`etcdRevToken r`: a committed write is its own
+revision; a read-only transaction makes none). What the builder's `Commit` gives
+(`txnBuilderSpec`); `txnCommitResultTok_result` drops the token. -/
+def txnCommitResultTok (pfx : GoString) (lo : w64) (t : TxnModel) (resp : Loc)
+    (err : GoInterface) : IProp GF :=
+  iprop(⌜err ≠ GoInterface.nil⌝ ∨
+    (⌜err = GoInterface.nil⌝ ∗ ∃ (r : w64) (s : List EtcdKv),
+      txnRespAt resp r (runTxn r s t).1 (t.branch (runTxn r s t).1) (runTxn r s t).2.2 ∗
+      etcdReached r ∗
+      ⌜(t.linearizable = true → sint.Z lo ≤ sint.Z r) ∧ 0 < sint.Z r ∧ sint.Z r < 2 ^ 63 - 1 ∧
+        EtcdStateWf pfx s⌝ ∗
+      txnStates pfx r s (runTxn r s t).2.1 (txnWrote (runTxn r s t).2.2) ∗
+      (if txnWrote (runTxn r s t).2.2 then etcdRevToken r else True)))
+
+/-- The token dropped: `txnCommitResult`'s facts (persistent). -/
+theorem txnCommitResultTok_result (pfx : GoString) (lo : w64) (t : TxnModel) (resp : Loc)
+    (err : GoInterface) :
+    txnCommitResultTok (GF := GF) pfx lo t resp err ⊢ txnCommitResult pfx lo t resp err := by
+  unfold txnCommitResultTok txnCommitResult
+  iintro (%H | ⟨%H, %r, %s, #Hresp, #Hr, %Hp, #Hts, -⟩)
+  · ileft; ipureintro; exact H
+  · iright
+    isplitr
+    · ipureintro; exact H
+    iexists r, s
+    iframe Hresp Hr Hts
+    ipureintro; exact Hp
+
 /-- **What `Commit()` returns for any transaction** (one with a key outside the prefix the
 contract speaks for, say): an error, or a response with a header and `Succeeded`, read-only, and
 nothing else (`Election.Resign` and `Proclaim` after a failed `Proclaim` commit a transaction on the
@@ -480,7 +548,8 @@ def TxnBuild.empty : TxnBuild := { model := .empty, cif := false, cthen := false
 `B b` is owned by the caller): the triples of its four methods. `If(cs...)` (before `Then` and
 `Else`, once), `Then(ops...)` (before `Else`, once), `Else(ops...)` (once) append the comparisons
 or operations (each `Op` one a transaction can run, `txnOpOf`) and return `t`; `Commit()`, for a
-transaction under `pfx`, returns `txnCommitResult`, and for any transaction `txnAnyResult`. -/
+transaction under `pfx`, returns `txnCommitResult` with the token of the revision it made if it
+wrote (`txnCommitResultTok`), and for any transaction `txnAnyResult`. -/
 def txnBuilderSpec (t : GoInterfaceOk) (pfx : GoString) (B : TxnBuild → IProp GF) : IProp GF :=
   iprop(
     (□ ∀ (b : TxnBuild) (sl : GoSlice) (ms : List CmpModel),
@@ -505,7 +574,7 @@ def txnBuilderSpec (t : GoInterfaceOk) (pfx : GoString) (B : TxnBuild → IProp 
       {{ B b ∗ etcdReached lo ∗ ⌜b.model.Under pfx⌝ }}
         (App (Val #(methods t.ty go!"Commit" t.v)) (Val #()))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          txnCommitResult pfx lo b.model resp err }}) ∗
+          txnCommitResultTok pfx lo b.model resp err }}) ∗
     (□ ∀ (b : TxnBuild),
       {{ B b }}
         (App (Val #(methods t.ty go!"Commit" t.v)) (Val #()))
@@ -645,6 +714,178 @@ instance isEtcdDeleteKV_persistent (kv : GoInterfaceOk) (pfx : GoString) :
     Persistent (isEtcdDeleteKV (GF := GF) kv pfx) := by
   unfold isEtcdDeleteKV; infer_instance
 
+/-! ## The client's puts (`client/v3/experimental/recipes`' addition) -/
+
+/-- The one-operation transaction of a put `op` (`kv.Put` is `kv.Do(OpPut(...))`, a `Put`
+request, which etcd applies as a transaction of that one operation, as a delete: `deleteTxn`).
+The recipes' addition (`RemoteKV.Put`, the double barrier's ready key), stated through the
+transaction model: no new etcd semantics. -/
+def putTxn (op : TxnOp) : TxnModel := { cmps := [], thenOps := [op], elseOps := [] }
+
+/-- **What `kv.Put` returns** for the put `op` (`txnOpOf` of `OpPut`'s model) under the prefix
+`pfx`, called knowing that etcd has reached `lo`: an error, or a revision `r` (at least `lo`,
+reached, below `2^63 - 1`) and a state `s` such that the put ran as a one-operation transaction
+(`putTxn`): `s` was etcd's state at `r - 1` and the state with the put applied is its state at
+`r` (`txnStates`; a put always writes), and the caller holds the token of the revision `r`
+(`etcdRevToken`: a committed write is its own revision). The response itself is not modelled
+(the recipes ignore it). The recipes' addition, as `deleteResult`. -/
+def putResult (pfx : GoString) (lo : w64) (op : TxnOp) (err : GoInterface) : IProp GF :=
+  iprop(⌜err ≠ GoInterface.nil⌝ ∨
+    (⌜err = GoInterface.nil⌝ ∗ ∃ (r : w64) (s : List EtcdKv), etcdReached r ∗
+      ⌜sint.Z lo ≤ sint.Z r ∧ 0 < sint.Z r ∧ sint.Z r < 2 ^ 63 - 1 ∧ EtcdStateWf pfx s⌝ ∗
+      txnStates pfx r s (runTxn r s (putTxn op)).2.1 (txnWrote (runTxn r s (putTxn op)).2.2) ∗
+      etcdRevToken r))
+
+/-- **The client's puts** (`clientv3.KV`'s `Put(ctx, key, val, opts...)`; a definition, the
+assumption a caller makes of `client.KV`, as `isEtcdDeleteKV` for `Delete`): for options with
+which `OpPut` does not panic and which make a put a transaction can run (`txnOpOf`), of a key
+under `pfx`, the result is `putResult` (linearizable, as `Delete` and `Commit`).
+`client/v3/experimental/recipes`' addition (the first plain put a verified client makes). -/
+def isEtcdPutKV (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
+  iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (key val : GoString)
+      (sl : GoSlice) (gs : List (OpFull → OpFull)) (op : TxnOp) (lo : w64),
+    {{ context.isContext ctx cs ∗ optsAt sl gs ∗ etcdReached lo ∗
+        ⌜¬ (opPutModel key val gs).putPanics ∧ txnOpOf (opPutModel key val gs) = some op ∧
+          op.Under pfx⌝ }}
+      (App (App (App (App (Val #(methods kv.ty go!"Put" kv.v)) (Val #(GoInterface.ok ctx)))
+        (Val #key)) (Val #val)) (Val #sl))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); putResult pfx lo op err }})
+
+instance isEtcdPutKV_persistent (kv : GoInterfaceOk) (pfx : GoString) :
+    Persistent (isEtcdPutKV (GF := GF) kv pfx) := by
+  unfold isEtcdPutKV; infer_instance
+
+/-! ## The client at `context.TODO()` (`client/v3/experimental/recipes`' addition) -/
+
+/-- `context.TODO()`: a `todoCtx{}` as a `Context` (`Spec/context/TODO.lean`). Its `Done()` is
+`nil` (it is never canceled), so it is not an `isContext` (whose `Done()` returns a channel), and
+the contracts above, which take an `isContext`, do not cover a call with it. -/
+abbrev todoCtxVal : GoInterfaceOk :=
+  interface.mk context.todoCtx.ty #(zero_val context.todoCtx)
+
+/-- **A get's `More` flag** (read-only): for the get `o` answered without error at the header
+revision `r`, `resp.More` is `more`; for a get at the latest revision of a range under `pfx`, it
+is etcd's: whether a positive limit cut the selection (`rangeSel`) on etcd's state at `r`
+(`asembleRangeResponse`: `More` is set when the range result, fetched with the limit plus one or
+in full for a sort or a filter, has more key-values than the limit; a count-only get fetches
+none). The queue's `Dequeue` reads it (`More`: retry, the first item claimed by others). The
+recipes' addition, beside `kvGetResult` in `isEtcdKVTodo`. (Classical, as `getRespRange`.) -/
+def getRespMore (pfx : GoString) (o : OpFull) (resp : Loc) (err : GoInterface) : IProp GF :=
+  open Classical in
+  iprop(⌜err ≠ GoInterface.nil⌝ ∨ ∃ (r : w64) (more : Bool), getRespRev resp r ∗
+    structFieldRef go_etcd_io.etcd.client.v3.GetResponse go!"More" resp ↦□ more ∗
+    if o.base.rev = W64 0 ∧ KeyRangeUnder pfx o.key o.base.rangeEnd then
+      iprop(∃ s : List EtcdKv, □ etcdState r pfx s ∗
+        ⌜more = (!o.base.countOnly && decide (0 < sint.Z o.base.limit) &&
+          decide (sint.Z o.base.limit < ((rangeSel s o).length : Int)))⌝)
+    else iprop(True))
+
+instance getRespMore_persistent (pfx : GoString) (o : OpFull) (resp : Loc) (err : GoInterface) :
+    Persistent (getRespMore (GF := GF) pfx o resp err) := by
+  unfold getRespMore; split <;> infer_instance
+
+/-- **`isEtcdKV` at `context.TODO()`** (a definition, the assumption a caller makes of
+`client.KV`): `kv.Get(context.TODO(), key, opts...)` returns `kvGetResult`, as `isEtcdKV` does
+for a context (whose descriptor no postcondition mentions), and the response's `More` flag
+(`getRespMore`). The recipes' addition: every call
+the recipes make through `client.KV` passes `context.TODO()`. The options' closures may need a
+resource `R` (`optsAtRes`: the client calls them one at a time, in the caller's goroutine), which
+the call gives back (`WithFirstKey()`'s sort option writes a variable it captured; `optsAt_res`
+for the others). -/
+def isEtcdKVTodo (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
+  iprop(□ ∀ (key : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (R : IProp GF)
+      (lo : w64),
+    {{ optsAtRes sl gs R ∗ R ∗ etcdReached lo ∗ ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1⌝ }}
+      (App (App (App (Val #(methods kv.ty go!"Get" kv.v)) (Val #(GoInterface.ok todoCtxVal)))
+        (Val #key)) (Val #sl))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        R ∗ kvGetResult pfx lo (opGetModel key gs) resp err ∗
+        getRespMore pfx (opGetModel key gs) resp err }})
+
+instance isEtcdKVTodo_persistent (kv : GoInterfaceOk) (pfx : GoString) :
+    Persistent (isEtcdKVTodo (GF := GF) kv pfx) := by
+  unfold isEtcdKVTodo; infer_instance
+
+/-- **An error the client returns, as `errors.Is` sees it** (persistent): for any target, the
+error is in an error tree (`errors.errorIsTree`: the specs of its `Is` and `Unwrap` methods, if it
+has them) whose `Is` methods claim (`M`) only targets of their own error's dynamic type. True of
+etcd's client errors: a gRPC status error's `(*status.Error).Is` returns `true` only for a
+`*status.Error` (it compares the statuses), and an `rpctypes.EtcdError`, an `errors.New` error
+or a context error has no `Is` method. So it never claims another package's pointer error (the
+recipes' `ErrKeyExists`, an `*errors.errorString`). What `errors.Is(err, ErrKeyExists)` needs
+of the client's error (`errors.wp_Is`, `newUniqueKV`); the recipes' addition to the
+transaction contract at `context.TODO()` (`txnCommitErrTodo`). -/
+def clientErrIs (err : GoInterface) : IProp GF :=
+  iprop(□ ∀ target : GoInterface, ∃ (S : GoInterface → Prop) (M : GoInterfaceOk → Prop),
+    errors.errorIsTree (GF := GF) S M target ∗
+    ⌜S err ∧ ∀ ii tii, M ii → target = GoInterface.ok tii → tii.ty = ii.ty⌝)
+
+instance clientErrIs_persistent (err : GoInterface) :
+    Persistent (clientErrIs (GF := GF) err) := by
+  unfold clientErrIs; infer_instance
+
+/-- **`Commit()` at `context.TODO()`, its error** (the recipes' addition): `txnBuilderSpec`'s
+`Commit` for a transaction under `pfx` (`txnCommitResultTok`: with the token of the revision it
+made if it wrote), whose error, if any, is a client error as `errors.Is` sees it
+(`clientErrIs`). -/
+def txnCommitErrTodo (t : GoInterfaceOk) (pfx : GoString) (B : TxnBuild → IProp GF) :
+    IProp GF :=
+  iprop(□ ∀ (b : TxnBuild) (lo : w64),
+    {{ B b ∗ etcdReached lo ∗ ⌜b.model.Under pfx⌝ }}
+      (App (Val #(methods t.ty go!"Commit" t.v)) (Val #()))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        txnCommitResultTok pfx lo b.model resp err ∗ (⌜err = GoInterface.nil⌝ ∨ clientErrIs err) }})
+
+instance txnCommitErrTodo_persistent (t : GoInterfaceOk) (pfx : GoString)
+    (B : TxnBuild → IProp GF) : Persistent (txnCommitErrTodo t pfx B) := by
+  unfold txnCommitErrTodo; infer_instance
+
+/-- **`isEtcdTxnKV` at `context.TODO()`**: `kv.Txn(context.TODO())` returns a builder in its
+empty state, whose `Commit`'s error is a client error (`txnCommitErrTodo`). The recipes'
+addition, as `isEtcdKVTodo`. -/
+def isEtcdTxnKVTodo (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
+  iprop(□ {{ True }}
+      (App (Val #(methods kv.ty go!"Txn" kv.v)) (Val #(GoInterface.ok todoCtxVal)))
+    {{ (t : GoInterfaceOk), RET #(GoInterface.ok t);
+        ∃ B : TxnBuild → IProp GF, B TxnBuild.empty ∗ txnBuilderSpec t pfx B ∗
+          txnCommitErrTodo t pfx B }})
+
+instance isEtcdTxnKVTodo_persistent (kv : GoInterfaceOk) (pfx : GoString) :
+    Persistent (isEtcdTxnKVTodo (GF := GF) kv pfx) := by
+  unfold isEtcdTxnKVTodo; infer_instance
+
+/-- **`isEtcdDeleteKV` at `context.TODO()`**: `kv.Delete(context.TODO(), key, opts...)` returns
+`deleteResult`. The recipes' addition, as `isEtcdKVTodo`. -/
+def isEtcdDeleteKVTodo (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
+  iprop(□ ∀ (key : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (lo : w64),
+    {{ optsAt sl gs ∗ etcdReached lo ∗
+        ⌜¬ opDeletePanics key gs ∧
+          KeyRangeUnder pfx (opDeleteModel key gs).key (opDeleteModel key gs).base.rangeEnd⌝ }}
+      (App (App (App (Val #(methods kv.ty go!"Delete" kv.v)) (Val #(GoInterface.ok todoCtxVal)))
+        (Val #key)) (Val #sl))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        deleteResult pfx lo (opDeleteModel key gs) err }})
+
+instance isEtcdDeleteKVTodo_persistent (kv : GoInterfaceOk) (pfx : GoString) :
+    Persistent (isEtcdDeleteKVTodo (GF := GF) kv pfx) := by
+  unfold isEtcdDeleteKVTodo; infer_instance
+
+/-- **`isEtcdPutKV` at `context.TODO()`**: `kv.Put(context.TODO(), key, val, opts...)` returns
+`putResult`. The recipes' addition, as `isEtcdKVTodo`. -/
+def isEtcdPutKVTodo (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
+  iprop(□ ∀ (key val : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (op : TxnOp)
+      (lo : w64),
+    {{ optsAt sl gs ∗ etcdReached lo ∗
+        ⌜¬ (opPutModel key val gs).putPanics ∧ txnOpOf (opPutModel key val gs) = some op ∧
+          op.Under pfx⌝ }}
+      (App (App (App (App (Val #(methods kv.ty go!"Put" kv.v)) (Val #(GoInterface.ok todoCtxVal)))
+        (Val #key)) (Val #val)) (Val #sl))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); putResult pfx lo op err }})
+
+instance isEtcdPutKVTodo_persistent (kv : GoInterfaceOk) (pfx : GoString) :
+    Persistent (isEtcdPutKVTodo (GF := GF) kv pfx) := by
+  unfold isEtcdPutKVTodo; infer_instance
+
 /-- The key `key` is absent from etcd's state at `r` under the prefix `pfx` (persistent). -/
 def etcdAbsent (pfx key : GoString) (r : w64) : IProp GF :=
   iprop(∃ s : List EtcdKv, □ etcdState r pfx s ∗ ⌜∀ v ∈ s, v.key ≠ key⌝)
@@ -750,6 +991,35 @@ def isEtcdRangeWatcher (w : GoInterfaceOk) (pfx : GoString) : IProp GF :=
 instance isEtcdRangeWatcher_persistent (w : GoInterfaceOk) (pfx : GoString) :
     Persistent (isEtcdRangeWatcher (GF := GF) w pfx) := by
   unfold isEtcdRangeWatcher; infer_instance
+
+/-- **The client's range watch, under the premise that its channel is never closed**
+(`client/v3/experimental/recipes`' bundle): `isEtcdRangeWatcher` with the SPSC channel's close
+predicate `False`, so that a receive always yields a response (`spsc_rcv_au`: a close would give
+`False`). A premise, not a fact: etcd's client closes a watch channel when the client is closed
+or when etcd cancels the watch (a compaction past the watched revision), and the recipes as
+shipped are wrong then (`notes/issues/recipes-dequeue-closed-watch.md`,
+`recipes-barrier-wait-closed-watch.md`: on a close `waitEvents` returns `nil`, so
+`WaitEvents`/`WaitPrefixEvents` return `(nil, nil)`, `Queue.Dequeue` dereferences it and
+panics, `Barrier.Wait` reports a release while the barrier is held). Every recipes result is
+under this premise (no compaction past a watched revision, the client not closed while a recipe
+waits), which the fixed code (returning the canceled response's error) would not need. -/
+def isEtcdRangeWatcherOpen (w : GoInterfaceOk) (pfx : GoString) : IProp GF :=
+  iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (key : GoString)
+      (sl : GoSlice) (gs : List (OpFull → OpFull)) (rev : w64),
+    {{ context.isContext ctx cs ∗ optsAt sl gs ∗
+        ⌜(opWatchModel key gs).isRangeWatch rev = true ∧ ¬ opWatchPanics key gs ∧
+          0 ≤ sint.Z rev ∧
+          KeyRangeUnder pfx (opWatchModel key gs).key (opWatchModel key gs).base.rangeEnd⌝ }}
+      (App (App (App (Val #(methods w.ty go!"Watch" w.v)) (Val #(GoInterface.ok ctx)))
+        (Val #key)) (Val #sl))
+    {{ (ch : Loc) (γ : EtcdWatchNames), RET #ch;
+        isSpsc γ.spsc ch (rangeWatchElem γ pfx (opWatchModel key gs) rev) (fun _ => iprop(False)) ∗
+          spscConsumer γ.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
+          monoListIdxOwn γ.cur 0 (rev - W64 1) }})
+
+instance isEtcdRangeWatcherOpen_persistent (w : GoInterfaceOk) (pfx : GoString) :
+    Persistent (isEtcdRangeWatcherOpen (GF := GF) w pfx) := by
+  unfold isEtcdRangeWatcherOpen; infer_instance
 
 /-! ## Leases -/
 

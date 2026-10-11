@@ -141,7 +141,7 @@ theorem mvcc.keyIndex.wp_Less :
     mvcc.keyIndex.Less.spec (GF := GF) (hG := hG) :=
   mvcc.keyIndex.Less.wp_proof
 
-theorem mvcc.wp_newTreeIndex [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem mvcc.wp_newTreeIndex [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.newTreeIndex.spec (GF := GF) (hG := hG) :=
   mvcc.newTreeIndex.wp_proof btree.wp_New mvcc.keyIndex.wp_Less
 
@@ -153,7 +153,7 @@ theorem schema.wp_UnsafeCreateMetaBucket :
     schema.UnsafeCreateMetaBucket.spec (GF := GF) (hG := hG) :=
   schema.UnsafeCreateMetaBucket.wp_proof
 
-theorem mvcc.store.wp_restore [AllG GF] :
+theorem mvcc.store.wp_restore :
     mvcc.store.restore.spec (GF := GF) (hG := hG) :=
   mvcc.store.restore.wp_proof
 
@@ -197,15 +197,15 @@ theorem mvcc.keyIndex.wp_tombstone :
     mvcc.keyIndex.tombstone.spec (GF := GF) (hG := hG) :=
   mvcc.keyIndex.tombstone.wp_proof mvcc.keyIndex.wp_isEmpty mvcc.generation.wp_isEmpty mvcc.keyIndex.wp_put
 
-theorem mvcc.treeIndex.wp_keyIndex [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem mvcc.treeIndex.wp_keyIndex [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.treeIndex.keyIndex.spec (GF := GF) (hG := hG) :=
   mvcc.treeIndex.keyIndex.wp_proof btree.BTree.wp_Get
 
-theorem mvcc.treeIndex.wp_unsafeGet [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem mvcc.treeIndex.wp_unsafeGet [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.treeIndex.unsafeGet.spec (GF := GF) (hG := hG) :=
   mvcc.treeIndex.unsafeGet.wp_proof mvcc.treeIndex.wp_keyIndex mvcc.keyIndex.wp_get
 
-theorem mvcc.treeIndex.wp_unsafeVisit [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem mvcc.treeIndex.wp_unsafeVisit [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.treeIndex.unsafeVisit.spec (GF := GF) (hG := hG) :=
   mvcc.treeIndex.unsafeVisit.wp_proof btree.BTree.wp_AscendGreaterOrEqual mvcc.keyIndex.wp_Less
 
@@ -225,11 +225,11 @@ theorem traceutil.Trace.wp_Step :
     traceutil.Trace.Step.spec (GF := GF) (hG := hG) :=
   traceutil.Trace.Step.wp_proof
 
-theorem mvcc.storeTxnCommon.wp_Rev [AllG GF] :
+theorem mvcc.storeTxnCommon.wp_Rev :
     mvcc.storeTxnCommon.Rev.spec (GF := GF) (hG := hG) :=
   mvcc.storeTxnCommon.Rev.wp_proof
 
-theorem mvcc.wp_sliceCapWithLimit [AllG GF] :
+theorem mvcc.wp_sliceCapWithLimit :
     mvcc.sliceCapWithLimit.spec (GF := GF) (hG := hG) :=
   mvcc.sliceCapWithLimit.wp_proof
 
@@ -237,7 +237,7 @@ theorem proto.wp_Unmarshal :
     proto.Unmarshal.spec (GF := GF) (hG := hG) :=
   proto.Unmarshal.wp_proof
 
-theorem mvcc.wp_newMetricsTxnRead [AllG GF] :
+theorem mvcc.wp_newMetricsTxnRead :
     mvcc.newMetricsTxnRead.spec (GF := GF) (hG := hG) :=
   mvcc.newMetricsTxnRead.wp_proof
 
@@ -245,7 +245,7 @@ theorem traceutil.wp_TODO :
     traceutil.TODO.spec (GF := GF) (hG := hG) :=
   traceutil.TODO.wp_proof
 
-theorem mvcc.storeTxnCommon.wp_FirstRev [AllG GF] :
+theorem mvcc.storeTxnCommon.wp_FirstRev :
     mvcc.storeTxnCommon.FirstRev.spec (GF := GF) (hG := hG) :=
   mvcc.storeTxnCommon.FirstRev.wp_proof
 
@@ -260,135 +260,135 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-theorem mvcc.wp_NewStore [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem mvcc.wp_NewStore [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.NewStore.spec (GF := GF) (hG := hG) :=
   mvcc.NewStore.wp_proof zap.wp_NewNop mvcc.wp_newTreeIndex schedule.wp_NewFIFOScheduler mvcc.wp_NewHashStorage schema.wp_UnsafeCreateMetaBucket mvcc.store.wp_restore
 
-theorem mvcc.treeIndex.wp_Range [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem mvcc.treeIndex.wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.treeIndex.Range.spec (GF := GF) (hG := hG) :=
   mvcc.treeIndex.Range.wp_proof mvcc.treeIndex.wp_unsafeGet mvcc.treeIndex.wp_unsafeVisit mvcc.keyIndex.wp_get
 
-theorem mvcc.treeIndex.wp_Tombstone [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem mvcc.treeIndex.wp_Tombstone [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.treeIndex.Tombstone.spec (GF := GF) (hG := hG) :=
   mvcc.treeIndex.Tombstone.wp_proof btree.BTree.wp_Get mvcc.keyIndex.wp_tombstone
 
-theorem mvcc.storeTxnWrite.wp_delete [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem mvcc.storeTxnWrite.wp_delete [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.storeTxnWrite.delete.spec (GF := GF) (hG := hG) :=
   mvcc.storeTxnWrite.delete.wp_proof mvcc.wp_NewRevBytes mvcc.wp_newBucketKey mvcc.wp_BucketKeyToBytes proto.wp_Marshal mvcc.treeIndex.wp_Tombstone zap.wp_Error zap.Logger.wp_Error
 
-theorem mvcc.storeTxnWrite.wp_deleteRange [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem mvcc.storeTxnWrite.wp_deleteRange [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.storeTxnWrite.deleteRange.spec (GF := GF) (hG := hG) :=
   mvcc.storeTxnWrite.deleteRange.wp_proof mvcc.treeIndex.wp_Range mvcc.storeTxnWrite.wp_delete
 
-theorem mvcc.storeTxnWrite.wp_DeleteRange [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem mvcc.storeTxnWrite.wp_DeleteRange [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.storeTxnWrite.DeleteRange.spec (GF := GF) (hG := hG) :=
   mvcc.storeTxnWrite.DeleteRange.wp_proof mvcc.storeTxnWrite.wp_deleteRange
 
-theorem mvcc.metricsTxnWrite.wp_DeleteRange [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem mvcc.metricsTxnWrite.wp_DeleteRange [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.metricsTxnWrite.DeleteRange.spec (GF := GF) (hG := hG) :=
   mvcc.metricsTxnWrite.DeleteRange.wp_proof mvcc.storeTxnWrite.wp_DeleteRange
 
-theorem mvcc.storeTxnRead.wp_End [AllG GF] :
+theorem mvcc.storeTxnRead.wp_End :
     mvcc.storeTxnRead.End.spec (GF := GF) (hG := hG) :=
   mvcc.storeTxnRead.End.wp_proof
 
-theorem mvcc.storeTxnWrite.wp_End [AllG GF] :
+theorem mvcc.storeTxnWrite.wp_End :
     mvcc.storeTxnWrite.End.spec (GF := GF) (hG := hG) :=
   mvcc.storeTxnWrite.End.wp_proof
 
-theorem mvcc.metricsTxnWrite.wp_End [AllG GF] :
+theorem mvcc.metricsTxnWrite.wp_End :
     mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG) :=
   mvcc.metricsTxnWrite.End.wp_proof mvcc.storeTxnRead.wp_End mvcc.storeTxnWrite.wp_End
 
-theorem mvcc.treeIndex.wp_Get [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem mvcc.treeIndex.wp_Get [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.treeIndex.Get.spec (GF := GF) (hG := hG) :=
   mvcc.treeIndex.Get.wp_proof mvcc.treeIndex.wp_unsafeGet
 
-theorem mvcc.treeIndex.wp_Put [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem mvcc.treeIndex.wp_Put [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.treeIndex.Put.spec (GF := GF) (hG := hG) :=
   mvcc.treeIndex.Put.wp_proof btree.BTree.wp_Get btree.BTree.wp_ReplaceOrInsert mvcc.keyIndex.wp_put
 
-theorem mvcc.storeTxnWrite.wp_put [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem mvcc.storeTxnWrite.wp_put [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.storeTxnWrite.put.spec (GF := GF) (hG := hG) :=
   mvcc.storeTxnWrite.put.wp_proof mvcc.treeIndex.wp_Get traceutil.Trace.wp_Step mvcc.wp_NewRevBytes mvcc.wp_RevToBytes proto.wp_Marshal mvcc.treeIndex.wp_Put zap.wp_Error zap.Logger.wp_Error
 
-theorem mvcc.storeTxnWrite.wp_Put [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem mvcc.storeTxnWrite.wp_Put [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.storeTxnWrite.Put.spec (GF := GF) (hG := hG) :=
   mvcc.storeTxnWrite.Put.wp_proof mvcc.storeTxnWrite.wp_put
 
-theorem mvcc.metricsTxnWrite.wp_Put [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem mvcc.metricsTxnWrite.wp_Put [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.metricsTxnWrite.Put.spec (GF := GF) (hG := hG) :=
   mvcc.metricsTxnWrite.Put.wp_proof mvcc.storeTxnWrite.wp_Put
 
-theorem mvcc.treeIndex.wp_CountRevisions [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem mvcc.treeIndex.wp_CountRevisions [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.treeIndex.CountRevisions.spec (GF := GF) (hG := hG) :=
   mvcc.treeIndex.CountRevisions.wp_proof mvcc.treeIndex.wp_unsafeGet mvcc.treeIndex.wp_unsafeVisit mvcc.keyIndex.wp_get
 
-theorem mvcc.treeIndex.wp_Revisions [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem mvcc.treeIndex.wp_Revisions [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.treeIndex.Revisions.spec (GF := GF) (hG := hG) :=
   mvcc.treeIndex.Revisions.wp_proof mvcc.treeIndex.wp_unsafeGet mvcc.treeIndex.wp_unsafeVisit mvcc.keyIndex.wp_get
 
-theorem mvcc.storeTxnCommon.wp_rangeKeys [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem mvcc.storeTxnCommon.wp_rangeKeys [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.storeTxnCommon.rangeKeys.spec (GF := GF) (hG := hG) :=
   mvcc.storeTxnCommon.rangeKeys.wp_proof mvcc.treeIndex.wp_CountRevisions mvcc.treeIndex.wp_Range mvcc.treeIndex.wp_Revisions mvcc.wp_sliceCapWithLimit mvcc.wp_NewRevBytes mvcc.wp_RevToBytes traceutil.Trace.wp_Step proto.wp_Unmarshal
 
-theorem mvcc.storeTxnCommon.wp_Range [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem mvcc.storeTxnCommon.wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.storeTxnCommon.Range.spec (GF := GF) (hG := hG) :=
   mvcc.storeTxnCommon.Range.wp_proof mvcc.storeTxnCommon.wp_Rev mvcc.storeTxnCommon.wp_rangeKeys
 
-theorem mvcc.metricsTxnWrite.wp_Range [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem mvcc.metricsTxnWrite.wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.metricsTxnWrite.Range.spec (GF := GF) (hG := hG) :=
   mvcc.metricsTxnWrite.Range.wp_proof mvcc.storeTxnCommon.wp_Range
 
-theorem mvcc.wp_newMetricsTxnWrite [AllG GF] :
+theorem mvcc.wp_newMetricsTxnWrite :
     mvcc.newMetricsTxnWrite.spec (GF := GF) (hG := hG) :=
   mvcc.newMetricsTxnWrite.wp_proof
 
-theorem mvcc.store.wp_Read [AllG GF] :
+theorem mvcc.store.wp_Read :
     mvcc.store.Read.spec (GF := GF) (hG := hG) :=
   mvcc.store.Read.wp_proof mvcc.wp_newMetricsTxnRead
 
-theorem mvcc.readView.wp_FirstRev [AllG GF] :
+theorem mvcc.readView.wp_FirstRev :
     mvcc.readView.FirstRev.spec (GF := GF) (hG := hG) :=
   mvcc.readView.FirstRev.wp_proof traceutil.wp_TODO mvcc.store.wp_Read mvcc.storeTxnCommon.wp_FirstRev mvcc.metricsTxnWrite.wp_End
 
-theorem mvcc.readView.wp_Range [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem mvcc.readView.wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.readView.Range.spec (GF := GF) (hG := hG) :=
   mvcc.readView.Range.wp_proof traceutil.wp_TODO mvcc.store.wp_Read mvcc.metricsTxnWrite.wp_Range mvcc.metricsTxnWrite.wp_End
 
-theorem mvcc.readView.wp_Rev [AllG GF] :
+theorem mvcc.readView.wp_Rev :
     mvcc.readView.Rev.spec (GF := GF) (hG := hG) :=
   mvcc.readView.Rev.wp_proof traceutil.wp_TODO mvcc.store.wp_Read mvcc.storeTxnCommon.wp_Rev mvcc.metricsTxnWrite.wp_End
 
-theorem mvcc.storeTxnWrite.wp_Changes [AllG GF] :
+theorem mvcc.storeTxnWrite.wp_Changes :
     mvcc.storeTxnWrite.Changes.spec (GF := GF) (hG := hG) :=
   mvcc.storeTxnWrite.Changes.wp_proof
 
-theorem mvcc.storeTxnWrite.wp_Range [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem mvcc.storeTxnWrite.wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.storeTxnWrite.Range.spec (GF := GF) (hG := hG) :=
   mvcc.storeTxnWrite.Range.wp_proof mvcc.storeTxnCommon.wp_rangeKeys
 
-theorem mvcc.storeTxnWrite.wp_Rev [AllG GF] :
+theorem mvcc.storeTxnWrite.wp_Rev :
     mvcc.storeTxnWrite.Rev.spec (GF := GF) (hG := hG) :=
   mvcc.storeTxnWrite.Rev.wp_proof
 
-theorem mvcc.store.wp_Write [AllG GF] :
+theorem mvcc.store.wp_Write :
     mvcc.store.Write.spec (GF := GF) (hG := hG) :=
   mvcc.store.Write.wp_proof mvcc.wp_newMetricsTxnWrite
 
-theorem mvcc.treeIndex.wp_Insert [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem mvcc.treeIndex.wp_Insert [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.treeIndex.Insert.spec (GF := GF) (hG := hG) :=
   mvcc.treeIndex.Insert.wp_proof btree.BTree.wp_ReplaceOrInsert
 
-theorem mvcc.treeIndex.wp_KeyIndex [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem mvcc.treeIndex.wp_KeyIndex [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.treeIndex.KeyIndex.spec (GF := GF) (hG := hG) :=
   mvcc.treeIndex.KeyIndex.wp_proof mvcc.treeIndex.wp_keyIndex
 
-theorem mvcc.writeView.wp_DeleteRange [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem mvcc.writeView.wp_DeleteRange [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.writeView.DeleteRange.spec (GF := GF) (hG := hG) :=
   mvcc.writeView.DeleteRange.wp_proof traceutil.wp_TODO mvcc.store.wp_Write mvcc.metricsTxnWrite.wp_DeleteRange mvcc.metricsTxnWrite.wp_End
 
-theorem mvcc.writeView.wp_Put [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem mvcc.writeView.wp_Put [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.writeView.Put.spec (GF := GF) (hG := hG) :=
   mvcc.writeView.Put.wp_proof traceutil.wp_TODO mvcc.store.wp_Write mvcc.metricsTxnWrite.wp_Put mvcc.metricsTxnWrite.wp_End
 
