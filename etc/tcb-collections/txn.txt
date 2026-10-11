@@ -1,0 +1,25 @@
+# The server's txn package (etcd's server/v3/etcdserver/txn): every linked result of
+# Proof/go_etcd_io/etcd/server/v3/etcdserver/txn/Link.lean and the results Results.lean prints.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/txn.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/txn/(Link|Results)\.lean$
+axiom proto.Size.wp_proof
+axiom sort.Reverse.wp_proof
+axiom sort.Sort.wp_proof
+axiom traceutil.EnsureTrace.wp_proof
+axiom traceutil.Get.wp_proof
+axiom traceutil.TODO.wp_proof
+axiom traceutil.Trace.AddField.wp_proof
+axiom traceutil.Trace.StartSubTrace.wp_proof
+axiom traceutil.Trace.Step.wp_proof
+axiom traceutil.Trace.StepWithFunction.wp_proof
+axiom traceutil.Trace.StopSubTrace.wp_proof
+axiom txn.ApplySecObserve.wp_proof
+axiom txn.RangeSecObserve.wp_proof
+axiom zap.Error.wp_proof
+axiom zap.Int32.wp_proof
+axiom zap.Logger.Error.wp_proof
+axiom zap.Logger.Panic.wp_proof

@@ -2787,6 +2787,69 @@ Since Perennial `cb6a5921e` (2026-10-11) `AllG GF` is a singleton carried by `Go
   can never infer: write `(GF := GF)` at its uses, or declare it outside the section.
 
 
+## The server's txn: the two models meet, the sole writer as tokens
+
+**2026-10-11 · plan, unit 0 implemented** (`server/v3/etcdserver/txn`, 749 Go lines: the
+server's `Range`, `Put`, `DeleteRange`, `Txn` over the mvcc core; later units append)
+
+The txn package is where the mvcc model (the log of changes, `stateAt`) meets the client's
+transaction model (`runTxn`, `InvEtcdTxn.lean`): mvcc's `applyChange` is the client's `putKv`
+and a delete is its filter, so the server's `Txn` on a request denoting `t : TxnModel` is to
+produce `runTxn (W64 log.length) (stateAfter log) t` (the comparisons' verdict, the branch's
+results, the committed log); that theorem (`txn_runTxn`) is the package's result, with the
+corresponding ones for `Put` (`putKv`), `DeleteRange` (the filter) and `Range`
+(`rangeSel`/`rangeKvsOk`).
+- **The sole writer, as the revision tokens.** `Txn` reads (`checkTxn`, the comparisons) in a
+  read transaction, ends it, then opens the write transaction and re-reads; it is safe and
+  `runTxn` only if nothing commits in between. mvcc's `NewStore` hands out `2^63 - 5` revision
+  tokens and its writer's authority bounds the log by them, so a caller holding all the tokens
+  left for `log` (`ownToks γ.revs (2^63 - 3 - log.length)`) with `idxCert γ.idx log` pins every
+  later write transaction to `log`: `soleWriter γ log` (unit 0b's `SoleWriter.lean`). Every
+  spec takes `isKV kv s γ ∗ storeReader s γ ∗ soleWriter γ log` and returns `soleWriter γ
+  (commitLog log pend)`: the apply thread's situation (the lessor's range deleter writes outside
+  it).
+- **The requests as the client's values** (unit 0, `Requests.lean`): a range, put or delete
+  request denotes an `OpFull` (the fields `Op.toRangeRequest` sends; the others `newOp`'s), a
+  comparison a `CmpModel`, a `TxnRequest` a `TxnModel` (recursively through `RequestOp`'s
+  oneof); so the statements are in the client model's terms and `runTxn` applies as it is.
+  *Rejected:* a record of the protobuf fields (a second vocabulary). The range end denotes
+  mvcc's reading (`rangeEndOf`: `nil` the key alone, empty non-nil from the key on, which is
+  `mkGteRange("\x00")`); on decoded requests (protobuf-go decodes an empty `bytes` field as
+  `nil`) that is the client's `inRange`. A put denotes the server's total `putTxnOp` (the
+  ignore flags keep the value or lease whatever the request says), not the client's partial
+  `txnOpOf`. An empty oneof denotes nothing (`Txn` panics on it, `issues/etcd-txn-empty-requestop.md`).
+  The responses mirror `TxnOpResult` (`txnResponseIs`), recursively; a nested response's
+  header revision is `0`.
+- **The index answers the state** (unit 0b, pure): for a well-formed log, mvcc's
+  `rangeAnswers` are the keys of the state in the range with their revisions; `delKeys` is the
+  client's filter, `rangeTaken` its `rangeIn`.
+- **The lessor's `Lookup`** (unit 0, `Defs.lean`): `isTxnLessor` adds to mvcc's `isLessor` a
+  `Lookup` triple returning `nil` or a granted lease (`leaseKnown`), which `checkLease` hands to
+  mvcc's `Put`. Additive.
+- **Package facts of other packages** (unit 0, `Base.lean`): the txn code returns
+  `lease.ErrLeaseNotFound` and `etcdserver/errors.ErrKeyNotFound`, whose packages' facts are
+  mvcc's (`True`) and the server's (`ErrNoSpace` only); `txnInit` states them (each a fixed
+  non-nil error, true once the txn package and so its imports are initialized) rather than
+  changing those files.
+- **Contexts.** mvcc's `rangeOutcome` has an unconditional "context done" error disjunct, which
+  in `Txn`'s write path leads to `lg.Panic`; preferred: a never-done context gives no error (a
+  refinement of mvcc's spec, coordinated with the mvcc session); fallback: the result holds
+  "unless it panics". `traceutil.EnsureTrace` (unit 0's axiom) returns a context with the input's
+  deadline and `Done` (`{ cd with Values := vs }`): `context.WithValue` derives one that
+  delegates them to its parent; the values are left open (only `traceutil.Get` reads them).
+- **Sorting** (unit 0's axioms, `Spec/sort/`): `sort.Sort` over a `sort.Interface` given as
+  `Len`/`Less`/`Swap` triples on a model list (`sorterSpec`): a permutation sorted by a strict
+  weak order, at most `2^62` elements (Perennial's `slices.SortFunc` statement); `sort.Reverse`
+  flips `Less`. The five `kvSort*` sorters are proved against them. *Rejected:* proving Go's
+  pdqsort over `sort.Interface` (large, not etcd's).
+- **The rest of the trust boundary** (unit 0): traceutil (`Get`, `StepWithFunction` runs its
+  closure, its outcome a panic included; `AddField`, `Start/StopSubTrace` return), `proto.Size`
+  of a put request (its atomically written size cache in an invariant, so the request stays
+  persistent), `zap.Logger.Panic` (a panic outcome, `PanicV`), `zap.Int32`, the two metrics
+  functions. mvcc's read-only write transaction (`NewReadOnlyTxnWrite`, `txnReadWrite`) is
+  verified, not assumed (`InvRoTxn.lean`: its reads delegate, `Changes` is `nil`, `Put` and
+  `DeleteRange` panic).
+
 ## mvcc: the certificate carries the log, the token count is exact, a read is pinned by tokens
 
 2026-10-11, for the server's txn package, unit 0c (`notes/STATUS.md`, "Unit 0c"). The txn

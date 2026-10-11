@@ -26,6 +26,7 @@ usage: etc/gen-link.py ROCQ_PROOF_DIR > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --recipes > Proof/go_etcd_io/etcd/client/v3/experimental/recipes/Link.lean
        etc/gen-link.py --register > Proof/github_com/mit_pdos/etcd_grove/examples/register/Link.lean
        etc/gen-link.py --mvcc > Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Link.lean
+       etc/gen-link.py --txn > Proof/go_etcd_io/etcd/server/v3/etcdserver/txn/Link.lean
 
 `--cache` links the proofs of etcd's `cache` package (`Proof/go_etcd_io/etcd/cache/v3/` and
 the specs and proofs of its functions), which are all
@@ -54,6 +55,11 @@ A callee list `?` (`fn: ?`) marks a function specified but not proved yet (a lat
 spec is a hypothesis (`h_<fn>`, `section links_pending`) of every result that reaches it.
 `--mvcc` links the proofs of the KV core of etcd's `server/v3/storage/mvcc`
 (`Proof/go_etcd_io/etcd/server/v3/storage/mvcc/`), from etc/link-lean-first-mvcc.txt.
+`--txn` links the proofs of etcd's server `txn` package (`server/v3/etcdserver/txn`: `Range`,
+`Put`, `DeleteRange`, `Txn` over the mvcc core) and of the trust-boundary functions they call,
+from etc/link-lean-first-txn.txt, under the txn package's assumptions; as `--recipes`, its
+results are in a namespace of their own (`txn`: `txn.traceutil.wp_EnsureTrace`), and mvcc's
+functions are `@` callees, linked in mvcc's `Link.lean`.
 `--skip-unproved` (after the mode) leaves out the listed functions with no proof file yet (no
 spec, or no `Proof/` file: a later unit's) and every function that reaches one, and names them
 in the header: a package proved in units links what is done, from the full list.
@@ -95,6 +101,13 @@ LEAN_FIRST = {
     "--mvcc": ("link-lean-first-mvcc.txt", "go_etcd_io.etcd.server.v3.storage.mvcc",
                "go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions",
                "The mvcc KV core's proofs (etcd's `server/v3/storage/mvcc`)", [""]),
+    # the server's txn package (etcd's server/v3/etcdserver/txn), over the mvcc core
+    "--txn": ("link-lean-first-txn.txt",
+              "go_etcd_io.etcd.server.v3.etcdserver.txn go_etcd_io.etcd.server.v3.storage.mvcc "
+              "go_etcd_io.etcd.api.v3",
+              "go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions",
+              "The server's `txn` package's proofs (etcd's `server/v3/etcdserver/txn`) and the "
+              "functions they call", [""]),
     "--recipes": ("link-lean-first-recipes.txt",
                   "go_etcd_io.etcd.client.v3.experimental.recipes go_etcd_io.etcd.api.v3",
                   "go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions",
@@ -108,7 +121,8 @@ LEAN_FIRST = {
                    "The register example's proofs (`examples/register`)", [""]),
 }
 # The mode whose results are put in a namespace of their own (see the docstring).
-NAMESPACED = {"--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes"}
+NAMESPACED = {"--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes",
+              "--txn": "txn"}
 mode = LEAN_FIRST.get(sys.argv[1])
 cache = mode is not None
 here = os.path.dirname(os.path.abspath(__file__))

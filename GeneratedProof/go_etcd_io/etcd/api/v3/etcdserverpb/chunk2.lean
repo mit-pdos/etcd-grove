@@ -19,6 +19,286 @@ open Iris Iris.BI
 noncomputable section
 namespace go_etcd_io.etcd.api.v3.etcdserverpb
 
+namespace ResponseOp_ResponsePut
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
+
+instance ResponseOp_ResponsePut_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponsePut where
+  typedPointstoDef l v dq := iprop(
+    "ResponsePut" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponsePut go!"ResponsePut" l) v.ResponsePut' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance ResponseOp_ResponsePut_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponsePut go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponsePut.underlying := by
+  solve_into_val_typed_struct
+
+instance ResponseOp_ResponsePut_access_load_ResponsePut (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponsePut) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponsePut go!"ResponsePut" l) v.ResponsePut' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponsePut go!"ResponsePut" l) v.ResponsePut' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance ResponseOp_ResponsePut_access_store_ResponsePut (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponsePut) (ResponsePut' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponsePut go!"ResponsePut" l) v.ResponsePut' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponsePut go!"ResponsePut" l) ResponsePut' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResponsePut' := ResponsePut' } : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponsePut) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end ResponseOp_ResponsePut
+
+namespace ResponseOp_ResponseDeleteRange
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
+
+instance ResponseOp_ResponseDeleteRange_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponseDeleteRange where
+  typedPointstoDef l v dq := iprop(
+    "ResponseDeleteRange" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponseDeleteRange go!"ResponseDeleteRange" l) v.ResponseDeleteRange' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance ResponseOp_ResponseDeleteRange_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponseDeleteRange go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponseDeleteRange.underlying := by
+  solve_into_val_typed_struct
+
+instance ResponseOp_ResponseDeleteRange_access_load_ResponseDeleteRange (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponseDeleteRange) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponseDeleteRange go!"ResponseDeleteRange" l) v.ResponseDeleteRange' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponseDeleteRange go!"ResponseDeleteRange" l) v.ResponseDeleteRange' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance ResponseOp_ResponseDeleteRange_access_store_ResponseDeleteRange (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponseDeleteRange) (ResponseDeleteRange' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponseDeleteRange go!"ResponseDeleteRange" l) v.ResponseDeleteRange' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponseDeleteRange go!"ResponseDeleteRange" l) ResponseDeleteRange' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResponseDeleteRange' := ResponseDeleteRange' } : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponseDeleteRange) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end ResponseOp_ResponseDeleteRange
+
+namespace ResponseOp_ResponseTxn
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
+
+instance ResponseOp_ResponseTxn_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponseTxn where
+  typedPointstoDef l v dq := iprop(
+    "ResponseTxn" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponseTxn go!"ResponseTxn" l) v.ResponseTxn' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance ResponseOp_ResponseTxn_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponseTxn go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponseTxn.underlying := by
+  solve_into_val_typed_struct
+
+instance ResponseOp_ResponseTxn_access_load_ResponseTxn (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponseTxn) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponseTxn go!"ResponseTxn" l) v.ResponseTxn' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponseTxn go!"ResponseTxn" l) v.ResponseTxn' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance ResponseOp_ResponseTxn_access_store_ResponseTxn (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponseTxn) (ResponseTxn' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponseTxn go!"ResponseTxn" l) v.ResponseTxn' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponseTxn go!"ResponseTxn" l) ResponseTxn' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResponseTxn' := ResponseTxn' } : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponseTxn) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end ResponseOp_ResponseTxn
+
+namespace Compare_Version
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
+
+instance Compare_Version_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.Compare_Version where
+  typedPointstoDef l v dq := iprop(
+    "Version" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.Compare_Version go!"Version" l) v.Version' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance Compare_Version_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.Compare_Version go_etcd_io.etcd.api.v3.etcdserverpb.Compare_Version.underlying := by
+  solve_into_val_typed_struct
+
+instance Compare_Version_access_load_Version (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.Compare_Version) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.Compare_Version go!"Version" l) v.Version' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.Compare_Version go!"Version" l) v.Version' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Compare_Version_access_store_Version (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.Compare_Version) (Version' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.Compare_Version go!"Version" l) v.Version' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.Compare_Version go!"Version" l) Version' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Version' := Version' } : go_etcd_io.etcd.api.v3.etcdserverpb.Compare_Version) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end Compare_Version
+
+namespace Compare_CreateRevision
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
+
+instance Compare_CreateRevision_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.Compare_CreateRevision where
+  typedPointstoDef l v dq := iprop(
+    "CreateRevision" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.Compare_CreateRevision go!"CreateRevision" l) v.CreateRevision' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance Compare_CreateRevision_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.Compare_CreateRevision go_etcd_io.etcd.api.v3.etcdserverpb.Compare_CreateRevision.underlying := by
+  solve_into_val_typed_struct
+
+instance Compare_CreateRevision_access_load_CreateRevision (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.Compare_CreateRevision) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.Compare_CreateRevision go!"CreateRevision" l) v.CreateRevision' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.Compare_CreateRevision go!"CreateRevision" l) v.CreateRevision' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Compare_CreateRevision_access_store_CreateRevision (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.Compare_CreateRevision) (CreateRevision' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.Compare_CreateRevision go!"CreateRevision" l) v.CreateRevision' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.Compare_CreateRevision go!"CreateRevision" l) CreateRevision' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CreateRevision' := CreateRevision' } : go_etcd_io.etcd.api.v3.etcdserverpb.Compare_CreateRevision) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end Compare_CreateRevision
+
+namespace Compare_ModRevision
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
+
+instance Compare_ModRevision_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.Compare_ModRevision where
+  typedPointstoDef l v dq := iprop(
+    "ModRevision" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.Compare_ModRevision go!"ModRevision" l) v.ModRevision' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance Compare_ModRevision_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.Compare_ModRevision go_etcd_io.etcd.api.v3.etcdserverpb.Compare_ModRevision.underlying := by
+  solve_into_val_typed_struct
+
+instance Compare_ModRevision_access_load_ModRevision (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.Compare_ModRevision) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.Compare_ModRevision go!"ModRevision" l) v.ModRevision' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.Compare_ModRevision go!"ModRevision" l) v.ModRevision' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Compare_ModRevision_access_store_ModRevision (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.Compare_ModRevision) (ModRevision' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.Compare_ModRevision go!"ModRevision" l) v.ModRevision' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.Compare_ModRevision go!"ModRevision" l) ModRevision' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ModRevision' := ModRevision' } : go_etcd_io.etcd.api.v3.etcdserverpb.Compare_ModRevision) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end Compare_ModRevision
+
+namespace Compare_Value
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
+
+instance Compare_Value_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.Compare_Value where
+  typedPointstoDef l v dq := iprop(
+    "Value" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.Compare_Value go!"Value" l) v.Value' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance Compare_Value_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.Compare_Value go_etcd_io.etcd.api.v3.etcdserverpb.Compare_Value.underlying := by
+  solve_into_val_typed_struct
+
+instance Compare_Value_access_load_Value (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.Compare_Value) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.Compare_Value go!"Value" l) v.Value' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.Compare_Value go!"Value" l) v.Value' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Compare_Value_access_store_Value (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.Compare_Value) (Value' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.Compare_Value go!"Value" l) v.Value' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.Compare_Value go!"Value" l) Value' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := Value' } : go_etcd_io.etcd.api.v3.etcdserverpb.Compare_Value) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end Compare_Value
+
 namespace Compare_Lease
 section def_
 
@@ -68,12 +348,118 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
 instance TxnRequest_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest where
+  typedPointstoDef l v dq := iprop(
+    "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest go!"state" l) v.state' dq ∗
+    "Compare" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest go!"Compare" l) v.Compare' dq ∗
+    "Success" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest go!"Success" l) v.Success' dq ∗
+    "Failure" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest go!"Failure" l) v.Failure' dq ∗
+    "unknownFields" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest go!"unknownFields" l) v.unknownFields' dq ∗
+    "sizeCache" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest go!"sizeCache" l) v.sizeCache' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance TxnRequest_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.underlying := by
+  solve_into_val_typed_struct
+
+instance TxnRequest_access_load_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest go!"state" l) v.state' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxnRequest_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest go!"state" l) v.state' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest go!"state" l) state' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := state' } : go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxnRequest_access_load_Compare (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest go!"Compare" l) v.Compare' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest go!"Compare" l) v.Compare' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxnRequest_access_store_Compare (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest) (Compare' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest go!"Compare" l) v.Compare' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest go!"Compare" l) Compare' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Compare' := Compare' } : go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxnRequest_access_load_Success (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest go!"Success" l) v.Success' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest go!"Success" l) v.Success' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxnRequest_access_store_Success (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest) (Success' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest go!"Success" l) v.Success' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest go!"Success" l) Success' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Success' := Success' } : go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxnRequest_access_load_Failure (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest go!"Failure" l) v.Failure' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest go!"Failure" l) v.Failure' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxnRequest_access_store_Failure (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest) (Failure' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest go!"Failure" l) v.Failure' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest go!"Failure" l) Failure' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Failure' := Failure' } : go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxnRequest_access_load_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxnRequest_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest) (unknownFields' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest go!"unknownFields" l) unknownFields' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := unknownFields' } : go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxnRequest_access_load_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxnRequest_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest) (sizeCache' : w32) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest go!"sizeCache" l) sizeCache' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := sizeCache' } : go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end TxnRequest
@@ -1041,386 +1427,6 @@ instance LeaseTimeToLiveResponse_into_val_typed :
 
 end def_
 end LeaseTimeToLiveResponse
-
-namespace LeaseLeasesRequest
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance LeaseLeasesRequest_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesRequest :=
-  sorry -- axiomatized type
-
-instance LeaseLeasesRequest_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesRequest go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesRequest.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end LeaseLeasesRequest
-
-namespace LeaseStatus
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance LeaseStatus_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.LeaseStatus :=
-  sorry -- axiomatized type
-
-instance LeaseStatus_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.LeaseStatus go_etcd_io.etcd.api.v3.etcdserverpb.LeaseStatus.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end LeaseStatus
-
-namespace LeaseLeasesResponse
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance LeaseLeasesResponse_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesResponse :=
-  sorry -- axiomatized type
-
-instance LeaseLeasesResponse_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesResponse go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesResponse.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end LeaseLeasesResponse
-
-namespace Member
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance Member_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.Member :=
-  sorry -- axiomatized type
-
-instance Member_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.Member go_etcd_io.etcd.api.v3.etcdserverpb.Member.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Member
-
-namespace MemberAddRequest
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance MemberAddRequest_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.MemberAddRequest :=
-  sorry -- axiomatized type
-
-instance MemberAddRequest_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.MemberAddRequest go_etcd_io.etcd.api.v3.etcdserverpb.MemberAddRequest.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end MemberAddRequest
-
-namespace MemberAddResponse
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance MemberAddResponse_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.MemberAddResponse :=
-  sorry -- axiomatized type
-
-instance MemberAddResponse_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.MemberAddResponse go_etcd_io.etcd.api.v3.etcdserverpb.MemberAddResponse.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end MemberAddResponse
-
-namespace MemberRemoveRequest
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance MemberRemoveRequest_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.MemberRemoveRequest :=
-  sorry -- axiomatized type
-
-instance MemberRemoveRequest_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.MemberRemoveRequest go_etcd_io.etcd.api.v3.etcdserverpb.MemberRemoveRequest.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end MemberRemoveRequest
-
-namespace MemberRemoveResponse
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance MemberRemoveResponse_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.MemberRemoveResponse :=
-  sorry -- axiomatized type
-
-instance MemberRemoveResponse_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.MemberRemoveResponse go_etcd_io.etcd.api.v3.etcdserverpb.MemberRemoveResponse.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end MemberRemoveResponse
-
-namespace MemberUpdateRequest
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance MemberUpdateRequest_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.MemberUpdateRequest :=
-  sorry -- axiomatized type
-
-instance MemberUpdateRequest_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.MemberUpdateRequest go_etcd_io.etcd.api.v3.etcdserverpb.MemberUpdateRequest.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end MemberUpdateRequest
-
-namespace MemberUpdateResponse
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance MemberUpdateResponse_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.MemberUpdateResponse :=
-  sorry -- axiomatized type
-
-instance MemberUpdateResponse_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.MemberUpdateResponse go_etcd_io.etcd.api.v3.etcdserverpb.MemberUpdateResponse.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end MemberUpdateResponse
-
-namespace MemberListRequest
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance MemberListRequest_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.MemberListRequest :=
-  sorry -- axiomatized type
-
-instance MemberListRequest_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.MemberListRequest go_etcd_io.etcd.api.v3.etcdserverpb.MemberListRequest.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end MemberListRequest
-
-namespace MemberListResponse
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance MemberListResponse_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.MemberListResponse :=
-  sorry -- axiomatized type
-
-instance MemberListResponse_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.MemberListResponse go_etcd_io.etcd.api.v3.etcdserverpb.MemberListResponse.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end MemberListResponse
-
-namespace MemberPromoteRequest
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance MemberPromoteRequest_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.MemberPromoteRequest :=
-  sorry -- axiomatized type
-
-instance MemberPromoteRequest_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.MemberPromoteRequest go_etcd_io.etcd.api.v3.etcdserverpb.MemberPromoteRequest.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end MemberPromoteRequest
-
-namespace MemberPromoteResponse
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance MemberPromoteResponse_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.MemberPromoteResponse :=
-  sorry -- axiomatized type
-
-instance MemberPromoteResponse_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.MemberPromoteResponse go_etcd_io.etcd.api.v3.etcdserverpb.MemberPromoteResponse.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end MemberPromoteResponse
-
-namespace DefragmentRequest
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance DefragmentRequest_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.DefragmentRequest :=
-  sorry -- axiomatized type
-
-instance DefragmentRequest_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.DefragmentRequest go_etcd_io.etcd.api.v3.etcdserverpb.DefragmentRequest.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end DefragmentRequest
-
-namespace DefragmentResponse
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance DefragmentResponse_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.DefragmentResponse :=
-  sorry -- axiomatized type
-
-instance DefragmentResponse_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.DefragmentResponse go_etcd_io.etcd.api.v3.etcdserverpb.DefragmentResponse.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end DefragmentResponse
-
-namespace MoveLeaderRequest
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance MoveLeaderRequest_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.MoveLeaderRequest :=
-  sorry -- axiomatized type
-
-instance MoveLeaderRequest_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.MoveLeaderRequest go_etcd_io.etcd.api.v3.etcdserverpb.MoveLeaderRequest.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end MoveLeaderRequest
-
-namespace MoveLeaderResponse
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance MoveLeaderResponse_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.MoveLeaderResponse :=
-  sorry -- axiomatized type
-
-instance MoveLeaderResponse_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.MoveLeaderResponse go_etcd_io.etcd.api.v3.etcdserverpb.MoveLeaderResponse.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end MoveLeaderResponse
-
-namespace AlarmRequest
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance AlarmRequest_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest :=
-  sorry -- axiomatized type
-
-instance AlarmRequest_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end AlarmRequest
-
-namespace AlarmMember
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance AlarmMember_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember :=
-  sorry -- axiomatized type
-
-instance AlarmMember_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end AlarmMember
 
 end go_etcd_io.etcd.api.v3.etcdserverpb
 end

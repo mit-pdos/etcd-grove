@@ -1,0 +1,32 @@
+# The server's Range, Put, DeleteRange and Txn over the mvcc core, with bodies: txn.go,
+# put.go, range.go (with kvSort and its five sorters) and delete.go. util.go (the WarnOf*
+# loggers; isNil through reflect) and metrics.go (prometheus; a float division) are names
+# only.
+translate = ["!*",
+  # txn.go
+  "Txn", "txn", "newTxnResp", "executeTxn", "checkTxn", "compareInt64", "compareToPath",
+  "applyCompares", "applyCompare", "compareKV", "IsTxnSerializable", "IsTxnReadonly",
+  # put.go
+  "Put", "put", "checkPut", "checkLease", "checkAndGetPrevKV", "getPrevKV",
+  # range.go
+  "Count", "Range", "executeRange", "rangeLimit", "IsDefaultOrdering", "HasRevisionFilters",
+  "filterRangeResults", "sortRangeResults", "asembleRangeResponse", "checkRange", "pruneKVs",
+  "kvSort", "kvSort.Swap", "kvSort.Len",
+  "kvSortByKey", "kvSortByKey.Less", "kvSortByVersion", "kvSortByVersion.Less",
+  "kvSortByCreate", "kvSortByCreate.Less", "kvSortByMod", "kvSortByMod.Less",
+  "kvSortByValue", "kvSortByValue.Less",
+  # the promoted methods of the sorters' embedded *kvSort (goose's MethodUnfold wrappers)
+  "kvSortByKey.Swap", "kvSortByKey.Len", "kvSortByVersion.Swap", "kvSortByVersion.Len",
+  "kvSortByCreate.Swap", "kvSortByCreate.Len", "kvSortByMod.Swap", "kvSortByMod.Len",
+  "kvSortByValue.Swap", "kvSortByValue.Len",
+  # delete.go
+  "DeleteRange", "deleteRange", "mkGteRange"]
+imports = ["!*", "bytes", "context", "fmt", "math", "sort", "time",
+  "go.uber.org/zap", "google.golang.org/protobuf/proto",
+  "github.com/prometheus/client_golang/prometheus",
+  "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/mvccpb",
+  "go.etcd.io/etcd/pkg/v3/traceutil", "go.etcd.io/etcd/server/v3/etcdserver/errors",
+  "go.etcd.io/etcd/server/v3/lease", "go.etcd.io/etcd/server/v3/storage/mvcc"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true
