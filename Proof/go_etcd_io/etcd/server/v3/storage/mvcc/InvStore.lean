@@ -91,6 +91,8 @@ abbrev muAddr (s : Loc) : Loc := structFieldRef store go!"mu" s
 abbrev revMuAddr (s : Loc) : Loc := structFieldRef store go!"revMu" s
 /-- The address of a `storeTxnRead`'s embedded `storeTxnCommon`. -/
 abbrev txCommon (tr : Loc) : Loc := structFieldRef storeTxnRead go!"storeTxnCommon" tr
+/-- The address of a `storeTxnWrite`'s embedded `storeTxnCommon`. -/
+abbrev txCommonW (tw : Loc) : Loc := structFieldRef storeTxnWrite go!"storeTxnCommon" tw
 
 end addrs
 
@@ -142,6 +144,62 @@ instance keyReadSnap_persistent (rt : GoInterfaceOk) (m : Bucket) :
     Persistent (keyReadSnap (GF := GF) rt m) := by
   unfold keyReadSnap; infer_instance
 
+/-- A reader of the bucket `m` through `rt` (what `rangeKeys` needs of its `tx`): `rt`'s
+`UnsafeRange(schema.Key, key, nil, 0)`, for `key` holding `k`, reads `k`'s entry of `m`, with
+the owned resource `R` it needs (nothing for a read transaction's snapshot; the batch
+transaction's lock token and the bucket's view for a write transaction's). -/
+def keyReader (rt : GoInterfaceOk) (m : Bucket) (R : IProp GF) : IProp GF :=
+  iprop(∀ (b : GoInterface) (key : GoSlice) (k : GoString) (dq : DFrac),
+    {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ b ∗ R ∗ key ↦*{dq} k }}
+      (App (App (App (App (Val #(methods rt.ty go!"UnsafeRange" rt.v)) (Val #b)) (Val #key))
+        (Val #(slice.nil))) (Val #(W64 0)))
+    {{ (ks vs : GoSlice), RET (PairV #ks #vs); R ∗ key ↦*{dq} k ∗ keyVals ks vs m k }})
+
+instance keyReader_persistent (rt : GoInterfaceOk) (m : Bucket) (R : IProp GF) :
+    Persistent (keyReader (GF := GF) rt m R) := by
+  unfold keyReader; infer_instance
+
+/-- A snapshot is a reader, with nothing owned. -/
+theorem keyReadSnap_reader (rt : GoInterfaceOk) (m : Bucket) :
+    keyReadSnap (GF := GF) rt m ⊢ keyReader rt m iprop(True) := by
+  iintro #H
+  iunfold keyReadSnap at H
+  icases H with ⟨-, -, #Hr⟩
+  iunfold keyRangeSpec at Hr
+  iunfold keyReader
+  iintro %b %key %k %dq !> %Φ ⟨#HK, -, Hkey⟩ HΦ
+  iapply Hr $$ %b %key %k %dq %Φ [Hkey]
+  · iframe Hkey; iexact HK
+  inext
+  iintro %ks %vs ⟨Hkey, #Hkv⟩
+  iapply HΦ
+  iframe Hkey Hkv
+
+/-- What a reader of the index knows makes its log well formed and bounded (kept). -/
+theorem idxKnows_wf (γ : IdxNames) (kn : IdxKnow) :
+    idxKnows (GF := GF) γ kn ⊢ idxKnows γ kn ∗
+      ⌜LogWf' kn.log ∧ kn.log.length < 2 ^ 63 ∧ ∀ cs ∈ kn.log, cs.length < 2 ^ 63⌝ := by
+  cases kn with
+  | cert log =>
+    rw [idxKnows_cert]
+    iintro #H
+    iframe H
+    iunfold idxCert at H
+    icases H with ⟨-, -, %Hc⟩
+    ipureintro; exact Hc
+  | writer ilog pend =>
+    rw [idxKnows_writer]
+    iintro H
+    ihave %Hw := idxWriter_wf γ ilog pend $$ H
+    iframe H
+    ipureintro
+    obtain ⟨hwf, hlen, hp, hcs⟩ := Hw
+    refine ⟨hwf, by simp; omega, ?_⟩
+    intro cs hcs'
+    rcases List.mem_append.1 hcs' with h | h
+    · exact hcs cs h
+    · rw [List.mem_singleton] at h; rw [h]; exact hp
+
 /-! ## The batch transaction -/
 
 /-- The entries a batch transaction has put into the `Key` bucket since it was locked, in
@@ -154,7 +212,10 @@ holding the puts `l` since the lock was taken: `LockInsideApply()` takes the loc
 yet) and gives the lock's resource `W` (what the store keeps under it); `UnsafeSeqPut(
 schema.Key, k, v)` under it adds a put; `Unlock()` takes the resource back and, with no puts,
 leaves the bucket as it is, else writes the puts back into the bucket, whose view `View 1 m`
-the caller holds (`storeTxnWrite.End` holds it under `s.revMu`), in order. -/
+the caller holds (`storeTxnWrite.End` holds it, half under `s.revMu`, half in `W`), in order,
+then releases the lock with `W` made of the updated view (a wand: `W` holds part of the view);
+`UnsafeRange(schema.Key, k, nil, 0)` under the lock reads the bucket the caller holds a view
+of with the puts so far (the batch transaction sees its own puts). -/
 def batchTxSpec (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (W : IProp GF)
     (Locked : Puts → IProp GF) : IProp GF :=
   iprop(□ ({{ True }} (App (Val #(methods bt.ty go!"LockInsideApply" bt.v)) (Val #()))
@@ -167,9 +228,18 @@ def batchTxSpec (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (W : IP
       {{ RET #(); Locked (l ++ [(k, v)]) ∗ key ↦*{dq} k ∗ val ↦*{dq'} v }}) ∗
     □ ({{ Locked [] ∗ W }} (App (Val #(methods bt.ty go!"Unlock" bt.v)) (Val #()))
       {{ RET #(); True }}) ∗
-    □ (∀ (l : Puts) (m : Bucket),
-      {{ Locked l ∗ W ∗ View 1 m }} (App (Val #(methods bt.ty go!"Unlock" bt.v)) (Val #()))
-      {{ RET #(); View 1 (l.foldl (fun m p => GMap.insert p.1 p.2 m) m) }}))
+    □ (∀ (l : Puts) (m : Bucket) (Q : IProp GF),
+      {{ Locked l ∗ View 1 m ∗ (View 1 (l.foldl (fun m p => GMap.insert p.1 p.2 m) m) -∗ W ∗ Q) }}
+        (App (Val #(methods bt.ty go!"Unlock" bt.v)) (Val #()))
+      {{ RET #(); Q }}) ∗
+    □ (∀ (l : Puts) (q : Qp) (m : Bucket) (b : GoInterface) (key : GoSlice) (k : GoString)
+        (dq : DFrac),
+      {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ b ∗ Locked l ∗ View q m ∗
+          key ↦*{dq} k }}
+        (App (App (App (App (Val #(methods bt.ty go!"UnsafeRange" bt.v)) (Val #b)) (Val #key))
+          (Val #(slice.nil))) (Val #(W64 0)))
+      {{ (ks vs : GoSlice), RET (PairV #ks #vs); Locked l ∗ View q m ∗ key ↦*{dq} k ∗
+          keyVals ks vs (l.foldl (fun m p => GMap.insert p.1 p.2 m) m) k }}))
 
 instance batchTxSpec_persistent (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF)
     (W : IProp GF) (Locked : Puts → IProp GF) : Persistent (batchTxSpec bt View W Locked) := by
@@ -178,6 +248,23 @@ instance batchTxSpec_persistent (bt : GoInterfaceOk) (View : Qp → Bucket → I
 /-- `bt` is a batch transaction (its lock token's predicate is its own). -/
 def isBatchTx (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (W : IProp GF) : IProp GF :=
   iprop(∃ Locked : Puts → IProp GF, batchTxSpec bt View W Locked)
+
+/-- The batch transaction under its lock is a reader of its own puts over the view. -/
+theorem batchTx_reader (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (W : IProp GF)
+    (Locked : Puts → IProp GF) (l : Puts) (q : Qp) (m : Bucket) :
+    batchTxSpec bt View W Locked ⊢
+      keyReader bt (l.foldl (fun m p => GMap.insert p.1 p.2 m) m) iprop(Locked l ∗ View q m) := by
+  iintro #H
+  iunfold batchTxSpec at H
+  icases H with ⟨-, -, -, -, #Hr⟩
+  iunfold keyReader
+  iintro %b %key %k %dq !> %Φ ⟨#HK, ⟨Hl, Hv⟩, Hkey⟩ HΦ
+  iapply Hr $$ %l %q %m %b %key %k %dq %Φ [Hl Hv Hkey]
+  · iframe Hl Hv Hkey; iexact HK
+  inext
+  iintro %ks %vs ⟨Hl, Hv, Hkey, #Hkv⟩
+  iapply HΦ
+  iframe Hl Hv Hkey Hkv
 
 instance isBatchTx_persistent (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF)
     (W : IProp GF) : Persistent (isBatchTx bt View W) := by
@@ -238,6 +325,14 @@ instance isLessor_persistent (le : GoInterface) (γ : StoreNames) : Persistent (
 def bucketView (γ : StoreNames) (q : Qp) (m : Bucket) : IProp GF :=
   ghostMapAuth γ.bucket q m
 
+/-- The view as two halves (`s.revMu`'s and the batch lock's). -/
+theorem bucketView_halves (γ : StoreNames) (q : Qp) (m : Bucket) :
+    bucketView (GF := GF) γ q m ⊣⊢ bucketView γ q.half m ∗ bucketView γ q.half m := by
+  unfold bucketView
+  have h := (ghostMapAuth_fractional (GF := GF) γ.bucket m).fractional q.half q.half
+  rw [Qp.half_add_half] at h
+  exact h
+
 /-- A revision token: the right to open one write transaction (`store.Write`). The store's
 `NewStore` hands out `2 ^ 63 - 4` of them: with the budget `writerRes` keeps, the revision
 counter stays below `2 ^ 63 - 2`. -/
@@ -255,7 +350,8 @@ theorem own_half_half (q : Qp) : (DFrac.own q : DFrac) = DFrac.own q.half • DF
 /-- The batch lock's resource for the store (`W` of `isKeyBackend`): the index writer's handle
 at the committed log `ilog` with no pending change, half the committed-log ghost variable (the
 other half under `s.revMu`), half of `currentRev` (`store.Write` reads it under the batch lock
-alone) and the certificate of `ilog`. -/
+alone), half the bucket's view (the other half under `s.revMu`: the write transaction's reads
+of the bucket, through the batch transaction) and the certificate of `ilog`. -/
 def writerRes (s : Loc) (γ : StoreNames) : IProp GF :=
   iprop(∃ (ilog : Log) (ntok : Nat),
     "Htoks" ∷ ownTokAuth γ.revs ntok ∗
@@ -264,13 +360,14 @@ def writerRes (s : Loc) (γ : StoreNames) : IProp GF :=
     "Hclog" ∷ ghostVar γ.clog (1 : Qp).half ilog ∗
     "Hcur" ∷ (s.[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half}
       (W64 ((ilog.length : Int) - 1) : w64) : IProp GF) ∗
+    "Hbv" ∷ bucketView γ (1 : Qp).half (bucketMap ilog) ∗
     "#Hcert" ∷ idxCert γ.idx ilog ∗
     "%Hne" ∷ ⌜ilog ≠ []⌝)
 
 /-- `s.revMu`'s resource at fraction `q`: the committed log `log`'s last revision in
 `currentRev` (half of it: the writer holds the other half under the batch lock), half the
 committed-log ghost variable, the index's certificate of `log` and the bucket's authority
-(`bucketMap log`). (`compactMainRev` is fixed at `-1`, no compaction in scope: `isStore`;
+(`bucketMap log`, half of it: the batch lock holds the other half). (`compactMainRev` is fixed at `-1`, no compaction in scope: `isStore`;
 `rangeKeys` reads it without the lock.) -/
 def revMuInv (s : Loc) (γ : StoreNames) (q : Qp) : IProp GF :=
   iprop(∃ log : Log,
@@ -279,7 +376,7 @@ def revMuInv (s : Loc) (γ : StoreNames) (q : Qp) : IProp GF :=
     "Hclog" ∷ ghostVar γ.clog q.half log ∗
     "#Hcert" ∷ idxCert γ.idx log ∗
     "%Hne" ∷ ⌜log ≠ []⌝ ∗
-    "Hbucket" ∷ bucketView γ q (bucketMap log))
+    "Hbucket" ∷ bucketView γ q.half (bucketMap log))
 
 /-- A store (persistent): its backend, index, lessor, logger, and the two locks' guards. The
 fields `restore` and `Close` change are fixed here (out of scope). -/
@@ -481,6 +578,7 @@ def storeTxnWriteIs (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Cha
     "Hclog" ∷ ghostVar γ.clog (1 : Qp).half ilog ∗
     "Hcur" ∷ (s.[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half}
       (W64 ((ilog.length : Int) - 1) : w64) : IProp GF) ∗
+    "Hbv" ∷ bucketView γ (1 : Qp).half (bucketMap ilog) ∗
     "#Hcert" ∷ idxCert γ.idx ilog ∗
     "%Hne" ∷ ⌜ilog ≠ []⌝ ∗
     "Hmu" ∷ sync.ownRWMutexRLocked (muAddr s) muInv ∗
@@ -501,6 +599,11 @@ def isTxnWrite (mw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
 change (else no revision is made). -/
 def commitLog (ilog : Log) (pend : List Change) : Log :=
   if pend = [] then ilog else ilog ++ [pend]
+
+/-- The transaction's revision is the last of the log it would commit. -/
+theorem writeRev_commitLog (ilog : Log) (pend : List Change) :
+    writeRev ilog pend = (commitLog ilog pend).length - 1 := by
+  unfold writeRev commitLog; split <;> simp
 
 /-- A transaction behind a `metricsTxnWrite`: a read transaction, or a write transaction. -/
 inductive TxnKind where

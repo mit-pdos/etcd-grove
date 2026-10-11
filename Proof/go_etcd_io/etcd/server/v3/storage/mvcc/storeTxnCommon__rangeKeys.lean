@@ -43,16 +43,15 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
     (hStep : traceutil.Trace.Step.spec (GF := GF) (hG := hG))
     (hUnm : proto.Unmarshal.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnCommon.rangeKeys.spec (GF := GF) (hG := hG) := by
-  intro tr s trace ti rt γ log rev ctx cd key endk k e ro
-  wp_start as ⟨#Hs, #Htr, #Hidx0, Hti0, #Hctx, #Hkey, #Hend⟩
+  intro txc s trace ti rt dq m R γ kn log rev ctx cd key endk k e ro
+  wp_start as ⟨#Hs, HsT, HtxcT, HtraceT, #Hrdr, HRr, %HsubT, Hkn, %Hklog, %HneT, %Hrv, #Hidx0, Hti0,
+    #Hctx, #Hkey, #Hend⟩
   iunfold mvcc.isStore at Hs
   icases Hs with ⟨%b, %ti', %lg, Hs⟩
   iNamed Hs
   icombine Hidx0 Hidx gives %Hti'
   have hti := mvcc.mkOk_loc_inj _ Hti'
   subst hti
-  iunfold mvcc.storeTxnReadIs at Htr
-  iNamedSuffix Htr "T"
   ihave Hinit : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨⟨%e0, #Herr⟩, -, ⟨%ef, #Hfut⟩, -, -, -, -, -, -⟩
@@ -62,7 +61,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
   · wp_alloc r as Hr
     (try wp_auto)
     iapply HΦ
-    iframe Hti0
+    iframe Hti0 HsT HtxcT HtraceT HRr Hkn
     iunfold mvcc.rangeOutcome
     ileft
     isplitl []
@@ -74,19 +73,13 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
     have hle : sint.Z ro.Rev' ≤ sint.Z rev := by omega
     have h0z : sint.Z (W64 0) = 0 := by decide
     have hm1 : sint.Z (W64 (-1)) = -1 := by decide
-    ihave #Hcert0 : mvcc.idxCert γ.idx log $$ []
-    · iexact HcertT
-    iunfold mvcc.idxCert at HcertT
-    icases HcertT with ⟨-, -, %Hcwf⟩
+    icases mvcc.idxKnows_wf γ.idx kn $$ Hkn with ⟨Hkn, %Hcwf⟩
+    rw [Hklog] at Hcwf
     obtain ⟨Hwf', Hlen, Hcs⟩ := Hcwf
     have hne : 0 < log.length := by
       cases log with
       | nil => exact absurd rfl HneT
       | cons _ _ => simp
-    have hlenZ : sint.Z rev = (log.length : Int) - 1 := by
-      rw [HrevT]; unfold sint.Z W64
-      rw [BitVec.toInt_ofInt_eq_self (by decide) (by rw [show (64 - 1 : Nat) = 63 from rfl]; omega)
-        (by rw [show (64 - 1 : Nat) = 63 from rfl]; omega)]
     -- `rev <= 0`: the transaction's revision
     wp_if_destruct <;> (try wp_auto) <;>
       (first
@@ -112,16 +105,17 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
       | true =>
         -- `CountOnly`: the index's count
         (try wp_auto)
-        wp_apply (hCount ti γ.idx log key endk k e (mvcc.rangeRev rev ro.Rev') e0)
-          $$ [$Hti $Hti0 $Hcert0 $Hkey $Hend $Herr] as Hti0
-        · ipureintro; exact ⟨hR0, hRlt⟩
+        wp_apply (hCount ti γ.idx kn key endk k e (mvcc.rangeRev rev ro.Rev') e0)
+          $$ [$Hti $Hti0 $Hkn $Hkey $Hend $Herr] as ⟨Hti0, Hkn⟩
+        · ipureintro; rw [Hklog]; exact ⟨hR0, hRlt⟩
+        rw [Hklog]
         (try wp_auto)
         wp_apply (hStep trace _ _)
         (try wp_auto)
         wp_alloc r as Hr
         (try wp_auto)
         iapply HΦ
-        iframe Hti0
+        iframe Hti0 HsT HtxcT HtraceT HRr Hkn
         iunfold mvcc.rangeOutcome
         iright; iright
         isplitl []
@@ -137,15 +131,13 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
         | true =>
           -- `FastKeysOnly`: the index's keys, revisions and versions
           (try wp_auto)
-          ihave Hkn : mvcc.idxKnows γ.idx (.cert log) $$ []
-          · rw [mvcc.idxKnows_cert]; iexact Hcert0
-          wp_apply (hRange ti γ.idx (.cert log) key endk k e (mvcc.rangeRev rev ro.Rev') ro.Limit'
+          wp_apply (hRange ti γ.idx kn key endk k e (mvcc.rangeRev rev ro.Rev') ro.Limit'
             ro.WithTotalCount' e0) $$ [$Hti $Hti0 $Hkn $Hkey $Hend $Herr]
             as %keys %modifies %creates %vers %total
-              ⟨Hti0, -, Hkeys, Hmod, Hmodcap, Hcre, Hcrecap, Hvers, Hverscap, %Htotal⟩
-          · ipureintro; exact ⟨hR0, hRlt⟩
-          rw [mvcc.IdxKnow.log_cert]
-          rw [mvcc.IdxKnow.log_cert] at Htotal
+              ⟨Hti0, Hkn, Hkeys, Hmod, Hmodcap, Hcre, Hcrecap, Hvers, Hverscap, %Htotal⟩
+          · ipureintro; rw [Hklog]; exact ⟨hR0, hRlt⟩
+          rw [Hklog]
+          rw [Hklog] at Htotal
           (try wp_auto)
           wp_apply (hStep trace _ _)
           (try wp_auto)
@@ -164,7 +156,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
             wp_alloc r as Hr
             (try wp_auto)
             iapply HΦ
-            iframe Hti0
+            iframe Hti0 HsT HtxcT HtraceT HRr Hkn
             iunfold mvcc.rangeOutcome
             rw [hT]
             iright; iright
@@ -313,7 +305,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
               (try wp_auto)
               (try simp only [named])
               iframe HΦ tr ro curRev Hend0 key ctx Hrevp Hti0 Hmodcap Hcrecap Hverscap keys modifies
-                creates versions total Hkcap Hzip Hkvscap kvs
+                creates versions total Hkcap Hzip Hkvscap kvs HsT HtxcT HtraceT HRr Hkn
               iexists (i + 1), (ps ++ [«$r0_ptr»]), (W64 (i : Int))
               (try simp only [named])
               have hsucc : (W64 ((i + 1 : Nat) : Int)) = W64 (i : Int) + W64 1 := by
@@ -352,7 +344,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
               wp_alloc r as Hr
               (try wp_auto)
               iapply HΦ
-              iframe Hti0
+              iframe Hti0 HsT HtxcT HtraceT HRr Hkn
               iunfold mvcc.rangeOutcome
               rw [hT]
               iright; iright
@@ -377,10 +369,12 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
         | false =>
           -- the full read: the index's revisions, then the bucket's key-values
           (try wp_auto)
-          wp_apply (hRevs ti γ.idx log key endk k e (mvcc.rangeRev rev ro.Rev') ro.Limit'
-            ro.WithTotalCount' e0) $$ [$Hti $Hti0 $Hcert0 $Hkey $Hend $Herr]
-            as %revs %total ⟨Hti0, Hrevs, Hrevscap, %Htotal⟩
-          · ipureintro; exact ⟨hR0, hRlt⟩
+          wp_apply (hRevs ti γ.idx kn key endk k e (mvcc.rangeRev rev ro.Rev') ro.Limit'
+            ro.WithTotalCount' e0) $$ [$Hti $Hti0 $Hkn $Hkey $Hend $Herr]
+            as %revs %total ⟨Hti0, Hkn, Hrevs, Hrevscap, %Htotal⟩
+          · ipureintro; rw [Hklog]; exact ⟨hR0, hRlt⟩
+          rw [Hklog]
+          rw [Hklog] at Htotal
           (try wp_auto)
           wp_apply (hStep trace _ _)
           (try wp_auto)
@@ -396,7 +390,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
             (try wp_auto)
             subst Htotal
             iapply HΦ
-            iframe Hti0
+            iframe Hti0 HsT HtxcT HtraceT HRr Hkn
             iunfold mvcc.rangeOutcome
             rw [hT]
             iright; iright
@@ -438,8 +432,6 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
             · iPkgInit
             ihave #Hctx2 := Hctx
             iNamed Hctx2
-            iunfold mvcc.keyReadSnap at HsnapT
-            icases HsnapT with ⟨-, -, #Hrange⟩
             have hn : taken.length < 2 ^ 63 := by
               have h1 := Hrlen.1; have h2 := Hrlen.2; have h3 := BitVec.toInt_lt (x := revs.len)
               unfold sint.nat at h1; unfold sint.Z at *; omega
@@ -530,10 +522,16 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
               wp_apply HDone as %dch %γd #Hdone
               (try wp_auto)
               wp_apply_core chan.wp_select_nonblocking_alt [iprop(True)]
-                  iprop((∀ r err, mvcc.idxReader ti γ.idx ∗
+                  iprop((∀ r err, txc.[storeTxnCommon, go!"s"] ↦{dq} s ∗
+                      txc.[storeTxnCommon, go!"tx"] ↦{dq} (GoInterface.ok rt : GoInterface) ∗
+                      txc.[storeTxnCommon, go!"trace"] ↦{dq} trace ∗
+                      R ∗ mvcc.idxKnows γ.idx kn ∗ mvcc.idxReader ti γ.idx ∗
                       mvcc.rangeOutcome r err log rev (decide (endk = slice.nil)) k e ro -∗
                       Φ (PairV #r #err)) ∗
-                    tr_ptr ↦ mvcc.txCommon tr ∗ ro_ptr ↦ ro ∗ curRev_ptr ↦ rev ∗ end_ptr ↦ endk ∗
+                    txc.[storeTxnCommon, go!"s"] ↦{dq} s ∗
+                    txc.[storeTxnCommon, go!"tx"] ↦{dq} (GoInterface.ok rt : GoInterface) ∗
+                    txc.[storeTxnCommon, go!"trace"] ↦{dq} trace ∗ R ∗ mvcc.idxKnows γ.idx kn ∗
+                    tr_ptr ↦ txc ∗ ro_ptr ↦ ro ∗ curRev_ptr ↦ rev ∗ end_ptr ↦ endk ∗
                     key_ptr ↦ key ∗ ctx_ptr ↦ (GoInterface.ok ctx : GoInterface) ∗
                     mvcc.idxReader ti γ.idx ∗ ownSliceCap Revision revs (DFrac.own 1) ∗
                     revpairs_ptr ↦ revs ∗ total_ptr ↦ total ∗ ownSliceCap Loc kvs (DFrac.own 1) ∗
@@ -544,10 +542,11 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
                     [∗list] pa ∈ ps.zip (taken.take i), ∃ kv : EtcdKv,
                       ⌜mvcc.findKey pa.2.1 (mvcc.stateAt log (sint.nat (mvcc.rangeRev rev ro.Rev'))) =
                         some kv⌝ ∗ mvcc.kvPtrIs true pa.1 kv)
-                  $$ [] [HΦ tr ro curRev Hend0 key ctx Hti0 Hrevscap revpairs total Hkvscap kvs Hi Hgo
+                  $$ [] [HΦ HsT HtxcT HtraceT HRr Hkn tr ro curRev Hend0 key ctx Hti0 Hrevscap revpairs total Hkvscap kvs Hi Hgo
                     Hrp revBytes Hrb Hrbcap Hkvs Hps] []
               · iapply BigSepL2.bigSepL2_singleton.2
-                iintro ⟨HΦ, tr, ro, curRev, Hend0, key, ctx, Hti0, Hrevscap, revpairs, total, Hkvscap,
+                iintro ⟨HΦ, HsT, HtxcT, HtraceT, HRr, Hkn, tr, ro, curRev, Hend0, key, ctx, Hti0, Hrevscap,
+                  revpairs, total, Hkvscap,
                   kvs, Hi, Hgo, Hrp, revBytes, Hrb, Hrbcap, Hkvs, Hps⟩
                 simp only [chan.nonblockingAltClausePre]
                 iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, dch, γd
@@ -573,7 +572,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
                   wp_for_post
                   (try wp_auto)
                   iapply HΦ
-                  iframe Hti0
+                  iframe Hti0 HsT HtxcT HtraceT HRr Hkn
                   iunfold mvcc.rangeOutcome
                   iright; ileft
                   isplitl []
@@ -585,7 +584,8 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
                   ipureintro; intro h; cases h
                 · iframe
               · iframe
-              · iintro ⟨HΦ, tr, ro, curRev, Hend0, key, ctx, Hti0, Hrevscap, revpairs, total, Hkvscap,
+              · iintro ⟨HΦ, HsT, HtxcT, HtraceT, HRr, Hkn, tr, ro, curRev, Hend0, key, ctx, Hti0, Hrevscap,
+                  revpairs, total, Hkvscap,
                   kvs, Hi, Hgo, Hrp, revBytes, Hrb, Hrbcap, Hkvs, Hps⟩ -
                 (try wp_auto)
                 -- `revBytes = RevToBytes(revpair, revBytes)`
@@ -609,9 +609,9 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
                 have hlookm : m.lookup (mvcc.revBytes a.2.1 false) = some (mvcc.kvEncode kv) :=
                   HsubT _ _ hlook
                 -- `tr.tx.UnsafeRange(schema.Key, revBytes, nil, 0)`
-                iunfold mvcc.keyRangeSpec at Hrange
-                ihave HR := Hrange $$ %bK %rb' %(mvcc.revBytes a.2.1 false) %(DFrac.own 1)
-                wp_apply HR $$ [$HKeyG $Hrb] as %ks %vs ⟨Hrb, #Hkv⟩
+                iunfold mvcc.keyReader at Hrdr
+                ihave HR := Hrdr $$ %bK %rb' %(mvcc.revBytes a.2.1 false) %(DFrac.own 1)
+                wp_apply HR $$ [$HKeyG $HRr $Hrb] as %ks %vs ⟨HRr, Hrb, #Hkv⟩
                 iunfold mvcc.keyVals at Hkv
                 rw [hlookm]
                 icases Hkv with ⟨%ksl, %vsl, #Hks, #Hksl, #Hvs, #Hvsl⟩
@@ -652,6 +652,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
                 (try wp_auto)
                 (try simp only [named])
                 iframe HΦ tr ro curRev Hend0 key ctx Hti0 Hrevscap revpairs total Hkvscap kvs
+                  HsT HtxcT HtraceT HRr Hkn
                 iexists (i + 1), (ps ++ [«$r0_ptr»]), (W64 (i : Int)), (mvcc.revVal a.2.1), rb',
                   (mvcc.revBytes a.2.1 false)
                 (try simp only [named])
@@ -695,7 +696,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
               (try wp_auto)
               subst Htotal
               iapply HΦ
-              iframe Hti0
+              iframe Hti0 HsT HtxcT HtraceT HRr Hkn
               iunfold mvcc.rangeOutcome
               rw [hT]
               iright; iright

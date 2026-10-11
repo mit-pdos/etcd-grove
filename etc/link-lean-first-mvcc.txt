@@ -68,6 +68,7 @@ storeTxnWrite__Put: storeTxnWrite__put
 storeTxnWrite__delete: NewRevBytes newBucketKey BucketKeyToBytes proto_Marshal treeIndex__Tombstone zap_Error zap_Logger__Error
 storeTxnWrite__deleteRange: treeIndex__Range storeTxnWrite__delete
 storeTxnWrite__DeleteRange: storeTxnWrite__deleteRange
+storeTxnWrite__Range: storeTxnCommon__rangeKeys
 storeTxnWrite__End:
 storeTxnWrite__Rev:
 storeTxnWrite__Changes:

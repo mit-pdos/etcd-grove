@@ -49,6 +49,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__Change
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__DeleteRange
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__End
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__Put
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__Range
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__Rev
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__delete
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__deleteRange
@@ -330,6 +331,10 @@ theorem mvcc.readView.wp_Rev [AllG GF] :
 theorem mvcc.storeTxnWrite.wp_Changes [AllG GF] :
     mvcc.storeTxnWrite.Changes.spec (GF := GF) (hG := hG) :=
   mvcc.storeTxnWrite.Changes.wp_proof
+
+theorem mvcc.storeTxnWrite.wp_Range [AllG GF] [go_etcd_io.etcd.cache.v3.Assumptions] :
+    mvcc.storeTxnWrite.Range.spec (GF := GF) (hG := hG) :=
+  mvcc.storeTxnWrite.Range.wp_proof mvcc.storeTxnCommon.wp_rangeKeys
 
 theorem mvcc.storeTxnWrite.wp_Rev [AllG GF] :
     mvcc.storeTxnWrite.Rev.spec (GF := GF) (hG := hG) :=

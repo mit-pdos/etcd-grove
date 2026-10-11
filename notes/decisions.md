@@ -2128,6 +2128,26 @@ What `store.Write`, `storeTxnWrite.put`/`delete`/`deleteRange`/`End` do, and wha
   a token and return with the certificate of the committed log (`ilog ++ [[.put k v l]]`, or
   `commitLog ilog (delKeys ...)`) and the revision.
 
+**The writer's range read** (2026-10-11, later the same day · adopted): `storeTxnWrite.Range`
+ranges at `writeRev` and reads the bucket through the *batch* transaction, which sees its own
+pending puts. So (1) the bucket view is split: `revMuInv` holds `bucketView γ q.half`, the batch
+lock's resource `writerRes` the other half at the committed log (the two halves agree,
+`bucketView_halves`); `End` joins them for the write-back; (2) `batchTxSpec` gains an
+`UnsafeRange(Key, k, nil, 0)` triple under `Locked l ∗ View q m` answering from `m` with `l`
+inserted, and its `Unlock` with puts becomes `{{ Locked l ∗ View 1 m ∗ (View 1 m' -∗ W ∗ Q) }}
+Unlock() {{ Q }}` with `m'` the written-back map: the backend writes back, then releases the
+lock with `W` built from the new view (the old triple follows; needed because `W` now holds
+the view at the new committed log); (3) `rangeKeys`'s spec is stated over what it uses: the
+`storeTxnCommon` fields `s`, `tx`, `trace` at a fraction, an owned reader capability
+`keyReader rt m R` (`R` threaded through: `True` with a read transaction's snapshot,
+`Locked (pendPuts ilog pend) ∗ bucketView γ ½ (bucketMap ilog)` for the writer, reading
+`bucketMap (ilog ++ [pend])`), the index knowledge `idxKnows γ.idx kn` (the certificate or the
+writer's handle, as `Get`/`Range`/`Revisions`/`CountRevisions` now all take) and
+`0 ≤ rev < log.length` (all the proof needs; the read side's `rev = log.length - 1` implies it).
+`storeTxnWrite.Range`'s result is `rangeOutcome` at `ilog ++ [pend]` and `writeRev ilog pend`:
+the transaction reads its own pending revision when it has a change, else the committed log's
+last (an empty pending revision changes nothing).
+
 *Rejected:* the whole `storeTxnWrite` points-to inside `storeTxnWriteIs` for the whole proof of
 `put`/`delete` (the code reads `tw.s` for the lessor after the change is made: the predicate is
 rebuilt at each return through a wand over `tw`'s points-to); `End` holding `s.revMu` for the

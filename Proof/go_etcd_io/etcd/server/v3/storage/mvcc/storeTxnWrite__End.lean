@@ -36,7 +36,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
   have Hti_eq' := mvcc.mkOk_loc_inj _ Hti_eq
   subst Hti_eq'
   iunfold mvcc.batchTxSpec at Hbt
-  icases Hbt with ⟨-, -, #HUnlock0, #HUnlock⟩
+  icases Hbt with ⟨-, -, #HUnlock0, #HUnlock, -⟩
   ihave %Hlen := ownSlice_len chs (DFrac.own 1) ps $$ Hchs
   have hsplit := mvcc.own_half_half (1 : Qp)
   have hpend : pend = [] ↔ chs.len = 0 := by
@@ -55,11 +55,11 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     have hnil : pend = [] := hpend.2 Hif
     subst hnil
     (try wp_auto)
-    ihave HW : mvcc.writerRes s γ $$ [Htoks Hw Hclog Hcur]
+    ihave HW : mvcc.writerRes s γ $$ [Htoks Hw Hclog Hcur Hbv]
     · iunfold mvcc.writerRes
       iexists ilog, ntok
       simp only [named]
-      iframe Htoks Hw Hclog Hcur
+      iframe Htoks Hw Hclog Hcur Hbv
       iframe #
       ipureintro; exact ⟨Hbudget, Hne⟩
     rw [mvcc.pendPuts_nil]
@@ -118,20 +118,27 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
         (W64 (((ilog ++ [pend]).length : Int) - 1) : w64) : IProp GF) $$ [Hcur]
     · rw [← hsplit]; iexact Hcur
     icases ((typedPointsto_dfractional (GF := GF) _ _).dfractional _ _).1 $$ Hcur2 with ⟨HcurL, Hcur⟩
-    -- the batch lock's resource, at the committed log
-    ihave HW : mvcc.writerRes s γ $$ [Htoks Hw Hclog Hcur]
-    · iunfold mvcc.writerRes
+    -- the bucket's full view: `s.revMu`'s half and the writer's
+    ihave Hview : mvcc.bucketView γ 1 (mvcc.bucketMap ilog) $$ [HbucketL Hbv]
+    · iapply (mvcc.bucketView_halves γ 1 _).2
+      iframe HbucketL Hbv
+    -- `tw.tx.Unlock()`: the write-back, then the batch lock's resource at the committed log
+    -- (half the new view), the other half kept for `s.revMu`
+    ihave #HUnlock' := HUnlock $$ %(mvcc.pendPuts ilog pend) %(mvcc.bucketMap ilog)
+      %(mvcc.bucketView γ (1 : Qp).half (mvcc.bucketMap (ilog ++ [pend])))
+    wp_apply HUnlock' $$ [$Hlocked $Hview Htoks Hw Hclog Hcur] as Hbucket
+    · rw [← mvcc.bucketMap_append ilog pend Hne]
+      iintro Hv
+      icases (mvcc.bucketView_halves γ 1 _).1 $$ Hv with ⟨Hv1, Hv2⟩
+      iframe Hv2
+      iunfold mvcc.writerRes
       iexists (ilog ++ [pend]), n
       simp only [named]
-      iframe Htoks Hw Hclog Hcur
+      iframe Htoks Hw Hclog Hcur Hv1
       iframe #
       ipureintro
       exact ⟨by simp; omega, by simp⟩
-    -- `tw.tx.Unlock()`: the write-back
-    ihave #HUnlock' := HUnlock $$ %(mvcc.pendPuts ilog pend) %(mvcc.bucketMap ilog)
-    wp_apply HUnlock' $$ [$Hlocked $HW $HbucketL] as Hbucket
     (try wp_auto)
-    rw [← mvcc.bucketMap_append ilog pend Hne]
     -- `tw.s.revMu.Unlock()`
     wp_if_destruct
     · exfalso

@@ -77,6 +77,7 @@ protobuf's `Marshal` and zap's `Error` are the trust boundary (axioms). -/
 #print axioms Perennial.EtcdGrove.mvcc.storeTxnWrite.wp_delete
 #print axioms Perennial.EtcdGrove.mvcc.storeTxnWrite.wp_deleteRange
 #print axioms Perennial.EtcdGrove.mvcc.storeTxnWrite.wp_DeleteRange
+#print axioms Perennial.EtcdGrove.mvcc.storeTxnWrite.wp_Range
 #print axioms Perennial.EtcdGrove.mvcc.storeTxnWrite.wp_End
 #print axioms Perennial.EtcdGrove.mvcc.storeTxnWrite.wp_Rev
 #print axioms Perennial.EtcdGrove.mvcc.storeTxnWrite.wp_Changes

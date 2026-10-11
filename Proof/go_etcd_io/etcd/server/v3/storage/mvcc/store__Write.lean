@@ -51,7 +51,7 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   ihave #Hbt0 : mvcc.batchTxSpec bt (mvcc.bucketView γ) (mvcc.writerRes s γ) Locked $$ []
   · iexact Hbt
   iunfold mvcc.batchTxSpec at Hbt
-  icases Hbt with ⟨#HLock, -, -, -⟩
+  icases Hbt with ⟨#HLock, -, -, -, -⟩
   -- `tx.LockInsideApply()`: the writer's resources
   wp_apply HLock as ⟨Hlocked, HW⟩
   (try wp_auto)
@@ -72,7 +72,7 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   iexists trace, ti2, bt, Locked, chs, [], ntok
   simp only [named, mvcc.pendPuts_nil]
   simp only [List.replicate_zero]
-  iframe Htoks Htok «$r0» Hchs Hcap Hlocked Hw Hclog Hcur Hmul HrevMuR HtiR
+  iframe Htoks Htok «$r0» Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hmul HrevMuR HtiR
   iframe #
   isplitl []
   · ipureintro; exact Hbudget

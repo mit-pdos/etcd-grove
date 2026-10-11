@@ -76,7 +76,7 @@ theorem mvcc.storeTxnWrite.put.wp_proof
   ihave #Hbt0 : mvcc.batchTxSpec bt (mvcc.bucketView γ) (mvcc.writerRes s γ) Locked $$ []
   · iexact Hbt
   iunfold mvcc.batchTxSpec at Hbt
-  icases Hbt with ⟨-, #HSeqPut, -, -⟩
+  icases Hbt with ⟨-, #HSeqPut, -, -, -⟩
   -- the writer's log
   ihave %Hwf := mvcc.idxWriter_wf γ.idx ilog pend $$ Hw
   obtain ⟨Hwf', Hlen, Hplen, Hcs⟩ := Hwf
@@ -173,14 +173,14 @@ theorem mvcc.storeTxnWrite.put.wp_proof
           tx' := GoInterface.ok bt, beginRev' := W64 ((ilog.length : Int) - 1),
           changes' := chs' } : storeTxnWrite) -∗
         mvcc.storeTxnWriteIs tw s γ ilog (pend ++ [.put k v leaseID]) : IProp GF)
-        $$ [Htoks Htok Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hmu HrevMu Hti Hkv]
+        $$ [Htoks Htok Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hkv]
     · iintro Htw
       iunfold mvcc.storeTxnWriteIs
       iexists trace, ti, bt, Locked, chs', (ps ++ [«$r0_ptr»]), ntok
       simp only [named]
       rw [mvcc.pendPuts_append ilog pend (.put k v leaseID) _ hkvm']
       simp only [mvcc.revOf, mvcc.Change.isDel]
-      iframe Htoks Htok Htw Hchs Hcap Hlocked Hw Hclog Hcur Hmu HrevMu Hti
+      iframe Htoks Htok Htw Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
       iframe #
       isplitl []
       · ipureintro; exact Hbudget
@@ -361,14 +361,14 @@ theorem mvcc.storeTxnWrite.put.wp_proof
           tx' := GoInterface.ok bt, beginRev' := W64 ((ilog.length : Int) - 1),
           changes' := chs' } : storeTxnWrite) -∗
         mvcc.storeTxnWriteIs tw s γ ilog (pend ++ [.put k v leaseID]) : IProp GF)
-        $$ [Htoks Htok Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hmu HrevMu Hti Hkv]
+        $$ [Htoks Htok Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hkv]
     · iintro Htw
       iunfold mvcc.storeTxnWriteIs
       iexists trace, ti, bt, Locked, chs', (ps ++ [«$r0_ptr»]), ntok
       simp only [named]
       rw [mvcc.pendPuts_append ilog pend (.put k v leaseID) _ hkvm']
       simp only [mvcc.revOf, mvcc.Change.isDel]
-      iframe Htoks Htok Htw Hchs Hcap Hlocked Hw Hclog Hcur Hmu HrevMu Hti
+      iframe Htoks Htok Htw Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
       iframe #
       isplitl []
       · ipureintro; exact Hbudget

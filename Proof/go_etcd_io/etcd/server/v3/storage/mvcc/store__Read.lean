@@ -54,9 +54,9 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
   wp_if_destruct <;> (try wp_auto)
   all_goals
     first
-      | (ihave HCq := HC $$ %sync.rfrac %(mvcc.bucketMap log)
+      | (ihave HCq := HC $$ %sync.rfrac.half %(mvcc.bucketMap log)
          wp_apply HCq $$ [$Hbucket] as %rt ⟨Hbucket, #Hsnap⟩)
-      | (ihave HRq := HR $$ %sync.rfrac %(mvcc.bucketMap log)
+      | (ihave HRq := HR $$ %sync.rfrac.half %(mvcc.bucketMap log)
          wp_apply HRq $$ [$Hbucket] as %rt ⟨Hbucket, #Hsnap⟩)
   all_goals
     (try wp_auto)

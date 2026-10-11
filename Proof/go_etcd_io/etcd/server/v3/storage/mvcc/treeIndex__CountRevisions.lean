@@ -37,17 +37,15 @@ theorem mvcc.treeIndex.CountRevisions.wp_proof
     (hVisit : mvcc.treeIndex.unsafeVisit.spec (GF := GF) (hG := hG))
     (hget : mvcc.keyIndex.get.spec (GF := GF) (hG := hG)) :
     mvcc.treeIndex.CountRevisions.spec (GF := GF) (hG := hG) := by
-  intro ti γ log key endk k e atRev e0
-  wp_start as ⟨#Hti, Hrd, #Hcert, %Hrev, #Hkey, #Hend, #Herr⟩
+  intro ti γ kn key endk k e atRev e0
+  generalize hlog : kn.log = log at *
+  wp_start as ⟨#Hti, Hrd, Hkn, %Hrev, #Hkey, #Hend, #Herr⟩
   iunfold mvcc.isTreeIndex at Hti
   iNamed Hti
   iunfold mvcc.idxReader at Hrd
   icases Hrd with ⟨%t', #Htree', Hrd⟩
   icombine Htree Htree' gives %Ht'
   subst Ht'
-  iunfold mvcc.idxCert at Hcert
-  icases Hcert with ⟨#Hclb, #Hcnt, %Hcwf⟩
-  obtain ⟨Hwf0, Hlen0, Hcs0⟩ := Hcwf
   wp_apply wp_with_defer
   iintro %defer Hdefer
   (try wp_auto)
@@ -64,8 +62,8 @@ theorem mvcc.treeIndex.CountRevisions.wp_proof
   obtain ⟨HwfL, HlenL, HpendL, HcsL⟩ := HwfL
   (try wp_auto)
   -- the reader's view is the certified log's
-  ihave %Hcmp := mono_list_lb_valid γ.hist _ _ $$ Hclb HhistL
-  ihave %Hcnt' := monoNatLbOwn_valid γ.nev sync.rfrac _ _ $$ HnevL Hcnt
+  icases mvcc.idxKnows_facts γ kn log hlog ilog pend sync.rfrac $$ Hkn HhistL HnevL with ⟨%Hfacts, Hkn, HnevL⟩
+  obtain ⟨Hcmp, Hcnt', Hwf0, Hlen0, Hcs0⟩ := Hfacts
   obtain ⟨r, hr, hrz⟩ : ∃ r : Nat, atRev = W64 r ∧ sint.Z atRev = r :=
     ⟨(sint.Z atRev).toNat, by
       have h := Int.toNat_of_nonneg Hrev.1
@@ -83,7 +81,7 @@ theorem mvcc.treeIndex.CountRevisions.wp_proof
     have hans : (mvcc.idxGet (mvcc.idxOfEntries L) k).getD mvcc.kiEmpty =
         mvcc.kiOfKey (mvcc.evsOf (ilog ++ [pend])) k := by
       rw [HLL]; exact (mvcc.indexOf_rep _).2 k
-    have hstab := mvcc.reader_answer log ilog pend Hcmp Hcnt'.2 (by omega) Hwf0 Hcs0 k r hrlt
+    have hstab := mvcc.reader_answer log ilog pend Hcmp Hcnt' (by omega) Hwf0 Hcs0 k r hrlt
     have hval : mvcc.kiGetVal ((mvcc.idxGet (mvcc.idxOfEntries L) k).getD mvcc.kiEmpty) (W64 r)
         (GoInterface.ok e0) = mvcc.kiGetVal (mvcc.kiOfKey (mvcc.evsOf log) k) (W64 r) (GoInterface.ok e0) := by
       unfold mvcc.kiGetVal; rw [hans, hstab]
@@ -108,6 +106,7 @@ theorem mvcc.treeIndex.CountRevisions.wp_proof
         exact ⟨HLL, HwfL, HlenL, HpendL, HcsL⟩
       (try wp_auto)
       iapply HΦ
+      iframe Hkn
       iunfold mvcc.idxReader
       iexists t
       iframe Hrd
@@ -131,12 +130,13 @@ theorem mvcc.treeIndex.CountRevisions.wp_proof
         exact ⟨HLL, HwfL, HlenL, HpendL, HcsL⟩
       (try wp_auto)
       iapply HΦ
+      iframe Hkn
       iunfold mvcc.idxReader
       iexists t
       iframe Hrd
       iexact Htree
   · -- `end != nil`: `ti.unsafeVisit(key, end, f)`
-    rw [mvcc.rangeAnswers_entries log ilog pend L Hcmp Hcnt'.2 (by omega) Hwf0 Hcs0 HLL k e r hrlt]
+    rw [mvcc.rangeAnswers_entries log ilog pend L Hcmp Hcnt' (by omega) Hwf0 Hcs0 HLL k e r hrlt]
     ipersist atRev
     ipersist ti
     wp_apply (hVisit ti t L sync.rfrac key endk k e _
@@ -226,6 +226,7 @@ theorem mvcc.treeIndex.CountRevisions.wp_proof
     rw [List.take_length] at Htot
     subst Htot
     iapply HΦ
+    iframe Hkn
     iunfold mvcc.idxReader
     iexists t
     iframe Hrd

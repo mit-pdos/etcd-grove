@@ -64,7 +64,7 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
   ihave #Hbt0 : mvcc.batchTxSpec bt (mvcc.bucketView γ) (mvcc.writerRes s γ) Locked $$ []
   · iexact Hbt
   iunfold mvcc.batchTxSpec at Hbt
-  icases Hbt with ⟨-, #HSeqPut, -, -⟩
+  icases Hbt with ⟨-, #HSeqPut, -, -, -⟩
   -- the writer's log
   ihave %Hwf := mvcc.idxWriter_wf γ.idx ilog pend $$ Hw
   obtain ⟨Hwf', Hlen, Hplen, Hcs⟩ := Hwf
@@ -141,7 +141,7 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
       iunfold mvcc.storeTxnWriteIs
       iexists trace, ti, bt, Locked, chs, ps, ntok
       simp only [named]
-      iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hmu HrevMu Hti
+      iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
       iframe #
       ipureintro; exact ⟨Hbudget, Hps, Hne⟩
     · -- the loop: `for _, key := range keys { tw.delete(key) }`
@@ -149,11 +149,11 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
       have hnodup := mvcc.delKeys_nodup ilog pend (decide (endk = slice.nil)) k e
       rw [hks] at hpres hnodup
       ihave Htx : mvcc.storeTxnWriteIs tw s γ ilog pend
-          $$ [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hmu HrevMu Hti]
+          $$ [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti]
       · iunfold mvcc.storeTxnWriteIs
         iexists trace, ti, bt, Locked, chs, ps, ntok
         simp only [named]
-        iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hmu HrevMu Hti
+        iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
         iframe #
         ipureintro; exact ⟨Hbudget, Hps, Hne⟩
       (try wp_auto)
@@ -299,7 +299,7 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
       iunfold mvcc.storeTxnWriteIs
       iexists trace, ti, bt, Locked, chs, ps, ntok
       simp only [named]
-      iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hmu HrevMu Hti
+      iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
       iframe #
       ipureintro; exact ⟨Hbudget, Hps, Hne⟩
     · -- the loop: `for _, key := range keys { tw.delete(key) }`
@@ -307,11 +307,11 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
       have hnodup := mvcc.delKeys_nodup ilog pend (decide (endk = slice.nil)) k e
       rw [hks] at hpres hnodup
       ihave Htx : mvcc.storeTxnWriteIs tw s γ ilog pend
-          $$ [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hmu HrevMu Hti]
+          $$ [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti]
       · iunfold mvcc.storeTxnWriteIs
         iexists trace, ti, bt, Locked, chs, ps, ntok
         simp only [named]
-        iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hmu HrevMu Hti
+        iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
         iframe #
         ipureintro; exact ⟨Hbudget, Hps, Hne⟩
       (try wp_auto)
